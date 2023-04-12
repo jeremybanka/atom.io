@@ -1,0 +1,14 @@
+node_modules
+dist
+gen
+!app/node/forge/gen
+coverage
+package-lock.json
+.DS_STORE
+lab
+.env
+*.js
+!.eslintrc.js
+*.js.map
+projects
+.turbo

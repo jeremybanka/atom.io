@@ -1,0 +1,49 @@
+{
+  "name": "@wayforge/monorepo",
+  "version": "0.0.0",
+  "description": "choose your path",
+  "repository": "https://github.com/jeremybanka/wayforge",
+  "author": "jeremybanka",
+  "license": "GPL-3.0",
+  "private": true,
+  "packageManager": "yarn@3.5.0",
+  "scripts": {
+    "lodge": "cd app/node/lodge && yarn start",
+    "dev": "cd app/web/smithy && yarn dev",
+    "serve": "cd app/node/forge && yarn dev",
+    "gen": "cd app/node/forge && yarn gen",
+    "lint": "turbo run lint",
+    "format": "eslint --fix",
+    "build": "turbo run build",
+    "test": "cross-env CI=true turbo run test:once",
+    "release": "yarn build && changeset publish",
+    "notes": "changeset"
+  },
+  "workspaces": [
+    "app/web/*",
+    "app/node/*",
+    "packages/*",
+    "packages/@banka/*",
+    "packages/@banka/eslint-config/react",
+    "lib"
+  ],
+  "devDependencies": {
+    "@changesets/cli": "2.26.1",
+    "c8": "7.13.0",
+    "cross-env": "7.0.3",
+    "eslint": "8.38.0",
+    "fs-extra": "11.1.1",
+    "jest-environment-jsdom": "29.5.0",
+    "json-schema-to-zod": "0.6.3",
+    "mock-fs": "5.2.0",
+    "prettier": "2.8.7",
+    "tsx": "3.12.6",
+    "turbo": "1.8.8",
+    "typescript": "5.0.4"
+  },
+  "keywords": [
+    "react",
+    "express",
+    "typescript"
+  ]
+}

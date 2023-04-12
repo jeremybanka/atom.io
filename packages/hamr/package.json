@@ -1,0 +1,46 @@
+{
+  "name": "hamr",
+  "version": "0.1.0",
+  "description": "core react and recoil utilities for wayforge",
+  "main": "object/index.ts",
+  "files": [
+    "**/*"
+  ],
+  "dependencies": {
+    "ajv": "8.12.0",
+    "fp-ts": "2.13.1"
+  },
+  "scripts": {
+    "build": "tsup",
+    "lint": "eslint",
+    "test": "vitest",
+    "test:once": "vitest run"
+  },
+  "devDependencies": {
+    "@emotion/react": "11.10.6",
+    "@testing-library/jest-dom": "5.16.5",
+    "@testing-library/react": "14.0.0",
+    "eslint": "8.38.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-router-dom": "6.10.0",
+    "tsup": "6.7.0",
+    "vitest": "0.29.8"
+  },
+  "peerDependencies": {
+    "@emotion/react": "11.10.6",
+    "react": "^18.2.0",
+    "react-router-dom": "^6.8.1",
+    "recoil": "^0.7.6"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeremybanka/wayforge.git"
+  },
+  "license": "MIT",
+  "sideEffects": false,
+  "author": "Jeremy Banka",
+  "publishConfig": {
+    "access": "public"
+  }
+}

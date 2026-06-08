@@ -6,7 +6,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/jeremybanka/wayforge.git",
+		"url": "git+https://github.com/jeremybanka/atom.io.git",
 		"directory": "templates/react-node-backend"
 	},
 	"type": "module",

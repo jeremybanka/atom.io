@@ -418,7 +418,7 @@ async function prepareTestbed(
 		publishedPackages.map((pkg) => [pkg.name, `latest`]),
 	)
 	const packageJson = {
-		name: `wayforge-vigilance-testbed`,
+		name: `atom.io-vigilance-testbed`,
 		private: true,
 		packageManager: rootPackageJson.packageManager,
 		dependencies,
@@ -1167,7 +1167,7 @@ async function runLatestPackageProbe(input: {
 		path.join(probePath, `package.json`),
 		`${JSON.stringify(
 			{
-				name: `wayforge-vigilance-probe`,
+				name: `atom.io-vigilance-probe`,
 				private: true,
 				packageManager: input.packageManager,
 				dependencies: { [input.packageName]: `latest` },

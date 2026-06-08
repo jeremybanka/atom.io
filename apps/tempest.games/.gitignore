@@ -1,6 +1,0 @@
-app
-tribunal.cache.json
-.env.*
-!.env.defaults
-*.pem
-storage

@@ -62,11 +62,8 @@ const COMMON: Linter.Config = {
 }
 
 const NO_CONSOLE: Linter.Config = {
-	files: [
-		`packages/atom.io/**/src/**/*.ts{,x}`,
-		`apps/tempest.games/src/**/*.ts{,x}`,
-	],
-	ignores: [`apps/tempest.games/src/frontend/**/*.ts{,x}`, `**/*.test.ts`],
+	files: [`packages/atom.io/**/src/**/*.ts{,x}`],
+	ignores: [`**/*.test.ts`],
 	rules: {
 		"no-console": ERROR,
 	},
@@ -106,27 +103,4 @@ const STORYBOOK: Linter.Config = {
 	},
 }
 
-const DRIZZLE: Linter.Config = {
-	files: [`apps/tempest.games/src/**/*.ts{,x}`],
-	plugins: {
-		drizzle: DrizzlePlugin,
-	},
-	ignores: [`apps/tempest.games/src/frontend/**/*.ts{,x}`, `**/*.test.ts`],
-	rules: {
-		"drizzle/enforce-update-with-where": ERROR,
-		"drizzle/enforce-delete-with-where": [
-			ERROR,
-			{
-				drizzleObjectName: `db.drizzle`,
-			},
-		],
-	},
-}
-
-export default [
-	IGNORES,
-	COMMON,
-	NO_CONSOLE,
-	STORYBOOK,
-	DRIZZLE,
-] satisfies Linter.Config[]
+export default [IGNORES, COMMON, NO_CONSOLE, STORYBOOK] satisfies Linter.Config[]

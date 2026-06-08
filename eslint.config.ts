@@ -62,9 +62,7 @@ const COMMON: Linter.Config = {
 }
 
 const NO_CONSOLE: Linter.Config = {
-	files: [
-		`packages/atom.io/**/src/**/*.ts{,x}`,
-	],
+	files: [`packages/atom.io/**/src/**/*.ts{,x}`],
 	ignores: [`**/*.test.ts`],
 	rules: {
 		"no-console": ERROR,
@@ -105,9 +103,4 @@ const STORYBOOK: Linter.Config = {
 	},
 }
 
-export default [
-	IGNORES,
-	COMMON,
-	NO_CONSOLE,
-	STORYBOOK,
-] satisfies Linter.Config[]
+export default [IGNORES, COMMON, NO_CONSOLE, STORYBOOK] satisfies Linter.Config[]

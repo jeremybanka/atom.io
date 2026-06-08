@@ -1,1 +1,0 @@
-ALTER TABLE "userTokens" ALTER COLUMN "token" SET DATA TYPE varchar(9);

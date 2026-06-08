@@ -23,7 +23,7 @@ jobs:
           client-id: ${{ vars.CHANGESETS_APP_CLIENT_ID }}
           private-key: ${{ secrets.CHANGESETS_APP_PK_2OJEM1SH }}
           owner: jeremybanka
-          repositories: wayforge
+          repositories: atom.io
           permission-contents: write
           permission-pull-requests: write
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -38,11 +38,3 @@ jobs:
           version: ./scripts/version.sh
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-      # - name: klaxon
-      #   if: steps.changesets.outputs.hasChangesets == 'false'
-      #   run: |
-      #     bun ./packages/flightdeck/src/klaxon.x.ts \
-      #     --packageConfig='{"tempest.games":{"endpoint":"https://flightdeck.tempest.games/"}}' \
-      #     --secretsConfig='${{ secrets.FLIGHTDECK_SECRETS }}' \
-      #     --publishedPackages='${{ steps.changesets.outputs.publishedPackages }}' \
-      #     -- scramble

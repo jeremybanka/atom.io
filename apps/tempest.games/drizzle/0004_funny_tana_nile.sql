@@ -1,1 +1,0 @@
-ALTER TABLE "loginHistory" DROP COLUMN IF EXISTS "geoLocation";

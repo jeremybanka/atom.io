@@ -11,7 +11,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/jeremybanka/wayforge.git",
+		"url": "git+https://github.com/jeremybanka/atom.io.git",
 		"directory": "packages/create-atom"
 	},
 	"type": "module",
@@ -30,7 +30,7 @@
 		"@atom.io/template-solid-lossless-numbers": "workspace:*",
 		"@clack/prompts": "1.5.1",
 		"arktype": "2.2.0",
-		"comline": "workspace:*",
+		"comline": "0.4.6",
 		"local-pkg": "1.2.1",
 		"tinyexec": "1.2.4"
 	},

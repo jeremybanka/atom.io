@@ -6,7 +6,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/jeremybanka/wayforge.git",
+		"url": "git+https://github.com/jeremybanka/atom.io.git",
 		"directory": "templates/solid-lossless-numbers"
 	},
 	"type": "module",
@@ -17,7 +17,7 @@
 	},
 	"dependencies": {
 		"atom.io": "workspace:*",
-		"rationality": "workspace:*",
+		"rationality": "0.1.0",
 		"solid-js": "1.9.13"
 	},
 	"devDependencies": {

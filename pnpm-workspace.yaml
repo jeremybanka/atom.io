@@ -10,7 +10,6 @@ packages:
   - "templates/*"
 
 allowBuilds:
-  "@swc/core": true
   dprint: true
   "esbuild": true
   "rolldown": true

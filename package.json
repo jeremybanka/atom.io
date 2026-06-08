@@ -1,9 +1,8 @@
 {
-	"name": "@wayforge/monorepo",
+	"name": "@atom.io/monorepo",
 	"version": "0.0.0",
-	"description": "choose your path",
 	"type": "module",
-	"repository": "https://github.com/jeremybanka/wayforge",
+	"repository": "https://github.com/jeremybanka/atom.io",
 	"author": "jeremybanka",
 	"license": "GPL-3.0",
 	"private": true,

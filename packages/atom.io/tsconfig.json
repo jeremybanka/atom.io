@@ -5,6 +5,7 @@
 		"jsx": "react-jsx",
 		"jsxImportSource": "react",
 		"types": ["vitest/globals"],
+		"lib": ["DOM", "ESNext"],
 		"noEmit": true,
 		"declaration": true,
 		"allowJs": false,

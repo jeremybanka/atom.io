@@ -1,6 +1,5 @@
 /* oxlint-disable typescript/only-throw-error */
 import * as http from "node:http"
-import * as os from "node:os"
 
 import type { Json } from "atom.io/json"
 import { drizzle } from "drizzle-orm/postgres-js"
@@ -14,23 +13,23 @@ if (LOGGING) console.log(`Server starting...`)
 
 const PORT = process.env[`PORT`] ?? 8080
 const ORIGIN = `http://localhost:${PORT}`
-const DB_HOST = `localhost`
+const DB_HOST = process.env[`DB_HOST`] ?? process.env[`PGHOST`] ?? `localhost`
 const DB_NAME = process.env[`DB_NAME`]
+const DB_PORT = Number(process.env[`DB_PORT`] ?? process.env[`PGPORT`] ?? 5432)
+const DB_USER = process.env[`DB_USER`] ?? process.env[`PGUSER`] ?? `postgres`
+const DB_PASSWORD = process.env[`DB_PASSWORD`] ?? process.env[`PGPASSWORD`]
 
 if (DB_NAME === undefined) {
 	throw new Error(`DB_NAME environment variable is not set`)
 }
 
-const osUser = os.userInfo().username
-const user = osUser === `runner` ? `postgres` : osUser
-
 const main = async () => {
 	const sql = postgres({
-		user,
 		host: DB_HOST,
 		database: DB_NAME,
-		password: `your_password`,
-		port: 5432,
+		password: DB_PASSWORD,
+		port: DB_PORT,
+		user: DB_USER,
 	})
 
 	await sql.listen(`table_update`, (message) => {

@@ -307,10 +307,11 @@ Often, the data you need is not immediately available. For example, you may need
 
 Here is an example where we read a query parameter from the URL, then use it to fetch data from a server. This is a great pattern, because the selector's value will be cached as long as the URL parameter does not change.
 
-For fetched, queried, and RPC-backed state that needs clearer cache identity or more
-deliberate normalization, see the [remote data guide](/docs/remote-data). It covers
-compact query atoms, loadable families keyed by input, and local-index patterns for
-filtered or optimistic list screens.
+For query data, fetched data, and RPC (remote procedure call) state that needs
+clearer cache identity or more deliberate normalization, see the
+[remote data guide](/docs/remote-data). It covers compact query atoms, loading
+and suspense-like async patterns, loadable families keyed by input, and
+local-index patterns for filtered or optimistic list screens.
 
 <AvoidRaceBetweenPromises client:load />
 

@@ -3,7 +3,7 @@
 	"version": "0.47.2",
 	"description": "Versatile state engine for TypeScript applications.",
 	"homepage": "https://atom.io.fyi",
-	"agentDocs": "./docs/agent/README.md",
+	"agentDocs": "./AGENTS.md",
 	"sideEffects": false,
 	"type": "module",
 	"license": "MIT",
@@ -133,7 +133,7 @@
 	"files": [
 		"dist",
 		"src",
-		"docs/README.md",
+		"AGENTS.md",
 		"docs/agent"
 	],
 	"exports": {

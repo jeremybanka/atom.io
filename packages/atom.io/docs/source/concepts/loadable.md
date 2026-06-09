@@ -20,3 +20,5 @@ error information.
 
 Use loadable state when data comes from an asynchronous source but still needs
 to participate in atom.io's reactive graph.
+
+For fetched, queried, and RPC-backed state, see the [remote data guide](/docs/remote-data).

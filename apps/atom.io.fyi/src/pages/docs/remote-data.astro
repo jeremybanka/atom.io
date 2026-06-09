@@ -1,0 +1,217 @@
+---
+import Layout from "../../layouts/LayoutDocs.astro"
+
+type ConceptModule = {
+	frontmatter: {
+		slug: string
+		title: string
+	}
+}
+
+type PatternModule = {
+	Content: () => unknown
+	frontmatter: {
+		order?: number
+		packages?: string[]
+		related?: string[]
+		slug: string
+		summary: string
+		title: string
+	}
+}
+
+const conceptModules = import.meta.glob<ConceptModule>(
+	"../../../../../packages/atom.io/docs/source/concepts/*.md",
+	{ eager: true },
+)
+const conceptLabelBySlug = new Map(
+	Object.values(conceptModules).map(({ frontmatter }) => [
+		frontmatter.slug,
+		frontmatter.title.toLowerCase(),
+	]),
+)
+
+const patternModules = import.meta.glob<PatternModule>(
+	"../../../../../packages/atom.io/docs/source/patterns/*.mdx",
+	{ eager: true },
+)
+const patterns = Object.values(patternModules)
+	.map((pattern) => ({
+		Content: pattern.Content,
+		frontmatter: pattern.frontmatter,
+	}))
+	.sort(
+		(a, b) =>
+			(a.frontmatter.order ?? Number.POSITIVE_INFINITY) -
+				(b.frontmatter.order ?? Number.POSITIVE_INFINITY) ||
+			a.frontmatter.title.localeCompare(b.frontmatter.title),
+	)
+---
+
+<Layout>
+	<header class="patterns-intro">
+		<h1>remote data</h1>
+		<p>
+			Patterns for fetched, queried, and RPC-backed state in atom.io. These
+			recipes pair especially well with typed clients such as tRPC, oRPC, and
+			Elysia + Eden.
+		</p>
+	</header>
+	{patterns.map(({ Content, frontmatter }) => (
+		<section class="pattern-module" aria-labelledby={frontmatter.slug}>
+			<header>
+				<h2 id={frontmatter.slug}>{frontmatter.title.toLowerCase()}</h2>
+				<p>
+					<span>{frontmatter.summary}</span>
+				</p>
+			</header>
+			<div class="pattern-metadata" aria-label={`${frontmatter.title} metadata`}>
+				<section>
+					<h3>packages</h3>
+					<ul>
+						{(frontmatter.packages ?? ["atom.io"]).map((packageName) => (
+							<li>{packageName}</li>
+						))}
+					</ul>
+				</section>
+				{frontmatter.related && frontmatter.related.length > 0 && (
+					<section>
+						<h3>related</h3>
+						<ul>
+							{frontmatter.related.map((slug) => (
+								<li>
+									<a href={`/docs/concepts#${slug}`}>
+										{conceptLabelBySlug.get(slug) ?? slug}
+									</a>
+								</li>
+							))}
+						</ul>
+					</section>
+				)}
+			</div>
+			<div class="pattern-body">
+				<Content />
+			</div>
+		</section>
+	))}
+</Layout>
+
+<style>
+.patterns-intro {
+	display: flex;
+	flex-flow: column;
+	gap: 0.55rem;
+	padding-bottom: 0.6rem;
+}
+
+.pattern-module {
+	display: flex;
+	flex-flow: column;
+	gap: 1rem;
+	padding: 1.05rem;
+	border: 1px solid var(--bg-soft-glass-3);
+	border-radius: 8px;
+	background: rgb(from var(--bg-soft-glass-2) r g b / 25%);
+	box-shadow: 0 18px 48px -36px var(--bg-shadow-2);
+
+	> header {
+		display: flex;
+		flex-flow: column;
+		gap: 0.45rem;
+
+		p {
+			display: flex;
+			flex-flow: row wrap;
+			gap: 0.65rem;
+			align-items: baseline;
+			color: var(--fg-soft-1);
+
+			code,
+			span {
+				font-size: 1rem;
+				line-height: 1.5;
+			}
+
+			code {
+				flex: 0 0 auto;
+				color: var(--fg-soft-2);
+			}
+
+			span {
+				flex: 1 1 18rem;
+			}
+		}
+	}
+
+	h2 {
+		margin-top: 0;
+		scroll-margin-top: 1.25rem;
+	}
+}
+
+.pattern-metadata {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.6rem;
+
+	@media screen and (max-width: 560px) {
+		grid-template-columns: 1fr;
+	}
+
+	> section {
+		display: flex;
+		flex-flow: column;
+		gap: 0.45rem;
+		padding: 0.7rem;
+		border: 1px solid var(--bg-soft-glass-3);
+		border-radius: 6px;
+		background: rgb(from var(--bg-hard-1) r g b / 55%);
+	}
+
+	h3 {
+		margin: 0;
+		color: var(--fg-soft-2);
+		font-size: 0.78rem;
+		font-weight: 750;
+		line-height: 1;
+	}
+
+	ul {
+		display: flex;
+		flex-flow: row wrap;
+		gap: 0.35rem;
+		width: 100%;
+		margin: 0;
+		list-style: none;
+	}
+
+	li {
+		display: inline-flex;
+		align-items: center;
+		min-height: 1.8rem;
+		margin: 0;
+		padding: 0.28rem 0.5rem;
+		border-radius: 999px;
+		background: var(--bg-soft-2);
+		color: var(--fg-soft-1);
+		font-size: 0.86rem;
+		font-weight: 650;
+	}
+
+	a {
+		color: var(--fg-soft-1);
+		text-decoration: none;
+
+		&:hover {
+			color: var(--hyperlink-hover-color);
+		}
+	}
+}
+
+.pattern-body {
+	display: flex;
+	flex-flow: column;
+	gap: 0.7rem;
+	padding-top: 0.15rem;
+}
+</style>

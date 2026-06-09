@@ -3,10 +3,11 @@
 import fs from "node:fs/promises"
 import path from "node:path"
 
-type Concept = {
+type StructuredDoc = {
 	body: string
 	file: string
 	frontmatter: {
+		order?: number
 		packages: string[]
 		related: string[]
 		slug: string
@@ -37,6 +38,7 @@ const PACKAGE_AGENT_DOCS_ROOT = path.join(ATOM_IO_ROOT, `docs`, `agent`)
 const SITE_AGENT_DOCS_ROOT = path.join(ATOM_IO_FYI_ROOT, `agent-docs`)
 const PUBLIC_ROOT = path.join(ATOM_IO_FYI_ROOT, `public`)
 const CONCEPTS_ROOT = path.join(DOCS_SOURCE_ROOT, `concepts`)
+const PATTERNS_ROOT = path.join(DOCS_SOURCE_ROOT, `patterns`)
 const EXHIBITS_ROOT = path.join(DOCS_SOURCE_ROOT, `exhibits`)
 const BACKTICK = `\``
 const FENCE = BACKTICK.repeat(3)
@@ -222,19 +224,23 @@ function parseFrontmatter(contents: string): {
 	return { body, frontmatter }
 }
 
-function readConcept(contents: string, file: string): Concept {
+function readStructuredDoc(contents: string, file: string): StructuredDoc {
 	const { body, frontmatter } = parseFrontmatter(contents)
 	const packages = frontmatter[`packages`] ?? `atom.io`
 	const related = frontmatter[`related`] ?? ``
+	const rawOrder = Array.isArray(frontmatter[`order`])
+		? Number.NaN
+		: Number(frontmatter[`order`])
 	return {
 		body,
 		file,
 		frontmatter: {
+			order: Number.isFinite(rawOrder) ? rawOrder : undefined,
 			packages: Array.isArray(packages) ? packages : parseListValue(packages),
 			related: Array.isArray(related) ? related : parseListValue(related),
 			slug: Array.isArray(frontmatter[`slug`])
-				? path.basename(file, `.md`)
-				: (frontmatter[`slug`] ?? path.basename(file, `.md`)),
+				? path.basename(file).replace(/\.mdx?$/, ``)
+				: (frontmatter[`slug`] ?? path.basename(file).replace(/\.mdx?$/, ``)),
 			summary: Array.isArray(frontmatter[`summary`])
 				? ``
 				: (frontmatter[`summary`] ?? ``),
@@ -243,6 +249,18 @@ function readConcept(contents: string, file: string): Concept {
 				: (frontmatter[`title`] ?? slugToTitle(file)),
 		},
 	}
+}
+
+function liftMarkdownHeadings(contents: string): string {
+	return contents.replaceAll(/^(#{2,6})\s+/gm, (_match, hashes: string) => {
+		return `${`#`.repeat(Math.max(2, hashes.length - 1))} `
+	})
+}
+
+function compareStructuredDocs(a: StructuredDoc, b: StructuredDoc): number {
+	const orderA = a.frontmatter.order ?? Number.POSITIVE_INFINITY
+	const orderB = b.frontmatter.order ?? Number.POSITIVE_INFINITY
+	return orderA - orderB || a.frontmatter.title.localeCompare(b.frontmatter.title)
 }
 
 function extractImportMap(contents: string): Map<string, string> {
@@ -257,7 +275,7 @@ function extractImportMap(contents: string): Map<string, string> {
 
 function stripMdxBoilerplate(contents: string): string {
 	return contents
-		.replaceAll(/^import\s+[\s\S]*?;$/gm, ``)
+		.replaceAll(/^import\s+.+$/gm, ``)
 		.replaceAll(/<\/?Layout>/g, ``)
 		.replaceAll(/<span[^>]*>([\s\S]*?)<\/span>/g, `$1`)
 		.replaceAll(/\{\/\*[\s\S]*?\*\/\}/g, ``)
@@ -584,19 +602,75 @@ async function renderDocPage(page: DocPage): Promise<string> {
 	)
 }
 
-function renderConcept(concept: Concept): string {
-	const { frontmatter } = concept
+async function renderStructuredBody(
+	doc: StructuredDoc,
+	options?: {
+		bodyTransform?: (body: string) => string
+	},
+): Promise<string> {
+	const importMap = extractImportMap(doc.body)
+	const stripped = stripMdxBoilerplate(doc.body)
+	const withTables = convertTables(stripped)
+	const withCodeBlocks = replaceCodeBlocks(withTables)
+	const withExhibits = await replaceExhibits(withCodeBlocks, importMap)
+	const withoutJsx = omitUnknownJsx(withExhibits)
+	return options?.bodyTransform
+		? options.bodyTransform(withoutJsx)
+		: withoutJsx
+}
+
+async function renderStructuredDoc(
+	doc: StructuredDoc,
+	options?: {
+		bodyTransform?: (body: string) => string
+	},
+): Promise<string> {
+	const { frontmatter } = doc
 	return normalizeMarkdown(
 		[
 			`# ${frontmatter.title}`,
 			``,
 			frontmatter.summary,
 			``,
-			`Source: ${concept.file}`,
+			`Source: ${doc.file}`,
 			`Packages: ${frontmatter.packages.join(`, `)}`,
 			`Related: ${frontmatter.related.join(`, `) || `none`}`,
 			``,
-			concept.body,
+			await renderStructuredBody(doc, options),
+		].join(`\n`),
+	)
+}
+
+async function renderRemoteDataDoc(patterns: StructuredDoc[]): Promise<string> {
+	return normalizeMarkdown(
+		[
+			`# remote data`,
+			``,
+			`Source: docs/source/patterns`,
+			`URL: /docs/remote-data`,
+			``,
+			`atom.io works especially well with fetched state backed by a type-safe RPC contract such as tRPC, oRPC, or Elysia + Eden.`,
+			``,
+			`Start with:`,
+			``,
+			`- patterns/loadable-remote-state.md for contract-shaped query atoms and families`,
+			`- patterns/loadable-local-indices.md for filtered, paginated, or optimistic list screens`,
+			``,
+			...(await Promise.all(
+				patterns.map(async (pattern) => {
+					return [
+						`## ${pattern.frontmatter.title}`,
+						``,
+						pattern.frontmatter.summary,
+						``,
+						`Source: ${pattern.file}`,
+						`Packages: ${pattern.frontmatter.packages.join(`, `)}`,
+						`Related: ${pattern.frontmatter.related.join(`, `) || `none`}`,
+						``,
+						await renderStructuredBody(pattern),
+					].join(`\n`)
+				}),
+			)),
 		].join(`\n`),
 	)
 }
@@ -676,7 +750,7 @@ async function main(): Promise<void> {
 	)
 	const concepts = await Promise.all(
 		conceptFiles.map(async (file) => {
-			return readConcept(
+			return readStructuredDoc(
 				await fs.readFile(file, `utf8`),
 				path.relative(ATOM_IO_ROOT, file),
 			)
@@ -691,11 +765,47 @@ async function main(): Promise<void> {
 				`concepts`,
 				`${concept.frontmatter.slug}.md`,
 			),
-			renderConcept(concept),
+			await renderStructuredDoc(concept),
 		)
 	}
 
 	const docEntries = []
+	const patternFiles = (await listFiles(PATTERNS_ROOT)).filter((file) =>
+		file.endsWith(`.mdx`),
+	)
+	const patterns = await Promise.all(
+		patternFiles.map(async (file) => {
+			return readStructuredDoc(
+				await fs.readFile(file, `utf8`),
+				path.relative(ATOM_IO_ROOT, file),
+			)
+		}),
+	)
+	patterns.sort(compareStructuredDocs)
+
+	for (const pattern of patterns) {
+		await writeFile(
+			path.join(
+				PACKAGE_AGENT_DOCS_ROOT,
+				`patterns`,
+				`${pattern.frontmatter.slug}.md`,
+			),
+			await renderStructuredDoc(pattern, { bodyTransform: liftMarkdownHeadings }),
+		)
+	}
+
+	const remoteDataDoc = await renderRemoteDataDoc(patterns)
+	await writeFile(
+		path.join(PACKAGE_AGENT_DOCS_ROOT, `packages`, `remote-data.md`),
+		remoteDataDoc,
+	)
+	docEntries.push({
+		output: `packages/remote-data.md`,
+		source: `docs/source/patterns`,
+		title: `remote data`,
+		url: `/docs/remote-data`,
+	})
+
 	for (const page of DOC_PAGES) {
 		const contents = await renderDocPage(page)
 		await writeFile(
@@ -738,6 +848,15 @@ async function main(): Promise<void> {
 			summary: concept.frontmatter.summary,
 			title: concept.frontmatter.title,
 		})),
+		patterns: patterns.map((pattern) => ({
+			output: `patterns/${pattern.frontmatter.slug}.md`,
+			packages: pattern.frontmatter.packages,
+			related: pattern.frontmatter.related,
+			slug: pattern.frontmatter.slug,
+			source: pattern.file,
+			summary: pattern.frontmatter.summary,
+			title: pattern.frontmatter.title,
+		})),
 		docs: docEntries,
 		examples: exampleEntries.sort((a, b) => a.output.localeCompare(b.output)),
 	}
@@ -748,7 +867,7 @@ async function main(): Promise<void> {
 			``,
 			`This directory is generated from atom.io-owned docs source for AI agents working in projects that use atom.io.`,
 			`Use these files when you need to implement, debug, review, or repair atom.io code without browsing the web.`,
-			`The corpus is plain Markdown, easy to grep, and organized around concepts, package guides, and source-linked examples.`,
+			`The corpus is plain Markdown, easy to grep, and organized around concepts, package guides, patterns, and source-linked examples.`,
 			``,
 			`Start with:`,
 			``,
@@ -759,6 +878,8 @@ async function main(): Promise<void> {
 			`- concepts/join.md for relations across atom families`,
 			`- packages/atom.io.md for the main package docs`,
 			`- packages/atom.io-react.md for React bindings`,
+			`- packages/remote-data.md for fetched, queried, and RPC-backed state`,
+			`- patterns/ for reusable remote-data recipes`,
 			`- examples/ for original exhibit source files`,
 			`- manifest.json for a deterministic index of every generated doc`,
 			``,
@@ -766,6 +887,7 @@ async function main(): Promise<void> {
 		].join(`\n`),
 	)
 	await writeFile(path.join(PACKAGE_AGENT_DOCS_ROOT, `README.md`), readme)
+	await writeFile(path.join(PACKAGE_AGENT_DOCS_ROOT, `AGENTS.md`), readme)
 	await writeFile(
 		path.join(PACKAGE_AGENT_DOCS_ROOT, `manifest.json`),
 		`${JSON.stringify(manifest, null, `\t`)}\n`,
@@ -785,6 +907,7 @@ async function main(): Promise<void> {
 				`- Full generated corpus: /llms-full.txt`,
 				`- Concepts glossary: /docs/concepts`,
 				`- Main docs: /docs`,
+				`- Remote/RPC data guide: /docs/remote-data`,
 				`- React bindings: /docs/react`,
 				`- JSON and transceivers: /docs/json and /transceivers`,
 				``,
@@ -795,7 +918,15 @@ async function main(): Promise<void> {
 
 		const llmsFullParts = [
 			readme,
-			...concepts.map(renderConcept),
+			...(await Promise.all(
+				concepts.map((concept) => renderStructuredDoc(concept)),
+			)),
+			remoteDataDoc,
+			...(await Promise.all(
+				patterns.map((pattern) =>
+					renderStructuredDoc(pattern, { bodyTransform: liftMarkdownHeadings }),
+				),
+			)),
 			...(await Promise.all(DOC_PAGES.map(renderDocPage))),
 		]
 		await writeFile(

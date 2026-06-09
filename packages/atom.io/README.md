@@ -42,4 +42,7 @@ npm i atom.io
 
 ## 🤖 Building with an AI Agent?
 
-`atom.io` ships easy-to-grep documentation inside its own SDK. After installing, point your agent at `node_modules/atom.io/docs/agent/` for concepts, package guides, and source-linked examples.
+`atom.io` ships easy-to-grep documentation inside its own SDK. After installing,
+start with `node_modules/atom.io/AGENTS.md`. It points to
+`node_modules/atom.io/docs/agent/` for concepts, package guides, remote-data
+patterns, and source-linked examples.

@@ -15,5 +15,5 @@ Start with:
 Notes:
 
 - The generated corpus lives under `docs/agent/` and is plain Markdown.
-- `atom.io` pairs especially well with type-safe RPC contracts such as tRPC, oRPC, and Elysia + Eden.
+- `atom.io` pairs especially well with type-safe RPC contracts such as [tRPC](https://trpc.io), [oRPC](https://orpc.unnoq.com), and [Elysia](https://elysiajs.com) + Eden.
 - In the source repository, authored docs live under `packages/atom.io/docs/source`.

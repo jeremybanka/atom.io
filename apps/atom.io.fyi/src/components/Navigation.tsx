@@ -196,6 +196,11 @@ function SiteDirectory(): VNode {
 							</a>
 						</section>
 						<section>
+							<a id="-docs-remote-data-link" href="/docs/remote-data">
+								remote data
+							</a>
+						</section>
+						<section>
 							<a
 								id="-docs-atom-io-vs-others-link"
 								href="/docs/atom-io-vs-others"

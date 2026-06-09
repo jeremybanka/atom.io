@@ -23,6 +23,10 @@ For compact remote values, store the typed client result directly:
 
 <CompactRemoteValues client:load />
 
+In `catch`, order error constructors from narrow to wide. `atom.io` matches them
+in declaration order, so route-specific or domain-specific errors should come
+before broad fallbacks such as `Error`.
+
 Guidance:
 
 - Keep remote atom defaults close to the remote contract.

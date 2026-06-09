@@ -5,7 +5,9 @@ import LoadableLocalIndex from "x/guides/remote-data/loadable-local-index.gen";
 # remote data
 
 `atom.io` works especially well with fetched state backed by a type-safe RPC
-contract such as tRPC, oRPC, or Elysia + Eden.
+contract such as [tRPC](https://trpc.io),
+[oRPC](https://orpc.dev), or
+[Elysia](https://elysiajs.com) + Eden.
 
 Use `Loadable<T>` when a value comes from asynchronous work but should remain in
 atom.io's reactive graph. A loadable atom default may be an async function. A

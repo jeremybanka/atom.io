@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.0.17
+
+### Patch Changes
+
+- Updated dependencies [fbc86fe]
+- Updated dependencies [fbc86fe]
+  - atom.io@0.47.3
+
 ## 0.0.16
 
 ### Patch Changes

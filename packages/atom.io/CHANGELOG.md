@@ -1,5 +1,17 @@
 # atom.io
 
+## 0.47.3
+
+### Patch Changes
+
+- fbc86fe: Add a top-level `AGENTS.md` to the published `atom.io` package so AI agents can
+  discover the local docs corpus from a clear entrypoint. Update the package
+  metadata and generated agent docs to route discovery through `AGENTS.md`.
+- fbc86fe: Add remote-data documentation covering `Loadable` query patterns, loader-style
+  normalization, and local-index approaches for RPC-backed state. Link the new
+  guide from the getting-started, loadable, and main docs pages for easier
+  discovery.
+
 ## 0.47.2
 
 ### Patch Changes
@@ -323,6 +335,7 @@
   ### Background
 
   `ViewOf<T>` is used to type the return value of functions that get or read atoms or selectors. For example,
+
   - `atom.io` `::` `getState<T>()` returns a `ViewOf<T>`
   - `atom.io/react` `::` `useO<T>()` returns a `ViewOf<T>`
   - `atom.io/react` `::` `useLoadable<T>()` returns a `{ value: ViewOf<T> ... }`
@@ -622,6 +635,7 @@
   ```
 
   Now, when we `useLoadable` in a react component, we have three easy pivots:
+
   1. If `orgMembers === LOADING`, we can render a loading state.
   2. Otherwise, if `orgMembers.value instanceof TRPCClientError`, we can render an error state.
   3. If it's not an error, we can map over the `orgMembers.value` array and render each member.
@@ -644,6 +658,7 @@
 - 549b0d6: ✨ `timeline` overhaul.
 
   Timelines now make the following guarantees:
+
   - `undo` and `redo` iterates over 1 checkpoint in the timeline.
   - Reading from the store—"getting" a state—does not produce a checkpoint.
   - Writing to the store—"setting" a state—will create exactly 1 checkpoint.
@@ -1626,6 +1641,7 @@
 - d73205e: 🎁 New Subpackage! `atom.io/realtime` introduces the new end-to-end `continuity` API.
 
   `continuity` Is an out-of-the-box solution for efficient rollback netcode with adversarial perspectives. It tracks a group of global states, actions, and "perspectives". Assuming the global and perspective-bound states are only updated via the listed actions, `continuity` allows clients to optimistically predict the global state from their perspective, and roll back to the correct state when the server disagrees.
+
   - ✨ `realtime-server` `continuitySynchronizer`
   - ✨ `realtime-client` `syncContinuity`
   - ✨ `realtime-react` `useSyncContinuity`
@@ -1681,6 +1697,7 @@
 
 - 4013686: 💥 BREAKING CHANGE: Types for atoms and selectors have been changed. `Selector` now encompasses `ReadonlySelector` and `WritableSelector`; `MutableAtom` is now differentiated from `RegularAtom` and are given the brands `{ type: "mutable_atom" }` and `{ type: "atom" }` respectively. `Atom` encompasses these.
 - 636b095: 💥 BREAKING CHANGE: `atom.io/realtime` has renamed most core functions to organize the design around three core APIs:
+
   - Isolated
   - Shared
   - Adversarial
@@ -2101,6 +2118,7 @@
   | _Why would it be useful to set the atom's state to a Promise?_
 
   When an atom enters a refetching mode, subscribers are notified with an update `{ oldValue: T; newValue: Promise<T> }`, and they may choose one of three options:
+
   - **Do nothing** — The subscriber will continue to use the atom's current state.
   - **Enter a loading state** — Expose a flag to indicate that the data is loading, while continuing to use the atom's `oldValue`.
   - **Defer to React Suspense** — If the subscriber is a React component, it may prefer access to the promise itself, so it can throw it and trigger suspense.

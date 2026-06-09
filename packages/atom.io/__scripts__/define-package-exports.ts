@@ -28,7 +28,7 @@ export default function main(mode: string): void {
 
 	const submodules = discoverSubmodules()
 
-	newPackageJson.files = [`dist`, `src`, `docs/README.md`, `docs/agent`]
+	newPackageJson.files = [`dist`, `src`, `AGENTS.md`, `docs/agent`]
 
 	newPackageJson.exports = {
 		"./package.json": `./package.json`,

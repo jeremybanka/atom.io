@@ -3,10 +3,11 @@
 import fs from "node:fs/promises"
 import path from "node:path"
 
-type Concept = {
+type StructuredDoc = {
 	body: string
 	file: string
 	frontmatter: {
+		order?: number
 		packages: string[]
 		related: string[]
 		slug: string
@@ -54,6 +55,12 @@ const DOC_PAGES: DocPage[] = [
 		source: `docs/source/pages/docs/tutorial.mdx`,
 		title: `tutorial`,
 		url: `/docs/tutorial`,
+	},
+	{
+		output: `remote-data.md`,
+		source: `docs/source/pages/docs/remote-data.mdx`,
+		title: `remote data`,
+		url: `/docs/remote-data`,
 	},
 	{
 		output: `atom-io-vs-others.md`,
@@ -222,19 +229,23 @@ function parseFrontmatter(contents: string): {
 	return { body, frontmatter }
 }
 
-function readConcept(contents: string, file: string): Concept {
+function readStructuredDoc(contents: string, file: string): StructuredDoc {
 	const { body, frontmatter } = parseFrontmatter(contents)
 	const packages = frontmatter[`packages`] ?? `atom.io`
 	const related = frontmatter[`related`] ?? ``
+	const rawOrder = Array.isArray(frontmatter[`order`])
+		? Number.NaN
+		: Number(frontmatter[`order`])
 	return {
 		body,
 		file,
 		frontmatter: {
+			...(Number.isFinite(rawOrder) ? { order: rawOrder } : {}),
 			packages: Array.isArray(packages) ? packages : parseListValue(packages),
 			related: Array.isArray(related) ? related : parseListValue(related),
 			slug: Array.isArray(frontmatter[`slug`])
-				? path.basename(file, `.md`)
-				: (frontmatter[`slug`] ?? path.basename(file, `.md`)),
+				? path.basename(file).replace(/\.mdx?$/, ``)
+				: (frontmatter[`slug`] ?? path.basename(file).replace(/\.mdx?$/, ``)),
 			summary: Array.isArray(frontmatter[`summary`])
 				? ``
 				: (frontmatter[`summary`] ?? ``),
@@ -257,7 +268,7 @@ function extractImportMap(contents: string): Map<string, string> {
 
 function stripMdxBoilerplate(contents: string): string {
 	return contents
-		.replaceAll(/^import\s+[\s\S]*?;$/gm, ``)
+		.replaceAll(/^import\s+.+$/gm, ``)
 		.replaceAll(/<\/?Layout>/g, ``)
 		.replaceAll(/<span[^>]*>([\s\S]*?)<\/span>/g, `$1`)
 		.replaceAll(/\{\/\*[\s\S]*?\*\/\}/g, ``)
@@ -584,19 +595,39 @@ async function renderDocPage(page: DocPage): Promise<string> {
 	)
 }
 
-function renderConcept(concept: Concept): string {
-	const { frontmatter } = concept
+async function renderStructuredBody(
+	doc: StructuredDoc,
+	options?: {
+		bodyTransform?: (body: string) => string
+	},
+): Promise<string> {
+	const importMap = extractImportMap(doc.body)
+	const stripped = stripMdxBoilerplate(doc.body)
+	const withTables = convertTables(stripped)
+	const withCodeBlocks = replaceCodeBlocks(withTables)
+	const withExhibits = await replaceExhibits(withCodeBlocks, importMap)
+	const withoutJsx = omitUnknownJsx(withExhibits)
+	return options?.bodyTransform ? options.bodyTransform(withoutJsx) : withoutJsx
+}
+
+async function renderStructuredDoc(
+	doc: StructuredDoc,
+	options?: {
+		bodyTransform?: (body: string) => string
+	},
+): Promise<string> {
+	const { frontmatter } = doc
 	return normalizeMarkdown(
 		[
 			`# ${frontmatter.title}`,
 			``,
 			frontmatter.summary,
 			``,
-			`Source: ${concept.file}`,
+			`Source: ${doc.file}`,
 			`Packages: ${frontmatter.packages.join(`, `)}`,
 			`Related: ${frontmatter.related.join(`, `) || `none`}`,
 			``,
-			concept.body,
+			await renderStructuredBody(doc, options),
 		].join(`\n`),
 	)
 }
@@ -676,7 +707,7 @@ async function main(): Promise<void> {
 	)
 	const concepts = await Promise.all(
 		conceptFiles.map(async (file) => {
-			return readConcept(
+			return readStructuredDoc(
 				await fs.readFile(file, `utf8`),
 				path.relative(ATOM_IO_ROOT, file),
 			)
@@ -691,7 +722,7 @@ async function main(): Promise<void> {
 				`concepts`,
 				`${concept.frontmatter.slug}.md`,
 			),
-			renderConcept(concept),
+			await renderStructuredDoc(concept),
 		)
 	}
 
@@ -748,7 +779,7 @@ async function main(): Promise<void> {
 			``,
 			`This directory is generated from atom.io-owned docs source for AI agents working in projects that use atom.io.`,
 			`Use these files when you need to implement, debug, review, or repair atom.io code without browsing the web.`,
-			`The corpus is plain Markdown, easy to grep, and organized around concepts, package guides, and source-linked examples.`,
+			`The corpus is plain Markdown, easy to grep, and organized around concepts, package guides, patterns, and source-linked examples.`,
 			``,
 			`Start with:`,
 			``,
@@ -759,6 +790,7 @@ async function main(): Promise<void> {
 			`- concepts/join.md for relations across atom families`,
 			`- packages/atom.io.md for the main package docs`,
 			`- packages/atom.io-react.md for React bindings`,
+			`- packages/remote-data.md for fetched, queried, and RPC-backed state`,
 			`- examples/ for original exhibit source files`,
 			`- manifest.json for a deterministic index of every generated doc`,
 			``,
@@ -766,6 +798,7 @@ async function main(): Promise<void> {
 		].join(`\n`),
 	)
 	await writeFile(path.join(PACKAGE_AGENT_DOCS_ROOT, `README.md`), readme)
+	await writeFile(path.join(PACKAGE_AGENT_DOCS_ROOT, `AGENTS.md`), readme)
 	await writeFile(
 		path.join(PACKAGE_AGENT_DOCS_ROOT, `manifest.json`),
 		`${JSON.stringify(manifest, null, `\t`)}\n`,
@@ -785,6 +818,7 @@ async function main(): Promise<void> {
 				`- Full generated corpus: /llms-full.txt`,
 				`- Concepts glossary: /docs/concepts`,
 				`- Main docs: /docs`,
+				`- Remote/RPC data guide: /docs/remote-data`,
 				`- React bindings: /docs/react`,
 				`- JSON and transceivers: /docs/json and /transceivers`,
 				``,
@@ -795,7 +829,9 @@ async function main(): Promise<void> {
 
 		const llmsFullParts = [
 			readme,
-			...concepts.map(renderConcept),
+			...(await Promise.all(
+				concepts.map((concept) => renderStructuredDoc(concept)),
+			)),
 			...(await Promise.all(DOC_PAGES.map(renderDocPage))),
 		]
 		await writeFile(

@@ -1,0 +1,123 @@
+import RemoteDataClient from "x/guides/remote-data/client.gen";
+import CompactRemoteValues from "x/guides/remote-data/compact-remote-values.gen";
+import LoadRemoteRows from "x/guides/remote-data/load-remote-rows.gen";
+import LoadableLocalIndex from "x/guides/remote-data/loadable-local-index.gen";
+import RemoteDataServer from "x/guides/remote-data/server.gen";
+
+# remote data
+
+`atom.io` works especially well with fetched state backed by a type-safe RPC
+contract such as [tRPC](https://trpc.io),
+[oRPC](https://orpc.dev), or
+[Elysia](https://elysiajs.com) + Eden.
+
+Use `Loadable<T>` when a value comes from asynchronous work but should remain in
+atom.io's reactive graph. A loadable atom default may be an async function. A
+loadable atom family default receives the family key, which keeps query input
+and cache identity aligned.
+
+This guide is about query data, fetched data, RPC-backed state, loading flows,
+and suspense-like async reads in atom.io.
+
+## compact remote values
+
+For compact remote values, store the typed client result directly:
+
+<CompactRemoteValues client:load />
+
+In `catch`, order error constructors from narrow to wide. `atom.io` matches them
+in declaration order, so route-specific or domain-specific errors should come
+before broad fallbacks such as `Error`.
+
+Guidance:
+
+- Keep remote atom defaults close to the remote contract.
+- Do not transform query results heavily inside the default. Use selectors for
+  local view shapes.
+- Let typed client errors flow through the atom unless the atom intentionally
+  translates them into a broader application-domain error.
+- Do not add local `try`/`catch` around a query default unless translating the
+  error is the point of the atom.
+- If the typed client exposes route-specific output and error inference, use it.
+
+## loader functions
+
+When a query returns a broad aggregate but the app renders or edits narrow
+pieces independently, normalize the response into smaller atoms.
+
+Use a loader function to:
+
+- derive stable entity keys from server ids
+- pre-populate loadable record atom family members
+- write editable or frequently read fields into narrower atoms when useful
+- return only the acquired keys for the key-list atom's own value
+
+<LoadRemoteRows client:load />
+
+Keep aggregate server records close to the server contract. Mirror fields into
+narrower atoms only when the app benefits from independent observation or
+updates.
+
+## local indices
+
+Use a loadable local index for list screens that need high-quality behavior over
+remote data: filters, pagination, sorting, optimistic edits, skeletons, or quick
+revisits to already acquired records.
+
+For simple one-shot lists that render exactly what the route returns, prefer a
+direct `atom<Loadable<Result[]>>`. Use this pattern when local rows need to keep
+participating in the reactive graph after hydration.
+
+### shape
+
+Recommended pieces:
+
+- one typed view atom containing page, page size, sort, search, and filters
+- one `Loadable` key-list atom or atom family keyed by the whole view
+- loader functions that hydrate local row atom families before returning keys
+- an explicit acquired-key index when selectors need to derive from local rows
+- selector families that derive visible rows from local atoms
+- count or page metadata atoms keyed by the same filters as the row query
+
+The loadable key-list state is the hydration trigger. It does not have to be the
+only list source of truth.
+
+### example
+
+<LoadableLocalIndex client:load />
+
+The loadable family returns only the keys for that view. The loader pre-populates
+`rowAtoms` and updates `acquiredRowKeysAtom` so selectors can derive richer local
+views without re-fetching each row.
+
+### principles
+
+- Key the key-list family by the whole view so every filtered page has a stable
+  loadable cache entry.
+- Let the UI update the view atom. The UI should not know which row atoms reload
+  or how the local index is maintained.
+- Derive visible rows from local atoms when the screen needs local edits,
+  optimistic behavior, or instant reuse of acquired records.
+- Reset the page to `0` when filters or search change. Preserve the current page
+  only for changes that do not alter the result set.
+- Counts and pagination metadata must use the same filters as the row query.
+  Unfiltered counts create phantom pages.
+- On mutations, deliberately update or reset affected row atoms, key indexes,
+  and query family members.
+
+## example contract
+
+The examples above share one tiny in-memory oRPC router and a matching typed
+client. Here are the actual living definitions for them.
+
+The server defines the RPC contract and handlers:
+
+<RemoteDataServer client:load soft />
+
+The client derives a typed client directly from that router:
+
+<RemoteDataClient client:load soft />
+
+In a real app, this client would usually be created from your transport layer.
+For these docs, a server-side client keeps the example compact while still proving the
+contract, outputs, and errors are all wired together.

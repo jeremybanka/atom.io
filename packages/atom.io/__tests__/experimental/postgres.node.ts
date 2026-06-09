@@ -213,7 +213,9 @@ function waitForPostgres(proc: PostgresProcess): Promise<void> {
 			}
 		}
 		const onError = (error: Error) => {
-			finish(() => reject(error))
+			finish(() => {
+				reject(error)
+			})
 		}
 		const onExit = (code: number | null, signal: NodeJS.Signals | null) => {
 			finish(() => {
@@ -279,7 +281,9 @@ function waitForExit(proc: PostgresProcess, timeoutMs: number): Promise<void> {
 			finish(resolve)
 		}
 		const timeout = setTimeout(() => {
-			finish(() => reject(new Error(`Timed out waiting for postgres to stop`)))
+			finish(() => {
+				reject(new Error(`Timed out waiting for postgres to stop`))
+			})
 		}, timeoutMs)
 
 		proc.on(`exit`, onExit)

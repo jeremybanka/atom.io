@@ -15,8 +15,8 @@ importers:
         specifier: 3.1.4
         version: 3.1.4
       '@dotenvx/dotenvx':
-        specifier: 1.71.0
-        version: 1.71.0
+        specifier: 1.71.1
+        version: 1.71.1
       '@dprint/json':
         specifier: 0.21.3
         version: 0.21.3
@@ -778,8 +778,8 @@ packages:
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
     engines: {node: '>=12'}
 
-  '@dotenvx/dotenvx@1.71.0':
-    resolution: {integrity: sha512-KEUw/mGu+EDRhYWRTNGHIimVCs9NvMFaIXOGrHSXoCteKLE5EsJnmPjOPpYorjXVg/0xG0fbdVw720azw1z4ag==}
+  '@dotenvx/dotenvx@1.71.1':
+    resolution: {integrity: sha512-vbVGJtpKJZOqlfjKPN//+cvFJyK2X9RgwoyWxVbEAVEl7tYYmNZNyGwZo9MTamJjUdWVbzIgJL0A04wmrhVF+w==}
     hasBin: true
 
   '@dprint/darwin-arm64@0.54.0':
@@ -6879,7 +6879,7 @@ snapshots:
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
 
-  '@dotenvx/dotenvx@1.71.0':
+  '@dotenvx/dotenvx@1.71.1':
     dependencies:
       commander: 11.1.0
       dotenv: 17.4.2

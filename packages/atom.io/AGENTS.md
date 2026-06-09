@@ -9,8 +9,6 @@ Start with:
 - `docs/agent/packages/atom.io.md` for the core API
 - `docs/agent/packages/atom.io-react.md` for the React bindings
 - `docs/agent/packages/remote-data.md` for fetched, queried, and RPC-backed state
-- `docs/agent/patterns/loadable-remote-state.md` for contract-shaped query atoms and families
-- `docs/agent/patterns/loadable-local-indices.md` for filtered, paginated, or optimistic list screens
 - `docs/agent/examples/` for source-linked exhibits
 - `docs/agent/manifest.json` for a deterministic index of every generated doc
 

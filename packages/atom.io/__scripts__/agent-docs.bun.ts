@@ -607,9 +607,7 @@ async function renderStructuredBody(
 	const withCodeBlocks = replaceCodeBlocks(withTables)
 	const withExhibits = await replaceExhibits(withCodeBlocks, importMap)
 	const withoutJsx = omitUnknownJsx(withExhibits)
-	return options?.bodyTransform
-		? options.bodyTransform(withoutJsx)
-		: withoutJsx
+	return options?.bodyTransform ? options.bodyTransform(withoutJsx) : withoutJsx
 }
 
 async function renderStructuredDoc(

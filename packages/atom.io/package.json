@@ -22,6 +22,7 @@
 		"build:agent-docs": "./__scripts__/agent-docs.bun.ts",
 		"lint:eslint": "eslint -- .",
 		"lint:oxlint": "oxlint --type-aware -c ../../.oxlintrc.jsonc .",
+		"lint:types:docs": "tsgo --noEmit -p tsconfig.exhibits.json",
 		"lint:types": "tsgo --noEmit",
 		"watch:types": "tsgo --watch --noEmit",
 		"lint": "concurrently \"bun:lint:*\"",
@@ -88,6 +89,8 @@
 	},
 	"devDependencies": {
 		"@eslint/core": "1.2.1",
+		"@orpc/client": "1.14.5",
+		"@orpc/server": "1.14.5",
 		"@storybook/addon-docs": "10.4.2",
 		"@storybook/addon-onboarding": "10.4.2",
 		"@storybook/react-vite": "10.4.2",

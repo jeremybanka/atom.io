@@ -240,7 +240,7 @@ function readStructuredDoc(contents: string, file: string): StructuredDoc {
 		body,
 		file,
 		frontmatter: {
-			order: Number.isFinite(rawOrder) ? rawOrder : undefined,
+			...(Number.isFinite(rawOrder) ? { order: rawOrder } : {}),
 			packages: Array.isArray(packages) ? packages : parseListValue(packages),
 			related: Array.isArray(related) ? related : parseListValue(related),
 			slug: Array.isArray(frontmatter[`slug`])

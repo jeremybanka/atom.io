@@ -1,6 +1,8 @@
+import RemoteDataClient from "x/guides/remote-data/client.gen";
 import CompactRemoteValues from "x/guides/remote-data/compact-remote-values.gen";
 import LoadRemoteRows from "x/guides/remote-data/load-remote-rows.gen";
 import LoadableLocalIndex from "x/guides/remote-data/loadable-local-index.gen";
+import RemoteDataServer from "x/guides/remote-data/server.gen";
 
 # remote data
 
@@ -102,3 +104,20 @@ views without re-fetching each row.
   Unfiltered counts create phantom pages.
 - On mutations, deliberately update or reset affected row atoms, key indexes,
   and query family members.
+
+## example contract
+
+The examples above share one tiny in-memory oRPC router and a matching typed
+client. Here are the actual living definitions for them.
+
+The server defines the RPC contract and handlers:
+
+<RemoteDataServer client:load soft />
+
+The client derives a typed client directly from that router:
+
+<RemoteDataClient client:load soft />
+
+In a real app, this client would usually be created from your transport layer.
+For these docs, a server-side client keeps the example compact while still proving the
+contract, outputs, and errors are all wired together.

@@ -4,10 +4,10 @@ import { type } from "arktype"
 export type Profile = {
 	id: string
 	displayName: string
-	plan: "free" | "pro"
+	plan: `free` | `pro`
 }
 
-export type RowStatus = "open" | "closed"
+export type RowStatus = `open` | `closed`
 
 export type Row = {
 	id: string
@@ -24,37 +24,37 @@ export type RowListView = {
 }
 
 const profileData: Profile | undefined = {
-	id: "user_01",
-	displayName: "Ada Lovelace",
-	plan: "pro",
+	id: `user_01`,
+	displayName: `Ada Lovelace`,
+	plan: `pro`,
 }
 
 const rowData: readonly Row[] = [
 	{
-		id: "row_01",
-		title: "Repair optimistic row hydration",
-		status: "open",
-		updatedAt: "2026-06-09T18:00:00.000Z",
+		id: `row_01`,
+		title: `Repair optimistic row hydration`,
+		status: `open`,
+		updatedAt: `2026-06-09T18:00:00.000Z`,
 	},
 	{
-		id: "row_02",
-		title: "Ship remote-data docs",
-		status: "closed",
-		updatedAt: "2026-06-08T15:30:00.000Z",
+		id: `row_02`,
+		title: `Ship remote-data docs`,
+		status: `closed`,
+		updatedAt: `2026-06-08T15:30:00.000Z`,
 	},
 	{
-		id: "row_03",
-		title: "Add ORPC-backed example",
-		status: "open",
-		updatedAt: "2026-06-07T12:45:00.000Z",
+		id: `row_03`,
+		title: `Add ORPC-backed example`,
+		status: `open`,
+		updatedAt: `2026-06-07T12:45:00.000Z`,
 	},
 ]
 
 const rowQuerySchema = type({
-	offset: "number",
-	limit: "number",
-	search: "string",
-	status: "'open' | 'closed' | null",
+	offset: `number`,
+	limit: `number`,
+	search: `string`,
+	status: `'open' | 'closed' | null`,
 })
 
 export const server = {
@@ -62,13 +62,13 @@ export const server = {
 		profile: os
 			.errors({
 				NOT_FOUND: {
-					data: type({ userId: "string" }),
+					data: type({ userId: `string` }),
 				},
 			})
 			.handler(({ errors }) => {
 				if (profileData === undefined) {
 					throw errors.NOT_FOUND({
-						data: { userId: "me" },
+						data: { userId: `me` },
 					})
 				}
 				return profileData
@@ -82,7 +82,7 @@ export const server = {
 			const search = input.search.trim().toLowerCase()
 			const filteredRows = rowData.filter((row) => {
 				if (input.status !== null && row.status !== input.status) return false
-				return search === "" || row.title.toLowerCase().includes(search)
+				return search === `` || row.title.toLowerCase().includes(search)
 			})
 			return {
 				rows: filteredRows.slice(input.offset, input.offset + input.limit),
@@ -90,10 +90,10 @@ export const server = {
 			}
 		}),
 		get: os
-			.input(type({ id: "string" }))
+			.input(type({ id: `string` }))
 			.errors({
 				NOT_FOUND: {
-					data: type({ id: "string" }),
+					data: type({ id: `string` }),
 				},
 			})
 			.handler(({ errors, input }) => {

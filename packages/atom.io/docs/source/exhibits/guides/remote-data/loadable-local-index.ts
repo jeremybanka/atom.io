@@ -2,38 +2,33 @@ import {
 	atom,
 	atomFamily,
 	getState,
+	type Loadable,
 	selectorFamily,
 	setState,
-	type Loadable,
 } from "atom.io"
 
-type Row = {
-	id: string
-	title: string
-	status: "open" | "closed"
-	updatedAt: string
-}
+import { client, type Row, type RowListView } from "./client"
 
 type RowKey = `row::${string}`
 
 type RowIndexView = readonly [
-	pageNumber: number,
-	pageSize: number,
-	search: string,
-	status: Row["status"] | null,
+	pageNumber: RowListView[`offset`],
+	pageSize: RowListView[`limit`],
+	search: RowListView[`search`],
+	status: RowListView[`status`],
 ]
 
-const DEFAULT_ROW_INDEX_VIEW: RowIndexView = [0, 25, "", null]
+const DEFAULT_ROW_INDEX_VIEW: RowIndexView = [0, 25, ``, null]
 
 export const acquiredRowKeysAtom = atom<readonly RowKey[]>({
-	key: "acquiredRowKeys",
+	key: `acquiredRowKeys`,
 	default: [],
 })
 
 export const rowAtoms = atomFamily<Loadable<Row>, RowKey, Error>({
-	key: "row",
+	key: `row`,
 	default: async (key) => {
-		const id = key.slice("row::".length)
+		const id = key.slice(`row::`.length)
 		const row = await client.rows.get({ id })
 		loadRow(row)
 		return row
@@ -42,7 +37,7 @@ export const rowAtoms = atomFamily<Loadable<Row>, RowKey, Error>({
 })
 
 export const rowIndexViewAtom = atom<RowIndexView>({
-	key: "rowIndexView",
+	key: `rowIndexView`,
 	default: () => {
 		void getState(rowKeysForViewAtoms, DEFAULT_ROW_INDEX_VIEW)
 		return DEFAULT_ROW_INDEX_VIEW
@@ -61,9 +56,9 @@ export const rowKeysForViewAtoms = atomFamily<
 	RowIndexView,
 	Error
 >({
-	key: "rowKeysForView",
+	key: `rowKeysForView`,
 	default: async ([pageNumber, pageSize, search, status]) => {
-		const result = await client.rows.list({
+		const result = await client.rows.listPage({
 			offset: pageNumber * pageSize,
 			limit: pageSize,
 			search,
@@ -79,7 +74,7 @@ export const visibleRowKeysSelectors = selectorFamily<
 	RowIndexView,
 	Error
 >({
-	key: "visibleRowKeys",
+	key: `visibleRowKeys`,
 	get:
 		(view) =>
 		({ get }) => {
@@ -93,7 +88,7 @@ export const visibleRowKeysSelectors = selectorFamily<
 						if (row instanceof Promise || row instanceof Error) return false
 						if (status !== null && row.status !== status) return false
 						return (
-							normalizedSearch === "" ||
+							normalizedSearch === `` ||
 							row.title.toLowerCase().includes(normalizedSearch)
 						)
 					})

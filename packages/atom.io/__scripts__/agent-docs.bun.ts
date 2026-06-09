@@ -38,7 +38,6 @@ const PACKAGE_AGENT_DOCS_ROOT = path.join(ATOM_IO_ROOT, `docs`, `agent`)
 const SITE_AGENT_DOCS_ROOT = path.join(ATOM_IO_FYI_ROOT, `agent-docs`)
 const PUBLIC_ROOT = path.join(ATOM_IO_FYI_ROOT, `public`)
 const CONCEPTS_ROOT = path.join(DOCS_SOURCE_ROOT, `concepts`)
-const PATTERNS_ROOT = path.join(DOCS_SOURCE_ROOT, `patterns`)
 const EXHIBITS_ROOT = path.join(DOCS_SOURCE_ROOT, `exhibits`)
 const BACKTICK = `\``
 const FENCE = BACKTICK.repeat(3)
@@ -56,6 +55,12 @@ const DOC_PAGES: DocPage[] = [
 		source: `docs/source/pages/docs/tutorial.mdx`,
 		title: `tutorial`,
 		url: `/docs/tutorial`,
+	},
+	{
+		output: `remote-data.md`,
+		source: `docs/source/pages/docs/remote-data.mdx`,
+		title: `remote data`,
+		url: `/docs/remote-data`,
 	},
 	{
 		output: `atom-io-vs-others.md`,
@@ -249,18 +254,6 @@ function readStructuredDoc(contents: string, file: string): StructuredDoc {
 				: (frontmatter[`title`] ?? slugToTitle(file)),
 		},
 	}
-}
-
-function liftMarkdownHeadings(contents: string): string {
-	return contents.replaceAll(/^(#{2,6})\s+/gm, (_match, hashes: string) => {
-		return `${`#`.repeat(Math.max(2, hashes.length - 1))} `
-	})
-}
-
-function compareStructuredDocs(a: StructuredDoc, b: StructuredDoc): number {
-	const orderA = a.frontmatter.order ?? Number.POSITIVE_INFINITY
-	const orderB = b.frontmatter.order ?? Number.POSITIVE_INFINITY
-	return orderA - orderB || a.frontmatter.title.localeCompare(b.frontmatter.title)
 }
 
 function extractImportMap(contents: string): Map<string, string> {
@@ -641,40 +634,6 @@ async function renderStructuredDoc(
 	)
 }
 
-async function renderRemoteDataDoc(patterns: StructuredDoc[]): Promise<string> {
-	return normalizeMarkdown(
-		[
-			`# remote data`,
-			``,
-			`Source: docs/source/patterns`,
-			`URL: /docs/remote-data`,
-			``,
-			`atom.io works especially well with fetched state backed by a type-safe RPC contract such as tRPC, oRPC, or Elysia + Eden.`,
-			``,
-			`Start with:`,
-			``,
-			`- patterns/loadable-remote-state.md for contract-shaped query atoms and families`,
-			`- patterns/loadable-local-indices.md for filtered, paginated, or optimistic list screens`,
-			``,
-			...(await Promise.all(
-				patterns.map(async (pattern) => {
-					return [
-						`## ${pattern.frontmatter.title}`,
-						``,
-						pattern.frontmatter.summary,
-						``,
-						`Source: ${pattern.file}`,
-						`Packages: ${pattern.frontmatter.packages.join(`, `)}`,
-						`Related: ${pattern.frontmatter.related.join(`, `) || `none`}`,
-						``,
-						await renderStructuredBody(pattern),
-					].join(`\n`)
-				}),
-			)),
-		].join(`\n`),
-	)
-}
-
 async function renderExampleDoc(sourcePath: string): Promise<{
 	doc: string
 	entry: ExampleDoc
@@ -770,42 +729,6 @@ async function main(): Promise<void> {
 	}
 
 	const docEntries = []
-	const patternFiles = (await listFiles(PATTERNS_ROOT)).filter((file) =>
-		file.endsWith(`.mdx`),
-	)
-	const patterns = await Promise.all(
-		patternFiles.map(async (file) => {
-			return readStructuredDoc(
-				await fs.readFile(file, `utf8`),
-				path.relative(ATOM_IO_ROOT, file),
-			)
-		}),
-	)
-	patterns.sort(compareStructuredDocs)
-
-	for (const pattern of patterns) {
-		await writeFile(
-			path.join(
-				PACKAGE_AGENT_DOCS_ROOT,
-				`patterns`,
-				`${pattern.frontmatter.slug}.md`,
-			),
-			await renderStructuredDoc(pattern, { bodyTransform: liftMarkdownHeadings }),
-		)
-	}
-
-	const remoteDataDoc = await renderRemoteDataDoc(patterns)
-	await writeFile(
-		path.join(PACKAGE_AGENT_DOCS_ROOT, `packages`, `remote-data.md`),
-		remoteDataDoc,
-	)
-	docEntries.push({
-		output: `packages/remote-data.md`,
-		source: `docs/source/patterns`,
-		title: `remote data`,
-		url: `/docs/remote-data`,
-	})
-
 	for (const page of DOC_PAGES) {
 		const contents = await renderDocPage(page)
 		await writeFile(
@@ -848,15 +771,6 @@ async function main(): Promise<void> {
 			summary: concept.frontmatter.summary,
 			title: concept.frontmatter.title,
 		})),
-		patterns: patterns.map((pattern) => ({
-			output: `patterns/${pattern.frontmatter.slug}.md`,
-			packages: pattern.frontmatter.packages,
-			related: pattern.frontmatter.related,
-			slug: pattern.frontmatter.slug,
-			source: pattern.file,
-			summary: pattern.frontmatter.summary,
-			title: pattern.frontmatter.title,
-		})),
 		docs: docEntries,
 		examples: exampleEntries.sort((a, b) => a.output.localeCompare(b.output)),
 	}
@@ -879,7 +793,6 @@ async function main(): Promise<void> {
 			`- packages/atom.io.md for the main package docs`,
 			`- packages/atom.io-react.md for React bindings`,
 			`- packages/remote-data.md for fetched, queried, and RPC-backed state`,
-			`- patterns/ for reusable remote-data recipes`,
 			`- examples/ for original exhibit source files`,
 			`- manifest.json for a deterministic index of every generated doc`,
 			``,
@@ -920,12 +833,6 @@ async function main(): Promise<void> {
 			readme,
 			...(await Promise.all(
 				concepts.map((concept) => renderStructuredDoc(concept)),
-			)),
-			remoteDataDoc,
-			...(await Promise.all(
-				patterns.map((pattern) =>
-					renderStructuredDoc(pattern, { bodyTransform: liftMarkdownHeadings }),
-				),
 			)),
 			...(await Promise.all(DOC_PAGES.map(renderDocPage))),
 		]

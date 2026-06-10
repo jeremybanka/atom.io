@@ -42,6 +42,6 @@
 		"concurrently": "10.0.3",
 		"eslint": "10.4.1",
 		"takua": "0.2.1",
-		"wrangler": "4.98.0"
+		"wrangler": "4.99.0"
 	}
 }

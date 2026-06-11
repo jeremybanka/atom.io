@@ -4,7 +4,6 @@ import type {
 	MutableAtomFamilyToken,
 	MutableAtomOptions,
 	MutableAtomToken,
-	StateLifecycleEvent,
 } from "atom.io"
 import { PRETTY_ENTITY_NAMES } from "atom.io"
 import type { Canonical } from "atom.io/json"
@@ -13,7 +12,10 @@ import { stringifyJson } from "atom.io/json"
 import { createWritablePureSelectorFamily } from "../families"
 import { newest } from "../lineage"
 import { createMutableAtom } from "../mutable"
-import type { MutableAtomFamily } from "../state-types"
+import type {
+	FamilyMemberLifecycleEvent,
+	MutableAtomFamily,
+} from "../state-types"
 import { Subject } from "../subject"
 import type { RootStore } from "../transaction"
 import { FamilyTracker } from "./tracker-family"
@@ -43,7 +45,7 @@ export function createMutableAtomFamily<
 		)
 	}
 
-	const subject = new Subject<StateLifecycleEvent<MutableAtomToken<T>>>()
+	const subject = new Subject<FamilyMemberLifecycleEvent<MutableAtomToken<T>>>()
 
 	const create = (key: K): MutableAtomToken<T> => {
 		const subKey = stringifyJson(key)

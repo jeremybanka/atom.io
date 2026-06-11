@@ -1,9 +1,13 @@
-import type { MutableAtomToken, StateLifecycleEvent } from "atom.io"
+import type { MutableAtomToken } from "atom.io"
 import type { Canonical } from "atom.io/json"
 import { parseJson } from "atom.io/json"
 
 import { createRegularAtomFamily } from "../families"
-import type { MutableAtomFamily, RegularAtomFamily } from "../state-types"
+import type {
+	FamilyMemberLifecycleEvent,
+	MutableAtomFamily,
+	RegularAtomFamily,
+} from "../state-types"
 import { withdraw } from "../store"
 import type { RootStore } from "../transaction"
 import { Tracker } from "./tracker"
@@ -34,16 +38,16 @@ export class FamilyTracker<
 		this.latestSignalAtoms = withdraw(store, latestSignalAtoms)
 		this.mutableAtoms = mutableAtoms
 		const trackerFamilyWatchesForCreationAndDisposalEvents = (
-			event: StateLifecycleEvent<MutableAtomToken<T>>,
+			event: FamilyMemberLifecycleEvent<MutableAtomToken<T>>,
 		) => {
 			const { type, token } = event
 			if (token.family) {
 				const key = parseJson(token.family.subKey)
 				switch (type) {
-					case `state_creation`:
+					case `family_member_creation`:
 						this.trackers.set(key, new Tracker<T>(token, store))
 						break
-					case `state_disposal`: {
+					case `family_member_disposal`: {
 						const tracker = this.trackers.get(key)
 						if (tracker) {
 							tracker[Symbol.dispose]()

@@ -2,70 +2,16 @@ import type {
 	MoleculeCreationEvent,
 	MoleculeDisposalEvent,
 	MoleculeTransferEvent,
-	ReadableToken,
-	StateCreationEvent,
-	StateDisposalEvent,
 } from "atom.io"
 import { parseJson, stringifyJson } from "atom.io/json"
 
-import { disposeFromStore } from "../families"
 import { getFromStore } from "../get-state"
 import {
 	allocateIntoStore,
 	claimWithinStore,
 	deallocateFromStore,
 } from "../molecule"
-import { setIntoStore } from "../set-state"
 import type { Store } from "../store"
-
-export function ingestCreationEvent(
-	store: Store,
-	event: StateCreationEvent<any>,
-	applying: `newValue` | `oldValue`,
-): void {
-	switch (applying) {
-		case `newValue`: {
-			createInStore(store, event)
-			break
-		}
-		case `oldValue`: {
-			disposeFromStore(store, event.token)
-			break
-		}
-	}
-}
-
-export function ingestDisposalEvent(
-	store: Store,
-	event: StateDisposalEvent<ReadableToken<any, any, any>>,
-	applying: `newValue` | `oldValue`,
-): void {
-	switch (applying) {
-		case `newValue`: {
-			disposeFromStore(store, event.token)
-			break
-		}
-		case `oldValue`: {
-			createInStore(store, event)
-			if (event.subType === `atom`) {
-				store.valueMap.set(event.token.key, event.value)
-			}
-			break
-		}
-	}
-}
-
-function createInStore(
-	store: Store,
-	event: StateCreationEvent<any> | StateDisposalEvent<any>,
-): void {
-	const { token } = event
-	if (event.subType === `writable` && event.value) {
-		setIntoStore(store, token, event.value)
-	} else {
-		getFromStore(store, token)
-	}
-}
 
 export function ingestMoleculeCreationEvent(
 	store: Store,

@@ -33,10 +33,8 @@ export function disposeSelector(
 					}
 					const family = withdraw(store, familyToken)
 					family.subject.next({
-						type: `state_disposal`,
-						subType: `selector`,
+						type: `family_member_disposal`,
 						token: selectorToken,
-						timestamp: Date.now(),
 					})
 				}
 				break
@@ -49,10 +47,8 @@ export function disposeSelector(
 					}
 					const family = withdraw(store, familyToken)
 					family.subject.next({
-						type: `state_disposal`,
-						subType: `selector`,
+						type: `family_member_disposal`,
 						token: selectorToken,
-						timestamp: Date.now(),
 					})
 				}
 				break
@@ -65,10 +61,8 @@ export function disposeSelector(
 					}
 					const family = withdraw(store, familyToken)
 					family.subject.next({
-						type: `state_disposal`,
-						subType: `selector`,
+						type: `family_member_disposal`,
 						token: selectorToken,
-						timestamp: Date.now(),
 					})
 				}
 				break
@@ -81,10 +75,8 @@ export function disposeSelector(
 					}
 					const family = withdraw(store, familyToken)
 					family.subject.next({
-						type: `state_disposal`,
-						subType: `selector`,
+						type: `family_member_disposal`,
 						token: selectorToken,
-						timestamp: Date.now(),
 					})
 				}
 				break
@@ -95,14 +87,7 @@ export function disposeSelector(
 		target.selectorGraph.delete(key)
 		target.moleculeData.delete(familyMeta.key, familyMeta.subKey)
 		store.logger.info(`🔥`, selectorToken.type, key, `deleted`)
-		if (isChildStore(target) && target.transactionMeta.phase === `building`) {
-			target.transactionMeta.update.subEvents.push({
-				type: `state_disposal`,
-				subType: `selector`,
-				token: selectorToken,
-				timestamp: Date.now(),
-			})
-		} else {
+		if (!isChildStore(target) || target.transactionMeta.phase !== `building`) {
 			store.on.selectorDisposal.next(selectorToken)
 		}
 	}

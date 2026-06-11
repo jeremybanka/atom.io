@@ -3,7 +3,6 @@ import type {
 	ReadonlyHeldSelectorFamilyOptions,
 	ReadonlyHeldSelectorFamilyToken,
 	ReadonlyHeldSelectorToken,
-	StateLifecycleEvent,
 } from "atom.io"
 import { PRETTY_ENTITY_NAMES } from "atom.io"
 import type { Canonical } from "atom.io/json"
@@ -11,7 +10,10 @@ import { stringifyJson } from "atom.io/json"
 
 import { newest } from "../lineage"
 import { createReadonlyHeldSelector } from "../selector"
-import type { ReadonlyHeldSelectorFamily } from "../state-types"
+import type {
+	FamilyMemberLifecycleEvent,
+	ReadonlyHeldSelectorFamily,
+} from "../state-types"
 import { Subject } from "../subject"
 import type { RootStore } from "../transaction"
 
@@ -42,7 +44,7 @@ export function createReadonlyHeldSelectorFamily<
 	}
 
 	const subject = new Subject<
-		StateLifecycleEvent<ReadonlyHeldSelectorToken<T>>
+		FamilyMemberLifecycleEvent<ReadonlyHeldSelectorToken<T>>
 	>()
 
 	const create = (key: K): ReadonlyHeldSelectorToken<T> => {

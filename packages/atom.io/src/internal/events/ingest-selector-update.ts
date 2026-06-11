@@ -1,34 +1,25 @@
 import type {
 	AtomOnly,
 	AtomUpdateEvent,
-	StateCreationEvent,
 	TimelineManageable,
 	TimelineSelectorUpdateEvent,
 } from "atom.io"
 
 import type { Store } from "../store"
 import { ingestAtomUpdateEvent } from "./ingest-atom-update"
-import { ingestCreationEvent } from "./ingest-creation-disposal"
 
 export function ingestSelectorUpdateEvent(
 	store: Store,
 	selectorUpdate: TimelineSelectorUpdateEvent<any>,
 	applying: `newValue` | `oldValue`,
 ): void {
-	let updates: (
-		| AtomUpdateEvent<AtomOnly<TimelineManageable>>
-		| StateCreationEvent<any>
-	)[]
+	let updates: AtomUpdateEvent<AtomOnly<TimelineManageable>>[]
 	if (applying === `newValue`) {
 		updates = selectorUpdate.subEvents
 	} else {
 		updates = selectorUpdate.subEvents.toReversed()
 	}
 	for (const atomUpdate of updates) {
-		if (atomUpdate.type === `state_creation`) {
-			ingestCreationEvent(store, atomUpdate, applying)
-		} else {
-			ingestAtomUpdateEvent(store, atomUpdate, applying)
-		}
+		ingestAtomUpdateEvent(store, atomUpdate, applying)
 	}
 }

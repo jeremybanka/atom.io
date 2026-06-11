@@ -4,7 +4,6 @@ import type {
 	findState,
 	getInternalRelations,
 	getState,
-	StateLifecycleEvent,
 	WritablePureSelectorFamilyOptions,
 	WritablePureSelectorFamilyToken,
 	WritablePureSelectorOptions,
@@ -19,7 +18,10 @@ import { findRelationsInStore, getInternalRelationsFromStore } from "../join"
 import { newest } from "../lineage"
 import { getJsonToken } from "../mutable"
 import { createWritablePureSelector } from "../selector"
-import type { WritablePureSelectorFamily } from "../state-types"
+import type {
+	FamilyMemberLifecycleEvent,
+	WritablePureSelectorFamily,
+} from "../state-types"
 import type { Store } from "../store"
 import { Subject } from "../subject"
 import type { RootStore } from "../transaction"
@@ -48,7 +50,7 @@ export function createWritablePureSelectorFamily<T, K extends Canonical, E>(
 		)
 	}
 	const subject = new Subject<
-		StateLifecycleEvent<WritablePureSelectorToken<T, K, E>>
+		FamilyMemberLifecycleEvent<WritablePureSelectorToken<T, K, E>>
 	>()
 
 	const create = <Key extends K>(

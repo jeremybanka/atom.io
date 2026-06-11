@@ -1,5 +1,14 @@
 # @atom.io/template-react-node-backend
 
+## 0.0.68
+
+### Patch Changes
+
+- 26697cd: Replace template boilerplate READMEs with generated-project guides.
+- Updated dependencies [26697cd]
+- Updated dependencies [03d6465]
+  - atom.io@0.47.4
+
 ## 0.0.67
 
 ### Patch Changes

@@ -1,75 +1,43 @@
-# React + TypeScript + Vite
+# React Node Backend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React + Vite starter with a tiny Node API, a mock auth service, and `atom.io`
+state on the client.
 
-Currently, two official plugins are available:
+## What It Shows
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- loadable atoms for remote todo data
+- atom families for individual records
+- optimistic create, update, and delete flows
+- selectors for derived todo stats
+- cookie-based auth against a backend-shaped local service
 
-## React Compiler
+## Run It
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
-
-Note: This will impact Vite dev & build performances.
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-	globalIgnores(["dist"]),
-	{
-		files: ["**/*.{ts,tsx}"],
-		extends: [
-			// Other configs...
-
-			// Remove tseslint.configs.recommended and replace with this
-			tseslint.configs.recommendedTypeChecked,
-			// Alternatively, use this for stricter rules
-			tseslint.configs.strictTypeChecked,
-			// Optionally, add this for stylistic rules
-			tseslint.configs.stylisticTypeChecked,
-
-			// Other configs...
-		],
-		languageOptions: {
-			parserOptions: {
-				project: ["./tsconfig.node.json", "./tsconfig.app.json"],
-				tsconfigRootDir: import.meta.dirname,
-			},
-			// other options...
-		},
-	},
-])
+```sh
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+The dev script starts three processes:
 
-```js
-// eslint.config.js
-import reactX from "eslint-plugin-react-x"
-import reactDom from "eslint-plugin-react-dom"
+- Vite app at `http://localhost:5173`
+- Todo API at `http://localhost:3000`
+- Mock authenticator at `http://localhost:4000`
 
-export default defineConfig([
-	globalIgnores(["dist"]),
-	{
-		files: ["**/*.{ts,tsx}"],
-		extends: [
-			// Other configs...
-			// Enable lint rules for React
-			reactX.configs["recommended-typescript"],
-			// Enable lint rules for React DOM
-			reactDom.configs.recommended,
-		],
-		languageOptions: {
-			parserOptions: {
-				project: ["./tsconfig.node.json", "./tsconfig.app.json"],
-				tsconfigRootDir: import.meta.dirname,
-			},
-			// other options...
-		},
-	},
-])
+Build and preview the frontend with the same local services:
+
+```sh
+npm run build
+npm run preview
 ```
+
+## Where To Look
+
+- `src/App.tsx`: the React UI, loadable atoms, atom families, optimistic writes, and derived stats.
+- `node/server.ts`: in-memory todo API, auth cookie handling, and a server-side atom for slow-load toggles.
+- `node/authenticator.ts`: mock login service that redirects back to the API.
+
+## Next Ideas
+
+- Swap the in-memory SQLite database for a file-backed one.
+- Move the auth token validation into middleware.
+- Add a timeline to inspect todo changes while developing.

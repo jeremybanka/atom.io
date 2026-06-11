@@ -1,6 +1,7 @@
 export * from "./atom"
 export * from "./dispose-state"
 export type * from "./events"
+export type * from "./family-options"
 export * from "./find-state"
 export * from "./get-state"
 export * from "./join"

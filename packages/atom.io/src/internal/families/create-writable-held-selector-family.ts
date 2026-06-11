@@ -15,6 +15,7 @@ import type { WritableHeldSelectorFamily } from "../state-types"
 import type { Store } from "../store"
 import { Subject } from "../subject"
 import type { RootStore } from "../transaction"
+import { createFamilyMemberLimit, trackFamilyMembers } from "./family-limits"
 
 export function createWritableHeldSelectorFamily<
 	T extends object,
@@ -67,11 +68,13 @@ export function createWritableHeldSelectorFamily<
 		...familyToken,
 		create,
 		internalRoles,
+		limit: createFamilyMemberLimit(options),
 		subject,
 		install: (s: RootStore) => createWritableHeldSelectorFamily(s, options),
 		default: options.const,
 	}
 
+	trackFamilyMembers(selectorFamily)
 	store.families.set(familyKey, selectorFamily)
 	return familyToken
 }

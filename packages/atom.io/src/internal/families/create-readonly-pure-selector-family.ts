@@ -22,6 +22,7 @@ import { createReadonlyPureSelector } from "../selector"
 import type { ReadonlyPureSelectorFamily } from "../state-types"
 import { Subject } from "../subject"
 import type { RootStore } from "../transaction"
+import { createFamilyMemberLimit, trackFamilyMembers } from "./family-limits"
 import { findInStore } from "./find-in-store"
 
 export function createReadonlyPureSelectorFamily<T, K extends Canonical, E>(
@@ -77,6 +78,7 @@ export function createReadonlyPureSelectorFamily<T, K extends Canonical, E>(
 		...familyToken,
 		create,
 		internalRoles,
+		limit: createFamilyMemberLimit(options),
 		subject,
 		install: (s: RootStore) => createReadonlyPureSelectorFamily(s, options),
 		default: (key: K) => {
@@ -96,6 +98,7 @@ export function createReadonlyPureSelectorFamily<T, K extends Canonical, E>(
 		},
 	}
 
+	trackFamilyMembers(readonlySelectorFamily)
 	store.families.set(familyKey, readonlySelectorFamily)
 	return familyToken
 }

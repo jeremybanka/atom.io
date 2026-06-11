@@ -1,0 +1,5 @@
+pre-commit:
+  commands:
+    fmt:
+      run: pnpm exec dprint fmt --staged --allow-no-files
+      stage_fixed: true

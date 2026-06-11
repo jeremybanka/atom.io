@@ -8,6 +8,7 @@
 	"include": [
 		"docs/source/exhibits/guides/remote-data",
 		"docs/source/exhibits/guides/typesafe-router",
+		"docs/source/exhibits/guides/effect-ts",
 		"css.d.ts"
 	]
 }

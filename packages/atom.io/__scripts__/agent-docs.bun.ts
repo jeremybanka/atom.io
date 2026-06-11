@@ -69,6 +69,12 @@ const DOC_PAGES: DocPage[] = [
 		url: `/docs/typesafe-router`,
 	},
 	{
+		output: `effect-ts.md`,
+		source: `docs/source/pages/docs/effect-ts.mdx`,
+		title: `Effect-TS`,
+		url: `/docs/effect-ts`,
+	},
+	{
 		output: `atom-io-vs-others.md`,
 		source: `docs/source/pages/docs/atom-io-vs-others.mdx`,
 		title: `atom.io vs others`,

@@ -9,6 +9,7 @@ Start with:
 - `docs/agent/packages/atom.io.md` for the core API
 - `docs/agent/packages/atom.io-react.md` for the React bindings
 - `docs/agent/packages/remote-data.md` for query data, fetched state, RPC (remote procedure call) contracts, loading flows, and suspense-like async reads
+- `docs/agent/packages/typesafe-router.md` for typesafe router guidance with TreeTrunks
 - `docs/agent/examples/` for source-linked exhibits
 - `docs/agent/manifest.json` for a deterministic index of every generated doc
 

@@ -1,0 +1,94 @@
+import AppAnchor from "x/guides/typesafe-router/app-anchor.gen";
+import BunStaticRoutes from "x/guides/typesafe-router/bun-static-routes.gen";
+import CurrentRoute from "x/guides/typesafe-router/current-route.gen";
+import NginxStaticHosting from "x/guides/typesafe-router/nginx-static-hosting.gen";
+import PathnameState from "x/guides/typesafe-router/pathname-state.gen";
+import RouteSelection from "x/guides/typesafe-router/route-selection.gen";
+import RouteShape from "x/guides/typesafe-router/route-shape.gen";
+
+# typesafe router
+
+This pattern keeps routing inside the same data model as the rest of the React app: the browser pathname is source data, derived route state is a selector, and React renders the selected route with ordinary components. It is useful when the app already uses Atom.io heavily and does not need a full route framework for loaders, actions, nested outlets, or route-owned data fetching.
+
+## shape
+
+Define route structure once as shared, typed data with TreeTrunks. TreeTrunks route trees use object keys for path segments, `null` for terminal leaves, `optional(...)` for optional branches, and `$paramName` segment names for dynamic segments. From that tree, derive these types:
+
+- `Route`: a tuple-like path representation, such as `["grants", string, "applications"]`.
+- `Pathname`: a slash-prefixed string representation, such as `/grants/abc/applications`.
+- `PathnameWithSearch`: the route pathname plus a query string, such as `/grants/abc/applications?tab=budget`.
+- `isRoute(value)`: validates an unknown path tuple against the route tree.
+- `PUBLIC_ROUTES` or other route subsets: typed lists for auth, layout, or navigation policy.
+
+The important part is that route strings are not open-ended throughout the app. Links should accept the derived `Pathname` type. Imperative navigation should accept `Pathname | PathnameWithSearch`, since a command-style navigation often needs to preserve or set query state. Route rendering should consume the validated `Route` type.
+
+<RouteShape client:load />
+
+Dynamic segment markers, such as `$grantId`, belong in the TreeTrunks route tree; the derived `Route` type exposes the actual segment value. Keep TreeTrunks as the default mechanism for this pattern so runtime validation and TypeScript route types come from the same source.
+
+## pathname state
+
+Represent the current browser location as an atom. Its default reads `window.location.pathname`.
+
+The atom owns browser integration:
+
+- intercept same-origin anchor clicks whose `href` starts with `/`;
+- call `history.pushState` for client-side navigation;
+- listen to `popstate` so back and forward buttons update state;
+- expose a `navigate(pathname)` helper that pushes history and updates the atom.
+
+<PathnameState client:load />
+
+Keep query-string handling explicit. The `PathnameWithSearch` alias is a small but useful cue that navigation has two related shapes: the route pathname the router validates, and the full URL path a user action might push. The route selector usually cares about path segments, while page view state, filters, or search text can live in separate atoms synchronized to search params.
+
+## route selection
+
+Convert `pathnameAtom` into the renderable route with a selector. This is where route validation, default routes, authentication gates, and layout policy belong.
+
+<RouteSelection client:load />
+
+This keeps redirects declarative from React's point of view. Components subscribe to route state; they do not need to parse `window.location`, inspect auth state, and decide routing policy independently.
+
+## rendering
+
+Render the selected route with a small component that switches on the first tuple segment and then narrows by route length or child segments. Shared chrome can be applied per branch so full-screen auth pages, application shells, and error pages do not need to share one route framework abstraction.
+
+<CurrentRoute client:load />
+
+For links, wrap the native anchor only to narrow `href` to `Pathname`. Let global click interception do the SPA navigation work.
+
+<AppAnchor client:load />
+
+## Bun static routes
+
+When the app is served by Bun's `serve({ routes })` static routes API, the same route tree can generate the route table entries that return the frontend entrypoint. This is a Bun integration convenience: it keeps refreshes and copied deep links aligned with the client route map without hand-writing every static route.
+
+Bun's dynamic segment syntax may differ from the route-tree syntax. For example, a route-tree segment like `$grantId` can be translated to Bun's `:grantId` segment before adding it to the static routes object.
+
+<BunStaticRoutes client:load />
+
+Other servers should use their own SPA fallback mechanism. The reusable part of this pattern is the shared route tree; the Bun-specific part is turning that tree into `serve({ routes })` entries.
+
+## nginx static hosting
+
+When the app is served as built static files through nginx, use nginx's file lookup fallback instead of generating a server route table. The goal is the same as the Bun static routes case: a browser refresh on `/grants/abc/applications` should return the frontend entrypoint, after which the atom-backed route selector validates and renders the route.
+
+This app's nginx config does that with `try_files`:
+
+<NginxStaticHosting client:load />
+
+`try_files $uri /index.html` asks nginx to serve an actual file first. That keeps bundled assets, favicons, and other static files working normally. If the requested path is not a file, nginx serves `index.html`, preserving the original URL in the address bar for the client router to parse.
+
+With this approach, nginx does not know the application's route tree. Unknown app paths still receive `index.html`, and the client-side `routeSelector` is responsible for returning the not-found state when `isRoute(path)` fails.
+
+## guidelines
+
+- Keep route definitions in shared code so client routing and any host-specific deep-link handling can share the same route map.
+- Keep route validation runtime-backed; TypeScript alone cannot protect pasted URLs or browser history.
+- Keep programmatic navigation typed, including the query-string case when needed.
+- Keep route data as path segments, not parsed domain objects. Load domain records through normal remote-state atoms after routing selects the relevant id.
+- Keep auth gating in the route selector for immediate client feedback, but do not treat it as security.
+- Keep invalid paths distinct from unauthorized paths. Invalid routes should render a not-found state; valid private routes with no auth can select the login route.
+- Prefer selectors for route-derived UI state such as active nav items, document titles, breadcrumbs, or layout mode.
+
+This gives the app a small router with strong type pressure, browser-native links, refresh-safe deep links, and routing state that composes naturally with the rest of Atom.io.

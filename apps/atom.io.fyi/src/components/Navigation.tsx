@@ -219,8 +219,8 @@ function SiteDirectory(): VNode {
 							</a>
 						</section>
 						<section>
-							<a id="-docs-spa-router-link" href="/docs/spa-router">
-								SPA router
+							<a id="-docs-typesafe-router-link" href="/docs/typesafe-router">
+								typesafe router
 							</a>
 						</section>
 					</main>

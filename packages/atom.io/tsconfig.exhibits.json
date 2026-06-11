@@ -7,7 +7,7 @@
 	},
 	"include": [
 		"docs/source/exhibits/guides/remote-data",
-		"docs/source/exhibits/guides/spa-router",
+		"docs/source/exhibits/guides/typesafe-router",
 		"css.d.ts"
 	]
 }

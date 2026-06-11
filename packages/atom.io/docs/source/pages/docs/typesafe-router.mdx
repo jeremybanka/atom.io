@@ -1,12 +1,12 @@
-import AppAnchor from "x/guides/spa-router/app-anchor.gen";
-import BunStaticRoutes from "x/guides/spa-router/bun-static-routes.gen";
-import CurrentRoute from "x/guides/spa-router/current-route.gen";
-import NginxStaticHosting from "x/guides/spa-router/nginx-static-hosting.gen";
-import PathnameState from "x/guides/spa-router/pathname-state.gen";
-import RouteSelection from "x/guides/spa-router/route-selection.gen";
-import RouteShape from "x/guides/spa-router/route-shape.gen";
+import AppAnchor from "x/guides/typesafe-router/app-anchor.gen";
+import BunStaticRoutes from "x/guides/typesafe-router/bun-static-routes.gen";
+import CurrentRoute from "x/guides/typesafe-router/current-route.gen";
+import NginxStaticHosting from "x/guides/typesafe-router/nginx-static-hosting.gen";
+import PathnameState from "x/guides/typesafe-router/pathname-state.gen";
+import RouteSelection from "x/guides/typesafe-router/route-selection.gen";
+import RouteShape from "x/guides/typesafe-router/route-shape.gen";
 
-# atom-backed SPA routing
+# typesafe router
 
 This pattern keeps routing inside the same data model as the rest of the React app: the browser pathname is source data, derived route state is a selector, and React renders the selected route with ordinary components. It is useful when the app already uses Atom.io heavily and does not need a full route framework for loaders, actions, nested outlets, or route-owned data fetching.
 

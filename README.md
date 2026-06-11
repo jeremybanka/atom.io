@@ -16,6 +16,29 @@ This monorepo is the workshop around that engine: the published package, the
 documentation site, the project scaffolder, and a set of templates that exercise
 `atom.io` in real app shapes.
 
+## A Tiny Taste
+
+State stays small, derived data stays lazy, and React reads exactly what it needs.
+
+```tsx
+import { atom, selector } from "atom.io"
+import { useI, useO } from "atom.io/react"
+
+const todosAtom = atom<string[]>({ key: `todos`, default: [] })
+const openTodos = selector<number>({
+	key: `openTodos`,
+	get: ({ get }) => get(todosAtom).length,
+})
+
+export function InboxButton() {
+	const open = useO(openTodos)
+	const setTodos = useI(todosAtom)
+	const addTodo = () => setTodos((todos) => [`ship it`, ...todos])
+
+	return <button onClick={addTodo}>{open} open</button>
+}
+```
+
 ## Start Here
 
 - Install the library with `npm i atom.io`.

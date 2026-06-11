@@ -4,7 +4,7 @@ import type { Pathname } from "./route-shape"
 
 type AppAnchorProps = Omit<
 	React.AnchorHTMLAttributes<HTMLAnchorElement>,
-	"href"
+	`href`
 > & {
 	href: Pathname
 }

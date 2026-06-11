@@ -11,7 +11,7 @@ export const ROUTES = optional({
 })
 
 export type Route = TreePath<typeof ROUTES>
-export type Pathname = `/${Join<Route, "/">}`
+export type Pathname = `/${Join<Route, `/`>}`
 export type PathnameWithSearch = `${Pathname}?${string}`
 
 export function isRoute(path: unknown[]): path is Route {

@@ -8,10 +8,10 @@ declare const authAtom: AtomToken<boolean | null>
 declare function isPublicRoute(path: Route): boolean
 
 export const routeSelector = selector<Route | 404>({
-	key: "route",
+	key: `route`,
 	get: ({ get }) => {
 		const pathname = get(pathnameAtom)
-		const path = pathname.split("/").slice(1).filter(Boolean)
+		const path = pathname.split(`/`).slice(1).filter(Boolean)
 
 		if (!isRoute(path)) {
 			return 404
@@ -23,11 +23,11 @@ export const routeSelector = selector<Route | 404>({
 
 		const auth = get(authAtom)
 		if (!auth) {
-			return ["login"]
+			return [`login`]
 		}
 
 		if (path.length === 0) {
-			return ["grants"]
+			return [`grants`]
 		}
 
 		return path

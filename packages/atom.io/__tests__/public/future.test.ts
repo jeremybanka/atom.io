@@ -1,4 +1,4 @@
-import { Future } from "atom.io/internal"
+import { Future } from "atom.io/foundations/future"
 import { vitest } from "vitest"
 
 import * as Utils from "../__util__"

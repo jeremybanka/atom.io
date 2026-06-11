@@ -63,6 +63,12 @@ const DOC_PAGES: DocPage[] = [
 		url: `/docs/remote-data`,
 	},
 	{
+		output: `typesafe-router.md`,
+		source: `docs/source/pages/docs/typesafe-router.mdx`,
+		title: `typesafe router`,
+		url: `/docs/typesafe-router`,
+	},
+	{
 		output: `atom-io-vs-others.md`,
 		source: `docs/source/pages/docs/atom-io-vs-others.mdx`,
 		title: `atom.io vs others`,
@@ -791,6 +797,7 @@ async function main(): Promise<void> {
 			`- packages/atom.io.md for the main package docs`,
 			`- packages/atom.io-react.md for React bindings`,
 			`- packages/remote-data.md for fetched, queried, and RPC-backed state`,
+			`- packages/typesafe-router.md for typesafe router guidance with TreeTrunks`,
 			`- examples/ for original exhibit source files`,
 			`- manifest.json for a deterministic index of every generated doc`,
 			``,
@@ -819,6 +826,7 @@ async function main(): Promise<void> {
 				`- Concepts glossary: /docs/concepts`,
 				`- Main docs: /docs`,
 				`- Remote/RPC data guide: /docs/remote-data`,
+				`- typesafe router guide: /docs/typesafe-router`,
 				`- React bindings: /docs/react`,
 				`- JSON and transceivers: /docs/json and /transceivers`,
 				``,

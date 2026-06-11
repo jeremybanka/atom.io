@@ -2,8 +2,6 @@ import type {
 	AtomFamilyToken,
 	AtomToken,
 	AtomUpdateEvent,
-	StateCreationEvent,
-	StateDisposalEvent,
 	StateUpdate,
 	TimelineEvent,
 	TimelineManageable,
@@ -20,6 +18,7 @@ import type {
 import { reduceReference } from "../get-state/reduce-reference"
 import { newest } from "../lineage"
 import { getUpdateToken } from "../mutable"
+import type { FamilyMemberLifecycleEvent } from "../state-types"
 import { deposit, type Store, withdraw } from "../store"
 import { Subject } from "../subject"
 import type { RootStore } from "../transaction"
@@ -227,8 +226,8 @@ function addAtomFamilyToTimeline(
 		family.key,
 		family.subject.subscribe(
 			`timeline`,
-			function timelineCapturesStateLifecycleEvent(creationOrDisposal) {
-				handleStateLifecycleEvent(store, creationOrDisposal, tl)
+			function timelineCapturesFamilyMemberLifecycleEvent(lifecycleEvent) {
+				handleFamilyMemberLifecycleEvent(store, lifecycleEvent, tl)
 			},
 		),
 	)
@@ -284,7 +283,7 @@ function buildSelectorUpdate(
 	store: Store,
 	tl: Timeline<any>,
 	atomToken: AtomToken<any, any, any>,
-	eventOrUpdate: StateCreationEvent<any> | StateUpdate<any>,
+	update: StateUpdate<any>,
 	currentSelectorToken: WritablePureSelectorToken<any>,
 	currentSelectorTime: number,
 ) {
@@ -298,16 +297,12 @@ function buildSelectorUpdate(
 				token: currentSelectorToken,
 				subEvents: [],
 			})
-		if (`type` in eventOrUpdate) {
-			latestEvent.subEvents.push(eventOrUpdate)
-		} else {
-			latestEvent.subEvents.push({
-				type: `atom_update`,
-				token: atomToken,
-				update: eventOrUpdate,
-				timestamp: Date.now(), // 👺 use store operation
-			})
-		}
+		latestEvent.subEvents.push({
+			type: `atom_update`,
+			token: atomToken,
+			update,
+			timestamp: Date.now(), // 👺 use store operation
+		})
 
 		addToHistory(tl, latestEvent)
 		tl.selectorTime = currentSelectorTime
@@ -319,32 +314,14 @@ function buildSelectorUpdate(
 			`got a selector_update "${currentSelectorToken.key}" with`,
 			latestEvent.subEvents.map((event) => event.token.key),
 		)
-
-		const operation = store.operation
-		const unsub = store.on.operationClose.subscribe(
-			`timeline:${tl.key} (needs to gather nested selector creations)`,
-			() => {
-				unsub()
-				if (operation.open) {
-					selectorUpdate.subEvents = [
-						...operation.subEvents,
-						...selectorUpdate.subEvents,
-					]
-				}
-			},
-		)
 	} else {
 		if (latestEvent?.type === `selector_update`) {
-			if (`type` in eventOrUpdate) {
-				latestEvent.subEvents.push(eventOrUpdate)
-			} else {
-				latestEvent.subEvents.push({
-					type: `atom_update`,
-					token: atomToken,
-					update: eventOrUpdate,
-					timestamp: Date.now(), // 👺 use store operation
-				})
-			}
+			latestEvent.subEvents.push({
+				type: `atom_update`,
+				token: atomToken,
+				update,
+				timestamp: Date.now(), // 👺 use store operation
+			})
 			store.logger.info(
 				`⌛`,
 				`timeline`,
@@ -378,8 +355,6 @@ function filterTransactionSubEvents(
 			let familyKey: string | undefined
 			switch (updateFromTx.type) {
 				case `atom_update`:
-				case `state_creation`:
-				case `state_disposal`:
 					key = updateFromTx.token.key
 					familyKey = updateFromTx.token.family?.key
 					break
@@ -408,21 +383,11 @@ function filterTransactionSubEvents(
 		})
 }
 
-function handleStateLifecycleEvent(
+function handleFamilyMemberLifecycleEvent(
 	store: Store,
-	event: StateCreationEvent<any> | StateDisposalEvent<any>,
+	event: FamilyMemberLifecycleEvent<any>,
 	tl: Timeline<any>,
 ): void {
-	const currentSelectorToken =
-		store.operation.open &&
-		store.operation.token.type === `writable_pure_selector`
-			? store.operation.token
-			: null
-	const currentSelectorTime =
-		store.operation.open &&
-		store.operation.token.type === `writable_pure_selector`
-			? store.operation.timestamp
-			: null
 	if (!tl.timeTraveling) {
 		const target = newest(store)
 		if (isChildStore(target)) {
@@ -431,29 +396,19 @@ function handleStateLifecycleEvent(
 			const txUpdateInProgress = target.on.transactionApplying.state
 			if (txUpdateInProgress) {
 				joinTransaction(store, tl, txUpdateInProgress.update)
-			} else if (
-				currentSelectorToken &&
-				currentSelectorTime &&
-				event.type === `state_creation`
-			) {
-				buildSelectorUpdate(
-					store,
-					tl,
-					event.token,
-					event,
-					currentSelectorToken,
-					currentSelectorTime,
-				)
-			} else {
-				addToHistory(tl, event)
 			}
 		}
 	}
 	switch (event.type) {
-		case `state_creation`:
-			addAtomToTimeline(store, event.token, tl)
+		case `family_member_creation`:
+			switch (event.token.type) {
+				case `atom`:
+				case `mutable_atom`:
+					addAtomToTimeline(store, event.token, tl)
+					break
+			}
 			break
-		case `state_disposal`:
+		case `family_member_disposal`:
 			tl.subscriptions.get(event.token.key)?.()
 			tl.subscriptions.delete(event.token.key)
 			break

@@ -24,16 +24,12 @@ export function redactTransactionUpdateContent(
 				case `molecule_creation`:
 				case `molecule_disposal`:
 				case `molecule_transfer`:
-				case `state_creation`:
-				case `state_disposal`:
 					return update
 			}
 		})
 		.filter((update) => {
 			switch (update.type) {
 				case `atom_update`:
-				case `state_creation`:
-				case `state_disposal`:
 					return visibleStateKeys.includes(update.token.key)
 				case `molecule_creation`:
 				case `transaction_outcome`:

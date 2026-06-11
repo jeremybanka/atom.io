@@ -395,7 +395,24 @@ describe(`timeline`, () => {
 })
 
 describe(`timeline state lifecycle`, () => {
-	test(`states may be disposed via undo/redo`, () => {
+	test(`undoing an initial write to a computed-default family disposes the member`, () => {
+		const countAtoms = atomFamily<number, string>({
+			key: `count`,
+			default: (key) => key.length,
+		})
+		const countsTL = timeline({
+			key: `counts`,
+			scope: [countAtoms],
+		})
+		setState(countAtoms, `my-key`, 1)
+		expect(getState(countAtoms, `my-key`)).toBe(1)
+
+		undo(countsTL)
+		expect(I.seekInStore(I.IMPLICIT.STORE, countAtoms, `my-key`)).toBe(undefined)
+		expect(getState(countAtoms, `my-key`)).toBe(6)
+	})
+
+	test(`direct state disposal is not recorded as timeline history`, () => {
 		const countAtoms = atomFamily<number, string>({
 			key: `count`,
 			default: 0,
@@ -406,11 +423,14 @@ describe(`timeline state lifecycle`, () => {
 		})
 		setState(countAtoms, `my-key`, 1)
 		expect(getState(countAtoms, `my-key`)).toBe(1)
-		disposeState(countAtoms, `my-key`)
-		undo(countsTL)
+		const timelineData = I.withdraw(I.IMPLICIT.STORE, countsTL)
+		expect(timelineData.history).toHaveLength(1)
 
+		disposeState(countAtoms, `my-key`)
 		expect(I.seekInStore(I.IMPLICIT.STORE, countAtoms, `my-key`)).toBe(undefined)
-		redo(countsTL)
+		expect(timelineData.history).toHaveLength(1)
+
+		undo(countsTL)
 		expect(I.seekInStore(I.IMPLICIT.STORE, countAtoms, `my-key`)).toEqual({
 			family: {
 				key: `count`,

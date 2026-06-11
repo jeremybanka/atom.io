@@ -8,7 +8,6 @@ import type {
 	ReadonlyPureSelectorFamilyToken,
 	ReadonlyPureSelectorOptions,
 	ReadonlyPureSelectorToken,
-	StateLifecycleEvent,
 } from "atom.io"
 import { PRETTY_ENTITY_NAMES } from "atom.io"
 import type { Canonical } from "atom.io/json"
@@ -19,7 +18,10 @@ import { findRelationsInStore, getInternalRelationsFromStore } from "../join"
 import { newest } from "../lineage"
 import { getJsonToken } from "../mutable"
 import { createReadonlyPureSelector } from "../selector"
-import type { ReadonlyPureSelectorFamily } from "../state-types"
+import type {
+	FamilyMemberLifecycleEvent,
+	ReadonlyPureSelectorFamily,
+} from "../state-types"
 import { Subject } from "../subject"
 import type { RootStore } from "../transaction"
 import { findInStore } from "./find-in-store"
@@ -48,7 +50,7 @@ export function createReadonlyPureSelectorFamily<T, K extends Canonical, E>(
 	}
 
 	const subject = new Subject<
-		StateLifecycleEvent<ReadonlyPureSelectorToken<T, K, E>>
+		FamilyMemberLifecycleEvent<ReadonlyPureSelectorToken<T, K, E>>
 	>()
 
 	const create = <Key extends K>(

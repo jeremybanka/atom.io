@@ -1,6 +1,5 @@
 import type {
 	FamilyMetadata,
-	StateLifecycleEvent,
 	WritableHeldSelectorFamilyOptions,
 	WritableHeldSelectorFamilyToken,
 	WritableHeldSelectorToken,
@@ -11,7 +10,10 @@ import { stringifyJson } from "atom.io/json"
 
 import { newest } from "../lineage"
 import { createWritableHeldSelector } from "../selector"
-import type { WritableHeldSelectorFamily } from "../state-types"
+import type {
+	FamilyMemberLifecycleEvent,
+	WritableHeldSelectorFamily,
+} from "../state-types"
 import type { Store } from "../store"
 import { Subject } from "../subject"
 import type { RootStore } from "../transaction"
@@ -42,7 +44,7 @@ export function createWritableHeldSelectorFamily<
 		)
 	}
 	const subject = new Subject<
-		StateLifecycleEvent<WritableHeldSelectorToken<T>>
+		FamilyMemberLifecycleEvent<WritableHeldSelectorToken<T>>
 	>()
 
 	const create = (key: K): WritableHeldSelectorToken<T> => {

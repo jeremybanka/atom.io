@@ -3,8 +3,6 @@ import type { TransactionOutcomeEvent } from "atom.io"
 import type { Store } from "../store"
 import { ingestAtomUpdateEvent } from "./ingest-atom-update"
 import {
-	ingestCreationEvent,
-	ingestDisposalEvent,
 	ingestMoleculeCreationEvent,
 	ingestMoleculeDisposalEvent,
 	ingestMoleculeTransferEvent,
@@ -21,12 +19,6 @@ export function ingestTransactionOutcomeEvent(
 		switch (subEvent.type) {
 			case `atom_update`:
 				ingestAtomUpdateEvent(store, subEvent, applying)
-				break
-			case `state_creation`:
-				ingestCreationEvent(store, subEvent, applying)
-				break
-			case `state_disposal`:
-				ingestDisposalEvent(store, subEvent, applying)
 				break
 			case `molecule_creation`:
 				ingestMoleculeCreationEvent(store, subEvent, applying)

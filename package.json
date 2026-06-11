@@ -24,8 +24,9 @@
 		"lint:types": "dotenvx run -- turbo run lint:types",
 		"watch:types": "dotenvx run -- turbo run watch:types --concurrency=30",
 		"lint:fix:eslint": "eslint --fix .",
-		"fmt": "cross-env DPRINT_CACHE_DIR=$PWD/.cache/dprint dprint check .",
-		"fmt:fix": "cross-env DPRINT_CACHE_DIR=$PWD/.cache/dprint dprint fmt .",
+		"fmt": "dprint fmt .",
+		"fmt:check": "dprint check .",
+		"hooks:install": "simple-git-hooks",
 		"build": "dotenvx run -- turbo run build",
 		"test": "CI=true dotenvx run -- turbo run test:once --concurrency=2",
 		"test:coverage:increased": "CI=true turbo run test:coverage:increased",
@@ -51,7 +52,6 @@
 		"@typescript-eslint/parser": "8.61.0",
 		"@typescript-eslint/utils": "8.61.0",
 		"@typescript/native-preview": "7.0.0-dev.20260610.1",
-		"cross-env": "10.1.0",
 		"dprint": "0.54.0",
 		"dprint-plugin-malva": "0.16.0",
 		"dprint-plugin-markup": "0.27.3",
@@ -61,11 +61,19 @@
 		"eslint-plugin-simple-import-sort": "13.0.0",
 		"eslint-plugin-storybook": "10.4.3",
 		"jiti": "2.7.0",
+		"lint-staged": "16.2.6",
 		"oxlint": "1.69.0",
 		"oxlint-tsgolint": "0.23.0",
 		"pin-dependencies-checker": "2.7.1",
+		"simple-git-hooks": "2.13.1",
 		"turbo": "2.9.17",
 		"typescript": "6.0.3",
 		"vitest": "4.1.8"
+	},
+	"simple-git-hooks": {
+		"pre-commit": "./node_modules/.bin/lint-staged"
+	},
+	"lint-staged": {
+		"*": "./node_modules/dprint/dprint fmt --allow-no-files"
 	}
 }

@@ -1,5 +1,15 @@
 # create-atom.io
 
+## 0.1.26
+
+### Patch Changes
+
+- 26697cd: Add a README covering usage, templates, options, and next steps.
+- Updated dependencies [26697cd]
+  - @atom.io/template-preact-svg-editor@0.0.64
+  - @atom.io/template-react-node-backend@0.0.68
+  - @atom.io/template-solid-lossless-numbers@0.0.18
+
 ## 0.1.25
 
 ### Patch Changes

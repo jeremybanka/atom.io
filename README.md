@@ -21,20 +21,18 @@ documentation site, the project scaffolder, and a set of templates that exercise
 State stays small, derived data stays lazy, and React reads exactly what it needs.
 
 ```tsx
-import { atom, selector } from "atom.io"
-import { useI, useO } from "atom.io/react"
+import { atom, selector, setState } from "atom.io"
+import { useO } from "atom.io/react"
 
 const todosAtom = atom<string[]>({ key: `todos`, default: [] })
 const openTodos = selector<number>({
 	key: `openTodos`,
 	get: ({ get }) => get(todosAtom).length,
 })
+const addTodo = () => setState(todosAtom, (todos) => [`ship it`, ...todos])
 
 export function InboxButton() {
 	const open = useO(openTodos)
-	const setTodos = useI(todosAtom)
-	const addTodo = () => setTodos((todos) => [`ship it`, ...todos])
-
 	return <button onClick={addTodo}>{open} open</button>
 }
 ```

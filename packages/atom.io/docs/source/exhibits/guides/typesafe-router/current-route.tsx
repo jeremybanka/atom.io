@@ -15,11 +15,15 @@ function CurrentRoute(): React.JSX.Element {
 		return <NotFoundPage />
 	}
 
+	if (route.length === 0) {
+		return <GrantIndex />
+	}
+
 	switch (route[0]) {
-		case "login":
+		case `login`:
 			return <LoginPage />
 
-		case "grants":
+		case `grants`:
 			if (route.length === 2) {
 				return <GrantDetail grantId={route[1]} />
 			}

@@ -9,7 +9,7 @@ export function createSpaFallbacks(
 ): Record<`/${string}`, FrontendEntrypoint> {
 	return Object.fromEntries(
 		flattenRouteTree(routes).map((path) => [
-			`/${path.replace(/\$(\w+)/g, ":$1")}`,
+			`/${path.replace(/\$(\w+)/g, `:$1`)}`,
 			index,
 		]),
 	)

@@ -14,6 +14,7 @@ import { createReadonlyHeldSelector } from "../selector"
 import type { ReadonlyHeldSelectorFamily } from "../state-types"
 import { Subject } from "../subject"
 import type { RootStore } from "../transaction"
+import { createFamilyMemberLimit, trackFamilyMembers } from "./family-limits"
 
 export function createReadonlyHeldSelectorFamily<
 	T extends object,
@@ -66,11 +67,13 @@ export function createReadonlyHeldSelectorFamily<
 		...familyToken,
 		create,
 		internalRoles,
+		limit: createFamilyMemberLimit(options),
 		subject,
 		install: (s: RootStore) => createReadonlyHeldSelectorFamily(s, options),
 		default: options.const,
 	}
 
+	trackFamilyMembers(readonlySelectorFamily)
 	store.families.set(familyKey, readonlySelectorFamily)
 	return familyToken
 }

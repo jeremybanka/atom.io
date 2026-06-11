@@ -11,6 +11,10 @@ import type { Canonical } from "atom.io/json"
 import { stringifyJson } from "atom.io/json"
 
 import { createWritablePureSelectorFamily } from "../families"
+import {
+	createFamilyMemberLimit,
+	trackFamilyMembers,
+} from "../families/family-limits"
 import { newest } from "../lineage"
 import { createMutableAtom } from "../mutable"
 import type { MutableAtomFamily } from "../state-types"
@@ -66,11 +70,13 @@ export function createMutableAtomFamily<
 		...familyToken,
 		create,
 		class: options.class,
+		internalRoles,
+		limit: createFamilyMemberLimit(options),
 		subject,
 		install: (s: RootStore) => createMutableAtomFamily(s, options),
-		internalRoles,
 	}
 
+	trackFamilyMembers(atomFamily)
 	store.families.set(options.key, atomFamily)
 
 	createWritablePureSelectorFamily<AsJSON<T>, K, never>(
@@ -86,6 +92,10 @@ export function createMutableAtomFamily<
 				({ set }, newValue) => {
 					set(familyToken, key, options.class.fromJSON(newValue))
 				},
+			...(options.maxMembers === undefined
+				? {}
+				: { maxMembers: options.maxMembers }),
+			...(options.whenFull === undefined ? {} : { whenFull: options.whenFull }),
 		},
 		[`mutable`, `json`],
 	)

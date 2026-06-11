@@ -17,6 +17,7 @@ import type {
 	RegularAtomFamilyToken,
 	RegularAtomToken,
 } from "./tokens"
+import type { FamilyLimitOptions } from "./family-options"
 
 export type RegularAtomOptions<T, E = never> = {
 	/** The unique identifier of the atom */
@@ -92,7 +93,11 @@ export type Effectors<T, E = never> = {
 	store: Store
 }
 
-export type RegularAtomFamilyOptions<T, K extends Canonical, E = never> = {
+export type RegularAtomFamilyOptions<
+	T,
+	K extends Canonical,
+	E = never,
+> = FamilyLimitOptions & {
 	/** The unique identifier of the atom family */
 	key: string
 	/** The starting value of the atom family */
@@ -117,7 +122,7 @@ export function atomFamily<T, K extends Canonical, E = never>(
 export type MutableAtomFamilyOptions<
 	T extends Transceiver<any, any, any>,
 	K extends Canonical,
-> = {
+> = FamilyLimitOptions & {
 	/** The unique identifier of the atom family */
 	key: string
 	/** The class of the transceiver to be created */

@@ -4,6 +4,7 @@ import { stringifyJson } from "atom.io/json"
 
 import type { ReadableFamily } from "../state-types"
 import type { Store } from "../store"
+import { enforceFamilyMemberLimit } from "./family-limits"
 
 export const FAMILY_MEMBER_TOKEN_TYPES = {
 	atom_family: `atom`,
@@ -68,6 +69,7 @@ export function mintInStore<T, K extends Canonical, KK extends K, E>(
 
 	let token: ReadableToken<T, KK, E>
 	if (mustCreate === MUST_CREATE) {
+		enforceFamilyMemberLimit(store, family, key)
 		store.logger.info(
 			`👪`,
 			family.type,

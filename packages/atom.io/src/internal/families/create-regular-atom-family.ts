@@ -16,6 +16,7 @@ import { newest } from "../lineage"
 import type { RegularAtomFamily } from "../state-types"
 import { Subject } from "../subject"
 import type { RootStore } from "../transaction"
+import { createFamilyMemberLimit, trackFamilyMembers } from "./family-limits"
 
 export function createRegularAtomFamily<T, K extends Canonical, E>(
 	store: RootStore,
@@ -64,11 +65,13 @@ export function createRegularAtomFamily<T, K extends Canonical, E>(
 		...familyToken,
 		create,
 		default: options.default,
+		internalRoles,
+		limit: createFamilyMemberLimit(options),
 		subject,
 		install: (s: RootStore) => createRegularAtomFamily(s, options),
-		internalRoles,
 	}
 
+	trackFamilyMembers(atomFamily)
 	store.families.set(options.key, atomFamily)
 	if (isFn(options.default) === false) {
 		store.defaults.set(options.key, options.default)

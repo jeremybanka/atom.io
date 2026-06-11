@@ -1,11 +1,14 @@
 import type { Logger } from "atom.io"
 import {
 	atomFamily,
+	disposeState,
 	findState,
 	getState,
 	resetState,
+	runTransaction,
 	selectorFamily,
 	setState,
+	transaction,
 } from "atom.io"
 import * as Internal from "atom.io/internal"
 import { vitest } from "vitest"
@@ -34,6 +37,78 @@ describe(`atom families`, () => {
 		expect(getState(findState(coordinateAtoms, `a`))).toEqual({ x: 1, y: 1 })
 		resetState(coordinateAtoms, `a`)
 		expect(getState(coordinateAtoms, `a`)).toEqual({ x: 0, y: 0 })
+	})
+	it(`blocks new members when maxMembers is reached`, () => {
+		const countAtoms = atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+			maxMembers: 2,
+			whenFull: `block`,
+		})
+
+		getState(countAtoms, `a`)
+		getState(countAtoms, `b`)
+
+		expect(() => getState(countAtoms, `c`)).toThrow(
+			`atom_family "count" already has its maximum of 2 members`,
+		)
+		expect(Internal.IMPLICIT.STORE.atoms.has(`count("a")`)).toBe(true)
+		expect(Internal.IMPLICIT.STORE.atoms.has(`count("b")`)).toBe(true)
+		expect(Internal.IMPLICIT.STORE.atoms.has(`count("c")`)).toBe(false)
+	})
+	it(`allows new members after disposing old ones`, () => {
+		const countAtoms = atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+			maxMembers: 1,
+		})
+
+		getState(countAtoms, `a`)
+		disposeState(countAtoms, `a`)
+
+		expect(() => getState(countAtoms, `b`)).not.toThrow()
+		expect(Internal.IMPLICIT.STORE.atoms.has(`count("a")`)).toBe(false)
+		expect(Internal.IMPLICIT.STORE.atoms.has(`count("b")`)).toBe(true)
+	})
+	it(`evicts the oldest member when maxMembers is reached`, () => {
+		const countAtoms = atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+			maxMembers: 2,
+			whenFull: `evict_oldest`,
+		})
+
+		setState(countAtoms, `a`, 1)
+		setState(countAtoms, `b`, 2)
+		setState(countAtoms, `c`, 3)
+
+		expect(Internal.IMPLICIT.STORE.atoms.has(`count("a")`)).toBe(false)
+		expect(Internal.IMPLICIT.STORE.atoms.has(`count("b")`)).toBe(true)
+		expect(Internal.IMPLICIT.STORE.atoms.has(`count("c")`)).toBe(true)
+		expect(getState(countAtoms, `b`)).toBe(2)
+		expect(getState(countAtoms, `c`)).toBe(3)
+	})
+	it(`ignores members created in aborted transactions`, () => {
+		const countAtoms = atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+			maxMembers: 2,
+		})
+		const addThenFail = transaction({
+			key: `add_then_fail`,
+			do: ({ set }) => {
+				set(countAtoms, `b`, 1)
+				throw new Error(`nope`)
+			},
+		})
+
+		getState(countAtoms, `a`)
+
+		expect(runTransaction(addThenFail)).toThrow(`nope`)
+		expect(() => setState(countAtoms, `c`, 2)).not.toThrow()
+		expect(Internal.IMPLICIT.STORE.atoms.has(`count("a")`)).toBe(true)
+		expect(Internal.IMPLICIT.STORE.atoms.has(`count("b")`)).toBe(false)
+		expect(Internal.IMPLICIT.STORE.atoms.has(`count("c")`)).toBe(true)
 	})
 })
 
@@ -100,5 +175,59 @@ describe(`selector families`, () => {
 				},
 		})
 		expect(getState(lengthSelectors, `hi`)).toBe(0)
+	})
+	it(`blocks new selector members when maxMembers is reached`, () => {
+		const countAtoms = atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+		})
+		const doubledSelectors = selectorFamily<number, string>({
+			key: `doubled`,
+			maxMembers: 1,
+			whenFull: `block`,
+			get:
+				(id) =>
+				({ get }) =>
+					get(countAtoms, id) * 2,
+		})
+
+		getState(doubledSelectors, `a`)
+
+		expect(() => getState(doubledSelectors, `b`)).toThrow(
+			`readonly_pure_selector_family "doubled" already has its maximum of 1 members`,
+		)
+		expect(Internal.IMPLICIT.STORE.readonlySelectors.has(`doubled("a")`)).toBe(
+			true,
+		)
+		expect(Internal.IMPLICIT.STORE.readonlySelectors.has(`doubled("b")`)).toBe(
+			false,
+		)
+	})
+	it(`evicts the oldest selector member when maxMembers is reached`, () => {
+		const countAtoms = atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+		})
+		const doubledSelectors = selectorFamily<number, string>({
+			key: `doubled`,
+			maxMembers: 1,
+			whenFull: `evict_oldest`,
+			get:
+				(id) =>
+				({ get }) =>
+					get(countAtoms, id) * 2,
+		})
+
+		setState(countAtoms, `a`, 1)
+		setState(countAtoms, `b`, 2)
+		expect(getState(doubledSelectors, `a`)).toBe(2)
+		expect(getState(doubledSelectors, `b`)).toBe(4)
+
+		expect(Internal.IMPLICIT.STORE.readonlySelectors.has(`doubled("a")`)).toBe(
+			false,
+		)
+		expect(Internal.IMPLICIT.STORE.readonlySelectors.has(`doubled("b")`)).toBe(
+			true,
+		)
 	})
 })

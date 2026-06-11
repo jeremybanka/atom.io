@@ -20,6 +20,7 @@ import type { Canonical } from "atom.io/json"
 
 import type { InternalRole } from "./atom"
 import type { ConstructorOf, Transceiver } from "./mutable"
+import type { FamilyMemberLimit } from "./families/family-limits"
 import type { Store } from "./store"
 import type { Subject } from "./subject"
 import type { Timeline } from "./timeline"
@@ -117,6 +118,7 @@ export type RegularAtomFamily<T, K extends Canonical, E = never> = Flat<
 		default: T | ((key: K) => T)
 		install: (store: RootStore) => void
 		internalRoles: string[] | undefined
+		limit: FamilyMemberLimit | undefined
 		subject: Subject<StateLifecycleEvent<RegularAtomToken<T, K, E>>>
 	}
 >
@@ -131,6 +133,7 @@ export type MutableAtomFamily<
 		class: ConstructorOf<T>
 		install: (store: RootStore) => void
 		internalRoles: string[] | undefined
+		limit: FamilyMemberLimit | undefined
 		subject: Subject<StateLifecycleEvent<MutableAtomToken<T>>>
 	}
 >
@@ -146,6 +149,7 @@ export type WritablePureSelectorFamily<T, K extends Canonical, E> = Flat<
 		default: (key: K) => T
 		install: (store: RootStore) => void
 		internalRoles: string[] | undefined
+		limit: FamilyMemberLimit | undefined
 		subject: Subject<StateLifecycleEvent<WritablePureSelectorToken<T, K, E>>>
 	}
 >
@@ -157,6 +161,7 @@ export type WritableHeldSelectorFamily<T, K extends Canonical> = Flat<
 		default: (key: K) => T
 		install: (store: RootStore) => void
 		internalRoles: string[] | undefined
+		limit: FamilyMemberLimit | undefined
 		subject: Subject<StateLifecycleEvent<WritableHeldSelectorToken<T, K>>>
 	}
 >
@@ -168,6 +173,7 @@ export type ReadonlyPureSelectorFamily<T, K extends Canonical, E> = Flat<
 		default: (key: K) => T
 		install: (store: RootStore) => void
 		internalRoles: string[] | undefined
+		limit: FamilyMemberLimit | undefined
 		subject: Subject<StateLifecycleEvent<ReadonlyPureSelectorToken<T, K, E>>>
 	}
 >
@@ -179,6 +185,7 @@ export type ReadonlyHeldSelectorFamily<T, K extends Canonical> = Flat<
 		default: (key: K) => T
 		install: (store: RootStore) => void
 		internalRoles: string[] | undefined
+		limit: FamilyMemberLimit | undefined
 		subject: Subject<StateLifecycleEvent<ReadonlyHeldSelectorToken<T>>>
 	}
 >

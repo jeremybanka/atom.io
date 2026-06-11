@@ -23,6 +23,7 @@ import type { WritablePureSelectorFamily } from "../state-types"
 import type { Store } from "../store"
 import { Subject } from "../subject"
 import type { RootStore } from "../transaction"
+import { createFamilyMemberLimit, trackFamilyMembers } from "./family-limits"
 import { findInStore } from "./find-in-store"
 
 export function createWritablePureSelectorFamily<T, K extends Canonical, E>(
@@ -78,6 +79,7 @@ export function createWritablePureSelectorFamily<T, K extends Canonical, E>(
 		...familyToken,
 		create,
 		internalRoles,
+		limit: createFamilyMemberLimit(options),
 		subject,
 		install: (s: RootStore) => createWritablePureSelectorFamily(s, options),
 		default: (key: K) => {
@@ -101,6 +103,7 @@ export function createWritablePureSelectorFamily<T, K extends Canonical, E>(
 		},
 	}
 
+	trackFamilyMembers(selectorFamily)
 	store.families.set(familyKey, selectorFamily)
 	return familyToken
 }

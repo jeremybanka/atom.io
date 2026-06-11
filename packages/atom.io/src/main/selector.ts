@@ -16,6 +16,7 @@ import type {
 	WritablePureSelectorFamilyToken,
 	WritablePureSelectorToken,
 } from "./tokens"
+import type { FamilyLimitOptions } from "./family-options"
 import type { Read, Write } from "./transaction"
 
 export type WritablePureSelectorOptions<T, E = never> = {
@@ -147,7 +148,7 @@ export type WritablePureSelectorFamilyOptions<
 	T,
 	K extends Canonical,
 	E = never,
-> = {
+> = FamilyLimitOptions & {
 	/** The unique identifier of the family */
 	key: string
 	/** For each instantiated family member, a function that computes its value */
@@ -161,7 +162,7 @@ export type ReadonlyPureSelectorFamilyOptions<
 	T,
 	K extends Canonical,
 	E = never,
-> = {
+> = FamilyLimitOptions & {
 	/** The unique identifier of the family */
 	key: string
 	/** For each instantiated family member, a function that computes its value */
@@ -172,7 +173,7 @@ export type ReadonlyPureSelectorFamilyOptions<
 export type WritableHeldSelectorFamilyOptions<
 	T extends object,
 	K extends Canonical,
-> = {
+> = FamilyLimitOptions & {
 	/** The unique identifier of the family */
 	key: string
 	/** For each instantiated family member, a constant reference to a value that will not be replaced */
@@ -185,7 +186,7 @@ export type WritableHeldSelectorFamilyOptions<
 export type ReadonlyHeldSelectorFamilyOptions<
 	T extends object,
 	K extends Canonical,
-> = {
+> = FamilyLimitOptions & {
 	/** The unique identifier of the family */
 	key: string
 	/** For each instantiated family member, a constant reference to a value that will not be replaced */

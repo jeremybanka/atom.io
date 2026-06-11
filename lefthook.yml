@@ -1,5 +1,0 @@
-pre-commit:
-  commands:
-    fmt:
-      run: na dprint fmt --staged --allow-no-files
-      stage_fixed: true

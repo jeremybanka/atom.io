@@ -3,13 +3,13 @@ import type {
 	Loadable,
 	MutableAtomFamilyToken,
 	MutableAtomToken,
+	ReadableToken,
 	ReadonlyHeldSelectorFamilyToken,
 	ReadonlyHeldSelectorToken,
 	ReadonlyPureSelectorFamilyToken,
 	ReadonlyPureSelectorToken,
 	RegularAtomFamilyToken,
 	RegularAtomToken,
-	StateLifecycleEvent,
 	StateUpdate,
 	WritableHeldSelectorFamilyToken,
 	WritableHeldSelectorToken,
@@ -110,6 +110,18 @@ export type Selector<T, E> =
 export type WritableState<T, E> = Atom<T, E> | WritableSelector<T, E>
 export type ReadableState<T, E> = Atom<T, E> | Selector<T, E>
 
+export type FamilyMemberCreationEvent<R extends ReadableToken<any, any, any>> = {
+	type: `family_member_creation`
+	token: R
+}
+export type FamilyMemberDisposalEvent<R extends ReadableToken<any, any, any>> = {
+	type: `family_member_disposal`
+	token: R
+}
+export type FamilyMemberLifecycleEvent<R extends ReadableToken<any, any, any>> =
+	| FamilyMemberCreationEvent<R>
+	| FamilyMemberDisposalEvent<R>
+
 // dprint-ignore
 export type RegularAtomFamily<T, K extends Canonical, E = never> = Flat<
 	RegularAtomFamilyToken<T, K, E> & {
@@ -117,7 +129,7 @@ export type RegularAtomFamily<T, K extends Canonical, E = never> = Flat<
 		default: T | ((key: K) => T)
 		install: (store: RootStore) => void
 		internalRoles: string[] | undefined
-		subject: Subject<StateLifecycleEvent<RegularAtomToken<T, K, E>>>
+		subject: Subject<FamilyMemberLifecycleEvent<RegularAtomToken<T, K, E>>>
 	}
 >
 
@@ -131,7 +143,7 @@ export type MutableAtomFamily<
 		class: ConstructorOf<T>
 		install: (store: RootStore) => void
 		internalRoles: string[] | undefined
-		subject: Subject<StateLifecycleEvent<MutableAtomToken<T>>>
+		subject: Subject<FamilyMemberLifecycleEvent<MutableAtomToken<T>>>
 	}
 >
 
@@ -146,7 +158,9 @@ export type WritablePureSelectorFamily<T, K extends Canonical, E> = Flat<
 		default: (key: K) => T
 		install: (store: RootStore) => void
 		internalRoles: string[] | undefined
-		subject: Subject<StateLifecycleEvent<WritablePureSelectorToken<T, K, E>>>
+		subject: Subject<
+			FamilyMemberLifecycleEvent<WritablePureSelectorToken<T, K, E>>
+		>
 	}
 >
 
@@ -157,7 +171,7 @@ export type WritableHeldSelectorFamily<T, K extends Canonical> = Flat<
 		default: (key: K) => T
 		install: (store: RootStore) => void
 		internalRoles: string[] | undefined
-		subject: Subject<StateLifecycleEvent<WritableHeldSelectorToken<T, K>>>
+		subject: Subject<FamilyMemberLifecycleEvent<WritableHeldSelectorToken<T, K>>>
 	}
 >
 
@@ -168,7 +182,9 @@ export type ReadonlyPureSelectorFamily<T, K extends Canonical, E> = Flat<
 		default: (key: K) => T
 		install: (store: RootStore) => void
 		internalRoles: string[] | undefined
-		subject: Subject<StateLifecycleEvent<ReadonlyPureSelectorToken<T, K, E>>>
+		subject: Subject<
+			FamilyMemberLifecycleEvent<ReadonlyPureSelectorToken<T, K, E>>
+		>
 	}
 >
 
@@ -179,7 +195,7 @@ export type ReadonlyHeldSelectorFamily<T, K extends Canonical> = Flat<
 		default: (key: K) => T
 		install: (store: RootStore) => void
 		internalRoles: string[] | undefined
-		subject: Subject<StateLifecycleEvent<ReadonlyHeldSelectorToken<T>>>
+		subject: Subject<FamilyMemberLifecycleEvent<ReadonlyHeldSelectorToken<T>>>
 	}
 >
 

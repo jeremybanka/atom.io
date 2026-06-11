@@ -1,19 +1,15 @@
-import type {
-	ReadableFamilyToken,
-	ReadableToken,
-	StateCreationEvent,
-} from "atom.io"
+import type { ReadableFamilyToken, ReadableToken } from "atom.io"
 import { type Canonical, parseJson } from "atom.io/json"
 
 import { seekInStore } from "../families"
 import { getFamilyOfToken } from "../families/get-family-of-token"
 import { mintInStore, MUST_CREATE } from "../families/mint-in-store"
 import { newest } from "../lineage"
-import type { ReadableFamily } from "../state-types"
+import type { FamilyMemberLifecycleEvent, ReadableFamily } from "../state-types"
 import type { Store } from "../store"
 import { withdraw } from "../store"
 import type { Subject } from "../subject"
-import { isChildStore, isRootStore } from "../transaction"
+import { isRootStore } from "../transaction"
 
 export function reduceReference<T, K extends Canonical, E>(
 	store: Store,
@@ -68,27 +64,10 @@ export function reduceReference<T, K extends Canonical, E>(
 	const isCounterfeit = `counterfeit` in token
 	const isNewlyCreated = Boolean(brandNewToken) && isCounterfeit === false
 	if (isNewlyCreated && family) {
-		let subType: `readable` | `writable`
-		switch (token.type) {
-			case `readonly_pure_selector`:
-			case `readonly_held_selector`:
-				subType = `readable`
-				break
-			case `atom`:
-			case `mutable_atom`:
-			case `writable_pure_selector`:
-			case `writable_held_selector`:
-				subType = `writable`
-				break
-		}
-		const stateCreationEvent: StateCreationEvent<any> = {
-			type: `state_creation`,
-			subType,
-			token,
-			timestamp: Date.now(),
-		}
-		const familySubject = family.subject as Subject<StateCreationEvent<any>>
-		familySubject.next(stateCreationEvent)
+		const familySubject = family.subject as Subject<
+			FamilyMemberLifecycleEvent<any>
+		>
+		familySubject.next({ type: `family_member_creation`, token })
 		const target = newest(store)
 		if (token.family) {
 			if (isRootStore(target)) {
@@ -104,11 +83,6 @@ export function reduceReference<T, K extends Canonical, E>(
 						store.on.selectorCreation.next(token)
 						break
 				}
-			} else if (
-				isChildStore(target) &&
-				target.on.transactionApplying.state === null
-			) {
-				target.transactionMeta.update.subEvents.push(stateCreationEvent)
 			}
 		}
 	}

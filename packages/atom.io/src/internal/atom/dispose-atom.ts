@@ -1,13 +1,13 @@
-import type { AtomDisposalEvent, AtomToken, StateLifecycleEvent } from "atom.io"
+import type { AtomToken } from "atom.io"
 
 import { getFamilyOfToken } from "../families/get-family-of-token"
 import { newest } from "../lineage"
 import { getUpdateToken } from "../mutable"
+import type { FamilyMemberLifecycleEvent } from "../state-types"
 import type { Store } from "../store"
 import { withdraw } from "../store"
 import type { Subject } from "../subject"
 import { isChildStore } from "../transaction"
-import { hasRole } from "./has-role"
 
 export function disposeAtom(
 	store: Store,
@@ -20,22 +20,16 @@ export function disposeAtom(
 		store.logger.error(`❌`, `atom`, key, `Standalone atoms cannot be disposed.`)
 	} else {
 		atom.cleanup?.()
-		const lastValue = store.valueMap.get(atom.key)
 		const familyToken = getFamilyOfToken(store, atomToken)
 		const atomFamily = withdraw(store, familyToken)
 		const subject = atomFamily.subject as Subject<
-			StateLifecycleEvent<AtomToken<any, any, any>>
+			FamilyMemberLifecycleEvent<AtomToken<any, any, any>>
 		>
 
-		const disposalEvent: AtomDisposalEvent<AtomToken<any, any, any>> = {
-			type: `state_disposal`,
-			subType: `atom`,
+		subject.next({
+			type: `family_member_disposal`,
 			token: atomToken,
-			value: lastValue,
-			timestamp: Date.now(),
-		}
-
-		subject.next(disposalEvent)
+		})
 
 		const isChild = isChildStore(target)
 
@@ -52,17 +46,7 @@ export function disposeAtom(
 			store.trackers.delete(key)
 		}
 		store.logger.info(`🔥`, `atom`, key, `deleted`)
-		if (isChild && target.transactionMeta.phase === `building`) {
-			const mostRecentUpdate = target.transactionMeta.update.subEvents.at(-1)
-			const wasMoleculeDisposal = mostRecentUpdate?.type === `molecule_disposal`
-			const updateAlreadyCaptured =
-				wasMoleculeDisposal &&
-				mostRecentUpdate.values.some(([k]) => k === atom.family?.key)
-			const isTracker = hasRole(atom, `tracker:signal`)
-			if (!updateAlreadyCaptured && !isTracker) {
-				target.transactionMeta.update.subEvents.push(disposalEvent)
-			}
-		} else {
+		if (!isChild || target.transactionMeta.phase !== `building`) {
 			store.on.atomDisposal.next(atomToken)
 		}
 	}

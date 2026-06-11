@@ -1,5 +1,4 @@
 import type {
-	AtomToken,
 	AtomUpdateEvent,
 	TimelineEvent,
 	TransactionOutcomeEvent,
@@ -13,7 +12,7 @@ import * as React from "react"
 
 const AtomUpdateFC: React.FC<{
 	serialNumber: number
-	atomUpdate: AtomUpdateEvent<AtomToken<unknown, any, any>>
+	atomUpdate: AtomUpdateEvent<any>
 }> = ({ atomUpdate }) => {
 	return (
 		<article
@@ -100,8 +99,6 @@ const TransactionUpdateFC: React.FC<{
 								txSubEvent.type !== `molecule_creation` &&
 								txSubEvent.type !== `molecule_disposal` &&
 								txSubEvent.type !== `molecule_transfer` &&
-								txSubEvent.type !== `state_creation` &&
-								txSubEvent.type !== `state_disposal` &&
 								!txSubEvent.token.key.startsWith(`👁‍🗨`),
 						)
 						.map((update, index) => {
@@ -125,8 +122,6 @@ const TransactionUpdateFC: React.FC<{
 								case `molecule_creation`:
 								case `molecule_disposal`:
 								case `molecule_transfer`:
-								case `state_creation`:
-								case `state_disposal`:
 									return null
 							}
 						})}
@@ -161,8 +156,6 @@ export const TimelineUpdateFC: React.FC<{
 								subEvent.type !== `molecule_creation` &&
 								subEvent.type !== `molecule_disposal` &&
 								subEvent.type !== `molecule_transfer` &&
-								subEvent.type !== `state_creation` &&
-								subEvent.type !== `state_disposal` &&
 								!subEvent.token.key.startsWith(`👁‍🗨`),
 						)
 						.map((subEvent, index) => {
@@ -186,8 +179,6 @@ export const TimelineUpdateFC: React.FC<{
 								case `molecule_creation`:
 								case `molecule_disposal`:
 								case `molecule_transfer`:
-								case `state_creation`:
-								case `state_disposal`:
 									return null
 							}
 						})
@@ -206,8 +197,6 @@ export const TimelineUpdateFC: React.FC<{
 											atomUpdate={event}
 										/>
 									)
-								case `state_creation`:
-									return null
 							}
 						})
 				) : timelineUpdate.type === `atom_update` ? (

@@ -2,8 +2,6 @@ import type { TimelineEvent, TimelineToken } from "atom.io"
 
 import {
 	ingestAtomUpdateEvent,
-	ingestCreationEvent,
-	ingestDisposalEvent,
 	ingestSelectorUpdateEvent,
 	ingestTransactionOutcomeEvent,
 } from "../events"
@@ -81,14 +79,6 @@ export function timeTravel(
 			}
 			case `transaction_outcome`: {
 				ingestTransactionOutcomeEvent(store, event, applying)
-				break
-			}
-			case `state_creation`: {
-				ingestCreationEvent(store, event, applying)
-				break
-			}
-			case `state_disposal`: {
-				ingestDisposalEvent(store, event, applying)
 				break
 			}
 		}

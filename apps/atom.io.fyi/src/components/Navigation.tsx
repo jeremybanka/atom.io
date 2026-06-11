@@ -196,11 +196,6 @@ function SiteDirectory(): VNode {
 							</a>
 						</section>
 						<section>
-							<a id="-docs-remote-data-link" href="/docs/remote-data">
-								remote data
-							</a>
-						</section>
-						<section>
 							<a
 								id="-docs-atom-io-vs-others-link"
 								href="/docs/atom-io-vs-others"
@@ -211,6 +206,21 @@ function SiteDirectory(): VNode {
 						<section>
 							<a id="-docs-concepts-link" href="/docs/concepts">
 								concepts
+							</a>
+						</section>
+					</main>
+				</section>
+				<section>
+					<header>Integrations</header>
+					<main>
+						<section>
+							<a id="-docs-remote-data-link" href="/docs/remote-data">
+								remote data
+							</a>
+						</section>
+						<section>
+							<a id="-docs-spa-router-link" href="/docs/spa-router">
+								SPA router
 							</a>
 						</section>
 					</main>

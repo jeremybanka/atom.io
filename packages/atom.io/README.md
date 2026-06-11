@@ -45,4 +45,4 @@ npm i atom.io
 `atom.io` ships easy-to-grep documentation inside its own SDK. After installing,
 start with `node_modules/atom.io/AGENTS.md`. It points to
 `node_modules/atom.io/docs/agent/` for concepts, package guides, remote-data
-guidance, and source-linked examples.
+guidance, SPA-router guidance, and source-linked examples.

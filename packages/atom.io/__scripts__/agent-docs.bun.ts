@@ -63,6 +63,12 @@ const DOC_PAGES: DocPage[] = [
 		url: `/docs/remote-data`,
 	},
 	{
+		output: `spa-router.md`,
+		source: `docs/source/pages/docs/spa-router.mdx`,
+		title: `atom-backed SPA routing`,
+		url: `/docs/spa-router`,
+	},
+	{
 		output: `atom-io-vs-others.md`,
 		source: `docs/source/pages/docs/atom-io-vs-others.mdx`,
 		title: `atom.io vs others`,
@@ -791,6 +797,7 @@ async function main(): Promise<void> {
 			`- packages/atom.io.md for the main package docs`,
 			`- packages/atom.io-react.md for React bindings`,
 			`- packages/remote-data.md for fetched, queried, and RPC-backed state`,
+			`- packages/spa-router.md for atom-backed SPA routing with TreeTrunks`,
 			`- examples/ for original exhibit source files`,
 			`- manifest.json for a deterministic index of every generated doc`,
 			``,
@@ -819,6 +826,7 @@ async function main(): Promise<void> {
 				`- Concepts glossary: /docs/concepts`,
 				`- Main docs: /docs`,
 				`- Remote/RPC data guide: /docs/remote-data`,
+				`- atom-backed SPA router guide: /docs/spa-router`,
 				`- React bindings: /docs/react`,
 				`- JSON and transceivers: /docs/json and /transceivers`,
 				``,

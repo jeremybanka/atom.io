@@ -2,4 +2,4 @@
 
 bun changeset version
 bun version
-bun fmt:fix
+bun fmt

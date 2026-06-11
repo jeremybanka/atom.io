@@ -1,5 +1,12 @@
 # atom.io
 
+## 0.47.4
+
+### Patch Changes
+
+- 26697cd: Update the README logo to use the SVG favicon from atom.io.fyi.
+- 03d6465: Add typesafe router documentation with real source exhibits and a documentation-site page.
+
 ## 0.47.3
 
 ### Patch Changes

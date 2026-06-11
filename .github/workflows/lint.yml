@@ -31,7 +31,7 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           packages: node pnpm
-      - run: pnpm fmt
+      - run: pnpm fmt:check
 
   Dependencies:
     runs-on: ubuntu-latest

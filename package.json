@@ -61,7 +61,7 @@
 		"eslint-plugin-simple-import-sort": "13.0.0",
 		"eslint-plugin-storybook": "10.4.3",
 		"jiti": "2.7.0",
-		"lint-staged": "16.2.6",
+		"lint-staged": "17.0.7",
 		"oxlint": "1.69.0",
 		"oxlint-tsgolint": "0.23.0",
 		"pin-dependencies-checker": "2.7.1",

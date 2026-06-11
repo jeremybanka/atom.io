@@ -1,8 +1,10 @@
 import type {
 	FamilyMetadata,
+	Read,
 	ReadonlyHeldSelectorOptions,
 	ReadonlyHeldSelectorToken,
 } from "atom.io"
+import type { Canonical } from "atom.io/json"
 
 import { writeToCache } from "../caching"
 import { newest } from "../lineage"
@@ -12,11 +14,24 @@ import { Subject } from "../subject"
 import type { RootStore } from "../transaction"
 import { registerSelector } from "./register-selector"
 
-export function createReadonlyHeldSelector<T extends object>(
+type ReadonlyHeldSelectorFamilyMemberOptions<
+	T extends object,
+	K extends Canonical,
+> = Omit<ReadonlyHeldSelectorOptions<T>, `get`> & {
+	familyKey: K
+	get: Read<(key: K, permanent: T) => void>
+}
+
+export function createReadonlyHeldSelector<
+	T extends object,
+	K extends Canonical = any,
+>(
 	store: Store,
-	options: ReadonlyHeldSelectorOptions<T>,
-	family: FamilyMetadata | undefined,
-): ReadonlyHeldSelectorToken<T> {
+	options:
+		| ReadonlyHeldSelectorFamilyMemberOptions<T, K>
+		| ReadonlyHeldSelectorOptions<T>,
+	family: FamilyMetadata<K> | undefined,
+): ReadonlyHeldSelectorToken<T, K> {
 	const target = newest(store)
 	const subject = new Subject<{ newValue: T; oldValue: T }>()
 	const covered = new Set<string>()
@@ -41,7 +56,12 @@ export function createReadonlyHeldSelector<T extends object>(
 			}
 		}
 		innerTarget.selectorAtoms.delete(key)
-		options.get({ get, find, json, relations }, constant)
+		const toolkit = { get, find, json, relations }
+		if (`familyKey` in options) {
+			options.get(toolkit, options.familyKey, constant)
+		} else {
+			options.get(toolkit, constant)
+		}
 		writeToCache(innerTarget, readonlySelector, constant)
 		store.logger.info(`✨`, type, key, `=`, constant)
 		covered.clear()

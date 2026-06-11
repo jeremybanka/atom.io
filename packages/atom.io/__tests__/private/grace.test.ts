@@ -213,10 +213,7 @@ describe(`two families may not have the same key`, () => {
 
 		selectorFamily<number, string>({
 			key: `count`,
-			get:
-				(key) =>
-				({ get }) =>
-					get(findState(countAtoms, key)),
+			get: ({ get }, key) => get(findState(countAtoms, key)),
 		})
 		expect(logger.error).toHaveBeenLastCalledWith(
 			`❗`,
@@ -238,15 +235,10 @@ describe(`two families may not have the same key`, () => {
 		)
 		selectorFamily<number, string>({
 			key: `count`,
-			get:
-				(key) =>
-				({ get }) =>
-					get(findState(countAtoms, key)),
-			set:
-				(key) =>
-				({ set }, newValue) => {
-					set(findState(countAtoms, key), newValue)
-				},
+			get: ({ get }, key) => get(findState(countAtoms, key)),
+			set: ({ set }, key, newValue) => {
+				set(findState(countAtoms, key), newValue)
+			},
 		})
 
 		expect(logger.error).toHaveBeenLastCalledWith(
@@ -259,16 +251,12 @@ describe(`two families may not have the same key`, () => {
 		selectorFamily<{ count: number }, string>({
 			key: `count`,
 			const: () => ({ count: 0 }),
-			get:
-				(key) =>
-				({ get }, self) => {
-					self.count = get(findState(countAtoms, key))
-				},
-			set:
-				(key) =>
-				({ set }, newValue) => {
-					set(findState(countAtoms, key), newValue.count)
-				},
+			get: ({ get }, key, self) => {
+				self.count = get(findState(countAtoms, key))
+			},
+			set: ({ set }, key, newValue) => {
+				set(findState(countAtoms, key), newValue.count)
+			},
 		})
 
 		expect(logger.error).toHaveBeenLastCalledWith(
@@ -281,11 +269,9 @@ describe(`two families may not have the same key`, () => {
 		selectorFamily<{ count: number }, string>({
 			key: `count`,
 			const: () => ({ count: 0 }),
-			get:
-				(key) =>
-				({ get }, self) => {
-					self.count = get(findState(countAtoms, key))
-				},
+			get: ({ get }, key, self) => {
+				self.count = get(findState(countAtoms, key))
+			},
 		})
 
 		expect(logger.error).toHaveBeenLastCalledWith(

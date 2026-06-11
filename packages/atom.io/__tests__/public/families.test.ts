@@ -45,27 +45,23 @@ describe(`selector families`, () => {
 		})
 		const distanceSelectors = selectorFamily<number, [string, string]>({
 			key: `distance`,
-			get:
-				([keyA, keyB]) =>
-				({ get }) => {
-					const pointA = get(pointAtoms, keyA)
-					const pointB = get(pointAtoms, keyB)
-					return Math.sqrt(
-						(pointA.x - pointB.x) ** 2 + (pointA.y - pointB.y) ** 2,
-					)
-				},
-			set:
-				([keyA, keyB]) =>
-				({ set }, newValue) => {
-					const pointA = getState(pointAtoms, keyA)
-					const pointB = getState(pointAtoms, keyB)
-					const angle = Math.atan2(pointB.y - pointA.y, pointB.x - pointA.x)
-					const vector = { x: Math.cos(angle), y: Math.sin(angle) }
-					set(pointAtoms, keyB, {
-						x: pointA.x + vector.x * newValue,
-						y: pointA.y + vector.y * newValue,
-					})
-				},
+			get: ({ get }, [keyA, keyB]) => {
+				const pointA = get(pointAtoms, keyA)
+				const pointB = get(pointAtoms, keyB)
+				return Math.sqrt(
+					(pointA.x - pointB.x) ** 2 + (pointA.y - pointB.y) ** 2,
+				)
+			},
+			set: ({ set }, [keyA, keyB], newValue) => {
+				const pointA = getState(pointAtoms, keyA)
+				const pointB = getState(pointAtoms, keyB)
+				const angle = Math.atan2(pointB.y - pointA.y, pointB.x - pointA.x)
+				const vector = { x: Math.cos(angle), y: Math.sin(angle) }
+				set(pointAtoms, keyB, {
+					x: pointA.x + vector.x * newValue,
+					y: pointA.y + vector.y * newValue,
+				})
+			},
 		})
 		setState(pointAtoms, `a`, { x: 1, y: 1 })
 		setState(pointAtoms, `b`, { x: 2, y: 2 })
@@ -92,12 +88,10 @@ describe(`selector families`, () => {
 		})
 		const lengthSelectors = selectorFamily<number, string>({
 			key: `length`,
-			get:
-				(key) =>
-				({ get }) => {
-					const array = get(arrayAtoms, key)
-					return array.length
-				},
+			get: ({ get }, key) => {
+				const array = get(arrayAtoms, key)
+				return array.length
+			},
 		})
 		expect(getState(lengthSelectors, `hi`)).toBe(0)
 	})

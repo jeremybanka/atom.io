@@ -7,7 +7,6 @@ import type {
 	StateLifecycleEvent,
 	WritablePureSelectorFamilyOptions,
 	WritablePureSelectorFamilyToken,
-	WritablePureSelectorOptions,
 	WritablePureSelectorToken,
 } from "atom.io"
 import { PRETTY_ENTITY_NAMES } from "atom.io"
@@ -58,13 +57,12 @@ export function createWritablePureSelectorFamily<T, K extends Canonical, E>(
 		const family: FamilyMetadata<Key> = { key: familyKey, subKey }
 		const fullKey = `${familyKey}(${subKey})`
 		const target = newest(store)
-		const individualOptions: WritablePureSelectorOptions<T, E> = {
+		const individualOptions = {
 			key: fullKey,
-			get: options.get(key),
-			set: options.set(key),
-		}
-		if (options.catch) {
-			individualOptions.catch = options.catch
+			familyKey: key,
+			get: options.get,
+			set: options.set,
+			...(options.catch ? { catch: options.catch } : {}),
 		}
 
 		return createWritablePureSelector<T, Key, E>(
@@ -81,23 +79,25 @@ export function createWritablePureSelectorFamily<T, K extends Canonical, E>(
 		subject,
 		install: (s: RootStore) => createWritablePureSelectorFamily(s, options),
 		default: (key: K) => {
-			const getFn = options.get(key)
-			return getFn({
-				get: ((...ps: Parameters<typeof getState>) =>
-					getFromStore(store, ...ps)) as typeof getState,
-				find: ((...ps: Parameters<typeof findState>) =>
-					findInStore(store, ...ps)) as typeof findState,
-				json: (token) => getJsonToken(store, token),
-				relations: {
-					find: ((...ps: Parameters<typeof findRelations>) =>
-						findRelationsInStore(store, ...ps)) as typeof findRelations,
-					internal: ((...ps: Parameters<typeof getInternalRelations>) =>
-						getInternalRelationsFromStore(
-							store,
-							...ps,
-						)) as typeof getInternalRelations,
+			return options.get(
+				{
+					get: ((...ps: Parameters<typeof getState>) =>
+						getFromStore(store, ...ps)) as typeof getState,
+					find: ((...ps: Parameters<typeof findState>) =>
+						findInStore(store, ...ps)) as typeof findState,
+					json: (token) => getJsonToken(store, token),
+					relations: {
+						find: ((...ps: Parameters<typeof findRelations>) =>
+							findRelationsInStore(store, ...ps)) as typeof findRelations,
+						internal: ((...ps: Parameters<typeof getInternalRelations>) =>
+							getInternalRelationsFromStore(
+								store,
+								...ps,
+							)) as typeof getInternalRelations,
+					},
 				},
-			})
+				key,
+			)
 		},
 	}
 

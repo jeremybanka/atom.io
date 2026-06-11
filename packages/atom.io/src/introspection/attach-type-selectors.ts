@@ -13,28 +13,26 @@ export const attachTypeSelectors = (
 		never
 	>(store, {
 		key: `🔍 State Type`,
-		get:
-			(key) =>
-			async ({ get }) => {
-				let state: unknown
-				try {
-					const token =
-						store.atoms.get(key) ??
-						store.writableSelectors.get(key) ??
-						store.readonlySelectors.get(key)
-					if (token === undefined) {
-						throw new Error(`Could not find state with key "${key}"`)
-					}
-					state = get(token)
-				} catch (_) {
-					return `error`
+		get: async ({ get }, key) => {
+			let state: unknown
+			try {
+				const token =
+					store.atoms.get(key) ??
+					store.writableSelectors.get(key) ??
+					store.readonlySelectors.get(key)
+				if (token === undefined) {
+					throw new Error(`Could not find state with key "${key}"`)
 				}
-				if (state instanceof Promise) {
-					state = await state
-				}
-				const typeOfState = discoverType(state)
-				return typeOfState
-			},
+				state = get(token)
+			} catch (_) {
+				return `error`
+			}
+			if (state instanceof Promise) {
+				state = await state
+			}
+			const typeOfState = discoverType(state)
+			return typeOfState
+		},
 	})
 	return typeSelectors
 }

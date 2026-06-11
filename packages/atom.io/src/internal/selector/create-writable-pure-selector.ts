@@ -1,6 +1,8 @@
 import type {
 	FamilyMetadata,
+	Read,
 	StateUpdate,
+	Write,
 	WritablePureSelectorOptions,
 	WritablePureSelectorToken,
 } from "atom.io"
@@ -13,9 +15,21 @@ import { Subject } from "../subject"
 import type { RootStore } from "../transaction"
 import { registerSelector } from "./register-selector"
 
+type WritablePureSelectorFamilyMemberOptions<
+	T,
+	K extends Canonical,
+	E,
+> = Omit<WritablePureSelectorOptions<T, E>, `get` | `set`> & {
+	familyKey: K
+	get: Read<(key: K) => T>
+	set: Write<(key: K, newValue: T) => void>
+}
+
 export function createWritablePureSelector<T, K extends Canonical, E>(
 	store: Store,
-	options: WritablePureSelectorOptions<T, E>,
+	options:
+		| WritablePureSelectorFamilyMemberOptions<T, K, E>
+		| WritablePureSelectorOptions<T, E>,
 	family: FamilyMetadata<K> | undefined,
 ): WritablePureSelectorToken<T, K, E> {
 	const target = newest(store)
@@ -39,14 +53,21 @@ export function createWritablePureSelector<T, K extends Canonical, E>(
 			}
 		}
 		innerTarget.selectorAtoms.delete(key)
-		const value = options.get(getterToolkit)
+		const value =
+			`familyKey` in options
+				? options.get(getterToolkit, options.familyKey)
+				: options.get(getterToolkit)
 		store.logger.info(`✨`, type, key, `=`, value)
 		covered.clear()
 		return value
 	}
 
 	const setSelf = (newValue: T): void => {
-		options.set(setterToolkit, newValue)
+		if (`familyKey` in options) {
+			options.set(setterToolkit, options.familyKey, newValue)
+		} else {
+			options.set(setterToolkit, newValue)
+		}
 	}
 
 	const mySelector: WritablePureSelector<T, E> = {

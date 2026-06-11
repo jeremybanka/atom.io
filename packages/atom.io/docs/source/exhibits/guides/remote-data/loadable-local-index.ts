@@ -75,43 +75,41 @@ export const visibleRowKeysSelectors = selectorFamily<
 	Error
 >({
 	key: `visibleRowKeys`,
-	get:
-		(view) =>
-		({ get }) => {
-			const [pageNumber, pageSize, search, status] = view
-			const normalizedSearch = search.trim().toLowerCase()
+	get: ({ get }, view) => {
+		const [pageNumber, pageSize, search, status] = view
+		const normalizedSearch = search.trim().toLowerCase()
 
-			const deriveVisibleKeys = () =>
-				get(acquiredRowKeysAtom)
-					.filter((key) => {
-						const row = get(rowAtoms, key)
-						if (row instanceof Promise || row instanceof Error) return false
-						if (status !== null && row.status !== status) return false
-						return (
-							normalizedSearch === `` ||
-							row.title.toLowerCase().includes(normalizedSearch)
-						)
-					})
-					.toSorted((a, b) => {
-						const rowA = get(rowAtoms, a)
-						const rowB = get(rowAtoms, b)
-						if (
-							rowA instanceof Promise ||
-							rowB instanceof Promise ||
-							rowA instanceof Error ||
-							rowB instanceof Error
-						) {
-							return 0
-						}
-						return rowB.updatedAt.localeCompare(rowA.updatedAt)
-					})
-					.slice(pageNumber * pageSize, (pageNumber + 1) * pageSize)
+		const deriveVisibleKeys = () =>
+			get(acquiredRowKeysAtom)
+				.filter((key) => {
+					const row = get(rowAtoms, key)
+					if (row instanceof Promise || row instanceof Error) return false
+					if (status !== null && row.status !== status) return false
+					return (
+						normalizedSearch === `` ||
+						row.title.toLowerCase().includes(normalizedSearch)
+					)
+				})
+				.toSorted((a, b) => {
+					const rowA = get(rowAtoms, a)
+					const rowB = get(rowAtoms, b)
+					if (
+						rowA instanceof Promise ||
+						rowB instanceof Promise ||
+						rowA instanceof Error ||
+						rowB instanceof Error
+					) {
+						return 0
+					}
+					return rowB.updatedAt.localeCompare(rowA.updatedAt)
+				})
+				.slice(pageNumber * pageSize, (pageNumber + 1) * pageSize)
 
-			const keysForView = get(rowKeysForViewAtoms, view)
-			return keysForView instanceof Promise
-				? keysForView.then(deriveVisibleKeys)
-				: deriveVisibleKeys()
-		},
+		const keysForView = get(rowKeysForViewAtoms, view)
+		return keysForView instanceof Promise
+			? keysForView.then(deriveVisibleKeys)
+			: deriveVisibleKeys()
+	},
 	catch: [Error],
 })
 

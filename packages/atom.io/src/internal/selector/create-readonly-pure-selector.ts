@@ -1,5 +1,6 @@
 import type {
 	FamilyMetadata,
+	Read,
 	ReadonlyPureSelectorOptions,
 	ReadonlyPureSelectorToken,
 	StateUpdate,
@@ -13,9 +14,20 @@ import { Subject } from "../subject"
 import type { RootStore } from "../transaction"
 import { registerSelector } from "./register-selector"
 
+type ReadonlyPureSelectorFamilyMemberOptions<
+	T,
+	K extends Canonical,
+	E,
+> = Omit<ReadonlyPureSelectorOptions<T, E>, `get`> & {
+	familyKey: K
+	get: Read<(key: K) => T>
+}
+
 export function createReadonlyPureSelector<T, K extends Canonical, E>(
 	store: Store,
-	options: ReadonlyPureSelectorOptions<T, E>,
+	options:
+		| ReadonlyPureSelectorFamilyMemberOptions<T, K, E>
+		| ReadonlyPureSelectorOptions<T, E>,
 	family: FamilyMetadata<K> | undefined,
 ): ReadonlyPureSelectorToken<T, K, E> {
 	const target = newest(store)
@@ -43,7 +55,11 @@ export function createReadonlyPureSelector<T, K extends Canonical, E>(
 			}
 		}
 		innerTarget.selectorAtoms.delete(key)
-		const value = options.get({ get, find, json, relations })
+		const toolkit = { get, find, json, relations }
+		const value =
+			`familyKey` in options
+				? options.get(toolkit, options.familyKey)
+				: options.get(toolkit)
 		store.logger.info(`✨`, type, key, `=`, value)
 		covered.clear()
 		return value

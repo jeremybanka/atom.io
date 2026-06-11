@@ -253,7 +253,7 @@ ruleTester.run(`selector family`, rule, {
 			code: `
         const userGroupSizeSelectors = selectorFamily({
           key: "userGroupSize",
-          get: (userGroupKey) => ({ get }) => get(userGroupAtoms, userGroupKey).size,
+          get: ({ get }, userGroupKey) => get(userGroupAtoms, userGroupKey).size,
         })
       `,
 		},
@@ -264,7 +264,7 @@ ruleTester.run(`selector family`, rule, {
 			code: `
         const userGroupSizes = selectorFamily({
           key: "userGroupSize",
-          get: (userGroupKey) => ({ get }) => get(userGroupAtoms, userGroupKey).size,
+          get: ({ get }, userGroupKey) => get(userGroupAtoms, userGroupKey).size,
         })
       `,
 			errors: 1,
@@ -274,14 +274,14 @@ ruleTester.run(`selector family`, rule, {
 			code: `
         const userGroupSizeSelectors = selectorFamily({
           key: "userGroupCounts",
-          get: (userGroupKey) => ({ get }) => get(userGroupAtoms, userGroupKey).size,
+          get: ({ get }, userGroupKey) => get(userGroupAtoms, userGroupKey).size,
         })
       `,
 			errors: 1,
 			output: `
         const userGroupSizeSelectors = selectorFamily({
           key: "userGroupSize",
-          get: (userGroupKey) => ({ get }) => get(userGroupAtoms, userGroupKey).size,
+          get: ({ get }, userGroupKey) => get(userGroupAtoms, userGroupKey).size,
         })
       `,
 		},

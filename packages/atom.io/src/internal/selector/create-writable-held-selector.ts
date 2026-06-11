@@ -1,8 +1,11 @@
 import type {
 	FamilyMetadata,
+	Read,
+	Write,
 	WritableHeldSelectorOptions,
 	WritableHeldSelectorToken,
 } from "atom.io"
+import type { Canonical } from "atom.io/json"
 
 import { writeToCache } from "../caching"
 import { newest } from "../lineage"
@@ -12,11 +15,25 @@ import { Subject } from "../subject"
 import type { RootStore } from "../transaction"
 import { registerSelector } from "./register-selector"
 
-export function createWritableHeldSelector<T extends object>(
+type WritableHeldSelectorFamilyMemberOptions<
+	T extends object,
+	K extends Canonical,
+> = Omit<WritableHeldSelectorOptions<T>, `get` | `set`> & {
+	familyKey: K
+	get: Read<(key: K, permanent: T) => void>
+	set: Write<(key: K, newValue: T) => void>
+}
+
+export function createWritableHeldSelector<
+	T extends object,
+	K extends Canonical = any,
+>(
 	store: Store,
-	options: WritableHeldSelectorOptions<T>,
-	family: FamilyMetadata | undefined,
-): WritableHeldSelectorToken<T> {
+	options:
+		| WritableHeldSelectorFamilyMemberOptions<T, K>
+		| WritableHeldSelectorOptions<T>,
+	family: FamilyMetadata<K> | undefined,
+): WritableHeldSelectorToken<T, K> {
 	const target = newest(store)
 	const subject = new Subject<{ newValue: T; oldValue: T }>()
 	const covered = new Set<string>()
@@ -38,7 +55,11 @@ export function createWritableHeldSelector<T extends object>(
 			}
 		}
 		innerTarget.selectorAtoms.delete(key)
-		options.get(getterToolkit, constant)
+		if (`familyKey` in options) {
+			options.get(getterToolkit, options.familyKey, constant)
+		} else {
+			options.get(getterToolkit, constant)
+		}
 		writeToCache(innerTarget, mySelector, constant)
 		store.logger.info(`✨`, type, key, `=`, constant)
 		covered.clear()
@@ -46,7 +67,11 @@ export function createWritableHeldSelector<T extends object>(
 	}
 
 	const setSelf = (): void => {
-		options.set(setterToolkit, constant)
+		if (`familyKey` in options) {
+			options.set(setterToolkit, options.familyKey, constant)
+		} else {
+			options.set(setterToolkit, constant)
+		}
 	}
 
 	const mySelector: WritableHeldSelector<T> = {

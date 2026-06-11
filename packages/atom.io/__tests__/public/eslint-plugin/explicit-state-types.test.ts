@@ -69,7 +69,7 @@ ruleTester.run(`explicit-state-types`, rule, {
 			code: `
       const doubleSelectors = selectorFamily<number, string>({
         key: "doubles",
-        default: (id) => ({ find, get }) => get(find(countAtoms, id)),
+        get: ({ find, get }, id) => get(find(countAtoms, id)),
       })
     `,
 		},
@@ -79,7 +79,7 @@ ruleTester.run(`explicit-state-types`, rule, {
 			code: `
       const doubleSelectors: SelectorFamilyToken<number, string> = selectorFamily({
         key: "doubles",
-        default: (id) => ({ find, get }) => get(find(countAtoms, id)),
+        get: ({ find, get }, id) => get(find(countAtoms, id)),
       })
     `,
 		},
@@ -101,7 +101,7 @@ ruleTester.run(`explicit-state-types`, rule, {
         })
         const doubleSelectors = silo.selectorFamily<number, string>({
           key: "doubles",
-          default: (id) => ({ find, get }) => get(find(countAtoms, id)),
+          get: ({ find, get }, id) => get(find(countAtoms, id)),
         })
       `,
 		},
@@ -172,7 +172,7 @@ ruleTester.run(`explicit-state-types`, rule, {
 			code: `
         const doubleSelectors = selectorFamily({
           key: "doubles",
-          default: (id) => ({ find, get }) => get(find(countAtoms, id)),
+          get: ({ find, get }, id) => get(find(countAtoms, id)),
         })
       `,
 			errors: [{ messageId: `noTypeArgument` }],
@@ -195,7 +195,7 @@ ruleTester.run(`explicit-state-types`, rule, {
         })
         const doubleSelectors = silo.selectorFamily({
           key: "doubles",
-          default: (id) => ({ find, get }) => get(find(countAtoms, id)),
+          get: ({ find, get }, id) => get(find(countAtoms, id)),
         })
       `,
 			errors: [

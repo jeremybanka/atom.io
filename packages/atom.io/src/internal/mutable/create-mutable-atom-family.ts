@@ -77,15 +77,10 @@ export function createMutableAtomFamily<
 		store,
 		{
 			key: `${options.key}:JSON`,
-			get:
-				(key) =>
-				({ get }) =>
-					get(familyToken, key).toJSON(),
-			set:
-				(key) =>
-				({ set }, newValue) => {
-					set(familyToken, key, options.class.fromJSON(newValue))
-				},
+			get: ({ get }, key) => get(familyToken, key).toJSON(),
+			set: ({ set }, key, newValue) => {
+				set(familyToken, key, options.class.fromJSON(newValue))
+			},
 		},
 		[`mutable`, `json`],
 	)

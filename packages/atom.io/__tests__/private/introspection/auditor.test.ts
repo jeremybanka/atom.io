@@ -45,10 +45,7 @@ describe(`Auditor practical tests`, () => {
 		})
 		const doubleSelectors = selectorFamily<number, string>({
 			key: `double`,
-			get:
-				(key) =>
-				({ find, get }) =>
-					get(find(countAtoms, key)) * 2,
+			get: ({ find, get }, key) => get(find(countAtoms, key)) * 2,
 		})
 		findState(doubleSelectors, `foo`)
 		const auditor = new Auditor()

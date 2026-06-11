@@ -276,15 +276,13 @@ export class Join<
 				store,
 				{
 					key: `${options.key}/singleRelatedKey`,
-					get:
-						(key) =>
-						({ get }) => {
-							const relatedKeys = get(relatedKeysAtoms, key)
-							for (const relatedKey of relatedKeys) {
-								return relatedKey
-							}
-							return null
-						},
+					get: ({ get }, key) => {
+						const relatedKeys = get(relatedKeysAtoms, key)
+						for (const relatedKey of relatedKeys) {
+							return relatedKey
+						}
+						return null
+					},
 				},
 				[`join`, `keys`],
 			)
@@ -293,13 +291,11 @@ export class Join<
 				store,
 				{
 					key: `${options.key}/multipleRelatedKeys`,
-					get:
-						(key) =>
-						({ get }) => {
-							const jsonFamily = getJsonFamily(relatedKeysAtoms, store)
-							const json = get(jsonFamily, key)
-							return json
-						},
+					get: ({ get }, key) => {
+						const jsonFamily = getJsonFamily(relatedKeysAtoms, store)
+						const json = get(jsonFamily, key)
+						return json
+					},
 				},
 				[`join`, `keys`],
 			)

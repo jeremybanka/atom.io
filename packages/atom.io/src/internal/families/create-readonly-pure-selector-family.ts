@@ -6,7 +6,6 @@ import type {
 	getState,
 	ReadonlyPureSelectorFamilyOptions,
 	ReadonlyPureSelectorFamilyToken,
-	ReadonlyPureSelectorOptions,
 	ReadonlyPureSelectorToken,
 	StateLifecycleEvent,
 } from "atom.io"
@@ -58,12 +57,11 @@ export function createReadonlyPureSelectorFamily<T, K extends Canonical, E>(
 		const family: FamilyMetadata<Key> = { key: familyKey, subKey }
 		const fullKey = `${familyKey}(${subKey})`
 		const target = newest(store)
-		const individualOptions: ReadonlyPureSelectorOptions<T, E> = {
+		const individualOptions = {
 			key: fullKey,
-			get: options.get(key),
-		}
-		if (options.catch) {
-			individualOptions.catch = options.catch
+			familyKey: key,
+			get: options.get,
+			...(options.catch ? { catch: options.catch } : {}),
 		}
 
 		return createReadonlyPureSelector<T, Key, E>(
@@ -80,19 +78,21 @@ export function createReadonlyPureSelectorFamily<T, K extends Canonical, E>(
 		subject,
 		install: (s: RootStore) => createReadonlyPureSelectorFamily(s, options),
 		default: (key: K) => {
-			const getFn = options.get(key)
-			return getFn({
-				get: getFromStore.bind(null, store) as typeof getState,
-				find: findInStore.bind(null, store) as typeof findState,
-				json: (token) => getJsonToken(store, token),
-				relations: {
-					find: findRelationsInStore.bind(null, store) as typeof findRelations,
-					internal: getInternalRelationsFromStore.bind(
-						null,
-						store,
-					) as typeof getInternalRelations,
+			return options.get(
+				{
+					get: getFromStore.bind(null, store) as typeof getState,
+					find: findInStore.bind(null, store) as typeof findState,
+					json: (token) => getJsonToken(store, token),
+					relations: {
+						find: findRelationsInStore.bind(null, store) as typeof findRelations,
+						internal: getInternalRelationsFromStore.bind(
+							null,
+							store,
+						) as typeof getInternalRelations,
+					},
 				},
-			})
+				key,
+			)
 		},
 	}
 

@@ -83,10 +83,7 @@ describe(`silo`, () => {
 			string
 		> = {
 			key: `doubleCounts`,
-			get:
-				(key) =>
-				({ get }) =>
-					get(UNO__listAtoms, key).size,
+			get: ({ get }, key) => get(UNO__listAtoms, key).size,
 		}
 
 		const UNO__listAtoms = Uno.mutableAtomFamily<UList<number>, string>(

@@ -220,16 +220,11 @@ describe(`timeline`, () => {
 
 		const productSelectors = selectorFamily<number, [a: string, b: string]>({
 			key: `product`,
-			get:
-				([a, b]) =>
-				({ get }) =>
-					get(numberAtoms, a) * get(numberAtoms, b),
-			set:
-				([a, b]) =>
-				({ set }, value) => {
-					set(numberAtoms, a, Math.sqrt(value))
-					set(numberAtoms, b, Math.sqrt(value))
-				},
+			get: ({ get }, [a, b]) => get(numberAtoms, a) * get(numberAtoms, b),
+			set: ({ set }, [a, b], value) => {
+				set(numberAtoms, a, Math.sqrt(value))
+				set(numberAtoms, b, Math.sqrt(value))
+			},
 		})
 
 		const productSquareRootSelectors = selectorFamily<
@@ -237,15 +232,10 @@ describe(`timeline`, () => {
 			[a: string, b: string]
 		>({
 			key: `productSquareRoot`,
-			get:
-				(key) =>
-				({ get }) =>
-					Math.sqrt(get(productSelectors, key)),
-			set:
-				(key) =>
-				({ set }, value) => {
-					set(productSelectors, key, value ** 2)
-				},
+			get: ({ get }, key) => Math.sqrt(get(productSelectors, key)),
+			set: ({ set }, key, value) => {
+				set(productSelectors, key, value ** 2)
+			},
 		})
 
 		const timeline_ab = timeline({

@@ -93,15 +93,10 @@ describe(`transaction`, () => {
 		})
 		const countPlusSomeValueSelectors = selectorFamily<number, number>({
 			key: `countPlusSomeValue`,
-			get:
-				(someValue) =>
-				({ get }) =>
-					get(countAtom) + someValue,
-			set:
-				(someValue) =>
-				({ set }, newCount) => {
-					set(countAtom, newCount - someValue)
-				},
+			get: ({ get }, someValue) => get(countAtom) + someValue,
+			set: ({ set }, someValue, newCount) => {
+				set(countAtom, newCount - someValue)
+			},
 		})
 		const addCountPlusSomeValue = transaction<(someValue: number) => void>({
 			key: `add_count_plus_some_value`,
@@ -122,10 +117,7 @@ describe(`transaction`, () => {
 		})
 		const doubleSelectors = selectorFamily<number, string>({
 			key: `double`,
-			get:
-				(id) =>
-				({ find, get }) =>
-					get(find(countAtoms, id)) * 2,
+			get: ({ find, get }, id) => get(find(countAtoms, id)) * 2,
 		})
 		const incrementTX = transaction({
 			key: `increment`,

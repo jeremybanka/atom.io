@@ -33,8 +33,17 @@ function getLanguage(filepath?: string): string {
 	}
 }
 
-function getCodeBlockId(label: string): string {
-	return label
+function getCodeBlockId(labelOrHref: string): string {
+	const label =
+		labelOrHref
+			.replace(/^["']|["']$/g, ``)
+			.split(`/`)
+			.pop() ?? ``
+	const labelWithoutFinalExtension = label.replace(
+		/\.(?:cjs|cts|js|jsx|mdx|mjs|mts|sh|ts|tsx|txt)$/,
+		``,
+	)
+	return labelWithoutFinalExtension
 		.toLowerCase()
 		.replace(/[^a-z0-9]+/g, `-`)
 		.replace(/^-+|-+$/g, ``)
@@ -77,9 +86,10 @@ export function CodeBlock({
 			)
 
 		for (const element of myElementsWithClassNameStringAndContainingDoubleQuotes) {
-			// get everything following the final '/'
-			const href = `#` + element.textContent.split(`/`).pop()
-			element.innerHTML = `<a href="${href}">${element.textContent}</a>`
+			const anchor = document.createElement(`a`)
+			anchor.href = `#${getCodeBlockId(element.textContent)}`
+			anchor.textContent = element.textContent
+			element.replaceChildren(anchor)
 		}
 	}, [code, filepath])
 	return (

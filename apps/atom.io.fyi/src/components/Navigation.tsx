@@ -223,6 +223,11 @@ function SiteDirectory(): VNode {
 								typesafe router
 							</a>
 						</section>
+						<section>
+							<a id="-docs-effect-ts-link" href="/docs/effect-ts">
+								Effect-TS
+							</a>
+						</section>
 					</main>
 				</section>
 				<section>

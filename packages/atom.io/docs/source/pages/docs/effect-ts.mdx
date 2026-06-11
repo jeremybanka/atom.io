@@ -1,0 +1,93 @@
+import EffectRuntime from "x/guides/effect-ts/runtime.gen";
+import LoadableAtoms from "x/guides/effect-ts/loadable-atoms.gen";
+import Transaction from "x/guides/effect-ts/transaction.gen";
+import ReactUsage from "x/guides/effect-ts/react-usage.gen";
+
+# Effect-TS
+
+`atom.io` and Effect fit together best when each library keeps its job.
+Use Effect for dependency injection, resource construction, retries, tracing,
+and typed failures. Use atom.io for the app's live state graph: small writable
+atoms, derived selectors, transactions, timelines, React subscriptions, and
+local optimistic edits.
+
+The useful boundary is simple: run Effect programs at atom.io edges, then store
+their results in atoms. Avoid putting an Effect value itself into state unless
+the UI is intentionally editing a program description.
+
+## runtime boundary
+
+Create one Effect runtime for the part of the app that atom.io needs to call.
+The runtime should be built from your production `Layer` composition and
+exported next to your service tags.
+
+<EffectRuntime client:load />
+
+This keeps services outside React components and outside atom definitions. Atoms
+only know how to run a program; Effect owns how that program receives clients,
+configuration, clocks, loggers, scopes, and retry policy.
+
+## loadable atoms
+
+Use `Loadable<T>` for reads backed by an Effect program. Convert expected Effect
+failures into error classes before they cross into atom.io so the atom's `catch`
+list stays precise.
+
+<LoadableAtoms client:load />
+
+Keep the atom key aligned with the Effect input. For a family, the family key is
+already the cache identity, so it should contain the minimum stable input needed
+to run the Effect program.
+
+Guidance:
+
+- Keep `Effect.runPromise` at the atom default, transaction, or effect boundary.
+- Return plain domain values from loadable atoms, not Effect programs.
+- Convert tagged or typed Effect failures into classes that atom.io can catch.
+- Put retries, timeouts, and fallback clients in Effect, not in React hooks.
+- Use selectors for derived view shapes after data has entered atom.io.
+
+## writes and transactions
+
+For writes, put the Effect program inside an atom.io transaction when the write
+also changes local state. That gives React a single local update boundary while
+Effect still owns remote effects, telemetry, and failure policy.
+
+<Transaction client:load />
+
+The transaction can be optimistic or confirmed. Optimistic transactions update
+local atoms before awaiting the Effect program and roll back on failure.
+Confirmed transactions await the Effect program first, then set local atoms from
+the server result.
+
+Prefer confirmed writes when the server assigns canonical values. Prefer
+optimistic writes for latency-sensitive interactions where rollback is cheap and
+clear.
+
+## React usage
+
+React components can stay ordinary: subscribe to atom.io state with React hooks
+and call atom.io setters or transactions from event handlers. They do not need
+to import Effect services directly.
+
+<ReactUsage client:load />
+
+This gives the component a compact contract: render the current state, show the
+loadable fallback or caught error, and issue commands. The service graph remains
+testable through Effect layers, while UI state remains inspectable through
+atom.io devtools, snapshots, transactions, and timelines.
+
+## testing shape
+
+In tests, swap the runtime or the service layer at the boundary. Atom.io tests
+can still read and write atoms directly; Effect tests can still verify service
+programs without React.
+
+Good defaults:
+
+- Unit-test Effect services with test layers.
+- Unit-test atom selectors and transactions with test stores or direct state
+  reads.
+- Integration-test the boundary by installing a test runtime and reading the
+  loadable atom or running the transaction.
+- Keep React tests focused on rendering and user events, not service wiring.

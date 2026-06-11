@@ -1,9 +1,5 @@
 <div align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/jeremybanka/atom.io/main/packages/atom.io/__assets__/logo-dark-mode.png">
-    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/jeremybanka/atom.io/main/packages/atom.io/__assets__/logo-light-mode.png">
-    <img alt="Banner text reading 'atom.io'" src="https://raw.githubusercontent.com/jeremybanka/atom.io/main/packages/atom.io/__assets__/logo-light-mode.png" style="max-width: 100%;">
-  </picture>
+  <img alt="atom.io logo" src="https://raw.githubusercontent.com/jeremybanka/atom.io/main/apps/atom.io.fyi/public/favicon.svg" width="160" height="160">
 </div>
 
 <h1 align="center">

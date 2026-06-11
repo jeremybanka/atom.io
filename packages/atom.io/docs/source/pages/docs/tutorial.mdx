@@ -85,9 +85,7 @@ default: true,
 })
 const pathDrawSelectors = selectorFamily<string, string>({
 key: \`pathDraw\`,
-get:
-(pathKey) =>
-({ get }) => {
+get: ({ get }, pathKey) => {
 const subpathKeys = get(subpathKeysAtoms, pathKey)
 return subpathKeys
 .map((subpathKey, idx) => {

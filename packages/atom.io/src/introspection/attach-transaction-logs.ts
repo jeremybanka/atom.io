@@ -36,10 +36,7 @@ export const attachTransactionLogs = (
 		never
 	>(store, {
 		key: `🔍 Transaction Update Log`,
-		get:
-			(key) =>
-			({ get }) =>
-				get(transactionUpdateLogAtoms, key),
+		get: ({ get }, key) => get(transactionUpdateLogAtoms, key),
 	})
 	return findTransactionUpdateLogState
 }

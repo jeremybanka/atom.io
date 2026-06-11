@@ -17,10 +17,7 @@ test(`attachIntrospectionStates`, () => {
 	})
 	const doubleSelectors = selectorFamily<number, string>({
 		key: `double`,
-		get:
-			(key) =>
-			({ get }) =>
-				get(countAtoms, key) * 2,
+		get: ({ get }, key) => get(countAtoms, key) * 2,
 	})
 
 	getState(doubleSelectors, `foo`)
@@ -32,10 +29,7 @@ test(`attachIntrospectionStates`, () => {
 	})
 	const letterSelectors = selectorFamily<string, string>({
 		key: `letter`,
-		get:
-			() =>
-			({ get }) =>
-				get(letterAtom),
+		get: ({ get }) => get(letterAtom),
 	})
 	getState(letterSelectors, `foo`)
 })

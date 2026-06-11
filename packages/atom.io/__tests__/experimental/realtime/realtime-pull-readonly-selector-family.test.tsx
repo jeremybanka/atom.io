@@ -41,25 +41,23 @@ const countsGroupsExposedAtom = AtomIO.mutableAtom<UList<`cluster:${number}`>>({
 })
 const computationSelectors = AtomIO.selectorFamily<number, `cluster:${number}`>({
 	key: `computation`,
-	get:
-		(key) =>
-		({ get }) => {
-			const group = get(countGroupAtoms, key)
-			let sum = 0
-			for (const count of group) {
-				sum += get(countAtoms, count)
+	get: ({ get }, key) => {
+		const group = get(countGroupAtoms, key)
+		let sum = 0
+		for (const count of group) {
+			sum += get(countAtoms, count)
+		}
+		const multiplierEnabled = get(globalMultipliersEnabledAtom)
+		if (multiplierEnabled) {
+			const factors = get(globalMultipliersAtom)
+			let product = sum
+			for (const factor of factors) {
+				product *= factor
 			}
-			const multiplierEnabled = get(globalMultipliersEnabledAtom)
-			if (multiplierEnabled) {
-				const factors = get(globalMultipliersAtom)
-				let product = sum
-				for (const factor of factors) {
-					product *= factor
-				}
-				return product
-			}
-			return sum
-		},
+			return product
+		}
+		return sum
+	},
 })
 
 describe(`pull atom, observe selector`, () => {

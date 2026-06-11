@@ -47,13 +47,11 @@ export const visibleUsersInRoomsSelectors: PureSelectorFamilyToken<
 	UserKey
 > = selectorFamily({
 	key: `visibleUsersInRooms`,
-	get:
-		(userKey) =>
-		({ get }) => {
-			const [, roomsOfUsersAtoms] = getInternalRelations(usersInRooms, `split`)
-			const rooms = get(roomsOfUsersAtoms, userKey)
-			return [userKey, ...rooms]
-		},
+	get: ({ get }, userKey) => {
+		const [, roomsOfUsersAtoms] = getInternalRelations(usersInRooms, `split`)
+		const rooms = get(roomsOfUsersAtoms, userKey)
+		return [userKey, ...rooms]
+	},
 })
 
 export const visibilityFromRoomSelectors: PureSelectorFamilyToken<
@@ -61,13 +59,11 @@ export const visibilityFromRoomSelectors: PureSelectorFamilyToken<
 	RoomKey
 > = selectorFamily({
 	key: `visibilityFromRoom`,
-	get:
-		(roomKey) =>
-		({ get }) => {
-			const [usersOfRoomsAtoms] = getInternalRelations(usersInRooms, `split`)
-			const users = get(usersOfRoomsAtoms, roomKey)
-			return [roomKey, ...users]
-		},
+	get: ({ get }, roomKey) => {
+		const [usersOfRoomsAtoms] = getInternalRelations(usersInRooms, `split`)
+		const users = get(usersOfRoomsAtoms, roomKey)
+		return [roomKey, ...users]
+	},
 })
 
 export const mutualUsersSelectors: ReadonlyPureSelectorFamilyToken<
@@ -75,20 +71,18 @@ export const mutualUsersSelectors: ReadonlyPureSelectorFamilyToken<
 	UserKey
 > = selectorFamily({
 	key: `mutualUsers`,
-	get:
-		(userKey) =>
-		({ get }) => {
-			const [usersOfRoomsAtoms, roomsOfUsersAtoms] = getInternalRelations(
-				usersInRooms,
-				`split`,
-			)
-			const rooms = get(roomsOfUsersAtoms, userKey)
-			for (const room of rooms) {
-				const users = get(usersOfRoomsAtoms, room)
-				return [...users]
-			}
-			return [userKey]
-		},
+	get: ({ get }, userKey) => {
+		const [usersOfRoomsAtoms, roomsOfUsersAtoms] = getInternalRelations(
+			usersInRooms,
+			`split`,
+		)
+		const rooms = get(roomsOfUsersAtoms, userKey)
+		for (const room of rooms) {
+			const users = get(usersOfRoomsAtoms, room)
+			return [...users]
+		}
+		return [userKey]
+	},
 })
 
 export const ownersOfRooms: JoinToken<`user`, UserKey, `room`, RoomKey, `1:n`> =

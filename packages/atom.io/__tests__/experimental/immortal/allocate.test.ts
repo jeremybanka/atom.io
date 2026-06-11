@@ -99,13 +99,11 @@ describe(`allocate + claim + deallocate`, () => {
 		})
 		const dampenedAttackPowerSelectors = selectorFamily<number, ItemKey>({
 			key: `dampenedAttackPower`,
-			get:
-				(key) =>
-				({ get }) => {
-					const attackPower = get(attackPowerAtoms, key)
-					const dampening = get(dampeningAtom)
-					return Math.max(0, attackPower - dampening)
-				},
+			get: ({ get }, key) => {
+				const attackPower = get(attackPowerAtoms, key)
+				const dampening = get(dampeningAtom)
+				return Math.max(0, attackPower - dampening)
+			},
 		})
 
 		const gameRealm = new Realm<GameHierarchy>(IMPLICIT.STORE)
@@ -151,33 +149,27 @@ describe(`allocate + claim + deallocate`, () => {
 		})
 		const dampenedDurabilitySelectors = selectorFamily<number, ItemKey>({
 			key: `dampenedDurability`,
-			get:
-				(key) =>
-				({ find, get }) => {
-					const durabilityAtom = find(durabilityAtoms, key)
-					const durability = get(durabilityAtom)
-					const dampening = get(dampeningAtom)
-					return Math.max(1, durability - dampening)
-				},
+			get: ({ find, get }, key) => {
+				const durabilityAtom = find(durabilityAtoms, key)
+				const durability = get(durabilityAtom)
+				const dampening = get(dampeningAtom)
+				return Math.max(1, durability - dampening)
+			},
 		})
 		const doubleDurabilitySelectors = selectorFamily<number, ItemKey>({
 			key: `doubleDurability`,
-			get:
-				(key) =>
-				({ find, get }) => {
-					const durabilityAtom = find(durabilityAtoms, key)
-					const durability = get(durabilityAtom)
-					const doubled = durability * 2
-					return doubled
-				},
-			set:
-				(key) =>
-				({ find, get, set }) => {
-					const durabilityAtom = find(durabilityAtoms, key)
-					const durability = get(durabilityAtom)
-					const halved = durability / 2
-					set(durabilityAtom, halved)
-				},
+			get: ({ find, get }, key) => {
+				const durabilityAtom = find(durabilityAtoms, key)
+				const durability = get(durabilityAtom)
+				const doubled = durability * 2
+				return doubled
+			},
+			set: ({ find, get, set }, key) => {
+				const durabilityAtom = find(durabilityAtoms, key)
+				const durability = get(durabilityAtom)
+				const halved = durability / 2
+				set(durabilityAtom, halved)
+			},
 		})
 
 		expect(logger.warn).not.toHaveBeenCalled()
@@ -271,10 +263,7 @@ describe(`errors`, () => {
 		})
 		const sqrtSelectors = selectorFamily<number, string>({
 			key: `sqrt`,
-			get:
-				(key) =>
-				({ get }) =>
-					Math.sqrt(get(countAtoms, key)),
+			get: ({ get }, key) => Math.sqrt(get(countAtoms, key)),
 		})
 		const anarchy = new Anarchy()
 		anarchy.allocate(`root`, `myself`)
@@ -322,13 +311,11 @@ describe(`errors`, () => {
 
 			const edgeLengthSelectors = selectorFamily<number, [number, number]>({
 				key: `edgeLength`,
-				get:
-					([a, b]) =>
-					({ get }) => {
-						const aPoint = get(pointAtoms, a)
-						const bPoint = get(pointAtoms, b)
-						return Math.hypot(bPoint.x - aPoint.x, bPoint.y - aPoint.y)
-					},
+				get: ({ get }, [a, b]) => {
+					const aPoint = get(pointAtoms, a)
+					const bPoint = get(pointAtoms, b)
+					return Math.hypot(bPoint.x - aPoint.x, bPoint.y - aPoint.y)
+				},
 			})
 
 			const anarchy = new Anarchy()

@@ -150,10 +150,10 @@ export type WritablePureSelectorFamilyOptions<
 > = {
 	/** The unique identifier of the family */
 	key: string
-	/** For each instantiated family member, a function that computes its value */
-	get: (key: K) => Read<() => T>
-	/** For each instantiated family member, a function that sets its value */
-	set: (key: K) => Write<(newValue: T) => void>
+	/** A function that computes the value of a family member */
+	get: Read<(key: K) => T>
+	/** A function that sets the value of a family member */
+	set: Write<(key: K, newValue: T) => void>
 	/** The classes of errors that might be thrown when deriving the atom's default value */
 	catch?: readonly Ctor<E>[]
 }
@@ -164,8 +164,8 @@ export type ReadonlyPureSelectorFamilyOptions<
 > = {
 	/** The unique identifier of the family */
 	key: string
-	/** For each instantiated family member, a function that computes its value */
-	get: (key: K) => Read<() => T>
+	/** A function that computes the value of a family member */
+	get: Read<(key: K) => T>
 	/** The classes of errors that might be thrown when deriving the atom's default value */
 	catch?: readonly Ctor<E>[]
 }
@@ -177,10 +177,10 @@ export type WritableHeldSelectorFamilyOptions<
 	key: string
 	/** For each instantiated family member, a constant reference to a value that will not be replaced */
 	const: (key: K) => T
-	/** For each instantiated family member, a function that computes its value */
-	get: (key: K) => Read<(permanent: T) => void>
-	/** For each instantiated family member, a function that sets its value */
-	set: (key: K) => Write<(newValue: T) => void>
+	/** A function that computes the value of a family member */
+	get: Read<(key: K, permanent: T) => void>
+	/** A function that sets the value of a family member */
+	set: Write<(key: K, newValue: T) => void>
 }
 export type ReadonlyHeldSelectorFamilyOptions<
 	T extends object,
@@ -190,8 +190,8 @@ export type ReadonlyHeldSelectorFamilyOptions<
 	key: string
 	/** For each instantiated family member, a constant reference to a value that will not be replaced */
 	const: (key: K) => T
-	/** For each instantiated family member, a function that computes its value */
-	get: (key: K) => Read<(permanent: T) => void>
+	/** A function that computes the value of a family member */
+	get: Read<(key: K, permanent: T) => void>
 }
 
 /**

@@ -157,14 +157,12 @@ describe(`family selectors held`, () => {
 		>({
 			key: `abcLengths`,
 			const: () => ({ a: 0, b: 0, c: 0 }),
-			get:
-				(key) =>
-				({ get }, self) => {
-					const { a, b, c } = get(abcListsAtoms, key)
-					self.a = a.reduce((acc, cur) => acc + cur, 0)
-					self.b = b.reduce((acc, cur) => acc + cur, 0)
-					self.c = c.reduce((acc, cur) => acc + cur, 0)
-				},
+			get: ({ get }, key, self) => {
+				const { a, b, c } = get(abcListsAtoms, key)
+				self.a = a.reduce((acc, cur) => acc + cur, 0)
+				self.b = b.reduce((acc, cur) => acc + cur, 0)
+				self.c = c.reduce((acc, cur) => acc + cur, 0)
+			},
 		})
 
 		const valueInitial = getState(abcLengthsSelectors, true)
@@ -223,23 +221,19 @@ describe(`family selectors held`, () => {
 		>({
 			key: `abcLengths`,
 			const: () => ({ a: 0, b: 0, c: 0 }),
-			get:
-				(key) =>
-				({ get }, self) => {
-					self.a = get(abcListsAtoms, key).a.reduce((acc, cur) => acc + cur, 0)
-					self.b = get(abcListsAtoms, key).b.reduce((acc, cur) => acc + cur, 0)
-					self.c = get(abcListsAtoms, key).c.reduce((acc, cur) => acc + cur, 0)
-				},
-			set:
-				(key) =>
-				({ set }, self) => {
-					set(abcListsAtoms, key, (state) => {
-						state.a = Array.from({ length: self.a }).map(() => 1)
-						state.b = Array.from({ length: self.b }).map(() => 1)
-						state.c = Array.from({ length: self.c }).map(() => 1)
-						return state
-					})
-				},
+			get: ({ get }, key, self) => {
+				self.a = get(abcListsAtoms, key).a.reduce((acc, cur) => acc + cur, 0)
+				self.b = get(abcListsAtoms, key).b.reduce((acc, cur) => acc + cur, 0)
+				self.c = get(abcListsAtoms, key).c.reduce((acc, cur) => acc + cur, 0)
+			},
+			set: ({ set }, key, self) => {
+				set(abcListsAtoms, key, (state) => {
+					state.a = Array.from({ length: self.a }).map(() => 1)
+					state.b = Array.from({ length: self.b }).map(() => 1)
+					state.c = Array.from({ length: self.c }).map(() => 1)
+					return state
+				})
+			},
 		})
 
 		const valueInitial = getState(abcLengthsSelectors, true)

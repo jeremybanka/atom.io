@@ -68,10 +68,7 @@ describe(`disposeState`, () => {
 		})
 		const doubleSelectors = selectorFamily<number, string>({
 			key: `double`,
-			get:
-				(id) =>
-				({ find, get }) =>
-					get(find(countAtoms, id)) * 2,
+			get: ({ find, get }, id) => get(find(countAtoms, id)) * 2,
 		})
 		const allDoublesSelector = selector<number[]>({
 			key: `allDoubles`,
@@ -143,10 +140,7 @@ describe(`disposeState`, () => {
 		})
 		const doubledSelectors = selectorFamily<number, string>({
 			key: `doubled`,
-			get:
-				(id) =>
-				({ find, get }) =>
-					get(find(countAtoms, id)) * 2,
+			get: ({ find, get }, id) => get(find(countAtoms, id)) * 2,
 		})
 		const doubledState = findState(doubledSelectors, `my-key`)
 		getState(doubledState)
@@ -166,15 +160,10 @@ describe(`disposeState`, () => {
 		})
 		const tripledSelectors = selectorFamily<number, string>({
 			key: `tripled`,
-			get:
-				(id) =>
-				({ get }) =>
-					get(countAtoms, id) * 3,
-			set:
-				(id) =>
-				({ set }, newValue) => {
-					set(countAtoms, id, newValue / 3)
-				},
+			get: ({ get }, id) => get(countAtoms, id) * 3,
+			set: ({ set }, id, newValue) => {
+				set(countAtoms, id, newValue / 3)
+			},
 		})
 		const tripledState = findState(tripledSelectors, `my-key`)
 		getState(tripledState)
@@ -194,10 +183,7 @@ describe(`disposeState`, () => {
 		})
 		const tripledSelectors = selectorFamily<number, string>({
 			key: `tripled`,
-			get:
-				(id) =>
-				({ find, get }) =>
-					get(find(countAtoms, id)) * 3,
+			get: ({ find, get }, id) => get(find(countAtoms, id)) * 3,
 		})
 		Internal.IMPLICIT.STORE.config.lifespan = `immortal`
 		const anarchy = new Anarchy()

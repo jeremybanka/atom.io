@@ -30,14 +30,12 @@ export const timerLengthAtoms = atomFamily<number, string>({
 })
 const timerRemainingSelectors = selectorFamily<number, string>({
 	key: `timerRemaining`,
-	get:
-		(id) =>
-		({ get }) => {
-			const now = get(nowAtom)
-			const started = get(timerStartedAtoms, id)
-			const length = get(timerLengthAtoms, id)
-			return Math.max(0, length - (now - started))
-		},
+	get: ({ get }, id) => {
+		const now = get(nowAtom)
+		const started = get(timerStartedAtoms, id)
+		const length = get(timerLengthAtoms, id)
+		return Math.max(0, length - (now - started))
+	},
 })
 
 export const addOneMinuteToAllRunningTimersTX = transaction({

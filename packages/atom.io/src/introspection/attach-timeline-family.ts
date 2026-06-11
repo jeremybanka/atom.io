@@ -43,10 +43,7 @@ export const attachTimelineFamily = (
 		never
 	>(store, {
 		key: `🔍 Timeline Update Log`,
-		get:
-			(key) =>
-			({ get }) =>
-				get(findTimelineLogState__INTERNAL, key),
+		get: ({ get }, key) => get(findTimelineLogState__INTERNAL, key),
 	})
 	return findTimelineLogState
 }

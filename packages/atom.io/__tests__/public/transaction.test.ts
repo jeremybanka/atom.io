@@ -13,6 +13,7 @@ import {
 	transaction,
 } from "atom.io"
 import * as Internal from "atom.io/internal"
+import { stateExists } from "atom.io/testing"
 import { UList } from "atom.io/transceivers/u-list"
 import { vitest } from "vitest"
 
@@ -141,12 +142,8 @@ describe(`transaction`, () => {
 		findState(countAtoms, `my-key`)
 		findState(doubleSelectors, `my-key`)
 		runTransaction(incrementTX)()
-		expect(
-			Internal.seekInStore(Internal.IMPLICIT.STORE, countAtoms, `my-key`),
-		).toBeUndefined()
-		expect(
-			Internal.seekInStore(Internal.IMPLICIT.STORE, doubleSelectors, `my-key`),
-		).toBeUndefined()
+		expect(stateExists(countAtoms, `my-key`)).toBe(false)
+		expect(stateExists(doubleSelectors, `my-key`)).toBe(false)
 	})
 	test(`run transaction throws if the transaction doesn't exist`, () => {
 		expect(runTransaction({ key: `nonexistent`, type: `transaction` })).toThrow()
@@ -371,9 +368,7 @@ describe(`reversibility of transactions`, () => {
 			caught = thrown
 		}
 		expect(caught).toBeInstanceOf(Error)
-		expect(
-			Internal.seekInStore(Internal.IMPLICIT.STORE, countAtoms, `my-key`),
-		).toBeUndefined()
+		expect(stateExists(countAtoms, `my-key`)).toBe(false)
 	})
 	test(`a transaction that fails does does not dispose of a state`, () => {
 		const countAtoms = atomFamily<number, string>({
@@ -396,8 +391,6 @@ describe(`reversibility of transactions`, () => {
 			caught = thrown
 		}
 		expect(caught).toBeInstanceOf(Error)
-		expect(
-			Internal.seekInStore(Internal.IMPLICIT.STORE, countAtoms, `my-key`),
-		).toBeDefined()
+		expect(stateExists(countAtoms, `my-key`)).toBe(true)
 	})
 })

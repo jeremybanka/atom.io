@@ -11,11 +11,11 @@ import type {
 } from "atom.io"
 import type { Canonical } from "atom.io/json"
 
-import type { RootStore } from "../transaction"
-import { createReadonlyHeldSelectorFamily } from "./create-readonly-held-selector-family"
-import { createReadonlyPureSelectorFamily } from "./create-readonly-pure-selector-family"
-import { createWritableHeldSelectorFamily } from "./create-writable-held-selector-family"
-import { createWritablePureSelectorFamily } from "./create-writable-pure-selector-family"
+import type { RootStore } from "../transaction/index.ts"
+import { createReadonlyHeldSelectorFamily } from "./create-readonly-held-selector-family.ts"
+import { createReadonlyPureSelectorFamily } from "./create-readonly-pure-selector-family.ts"
+import { createWritableHeldSelectorFamily } from "./create-writable-held-selector-family.ts"
+import { createWritablePureSelectorFamily } from "./create-writable-pure-selector-family.ts"
 
 export function createSelectorFamily<T extends object, K extends Canonical>(
 	store: RootStore,

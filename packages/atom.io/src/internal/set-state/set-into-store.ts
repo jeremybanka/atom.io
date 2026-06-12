@@ -1,9 +1,9 @@
 import type { Setter, WritableFamilyToken, WritableToken } from "atom.io"
 import type { Canonical } from "atom.io/json"
 
-import type { Store } from "../store"
-import { operateOnStore, OWN_OP } from "./operate-on-store"
-import type { RESET_STATE } from "./reset-in-store"
+import type { Store } from "../store/index.ts"
+import { operateOnStore, OWN_OP } from "./operate-on-store.ts"
+import type { RESET_STATE } from "./reset-in-store.ts"
 
 export function setIntoStore<T, TT extends T>(
 	store: Store,

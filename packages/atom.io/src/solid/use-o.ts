@@ -3,9 +3,9 @@ import { arbitrary, getFromStore, subscribeToState } from "atom.io/internal"
 import type { Canonical } from "atom.io/json"
 import { useContext } from "solid-js"
 
-import { parseStateOverloads } from "./parse-state-overloads"
-import { StoreContext } from "./store-context"
-import { useSyncExternalStore } from "./use-sync-external-store-solid"
+import { parseStateOverloads } from "./parse-state-overloads.ts"
+import { StoreContext } from "./store-context.ts"
+import { useSyncExternalStore } from "./use-sync-external-store-solid.ts"
 
 export function useO<T, E = never>(
 	token: ReadableToken<T, any, E>,

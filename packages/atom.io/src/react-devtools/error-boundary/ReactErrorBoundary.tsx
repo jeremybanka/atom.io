@@ -1,8 +1,8 @@
 import type { ErrorInfo, FC, ReactNode } from "react"
 import { Component } from "react"
 
-import type { FallbackProps } from "./DefaultFallback"
-import { DefaultFallback } from "./DefaultFallback"
+import type { FallbackProps } from "./DefaultFallback.tsx"
+import { DefaultFallback } from "./DefaultFallback.tsx"
 
 export type ErrorBoundaryState = {
 	error?: Error | string

@@ -5,15 +5,15 @@ import type {
 	StateUpdate,
 } from "atom.io"
 
-import { createRegularAtom } from "../atom"
-import { getFromStore } from "../get-state"
-import { newest } from "../lineage"
-import { setIntoStore } from "../set-state"
-import { JOIN_OP, operateOnStore } from "../set-state/operate-on-store"
-import type { Store } from "../store"
-import { subscribeToState, subscribeToTimeline } from "../subscribe"
-import { isChildStore } from "../transaction/is-root-store"
-import type { SignalFrom, Transceiver } from "./transceiver"
+import { createRegularAtom } from "../atom/index.ts"
+import { getFromStore } from "../get-state/index.ts"
+import { newest } from "../lineage.ts"
+import { setIntoStore } from "../set-state/index.ts"
+import { JOIN_OP, operateOnStore } from "../set-state/operate-on-store.ts"
+import type { Store } from "../store/index.ts"
+import { subscribeToState, subscribeToTimeline } from "../subscribe/index.ts"
+import { isChildStore } from "../transaction/is-root-store.ts"
+import type { SignalFrom, Transceiver } from "./transceiver.ts"
 
 /**
  * @internal Give the tracker a transceiver state and a store, and it will

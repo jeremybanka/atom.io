@@ -6,9 +6,9 @@ import type {
 	TimelineSelectorUpdateEvent,
 } from "atom.io"
 
-import type { Store } from "../store"
-import { ingestAtomUpdateEvent } from "./ingest-atom-update"
-import { ingestCreationEvent } from "./ingest-creation-disposal"
+import type { Store } from "../store/index.ts"
+import { ingestAtomUpdateEvent } from "./ingest-atom-update.ts"
+import { ingestCreationEvent } from "./ingest-creation-disposal.ts"
 
 export function ingestSelectorUpdateEvent(
 	store: Store,

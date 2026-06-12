@@ -10,14 +10,14 @@ import type {
 import { AtomIOLogger } from "atom.io"
 import type { Canonical, stringified } from "atom.io/json"
 
-import type { Join } from "../join"
-import { Junction } from "../junction"
-import type { Lineage } from "../lineage"
-import type { Molecule } from "../molecule"
-import type { Tracker, Transceiver } from "../mutable"
-import { getJsonToken, getUpdateToken } from "../mutable"
-import type { OperationProgress } from "../operation"
-import { isReservedIntrospectionKey } from "../reserved-keys"
+import type { Join } from "../join/index.ts"
+import { Junction } from "../junction.ts"
+import type { Lineage } from "../lineage.ts"
+import type { Molecule } from "../molecule.ts"
+import type { Tracker, Transceiver } from "../mutable/index.ts"
+import { getJsonToken, getUpdateToken } from "../mutable/index.ts"
+import type { OperationProgress } from "../operation.ts"
+import { isReservedIntrospectionKey } from "../reserved-keys.ts"
 import type {
 	Atom,
 	HeldSelectorFamily,
@@ -26,19 +26,19 @@ import type {
 	ReadonlySelector,
 	RegularAtomFamily,
 	WritableSelector,
-} from "../state-types"
-import { StatefulSubject, Subject } from "../subject"
-import type { Timeline } from "../timeline"
+} from "../state-types.ts"
+import { StatefulSubject, Subject } from "../subject.ts"
+import type { Timeline } from "../timeline/index.ts"
 import type {
 	ChildStore,
 	RootStore,
 	Transaction,
 	TransactionEpoch,
 	TransactionProgress,
-} from "../transaction"
-import { isRootStore } from "../transaction"
-import type { Fn } from "../utility-types"
-import { CircularBuffer } from "./circular-buffer"
+} from "../transaction/index.ts"
+import { isRootStore } from "../transaction/index.ts"
+import type { Fn } from "../utility-types.ts"
+import { CircularBuffer } from "./circular-buffer.ts"
 
 export type StoreConfig = {
 	name: string

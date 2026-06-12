@@ -1,8 +1,8 @@
 import type { ReadableToken } from "atom.io"
 
-import { newest } from "../lineage"
-import type { Store } from "../store"
-import { traceRootSelectorAtoms } from "./trace-selector-atoms"
+import { newest } from "../lineage.ts"
+import type { Store } from "../store/index.ts"
+import { traceRootSelectorAtoms } from "./trace-selector-atoms.ts"
 
 export function updateSelectorAtoms(
 	store: Store,

@@ -1,3 +1,3 @@
-export * from "./create-regular-atom"
-export * from "./dispose-atom"
-export * from "./has-role"
+export * from "./create-regular-atom.ts"
+export * from "./dispose-atom.ts"
+export * from "./has-role.ts"

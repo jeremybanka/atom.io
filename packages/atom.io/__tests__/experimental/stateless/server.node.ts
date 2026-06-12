@@ -5,7 +5,7 @@ import type { Json } from "atom.io/json"
 import { drizzle } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
 
-import { cities, countries } from "./schema.node"
+import { cities, countries } from "./schema.node.ts"
 
 const LOGGING = false
 

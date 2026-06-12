@@ -5,7 +5,7 @@ import {
 } from "@orpc/client"
 import { atom, type Loadable } from "atom.io"
 
-import { client } from "./client"
+import { client } from "./client.ts"
 
 type Profile = InferClientOutputs<typeof client>[`users`][`profile`]
 type ProfileError = InferClientErrors<typeof client>[`users`][`profile`]

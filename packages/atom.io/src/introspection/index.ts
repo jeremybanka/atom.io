@@ -1,10 +1,10 @@
 import type { ReadableToken } from "atom.io"
 
-export * from "./attach-introspection-states"
-export * from "./auditor"
-export * from "./differ"
-export * from "./refinery"
-export * from "./sprawl"
+export * from "./attach-introspection-states.ts"
+export * from "./auditor.ts"
+export * from "./differ.ts"
+export * from "./refinery.ts"
+export * from "./sprawl.ts"
 
 export type FamilyNode<Token extends ReadableToken<unknown, any, any>> = {
 	key: string

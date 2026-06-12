@@ -7,7 +7,7 @@ import type { VNode } from "preact"
 import type { TSD } from "tsdoc.json"
 import { Mod } from "tsdoc.json/react"
 
-import { ATOM_IO_FYI_ROOT } from "../../scripts/constants"
+import { ATOM_IO_FYI_ROOT } from "../../scripts/constants.ts"
 
 export function ModuleDocs({ module }: { module: string }): VNode {
 	const docsText = fs.readFileSync(

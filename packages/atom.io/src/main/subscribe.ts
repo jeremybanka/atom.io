@@ -5,9 +5,9 @@ import type {
 	StateUpdate,
 	TimelineUpdate,
 	TransactionOutcomeEvent,
-} from "./events"
-import type { TimelineManageable } from "./timeline"
-import type { ReadableToken, TimelineToken, TransactionToken } from "./tokens"
+} from "./events.ts"
+import type { TimelineManageable } from "./timeline.ts"
+import type { ReadableToken, TimelineToken, TransactionToken } from "./tokens.ts"
 
 export type UpdateHandler<T> = (update: StateUpdate<T>) => void
 export type TransactionUpdateHandler<F extends Fn> = (

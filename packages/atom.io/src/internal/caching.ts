@@ -1,14 +1,14 @@
-import { Future } from "./future"
-import { Tracker, type Transceiver } from "./mutable"
-import { closeOperation, openOperation } from "./operation"
-import { safeCompute } from "./safe-compute"
+import { Future } from "./future.ts"
+import { Tracker, type Transceiver } from "./mutable/index.ts"
+import { closeOperation, openOperation } from "./operation.ts"
+import { safeCompute } from "./safe-compute.ts"
 import {
 	evictDownstreamFromAtom,
 	evictDownstreamFromSelector,
-} from "./set-state/evict-downstream"
-import type { PureSelector, ReadableState } from "./state-types"
-import type { Store } from "./store"
-import { isChildStore } from "./transaction"
+} from "./set-state/evict-downstream.ts"
+import type { PureSelector, ReadableState } from "./state-types.ts"
+import type { Store } from "./store/index.ts"
+import { isChildStore } from "./transaction/index.ts"
 
 export function writeToCache<T, E>(
 	target: Store,

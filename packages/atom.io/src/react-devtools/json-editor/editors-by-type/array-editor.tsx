@@ -5,15 +5,15 @@ import { JSON_DEFAULTS } from "atom.io/json"
 import { useI, useO } from "atom.io/react"
 import { type ReactElement, useContext } from "react"
 
-import { DevtoolsContext } from "../../store"
+import { DevtoolsContext } from "../../store.ts"
 import type { JsonEditorComponents, SetterOrUpdater } from ".."
-import type { JsonEditorProps_INTERNAL } from "../json-editor-internal"
-import { JsonEditor_INTERNAL } from "../json-editor-internal"
-import { makeElementSetters } from "./utilities/array-elements"
+import type { JsonEditorProps_INTERNAL } from "../json-editor-internal.tsx"
+import { JsonEditor_INTERNAL } from "../json-editor-internal.tsx"
+import { makeElementSetters } from "./utilities/array-elements.ts"
 import {
 	makePropertyRecasters,
 	makePropertyRemovers,
-} from "./utilities/object-properties"
+} from "./utilities/object-properties.ts"
 
 type ArrayElementProps = {
 	path: ReadonlyArray<number | string>

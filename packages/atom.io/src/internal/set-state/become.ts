@@ -1,4 +1,4 @@
-import { isFn } from "../is-fn"
+import { isFn } from "../is-fn.ts"
 
 export function become<T>(
 	nextVersionOfThing: T | ((prev: T) => T),

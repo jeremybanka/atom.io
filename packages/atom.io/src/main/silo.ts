@@ -35,10 +35,10 @@ import type {
 	timeline,
 	undo,
 } from "."
-import type { atom, atomFamily, mutableAtom, mutableAtomFamily } from "./atom"
-import type { resetState } from "./reset-state"
-import type { selector, selectorFamily } from "./selector"
-import type { runTransaction, transaction } from "./transaction"
+import type { atom, atomFamily, mutableAtom, mutableAtomFamily } from "./atom.ts"
+import type { resetState } from "./reset-state.ts"
+import type { selector, selectorFamily } from "./selector.ts"
+import type { runTransaction, transaction } from "./transaction.ts"
 
 export class Silo {
 	public store: RootStore

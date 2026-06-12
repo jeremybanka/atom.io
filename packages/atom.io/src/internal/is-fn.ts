@@ -1,4 +1,4 @@
-import type { Fn } from "./utility-types"
+import type { Fn } from "./utility-types.ts"
 
 const NON_CTOR_FN_REGEX =
 	/^\[object (?:Async|Generator|AsyncGenerator)?Function\]$/

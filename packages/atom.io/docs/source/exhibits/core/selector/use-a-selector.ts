@@ -4,7 +4,7 @@ import {
 	dividendAtom,
 	divisorAtom,
 	quotientSelector,
-} from "./declare-a-selector"
+} from "./declare-a-selector.ts"
 
 getState(dividendAtom) // -> 0
 getState(divisorAtom) // -> 2

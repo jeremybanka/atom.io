@@ -10,12 +10,12 @@ import { PRETTY_ENTITY_NAMES } from "atom.io"
 import type { Canonical } from "atom.io/json"
 import { stringifyJson } from "atom.io/json"
 
-import { createRegularAtom } from "../atom"
-import { isFn } from "../is-fn"
-import { newest } from "../lineage"
-import type { RegularAtomFamily } from "../state-types"
-import { Subject } from "../subject"
-import type { RootStore } from "../transaction"
+import { createRegularAtom } from "../atom/index.ts"
+import { isFn } from "../is-fn.ts"
+import { newest } from "../lineage.ts"
+import type { RegularAtomFamily } from "../state-types.ts"
+import { Subject } from "../subject.ts"
+import type { RootStore } from "../transaction/index.ts"
 
 export function createRegularAtomFamily<T, K extends Canonical, E>(
 	store: RootStore,

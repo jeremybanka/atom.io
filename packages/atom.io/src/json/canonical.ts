@@ -1,4 +1,4 @@
-import type { primitive } from "./json"
+import type { primitive } from "./json.ts"
 
 /** Only Canonical values should be used for keys because they always serialize to the same string */
 export type Canonical = primitive | ReadonlyArray<Canonical>

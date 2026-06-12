@@ -1,14 +1,14 @@
 import type { TransactionOutcomeEvent } from "atom.io"
 
-import type { Store } from "../store"
-import { ingestAtomUpdateEvent } from "./ingest-atom-update"
+import type { Store } from "../store/index.ts"
+import { ingestAtomUpdateEvent } from "./ingest-atom-update.ts"
 import {
 	ingestCreationEvent,
 	ingestDisposalEvent,
 	ingestMoleculeCreationEvent,
 	ingestMoleculeDisposalEvent,
 	ingestMoleculeTransferEvent,
-} from "./ingest-creation-disposal"
+} from "./ingest-creation-disposal.ts"
 
 export function ingestTransactionOutcomeEvent(
 	store: Store,

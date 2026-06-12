@@ -16,14 +16,14 @@ import type { RoomKey, Socket, SocketKey, UserKey } from "atom.io/realtime"
 import { myUserKeyAtom } from "atom.io/realtime-client"
 import type { Server } from "socket.io"
 
-import { realtimeStateProvider } from "./realtime-state-provider"
-import type { SocketSystemHierarchy } from "./server-socket-state"
+import { realtimeStateProvider } from "./realtime-state-provider.ts"
+import type { SocketSystemHierarchy } from "./server-socket-state.ts"
 import {
 	onlineUsersAtom,
 	socketAtoms,
 	socketKeysAtom,
 	usersOfSockets,
-} from "./server-socket-state"
+} from "./server-socket-state.ts"
 
 export type ServerConfig = {
 	socket: Socket

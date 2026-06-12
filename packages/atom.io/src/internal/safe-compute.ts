@@ -1,7 +1,7 @@
-import { writeToCache } from "./caching"
-import { isFn } from "./is-fn"
-import type { PureSelector, RegularAtom } from "./state-types"
-import type { Store } from "./store"
+import { writeToCache } from "./caching.ts"
+import { isFn } from "./is-fn.ts"
+import type { PureSelector, RegularAtom } from "./state-types.ts"
+import type { Store } from "./store/index.ts"
 
 export function safeCompute<T, E>(
 	target: Store,

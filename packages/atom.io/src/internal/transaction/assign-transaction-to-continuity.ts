@@ -1,4 +1,4 @@
-import type { RootStore } from "./is-root-store"
+import type { RootStore } from "./is-root-store.ts"
 
 export function assignTransactionToContinuity(
 	store: RootStore,

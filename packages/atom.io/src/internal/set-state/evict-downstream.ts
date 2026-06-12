@@ -1,8 +1,8 @@
-import { evictCachedValue } from "../caching"
-import { newest } from "../lineage"
-import { isDone, markDone } from "../operation"
-import type { Atom } from "../state-types"
-import type { Store } from "../store"
+import { evictCachedValue } from "../caching.ts"
+import { newest } from "../lineage.ts"
+import { isDone, markDone } from "../operation.ts"
+import type { Atom } from "../state-types.ts"
+import type { Store } from "../store/index.ts"
 
 export function evictDownstreamFromAtom(
 	store: Store,

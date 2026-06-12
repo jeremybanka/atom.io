@@ -2,10 +2,10 @@ import { waitFor } from "@testing-library/react"
 import { roomMeta, ROOMS } from "atom.io/realtime-server"
 import * as RTTest from "atom.io/realtime-testing"
 
-import { actWithFakeTimers } from "../../__util__/"
-import { BrowserGame } from "./BrowserGame"
-import { DatabaseManager } from "./database.node"
-import { SystemServer } from "./system-server.node"
+import { actWithFakeTimers } from "../../__util__/index.ts"
+import { BrowserGame } from "./BrowserGame.tsx"
+import { DatabaseManager } from "./database.node.ts"
+import { SystemServer } from "./system-server.node.ts"
 
 /* ❗❗❗ turn off the lights when you're done ❗❗❗ */
 console.info = () => undefined

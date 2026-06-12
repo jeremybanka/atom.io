@@ -1,4 +1,4 @@
-import { SetOverlay } from "./set-overlay"
+import { SetOverlay } from "./set-overlay.ts"
 
 export class RelationsOverlay<K, V extends Set<any>> extends Map<K, V> {
 	public deleted: Set<K> = new Set()

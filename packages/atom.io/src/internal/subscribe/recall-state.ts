@@ -1,6 +1,6 @@
-import { newest } from "../lineage"
-import type { ReadableState } from "../state-types"
-import type { Store } from "../store"
+import { newest } from "../lineage.ts"
+import type { ReadableState } from "../state-types.ts"
+import type { Store } from "../store/index.ts"
 
 export function recallState<T, E>(store: Store, state: ReadableState<T, E>): T {
 	const target = newest(store)

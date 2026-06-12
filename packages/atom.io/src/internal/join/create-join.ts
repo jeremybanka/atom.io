@@ -1,7 +1,7 @@
 import type { JoinOptions, JoinToken } from "atom.io"
 
-import type { RootStore } from "../transaction"
-import { Join } from "./join-internal"
+import type { RootStore } from "../transaction/index.ts"
+import { Join } from "./join-internal.ts"
 
 export function createJoin<
 	AName extends string,

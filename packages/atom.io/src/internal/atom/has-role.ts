@@ -1,4 +1,4 @@
-import type { Atom } from "../state-types"
+import type { Atom } from "../state-types.ts"
 
 export const INTERNAL_ROLES = [`tracker:signal`] as const
 export type InternalRole = (typeof INTERNAL_ROLES)[number]

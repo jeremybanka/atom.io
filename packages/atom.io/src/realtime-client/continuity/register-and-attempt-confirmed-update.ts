@@ -13,7 +13,7 @@ import type { Socket } from "atom.io/realtime"
 import {
 	confirmedUpdateQueueAtom,
 	optimisticUpdateQueueAtom,
-} from "../realtime-client-stores"
+} from "../realtime-client-stores/index.ts"
 
 export const useRegisterAndAttemptConfirmedUpdate =
 	(

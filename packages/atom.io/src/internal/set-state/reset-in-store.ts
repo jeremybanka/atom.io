@@ -1,8 +1,8 @@
 import type { WritableFamilyToken, WritableToken } from "atom.io"
 import type { Canonical } from "atom.io/json"
 
-import type { Store } from "../store"
-import { setIntoStore } from "./set-into-store"
+import type { Store } from "../store/index.ts"
+import { setIntoStore } from "./set-into-store.ts"
 
 export const RESET_STATE: unique symbol = Symbol(`RESET`)
 

@@ -1,2 +1,2 @@
-export * from "./search-param-sync"
-export * from "./storage-sync"
+export * from "./search-param-sync.ts"
+export * from "./storage-sync.ts"

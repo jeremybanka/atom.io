@@ -7,7 +7,7 @@ import {
 	setState,
 } from "atom.io"
 
-import { client, type Row, type RowListView } from "./client"
+import { client, type Row, type RowListView } from "./client.ts"
 
 type RowKey = `row::${string}`
 

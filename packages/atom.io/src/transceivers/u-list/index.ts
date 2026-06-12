@@ -1,2 +1,2 @@
-export * from "./u-list"
-export * from "./u-list-disposed-key-cleanup-effect"
+export * from "./u-list.ts"
+export * from "./u-list-disposed-key-cleanup-effect.ts"

@@ -13,7 +13,7 @@ import { usersInRooms } from "atom.io/realtime"
 import { pullMutableAtomFamilyMember } from "atom.io/realtime-client"
 import * as RTS from "atom.io/realtime-server"
 
-import { gameContinuity, letterAtoms } from "./game-store"
+import { gameContinuity, letterAtoms } from "./game-store.ts"
 
 const LOGGING = false
 

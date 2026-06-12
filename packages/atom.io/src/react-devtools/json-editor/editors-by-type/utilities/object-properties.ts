@@ -3,8 +3,8 @@ import type { Json, JsonTypeName } from "atom.io/json"
 import { fromEntries, JSON_DEFAULTS, toEntries } from "atom.io/json"
 import type { RefObject } from "react"
 
-import type { SetterOrUpdater } from "../.."
-import { castToJson } from "./cast-to-json"
+import type { SetterOrUpdater } from "../../index.ts"
+import { castToJson } from "./cast-to-json.ts"
 
 export const makePropertySetters = <T extends Json.Tree.Object>(
 	data: T,

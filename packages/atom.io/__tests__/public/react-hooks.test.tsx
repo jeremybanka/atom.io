@@ -18,7 +18,7 @@ import * as AR from "atom.io/react"
 import { UList } from "atom.io/transceivers/u-list"
 import { type FC, useEffect, useRef } from "react"
 
-import * as Utils from "../__util__"
+import * as Utils from "../__util__/index.ts"
 
 const LOG_LEVELS = [null, `error`, `warn`, `info`] as const
 const CHOOSE = 3

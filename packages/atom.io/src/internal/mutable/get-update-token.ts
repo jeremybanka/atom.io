@@ -1,6 +1,6 @@
 import type { MutableAtomToken, RegularAtomToken } from "atom.io"
 
-import type { SignalFrom, Transceiver } from "./transceiver"
+import type { SignalFrom, Transceiver } from "./transceiver.ts"
 
 export function getUpdateToken<T extends Transceiver<any, any, any>>(
 	mutableAtomToken: MutableAtomToken<T>,

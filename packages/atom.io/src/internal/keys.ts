@@ -1,5 +1,5 @@
-import { newest } from "./lineage"
-import type { Store } from "./store"
+import { newest } from "./lineage.ts"
+import type { Store } from "./store/index.ts"
 
 export type AtomKey<T> = string & { __atomKey?: never; __brand?: T }
 export type SelectorKey<T> = string & { __selectorKey?: never; __brand?: T }

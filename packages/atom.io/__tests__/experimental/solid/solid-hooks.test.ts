@@ -16,7 +16,7 @@ import type { Fn } from "atom.io/internal"
 import { clearStore, IMPLICIT } from "atom.io/internal"
 import { UList } from "atom.io/transceivers/u-list"
 
-import * as Utils from "../../__util__"
+import * as Utils from "../../__util__/index.ts"
 
 vi.mock(`solid-js`, async () => import(`solid-js/dist/solid.js`))
 

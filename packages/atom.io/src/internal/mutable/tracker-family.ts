@@ -2,12 +2,12 @@ import type { MutableAtomToken, StateLifecycleEvent } from "atom.io"
 import type { Canonical } from "atom.io/json"
 import { parseJson } from "atom.io/json"
 
-import { createRegularAtomFamily } from "../families"
-import type { MutableAtomFamily, RegularAtomFamily } from "../state-types"
-import { withdraw } from "../store"
-import type { RootStore } from "../transaction"
-import { Tracker } from "./tracker"
-import type { SignalFrom, Transceiver } from "./transceiver"
+import { createRegularAtomFamily } from "../families/index.ts"
+import type { MutableAtomFamily, RegularAtomFamily } from "../state-types.ts"
+import { withdraw } from "../store/index.ts"
+import type { RootStore } from "../transaction/index.ts"
+import { Tracker } from "./tracker.ts"
+import type { SignalFrom, Transceiver } from "./transceiver.ts"
 
 export class FamilyTracker<
 	T extends Transceiver<any, any, any>,

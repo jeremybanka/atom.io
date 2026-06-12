@@ -6,17 +6,21 @@ import {
 	IMPLICIT,
 } from "atom.io/internal"
 
-import type { disposeState } from "./dispose-state"
-import type { findState } from "./find-state"
-import type { getState } from "./get-state"
-import type { editRelations, findRelations, getInternalRelations } from "./join"
-import type { resetState } from "./reset-state"
-import type { setState } from "./set-state"
+import type { disposeState } from "./dispose-state.ts"
+import type { findState } from "./find-state.ts"
+import type { getState } from "./get-state.ts"
+import type {
+	editRelations,
+	findRelations,
+	getInternalRelations,
+} from "./join.ts"
+import type { resetState } from "./reset-state.ts"
+import type { setState } from "./set-state.ts"
 import type {
 	MutableAtomToken,
 	TransactionToken,
 	WritablePureSelectorToken,
-} from "./tokens"
+} from "./tokens.ts"
 
 export type ReaderToolkit = Pick<ActorToolkit, `find` | `get` | `json`> & {
 	relations: Pick<RelationsToolkit, `find` | `internal`>

@@ -8,8 +8,8 @@ import { findInStore, type ReadableState, withdraw } from "atom.io/internal"
 import type { Canonical } from "atom.io/json"
 import { useContext } from "solid-js"
 
-import { StoreContext } from "./store-context"
-import { useO } from "./use-o"
+import { StoreContext } from "./store-context.ts"
+import { useO } from "./use-o.ts"
 
 export function useLoadable<T, E>(
 	token: ReadableToken<Loadable<T>, any, E>,

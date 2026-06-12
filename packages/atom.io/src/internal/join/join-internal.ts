@@ -14,18 +14,25 @@ import type {
 import { simpleCompound } from "atom.io"
 import { UList } from "atom.io/transceivers/u-list"
 
-import { capitalize } from "../capitalize"
-import { createReadonlyPureSelectorFamily, findInStore } from "../families"
-import { getFromStore } from "../get-state"
-import type { BaseExternalStoreConfiguration } from "../junction"
-import { Junction } from "../junction"
-import { createMutableAtomFamily, getJsonFamily, getJsonToken } from "../mutable"
-import { JOIN_OP, operateOnStore, setIntoStore } from "../set-state"
-import type { Store } from "../store"
-import type { RootStore } from "../transaction"
-import { editRelationsInStore } from "./edit-relations-in-store"
-import { findRelationsInStore } from "./find-relations-in-store"
-import { getInternalRelationsFromStore } from "./get-internal-relations-from-store"
+import { capitalize } from "../capitalize.ts"
+import {
+	createReadonlyPureSelectorFamily,
+	findInStore,
+} from "../families/index.ts"
+import { getFromStore } from "../get-state/index.ts"
+import type { BaseExternalStoreConfiguration } from "../junction.ts"
+import { Junction } from "../junction.ts"
+import {
+	createMutableAtomFamily,
+	getJsonFamily,
+	getJsonToken,
+} from "../mutable/index.ts"
+import { JOIN_OP, operateOnStore, setIntoStore } from "../set-state/index.ts"
+import type { Store } from "../store/index.ts"
+import type { RootStore } from "../transaction/index.ts"
+import { editRelationsInStore } from "./edit-relations-in-store.ts"
+import { findRelationsInStore } from "./find-relations-in-store.ts"
+import { getInternalRelationsFromStore } from "./get-internal-relations-from-store.ts"
 
 export type JoinStateFamilies<
 	AName extends string,

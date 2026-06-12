@@ -5,7 +5,7 @@ import { StoreContext, useO } from "atom.io/react"
 import * as RTC from "atom.io/realtime-client"
 import * as React from "react"
 
-import { useRealtimeService } from "./use-realtime-service"
+import { useRealtimeService } from "./use-realtime-service.ts"
 
 export function usePullSelectorFamilyMember<T, K extends Canonical>(
 	familyToken: AtomIO.SelectorFamilyToken<T, K>,

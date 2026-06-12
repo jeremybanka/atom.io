@@ -3,7 +3,7 @@ import mdx from "@astrojs/mdx"
 import preact from "@astrojs/preact"
 import { defineConfig, sessionDrivers } from "astro/config"
 
-import { preserveCodeBlockCodeProps } from "./scripts/remark-codeblock-code-props"
+import { preserveCodeBlockCodeProps } from "./scripts/remark-codeblock-code-props.ts"
 
 // https://astro.build/config
 export default defineConfig({

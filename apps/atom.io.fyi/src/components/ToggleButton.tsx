@@ -3,7 +3,7 @@ import "./ToggleButton.css"
 import type { VNode } from "preact"
 import * as React from "react"
 
-import type { ToggleProps } from "./Toggle"
+import type { ToggleProps } from "./Toggle.tsx"
 
 export const setCssVars = (
 	vars: Record<`--${string}`, number | string>,

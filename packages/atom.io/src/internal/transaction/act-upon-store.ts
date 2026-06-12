@@ -1,8 +1,8 @@
 import type { TransactionToken } from "atom.io"
 
-import type { Store } from "../store"
-import { withdraw } from "../store"
-import type { Fn } from "../utility-types"
+import type { Store } from "../store/index.ts"
+import { withdraw } from "../store/index.ts"
+import type { Fn } from "../utility-types.ts"
 
 export function actUponStore<F extends Fn>(
 	store: Store,

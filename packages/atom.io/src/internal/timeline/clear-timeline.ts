@@ -1,6 +1,6 @@
 import type { TimelineToken } from "atom.io"
 
-import type { Store } from "../store"
+import type { Store } from "../store/index.ts"
 
 export function clearTimelineInStore(
 	store: Store,

@@ -8,14 +8,14 @@ import type {
 } from "atom.io"
 import type { Fn, RootStore, Timeline } from "atom.io/internal"
 
-import { type AtomTokenIndex, attachAtomIndex } from "./attach-atom-index"
-import type { SelectorTokenIndex } from "./attach-selector-index"
-import { attachSelectorIndex } from "./attach-selector-index"
-import { attachTimelineFamily } from "./attach-timeline-family"
-import { attachTimelineIndex } from "./attach-timeline-index"
-import { attachTransactionIndex } from "./attach-transaction-index"
-import { attachTransactionLogs } from "./attach-transaction-logs"
-import { attachTypeSelectors } from "./attach-type-selectors"
+import { type AtomTokenIndex, attachAtomIndex } from "./attach-atom-index.ts"
+import type { SelectorTokenIndex } from "./attach-selector-index.ts"
+import { attachSelectorIndex } from "./attach-selector-index.ts"
+import { attachTimelineFamily } from "./attach-timeline-family.ts"
+import { attachTimelineIndex } from "./attach-timeline-index.ts"
+import { attachTransactionIndex } from "./attach-transaction-index.ts"
+import { attachTransactionLogs } from "./attach-transaction-logs.ts"
+import { attachTypeSelectors } from "./attach-type-selectors.ts"
 
 export type IntrospectionStates = {
 	atomIndex: AtomToken<AtomTokenIndex>

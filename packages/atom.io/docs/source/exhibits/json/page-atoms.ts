@@ -1,6 +1,6 @@
 import { atomFamily } from "atom.io"
 
-import type { PageKey } from "./page-key"
+import type { PageKey } from "./page-key.ts"
 
 type Page = {
 	text: string

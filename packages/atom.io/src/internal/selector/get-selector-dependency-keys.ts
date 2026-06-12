@@ -1,7 +1,7 @@
-import type { AtomKey, ReadonlySelectorKey, SelectorKey } from "../keys"
-import { isStateKey } from "../keys"
-import { newest } from "../lineage"
-import type { Store } from "../store"
+import type { AtomKey, ReadonlySelectorKey, SelectorKey } from "../keys.ts"
+import { isStateKey } from "../keys.ts"
+import { newest } from "../lineage.ts"
+import type { Store } from "../store/index.ts"
 
 export function getSelectorDependencyKeys(
 	store: Store,

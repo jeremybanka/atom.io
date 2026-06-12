@@ -109,7 +109,7 @@
 		"@vitest/coverage-v8": "4.1.8",
 		"@vitest/ui": "4.1.8",
 		"arktype": "2.2.0",
-		"break-check": "0.6.28",
+		"break-check": "0.6.29",
 		"concurrently": "10.0.3",
 		"drizzle-kit": "0.31.10",
 		"drizzle-orm": "0.45.2",

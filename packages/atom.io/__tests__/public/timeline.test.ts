@@ -17,6 +17,7 @@ import {
 	undo,
 } from "atom.io"
 import * as I from "atom.io/internal"
+import { stateExists } from "atom.io/testing"
 import { vitest } from "vitest"
 
 import * as Utils from "../__util__/index.ts"
@@ -409,16 +410,9 @@ describe(`timeline state lifecycle`, () => {
 		disposeState(countAtoms, `my-key`)
 		undo(countsTL)
 
-		expect(I.seekInStore(I.IMPLICIT.STORE, countAtoms, `my-key`)).toBe(undefined)
+		expect(stateExists(countAtoms, `my-key`)).toBe(false)
 		redo(countsTL)
-		expect(I.seekInStore(I.IMPLICIT.STORE, countAtoms, `my-key`)).toEqual({
-			family: {
-				key: `count`,
-				subKey: `"my-key"`,
-			},
-			key: `count("my-key")`,
-			type: `atom`,
-		})
+		expect(stateExists(countAtoms, `my-key`)).toBe(true)
 	})
 })
 

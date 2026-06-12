@@ -8,8 +8,10 @@ These look like implementation details with little consumer-facing value.
 - [ ] Internal store layout is asserted directly in public tests:
   - [x] [disposal.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/disposal.test.ts:55) resolved; formerly `55-56`, `89-99`, `155-158`, `183-186`, `210-212`
         Decision: public tests should assert whether a state exists or has been released via `atom.io/testing`, not by probing store maps directly.
-  - [ ] [transaction.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/transaction.test.ts:144) `144-149`, `374-376`, `399-401`
-  - [ ] [timeline.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/timeline.test.ts:132) `132-138`, `258`, `293-320`, `377-392`, `412-420`
+  - [x] [transaction.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/transaction.test.ts:144) resolved; formerly `144-149`, `374-376`, `399-401`
+        Decision: same as `disposal.test.ts`; transaction rollback tests should assert state existence through `atom.io/testing`.
+  - [ ] [timeline.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/timeline.test.ts:132) remaining `132-138`, `258`, `293-320`, `377-392`
+        [x] State lifecycle existence checks resolved; formerly `412-420`.
   - [ ] [join.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/join.test.ts:217) `217`
 
 - [ ] `Internal.Future` is promised as the concrete async wrapper:

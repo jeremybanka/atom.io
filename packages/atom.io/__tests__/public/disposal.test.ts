@@ -11,6 +11,7 @@ import {
 	setState,
 } from "atom.io"
 import * as Internal from "atom.io/internal"
+import { stateExists } from "atom.io/testing"
 
 import * as Utils from "../__util__/index.ts"
 
@@ -35,6 +36,7 @@ describe(`disposeState`, () => {
 			default: 0,
 		})
 		disposeState(countAtom)
+		expect(stateExists(countAtom)).toBe(true)
 		expect(logger.warn).not.toHaveBeenCalled()
 		expect(logger.error).toHaveBeenCalledTimes(1)
 		expect(logger.error).toHaveBeenCalledWith(
@@ -52,8 +54,7 @@ describe(`disposeState`, () => {
 		const countState = findState(countAtoms, `count`)
 		getState(countState)
 		disposeState(countState)
-		expect(Internal.IMPLICIT.STORE.atoms.has(countState.key)).toBe(false)
-		expect(Internal.IMPLICIT.STORE.valueMap.has(countState.key)).toBe(false)
+		expect(stateExists(countState)).toBe(false)
 		expect(logger.warn).not.toHaveBeenCalled()
 		expect(logger.error).not.toHaveBeenCalled()
 	})
@@ -86,18 +87,9 @@ describe(`disposeState`, () => {
 		disposeState(countAtoms, `my-key`)
 		setState(countKeysAtom, (current) => [...current, `my-key`])
 		expect(logger.error).not.toHaveBeenCalled()
-		expect(Internal.IMPLICIT.STORE.atoms.has(countAtom.key)).toBe(false)
-		expect(Internal.IMPLICIT.STORE.valueMap.has(countAtom.key)).toBe(false)
-		expect(
-			Internal.IMPLICIT.STORE.readonlySelectors.has(doubleSelector.key),
-		).toBe(true)
-		expect(Internal.IMPLICIT.STORE.valueMap.has(doubleSelector.key)).toBe(true)
-		expect(
-			Internal.IMPLICIT.STORE.readonlySelectors.has(allDoublesSelector.key),
-		).toBe(true)
-		expect(Internal.IMPLICIT.STORE.valueMap.has(allDoublesSelector.key)).toBe(
-			false,
-		)
+		expect(stateExists(countAtom)).toBe(false)
+		expect(stateExists(doubleSelector)).toBe(true)
+		expect(stateExists(allDoublesSelector)).toBe(true)
 		expect(getState(doubleSelector)).toBe(4)
 
 		expect(logger.warn).not.toHaveBeenCalled()
@@ -126,6 +118,7 @@ describe(`disposeState`, () => {
 			get: ({ get }) => get(countAtom),
 		})
 		disposeState(doubleSelector)
+		expect(stateExists(doubleSelector)).toBe(true)
 		expect(logger.warn).not.toHaveBeenCalled()
 		expect(logger.error).toHaveBeenCalledTimes(1)
 		expect(logger.error).toHaveBeenCalledWith(
@@ -152,10 +145,7 @@ describe(`disposeState`, () => {
 		getState(doubledState)
 		disposeState(doubledState)
 		expect(logger.error).not.toHaveBeenCalled()
-		expect(Internal.IMPLICIT.STORE.writableSelectors.has(doubledState.key)).toBe(
-			false,
-		)
-		expect(Internal.IMPLICIT.STORE.valueMap.has(doubledState.key)).toBe(false)
+		expect(stateExists(doubledState)).toBe(false)
 		expect(logger.warn).not.toHaveBeenCalled()
 		expect(logger.error).not.toHaveBeenCalled()
 	})
@@ -180,10 +170,7 @@ describe(`disposeState`, () => {
 		getState(tripledState)
 		disposeState(tripledState)
 		expect(logger.error).not.toHaveBeenCalled()
-		expect(Internal.IMPLICIT.STORE.writableSelectors.has(tripledState.key)).toBe(
-			false,
-		)
-		expect(Internal.IMPLICIT.STORE.valueMap.has(tripledState.key)).toBe(false)
+		expect(stateExists(tripledState)).toBe(false)
 		expect(logger.warn).not.toHaveBeenCalled()
 		expect(logger.error).not.toHaveBeenCalled()
 	})
@@ -203,13 +190,12 @@ describe(`disposeState`, () => {
 		const anarchy = new Anarchy()
 		anarchy.allocate(`root`, `hi`)
 		setState(countAtoms, `hi`, 1)
-		const triple = getState(tripledSelectors, `hi`)
+		const tripledState = findState(tripledSelectors, `hi`)
+		const triple = getState(tripledState)
 		expect(triple).toBe(3)
-		disposeState(tripledSelectors, `hi`)
+		disposeState(tripledState)
 
-		expect(
-			Internal.IMPLICIT.STORE.writableSelectors.has(tripledSelectors.key),
-		).toBe(false)
+		expect(stateExists(tripledState)).toBe(false)
 
 		expect(logger.warn).not.toHaveBeenCalled()
 		expect(logger.error).not.toHaveBeenCalled()

@@ -6,7 +6,8 @@ Checklist convention: `- [x]` means Decision Made.
 These look like implementation details with little consumer-facing value.
 
 - [ ] Internal store layout is asserted directly in public tests:
-  - [ ] [disposal.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/disposal.test.ts:55) resolved; formerly `55-56`, `89-99`, `155-158`, `183-186`, `210-212`
+  - [x] [disposal.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/disposal.test.ts:55) resolved; formerly `55-56`, `89-99`, `155-158`, `183-186`, `210-212`
+        Decision: public tests should assert whether a state exists or has been released via `atom.io/testing`, not by probing store maps directly.
   - [ ] [transaction.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/transaction.test.ts:144) `144-149`, `374-376`, `399-401`
   - [ ] [timeline.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/timeline.test.ts:132) `132-138`, `258`, `293-320`, `377-392`, `412-420`
   - [ ] [join.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/join.test.ts:217) `217`

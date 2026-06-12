@@ -2,7 +2,7 @@ import type { Fn, Subject } from "atom.io/internal"
 import type { ArrayUpdate } from "atom.io/transceivers/o-list"
 import { OList } from "atom.io/transceivers/o-list"
 
-import * as U from "../../__util__"
+import * as U from "../../__util__/index.ts"
 
 function handleUnpacked(subject: Subject<any>, handler: Fn): void {
 	subject.subscribe(`unpack`, (update: any) => {

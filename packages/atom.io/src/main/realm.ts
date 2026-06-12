@@ -12,7 +12,7 @@ import {
 } from "atom.io/internal"
 import type { Canonical } from "atom.io/json"
 
-import type { TransactionToken } from "./tokens"
+import type { TransactionToken } from "./tokens.ts"
 
 export const $validatedKey: unique symbol = Symbol.for(`claim`)
 export type ValidKey<K extends Canonical> = K & { [$validatedKey]?: true }

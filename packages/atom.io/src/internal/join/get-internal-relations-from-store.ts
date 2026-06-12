@@ -1,8 +1,8 @@
 import type { JoinToken, MutableAtomFamilyToken } from "atom.io"
 import type { UList } from "atom.io/transceivers/u-list"
 
-import type { Store } from "../store"
-import { getJoin } from "./get-join"
+import type { Store } from "../store/index.ts"
+import { getJoin } from "./get-join.ts"
 
 export function getInternalRelationsFromStore<
 	A extends string,

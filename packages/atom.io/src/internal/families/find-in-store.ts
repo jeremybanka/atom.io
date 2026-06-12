@@ -18,10 +18,10 @@ import type {
 } from "atom.io"
 import type { Canonical } from "atom.io/json"
 
-import type { Transceiver } from "../mutable"
-import { type Store, withdraw } from "../store"
-import { DO_NOT_CREATE, mintInStore } from "./mint-in-store"
-import { seekInStore } from "./seek-in-store"
+import type { Transceiver } from "../mutable/index.ts"
+import { type Store, withdraw } from "../store/index.ts"
+import { DO_NOT_CREATE, mintInStore } from "./mint-in-store.ts"
+import { seekInStore } from "./seek-in-store.ts"
 
 // seek [token 🟧] [inits ⬛]
 // find [token ✅] [inits ⬛]

@@ -4,10 +4,10 @@ import { StoreContext, useI, useO } from "atom.io/react"
 import { LayoutGroup, motion } from "motion/react"
 import { useContext, useRef } from "react"
 
-import { StateIndex } from "./StateIndex"
-import { attachDevtoolsStates, DevtoolsContext } from "./store"
-import { TimelineIndex } from "./TimelineIndex"
-import { TransactionIndex } from "./TransactionIndex"
+import { StateIndex } from "./StateIndex.tsx"
+import { attachDevtoolsStates, DevtoolsContext } from "./store.ts"
+import { TimelineIndex } from "./TimelineIndex.tsx"
+import { TransactionIndex } from "./TransactionIndex.tsx"
 
 export const AtomIODevtools: React.FC<{ hideByDefault?: boolean }> = ({
 	hideByDefault = false,

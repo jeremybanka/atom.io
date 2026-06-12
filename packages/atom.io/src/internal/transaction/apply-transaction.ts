@@ -1,10 +1,10 @@
-import { ingestTransactionOutcomeEvent } from "../events"
-import { newest } from "../lineage"
-import { withdraw } from "../store"
-import type { Fn } from "../utility-types"
-import type { ChildStore } from "./is-root-store"
-import { isChildStore, isRootStore } from "./is-root-store"
-import { setEpochNumberOfAction } from "./set-epoch-number"
+import { ingestTransactionOutcomeEvent } from "../events/index.ts"
+import { newest } from "../lineage.ts"
+import { withdraw } from "../store/index.ts"
+import type { Fn } from "../utility-types.ts"
+import type { ChildStore } from "./is-root-store.ts"
+import { isChildStore, isRootStore } from "./is-root-store.ts"
+import { setEpochNumberOfAction } from "./set-epoch-number.ts"
 
 export function applyTransaction<F extends Fn>(
 	store: ChildStore,

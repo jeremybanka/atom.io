@@ -1,4 +1,4 @@
-import { isPlainObject } from "./refinery"
+import { isPlainObject } from "./refinery.ts"
 
 // if you found what you were looking for, return true and break
 export type InspectionResult = Partial<{

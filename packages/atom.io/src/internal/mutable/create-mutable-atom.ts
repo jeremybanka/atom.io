@@ -5,16 +5,16 @@ import type {
 	UpdateHandler,
 } from "atom.io"
 
-import { eldest, newest } from "../lineage"
-import { createStandaloneSelector } from "../selector"
-import { resetInStore, setIntoStore } from "../set-state"
-import type { MutableAtom } from "../state-types"
-import { deposit, type Store } from "../store"
-import { Subject } from "../subject"
-import { subscribeToState } from "../subscribe"
-import type { RootStore } from "../transaction"
-import { Tracker } from "./tracker"
-import type { Transceiver } from "./transceiver"
+import { eldest, newest } from "../lineage.ts"
+import { createStandaloneSelector } from "../selector/index.ts"
+import { resetInStore, setIntoStore } from "../set-state/index.ts"
+import type { MutableAtom } from "../state-types.ts"
+import { deposit, type Store } from "../store/index.ts"
+import { Subject } from "../subject.ts"
+import { subscribeToState } from "../subscribe/index.ts"
+import type { RootStore } from "../transaction/index.ts"
+import { Tracker } from "./tracker.ts"
+import type { Transceiver } from "./transceiver.ts"
 
 export function createMutableAtom<T extends Transceiver<any, any, any>>(
 	store: Store,

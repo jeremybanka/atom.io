@@ -1,12 +1,12 @@
-import { isFn } from "../is-fn"
-import type { OpenOperation } from "../operation"
-import { safeCompute } from "../safe-compute"
-import { traceRootSelectorAtoms } from "../selector"
-import type { Atom, WritableState } from "../state-types"
-import type { Store } from "../store"
-import { dispatchOrDeferStateUpdate } from "./dispatch-state-update"
-import type { ProtoUpdate } from "./operate-on-store"
-import { setAtom } from "./set-atom"
+import { isFn } from "../is-fn.ts"
+import type { OpenOperation } from "../operation.ts"
+import { safeCompute } from "../safe-compute.ts"
+import { traceRootSelectorAtoms } from "../selector/index.ts"
+import type { Atom, WritableState } from "../state-types.ts"
+import type { Store } from "../store/index.ts"
+import { dispatchOrDeferStateUpdate } from "./dispatch-state-update.ts"
+import type { ProtoUpdate } from "./operate-on-store.ts"
+import { setAtom } from "./set-atom.ts"
 
 function resetAtom<T, E>(
 	target: Store & { operation: OpenOperation },

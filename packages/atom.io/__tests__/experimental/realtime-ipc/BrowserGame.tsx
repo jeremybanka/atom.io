@@ -3,7 +3,7 @@ import * as RTC from "atom.io/realtime-client"
 import * as RTR from "atom.io/realtime-react"
 import * as React from "react"
 
-import { gameContinuity, letterAtoms } from "./game-store"
+import { gameContinuity, letterAtoms } from "./game-store.ts"
 
 type RoomNames = `game-instance.bun.ts`
 

@@ -9,12 +9,12 @@ import type {
 	UpdateHandler,
 } from "atom.io"
 
-import { arbitrary } from "../arbitrary"
-import type { Store } from "../store"
-import type { Fn } from "../utility-types"
-import { subscribeToState } from "./subscribe-to-state"
-import { subscribeToTimeline } from "./subscribe-to-timeline"
-import { subscribeToTransaction } from "./subscribe-to-transaction"
+import { arbitrary } from "../arbitrary.ts"
+import type { Store } from "../store/index.ts"
+import type { Fn } from "../utility-types.ts"
+import { subscribeToState } from "./subscribe-to-state.ts"
+import { subscribeToTimeline } from "./subscribe-to-timeline.ts"
+import { subscribeToTransaction } from "./subscribe-to-transaction.ts"
 
 export function subscribeInStore<T>(
 	store: Store,

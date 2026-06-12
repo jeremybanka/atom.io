@@ -3,8 +3,8 @@ import { clearTimeline, redo, undo } from "atom.io"
 import { arbitrary, subscribeToTimeline, withdraw } from "atom.io/internal"
 import { useContext } from "solid-js"
 
-import { StoreContext } from "./store-context"
-import { useSyncExternalStore } from "./use-sync-external-store-solid"
+import { StoreContext } from "./store-context.ts"
+import { useSyncExternalStore } from "./use-sync-external-store-solid.ts"
 
 export type TimelineMeta = {
 	at: number

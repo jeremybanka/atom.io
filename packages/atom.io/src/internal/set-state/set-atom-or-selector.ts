@@ -1,9 +1,9 @@
-import type { OpenOperation } from "../operation"
-import type { WritableState } from "../state-types"
-import type { Store } from "../store"
-import type { ProtoUpdate } from "./operate-on-store"
-import { setAtom } from "./set-atom"
-import { setSelector } from "./set-selector"
+import type { OpenOperation } from "../operation.ts"
+import type { WritableState } from "../state-types.ts"
+import type { Store } from "../store/index.ts"
+import type { ProtoUpdate } from "./operate-on-store.ts"
+import { setAtom } from "./set-atom.ts"
+import { setSelector } from "./set-selector.ts"
 
 export function setAtomOrSelector<T>(
 	target: Store & { operation: OpenOperation },

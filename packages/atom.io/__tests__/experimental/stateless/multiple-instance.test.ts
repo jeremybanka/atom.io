@@ -4,7 +4,7 @@ import type { IncomingHttpHeaders, Server } from "node:http"
 import http from "node:http"
 import path from "node:path"
 
-import { DatabaseManager } from "./database.node"
+import { DatabaseManager } from "./database.node.ts"
 
 console.log = () => undefined
 console.warn = () => undefined

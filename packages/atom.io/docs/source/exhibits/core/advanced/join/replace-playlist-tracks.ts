@@ -1,6 +1,6 @@
 import { editRelations } from "atom.io"
 
-import { playlistTracks } from "./declare-playlist-tracks"
+import { playlistTracks } from "./declare-playlist-tracks.ts"
 
 editRelations(playlistTracks, (relations) => {
 	relations.replaceRelations(`playlist::road-trip`, [

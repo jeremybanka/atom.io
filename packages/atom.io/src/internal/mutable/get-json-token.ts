@@ -5,10 +5,10 @@ import type {
 } from "atom.io"
 import { parseJson } from "atom.io/json"
 
-import { findInStore } from "../families"
-import { newest } from "../lineage"
-import { type Store, withdraw } from "../store"
-import type { AsJSON, Transceiver } from "./transceiver"
+import { findInStore } from "../families/index.ts"
+import { newest } from "../lineage.ts"
+import { type Store, withdraw } from "../store/index.ts"
+import type { AsJSON, Transceiver } from "./transceiver.ts"
 
 export const getJsonToken = <T extends Transceiver<any, any, any>>(
 	store: Store,

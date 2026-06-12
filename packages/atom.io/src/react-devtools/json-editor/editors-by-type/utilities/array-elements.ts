@@ -1,7 +1,7 @@
 import { become } from "atom.io/internal"
 import type { Json } from "atom.io/json"
 
-import type { SetterOrUpdater } from "../.."
+import type { SetterOrUpdater } from "../../index.ts"
 
 export const makeElementSetters = <T extends Json.Tree.Array>(
 	data: T,

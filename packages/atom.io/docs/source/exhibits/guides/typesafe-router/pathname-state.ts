@@ -1,6 +1,6 @@
 import { atom, setState } from "atom.io"
 
-import type { Pathname, PathnameWithSearch } from "./route-shape"
+import type { Pathname, PathnameWithSearch } from "./route-shape.ts"
 
 export const pathnameAtom = atom<Pathname | (string & {})>({
 	key: `pathname`,

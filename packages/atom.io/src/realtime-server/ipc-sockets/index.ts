@@ -1,3 +1,3 @@
-export * from "./child-socket"
-export * from "./custom-socket"
-export * from "./parent-socket"
+export * from "./child-socket.ts"
+export * from "./custom-socket.ts"
+export * from "./parent-socket.ts"

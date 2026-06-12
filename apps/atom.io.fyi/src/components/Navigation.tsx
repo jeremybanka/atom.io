@@ -3,8 +3,8 @@ import { useI, useO } from "atom.io/react"
 import type { VNode } from "preact"
 import * as React from "react"
 
-import { Spotlight } from "./Spotlight"
-import { Toggle } from "./Toggle"
+import { Spotlight } from "./Spotlight.tsx"
+import { Toggle } from "./Toggle.tsx"
 
 const INCLUDE_LIST = [`H2`, `H3`, `H4`, `H5`, `H6`]
 

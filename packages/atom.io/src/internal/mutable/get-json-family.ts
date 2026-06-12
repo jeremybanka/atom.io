@@ -1,10 +1,10 @@
 import type { MutableAtomFamilyToken } from "atom.io"
 import type { Canonical, Json } from "atom.io/json"
 
-import { newest } from "../lineage"
-import type { WritablePureSelectorFamily } from "../state-types"
-import type { Store } from "../store"
-import type { Transceiver } from "./transceiver"
+import { newest } from "../lineage.ts"
+import type { WritablePureSelectorFamily } from "../state-types.ts"
+import type { Store } from "../store/index.ts"
+import type { Transceiver } from "./transceiver.ts"
 
 export function getJsonFamily<
 	Core extends Transceiver<any, Json.Serializable, Json.Serializable>,

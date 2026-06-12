@@ -1,7 +1,7 @@
 import { jsonRefinery } from "atom.io/introspection"
 import type { Json } from "atom.io/json"
 
-import * as Cast from "./cast-json"
+import * as Cast from "./cast-json.ts"
 
 export const castToJson = (
 	input: unknown,

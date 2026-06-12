@@ -1,4 +1,4 @@
-import { Button } from "./ToggleButton"
+import { Button } from "./ToggleButton.tsx"
 
 export type ToggleProps = {
 	children: string

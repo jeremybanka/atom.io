@@ -2,7 +2,7 @@ import type { Logger } from "atom.io"
 import { atom, AtomIOLogger, getState, timeline, undo } from "atom.io"
 import * as Internal from "atom.io/internal"
 
-import { createNullLogger } from "../__util__"
+import { createNullLogger } from "../__util__/index.ts"
 
 const LOG_LEVELS = [null, `error`, `warn`, `info`] as const
 const CHOOSE = 0

@@ -1,7 +1,7 @@
 import { IMPLICIT, setIntoStore } from "atom.io/internal"
 import type { Canonical } from "atom.io/json"
 
-import type { WritableFamilyToken, WritableToken } from "./tokens"
+import type { WritableFamilyToken, WritableToken } from "./tokens.ts"
 
 /**
  * A function that sets the value of a state.

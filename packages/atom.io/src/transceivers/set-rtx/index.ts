@@ -1,1 +1,1 @@
-export * from "./set-rtx"
+export * from "./set-rtx.ts"

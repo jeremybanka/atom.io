@@ -4,8 +4,8 @@ import type {
 	TransactionToken,
 } from "atom.io"
 
-import type { Junction } from "../junction"
-import type { Fn } from "../utility-types"
+import type { Junction } from "../junction.ts"
+import type { Fn } from "../utility-types.ts"
 
 export const TRANSACTION_PHASES = [`idle`, `building`, `applying`] as const
 export type TransactionPhase = (typeof TRANSACTION_PHASES)[number]

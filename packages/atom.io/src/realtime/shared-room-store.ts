@@ -12,7 +12,7 @@ import {
 	isUserKey,
 	type RoomKey,
 	type UserKey,
-} from "./realtime-key-types"
+} from "./realtime-key-types.ts"
 
 export type RoomSocketInterface<RoomNames extends string> = {
 	createRoom: (roomName: RoomNames) => void

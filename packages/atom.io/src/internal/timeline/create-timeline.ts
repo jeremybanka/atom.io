@@ -17,13 +17,13 @@ import type {
 	WritablePureSelectorToken,
 } from "atom.io"
 
-import { reduceReference } from "../get-state/reduce-reference"
-import { newest } from "../lineage"
-import { getUpdateToken } from "../mutable"
-import { deposit, type Store, withdraw } from "../store"
-import { Subject } from "../subject"
-import type { RootStore } from "../transaction"
-import { isChildStore } from "../transaction"
+import { reduceReference } from "../get-state/reduce-reference.ts"
+import { newest } from "../lineage.ts"
+import { getUpdateToken } from "../mutable/index.ts"
+import { deposit, type Store, withdraw } from "../store/index.ts"
+import { Subject } from "../subject.ts"
+import type { RootStore } from "../transaction/index.ts"
+import { isChildStore } from "../transaction/index.ts"
 
 export type Timeline<ManagedAtom extends TimelineManageable> = {
 	type: `timeline`

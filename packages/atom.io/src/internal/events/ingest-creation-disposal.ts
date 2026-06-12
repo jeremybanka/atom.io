@@ -8,15 +8,15 @@ import type {
 } from "atom.io"
 import { parseJson, stringifyJson } from "atom.io/json"
 
-import { disposeFromStore } from "../families"
-import { getFromStore } from "../get-state"
+import { disposeFromStore } from "../families/index.ts"
+import { getFromStore } from "../get-state/index.ts"
 import {
 	allocateIntoStore,
 	claimWithinStore,
 	deallocateFromStore,
-} from "../molecule"
-import { setIntoStore } from "../set-state"
-import type { Store } from "../store"
+} from "../molecule.ts"
+import { setIntoStore } from "../set-state/index.ts"
+import type { Store } from "../store/index.ts"
 
 export function ingestCreationEvent(
 	store: Store,

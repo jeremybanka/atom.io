@@ -3,12 +3,12 @@ import type { Json } from "atom.io/json"
 import type { ContinuityToken, UserKey } from "atom.io/realtime"
 
 import type { ServerConfig } from ".."
-import { unacknowledgedUpdatesAtoms } from "./continuity-store"
-import { provideOutcomes } from "./provide-outcomes"
-import { providePerspectives } from "./provide-perspectives"
-import { provideStartupPayloads } from "./provide-startup-payloads"
-import { receiveActionRequests } from "./receive-action-requests"
-import { trackAcknowledgements } from "./track-acknowledgements"
+import { unacknowledgedUpdatesAtoms } from "./continuity-store.ts"
+import { provideOutcomes } from "./provide-outcomes.ts"
+import { providePerspectives } from "./provide-perspectives.ts"
+import { provideStartupPayloads } from "./provide-startup-payloads.ts"
+import { receiveActionRequests } from "./receive-action-requests.ts"
+import { trackAcknowledgements } from "./track-acknowledgements.ts"
 
 export type ProvideContinuity = (
 	continuity: ContinuityToken,

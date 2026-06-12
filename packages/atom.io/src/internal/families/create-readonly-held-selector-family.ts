@@ -9,11 +9,11 @@ import { PRETTY_ENTITY_NAMES } from "atom.io"
 import type { Canonical } from "atom.io/json"
 import { stringifyJson } from "atom.io/json"
 
-import { newest } from "../lineage"
-import { createReadonlyHeldSelector } from "../selector"
-import type { ReadonlyHeldSelectorFamily } from "../state-types"
-import { Subject } from "../subject"
-import type { RootStore } from "../transaction"
+import { newest } from "../lineage.ts"
+import { createReadonlyHeldSelector } from "../selector/index.ts"
+import type { ReadonlyHeldSelectorFamily } from "../state-types.ts"
+import { Subject } from "../subject.ts"
+import type { RootStore } from "../transaction/index.ts"
 
 export function createReadonlyHeldSelectorFamily<
 	T extends object,

@@ -1,5 +1,5 @@
-import { getContinuityKey } from "./get-epoch-number"
-import type { RootStore } from "./is-root-store"
+import { getContinuityKey } from "./get-epoch-number.ts"
+import type { RootStore } from "./is-root-store.ts"
 
 export function setEpochNumberOfContinuity(
 	store: RootStore,

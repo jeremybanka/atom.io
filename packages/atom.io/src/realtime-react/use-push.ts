@@ -5,7 +5,7 @@ import * as RT from "atom.io/realtime"
 import * as RTC from "atom.io/realtime-client"
 import * as React from "react"
 
-import { useRealtimeService } from "./use-realtime-service"
+import { useRealtimeService } from "./use-realtime-service.ts"
 
 export function usePush<J extends Json.Serializable>(
 	token: AtomIO.WritableToken<J>,

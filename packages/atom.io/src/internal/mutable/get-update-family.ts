@@ -1,10 +1,10 @@
 import type { MutableAtomFamilyToken } from "atom.io"
 import type { Json } from "atom.io/json"
 
-import { newest } from "../lineage"
-import type { RegularAtomFamily } from "../state-types"
-import type { Store } from "../store"
-import type { SignalFrom, Transceiver } from "./transceiver"
+import { newest } from "../lineage.ts"
+import type { RegularAtomFamily } from "../state-types.ts"
+import type { Store } from "../store/index.ts"
+import type { SignalFrom, Transceiver } from "./transceiver.ts"
 
 export function getUpdateFamily<
 	T extends Transceiver<any, Json.Serializable, Json.Serializable>,

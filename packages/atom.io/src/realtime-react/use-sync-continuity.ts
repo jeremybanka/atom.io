@@ -3,7 +3,7 @@ import type { ContinuityToken } from "atom.io/realtime"
 import { syncContinuity } from "atom.io/realtime-client"
 import * as React from "react"
 
-import { useRealtimeService } from "./use-realtime-service"
+import { useRealtimeService } from "./use-realtime-service.ts"
 
 export function useSyncContinuity(token: ContinuityToken): void {
 	const store = React.useContext(StoreContext)

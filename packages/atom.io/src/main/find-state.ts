@@ -14,7 +14,7 @@ import type { Transceiver } from "atom.io/internal"
 import { findInStore, IMPLICIT } from "atom.io/internal"
 import type { Canonical } from "atom.io/json"
 
-import type { MutableAtomFamilyToken, RegularAtomFamilyToken } from "./tokens"
+import type { MutableAtomFamilyToken, RegularAtomFamilyToken } from "./tokens.ts"
 
 /**
  * Finds a {@link MutableAtomToken} in the store, without accessing its value.

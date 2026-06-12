@@ -1,2 +1,2 @@
-export * from "./DefaultFallback"
-export * from "./ReactErrorBoundary"
+export * from "./DefaultFallback.tsx"
+export * from "./ReactErrorBoundary.tsx"

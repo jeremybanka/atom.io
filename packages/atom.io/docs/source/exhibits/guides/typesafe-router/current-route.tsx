@@ -1,7 +1,7 @@
 import { useO } from "atom.io/react"
 import type * as React from "react"
 
-import { routeSelector } from "./route-selection"
+import { routeSelector } from "./route-selection.ts"
 
 declare function NotFoundPage(): React.JSX.Element
 declare function LoginPage(): React.JSX.Element

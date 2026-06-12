@@ -1,6 +1,6 @@
 import type { CSSProperties, FC, ReactNode } from "react"
 
-import { ErrorBoundary } from "../error-boundary"
+import { ErrorBoundary } from "../error-boundary/index.ts"
 
 export type Dict<T> = Record<string, T>
 

@@ -7,7 +7,7 @@ import { findInStore, setIntoStore } from "atom.io/internal"
 import type { Canonical } from "atom.io/json"
 import { useContext, useEffect } from "react"
 
-import { StoreContext } from "./store-context"
+import { StoreContext } from "./store-context.tsx"
 
 export function useAtomicRef<T, R extends { current: T | null }>(
 	token: RegularAtomToken<T | null>,

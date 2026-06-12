@@ -1,9 +1,9 @@
 import type { AtomIOToken } from "atom.io"
 
-import { newest } from "./lineage"
-import { type Store, withdraw } from "./store"
-import type { RootStore } from "./transaction"
-import { isChildStore } from "./transaction"
+import { newest } from "./lineage.ts"
+import { type Store, withdraw } from "./store/index.ts"
+import type { RootStore } from "./transaction/index.ts"
+import { isChildStore } from "./transaction/index.ts"
 
 /**
  * @public

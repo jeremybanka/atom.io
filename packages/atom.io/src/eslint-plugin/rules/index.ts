@@ -1,3 +1,3 @@
-export * from "./exact-catch-types"
-export * from "./explicit-state-types"
-export * from "./naming-convention"
+export * from "./exact-catch-types.ts"
+export * from "./explicit-state-types.ts"
+export * from "./naming-convention.ts"

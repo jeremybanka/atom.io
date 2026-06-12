@@ -1,10 +1,10 @@
 import type { JoinToken } from "atom.io"
 
-import type { Junction } from "../junction"
-import { newest } from "../lineage"
-import type { Store } from "../store"
-import { isChildStore } from "../transaction"
-import { getJoin } from "./get-join"
+import type { Junction } from "../junction.ts"
+import { newest } from "../lineage.ts"
+import type { Store } from "../store/index.ts"
+import { isChildStore } from "../transaction/index.ts"
+import { getJoin } from "./get-join.ts"
 
 export function editRelationsInStore<
 	AName extends string,

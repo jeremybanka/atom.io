@@ -1,6 +1,6 @@
 import type { Socket } from "atom.io/realtime"
 
-import { getSubMap } from "./create-subscriber"
+import { getSubMap } from "./create-subscriber.ts"
 
 /**
  * Observe the current cleanup wave for a socket's pending subscriptions.

@@ -6,9 +6,9 @@ import { parseJson, stringifyJson } from "atom.io/json"
 import type { UserKey } from "atom.io/realtime"
 import { UList } from "atom.io/transceivers/u-list"
 
-import type { StderrLog } from "./child-socket"
-import type { EventBuffer, EventPayload, Events } from "./custom-socket"
-import { CustomSocket } from "./custom-socket"
+import type { StderrLog } from "./child-socket.ts"
+import type { EventBuffer, EventPayload, Events } from "./custom-socket.ts"
+import { CustomSocket } from "./custom-socket.ts"
 
 export const PROOF_OF_LIFE_SIGNAL = `ALIVE`
 

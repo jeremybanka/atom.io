@@ -1,6 +1,6 @@
 import * as v from "vitest"
 
-import * as canonical from "../../src/json/canonical"
+import * as canonical from "../../src/json/canonical.ts"
 
 const number10 = 1234567890
 const string26 = `abcdefghijklmnopqrstuvwxyz`

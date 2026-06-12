@@ -2,7 +2,7 @@ import { useSingleEffect } from "atom.io/react"
 import * as React from "react"
 import type { Socket } from "socket.io-client"
 
-import { RealtimeContext } from "./realtime-context"
+import { RealtimeContext } from "./realtime-context.tsx"
 
 export function useRealtimeService(
 	key: string,

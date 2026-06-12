@@ -1,3 +1,3 @@
-export * from "./map-overlay"
-export * from "./relations-overlay"
-export * from "./set-overlay"
+export * from "./map-overlay.ts"
+export * from "./relations-overlay.ts"
+export * from "./set-overlay.ts"

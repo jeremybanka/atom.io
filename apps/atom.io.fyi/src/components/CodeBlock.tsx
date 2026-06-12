@@ -39,11 +39,7 @@ function getCodeBlockId(labelOrHref: string): string {
 			.replace(/^["']|["']$/g, ``)
 			.split(`/`)
 			.pop() ?? ``
-	const labelWithoutFinalExtension = label.replace(
-		/\.(?:cjs|cts|js|jsx|mdx|mjs|mts|sh|ts|tsx|txt)$/,
-		``,
-	)
-	return labelWithoutFinalExtension
+	return label
 		.toLowerCase()
 		.replace(/[^a-z0-9]+/g, `-`)
 		.replace(/^-+|-+$/g, ``)

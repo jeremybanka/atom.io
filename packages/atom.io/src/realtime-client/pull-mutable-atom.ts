@@ -3,7 +3,7 @@ import type { AsJSON, SignalFrom, Store, Transceiver } from "atom.io/internal"
 import { getJsonToken, getUpdateToken, setIntoStore } from "atom.io/internal"
 import { employSocket, type Socket } from "atom.io/realtime"
 
-import { createSubscriber } from "./create-subscriber"
+import { createSubscriber } from "./create-subscriber.ts"
 
 export function pullMutableAtom<T extends Transceiver<any, any, any>>(
 	store: Store,

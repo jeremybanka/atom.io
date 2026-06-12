@@ -1,7 +1,7 @@
 import type { ReactElement } from "react"
 
-import { NumberInput, TextInput } from "../../elastic-input"
-import type { JsonEditorProps_INTERNAL } from "../json-editor-internal"
+import { NumberInput, TextInput } from "../../elastic-input/index.ts"
+import type { JsonEditorProps_INTERNAL } from "../json-editor-internal.tsx"
 
 export const BooleanEditor = ({
 	path = [],

@@ -3,7 +3,7 @@ import { atomFamily, runTransaction, Silo, transaction } from "atom.io"
 import * as Internal from "atom.io/internal"
 import { NotFoundError } from "atom.io/internal"
 
-import * as Utils from "../__util__"
+import * as Utils from "../__util__/index.ts"
 
 const LOG_LEVELS = [null, `error`, `warn`, `info`] as const
 const CHOOSE = 3

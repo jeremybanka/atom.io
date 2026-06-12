@@ -4,10 +4,10 @@ import { getFamilyOfToken, subscribeToState } from "atom.io/internal"
 import { parseJson } from "atom.io/json"
 import type { Socket } from "atom.io/realtime"
 
-import { pullAtom } from "./pull-atom"
-import { pullAtomFamilyMember } from "./pull-atom-family-member"
-import { pullMutableAtom } from "./pull-mutable-atom"
-import { pullMutableAtomFamilyMember } from "./pull-mutable-atom-family-member"
+import { pullAtom } from "./pull-atom.ts"
+import { pullAtomFamilyMember } from "./pull-atom-family-member.ts"
+import { pullMutableAtom } from "./pull-mutable-atom.ts"
+import { pullMutableAtomFamilyMember } from "./pull-mutable-atom-family-member.ts"
 
 export function pullSelectorRoots(
 	store: Store,

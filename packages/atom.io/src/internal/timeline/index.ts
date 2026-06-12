@@ -1,3 +1,3 @@
-export * from "./clear-timeline"
-export * from "./create-timeline"
-export * from "./time-travel"
+export * from "./clear-timeline.ts"
+export * from "./create-timeline.ts"
+export * from "./time-travel.ts"

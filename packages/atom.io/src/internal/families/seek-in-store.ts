@@ -19,10 +19,10 @@ import type {
 import type { Canonical } from "atom.io/json"
 import { stringifyJson } from "atom.io/json"
 
-import { newest } from "../lineage"
-import type { Transceiver } from "../mutable"
-import type { ReadableState } from "../state-types"
-import { deposit, type Store } from "../store"
+import { newest } from "../lineage.ts"
+import type { Transceiver } from "../mutable/index.ts"
+import type { ReadableState } from "../state-types.ts"
+import { deposit, type Store } from "../store/index.ts"
 
 export function seekInStore<
 	T extends Transceiver<any, any, any>,

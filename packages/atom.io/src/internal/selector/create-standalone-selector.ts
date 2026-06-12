@@ -9,11 +9,11 @@ import type {
 	WritablePureSelectorToken,
 } from "atom.io"
 
-import type { Store } from "../store"
-import { createReadonlyHeldSelector } from "./create-readonly-held-selector"
-import { createReadonlyPureSelector } from "./create-readonly-pure-selector"
-import { createWritableHeldSelector } from "./create-writable-held-selector"
-import { createWritablePureSelector } from "./create-writable-pure-selector"
+import type { Store } from "../store/index.ts"
+import { createReadonlyHeldSelector } from "./create-readonly-held-selector.ts"
+import { createReadonlyPureSelector } from "./create-readonly-pure-selector.ts"
+import { createWritableHeldSelector } from "./create-writable-held-selector.ts"
+import { createWritablePureSelector } from "./create-writable-pure-selector.ts"
 
 export function createStandaloneSelector<T extends object>(
 	store: Store,

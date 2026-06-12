@@ -13,7 +13,7 @@ import {
 } from "atom.io/internal"
 import type { Canonical, Json, JsonIO } from "atom.io/json"
 
-import type { UserKey } from "./realtime-key-types"
+import type { UserKey } from "./realtime-key-types.ts"
 
 /* eslint-disable no-console */
 

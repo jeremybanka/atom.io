@@ -3,9 +3,9 @@ import type { Readable, Writable } from "node:stream"
 import type { Json, stringified } from "atom.io/json"
 import { parseJson } from "atom.io/json"
 
-import type { EventBuffer, EventPayload, Events } from "./custom-socket"
-import { CustomSocket } from "./custom-socket"
-import { PROOF_OF_LIFE_SIGNAL } from "./parent-socket"
+import type { EventBuffer, EventPayload, Events } from "./custom-socket.ts"
+import { CustomSocket } from "./custom-socket.ts"
+import { PROOF_OF_LIFE_SIGNAL } from "./parent-socket.ts"
 
 /* eslint-disable no-console */
 

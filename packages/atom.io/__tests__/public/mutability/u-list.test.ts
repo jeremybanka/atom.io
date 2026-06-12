@@ -2,7 +2,7 @@ import type { primitive } from "atom.io/json"
 import type { SetUpdate } from "atom.io/transceivers/u-list"
 import { UList } from "atom.io/transceivers/u-list"
 
-import * as U from "../../__util__"
+import * as U from "../../__util__/index.ts"
 
 beforeEach(() => {
 	console.warn = () => undefined

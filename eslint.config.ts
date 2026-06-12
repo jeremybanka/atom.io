@@ -6,7 +6,7 @@ import * as ImportPlugin from "eslint-plugin-import-x"
 import { default as SimpleImportSortPlugin } from "eslint-plugin-simple-import-sort"
 import StorybookPlugin from "eslint-plugin-storybook"
 
-import AtomIOPlugin from "./packages/atom.io/src/eslint-plugin"
+import AtomIOPlugin from "./packages/atom.io/src/eslint-plugin/index.ts"
 
 type Rules = Linter.Config[`rules`]
 type StorybookRules = typeof StorybookPlugin.rules
@@ -26,6 +26,21 @@ const COMMON_RULES: Rules = {
 
 	"import/newline-after-import": ERROR,
 	"import/no-duplicates": ERROR,
+	"import/extensions": [
+		ERROR,
+		"never",
+		{
+			checkTypeImports: true,
+			fix: true,
+			ignorePackages: true,
+			pattern: {
+				cts: "always",
+				mts: "always",
+				ts: "always",
+				tsx: "always",
+			},
+		},
+	],
 
 	"simple-import-sort/imports": ERROR,
 	"simple-import-sort/exports": ERROR,

@@ -2,7 +2,7 @@ import type { ReadonlySelectorToken, WritableToken } from "atom.io"
 import { useI, useO } from "atom.io/react"
 import type { FC } from "react"
 
-import { JsonEditor } from "./json-editor"
+import { JsonEditor } from "./json-editor/index.ts"
 
 export const StateEditor: FC<{
 	token: WritableToken<unknown, any, unknown>

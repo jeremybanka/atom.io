@@ -4,14 +4,14 @@ import type {
 	TransactionToken,
 } from "atom.io"
 
-import { newest } from "../lineage"
-import { deposit } from "../store"
-import { Subject } from "../subject"
-import type { Fn } from "../utility-types"
-import { abortTransaction } from "./abort-transaction"
-import { applyTransaction } from "./apply-transaction"
-import { buildTransaction } from "./build-transaction"
-import type { RootStore } from "./is-root-store"
+import { newest } from "../lineage.ts"
+import { deposit } from "../store/index.ts"
+import { Subject } from "../subject.ts"
+import type { Fn } from "../utility-types.ts"
+import { abortTransaction } from "./abort-transaction.ts"
+import { applyTransaction } from "./apply-transaction.ts"
+import { buildTransaction } from "./build-transaction.ts"
+import type { RootStore } from "./is-root-store.ts"
 
 export type Transaction<F extends Fn> = {
 	key: string

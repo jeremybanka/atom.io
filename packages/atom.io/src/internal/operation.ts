@@ -1,7 +1,7 @@
 import type { AtomUpdateEvent, ReadableToken, StateCreationEvent } from "atom.io"
 
-import type { Store } from "./store"
-import { isChildStore } from "./transaction/is-root-store"
+import type { Store } from "./store/index.ts"
+import { isChildStore } from "./transaction/is-root-store.ts"
 
 export type OperationProgress =
 	| OpenOperation<any>

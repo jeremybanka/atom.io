@@ -1,6 +1,6 @@
 import * as v from "vitest"
 
-import { SetRTX } from "../../src/transceivers/set-rtx"
+import { SetRTX } from "../../src/transceivers/set-rtx/index.ts"
 
 v.describe(`constructor`, () => {
 	v.bench(`new Set`, () => {

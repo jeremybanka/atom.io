@@ -10,13 +10,13 @@ import {
 import type { Json } from "atom.io/json"
 import type { ContinuityToken, Socket } from "atom.io/realtime"
 
-import { useRegisterAndAttemptConfirmedUpdate as initRegisterAndAttemptConfirmedUpdate } from "./continuity/register-and-attempt-confirmed-update"
-import { useConcealState as initConcealState } from "./continuity/use-conceal-state"
-import { createRevealState as initRevealState } from "./continuity/use-reveal-state"
+import { useRegisterAndAttemptConfirmedUpdate as initRegisterAndAttemptConfirmedUpdate } from "./continuity/register-and-attempt-confirmed-update.ts"
+import { useConcealState as initConcealState } from "./continuity/use-conceal-state.ts"
+import { createRevealState as initRevealState } from "./continuity/use-reveal-state.ts"
 import {
 	confirmedUpdateQueueAtom,
 	optimisticUpdateQueueAtom,
-} from "./realtime-client-stores"
+} from "./realtime-client-stores/index.ts"
 
 export function syncContinuity(
 	store: RootStore,

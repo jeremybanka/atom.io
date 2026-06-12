@@ -5,12 +5,12 @@ import { useI, useO } from "atom.io/react"
 import type { FC, ReactElement } from "react"
 import { useContext, useRef } from "react"
 
-import { ElasticInput } from "../../elastic-input"
-import { DevtoolsContext } from "../../store"
+import { ElasticInput } from "../../elastic-input/index.ts"
+import { DevtoolsContext } from "../../store.ts"
 import type { SetterOrUpdater } from ".."
-import type { JsonEditorComponents } from "../default-components"
-import type { JsonEditorProps_INTERNAL } from "../json-editor-internal"
-import { JsonEditor_INTERNAL } from "../json-editor-internal"
+import type { JsonEditorComponents } from "../default-components.tsx"
+import type { JsonEditorProps_INTERNAL } from "../json-editor-internal.tsx"
+import { JsonEditor_INTERNAL } from "../json-editor-internal.tsx"
 import {
 	makePropertyCreationInterface,
 	makePropertyRecasters,
@@ -18,7 +18,7 @@ import {
 	makePropertyRenamers,
 	makePropertySetters,
 	makePropertySorter,
-} from "./utilities/object-properties"
+} from "./utilities/object-properties.ts"
 
 export type PropertyAdderProps = {
 	addProperty: () => void

@@ -1,6 +1,6 @@
 import { atom, atomFamily, type Loadable, setState } from "atom.io"
 
-import { client, type Row } from "./client"
+import { client, type Row } from "./client.ts"
 
 type RowKey = `row::${string}`
 

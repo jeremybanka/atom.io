@@ -4,8 +4,8 @@ import { findInStore, getJsonToken } from "atom.io/internal"
 import type { Canonical, Json } from "atom.io/json"
 import { useContext } from "solid-js"
 
-import { StoreContext } from "./store-context"
-import { useO } from "./use-o"
+import { StoreContext } from "./store-context.ts"
+import { useO } from "./use-o.ts"
 
 export function useJSON<T extends Transceiver<any, any, any>>(
 	token: MutableAtomToken<T>,

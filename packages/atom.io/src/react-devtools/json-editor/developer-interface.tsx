@@ -1,18 +1,18 @@
 import type { JsonTypes } from "atom.io/json"
 import type { CSSProperties, FC, ReactElement } from "react"
 
-import type { JsonEditorComponents } from "./default-components"
-import { DEFAULT_JSON_EDITOR_COMPONENTS } from "./default-components"
-import { ArrayEditor } from "./editors-by-type/array-editor"
-import { ObjectEditor } from "./editors-by-type/object-editor"
+import type { JsonEditorComponents } from "./default-components.tsx"
+import { DEFAULT_JSON_EDITOR_COMPONENTS } from "./default-components.tsx"
+import { ArrayEditor } from "./editors-by-type/array-editor.tsx"
+import { ObjectEditor } from "./editors-by-type/object-editor.tsx"
 import {
 	BooleanEditor,
 	NullEditor,
 	NumberEditor,
 	StringEditor,
-} from "./editors-by-type/primitive-editors"
-import type { JsonEditorProps_INTERNAL } from "./json-editor-internal"
-import { JsonEditor_INTERNAL } from "./json-editor-internal"
+} from "./editors-by-type/primitive-editors.tsx"
+import type { JsonEditorProps_INTERNAL } from "./json-editor-internal.tsx"
+import { JsonEditor_INTERNAL } from "./json-editor-internal.tsx"
 
 export const SubEditors: Record<
 	keyof JsonTypes,

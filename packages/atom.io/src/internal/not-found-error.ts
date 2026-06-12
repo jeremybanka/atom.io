@@ -1,7 +1,7 @@
 import { type AtomIOToken, PRETTY_ENTITY_NAMES } from "atom.io"
 import { stringifyJson } from "atom.io/json"
 
-import type { Store } from "./store"
+import type { Store } from "./store/index.ts"
 
 export class NotFoundError extends Error {
 	public constructor(token: AtomIOToken, store: Store) {

@@ -3,7 +3,7 @@ import { getFromStore, setIntoStore } from "atom.io/internal"
 import type { ContinuityToken, Socket, UserKey } from "atom.io/realtime"
 import { employSocket } from "atom.io/realtime"
 
-import { unacknowledgedUpdatesAtoms } from "./continuity-store"
+import { unacknowledgedUpdatesAtoms } from "./continuity-store.ts"
 
 export function trackAcknowledgements(
 	store: Store,

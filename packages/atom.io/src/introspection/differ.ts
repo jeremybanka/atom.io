@@ -1,8 +1,8 @@
 import type { Json } from "atom.io/json"
 
-import type { Refinery, Supported } from "./refinery"
-import { discoverType, jsonTreeRefinery, primitiveRefinery } from "./refinery"
-import { sprawl } from "./sprawl"
+import type { Refinery, Supported } from "./refinery.ts"
+import { discoverType, jsonTreeRefinery, primitiveRefinery } from "./refinery.ts"
+import { sprawl } from "./sprawl.ts"
 
 export function diffNumber(a: number, b: number): Delta {
 	const sign = a < b ? `+` : `-`

@@ -22,7 +22,7 @@ import type {
 } from "atom.io"
 import type { Canonical } from "atom.io/json"
 
-import type { Transceiver } from "../mutable"
+import type { Transceiver } from "../mutable/index.ts"
 import type {
 	Atom,
 	AtomFamily,
@@ -41,10 +41,10 @@ import type {
 	WritablePureSelector,
 	WritablePureSelectorFamily,
 	WritableState,
-} from "../state-types"
-import type { Timeline } from "../timeline"
-import type { Transaction } from "../transaction"
-import type { Fn } from "../utility-types"
+} from "../state-types.ts"
+import type { Timeline } from "../timeline/index.ts"
+import type { Transaction } from "../transaction/index.ts"
+import type { Fn } from "../utility-types.ts"
 
 export function deposit<T, E>(
 	state: RegularAtom<T, E>,

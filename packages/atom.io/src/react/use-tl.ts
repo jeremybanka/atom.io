@@ -3,7 +3,7 @@ import { clearTimeline, redo, undo } from "atom.io"
 import { subscribeToTimeline, withdraw } from "atom.io/internal"
 import { useContext, useId, useRef, useSyncExternalStore } from "react"
 
-import { StoreContext } from "./store-context"
+import { StoreContext } from "./store-context.tsx"
 
 export type TimelineMeta = {
 	at: number

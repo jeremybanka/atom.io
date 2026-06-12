@@ -10,9 +10,9 @@ import {
 	useSyncExternalStore,
 } from "react"
 
-import { parseStateOverloads } from "./parse-state-overloads"
-import { StoreContext } from "./store-context"
-import { useSingleEffect } from "./use-single-effect"
+import { parseStateOverloads } from "./parse-state-overloads.ts"
+import { StoreContext } from "./store-context.tsx"
+import { useSingleEffect } from "./use-single-effect.ts"
 
 export function useO<T, E = never>(
 	token: ReadableToken<T, any, E>,

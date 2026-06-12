@@ -15,8 +15,8 @@ import type {
 	WritableHeldSelectorToken,
 	WritablePureSelectorFamilyToken,
 	WritablePureSelectorToken,
-} from "./tokens"
-import type { Read, Write } from "./transaction"
+} from "./tokens.ts"
+import type { Read, Write } from "./transaction.ts"
 
 export type WritablePureSelectorOptions<T, E = never> = {
 	/** The unique identifier of the selector */

@@ -1,15 +1,15 @@
 import type { ViewOf } from "atom.io"
 import type { Canonical, stringified } from "atom.io/json"
 
-import type { AtomOnly, TimelineManageable } from "./timeline"
+import type { AtomOnly, TimelineManageable } from "./timeline.ts"
 import type {
 	AtomToken,
 	ReadableToken,
 	SelectorToken,
 	TransactionToken,
 	WritableToken,
-} from "./tokens"
-import type { TokenType } from "./validators"
+} from "./tokens.ts"
+import type { TokenType } from "./validators.ts"
 
 export type StateUpdate<T> = {
 	readonly oldValue?: ViewOf<T>

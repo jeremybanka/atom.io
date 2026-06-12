@@ -1,9 +1,9 @@
 import type { JoinToken } from "atom.io"
 
-import { eldest } from "../lineage"
-import type { Store } from "../store"
-import { IMPLICIT } from "../store"
-import { Join } from "./join-internal"
+import { eldest } from "../lineage.ts"
+import type { Store } from "../store/index.ts"
+import { IMPLICIT } from "../store/index.ts"
+import { Join } from "./join-internal.ts"
 
 export function getJoin<
 	AName extends string,

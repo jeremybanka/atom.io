@@ -19,7 +19,7 @@ import { SetRTX } from "atom.io/transceivers/set-rtx"
 import { UList } from "atom.io/transceivers/u-list"
 import { vitest } from "vitest"
 
-import * as Utils from "../../__util__"
+import * as Utils from "../../__util__/index.ts"
 
 const LOG_LEVELS = [null, `error`, `warn`, `info`] as const
 const CHOOSE = 3

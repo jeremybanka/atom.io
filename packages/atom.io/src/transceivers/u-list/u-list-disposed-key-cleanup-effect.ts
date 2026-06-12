@@ -2,7 +2,7 @@ import type { AtomEffect } from "atom.io"
 import { getUpdateToken, subscribeInStore } from "atom.io/internal"
 import { type primitive, stringifyJson } from "atom.io/json"
 
-import { UList } from "./u-list"
+import { UList } from "./u-list.ts"
 
 export const uListDisposedKeyCleanupEffect: AtomEffect<UList<primitive>> = ({
 	token,

@@ -1,5 +1,5 @@
-import { ElasticInput } from "../../elastic-input"
-import type { JsonEditorProps } from "../developer-interface"
+import { ElasticInput } from "../../elastic-input/index.ts"
+import type { JsonEditorProps } from "../developer-interface.tsx"
 
 export const NonJsonEditor: React.FC<JsonEditorProps<never>> = ({
 	data,

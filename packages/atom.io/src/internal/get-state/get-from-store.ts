@@ -1,10 +1,10 @@
 import type { ReadableFamilyToken, ReadableToken, ViewOf } from "atom.io"
 import type { Canonical } from "atom.io/json"
 
-import { type Store, withdraw } from "../store"
-import { getFallback } from "./get-fallback"
-import { readOrComputeValue } from "./read-or-compute-value"
-import { reduceReference } from "./reduce-reference"
+import { type Store, withdraw } from "../store/index.ts"
+import { getFallback } from "./get-fallback.ts"
+import { readOrComputeValue } from "./read-or-compute-value.ts"
+import { reduceReference } from "./reduce-reference.ts"
 
 export function getFromStore<T, E = never>(
 	store: Store,

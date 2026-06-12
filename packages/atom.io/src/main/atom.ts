@@ -9,14 +9,14 @@ import {
 } from "atom.io/internal"
 import type { Canonical } from "atom.io/json"
 
-import type { StateUpdate } from "./events"
+import type { StateUpdate } from "./events.ts"
 import type {
 	AtomToken,
 	MutableAtomFamilyToken,
 	MutableAtomToken,
 	RegularAtomFamilyToken,
 	RegularAtomToken,
-} from "./tokens"
+} from "./tokens.ts"
 
 export type RegularAtomOptions<T, E = never> = {
 	/** The unique identifier of the atom */

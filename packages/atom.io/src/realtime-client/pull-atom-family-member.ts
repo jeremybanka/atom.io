@@ -3,7 +3,7 @@ import { findInStore, setIntoStore, type Store } from "atom.io/internal"
 import type { Canonical, Json } from "atom.io/json"
 import { employSocket, type Socket } from "atom.io/realtime"
 
-import { createSubscriber } from "./create-subscriber"
+import { createSubscriber } from "./create-subscriber.ts"
 
 export function pullAtomFamilyMember<
 	J extends Json.Serializable,

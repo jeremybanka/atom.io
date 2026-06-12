@@ -1,7 +1,7 @@
-import { readOrComputeValue } from "../get-state/read-or-compute-value"
-import type { Atom, Selector } from "../state-types"
-import type { Store } from "../store"
-import { recallState } from "./recall-state"
+import { readOrComputeValue } from "../get-state/read-or-compute-value.ts"
+import type { Atom, Selector } from "../state-types.ts"
+import type { Store } from "../store/index.ts"
+import { recallState } from "./recall-state.ts"
 
 export function subscribeToRootDependency(
 	target: Store,

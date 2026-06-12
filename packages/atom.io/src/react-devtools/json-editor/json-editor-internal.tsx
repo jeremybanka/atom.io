@@ -9,13 +9,13 @@ import {
 	useContext,
 } from "react"
 
-import { button } from "../Button"
-import { ElasticInput } from "../elastic-input"
-import { DevtoolsContext } from "../store"
+import { button } from "../Button.tsx"
+import { ElasticInput } from "../elastic-input/index.ts"
+import { DevtoolsContext } from "../store.ts"
 import type { SetterOrUpdater } from "."
 import { SubEditors } from "."
-import type { JsonEditorComponents } from "./default-components"
-import { NonJsonEditor } from "./editors-by-type/non-json"
+import type { JsonEditorComponents } from "./default-components.tsx"
+import { NonJsonEditor } from "./editors-by-type/non-json.tsx"
 
 export type JsonEditorProps_INTERNAL<T> = {
 	data: T

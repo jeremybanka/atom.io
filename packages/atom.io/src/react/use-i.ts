@@ -3,8 +3,8 @@ import { setIntoStore } from "atom.io/internal"
 import type { Canonical } from "atom.io/json"
 import { useCallback, useContext } from "react"
 
-import { parseStateOverloads } from "./parse-state-overloads"
-import { StoreContext } from "./store-context"
+import { parseStateOverloads } from "./parse-state-overloads.ts"
+import { StoreContext } from "./store-context.tsx"
 
 export function useI<T>(
 	token: WritableToken<T, any, any>,

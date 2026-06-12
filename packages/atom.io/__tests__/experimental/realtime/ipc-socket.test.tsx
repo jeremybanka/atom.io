@@ -4,7 +4,7 @@ import type { Json } from "atom.io/json"
 import { ChildSocket, ParentSocket } from "atom.io/realtime-server"
 import { UList } from "atom.io/transceivers/u-list"
 
-import * as Utils from "../../__util__"
+import * as Utils from "../../__util__/index.ts"
 
 console.log = () => undefined
 console.info = () => undefined

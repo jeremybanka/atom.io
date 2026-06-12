@@ -16,14 +16,14 @@ import {
 import type { Canonical, stringified } from "atom.io/json"
 import { parseJson, stringifyJson } from "atom.io/json"
 
-import { disposeFromStore } from "./families"
-import { getFromStore } from "./get-state"
-import { getTrace } from "./get-trace"
-import { newest } from "./lineage"
-import type { Store } from "./store"
-import { Subject } from "./subject"
-import type { RootStore } from "./transaction"
-import { createTransaction, isChildStore } from "./transaction"
+import { disposeFromStore } from "./families/index.ts"
+import { getFromStore } from "./get-state/index.ts"
+import { getTrace } from "./get-trace.ts"
+import { newest } from "./lineage.ts"
+import type { Store } from "./store/index.ts"
+import { Subject } from "./subject.ts"
+import type { RootStore } from "./transaction/index.ts"
+import { createTransaction, isChildStore } from "./transaction/index.ts"
 
 export type Molecule<K extends Canonical> = {
 	readonly key: K

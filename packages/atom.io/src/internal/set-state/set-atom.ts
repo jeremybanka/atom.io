@@ -1,12 +1,12 @@
-import { readFromCache, writeToCache } from "../caching"
-import { readOrComputeValue } from "../get-state/read-or-compute-value"
-import { isFn } from "../is-fn"
-import type { OpenOperation } from "../operation"
-import { markDone } from "../operation"
-import type { Atom } from "../state-types"
-import type { Store } from "../store"
-import { evictDownstreamFromAtom } from "./evict-downstream"
-import type { ProtoUpdate } from "./operate-on-store"
+import { readFromCache, writeToCache } from "../caching.ts"
+import { readOrComputeValue } from "../get-state/read-or-compute-value.ts"
+import { isFn } from "../is-fn.ts"
+import type { OpenOperation } from "../operation.ts"
+import { markDone } from "../operation.ts"
+import type { Atom } from "../state-types.ts"
+import type { Store } from "../store/index.ts"
+import { evictDownstreamFromAtom } from "./evict-downstream.ts"
+import type { ProtoUpdate } from "./operate-on-store.ts"
 
 const UNSET = Symbol(`UNSET`)
 

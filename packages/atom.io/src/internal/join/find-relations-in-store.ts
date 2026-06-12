@@ -1,9 +1,9 @@
 import type { JoinStates, JoinToken } from "atom.io"
 
-import { capitalize } from "../capitalize"
-import { findInStore } from "../families"
-import type { Store } from "../store"
-import { getJoin } from "./get-join"
+import { capitalize } from "../capitalize.ts"
+import { findInStore } from "../families/index.ts"
+import type { Store } from "../store/index.ts"
+import { getJoin } from "./get-join.ts"
 
 export function findRelationsInStore<
 	AName extends string,

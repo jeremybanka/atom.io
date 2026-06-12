@@ -1,6 +1,6 @@
 import { getState, setState } from "atom.io"
 
-import { countAtom } from "./declare-an-atom"
+import { countAtom } from "./declare-an-atom.ts"
 
 getState(countAtom) // -> 0
 setState(countAtom, 1)

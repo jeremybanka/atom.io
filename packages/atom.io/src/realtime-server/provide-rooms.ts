@@ -34,9 +34,9 @@ import {
 	visibleUsersInRoomsSelectors,
 } from "atom.io/realtime"
 
-import { ChildSocket, PROOF_OF_LIFE_SIGNAL } from "./ipc-sockets"
-import { realtimeMutableFamilyProvider } from "./realtime-mutable-family-provider"
-import { realtimeMutableProvider } from "./realtime-mutable-provider"
+import { ChildSocket, PROOF_OF_LIFE_SIGNAL } from "./ipc-sockets/index.ts"
+import { realtimeMutableFamilyProvider } from "./realtime-mutable-family-provider.ts"
+import { realtimeMutableProvider } from "./realtime-mutable-provider.ts"
 
 export type RoomMap = Map<
 	string,

@@ -8,9 +8,9 @@ import { findInStore, type Timeline } from "atom.io/internal"
 import { useI, useO } from "atom.io/react"
 import { type FC, Fragment, useContext } from "react"
 
-import { button } from "./Button"
-import { DevtoolsContext } from "./store"
-import { article } from "./Updates"
+import { button } from "./Button.tsx"
+import { DevtoolsContext } from "./store.ts"
+import { article } from "./Updates.tsx"
 
 export const YouAreHere: FC = () => {
 	return <span className="you_are_here">you are here</span>

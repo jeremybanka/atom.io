@@ -1,1 +1,1 @@
-export * from "./setup-realtime-test"
+export * from "./setup-realtime-test.tsx"

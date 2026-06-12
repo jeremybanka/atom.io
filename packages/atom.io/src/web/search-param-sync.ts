@@ -1,6 +1,6 @@
 import type { AtomEffect } from "atom.io"
 
-import type { StringInterface } from "./storage-sync"
+import type { StringInterface } from "./storage-sync.ts"
 
 export const searchParamSync = <T>(
 	{ stringify, parse }: StringInterface<T>,

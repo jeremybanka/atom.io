@@ -9,12 +9,12 @@ import { PRETTY_ENTITY_NAMES } from "atom.io"
 import type { Canonical } from "atom.io/json"
 import { stringifyJson } from "atom.io/json"
 
-import { newest } from "../lineage"
-import { createWritableHeldSelector } from "../selector"
-import type { WritableHeldSelectorFamily } from "../state-types"
-import type { Store } from "../store"
-import { Subject } from "../subject"
-import type { RootStore } from "../transaction"
+import { newest } from "../lineage.ts"
+import { createWritableHeldSelector } from "../selector/index.ts"
+import type { WritableHeldSelectorFamily } from "../state-types.ts"
+import type { Store } from "../store/index.ts"
+import { Subject } from "../subject.ts"
+import type { RootStore } from "../transaction/index.ts"
 
 export function createWritableHeldSelectorFamily<
 	T extends object,

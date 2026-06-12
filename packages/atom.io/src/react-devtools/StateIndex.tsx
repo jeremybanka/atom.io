@@ -17,10 +17,10 @@ import { primitiveRefinery } from "atom.io/introspection"
 import { useI, useO } from "atom.io/react"
 import { type FC, useContext } from "react"
 
-import { button } from "./Button"
-import { DEFAULT_JSON_EDITOR_COMPONENTS } from "./json-editor"
-import { StoreEditor } from "./StateEditor"
-import { DevtoolsContext } from "./store"
+import { button } from "./Button.tsx"
+import { DEFAULT_JSON_EDITOR_COMPONENTS } from "./json-editor/index.ts"
+import { StoreEditor } from "./StateEditor.tsx"
+import { DevtoolsContext } from "./store.ts"
 
 /* eslint-disable no-console */
 

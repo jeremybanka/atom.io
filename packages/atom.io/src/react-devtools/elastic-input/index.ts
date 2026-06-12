@@ -1,3 +1,3 @@
-export * from "./ElasticInput"
-export * from "./NumberInput"
-export * from "./TextInput"
+export * from "./ElasticInput.tsx"
+export * from "./NumberInput.tsx"
+export * from "./TextInput.tsx"

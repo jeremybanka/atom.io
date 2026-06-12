@@ -1,6 +1,6 @@
 import type * as React from "react"
 
-import type { Pathname } from "./route-shape"
+import type { Pathname } from "./route-shape.ts"
 
 type AppAnchorProps = Omit<
 	React.AnchorHTMLAttributes<HTMLAnchorElement>,

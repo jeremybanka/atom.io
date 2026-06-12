@@ -1,4 +1,4 @@
-import type { ChildStore } from "./is-root-store"
+import type { ChildStore } from "./is-root-store.ts"
 
 export function abortTransaction(target: ChildStore): void {
 	target.logger.info(

@@ -3,8 +3,8 @@ import * as path from "node:path"
 import { drizzle } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
 
-import { type LocalPostgres, startLocalPostgres } from "../postgres.node"
-import { cities, countries } from "./schema.node"
+import { type LocalPostgres, startLocalPostgres } from "../postgres.node.ts"
+import { cities, countries } from "./schema.node.ts"
 
 type DatabaseConfig = {
 	database: string

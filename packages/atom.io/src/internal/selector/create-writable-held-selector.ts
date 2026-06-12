@@ -4,13 +4,13 @@ import type {
 	WritableHeldSelectorToken,
 } from "atom.io"
 
-import { writeToCache } from "../caching"
-import { newest } from "../lineage"
-import type { WritableHeldSelector } from "../state-types"
-import type { Store } from "../store"
-import { Subject } from "../subject"
-import type { RootStore } from "../transaction"
-import { registerSelector } from "./register-selector"
+import { writeToCache } from "../caching.ts"
+import { newest } from "../lineage.ts"
+import type { WritableHeldSelector } from "../state-types.ts"
+import type { Store } from "../store/index.ts"
+import { Subject } from "../subject.ts"
+import type { RootStore } from "../transaction/index.ts"
+import { registerSelector } from "./register-selector.ts"
 
 export function createWritableHeldSelector<T extends object>(
 	store: Store,

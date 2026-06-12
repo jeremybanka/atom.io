@@ -1,7 +1,7 @@
 import { Future } from "atom.io/internal"
 import { vitest } from "vitest"
 
-import * as Utils from "../__util__"
+import * as Utils from "../__util__/index.ts"
 
 beforeEach(() => {
 	vitest.spyOn(Utils, `stdout`)

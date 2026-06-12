@@ -1,9 +1,9 @@
 import type { ViewOf } from "atom.io"
 
-import { readFromCache, writeToCache } from "../caching"
-import { safeCompute } from "../safe-compute"
-import type { ReadableState } from "../state-types"
-import type { Store } from "../store"
+import { readFromCache, writeToCache } from "../caching.ts"
+import { safeCompute } from "../safe-compute.ts"
+import type { ReadableState } from "../state-types.ts"
+import type { Store } from "../store/index.ts"
 
 export function readOrComputeValue<T, E>(
 	target: Store,

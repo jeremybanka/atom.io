@@ -6,8 +6,8 @@ import {
 	ingestDisposalEvent,
 	ingestSelectorUpdateEvent,
 	ingestTransactionOutcomeEvent,
-} from "../events"
-import type { Store } from "../store"
+} from "../events/index.ts"
+import type { Store } from "../store/index.ts"
 
 export function timeTravel(
 	store: Store,

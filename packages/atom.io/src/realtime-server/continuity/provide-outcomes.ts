@@ -12,7 +12,7 @@ import type { ContinuityToken, Socket, UserKey } from "atom.io/realtime"
 import {
 	redactTransactionUpdateContent,
 	unacknowledgedUpdatesAtoms,
-} from "./continuity-store"
+} from "./continuity-store.ts"
 
 export function provideOutcomes(
 	store: Store,

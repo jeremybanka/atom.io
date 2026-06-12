@@ -14,15 +14,18 @@ import { PRETTY_ENTITY_NAMES } from "atom.io"
 import type { Canonical } from "atom.io/json"
 import { stringifyJson } from "atom.io/json"
 
-import { getFromStore } from "../get-state"
-import { findRelationsInStore, getInternalRelationsFromStore } from "../join"
-import { newest } from "../lineage"
-import { getJsonToken } from "../mutable"
-import { createReadonlyPureSelector } from "../selector"
-import type { ReadonlyPureSelectorFamily } from "../state-types"
-import { Subject } from "../subject"
-import type { RootStore } from "../transaction"
-import { findInStore } from "./find-in-store"
+import { getFromStore } from "../get-state/index.ts"
+import {
+	findRelationsInStore,
+	getInternalRelationsFromStore,
+} from "../join/index.ts"
+import { newest } from "../lineage.ts"
+import { getJsonToken } from "../mutable/index.ts"
+import { createReadonlyPureSelector } from "../selector/index.ts"
+import type { ReadonlyPureSelectorFamily } from "../state-types.ts"
+import { Subject } from "../subject.ts"
+import type { RootStore } from "../transaction/index.ts"
+import { findInStore } from "./find-in-store.ts"
 
 export function createReadonlyPureSelectorFamily<T, K extends Canonical, E>(
 	store: RootStore,

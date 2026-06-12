@@ -6,12 +6,12 @@ import type {
 } from "atom.io"
 import type { Canonical } from "atom.io/json"
 
-import { newest } from "../lineage"
-import type { WritablePureSelector } from "../state-types"
-import type { Store } from "../store"
-import { Subject } from "../subject"
-import type { RootStore } from "../transaction"
-import { registerSelector } from "./register-selector"
+import { newest } from "../lineage.ts"
+import type { WritablePureSelector } from "../state-types.ts"
+import type { Store } from "../store/index.ts"
+import { Subject } from "../subject.ts"
+import type { RootStore } from "../transaction/index.ts"
+import { registerSelector } from "./register-selector.ts"
 
 export function createWritablePureSelector<T, K extends Canonical, E>(
 	store: Store,

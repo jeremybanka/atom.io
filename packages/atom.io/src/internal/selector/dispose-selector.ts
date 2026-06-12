@@ -1,8 +1,8 @@
 import type { SelectorFamilyToken, SelectorToken } from "atom.io"
 
-import { newest } from "../lineage"
-import { type Store, withdraw } from "../store"
-import { isChildStore } from "../transaction"
+import { newest } from "../lineage.ts"
+import { type Store, withdraw } from "../store/index.ts"
+import { isChildStore } from "../transaction/index.ts"
 
 export function disposeSelector(
 	store: Store,

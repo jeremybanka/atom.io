@@ -5,7 +5,7 @@ import type { Json } from "atom.io/json"
 import type { Socket } from "atom.io/realtime"
 import { employSocket, mutexAtoms } from "atom.io/realtime"
 
-import { createSubscriber } from "./create-subscriber"
+import { createSubscriber } from "./create-subscriber.ts"
 
 export function pushState<J extends Json.Serializable>(
 	store: Store,

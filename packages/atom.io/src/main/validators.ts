@@ -12,7 +12,7 @@ import type {
 	WritablePureSelectorFamilyToken,
 	WritablePureSelectorToken,
 	WritableToken,
-} from "./tokens"
+} from "./tokens.ts"
 
 export type TokenType<
 	Comparison extends

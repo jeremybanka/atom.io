@@ -1,2 +1,2 @@
-export * from "./get-from-store"
-export * from "./read-or-compute-value"
+export * from "./get-from-store.ts"
+export * from "./read-or-compute-value.ts"

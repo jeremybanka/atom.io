@@ -6,8 +6,8 @@ import { compileDocs } from "tsdoc.json"
 import {
 	ATOM_IO_ROOT,
 	ATOM_IO_SRC,
-} from "../../../packages/atom.io/__scripts__/constants"
-import { ATOM_IO_FYI_ROOT } from "./constants"
+} from "../../../packages/atom.io/__scripts__/constants.ts"
+import { ATOM_IO_FYI_ROOT } from "./constants.ts"
 
 declare const self: Worker
 self.onmessage = async function tsDocWorkerJob({

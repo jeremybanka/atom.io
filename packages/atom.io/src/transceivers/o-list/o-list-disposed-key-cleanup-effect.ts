@@ -2,7 +2,7 @@ import type { AtomEffect } from "atom.io"
 import { getFromStore, getUpdateToken, subscribeInStore } from "atom.io/internal"
 import { type primitive, stringifyJson } from "atom.io/json"
 
-import { OList } from "./o-list"
+import { OList } from "./o-list.ts"
 
 export function filterOutInPlace<T>(arr: T[], toRemove: T): T[] {
 	let writeIndex = 0

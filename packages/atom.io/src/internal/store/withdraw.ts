@@ -34,8 +34,8 @@ import type {
 } from "atom.io"
 import type { Canonical } from "atom.io/json"
 
-import type { Transceiver } from "../mutable"
-import { NotFoundError } from "../not-found-error"
+import type { Transceiver } from "../mutable/index.ts"
+import { NotFoundError } from "../not-found-error.ts"
 import type {
 	Atom,
 	AtomFamily,
@@ -66,11 +66,11 @@ import type {
 	WritableSelector,
 	WritableSelectorFamily,
 	WritableState,
-} from "../state-types"
-import type { Timeline } from "../timeline"
-import type { Transaction } from "../transaction"
-import type { Fn } from "../utility-types"
-import type { Store } from "./store"
+} from "../state-types.ts"
+import type { Timeline } from "../timeline/index.ts"
+import type { Transaction } from "../transaction/index.ts"
+import type { Fn } from "../utility-types.ts"
+import type { Store } from "./store.ts"
 
 export function withdraw<T, E>(
 	store: Store,

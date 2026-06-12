@@ -4,7 +4,7 @@ import { findInStore } from "atom.io/internal"
 import type { Canonical } from "atom.io/json"
 import type { Socket } from "atom.io/realtime"
 
-import { pullSelectorRoots } from "./pull-selector-roots"
+import { pullSelectorRoots } from "./pull-selector-roots.ts"
 
 export function pullSelectorFamilyMember<T, K extends Canonical>(
 	store: Store,

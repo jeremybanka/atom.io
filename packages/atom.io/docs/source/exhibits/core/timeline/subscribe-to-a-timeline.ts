@@ -1,7 +1,7 @@
 import { setState, subscribe } from "atom.io"
 
-import { xAtoms } from "../families/declare-a-family"
-import { coordinatesTL } from "./create-a-timeline"
+import { xAtoms } from "../families/declare-a-family.tsx"
+import { coordinatesTL } from "./create-a-timeline.ts"
 
 subscribe(coordinatesTL, (value) => {
 	console.log(value)

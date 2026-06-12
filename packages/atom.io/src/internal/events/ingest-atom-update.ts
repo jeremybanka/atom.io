@@ -1,7 +1,7 @@
 import type { AtomUpdateEvent } from "atom.io"
 
-import { setIntoStore } from "../set-state"
-import type { Store } from "../store"
+import { setIntoStore } from "../set-state/index.ts"
+import type { Store } from "../store/index.ts"
 
 export function ingestAtomUpdateEvent(
 	store: Store,

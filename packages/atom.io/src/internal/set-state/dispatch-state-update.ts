@@ -5,18 +5,22 @@ import type {
 	TimelineEvent,
 } from "atom.io"
 
-import { hasRole } from "../atom"
-import { readOrComputeValue } from "../get-state"
-import { newest } from "../lineage"
-import type { Transceiver } from "../mutable"
-import { isTransceiver } from "../mutable"
-import type { OpenOperation } from "../operation"
-import type { MutableAtom, WritableFamily, WritableState } from "../state-types"
-import { deposit, type Store } from "../store"
-import type { Subject } from "../subject"
-import { isChildStore, isRootStore } from "../transaction"
-import { evictDownstreamFromAtom } from "./evict-downstream"
-import type { ProtoUpdate } from "./operate-on-store"
+import { hasRole } from "../atom/index.ts"
+import { readOrComputeValue } from "../get-state/index.ts"
+import { newest } from "../lineage.ts"
+import type { Transceiver } from "../mutable/index.ts"
+import { isTransceiver } from "../mutable/index.ts"
+import type { OpenOperation } from "../operation.ts"
+import type {
+	MutableAtom,
+	WritableFamily,
+	WritableState,
+} from "../state-types.ts"
+import { deposit, type Store } from "../store/index.ts"
+import type { Subject } from "../subject.ts"
+import { isChildStore, isRootStore } from "../transaction/index.ts"
+import { evictDownstreamFromAtom } from "./evict-downstream.ts"
+import type { ProtoUpdate } from "./operate-on-store.ts"
 
 export function dispatchOrDeferStateUpdate<T, E>(
 	target: Store & { operation: OpenOperation<any> },

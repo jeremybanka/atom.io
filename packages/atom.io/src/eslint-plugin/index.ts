@@ -1,6 +1,6 @@
 import type { ESLint } from "eslint"
 
-import * as Rules from "./rules"
+import * as Rules from "./rules/index.ts"
 
 export { Rules }
 

@@ -1,8 +1,8 @@
 import type { AtomToken } from "atom.io"
 import { selector } from "atom.io"
 
-import { pathnameAtom } from "./pathname-state"
-import { isRoute, type Route } from "./route-shape"
+import { pathnameAtom } from "./pathname-state.ts"
+import { isRoute, type Route } from "./route-shape.ts"
 
 declare const authAtom: AtomToken<boolean | null>
 declare function isPublicRoute(path: Route): boolean

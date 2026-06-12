@@ -12,21 +12,21 @@ import type {
 } from "atom.io"
 import type { Canonical } from "atom.io/json"
 
-import { findInStore } from "../families"
-import { getFallback } from "../get-state/get-fallback"
-import { readOrComputeValue } from "../get-state/read-or-compute-value"
-import { reduceReference } from "../get-state/reduce-reference"
+import { findInStore } from "../families/index.ts"
+import { getFallback } from "../get-state/get-fallback.ts"
+import { readOrComputeValue } from "../get-state/read-or-compute-value.ts"
+import { reduceReference } from "../get-state/reduce-reference.ts"
 import {
 	editRelationsInStore,
 	findRelationsInStore,
 	getInternalRelationsFromStore,
-} from "../join"
-import { newest } from "../lineage"
-import { getJsonToken } from "../mutable"
-import { JOIN_OP, operateOnStore } from "../set-state/operate-on-store"
-import type { Store } from "../store"
-import { withdraw } from "../store"
-import { updateSelectorAtoms } from "./update-selector-atoms"
+} from "../join/index.ts"
+import { newest } from "../lineage.ts"
+import { getJsonToken } from "../mutable/index.ts"
+import { JOIN_OP, operateOnStore } from "../set-state/operate-on-store.ts"
+import type { Store } from "../store/index.ts"
+import { withdraw } from "../store/index.ts"
+import { updateSelectorAtoms } from "./update-selector-atoms.ts"
 
 export function registerSelector(
 	store: Store,

@@ -2,8 +2,8 @@ import type { ReadableToken, WritableToken } from "atom.io"
 import type { Canonical } from "atom.io/json"
 import { stringifyJson } from "atom.io/json"
 
-import type { ReadableFamily } from "../state-types"
-import type { Store } from "../store"
+import type { ReadableFamily } from "../state-types.ts"
+import type { Store } from "../store/index.ts"
 
 export const FAMILY_MEMBER_TOKEN_TYPES = {
 	atom_family: `atom`,

@@ -1,7 +1,7 @@
-import { isAtomKey } from "../keys"
-import type { Atom } from "../state-types"
-import type { Store } from "../store"
-import { getSelectorDependencyKeys } from "./get-selector-dependency-keys"
+import { isAtomKey } from "../keys.ts"
+import type { Atom } from "../state-types.ts"
+import type { Store } from "../store/index.ts"
+import { getSelectorDependencyKeys } from "./get-selector-dependency-keys.ts"
 
 export function traceRootSelectorAtoms(
 	store: Store,

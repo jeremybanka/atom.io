@@ -9,7 +9,7 @@ import {
 import type { Canonical } from "atom.io/json"
 import { employSocket, type Socket } from "atom.io/realtime"
 
-import { createSubscriber } from "./create-subscriber"
+import { createSubscriber } from "./create-subscriber.ts"
 
 export function pullMutableAtomFamilyMember<
 	T extends Transceiver<any, any, any>,

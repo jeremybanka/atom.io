@@ -1,17 +1,17 @@
 import type { Setter, WritableFamilyToken, WritableToken } from "atom.io"
 import { type Canonical, parseJson } from "atom.io/json"
 
-import { seekInStore } from "../families"
-import { getFamilyOfToken } from "../families/get-family-of-token"
-import { mintInStore, MUST_CREATE } from "../families/mint-in-store"
-import type { OpenOperation } from "../operation"
-import { closeOperation, openOperation } from "../operation"
-import type { WritableFamily } from "../state-types"
-import { type Store, withdraw } from "../store"
-import { dispatchOrDeferStateUpdate } from "./dispatch-state-update"
-import { resetAtomOrSelector } from "./reset-atom-or-selector"
-import { RESET_STATE } from "./reset-in-store"
-import { setAtomOrSelector } from "./set-atom-or-selector"
+import { getFamilyOfToken } from "../families/get-family-of-token.ts"
+import { seekInStore } from "../families/index.ts"
+import { mintInStore, MUST_CREATE } from "../families/mint-in-store.ts"
+import type { OpenOperation } from "../operation.ts"
+import { closeOperation, openOperation } from "../operation.ts"
+import type { WritableFamily } from "../state-types.ts"
+import { type Store, withdraw } from "../store/index.ts"
+import { dispatchOrDeferStateUpdate } from "./dispatch-state-update.ts"
+import { resetAtomOrSelector } from "./reset-atom-or-selector.ts"
+import { RESET_STATE } from "./reset-in-store.ts"
+import { setAtomOrSelector } from "./set-atom-or-selector.ts"
 
 export type ProtoUpdate<T> = { oldValue?: T; newValue: T }
 

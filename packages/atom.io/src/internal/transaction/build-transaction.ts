@@ -10,24 +10,24 @@ import type {
 	TransactionToken,
 } from "atom.io"
 
-import { arbitrary } from "../arbitrary"
-import { disposeFromStore, findInStore } from "../families"
-import { getEnvironmentData } from "../get-environment-data"
-import { getFromStore } from "../get-state"
+import { arbitrary } from "../arbitrary.ts"
+import { disposeFromStore, findInStore } from "../families/index.ts"
+import { getEnvironmentData } from "../get-environment-data.ts"
+import { getFromStore } from "../get-state/index.ts"
 import {
 	editRelationsInStore,
 	findRelationsInStore,
 	getInternalRelationsFromStore,
-} from "../join"
-import { newest } from "../lineage"
-import { getJsonToken } from "../mutable"
-import { MapOverlay } from "../overlays/map-overlay"
-import { resetInStore, setIntoStore } from "../set-state"
-import type { Fn } from "../utility-types"
-import { actUponStore } from "./act-upon-store"
-import { getEpochNumberOfAction } from "./get-epoch-number"
-import type { ChildStore, RootStore } from "./is-root-store"
-import type { TransactionProgress } from "./transaction-meta-progress"
+} from "../join/index.ts"
+import { newest } from "../lineage.ts"
+import { getJsonToken } from "../mutable/index.ts"
+import { MapOverlay } from "../overlays/map-overlay.ts"
+import { resetInStore, setIntoStore } from "../set-state/index.ts"
+import type { Fn } from "../utility-types.ts"
+import { actUponStore } from "./act-upon-store.ts"
+import { getEpochNumberOfAction } from "./get-epoch-number.ts"
+import type { ChildStore, RootStore } from "./is-root-store.ts"
+import type { TransactionProgress } from "./transaction-meta-progress.ts"
 
 export function buildTransaction(
 	store: RootStore,

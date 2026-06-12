@@ -1,10 +1,10 @@
-import { writeToCache } from "../caching"
-import { readOrComputeValue } from "../get-state"
-import { markDone, type OpenOperation } from "../operation"
-import type { WritableSelector } from "../state-types"
-import type { Store } from "../store"
-import { become } from "./become"
-import type { ProtoUpdate } from "./operate-on-store"
+import { writeToCache } from "../caching.ts"
+import { readOrComputeValue } from "../get-state/index.ts"
+import { markDone, type OpenOperation } from "../operation.ts"
+import type { WritableSelector } from "../state-types.ts"
+import type { Store } from "../store/index.ts"
+import { become } from "./become.ts"
+import type { ProtoUpdate } from "./operate-on-store.ts"
 
 export function setSelector<T>(
 	target: Store & { operation: OpenOperation<any> },

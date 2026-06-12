@@ -8,10 +8,10 @@ import type { UList } from "atom.io/transceivers/u-list"
 import * as React from "react"
 import type { Socket } from "socket.io-client"
 
-import { RealtimeContext } from "./realtime-context"
-import { usePullAtom } from "./use-pull-atom"
-import { usePullMutable } from "./use-pull-mutable-atom"
-import { usePullMutableAtomFamilyMember } from "./use-pull-mutable-family-member"
+import { RealtimeContext } from "./realtime-context.tsx"
+import { usePullAtom } from "./use-pull-atom.ts"
+import { usePullMutable } from "./use-pull-mutable-atom.ts"
+import { usePullMutableAtomFamilyMember } from "./use-pull-mutable-family-member.ts"
 
 export type RealtimeRoomsTools<RoomNames extends string> = {
 	roomSocket: Socket<{}, RoomSocketInterface<RoomNames>>

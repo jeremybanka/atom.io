@@ -1,10 +1,10 @@
 import type { ReadableFamilyToken, ReadableToken } from "atom.io"
 import type { Canonical } from "atom.io/json"
 
-import { disposeAtom } from "../atom"
-import { disposeSelector } from "../selector"
-import { type Store, withdraw } from "../store"
-import { findInStore } from "./find-in-store"
+import { disposeAtom } from "../atom/index.ts"
+import { disposeSelector } from "../selector/index.ts"
+import { type Store, withdraw } from "../store/index.ts"
+import { findInStore } from "./find-in-store.ts"
 
 export function disposeFromStore(
 	store: Store,

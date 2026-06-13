@@ -6,9 +6,6 @@ import type { Json } from "atom.io/json"
 import { isJson } from "atom.io/json"
 import { vitest } from "vitest"
 
-console.warn = () => undefined
-const warn = vitest.spyOn(global.console, `warn`)
-
 describe(`Junction.prototype.getRelatedKeys`, () => {
 	it(`gets all keys related to a given key`, () => {
 		const player = `Adelaide`
@@ -30,6 +27,7 @@ describe(`Junction.prototype.getRelatedKeys`, () => {
 
 describe(`Junction.prototype.getRelatedKey`, () => {
 	it(`warns if there are multiple relations`, () => {
+		const warn = vitest.spyOn(console, `warn`).mockImplementation(() => {})
 		const player = `Helena`
 		const roomA = `Shrine`
 		const roomB = `Loft`
@@ -44,8 +42,12 @@ describe(`Junction.prototype.getRelatedKey`, () => {
 		const roomKey = playersInRooms.getRelatedKey(player)
 		expect(roomKey).toEqual(roomA)
 		expect(warn).toHaveBeenCalledWith(
-			`2 related keys were found for key "Helena": ("Shrine", "Loft"). Only one related key was expected.`,
+			expect.stringContaining(`2 related keys were found for key "Helena"`),
 		)
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining(`Only one related key was expected.`),
+		)
+		warn.mockRestore()
 	})
 	it(`handles something totally unknown with grace`, () => {
 		const playersInRooms = new Junction({

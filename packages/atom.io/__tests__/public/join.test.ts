@@ -10,19 +10,21 @@ import {
 	transaction,
 } from "atom.io"
 import * as Internal from "atom.io/internal"
-import { storeHasStateValues } from "atom.io/testing"
+import {
+	setTestLogLevel,
+	storeHasStateValues,
+	takeSnapshot,
+} from "atom.io/testing"
 import { vitest } from "vitest"
 
 import * as Utils from "../__util__/index.ts"
 
-const LOG_LEVELS = [null, `error`, `warn`, `info`] as const
-const CHOOSE = 2
-
 let logger: Logger
+const { restore } = takeSnapshot()
 
 beforeEach(() => {
-	Internal.clearStore(Internal.IMPLICIT.STORE)
-	Internal.IMPLICIT.STORE.loggers[0].logLevel = LOG_LEVELS[CHOOSE]
+	restore()
+	setTestLogLevel(null)
 	logger = Internal.IMPLICIT.STORE.logger = Utils.createNullLogger()
 	vitest.spyOn(logger, `error`)
 	vitest.spyOn(logger, `warn`)

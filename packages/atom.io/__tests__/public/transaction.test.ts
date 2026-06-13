@@ -1,4 +1,4 @@
-import type { Logger, TransactionOutcomeEvent } from "atom.io"
+import type { TransactionOutcomeEvent } from "atom.io"
 import {
 	atom,
 	atomFamily,
@@ -12,24 +12,17 @@ import {
 	subscribe,
 	transaction,
 } from "atom.io"
-import * as Internal from "atom.io/internal"
-import { stateExists } from "atom.io/testing"
+import { setTestLogLevel, stateExists, takeSnapshot } from "atom.io/testing"
 import { UList } from "atom.io/transceivers/u-list"
 import { vitest } from "vitest"
 
 import * as Utils from "../__util__/index.ts"
 
-const LOG_LEVELS = [null, `error`, `warn`, `info`] as const
-const CHOOSE = 2
-let logger: Logger
+const { restore } = takeSnapshot()
 
 beforeEach(() => {
-	Internal.clearStore(Internal.IMPLICIT.STORE)
-	Internal.IMPLICIT.STORE.loggers[0].logLevel = LOG_LEVELS[CHOOSE]
-	logger = Internal.IMPLICIT.STORE.logger = Utils.createNullLogger()
-	vitest.spyOn(logger, `error`)
-	vitest.spyOn(logger, `warn`)
-	vitest.spyOn(logger, `info`)
+	restore()
+	setTestLogLevel(null)
 	vitest.spyOn(Utils, `stdout0`)
 	vitest.spyOn(Utils, `stdout1`)
 	vitest.spyOn(Utils, `stdout2`)

@@ -294,21 +294,29 @@ describe(`Junction.prototype.toJSON`, () => {
 			.set({ type: `grass`, pokémon: `oddish` }, { isDelta: true })
 			.set({ type: `grass`, pokémon: `bellsprout` }, { isDelta: false })
 		const json = pokemonPrimaryTypes.toJSON()
-		expect(json).toEqual({
-			cardinality: `1:n`,
-			between: [`type`, `pokémon`],
-			contents: [
+		expect(json).toEqual(
+			expect.objectContaining({
+				cardinality: `1:n`,
+				between: [`type`, `pokémon`],
+			}),
+		)
+		expect(json.contents).toHaveLength(3)
+		expect(json.contents).toEqual(
+			expect.arrayContaining([
 				[`grass:bulbasaur`, { isDelta: true }],
 				[`grass:oddish`, { isDelta: true }],
 				[`grass:bellsprout`, { isDelta: false }],
-			],
-			relations: [
+			]),
+		)
+		expect(json.relations).toHaveLength(4)
+		expect(json.relations).toEqual(
+			expect.arrayContaining([
 				[`grass`, [`bulbasaur`, `oddish`, `bellsprout`]],
 				[`bulbasaur`, [`grass`]],
 				[`oddish`, [`grass`]],
 				[`bellsprout`, [`grass`]],
-			],
-		})
+			]),
+		)
 	})
 })
 

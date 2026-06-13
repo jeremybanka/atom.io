@@ -1,5 +1,5 @@
 import { atom, getState, selector, setState } from "atom.io"
-import { takeSnapshot } from "atom.io/testing"
+import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 
 describe(`testing`, () => {
 	it(`takes a snapshot and restores the implicit store while preserving setup state`, () => {
@@ -21,5 +21,13 @@ describe(`testing`, () => {
 
 		expect(getState(countAtom)).toBe(0)
 		expect(getState(doubledSelector)).toBe(0)
+	})
+	it(`sets test logging while typing non-null levels as temporary debug changes`, () => {
+		setTestLogLevel(null)
+
+		// @ts-expect-error Non-null levels are for local debugging only.
+		setTestLogLevel(`info`)
+
+		setTestLogLevel(null)
 	})
 })

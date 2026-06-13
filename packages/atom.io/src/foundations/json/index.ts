@@ -1,4 +1,4 @@
-import type { ViewOf } from "atom.io"
+import type { ViewOf } from "atom.io/foundations/type-utils"
 
 export type primitive = boolean | number | string | null
 

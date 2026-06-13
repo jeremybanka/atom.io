@@ -1,5 +1,5 @@
 import type { ReadableFamilyToken, ReadableToken, ViewOf } from "atom.io"
-import type { Canonical } from "atom.io/json"
+import type { Canonical } from "atom.io/foundations/canonical"
 
 import { type Store, withdraw } from "../store/index.ts"
 import { getFallback } from "./get-fallback.ts"

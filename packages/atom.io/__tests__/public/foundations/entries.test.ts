@@ -1,5 +1,5 @@
-import type { Entries } from "atom.io/json"
-import { fromEntries } from "atom.io/json"
+import type { Entries } from "atom.io/foundations/entries"
+import { fromEntries } from "atom.io/foundations/entries"
 
 describe(`fromEntries`, () => {
 	it(`type-safely converts an array of entries to an object`, () => {

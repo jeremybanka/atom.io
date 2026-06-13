@@ -1,3 +1,4 @@
+import type { Json } from "atom.io/foundations/json"
 import type { RootStore } from "atom.io/internal"
 import {
 	assignTransactionToContinuity,
@@ -7,7 +8,6 @@ import {
 	setIntoStore,
 	subscribeToTransaction,
 } from "atom.io/internal"
-import type { Json } from "atom.io/json"
 import type { ContinuityToken, Socket } from "atom.io/realtime"
 
 import { useRegisterAndAttemptConfirmedUpdate as initRegisterAndAttemptConfirmedUpdate } from "./continuity/register-and-attempt-confirmed-update.ts"

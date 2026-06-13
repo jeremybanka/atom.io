@@ -1,6 +1,6 @@
 import type { ReadableFamilyToken, ReadableToken, ViewOf } from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical"
 import { arbitrary, getFromStore, subscribeToState } from "atom.io/internal"
-import type { Canonical } from "atom.io/json"
 import { useContext } from "solid-js"
 
 import { parseStateOverloads } from "./parse-state-overloads.ts"

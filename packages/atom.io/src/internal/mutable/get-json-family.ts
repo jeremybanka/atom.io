@@ -1,5 +1,6 @@
 import type { MutableAtomFamilyToken } from "atom.io"
-import type { Canonical, Json } from "atom.io/json"
+import type { Canonical } from "atom.io/foundations/canonical"
+import type { Json } from "atom.io/foundations/json"
 
 import { newest } from "../lineage.ts"
 import type { WritablePureSelectorFamily } from "../state-types.ts"

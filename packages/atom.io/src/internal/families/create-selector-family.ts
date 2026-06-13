@@ -9,7 +9,7 @@ import type {
 	WritablePureSelectorFamilyOptions,
 	WritablePureSelectorFamilyToken,
 } from "atom.io"
-import type { Canonical } from "atom.io/json"
+import type { Canonical } from "atom.io/foundations/canonical"
 
 import type { RootStore } from "../transaction/index.ts"
 import { createReadonlyHeldSelectorFamily } from "./create-readonly-held-selector-family.ts"

@@ -4,7 +4,7 @@ title: Transceiver
 summary: A mutable object that reports its updates to atom.io.
 packages:
   - atom.io
-  - atom.io/json
+  - atom.io/foundations/json
 related:
   - mutable-atom
   - timeline

@@ -1,7 +1,7 @@
 import type * as AtomIO from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical"
 import type { Store } from "atom.io/internal"
 import { findInStore } from "atom.io/internal"
-import type { Canonical } from "atom.io/json"
 import type { Socket } from "atom.io/realtime"
 
 import { pullSelectorRoots } from "./pull-selector-roots.ts"

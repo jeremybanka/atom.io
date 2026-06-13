@@ -4,8 +4,8 @@ import type {
 	WritablePureSelectorOptions,
 	WritablePureSelectorToken,
 } from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical"
 import { Subject } from "atom.io/foundations/subject"
-import type { Canonical } from "atom.io/json"
 
 import { newest } from "../lineage.ts"
 import type { WritablePureSelector } from "../state-types.ts"

@@ -1,5 +1,5 @@
 import type { ReadableFamilyToken, ReadableToken } from "atom.io"
-import type { Canonical } from "atom.io/json"
+import type { Canonical } from "atom.io/foundations/canonical"
 
 import { disposeAtom } from "../atom/index.ts"
 import { disposeSelector } from "../selector/index.ts"

@@ -1,10 +1,10 @@
+import type { Canonical } from "atom.io/foundations/canonical"
 import type { Ctor } from "atom.io/internal"
 import {
 	createSelectorFamily,
 	createStandaloneSelector,
 	IMPLICIT,
 } from "atom.io/internal"
-import type { Canonical } from "atom.io/json"
 
 import type {
 	ReadonlyHeldSelectorFamilyToken,

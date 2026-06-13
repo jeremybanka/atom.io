@@ -1,6 +1,6 @@
 import type { MutableAtomToken, StateLifecycleEvent } from "atom.io"
-import type { Canonical } from "atom.io/json"
-import { parseJson } from "atom.io/json"
+import type { Canonical } from "atom.io/foundations/canonical"
+import { parseJson } from "atom.io/foundations/json"
 
 import { createRegularAtomFamily } from "../families/index.ts"
 import type { MutableAtomFamily, RegularAtomFamily } from "../state-types.ts"

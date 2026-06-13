@@ -1,4 +1,4 @@
-import { stringifyJson } from "atom.io/json"
+import { stringifyJson } from "atom.io/foundations/json"
 
 import { PRETTY_ENTITY_NAMES } from "./logger.ts"
 import type { AtomIOToken } from "./tokens.ts"

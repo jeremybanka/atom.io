@@ -1,7 +1,7 @@
 import type { RegularAtomToken } from "atom.io"
+import type { Json, JsonTypes } from "atom.io/foundations/json"
+import { JSON_DEFAULTS } from "atom.io/foundations/json"
 import { findInStore } from "atom.io/internal"
-import type { Json, JsonTypes } from "atom.io/json"
-import { JSON_DEFAULTS } from "atom.io/json"
 import { useI, useO } from "atom.io/react"
 import { type ReactElement, useContext } from "react"
 

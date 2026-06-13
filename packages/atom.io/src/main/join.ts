@@ -5,7 +5,7 @@ import type {
 	JunctionSchemaBase,
 	Refinement,
 } from "atom.io/foundations/junction"
-import type { Flat } from "atom.io/internal"
+import type { Flat } from "atom.io/foundations/type-utils"
 import {
 	createJoin,
 	editRelationsInStore,

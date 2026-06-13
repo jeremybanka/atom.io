@@ -1,7 +1,8 @@
 import type { MutableAtomFamilyToken, MutableAtomToken } from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical"
+import type { Json } from "atom.io/foundations/json"
 import type { AsJSON, Transceiver } from "atom.io/internal"
 import { findInStore, getJsonTokenFromStore } from "atom.io/internal"
-import type { Canonical, Json } from "atom.io/json"
 import { useContext } from "solid-js"
 
 import { StoreContext } from "./store-context.ts"

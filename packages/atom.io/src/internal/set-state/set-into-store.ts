@@ -1,5 +1,5 @@
 import type { Setter, WritableFamilyToken, WritableToken } from "atom.io"
-import type { Canonical } from "atom.io/json"
+import type { Canonical } from "atom.io/foundations/canonical"
 
 import type { Store } from "../store/index.ts"
 import { operateOnStore, OWN_OP } from "./operate-on-store.ts"

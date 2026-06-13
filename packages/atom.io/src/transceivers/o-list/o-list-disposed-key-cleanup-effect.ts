@@ -1,6 +1,6 @@
 import type { AtomEffect } from "atom.io"
+import { type primitive, stringifyJson } from "atom.io/foundations/json"
 import { getFromStore, getUpdateToken, subscribeInStore } from "atom.io/internal"
-import { type primitive, stringifyJson } from "atom.io/json"
 
 import { OList } from "./o-list.ts"
 

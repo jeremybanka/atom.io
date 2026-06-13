@@ -4,7 +4,7 @@ import * as http from "node:http"
 
 import type { Loadable } from "atom.io"
 import * as AtomIO from "atom.io"
-import { parseJson } from "atom.io/json"
+import { parseJson } from "atom.io/foundations/json"
 import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 
 import * as Utils from "../__util__/index.ts"

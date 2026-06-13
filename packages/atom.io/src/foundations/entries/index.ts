@@ -1,4 +1,11 @@
-import type { Count, Flat } from "atom.io/internal"
+import type { Flat } from "atom.io/foundations/type-utils"
+
+type Count<N extends number, A extends any[] = []> = [
+	...A,
+	any,
+][`length`] extends N
+	? A[`length`]
+	: A[`length`] | Count<N, [...A, any]>
 
 /** Tuples of `[key, value]` pairs, as returned from `Object.entries` */
 export type Entries<K extends PropertyKey = PropertyKey, V = any> = [K, V][]

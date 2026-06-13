@@ -20,7 +20,7 @@ import type {
 	WritablePureSelectorToken,
 	WritableToken,
 } from "atom.io"
-import type { Canonical } from "atom.io/json"
+import type { Canonical } from "atom.io/foundations/canonical"
 
 import type { Transceiver } from "../mutable/index.ts"
 import type {

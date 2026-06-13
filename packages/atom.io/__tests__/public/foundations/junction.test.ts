@@ -1,9 +1,9 @@
 import { type } from "arktype"
+import type { Json } from "atom.io/foundations/json"
+import { isJson } from "atom.io/foundations/json"
 import type { Refinement } from "atom.io/foundations/junction"
 import { Junction } from "atom.io/foundations/junction"
 import { jsonRefinery } from "atom.io/introspection"
-import type { Json } from "atom.io/json"
-import { isJson } from "atom.io/json"
 import { vitest } from "vitest"
 
 describe(`Junction.prototype.getRelatedKeys`, () => {

@@ -5,8 +5,8 @@ import type {
 	RegularAtomToken,
 	UpdateHandler,
 } from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical"
 import { Subject } from "atom.io/foundations/subject"
-import type { Canonical } from "atom.io/json"
 
 import { eldest, newest } from "../lineage.ts"
 import { resetInStore, setIntoStore } from "../set-state/index.ts"

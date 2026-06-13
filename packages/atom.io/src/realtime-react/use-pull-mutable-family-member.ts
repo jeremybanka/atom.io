@@ -1,7 +1,7 @@
 import type * as AtomIO from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical"
 import type { Transceiver } from "atom.io/internal"
 import { findInStore } from "atom.io/internal"
-import type { Canonical } from "atom.io/json"
 import { StoreContext, useO } from "atom.io/react"
 import * as RTC from "atom.io/realtime-client"
 import * as React from "react"

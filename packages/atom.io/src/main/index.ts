@@ -16,6 +16,7 @@ export * from "./subscribe.ts"
 export * from "./timeline.ts"
 export type * from "./tokens.ts"
 export * from "./transaction.ts"
+export type { ViewOf } from "atom.io/foundations/type-utils"
 /**
  * Loadable is used to type atoms or selectors that may at some point be initialized to or set to a {@link Promise}.
  *
@@ -24,13 +25,3 @@ export * from "./transaction.ts"
  * As a result, we consider any state that can be a set to a Promise to be a "loadable" state, whose value may or may not be a Promise at any given time.
  */
 export type Loadable<T> = Promise<T> | T
-
-export type ViewOf<T> = T extends { READONLY_VIEW: infer View }
-	? View
-	: T extends Array<any>
-		? readonly [...T]
-		: T extends Set<infer U>
-			? ReadonlySet<ViewOf<U>>
-			: T extends Map<infer K, infer V>
-				? ReadonlyMap<ViewOf<K>, ViewOf<V>>
-				: T

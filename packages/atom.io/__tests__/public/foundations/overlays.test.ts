@@ -130,8 +130,7 @@ describe(`MapOverlay`, () => {
 		expect(o.has(`x`)).toBe(false)
 	})
 
-	test(`[Symbol.iterator]: overlay entries first (in insertion order) then source minus deleted/changed`, () => {
-		//📍 Revisit whether source entries should precede overlay entries before formally stabilizing overlays.
+	test(`[Symbol.iterator]: source entries first with changed values, then overlay-only entries`, () => {
 		const source = new Map<string, number>([
 			[`a`, 1],
 			[`b`, 2],
@@ -145,22 +144,21 @@ describe(`MapOverlay`, () => {
 
 		const iterated = [...o]
 		expect(iterated).toEqual([
-			[`x`, 100],
 			[`a`, 10],
 			[`b`, 2],
+			[`x`, 100],
 		])
 
 		expect(Array.from(o.entries())).toEqual([
-			[`x`, 100],
 			[`a`, 10],
 			[`b`, 2],
+			[`x`, 100],
 		])
 
 		expect(o.size).toBe(3)
 	})
 
-	test(`keys(): overlay keys first, then source keys excluding deleted/changed`, () => {
-		//📍 Revisit whether source entries should precede overlay entries before formally stabilizing overlays.
+	test(`keys(): source keys first, then overlay-only keys`, () => {
 		const source = new Map<string, number>([
 			[`a`, 1],
 			[`b`, 2],
@@ -171,15 +169,14 @@ describe(`MapOverlay`, () => {
 		o.set(`a`, 10)
 		o.delete(`c`)
 
-		expect(Array.from(o.keys())).toEqual([`x`, `a`, `b`])
+		expect(Array.from(o.keys())).toEqual([`a`, `b`, `x`])
 
 		// If we also change 'b', it should be excluded from the source side
 		o.set(`b`, 20)
-		expect(Array.from(o.keys())).toEqual([`x`, `a`, `b`])
+		expect(Array.from(o.keys())).toEqual([`a`, `b`, `x`])
 	})
 
 	test(`values(): follows [Symbol.iterator]() order`, () => {
-		//📍 Revisit whether source entries should precede overlay entries before formally stabilizing overlays.
 		const source = new Map<string, number>([
 			[`a`, 1],
 			[`b`, 2],
@@ -190,11 +187,11 @@ describe(`MapOverlay`, () => {
 		o.set(`a`, 10)
 		o.delete(`c`)
 
-		expect(Array.from(o.values())).toEqual([100, 10, 2])
+		expect(Array.from(o.values())).toEqual([10, 2, 100])
 
 		// After modifying 'b'
 		o.set(`b`, 20)
-		expect(Array.from(o.values())).toEqual([100, 10, 20])
+		expect(Array.from(o.values())).toEqual([10, 20, 100])
 	})
 
 	test(`forEach(callback): iterates in the same order and passes (value, key, map)`, () => {
@@ -214,9 +211,9 @@ describe(`MapOverlay`, () => {
 		})
 
 		expect(seen.map(([k, v]) => [k, v])).toEqual([
-			[`x`, 100],
 			[`a`, 10],
 			[`b`, 2],
+			[`x`, 100],
 		])
 		// map argument should be the overlay itself
 		for (const [, , map] of seen) {
@@ -247,6 +244,27 @@ describe(`MapOverlay`, () => {
 
 		o.delete(`a`)
 		expect(o.size).toBe(0)
+	})
+
+	test(`clear: setting source-backed keys afterward uses fresh insertion order`, () => {
+		const source = new Map<string, number>([
+			[`a`, 1],
+			[`b`, 2],
+		])
+		const o = new MapOverlay<string, number>(source)
+
+		o.clear()
+		o.set(`x`, 100)
+		o.set(`a`, 10)
+
+		expect(o.has(`a`)).toBe(true)
+		expect(o.get(`a`)).toBe(10)
+		expect(o.deleted).toEqual(new Set([`b`]))
+		expect([...o]).toEqual([
+			[`x`, 100],
+			[`a`, 10],
+		])
+		expect(o.size).toBe(2)
 	})
 })
 
@@ -386,8 +404,7 @@ describe(`SetOverlay`, () => {
 		expect(o.deleted).toEqual(new Set([`a`, `b`]))
 	})
 
-	test(`[Symbol.iterator]: yields overlay first (in insertion order), then source not deleted`, () => {
-		//📍 Revisit whether source entries should precede overlay entries before formally stabilizing overlays.
+	test(`[Symbol.iterator]: yields source first, then overlay-only entries in insertion order`, () => {
 		const source = new Set([`a`, `b`, `c`])
 		const o = new SetOverlay<string>(source)
 
@@ -400,7 +417,7 @@ describe(`SetOverlay`, () => {
 
 		// iteration: overlay first, then source minus deleted, preserving each set's order
 		const iterated = [...o]
-		expect(iterated).toEqual([`x`, `y`, `a`, `c`])
+		expect(iterated).toEqual([`a`, `c`, `x`, `y`])
 
 		// sanity: hasOwn shows overlay only; source 'b' stays in source but is filtered
 		expect(o.hasOwn(`x`)).toBe(true)
@@ -443,6 +460,21 @@ describe(`SetOverlay`, () => {
 
 		// Re-add deleted source key via add (clears deletion): +1
 		o.add(`a`)
+		expect(o.size).toBe(2)
+	})
+
+	test(`clear: adding source-backed values afterward uses fresh insertion order`, () => {
+		const source = new Set([`a`, `b`])
+		const o = new SetOverlay<string>(source)
+
+		o.clear()
+		o.add(`x`)
+		o.add(`a`)
+
+		expect(o.has(`a`)).toBe(true)
+		expect(o.hasOwn(`a`)).toBe(true)
+		expect(o.deleted).toEqual(new Set([`b`]))
+		expect([...o]).toEqual([`x`, `a`])
 		expect(o.size).toBe(2)
 	})
 })

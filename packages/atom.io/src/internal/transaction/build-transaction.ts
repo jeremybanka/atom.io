@@ -20,7 +20,7 @@ import {
 	getInternalRelationsFromStore,
 } from "../join/index.ts"
 import { newest } from "../lineage.ts"
-import { getJsonToken } from "../mutable/index.ts"
+import { getJsonTokenFromStore } from "../mutable/index.ts"
 import { MapOverlay } from "../overlays/map-overlay.ts"
 import { resetInStore, setIntoStore } from "../set-state/index.ts"
 import type { Fn } from "../utility-types.ts"
@@ -91,7 +91,7 @@ export function buildTransaction(
 			run: (t, identifier = arbitrary()) => actUponStore(child, t, identifier),
 			find: ((...ps: Parameters<typeof findState>) =>
 				findInStore(store, ...ps)) as typeof findState,
-			json: (t) => getJsonToken(child, t),
+			json: (t) => getJsonTokenFromStore(child, t),
 			dispose: ((...ps: Parameters<typeof disposeState>) => {
 				disposeFromStore(child, ...ps)
 			}) as typeof disposeState,

@@ -5,6 +5,7 @@ import type {
 	RegularAtomToken,
 	UpdateHandler,
 } from "atom.io"
+import { Subject } from "atom.io/foundations/subject"
 import type { Canonical } from "atom.io/json"
 
 import { eldest, newest } from "../lineage.ts"
@@ -12,7 +13,6 @@ import { resetInStore, setIntoStore } from "../set-state/index.ts"
 import type { RegularAtom } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
 import { deposit } from "../store/index.ts"
-import { Subject } from "../subject.ts"
 import { subscribeToState } from "../subscribe/index.ts"
 import type { RootStore } from "../transaction/index.ts"
 import type { InternalRole } from "./has-role.ts"

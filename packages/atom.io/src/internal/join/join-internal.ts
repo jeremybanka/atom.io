@@ -25,7 +25,7 @@ import { Junction } from "../junction.ts"
 import {
 	createMutableAtomFamily,
 	getJsonFamily,
-	getJsonToken,
+	getJsonTokenFromStore,
 } from "../mutable/index.ts"
 import { JOIN_OP, operateOnStore, setIntoStore } from "../set-state/index.ts"
 import type { Store } from "../store/index.ts"
@@ -117,7 +117,7 @@ export class Join<
 			}) as typeof setState,
 			find: ((...ps: Parameters<typeof findState>) =>
 				findInStore(store, ...ps)) as typeof findState,
-			json: (token) => getJsonToken(store, token),
+			json: (token) => getJsonTokenFromStore(store, token),
 			relations: {
 				edit: ((...ps: Parameters<typeof editRelations>) => {
 					editRelationsInStore(store, ...ps)

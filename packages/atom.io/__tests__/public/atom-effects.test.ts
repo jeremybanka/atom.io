@@ -14,22 +14,21 @@ import {
 	mutableAtomFamily,
 	setState,
 } from "atom.io"
-import * as Internal from "atom.io/internal"
+import { Future } from "atom.io/foundations/future"
+import { Subject } from "atom.io/foundations/subject"
+import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 import { UList } from "atom.io/transceivers/u-list"
 import { vitest } from "vitest"
 
 import * as Utils from "../__util__/index.ts"
 
-const LOG_LEVELS = [null, `error`, `warn`, `info`] as const
-const CHOOSE = 2
-
 let logger: Logger
 let tmpDir: string
+const { restore } = takeSnapshot()
 
 beforeEach(() => {
-	Internal.clearStore(Internal.IMPLICIT.STORE)
-	Internal.IMPLICIT.STORE.loggers[0].logLevel = LOG_LEVELS[CHOOSE]
-	logger = Internal.IMPLICIT.STORE.logger = Utils.createNullLogger()
+	restore()
+	logger = setTestLogLevel(null)
 	vitest.spyOn(logger, `error`)
 	vitest.spyOn(logger, `warn`)
 	vitest.spyOn(logger, `info`)
@@ -88,7 +87,7 @@ describe(`atom effects`, () => {
 		expect(logger.error).not.toHaveBeenCalled()
 	})
 	it(`allows async effect setup to initialize an atom`, async () => {
-		const jobDone = new Internal.Future(() => {})
+		const jobDone = new Future(() => {})
 		const nameAtom = atom<string>({
 			key: `name`,
 			default: ``,
@@ -108,7 +107,7 @@ describe(`atom effects`, () => {
 		expect(logger.error).not.toHaveBeenCalled()
 	})
 	it(`allows async effect setup to register onSet`, async () => {
-		const jobDone = new Internal.Future(() => {})
+		const jobDone = new Future(() => {})
 		const nameAtom = atom<string>({
 			key: `name`,
 			default: ``,
@@ -130,7 +129,7 @@ describe(`atom effects`, () => {
 		expect(logger.error).not.toHaveBeenCalled()
 	})
 	it(`resets itself`, () => {
-		const mySubject = new Internal.Subject<string>()
+		const mySubject = new Subject<string>()
 		const nameAtom = atom<string>({
 			key: `name`,
 			default: ``,
@@ -150,7 +149,7 @@ describe(`atom effects`, () => {
 		expect(logger.error).not.toHaveBeenCalled()
 	})
 	it(`resets itself (mutable)`, () => {
-		const mySubject = new Internal.Subject<string>()
+		const mySubject = new Subject<string>()
 		const nameAtom = mutableAtom<UList<string>>({
 			key: `name`,
 			class: UList,
@@ -171,7 +170,7 @@ describe(`atom effects`, () => {
 		expect(logger.error).not.toHaveBeenCalled()
 	})
 	it(`allows async effect setup to initialize a mutable atom`, async () => {
-		const jobDone = new Internal.Future(() => {})
+		const jobDone = new Future(() => {})
 		const nameAtom = mutableAtom<UList<string>>({
 			key: `name`,
 			class: UList,
@@ -243,7 +242,7 @@ describe(`atom effect cleanup`, () => {
 		expect(logger.error).not.toHaveBeenCalled()
 	})
 	test(`an async effect cleanup still runs if the atom is disposed before setup resolves`, async () => {
-		const setup = new Internal.Future<void>(() => {})
+		const setup = new Future<void>(() => {})
 		const coordinateAtoms = atomFamily<{ x: number; y: number }, string>({
 			key: `coordinate`,
 			default: { x: 0, y: 0 },
@@ -274,7 +273,7 @@ describe(`atom effect cleanup`, () => {
 		expect(logger.error).not.toHaveBeenCalled()
 	})
 	test(`a mutable atom can run async cleanup after disposal`, async () => {
-		const setup = new Internal.Future<void>(() => {})
+		const setup = new Future<void>(() => {})
 		const listAtoms = mutableAtomFamily<UList<string>, string>({
 			key: `list`,
 			class: UList,

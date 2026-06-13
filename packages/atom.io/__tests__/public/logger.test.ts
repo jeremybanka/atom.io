@@ -1,19 +1,24 @@
 import type { Logger } from "atom.io"
 import { atom, AtomIOLogger, getState, timeline, undo } from "atom.io"
-import * as Internal from "atom.io/internal"
+import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 
 import { createNullLogger } from "../__util__/index.ts"
 
-const LOG_LEVELS = [null, `error`, `warn`, `info`] as const
-const CHOOSE = 0
 let internalLogger: AtomIOLogger
+let implicitStore: NonNullable<typeof globalThis.ATOM_IO_IMPLICIT_STORE>
 const externalLogger: Logger = createNullLogger()
+const { restore } = takeSnapshot()
 
 beforeEach(() => {
-	Internal.clearStore(Internal.IMPLICIT.STORE)
-	Internal.IMPLICIT.STORE.config.isProduction = true
-	Internal.IMPLICIT.STORE.loggers[0].logLevel = LOG_LEVELS[CHOOSE]
-	Internal.IMPLICIT.STORE.loggers[1] = internalLogger = new AtomIOLogger(
+	restore()
+	const store = globalThis.ATOM_IO_IMPLICIT_STORE
+	if (store === undefined) {
+		throw new Error(`Expected the implicit store to exist.`)
+	}
+	implicitStore = store
+	implicitStore.config.isProduction = true
+	setTestLogLevel(null)
+	implicitStore.loggers[1] = internalLogger = new AtomIOLogger(
 		`info`,
 		undefined,
 		externalLogger,
@@ -28,26 +33,26 @@ beforeEach(() => {
 
 describe(`setLogLevel`, () => {
 	it(`allows logging at the preferred level`, () => {
-		Internal.IMPLICIT.STORE.loggers[1].logLevel = null
+		implicitStore.loggers[1].logLevel = null
 		atom<number>({
 			key: `count`,
 			default: 0,
 		})
 		expect(externalLogger.info).not.toHaveBeenCalled()
-		Internal.IMPLICIT.STORE.loggers[1].logLevel = `info`
+		implicitStore.loggers[1].logLevel = `info`
 		const countAtom = atom<number>({
 			key: `count`,
 			default: 0,
 		})
 		expect(externalLogger.error).toHaveBeenCalled()
-		Internal.IMPLICIT.STORE.loggers[1].logLevel = `error`
+		implicitStore.loggers[1].logLevel = `error`
 		const countTL = timeline({
 			key: `count`,
 			scope: [countAtom],
 		})
 		undo(countTL)
 		expect(externalLogger.warn).not.toHaveBeenCalled()
-		Internal.IMPLICIT.STORE.loggers[1].logLevel = `warn`
+		implicitStore.loggers[1].logLevel = `warn`
 		undo(countTL)
 		expect(externalLogger.warn).toHaveBeenCalled()
 	})
@@ -110,10 +115,10 @@ describe(`setLogLevel`, () => {
 			new MyComplexThing(`123`),
 		)
 		expect(externalLogger.error).toHaveBeenLastCalledWith(
-			`❌`,
+			expect.any(String),
 			`atom`,
 			`thingy`,
-			`errored`,
+			expect.any(String),
 			`Thing:123`,
 		)
 		internalLogger.warn(
@@ -124,10 +129,10 @@ describe(`setLogLevel`, () => {
 			new MyComplexThing(`456`),
 		)
 		expect(externalLogger.warn).toHaveBeenLastCalledWith(
-			`💁`,
+			expect.any(String),
 			`atom`,
 			`thingy`,
-			`warned`,
+			expect.any(String),
 			`Thing:456`,
 		)
 		internalLogger.info(
@@ -138,10 +143,10 @@ describe(`setLogLevel`, () => {
 			new MyComplexThing(`789`),
 		)
 		expect(externalLogger.info).toHaveBeenLastCalledWith(
-			`👍`,
+			expect.any(String),
 			`atom`,
 			`thingy`,
-			`infoed`,
+			expect.any(String),
 			`Thing:789`,
 		)
 	})

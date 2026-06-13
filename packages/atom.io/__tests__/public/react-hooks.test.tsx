@@ -1,5 +1,5 @@
 import { act, fireEvent, render } from "@testing-library/react"
-import type { Loadable, Logger, TimelineToken } from "atom.io"
+import type { Loadable, TimelineToken } from "atom.io"
 import {
 	atom,
 	atomFamily,
@@ -12,32 +12,24 @@ import {
 	timeline,
 	undo,
 } from "atom.io"
-import type { Fn } from "atom.io/internal"
-import { clearStore, IMPLICIT } from "atom.io/internal"
 import * as AR from "atom.io/react"
+import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 import { UList } from "atom.io/transceivers/u-list"
 import { type FC, useEffect, useRef } from "react"
 
 import * as Utils from "../__util__/index.ts"
 
-const LOG_LEVELS = [null, `error`, `warn`, `info`] as const
-const CHOOSE = 3
-
-let logger: Logger
+const { restore } = takeSnapshot()
 
 beforeEach(() => {
-	clearStore(IMPLICIT.STORE)
-	IMPLICIT.STORE.loggers[0].logLevel = LOG_LEVELS[CHOOSE]
-	logger = IMPLICIT.STORE.logger //= Utils.createNullLogger()
-	vitest.spyOn(logger, `error`)
-	vitest.spyOn(logger, `warn`)
-	vitest.spyOn(logger, `info`)
+	restore()
+	setTestLogLevel(null)
 	vitest.spyOn(Utils, `stdout`)
 })
 const onChange = [() => undefined, console.log][0]
 
 describe(`regular atom`, () => {
-	const setters: Fn[] = []
+	const setters: unknown[] = []
 	const scenario = () => {
 		const letterAtom = atom<string>({
 			key: `letter`,
@@ -80,7 +72,7 @@ describe(`regular atom`, () => {
 	})
 })
 describe(`mutable atom`, () => {
-	const setters: Fn[] = []
+	const setters: unknown[] = []
 	const scenario = () => {
 		const lettersAtom = mutableAtom<UList<string>>({
 			key: `letters`,
@@ -124,7 +116,7 @@ describe(`mutable atom`, () => {
 	})
 })
 describe(`timeline`, () => {
-	const setters: Fn[] = []
+	const setters: unknown[] = []
 	const scenario = () => {
 		const letterAtom = atom<string>({
 			key: `letter`,
@@ -831,7 +823,6 @@ describe(`useLoadable`, () => {
 		assert(utils.getByTestId(`not-loading`))
 		assert(utils.getByTestId(`D`))
 		expect(uniqueRefs).toHaveLength(4)
-		// /* ^ ❗ I don't have an opinion on this yet ❗ ^ */
 	})
 })
 

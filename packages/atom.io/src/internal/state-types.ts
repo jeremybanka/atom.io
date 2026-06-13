@@ -16,12 +16,12 @@ import type {
 	WritablePureSelectorFamilyToken,
 	WritablePureSelectorToken,
 } from "atom.io"
+import type { Subject } from "atom.io/foundations/subject"
 import type { Canonical } from "atom.io/json"
 
 import type { InternalRole } from "./atom/index.ts"
 import type { ConstructorOf, Transceiver } from "./mutable/index.ts"
 import type { Store } from "./store/index.ts"
-import type { Subject } from "./subject.ts"
 import type { Timeline } from "./timeline/index.ts"
 import type { RootStore, Transaction } from "./transaction/index.ts"
 import type { Ctor, Flat } from "./utility-types.ts"

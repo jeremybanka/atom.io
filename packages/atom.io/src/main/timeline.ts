@@ -2,6 +2,7 @@ import {
 	clearTimelineInStore,
 	createTimeline,
 	IMPLICIT,
+	inspectTimelineInStore,
 	timeTravel,
 } from "atom.io/internal"
 
@@ -16,6 +17,21 @@ export type AtomOnly<M extends TimelineManageable> =
 		: M extends AtomToken<any, any, any>
 			? M
 			: never
+
+export type TimelineInspection = {
+	at: number
+	length: number
+}
+
+/**
+ * Inspect a timeline's current history position.
+ * @param timelineToken - A {@link TimelineToken}
+ */
+export function inspectTimeline(
+	timelineToken: TimelineToken<any>,
+): TimelineInspection {
+	return inspectTimelineInStore(IMPLICIT.STORE, timelineToken)
+}
 
 /**
  * If there is an update ahead of the cursor (in the future of this {@link timelineToken}), apply it and move the cursor to the next update

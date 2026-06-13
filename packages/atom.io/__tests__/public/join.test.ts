@@ -9,20 +9,21 @@ import {
 	subscribe,
 	transaction,
 } from "atom.io"
-import * as Internal from "atom.io/internal"
+import {
+	setTestLogLevel,
+	storeHasStateValues,
+	takeSnapshot,
+} from "atom.io/testing"
 import { vitest } from "vitest"
 
 import * as Utils from "../__util__/index.ts"
 
-const LOG_LEVELS = [null, `error`, `warn`, `info`] as const
-const CHOOSE = 2
-
 let logger: Logger
+const { restore } = takeSnapshot()
 
 beforeEach(() => {
-	Internal.clearStore(Internal.IMPLICIT.STORE)
-	Internal.IMPLICIT.STORE.loggers[0].logLevel = LOG_LEVELS[CHOOSE]
-	logger = Internal.IMPLICIT.STORE.logger = Utils.createNullLogger()
+	restore()
+	logger = setTestLogLevel(null)
 	vitest.spyOn(logger, `error`)
 	vitest.spyOn(logger, `warn`)
 	vitest.spyOn(logger, `info`)
@@ -214,7 +215,7 @@ describe(`some practical use cases`, () => {
 			if (thrown instanceof Error) caught = thrown
 		}
 		expect(caught).toBeInstanceOf(Error)
-		expect(Internal.IMPLICIT.STORE.valueMap.size).toBe(0)
+		expect(storeHasStateValues()).toBe(false)
 	})
 
 	test(`initializing a join from serialized junction data`, () => {
@@ -270,10 +271,12 @@ describe(`some practical use cases`, () => {
 		editRelations(userGroups, (relations) => {
 			relations.replaceRelations(`a`, [`2`, `3`])
 		})
-		expect(getState(findRelations(userGroups, `a`).groupKeysOfUser)).toEqual([
-			`2`,
-			`3`,
-		])
+		const groupKeysOfUserA = getState(
+			findRelations(userGroups, `a`).groupKeysOfUser,
+		)
+		// Many-to-many joins promise membership, not relation array ordering.
+		expect(groupKeysOfUserA).toEqual(expect.arrayContaining([`2`, `3`]))
+		expect(groupKeysOfUserA).toHaveLength(2)
 		expect(getState(findRelations(userGroups, `b`).groupKeysOfUser)).toEqual([
 			`2`,
 		])
@@ -281,14 +284,16 @@ describe(`some practical use cases`, () => {
 			`3`,
 		])
 		expect(getState(findRelations(userGroups, `1`).groupKeysOfUser)).toEqual([])
-		expect(getState(findRelations(userGroups, `2`).userKeysOfGroup)).toEqual([
-			`b`,
-			`a`,
-		])
-		expect(getState(findRelations(userGroups, `3`).userKeysOfGroup)).toEqual([
-			`c`,
-			`a`,
-		])
+		const userKeysOfGroup2 = getState(
+			findRelations(userGroups, `2`).userKeysOfGroup,
+		)
+		expect(userKeysOfGroup2).toEqual(expect.arrayContaining([`a`, `b`]))
+		expect(userKeysOfGroup2).toHaveLength(2)
+		const userKeysOfGroup3 = getState(
+			findRelations(userGroups, `3`).userKeysOfGroup,
+		)
+		expect(userKeysOfGroup3).toEqual(expect.arrayContaining([`a`, `c`]))
+		expect(userKeysOfGroup3).toHaveLength(2)
 	})
 	test(`replacing relations (one to many)`, () => {
 		const cardValues = join({
@@ -328,9 +333,20 @@ describe(`some practical use cases`, () => {
 			isBType: (input): input is `1` | `2` | `3` =>
 				[`1`, `2`, `3`].includes(input),
 		})
-		const [membersOfGroupsAtoms] = getInternalRelations(membersOfGroups, `split`)
-		expect(membersOfGroupsAtoms.key).toEqual(`membersOfGroups/relatedKeys`)
-		expect(membersOfGroupsAtoms.type).toEqual(`mutable_atom_family`)
+		const [userKeysOfGroups, groupKeysOfUsers] = getInternalRelations(
+			membersOfGroups,
+			`split`,
+		)
+		editRelations(membersOfGroups, (relations) => {
+			relations.set(`a`, `1`)
+			relations.set(`a`, `2`)
+			relations.set(`b`, `3`)
+		})
+
+		expect([...getState(userKeysOfGroups, `a`)]).toEqual([`1`, `2`])
+		expect([...getState(userKeysOfGroups, `b`)]).toEqual([`3`])
+		expect([...getState(groupKeysOfUsers, `1`)]).toEqual([`a`])
+		expect([...getState(groupKeysOfUsers, `3`)]).toEqual([`b`])
 	})
 })
 
@@ -405,7 +421,7 @@ describe(`some practical use cases`, () => {
 // 		let loopingSafeReplacementTX = createLoopingSafeReplacementTX()
 // 		let loopingUnsafeReplacementTX = createLoopingUnsafeReplacementTX()
 // 		function reset() {
-// 			Internal.clearStore(Internal.IMPLICIT.STORE)
+// 			restore()
 // 			cardValues = createCardValues()
 // 			loopingBasicTX = createBasicTX()
 // 			loopingSafeReplacementTX = createLoopingSafeReplacementTX()

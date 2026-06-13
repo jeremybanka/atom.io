@@ -16,12 +16,12 @@ import type {
 	TransactionToken,
 	WritablePureSelectorToken,
 } from "atom.io"
+import { Subject } from "atom.io/foundations/subject"
 
 import { reduceReference } from "../get-state/reduce-reference.ts"
 import { newest } from "../lineage.ts"
 import { getUpdateToken } from "../mutable/index.ts"
 import { deposit, type Store, withdraw } from "../store/index.ts"
-import { Subject } from "../subject.ts"
 import type { RootStore } from "../transaction/index.ts"
 import { isChildStore } from "../transaction/index.ts"
 

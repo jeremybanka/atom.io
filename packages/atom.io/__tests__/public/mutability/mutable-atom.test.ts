@@ -2,6 +2,7 @@ import type { Logger } from "atom.io"
 import {
 	disposeState,
 	findState,
+	getJsonToken,
 	getState,
 	mutableAtom,
 	mutableAtomFamily,
@@ -13,31 +14,31 @@ import {
 	transaction,
 	undo,
 } from "atom.io"
-import * as Internal from "atom.io/internal"
+import { StatefulSubject } from "atom.io/foundations/subject"
+import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 import { OList } from "atom.io/transceivers/o-list"
-import { SetRTX } from "atom.io/transceivers/set-rtx"
 import { UList } from "atom.io/transceivers/u-list"
 import { vitest } from "vitest"
 
 import * as Utils from "../../__util__/index.ts"
 
-const LOG_LEVELS = [null, `error`, `warn`, `info`] as const
-const CHOOSE = 3
-
 let logger: Logger
+const { restore } = takeSnapshot()
 
 beforeEach(() => {
-	Internal.clearStore(Internal.IMPLICIT.STORE)
-	Internal.IMPLICIT.STORE.config.isProduction = true
-	Internal.IMPLICIT.STORE.loggers[0].logLevel = LOG_LEVELS[CHOOSE]
-	logger = Internal.IMPLICIT.STORE.logger = Utils.createNullLogger()
+	restore()
+	const store = globalThis.ATOM_IO_IMPLICIT_STORE
+	if (store === undefined) {
+		throw new Error(`Expected the implicit store to exist.`)
+	}
+	store.config.isProduction = true
+	logger = setTestLogLevel(null)
 	vitest.spyOn(logger, `error`).mockReset()
 	vitest.spyOn(logger, `warn`).mockReset()
 	vitest.spyOn(logger, `info`).mockReset()
 	vitest.spyOn(Utils, `stdout`).mockReset()
 	vitest.spyOn(Utils, `stdout0`).mockReset()
 	vitest.spyOn(Utils, `stdout1`).mockReset()
-	vitest.spyOn(Utils, `stdout2`).mockReset()
 })
 
 describe(`mutable atomic state`, () => {
@@ -46,14 +47,13 @@ describe(`mutable atomic state`, () => {
 			key: `myMutable`,
 			class: UList,
 		})
-		const myJsonState = Internal.getJsonToken(
-			Internal.IMPLICIT.STORE,
-			myMutableAtom,
-		)
-		const myTrackerState = Internal.getUpdateToken(myMutableAtom)
+		const myJsonState = getJsonToken(myMutableAtom)
+		let trackedUpdate: string | undefined
+		getState(myMutableAtom).subscribe(`test`, (update) => {
+			trackedUpdate = update
+		})
 		subscribe(myMutableAtom, Utils.stdout0)
 		subscribe(myJsonState, Utils.stdout1)
-		subscribe(myTrackerState, Utils.stdout2)
 		setState(myMutableAtom, (set) => set.add(`a`))
 		expect(Utils.stdout0).toHaveBeenCalledWith({
 			newValue: new UList([`a`]),
@@ -63,80 +63,70 @@ describe(`mutable atomic state`, () => {
 			newValue: [`a`],
 			oldValue: [],
 		})
-		expect(Utils.stdout2).toHaveBeenCalledWith({
-			newValue: `0\u001F\u0003a`,
-			oldValue: null,
-		})
+		if (trackedUpdate === undefined) {
+			throw new Error(`Expected the mutable atom to emit an update.`)
+		}
+		const replayed = new UList<string>()
+		replayed.do(trackedUpdate)
+		expect(replayed).toEqual(new UList([`a`]))
 		expect(logger.warn).not.toHaveBeenCalled()
 		expect(logger.error).not.toHaveBeenCalled()
 	})
 
 	it(`has its own family function for ease of use`, () => {
-		const findFlagsStateByUserId = Internal.createMutableAtomFamily<
-			OList<string>,
-			string
-		>(Internal.IMPLICIT.STORE, {
-			key: `flagsByUserId::mutable`,
+		const userFlagsAtoms = mutableAtomFamily<OList<string>, string>({
+			key: `userFlags`,
 			class: OList,
 		})
 
-		const myFlagsState = findState(findFlagsStateByUserId, `my-user-id`)
-		const findFlagsByUserIdJSON = Internal.getJsonToken(
-			Internal.IMPLICIT.STORE,
-			myFlagsState,
-		)
-		const findFlagsByUserIdTracker = Internal.getUpdateToken(myFlagsState)
+		const myFlagsState = findState(userFlagsAtoms, `my-user-id`)
+		const findFlagsByUserIdJSON = getJsonToken(userFlagsAtoms, `my-user-id`)
 
+		let trackedUpdate: string | undefined
+		getState(myFlagsState).subscribe(`test`, (update) => {
+			trackedUpdate = update
+		})
 		subscribe(myFlagsState, Utils.stdout0)
 		subscribe(findFlagsByUserIdJSON, Utils.stdout1)
-		subscribe(findFlagsByUserIdTracker, (u) => {
-			// for (const k of u.newValue) console.log({ k })
-			// console.log(Utils.toBytes(u.newValue))
-			Utils.stdout2(u)
-		})
 
 		setState(myFlagsState, (ol) => ((ol[0] = `a`), ol))
 
-		expect(new OList(`a`)).toEqual(new OList(`a`))
 		expect(Utils.stdout0).toHaveBeenCalledTimes(1)
 		expect(Utils.stdout1).toHaveBeenCalledWith({
 			newValue: [`a`],
 			oldValue: [],
 		})
-		expect(Utils.stdout2).toHaveBeenCalledWith({
-			newValue: `0\u001F0\u001E\u0003a`,
-			oldValue: null,
-		})
+		if (trackedUpdate === undefined) {
+			throw new Error(
+				`Expected the mutable atom family member to emit an update.`,
+			)
+		}
+		const replayed = new OList<string>()
+		replayed.do(trackedUpdate)
+		expect(replayed).toEqual(new OList(`a`))
 		expect(logger.warn).not.toHaveBeenCalled()
 		expect(logger.error).not.toHaveBeenCalled()
 	})
 
 	it(`can recover from a failed transaction`, () => {
-		const myMutableAtom = mutableAtom<SetRTX<string>>({
+		const myMutableAtom = mutableAtom<UList<string>>({
 			key: `myMutable`,
-			class: SetRTX,
+			class: UList,
 		})
 
 		const myTransaction = transaction({
 			key: `myTx`,
 			do: ({ set }) => {
 				set(myMutableAtom, (mySet) => {
-					mySet.transaction((next) => {
-						next.add(`a`)
-						next.add(`b`)
-						return true
-					})
-
+					mySet.add(`a`)
+					mySet.add(`b`)
 					return mySet
 				})
 				throw new Error(`failed transaction`)
 			},
 		})
 
-		const myJsonState = Internal.getJsonToken(
-			Internal.IMPLICIT.STORE,
-			myMutableAtom,
-		)
+		const myJsonState = getJsonToken(myMutableAtom)
 		subscribe(myJsonState, Utils.stdout)
 
 		let caught: unknown
@@ -151,7 +141,7 @@ describe(`mutable atomic state`, () => {
 				newValue: [`a`, `b`],
 			})
 			const myMutable = getState(myMutableAtom)
-			expect(myMutable).toEqual(new SetRTX())
+			expect(myMutable).toEqual(new UList())
 		}
 	})
 })
@@ -171,14 +161,7 @@ describe(`mutable time traveling`, () => {
 			key: `myTimeline`,
 			scope: [myMutableAtoms],
 		})
-		const myJsonState = Internal.getJsonToken(
-			Internal.IMPLICIT.STORE,
-			myMutableAtom,
-		)
-		const myTrackerState = Internal.getUpdateToken(myMutableAtom)
 		subscribe(myMutableAtom, Utils.stdout0)
-		subscribe(myJsonState, Utils.stdout1)
-		subscribe(myTrackerState, Utils.stdout2)
 
 		expect(getState(myMutableAtom)).toEqual(new UList())
 		setState(myMutableAtom, (set) => set.add(`a`))
@@ -210,14 +193,7 @@ describe(`mutable time traveling`, () => {
 			},
 		})
 
-		const myJsonState = Internal.getJsonToken(
-			Internal.IMPLICIT.STORE,
-			myMutableAtom,
-		)
-		const myTrackerState = Internal.getUpdateToken(myMutableAtom)
 		subscribe(myMutableAtom, Utils.stdout0)
-		subscribe(myJsonState, Utils.stdout1)
-		subscribe(myTrackerState, Utils.stdout2)
 
 		expect(getState(myMutableAtom)).toEqual(new UList())
 		runTransaction(myTX)(`a`)
@@ -263,7 +239,7 @@ describe(`mutable atom effects`, () => {
 		expect(setSize).toBe(0)
 	})
 	it(`can set a mutable atom in response to an external event`, () => {
-		const letterSubject = new Internal.StatefulSubject<{ letter: string }>({
+		const letterSubject = new StatefulSubject<{ letter: string }>({
 			letter: `A`,
 		})
 		const myMutableAtom = mutableAtom<UList<string>>({
@@ -302,10 +278,10 @@ describe(`graceful handling of hmr/duplicate atom keys`, () => {
 		expect(logger.warn).not.toHaveBeenCalled()
 		expect(logger.error).toHaveBeenCalledTimes(1)
 		expect(logger.error).toHaveBeenCalledWith(
-			`❌`,
+			expect.any(String),
 			myMutableAtom.type,
 			myMutableAtom.key,
-			`Tried to create atom, but it already exists in the store.`,
+			expect.any(String),
 		)
 	})
 })

@@ -6,10 +6,10 @@ import type {
 	AtomToken,
 	ReadableToken,
 	SelectorToken,
+	TokenType,
 	TransactionToken,
 	WritableToken,
 } from "./tokens.ts"
-import type { TokenType } from "./validators.ts"
 
 export type StateUpdate<T> = {
 	readonly oldValue?: ViewOf<T>

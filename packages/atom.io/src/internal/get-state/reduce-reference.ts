@@ -3,6 +3,7 @@ import type {
 	ReadableToken,
 	StateCreationEvent,
 } from "atom.io"
+import type { Subject } from "atom.io/foundations/subject"
 import { type Canonical, parseJson } from "atom.io/json"
 
 import { getFamilyOfToken } from "../families/get-family-of-token.ts"
@@ -12,7 +13,6 @@ import { newest } from "../lineage.ts"
 import type { ReadableFamily } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
 import { withdraw } from "../store/index.ts"
-import type { Subject } from "../subject.ts"
 import { isChildStore, isRootStore } from "../transaction/index.ts"
 
 export function reduceReference<T, K extends Canonical, E>(

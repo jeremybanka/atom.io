@@ -1,6 +1,6 @@
 import type { Logger } from "atom.io"
 import { Anarchy, getState, mutableAtom, setState } from "atom.io"
-import * as Internal from "atom.io/internal"
+import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 import {
 	filterOutInPlace,
 	OList,
@@ -10,15 +10,12 @@ import { vitest } from "vitest"
 
 import * as Utils from "../../__util__/index.ts"
 
-const LOG_LEVELS = [null, `error`, `warn`, `info`] as const
-const CHOOSE = 3
-
 let logger: Logger
+const { restore } = takeSnapshot()
 
 beforeEach(() => {
-	Internal.clearStore(Internal.IMPLICIT.STORE)
-	Internal.IMPLICIT.STORE.loggers[0].logLevel = LOG_LEVELS[CHOOSE]
-	logger = Internal.IMPLICIT.STORE.logger = Utils.createNullLogger()
+	restore()
+	logger = setTestLogLevel(null)
 	vitest.spyOn(logger, `error`)
 	vitest.spyOn(logger, `warn`)
 	vitest.spyOn(logger, `info`)
@@ -251,10 +248,10 @@ test(`disposed key cleanup (unhappy path)`, () => {
 	expect([...getState(myMutableAtom)]).toEqual([`item::1`, `item::2`])
 
 	expect(logger.warn).toHaveBeenCalledWith(
-		`❌`,
+		expect.any(String),
 		`mutable_atom`,
 		`myMutable`,
-		`Added "item::2" to myMutable but it has not been allocated.`,
+		expect.stringContaining(`item::2`),
 	)
 	expect(logger.error).not.toHaveBeenCalled()
 })

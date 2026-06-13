@@ -25,6 +25,10 @@ export interface SetRTXJson<P extends primitive> extends Json.Object {
 	cacheIdx: number
 	cacheUpdateNumber: number
 }
+
+/**
+ * @deprecated `SetRTX` is deprecated and will be removed in a future major version.
+ */
 export class SetRTX<P extends primitive>
 	extends Set<P>
 	implements

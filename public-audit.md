@@ -25,11 +25,12 @@ These look like implementation details with little consumer-facing value.
       [validators.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/validators.test.ts:40) removed; formerly `40-46`, `53-56`
       Decision: `isToken` and `belongsTo` were unused validator helpers, so the public validators module and test were removed.
 
-- [ ] Transceiver wire encodings are frozen byte-for-byte/string-for-string:
-      [u-list.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/u-list.test.ts:38) `38`, `45`, `51`, `57-80`
-      [o-list.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/o-list.test.ts:41) `41-46`, `54-70`, `84-276`
-      [set-rtx.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/set-rtx.test.ts:37) `37`, `191-227`, `236-244`, `250`
-      [mutable-atom.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/mutable-atom.test.ts:66) `66-68`, `106-108`
+- [x] Transceiver wire encodings are frozen byte-for-byte/string-for-string:
+      [u-list.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/u-list.test.ts:38) resolved; formerly `38`, `45`, `51`, `57-80`
+      [o-list.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/o-list.test.ts:41) resolved; formerly `41-46`, `54-70`, `84-276`
+      [set-rtx.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/private/transceivers/set-rtx.test.ts:37) moved out of public; formerly `37`, `191-227`, `236-244`, `250`
+      [mutable-atom.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/mutable-atom.test.ts:66) resolved; formerly `66-68`, `106-108`
+      Decision: public tests should assert semantic updates and replayability, not exact transceiver encodings. Representative byte-for-byte `UList`/`OList` encoding coverage now lives in private transceiver tests. `SetRTX` is deprecated, with low-level behavior coverage moved out of public.
 
 - [ ] Internal mutable JSON/update tokens are used as public contract:
       [mutable-atom.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/mutable-atom.test.ts:49) `49-68`, `75-108`, `136-151`
@@ -78,8 +79,9 @@ I can see these either way, but they deserve a product/API decision.
 - [ ] Join relation ordering is promised for many-to-many replacements:
       [join.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/join.test.ts:273) `273-288`
 
-- [ ] `SetRTX` rollback/de-sequenced protocol behavior is public-tested at a very low level:
-      [set-rtx.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/set-rtx.test.ts:66) `66-72`, `107-178`, `195-227`
+- [x] `SetRTX` rollback/de-sequenced protocol behavior is public-tested at a very low level:
+      [set-rtx.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/private/transceivers/set-rtx.test.ts:66) moved out of public; formerly `66-72`, `107-178`, `195-227`
+      Decision: `SetRTX` is deprecated, so low-level rollback/de-sequenced behavior should remain private implementation coverage rather than a public contract.
 
 - [ ] `OList`/`UList` `packUpdate` + `do`/`undo` objects are public-tested broadly. Maybe that is intended for realtime protocol users, but if not, it is a large accidental surface:
       [u-list.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/u-list.test.ts:96) `96-156`

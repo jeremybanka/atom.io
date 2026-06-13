@@ -15,7 +15,6 @@ import {
 } from "atom.io"
 import * as Internal from "atom.io/internal"
 import { OList } from "atom.io/transceivers/o-list"
-import { SetRTX } from "atom.io/transceivers/set-rtx"
 import { UList } from "atom.io/transceivers/u-list"
 import { vitest } from "vitest"
 
@@ -51,9 +50,13 @@ describe(`mutable atomic state`, () => {
 			myMutableAtom,
 		)
 		const myTrackerState = Internal.getUpdateToken(myMutableAtom)
+		let trackedUpdate: string | undefined
 		subscribe(myMutableAtom, Utils.stdout0)
 		subscribe(myJsonState, Utils.stdout1)
-		subscribe(myTrackerState, Utils.stdout2)
+		subscribe(myTrackerState, (update) => {
+			trackedUpdate = update.newValue
+			Utils.stdout2(update)
+		})
 		setState(myMutableAtom, (set) => set.add(`a`))
 		expect(Utils.stdout0).toHaveBeenCalledWith({
 			newValue: new UList([`a`]),
@@ -63,10 +66,13 @@ describe(`mutable atomic state`, () => {
 			newValue: [`a`],
 			oldValue: [],
 		})
-		expect(Utils.stdout2).toHaveBeenCalledWith({
-			newValue: `0\u001F\u0003a`,
-			oldValue: null,
-		})
+		expect(Utils.stdout2).toHaveBeenCalledTimes(1)
+		if (trackedUpdate === undefined) {
+			throw new Error(`Expected the mutable atom tracker to receive an update.`)
+		}
+		const replayed = new UList<string>()
+		replayed.do(trackedUpdate)
+		expect(replayed).toEqual(new UList([`a`]))
 		expect(logger.warn).not.toHaveBeenCalled()
 		expect(logger.error).not.toHaveBeenCalled()
 	})
@@ -87,46 +93,46 @@ describe(`mutable atomic state`, () => {
 		)
 		const findFlagsByUserIdTracker = Internal.getUpdateToken(myFlagsState)
 
+		let trackedUpdate: string | undefined
 		subscribe(myFlagsState, Utils.stdout0)
 		subscribe(findFlagsByUserIdJSON, Utils.stdout1)
-		subscribe(findFlagsByUserIdTracker, (u) => {
-			// for (const k of u.newValue) console.log({ k })
-			// console.log(Utils.toBytes(u.newValue))
-			Utils.stdout2(u)
+		subscribe(findFlagsByUserIdTracker, (update) => {
+			trackedUpdate = update.newValue
+			Utils.stdout2(update)
 		})
 
 		setState(myFlagsState, (ol) => ((ol[0] = `a`), ol))
 
-		expect(new OList(`a`)).toEqual(new OList(`a`))
 		expect(Utils.stdout0).toHaveBeenCalledTimes(1)
 		expect(Utils.stdout1).toHaveBeenCalledWith({
 			newValue: [`a`],
 			oldValue: [],
 		})
-		expect(Utils.stdout2).toHaveBeenCalledWith({
-			newValue: `0\u001F0\u001E\u0003a`,
-			oldValue: null,
-		})
+		expect(Utils.stdout2).toHaveBeenCalledTimes(1)
+		if (trackedUpdate === undefined) {
+			throw new Error(
+				`Expected the mutable atom family tracker to receive an update.`,
+			)
+		}
+		const replayed = new OList<string>()
+		replayed.do(trackedUpdate)
+		expect(replayed).toEqual(new OList(`a`))
 		expect(logger.warn).not.toHaveBeenCalled()
 		expect(logger.error).not.toHaveBeenCalled()
 	})
 
 	it(`can recover from a failed transaction`, () => {
-		const myMutableAtom = mutableAtom<SetRTX<string>>({
+		const myMutableAtom = mutableAtom<UList<string>>({
 			key: `myMutable`,
-			class: SetRTX,
+			class: UList,
 		})
 
 		const myTransaction = transaction({
 			key: `myTx`,
 			do: ({ set }) => {
 				set(myMutableAtom, (mySet) => {
-					mySet.transaction((next) => {
-						next.add(`a`)
-						next.add(`b`)
-						return true
-					})
-
+					mySet.add(`a`)
+					mySet.add(`b`)
 					return mySet
 				})
 				throw new Error(`failed transaction`)
@@ -151,7 +157,7 @@ describe(`mutable atomic state`, () => {
 				newValue: [`a`, `b`],
 			})
 			const myMutable = getState(myMutableAtom)
-			expect(myMutable).toEqual(new SetRTX())
+			expect(myMutable).toEqual(new UList())
 		}
 	})
 })

@@ -43,9 +43,10 @@ These look like implementation details with little consumer-facing value.
       [logger.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/logger.test.ts:112) resolved; formerly `112-141`
       Decision: public tests should assert that logging happens at the right level and identifies the meaningful state or transformed value, but should use Vitest asymmetric matchers for icons and message text.
 
-- [ ] ESLint rule `messageId`s are asserted, which are test implementation details rather than user-visible rule behavior:
-      [exact-catch-types.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/eslint-plugin/exact-catch-types.test.ts:117) `117`, `127`, `137`, `148`, `162`
-      [explicit-state-types.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/eslint-plugin/explicit-state-types.test.ts:126) `126`, `137`, `148`, `158`, `168`, `178`
+- [x] ESLint rule `messageId`s are asserted, which are test implementation details rather than user-visible rule behavior:
+      [exact-catch-types.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/eslint-plugin/exact-catch-types.test.ts:117) accepted; formerly `117`, `127`, `137`, `148`, `162`
+      [explicit-state-types.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/eslint-plugin/explicit-state-types.test.ts:126) accepted; formerly `126`, `137`, `148`, `158`, `168`, `178`
+      Decision: keep the `messageId` assertions. For RuleTester, message IDs are the stable diagnostic categories and are less brittle than asserting rendered message text.
 
 **2. Risk**
 These may be real behavior, but they are expensive promises.

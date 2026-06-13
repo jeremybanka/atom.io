@@ -823,7 +823,6 @@ describe(`useLoadable`, () => {
 		assert(utils.getByTestId(`not-loading`))
 		assert(utils.getByTestId(`D`))
 		expect(uniqueRefs).toHaveLength(4)
-		// /* ^ ❗ I don't have an opinion on this yet ❗ ^ */
 	})
 })
 

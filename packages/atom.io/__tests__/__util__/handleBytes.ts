@@ -1,4 +1,5 @@
-import type { Fn, Subject } from "atom.io/internal"
+import type { Subject } from "atom.io/foundations/subject"
+import type { Fn } from "atom.io/internal"
 
 export function toBytes(value: string): Uint8Array {
 	const encoder = new TextEncoder()

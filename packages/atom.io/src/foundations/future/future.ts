@@ -1,7 +1,5 @@
 /**
  * A Promise whose incoming value can be hot swapped.
- * @internal
- * @private
  * @typeParam T The type of the value that the promise will resolve to.
  *
  * @remarks

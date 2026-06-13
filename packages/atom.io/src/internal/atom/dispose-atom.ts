@@ -1,11 +1,11 @@
 import type { AtomDisposalEvent, AtomToken, StateLifecycleEvent } from "atom.io"
+import type { Subject } from "atom.io/foundations/subject"
 
 import { getFamilyOfToken } from "../families/get-family-of-token.ts"
 import { newest } from "../lineage.ts"
 import { getUpdateToken } from "../mutable/index.ts"
 import type { Store } from "../store/index.ts"
 import { withdraw } from "../store/index.ts"
-import type { Subject } from "../subject.ts"
 import { isChildStore } from "../transaction/index.ts"
 import { hasRole } from "./has-role.ts"
 

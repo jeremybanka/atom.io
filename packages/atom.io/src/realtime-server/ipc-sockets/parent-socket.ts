@@ -1,6 +1,6 @@
 import type { Readable, Writable } from "node:stream"
 
-import { Subject } from "atom.io/internal"
+import { Subject } from "atom.io/foundations/subject"
 import type { Json } from "atom.io/json"
 import { parseJson, stringifyJson } from "atom.io/json"
 import type { UserKey } from "atom.io/realtime"

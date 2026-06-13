@@ -7,6 +7,7 @@ import type {
 	StateLifecycleEvent,
 } from "atom.io"
 import { PRETTY_ENTITY_NAMES } from "atom.io"
+import { Subject } from "atom.io/foundations/subject"
 import type { Canonical } from "atom.io/json"
 import { stringifyJson } from "atom.io/json"
 
@@ -14,7 +15,6 @@ import { createRegularAtom } from "../atom/index.ts"
 import { isFn } from "../is-fn.ts"
 import { newest } from "../lineage.ts"
 import type { RegularAtomFamily } from "../state-types.ts"
-import { Subject } from "../subject.ts"
 import type { RootStore } from "../transaction/index.ts"
 
 export function createRegularAtomFamily<T, K extends Canonical, E>(

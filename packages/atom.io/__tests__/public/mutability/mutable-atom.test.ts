@@ -14,6 +14,7 @@ import {
 	transaction,
 	undo,
 } from "atom.io"
+import { StatefulSubject } from "atom.io/foundations/subject"
 import * as Internal from "atom.io/internal"
 import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 import { OList } from "atom.io/transceivers/o-list"
@@ -235,7 +236,7 @@ describe(`mutable atom effects`, () => {
 		expect(setSize).toBe(0)
 	})
 	it(`can set a mutable atom in response to an external event`, () => {
-		const letterSubject = new Internal.StatefulSubject<{ letter: string }>({
+		const letterSubject = new StatefulSubject<{ letter: string }>({
 			letter: `A`,
 		})
 		const myMutableAtom = mutableAtom<UList<string>>({

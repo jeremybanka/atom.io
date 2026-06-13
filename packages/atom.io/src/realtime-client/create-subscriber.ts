@@ -1,4 +1,4 @@
-import { Future } from "atom.io/internal"
+import { Future } from "atom.io/foundations/future"
 import type { Socket } from "atom.io/realtime"
 
 type SubData = { refcount: number; timer: Future<void> }

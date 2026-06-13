@@ -22,13 +22,14 @@ Goal: remove every `atom.io/internal` import from `packages/atom.io/__tests__/pu
       [mutable-atom.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/mutable-atom.test.ts),
       [disposal.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/disposal.test.ts).
 
-- [ ] Decide how public tests should express internal async/event primitives.
-      Remaining tests use `Future`, `Subject`, or `StatefulSubject` from `atom.io/internal`:
+- [x] Decide how public tests should express internal async/event primitives.
+      `Future` now lives at `atom.io/foundations/future`, while `Subject`
+      and `StatefulSubject` live at `atom.io/foundations/subject`:
       [atom-effects.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/atom-effects.test.ts),
       [mutable-atom.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/mutable-atom.test.ts).
 
 - [x] Replace `NotFoundError` identity assertions with a public contract.
-      [silo-install.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/silo-install.test.ts) now imports public `NotFoundError` from `atom.io`.
+      [silo-install.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/silo-install.test.ts) now imports public `NotFoundError` from `atom.io`; `NotFoundError` is no longer re-exported from `atom.io/internal`.
 
 - [x] Replace direct cache/value-map inspection.
       [async-state.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/async-state.test.ts) reads `IMPLICIT.STORE.valueMap`.

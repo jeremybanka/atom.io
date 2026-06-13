@@ -3,12 +3,12 @@ import type {
 	ReadonlyHeldSelectorOptions,
 	ReadonlyHeldSelectorToken,
 } from "atom.io"
+import { Subject } from "atom.io/foundations/subject"
 
 import { writeToCache } from "../caching.ts"
 import { newest } from "../lineage.ts"
 import type { ReadonlyHeldSelector } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
-import { Subject } from "../subject.ts"
 import type { RootStore } from "../transaction/index.ts"
 import { registerSelector } from "./register-selector.ts"
 

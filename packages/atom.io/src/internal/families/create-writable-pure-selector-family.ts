@@ -11,6 +11,7 @@ import type {
 	WritablePureSelectorToken,
 } from "atom.io"
 import { PRETTY_ENTITY_NAMES } from "atom.io"
+import { Subject } from "atom.io/foundations/subject"
 import type { Canonical } from "atom.io/json"
 import { stringifyJson } from "atom.io/json"
 
@@ -24,7 +25,6 @@ import { getJsonTokenFromStore } from "../mutable/index.ts"
 import { createWritablePureSelector } from "../selector/index.ts"
 import type { WritablePureSelectorFamily } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
-import { Subject } from "../subject.ts"
 import type { RootStore } from "../transaction/index.ts"
 import { findInStore } from "./find-in-store.ts"
 

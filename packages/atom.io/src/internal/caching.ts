@@ -1,4 +1,5 @@
-import { Future } from "./future.ts"
+import { Future } from "atom.io/foundations/future"
+
 import { Tracker, type Transceiver } from "./mutable/index.ts"
 import { closeOperation, openOperation } from "./operation.ts"
 import { safeCompute } from "./safe-compute.ts"

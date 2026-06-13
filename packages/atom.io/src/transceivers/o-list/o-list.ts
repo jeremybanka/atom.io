@@ -1,5 +1,5 @@
+import { Subject } from "atom.io/foundations/subject"
 import type { Fn, Transceiver, TransceiverMode } from "atom.io/internal"
-import { Subject } from "atom.io/internal"
 import type { Enumeration, packed, primitive } from "atom.io/json"
 import { enumeration, packCanonical, unpackCanonical } from "atom.io/json"
 

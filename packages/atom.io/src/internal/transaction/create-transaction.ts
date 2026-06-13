@@ -3,10 +3,10 @@ import type {
 	TransactionOutcomeEvent,
 	TransactionToken,
 } from "atom.io"
+import { Subject } from "atom.io/foundations/subject"
 
 import { newest } from "../lineage.ts"
 import { deposit } from "../store/index.ts"
-import { Subject } from "../subject.ts"
 import type { Fn } from "../utility-types.ts"
 import { abortTransaction } from "./abort-transaction.ts"
 import { applyTransaction } from "./apply-transaction.ts"

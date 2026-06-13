@@ -7,6 +7,7 @@ import type {
 	StateLifecycleEvent,
 } from "atom.io"
 import { PRETTY_ENTITY_NAMES } from "atom.io"
+import { Subject } from "atom.io/foundations/subject"
 import type { Canonical } from "atom.io/json"
 import { stringifyJson } from "atom.io/json"
 
@@ -14,7 +15,6 @@ import { createWritablePureSelectorFamily } from "../families/index.ts"
 import { newest } from "../lineage.ts"
 import { createMutableAtom } from "../mutable/index.ts"
 import type { MutableAtomFamily } from "../state-types.ts"
-import { Subject } from "../subject.ts"
 import type { RootStore } from "../transaction/index.ts"
 import { FamilyTracker } from "./tracker-family.ts"
 import type { AsJSON, Transceiver } from "./transceiver.ts"

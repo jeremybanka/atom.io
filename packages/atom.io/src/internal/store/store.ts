@@ -8,6 +8,7 @@ import type {
 	TransactionToken,
 } from "atom.io"
 import { AtomIOLogger } from "atom.io"
+import { StatefulSubject, Subject } from "atom.io/foundations/subject"
 import type { Canonical, stringified } from "atom.io/json"
 
 import type { Join } from "../join/index.ts"
@@ -27,7 +28,6 @@ import type {
 	RegularAtomFamily,
 	WritableSelector,
 } from "../state-types.ts"
-import { StatefulSubject, Subject } from "../subject.ts"
 import type { Timeline } from "../timeline/index.ts"
 import type {
 	ChildStore,

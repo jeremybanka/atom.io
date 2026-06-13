@@ -4,12 +4,12 @@ import type {
 	WritablePureSelectorOptions,
 	WritablePureSelectorToken,
 } from "atom.io"
+import { Subject } from "atom.io/foundations/subject"
 import type { Canonical } from "atom.io/json"
 
 import { newest } from "../lineage.ts"
 import type { WritablePureSelector } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
-import { Subject } from "../subject.ts"
 import type { RootStore } from "../transaction/index.ts"
 import { registerSelector } from "./register-selector.ts"
 

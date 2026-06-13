@@ -1,10 +1,7 @@
 import type { ReadonlyPureSelectorFamilyToken } from "atom.io"
+import { Subject } from "atom.io/foundations/subject"
 import type { RootStore, Timeline } from "atom.io/internal"
-import {
-	createRegularAtomFamily,
-	createSelectorFamily,
-	Subject,
-} from "atom.io/internal"
+import { createRegularAtomFamily, createSelectorFamily } from "atom.io/internal"
 
 export const attachTimelineFamily = (
 	store: RootStore,

@@ -4,6 +4,7 @@ import type {
 	StateUpdate,
 	TimelineEvent,
 } from "atom.io"
+import type { Subject } from "atom.io/foundations/subject"
 
 import { hasRole } from "../atom/index.ts"
 import { readOrComputeValue } from "../get-state/index.ts"
@@ -17,7 +18,6 @@ import type {
 	WritableState,
 } from "../state-types.ts"
 import { deposit, type Store } from "../store/index.ts"
-import type { Subject } from "../subject.ts"
 import { isChildStore, isRootStore } from "../transaction/index.ts"
 import { evictDownstreamFromAtom } from "./evict-downstream.ts"
 import type { ProtoUpdate } from "./operate-on-store.ts"

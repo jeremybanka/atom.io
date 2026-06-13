@@ -66,10 +66,10 @@ describe(`silo.install`, () => {
 		mySilo.install([myIllConceivedProcedureTX])
 
 		mySilo.runTransaction(myIllConceivedProcedureTX)()
-		expect(targetLogger.error).toBeCalledTimes(1)
+		expect(targetLogger.error).toHaveBeenCalledTimes(1)
 
 		runTransaction(myIllConceivedProcedureTX)()
-		expect(logger.error).toBeCalledTimes(1)
-		expect(logger.warn).toBeCalledTimes(0)
+		expect(logger.error).toHaveBeenCalledTimes(1)
+		expect(logger.warn).not.toHaveBeenCalled()
 	})
 })

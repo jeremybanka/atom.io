@@ -64,14 +64,18 @@ These may be real behavior, but they are expensive promises.
       [atom-selector.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/atom-selector.test.ts:304) accepted with explanatory comments; formerly `301`, `305`, `308`, `311`
       Decision: keep these assertions. They describe public selector semantics: lazy initial evaluation, eager recomputation while subscribed, conditional dependency tracking, and dropping stale roots.
 
-- [ ] Timeline cursor/history behavior is asserted as exact `at`/`length` values, including erasing future history:
-      [react-hooks.test.tsx](/home/jem/atom.io/packages/atom.io/__tests__/public/react-hooks.test.tsx:202) `202-226`, `238-247`, `351-366`
+- [x] Timeline cursor/history behavior is asserted as exact `at`/`length` values, including erasing future history:
+      [react-hooks.test.tsx](/home/jem/atom.io/packages/atom.io/__tests__/public/react-hooks.test.tsx:202) accepted; `202-226`, `238-247`, `351-366`
+      Decision: keep these assertions. Timeline cursor and history shape are public interface behavior, including erasing future history after branching from an older point.
 
-- [ ] `Silo` promises not to create the implicit store and promises exact thrown message text:
-      [silo.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/silo.test.ts:57) `57-59`
+- [x] `Silo` promises not to create the implicit store and promises exact thrown message text:
+      [silo.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/silo.test.ts:55) accepted with `hasImplicitStoreBeenCreated`; formerly `57-59`
+      [silo.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/silo.test.ts:133) accepted with `hasImplicitStoreBeenCreated`
+      Decision: keep the public promise that `Silo` operations do not create the implicit store and that implicit `getState` rejects silo-owned tokens, but stop asserting exact thrown message text.
 
-- [ ] `Silo.install` failure during transactions is promised as logger counts:
-      [silo-install.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/silo-install.test.ts:68) `68-73`
+- [x] `Silo.install` failure during transactions is promised as logger counts:
+      [silo-install.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/silo-install.test.ts:68) accepted with matcher cleanup; `68-73`
+      Decision: keep these assertions. Failed installation during transactions is reported through the active store logger, and the public behavior is that the failure logs once without producing an extra warning.
 
 **3. Suspicious**
 I can see these either way, but they deserve a product/API decision.

@@ -9,6 +9,7 @@ import type {
 	setState,
 	TransactionToken,
 } from "atom.io"
+import { MapOverlay } from "atom.io/foundations/overlays"
 
 import { arbitrary } from "../arbitrary.ts"
 import { disposeFromStore, findInStore } from "../families/index.ts"
@@ -21,7 +22,6 @@ import {
 } from "../join/index.ts"
 import { newest } from "../lineage.ts"
 import { getJsonTokenFromStore } from "../mutable/index.ts"
-import { MapOverlay } from "../overlays/map-overlay.ts"
 import { resetInStore, setIntoStore } from "../set-state/index.ts"
 import type { Fn } from "../utility-types.ts"
 import { actUponStore } from "./act-upon-store.ts"

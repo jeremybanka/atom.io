@@ -2,7 +2,7 @@ import type { RootStore } from "atom.io/internal"
 import {
 	assignTransactionToContinuity,
 	getFromStore,
-	getJsonToken,
+	getJsonTokenFromStore,
 	setEpochNumberOfContinuity,
 	setIntoStore,
 	subscribeToTransaction,
@@ -38,7 +38,7 @@ export function syncContinuity(
 			} else {
 				v = x
 				if (`type` in k && k.type === `mutable_atom`) {
-					k = getJsonToken(store, k)
+					k = getJsonTokenFromStore(store, k)
 				}
 				setIntoStore(store, k, v)
 			}

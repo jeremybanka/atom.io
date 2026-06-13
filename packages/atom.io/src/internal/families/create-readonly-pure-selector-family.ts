@@ -20,7 +20,7 @@ import {
 	getInternalRelationsFromStore,
 } from "../join/index.ts"
 import { newest } from "../lineage.ts"
-import { getJsonToken } from "../mutable/index.ts"
+import { getJsonTokenFromStore } from "../mutable/index.ts"
 import { createReadonlyPureSelector } from "../selector/index.ts"
 import type { ReadonlyPureSelectorFamily } from "../state-types.ts"
 import { Subject } from "../subject.ts"
@@ -87,7 +87,7 @@ export function createReadonlyPureSelectorFamily<T, K extends Canonical, E>(
 			return getFn({
 				get: getFromStore.bind(null, store) as typeof getState,
 				find: findInStore.bind(null, store) as typeof findState,
-				json: (token) => getJsonToken(store, token),
+				json: (token) => getJsonTokenFromStore(store, token),
 				relations: {
 					find: findRelationsInStore.bind(null, store) as typeof findRelations,
 					internal: getInternalRelationsFromStore.bind(

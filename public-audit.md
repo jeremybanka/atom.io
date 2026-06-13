@@ -32,8 +32,9 @@ These look like implementation details with little consumer-facing value.
       [mutable-atom.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/mutable-atom.test.ts:66) resolved; formerly `66-68`, `106-108`
       Decision: public tests should assert semantic updates and replayability, not exact transceiver encodings. Representative byte-for-byte `UList`/`OList` encoding coverage now lives in private transceiver tests. `SetRTX` is deprecated, with low-level behavior coverage moved out of public.
 
-- [ ] Internal mutable JSON/update tokens are used as public contract:
-      [mutable-atom.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/mutable-atom.test.ts:49) `49-68`, `75-108`, `136-151`
+- [x] Internal mutable JSON/update tokens are used as public contract:
+      [mutable-atom.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/mutable-atom.test.ts:49) resolved; formerly `49-68`, `75-108`, `136-151`
+      Decision: core should expose `getJsonToken` as the public way to reach a mutable atom's JSON form. Public replayability assertions should capture emitted updates through the transceiver surface rather than through internal update tokens.
 
 - [ ] Exact log icons/messages are frozen:
       [disposal.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/disposal.test.ts:38) `38-45`, `129-136`

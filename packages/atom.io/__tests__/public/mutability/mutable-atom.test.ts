@@ -2,6 +2,7 @@ import type { Logger } from "atom.io"
 import {
 	disposeState,
 	findState,
+	getJsonToken,
 	getState,
 	mutableAtom,
 	mutableAtomFamily,
@@ -36,7 +37,6 @@ beforeEach(() => {
 	vitest.spyOn(Utils, `stdout`).mockReset()
 	vitest.spyOn(Utils, `stdout0`).mockReset()
 	vitest.spyOn(Utils, `stdout1`).mockReset()
-	vitest.spyOn(Utils, `stdout2`).mockReset()
 })
 
 describe(`mutable atomic state`, () => {
@@ -45,18 +45,13 @@ describe(`mutable atomic state`, () => {
 			key: `myMutable`,
 			class: UList,
 		})
-		const myJsonState = Internal.getJsonToken(
-			Internal.IMPLICIT.STORE,
-			myMutableAtom,
-		)
-		const myTrackerState = Internal.getUpdateToken(myMutableAtom)
+		const myJsonState = getJsonToken(myMutableAtom)
 		let trackedUpdate: string | undefined
+		getState(myMutableAtom).subscribe(`test`, (update) => {
+			trackedUpdate = update
+		})
 		subscribe(myMutableAtom, Utils.stdout0)
 		subscribe(myJsonState, Utils.stdout1)
-		subscribe(myTrackerState, (update) => {
-			trackedUpdate = update.newValue
-			Utils.stdout2(update)
-		})
 		setState(myMutableAtom, (set) => set.add(`a`))
 		expect(Utils.stdout0).toHaveBeenCalledWith({
 			newValue: new UList([`a`]),
@@ -66,9 +61,8 @@ describe(`mutable atomic state`, () => {
 			newValue: [`a`],
 			oldValue: [],
 		})
-		expect(Utils.stdout2).toHaveBeenCalledTimes(1)
 		if (trackedUpdate === undefined) {
-			throw new Error(`Expected the mutable atom tracker to receive an update.`)
+			throw new Error(`Expected the mutable atom to emit an update.`)
 		}
 		const replayed = new UList<string>()
 		replayed.do(trackedUpdate)
@@ -78,28 +72,20 @@ describe(`mutable atomic state`, () => {
 	})
 
 	it(`has its own family function for ease of use`, () => {
-		const findFlagsStateByUserId = Internal.createMutableAtomFamily<
-			OList<string>,
-			string
-		>(Internal.IMPLICIT.STORE, {
-			key: `flagsByUserId::mutable`,
+		const userFlagsAtoms = mutableAtomFamily<OList<string>, string>({
+			key: `userFlags`,
 			class: OList,
 		})
 
-		const myFlagsState = findState(findFlagsStateByUserId, `my-user-id`)
-		const findFlagsByUserIdJSON = Internal.getJsonToken(
-			Internal.IMPLICIT.STORE,
-			myFlagsState,
-		)
-		const findFlagsByUserIdTracker = Internal.getUpdateToken(myFlagsState)
+		const myFlagsState = findState(userFlagsAtoms, `my-user-id`)
+		const findFlagsByUserIdJSON = getJsonToken(userFlagsAtoms, `my-user-id`)
 
 		let trackedUpdate: string | undefined
+		getState(myFlagsState).subscribe(`test`, (update) => {
+			trackedUpdate = update
+		})
 		subscribe(myFlagsState, Utils.stdout0)
 		subscribe(findFlagsByUserIdJSON, Utils.stdout1)
-		subscribe(findFlagsByUserIdTracker, (update) => {
-			trackedUpdate = update.newValue
-			Utils.stdout2(update)
-		})
 
 		setState(myFlagsState, (ol) => ((ol[0] = `a`), ol))
 
@@ -108,10 +94,9 @@ describe(`mutable atomic state`, () => {
 			newValue: [`a`],
 			oldValue: [],
 		})
-		expect(Utils.stdout2).toHaveBeenCalledTimes(1)
 		if (trackedUpdate === undefined) {
 			throw new Error(
-				`Expected the mutable atom family tracker to receive an update.`,
+				`Expected the mutable atom family member to emit an update.`,
 			)
 		}
 		const replayed = new OList<string>()
@@ -139,10 +124,7 @@ describe(`mutable atomic state`, () => {
 			},
 		})
 
-		const myJsonState = Internal.getJsonToken(
-			Internal.IMPLICIT.STORE,
-			myMutableAtom,
-		)
+		const myJsonState = getJsonToken(myMutableAtom)
 		subscribe(myJsonState, Utils.stdout)
 
 		let caught: unknown
@@ -177,14 +159,7 @@ describe(`mutable time traveling`, () => {
 			key: `myTimeline`,
 			scope: [myMutableAtoms],
 		})
-		const myJsonState = Internal.getJsonToken(
-			Internal.IMPLICIT.STORE,
-			myMutableAtom,
-		)
-		const myTrackerState = Internal.getUpdateToken(myMutableAtom)
 		subscribe(myMutableAtom, Utils.stdout0)
-		subscribe(myJsonState, Utils.stdout1)
-		subscribe(myTrackerState, Utils.stdout2)
 
 		expect(getState(myMutableAtom)).toEqual(new UList())
 		setState(myMutableAtom, (set) => set.add(`a`))
@@ -216,14 +191,7 @@ describe(`mutable time traveling`, () => {
 			},
 		})
 
-		const myJsonState = Internal.getJsonToken(
-			Internal.IMPLICIT.STORE,
-			myMutableAtom,
-		)
-		const myTrackerState = Internal.getUpdateToken(myMutableAtom)
 		subscribe(myMutableAtom, Utils.stdout0)
-		subscribe(myJsonState, Utils.stdout1)
-		subscribe(myTrackerState, Utils.stdout2)
 
 		expect(getState(myMutableAtom)).toEqual(new UList())
 		runTransaction(myTX)(`a`)

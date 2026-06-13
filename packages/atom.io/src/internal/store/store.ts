@@ -15,7 +15,7 @@ import { Junction } from "../junction.ts"
 import type { Lineage } from "../lineage.ts"
 import type { Molecule } from "../molecule.ts"
 import type { Tracker, Transceiver } from "../mutable/index.ts"
-import { getJsonToken, getUpdateToken } from "../mutable/index.ts"
+import { getJsonTokenFromStore, getUpdateToken } from "../mutable/index.ts"
 import type { OperationProgress } from "../operation.ts"
 import { isReservedIntrospectionKey } from "../reserved-keys.ts"
 import type {
@@ -226,7 +226,7 @@ export class Store implements Lineage {
 				}
 				atom.install(this as RootStore)
 				if (atom.type === `mutable_atom`) {
-					const originalJsonToken = getJsonToken(store, atom)
+					const originalJsonToken = getJsonTokenFromStore(store, atom)
 					const originalUpdateToken = getUpdateToken(atom)
 					mutableHelpers.add(originalJsonToken.key)
 					mutableHelpers.add(originalUpdateToken.key)

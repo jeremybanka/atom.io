@@ -1,11 +1,4 @@
 import { Future } from "atom.io/foundations/future"
-import { vitest } from "vitest"
-
-import * as Utils from "../__util__/index.ts"
-
-beforeEach(() => {
-	vitest.spyOn(Utils, `stdout`)
-})
 
 describe(`Future`, () => {
 	it(`is a Promise whose fate can change`, async () => {

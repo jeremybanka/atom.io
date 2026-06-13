@@ -1,11 +1,14 @@
-import type { Fn, Subject } from "atom.io/internal"
+import type { primitive } from "atom.io/json"
 import type { ArrayUpdate } from "atom.io/transceivers/o-list"
 import { OList } from "atom.io/transceivers/o-list"
 
 import * as U from "../../__util__/index.ts"
 
-function handleUnpacked(subject: Subject<any>, handler: Fn): void {
-	subject.subscribe(`unpack`, (update: any) => {
+function handleUnpacked<P extends primitive>(
+	list: OList<P>,
+	handler: (update: ArrayUpdate<P>) => void,
+): void {
+	list.subscribe(`unpack`, (update) => {
 		handler(OList.unpackUpdate(update))
 	})
 }
@@ -14,7 +17,6 @@ beforeEach(() => {
 	console.warn = () => undefined
 	vitest.spyOn(console, `warn`).mockReset()
 	vitest.spyOn(U, `stdout1`).mockReset()
-	vitest.spyOn(U, `stdout2`).mockReset()
 })
 
 describe(`OList`, () => {
@@ -35,20 +37,17 @@ describe(`OList`, () => {
 	describe(`observe`, () => {
 		it(`emits set`, () => {
 			const ol = new OList<string>()
-			handleUnpacked(ol.subject, U.stdout1)
-			U.handleBytes(ol.subject, U.stdout2)
+			handleUnpacked(ol, U.stdout1)
 			ol[0] = `b`
 			expect(U.stdout1).toHaveBeenCalledExactlyOnceWith({
 				type: `set`,
 				index: 0,
 				next: `b`,
 			})
-			expect(U.stdout2).toHaveBeenCalledExactlyOnceWith(48, 31, 48, 30, 3, 98)
 		})
 		it(`emits set with prev`, () => {
 			const ol = new OList<string>(`a`)
-			handleUnpacked(ol.subject, U.stdout1)
-			U.handleBytes(ol.subject, U.stdout2)
+			handleUnpacked(ol, U.stdout1)
 			ol[0] = `b`
 			expect(ol.includes(`a`)).toBe(false)
 			expect(U.stdout1).toHaveBeenCalledExactlyOnceWith({
@@ -57,17 +56,6 @@ describe(`OList`, () => {
 				next: `b`,
 				prev: `a`,
 			})
-			expect(U.stdout2).toHaveBeenCalledExactlyOnceWith(
-				48,
-				31,
-				48,
-				30,
-				3,
-				98,
-				30,
-				3,
-				97,
-			)
 		})
 		it(`set length equal: does not emit`, () => {
 			const ol = new OList(`a`, `b`, `c`)
@@ -78,7 +66,7 @@ describe(`OList`, () => {
 		})
 		it(`set length less: emits truncate`, () => {
 			const ol = new OList(`a`, `b`, `c`)
-			handleUnpacked(ol.subject, U.stdout1)
+			handleUnpacked(ol, U.stdout1)
 			ol.length = 2
 			expect(ol.length).toBe(2)
 			expect(U.stdout1).toHaveBeenCalledExactlyOnceWith({
@@ -89,7 +77,7 @@ describe(`OList`, () => {
 		})
 		it(`set length greater: emits extend`, () => {
 			const ol = new OList(`a`, `b`, `c`)
-			handleUnpacked(ol.subject, U.stdout1)
+			handleUnpacked(ol, U.stdout1)
 			ol.length = 4
 			expect(ol.length).toBe(4)
 			expect(U.stdout1).toHaveBeenCalledExactlyOnceWith({
@@ -100,7 +88,7 @@ describe(`OList`, () => {
 		})
 		it(`emits push`, () => {
 			const ol = new OList()
-			handleUnpacked(ol.subject, U.stdout1)
+			handleUnpacked(ol, U.stdout1)
 			ol.push(`z`)
 			expect(ol.length).toBe(1)
 			expect(U.stdout1).toHaveBeenCalledExactlyOnceWith({
@@ -110,13 +98,13 @@ describe(`OList`, () => {
 		})
 		it(`emits pop without value`, () => {
 			const ol = new OList()
-			handleUnpacked(ol.subject, U.stdout1)
+			handleUnpacked(ol, U.stdout1)
 			ol.pop()
 			expect(U.stdout1).toHaveBeenCalledExactlyOnceWith({ type: `pop` })
 		})
 		it(`emits pop with value`, () => {
 			const ol = new OList(`a`)
-			handleUnpacked(ol.subject, U.stdout1)
+			handleUnpacked(ol, U.stdout1)
 			ol.pop()
 			expect(U.stdout1).toHaveBeenCalledExactlyOnceWith({
 				type: `pop`,
@@ -125,13 +113,13 @@ describe(`OList`, () => {
 		})
 		it(`emits shift without value`, () => {
 			const ol = new OList()
-			handleUnpacked(ol.subject, U.stdout1)
+			handleUnpacked(ol, U.stdout1)
 			ol.shift()
 			expect(U.stdout1).toHaveBeenCalledExactlyOnceWith({ type: `shift` })
 		})
 		it(`emits shift with value`, () => {
 			const ol = new OList(`a`)
-			handleUnpacked(ol.subject, U.stdout1)
+			handleUnpacked(ol, U.stdout1)
 			ol.shift()
 			expect(U.stdout1).toHaveBeenCalledExactlyOnceWith({
 				type: `shift`,
@@ -140,7 +128,7 @@ describe(`OList`, () => {
 		})
 		it(`emits unshift`, () => {
 			const ol = new OList()
-			handleUnpacked(ol.subject, U.stdout1)
+			handleUnpacked(ol, U.stdout1)
 			ol.unshift(`z`)
 			expect(U.stdout1).toHaveBeenCalledExactlyOnceWith({
 				type: `unshift`,
@@ -149,13 +137,13 @@ describe(`OList`, () => {
 		})
 		it(`emits reverse`, () => {
 			const ol = new OList(`a`)
-			handleUnpacked(ol.subject, U.stdout1)
+			handleUnpacked(ol, U.stdout1)
 			ol.reverse()
 			expect(U.stdout1).toHaveBeenCalledExactlyOnceWith({ type: `reverse` })
 		})
 		it(`emits fill without start/end`, () => {
 			const ol = new OList<string>(`a`, `b`, `c`)
-			handleUnpacked(ol.subject, U.stdout1)
+			handleUnpacked(ol, U.stdout1)
 			ol.fill(`d`)
 			expect(U.stdout1).toHaveBeenCalledExactlyOnceWith({
 				type: `fill`,
@@ -165,7 +153,7 @@ describe(`OList`, () => {
 		})
 		it(`emits fill with start`, () => {
 			const ol = new OList<string>(`a`, `b`, `c`)
-			handleUnpacked(ol.subject, U.stdout1)
+			handleUnpacked(ol, U.stdout1)
 			ol.fill(`d`, 1)
 			expect(U.stdout1).toHaveBeenCalledExactlyOnceWith({
 				type: `fill`,
@@ -176,7 +164,7 @@ describe(`OList`, () => {
 		})
 		it(`emits fill with start and end`, () => {
 			const ol = new OList<string>(`a`, `b`, `c`, `d`)
-			handleUnpacked(ol.subject, U.stdout1)
+			handleUnpacked(ol, U.stdout1)
 			ol.fill(`d`, 1, 3)
 			expect(U.stdout1).toHaveBeenCalledExactlyOnceWith({
 				type: `fill`,
@@ -188,7 +176,7 @@ describe(`OList`, () => {
 		})
 		it(`emits fill with empty array`, () => {
 			const ol = new OList<string>()
-			handleUnpacked(ol.subject, U.stdout1)
+			handleUnpacked(ol, U.stdout1)
 			ol.fill(`yo`)
 			expect(U.stdout1).toHaveBeenCalledExactlyOnceWith({
 				type: `fill`,
@@ -198,7 +186,7 @@ describe(`OList`, () => {
 		})
 		it(`emits sort`, () => {
 			const ol = new OList(`c`, `b`, `a`)
-			handleUnpacked(ol.subject, U.stdout1)
+			handleUnpacked(ol, U.stdout1)
 			ol.sort()
 			expect(U.stdout1).toHaveBeenCalledExactlyOnceWith({
 				type: `sort`,
@@ -208,7 +196,7 @@ describe(`OList`, () => {
 		})
 		it(`emits sort with empty array`, () => {
 			const ol = new OList<string>()
-			handleUnpacked(ol.subject, U.stdout1)
+			handleUnpacked(ol, U.stdout1)
 			ol.sort()
 			expect(U.stdout1).toHaveBeenCalledExactlyOnceWith({
 				type: `sort`,
@@ -218,7 +206,7 @@ describe(`OList`, () => {
 		})
 		it(`emits splice without deleteCount`, () => {
 			const ol = new OList<string>(`a`, `b`, `c`)
-			handleUnpacked(ol.subject, U.stdout1)
+			handleUnpacked(ol, U.stdout1)
 			ol.splice(1)
 			expect(U.stdout1).toHaveBeenCalledExactlyOnceWith({
 				type: `splice`,
@@ -230,7 +218,7 @@ describe(`OList`, () => {
 		})
 		it(`emits splice with deleteCount`, () => {
 			const ol = new OList<string>(`a`, `b`, `c`)
-			handleUnpacked(ol.subject, U.stdout1)
+			handleUnpacked(ol, U.stdout1)
 			ol.splice(0, 1, `d`)
 			expect(U.stdout1).toHaveBeenCalledExactlyOnceWith({
 				type: `splice`,
@@ -242,7 +230,7 @@ describe(`OList`, () => {
 		})
 		it(`emits copyWithin without end`, () => {
 			const ol = new OList<string>(`a`, `b`, `c`, `d`)
-			handleUnpacked(ol.subject, U.stdout1)
+			handleUnpacked(ol, U.stdout1)
 			ol.copyWithin(2, 0)
 			expect(U.stdout1).toHaveBeenCalledExactlyOnceWith({
 				type: `copyWithin`,
@@ -253,7 +241,7 @@ describe(`OList`, () => {
 		})
 		it(`emits copyWithin with end`, () => {
 			const ol = new OList<string>(`a`, `b`, `c`, `d`)
-			handleUnpacked(ol.subject, U.stdout1)
+			handleUnpacked(ol, U.stdout1)
 			ol.copyWithin(2, 0, 2)
 			expect(U.stdout1).toHaveBeenCalledExactlyOnceWith({
 				type: `copyWithin`,
@@ -265,7 +253,7 @@ describe(`OList`, () => {
 		})
 		it(`emits copyWithin with empty array`, () => {
 			const ol = new OList<string>()
-			handleUnpacked(ol.subject, U.stdout1)
+			handleUnpacked(ol, U.stdout1)
 			ol.copyWithin(2, 0)
 			expect(U.stdout1).toHaveBeenCalledExactlyOnceWith({
 				type: `copyWithin`,

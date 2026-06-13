@@ -276,10 +276,10 @@ describe(`graceful handling of hmr/duplicate atom keys`, () => {
 		expect(logger.warn).not.toHaveBeenCalled()
 		expect(logger.error).toHaveBeenCalledTimes(1)
 		expect(logger.error).toHaveBeenCalledWith(
-			`❌`,
+			expect.any(String),
 			myMutableAtom.type,
 			myMutableAtom.key,
-			`Tried to create atom, but it already exists in the store.`,
+			expect.any(String),
 		)
 	})
 })

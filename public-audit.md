@@ -36,11 +36,12 @@ These look like implementation details with little consumer-facing value.
       [mutable-atom.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/mutable-atom.test.ts:49) resolved; formerly `49-68`, `75-108`, `136-151`
       Decision: core should expose `getJsonToken` as the public way to reach a mutable atom's JSON form. Public replayability assertions should capture emitted updates through the transceiver surface rather than through internal update tokens.
 
-- [ ] Exact log icons/messages are frozen:
-      [disposal.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/disposal.test.ts:38) `38-45`, `129-136`
-      [mutable-atom.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/mutable-atom.test.ts:302) `302-309`
-      [o-list-atom.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/o-list-atom.test.ts:253) `253-259`
-      [logger.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/logger.test.ts:112) `112-141`
+- [x] Exact log icons/messages are frozen:
+      [disposal.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/disposal.test.ts:38) resolved; formerly `38-45`, `129-136`
+      [mutable-atom.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/mutable-atom.test.ts:302) resolved; formerly `302-309`
+      [o-list-atom.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/o-list-atom.test.ts:253) resolved; formerly `253-259`
+      [logger.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/logger.test.ts:112) resolved; formerly `112-141`
+      Decision: public tests should assert that logging happens at the right level and identifies the meaningful state or transformed value, but should use Vitest asymmetric matchers for icons and message text.
 
 - [ ] ESLint rule `messageId`s are asserted, which are test implementation details rather than user-visible rule behavior:
       [exact-catch-types.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/eslint-plugin/exact-catch-types.test.ts:117) `117`, `127`, `137`, `148`, `162`

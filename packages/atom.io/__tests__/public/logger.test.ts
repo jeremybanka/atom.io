@@ -110,10 +110,10 @@ describe(`setLogLevel`, () => {
 			new MyComplexThing(`123`),
 		)
 		expect(externalLogger.error).toHaveBeenLastCalledWith(
-			`❌`,
+			expect.any(String),
 			`atom`,
 			`thingy`,
-			`errored`,
+			expect.any(String),
 			`Thing:123`,
 		)
 		internalLogger.warn(
@@ -124,10 +124,10 @@ describe(`setLogLevel`, () => {
 			new MyComplexThing(`456`),
 		)
 		expect(externalLogger.warn).toHaveBeenLastCalledWith(
-			`💁`,
+			expect.any(String),
 			`atom`,
 			`thingy`,
-			`warned`,
+			expect.any(String),
 			`Thing:456`,
 		)
 		internalLogger.info(
@@ -138,10 +138,10 @@ describe(`setLogLevel`, () => {
 			new MyComplexThing(`789`),
 		)
 		expect(externalLogger.info).toHaveBeenLastCalledWith(
-			`👍`,
+			expect.any(String),
 			`atom`,
 			`thingy`,
-			`infoed`,
+			expect.any(String),
 			`Thing:789`,
 		)
 	})

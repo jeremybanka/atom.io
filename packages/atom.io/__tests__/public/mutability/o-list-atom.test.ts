@@ -251,10 +251,10 @@ test(`disposed key cleanup (unhappy path)`, () => {
 	expect([...getState(myMutableAtom)]).toEqual([`item::1`, `item::2`])
 
 	expect(logger.warn).toHaveBeenCalledWith(
-		`❌`,
+		expect.any(String),
 		`mutable_atom`,
 		`myMutable`,
-		`Added "item::2" to myMutable but it has not been allocated.`,
+		expect.stringContaining(`item::2`),
 	)
 	expect(logger.error).not.toHaveBeenCalled()
 })

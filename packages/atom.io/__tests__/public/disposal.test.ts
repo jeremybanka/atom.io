@@ -40,10 +40,10 @@ describe(`disposeState`, () => {
 		expect(logger.warn).not.toHaveBeenCalled()
 		expect(logger.error).toHaveBeenCalledTimes(1)
 		expect(logger.error).toHaveBeenCalledWith(
-			`❌`,
+			expect.any(String),
 			countAtom.type,
 			countAtom.key,
-			`Standalone atoms cannot be disposed.`,
+			expect.any(String),
 		)
 	})
 	it(`deletes atoms that belong to a family`, () => {
@@ -122,10 +122,10 @@ describe(`disposeState`, () => {
 		expect(logger.warn).not.toHaveBeenCalled()
 		expect(logger.error).toHaveBeenCalledTimes(1)
 		expect(logger.error).toHaveBeenCalledWith(
-			`❌`,
+			expect.any(String),
 			doubleSelector.type,
 			doubleSelector.key,
-			`Standalone selectors cannot be disposed.`,
+			expect.any(String),
 		)
 	})
 

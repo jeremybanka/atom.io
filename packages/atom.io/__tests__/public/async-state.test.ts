@@ -4,7 +4,6 @@ import * as http from "node:http"
 
 import type { Loadable } from "atom.io"
 import * as AtomIO from "atom.io"
-import * as Internal from "atom.io/internal"
 import { parseJson } from "atom.io/json"
 import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 
@@ -379,11 +378,6 @@ describe(`downstream from async`, () => {
 		loadIndex[0]()
 		loadItems[1]()
 		await new Promise((resolve) => setImmediate(resolve))
-		// console.log(Internal.IMPLICIT.STORE.valueMap)
-		const allItemsValue = Internal.IMPLICIT.STORE.valueMap.get(
-			allItemsSelector.key,
-		)
-		// console.log(allItemsValue[`fate`] === allItemsValue)
 		expect(AtomIO.getState(indexAtoms, 0)).toEqual([1, 2, 3])
 		expect(AtomIO.getState(itemAtoms, 1)).toEqual({ data: `1`.repeat(3) })
 		expect(AtomIO.getState(itemAtoms, 2)).toEqual({ data: `2`.repeat(3) })

@@ -27,8 +27,8 @@ Goal: remove every `atom.io/internal` import from `packages/atom.io/__tests__/pu
       [atom-effects.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/atom-effects.test.ts),
       [mutable-atom.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/mutable-atom.test.ts).
 
-- [ ] Replace `NotFoundError` identity assertions with a public contract.
-      [silo-install.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/silo-install.test.ts) imports `NotFoundError`.
+- [x] Replace `NotFoundError` identity assertions with a public contract.
+      [silo-install.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/silo-install.test.ts) now imports public `NotFoundError` from `atom.io`.
 
 - [x] Replace direct cache/value-map inspection.
       [async-state.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/async-state.test.ts) reads `IMPLICIT.STORE.valueMap`.

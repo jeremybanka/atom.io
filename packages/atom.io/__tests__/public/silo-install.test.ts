@@ -1,6 +1,11 @@
 import type { Logger } from "atom.io"
-import { atomFamily, runTransaction, Silo, transaction } from "atom.io"
-import { NotFoundError } from "atom.io/internal"
+import {
+	atomFamily,
+	NotFoundError,
+	runTransaction,
+	Silo,
+	transaction,
+} from "atom.io"
 import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 
 import * as Utils from "../__util__/index.ts"

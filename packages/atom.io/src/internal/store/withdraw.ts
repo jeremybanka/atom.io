@@ -249,5 +249,5 @@ export function withdraw(
 		}
 		target = target.child
 	}
-	throw new NotFoundError(token, store)
+	throw new NotFoundError(token, store.config.name)
 }

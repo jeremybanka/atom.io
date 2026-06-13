@@ -22,6 +22,23 @@ export class MapOverlay<K, V> extends Map<K, V> {
 		return undefined
 	}
 
+	public getOrInsert(key: K, defaultValue: V): V {
+		if (this.has(key)) {
+			return this.get(key) as V
+		}
+		this.set(key, defaultValue)
+		return defaultValue
+	}
+
+	public getOrInsertComputed(key: K, callback: (key: K) => V): V {
+		if (this.has(key)) {
+			return this.get(key) as V
+		}
+		const value = callback(key)
+		this.set(key, value)
+		return value
+	}
+
 	public set(key: K, value: V): this {
 		const shouldAppendSourceKey =
 			this.appendedSource.has(key) ||
@@ -100,9 +117,12 @@ export class MapOverlay<K, V> extends Map<K, V> {
 			yield value
 		}
 	}
-	public forEach(callbackfn: (value: V, key: K, map: Map<K, V>) => void): void {
+	public forEach(
+		callbackfn: (value: V, key: K, map: Map<K, V>) => void,
+		thisArg?: any,
+	): void {
 		for (const [key, value] of this[Symbol.iterator]()) {
-			callbackfn(value, key, this)
+			callbackfn.call(thisArg, value, key, this)
 		}
 	}
 

@@ -1,4 +1,33 @@
-import { MapOverlay, SetOverlay } from "atom.io/foundations/overlays"
+import {
+	MapOverlay,
+	RelationsOverlay,
+	SetOverlay,
+} from "atom.io/foundations/overlays"
+
+const setLikeWithPlainIterator = <T>(
+	members: Iterable<T>,
+): ReadonlySetLike<T> => {
+	const memberSet = new Set(members)
+	return {
+		size: memberSet.size,
+		has(value) {
+			return memberSet.has(value)
+		},
+		keys() {
+			const values = [...memberSet]
+			let index = 0
+			return {
+				next(): IteratorResult<T> {
+					if (index >= values.length) {
+						return { done: true, value: undefined as never }
+					}
+					const value = values[index++]
+					return { done: false, value }
+				},
+			}
+		},
+	}
+}
 
 describe(`MapOverlay`, () => {
 	test(`constructor: binds source, starts empty overlay/deleted/changed; size reflects source`, () => {
@@ -221,6 +250,54 @@ describe(`MapOverlay`, () => {
 		}
 	})
 
+	test(`forEach(callback, thisArg): calls callback with the provided receiver`, () => {
+		const source = new Map<string, number>([[`a`, 1]])
+		const o = new MapOverlay<string, number>(source)
+		o.set(`x`, 2)
+		const receiver = { seen: [] as Array<[string, number]> }
+
+		o.forEach(function (this: typeof receiver, value, key) {
+			this.seen.push([key, value])
+		}, receiver)
+
+		expect(receiver.seen).toEqual([
+			[`a`, 1],
+			[`x`, 2],
+		])
+	})
+
+	test(`getOrInsert: returns existing values or inserts the default value for missing keys`, () => {
+		const source = new Map<string, number | undefined>([
+			[`a`, 1],
+			[`u`, undefined],
+		])
+		const o = new MapOverlay<string, number | undefined>(source)
+
+		expect(o.getOrInsert(`a`, 10)).toBe(1)
+		expect(o.hasOwn(`a`)).toBe(false)
+		expect(o.getOrInsert(`u`, 20)).toBeUndefined()
+		expect(o.hasOwn(`u`)).toBe(false)
+
+		expect(o.getOrInsert(`x`, 100)).toBe(100)
+		expect(o.hasOwn(`x`)).toBe(true)
+		expect(o.get(`x`)).toBe(100)
+	})
+
+	test(`getOrInsertComputed: computes only when the key is missing and passes the key`, () => {
+		const source = new Map<string, number>([[`a`, 1]])
+		const o = new MapOverlay<string, number>(source)
+		o.set(`x`, 100)
+		const callback = vi.fn((key: string) => key.length)
+
+		expect(o.getOrInsertComputed(`a`, callback)).toBe(1)
+		expect(o.getOrInsertComputed(`x`, callback)).toBe(100)
+		expect(callback).not.toHaveBeenCalled()
+
+		expect(o.getOrInsertComputed(`long`, callback)).toBe(4)
+		expect(callback).toHaveBeenCalledExactlyOnceWith(`long`)
+		expect(o.get(`long`)).toBe(4)
+	})
+
 	test(`size getter tracks super.size + source.size - changed.size - deleted.size through ops`, () => {
 		const source = new Map<string, number>([
 			[`a`, 1],
@@ -425,6 +502,55 @@ describe(`SetOverlay`, () => {
 		expect(o.has(`b`)).toBe(false)
 	})
 
+	test(`keys(), values(), and entries(): follow visible overlay order`, () => {
+		const source = new Set([`a`, `b`, `c`])
+		const o = new SetOverlay<string>(source)
+		o.add(`x`)
+		o.delete(`b`)
+
+		expect([...o.keys()]).toEqual([`a`, `c`, `x`])
+		expect([...o.values()]).toEqual([`a`, `c`, `x`])
+		expect([...o.entries()]).toEqual([
+			[`a`, `a`],
+			[`c`, `c`],
+			[`x`, `x`],
+		])
+	})
+
+	test(`forEach(callback): iterates visible values and passes (value, value, set)`, () => {
+		const source = new Set([`a`, `b`, `c`])
+		const o = new SetOverlay<string>(source)
+		o.add(`x`)
+		o.delete(`b`)
+
+		const seen: Array<[string, string, Set<string>]> = []
+		o.forEach((value, value2, set) => {
+			seen.push([value, value2, set])
+		})
+
+		expect(seen.map(([value, value2]) => [value, value2])).toEqual([
+			[`a`, `a`],
+			[`c`, `c`],
+			[`x`, `x`],
+		])
+		for (const [, , set] of seen) {
+			expect(set).toBe(o)
+		}
+	})
+
+	test(`forEach(callback, thisArg): calls callback with the provided receiver`, () => {
+		const source = new Set([`a`])
+		const o = new SetOverlay<string>(source)
+		o.add(`x`)
+		const receiver = { seen: [] as string[] }
+
+		o.forEach(function (this: typeof receiver, value) {
+			this.seen.push(value)
+		}, receiver)
+
+		expect(receiver.seen).toEqual([`a`, `x`])
+	})
+
 	test(`iterateOwn(): yields only overlay entries (and in insertion order)`, () => {
 		const source = new Set([`a`, `b`])
 		const o = new SetOverlay<string>(source)
@@ -463,6 +589,148 @@ describe(`SetOverlay`, () => {
 		expect(o.size).toBe(2)
 	})
 
+	test(`union(): returns a Set containing visible overlay values and set-like operand values`, () => {
+		const source = new Set([`a`, `b`, `c`])
+		const o = new SetOverlay<string>(source)
+		o.add(`x`)
+		o.delete(`b`)
+
+		const result = o.union(
+			new Map<string, number>([
+				[`c`, 3],
+				[`d`, 4],
+				[`x`, 100],
+			]),
+		)
+
+		expect(result).toBeInstanceOf(Set)
+		expect([...result]).toEqual([`a`, `c`, `x`, `d`])
+	})
+
+	test(`intersection(): returns values present in both the overlay and set-like operand`, () => {
+		const source = new Set([`a`, `b`, `c`])
+		const o = new SetOverlay<string>(source)
+		o.add(`x`)
+		o.delete(`b`)
+
+		const sameSizeResult = o.intersection(
+			new Map<string, number>([
+				[`c`, 3],
+				[`d`, 4],
+				[`x`, 100],
+			]),
+		)
+		expect([...sameSizeResult]).toEqual([`c`, `x`])
+
+		const smallerOperandResult = o.intersection(new Set([`x`, `z`]))
+		expect(smallerOperandResult.size).toBe(1)
+		expect(smallerOperandResult.has(`x`)).toBe(true)
+		expect(smallerOperandResult.has(`z`)).toBe(false)
+	})
+
+	test(`difference(): returns visible overlay values missing from the set-like operand`, () => {
+		const source = new Set([`a`, `b`, `c`, `d`])
+		const o = new SetOverlay<string>(source)
+		o.add(`x`)
+		o.delete(`b`)
+
+		const largerOperandResult = o.difference(
+			new Map<string, number>([
+				[`c`, 3],
+				[`x`, 100],
+				[`z`, 0],
+				[`q`, 0],
+			]),
+		)
+		expect([...largerOperandResult]).toEqual([`a`, `d`])
+
+		const smallerOperandResult = o.difference(new Set([`c`, `x`]))
+		expect(smallerOperandResult.size).toBe(2)
+		expect(smallerOperandResult.has(`a`)).toBe(true)
+		expect(smallerOperandResult.has(`d`)).toBe(true)
+	})
+
+	test(`symmetricDifference(): returns values present in exactly one set-like operand`, () => {
+		const source = new Set([`a`, `b`, `c`])
+		const o = new SetOverlay<string>(source)
+		o.add(`x`)
+		o.delete(`b`)
+
+		const result = o.symmetricDifference(
+			new Map<string, number>([
+				[`c`, 3],
+				[`d`, 4],
+				[`x`, 100],
+			]),
+		)
+
+		expect([...result]).toEqual([`a`, `d`])
+	})
+
+	test(`set-like methods accept keys() results that are plain iterators`, () => {
+		const source = new Set([`a`, `b`])
+		const o = new SetOverlay<string>(source)
+		o.add(`x`)
+		o.delete(`b`)
+
+		const operand = setLikeWithPlainIterator([`x`, `z`])
+
+		expect([...o.union(operand)]).toEqual([`a`, `x`, `z`])
+		expect([...o.intersection(operand)]).toEqual([`x`])
+		expect(o.isSupersetOf(setLikeWithPlainIterator([`x`]))).toBe(true)
+	})
+
+	test(`isSubsetOf(): checks whether every visible overlay value is in the set-like operand`, () => {
+		const source = new Set([`a`, `b`, `c`])
+		const o = new SetOverlay<string>(source)
+		o.add(`x`)
+		o.delete(`b`)
+
+		expect(o.isSubsetOf(new Set([`a`, `c`, `x`, `z`]))).toBe(true)
+		expect(o.isSubsetOf(new Set([`a`, `c`]))).toBe(false)
+		expect(o.isSubsetOf(new Set([`a`, `x`, `z`]))).toBe(false)
+	})
+
+	test(`isSupersetOf(): checks whether every set-like operand value is visible in the overlay`, () => {
+		const source = new Set([`a`, `b`, `c`])
+		const o = new SetOverlay<string>(source)
+		o.add(`x`)
+		o.delete(`b`)
+
+		expect(
+			o.isSupersetOf(
+				new Map<string, number>([
+					[`a`, 1],
+					[`x`, 100],
+				]),
+			),
+		).toBe(true)
+		expect(o.isSupersetOf(new Set([`a`, `c`, `x`, `z`]))).toBe(false)
+		expect(o.isSupersetOf(new Set([`a`, `b`]))).toBe(false)
+	})
+
+	test(`isDisjointFrom(): checks whether no values overlap with the set-like operand`, () => {
+		const source = new Set([`a`, `b`, `c`, `d`])
+		const o = new SetOverlay<string>(source)
+		o.add(`x`)
+		o.delete(`b`)
+
+		expect(o.isDisjointFrom(new Set([`b`, `z`]))).toBe(true)
+		expect(o.isDisjointFrom(new Set([`a`, `b`, `z`, `q`, `r`]))).toBe(false)
+		expect(o.isDisjointFrom(new Set([`c`, `z`]))).toBe(false)
+		expect(
+			o.isDisjointFrom(
+				new Map<string, number>([
+					[`b`, 2],
+					[`z`, 0],
+					[`q`, 0],
+					[`r`, 0],
+					[`s`, 0],
+				]),
+			),
+		).toBe(true)
+	})
+
 	test(`clear: adding source-backed values afterward uses fresh insertion order`, () => {
 		const source = new Set([`a`, `b`])
 		const o = new SetOverlay<string>(source)
@@ -476,5 +744,43 @@ describe(`SetOverlay`, () => {
 		expect(o.deleted).toEqual(new Set([`b`]))
 		expect([...o]).toEqual([`x`, `a`])
 		expect(o.size).toBe(2)
+	})
+})
+
+describe(`RelationsOverlay`, () => {
+	test(`get: wraps source relations in a SetOverlay and reuses that overlay`, () => {
+		const relation = new Set([`one`, `two`])
+		const source = new Map<string, Set<string>>([[`a`, relation]])
+		const o = new RelationsOverlay<string, Set<string>>(source)
+
+		expect(o.has(`a`)).toBe(true)
+		const wrapped = o.get(`a`)
+
+		expect(wrapped).toBeInstanceOf(SetOverlay)
+		expect(wrapped).not.toBe(relation)
+		expect([...(wrapped ?? [])]).toEqual([`one`, `two`])
+
+		wrapped?.add(`three`)
+		wrapped?.delete(`one`)
+		expect([...(o.get(`a`) ?? [])]).toEqual([`two`, `three`])
+		expect([...relation]).toEqual([`one`, `two`])
+	})
+
+	test(`set, has, delete, and missing get reflect overlay entries and deletions`, () => {
+		const source = new Map<string, Set<string>>([[`a`, new Set([`one`])]])
+		const o = new RelationsOverlay<string, Set<string>>(source)
+
+		const inserted = new Set([`two`])
+		expect(o.set(`b`, inserted)).toBe(o)
+		expect(o.has(`b`)).toBe(true)
+		expect(o.get(`b`)).toBe(inserted)
+
+		expect(o.delete(`a`)).toBe(false)
+		expect(o.has(`a`)).toBe(false)
+		expect(o.get(`a`)).toBeUndefined()
+
+		expect(o.delete(`b`)).toBe(true)
+		expect(o.has(`b`)).toBe(false)
+		expect(o.get(`missing` as any)).toBeUndefined()
 	})
 })

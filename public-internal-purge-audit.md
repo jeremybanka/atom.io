@@ -35,7 +35,10 @@ Goal: remove every `atom.io/internal` import from `packages/atom.io/__tests__/pu
 - [x] Replace direct cache/value-map inspection.
       [async-state.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/async-state.test.ts) reads `IMPLICIT.STORE.valueMap`.
 
-- [ ] Solve the React implicit store reset problem.
-      [react-hooks.test.tsx](/home/jem/atom.io/packages/atom.io/__tests__/public/react-hooks.test.tsx) still needs `clearStore(IMPLICIT.STORE)` because `takeSnapshot().restore()` replaces the implicit store object while React's default `StoreContext` has already captured the old object. It now uses `setTestLogLevel(null)` for the debug log switch, but still imports the internal `Fn` type.
+- [x] Solve the React implicit store reset problem.
+      `takeSnapshot().restore()` now restores the implicit store in place, so
+      React's default `StoreContext` keeps the same store reference while public
+      tests can still reset state without importing `atom.io/internal`:
+      [react-hooks.test.tsx](/home/jem/atom.io/packages/atom.io/__tests__/public/react-hooks.test.tsx).
 
-- [ ] Re-run `pnpm exec eslint packages/atom.io/__tests__/public` until the public internal import checklist is empty.
+- [x] Re-run `pnpm exec eslint packages/atom.io/__tests__/public` until the public internal import checklist is empty.

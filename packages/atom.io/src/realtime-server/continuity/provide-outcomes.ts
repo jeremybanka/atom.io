@@ -1,3 +1,4 @@
+import type { Json } from "atom.io/foundations/json"
 import type { Store } from "atom.io/internal"
 import {
 	findInStore,
@@ -6,7 +7,6 @@ import {
 	setIntoStore,
 	subscribeToTransaction,
 } from "atom.io/internal"
-import type { Json } from "atom.io/json"
 import type { ContinuityToken, Socket, UserKey } from "atom.io/realtime"
 
 import {

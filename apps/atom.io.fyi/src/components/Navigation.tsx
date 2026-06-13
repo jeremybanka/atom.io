@@ -239,8 +239,8 @@ function SiteDirectory(): VNode {
 							</a>
 						</section>
 						<section>
-							<a id="-docs-json-link" href={`/docs/json`}>
-								<span className="soft">atom.io</span>/json
+							<a id="-docs-foundations-link" href={`/docs/foundations`}>
+								<span className="soft">atom.io</span>/foundations
 							</a>
 						</section>
 						<section>

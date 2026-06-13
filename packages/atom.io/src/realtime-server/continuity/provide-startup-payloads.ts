@@ -1,3 +1,4 @@
+import type { Json } from "atom.io/foundations/json"
 import type { Store } from "atom.io/internal"
 import {
 	findInStore,
@@ -5,7 +6,6 @@ import {
 	getJsonTokenFromStore,
 	isRootStore,
 } from "atom.io/internal"
-import type { Json } from "atom.io/json"
 import type { ContinuityToken, Socket, UserKey } from "atom.io/realtime"
 import { employSocket } from "atom.io/realtime"
 

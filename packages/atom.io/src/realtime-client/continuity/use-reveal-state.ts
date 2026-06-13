@@ -1,5 +1,5 @@
+import type { Json } from "atom.io/foundations/json"
 import { setIntoStore, type Store } from "atom.io/internal"
-import type { Json } from "atom.io/json"
 
 export function createRevealState(store: Store) {
 	return (revealed: Json.Array): void => {

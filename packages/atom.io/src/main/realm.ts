@@ -1,3 +1,4 @@
+import type { Canonical } from "atom.io/foundations/canonical"
 import type { Each, RootStore } from "atom.io/internal"
 import {
 	actUponStore,
@@ -10,7 +11,6 @@ import {
 	IMPLICIT,
 	makeRootMoleculeInStore,
 } from "atom.io/internal"
-import type { Canonical } from "atom.io/json"
 
 import type { TransactionToken } from "./tokens.ts"
 

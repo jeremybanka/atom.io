@@ -1,5 +1,5 @@
 import type { Loadable } from "atom.io"
-import type { Json } from "atom.io/json"
+import type { Json } from "atom.io/foundations/json"
 
 import type { EventsMap, GuardedSocket, Socket } from "./socket-interface.ts"
 import type { StandardSchemaV1 } from "./standard-schema.ts"

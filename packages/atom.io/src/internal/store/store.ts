@@ -8,9 +8,10 @@ import type {
 	TransactionToken,
 } from "atom.io"
 import { AtomIOLogger } from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical"
+import type { stringified } from "atom.io/foundations/json"
 import { Junction } from "atom.io/foundations/junction"
 import { StatefulSubject, Subject } from "atom.io/foundations/subject"
-import type { Canonical, stringified } from "atom.io/json"
 
 import type { Join } from "../join/index.ts"
 import type { Lineage } from "../lineage.ts"

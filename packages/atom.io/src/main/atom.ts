@@ -1,4 +1,5 @@
 import type { Loadable } from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical"
 import type { ConstructorOf, Ctor, Store, Transceiver } from "atom.io/internal"
 import {
 	createMutableAtom,
@@ -7,7 +8,6 @@ import {
 	createRegularAtomFamily,
 	IMPLICIT,
 } from "atom.io/internal"
-import type { Canonical } from "atom.io/json"
 
 import type { StateUpdate } from "./events.ts"
 import type {

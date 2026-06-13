@@ -7,9 +7,9 @@ import type {
 	StateLifecycleEvent,
 } from "atom.io"
 import { PRETTY_ENTITY_NAMES } from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical"
+import { stringifyJson } from "atom.io/foundations/json"
 import { Subject } from "atom.io/foundations/subject"
-import type { Canonical } from "atom.io/json"
-import { stringifyJson } from "atom.io/json"
 
 import { createWritablePureSelectorFamily } from "../families/index.ts"
 import { newest } from "../lineage.ts"

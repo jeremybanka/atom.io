@@ -1,4 +1,4 @@
-import { isJson } from "atom.io/json"
+import { isJson } from "atom.io/foundations/json"
 
 describe(`isJson`, () => {
 	it(`knows whether an unknown is a Json.Tree.Node`, () => {

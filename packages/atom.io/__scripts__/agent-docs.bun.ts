@@ -93,10 +93,10 @@ const DOC_PAGES: DocPage[] = [
 		url: `/docs/react`,
 	},
 	{
-		output: `atom.io-json.md`,
-		source: `docs/source/pages/docs/json.mdx`,
-		title: `atom.io/json`,
-		url: `/docs/json`,
+		output: `atom.io-foundations.md`,
+		source: `docs/source/pages/docs/foundations.mdx`,
+		title: `atom.io/foundations`,
+		url: `/docs/foundations`,
 	},
 	{
 		output: `atom.io-web.md`,
@@ -828,7 +828,7 @@ async function main(): Promise<void> {
 				`- Remote/RPC data guide: /docs/remote-data`,
 				`- typesafe router guide: /docs/typesafe-router`,
 				`- React bindings: /docs/react`,
-				`- JSON and transceivers: /docs/json and /transceivers`,
+				`- Foundations and transceivers: /docs/foundations and /transceivers`,
 				``,
 				`The generated corpus is owned by atom.io, shipped in the atom.io package at docs/agent, and mirrored on atom.io.fyi for web access.`,
 			].join(`\n`),

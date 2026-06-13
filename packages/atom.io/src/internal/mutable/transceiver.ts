@@ -1,4 +1,4 @@
-import type { Json } from "atom.io/json"
+import type { Json } from "atom.io/foundations/json"
 
 export interface Transceiver<
 	V extends { subscribe: (key: string, fn: (update: S) => void) => () => void },

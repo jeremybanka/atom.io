@@ -1,7 +1,7 @@
 import type { ReadableFamilyToken, ReadableToken } from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical"
 import type { RootStore } from "atom.io/internal"
 import { IMPLICIT, seekInStore, withdraw } from "atom.io/internal"
-import type { Canonical } from "atom.io/json"
 
 /**
  * Check whether a state currently exists in a store without creating it.

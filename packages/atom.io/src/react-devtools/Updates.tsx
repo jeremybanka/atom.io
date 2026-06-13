@@ -5,8 +5,8 @@ import type {
 	TransactionOutcomeEvent,
 	TransactionToken,
 } from "atom.io"
+import { stringifyJson } from "atom.io/foundations/json"
 import { discoverType, prettyJson } from "atom.io/introspection"
-import { stringifyJson } from "atom.io/json"
 import * as React from "react"
 
 /* eslint-disable no-console */

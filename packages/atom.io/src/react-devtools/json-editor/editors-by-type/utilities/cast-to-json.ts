@@ -1,5 +1,5 @@
+import type { Json } from "atom.io/foundations/json"
 import { jsonRefinery } from "atom.io/introspection"
-import type { Json } from "atom.io/json"
 
 import * as Cast from "./cast-json.ts"
 

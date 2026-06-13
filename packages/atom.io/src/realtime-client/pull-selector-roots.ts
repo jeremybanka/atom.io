@@ -1,7 +1,7 @@
 import type { AtomToken, SelectorToken } from "atom.io"
+import { parseJson } from "atom.io/foundations/json"
 import type { Store } from "atom.io/internal"
 import { getFamilyOfToken, subscribeToState } from "atom.io/internal"
-import { parseJson } from "atom.io/json"
 import type { Socket } from "atom.io/realtime"
 
 import { pullAtom } from "./pull-atom.ts"

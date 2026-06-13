@@ -10,9 +10,9 @@ import type {
 	WritableSelectorToken,
 	WritableToken,
 } from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical"
 import type { Transceiver } from "atom.io/internal"
 import { findInStore, IMPLICIT } from "atom.io/internal"
-import type { Canonical } from "atom.io/json"
 
 import type { MutableAtomFamilyToken, RegularAtomFamilyToken } from "./tokens.ts"
 

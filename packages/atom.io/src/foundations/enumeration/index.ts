@@ -1,4 +1,4 @@
-import type { Flat } from "atom.io/internal"
+import type { Flat } from "atom.io/foundations/type-utils"
 
 export type IndexOf<
 	T extends readonly unknown[],

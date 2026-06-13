@@ -1,9 +1,9 @@
+import type { Json } from "atom.io/foundations/json"
 import {
 	MapOverlay,
 	RelationsOverlay,
 	SetOverlay,
 } from "atom.io/foundations/overlays"
-import type { Json } from "atom.io/json"
 
 export type Refinement<A, B extends A> = (a: A) => a is B
 

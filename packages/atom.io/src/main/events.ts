@@ -1,5 +1,6 @@
 import type { ViewOf } from "atom.io"
-import type { Canonical, stringified } from "atom.io/json"
+import type { Canonical } from "atom.io/foundations/canonical"
+import type { stringified } from "atom.io/foundations/json"
 
 import type { AtomOnly, TimelineManageable } from "./timeline.ts"
 import type {

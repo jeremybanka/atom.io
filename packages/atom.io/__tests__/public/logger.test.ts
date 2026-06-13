@@ -1,18 +1,18 @@
 import type { Logger } from "atom.io"
 import { atom, AtomIOLogger, getState, timeline, undo } from "atom.io"
 import * as Internal from "atom.io/internal"
+import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 
 import { createNullLogger } from "../__util__/index.ts"
 
-const LOG_LEVELS = [null, `error`, `warn`, `info`] as const
-const CHOOSE = 0
 let internalLogger: AtomIOLogger
 const externalLogger: Logger = createNullLogger()
+const { restore } = takeSnapshot()
 
 beforeEach(() => {
-	Internal.clearStore(Internal.IMPLICIT.STORE)
+	restore()
 	Internal.IMPLICIT.STORE.config.isProduction = true
-	Internal.IMPLICIT.STORE.loggers[0].logLevel = LOG_LEVELS[CHOOSE]
+	setTestLogLevel(null)
 	Internal.IMPLICIT.STORE.loggers[1] = internalLogger = new AtomIOLogger(
 		`info`,
 		undefined,

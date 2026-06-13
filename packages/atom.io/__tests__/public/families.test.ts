@@ -1,4 +1,3 @@
-import type { Logger } from "atom.io"
 import {
 	atomFamily,
 	findState,
@@ -7,21 +6,13 @@ import {
 	selectorFamily,
 	setState,
 } from "atom.io"
-import * as Internal from "atom.io/internal"
-import { vitest } from "vitest"
+import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 
-const LOG_LEVELS = [null, `error`, `warn`, `info`] as const
-const CHOOSE = 1
-
-let logger: Logger
+const { restore } = takeSnapshot()
 
 beforeEach(() => {
-	Internal.clearStore(Internal.IMPLICIT.STORE)
-	Internal.IMPLICIT.STORE.loggers[0].logLevel = LOG_LEVELS[CHOOSE]
-	logger = Internal.IMPLICIT.STORE.logger
-	vitest.spyOn(logger, `error`)
-	vitest.spyOn(logger, `warn`)
-	vitest.spyOn(logger, `info`)
+	restore()
+	setTestLogLevel(null)
 })
 
 describe(`atom families`, () => {

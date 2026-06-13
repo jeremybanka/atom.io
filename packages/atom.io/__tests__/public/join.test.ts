@@ -9,7 +9,6 @@ import {
 	subscribe,
 	transaction,
 } from "atom.io"
-import * as Internal from "atom.io/internal"
 import {
 	setTestLogLevel,
 	storeHasStateValues,
@@ -24,8 +23,7 @@ const { restore } = takeSnapshot()
 
 beforeEach(() => {
 	restore()
-	setTestLogLevel(null)
-	logger = Internal.IMPLICIT.STORE.logger = Utils.createNullLogger()
+	logger = setTestLogLevel(null)
 	vitest.spyOn(logger, `error`)
 	vitest.spyOn(logger, `warn`)
 	vitest.spyOn(logger, `info`)
@@ -419,7 +417,7 @@ describe(`some practical use cases`, () => {
 // 		let loopingSafeReplacementTX = createLoopingSafeReplacementTX()
 // 		let loopingUnsafeReplacementTX = createLoopingUnsafeReplacementTX()
 // 		function reset() {
-// 			Internal.clearStore(Internal.IMPLICIT.STORE)
+// 			restore()
 // 			cardValues = createCardValues()
 // 			loopingBasicTX = createBasicTX()
 // 			loopingSafeReplacementTX = createLoopingSafeReplacementTX()

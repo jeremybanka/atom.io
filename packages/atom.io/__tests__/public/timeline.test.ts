@@ -17,7 +17,6 @@ import {
 	transaction,
 	undo,
 } from "atom.io"
-import * as I from "atom.io/internal"
 import { setTestLogLevel, stateExists, takeSnapshot } from "atom.io/testing"
 import { vitest } from "vitest"
 
@@ -28,8 +27,7 @@ const { restore } = takeSnapshot()
 
 beforeEach(() => {
 	restore()
-	setTestLogLevel(null)
-	logger = I.IMPLICIT.STORE.logger = Utils.createNullLogger()
+	logger = setTestLogLevel(null)
 	vitest.spyOn(logger, `error`)
 	vitest.spyOn(logger, `warn`)
 	vitest.spyOn(logger, `info`)

@@ -28,8 +28,7 @@ const { restore } = takeSnapshot()
 beforeEach(() => {
 	restore()
 	Internal.IMPLICIT.STORE.config.isProduction = true
-	setTestLogLevel(null)
-	logger = Internal.IMPLICIT.STORE.logger = Utils.createNullLogger()
+	logger = setTestLogLevel(null)
 	vitest.spyOn(logger, `error`).mockReset()
 	vitest.spyOn(logger, `warn`).mockReset()
 	vitest.spyOn(logger, `info`).mockReset()

@@ -1,5 +1,5 @@
 import { act, fireEvent, render } from "@testing-library/react"
-import type { Loadable, Logger, TimelineToken } from "atom.io"
+import type { Loadable, TimelineToken } from "atom.io"
 import {
 	atom,
 	atomFamily,
@@ -15,23 +15,15 @@ import {
 import type { Fn } from "atom.io/internal"
 import { clearStore, IMPLICIT } from "atom.io/internal"
 import * as AR from "atom.io/react"
+import { setTestLogLevel } from "atom.io/testing"
 import { UList } from "atom.io/transceivers/u-list"
 import { type FC, useEffect, useRef } from "react"
 
 import * as Utils from "../__util__/index.ts"
 
-const LOG_LEVELS = [null, `error`, `warn`, `info`] as const
-const CHOOSE = 3
-
-let logger: Logger
-
 beforeEach(() => {
 	clearStore(IMPLICIT.STORE)
-	IMPLICIT.STORE.loggers[0].logLevel = LOG_LEVELS[CHOOSE]
-	logger = IMPLICIT.STORE.logger //= Utils.createNullLogger()
-	vitest.spyOn(logger, `error`)
-	vitest.spyOn(logger, `warn`)
-	vitest.spyOn(logger, `info`)
+	setTestLogLevel(null)
 	vitest.spyOn(Utils, `stdout`)
 })
 const onChange = [() => undefined, console.log][0]

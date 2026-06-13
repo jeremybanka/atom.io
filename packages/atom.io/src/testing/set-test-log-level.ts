@@ -1,4 +1,4 @@
-import type { LogLevel } from "atom.io"
+import type { Logger, LogLevel } from "atom.io"
 import { IMPLICIT } from "atom.io/internal"
 
 /**
@@ -9,9 +9,13 @@ import { IMPLICIT } from "atom.io/internal"
  * it still works at runtime for local debugging, but the type error makes the
  * temporary change hard to check in by accident.
  *
+ * The returned logger can be spied on to assert public logging behavior without
+ * turning atom.io's internal console logging on.
+ *
  * @example
  * ```ts
- * setTestLogLevel(null)
+ * const logger = setTestLogLevel(null)
+ * vitest.spyOn(logger, "error")
  * ```
  *
  * @example
@@ -20,6 +24,7 @@ import { IMPLICIT } from "atom.io/internal"
  * setTestLogLevel("info")
  * ```
  */
-export function setTestLogLevel(logLevel: null): void {
+export function setTestLogLevel(logLevel: null): Logger {
 	IMPLICIT.STORE.loggers[0].logLevel = logLevel as LogLevel | null
+	return IMPLICIT.STORE.logger
 }

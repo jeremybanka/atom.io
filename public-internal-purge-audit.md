@@ -30,7 +30,7 @@ Goal: remove every `atom.io/internal` import from `packages/atom.io/__tests__/pu
 - [ ] Replace `NotFoundError` identity assertions with a public contract.
       [silo-install.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/silo-install.test.ts) imports `NotFoundError`.
 
-- [ ] Replace direct cache/value-map inspection.
+- [x] Replace direct cache/value-map inspection.
       [async-state.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/async-state.test.ts) reads `IMPLICIT.STORE.valueMap`.
 
 - [ ] Solve the React implicit store reset problem.

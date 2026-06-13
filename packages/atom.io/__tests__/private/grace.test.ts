@@ -10,6 +10,7 @@ import {
 	findState,
 	getState,
 	mutableAtomFamily,
+	NotFoundError,
 	redo,
 	selector,
 	selectorFamily,
@@ -38,7 +39,7 @@ beforeEach(() => {
 	vitest.spyOn(Utils, `stdout`)
 })
 
-describe(`Internal.NotFoundError is thrown`, () => {
+describe(`NotFoundError is thrown`, () => {
 	test(`when attempting to get a totally nonexistent state`, () => {
 		let caught: Error | undefined
 		try {
@@ -48,7 +49,7 @@ describe(`Internal.NotFoundError is thrown`, () => {
 				caught = thrown
 			}
 		}
-		expect(caught).toBeInstanceOf(Internal.NotFoundError)
+		expect(caught).toBeInstanceOf(NotFoundError)
 		expect(logger.warn).not.toHaveBeenCalled()
 		expect(logger.error).not.toHaveBeenCalled()
 	})
@@ -61,7 +62,7 @@ describe(`Internal.NotFoundError is thrown`, () => {
 				caught = thrown
 			}
 		}
-		expect(caught).toBeInstanceOf(Internal.NotFoundError)
+		expect(caught).toBeInstanceOf(NotFoundError)
 		expect(logger.warn).not.toHaveBeenCalled()
 		expect(logger.error).not.toHaveBeenCalled()
 	})
@@ -74,7 +75,7 @@ describe(`Internal.NotFoundError is thrown`, () => {
 				caught = thrown
 			}
 		}
-		expect(caught).toBeInstanceOf(Internal.NotFoundError)
+		expect(caught).toBeInstanceOf(NotFoundError)
 		expect(logger.warn).not.toHaveBeenCalled()
 		expect(logger.error).not.toHaveBeenCalled()
 	})

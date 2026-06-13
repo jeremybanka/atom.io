@@ -32,10 +32,10 @@ import type {
 	WritableSelectorToken,
 	WritableToken,
 } from "atom.io"
+import { NotFoundError } from "atom.io"
 import type { Canonical } from "atom.io/json"
 
 import type { Transceiver } from "../mutable/index.ts"
-import { NotFoundError } from "../not-found-error.ts"
 import type {
 	Atom,
 	AtomFamily,
@@ -249,5 +249,5 @@ export function withdraw(
 		}
 		target = target.child
 	}
-	throw new NotFoundError(token, store)
+	throw new NotFoundError(token, store.config.name)
 }

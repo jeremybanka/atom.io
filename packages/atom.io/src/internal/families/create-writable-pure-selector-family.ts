@@ -11,6 +11,7 @@ import type {
 	WritablePureSelectorToken,
 } from "atom.io"
 import { PRETTY_ENTITY_NAMES } from "atom.io"
+import { Subject } from "atom.io/foundations/subject"
 import type { Canonical } from "atom.io/json"
 import { stringifyJson } from "atom.io/json"
 
@@ -20,11 +21,10 @@ import {
 	getInternalRelationsFromStore,
 } from "../join/index.ts"
 import { newest } from "../lineage.ts"
-import { getJsonToken } from "../mutable/index.ts"
+import { getJsonTokenFromStore } from "../mutable/index.ts"
 import { createWritablePureSelector } from "../selector/index.ts"
 import type { WritablePureSelectorFamily } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
-import { Subject } from "../subject.ts"
 import type { RootStore } from "../transaction/index.ts"
 import { findInStore } from "./find-in-store.ts"
 
@@ -90,7 +90,7 @@ export function createWritablePureSelectorFamily<T, K extends Canonical, E>(
 					getFromStore(store, ...ps)) as typeof getState,
 				find: ((...ps: Parameters<typeof findState>) =>
 					findInStore(store, ...ps)) as typeof findState,
-				json: (token) => getJsonToken(store, token),
+				json: (token) => getJsonTokenFromStore(store, token),
 				relations: {
 					find: ((...ps: Parameters<typeof findRelations>) =>
 						findRelationsInStore(store, ...ps)) as typeof findRelations,

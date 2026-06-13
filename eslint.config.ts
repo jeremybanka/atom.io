@@ -28,16 +28,16 @@ const COMMON_RULES: Rules = {
 	"import/no-duplicates": ERROR,
 	"import/extensions": [
 		ERROR,
-		"never",
+		`never`,
 		{
 			checkTypeImports: true,
 			fix: true,
 			ignorePackages: true,
 			pattern: {
-				cts: "always",
-				mts: "always",
-				ts: "always",
-				tsx: "always",
+				cts: `always`,
+				mts: `always`,
+				ts: `always`,
+				tsx: `always`,
 			},
 		},
 	],
@@ -84,6 +84,18 @@ const NO_CONSOLE: Linter.Config = {
 	},
 }
 
+const PUBLIC_TESTS: Linter.Config = {
+	files: [`packages/atom.io/__tests__/public/**/*.ts{,x}`],
+	rules: {
+		"import/no-internal-modules": [
+			ERROR,
+			{
+				forbid: [`atom.io/internal`, `atom.io/internal/**`],
+			},
+		],
+	},
+}
+
 const STORYBOOK: Linter.Config = {
 	files: [`packages/atom.io/**/*.stories.ts{,x}`],
 	plugins: { storybook: StorybookPlugin as any as ESLint.Plugin },
@@ -118,4 +130,10 @@ const STORYBOOK: Linter.Config = {
 	},
 }
 
-export default [IGNORES, COMMON, NO_CONSOLE, STORYBOOK] satisfies Linter.Config[]
+export default [
+	IGNORES,
+	COMMON,
+	NO_CONSOLE,
+	PUBLIC_TESTS,
+	STORYBOOK,
+] satisfies Linter.Config[]

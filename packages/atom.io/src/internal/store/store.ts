@@ -8,6 +8,7 @@ import type {
 	TransactionToken,
 } from "atom.io"
 import { AtomIOLogger } from "atom.io"
+import { StatefulSubject, Subject } from "atom.io/foundations/subject"
 import type { Canonical, stringified } from "atom.io/json"
 
 import type { Join } from "../join/index.ts"
@@ -15,7 +16,7 @@ import { Junction } from "../junction.ts"
 import type { Lineage } from "../lineage.ts"
 import type { Molecule } from "../molecule.ts"
 import type { Tracker, Transceiver } from "../mutable/index.ts"
-import { getJsonToken, getUpdateToken } from "../mutable/index.ts"
+import { getJsonTokenFromStore, getUpdateToken } from "../mutable/index.ts"
 import type { OperationProgress } from "../operation.ts"
 import { isReservedIntrospectionKey } from "../reserved-keys.ts"
 import type {
@@ -27,7 +28,6 @@ import type {
 	RegularAtomFamily,
 	WritableSelector,
 } from "../state-types.ts"
-import { StatefulSubject, Subject } from "../subject.ts"
 import type { Timeline } from "../timeline/index.ts"
 import type {
 	ChildStore,
@@ -226,7 +226,7 @@ export class Store implements Lineage {
 				}
 				atom.install(this as RootStore)
 				if (atom.type === `mutable_atom`) {
-					const originalJsonToken = getJsonToken(store, atom)
+					const originalJsonToken = getJsonTokenFromStore(store, atom)
 					const originalUpdateToken = getUpdateToken(atom)
 					mutableHelpers.add(originalJsonToken.key)
 					mutableHelpers.add(originalUpdateToken.key)

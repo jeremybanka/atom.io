@@ -4,13 +4,13 @@ import type {
 	MutableAtomToken,
 	UpdateHandler,
 } from "atom.io"
+import { Subject } from "atom.io/foundations/subject"
 
 import { eldest, newest } from "../lineage.ts"
 import { createStandaloneSelector } from "../selector/index.ts"
 import { resetInStore, setIntoStore } from "../set-state/index.ts"
 import type { MutableAtom } from "../state-types.ts"
 import { deposit, type Store } from "../store/index.ts"
-import { Subject } from "../subject.ts"
 import { subscribeToState } from "../subscribe/index.ts"
 import type { RootStore } from "../transaction/index.ts"
 import { Tracker } from "./tracker.ts"

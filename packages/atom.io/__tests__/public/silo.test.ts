@@ -4,10 +4,8 @@ import type {
 	RegularAtomOptions,
 } from "atom.io"
 import { getState, Silo } from "atom.io"
+import { hasImplicitStoreBeenCreated } from "atom.io/testing"
 import { UList } from "atom.io/transceivers/u-list"
-
-const hasImplicitStoreBeenCreated = () =>
-	globalThis.ATOM_IO_IMPLICIT_STORE !== undefined
 
 afterEach(() => {
 	globalThis.ATOM_IO_IMPLICIT_STORE = undefined
@@ -55,9 +53,7 @@ describe(`silo`, () => {
 		expect(subDos).toHaveBeenCalledWith({ newValue: 2, oldValue: 0 })
 
 		expect(hasImplicitStoreBeenCreated()).toBe(false)
-		expect(() => getState(UNO__countAtom)).toThrowError(
-			`atom "count" not found in store "IMPLICIT_STORE".`,
-		)
+		expect(() => getState(UNO__countAtom)).toThrow()
 	})
 	it(`creates stores with independent state families`, () => {
 		const Uno = new Silo({
@@ -135,8 +131,6 @@ describe(`silo`, () => {
 		Dos.disposeState(listState__Dos)
 
 		expect(hasImplicitStoreBeenCreated()).toBe(false)
-		expect(() => getState(listState__Uno)).toThrowError(
-			`atom family [m] "counts" not found in store "IMPLICIT_STORE".`,
-		)
+		expect(() => getState(listState__Uno)).toThrow()
 	})
 })

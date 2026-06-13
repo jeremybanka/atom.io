@@ -57,6 +57,20 @@ export type TransactionToken<F extends Fn> = {
 	__F?: F
 }
 
+export type TokenType<
+	Comparison extends
+		| ReadableFamilyToken<any, any, any>
+		| ReadableToken<any, any, any>
+		| TransactionToken<any>,
+> =
+	Comparison extends ReadableToken<infer RepresentedValue>
+		? RepresentedValue
+		: Comparison extends ReadableFamilyToken<infer RepresentedValue, any>
+			? RepresentedValue
+			: Comparison extends TransactionToken<infer TokenFn>
+				? TokenFn
+				: never
+
 export type AtomToken<T, K extends Canonical = any, E = never> =
 	| MutableAtomToken<T extends Transceiver<any, any, any> ? T : never, K>
 	| RegularAtomToken<T, K, E>

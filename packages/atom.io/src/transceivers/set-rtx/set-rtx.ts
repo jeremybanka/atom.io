@@ -1,5 +1,5 @@
+import { Subject } from "atom.io/foundations/subject"
 import type { Lineage, Transceiver, TransceiverMode } from "atom.io/internal"
-import { Subject } from "atom.io/internal"
 import type { Json, primitive } from "atom.io/json"
 import { stringifyJson } from "atom.io/json"
 
@@ -25,6 +25,10 @@ export interface SetRTXJson<P extends primitive> extends Json.Object {
 	cacheIdx: number
 	cacheUpdateNumber: number
 }
+
+/**
+ * @deprecated `SetRTX` is deprecated and will be removed in a future major version.
+ */
 export class SetRTX<P extends primitive>
 	extends Set<P>
 	implements

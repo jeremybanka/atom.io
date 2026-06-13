@@ -4,6 +4,15 @@ import { UList } from "atom.io/transceivers/u-list"
 
 import * as U from "../../__util__/index.ts"
 
+function handleUnpacked<P extends primitive>(
+	list: UList<P>,
+	handler: (update: SetUpdate<P>) => void,
+): void {
+	list.subscribe(`unpack`, (update) => {
+		handler(UList.unpackUpdate(update))
+	})
+}
+
 beforeEach(() => {
 	console.warn = () => undefined
 	vitest.spyOn(console, `warn`).mockReset()
@@ -33,54 +42,48 @@ describe(`UList`, () => {
 	describe(`observe`, () => {
 		it(`emits add - strings`, () => {
 			const ul = new UList()
-			U.handleBytes(ul.subject, U.stdout)
+			handleUnpacked(ul, U.stdout)
 			ul.add(`z`)
-			expect(U.stdout).toHaveBeenCalledExactlyOnceWith(48, 31, 3, 122)
+			expect(U.stdout).toHaveBeenCalledExactlyOnceWith({
+				type: `add`,
+				value: `z`,
+			})
 		})
 		it(`emits add - null`, () => {
 			const ul = new UList()
-			U.handleBytes(ul.subject, U.stdout)
+			handleUnpacked(ul, U.stdout)
 			ul.add(null)
-			// null doesn't need a value, just a type
-			expect(U.stdout).toHaveBeenCalledExactlyOnceWith(48, 31, 2)
+			expect(U.stdout).toHaveBeenCalledExactlyOnceWith({
+				type: `add`,
+				value: null,
+			})
 		})
 		it(`emits delete - booleans`, () => {
 			const ul = new UList([true, false])
-			U.handleBytes(ul.subject, U.stdout)
+			handleUnpacked(ul, U.stdout)
 			ul.delete(false)
-			expect(U.stdout).toHaveBeenCalledExactlyOnceWith(49, 31, 1, 48)
+			expect(U.stdout).toHaveBeenCalledExactlyOnceWith({
+				type: `delete`,
+				value: false,
+			})
 		})
 		it(`emits delete - numbers`, () => {
 			const ul = new UList([13563])
-			U.handleBytes(ul.subject, U.stdout)
+			handleUnpacked(ul, U.stdout)
 			ul.delete(13563)
-			expect(U.stdout).toHaveBeenCalledExactlyOnceWith(
-				49,
-				31,
-				4,
-				49, // 1
-				51, // 3
-				53, // 5
-				54, // 6
-				51, // 3
-			)
+			expect(U.stdout).toHaveBeenCalledExactlyOnceWith({
+				type: `delete`,
+				value: 13563,
+			})
 		})
 		it(`emits clear`, () => {
 			const ul = new UList([1, 2, 3])
-			U.handleBytes(ul.subject, U.stdout)
+			handleUnpacked(ul, U.stdout)
 			ul.clear()
-			expect(U.stdout).toHaveBeenCalledExactlyOnceWith(
-				50, // "2" -- means clear
-				31, // "US" -- unit separator, used to separate the method from the data
-				4, // "EOT" -- originally, "end of transmission" but here means "number"
-				49, // "1" -- the first value
-				30, // "RS" -- record separator, used to separate data from each other
-				4, // "number"
-				50, // "2"
-				30, // ","
-				4, // "number"
-				51, // "3"
-			)
+			expect(U.stdout).toHaveBeenCalledExactlyOnceWith({
+				type: `clear`,
+				values: [1, 2, 3],
+			})
 		})
 		it(`should return a function that unsubscribes`, () => {
 			const ul = new UList()

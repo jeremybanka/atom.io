@@ -1,4 +1,4 @@
-import type { Logger, TransactionOutcomeEvent } from "atom.io"
+import type { TransactionOutcomeEvent } from "atom.io"
 import {
 	atom,
 	atomFamily,
@@ -12,23 +12,17 @@ import {
 	subscribe,
 	transaction,
 } from "atom.io"
-import * as Internal from "atom.io/internal"
+import { setTestLogLevel, stateExists, takeSnapshot } from "atom.io/testing"
 import { UList } from "atom.io/transceivers/u-list"
 import { vitest } from "vitest"
 
 import * as Utils from "../__util__/index.ts"
 
-const LOG_LEVELS = [null, `error`, `warn`, `info`] as const
-const CHOOSE = 2
-let logger: Logger
+const { restore } = takeSnapshot()
 
 beforeEach(() => {
-	Internal.clearStore(Internal.IMPLICIT.STORE)
-	Internal.IMPLICIT.STORE.loggers[0].logLevel = LOG_LEVELS[CHOOSE]
-	logger = Internal.IMPLICIT.STORE.logger = Utils.createNullLogger()
-	vitest.spyOn(logger, `error`)
-	vitest.spyOn(logger, `warn`)
-	vitest.spyOn(logger, `info`)
+	restore()
+	setTestLogLevel(null)
 	vitest.spyOn(Utils, `stdout0`)
 	vitest.spyOn(Utils, `stdout1`)
 	vitest.spyOn(Utils, `stdout2`)
@@ -141,12 +135,8 @@ describe(`transaction`, () => {
 		findState(countAtoms, `my-key`)
 		findState(doubleSelectors, `my-key`)
 		runTransaction(incrementTX)()
-		expect(
-			Internal.seekInStore(Internal.IMPLICIT.STORE, countAtoms, `my-key`),
-		).toBeUndefined()
-		expect(
-			Internal.seekInStore(Internal.IMPLICIT.STORE, doubleSelectors, `my-key`),
-		).toBeUndefined()
+		expect(stateExists(countAtoms, `my-key`)).toBe(false)
+		expect(stateExists(doubleSelectors, `my-key`)).toBe(false)
 	})
 	test(`run transaction throws if the transaction doesn't exist`, () => {
 		expect(runTransaction({ key: `nonexistent`, type: `transaction` })).toThrow()
@@ -177,19 +167,9 @@ describe(`transaction`, () => {
 			},
 		})
 
-		subscribe(setAllCounts, ({ id, timestamp, ...data }) => {
-			const redacted = {
-				...data,
-				subEvents: data.subEvents.map((update) => {
-					if (update.type === `atom_update`) {
-						const { timestamp: _, ...redactedAtomUpdateEvent } = update
-						return redactedAtomUpdateEvent
-					}
-					return update
-				}),
-			}
-			Utils.stdout0(`Transaction update:`, redacted)
-			for (const update of redacted.subEvents) {
+		subscribe(setAllCounts, (data) => {
+			Utils.stdout0(`Transaction update:`, data)
+			for (const update of data.subEvents) {
 				Utils.stdout1(`Atom update:`, update)
 			}
 		})
@@ -208,40 +188,47 @@ describe(`transaction`, () => {
 			oldValue: 5,
 			newValue: 6,
 		})
-		expect(Utils.stdout0).toHaveBeenCalledWith(`Transaction update:`, {
-			type: `transaction_outcome`,
-			token: {
-				key: `setAllCounts`,
-				type: `transaction`,
-			},
-			epoch: Number.NaN,
-			params: [3],
-			output: undefined,
-			subEvents: [
-				{
-					type: `atom_update`,
-					token: {
-						type: `atom`,
-						key: `count1`,
-					},
-					update: {
-						oldValue: 2,
-						newValue: 3,
-					},
-				},
-				{
-					type: `atom_update`,
-					token: {
-						type: `atom`,
-						key: `count2`,
-					},
-					update: {
-						oldValue: 2,
-						newValue: 3,
-					},
-				},
-			],
-		})
+		expect(Utils.stdout0).toHaveBeenCalledWith(
+			`Transaction update:`,
+			expect.objectContaining({
+				type: `transaction_outcome`,
+				token: expect.objectContaining({
+					key: `setAllCounts`,
+					type: `transaction`,
+				}),
+				id: expect.any(String),
+				epoch: expect.any(Number),
+				timestamp: expect.any(Number),
+				params: [3],
+				output: undefined,
+				subEvents: [
+					expect.objectContaining({
+						type: `atom_update`,
+						token: expect.objectContaining({
+							type: `atom`,
+							key: `count1`,
+						}),
+						timestamp: expect.any(Number),
+						update: {
+							oldValue: 2,
+							newValue: 3,
+						},
+					}),
+					expect.objectContaining({
+						type: `atom_update`,
+						token: expect.objectContaining({
+							type: `atom`,
+							key: `count2`,
+						}),
+						timestamp: expect.any(Number),
+						update: {
+							oldValue: 2,
+							newValue: 3,
+						},
+					}),
+				],
+			}),
+		)
 	})
 })
 
@@ -371,9 +358,7 @@ describe(`reversibility of transactions`, () => {
 			caught = thrown
 		}
 		expect(caught).toBeInstanceOf(Error)
-		expect(
-			Internal.seekInStore(Internal.IMPLICIT.STORE, countAtoms, `my-key`),
-		).toBeUndefined()
+		expect(stateExists(countAtoms, `my-key`)).toBe(false)
 	})
 	test(`a transaction that fails does does not dispose of a state`, () => {
 		const countAtoms = atomFamily<number, string>({
@@ -396,8 +381,6 @@ describe(`reversibility of transactions`, () => {
 			caught = thrown
 		}
 		expect(caught).toBeInstanceOf(Error)
-		expect(
-			Internal.seekInStore(Internal.IMPLICIT.STORE, countAtoms, `my-key`),
-		).toBeDefined()
+		expect(stateExists(countAtoms, `my-key`)).toBe(true)
 	})
 })

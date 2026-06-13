@@ -1,6 +1,10 @@
 import type * as AtomIO from "atom.io"
 import type { AsJSON, SignalFrom, Store, Transceiver } from "atom.io/internal"
-import { getJsonToken, getUpdateToken, setIntoStore } from "atom.io/internal"
+import {
+	getJsonTokenFromStore,
+	getUpdateToken,
+	setIntoStore,
+} from "atom.io/internal"
 import { employSocket, type Socket } from "atom.io/realtime"
 
 import { createSubscriber } from "./create-subscriber.ts"
@@ -10,7 +14,7 @@ export function pullMutableAtom<T extends Transceiver<any, any, any>>(
 	socket: Socket,
 	token: AtomIO.MutableAtomToken<T>,
 ): () => void {
-	const jsonToken = getJsonToken(store, token)
+	const jsonToken = getJsonTokenFromStore(store, token)
 	const updateToken = getUpdateToken(token)
 	return createSubscriber(socket, token.key, () => {
 		const stopWatchingForInit = employSocket(

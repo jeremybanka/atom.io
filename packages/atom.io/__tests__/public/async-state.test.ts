@@ -4,17 +4,16 @@ import * as http from "node:http"
 
 import type { Loadable } from "atom.io"
 import * as AtomIO from "atom.io"
-import * as Internal from "atom.io/internal"
 import { parseJson } from "atom.io/json"
+import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 
 import * as Utils from "../__util__/index.ts"
 
-const LOG_LEVELS = [null, `error`, `warn`, `info`] as const
-const CHOOSE = 0
+const { restore } = takeSnapshot()
 
 beforeEach(() => {
-	Internal.clearStore(Internal.IMPLICIT.STORE)
-	Internal.IMPLICIT.STORE.loggers[0].logLevel = LOG_LEVELS[CHOOSE]
+	restore()
+	setTestLogLevel(null)
 	vitest.spyOn(Utils, `stdout`).mockReset()
 })
 
@@ -31,7 +30,6 @@ describe(`async atom`, async () => {
 		AtomIO.setState(countAtom, getNumber())
 		const countValueInitial = AtomIO.getState(countAtom)
 		expect(countValueInitial).toBeInstanceOf(Promise)
-		expect(countValueInitial).toBeInstanceOf(Internal.Future)
 		const countValueAwaited = await AtomIO.getState(countAtom)
 		expect(countValueAwaited).toBe(1)
 		expect(Utils.stdout).toHaveBeenCalledTimes(2)
@@ -50,7 +48,6 @@ describe(`async atom`, async () => {
 		AtomIO.setState(countAtom, getNumber())
 		const countValueInitial = AtomIO.getState(countAtom)
 		expect(countValueInitial).toBeInstanceOf(Promise)
-		expect(countValueInitial).toBeInstanceOf(Internal.Future)
 
 		expect(Utils.stdout).toHaveBeenCalledTimes(1)
 	})
@@ -208,7 +205,6 @@ describe(`async selector`, () => {
 		})
 		const quotient0 = getState(quotientSelector)
 		expect(quotient0).toBeInstanceOf(Promise)
-		expect(quotient0).toBeInstanceOf(Internal.Future)
 
 		const quotient1 = await getState(quotientSelector)
 
@@ -238,7 +234,7 @@ describe(`downstream from async`, () => {
 			},
 		})
 		const countLoadable = AtomIO.getState(countAtom)
-		expect(countLoadable).toBeInstanceOf(Internal.Future)
+		expect(countLoadable).toBeInstanceOf(Promise)
 
 		expect(AtomIO.getState(typeSelector)).toBe(`object`)
 
@@ -268,7 +264,7 @@ describe(`downstream from async`, () => {
 		})
 
 		const doubledLoadable = AtomIO.getState(doubledSelector)
-		expect(doubledLoadable).toBeInstanceOf(Internal.Future)
+		expect(doubledLoadable).toBeInstanceOf(Promise)
 		expect(AtomIO.getState(typeSelector)).toBe(`object`)
 
 		const doubled = await doubledLoadable
@@ -336,57 +332,52 @@ describe(`downstream from async`, () => {
 			Utils.stdout({ newValue, oldValue })
 		})
 
-		expect(AtomIO.getState(indexAtoms, 0)).toBeInstanceOf(Internal.Future)
-		expect(AtomIO.getState(itemAtoms, 1)).toBeInstanceOf(Internal.Future)
-		expect(AtomIO.getState(itemAtoms, 2)).toBeInstanceOf(Internal.Future)
-		expect(AtomIO.getState(itemAtoms, 3)).toBeInstanceOf(Internal.Future)
-		expect(AtomIO.getState(allItemsSelector)).toBeInstanceOf(Internal.Future)
+		expect(AtomIO.getState(indexAtoms, 0)).toBeInstanceOf(Promise)
+		expect(AtomIO.getState(itemAtoms, 1)).toBeInstanceOf(Promise)
+		expect(AtomIO.getState(itemAtoms, 2)).toBeInstanceOf(Promise)
+		expect(AtomIO.getState(itemAtoms, 3)).toBeInstanceOf(Promise)
+		expect(AtomIO.getState(allItemsSelector)).toBeInstanceOf(Promise)
 		loadIndex[0]()
 		await new Promise((resolve) => setImmediate(resolve))
 		expect(AtomIO.getState(indexAtoms, 0)).toEqual([1, 2, 3])
-		expect(AtomIO.getState(itemAtoms, 1)).toBeInstanceOf(Internal.Future)
-		expect(AtomIO.getState(itemAtoms, 2)).toBeInstanceOf(Internal.Future)
-		expect(AtomIO.getState(itemAtoms, 3)).toBeInstanceOf(Internal.Future)
-		expect(AtomIO.getState(allItemsSelector)).toBeInstanceOf(Internal.Future)
+		expect(AtomIO.getState(itemAtoms, 1)).toBeInstanceOf(Promise)
+		expect(AtomIO.getState(itemAtoms, 2)).toBeInstanceOf(Promise)
+		expect(AtomIO.getState(itemAtoms, 3)).toBeInstanceOf(Promise)
+		expect(AtomIO.getState(allItemsSelector)).toBeInstanceOf(Promise)
 		loadItems[1]()
 		await new Promise((resolve) => setImmediate(resolve))
 		expect(AtomIO.getState(indexAtoms, 0)).toEqual([1, 2, 3])
 		expect(AtomIO.getState(itemAtoms, 1)).toEqual({ data: `1`.repeat(3) })
-		expect(AtomIO.getState(itemAtoms, 2)).toBeInstanceOf(Internal.Future)
-		expect(AtomIO.getState(itemAtoms, 3)).toBeInstanceOf(Internal.Future)
-		expect(AtomIO.getState(allItemsSelector)).toBeInstanceOf(Internal.Future)
+		expect(AtomIO.getState(itemAtoms, 2)).toBeInstanceOf(Promise)
+		expect(AtomIO.getState(itemAtoms, 3)).toBeInstanceOf(Promise)
+		expect(AtomIO.getState(allItemsSelector)).toBeInstanceOf(Promise)
 		loadItems[2]()
 		await new Promise((resolve) => setImmediate(resolve))
 		expect(AtomIO.getState(indexAtoms, 0)).toEqual([1, 2, 3])
 		expect(AtomIO.getState(itemAtoms, 1)).toEqual({ data: `1`.repeat(3) })
 		expect(AtomIO.getState(itemAtoms, 2)).toEqual({ data: `2`.repeat(3) })
-		expect(AtomIO.getState(itemAtoms, 3)).toBeInstanceOf(Internal.Future)
-		expect(AtomIO.getState(allItemsSelector)).toBeInstanceOf(Internal.Future)
+		expect(AtomIO.getState(itemAtoms, 3)).toBeInstanceOf(Promise)
+		expect(AtomIO.getState(allItemsSelector)).toBeInstanceOf(Promise)
 		loadItems[3]()
 		await new Promise((resolve) => setImmediate(resolve))
 		expect(AtomIO.getState(indexAtoms, 0)).toEqual([1, 2, 3])
 		expect(AtomIO.getState(itemAtoms, 1)).toEqual({ data: `1`.repeat(3) })
 		expect(AtomIO.getState(itemAtoms, 2)).toEqual({ data: `2`.repeat(3) })
 		expect(AtomIO.getState(itemAtoms, 3)).toEqual({ data: `3`.repeat(3) })
-		expect(AtomIO.getState(allItemsSelector)).toBeInstanceOf(Internal.Future)
+		expect(AtomIO.getState(allItemsSelector)).toBeInstanceOf(Promise)
 		loadOrgId(0)
 
 		AtomIO.resetState(indexAtoms, 0)
 		AtomIO.resetState(itemAtoms, 1)
-		expect(AtomIO.getState(indexAtoms, 0)).toBeInstanceOf(Internal.Future)
-		expect(AtomIO.getState(itemAtoms, 1)).toBeInstanceOf(Internal.Future)
+		expect(AtomIO.getState(indexAtoms, 0)).toBeInstanceOf(Promise)
+		expect(AtomIO.getState(itemAtoms, 1)).toBeInstanceOf(Promise)
 		expect(AtomIO.getState(itemAtoms, 2)).toEqual({ data: `2`.repeat(3) })
 		expect(AtomIO.getState(itemAtoms, 3)).toEqual({ data: `3`.repeat(3) })
-		expect(AtomIO.getState(allItemsSelector)).toBeInstanceOf(Internal.Future)
+		expect(AtomIO.getState(allItemsSelector)).toBeInstanceOf(Promise)
 
 		loadIndex[0]()
 		loadItems[1]()
 		await new Promise((resolve) => setImmediate(resolve))
-		// console.log(Internal.IMPLICIT.STORE.valueMap)
-		const allItemsValue = Internal.IMPLICIT.STORE.valueMap.get(
-			allItemsSelector.key,
-		)
-		// console.log(allItemsValue[`fate`] === allItemsValue)
 		expect(AtomIO.getState(indexAtoms, 0)).toEqual([1, 2, 3])
 		expect(AtomIO.getState(itemAtoms, 1)).toEqual({ data: `1`.repeat(3) })
 		expect(AtomIO.getState(itemAtoms, 2)).toEqual({ data: `2`.repeat(3) })

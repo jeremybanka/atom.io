@@ -59,9 +59,10 @@ These may be real behavior, but they are expensive promises.
       [transaction.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/transaction.test.ts:336) accepted; `336-346`
       Decision: keep exact membership here. Transaction outcome `subEvents` are public callback payload, and consumers can reasonably rely on transaction boundaries excluding unrelated state updates.
 
-- [ ] Selector evaluation/subscription invalidation counts are frozen:
-      [atom-selector.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/atom-selector.test.ts:223) `223`, `227`, `233`, `240`
-      [atom-selector.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/atom-selector.test.ts:301) `301`, `305`, `308`, `311`
+- [x] Selector evaluation/subscription invalidation counts are frozen:
+      [atom-selector.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/atom-selector.test.ts:223) accepted with explanatory comments; formerly `223`, `227`, `233`, `240`
+      [atom-selector.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/atom-selector.test.ts:304) accepted with explanatory comments; formerly `301`, `305`, `308`, `311`
+      Decision: keep these assertions. They describe public selector semantics: lazy initial evaluation, eager recomputation while subscribed, conditional dependency tracking, and dropping stale roots.
 
 - [ ] Timeline cursor/history behavior is asserted as exact `at`/`length` values, including erasing future history:
       [react-hooks.test.tsx](/home/jem/atom.io/packages/atom.io/__tests__/public/react-hooks.test.tsx:202) `202-226`, `238-247`, `351-366`

@@ -224,12 +224,16 @@ describe(`selector`, () => {
 		const unsubscribe = subscribe(trackedCountSelector, Utils.stdout)
 		expect(getState(trackedCountSelector)).toBe(null)
 		setState(countIsTrackedAtom, true)
+		// Subscribed selectors recompute when their current roots change
+		// This selector was uninitialized and needed to do its initial evaluation, thus two calls
+		// 📍 #66 consider dropping initial evaluation for selectors before 1.0
 		expect(Utils.stdout0).toHaveBeenCalledTimes(2)
 		expect(Utils.stdout).toHaveBeenCalledWith({
 			newValue: 0,
 			oldValue: null,
 		})
 		setState(countAtom, 1)
+		// The selector starts tracking countAtom only after that branch is read.
 		expect(Utils.stdout0).toHaveBeenCalledTimes(3)
 		expect(Utils.stdout).toHaveBeenCalledWith({
 			newValue: 1,
@@ -237,6 +241,7 @@ describe(`selector`, () => {
 		})
 		unsubscribe()
 		setState(countAtom, 2)
+		// Unsubscribed selectors stay lazy until they are read again.
 		expect(Utils.stdout0).toHaveBeenCalledTimes(3)
 	})
 	it(`(covers "covered" in trace-selector-atoms) won't trace the same node twice`, () => {
@@ -298,6 +303,7 @@ describe(`selector`, () => {
 
 		getState(myDivergentSelector)
 
+		// The initial read tracks fallbackAtom and countAtom.
 		expect(Utils.stdout).toHaveBeenCalledTimes(1)
 
 		setState(countAtom, 1)
@@ -305,9 +311,11 @@ describe(`selector`, () => {
 		expect(Utils.stdout).toHaveBeenCalledTimes(2)
 		setState(fallbackAtom, 10)
 		getState(myDivergentSelector)
+		// Reading the fallback branch replaces the selector's root dependencies.
 		expect(Utils.stdout).toHaveBeenCalledTimes(3)
 		setState(countAtom, 2)
 		getState(myDivergentSelector)
+		// countAtom is no longer a root, so changing it does not invalidate the cache.
 		expect(Utils.stdout).toHaveBeenCalledTimes(3)
 	})
 })

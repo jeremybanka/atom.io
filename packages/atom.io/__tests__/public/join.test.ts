@@ -329,9 +329,20 @@ describe(`some practical use cases`, () => {
 			isBType: (input): input is `1` | `2` | `3` =>
 				[`1`, `2`, `3`].includes(input),
 		})
-		const [membersOfGroupsAtoms] = getInternalRelations(membersOfGroups, `split`)
-		expect(membersOfGroupsAtoms.key).toEqual(`membersOfGroups/relatedKeys`)
-		expect(membersOfGroupsAtoms.type).toEqual(`mutable_atom_family`)
+		const [userKeysOfGroups, groupKeysOfUsers] = getInternalRelations(
+			membersOfGroups,
+			`split`,
+		)
+		editRelations(membersOfGroups, (relations) => {
+			relations.set(`a`, `1`)
+			relations.set(`a`, `2`)
+			relations.set(`b`, `3`)
+		})
+
+		expect([...getState(userKeysOfGroups, `a`)]).toEqual([`1`, `2`])
+		expect([...getState(userKeysOfGroups, `b`)]).toEqual([`3`])
+		expect([...getState(groupKeysOfUsers, `1`)]).toEqual([`a`])
+		expect([...getState(groupKeysOfUsers, `3`)]).toEqual([`b`])
 	})
 })
 

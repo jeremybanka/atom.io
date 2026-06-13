@@ -19,9 +19,11 @@ These look like implementation details with little consumer-facing value.
       [async-state.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/async-state.test.ts:33) resolved; formerly `34`, `53`, `211`, `241`, `271`, `339-343`, `347-350`, `355-357`, `363-364`, `371`, `376-380`
       Decision: async loadable values should be public-tested as `Promise` instances, not as the concrete `Internal.Future` wrapper.
 
-- [ ] Internal relation/token names are frozen:
-      [join.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/join.test.ts:331) `331-333`
-      [validators.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/validators.test.ts:40) `40-46`, `53-56`
+- [x] Internal relation/token names are frozen:
+      [join.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/join.test.ts:322) resolved; formerly `331-333`
+      Decision: `getInternalRelations` may expose relation-family tokens, but public tests should use them through state APIs rather than assert generated token key text.
+      [validators.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/validators.test.ts:40) removed; formerly `40-46`, `53-56`
+      Decision: `isToken` and `belongsTo` were unused validator helpers, so the public validators module and test were removed.
 
 - [ ] Transceiver wire encodings are frozen byte-for-byte/string-for-string:
       [u-list.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/u-list.test.ts:38) `38`, `45`, `51`, `57-80`

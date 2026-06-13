@@ -154,6 +154,14 @@
 			"import": "./dist/foundations/future/index.js",
 			"types": "./dist/foundations/future/index.d.ts"
 		},
+		"./foundations/junction": {
+			"import": "./dist/foundations/junction/index.js",
+			"types": "./dist/foundations/junction/index.d.ts"
+		},
+		"./foundations/overlays": {
+			"import": "./dist/foundations/overlays/index.js",
+			"types": "./dist/foundations/overlays/index.d.ts"
+		},
 		"./foundations/subject": {
 			"import": "./dist/foundations/subject/index.js",
 			"types": "./dist/foundations/subject/index.d.ts"

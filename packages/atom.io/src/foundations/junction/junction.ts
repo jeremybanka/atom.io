@@ -1,7 +1,11 @@
+import {
+	MapOverlay,
+	RelationsOverlay,
+	SetOverlay,
+} from "atom.io/foundations/overlays"
 import type { Json } from "atom.io/json"
 
-import { MapOverlay, RelationsOverlay, SetOverlay } from "./overlays/index.ts"
-import type { Refinement } from "./utility-types.ts"
+export type Refinement<A, B extends A> = (a: A) => a is B
 
 export type JunctionEntriesBase<
 	A extends string,

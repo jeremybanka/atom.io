@@ -1,4 +1,4 @@
-import { MapOverlay, SetOverlay } from "atom.io/internal"
+import { MapOverlay, SetOverlay } from "atom.io/foundations/overlays"
 
 describe(`MapOverlay`, () => {
 	test(`constructor: binds source, starts empty overlay/deleted/changed; size reflects source`, () => {

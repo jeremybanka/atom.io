@@ -1,11 +1,11 @@
 import type { MutableAtomFamilyToken, ReadonlyPureSelectorToken } from "atom.io"
 import type {
-	Flat,
 	Junction,
 	JunctionEntriesBase,
 	JunctionSchemaBase,
 	Refinement,
-} from "atom.io/internal"
+} from "atom.io/foundations/junction"
+import type { Flat } from "atom.io/internal"
 import {
 	createJoin,
 	editRelationsInStore,

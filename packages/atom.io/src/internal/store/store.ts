@@ -8,11 +8,11 @@ import type {
 	TransactionToken,
 } from "atom.io"
 import { AtomIOLogger } from "atom.io"
+import { Junction } from "atom.io/foundations/junction"
 import { StatefulSubject, Subject } from "atom.io/foundations/subject"
 import type { Canonical, stringified } from "atom.io/json"
 
 import type { Join } from "../join/index.ts"
-import { Junction } from "../junction.ts"
 import type { Lineage } from "../lineage.ts"
 import type { Molecule } from "../molecule.ts"
 import type { Tracker, Transceiver } from "../mutable/index.ts"

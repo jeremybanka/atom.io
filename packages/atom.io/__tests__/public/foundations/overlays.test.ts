@@ -131,6 +131,7 @@ describe(`MapOverlay`, () => {
 	})
 
 	test(`[Symbol.iterator]: overlay entries first (in insertion order) then source minus deleted/changed`, () => {
+		//📍 Revisit whether source entries should precede overlay entries before formally stabilizing overlays.
 		const source = new Map<string, number>([
 			[`a`, 1],
 			[`b`, 2],
@@ -159,6 +160,7 @@ describe(`MapOverlay`, () => {
 	})
 
 	test(`keys(): overlay keys first, then source keys excluding deleted/changed`, () => {
+		//📍 Revisit whether source entries should precede overlay entries before formally stabilizing overlays.
 		const source = new Map<string, number>([
 			[`a`, 1],
 			[`b`, 2],
@@ -177,6 +179,7 @@ describe(`MapOverlay`, () => {
 	})
 
 	test(`values(): follows [Symbol.iterator]() order`, () => {
+		//📍 Revisit whether source entries should precede overlay entries before formally stabilizing overlays.
 		const source = new Map<string, number>([
 			[`a`, 1],
 			[`b`, 2],
@@ -384,6 +387,7 @@ describe(`SetOverlay`, () => {
 	})
 
 	test(`[Symbol.iterator]: yields overlay first (in insertion order), then source not deleted`, () => {
+		//📍 Revisit whether source entries should precede overlay entries before formally stabilizing overlays.
 		const source = new Set([`a`, `b`, `c`])
 		const o = new SetOverlay<string>(source)
 

@@ -1,6 +1,6 @@
 import type { TimelineToken } from "atom.io"
 import { clearTimeline, redo, undo } from "atom.io"
-import { subscribeToTimeline, withdraw } from "atom.io/internal"
+import { inspectTimelineInStore, subscribeToTimeline } from "atom.io/internal"
 import { useContext, useId, useRef, useSyncExternalStore } from "react"
 
 import { StoreContext } from "./store-context.tsx"
@@ -16,12 +16,12 @@ export type TimelineMeta = {
 export function useTL(token: TimelineToken<any>): TimelineMeta {
 	const store = useContext(StoreContext)
 	const id = useId()
-	const timeline = withdraw(store, token)
 	const tokenRef = useRef(token)
 	const rebuildMeta = () => {
+		const { at, length } = inspectTimelineInStore(store, token)
 		return {
-			at: timeline.at,
-			length: timeline.history.length,
+			at,
+			length,
 			undo: () => {
 				undo(token)
 			},
@@ -35,9 +35,10 @@ export function useTL(token: TimelineToken<any>): TimelineMeta {
 	}
 	const meta = useRef<TimelineMeta>(rebuildMeta())
 	const retrieve = () => {
+		const { at, length } = inspectTimelineInStore(store, token)
 		if (
-			meta.current.at !== timeline?.at ||
-			meta.current.length !== timeline?.history.length ||
+			meta.current.at !== at ||
+			meta.current.length !== length ||
 			tokenRef.current !== token
 		) {
 			tokenRef.current = token

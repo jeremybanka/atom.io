@@ -1,6 +1,10 @@
 import type { TimelineToken } from "atom.io"
 import { clearTimeline, redo, undo } from "atom.io"
-import { arbitrary, subscribeToTimeline, withdraw } from "atom.io/internal"
+import {
+	arbitrary,
+	inspectTimelineInStore,
+	subscribeToTimeline,
+} from "atom.io/internal"
 import { useContext } from "solid-js"
 
 import { StoreContext } from "./store-context.ts"
@@ -18,10 +22,10 @@ export function useTL(token: TimelineToken<any>): () => TimelineMeta {
 	const store = useContext(StoreContext)
 	const id = arbitrary()
 	const getSnapshot = (): TimelineMeta => {
-		const timeline = withdraw(store, token)
+		const { at, length } = inspectTimelineInStore(store, token)
 		return {
-			at: timeline.at,
-			length: timeline.history.length,
+			at,
+			length,
 			undo: () => {
 				undo(token)
 			},

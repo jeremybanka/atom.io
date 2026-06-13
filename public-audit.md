@@ -5,14 +5,15 @@ Checklist convention: `- [x]` means Decision Made.
 **1. Baggage**
 These look like implementation details with little consumer-facing value.
 
-- [ ] Internal store layout is asserted directly in public tests:
+- [x] Internal store layout is asserted directly in public tests:
   - [x] [disposal.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/disposal.test.ts:55) resolved; formerly `55-56`, `89-99`, `155-158`, `183-186`, `210-212`
         Decision: public tests should assert whether a state exists or has been released via `atom.io/testing`, not by probing store maps directly.
   - [x] [transaction.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/transaction.test.ts:144) resolved; formerly `144-149`, `374-376`, `399-401`
         Decision: same as `disposal.test.ts`; transaction rollback tests should assert state existence through `atom.io/testing`.
-  - [ ] [timeline.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/timeline.test.ts:132) remaining `132-138`, `258`, `293-320`, `377-392`
-        [x] State lifecycle existence checks resolved; formerly `412-420`.
-  - [ ] [join.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/join.test.ts:217) `217`
+  - [x] [timeline.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/timeline.test.ts:133) resolved; formerly `132-138`, `258`, `293-320`, `377-392`, `412-420`
+        Decision: timeline history/cursor assertions should use `timelineState`, and state lifecycle checks should use `stateExists`.
+  - [x] [join.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/join.test.ts:218) resolved; formerly `217`
+        Decision: failed relation transactions should assert retained state values through `storeHasStateValues`, not by naming the value map.
 
 - [ ] `Internal.Future` is promised as the concrete async wrapper:
       [async-state.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/async-state.test.ts:34) `34`, `53`, `211`, `241`, `271`, `339-343`, `347-350`, `355-357`, `363-364`, `371`, `376-380`

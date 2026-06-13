@@ -22,7 +22,7 @@ import {
 	getInternalRelationsFromStore,
 } from "../join/index.ts"
 import { newest } from "../lineage.ts"
-import { getJsonToken } from "../mutable/index.ts"
+import { getJsonTokenFromStore } from "../mutable/index.ts"
 import { JOIN_OP, operateOnStore } from "../set-state/operate-on-store.ts"
 import type { Store } from "../store/index.ts"
 import { withdraw } from "../store/index.ts"
@@ -92,7 +92,7 @@ export function registerSelector(
 		}) as typeof setState,
 		find: ((...args: Parameters<typeof findState>) =>
 			findInStore(store, ...args)) as typeof findState,
-		json: (token) => getJsonToken(store, token),
+		json: (token) => getJsonTokenFromStore(store, token),
 		relations: {
 			edit: ((...ps: Parameters<typeof editRelations>) => {
 				editRelationsInStore(store, ...ps)

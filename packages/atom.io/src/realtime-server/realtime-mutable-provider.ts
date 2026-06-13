@@ -2,7 +2,7 @@ import type * as AtomIO from "atom.io"
 import type { Transceiver } from "atom.io/internal"
 import {
 	getFromStore,
-	getJsonToken,
+	getJsonTokenFromStore,
 	getUpdateToken,
 	IMPLICIT,
 	subscribeToState,
@@ -27,7 +27,7 @@ export function realtimeMutableProvider({
 			subscriptions.clear()
 		}
 
-		const jsonToken = getJsonToken(store, token)
+		const jsonToken = getJsonTokenFromStore(store, token)
 		const trackerToken = getUpdateToken(token)
 
 		const start = () => {

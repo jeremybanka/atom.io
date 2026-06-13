@@ -1,6 +1,6 @@
 import type { MutableAtomFamilyToken, MutableAtomToken } from "atom.io"
 import type { AsJSON, Transceiver } from "atom.io/internal"
-import { findInStore, getJsonToken } from "atom.io/internal"
+import { findInStore, getJsonTokenFromStore } from "atom.io/internal"
 import type { Canonical, Json } from "atom.io/json"
 import { useContext } from "solid-js"
 
@@ -23,6 +23,6 @@ export function useJSON(
 	const store = useContext(StoreContext)
 	const stateToken: MutableAtomToken<any> =
 		token.type === `mutable_atom_family` ? findInStore(store, token, key) : token
-	const jsonToken = getJsonToken(store, stateToken)
+	const jsonToken = getJsonTokenFromStore(store, stateToken)
 	return useO(jsonToken)
 }

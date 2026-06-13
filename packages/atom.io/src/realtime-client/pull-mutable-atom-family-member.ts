@@ -2,7 +2,7 @@ import type * as AtomIO from "atom.io"
 import type { AsJSON, SignalFrom, Store, Transceiver } from "atom.io/internal"
 import {
 	findInStore,
-	getJsonToken,
+	getJsonTokenFromStore,
 	getUpdateToken,
 	setIntoStore,
 } from "atom.io/internal"
@@ -21,7 +21,7 @@ export function pullMutableAtomFamilyMember<
 	key: NoInfer<K>,
 ): () => void {
 	const token = findInStore(store, family, key)
-	const jsonToken = getJsonToken(store, token)
+	const jsonToken = getJsonTokenFromStore(store, token)
 	const trackerToken = getUpdateToken(token)
 	return createSubscriber(socket, token.key, () => {
 		const stopWatchingForInit = employSocket(

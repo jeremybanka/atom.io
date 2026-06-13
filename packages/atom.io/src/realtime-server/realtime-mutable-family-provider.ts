@@ -3,7 +3,7 @@ import type { Transceiver } from "atom.io/internal"
 import {
 	findInStore,
 	getFromStore,
-	getJsonToken,
+	getJsonTokenFromStore,
 	getUpdateToken,
 	IMPLICIT,
 	subscribeToState,
@@ -80,7 +80,7 @@ export function realtimeMutableFamilyProvider({
 		const exposeFamilyMembers = (subKey: K) => {
 			const token = findInStore(store, family, subKey)
 			getFromStore(store, token)
-			const jsonToken = getJsonToken(store, token)
+			const jsonToken = getJsonTokenFromStore(store, token)
 			const updateToken = getUpdateToken(token)
 			socket.emit(`init:${token.key}`, getFromStore(store, jsonToken))
 			familyMemberSubscriptions.set(

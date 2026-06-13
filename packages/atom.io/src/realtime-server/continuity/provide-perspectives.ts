@@ -2,7 +2,7 @@ import type { Store } from "atom.io/internal"
 import {
 	findInStore,
 	getFromStore,
-	getJsonToken,
+	getJsonTokenFromStore,
 	subscribeToState,
 } from "atom.io/internal"
 import type { ContinuityToken, Socket, UserKey } from "atom.io/realtime"
@@ -32,7 +32,9 @@ export function providePerspectives(
 					.filter((token) => !oldKeys?.includes(token.key))
 					.flatMap((token) => {
 						const resourceToken =
-							token.type === `mutable_atom` ? getJsonToken(store, token) : token
+							token.type === `mutable_atom`
+								? getJsonTokenFromStore(store, token)
+								: token
 						const resource = getFromStore(store, resourceToken)
 						return [resourceToken, resource]
 					})

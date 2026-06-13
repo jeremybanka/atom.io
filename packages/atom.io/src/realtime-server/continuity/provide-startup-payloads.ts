@@ -2,7 +2,7 @@ import type { Store } from "atom.io/internal"
 import {
 	findInStore,
 	getFromStore,
-	getJsonToken,
+	getJsonTokenFromStore,
 	isRootStore,
 } from "atom.io/internal"
 import type { Json } from "atom.io/json"
@@ -20,7 +20,7 @@ export function provideStartupPayloads(
 		const initialPayload: Json.Serializable[] = []
 		for (const atom of continuity.globals) {
 			const resourceToken =
-				atom.type === `mutable_atom` ? getJsonToken(store, atom) : atom
+				atom.type === `mutable_atom` ? getJsonTokenFromStore(store, atom) : atom
 			const resource = getFromStore(store, resourceToken)
 			initialPayload.push(resourceToken, resource)
 		}
@@ -36,7 +36,7 @@ export function provideStartupPayloads(
 			for (const visibleToken of userView) {
 				const resourceToken =
 					visibleToken.type === `mutable_atom`
-						? getJsonToken(store, visibleToken)
+						? getJsonTokenFromStore(store, visibleToken)
 						: visibleToken
 				const resource = getFromStore(store, resourceToken)
 

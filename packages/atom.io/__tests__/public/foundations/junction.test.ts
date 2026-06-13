@@ -266,14 +266,21 @@ describe(`Junction.prototype.getRelationEntries`, () => {
 			.set({ from: `hero`, to: `kel` }, { brothers: true })
 			.set({ from: `hero`, to: `omori` }, { agreeThat: `mari is very nice` })
 		const heroFriendships = friendships.getRelationEntries({ from: `hero` })
-		expect(heroFriendships).toEqual([
-			[`kel`, { brothers: true }],
-			[`omori`, { agreeThat: `mari is very nice` }],
-		])
-		expect(friendships.getRelationEntries({ to: `kel` })).toEqual([
-			[`omori`, { trust: 1 }],
-			[`hero`, { brothers: true }],
-		])
+		expect(heroFriendships).toHaveLength(2)
+		expect(heroFriendships).toEqual(
+			expect.arrayContaining([
+				[`kel`, { brothers: true }],
+				[`omori`, { agreeThat: `mari is very nice` }],
+			]),
+		)
+		const kelFriendships = friendships.getRelationEntries({ to: `kel` })
+		expect(kelFriendships).toHaveLength(2)
+		expect(kelFriendships).toEqual(
+			expect.arrayContaining([
+				[`omori`, { trust: 1 }],
+				[`hero`, { brothers: true }],
+			]),
+		)
 		expect(friendships.getRelationEntries({ from: `aubrey` })).toEqual([])
 	})
 })

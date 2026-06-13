@@ -174,19 +174,9 @@ describe(`transaction`, () => {
 			},
 		})
 
-		subscribe(setAllCounts, ({ id, timestamp, ...data }) => {
-			const redacted = {
-				...data,
-				subEvents: data.subEvents.map((update) => {
-					if (update.type === `atom_update`) {
-						const { timestamp: _, ...redactedAtomUpdateEvent } = update
-						return redactedAtomUpdateEvent
-					}
-					return update
-				}),
-			}
-			Utils.stdout0(`Transaction update:`, redacted)
-			for (const update of redacted.subEvents) {
+		subscribe(setAllCounts, (data) => {
+			Utils.stdout0(`Transaction update:`, data)
+			for (const update of data.subEvents) {
 				Utils.stdout1(`Atom update:`, update)
 			}
 		})
@@ -205,40 +195,47 @@ describe(`transaction`, () => {
 			oldValue: 5,
 			newValue: 6,
 		})
-		expect(Utils.stdout0).toHaveBeenCalledWith(`Transaction update:`, {
-			type: `transaction_outcome`,
-			token: {
-				key: `setAllCounts`,
-				type: `transaction`,
-			},
-			epoch: Number.NaN,
-			params: [3],
-			output: undefined,
-			subEvents: [
-				{
-					type: `atom_update`,
-					token: {
-						type: `atom`,
-						key: `count1`,
-					},
-					update: {
-						oldValue: 2,
-						newValue: 3,
-					},
-				},
-				{
-					type: `atom_update`,
-					token: {
-						type: `atom`,
-						key: `count2`,
-					},
-					update: {
-						oldValue: 2,
-						newValue: 3,
-					},
-				},
-			],
-		})
+		expect(Utils.stdout0).toHaveBeenCalledWith(
+			`Transaction update:`,
+			expect.objectContaining({
+				type: `transaction_outcome`,
+				token: expect.objectContaining({
+					key: `setAllCounts`,
+					type: `transaction`,
+				}),
+				id: expect.any(String),
+				epoch: expect.any(Number),
+				timestamp: expect.any(Number),
+				params: [3],
+				output: undefined,
+				subEvents: [
+					expect.objectContaining({
+						type: `atom_update`,
+						token: expect.objectContaining({
+							type: `atom`,
+							key: `count1`,
+						}),
+						timestamp: expect.any(Number),
+						update: {
+							oldValue: 2,
+							newValue: 3,
+						},
+					}),
+					expect.objectContaining({
+						type: `atom_update`,
+						token: expect.objectContaining({
+							type: `atom`,
+							key: `count2`,
+						}),
+						timestamp: expect.any(Number),
+						update: {
+							oldValue: 2,
+							newValue: 3,
+						},
+					}),
+				],
+			}),
+		)
 	})
 })
 

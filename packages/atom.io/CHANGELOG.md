@@ -1,5 +1,20 @@
 # atom.io
 
+## 0.48.0
+
+### Minor Changes
+
+- dc0d39b: Remove the unused token validator exports. Token `type` fields are now represented directly in the public token type definitions instead of through runtime validator helpers.
+
+### Patch Changes
+
+- dc0d39b: Add foundation submodules `atom.io/foundations/future` and `atom.io/foundations/subject`. `Future`, `Subject`, and `StatefulSubject` now live in those public homes and are no longer exported from `atom.io/internal`.
+- dc0d39b: Add `getJsonToken` for mutable atoms and mutable atom family members. It returns the writable selector token representing the mutable state's JSON form, matching `useJson` behavior in the core API.
+- dc0d39b: Expand `atom.io/testing` with public helpers for stable public-contract tests: `stateExists`, `stateExistsInStore`, `storeHasStateValues`, `hasImplicitStoreBeenCreated`, `setTestLogLevel`, and `takeSnapshot`. `takeSnapshot().restore()` now restores the implicit store in place so React and Solid contexts keep a stable store reference.
+- dc0d39b: Add `inspectTimeline(timelineToken)` to read a timeline's current `at` and `length` from core atom.io. React and Solid timeline hooks now use the same core inspection path.
+- dc0d39b: Mark `SetRTX` as deprecated. Its byte-level wire encoding tests moved out of the public contract, while `OList` and `UList` remain the supported mutable collection transceivers.
+- dc0d39b: Expose `NotFoundError` from `atom.io` and stop re-exporting it from `atom.io/internal`.
+
 ## 0.47.4
 
 ### Patch Changes

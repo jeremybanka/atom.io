@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.0.19
+
+### Patch Changes
+
+- Updated dependencies [dc0d39b]
+- Updated dependencies [dc0d39b]
+- Updated dependencies [dc0d39b]
+- Updated dependencies [dc0d39b]
+- Updated dependencies [dc0d39b]
+- Updated dependencies [dc0d39b]
+- Updated dependencies [dc0d39b]
+  - atom.io@0.48.0
+
 ## 0.0.18
 
 ### Patch Changes

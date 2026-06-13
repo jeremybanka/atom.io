@@ -15,8 +15,9 @@ These look like implementation details with little consumer-facing value.
   - [x] [join.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/join.test.ts:218) resolved; formerly `217`
         Decision: failed relation transactions should assert retained state values through `storeHasStateValues`, not by naming the value map.
 
-- [ ] `Internal.Future` is promised as the concrete async wrapper:
-      [async-state.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/async-state.test.ts:34) `34`, `53`, `211`, `241`, `271`, `339-343`, `347-350`, `355-357`, `363-364`, `371`, `376-380`
+- [x] `Internal.Future` is promised as the concrete async wrapper:
+      [async-state.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/async-state.test.ts:33) resolved; formerly `34`, `53`, `211`, `241`, `271`, `339-343`, `347-350`, `355-357`, `363-364`, `371`, `376-380`
+      Decision: async loadable values should be public-tested as `Promise` instances, not as the concrete `Internal.Future` wrapper.
 
 - [ ] Internal relation/token names are frozen:
       [join.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/join.test.ts:331) `331-333`

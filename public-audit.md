@@ -51,11 +51,13 @@ These look like implementation details with little consumer-facing value.
 **2. Risk**
 These may be real behavior, but they are expensive promises.
 
-- [ ] Public transaction subscription payload is frozen down to sub-event order, redacted fields, `epoch: Number.NaN`, and intermediate selector updates:
-      [transaction.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/transaction.test.ts:203) `203-244`
+- [x] Public transaction subscription payload is frozen down to sub-event order, redacted fields, `epoch: Number.NaN`, and intermediate selector updates:
+      [transaction.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/transaction.test.ts:198) accepted with partial matchers; formerly `203-244`
+      Decision: keep ordered `subEvents` as part of the transaction subscription contract, but assert volatile metadata and token object shape with partial matchers rather than redacting callback payloads.
 
-- [ ] Transaction boundaries are asserted through exact `subEvents` membership:
-      [transaction.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/transaction.test.ts:336) `336-346`
+- [x] Transaction boundaries are asserted through exact `subEvents` membership:
+      [transaction.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/transaction.test.ts:336) accepted; `336-346`
+      Decision: keep exact membership here. Transaction outcome `subEvents` are public callback payload, and consumers can reasonably rely on transaction boundaries excluding unrelated state updates.
 
 - [ ] Selector evaluation/subscription invalidation counts are frozen:
       [atom-selector.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/atom-selector.test.ts:223) `223`, `227`, `233`, `240`

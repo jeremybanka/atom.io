@@ -10,6 +10,7 @@ import {
 	transaction,
 } from "atom.io"
 import * as Internal from "atom.io/internal"
+import { storeHasStateValues } from "atom.io/testing"
 import { vitest } from "vitest"
 
 import * as Utils from "../__util__/index.ts"
@@ -214,7 +215,7 @@ describe(`some practical use cases`, () => {
 			if (thrown instanceof Error) caught = thrown
 		}
 		expect(caught).toBeInstanceOf(Error)
-		expect(Internal.IMPLICIT.STORE.valueMap.size).toBe(0)
+		expect(storeHasStateValues()).toBe(false)
 	})
 
 	test(`initializing a join from serialized junction data`, () => {

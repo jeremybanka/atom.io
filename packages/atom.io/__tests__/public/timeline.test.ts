@@ -17,7 +17,7 @@ import {
 	undo,
 } from "atom.io"
 import * as I from "atom.io/internal"
-import { stateExists } from "atom.io/testing"
+import { stateExists, timelineState } from "atom.io/testing"
 import { vitest } from "vitest"
 
 import * as Utils from "../__util__/index.ts"
@@ -130,12 +130,7 @@ describe(`timeline`, () => {
 		undo(tl_abc)
 		expectation0()
 
-		const timelineData = I.IMPLICIT.STORE.timelines.get(tl_abc.key)
-
-		if (!timelineData) throw new Error(`timeline data not found`)
-
-		expect(timelineData.at).toBe(0)
-		expect(timelineData.history.length).toBe(3)
+		expect(timelineState(tl_abc)).toEqual({ at: 0, length: 3 })
 		expect(Utils.stdout0).toHaveBeenCalledTimes(8)
 	})
 	test(`time traveling with nested transactions`, () => {
@@ -256,7 +251,7 @@ describe(`timeline`, () => {
 
 		setState(productSquareRootSelectors, [`a`, `b`], 3)
 
-		expect(I.withdraw(I.IMPLICIT.STORE, timeline_ab).history).toHaveLength(1)
+		expect(timelineState(timeline_ab).length).toBe(1)
 		undo(timeline_ab)
 	})
 	test(`history erasure from the past`, () => {
@@ -291,34 +286,25 @@ describe(`timeline`, () => {
 		setState(nameCapitalizedSelector, `JON`)
 		runTransaction(setName)(`Sylvia`)
 
-		const timelineData = I.IMPLICIT.STORE.timelines.get(nameHistory.key)
-
-		if (!timelineData) throw new Error(`timeline data not found`)
-
 		expect(getState(nameAtom)).toBe(`sylvia`)
-		expect(timelineData.at).toBe(3)
-		expect(timelineData.history.length).toBe(3)
+		expect(timelineState(nameHistory)).toEqual({ at: 3, length: 3 })
 
 		undo(nameHistory)
 		expect(getState(nameAtom)).toBe(`jon`)
-		expect(timelineData.at).toBe(2)
-		expect(timelineData.history.length).toBe(3)
+		expect(timelineState(nameHistory)).toEqual({ at: 2, length: 3 })
 
 		undo(nameHistory)
 		expect(getState(nameAtom)).toBe(`vance`)
-		expect(timelineData.at).toBe(1)
-		expect(timelineData.history.length).toBe(3)
+		expect(timelineState(nameHistory)).toEqual({ at: 1, length: 3 })
 
 		undo(nameHistory)
 		expect(getState(nameAtom)).toBe(`josie`)
-		expect(timelineData.at).toBe(0)
-		expect(timelineData.history.length).toBe(3)
+		expect(timelineState(nameHistory)).toEqual({ at: 0, length: 3 })
 
 		runTransaction(setName)(`Mr. Jason Gold`)
 
 		expect(getState(nameAtom)).toBe(`mr. jason gold`)
-		expect(timelineData.at).toBe(1)
-		expect(timelineData.history.length).toBe(1)
+		expect(timelineState(nameHistory)).toEqual({ at: 1, length: 1 })
 	})
 	it(`adds members of a family already created`, () => {
 		const countAtoms = atomFamily<number, string>({
@@ -375,22 +361,15 @@ describe(`timeline`, () => {
 		setState(letterAtom, `B`)
 		setState(letterAtom, `C`)
 
-		let timelineData = I.IMPLICIT.STORE.timelines.get(letterTL.key)
-		if (!timelineData) throw new Error(`timeline data not found`)
-		expect(timelineData.at).toBe(2)
-		expect(timelineData.history.length).toBe(2)
+		expect(timelineState(letterTL)).toEqual({ at: 2, length: 2 })
 
 		clearTimeline(letterTL)
 
-		timelineData = I.IMPLICIT.STORE.timelines.get(letterTL.key)
-		if (!timelineData) throw new Error(`timeline data not found`)
-		expect(timelineData.at).toBe(0)
-		expect(timelineData.history.length).toBe(0)
+		expect(timelineState(letterTL)).toEqual({ at: 0, length: 0 })
 
 		setState(letterAtom, `D`)
 
-		expect(timelineData.at).toBe(1)
-		expect(timelineData.history.length).toBe(1)
+		expect(timelineState(letterTL)).toEqual({ at: 1, length: 1 })
 		expect(getState(letterAtom)).toBe(`D`)
 	})
 })

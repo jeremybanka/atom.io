@@ -2,6 +2,8 @@ export class MapOverlay<K, V> extends Map<K, V> {
 	public deleted: Set<K> = new Set()
 	public changed: Set<K> = new Set()
 	protected readonly source: Map<K, V>
+	private appendedSource: Set<K> = new Set()
+	private sourceCleared = false
 
 	public constructor(source: Map<K, V>) {
 		super()
@@ -21,8 +23,16 @@ export class MapOverlay<K, V> extends Map<K, V> {
 	}
 
 	public set(key: K, value: V): this {
-		this.deleted.delete(key)
-		if (this.source.has(key)) {
+		const shouldAppendSourceKey =
+			this.appendedSource.has(key) ||
+			(this.sourceCleared && this.deleted.has(key))
+		if (this.source.has(key) && shouldAppendSourceKey) {
+			this.deleted.delete(key)
+			this.changed.delete(key)
+			this.appendedSource.add(key)
+		} else if (this.source.has(key)) {
+			this.deleted.delete(key)
+			this.appendedSource.delete(key)
 			this.changed.add(key)
 		}
 		return super.set(key, value)
@@ -33,28 +43,40 @@ export class MapOverlay<K, V> extends Map<K, V> {
 	}
 
 	public has(key: K): boolean {
-		return !this.deleted.has(key) && (super.has(key) || this.source.has(key))
+		return super.has(key) || (!this.deleted.has(key) && this.source.has(key))
 	}
 
 	public delete(key: K): boolean {
 		if (this.source.has(key)) {
 			this.deleted.add(key)
 			this.changed.delete(key)
+			this.appendedSource.delete(key)
 		}
 		return super.delete(key)
 	}
 
 	public clear(): void {
 		this.deleted = new Set(this.source.keys())
+		this.appendedSource.clear()
 		this.changed.clear()
+		this.sourceCleared = true
 		super.clear()
 	}
 
 	public *[Symbol.iterator](): MapIterator<[K, V]> {
-		yield* super[Symbol.iterator]()
 		for (const [key, value] of this.source) {
-			if (!this.deleted.has(key) && !this.changed.has(key)) {
+			if (this.deleted.has(key) || this.appendedSource.has(key)) {
+				continue
+			}
+			if (this.changed.has(key)) {
+				yield [key, super.get(key) as V]
+			} else {
 				yield [key, value]
+			}
+		}
+		for (const entry of super[Symbol.iterator]()) {
+			if (!this.changed.has(entry[0])) {
+				yield entry
 			}
 		}
 	}
@@ -62,9 +84,13 @@ export class MapOverlay<K, V> extends Map<K, V> {
 		yield* this[Symbol.iterator]()
 	}
 	public *keys(): MapIterator<K> {
-		yield* super.keys()
 		for (const key of this.source.keys()) {
-			if (!this.deleted.has(key) && !this.changed.has(key)) {
+			if (!this.deleted.has(key) && !this.appendedSource.has(key)) {
+				yield key
+			}
+		}
+		for (const key of super.keys()) {
+			if (!this.changed.has(key)) {
 				yield key
 			}
 		}
@@ -81,6 +107,12 @@ export class MapOverlay<K, V> extends Map<K, V> {
 	}
 
 	public get size(): number {
-		return super.size + this.source.size - this.changed.size - this.deleted.size
+		return (
+			super.size +
+			this.source.size -
+			this.changed.size -
+			this.deleted.size -
+			this.appendedSource.size
+		)
 	}
 }

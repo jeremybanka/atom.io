@@ -15,7 +15,6 @@ import {
 	undo,
 } from "atom.io"
 import { StatefulSubject } from "atom.io/foundations/subject"
-import * as Internal from "atom.io/internal"
 import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 import { OList } from "atom.io/transceivers/o-list"
 import { UList } from "atom.io/transceivers/u-list"
@@ -28,7 +27,11 @@ const { restore } = takeSnapshot()
 
 beforeEach(() => {
 	restore()
-	Internal.IMPLICIT.STORE.config.isProduction = true
+	const store = globalThis.ATOM_IO_IMPLICIT_STORE
+	if (store === undefined) {
+		throw new Error(`Expected the implicit store to exist.`)
+	}
+	store.config.isProduction = true
 	logger = setTestLogLevel(null)
 	vitest.spyOn(logger, `error`).mockReset()
 	vitest.spyOn(logger, `warn`).mockReset()

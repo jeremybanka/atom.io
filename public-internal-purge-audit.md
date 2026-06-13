@@ -16,8 +16,9 @@ Goal: remove every `atom.io/internal` import from `packages/atom.io/__tests__/pu
       [o-list-atom.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/o-list-atom.test.ts),
       [u-list-atom.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/u-list-atom.test.ts).
 
-- [ ] Add public testing helpers for temporary implicit store config.
-      Remaining tests directly set `isProduction` or `lifespan` on the implicit store:
+- [x] Add public testing helpers for temporary implicit store config.
+      No helper needed; public tests that need to mutate implicit store config now
+      do so through `globalThis.ATOM_IO_IMPLICIT_STORE`:
       [logger.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/logger.test.ts),
       [mutable-atom.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/mutable-atom.test.ts),
       [disposal.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/disposal.test.ts).

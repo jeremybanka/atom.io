@@ -10,7 +10,6 @@ import {
 	selectorFamily,
 	setState,
 } from "atom.io"
-import * as Internal from "atom.io/internal"
 import { setTestLogLevel, stateExists, takeSnapshot } from "atom.io/testing"
 
 import * as Utils from "../__util__/index.ts"
@@ -183,7 +182,11 @@ describe(`disposeState`, () => {
 				({ find, get }) =>
 					get(find(countAtoms, id)) * 3,
 		})
-		Internal.IMPLICIT.STORE.config.lifespan = `immortal`
+		const store = globalThis.ATOM_IO_IMPLICIT_STORE
+		if (store === undefined) {
+			throw new Error(`Expected the implicit store to exist.`)
+		}
+		store.config.lifespan = `immortal`
 		const anarchy = new Anarchy()
 		anarchy.allocate(`root`, `hi`)
 		setState(countAtoms, `hi`, 1)

@@ -80,19 +80,18 @@ These may be real behavior, but they are expensive promises.
 **3. Suspicious**
 I can see these either way, but they deserve a product/API decision.
 
-- [ ] `useI` setter identity is promised stable across rerender, while also indirectly pinning render count:
+- [x] `useI` setter identity is promised stable across rerender, while also indirectly pinning render count:
       [react-hooks.test.tsx](/home/jem/atom.io/packages/atom.io/__tests__/public/react-hooks.test.tsx:78) `78-79`, `122-123`
+      Decision: Intentional, good react behavior
 
-- [ ] `useLoadable` referential identity/render churn is frozen. The inline comment even says there is no settled opinion yet:
+- [x] `useLoadable` referential identity/render churn is frozen. The inline comment even says there is no settled opinion yet:
       [react-hooks.test.tsx](/home/jem/atom.io/packages/atom.io/__tests__/public/react-hooks.test.tsx:799) `799`, `807`, `817`, `825`, `833`
+      Decision: I developed an opinion and my opinion is that changing the outer ref the way we are doing is helpful and we should keep it like this.
 
-- [ ] Join relation ordering is promised for many-to-many replacements:
-      [join.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/join.test.ts:273) `273-288`
+- [x] Join relation ordering is promised for many-to-many replacements:
+      [join.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/join.test.ts:274) accepted with partial matchers; formerly `273-288`
+      Decision: keep the relation membership assertions, but avoid promising the order of many-to-many relation arrays.
 
 - [x] `SetRTX` rollback/de-sequenced protocol behavior is public-tested at a very low level:
       [set-rtx.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/private/transceivers/set-rtx.test.ts:66) moved out of public; formerly `66-72`, `107-178`, `195-227`
       Decision: `SetRTX` is deprecated, so low-level rollback/de-sequenced behavior should remain private implementation coverage rather than a public contract.
-
-- [ ] `OList`/`UList` `packUpdate` + `do`/`undo` objects are public-tested broadly. Maybe that is intended for realtime protocol users, but if not, it is a large accidental surface:
-      [u-list.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/u-list.test.ts:96) `96-156`
-      [o-list.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/mutability/o-list.test.ts:290) `290-579`

@@ -271,10 +271,12 @@ describe(`some practical use cases`, () => {
 		editRelations(userGroups, (relations) => {
 			relations.replaceRelations(`a`, [`2`, `3`])
 		})
-		expect(getState(findRelations(userGroups, `a`).groupKeysOfUser)).toEqual([
-			`2`,
-			`3`,
-		])
+		const groupKeysOfUserA = getState(
+			findRelations(userGroups, `a`).groupKeysOfUser,
+		)
+		// Many-to-many joins promise membership, not relation array ordering.
+		expect(groupKeysOfUserA).toEqual(expect.arrayContaining([`2`, `3`]))
+		expect(groupKeysOfUserA).toHaveLength(2)
 		expect(getState(findRelations(userGroups, `b`).groupKeysOfUser)).toEqual([
 			`2`,
 		])
@@ -282,14 +284,16 @@ describe(`some practical use cases`, () => {
 			`3`,
 		])
 		expect(getState(findRelations(userGroups, `1`).groupKeysOfUser)).toEqual([])
-		expect(getState(findRelations(userGroups, `2`).userKeysOfGroup)).toEqual([
-			`b`,
-			`a`,
-		])
-		expect(getState(findRelations(userGroups, `3`).userKeysOfGroup)).toEqual([
-			`c`,
-			`a`,
-		])
+		const userKeysOfGroup2 = getState(
+			findRelations(userGroups, `2`).userKeysOfGroup,
+		)
+		expect(userKeysOfGroup2).toEqual(expect.arrayContaining([`a`, `b`]))
+		expect(userKeysOfGroup2).toHaveLength(2)
+		const userKeysOfGroup3 = getState(
+			findRelations(userGroups, `3`).userKeysOfGroup,
+		)
+		expect(userKeysOfGroup3).toEqual(expect.arrayContaining([`a`, `c`]))
+		expect(userKeysOfGroup3).toHaveLength(2)
 	})
 	test(`replacing relations (one to many)`, () => {
 		const cardValues = join({

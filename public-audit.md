@@ -11,7 +11,7 @@ These look like implementation details with little consumer-facing value.
   - [x] [transaction.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/transaction.test.ts:144) resolved; formerly `144-149`, `374-376`, `399-401`
         Decision: same as `disposal.test.ts`; transaction rollback tests should assert state existence through `atom.io/testing`.
   - [x] [timeline.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/timeline.test.ts:133) resolved; formerly `132-138`, `258`, `293-320`, `377-392`, `412-420`
-        Decision: timeline history/cursor assertions should use `timelineState`, and state lifecycle checks should use `stateExists`.
+        Decision: timeline history/cursor assertions should use core `inspectTimeline`, and state lifecycle checks should use `stateExists`.
   - [x] [join.test.ts](/home/jem/atom.io/packages/atom.io/__tests__/public/join.test.ts:218) resolved; formerly `217`
         Decision: failed relation transactions should assert retained state values through `storeHasStateValues`, not by naming the value map.
 

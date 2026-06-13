@@ -6,6 +6,7 @@ import {
 	disposeState,
 	findState,
 	getState,
+	inspectTimeline,
 	redo,
 	runTransaction,
 	selector,
@@ -17,7 +18,7 @@ import {
 	undo,
 } from "atom.io"
 import * as I from "atom.io/internal"
-import { stateExists, timelineState } from "atom.io/testing"
+import { stateExists } from "atom.io/testing"
 import { vitest } from "vitest"
 
 import * as Utils from "../__util__/index.ts"
@@ -130,7 +131,7 @@ describe(`timeline`, () => {
 		undo(tl_abc)
 		expectation0()
 
-		expect(timelineState(tl_abc)).toEqual({ at: 0, length: 3 })
+		expect(inspectTimeline(tl_abc)).toEqual({ at: 0, length: 3 })
 		expect(Utils.stdout0).toHaveBeenCalledTimes(8)
 	})
 	test(`time traveling with nested transactions`, () => {
@@ -251,7 +252,7 @@ describe(`timeline`, () => {
 
 		setState(productSquareRootSelectors, [`a`, `b`], 3)
 
-		expect(timelineState(timeline_ab).length).toBe(1)
+		expect(inspectTimeline(timeline_ab).length).toBe(1)
 		undo(timeline_ab)
 	})
 	test(`history erasure from the past`, () => {
@@ -287,24 +288,24 @@ describe(`timeline`, () => {
 		runTransaction(setName)(`Sylvia`)
 
 		expect(getState(nameAtom)).toBe(`sylvia`)
-		expect(timelineState(nameHistory)).toEqual({ at: 3, length: 3 })
+		expect(inspectTimeline(nameHistory)).toEqual({ at: 3, length: 3 })
 
 		undo(nameHistory)
 		expect(getState(nameAtom)).toBe(`jon`)
-		expect(timelineState(nameHistory)).toEqual({ at: 2, length: 3 })
+		expect(inspectTimeline(nameHistory)).toEqual({ at: 2, length: 3 })
 
 		undo(nameHistory)
 		expect(getState(nameAtom)).toBe(`vance`)
-		expect(timelineState(nameHistory)).toEqual({ at: 1, length: 3 })
+		expect(inspectTimeline(nameHistory)).toEqual({ at: 1, length: 3 })
 
 		undo(nameHistory)
 		expect(getState(nameAtom)).toBe(`josie`)
-		expect(timelineState(nameHistory)).toEqual({ at: 0, length: 3 })
+		expect(inspectTimeline(nameHistory)).toEqual({ at: 0, length: 3 })
 
 		runTransaction(setName)(`Mr. Jason Gold`)
 
 		expect(getState(nameAtom)).toBe(`mr. jason gold`)
-		expect(timelineState(nameHistory)).toEqual({ at: 1, length: 1 })
+		expect(inspectTimeline(nameHistory)).toEqual({ at: 1, length: 1 })
 	})
 	it(`adds members of a family already created`, () => {
 		const countAtoms = atomFamily<number, string>({
@@ -361,15 +362,15 @@ describe(`timeline`, () => {
 		setState(letterAtom, `B`)
 		setState(letterAtom, `C`)
 
-		expect(timelineState(letterTL)).toEqual({ at: 2, length: 2 })
+		expect(inspectTimeline(letterTL)).toEqual({ at: 2, length: 2 })
 
 		clearTimeline(letterTL)
 
-		expect(timelineState(letterTL)).toEqual({ at: 0, length: 0 })
+		expect(inspectTimeline(letterTL)).toEqual({ at: 0, length: 0 })
 
 		setState(letterAtom, `D`)
 
-		expect(timelineState(letterTL)).toEqual({ at: 1, length: 1 })
+		expect(inspectTimeline(letterTL)).toEqual({ at: 1, length: 1 })
 		expect(getState(letterAtom)).toBe(`D`)
 	})
 })

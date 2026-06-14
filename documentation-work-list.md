@@ -118,32 +118,26 @@ migration details belong in changesets and changelogs.
 
 ## Testing
 
-- [ ] Expand `/docs/testing` with public helpers from `atom.io/testing`.
-- [ ] Document `stateExists`.
-  - [ ] token overload
-  - [ ] family plus key overload
-  - [ ] non-creating existence checks
-- [ ] Document `stateExistsInStore`.
-  - [ ] explicit store argument
-  - [ ] token overload
-  - [ ] family plus key overload
-- [ ] Document `storeHasStateValues`.
-  - [ ] default implicit store behavior
-  - [ ] explicit store behavior
-- [ ] Document `hasImplicitStoreBeenCreated`.
-- [ ] Document `setTestLogLevel`.
-  - [ ] `null` as the committed-test value
-  - [ ] returned logger for spies and assertions
-- [ ] Document `takeSnapshot`.
-  - [ ] snapshot `store`
-  - [ ] `restore`
-  - [ ] implicit store restoration in place
-
-## Transceivers
-
-- [ ] Update transceiver docs to identify `OList` and `UList` as the supported mutable collection transceivers.
-- [ ] Mark `SetRTX` as deprecated in generated/API-facing documentation.
-- [ ] Keep byte-level wire encoding details out of public docs unless they become intentional public contract.
+- [x] Expand `/docs/testing` with public helpers from `atom.io/testing`.
+- [x] Document `stateExists`.
+  - [x] token overload
+  - [x] family plus key overload
+  - [x] non-creating existence checks
+- [x] Document `stateExistsInStore`.
+  - [x] explicit store argument
+  - [x] token overload
+  - [x] family plus key overload
+- [x] Document `storeHasStateValues`.
+  - [x] default implicit store behavior
+  - [x] explicit store behavior
+- [x] Document `hasImplicitStoreBeenCreated`.
+- [x] Document `setTestLogLevel`.
+  - [x] `null` as the committed-test value
+  - [x] returned logger for spies and assertions
+- [x] Document `takeSnapshot`.
+  - [x] snapshot `store`
+  - [x] `restore`
+  - [x] implicit store restoration in place
 
 ## Site Cleanup
 

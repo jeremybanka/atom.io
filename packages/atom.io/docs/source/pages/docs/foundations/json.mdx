@@ -1,19 +1,13 @@
+import JsonDefaults from "x/foundations/json/defaults.gen";
+import RuntimeChecks from "x/foundations/json/runtime-checks.gen";
+import Serializable from "x/foundations/json/serializable.gen";
+
 # <span className="soft">atom.io</span>/foundations/json
 
 Use `atom.io/foundations/json` when a value needs to cross a JSON boundary:
 persistence, network messages, process handoff, or a transceiver's JSON form.
 
-```ts
-import { type Json, parseJson, stringifyJson } from "atom.io/foundations/json"
-
-const value = {
-	id: `playlist:road-trip`,
-	tracks: [`dreams`, `ventura-highway`],
-} satisfies Json.Serializable
-
-const encoded = stringifyJson(value)
-const decoded = parseJson<typeof value>(encoded)
-```
+<Serializable client:load />
 
 ## package contents
 
@@ -101,21 +95,10 @@ const decoded = parseJson<typeof value>(encoded)
 `undefined`, functions, symbols, bigint primitives, and class-like objects such as
 `Set`.
 
-```ts
-import { isJson } from "atom.io/foundations/json"
-
-isJson({ ok: true }) // true
-isJson(new Set()) // false
-```
+<RuntimeChecks client:load />
 
 ## defaults
 
 `JSON_DEFAULTS` is useful when a UI needs a starter value for a selected JSON type.
 
-```ts
-import { JSON_DEFAULTS } from "atom.io/foundations/json"
-
-JSON_DEFAULTS.array // []
-JSON_DEFAULTS.object // {}
-JSON_DEFAULTS.string // ""
-```
+<JsonDefaults client:load />

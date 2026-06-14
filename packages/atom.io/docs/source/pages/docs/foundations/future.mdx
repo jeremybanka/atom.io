@@ -1,3 +1,6 @@
+import Constructor from "x/foundations/future/constructor.gen";
+import ReplacePendingWork from "x/foundations/future/replace-pending-work.gen";
+
 # <span className="soft">atom.io</span>/foundations/future
 
 `Future` is a `Promise` whose pending value can be replaced.
@@ -5,15 +8,7 @@
 Use it when callers need a stable promise reference, but the async work that should
 resolve that promise may change before it completes.
 
-```ts
-import { Future } from "atom.io/foundations/future"
-
-const result = new Future(fetch(`/slow`).then((res) => res.text()))
-
-result.use(fetch(`/fast`).then((res) => res.text()))
-
-const text = await result
-```
+<ReplacePendingWork client:load />
 
 ## package contents
 
@@ -32,15 +27,7 @@ const text = await result
 
 Construct a `Future` from a promise or from a promise executor.
 
-```ts
-import { Future } from "atom.io/foundations/future"
-
-const fromPromise = new Future(Promise.resolve(1))
-
-const fromExecutor = new Future<number>((resolve) => {
-	resolve(1)
-})
-```
+<Constructor client:load />
 
 ## use
 

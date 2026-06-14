@@ -239,6 +239,41 @@ function SiteDirectory(): VNode {
 							</a>
 						</section>
 						<section>
+							<a id="-docs-web-link" href={`/docs/web`}>
+								<span className="soft">atom.io</span>/web
+							</a>
+						</section>
+						<section>
+							<a id="-transceivers-link" href={`/transceivers`}>
+								<span className="soft">atom.io</span>/transceivers
+							</a>
+						</section>
+					</main>
+				</section>
+				<section>
+					<header>Tooling</header>
+					<main>
+						<section>
+							<a id="-docs-eslint-plugin-link" href={`/docs/eslint-plugin`}>
+								<span className="soft">atom.io</span>/eslint-plugin
+							</a>
+						</section>
+						<section>
+							<a id="-docs-react-devtools-link" href={`/docs/react-devtools`}>
+								<span className="soft">atom.io</span>/react-devtools
+							</a>
+						</section>
+						<section>
+							<a id="-docs-testing-link" href={`/docs/testing`}>
+								<span className="soft">atom.io</span>/testing
+							</a>
+						</section>
+					</main>
+				</section>
+				<section>
+					<header>Foundations</header>
+					<main>
+						<section>
 							<a id="-docs-foundations-link" href={`/docs/foundations`}>
 								<span className="soft">atom.io</span>/foundations
 							</a>
@@ -313,36 +348,6 @@ function SiteDirectory(): VNode {
 								href={`/docs/foundations/junction`}
 							>
 								<span className="soft">foundations</span>/junction
-							</a>
-						</section>
-						<section>
-							<a id="-docs-web-link" href={`/docs/web`}>
-								<span className="soft">atom.io</span>/web
-							</a>
-						</section>
-						<section>
-							<a id="-transceivers-link" href={`/transceivers`}>
-								<span className="soft">atom.io</span>/transceivers
-							</a>
-						</section>
-					</main>
-				</section>
-				<section>
-					<header>Tooling</header>
-					<main>
-						<section>
-							<a id="-docs-eslint-plugin-link" href={`/docs/eslint-plugin`}>
-								<span className="soft">atom.io</span>/eslint-plugin
-							</a>
-						</section>
-						<section>
-							<a id="-docs-react-devtools-link" href={`/docs/react-devtools`}>
-								<span className="soft">atom.io</span>/react-devtools
-							</a>
-						</section>
-						<section>
-							<a id="-docs-testing-link" href={`/docs/testing`}>
-								<span className="soft">atom.io</span>/testing
 							</a>
 						</section>
 					</main>

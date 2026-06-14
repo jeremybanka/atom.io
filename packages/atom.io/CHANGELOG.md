@@ -1,5 +1,27 @@
 # atom.io
 
+## 0.49.0
+
+### Minor Changes
+
+- 22e3427: Add a public foundation submodule for overlays.
+
+  `MapOverlay` and `SetOverlay` are now available from `atom.io/foundations/overlays`. These APIs are no longer exported from `atom.io/internal`.
+
+  Overlay iteration now preserves source ordering before overlay-only entries, with cleared source entries reinserted in fresh insertion order.
+
+- 22e3427: Dissolve `atom.io/json` into focused foundation submodules.
+
+  JSON value helpers now live at `atom.io/foundations/json`, canonical key helpers at `atom.io/foundations/canonical`, typed entry helpers at `atom.io/foundations/entries`, enumeration helpers at `atom.io/foundations/enumeration`, and shared type helpers at `atom.io/foundations/type-utils`. The old `atom.io/json` submodule is no longer exported.
+
+- 22e3427: Add a public foundation submodule for Junction.
+
+  `Junction` and its related types are now available from `atom.io/foundations/junction`. These APIs are no longer exported from `atom.io/internal`.
+
+### Patch Changes
+
+- 22e3427: Expand the documentation site with current-source documentation for foundations, plus additional core and `atom.io/testing` examples.
+
 ## 0.48.0
 
 ### Minor Changes

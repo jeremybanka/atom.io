@@ -1,3 +1,9 @@
+import BasicRelation from "x/foundations/junction/basic-relation.gen";
+import JsonExample from "x/foundations/junction/json.gen";
+import RelationContent from "x/foundations/junction/relation-content.gen";
+import ReplaceRelations from "x/foundations/junction/replace-relations.gen";
+import SetAndDelete from "x/foundations/junction/set-and-delete.gen";
+
 # <span className="soft">atom.io</span>/foundations/junction
 
 `Junction` models bidirectional relations between two string-keyed sides.
@@ -5,19 +11,7 @@
 Use it when the relationship itself deserves structure: both directions should stay in
 sync, cardinality matters, and relation content may need to travel with the edge.
 
-```ts
-import { Junction } from "atom.io/foundations/junction"
-
-const playlistTracks = new Junction({
-	between: [`playlist`, `track`],
-	cardinality: `n:n`,
-})
-
-playlistTracks.set({ playlist: `road-trip`, track: `dreams` })
-
-playlistTracks.getRelatedKeys(`road-trip`) // Set { "dreams" }
-playlistTracks.getRelatedKey(`dreams`) // "road-trip"
-```
+<BasicRelation client:load />
 
 ## package contents
 
@@ -76,13 +70,7 @@ playlistTracks.getRelatedKey(`dreams`) // "road-trip"
 
 Use either positional arguments or object-style arguments.
 
-```ts
-playlistTracks.set(`road-trip`, `dreams`)
-playlistTracks.set({ playlist: `road-trip`, track: `ventura-highway` })
-
-playlistTracks.delete({ playlist: `road-trip`, track: `dreams` })
-playlistTracks.delete({ playlist: `road-trip` })
-```
+<SetAndDelete client:load />
 
 Deleting one side removes all relations for that side. Deleting both sides removes that
 one relation.
@@ -101,21 +89,7 @@ specific relation.
 
 Junctions can store JSON-object content on relations.
 
-```ts
-const credits = new Junction<
-	`album`,
-	string,
-	`artist`,
-	string,
-	{ role: string }
->({
-	between: [`album`, `artist`],
-	cardinality: `n:n`,
-})
-
-credits.set({ album: `rumours`, artist: `fleetwood-mac` }, { role: `band` })
-credits.getContent(`rumours`, `fleetwood-mac`) // { role: "band" }
-```
+<RelationContent client:load />
 
 `getRelationEntries({ album: "rumours" })` returns related keys paired with content.
 
@@ -126,12 +100,7 @@ Use `replaceRelations(key, relations)` to replace all relations for one side.
 For content-bearing junctions, pass an object whose keys are related IDs and whose values
 are relation content.
 
-```ts
-credits.replaceRelations(`rumours`, {
-	"fleetwood-mac": { role: `band` },
-	"ken-caillat": { role: `producer` },
-})
-```
+<ReplaceRelations client:load />
 
 By default, replacement updates reverse relations safely. Passing `{ reckless: true }`
 uses the faster replacement path and can leave old reverse relations in place.
@@ -142,10 +111,7 @@ uses the faster replacement path and can leave old reverse relations in place.
 
 Pass that shape back to the constructor to hydrate a junction.
 
-```ts
-const json = playlistTracks.toJSON()
-const restored = new Junction(json)
-```
+<JsonExample client:load />
 
 ## overlays
 

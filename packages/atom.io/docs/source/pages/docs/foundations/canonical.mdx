@@ -1,3 +1,6 @@
+import CompoundKey from "x/foundations/canonical/compound-key.gen";
+import DistinctPrimitiveKeys from "x/foundations/canonical/distinct-primitive-keys.gen";
+
 # <span className="soft">atom.io</span>/foundations/canonical
 
 Use `atom.io/foundations/canonical` when a key needs stable identity across maps,
@@ -6,19 +9,7 @@ stores, URLs, or JSON boundaries.
 Canonical values are primitives or readonly arrays of canonical values. Prefer tuples
 for compound keys.
 
-```ts
-import {
-	type Canonical,
-	packCanonical,
-	unpackCanonical,
-} from "atom.io/foundations/canonical"
-
-type TrackKey = readonly [playlistId: string, trackId: string]
-
-const key = [`road-trip`, `dreams`] as const satisfies Canonical
-const packed = packCanonical<TrackKey>(key)
-const unpacked = unpackCanonical(packed)
-```
+<CompoundKey client:load />
 
 ## package contents
 
@@ -56,10 +47,4 @@ const unpacked = unpackCanonical(packed)
 `packCanonical` keeps primitive types distinct before stringifying. That means values
 that can look similar as plain strings remain different keys.
 
-```ts
-import { packCanonical } from "atom.io/foundations/canonical"
-
-packCanonical(`null`) !== packCanonical(null)
-packCanonical(`1`) !== packCanonical(1)
-packCanonical(true) !== packCanonical(1)
-```
+<DistinctPrimitiveKeys client:load />

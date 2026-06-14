@@ -1,3 +1,5 @@
+import MapOverlayExample from "x/foundations/overlays/map-overlay.gen";
+
 # <span className="soft">atom.io</span>/foundations/overlays
 
 Overlays are source-backed collections. They let you stage changes over a source
@@ -8,23 +10,7 @@ a `Set`. The important contract is the overlay behavior: where reads come from, 
 deletions are tracked, and how iteration orders source entries relative to overlay-only
 entries.
 
-```ts
-import { MapOverlay } from "atom.io/foundations/overlays"
-
-const source = new Map([
-	[`a`, 1],
-	[`b`, 2],
-])
-
-const overlay = new MapOverlay(source)
-
-overlay.set(`a`, 10)
-overlay.set(`x`, 100)
-overlay.delete(`b`)
-
-Array.from(overlay) // [["a", 10], ["x", 100]]
-source.get(`a`) // 1
-```
+<MapOverlayExample client:load />
 
 ## package contents
 

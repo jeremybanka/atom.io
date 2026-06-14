@@ -1,19 +1,11 @@
+import TypedEntries from "x/foundations/entries/typed-entries.gen";
+
 # <span className="soft">atom.io</span>/foundations/entries
 
 Use `atom.io/foundations/entries` when you want the shape of an object to survive
 `Object.entries` or `Object.fromEntries`.
 
-```ts
-import { fromEntries, toEntries } from "atom.io/foundations/entries"
-
-const flags = {
-	visible: true,
-	locked: false,
-}
-
-const entries = toEntries(flags)
-const rebuilt = fromEntries(entries)
-```
+<TypedEntries client:load />
 
 ## package contents
 

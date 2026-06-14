@@ -62,47 +62,21 @@ migration details belong in changesets and changelogs.
   - [ ] `ViewOf`
 - [ ] Document `atom.io/foundations/overlays`.
   - [ ] Explain source-backed staged collections.
-  - [ ] Explain source-first iteration order.
+  - [ ] Explain that source items iterate first, followed by overlay-only items.
   - [ ] Explain `clear` and source-member reinsert behavior.
   - [ ] `MapOverlay`
-    - [ ] constructor
-    - [ ] `get`
-    - [ ] `getOrInsert`
-    - [ ] `getOrInsertComputed`
-    - [ ] `set`
+    - [ ] constructor accepts a source `Map`.
     - [ ] `hasOwn`
-    - [ ] `has`
-    - [ ] `delete`
-    - [ ] `clear`
-    - [ ] `entries`
-    - [ ] `keys`
-    - [ ] `values`
-    - [ ] `forEach`
-    - [ ] `size`
     - [ ] `deleted`
     - [ ] `changed`
+    - [ ] behavior when source keys are changed, deleted, cleared, and reinserted
   - [ ] `SetOverlay`
-    - [ ] constructor
-    - [ ] `add`
+    - [ ] constructor accepts a source `Set`.
     - [ ] `hasOwn`
-    - [ ] `has`
-    - [ ] `delete`
-    - [ ] `clear`
-    - [ ] `entries`
-    - [ ] `keys`
-    - [ ] `values`
-    - [ ] `forEach`
-    - [ ] `union`
-    - [ ] `intersection`
-    - [ ] `difference`
-    - [ ] `symmetricDifference`
-    - [ ] `isSubsetOf`
-    - [ ] `isSupersetOf`
-    - [ ] `isDisjointFrom`
     - [ ] `iterateOwn`
-    - [ ] `size`
     - [ ] `source`
     - [ ] `deleted`
+    - [ ] behavior when source values are added, deleted, cleared, and reinserted
   - [ ] `RelationsOverlay`
     - [ ] constructor
     - [ ] `get`

@@ -4,8 +4,9 @@ import Serializable from "x/foundations/json/serializable.gen";
 
 # <span className="soft">atom.io</span>/foundations/json
 
-Use `atom.io/foundations/json` when a value needs to cross a JSON boundary:
-persistence, network messages, process handoff, or a transceiver's JSON form.
+The JSON value boundary for atom.io: values that can cross persistence,
+network messages, process handoff, or a transceiver's JSON form
+without changing shape.
 
 <Serializable client:load />
 
@@ -29,37 +30,59 @@ persistence, network messages, process handoff, or a transceiver's JSON form.
       <td>
         <code>Json.Object</code>
       </td>
-      <td>A record whose values are JSON-serializable.</td>
+      <td>
+        <code>Json.Object&lt;Key, Value&gt;</code> is a record whose keys are
+        <code>Key</code> and whose values are <code>Value</code>. <code>Value</code>
+        must be JSON-serializable.
+      </td>
     </tr>
     <tr>
       <td>
         <code>Json.Array</code>
       </td>
-      <td>A readonly array of JSON-serializable values.</td>
+      <td>
+        <code>Json.Array&lt;Element&gt;</code> is a readonly array whose members are
+        <code>Element</code>. <code>Element</code> must be JSON-serializable.
+      </td>
     </tr>
     <tr>
       <td>
         <code>Json.Tree</code>
       </td>
-      <td>Looser JSON-shaped tree types for unknown value inspection.</td>
+      <td>
+        Looser JSON-shaped tree types for unknown value inspection. The nested{" "}
+        <code>Json.Tree.Object&lt;Key, Value&gt;</code> and{" "}
+        <code>Json.Tree.Array&lt;Element&gt;</code> types do not require serializable
+        values.
+      </td>
     </tr>
     <tr>
       <td>
         <code>stringified</code>
       </td>
-      <td>A string type branded with the JSON value it represents.</td>
+      <td>
+        <code>stringified&lt;JsonValue&gt;</code> is a string type branded with the
+        JSON value it represents.
+      </td>
     </tr>
     <tr>
       <td>
         <code>parseJson</code>
       </td>
-      <td>Typed wrapper for <code>JSON.parse</code>.</td>
+      <td>
+        <code>parseJson&lt;JsonValue&gt;(str)</code> parses a string and returns{" "}
+        <code>JsonValue</code> when the input is typed as{" "}
+        <code>stringified&lt;JsonValue&gt;</code>.
+      </td>
     </tr>
     <tr>
       <td>
         <code>stringifyJson</code>
       </td>
-      <td>Typed wrapper for <code>JSON.stringify</code>.</td>
+      <td>
+        <code>stringifyJson&lt;JsonValue&gt;(value)</code> stringifies a JSON value
+        and preserves that value type in the returned <code>stringified</code> string.
+      </td>
     </tr>
     <tr>
       <td>
@@ -71,7 +94,11 @@ persistence, network messages, process handoff, or a transceiver's JSON form.
       <td>
         <code>JsonInterface</code>
       </td>
-      <td>A pair of <code>toJson</code> and <code>fromJson</code> functions.</td>
+      <td>
+        <code>JsonInterface&lt;Type, JsonValue&gt;</code> pairs{" "}
+        <code>toJson</code> and <code>fromJson</code>. <code>Type</code> is the
+        runtime value type; <code>JsonValue</code> is its serialized JSON form.
+      </td>
     </tr>
     <tr>
       <td>

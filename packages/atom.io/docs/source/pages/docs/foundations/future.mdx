@@ -5,10 +5,14 @@ import ReplacePendingWork from "x/foundations/future/replace-pending-work.gen";
 
 `Future` is a `Promise` whose pending value can be replaced.
 
-Use it when callers need a stable promise reference, but the async work that should
-resolve that promise may change before it completes.
+It gives callers a stable promise reference while allowing the producer to replace the
+async work that should resolve it.
 
 <ReplacePendingWork client:load />
+
+In the example, `result` starts by following the slow promise. Calling `use` replaces
+that pending work with a faster promise. `await result` resolves to `"fast"`, and the
+later slow result is ignored.
 
 ## package contents
 
@@ -20,22 +24,33 @@ resolve that promise may change before it completes.
       </td>
       <td>A <code>Promise</code> subclass whose active fate can be replaced.</td>
     </tr>
+    <tr>
+      <td>
+        <code>new Future(executorOrPromise)</code>
+      </td>
+      <td>Construct a <code>Future</code> from a promise or from a promise executor.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>Future.prototype.use(value)</code>
+      </td>
+      <td>
+        Replace the active fate with a promise, or resolve immediately with a direct
+        value.
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <code>Future.prototype.done</code>
+      </td>
+      <td>
+        Starts as <code>false</code> and becomes <code>true</code> when the active
+        promise settles.
+      </td>
+    </tr>
   </tbody>
 </table>
-
-## constructor
 
 Construct a `Future` from a promise or from a promise executor.
 
 <Constructor client:load />
-
-## use
-
-Call `use` with a promise to make that promise the active fate. If an older promise
-settles later, its result is ignored.
-
-Call `use` with a direct value to resolve the `Future` immediately.
-
-## done
-
-`done` starts as `false` and becomes `true` when the active promise settles.

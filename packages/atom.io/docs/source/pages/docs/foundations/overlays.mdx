@@ -1,0 +1,96 @@
+# <span className="soft">atom.io</span>/foundations/overlays
+
+Overlays are source-backed collections. They let you stage changes over a source
+`Map` or `Set` without mutating the source immediately.
+
+For normal collection operations, treat `MapOverlay` like a `Map` and `SetOverlay` like
+a `Set`. The important contract is the overlay behavior: where reads come from, how
+deletions are tracked, and how iteration orders source entries relative to overlay-only
+entries.
+
+```ts
+import { MapOverlay } from "atom.io/foundations/overlays"
+
+const source = new Map([
+	[`a`, 1],
+	[`b`, 2],
+])
+
+const overlay = new MapOverlay(source)
+
+overlay.set(`a`, 10)
+overlay.set(`x`, 100)
+overlay.delete(`b`)
+
+Array.from(overlay) // [["a", 10], ["x", 100]]
+source.get(`a`) // 1
+```
+
+## package contents
+
+<table>
+  <tbody>
+    <tr>
+      <td>
+        <code>MapOverlay</code>
+      </td>
+      <td>A source-backed <code>Map</code>.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>SetOverlay</code>
+      </td>
+      <td>A source-backed <code>Set</code>.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>RelationsOverlay</code>
+      </td>
+      <td>A map overlay that lazily wraps source relation sets in <code>SetOverlay</code>.</td>
+    </tr>
+  </tbody>
+</table>
+
+## source and overlay order
+
+Visible source entries iterate first. Overlay-only entries come after them.
+
+If a source entry is changed in the overlay, it keeps its source position while yielding
+the overlay value.
+
+If a source entry is deleted, it is skipped.
+
+## clear and reinsert
+
+Calling `clear()` hides all source entries and removes overlay-only entries.
+
+If you then add a source-backed item again, it behaves like a fresh overlay insertion.
+That means it appears after any earlier overlay-only insertions made after `clear`.
+
+## MapOverlay
+
+`new MapOverlay(source)` accepts a source `Map`.
+
+Overlay-specific public API:
+
+- `hasOwn(key)` checks only the overlay's own staged map.
+- `deleted` contains source keys hidden by the overlay.
+- `changed` contains source keys whose values have been staged in the overlay.
+
+## SetOverlay
+
+`new SetOverlay(source)` accepts a source `Set`.
+
+Overlay-specific public API:
+
+- `hasOwn(value)` checks only the overlay's own staged set.
+- `iterateOwn()` iterates only overlay-owned values.
+- `source` is the source set.
+- `deleted` contains source values hidden by the overlay.
+
+## RelationsOverlay
+
+`RelationsOverlay` is used for maps whose values are sets.
+
+When `get(key)` reads a set from the source map, it stores and returns a `SetOverlay`
+for that set. This lets relation members be staged without mutating the source set.

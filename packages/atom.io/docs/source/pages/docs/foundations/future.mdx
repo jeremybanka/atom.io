@@ -1,0 +1,54 @@
+# <span className="soft">atom.io</span>/foundations/future
+
+`Future` is a `Promise` whose pending value can be replaced.
+
+Use it when callers need a stable promise reference, but the async work that should
+resolve that promise may change before it completes.
+
+```ts
+import { Future } from "atom.io/foundations/future"
+
+const result = new Future(fetch(`/slow`).then((res) => res.text()))
+
+result.use(fetch(`/fast`).then((res) => res.text()))
+
+const text = await result
+```
+
+## package contents
+
+<table>
+  <tbody>
+    <tr>
+      <td>
+        <code>Future</code>
+      </td>
+      <td>A <code>Promise</code> subclass whose active fate can be replaced.</td>
+    </tr>
+  </tbody>
+</table>
+
+## constructor
+
+Construct a `Future` from a promise or from a promise executor.
+
+```ts
+import { Future } from "atom.io/foundations/future"
+
+const fromPromise = new Future(Promise.resolve(1))
+
+const fromExecutor = new Future<number>((resolve) => {
+	resolve(1)
+})
+```
+
+## use
+
+Call `use` with a promise to make that promise the active fate. If an older promise
+settles later, its result is ignored.
+
+Call `use` with a direct value to resolve the `Future` immediately.
+
+## done
+
+`done` starts as `false` and becomes `true` when the active promise settles.

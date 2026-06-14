@@ -1,0 +1,65 @@
+# <span className="soft">atom.io</span>/foundations/canonical
+
+Use `atom.io/foundations/canonical` when a key needs stable identity across maps,
+stores, URLs, or JSON boundaries.
+
+Canonical values are primitives or readonly arrays of canonical values. Prefer tuples
+for compound keys.
+
+```ts
+import {
+	type Canonical,
+	packCanonical,
+	unpackCanonical,
+} from "atom.io/foundations/canonical"
+
+type TrackKey = readonly [playlistId: string, trackId: string]
+
+const key = [`road-trip`, `dreams`] as const satisfies Canonical
+const packed = packCanonical<TrackKey>(key)
+const unpacked = unpackCanonical(packed)
+```
+
+## package contents
+
+<table>
+  <tbody>
+    <tr>
+      <td>
+        <code>Canonical</code>
+      </td>
+      <td>A primitive or readonly array of canonical values.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>packed</code>
+      </td>
+      <td>A string branded with the canonical value it represents.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>packCanonical</code>
+      </td>
+      <td>Convert a canonical value into a compact string key.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>unpackCanonical</code>
+      </td>
+      <td>Recover a canonical value from a packed key.</td>
+    </tr>
+  </tbody>
+</table>
+
+## why not just JSON.stringify?
+
+`packCanonical` keeps primitive types distinct before stringifying. That means values
+that can look similar as plain strings remain different keys.
+
+```ts
+import { packCanonical } from "atom.io/foundations/canonical"
+
+packCanonical(`null`) !== packCanonical(null)
+packCanonical(`1`) !== packCanonical(1)
+packCanonical(true) !== packCanonical(1)
+```

@@ -1,0 +1,49 @@
+# <span className="soft">atom.io</span>/foundations/type-utils
+
+Use `atom.io/foundations/type-utils` for small shared type helpers.
+
+```ts
+import type { Flat, ViewOf } from "atom.io/foundations/type-utils"
+```
+
+## package contents
+
+<table>
+  <tbody>
+    <tr>
+      <td>
+        <code>Flat</code>
+      </td>
+      <td>Flatten a mapped object type into a readable object shape.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>ViewOf</code>
+      </td>
+      <td>Derive the readonly view type of arrays, maps, sets, and transceivers.</td>
+    </tr>
+  </tbody>
+</table>
+
+## Flat
+
+`Flat` is mostly for type display and type composition.
+
+```ts
+import type { Flat } from "atom.io/foundations/type-utils"
+
+type Intersected = { id: string } & { done: boolean }
+type Readable = Flat<Intersected>
+```
+
+## ViewOf
+
+`ViewOf` converts common mutable containers into readonly views. If a type declares a
+`READONLY_VIEW` marker, `ViewOf` uses that marker.
+
+```ts
+import type { ViewOf } from "atom.io/foundations/type-utils"
+
+type ListView = ViewOf<string[]> // readonly string[]
+type SetView = ViewOf<Set<string>> // ReadonlySet<string>
+```

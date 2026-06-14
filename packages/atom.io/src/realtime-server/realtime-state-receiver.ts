@@ -1,4 +1,5 @@
 import type { WritableToken } from "atom.io"
+import type { Json } from "atom.io/foundations/json"
 import {
 	findInStore,
 	getFromStore,
@@ -8,7 +9,6 @@ import {
 	setIntoStore,
 	subscribeToState,
 } from "atom.io/internal"
-import type { Json } from "atom.io/json"
 import type { SocketKey, StandardSchemaV1 } from "atom.io/realtime"
 import { employSocket, mutexAtoms } from "atom.io/realtime"
 

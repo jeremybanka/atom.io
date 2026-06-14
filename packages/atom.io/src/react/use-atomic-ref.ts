@@ -3,8 +3,8 @@ import type {
 	RegularAtomFamilyToken,
 	RegularAtomToken,
 } from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical"
 import { findInStore, setIntoStore } from "atom.io/internal"
-import type { Canonical } from "atom.io/json"
 import { useContext, useEffect } from "react"
 
 import { StoreContext } from "./store-context.tsx"

@@ -1,4 +1,5 @@
-import type { MapOverlay } from "../overlays/map-overlay.ts"
+import type { MapOverlay } from "atom.io/foundations/overlays"
+
 import type { Store } from "../store/index.ts"
 import type { Fn } from "../utility-types.ts"
 import type {

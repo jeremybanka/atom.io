@@ -1,6 +1,6 @@
 import { PassThrough } from "node:stream"
 
-import type { Json } from "atom.io/json"
+import type { Json } from "atom.io/foundations/json"
 import { ChildSocket, ParentSocket } from "atom.io/realtime-server"
 import { UList } from "atom.io/transceivers/u-list"
 

@@ -4,9 +4,9 @@ import type {
 	WritableFamilyToken,
 	WritableToken,
 } from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical"
 import type { Store } from "atom.io/internal"
 import { findInStore } from "atom.io/internal"
-import type { Canonical } from "atom.io/json"
 
 export function parseStateOverloads<T, K extends Canonical, Key extends K, E>(
 	store: Store,

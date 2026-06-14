@@ -1,7 +1,7 @@
 import type { Readable, Writable } from "node:stream"
 
-import type { Json, stringified } from "atom.io/json"
-import { parseJson } from "atom.io/json"
+import type { Json, stringified } from "atom.io/foundations/json"
+import { parseJson } from "atom.io/foundations/json"
 
 import type { EventBuffer, EventPayload, Events } from "./custom-socket.ts"
 import { CustomSocket } from "./custom-socket.ts"

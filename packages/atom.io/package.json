@@ -150,13 +150,41 @@
 			"import": "./dist/eslint-plugin/index.js",
 			"types": "./dist/eslint-plugin/index.d.ts"
 		},
+		"./foundations/canonical": {
+			"import": "./dist/foundations/canonical/index.js",
+			"types": "./dist/foundations/canonical/index.d.ts"
+		},
+		"./foundations/entries": {
+			"import": "./dist/foundations/entries/index.js",
+			"types": "./dist/foundations/entries/index.d.ts"
+		},
+		"./foundations/enumeration": {
+			"import": "./dist/foundations/enumeration/index.js",
+			"types": "./dist/foundations/enumeration/index.d.ts"
+		},
 		"./foundations/future": {
 			"import": "./dist/foundations/future/index.js",
 			"types": "./dist/foundations/future/index.d.ts"
 		},
+		"./foundations/json": {
+			"import": "./dist/foundations/json/index.js",
+			"types": "./dist/foundations/json/index.d.ts"
+		},
+		"./foundations/junction": {
+			"import": "./dist/foundations/junction/index.js",
+			"types": "./dist/foundations/junction/index.d.ts"
+		},
+		"./foundations/overlays": {
+			"import": "./dist/foundations/overlays/index.js",
+			"types": "./dist/foundations/overlays/index.d.ts"
+		},
 		"./foundations/subject": {
 			"import": "./dist/foundations/subject/index.js",
 			"types": "./dist/foundations/subject/index.d.ts"
+		},
+		"./foundations/type-utils": {
+			"import": "./dist/foundations/type-utils/index.js",
+			"types": "./dist/foundations/type-utils/index.d.ts"
 		},
 		"./internal": {
 			"import": "./dist/internal/index.js",
@@ -165,10 +193,6 @@
 		"./introspection": {
 			"import": "./dist/introspection/index.js",
 			"types": "./dist/introspection/index.d.ts"
-		},
-		"./json": {
-			"import": "./dist/json/index.js",
-			"types": "./dist/json/index.d.ts"
 		},
 		"./react": {
 			"import": "./dist/react/index.js",

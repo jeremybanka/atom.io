@@ -1,0 +1,52 @@
+import CompoundKey from "x/foundations/canonical/compound-key.gen";
+import CanonicalValues from "x/foundations/canonical/canonical-values.gen";
+
+# <span className="soft">atom.io</span>/foundations/canonical
+
+Byte-stable JSON-like keys and compact packing helpers for storing those keys as strings.
+
+A `Canonical` value is a JSON value that only has one representation in bytes.
+
+Plain objects are not canonical. Object property order is not a key contract: the same
+logical object can be serialized in different property orders, which means different
+bytes. TypeScript's duck typing is also a problem here because extra runtime properties
+can exist even when the type you meant to use does not mention them.
+
+The [JSON `primitive` type](/docs/foundations/json) is canonical. A readonly array is
+canonical when every value inside it is canonical, so tuples are the usual shape for
+compound keys.
+
+<CanonicalValues client:load />
+
+<CompoundKey client:load />
+
+## package contents
+
+<table>
+  <tbody>
+    <tr>
+      <td>
+        <code>Canonical</code>
+      </td>
+      <td>A primitive or readonly array of canonical values.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>packed</code>
+      </td>
+      <td>A string branded with the canonical value it represents.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>packCanonical</code>
+      </td>
+      <td>Convert a canonical value into a compact string key.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>unpackCanonical</code>
+      </td>
+      <td>Recover a canonical value from a packed key.</td>
+    </tr>
+  </tbody>
+</table>

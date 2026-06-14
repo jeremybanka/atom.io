@@ -1,0 +1,94 @@
+# <span className="soft">atom.io</span>/foundations
+
+Foundations are internals that have become basically done, shareable, and powerful
+enough to stand on their own.
+
+They are not the main mission of atom.io. Most users will spend more time with atoms,
+selectors, transactions, timelines, and UI adapters. But when you do want a `Future`,
+a `MapOverlay`, a `Canonical` key, or another low-level primitive directly in your own
+application, you should be able to import it without feeling like you are reaching into
+private machinery.
+
+Foundation modules are public API. They are covered by atom.io's semver contract, and
+that contract is checked with [`break-check`](https://www.npmjs.com/package/break-check).
+
+Import each foundation from its own submodule.
+
+## modules
+
+<table>
+  <tbody>
+    <tr>
+      <td>
+        <a href="/docs/foundations/json">
+          <code>atom.io/foundations/json</code>
+        </a>
+      </td>
+      <td>JSON-safe value types and parse/stringify helpers.</td>
+    </tr>
+    <tr>
+      <td>
+        <a href="/docs/foundations/canonical">
+          <code>atom.io/foundations/canonical</code>
+        </a>
+      </td>
+      <td>Canonical key values and compact key packing.</td>
+    </tr>
+    <tr>
+      <td>
+        <a href="/docs/foundations/entries">
+          <code>atom.io/foundations/entries</code>
+        </a>
+      </td>
+      <td>Typed wrappers for object entries.</td>
+    </tr>
+    <tr>
+      <td>
+        <a href="/docs/foundations/enumeration">
+          <code>atom.io/foundations/enumeration</code>
+        </a>
+      </td>
+      <td>Two-way numeric enumerations from string arrays.</td>
+    </tr>
+    <tr>
+      <td>
+        <a href="/docs/foundations/type-utils">
+          <code>atom.io/foundations/type-utils</code>
+        </a>
+      </td>
+      <td>Small reusable type helpers.</td>
+    </tr>
+    <tr>
+      <td>
+        <a href="/docs/foundations/future">
+          <code>atom.io/foundations/future</code>
+        </a>
+      </td>
+      <td>A promise whose pending value can be replaced.</td>
+    </tr>
+    <tr>
+      <td>
+        <a href="/docs/foundations/subject">
+          <code>atom.io/foundations/subject</code>
+        </a>
+      </td>
+      <td>Keyed observable subjects.</td>
+    </tr>
+    <tr>
+      <td>
+        <a href="/docs/foundations/overlays">
+          <code>atom.io/foundations/overlays</code>
+        </a>
+      </td>
+      <td>Source-backed Map and Set overlays.</td>
+    </tr>
+    <tr>
+      <td>
+        <a href="/docs/foundations/junction">
+          <code>atom.io/foundations/junction</code>
+        </a>
+      </td>
+      <td>A bidirectional relation helper for string keys.</td>
+    </tr>
+  </tbody>
+</table>

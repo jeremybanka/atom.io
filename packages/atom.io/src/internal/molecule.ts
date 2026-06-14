@@ -13,9 +13,10 @@ import {
 	type ValidKey,
 	type Vassal,
 } from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical"
+import type { stringified } from "atom.io/foundations/json"
+import { parseJson, stringifyJson } from "atom.io/foundations/json"
 import { Subject } from "atom.io/foundations/subject"
-import type { Canonical, stringified } from "atom.io/json"
-import { parseJson, stringifyJson } from "atom.io/json"
 
 import { disposeFromStore } from "./families/index.ts"
 import { getFromStore } from "./get-state/index.ts"

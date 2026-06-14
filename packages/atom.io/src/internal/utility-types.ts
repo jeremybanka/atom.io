@@ -2,10 +2,6 @@ export type Fn = (...parameters: any[]) => any
 
 export type Ctor<T> = new (...args: any[]) => T
 
-export type Flat<R extends { [K in PropertyKey]: any }> = {
-	[K in keyof R]: R[K]
-}
-
 export type Count<N extends number, A extends any[] = []> = [
 	...A,
 	any,

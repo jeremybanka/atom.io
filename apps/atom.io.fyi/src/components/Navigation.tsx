@@ -239,11 +239,6 @@ function SiteDirectory(): VNode {
 							</a>
 						</section>
 						<section>
-							<a id="-docs-json-link" href={`/docs/json`}>
-								<span className="soft">atom.io</span>/json
-							</a>
-						</section>
-						<section>
 							<a id="-docs-web-link" href={`/docs/web`}>
 								<span className="soft">atom.io</span>/web
 							</a>
@@ -271,6 +266,88 @@ function SiteDirectory(): VNode {
 						<section>
 							<a id="-docs-testing-link" href={`/docs/testing`}>
 								<span className="soft">atom.io</span>/testing
+							</a>
+						</section>
+					</main>
+				</section>
+				<section>
+					<header>Foundations</header>
+					<main>
+						<section>
+							<a id="-docs-foundations-link" href={`/docs/foundations`}>
+								<span className="soft">atom.io</span>/foundations
+							</a>
+						</section>
+						<section>
+							<a
+								id="-docs-foundations-json-link"
+								href={`/docs/foundations/json`}
+							>
+								<span className="soft">foundations</span>/json
+							</a>
+						</section>
+						<section>
+							<a
+								id="-docs-foundations-canonical-link"
+								href={`/docs/foundations/canonical`}
+							>
+								<span className="soft">foundations</span>/canonical
+							</a>
+						</section>
+						<section>
+							<a
+								id="-docs-foundations-entries-link"
+								href={`/docs/foundations/entries`}
+							>
+								<span className="soft">foundations</span>/entries
+							</a>
+						</section>
+						<section>
+							<a
+								id="-docs-foundations-enumeration-link"
+								href={`/docs/foundations/enumeration`}
+							>
+								<span className="soft">foundations</span>/enumeration
+							</a>
+						</section>
+						<section>
+							<a
+								id="-docs-foundations-type-utils-link"
+								href={`/docs/foundations/type-utils`}
+							>
+								<span className="soft">foundations</span>/type-utils
+							</a>
+						</section>
+						<section>
+							<a
+								id="-docs-foundations-future-link"
+								href={`/docs/foundations/future`}
+							>
+								<span className="soft">foundations</span>/future
+							</a>
+						</section>
+						<section>
+							<a
+								id="-docs-foundations-subject-link"
+								href={`/docs/foundations/subject`}
+							>
+								<span className="soft">foundations</span>/subject
+							</a>
+						</section>
+						<section>
+							<a
+								id="-docs-foundations-overlays-link"
+								href={`/docs/foundations/overlays`}
+							>
+								<span className="soft">foundations</span>/overlays
+							</a>
+						</section>
+						<section>
+							<a
+								id="-docs-foundations-junction-link"
+								href={`/docs/foundations/junction`}
+							>
+								<span className="soft">foundations</span>/junction
 							</a>
 						</section>
 					</main>

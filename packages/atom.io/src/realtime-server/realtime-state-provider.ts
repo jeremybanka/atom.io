@@ -1,6 +1,6 @@
 import type * as AtomIO from "atom.io"
+import type { Json } from "atom.io/foundations/json"
 import { getFromStore, IMPLICIT, subscribeToState } from "atom.io/internal"
-import type { Json } from "atom.io/json"
 import { employSocket } from "atom.io/realtime"
 
 import type { ServerConfig } from "."

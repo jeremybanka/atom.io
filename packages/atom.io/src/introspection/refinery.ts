@@ -1,5 +1,6 @@
-import type { Flat, Refinement } from "atom.io/internal"
-import type { Json } from "atom.io/json"
+import type { Json } from "atom.io/foundations/json"
+import type { Flat } from "atom.io/foundations/type-utils"
+import type { Refinement } from "atom.io/internal"
 
 export type ClassSignature = abstract new (...args: any) => any
 

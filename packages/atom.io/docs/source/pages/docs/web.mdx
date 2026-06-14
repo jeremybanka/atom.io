@@ -5,14 +5,9 @@ import StringInterface from "x/web/string-interface.gen";
 
 # <span className="soft">atom.io</span>/web
 
-`atom.io/web` provides browser-specific atom effects.
+`atom.io/web` provides browser-specific integrations for `atom.io`.
 
-Right now, that means:
-
-- `storageSync`: keep an atom in sync with `localStorage`, `sessionStorage`, or any compatible `Storage`
-- `searchParamSync`: keep an atom in sync with a URL search parameter
-
-These tools are useful when some state should survive refreshes or be shareable through the URL.
+Right now, that means a couple of state-persistence strategies in the form of [atom effects](/docs/atom-io#atom-effects).
 
 ## package contents
 

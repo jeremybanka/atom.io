@@ -33,7 +33,7 @@ import type {
 	WritableToken,
 } from "atom.io"
 import { NotFoundError } from "atom.io"
-import type { Canonical } from "atom.io/json"
+import type { Canonical } from "atom.io/foundations/canonical"
 
 import type { Transceiver } from "../mutable/index.ts"
 import type {

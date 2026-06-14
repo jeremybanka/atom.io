@@ -1,6 +1,6 @@
 import type { ViewOf } from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical"
 import { getFromStore, IMPLICIT } from "atom.io/internal"
-import type { Canonical } from "atom.io/json"
 
 import type { ReadableFamilyToken, ReadableToken } from "."
 

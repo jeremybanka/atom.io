@@ -2,6 +2,7 @@ import type { ChildProcessWithoutNullStreams } from "node:child_process"
 import { spawn } from "node:child_process"
 
 import type { ReadableFamilyToken } from "atom.io"
+import type { Json } from "atom.io/foundations/json"
 import type { RootStore } from "atom.io/internal"
 import {
 	editRelationsInStore,
@@ -12,7 +13,6 @@ import {
 	IMPLICIT,
 	setIntoStore,
 } from "atom.io/internal"
-import type { Json } from "atom.io/json"
 import type {
 	AllEventsListener,
 	EventsMap,

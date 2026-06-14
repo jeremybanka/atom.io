@@ -6,8 +6,8 @@ import {
 	getInternalRelations,
 	setState,
 } from "atom.io"
+import type { Json } from "atom.io/foundations/json"
 import { IMPLICIT } from "atom.io/internal"
-import type { Json } from "atom.io/json"
 import type { RoomKey } from "atom.io/realtime"
 import { usersInRooms } from "atom.io/realtime"
 import { pullMutableAtomFamilyMember } from "atom.io/realtime-client"

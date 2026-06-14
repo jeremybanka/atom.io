@@ -16,8 +16,8 @@ import type {
 	WritablePureSelectorToken,
 	WritableToken,
 } from "atom.io"
-import type { Canonical } from "atom.io/json"
-import { stringifyJson } from "atom.io/json"
+import type { Canonical } from "atom.io/foundations/canonical"
+import { stringifyJson } from "atom.io/foundations/json"
 
 import { newest } from "../lineage.ts"
 import type { Transceiver } from "../mutable/index.ts"

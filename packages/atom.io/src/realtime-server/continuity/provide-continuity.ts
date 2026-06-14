@@ -1,5 +1,5 @@
+import type { Json } from "atom.io/foundations/json"
 import { getFromStore, IMPLICIT } from "atom.io/internal"
-import type { Json } from "atom.io/json"
 import type { ContinuityToken, UserKey } from "atom.io/realtime"
 
 import type { ServerConfig } from ".."

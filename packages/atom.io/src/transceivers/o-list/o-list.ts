@@ -1,7 +1,10 @@
+import type { packed } from "atom.io/foundations/canonical"
+import { packCanonical, unpackCanonical } from "atom.io/foundations/canonical"
+import type { Enumeration } from "atom.io/foundations/enumeration"
+import { enumeration } from "atom.io/foundations/enumeration"
+import type { primitive } from "atom.io/foundations/json"
 import { Subject } from "atom.io/foundations/subject"
 import type { Fn, Transceiver, TransceiverMode } from "atom.io/internal"
-import type { Enumeration, packed, primitive } from "atom.io/json"
-import { enumeration, packCanonical, unpackCanonical } from "atom.io/json"
 
 export type ArrayMutations = Exclude<keyof Array<any>, keyof ReadonlyArray<any>>
 export type ArrayUpdate<P extends primitive> =

@@ -1,4 +1,4 @@
-import { packCanonical, unpackCanonical } from "atom.io/json"
+import { packCanonical, unpackCanonical } from "atom.io/foundations/canonical"
 
 describe(`packValue`, () => {
 	const number10 = 1234567890

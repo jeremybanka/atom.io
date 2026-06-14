@@ -1,5 +1,5 @@
 import type { MutableAtomFamilyToken } from "atom.io"
-import type { Json } from "atom.io/json"
+import type { Json } from "atom.io/foundations/json"
 
 import { newest } from "../lineage.ts"
 import type { RegularAtomFamily } from "../state-types.ts"

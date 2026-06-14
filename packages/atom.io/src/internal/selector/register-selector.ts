@@ -10,7 +10,7 @@ import type {
 	WritableToken,
 	WriterToolkit,
 } from "atom.io"
-import type { Canonical } from "atom.io/json"
+import type { Canonical } from "atom.io/foundations/canonical"
 
 import { findInStore } from "../families/index.ts"
 import { getFallback } from "../get-state/get-fallback.ts"

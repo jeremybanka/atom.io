@@ -1,4 +1,4 @@
-import type { Json } from "atom.io/json"
+import type { Json } from "atom.io/foundations/json"
 import type { EventsMap, GuardedSocket, Socket } from "atom.io/realtime"
 
 export function employSocket<I extends EventsMap, K extends string & keyof I>(

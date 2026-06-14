@@ -12,6 +12,8 @@ import type {
 	WriterToolkit,
 } from "atom.io"
 import { simpleCompound } from "atom.io"
+import type { BaseExternalStoreConfiguration } from "atom.io/foundations/junction"
+import { Junction } from "atom.io/foundations/junction"
 import { UList } from "atom.io/transceivers/u-list"
 
 import { capitalize } from "../capitalize.ts"
@@ -20,8 +22,6 @@ import {
 	findInStore,
 } from "../families/index.ts"
 import { getFromStore } from "../get-state/index.ts"
-import type { BaseExternalStoreConfiguration } from "../junction.ts"
-import { Junction } from "../junction.ts"
 import {
 	createMutableAtomFamily,
 	getJsonFamily,

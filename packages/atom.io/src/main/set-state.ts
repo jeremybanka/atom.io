@@ -1,5 +1,5 @@
+import type { Canonical } from "atom.io/foundations/canonical"
 import { IMPLICIT, setIntoStore } from "atom.io/internal"
-import type { Canonical } from "atom.io/json"
 
 import type { WritableFamilyToken, WritableToken } from "./tokens.ts"
 

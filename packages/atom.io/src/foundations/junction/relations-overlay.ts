@@ -1,4 +1,4 @@
-import { SetOverlay } from "./set-overlay.ts"
+import { SetOverlay } from "atom.io/foundations/overlays"
 
 export class RelationsOverlay<K, V extends Set<any>> extends Map<K, V> {
 	public deleted: Set<K> = new Set()

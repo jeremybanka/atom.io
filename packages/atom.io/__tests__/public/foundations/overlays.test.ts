@@ -1,8 +1,4 @@
-import {
-	MapOverlay,
-	RelationsOverlay,
-	SetOverlay,
-} from "atom.io/foundations/overlays"
+import { MapOverlay, SetOverlay } from "atom.io/foundations/overlays"
 
 const setLikeWithPlainIterator = <T>(
 	members: Iterable<T>,
@@ -744,43 +740,5 @@ describe(`SetOverlay`, () => {
 		expect(o.deleted).toEqual(new Set([`b`]))
 		expect([...o]).toEqual([`x`, `a`])
 		expect(o.size).toBe(2)
-	})
-})
-
-describe(`RelationsOverlay`, () => {
-	test(`get: wraps source relations in a SetOverlay and reuses that overlay`, () => {
-		const relation = new Set([`one`, `two`])
-		const source = new Map<string, Set<string>>([[`a`, relation]])
-		const o = new RelationsOverlay<string, Set<string>>(source)
-
-		expect(o.has(`a`)).toBe(true)
-		const wrapped = o.get(`a`)
-
-		expect(wrapped).toBeInstanceOf(SetOverlay)
-		expect(wrapped).not.toBe(relation)
-		expect([...(wrapped ?? [])]).toEqual([`one`, `two`])
-
-		wrapped?.add(`three`)
-		wrapped?.delete(`one`)
-		expect([...(o.get(`a`) ?? [])]).toEqual([`two`, `three`])
-		expect([...relation]).toEqual([`one`, `two`])
-	})
-
-	test(`set, has, delete, and missing get reflect overlay entries and deletions`, () => {
-		const source = new Map<string, Set<string>>([[`a`, new Set([`one`])]])
-		const o = new RelationsOverlay<string, Set<string>>(source)
-
-		const inserted = new Set([`two`])
-		expect(o.set(`b`, inserted)).toBe(o)
-		expect(o.has(`b`)).toBe(true)
-		expect(o.get(`b`)).toBe(inserted)
-
-		expect(o.delete(`a`)).toBe(false)
-		expect(o.has(`a`)).toBe(false)
-		expect(o.get(`a`)).toBeUndefined()
-
-		expect(o.delete(`b`)).toBe(true)
-		expect(o.has(`b`)).toBe(false)
-		expect(o.get(`missing` as any)).toBeUndefined()
 	})
 })

@@ -1,6 +1,6 @@
 import type { ReadableToken, WritableToken } from "atom.io"
-import type { Canonical } from "atom.io/json"
-import { stringifyJson } from "atom.io/json"
+import type { Canonical } from "atom.io/foundations/canonical"
+import { stringifyJson } from "atom.io/foundations/json"
 
 import type { ReadableFamily } from "../state-types.ts"
 import type { Store } from "../store/index.ts"

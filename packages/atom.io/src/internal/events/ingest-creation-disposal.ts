@@ -6,7 +6,7 @@ import type {
 	StateCreationEvent,
 	StateDisposalEvent,
 } from "atom.io"
-import { parseJson, stringifyJson } from "atom.io/json"
+import { parseJson, stringifyJson } from "atom.io/foundations/json"
 
 import { disposeFromStore } from "../families/index.ts"
 import { getFromStore } from "../get-state/index.ts"

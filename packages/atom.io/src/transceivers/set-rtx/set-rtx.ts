@@ -1,7 +1,7 @@
+import type { Json, primitive } from "atom.io/foundations/json"
+import { stringifyJson } from "atom.io/foundations/json"
 import { Subject } from "atom.io/foundations/subject"
 import type { Lineage, Transceiver, TransceiverMode } from "atom.io/internal"
-import type { Json, primitive } from "atom.io/json"
-import { stringifyJson } from "atom.io/json"
 
 export type SetUpdateType = `add` | `clear` | `del` | `tx`
 export type SetUpdateString = `${SetUpdateType}:${string}`

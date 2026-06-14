@@ -3,8 +3,9 @@ import type {
 	ReadableToken,
 	StateCreationEvent,
 } from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical"
+import { parseJson } from "atom.io/foundations/json"
 import type { Subject } from "atom.io/foundations/subject"
-import { type Canonical, parseJson } from "atom.io/json"
 
 import { getFamilyOfToken } from "../families/get-family-of-token.ts"
 import { seekInStore } from "../families/index.ts"

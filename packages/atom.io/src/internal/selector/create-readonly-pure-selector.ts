@@ -4,8 +4,8 @@ import type {
 	ReadonlyPureSelectorToken,
 	StateUpdate,
 } from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical"
 import { Subject } from "atom.io/foundations/subject"
-import type { Canonical } from "atom.io/json"
 
 import { newest } from "../lineage.ts"
 import type { ReadonlyPureSelector } from "../state-types.ts"

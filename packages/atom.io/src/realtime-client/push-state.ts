@@ -1,7 +1,7 @@
 import type { WritableToken } from "atom.io"
+import type { Json } from "atom.io/foundations/json"
 import type { Store } from "atom.io/internal"
 import { setIntoStore, subscribeToState } from "atom.io/internal"
-import type { Json } from "atom.io/json"
 import type { Socket } from "atom.io/realtime"
 import { employSocket, mutexAtoms } from "atom.io/realtime"
 

@@ -4,7 +4,7 @@ title: Mutable Atom
 summary: An atom backed by a mutable transceiver value.
 packages:
   - atom.io
-  - atom.io/json
+  - atom.io/foundations/json
 related:
   - atom
   - transceiver

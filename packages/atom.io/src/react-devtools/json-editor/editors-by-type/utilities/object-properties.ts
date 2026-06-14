@@ -1,6 +1,7 @@
+import { fromEntries, toEntries } from "atom.io/foundations/entries"
+import type { Json, JsonTypeName } from "atom.io/foundations/json"
+import { JSON_DEFAULTS } from "atom.io/foundations/json"
 import { become } from "atom.io/internal"
-import type { Json, JsonTypeName } from "atom.io/json"
-import { fromEntries, JSON_DEFAULTS, toEntries } from "atom.io/json"
 import type { RefObject } from "react"
 
 import type { SetterOrUpdater } from "../../index.ts"

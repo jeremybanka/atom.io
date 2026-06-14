@@ -1,12 +1,13 @@
 import TakeSnapshot from "x/tooling/testing/take-snapshot.gen";
 import CustomStore from "x/tooling/testing/custom-store.gen";
+import StateExists from "x/tooling/testing/state-exists.gen";
+import StoreHasStateValues from "x/tooling/testing/store-has-state-values.gen";
+import TestLogLevel from "x/tooling/testing/test-log-level.gen";
+import HasImplicitStoreBeenCreated from "x/tooling/testing/has-implicit-store-been-created.gen";
 
 # <span className="soft">atom.io</span>/testing
 
-`atom.io/testing` provides a small helper for tests that use the implicit store.
-
-Use it when your tests declare atoms, selectors, or families at module scope and you want
-each test to start from the same assembled store without rebuilding that setup by hand.
+`atom.io/testing` provides helpers for tests that use atom.io stores.
 
 ## package contents
 
@@ -24,12 +25,45 @@ each test to start from the same assembled store without rebuilding that setup b
       </td>
       <td>A snapshot object with <code>store</code> and <code>restore()</code>.</td>
     </tr>
+    <tr>
+      <td>
+        <code>stateExists</code>
+      </td>
+      <td>Check whether a state exists in the implicit store without creating it.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>stateExistsInStore</code>
+      </td>
+      <td>Check whether a state exists in a specific store without creating it.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>storeHasStateValues</code>
+      </td>
+      <td>Check whether a store currently retains any state values.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>hasImplicitStoreBeenCreated</code>
+      </td>
+      <td>Check whether the implicit store exists without creating it.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>setTestLogLevel</code>
+      </td>
+      <td>Set the implicit store logger level for tests and return the logger.</td>
+    </tr>
   </tbody>
 </table>
 
 ## takeSnapshot
 
 `takeSnapshot` captures the current shape of a store and returns a `Snapshot`.
+
+Use it when your tests declare atoms, selectors, or families at module scope and you want
+each test to start from the same assembled store without rebuilding that setup by hand.
 
 For the common case, call it once at module scope after your test states are declared,
 then restore it in `afterEach`.
@@ -43,18 +77,49 @@ That pattern keeps the test file visually familiar: setup at the top, then a nor
 
 The returned `Snapshot` also exposes the snapshotted store as `snapshot.store`.
 
-That is useful when you want to inspect the captured template store directly. For example,
-you can read the snapshotted value of a state from `snapshot.store` before restoring it.
+That is useful when you want to pass the captured template store to a store-specific
+testing helper.
 
 <CustomStore client:load />
 
-## when to use it
+## stateExists
 
-Use `atom.io/testing` when:
+Use `stateExists` to check whether an atom, selector, or family member exists in the
+implicit store without creating it.
 
-- your tests rely on the implicit store
-- your states are declared once and reused across many tests
-- you want each test to begin from the same installed atoms, selectors, and families
+Pass a token directly, or pass a family token and a key.
 
-If you are already creating isolated stores with `Silo`, you may prefer to construct a
-fresh store per test instead.
+<StateExists client:load />
+
+Use `stateExistsInStore` when you want the same non-creating check against a specific
+store, such as `snapshot.store`.
+
+## storeHasStateValues
+
+Use `storeHasStateValues` to check whether a store is retaining state values.
+
+It defaults to the implicit store. Pass a store explicitly when you want to inspect a
+different store.
+
+This is most useful for tests that need to assert that a failed operation did not commit
+any values.
+
+<StoreHasStateValues client:load />
+
+## setTestLogLevel
+
+Use `setTestLogLevel(null)` in committed tests to keep atom.io logs quiet.
+
+The helper returns the implicit store logger, so you can spy on `error`, `warn`, or
+`info` without enabling console output.
+
+<TestLogLevel client:load />
+
+## hasImplicitStoreBeenCreated
+
+Use `hasImplicitStoreBeenCreated` when a test needs to assert that code did not touch the
+global implicit store.
+
+It checks for the store without creating it.
+
+<HasImplicitStoreBeenCreated client:load />

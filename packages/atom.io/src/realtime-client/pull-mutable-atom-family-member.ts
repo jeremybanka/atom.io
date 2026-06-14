@@ -1,4 +1,5 @@
 import type * as AtomIO from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical"
 import type { AsJSON, SignalFrom, Store, Transceiver } from "atom.io/internal"
 import {
 	findInStore,
@@ -6,7 +7,6 @@ import {
 	getUpdateToken,
 	setIntoStore,
 } from "atom.io/internal"
-import type { Canonical } from "atom.io/json"
 import { employSocket, type Socket } from "atom.io/realtime"
 
 import { createSubscriber } from "./create-subscriber.ts"

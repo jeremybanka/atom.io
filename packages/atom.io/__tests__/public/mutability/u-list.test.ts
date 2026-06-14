@@ -1,4 +1,4 @@
-import type { primitive } from "atom.io/json"
+import type { primitive } from "atom.io/foundations/json"
 import type { SetUpdate } from "atom.io/transceivers/u-list"
 import { UList } from "atom.io/transceivers/u-list"
 

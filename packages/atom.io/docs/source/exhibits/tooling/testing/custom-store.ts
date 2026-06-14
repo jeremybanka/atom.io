@@ -1,6 +1,5 @@
 import { atom } from "atom.io"
-import { getFromStore } from "atom.io/internal"
-import { takeSnapshot } from "atom.io/testing"
+import { stateExistsInStore, takeSnapshot } from "atom.io/testing"
 
 const countAtom = atom<number>({
 	key: `count`,
@@ -9,5 +8,6 @@ const countAtom = atom<number>({
 
 const snapshot = takeSnapshot()
 
-getFromStore(snapshot.store, countAtom)
+stateExistsInStore(snapshot.store, countAtom) // -> true
+
 snapshot.restore()

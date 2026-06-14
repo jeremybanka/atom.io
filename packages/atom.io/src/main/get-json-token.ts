@@ -1,6 +1,6 @@
+import type { Canonical } from "atom.io/foundations/canonical"
 import type { AsJSON, Transceiver } from "atom.io/internal"
 import { findInStore, getJsonTokenFromStore, IMPLICIT } from "atom.io/internal"
-import type { Canonical } from "atom.io/json"
 
 import type {
 	MutableAtomFamilyToken,

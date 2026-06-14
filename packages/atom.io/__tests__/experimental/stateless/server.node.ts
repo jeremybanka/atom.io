@@ -1,7 +1,7 @@
 /* oxlint-disable typescript/only-throw-error */
 import * as http from "node:http"
 
-import type { Json } from "atom.io/json"
+import type { Json } from "atom.io/foundations/json"
 import { drizzle } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
 

@@ -2,7 +2,7 @@ import type { UserConfig, UserConfigFn } from "tsdown"
 import { defineConfig } from "tsdown"
 
 import discoverSubmodules from "./__scripts__/discover-submodules.ts"
-import { fromEntries } from "./src/json/entries.ts"
+import { fromEntries } from "./src/foundations/entries/index.ts"
 
 const SUBMODULE_NAMES = discoverSubmodules()
 

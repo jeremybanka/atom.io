@@ -1,0 +1,56 @@
+import Constructor from "x/foundations/future/constructor.gen";
+import ReplacePendingWork from "x/foundations/future/replace-pending-work.gen";
+
+# <span className="soft">atom.io</span>/foundations/future
+
+`Future` is a `Promise` whose pending value can be replaced.
+
+It gives callers a stable promise reference while allowing the producer to replace the
+async work that should resolve it.
+
+<ReplacePendingWork client:load />
+
+In the example, `result` starts by following the slow promise. Calling `use` replaces
+that pending work with a faster promise. `await result` resolves to `"fast"`, and the
+later slow result is ignored.
+
+## package contents
+
+<table>
+  <tbody>
+    <tr>
+      <td>
+        <code>Future</code>
+      </td>
+      <td>A <code>Promise</code> subclass whose active fate can be replaced.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>new Future(executorOrPromise)</code>
+      </td>
+      <td>Construct a <code>Future</code> from a promise or from a promise executor.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>Future.prototype.use(value)</code>
+      </td>
+      <td>
+        Replace the active fate with a promise, or resolve immediately with a direct
+        value.
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <code>Future.prototype.done</code>
+      </td>
+      <td>
+        Starts as <code>false</code> and becomes <code>true</code> when the active
+        promise settles.
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+Construct a `Future` from a promise or from a promise executor.
+
+<Constructor client:load />

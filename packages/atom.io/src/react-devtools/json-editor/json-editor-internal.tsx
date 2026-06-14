@@ -1,7 +1,7 @@
+import type { JsonTypes } from "atom.io/foundations/json"
+import { isJson } from "atom.io/foundations/json"
 import { actUponStore, arbitrary } from "atom.io/internal"
 import { jsonRefinery } from "atom.io/introspection"
-import type { JsonTypes } from "atom.io/json"
-import { isJson } from "atom.io/json"
 import {
 	type CSSProperties,
 	type FC,

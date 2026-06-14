@@ -1,8 +1,8 @@
 import type { Readable, Writable } from "node:stream"
 
+import type { Json } from "atom.io/foundations/json"
+import { parseJson, stringifyJson } from "atom.io/foundations/json"
 import { Subject } from "atom.io/foundations/subject"
-import type { Json } from "atom.io/json"
-import { parseJson, stringifyJson } from "atom.io/json"
 import type { UserKey } from "atom.io/realtime"
 import { UList } from "atom.io/transceivers/u-list"
 

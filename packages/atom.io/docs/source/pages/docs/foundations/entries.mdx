@@ -1,0 +1,66 @@
+import TypedEntries from "x/foundations/entries/typed-entries.gen";
+
+# <span className="soft">atom.io</span>/foundations/entries
+
+Typed wrappers for object entry round-trips.
+
+They are most useful when you want to map over an object as entries and rebuild it while
+preserving the relationship between each key and its value type.
+
+<TypedEntries client:load />
+
+## package contents
+
+<table>
+  <tbody>
+    <tr>
+      <td>
+        <code>Entries</code>
+      </td>
+      <td>Tuples of <code>[key, value]</code> pairs.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>KeyOfEntries</code>
+      </td>
+      <td>The union of keys in an entries array.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>ValueOfEntry</code>
+      </td>
+      <td>The value type associated with a particular entry key.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>FromEntries</code>
+      </td>
+      <td>The object type represented by an entries array.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>fromEntries</code>
+      </td>
+      <td>Typed form of <code>Object.fromEntries</code>.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>ToEntries</code>
+      </td>
+      <td>The entries type represented by an object.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>toEntries</code>
+      </td>
+      <td>Typed form of <code>Object.entries</code>.</td>
+    </tr>
+  </tbody>
+</table>
+
+These helpers do not change runtime behavior. They improve the TypeScript type returned
+from the standard object entry operations.
+
+Because TypeScript is duck-typed, `toEntries` can still receive an object with runtime
+properties that were not represented in the type you thought you had. Treat the improved
+typing as a round-trip helper, not as a runtime validator.

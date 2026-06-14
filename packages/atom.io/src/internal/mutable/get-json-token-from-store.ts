@@ -3,7 +3,7 @@ import type {
 	WritablePureSelectorFamilyToken,
 	WritablePureSelectorToken,
 } from "atom.io"
-import { parseJson } from "atom.io/json"
+import { parseJson } from "atom.io/foundations/json"
 
 import { findInStore } from "../families/index.ts"
 import { newest } from "../lineage.ts"

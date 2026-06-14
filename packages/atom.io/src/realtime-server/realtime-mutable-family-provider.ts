@@ -1,4 +1,7 @@
 import type * as AtomIO from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical"
+import type { stringified } from "atom.io/foundations/json"
+import { stringifyJson } from "atom.io/foundations/json"
 import type { Transceiver } from "atom.io/internal"
 import {
 	findInStore,
@@ -8,8 +11,6 @@ import {
 	IMPLICIT,
 	subscribeToState,
 } from "atom.io/internal"
-import type { Canonical, stringified } from "atom.io/json"
-import { stringifyJson } from "atom.io/json"
 import { employSocket } from "atom.io/realtime"
 
 import type { ServerConfig } from "."

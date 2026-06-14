@@ -6,9 +6,9 @@ import type {
 	WritableHeldSelectorToken,
 } from "atom.io"
 import { PRETTY_ENTITY_NAMES } from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical"
+import { stringifyJson } from "atom.io/foundations/json"
 import { Subject } from "atom.io/foundations/subject"
-import type { Canonical } from "atom.io/json"
-import { stringifyJson } from "atom.io/json"
 
 import { newest } from "../lineage.ts"
 import { createWritableHeldSelector } from "../selector/index.ts"

@@ -1,0 +1,108 @@
+import ClearAndReinsert from "x/foundations/overlays/clear-and-reinsert.gen";
+import MapOverlayExample from "x/foundations/overlays/map-overlay.gen";
+import SourceAndOverlayOrder from "x/foundations/overlays/source-and-overlay-order.gen";
+
+# <span className="soft">atom.io</span>/foundations/overlays
+
+Overlays are source-backed collections. They let you stage changes over a source
+`Map` or `Set` without mutating the source immediately.
+
+For normal collection operations, treat `MapOverlay` like a `Map` and `SetOverlay` like
+a `Set`. The important contract is the overlay behavior: where reads come from, how
+deletions are tracked, and how iteration orders source entries relative to overlay-only
+entries.
+
+<MapOverlayExample client:load />
+
+## package contents
+
+<table>
+  <tbody>
+    <tr>
+      <td>
+        <code>MapOverlay</code>
+      </td>
+      <td>A source-backed <code>Map</code>.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>SetOverlay</code>
+      </td>
+      <td>A source-backed <code>Set</code>.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>new MapOverlay(source)</code>
+      </td>
+      <td>Construct a <code>MapOverlay</code> from a source <code>Map</code>.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>MapOverlay.prototype.hasOwn(key)</code>
+      </td>
+      <td>Check only the overlay's own staged map.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>MapOverlay.prototype.deleted</code>
+      </td>
+      <td>A <code>Set</code> of source keys hidden by the overlay.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>MapOverlay.prototype.changed</code>
+      </td>
+      <td>A <code>Set</code> of source keys whose values are staged in the overlay.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>new SetOverlay(source)</code>
+      </td>
+      <td>Construct a <code>SetOverlay</code> from a source <code>Set</code>.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>SetOverlay.prototype.hasOwn(value)</code>
+      </td>
+      <td>Check only the overlay's own staged set.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>SetOverlay.prototype.iterateOwn()</code>
+      </td>
+      <td>Iterate only overlay-owned values.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>SetOverlay.prototype.source</code>
+      </td>
+      <td>The source set backing the overlay.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>SetOverlay.prototype.deleted</code>
+      </td>
+      <td>A <code>Set</code> of source values hidden by the overlay.</td>
+    </tr>
+  </tbody>
+</table>
+
+## source and overlay order
+
+Visible source entries iterate first. Overlay-only entries come after them.
+
+If a source entry is changed in the overlay, it keeps its source position while yielding
+the overlay value.
+
+If a source entry is deleted, it is skipped.
+
+<SourceAndOverlayOrder client:load />
+
+## clear and reinsert
+
+Calling `clear()` hides all source entries and removes overlay-only entries.
+
+If you then add a source-backed item again, it behaves like a fresh overlay insertion.
+That means it appears after any earlier overlay-only insertions made after `clear`.
+
+<ClearAndReinsert client:load />

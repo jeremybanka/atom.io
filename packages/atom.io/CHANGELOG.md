@@ -9,6 +9,7 @@
 ### Patch Changes
 
 - dc0d39b: Add foundation submodules `atom.io/foundations/future` and `atom.io/foundations/subject`. `Future`, `Subject`, and `StatefulSubject` now live in those public homes and are no longer exported from `atom.io/internal`.
+- dc0d39b: Add foundation submodules `atom.io/foundations/overlays` and `atom.io/foundations/junction`. `MapOverlay`, `RelationsOverlay`, `SetOverlay`, `Junction`, and related junction types now live in public foundation homes and are no longer exported from `atom.io/internal`.
 - dc0d39b: Add `getJsonToken` for mutable atoms and mutable atom family members. It returns the writable selector token representing the mutable state's JSON form, matching `useJson` behavior in the core API.
 - dc0d39b: Expand `atom.io/testing` with public helpers for stable public-contract tests: `stateExists`, `stateExistsInStore`, `storeHasStateValues`, `hasImplicitStoreBeenCreated`, `setTestLogLevel`, and `takeSnapshot`. `takeSnapshot().restore()` now restores the implicit store in place so React and Solid contexts keep a stable store reference.
 - dc0d39b: Add `inspectTimeline(timelineToken)` to read a timeline's current `at` and `length` from core atom.io. React and Solid timeline hooks now use the same core inspection path.

@@ -1,5 +1,6 @@
+import type { Canonical } from "atom.io/foundations/canonical"
+import type { stringified } from "atom.io/foundations/json"
 import type { AsJSON, Fn, Transceiver } from "atom.io/internal"
-import type { Canonical, stringified } from "atom.io/json"
 
 /**
  * A token is an object that uniquely identifies a particular state, family, timeline, or transaction.

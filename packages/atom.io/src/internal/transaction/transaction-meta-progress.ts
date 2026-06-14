@@ -3,8 +3,8 @@ import type {
 	TransactionOutcomeEvent,
 	TransactionToken,
 } from "atom.io"
+import type { Junction } from "atom.io/foundations/junction"
 
-import type { Junction } from "../junction.ts"
 import type { Fn } from "../utility-types.ts"
 
 export const TRANSACTION_PHASES = [`idle`, `building`, `applying`] as const

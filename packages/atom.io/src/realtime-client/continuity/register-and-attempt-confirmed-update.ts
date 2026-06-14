@@ -1,4 +1,5 @@
 import type * as AtomIO from "atom.io"
+import type { Json } from "atom.io/foundations/json"
 import type { Fn, RootStore } from "atom.io/internal"
 import {
 	actUponStore,
@@ -7,7 +8,6 @@ import {
 	setEpochNumberOfContinuity,
 	setIntoStore,
 } from "atom.io/internal"
-import type { Json } from "atom.io/json"
 import type { Socket } from "atom.io/realtime"
 
 import {

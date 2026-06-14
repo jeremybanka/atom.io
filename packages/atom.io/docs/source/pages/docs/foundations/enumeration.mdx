@@ -1,0 +1,49 @@
+import ChangeEnumeration from "x/foundations/enumeration/change-enumeration.gen";
+
+# <span className="soft">atom.io</span>/foundations/enumeration
+
+A small alternative to two-way TypeScript enums:
+give it a readonly string array and it returns both readable string-to-number mappings
+and number-to-string mappings.
+
+<ChangeEnumeration client:load />
+
+If you want the runtime object gone after compilation, pair it with
+[comptime](https://www.npmjs.com/package/comptime).
+
+## package contents
+
+<table>
+  <tbody>
+    <tr>
+      <td>
+        <code>IndexOf</code>
+      </td>
+      <td>Type-level index lookup for a tuple member.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>Flip</code>
+      </td>
+      <td>Type-level reverse mapping for string or number records.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>TwoWay</code>
+      </td>
+      <td>A type with both forward and reverse mappings.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>Enumeration</code>
+      </td>
+      <td>The two-way enumeration type produced for a string tuple.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>enumeration</code>
+      </td>
+      <td>Create the two-way mapping at runtime.</td>
+    </tr>
+  </tbody>
+</table>

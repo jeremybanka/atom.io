@@ -6,12 +6,13 @@ import type {
 	TokenType,
 	TransactionToken,
 } from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical"
+import type { Json, JsonIO } from "atom.io/foundations/json"
 import {
 	assignTransactionToContinuity,
 	IMPLICIT,
 	setEpochNumberOfContinuity,
 } from "atom.io/internal"
-import type { Canonical, Json, JsonIO } from "atom.io/json"
 
 import type { UserKey } from "./realtime-key-types.ts"
 

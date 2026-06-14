@@ -18,6 +18,7 @@ import TryCatchAFailedTransaction from "x/core/transaction/try-catch-a-failed-tr
 import CreateATimeline from "x/core/timeline/create-a-timeline.gen";
 import SubscribeToATimeline from "x/core/timeline/subscribe-to-a-timeline.gen";
 import UndoAndRedoChanges from "x/core/timeline/undo-and-redo-changes.gen";
+import InspectATimeline from "x/core/timeline/inspect-a-timeline.gen";
 
 import AwaitYourState from "x/core/advanced/async/await-your-state.gen";
 import HydrateAnAtomWithSetSelf from "x/core/advanced/effects/hydrate-an-atom-with-set-self.gen";
@@ -26,6 +27,7 @@ import CatchAnAtom from "x/core/advanced/catching/catch-an-atom.gen";
 import CatchASelector from "x/core/advanced/catching/catch-a-selector.gen";
 import LoadableSelector from "x/core/advanced/async/loadable-selector.gen";
 import AvoidRaceBetweenPromises from "x/core/advanced/async/avoid-race-between-promises.gen";
+import GetAJsonToken from "x/core/mutable/get-a-json-token.gen";
 import DeclarePlaylistTracks from "x/core/advanced/join/declare-playlist-tracks.gen";
 import FindTracksInPlaylist from "x/core/advanced/join/find-tracks-in-playlist.gen";
 import FindPlaylistsForTrack from "x/core/advanced/join/find-playlists-for-track.gen";
@@ -172,6 +174,10 @@ Instead, it returns an importable, serializable, and replaceable reference to th
 
 We call this an `AtomToken`. In this case, an `AtomToken<number>`.
 
+Tokens are serializable references. Every token has a `key` and a `type` field.
+The `type` field is the public discriminator for the kind of resource the token
+references, such as `atom`, `atom_family`, `timeline`, or `transaction`.
+
 <GetAndSetAnAtom client:load />
 An atom's value is accessed by calling `getState` and `setState` with the atom's
 token.
@@ -248,6 +254,11 @@ In this example, we subscribe to the timeline. Above are the structures of timel
 <UndoAndRedoChanges client:load />
 
 In this example, we undo and redo changes to the timeline.
+
+Use `inspectTimeline` when you need to read the timeline cursor directly. It returns
+the current position as `at`, and the number of retained updates as `length`.
+
+<InspectATimeline client:load />
 
 ## join
 
@@ -360,6 +371,11 @@ The built-in transceivers you will typically use are:
 
 Read mutable atoms the same way you read regular atoms: with `getState`, `subscribe`,
 or a UI adapter like `useO`.
+
+Use `getJsonToken` when you want the mutable atom's JSON form as writable atom.io
+state. It accepts either a mutable atom token, or a mutable atom family plus a key.
+
+<GetAJsonToken client:load />
 
 When writing one, prefer the setter callback form. Mutate the value inside the callback
 and return it. That lets atom.io capture the transceiver's fine-grained update instead

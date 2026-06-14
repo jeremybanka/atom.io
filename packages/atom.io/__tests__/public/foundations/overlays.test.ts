@@ -119,12 +119,12 @@ describe(`MapOverlay`, () => {
 		o.set(`a`, 10)
 		expect(o.changed.has(`a`)).toBe(true)
 		const d1 = o.delete(`a`)
-		expect(d1).toBe(true) // super.delete(true) on overlay entry
+		expect(d1).toBe(true)
 
 		expect(o.has(`a`)).toBe(false)
 
 		const d2 = o.delete(`b`)
-		expect(d2).toBe(false) // super.delete(false) (not in overlay)
+		expect(d2).toBe(true)
 		expect(o.has(`b`)).toBe(false)
 
 		// overlay-only key

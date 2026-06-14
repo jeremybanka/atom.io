@@ -60,7 +60,9 @@ export class MapOverlay<K, V> extends Map<K, V> {
 	}
 
 	public has(key: K): boolean {
-		return super.has(key) || (!this.deleted.has(key) && this.source.has(key))
+		if (super.has(key)) return true
+		if (this.deleted.has(key)) return false
+		return this.source.has(key)
 	}
 
 	public delete(key: K): boolean {
@@ -68,6 +70,8 @@ export class MapOverlay<K, V> extends Map<K, V> {
 			this.deleted.add(key)
 			this.changed.delete(key)
 			this.appendedSource.delete(key)
+			super.delete(key)
+			return true
 		}
 		return super.delete(key)
 	}

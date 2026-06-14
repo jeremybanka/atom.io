@@ -49,6 +49,12 @@ sync, cardinality matters, and relation content may need to travel with the edge
     </tr>
     <tr>
       <td>
+        <code>RelationsOverlay</code>
+      </td>
+      <td>A source-backed relation map used by junction overlays.</td>
+    </tr>
+    <tr>
+      <td>
         <code>Refinement</code>
       </td>
       <td>A runtime type guard type used by advanced configuration.</td>
@@ -119,3 +125,7 @@ Pass that shape back to the constructor to hydrate a junction.
 
 `incorporate(overlay)` applies the staged relation and content changes back to the
 source junction.
+
+`RelationsOverlay` backs junction relation maps whose values are sets. When it reads a
+set from the source map, it stores and returns a `SetOverlay` for that set so relation
+members can be staged without mutating the source relation set.

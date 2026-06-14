@@ -1,4 +1,6 @@
+import ClearAndReinsert from "x/foundations/overlays/clear-and-reinsert.gen";
 import MapOverlayExample from "x/foundations/overlays/map-overlay.gen";
+import SourceAndOverlayOrder from "x/foundations/overlays/source-and-overlay-order.gen";
 
 # <span className="soft">atom.io</span>/foundations/overlays
 
@@ -30,9 +32,57 @@ entries.
     </tr>
     <tr>
       <td>
-        <code>RelationsOverlay</code>
+        <code>new MapOverlay(source)</code>
       </td>
-      <td>A map overlay that lazily wraps source relation sets in <code>SetOverlay</code>.</td>
+      <td>Construct a <code>MapOverlay</code> from a source <code>Map</code>.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>MapOverlay.prototype.hasOwn(key)</code>
+      </td>
+      <td>Check only the overlay's own staged map.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>MapOverlay.prototype.deleted</code>
+      </td>
+      <td>A <code>Set</code> of source keys hidden by the overlay.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>MapOverlay.prototype.changed</code>
+      </td>
+      <td>A <code>Set</code> of source keys whose values are staged in the overlay.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>new SetOverlay(source)</code>
+      </td>
+      <td>Construct a <code>SetOverlay</code> from a source <code>Set</code>.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>SetOverlay.prototype.hasOwn(value)</code>
+      </td>
+      <td>Check only the overlay's own staged set.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>SetOverlay.prototype.iterateOwn()</code>
+      </td>
+      <td>Iterate only overlay-owned values.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>SetOverlay.prototype.source</code>
+      </td>
+      <td>The source set backing the overlay.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>SetOverlay.prototype.deleted</code>
+      </td>
+      <td>A <code>Set</code> of source values hidden by the overlay.</td>
     </tr>
   </tbody>
 </table>
@@ -46,6 +96,8 @@ the overlay value.
 
 If a source entry is deleted, it is skipped.
 
+<SourceAndOverlayOrder client:load />
+
 ## clear and reinsert
 
 Calling `clear()` hides all source entries and removes overlay-only entries.
@@ -53,30 +105,4 @@ Calling `clear()` hides all source entries and removes overlay-only entries.
 If you then add a source-backed item again, it behaves like a fresh overlay insertion.
 That means it appears after any earlier overlay-only insertions made after `clear`.
 
-## MapOverlay
-
-`new MapOverlay(source)` accepts a source `Map`.
-
-Overlay-specific public API:
-
-- `hasOwn(key)` checks only the overlay's own staged map.
-- `deleted` contains source keys hidden by the overlay.
-- `changed` contains source keys whose values have been staged in the overlay.
-
-## SetOverlay
-
-`new SetOverlay(source)` accepts a source `Set`.
-
-Overlay-specific public API:
-
-- `hasOwn(value)` checks only the overlay's own staged set.
-- `iterateOwn()` iterates only overlay-owned values.
-- `source` is the source set.
-- `deleted` contains source values hidden by the overlay.
-
-## RelationsOverlay
-
-`RelationsOverlay` is used for maps whose values are sets.
-
-When `get(key)` reads a set from the source map, it stores and returns a `SetOverlay`
-for that set. This lets relation members be staged without mutating the source set.
+<ClearAndReinsert client:load />

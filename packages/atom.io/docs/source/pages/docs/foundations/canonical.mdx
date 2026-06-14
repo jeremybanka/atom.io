@@ -1,13 +1,22 @@
 import CompoundKey from "x/foundations/canonical/compound-key.gen";
-import DistinctPrimitiveKeys from "x/foundations/canonical/distinct-primitive-keys.gen";
+import CanonicalValues from "x/foundations/canonical/canonical-values.gen";
 
 # <span className="soft">atom.io</span>/foundations/canonical
 
-Use `atom.io/foundations/canonical` when a key needs stable identity across maps,
-stores, URLs, or JSON boundaries.
+Byte-stable JSON-like keys and compact packing helpers for storing those keys as strings.
 
-Canonical values are primitives or readonly arrays of canonical values. Prefer tuples
-for compound keys.
+A `Canonical` value is a JSON value that only has one representation in bytes.
+
+Plain objects are not canonical. Object property order is not a key contract: the same
+logical object can be serialized in different property orders, which means different
+bytes. TypeScript's duck typing is also a problem here because extra runtime properties
+can exist even when the type you meant to use does not mention them.
+
+The [JSON `primitive` type](/docs/foundations/json) is canonical. A readonly array is
+canonical when every value inside it is canonical, so tuples are the usual shape for
+compound keys.
+
+<CanonicalValues client:load />
 
 <CompoundKey client:load />
 
@@ -41,10 +50,3 @@ for compound keys.
     </tr>
   </tbody>
 </table>
-
-## why not just JSON.stringify?
-
-`packCanonical` keeps primitive types distinct before stringifying. That means values
-that can look similar as plain strings remain different keys.
-
-<DistinctPrimitiveKeys client:load />

@@ -2,8 +2,10 @@ import TypedEntries from "x/foundations/entries/typed-entries.gen";
 
 # <span className="soft">atom.io</span>/foundations/entries
 
-Use `atom.io/foundations/entries` when you want the shape of an object to survive
-`Object.entries` or `Object.fromEntries`.
+Typed wrappers for object entry round-trips.
+
+They are most useful when you want to map over an object as entries and rebuild it while
+preserving the relationship between each key and its value type.
 
 <TypedEntries client:load />
 
@@ -58,3 +60,7 @@ Use `atom.io/foundations/entries` when you want the shape of an object to surviv
 
 These helpers do not change runtime behavior. They improve the TypeScript type returned
 from the standard object entry operations.
+
+Because TypeScript is duck-typed, `toEntries` can still receive an object with runtime
+properties that were not represented in the type you thought you had. Treat the improved
+typing as a round-trip helper, not as a runtime validator.

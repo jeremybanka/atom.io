@@ -2,10 +2,14 @@ import ChangeEnumeration from "x/foundations/enumeration/change-enumeration.gen"
 
 # <span className="soft">atom.io</span>/foundations/enumeration
 
-Use `atom.io/foundations/enumeration` when a small string set needs a compact numeric
-form and a readable string form.
+A small alternative to two-way TypeScript enums:
+give it a readonly string array and it returns both readable string-to-number mappings
+and number-to-string mappings.
 
 <ChangeEnumeration client:load />
+
+If you want the runtime object gone after compilation, pair it with
+[comptime](https://www.npmjs.com/package/comptime).
 
 ## package contents
 

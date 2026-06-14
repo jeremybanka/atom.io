@@ -106,18 +106,15 @@ migration details belong in changesets and changelogs.
 
 ## Core API
 
-- [ ] Document `getJsonToken`.
-  - [ ] mutable atom token overload
-  - [ ] mutable atom family token plus key overload
-  - [ ] returned writable selector token for the mutable state's JSON form
-- [ ] Document `inspectTimeline`.
-  - [ ] `TimelineInspection`
-  - [ ] `{ at, length }`
-  - [ ] usage alongside `timeline`, `undo`, `redo`, and `clearTimeline`
-- [ ] Document `NotFoundError`.
-  - [ ] where users may encounter it
-  - [ ] how to catch it intentionally
-- [ ] Ensure public token docs describe token `type` fields as part of the public token shapes.
+- [x] Document `getJsonToken`.
+  - [x] mutable atom token overload
+  - [x] mutable atom family token plus key overload
+  - [x] returned writable selector token for the mutable state's JSON form
+- [x] Document `inspectTimeline`.
+  - [x] `TimelineInspection`
+  - [x] `{ at, length }`
+  - [x] usage alongside `timeline`, `undo`, `redo`, and `clearTimeline`
+- [x] Ensure public token docs describe token `type` fields as part of the public token shapes.
 
 ## Testing
 

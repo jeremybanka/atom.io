@@ -6,103 +6,103 @@ migration details belong in changesets and changelogs.
 
 ## Foundations
 
-- [ ] Expand `/docs/foundations` from an overview into the hub for public support modules.
-- [ ] State that foundations are public support APIs, not atom.io state features.
-- [ ] Show that each foundation is imported from its own submodule.
-- [ ] Document `atom.io/foundations/future`.
-  - [ ] `Future`
-  - [ ] construction from a promise or executor
-  - [ ] `use`
-  - [ ] `done`
-- [ ] Document `atom.io/foundations/subject`.
-  - [ ] `Subject`
-  - [ ] `subscribe`
-  - [ ] unsubscribe callbacks
-  - [ ] `next`
-  - [ ] `StatefulSubject`
-  - [ ] `state`
-- [ ] Document `atom.io/foundations/json`.
-  - [ ] `primitive`
-  - [ ] `Json.Serializable`
-  - [ ] `Json.Object`
-  - [ ] `Json.Array`
-  - [ ] `Json.Tree`
-  - [ ] `stringified`
-  - [ ] `parseJson`
-  - [ ] `stringifyJson`
-  - [ ] `JsonIO`
-  - [ ] `JsonInterface`
-  - [ ] `isJson`
-  - [ ] `JSON_TYPE_NAMES`
-  - [ ] `JsonTypeName`
-  - [ ] `JsonTypes`
-  - [ ] `JSON_DEFAULTS`
-- [ ] Document `atom.io/foundations/canonical`.
-  - [ ] `Canonical`
-  - [ ] `packed`
-  - [ ] `packCanonical`
-  - [ ] `unpackCanonical`
-  - [ ] recommended tuple-key usage for compound identity
-- [ ] Document `atom.io/foundations/entries`.
-  - [ ] `Entries`
-  - [ ] `KeyOfEntries`
-  - [ ] `ValueOfEntry`
-  - [ ] `FromEntries`
-  - [ ] `fromEntries`
-  - [ ] `ToEntries`
-  - [ ] `toEntries`
-- [ ] Document `atom.io/foundations/enumeration`.
-  - [ ] `IndexOf`
-  - [ ] `Flip`
-  - [ ] `TwoWay`
-  - [ ] `Enumeration`
-  - [ ] `enumeration`
-- [ ] Document `atom.io/foundations/type-utils`.
-  - [ ] `Flat`
-  - [ ] `ViewOf`
-- [ ] Document `atom.io/foundations/overlays`.
-  - [ ] Explain source-backed staged collections.
-  - [ ] Explain that source items iterate first, followed by overlay-only items.
-  - [ ] Explain `clear` and source-member reinsert behavior.
-  - [ ] `MapOverlay`
-    - [ ] constructor accepts a source `Map`.
-    - [ ] `hasOwn`
-    - [ ] `deleted`
-    - [ ] `changed`
-    - [ ] behavior when source keys are changed, deleted, cleared, and reinserted
-  - [ ] `SetOverlay`
-    - [ ] constructor accepts a source `Set`.
-    - [ ] `hasOwn`
-    - [ ] `iterateOwn`
-    - [ ] `source`
-    - [ ] `deleted`
-    - [ ] behavior when source values are added, deleted, cleared, and reinserted
-  - [ ] `RelationsOverlay`
-    - [ ] constructor
-    - [ ] `get`
-    - [ ] `set`
-    - [ ] `has`
-    - [ ] `delete`
-    - [ ] lazy `SetOverlay` creation for source relations
-- [ ] Document `atom.io/foundations/junction`.
-  - [ ] Relation schema with `between` and `cardinality`.
-  - [ ] Cardinalities: `1:1`, `1:n`, and `n:n`.
-  - [ ] Constructor data shape.
-  - [ ] Optional advanced configuration.
-  - [ ] `set`
-  - [ ] object-style `set`
-  - [ ] `delete`
-  - [ ] object-style `delete`
-  - [ ] `has`
-  - [ ] `getRelatedKey`
-  - [ ] `getRelatedKeys`
-  - [ ] relation content
-  - [ ] `getContent`
-  - [ ] `replaceRelations`
-  - [ ] `getRelationEntries`
-  - [ ] `toJSON`
-  - [ ] `overlay`
-  - [ ] `incorporate`
+- [x] Expand `/docs/foundations` from an overview into the hub for public support modules.
+- [x] State that foundations are public support APIs, not atom.io state features.
+- [x] Show that each foundation is imported from its own submodule.
+- [x] Document `atom.io/foundations/future`.
+  - [x] `Future`
+  - [x] construction from a promise or executor
+  - [x] `use`
+  - [x] `done`
+- [x] Document `atom.io/foundations/subject`.
+  - [x] `Subject`
+  - [x] `subscribe`
+  - [x] unsubscribe callbacks
+  - [x] `next`
+  - [x] `StatefulSubject`
+  - [x] `state`
+- [x] Document `atom.io/foundations/json`.
+  - [x] `primitive`
+  - [x] `Json.Serializable`
+  - [x] `Json.Object`
+  - [x] `Json.Array`
+  - [x] `Json.Tree`
+  - [x] `stringified`
+  - [x] `parseJson`
+  - [x] `stringifyJson`
+  - [x] `JsonIO`
+  - [x] `JsonInterface`
+  - [x] `isJson`
+  - [x] `JSON_TYPE_NAMES`
+  - [x] `JsonTypeName`
+  - [x] `JsonTypes`
+  - [x] `JSON_DEFAULTS`
+- [x] Document `atom.io/foundations/canonical`.
+  - [x] `Canonical`
+  - [x] `packed`
+  - [x] `packCanonical`
+  - [x] `unpackCanonical`
+  - [x] recommended tuple-key usage for compound identity
+- [x] Document `atom.io/foundations/entries`.
+  - [x] `Entries`
+  - [x] `KeyOfEntries`
+  - [x] `ValueOfEntry`
+  - [x] `FromEntries`
+  - [x] `fromEntries`
+  - [x] `ToEntries`
+  - [x] `toEntries`
+- [x] Document `atom.io/foundations/enumeration`.
+  - [x] `IndexOf`
+  - [x] `Flip`
+  - [x] `TwoWay`
+  - [x] `Enumeration`
+  - [x] `enumeration`
+- [x] Document `atom.io/foundations/type-utils`.
+  - [x] `Flat`
+  - [x] `ViewOf`
+- [x] Document `atom.io/foundations/overlays`.
+  - [x] Explain source-backed staged collections.
+  - [x] Explain that source items iterate first, followed by overlay-only items.
+  - [x] Explain `clear` and source-member reinsert behavior.
+  - [x] `MapOverlay`
+    - [x] constructor accepts a source `Map`.
+    - [x] `hasOwn`
+    - [x] `deleted`
+    - [x] `changed`
+    - [x] behavior when source keys are changed, deleted, cleared, and reinserted
+  - [x] `SetOverlay`
+    - [x] constructor accepts a source `Set`.
+    - [x] `hasOwn`
+    - [x] `iterateOwn`
+    - [x] `source`
+    - [x] `deleted`
+    - [x] behavior when source values are added, deleted, cleared, and reinserted
+  - [x] `RelationsOverlay`
+    - [x] constructor
+    - [x] `get`
+    - [x] `set`
+    - [x] `has`
+    - [x] `delete`
+    - [x] lazy `SetOverlay` creation for source relations
+- [x] Document `atom.io/foundations/junction`.
+  - [x] Relation schema with `between` and `cardinality`.
+  - [x] Cardinalities: `1:1`, `1:n`, and `n:n`.
+  - [x] Constructor data shape.
+  - [x] Optional advanced configuration.
+  - [x] `set`
+  - [x] object-style `set`
+  - [x] `delete`
+  - [x] object-style `delete`
+  - [x] `has`
+  - [x] `getRelatedKey`
+  - [x] `getRelatedKeys`
+  - [x] relation content
+  - [x] `getContent`
+  - [x] `replaceRelations`
+  - [x] `getRelationEntries`
+  - [x] `toJSON`
+  - [x] `overlay`
+  - [x] `incorporate`
 
 ## Core API
 
@@ -141,8 +141,8 @@ migration details belong in changesets and changelogs.
 
 ## Site Cleanup
 
-- [ ] Confirm navigation points users to `/docs/foundations`.
+- [x] Confirm navigation points users to `/docs/foundations`.
 - [ ] Review `docs/source/exhibits/json` and either rename, re-home, or remove examples that no longer match a current docs section.
-- [ ] Add small examples for each foundation section that benefits from one.
-- [ ] Regenerate agent docs after documentation changes.
-- [ ] Run docs/site validation after updates.
+- [x] Add small examples for each foundation section that benefits from one.
+- [x] Regenerate agent docs after documentation changes.
+- [x] Run docs/site validation after updates.

@@ -1,0 +1,53 @@
+# <span className="soft">atom.io</span>/foundations/subject
+
+Subjects are small observable primitives.
+
+Use `Subject` when you want keyed subscribers and explicit `next` calls. Use
+`StatefulSubject` when subscribers also need the latest state stored on the subject.
+
+```ts
+import { StatefulSubject } from "atom.io/foundations/subject"
+
+const count = new StatefulSubject(0)
+
+const unsubscribe = count.subscribe(`logger`, (value) => {
+	console.log(value)
+})
+
+count.next(1)
+count.state // 1
+
+unsubscribe()
+```
+
+## package contents
+
+<table>
+  <tbody>
+    <tr>
+      <td>
+        <code>Subject</code>
+      </td>
+      <td>A keyed observable subject.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>StatefulSubject</code>
+      </td>
+      <td>A subject that stores its latest state.</td>
+    </tr>
+  </tbody>
+</table>
+
+## Subject
+
+`subscribe(key, subscriber)` registers a subscriber under a string key and returns an
+unsubscribe callback.
+
+`next(value)` calls all current subscribers with that value.
+
+## StatefulSubject
+
+`StatefulSubject` extends `Subject` with a public `state` property.
+
+When you call `next(value)`, `state` updates before subscribers are notified.

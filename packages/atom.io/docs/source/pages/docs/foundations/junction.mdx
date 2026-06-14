@@ -1,0 +1,155 @@
+# <span className="soft">atom.io</span>/foundations/junction
+
+`Junction` models bidirectional relations between two string-keyed sides.
+
+Use it when the relationship itself deserves structure: both directions should stay in
+sync, cardinality matters, and relation content may need to travel with the edge.
+
+```ts
+import { Junction } from "atom.io/foundations/junction"
+
+const playlistTracks = new Junction({
+	between: [`playlist`, `track`],
+	cardinality: `n:n`,
+})
+
+playlistTracks.set({ playlist: `road-trip`, track: `dreams` })
+
+playlistTracks.getRelatedKeys(`road-trip`) // Set { "dreams" }
+playlistTracks.getRelatedKey(`dreams`) // "road-trip"
+```
+
+## package contents
+
+<table>
+  <tbody>
+    <tr>
+      <td>
+        <code>Junction</code>
+      </td>
+      <td>A bidirectional relation helper.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>JunctionSchema</code>
+      </td>
+      <td>The <code>between</code> and <code>cardinality</code> schema.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>JunctionEntries</code>
+      </td>
+      <td>Serialized relation and content entries.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>JunctionJSON</code>
+      </td>
+      <td>The JSON shape returned by <code>toJSON()</code>.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>JunctionOverlay</code>
+      </td>
+      <td>The overlay type returned by <code>overlay()</code>.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>Refinement</code>
+      </td>
+      <td>A runtime type guard type used by advanced configuration.</td>
+    </tr>
+  </tbody>
+</table>
+
+## schema
+
+`between` names the two sides of the relation. Those names power object-style calls.
+
+`cardinality` controls replacement behavior:
+
+- `1:1`: each side may have one relation.
+- `1:n`: the first side may have many relations; the second side may have one.
+- `n:n`: both sides may have many relations.
+
+## set and delete
+
+Use either positional arguments or object-style arguments.
+
+```ts
+playlistTracks.set(`road-trip`, `dreams`)
+playlistTracks.set({ playlist: `road-trip`, track: `ventura-highway` })
+
+playlistTracks.delete({ playlist: `road-trip`, track: `dreams` })
+playlistTracks.delete({ playlist: `road-trip` })
+```
+
+Deleting one side removes all relations for that side. Deleting both sides removes that
+one relation.
+
+## reading relations
+
+`getRelatedKeys(key)` returns the related keys as a `Set`, or `undefined`.
+
+`getRelatedKey(key)` returns the first related key, or `undefined`. If more than one
+relation exists, `warn` is called when a warning function was provided.
+
+`has(key)` checks whether any relation exists for a key. `has(a, b)` checks one
+specific relation.
+
+## relation content
+
+Junctions can store JSON-object content on relations.
+
+```ts
+const credits = new Junction<
+	`album`,
+	string,
+	`artist`,
+	string,
+	{ role: string }
+>({
+	between: [`album`, `artist`],
+	cardinality: `n:n`,
+})
+
+credits.set({ album: `rumours`, artist: `fleetwood-mac` }, { role: `band` })
+credits.getContent(`rumours`, `fleetwood-mac`) // { role: "band" }
+```
+
+`getRelationEntries({ album: "rumours" })` returns related keys paired with content.
+
+## replaceRelations
+
+Use `replaceRelations(key, relations)` to replace all relations for one side.
+
+For content-bearing junctions, pass an object whose keys are related IDs and whose values
+are relation content.
+
+```ts
+credits.replaceRelations(`rumours`, {
+	"fleetwood-mac": { role: `band` },
+	"ken-caillat": { role: `producer` },
+})
+```
+
+By default, replacement updates reverse relations safely. Passing `{ reckless: true }`
+uses the faster replacement path and can leave old reverse relations in place.
+
+## JSON
+
+`toJSON()` returns the schema, relation entries, and content entries.
+
+Pass that shape back to the constructor to hydrate a junction.
+
+```ts
+const json = playlistTracks.toJSON()
+const restored = new Junction(json)
+```
+
+## overlays
+
+`overlay()` creates a staged junction over the current one.
+
+`incorporate(overlay)` applies the staged relation and content changes back to the
+source junction.

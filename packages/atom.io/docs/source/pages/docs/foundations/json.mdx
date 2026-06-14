@@ -1,0 +1,121 @@
+# <span className="soft">atom.io</span>/foundations/json
+
+Use `atom.io/foundations/json` when a value needs to cross a JSON boundary:
+persistence, network messages, process handoff, or a transceiver's JSON form.
+
+```ts
+import { type Json, parseJson, stringifyJson } from "atom.io/foundations/json"
+
+const value = {
+	id: `playlist:road-trip`,
+	tracks: [`dreams`, `ventura-highway`],
+} satisfies Json.Serializable
+
+const encoded = stringifyJson(value)
+const decoded = parseJson<typeof value>(encoded)
+```
+
+## package contents
+
+<table>
+  <tbody>
+    <tr>
+      <td>
+        <code>primitive</code>
+      </td>
+      <td>The JSON primitive union: boolean, number, string, or null.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>Json.Serializable</code>
+      </td>
+      <td>A recursively JSON-safe value.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>Json.Object</code>
+      </td>
+      <td>A record whose values are JSON-serializable.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>Json.Array</code>
+      </td>
+      <td>A readonly array of JSON-serializable values.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>Json.Tree</code>
+      </td>
+      <td>Looser JSON-shaped tree types for unknown value inspection.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>stringified</code>
+      </td>
+      <td>A string type branded with the JSON value it represents.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>parseJson</code>
+      </td>
+      <td>Typed wrapper for <code>JSON.parse</code>.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>stringifyJson</code>
+      </td>
+      <td>Typed wrapper for <code>JSON.stringify</code>.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>JsonIO</code>
+      </td>
+      <td>A function type whose inputs and output are JSON-serializable.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>JsonInterface</code>
+      </td>
+      <td>A pair of <code>toJson</code> and <code>fromJson</code> functions.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>isJson</code>
+      </td>
+      <td>Runtime predicate for JSON-shaped tree nodes.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>JSON_TYPE_NAMES</code>, <code>JsonTypeName</code>,{" "}
+        <code>JsonTypes</code>, <code>JSON_DEFAULTS</code>
+      </td>
+      <td>JSON type names and default values by type name.</td>
+    </tr>
+  </tbody>
+</table>
+
+## runtime checks
+
+`isJson` accepts JSON-shaped primitives, arrays, and plain objects. It rejects
+`undefined`, functions, symbols, bigint primitives, and class-like objects such as
+`Set`.
+
+```ts
+import { isJson } from "atom.io/foundations/json"
+
+isJson({ ok: true }) // true
+isJson(new Set()) // false
+```
+
+## defaults
+
+`JSON_DEFAULTS` is useful when a UI needs a starter value for a selected JSON type.
+
+```ts
+import { JSON_DEFAULTS } from "atom.io/foundations/json"
+
+JSON_DEFAULTS.array // []
+JSON_DEFAULTS.object // {}
+JSON_DEFAULTS.string // ""
+```

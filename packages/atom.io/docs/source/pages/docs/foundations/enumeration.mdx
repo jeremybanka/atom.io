@@ -1,0 +1,55 @@
+# <span className="soft">atom.io</span>/foundations/enumeration
+
+Use `atom.io/foundations/enumeration` when a small string set needs a compact numeric
+form and a readable string form.
+
+```ts
+import { enumeration } from "atom.io/foundations/enumeration"
+
+const change = enumeration([`add`, `delete`, `clear`] as const)
+
+change.add // 0
+change.delete // 1
+change.clear // 2
+
+change[0] // "add"
+change[1] // "delete"
+change[2] // "clear"
+```
+
+## package contents
+
+<table>
+  <tbody>
+    <tr>
+      <td>
+        <code>IndexOf</code>
+      </td>
+      <td>Type-level index lookup for a tuple member.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>Flip</code>
+      </td>
+      <td>Type-level reverse mapping for string or number records.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>TwoWay</code>
+      </td>
+      <td>A type with both forward and reverse mappings.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>Enumeration</code>
+      </td>
+      <td>The two-way enumeration type produced for a string tuple.</td>
+    </tr>
+    <tr>
+      <td>
+        <code>enumeration</code>
+      </td>
+      <td>Create the two-way mapping at runtime.</td>
+    </tr>
+  </tbody>
+</table>

@@ -104,7 +104,7 @@ In this case, you don't have to deal with the possibility that your data is `"LO
 
 ### error handling
 
-If the atom or selector declares a [`catch` option](/docs#catching), `useLoadable`'s
+If the atom or selector declares a `catch` option, `useLoadable`'s
 fallback form gives you a typed `error?: E` property alongside the fallback-backed
 `value`.
 
@@ -114,4 +114,4 @@ In this example, `value` stays usable as `{ name: string }`, while `error` is av
 `RequestError | undefined`. That lets your component keep rendering with fallback data
 while still reacting to the handled failure case.
 
-See [catching](/docs#catching) for how to declare that error channel on atoms and selectors.
+See [/docs/atom-io#catching](/docs/atom-io#catching-errors) for how to declare that error channel on atoms and selectors.

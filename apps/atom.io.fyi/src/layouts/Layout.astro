@@ -3,7 +3,7 @@ import { ClientRouter } from "astro:transitions"
 import { AtomIODevtools } from "atom.io/react-devtools"
 import "atom.io/react-devtools/css"
 import packageJson from "atom.io/package.json"
-import { Theme } from "../components/Theme.tsx"
+import { GlobalEffectsManager } from "../components/GlobalEffectsManager.tsx"
 import "../styles/globals.css"
 import "../styles/code.css"
 import "../styles/layout.css"
@@ -24,8 +24,8 @@ import "../styles/layout.css"
 		<ClientRouter />
 	</head>
 	<body>
+		<GlobalEffectsManager client:idle />
 		<main class="layout-shell">
-			<Theme client:idle />
 			<header>
 				<nav>
 					<section>

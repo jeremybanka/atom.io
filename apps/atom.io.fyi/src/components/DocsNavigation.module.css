@@ -1,5 +1,6 @@
 docs-navigation.class {
-	> aside {
+	> site-directory,
+	> on-this-page {
 		position: fixed;
 		top: 5.5em;
 		width: 200px;
@@ -9,6 +10,9 @@ docs-navigation.class {
 			display: flex;
 			flex-flow: column;
 			border-radius: 1em;
+			transform: var(--transform-value);
+			transition-property: all;
+			transition-duration: 0.1s;
 			gap: 1.33em;
 			> section {
 				display: flex;
@@ -36,87 +40,82 @@ docs-navigation.class {
 				}
 			}
 		}
+	}
+	> site-directory {
+		margin: 0 1em;
+		right: 3em;
+		left: auto;
+
+		@media screen and (min-width: 960px) {
+			right: auto;
+			left: 2em;
+		}
+
 		nav {
-			transform: var(--transform-value);
-			transition-property: all;
-			transition-duration: 0.1s;
-		}
-		&:first-of-type {
-			margin: 0 1em;
-			right: 3em;
-			left: auto;
+			--transform-value: translateX(-7em) translateY(2em) scale(0.9);
 
 			@media screen and (min-width: 960px) {
-				right: auto;
-				left: 2em;
+				--transform-value: none;
 			}
 
-			nav {
-				--transform-value: translateX(-7em) translateY(2em) scale(0.9);
-
-				@media screen and (min-width: 960px) {
-					--transform-value: none;
-				}
-
-				&[data-user-has-toggled="false"] {
-					display: none;
-
-					@media screen and (min-width: 960px) {
-						display: flex;
-					}
-				}
-			}
-			data:first-of-type {
-				display: block;
-
-				@media screen and (min-width: 960px) {
-					display: none;
-				}
-			}
-		}
-		&:last-of-type {
-			--right: 1em;
-			right: var(--right);
-			left: auto;
-
-			@media screen and (min-width: 960px) {
-				--right: 2em;
-			}
-
-			@media screen and (min-width: 1280px) {
-				right: auto;
-				left: calc(50vw + 400px);
-			}
-
-			nav[data-user-has-toggled="false"] {
+			&[data-user-has-toggled="false"] {
 				display: none;
 
-				@media screen and (min-width: 1280px) {
+				@media screen and (min-width: 960px) {
 					display: flex;
 				}
 			}
-			label {
-				position: absolute;
-				top: -2em;
-				z-index: 10;
-				border-radius: 50%;
-				right: -0.5em;
-				display: block;
+		}
+		data:first-of-type {
+			display: block;
 
-				@media screen and (min-width: 960px) {
-					right: -1.5em;
-				}
-
-				@media screen and (min-width: 1280px) {
-					display: none;
-				}
+			@media screen and (min-width: 960px) {
+				display: none;
 			}
-			data:first-of-type {
-				display: block;
+		}
+	}
+	> on-this-page {
+		--right: 1em;
+		right: var(--right);
+		left: auto;
 
-				@media screen and (min-width: 1280px) {
-					display: none;
-				}
+		@media screen and (min-width: 960px) {
+			--right: 2em;
+		}
+
+		@media screen and (min-width: 1280px) {
+			right: auto;
+			left: calc(50vw + 400px);
+		}
+
+		nav[data-user-has-toggled="false"] {
+			display: none;
+
+			@media screen and (min-width: 1280px) {
+				display: flex;
+			}
+		}
+		label {
+			position: absolute;
+			top: -2em;
+			z-index: 10;
+			border-radius: 50%;
+			right: -0.5em;
+			display: block;
+
+			@media screen and (min-width: 960px) {
+				right: -1.5em;
+			}
+
+			@media screen and (min-width: 1280px) {
+				display: none;
+			}
+		}
+		data:first-of-type {
+			display: block;
+
+			@media screen and (min-width: 1280px) {
+				display: none;
 			}
 		}
 	}

@@ -31,12 +31,8 @@ export function DocsNavigation(): VNode {
 
 	return (
 		<docs-navigation class={css.class}>
-			<aside>
-				<SiteDirectory />
-			</aside>
-			<aside>
-				<OnThisPage />
-			</aside>
+			<SiteDirectory />
+			<OnThisPage />
 		</docs-navigation>
 	)
 }
@@ -130,7 +126,7 @@ function OnThisPage(): VNode {
 	}
 
 	return (
-		<>
+		<on-this-page>
 			<Spotlight
 				elementId="on-this-page"
 				padding={20}
@@ -154,7 +150,7 @@ function OnThisPage(): VNode {
 			>
 				☰
 			</Toggle.Button>
-		</>
+		</on-this-page>
 	)
 }
 
@@ -167,7 +163,7 @@ function SiteDirectory(): VNode {
 			`-`,
 		) + `-link`
 	return (
-		<>
+		<site-directory>
 			<Spotlight
 				elementId="site-directory"
 				padding={20}
@@ -354,6 +350,6 @@ function SiteDirectory(): VNode {
 					</main>
 				</section>
 			</nav>
-		</>
+		</site-directory>
 	)
 }

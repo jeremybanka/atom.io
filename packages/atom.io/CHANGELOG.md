@@ -1,5 +1,11 @@
 # atom.io
 
+## 0.49.1
+
+### Patch Changes
+
+- 1e4ba0a: Add a package export type declaration for `atom.io/react-devtools/css` so TypeScript consumers can import the React DevTools stylesheet without relying on a broad CSS module shim.
+
 ## 0.49.0
 
 ### Minor Changes

@@ -241,7 +241,7 @@ function SiteDirectory(): VNode {
 							</a>
 						</section>
 						<section>
-							<a id="-transceivers-link" href={`/transceivers`}>
+							<a id="-docs-transceivers-link" href={`/docs/transceivers`}>
 								<span className="soft">atom.io</span>/transceivers
 							</a>
 						</section>

@@ -1,7 +1,6 @@
 import * as parser from "@typescript-eslint/parser"
 import type { RuleModuleWithMetaDocs } from "@typescript-eslint/utils/ts-eslint"
 import type { ESLint, Linter } from "eslint"
-import * as DrizzlePlugin from "eslint-plugin-drizzle"
 import * as ImportPlugin from "eslint-plugin-import-x"
 import { default as SimpleImportSortPlugin } from "eslint-plugin-simple-import-sort"
 import StorybookPlugin from "eslint-plugin-storybook"

@@ -36,12 +36,14 @@ app-shell.class {
 			width: 100%;
 			margin: 0;
 			padding: 1em;
-			> nav > section {
-				padding: 1em 1.5em;
-				border-radius: 2em;
-				background: var(--nav-background);
-				backdrop-filter: var(--nav-backdrop-filter);
-				box-shadow: var(--nav-box-shadow);
+			> nav {
+				> left-side, > right-side {
+					padding: 1em 1.5em;
+					border-radius: 2em;
+					background: var(--nav-background);
+					backdrop-filter: var(--nav-backdrop-filter);
+					box-shadow: var(--nav-box-shadow);
+				}
 			}
 		}
 
@@ -49,12 +51,15 @@ app-shell.class {
 			display: flex;
 			flex-flow: row;
 			gap: 1em;
-			> section {
+			> gap-between {
+				flex-grow: 1;
+			}
+			> right-side {
+				justify-content: flex-end;
+			}
+			> left-side, > right-side {
 				display: flex;
 				gap: 1em;
-				&:last-of-type {
-					justify-content: flex-end;
-				}
 			}
 		}
 	}

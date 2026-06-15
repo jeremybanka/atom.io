@@ -107,7 +107,7 @@ code-block.class {
 		}
 		> code {
 			line-height: 1em !important;
-			color: var(--base-color) !important;
+			color: var(--code-color) !important;
 			text-shadow: none !important;
 			font-size: 13px !important;
 			span {
@@ -116,81 +116,81 @@ code-block.class {
 		}
 	}
 
-	color: var(--base-color) !important;
+	color: var(--code-color) !important;
 	span {
 		text-shadow: 0px 1px 2px var(--bg-hard-2);
-		color: var(--base-color);
+		color: var(--code-color);
 		&:global(.token) {
 			&:global(.comment) {
-				color: var(--comment-color);
+				color: var(--code-comment-color);
 			}
 			&:global(.keyword) {
-				color: var(--keyword-color);
+				color: var(--code-keyword-color);
 			}
 			&:global(.generic-function) {
-				color: var(--type-color);
+				color: var(--code-type-color);
 			}
 			&:global(.constant) {
-				color: var(--type-color);
+				color: var(--code-type-color);
 			}
 			&:global(.class-name),
 			&:global(.maybe-class-name),
 			&:global(.builtin) {
-				color: var(--type-color);
+				color: var(--code-type-color);
 			}
 			&:global(.imports) {
-				color: var(--function-color);
+				color: var(--code-function-color);
 			}
 			&:global(.punctuation) {
-				color: var(--punctuation-color);
+				color: var(--code-punctuation-color);
 			}
 			&:global(.operator) {
-				color: var(--operator-color);
+				color: var(--code-operator-color);
 			}
 			&:global(.boolean) {
-				color: var(--boolean-color);
+				color: var(--code-boolean-color);
 			}
 			&:global(.null) {
-				color: var(--null-color);
+				color: var(--code-null-color);
 			}
 			&:global(.number) {
-				color: var(--number-color);
+				color: var(--code-number-color);
 			}
 			&:global(.plain-text) {
-				color: var(--string-color);
+				color: var(--code-string-color);
 			}
 			&:global(.string) {
-				color: var(--string-color);
+				color: var(--code-string-color);
 			}
 			&:global(.tag) {
 				&:global(:not(.language-javascript, .attr-name, .attr-value, .punctuation)) {
-					color: var(--function-color);
+					color: var(--code-function-color);
 				}
 				&:global(.attr-value:not(.attr-equals)) {
-					color: var(--string-color);
+					color: var(--code-string-color);
 				}
 				&:global(.class-name) {
-					color: var(--type-color);
+					color: var(--code-type-color);
 				}
 			}
 			&:global(.type) {
-				color: var(--type-color);
+				color: var(--code-type-color);
 			}
 			&:global(.function) {
-				color: var(--function-color);
+				color: var(--code-function-color);
 				&:global(.maybe-class-name) {
-					color: var(--base-color);
+					color: var(--code-color);
 				}
 			}
 		}
 	}
 	span:global(.token.tag) > span:global(.token.tag) {
-		color: var(--function-color);
+		color: var(--code-function-color);
 		> span:global(.token.class-name) {
-			color: var(--function-color);
+			color: var(--code-function-color);
 		}
 		> span:global(.token.punctuation) {
-			color: var(--punctuation-color);
+			color: var(--code-punctuation-color);
 		}
 	}
 }

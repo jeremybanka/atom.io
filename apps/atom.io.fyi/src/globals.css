@@ -63,6 +63,14 @@ a, a > code {
 
 :root {
 	scroll-behavior: smooth;
+	min-height: 100svh;
+	scroll-padding-top: 4.5em;
+
+	--code-color: var(--fg-hard-1);
+	--code-comment-color: var(--fg-soft-3);
+	--code-keyword-color: var(--fg-soft-1);
+	--code-punctuation-color: var(--fg-soft-2);
+	--code-operator-color: var(--fg-soft-1);
 
 	color-scheme: light dark;
 	--color-light: #fff;
@@ -103,6 +111,13 @@ a, a > code {
 	--hyperlink-hover-color: #0df;
 	--hyperlink-visited-color: #99f;
 
+	--code-type-color: rgb(252, 111, 203);
+	--code-function-color: rgb(221, 149, 255);
+	--code-boolean-color: gold;
+	--code-null-color: gold;
+	--code-number-color: gold;
+	--code-string-color: gold;
+
 	@media (prefers-color-scheme: light) {
 		--color-light: #f9f9f9;
 		--color-dark: #333;
@@ -141,21 +156,12 @@ a, a > code {
 		--hyperlink-hover-color: #04f;
 		--hyperlink-visited-color: #99f;
 
-		background-color: var(--bg-shade-2);
-		min-height: 100svh;
-		scroll-padding-top: 4.5em;
-
-		button {
-			background-color: var(--bg-tint-1);
-			&:hover,
-			&:focus {
-				background-color: var(--bg-tint-2);
-			}
-			&:active {
-				background-color: var(--bg-shade-1);
-				color: var(--fg-hard-2);
-			}
-		}
+		--code-type-color: rgb(243, 12, 162);
+		--code-function-color: rgb(160, 1, 233);
+		--code-boolean-color: rgb(160, 136, 0);
+		--code-null-color: rgb(160, 136, 0);
+		--code-number-color: rgb(160, 136, 0);
+		--code-string-color: rgb(160, 136, 0);
 	}
 }
 

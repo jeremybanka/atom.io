@@ -56,9 +56,6 @@ importers:
       dprint-plugin-yaml:
         specifier: 0.6.0
         version: 0.6.0
-      eslint-plugin-drizzle:
-        specifier: 0.2.3
-        version: 0.2.3(eslint@10.5.0(jiti@2.7.0))
       eslint-plugin-import-x:
         specifier: 4.16.2
         version: 4.16.2(@typescript-eslint/utils@8.61.0(eslint@10.5.0(jiti@2.7.0))(typescript@6.0.3))(eslint@10.5.0(jiti@2.7.0))
@@ -4184,11 +4181,6 @@ packages:
     peerDependenciesMeta:
       unrs-resolver:
         optional: true
-
-  eslint-plugin-drizzle@0.2.3:
-    resolution: {integrity: sha512-BO+ymHo33IUNoJlC0rbd7HP9EwwpW4VIp49R/tWQF/d2E1K2kgTf0tCXT0v9MSiBr6gGR1LtPwMLapTKEWSg9A==}
-    peerDependencies:
-      eslint: '>=8.0.0'
 
   eslint-plugin-import-x@4.16.2:
     resolution: {integrity: sha512-rM9K8UBHcWKpzQzStn1YRN2T5NvdeIfSVoKu/lKF41znQXHAUcBbYXe5wd6GNjZjTrP7viQ49n1D83x/2gYgIw==}
@@ -9888,10 +9880,6 @@ snapshots:
       stable-hash-x: 0.2.0
     optionalDependencies:
       unrs-resolver: 1.11.1
-
-  eslint-plugin-drizzle@0.2.3(eslint@10.5.0(jiti@2.7.0)):
-    dependencies:
-      eslint: 10.5.0(jiti@2.7.0)
 
   eslint-plugin-import-x@4.16.2(@typescript-eslint/utils@8.61.0(eslint@10.5.0(jiti@2.7.0))(typescript@6.0.3))(eslint@10.5.0(jiti@2.7.0)):
     dependencies:

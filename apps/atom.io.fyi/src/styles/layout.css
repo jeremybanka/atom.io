@@ -56,7 +56,7 @@
 			}
 		}
 	}
-	> aside {
+	> banner-message {
 		pointer-events: none;
 		user-select: none;
 		z-index: 1;

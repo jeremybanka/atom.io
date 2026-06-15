@@ -1,9 +1,10 @@
-import { Button } from "./ToggleButton.tsx"
+import { ToggleButton } from "./ToggleButton.tsx"
 
 export type ToggleProps = {
 	children: string
 	checked: boolean
 	onChange: () => void
+	size?: { height: number; width: number }
 }
 
-export const Toggle = { Button }
+export const Toggle = { Button: ToggleButton }

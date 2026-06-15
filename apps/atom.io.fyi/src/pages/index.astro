@@ -1,27 +1,27 @@
 ---
 import Layout from "../layouts/Layout.astro"
 import packageJson from "atom.io/package.json"
-import "../styles/page.css"
+import css from "./index.module.css"
 ---
 
 <Layout>
-	<main class="home-page">
-		<section>
+	<home-splash class={css.class}>
+		<title-lockup>
 			<h1>
 				<span>atom</span>
 				<span>.io</span>
 			</h1>
-			<span class="description">
+			<npm-description>
 				{packageJson.description}
-			</span>
-			<footer>
-				<a href="/docs/getting-started" class="primary">
+			</npm-description>
+			<cta-links>
+				<a href="/docs/getting-started">
 					Get Started
 				</a>
-				<a href="/docs" class="secondary">
+				<a href="/docs">
 					Read the Docs
 				</a>
-			</footer>
-		</section>
-	</main>
+			</cta-links>
+		</title-lockup>
+	</home-splash>
 </Layout>

@@ -4,6 +4,7 @@
 		"target": "ES2023",
 		"jsx": "react-jsx",
 		"jsxImportSource": "react",
+		"allowArbitraryExtensions": true,
 		"types": ["vitest/globals"],
 		"lib": ["DOM", "ESNext"],
 		"noEmit": true,

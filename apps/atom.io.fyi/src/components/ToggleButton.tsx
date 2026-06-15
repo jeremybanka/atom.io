@@ -1,26 +1,32 @@
-import "./ToggleButton.css"
-
 import type { VNode } from "preact"
 import * as React from "react"
 
 import type { ToggleProps } from "./Toggle.tsx"
+import css from "./ToggleButton.module.css"
 
-export const setCssVars = (
+const setCssVars = (
 	vars: Record<`--${string}`, number | string>,
 ): Partial<React.CSSProperties> => vars
 
-export function Button({ children, checked, onChange }: ToggleProps): VNode {
+export function ToggleButton({
+	children,
+	checked,
+	onChange,
+	size = { height: 40, width: 40 },
+}: ToggleProps): VNode {
 	return (
-		<label
-			className="toggle-button"
+		<toggle-button
+			class={css.class}
 			style={setCssVars({
-				"--width": `40px`,
-				"--height": `40px`,
+				"--width": `${size.width}px`,
+				"--height": `${size.height}px`,
 			})}
 		>
-			<input type="checkbox" checked={checked} onChange={onChange} />
-			<div />
-			<span>{children}</span>
-		</label>
+			<label>
+				<input type="checkbox" checked={checked} onChange={onChange} />
+				<back-fill />
+				<span>{children}</span>
+			</label>
+		</toggle-button>
 	)
 }

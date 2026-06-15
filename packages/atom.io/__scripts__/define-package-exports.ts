@@ -28,7 +28,7 @@ export default function main(mode: string): void {
 
 	const submodules = discoverSubmodules()
 
-	newPackageJson.files = [`dist`, `src`, `AGENTS.md`, `docs/agent`]
+	newPackageJson.files = [`dist`, `src`, `css.d.ts`, `AGENTS.md`, `docs/agent`]
 
 	newPackageJson.exports = {
 		"./package.json": `./package.json`,
@@ -45,6 +45,7 @@ export default function main(mode: string): void {
 				if (folder === `react-devtools`) {
 					acc[`./react-devtools/css`] = {
 						import: `./dist/${folder}/index.css`,
+						types: `./css.d.ts`,
 					}
 				}
 				return acc

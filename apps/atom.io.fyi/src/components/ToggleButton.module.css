@@ -1,0 +1,87 @@
+toggle-button.class {
+	--height: 1em;
+	--width: 1em;
+	display: flex;
+	align-items: center;
+	justify-items: center;
+	height: var(--height);
+	width: var(--width);
+	position: relative;
+
+	> label {
+		align-items: center;
+		justify-items: center;
+		height: 100%;
+		width: 100%;
+
+		> * {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+		}
+		> input[type="checkbox"] {
+			cursor: pointer;
+			grid-area: status;
+			opacity: 0;
+			margin: 0px;
+			height: var(--height);
+			width: var(--width);
+			position: absolute;
+			top: 0;
+			left: 0;
+
+			&:disabled {
+				cursor: not-allowed;
+				pointer-events: none;
+
+				&:hover {
+					color: var(--fg-color);
+				}
+			}
+
+			&.active,
+			&:active,
+			&:checked {
+				~ back-fill {
+					border-width: calc(var(--height) * 2);
+				}
+			}
+		}
+		> back-fill {
+			height: var(--height);
+			width: var(--width);
+			position: absolute;
+			top: 0;
+			left: 0;
+			background: var(--bg-soft-glass-1);
+			backdrop-filter: blur(20px);
+			box-shadow: 0 1px 20px 1px var(--bg-shadow-2);
+			border-radius: 50%;
+		}
+		> span {
+			user-select: none;
+			height: var(--height);
+			width: var(--width);
+			position: absolute;
+			top: 0;
+			left: 0;
+			font-size: calc(var(--height) * 0.5);
+			font-variation-settings: "wght" 200;
+			color: var(--fg-color);
+			padding-bottom: 5px;
+		}
+		&:hover {
+			> back-fill {
+				background: var(--bg-soft-glass-3);
+			}
+		}
+		&:active {
+			> back-fill {
+				background: var(--fg-color);
+			}
+			> span {
+				color: var(--bg-color);
+			}
+		}
+	}
+}

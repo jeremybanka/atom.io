@@ -1,4 +1,4 @@
-main.home-page {
+home-splash.class {
 	display: flex;
 	flex-flow: column;
 	height: 100%;
@@ -7,7 +7,7 @@ main.home-page {
 	align-items: center;
 	justify-content: center;
 
-	> section {
+	> title-lockup {
 		display: flex;
 		flex-flow: column;
 		gap: 1em;
@@ -33,11 +33,11 @@ main.home-page {
 			}
 		}
 
-		> span {
+		> npm-description {
 			margin: 24px 10px 4px;
 		}
 
-		> footer {
+		> cta-links {
 			display: flex;
 			flex-flow: row;
 			justify-content: flex-end;
@@ -45,8 +45,7 @@ main.home-page {
 			position: relative;
 			z-index: 10;
 
-			a.primary,
-			a.secondary {
+			> a {
 				display: inline-flex;
 				align-items: center;
 				justify-content: center;
@@ -70,13 +69,13 @@ main.home-page {
 				}
 			}
 
-			a.primary {
+			> a:first-of-type {
 				background: var(--fg-color);
 				color: var(--bg-color);
 				box-shadow: 0 8px 30px -14px var(--bg-shadow-1);
 			}
 
-			a.secondary {
+			> a:last-of-type {
 				background: var(--bg-soft-glass-1);
 				color: var(--fg-color);
 				border: 1px solid var(--bg-soft-glass-3);

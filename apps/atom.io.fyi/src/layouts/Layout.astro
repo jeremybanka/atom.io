@@ -3,10 +3,9 @@ import { ClientRouter } from "astro:transitions"
 import { AtomIODevtools } from "atom.io/react-devtools"
 import "atom.io/react-devtools/css"
 import packageJson from "atom.io/package.json"
-import { Theme } from "../components/Theme.tsx"
-import "../styles/globals.css"
-import "../styles/code.css"
-import "../styles/layout.css"
+import { GlobalEffectsManager } from "../components/GlobalEffectsManager.tsx"
+import "../globals.css"
+import css from "./Layout.module.css"
 ---
 
 <html lang="en">
@@ -24,30 +23,31 @@ import "../styles/layout.css"
 		<ClientRouter />
 	</head>
 	<body>
-		<main class="layout-shell">
-			<Theme client:idle />
+		<app-shell class={css.class}>
 			<header>
 				<nav>
-					<section>
+					<left-side>
 						<a href="/">atom.io.fyi</a>
-					</section>
-					<span class="gap"></span>
-					<section>
+					</left-side>
+					<gap-between />
+					<right-side>
 						<a href="/docs">docs</a>
 						<a
 							href="https://github.com/jeremybanka/atom.io/tree/main/packages/atom.io"
 						>
 							github
 						</a>
-					</section>
+					</right-side>
 				</nav>
 			</header>
-			<aside>
-				<span>🕊️ Free Palestine 🇵🇸</span>
-			</aside>
+
 			<main>
+				<banner-message>
+					<span>🕊️ Free Palestine 🇵🇸</span>
+				</banner-message>
 				<slot />
 			</main>
+
 			<footer>
 				<span>
 					<a href="https://www.npmjs.com/package/atom.io">
@@ -58,7 +58,9 @@ import "../styles/layout.css"
 					♥️ <a href="https://github.com/jeremybanka">jeremybanka</a>
 				</span>
 			</footer>
-			<AtomIODevtools hideByDefault={true} client:only />
-		</main>
+		</app-shell>
+
+		<GlobalEffectsManager client:idle />
+		<AtomIODevtools hideByDefault={true} client:only />
 	</body>
 </html>

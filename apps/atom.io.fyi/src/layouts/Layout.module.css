@@ -1,10 +1,11 @@
-.layout-shell {
+app-shell.class {
 	position: relative;
 	overflow-x: hidden;
 	display: flex;
 	flex-flow: column;
 	min-height: 100svh;
 	height: auto;
+
 	> * {
 		padding: 1em 0.25em;
 		@media screen and (min-width: 960px) {
@@ -35,59 +36,34 @@
 			width: 100%;
 			margin: 0;
 			padding: 1em;
-			> nav > section {
-				padding: 1em 1.5em;
-				border-radius: 2em;
-				background: var(--nav-background);
-				backdrop-filter: var(--nav-backdrop-filter);
-				box-shadow: var(--nav-box-shadow);
+			> nav {
+				> left-side, > right-side {
+					padding: 1em 1.5em;
+					border-radius: 2em;
+					background: var(--nav-background);
+					backdrop-filter: var(--nav-backdrop-filter);
+					box-shadow: var(--nav-box-shadow);
+				}
 			}
 		}
+
 		> nav {
 			display: flex;
 			flex-flow: row;
 			gap: 1em;
-			> section {
+			> gap-between {
+				flex-grow: 1;
+			}
+			> right-side {
+				justify-content: flex-end;
+			}
+			> left-side, > right-side {
 				display: flex;
 				gap: 1em;
-				&:last-of-type {
-					justify-content: flex-end;
-				}
 			}
 		}
 	}
-	> aside {
-		pointer-events: none;
-		user-select: none;
-		z-index: 1;
-		position: absolute;
-		line-height: 27px;
-		top: -18px;
-		left: 0;
-		display: flex;
-		width: calc(100% - 0.5em);
-		justify-content: center;
-		> span {
-			align-items: flex-end;
-			display: flex;
-			background: var(--bg-soft-glass-1);
-			color: var(--fg-soft-3);
-			backdrop-filter: blur(15px);
-			padding: 2px 12px;
-			border-radius: 10px;
-			font-size: 15px;
-			font-weight: 600;
-			box-shadow: 0 1px 10px 1px var(--bg-shadow-1);
-		}
-		@media screen and (min-width: 960px) {
-			top: -12px;
-			> span {
-				background: none;
-				backdrop-filter: none;
-				box-shadow: none;
-			}
-		}
-	}
+
 	> main {
 		margin-top: 2em;
 		flex-grow: 1;
@@ -112,7 +88,41 @@
 				opacity: 0.5;
 			}
 		}
+		> banner-message {
+			pointer-events: none;
+			user-select: none;
+			z-index: 1;
+			position: absolute;
+			line-height: 27px;
+			top: -33px;
+			left: 0;
+			display: flex;
+			width: calc(100% - 0.5em);
+			justify-content: center;
+			> span {
+				align-items: flex-end;
+				display: flex;
+				background: var(--bg-soft-glass-1);
+				color: var(--fg-soft-3);
+				backdrop-filter: blur(15px);
+				padding: 2px 12px;
+				border-radius: 10px;
+				font-size: 15px;
+				font-weight: 600;
+				box-shadow: 0 1px 10px 1px var(--bg-shadow-1);
+			}
+
+			@media screen and (min-width: 960px) {
+				top: -29px;
+				> span {
+					background: none;
+					backdrop-filter: none;
+					box-shadow: none;
+				}
+			}
+		}
 	}
+
 	> footer {
 		display: flex;
 		flex-flow: row;

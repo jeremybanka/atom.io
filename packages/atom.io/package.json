@@ -136,6 +136,7 @@
 	"files": [
 		"dist",
 		"src",
+		"css.d.ts",
 		"AGENTS.md",
 		"docs/agent"
 	],
@@ -202,7 +203,8 @@
 			"types": "./dist/react-devtools/index.d.ts"
 		},
 		"./react-devtools/css": {
-			"import": "./dist/react-devtools/index.css"
+			"import": "./dist/react-devtools/index.css",
+			"types": "./css.d.ts"
 		},
 		"./realtime": {
 			"import": "./dist/realtime/index.js",

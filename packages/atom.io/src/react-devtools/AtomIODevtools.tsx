@@ -1,5 +1,3 @@
-import "./devtools.css"
-
 import { StoreContext, useI, useO } from "atom.io/react"
 import { LayoutGroup, motion } from "motion/react"
 import { useContext, useRef } from "react"

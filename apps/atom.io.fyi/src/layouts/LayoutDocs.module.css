@@ -33,6 +33,10 @@ docs-layout.class {
 		> * {
 			width: 100%;
 		}
+		h1 > low-emphasis {
+			font-size: inherit;
+			color: var(--fg-soft-3);
+		}
 		h2 {
 			margin-top: 1.5em;
 		}

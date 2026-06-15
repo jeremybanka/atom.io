@@ -1,5 +1,5 @@
 dynamic-spotlight.class {
-	position: fixed;
+	position: absolute;
 	&:first-of-type {
 		background: var(--bg-soft-glass-2);
 		backdrop-filter: blur(20px);

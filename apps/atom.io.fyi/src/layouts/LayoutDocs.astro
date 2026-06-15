@@ -1,12 +1,12 @@
 ---
 import Layout from "./Layout.astro"
-import { Navigation } from "../components/Navigation.tsx"
+import { DocsNavigation } from "../components/DocsNavigation.tsx"
 import "../styles/layout-docs.css"
 ---
 
 <Layout>
 	<article class="docs-layout">
-		<Navigation client:load transition:persist />
+		<DocsNavigation client:load transition:persist />
 		<main>
 			<slot />
 		</main>

@@ -3,6 +3,7 @@ import { useI, useO } from "atom.io/react"
 import type { VNode } from "preact"
 import * as React from "react"
 
+import css from "./DocsNavigation.module.css"
 import { Spotlight } from "./Spotlight.tsx"
 import { Toggle } from "./Toggle.tsx"
 
@@ -25,18 +26,18 @@ const pathnameAtom = atom<string>({
 	],
 })
 
-export function Navigation(): VNode {
+export function DocsNavigation(): VNode {
 	useO(pathnameAtom) // weirdly important
 
 	return (
-		<>
+		<docs-navigation class={css.class}>
 			<aside>
 				<SiteDirectory />
 			</aside>
 			<aside>
 				<OnThisPage />
 			</aside>
-		</>
+		</docs-navigation>
 	)
 }
 

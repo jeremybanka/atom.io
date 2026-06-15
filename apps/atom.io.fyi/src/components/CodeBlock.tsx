@@ -89,9 +89,9 @@ export function CodeBlock({
 		}
 	}, [code, filepath])
 	return (
-		<span className="codeblock" id={getCodeBlockId(displayLabel)} ref={myRef}>
+		<code-block id={getCodeBlockId(displayLabel)} ref={myRef}>
 			<back-fill className={soft ? `soft` : `hard`} />
-			<header>
+			<file-name>
 				<span>{displayLabel}</span>
 				<button
 					type="button"
@@ -111,13 +111,13 @@ export function CodeBlock({
 						/>
 					</svg>
 				</button>
-			</header>
+			</file-name>
 			<SyntaxHighlighter
 				language={getLanguage(filepath)}
 				useInlineStyles={false}
 			>
 				{code}
 			</SyntaxHighlighter>
-		</span>
+		</code-block>
 	)
 }

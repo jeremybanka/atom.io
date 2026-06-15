@@ -28,7 +28,7 @@ code {
 }
 
 astro-island {
-	.codeblock {
+	code-block {
 		margin-top: 1.5em;
 		box-sizing: border-box;
 		overflow: visible;
@@ -58,7 +58,7 @@ astro-island {
 			}
 		}
 
-		> header {
+		> file-name {
 			z-index: 0;
 			display: flex;
 			flex-flow: row;

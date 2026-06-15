@@ -156,6 +156,9 @@ importers:
       eslint:
         specifier: 10.5.0
         version: 10.5.0(jiti@2.7.0)
+      lasertag:
+        specifier: 0.1.5
+        version: 0.1.5(@types/react@19.2.17)(eslint@10.5.0(jiti@2.7.0))(preact@10.29.2)(solid-js@1.9.13)
       takua:
         specifier: 0.2.1
         version: 0.2.1

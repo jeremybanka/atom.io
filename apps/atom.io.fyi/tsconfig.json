@@ -9,6 +9,10 @@
 		"paths": {
 			"c/*": ["./src/components/*"],
 			"x/*": ["./src/exhibits-wrapped/*"]
-		}
+		},
+		"types": [
+			"lasertag/css-modules",
+			"lasertag/preact-jsx"
+		]
 	}
 }

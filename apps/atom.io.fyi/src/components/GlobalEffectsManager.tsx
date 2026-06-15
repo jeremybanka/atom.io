@@ -1,17 +1,8 @@
-import * as React from "react"
+import type { VNode } from "preact"
+import { useEffect } from "react"
 
-export function Theme(): React.ReactNode | null {
-	React.useEffect(() => {
-		// const colorScheme = window.matchMedia("(prefers-color-scheme: dark)").matches
-		// 	? "dark"
-		// 	: "light"
-		// const metaThemeColor = document.querySelector('meta[name="theme-color"]')
-
-		// if (colorScheme === "dark") {
-		// 	metaThemeColor?.setAttribute("content", "black")
-		// } else {
-		// 	metaThemeColor?.setAttribute("content", "white")
-		// }
+export function GlobalEffectsManager(): VNode {
+	useEffect(() => {
 		function updateThemeColor() {
 			const themeColor = getComputedStyle(document.documentElement)
 				.getPropertyValue(`--bg-shade-2`)
@@ -29,5 +20,5 @@ export function Theme(): React.ReactNode | null {
 			matcher.removeEventListener(`change`, updateThemeColor)
 		}
 	}, [])
-	return null
+	return <global-effects-manager />
 }

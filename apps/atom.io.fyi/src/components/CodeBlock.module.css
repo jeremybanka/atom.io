@@ -1,0 +1,196 @@
+code-block.class {
+	margin-top: 1.5em;
+	box-sizing: border-box;
+	overflow: visible;
+	position: relative;
+	display: flex;
+	flex-flow: column;
+	border: #0003 solid 1px;
+	border-radius: 4px;
+	width: 100%;
+
+	back-fill {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		z-index: 0;
+		&:global(.hard) {
+			background-color: var(--bg-hard-1);
+			mix-blend-mode: var(--fill-hard-blend-mode);
+			opacity: var(--fill-hard-opacity);
+		}
+		&:global(.soft) {
+			background-color: var(--bg-soft-1);
+			mix-blend-mode: var(--fill-soft-blend-mode);
+			opacity: var(--fill-soft-opacity);
+		}
+	}
+
+	> file-name {
+		z-index: 0;
+		display: flex;
+		flex-flow: row;
+		justify-content: space-between;
+		align-items: center;
+		/* background-color: var(--bg-soft-glass-1); */
+		border-radius: 3px 3px 0px 0px;
+		> span {
+			font-size: 15px;
+			line-height: 20px;
+			font-weight: 500;
+			color: var(--fg-soft-1);
+			padding: 0 8px;
+		}
+		> button {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			background: transparent;
+			border: 1px solid transparent;
+			border-radius: 3px;
+			height: 25px;
+			width: 25px;
+			--icon-color: var(--fg-color);
+			position: relative;
+			cursor: pointer;
+			> svg {
+				width: 16px;
+				height: 16px;
+			}
+			&:hover {
+				--icon-color: var(--hyperlink-color);
+				border: 1px solid var(--icon-color);
+				background: var(--bg-tint-1);
+				&::before {
+					content: "copy";
+					position: absolute;
+					top: -30px;
+					right: 0;
+					border-radius: 3px;
+					background-color: var(--icon-color);
+					padding: 0px 3px 2px;
+					color: var(--bg-hard-1);
+				}
+			}
+			&:active {
+				--icon-color: var(--hyperlink-hover-color);
+				border: 1px solid var(--icon-color);
+				background: var(--bg-shade-1);
+				&::before {
+					content: "copied!";
+				}
+			}
+			&:hover:focus-within {
+				--icon-color: var(--hyperlink-hover-color);
+				&::before {
+					content: "copied!";
+				}
+			}
+		}
+	}
+
+	> pre:global(.prismjs) {
+		mix-blend-mode: var(--fill-soft-blend-mode);
+		z-index: 0;
+		border-radius: 0px 0px 3px 3px;
+		/* background-color: var(--bg-soft-glass-1); */
+		padding: 1em;
+		padding-top: 0.5em;
+		overflow: auto;
+		line-height: 1em;
+		* {
+			font-family: Theia, monospace;
+			font-weight: 500;
+			font-size: 13px;
+		}
+		> code {
+			line-height: 1em !important;
+			color: var(--code-color) !important;
+			text-shadow: none !important;
+			font-size: 13px !important;
+			span {
+				line-height: 17px !important;
+			}
+		}
+	}
+
+	color: var(--code-color) !important;
+	span {
+		text-shadow: 0px 1px 2px var(--bg-hard-2);
+		color: var(--code-color);
+		&:global(.token) {
+			&:global(.comment) {
+				color: var(--code-comment-color);
+			}
+			&:global(.keyword) {
+				color: var(--code-keyword-color);
+			}
+			&:global(.generic-function) {
+				color: var(--code-type-color);
+			}
+			&:global(.constant) {
+				color: var(--code-type-color);
+			}
+			&:global(.class-name),
+			&:global(.maybe-class-name),
+			&:global(.builtin) {
+				color: var(--code-type-color);
+			}
+			&:global(.imports) {
+				color: var(--code-function-color);
+			}
+			&:global(.punctuation) {
+				color: var(--code-punctuation-color);
+			}
+			&:global(.operator) {
+				color: var(--code-operator-color);
+			}
+			&:global(.boolean) {
+				color: var(--code-boolean-color);
+			}
+			&:global(.null) {
+				color: var(--code-null-color);
+			}
+			&:global(.number) {
+				color: var(--code-number-color);
+			}
+			&:global(.plain-text) {
+				color: var(--code-string-color);
+			}
+			&:global(.string) {
+				color: var(--code-string-color);
+			}
+			&:global(.tag) {
+				&:global(:not(.language-javascript, .attr-name, .attr-value, .punctuation)) {
+					color: var(--code-function-color);
+				}
+				&:global(.attr-value:not(.attr-equals)) {
+					color: var(--code-string-color);
+				}
+				&:global(.class-name) {
+					color: var(--code-type-color);
+				}
+			}
+			&:global(.type) {
+				color: var(--code-type-color);
+			}
+			&:global(.function) {
+				color: var(--code-function-color);
+				&:global(.maybe-class-name) {
+					color: var(--code-color);
+				}
+			}
+		}
+	}
+	span:global(.token.tag) > span:global(.token.tag) {
+		color: var(--code-function-color);
+		> span:global(.token.class-name) {
+			color: var(--code-function-color);
+		}
+		> span:global(.token.punctuation) {
+			color: var(--code-punctuation-color);
+		}
+	}
+}

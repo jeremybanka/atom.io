@@ -2,6 +2,8 @@ import { type ComponentChildren, toChildArray, type VNode } from "preact"
 import * as React from "react"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 
+import css from "./CodeBlock.module.css"
+
 type CodeBlockProps = {
 	filepath?: string
 	label?: string
@@ -89,9 +91,9 @@ export function CodeBlock({
 		}
 	}, [code, filepath])
 	return (
-		<span className="codeblock" id={getCodeBlockId(displayLabel)} ref={myRef}>
-			<back-fill className={soft ? `soft` : `hard`} />
-			<header>
+		<code-block id={getCodeBlockId(displayLabel)} ref={myRef} class={css.class}>
+			<back-fill class={soft ? `soft` : `hard`} />
+			<file-name>
 				<span>{displayLabel}</span>
 				<button
 					type="button"
@@ -111,13 +113,13 @@ export function CodeBlock({
 						/>
 					</svg>
 				</button>
-			</header>
+			</file-name>
 			<SyntaxHighlighter
 				language={getLanguage(filepath)}
 				useInlineStyles={false}
 			>
 				{code}
 			</SyntaxHighlighter>
-		</span>
+		</code-block>
 	)
 }

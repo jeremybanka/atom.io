@@ -1,9 +1,12 @@
-import * as parser from "@typescript-eslint/parser"
+import * as tsParser from "@typescript-eslint/parser"
 import type { RuleModuleWithMetaDocs } from "@typescript-eslint/utils/ts-eslint"
+import * as astroParser from "astro-eslint-parser"
 import type { ESLint, Linter } from "eslint"
+import AstroPlugin from "eslint-plugin-astro"
 import * as ImportPlugin from "eslint-plugin-import-x"
 import { default as SimpleImportSortPlugin } from "eslint-plugin-simple-import-sort"
 import StorybookPlugin from "eslint-plugin-storybook"
+import LasertagPlugin from "lasertag/eslint-plugin"
 
 import AtomIOPlugin from "./packages/atom.io/src/eslint-plugin/index.ts"
 
@@ -13,10 +16,23 @@ type StorybookRules = typeof StorybookPlugin.rules
 const WARN = 1
 const ERROR = 2
 
-const PARSER_OPTIONS = {
-	projectService: true,
-	sourceType: `module`,
-} satisfies parser.ParserOptions
+const TS_LANG_OPTIONS: Linter.Config[`languageOptions`] = {
+	parser: tsParser,
+	parserOptions: {
+		projectService: true,
+		sourceType: `module`,
+	} satisfies tsParser.ParserOptions,
+}
+
+const ASTRO_LANG_OPTIONS: Linter.Config[`languageOptions`] = {
+	parser: astroParser,
+	parserOptions: {
+		parser: tsParser,
+		// projectService: true,
+		sourceType: `module`,
+		extraFileExtensions: [`.astro`],
+	},
+}
 
 const COMMON_RULES: Rules = {
 	"atom.io/exact-catch-types": ERROR,
@@ -48,6 +64,16 @@ const COMMON_RULES: Rules = {
 	quotes: [ERROR, `backtick`],
 }
 
+const LASERTAG_RULES: Rules = {
+	"lasertag/access-css-module-class-only": ERROR,
+	"lasertag/ban-div": ERROR,
+	"lasertag/export-own-component-only": ERROR,
+	"lasertag/header-main-footer-as-group": ERROR,
+	"lasertag/import-own-css-module-only": ERROR,
+	"lasertag/name-imported-css-module-as-css": ERROR,
+	"lasertag/render-tag-with-own-name": ERROR,
+}
+
 const IGNORES: Linter.Config = {
 	ignores: [
 		`**/.astro/**`,
@@ -65,7 +91,7 @@ const IGNORES: Linter.Config = {
 }
 
 const COMMON: Linter.Config = {
-	languageOptions: { parser, parserOptions: PARSER_OPTIONS },
+	languageOptions: TS_LANG_OPTIONS,
 	files: [`**/*.ts{,x}`, `eslint.config.ts`],
 	plugins: {
 		"atom.io": AtomIOPlugin,
@@ -129,10 +155,31 @@ const STORYBOOK: Linter.Config = {
 	},
 }
 
+const LASERTAG_ASTRO: Linter.Config = {
+	languageOptions: ASTRO_LANG_OPTIONS,
+	files: [`apps/atom.io.fyi/src/**/*.astro`],
+	ignores: [`**/exhibits-wrapped/**`],
+	plugins: {
+		astro: AstroPlugin,
+		lasertag: LasertagPlugin,
+	},
+	rules: LASERTAG_RULES,
+	processor: `astro/client-side-ts`,
+}
+
+const LASERTAG_TSX: Linter.Config = {
+	files: [`apps/atom.io.fyi/src/**/*.tsx`],
+	ignores: [`**/exhibits-wrapped/**`],
+	plugins: { lasertag: LasertagPlugin },
+	rules: LASERTAG_RULES,
+}
+
 export default [
 	IGNORES,
 	COMMON,
 	NO_CONSOLE,
 	PUBLIC_TESTS,
 	STORYBOOK,
+	LASERTAG_ASTRO,
+	LASERTAG_TSX,
 ] satisfies Linter.Config[]

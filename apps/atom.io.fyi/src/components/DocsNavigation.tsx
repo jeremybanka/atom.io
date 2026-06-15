@@ -3,7 +3,8 @@ import { useI, useO } from "atom.io/react"
 import type { VNode } from "preact"
 import * as React from "react"
 
-import { Spotlight } from "./Spotlight.tsx"
+import css from "./DocsNavigation.module.css"
+import { DynamicSpotlight } from "./DynamicSpotlight.tsx"
 import { Toggle } from "./Toggle.tsx"
 
 const INCLUDE_LIST = [`H2`, `H3`, `H4`, `H5`, `H6`]
@@ -13,7 +14,7 @@ const menuToggleAtom = atom<boolean>({
 	default: false,
 })
 
-export const pathnameAtom = atom<string>({
+const pathnameAtom = atom<string>({
 	key: `pathname`,
 	default: globalThis.location?.pathname ?? ``,
 	effects: [
@@ -25,18 +26,14 @@ export const pathnameAtom = atom<string>({
 	],
 })
 
-export function Navigation(): VNode {
+export function DocsNavigation(): VNode {
 	useO(pathnameAtom) // weirdly important
 
 	return (
-		<>
-			<aside>
-				<SiteDirectory />
-			</aside>
-			<aside>
-				<OnThisPage />
-			</aside>
-		</>
+		<docs-navigation class={css.class}>
+			<SiteDirectory />
+			<OnThisPage />
+		</docs-navigation>
 	)
 }
 
@@ -129,13 +126,13 @@ function OnThisPage(): VNode {
 	}
 
 	return (
-		<>
-			<Spotlight
+		<on-this-page>
+			<DynamicSpotlight
 				elementId="on-this-page"
 				padding={20}
 				updateSignals={[userHasToggled, pathname, headings]}
 			/>
-			<Spotlight
+			<DynamicSpotlight
 				elementId={currentId ? currentId + `-link` : null}
 				updateSignals={[userHasToggled, pathname]}
 			/>
@@ -153,7 +150,7 @@ function OnThisPage(): VNode {
 			>
 				☰
 			</Toggle.Button>
-		</>
+		</on-this-page>
 	)
 }
 
@@ -166,13 +163,13 @@ function SiteDirectory(): VNode {
 			`-`,
 		) + `-link`
 	return (
-		<>
-			<Spotlight
+		<site-directory>
+			<DynamicSpotlight
 				elementId="site-directory"
 				padding={20}
 				updateSignals={[userHasToggled, pathname]}
 			/>
-			<Spotlight
+			<DynamicSpotlight
 				elementId={pathnameId}
 				updateSignals={[userHasToggled, pathname]}
 			/>
@@ -235,17 +232,17 @@ function SiteDirectory(): VNode {
 						</section>
 						<section>
 							<a id="-docs-react-link" href={`/docs/react`}>
-								<span className="soft">atom.io</span>/react
+								<low-emphasis>atom.io</low-emphasis>/react
 							</a>
 						</section>
 						<section>
 							<a id="-docs-web-link" href={`/docs/web`}>
-								<span className="soft">atom.io</span>/web
+								<low-emphasis>atom.io</low-emphasis>/web
 							</a>
 						</section>
 						<section>
-							<a id="-transceivers-link" href={`/transceivers`}>
-								<span className="soft">atom.io</span>/transceivers
+							<a id="-docs-transceivers-link" href={`/docs/transceivers`}>
+								<low-emphasis>atom.io</low-emphasis>/transceivers
 							</a>
 						</section>
 					</main>
@@ -255,17 +252,17 @@ function SiteDirectory(): VNode {
 					<main>
 						<section>
 							<a id="-docs-eslint-plugin-link" href={`/docs/eslint-plugin`}>
-								<span className="soft">atom.io</span>/eslint-plugin
+								<low-emphasis>atom.io</low-emphasis>/eslint-plugin
 							</a>
 						</section>
 						<section>
 							<a id="-docs-react-devtools-link" href={`/docs/react-devtools`}>
-								<span className="soft">atom.io</span>/react-devtools
+								<low-emphasis>atom.io</low-emphasis>/react-devtools
 							</a>
 						</section>
 						<section>
 							<a id="-docs-testing-link" href={`/docs/testing`}>
-								<span className="soft">atom.io</span>/testing
+								<low-emphasis>atom.io</low-emphasis>/testing
 							</a>
 						</section>
 					</main>
@@ -275,7 +272,7 @@ function SiteDirectory(): VNode {
 					<main>
 						<section>
 							<a id="-docs-foundations-link" href={`/docs/foundations`}>
-								<span className="soft">atom.io</span>/foundations
+								<low-emphasis>atom.io</low-emphasis>/foundations
 							</a>
 						</section>
 						<section>
@@ -283,7 +280,7 @@ function SiteDirectory(): VNode {
 								id="-docs-foundations-json-link"
 								href={`/docs/foundations/json`}
 							>
-								<span className="soft">foundations</span>/json
+								<low-emphasis>foundations</low-emphasis>/json
 							</a>
 						</section>
 						<section>
@@ -291,7 +288,7 @@ function SiteDirectory(): VNode {
 								id="-docs-foundations-canonical-link"
 								href={`/docs/foundations/canonical`}
 							>
-								<span className="soft">foundations</span>/canonical
+								<low-emphasis>foundations</low-emphasis>/canonical
 							</a>
 						</section>
 						<section>
@@ -299,7 +296,7 @@ function SiteDirectory(): VNode {
 								id="-docs-foundations-entries-link"
 								href={`/docs/foundations/entries`}
 							>
-								<span className="soft">foundations</span>/entries
+								<low-emphasis>foundations</low-emphasis>/entries
 							</a>
 						</section>
 						<section>
@@ -307,7 +304,7 @@ function SiteDirectory(): VNode {
 								id="-docs-foundations-enumeration-link"
 								href={`/docs/foundations/enumeration`}
 							>
-								<span className="soft">foundations</span>/enumeration
+								<low-emphasis>foundations</low-emphasis>/enumeration
 							</a>
 						</section>
 						<section>
@@ -315,7 +312,7 @@ function SiteDirectory(): VNode {
 								id="-docs-foundations-type-utils-link"
 								href={`/docs/foundations/type-utils`}
 							>
-								<span className="soft">foundations</span>/type-utils
+								<low-emphasis>foundations</low-emphasis>/type-utils
 							</a>
 						</section>
 						<section>
@@ -323,7 +320,7 @@ function SiteDirectory(): VNode {
 								id="-docs-foundations-future-link"
 								href={`/docs/foundations/future`}
 							>
-								<span className="soft">foundations</span>/future
+								<low-emphasis>foundations</low-emphasis>/future
 							</a>
 						</section>
 						<section>
@@ -331,7 +328,7 @@ function SiteDirectory(): VNode {
 								id="-docs-foundations-subject-link"
 								href={`/docs/foundations/subject`}
 							>
-								<span className="soft">foundations</span>/subject
+								<low-emphasis>foundations</low-emphasis>/subject
 							</a>
 						</section>
 						<section>
@@ -339,7 +336,7 @@ function SiteDirectory(): VNode {
 								id="-docs-foundations-overlays-link"
 								href={`/docs/foundations/overlays`}
 							>
-								<span className="soft">foundations</span>/overlays
+								<low-emphasis>foundations</low-emphasis>/overlays
 							</a>
 						</section>
 						<section>
@@ -347,12 +344,12 @@ function SiteDirectory(): VNode {
 								id="-docs-foundations-junction-link"
 								href={`/docs/foundations/junction`}
 							>
-								<span className="soft">foundations</span>/junction
+								<low-emphasis>foundations</low-emphasis>/junction
 							</a>
 						</section>
 					</main>
 				</section>
 			</nav>
-		</>
+		</site-directory>
 	)
 }

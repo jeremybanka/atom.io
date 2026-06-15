@@ -35,6 +35,9 @@ docs-navigation.class {
 						> a {
 							padding: 0.2em 0.4em 0.25em;
 							user-select: none;
+							> low-emphasis {
+								color: var(--fg-soft-3);
+							}
 						}
 					}
 				}

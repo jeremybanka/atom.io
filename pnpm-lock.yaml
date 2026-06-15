@@ -229,8 +229,8 @@ importers:
         specifier: 2.2.0
         version: 2.2.0
       break-check:
-        specifier: 0.6.29
-        version: 0.6.29(zod@4.4.3)
+        specifier: 0.6.30
+        version: 0.6.30(zod@4.4.3)
       concurrently:
         specifier: 10.0.3
         version: 10.0.3
@@ -3686,8 +3686,8 @@ packages:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
     engines: {node: '>=8'}
 
-  break-check@0.6.29:
-    resolution: {integrity: sha512-ZvDAlED+uQ28v6L27WRnYCTw1YNBe14XQaLu7W31kPtkxRtipi3pUu/yrJtx6vGlrGMS/DAG3dfvpQxyW4J5yQ==}
+  break-check@0.6.30:
+    resolution: {integrity: sha512-oTLMeDCANKJgyBfZvVYXEQ02vxZ5Tib/ptq4zApzXGtpZ3FNxE/LSIJl79/WZaSh1b1oi2kTuTWXSOe//zjpzA==}
     hasBin: true
 
   browserslist@4.28.2:
@@ -3790,6 +3790,17 @@ packages:
 
   comline@0.4.7:
     resolution: {integrity: sha512-C2fWO6F0gW56Qk6rwq1R8djwNtxArWs2GEz/7kD8h7LymOFCRtfWybjPcyEeS9vyqCaIoxYVeTXrInuHeRWivg==}
+    peerDependencies:
+      arktype: ^2.1.25
+      zod: ^4.1.12
+    peerDependenciesMeta:
+      arktype:
+        optional: true
+      zod:
+        optional: true
+
+  comline@0.4.8:
+    resolution: {integrity: sha512-tvm/sCRVFPYMTK9fOuszzfnUXL8xJ3ppHpHnrZlrvAxxyRjLB85oTn8IDEnHWi1WJuFHA033sa6EVcP6mHZmjA==}
     peerDependencies:
       arktype: ^2.1.25
       zod: ^4.1.12
@@ -9467,10 +9478,10 @@ snapshots:
     dependencies:
       fill-range: 7.1.1
 
-  break-check@0.6.29(zod@4.4.3):
+  break-check@0.6.30(zod@4.4.3):
     dependencies:
       arktype: 2.2.0
-      comline: 0.4.7(arktype@2.2.0)(zod@4.4.3)
+      comline: 0.4.8(arktype@2.2.0)(zod@4.4.3)
       minimatch: 10.2.5
       simple-git: 3.36.0
       takua: 0.2.1
@@ -9563,6 +9574,13 @@ snapshots:
       zod: 4.4.3
 
   comline@0.4.7(arktype@2.2.0)(zod@4.4.3):
+    dependencies:
+      treetrunks: 0.1.8
+    optionalDependencies:
+      arktype: 2.2.0
+      zod: 4.4.3
+
+  comline@0.4.8(arktype@2.2.0)(zod@4.4.3):
     dependencies:
       treetrunks: 0.1.8
     optionalDependencies:

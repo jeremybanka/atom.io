@@ -68,7 +68,7 @@ const COMMON: Linter.Config = {
 	languageOptions: { parser, parserOptions: PARSER_OPTIONS },
 	files: [`**/*.ts{,x}`, `eslint.config.ts`],
 	plugins: {
-		"atom.io": AtomIOPlugin as ESLint.Plugin,
+		"atom.io": AtomIOPlugin,
 		import: ImportPlugin,
 		"simple-import-sort": SimpleImportSortPlugin,
 	},

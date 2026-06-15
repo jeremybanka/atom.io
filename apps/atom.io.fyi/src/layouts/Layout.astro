@@ -6,7 +6,7 @@ import packageJson from "atom.io/package.json"
 import { GlobalEffectsManager } from "../components/GlobalEffectsManager.tsx"
 import "../styles/globals.css"
 import "../styles/code.css"
-import "../styles/layout.css"
+import css from "./Layout.module.css"
 ---
 
 <html lang="en">
@@ -24,8 +24,7 @@ import "../styles/layout.css"
 		<ClientRouter />
 	</head>
 	<body>
-		<GlobalEffectsManager client:idle />
-		<main class="layout-shell">
+		<app-shell class={css.class}>
 			<header>
 				<nav>
 					<section>
@@ -42,12 +41,14 @@ import "../styles/layout.css"
 					</section>
 				</nav>
 			</header>
-			<banner-message>
-				<span>🕊️ Free Palestine 🇵🇸</span>
-			</banner-message>
+
 			<main>
+				<banner-message>
+					<span>🕊️ Free Palestine 🇵🇸</span>
+				</banner-message>
 				<slot />
 			</main>
+
 			<footer>
 				<span>
 					<a href="https://www.npmjs.com/package/atom.io">
@@ -58,7 +59,9 @@ import "../styles/layout.css"
 					♥️ <a href="https://github.com/jeremybanka">jeremybanka</a>
 				</span>
 			</footer>
-			<AtomIODevtools hideByDefault={true} client:only />
-		</main>
+		</app-shell>
+
+		<GlobalEffectsManager client:idle />
+		<AtomIODevtools hideByDefault={true} client:only />
 	</body>
 </html>

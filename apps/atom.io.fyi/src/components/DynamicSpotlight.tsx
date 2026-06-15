@@ -8,7 +8,7 @@ export type SpotlightProps = {
 	padding?: number
 	updateSignals?: any[]
 }
-export function Spotlight({
+export function DynamicSpotlight({
 	elementId,
 	startingPosition = {
 		top: 0,
@@ -45,8 +45,13 @@ export function Spotlight({
 		}
 		setPosition(startingPosition)
 	}, [elementId, ...updateSignals])
-	return position.width === 0 ? null : (
-		<data
+
+	if (position.width === 0) {
+		return <dynamic-spotlight style={{ display: `none` }} />
+	}
+
+	return (
+		<dynamic-spotlight
 			style={{
 				position: `fixed`,
 				top: position.top - padding,

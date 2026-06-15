@@ -4,7 +4,7 @@ import type { VNode } from "preact"
 import * as React from "react"
 
 import css from "./DocsNavigation.module.css"
-import { Spotlight } from "./Spotlight.tsx"
+import { DynamicSpotlight } from "./DynamicSpotlight.tsx"
 import { Toggle } from "./Toggle.tsx"
 
 const INCLUDE_LIST = [`H2`, `H3`, `H4`, `H5`, `H6`]
@@ -127,12 +127,12 @@ function OnThisPage(): VNode {
 
 	return (
 		<on-this-page>
-			<Spotlight
+			<DynamicSpotlight
 				elementId="on-this-page"
 				padding={20}
 				updateSignals={[userHasToggled, pathname, headings]}
 			/>
-			<Spotlight
+			<DynamicSpotlight
 				elementId={currentId ? currentId + `-link` : null}
 				updateSignals={[userHasToggled, pathname]}
 			/>
@@ -164,12 +164,12 @@ function SiteDirectory(): VNode {
 		) + `-link`
 	return (
 		<site-directory>
-			<Spotlight
+			<DynamicSpotlight
 				elementId="site-directory"
 				padding={20}
 				updateSignals={[userHasToggled, pathname]}
 			/>
-			<Spotlight
+			<DynamicSpotlight
 				elementId={pathnameId}
 				updateSignals={[userHasToggled, pathname]}
 			/>

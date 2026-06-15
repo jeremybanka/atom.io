@@ -99,7 +99,7 @@ article.docs-layout {
 		}
 	}
 
-	data:first-of-type {
+	dynamic-spotlight:first-of-type {
 		background: var(--bg-soft-glass-2);
 		backdrop-filter: blur(20px);
 		box-shadow: 0 1px 20px 1px var(--bg-shadow-2);
@@ -110,11 +110,11 @@ article.docs-layout {
 			height 0.2s ease-in-out,
 			top 0.2s ease-in-out,
 			left 0.2s ease-in-out;
-		~ data {
+		~ dynamic-spotlight {
 			background: var(--bg-shade-2);
 		}
 	}
-	data:last-of-type {
+	dynamic-spotlight:last-of-type {
 		background: var(--bg-hard-2);
 		border-radius: 5px;
 		border: 1px solid var(--hyperlink-color);

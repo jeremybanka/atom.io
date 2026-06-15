@@ -1,6 +1,8 @@
 import type { VNode } from "preact"
 import * as React from "react"
 
+import css from "./DynamicSpotlight.module.css"
+
 export type ElementPosition = Pick<DOMRect, `height` | `left` | `top` | `width`>
 export type SpotlightProps = {
 	elementId: string | null
@@ -52,8 +54,8 @@ export function DynamicSpotlight({
 
 	return (
 		<dynamic-spotlight
+			class={css.class}
 			style={{
-				position: `fixed`,
 				top: position.top - padding,
 				left: position.left - padding,
 				width: position.width + padding * 2,

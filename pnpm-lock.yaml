@@ -10,7 +10,7 @@ importers:
     devDependencies:
       '@changesets/cli':
         specifier: 2.31.0
-        version: 2.31.0(@types/node@25.9.2)
+        version: 2.31.0(@types/node@25.9.3)
       '@changesets/config':
         specifier: 3.1.4
         version: 3.1.4
@@ -29,9 +29,6 @@ importers:
       '@dprint/toml':
         specifier: 0.7.0
         version: 0.7.0
-      '@types/eslint':
-        specifier: 9.6.1
-        version: 9.6.1
       '@typescript-eslint/eslint-plugin':
         specifier: 8.61.0
         version: 8.61.0(@typescript-eslint/parser@8.61.0(eslint@10.5.0(jiti@2.7.0))(typescript@6.0.3))(eslint@10.5.0(jiti@2.7.0))(typescript@6.0.3)
@@ -56,9 +53,9 @@ importers:
       dprint-plugin-yaml:
         specifier: 0.6.0
         version: 0.6.0
-      eslint-plugin-drizzle:
-        specifier: 0.2.3
-        version: 0.2.3(eslint@10.5.0(jiti@2.7.0))
+      eslint:
+        specifier: 10.5.0
+        version: 10.5.0(jiti@2.7.0)
       eslint-plugin-import-x:
         specifier: 4.16.2
         version: 4.16.2(@typescript-eslint/utils@8.61.0(eslint@10.5.0(jiti@2.7.0))(typescript@6.0.3))(eslint@10.5.0(jiti@2.7.0))
@@ -94,13 +91,13 @@ importers:
         version: 6.0.3
       vitest:
         specifier: 4.1.8
-        version: 4.1.8(@types/node@25.9.2)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(esbuild@0.28.0)(happy-dom@20.10.3)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
+        version: 4.1.8(@types/node@25.9.3)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(esbuild@0.28.0)(happy-dom@20.10.3)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
 
   apps/atom.io.fyi:
     dependencies:
       '@astrojs/cloudflare':
         specifier: 13.7.0
-        version: 13.7.0(@types/node@25.9.2)(astro@6.4.6(@types/node@25.9.2)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.60.4)(tsx@4.22.1)(yaml@2.9.0))(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.1)(workerd@1.20260611.1)(wrangler@4.100.0)(yaml@2.9.0)
+        version: 13.7.0(@types/node@25.9.3)(astro@6.4.6(@types/node@25.9.2)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.60.4)(tsx@4.22.1)(yaml@2.9.0))(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.1)(workerd@1.20260611.1)(wrangler@4.100.0)(yaml@2.9.0)
       '@astrojs/mdx':
         specifier: 6.0.3
         version: 6.0.3(astro@6.4.6(@types/node@25.9.2)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.60.4)(tsx@4.22.1)(yaml@2.9.0))
@@ -189,9 +186,6 @@ importers:
       '@tsdown/css':
         specifier: 0.22.2
         version: 0.22.2(jiti@2.7.0)(postcss@8.5.15)(tsdown@0.22.2)(tsx@4.22.1)(yaml@2.9.0)
-      '@types/eslint':
-        specifier: 9.6.1
-        version: 9.6.1
       '@types/estree':
         specifier: 1.0.9
         version: 1.0.9
@@ -3137,9 +3131,6 @@ packages:
   '@types/doctrine@0.0.9':
     resolution: {integrity: sha512-eOIHzCUSH7SMfonMG1LsC2f8vxBFtho6NGBznK41R84YzPuvSBzrhEps33IsQiOW9+VL6NQ9DbjQJznk/S4uRA==}
 
-  '@types/eslint@9.6.1':
-    resolution: {integrity: sha512-FXx2pKgId/WyYo2jXw63kk7/+TY7u7AziEJxJAnSFzHlqTAS3Ync6SvgYAN/k4/PQpnnVuzoMuVnByKK2qp0ag==}
-
   '@types/esrecurse@4.3.1':
     resolution: {integrity: sha512-xJBAbDifo5hpffDBuHl0Y8ywswbiAp/Wi7Y/GtAgSlZyIABppyurxVueOPE8LUQOxdlgi6Zqce7uoEpqNTeiUw==}
 
@@ -4184,11 +4175,6 @@ packages:
     peerDependenciesMeta:
       unrs-resolver:
         optional: true
-
-  eslint-plugin-drizzle@0.2.3:
-    resolution: {integrity: sha512-BO+ymHo33IUNoJlC0rbd7HP9EwwpW4VIp49R/tWQF/d2E1K2kgTf0tCXT0v9MSiBr6gGR1LtPwMLapTKEWSg9A==}
-    peerDependencies:
-      eslint: '>=8.0.0'
 
   eslint-plugin-import-x@4.16.2:
     resolution: {integrity: sha512-rM9K8UBHcWKpzQzStn1YRN2T5NvdeIfSVoKu/lKF41znQXHAUcBbYXe5wd6GNjZjTrP7viQ49n1D83x/2gYgIw==}
@@ -6550,15 +6536,15 @@ snapshots:
 
   '@ark/util@0.56.0': {}
 
-  '@astrojs/cloudflare@13.7.0(@types/node@25.9.2)(astro@6.4.6(@types/node@25.9.2)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.60.4)(tsx@4.22.1)(yaml@2.9.0))(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.1)(workerd@1.20260611.1)(wrangler@4.100.0)(yaml@2.9.0)':
+  '@astrojs/cloudflare@13.7.0(@types/node@25.9.3)(astro@6.4.6(@types/node@25.9.2)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.60.4)(tsx@4.22.1)(yaml@2.9.0))(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.1)(workerd@1.20260611.1)(wrangler@4.100.0)(yaml@2.9.0)':
     dependencies:
       '@astrojs/internal-helpers': 0.10.0
       '@astrojs/underscore-redirects': 1.0.3
-      '@cloudflare/vite-plugin': 1.39.0(vite@7.3.3(@types/node@25.9.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.1)(yaml@2.9.0))(workerd@1.20260611.1)(wrangler@4.100.0)
+      '@cloudflare/vite-plugin': 1.39.0(vite@7.3.3(@types/node@25.9.3)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.1)(yaml@2.9.0))(workerd@1.20260611.1)(wrangler@4.100.0)
       astro: 6.4.6(@types/node@25.9.2)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.60.4)(tsx@4.22.1)(yaml@2.9.0)
       piccolore: 0.1.3
       tinyglobby: 0.2.17
-      vite: 7.3.3(@types/node@25.9.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.1)(yaml@2.9.0)
+      vite: 7.3.3(@types/node@25.9.3)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.1)(yaml@2.9.0)
       wrangler: 4.100.0
     transitivePeerDependencies:
       - '@types/node'
@@ -6862,7 +6848,7 @@ snapshots:
     dependencies:
       '@changesets/types': 6.1.0
 
-  '@changesets/cli@2.31.0(@types/node@25.9.2)':
+  '@changesets/cli@2.31.0(@types/node@25.9.3)':
     dependencies:
       '@changesets/apply-release-plan': 7.1.1
       '@changesets/assemble-release-plan': 6.0.10
@@ -6878,7 +6864,7 @@ snapshots:
       '@changesets/should-skip-package': 0.1.2
       '@changesets/types': 6.1.0
       '@changesets/write': 0.4.0
-      '@inquirer/external-editor': 1.0.3(@types/node@25.9.2)
+      '@inquirer/external-editor': 1.0.3(@types/node@25.9.3)
       '@manypkg/get-packages': 1.1.3
       ansi-colors: 4.1.3
       enquirer: 2.4.1
@@ -6996,12 +6982,12 @@ snapshots:
     optionalDependencies:
       workerd: 1.20260611.1
 
-  '@cloudflare/vite-plugin@1.39.0(vite@7.3.3(@types/node@25.9.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.1)(yaml@2.9.0))(workerd@1.20260611.1)(wrangler@4.100.0)':
+  '@cloudflare/vite-plugin@1.39.0(vite@7.3.3(@types/node@25.9.3)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.1)(yaml@2.9.0))(workerd@1.20260611.1)(wrangler@4.100.0)':
     dependencies:
       '@cloudflare/unenv-preset': 2.16.1(unenv@2.0.0-rc.24)(workerd@1.20260611.1)
       miniflare: 4.20260526.0
       unenv: 2.0.0-rc.24
-      vite: 7.3.3(@types/node@25.9.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.1)(yaml@2.9.0)
+      vite: 7.3.3(@types/node@25.9.3)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.1)(yaml@2.9.0)
       wrangler: 4.100.0
       ws: 8.20.1
     transitivePeerDependencies:
@@ -7748,12 +7734,12 @@ snapshots:
   '@img/sharp-win32-x64@0.34.5':
     optional: true
 
-  '@inquirer/external-editor@1.0.3(@types/node@25.9.2)':
+  '@inquirer/external-editor@1.0.3(@types/node@25.9.3)':
     dependencies:
       chardet: 2.1.1
       iconv-lite: 0.7.2
     optionalDependencies:
-      '@types/node': 25.9.2
+      '@types/node': 25.9.3
 
   '@joshwooding/vite-plugin-react-docgen-typescript@0.7.0(typescript@6.0.3)(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0))':
     dependencies:
@@ -8772,11 +8758,6 @@ snapshots:
 
   '@types/doctrine@0.0.9': {}
 
-  '@types/eslint@9.6.1':
-    dependencies:
-      '@types/estree': 1.0.9
-      '@types/json-schema': 7.0.15
-
   '@types/esrecurse@4.3.1': {}
 
   '@types/estree-jsx@1.0.5':
@@ -9059,7 +9040,7 @@ snapshots:
       obug: 2.1.1
       std-env: 4.1.0
       tinyrainbow: 3.1.0
-      vitest: 4.1.8(@types/node@25.9.2)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(esbuild@0.28.0)(happy-dom@20.10.3)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
+      vitest: 4.1.8(@types/node@25.9.3)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(esbuild@0.28.0)(happy-dom@20.10.3)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
 
   '@vitest/expect@3.2.4':
     dependencies:
@@ -9121,7 +9102,7 @@ snapshots:
       sirv: 3.0.2
       tinyglobby: 0.2.17
       tinyrainbow: 3.1.0
-      vitest: 4.1.8(@types/node@25.9.2)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(esbuild@0.28.0)(happy-dom@20.10.3)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
+      vitest: 4.1.8(@types/node@25.9.3)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(esbuild@0.28.0)(happy-dom@20.10.3)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
 
   '@vitest/utils@3.2.4':
     dependencies:
@@ -9888,10 +9869,6 @@ snapshots:
       stable-hash-x: 0.2.0
     optionalDependencies:
       unrs-resolver: 1.11.1
-
-  eslint-plugin-drizzle@0.2.3(eslint@10.5.0(jiti@2.7.0)):
-    dependencies:
-      eslint: 10.5.0(jiti@2.7.0)
 
   eslint-plugin-import-x@4.16.2(@typescript-eslint/utils@8.61.0(eslint@10.5.0(jiti@2.7.0))(typescript@6.0.3))(eslint@10.5.0(jiti@2.7.0)):
     dependencies:
@@ -12559,6 +12536,22 @@ snapshots:
       tsx: 4.22.1
       yaml: 2.9.0
 
+  vite@7.3.3(@types/node@25.9.3)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.1)(yaml@2.9.0):
+    dependencies:
+      esbuild: 0.27.7
+      fdir: 6.5.0(picomatch@4.0.4)
+      picomatch: 4.0.4
+      postcss: 8.5.15
+      rollup: 4.60.4
+      tinyglobby: 0.2.17
+    optionalDependencies:
+      '@types/node': 25.9.3
+      fsevents: 2.3.3
+      jiti: 2.7.0
+      lightningcss: 1.32.0
+      tsx: 4.22.1
+      yaml: 2.9.0
+
   vite@8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0):
     dependencies:
       lightningcss: 1.32.0
@@ -12596,47 +12589,6 @@ snapshots:
   vitefu@1.1.3(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)):
     optionalDependencies:
       vite: 8.0.16(@types/node@25.9.3)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
-
-  vitest@4.1.8(@types/node@25.9.2)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(esbuild@0.28.0)(happy-dom@20.10.3)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0):
-    dependencies:
-      '@vitest/expect': 4.1.8
-      '@vitest/mocker': 4.1.8(vite@8.0.16(@types/node@25.9.3)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0))
-      '@vitest/pretty-format': 4.1.8
-      '@vitest/runner': 4.1.8
-      '@vitest/snapshot': 4.1.8
-      '@vitest/spy': 4.1.8
-      '@vitest/utils': 4.1.8
-      es-module-lexer: 2.1.0
-      expect-type: 1.3.0
-      magic-string: 0.30.21
-      obug: 2.1.1
-      pathe: 2.0.3
-      picomatch: 4.0.4
-      std-env: 4.1.0
-      tinybench: 2.9.0
-      tinyexec: 1.2.4
-      tinyglobby: 0.2.17
-      tinyrainbow: 3.1.0
-      vite: 8.0.16(@types/node@25.9.2)(esbuild@0.28.0)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
-      why-is-node-running: 2.3.0
-    optionalDependencies:
-      '@types/node': 25.9.2
-      '@vitest/coverage-v8': 4.1.8(vitest@4.1.8)
-      '@vitest/ui': 4.1.8(vitest@4.1.8)
-      happy-dom: 20.10.3
-    transitivePeerDependencies:
-      - '@vitejs/devtools'
-      - esbuild
-      - jiti
-      - less
-      - msw
-      - sass
-      - sass-embedded
-      - stylus
-      - sugarss
-      - terser
-      - tsx
-      - yaml
 
   vitest@4.1.8(@types/node@25.9.3)(@vitest/coverage-v8@4.1.8)(@vitest/ui@4.1.8)(esbuild@0.28.0)(happy-dom@20.10.3)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0):
     dependencies:

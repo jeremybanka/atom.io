@@ -10,6 +10,6 @@ const plugin: ESLint.Plugin = {
 		"exact-catch-types": Rules.exactCatchTypes as any,
 		"explicit-state-types": Rules.explicitStateTypes as any,
 	},
-} satisfies ESLint.Plugin
+}
 
 export default plugin

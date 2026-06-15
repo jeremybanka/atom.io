@@ -13,7 +13,7 @@ const menuToggleAtom = atom<boolean>({
 	default: false,
 })
 
-export const pathnameAtom = atom<string>({
+const pathnameAtom = atom<string>({
 	key: `pathname`,
 	default: globalThis.location?.pathname ?? ``,
 	effects: [

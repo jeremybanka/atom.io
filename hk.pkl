@@ -1,0 +1,24 @@
+amends "package://github.com/jdx/hk/releases/download/v1.48.0/hk@1.48.0#/Config.pkl"
+
+local linters = new Mapping<String, Step> {
+    ["dprint"] {
+        glob = "**/*"
+        check = "./node_modules/dprint/dprint check --allow-no-files {{files}}"
+        fix = "./node_modules/dprint/dprint fmt --allow-no-files {{files}}"
+    }
+}
+
+hooks {
+    ["pre-commit"] {
+        fix = true
+        stash = "git"
+        steps = linters
+    }
+    ["fix"] {
+        fix = true
+        steps = linters
+    }
+    ["check"] {
+        steps = linters
+    }
+}

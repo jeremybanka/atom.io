@@ -38,62 +38,112 @@ docs-layout.class {
 		> * {
 			width: 100%;
 		}
-		h1 > low-emphasis {
-			font-size: inherit;
-			color: var(--fg-soft-3);
+		h1 {
+			font-size: 48px;
+			line-height: 54px;
+			> low-emphasis {
+				font-size: inherit;
+				color: var(--fg-soft-3);
+			}
+			> code {
+				font-size: 48px;
+				font-weight: 300;
+			}
 		}
 		h2 {
 			margin-top: 1.5em;
+			font-size: 36px;
+			line-height: 42px;
+			> code {
+				font-size: 36px;
+				font-weight: 200;
+			}
 		}
 		h3 {
 			margin-top: 1em;
+			font-size: 24px;
+			line-height: 30px;
 		}
 		h1,
 		h2,
 		h3,
-		p {
-			max-width: calc(100vw - 30px);
+		table-wrapper {
+			overflow-x: scroll;
+			overflow-y: hidden;
+		}
+		h1,
+		h2,
+		h3,
+		p,
+		table-wrapper > table {
+			padding: 0 15px;
 			@media screen and (min-width: 960px) {
 				max-width: 700px;
 			}
 		}
+		table {
+			width: auto;
+		}
 		p,
 		li,
-		table {
+		table-wrapper > table {
+			font-weight: 400;
+			line-height: 1.5;
 			@media (prefers-color-scheme: light) {
 				font-weight: 500;
 			}
 		}
-		table {
+
+		code {
+			font-family: Theia, monospace !important;
+			font-weight: 500;
+			font-size: 15px;
+			color: var(--fg-soft-1);
+			padding: 1px 2px;
+		}
+
+		code-block, table-wrapper {
+			max-width: calc(100svw - 10px);
+		}
+
+		table-wrapper {
+			/* border: var(--bg-soft-3) solid 1px; */
+			border: 1px solid #5555;
+			border-radius: 4px;
 			mix-blend-mode: var(--fill-soft-blend-mode);
 			margin-top: 1em;
-			border-collapse: collapse;
-			tbody {
-				background: var(--bg-hard-1);
-				border: var(--bg-soft-3) solid 2px;
-				border-radius: 3px;
-				* {
-					border: none;
-					box-sizing: border-box;
-				}
-				tr {
-					th {
+			> table {
+				min-width: 450px;
+				border-collapse: collapse;
+				tbody {
+					background: var(--bg-hard-1);
+					border-radius: 3px;
+					* {
 						border: none;
-						padding: 6px 2px;
-						text-align: left;
-						&:not(:first-of-type) {
-							border-left: none;
-						}
-						&:not(:last-of-type) {
-							border-right: none;
-						}
+						box-sizing: border-box;
 					}
+					tr {
+						th {
+							border: none;
+							padding: 6px 2px;
+							text-align: left;
+							&:not(:first-of-type) {
+								border-left: none;
+							}
+							&:not(:last-of-type) {
+								border-right: none;
+							}
+						}
 
-					td {
-						padding: 6px 4px;
-						border-bottom: 2px solid var(--bg-soft-3);
-						> code {
-							background-color: transparent;
+						td {
+							padding: 6px 4px;
+							border-bottom: 1px solid #5555;
+							> code {
+								background-color: transparent;
+							}
+						}
+						&:last-of-type > td {
+							border-bottom: none;
 						}
 					}
 				}

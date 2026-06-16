@@ -12,109 +12,111 @@ without changing shape.
 
 ## package contents
 
-<table>
-  <tbody>
-    <tr>
-      <td>
-        <code>primitive</code>
-      </td>
-      <td>The JSON primitive union: boolean, number, string, or null.</td>
-    </tr>
-    <tr>
-      <td>
-        <code>Json.Serializable</code>
-      </td>
-      <td>A recursively JSON-safe value.</td>
-    </tr>
-    <tr>
-      <td>
-        <code>Json.Object</code>
-      </td>
-      <td>
-        <code>Json.Object&lt;Key, Value&gt;</code> is a record whose keys are
-        <code>Key</code> and whose values are <code>Value</code>. <code>Value</code>
-        must be JSON-serializable.
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <code>Json.Array</code>
-      </td>
-      <td>
-        <code>Json.Array&lt;Element&gt;</code> is a readonly array whose members are
-        <code>Element</code>. <code>Element</code> must be JSON-serializable.
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <code>Json.Tree</code>
-      </td>
-      <td>
-        Looser JSON-shaped tree types for unknown value inspection. The nested{" "}
-        <code>Json.Tree.Object&lt;Key, Value&gt;</code> and{" "}
-        <code>Json.Tree.Array&lt;Element&gt;</code> types do not require serializable
-        values.
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <code>stringified</code>
-      </td>
-      <td>
-        <code>stringified&lt;JsonValue&gt;</code> is a string type branded with the
-        JSON value it represents.
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <code>parseJson</code>
-      </td>
-      <td>
-        <code>parseJson&lt;JsonValue&gt;(str)</code> parses a string and returns{" "}
-        <code>JsonValue</code> when the input is typed as{" "}
-        <code>stringified&lt;JsonValue&gt;</code>.
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <code>stringifyJson</code>
-      </td>
-      <td>
-        <code>stringifyJson&lt;JsonValue&gt;(value)</code> stringifies a JSON value
-        and preserves that value type in the returned <code>stringified</code> string.
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <code>JsonIO</code>
-      </td>
-      <td>A function type whose inputs and output are JSON-serializable.</td>
-    </tr>
-    <tr>
-      <td>
-        <code>JsonInterface</code>
-      </td>
-      <td>
-        <code>JsonInterface&lt;Type, JsonValue&gt;</code> pairs{" "}
-        <code>toJson</code> and <code>fromJson</code>. <code>Type</code> is the
-        runtime value type; <code>JsonValue</code> is its serialized JSON form.
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <code>isJson</code>
-      </td>
-      <td>Runtime predicate for JSON-shaped tree nodes.</td>
-    </tr>
-    <tr>
-      <td>
-        <code>JSON_TYPE_NAMES</code>, <code>JsonTypeName</code>,{" "}
-        <code>JsonTypes</code>, <code>JSON_DEFAULTS</code>
-      </td>
-      <td>JSON type names and default values by type name.</td>
-    </tr>
-  </tbody>
-</table>
+<table-wrapper>
+  <table>
+    <tbody>
+      <tr>
+        <td>
+          <code>primitive</code>
+        </td>
+        <td>The JSON primitive union: boolean, number, string, or null.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>Json.Serializable</code>
+        </td>
+        <td>A recursively JSON-safe value.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>Json.Object</code>
+        </td>
+        <td>
+          <code>Json.Object&lt;Key, Value&gt;</code> is a record whose keys are
+          <code>Key</code> and whose values are <code>Value</code>. <code>Value</code>
+          must be JSON-serializable.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <code>Json.Array</code>
+        </td>
+        <td>
+          <code>Json.Array&lt;Element&gt;</code> is a readonly array whose members are
+          <code>Element</code>. <code>Element</code> must be JSON-serializable.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <code>Json.Tree</code>
+        </td>
+        <td>
+          Looser JSON-shaped tree types for unknown value inspection. The nested{" "}
+          <code>Json.Tree.Object&lt;Key, Value&gt;</code> and{" "}
+          <code>Json.Tree.Array&lt;Element&gt;</code> types do not require serializable
+          values.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <code>stringified</code>
+        </td>
+        <td>
+          <code>stringified&lt;JsonValue&gt;</code> is a string type branded with the
+          JSON value it represents.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <code>parseJson</code>
+        </td>
+        <td>
+          <code>parseJson&lt;JsonValue&gt;(str)</code> parses a string and returns{" "}
+          <code>JsonValue</code> when the input is typed as{" "}
+          <code>stringified&lt;JsonValue&gt;</code>.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <code>stringifyJson</code>
+        </td>
+        <td>
+          <code>stringifyJson&lt;JsonValue&gt;(value)</code> stringifies a JSON value
+          and preserves that value type in the returned <code>stringified</code> string.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <code>JsonIO</code>
+        </td>
+        <td>A function type whose inputs and output are JSON-serializable.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>JsonInterface</code>
+        </td>
+        <td>
+          <code>JsonInterface&lt;Type, JsonValue&gt;</code> pairs{" "}
+          <code>toJson</code> and <code>fromJson</code>. <code>Type</code> is the
+          runtime value type; <code>JsonValue</code> is its serialized JSON form.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <code>isJson</code>
+        </td>
+        <td>Runtime predicate for JSON-shaped tree nodes.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>JSON_TYPE_NAMES</code>, <code>JsonTypeName</code>,{" "}
+          <code>JsonTypes</code>, <code>JSON_DEFAULTS</code>
+        </td>
+        <td>JSON type names and default values by type name.</td>
+      </tr>
+    </tbody>
+  </table>
+</table-wrapper>
 
 ## runtime checks
 

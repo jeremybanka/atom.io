@@ -9,39 +9,41 @@ values explicitly; `StatefulSubject` also stores the latest value on the instanc
 
 ## package contents
 
-<table>
-  <tbody>
-    <tr>
-      <td>
-        <code>Subject</code>
-      </td>
-      <td>A keyed observable subject.</td>
-    </tr>
-    <tr>
-      <td>
-        <code>Subject.prototype.subscribe(key, subscriber)</code>
-      </td>
-      <td>Register a subscriber under a string key and return an unsubscribe callback.</td>
-    </tr>
-    <tr>
-      <td>
-        <code>Subject.prototype.next(value)</code>
-      </td>
-      <td>Call all current subscribers with a value.</td>
-    </tr>
-    <tr>
-      <td>
-        <code>StatefulSubject</code>
-      </td>
-      <td>A subject that stores its latest state.</td>
-    </tr>
-    <tr>
-      <td>
-        <code>StatefulSubject.prototype.state</code>
-      </td>
-      <td>The latest value sent with <code>next</code>.</td>
-    </tr>
-  </tbody>
-</table>
+<table-wrapper>
+  <table>
+    <tbody>
+      <tr>
+        <td>
+          <code>Subject</code>
+        </td>
+        <td>A keyed observable subject.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>Subject.prototype.subscribe(key, subscriber)</code>
+        </td>
+        <td>Register a subscriber under a string key and return an unsubscribe callback.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>Subject.prototype.next(value)</code>
+        </td>
+        <td>Call all current subscribers with a value.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>StatefulSubject</code>
+        </td>
+        <td>A subject that stores its latest state.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>StatefulSubject.prototype.state</code>
+        </td>
+        <td>The latest value sent with <code>next</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+</table-wrapper>
 
 When you call `next(value)`, `state` updates before subscribers are notified.

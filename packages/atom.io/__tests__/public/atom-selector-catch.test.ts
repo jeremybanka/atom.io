@@ -1,7 +1,14 @@
 /* oxlint-disable typescript/require-await */
 
 import type { Loadable } from "atom.io"
-import * as AtomIO from "atom.io"
+import {
+	atom,
+	atomFamily,
+	AtomToken,
+	getState,
+	selector,
+	selectorFamily,
+} from "atom.io"
 import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 
 import * as Utils from "../__util__/index.ts"
@@ -30,15 +37,13 @@ describe(`immediate states that throw`, () => {
 				throw new ClientError(`😤`)
 			}
 
-			const countAtom: AtomIO.AtomToken<number, null, ClientError> = AtomIO.atom(
-				{
-					key: `count`,
-					default: retrieveState,
-					catch: [ClientError],
-				},
-			)
+			const countAtom: AtomToken<number, null, ClientError> = atom({
+				key: `count`,
+				default: retrieveState,
+				catch: [ClientError],
+			})
 
-			const err = AtomIO.getState(countAtom)
+			const err = getState(countAtom)
 
 			expect(err).toBeInstanceOf(ClientError)
 		})
@@ -49,13 +54,13 @@ describe(`immediate states that throw`, () => {
 				throw new Error(`😤`) // not a ClientError
 			}
 
-			const countAtom = AtomIO.atom<number, ClientError>({
+			const countAtom = atom<number, ClientError>({
 				key: `count`,
 				default: retrieveState,
 				catch: [ClientError],
 			})
 
-			expect(() => AtomIO.getState(countAtom)).toThrowError(Error)
+			expect(() => getState(countAtom)).toThrowError(Error)
 		})
 	})
 	describe(`atom family`, () => {
@@ -66,13 +71,13 @@ describe(`immediate states that throw`, () => {
 				throw new ClientError(`😤`)
 			}
 
-			const countAtoms = AtomIO.atomFamily<number, string, ClientError>({
+			const countAtoms = atomFamily<number, string, ClientError>({
 				key: `count`,
 				default: retrieveState,
 				catch: [ClientError],
 			})
 
-			const err = AtomIO.getState(countAtoms, `example`)
+			const err = getState(countAtoms, `example`)
 
 			expect(err).toBeInstanceOf(ClientError)
 		})
@@ -83,13 +88,13 @@ describe(`immediate states that throw`, () => {
 				throw new Error(`😤`) // not a ClientError
 			}
 
-			const countAtoms = AtomIO.atomFamily<number, string, ClientError>({
+			const countAtoms = atomFamily<number, string, ClientError>({
 				key: `count`,
 				default: retrieveState,
 				catch: [ClientError],
 			})
 
-			expect(() => AtomIO.getState(countAtoms, `example`)).toThrowError(Error)
+			expect(() => getState(countAtoms, `example`)).toThrowError(Error)
 		})
 	})
 	describe(`selector`, () => {
@@ -100,13 +105,13 @@ describe(`immediate states that throw`, () => {
 				throw new ClientError(`😤`)
 			}
 
-			const countSelector = AtomIO.selector<number, ClientError>({
+			const countSelector = selector<number, ClientError>({
 				key: `count`,
 				get: retrieveState,
 				catch: [ClientError],
 			})
 
-			const err = AtomIO.getState(countSelector)
+			const err = getState(countSelector)
 
 			expect(err).toBeInstanceOf(ClientError)
 		})
@@ -117,13 +122,13 @@ describe(`immediate states that throw`, () => {
 				throw new Error(`😤`) // not a ClientError
 			}
 
-			const countSelector = AtomIO.selector<number, ClientError>({
+			const countSelector = selector<number, ClientError>({
 				key: `count`,
 				get: retrieveState,
 				catch: [ClientError],
 			})
 
-			expect(() => AtomIO.getState(countSelector)).toThrowError(Error)
+			expect(() => getState(countSelector)).toThrowError(Error)
 		})
 	})
 	describe(`selector family`, () => {
@@ -134,13 +139,13 @@ describe(`immediate states that throw`, () => {
 				throw new ClientError(`😤`)
 			}
 
-			const countSelectors = AtomIO.selectorFamily<number, string, ClientError>({
+			const countSelectors = selectorFamily<number, string, ClientError>({
 				key: `count`,
 				get: () => retrieveState,
 				catch: [ClientError],
 			})
 
-			const err = AtomIO.getState(countSelectors, `example`)
+			const err = getState(countSelectors, `example`)
 
 			expect(err).toBeInstanceOf(ClientError)
 		})
@@ -151,15 +156,13 @@ describe(`immediate states that throw`, () => {
 				throw new Error(`😤`) // not a ClientError
 			}
 
-			const countSelectors = AtomIO.selectorFamily<number, string, ClientError>({
+			const countSelectors = selectorFamily<number, string, ClientError>({
 				key: `count`,
 				get: () => retrieveState,
 				catch: [ClientError],
 			})
 
-			expect(() => AtomIO.getState(countSelectors, `example`)).toThrowError(
-				Error,
-			)
+			expect(() => getState(countSelectors, `example`)).toThrowError(Error)
 		})
 	})
 })
@@ -173,13 +176,13 @@ describe(`loadable states that reject`, async () => {
 				throw new ClientError(`😤`)
 			}
 
-			const countAtom = AtomIO.atom<Loadable<number>, ClientError>({
+			const countAtom = atom<Loadable<number>, ClientError>({
 				key: `count`,
 				default: retrieveState,
 				catch: [ClientError],
 			})
 
-			const err = await AtomIO.getState(countAtom)
+			const err = await getState(countAtom)
 
 			expect(err).toBeInstanceOf(ClientError)
 		})
@@ -188,7 +191,7 @@ describe(`loadable states that reject`, async () => {
 			const retrieveState = async (): Promise<number> => {
 				throw new Error(`😤`) // not a ClientError
 			}
-			const countAtom = AtomIO.atom<Loadable<number>, ClientError>({
+			const countAtom = atom<Loadable<number>, ClientError>({
 				key: `count`,
 				default: retrieveState,
 				catch: [ClientError],
@@ -196,7 +199,7 @@ describe(`loadable states that reject`, async () => {
 
 			let err: any
 			try {
-				await AtomIO.getState(countAtom)
+				await getState(countAtom)
 			} catch (e) {
 				err = e
 			}
@@ -211,17 +214,13 @@ describe(`loadable states that reject`, async () => {
 				throw new ClientError(`😤`)
 			}
 
-			const countAtoms = AtomIO.atomFamily<
-				Loadable<number>,
-				string,
-				ClientError
-			>({
+			const countAtoms = atomFamily<Loadable<number>, string, ClientError>({
 				key: `count`,
 				default: retrieveState,
 				catch: [ClientError],
 			})
 
-			const err = await AtomIO.getState(countAtoms, `example`)
+			const err = await getState(countAtoms, `example`)
 
 			expect(err).toBeInstanceOf(ClientError)
 		})
@@ -230,18 +229,14 @@ describe(`loadable states that reject`, async () => {
 			const retrieveState = async (): Promise<number> => {
 				throw new Error(`😤`) // not a ClientError
 			}
-			const countAtoms = AtomIO.atomFamily<
-				Loadable<number>,
-				string,
-				ClientError
-			>({
+			const countAtoms = atomFamily<Loadable<number>, string, ClientError>({
 				key: `count`,
 				default: retrieveState,
 				catch: [ClientError],
 			})
 			let err: any
 			try {
-				await AtomIO.getState(countAtoms, `example`)
+				await getState(countAtoms, `example`)
 			} catch (e) {
 				err = e
 			}
@@ -256,13 +251,13 @@ describe(`loadable states that reject`, async () => {
 				throw new ClientError(`😤`)
 			}
 
-			const countSelector = AtomIO.selector<Loadable<number>, ClientError>({
+			const countSelector = selector<Loadable<number>, ClientError>({
 				key: `count`,
 				get: retrieveState,
 				catch: [ClientError],
 			})
 
-			const err = await AtomIO.getState(countSelector)
+			const err = await getState(countSelector)
 
 			expect(err).toBeInstanceOf(ClientError)
 		})
@@ -273,7 +268,7 @@ describe(`loadable states that reject`, async () => {
 				throw new Error(`😤`) // not a ClientError
 			}
 
-			const countSelector = AtomIO.selector<Loadable<number>, ClientError>({
+			const countSelector = selector<Loadable<number>, ClientError>({
 				key: `count`,
 				get: retrieveState,
 				catch: [ClientError],
@@ -281,7 +276,7 @@ describe(`loadable states that reject`, async () => {
 
 			let err: any
 			try {
-				await AtomIO.getState(countSelector)
+				await getState(countSelector)
 			} catch (e) {
 				err = e
 			}
@@ -296,7 +291,7 @@ describe(`loadable states that reject`, async () => {
 				throw new ClientError(`😤`)
 			}
 
-			const countSelectors = AtomIO.selectorFamily<
+			const countSelectors = selectorFamily<
 				Loadable<number>,
 				string,
 				ClientError
@@ -306,7 +301,7 @@ describe(`loadable states that reject`, async () => {
 				catch: [ClientError],
 			})
 
-			const err = await AtomIO.getState(countSelectors, `example`)
+			const err = await getState(countSelectors, `example`)
 
 			expect(err).toBeInstanceOf(ClientError)
 		})
@@ -315,7 +310,7 @@ describe(`loadable states that reject`, async () => {
 			const retrieveState = async (): Promise<number> => {
 				throw new Error(`😤`) // not a ClientError
 			}
-			const countSelectors = AtomIO.selectorFamily<
+			const countSelectors = selectorFamily<
 				Loadable<number>,
 				string,
 				ClientError
@@ -327,7 +322,7 @@ describe(`loadable states that reject`, async () => {
 			})
 			let err: any
 			try {
-				await AtomIO.getState(countSelectors, `example`)
+				await getState(countSelectors, `example`)
 			} catch (e) {
 				err = e
 			}

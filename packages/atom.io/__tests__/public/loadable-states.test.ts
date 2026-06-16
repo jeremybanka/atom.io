@@ -3,7 +3,16 @@
 import * as http from "node:http"
 
 import type { Loadable } from "atom.io"
-import * as AtomIO from "atom.io"
+import {
+	atom,
+	atomFamily,
+	getState,
+	resetState,
+	selector,
+	setState,
+	Silo,
+	subscribe,
+} from "atom.io"
 import { parseJson } from "atom.io/foundations/json"
 import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 
@@ -19,34 +28,34 @@ beforeEach(() => {
 
 describe(`async atom`, async () => {
 	it(`hits the subscriber twice`, async () => {
-		const countAtom = AtomIO.atom<Loadable<number>>({
+		const countAtom = atom<Loadable<number>>({
 			key: `count`,
 			default: 0,
 		})
-		AtomIO.subscribe(countAtom, (update) => {
+		subscribe(countAtom, (update) => {
 			Utils.stdout(`count`, update)
 		})
 		const getNumber = async () => 1
-		AtomIO.setState(countAtom, getNumber())
-		const countValueInitial = AtomIO.getState(countAtom)
+		setState(countAtom, getNumber())
+		const countValueInitial = getState(countAtom)
 		expect(countValueInitial).toBeInstanceOf(Promise)
-		const countValueAwaited = await AtomIO.getState(countAtom)
+		const countValueAwaited = await getState(countAtom)
 		expect(countValueAwaited).toBe(1)
 		expect(Utils.stdout).toHaveBeenCalledTimes(2)
 	})
 	it(`handles a rejected promise`, async () => {
-		const countAtom = AtomIO.atom<Loadable<number>>({
+		const countAtom = atom<Loadable<number>>({
 			key: `count`,
 			default: 0,
 		})
-		AtomIO.subscribe(countAtom, ({ newValue, oldValue }) => {
+		subscribe(countAtom, ({ newValue, oldValue }) => {
 			Utils.stdout(`count`, { newValue, oldValue })
 		})
 		const getNumber = async (): Promise<number> => {
 			throw new Error(`😤`)
 		}
-		AtomIO.setState(countAtom, getNumber())
-		const countValueInitial = AtomIO.getState(countAtom)
+		setState(countAtom, getNumber())
+		const countValueInitial = getState(countAtom)
 		expect(countValueInitial).toBeInstanceOf(Promise)
 
 		expect(Utils.stdout).toHaveBeenCalledTimes(1)
@@ -54,7 +63,7 @@ describe(`async atom`, async () => {
 	test(`batch pre-loading`, async () => {
 		const wastefulLoads: number[] = []
 
-		const countAtoms = AtomIO.atomFamily<Loadable<number>, number>({
+		const countAtoms = atomFamily<Loadable<number>, number>({
 			key: `count`,
 			default: () =>
 				new Promise((resolve) => {
@@ -64,27 +73,27 @@ describe(`async atom`, async () => {
 					})
 				}),
 		})
-		const countIdsAtom = AtomIO.atom<Loadable<number[]>>({
+		const countIdsAtom = atom<Loadable<number[]>>({
 			key: `countIds`,
 			default: async () =>
 				new Promise((resolve) =>
 					setImmediate(() => {
 						const ids = [1, 2, 3]
 						for (let i = 0; i < ids.length; i++) {
-							AtomIO.setState(countAtoms, i, 1)
+							setState(countAtoms, i, 1)
 						}
 						resolve(ids)
 					}),
 				),
 		})
 
-		const countIds = await AtomIO.getState(countIdsAtom)
+		const countIds = await getState(countIdsAtom)
 
 		expect(countIds).toEqual([1, 2, 3])
 		expect(wastefulLoads).toEqual([])
-		expect(AtomIO.getState(countAtoms, 0)).toBe(1)
-		expect(AtomIO.getState(countAtoms, 1)).toBe(1)
-		expect(AtomIO.getState(countAtoms, 2)).toBe(1)
+		expect(getState(countAtoms, 0)).toBe(1)
+		expect(getState(countAtoms, 1)).toBe(1)
+		expect(getState(countAtoms, 2)).toBe(1)
 	})
 })
 
@@ -166,12 +175,12 @@ describe(`async selector`, () => {
 	})
 
 	test(`selector as a caching mechanism for async data`, async () => {
-		const { atom, selector, getState /* store */ } = new AtomIO.Silo({
+		const { atom, selector, getState /* store */ } = new Silo({
 			name: `math`,
 			lifespan: `ephemeral`,
 			isProduction: false,
 		})
-		// AtomIO.setLogLevel(`info`, store)
+		// setLogLevel(`info`, store)
 		const dividendAtom = atom<number>({
 			key: `dividend`,
 			default: 0,
@@ -217,7 +226,7 @@ describe(`async selector`, () => {
 
 describe(`downstream from async`, () => {
 	test(`sync selector downstream from async atom`, async () => {
-		const countAtom = AtomIO.atom<Loadable<number>>({
+		const countAtom = atom<Loadable<number>>({
 			key: `count`,
 			default: () =>
 				new Promise((resolve) =>
@@ -226,28 +235,28 @@ describe(`downstream from async`, () => {
 					}, 10),
 				),
 		})
-		const typeSelector = AtomIO.selector<string>({
+		const typeSelector = selector<string>({
 			key: `type`,
 			get: ({ get }) => {
 				const count = get(countAtom)
 				return typeof count
 			},
 		})
-		const countLoadable = AtomIO.getState(countAtom)
+		const countLoadable = getState(countAtom)
 		expect(countLoadable).toBeInstanceOf(Promise)
 
-		expect(AtomIO.getState(typeSelector)).toBe(`object`)
+		expect(getState(typeSelector)).toBe(`object`)
 
 		const count = await countLoadable
 		expect(count).toBe(1)
-		expect(AtomIO.getState(typeSelector)).toBe(`number`)
+		expect(getState(typeSelector)).toBe(`number`)
 	})
 	test(`sync selector downstream from async selector`, async () => {
-		const countAtom = AtomIO.atom<number>({
+		const countAtom = atom<number>({
 			key: `count`,
 			default: 2,
 		})
-		const doubledSelector = AtomIO.selector<Loadable<number>>({
+		const doubledSelector = selector<Loadable<number>>({
 			key: `doubled`,
 			get: async ({ get }) => {
 				const count = get(countAtom)
@@ -255,7 +264,7 @@ describe(`downstream from async`, () => {
 				return double
 			},
 		})
-		const typeSelector = AtomIO.selector<string>({
+		const typeSelector = selector<string>({
 			key: `type`,
 			get: ({ get }) => {
 				const doubled = get(doubledSelector)
@@ -263,21 +272,21 @@ describe(`downstream from async`, () => {
 			},
 		})
 
-		const doubledLoadable = AtomIO.getState(doubledSelector)
+		const doubledLoadable = getState(doubledSelector)
 		expect(doubledLoadable).toBeInstanceOf(Promise)
-		expect(AtomIO.getState(typeSelector)).toBe(`object`)
+		expect(getState(typeSelector)).toBe(`object`)
 
 		const doubled = await doubledLoadable
 		expect(doubled).toBe(4)
 
-		expect(AtomIO.getState(typeSelector)).toBe(`number`)
+		expect(getState(typeSelector)).toBe(`number`)
 	})
 	test(`loadable index`, async () => {
 		let loadOrgId = (_: number) => {
 			console.warn(`loadOrgId not attached`)
 		}
 
-		const orgIdAtom = AtomIO.atom<Loadable<number>>({
+		const orgIdAtom = atom<Loadable<number>>({
 			key: `orgId`,
 			default: () => new Promise((resolve) => (loadOrgId = resolve)),
 		})
@@ -285,7 +294,7 @@ describe(`downstream from async`, () => {
 		const loadIndex: Record<number, () => void> = {}
 		const loadItems: Record<number, () => void> = {}
 
-		const indexAtoms = AtomIO.atomFamily<Loadable<number[]>, number>({
+		const indexAtoms = atomFamily<Loadable<number[]>, number>({
 			key: `index`,
 			default: (key) =>
 				new Promise((resolve) => {
@@ -294,7 +303,7 @@ describe(`downstream from async`, () => {
 					}
 				}),
 		})
-		const itemAtoms = AtomIO.atomFamily<Loadable<{ data: string }>, number>({
+		const itemAtoms = atomFamily<Loadable<{ data: string }>, number>({
 			key: `item`,
 			default: (key) =>
 				new Promise<{ data: string }>((resolve) => {
@@ -305,7 +314,7 @@ describe(`downstream from async`, () => {
 		})
 
 		let idx = 0
-		const allItemsSelector = AtomIO.selector<Loadable<{ data: string }[]>>({
+		const allItemsSelector = selector<Loadable<{ data: string }[]>>({
 			key: `allItems`,
 			get: async ({ get }) => {
 				const i = idx++
@@ -322,7 +331,7 @@ describe(`downstream from async`, () => {
 			},
 		})
 
-		AtomIO.subscribe(allItemsSelector, ({ newValue, oldValue }) => {
+		subscribe(allItemsSelector, ({ newValue, oldValue }) => {
 			// console.count(`❗❗❗ subscriber`)
 			// console.log(`❗❗❗ subscriber`, {
 			// 	newValue,
@@ -332,57 +341,57 @@ describe(`downstream from async`, () => {
 			Utils.stdout({ newValue, oldValue })
 		})
 
-		expect(AtomIO.getState(indexAtoms, 0)).toBeInstanceOf(Promise)
-		expect(AtomIO.getState(itemAtoms, 1)).toBeInstanceOf(Promise)
-		expect(AtomIO.getState(itemAtoms, 2)).toBeInstanceOf(Promise)
-		expect(AtomIO.getState(itemAtoms, 3)).toBeInstanceOf(Promise)
-		expect(AtomIO.getState(allItemsSelector)).toBeInstanceOf(Promise)
+		expect(getState(indexAtoms, 0)).toBeInstanceOf(Promise)
+		expect(getState(itemAtoms, 1)).toBeInstanceOf(Promise)
+		expect(getState(itemAtoms, 2)).toBeInstanceOf(Promise)
+		expect(getState(itemAtoms, 3)).toBeInstanceOf(Promise)
+		expect(getState(allItemsSelector)).toBeInstanceOf(Promise)
 		loadIndex[0]()
 		await new Promise((resolve) => setImmediate(resolve))
-		expect(AtomIO.getState(indexAtoms, 0)).toEqual([1, 2, 3])
-		expect(AtomIO.getState(itemAtoms, 1)).toBeInstanceOf(Promise)
-		expect(AtomIO.getState(itemAtoms, 2)).toBeInstanceOf(Promise)
-		expect(AtomIO.getState(itemAtoms, 3)).toBeInstanceOf(Promise)
-		expect(AtomIO.getState(allItemsSelector)).toBeInstanceOf(Promise)
+		expect(getState(indexAtoms, 0)).toEqual([1, 2, 3])
+		expect(getState(itemAtoms, 1)).toBeInstanceOf(Promise)
+		expect(getState(itemAtoms, 2)).toBeInstanceOf(Promise)
+		expect(getState(itemAtoms, 3)).toBeInstanceOf(Promise)
+		expect(getState(allItemsSelector)).toBeInstanceOf(Promise)
 		loadItems[1]()
 		await new Promise((resolve) => setImmediate(resolve))
-		expect(AtomIO.getState(indexAtoms, 0)).toEqual([1, 2, 3])
-		expect(AtomIO.getState(itemAtoms, 1)).toEqual({ data: `1`.repeat(3) })
-		expect(AtomIO.getState(itemAtoms, 2)).toBeInstanceOf(Promise)
-		expect(AtomIO.getState(itemAtoms, 3)).toBeInstanceOf(Promise)
-		expect(AtomIO.getState(allItemsSelector)).toBeInstanceOf(Promise)
+		expect(getState(indexAtoms, 0)).toEqual([1, 2, 3])
+		expect(getState(itemAtoms, 1)).toEqual({ data: `1`.repeat(3) })
+		expect(getState(itemAtoms, 2)).toBeInstanceOf(Promise)
+		expect(getState(itemAtoms, 3)).toBeInstanceOf(Promise)
+		expect(getState(allItemsSelector)).toBeInstanceOf(Promise)
 		loadItems[2]()
 		await new Promise((resolve) => setImmediate(resolve))
-		expect(AtomIO.getState(indexAtoms, 0)).toEqual([1, 2, 3])
-		expect(AtomIO.getState(itemAtoms, 1)).toEqual({ data: `1`.repeat(3) })
-		expect(AtomIO.getState(itemAtoms, 2)).toEqual({ data: `2`.repeat(3) })
-		expect(AtomIO.getState(itemAtoms, 3)).toBeInstanceOf(Promise)
-		expect(AtomIO.getState(allItemsSelector)).toBeInstanceOf(Promise)
+		expect(getState(indexAtoms, 0)).toEqual([1, 2, 3])
+		expect(getState(itemAtoms, 1)).toEqual({ data: `1`.repeat(3) })
+		expect(getState(itemAtoms, 2)).toEqual({ data: `2`.repeat(3) })
+		expect(getState(itemAtoms, 3)).toBeInstanceOf(Promise)
+		expect(getState(allItemsSelector)).toBeInstanceOf(Promise)
 		loadItems[3]()
 		await new Promise((resolve) => setImmediate(resolve))
-		expect(AtomIO.getState(indexAtoms, 0)).toEqual([1, 2, 3])
-		expect(AtomIO.getState(itemAtoms, 1)).toEqual({ data: `1`.repeat(3) })
-		expect(AtomIO.getState(itemAtoms, 2)).toEqual({ data: `2`.repeat(3) })
-		expect(AtomIO.getState(itemAtoms, 3)).toEqual({ data: `3`.repeat(3) })
-		expect(AtomIO.getState(allItemsSelector)).toBeInstanceOf(Promise)
+		expect(getState(indexAtoms, 0)).toEqual([1, 2, 3])
+		expect(getState(itemAtoms, 1)).toEqual({ data: `1`.repeat(3) })
+		expect(getState(itemAtoms, 2)).toEqual({ data: `2`.repeat(3) })
+		expect(getState(itemAtoms, 3)).toEqual({ data: `3`.repeat(3) })
+		expect(getState(allItemsSelector)).toBeInstanceOf(Promise)
 		loadOrgId(0)
 
-		AtomIO.resetState(indexAtoms, 0)
-		AtomIO.resetState(itemAtoms, 1)
-		expect(AtomIO.getState(indexAtoms, 0)).toBeInstanceOf(Promise)
-		expect(AtomIO.getState(itemAtoms, 1)).toBeInstanceOf(Promise)
-		expect(AtomIO.getState(itemAtoms, 2)).toEqual({ data: `2`.repeat(3) })
-		expect(AtomIO.getState(itemAtoms, 3)).toEqual({ data: `3`.repeat(3) })
-		expect(AtomIO.getState(allItemsSelector)).toBeInstanceOf(Promise)
+		resetState(indexAtoms, 0)
+		resetState(itemAtoms, 1)
+		expect(getState(indexAtoms, 0)).toBeInstanceOf(Promise)
+		expect(getState(itemAtoms, 1)).toBeInstanceOf(Promise)
+		expect(getState(itemAtoms, 2)).toEqual({ data: `2`.repeat(3) })
+		expect(getState(itemAtoms, 3)).toEqual({ data: `3`.repeat(3) })
+		expect(getState(allItemsSelector)).toBeInstanceOf(Promise)
 
 		loadIndex[0]()
 		loadItems[1]()
 		await new Promise((resolve) => setImmediate(resolve))
-		expect(AtomIO.getState(indexAtoms, 0)).toEqual([1, 2, 3])
-		expect(AtomIO.getState(itemAtoms, 1)).toEqual({ data: `1`.repeat(3) })
-		expect(AtomIO.getState(itemAtoms, 2)).toEqual({ data: `2`.repeat(3) })
-		expect(AtomIO.getState(itemAtoms, 3)).toEqual({ data: `3`.repeat(3) })
-		expect(AtomIO.getState(allItemsSelector)).toEqual([
+		expect(getState(indexAtoms, 0)).toEqual([1, 2, 3])
+		expect(getState(itemAtoms, 1)).toEqual({ data: `1`.repeat(3) })
+		expect(getState(itemAtoms, 2)).toEqual({ data: `2`.repeat(3) })
+		expect(getState(itemAtoms, 3)).toEqual({ data: `3`.repeat(3) })
+		expect(getState(allItemsSelector)).toEqual([
 			{ data: `1`.repeat(3) },
 			{ data: `2`.repeat(3) },
 			{ data: `3`.repeat(3) },

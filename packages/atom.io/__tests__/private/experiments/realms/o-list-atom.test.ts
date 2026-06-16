@@ -9,7 +9,7 @@ import {
 } from "atom.io/transceivers/o-list"
 import { vitest } from "vitest"
 
-import * as Utils from "../../__util__/index.ts"
+import * as Utils from "../../../__util__/index.ts"
 
 let logger: Logger
 const { restore } = takeSnapshot()

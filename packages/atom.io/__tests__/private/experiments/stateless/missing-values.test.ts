@@ -7,7 +7,7 @@ import { atom, getState, setState } from "atom.io"
 import * as Internal from "atom.io/internal"
 import { vitest } from "vitest"
 
-import * as Utils from "../../__util__/index.ts"
+import * as Utils from "../../../__util__/index.ts"
 
 const DEBUG_LOGS = false
 

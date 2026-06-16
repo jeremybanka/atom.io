@@ -13,7 +13,16 @@ import {
 	timeline,
 	undo,
 } from "atom.io"
-import * as AR from "atom.io/react"
+import {
+	StoreProvider,
+	useAtomicRef,
+	useI,
+	useJSON,
+	useLoadable,
+	useO,
+	useSingleEffect,
+	useTL,
+} from "atom.io/react"
 import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 import { UList } from "atom.io/transceivers/u-list"
 import { type FC, useEffect, useRef } from "react"
@@ -54,8 +63,8 @@ describe(`regular atom`, () => {
 			default: `A`,
 		})
 		const Letter: FC = () => {
-			const setLetter = AR.useI(letterAtom)
-			const letter = AR.useO(letterAtom)
+			const setLetter = useI(letterAtom)
+			const letter = useO(letterAtom)
 			setters.push(setLetter)
 			return (
 				<>
@@ -71,10 +80,10 @@ describe(`regular atom`, () => {
 			)
 		}
 		const utils = render(
-			<AR.StoreProvider>
+			<StoreProvider>
 				<Utils.Observer node={letterAtom} onChange={onChange} />
 				<Letter />
-			</AR.StoreProvider>,
+			</StoreProvider>,
 		)
 		return { ...utils }
 	}
@@ -97,8 +106,8 @@ describe(`mutable atom`, () => {
 			class: UList,
 		})
 		const Letter: FC = () => {
-			const setLetter = AR.useI(lettersAtom)
-			const letters = AR.useO(lettersAtom)
+			const setLetter = useI(lettersAtom)
+			const letters = useO(lettersAtom)
 			setters.push(setLetter)
 			const includesA = letters.has(`A`) ? `yes` : `no`
 			return (
@@ -115,10 +124,10 @@ describe(`mutable atom`, () => {
 			)
 		}
 		const utils = render(
-			<AR.StoreProvider>
+			<StoreProvider>
 				<Utils.Observer node={lettersAtom} onChange={onChange} />
 				<Letter />
-			</AR.StoreProvider>,
+			</StoreProvider>,
 		)
 		return { ...utils }
 	}
@@ -140,8 +149,8 @@ describe(`useJSON`, () => {
 			class: UList,
 		})
 		const Numbers: FC = () => {
-			const numbers = AR.useJSON(numbersAtom)
-			const setNumbers = AR.useI(numbersAtom)
+			const numbers = useJSON(numbersAtom)
+			const setNumbers = useI(numbersAtom)
 			return (
 				<>
 					<div data-testid="numbers">{JSON.stringify(numbers)}</div>
@@ -154,9 +163,9 @@ describe(`useJSON`, () => {
 			)
 		}
 		const { getByTestId } = render(
-			<AR.StoreProvider>
+			<StoreProvider>
 				<Numbers />
-			</AR.StoreProvider>,
+			</StoreProvider>,
 		)
 
 		expect(getByTestId(`numbers`).textContent).toBe(`[]`)
@@ -170,8 +179,8 @@ describe(`useJSON`, () => {
 			class: UList,
 		})
 		const Numbers: FC = () => {
-			const numbers = AR.useJSON(numberAtoms, `family`)
-			const setNumbers = AR.useI(numberAtoms, `family`)
+			const numbers = useJSON(numberAtoms, `family`)
+			const setNumbers = useI(numberAtoms, `family`)
 			return (
 				<>
 					<div data-testid="numbers">{JSON.stringify(numbers)}</div>
@@ -184,9 +193,9 @@ describe(`useJSON`, () => {
 			)
 		}
 		const { getByTestId } = render(
-			<AR.StoreProvider>
+			<StoreProvider>
 				<Numbers />
-			</AR.StoreProvider>,
+			</StoreProvider>,
 		)
 
 		expect(getByTestId(`numbers`).textContent).toBe(`[]`)
@@ -206,9 +215,9 @@ describe(`timeline`, () => {
 			scope: [letterAtom],
 		})
 		const Letter: FC = () => {
-			const setLetter = AR.useI(letterAtom)
-			const letter = AR.useO(letterAtom)
-			const letterTimeline = AR.useTL(letterTL)
+			const setLetter = useI(letterAtom)
+			const letter = useO(letterAtom)
+			const letterTimeline = useTL(letterTL)
 			setters.push(setLetter)
 			return (
 				<>
@@ -254,10 +263,10 @@ describe(`timeline`, () => {
 			)
 		}
 		const utils = render(
-			<AR.StoreProvider>
+			<StoreProvider>
 				<Utils.Observer node={letterAtom} onChange={onChange} />
 				<Letter />
-			</AR.StoreProvider>,
+			</StoreProvider>,
 		)
 		return { ...utils, letterTL }
 	}
@@ -327,7 +336,7 @@ describe(`useSingleEffect`, () => {
 		deps: unknown[]
 		effect: () => (() => void) | undefined | void
 	}) {
-		AR.useSingleEffect(effect, deps)
+		useSingleEffect(effect, deps)
 		return <div data-testid="mounted" />
 	}
 
@@ -429,12 +438,12 @@ describe(`timeline (dynamic)`, () => {
 			},
 		})
 		const Letter: FC = () => {
-			const setLetter = AR.useI(letterAtom)
-			const setNumber = AR.useI(numberAtom)
-			const setWhichTimeline = AR.useI(whichTimelineAtom)
-			const letter = AR.useO(letterAtom)
-			const number = AR.useO(numberAtom)
-			const tl = AR.useTL(AR.useO(timelineSelector))
+			const setLetter = useI(letterAtom)
+			const setNumber = useI(numberAtom)
+			const setWhichTimeline = useI(whichTimelineAtom)
+			const letter = useO(letterAtom)
+			const number = useO(numberAtom)
+			const tl = useTL(useO(timelineSelector))
 			return (
 				<>
 					<div data-testid={letter}>{letter}</div>
@@ -482,10 +491,10 @@ describe(`timeline (dynamic)`, () => {
 			)
 		}
 		const utils = render(
-			<AR.StoreProvider>
+			<StoreProvider>
 				<Utils.Observer node={letterAtom} onChange={onChange} />
 				<Letter />
-			</AR.StoreProvider>,
+			</StoreProvider>,
 		)
 		return { ...utils, letterTL }
 	}
@@ -536,7 +545,7 @@ describe(`useLoadable`, () => {
 		})
 
 		const Letter: FC = () => {
-			const letter = AR.useLoadable(letterAtom)
+			const letter = useLoadable(letterAtom)
 			if (letter === `LOADING`) {
 				return (
 					<div data-testid="loading">
@@ -551,9 +560,9 @@ describe(`useLoadable`, () => {
 			)
 		}
 		const utils = render(
-			<AR.StoreProvider>
+			<StoreProvider>
 				<Letter />
-			</AR.StoreProvider>,
+			</StoreProvider>,
 		)
 		assert(utils.getByTestId(`loading`))
 		await act(async () => {
@@ -579,7 +588,7 @@ describe(`useLoadable`, () => {
 		})
 
 		const Letter: FC = () => {
-			const letter = AR.useLoadable(letterAtom, `Z`)
+			const letter = useLoadable(letterAtom, `Z`)
 			return (
 				<div data-testid={letter.loading ? `loading` : `not-loading`}>
 					<div data-testid={letter.value}>{letter.value}</div>
@@ -587,9 +596,9 @@ describe(`useLoadable`, () => {
 			)
 		}
 		const utils = render(
-			<AR.StoreProvider>
+			<StoreProvider>
 				<Letter />
-			</AR.StoreProvider>,
+			</StoreProvider>,
 		)
 		assert(utils.getByTestId(`loading`))
 		assert(utils.getByTestId(`Z`))
@@ -615,7 +624,7 @@ describe(`useLoadable`, () => {
 		})
 
 		const Letter: FC = () => {
-			const ids = AR.useLoadable(indexAtoms, 0)
+			const ids = useLoadable(indexAtoms, 0)
 			if (ids === `LOADING`) {
 				return (
 					<div data-testid="loading">
@@ -634,9 +643,9 @@ describe(`useLoadable`, () => {
 			)
 		}
 		const utils = render(
-			<AR.StoreProvider>
+			<StoreProvider>
 				<Letter />
-			</AR.StoreProvider>,
+			</StoreProvider>,
 		)
 		assert(utils.getByTestId(`loading`))
 		await act(async () => {
@@ -662,7 +671,7 @@ describe(`useLoadable`, () => {
 		})
 
 		const Letter: FC = () => {
-			const ids = AR.useLoadable(indexAtoms, 0, [4, 5, 6])
+			const ids = useLoadable(indexAtoms, 0, [4, 5, 6])
 			return (
 				<div data-testid={ids.loading ? `loading` : `not-loading`}>
 					{ids.value.map((id) => (
@@ -674,9 +683,9 @@ describe(`useLoadable`, () => {
 			)
 		}
 		const utils = render(
-			<AR.StoreProvider>
+			<StoreProvider>
 				<Letter />
-			</AR.StoreProvider>,
+			</StoreProvider>,
 		)
 		assert(utils.getByTestId(`loading`))
 		await act(async () => {
@@ -717,7 +726,7 @@ describe(`useLoadable`, () => {
 		})
 
 		const Letter: FC = () => {
-			const ids = AR.useLoadable(indexAtoms, 0)
+			const ids = useLoadable(indexAtoms, 0)
 			if (ids === `LOADING`) {
 				return (
 					<div data-testid="loading">
@@ -745,9 +754,9 @@ describe(`useLoadable`, () => {
 			)
 		}
 		const utils = render(
-			<AR.StoreProvider>
+			<StoreProvider>
 				<Letter />
-			</AR.StoreProvider>,
+			</StoreProvider>,
 		)
 		assert(utils.getByTestId(`loading`))
 		await act(async () => {
@@ -822,7 +831,7 @@ describe(`useLoadable`, () => {
 		})
 
 		const Letter: FC = () => {
-			const ids = AR.useLoadable(indexAtoms, 0, [4, 5, 6])
+			const ids = useLoadable(indexAtoms, 0, [4, 5, 6])
 			return (
 				<div data-testid={ids.loading ? `loading` : `not-loading`}>
 					{ids.error ? <div data-testid="error">{ids.error.message}</div> : null}
@@ -835,9 +844,9 @@ describe(`useLoadable`, () => {
 			)
 		}
 		const utils = render(
-			<AR.StoreProvider>
+			<StoreProvider>
 				<Letter />
-			</AR.StoreProvider>,
+			</StoreProvider>,
 		)
 		assert(utils.getByTestId(`loading`))
 		await act(async () => {
@@ -918,7 +927,7 @@ describe(`useLoadable`, () => {
 		})
 
 		const Letter: FC = () => {
-			const letter = AR.useLoadable(letterAtom)
+			const letter = useLoadable(letterAtom)
 
 			useEffect(() => {
 				uniqueRefs.push(letter)
@@ -943,9 +952,9 @@ describe(`useLoadable`, () => {
 		}
 
 		const utils = render(
-			<AR.StoreProvider>
+			<StoreProvider>
 				<Letter />
-			</AR.StoreProvider>,
+			</StoreProvider>,
 		)
 		assert(utils.getByTestId(`loading`))
 		expect(uniqueRefs).toHaveLength(1)
@@ -993,7 +1002,7 @@ describe(`useAtomicRef`, () => {
 			default: null,
 		})
 		function MyButton() {
-			const ref = AR.useAtomicRef(buttonAtom, useRef)
+			const ref = useAtomicRef(buttonAtom, useRef)
 			return (
 				<button
 					type="button"
@@ -1018,7 +1027,7 @@ describe(`useAtomicRef`, () => {
 			default: null,
 		})
 		function MyButton() {
-			const ref = AR.useAtomicRef(buttonAtoms, `myCoolButton`, useRef)
+			const ref = useAtomicRef(buttonAtoms, `myCoolButton`, useRef)
 			return (
 				<button
 					type="button"

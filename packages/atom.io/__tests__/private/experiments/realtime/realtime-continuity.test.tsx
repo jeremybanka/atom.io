@@ -9,7 +9,7 @@ import * as RTTest from "atom.io/realtime-testing"
 import { UList } from "atom.io/transceivers/u-list"
 import * as React from "react"
 
-import * as Utils from "../../__util__/index.ts"
+import * as Utils from "../../../__util__/index.ts"
 
 console.log = () => undefined
 console.info = () => undefined

@@ -1,5 +1,6 @@
 import type { Logger } from "atom.io"
-import { Anarchy, getState, mutableAtom, setState } from "atom.io"
+import { getState, mutableAtom, setState } from "atom.io"
+import { Anarchy } from "atom.io/experiments/realm"
 import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 import {
 	filterOutInPlace,

@@ -1,12 +1,12 @@
 import type { Logger } from "atom.io"
 import {
-	Anarchy,
 	getState,
 	mutableAtom,
 	runTransaction,
 	setState,
 	transaction,
 } from "atom.io"
+import { Anarchy } from "atom.io/experiments/realm"
 import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 import {
 	UList,

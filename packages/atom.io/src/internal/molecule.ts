@@ -1,18 +1,18 @@
 import {
-	type Above,
-	type CompoundFrom,
-	type CompoundTypedKey,
-	decomposeCompound,
-	type Hierarchy,
 	type MoleculeCreationEvent,
 	type MoleculeDisposalEvent,
 	type MoleculeTransferEvent,
-	simpleCompound,
-	type SingularTypedKey,
 	type TransactionToken,
-	type ValidKey,
-	type Vassal,
 } from "atom.io"
+import type {
+	Above,
+	CompoundFrom,
+	CompoundTypedKey,
+	Hierarchy,
+	SingularTypedKey,
+	ValidKey,
+	Vassal,
+} from "atom.io/experiments/realm"
 import type { Canonical } from "atom.io/foundations/canonical"
 import type { stringified } from "atom.io/foundations/json"
 import { parseJson, stringifyJson } from "atom.io/foundations/json"
@@ -31,6 +31,28 @@ export type Molecule<K extends Canonical> = {
 	readonly stringKey: stringified<K>
 	readonly dependsOn: `all` | `any`
 	readonly subject: Subject<void>
+}
+
+export function simpleCompound(a: string, b: string): string {
+	return [a, b].sort().join(`\u001F`)
+}
+
+export function decomposeCompound(
+	compound: Canonical,
+): [type: string, a: string, b: string] | null {
+	if ((typeof compound === `string`) === false) {
+		return null
+	}
+	const [typeTag, components] = compound.split(`==`)
+	if (!components) {
+		return null
+	}
+	const type = typeTag.slice(4)
+	const [a, b] = components.split(`++`)
+	if (type && a && b) {
+		return [type, a, b]
+	}
+	return null
 }
 
 export function makeRootMoleculeInStore<S extends string>(

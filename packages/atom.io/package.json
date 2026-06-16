@@ -150,6 +150,10 @@
 			"import": "./dist/eslint-plugin/index.js",
 			"types": "./dist/eslint-plugin/index.d.ts"
 		},
+		"./experiments/realm": {
+			"import": "./dist/experiments/realm/index.js",
+			"types": "./dist/experiments/realm/index.d.ts"
+		},
 		"./foundations/canonical": {
 			"import": "./dist/foundations/canonical/index.js",
 			"types": "./dist/foundations/canonical/index.d.ts"

@@ -1,3 +1,4 @@
+import type { TransactionToken } from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
 import type { Each, RootStore } from "atom.io/internal"
 import {
@@ -12,14 +13,10 @@ import {
 	makeRootMoleculeInStore,
 } from "atom.io/internal"
 
-import type { TransactionToken } from "./tokens.ts"
+export { decomposeCompound, simpleCompound } from "atom.io/internal"
 
 export const $validatedKey: unique symbol = Symbol.for(`claim`)
 export type ValidKey<K extends Canonical> = K & { [$validatedKey]?: true }
-
-export function simpleCompound(a: string, b: string): string {
-	return [a, b].sort().join(`\u001F`)
-}
 
 export class Realm<H extends Hierarchy> {
 	public store: RootStore
@@ -181,24 +178,6 @@ export class Anarchy {
 			reagentB,
 		)
 	}
-}
-
-export function decomposeCompound(
-	compound: Canonical,
-): [type: string, a: string, b: string] | null {
-	if ((typeof compound === `string`) === false) {
-		return null
-	}
-	const [typeTag, components] = compound.split(`==`)
-	if (!components) {
-		return null
-	}
-	const type = typeTag.slice(4)
-	const [a, b] = components.split(`++`)
-	if (type && a && b) {
-		return [type, a, b]
-	}
-	return null
 }
 
 export type T$ = `T$`

@@ -1,16 +1,14 @@
-import type { Above, Below, Hierarchy, Logger, Mutuals, Vassal } from "atom.io"
+import type { Logger } from "atom.io"
 import {
-	Anarchy,
 	atom,
 	atomFamily,
-	decomposeCompound,
 	disposeState,
 	editRelations,
 	findRelations,
+	findState,
 	getState,
 	join,
 	mutableAtomFamily,
-	Realm,
 	redo,
 	runTransaction,
 	selectorFamily,
@@ -19,7 +17,18 @@ import {
 	transaction,
 	undo,
 } from "atom.io"
+import {
+	type Above,
+	Anarchy,
+	type Below,
+	decomposeCompound,
+	type Hierarchy,
+	type Mutuals,
+	Realm,
+	type Vassal,
+} from "atom.io/experiments/realm"
 import { clearStore, IMPLICIT } from "atom.io/internal"
+import { stateExists } from "atom.io/testing"
 import { UList } from "atom.io/transceivers/u-list"
 
 import * as Utils from "../../__util__/index.ts"
@@ -38,7 +47,7 @@ beforeEach(() => {
 	vitest.spyOn(logger, `warn`)
 	vitest.spyOn(logger, `info`)
 })
-describe(`allocate + claim + deallocate`, () => {
+describe(`game example: allocate + claim + deallocate`, () => {
 	type GameKey = `game::${string}`
 	type UserKey = `user::${string}`
 	type PlayerKey = `T$--player==${GameKey}++${UserKey}`
@@ -203,6 +212,7 @@ describe(`allocate + claim + deallocate`, () => {
 		expect(logger.error).toHaveBeenCalledTimes(7)
 	})
 })
+
 describe(`errors`, () => {
 	test(`allocating under a non-existent claim`, () => {
 		const anarchy = new Anarchy()
@@ -342,7 +352,41 @@ describe(`errors`, () => {
 		})
 	})
 })
+
 describe(`integrations`, () => {
+	describe(`selectors`, () => {
+		it(`disconnects selectors that have been allocated to a molecule`, () => {
+			const countAtoms = atomFamily<number, string>({
+				key: `count`,
+				default: 0,
+			})
+			const tripledSelectors = selectorFamily<number, string>({
+				key: `tripled`,
+				get:
+					(id) =>
+					({ find, get }) =>
+						get(find(countAtoms, id)) * 3,
+			})
+			const store = globalThis.ATOM_IO_IMPLICIT_STORE
+			if (store === undefined) {
+				throw new Error(`Expected the implicit store to exist.`)
+			}
+			store.config.lifespan = `immortal`
+			const anarchy = new Anarchy()
+			anarchy.allocate(`root`, `hi`)
+			setState(countAtoms, `hi`, 1)
+			const tripledState = findState(tripledSelectors, `hi`)
+			const triple = getState(tripledState)
+			expect(triple).toBe(3)
+			disposeState(tripledState)
+
+			expect(stateExists(tripledState)).toBe(false)
+
+			expect(logger.warn).not.toHaveBeenCalled()
+			expect(logger.error).not.toHaveBeenCalled()
+		})
+	})
+
 	test(`timeline support`, () => {
 		const anarchy = new Anarchy()
 		anarchy.allocate(`root`, `owner`)

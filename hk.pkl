@@ -36,8 +36,8 @@ local dprintGlobs = List(
 local linters = new Mapping<String, Step> {
     ["dprint"] {
         glob = dprintGlobs
-        check = "pnpm exec dprint check --allow-no-files {{files}}"
-        fix = "pnpm exec dprint fmt --allow-no-files {{files}}"
+        check = "./node_modules/dprint/dprint check --allow-no-files {{files}}"
+        fix = "./node_modules/dprint/dprint fmt --allow-no-files {{files}}"
     }
 }
 

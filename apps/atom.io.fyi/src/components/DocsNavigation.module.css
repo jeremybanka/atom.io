@@ -2,22 +2,25 @@ docs-navigation.class {
 	> site-directory,
 	> on-this-page {
 		/* border: 1px solid red; */
-
-		--top-offset: 5.5em;
+		/* pointer-events: none; */
 		position: fixed;
 		padding-top: 5em;
 		padding-bottom: 5em;
-		top: 0px;
+		top: 2px;
 		z-index: 110;
 		width: calc((100svw - 30px) / 2);
 		max-height: 100svh;
 		overflow-y: scroll;
+		border-radius: 24px;
 
 		@media screen and (min-width: 960px) {
 			width: 240px;
 		}
 
 		nav {
+			/* border: 1px solid blue; */
+			position: relative;
+			pointer-events: all;
 			display: flex;
 			flex-flow: column;
 			transition-property: all;
@@ -67,7 +70,7 @@ docs-navigation.class {
 		}
 
 		nav {
-			margin-top: 18px;
+			margin-top: 3em;
 
 			&[data-user-has-toggled="false"] {
 				display: none;

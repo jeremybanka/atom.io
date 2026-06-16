@@ -8,6 +8,7 @@ code-block.class {
 	border: #0003 solid 1px;
 	border-radius: 4px;
 	width: 100%;
+	overflow-x: scroll;
 
 	back-fill {
 		position: absolute;

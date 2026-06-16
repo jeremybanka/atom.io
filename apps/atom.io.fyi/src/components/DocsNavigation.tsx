@@ -136,19 +136,23 @@ function OnThisPage(): VNode {
 	}
 
 	return (
-		<on-this-page ref={elementRef}>
-			<DynamicSpotlight
-				elementId="on-this-page"
-				padding={0}
-				updateSignals={[userHasToggled, pathname, headings]}
-				parentRef={elementRef}
-			/>
-			<DynamicSpotlight
-				elementId={currentId ? currentId + `-link` : null}
-				updateSignals={[userHasToggled, pathname]}
-				parentRef={elementRef}
-			/>
-			<nav id="on-this-page" data-user-has-toggled={userHasToggled}>
+		<on-this-page>
+			<nav
+				id="on-this-page"
+				data-user-has-toggled={userHasToggled}
+				ref={elementRef}
+			>
+				<DynamicSpotlight
+					elementId="on-this-page"
+					padding={0}
+					updateSignals={[userHasToggled, pathname, headings]}
+					parentRef={elementRef}
+				/>
+				<DynamicSpotlight
+					elementId={currentId ? currentId + `-link` : null}
+					updateSignals={[userHasToggled, pathname]}
+					parentRef={elementRef}
+				/>
 				<section>
 					<header>On this page</header>
 					<main>{renderHeadings(headings, 2)}</main>
@@ -168,19 +172,23 @@ function SiteDirectory(): VNode {
 			`-`,
 		) + `-link`
 	return (
-		<site-directory ref={elementRef}>
-			<DynamicSpotlight
-				elementId="site-directory"
-				padding={0}
-				updateSignals={[userHasToggled, pathname]}
-				parentRef={elementRef}
-			/>
-			<DynamicSpotlight
-				elementId={pathnameId}
-				updateSignals={[userHasToggled, pathname]}
-				parentRef={elementRef}
-			/>
-			<nav id="site-directory" data-user-has-toggled={userHasToggled}>
+		<site-directory>
+			<nav
+				id="site-directory"
+				data-user-has-toggled={userHasToggled}
+				ref={elementRef}
+			>
+				<DynamicSpotlight
+					elementId="site-directory"
+					padding={0}
+					updateSignals={[userHasToggled, pathname]}
+					parentRef={elementRef}
+				/>
+				<DynamicSpotlight
+					elementId={pathnameId}
+					updateSignals={[userHasToggled, pathname]}
+					parentRef={elementRef}
+				/>
 				<section>
 					<header>Guide</header>
 					<main>

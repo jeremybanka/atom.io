@@ -52,8 +52,10 @@ export function DynamicSpotlight({
 			element.addEventListener(``, updatePosition)
 			updatePosition()
 			addEventListener(`resize`, updatePosition)
+			addEventListener(`scroll`, updatePosition)
 			return () => {
 				removeEventListener(`resize`, updatePosition)
+				removeEventListener(`scroll`, updatePosition)
 				element.removeEventListener(`resize`, updatePosition)
 			}
 		}

@@ -2,16 +2,17 @@
 
 import type { Loadable } from "atom.io"
 import * as AtomIO from "atom.io"
-import * as Internal from "atom.io/internal"
+import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 
-import * as Utils from "../../__util__/index.ts"
+import * as Utils from "../__util__/index.ts"
 
-const LOG_LEVELS = [null, `error`, `warn`, `info`] as const
-const CHOOSE = 0
+const { restore } = takeSnapshot()
 
 beforeEach(() => {
-	Internal.clearStore(Internal.IMPLICIT.STORE)
-	Internal.IMPLICIT.STORE.loggers[0].logLevel = LOG_LEVELS[CHOOSE]
+	restore()
+	setTestLogLevel(null)
+	vitest.spyOn(Utils, `stdout`).mockReset()
+	vitest.spyOn(Utils, `stdout0`).mockReset()
 	vitest.spyOn(Utils, `stdout`)
 })
 

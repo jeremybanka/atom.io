@@ -6,6 +6,13 @@ app-shell.class {
 	min-height: 100svh;
 	height: auto;
 
+	code {
+		font-family: Theia, monospace !important;
+		font-weight: 500;
+		font-size: 15px;
+		color: var(--fg-soft-1);
+		padding: 1px 2px;
+	}
 	a, a > code {
 		--fg-color: var(--hyperlink-color);
 		color: var(--fg-color);

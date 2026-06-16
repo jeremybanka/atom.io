@@ -1,8 +1,6 @@
 docs-navigation.class {
 	> site-directory,
 	> on-this-page {
-		/* border: 1px solid red; */
-		/* pointer-events: none; */
 		position: fixed;
 		padding-top: 5em;
 		padding-bottom: 5em;
@@ -18,7 +16,6 @@ docs-navigation.class {
 		}
 
 		nav {
-			/* border: 1px solid blue; */
 			position: relative;
 			pointer-events: all;
 			display: flex;
@@ -66,7 +63,6 @@ docs-navigation.class {
 			right: auto;
 			left: 1em;
 			z-index: 10;
-			/* --transform-value: none; */
 		}
 
 		nav {

@@ -1,41 +1,8 @@
 amends "package://github.com/jdx/hk/releases/download/v1.48.0/hk@1.48.0#/Config.pkl"
 
-local dprintGlobs = List(
-    "*.astro",
-    "*.cjs",
-    "*.css",
-    "*.js",
-    "*.json",
-    "*.jsonc",
-    "*.jsx",
-    "*.md",
-    "*.mdx",
-    "*.mjs",
-    "*.toml",
-    "*.ts",
-    "*.tsx",
-    "*.yaml",
-    "*.yml",
-    "**/*.astro",
-    "**/*.cjs",
-    "**/*.css",
-    "**/*.js",
-    "**/*.json",
-    "**/*.jsonc",
-    "**/*.jsx",
-    "**/*.md",
-    "**/*.mdx",
-    "**/*.mjs",
-    "**/*.toml",
-    "**/*.ts",
-    "**/*.tsx",
-    "**/*.yaml",
-    "**/*.yml",
-)
-
 local linters = new Mapping<String, Step> {
     ["dprint"] {
-        glob = dprintGlobs
+        glob = "**/*"
         check = "./node_modules/dprint/dprint check --allow-no-files {{files}}"
         fix = "./node_modules/dprint/dprint fmt --allow-no-files {{files}}"
     }

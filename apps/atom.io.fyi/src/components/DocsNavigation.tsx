@@ -136,12 +136,8 @@ function OnThisPage(): VNode {
 	}
 
 	return (
-		<on-this-page>
-			<nav
-				id="on-this-page"
-				data-user-has-toggled={userHasToggled}
-				ref={elementRef}
-			>
+		<on-this-page data-user-has-toggled={userHasToggled}>
+			<nav id="on-this-page" ref={elementRef}>
 				<DynamicSpotlight
 					elementId="on-this-page"
 					padding={0}
@@ -172,12 +168,8 @@ function SiteDirectory(): VNode {
 			`-`,
 		) + `-link`
 	return (
-		<site-directory>
-			<nav
-				id="site-directory"
-				data-user-has-toggled={userHasToggled}
-				ref={elementRef}
-			>
+		<site-directory data-user-has-toggled={userHasToggled}>
+			<nav id="site-directory" ref={elementRef}>
 				<DynamicSpotlight
 					elementId="site-directory"
 					padding={0}

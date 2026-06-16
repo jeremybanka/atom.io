@@ -15,7 +15,6 @@ body {
 }
 :root {
 	/* CORE BEHAVIOR */
-	background-color: var(--bg-shade-2);
 	scroll-behavior: smooth;
 	min-height: 100svh;
 	scroll-padding-top: 4.5em;

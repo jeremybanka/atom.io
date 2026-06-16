@@ -65,9 +65,9 @@ docs-layout.class {
 			font-size: 24px;
 			line-height: 30px;
 		}
-		h1,
-		h2,
-		h3 {
+		> h1,
+		> h2,
+		> h3 {
 			padding: 0 15px;
 			overflow-x: scroll;
 			overflow-y: hidden;

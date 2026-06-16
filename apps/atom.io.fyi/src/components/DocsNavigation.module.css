@@ -60,26 +60,20 @@ docs-navigation.class {
 		min-width: 240px;
 
 		@media screen and (min-width: 960px) {
-			right: auto;
 			left: 1em;
 			z-index: 10;
 		}
 
-		nav {
-			margin-top: 3em;
-
+		@media screen and (max-width: 960px) {
+			nav {
+				margin-top: 3em;
+			}
 			&[data-user-has-toggled="false"] {
 				display: none;
-
-				@media screen and (min-width: 960px) {
-					margin-top: 0;
-					display: flex;
-				}
 			}
 		}
 		dynamic-spotlight:first-of-type {
 			display: block;
-
 			@media screen and (min-width: 960px) {
 				display: none;
 			}
@@ -99,11 +93,9 @@ docs-navigation.class {
 			z-index: 10;
 		}
 
-		nav[data-user-has-toggled="false"] {
-			display: none;
-
-			@media screen and (min-width: 1280px) {
-				display: flex;
+		@media screen and (max-width: 1280px) {
+			&[data-user-has-toggled="false"] {
+				display: none;
 			}
 		}
 	}
@@ -125,7 +117,6 @@ docs-navigation.class {
 	}
 	dynamic-spotlight:first-of-type {
 		display: block;
-
 		@media screen and (min-width: 1280px) {
 			display: none;
 		}

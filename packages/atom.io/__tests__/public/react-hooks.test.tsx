@@ -5,6 +5,7 @@ import {
 	atomFamily,
 	getState,
 	mutableAtom,
+	mutableAtomFamily,
 	redo,
 	resetState,
 	selector,
@@ -27,6 +28,23 @@ beforeEach(() => {
 	vitest.spyOn(Utils, `stdout`)
 })
 const onChange = [() => undefined, console.log][0]
+
+type TestGlobal = typeof globalThis & {
+	env?: { NODE_ENV?: `development` | `production` | string }
+}
+const testGlobal = globalThis as TestGlobal
+
+const setNodeEnv = (value: `development` | `production`): void => {
+	testGlobal.env = { ...testGlobal.env, NODE_ENV: value }
+}
+
+const restoreNodeEnv = (previousEnv: TestGlobal[`env`]): void => {
+	if (previousEnv === undefined) {
+		delete testGlobal.env
+	} else {
+		testGlobal.env = previousEnv
+	}
+}
 
 describe(`regular atom`, () => {
 	const setters: unknown[] = []
@@ -113,6 +131,67 @@ describe(`mutable atom`, () => {
 		assert(option)
 		expect(setters.length).toBe(2)
 		expect(setters[0]).toBe(setters[1])
+	})
+})
+describe(`useJSON`, () => {
+	it(`reads the json value of a mutable atom`, () => {
+		const numbersAtom = mutableAtom<UList<number>>({
+			key: `numbers`,
+			class: UList,
+		})
+		const Numbers: FC = () => {
+			const numbers = AR.useJSON(numbersAtom)
+			const setNumbers = AR.useI(numbersAtom)
+			return (
+				<>
+					<div data-testid="numbers">{JSON.stringify(numbers)}</div>
+					<button
+						type="button"
+						data-testid="addNumber"
+						onClick={() => setNumbers((current) => current.add(1).add(2))}
+					/>
+				</>
+			)
+		}
+		const { getByTestId } = render(
+			<AR.StoreProvider>
+				<Numbers />
+			</AR.StoreProvider>,
+		)
+
+		expect(getByTestId(`numbers`).textContent).toBe(`[]`)
+		fireEvent.click(getByTestId(`addNumber`))
+		expect(getByTestId(`numbers`).textContent).toBe(`[1,2]`)
+	})
+
+	it(`reads the json value of a mutable atom family member`, () => {
+		const numberAtoms = mutableAtomFamily<UList<number>, string>({
+			key: `number`,
+			class: UList,
+		})
+		const Numbers: FC = () => {
+			const numbers = AR.useJSON(numberAtoms, `family`)
+			const setNumbers = AR.useI(numberAtoms, `family`)
+			return (
+				<>
+					<div data-testid="numbers">{JSON.stringify(numbers)}</div>
+					<button
+						type="button"
+						data-testid="addNumber"
+						onClick={() => setNumbers((current) => current.add(3).add(4))}
+					/>
+				</>
+			)
+		}
+		const { getByTestId } = render(
+			<AR.StoreProvider>
+				<Numbers />
+			</AR.StoreProvider>,
+		)
+
+		expect(getByTestId(`numbers`).textContent).toBe(`[]`)
+		fireEvent.click(getByTestId(`addNumber`))
+		expect(getByTestId(`numbers`).textContent).toBe(`[3,4]`)
 	})
 })
 describe(`timeline`, () => {
@@ -237,6 +316,87 @@ describe(`timeline`, () => {
 		fireEvent.click(changeStateButtonB)
 		expect(timelineAt.textContent).toEqual(`1`)
 		expect(timelineLength.textContent).toEqual(`1`)
+	})
+})
+
+describe(`useSingleEffect`, () => {
+	function SingleEffectProbe({
+		deps,
+		effect,
+	}: {
+		deps: unknown[]
+		effect: () => (() => void) | undefined | void
+	}) {
+		AR.useSingleEffect(effect, deps)
+		return <div data-testid="mounted" />
+	}
+
+	it(`runs each dependency change once in development StrictMode`, () => {
+		const previousEnv = testGlobal.env
+		try {
+			setNodeEnv(`development`)
+			const effect = vitest.fn(() => undefined)
+
+			const { rerender } = render(
+				<SingleEffectProbe effect={effect} deps={[`a`]} />,
+				{ reactStrictMode: true },
+			)
+
+			expect(effect).toHaveBeenCalledTimes(1)
+			rerender(<SingleEffectProbe effect={effect} deps={[`a`]} />)
+			expect(effect).toHaveBeenCalledTimes(1)
+			rerender(<SingleEffectProbe effect={effect} deps={[`b`]} />)
+			expect(effect).toHaveBeenCalledTimes(2)
+		} finally {
+			restoreNodeEnv(previousEnv)
+		}
+	})
+
+	it(`cleans up once per dependency change in development StrictMode`, () => {
+		const previousEnv = testGlobal.env
+		try {
+			setNodeEnv(`development`)
+			const cleanupFn = vitest.fn()
+			const effect = vitest.fn(() => cleanupFn)
+
+			const { rerender } = render(
+				<SingleEffectProbe effect={effect} deps={[`a`]} />,
+				{ reactStrictMode: true },
+			)
+
+			expect(effect).toHaveBeenCalledTimes(1)
+			expect(cleanupFn).not.toHaveBeenCalled()
+			rerender(<SingleEffectProbe effect={effect} deps={[`a`]} />)
+			expect(effect).toHaveBeenCalledTimes(1)
+			expect(cleanupFn).not.toHaveBeenCalled()
+			rerender(<SingleEffectProbe effect={effect} deps={[`b`]} />)
+			expect(cleanupFn).toHaveBeenCalledTimes(1)
+			expect(effect).toHaveBeenCalledTimes(2)
+		} finally {
+			restoreNodeEnv(previousEnv)
+		}
+	})
+
+	it(`uses regular effect behavior outside development`, () => {
+		const previousEnv = testGlobal.env
+		try {
+			setNodeEnv(`production`)
+			const cleanupFn = vitest.fn()
+			const effect = vitest.fn(() => cleanupFn)
+
+			const { rerender, unmount } = render(
+				<SingleEffectProbe effect={effect} deps={[`a`]} />,
+			)
+
+			expect(effect).toHaveBeenCalledTimes(1)
+			rerender(<SingleEffectProbe effect={effect} deps={[`b`]} />)
+			expect(cleanupFn).toHaveBeenCalledTimes(1)
+			expect(effect).toHaveBeenCalledTimes(2)
+			unmount()
+			expect(cleanupFn).toHaveBeenCalledTimes(2)
+		} finally {
+			restoreNodeEnv(previousEnv)
+		}
 	})
 })
 describe(`timeline (dynamic)`, () => {

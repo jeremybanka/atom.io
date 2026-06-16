@@ -1,0 +1,57 @@
+amends "package://github.com/jdx/hk/releases/download/v1.48.0/hk@1.48.0#/Config.pkl"
+
+local dprintGlobs = List(
+    "*.astro",
+    "*.cjs",
+    "*.css",
+    "*.js",
+    "*.json",
+    "*.jsonc",
+    "*.jsx",
+    "*.md",
+    "*.mdx",
+    "*.mjs",
+    "*.toml",
+    "*.ts",
+    "*.tsx",
+    "*.yaml",
+    "*.yml",
+    "**/*.astro",
+    "**/*.cjs",
+    "**/*.css",
+    "**/*.js",
+    "**/*.json",
+    "**/*.jsonc",
+    "**/*.jsx",
+    "**/*.md",
+    "**/*.mdx",
+    "**/*.mjs",
+    "**/*.toml",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.yaml",
+    "**/*.yml",
+)
+
+local linters = new Mapping<String, Step> {
+    ["dprint"] {
+        glob = dprintGlobs
+        check = "pnpm exec dprint check --allow-no-files {{files}}"
+        fix = "pnpm exec dprint fmt --allow-no-files {{files}}"
+    }
+}
+
+hooks {
+    ["pre-commit"] {
+        fix = true
+        stash = "git"
+        steps = linters
+    }
+    ["fix"] {
+        fix = true
+        steps = linters
+    }
+    ["check"] {
+        steps = linters
+    }
+}

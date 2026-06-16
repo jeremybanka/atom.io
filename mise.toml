@@ -1,7 +1,11 @@
 [tools]
 bun = "1.3.14"
+hk = "1.48.0"
 ni = "30.1.0"
 node = "26.3.0"
 pnpm = "11.6.0"
 ripgrep = "15.1.0"
 postgres = "18.4"
+
+[env]
+HK_MISE = "1"

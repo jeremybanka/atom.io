@@ -5,11 +5,12 @@ code-block.class {
 	position: relative;
 	display: flex;
 	flex-flow: column;
-	border: #0003 solid 1px;
+	border: 1px solid #5555;
 	border-radius: 4px;
 	width: 100%;
+	overflow-x: scroll;
 
-	back-fill {
+	> back-fill {
 		position: absolute;
 		top: 0;
 		bottom: 0;

@@ -11,52 +11,54 @@ preserving the relationship between each key and its value type.
 
 ## package contents
 
-<table>
-  <tbody>
-    <tr>
-      <td>
-        <code>Entries</code>
-      </td>
-      <td>Tuples of <code>[key, value]</code> pairs.</td>
-    </tr>
-    <tr>
-      <td>
-        <code>KeyOfEntries</code>
-      </td>
-      <td>The union of keys in an entries array.</td>
-    </tr>
-    <tr>
-      <td>
-        <code>ValueOfEntry</code>
-      </td>
-      <td>The value type associated with a particular entry key.</td>
-    </tr>
-    <tr>
-      <td>
-        <code>FromEntries</code>
-      </td>
-      <td>The object type represented by an entries array.</td>
-    </tr>
-    <tr>
-      <td>
-        <code>fromEntries</code>
-      </td>
-      <td>Typed form of <code>Object.fromEntries</code>.</td>
-    </tr>
-    <tr>
-      <td>
-        <code>ToEntries</code>
-      </td>
-      <td>The entries type represented by an object.</td>
-    </tr>
-    <tr>
-      <td>
-        <code>toEntries</code>
-      </td>
-      <td>Typed form of <code>Object.entries</code>.</td>
-    </tr>
-  </tbody>
-</table>
+<table-wrapper>
+  <table>
+    <tbody>
+      <tr>
+        <td>
+          <code>Entries</code>
+        </td>
+        <td>Tuples of <code>[key, value]</code> pairs.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>KeyOfEntries</code>
+        </td>
+        <td>The union of keys in an entries array.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>ValueOfEntry</code>
+        </td>
+        <td>The value type associated with a particular entry key.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>FromEntries</code>
+        </td>
+        <td>The object type represented by an entries array.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>fromEntries</code>
+        </td>
+        <td>Typed form of <code>Object.fromEntries</code>.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>ToEntries</code>
+        </td>
+        <td>The entries type represented by an object.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>toEntries</code>
+        </td>
+        <td>Typed form of <code>Object.entries</code>.</td>
+      </tr>
+    </tbody>
+  </table>
+</table-wrapper>
 
 These helpers do not change runtime behavior. They improve the TypeScript type returned
 from the standard object entry operations.

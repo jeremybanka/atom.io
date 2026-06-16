@@ -1,10 +1,10 @@
 dynamic-spotlight.class {
-	position: fixed;
+	position: absolute;
 	&:first-of-type {
 		background: var(--bg-soft-glass-2);
 		backdrop-filter: blur(20px);
 		box-shadow: 0 1px 20px 1px var(--bg-shadow-2);
-		border-radius: 10px;
+		border-radius: 24px;
 		z-index: -1;
 		transition:
 			width 0.2s ease-in-out,

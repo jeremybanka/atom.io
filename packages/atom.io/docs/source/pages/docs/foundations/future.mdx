@@ -16,40 +16,42 @@ later slow result is ignored.
 
 ## package contents
 
-<table>
-  <tbody>
-    <tr>
-      <td>
-        <code>Future</code>
-      </td>
-      <td>A <code>Promise</code> subclass whose active fate can be replaced.</td>
-    </tr>
-    <tr>
-      <td>
-        <code>new Future(executorOrPromise)</code>
-      </td>
-      <td>Construct a <code>Future</code> from a promise or from a promise executor.</td>
-    </tr>
-    <tr>
-      <td>
-        <code>Future.prototype.use(value)</code>
-      </td>
-      <td>
-        Replace the active fate with a promise, or resolve immediately with a direct
-        value.
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <code>Future.prototype.done</code>
-      </td>
-      <td>
-        Starts as <code>false</code> and becomes <code>true</code> when the active
-        promise settles.
-      </td>
-    </tr>
-  </tbody>
-</table>
+<table-wrapper>
+  <table>
+    <tbody>
+      <tr>
+        <td>
+          <code>Future</code>
+        </td>
+        <td>A <code>Promise</code> subclass whose active fate can be replaced.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>new Future(executorOrPromise)</code>
+        </td>
+        <td>Construct a <code>Future</code> from a promise or from a promise executor.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>Future.prototype.use(value)</code>
+        </td>
+        <td>
+          Replace the active fate with a promise, or resolve immediately with a direct
+          value.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <code>Future.prototype.done</code>
+        </td>
+        <td>
+          Starts as <code>false</code> and becomes <code>true</code> when the active
+          promise settles.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</table-wrapper>
 
 Construct a `Future` from a promise or from a promise executor.
 

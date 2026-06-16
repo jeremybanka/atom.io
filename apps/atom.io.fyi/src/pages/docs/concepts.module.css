@@ -2,7 +2,12 @@ concepts-glossary.class {
 	display: flex;
 	flex-flow: column;
 	gap: 1em;
+	position: relative;
+	align-items: center;
 	> concept-module {
+		width: calc(100svw - 10px);
+		position: relative;
+		max-width: 720px;
 		display: flex;
 		flex-flow: column;
 		gap: 1rem;
@@ -52,19 +57,24 @@ concepts-glossary.class {
 			padding-top: 0.15rem;
 
 			> concept-metadata {
-				display: grid;
-				grid-template-columns: repeat(2, minmax(0, 1fr));
-				gap: 0.6rem;
+				width: 100%;
+				display: flex;
+				flex-flow: column;
+				justify-content: space-between;
+				gap: 10px;
+				overflow: scroll;
 
-				@media screen and (max-width: 560px) {
-					grid-template-columns: 1fr;
+				@media screen and (min-width: 600px) {
+					flex-flow: row;
 				}
 
 				> section {
+					flex: 1;
+					min-width: 0;
 					display: flex;
 					flex-flow: column;
-					gap: 0.45rem;
-					padding: 0.7rem;
+					gap: 4px;
+					padding: 8px;
 					border: 1px solid var(--bg-soft-glass-3);
 					border-radius: 6px;
 					background: rgb(from var(--bg-hard-1) r g b / 55%);
@@ -73,7 +83,7 @@ concepts-glossary.class {
 				h3 {
 					margin: 0;
 					color: var(--fg-soft-2);
-					font-size: 0.78rem;
+					font-size: 12px;
 					font-weight: 750;
 					line-height: 1;
 				}

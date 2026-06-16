@@ -8,6 +8,6 @@ const slow = new Promise<string>((resolve) => {
 
 const result = new Future(slow)
 
-result.use(Promise.resolve(`ffast`))
+result.use(Promise.resolve(`fast`))
 
 const text = await result

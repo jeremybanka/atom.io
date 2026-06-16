@@ -28,18 +28,28 @@ const pathnameAtom = atom<string>({
 
 export function DocsNavigation(): VNode {
 	useO(pathnameAtom) // weirdly important
+	const userHasToggled = useO(menuToggleAtom)
+	const setUserHasToggled = useI(menuToggleAtom)
 
 	return (
 		<docs-navigation class={css.class}>
 			<SiteDirectory />
 			<OnThisPage />
+			<Toggle.Button
+				checked={userHasToggled}
+				onChange={() => {
+					setUserHasToggled((v) => !v)
+				}}
+			>
+				☰
+			</Toggle.Button>
 		</docs-navigation>
 	)
 }
 
 function OnThisPage(): VNode {
+	const elementRef = React.useRef<HTMLElement>(null)
 	const userHasToggled = useO(menuToggleAtom)
-	const setUserHasToggled = useI(menuToggleAtom)
 
 	const [headings, setHeadings] = React.useState<
 		{ id: string; content: string | null; level: number }[]
@@ -127,34 +137,33 @@ function OnThisPage(): VNode {
 
 	return (
 		<on-this-page>
-			<DynamicSpotlight
-				elementId="on-this-page"
-				padding={20}
-				updateSignals={[userHasToggled, pathname, headings]}
-			/>
-			<DynamicSpotlight
-				elementId={currentId ? currentId + `-link` : null}
-				updateSignals={[userHasToggled, pathname]}
-			/>
-			<nav id="on-this-page" data-user-has-toggled={userHasToggled}>
+			<nav
+				id="on-this-page"
+				data-user-has-toggled={userHasToggled}
+				ref={elementRef}
+			>
+				<DynamicSpotlight
+					elementId="on-this-page"
+					padding={0}
+					updateSignals={[userHasToggled, pathname, headings]}
+					parentRef={elementRef}
+				/>
+				<DynamicSpotlight
+					elementId={currentId ? currentId + `-link` : null}
+					updateSignals={[userHasToggled, pathname]}
+					parentRef={elementRef}
+				/>
 				<section>
 					<header>On this page</header>
 					<main>{renderHeadings(headings, 2)}</main>
 				</section>
 			</nav>
-			<Toggle.Button
-				checked={userHasToggled}
-				onChange={() => {
-					setUserHasToggled((v) => !v)
-				}}
-			>
-				☰
-			</Toggle.Button>
 		</on-this-page>
 	)
 }
 
 function SiteDirectory(): VNode {
+	const elementRef = React.useRef<HTMLElement>(null)
 	const userHasToggled = useO(menuToggleAtom)
 	const pathname = useO(pathnameAtom)
 	const pathnameId =
@@ -164,16 +173,22 @@ function SiteDirectory(): VNode {
 		) + `-link`
 	return (
 		<site-directory>
-			<DynamicSpotlight
-				elementId="site-directory"
-				padding={20}
-				updateSignals={[userHasToggled, pathname]}
-			/>
-			<DynamicSpotlight
-				elementId={pathnameId}
-				updateSignals={[userHasToggled, pathname]}
-			/>
-			<nav id="site-directory" data-user-has-toggled={userHasToggled}>
+			<nav
+				id="site-directory"
+				data-user-has-toggled={userHasToggled}
+				ref={elementRef}
+			>
+				<DynamicSpotlight
+					elementId="site-directory"
+					padding={0}
+					updateSignals={[userHasToggled, pathname]}
+					parentRef={elementRef}
+				/>
+				<DynamicSpotlight
+					elementId={pathnameId}
+					updateSignals={[userHasToggled, pathname]}
+					parentRef={elementRef}
+				/>
 				<section>
 					<header>Guide</header>
 					<main>

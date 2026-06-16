@@ -5,10 +5,11 @@ import css from "./DynamicSpotlight.module.css"
 
 export type ElementPosition = Pick<DOMRect, `height` | `left` | `top` | `width`>
 export type SpotlightProps = {
-	elementId: string | null
+	elementId: null | string
 	startingPosition?: ElementPosition
 	padding?: number
-	updateSignals?: any[]
+	updateSignals?: unknown[]
+	parentRef?: React.RefObject<HTMLElement | null>
 }
 export function DynamicSpotlight({
 	elementId,
@@ -20,6 +21,7 @@ export function DynamicSpotlight({
 	},
 	padding = 0,
 	updateSignals = [],
+	parentRef,
 }: SpotlightProps): VNode | null {
 	const [position, setPosition] = React.useState(startingPosition)
 	React.useEffect(() => {
@@ -35,13 +37,25 @@ export function DynamicSpotlight({
 					return
 				}
 				const boundingRect = e.getBoundingClientRect()
-				setPosition(boundingRect)
+				if (parentRef) {
+					const parentRect = parentRef.current?.getBoundingClientRect()
+					setPosition({
+						top: boundingRect.top - (parentRect?.top ?? 0),
+						left: boundingRect.left - (parentRect?.left ?? 0),
+						width: boundingRect.width,
+						height: boundingRect.height,
+					})
+				} else {
+					setPosition(boundingRect)
+				}
 			}
 			element.addEventListener(``, updatePosition)
 			updatePosition()
 			addEventListener(`resize`, updatePosition)
+			addEventListener(`scroll`, updatePosition)
 			return () => {
 				removeEventListener(`resize`, updatePosition)
+				removeEventListener(`scroll`, updatePosition)
 				element.removeEventListener(`resize`, updatePosition)
 			}
 		}

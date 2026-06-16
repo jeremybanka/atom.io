@@ -47,119 +47,121 @@ history.
 
 ## package contents
 
-<table>
-  <tbody>
-    {/* <tr>
-      <th>Exports</th>
-      <th>Description</th>
-    </tr> */}
-    <tr>
-      <td>
-        <code>atom</code>
-      </td>
-      <td>Declare a reactive variable.</td>
-    </tr>
-    <tr>
-      <td>
-        <code>mutableAtom</code>
-      </td>
-      <td>
-        Declare a reactive variable backed by a mutable, trackable data
-        structure.
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <code>selector</code>
-      </td>
-      <td>
-        Declare a reactive variable derived from other reactive variables.
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <code>atomFamily</code>
-      </td>
-      <td>
-        Compose a function that can create reactive variables of a single type
-        dynamically.
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <code>selectorFamily</code>
-      </td>
-      <td>
-        Compose a function that can create reactive variables derived from other
-        reactive variables dynamically.
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <code>transaction</code>
-      </td>
-      <td>
-        Declare a function that can batch multiple atom changes into a single
-        update.
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <code>timeline</code>
-      </td>
-      <td>Track the history of a group of reactive variables.</td>
-    </tr>
-    <tr>
-      <td>
-        <code>join</code>
-      </td>
-      <td>Manage bidirectional relations between two sets of keys.</td>
-    </tr>
-    <tr>
-      <td>
-        <code>subscribe</code>
-      </td>
-      <td>
-        Subscribe to a reactive variable, calling a callback whenever it is
-        updated.
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <code>getState</code>
-      </td>
-      <td>
-        Get the value of a reactive variable. If the reactive variable is a
-        selector, the value is derived from other reactive variables.
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <code>setState</code>
-      </td>
-      <td>
-        Set the value of a reactive variable. If the reactive variable is a
-        selector, its `set` method is called, which should be written to produce
-        in the appropriate changes to its dependencies.
-      </td>
-    </tr>
-    <tr>
-      <td>
-        <code>resetState</code>
-      </td>
-      <td>Recompute a reactive variable and its dependencies from scratch.</td>
-    </tr>
-    <tr>
-      <td>
-        <code>Silo</code>
-      </td>
-      <td>
-        An isolated store with all of the above functions bound to it. Useful
-        for testing.
-      </td>
-    </tr>
-  </tbody>
-</table>
+<table-wrapper>
+  <table>
+    <tbody>
+      {/* <tr>
+        <th>Exports</th>
+        <th>Description</th>
+      </tr> */}
+      <tr>
+        <td>
+          <code>atom</code>
+        </td>
+        <td>Declare a reactive variable.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>mutableAtom</code>
+        </td>
+        <td>
+          Declare a reactive variable backed by a mutable, trackable data
+          structure.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <code>selector</code>
+        </td>
+        <td>
+          Declare a reactive variable derived from other reactive variables.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <code>atomFamily</code>
+        </td>
+        <td>
+          Compose a function that can create reactive variables of a single type
+          dynamically.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <code>selectorFamily</code>
+        </td>
+        <td>
+          Compose a function that can create reactive variables derived from other
+          reactive variables dynamically.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <code>transaction</code>
+        </td>
+        <td>
+          Declare a function that can batch multiple atom changes into a single
+          update.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <code>timeline</code>
+        </td>
+        <td>Track the history of a group of reactive variables.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>join</code>
+        </td>
+        <td>Manage bidirectional relations between two sets of keys.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>subscribe</code>
+        </td>
+        <td>
+          Subscribe to a reactive variable, calling a callback whenever it is
+          updated.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <code>getState</code>
+        </td>
+        <td>
+          Get the value of a reactive variable. If the reactive variable is a
+          selector, the value is derived from other reactive variables.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <code>setState</code>
+        </td>
+        <td>
+          Set the value of a reactive variable. If the reactive variable is a
+          selector, its `set` method is called, which should be written to produce
+          in the appropriate changes to its dependencies.
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <code>resetState</code>
+        </td>
+        <td>Recompute a reactive variable and its dependencies from scratch.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>Silo</code>
+        </td>
+        <td>
+          An isolated store with all of the above functions bound to it. Useful
+          for testing.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</table-wrapper>
 
 ## atom
 

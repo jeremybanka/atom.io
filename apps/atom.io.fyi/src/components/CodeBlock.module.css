@@ -10,7 +10,7 @@ code-block.class {
 	width: 100%;
 	overflow-x: scroll;
 
-	back-fill {
+	> back-fill {
 		position: absolute;
 		top: 0;
 		bottom: 0;

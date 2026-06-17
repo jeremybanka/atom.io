@@ -204,6 +204,15 @@ describe(`OList`, () => {
 				prev: [],
 			})
 		})
+		it(`does not record sort while playing back`, () => {
+			const ol = new OList(`b`, `a`)
+			handleUnpacked(ol, U.stdout1)
+			ol.mode = `playback`
+
+			expect(ol.sort()).toBe(ol)
+			expect([...ol]).toEqual([`b`, `a`])
+			expect(U.stdout1).not.toHaveBeenCalled()
+		})
 		it(`emits splice without deleteCount`, () => {
 			const ol = new OList<string>(`a`, `b`, `c`)
 			handleUnpacked(ol, U.stdout1)
@@ -288,6 +297,19 @@ describe(`OList`, () => {
 			expect(ol.includes(`b`)).toBe(false)
 			expect(ol.includes(`a`)).toBe(true)
 		})
+		it(`set (overwrite existing with falsy previous value)`, () => {
+			const ol = new OList<number>(0)
+			const update = OList.packUpdate({
+				type: `set`,
+				index: 0,
+				next: 1,
+				prev: 0,
+			} satisfies ArrayUpdate<number>)
+			ol.do(update)
+			expect(ol[0]).toBe(1)
+			ol.undo(update)
+			expect(ol[0]).toBe(0)
+		})
 		it(`set (insert new)`, () => {
 			const ol = new OList<string>(`a`)
 			const update = OList.packUpdate({
@@ -318,6 +340,17 @@ describe(`OList`, () => {
 			expect(ol[0]).toBe(`a`)
 			expect(ol[9]).toBe(undefined)
 			expect(ol.length).toBe(1)
+		})
+		it(`set (undo missing insertion)`, () => {
+			const ol = new OList<string>(`a`, `b`)
+			const update = OList.packUpdate({
+				type: `set`,
+				index: 2,
+				next: `c`,
+			} satisfies ArrayUpdate<string>)
+			ol.undo(update)
+			expect([...ol]).toEqual([`a`, `b`])
+			expect(ol.length).toBe(2)
 		})
 		it(`truncate`, () => {
 			const ol = new OList<string>(`a`, `b`, `c`)
@@ -427,6 +460,18 @@ describe(`OList`, () => {
 			expect(ol.length).toBe(1)
 			expect(ol[0]).toBe(`a`)
 		})
+		it(`pop with falsy value`, () => {
+			const ol = new OList<number>(0)
+			const update = OList.packUpdate({
+				type: `pop`,
+				value: 0,
+			} satisfies ArrayUpdate<number>)
+			ol.do(update)
+			expect(ol.length).toBe(0)
+			ol.undo(update)
+			expect(ol.length).toBe(1)
+			expect(ol[0]).toBe(0)
+		})
 		it(`shift without value`, () => {
 			const ol = new OList<string>(`a`)
 			const update = OList.packUpdate<string>({
@@ -448,6 +493,18 @@ describe(`OList`, () => {
 			ol.undo(update)
 			expect(ol.length).toBe(1)
 			expect(ol[0]).toBe(`a`)
+		})
+		it(`shift with falsy value`, () => {
+			const ol = new OList<string>(``)
+			const update = OList.packUpdate({
+				type: `shift`,
+				value: ``,
+			} satisfies ArrayUpdate<string>)
+			ol.do(update)
+			expect(ol.length).toBe(0)
+			ol.undo(update)
+			expect(ol.length).toBe(1)
+			expect(ol[0]).toBe(``)
 		})
 		it(`unshift`, () => {
 			const ol = new OList<string>()

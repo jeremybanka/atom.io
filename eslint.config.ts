@@ -90,11 +90,8 @@ const COMMON: Linter.Config = {
 }
 
 const NO_CONSOLE: Linter.Config = {
-	files: [`packages/atom.io/**/src/**/*.ts{,x}`],
-	ignores: [`**/*.test.ts`],
-	rules: {
-		"no-console": ERROR,
-	},
+	files: [`**/src/**/*.{ts,tsx}`, `**/__tests__/**/*.{ts,tsx}`],
+	rules: { "no-console": ERROR },
 }
 
 const PUBLIC_TESTS: Linter.Config = {

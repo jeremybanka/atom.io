@@ -36,7 +36,6 @@
 			"dependsOn": ["^build"],
 			"outputs": ["coverage/**"],
 			"inputs": [
-				"../../git.sha",
 				"tsconfig.json",
 				"package.json",
 				"*.config.ts",
@@ -54,7 +53,6 @@
 			"dependsOn": ["^build"],
 			"outputs": ["coverage-public/**"],
 			"inputs": [
-				"../../git.sha",
 				"tsconfig.json",
 				"package.json",
 				"*.config.ts",

@@ -1,136 +1,120 @@
 {
 	"$schema": "https://turbo.build/schema.json",
 	"ui": "tui",
-	"globalDependencies": ["tsconfig.json", ".bun-version", ".node-version"],
+	"globalDependencies": ["tsconfig.json", ".node-version"],
 	"tasks": {
 		"build": {
-			"dependsOn": ["gen", "^build", "^gen"],
+			"dependsOn": ["^build"],
 			"outputs": ["dist/**", "bin/**"],
-			"inputs": ["**/package.json", "**/*.config.ts", "src/**", "**/src/**"]
-		},
-		"atom.io.fyi#build": {
-			"dependsOn": ["gen", "^build", "^gen"],
-			"outputs": [".astro/**", "dist/**"],
-			"inputs": ["**/package.json", "src/**", "public/**", "scripts/**"]
-		},
-		"test:build": {
-			"dependsOn": ["build"],
 			"inputs": [
-				"**/package.json",
+				"package.json",
+				"tsconfig.json",
+				"*.config.ts",
 				"src/**",
-				"**/src/**",
-				"__tests__/**",
 				"__scripts__/**"
+			]
+		},
+		"manifest:test": {
+			"dependsOn": [],
+			"outputs": [],
+			"inputs": [
+				"**/*.{ts,tsx}"
 			]
 		},
 		"test:once": {
-			"dependsOn": ["test:build", "^build"],
+			"dependsOn": ["build"],
 			"inputs": [
-				"**/package.json",
+				"package.json",
+				"tsconfig.json",
+				"*.config.ts",
 				"src/**",
-				"**/src/**",
 				"__tests__/**",
 				"__scripts__/**"
 			]
 		},
-		"test:coverage:once": {
+		"cov": {
 			"dependsOn": ["^build"],
-			"outputs": ["coverage/**", "**/coverage/**"],
+			"outputs": ["coverage/**"],
 			"inputs": [
-				"../../.github/workflows/test.yml",
 				"../../git.sha",
-				"**/package.json",
+				"tsconfig.json",
+				"package.json",
+				"*.config.ts",
 				"src/**",
-				"**/src/**",
 				"__tests__/**",
 				"__scripts__/**"
 			]
 		},
-		"test:coverage:increased": {
-			"dependsOn": ["test:coverage:once"],
+		"cov:recoverage": {
+			"dependsOn": ["cov"],
 			"cache": false,
 			"passThroughEnv": ["RECOVERAGE_CLOUD_TOKEN"]
 		},
-		"test:semver": {
+		"cov:public": {
+			"dependsOn": ["^build"],
+			"outputs": ["coverage-public/**"],
+			"inputs": [
+				"../../git.sha",
+				"tsconfig.json",
+				"package.json",
+				"*.config.ts",
+				"src/**",
+				"__tests__/**",
+				"__scripts__/**"
+			]
+		},
+		"test:breaks": {
 			"dependsOn": ["^build"],
 			"inputs": [
 				"../../.changeset/**",
-				"../../packages/break-check/src/**/*.ts",
+				"package.json",
+				"tsconfig.json",
 				"break-check.config.json",
-				"**/package.json",
-				"src/**/*.{ts,tsx,css,mdx}",
-				"**/src/**/*.{ts,tsx,css,mdx}",
-				"__tests__/public/**/*.test.{ts,tsx}",
-				"__scripts__/**/*.ts"
+				"*.config.ts",
+				"src/**",
+				"__tests__/public/**",
+				"__scripts__/**"
 			]
 		},
 		"lint:eslint": {
-			"dependsOn": ["atom.io#build", "gen"],
+			"dependsOn": ["^build", "atom.io#build"],
 			"inputs": [
 				"../../package.json",
 				"../../eslint.config.ts",
 				"**/package.json",
 				"tsconfig.json",
 				"src/**",
-				"**/src/**",
 				"__tests__/**",
 				"__scripts__/**"
 			]
 		},
 		"lint:oxlint": {
-			"dependsOn": ["atom.io#build", "gen"],
+			"dependsOn": ["^build"],
 			"inputs": [
 				"../../package.json",
 				"../../.oxlintrc.jsonc",
-				"**/package.json",
+				"package.json",
 				"tsconfig.json",
 				"src/**",
-				"**/src/**",
-				"__tests__/**",
-				"__scripts__/**"
-			]
-		},
-		"lint:types": {
-			"dependsOn": ["gen", "^lint:types", "^build", "^gen"],
-			"inputs": [
-				"../../package.json",
-				"../../tsconfig.json",
-				"**/package.json",
-				"tsconfig.json",
-				"src/**",
-				"**/src/**",
 				"__tests__/**",
 				"__scripts__/**",
 				"**/*.d.ts"
 			]
 		},
-		"watch:types": {
-			"persistent": true,
-			"dependsOn": ["gen", "^build", "^gen"],
+		"lint:types": {
+			"dependsOn": ["^build"],
 			"inputs": [
 				"../../package.json",
-				"**/package.json",
+				"package.json",
 				"tsconfig.json",
 				"src/**",
-				"**/src/**",
 				"__tests__/**",
-				"__scripts__/**"
+				"__scripts__/**",
+				"**/*.d.ts"
 			]
 		},
 		"lint": {
 			"dependsOn": ["lint:eslint", "lint:oxlint", "lint:types"]
-		},
-		"gen": {
-			"dependsOn": ["^build"],
-			"outputs": ["**/*.gen.ts", "**/*.gen.tsx"],
-			"inputs": [
-				"**/package.json",
-				"tsconfig.json",
-				"src/**",
-				"**/src/**",
-				"__tests__/**",
-				"__scripts__/**"
-			]
 		},
 		"version": {
 			"dependsOn": ["^build"],

@@ -1,11 +1,15 @@
 import type {
 	MutableAtomFamilyOptions,
+	MutableAtomFamilyToken,
 	ReadonlyPureSelectorFamilyOptions,
 	RegularAtomOptions,
 } from "atom.io"
 import { getState, Silo } from "atom.io"
 import { hasImplicitStoreBeenCreated } from "atom.io/testing"
 import { UList } from "atom.io/transceivers/u-list"
+import { u } from "motion/react-client"
+
+import { createNullLogger } from "../__util__/nullLogger.ts"
 
 afterEach(() => {
 	globalThis.ATOM_IO_IMPLICIT_STORE = undefined
@@ -55,6 +59,43 @@ describe(`silo`, () => {
 		expect(hasImplicitStoreBeenCreated()).toBe(false)
 		expect(() => getState(UNO__countAtom)).toThrow()
 	})
+	it(`creates mutable atoms, atom families, and transactions in its own store`, () => {
+		const Uno = new Silo({
+			name: `uno`,
+			lifespan: `ephemeral`,
+			isProduction: false,
+		})
+
+		const countsListAtom = Uno.mutableAtom<UList<string>>({
+			key: `countsList`,
+			class: UList,
+		})
+		const countAtoms = Uno.atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+		})
+		const createCounts = Uno.transaction<(upTo: number) => void>({
+			key: `increment`,
+			do: ({ set }, upTo) => {
+				let numberToAdd = upTo
+				while (numberToAdd) {
+					const key = String(Math.random()).slice(2)
+					set(countsListAtom, (ul) => {
+						ul.add(key)
+						return ul
+					})
+					numberToAdd--
+					set(countAtoms, key, numberToAdd)
+				}
+			},
+		})
+
+		expect(Uno.getState(countsListAtom)).toEqual(new UList([]))
+		Uno.runTransaction(createCounts)(3)
+		const countsList = Uno.getState(countsListAtom)
+		expect(countsList).toHaveLength(3)
+		expect(hasImplicitStoreBeenCreated()).toBe(false)
+	})
 	it(`creates stores with independent state families`, () => {
 		const Uno = new Silo({
 			name: `uno`,
@@ -74,16 +115,15 @@ describe(`silo`, () => {
 			key: `counts`,
 			class: UList,
 		}
-		const DEFAULT_SIZE_SELECTORS_CONFIG: ReadonlyPureSelectorFamilyOptions<
-			number,
-			string
-		> = {
+		const sizeSelectorsConfig = (
+			listAtoms: MutableAtomFamilyToken<UList<number>, string>,
+		): ReadonlyPureSelectorFamilyOptions<number, string> => ({
 			key: `doubleCounts`,
 			get:
 				(key) =>
 				({ get }) =>
-					get(UNO__listAtoms, key).size,
-		}
+					get(listAtoms, key).size,
+		})
 
 		const UNO__listAtoms = Uno.mutableAtomFamily<UList<number>, string>(
 			DEFAULT_LIST_ATOMS_CONFIG,
@@ -92,10 +132,10 @@ describe(`silo`, () => {
 			DEFAULT_LIST_ATOMS_CONFIG,
 		)
 		const UNO__sizeSelectors = Uno.selectorFamily<number, string>(
-			DEFAULT_SIZE_SELECTORS_CONFIG,
+			sizeSelectorsConfig(UNO__listAtoms),
 		)
 		const DOS__sizeSelectors = Dos.selectorFamily<number, string>(
-			DEFAULT_SIZE_SELECTORS_CONFIG,
+			sizeSelectorsConfig(DOS__listAtoms),
 		)
 
 		const listState__Uno = Uno.findState(UNO__listAtoms, `a`)
@@ -132,5 +172,40 @@ describe(`silo`, () => {
 
 		expect(hasImplicitStoreBeenCreated()).toBe(false)
 		expect(() => getState(listState__Uno)).toThrow()
+	})
+	it(`time-travels timelines in its own store`, () => {
+		const Uno = new Silo({
+			name: `uno`,
+			lifespan: `ephemeral`,
+			isProduction: false,
+		})
+		Uno.store.logger = createNullLogger()
+
+		const countAtom = Uno.atom<number>({
+			key: `count`,
+			default: 0,
+		})
+		const countTimeline = Uno.timeline({
+			key: `count`,
+			scope: [countAtom],
+		})
+
+		Uno.setState(countAtom, 1)
+		Uno.setState(countAtom, 2)
+
+		Uno.undo(countTimeline)
+		expect(Uno.getState(countAtom)).toBe(1)
+
+		Uno.redo(countTimeline)
+		expect(Uno.getState(countAtom)).toBe(2)
+
+		Uno.clearTimeline(countTimeline)
+		Uno.setState(countAtom, 3)
+		Uno.undo(countTimeline)
+		Uno.undo(countTimeline)
+		expect(Uno.getState(countAtom)).toBe(2)
+
+		expect(hasImplicitStoreBeenCreated()).toBe(false)
+		expect(() => getState(countAtom)).toThrow()
 	})
 })

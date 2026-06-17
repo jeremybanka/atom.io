@@ -1,5 +1,13 @@
 import type { Logger } from "atom.io"
-import { atom, AtomIOLogger, getState, timeline, undo } from "atom.io"
+import {
+	atom,
+	AtomIOLogger,
+	getState,
+	simpleLog,
+	simpleLogger,
+	timeline,
+	undo,
+} from "atom.io"
 import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 
 import { createNullLogger } from "../__util__/index.ts"
@@ -149,5 +157,35 @@ describe(`setLogLevel`, () => {
 			expect.any(String),
 			`Thing:789`,
 		)
+	})
+})
+
+describe(`simpleLog`, () => {
+	it(`writes formatted messages to the requested console method`, () => {
+		const info = vitest
+			.spyOn(console, `info`)
+			.mockImplementation(() => undefined)
+		const payload = { newValue: 1 }
+
+		try {
+			simpleLog(`info`, `atom.io`)(`⭐`, `atom`, `count`, `set`, payload)
+
+			expect(info).toHaveBeenCalledWith(`atom.io ⭐ atom \`count\` set`, payload)
+		} finally {
+			info.mockRestore()
+		}
+	})
+	it(`exposes an unprefixed default logger`, () => {
+		const warn = vitest
+			.spyOn(console, `warn`)
+			.mockImplementation(() => undefined)
+
+		try {
+			simpleLogger.warn(`💁`, `timeline`, `count`, `cannot undo`)
+
+			expect(warn).toHaveBeenCalledWith(`💁 timeline \`count\` cannot undo`)
+		} finally {
+			warn.mockRestore()
+		}
 	})
 })

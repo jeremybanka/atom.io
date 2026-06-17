@@ -394,7 +394,7 @@ export class OList<P extends primitive>
 				}
 				break
 			case `pop`:
-				if (update.value) this.push(update.value)
+				if (update.value !== undefined) this.push(update.value)
 				break
 			case `push`:
 				{
@@ -409,7 +409,7 @@ export class OList<P extends primitive>
 				this.reverse()
 				break
 			case `shift`:
-				if (update.value) this.unshift(update.value)
+				if (update.value !== undefined) this.unshift(update.value)
 				break
 			case `sort`:
 				for (let i = 0; i < update.prev.length; i++) {
@@ -418,7 +418,7 @@ export class OList<P extends primitive>
 				this.length = update.prev.length
 				break
 			case `set`:
-				if (update.prev) {
+				if (update.prev !== undefined) {
 					this[update.index] = update.prev
 				} else {
 					// oxlint-disable-next-line typescript/no-dynamic-delete

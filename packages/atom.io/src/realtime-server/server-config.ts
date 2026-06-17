@@ -2,7 +2,7 @@ import type { IncomingHttpHeaders } from "node:http"
 import type { ParsedUrlQuery } from "node:querystring"
 
 import type { Loadable } from "atom.io"
-import { Realm } from "atom.io"
+import { Realm } from "atom.io/experiments/realms"
 import type { RootStore } from "atom.io/internal"
 import {
 	editRelationsInStore,

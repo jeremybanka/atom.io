@@ -10,16 +10,16 @@
 		"dev": "concurrently \"bun:dev:*\"",
 		"dev:astro": "astro dev",
 		"dev:exhibits": "./scripts/exhibits.bun.ts watch",
-		"build": "bun run build:agent-docs && bun run build:exhibits && bun run build:astro",
-		"build:agent-docs": "../../packages/atom.io/__scripts__/agent-docs.bun.ts --site",
+		"build": "bun run build:docs && bun run build:exhibits && bun run build:astro",
+		"build:docs": "../../packages/atom.io/__scripts__/agent-docs.bun.ts --site",
 		"build:astro": "astro build",
 		"build:exhibits": "./scripts/exhibits.bun.ts once",
 		"preview": "wrangler dev",
 		"deploy": "wrangler deploy",
 		"astro": "astro",
-		"lint:eslint": "eslint -- .",
-		"lint:oxlint": "oxlint --type-aware -c ../../.oxlintrc.jsonc .",
-		"lint:types": "tsgo --noEmit"
+		"lint:eslint": "eslint",
+		"lint:oxlint": "oxlint --type-aware",
+		"lint:types": "tsgo"
 	},
 	"dependencies": {
 		"@astrojs/cloudflare": "13.7.0",

@@ -4,7 +4,10 @@
 	"editor.defaultFormatter": "dprint.dprint",
 	"dprint.path": "node_modules/.bin/dprint",
 	"dprint.verbose": true,
-	"editor.codeActionsOnSave": { "source.fixAll.eslint": "explicit" },
+	"editor.codeActionsOnSave": {
+		"source.fixAll.eslint": "explicit",
+		"source.fixAll.oxc": "explicit"
+	},
 	"js/ts.tsdk.path": "node_modules/typescript/lib",
 	"coverage-gutters.coverageBaseDir": "**/coverage/",
 	"files.associations": {

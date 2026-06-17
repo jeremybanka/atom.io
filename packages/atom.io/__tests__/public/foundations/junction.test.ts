@@ -1,7 +1,10 @@
 import { type } from "arktype"
 import type { Json } from "atom.io/foundations/json"
 import { isJson } from "atom.io/foundations/json"
-import type { Refinement } from "atom.io/foundations/junction"
+import type {
+	ExternalStoreConfiguration,
+	Refinement,
+} from "atom.io/foundations/junction"
 import { Junction, RelationsOverlay } from "atom.io/foundations/junction"
 import { SetOverlay } from "atom.io/foundations/overlays"
 import { jsonRefinery } from "atom.io/introspection"
@@ -61,6 +64,109 @@ describe(`RelationsOverlay`, () => {
 		expect(o.delete(`b`)).toBe(true)
 		expect(o.has(`b`)).toBe(false)
 		expect(o.get(`missing` as any)).toBeUndefined()
+	})
+})
+
+describe(`Junction externalStore`, () => {
+	it(`hydrates relations and content through the external store`, () => {
+		type Room = `room:${string}`
+		type Player = `player:${string}`
+		type Role = { role: string }
+
+		const relations = new Map<string, Set<string>>()
+		const contents = new Map<string, Role>()
+		const addRelation = vitest.fn((a: string, b: string) => {
+			relations.set(a, new Set([...(relations.get(a) ?? []), b]))
+			relations.set(b, new Set([...(relations.get(b) ?? []), a]))
+		})
+		const deleteRelation = vitest.fn((a: string, b: string) => {
+			relations.get(a)?.delete(b)
+			relations.get(b)?.delete(a)
+		})
+		const replaceRelationsSafely = vitest.fn((a: string, bs: string[]) => {
+			relations.set(a, new Set(bs))
+			for (const b of bs) {
+				relations.set(b, new Set([...(relations.get(b) ?? []), a]))
+			}
+		})
+		const replaceRelationsUnsafely = vitest.fn((a: string, bs: string[]) => {
+			relations.set(a, new Set(bs))
+			for (const b of bs) {
+				relations.set(b, new Set([a]))
+			}
+		})
+		const setContent = vitest.fn((contentKey: string, content: Role) => {
+			contents.set(contentKey, content)
+		})
+		const deleteContent = vitest.fn((contentKey: string) => {
+			contents.delete(contentKey)
+		})
+		const externalStore = {
+			addRelation,
+			deleteRelation,
+			replaceRelationsSafely,
+			replaceRelationsUnsafely,
+			getRelatedKeys: (key) => relations.get(key),
+			has: (a, b) =>
+				b === undefined ? relations.has(a) : (relations.get(a)?.has(b) ?? false),
+			getContent: (contentKey) => contents.get(contentKey),
+			setContent,
+			deleteContent,
+		} satisfies ExternalStoreConfiguration<Role>
+
+		const makeContentKey = (room: Room, player: Player) => `${room}:${player}`
+		const party = new Junction<`room`, Room, `player`, Player, Role>(
+			{
+				between: [`room`, `player`],
+				cardinality: `n:n`,
+				relations: [[`room:atrium`, [`player:ada`]]],
+				contents: [[`room:atrium:player:ada`, { role: `host` }]],
+			},
+			{
+				externalStore,
+				isAType: (input): input is Room => input.startsWith(`room:`),
+				makeContentKey,
+			},
+		)
+
+		expect(addRelation).toHaveBeenCalledWith(`room:atrium`, `player:ada`)
+		expect(setContent).toHaveBeenCalledWith(`room:atrium:player:ada`, {
+			role: `host`,
+		})
+		expect(party.has(`room:atrium`, `player:ada`)).toBe(true)
+		expect(party.getRelatedKeys(`room:atrium`)).toEqual(new Set([`player:ada`]))
+		expect(party.getContent(`room:atrium`, `player:ada`)).toEqual({
+			role: `host`,
+		})
+
+		party.set({ room: `room:atrium`, player: `player:bea` }, { role: `guest` })
+		expect(addRelation).toHaveBeenCalledWith(`room:atrium`, `player:bea`)
+		expect(setContent).toHaveBeenCalledWith(`room:atrium:player:bea`, {
+			role: `guest`,
+		})
+
+		party.replaceRelations(`room:atrium`, {
+			"player:cy": { role: `guest` },
+		})
+		expect(replaceRelationsSafely).toHaveBeenCalledWith(`room:atrium`, [
+			`player:cy`,
+		])
+		expect(setContent).toHaveBeenCalledWith(`room:atrium:player:cy`, {
+			role: `guest`,
+		})
+
+		party.replaceRelations(
+			`room:atrium`,
+			{ "player:dee": { role: `guest` } },
+			{ reckless: true },
+		)
+		expect(replaceRelationsUnsafely).toHaveBeenCalledWith(`room:atrium`, [
+			`player:dee`,
+		])
+
+		party.delete({ room: `room:atrium`, player: `player:dee` })
+		expect(deleteRelation).toHaveBeenCalledWith(`room:atrium`, `player:dee`)
+		expect(deleteContent).toHaveBeenCalledWith(`room:atrium:player:dee`)
 	})
 })
 
@@ -283,6 +389,28 @@ describe(`Junction.prototype.delete`, () => {
 		expect(pokemonPrimaryTypes.getRelatedKey(`bulbasaur`)).toBeUndefined()
 		expect(pokemonPrimaryTypes.getRelatedKey(`bellsprout`)).toBeUndefined()
 	})
+	it(`removes one-way serialized relations without requiring a reverse entry`, () => {
+		const relations = new Junction({
+			between: [`left`, `right`],
+			cardinality: `n:n`,
+			relations: [[`a`, [`b`]]],
+		})
+
+		expect(relations.has(`a`, `b`)).toBe(true)
+		relations.delete(`a`, `b`)
+		expect(relations.has(`a`)).toBe(false)
+	})
+	it(`ignores delete requests for missing or unrecognized sides`, () => {
+		const relations = new Junction({
+			between: [`left`, `right`],
+			cardinality: `n:n`,
+			relations: [[`a`, [`b`]]],
+		})
+
+		relations.delete({ right: `missing` })
+		relations.delete({} as never)
+		expect(relations.has(`a`, `b`)).toBe(true)
+	})
 })
 
 describe(`Junction.prototype.getRelationEntries`, () => {
@@ -405,6 +533,15 @@ describe(`Junction.prototype.replaceRelations`, () => {
 			expect(pokemonPrimaryTypes.getRelatedKeys(`grass`)).toEqual(
 				new Set([`bulbasaur`, `oddish`, `chikorita`]),
 			)
+		})
+		it(`replaces one-way serialized relations`, () => {
+			const relations = new Junction({
+				between: [`left`, `right`],
+				cardinality: `n:n`,
+				relations: [[`a`, [`b`]]],
+			}).replaceRelations(`a`, [`c`])
+
+			expect(relations.getRelatedKeys(`a`)).toEqual(new Set([`c`]))
 		})
 	})
 	describe(`unsafely`, () => {

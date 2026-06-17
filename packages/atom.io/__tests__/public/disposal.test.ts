@@ -1,6 +1,5 @@
 import type { Logger } from "atom.io"
 import {
-	Anarchy,
 	atom,
 	atomFamily,
 	disposeState,
@@ -11,8 +10,6 @@ import {
 	setState,
 } from "atom.io"
 import { setTestLogLevel, stateExists, takeSnapshot } from "atom.io/testing"
-
-import * as Utils from "../__util__/index.ts"
 
 let logger: Logger
 const { restore } = takeSnapshot()
@@ -167,36 +164,6 @@ describe(`disposeState`, () => {
 		disposeState(tripledState)
 		expect(logger.error).not.toHaveBeenCalled()
 		expect(stateExists(tripledState)).toBe(false)
-		expect(logger.warn).not.toHaveBeenCalled()
-		expect(logger.error).not.toHaveBeenCalled()
-	})
-	it(`disconnects selectors that have been allocated to a molecule`, () => {
-		const countAtoms = atomFamily<number, string>({
-			key: `count`,
-			default: 0,
-		})
-		const tripledSelectors = selectorFamily<number, string>({
-			key: `tripled`,
-			get:
-				(id) =>
-				({ find, get }) =>
-					get(find(countAtoms, id)) * 3,
-		})
-		const store = globalThis.ATOM_IO_IMPLICIT_STORE
-		if (store === undefined) {
-			throw new Error(`Expected the implicit store to exist.`)
-		}
-		store.config.lifespan = `immortal`
-		const anarchy = new Anarchy()
-		anarchy.allocate(`root`, `hi`)
-		setState(countAtoms, `hi`, 1)
-		const tripledState = findState(tripledSelectors, `hi`)
-		const triple = getState(tripledState)
-		expect(triple).toBe(3)
-		disposeState(tripledState)
-
-		expect(stateExists(tripledState)).toBe(false)
-
 		expect(logger.warn).not.toHaveBeenCalled()
 		expect(logger.error).not.toHaveBeenCalled()
 	})

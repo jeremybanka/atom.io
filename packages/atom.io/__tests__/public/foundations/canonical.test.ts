@@ -1,22 +1,28 @@
 import { packCanonical, unpackCanonical } from "atom.io/foundations/canonical"
 
-describe(`canonical`, () => {
-	test(`packCanonical and unpackCanonical round-trip primitive canonical values`, () => {
-		expect(unpackCanonical(packCanonical(`hello`))).toBe(`hello`)
-		expect(unpackCanonical(packCanonical(42))).toBe(42)
-		expect(unpackCanonical(packCanonical(true))).toBe(true)
-		expect(unpackCanonical(packCanonical(false))).toBe(false)
-		expect(unpackCanonical(packCanonical(null))).toBeNull()
-	})
-
-	test(`packCanonical and unpackCanonical round-trip array canonical values`, () => {
-		const value = [`a`, 1, false, null, [`nested`]] as const
-		expect(unpackCanonical(packCanonical(value))).toEqual(value)
-	})
-
-	test(`packCanonical distinguishes values that JSON.stringify alone can conflate`, () => {
-		expect(packCanonical(`null`)).not.toBe(packCanonical(null))
-		expect(packCanonical(`1`)).not.toBe(packCanonical(1))
-		expect(packCanonical(true)).not.toBe(packCanonical(1))
-	})
+describe(`packCanonical and unpackCanonical round-trip canonical values`, () => {
+	const number10 = 1234567890
+	const string26 = `abcdefghijklmnopqrstuvwxyz`
+	const boolean = true
+	const nullValue = null
+	const array0: never[] = []
+	const array10 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
+	const notNull = `null`
+	const notOne = `1`
+	const notTrue = `true`
+	for (const value of [
+		number10,
+		string26,
+		boolean,
+		nullValue,
+		array0,
+		array10,
+		notNull,
+		notOne,
+		notTrue,
+	]) {
+		test(`packValue(${JSON.stringify(value)})`, () => {
+			expect(unpackCanonical(packCanonical(value))).toEqual(value)
+		})
+	}
 })

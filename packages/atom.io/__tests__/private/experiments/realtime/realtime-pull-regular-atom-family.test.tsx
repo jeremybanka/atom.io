@@ -6,10 +6,12 @@ import * as RTS from "atom.io/realtime-server"
 import * as RTTest from "atom.io/realtime-testing"
 import * as React from "react"
 
+/* eslint-disable no-console */
 console.log = () => undefined
 console.info = () => undefined
 console.warn = () => undefined
 console.error = () => undefined
+/* eslint-enable no-console */
 let LOGGING: boolean
 beforeEach(() => (LOGGING = true))
 

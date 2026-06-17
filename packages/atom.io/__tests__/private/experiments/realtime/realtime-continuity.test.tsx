@@ -11,10 +11,12 @@ import * as React from "react"
 
 import * as Utils from "../../../__util__/index.ts"
 
+/* eslint-disable no-console */
 console.log = () => undefined
 console.info = () => undefined
 console.warn = () => undefined
 console.error = () => undefined
+/* eslint-enable no-console */
 
 describe(`synchronizing transactions`, () => {
 	const runScenario = () => {
@@ -216,7 +218,7 @@ describe(`mutable atoms in continuity`, () => {
 		await waitFor(() => {
 			Utils.throwUntil(() => server.silo.getState(myListAtom).has(`world`))
 		})
-		console.log(`📝 took ${performance.now() - time}ms`)
+		// console.log(`📝 took ${performance.now() - time}ms`)
 
 		await teardown()
 	})

@@ -29,6 +29,7 @@
 		"test": "vitest",
 		"test:coverage": "pnpm test:coverage:once && pnpm test:coverage:increased",
 		"test:coverage:once": "vitest run --coverage",
+		"test:coverage:public": "vitest run --config vitest.public-coverage.config.ts --coverage",
 		"test:coverage:increased": "recoverage",
 		"test:build": "bun run test:manifest && IMPORT=dist vitest run",
 		"test:once": "echo tested built code",

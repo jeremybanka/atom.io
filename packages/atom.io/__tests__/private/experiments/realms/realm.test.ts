@@ -31,7 +31,7 @@ import { clearStore, IMPLICIT } from "atom.io/internal"
 import { stateExists } from "atom.io/testing"
 import { UList } from "atom.io/transceivers/u-list"
 
-import * as Utils from "../../__util__/index.ts"
+import * as Utils from "../../../__util__/index.ts"
 
 const LOG_LEVELS = [null, `error`, `warn`, `info`] as const
 const CHOOSE = 2

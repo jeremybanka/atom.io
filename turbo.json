@@ -14,6 +14,13 @@
 				"__scripts__/**"
 			]
 		},
+		"manifest:test": {
+			"dependsOn": [],
+			"outputs": [],
+			"inputs": [
+				"**/*.{ts,tsx}"
+			]
+		},
 		"test:once": {
 			"dependsOn": ["build"],
 			"inputs": [

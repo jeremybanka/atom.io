@@ -28,6 +28,7 @@
 		"fmt:check": "dprint check .",
 		"hooks:install": "mise x -- hk install --mise",
 		"build": "dotenvx run -- turbo run build",
+		"manifest:test": "dotenvx run -- turbo run manifest:test",
 		"test": "CI=true dotenvx run -- turbo run test:once --concurrency=2",
 		"test:breaks": "CI=true dotenvx run -- turbo run test:breaks",
 		"cov:recoverage": "CI=true turbo run cov:recoverage",

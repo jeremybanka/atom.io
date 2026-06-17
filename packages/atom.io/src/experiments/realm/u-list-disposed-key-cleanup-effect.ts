@@ -1,8 +1,7 @@
 import type { AtomEffect } from "atom.io"
 import { type primitive, stringifyJson } from "atom.io/foundations/json"
 import { getUpdateToken, subscribeInStore } from "atom.io/internal"
-
-import { UList } from "./u-list.ts"
+import { UList } from "atom.io/transceivers/u-list"
 
 export const uListDisposedKeyCleanupEffect: AtomEffect<UList<primitive>> = ({
 	token,

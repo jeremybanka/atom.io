@@ -1,8 +1,7 @@
 import type { AtomEffect } from "atom.io"
 import { type primitive, stringifyJson } from "atom.io/foundations/json"
 import { getFromStore, getUpdateToken, subscribeInStore } from "atom.io/internal"
-
-import { OList } from "./o-list.ts"
+import { OList } from "atom.io/transceivers/o-list"
 
 export function filterOutInPlace<T>(arr: T[], toRemove: T): T[] {
 	let writeIndex = 0

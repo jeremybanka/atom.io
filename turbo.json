@@ -115,11 +115,6 @@
 		},
 		"lint": {
 			"dependsOn": ["lint:eslint", "lint:oxlint", "lint:types"]
-		},
-		"version": {
-			"dependsOn": ["^build"],
-			"inputs": [],
-			"outputs": ["templates/package.json"]
 		}
 	}
 }

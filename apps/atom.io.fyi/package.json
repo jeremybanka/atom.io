@@ -18,7 +18,7 @@
 		"deploy": "wrangler deploy",
 		"astro": "astro",
 		"lint:eslint": "eslint",
-		"lint:oxlint": "oxlint --type-aware",
+		"lint:oxlint": "oxlint",
 		"lint:types": "tsgo"
 	},
 	"dependencies": {

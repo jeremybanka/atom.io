@@ -52,7 +52,7 @@
 		"@typescript-eslint/eslint-plugin": "8.61.1",
 		"@typescript-eslint/parser": "8.61.1",
 		"@typescript-eslint/utils": "8.61.1",
-		"@typescript/native-preview": "7.0.0-dev.20260616.1",
+		"@typescript/native-preview": "7.0.0-dev.20260617.2",
 		"astro-eslint-parser": "1.4.0",
 		"dprint": "0.54.0",
 		"dprint-plugin-malva": "0.16.0",

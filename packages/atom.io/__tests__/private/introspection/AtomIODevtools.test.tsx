@@ -49,13 +49,19 @@ const scenario = () =>
 		</AR.StoreProvider>,
 	)
 
+async function actAsync(
+	callback: (() => void) | (() => Promise<void>),
+): Promise<void> {
+	await act(callback)
+}
+
 describe(`editing primitive atoms of a variety of types`, () => {
-	test(`string`, () => {
+	test(`string`, async () => {
 		const myStringAtom = $.atom<string>({ key: `myString`, default: `A` })
 
 		const { getByTestId } = scenario()
 
-		act(() => {
+		await actAsync(() => {
 			const myStringInput = getByTestId(`myString-state-editor-string-input`)
 			fireEvent.change(myStringInput, { target: { value: `hello` } })
 		})
@@ -63,12 +69,12 @@ describe(`editing primitive atoms of a variety of types`, () => {
 		expect($.getState(myStringAtom)).toBe(`hello`)
 	})
 
-	test(`number`, () => {
+	test(`number`, async () => {
 		const myNumberAtom = $.atom<number>({ key: `myNumber`, default: 0 })
 
 		const { getByTestId } = scenario()
 
-		act(() => {
+		await actAsync(() => {
 			const myNumberInput = getByTestId(`myNumber-state-editor-number-input`)
 			fireEvent.change(myNumberInput, { target: { value: `1` } })
 		})
@@ -78,12 +84,12 @@ describe(`editing primitive atoms of a variety of types`, () => {
 		expect(logger.error).not.toHaveBeenCalled()
 	})
 
-	test(`boolean`, () => {
+	test(`boolean`, async () => {
 		const myBooleanAtom = $.atom<boolean>({ key: `myBoolean`, default: false })
 
 		const { getByTestId } = scenario()
 
-		act(() => {
+		await actAsync(() => {
 			const myBooleanInput = getByTestId(`myBoolean-state-editor-boolean-input`)
 			fireEvent.click(myBooleanInput)
 		})
@@ -91,12 +97,12 @@ describe(`editing primitive atoms of a variety of types`, () => {
 		expect($.getState(myBooleanAtom)).toBe(true)
 	})
 
-	test(`null`, () => {
+	test(`null`, async () => {
 		const myNullAtom = $.atom<null>({ key: `myNull`, default: null })
 
 		const { getByTestId } = scenario()
 
-		act(() => {
+		await actAsync(() => {
 			const myNullInput = getByTestId(`myNull-state-editor-null`)
 			fireEvent.click(myNullInput)
 		})
@@ -116,14 +122,14 @@ describe(`editing an object atom`, () => {
 
 		await waitFor(() => getByTestId(`open-close-state-myObject`))
 
-		act(() => {
+		await actAsync(() => {
 			getByTestId(`open-close-state-myObject`).click()
 		})
 
 		await waitFor(() => getByTestId(`myObject-state-editor-property-a`))
 		await waitFor(() => getByTestId(`myObject-state-editor-property-b`))
 
-		act(() => {
+		await actAsync(() => {
 			fireEvent.change(getByTestId(`myObject-state-editor-property-a-rename`), {
 				target: { value: `c` },
 			})
@@ -136,7 +142,7 @@ describe(`editing an object atom`, () => {
 		// debug()
 		expect($.getState(myObjectAtom)).toEqual({ b: 2, c: 1 })
 
-		act(() => {
+		await actAsync(() => {
 			fireEvent.change(
 				getByTestId(`myObject-state-editor-property-c-number-input`),
 				{
@@ -148,22 +154,22 @@ describe(`editing an object atom`, () => {
 		expect($.getState(myObjectAtom)).toEqual({ b: 2, c: 3 })
 
 		expect(JSON.stringify($.getState(myObjectAtom))).toBe(`{"c":3,"b":2}`)
-		act(() => {
+		await actAsync(() => {
 			getByTestId(`myObject-state-editor-sort-properties`).click()
 		})
 		expect(JSON.stringify($.getState(myObjectAtom))).toBe(`{"b":2,"c":3}`)
 
-		act(() => {
+		await actAsync(() => {
 			getByTestId(`myObject-state-editor-property-c-delete`).click()
 		})
 
 		expect($.getState(myObjectAtom)).toEqual({ b: 2 })
 
-		act(() => {
+		await actAsync(() => {
 			getByTestId(`myObject-state-editor-add-property`).click()
 		})
 
-		act(() => {
+		await actAsync(() => {
 			fireEvent.change(
 				getByTestId(`myObject-state-editor-property-new_property-rename`),
 				{
@@ -175,7 +181,7 @@ describe(`editing an object atom`, () => {
 		await waitFor(() => getByTestId(`myObject-state-editor-property-e`))
 		expect($.getState(myObjectAtom)).toEqual({ b: 2, e: `` })
 
-		act(() => {
+		await actAsync(() => {
 			fireEvent.change(getByTestId(`myObject-state-editor-property-e-recast`), {
 				target: { value: `number` },
 			})
@@ -195,13 +201,13 @@ describe(`editing an object atom`, () => {
 
 		expect($.getState(myObjectAtom)).toEqual({ a: { b: 1 } })
 
-		act(() => {
+		await actAsync(() => {
 			getByTestId(`open-close-state-myObject`).click()
 		})
 
 		await waitFor(() => getByTestId(`myObject-state-editor-property-a`))
 
-		act(() => {
+		await actAsync(() => {
 			getByTestId(`myObject-state-editor-property-a-open-close`).click()
 		})
 		await waitFor(() =>
@@ -221,13 +227,13 @@ describe(`editing an array atom`, () => {
 
 		await waitFor(() => getByTestId(`open-close-state-myArray`))
 
-		act(() => {
+		await actAsync(() => {
 			getByTestId(`open-close-state-myArray`).click()
 		})
 
 		await waitFor(() => getByTestId(`myArray-state-editor-element-0`))
 
-		act(() => {
+		await actAsync(() => {
 			fireEvent.change(
 				getByTestId(`myArray-state-editor-element-0-string-input`),
 				{
@@ -238,20 +244,20 @@ describe(`editing an array atom`, () => {
 
 		expect($.getState(myArrayAtom)).toEqual([`B`])
 
-		act(() => {
+		await actAsync(() => {
 			getByTestId(`myArray-state-editor-add-element`).click()
 		})
 		expect($.getState(myArrayAtom)).toEqual([`B`, ``])
 
 		// recast to number
-		act(() => {
+		await actAsync(() => {
 			fireEvent.change(getByTestId(`myArray-state-editor-element-1-recast`), {
 				target: { value: `number` },
 			})
 		})
 		expect($.getState(myArrayAtom)).toEqual([`B`, 0])
 
-		act(() => {
+		await actAsync(() => {
 			getByTestId(`myArray-state-editor-element-1-delete`).click()
 		})
 		expect($.getState(myArrayAtom)).toEqual([`B`])
@@ -262,12 +268,13 @@ describe(`editing an array atom`, () => {
 })
 
 describe(`displaying non-JSON`, () => {
-	test(`undefined`, () => {
+	test(`undefined`, async () => {
 		$.atom<undefined>({ key: `myUndefined`, default: undefined })
 
 		const { getByTestId } = scenario()
 
 		getByTestId(`state-myUndefined`)
+		await actAsync(() => {})
 		expect(logger.warn).not.toHaveBeenCalled()
 		expect(logger.error).not.toHaveBeenCalled()
 	})
@@ -283,7 +290,7 @@ describe(`editing selectors`, () => {
 
 		const { getByTestId } = scenario()
 
-		act(() => {
+		await actAsync(() => {
 			getByTestId(`view-selectors`).click()
 		})
 		await waitFor(() => getByTestId(`state-_doubleLetter`))
@@ -306,7 +313,7 @@ describe(`editing selectors`, () => {
 
 		const { getByTestId } = scenario()
 
-		act(() => {
+		await actAsync(() => {
 			getByTestId(`view-selectors`).click()
 		})
 		await waitFor(() => getByTestId(`state-_selectionsWithoutGreen`))
@@ -326,12 +333,12 @@ describe(`displaying readonly selectors`, () => {
 
 		const { getByTestId } = scenario()
 
-		act(() => {
+		await actAsync(() => {
 			getByTestId(`view-selectors`).click()
 		})
 
 		await waitFor(() => getByTestId(`open-close-state-_evenSelections`))
-		act(() => {
+		await actAsync(() => {
 			getByTestId(`open-close-state-_evenSelections`).click()
 		})
 
@@ -353,13 +360,13 @@ describe(`working with families`, () => {
 
 		const { getByTestId } = scenario()
 
-		act(() => {
+		await actAsync(() => {
 			getByTestId(`open-close-state-family-count`).click()
 		})
 		await waitFor(() => getByTestId(`state-count("A")`))
 		await waitFor(() => getByTestId(`state-count("B")`))
 
-		act(() => {
+		await actAsync(() => {
 			fireEvent.change(getByTestId(`count("A")-state-editor-number-input`), {
 				target: { value: `1` },
 			})
@@ -379,16 +386,16 @@ describe(`working with transactions`, () => {
 
 		const { getByTestId } = scenario()
 
-		act(() => {
+		await actAsync(() => {
 			getByTestId(`view-transactions`).click()
 		})
 		await waitFor(() => getByTestId(`transaction-setLetter`))
 
-		act(() => {
+		await actAsync(() => {
 			getByTestId(`open-close-transaction-setLetter`).click()
 		})
 
-		act(() => {
+		await actAsync(() => {
 			$.runTransaction(setLetterTX)(`B`)
 		})
 
@@ -426,29 +433,29 @@ describe(`working with timelines`, () => {
 
 		const { getByTestId /* debug */ } = scenario()
 
-		act(() => {
+		await actAsync(() => {
 			getByTestId(`view-timelines`).click()
 		})
 
 		await waitFor(() => getByTestId(`timeline-countTL`))
 
-		act(() => {
+		await actAsync(() => {
 			getByTestId(`open-close-timeline-countTL`).click()
 		})
 
-		act(() => {
+		await actAsync(() => {
 			$.setState(countAtom, 1)
 		})
 
 		await waitFor(() => getByTestId(`timeline-update-count-0`))
 
-		act(() => {
+		await actAsync(() => {
 			$.setState(doubleSelector, 2)
 		})
 
 		await waitFor(() => getByTestId(`timeline-update-double-1`))
 
-		act(() => {
+		await actAsync(() => {
 			$.runTransaction(tripleAndDecrementTX)()
 		})
 
@@ -466,7 +473,7 @@ describe(`miscellaneous tool behavior`, () => {
 
 		await waitFor(() => getByTestId(`example-state-editor-boolean-input`))
 
-		act(() => {
+		await actAsync(() => {
 			$.setState({ type: `atom`, key: `🔍 Devtools Are Open` }, false)
 		})
 
@@ -500,7 +507,7 @@ describe(`miscellaneous tool behavior`, () => {
 
 		await waitFor(() => getByTestId(`devtools`))
 
-		act(() => {
+		await actAsync(() => {
 			fireEvent.keyDown(document.body, {
 				key: `a`,
 				ctrlKey: true,
@@ -529,7 +536,7 @@ describe(`devtools multi-expand/collapse`, () => {
 		await waitFor(() => getByTestId(`open-close-state-exampleA`))
 		await waitFor(() => getByTestId(`open-close-state-exampleB`))
 
-		act(() => {
+		await actAsync(() => {
 			const openCloseA = getByTestId(`open-close-state-exampleA`)
 			fireEvent.click(openCloseA, { shiftKey: true })
 		})
@@ -555,20 +562,20 @@ describe(`devtools multi-expand/collapse`, () => {
 
 		const { getByTestId } = scenario()
 
-		act(() => {
+		await actAsync(() => {
 			getByTestId(`view-selectors`).click()
 		})
 
 		await waitFor(() => getByTestId(`state-example`))
 
-		act(() => {
+		await actAsync(() => {
 			const openCloseA = getByTestId(`open-close-state-family-example`)
 			fireEvent.click(openCloseA, { shiftKey: true })
 		})
 
 		await waitFor(() => getByTestId(`state-example("a")`))
 
-		act(() => {
+		await actAsync(() => {
 			const openCloseA = getByTestId(`open-close-state-example("a")`)
 			fireEvent.click(openCloseA, { shiftKey: true })
 		})
@@ -576,7 +583,7 @@ describe(`devtools multi-expand/collapse`, () => {
 		await waitFor(() => getByTestId(`example("b")-state-editor-property-opt`))
 		await waitFor(() => getByTestId(`example("c")-state-editor-property-opt`))
 
-		act(() => {
+		await actAsync(() => {
 			const openCloseAOpt = getByTestId(
 				`example("a")-state-editor-property-opt-open-close`,
 			)
@@ -605,13 +612,13 @@ describe(`devtools multi-expand/collapse`, () => {
 
 		const { getByTestId } = scenario()
 
-		act(() => {
+		await actAsync(() => {
 			getByTestId(`open-close-state-myNestedObject`).click()
 		})
 
 		await waitFor(() => getByTestId(`myNestedObject-state-editor-property-dict`))
 
-		act(() => {
+		await actAsync(() => {
 			getByTestId(`myNestedObject-state-editor-property-dict-open-close`).click()
 		})
 
@@ -625,7 +632,7 @@ describe(`devtools multi-expand/collapse`, () => {
 			getByTestId(`myNestedObject-state-editor-property-dict-property-c`),
 		)
 
-		act(() => {
+		await actAsync(() => {
 			const openCloseA = getByTestId(
 				`myNestedObject-state-editor-property-dict-property-a-open-close`,
 			)
@@ -659,13 +666,13 @@ describe(`devtools multi-expand/collapse`, () => {
 
 		const { getByTestId } = scenario()
 
-		act(() => {
+		await actAsync(() => {
 			getByTestId(`open-close-state-myNestedObject`).click()
 		})
 
 		await waitFor(() => getByTestId(`myNestedObject-state-editor-property-list`))
 
-		act(() => {
+		await actAsync(() => {
 			getByTestId(`myNestedObject-state-editor-property-list-open-close`).click()
 		})
 
@@ -679,7 +686,7 @@ describe(`devtools multi-expand/collapse`, () => {
 			getByTestId(`myNestedObject-state-editor-property-list-element-2`),
 		)
 
-		act(() => {
+		await actAsync(() => {
 			const openCloseA = getByTestId(
 				`myNestedObject-state-editor-property-list-element-0-open-close`,
 			)

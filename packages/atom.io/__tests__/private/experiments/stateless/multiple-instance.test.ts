@@ -6,7 +6,9 @@ import path from "node:path"
 
 import { DatabaseManager } from "./database.node.ts"
 
+/* eslint-disable no-console */
 console.log = () => undefined
+console.info = () => undefined
 console.warn = () => undefined
 console.error = () => undefined
 
@@ -148,7 +150,6 @@ describe(`multiple-instance`, () => {
 	it(`runs several instances of the same server`, async () => {
 		const res = await fetch(`http://localhost:8000/hello-world`)
 		const text = await res.text()
-		console.log({ text })
 		expect(text).toBe(`Hello from server on port 6260!`)
 	})
 	it(`gets countries`, async () => {

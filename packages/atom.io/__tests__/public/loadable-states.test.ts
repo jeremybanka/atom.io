@@ -284,8 +284,8 @@ describe(`downstream from async`, () => {
 		expect(getState(typeSelector)).toBe(`number`)
 	})
 	test(`loadable index`, async () => {
-		let loadOrgId = (_: number) => {
-			console.warn(`loadOrgId not attached`)
+		let loadOrgId = (_: number): void => {
+			throw new Error(`loadOrgId not attached`)
 		}
 
 		const orgIdAtom = atom<Loadable<number>>({

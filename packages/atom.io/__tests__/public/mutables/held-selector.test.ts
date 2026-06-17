@@ -284,7 +284,6 @@ describe(`family selectors held`, () => {
 			c: 336,
 		})
 		resetState(abcLengthsSelectors, true)
-		console.log(getState(abcLengthsSelectors, true))
 
 		expect(valueRecreated).toEqual({
 			a: 0,

@@ -98,9 +98,7 @@ describe(`useRealtimeService`, () => {
 		{ consumerCount: number; dispose: () => void }
 	>()
 
-	const setupService = vi.fn((id: string) => () => {
-		console.log(`service: id`, id)
-	})
+	const setupService = vi.fn((_id: string) => () => {})
 
 	function ServiceConsumer() {
 		const userId = useId()

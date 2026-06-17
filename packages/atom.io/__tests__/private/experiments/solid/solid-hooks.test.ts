@@ -112,6 +112,8 @@ const mountWithProvider = async (
 
 beforeEach(() => {
 	clearStore(IMPLICIT.STORE)
+	// eslint-disable-next-line no-console
+	console.error = () => undefined
 	vi.restoreAllMocks()
 	vi.spyOn(Utils, `stdout`)
 })
@@ -480,8 +482,8 @@ describe(`useLoadable`, () => {
 	})
 
 	test(`standalone, without a fallback`, async () => {
-		let loadLetter = (_: string) => {
-			console.warn(`loadLetter not attached`)
+		let loadLetter = (_: string): void => {
+			throw new Error(`loadLetter not attached`)
 		}
 		const letterAtom = atom<Loadable<string>>({
 			key: `letter`,
@@ -523,8 +525,8 @@ describe(`useLoadable`, () => {
 	})
 
 	test(`standalone, with a fallback`, async () => {
-		let loadLetter = (_: string) => {
-			console.warn(`loadLetter not attached`)
+		let loadLetter = (_: string): void => {
+			throw new Error(`loadLetter not attached`)
 		}
 		const letterAtom = atom<Loadable<string>>({
 			key: `letter`,

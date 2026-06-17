@@ -10,6 +10,8 @@ import { SetOverlay } from "atom.io/foundations/overlays"
 import { jsonRefinery } from "atom.io/introspection"
 import { vitest } from "vitest"
 
+import * as Utils from "../../__util__"
+
 describe(`Junction.prototype.getRelatedKeys`, () => {
 	it(`gets all keys related to a given key`, () => {
 		const player = `Adelaide`
@@ -172,7 +174,7 @@ describe(`Junction externalStore`, () => {
 
 describe(`Junction.prototype.getRelatedKey`, () => {
 	it(`warns if there are multiple relations`, () => {
-		const warn = vitest.spyOn(console, `warn`).mockImplementation(() => {})
+		const warn = vitest.spyOn(Utils, `stdout`).mockImplementation(() => {})
 		const player = `Helena`
 		const roomA = `Shrine`
 		const roomB = `Loft`
@@ -182,7 +184,7 @@ describe(`Junction.prototype.getRelatedKey`, () => {
 				cardinality: `1:n`,
 				relations: [[player, [roomA, roomB]]],
 			},
-			{ warn: console.warn },
+			{ warn: Utils.stdout },
 		)
 		const roomKey = playersInRooms.getRelatedKey(player)
 		expect(roomKey).toEqual(roomA)

@@ -7,6 +7,11 @@ import { UList } from "atom.io/transceivers/u-list"
 
 import * as Utils from "../../__util__/index.ts"
 
+/* eslint-disable no-console */
+console.log = () => undefined
+console.info = () => undefined
+/* eslint-enable no-console */
+
 const LOG_LEVELS = [null, `error`, `warn`, `info`] as const
 const CHOOSE = 2
 
@@ -107,7 +112,7 @@ describe(`editing an object atom`, () => {
 			default: { a: 1, b: 2 },
 		})
 
-		const { getByTestId, debug } = scenario()
+		const { getByTestId /* debug */ } = scenario()
 
 		await waitFor(() => getByTestId(`open-close-state-myObject`))
 
@@ -128,7 +133,7 @@ describe(`editing an object atom`, () => {
 			getByTestId(`myObject-state-editor-property-c-number-input`),
 		)
 
-		debug()
+		// debug()
 		expect($.getState(myObjectAtom)).toEqual({ b: 2, c: 1 })
 
 		act(() => {
@@ -448,8 +453,6 @@ describe(`working with timelines`, () => {
 		})
 
 		await waitFor(() => getByTestId(`timeline-update-tripleAndDecrement-2`))
-
-		// debug()
 	})
 })
 

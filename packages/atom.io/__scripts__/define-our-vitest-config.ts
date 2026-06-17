@@ -71,7 +71,6 @@ export function defineOurVitestConfig(
 
 	const config: Vite.UserConfig = defineConfig({
 		resolve: { alias },
-		esbuild: { target: `es2022` },
 		test: {
 			...TEST_CONFIG_BASE,
 			...testConfig,

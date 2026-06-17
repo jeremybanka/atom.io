@@ -10,14 +10,14 @@
 	line-height: 21px;
 }
 
+body {
+	background-color: var(--bg-shade-2);
+}
 :root {
 	/* CORE BEHAVIOR */
 	scroll-behavior: smooth;
 	min-height: 100svh;
 	scroll-padding-top: 4.5em;
-	body {
-		background-color: var(--bg-shade-2);
-	}
 }
 
 :root {

@@ -18,8 +18,13 @@ import css from "./Layout.module.css"
 			content="black-translucent"
 		/>
 		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="theme-color" content="#070707" />
+		<meta
+			name="description"
+			content={`Docs for atom.io: ${packageJson.description}`}
+		/>
 		<meta name="generator" content={Astro.generator} />
-		<title>Atom.io</title>
+		<title>atom.io | Typed State Engine</title>
 		<ClientRouter />
 	</head>
 	<body>
@@ -27,7 +32,10 @@ import css from "./Layout.module.css"
 			<header>
 				<nav>
 					<left-side>
-						<a href="/">atom.io.fyi</a>
+						<a href="/">
+							<img src="/favicon.svg" alt="" width="20" height="20" />
+							atom.io.fyi
+						</a>
 					</left-side>
 					<gap-between />
 					<right-side>

@@ -1,15 +1,16 @@
-import type { UserConfig } from "vite"
+import type * as Vite from "vite"
 
 import {
-	defineAtomIoVitestConfig,
-	totalCoverageSource,
-} from "./__scripts__/vitest-config"
+	defineOurVitestConfig,
+	PATHS_COMPLETE_SOURCE,
+} from "./__scripts__/define-our-vitest-config"
 
-const totalCoverageConfig: UserConfig = defineAtomIoVitestConfig({
+const totalCoverageConfig: Vite.UserConfig = defineOurVitestConfig({
 	name: `total-coverage`,
+	target: `src`,
 	test: {
 		coverage: {
-			include: totalCoverageSource,
+			include: [...PATHS_COMPLETE_SOURCE],
 		},
 	},
 })

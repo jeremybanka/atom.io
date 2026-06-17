@@ -1,17 +1,19 @@
-import type { UserConfig } from "vite"
+import type * as Vite from "vite"
 
 import {
-	defineAtomIoVitestConfig,
-	publicCoverageSource,
-	publicTestSuite,
-} from "./__scripts__/vitest-config"
+	defineOurVitestConfig,
+	PATHS_PUBLIC_SOURCE,
+	PATHS_PUBLIC_TESTS,
+} from "./__scripts__/define-our-vitest-config"
 
-const publicCoverageConfig: UserConfig = defineAtomIoVitestConfig({
+const publicCoverageConfig: Vite.UserConfig = defineOurVitestConfig({
 	name: `public-coverage`,
+	target: `src`,
 	test: {
-		include: publicTestSuite,
+		include: [...PATHS_PUBLIC_TESTS],
 		coverage: {
-			include: publicCoverageSource,
+			include: [...PATHS_PUBLIC_SOURCE],
+			thresholds: { 100: true },
 		},
 	},
 })

@@ -1,10 +1,10 @@
-import type { UserConfig } from "vite"
+import type * as Vite from "vite"
 
-import { defineAtomIoVitestConfig } from "./__scripts__/vitest-config.ts"
+import { defineOurVitestConfig } from "./__scripts__/define-our-vitest-config.ts"
 
-const builtCodeConfig: UserConfig = defineAtomIoVitestConfig({
+const builtCodeConfig: Vite.UserConfig = defineOurVitestConfig({
 	name: `built-code`,
-	testDist: true,
+	target: `dist`,
 })
 
 export default builtCodeConfig

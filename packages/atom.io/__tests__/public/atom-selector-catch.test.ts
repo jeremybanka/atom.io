@@ -19,12 +19,7 @@ beforeEach(() => {
 describe(`immediate states that throw`, () => {
 	describe(`atom`, () => {
 		it(`(happy) catches a thrown error`, () => {
-			class ClientError extends Error {
-				public constructor(hey: string) {
-					super()
-					console.log(`😤`, hey)
-				}
-			}
+			class ClientError extends Error {}
 
 			const retrieveState = (): number => {
 				throw new ClientError(`😤`)
@@ -53,7 +48,7 @@ describe(`immediate states that throw`, () => {
 				catch: [ClientError],
 			})
 
-			expect(() => getState(countAtom)).toThrowError(Error)
+			expect(() => getState(countAtom)).toThrow(Error)
 		})
 	})
 	describe(`atom family`, () => {
@@ -87,7 +82,7 @@ describe(`immediate states that throw`, () => {
 				catch: [ClientError],
 			})
 
-			expect(() => getState(countAtoms, `example`)).toThrowError(Error)
+			expect(() => getState(countAtoms, `example`)).toThrow(Error)
 		})
 	})
 	describe(`selector`, () => {
@@ -121,7 +116,7 @@ describe(`immediate states that throw`, () => {
 				catch: [ClientError],
 			})
 
-			expect(() => getState(countSelector)).toThrowError(Error)
+			expect(() => getState(countSelector)).toThrow(Error)
 		})
 	})
 	describe(`selector family`, () => {
@@ -155,7 +150,7 @@ describe(`immediate states that throw`, () => {
 				catch: [ClientError],
 			})
 
-			expect(() => getState(countSelectors, `example`)).toThrowError(Error)
+			expect(() => getState(countSelectors, `example`)).toThrow(Error)
 		})
 	})
 })

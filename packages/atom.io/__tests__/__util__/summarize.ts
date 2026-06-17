@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { prettyDOM } from "@testing-library/react"
 import type { Store } from "atom.io/internal"
 import { IMPLICIT } from "atom.io/internal"

@@ -14,7 +14,6 @@ function handleUnpacked<P extends primitive>(
 }
 
 beforeEach(() => {
-	console.warn = () => undefined
 	vitest.spyOn(console, `warn`).mockReset()
 	vitest.spyOn(U, `stdout`).mockReset()
 })

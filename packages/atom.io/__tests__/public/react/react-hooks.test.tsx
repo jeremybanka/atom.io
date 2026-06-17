@@ -36,7 +36,7 @@ beforeEach(() => {
 	setTestLogLevel(null)
 	vitest.spyOn(Utils, `stdout`)
 })
-const onChange = [() => undefined, console.log][0]
+const doNothing = () => undefined
 
 type TestGlobal = typeof globalThis & {
 	env?: { NODE_ENV?: `development` | `production` | (string & {}) }
@@ -81,7 +81,7 @@ describe(`regular atom`, () => {
 		}
 		const utils = render(
 			<StoreProvider>
-				<Utils.Observer node={letterAtom} onChange={onChange} />
+				<Utils.Observer node={letterAtom} onChange={doNothing} />
 				<Letter />
 			</StoreProvider>,
 		)
@@ -125,7 +125,7 @@ describe(`mutable atom`, () => {
 		}
 		const utils = render(
 			<StoreProvider>
-				<Utils.Observer node={lettersAtom} onChange={onChange} />
+				<Utils.Observer node={lettersAtom} onChange={doNothing} />
 				<Letter />
 			</StoreProvider>,
 		)
@@ -268,7 +268,7 @@ describe(`timeline`, () => {
 		}
 		const utils = render(
 			<StoreProvider>
-				<Utils.Observer node={letterAtom} onChange={onChange} />
+				<Utils.Observer node={letterAtom} onChange={doNothing} />
 				<Letter />
 			</StoreProvider>,
 		)
@@ -496,7 +496,7 @@ describe(`timeline (dynamic)`, () => {
 		}
 		const utils = render(
 			<StoreProvider>
-				<Utils.Observer node={letterAtom} onChange={onChange} />
+				<Utils.Observer node={letterAtom} onChange={doNothing} />
 				<Letter />
 			</StoreProvider>,
 		)
@@ -534,8 +534,8 @@ describe(`timeline (dynamic)`, () => {
 
 describe(`useLoadable`, () => {
 	test(`standalone, without a fallback`, async () => {
-		let loadLetter = (_: string) => {
-			console.warn(`loadLetter not attached`)
+		let loadLetter = (_: string): void => {
+			throw new Error(`loadLetter not attached`)
 		}
 
 		const letterAtom = atom<Loadable<string>>({
@@ -577,8 +577,8 @@ describe(`useLoadable`, () => {
 		assert(utils.getByTestId(`A`))
 	})
 	test(`standalone, with a fallback`, async () => {
-		let loadLetter = (_: string) => {
-			console.warn(`loadLetter not attached`)
+		let loadLetter = (_: string): void => {
+			throw new Error(`loadLetter not attached`)
 		}
 
 		const letterAtom = atom<Loadable<string>>({
@@ -964,7 +964,6 @@ describe(`useLoadable`, () => {
 		expect(uniqueRefs).toHaveLength(1)
 		await act(async () => {
 			loadLetter(`A`)
-			// console.log(`📝 loadLetter "A"`)
 			await new Promise((resolve) => setImmediate(resolve))
 		})
 		assert(utils.getByTestId(`not-loading`))
@@ -973,7 +972,6 @@ describe(`useLoadable`, () => {
 		await act(async () => {
 			resetState(letterAtom)
 			resetState(letterAtom)
-			// console.log(`📝 resetState`)
 			await new Promise((resolve) => setImmediate(resolve))
 		})
 		assert(utils.getByTestId(`loading`))
@@ -981,7 +979,6 @@ describe(`useLoadable`, () => {
 
 		expect(uniqueRefs).toHaveLength(3)
 		await act(async () => {
-			// console.log(`📝 loadLetter "B", "C"`)
 			loadLetter(``, `C`)
 			await new Promise((resolve) => setImmediate(resolve))
 		})
@@ -990,7 +987,6 @@ describe(`useLoadable`, () => {
 		expect(uniqueRefs).toHaveLength(4)
 		await act(async () => {
 			setState(letterAtom, `D`)
-			// console.log(`📝 resetState`)
 			await new Promise((resolve) => setImmediate(resolve))
 		})
 		assert(utils.getByTestId(`not-loading`))

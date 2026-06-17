@@ -1,4 +1,5 @@
 /* oxlint-disable typescript/only-throw-error */
+/* eslint-disable no-console */
 import * as http from "node:http"
 
 import type { Json } from "atom.io/foundations/json"

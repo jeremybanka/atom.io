@@ -7,10 +7,12 @@ import * as RTTest from "atom.io/realtime-testing"
 import { UList } from "atom.io/transceivers/u-list"
 import { act } from "react"
 
+/* eslint-disable no-console */
 console.log = () => undefined
 console.info = () => undefined
 console.warn = () => undefined
 console.error = () => undefined
+/* eslint-enable no-console */
 let LOGGING: boolean
 beforeEach(() => (LOGGING = true))
 

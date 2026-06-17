@@ -6,10 +6,12 @@ import { UList } from "atom.io/transceivers/u-list"
 
 import * as Utils from "../../../__util__/index.ts"
 
+/* eslint-disable no-console */
 console.log = () => undefined
 console.info = () => undefined
 console.warn = () => undefined
 console.error = () => undefined
+/* eslint-enable no-console */
 const logger: Pick<Console, `error` | `info` | `warn`> = console
 
 interface VirtualProcess {
@@ -225,7 +227,7 @@ describe(`ParentSocket`, () => {
 
 	test(`user joins and leaves`, async () => {
 		childToParent.receiveRelay((userSocket) => {
-			console.log(`relaying`, userSocket)
+			// console.log(`relaying`, userSocket)
 			userSocket.on(`ping`, () => {
 				userSocket.emit(`pong`)
 			})

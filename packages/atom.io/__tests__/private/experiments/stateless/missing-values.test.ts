@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import fsp from "node:fs/promises"
 import { tmpdir } from "node:os"
 import path from "node:path"

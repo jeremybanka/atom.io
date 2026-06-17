@@ -7,9 +7,10 @@ import { BrowserGame } from "./BrowserGame.tsx"
 import { DatabaseManager } from "./database.node.ts"
 import { SystemServer } from "./system-server.node.ts"
 
+/* eslint-disable no-console */
 /* ❗❗❗ turn off the lights when you're done ❗❗❗ */
-console.info = () => undefined
 console.log = () => undefined
+console.info = () => undefined
 console.warn = () => undefined
 console.error = () => undefined
 const dbManager = new DatabaseManager()

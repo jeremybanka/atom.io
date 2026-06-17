@@ -52,8 +52,4 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           packages: bun node pnpm
-      - uses: ikalnytskyi/action-setup-postgres@c4dda34aae1c821e3a771b68b73b13af3198a7ee # v8
-        with:
-          postgres-version: "18"
-          port: "59432"
       - run: pnpm cov:public

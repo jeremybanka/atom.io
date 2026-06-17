@@ -90,7 +90,7 @@
 			"dependsOn": ["^build"],
 			"inputs": [
 				"../../package.json",
-				"../../.oxlintrc.jsonc",
+				"../../oxlint.config.ts",
 				"package.json",
 				"tsconfig.json",
 				"src/**",

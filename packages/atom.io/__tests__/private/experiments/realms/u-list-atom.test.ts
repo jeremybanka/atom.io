@@ -6,12 +6,12 @@ import {
 	setState,
 	transaction,
 } from "atom.io"
-import { Anarchy } from "atom.io/experiments/realm"
-import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 import {
-	UList,
+	Anarchy,
 	uListDisposedKeyCleanupEffect,
-} from "atom.io/transceivers/u-list"
+} from "atom.io/experiments/realm"
+import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
+import { UList } from "atom.io/transceivers/u-list"
 import { vitest } from "vitest"
 
 import * as Utils from "../../../__util__/index.ts"

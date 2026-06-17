@@ -1,12 +1,12 @@
 import type { Logger } from "atom.io"
 import { getState, mutableAtom, setState } from "atom.io"
-import { Anarchy } from "atom.io/experiments/realm"
-import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 import {
+	Anarchy,
 	filterOutInPlace,
-	OList,
 	oListDisposedKeyCleanupEffect,
-} from "atom.io/transceivers/o-list"
+} from "atom.io/experiments/realm"
+import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
+import { OList } from "atom.io/transceivers/o-list"
 import { vitest } from "vitest"
 
 import * as Utils from "../../../__util__/index.ts"

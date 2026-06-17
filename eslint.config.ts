@@ -9,6 +9,7 @@ import StorybookPlugin from "eslint-plugin-storybook"
 import LasertagPlugin from "lasertag/eslint-plugin"
 
 import AtomIOPlugin from "./packages/atom.io/src/eslint-plugin/index.ts"
+import { LINT_IGNORES } from "./scripts/lint-common.ts"
 
 type Rules = Linter.Config[`rules`]
 type StorybookRules = typeof StorybookPlugin.rules
@@ -28,7 +29,6 @@ const ASTRO_LANG_OPTIONS: Linter.Config[`languageOptions`] = {
 	parser: astroParser,
 	parserOptions: {
 		parser: tsParser,
-		// projectService: true,
 		sourceType: `module`,
 		extraFileExtensions: [`.astro`],
 	},
@@ -75,19 +75,7 @@ const LASERTAG_RULES: Rules = {
 }
 
 const IGNORES: Linter.Config = {
-	ignores: [
-		`**/.astro/**`,
-		`**/.wrangler/**`,
-		`**/_shared/**`,
-		`**/build/**`,
-		`**/coverage/**`,
-		`**/create-atom.io/templates/**`,
-		`**/dist/**`,
-		`**/gen/**`,
-		`**/next-env.d.ts`,
-		`**/node_modules/**`,
-		`**/storybook-static/**`,
-	],
+	ignores: LINT_IGNORES,
 }
 
 const COMMON: Linter.Config = {

@@ -37,7 +37,7 @@
 	"scripts": {
 		"build": "tsdown && rm -f dist/*.x.d.ts",
 		"lint:eslint": "eslint",
-		"lint:oxlint": "oxlint --type-aware",
+		"lint:oxlint": "oxlint",
 		"lint:types": "tsgo"
 	},
 	"devDependencies": {

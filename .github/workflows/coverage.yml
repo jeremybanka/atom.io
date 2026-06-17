@@ -38,7 +38,7 @@ jobs:
           postgres-version: "18"
           port: "59432"
       - run: git rev-parse HEAD > git.sha
-      - run: pnpm cov:up
+      - run: pnpm cov:recoverage
         env:
           RECOVERAGE_CLOUD_TOKEN: ${{ secrets.RECOVERAGE_CLOUD_TOKEN }}
 
@@ -56,4 +56,4 @@ jobs:
         with:
           postgres-version: "18"
           port: "59432"
-      - run: pnpm cov:pub
+      - run: pnpm cov:public

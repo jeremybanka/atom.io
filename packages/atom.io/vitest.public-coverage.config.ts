@@ -12,6 +12,7 @@ const publicCoverageConfig: Vite.UserConfig = defineOurVitestConfig({
 	test: {
 		include: [...PATHS_PUBLIC_TESTS],
 		coverage: {
+			reportsDirectory: `coverage-public`,
 			include: [...PATHS_PUBLIC_SOURCE],
 			thresholds: { 100: true },
 		},

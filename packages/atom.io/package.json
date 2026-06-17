@@ -32,13 +32,14 @@
 		"test": "vitest",
 		"test:once": "vitest run --config vitest.dist.config.ts",
 		"test:breaks": "break-check break-check.config.json --verbose",
-		"cov:up": "pnpm cov && recoverage",
 		"cov": "vitest run --config vitest.total-coverage.config.ts --coverage",
-		"cov:pub": "vitest run --config vitest.public-coverage.config.ts --coverage",
+		"cov:recoverage": "recoverage",
+		"cov:up": "pnpm cov && recoverage",
+		"cov:public": "vitest run --config vitest.public-coverage.config.ts --coverage",
 		"cov:dev": "vitest     --config vitest.public-coverage.config.ts --coverage",
 
 		"storybook": "storybook dev -p 6006",
-		"build-storybook": "storybook build"
+		"storybook:build": "storybook build"
 	},
 	"peerDependencies": {
 		"@floating-ui/react": ">=0.25.0",

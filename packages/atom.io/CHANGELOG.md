@@ -1,5 +1,11 @@
 # atom.io
 
+## 0.49.2
+
+### Patch Changes
+
+- 26dd04d: Fix `OList` undo playback for falsy primitive values such as `0` and empty strings.
+
 ## 0.49.1
 
 ### Patch Changes

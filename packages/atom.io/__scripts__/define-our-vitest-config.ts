@@ -46,7 +46,7 @@ const SOURCE_ALIASES = [
 
 const TEST_CONFIG_BASE = {
 	pool: `vmThreads`,
-	maxWorkers: cpus().length - 1,
+	maxWorkers: 2,
 	globals: true,
 	testTimeout: 10_000,
 	environment: `happy-dom`,

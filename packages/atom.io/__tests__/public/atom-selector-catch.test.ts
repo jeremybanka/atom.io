@@ -1,14 +1,7 @@
 /* oxlint-disable typescript/require-await */
 
-import type { Loadable } from "atom.io"
-import {
-	atom,
-	atomFamily,
-	AtomToken,
-	getState,
-	selector,
-	selectorFamily,
-} from "atom.io"
+import type { AtomToken, Loadable } from "atom.io"
+import { atom, atomFamily, getState, selector, selectorFamily } from "atom.io"
 import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 
 import * as Utils from "../__util__/index.ts"

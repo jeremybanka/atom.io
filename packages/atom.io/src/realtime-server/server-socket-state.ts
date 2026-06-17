@@ -4,7 +4,7 @@ import type {
 	RegularAtomFamilyToken,
 } from "atom.io"
 import { atomFamily, join, mutableAtom } from "atom.io"
-import type { Hierarchy } from "atom.io/experiments/realm"
+import type { Hierarchy } from "atom.io/experiments/realms"
 import type { RoomKey, Socket, SocketKey, UserKey } from "atom.io/realtime"
 import { isSocketKey, isUserKey } from "atom.io/realtime"
 import { UList } from "atom.io/transceivers/u-list"

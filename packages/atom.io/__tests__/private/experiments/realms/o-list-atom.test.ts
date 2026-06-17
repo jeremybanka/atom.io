@@ -4,7 +4,7 @@ import {
 	Anarchy,
 	filterOutInPlace,
 	oListDisposedKeyCleanupEffect,
-} from "atom.io/experiments/realm"
+} from "atom.io/experiments/realms"
 import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 import { OList } from "atom.io/transceivers/o-list"
 import { vitest } from "vitest"

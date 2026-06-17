@@ -9,7 +9,7 @@ import {
 import {
 	Anarchy,
 	uListDisposedKeyCleanupEffect,
-} from "atom.io/experiments/realm"
+} from "atom.io/experiments/realms"
 import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 import { UList } from "atom.io/transceivers/u-list"
 import { vitest } from "vitest"

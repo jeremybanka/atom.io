@@ -1,8 +1,8 @@
-import {
-	type MoleculeCreationEvent,
-	type MoleculeDisposalEvent,
-	type MoleculeTransferEvent,
-	type TransactionToken,
+import type {
+	MoleculeCreationEvent,
+	MoleculeDisposalEvent,
+	MoleculeTransferEvent,
+	TransactionToken,
 } from "atom.io"
 import type {
 	Above,
@@ -12,7 +12,7 @@ import type {
 	SingularTypedKey,
 	ValidKey,
 	Vassal,
-} from "atom.io/experiments/realm"
+} from "atom.io/experiments/realms"
 import type { Canonical } from "atom.io/foundations/canonical"
 import type { stringified } from "atom.io/foundations/json"
 import { parseJson, stringifyJson } from "atom.io/foundations/json"

@@ -39,7 +39,7 @@ beforeEach(() => {
 const onChange = [() => undefined, console.log][0]
 
 type TestGlobal = typeof globalThis & {
-	env?: { NODE_ENV?: `development` | `production` | string }
+	env?: { NODE_ENV?: `development` | `production` | (string & {}) }
 }
 const testGlobal = globalThis as TestGlobal
 
@@ -157,7 +157,9 @@ describe(`useJSON`, () => {
 					<button
 						type="button"
 						data-testid="addNumber"
-						onClick={() => setNumbers((current) => current.add(1).add(2))}
+						onClick={() => {
+							setNumbers((current) => current.add(1).add(2))
+						}}
 					/>
 				</>
 			)
@@ -187,7 +189,9 @@ describe(`useJSON`, () => {
 					<button
 						type="button"
 						data-testid="addNumber"
-						onClick={() => setNumbers((current) => current.add(3).add(4))}
+						onClick={() => {
+							setNumbers((current) => current.add(3).add(4))
+						}}
 					/>
 				</>
 			)

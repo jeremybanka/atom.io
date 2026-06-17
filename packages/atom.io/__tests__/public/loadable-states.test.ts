@@ -175,21 +175,23 @@ describe(`async selector`, () => {
 	})
 
 	test(`selector as a caching mechanism for async data`, async () => {
-		const { atom, selector, getState /* store */ } = new Silo({
+		const silo = new Silo({
 			name: `math`,
 			lifespan: `ephemeral`,
 			isProduction: false,
 		})
 		// setLogLevel(`info`, store)
-		const dividendAtom = atom<number>({
+		const dividendAtom = silo.atom<number>({
 			key: `dividend`,
 			default: 0,
 		})
-		const divisorAtom = atom<number>({
+		const divisorAtom = silo.atom<number>({
 			key: `divisor`,
 			default: 0,
 		})
-		const quotientSelector = selector<Error | Promise<Error | number> | number>({
+		const quotientSelector = silo.selector<
+			Error | Promise<Error | number> | number
+		>({
 			key: `quotient`,
 			get: async ({ get }) => {
 				const dividend = get(dividendAtom)
@@ -212,14 +214,14 @@ describe(`async selector`, () => {
 				return Error(`quotient is not a string`)
 			},
 		})
-		const quotient0 = getState(quotientSelector)
+		const quotient0 = silo.getState(quotientSelector)
 		expect(quotient0).toBeInstanceOf(Promise)
 
-		const quotient1 = await getState(quotientSelector)
+		const quotient1 = await silo.getState(quotientSelector)
 
 		expect(quotient1).toBe(Number.POSITIVE_INFINITY)
 
-		const quotient2 = getState(quotientSelector)
+		const quotient2 = silo.getState(quotientSelector)
 		expect(quotient2).toBe(Number.POSITIVE_INFINITY)
 	})
 })

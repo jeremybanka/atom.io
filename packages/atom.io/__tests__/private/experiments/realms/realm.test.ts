@@ -26,7 +26,7 @@ import {
 	type Mutuals,
 	Realm,
 	type Vassal,
-} from "atom.io/experiments/realm"
+} from "atom.io/experiments/realms"
 import { clearStore, IMPLICIT } from "atom.io/internal"
 import { stateExists } from "atom.io/testing"
 import { UList } from "atom.io/transceivers/u-list"

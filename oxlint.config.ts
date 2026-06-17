@@ -1,4 +1,4 @@
-import { defineConfig, OxlintConfig } from "oxlint"
+import { defineConfig, type OxlintConfig } from "oxlint"
 
 import { LINT_IGNORES } from "./scripts/lint-common.ts"
 

@@ -54,6 +54,7 @@ const parse = cli(
 		},
 	},
 	{
+		// eslint-disable-next-line no-console
 		error: console.error.bind(console),
 		info: () => {},
 	},

@@ -1,6 +1,8 @@
-import { defineConfig } from "oxlint"
+import { defineConfig, OxlintConfig } from "oxlint"
 
-const config = defineConfig({
+import { LINT_IGNORES } from "./scripts/lint-common.ts"
+
+const config: OxlintConfig = defineConfig({
 	plugins: [`typescript`],
 	options: {
 		typeAware: true,
@@ -8,16 +10,7 @@ const config = defineConfig({
 	categories: {
 		correctness: `off`,
 	},
-	ignorePatterns: [
-		`**/.astro/**`,
-		`**/.wrangler/**`,
-		`**/_shared/**`,
-		`**/build/**`,
-		`**/coverage/**`,
-		`**/dist/**`,
-		`**/gen/**`,
-		`**/node_modules/**`,
-	],
+	ignorePatterns: LINT_IGNORES,
 	rules: {
 		"typescript/adjacent-overload-signatures": `error`,
 		"typescript/ban-ts-comment": `error`,

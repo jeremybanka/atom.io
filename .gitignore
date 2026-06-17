@@ -7,6 +7,7 @@
 .turbo
 .cache
 coverage
+coverage-public
 dist
 node_modules
 .pnpm-store

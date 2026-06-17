@@ -7,6 +7,7 @@ import type {
 import { getState, Silo } from "atom.io"
 import { hasImplicitStoreBeenCreated } from "atom.io/testing"
 import { UList } from "atom.io/transceivers/u-list"
+import { u } from "motion/react-client"
 
 import { createNullLogger } from "../__util__/nullLogger.ts"
 
@@ -57,6 +58,43 @@ describe(`silo`, () => {
 
 		expect(hasImplicitStoreBeenCreated()).toBe(false)
 		expect(() => getState(UNO__countAtom)).toThrow()
+	})
+	it(`creates mutable atoms, atom families, and transactions in its own store`, () => {
+		const Uno = new Silo({
+			name: `uno`,
+			lifespan: `ephemeral`,
+			isProduction: false,
+		})
+
+		const countsListAtom = Uno.mutableAtom<UList<string>>({
+			key: `countsList`,
+			class: UList,
+		})
+		const countAtoms = Uno.atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+		})
+		const createCounts = Uno.transaction<(upTo: number) => void>({
+			key: `increment`,
+			do: ({ set }, upTo) => {
+				let numberToAdd = upTo
+				while (numberToAdd) {
+					const key = String(Math.random()).slice(2)
+					set(countsListAtom, (ul) => {
+						ul.add(key)
+						return ul
+					})
+					numberToAdd--
+					set(countAtoms, key, numberToAdd)
+				}
+			},
+		})
+
+		expect(Uno.getState(countsListAtom)).toEqual(new UList([]))
+		Uno.runTransaction(createCounts)(3)
+		const countsList = Uno.getState(countsListAtom)
+		expect(countsList).toHaveLength(3)
+		expect(hasImplicitStoreBeenCreated()).toBe(false)
 	})
 	it(`creates stores with independent state families`, () => {
 		const Uno = new Silo({

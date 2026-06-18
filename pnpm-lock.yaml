@@ -220,8 +220,8 @@ importers:
         specifier: 4.1.9
         version: 4.1.9(vitest@4.1.9)
       arktype:
-        specifier: 2.2.0
-        version: 2.2.0
+        specifier: 2.2.1
+        version: 2.2.1
       break-check:
         specifier: 0.6.31
         version: 0.6.31(zod@4.4.3)
@@ -307,11 +307,11 @@ importers:
         specifier: 1.5.1
         version: 1.5.1
       arktype:
-        specifier: 2.2.0
-        version: 2.2.0
+        specifier: 2.2.1
+        version: 2.2.1
       comline:
         specifier: 0.5.0
-        version: 0.5.0(arktype@2.2.0)(zod@4.4.3)
+        version: 0.5.0(arktype@2.2.1)(zod@4.4.3)
       local-pkg:
         specifier: 1.2.1
         version: 1.2.1
@@ -3625,8 +3625,14 @@ packages:
   arkregex@0.0.5:
     resolution: {integrity: sha512-ncYjBdLlh5/QnVsAA8De16Tc9EqmYM7y/WU9j+236KcyYNUXogpz3sC4ATIZYzzLxwI+0sEOaQLEmLmRleaEXw==}
 
+  arkregex@0.0.6:
+    resolution: {integrity: sha512-9mvuMKQuibfWhBrsNYhsKhNb6k9oEHoAJ/FvDiqe8h+E9Siwe0/cro1WVOGgpajXQ9ZHd24yCOf2k35Q/QqUQw==}
+
   arktype@2.2.0:
     resolution: {integrity: sha512-t54MZ7ti5BhOEvzEkgKnWvqj+UbDfWig+DHr5I34xatymPusKLS0lQpNJd8M6DzmIto2QGszHfNKoFIT8tMCZQ==}
+
+  arktype@2.2.1:
+    resolution: {integrity: sha512-CWPJxNoSxrS+NYGB3ufwc/blFonESEW5vBQyYPVS0rf4STu8VWoAWfKJSl5vVVm56h4yxpwbODeYwy6XFKvojA==}
 
   array-iterate@2.0.1:
     resolution: {integrity: sha512-I1jXZMjAgCMmxT4qxXfPXa6SthSoE8h6gkSI9BGGNv8mP8G/v0blc+qFnZu6K42vTOiuME596QaLO0TP3Lk0xg==}
@@ -9435,11 +9441,21 @@ snapshots:
     dependencies:
       '@ark/util': 0.56.0
 
+  arkregex@0.0.6:
+    dependencies:
+      '@ark/util': 0.56.0
+
   arktype@2.2.0:
     dependencies:
       '@ark/schema': 0.56.0
       '@ark/util': 0.56.0
       arkregex: 0.0.5
+
+  arktype@2.2.1:
+    dependencies:
+      '@ark/schema': 0.56.0
+      '@ark/util': 0.56.0
+      arkregex: 0.0.6
 
   array-iterate@2.0.1: {}
 
@@ -9728,6 +9744,14 @@ snapshots:
       treetrunks: 0.1.8
     optionalDependencies:
       arktype: 2.2.0
+      zod: 4.4.3
+
+  comline@0.5.0(arktype@2.2.1)(zod@4.4.3):
+    dependencies:
+      '@standard-schema/spec': 1.1.0
+      treetrunks: 0.1.8
+    optionalDependencies:
+      arktype: 2.2.1
       zod: 4.4.3
 
   comma-separated-tokens@2.0.3: {}

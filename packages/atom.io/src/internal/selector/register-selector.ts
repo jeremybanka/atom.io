@@ -15,7 +15,7 @@ import type { Canonical } from "atom.io/foundations/canonical"
 import { findInStore } from "../families/index.ts"
 import { getFallback } from "../get-state/get-fallback.ts"
 import { readOrComputeValue } from "../get-state/read-or-compute-value.ts"
-import { reduceReference } from "../get-state/reduce-reference.ts"
+import { ensureState } from "../get-state/ensure-state.ts"
 import {
 	editRelationsInStore,
 	findRelationsInStore,
@@ -45,7 +45,7 @@ export function registerSelector(
 				| [ReadableToken<any, any, any>]
 		) => {
 			const target = newest(store)
-			const { token, family, subKey } = reduceReference(store, ...params)
+			const { token, family, subKey } = ensureState(store, ...params)
 			let dependencyValue: unknown
 			if (`counterfeit` in token && family && subKey) {
 				dependencyValue = getFallback(store, token, family, subKey)

@@ -2,7 +2,7 @@ import type { ReadableToken, StateUpdate, UpdateHandler } from "atom.io"
 
 import { hasRole } from "../atom/index.ts"
 import { readOrComputeValue } from "../get-state/index.ts"
-import { reduceReference } from "../get-state/reduce-reference.ts"
+import { ensureState } from "../get-state/ensure-state.ts"
 import { traceRootSelectorAtoms } from "../selector/index.ts"
 import type { Store } from "../store/index.ts"
 import { withdraw } from "../store/index.ts"
@@ -26,7 +26,7 @@ export function subscribeToState<T, E>(
 		}
 		handleUpdate(update)
 	}
-	reduceReference(store, token)
+	ensureState(store, token)
 	const state = withdraw(store, token)
 	store.logger.info(`👀`, state.type, state.key, `Adding subscription "${key}"`)
 	const isSelector =

@@ -18,7 +18,7 @@ import type {
 } from "atom.io"
 import { Subject } from "atom.io/foundations/subject"
 
-import { reduceReference } from "../get-state/reduce-reference.ts"
+import { ensureState } from "../get-state/ensure-state.ts"
 import { newest } from "../lineage.ts"
 import { getUpdateToken } from "../mutable/index.ts"
 import { deposit, type Store, withdraw } from "../store/index.ts"
@@ -129,7 +129,7 @@ function addAtomToTimeline(
 	atomToken: AtomToken<any, any, any>,
 	tl: Timeline<any>,
 ): void {
-	reduceReference(store, atomToken)
+	ensureState(store, atomToken)
 	let maybeAtom = withdraw(store, atomToken)
 	if (maybeAtom.type === `mutable_atom`) {
 		const updateToken = getUpdateToken(maybeAtom)

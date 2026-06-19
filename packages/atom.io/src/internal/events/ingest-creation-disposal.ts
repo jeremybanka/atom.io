@@ -48,7 +48,9 @@ export function ingestDisposalEvent(
 		}
 		case `oldValue`: {
 			createInStore(store, event)
-			store.valueMap.set(event.token.key, event.value)
+			if (`value` in event) {
+				store.valueMap.set(event.token.key, event.value)
+			}
 			break
 		}
 	}

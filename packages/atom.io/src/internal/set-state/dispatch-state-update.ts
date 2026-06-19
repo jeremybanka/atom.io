@@ -1,9 +1,12 @@
 import type {
+	AtomCreationEvent,
+	AtomToken,
 	AtomUpdateEvent,
-	StateCreationEvent,
 	StateUpdate,
 	TimelineEvent,
+	TransactionSubEvent,
 } from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical/index.ts"
 import type { Subject } from "atom.io/foundations/subject"
 
 import { hasRole } from "../atom/index.ts"
@@ -13,6 +16,7 @@ import type { Transceiver } from "../mutable/index.ts"
 import { isTransceiver } from "../mutable/index.ts"
 import type { OpenOperation } from "../operation.ts"
 import type {
+	AtomFamily,
 	MutableAtom,
 	WritableFamily,
 	WritableState,
@@ -34,35 +38,37 @@ export function dispatchOrDeferStateUpdate<T, E>(
 	const token = deposit(state)
 	if (stateIsNewlyCreated && family) {
 		state.subject.next({ newValue })
-		const stateCreationEvent: StateCreationEvent<any> & TimelineEvent<any> = {
-			checkpoint: true,
-			type: `state_creation`,
-			subType: `writable`,
-			token,
-			timestamp: Date.now(),
-			value: newValue,
-		}
-		target.operation.subEvents.push(stateCreationEvent)
-		const familySubject = family.subject as Subject<StateCreationEvent<any>>
-		familySubject.next(stateCreationEvent)
+
 		const innerTarget = newest(target)
 		if (token.family) {
-			if (isRootStore(innerTarget)) {
-				switch (token.type) {
-					case `atom`:
-					case `mutable_atom`:
+			switch (token.type) {
+				case `atom`:
+				case `mutable_atom`:
+					const atomCreationEvent: AtomCreationEvent<AtomToken<T, any, E>> &
+						TimelineEvent<AtomToken<T, any, E>> = {
+						checkpoint: true,
+						type: `atom_creation`,
+						token,
+						timestamp: Date.now(),
+						value: newValue,
+					}
+					target.operation.subEvents.push(atomCreationEvent)
+					const familySubject = (family as AtomFamily<T, any, E>)
+						.subject as Subject<AtomCreationEvent<AtomToken<T, any, E>>>
+					familySubject.next(atomCreationEvent)
+					if (isRootStore(innerTarget)) {
 						target.on.atomCreation.next(token)
-						break
-					case `writable_pure_selector`:
-					case `writable_held_selector`:
-						target.on.selectorCreation.next(token)
-						break
-				}
-			} else if (
-				isChildStore(innerTarget) &&
-				innerTarget.on.transactionApplying.state === null
-			) {
-				innerTarget.transactionMeta.update.subEvents.push(stateCreationEvent)
+					} else if (
+						isChildStore(innerTarget) &&
+						innerTarget.on.transactionApplying.state === null
+					) {
+						innerTarget.transactionMeta.update.subEvents.push(atomCreationEvent)
+					}
+					break
+				case `writable_pure_selector`:
+				case `writable_held_selector`:
+					target.on.selectorCreation.next(token)
+					break
 			}
 		}
 		return /* bailing early here to avoid redundant update */

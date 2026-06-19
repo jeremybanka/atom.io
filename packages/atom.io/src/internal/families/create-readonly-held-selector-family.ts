@@ -3,12 +3,10 @@ import type {
 	ReadonlyHeldSelectorFamilyOptions,
 	ReadonlyHeldSelectorFamilyToken,
 	ReadonlyHeldSelectorToken,
-	StateLifecycleEvent,
 } from "atom.io"
 import { PRETTY_ENTITY_NAMES } from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
 import { stringifyJson } from "atom.io/foundations/json"
-import { Subject } from "atom.io/foundations/subject"
 
 import { newest } from "../lineage.ts"
 import { createReadonlyHeldSelector } from "../selector/index.ts"
@@ -41,10 +39,6 @@ export function createReadonlyHeldSelectorFamily<
 		)
 	}
 
-	const subject = new Subject<
-		StateLifecycleEvent<ReadonlyHeldSelectorToken<T>>
-	>()
-
 	const create = (key: K): ReadonlyHeldSelectorToken<T> => {
 		const subKey = stringifyJson(key)
 		const family: FamilyMetadata = { key: familyKey, subKey }
@@ -66,7 +60,6 @@ export function createReadonlyHeldSelectorFamily<
 		...familyToken,
 		create,
 		internalRoles,
-		subject,
 		install: (s: RootStore) => createReadonlyHeldSelectorFamily(s, options),
 		default: options.const,
 	}

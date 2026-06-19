@@ -64,10 +64,18 @@ export type TokenType<
 		| ReadableToken<any, any, any>
 		| TransactionToken<any>,
 > =
-	Comparison extends ReadableToken<infer RepresentedValue>
-		? RepresentedValue
-		: Comparison extends ReadableFamilyToken<infer RepresentedValue, any>
-			? RepresentedValue
+	Comparison extends ReadableToken<
+		infer RepresentedValue,
+		any,
+		infer RepresentedError
+	>
+		? RepresentedValue | RepresentedError
+		: Comparison extends ReadableFamilyToken<
+					infer RepresentedValue,
+					any,
+					infer RepresentedError
+			  >
+			? RepresentedValue | RepresentedError
 			: Comparison extends TransactionToken<infer TokenFn>
 				? TokenFn
 				: never

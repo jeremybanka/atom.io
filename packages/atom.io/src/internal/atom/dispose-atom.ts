@@ -1,4 +1,4 @@
-import type { AtomDisposalEvent, AtomToken, StateLifecycleEvent } from "atom.io"
+import type { AtomDisposalEvent, AtomLifecycleEvent, AtomToken } from "atom.io"
 import type { Subject } from "atom.io/foundations/subject"
 
 import { getFamilyOfToken } from "../families/get-family-of-token.ts"
@@ -20,19 +20,21 @@ export function disposeAtom(
 		store.logger.error(`❌`, `atom`, key, `Standalone atoms cannot be disposed.`)
 	} else {
 		atom.cleanup?.()
-		const lastValue = store.valueMap.get(atom.key)
+		const valueIsSetAtDisposalTime = store.valueMap.has(atom.key)
 		const familyToken = getFamilyOfToken(store, atomToken)
 		const atomFamily = withdraw(store, familyToken)
 		const subject = atomFamily.subject as Subject<
-			StateLifecycleEvent<AtomToken<any, any, any>>
+			AtomLifecycleEvent<AtomToken<any, any, any>>
 		>
 
 		const disposalEvent: AtomDisposalEvent<AtomToken<any, any, any>> = {
-			type: `state_disposal`,
-			subType: `atom`,
+			type: `atom_disposal`,
 			token: atomToken,
-			value: lastValue,
 			timestamp: Date.now(),
+		}
+		if (valueIsSetAtDisposalTime) {
+			const lastValue = store.valueMap.get(atom.key)
+			disposalEvent.value = lastValue
 		}
 
 		subject.next(disposalEvent)

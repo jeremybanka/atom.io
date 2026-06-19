@@ -107,6 +107,7 @@ export function reduceReference<T, K extends Canonical, E>(
 						break
 				}
 			} else if (
+				`subject` in family &&
 				isChildStore(target) &&
 				target.on.transactionApplying.state === null
 			) {

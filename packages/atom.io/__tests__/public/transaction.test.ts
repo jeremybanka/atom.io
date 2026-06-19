@@ -109,7 +109,7 @@ describe(`transaction`, () => {
 		runTransaction(addCountPlusSomeValue)(777)
 		expect(getState(findState(countPlusSomeValueSelectors, 777))).toEqual(778)
 	})
-	it.only(`disposes of states in a transaction`, () => {
+	it(`disposes of states in a transaction`, () => {
 		const countAtoms = atomFamily<number, string>({
 			key: `count`,
 			default: 0,

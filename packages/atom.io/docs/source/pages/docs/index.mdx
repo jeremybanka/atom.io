@@ -9,6 +9,7 @@ import DeclareASelector from "x/core/selector/declare-a-selector.gen";
 import UseASelector from "x/core/selector/use-a-selector.gen";
 
 import DeclareAFamily from "x/core/families/declare-a-family.gen";
+import ResetAndDispose from "x/core/families/reset-and-dispose.gen";
 import UseAnIndexToTrackFamilyMembers from "x/core/families/use-an-index-to-track-family-members.gen";
 
 import CallAFamilyInATransaction from "x/core/transaction/use-a-family-in-a-transaction.gen";
@@ -148,7 +149,13 @@ history.
         <td>
           <code>resetState</code>
         </td>
-        <td>Recompute a reactive variable and its dependencies from scratch.</td>
+        <td>Reset a writable state to its default value.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>disposeState</code>
+        </td>
+        <td>Dispose of an allocated family member and run its cleanup.</td>
       </tr>
       <tr>
         <td>
@@ -224,6 +231,27 @@ This is the key to high-performance interactivity in atom.io: **the smaller the 
 In this example, we use a single `atom<string[]>` to track the members of the family.
 
 It is up to you to decide how to track the members of the families you create. `atom.io` does not do this for you, because different kinds of collections have different performance characteristics. There is no one-size-fits-all solution.
+
+## reset and dispose
+
+Use `resetState` when a state should keep existing, but its value should return
+to its default. For an atom, that writes the default value again. If the default
+is a function, atom.io runs it again. For a mutable atom, reset creates a fresh
+transceiver. For a writable selector, atom.io resets the root atoms that
+determine the selector's value, then recomputes the selector.
+
+Use `disposeState` when a dynamically allocated family member has left your
+model. Disposal removes that member from the store, clears its retained
+state data, and runs any cleanup returned by atom effects. Pass either a family
+and key, or a family member token returned by `findState`.
+
+<ResetAndDispose client:load />
+
+`disposeState` only disposes family members. Standalone atoms and selectors are
+permanent parts of the store shape, so attempting to dispose one logs an error
+and leaves it in place. Disposal also does not maintain your application-level
+indexes for you, and it does not automatically prune downstream selector family
+members that have already been created.
 
 ## transaction
 

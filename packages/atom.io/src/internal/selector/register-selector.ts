@@ -13,9 +13,9 @@ import type {
 import type { Canonical } from "atom.io/foundations/canonical"
 
 import { findInStore } from "../families/index.ts"
+import { ensureState } from "../get-state/ensure-state.ts"
 import { getFallback } from "../get-state/get-fallback.ts"
 import { readOrComputeValue } from "../get-state/read-or-compute-value.ts"
-import { ensureState } from "../get-state/ensure-state.ts"
 import {
 	editRelationsInStore,
 	findRelationsInStore,

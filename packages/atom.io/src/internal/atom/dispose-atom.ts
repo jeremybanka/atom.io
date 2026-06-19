@@ -20,7 +20,7 @@ export function disposeAtom(
 		store.logger.error(`❌`, `atom`, key, `Standalone atoms cannot be disposed.`)
 	} else {
 		atom.cleanup?.()
-		const lastValue = store.valueMap.get(atom.key)
+		const valueIsSetAtDisposalTime = store.valueMap.has(atom.key)
 		const familyToken = getFamilyOfToken(store, atomToken)
 		const atomFamily = withdraw(store, familyToken)
 		const subject = atomFamily.subject as Subject<
@@ -31,7 +31,10 @@ export function disposeAtom(
 			type: `atom_disposal`,
 			token: atomToken,
 			timestamp: Date.now(),
-			value: lastValue,
+		}
+		if (valueIsSetAtDisposalTime) {
+			const lastValue = store.valueMap.get(atom.key)
+			disposalEvent.value = lastValue
 		}
 
 		subject.next(disposalEvent)

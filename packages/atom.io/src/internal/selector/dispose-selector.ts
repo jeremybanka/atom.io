@@ -31,13 +31,6 @@ export function disposeSelector(
 						key: familyMeta.key,
 						type: `writable_held_selector_family`,
 					}
-					const family = withdraw(store, familyToken)
-					family.subject.next({
-						type: `state_disposal`,
-						subType: `selector`,
-						token: selectorToken,
-						timestamp: Date.now(),
-					})
 				}
 				break
 			case `writable_pure_selector`:
@@ -47,13 +40,6 @@ export function disposeSelector(
 						key: familyMeta.key,
 						type: `writable_pure_selector_family`,
 					}
-					const family = withdraw(store, familyToken)
-					family.subject.next({
-						type: `state_disposal`,
-						subType: `selector`,
-						token: selectorToken,
-						timestamp: Date.now(),
-					})
 				}
 				break
 			case `readonly_held_selector`:
@@ -63,13 +49,6 @@ export function disposeSelector(
 						key: familyMeta.key,
 						type: `readonly_held_selector_family`,
 					}
-					const family = withdraw(store, familyToken)
-					family.subject.next({
-						type: `state_disposal`,
-						subType: `selector`,
-						token: selectorToken,
-						timestamp: Date.now(),
-					})
 				}
 				break
 			case `readonly_pure_selector`:
@@ -79,13 +58,6 @@ export function disposeSelector(
 						key: familyMeta.key,
 						type: `readonly_pure_selector_family`,
 					}
-					const family = withdraw(store, familyToken)
-					family.subject.next({
-						type: `state_disposal`,
-						subType: `selector`,
-						token: selectorToken,
-						timestamp: Date.now(),
-					})
 				}
 				break
 		}
@@ -96,14 +68,8 @@ export function disposeSelector(
 		target.moleculeData.delete(familyMeta.key, familyMeta.subKey)
 		store.logger.info(`🔥`, selectorToken.type, key, `deleted`)
 		if (isChildStore(target) && target.transactionMeta.phase === `building`) {
-			target.transactionMeta.update.subEvents.push({
-				type: `state_disposal`,
-				subType: `selector`,
-				token: selectorToken,
-				timestamp: Date.now(),
-			})
-		} else {
-			store.on.selectorDisposal.next(selectorToken)
+			return
 		}
+		store.on.selectorDisposal.next(selectorToken)
 	}
 }

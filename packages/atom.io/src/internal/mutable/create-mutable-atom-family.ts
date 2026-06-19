@@ -1,10 +1,10 @@
 import type {
+	AtomLifecycleEvent,
 	FamilyMetadata,
 	MutableAtomFamilyOptions,
 	MutableAtomFamilyToken,
 	MutableAtomOptions,
 	MutableAtomToken,
-	StateLifecycleEvent,
 } from "atom.io"
 import { PRETTY_ENTITY_NAMES } from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
@@ -43,7 +43,7 @@ export function createMutableAtomFamily<
 		)
 	}
 
-	const subject = new Subject<StateLifecycleEvent<MutableAtomToken<T>>>()
+	const subject = new Subject<AtomLifecycleEvent<MutableAtomToken<T, K>>>()
 
 	const create = (key: K): MutableAtomToken<T> => {
 		const subKey = stringifyJson(key)

@@ -1,10 +1,11 @@
 import type {
+	AtomCreationEvent,
+	AtomDisposalEvent,
+	AtomToken,
 	MoleculeCreationEvent,
 	MoleculeDisposalEvent,
 	MoleculeTransferEvent,
 	ReadableToken,
-	StateCreationEvent,
-	StateDisposalEvent,
 } from "atom.io"
 import { parseJson, stringifyJson } from "atom.io/foundations/json"
 
@@ -20,7 +21,7 @@ import type { Store } from "../store/index.ts"
 
 export function ingestCreationEvent(
 	store: Store,
-	event: StateCreationEvent<any>,
+	event: AtomCreationEvent<any>,
 	applying: `newValue` | `oldValue`,
 ): void {
 	switch (applying) {
@@ -37,7 +38,7 @@ export function ingestCreationEvent(
 
 export function ingestDisposalEvent(
 	store: Store,
-	event: StateDisposalEvent<ReadableToken<any, any, any>>,
+	event: AtomDisposalEvent<any>,
 	applying: `newValue` | `oldValue`,
 ): void {
 	switch (applying) {
@@ -47,9 +48,7 @@ export function ingestDisposalEvent(
 		}
 		case `oldValue`: {
 			createInStore(store, event)
-			if (event.subType === `atom`) {
-				store.valueMap.set(event.token.key, event.value)
-			}
+			store.valueMap.set(event.token.key, event.value)
 			break
 		}
 	}
@@ -57,14 +56,10 @@ export function ingestDisposalEvent(
 
 function createInStore(
 	store: Store,
-	event: StateCreationEvent<any> | StateDisposalEvent<any>,
+	event: AtomCreationEvent<any> | AtomDisposalEvent<any>,
 ): void {
 	const { token } = event
-	if (event.subType === `writable` && event.value) {
-		setIntoStore(store, token, event.value)
-	} else {
-		getFromStore(store, token)
-	}
+	setIntoStore(store, token, event.value)
 }
 
 export function ingestMoleculeCreationEvent(

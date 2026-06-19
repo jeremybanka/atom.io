@@ -1,4 +1,4 @@
-import type { AtomUpdateEvent, ReadableToken, StateCreationEvent } from "atom.io"
+import type { AtomCreationEvent, AtomUpdateEvent, ReadableToken } from "atom.io"
 
 import type { Store } from "./store/index.ts"
 import { isChildStore } from "./transaction/is-root-store.ts"
@@ -16,7 +16,7 @@ export type OpenOperation<
 	done: Set<string>
 	prev: Map<string, any>
 	timestamp: number
-	subEvents: (AtomUpdateEvent<any> | StateCreationEvent<any>)[]
+	subEvents: (AtomUpdateEvent<any> | AtomCreationEvent<any>)[]
 }
 
 export function openOperation(

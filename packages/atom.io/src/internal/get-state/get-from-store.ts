@@ -2,9 +2,9 @@ import type { ReadableFamilyToken, ReadableToken, ViewOf } from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
 
 import { type Store, withdraw } from "../store/index.ts"
+import { ensureState } from "./ensure-state.ts"
 import { getFallback } from "./get-fallback.ts"
 import { readOrComputeValue } from "./read-or-compute-value.ts"
-import { ensureState } from "./ensure-state.ts"
 
 export function getFromStore<T, E = never>(
 	store: Store,

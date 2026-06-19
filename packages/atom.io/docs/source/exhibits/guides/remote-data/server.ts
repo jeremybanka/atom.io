@@ -29,7 +29,8 @@ const profileData: Profile | undefined = {
 	plan: `pro`,
 }
 
-const rowData: readonly Row[] = [
+let nextRowNumber = 4
+let rowData: Row[] = [
 	{
 		id: `row_01`,
 		title: `Repair optimistic row hydration`,
@@ -57,6 +58,10 @@ const rowQuerySchema = type({
 	status: `'open' | 'closed' | null`,
 })
 
+const rowCreateSchema = type({
+	title: `string`,
+})
+
 export const server = {
 	users: {
 		profile: os
@@ -77,6 +82,18 @@ export const server = {
 	rows: {
 		list: os.handler(() => {
 			return rowData
+		}),
+		create: os.input(rowCreateSchema).handler(({ input }) => {
+			const id = `row_${String(nextRowNumber).padStart(2, `0`)}`
+			nextRowNumber++
+			const row: Row = {
+				id,
+				title: input.title,
+				status: `open`,
+				updatedAt: new Date().toISOString(),
+			}
+			rowData = [row, ...rowData]
+			return row
 		}),
 		listPage: os.input(rowQuerySchema).handler(({ input }) => {
 			const search = input.search.trim().toLowerCase()

@@ -22,10 +22,10 @@ export function ingestTransactionOutcomeEvent(
 			case `atom_update`:
 				ingestAtomUpdateEvent(store, subEvent, applying)
 				break
-			case `state_creation`:
+			case `atom_creation`:
 				ingestCreationEvent(store, subEvent, applying)
 				break
-			case `state_disposal`:
+			case `atom_disposal`:
 				ingestDisposalEvent(store, subEvent, applying)
 				break
 			case `molecule_creation`:

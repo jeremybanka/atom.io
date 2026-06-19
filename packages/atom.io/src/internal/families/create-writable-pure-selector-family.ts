@@ -4,7 +4,6 @@ import type {
 	findState,
 	getInternalRelations,
 	getState,
-	StateLifecycleEvent,
 	WritablePureSelectorFamilyOptions,
 	WritablePureSelectorFamilyToken,
 	WritablePureSelectorOptions,
@@ -13,7 +12,6 @@ import type {
 import { PRETTY_ENTITY_NAMES } from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
 import { stringifyJson } from "atom.io/foundations/json"
-import { Subject } from "atom.io/foundations/subject"
 
 import { getFromStore } from "../get-state/index.ts"
 import {
@@ -50,9 +48,6 @@ export function createWritablePureSelectorFamily<T, K extends Canonical, E>(
 			`Overwriting an existing ${PRETTY_ENTITY_NAMES[existing.type]} "${existing.key}" in store "${store.config.name}". You can safely ignore this warning if it is due to hot module replacement.`,
 		)
 	}
-	const subject = new Subject<
-		StateLifecycleEvent<WritablePureSelectorToken<T, K, E>>
-	>()
 
 	const create = <Key extends K>(
 		key: Key,
@@ -81,7 +76,6 @@ export function createWritablePureSelectorFamily<T, K extends Canonical, E>(
 		...familyToken,
 		create,
 		internalRoles,
-		subject,
 		install: (s: RootStore) => createWritablePureSelectorFamily(s, options),
 		default: (key: K) => {
 			const getFn = options.get(key)

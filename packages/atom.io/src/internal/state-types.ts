@@ -1,6 +1,6 @@
 import type {
+	AtomLifecycleEvent,
 	FamilyMetadata,
-	Loadable,
 	MutableAtomFamilyToken,
 	MutableAtomToken,
 	ReadonlyHeldSelectorFamilyToken,
@@ -9,7 +9,6 @@ import type {
 	ReadonlyPureSelectorToken,
 	RegularAtomFamilyToken,
 	RegularAtomToken,
-	StateLifecycleEvent,
 	StateUpdate,
 	WritableHeldSelectorFamilyToken,
 	WritableHeldSelectorToken,
@@ -118,11 +117,10 @@ export type RegularAtomFamily<T, K extends Canonical, E = never> = Flat<
 		default: T | ((key: K) => T)
 		install: (store: RootStore) => void
 		internalRoles: string[] | undefined
-		subject: Subject<StateLifecycleEvent<RegularAtomToken<T, K, E>>>
+		subject: Subject<AtomLifecycleEvent<RegularAtomToken<T, K, E>>>
 	}
 >
 
-// dprint-ignore
 export type MutableAtomFamily<
 	T extends Transceiver<any, any, any>,
 	K extends Canonical,
@@ -132,7 +130,7 @@ export type MutableAtomFamily<
 		class: ConstructorOf<T>
 		install: (store: RootStore) => void
 		internalRoles: string[] | undefined
-		subject: Subject<StateLifecycleEvent<MutableAtomToken<T>>>
+		subject: Subject<AtomLifecycleEvent<MutableAtomToken<T, K>>>
 	}
 >
 
@@ -140,47 +138,39 @@ export type AtomFamily<T, K extends Canonical, E> =
 	| MutableAtomFamily<T extends Transceiver<any, any, any> ? T : never, K>
 	| RegularAtomFamily<T, K, E>
 
-// dprint-ignore
 export type WritablePureSelectorFamily<T, K extends Canonical, E> = Flat<
 	WritablePureSelectorFamilyToken<T, K, E> & {
 		create: <Key extends K>(key: Key) => WritablePureSelectorToken<T, Key, E>
 		default: (key: K) => T
 		install: (store: RootStore) => void
 		internalRoles: string[] | undefined
-		subject: Subject<StateLifecycleEvent<WritablePureSelectorToken<T, K, E>>>
 	}
 >
 
-// dprint-ignore
 export type WritableHeldSelectorFamily<T, K extends Canonical> = Flat<
 	WritableHeldSelectorFamilyToken<T, K> & {
 		create: <Key extends K>(key: Key) => WritableHeldSelectorToken<T, Key>
 		default: (key: K) => T
 		install: (store: RootStore) => void
 		internalRoles: string[] | undefined
-		subject: Subject<StateLifecycleEvent<WritableHeldSelectorToken<T, K>>>
 	}
 >
 
-// dprint-ignore
 export type ReadonlyPureSelectorFamily<T, K extends Canonical, E> = Flat<
 	ReadonlyPureSelectorFamilyToken<T, K, E> & {
 		create: <Key extends K>(key: Key) => ReadonlyPureSelectorToken<T, Key, E>
 		default: (key: K) => T
 		install: (store: RootStore) => void
 		internalRoles: string[] | undefined
-		subject: Subject<StateLifecycleEvent<ReadonlyPureSelectorToken<T, K, E>>>
 	}
 >
 
-// dprint-ignore
 export type ReadonlyHeldSelectorFamily<T, K extends Canonical> = Flat<
 	ReadonlyHeldSelectorFamilyToken<T, K> & {
 		create: <Key extends K>(key: Key) => ReadonlyHeldSelectorToken<T, Key>
 		default: (key: K) => T
 		install: (store: RootStore) => void
 		internalRoles: string[] | undefined
-		subject: Subject<StateLifecycleEvent<ReadonlyHeldSelectorToken<T>>>
 	}
 >
 

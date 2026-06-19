@@ -1,9 +1,9 @@
 import type {
+	AtomCreationEvent,
+	AtomDisposalEvent,
 	AtomFamilyToken,
 	AtomToken,
 	AtomUpdateEvent,
-	StateCreationEvent,
-	StateDisposalEvent,
 	StateUpdate,
 	TimelineEvent,
 	TimelineManageable,
@@ -284,7 +284,7 @@ function buildSelectorUpdate(
 	store: Store,
 	tl: Timeline<any>,
 	atomToken: AtomToken<any, any, any>,
-	eventOrUpdate: StateCreationEvent<any> | StateUpdate<any>,
+	eventOrUpdate: AtomCreationEvent<any> | StateUpdate<any>,
 	currentSelectorToken: WritablePureSelectorToken<any>,
 	currentSelectorTime: number,
 ) {
@@ -378,8 +378,8 @@ function filterTransactionSubEvents(
 			let familyKey: string | undefined
 			switch (updateFromTx.type) {
 				case `atom_update`:
-				case `state_creation`:
-				case `state_disposal`:
+				case `atom_creation`:
+				case `atom_disposal`:
 					key = updateFromTx.token.key
 					familyKey = updateFromTx.token.family?.key
 					break
@@ -410,7 +410,7 @@ function filterTransactionSubEvents(
 
 function handleStateLifecycleEvent(
 	store: Store,
-	event: StateCreationEvent<any> | StateDisposalEvent<any>,
+	event: AtomCreationEvent<any> | AtomDisposalEvent<any>,
 	tl: Timeline<any>,
 ): void {
 	const currentSelectorToken =
@@ -434,7 +434,7 @@ function handleStateLifecycleEvent(
 			} else if (
 				currentSelectorToken &&
 				currentSelectorTime &&
-				event.type === `state_creation`
+				event.type === `atom_creation`
 			) {
 				buildSelectorUpdate(
 					store,
@@ -450,10 +450,10 @@ function handleStateLifecycleEvent(
 		}
 	}
 	switch (event.type) {
-		case `state_creation`:
+		case `atom_creation`:
 			addAtomToTimeline(store, event.token, tl)
 			break
-		case `state_disposal`:
+		case `atom_disposal`:
 			tl.subscriptions.get(event.token.key)?.()
 			tl.subscriptions.delete(event.token.key)
 			break

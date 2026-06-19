@@ -1,7 +1,7 @@
 import type {
+	AtomCreationEvent,
 	ReadableFamilyToken,
 	ReadableToken,
-	StateCreationEvent,
 } from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
 import { parseJson } from "atom.io/foundations/json"
@@ -82,14 +82,15 @@ export function reduceReference<T, K extends Canonical, E>(
 				subType = `writable`
 				break
 		}
-		const stateCreationEvent: StateCreationEvent<any> = {
-			type: `state_creation`,
-			subType,
+		const atomCreationEvent: AtomCreationEvent<any> = {
+			type: `atom_creation`,
 			token,
 			timestamp: Date.now(),
 		}
-		const familySubject = family.subject as Subject<StateCreationEvent<any>>
-		familySubject.next(stateCreationEvent)
+		if (`subject` in family) {
+			const familySubject = family.subject as Subject<AtomCreationEvent<any>>
+			familySubject.next(atomCreationEvent)
+		}
 		const target = newest(store)
 		if (token.family) {
 			if (isRootStore(target)) {
@@ -109,7 +110,7 @@ export function reduceReference<T, K extends Canonical, E>(
 				isChildStore(target) &&
 				target.on.transactionApplying.state === null
 			) {
-				target.transactionMeta.update.subEvents.push(stateCreationEvent)
+				target.transactionMeta.update.subEvents.push(atomCreationEvent)
 			}
 		}
 	}

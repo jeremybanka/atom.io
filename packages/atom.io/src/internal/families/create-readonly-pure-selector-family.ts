@@ -8,12 +8,10 @@ import type {
 	ReadonlyPureSelectorFamilyToken,
 	ReadonlyPureSelectorOptions,
 	ReadonlyPureSelectorToken,
-	StateLifecycleEvent,
 } from "atom.io"
 import { PRETTY_ENTITY_NAMES } from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
 import { stringifyJson } from "atom.io/foundations/json"
-import { Subject } from "atom.io/foundations/subject"
 
 import { getFromStore } from "../get-state/index.ts"
 import {
@@ -50,10 +48,6 @@ export function createReadonlyPureSelectorFamily<T, K extends Canonical, E>(
 		)
 	}
 
-	const subject = new Subject<
-		StateLifecycleEvent<ReadonlyPureSelectorToken<T, K, E>>
-	>()
-
 	const create = <Key extends K>(
 		key: Key,
 	): ReadonlyPureSelectorToken<T, Key, E> => {
@@ -80,7 +74,6 @@ export function createReadonlyPureSelectorFamily<T, K extends Canonical, E>(
 		...familyToken,
 		create,
 		internalRoles,
-		subject,
 		install: (s: RootStore) => createReadonlyPureSelectorFamily(s, options),
 		default: (key: K) => {
 			const getFn = options.get(key)

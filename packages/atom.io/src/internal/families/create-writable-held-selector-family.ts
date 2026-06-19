@@ -1,6 +1,5 @@
 import type {
 	FamilyMetadata,
-	StateLifecycleEvent,
 	WritableHeldSelectorFamilyOptions,
 	WritableHeldSelectorFamilyToken,
 	WritableHeldSelectorToken,
@@ -41,9 +40,6 @@ export function createWritableHeldSelectorFamily<
 			`Overwriting an existing ${PRETTY_ENTITY_NAMES[existing.type]} "${existing.key}" in store "${store.config.name}". You can safely ignore this warning if it is due to hot module replacement.`,
 		)
 	}
-	const subject = new Subject<
-		StateLifecycleEvent<WritableHeldSelectorToken<T>>
-	>()
 
 	const create = (key: K): WritableHeldSelectorToken<T> => {
 		const subKey = stringifyJson(key)
@@ -67,7 +63,6 @@ export function createWritableHeldSelectorFamily<
 		...familyToken,
 		create,
 		internalRoles,
-		subject,
 		install: (s: RootStore) => createWritableHeldSelectorFamily(s, options),
 		default: options.const,
 	}

@@ -71,6 +71,14 @@ export function timeTravel(
 
 	for (const event of events) {
 		switch (event.type) {
+			case `atom_creation`: {
+				ingestCreationEvent(store, event, applying)
+				break
+			}
+			case `atom_disposal`: {
+				ingestDisposalEvent(store, event, applying)
+				break
+			}
 			case `atom_update`: {
 				ingestAtomUpdateEvent(store, event, applying)
 				break
@@ -81,14 +89,6 @@ export function timeTravel(
 			}
 			case `transaction_outcome`: {
 				ingestTransactionOutcomeEvent(store, event, applying)
-				break
-			}
-			case `state_creation`: {
-				ingestCreationEvent(store, event, applying)
-				break
-			}
-			case `state_disposal`: {
-				ingestDisposalEvent(store, event, applying)
 				break
 			}
 		}

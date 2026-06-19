@@ -2,10 +2,10 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"name": "Debug Vitest with /opt/homebrew/bin/node",
+			"name": "Debug Vitest with node",
 			"type": "node",
 			"request": "launch",
-			"runtimeExecutable": "/opt/homebrew/bin/node",
+			"runtimeExecutable": "node",
 			"autoAttachChildProcesses": true,
 			"skipFiles": ["<node_internals>/**", "**/node_modules/**"],
 			"cwd": "${workspaceRoot}/packages/atom.io",

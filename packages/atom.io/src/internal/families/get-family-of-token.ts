@@ -1,4 +1,5 @@
 import type {
+	AtomToken,
 	MutableAtomToken,
 	ReadableToken,
 	ReadonlyPureSelectorToken,
@@ -10,6 +11,7 @@ import type { Canonical } from "atom.io/foundations/canonical"
 
 import type { Transceiver } from "../mutable/index.ts"
 import type {
+	AtomFamily,
 	MutableAtomFamily,
 	ReadableFamily,
 	ReadonlyPureSelectorFamily,
@@ -28,6 +30,11 @@ export function getFamilyOfToken<T, K extends Canonical, E>(
 	store: Store,
 	token: RegularAtomToken<T, K, E>,
 ): RegularAtomFamily<T, K, E>
+
+export function getFamilyOfToken<T, K extends Canonical, E>(
+	store: Store,
+	token: AtomToken<T, K, E>,
+): AtomFamily<T, K, E>
 
 export function getFamilyOfToken<T, K extends Canonical, E>(
 	store: Store,

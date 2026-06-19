@@ -1,7 +1,7 @@
 import type {
+	AtomCreationEvent,
 	ReadableFamilyToken,
 	ReadableToken,
-	StateCreationEvent,
 } from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
 import { parseJson } from "atom.io/foundations/json"
@@ -16,7 +16,7 @@ import type { Store } from "../store/index.ts"
 import { withdraw } from "../store/index.ts"
 import { isChildStore, isRootStore } from "../transaction/index.ts"
 
-export function reduceReference<T, K extends Canonical, E>(
+export function ensureState<T, K extends Canonical, E>(
 	store: Store,
 	...params:
 		| [token: ReadableFamilyToken<T, K, E>, key: NoInfer<K>]
@@ -25,7 +25,6 @@ export function reduceReference<T, K extends Canonical, E>(
 	token: ReadableToken<T, K, E>
 	family: ReadableFamily<T, K, E> | undefined
 	subKey: NoInfer<K> | undefined
-	isNew: boolean
 } {
 	let existingToken: ReadableToken<T, K, E> | undefined
 	let brandNewToken: ReadableToken<T, K, E> | undefined
@@ -44,7 +43,6 @@ export function reduceReference<T, K extends Canonical, E>(
 					token,
 					family,
 					subKey,
-					isNew: false,
 				}
 			}
 			if (!existingToken) {
@@ -82,14 +80,15 @@ export function reduceReference<T, K extends Canonical, E>(
 				subType = `writable`
 				break
 		}
-		const stateCreationEvent: StateCreationEvent<any> = {
-			type: `state_creation`,
-			subType,
+		const atomCreationEvent: AtomCreationEvent<any> = {
+			type: `atom_creation`,
 			token,
 			timestamp: Date.now(),
 		}
-		const familySubject = family.subject as Subject<StateCreationEvent<any>>
-		familySubject.next(stateCreationEvent)
+		if (`subject` in family) {
+			const familySubject = family.subject as Subject<AtomCreationEvent<any>>
+			familySubject.next(atomCreationEvent)
+		}
 		const target = newest(store)
 		if (token.family) {
 			if (isRootStore(target)) {
@@ -106,10 +105,11 @@ export function reduceReference<T, K extends Canonical, E>(
 						break
 				}
 			} else if (
+				`subject` in family &&
 				isChildStore(target) &&
 				target.on.transactionApplying.state === null
 			) {
-				target.transactionMeta.update.subEvents.push(stateCreationEvent)
+				target.transactionMeta.update.subEvents.push(atomCreationEvent)
 			}
 		}
 	}
@@ -118,6 +118,5 @@ export function reduceReference<T, K extends Canonical, E>(
 		token,
 		family,
 		subKey,
-		isNew: Boolean(brandNewToken),
 	}
 }

@@ -1,10 +1,10 @@
 import type {
+	AtomLifecycleEvent,
 	FamilyMetadata,
 	RegularAtomFamilyOptions,
 	RegularAtomFamilyToken,
 	RegularAtomOptions,
 	RegularAtomToken,
-	StateLifecycleEvent,
 } from "atom.io"
 import { PRETTY_ENTITY_NAMES } from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
@@ -37,7 +37,7 @@ export function createRegularAtomFamily<T, K extends Canonical, E>(
 		)
 	}
 
-	const subject = new Subject<StateLifecycleEvent<RegularAtomToken<T, K, E>>>()
+	const subject = new Subject<AtomLifecycleEvent<RegularAtomToken<T, K, E>>>()
 
 	const create = <Key extends K>(key: Key): RegularAtomToken<T, Key, E> => {
 		const subKey = stringifyJson(key)

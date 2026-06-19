@@ -1,15 +1,14 @@
 import type {
 	AtomCreationEvent,
 	AtomDisposalEvent,
-	AtomToken,
 	MoleculeCreationEvent,
 	MoleculeDisposalEvent,
 	MoleculeTransferEvent,
-	ReadableToken,
 } from "atom.io"
 import { parseJson, stringifyJson } from "atom.io/foundations/json"
 
 import { disposeFromStore } from "../families/index.ts"
+import { ensureState } from "../get-state/ensure-state.ts"
 import { getFromStore } from "../get-state/index.ts"
 import {
 	allocateIntoStore,
@@ -48,9 +47,6 @@ export function ingestDisposalEvent(
 		}
 		case `oldValue`: {
 			createInStore(store, event)
-			if (`value` in event) {
-				store.valueMap.set(event.token.key, event.value)
-			}
 			break
 		}
 	}
@@ -61,7 +57,11 @@ function createInStore(
 	event: AtomCreationEvent<any> | AtomDisposalEvent<any>,
 ): void {
 	const { token } = event
-	setIntoStore(store, token, event.value)
+	if (`value` in event) {
+		setIntoStore(store, token, event.value)
+	} else {
+		ensureState(store, token)
+	}
 }
 
 export function ingestMoleculeCreationEvent(

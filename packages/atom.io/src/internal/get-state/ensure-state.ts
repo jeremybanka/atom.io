@@ -16,7 +16,7 @@ import type { Store } from "../store/index.ts"
 import { withdraw } from "../store/index.ts"
 import { isChildStore, isRootStore } from "../transaction/index.ts"
 
-export function reduceReference<T, K extends Canonical, E>(
+export function ensureState<T, K extends Canonical, E>(
 	store: Store,
 	...params:
 		| [token: ReadableFamilyToken<T, K, E>, key: NoInfer<K>]
@@ -25,7 +25,6 @@ export function reduceReference<T, K extends Canonical, E>(
 	token: ReadableToken<T, K, E>
 	family: ReadableFamily<T, K, E> | undefined
 	subKey: NoInfer<K> | undefined
-	isNew: boolean
 } {
 	let existingToken: ReadableToken<T, K, E> | undefined
 	let brandNewToken: ReadableToken<T, K, E> | undefined
@@ -44,7 +43,6 @@ export function reduceReference<T, K extends Canonical, E>(
 					token,
 					family,
 					subKey,
-					isNew: false,
 				}
 			}
 			if (!existingToken) {
@@ -120,6 +118,5 @@ export function reduceReference<T, K extends Canonical, E>(
 		token,
 		family,
 		subKey,
-		isNew: Boolean(brandNewToken),
 	}
 }

@@ -4,7 +4,7 @@ import type { Canonical } from "atom.io/foundations/canonical"
 import { type Store, withdraw } from "../store/index.ts"
 import { getFallback } from "./get-fallback.ts"
 import { readOrComputeValue } from "./read-or-compute-value.ts"
-import { reduceReference } from "./reduce-reference.ts"
+import { ensureState } from "./ensure-state.ts"
 
 export function getFromStore<T, E = never>(
 	store: Store,
@@ -30,7 +30,7 @@ export function getFromStore<T, K extends Canonical, E>(
 		| [token: ReadableFamilyToken<T, K, E>, key: NoInfer<K>]
 		| [token: ReadableToken<T, any, E>]
 ): ViewOf<E | T> {
-	const { token, family, subKey } = reduceReference(store, ...params)
+	const { token, family, subKey } = ensureState(store, ...params)
 
 	if (`counterfeit` in token && family && subKey) {
 		return getFallback(store, token, family, subKey)

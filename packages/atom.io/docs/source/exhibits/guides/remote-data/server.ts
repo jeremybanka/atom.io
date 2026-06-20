@@ -29,7 +29,7 @@ const profileData: Profile | undefined = {
 	plan: `pro`,
 }
 
-const rowData: readonly Row[] = [
+let rowData: Row[] = [
 	{
 		id: `row_01`,
 		title: `Repair optimistic row hydration`,
@@ -57,6 +57,11 @@ const rowQuerySchema = type({
 	status: `'open' | 'closed' | null`,
 })
 
+const rowUpdateStatusSchema = type({
+	id: `string`,
+	status: `'open' | 'closed'`,
+})
+
 export const server = {
 	users: {
 		profile: os
@@ -77,6 +82,19 @@ export const server = {
 	rows: {
 		list: os.handler(() => {
 			return rowData
+		}),
+		updateStatus: os.input(rowUpdateStatusSchema).handler(({ input }) => {
+			rowData = rowData.map((row) => {
+				if (row.id !== input.id) return row
+				return {
+					...row,
+					status: input.status,
+					updatedAt: new Date().toISOString(),
+				}
+			})
+			return {
+				success: true,
+			}
 		}),
 		listPage: os.input(rowQuerySchema).handler(({ input }) => {
 			const search = input.search.trim().toLowerCase()

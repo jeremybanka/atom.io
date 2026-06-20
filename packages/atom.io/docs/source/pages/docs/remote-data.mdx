@@ -2,6 +2,7 @@ import RemoteDataClient from "x/guides/remote-data/client.gen";
 import CompactRemoteValues from "x/guides/remote-data/compact-remote-values.gen";
 import LoadRemoteRows from "x/guides/remote-data/load-remote-rows.gen";
 import LoadableLocalIndex from "x/guides/remote-data/loadable-local-index.gen";
+import ResetAfterMutation from "x/guides/remote-data/reset-after-mutation.gen";
 import RemoteDataServer from "x/guides/remote-data/server.gen";
 
 # remote data
@@ -102,8 +103,19 @@ views without re-fetching each row.
   only for changes that do not alter the result set.
 - Counts and pagination metadata must use the same filters as the row query.
   Unfiltered counts create phantom pages.
-- On mutations, deliberately update or reset affected row atoms, key indexes,
-  and query family members.
+- After a mutation succeeds, deliberately update optimistic local state, then
+  reset the smallest affected loadable when the remote owns part of the truth,
+  such as ids, timestamps, counts, or normalized row shapes. For a one-row field
+  update, reset that row atom. Reset key indexes or query family members only
+  when membership, ordering, filters, or counts may have changed.
+
+### reset after mutations
+
+Use reset as the resync step after mutations that change remote-owned state.
+Optimistic writes can keep the interface responsive, but resetting the affected
+row asks the remote for its canonical result.
+
+<ResetAfterMutation client:load />
 
 ## example contract
 

@@ -313,7 +313,7 @@ function SiteDirectory(): VNode {
 					</main>
 				</section>
 				<section>
-					<header>Integrations</header>
+					<header>Patterns</header>
 					<main>
 						<section>
 							<a id="-docs-remote-data-link" href="/docs/remote-data">

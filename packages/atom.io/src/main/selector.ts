@@ -150,11 +150,11 @@ export type WritablePureSelectorFamilyOptions<
 > = {
 	/** The unique identifier of the family */
 	key: string
-	/** For each instantiated family member, a function that computes its value */
-	get: (key: K) => Read<() => T>
-	/** For each instantiated family member, a function that sets its value */
-	set: (key: K) => Write<(newValue: T) => void>
-	/** The classes of errors that might be thrown when deriving the atom's default value */
+	/** A function to compute the value of a family member `K` */
+	get: Read<(key: K) => T>
+	/** Run when a selector `K`'s value is set directly, this function makes the corresponding changes to atoms in the store such that the `newValue` would be computed */
+	set: Write<(key: K, newValue: T) => void>
+	/** The classes of errors `E` that might be thrown when computing one of these selectors */
 	catch?: readonly Ctor<E>[]
 }
 export type ReadonlyPureSelectorFamilyOptions<
@@ -164,9 +164,9 @@ export type ReadonlyPureSelectorFamilyOptions<
 > = {
 	/** The unique identifier of the family */
 	key: string
-	/** For each instantiated family member, a function that computes its value */
-	get: (key: K) => Read<() => T>
-	/** The classes of errors that might be thrown when deriving the atom's default value */
+	/** A function to compute the value of a family member `K` */
+	get: Read<(key: K) => T>
+	/** The classes of errors `E` that might be thrown when computing one of these selectors */
 	catch?: readonly Ctor<E>[]
 }
 export type WritableHeldSelectorFamilyOptions<
@@ -175,12 +175,12 @@ export type WritableHeldSelectorFamilyOptions<
 > = {
 	/** The unique identifier of the family */
 	key: string
-	/** For each instantiated family member, a constant reference to a value that will not be replaced */
+	/** For each instantiated family member, returns a constant reference to a value that will not be replaced */
 	const: (key: K) => T
-	/** For each instantiated family member, a function that computes its value */
-	get: (key: K) => Read<(permanent: T) => void>
-	/** For each instantiated family member, a function that sets its value */
-	set: (key: K) => Write<(newValue: T) => void>
+	/** A function that updates a selector `K`'s value through mutation */
+	get: Read<(key: K, permanent: T) => void>
+	/** Run when a selector `K`'s value is mutated directly, this function makes the corresponding changes to atoms in the store such that the `newValue` would be derived */
+	set: Write<(key: K, permanent: T) => void>
 }
 export type ReadonlyHeldSelectorFamilyOptions<
 	T extends object,
@@ -190,8 +190,8 @@ export type ReadonlyHeldSelectorFamilyOptions<
 	key: string
 	/** For each instantiated family member, a constant reference to a value that will not be replaced */
 	const: (key: K) => T
-	/** For each instantiated family member, a function that computes its value */
-	get: (key: K) => Read<(permanent: T) => void>
+	/** A function that updates a selector `K`'s value through mutation */
+	get: Read<(key: K, permanent: T) => void>
 }
 
 /**

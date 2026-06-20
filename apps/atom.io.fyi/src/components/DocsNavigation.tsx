@@ -8,6 +8,67 @@ import { DynamicSpotlight } from "./DynamicSpotlight.tsx"
 import { Toggle } from "./Toggle.tsx"
 
 const INCLUDE_LIST = [`H2`, `H3`, `H4`, `H5`, `H6`]
+const SECTION_VISIBILITY_EPSILON = 1
+
+type HeadingDescriptor = { id: string; content: string | null; level: number }
+
+const getHeadingLevel = (element: Element): number =>
+	Number.parseInt(element.tagName.slice(1), 10)
+
+const getHeadingElements = (): HTMLElement[] => {
+	const allElements = document.querySelectorAll<HTMLElement>(`article [id]`)
+	return Array.from(allElements).filter((element) =>
+		INCLUDE_LIST.includes(element.tagName),
+	)
+}
+
+const areListsEqual = (
+	left: readonly string[],
+	right: readonly string[],
+): boolean =>
+	left.length === right.length &&
+	left.every((value, index) => value === right[index])
+
+const getScrollPaddingTop = (): number => {
+	const scrollPaddingTop = Number.parseFloat(
+		getComputedStyle(document.documentElement).scrollPaddingTop,
+	)
+	return Number.isFinite(scrollPaddingTop) ? scrollPaddingTop : 0
+}
+
+const getVisibleHeadingIds = (
+	headingElements: readonly HTMLElement[],
+): string[] => {
+	const viewportTop = getScrollPaddingTop()
+	const viewportBottom = window.innerHeight
+	const articleBottom =
+		document.querySelector(`article`)?.getBoundingClientRect().bottom ??
+		document.documentElement.getBoundingClientRect().bottom
+
+	return headingElements.flatMap((heading, index) => {
+		const level = getHeadingLevel(heading)
+		const top = heading.getBoundingClientRect().top
+		let bottom = articleBottom
+
+		for (
+			let nextIndex = index + 1;
+			nextIndex < headingElements.length;
+			nextIndex++
+		) {
+			const nextHeading = headingElements[nextIndex]
+			if (getHeadingLevel(nextHeading) <= level) {
+				bottom = nextHeading.getBoundingClientRect().top
+				break
+			}
+		}
+
+		const visibleTop = Math.max(top, viewportTop)
+		const visibleBottom = Math.min(bottom, viewportBottom)
+		return visibleBottom - visibleTop > SECTION_VISIBILITY_EPSILON
+			? [heading.id]
+			: []
+	})
+}
 
 const menuToggleAtom = atom<boolean>({
 	key: `menuToggle`,
@@ -51,61 +112,96 @@ function OnThisPage(): VNode {
 	const elementRef = React.useRef<HTMLElement>(null)
 	const userHasToggled = useO(menuToggleAtom)
 
-	const [headings, setHeadings] = React.useState<
-		{ id: string; content: string | null; level: number }[]
-	>([])
-	const [currentId, setCurrentId] = React.useState<string | null>(null)
+	const [headings, setHeadings] = React.useState<HeadingDescriptor[]>([])
+	const [visibleHeadingIds, setVisibleHeadingIds] = React.useState<string[]>([])
 	const pathname = useO(pathnameAtom)
+	const visibleHeadingIdSet = React.useMemo(
+		() => new Set(visibleHeadingIds),
+		[visibleHeadingIds],
+	)
+	const spotlightHeadingLinkIds = React.useMemo(() => {
+		let firstVisibleIndex = -1
+		let lastVisibleIndex = -1
+		for (let index = 0; index < headings.length; index++) {
+			if (visibleHeadingIdSet.has(headings[index].id)) {
+				if (firstVisibleIndex === -1) {
+					firstVisibleIndex = index
+				}
+				lastVisibleIndex = index
+			}
+		}
+		return firstVisibleIndex === -1
+			? []
+			: headings
+					.slice(firstVisibleIndex, lastVisibleIndex + 1)
+					.map((heading) => `${heading.id}-link`)
+	}, [headings, visibleHeadingIdSet])
+	const rootHeadingLevel = React.useMemo(
+		() =>
+			headings.length === 0
+				? 2
+				: Math.min(...headings.map((heading) => heading.level)),
+		[headings],
+	)
 
 	React.useEffect(() => {
-		setCurrentId(null)
-		const observer = new IntersectionObserver(
-			(entries) => {
-				const entry = entries.find((e) => e.isIntersecting)
-				if (entry) {
-					setCurrentId(entry.target.id)
-				}
-			},
-			{
-				root: null,
-				threshold: 0.5,
-			},
-		)
+		let animationFrame: number | null = null
+
+		const setVisibleHeadings = (headingElements: readonly HTMLElement[]) => {
+			const nextVisibleHeadingIds = getVisibleHeadingIds(headingElements)
+			setVisibleHeadingIds((previous) =>
+				areListsEqual(previous, nextVisibleHeadingIds)
+					? previous
+					: nextVisibleHeadingIds,
+			)
+		}
+
+		const updateVisibleHeadings = () => {
+			setVisibleHeadings(getHeadingElements())
+		}
+
+		const scheduleVisibleHeadingUpdate = () => {
+			if (animationFrame !== null) {
+				return
+			}
+			animationFrame = requestAnimationFrame(() => {
+				animationFrame = null
+				updateVisibleHeadings()
+			})
+		}
 
 		const gatherHeadings = () => {
-			const allElements = document.querySelectorAll(`[id]`)
-			const headingElements = Array.from(allElements).filter((element) =>
-				INCLUDE_LIST.includes(element.tagName),
-			)
-			for (const element of headingElements) {
-				observer.observe(element)
-			}
+			const headingElements = getHeadingElements()
 			const headingDescriptors = headingElements.map((element) => ({
 				id: element.id,
 				content: element.textContent,
-				level: Number.parseInt(element.tagName.slice(1), 10),
+				level: getHeadingLevel(element),
 			}))
 			setHeadings(headingDescriptors)
+			setVisibleHeadings(headingElements)
 		}
 
 		gatherHeadings()
+
+		addEventListener(`resize`, scheduleVisibleHeadingUpdate)
+		addEventListener(`scroll`, scheduleVisibleHeadingUpdate, { passive: true })
+		return () => {
+			removeEventListener(`resize`, scheduleVisibleHeadingUpdate)
+			removeEventListener(`scroll`, scheduleVisibleHeadingUpdate)
+			if (animationFrame !== null) {
+				cancelAnimationFrame(animationFrame)
+			}
+		}
 	}, [pathname])
 
-	const renderHeadings = (
-		list: { id: string; content: string | null; level: number }[],
-		level: number,
-	): VNode[] => {
+	const renderHeadings = (list: HeadingDescriptor[], level: number): VNode[] => {
 		const output: VNode[] = []
 		let currentIndex = 0
 
 		while (currentIndex < list.length) {
 			const heading = list[currentIndex]
 			if (heading.level === level) {
-				const subHeadings: {
-					id: string
-					content: string | null
-					level: number
-				}[] = []
+				const subHeadings: HeadingDescriptor[] = []
 				currentIndex++
 				while (currentIndex < list.length && list[currentIndex].level > level) {
 					subHeadings.push(list[currentIndex])
@@ -114,17 +210,17 @@ function OnThisPage(): VNode {
 				output.push(
 					<section key={heading.id}>
 						<a
+							data-section-visible={visibleHeadingIdSet.has(heading.id)}
 							href={`#${heading.id}`}
 							id={`${heading.id}-link`}
-							style={
-								heading.id === currentId
-									? {} // { background: "var(--bg-hard-2)" }
-									: {}
-							}
 						>
 							{heading.content}
 						</a>
-						{subHeadings.length > 0 && renderHeadings(subHeadings, level + 1)}
+						{subHeadings.length > 0 &&
+							renderHeadings(
+								subHeadings,
+								Math.min(...subHeadings.map((subHeading) => subHeading.level)),
+							)}
 					</section>,
 				)
 			} else {
@@ -143,15 +239,16 @@ function OnThisPage(): VNode {
 					padding={0}
 					updateSignals={[userHasToggled, pathname, headings]}
 					parentRef={elementRef}
+					variant="surface"
 				/>
 				<DynamicSpotlight
-					elementId={currentId ? currentId + `-link` : null}
-					updateSignals={[userHasToggled, pathname]}
+					elementIds={spotlightHeadingLinkIds}
+					updateSignals={[userHasToggled, pathname, headings]}
 					parentRef={elementRef}
 				/>
 				<section>
 					<header>On this page</header>
-					<main>{renderHeadings(headings, 2)}</main>
+					<main>{renderHeadings(headings, rootHeadingLevel)}</main>
 				</section>
 			</nav>
 		</on-this-page>
@@ -175,6 +272,7 @@ function SiteDirectory(): VNode {
 					padding={0}
 					updateSignals={[userHasToggled, pathname]}
 					parentRef={elementRef}
+					variant="surface"
 				/>
 				<DynamicSpotlight
 					elementId={pathnameId}

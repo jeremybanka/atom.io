@@ -115,14 +115,27 @@ function OnThisPage(): VNode {
 	const [headings, setHeadings] = React.useState<HeadingDescriptor[]>([])
 	const [visibleHeadingIds, setVisibleHeadingIds] = React.useState<string[]>([])
 	const pathname = useO(pathnameAtom)
-	const visibleHeadingLinkIds = React.useMemo(
-		() => visibleHeadingIds.map((id) => `${id}-link`),
-		[visibleHeadingIds],
-	)
 	const visibleHeadingIdSet = React.useMemo(
 		() => new Set(visibleHeadingIds),
 		[visibleHeadingIds],
 	)
+	const spotlightHeadingLinkIds = React.useMemo(() => {
+		let firstVisibleIndex = -1
+		let lastVisibleIndex = -1
+		for (let index = 0; index < headings.length; index++) {
+			if (visibleHeadingIdSet.has(headings[index].id)) {
+				if (firstVisibleIndex === -1) {
+					firstVisibleIndex = index
+				}
+				lastVisibleIndex = index
+			}
+		}
+		return firstVisibleIndex === -1
+			? []
+			: headings
+					.slice(firstVisibleIndex, lastVisibleIndex + 1)
+					.map((heading) => `${heading.id}-link`)
+	}, [headings, visibleHeadingIdSet])
 	const rootHeadingLevel = React.useMemo(
 		() =>
 			headings.length === 0
@@ -229,7 +242,7 @@ function OnThisPage(): VNode {
 					variant="surface"
 				/>
 				<DynamicSpotlight
-					elementIds={visibleHeadingLinkIds}
+					elementIds={spotlightHeadingLinkIds}
 					updateSignals={[userHasToggled, pathname, headings]}
 					parentRef={elementRef}
 				/>

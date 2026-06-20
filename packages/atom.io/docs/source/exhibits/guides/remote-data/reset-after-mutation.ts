@@ -1,11 +1,24 @@
-import { resetState } from "atom.io"
+import { resetState, setState } from "atom.io"
 
-import { client } from "./client.ts"
-import { rowKeysAtom } from "./load-remote-rows.ts"
+import { client, type RowStatus } from "./client.ts"
+import { rowAtoms } from "./load-remote-rows.ts"
 
-export async function createRow(title: string): Promise<void> {
-	await client.rows.create({ title })
+type RowKey = `row::${string}`
 
-	// Reload the list from the remote, which owns the new row's id and timestamp.
-	resetState(rowKeysAtom)
+export async function updateRowStatus(
+	id: string,
+	status: RowStatus,
+): Promise<void> {
+	const key: RowKey = `row::${id}`
+
+	setState(rowAtoms, key, async (loadable) => {
+		const row = await loadable
+		if (row instanceof Error) return row
+		return { ...row, status }
+	})
+
+	await client.rows.updateStatus({ id, status })
+
+	// Reload this row from the remote, which owns its timestamp and final shape.
+	resetState(rowAtoms, key)
 }

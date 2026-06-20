@@ -29,7 +29,6 @@ const profileData: Profile | undefined = {
 	plan: `pro`,
 }
 
-let nextRowNumber = 4
 let rowData: Row[] = [
 	{
 		id: `row_01`,
@@ -58,8 +57,9 @@ const rowQuerySchema = type({
 	status: `'open' | 'closed' | null`,
 })
 
-const rowCreateSchema = type({
-	title: `string`,
+const rowUpdateStatusSchema = type({
+	id: `string`,
+	status: `'open' | 'closed'`,
 })
 
 export const server = {
@@ -83,17 +83,18 @@ export const server = {
 		list: os.handler(() => {
 			return rowData
 		}),
-		create: os.input(rowCreateSchema).handler(({ input }) => {
-			const id = `row_${String(nextRowNumber).padStart(2, `0`)}`
-			nextRowNumber++
-			const row: Row = {
-				id,
-				title: input.title,
-				status: `open`,
-				updatedAt: new Date().toISOString(),
+		updateStatus: os.input(rowUpdateStatusSchema).handler(({ input }) => {
+			rowData = rowData.map((row) => {
+				if (row.id !== input.id) return row
+				return {
+					...row,
+					status: input.status,
+					updatedAt: new Date().toISOString(),
+				}
+			})
+			return {
+				success: true,
 			}
-			rowData = [row, ...rowData]
-			return row
 		}),
 		listPage: os.input(rowQuerySchema).handler(({ input }) => {
 			const search = input.search.trim().toLowerCase()

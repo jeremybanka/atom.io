@@ -8,6 +8,7 @@ import { DynamicSpotlight } from "./DynamicSpotlight.tsx"
 import { Toggle } from "./Toggle.tsx"
 
 const INCLUDE_LIST = [`H2`, `H3`, `H4`, `H5`, `H6`]
+const SECTION_VISIBILITY_EPSILON = 1
 
 type HeadingDescriptor = { id: string; content: string | null; level: number }
 
@@ -28,10 +29,17 @@ const areListsEqual = (
 	left.length === right.length &&
 	left.every((value, index) => value === right[index])
 
+const getScrollPaddingTop = (): number => {
+	const scrollPaddingTop = Number.parseFloat(
+		getComputedStyle(document.documentElement).scrollPaddingTop,
+	)
+	return Number.isFinite(scrollPaddingTop) ? scrollPaddingTop : 0
+}
+
 const getVisibleHeadingIds = (
 	headingElements: readonly HTMLElement[],
 ): string[] => {
-	const viewportTop = 0
+	const viewportTop = getScrollPaddingTop()
 	const viewportBottom = window.innerHeight
 	const articleBottom =
 		document.querySelector(`article`)?.getBoundingClientRect().bottom ??
@@ -56,7 +64,9 @@ const getVisibleHeadingIds = (
 
 		const visibleTop = Math.max(top, viewportTop)
 		const visibleBottom = Math.min(bottom, viewportBottom)
-		return visibleBottom > visibleTop ? [heading.id] : []
+		return visibleBottom - visibleTop > SECTION_VISIBILITY_EPSILON
+			? [heading.id]
+			: []
 	})
 }
 

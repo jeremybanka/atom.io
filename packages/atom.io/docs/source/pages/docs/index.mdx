@@ -13,6 +13,7 @@ import ResetAndDispose from "x/core/families/reset-and-dispose.gen";
 import UseAnIndexToTrackFamilyMembers from "x/core/families/use-an-index-to-track-family-members.gen";
 
 import CallAFamilyInATransaction from "x/core/transaction/use-a-family-in-a-transaction.gen";
+import DisposeAFamilyMemberInATransaction from "x/core/transaction/dispose-a-family-member-in-a-transaction.gen";
 import IterateThroughAnIndexChangingTheValueOfSomeAtoms from "x/core/transaction/iterate-through-an-index-changing-the-value-of-some-atoms.gen";
 import TryCatchAFailedTransaction from "x/core/transaction/try-catch-a-failed-transaction.gen";
 
@@ -266,6 +267,75 @@ members that have already been created.
 
 Transactions allow you to batch multiple atom changes into a single update. This is useful for validating a complex set of changes before it is applied to the store.
 
+The `do` callback receives a toolkit bound to the transaction's temporary store.
+Reads see changes already made in the transaction. Writes, resets, disposals,
+and nested transactions are applied to the real store only if the transaction
+finishes without throwing.
+
+<table-wrapper>
+  <table>
+    <tbody>
+      <tr>
+        <td>
+          <code>get</code>
+        </td>
+        <td>Read an atom, selector, or family member in the transaction.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>set</code>
+        </td>
+        <td>Write a writable atom, selector, or family member.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>reset</code>
+        </td>
+        <td>Reset a writable state while keeping it in the store.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>find</code>
+        </td>
+        <td>Get a token for a family member without reading its value.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>json</code>
+        </td>
+        <td>Get the writable JSON token for a mutable atom.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>dispose</code>
+        </td>
+        <td>Dispose of an allocated family member.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>run</code>
+        </td>
+        <td>Run another transaction inside this transaction.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>env</code>
+        </td>
+        <td>Read environment data for the current store.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>relations</code>
+        </td>
+        <td>
+          Read or edit <code>join</code> relations with <code>find</code>,
+          <code>internal</code>, and <code>edit</code>.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</table-wrapper>
+
 <CallAFamilyInATransaction client:load />
 
 A common use case is creating some new state using a family and adding it to an index tracking members of that family.
@@ -273,6 +343,11 @@ A common use case is creating some new state using a family and adding it to an 
 <IterateThroughAnIndexChangingTheValueOfSomeAtoms client:load />
 
 In this example, we add a minute to all running timers.
+
+<DisposeAFamilyMemberInATransaction client:load />
+
+When you remove family state, update your application-level index and dispose
+the family member in the same transaction.
 
 <TryCatchAFailedTransaction client:load />
 

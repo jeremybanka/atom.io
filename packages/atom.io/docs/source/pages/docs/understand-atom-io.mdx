@@ -19,9 +19,10 @@ top of other selectors.
 
 <Laziness client:load />
 
-`doubledSelector` is never computed until something reads it with `getState`, `useO`, or a
-subscription. If its cached value is later evicted, atom.io only recomputes it when
-someone is still subscribed or a new read asks for it.
+`doubledSelector` is never computed until something reads it with `getState`, `useO`, or
+subscribes to it. A subscription runs the selector once so atom.io can discover the
+selector's current dependencies. If its cached value is later evicted, atom.io only
+recomputes it when someone is still subscribed or a new read asks for it.
 
 ## testability
 

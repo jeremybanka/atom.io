@@ -214,11 +214,12 @@ describe(`selector`, () => {
 		})
 		expect(Utils.stdout0).toHaveBeenCalledTimes(0) // selectors do NOT initially evaluate
 		const unsubscribe = subscribe(trackedCountSelector, Utils.stdout)
+		// Subscribing computes the selector once so its current dynamic roots are known.
+		expect(Utils.stdout0).toHaveBeenCalledTimes(1)
 		expect(getState(trackedCountSelector)).toBe(null)
+		expect(Utils.stdout0).toHaveBeenCalledTimes(1)
 		setState(countIsTrackedAtom, true)
-		// Subscribed selectors recompute when their current roots change
-		// This selector was uninitialized and needed to do its initial evaluation, thus two calls
-		// 📍 #66 consider dropping initial evaluation for selectors before 1.0
+		// Subscribed selectors recompute when their current roots change.
 		expect(Utils.stdout0).toHaveBeenCalledTimes(2)
 		expect(Utils.stdout).toHaveBeenCalledWith({
 			newValue: 0,

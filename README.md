@@ -24,16 +24,21 @@ State stays small, derived data stays lazy, and React reads exactly what it need
 import { atom, selector, setState } from "atom.io"
 import { useO } from "atom.io/react"
 
-const todosAtom = atom<string[]>({ key: `todos`, default: [] })
+const todosAtom = atom<string[]>({
+	key: `todos`,
+	default: [],
+})
 const openTodos = selector<number>({
 	key: `openTodos`,
 	get: ({ get }) => get(todosAtom).length,
 })
-const addTodo = () => setState(todosAtom, (todos) => [`ship it`, ...todos])
+function addTodo() {
+	setState(todosAtom, (todos) => [`ship it`, ...todos])
+}
 
 export function InboxButton() {
 	const open = useO(openTodos)
-	return <button onClick={addTodo}>{open} open</button>
+	return <button onClick={addTodo}>{open} items open</button>
 }
 ```
 

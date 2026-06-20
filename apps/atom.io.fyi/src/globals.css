@@ -17,7 +17,7 @@ body {
 	/* CORE BEHAVIOR */
 	scroll-behavior: smooth;
 	min-height: 100svh;
-	scroll-padding-top: 4.5em;
+	scroll-padding-top: 4em;
 }
 
 :root {

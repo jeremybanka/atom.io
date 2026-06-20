@@ -7,26 +7,18 @@
 		"**/*.{ts,tsx,js,jsx,mjs,cjs,json,jsonc,md,mdx,css,astro,toml,yml,yaml}"
 	],
 	"excludes": [
-		"**/metafile-*",
-		"**/*.cache.json",
 		"**/*.gen.ts",
 		"**/*.gen.tsx",
 		"**/pnpm-lock.yaml",
-		"**/*.scss",
-		"**/*.tsdoc.json",
 		"**/.astro/**",
-		"**/.next/**",
 		"**/.turbo/**",
-		"**/.varmint/**",
 		"**/.wrangler/**",
 		"**/app/**",
-		"**/bin/**",
 		"**/coverage/**",
+		"**/coverage-public/**",
 		"**/dist/**",
-		"**/drizzle/meta/**",
 		"**/heap.json",
-		"**/node_modules/**",
-		"**/projects/**"
+		"**/node_modules/**"
 	],
 	"oxc": {
 		"associations": ["**/*.{ts,tsx,js,jsx,mjs,cjs}"],

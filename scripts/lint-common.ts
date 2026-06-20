@@ -3,6 +3,7 @@ export const LINT_IGNORES: string[] = [
 	`**/.wrangler/**`,
 	`**/build/**`,
 	`**/coverage/**`,
+	`**/coverage-public/**`,
 	`**/dist/**`,
 	`**/gen/**`,
 	`**/node_modules/**`,

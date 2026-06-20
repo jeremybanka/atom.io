@@ -1,4 +1,5 @@
 import cloudflare from "@astrojs/cloudflare"
+import { unified } from "@astrojs/markdown-remark"
 import mdx from "@astrojs/mdx"
 import preact from "@astrojs/preact"
 import { defineConfig, sessionDrivers } from "astro/config"
@@ -7,10 +8,10 @@ import { preserveCodeBlockCodeProps } from "./scripts/remark-codeblock-code-prop
 
 // https://astro.build/config
 export default defineConfig({
-	integrations: [
-		preact({ compat: true }),
-		mdx({ remarkPlugins: [preserveCodeBlockCodeProps] }),
-	],
+	integrations: [preact({ compat: true }), mdx()],
+	markdown: {
+		processor: unified({ remarkPlugins: [preserveCodeBlockCodeProps] }),
+	},
 	adapter: cloudflare(),
 	session: {
 		// Keep session storage self-contained so Astro does not auto-provision

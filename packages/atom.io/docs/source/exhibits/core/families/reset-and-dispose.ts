@@ -7,17 +7,17 @@ import {
 } from "atom.io"
 import { stateExists } from "atom.io/testing"
 
-const rowHeights = atomFamily<number, string>({
+const rowHeightAtoms = atomFamily<number, string>({
 	key: `rowHeight`,
 	default: 32,
 })
 
-setState(rowHeights, `header`, 48)
-getState(rowHeights, `header`) // -> 48
+setState(rowHeightAtoms, `header`, 48)
+getState(rowHeightAtoms, `header`) // -> 48
 
-resetState(rowHeights, `header`)
-getState(rowHeights, `header`) // -> 32
-stateExists(rowHeights, `header`) // -> true
+resetState(rowHeightAtoms, `header`)
+getState(rowHeightAtoms, `header`) // -> 32
+stateExists(rowHeightAtoms, `header`) // -> true
 
-disposeState(rowHeights, `header`)
-stateExists(rowHeights, `header`) // -> false
+disposeState(rowHeightAtoms, `header`)
+stateExists(rowHeightAtoms, `header`) // -> false

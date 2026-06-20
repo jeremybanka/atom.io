@@ -243,11 +243,11 @@ determine the selector's value, then recomputes the selector.
 Reset is especially important for `Loadable` state backed by remote data. Once
 an async default has resolved or errored, reset is the direct way to discard the
 retained result and start that load again. After a mutation, resetting the
-affected loadable state makes the remote system the source of truth again. This
-matters most for data that only the remote can assign or normalize, such as
-database ids, timestamps, counts, permission-derived fields, or canonical row
-shapes. For more patterns around fetched and RPC-backed state, see the
-[remote data guide](/docs/remote-data).
+smallest affected loadable state makes the remote system the source of truth
+again. This matters most for data that only the remote can assign or normalize,
+such as database ids, timestamps, counts, permission-derived fields, or
+canonical row shapes. For more patterns around fetched and RPC-backed state, see
+the [remote data guide](/docs/remote-data).
 
 Use `disposeState` when a dynamically allocated family member has left your
 model. Disposal removes that member from the store, clears its retained

@@ -75,7 +75,7 @@ docs-navigation.class {
 				display: none;
 			}
 		}
-		dynamic-spotlight:first-of-type {
+		dynamic-spotlight[data-spotlight-kind="surface"] {
 			display: block;
 			@media screen and (min-width: 960px) {
 				display: none;
@@ -118,7 +118,7 @@ docs-navigation.class {
 			display: none;
 		}
 	}
-	dynamic-spotlight:first-of-type {
+	dynamic-spotlight[data-spotlight-kind="surface"] {
 		display: block;
 		@media screen and (min-width: 1280px) {
 			display: none;

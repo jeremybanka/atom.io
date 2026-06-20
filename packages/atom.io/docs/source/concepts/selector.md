@@ -11,13 +11,16 @@ related:
 ---
 
 A selector is a reactive value computed from other reactive values. Its `get`
-function reads atoms or selectors and returns the derived result.
+function reads atoms or selectors, discovers the selector's current dependencies,
+and returns the derived result.
 
 Use a selector when the new state follows from one or more atoms or selectors.
 Do not store that value separately in an atom unless it has its own independent
 source of truth.
 
-Selectors stay connected to their dependencies. When a dependency changes, the
+Selectors stay connected to their dependencies. Because dependencies are
+discovered dynamically, subscribing to a selector runs `get` once to establish
+the current root dependency set. When one of those dependencies changes, the
 selector can be recomputed and its subscribers can observe the new value.
 
 Use selectors for derived views, formatted values, filtered collections, and

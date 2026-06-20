@@ -1,5 +1,11 @@
 # atom.io
 
+## 0.49.3
+
+### Patch Changes
+
+- 496dcaa: Removed lifecycle events for selectors, which weren't contributing anything helpful.
+
 ## 0.49.2
 
 ### Patch Changes

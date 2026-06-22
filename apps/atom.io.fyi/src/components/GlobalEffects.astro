@@ -1,7 +1,17 @@
 <script>
-const codeBlockEffectsKey = `__atomIoCodeBlockEffectsInstalled`
-const globalWithCodeBlockEffects = globalThis as typeof globalThis &
+const globalEffectsKey = `__atomIoGlobalEffectsInstalled`
+const globalWithEffects = globalThis as typeof globalThis &
 	Record<string, boolean | undefined>
+
+function updateThemeColor(): void {
+	const themeColor = getComputedStyle(document.documentElement)
+		.getPropertyValue(`--bg-shade-2`)
+		.trim()
+	const metaThemeColor = document.querySelector(`meta[name="theme-color"]`)
+	if (metaThemeColor) {
+		metaThemeColor.setAttribute(`content`, themeColor)
+	}
+}
 
 function getCodeBlockId(labelOrHref: string): string {
 	const label =
@@ -58,8 +68,15 @@ async function copyCodeBlock(button: HTMLButtonElement): Promise<void> {
 	await navigator.clipboard.writeText(code)
 }
 
-if (!globalWithCodeBlockEffects[codeBlockEffectsKey]) {
-	globalWithCodeBlockEffects[codeBlockEffectsKey] = true
+function applyPageEffects(): void {
+	updateThemeColor()
+	linkCodeBlockImports()
+}
+
+if (!globalWithEffects[globalEffectsKey]) {
+	globalWithEffects[globalEffectsKey] = true
+	const colorSchemeMatcher = window.matchMedia(`(prefers-color-scheme: dark)`)
+	colorSchemeMatcher.addEventListener(`change`, updateThemeColor)
 	document.addEventListener(`click`, (event) => {
 		if (!(event.target instanceof Element)) {
 			return
@@ -70,7 +87,8 @@ if (!globalWithCodeBlockEffects[codeBlockEffectsKey]) {
 		}
 		void copyCodeBlock(button)
 	})
-	document.addEventListener(`astro:page-load`, linkCodeBlockImports)
-	linkCodeBlockImports()
+	document.addEventListener(`astro:page-load`, applyPageEffects)
 }
+
+applyPageEffects()
 </script>

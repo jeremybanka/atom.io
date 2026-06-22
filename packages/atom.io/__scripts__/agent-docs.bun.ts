@@ -526,6 +526,26 @@ async function resolveExhibitSource(
 			// Try the next source-file extension.
 		}
 	}
+
+	const directory = path.join(EXHIBITS_ROOT, path.dirname(relativeImport))
+	try {
+		const entries = await fs.readdir(directory, { withFileTypes: true })
+		const basename = path.basename(relativeImport)
+		for (const entry of entries) {
+			if (!entry.isFile()) {
+				continue
+			}
+			const displayFilename = entry.name.endsWith(`.txt`)
+				? entry.name.slice(0, -`.txt`.length)
+				: entry.name
+			const generatedBasename = displayFilename.replace(/\.[^.]+$/, ``)
+			if (generatedBasename === basename) {
+				return path.join(directory, entry.name)
+			}
+		}
+	} catch {
+		// Fall through to an omitted exhibit marker.
+	}
 	return null
 }
 
@@ -535,7 +555,8 @@ async function replaceExhibits(
 ): Promise<string> {
 	let output = ``
 	let cursor = 0
-	const componentPattern = /<([A-Z][A-Za-z0-9_]*)\s+client:load\s*\/>/g
+	const componentPattern =
+		/<([A-Z][A-Za-z0-9_]*)\b(?=[^>]*\bclient:load\b)[^>]*\/>/g
 
 	for (const match of contents.matchAll(componentPattern)) {
 		const [tag, componentName] = match

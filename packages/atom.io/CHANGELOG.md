@@ -1,5 +1,11 @@
 # atom.io
 
+## 0.49.4
+
+### Patch Changes
+
+- f21951a: Fix issue where examples marked with a visual 'soft' descriptor on atom.io.fyi would fail to render correctly in the shipped docs.
+
 ## 0.49.3
 
 ### Patch Changes

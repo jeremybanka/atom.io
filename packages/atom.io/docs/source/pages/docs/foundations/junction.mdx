@@ -1,8 +1,4 @@
-import BasicRelation from "x/foundations/junction/basic-relation.gen";
-import JsonExample from "x/foundations/junction/json.gen";
-import RelationContent from "x/foundations/junction/relation-content.gen";
-import ReplaceRelations from "x/foundations/junction/replace-relations.gen";
-import SetAndDelete from "x/foundations/junction/set-and-delete.gen";
+import Exhibit from "c/Exhibit.astro";
 
 # <low-emphasis>atom.io</low-emphasis>/foundations/junction
 
@@ -11,7 +7,7 @@ import SetAndDelete from "x/foundations/junction/set-and-delete.gen";
 Use it when the relationship itself deserves structure: both directions should stay in
 sync, cardinality matters, and relation content may need to travel with the edge.
 
-<BasicRelation />
+<Exhibit src="foundations/junction/basic-relation.ts" />
 
 ## package contents
 
@@ -78,7 +74,7 @@ sync, cardinality matters, and relation content may need to travel with the edge
 
 Use either positional arguments or object-style arguments.
 
-<SetAndDelete />
+<Exhibit src="foundations/junction/set-and-delete.ts" />
 
 Deleting one side removes all relations for that side. Deleting both sides removes that
 one relation.
@@ -97,7 +93,7 @@ specific relation.
 
 Junctions can store JSON-object content on relations.
 
-<RelationContent />
+<Exhibit src="foundations/junction/relation-content.ts" />
 
 `getRelationEntries({ album: "rumours" })` returns related keys paired with content.
 
@@ -108,7 +104,7 @@ Use `replaceRelations(key, relations)` to replace all relations for one side.
 For content-bearing junctions, pass an object whose keys are related IDs and whose values
 are relation content.
 
-<ReplaceRelations />
+<Exhibit src="foundations/junction/replace-relations.ts" />
 
 By default, replacement updates reverse relations safely. Passing `{ reckless: true }`
 uses the faster replacement path and can leave old reverse relations in place.
@@ -119,7 +115,7 @@ uses the faster replacement path and can leave old reverse relations in place.
 
 Pass that shape back to the constructor to hydrate a junction.
 
-<JsonExample />
+<Exhibit src="foundations/junction/json.ts" />
 
 ## overlays
 

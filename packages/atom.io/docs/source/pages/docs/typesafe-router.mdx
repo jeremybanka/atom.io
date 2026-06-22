@@ -1,10 +1,4 @@
-import AppAnchor from "x/guides/typesafe-router/app-anchor.gen";
-import BunStaticRoutes from "x/guides/typesafe-router/bun-static-routes.gen";
-import CurrentRoute from "x/guides/typesafe-router/current-route.gen";
-import NginxStaticHosting from "x/guides/typesafe-router/nginx-static-hosting.gen";
-import PathnameState from "x/guides/typesafe-router/pathname-state.gen";
-import RouteSelection from "x/guides/typesafe-router/route-selection.gen";
-import RouteShape from "x/guides/typesafe-router/route-shape.gen";
+import Exhibit from "c/Exhibit.astro";
 
 # typesafe router
 
@@ -22,7 +16,7 @@ Define route structure once as shared, typed data with TreeTrunks. TreeTrunks ro
 
 The important part is that route strings are not open-ended throughout the app. Links should accept the derived `Pathname` type. Imperative navigation should accept `Pathname | PathnameWithSearch`, since a command-style navigation often needs to preserve or set query state. Route rendering should consume the validated `Route` type.
 
-<RouteShape />
+<Exhibit src="guides/typesafe-router/route-shape.ts" />
 
 Dynamic segment markers, such as `$grantId`, belong in the TreeTrunks route tree; the derived `Route` type exposes the actual segment value. Keep TreeTrunks as the default mechanism for this pattern so runtime validation and TypeScript route types come from the same source.
 
@@ -37,7 +31,7 @@ The atom owns browser integration:
 - listen to `popstate` so back and forward buttons update state;
 - expose a `navigate(pathname)` helper that pushes history and updates the atom.
 
-<PathnameState />
+<Exhibit src="guides/typesafe-router/pathname-state.ts" />
 
 Keep query-string handling explicit. The `PathnameWithSearch` alias is a small but useful cue that navigation has two related shapes: the route pathname the router validates, and the full URL path a user action might push. The route selector usually cares about path segments, while page view state, filters, or search text can live in separate atoms synchronized to search params.
 
@@ -45,7 +39,7 @@ Keep query-string handling explicit. The `PathnameWithSearch` alias is a small b
 
 Convert `pathnameAtom` into the renderable route with a selector. This is where route validation, default routes, authentication gates, and layout policy belong.
 
-<RouteSelection />
+<Exhibit src="guides/typesafe-router/route-selection.ts" />
 
 This keeps redirects declarative from React's point of view. Components subscribe to route state; they do not need to parse `window.location`, inspect auth state, and decide routing policy independently.
 
@@ -53,11 +47,11 @@ This keeps redirects declarative from React's point of view. Components subscrib
 
 Render the selected route with a small component that switches on the first tuple segment and then narrows by route length or child segments. Shared chrome can be applied per branch so full-screen auth pages, application shells, and error pages do not need to share one route framework abstraction.
 
-<CurrentRoute />
+<Exhibit src="guides/typesafe-router/current-route.tsx" />
 
 For links, wrap the native anchor only to narrow `href` to `Pathname`. Let global click interception do the SPA navigation work.
 
-<AppAnchor />
+<Exhibit src="guides/typesafe-router/app-anchor.tsx" />
 
 ## Bun static routes
 
@@ -65,7 +59,7 @@ When the app is served by Bun's `serve({ routes })` static routes API, the same 
 
 Bun's dynamic segment syntax may differ from the route-tree syntax. For example, a route-tree segment like `$grantId` can be translated to Bun's `:grantId` segment before adding it to the static routes object.
 
-<BunStaticRoutes />
+<Exhibit src="guides/typesafe-router/bun-static-routes.ts" />
 
 Other servers should use their own SPA fallback mechanism. The reusable part of this pattern is the shared route tree; the Bun-specific part is turning that tree into `serve({ routes })` entries.
 
@@ -75,7 +69,7 @@ When the app is served as built static files through nginx, use nginx's file loo
 
 This app's nginx config does that with `try_files`:
 
-<NginxStaticHosting />
+<Exhibit src="guides/typesafe-router/nginx-static-hosting.conf.txt" />
 
 `try_files $uri /index.html` asks nginx to serve an actual file first. That keeps bundled assets, favicons, and other static files working normally. If the requested path is not a file, nginx serves `index.html`, preserving the original URL in the address bar for the client router to parse.
 

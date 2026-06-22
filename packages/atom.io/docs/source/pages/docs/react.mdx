@@ -1,10 +1,4 @@
-import UseO from "x/react/use-o.gen";
-import UseI from "x/react/use-i.gen";
-import UseJSON from "x/react/use-json.gen";
-import UseTL from "x/react/use-tl.gen";
-import UseLoadable from "x/react/use-loadable-bare.gen";
-import UseLoadableCatch from "x/react/use-loadable-catch.gen";
-import UseLoadableFallback from "x/react/use-loadable-fallback.gen";
+import Exhibit from "c/Exhibit.astro";
 
 # <low-emphasis>atom.io</low-emphasis>/react
 
@@ -58,13 +52,13 @@ import UseLoadableFallback from "x/react/use-loadable-fallback.gen";
 
 `useO` is a React hook that allows you to observe reactive variables in your React components.
 
-<UseO />
+<Exhibit src="react/use-o.tsx" />
 
 ## useI
 
 `useI` is a React hook that allows you to update reactive variables in your React components.
 
-<UseI />
+<Exhibit src="react/use-i.tsx" />
 
 ## useJSON
 
@@ -79,7 +73,7 @@ If you want more background on transceivers, see [the transceivers guide](/trans
 `useJSON` observes the mutable atom's JSON view instead. For example, a `UList<string>`
 becomes a readonly `string[]`, which is usually easier to map over in JSX.
 
-<UseJSON />
+<Exhibit src="react/use-json.tsx" />
 
 Use `useJSON` when you want to render a mutable atom. Use `useI` when you want to update
 one.
@@ -88,17 +82,17 @@ one.
 
 `useTL` provides convenient access to the `undo` and `redo` utilities, as well as metadata representing how many events are on the timeline (`length`) and where the timeline is currently positioned (`at`).
 
-<UseTL />
+<Exhibit src="react/use-tl.tsx" />
 
 ## useLoadable
 
 If you have a `Loadable` atom or selector, `useLoadable` is a great way to observe it in your React components.
 
-<UseLoadable />
+<Exhibit src="react/use-loadable-bare.tsx" />
 
 In this example, we can see that the hook will return the string `"LOADING"` until the promise resolves. Then, it will return an object containing `value` with our data, and `loading` indicating whether new data is on its way.
 
-<UseLoadableFallback />
+<Exhibit src="react/use-loadable-fallback.tsx" />
 
 If you'd rather assume your data is loaded, simply pass a fallback parameter with same type as your loaded data.
 
@@ -110,7 +104,7 @@ If the atom or selector declares a `catch` option, `useLoadable`'s
 fallback form gives you a typed `error?: E` property alongside the fallback-backed
 `value`.
 
-<UseLoadableCatch />
+<Exhibit src="react/use-loadable-catch.tsx" />
 
 In this example, `value` stays usable as `{ name: string }`, while `error` is available as
 `RequestError | undefined`. That lets your component keep rendering with fallback data

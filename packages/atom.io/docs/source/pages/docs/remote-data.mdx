@@ -1,9 +1,4 @@
-import RemoteDataClient from "x/guides/remote-data/client.gen";
-import CompactRemoteValues from "x/guides/remote-data/compact-remote-values.gen";
-import LoadRemoteRows from "x/guides/remote-data/load-remote-rows.gen";
-import LoadableLocalIndex from "x/guides/remote-data/loadable-local-index.gen";
-import ResetAfterMutation from "x/guides/remote-data/reset-after-mutation.gen";
-import RemoteDataServer from "x/guides/remote-data/server.gen";
+import Exhibit from "c/Exhibit.astro";
 
 # remote data
 
@@ -24,7 +19,7 @@ and suspense-like async reads in atom.io.
 
 For compact remote values, store the typed client result directly:
 
-<CompactRemoteValues />
+<Exhibit src="guides/remote-data/compact-remote-values.ts" />
 
 In `catch`, order error constructors from narrow to wide. `atom.io` matches them
 in declaration order, so route-specific or domain-specific errors should come
@@ -53,7 +48,7 @@ Use a loader function to:
 - write editable or frequently read fields into narrower atoms when useful
 - return only the acquired keys for the key-list atom's own value
 
-<LoadRemoteRows />
+<Exhibit src="guides/remote-data/load-remote-rows.ts" />
 
 Keep aggregate server records close to the server contract. Mirror fields into
 narrower atoms only when the app benefits from independent observation or
@@ -85,7 +80,7 @@ only list source of truth.
 
 ### example
 
-<LoadableLocalIndex />
+<Exhibit src="guides/remote-data/loadable-local-index.ts" />
 
 The loadable family returns only the keys for that view. The loader pre-populates
 `rowAtoms` and updates `acquiredRowKeysAtom` so selectors can derive richer local
@@ -115,7 +110,7 @@ Use reset as the resync step after mutations that change remote-owned state.
 Optimistic writes can keep the interface responsive, but resetting the affected
 row asks the remote for its canonical result.
 
-<ResetAfterMutation />
+<Exhibit src="guides/remote-data/reset-after-mutation.ts" />
 
 ## example contract
 
@@ -124,11 +119,11 @@ client. Here are the actual living definitions for them.
 
 The server defines the RPC contract and handlers:
 
-<RemoteDataServer soft />
+<Exhibit src="guides/remote-data/server.ts" soft />
 
 The client derives a typed client directly from that router:
 
-<RemoteDataClient soft />
+<Exhibit src="guides/remote-data/client.ts" soft />
 
 In a real app, this client would usually be created from your transport layer.
 For these docs, a server-side client keeps the example compact while still proving the

@@ -12,6 +12,8 @@ docs-navigation.class {
 
 		@media screen and (min-width: 960px) {
 			width: 240px;
+			top: 0;
+			max-height: 100svh;
 		}
 
 		nav {

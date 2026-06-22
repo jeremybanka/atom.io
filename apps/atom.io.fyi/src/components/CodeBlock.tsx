@@ -1,5 +1,4 @@
 import { type ComponentChildren, toChildArray, type VNode } from "preact"
-import * as React from "react"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 
 import css from "./CodeBlock.module.css"
@@ -68,39 +67,15 @@ export function CodeBlock({
 	soft = false,
 	children,
 }: CodeBlockProps): VNode {
-	const myRef = React.useRef<HTMLSpanElement>(null)
 	const displayLabel = label ?? filepath ?? `code`
 	const code = codeProp ?? flattenChildrenToString(children)
 
-	React.useEffect(() => {
-		const me = myRef.current
-		if (me === null) {
-			return
-		}
-		const myElementsWithClassNameStringAndContainingDoubleQuotes =
-			Array.prototype.filter.call(
-				me.querySelectorAll(`.token.string`),
-				(element: any) => element.textContent.includes(`./`),
-			)
-
-		for (const element of myElementsWithClassNameStringAndContainingDoubleQuotes) {
-			const anchor = document.createElement(`a`)
-			anchor.href = `#${getCodeBlockId(element.textContent)}`
-			anchor.textContent = element.textContent
-			element.replaceChildren(anchor)
-		}
-	}, [code, filepath])
 	return (
-		<code-block id={getCodeBlockId(displayLabel)} ref={myRef} class={css.class}>
+		<code-block id={getCodeBlockId(displayLabel)} class={css.class}>
 			<back-fill class={soft ? `soft` : `hard`} />
 			<file-name>
 				<span>{displayLabel}</span>
-				<button
-					type="button"
-					onClick={async () => {
-						await navigator.clipboard.writeText(code)
-					}}
-				>
+				<button type="button">
 					<svg viewBox="0 0 16 16">
 						<title>copy</title>
 						<path

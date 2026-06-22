@@ -549,22 +549,67 @@ async function resolveExhibitSource(
 	return null
 }
 
+async function resolveExhibitSourcePath(src: string): Promise<string | null> {
+	const normalized = src
+		.replace(/^\/+/, ``)
+		.replace(/^docs\/source\/exhibits\//, ``)
+	const exactSourcePath = path.join(EXHIBITS_ROOT, normalized)
+	try {
+		const stat = await fs.stat(exactSourcePath)
+		if (stat.isFile()) {
+			return exactSourcePath
+		}
+	} catch {
+		// Fall back to the legacy extension resolution below.
+	}
+	return resolveExhibitSource(normalized.replace(/(?:\.txt)?\.[^.]+$/, ``))
+}
+
+function titleFromExhibitSource(src: string): string {
+	return slugToTitle(src.replace(/\.txt$/, ``))
+}
+
 async function replaceExhibits(
 	contents: string,
 	importMap: Map<string, string>,
 ): Promise<string> {
 	let output = ``
 	let cursor = 0
-	const componentPattern =
-		/<([A-Z][A-Za-z0-9_]*)\b(?=[^>]*\bclient:load\b)[^>]*\/>/g
+	const componentPattern = /<([A-Z][A-Za-z0-9_]*)\b[^>]*\/>/g
 
 	for (const match of contents.matchAll(componentPattern)) {
 		const [tag, componentName] = match
 		const index = match.index ?? 0
 		output += contents.slice(cursor, index)
+		if (componentName === `Exhibit`) {
+			const src = readQuotedAttribute(tag, `src`)
+			if (!src) {
+				output += `\n[interactive/example omitted: Exhibit]\n`
+				cursor = index + tag.length
+				continue
+			}
+			const sourcePath = await resolveExhibitSourcePath(src)
+			if (!sourcePath) {
+				output += `\n[interactive/example omitted: Exhibit ${src}]\n`
+				cursor = index + tag.length
+				continue
+			}
+
+			const code = await fs.readFile(sourcePath, `utf8`)
+			const source = path.relative(ATOM_IO_ROOT, sourcePath)
+			output += `\n${renderCodeBlock({
+				code,
+				filepath: path.basename(sourcePath).replace(/\.txt$/, ``),
+				label: readQuotedAttribute(tag, `label`) ?? titleFromExhibitSource(src),
+				source,
+			})}\n`
+			cursor = index + tag.length
+			continue
+		}
+
 		const relativeImport = importMap.get(componentName)
 		if (!relativeImport) {
-			output += `\n[interactive/example omitted: ${componentName}]\n`
+			output += tag
 			cursor = index + tag.length
 			continue
 		}

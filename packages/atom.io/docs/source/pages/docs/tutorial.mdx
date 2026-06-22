@@ -26,7 +26,6 @@ This guide uses `node` and `pnpm`.
 Start a new app:
 
 <CodeBlock
-client:load
 filepath="sample.sh"
 label="create a project"
 code={`pnpm create atom.io`}
@@ -40,7 +39,6 @@ When prompted, choose:
 Then start the dev server:
 
 <CodeBlock
-client:load
 filepath="sample.sh"
 label="start the dev server"
 code={`cd my-atom-app
@@ -64,7 +62,6 @@ That file is a good first tour of the library:
 If you are new to the code, start by scanning these declarations near the top of the file:
 
 <CodeBlock
-client:load
 filepath="sample.ts"
 label="core declarations"
 code={`const pathKeysAtom = atom<string[]>({
@@ -111,7 +108,6 @@ Start with something visible and low-risk: change the stage size.
 In `src/BezierPlayground.tsx`, find:
 
 <CodeBlock
-client:load
 filepath="sample.ts"
 label="stage size"
 code={`const WIDTH = 256
@@ -127,7 +123,6 @@ Next, personalize the playground.
 Inside the `svg`, try changing the fill and grid styling:
 
 <CodeBlock
-client:load
 filepath="sample.tsx"
 label="stage fill"
 code={`<rect x={0} y={0} width={WIDTH} height={HEIGHT} fill="#aaa3" />`}
@@ -136,7 +131,6 @@ code={`<rect x={0} y={0} width={WIDTH} height={HEIGHT} fill="#aaa3" />`}
 and:
 
 <CodeBlock
-client:load
 filepath="sample.tsx"
 label="grid fill"
 code={`<rect
@@ -157,7 +151,6 @@ Now make a behavior change that teaches how updates flow through state.
 Find the `clamp` helper and add a `snap` helper beside it:
 
 <CodeBlock
-client:load
 filepath="sample.ts"
 label="snap helper"
 code={`function snap(n: number, size: number) {
@@ -168,7 +161,6 @@ code={`function snap(n: number, size: number) {
 Then, inside `onPointerMove`, snap `x` and `y` before they are written into state:
 
 <CodeBlock
-client:load
 filepath="sample.ts"
 label="snap before writing state"
 code={`const { x, y } = pt.matrixTransform(ctm)
@@ -211,7 +203,6 @@ The template uses `atomFamily` because there are many nodes and edges, not just 
 For example:
 
 <CodeBlock
-client:load
 filepath="sample.ts"
 label="atom family"
 code={`const nodeAtoms = atomFamily<PointXY | null, string>({
@@ -231,7 +222,6 @@ The template already includes a `Reset` button backed by a transaction. That mak
 Look for:
 
 <CodeBlock
-client:load
 filepath="sample.ts"
 label="reset transaction"
 code={`const resetTX = transaction<() => Promise<void>>({
@@ -253,7 +243,6 @@ const reset = runTransaction(resetTX)`}
 Then find:
 
 <CodeBlock
-client:load
 filepath="sample.tsx"
 label="reset button"
 code={`<button type="button" class="flat" onClick={reset}>

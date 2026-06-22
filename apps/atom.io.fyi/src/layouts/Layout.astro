@@ -3,7 +3,7 @@ import { ClientRouter } from "astro:transitions"
 import { AtomIODevtools } from "atom.io/react-devtools"
 import "atom.io/react-devtools/css"
 import packageJson from "atom.io/package.json"
-import { GlobalEffectsManager } from "../components/GlobalEffectsManager.tsx"
+import GlobalEffects from "../components/GlobalEffects.astro"
 import "../globals.css"
 import css from "./Layout.module.css"
 ---
@@ -68,7 +68,7 @@ import css from "./Layout.module.css"
 			</footer>
 		</app-shell>
 
-		<GlobalEffectsManager client:idle />
 		<AtomIODevtools hideByDefault={true} client:only />
+		<GlobalEffects />
 	</body>
 </html>

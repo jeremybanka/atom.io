@@ -1,5 +1,4 @@
-import CompoundKey from "x/foundations/canonical/compound-key.gen";
-import CanonicalValues from "x/foundations/canonical/canonical-values.gen";
+import Exhibit from "c/Exhibit.astro";
 
 # <low-emphasis>atom.io</low-emphasis>/foundations/canonical
 
@@ -16,9 +15,9 @@ The [JSON `primitive` type](/docs/foundations/json) is canonical. A readonly arr
 canonical when every value inside it is canonical, so tuples are the usual shape for
 compound keys.
 
-<CanonicalValues client:load />
+<Exhibit src="foundations/canonical/canonical-values.ts" />
 
-<CompoundKey client:load />
+<Exhibit src="foundations/canonical/compound-key.ts" />
 
 ## package contents
 

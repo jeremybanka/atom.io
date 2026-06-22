@@ -1,7 +1,5 @@
+import Exhibit from "c/Exhibit.astro";
 import { CodeBlock } from "c/CodeBlock";
-import MinimalFlatConfig from "x/tooling/eslint-plugin/eslint.config.gen";
-import ExplicitStateTypes from "x/tooling/eslint-plugin/explicit-state-types.gen";
-import ExactCatchTypes from "x/tooling/eslint-plugin/exact-catch-types.gen";
 
 # <low-emphasis>atom.io</low-emphasis>/eslint-plugin
 
@@ -15,7 +13,6 @@ package. For a minimal TypeScript flat config, you also need ESLint and
 `typescript-eslint`:
 
 <CodeBlock
-client:load
 filepath="sample.sh"
 label="install eslint"
 code={`pnpm add -D eslint typescript-eslint`}
@@ -26,7 +23,7 @@ code={`pnpm add -D eslint typescript-eslint`}
 Here is a small `eslint.config.ts` that starts from `typescript-eslint`'s recommended
 type-checked rules and adds the atom.io rules.
 
-<MinimalFlatConfig client:load />
+<Exhibit src="tooling/eslint-plugin/eslint.config.ts.txt" />
 
 Why use `recommendedTypeChecked` instead of plain `recommended`?
 
@@ -42,7 +39,7 @@ use `typescript-eslint`'s plain recommended config and leave out
 `atom.io/explicit-state-types` requires state declarations to include explicit type
 arguments.
 
-<ExplicitStateTypes client:load />
+<Exhibit src="tooling/eslint-plugin/explicit-state-types.ts" />
 
 This keeps important state types visible at the declaration site, where they are easiest
 to audit.
@@ -51,7 +48,7 @@ to audit.
 
 `atom.io/naming-convention` keeps declaration variable names and state keys aligned.
 
-<ExplicitStateTypes client:load />
+<Exhibit src="tooling/eslint-plugin/explicit-state-types.ts" />
 
 For example, `countAtom` should use `key: "count"`, and `userAtoms` should use
 `key: "user"`. The same pattern applies to `selector`, `selectorFamily`,
@@ -62,7 +59,7 @@ For example, `countAtom` should use `key: "count"`, and `userAtoms` should use
 `atom.io/exact-catch-types` checks that a state declaration's typed error channel
 matches the constructors listed in its `catch` option.
 
-<ExactCatchTypes client:load />
+<Exhibit src="tooling/eslint-plugin/exact-catch-types.ts" />
 
 This helps prevent state from advertising that it may catch one error type while actually
 catching another.

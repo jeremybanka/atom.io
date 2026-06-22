@@ -1,7 +1,4 @@
-import SyncWithLocalStorage from "x/web/sync-with-local-storage.gen";
-import SyncWithSessionStorage from "x/web/sync-with-session-storage.gen";
-import SyncWithTheUrl from "x/web/sync-with-the-url.gen";
-import StringInterface from "x/web/string-interface.gen";
+import Exhibit from "c/Exhibit.astro";
 
 # <low-emphasis>atom.io</low-emphasis>/web
 
@@ -34,7 +31,7 @@ Right now, that means a couple of state-persistence strategies in the form of [a
 
 `storageSync` hydrates an atom from browser storage when the atom is created, then writes future changes back to storage.
 
-<SyncWithLocalStorage client:load />
+<Exhibit src="web/sync-with-local-storage.ts" />
 
 The second parameter is any object with `stringify` and `parse` methods. In many cases, `JSON` is exactly what you want.
 
@@ -42,7 +39,7 @@ When the atom is set to `null`, the stored item is removed.
 
 Because the storage object is passed in directly, this also works with `sessionStorage`:
 
-<SyncWithSessionStorage client:load />
+<Exhibit src="web/sync-with-session-storage.ts" />
 
 If storage is unavailable, such as during SSR, the effect simply does nothing.
 
@@ -50,7 +47,7 @@ If storage is unavailable, such as during SSR, the effect simply does nothing.
 
 `searchParamSync` reads from the current page URL, then keeps one search parameter updated as the atom changes.
 
-<SyncWithTheUrl client:load />
+<Exhibit src="web/sync-with-the-url.ts" />
 
 If the current URL is `/?tab="settings"`, the atom initializes to `"settings"`.
 
@@ -64,7 +61,7 @@ If the atom is set to `null`, that search parameter is removed from the URL.
 
 Both effects take the same kind of serializer:
 
-<StringInterface client:load />
+<Exhibit src="web/string-interface.ts" />
 
 That means you can use `JSON`, or define your own format if you want cleaner URLs or custom parsing rules.
 

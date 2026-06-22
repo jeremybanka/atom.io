@@ -173,11 +173,11 @@ history.
 
 ## atom
 
-<DeclareAnAtom client:load />
+<DeclareAnAtom />
 Imagine an `atom` as a "reactive variable," with a key, a type, and a default
 value.
 
-<AnAtomTokenIsAReference client:load />
+<AnAtomTokenIsAReference />
 As you can see, what is returned from `atom` does not contain the value itself.
 
 Instead, it returns an importable, serializable, and replaceable reference to the value.
@@ -188,28 +188,28 @@ Tokens are serializable references. Every token has a `key` and a `type` field.
 The `type` field is the public discriminator for the kind of resource the token
 references, such as `atom`, `atom_family`, `timeline`, or `transaction`.
 
-<GetAndSetAnAtom client:load />
+<GetAndSetAnAtom />
 An atom's value is accessed by calling `getState` and `setState` with the atom's
 token.
 
 TypeScript will discourage you from setting the wrong type of value.
 
-<SubscribeToAnAtom client:load />
+<SubscribeToAnAtom />
 Unlike a standard variable, you can `subscribe` to an atom. The callback you
 pass to the subscription will be called whenever the atom is set to a new value.
 
-<SubscribePowersIntegrations client:load />
+<SubscribePowersIntegrations />
 This is an example of the **observer pattern**. Following the observer pattern
 allows atom.io to integrate cleanly with an observer like React. More on this
 later.
 
 ## selector
 
-<DeclareASelector client:load />
+<DeclareASelector />
 
 A selector is also a reactive variable, but its value is derived from other atoms or selectors.
 
-<UseASelector client:load />
+<UseASelector />
 
 In this example, we can see that by setting `dividendState` to a new value, the value of `quotientState` is automatically updated.
 
@@ -217,7 +217,7 @@ In this example, we can see that by setting `dividendState` to a new value, the 
 
 Sometimes you need a lot of the same type of atom or selector. The `atomFamily` and `selectorFamily` functions provide a convenient interface for declaring states dynamically.
 
-<DeclareAFamily client:load />
+<DeclareAFamily />
 
 For example, maybe we're making an app with `Point`s laid out in two dimensions.
 
@@ -227,7 +227,7 @@ Counterintuitively, it is likely a performance win in highly interactive applica
 
 This is the key to high-performance interactivity in atom.io: **the smaller the state, the better**.
 
-<UseAnIndexToTrackFamilyMembers client:load />
+<UseAnIndexToTrackFamilyMembers />
 
 In this example, we use a single `atom<string[]>` to track the members of the family.
 
@@ -255,7 +255,7 @@ model. Disposal removes that member from the store, clears its retained
 state data, and runs any cleanup returned by atom effects. Pass either a family
 and key, or a family member token returned by `findState`.
 
-<ResetAndDispose client:load />
+<ResetAndDispose />
 
 `disposeState` only disposes family members. Standalone atoms and selectors are
 permanent parts of the store shape, so attempting to dispose one logs an error
@@ -336,20 +336,20 @@ finishes without throwing.
   </table>
 </table-wrapper>
 
-<CallAFamilyInATransaction client:load />
+<CallAFamilyInATransaction />
 
 A common use case is creating some new state using a family and adding it to an index tracking members of that family.
 
-<IterateThroughAnIndexChangingTheValueOfSomeAtoms client:load />
+<IterateThroughAnIndexChangingTheValueOfSomeAtoms />
 
 In this example, we add a minute to all running timers.
 
-<DisposeAFamilyMemberInATransaction client:load />
+<DisposeAFamilyMemberInATransaction />
 
 When you remove family state, update your application-level index and dispose
 the family member in the same transaction.
 
-<TryCatchAFailedTransaction client:load />
+<TryCatchAFailedTransaction />
 
 If a transaction throws, the state of the store is not changed. However, it is up to you to handle the error.
 
@@ -357,22 +357,22 @@ If a transaction throws, the state of the store is not changed. However, it is u
 
 Timelines allow you to track the history of a group of atoms. If these atoms are set, or set as a group by a selector or transaction, the timeline will record the changes. A timeline can be used to undo and redo changes.
 
-<CreateATimeline client:load />
+<CreateATimeline />
 
 In this example, we create a timeline that tracks the history of two families of atoms.
 
-<SubscribeToATimeline client:load />
+<SubscribeToATimeline />
 
 In this example, we subscribe to the timeline. Above are the structures of timeline updates.
 
-<UndoAndRedoChanges client:load />
+<UndoAndRedoChanges />
 
 In this example, we undo and redo changes to the timeline.
 
 Use `inspectTimeline` when you need to read the timeline cursor directly. It returns
 the current position as `at`, and the number of retained updates as `length`.
 
-<InspectATimeline client:load />
+<InspectATimeline />
 
 ## join
 
@@ -384,17 +384,17 @@ For example, imagine a playlist editor. Tracks are their own entities, and playl
 
 The tracks do not belong to the playlist object, and the playlists do not belong to the track object. The relationship is its own state, so the UI can reshape it freely.
 
-<DeclarePlaylistTracks client:load />
+<DeclarePlaylistTracks />
 
 You can read the relation from either side.
 
-<FindTracksInPlaylist client:load />
+<FindTracksInPlaylist />
 
-<FindPlaylistsForTrack client:load />
+<FindPlaylistsForTrack />
 
 Then you can reconfigure the relation without denormalizing either entity.
 
-<ReplacePlaylistTracks client:load />
+<ReplacePlaylistTracks />
 
 The join keeps both directions consistent. If the road trip playlist changes, `tracksInRoadTripState` updates. If a track appears in or disappears from a playlist, `playlistsUsingDreamsState` updates too.
 
@@ -410,11 +410,11 @@ Atoms can declare `effects`, which are setup hooks that run when the atom is cre
 
 Use `setSelf` when an external source should initialize or push values into the atom:
 
-<HydrateAnAtomWithSetSelf client:load />
+<HydrateAnAtomWithSetSelf />
 
 Use `onSet` when you want to react to changes after the atom updates:
 
-<ReactToChangesWithOnSet client:load />
+<ReactToChangesWithOnSet />
 
 These patterns are useful on their own, and `atom.io/web` builds on them with ready-made
 browser effects such as storage and URL synchronization. See
@@ -424,11 +424,11 @@ browser effects such as storage and URL synchronization. See
 
 Often, the data you need is not immediately available. For example, you may need to fetch it from a server. `atom.io` offers natural support for `Promise` and `async/await` patterns.
 
-<AwaitYourState client:load />
+<AwaitYourState />
 
 `Loadable` is a shorthand that means "this value may be a `Promise`". This is useful because `await` is harmless when the value is not a `Promise`. When the Promise does resolve, the value is set into the value map, allowing for maximum flexibility in Suspenseful environments.
 
-<LoadableSelector client:load />
+<LoadableSelector />
 
 Here is an example where we read a query parameter from the URL, then use it to fetch data from a server. This is a great pattern, because the selector's value will be cached as long as the URL parameter does not change.
 
@@ -438,7 +438,7 @@ clearer cache identity or more deliberate normalization, see the
 and suspense-like async patterns, loadable families keyed by input, and
 local-index patterns for filtered or optimistic list screens.
 
-<AvoidRaceBetweenPromises client:load />
+<AvoidRaceBetweenPromises />
 
 If we update an async state more quickly than its promises resolve, only the last resolved value will be set into the state. All previous results will be discarded.
 
@@ -453,11 +453,11 @@ handle the expected failure case explicitly.
 To make sure your declared error type stays aligned with the constructors in `catch`, use
 [`atom.io/exact-catch-types`](/docs/eslint-plugin#exact-catch-types).
 
-<CatchAnAtom client:load />
+<CatchAnAtom />
 
 The same pattern works for selectors:
 
-<CatchASelector client:load />
+<CatchASelector />
 
 This is especially helpful for `Loadable` state. If you read a caught loadable value with
 [`useLoadable`](/docs/react#error-handling), the hook can expose the caught error
@@ -471,7 +471,7 @@ update is not a good tradeoff.
 
 For those cases, use `mutableAtom`.
 
-<DeclareAMutableAtom client:load />
+<DeclareAMutableAtom />
 
 A mutable atom holds a `Transceiver`: a mutable object that knows how to report its own
 changes to atom.io.
@@ -489,7 +489,7 @@ or a UI adapter like `useO`.
 Use `getJsonToken` when you want the mutable atom's JSON form as writable atom.io
 state. It accepts either a mutable atom token, or a mutable atom family plus a key.
 
-<GetAJsonToken client:load />
+<GetAJsonToken />
 
 When writing one, prefer the setter callback form. Mutate the value inside the callback
 and return it. That lets atom.io capture the transceiver's fine-grained update instead

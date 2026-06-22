@@ -12,7 +12,7 @@ state directly from the panel.
 If your project already depends on `atom.io`, the devtools package is already available.
 To render with the intended styles, import both the component and its CSS:
 
-<BasicSetup client:load />
+<BasicSetup />
 
 Render the devtools somewhere inside the same React tree as your `atom.io/react`
 provider. `AtomIODevtools` reads the current store from `StoreContext`, so it attaches to
@@ -26,7 +26,7 @@ If you have created a siloed store, you can mount the devtools inside that store
 If you want the devtools available without showing them immediately, pass
 `hideByDefault={true}`:
 
-<HideByDefault client:load />
+<HideByDefault />
 
 When hidden, the panel can be toggled with `ctrl` + `shift` + `a`.
 See [try it here](#try-it-here) for the full show/hide flow on this site.

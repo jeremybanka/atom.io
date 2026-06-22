@@ -5,7 +5,7 @@
 	"tasks": {
 		"build": {
 			"dependsOn": ["^build"],
-			"outputs": ["dist/**", "bin/**", "docs/agent/**"],
+			"outputs": ["dist/**", "docs/agent/**", "agent-docs/**"],
 			"inputs": [
 				"package.json",
 				"tsconfig.json",

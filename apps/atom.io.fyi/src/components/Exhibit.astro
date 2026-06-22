@@ -1,0 +1,32 @@
+---
+import { exhibits } from "virtual:atom-io-exhibits"
+
+import { CodeBlock } from "./CodeBlock"
+
+type Props = {
+	label?: string
+	soft?: boolean
+	src: string
+}
+
+function normalizeSource(src: string): string {
+	return src.replace(/^\/+/, ``).replace(/^docs\/source\/exhibits\//, ``)
+}
+
+function getDisplayFilename(src: string): string {
+	const filename = src.split(`/`).pop() ?? `code`
+	return filename.endsWith(`.txt`) ? filename.slice(0, -`.txt`.length) : filename
+}
+
+const { label, soft = false, src } = Astro.props
+const normalizedSource = normalizeSource(src)
+const code = exhibits[normalizedSource]
+
+if (code === undefined) {
+	throw new Error(`Unknown exhibit source: ${src}`)
+}
+
+const filepath = getDisplayFilename(normalizedSource)
+---
+
+<CodeBlock code={code} filepath={filepath} label={label} soft={soft} />

@@ -1,5 +1,4 @@
-import BasicSetup from "x/tooling/react-devtools/basic-setup.gen";
-import HideByDefault from "x/tooling/react-devtools/hide-by-default.gen";
+import Exhibit from "c/Exhibit.astro";
 
 # <low-emphasis>atom.io</low-emphasis>/react-devtools
 
@@ -12,7 +11,7 @@ state directly from the panel.
 If your project already depends on `atom.io`, the devtools package is already available.
 To render with the intended styles, import both the component and its CSS:
 
-<BasicSetup client:load />
+<Exhibit src="tooling/react-devtools/basic-setup.tsx.txt" />
 
 Render the devtools somewhere inside the same React tree as your `atom.io/react`
 provider. `AtomIODevtools` reads the current store from `StoreContext`, so it attaches to
@@ -26,7 +25,7 @@ If you have created a siloed store, you can mount the devtools inside that store
 If you want the devtools available without showing them immediately, pass
 `hideByDefault={true}`:
 
-<HideByDefault client:load />
+<Exhibit src="tooling/react-devtools/hide-by-default.tsx.txt" />
 
 When hidden, the panel can be toggled with `ctrl` + `shift` + `a`.
 See [try it here](#try-it-here) for the full show/hide flow on this site.

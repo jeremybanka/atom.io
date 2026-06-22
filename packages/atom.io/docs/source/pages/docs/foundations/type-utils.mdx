@@ -1,5 +1,4 @@
-import FlatExample from "x/foundations/type-utils/flat.gen";
-import ViewOfExample from "x/foundations/type-utils/view-of.gen";
+import Exhibit from "c/Exhibit.astro";
 
 # <low-emphasis>atom.io</low-emphasis>/foundations/type-utils
 
@@ -33,11 +32,11 @@ Import `Flat`, `ViewOf`, or both from `atom.io/foundations/type-utils`.
 
 `Flat` is mostly for type display and type composition.
 
-<FlatExample client:load />
+<Exhibit src="foundations/type-utils/flat.ts" />
 
 ## ViewOf
 
 `ViewOf` converts common mutable containers into readonly views. If a type declares a
 `READONLY_VIEW` marker, `ViewOf` uses that marker.
 
-<ViewOfExample client:load />
+<Exhibit src="foundations/type-utils/view-of.ts" />

@@ -144,9 +144,6 @@ importers:
       '@typescript/native-preview':
         specifier: 7.0.0-dev.20260622.1
         version: 7.0.0-dev.20260622.1
-      chokidar:
-        specifier: 5.0.0
-        version: 5.0.0
       concurrently:
         specifier: 10.0.3
         version: 10.0.3
@@ -156,9 +153,6 @@ importers:
       lasertag:
         specifier: 0.1.5
         version: 0.1.5(@types/react@19.2.17)(eslint@10.5.0(jiti@2.7.0))(preact@10.29.2)(solid-js@1.9.13)
-      takua:
-        specifier: 0.2.1
-        version: 0.2.1
       wrangler:
         specifier: 4.103.0
         version: 4.103.0

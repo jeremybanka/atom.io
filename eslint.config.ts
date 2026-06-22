@@ -143,7 +143,7 @@ const STORYBOOK: Linter.Config = {
 const LASERTAG_ASTRO: Linter.Config = {
 	languageOptions: ASTRO_LANG_OPTIONS,
 	files: [`apps/atom.io.fyi/src/**/*.astro`],
-	ignores: [`**/exhibits-wrapped/**`],
+	ignores: [],
 	plugins: {
 		astro: AstroPlugin,
 		lasertag: LasertagPlugin,
@@ -154,7 +154,7 @@ const LASERTAG_ASTRO: Linter.Config = {
 
 const LASERTAG_TSX: Linter.Config = {
 	files: [`apps/atom.io.fyi/src/**/*.tsx`],
-	ignores: [`**/exhibits-wrapped/**`],
+	ignores: [],
 	plugins: { lasertag: LasertagPlugin },
 	rules: LASERTAG_RULES,
 }

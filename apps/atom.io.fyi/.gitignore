@@ -23,8 +23,5 @@ pnpm-debug.log*
 # jetbrains setting folder
 .idea/
 
-# atom.io.fyi
-exhibits-wrapped
-
 # cloudflare
 .wrangler

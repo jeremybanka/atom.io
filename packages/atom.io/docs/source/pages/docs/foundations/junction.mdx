@@ -11,7 +11,7 @@ import SetAndDelete from "x/foundations/junction/set-and-delete.gen";
 Use it when the relationship itself deserves structure: both directions should stay in
 sync, cardinality matters, and relation content may need to travel with the edge.
 
-<BasicRelation client:load />
+<BasicRelation />
 
 ## package contents
 
@@ -78,7 +78,7 @@ sync, cardinality matters, and relation content may need to travel with the edge
 
 Use either positional arguments or object-style arguments.
 
-<SetAndDelete client:load />
+<SetAndDelete />
 
 Deleting one side removes all relations for that side. Deleting both sides removes that
 one relation.
@@ -97,7 +97,7 @@ specific relation.
 
 Junctions can store JSON-object content on relations.
 
-<RelationContent client:load />
+<RelationContent />
 
 `getRelationEntries({ album: "rumours" })` returns related keys paired with content.
 
@@ -108,7 +108,7 @@ Use `replaceRelations(key, relations)` to replace all relations for one side.
 For content-bearing junctions, pass an object whose keys are related IDs and whose values
 are relation content.
 
-<ReplaceRelations client:load />
+<ReplaceRelations />
 
 By default, replacement updates reverse relations safely. Passing `{ reckless: true }`
 uses the faster replacement path and can leave old reverse relations in place.
@@ -119,7 +119,7 @@ uses the faster replacement path and can leave old reverse relations in place.
 
 Pass that shape back to the constructor to hydrate a junction.
 
-<JsonExample client:load />
+<JsonExample />
 
 ## overlays
 

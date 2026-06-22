@@ -1,0 +1,76 @@
+<script>
+const codeBlockEffectsKey = `__atomIoCodeBlockEffectsInstalled`
+const globalWithCodeBlockEffects = globalThis as typeof globalThis &
+	Record<string, boolean | undefined>
+
+function getCodeBlockId(labelOrHref: string): string {
+	const label =
+		labelOrHref
+			.replace(/^["'`]|["'`]$/g, ``)
+			.split(`/`)
+			.pop() ?? ``
+	return label
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, `-`)
+		.replace(/^-+|-+$/g, ``)
+}
+
+function getLinkedCodeBlockId(labelOrHref: string): string {
+	const cleaned = labelOrHref.replace(/^["'`]|["'`]$/g, ``)
+	const directId = getCodeBlockId(cleaned)
+	if (document.getElementById(directId) !== null) {
+		return directId
+	}
+	for (const extension of [`.ts`, `.tsx`, `.js`, `.jsx`, `.sh`, `.conf`]) {
+		const id = getCodeBlockId(`${cleaned}${extension}`)
+		if (document.getElementById(id) !== null) {
+			return id
+		}
+	}
+	return directId
+}
+
+function linkCodeBlockImports(): void {
+	for (const element of document.querySelectorAll(`code-block .token.string`)) {
+		if (!(element instanceof HTMLElement)) {
+			continue
+		}
+		if (element.querySelector(`a`) !== null) {
+			continue
+		}
+		const text = element.textContent ?? ``
+		if (!text.includes(`./`) && !text.includes(`../`)) {
+			continue
+		}
+		const anchor = document.createElement(`a`)
+		anchor.href = `#${getLinkedCodeBlockId(text)}`
+		anchor.textContent = text
+		element.replaceChildren(anchor)
+	}
+}
+
+async function copyCodeBlock(button: HTMLButtonElement): Promise<void> {
+	const codeBlock = button.closest(`code-block`)
+	const code = codeBlock?.querySelector(`pre code`)?.textContent
+	if (code === undefined) {
+		return
+	}
+	await navigator.clipboard.writeText(code)
+}
+
+if (!globalWithCodeBlockEffects[codeBlockEffectsKey]) {
+	globalWithCodeBlockEffects[codeBlockEffectsKey] = true
+	document.addEventListener(`click`, (event) => {
+		if (!(event.target instanceof Element)) {
+			return
+		}
+		const button = event.target.closest(`code-block > file-name > button`)
+		if (!(button instanceof HTMLButtonElement)) {
+			return
+		}
+		void copyCodeBlock(button)
+	})
+	document.addEventListener(`astro:page-load`, linkCodeBlockImports)
+	linkCodeBlockImports()
+}
+</script>

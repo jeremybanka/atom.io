@@ -3,6 +3,7 @@ import { ClientRouter } from "astro:transitions"
 import { AtomIODevtools } from "atom.io/react-devtools"
 import "atom.io/react-devtools/css"
 import packageJson from "atom.io/package.json"
+import CodeBlockEffects from "../components/CodeBlockEffects.astro"
 import { GlobalEffectsManager } from "../components/GlobalEffectsManager.tsx"
 import "../globals.css"
 import css from "./Layout.module.css"
@@ -70,5 +71,6 @@ import css from "./Layout.module.css"
 
 		<GlobalEffectsManager client:idle />
 		<AtomIODevtools hideByDefault={true} client:only />
+		<CodeBlockEffects />
 	</body>
 </html>

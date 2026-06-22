@@ -12,7 +12,7 @@ a `Set`. The important contract is the overlay behavior: where reads come from, 
 deletions are tracked, and how iteration orders source entries relative to overlay-only
 entries.
 
-<MapOverlayExample client:load />
+<MapOverlayExample />
 
 ## package contents
 
@@ -98,7 +98,7 @@ the overlay value.
 
 If a source entry is deleted, it is skipped.
 
-<SourceAndOverlayOrder client:load />
+<SourceAndOverlayOrder />
 
 ## clear and reinsert
 
@@ -107,4 +107,4 @@ Calling `clear()` hides all source entries and removes overlay-only entries.
 If you then add a source-backed item again, it behaves like a fresh overlay insertion.
 That means it appears after any earlier overlay-only insertions made after `clear`.
 
-<ClearAndReinsert client:load />
+<ClearAndReinsert />

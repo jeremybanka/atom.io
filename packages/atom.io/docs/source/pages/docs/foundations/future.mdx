@@ -8,7 +8,7 @@ import ReplacePendingWork from "x/foundations/future/replace-pending-work.gen";
 It gives callers a stable promise reference while allowing the producer to replace the
 async work that should resolve it.
 
-<ReplacePendingWork client:load />
+<ReplacePendingWork />
 
 In the example, `result` starts by following the slow promise. Calling `use` replaces
 that pending work with a faster promise. `await result` resolves to `"fast"`, and the
@@ -55,4 +55,4 @@ later slow result is ignored.
 
 Construct a `Future` from a promise or from a promise executor.
 
-<Constructor client:load />
+<Constructor />

@@ -35,7 +35,6 @@ without changing the component's behavior.
 Add `atom.io` to the app you already have:
 
 <CodeBlock
-client:load
 filepath="sample.sh"
 label="install"
 code={`pnpm add atom.io`}
@@ -48,7 +47,7 @@ That's it! `atom.io` delivers its entire SDK in one package. (And it ships all t
 Most React apps have a component like this: a local input value, a derived display value,
 and an event handler that updates state.
 
-<ProductSearchUseState client:load soft />
+<ProductSearchUseState soft />
 
 <h3 id="extract-state-to-an-atom">model state with atom</h3>
 
@@ -56,7 +55,7 @@ First, add an atom just outside the component. Keeping it in the same file is a 
 step: the token is module-local, so this does not create a new public state API for the
 rest of the app.
 
-<ProductSearchWithAtom client:load soft />
+<ProductSearchWithAtom soft />
 
 <h3 id="replace-use-state-with-use-i-and-use-o">
   {`replace useState with useI and useO`}
@@ -65,7 +64,7 @@ rest of the app.
 Then replace `useState` with `useO` and `useI`. `useO` reads the atom's current value.
 `useI` returns the setter for that atom.
 
-<ProductSearchAtomHooks client:load soft />
+<ProductSearchAtomHooks soft />
 
 The component should behave the same way it did before. The difference is that the state
 now has a stable token.
@@ -75,14 +74,14 @@ now has a stable token.
 Next, move the derived search label into a selector. Like the atom, this selector can stay
 private to the module until another component needs it.
 
-<ProductSearchWithSelector client:load soft />
+<ProductSearchWithSelector soft />
 
 <h3 id="read-the-selector-with-use-o">read the selector with useO</h3>
 
 Finally, read the selector with `useO` too. The component now observes one atom for the
 editable value and one selector for the value derived from it.
 
-<ProductSearchSelectorHooks client:load />
+<ProductSearchSelectorHooks />
 
 You can keep both tokens private to this file, or export either token later if another
 component needs to observe or update the same state.
@@ -92,7 +91,7 @@ component needs to observe or update the same state.
 React context is often the next step after `useState`: one component controls a value,
 another component reads it, and a provider gets added so they can stay in sync.
 
-<TicketFilterContextProvider client:load soft />
+<TicketFilterContextProvider soft />
 
 <h3 id="replace-the-context-wrapper-with-an-atom">
   {`replace the context wrapper with an atom`}
@@ -102,14 +101,14 @@ Move the shared value into an atom, then read or update it directly from each co
 The two components still share the same state, but there is no provider wrapper or custom
 context hook to maintain.
 
-<TicketFilterAtom client:load />
+<TicketFilterAtom />
 
 <h2 id="replace-zustand-store">replace Zustand store</h2>
 
 If you have Zustand in the app, you probably introduced it for exactly this kind of
 state: shared values, selectors, and actions living together in one hook-shaped store.
 
-<ShoppingCartZustandStore client:load soft />
+<ShoppingCartZustandStore soft />
 
 <h3 id="split-the-store-into-atoms-selectors-and-transactions">
   {`split the store into atoms, selectors, and transactions`}
@@ -119,7 +118,7 @@ Move collection keys into one atom, each item into an atom family, derived views
 selectors, and store actions into transactions. Components still subscribe to exactly
 the state they need, but each piece now has its own `atom.io` token.
 
-<ShoppingCartAtomIO client:load />
+<ShoppingCartAtomIO />
 
 <h2 id="replace-react-use-callback">replace React useCallback</h2>
 
@@ -127,7 +126,7 @@ Some event handlers update more than one independent state. In a task board, mar
 task done might remove it from one list and add it to another. If validation can throw
 between those writes, the callback has to restore both states by hand.
 
-<TaskBoardUseCallbackRollback client:load soft />
+<TaskBoardUseCallbackRollback soft />
 
 <h3 id="replace-the-callback-with-a-transaction">
   {`replace the callback with a transaction`}
@@ -137,7 +136,7 @@ Move the coordinated writes into a transaction, and keep the error message in at
 too. If the transaction throws, `atom.io` aborts it: the intermediate changes stay in the
 transaction store and never reach the store React observes.
 
-<TaskBoardTransaction client:load soft />
+<TaskBoardTransaction soft />
 
 <h3 id="move-the-handler-into-a-nested-transaction">
   {`move the handler into a nested transaction`}
@@ -147,14 +146,14 @@ Finally, make the handler itself a transaction. It clears the error, `run`s the
 error-prone transaction, catches any failure, and writes the error message. The component
 only observes state and starts the transaction.
 
-<TaskBoardNestedTransaction client:load />
+<TaskBoardNestedTransaction />
 
 <h2 id="replace-react-query">replace React Query</h2>
 
 React Query is a common first home for server state: a query function, a query key, and
 component branches for loading, error, and refresh states.
 
-<DashboardSummaryReactQuery client:load soft />
+<DashboardSummaryReactQuery soft />
 
 <h3 id="replace-use-query-with-a-loadable-atom">
   {`replace useQuery with a Loadable atom`}
@@ -164,7 +163,7 @@ Move the query function into a `Loadable` atom, then read it with `useLoadable`.
 component still gets a value, a loading flag, and an error, but the loading state now has
 an `atom.io` token that other components can share.
 
-<DashboardSummaryLoadableAtom client:load />
+<DashboardSummaryLoadableAtom />
 
 For richer query data and fetched data screens, especially with type-safe RPC
 (remote procedure call) clients such as [tRPC](https://trpc.io),
@@ -180,7 +179,7 @@ Another common React pattern is synchronizing local UI state with a browser API.
 example, a sidebar preference might read from `localStorage` when the component mounts,
 then write back whenever the user changes it.
 
-<SidebarLocalStorageUseEffect client:load soft />
+<SidebarLocalStorageUseEffect soft />
 
 <h3 id="replace-use-effect-with-storage-sync">
   {`replace useEffect with storageSync`}
@@ -189,7 +188,7 @@ then write back whenever the user changes it.
 Now the component only reads and updates atom state. The local-storage behavior lives with
 the state definition instead of in the render tree.
 
-<SidebarLocalStorageEffectHooks client:load />
+<SidebarLocalStorageEffectHooks />
 
 <h2 id="replace-react-setInterval-effect">
   {`replace React setInterval effect`}
@@ -198,7 +197,7 @@ the state definition instead of in the render tree.
 Timers are another common effect hiding inside React components. A last-saved indicator,
 for example, might keep a ticking `now` value just so the label can update every second.
 
-<LastSavedIntervalUseEffect client:load soft />
+<LastSavedIntervalUseEffect soft />
 
 <h3 id="replace-use-effect-with-timer-atom">
   {`replace useEffect with a timer atom`}
@@ -208,4 +207,4 @@ Move the interval into a custom atom effect, then derive the display label with 
 The component only reads the selector, while the timer and cleanup behavior live with the
 state definition.
 
-<LastSavedTimerAtomEffect client:load />
+<LastSavedTimerAtomEffect />

@@ -555,8 +555,7 @@ async function replaceExhibits(
 ): Promise<string> {
 	let output = ``
 	let cursor = 0
-	const componentPattern =
-		/<([A-Z][A-Za-z0-9_]*)\b(?=[^>]*\bclient:load\b)[^>]*\/>/g
+	const componentPattern = /<([A-Z][A-Za-z0-9_]*)\b[^>]*\/>/g
 
 	for (const match of contents.matchAll(componentPattern)) {
 		const [tag, componentName] = match
@@ -564,7 +563,7 @@ async function replaceExhibits(
 		output += contents.slice(cursor, index)
 		const relativeImport = importMap.get(componentName)
 		if (!relativeImport) {
-			output += `\n[interactive/example omitted: ${componentName}]\n`
+			output += tag
 			cursor = index + tag.length
 			continue
 		}

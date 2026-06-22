@@ -7,8 +7,7 @@
 		"jsx": "react-jsx",
 		"jsxImportSource": "preact",
 		"paths": {
-			"c/*": ["./src/components/*"],
-			"x/*": ["./src/exhibits-wrapped/*"]
+			"c/*": ["./src/components/*"]
 		},
 		"types": [
 			"lasertag/css-modules",

@@ -7,13 +7,11 @@
 		"node": "26.3.1"
 	},
 	"scripts": {
-		"dev": "concurrently \"bun:dev:*\"",
+		"dev": "bun run dev:astro",
 		"dev:astro": "astro dev",
-		"dev:exhibits": "./scripts/exhibits.bun.ts watch",
-		"build": "bun run build:docs && bun run build:exhibits && bun run build:astro",
+		"build": "bun run build:docs && bun run build:astro",
 		"build:docs": "../../packages/atom.io/__scripts__/agent-docs.bun.ts --site",
 		"build:astro": "astro build",
-		"build:exhibits": "./scripts/exhibits.bun.ts once",
 		"preview": "wrangler dev",
 		"deploy": "wrangler deploy",
 		"astro": "astro",
@@ -39,11 +37,9 @@
 		"@types/react": "19.2.17",
 		"@types/react-syntax-highlighter": "15.5.13",
 		"@typescript/native-preview": "7.0.0-dev.20260622.1",
-		"chokidar": "5.0.0",
 		"concurrently": "10.0.3",
 		"eslint": "10.5.0",
 		"lasertag": "0.1.5",
-		"takua": "0.2.1",
 		"wrangler": "4.103.0"
 	}
 }

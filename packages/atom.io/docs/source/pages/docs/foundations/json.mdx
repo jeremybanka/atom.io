@@ -1,6 +1,4 @@
-import JsonDefaults from "x/foundations/json/defaults.gen";
-import RuntimeChecks from "x/foundations/json/runtime-checks.gen";
-import Serializable from "x/foundations/json/serializable.gen";
+import Exhibit from "c/Exhibit.astro";
 
 # <low-emphasis>atom.io</low-emphasis>/foundations/json
 
@@ -8,7 +6,7 @@ The JSON value boundary for atom.io: values that can cross persistence,
 network messages, process handoff, or a transceiver's JSON form
 without changing shape.
 
-<Serializable />
+<Exhibit src="foundations/json/serializable.ts" />
 
 ## package contents
 
@@ -124,10 +122,10 @@ without changing shape.
 `undefined`, functions, symbols, bigint primitives, and class-like objects such as
 `Set`.
 
-<RuntimeChecks />
+<Exhibit src="foundations/json/runtime-checks.ts" />
 
 ## defaults
 
 `JSON_DEFAULTS` is useful when a UI needs a starter value for a selected JSON type.
 
-<JsonDefaults />
+<Exhibit src="foundations/json/defaults.ts" />

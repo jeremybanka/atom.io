@@ -44,6 +44,7 @@ home-splash.class {
 			gap: 6px;
 			position: relative;
 			z-index: 10;
+			margin: 0 10px;
 
 			> a {
 				display: inline-flex;

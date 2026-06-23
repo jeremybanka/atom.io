@@ -4,19 +4,14 @@ import * as THREE from "three"
 
 import css from "./Dz2Orbital.module.css"
 
-const INTRO_DURATION_SECONDS = 2
 const FINAL_SPIN_RADIANS = 1.1
 const MAX_PIXEL_RATIO = 1.25
 const SETTLED_ROTATION_X = 1.4
 const SETTLED_ROTATION_Z = -1.4
+const Y_ROTATION_RADIANS_PER_SECOND = Math.PI / 4
 
 export type Dz2OrbitalProps = {
 	variant?: `mark` | `splash`
-}
-
-function easeOutCubic(progress: number): number {
-	const clamped = Math.min(Math.max(progress, 0), 1)
-	return 1 - (1 - clamped) ** 3
 }
 
 function makeLobeGeometry(direction: 1 | -1): THREE.LatheGeometry {
@@ -130,28 +125,20 @@ export function Dz2Orbital({ variant = `splash` }: Dz2OrbitalProps): VNode {
 		}
 
 		let frameId = 0
-		const timer = isMark ? null : new THREE.Timer()
-		timer?.connect(document)
+		const timer = new THREE.Timer()
+		timer.connect(document)
 		const animate = (timestamp?: DOMHighResTimeStamp) => {
-			timer?.update(timestamp)
-			const elapsed = timer?.getElapsed() ?? 0
-			const progress = Math.min(elapsed / INTRO_DURATION_SECONDS, 1)
-			const settled = easeOutCubic(progress)
-			const remainingMotion = 1 - settled
-			orbital.rotation.y = FINAL_SPIN_RADIANS * settled
-			orbital.rotation.x =
-				SETTLED_ROTATION_X + Math.sin(elapsed * 2.8) * 0.07 * remainingMotion
+			timer.update(timestamp)
+			const elapsed = timer.getElapsed()
+			orbital.rotation.y =
+				FINAL_SPIN_RADIANS + elapsed * Y_ROTATION_RADIANS_PER_SECOND
 			renderer.render(scene, camera)
-			if (progress < 1) {
-				frameId = requestAnimationFrame(animate)
-			}
+			frameId = requestAnimationFrame(animate)
 		}
 
 		resize()
 		addEventListener(`resize`, resize)
-		if (!isMark) {
-			animate()
-		}
+		animate()
 
 		return () => {
 			cancelAnimationFrame(frameId)
@@ -161,7 +148,7 @@ export function Dz2Orbital({ variant = `splash` }: Dz2OrbitalProps): VNode {
 			torus.geometry.dispose()
 			lobeMaterial.dispose()
 			torusMaterial.dispose()
-			timer?.dispose()
+			timer.dispose()
 			renderer.dispose()
 			renderer.domElement.remove()
 		}

@@ -6,8 +6,8 @@ import css from "./Dz2Orbital.module.css"
 
 function makeLobeGeometry(direction: 1 | -1): THREE.LatheGeometry {
 	const points: THREE.Vector2[] = []
-	const height = 2.35
-	const radius = 0.72
+	const height = 1.5
+	const radius = 0.75
 	for (let index = 0; index <= 44; index++) {
 		const progress = index / 44
 		const easedRadius =
@@ -43,25 +43,25 @@ export function Dz2Orbital(): VNode {
 		scene.add(orbital)
 
 		const lobeMaterial = new THREE.MeshPhysicalMaterial({
-			color: 0x7dd9ff,
+			color: 0xff0000,
 			emissive: 0x145c72,
 			emissiveIntensity: 0.22,
 			metalness: 0,
-			roughness: 0.3,
-			clearcoat: 0.55,
+			roughness: 0.2,
+			clearcoat: 1.55,
 			clearcoatRoughness: 0.35,
-			transparent: true,
+			// transparent: true,
 			opacity: 0.82,
 			side: THREE.DoubleSide,
 		})
 		const torusMaterial = new THREE.MeshPhysicalMaterial({
-			color: 0xffd166,
+			color: 0x0000ff,
 			emissive: 0x6f3a00,
 			emissiveIntensity: 0.17,
 			metalness: 0.05,
-			roughness: 0.42,
-			clearcoat: 0.4,
-			transparent: true,
+			roughness: 0.2,
+			clearcoat: 0.8,
+			// transparent: true,
 			opacity: 0.72,
 			side: THREE.DoubleSide,
 		})
@@ -69,7 +69,7 @@ export function Dz2Orbital(): VNode {
 		const topLobe = new THREE.Mesh(makeLobeGeometry(1), lobeMaterial)
 		const bottomLobe = new THREE.Mesh(makeLobeGeometry(-1), lobeMaterial)
 		const torus = new THREE.Mesh(
-			new THREE.TorusGeometry(1.13, 0.2, 36, 144),
+			new THREE.TorusGeometry(1.13, 0.3, 36, 144),
 			torusMaterial,
 		)
 		torus.rotation.x = Math.PI / 2

@@ -3,6 +3,10 @@
 	"ui": "tui",
 	"globalDependencies": ["tsconfig.json", ".node-version"],
 	"tasks": {
+		"dev": {
+			"persistent": true,
+			"cache": false
+		},
 		"build": {
 			"dependsOn": ["^build"],
 			"outputs": ["dist/**", "docs/agent/**", "agent-docs/**"],

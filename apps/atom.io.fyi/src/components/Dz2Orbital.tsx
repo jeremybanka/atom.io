@@ -53,7 +53,7 @@ export function Dz2Orbital(): VNode {
 		scene.add(orbital)
 
 		const lobeMaterial = new THREE.MeshPhysicalMaterial({
-			color: 0xff0000,
+			color: 0xff6688,
 			emissive: 0x145c72,
 			emissiveIntensity: 0.22,
 			metalness: 0,
@@ -65,8 +65,9 @@ export function Dz2Orbital(): VNode {
 			side: THREE.DoubleSide,
 		})
 		const torusMaterial = new THREE.MeshPhysicalMaterial({
-			color: 0x0000ff,
-			emissive: 0x6f3a00,
+			color: 0x88bbbb,
+			emissive: 0x0000ff,
+			// emissive: 0x6f3a00,
 			emissiveIntensity: 0.17,
 			metalness: 0.05,
 			roughness: 0.2,

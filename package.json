@@ -19,6 +19,7 @@
 		"build": "dotenvx run -- turbo run build",
 		"cov:public": "dotenvx run -- turbo run cov:public",
 		"cov:recoverage": "dotenvx run -- turbo run cov:recoverage",
+		"dev": "dotenvx run -- turbo run dev",
 		"fmt": "dprint fmt .",
 		"fmt:check": "dprint check .",
 		"hooks:install": "mise x -- hk install --mise",

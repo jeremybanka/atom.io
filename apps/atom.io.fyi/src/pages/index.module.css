@@ -1,4 +1,6 @@
 home-splash.class {
+	position: relative;
+	z-index: 1;
 	display: flex;
 	flex-flow: column;
 	height: 100%;

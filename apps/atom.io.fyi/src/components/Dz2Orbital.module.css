@@ -1,12 +1,16 @@
 dz2-orbital.class {
 	position: fixed;
 	inset: 0;
-	z-index: 1000;
+	z-index: 0;
 	display: block;
 	width: 100vw;
 	height: 100svh;
 	pointer-events: none;
-	mix-blend-mode: normal;
+	mix-blend-mode: color-dodge;
+
+	@media screen and (prefers-color-scheme: light) {
+		mix-blend-mode: soft-light;
+	}
 
 	> canvas {
 		display: block;

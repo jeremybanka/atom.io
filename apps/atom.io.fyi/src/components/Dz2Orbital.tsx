@@ -9,14 +9,25 @@ function makeLobeGeometry(direction: 1 | -1): THREE.LatheGeometry {
 	const height = 1.5
 	const radius = 0.75
 	for (let index = 0; index <= 44; index++) {
-		const progress = index / 44
+		const progress = index / 45
+		const easedRadius =
+			radius * Math.sin(Math.PI * progress) ** 0.58 * (0.5 + progress * 0.6)
+
+		points.push(new THREE.Vector2(easedRadius, direction * progress * height))
+	}
+
+	for (let index = 440; index <= 450; index++) {
+		const progress = index / 450
 		const easedRadius =
 			radius * Math.sin(Math.PI * progress) ** 0.58 * (0.5 + progress * 0.6)
 		points.push(new THREE.Vector2(easedRadius, direction * progress * height))
 	}
+
+	points[points.length - 1].setY(points[points.length - 2].y)
+	points[0].setY(points[1].y)
+	console.log(points)
 	return new THREE.LatheGeometry(points, 96)
 }
-
 export function Dz2Orbital(): VNode {
 	const hostRef = React.useRef<HTMLElement | null>(null)
 
@@ -39,7 +50,7 @@ export function Dz2Orbital(): VNode {
 		camera.lookAt(0, 0, 0)
 
 		const orbital = new THREE.Group()
-		orbital.rotation.set(-0.18, 0, -0.12)
+		orbital.rotation.set(-0.38, 0, -0.42)
 		scene.add(orbital)
 
 		const lobeMaterial = new THREE.MeshPhysicalMaterial({

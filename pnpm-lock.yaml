@@ -42,8 +42,8 @@ importers:
         specifier: 7.0.0-dev.20260622.1
         version: 7.0.0-dev.20260622.1
       astro-eslint-parser:
-        specifier: 1.4.0
-        version: 1.4.0
+        specifier: 2.0.0
+        version: 2.0.0
       dprint:
         specifier: 0.54.0
         version: 0.54.0
@@ -3455,6 +3455,10 @@ packages:
     resolution: {integrity: sha512-+QDcgc7e+au6EZ0YjMmRRjNoQo5bDMlaR45aWDoFsuxQTCM9qmCHRoiKJPELgckJ8Wmr7vcfpa9eCDHBFh6G4w==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
+  astro-eslint-parser@2.0.0:
+    resolution: {integrity: sha512-wqHbAbrtUvugx7EAcc2kPmwbX6/I2/cqAxKEhFAz/9uwcqrG8khH/reipvtqbGPx1Vxdst08lvHoF4ECtVpcTA==}
+    engines: {node: ^22.22.3 || ^24.16.0 || >=26.3.0}
+
   astro@6.4.8:
     resolution: {integrity: sha512-KK5lX90uU9EeVaTjINyj3sy9/NFXVa59aowaqbWBDDKLXZh4rr7GwIaCFYVetE22MJtsCNFerQXn0vlCLmpP/Q==}
     engines: {node: '>=22.12.0', npm: '>=9.6.5', pnpm: '>=7.1.0'}
@@ -3997,6 +4001,10 @@ packages:
   entities@7.0.1:
     resolution: {integrity: sha512-TWrgLOFUQTH994YUyl1yT4uyavY5nNB5muff+RtWaqNVCAK408b5ZnnbNAUEWLTCpum9w6arT70i1XdQ4UeOPA==}
     engines: {node: '>=0.12'}
+
+  entities@8.0.0:
+    resolution: {integrity: sha512-zwfzJecQ/Uej6tusMqwAqU/6KL2XaB2VZ2Jg54Je6ahNBGNH6Ek6g3jjNCF0fG9EWQKGZNddNjU5F1ZQn/sBnA==}
+    engines: {node: '>=20.19.0'}
 
   env-paths@2.2.1:
     resolution: {integrity: sha512-+h1lkLKhZMTYjog1VEpJNG7NZJWcuc2DDk/qsqSTRRCOXiLjeQ1d1/udrUGhqMxUgAlwKNZ0cf2uqan5GLuS2A==}
@@ -8805,7 +8813,7 @@ snapshots:
       '@typescript-eslint/visitor-keys': 8.61.1
       debug: 4.4.3
       minimatch: 10.2.5
-      semver: 7.8.1
+      semver: 7.8.4
       tinyglobby: 0.2.17
       ts-api-utils: 2.5.0(typescript@6.0.3)
       typescript: 6.0.3
@@ -9141,6 +9149,23 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  astro-eslint-parser@2.0.0:
+    dependencies:
+      '@astrojs/compiler': 4.0.0
+      '@typescript-eslint/scope-manager': 8.61.1
+      '@typescript-eslint/types': 8.61.1
+      astrojs-compiler-sync: 1.1.1(@astrojs/compiler@4.0.0)
+      debug: 4.4.3
+      entities: 8.0.0
+      eslint-scope: 9.1.2
+      eslint-visitor-keys: 5.0.1
+      espree: 11.2.0
+      fast-glob: 3.3.3
+      is-glob: 4.0.3
+      semver: 7.8.4
+    transitivePeerDependencies:
+      - supports-color
+
   astro@6.4.8(@types/node@26.0.0)(jiti@2.7.0)(lightningcss@1.32.0)(rollup@4.60.4)(tsx@4.22.1):
     dependencies:
       '@astrojs/compiler': 4.0.0
@@ -9237,6 +9262,11 @@ snapshots:
   astrojs-compiler-sync@1.1.1(@astrojs/compiler@3.0.1):
     dependencies:
       '@astrojs/compiler': 3.0.1
+      synckit: 0.11.13
+
+  astrojs-compiler-sync@1.1.1(@astrojs/compiler@4.0.0):
+    dependencies:
+      '@astrojs/compiler': 4.0.0
       synckit: 0.11.13
 
   atomically@1.7.0: {}
@@ -9656,6 +9686,8 @@ snapshots:
   entities@6.0.1: {}
 
   entities@7.0.1: {}
+
+  entities@8.0.0: {}
 
   env-paths@2.2.1: {}
 

@@ -25,7 +25,6 @@ function makeLobeGeometry(direction: 1 | -1): THREE.LatheGeometry {
 
 	points[points.length - 1].setY(points[points.length - 2].y)
 	points[0].setY(points[1].y)
-	console.log(points)
 	return new THREE.LatheGeometry(points, 96)
 }
 export function Dz2Orbital(): VNode {
@@ -102,9 +101,11 @@ export function Dz2Orbital(): VNode {
 		}
 
 		let frameId = 0
-		const clock = new THREE.Clock()
-		const animate = () => {
-			const elapsed = clock.getElapsedTime()
+		const timer = new THREE.Timer()
+		timer.connect(document)
+		const animate = (timestamp?: DOMHighResTimeStamp) => {
+			timer.update(timestamp)
+			const elapsed = timer.getElapsed()
 			orbital.rotation.y = elapsed * 0.32
 			orbital.rotation.x = -0.18 + Math.sin(elapsed * 0.55) * 0.07
 			renderer.render(scene, camera)
@@ -123,6 +124,7 @@ export function Dz2Orbital(): VNode {
 			torus.geometry.dispose()
 			lobeMaterial.dispose()
 			torusMaterial.dispose()
+			timer.dispose()
 			renderer.dispose()
 			renderer.domElement.remove()
 		}

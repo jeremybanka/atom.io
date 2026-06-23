@@ -70,23 +70,24 @@ export function Dz2Orbital({ variant = `splash` }: Dz2OrbitalProps): VNode {
 		orbital.rotation.set(SETTLED_ROTATION_X, 0, SETTLED_ROTATION_Z)
 		scene.add(orbital)
 
-		const lobeMaterial = new THREE.MeshPhongMaterial({
-			color: 0xff6688,
+		const lobeMaterial = new THREE.MeshToonMaterial({
+			color: 0xff3366,
 			emissive: 0x145c72,
 			emissiveIntensity: 0.22,
-			shininess: 5,
-			specular: 0xffd6df,
+			// shininess: 5,
+			// specular: 0xffd6df,
+
 			// transparent: true,
 			opacity: 0.82,
 			side: THREE.DoubleSide,
 		})
-		const torusMaterial = new THREE.MeshPhongMaterial({
-			color: 0x88bbbb,
+		const torusMaterial = new THREE.MeshToonMaterial({
+			color: 0x0099ff,
 			emissive: 0x0000ff,
 			// emissive: 0x6f3a00,
 			emissiveIntensity: 0.17,
-			shininess: 1,
-			specular: 0xc4ffff,
+			// shininess: 1,
+			// specular: 0xc4ffff,
 			// transparent: true,
 			opacity: 0.72,
 			side: THREE.DoubleSide,

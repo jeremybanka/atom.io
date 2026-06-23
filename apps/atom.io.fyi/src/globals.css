@@ -25,6 +25,7 @@ body {
 
 :root {
 	/* COLORS */
+	--brand-color: #c03;
 	color-scheme: light dark;
 	--color-light: #fff;
 	--color-dark: #111;
@@ -172,4 +173,8 @@ body {
 	font-family: Uruz;
 	font-weight: 700;
 	src: url("/Uruz-7r.otf") format("opentype");
+}
+@font-face {
+	font-family: Manufab;
+	src: url("/ManufabGX.woff2") format("woff2");
 }

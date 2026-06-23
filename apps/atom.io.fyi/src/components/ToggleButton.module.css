@@ -39,13 +39,13 @@ toggle-button.class {
 				}
 			}
 
-			&.active,
+			/* &.active,
 			&:active,
 			&:checked {
 				~ back-fill {
 					border-width: calc(var(--height) * 2);
 				}
-			}
+			} */
 		}
 		> back-fill {
 			height: var(--height);
@@ -57,6 +57,10 @@ toggle-button.class {
 			backdrop-filter: blur(20px);
 			box-shadow: 0 1px 20px 1px var(--bg-shadow-2);
 			border-radius: 50%;
+			border: 1px solid var(--bg-soft-glass-3);
+			border-bottom-width: 2px;
+			border-right: #0006;
+			border-left: #0006;
 		}
 		> span {
 			user-select: none;

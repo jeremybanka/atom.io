@@ -13,15 +13,14 @@ dz2-orbital.class {
 		mix-blend-mode: soft-light;
 
 		@media screen and (prefers-color-scheme: light) {
-			mix-blend-mode: soft-light;
+			mix-blend-mode: color-burn;
 		}
 	}
 
 	&[data-variant="mark"] {
 		position: relative;
-		width: 1.6em;
-		height: 1.6em;
-		flex: 0 0 1.6em;
+		width: 100%;
+		height: 100%;
 		mix-blend-mode: normal;
 	}
 

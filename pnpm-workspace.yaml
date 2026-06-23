@@ -3,6 +3,7 @@ minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
   - "@typescript/*"
 autoInstallPeers: false
+verifyDepsBeforeRun: error
 
 packages:
   - "apps/*"

@@ -38,6 +38,10 @@
 		{
 			"matchPackageNames": ["tsdown", "@tsdown/css"],
 			"groupName": "tsdown"
+		},
+		{
+			"matchPackageNames": ["eslint-plugin-astro", "astro-eslint-parser"],
+			"groupName": "astro eslint"
 		}
 	]
 }

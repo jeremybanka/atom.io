@@ -1,0 +1,16 @@
+dz2-orbital.class {
+	position: fixed;
+	inset: 0;
+	z-index: 1000;
+	display: block;
+	width: 100vw;
+	height: 100svh;
+	pointer-events: none;
+	mix-blend-mode: normal;
+
+	> canvas {
+		display: block;
+		width: 100%;
+		height: 100%;
+	}
+}

@@ -1,15 +1,28 @@
 dz2-orbital.class {
-	position: fixed;
-	inset: 0;
-	z-index: 0;
 	display: block;
-	width: 100vw;
-	height: 100svh;
 	pointer-events: none;
-	mix-blend-mode: color-dodge;
 
-	@media screen and (prefers-color-scheme: light) {
+	&[data-variant="splash"] {
+		position: fixed;
+		inset: 0;
+		z-index: 0;
+		width: 200vw;
+		left: -50svw;
+		height: 200svh;
+		top: -50svh;
 		mix-blend-mode: soft-light;
+
+		@media screen and (prefers-color-scheme: light) {
+			mix-blend-mode: soft-light;
+		}
+	}
+
+	&[data-variant="mark"] {
+		position: relative;
+		width: 1.6em;
+		height: 1.6em;
+		flex: 0 0 1.6em;
+		mix-blend-mode: normal;
 	}
 
 	> canvas {

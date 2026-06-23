@@ -3,6 +3,7 @@ import { ClientRouter } from "astro:transitions"
 import { AtomIODevtools } from "atom.io/react-devtools"
 import "atom.io/react-devtools/css"
 import packageJson from "atom.io/package.json"
+import { Dz2Orbital } from "../components/Dz2Orbital"
 import GlobalEffects from "../components/GlobalEffects.astro"
 import "../globals.css"
 import css from "./Layout.module.css"
@@ -33,7 +34,7 @@ import css from "./Layout.module.css"
 				<nav>
 					<left-side>
 						<a href="/">
-							<img src="/favicon.svg" alt="" width="20" height="20" />
+							<Dz2Orbital variant="mark" client:only />
 							atom.io.fyi
 						</a>
 					</left-side>

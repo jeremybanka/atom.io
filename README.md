@@ -1,5 +1,5 @@
 <div align="center">
-  <img alt="atom.io logo" src="https://raw.githubusercontent.com/jeremybanka/atom.io/main/apps/atom.io.fyi/public/favicon.svg" width="144" height="144">
+  <img alt="atom.io logo" src="https://raw.githubusercontent.com/jeremybanka/atom.io/main/apps/atom.io.fyi/public/favicon.png" width="144" height="144">
 </div>
 
 <h1 align="center">

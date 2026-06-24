@@ -1,0 +1,32 @@
+dz2-orbital.class {
+	display: block;
+	pointer-events: none;
+
+	&[data-variant="splash"] {
+		position: fixed;
+		inset: 0;
+		z-index: 0;
+		width: 200vw;
+		left: -50svw;
+		height: 200svh;
+		top: -50svh;
+		mix-blend-mode: overlay;
+
+		@media screen and (prefers-color-scheme: light) {
+			mix-blend-mode: hard-light;
+		}
+	}
+
+	&[data-variant="mark"] {
+		position: relative;
+		width: 100%;
+		height: 100%;
+		/* mix-blend-mode: normal; */
+	}
+
+	> canvas {
+		display: block;
+		width: 100%;
+		height: 100%;
+	}
+}

@@ -47,10 +47,11 @@ app-shell.class {
 		backdrop-filter: var(--nav-backdrop-filter);
 		box-shadow: var(--nav-box-shadow);
 		border: 1px solid var(--bg-soft-glass-3);
+		border-top-color: var(--bg-soft-glass-1);
 		border-bottom-width: 2px;
 		border-top-width: 2px;
-		border-right: #0006;
-		border-left: #0006;
+		border-right-color: var(--bg-soft-glass-1);
+		border-left-color: var(--bg-soft-glass-1);
 
 		@media screen and (max-width: 960px) {
 			margin-top: 0.75em;
@@ -74,6 +75,7 @@ app-shell.class {
 					border: 1px solid var(--bg-soft-glass-3);
 					border-bottom-width: 2px;
 					border-top-width: 2px;
+					border-top-color: var(--bg-soft-glass-1);
 					border-right-color: var(--bg-soft-glass-1);
 					border-left-color: var(--bg-soft-glass-1);
 				}

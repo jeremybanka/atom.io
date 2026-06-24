@@ -67,7 +67,7 @@ export function Dz2Orbital({ variant = `splash` }: Dz2OrbitalProps): VNode {
 
 		const lobeMaterial = new THREE.MeshToonMaterial({
 			color: 0xff3366,
-			emissive: 0x145c72,
+			emissive: 0xff3366,
 			emissiveIntensity: 0.22,
 			// shininess: 5,
 			// specular: 0xffd6df,
@@ -78,7 +78,7 @@ export function Dz2Orbital({ variant = `splash` }: Dz2OrbitalProps): VNode {
 		})
 		const torusMaterial = new THREE.MeshToonMaterial({
 			color: 0x0099ff,
-			emissive: 0x0000ff,
+			emissive: 0x0099ff,
 			// emissive: 0x6f3a00,
 			emissiveIntensity: 0.17,
 			// shininess: 1,

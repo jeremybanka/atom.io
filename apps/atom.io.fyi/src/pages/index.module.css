@@ -13,7 +13,7 @@ home-splash.class {
 		display: flex;
 		flex-flow: column;
 		width: 100%;
-		max-width: 500px;
+		max-width: 600px;
 		/* gap: 1em; */
 
 		> h1 {
@@ -24,9 +24,9 @@ home-splash.class {
 				font-family: Theia, sans-serif;
 				font-weight: 200;
 				color: var(--brand-color);
-				color: var(--hyperlink-color);
+				/* color: var(--hyperlink-color); */
 				font-size: 144px;
-				line-height: 0.75;
+				line-height: 0.9;
 				/* font-weight: 900; */
 				&:first-of-type {
 					color: var(--brand-color);

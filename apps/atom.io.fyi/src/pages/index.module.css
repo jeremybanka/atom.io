@@ -42,7 +42,7 @@ home-splash.class {
 		}
 
 		> npm-description {
-			margin: 25px 10px 15px;
+			margin: 20px 10px;
 		}
 
 		> cta-links {
@@ -58,8 +58,8 @@ home-splash.class {
 				display: inline-flex;
 				align-items: center;
 				justify-content: center;
-				min-height: 2.75rem;
-				padding: 0.8rem 1.15rem;
+				min-height: 50px;
+				padding: 14px 20px 12px;
 				border-radius: 999px;
 				font-weight: 700;
 				text-decoration: none;
@@ -89,6 +89,9 @@ home-splash.class {
 				color: var(--fg-color);
 				border: 1px solid var(--bg-soft-glass-3);
 				backdrop-filter: blur(12px);
+				&:hover {
+					background-color: var(--bg-soft-glass-3);
+				}
 			}
 		}
 	}

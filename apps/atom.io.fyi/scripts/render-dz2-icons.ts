@@ -6,9 +6,14 @@ import { deflateSync } from "node:zlib"
 
 import * as THREE from "three"
 
-const FINAL_SPIN_RADIANS = 1.1
-const SETTLED_ROTATION_X = 1.4
-const SETTLED_ROTATION_Z = -1.4
+import {
+	createDz2OrbitalCamera,
+	createDz2OrbitalModel,
+	disposeDz2OrbitalModel,
+	DZ2_ORBITAL_LIGHTS,
+	setDz2OrbitalRotation,
+} from "../src/components/dz2-orbital-three.ts"
+
 const IMAGE_SIZE = 512
 const SUPERSAMPLE = 2
 const FAVICON_OUTPUT_PATH = resolve(
@@ -21,6 +26,7 @@ const APP_ICON_OUTPUT_PATH = resolve(
 )
 const APP_ICON_BACKGROUND: Rgb = [0xcc, 0xcc, 0xcc]
 const APP_ICON_PADDING_RATIO = 0.16
+const LIGHT_POSITION = new THREE.Vector3(...DZ2_ORBITAL_LIGHTS.core.position)
 
 type ProjectedVertex = {
 	x: number
@@ -59,48 +65,6 @@ type PngOptions = {
 	data: Buffer
 	height: number
 	width: number
-}
-
-const MATERIALS = {
-	lobe: {
-		color: new THREE.Color(0xff3366),
-		emissive: new THREE.Color(0xff3366),
-		emissiveIntensity: 0.22,
-	},
-	torus: {
-		color: new THREE.Color(0x0099ff),
-		emissive: new THREE.Color(0x0099ff),
-		emissiveIntensity: 0.17,
-	},
-} satisfies Record<string, ShadingMaterial>
-
-function makeLobeGeometry(direction: 1 | -1): THREE.LatheGeometry {
-	const points: THREE.Vector2[] = []
-	const height = 1.5
-	const radius = 0.75
-	for (let index = 0; index <= 44; index++) {
-		const progress = index / 45
-		const easedRadius =
-			radius * Math.sin(Math.PI * progress) ** 0.58 * (0.5 + progress * 0.6)
-
-		points.push(new THREE.Vector2(easedRadius, direction * progress * height))
-	}
-
-	for (let index = 440; index <= 450; index++) {
-		const progress = index / 450
-		const easedRadius =
-			radius * Math.sin(Math.PI * progress) ** 0.58 * (0.5 + progress * 0.6)
-		points.push(new THREE.Vector2(easedRadius, direction * progress * height))
-	}
-
-	const lastPoint = points[points.length - 1]
-	const nextToLastPoint = points[points.length - 2]
-	if (!lastPoint || !nextToLastPoint || !points[1]) {
-		throw new Error(`Lobe geometry needs at least three profile points.`)
-	}
-	lastPoint.setY(nextToLastPoint.y)
-	points[0].setY(points[1].y)
-	return new THREE.LatheGeometry(points, 96)
 }
 
 function projectVertex(
@@ -145,8 +109,7 @@ function shadeTriangle(
 		normal.multiplyScalar(-1)
 	}
 
-	const lightPosition = new THREE.Vector3(1.8, 1.7, 3.5)
-	const lightDirection = lightPosition.clone().sub(center).normalize()
+	const lightDirection = LIGHT_POSITION.clone().sub(center).normalize()
 	const diffuse = Math.max(0, normal.dot(lightDirection))
 	const rim = Math.max(0, 1 - Math.max(0, normal.dot(viewDirection)))
 	const toonDiffuse = diffuse > 0.74 ? 1 : diffuse > 0.38 ? 0.72 : 0.48
@@ -448,47 +411,27 @@ function encodePng({ data, height, width }: PngOptions): Buffer {
 const renderSize = IMAGE_SIZE * SUPERSAMPLE
 const image = Buffer.alloc(renderSize * renderSize * 4)
 const depthBuffer = new Float32Array(renderSize * renderSize).fill(Infinity)
-const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 100)
-camera.position.set(4.2, 2.4, 6.6)
-camera.lookAt(0, 0, 0)
+const camera = createDz2OrbitalCamera()
 camera.updateMatrixWorld()
 camera.updateProjectionMatrix()
 
-const orbital = new THREE.Group()
-orbital.scale.setScalar(1.42)
-orbital.rotation.set(SETTLED_ROTATION_X, FINAL_SPIN_RADIANS, SETTLED_ROTATION_Z)
-orbital.updateMatrixWorld(true)
+const model = createDz2OrbitalModel()
+model.orbital.scale.setScalar(1.42)
+setDz2OrbitalRotation(model.orbital)
+model.orbital.updateMatrixWorld(true)
 
-const topLobe = makeLobeGeometry(1)
-const bottomLobe = makeLobeGeometry(-1)
-const torus = new THREE.TorusGeometry(1.2, 0.3, 36, 144)
-
-const torusMatrix = new THREE.Matrix4().makeRotationX(Math.PI / 2)
-const worldTorusMatrix = orbital.matrixWorld.clone().multiply(torusMatrix)
-
-for (const geometry of [topLobe, bottomLobe]) {
+for (const mesh of model.meshes) {
 	renderGeometry({
 		camera,
 		cameraPosition: camera.position,
 		depthBuffer,
-		geometry,
+		geometry: mesh.geometry,
 		image,
-		material: MATERIALS.lobe,
-		matrix: orbital.matrixWorld,
+		material: mesh.material,
+		matrix: mesh.matrixWorld,
 		width: renderSize,
 	})
 }
-
-renderGeometry({
-	camera,
-	cameraPosition: camera.position,
-	depthBuffer,
-	geometry: torus,
-	image,
-	material: MATERIALS.torus,
-	matrix: worldTorusMatrix,
-	width: renderSize,
-})
 
 const contentBounds = findAlphaBounds(image, renderSize, renderSize)
 const favicon = resampleCrop(
@@ -527,3 +470,4 @@ writeFileSync(
 		width: IMAGE_SIZE,
 	}),
 )
+disposeDz2OrbitalModel(model)

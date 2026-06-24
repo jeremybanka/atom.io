@@ -5,6 +5,7 @@
 	"branchConcurrentLimit": 9,
 	"internalChecksFilter": "strict",
 	"minimumReleaseAge": "1 day",
+	"postUpdateOptions": ["pnpmDedupe"],
 	"prConcurrentLimit": 3,
 	"prHourlyLimit": 9,
 	"pruneBranchAfterAutomerge": true,

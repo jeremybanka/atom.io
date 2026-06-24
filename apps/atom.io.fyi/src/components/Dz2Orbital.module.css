@@ -10,7 +10,8 @@ dz2-orbital.class {
 		left: -50svw;
 		height: 200svh;
 		top: -50svh;
-		mix-blend-mode: overlay;
+		mix-blend-mode: screen;
+		opacity: 0.15;
 
 		@media screen and (prefers-color-scheme: light) {
 			mix-blend-mode: multiply;

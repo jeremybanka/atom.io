@@ -9,6 +9,7 @@
 	"scripts": {
 		"dev": "astro dev",
 		"build": "bun run build:docs && bun run build:astro",
+		"build:icons": "./scripts/render-dz2-icons.ts",
 		"build:docs": "../../packages/atom.io/__scripts__/agent-docs.bun.ts --site",
 		"build:astro": "astro build",
 		"preview": "wrangler dev",
@@ -29,12 +30,14 @@
 		"react": "npm:@preact/compat@18.3.2",
 		"react-dom": "npm:@preact/compat@18.3.2",
 		"react-syntax-highlighter": "16.1.1",
+		"three": "0.184.0",
 		"tsdoc.json": "0.6.8"
 	},
 	"devDependencies": {
 		"@types/bun": "npm:bun-types@1.3.14",
 		"@types/react": "19.2.17",
 		"@types/react-syntax-highlighter": "15.5.13",
+		"@types/three": "0.184.1",
 		"@typescript/native-preview": "7.0.0-dev.20260623.1",
 		"concurrently": "10.0.3",
 		"eslint": "10.5.0",

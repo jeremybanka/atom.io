@@ -14,6 +14,12 @@ dynamic-spotlight.class {
 		backdrop-filter: blur(20px);
 		box-shadow: 0 1px 10px 1px var(--bg-shadow-2);
 		border-radius: 24px;
+		border: 1px solid var(--bg-soft-glass-3);
+		border-top-color: var(--bg-soft-glass-1);
+		border-bottom-width: 2px;
+		border-top-width: 2px;
+		border-right-color: var(--bg-soft-glass-1);
+		border-left-color: var(--bg-soft-glass-1);
 	}
 	&[data-spotlight-kind="target"] {
 		background: var(--bg-hard-2);

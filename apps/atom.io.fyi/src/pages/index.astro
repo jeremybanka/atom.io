@@ -1,10 +1,12 @@
 ---
 import Layout from "../layouts/Layout.astro"
+import { Dz2Orbital } from "../components/Dz2Orbital"
 import packageJson from "atom.io/package.json"
 import css from "./index.module.css"
 ---
 
 <Layout>
+	<Dz2Orbital client:only />
 	<home-splash class={css.class}>
 		<title-lockup>
 			<h1>

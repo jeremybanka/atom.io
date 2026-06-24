@@ -3,6 +3,7 @@ import { ClientRouter } from "astro:transitions"
 import { AtomIODevtools } from "atom.io/react-devtools"
 import "atom.io/react-devtools/css"
 import packageJson from "atom.io/package.json"
+import { Dz2Orbital } from "../components/Dz2Orbital"
 import GlobalEffects from "../components/GlobalEffects.astro"
 import "../globals.css"
 import css from "./Layout.module.css"
@@ -12,7 +13,8 @@ import css from "./Layout.module.css"
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" href="/favicon.svg" />
+		<link rel="icon" type="image/png" href="/favicon.png" />
+		<link rel="apple-touch-icon" href="/apple-icon.png" />
 		<meta
 			name="apple-mobile-web-app-status-bar-style"
 			content="black-translucent"
@@ -33,13 +35,14 @@ import css from "./Layout.module.css"
 				<nav>
 					<left-side>
 						<a href="/">
-							<img src="/favicon.svg" alt="" width="20" height="20" />
-							atom.io.fyi
+							<Dz2Orbital variant="mark" client:only transition:persist />
+							<brand-name>atom.io</brand-name>.fyi
 						</a>
 					</left-side>
 					<gap-between />
 					<right-side>
 						<a href="/docs">docs</a>
+						<span />
 						<a
 							href="https://github.com/jeremybanka/atom.io/tree/main/packages/atom.io"
 						>

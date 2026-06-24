@@ -15,7 +15,7 @@ import {
 } from "../src/components/dz2-orbital-three.ts"
 
 const IMAGE_SIZE = 512
-const SUPERSAMPLE = 2
+const SUPERSAMPLE = 3
 const FAVICON_OUTPUT_PATH = resolve(
 	dirname(fileURLToPath(import.meta.url)),
 	`../public/favicon.png`,
@@ -32,6 +32,10 @@ type ProjectedVertex = {
 	x: number
 	y: number
 	z: number
+}
+
+type RasterVertex = ProjectedVertex & {
+	color: Rgb
 }
 
 type Rgb = [number, number, number]
@@ -90,33 +94,32 @@ function edge(
 	return (x - a.x) * (b.y - a.y) - (y - a.y) * (b.x - a.x)
 }
 
-function shadeTriangle(
-	a: THREE.Vector3,
-	b: THREE.Vector3,
-	c: THREE.Vector3,
+function shadeVertex(
+	position: THREE.Vector3,
+	normal: THREE.Vector3,
 	material: ShadingMaterial,
 	cameraPosition: THREE.Vector3,
 ): Rgb {
-	const center = a
-		.clone()
-		.add(b)
-		.add(c)
-		.multiplyScalar(1 / 3)
-	const normal = b.clone().sub(a).cross(c.clone().sub(a)).normalize()
-	const viewDirection = cameraPosition.clone().sub(center).normalize()
+	const surfaceNormal = normal.clone().normalize()
+	const viewDirection = cameraPosition.clone().sub(position).normalize()
 
-	if (normal.dot(viewDirection) < 0) {
-		normal.multiplyScalar(-1)
+	if (surfaceNormal.dot(viewDirection) < 0) {
+		surfaceNormal.multiplyScalar(-1)
 	}
 
-	const lightDirection = LIGHT_POSITION.clone().sub(center).normalize()
-	const diffuse = Math.max(0, normal.dot(lightDirection))
-	const rim = Math.max(0, 1 - Math.max(0, normal.dot(viewDirection)))
-	const toonDiffuse = diffuse > 0.74 ? 1 : diffuse > 0.38 ? 0.72 : 0.48
-	const brightness = Math.min(1.7, 0.46 + toonDiffuse * 0.8 + rim * 0.16)
+	const lightDirection = LIGHT_POSITION.clone().sub(position).normalize()
+	const halfVector = lightDirection.clone().add(viewDirection).normalize()
+	const diffuse = Math.max(0, surfaceNormal.dot(lightDirection))
+	const rim = Math.max(0, 1 - Math.max(0, surfaceNormal.dot(viewDirection))) ** 2
+	const specular = Math.max(0, surfaceNormal.dot(halfVector)) ** 22
+	const brightness = 0.78 + diffuse * 0.18 + rim * 0.04
 
 	const color = material.color.clone().multiplyScalar(brightness)
-	color.add(material.emissive.clone().multiplyScalar(material.emissiveIntensity))
+	color.add(
+		material.emissive.clone().multiplyScalar(material.emissiveIntensity * 0.08),
+	)
+	color.addScalar(specular * 0.16)
+	color.convertLinearToSRGB()
 
 	return [
 		Math.min(255, Math.round(color.r * 255)),
@@ -129,8 +132,7 @@ function drawTriangle(
 	image: Buffer,
 	depthBuffer: Float32Array,
 	width: number,
-	points: [ProjectedVertex, ProjectedVertex, ProjectedVertex],
-	color: Rgb,
+	points: [RasterVertex, RasterVertex, RasterVertex],
 ): void {
 	const [a, b, c] = points
 	const area = edge(a, b, c.x, c.y)
@@ -157,9 +159,15 @@ function drawTriangle(
 
 			depthBuffer[pixel] = z
 			const offset = pixel * 4
-			image[offset] = color[0]
-			image[offset + 1] = color[1]
-			image[offset + 2] = color[2]
+			image[offset] = Math.round(
+				a.color[0] * w0 + b.color[0] * w1 + c.color[0] * w2,
+			)
+			image[offset + 1] = Math.round(
+				a.color[1] * w0 + b.color[1] * w1 + c.color[1] * w2,
+			)
+			image[offset + 2] = Math.round(
+				a.color[2] * w0 + b.color[2] * w1 + c.color[2] * w2,
+			)
 			image[offset + 3] = 255
 		}
 	}
@@ -176,39 +184,44 @@ function renderGeometry({
 	width,
 }: RenderGeometryOptions): void {
 	const position = geometry.getAttribute(`position`)
+	const normal = geometry.getAttribute(`normal`)
 	const index = geometry.index
 	const a = new THREE.Vector3()
 	const b = new THREE.Vector3()
 	const c = new THREE.Vector3()
+	const normalA = new THREE.Vector3()
+	const normalB = new THREE.Vector3()
+	const normalC = new THREE.Vector3()
+	const normalMatrix = new THREE.Matrix3().getNormalMatrix(matrix)
 
 	const triangleCount = index ? index.count / 3 : position.count / 3
 	for (let triangle = 0; triangle < triangleCount; triangle++) {
 		const vertexIndex = triangle * 3
-		a.fromBufferAttribute(
-			position,
-			index ? index.getX(vertexIndex) : vertexIndex,
-		).applyMatrix4(matrix)
-		b.fromBufferAttribute(
-			position,
-			index ? index.getX(vertexIndex + 1) : vertexIndex + 1,
-		).applyMatrix4(matrix)
-		c.fromBufferAttribute(
-			position,
-			index ? index.getX(vertexIndex + 2) : vertexIndex + 2,
-		).applyMatrix4(matrix)
+		const aIndex = index ? index.getX(vertexIndex) : vertexIndex
+		const bIndex = index ? index.getX(vertexIndex + 1) : vertexIndex + 1
+		const cIndex = index ? index.getX(vertexIndex + 2) : vertexIndex + 2
+		a.fromBufferAttribute(position, aIndex).applyMatrix4(matrix)
+		b.fromBufferAttribute(position, bIndex).applyMatrix4(matrix)
+		c.fromBufferAttribute(position, cIndex).applyMatrix4(matrix)
 
-		const color = shadeTriangle(a, b, c, material, cameraPosition)
-		drawTriangle(
-			image,
-			depthBuffer,
-			width,
-			[
-				projectVertex(a, camera, width, width),
-				projectVertex(b, camera, width, width),
-				projectVertex(c, camera, width, width),
-			],
-			color,
-		)
+		normalA.fromBufferAttribute(normal, aIndex).applyNormalMatrix(normalMatrix)
+		normalB.fromBufferAttribute(normal, bIndex).applyNormalMatrix(normalMatrix)
+		normalC.fromBufferAttribute(normal, cIndex).applyNormalMatrix(normalMatrix)
+
+		drawTriangle(image, depthBuffer, width, [
+			{
+				...projectVertex(a, camera, width, width),
+				color: shadeVertex(a, normalA, material, cameraPosition),
+			},
+			{
+				...projectVertex(b, camera, width, width),
+				color: shadeVertex(b, normalB, material, cameraPosition),
+			},
+			{
+				...projectVertex(c, camera, width, width),
+				color: shadeVertex(c, normalC, material, cameraPosition),
+			},
+		])
 	}
 }
 

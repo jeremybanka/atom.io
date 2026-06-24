@@ -129,7 +129,7 @@ importers:
         specifier: 16.1.1
         version: 16.1.1(@preact/compat@18.3.2(preact@10.29.2))
       three:
-        specifier: ^0.184.0
+        specifier: 0.184.0
         version: 0.184.0
       tsdoc.json:
         specifier: 0.6.8
@@ -145,7 +145,7 @@ importers:
         specifier: 15.5.13
         version: 15.5.13
       '@types/three':
-        specifier: ^0.184.1
+        specifier: 0.184.1
         version: 0.184.1
       '@typescript/native-preview':
         specifier: 7.0.0-dev.20260623.1

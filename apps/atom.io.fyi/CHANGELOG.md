@@ -1,5 +1,12 @@
 # atom.io.fyi
 
+## 0.2.73
+
+### Patch Changes
+
+- Updated dependencies [db2511b]
+  - atom.io@0.49.5
+
 ## 0.2.72
 
 ### Patch Changes

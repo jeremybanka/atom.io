@@ -4,6 +4,7 @@ export const DZ2_ORBITAL_FINAL_SPIN_RADIANS = 1.1
 export const DZ2_ORBITAL_SETTLED_ROTATION_X = 1.4
 export const DZ2_ORBITAL_SETTLED_ROTATION_Z = -1.4
 export const DZ2_ORBITAL_Y_ROTATION_RADIANS_PER_SECOND = Math.PI / 4
+export const DZ2_ORBITAL_LOBE_CENTER_OFFSET = 0.05
 
 export const DZ2_ORBITAL_CAMERA = {
 	fov: 34,
@@ -152,6 +153,8 @@ export function createDz2OrbitalModel(): Dz2OrbitalModel {
 		makeLobeGeometry(-1),
 		lobeMaterial,
 	)
+	topLobe.position.y = DZ2_ORBITAL_LOBE_CENTER_OFFSET
+	bottomLobe.position.y = -DZ2_ORBITAL_LOBE_CENTER_OFFSET
 	const torus: Dz2OrbitalMesh = new THREE.Mesh(
 		new THREE.TorusGeometry(1.2, 0.3, 36, 144),
 		torusMaterial,

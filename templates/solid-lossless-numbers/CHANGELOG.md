@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.25
+
+### Patch Changes
+
+- Updated dependencies [db2511b]
+  - atom.io@0.49.5
+
 ## 0.0.24
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # atom.io
 
+## 0.49.5
+
+### Patch Changes
+
+- db2511b: Refreshed the project logo.
+
 ## 0.49.4
 
 ### Patch Changes

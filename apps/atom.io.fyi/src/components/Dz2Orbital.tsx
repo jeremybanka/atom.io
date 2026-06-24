@@ -13,7 +13,28 @@ import {
 } from "./dz2-orbital-three"
 import css from "./Dz2Orbital.module.css"
 
-const MAX_PIXEL_RATIO = 1.25
+const MAX_MARK_PIXEL_RATIO = 2
+const MAX_SPLASH_PIXEL_RATIO = 1.35
+const MAX_SPLASH_DRAWING_BUFFER_PIXELS = 16_000_000
+
+function getDz2OrbitalPixelRatio(
+	isMark: boolean,
+	width: number,
+	height: number,
+): number {
+	const cappedPixelRatio = Math.min(
+		window.devicePixelRatio || 1,
+		isMark ? MAX_MARK_PIXEL_RATIO : MAX_SPLASH_PIXEL_RATIO,
+	)
+	if (isMark) {
+		return cappedPixelRatio
+	}
+
+	const pixelRatioFromBudget = Math.sqrt(
+		MAX_SPLASH_DRAWING_BUFFER_PIXELS / (width * height),
+	)
+	return Math.min(cappedPixelRatio, pixelRatioFromBudget)
+}
 
 export type Dz2OrbitalProps = {
 	variant?: `mark` | `splash`
@@ -33,9 +54,6 @@ export function Dz2Orbital({ variant = `splash` }: Dz2OrbitalProps): VNode {
 			powerPreference: isMark ? `low-power` : `high-performance`,
 		})
 		renderer.setClearColor(0x000000, 0)
-		renderer.setPixelRatio(
-			isMark ? 1 : Math.min(devicePixelRatio, MAX_PIXEL_RATIO),
-		)
 		host.append(renderer.domElement)
 
 		const scene = new THREE.Scene()
@@ -45,8 +63,9 @@ export function Dz2Orbital({ variant = `splash` }: Dz2OrbitalProps): VNode {
 		addDz2OrbitalLights(scene)
 
 		const resize = () => {
-			const width = isMark ? Math.max(host.clientWidth, 1) : innerWidth
-			const height = isMark ? Math.max(host.clientHeight, 1) : innerHeight
+			const width = Math.max(host.clientWidth, 1)
+			const height = Math.max(host.clientHeight, 1)
+			renderer.setPixelRatio(getDz2OrbitalPixelRatio(isMark, width, height))
 			renderer.setSize(width, height, false)
 			camera.aspect = width / height
 			camera.updateProjectionMatrix()
@@ -76,11 +95,14 @@ export function Dz2Orbital({ variant = `splash` }: Dz2OrbitalProps): VNode {
 		}
 
 		resize()
+		const resizeObserver = new ResizeObserver(resize)
+		resizeObserver.observe(host)
 		addEventListener(`resize`, resize)
 		animate()
 
 		return () => {
 			cancelAnimationFrame(frameId)
+			resizeObserver.disconnect()
 			removeEventListener(`resize`, resize)
 			disposeDz2OrbitalModel(model)
 			timer.dispose()

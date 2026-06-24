@@ -278,7 +278,7 @@ function findAlphaBounds(image: Buffer, width: number, height: number): Bounds {
 	}
 }
 
-function paddedSquareBounds(bounds: Bounds, paddingRatio: number): Bounds {
+function squareBounds(bounds: Bounds, paddingRatio: number): Bounds {
 	const side = Math.max(bounds.width, bounds.height) * (1 + paddingRatio * 2)
 	const centerX = bounds.x + bounds.width / 2
 	const centerY = bounds.y + bounds.height / 2
@@ -495,7 +495,7 @@ const favicon = resampleCrop(
 	image,
 	renderSize,
 	renderSize,
-	contentBounds,
+	squareBounds(contentBounds, 0),
 	IMAGE_SIZE,
 	IMAGE_SIZE,
 )
@@ -504,7 +504,7 @@ const appIcon = flattenToBackground(
 		image,
 		renderSize,
 		renderSize,
-		paddedSquareBounds(contentBounds, APP_ICON_PADDING_RATIO),
+		squareBounds(contentBounds, APP_ICON_PADDING_RATIO),
 		IMAGE_SIZE,
 		IMAGE_SIZE,
 	),

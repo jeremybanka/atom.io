@@ -3,7 +3,7 @@ app-shell.class {
 	overflow-x: hidden;
 	display: flex;
 	flex-flow: column;
-	min-height: 100svh;
+	min-height: 100vh;
 	height: auto;
 
 	code {

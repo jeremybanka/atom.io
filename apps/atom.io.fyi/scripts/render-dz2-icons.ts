@@ -35,11 +35,17 @@ type ProjectedVertex = {
 }
 
 type RasterVertex = ProjectedVertex & {
-	color: Rgb
+	lighting: Lighting
 }
 
 type Rgb = [number, number, number]
 type Rgba = [number, number, number, number]
+
+type Lighting = {
+	diffuse: number
+	rim: number
+	specular: number
+}
 
 type Bounds = {
 	x: number
@@ -94,12 +100,18 @@ function edge(
 	return (x - a.x) * (b.y - a.y) - (y - a.y) * (b.x - a.x)
 }
 
-function shadeVertex(
+function linearChannelToSrgbByte(channel: number): number {
+	const clamped = Math.min(Math.max(channel, 0), 1)
+	const srgb =
+		clamped <= 0.0031308 ? clamped * 12.92 : 1.055 * clamped ** (1 / 2.4) - 0.055
+	return Math.round(srgb * 255)
+}
+
+function sampleLighting(
 	position: THREE.Vector3,
 	normal: THREE.Vector3,
-	material: ShadingMaterial,
 	cameraPosition: THREE.Vector3,
-): Rgb {
+): Lighting {
 	const surfaceNormal = normal.clone().normalize()
 	const viewDirection = cameraPosition.clone().sub(position).normalize()
 
@@ -112,19 +124,50 @@ function shadeVertex(
 	const diffuse = Math.max(0, surfaceNormal.dot(lightDirection))
 	const rim = Math.max(0, 1 - Math.max(0, surfaceNormal.dot(viewDirection))) ** 2
 	const specular = Math.max(0, surfaceNormal.dot(halfVector)) ** 22
-	const brightness = 0.78 + diffuse * 0.18 + rim * 0.04
+	return { diffuse, rim, specular }
+}
 
-	const color = material.color.clone().multiplyScalar(brightness)
-	color.add(
-		material.emissive.clone().multiplyScalar(material.emissiveIntensity * 0.08),
-	)
-	color.addScalar(specular * 0.16)
-	color.convertLinearToSRGB()
+function toonBand(
+	value: number,
+	[lowest, low, mid, high]: [
+		lowest: number,
+		low: number,
+		mid: number,
+		high: number,
+	],
+): number {
+	if (value > 0.74) return high
+	if (value > 0.42) return mid
+	if (value > 0.18) return low
+	return lowest
+}
+
+function shadeToonPixel(
+	material: ShadingMaterial,
+	{ diffuse, rim, specular }: Lighting,
+): Rgb {
+	const diffuseBand = toonBand(diffuse, [0.42, 0.6, 0.8, 1])
+	const rimBand = toonBand(rim, [0, 0.015, 0.035, 0.055])
+	const specularBand = specular > 0.18 ? 0.18 : specular > 0.055 ? 0.08 : 0
+	const brightness = 0.62 + diffuseBand * 0.32 + rimBand
+	const emissive = material.emissiveIntensity * 0.08
 
 	return [
-		Math.min(255, Math.round(color.r * 255)),
-		Math.min(255, Math.round(color.g * 255)),
-		Math.min(255, Math.round(color.b * 255)),
+		linearChannelToSrgbByte(
+			material.color.r * brightness +
+				material.emissive.r * emissive +
+				specularBand,
+		),
+		linearChannelToSrgbByte(
+			material.color.g * brightness +
+				material.emissive.g * emissive +
+				specularBand,
+		),
+		linearChannelToSrgbByte(
+			material.color.b * brightness +
+				material.emissive.b * emissive +
+				specularBand,
+		),
 	]
 }
 
@@ -132,6 +175,7 @@ function drawTriangle(
 	image: Buffer,
 	depthBuffer: Float32Array,
 	width: number,
+	material: ShadingMaterial,
 	points: [RasterVertex, RasterVertex, RasterVertex],
 ): void {
 	const [a, b, c] = points
@@ -158,16 +202,21 @@ function drawTriangle(
 			if (z >= depthBuffer[pixel]) continue
 
 			depthBuffer[pixel] = z
+			const [red, green, blue] = shadeToonPixel(material, {
+				diffuse:
+					a.lighting.diffuse * w0 +
+					b.lighting.diffuse * w1 +
+					c.lighting.diffuse * w2,
+				rim: a.lighting.rim * w0 + b.lighting.rim * w1 + c.lighting.rim * w2,
+				specular:
+					a.lighting.specular * w0 +
+					b.lighting.specular * w1 +
+					c.lighting.specular * w2,
+			})
 			const offset = pixel * 4
-			image[offset] = Math.round(
-				a.color[0] * w0 + b.color[0] * w1 + c.color[0] * w2,
-			)
-			image[offset + 1] = Math.round(
-				a.color[1] * w0 + b.color[1] * w1 + c.color[1] * w2,
-			)
-			image[offset + 2] = Math.round(
-				a.color[2] * w0 + b.color[2] * w1 + c.color[2] * w2,
-			)
+			image[offset] = red
+			image[offset + 1] = green
+			image[offset + 2] = blue
 			image[offset + 3] = 255
 		}
 	}
@@ -208,18 +257,18 @@ function renderGeometry({
 		normalB.fromBufferAttribute(normal, bIndex).applyNormalMatrix(normalMatrix)
 		normalC.fromBufferAttribute(normal, cIndex).applyNormalMatrix(normalMatrix)
 
-		drawTriangle(image, depthBuffer, width, [
+		drawTriangle(image, depthBuffer, width, material, [
 			{
 				...projectVertex(a, camera, width, width),
-				color: shadeVertex(a, normalA, material, cameraPosition),
+				lighting: sampleLighting(a, normalA, cameraPosition),
 			},
 			{
 				...projectVertex(b, camera, width, width),
-				color: shadeVertex(b, normalB, material, cameraPosition),
+				lighting: sampleLighting(b, normalB, cameraPosition),
 			},
 			{
 				...projectVertex(c, camera, width, width),
-				color: shadeVertex(c, normalC, material, cameraPosition),
+				lighting: sampleLighting(c, normalC, cameraPosition),
 			},
 		])
 	}

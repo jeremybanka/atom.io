@@ -116,6 +116,9 @@ importers:
       atom.io:
         specifier: workspace:*
         version: link:../../packages/atom.io
+      motion:
+        specifier: 12.41.0
+        version: 12.41.0(@preact/compat@18.3.2(preact@10.29.2))(@preact/compat@18.3.2(preact@10.29.2))
       preact:
         specifier: 10.29.2
         version: 10.29.2
@@ -9640,6 +9643,15 @@ snapshots:
 
   format@0.2.2: {}
 
+  framer-motion@12.41.0(@preact/compat@18.3.2(preact@10.29.2))(@preact/compat@18.3.2(preact@10.29.2)):
+    dependencies:
+      motion-dom: 12.41.0
+      motion-utils: 12.39.0
+      tslib: 2.8.1
+    optionalDependencies:
+      react: '@preact/compat@18.3.2(preact@10.29.2)'
+      react-dom: '@preact/compat@18.3.2(preact@10.29.2)'
+
   framer-motion@12.41.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
     dependencies:
       motion-dom: 12.41.0
@@ -10660,6 +10672,14 @@ snapshots:
       motion-utils: 12.39.0
 
   motion-utils@12.39.0: {}
+
+  motion@12.41.0(@preact/compat@18.3.2(preact@10.29.2))(@preact/compat@18.3.2(preact@10.29.2)):
+    dependencies:
+      framer-motion: 12.41.0(@preact/compat@18.3.2(preact@10.29.2))(@preact/compat@18.3.2(preact@10.29.2))
+      tslib: 2.8.1
+    optionalDependencies:
+      react: '@preact/compat@18.3.2(preact@10.29.2)'
+      react-dom: '@preact/compat@18.3.2(preact@10.29.2)'
 
   motion@12.41.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
     dependencies:

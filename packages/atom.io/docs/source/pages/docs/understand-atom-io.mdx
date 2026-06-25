@@ -1,4 +1,5 @@
 import Exhibit from "c/Exhibit.astro";
+import { UnderstandAtomSandbox } from "c/UnderstandAtomSandbox";
 
 # understand atom.io
 
@@ -11,6 +12,8 @@ Never compute derived state until something actually asks for it.
 
 This keeps derived state cheap enough to use freely, even when selectors are stacked on
 top of other selectors.
+
+<UnderstandAtomSandbox concept="laziness" client:visible />
 
 <Exhibit src="guides/understand-atom-io/laziness.ts" />
 

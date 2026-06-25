@@ -1,8 +1,28 @@
 ---
 import Layout from "../layouts/Layout.astro"
+import { CodeBlock } from "../components/CodeBlock"
 import { Dz2Orbital } from "../components/Dz2Orbital"
 import packageJson from "atom.io/package.json"
 import css from "./index.module.css"
+
+const openTasksExample = `import { atom, selector } from "atom.io"
+
+type Task = { title: string; done: boolean }
+
+export const tasksAtom = atom<Task[]>({
+	key: \`tasks\`,
+	default: [
+		{ title: \`ship docs\`, done: false },
+		{ title: \`fix checkout\`, done: true },
+	],
+})
+
+export const openTasks = selector<Task[]>({
+	key: \`openTasks\`,
+	get: ({ get }) => get(tasksAtom).filter((task) => !task.done),
+})`
+
+const openTasksOutput = "[{ title: `ship docs`, done: false }]"
 ---
 
 <Layout>
@@ -25,5 +45,40 @@ import css from "./index.module.css"
 				</a>
 			</cta-links>
 		</title-lockup>
+		<why-exhibit aria-labelledby="why-atom-io">
+			<exhibit-copy>
+				<eyebrow>small exhibit</eyebrow>
+				<h2 id="why-atom-io">Name the state graph once.</h2>
+				<p>
+					Atoms hold facts. Selectors describe the useful view. When the facts
+					change, every subscriber follows the same typed, inspectable path.
+				</p>
+			</exhibit-copy>
+			<exhibit-stage>
+				<CodeBlock
+					code={openTasksExample}
+					filepath="open-tasks.ts"
+					label="open-tasks.ts"
+					soft
+				/>
+				<selector-readout aria-label="Selector readout">
+					<readout-row>
+						<state-node data-kind="atom">
+							<strong>tasks</strong>
+							<span>source</span>
+						</state-node>
+						<state-arrow>-&gt;</state-arrow>
+						<state-node data-kind="selector">
+							<strong>openTasks</strong>
+							<span>derived</span>
+						</state-node>
+					</readout-row>
+					<output-preview>
+						<span>output</span>
+						<code>{openTasksOutput}</code>
+					</output-preview>
+				</selector-readout>
+			</exhibit-stage>
+		</why-exhibit>
 	</home-splash>
 </Layout>

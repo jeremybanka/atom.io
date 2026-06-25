@@ -22,6 +22,7 @@ understand-atom-sandbox.class {
 
 	> sandbox-header,
 	> sandbox-stage,
+	> sandbox-inspector,
 	> sandbox-controls {
 		position: relative;
 		z-index: 1;
@@ -115,6 +116,25 @@ understand-atom-sandbox.class {
 
 			@media screen and (max-width: 720px) {
 				width: 840px;
+			}
+		}
+	}
+
+	> sandbox-inspector {
+		display: flex;
+		flex-flow: row wrap;
+		align-items: center;
+		gap: 6px;
+		padding: 7px 8px;
+		border-top: 1px solid #5553;
+
+		> sandbox-badge {
+			max-width: 100%;
+
+			> strong {
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
 			}
 		}
 	}

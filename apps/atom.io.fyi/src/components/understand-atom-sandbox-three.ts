@@ -1,5 +1,7 @@
 import * as THREE from "three"
 
+import type { ObservedSelectorGraphEdge } from "./understand-atom-light-observers"
+
 export type LazinessCacheState = `empty` | `evicted` | `fresh`
 export type LazinessActivity =
 	| `idle`
@@ -11,10 +13,15 @@ export type LazinessActivity =
 export type LazinessSceneState = {
 	activity: LazinessActivity
 	activityId: number
+	cacheInvalidated: boolean
 	cacheState: LazinessCacheState
 	computeCount: number
 	count: number
 	doubled: null | number
+	rootObserverKeys: readonly string[]
+	selectorGraph: readonly ObservedSelectorGraphEdge[]
+	selectorObserverKeys: readonly string[]
+	selectorRoots: readonly string[]
 	subscribed: boolean
 }
 
@@ -49,8 +56,9 @@ type SceneTheme = {
 	soft: string
 }
 
-const CAMERA_BASE_POSITION = new THREE.Vector3(4.6, 3.6, 5.4)
+const CAMERA_BASE_POSITION = new THREE.Vector3(2.6, 7.4, 3.1)
 const CAMERA_BASE_TARGET = new THREE.Vector3(0, 0, 0)
+const CAMERA_RAIL_SPAN = 2.1
 const DRAWING_BUFFER_BUDGET = 4_000_000
 const MAX_PIXEL_RATIO = 1.6
 const PULSE_DURATION_MS = 850
@@ -133,6 +141,18 @@ function createTextLabel(
 	return { material, sprite, texture }
 }
 
+function createCaption(
+	title: string,
+	detail: string,
+	theme: SceneTheme,
+	position: THREE.Vector3Tuple,
+): TextLabel {
+	const label = createTextLabel(title, detail, theme)
+	label.sprite.scale.set(1.34, 0.5, 1)
+	label.sprite.position.set(...position)
+	return label
+}
+
 function updateTextLabel(
 	label: TextLabel,
 	title: string,
@@ -197,6 +217,8 @@ function createConnection(
 	fromX: number,
 	toX: number,
 	theme: SceneTheme,
+	z = 0,
+	radius = 0.032,
 ): Connection {
 	const length = Math.abs(toX - fromX) - 1.32
 	const material = new THREE.MeshStandardMaterial({
@@ -208,11 +230,11 @@ function createConnection(
 		opacity: 0.24,
 	})
 	const connection = new THREE.Mesh(
-		new THREE.CylinderGeometry(0.032, 0.032, length, 18),
+		new THREE.CylinderGeometry(radius, radius, length, 18),
 		material,
 	)
 	connection.rotation.z = Math.PI / 2
-	connection.position.set((fromX + toX) / 2, 0.18, 0)
+	connection.position.set((fromX + toX) / 2, 0.18, z)
 	return connection
 }
 
@@ -230,8 +252,33 @@ function readerDetail(state: LazinessSceneState): string {
 	return state.subscribed ? `subscribed` : `on demand`
 }
 
+function graphDetail(state: LazinessSceneState): string {
+	if (state.selectorGraph.length === 0) {
+		return `no edges`
+	}
+	return state.selectorGraph
+		.map(({ selectorKey, sourceKey }) => `${sourceKey} -> ${selectorKey}`)
+		.join(`, `)
+}
+
+function rootsDetail(state: LazinessSceneState): string {
+	return state.selectorRoots.length > 0 ? state.selectorRoots.join(`, `) : `none`
+}
+
+function observerLabel(key: string): string {
+	const label = key.split(`:`).at(-1)
+	return label ?? key
+}
+
+function observersDetail(state: LazinessSceneState): string {
+	return state.rootObserverKeys.length > 0
+		? state.rootObserverKeys.map(observerLabel).join(`, `)
+		: `none`
+}
+
 function shouldPulse(state: LazinessSceneState): boolean {
 	return (
+		state.cacheInvalidated ||
 		state.activity === `read` ||
 		state.activity === `subscribe` ||
 		(state.activity === `increment` && state.subscribed)
@@ -242,9 +289,10 @@ function setConnectionState(
 	connection: Connection,
 	active: boolean,
 	theme: SceneTheme,
+	activeColor: THREE.Color = theme.accentBlue,
 ): void {
-	connection.material.color.copy(active ? theme.accentBlue : theme.line)
-	connection.material.emissive.copy(active ? theme.accentBlue : theme.line)
+	connection.material.color.copy(active ? activeColor : theme.line)
+	connection.material.emissive.copy(active ? activeColor : theme.line)
 	connection.material.emissiveIntensity = active ? 0.2 : 0.02
 	connection.material.opacity = active ? 0.72 : 0.22
 }
@@ -256,7 +304,8 @@ function updateCameraRail(
 	const maxScroll = scrollElement.scrollWidth - scrollElement.clientWidth
 	const scrollProgress =
 		maxScroll > 0 ? scrollElement.scrollLeft / maxScroll : 0.5
-	const railOffset = maxScroll > 0 ? (scrollProgress - 0.5) * 1.45 : 0
+	const railOffset =
+		maxScroll > 0 ? (scrollProgress - 0.5) * CAMERA_RAIL_SPAN : 0
 	const position = CAMERA_BASE_POSITION.clone()
 	const target = CAMERA_BASE_TARGET.clone()
 	position.x += railOffset
@@ -307,6 +356,25 @@ export function createUnderstandAtomLazinessScene(
 	})
 	const countToSelector = createConnection(-2.05, 0, theme)
 	const selectorToReader = createConnection(0, 2.05, theme)
+	const rootToReader = createConnection(-2.05, 2.05, theme, 0.72, 0.022)
+	const graphCaption = createCaption(
+		`selectorGraph`,
+		graphDetail(initialState),
+		theme,
+		[0, 0.78, -0.95],
+	)
+	const rootsCaption = createCaption(
+		`selectorAtoms`,
+		rootsDetail(initialState),
+		theme,
+		[-1.08, 0.62, 0.95],
+	)
+	const observersCaption = createCaption(
+		`root observers`,
+		observersDetail(initialState),
+		theme,
+		[1.08, 0.62, 0.95],
+	)
 
 	const pulse = new THREE.Mesh(
 		new THREE.SphereGeometry(0.095, 24, 16),
@@ -319,11 +387,15 @@ export function createUnderstandAtomLazinessScene(
 	pulse.position.set(-2.05, 0.42, 0)
 
 	scene.add(
+		rootToReader,
 		countToSelector,
 		selectorToReader,
 		countNode.group,
 		selectorNode.group,
 		readerNode.group,
+		graphCaption.sprite,
+		rootsCaption.sprite,
+		observersCaption.sprite,
 		pulse,
 	)
 	scene.add(new THREE.AmbientLight(0xffffff, 1.8))
@@ -371,10 +443,19 @@ export function createUnderstandAtomLazinessScene(
 			return
 		}
 
+		const invalidationOnly =
+			state.cacheInvalidated &&
+			state.activity === `increment` &&
+			!state.subscribed
+		pulse.material.color.copy(
+			invalidationOnly ? theme.accentRed : theme.accentGold,
+		)
 		const first = new THREE.Vector3(-1.34, 0.42, 0)
 		const middle = new THREE.Vector3(0, 0.42, 0)
 		const last = new THREE.Vector3(1.34, 0.42, 0)
-		if (progress < 0.52) {
+		if (invalidationOnly) {
+			pulse.position.lerpVectors(first, middle, progress)
+		} else if (progress < 0.52) {
 			pulse.position.lerpVectors(first, middle, progress / 0.52)
 		} else {
 			pulse.position.lerpVectors(middle, last, (progress - 0.52) / 0.48)
@@ -390,30 +471,48 @@ export function createUnderstandAtomLazinessScene(
 
 	const updateMaterials = () => {
 		const computing = shouldPulse(state)
-		countNode.box.material.emissiveIntensity = computing ? 0.18 : 0.05
-		selectorNode.box.material.emissiveIntensity =
-			state.cacheState === `fresh`
+		const graphReady = state.selectorGraph.length > 0
+		const rootsReady = state.selectorRoots.length > 0
+		const rootObserved = state.rootObserverKeys.length > 0
+		countNode.box.material.emissiveIntensity =
+			computing || rootsReady ? 0.18 : 0.05
+		selectorNode.box.material.emissiveIntensity = state.cacheInvalidated
+			? 0.2
+			: state.cacheState === `fresh`
 				? 0.18
 				: state.cacheState === `evicted`
 					? 0.08
 					: 0.03
 		readerNode.box.material.emissiveIntensity = state.subscribed ? 0.18 : 0.04
-		setConnectionState(
-			countToSelector,
-			state.subscribed || state.cacheState === `fresh`,
-			theme,
+		countNode.outline.material.opacity = rootsReady ? 0.82 : 0.42
+		selectorNode.outline.material.color.copy(
+			state.cacheInvalidated ? theme.accentRed : theme.accentBlue,
 		)
+		selectorNode.outline.material.opacity =
+			state.cacheState === `fresh` || state.cacheInvalidated ? 0.82 : 0.48
+		readerNode.outline.material.opacity = state.subscribed ? 0.82 : 0.42
+		setConnectionState(countToSelector, graphReady, theme, theme.accentBlue)
 		setConnectionState(
 			selectorToReader,
 			state.subscribed || state.activity === `read`,
 			theme,
+			theme.accentGold,
 		)
+		setConnectionState(rootToReader, rootObserved, theme, theme.accentGold)
 	}
 
 	const updateLabels = () => {
 		updateTextLabel(countNode.label, `count`, String(state.count), theme)
 		updateTextLabel(selectorNode.label, `doubled`, cacheDetail(state), theme)
 		updateTextLabel(readerNode.label, `reader`, readerDetail(state), theme)
+		updateTextLabel(graphCaption, `selectorGraph`, graphDetail(state), theme)
+		updateTextLabel(rootsCaption, `selectorAtoms`, rootsDetail(state), theme)
+		updateTextLabel(
+			observersCaption,
+			`root observers`,
+			observersDetail(state),
+			theme,
+		)
 	}
 
 	const update = (nextState: LazinessSceneState) => {
@@ -457,10 +556,16 @@ export function createUnderstandAtomLazinessScene(
 				node.label.texture.dispose()
 				node.label.material.dispose()
 			}
+			for (const label of [graphCaption, rootsCaption, observersCaption]) {
+				label.texture.dispose()
+				label.material.dispose()
+			}
 			countToSelector.geometry.dispose()
 			countToSelector.material.dispose()
 			selectorToReader.geometry.dispose()
 			selectorToReader.material.dispose()
+			rootToReader.geometry.dispose()
+			rootToReader.material.dispose()
 			pulse.geometry.dispose()
 			pulse.material.dispose()
 			renderer.dispose()

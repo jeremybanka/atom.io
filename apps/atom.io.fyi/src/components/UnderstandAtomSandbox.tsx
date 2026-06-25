@@ -4,6 +4,11 @@ import type { VNode } from "preact"
 import * as React from "react"
 
 import {
+	type LazinessObservation,
+	type ObservedSelectorGraphEdge,
+	observeLaziness,
+} from "./understand-atom-light-observers"
+import {
 	createUnderstandAtomLazinessScene,
 	type LazinessActivity,
 	type LazinessCacheState,
@@ -22,7 +27,7 @@ type LazinessRuntime = {
 	metrics: {
 		computeCount: number
 	}
-	store: Silo
+	silo: Silo
 }
 
 function prefersReducedMotion(): boolean {
@@ -31,35 +36,95 @@ function prefersReducedMotion(): boolean {
 
 function createLazinessRuntime(): LazinessRuntime {
 	const metrics = { computeCount: 0 }
-	const store = new Silo({
+	const silo = new Silo({
 		name: `understand-laziness-${Math.random().toString(36).slice(2)}`,
 		lifespan: `ephemeral`,
 		isProduction: false,
 	})
-	const countAtom = store.atom<number>({
+	const countAtom = silo.atom<number>({
 		key: `count`,
 		default: 0,
 	})
-	const doubledSelector = store.selector<number>({
+	const doubledSelector = silo.selector<number>({
 		key: `doubled`,
 		get: ({ get }) => {
 			metrics.computeCount++
 			return get(countAtom) * 2
 		},
 	})
-	return { countAtom, doubledSelector, metrics, store }
+	return { countAtom, doubledSelector, metrics, silo }
+}
+
+function observeRuntime(runtime: LazinessRuntime): LazinessObservation {
+	return observeLaziness({
+		computeCount: runtime.metrics.computeCount,
+		countAtom: runtime.countAtom,
+		doubledSelector: runtime.doubledSelector,
+		store: runtime.silo.store,
+	})
+}
+
+function cacheStateFromObservation(
+	observation: LazinessObservation,
+): LazinessCacheState {
+	if (observation.doubled.cache.status === `cached`) {
+		return `fresh`
+	}
+	if (
+		observation.selectorGraph.length > 0 ||
+		observation.selectorRoots.length > 0
+	) {
+		return `evicted`
+	}
+	return `empty`
+}
+
+function didInvalidateSelectorCache(
+	before: LazinessObservation,
+	after: LazinessObservation,
+): boolean {
+	return (
+		before.doubled.cache.status === `cached` &&
+		before.selectorRoots.includes(before.count.key) &&
+		(after.doubled.cache.status === `missing` ||
+			after.computeCount > before.computeCount)
+	)
+}
+
+function createSceneState(
+	observation: LazinessObservation,
+	activity: Pick<LazinessSceneState, `activity` | `activityId`> & {
+		cacheInvalidated?: boolean
+	},
+): LazinessSceneState {
+	return {
+		...activity,
+		cacheInvalidated: activity.cacheInvalidated ?? false,
+		cacheState: cacheStateFromObservation(observation),
+		computeCount: observation.computeCount,
+		count:
+			observation.count.cache.status === `cached`
+				? observation.count.cache.value
+				: 0,
+		doubled:
+			observation.doubled.cache.status === `cached`
+				? observation.doubled.cache.value
+				: null,
+		rootObserverKeys: observation.rootObserverKeys,
+		selectorGraph: observation.selectorGraph,
+		selectorObserverKeys: observation.doubled.subscriberKeys,
+		selectorRoots: observation.selectorRoots,
+		subscribed:
+			observation.doubled.subscriberKeys.includes(`understand-laziness`),
+	}
 }
 
 function createInitialSceneState(runtime: LazinessRuntime): LazinessSceneState {
-	return {
+	runtime.silo.getState(runtime.countAtom)
+	return createSceneState(observeRuntime(runtime), {
 		activity: `idle`,
 		activityId: 0,
-		cacheState: `empty`,
-		computeCount: runtime.metrics.computeCount,
-		count: runtime.store.getState(runtime.countAtom),
-		doubled: null,
-		subscribed: false,
-	}
+	})
 }
 
 function doubledBadgeValue(
@@ -70,6 +135,19 @@ function doubledBadgeValue(
 		return String(doubled ?? 0)
 	}
 	return cacheState
+}
+
+function graphBadgeValue(edges: readonly ObservedSelectorGraphEdge[]): string {
+	if (edges.length === 0) {
+		return `empty`
+	}
+	return edges
+		.map(({ selectorKey, sourceKey }) => `${sourceKey} -> ${selectorKey}`)
+		.join(`, `)
+}
+
+function listBadgeValue(values: readonly string[], empty: string): string {
+	return values.length > 0 ? values.join(`, `) : empty
 }
 
 export function UnderstandAtomSandbox({
@@ -142,75 +220,42 @@ export function UnderstandAtomSandbox({
 	}, [])
 
 	const handleIncrement = () => {
-		runtime.store.setState(runtime.countAtom, (count) => count + 1)
-		const count = runtime.store.getState(runtime.countAtom)
-		setSceneState((prev) => {
-			const cacheState = prev.subscribed
-				? `fresh`
-				: prev.cacheState === `empty`
-					? `empty`
-					: `evicted`
-			return {
-				...prev,
+		const before = observeRuntime(runtime)
+		runtime.silo.setState(runtime.countAtom, (count) => count + 1)
+		const after = observeRuntime(runtime)
+		setSceneState(
+			createSceneState(after, {
 				...nextActivity(`increment`),
-				cacheState,
-				computeCount: runtime.metrics.computeCount,
-				count,
-			}
-		})
+				cacheInvalidated: didInvalidateSelectorCache(before, after),
+			}),
+		)
 	}
 
 	const handleRead = () => {
-		const doubled = runtime.store.getState(runtime.doubledSelector)
-		setSceneState((prev) => ({
-			...prev,
-			...nextActivity(`read`),
-			cacheState: `fresh`,
-			computeCount: runtime.metrics.computeCount,
-			count: runtime.store.getState(runtime.countAtom),
-			doubled,
-		}))
+		runtime.silo.getState(runtime.doubledSelector)
+		setSceneState(
+			createSceneState(observeRuntime(runtime), nextActivity(`read`)),
+		)
 	}
 
 	const handleToggleSubscription = () => {
 		if (unsubscribeRef.current) {
 			unsubscribeRef.current()
 			unsubscribeRef.current = null
-			setSceneState((prev) => ({
-				...prev,
-				...nextActivity(`unsubscribe`),
-				computeCount: runtime.metrics.computeCount,
-				count: runtime.store.getState(runtime.countAtom),
-				subscribed: false,
-			}))
+			setSceneState(
+				createSceneState(observeRuntime(runtime), nextActivity(`unsubscribe`)),
+			)
 			return
 		}
 
-		unsubscribeRef.current = runtime.store.subscribe(
+		unsubscribeRef.current = runtime.silo.subscribe(
 			runtime.doubledSelector,
-			({ newValue }) => {
-				setSceneState((prev) => ({
-					...prev,
-					...nextActivity(`increment`),
-					cacheState: `fresh`,
-					computeCount: runtime.metrics.computeCount,
-					count: runtime.store.getState(runtime.countAtom),
-					doubled: newValue,
-					subscribed: true,
-				}))
-			},
+			() => undefined,
 			`understand-laziness`,
 		)
-		const doubled = runtime.store.getState(runtime.doubledSelector)
-		setSceneState((prev) => ({
-			...prev,
-			...nextActivity(`subscribe`),
-			cacheState: `fresh`,
-			computeCount: runtime.metrics.computeCount,
-			count: runtime.store.getState(runtime.countAtom),
-			doubled,
-			subscribed: true,
-		}))
+		setSceneState(
+			createSceneState(observeRuntime(runtime), nextActivity(`subscribe`)),
+		)
 	}
 
 	return (
@@ -243,6 +288,20 @@ export function UnderstandAtomSandbox({
 				<sandbox-canvas ref={hostRef} aria-hidden="true" />
 				<sandbox-scroll-spacer aria-hidden="true" />
 			</sandbox-stage>
+			<sandbox-inspector>
+				<sandbox-badge>
+					<span>selectorGraph</span>
+					<strong>{graphBadgeValue(sceneState.selectorGraph)}</strong>
+				</sandbox-badge>
+				<sandbox-badge>
+					<span>selectorAtoms</span>
+					<strong>{listBadgeValue(sceneState.selectorRoots, `empty`)}</strong>
+				</sandbox-badge>
+				<sandbox-badge>
+					<span>observers</span>
+					<strong>{listBadgeValue(sceneState.rootObserverKeys, `none`)}</strong>
+				</sandbox-badge>
+			</sandbox-inspector>
 			<sandbox-controls ref={controlsRef}>
 				<button title="Increment count" type="button" onClick={handleIncrement}>
 					+ count

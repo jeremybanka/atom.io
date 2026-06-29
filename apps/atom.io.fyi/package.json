@@ -7,7 +7,7 @@
 		"node": "26.4.0"
 	},
 	"scripts": {
-		"dev": "astro dev",
+		"dev": "./scripts/rm-dev-lock.node.ts && astro dev",
 		"build": "bun run build:docs && bun run build:astro",
 		"build:icons": "./scripts/render-dz2-icons.ts",
 		"build:docs": "../../packages/atom.io/__scripts__/agent-docs.bun.ts --site",

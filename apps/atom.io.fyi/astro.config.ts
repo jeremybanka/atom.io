@@ -113,5 +113,9 @@ export default defineConfig({
 	},
 	vite: {
 		plugins: [exhibitTextPlugin()],
+		build: {
+			// Dz2Orbital's isolated Three.js entry is ~512 KiB minified.
+			chunkSizeWarningLimit: 550,
+		},
 	},
 })

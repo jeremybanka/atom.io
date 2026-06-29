@@ -5,8 +5,8 @@ import { routeSelector } from "./route-selection.ts"
 
 declare function NotFoundPage(): React.JSX.Element
 declare function LoginPage(): React.JSX.Element
-declare function GrantDetail(props: { grantId: string }): React.JSX.Element
-declare function GrantIndex(): React.JSX.Element
+declare function DocDetail(props: { docId: string }): React.JSX.Element
+declare function DocsIndex(): React.JSX.Element
 
 function CurrentRoute(): React.JSX.Element {
 	const route = useO(routeSelector)
@@ -16,18 +16,18 @@ function CurrentRoute(): React.JSX.Element {
 	}
 
 	if (route.length === 0) {
-		return <GrantIndex />
+		return <DocsIndex />
 	}
 
 	switch (route[0]) {
 		case `login`:
 			return <LoginPage />
 
-		case `grants`:
+		case `docs`:
 			if (route.length === 2) {
-				return <GrantDetail grantId={route[1]} />
+				return <DocDetail docId={route[1]} />
 			}
-			return <GrantIndex />
+			return <DocsIndex />
 
 		default:
 			return <NotFoundPage />

@@ -25,6 +25,6 @@ import { IMPLICIT } from "atom.io/internal"
  * ```
  */
 export function setTestLogLevel(logLevel: null): Logger {
-	IMPLICIT.STORE.loggers[0].logLevel = logLevel as LogLevel | null
+	IMPLICIT.STORE.loggers[0].logLevel = logLevel
 	return IMPLICIT.STORE.logger
 }

@@ -15,8 +15,8 @@ importers:
         specifier: 3.1.4
         version: 3.1.4
       '@dotenvx/dotenvx':
-        specifier: 1.75.1
-        version: 1.75.1
+        specifier: 2.0.0
+        version: 2.0.0
       '@dprint/json':
         specifier: 0.22.0
         version: 0.22.0
@@ -890,12 +890,12 @@ packages:
   '@dimforge/rapier3d-compat@0.12.0':
     resolution: {integrity: sha512-uekIGetywIgopfD97oDL5PfeezkFpNhwlzlaEYNOA0N6ghdsOvh/HYjSMek5Q2O1PYvRSDFcqFVJl4r4ZBwOow==}
 
-  '@dotenvx/dotenvx@1.75.1':
-    resolution: {integrity: sha512-/BITOC9dmS/edY2zQwZNicQ059O6RKabtQfyEafV0nGtfYRNHYy1DIPiYVcov40+tob9hfmBnbR963dS+EQ1DQ==}
+  '@dotenvx/dotenvx@2.0.0':
+    resolution: {integrity: sha512-KUfsk+3ualeDhggDgwId16BGlqDlGDXxqyUQIANA5PSmgjHt9SpsbPtlQP6EgDJlVVRBrue6ezDvMCVaDrS7PQ==}
     hasBin: true
 
-  '@dotenvx/primitives@0.8.0':
-    resolution: {integrity: sha512-VYJy0uhFm9zTJ1TxBaW/pA8bjbOM/OttaNMwZ1RHG4JKyRG7DhSdiqD1ipQoAyoD22olUtxbP78W9xY3Wd11bg==}
+  '@dotenvx/primitives@1.7.0':
+    resolution: {integrity: sha512-DeOtLg1+uzbq34voCBrBbmqePPV8cnRQEsHxXEn0s06oCpyOSdU0yOirRhBE+d70bkv4emeMUptLKpMpMZRREQ==}
 
   '@dprint/android-arm64@0.55.1':
     resolution: {integrity: sha512-H1UQIcBJEo1dA8AVrkPnw5AYMMGHNe4w0lq9rEDSY3Lds0VUKACu2MK3JLNARpjljh3WKeO109J26Wpq8PTuGQ==}
@@ -4337,9 +4337,9 @@ packages:
   isexe@2.0.0:
     resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
 
-  isexe@3.1.5:
-    resolution: {integrity: sha512-6B3tLtFqtQS4ekarvLVMZ+X+VlvQekbe4taUkf/rhVO3d/h0M2rfARm/pXLcPEsjjMsFgrFgSrhQIxcSVrBz8w==}
-    engines: {node: '>=18'}
+  isexe@4.0.0:
+    resolution: {integrity: sha512-FFUtZMpoZ8RqHS3XeXEmHWLA4thH+ZxCv2lOiPIn1Xc7CxrqhWzNSDzD+/chS/zbYezmiwWLdQC09JdQKmthOw==}
+    engines: {node: '>=20'}
 
   istanbul-lib-coverage@3.2.2:
     resolution: {integrity: sha512-O8dpsF+r0WV/8MNRKfnmrtCWhuKjxrq2w+jpzBL5UZKTi2LeVWnWOmWRxFlesJONmc+wLAGvKQZEOanko0LFTg==}
@@ -5552,8 +5552,8 @@ packages:
     resolution: {integrity: sha512-eNRKgb3z66Yp3D2CixVujOUvXLFUTij/zVnV8KRyvFdQwpz7I5DS8UfRkTeLzb64u+dkzDSdelE24izu+zSSUg==}
     engines: {node: ^14.18.0 || >=16.0.0}
 
-  systeminformation@5.31.7:
-    resolution: {integrity: sha512-/8NC53e5nP9nmhn42/ncdOkyJnOoue/Vy+tJOyUGd1Yv66G069wK4rrziwhrqDETgk78CudTQupw5z19S5uoZw==}
+  systeminformation@5.31.11:
+    resolution: {integrity: sha512-I6O7iaUj23AXRgCPDDnvi3xHvdOLp4+1YMbF+X194lJwY1NeWojgHJPhslVKcmTtrLTguRk3QJK+xEdTiI3P0w==}
     engines: {node: '>=8.0.0'}
     os: [darwin, linux, win32, freebsd, openbsd, netbsd, sunos, android]
     hasBin: true
@@ -6007,9 +6007,9 @@ packages:
     engines: {node: '>= 8'}
     hasBin: true
 
-  which@4.0.0:
-    resolution: {integrity: sha512-GlaYyEb07DPxYCKhKzplCWBJtvxZcZMrL+4UkrTSJHHPyZU4mYYTv3qaOe77H7EODLSSopAUFAc6W8U4yqvscg==}
-    engines: {node: ^16.13.0 || >=18.0.0}
+  which@6.0.1:
+    resolution: {integrity: sha512-oGLe46MIrCRqX7ytPUf66EAYvdeMIZYn3WaocqqKZAxrBpkqHfL/qvTyJ/bTk5+AqHCjXmrv3CEWgy368zhRUg==}
+    engines: {node: ^20.17.0 || >=22.9.0}
     hasBin: true
 
   why-is-node-running@2.3.0:
@@ -6744,9 +6744,9 @@ snapshots:
 
   '@dimforge/rapier3d-compat@0.12.0': {}
 
-  '@dotenvx/dotenvx@1.75.1':
+  '@dotenvx/dotenvx@2.0.0':
     dependencies:
-      '@dotenvx/primitives': 0.8.0
+      '@dotenvx/primitives': 1.7.0
       commander: 11.1.0
       conf: 10.2.0
       dotenv: 17.4.2
@@ -6754,16 +6754,17 @@ snapshots:
       env-paths: 2.2.1
       execa: 5.1.1
       fdir: 6.5.0(picomatch@4.0.4)
-      ignore: 5.3.2
+      ignore: 7.0.5
       object-treeify: 1.1.33
       open: 8.4.2
       picomatch: 4.0.4
-      systeminformation: 5.31.7
+      synckit: 0.11.13
+      systeminformation: 5.31.11
       undici: 7.28.0
-      which: 4.0.0
+      which: 6.0.1
       yocto-spinner: 1.2.0
 
-  '@dotenvx/primitives@0.8.0': {}
+  '@dotenvx/primitives@1.7.0': {}
 
   '@dprint/android-arm64@0.55.1':
     optional: true
@@ -10008,7 +10009,7 @@ snapshots:
 
   isexe@2.0.0: {}
 
-  isexe@3.1.5: {}
+  isexe@4.0.0: {}
 
   istanbul-lib-coverage@3.2.2: {}
 
@@ -11640,7 +11641,7 @@ snapshots:
     dependencies:
       '@pkgr/core': 0.3.6
 
-  systeminformation@5.31.7: {}
+  systeminformation@5.31.11: {}
 
   tagged-tag@1.0.0: {}
 
@@ -12027,9 +12028,9 @@ snapshots:
     dependencies:
       isexe: 2.0.0
 
-  which@4.0.0:
+  which@6.0.1:
     dependencies:
-      isexe: 3.1.5
+      isexe: 4.0.0
 
   why-is-node-running@2.3.0:
     dependencies:

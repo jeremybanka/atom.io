@@ -8,9 +8,9 @@ This pattern keeps routing inside the same data model as the rest of the React a
 
 Define route structure once as shared, typed data with TreeTrunks. TreeTrunks route trees use object keys for path segments, `null` for terminal leaves, `optional(...)` for optional branches, and `$paramName` segment names for dynamic segments. From that tree, derive these types:
 
-- `Route`: a tuple-like path representation, such as `["grants", string, "applications"]`.
-- `Pathname`: a slash-prefixed string representation, such as `/grants/abc/applications`.
-- `PathnameWithSearch`: the route pathname plus a query string, such as `/grants/abc/applications?tab=budget`.
+- `Route`: a tuple-like path representation, such as `["docs", string, "comments"]`.
+- `Pathname`: a slash-prefixed string representation, such as `/docs/abc/comments`.
+- `PathnameWithSearch`: the route pathname plus a query string, such as `/docs/abc/comments?tab=activity`.
 - `isRoute(value)`: validates an unknown path tuple against the route tree.
 - `PUBLIC_ROUTES` or other route subsets: typed lists for auth, layout, or navigation policy.
 
@@ -18,7 +18,7 @@ The important part is that route strings are not open-ended throughout the app. 
 
 <Exhibit src="guides/typesafe-router/route-shape.ts" />
 
-Dynamic segment markers, such as `$grantId`, belong in the TreeTrunks route tree; the derived `Route` type exposes the actual segment value. Keep TreeTrunks as the default mechanism for this pattern so runtime validation and TypeScript route types come from the same source.
+Dynamic segment markers, such as `$docId`, belong in the TreeTrunks route tree; the derived `Route` type exposes the actual segment value. Keep TreeTrunks as the default mechanism for this pattern so runtime validation and TypeScript route types come from the same source.
 
 ## pathname state
 
@@ -57,7 +57,7 @@ For links, wrap the native anchor only to narrow `href` to `Pathname`. Let globa
 
 When the app is served by Bun's `serve({ routes })` static routes API, the same route tree can generate the route table entries that return the frontend entrypoint. This is a Bun integration convenience: it keeps refreshes and copied deep links aligned with the client route map without hand-writing every static route.
 
-Bun's dynamic segment syntax may differ from the route-tree syntax. For example, a route-tree segment like `$grantId` can be translated to Bun's `:grantId` segment before adding it to the static routes object.
+Bun's dynamic segment syntax may differ from the route-tree syntax. For example, a route-tree segment like `$docId` can be translated to Bun's `:docId` segment before adding it to the static routes object.
 
 <Exhibit src="guides/typesafe-router/bun-static-routes.ts" />
 
@@ -65,7 +65,7 @@ Other servers should use their own SPA fallback mechanism. The reusable part of 
 
 ## nginx static hosting
 
-When the app is served as built static files through nginx, use nginx's file lookup fallback instead of generating a server route table. The goal is the same as the Bun static routes case: a browser refresh on `/grants/abc/applications` should return the frontend entrypoint, after which the atom-backed route selector validates and renders the route.
+When the app is served as built static files through nginx, use nginx's file lookup fallback instead of generating a server route table. The goal is the same as the Bun static routes case: a browser refresh on `/docs/abc/comments` should return the frontend entrypoint, after which the atom-backed route selector validates and renders the route.
 
 This app's nginx config does that with `try_files`:
 

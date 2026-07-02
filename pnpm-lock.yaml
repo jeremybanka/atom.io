@@ -129,8 +129,8 @@ importers:
         specifier: 16.1.1
         version: 16.1.1(@preact/compat@18.3.2(preact@10.29.3))
       three:
-        specifier: 0.185.0
-        version: 0.185.0
+        specifier: 0.185.1
+        version: 0.185.1
       tsdoc.json:
         specifier: 0.6.8
         version: 0.6.8(@preact/compat@18.3.2(preact@10.29.3))
@@ -5569,8 +5569,8 @@ packages:
     resolution: {integrity: sha512-wK0Ri4fOGjv/XPy8SBHZChl8CM7uMc5VML7SqiQ0zG7+J5Vr+RMQDoHa2CNT6KHUnTGIXH34UDMkPzAUyapBZg==}
     engines: {node: '>=8'}
 
-  three@0.185.0:
-    resolution: {integrity: sha512-+yRrcRO2iZa8uzvNNl0d7cL4huhgKgBvVJ0njcTe8xFqZ6DMAFZdCKDP91SEAuj25bNAj7k1QQdf+srZywVK6w==}
+  three@0.185.1:
+    resolution: {integrity: sha512-5aojFCXKwnjBRZvUnt3WFfEcvUJgkN5LlijRFN95hMy8WVkG4I0QNcJE+OuWvuJ0bOdStrbfXn0pkd6/QyiAlg==}
 
   tiny-inflate@1.0.3:
     resolution: {integrity: sha512-pkY1fj1cKHb2seWDy0B16HeWyczlJA9/WW3u3c4z/NiWDsO3DOU5D7nhTLE9CF0yXv/QZFY7sEJmj24dK+Rrqw==}
@@ -11649,7 +11649,7 @@ snapshots:
 
   term-size@2.2.1: {}
 
-  three@0.185.0: {}
+  three@0.185.1: {}
 
   tiny-inflate@1.0.3: {}
 

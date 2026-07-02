@@ -107,7 +107,7 @@
 		"@typescript/native-preview": "7.0.0-dev.20260702.3",
 		"@vitest/coverage-v8": "4.1.9",
 		"@vitest/ui": "4.1.9",
-		"arktype": "2.2.1",
+		"arktype": "2.2.2",
 		"break-check": "0.6.31",
 		"concurrently": "10.0.3",
 		"drizzle-kit": "0.31.10",

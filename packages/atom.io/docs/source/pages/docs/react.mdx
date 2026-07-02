@@ -50,13 +50,13 @@ import Exhibit from "c/Exhibit.astro";
 
 ## useO
 
-`useO` is a React hook that allows you to observe reactive variables in your React components.
+`useO`—named in the sense "use output"—is a React hook that returns the current value of an atoms or selectors in a React components (and dispatches a re-render whenever there is a new value).
 
 <Exhibit src="react/use-o.tsx" />
 
 ## useI
 
-`useI` is a React hook that allows you to update reactive variables in your React components.
+`useI`—named in the sense "use input"—is a React hook that returns a stable callback to set (see [setState](/docs/atom-io#get-and-set-an-atom-ts)) an atom's value or a pass a new value to a writable selector's `set:` callback.
 
 <Exhibit src="react/use-i.tsx" />
 

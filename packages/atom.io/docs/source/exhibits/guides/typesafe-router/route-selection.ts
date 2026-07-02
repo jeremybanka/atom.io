@@ -27,7 +27,7 @@ export const routeSelector = selector<Route | 404>({
 		}
 
 		if (path.length === 0) {
-			return [`grants`]
+			return [`docs`]
 		}
 
 		return path

@@ -3,9 +3,9 @@ import { isTreePath, optional } from "treetrunks"
 
 export const ROUTES = optional({
 	login: null,
-	grants: optional({
-		$grantId: optional({
-			applications: null,
+	docs: optional({
+		$docId: optional({
+			comments: null,
 		}),
 	}),
 })

@@ -29,7 +29,7 @@
 		"@atom.io/template-react-node-backend": "workspace:*",
 		"@atom.io/template-solid-lossless-numbers": "workspace:*",
 		"@clack/prompts": "1.6.0",
-		"arktype": "2.2.1",
+		"arktype": "2.2.2",
 		"comline": "0.5.0",
 		"local-pkg": "1.2.1",
 		"tinyexec": "1.2.4"

@@ -71,5 +71,7 @@ This site embeds the devtools in its base layout:
 
 - [Layout.astro](/Users/jem/dojo/atom.io/apps/atom.io.fyi/src/layouts/Layout.astro)
 
+{/* DOCS REVIEW: This absolute local path probably will not work for readers or generated agent docs. Should this be repo-relative or removed from the published page? */}
+
 That setup imports `atom.io/react-devtools/css` once and mounts
 `<AtomIODevtools hideByDefault={true} client:only />` at the end of the shell.

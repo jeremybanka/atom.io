@@ -61,6 +61,8 @@ That file is a good first tour of the library:
 
 If you are new to the code, start by scanning these declarations near the top of the file:
 
+{/* DOCS REVIEW: This code sample is useful, but the indentation inside the `CodeBlock` string is uneven enough that the nesting is hard to follow. Should the snippet be formatted or shortened with explicit omissions? */}
+
 <CodeBlock
 filepath="sample.ts"
 label="core declarations"
@@ -220,6 +222,8 @@ As a user, this is one of the nicest parts of `atom.io`: you can model many smal
 The template already includes a `Reset` button backed by a transaction. That makes it a great place to learn coordinated updates.
 
 Look for:
+
+{/* DOCS REVIEW: This reset snippet uses `getState`/`resetState` inside the transaction body instead of the transaction toolkit shown elsewhere. Is that intentional, or could it teach the wrong transaction pattern? */}
 
 <CodeBlock
 filepath="sample.ts"

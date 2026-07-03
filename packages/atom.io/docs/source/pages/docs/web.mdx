@@ -51,6 +51,8 @@ If storage is unavailable, such as during SSR, the effect simply does nothing.
 
 If the current URL is `/?tab="settings"`, the atom initializes to `"settings"`.
 
+{/* DOCS REVIEW: Because this uses `JSON`, string query params include quotes. Should we call out that custom serializers are how to get cleaner `?tab=settings` URLs? */}
+
 Later, if the atom changes to `"billing"`, the URL is updated in place using `history.replaceState`, so the page does not reload.
 
 If the atom is set to `null`, that search parameter is removed from the URL.

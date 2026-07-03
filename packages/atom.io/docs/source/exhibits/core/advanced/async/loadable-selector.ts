@@ -13,6 +13,9 @@ export const coinIdAtom = atom<string>({
 			window.addEventListener(`popstate`, () => {
 				setSelf(discoverCoinId())
 			})
+			// DOCS REVIEW: Should this return a cleanup function? Other effect
+			// examples model cleanup, and this is copy-pasteable enough to look
+			// like the recommended listener pattern.
 		},
 	],
 })

@@ -7,6 +7,9 @@ export const pathnameAtom = atom<Pathname | (string & {})>({
 	default: () => window.location.pathname,
 	effects: [
 		({ setSelf }) => {
+			// DOCS REVIEW: This global click interception is likely to be copied.
+			// Should the docs mention modifier keys, `target`, downloads, and
+			// cleanup so new-tab/browser-native link behavior is preserved?
 			document.addEventListener(`click`, (event) => {
 				const anchor = (event.target as HTMLElement).closest(`a`)
 				if (!(anchor instanceof HTMLAnchorElement)) return
@@ -26,6 +29,9 @@ export const pathnameAtom = atom<Pathname | (string & {})>({
 	],
 })
 
+// DOCS REVIEW: The atom type allows unknown strings for pasted/invalid paths,
+// but the guide only briefly hints at that. Should it explain this `(string & {})`
+// escape hatch near the route-validation step?
 export function navigate(pathname: Pathname | PathnameWithSearch): void {
 	history.pushState(null, ``, pathname)
 	setState(pathnameAtom, pathname.split(`?`)[0] as Pathname)

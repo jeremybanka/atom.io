@@ -6,6 +6,8 @@ const toggleAtom = atom<boolean>({
 	default: false,
 })
 
+// DOCS REVIEW: This component is named `UrlDisplay`, but the example is a
+// checkbox toggle. Should the name match the behavior to reduce skim friction?
 function UrlDisplay() {
 	const setToggle = useI(toggleAtom)
 	const toggle = useO(toggleAtom)

@@ -25,6 +25,9 @@ export const giveCoinsTX = transaction<
 	do: async ({ get, set }, playerId, amount) => {
 		const myId = await get(myIdAtom)
 		const myInventory = get(playerInventoryAtoms, myId)
+		// DOCS REVIEW: `0` coins and missing coins both enter this branch. Is
+		// that intended for the example, or should it check for `undefined` so
+		// "missing" and "not enough" stay distinct?
 		if (!myInventory.coins) {
 			throw new Error(`Your inventory is missing coins`)
 		}

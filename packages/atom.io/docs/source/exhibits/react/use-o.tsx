@@ -12,6 +12,8 @@ const urlAtom = atom<string>({
 			window.addEventListener(`popstate`, () => {
 				setSelf(discoverUrl().toString())
 			})
+			// DOCS REVIEW: Should the simplest `useO` example avoid browser
+			// globals, or at least return cleanup for the `popstate` listener?
 		},
 	],
 })

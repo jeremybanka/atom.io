@@ -39,6 +39,8 @@ export const rowAtoms = atomFamily<Loadable<Row>, RowKey, Error>({
 export const rowIndexViewAtom = atom<RowIndexView>({
 	key: `rowIndexView`,
 	default: () => {
+		// DOCS REVIEW: This default kicks off a load by reading the family member.
+		// Should the guide call this out as an intentional hydration trigger?
 		void getState(rowKeysForViewAtoms, DEFAULT_ROW_INDEX_VIEW)
 		return DEFAULT_ROW_INDEX_VIEW
 	},
@@ -57,6 +59,9 @@ export const rowKeysForViewAtoms = atomFamily<
 	Error
 >({
 	key: `rowKeysForView`,
+	// DOCS REVIEW: Tuple keys are compact, but agents/readers may wonder how
+	// atom.io compares family keys. Should the surrounding docs explain why this
+	// tuple is stable and what would happen with an object view key?
 	default: async ([pageNumber, pageSize, search, status]) => {
 		const result = await client.rows.listPage({
 			offset: pageNumber * pageSize,

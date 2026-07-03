@@ -84,6 +84,9 @@ const addCartItemTX = transaction<(product: CartProduct) => void>({
 
 const addCartItem = runTransaction(addCartItemTX)
 
+// DOCS REVIEW: The Zustand "before" store includes `removeItem`, but the
+// atom.io "after" example only implements add/coupon/summary. Should the
+// replacement preserve the same action surface, or explicitly say it is partial?
 function AddToCartButton(): JSX.Element {
 	const itemCount = useO(cartItemCountSelector)
 

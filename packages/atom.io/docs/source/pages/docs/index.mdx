@@ -193,7 +193,9 @@ Counterintuitively, it is likely a performance win in highly interactive applica
 
 This is the key to high-performance interactivity in atom.io: **the smaller the state, the better**.
 
-{/* DOCS REVIEW: This is memorable, but maybe too absolute. Should we name the tradeoff: smaller atoms improve observation granularity, but indexes/coordination still need deliberate modeling? */}
+Small state improves observation granularity, but it does not remove the need for good
+collection design. Keep explicit indexes for the family members you need to iterate, and
+use transactions when several small states should change as one operation.
 
 <Exhibit src="core/families/use-an-index-to-track-family-members.tsx" />
 

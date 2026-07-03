@@ -335,9 +335,9 @@ In this example, we create a timeline that tracks the history of two families of
 
 <Exhibit src="core/timeline/subscribe-to-a-timeline.ts" />
 
-In this example, we subscribe to the timeline. Above are the structures of timeline updates.
-
-{/* DOCS REVIEW: "Above" depends on the exhibit rendering and is especially vague in the generated agent docs. Should we name the update shape or describe the important fields here? */}
+In this example, we subscribe to the timeline. The logged update is an `atom_update`:
+it includes `oldValue`, `newValue`, the family member `key`, a `timestamp`, and the
+family token for the state that changed.
 
 <Exhibit src="core/timeline/undo-and-redo-changes.ts" />
 

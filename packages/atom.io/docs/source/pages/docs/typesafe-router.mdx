@@ -28,9 +28,11 @@ Represent the current browser location as an atom. Its default reads `window.loc
 
 The atom owns browser integration:
 
-- intercept same-origin anchor clicks whose `href` starts with `/`;
+- intercept ordinary left-clicks on same-origin anchors while leaving modified clicks,
+  downloads, new tabs, and external links to the browser;
 - call `history.pushState` for client-side navigation;
 - listen to `popstate` so back and forward buttons update state;
+- clean up browser listeners when the atom effect is disposed;
 - expose a `navigate(pathname)` helper that pushes history and updates the atom.
 
 <Exhibit src="guides/typesafe-router/pathname-state.ts" />

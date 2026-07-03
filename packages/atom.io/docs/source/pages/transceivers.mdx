@@ -20,9 +20,10 @@ The built-in transceivers you will usually reach for are `UList` and `OList`.
 
 `UList` is an unordered list. In practice, it behaves like a `Set`.
 
-{/* DOCS REVIEW: The name "UList" but behavior "Set" may raise a question. Should this explain why it is called a list, or what differs from a native Set besides transceiver tracking? */}
-
-Use it when membership matters, but order does not.
+Use it when membership matters, but order does not. The runtime API is set-like:
+`add`, `delete`, `clear`, `has`, and iteration work the way they do on `Set`.
+The "list" part is about its transceiver shape: `UList` can serialize to a JSON array
+and report compact add/delete/clear updates for transactions and timelines.
 
 <Exhibit src="transceivers/u-list.ts" />
 

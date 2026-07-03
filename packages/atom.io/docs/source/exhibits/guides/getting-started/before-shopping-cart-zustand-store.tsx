@@ -75,6 +75,33 @@ function AddToCartButton(): JSX.Element {
 	)
 }
 
+function CartItems(): JSX.Element {
+	const items = useCartStore((state) => state.items)
+	const removeItem = useCartStore((state) => state.removeItem)
+
+	if (items.length === 0) {
+		return <p>Your cart is empty.</p>
+	}
+
+	return (
+		<ul>
+			{items.map((item) => (
+				<li key={item.id}>
+					{item.name} x{item.quantity}
+					<button
+						type="button"
+						onClick={() => {
+							removeItem(item.id)
+						}}
+					>
+						Remove
+					</button>
+				</li>
+			))}
+		</ul>
+	)
+}
+
 function CouponInput(): JSX.Element {
 	const couponCode = useCartStore((state) => state.couponCode)
 	const setCouponCode = useCartStore((state) => state.setCouponCode)
@@ -105,6 +132,7 @@ export function ShoppingCart(): JSX.Element {
 	return (
 		<section>
 			<AddToCartButton />
+			<CartItems />
 			<CouponInput />
 			<CartSummary />
 		</section>

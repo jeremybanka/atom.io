@@ -39,8 +39,6 @@ export const rowAtoms = atomFamily<Loadable<Row>, RowKey, Error>({
 export const rowIndexViewAtom = atom<RowIndexView>({
 	key: `rowIndexView`,
 	default: () => {
-		// DOCS REVIEW: This default kicks off a load by reading the family member.
-		// Should the guide call this out as an intentional hydration trigger?
 		void getState(rowKeysForViewAtoms, DEFAULT_ROW_INDEX_VIEW)
 		return DEFAULT_ROW_INDEX_VIEW
 	},

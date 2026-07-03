@@ -78,6 +78,11 @@ Recommended pieces:
 The loadable key-list state is the hydration trigger. It does not have to be the
 only list source of truth.
 
+In the example below, `rowIndexViewAtom` reads the key-list family member for its
+default view, then reads the matching family member again whenever the view changes.
+Those reads are deliberate: reading a `Loadable` family member starts the load and gives
+the rest of the graph a stable cache entry to observe.
+
 {/* DOCS REVIEW: The example keys an atom family with a tuple view. Should this call out what makes a tuple key stable/canonical in atom.io, and whether object-shaped view keys would be unsafe or merely less ideal? */}
 
 ### example

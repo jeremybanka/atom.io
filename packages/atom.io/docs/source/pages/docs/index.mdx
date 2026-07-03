@@ -298,9 +298,10 @@ finishes without throwing.
           <code>relations</code>
         </td>
         <td>
-          Read or edit <code>join</code> relations with <code>find</code>,
-          <code>internal</code>, and <code>edit</code>.
-          {/* DOCS REVIEW: `internal` and `edit` appear here without nearby examples. Would a short link/example prevent readers from treating this as opaque transaction-only magic? */}
+          Work with <a href="#join"><code>join</code></a> relations inside the
+          transaction. Use <code>find</code> for relation selectors,
+          <code>edit</code> to mutate relations, and <code>internal</code> only
+          when advanced integrations need the underlying relation atom families.
         </td>
       </tr>
     </tbody>

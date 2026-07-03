@@ -400,9 +400,11 @@ Often, the data you need is not immediately available. For example, you may need
 
 <Exhibit src="core/advanced/async/await-your-state.ts" />
 
-`Loadable` is a shorthand that means "this value may be a `Promise`". This is useful because `await` is harmless when the value is not a `Promise`. When the Promise does resolve, the value is set into the value map, allowing for maximum flexibility in Suspenseful environments.
-
-{/* DOCS REVIEW: "value map" sounds internal. Could this explain what user code observes while pending, after resolve, and during a newer pending refresh? */}
+`Loadable<T>` is shorthand for "this state may currently be `T` or a `Promise<T>`".
+While a load is pending, `getState` returns the promise. Because `await` is harmless for
+plain values, you can safely `await getState(...)` whether the value is pending or
+already loaded. After the promise resolves, later reads return the resolved value until
+the state is reset or replaced.
 
 <Exhibit src="core/advanced/async/loadable-selector.ts" />
 

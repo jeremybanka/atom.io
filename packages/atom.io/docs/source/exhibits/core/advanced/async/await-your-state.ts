@@ -15,24 +15,15 @@ const server = http.createServer((req, res) => {
 })
 server.listen(3000)
 
-export const quoteAtom = atom<Loadable<Error | string>>({
+export const quoteAtom = atom<Loadable<string>, Error>({
 	key: `quote`,
 	default: async () => {
-		try {
-			const response = await fetch(`http://localhost:3000`)
-			return await response.text()
-		} catch (thrown) {
-			if (thrown instanceof Error) {
-				return thrown
-			}
-			throw thrown
-		}
+		const response = await fetch(`http://localhost:3000`)
+		return response.text()
 	},
+	catch: [Error],
 })
 
-// DOCS REVIEW: This example returns `Error` as a value instead of using
-// atom.io's `catch` option, which appears later. Is that contrast intentional,
-// or might it make the recommended loadable error pattern harder to infer?
 void getState(quoteAtom) // Promise { <pending> }
 await getState(quoteAtom) // "The best way to predict the future is to invent it."
 void getState(quoteAtom) // "The best way to predict the future is to invent it."

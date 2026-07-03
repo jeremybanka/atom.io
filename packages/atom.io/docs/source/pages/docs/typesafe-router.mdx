@@ -37,6 +37,11 @@ The atom owns browser integration:
 
 <Exhibit src="guides/typesafe-router/pathname-state.ts" />
 
+The atom stores `BrowserPathname`, not only `Pathname`, because browser state is
+untrusted input: users can paste or refresh on any path. Keep programmatic navigation
+narrow with `Pathname | PathnameWithSearch`, then let the route selector validate the
+current browser string and choose a not-found route when it is not part of the tree.
+
 Keep query-string handling explicit. The `PathnameWithSearch` alias is a small but useful cue that navigation has two related shapes: the route pathname the router validates, and the full URL path a user action might push. The route selector usually cares about path segments, while page view state, filters, or search text can live in separate atoms synchronized to search params.
 
 ## route selection

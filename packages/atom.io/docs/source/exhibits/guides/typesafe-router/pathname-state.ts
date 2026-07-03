@@ -2,7 +2,9 @@ import { atom, setState } from "atom.io"
 
 import type { Pathname, PathnameWithSearch } from "./route-shape.ts"
 
-export const pathnameAtom = atom<Pathname | (string & {})>({
+type BrowserPathname = Pathname | (string & {})
+
+export const pathnameAtom = atom<BrowserPathname>({
 	key: `pathname`,
 	default: () => window.location.pathname,
 	effects: [
@@ -47,9 +49,6 @@ export const pathnameAtom = atom<Pathname | (string & {})>({
 	],
 })
 
-// DOCS REVIEW: The atom type allows unknown strings for pasted/invalid paths,
-// but the guide only briefly hints at that. Should it explain this `(string & {})`
-// escape hatch near the route-validation step?
 export function navigate(pathname: Pathname | PathnameWithSearch): void {
 	history.pushState(null, ``, pathname)
 	setState(pathnameAtom, pathname.split(`?`)[0] as Pathname)

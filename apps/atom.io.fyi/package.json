@@ -38,7 +38,7 @@
 		"@types/react": "19.2.17",
 		"@types/react-syntax-highlighter": "15.5.13",
 		"@types/three": "0.185.0",
-		"@typescript/native-preview": "7.0.0-dev.20260702.3",
+		"@typescript/native-preview": "7.0.0-dev.20260703.1",
 		"concurrently": "10.0.3",
 		"eslint": "10.6.0",
 		"lasertag": "0.1.5",

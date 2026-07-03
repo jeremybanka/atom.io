@@ -100,9 +100,9 @@ In this example, we can see that the hook will return the string `"LOADING"` unt
 
 If you'd rather assume your data is loaded, simply pass a fallback parameter with same type as your loaded data.
 
-{/* DOCS REVIEW: The bare and fallback forms have different return shapes. Should this explicitly say the fallback form removes the `"LOADING"` sentinel and always returns an object with `value`/`loading`/`error`? */}
-
-In this case, you don't have to deal with the possibility that your data is `"LOADING"`, and you'll also get a separate `error` property if the promise rejects.
+The fallback form always returns an object. You do not have to handle the bare
+`"LOADING"` sentinel, because `value` is backed by your fallback until real data arrives.
+The object still includes `loading`, and it can include `error` when a caught load fails.
 
 ### error handling
 

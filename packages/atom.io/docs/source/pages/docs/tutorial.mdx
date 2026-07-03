@@ -1,3 +1,4 @@
+import Exhibit from "c/Exhibit.astro";
 import { CodeBlock } from "c/CodeBlock";
 
 # tutorial
@@ -61,41 +62,7 @@ That file is a good first tour of the library:
 
 If you are new to the code, start by scanning these declarations near the top of the file:
 
-{/* DOCS REVIEW: This code sample is useful, but the indentation inside the `CodeBlock` string is uneven enough that the nesting is hard to follow. Should the snippet be formatted or shortened with explicit omissions? */}
-
-<CodeBlock
-filepath="sample.ts"
-label="core declarations"
-code={`const pathKeysAtom = atom<string[]>({
-	key: \`pathKeys\`,
-default: [],
-})
-const subpathKeysAtoms = atomFamily<string[], string>({
-key: \`subpathKeys\`,
-default: [],
-})
-const nodeAtoms = atomFamily<PointXY | null, string>({
-key: \`node\`,
-default: null,
-})
-const edgeAtoms = atomFamily<EdgeXY | boolean, string>({
-key: \`edge\`,
-default: true,
-})
-const pathDrawSelectors = selectorFamily<string, string>({
-key: \`pathDraw\`,
-get:
-(pathKey) =>
-({ get }) => {
-const subpathKeys = get(subpathKeysAtoms, pathKey)
-return subpathKeys
-.map((subpathKey, idx) => {
-// ...
-})
-.join(\` \`)
-},
-})`}
-/>
+<Exhibit src="guides/tutorial/core-declarations.ts" />
 
 The important mental model is:
 

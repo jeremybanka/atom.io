@@ -188,28 +188,9 @@ As a user, this is one of the nicest parts of `atom.io`: you can model many smal
 
 The template already includes a `Reset` button backed by a transaction. That makes it a great place to learn coordinated updates.
 
-Look for:
+Look for the reset transaction. Its core shape is:
 
-{/* DOCS REVIEW: This reset snippet uses `getState`/`resetState` inside the transaction body instead of the transaction toolkit shown elsewhere. Is that intentional, or could it teach the wrong transaction pattern? */}
-
-<CodeBlock
-filepath="sample.ts"
-label="reset transaction"
-code={`const resetTX = transaction<() => Promise<void>>({
-	key: \`reset\`,
-do: async () => {
-const logo = await getState(preactLogoAtom)
-for (const pathKey of getState(pathKeysAtom)) {
-resetState(subpathKeysAtoms, pathKey)
-}
-resetState(pathKeysAtom)
-
-    	// parse the SVG and rebuild all the related atoms
-    },
-
-})
-const reset = runTransaction(resetTX)`}
-/>
+<Exhibit src="guides/tutorial/reset-transaction.ts" />
 
 Then find:
 

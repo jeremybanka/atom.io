@@ -109,6 +109,7 @@ history.
           Set the value of a reactive variable. If the reactive variable is a
           selector, its `set` method is called, which should be written to produce
           in the appropriate changes to its dependencies.
+          {/* DOCS REVIEW: This is hard to parse as written ("produce in"). Should this also distinguish direct atom writes from writable selector writes more explicitly? */}
         </td>
       </tr>
       <tr>
@@ -191,6 +192,8 @@ We might use an `atomFamily` to handle creating state for each node. Or, better 
 Counterintuitively, it is likely a performance win in highly interactive applications to take the latter approach, because when nodes move, we only need to replace two primitives in the underlying map, rather than a whole object.
 
 This is the key to high-performance interactivity in atom.io: **the smaller the state, the better**.
+
+{/* DOCS REVIEW: This is memorable, but maybe too absolute. Should we name the tradeoff: smaller atoms improve observation granularity, but indexes/coordination still need deliberate modeling? */}
 
 <Exhibit src="core/families/use-an-index-to-track-family-members.tsx" />
 
@@ -295,6 +298,7 @@ finishes without throwing.
         <td>
           Read or edit <code>join</code> relations with <code>find</code>,
           <code>internal</code>, and <code>edit</code>.
+          {/* DOCS REVIEW: `internal` and `edit` appear here without nearby examples. Would a short link/example prevent readers from treating this as opaque transaction-only magic? */}
         </td>
       </tr>
     </tbody>
@@ -329,6 +333,8 @@ In this example, we create a timeline that tracks the history of two families of
 <Exhibit src="core/timeline/subscribe-to-a-timeline.ts" />
 
 In this example, we subscribe to the timeline. Above are the structures of timeline updates.
+
+{/* DOCS REVIEW: "Above" depends on the exhibit rendering and is especially vague in the generated agent docs. Should we name the update shape or describe the important fields here? */}
 
 <Exhibit src="core/timeline/undo-and-redo-changes.ts" />
 
@@ -392,6 +398,8 @@ Often, the data you need is not immediately available. For example, you may need
 <Exhibit src="core/advanced/async/await-your-state.ts" />
 
 `Loadable` is a shorthand that means "this value may be a `Promise`". This is useful because `await` is harmless when the value is not a `Promise`. When the Promise does resolve, the value is set into the value map, allowing for maximum flexibility in Suspenseful environments.
+
+{/* DOCS REVIEW: "value map" sounds internal. Could this explain what user code observes while pending, after resolve, and during a newer pending refresh? */}
 
 <Exhibit src="core/advanced/async/loadable-selector.ts" />
 

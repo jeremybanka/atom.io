@@ -58,6 +58,8 @@ import Exhibit from "c/Exhibit.astro";
 
 `useI`—named in the sense "use input"—is a React hook that returns a stable callback to set (see [setState](/docs/atom-io#get-and-set-an-atom-ts)) an atom's value or a pass a new value to a writable selector's `set:` callback.
 
+{/* DOCS REVIEW: This sentence has a typo ("or a pass") and the writable-selector case may need one concrete phrase about direct values vs updater callbacks. */}
+
 <Exhibit src="react/use-i.tsx" />
 
 ## useJSON
@@ -95,6 +97,8 @@ In this example, we can see that the hook will return the string `"LOADING"` unt
 <Exhibit src="react/use-loadable-fallback.tsx" />
 
 If you'd rather assume your data is loaded, simply pass a fallback parameter with same type as your loaded data.
+
+{/* DOCS REVIEW: The bare and fallback forms have different return shapes. Should this explicitly say the fallback form removes the `"LOADING"` sentinel and always returns an object with `value`/`loading`/`error`? */}
 
 In this case, you don't have to deal with the possibility that your data is `"LOADING"`, and you'll also get a separate `error` property if the promise rejects.
 

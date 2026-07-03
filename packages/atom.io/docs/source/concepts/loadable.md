@@ -14,6 +14,8 @@ related:
 A loadable value represents state that may be available now, still loading, or
 recovering from asynchronous work.
 
+<!-- DOCS REVIEW: "Recovering from asynchronous work" is fuzzy. Should this name the actual observable states: pending Promise, resolved value, caught error, and refresh/loading state? -->
+
 Async selectors can produce loadable behavior when they return promises. React
 code can use `useLoadable` to observe the loaded value, loading state, and typed
 error information.

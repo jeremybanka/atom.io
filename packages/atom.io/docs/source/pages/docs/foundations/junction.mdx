@@ -83,6 +83,8 @@ one relation.
 
 `getRelatedKeys(key)` returns the related keys as a `Set`, or `undefined`.
 
+{/* DOCS REVIEW: When keys can exist on both sides, how does a reader know which side `key` belongs to? Should this recommend object-style reads or explain how side refinement resolves ambiguity? */}
+
 `getRelatedKey(key)` returns the first related key, or `undefined`. If more than one
 relation exists, `warn` is called when a warning function was provided.
 

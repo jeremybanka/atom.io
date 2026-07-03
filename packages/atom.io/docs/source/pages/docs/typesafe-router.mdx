@@ -8,6 +8,8 @@ This pattern keeps routing inside the same data model as the rest of the React a
 
 Define route structure once as shared, typed data with TreeTrunks. TreeTrunks route trees use object keys for path segments, `null` for terminal leaves, `optional(...)` for optional branches, and `$paramName` segment names for dynamic segments. From that tree, derive these types:
 
+{/* DOCS REVIEW: TreeTrunks is doing a lot of work here but is not introduced or linked. Should this mention the package, install/import expectation, and why atom.io docs recommend it for this pattern? */}
+
 - `Route`: a tuple-like path representation, such as `["docs", string, "comments"]`.
 - `Pathname`: a slash-prefixed string representation, such as `/docs/abc/comments`.
 - `PathnameWithSearch`: the route pathname plus a query string, such as `/docs/abc/comments?tab=activity`.

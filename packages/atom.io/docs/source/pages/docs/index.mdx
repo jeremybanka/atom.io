@@ -106,10 +106,10 @@ history.
           <code>setState</code>
         </td>
         <td>
-          Set the value of a reactive variable. If the reactive variable is a
-          selector, its `set` method is called, which should be written to produce
-          in the appropriate changes to its dependencies.
-          {/* DOCS REVIEW: This is hard to parse as written ("produce in"). Should this also distinguish direct atom writes from writable selector writes more explicitly? */}
+          Set the value of an atom or a writable selector. If the target is a
+          writable selector, atom.io calls the selector's <code>set</code>
+          callback so it can update the dependencies that determine the
+          selector's next value.
         </td>
       </tr>
       <tr>
@@ -247,13 +247,13 @@ finishes without throwing.
         <td>
           <code>get</code>
         </td>
-        <td>Read an atom, selector, or family member in the transaction.</td>
+        <td>Read the value of an atom or selector.</td>
       </tr>
       <tr>
         <td>
           <code>set</code>
         </td>
-        <td>Write a writable atom, selector, or family member.</td>
+        <td>Write the value of an atom or writable selector.</td>
       </tr>
       <tr>
         <td>

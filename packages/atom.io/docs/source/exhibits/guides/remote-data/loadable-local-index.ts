@@ -57,9 +57,6 @@ export const rowKeysForViewAtoms = atomFamily<
 	Error
 >({
 	key: `rowKeysForView`,
-	// DOCS REVIEW: Tuple keys are compact, but agents/readers may wonder how
-	// atom.io compares family keys. Should the surrounding docs explain why this
-	// tuple is stable and what would happen with an object view key?
 	default: async ([pageNumber, pageSize, search, status]) => {
 		const result = await client.rows.listPage({
 			offset: pageNumber * pageSize,

@@ -10,12 +10,13 @@ export const coinIdAtom = atom<string>({
 	default: discoverCoinId,
 	effects: [
 		({ setSelf }) => {
-			window.addEventListener(`popstate`, () => {
+			const syncFromBrowser = () => {
 				setSelf(discoverCoinId())
-			})
-			// DOCS REVIEW: Should this return a cleanup function? Other effect
-			// examples model cleanup, and this is copy-pasteable enough to look
-			// like the recommended listener pattern.
+			}
+			window.addEventListener(`popstate`, syncFromBrowser)
+			return () => {
+				window.removeEventListener(`popstate`, syncFromBrowser)
+			}
 		},
 	],
 })

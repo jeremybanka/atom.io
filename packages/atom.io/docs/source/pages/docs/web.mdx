@@ -49,9 +49,13 @@ If storage is unavailable, such as during SSR, the effect simply does nothing.
 
 <Exhibit src="web/sync-with-the-url.ts" />
 
-If the current URL is `/?tab="settings"`, the atom initializes to `"settings"`.
+If the current URL is `/?tab=%22settings%22`, `URLSearchParams` reads the
+parameter value as `"settings"`, and the atom initializes to the JavaScript
+string `settings`.
 
-{/* DOCS REVIEW: Because this uses `JSON`, string query params include quotes. Should we call out that custom serializers are how to get cleaner `?tab=settings` URLs? */}
+The `%22` sequences are the URL-encoded double quotes from the JSON string. For
+cleaner URLs such as `?tab=settings`, pass a string serializer instead, for
+example `{ stringify: String, parse: String }`.
 
 Later, if the atom changes to `"billing"`, the URL is updated in place using `history.replaceState`, so the page does not reload.
 

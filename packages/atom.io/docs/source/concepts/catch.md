@@ -13,7 +13,9 @@ related:
 
 The `catch` option declares how an atom or selector handles a known error type.
 
-<!-- DOCS REVIEW: This concept page does not say whether caught errors are returned/stored as state or rethrown. Should the agent-facing summary include that behavior explicitly? -->
+When a thrown value matches one of the constructors in `catch`, atom.io stores
+that error as the state value instead of rethrowing it. Unmatched thrown values
+still throw.
 
 When a reactive value has a catch channel, code that observes it can understand
 the handled error shape instead of treating every failure as unknown.

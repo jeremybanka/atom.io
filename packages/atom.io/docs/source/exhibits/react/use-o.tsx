@@ -9,11 +9,13 @@ const urlAtom = atom<string>({
 	default: () => discoverUrl().toString(),
 	effects: [
 		({ setSelf }) => {
-			window.addEventListener(`popstate`, () => {
+			const syncFromBrowser = () => {
 				setSelf(discoverUrl().toString())
-			})
-			// DOCS REVIEW: Should the simplest `useO` example avoid browser
-			// globals, or at least return cleanup for the `popstate` listener?
+			}
+			window.addEventListener(`popstate`, syncFromBrowser)
+			return () => {
+				window.removeEventListener(`popstate`, syncFromBrowser)
+			}
 		},
 	],
 })

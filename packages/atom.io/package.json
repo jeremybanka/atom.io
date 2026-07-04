@@ -88,6 +88,7 @@
 		}
 	},
 	"devDependencies": {
+		"@atom.io/exhibits": "workspace:*",
 		"@eslint/core": "1.2.1",
 		"@orpc/client": "1.14.6",
 		"@orpc/server": "1.14.6",

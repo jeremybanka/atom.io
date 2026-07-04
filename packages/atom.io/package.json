@@ -25,7 +25,7 @@
 		"postversion": "dprint fmt package.json",
 		"lint:eslint": "eslint",
 		"lint:oxlint": "oxlint",
-		"lint:types": "tsgo",
+		"lint:types": "tsgo && tsgo -p tsconfig.exhibits.json",
 		"lint:types:docs": "tsgo -p tsconfig.exhibits.json",
 		"test": "vitest",
 		"test:once": "vitest run --config vitest.dist.config.ts",

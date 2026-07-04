@@ -116,6 +116,7 @@
 				"../../package.json",
 				"package.json",
 				"tsconfig.json",
+				"tsconfig.*.json",
 				"src/**",
 				"docs/source/**",
 				"__tests__/**",

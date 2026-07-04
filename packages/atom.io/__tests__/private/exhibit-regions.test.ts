@@ -30,7 +30,7 @@ describe(`exhibit regions`, () => {
 
 			expect(
 				extractExhibitCode(code, parseExhibitReference(`demo.ts#my-region`)),
-			).toBe(`  inner()`)
+			).toBe(`inner()`)
 		})
 	}
 
@@ -38,6 +38,23 @@ describe(`exhibit regions`, () => {
 		const code = `const value = 1`
 
 		expect(extractExhibitCode(code, parseExhibitReference(`demo.ts`))).toBe(code)
+	})
+
+	test(`removes shared indentation from a region`, () => {
+		const code = [
+			`function render() {`,
+			`\t// @exhibit-region start indented`,
+			`\tconst value = 1`,
+			`\tif (value) {`,
+			`\t\treturn value`,
+			`\t}`,
+			`\t// @exhibit-region end indented`,
+			`}`,
+		].join(`\n`)
+
+		expect(
+			extractExhibitCode(code, parseExhibitReference(`demo.ts#indented`)),
+		).toBe([`const value = 1`, `if (value) {`, `\treturn value`, `}`].join(`\n`))
 	})
 
 	test(`throws when a requested region does not exist`, () => {

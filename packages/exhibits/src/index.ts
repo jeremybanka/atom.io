@@ -119,7 +119,7 @@ function collectExhibitRegions(
 		}
 
 		regions.set(active.name, {
-			code: trimOuterBlankLines(active.lines).join(`\n`),
+			code: trimRegionLines(active.lines).join(`\n`),
 			endLine: lineNumber,
 			startLine: active.startLine,
 		})
@@ -176,6 +176,16 @@ function readRegionMarker(line: string): RegionMarker | null {
 	return { kind: match[1] as `end` | `start`, name }
 }
 
+function trimRegionLines(lines: string[]): string[] {
+	const trimmed = trimOuterBlankLines(lines)
+	const indent = findSharedIndent(trimmed)
+	return indent.length === 0
+		? trimmed
+		: trimmed.map((line) =>
+				line.trim() === `` ? line : line.replace(indent, ``),
+			)
+}
+
 function trimOuterBlankLines(lines: string[]): string[] {
 	let start = 0
 	let end = lines.length
@@ -188,4 +198,25 @@ function trimOuterBlankLines(lines: string[]): string[] {
 	}
 
 	return lines.slice(start, end)
+}
+
+function findSharedIndent(lines: string[]): string {
+	const indents = lines
+		.filter((line) => line.trim() !== ``)
+		.map((line) => line.match(/^\s*/)?.[0] ?? ``)
+
+	if (indents.length === 0) {
+		return ``
+	}
+
+	let shared = indents[0]
+	for (const indent of indents.slice(1)) {
+		while (!indent.startsWith(shared)) {
+			shared = shared.slice(0, -1)
+			if (shared.length === 0) {
+				return ``
+			}
+		}
+	}
+	return shared
 }

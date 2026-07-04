@@ -1,5 +1,11 @@
 # atom.io
 
+## 0.49.6
+
+### Patch Changes
+
+- d2c8143: Clarify and expand the atom.io documentation across guides, foundations, React hooks, transactions, loadables, web sync, remote data, and tutorial examples.
+
 ## 0.49.5
 
 ### Patch Changes

@@ -3,6 +3,7 @@
 	"compilerOptions": {
 		"declaration": false,
 		"isolatedDeclarations": false,
+		"noUnusedParameters": false,
 		"types": ["vitest/globals", "node"]
 	},
 	"include": [

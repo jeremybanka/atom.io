@@ -1,3 +1,6 @@
+import { atom, atomFamily, selectorFamily } from "atom.io"
+
+// @exhibit-region start core-declarations
 type PointXY = { x: number; y: number }
 type EdgeXY = { c?: PointXY; s: PointXY }
 
@@ -30,3 +33,4 @@ const pathDrawSelectors = selectorFamily<string, string>({
 				.join(` `)
 		},
 })
+// @exhibit-region end core-declarations

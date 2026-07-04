@@ -50,13 +50,17 @@ import Exhibit from "c/Exhibit.astro";
 
 ## useO
 
-`useO`—named in the sense "use output"—is a React hook that returns the current value of an atoms or selectors in a React components (and dispatches a re-render whenever there is a new value).
+`useO`—named in the sense "use output"—is a React hook that returns the current value of an atom or selector in a React component (and dispatches a re-render whenever there is a new value).
 
 <Exhibit src="react/use-o.tsx" />
 
 ## useI
 
-`useI`—named in the sense "use input"—is a React hook that returns a stable callback to set (see [setState](/docs/atom-io#get-and-set-an-atom-ts)) an atom's value or a pass a new value to a writable selector's `set:` callback.
+`useI`—named in the sense "use input"—is a React hook that returns a stable setter
+callback. For atoms, that callback accepts a value or updater just like
+[`setState`](/docs/atom-io#get-and-set-an-atom-ts). For writable selectors, it passes
+the new value to the selector's `set` callback so the selector can update its
+dependencies.
 
 <Exhibit src="react/use-i.tsx" />
 
@@ -96,7 +100,9 @@ In this example, we can see that the hook will return the string `"LOADING"` unt
 
 If you'd rather assume your data is loaded, simply pass a fallback parameter with same type as your loaded data.
 
-In this case, you don't have to deal with the possibility that your data is `"LOADING"`, and you'll also get a separate `error` property if the promise rejects.
+The fallback form always returns an object. You do not have to handle the bare
+`"LOADING"` sentinel, because `value` is backed by your fallback until real data arrives.
+The object still includes `loading`, and it can include `error` when a caught load fails.
 
 ### error handling
 

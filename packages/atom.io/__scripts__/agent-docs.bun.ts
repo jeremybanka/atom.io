@@ -3,6 +3,12 @@
 import fs from "node:fs/promises"
 import path from "node:path"
 
+import {
+	type ExhibitReference,
+	extractExhibitCode,
+	parseExhibitReference,
+} from "@atom.io/exhibits"
+
 type StructuredDoc = {
 	body: string
 	file: string
@@ -549,20 +555,25 @@ async function resolveExhibitSource(
 	return null
 }
 
-async function resolveExhibitSourcePath(src: string): Promise<string | null> {
-	const normalized = src
-		.replace(/^\/+/, ``)
-		.replace(/^docs\/source\/exhibits\//, ``)
+async function resolveExhibitSourcePath(src: string): Promise<{
+	reference: ExhibitReference
+	sourcePath: string
+} | null> {
+	const reference = parseExhibitReference(src)
+	const normalized = reference.source
 	const exactSourcePath = path.join(EXHIBITS_ROOT, normalized)
 	try {
 		const stat = await fs.stat(exactSourcePath)
 		if (stat.isFile()) {
-			return exactSourcePath
+			return { reference, sourcePath: exactSourcePath }
 		}
 	} catch {
 		// Fall back to the legacy extension resolution below.
 	}
-	return resolveExhibitSource(normalized.replace(/(?:\.txt)?\.[^.]+$/, ``))
+	const sourcePath = await resolveExhibitSource(
+		normalized.replace(/(?:\.txt)?\.[^.]+$/, ``),
+	)
+	return sourcePath ? { reference, sourcePath } : null
 }
 
 function titleFromExhibitSource(src: string): string {
@@ -584,23 +595,24 @@ async function replaceExhibits(
 		if (componentName === `Exhibit`) {
 			const src = readQuotedAttribute(tag, `src`)
 			if (!src) {
-				output += `\n[interactive/example omitted: Exhibit]\n`
-				cursor = index + tag.length
-				continue
+				throw new Error(`Exhibit is missing a src attribute.`)
 			}
-			const sourcePath = await resolveExhibitSourcePath(src)
-			if (!sourcePath) {
-				output += `\n[interactive/example omitted: Exhibit ${src}]\n`
-				cursor = index + tag.length
-				continue
+			const resolved = await resolveExhibitSourcePath(src)
+			if (!resolved) {
+				throw new Error(`Unknown exhibit source: ${src}`)
 			}
 
-			const code = await fs.readFile(sourcePath, `utf8`)
-			const source = path.relative(ATOM_IO_ROOT, sourcePath)
+			const sourceCode = await fs.readFile(resolved.sourcePath, `utf8`)
+			const code = extractExhibitCode(sourceCode, resolved.reference)
+			const source =
+				path.relative(ATOM_IO_ROOT, resolved.sourcePath) +
+				(resolved.reference.region ? `#${resolved.reference.region}` : ``)
 			output += `\n${renderCodeBlock({
 				code,
-				filepath: path.basename(sourcePath).replace(/\.txt$/, ``),
-				label: readQuotedAttribute(tag, `label`) ?? titleFromExhibitSource(src),
+				filepath: path.basename(resolved.sourcePath).replace(/\.txt$/, ``),
+				label:
+					readQuotedAttribute(tag, `label`) ??
+					titleFromExhibitSource(resolved.reference.source),
 				source,
 			})}\n`
 			cursor = index + tag.length

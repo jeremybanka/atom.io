@@ -15,19 +15,13 @@ const server = http.createServer((req, res) => {
 })
 server.listen(3000)
 
-export const quoteAtom = atom<Loadable<Error | string>>({
+export const quoteAtom = atom<Loadable<string>, Error>({
 	key: `quote`,
 	default: async () => {
-		try {
-			const response = await fetch(`http://localhost:3000`)
-			return await response.text()
-		} catch (thrown) {
-			if (thrown instanceof Error) {
-				return thrown
-			}
-			throw thrown
-		}
+		const response = await fetch(`http://localhost:3000`)
+		return response.text()
 	},
+	catch: [Error],
 })
 
 void getState(quoteAtom) // Promise { <pending> }

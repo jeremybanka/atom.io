@@ -22,7 +22,9 @@ later slow result is ignored.
         <td>
           <code>Future</code>
         </td>
-        <td>A <code>Promise</code> subclass whose active fate can be replaced.</td>
+        <td>
+          A <code>Promise</code> subclass whose active pending work can be replaced.
+        </td>
       </tr>
       <tr>
         <td>
@@ -35,8 +37,8 @@ later slow result is ignored.
           <code>Future.prototype.use(value)</code>
         </td>
         <td>
-          Replace the active fate with a promise, or resolve immediately with a direct
-          value.
+          Replace the active pending work with a promise, or resolve immediately with a
+          direct value.
         </td>
       </tr>
       <tr>

@@ -3,11 +3,11 @@
 	"compilerOptions": {
 		"declaration": false,
 		"isolatedDeclarations": false,
+		"noUnusedParameters": false,
 		"types": ["vitest/globals", "node"]
 	},
 	"include": [
-		"docs/source/exhibits/guides/remote-data",
-		"docs/source/exhibits/guides/typesafe-router",
+		"docs/source/exhibits",
 		"css.d.ts"
 	]
 }

@@ -106,9 +106,10 @@ history.
           <code>setState</code>
         </td>
         <td>
-          Set the value of a reactive variable. If the reactive variable is a
-          selector, its `set` method is called, which should be written to produce
-          in the appropriate changes to its dependencies.
+          Set the value of an atom or a writable selector. If the target is a
+          writable selector, atom.io calls the selector's <code>set</code>
+          callback so it can update the dependencies that determine the
+          selector's next value.
         </td>
       </tr>
       <tr>
@@ -192,6 +193,10 @@ Counterintuitively, it is likely a performance win in highly interactive applica
 
 This is the key to high-performance interactivity in atom.io: **the smaller the state, the better**.
 
+Small state improves observation granularity, but it does not remove the need for good
+collection design. Keep explicit indexes for the family members you need to iterate, and
+use transactions when several small states should change as one operation.
+
 <Exhibit src="core/families/use-an-index-to-track-family-members.tsx" />
 
 In this example, we use a single `atom<string[]>` to track the members of the family.
@@ -244,13 +249,13 @@ finishes without throwing.
         <td>
           <code>get</code>
         </td>
-        <td>Read an atom, selector, or family member in the transaction.</td>
+        <td>Read the value of an atom or selector.</td>
       </tr>
       <tr>
         <td>
           <code>set</code>
         </td>
-        <td>Write a writable atom, selector, or family member.</td>
+        <td>Write the value of an atom or writable selector.</td>
       </tr>
       <tr>
         <td>
@@ -293,8 +298,10 @@ finishes without throwing.
           <code>relations</code>
         </td>
         <td>
-          Read or edit <code>join</code> relations with <code>find</code>,
-          <code>internal</code>, and <code>edit</code>.
+          Work with <a href="#join"><code>join</code></a> relations inside the
+          transaction. Use <code>find</code> for relation selectors,
+          <code>edit</code> to mutate relations, and <code>internal</code> only
+          when advanced integrations need the underlying relation atom families.
         </td>
       </tr>
     </tbody>
@@ -328,7 +335,9 @@ In this example, we create a timeline that tracks the history of two families of
 
 <Exhibit src="core/timeline/subscribe-to-a-timeline.ts" />
 
-In this example, we subscribe to the timeline. Above are the structures of timeline updates.
+In this example, we subscribe to the timeline. The logged update is an `atom_update`:
+it includes `oldValue`, `newValue`, the family member `key`, a `timestamp`, and the
+family token for the state that changed.
 
 <Exhibit src="core/timeline/undo-and-redo-changes.ts" />
 
@@ -391,7 +400,11 @@ Often, the data you need is not immediately available. For example, you may need
 
 <Exhibit src="core/advanced/async/await-your-state.ts" />
 
-`Loadable` is a shorthand that means "this value may be a `Promise`". This is useful because `await` is harmless when the value is not a `Promise`. When the Promise does resolve, the value is set into the value map, allowing for maximum flexibility in Suspenseful environments.
+`Loadable<T>` is shorthand for "this state may currently be `T` or a `Promise<T>`".
+While a load is pending, `getState` returns the promise. Because `await` is harmless for
+plain values, you can safely `await getState(...)` whether the value is pending or
+already loaded. After the promise resolves, later reads return the resolved value until
+the state is reset or replaced.
 
 <Exhibit src="core/advanced/async/loadable-selector.ts" />
 

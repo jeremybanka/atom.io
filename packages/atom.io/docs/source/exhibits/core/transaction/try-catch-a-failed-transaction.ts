@@ -25,7 +25,7 @@ export const giveCoinsTX = transaction<
 	do: async ({ get, set }, playerId, amount) => {
 		const myId = await get(myIdAtom)
 		const myInventory = get(playerInventoryAtoms, myId)
-		if (!myInventory.coins) {
+		if (myInventory.coins === undefined) {
 			throw new Error(`Your inventory is missing coins`)
 		}
 		const myCoins = myInventory.coins

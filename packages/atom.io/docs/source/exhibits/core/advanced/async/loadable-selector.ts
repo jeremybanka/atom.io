@@ -10,9 +10,13 @@ export const coinIdAtom = atom<string>({
 	default: discoverCoinId,
 	effects: [
 		({ setSelf }) => {
-			window.addEventListener(`popstate`, () => {
+			const syncFromBrowser = () => {
 				setSelf(discoverCoinId())
-			})
+			}
+			window.addEventListener(`popstate`, syncFromBrowser)
+			return () => {
+				window.removeEventListener(`popstate`, syncFromBrowser)
+			}
 		},
 	],
 })

@@ -9,9 +9,13 @@ const urlAtom = atom<string>({
 	default: () => discoverUrl().toString(),
 	effects: [
 		({ setSelf }) => {
-			window.addEventListener(`popstate`, () => {
+			const syncFromBrowser = () => {
 				setSelf(discoverUrl().toString())
-			})
+			}
+			window.addEventListener(`popstate`, syncFromBrowser)
+			return () => {
+				window.removeEventListener(`popstate`, syncFromBrowser)
+			}
 		},
 	],
 })

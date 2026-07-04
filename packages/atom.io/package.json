@@ -25,7 +25,7 @@
 		"postversion": "dprint fmt package.json",
 		"lint:eslint": "eslint",
 		"lint:oxlint": "oxlint",
-		"lint:types": "tsgo",
+		"lint:types": "tsgo && tsgo -p tsconfig.exhibits.json",
 		"lint:types:docs": "tsgo -p tsconfig.exhibits.json",
 		"test": "vitest",
 		"test:once": "vitest run --config vitest.dist.config.ts",
@@ -88,6 +88,7 @@
 		}
 	},
 	"devDependencies": {
+		"@atom.io/exhibits": "workspace:*",
 		"@eslint/core": "1.2.1",
 		"@orpc/client": "1.14.6",
 		"@orpc/server": "1.14.6",

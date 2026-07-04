@@ -11,12 +11,12 @@ related:
   - effect
 ---
 
-A loadable value represents state that may be available now, still loading, or
-recovering from asynchronous work.
+A loadable value represents state that may currently be a pending `Promise`, a
+resolved value, or a handled error stored through `catch`.
 
 Async selectors can produce loadable behavior when they return promises. React
-code can use `useLoadable` to observe the loaded value, loading state, and typed
-error information.
+code can use `useLoadable` to observe the loaded value, a `loading` flag while a
+newer promise is pending, and typed error information when a caught load fails.
 
 Use loadable state when data comes from an asynchronous source but still needs
 to participate in atom.io's reactive graph.

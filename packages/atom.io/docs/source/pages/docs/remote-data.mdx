@@ -78,6 +78,17 @@ Recommended pieces:
 The loadable key-list state is the hydration trigger. It does not have to be the
 only list source of truth.
 
+In the example below, `rowIndexViewAtom` reads the key-list family member for its
+default view, then reads the matching family member again whenever the view changes.
+Those reads are deliberate: reading a `Loadable` family member starts the load and gives
+the rest of the graph a stable cache entry to observe.
+
+Family keys use [canonical values](/docs/foundations/canonical), so the tuple view is
+part of the cache identity by value, not by array object identity. The same page, size,
+search, and status tuple finds the same family member. Plain objects are intentionally
+not canonical keys: property order and extra runtime properties can make object-shaped
+cache keys ambiguous.
+
 ### example
 
 <Exhibit src="guides/remote-data/loadable-local-index.ts" />

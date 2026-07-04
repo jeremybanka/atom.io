@@ -1,3 +1,4 @@
+import Exhibit from "c/Exhibit.astro";
 import { CodeBlock } from "c/CodeBlock";
 
 # tutorial
@@ -61,39 +62,7 @@ That file is a good first tour of the library:
 
 If you are new to the code, start by scanning these declarations near the top of the file:
 
-<CodeBlock
-filepath="sample.ts"
-label="core declarations"
-code={`const pathKeysAtom = atom<string[]>({
-	key: \`pathKeys\`,
-default: [],
-})
-const subpathKeysAtoms = atomFamily<string[], string>({
-key: \`subpathKeys\`,
-default: [],
-})
-const nodeAtoms = atomFamily<PointXY | null, string>({
-key: \`node\`,
-default: null,
-})
-const edgeAtoms = atomFamily<EdgeXY | boolean, string>({
-key: \`edge\`,
-default: true,
-})
-const pathDrawSelectors = selectorFamily<string, string>({
-key: \`pathDraw\`,
-get:
-(pathKey) =>
-({ get }) => {
-const subpathKeys = get(subpathKeysAtoms, pathKey)
-return subpathKeys
-.map((subpathKey, idx) => {
-// ...
-})
-.join(\` \`)
-},
-})`}
-/>
+<Exhibit src="guides/tutorial/core-declarations.ts#core-declarations" />
 
 The important mental model is:
 
@@ -107,12 +76,7 @@ Start with something visible and low-risk: change the stage size.
 
 In `src/BezierPlayground.tsx`, find:
 
-<CodeBlock
-filepath="sample.ts"
-label="stage size"
-code={`const WIDTH = 256
-const HEIGHT = 296`}
-/>
+<Exhibit src="guides/tutorial/stage-size.ts#stage-size" label="stage size" />
 
 Try changing those values, then save and drag a few points around. This shows an important property of `atom.io`: your UI can be driven by a few small state primitives, while the rendered result is derived from them.
 
@@ -122,25 +86,11 @@ Next, personalize the playground.
 
 Inside the `svg`, try changing the fill and grid styling:
 
-<CodeBlock
-filepath="sample.tsx"
-label="stage fill"
-code={`<rect x={0} y={0} width={WIDTH} height={HEIGHT} fill="#aaa3" />`}
-/>
+<Exhibit src="guides/tutorial/svg-styling.tsx#stage-fill" label="stage fill" />
 
 and:
 
-<CodeBlock
-filepath="sample.tsx"
-label="grid fill"
-code={`<rect
-	x={-185}
-	y={-10}
-	width={WIDTH + 370}
-	height={HEIGHT + 20}
-	fill="url(#grid)"
-/>`}
-/>
+<Exhibit src="guides/tutorial/svg-styling.tsx#grid-fill" label="grid fill" />
 
 This is a small step, but it gives a fast reward: the project starts feeling like yours instead of a demo.
 
@@ -150,40 +100,13 @@ Now make a behavior change that teaches how updates flow through state.
 
 Find the `clamp` helper and add a `snap` helper beside it:
 
-<CodeBlock
-filepath="sample.ts"
-label="snap helper"
-code={`function snap(n: number, size: number) {
-	return Math.round(n / size) * size
-}`}
-/>
+<Exhibit src="guides/tutorial/snapping.ts#snap-helper" label="snap helper" />
 
 Then, inside `onPointerMove`, snap `x` and `y` before they are written into state:
 
-<CodeBlock
-filepath="sample.ts"
-label="snap before writing state"
-code={`const { x, y } = pt.matrixTransform(ctm)
-const snappedX = snap(x, 8)
-const snappedY = snap(y, 8)
-
-switch (draggingBy) {
-case undefined:
-setState(nodeAtoms, currentlyDragging, {
-x: clamp(snappedX, -185, WIDTH + 185),
-y: clamp(snappedY, -10, HEIGHT + 10),
-})
-break
-case \`s\`:
-setState(edgeAtoms, currentlyDragging, (prev) => ({
-...(prev as EdgeXY),
-s: {
-x: clamp(snappedX, -185, WIDTH + 185),
-y: clamp(snappedY, -10, HEIGHT + 10),
-},
-}))
-break
-}`}
+<Exhibit
+	src="guides/tutorial/snapping.ts#snap-before-writing-state"
+	label="snap before writing state"
 />
 
 Use `snappedX` and `snappedY` in the `setState(...)` calls instead of the raw coordinates.
@@ -202,14 +125,7 @@ The template uses `atomFamily` because there are many nodes and edges, not just 
 
 For example:
 
-<CodeBlock
-filepath="sample.ts"
-label="atom family"
-code={`const nodeAtoms = atomFamily<PointXY | null, string>({
-	key: \`node\`,
-default: null,
-})`}
-/>
+<Exhibit src="guides/tutorial/atom-family.ts#atom-family" label="atom family" />
 
 This means each node can be looked up by a key such as `subpath12`, while still sharing one declaration.
 
@@ -219,36 +135,13 @@ As a user, this is one of the nicest parts of `atom.io`: you can model many smal
 
 The template already includes a `Reset` button backed by a transaction. That makes it a great place to learn coordinated updates.
 
-Look for:
+Look for the reset transaction. Its core shape is:
 
-<CodeBlock
-filepath="sample.ts"
-label="reset transaction"
-code={`const resetTX = transaction<() => Promise<void>>({
-	key: \`reset\`,
-do: async () => {
-const logo = await getState(preactLogoAtom)
-for (const pathKey of getState(pathKeysAtom)) {
-resetState(subpathKeysAtoms, pathKey)
-}
-resetState(pathKeysAtom)
-
-    	// parse the SVG and rebuild all the related atoms
-    },
-
-})
-const reset = runTransaction(resetTX)`}
-/>
+<Exhibit src="guides/tutorial/reset-transaction.ts#reset-transaction" />
 
 Then find:
 
-<CodeBlock
-filepath="sample.tsx"
-label="reset button"
-code={`<button type="button" class="flat" onClick={reset}>
-	Reset
-</button>`}
-/>
+<Exhibit src="guides/tutorial/reset-button.tsx#reset-button" label="reset button" />
 
 Add a second button for an experiment of your own. Good starter ideas:
 

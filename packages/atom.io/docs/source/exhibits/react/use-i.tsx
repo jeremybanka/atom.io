@@ -6,7 +6,7 @@ const toggleAtom = atom<boolean>({
 	default: false,
 })
 
-function UrlDisplay() {
+function ToggleInput() {
 	const setToggle = useI(toggleAtom)
 	const toggle = useO(toggleAtom)
 	return (

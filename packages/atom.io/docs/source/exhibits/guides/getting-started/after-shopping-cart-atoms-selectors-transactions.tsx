@@ -56,6 +56,11 @@ const cartSubtotalSelector = selector<number>({
 		}, 0),
 })
 
+const cartItemsSelector = selector<CartItem[]>({
+	key: `cartItems`,
+	get: ({ get }) => get(cartItemsKeysAtom).map((id) => get(cartItemAtoms, id)),
+})
+
 const cartTotalSelector = selector<number>({
 	key: `cartTotal`,
 	get: ({ get }) => {
@@ -84,6 +89,22 @@ const addCartItemTX = transaction<(product: CartProduct) => void>({
 
 const addCartItem = runTransaction(addCartItemTX)
 
+const removeCartItemTX = transaction<(id: string) => void>({
+	key: `removeCartItem`,
+	do: ({ dispose, get, set }, id) => {
+		const itemKeys = get(cartItemsKeysAtom)
+		if (!itemKeys.includes(id)) return
+
+		set(
+			cartItemsKeysAtom,
+			itemKeys.filter((itemId) => itemId !== id),
+		)
+		dispose(cartItemAtoms, id)
+	},
+})
+
+const removeCartItem = runTransaction(removeCartItemTX)
+
 function AddToCartButton(): JSX.Element {
 	const itemCount = useO(cartItemCountSelector)
 
@@ -96,6 +117,32 @@ function AddToCartButton(): JSX.Element {
 		>
 			Add notebook ({itemCount})
 		</button>
+	)
+}
+
+function CartItems(): JSX.Element {
+	const items = useO(cartItemsSelector)
+
+	if (items.length === 0) {
+		return <p>Your cart is empty.</p>
+	}
+
+	return (
+		<ul>
+			{items.map((item) => (
+				<li key={item.id}>
+					{item.name} x{item.quantity}
+					<button
+						type="button"
+						onClick={() => {
+							removeCartItem(item.id)
+						}}
+					>
+						Remove
+					</button>
+				</li>
+			))}
+		</ul>
 	)
 }
 
@@ -126,6 +173,7 @@ export function ShoppingCart(): JSX.Element {
 	return (
 		<section>
 			<AddToCartButton />
+			<CartItems />
 			<CouponInput />
 			<CartSummary />
 		</section>

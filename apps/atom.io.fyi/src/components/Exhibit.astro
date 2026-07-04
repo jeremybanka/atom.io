@@ -1,6 +1,11 @@
 ---
 import { exhibits } from "virtual:atom-io-exhibits"
 
+import {
+	extractExhibitCode,
+	normalizeExhibitSource,
+	parseExhibitReference,
+} from "@atom.io/exhibits"
 import { CodeBlock } from "./CodeBlock"
 
 type Props = {
@@ -9,23 +14,21 @@ type Props = {
 	src: string
 }
 
-function normalizeSource(src: string): string {
-	return src.replace(/^\/+/, ``).replace(/^docs\/source\/exhibits\//, ``)
-}
-
 function getDisplayFilename(src: string): string {
 	const filename = src.split(`/`).pop() ?? `code`
 	return filename.endsWith(`.txt`) ? filename.slice(0, -`.txt`.length) : filename
 }
 
 const { label, soft = false, src } = Astro.props
-const normalizedSource = normalizeSource(src)
-const code = exhibits[normalizedSource]
+const reference = parseExhibitReference(src)
+const normalizedSource = normalizeExhibitSource(reference.source)
+const sourceCode = exhibits[normalizedSource]
 
-if (code === undefined) {
+if (sourceCode === undefined) {
 	throw new Error(`Unknown exhibit source: ${src}`)
 }
 
+const code = extractExhibitCode(sourceCode, reference)
 const filepath = getDisplayFilename(normalizedSource)
 ---
 

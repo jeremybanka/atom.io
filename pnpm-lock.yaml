@@ -135,6 +135,9 @@ importers:
         specifier: 0.6.8
         version: 0.6.8(@preact/compat@18.3.2(preact@10.29.3))
     devDependencies:
+      '@atom.io/exhibits':
+        specifier: workspace:*
+        version: link:../../packages/exhibits
       '@types/bun':
         specifier: npm:bun-types@1.3.14
         version: bun-types@1.3.14
@@ -165,6 +168,9 @@ importers:
 
   packages/atom.io:
     devDependencies:
+      '@atom.io/exhibits':
+        specifier: workspace:*
+        version: link:../exhibits
       '@eslint/core':
         specifier: 1.2.1
         version: 1.2.1
@@ -294,6 +300,8 @@ importers:
       zustand:
         specifier: 5.0.14
         version: 5.0.14(@types/react@19.2.17)(react@19.2.7)(use-sync-external-store@1.6.0(react@19.2.7))
+
+  packages/exhibits: {}
 
   packages/create-atom.io:
     dependencies:

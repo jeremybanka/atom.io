@@ -1,11 +1,17 @@
 import { Junction } from "atom.io/foundations/junction"
 
-const playlistTracks = new Junction({
+type PlaylistKey = `playlist::${string}`
+type TrackKey = `track::${string}`
+
+const playlistTracks = new Junction<`playlist`, PlaylistKey, `track`, TrackKey>({
 	between: [`playlist`, `track`],
 	cardinality: `n:n`,
 })
 
-playlistTracks.set({ playlist: `road-trip`, track: `dreams` })
+playlistTracks.set({
+	playlist: `playlist::road-trip`,
+	track: `track::dreams`,
+})
 
-playlistTracks.getRelatedKeys(`road-trip`) // Set { "dreams" }
-playlistTracks.getRelatedKey(`dreams`) // "road-trip"
+playlistTracks.getRelatedKeys(`playlist::road-trip`) // Set { "track::dreams" }
+playlistTracks.getRelatedKey(`track::dreams`) // "playlist::road-trip"

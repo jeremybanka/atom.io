@@ -65,12 +65,14 @@ app-shell.class {
 			margin: 0;
 			padding: 1em;
 			> nav {
+				gap: 20px;
 				> left-side, > right-side {
 					padding: 1em 1.5em;
 					border-radius: 2em;
 					background: var(--nav-background);
 					backdrop-filter: var(--nav-backdrop-filter);
 					box-shadow: var(--nav-box-shadow);
+					padding: 0 20px;
 
 					border: 1px solid var(--bg-soft-glass-3);
 					border-bottom-width: 2px;
@@ -83,21 +85,19 @@ app-shell.class {
 		}
 
 		> nav {
+			height: 50px;
 			display: flex;
 			flex-flow: row;
 			gap: 1em;
 			> gap-between {
 				flex-grow: 1;
 			}
-			> right-side {
-				justify-content: flex-end;
-			}
+
 			> left-side, > right-side {
 				display: flex;
 				gap: 16px;
-				padding: 0 20px;
 				align-items: center;
-
+				height: 100%;
 				> a {
 					font-family: Theia;
 					align-items: center;
@@ -117,6 +117,7 @@ app-shell.class {
 				}
 			}
 			> left-side {
+				padding-left: 20px;
 				> a {
 					display: inline-flex;
 					margin-left: -10px;
@@ -127,6 +128,10 @@ app-shell.class {
 						margin-right: 4px;
 					}
 				}
+			}
+			> right-side {
+				justify-content: flex-end;
+				padding-right: 20px;
 			}
 		}
 	}

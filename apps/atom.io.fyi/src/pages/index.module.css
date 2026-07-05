@@ -34,10 +34,9 @@ home-splash.class {
 						color: var(--brand-color);
 					}
 				}
-			}
-			@media screen and (max-width: 370px) {
-				transform: rotate(-45deg) translateX(25vw) translateY(calc(50vw));
-				transform-origin: left bottom;
+				@media screen and (max-width: 370px) {
+					font-size: 38vw;
+				}
 			}
 		}
 
@@ -59,7 +58,7 @@ home-splash.class {
 				align-items: center;
 				justify-content: center;
 				min-height: 50px;
-				padding: 14px 20px 12px;
+				padding: 12px 20px 11px;
 				border-radius: 999px;
 				font-weight: 700;
 				text-decoration: none;

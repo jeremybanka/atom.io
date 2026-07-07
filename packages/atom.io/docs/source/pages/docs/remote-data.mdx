@@ -115,6 +115,29 @@ views without re-fetching each row.
   update, reset that row atom. Reset key indexes or query family members only
   when membership, ordering, filters, or counts may have changed.
 
+### refresh and invalidation
+
+`resetState(loadableAtom)` is a reload command. For atom families, the matching form is
+`resetState(loadableAtoms, key)`. If the state default is async, resetting immediately
+recomputes the default and starts new async work.
+
+Use reset for:
+
+- explicit refresh buttons
+- after a mutation when the remote system owns the final result
+- retry flows after an error
+- test setup
+
+Do not use reset to initialize remote data in a component mount effect. The first read
+already initializes the `Loadable`.
+
+When several views need the same remote response, create one `Loadable` atom or atom
+family for that response and derive view shapes with selectors. Do not create multiple
+`Loadable` defaults for the same endpoint unless they intentionally have different cache
+identities.
+
+Read is hydration. Key is identity. Reset is invalidation.
+
 ### reset after mutations
 
 Use reset as the resync step after mutations that change remote-owned state.

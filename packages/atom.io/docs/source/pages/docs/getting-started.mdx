@@ -148,6 +148,27 @@ an `atom.io` token that other components can share.
 
 <Exhibit src="guides/getting-started/after-dashboard-summary-loadable-atom.tsx" />
 
+<h3 id="do-not-refresh-loadables-on-mount">
+  {`do not refresh Loadables on mount`}
+</h3>
+
+The `Loadable` atom is already the loading trigger. Reading it with `useLoadable`
+starts the request when the value is missing.
+
+Avoid adding a mount effect that resets the same atom:
+
+<Exhibit src="guides/getting-started/reset-dashboard-stats-on-mount.tsx#reset-dashboard-stats-on-mount" label="reset on mount" soft />
+
+That reset runs after the first read has already started loading. In React development
+`StrictMode`, the mount effect can run more than once, causing duplicate requests.
+
+Prefer the pattern in the example above: read the `Loadable` directly and reset it only
+from explicit refresh, retry, mutation, or test setup flows.
+
+For keyed records, make the request identity part of the atom family key:
+
+<Exhibit src="guides/getting-started/keyed-dashboard-stats-loadable-family.tsx#keyed-dashboard-stats-loadable-family" label="keyed loadable family" />
+
 For richer query data and fetched data screens, especially with type-safe RPC
 (remote procedure call) clients such as [tRPC](https://trpc.io),
 [oRPC](https://orpc.dev), or

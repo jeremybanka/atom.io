@@ -104,6 +104,29 @@ The fallback form always returns an object. You do not have to handle the bare
 `"LOADING"` sentinel, because `value` is backed by your fallback until real data arrives.
 The object still includes `loading`, and it can include `error` when a caught load fails.
 
+### loadable ownership
+
+A component should observe a `Loadable`, not start or reset it on mount.
+
+When a `Loadable` atom or family member has an async default, the first
+`useLoadable` or `useO` read starts the work and caches the pending promise. Other
+components and selectors that read the same token share that work.
+
+Do not pair `useLoadable(queryAtom)` with a React mount effect that resets the same
+atom:
+
+<Exhibit src="react/reset-loadable-on-mount.tsx#reset-loadable-on-mount" label="reset on mount" soft />
+
+`resetState` recomputes the async default, so it starts new async work. In React
+development `StrictMode`, mount effects may run more than once, which can turn one
+intended read into multiple network requests.
+
+Use `resetState` from explicit refresh actions, mutation flows, retry flows, or test
+setup. For route params and other request inputs, prefer an `atomFamily` keyed by the
+input and observe the family member directly.
+
+Read is hydration. Key is identity. Reset is invalidation.
+
 ### error handling
 
 If the atom or selector declares a `catch` option, `useLoadable`'s

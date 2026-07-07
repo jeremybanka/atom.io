@@ -1,4 +1,4 @@
-import { atom, resetState, type Loadable } from "atom.io"
+import { atom, type Loadable, resetState } from "atom.io"
 import * as React from "react"
 
 type DashboardStats = {
@@ -8,12 +8,15 @@ type DashboardStats = {
 }
 
 const dashboardStatsAtom = atom<Loadable<DashboardStats>, Error>({
-	key: `dashboardStatsResetOnMount`,
-	default: async () => ({
-		openTicketCount: 0,
-		overdueTicketCount: 0,
-		medianResponseTime: `--`,
-	}),
+	key: `dashboardStats`,
+	default: async () => {
+		await Promise.resolve()
+		return {
+			openTicketCount: 0,
+			overdueTicketCount: 0,
+			medianResponseTime: `--`,
+		}
+	},
 	catch: [Error],
 })
 

@@ -1,4 +1,4 @@
-import { atom, resetState, type Loadable } from "atom.io"
+import { atom, type Loadable, resetState } from "atom.io"
 import { useLoadable } from "atom.io/react"
 import { useEffect } from "react"
 
@@ -7,8 +7,11 @@ type QueryResult = {
 }
 
 const queryAtom = atom<Loadable<QueryResult>, Error>({
-	key: `loadableOwnershipQuery`,
-	default: async () => ({ title: `Loaded` }),
+	key: `query`,
+	default: async () => {
+		await Promise.resolve()
+		return { title: `Loaded` }
+	},
 	catch: [Error],
 })
 

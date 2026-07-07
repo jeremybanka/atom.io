@@ -1,5 +1,13 @@
 # atom.io
 
+## 0.49.7
+
+### Patch Changes
+
+- 3da58b5: Add docs guidance for `Loadable` initialization and invalidation, including
+  exhibit-backed examples that warn against resetting loadable state from React
+  mount effects.
+
 ## 0.49.6
 
 ### Patch Changes

@@ -225,8 +225,8 @@ importers:
         specifier: 4.1.10
         version: 4.1.10(vitest@4.1.10)
       arktype:
-        specifier: 2.2.2
-        version: 2.2.2
+        specifier: 2.2.3
+        version: 2.2.3
       break-check:
         specifier: 0.6.31
         version: 0.6.31(zod@4.4.3)
@@ -315,11 +315,11 @@ importers:
         specifier: 1.7.0
         version: 1.7.0
       arktype:
-        specifier: 2.2.2
-        version: 2.2.2
+        specifier: 2.2.3
+        version: 2.2.3
       comline:
         specifier: 0.5.0
-        version: 0.5.0(arktype@2.2.2)(zod@4.4.3)
+        version: 0.5.0(arktype@2.2.3)(zod@4.4.3)
       local-pkg:
         specifier: 1.2.1
         version: 1.2.1
@@ -479,14 +479,14 @@ packages:
   '@ark/schema@0.56.0':
     resolution: {integrity: sha512-ECg3hox/6Z/nLajxXqNhgPtNdHWC9zNsDyskwO28WinoFEnWow4IsERNz9AnXRhTZJnYIlAJ4uGn3nlLk65vZA==}
 
-  '@ark/schema@0.56.1':
-    resolution: {integrity: sha512-1Cf2g9nKD8K/3JGRu+gCCfYw5d4qR8YLLjDs5W5kpmaButCYWAPFUJqSXyBATPjglzCd4tIkp398iPYVs8MjRA==}
+  '@ark/schema@0.56.2':
+    resolution: {integrity: sha512-Qx4D2JFbBWpntiHZaTv7bGG4H/M2rigiknezKg/WVyDSaLdE4YCcWAOoFB7pjjDqHbbV2OqRfntm1nnXvwMexg==}
 
   '@ark/util@0.56.0':
     resolution: {integrity: sha512-BghfRC8b9pNs3vBoDJhcta0/c1J1rsoS1+HgVUreMFPdhz/CRAKReAu57YEllNaSy98rWAdY1gE+gFup7OXpgA==}
 
-  '@ark/util@0.56.1':
-    resolution: {integrity: sha512-Tp1rTik3q5Z+jAeeDxr5JZpmVIw0miti1ykSEHyZv5Pw3TIJl2xbN6KTacOxITp0l3s9ytlrWd30Zvqcy5vzoQ==}
+  '@ark/util@0.56.2':
+    resolution: {integrity: sha512-9kU2sUE38FZEGG7l3hamYMBieLYEJh2L1mrYD2eXpT+78EnQSV1bhjxJhnxGBMSTbtwpBSDNSK+K60WvaI/DTQ==}
 
   '@astrojs/cloudflare@14.1.1':
     resolution: {integrity: sha512-/CO61VCddhX8ELGaoGKe1FnjSoegVtQJdF2VDVbqQEKIF9085xC+5KbsxLiSzBcWH65ffmydftcW7+HO/U30Ew==}
@@ -3222,14 +3222,14 @@ packages:
   arkregex@0.0.5:
     resolution: {integrity: sha512-ncYjBdLlh5/QnVsAA8De16Tc9EqmYM7y/WU9j+236KcyYNUXogpz3sC4ATIZYzzLxwI+0sEOaQLEmLmRleaEXw==}
 
-  arkregex@0.0.7:
-    resolution: {integrity: sha512-O/Ltrn9EUSn3ui0KVzfyrWGDUsHlzKxDVBtpQxL/6JmLRMAZAebfSNf/A/J5Ny5S6QIwrXX+RfXsu888HMs35A==}
+  arkregex@0.0.8:
+    resolution: {integrity: sha512-PJcx6G1kQTgLKPUbeYlYecDRaKq15AMSGVajlKFYWlPeJRQL+j3dKE6tyMs40HZ99djS1l9Vhl3ezAHy9JBIqQ==}
 
   arktype@2.2.0:
     resolution: {integrity: sha512-t54MZ7ti5BhOEvzEkgKnWvqj+UbDfWig+DHr5I34xatymPusKLS0lQpNJd8M6DzmIto2QGszHfNKoFIT8tMCZQ==}
 
-  arktype@2.2.2:
-    resolution: {integrity: sha512-YYf1xhL2dh5aPZFlsY0RAsxv5HZqfLGLptH2ZP3JidTmsGRW8VOymhPjjMTkerL12vR2YtX0SK4c1mATtae8SA==}
+  arktype@2.2.3:
+    resolution: {integrity: sha512-7W+0RLTUNJiBFIIZXwOQxSR8Z273IAd6IvqBeG9+gHnQKFsIx2C0iOtGTmMrPnlX4qLXyc5+ll7A0BIj9WrbTg==}
 
   array-iterate@2.0.1:
     resolution: {integrity: sha512-I1jXZMjAgCMmxT4qxXfPXa6SthSoE8h6gkSI9BGGNv8mP8G/v0blc+qFnZu6K42vTOiuME596QaLO0TP3Lk0xg==}
@@ -6237,13 +6237,13 @@ snapshots:
     dependencies:
       '@ark/util': 0.56.0
 
-  '@ark/schema@0.56.1':
+  '@ark/schema@0.56.2':
     dependencies:
-      '@ark/util': 0.56.1
+      '@ark/util': 0.56.2
 
   '@ark/util@0.56.0': {}
 
-  '@ark/util@0.56.1': {}
+  '@ark/util@0.56.2': {}
 
   '@astrojs/cloudflare@14.1.1(@types/node@26.1.0)(astro@7.0.6(@astrojs/markdown-remark@7.2.1)(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@types/node@26.1.0)(jiti@2.7.0)(tsx@4.22.1))(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.1)(workerd@1.20260701.1)(wrangler@4.107.0)':
     dependencies:
@@ -8736,9 +8736,9 @@ snapshots:
     dependencies:
       '@ark/util': 0.56.0
 
-  arkregex@0.0.7:
+  arkregex@0.0.8:
     dependencies:
-      '@ark/util': 0.56.1
+      '@ark/util': 0.56.2
 
   arktype@2.2.0:
     dependencies:
@@ -8746,11 +8746,11 @@ snapshots:
       '@ark/util': 0.56.0
       arkregex: 0.0.5
 
-  arktype@2.2.2:
+  arktype@2.2.3:
     dependencies:
-      '@ark/schema': 0.56.1
-      '@ark/util': 0.56.1
-      arkregex: 0.0.7
+      '@ark/schema': 0.56.2
+      '@ark/util': 0.56.2
+      arkregex: 0.0.8
 
   array-iterate@2.0.1: {}
 
@@ -9040,12 +9040,12 @@ snapshots:
       arktype: 2.2.0
       zod: 4.4.3
 
-  comline@0.5.0(arktype@2.2.2)(zod@4.4.3):
+  comline@0.5.0(arktype@2.2.3)(zod@4.4.3):
     dependencies:
       '@standard-schema/spec': 1.1.0
       treetrunks: 0.1.8
     optionalDependencies:
-      arktype: 2.2.2
+      arktype: 2.2.3
       zod: 4.4.3
 
   comma-separated-tokens@2.0.3: {}

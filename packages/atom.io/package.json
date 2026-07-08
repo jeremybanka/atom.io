@@ -107,7 +107,7 @@
 		"@typescript-eslint/utils": "8.63.0",
 		"@vitest/coverage-v8": "4.1.10",
 		"@vitest/ui": "4.1.10",
-		"arktype": "2.2.2",
+		"arktype": "2.2.3",
 		"break-check": "0.6.31",
 		"concurrently": "10.0.3",
 		"drizzle-kit": "0.31.10",

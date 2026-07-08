@@ -74,8 +74,8 @@ importers:
         specifier: 2.7.0
         version: 2.7.0
       lasertag:
-        specifier: 0.1.5
-        version: 0.1.5(@types/react@19.2.17)(eslint@10.6.0(jiti@2.7.0))(preact@10.29.5)(solid-js@1.9.14)
+        specifier: 0.1.6
+        version: 0.1.6(@types/react@19.2.17)(eslint@10.6.0(jiti@2.7.0))(preact@10.29.5)(solid-js@1.9.14)
       oxlint:
         specifier: 1.73.0
         version: 1.73.0(oxlint-tsgolint@0.24.0)
@@ -156,8 +156,8 @@ importers:
         specifier: 10.6.0
         version: 10.6.0(jiti@2.7.0)
       lasertag:
-        specifier: 0.1.5
-        version: 0.1.5(@types/react@19.2.17)(eslint@10.6.0(jiti@2.7.0))(preact@10.29.5)(solid-js@1.9.14)
+        specifier: 0.1.6
+        version: 0.1.6(@types/react@19.2.17)(eslint@10.6.0(jiti@2.7.0))(preact@10.29.5)(solid-js@1.9.14)
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -4490,9 +4490,9 @@ packages:
   kolorist@1.8.0:
     resolution: {integrity: sha512-Y+60/zizpJ3HRH8DCss+q95yr6145JXZo46OTpFvDZWLfRCE4qChOyk1b26nMaNpfHHgxagk9dXT5OP0Tfe+dQ==}
 
-  lasertag@0.1.5:
-    resolution: {integrity: sha512-41WbmlZ3jqjZTSJlP5mGoEm8hI3c+z4aMDBJbKrT9el3IC2qnqoA8Ll6a+2wm9o43VDDWyzF61lsbuJLALcPPQ==}
-    engines: {node: 26.3.0, pnpm: 11.5.3}
+  lasertag@0.1.6:
+    resolution: {integrity: sha512-0AmloGLEA28HOmgU/q8QSg3GuYi+SGyPaTK9N2/VmRgkDQMqsxZUXG8R9+T4a6PrGyH4qZFunLJi+ZPHofXJQQ==}
+    engines: {node: 26.4.0, pnpm: 11.10.0}
     peerDependencies:
       '@types/react': ^19.2
       eslint: ^10.4
@@ -10173,7 +10173,7 @@ snapshots:
 
   kolorist@1.8.0: {}
 
-  lasertag@0.1.5(@types/react@19.2.17)(eslint@10.6.0(jiti@2.7.0))(preact@10.29.5)(solid-js@1.9.14):
+  lasertag@0.1.6(@types/react@19.2.17)(eslint@10.6.0(jiti@2.7.0))(preact@10.29.5)(solid-js@1.9.14):
     optionalDependencies:
       '@types/react': 19.2.17
       eslint: 10.6.0(jiti@2.7.0)

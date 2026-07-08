@@ -25,7 +25,7 @@
 	],
 	"packageRules": [
 		{
-			"matchPackageNames": ["@typescript/*"],
+			"matchPackageNames": ["typescript", "@typescript/typescript-*"],
 			"minimumReleaseAge": null
 		},
 		{

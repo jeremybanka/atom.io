@@ -1,7 +1,8 @@
 blockExoticSubdeps: true
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
-  - "@typescript/*"
+  - "typescript"
+  - "@typescript/typescript-*"
 autoInstallPeers: false
 verifyDepsBeforeRun: error
 

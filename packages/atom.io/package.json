@@ -128,7 +128,7 @@
 		"treetrunks": "0.1.8",
 		"tsdown": "0.22.3",
 		"typescript": "7.0.2",
-		"typescript-eslint-typescript": "npm:typescript@6.0.3",
+		"typescript-eslint-typescript": "npm:typescript@7.0.2",
 		"vite": "8.1.3",
 		"vitest": "4.1.10",
 		"zustand": "5.0.14"

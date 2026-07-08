@@ -1,32 +1,12 @@
 import type { TSESTree } from "@typescript-eslint/utils"
 import { AST_NODE_TYPES, ESLintUtils } from "@typescript-eslint/utils"
-
-type TsSymbol = object
-type TsSignature = {
-	getReturnType(): TsType
-}
-type TsType = {
-	getSymbol(): TsSymbol | undefined
-	isUnion(): this is TsUnionType
-}
-type TsUnionType = TsType & {
-	types: readonly TsType[]
-}
-type TsConstructableType = TsType & {
-	getConstructSignatures(): readonly TsSignature[]
-}
-type TsTypeChecker = {
-	getTypeAtLocation(node: unknown): TsType
-	getTypeFromTypeNode(node: unknown): TsType
-	symbolToString(symbol: TsSymbol): string
-	typeToString(type: TsType): string
-}
-
-const hasConstructSignatures = (type: TsType): type is TsConstructableType => {
-	const candidate = type as TsType & { getConstructSignatures?: unknown }
-
-	return typeof candidate.getConstructSignatures === `function`
-}
+// TypeScript 7 no longer exposes these classic compiler API types at "typescript".
+import type {
+	InterfaceType,
+	Symbol as TsSymbol,
+	Type,
+	TypeNode,
+} from "typescript-eslint-typescript"
 
 const createRule = ESLintUtils.RuleCreator(
 	(name) => `https://atom.io.fyi/docs/eslint-plugin#${name}`,
@@ -72,7 +52,7 @@ export const exactCatchTypes: ESLintUtils.RuleModule<
 	defaultOptions: [],
 	create(context) {
 		const parserServices = ESLintUtils.getParserServices(context)
-		const checker = parserServices.program.getTypeChecker() as TsTypeChecker
+		const checker = parserServices.program.getTypeChecker()
 
 		return {
 			CallExpression(node) {
@@ -158,7 +138,9 @@ export const exactCatchTypes: ESLintUtils.RuleModule<
 					}
 				})
 
-				const typeNode = parserServices.esTreeNodeToTSNodeMap.get(errorTypeNode)
+				const typeNode = parserServices.esTreeNodeToTSNodeMap.get(
+					errorTypeNode,
+				) as TypeNode
 				// Get the TypeScript Type object for E
 				const errorTypeTs = checker.getTypeFromTypeNode(typeNode)
 				const errorTypeName = checker.typeToString(errorTypeTs)
@@ -226,10 +208,15 @@ export const exactCatchTypes: ESLintUtils.RuleModule<
 
 					// Extract the instance type from the constructor type.
 					// e.g., turn 'typeof ClientError' into 'ClientError'
-					let instanceType: TsType | undefined
-					if (hasConstructSignatures(constructorType)) {
+					let instanceType: Type | undefined
+					if (
+						(constructorType as InterfaceType).getConstructSignatures().length >
+						0
+					) {
 						// Get the return type of the constructor signature
-						const signature = constructorType.getConstructSignatures()[0]
+						const signature = (
+							constructorType as InterfaceType
+						).getConstructSignatures()[0]
 						instanceType = signature.getReturnType()
 					}
 

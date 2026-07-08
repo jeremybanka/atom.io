@@ -17,7 +17,7 @@
 		"astro": "astro",
 		"lint:eslint": "eslint",
 		"lint:oxlint": "oxlint",
-		"lint:types": "tsgo"
+		"lint:types": "tsc"
 	},
 	"dependencies": {
 		"@astrojs/cloudflare": "14.1.1",
@@ -39,10 +39,10 @@
 		"@types/react": "19.2.17",
 		"@types/react-syntax-highlighter": "15.5.13",
 		"@types/three": "0.185.0",
-		"@typescript/native-preview": "7.0.0-dev.20260707.2",
 		"concurrently": "10.0.3",
 		"eslint": "10.6.0",
 		"lasertag": "0.1.5",
+		"typescript": "7.0.2",
 		"wrangler": "4.107.0"
 	}
 }

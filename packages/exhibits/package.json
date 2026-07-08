@@ -9,6 +9,6 @@
 	"scripts": {
 		"lint:eslint": "eslint",
 		"lint:oxlint": "oxlint",
-		"lint:types": "tsgo"
+		"lint:types": "tsc"
 	}
 }

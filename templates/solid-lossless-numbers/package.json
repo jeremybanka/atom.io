@@ -21,7 +21,7 @@
 		"solid-js": "1.9.14"
 	},
 	"devDependencies": {
-		"@types/node": "26.1.0",
+		"@types/node": "26.1.1",
 		"eslint": "10.6.0",
 		"typescript": "7.0.2",
 		"vite": "8.1.3",

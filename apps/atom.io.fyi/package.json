@@ -4,7 +4,7 @@
 	"version": "0.2.75",
 	"private": true,
 	"engines": {
-		"node": "26.4.0"
+		"node": "26.5.0"
 	},
 	"scripts": {
 		"dev": "./scripts/rm-dev-lock.node.ts && astro dev",

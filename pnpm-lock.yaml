@@ -276,8 +276,8 @@ importers:
         specifier: 10.4.6
         version: 10.4.6(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@testing-library/dom@10.4.1)(@types/react@19.2.17)(prettier@2.8.8)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       takua:
-        specifier: 0.2.1
-        version: 0.2.1
+        specifier: 0.2.2
+        version: 0.2.2
       treetrunks:
         specifier: 0.1.8
         version: 0.1.8
@@ -5727,6 +5727,9 @@ packages:
 
   takua@0.2.1:
     resolution: {integrity: sha512-dQYQrvPHjLfxe0D/Uu+D7ToPLrndukby7JAp8KnJ+mLumskA1AQCP9hxquHWarCNcd7Io33tzzAy2X2VwQJMMw==}
+
+  takua@0.2.2:
+    resolution: {integrity: sha512-yjNZ/dE7vzzecyyMyzpV9IF74cirv8H1ci6U+1fICICOtsb/5Cstz86Hu4GK8IgO9HTlA6rgjg7d/ljq7RDNWQ==}
 
   term-size@2.2.1:
     resolution: {integrity: sha512-wK0Ri4fOGjv/XPy8SBHZChl8CM7uMc5VML7SqiQ0zG7+J5Vr+RMQDoHa2CNT6KHUnTGIXH34UDMkPzAUyapBZg==}
@@ -11868,6 +11871,8 @@ snapshots:
   tagged-tag@1.0.0: {}
 
   takua@0.2.1: {}
+
+  takua@0.2.2: {}
 
   term-size@2.2.1: {}
 

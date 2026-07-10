@@ -16,8 +16,10 @@ packages:
   - "templates/*"
 
 allowBuilds:
+  "@vscode/vsce-sign": true
   dprint: true
   "esbuild": true
+  keytar: true
   "rolldown": true
   "sharp": true
   simple-git-hooks: false

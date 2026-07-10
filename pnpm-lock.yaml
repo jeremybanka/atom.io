@@ -228,8 +228,8 @@ importers:
         specifier: 2.2.3
         version: 2.2.3
       break-check:
-        specifier: 0.6.32
-        version: 0.6.32(zod@4.4.3)
+        specifier: 0.6.33
+        version: 0.6.33(zod@4.4.3)
       concurrently:
         specifier: 10.0.3
         version: 10.0.3
@@ -479,17 +479,11 @@ packages:
   '@ark/schema@0.56.0':
     resolution: {integrity: sha512-ECg3hox/6Z/nLajxXqNhgPtNdHWC9zNsDyskwO28WinoFEnWow4IsERNz9AnXRhTZJnYIlAJ4uGn3nlLk65vZA==}
 
-  '@ark/schema@0.56.1':
-    resolution: {integrity: sha512-1Cf2g9nKD8K/3JGRu+gCCfYw5d4qR8YLLjDs5W5kpmaButCYWAPFUJqSXyBATPjglzCd4tIkp398iPYVs8MjRA==}
-
   '@ark/schema@0.56.2':
     resolution: {integrity: sha512-Qx4D2JFbBWpntiHZaTv7bGG4H/M2rigiknezKg/WVyDSaLdE4YCcWAOoFB7pjjDqHbbV2OqRfntm1nnXvwMexg==}
 
   '@ark/util@0.56.0':
     resolution: {integrity: sha512-BghfRC8b9pNs3vBoDJhcta0/c1J1rsoS1+HgVUreMFPdhz/CRAKReAu57YEllNaSy98rWAdY1gE+gFup7OXpgA==}
-
-  '@ark/util@0.56.1':
-    resolution: {integrity: sha512-Tp1rTik3q5Z+jAeeDxr5JZpmVIw0miti1ykSEHyZv5Pw3TIJl2xbN6KTacOxITp0l3s9ytlrWd30Zvqcy5vzoQ==}
 
   '@ark/util@0.56.2':
     resolution: {integrity: sha512-9kU2sUE38FZEGG7l3hamYMBieLYEJh2L1mrYD2eXpT+78EnQSV1bhjxJhnxGBMSTbtwpBSDNSK+K60WvaI/DTQ==}
@@ -3518,17 +3512,11 @@ packages:
   arkregex@0.0.5:
     resolution: {integrity: sha512-ncYjBdLlh5/QnVsAA8De16Tc9EqmYM7y/WU9j+236KcyYNUXogpz3sC4ATIZYzzLxwI+0sEOaQLEmLmRleaEXw==}
 
-  arkregex@0.0.7:
-    resolution: {integrity: sha512-O/Ltrn9EUSn3ui0KVzfyrWGDUsHlzKxDVBtpQxL/6JmLRMAZAebfSNf/A/J5Ny5S6QIwrXX+RfXsu888HMs35A==}
-
   arkregex@0.0.8:
     resolution: {integrity: sha512-PJcx6G1kQTgLKPUbeYlYecDRaKq15AMSGVajlKFYWlPeJRQL+j3dKE6tyMs40HZ99djS1l9Vhl3ezAHy9JBIqQ==}
 
   arktype@2.2.0:
     resolution: {integrity: sha512-t54MZ7ti5BhOEvzEkgKnWvqj+UbDfWig+DHr5I34xatymPusKLS0lQpNJd8M6DzmIto2QGszHfNKoFIT8tMCZQ==}
-
-  arktype@2.2.2:
-    resolution: {integrity: sha512-YYf1xhL2dh5aPZFlsY0RAsxv5HZqfLGLptH2ZP3JidTmsGRW8VOymhPjjMTkerL12vR2YtX0SK4c1mATtae8SA==}
 
   arktype@2.2.3:
     resolution: {integrity: sha512-7W+0RLTUNJiBFIIZXwOQxSR8Z273IAd6IvqBeG9+gHnQKFsIx2C0iOtGTmMrPnlX4qLXyc5+ll7A0BIj9WrbTg==}
@@ -3699,8 +3687,8 @@ packages:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
     engines: {node: '>=8'}
 
-  break-check@0.6.32:
-    resolution: {integrity: sha512-HZ70zP/5mPLQZiE9IS1ZLeeJO0UAAfC9QrTe8sCJZh20UvbeLqoSBKpTUeSrgec6puXsNn6c3yUxTNhlhDMWpg==}
+  break-check@0.6.33:
+    resolution: {integrity: sha512-Yr5eloSWAB5emkTAlXGPWF2burjq2fmxnFxd6/mkHljryqtNf2cvL9aA1Txu7hrTOJa4fFcZ72Ct3ajGLL9uyA==}
     hasBin: true
 
   browserslist@4.28.2:
@@ -3841,6 +3829,17 @@ packages:
 
   comline@0.5.0:
     resolution: {integrity: sha512-icuB44PASbBttcdIBIS/PqSA4PHJ1vDECnlGCo1Sig/03YGH9Z8MSqmNJ/YWrT8HTAqspbcg7kkxUmXxKv7SNw==}
+    peerDependencies:
+      arktype: ^2.1.28
+      zod: ^4.2.0
+    peerDependenciesMeta:
+      arktype:
+        optional: true
+      zod:
+        optional: true
+
+  comline@0.5.1:
+    resolution: {integrity: sha512-Ld9dLjIJt4UgQ2/PBcL346ARXwybfwmzrrGEMgQE/AzLFnyTLMVlrxkwwmRCte1NJIW6rKMVaYbt0E7IC/1hnw==}
     peerDependencies:
       arktype: ^2.1.28
       zod: ^4.2.0
@@ -7024,17 +7023,11 @@ snapshots:
     dependencies:
       '@ark/util': 0.56.0
 
-  '@ark/schema@0.56.1':
-    dependencies:
-      '@ark/util': 0.56.1
-
   '@ark/schema@0.56.2':
     dependencies:
       '@ark/util': 0.56.2
 
   '@ark/util@0.56.0': {}
-
-  '@ark/util@0.56.1': {}
 
   '@ark/util@0.56.2': {}
 
@@ -9857,10 +9850,6 @@ snapshots:
     dependencies:
       '@ark/util': 0.56.0
 
-  arkregex@0.0.7:
-    dependencies:
-      '@ark/util': 0.56.1
-
   arkregex@0.0.8:
     dependencies:
       '@ark/util': 0.56.2
@@ -9870,12 +9859,6 @@ snapshots:
       '@ark/schema': 0.56.0
       '@ark/util': 0.56.0
       arkregex: 0.0.5
-
-  arktype@2.2.2:
-    dependencies:
-      '@ark/schema': 0.56.1
-      '@ark/util': 0.56.1
-      arkregex: 0.0.7
 
   arktype@2.2.3:
     dependencies:
@@ -10116,10 +10099,10 @@ snapshots:
     dependencies:
       fill-range: 7.1.1
 
-  break-check@0.6.32(zod@4.4.3):
+  break-check@0.6.33(zod@4.4.3):
     dependencies:
-      arktype: 2.2.2
-      comline: 0.5.0(arktype@2.2.2)(zod@4.4.3)
+      arktype: 2.2.3
+      comline: 0.5.1(arktype@2.2.3)(zod@4.4.3)
       minimatch: 10.2.5
       simple-git: 3.36.0
       takua: 0.2.2
@@ -10265,15 +10248,15 @@ snapshots:
       arktype: 2.2.0
       zod: 4.4.3
 
-  comline@0.5.0(arktype@2.2.2)(zod@4.4.3):
+  comline@0.5.0(arktype@2.2.3)(zod@4.4.3):
     dependencies:
       '@standard-schema/spec': 1.1.0
       treetrunks: 0.1.8
     optionalDependencies:
-      arktype: 2.2.2
+      arktype: 2.2.3
       zod: 4.4.3
 
-  comline@0.5.0(arktype@2.2.3)(zod@4.4.3):
+  comline@0.5.1(arktype@2.2.3)(zod@4.4.3):
     dependencies:
       '@standard-schema/spec': 1.1.0
       treetrunks: 0.1.8

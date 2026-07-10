@@ -30,7 +30,7 @@
 		"@atom.io/template-solid-lossless-numbers": "workspace:*",
 		"@clack/prompts": "1.7.0",
 		"arktype": "2.2.3",
-		"comline": "0.5.0",
+		"comline": "0.5.1",
 		"local-pkg": "1.2.1",
 		"tinyexec": "1.2.4"
 	},

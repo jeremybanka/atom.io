@@ -1,8 +1,12 @@
 blockExoticSubdeps: true
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
-  - "typescript"
-  - "@typescript/typescript-*"
+  - break-check
+  - comline
+  - lasertag
+  - recoverage
+  - takua
+  - treetrunks
 autoInstallPeers: false
 verifyDepsBeforeRun: error
 

@@ -25,7 +25,14 @@
 	],
 	"packageRules": [
 		{
-			"matchPackageNames": ["typescript", "@typescript/typescript-*"],
+			"matchPackageNames": [
+				"break-check",
+				"comline",
+				"lasertag",
+				"recoverage",
+				"takua",
+				"treetrunks"
+			],
 			"minimumReleaseAge": null
 		},
 		{

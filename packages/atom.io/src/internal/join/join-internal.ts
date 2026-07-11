@@ -153,8 +153,21 @@ export class Join<
 			const { find, get, set } = toolkit
 			const relationsOfAState = find(relatedKeysAtoms, a)
 			const currentRelationsOfA = get(relationsOfAState)
+			const newRelationsOfASet = new Set(newRelationsOfA)
+			let relationsChanged = currentRelationsOfA.size !== newRelationsOfASet.size
+			if (!relationsChanged) {
+				for (const currentRelationB of currentRelationsOfA) {
+					if (!newRelationsOfASet.has(currentRelationB)) {
+						relationsChanged = true
+						break
+					}
+				}
+			}
+			if (!relationsChanged) {
+				return
+			}
 			for (const currentRelationB of currentRelationsOfA) {
-				const remainsRelated = newRelationsOfA.includes(currentRelationB)
+				const remainsRelated = newRelationsOfASet.has(currentRelationB)
 				if (remainsRelated) {
 					continue
 				}

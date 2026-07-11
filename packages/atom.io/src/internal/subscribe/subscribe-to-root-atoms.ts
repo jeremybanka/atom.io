@@ -1,4 +1,8 @@
 import { readOrComputeValue } from "../get-state/read-or-compute-value.ts"
+import {
+	deferSelectorNotification,
+	hasStateNotificationBatch,
+} from "../state-notification-batch.ts"
 import type { Atom, Selector } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
 import { recallState } from "./recall-state.ts"
@@ -11,29 +15,44 @@ export function subscribeToRootDependency(
 	return atom.subject.subscribe(
 		`${selector.type}:${selector.key}`,
 		(atomChange) => {
-			target.logger.info(
-				`📢`,
-				selector.type,
-				selector.key,
-				`root`,
-				atom.key,
-				`went`,
-				atomChange.oldValue,
-				`->`,
-				atomChange.newValue,
-			)
-			const oldValue = recallState(target, selector)
-			const newValue = readOrComputeValue(target, selector)
-			target.logger.info(
-				`✨`,
-				selector.type,
-				selector.key,
-				`went`,
-				oldValue,
-				`->`,
-				newValue,
-			)
-			selector.subject.next({ newValue, oldValue })
+			if (hasStateNotificationBatch(target)) {
+				deferSelectorNotification(target, selector.key, () => {
+					notifySelectorUpdate(target, selector, atom, atomChange)
+				})
+				return
+			}
+			notifySelectorUpdate(target, selector, atom, atomChange)
 		},
 	)
+}
+
+function notifySelectorUpdate(
+	target: Store,
+	selector: Selector<any, any>,
+	atom: Atom<any, any>,
+	atomChange: { oldValue?: any; newValue: any },
+): void {
+	target.logger.info(
+		`📢`,
+		selector.type,
+		selector.key,
+		`root`,
+		atom.key,
+		`went`,
+		atomChange.oldValue,
+		`->`,
+		atomChange.newValue,
+	)
+	const oldValue = recallState(target, selector)
+	const newValue = readOrComputeValue(target, selector)
+	target.logger.info(
+		`✨`,
+		selector.type,
+		selector.key,
+		`went`,
+		oldValue,
+		`->`,
+		newValue,
+	)
+	selector.subject.next({ newValue, oldValue })
 }

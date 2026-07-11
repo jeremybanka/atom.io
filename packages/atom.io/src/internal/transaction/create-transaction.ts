@@ -36,7 +36,7 @@ export function createTransaction<F extends Fn>(
 			try {
 				const { toolkit } = target.transactionMeta
 				const output = options.do(toolkit, ...params)
-				applyTransaction<F>(target, output)
+				applyTransaction<F>(target, output, options.commit ?? `playback`)
 				return output
 			} catch (thrown) {
 				abortTransaction(target)

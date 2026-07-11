@@ -98,7 +98,9 @@ export function readFromCache<T, E>(
 		const parentValue = parent.valueMap.get(mutableAtom.key) as T &
 			Transceiver<any, any, any>
 
-		target.logger.info(`📃`, `atom`, mutableAtom.key, `copying`)
+		if (target.logger.isEnabled?.(`info`) !== false) {
+			target.logger.info(`📃`, `atom`, mutableAtom.key, `copying`)
+		}
 		const jsonValue = parentValue.toJSON()
 		const copiedValue = mutableAtom.class.fromJSON(jsonValue)
 		target.valueMap.set(mutableAtom.key, copiedValue)
@@ -123,5 +125,7 @@ export function evictCachedValue(target: Store, key: string): void {
 		target.operation.prev.set(key, currentValue)
 	}
 	target.valueMap.delete(key)
-	target.logger.info(`🗑`, `state`, key, `evicted`)
+	if (target.logger.isEnabled?.(`info`) !== false) {
+		target.logger.info(`🗑`, `state`, key, `evicted`)
+	}
 }

@@ -22,12 +22,14 @@ export function evictDownstreamFromAtom(
 	)
 	if (downstreamKeys) {
 		if (target.operation.open) {
-			target.logger.info(
-				`🧹`,
-				type,
-				key,
-				`[ ${[...target.operation.done].join(`, `)} ] already done`,
-			)
+			if (target.logger.isEnabled?.(`info`) !== false) {
+				target.logger.info(
+					`🧹`,
+					type,
+					key,
+					`[ ${[...target.operation.done].join(`, `)} ] already done`,
+				)
+			}
 		}
 		for (const downstreamKey of downstreamKeys) {
 			if (isDone(target, downstreamKey)) {

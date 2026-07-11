@@ -105,6 +105,45 @@ export type OListView<P extends primitive> = ReadonlyArray<P> & {
 	) => () => void
 }
 
+function proxyOList<P extends primitive>(list: OList<P>): OList<P> {
+	return new Proxy(list, {
+		set: (target, prop, value, receiver) => {
+			if (typeof prop === `string` && !Number.isNaN(Number.parseInt(prop, 10))) {
+				const index = Number(prop)
+				let prev: P | undefined
+				if (list.mode === `record`) {
+					prev = target[index]
+				}
+				target[index] = value
+				if (prev) {
+					list.emit({ type: `set`, index, next: value, prev })
+				} else if (list.mode === `record`) {
+					list.emit({ type: `set`, index, next: value })
+				}
+				return true
+			}
+			if (prop === `length`) {
+				if (list.mode === `record`) {
+					const prevLength = target.length
+					if (prevLength === value) return true
+					if (prevLength > value) {
+						const dropped = target.slice(value)
+						target.length = value
+						list.emit({ type: `truncate`, length: value, items: dropped })
+					} else {
+						target.length = value
+						list.emit({ type: `extend`, next: value, prev: prevLength })
+					}
+				} else {
+					target.length = value
+				}
+				return true
+			}
+			return Reflect.set(target, prop, value, receiver)
+		},
+	})
+}
+
 export class OList<P extends primitive>
 	extends Array<P>
 	implements
@@ -120,45 +159,7 @@ export class OList<P extends primitive>
 	public constructor(...items: P[])
 	public constructor(...items: P[]) {
 		super(...items)
-		return new Proxy(this, {
-			set: (target, prop, value, receiver) => {
-				if (
-					typeof prop === `string` &&
-					!Number.isNaN(Number.parseInt(prop, 10))
-				) {
-					const index = Number(prop)
-					let prev: P | undefined
-					if (this.mode === `record`) {
-						prev = target[index]
-					}
-					target[index] = value
-					if (prev) {
-						this.emit({ type: `set`, index, next: value, prev })
-					} else if (this.mode === `record`) {
-						this.emit({ type: `set`, index, next: value })
-					}
-					return true
-				}
-				if (prop === `length`) {
-					if (this.mode === `record`) {
-						const prevLength = target.length
-						if (prevLength === value) return true
-						if (prevLength > value) {
-							const dropped = target.slice(value)
-							target.length = value
-							this.emit({ type: `truncate`, length: value, items: dropped })
-						} else {
-							target.length = value
-							this.emit({ type: `extend`, next: value, prev: prevLength })
-						}
-					} else {
-						target.length = value
-					}
-					return true
-				}
-				return Reflect.set(target, prop, value, receiver)
-			},
-		})
+		return proxyOList(this)
 	}
 
 	public toJSON(): ReadonlyArray<P> {
@@ -167,6 +168,54 @@ export class OList<P extends primitive>
 
 	public static fromJSON<P extends primitive>(json: ReadonlyArray<P>): OList<P> {
 		return new OList<P>(...json)
+	}
+
+	public static transactionFork<P extends primitive>(
+		source: OList<P>,
+	): OList<P> {
+		// Native slice preserves holes, but normally uses OList's array species and
+		// constructs another proxied OList. Temporarily select Array, then restore
+		// the source's original constructor before exposing the copy.
+		const constructorDescriptor = Object.getOwnPropertyDescriptor(
+			source,
+			`constructor`,
+		)
+		Object.defineProperty(source, `constructor`, {
+			configurable: true,
+			value: Array,
+		})
+		let target: OList<P>
+		try {
+			target = source.slice() as unknown as OList<P>
+		} finally {
+			if (constructorDescriptor === undefined) {
+				delete (source as { constructor?: unknown }).constructor
+			} else {
+				Object.defineProperty(source, `constructor`, constructorDescriptor)
+			}
+		}
+		Object.setPrototypeOf(target, OList.prototype)
+		Object.defineProperties(target, {
+			READONLY_VIEW: {
+				configurable: true,
+				enumerable: true,
+				value: target,
+				writable: true,
+			},
+			mode: {
+				configurable: true,
+				enumerable: true,
+				value: `record`,
+				writable: true,
+			},
+			subject: {
+				configurable: true,
+				enumerable: true,
+				value: new Subject<PackedArrayUpdate<P>>(),
+				writable: true,
+			},
+		})
+		return proxyOList(target)
 	}
 
 	public push(...items: P[]): number {

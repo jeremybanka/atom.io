@@ -8,7 +8,6 @@ import type {
 } from "atom.io"
 import { PRETTY_ENTITY_NAMES } from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
-import { stringifyJson } from "atom.io/foundations/json"
 import { Subject } from "atom.io/foundations/subject"
 
 import { createRegularAtom } from "../atom/index.ts"
@@ -16,6 +15,10 @@ import { isFn } from "../is-fn.ts"
 import { newest } from "../lineage.ts"
 import type { RegularAtomFamily } from "../state-types.ts"
 import type { RootStore } from "../transaction/index.ts"
+import {
+	type PreparedFamilyKey,
+	prepareFamilyKey,
+} from "./prepare-family-key.ts"
 
 export function createRegularAtomFamily<T, K extends Canonical, E>(
 	store: RootStore,
@@ -39,10 +42,12 @@ export function createRegularAtomFamily<T, K extends Canonical, E>(
 
 	const subject = new Subject<AtomLifecycleEvent<RegularAtomToken<T, K, E>>>()
 
-	const create = <Key extends K>(key: Key): RegularAtomToken<T, Key, E> => {
-		const subKey = stringifyJson(key)
+	const create = <Key extends K>(
+		key: Key,
+		prepared?: PreparedFamilyKey<Key>,
+	): RegularAtomToken<T, Key, E> => {
+		const { subKey, fullKey } = prepared ?? prepareFamilyKey(options.key, key)
 		const family: FamilyMetadata<Key> = { key: options.key, subKey }
-		const fullKey = `${options.key}(${subKey})`
 		const target = newest(store)
 
 		const def = options.default

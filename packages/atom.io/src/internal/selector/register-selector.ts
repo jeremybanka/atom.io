@@ -26,6 +26,7 @@ import { getJsonTokenFromStore } from "../mutable/index.ts"
 import { JOIN_OP, operateOnStore } from "../set-state/operate-on-store.ts"
 import type { Store } from "../store/index.ts"
 import { withdraw } from "../store/index.ts"
+import type { SelectorDependencyTracker } from "./selector-dependency-tracker.ts"
 import { updateSelectorAtoms } from "./update-selector-atoms.ts"
 
 export function registerSelector(
@@ -36,7 +37,7 @@ export function registerSelector(
 		| `writable_held_selector`
 		| `writable_pure_selector`,
 	selectorKey: string,
-	covered: Set<string>,
+	dependencies: SelectorDependencyTracker,
 ): WriterToolkit {
 	return {
 		get: (
@@ -45,13 +46,13 @@ export function registerSelector(
 				| [ReadableToken<any, any, any>]
 		) => {
 			const target = newest(store)
-			const { token, family, subKey } = ensureState(store, ...params)
+			const { token, family, subKey } = ensureState(target, ...params)
 			let dependencyValue: unknown
 			if (`counterfeit` in token && family && subKey) {
-				dependencyValue = getFallback(store, token, family, subKey)
+				dependencyValue = getFallback(target, token, family, subKey)
 			} else {
-				const dependency = withdraw(store, token)
-				dependencyValue = readOrComputeValue(store, dependency)
+				const dependency = withdraw(target, token)
+				dependencyValue = readOrComputeValue(target, dependency)
 			}
 
 			store.logger.info(
@@ -63,16 +64,8 @@ export function registerSelector(
 				`)`,
 			)
 
-			target.selectorGraph.set(
-				{
-					upstreamSelectorKey: token.key,
-					downstreamSelectorKey: selectorKey,
-				},
-				{
-					source: token.key,
-				},
-			)
-			updateSelectorAtoms(store, selectorType, selectorKey, token, covered)
+			dependencies.recordDirectDependency(target, token.key)
+			updateSelectorAtoms(target, selectorType, selectorKey, token, dependencies)
 			return dependencyValue
 		},
 		set: (<T, K extends Canonical>(

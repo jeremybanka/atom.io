@@ -32,8 +32,8 @@ export function getFromStore<T, K extends Canonical, E>(
 ): ViewOf<E | T> {
 	const { token, family, subKey } = ensureState(store, ...params)
 
-	if (`counterfeit` in token && family && subKey) {
-		return getFallback(store, token, family, subKey)
+	if (`counterfeit` in token && family && subKey && token.family) {
+		return getFallback(store, token, family, subKey, token.family.subKey)
 	}
 	const state = withdraw(store, token)
 

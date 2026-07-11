@@ -50,7 +50,9 @@ export class SelectorDependencyTracker {
 			}
 		}
 
-		const previousRootAtoms = target.selectorAtoms.getRelatedKeys(this.selectorKey)
+		const previousRootAtoms = target.selectorAtoms.getRelatedKeys(
+			this.selectorKey,
+		)
 		if (previousRootAtoms) {
 			for (const atomKey of previousRootAtoms) {
 				if (!this.rootAtoms.has(atomKey)) {

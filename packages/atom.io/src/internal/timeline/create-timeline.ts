@@ -24,6 +24,7 @@ import { getUpdateToken } from "../mutable/index.ts"
 import { deposit, type Store, withdraw } from "../store/index.ts"
 import type { RootStore } from "../transaction/index.ts"
 import { isChildStore } from "../transaction/index.ts"
+import { partitionTransactionSubEvents } from "./partition-transaction-sub-events.ts"
 
 export type Timeline<ManagedAtom extends TimelineManageable> = {
 	type: `timeline`
@@ -37,6 +38,18 @@ export type Timeline<ManagedAtom extends TimelineManageable> = {
 	subject: Subject<TimelineUpdate<ManagedAtom>>
 	subscriptions: Map<string, () => void>
 }
+
+type TransactionTimelineCapture = {
+	participantTimelineKeys: Set<string>
+	pendingCallbacks: number
+	partitionedTimelineKeys?: Set<string>
+	partitions?: Map<string, TransactionSubEvent[]>
+}
+
+const transactionTimelineCaptures = new WeakMap<
+	TransactionOutcomeEvent<TransactionToken<any>>,
+	TransactionTimelineCapture
+>()
 
 export function createTimeline<ManagedAtom extends TimelineManageable>(
 	store: RootStore,
@@ -253,27 +266,57 @@ function joinTransaction(
 	const currentTransaction = withdraw(store, currentTxToken)
 	if (currentTxKey && tl.transactionKey === null) {
 		tl.transactionKey = currentTxKey
+		let capture = transactionTimelineCaptures.get(txUpdateInProgress)
+		if (capture === undefined) {
+			capture = { participantTimelineKeys: new Set(), pendingCallbacks: 0 }
+			transactionTimelineCaptures.set(txUpdateInProgress, capture)
+		}
+		capture.participantTimelineKeys.add(tl.key)
+		capture.pendingCallbacks += 1
 		const unsubscribe = currentTransaction.subject.subscribe(
 			`timeline:${tl.key}`,
 			(transactionUpdate) => {
 				unsubscribe()
 				tl.transactionKey = null
-				if (tl.timeTraveling === null && currentTxInstanceId) {
-					const timelineTopics = store.timelineTopics.getRelatedKeys(tl.key)!
+				try {
+					if (tl.timeTraveling === null && currentTxInstanceId) {
+						if (capture.partitions === undefined) {
+							capture.partitionedTimelineKeys = new Set(
+								capture.participantTimelineKeys,
+							)
+							capture.partitions = partitionTransactionSubEvents(
+								store,
+								transactionUpdate.subEvents,
+								capture.partitionedTimelineKeys,
+							)
+						}
 
-					const subEventsFiltered = filterTransactionSubEvents(
-						transactionUpdate.subEvents,
-						timelineTopics,
-					)
+						const subEventsFiltered = capture.partitionedTimelineKeys?.has(
+							tl.key,
+						)
+							? (capture.partitions.get(tl.key) ?? [])
+							: (partitionTransactionSubEvents(
+									store,
+									transactionUpdate.subEvents,
+									new Set([tl.key]),
+								).get(tl.key) ?? [])
 
-					const timelineTransactionUpdate: TimelineEvent<any> &
-						TransactionOutcomeEvent<TransactionToken<any>> = {
-						checkpoint: true,
-						...transactionUpdate,
-						subEvents: subEventsFiltered,
+						const timelineTransactionUpdate: TimelineEvent<any> &
+							TransactionOutcomeEvent<TransactionToken<any>> = {
+							checkpoint: true,
+							...transactionUpdate,
+							subEvents: subEventsFiltered,
+						}
+
+						addToHistory(tl, timelineTransactionUpdate)
 					}
-
-					addToHistory(tl, timelineTransactionUpdate)
+				} finally {
+					capture.pendingCallbacks -= 1
+					if (capture.pendingCallbacks === 0) {
+						delete capture.partitions
+						delete capture.partitionedTimelineKeys
+						transactionTimelineCaptures.delete(txUpdateInProgress)
+					}
 				}
 			},
 		)
@@ -362,50 +405,6 @@ function buildSelectorUpdate(
 			length: tl.history.length,
 		})
 	}
-}
-
-function filterTransactionSubEvents(
-	updates: TransactionSubEvent[],
-	timelineTopics: Set<string>,
-): TransactionSubEvent[] {
-	return updates
-		.filter((updateFromTx) => {
-			if (updateFromTx.type === `transaction_outcome`) {
-				return true
-			}
-
-			let key: string
-			let familyKey: string | undefined
-			switch (updateFromTx.type) {
-				case `atom_update`:
-				case `atom_creation`:
-				case `atom_disposal`:
-					key = updateFromTx.token.key
-					familyKey = updateFromTx.token.family?.key
-					break
-				case `molecule_creation`:
-				case `molecule_disposal`:
-				case `molecule_transfer`:
-					return true // always include
-			}
-			timelineTopics.has(key)
-			if (familyKey && timelineTopics.has(familyKey)) {
-				return true
-			}
-			return timelineTopics.has(key)
-		})
-		.map((updateFromTx): TransactionSubEvent => {
-			if (`subEvents` in updateFromTx) {
-				return {
-					...updateFromTx,
-					subEvents: filterTransactionSubEvents(
-						updateFromTx.subEvents,
-						timelineTopics,
-					),
-				}
-			}
-			return updateFromTx
-		})
 }
 
 function handleStateLifecycleEvent(

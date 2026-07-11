@@ -63,11 +63,19 @@ export type Transact<F extends Fn> = (
 ) => ReturnType<F>
 export type TransactionIO<Token extends TransactionToken<any>> =
 	Token extends TransactionToken<infer F> ? F : never
+export type TransactionCommitStrategy = `batched` | `playback`
 export type TransactionOptions<F extends Fn> = {
 	/** The unique identifier of the transaction */
 	key: string
 	/** The operation to perform */
 	do: Transact<F>
+	/**
+	 * How successful transaction updates are delivered to subscribers.
+	 * `playback` preserves every intermediate update; `batched` installs all final
+	 * atom values before notifying each affected state once.
+	 * @defaultValue `playback`
+	 */
+	commit?: TransactionCommitStrategy
 }
 
 /**

@@ -312,13 +312,15 @@ function buildSelectorUpdate(
 		addToHistory(tl, latestEvent)
 		tl.selectorTime = currentSelectorTime
 
-		store.logger.info(
-			`⌛`,
-			`timeline`,
-			tl.key,
-			`got a selector_update "${currentSelectorToken.key}" with`,
-			latestEvent.subEvents.map((event) => event.token.key),
-		)
+		if (store.logger.isEnabled?.(`info`) !== false) {
+			store.logger.info(
+				`⌛`,
+				`timeline`,
+				tl.key,
+				`got a selector_update "${currentSelectorToken.key}" with`,
+				latestEvent.subEvents.map((event) => event.token.key),
+			)
+		}
 
 		const operation = store.operation
 		const unsub = store.on.operationClose.subscribe(
@@ -345,13 +347,15 @@ function buildSelectorUpdate(
 					timestamp: Date.now(), // 👺 use store operation
 				})
 			}
-			store.logger.info(
-				`⌛`,
-				`timeline`,
-				tl.key,
-				`set selector_update "${currentSelectorToken.key}" to`,
-				latestEvent?.subEvents.map((event) => event.token.key),
-			)
+			if (store.logger.isEnabled?.(`info`) !== false) {
+				store.logger.info(
+					`⌛`,
+					`timeline`,
+					tl.key,
+					`set selector_update "${currentSelectorToken.key}" to`,
+					latestEvent?.subEvents.map((event) => event.token.key),
+				)
+			}
 		}
 	}
 	if (latestEvent) {

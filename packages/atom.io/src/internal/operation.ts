@@ -25,12 +25,14 @@ export function openOperation(
 ): number | (Store & { operation: OpenOperation }) {
 	if (store.operation.open) {
 		const rejectionTime = performance.now()
-		store.logger.info(
-			`🚫`,
-			token.type,
-			token.key,
-			`deferring setState at T-${rejectionTime} until setState for "${store.operation.token.key}" is done`,
-		)
+		if (store.logger.isEnabled?.(`info`) !== false) {
+			store.logger.info(
+				`🚫`,
+				token.type,
+				token.key,
+				`deferring setState at T-${rejectionTime} until setState for "${store.operation.token.key}" is done`,
+			)
+		}
 		return rejectionTime
 	}
 	store.operation = {
@@ -41,27 +43,31 @@ export function openOperation(
 		token,
 		subEvents: [],
 	}
-	store.logger.info(
-		`⭕`,
-		token.type,
-		token.key,
-		`operation start in store "${store.config.name}"${
-			isChildStore(store)
-				? ` ${store.transactionMeta.phase} "${store.transactionMeta.update.token.key}"`
-				: ``
-		}`,
-	)
+	if (store.logger.isEnabled?.(`info`) !== false) {
+		store.logger.info(
+			`⭕`,
+			token.type,
+			token.key,
+			`operation start in store "${store.config.name}"${
+				isChildStore(store)
+					? ` ${store.transactionMeta.phase} "${store.transactionMeta.update.token.key}"`
+					: ``
+			}`,
+		)
+	}
 	return store as Store & { operation: OpenOperation }
 }
 
 export function closeOperation(store: Store): void {
 	if (store.operation.open) {
-		store.logger.info(
-			`🔴`,
-			store.operation.token.type,
-			store.operation.token.key,
-			`operation done in store "${store.config.name}"`,
-		)
+		if (store.logger.isEnabled?.(`info`) !== false) {
+			store.logger.info(
+				`🔴`,
+				store.operation.token.type,
+				store.operation.token.key,
+				`operation done in store "${store.config.name}"`,
+			)
+		}
 	}
 	store.operation = { open: false }
 	store.on.operationClose.next(store.operation)

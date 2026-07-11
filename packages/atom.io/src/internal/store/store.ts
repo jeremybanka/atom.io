@@ -1,6 +1,7 @@
 import type {
 	AtomToken,
 	Logger,
+	LogLevel,
 	MoleculeCreationEvent,
 	MoleculeDisposalEvent,
 	SelectorToken,
@@ -45,6 +46,21 @@ export type StoreConfig = {
 	name: string
 	lifespan: `ephemeral` | `immortal`
 	isProduction: boolean
+}
+
+export type StoreLogger = Logger & {
+	isEnabled?: (level: LogLevel) => boolean
+}
+
+function isLoggerEnabled(logger: AtomIOLogger, level: LogLevel): boolean {
+	switch (level) {
+		case `error`:
+			return logger.logLevel !== null
+		case `info`:
+			return logger.logLevel === `info`
+		case `warn`:
+			return logger.logLevel === `info` || logger.logLevel === `warn`
+	}
 }
 
 export class Store implements Lineage {
@@ -183,12 +199,30 @@ export class Store implements Lineage {
 	public loggers: AtomIOLogger[] = [
 		new AtomIOLogger(`warn`, (_, __, key) => !isReservedIntrospectionKey(key)),
 	]
-	public logger: Logger = {
+	public logger: StoreLogger = {
 		error: (...messages) => {
 			for (const logger of this.loggers) logger.error(...messages)
 		},
 		info: (...messages) => {
-			for (const logger of this.loggers) logger.info(...messages)
+			const { loggers } = this
+			if (loggers.length === 1) {
+				const logger = loggers[0]
+				if (logger.logLevel === `info`) logger.info(...messages)
+				return
+			}
+			for (const logger of loggers) {
+				if (isLoggerEnabled(logger, `info`)) logger.info(...messages)
+			}
+		},
+		isEnabled: (level) => {
+			const { loggers } = this
+			if (loggers.length === 1) {
+				return isLoggerEnabled(loggers[0], level)
+			}
+			for (const logger of loggers) {
+				if (isLoggerEnabled(logger, level)) return true
+			}
+			return false
 		},
 		warn: (...messages) => {
 			for (const logger of this.loggers) logger.warn(...messages)

@@ -22,22 +22,26 @@ export function updateSelectorAtoms(
 			selectorKey,
 			atomKey: dependencyKey,
 		})
-		store.logger.info(
-			`🔍`,
-			selectorType,
-			selectorKey,
-			`discovers root atom "${dependencyKey}"`,
-		)
+		if (store.logger.isEnabled?.(`info`) !== false) {
+			store.logger.info(
+				`🔍`,
+				selectorType,
+				selectorKey,
+				`discovers root atom "${dependencyKey}"`,
+			)
+		}
 	} else {
 		const rootKeys = traceRootSelectorAtoms(store, dependencyKey, covered)
-		store.logger.info(
-			`🔍`,
-			selectorType,
-			selectorKey,
-			`discovers root atoms: [ ${[...rootKeys.values()]
-				.map((root) => `"${root.key}"`)
-				.join(`, `)} ]`,
-		)
+		if (store.logger.isEnabled?.(`info`) !== false) {
+			store.logger.info(
+				`🔍`,
+				selectorType,
+				selectorKey,
+				`discovers root atoms: [ ${[...rootKeys.values()]
+					.map((root) => `"${root.key}"`)
+					.join(`, `)} ]`,
+			)
+		}
 		for (const { key: atomKey } of rootKeys.values()) {
 			target.selectorAtoms = target.selectorAtoms.set({
 				selectorKey,

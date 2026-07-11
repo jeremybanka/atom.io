@@ -90,30 +90,34 @@ export function dispatchOrDeferStateUpdate<T, E>(
 	if (isRootStore(target)) {
 		switch (type) {
 			case `mutable_atom`:
-				target.logger.info(
-					`📢`,
-					type,
-					key,
-					`is now (`,
-					newValue,
-					`) subscribers:`,
-					subject.subscribers.keys(),
-				)
+				if (target.logger.isEnabled?.(`info`) !== false) {
+					target.logger.info(
+						`📢`,
+						type,
+						key,
+						`is now (`,
+						newValue,
+						`) subscribers:`,
+						subject.subscribers.keys(),
+					)
+				}
 				break
 			case `atom`:
 			case `writable_pure_selector`:
 			case `writable_held_selector`:
-				target.logger.info(
-					`📢`,
-					type,
-					key,
-					`went (`,
-					oldValue,
-					`->`,
-					newValue,
-					`) subscribers:`,
-					subject.subscribers.keys(),
-				)
+				if (target.logger.isEnabled?.(`info`) !== false) {
+					target.logger.info(
+						`📢`,
+						type,
+						key,
+						`went (`,
+						oldValue,
+						`->`,
+						newValue,
+						`) subscribers:`,
+						subject.subscribers.keys(),
+					)
+				}
 		}
 		subject.next(update)
 	}
@@ -131,16 +135,18 @@ export function dispatchOrDeferStateUpdate<T, E>(
 				update,
 			}
 			target.transactionMeta.update.subEvents.push(atomUpdate)
-			target.logger.info(
-				`📁`,
-				`atom`,
-				key,
-				`stowed (`,
-				oldValue,
-				`->`,
-				newValue,
-				`)`,
-			)
+			if (target.logger.isEnabled?.(`info`) !== false) {
+				target.logger.info(
+					`📁`,
+					`atom`,
+					key,
+					`stowed (`,
+					oldValue,
+					`->`,
+					newValue,
+					`)`,
+				)
+			}
 			return
 		}
 		if (hasRole(state, `tracker:signal`)) {

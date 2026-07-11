@@ -1,4 +1,5 @@
 export * from "./recall-state.ts"
+export * from "./selector-root-subscriptions.ts"
 export * from "./subscribe-in-store.ts"
 export * from "./subscribe-to-root-atoms.ts"
 export * from "./subscribe-to-state.ts"

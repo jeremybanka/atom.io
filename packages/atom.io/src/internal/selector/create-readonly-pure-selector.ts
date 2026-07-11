@@ -12,6 +12,7 @@ import type { ReadonlyPureSelector } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
 import type { RootStore } from "../transaction/index.ts"
 import { registerSelector } from "./register-selector.ts"
+import { SelectorDependencyTracker } from "./selector-dependency-tracker.ts"
 
 export function createReadonlyPureSelector<T, K extends Canonical, E>(
 	store: Store,
@@ -20,33 +21,27 @@ export function createReadonlyPureSelector<T, K extends Canonical, E>(
 ): ReadonlyPureSelectorToken<T, K, E> {
 	const target = newest(store)
 	const subject = new Subject<StateUpdate<E | T>>()
-	const covered = new Set<string>()
 	const key = options.key
 	const type = `readonly_pure_selector` as const
+	const dependencies = new SelectorDependencyTracker(key)
 	store.logger.info(`🔨`, type, key, `is being created`)
 
 	const { get, find, json, relations } = registerSelector(
 		target,
 		type,
 		key,
-		covered,
+		dependencies,
 	)
 
 	const getFrom = () => {
-		const innerTarget = newest(store)
-		const upstreamStates = innerTarget.selectorGraph.getRelationEntries({
-			downstreamSelectorKey: key,
-		})
-		for (const [downstreamSelectorKey, { source }] of upstreamStates) {
-			if (source !== key) {
-				innerTarget.selectorGraph.delete(downstreamSelectorKey, key)
-			}
+		dependencies.begin()
+		try {
+			const value = options.get({ get, find, json, relations })
+			store.logger.info(`✨`, type, key, `=`, value)
+			return value
+		} finally {
+			dependencies.finish(newest(store))
 		}
-		innerTarget.selectorAtoms.delete(key)
-		const value = options.get({ get, find, json, relations })
-		store.logger.info(`✨`, type, key, `=`, value)
-		covered.clear()
-		return value
 	}
 
 	const readonlySelector: ReadonlyPureSelector<T, E> = {

@@ -41,7 +41,7 @@
 		"@types/three": "0.185.1",
 		"concurrently": "10.0.3",
 		"eslint": "10.6.0",
-		"lasertag": "0.4.0",
+		"lasertag": "0.4.1",
 		"typescript": "7.0.2",
 		"wrangler": "4.110.0"
 	}

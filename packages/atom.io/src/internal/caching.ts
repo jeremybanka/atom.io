@@ -99,8 +99,16 @@ export function readFromCache<T, E>(
 			Transceiver<any, any, any>
 
 		target.logger.info(`📃`, `atom`, mutableAtom.key, `copying`)
-		const jsonValue = parentValue.toJSON()
-		const copiedValue = mutableAtom.class.fromJSON(jsonValue)
+		const fork = Object.hasOwn(mutableAtom.class, `transactionFork`)
+			? mutableAtom.class.transactionFork
+			: undefined
+		let copiedValue: T
+		if (fork === undefined) {
+			const jsonValue = parentValue.toJSON()
+			copiedValue = mutableAtom.class.fromJSON(jsonValue)
+		} else {
+			copiedValue = fork.call(mutableAtom.class, parentValue)
+		}
 		target.valueMap.set(mutableAtom.key, copiedValue)
 		new Tracker(mutableAtom, parent)
 		value = copiedValue

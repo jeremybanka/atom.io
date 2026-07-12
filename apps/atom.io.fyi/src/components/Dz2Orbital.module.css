@@ -25,6 +25,7 @@ dz2-orbital.class {
 		}
 	}
 
+	/* @lasertag-expect-error: canvas gets appended via useEffect */
 	> canvas {
 		display: block;
 		width: 100%;

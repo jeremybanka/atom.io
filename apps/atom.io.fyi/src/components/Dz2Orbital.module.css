@@ -2,6 +2,12 @@ dz2-orbital.class {
 	display: block;
 	pointer-events: none;
 
+	&[data-variant="mark"] {
+		position: relative;
+		width: 100%;
+		height: 100%;
+	}
+
 	&[data-variant="splash"] {
 		position: fixed;
 		inset: 0;
@@ -15,17 +21,6 @@ dz2-orbital.class {
 
 		@media screen and (prefers-color-scheme: light) {
 			mix-blend-mode: multiply;
-		}
-	}
-
-	&[data-variant="mark"] {
-		position: relative;
-		width: 100%;
-		height: 100%;
-		/* mix-blend-mode: normal; */
-	}
-	&[data-variant="splash"] {
-		@media screen and (prefers-color-scheme: light) {
 			opacity: 0.25;
 		}
 	}

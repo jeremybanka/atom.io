@@ -27,6 +27,7 @@
 		"lint:deps": "pin-checker --ignore-workspaces",
 		"lint:eslint": "dotenvx run -- turbo run lint:eslint",
 		"lint:fix:eslint": "eslint --fix .",
+		"lint:lasertag": "lasertag check",
 		"lint:oxlint": "dotenvx run -- turbo run lint:oxlint",
 		"lint:types": "dotenvx run -- turbo run lint:types",
 		"manifest:test": "dotenvx run -- turbo run manifest:test",

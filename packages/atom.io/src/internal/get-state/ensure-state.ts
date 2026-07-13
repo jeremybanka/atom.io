@@ -107,7 +107,7 @@ export function ensureState<T, K extends Canonical, E>(
 			} else if (
 				`subject` in family &&
 				isChildStore(target) &&
-				target.on.transactionApplying.state === null
+				target.transactionMeta.phase === `building`
 			) {
 				target.transactionMeta.update.subEvents.push(atomCreationEvent)
 			}

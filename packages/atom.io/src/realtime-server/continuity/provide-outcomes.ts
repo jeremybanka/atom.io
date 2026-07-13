@@ -96,6 +96,7 @@ export function provideOutcomes(
 					}
 				}
 			},
+			`realtime`,
 		)
 		unsubscribeFunctions.add(unsubscribeFromTransaction)
 	}

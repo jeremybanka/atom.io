@@ -42,6 +42,9 @@ export function writeToCache<T, E>(
 		target.valueMap.set(key, future)
 		future
 			.then(function handleResolvedFuture(resolved) {
+				// Child stores are speculative transaction layers. The root ingester
+				// owns resolution and publication after a successful commit.
+				if (isChildStore(target)) return
 				const current = target.valueMap.get(key)
 				if (current === future) {
 					openOperation(target, state)
@@ -62,6 +65,7 @@ export function writeToCache<T, E>(
 				}
 			})
 			.catch((thrown) => {
+				if (isChildStore(target)) return
 				target.logger.error(`💥`, state.type, key, `rejected:`, thrown)
 			})
 		return future

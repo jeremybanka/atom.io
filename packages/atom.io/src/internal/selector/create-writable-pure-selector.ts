@@ -39,10 +39,13 @@ export function createWritablePureSelector<T, K extends Canonical, E>(
 			}
 		}
 		innerTarget.selectorAtoms.delete(key)
-		const value = options.get(getterToolkit)
-		store.logger.info(`✨`, type, key, `=`, value)
-		covered.clear()
-		return value
+		try {
+			const value = options.get(getterToolkit)
+			store.logger.info(`✨`, type, key, `=`, value)
+			return value
+		} finally {
+			covered.clear()
+		}
 	}
 
 	const setSelf = (newValue: T): void => {

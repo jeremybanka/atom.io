@@ -24,6 +24,25 @@ import { getUpdateToken } from "../mutable/index.ts"
 import { deposit, type Store, withdraw } from "../store/index.ts"
 import type { RootStore } from "../transaction/index.ts"
 import { isChildStore } from "../transaction/index.ts"
+import { deferTransactionCommitObserverNotification } from "../transaction/transaction-commit-context.ts"
+import { notifySubjectSubscribers } from "../transaction/transaction-observer-errors.ts"
+
+const timelineAtomSubscribers = new WeakSet<(update: StateUpdate<any>) => void>()
+const timelineTransactionSubscribers = new WeakSet<
+	(update: TransactionOutcomeEvent<TransactionToken<any>>) => void
+>()
+
+export function isTimelineAtomSubscriber(
+	subscriber: (update: StateUpdate<any>) => void,
+): boolean {
+	return timelineAtomSubscribers.has(subscriber)
+}
+
+export function isTimelineTransactionSubscriber(
+	subscriber: (update: TransactionOutcomeEvent<TransactionToken<any>>) => void,
+): boolean {
+	return timelineTransactionSubscribers.has(subscriber)
+}
 
 export type Timeline<ManagedAtom extends TimelineManageable> = {
 	type: `timeline`
@@ -141,10 +160,11 @@ function addAtomToTimeline(
 		{ topicType: `atom` },
 	)
 
+	const timelineSubscriberKey = `atom.io:timeline:${tl.key}`
 	tl.subscriptions.set(
 		atom.key,
 		atom.subject.subscribe(
-			`timeline`,
+			timelineSubscriberKey,
 			function timelineCapturesAtomUpdate(update) {
 				const target = newest(store)
 				const currentSelectorToken =
@@ -205,11 +225,14 @@ function addAtomToTimeline(
 							tl.key,
 							`got an atom_update to "${atom.key}"`,
 						)
-						addToHistory(tl, atomUpdate)
+						addToHistory(store, tl, atomUpdate)
 					}
 				}
 			},
 		),
+	)
+	timelineAtomSubscribers.add(
+		atom.subject.subscribers.get(timelineSubscriberKey)!,
 	)
 }
 
@@ -239,6 +262,44 @@ function addAtomFamilyToTimeline(
 	}
 }
 
+function transactionTouchesTimeline(
+	subEvents: readonly TransactionSubEvent[],
+	timelineTopics: ReadonlySet<string>,
+): boolean {
+	for (const subEvent of subEvents) {
+		if (subEvent.type === `atom_update`) {
+			if (
+				timelineTopics.has(subEvent.token.key) ||
+				(subEvent.token.family && timelineTopics.has(subEvent.token.family.key))
+			) {
+				return true
+			}
+		} else if (
+			subEvent.type === `transaction_outcome` &&
+			transactionTouchesTimeline(subEvent.subEvents, timelineTopics)
+		) {
+			return true
+		}
+	}
+	return false
+}
+
+export function prepareTimelinesForTransaction(
+	store: Store,
+	transactionUpdate: TransactionOutcomeEvent<TransactionToken<any>>,
+): void {
+	for (const timeline of store.timelines.values()) {
+		if (timeline.timeTraveling !== null) continue
+		const timelineTopics = store.timelineTopics.getRelatedKeys(timeline.key)
+		if (
+			timelineTopics &&
+			transactionTouchesTimeline(transactionUpdate.subEvents, timelineTopics)
+		) {
+			joinTransaction(store, timeline, transactionUpdate)
+		}
+	}
+}
+
 function joinTransaction(
 	store: Store,
 	tl: Timeline<any>,
@@ -253,29 +314,34 @@ function joinTransaction(
 	const currentTransaction = withdraw(store, currentTxToken)
 	if (currentTxKey && tl.transactionKey === null) {
 		tl.transactionKey = currentTxKey
-		const unsubscribe = currentTransaction.subject.subscribe(
-			`timeline:${tl.key}`,
-			(transactionUpdate) => {
-				unsubscribe()
-				tl.transactionKey = null
-				if (tl.timeTraveling === null && currentTxInstanceId) {
-					const timelineTopics = store.timelineTopics.getRelatedKeys(tl.key)!
+		let unsubscribe = () => {}
+		const timelineCapturesTransaction = (
+			transactionUpdate: TransactionOutcomeEvent<TransactionToken<any>>,
+		) => {
+			unsubscribe()
+			tl.transactionKey = null
+			if (tl.timeTraveling === null && currentTxInstanceId) {
+				const timelineTopics = store.timelineTopics.getRelatedKeys(tl.key)!
 
-					const subEventsFiltered = filterTransactionSubEvents(
-						transactionUpdate.subEvents,
-						timelineTopics,
-					)
+				const subEventsFiltered = filterTransactionSubEvents(
+					transactionUpdate.subEvents,
+					timelineTopics,
+				)
 
-					const timelineTransactionUpdate: TimelineEvent<any> &
-						TransactionOutcomeEvent<TransactionToken<any>> = {
-						checkpoint: true,
-						...transactionUpdate,
-						subEvents: subEventsFiltered,
-					}
-
-					addToHistory(tl, timelineTransactionUpdate)
+				const timelineTransactionUpdate: TimelineEvent<any> &
+					TransactionOutcomeEvent<TransactionToken<any>> = {
+					checkpoint: true,
+					...transactionUpdate,
+					subEvents: subEventsFiltered,
 				}
-			},
+
+				addToHistory(store, tl, timelineTransactionUpdate)
+			}
+		}
+		timelineTransactionSubscribers.add(timelineCapturesTransaction)
+		unsubscribe = currentTransaction.subject.subscribe(
+			`atom.io:timeline:${tl.key}`,
+			timelineCapturesTransaction,
 		)
 	}
 }
@@ -309,7 +375,7 @@ function buildSelectorUpdate(
 			})
 		}
 
-		addToHistory(tl, latestEvent)
+		addToHistory(store, tl, latestEvent)
 		tl.selectorTime = currentSelectorTime
 
 		store.logger.info(
@@ -355,7 +421,7 @@ function buildSelectorUpdate(
 		}
 	}
 	if (latestEvent) {
-		tl.subject.next({
+		notifySubjectSubscribers(tl.subject, {
 			type: `timeline_update`,
 			event: latestEvent,
 			at: tl.at,
@@ -445,7 +511,7 @@ function handleStateLifecycleEvent(
 					currentSelectorTime,
 				)
 			} else {
-				addToHistory(tl, event)
+				addToHistory(store, tl, event)
 			}
 		}
 	}
@@ -460,16 +526,25 @@ function handleStateLifecycleEvent(
 	}
 }
 
-function addToHistory(tl: Timeline<any>, event: TimelineEvent<any>): void {
+function addToHistory(
+	store: Store,
+	tl: Timeline<any>,
+	event: TimelineEvent<any>,
+): void {
 	if (tl.at !== tl.history.length) {
 		tl.history.splice(tl.at)
 	}
 	tl.history.push(event)
 	tl.at = tl.history.length
-	tl.subject.next({
-		type: `timeline_update`,
-		event,
-		at: tl.at,
-		length: tl.history.length,
-	})
+	const at = tl.at
+	const length = tl.history.length
+	const notify = () => {
+		notifySubjectSubscribers(tl.subject, {
+			type: `timeline_update`,
+			event,
+			at,
+			length,
+		})
+	}
+	if (!deferTransactionCommitObserverNotification(store, notify)) notify()
 }

@@ -43,10 +43,13 @@ export function createReadonlyPureSelector<T, K extends Canonical, E>(
 			}
 		}
 		innerTarget.selectorAtoms.delete(key)
-		const value = options.get({ get, find, json, relations })
-		store.logger.info(`✨`, type, key, `=`, value)
-		covered.clear()
-		return value
+		try {
+			const value = options.get({ get, find, json, relations })
+			store.logger.info(`✨`, type, key, `=`, value)
+			return value
+		} finally {
+			covered.clear()
+		}
 	}
 
 	const readonlySelector: ReadonlyPureSelector<T, E> = {

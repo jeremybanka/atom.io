@@ -7,8 +7,14 @@ import { seekInStore } from "../families/index.ts"
 import { mintInStore, MUST_CREATE } from "../families/mint-in-store.ts"
 import type { OpenOperation } from "../operation.ts"
 import { closeOperation, openOperation } from "../operation.ts"
+import { enqueueOperation, hasQueuedOperation } from "../operation-queue.ts"
+import { isFlushingStateNotificationBatch } from "../state-notification-batch.ts"
 import type { WritableFamily } from "../state-types.ts"
 import { type Store, withdraw } from "../store/index.ts"
+import {
+	areTransactionCommitStateOperationsAllowed,
+	isTransactionCommitActive,
+} from "../transaction/transaction-commit-context.ts"
 import { dispatchOrDeferStateUpdate } from "./dispatch-state-update.ts"
 import { resetAtomOrSelector } from "./reset-atom-or-selector.ts"
 import { RESET_STATE } from "./reset-in-store.ts"
@@ -33,6 +39,26 @@ export function operateOnStore<T, TT extends T, K extends Canonical, E>(
 				value: Setter<TT> | TT | typeof RESET_STATE,
 		  ]
 ): void {
+	if (
+		opMode === JOIN_OP &&
+		(isFlushingStateNotificationBatch(store) ||
+			(isTransactionCommitActive(store) &&
+				!areTransactionCommitStateOperationsAllowed(store)))
+	) {
+		if (params.length === 2) {
+			const [token, value] = params
+			enqueueOperation(store, () => {
+				operateOnStore(OWN_OP, store, token, value)
+			})
+		} else {
+			const [family, key, value] = params
+			enqueueOperation(store, () => {
+				operateOnStore(OWN_OP, store, family, key, value)
+			})
+		}
+		return
+	}
+
 	let existingToken: WritableToken<T, K, E> | undefined
 	let brandNewToken: WritableToken<T, K, E> | undefined
 	let token: WritableToken<T, K, E>
@@ -73,6 +99,24 @@ export function operateOnStore<T, TT extends T, K extends Canonical, E>(
 		const rejected = typeof result === `number`
 		if (rejected) {
 			const rejectionTime = result
+			if (
+				(isTransactionCommitActive(store) &&
+					!areTransactionCommitStateOperationsAllowed(store)) ||
+				hasQueuedOperation(store)
+			) {
+				enqueueOperation(store, function waitUntilTransactionCommitToSetState() {
+					store.logger.info(
+						`🟢`,
+						token.type,
+						token.key,
+						`resuming deferred`,
+						action,
+						`from T-${rejectionTime}`,
+					)
+					operateOnStore(opMode, store, token, value)
+				})
+				return
+			}
 			const unsubscribe = store.on.operationClose.subscribe(
 				`waiting to ${action} "${token.key}" at T-${rejectionTime}`,
 				function waitUntilOperationCloseToSetState() {

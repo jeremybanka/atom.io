@@ -46,6 +46,15 @@ export function registerSelector(
 		) => {
 			const target = newest(store)
 			const { token, family, subKey } = ensureState(store, ...params)
+			target.selectorGraph.set(
+				{
+					upstreamSelectorKey: token.key,
+					downstreamSelectorKey: selectorKey,
+				},
+				{
+					source: token.key,
+				},
+			)
 			let dependencyValue: unknown
 			if (`counterfeit` in token && family && subKey) {
 				dependencyValue = getFallback(store, token, family, subKey)
@@ -63,15 +72,6 @@ export function registerSelector(
 				`)`,
 			)
 
-			target.selectorGraph.set(
-				{
-					upstreamSelectorKey: token.key,
-					downstreamSelectorKey: selectorKey,
-				},
-				{
-					source: token.key,
-				},
-			)
 			updateSelectorAtoms(store, selectorType, selectorKey, token, covered)
 			return dependencyValue
 		},

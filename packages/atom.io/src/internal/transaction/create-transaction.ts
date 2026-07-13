@@ -9,9 +9,40 @@ import { newest } from "../lineage.ts"
 import { deposit } from "../store/index.ts"
 import type { Fn } from "../utility-types.ts"
 import { abortTransaction } from "./abort-transaction.ts"
-import { applyTransaction } from "./apply-transaction.ts"
+import {
+	applyTransaction,
+	createTransactionObserverError,
+} from "./apply-transaction.ts"
 import { buildTransaction } from "./build-transaction.ts"
-import type { RootStore } from "./is-root-store.ts"
+import type { ChildStore, RootStore } from "./is-root-store.ts"
+
+function reportFailedTransaction(
+	store: RootStore,
+	target: ChildStore | undefined,
+	key: string,
+	thrown: unknown,
+): never {
+	const cleanupErrors: unknown[] = []
+	if (target) {
+		try {
+			abortTransaction(target)
+		} catch (cleanupError) {
+			cleanupErrors.push(cleanupError)
+		}
+	}
+	try {
+		store.logger.warn(`💥`, `transaction`, key, `caught:`, thrown)
+	} catch (cleanupError) {
+		cleanupErrors.push(cleanupError)
+	}
+	if (cleanupErrors.length > 0) {
+		throw new AggregateError(
+			[thrown, ...cleanupErrors],
+			`Transaction "${key}" failed while it was being aborted.`,
+		)
+	}
+	throw thrown
+}
 
 export type Transaction<F extends Fn> = {
 	key: string
@@ -32,17 +63,25 @@ export function createTransaction<F extends Fn>(
 		type: `transaction`,
 		run: (params: Parameters<F>, id: string) => {
 			const token = deposit(newTransaction)
-			const target = buildTransaction(store, token, params, id)
+			let target: ChildStore | undefined
+			let output: ReturnType<F>
+			let observerErrors: unknown[]
 			try {
+				target = buildTransaction(store, token, params, id)
 				const { toolkit } = target.transactionMeta
-				const output = options.do(toolkit, ...params)
-				applyTransaction<F>(target, output)
-				return output
+				output = options.do(toolkit, ...params)
+				observerErrors = applyTransaction<F>(
+					target,
+					output,
+					options.commit ?? `playback`,
+				)
 			} catch (thrown) {
-				abortTransaction(target)
-				store.logger.warn(`💥`, `transaction`, key, `caught:`, thrown)
-				throw thrown
+				return reportFailedTransaction(store, target, key, thrown)
 			}
+			if (observerErrors.length > 0) {
+				throw createTransactionObserverError(key, observerErrors)
+			}
+			return output
 		},
 		install: (s) => createTransaction(s, options),
 		subject: new Subject(),

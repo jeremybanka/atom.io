@@ -15,6 +15,10 @@ import { newest } from "../lineage.ts"
 import type { Transceiver } from "../mutable/index.ts"
 import { isTransceiver } from "../mutable/index.ts"
 import type { OpenOperation } from "../operation.ts"
+import {
+	deferStateNotification,
+	hasStateNotificationBatch,
+} from "../state-notification-batch.ts"
 import type {
 	AtomFamily,
 	MutableAtom,
@@ -60,7 +64,7 @@ export function dispatchOrDeferStateUpdate<T, E>(
 						target.on.atomCreation.next(token)
 					} else if (
 						isChildStore(innerTarget) &&
-						innerTarget.on.transactionApplying.state === null
+						innerTarget.transactionMeta.phase === `building`
 					) {
 						innerTarget.transactionMeta.update.subEvents.push(atomCreationEvent)
 					}
@@ -115,11 +119,15 @@ export function dispatchOrDeferStateUpdate<T, E>(
 					subject.subscribers.keys(),
 				)
 		}
-		subject.next(update)
+		if (hasStateNotificationBatch(target)) {
+			deferStateNotification(target, key, subject, update)
+		} else {
+			subject.next(update)
+		}
 	}
 
 	if (isChildStore(target) && (type === `mutable_atom` || type === `atom`)) {
-		if (target.on.transactionApplying.state === null) {
+		if (target.transactionMeta.phase === `building`) {
 			if (isTransceiver(newValue)) {
 				return
 			}

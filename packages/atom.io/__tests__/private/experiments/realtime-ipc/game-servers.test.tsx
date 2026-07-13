@@ -14,6 +14,8 @@ console.info = () => undefined
 console.warn = () => undefined
 console.error = () => undefined
 const dbManager = new DatabaseManager()
+const roomStartupTimeout = 3000
+let teardownScenario: (() => Promise<void>) | undefined
 
 beforeAll(async () => {
 	await dbManager.createDatabase()
@@ -28,13 +30,18 @@ beforeEach(async () => {
 })
 
 afterEach(async () => {
-	console.log(`KILLING ROOMS`, [...ROOMS.keys()])
-	for (const [roomId, room] of ROOMS) {
-		console.log(`KILLING ROOM ${roomId}`)
-		room.proc.kill()
-	}
+	try {
+		await teardownScenario?.()
+	} finally {
+		teardownScenario = undefined
+		console.log(`KILLING ROOMS`, [...ROOMS.keys()])
+		for (const [roomId, room] of ROOMS) {
+			console.log(`KILLING ROOM ${roomId}`)
+			room.proc.kill()
+		}
 
-	await dbManager.dropSampleTables()
+		await dbManager.dropSampleTables()
+	}
 })
 
 afterAll(async () => {
@@ -47,11 +54,12 @@ describe(`multi-process realtime server`, () => {
 			server: SystemServer,
 			client: BrowserGame,
 		})
-		return { client, server, teardown }
+		teardownScenario = teardown
+		return { client, server }
 	}
 
 	it(`permits manual creation and deletion of rooms`, async () => {
-		const { client, teardown } = scenario()
+		const { client } = scenario()
 		const app = client.init()
 		app.enableLogging()
 		const createRoomButton = await app.renderResult.findByTestId(`create-room`)
@@ -61,17 +69,17 @@ describe(`multi-process realtime server`, () => {
 		})
 		const deleteRoomButton = await app.renderResult.findByTestId(
 			`delete-room::0-game-instance.bun.ts`,
+			undefined,
+			{ timeout: roomStartupTimeout },
 		)
 
 		await actWithFakeTimers(() => {
 			deleteRoomButton.click()
 		})
 		await app.renderResult.findByTestId(`no-rooms`)
-
-		await teardown()
 	})
 	it(`permits join and leave`, async () => {
-		const { client, teardown } = scenario()
+		const { client } = scenario()
 		const app = client.init()
 
 		const createRoomButton = await app.renderResult.findByTestId(`create-room`)
@@ -82,6 +90,8 @@ describe(`multi-process realtime server`, () => {
 
 		const joinRoomButton = await app.renderResult.findByTestId(
 			`join-room::0-game-instance.bun.ts`,
+			undefined,
+			{ timeout: roomStartupTimeout },
 		)
 
 		await actWithFakeTimers(() => {
@@ -89,11 +99,9 @@ describe(`multi-process realtime server`, () => {
 		})
 
 		await app.renderResult.findByTestId(`room::0-game-instance.bun.ts`)
-
-		await teardown()
 	})
 	it(`reattaches to a room after disconnecting`, async () => {
-		const { client, teardown } = scenario()
+		const { client } = scenario()
 		const app = client.init()
 		app.enableLogging()
 		const createRoomButton = await app.renderResult.findByTestId(`create-room`)
@@ -102,6 +110,8 @@ describe(`multi-process realtime server`, () => {
 		})
 		const joinRoomButton = await app.renderResult.findByTestId(
 			`join-room::0-game-instance.bun.ts`,
+			undefined,
+			{ timeout: roomStartupTimeout },
 		)
 		await actWithFakeTimers(() => {
 			joinRoomButton.click()
@@ -127,7 +137,5 @@ describe(`multi-process realtime server`, () => {
 		await waitFor(() => app.renderResult.getByTestId(`lobby`), {
 			timeout: 3000,
 		})
-
-		await teardown()
 	})
 })

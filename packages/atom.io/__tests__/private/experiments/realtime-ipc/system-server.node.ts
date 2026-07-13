@@ -6,7 +6,10 @@ import * as RTS from "atom.io/realtime-server"
 import type * as SocketIO from "socket.io"
 
 function resolveRoomScript(name: string): [string, string[]] {
-	return [`bun`, [path.join(__dirname, name)]]
+	const script = process.env[`ATOM_IO_TEST_ROOM_STARTUP_DELAY_MS`]
+		? `delayed-game-instance.bun.ts`
+		: name
+	return [`bun`, [path.join(__dirname, script)]]
 }
 const isRoomAdminSelectors = selectorFamily<boolean, UserKey>({
 	key: `isRoomAdmin`,

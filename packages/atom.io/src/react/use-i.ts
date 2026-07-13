@@ -26,7 +26,7 @@ export function useI<T, K extends Canonical>(
 		(next: T | ((old: T) => T)) => {
 			setIntoStore(store, token, next)
 		},
-		[token.key],
+		[store, token.key],
 	)
 	return setter
 }

@@ -4,6 +4,7 @@ import { getFromStore, subscribeToState } from "atom.io/internal"
 import {
 	useCallback,
 	useContext,
+	useEffect,
 	useId,
 	useRef,
 	useState,
@@ -12,7 +13,6 @@ import {
 
 import { parseStateOverloads } from "./parse-state-overloads.ts"
 import { StoreContext } from "./store-context.tsx"
-import { useSingleEffect } from "./use-single-effect.ts"
 
 export function useO<T, E = never>(
 	token: ReadableToken<T, any, E>,
@@ -38,27 +38,44 @@ export function useO<T, K extends Canonical, E = never>(
 		token.type === `writable_held_selector`
 	) {
 		const [, dispatch] = useState<number>(0)
-		const valueRef = useRef<ViewOf<E | T>>(getFromStore(store, token))
-		useSingleEffect(() => {
+		const sourceRef = useRef<{
+			store: typeof store
+			tokenKey: string
+			value: ViewOf<E | T>
+		} | null>(null)
+		let source = sourceRef.current
+		if (
+			source === null ||
+			source.store !== store ||
+			source.tokenKey !== token.key
+		) {
+			source = {
+				store,
+				tokenKey: token.key,
+				value: getFromStore(store, token),
+			}
+			sourceRef.current = source
+		}
+		useEffect(() => {
 			const unsub = subscribeToState<T, E>(
 				store,
 				token,
 				`use-o:${id}`,
 				({ newValue }) => {
-					valueRef.current = newValue
+					source.value = newValue
 					dispatch((c) => c + 1)
 				},
 			)
 			return unsub
-		}, [token.key])
-		return valueRef.current
+		}, [store, token.key])
+		return source.value
 	}
 
 	const sub = useCallback(
 		(dispatch: () => void) =>
 			subscribeToState<T, E>(store, token, `use-o:${id}`, dispatch),
-		[token.key],
+		[store, token.key],
 	)
-	const get = useCallback(() => getFromStore(store, token), [token.key])
+	const get = useCallback(() => getFromStore(store, token), [store, token.key])
 	return useSyncExternalStore<ViewOf<E | T>>(sub, get, get)
 }

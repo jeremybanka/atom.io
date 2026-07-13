@@ -1,5 +1,5 @@
 ---
-"atom.io": minor
+"atom.io": patch
 ---
 
 Add keyed timeline families with extractor-routed atom-family scope, lazy lookup,

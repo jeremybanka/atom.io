@@ -1,5 +1,14 @@
 # atom.io
 
+## 0.49.8
+
+### Patch Changes
+
+- 7f1b90e: Make React and Solid `useTL` controls operate on the store provided through `StoreContext`.
+- 48a641e: Document React store providers and production Silo isolation patterns, including
+  an exhibit-backed example with two independent application state graphs.
+- b8be84a: Follow provider store changes in React's `useO` and `useI` hooks.
+
 ## 0.49.7
 
 ### Patch Changes

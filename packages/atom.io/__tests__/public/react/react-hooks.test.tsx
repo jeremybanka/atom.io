@@ -4,12 +4,14 @@ import {
 	atom,
 	atomFamily,
 	getState,
+	inspectTimeline,
 	mutableAtom,
 	mutableAtomFamily,
 	redo,
 	resetState,
 	selector,
 	setState,
+	Silo,
 	timeline,
 	undo,
 } from "atom.io"
@@ -329,6 +331,91 @@ describe(`timeline`, () => {
 		fireEvent.click(changeStateButtonB)
 		expect(timelineAt.textContent).toEqual(`1`)
 		expect(timelineLength.textContent).toEqual(`1`)
+	})
+	it(`uses the provider store for all controls`, () => {
+		const implicit = (() => {
+			const letterAtom = atom<string>({
+				key: `letter`,
+				default: `implicit-a`,
+			})
+			const letterTL = timeline({
+				key: `letterTL`,
+				scope: [letterAtom],
+			})
+			setState(letterAtom, `implicit-b`)
+			return { letterAtom, letterTL }
+		})()
+
+		const silo = new Silo({
+			name: `use-tl-provider-store`,
+			lifespan: `ephemeral`,
+			isProduction: false,
+		})
+		const siloState = (() => {
+			const letterAtom = silo.atom<string>({
+				key: `letter`,
+				default: `silo-a`,
+			})
+			const letterTL = silo.timeline({
+				key: `letterTL`,
+				scope: [letterAtom],
+			})
+			silo.setState(letterAtom, `silo-b`)
+			return { letterAtom, letterTL }
+		})()
+
+		const Letter: FC = () => {
+			const letter = useO(siloState.letterAtom)
+			const letterTimeline = useTL(siloState.letterTL)
+			return (
+				<>
+					<div data-testid="letter">{letter}</div>
+					<div data-testid="timelineAt">{letterTimeline.at}</div>
+					<div data-testid="timelineLength">{letterTimeline.length}</div>
+					<button
+						type="button"
+						data-testid="undoButton"
+						onClick={letterTimeline.undo}
+					/>
+					<button
+						type="button"
+						data-testid="redoButton"
+						onClick={letterTimeline.redo}
+					/>
+					<button
+						type="button"
+						data-testid="clearButton"
+						onClick={letterTimeline.clear}
+					/>
+				</>
+			)
+		}
+
+		const { getByTestId } = render(
+			<StoreProvider store={silo.store}>
+				<Letter />
+			</StoreProvider>,
+		)
+
+		fireEvent.click(getByTestId(`undoButton`))
+		expect(getByTestId(`letter`).textContent).toBe(`silo-a`)
+		expect(getByTestId(`timelineAt`).textContent).toBe(`0`)
+		expect(silo.getState(siloState.letterAtom)).toBe(`silo-a`)
+		expect(getState(implicit.letterAtom)).toBe(`implicit-b`)
+		expect(inspectTimeline(implicit.letterTL)).toEqual({ at: 1, length: 1 })
+
+		fireEvent.click(getByTestId(`redoButton`))
+		expect(getByTestId(`letter`).textContent).toBe(`silo-b`)
+		expect(getByTestId(`timelineAt`).textContent).toBe(`1`)
+		expect(silo.getState(siloState.letterAtom)).toBe(`silo-b`)
+		expect(getState(implicit.letterAtom)).toBe(`implicit-b`)
+		expect(inspectTimeline(implicit.letterTL)).toEqual({ at: 1, length: 1 })
+
+		fireEvent.click(getByTestId(`clearButton`))
+		expect(getByTestId(`timelineAt`).textContent).toBe(`0`)
+		expect(getByTestId(`timelineLength`).textContent).toBe(`0`)
+		expect(getState(implicit.letterAtom)).toBe(`implicit-b`)
+		expect(inspectTimeline(implicit.letterTL)).toEqual({ at: 1, length: 1 })
 	})
 })
 

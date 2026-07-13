@@ -372,6 +372,63 @@ describe(`timeline`, () => {
 })
 
 describe(`timeline state lifecycle`, () => {
+	test(`member-scoped timelines survive update-then-dispose transactions`, () => {
+		const countAtoms = atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+		})
+		const countA = findState(countAtoms, `a`)
+		getState(countA)
+		const history = timeline({ key: `countHistory`, scope: [countA] })
+		clearTimeline(history)
+		const updateAndRemoveCount = transaction<() => void>({
+			key: `updateAndRemoveCount`,
+			do: ({ dispose, set }) => {
+				set(countA, 1)
+				dispose(countA)
+			},
+		})
+
+		expect(() => {
+			runTransaction(updateAndRemoveCount)()
+		}).not.toThrow()
+		expect(stateExists(countAtoms, `a`)).toBe(false)
+
+		undo(history)
+		expect(stateExists(countAtoms, `a`)).toBe(true)
+		expect(getState(countA)).toBe(0)
+	})
+	test(`multi-topic timelines retain topics disposed before joining a transaction`, () => {
+		const countAtoms = atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+		})
+		const countA = findState(countAtoms, `a`)
+		const countB = findState(countAtoms, `b`)
+		getState(countA)
+		getState(countB)
+		const history = timeline({
+			key: `countHistory`,
+			scope: [countA, countB],
+		})
+		const removeAAndUpdateB = transaction<() => void>({
+			key: `removeAAndUpdateB`,
+			do: ({ dispose, set }) => {
+				dispose(countA)
+				set(countB, 1)
+			},
+		})
+
+		runTransaction(removeAAndUpdateB)()
+		expect(stateExists(countAtoms, `a`)).toBe(false)
+		expect(getState(countB)).toBe(1)
+
+		undo(history)
+		expect(stateExists(countAtoms, `a`)).toBe(true)
+		expect(getState(countA)).toBe(0)
+		expect(getState(countB)).toBe(0)
+	})
+
 	test(`states may be disposed via undo/redo`, () => {
 		const countAtoms = atomFamily<number, string>({
 			key: `count`,

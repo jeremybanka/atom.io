@@ -21,6 +21,7 @@ export const attachTimelineFamily = (
 				history: [],
 				selectorTime: null,
 				transactionKey: null,
+				ownedTopicKeys: new Set(),
 				install: () => {},
 				subject: new Subject(),
 				subscriptions: new Map(),

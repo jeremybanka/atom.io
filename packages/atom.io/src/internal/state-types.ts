@@ -22,7 +22,7 @@ import type { Flat } from "atom.io/foundations/type-utils"
 import type { InternalRole } from "./atom/index.ts"
 import type { ConstructorOf, Transceiver } from "./mutable/index.ts"
 import type { Store } from "./store/index.ts"
-import type { Timeline } from "./timeline/index.ts"
+import type { Timeline, TimelineFamily } from "./timeline/index.ts"
 import type { RootStore, Transaction } from "./transaction/index.ts"
 import type { Ctor } from "./utility-types.ts"
 
@@ -205,4 +205,5 @@ export type AtomIOInternalResource =
 	| ReadableFamily<any, any, any>
 	| ReadableState<any, any>
 	| Timeline<any>
+	| TimelineFamily<any, any>
 	| Transaction<any>

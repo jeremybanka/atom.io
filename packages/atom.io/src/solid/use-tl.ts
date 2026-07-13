@@ -1,7 +1,9 @@
-import type { TimelineToken } from "atom.io"
+import type { TimelineFamilyToken, TimelineToken } from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical"
 import {
 	arbitrary,
 	clearTimelineInStore,
+	findTimelineInStore,
 	inspectTimelineInStore,
 	subscribeToTimeline,
 	timeTravel,
@@ -19,8 +21,21 @@ export type TimelineMeta = {
 	clear: () => void
 }
 
-export function useTL(token: TimelineToken<any>): () => TimelineMeta {
+export function useTL(token: TimelineToken<any>): () => TimelineMeta
+export function useTL<K extends Canonical>(
+	family: TimelineFamilyToken<K, any>,
+	key: NoInfer<K>,
+): () => TimelineMeta
+export function useTL<K extends Canonical>(
+	...params:
+		| [token: TimelineToken<any>]
+		| [family: TimelineFamilyToken<K, any>, key: NoInfer<K>]
+): () => TimelineMeta {
 	const store = useContext(StoreContext)
+	const token =
+		params.length === 1
+			? params[0]
+			: findTimelineInStore(store, params[0], params[1])
 	const id = arbitrary()
 	const getSnapshot = (): TimelineMeta => {
 		const { at, length } = inspectTimelineInStore(store, token)

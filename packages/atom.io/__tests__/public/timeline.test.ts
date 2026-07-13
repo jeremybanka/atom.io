@@ -415,6 +415,35 @@ describe(`timeline`, () => {
 		redo(history)
 		expect(getState(items)).toEqual(new UList([`one`]))
 	})
+	test(`mutable inner signals from selectors can be undone and redone`, () => {
+		const itemAtoms = mutableAtomFamily<UList<string>, string>({
+			key: `item`,
+			class: UList,
+		})
+		const items = findState(itemAtoms, `a`)
+		const latestItemSelector = selector<string>({
+			key: `latestItem`,
+			get: ({ get }) => [...get(items)].at(-1) ?? ``,
+			set: ({ set }, item) => {
+				set(items, (current) => current.add(item))
+			},
+		})
+		const history = timeline({ key: `itemHistory`, scope: [items] })
+		clearTimeline(history)
+
+		setState(latestItemSelector, `one`)
+
+		expect(getState(items)).toEqual(new UList([`one`]))
+		expect(inspectTimeline(history)).toEqual({ at: 1, length: 1 })
+
+		undo(history)
+		expect(getState(items)).toEqual(new UList())
+		expect(inspectTimeline(history)).toEqual({ at: 0, length: 1 })
+
+		redo(history)
+		expect(getState(items)).toEqual(new UList([`one`]))
+		expect(inspectTimeline(history)).toEqual({ at: 1, length: 1 })
+	})
 })
 
 describe(`timeline state lifecycle`, () => {

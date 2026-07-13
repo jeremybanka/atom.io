@@ -208,42 +208,134 @@ describe(`silo`, () => {
 		expect(hasImplicitStoreBeenCreated()).toBe(false)
 		expect(() => getState(countAtom)).toThrow()
 	})
-	it(`addresses timeline-family members in its own store`, () => {
-		const Uno = new Silo({
-			name: `uno-timeline-family`,
+	it(`keeps newly inserted font points in their glyph histories`, () => {
+		type GlyphId = `A` | `B`
+		type MasterId = `bold` | `preview` | `regular`
+		type PointKey = readonly [glyphId: GlyphId, pointId: string]
+		type CoordinateKey = readonly [
+			masterId: MasterId,
+			glyphId: GlyphId,
+			pointId: string,
+		]
+
+		const FontEditor = new Silo({
+			name: `font-editor`,
 			lifespan: `ephemeral`,
 			isProduction: false,
 		})
-		Uno.store.logger = createNullLogger()
-		const countAtoms = Uno.atomFamily<number, string>({
-			key: `count`,
+		FontEditor.store.logger = createNullLogger()
+		const glyphAtoms = FontEditor.atomFamily<{ name: string }, GlyphId>({
+			key: `glyph`,
+			default: (glyphId) => ({ name: glyphId }),
+		})
+		const pointAtoms = FontEditor.atomFamily<
+			{ type: `off-curve` | `on-curve` },
+			PointKey
+		>({
+			key: `point`,
+			default: { type: `on-curve` },
+		})
+		const pointXAtoms = FontEditor.atomFamily<number, CoordinateKey>({
+			key: `pointX`,
 			default: 0,
 		})
-		const countHistories = Uno.timelineFamily<string>({
-			key: `countHistory`,
-			scope: [scopeFamily(countAtoms, { timelineKey: (countKey) => countKey })],
+		const glyphHistories = FontEditor.timelineFamily<GlyphId>({
+			key: `glyphHistory`,
+			scope: [
+				scopeFamily(glyphAtoms, { timelineKey: (glyphId) => glyphId }),
+				scopeFamily(pointAtoms, {
+					timelineKey: ([glyphId]) => glyphId,
+				}),
+				scopeFamily(pointXAtoms, {
+					timelineKey: ([masterId, glyphId]) =>
+						masterId === `preview` ? undefined : glyphId,
+				}),
+			],
 		})
-		const history = Uno.findTimeline(countHistories, `a`)
-		const subscriber = vitest.fn()
-		Uno.subscribe(countHistories, `a`, subscriber)
 
-		Uno.getState(countAtoms, `a`)
-		Uno.clearTimeline(countHistories, `a`)
-		Uno.setState(countAtoms, `a`, 1)
-		expect(Uno.inspectTimeline(countHistories, `a`)).toEqual({
+		const historyA = FontEditor.findTimeline(glyphHistories, `A`)
+		const historyB = FontEditor.findTimeline(glyphHistories, `B`)
+		const historyASubscriber = vitest.fn()
+		FontEditor.subscribe(glyphHistories, `A`, historyASubscriber)
+
+		// Load the existing outlines, then establish the editor's clean baseline.
+		FontEditor.getState(glyphAtoms, `A`)
+		FontEditor.getState(pointAtoms, [`A`, `p0`])
+		FontEditor.getState(pointXAtoms, [`regular`, `A`, `p0`])
+		FontEditor.getState(pointXAtoms, [`bold`, `A`, `p0`])
+		FontEditor.getState(glyphAtoms, `B`)
+		FontEditor.getState(pointAtoms, [`B`, `p0`])
+		FontEditor.getState(pointXAtoms, [`regular`, `B`, `p0`])
+		FontEditor.clearTimeline(glyphHistories, `A`)
+		FontEditor.clearTimeline(glyphHistories, `B`)
+
+		// Insert a point after the histories exist, as happens while drawing a glyph.
+		FontEditor.setState(pointAtoms, [`A`, `p1`], { type: `on-curve` })
+		FontEditor.setState(pointXAtoms, [`regular`, `A`, `p1`], 100)
+		FontEditor.setState(pointXAtoms, [`bold`, `A`, `p1`], 110)
+		FontEditor.clearTimeline(glyphHistories, `A`)
+
+		// The reported regression was that moving this new point recorded nothing.
+		FontEditor.setState(pointXAtoms, [`regular`, `A`, `p1`], 140)
+		FontEditor.setState(pointXAtoms, [`preview`, `A`, `p1`], 999)
+		expect(FontEditor.inspectTimeline(glyphHistories, `A`)).toEqual({
 			at: 1,
 			length: 1,
 		})
-		expect(subscriber).toHaveBeenCalled()
-		Uno.undo(countHistories, `a`)
-		expect(Uno.getState(countAtoms, `a`)).toBe(0)
-		Uno.redo(countHistories, `a`)
-		expect(Uno.getState(countAtoms, `a`)).toBe(1)
+		expect(FontEditor.inspectTimeline(glyphHistories, `B`)).toEqual({
+			at: 0,
+			length: 0,
+		})
+		expect(historyASubscriber).toHaveBeenCalled()
 
-		Uno.disposeTimeline(countHistories, `a`)
-		const recreated = Uno.findTimeline(countHistories, `a`)
-		expect(recreated).toEqual(history)
-		expect(Uno.inspectTimeline(recreated)).toEqual({ at: 0, length: 0 })
+		FontEditor.undo(glyphHistories, `A`)
+		expect(FontEditor.getState(pointXAtoms, [`regular`, `A`, `p1`])).toBe(100)
+		expect(FontEditor.getState(pointXAtoms, [`preview`, `A`, `p1`])).toBe(999)
+		FontEditor.redo(glyphHistories, `A`)
+		expect(FontEditor.getState(pointXAtoms, [`regular`, `A`, `p1`])).toBe(140)
+
+		FontEditor.setState(pointXAtoms, [`regular`, `B`, `p0`], 20)
+		expect(FontEditor.inspectTimeline(historyA)).toEqual({ at: 1, length: 1 })
+		expect(FontEditor.inspectTimeline(historyB)).toEqual({ at: 1, length: 1 })
+		FontEditor.undo(glyphHistories, `B`)
+		expect(FontEditor.getState(pointXAtoms, [`regular`, `B`, `p0`])).toBe(0)
+		expect(FontEditor.getState(pointXAtoms, [`regular`, `A`, `p1`])).toBe(140)
+
+		FontEditor.disposeTimeline(glyphHistories, `A`)
+		const recreatedHistoryA = FontEditor.findTimeline(glyphHistories, `A`)
+		expect(recreatedHistoryA).toEqual(historyA)
+		expect(FontEditor.inspectTimeline(recreatedHistoryA)).toEqual({
+			at: 0,
+			length: 0,
+		})
+		expect(FontEditor.inspectTimeline(historyB)).toEqual({ at: 0, length: 1 })
+		expect(hasImplicitStoreBeenCreated()).toBe(false)
+	})
+	it(`retires an ordinary load history from its silo`, () => {
+		const FontEditor = new Silo({
+			name: `font-editor-load`,
+			lifespan: `ephemeral`,
+			isProduction: false,
+		})
+		FontEditor.store.logger = createNullLogger()
+		const fontLoadGenerationAtom = FontEditor.atom<number>({
+			key: `fontLoadGeneration`,
+			default: 1,
+		})
+		const firstLoadTimeline = FontEditor.timeline({
+			key: `firstLoad`,
+			scope: [fontLoadGenerationAtom],
+		})
+
+		FontEditor.setState(fontLoadGenerationAtom, 2)
+		expect(FontEditor.inspectTimeline(firstLoadTimeline)).toEqual({
+			at: 1,
+			length: 1,
+		})
+
+		// A reload workaround used to abandon these generated timelines in the store.
+		FontEditor.disposeTimeline(firstLoadTimeline)
+		expect(() => FontEditor.inspectTimeline(firstLoadTimeline)).toThrow()
 		expect(hasImplicitStoreBeenCreated()).toBe(false)
 	})
 })

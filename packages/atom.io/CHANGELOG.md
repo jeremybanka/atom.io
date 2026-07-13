@@ -1,5 +1,15 @@
 # atom.io
 
+## 0.49.9
+
+### Patch Changes
+
+- a8bea71: Preserve timeline history when a transaction disposes its last tracked atom.
+- 14182cd: Record mutable atom reference replacements in timelines so they can be undone
+  and redone without duplicating inner transceiver signal history.
+- 23d384d: Reconcile equivalent realtime transaction results independently of event timing.
+- b6a5f00: Rebind React `useTL` controls when a `StoreProvider` changes stores.
+
 ## 0.49.8
 
 ### Patch Changes

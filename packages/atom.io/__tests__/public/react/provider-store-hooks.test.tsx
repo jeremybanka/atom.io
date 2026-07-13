@@ -7,7 +7,7 @@ import {
 	selectorFamily,
 	Silo,
 } from "atom.io"
-import { StoreProvider, useI, useO } from "atom.io/react"
+import { StoreProvider, useI, useO, useTL } from "atom.io/react"
 import { takeSnapshot } from "atom.io/testing"
 import { UList } from "atom.io/transceivers/u-list"
 import { useLayoutEffect } from "react"
@@ -20,6 +20,40 @@ const createSilo = (name: string) =>
 	new Silo({ name, lifespan: `ephemeral`, isProduction: false })
 
 describe(`provider store changes`, () => {
+	it(`moves timeline controls to the next store when history metadata matches`, () => {
+		const createState = (name: string) => {
+			const silo = createSilo(name)
+			const countAtom = silo.atom<number>({ key: `count`, default: 0 })
+			const countTimeline = silo.timeline({
+				key: `countHistory`,
+				scope: [countAtom],
+			})
+			silo.setState(countAtom, 1)
+			return { silo, countAtom, countTimeline }
+		}
+		const uno = createState(`uno`)
+		const dos = createState(`dos`)
+
+		const Controls = () => {
+			const countTimeline = useTL(uno.countTimeline)
+			return (
+				<button type="button" data-testid="undo" onClick={countTimeline.undo} />
+			)
+		}
+		const view = (store: typeof uno.silo.store) => (
+			<StoreProvider store={store}>
+				<Controls />
+			</StoreProvider>
+		)
+		const { getByTestId, rerender } = render(view(uno.silo.store))
+
+		rerender(view(dos.silo.store))
+		fireEvent.click(getByTestId(`undo`))
+
+		expect(uno.silo.getState(uno.countAtom)).toBe(1)
+		expect(dos.silo.getState(dos.countAtom)).toBe(0)
+	})
+
 	it(`moves standalone atom observation, subscription, and writes to the next store`, () => {
 		const letterAtom = atom<string>({ key: `letter`, default: `A` })
 		const uno = createSilo(`uno`)

@@ -372,6 +372,33 @@ describe(`timeline`, () => {
 })
 
 describe(`timeline state lifecycle`, () => {
+	test(`member-scoped timelines survive update-then-dispose transactions`, () => {
+		const countAtoms = atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+		})
+		const countA = findState(countAtoms, `a`)
+		getState(countA)
+		const history = timeline({ key: `countHistory`, scope: [countA] })
+		clearTimeline(history)
+		const updateAndRemoveCount = transaction<() => void>({
+			key: `updateAndRemoveCount`,
+			do: ({ dispose, set }) => {
+				set(countA, 1)
+				dispose(countA)
+			},
+		})
+
+		expect(() => {
+			runTransaction(updateAndRemoveCount)()
+		}).not.toThrow()
+		expect(stateExists(countAtoms, `a`)).toBe(false)
+
+		undo(history)
+		expect(stateExists(countAtoms, `a`)).toBe(true)
+		expect(getState(countA)).toBe(0)
+	})
+
 	test(`states may be disposed via undo/redo`, () => {
 		const countAtoms = atomFamily<number, string>({
 			key: `count`,

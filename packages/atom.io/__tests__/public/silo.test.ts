@@ -382,6 +382,67 @@ describe(`silo`, () => {
 		})
 		expect(hasImplicitStoreBeenCreated()).toBe(false)
 	})
+	it(`undoes one batch edit across glyph histories`, () => {
+		type GlyphId = `A` | `B`
+		type PointKey = readonly [glyphId: GlyphId, pointId: string]
+
+		const FontEditor = new Silo({
+			name: `font-editor-batch`,
+			lifespan: `ephemeral`,
+			isProduction: false,
+		})
+		FontEditor.store.logger = createNullLogger()
+		const pointXAtoms = FontEditor.atomFamily<number, PointKey>({
+			key: `pointX`,
+			default: 0,
+		})
+		const glyphHistories = FontEditor.timelineFamily<GlyphId>({
+			key: `glyphHistory`,
+			scope: [
+				scopeFamily(pointXAtoms, {
+					timelineKey: ([glyphId]) => glyphId,
+				}),
+			],
+		})
+		const addExtremaToGlyphsTX = FontEditor.transaction<
+			(glyphIds: readonly GlyphId[]) => void
+		>({
+			key: `addExtremaToGlyphs`,
+			do: ({ set }, glyphIds) => {
+				for (const glyphId of glyphIds) {
+					set(
+						pointXAtoms,
+						[glyphId, `top-extremum`],
+						glyphId === `A` ? 100 : 200,
+					)
+				}
+			},
+		})
+		const historyA = FontEditor.findTimeline(glyphHistories, `A`)
+		const historyB = FontEditor.findTimeline(glyphHistories, `B`)
+
+		FontEditor.runTransaction(addExtremaToGlyphsTX)([`A`, `B`])
+		expect(FontEditor.inspectTimeline(historyA)).toEqual({ at: 1, length: 1 })
+		expect(FontEditor.inspectTimeline(historyB)).toEqual({ at: 1, length: 1 })
+
+		// This is the application-level coordination required today.
+		FontEditor.undo(glyphHistories, `A`)
+		expect(
+			stateExistsInStore(FontEditor.store, pointXAtoms, [`A`, `top-extremum`]),
+		).toBe(false)
+		expect(
+			stateExistsInStore(FontEditor.store, pointXAtoms, [`B`, `top-extremum`]),
+		).toBe(true)
+		expect(FontEditor.inspectTimeline(historyA)).toEqual({ at: 0, length: 1 })
+		expect(FontEditor.inspectTimeline(historyB)).toEqual({ at: 1, length: 1 })
+
+		FontEditor.undo(glyphHistories, `B`)
+		expect(
+			stateExistsInStore(FontEditor.store, pointXAtoms, [`B`, `top-extremum`]),
+		).toBe(false)
+		expect(FontEditor.inspectTimeline(historyB)).toEqual({ at: 0, length: 1 })
+		expect(hasImplicitStoreBeenCreated()).toBe(false)
+	})
 	it(`retires an ordinary load history from its silo`, () => {
 		const FontEditor = new Silo({
 			name: `font-editor-load`,

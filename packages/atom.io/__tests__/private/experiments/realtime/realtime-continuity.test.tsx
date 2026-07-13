@@ -3,6 +3,7 @@ import * as AtomIO from "atom.io"
 import { actUponStore, arbitrary } from "atom.io/internal"
 import * as AR from "atom.io/react"
 import * as RT from "atom.io/realtime"
+import { optimisticUpdateQueueAtom } from "atom.io/realtime-client"
 import * as RTR from "atom.io/realtime-react"
 import * as RTS from "atom.io/realtime-server"
 import * as RTTest from "atom.io/realtime-testing"
@@ -121,7 +122,18 @@ describe(`synchronizing transactions`, () => {
 		act(() => {
 			dave.renderResult.getByTestId(`increment`).click()
 		})
+		expect(dave.silo.getState(optimisticUpdateQueueAtom)).toHaveLength(1)
 		await waitFor(() => jane.renderResult.getByTestId(`1`))
+		await waitFor(() => {
+			expect(dave.silo.store.logger.info).toHaveBeenCalledWith(
+				`✅`,
+				`continuity`,
+				`count`,
+				expect.stringMatching(
+					/^results for .* match between client and server$/,
+				),
+			)
+		})
 	})
 	test(`rollback`, async () => {
 		const { countState } = scenario
@@ -211,14 +223,16 @@ describe(`mutable atoms in continuity`, () => {
 		await waitFor(() => clientApp.renderResult.getByTestId(`state`).textContent)
 		expect(clientApp.renderResult.getByTestId(`state`).textContent).toBe(`1`)
 
-		const time = performance.now()
 		act(() => {
 			clientApp.silo.runTransaction(addItemTX)(`world`)
 		})
+		expect(clientApp.silo.getState(optimisticUpdateQueueAtom)).toHaveLength(1)
 		await waitFor(() => {
 			Utils.throwUntil(() => server.silo.getState(myListAtom).has(`world`))
 		})
-		// console.log(`📝 took ${performance.now() - time}ms`)
+		await waitFor(() => {
+			expect(clientApp.silo.getState(optimisticUpdateQueueAtom)).toHaveLength(0)
+		})
 
 		await teardown()
 	})

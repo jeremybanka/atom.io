@@ -38,6 +38,18 @@
 				"__scripts__/**"
 			]
 		},
+		"test:stress:realtime-ipc": {
+			"dependsOn": ["build"],
+			"cache": false,
+			"inputs": [
+				"package.json",
+				"tsconfig.json",
+				"*.config.ts",
+				"src/**",
+				"__tests__/**",
+				"__scripts__/**"
+			]
+		},
 		"cov": {
 			"dependsOn": ["^build"],
 			"outputs": ["coverage/**"],

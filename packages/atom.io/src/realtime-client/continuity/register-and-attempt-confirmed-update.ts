@@ -15,6 +15,22 @@ import {
 	optimisticUpdateQueueAtom,
 } from "../realtime-client-stores/index.ts"
 
+function stringifyTransactionResults(
+	subEvents: readonly AtomIO.TransactionSubEvent[],
+): string {
+	const omitTimestamp = (event: AtomIO.TransactionSubEvent): unknown => {
+		const { timestamp: _, ...result } = event
+		if (event.type === `transaction_outcome`) {
+			return {
+				...result,
+				subEvents: event.subEvents.map(omitTimestamp),
+			}
+		}
+		return result
+	}
+	return JSON.stringify(subEvents.map(omitTimestamp))
+}
+
 export const useRegisterAndAttemptConfirmedUpdate =
 	(
 		store: RootStore,
@@ -45,8 +61,12 @@ export const useRegisterAndAttemptConfirmedUpdate =
 				return queue
 			})
 			if (optimisticUpdate.id === confirmedUpdate.id) {
-				const clientResult = JSON.stringify(optimisticUpdate.subEvents)
-				const serverResult = JSON.stringify(confirmedUpdate.subEvents)
+				const clientResult = stringifyTransactionResults(
+					optimisticUpdate.subEvents,
+				)
+				const serverResult = stringifyTransactionResults(
+					confirmedUpdate.subEvents,
+				)
 				if (clientResult === serverResult) {
 					store.logger.info(
 						`✅`,

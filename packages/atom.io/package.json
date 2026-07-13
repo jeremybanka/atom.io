@@ -30,6 +30,7 @@
 		"test": "vitest",
 		"test:once": "vitest run --config vitest.dist.config.ts",
 		"test:once:public": "vitest run --config vitest.public-dist.config.ts",
+		"test:stress:realtime-ipc": "ATOM_IO_TEST_ROOM_STARTUP_DELAY_MS=1250 vitest run --config vitest.dist.config.ts __tests__/private/experiments/realtime-ipc/game-servers.test.tsx",
 		"test:breaks": "break-check break-check.config.json --verbose",
 		"cov": "vitest run --config vitest.total-coverage.config.ts --coverage",
 		"cov:recoverage": "recoverage",

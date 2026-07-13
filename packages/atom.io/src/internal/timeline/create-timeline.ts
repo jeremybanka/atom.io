@@ -507,14 +507,8 @@ export function handleStateLifecycleEvent(
 			addAtomToTimeline(store, event.token, tl)
 			break
 		case `atom_disposal`:
-			{
-				const subscriptionKey =
-					event.token.type === `mutable_atom`
-						? getUpdateToken(event.token).key
-						: event.token.key
-				tl.subscriptions.get(subscriptionKey)?.()
-				tl.subscriptions.delete(subscriptionKey)
-			}
+			tl.subscriptions.get(event.token.key)?.()
+			tl.subscriptions.delete(event.token.key)
 			break
 	}
 }

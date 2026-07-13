@@ -17,13 +17,13 @@ import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 import { vitest } from "vitest"
 
 import {
-	drainOperationQueue,
-	enqueueOperation,
-} from "../../src/internal/operation-queue.ts"
-import {
 	closeOperation as closeSourceOperation,
 	openOperation as openSourceOperation,
 } from "../../src/internal/operation.ts"
+import {
+	drainOperationQueue,
+	enqueueOperation,
+} from "../../src/internal/operation-queue.ts"
 import {
 	cancelStateNotificationBatch,
 	deferStateNotification,
@@ -304,7 +304,9 @@ describe(`batched transaction exception boundaries`, () => {
 			),
 		]
 
-		expect(() => silo.runTransaction(noOpTX)()).toThrow(`build logger failed`)
+		expect(() => {
+			silo.runTransaction(noOpTX)()
+		}).toThrow(`build logger failed`)
 		expect(silo.store.child).toBeNull()
 	})
 
@@ -457,7 +459,9 @@ describe(`commit support queues and batches`, () => {
 			throw new Error(`second deferred failure`)
 		})
 
-		const error = captureError(() => drainOperationQueue(silo.store))
+		const error = captureError(() => {
+			drainOperationQueue(silo.store)
+		})
 
 		expectAggregateError(error, [
 			`first deferred failure`,

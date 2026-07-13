@@ -9,7 +9,6 @@ import type {
 	TimelineEvent,
 	TimelineManageable,
 	TimelineOptions,
-	TimelineSelectorUpdateEvent,
 	TimelineToken,
 	TimelineUpdate,
 	TransactionOutcomeEvent,
@@ -344,14 +343,13 @@ function buildSelectorUpdate(
 ) {
 	let latestEvent: TimelineEvent<any> | undefined = tl.history.at(-1)
 	if (currentSelectorTime !== tl.selectorTime) {
-		const selectorUpdate: TimelineEvent<any> & TimelineSelectorUpdateEvent<any> =
-			(latestEvent = {
-				checkpoint: true,
-				type: `selector_update`,
-				timestamp: currentSelectorTime,
-				token: currentSelectorToken,
-				subEvents: [],
-			})
+		latestEvent = {
+			checkpoint: true,
+			type: `selector_update`,
+			timestamp: currentSelectorTime,
+			token: currentSelectorToken,
+			subEvents: [],
+		}
 		if (`type` in eventOrUpdate) {
 			latestEvent.subEvents.push(eventOrUpdate)
 		} else {
@@ -372,20 +370,6 @@ function buildSelectorUpdate(
 			tl.key,
 			`got a selector_update "${currentSelectorToken.key}" with`,
 			latestEvent.subEvents.map((event) => event.token.key),
-		)
-
-		const operation = store.operation
-		const unsub = store.on.operationClose.subscribe(
-			`timeline:${tl.key} (needs to gather nested selector creations)`,
-			() => {
-				unsub()
-				if (operation.open) {
-					selectorUpdate.subEvents = [
-						...operation.subEvents,
-						...selectorUpdate.subEvents,
-					]
-				}
-			},
 		)
 	} else {
 		if (latestEvent?.type === `selector_update`) {

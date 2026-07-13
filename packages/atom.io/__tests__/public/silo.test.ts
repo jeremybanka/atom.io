@@ -5,7 +5,7 @@ import type {
 	RegularAtomOptions,
 } from "atom.io"
 import { getState, scopeFamily, Silo } from "atom.io"
-import { hasImplicitStoreBeenCreated } from "atom.io/testing"
+import { hasImplicitStoreBeenCreated, stateExistsInStore } from "atom.io/testing"
 import { UList } from "atom.io/transceivers/u-list"
 import { u } from "motion/react-client"
 
@@ -309,6 +309,77 @@ describe(`silo`, () => {
 			length: 0,
 		})
 		expect(FontEditor.inspectTimeline(historyB)).toEqual({ at: 0, length: 1 })
+		expect(hasImplicitStoreBeenCreated()).toBe(false)
+	})
+	it(`keeps selector-created extrema in their own glyph histories`, () => {
+		type GlyphId = `A` | `B`
+		type PointKey = readonly [glyphId: GlyphId, pointId: string]
+
+		const FontEditor = new Silo({
+			name: `font-editor-extrema`,
+			lifespan: `ephemeral`,
+			isProduction: false,
+		})
+		FontEditor.store.logger = createNullLogger()
+		const pointXAtoms = FontEditor.atomFamily<number, PointKey>({
+			key: `pointX`,
+			default: 0,
+		})
+		const glyphHistories = FontEditor.timelineFamily<GlyphId>({
+			key: `glyphHistory`,
+			scope: [
+				scopeFamily(pointXAtoms, {
+					timelineKey: ([glyphId]) => glyphId,
+				}),
+			],
+		})
+		const addExtremaToGlyphsSelector = FontEditor.selector<readonly GlyphId[]>({
+			key: `addExtremaToGlyphs`,
+			get: () => [],
+			set: ({ set }, glyphIds) => {
+				for (const glyphId of glyphIds) {
+					set(
+						pointXAtoms,
+						[glyphId, `top-extremum`],
+						glyphId === `A` ? 100 : 200,
+					)
+				}
+			},
+		})
+
+		FontEditor.findTimeline(glyphHistories, `A`)
+		FontEditor.findTimeline(glyphHistories, `B`)
+
+		// A batch "Add Extrema" command creates one new point in each glyph.
+		FontEditor.setState(addExtremaToGlyphsSelector, [`A`, `B`])
+		expect(FontEditor.inspectTimeline(glyphHistories, `A`)).toEqual({
+			at: 1,
+			length: 1,
+		})
+		expect(FontEditor.inspectTimeline(glyphHistories, `B`)).toEqual({
+			at: 1,
+			length: 1,
+		})
+		expect(
+			stateExistsInStore(FontEditor.store, pointXAtoms, [`A`, `top-extremum`]),
+		).toBe(true)
+		expect(
+			stateExistsInStore(FontEditor.store, pointXAtoms, [`B`, `top-extremum`]),
+		).toBe(true)
+
+		// Undoing A removes A's point without touching B's applied history.
+		FontEditor.undo(glyphHistories, `A`)
+		expect(
+			stateExistsInStore(FontEditor.store, pointXAtoms, [`A`, `top-extremum`]),
+		).toBe(false)
+		expect(
+			stateExistsInStore(FontEditor.store, pointXAtoms, [`B`, `top-extremum`]),
+		).toBe(true)
+		expect(FontEditor.getState(pointXAtoms, [`B`, `top-extremum`])).toBe(200)
+		expect(FontEditor.inspectTimeline(glyphHistories, `B`)).toEqual({
+			at: 1,
+			length: 1,
+		})
 		expect(hasImplicitStoreBeenCreated()).toBe(false)
 	})
 	it(`retires an ordinary load history from its silo`, () => {

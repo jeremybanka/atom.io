@@ -6,6 +6,7 @@ import { readOrComputeValue } from "../get-state/index.ts"
 import { traceRootSelectorAtoms } from "../selector/index.ts"
 import type { Store } from "../store/index.ts"
 import { withdraw } from "../store/index.ts"
+import { registerSelectorRootSubscriptionReconciler } from "./selector-root-subscriptions.ts"
 import { subscribeToRootDependency } from "./subscribe-to-root-atoms.ts"
 
 export function subscribeToState<T, E>(
@@ -34,13 +35,18 @@ export function subscribeToState<T, E>(
 		state.type === `readonly_pure_selector`
 	const rootSubs = new Map<string, () => void>()
 	let updateHandler: UpdateHandler<E | T> = safelyHandleUpdate
+	let unregisterRootSubscriptionReconciler = () => {}
 	if (isSelector) {
 		readOrComputeValue(store, state)
 		for (const [atomKey, atom] of traceRootSelectorAtoms(store, state.key)) {
 			rootSubs.set(atomKey, subscribeToRootDependency(store, state, atom))
 		}
-		updateHandler = function updateRootsBeforeHandlingUpdate(update) {
+		const reconcileRootSubscriptions = () => {
 			const dependencies = traceRootSelectorAtoms(store, state.key)
+			store.selectorAtoms.delete(state.key)
+			for (const atomKey of dependencies.keys()) {
+				store.selectorAtoms.set({ selectorKey: state.key, atomKey })
+			}
 			for (const [previousRootKey, unsub] of rootSubs) {
 				const currentRoot = dependencies.get(previousRootKey)
 				if (currentRoot) {
@@ -53,6 +59,14 @@ export function subscribeToState<T, E>(
 			for (const [atomKey, atom] of dependencies) {
 				rootSubs.set(atomKey, subscribeToRootDependency(store, state, atom))
 			}
+		}
+		unregisterRootSubscriptionReconciler =
+			registerSelectorRootSubscriptionReconciler(
+				state,
+				reconcileRootSubscriptions,
+			)
+		updateHandler = function updateRootsBeforeHandlingUpdate(update) {
+			reconcileRootSubscriptions()
 			safelyHandleUpdate(update)
 		}
 	}
@@ -65,6 +79,7 @@ export function subscribeToState<T, E>(
 			`Removing subscription "${key}"`,
 		)
 		mainUnsubFunction()
+		unregisterRootSubscriptionReconciler()
 		for (const unsubFromDependency of rootSubs.values()) {
 			unsubFromDependency()
 		}

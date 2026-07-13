@@ -5,7 +5,9 @@ import {
 } from "../state-notification-batch.ts"
 import type { Atom, Selector } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
+import { notifySubjectSubscribers } from "../transaction/transaction-observer-errors.ts"
 import { recallState } from "./recall-state.ts"
+import { reconcileSelectorRootSubscriptions } from "./selector-root-subscriptions.ts"
 
 export function subscribeToRootDependency(
 	target: Store,
@@ -43,16 +45,21 @@ function notifySelectorUpdate(
 		`->`,
 		atomChange.newValue,
 	)
-	const oldValue = recallState(target, selector)
-	const newValue = readOrComputeValue(target, selector)
-	target.logger.info(
-		`✨`,
-		selector.type,
-		selector.key,
-		`went`,
-		oldValue,
-		`->`,
-		newValue,
-	)
-	selector.subject.next({ newValue, oldValue })
+	try {
+		const oldValue = recallState(target, selector)
+		const newValue = readOrComputeValue(target, selector)
+		target.logger.info(
+			`✨`,
+			selector.type,
+			selector.key,
+			`went`,
+			oldValue,
+			`->`,
+			newValue,
+		)
+		notifySubjectSubscribers(selector.subject, { newValue, oldValue })
+	} catch (thrown) {
+		reconcileSelectorRootSubscriptions(selector)
+		throw thrown
+	}
 }

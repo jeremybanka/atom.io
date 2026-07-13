@@ -64,7 +64,7 @@ export function dispatchOrDeferStateUpdate<T, E>(
 						target.on.atomCreation.next(token)
 					} else if (
 						isChildStore(innerTarget) &&
-						innerTarget.on.transactionApplying.state === null
+						innerTarget.transactionMeta.phase === `building`
 					) {
 						innerTarget.transactionMeta.update.subEvents.push(atomCreationEvent)
 					}
@@ -127,7 +127,7 @@ export function dispatchOrDeferStateUpdate<T, E>(
 	}
 
 	if (isChildStore(target) && (type === `mutable_atom` || type === `atom`)) {
-		if (target.on.transactionApplying.state === null) {
+		if (target.transactionMeta.phase === `building`) {
 			if (isTransceiver(newValue)) {
 				return
 			}

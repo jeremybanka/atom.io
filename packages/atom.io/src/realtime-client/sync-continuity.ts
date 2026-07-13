@@ -106,6 +106,7 @@ export function syncContinuity(
 					params: clientUpdate.params,
 				})
 			},
+			`realtime`,
 		)
 		return unsubscribeFromTransactionUpdates
 	})

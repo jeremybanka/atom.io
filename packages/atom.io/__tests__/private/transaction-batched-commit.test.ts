@@ -319,7 +319,7 @@ describe(`transaction commit strategies`, () => {
 		})
 		const createCountTX = transaction<(key: string, value: number) => void>({
 			key: `createCount`,
-			commit: `batched`,
+			commit: `prefer-batched`,
 			do: ({ find, set }, key, value) => {
 				set(find(countAtoms, key), value)
 			},
@@ -351,7 +351,7 @@ describe(`transaction commit strategies`, () => {
 		})
 		const createNestedTX = transaction<() => void>({
 			key: `createNested`,
-			commit: `batched`,
+			commit: `prefer-batched`,
 			do: ({ run }) => {
 				run(createCountTX)()
 			},
@@ -376,7 +376,7 @@ describe(`transaction commit strategies`, () => {
 		const tracker = new Internal.Tracker(listAtom, Internal.IMPLICIT.STORE)
 		const updateListTX = transaction<() => void>({
 			key: `updateList`,
-			commit: `batched`,
+			commit: `prefer-batched`,
 			do: ({ set }) => {
 				set(tracker.latestSignalToken, `0\u001F\u0003x`)
 				set(tracker.latestSignalToken, `0\u001F\u0003y`)
@@ -405,7 +405,7 @@ describe(`transaction commit strategies`, () => {
 		})
 		const setBothTX = transaction<() => void>({
 			key: `setBoth`,
-			commit: `batched`,
+			commit: `prefer-batched`,
 			do: ({ set }) => {
 				set(leftAtom, 1)
 				set(rightAtom, 2)

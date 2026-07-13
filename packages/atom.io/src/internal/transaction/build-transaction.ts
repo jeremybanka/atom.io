@@ -27,6 +27,8 @@ import type { Fn } from "../utility-types.ts"
 import { actUponStore } from "./act-upon-store.ts"
 import { getEpochNumberOfAction } from "./get-epoch-number.ts"
 import type { ChildStore, RootStore } from "./is-root-store.ts"
+import { isRootStore } from "./is-root-store.ts"
+import { getQueuedTransactionBase } from "./transaction-commit-context.ts"
 import type { TransactionProgress } from "./transaction-meta-progress.ts"
 
 export function buildTransaction(
@@ -36,34 +38,37 @@ export function buildTransaction(
 	id: string,
 ): ChildStore {
 	const parent = newest(store)
+	const base = isRootStore(parent)
+		? (getQueuedTransactionBase(store) ?? parent)
+		: parent
 	const childBase: Omit<ChildStore, `transactionMeta`> = {
 		parent,
 		child: null,
-		on: parent.on,
-		loggers: parent.loggers,
-		logger: parent.logger,
-		config: parent.config,
-		atoms: new MapOverlay(parent.atoms),
-		atomsThatAreDefault: new Set(parent.atomsThatAreDefault),
-		families: new MapOverlay(parent.families),
-		joins: new MapOverlay(parent.joins),
+		on: base.on,
+		loggers: base.loggers,
+		logger: base.logger,
+		config: base.config,
+		atoms: new MapOverlay(base.atoms),
+		atomsThatAreDefault: new Set(base.atomsThatAreDefault),
+		families: new MapOverlay(base.families),
+		joins: new MapOverlay(base.joins),
 		operation: { open: false },
-		readonlySelectors: new MapOverlay(parent.readonlySelectors),
-		timelines: new MapOverlay(parent.timelines),
-		timelineTopics: parent.timelineTopics.overlay(),
+		readonlySelectors: new MapOverlay(base.readonlySelectors),
+		timelines: new MapOverlay(base.timelines),
+		timelineTopics: base.timelineTopics.overlay(),
 		trackers: new Map(),
-		transactions: new MapOverlay(parent.transactions),
-		selectorAtoms: parent.selectorAtoms.overlay(),
-		selectorGraph: parent.selectorGraph.overlay(),
-		writableSelectors: new MapOverlay(parent.writableSelectors),
-		valueMap: new MapOverlay(parent.valueMap),
-		defaults: parent.defaults,
+		transactions: new MapOverlay(base.transactions),
+		selectorAtoms: base.selectorAtoms.overlay(),
+		selectorGraph: base.selectorGraph.overlay(),
+		writableSelectors: new MapOverlay(base.writableSelectors),
+		valueMap: new MapOverlay(base.valueMap),
+		defaults: base.defaults,
 		disposalTraces: store.disposalTraces.copy(),
-		molecules: new MapOverlay(parent.molecules),
-		moleculeGraph: parent.moleculeGraph.overlay(),
-		moleculeData: parent.moleculeData.overlay(),
-		keyRefsInJoins: parent.keyRefsInJoins.overlay(),
-		miscResources: new MapOverlay(parent.miscResources),
+		molecules: new MapOverlay(base.molecules),
+		moleculeGraph: base.moleculeGraph.overlay(),
+		moleculeData: base.moleculeData.overlay(),
+		keyRefsInJoins: base.keyRefsInJoins.overlay(),
+		miscResources: new MapOverlay(base.miscResources),
 	}
 	const epoch = getEpochNumberOfAction(store, token.key)
 
@@ -113,12 +118,17 @@ export function buildTransaction(
 		transactionMeta,
 	})
 	parent.child = child
-	store.logger.info(
-		`🛫`,
-		`transaction`,
-		token.key,
-		`building with params:`,
-		params,
-	)
+	try {
+		store.logger.info(
+			`🛫`,
+			`transaction`,
+			token.key,
+			`building with params:`,
+			params,
+		)
+	} catch (error) {
+		parent.child = null
+		throw error
+	}
 	return child
 }

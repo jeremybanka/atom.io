@@ -20,6 +20,7 @@ export type TimelineMeta = {
 export function useTL(token: TimelineToken<any>): TimelineMeta {
 	const store = useContext(StoreContext)
 	const id = useId()
+	const storeRef = useRef(store)
 	const tokenRef = useRef(token)
 	const rebuildMeta = () => {
 		const { at, length } = inspectTimelineInStore(store, token)
@@ -43,8 +44,10 @@ export function useTL(token: TimelineToken<any>): TimelineMeta {
 		if (
 			meta.current.at !== at ||
 			meta.current.length !== length ||
+			storeRef.current !== store ||
 			tokenRef.current !== token
 		) {
+			storeRef.current = store
 			tokenRef.current = token
 			meta.current = rebuildMeta()
 		}

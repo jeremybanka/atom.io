@@ -1,9 +1,10 @@
 import type { TimelineToken } from "atom.io"
-import { clearTimeline, redo, undo } from "atom.io"
 import {
 	arbitrary,
+	clearTimelineInStore,
 	inspectTimelineInStore,
 	subscribeToTimeline,
+	timeTravel,
 } from "atom.io/internal"
 import { useContext } from "solid-js"
 
@@ -27,13 +28,13 @@ export function useTL(token: TimelineToken<any>): () => TimelineMeta {
 			at,
 			length,
 			undo: () => {
-				undo(token)
+				timeTravel(store, `undo`, token)
 			},
 			redo: () => {
-				redo(token)
+				timeTravel(store, `redo`, token)
 			},
 			clear: () => {
-				clearTimeline(token)
+				clearTimelineInStore(store, token)
 			},
 		}
 	}

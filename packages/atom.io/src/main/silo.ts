@@ -58,8 +58,10 @@ export class Silo {
 	public selectorFamily: typeof selectorFamily
 	public transaction: typeof transaction
 	public timeline: typeof timeline
+	/** {@link timelineFamily}, bound to this Silo's store. */
 	public timelineFamily: typeof timelineFamily
 	public findState: typeof findState
+	/** {@link findTimeline}, bound to this Silo's store. */
 	public findTimeline: typeof findTimeline
 	public getState: typeof getState
 	public setState: typeof setState
@@ -69,7 +71,9 @@ export class Silo {
 	public undo: typeof undo
 	public redo: typeof redo
 	public clearTimeline: typeof clearTimeline
+	/** {@link inspectTimeline}, bound to this Silo's store. */
 	public inspectTimeline: typeof inspectTimeline
+	/** {@link disposeTimeline}, bound to this Silo's store. */
 	public disposeTimeline: typeof disposeTimeline
 	public runTransaction: typeof runTransaction
 	public install: (tokens: AtomIOToken[], store?: RootStore) => void

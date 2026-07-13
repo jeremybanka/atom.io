@@ -52,6 +52,11 @@ export type TimelineToken<M, K extends Canonical = any> = {
 	__M?: M
 }
 
+/**
+ * A serializable reference to a family of keyed timelines.
+ *
+ * Use {@link findTimeline} to get a timeline-family member.
+ */
 export type TimelineFamilyToken<K extends Canonical, M = any> = {
 	/** The unique identifier of the timeline family */
 	key: string

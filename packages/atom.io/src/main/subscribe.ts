@@ -59,6 +59,15 @@ export function subscribe<M extends TimelineManageable>(
 	handleUpdate: (update: TimelineUpdate<M>) => void,
 	key?: string,
 ): () => void
+/**
+ * Subscribe to a timeline-family member in the implicit store, creating it if needed.
+ * @param family - A {@link TimelineFamilyToken}.
+ * @param memberKey - The key of the timeline-family member.
+ * @param handleUpdate - A function that will be called when a new update is available.
+ * @param subscriptionKey - A unique key for the subscription. If not provided, a random key will be generated.
+ * @returns A function that can be called to unsubscribe from the timeline-family member.
+ * @overload Timeline Family Member
+ */
 export function subscribe<K extends Canonical, M extends TimelineManageable>(
 	family: TimelineFamilyToken<K, M>,
 	memberKey: NoInfer<K>,

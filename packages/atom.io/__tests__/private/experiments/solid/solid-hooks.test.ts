@@ -3,12 +3,15 @@ import type { Loadable, TimelineToken } from "atom.io"
 import {
 	atom,
 	atomFamily,
+	getState,
+	inspectTimeline,
 	mutableAtom,
 	mutableAtomFamily,
 	redo,
 	resetState,
 	selector,
 	setState,
+	Silo,
 	timeline,
 	undo,
 } from "atom.io"
@@ -91,6 +94,7 @@ const mountWithProvider = async (
 			host: HTMLElement
 		},
 	) => void,
+	store?: Silo[`store`],
 ) => {
 	const integration = await loadSolidIntegration()
 	const { AS, Solid } = integration
@@ -100,6 +104,7 @@ const mountWithProvider = async (
 	Solid.createRoot((rootDispose) => {
 		dispose = rootDispose
 		AS.StoreProvider({
+			...(store ? { store } : {}),
 			children: (() => {
 				renderChildren({ ...integration, host })
 				return undefined
@@ -331,6 +336,93 @@ describe(`timeline`, () => {
 		await flush()
 		expect(timelineAt.textContent).toEqual(`2`)
 		expect(timelineLength.textContent).toEqual(`2`)
+		dispose()
+		host.remove()
+	})
+
+	it(`uses the provider store for all controls`, async () => {
+		const implicit = (() => {
+			const letterAtom = atom<string>({
+				key: `letter`,
+				default: `implicit-a`,
+			})
+			const letterTL = timeline({
+				key: `letterTL`,
+				scope: [letterAtom],
+			})
+			setState(letterAtom, `implicit-b`)
+			return { letterAtom, letterTL }
+		})()
+
+		const silo = new Silo({
+			name: `solid-use-tl-provider-store`,
+			lifespan: `ephemeral`,
+			isProduction: false,
+		})
+		const siloState = (() => {
+			const letterAtom = silo.atom<string>({
+				key: `letter`,
+				default: `silo-a`,
+			})
+			const letterTL = silo.timeline({
+				key: `letterTL`,
+				scope: [letterAtom],
+			})
+			silo.setState(letterAtom, `silo-b`)
+			return { letterAtom, letterTL }
+		})()
+
+		const { dispose, host } = await mountWithProvider(({ AS, Solid, host }) => {
+			const letter = AS.useO(siloState.letterAtom)
+			const letterTimeline = AS.useTL(siloState.letterTL)
+			const letterDisplay = createDisplay()
+			const atDisplay = createDisplay()
+			const lengthDisplay = createDisplay()
+			host.append(
+				letterDisplay,
+				atDisplay,
+				lengthDisplay,
+				createButton(`undoButton`, () => {
+					letterTimeline().undo()
+				}),
+				createButton(`redoButton`, () => {
+					letterTimeline().redo()
+				}),
+				createButton(`clearButton`, () => {
+					letterTimeline().clear()
+				}),
+			)
+			Solid.createEffect(() => {
+				const meta = letterTimeline()
+				setDisplay(letterDisplay, `letter`, letter())
+				setDisplay(atDisplay, `timelineAt`, `${meta.at}`)
+				setDisplay(lengthDisplay, `timelineLength`, `${meta.length}`)
+			})
+		}, silo.store)
+
+		getByTestId(host, `undoButton`).click()
+		await flush()
+		expect(getByTestId(host, `letter`).textContent).toBe(`silo-a`)
+		expect(getByTestId(host, `timelineAt`).textContent).toBe(`0`)
+		expect(silo.getState(siloState.letterAtom)).toBe(`silo-a`)
+		expect(getState(implicit.letterAtom)).toBe(`implicit-b`)
+		expect(inspectTimeline(implicit.letterTL)).toEqual({ at: 1, length: 1 })
+
+		getByTestId(host, `redoButton`).click()
+		await flush()
+		expect(getByTestId(host, `letter`).textContent).toBe(`silo-b`)
+		expect(getByTestId(host, `timelineAt`).textContent).toBe(`1`)
+		expect(silo.getState(siloState.letterAtom)).toBe(`silo-b`)
+		expect(getState(implicit.letterAtom)).toBe(`implicit-b`)
+		expect(inspectTimeline(implicit.letterTL)).toEqual({ at: 1, length: 1 })
+
+		getByTestId(host, `clearButton`).click()
+		await flush()
+		expect(getByTestId(host, `timelineAt`).textContent).toBe(`0`)
+		expect(getByTestId(host, `timelineLength`).textContent).toBe(`0`)
+		expect(getState(implicit.letterAtom)).toBe(`implicit-b`)
+		expect(inspectTimeline(implicit.letterTL)).toEqual({ at: 1, length: 1 })
+
 		dispose()
 		host.remove()
 	})

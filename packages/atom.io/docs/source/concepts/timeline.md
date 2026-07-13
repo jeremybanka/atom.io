@@ -17,5 +17,8 @@ and redone.
 Timelines pair naturally with transactions. A transaction can describe a
 meaningful operation, while a timeline records the resulting changes as history.
 
+For mutable atoms, timelines record both inner transceiver signals and whole-
+reference replacements. Each change produces one undoable history entry.
+
 Use timelines for editors, design tools, form flows, and other interfaces where
 users expect undo and redo.

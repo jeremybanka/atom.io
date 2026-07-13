@@ -136,7 +136,8 @@ function addAtomToTimeline(
 	ensureState(store, atomToken)
 	const atom = withdraw(store, atomToken)
 	if (atom.type === `mutable_atom`) {
-		const updateAtom = withdraw(store, getUpdateToken(atom))
+		const updateToken = getUpdateToken(atom)
+		const updateAtom = withdraw(store, updateToken)
 		addAtomTopicToTimeline(store, atom, tl)
 		addAtomTopicToTimeline(store, updateAtom, tl)
 
@@ -149,7 +150,7 @@ function addAtomToTimeline(
 		)
 		const unsubscribeFromSignals = subscribeToAtomUpdates(
 			store,
-			atomToken,
+			updateToken,
 			updateAtom,
 			tl,
 			false,

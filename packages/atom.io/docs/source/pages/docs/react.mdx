@@ -44,9 +44,56 @@ import Exhibit from "c/Exhibit.astro";
           interface for observing its value, loading state, and error state.
         </td>
       </tr>
+      <tr>
+        <td>
+          <code>StoreProvider</code>
+        </td>
+        <td>Supply the store used by descendant atom.io React hooks.</td>
+      </tr>
+      <tr>
+        <td>
+          <code>StoreContext</code>
+        </td>
+        <td>
+          Access the current store when building advanced integrations.
+        </td>
+      </tr>
     </tbody>
   </table>
 </table-wrapper>
+
+## StoreProvider
+
+`StoreProvider` selects the store used by atom.io hooks in its descendant React
+tree. Its optional `store` prop accepts a store such as `silo.store`. When the prop
+is omitted—or when there is no provider—the hooks use atom.io's implicit store.
+
+The standard hooks, including `useO`, `useI`, `useJSON`, `useTL`, and `useLoadable`,
+read this context. You do not need to wrap them in custom, context-aware adapters to
+use an explicit store.
+
+This example creates two [Silos](/docs/concepts#silo). Both have a `title` atom, but
+each provider resolves that token key in its own store. Editing one input leaves the
+other document unchanged.
+
+<Exhibit src="react/silo-store-providers.tsx" />
+
+Keep each provider's store stable for the lifetime of its mounted subtree. Create a
+Silo outside render or with a stable React initializer. Replacing the `store` prop on
+an already-mounted `StoreProvider` is not currently supported. To switch stores,
+remount the provider subtree, usually by giving it a key that identifies the store.
+
+For production isolation patterns and lifecycle guidance, see the
+[Silo guide](/docs/concepts#silo).
+
+### StoreContext
+
+`StoreContext` is the context read by `StoreProvider` and atom.io's hooks. It is a
+public, advanced API for integrations that need direct access to the current store,
+such as developer tools or binding libraries. Application components should prefer
+`StoreProvider` and the standard hooks.
+
+Like `StoreProvider`, `StoreContext` defaults to the implicit store.
 
 ## useO
 

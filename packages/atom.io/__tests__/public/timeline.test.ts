@@ -7,6 +7,7 @@ import {
 	findState,
 	getState,
 	inspectTimeline,
+	mutableAtomFamily,
 	redo,
 	runTransaction,
 	selector,
@@ -18,6 +19,7 @@ import {
 	undo,
 } from "atom.io"
 import { setTestLogLevel, stateExists, takeSnapshot } from "atom.io/testing"
+import { UList } from "atom.io/transceivers/u-list"
 import { vitest } from "vitest"
 
 import * as Utils from "../__util__/index.ts"
@@ -369,9 +371,104 @@ describe(`timeline`, () => {
 		expect(inspectTimeline(letterTL)).toEqual({ at: 1, length: 1 })
 		expect(getState(letterAtom)).toBe(`D`)
 	})
+	test(`mutable reference replacements can be undone and redone`, () => {
+		const itemAtoms = mutableAtomFamily<UList<string>, string>({
+			key: `item`,
+			class: UList,
+		})
+		const items = findState(itemAtoms, `a`)
+		getState(items)
+		const history = timeline({ key: `itemHistory`, scope: [items] })
+		clearTimeline(history)
+
+		setState(items, new UList([`one`]))
+
+		expect(getState(items)).toEqual(new UList([`one`]))
+		expect(inspectTimeline(history)).toEqual({ at: 1, length: 1 })
+
+		undo(history)
+		expect(getState(items)).toEqual(new UList())
+		expect(inspectTimeline(history)).toEqual({ at: 0, length: 1 })
+
+		redo(history)
+		expect(getState(items)).toEqual(new UList([`one`]))
+		expect(inspectTimeline(history)).toEqual({ at: 1, length: 1 })
+	})
+	test(`mutable inner signals are recorded exactly once`, () => {
+		const itemAtoms = mutableAtomFamily<UList<string>, string>({
+			key: `item`,
+			class: UList,
+		})
+		const items = findState(itemAtoms, `a`)
+		getState(items)
+		const history = timeline({ key: `itemHistory`, scope: [items] })
+		clearTimeline(history)
+
+		setState(items, (current) => current.add(`one`))
+
+		expect(getState(items)).toEqual(new UList([`one`]))
+		expect(inspectTimeline(history)).toEqual({ at: 1, length: 1 })
+
+		undo(history)
+		expect(getState(items)).toEqual(new UList())
+		expect(inspectTimeline(history)).toEqual({ at: 0, length: 1 })
+
+		redo(history)
+		expect(getState(items)).toEqual(new UList([`one`]))
+		expect(inspectTimeline(history)).toEqual({ at: 1, length: 1 })
+	})
+	test(`mutable inner signals from selectors can be undone and redone`, () => {
+		const itemAtoms = mutableAtomFamily<UList<string>, string>({
+			key: `item`,
+			class: UList,
+		})
+		const items = findState(itemAtoms, `a`)
+		const latestItemSelector = selector<string>({
+			key: `latestItem`,
+			get: ({ get }) => [...get(items)].at(-1) ?? ``,
+			set: ({ set }, item) => {
+				set(items, (current) => current.add(item))
+			},
+		})
+		const history = timeline({ key: `itemHistory`, scope: [items] })
+		clearTimeline(history)
+
+		setState(latestItemSelector, `one`)
+
+		expect(getState(items)).toEqual(new UList([`one`]))
+		expect(inspectTimeline(history)).toEqual({ at: 1, length: 1 })
+
+		undo(history)
+		expect(getState(items)).toEqual(new UList())
+		expect(inspectTimeline(history)).toEqual({ at: 0, length: 1 })
+
+		redo(history)
+		expect(getState(items)).toEqual(new UList([`one`]))
+		expect(inspectTimeline(history)).toEqual({ at: 1, length: 1 })
+	})
 })
 
 describe(`timeline state lifecycle`, () => {
+	test(`mutable members resubscribe after disposal is undone`, () => {
+		const itemAtoms = mutableAtomFamily<UList<string>, string>({
+			key: `item`,
+			class: UList,
+		})
+		const items = findState(itemAtoms, `a`)
+		getState(items)
+		const history = timeline({ key: `itemHistory`, scope: [itemAtoms] })
+		clearTimeline(history)
+
+		disposeState(itemAtoms, `a`)
+		expect(stateExists(itemAtoms, `a`)).toBe(false)
+
+		undo(history)
+		expect(stateExists(itemAtoms, `a`)).toBe(true)
+
+		setState(items, (current) => current.add(`one`))
+		expect(getState(items)).toEqual(new UList([`one`]))
+		expect(inspectTimeline(history)).toEqual({ at: 1, length: 1 })
+	})
 	test(`member-scoped timelines survive update-then-dispose transactions`, () => {
 		const countAtoms = atomFamily<number, string>({
 			key: `count`,

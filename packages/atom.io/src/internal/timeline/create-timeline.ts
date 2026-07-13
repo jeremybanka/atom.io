@@ -21,6 +21,7 @@ import { Subject } from "atom.io/foundations/subject"
 import { ensureState } from "../get-state/ensure-state.ts"
 import { newest } from "../lineage.ts"
 import { getUpdateToken } from "../mutable/index.ts"
+import type { Atom } from "../state-types.ts"
 import { deposit, type Store, withdraw } from "../store/index.ts"
 import type { RootStore } from "../transaction/index.ts"
 import { isChildStore } from "../transaction/index.ts"
@@ -133,86 +134,129 @@ function addAtomToTimeline(
 	tl: Timeline<any>,
 ): void {
 	ensureState(store, atomToken)
-	let maybeAtom = withdraw(store, atomToken)
-	if (maybeAtom.type === `mutable_atom`) {
-		const updateToken = getUpdateToken(maybeAtom)
-		maybeAtom = withdraw(store, updateToken)
+	const atom = withdraw(store, atomToken)
+	if (atom.type === `mutable_atom`) {
+		const updateToken = getUpdateToken(atom)
+		const updateAtom = withdraw(store, updateToken)
+		addAtomTopicToTimeline(store, atom, tl)
+		addAtomTopicToTimeline(store, updateAtom, tl)
+
+		const unsubscribeFromReplacements = subscribeToAtomUpdates(
+			store,
+			atomToken,
+			atom,
+			tl,
+			true,
+		)
+		const unsubscribeFromSignals = subscribeToAtomUpdates(
+			store,
+			updateToken,
+			updateAtom,
+			tl,
+			false,
+		)
+		tl.subscriptions.set(atom.key, () => {
+			unsubscribeFromReplacements()
+			unsubscribeFromSignals()
+		})
+		return
 	}
-	const atom = maybeAtom
+
+	addAtomTopicToTimeline(store, atom, tl)
+	tl.subscriptions.set(
+		atom.key,
+		subscribeToAtomUpdates(store, atomToken, atom, tl, false),
+	)
+}
+
+function addAtomTopicToTimeline(
+	store: Store,
+	atom: Atom<any, any>,
+	tl: Timeline<any>,
+): void {
 	store.timelineTopics.set(
 		{ topicKey: atom.key, timelineKey: tl.key },
 		{ topicType: `atom` },
 	)
+	tl.ownedTopicKeys.add(atom.key)
+}
 
-	tl.subscriptions.set(
-		atom.key,
-		atom.subject.subscribe(
-			`timeline`,
-			function timelineCapturesAtomUpdate(update) {
-				const target = newest(store)
-				const currentSelectorToken =
-					store.operation.open &&
-					store.operation.token.type === `writable_pure_selector`
-						? store.operation.token
-						: null
-				const currentSelectorTime =
-					store.operation.open &&
-					store.operation.token.type === `writable_pure_selector`
-						? store.operation.timestamp
-						: null
+function subscribeToAtomUpdates(
+	store: Store,
+	atomToken: AtomToken<any, any, any>,
+	atom: Atom<any, any>,
+	tl: Timeline<any>,
+	referenceReplacementsOnly: boolean,
+): () => void {
+	return atom.subject.subscribe(
+		`timeline`,
+		function timelineCapturesAtomUpdate(update) {
+			if (referenceReplacementsOnly && update.oldValue === update.newValue) {
+				return
+			}
+			const target = newest(store)
+			const currentSelectorToken =
+				store.operation.open &&
+				store.operation.token.type === `writable_pure_selector`
+					? store.operation.token
+					: null
+			const currentSelectorTime =
+				store.operation.open &&
+				store.operation.token.type === `writable_pure_selector`
+					? store.operation.timestamp
+					: null
 
-				const txUpdateInProgress = target.on.transactionApplying.state?.update
+			const txUpdateInProgress = target.on.transactionApplying.state?.update
 
-				store.logger.info(
-					`⏳`,
-					`timeline`,
-					tl.key,
-					`atom`,
-					atomToken.key,
-					`went`,
-					update.oldValue,
-					`->`,
-					update.newValue,
-					txUpdateInProgress
-						? `in transaction "${txUpdateInProgress.token.key}"`
-						: currentSelectorToken
-							? `in selector "${currentSelectorToken.key}"`
-							: ``,
-				)
-				if (tl.timeTraveling === null) {
-					if (txUpdateInProgress) {
-						joinTransaction(store, tl, txUpdateInProgress)
-					} else if (currentSelectorToken && currentSelectorTime) {
-						buildSelectorUpdate(
-							store,
-							tl,
-							atomToken,
-							update,
-							currentSelectorToken,
-							currentSelectorTime,
-						)
-					} else {
-						const timestamp = Date.now()
-						tl.selectorTime = null
+			store.logger.info(
+				`⏳`,
+				`timeline`,
+				tl.key,
+				`atom`,
+				atomToken.key,
+				`went`,
+				update.oldValue,
+				`->`,
+				update.newValue,
+				txUpdateInProgress
+					? `in transaction "${txUpdateInProgress.token.key}"`
+					: currentSelectorToken
+						? `in selector "${currentSelectorToken.key}"`
+						: ``,
+			)
+			if (tl.timeTraveling === null) {
+				if (txUpdateInProgress) {
+					joinTransaction(store, tl, txUpdateInProgress)
+				} else if (currentSelectorToken && currentSelectorTime) {
+					buildSelectorUpdate(
+						store,
+						tl,
+						atomToken,
+						update,
+						currentSelectorToken,
+						currentSelectorTime,
+					)
+				} else {
+					const timestamp = Date.now()
+					tl.selectorTime = null
 
-						const atomUpdate: AtomUpdateEvent<any> & TimelineEvent<any> = {
-							checkpoint: true,
-							type: `atom_update`,
-							token: deposit(atom),
-							update,
-							timestamp,
-						}
-						store.logger.info(
-							`⌛`,
-							`timeline`,
-							tl.key,
-							`got an atom_update to "${atom.key}"`,
-						)
-						addToHistory(tl, atomUpdate)
+					const atomUpdate: AtomUpdateEvent<any> & TimelineEvent<any> = {
+						checkpoint: true,
+						type: `atom_update`,
+						token: deposit(atom),
+						update,
+						timestamp,
 					}
+					store.logger.info(
+						`⌛`,
+						`timeline`,
+						tl.key,
+						`got an atom_update to "${atom.key}"`,
+					)
+					addToHistory(tl, atomUpdate)
 				}
-			},
-		),
+			}
+		},
 	)
 }
 

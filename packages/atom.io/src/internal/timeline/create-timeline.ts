@@ -307,13 +307,17 @@ function joinTransaction(
 	const currentTransaction = withdraw(store, currentTxToken)
 	if (currentTxKey && tl.transactionKey === null) {
 		tl.transactionKey = currentTxKey
-		const ownedTopicKeys = new Set(tl.ownedTopicKeys)
+		const ownedTopicKeysAtStart = new Set(tl.ownedTopicKeys)
 		const unsubscribe = currentTransaction.subject.subscribe(
 			`timeline:${tl.key}`,
 			(transactionUpdate) => {
 				unsubscribe()
 				tl.transactionKey = null
 				if (tl.timeTraveling === null && currentTxInstanceId) {
+					const ownedTopicKeys = new Set([
+						...ownedTopicKeysAtStart,
+						...tl.ownedTopicKeys,
+					])
 					const subEventsFiltered = filterTransactionSubEvents(
 						transactionUpdate.subEvents,
 						ownedTopicKeys,

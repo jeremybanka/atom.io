@@ -1,6 +1,7 @@
 import type { Logger } from "atom.io"
 import {
 	atomFamily,
+	disposeTimeline,
 	findState,
 	getState,
 	selectorFamily,
@@ -90,6 +91,20 @@ describe(`store observation`, () => {
 			key: `tl`,
 			scope: [],
 		})
+		expect(Utils.stdout).toHaveBeenCalledWith(tl)
+	})
+	test(`store.on.timelineDisposal fires on disposal of each TimelineToken`, () => {
+		Internal.IMPLICIT.STORE.on.timelineDisposal.subscribe(
+			`test`,
+			(timelineToken) => {
+				Utils.stdout(timelineToken)
+			},
+		)
+		const tl = timeline({
+			key: `tl`,
+			scope: [],
+		})
+		disposeTimeline(tl)
 		expect(Utils.stdout).toHaveBeenCalledWith(tl)
 	})
 })

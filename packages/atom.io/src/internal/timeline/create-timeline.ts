@@ -4,6 +4,7 @@ import type {
 	AtomFamilyToken,
 	AtomToken,
 	AtomUpdateEvent,
+	FamilyMetadata,
 	StateUpdate,
 	TimelineEvent,
 	TimelineManageable,
@@ -29,6 +30,7 @@ import { isChildStore } from "../transaction/index.ts"
 export type Timeline<ManagedAtom extends TimelineManageable> = {
 	type: `timeline`
 	key: string
+	family?: FamilyMetadata
 	at: number
 	timeTraveling: `into_future` | `into_past` | null
 	history: TimelineEvent<ManagedAtom>[]
@@ -44,10 +46,12 @@ export function createTimeline<ManagedAtom extends TimelineManageable>(
 	store: RootStore,
 	options: TimelineOptions<ManagedAtom>,
 	data?: Timeline<ManagedAtom>,
+	family?: FamilyMetadata,
 ): TimelineToken<ManagedAtom> {
 	const tl: Timeline<ManagedAtom> = {
 		type: `timeline`,
 		key: options.key,
+		...(family ? { family } : {}),
 		at: 0,
 		timeTraveling: null,
 		selectorTime: null,
@@ -123,18 +127,22 @@ export function createTimeline<ManagedAtom extends TimelineManageable>(
 	const token: TimelineToken<ManagedAtom> = {
 		key: timelineKey,
 		type: `timeline`,
+		...(tl.family ? { family: tl.family } : {}),
 	}
 	store.on.timelineCreation.next(token)
 	return token
 }
 
-function addAtomToTimeline(
+export function addAtomToTimeline(
 	store: Store,
 	atomToken: AtomToken<any, any, any>,
 	tl: Timeline<any>,
 ): void {
 	ensureState(store, atomToken)
 	const atom = withdraw(store, atomToken)
+	if (tl.subscriptions.has(atom.key)) {
+		return
+	}
 	if (atom.type === `mutable_atom`) {
 		const updateToken = getUpdateToken(atom)
 		const updateAtom = withdraw(store, updateToken)
@@ -454,11 +462,15 @@ function filterTransactionSubEvents(
 		})
 }
 
-function handleStateLifecycleEvent(
+export function handleStateLifecycleEvent(
 	store: Store,
 	event: AtomCreationEvent<any> | AtomDisposalEvent<any>,
 	tl: Timeline<any>,
 ): void {
+	const target = newest(store)
+	if (isChildStore(target)) {
+		return
+	}
 	const currentSelectorToken =
 		store.operation.open &&
 		store.operation.token.type === `writable_pure_selector`
@@ -470,29 +482,24 @@ function handleStateLifecycleEvent(
 			? store.operation.timestamp
 			: null
 	if (!tl.timeTraveling) {
-		const target = newest(store)
-		if (isChildStore(target)) {
-			// we don't want to update the true timeline while we are in a transaction
+		const txUpdateInProgress = target.on.transactionApplying.state
+		if (txUpdateInProgress) {
+			joinTransaction(store, tl, txUpdateInProgress.update)
+		} else if (
+			currentSelectorToken &&
+			currentSelectorTime &&
+			event.type === `atom_creation`
+		) {
+			buildSelectorUpdate(
+				store,
+				tl,
+				event.token,
+				event,
+				currentSelectorToken,
+				currentSelectorTime,
+			)
 		} else {
-			const txUpdateInProgress = target.on.transactionApplying.state
-			if (txUpdateInProgress) {
-				joinTransaction(store, tl, txUpdateInProgress.update)
-			} else if (
-				currentSelectorToken &&
-				currentSelectorTime &&
-				event.type === `atom_creation`
-			) {
-				buildSelectorUpdate(
-					store,
-					tl,
-					event.token,
-					event,
-					currentSelectorToken,
-					currentSelectorTime,
-				)
-			} else {
-				addToHistory(tl, event)
-			}
+			addToHistory(tl, event)
 		}
 	}
 	switch (event.type) {
@@ -500,8 +507,14 @@ function handleStateLifecycleEvent(
 			addAtomToTimeline(store, event.token, tl)
 			break
 		case `atom_disposal`:
-			tl.subscriptions.get(event.token.key)?.()
-			tl.subscriptions.delete(event.token.key)
+			{
+				const subscriptionKey =
+					event.token.type === `mutable_atom`
+						? getUpdateToken(event.token).key
+						: event.token.key
+				tl.subscriptions.get(subscriptionKey)?.()
+				tl.subscriptions.delete(subscriptionKey)
+			}
 			break
 	}
 }

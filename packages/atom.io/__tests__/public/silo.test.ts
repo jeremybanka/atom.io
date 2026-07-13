@@ -4,7 +4,7 @@ import type {
 	ReadonlyPureSelectorFamilyOptions,
 	RegularAtomOptions,
 } from "atom.io"
-import { getState, Silo } from "atom.io"
+import { getState, scopeFamily, Silo } from "atom.io"
 import { hasImplicitStoreBeenCreated } from "atom.io/testing"
 import { UList } from "atom.io/transceivers/u-list"
 import { u } from "motion/react-client"
@@ -207,5 +207,43 @@ describe(`silo`, () => {
 
 		expect(hasImplicitStoreBeenCreated()).toBe(false)
 		expect(() => getState(countAtom)).toThrow()
+	})
+	it(`addresses timeline-family members in its own store`, () => {
+		const Uno = new Silo({
+			name: `uno-timeline-family`,
+			lifespan: `ephemeral`,
+			isProduction: false,
+		})
+		Uno.store.logger = createNullLogger()
+		const countAtoms = Uno.atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+		})
+		const countHistories = Uno.timelineFamily<string>({
+			key: `countHistory`,
+			scope: [scopeFamily(countAtoms, { timelineKey: (countKey) => countKey })],
+		})
+		const history = Uno.findTimeline(countHistories, `a`)
+		const subscriber = vitest.fn()
+		Uno.subscribe(countHistories, `a`, subscriber)
+
+		Uno.getState(countAtoms, `a`)
+		Uno.clearTimeline(countHistories, `a`)
+		Uno.setState(countAtoms, `a`, 1)
+		expect(Uno.inspectTimeline(countHistories, `a`)).toEqual({
+			at: 1,
+			length: 1,
+		})
+		expect(subscriber).toHaveBeenCalled()
+		Uno.undo(countHistories, `a`)
+		expect(Uno.getState(countAtoms, `a`)).toBe(0)
+		Uno.redo(countHistories, `a`)
+		expect(Uno.getState(countAtoms, `a`)).toBe(1)
+
+		Uno.disposeTimeline(countHistories, `a`)
+		const recreated = Uno.findTimeline(countHistories, `a`)
+		expect(recreated).toEqual(history)
+		expect(Uno.inspectTimeline(recreated)).toEqual({ at: 0, length: 0 })
+		expect(hasImplicitStoreBeenCreated()).toBe(false)
 	})
 })

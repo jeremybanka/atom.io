@@ -33,7 +33,7 @@ import Exhibit from "c/Exhibit.astro";
         <td>
           <code>useTL</code>
         </td>
-        <td>Control a timeline and observe its state.</td>
+        <td>Control a timeline or keyed timeline-family member and observe its state.</td>
       </tr>
       <tr>
         <td>
@@ -134,6 +134,12 @@ one.
 `useTL` provides convenient access to the `undo` and `redo` utilities, as well as metadata representing how many events are on the timeline (`length`) and where the timeline is currently positioned (`at`).
 
 <Exhibit src="react/use-tl.tsx" />
+
+Pass a timeline family and key to control one lazily created member. When the key
+changes, `useTL` switches to that member's history. The member is always resolved in
+the current `StoreProvider` store.
+
+<Exhibit src="react/use-timeline-family.tsx" />
 
 ## useLoadable
 

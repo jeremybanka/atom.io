@@ -1,3 +1,4 @@
+import type { Canonical } from "atom.io/foundations/canonical"
 import type { Fn } from "atom.io/internal"
 import { arbitrary, IMPLICIT, subscribeInStore } from "atom.io/internal"
 
@@ -7,7 +8,12 @@ import type {
 	TransactionOutcomeEvent,
 } from "./events.ts"
 import type { TimelineManageable } from "./timeline.ts"
-import type { ReadableToken, TimelineToken, TransactionToken } from "./tokens.ts"
+import type {
+	ReadableToken,
+	TimelineFamilyToken,
+	TimelineToken,
+	TransactionToken,
+} from "./tokens.ts"
 
 export type UpdateHandler<T> = (update: StateUpdate<T>) => void
 export type TransactionUpdateHandler<F extends Fn> = (
@@ -53,10 +59,26 @@ export function subscribe<M extends TimelineManageable>(
 	handleUpdate: (update: TimelineUpdate<M>) => void,
 	key?: string,
 ): () => void
-export function subscribe(
-	token: ReadableToken<any> | TimelineToken<any> | TransactionToken<any>,
-	handleUpdate: (update: any) => void,
-	key: string = arbitrary(),
-): () => void {
-	return subscribeInStore(IMPLICIT.STORE, token, handleUpdate, key)
+export function subscribe<K extends Canonical, M extends TimelineManageable>(
+	family: TimelineFamilyToken<K, M>,
+	memberKey: NoInfer<K>,
+	handleUpdate: (update: TimelineUpdate<M>) => void,
+	subscriptionKey?: string,
+): () => void
+export function subscribe(...params: any[]): () => void {
+	if (params[0].type === `timeline_family`) {
+		return subscribeInStore(
+			IMPLICIT.STORE,
+			params[0],
+			params[1] as Canonical,
+			params[2] as (update: TimelineUpdate<any>) => void,
+			params[3] ?? arbitrary(),
+		)
+	}
+	return subscribeInStore(
+		IMPLICIT.STORE,
+		params[0] as ReadableToken<any> | TimelineToken<any> | TransactionToken<any>,
+		params[1] as (update: any) => void,
+		(params[2] as string | undefined) ?? arbitrary(),
+	)
 }

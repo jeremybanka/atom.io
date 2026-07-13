@@ -16,6 +16,7 @@ import type { AsJSON, Fn, Transceiver } from "atom.io/internal"
 export type AtomIOToken =
 	| ReadableFamilyToken<any, any, any>
 	| ReadableToken<any, any, any>
+	| TimelineFamilyToken<any, any>
 	| TimelineToken<any>
 	| TransactionToken<any>
 
@@ -40,11 +41,24 @@ export type WritableFamilyToken<T, K extends Canonical, E = never> =
 	| AtomFamilyToken<T, K, E>
 	| WritableSelectorFamilyToken<T, K, E>
 
-export type TimelineToken<M> = {
+export type TimelineToken<M, K extends Canonical = any> = {
 	/** The unique identifier of the timeline */
 	key: string
 	/** Discriminator */
 	type: `timeline`
+	/** Present if the timeline belongs to a family. */
+	family?: FamilyMetadata<K>
+	/** Never present. This is a marker that preserves the type of the managed atoms */
+	__M?: M
+}
+
+export type TimelineFamilyToken<K extends Canonical, M = any> = {
+	/** The unique identifier of the timeline family */
+	key: string
+	/** Discriminator */
+	type: `timeline_family`
+	/** Never present. This is a marker that preserves the type of keys used for timelines in this family */
+	__K?: K
 	/** Never present. This is a marker that preserves the type of the managed atoms */
 	__M?: M
 }

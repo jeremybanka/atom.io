@@ -1,6 +1,6 @@
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import type { Logger } from "atom.io"
-import { Silo } from "atom.io"
+import { scopeFamily, Silo } from "atom.io"
 import * as AR from "atom.io/react"
 import { AtomIODevtools } from "atom.io/react-devtools"
 import { UList } from "atom.io/transceivers/u-list"
@@ -460,6 +460,32 @@ describe(`working with timelines`, () => {
 		})
 
 		await waitFor(() => getByTestId(`timeline-update-tripleAndDecrement-2`))
+	})
+	test(`timeline family members are grouped and removed on disposal`, async () => {
+		const countAtoms = $.atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+		})
+		const countHistories = $.timelineFamily<string>({
+			key: `countHistory`,
+			scope: [scopeFamily(countAtoms, { timelineKey: (countKey) => countKey })],
+		})
+		const countHistory = $.findTimeline(countHistories, `a`)
+		const { getByTestId, queryByTestId } = scenario()
+
+		await actAsync(() => {
+			getByTestId(`view-timelines`).click()
+		})
+		await waitFor(() => getByTestId(`timeline-family-countHistory`))
+		expect(getByTestId(`timeline-${countHistory.key}`)).toBeTruthy()
+
+		await actAsync(() => {
+			$.disposeTimeline(countHistory)
+		})
+		await waitFor(() => {
+			expect(queryByTestId(`timeline-${countHistory.key}`)).toBeNull()
+			expect(queryByTestId(`timeline-family-countHistory`)).toBeNull()
+		})
 	})
 })
 

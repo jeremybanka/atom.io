@@ -9,6 +9,7 @@ import {
 	mutableAtomFamily,
 	redo,
 	resetState,
+	scopeFamily,
 	selector,
 	setState,
 	Silo,
@@ -422,6 +423,72 @@ describe(`timeline`, () => {
 		expect(getByTestId(host, `timelineLength`).textContent).toBe(`0`)
 		expect(getState(implicit.letterAtom)).toBe(`implicit-b`)
 		expect(inspectTimeline(implicit.letterTL)).toEqual({ at: 1, length: 1 })
+
+		dispose()
+		host.remove()
+	})
+
+	it(`switches keyed timeline-family members in the provider store`, async () => {
+		const silo = new Silo({
+			name: `solid-use-tl-family-provider-store`,
+			lifespan: `ephemeral`,
+			isProduction: false,
+		})
+		const countAtoms = silo.atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+		})
+		const countHistories = silo.timelineFamily<string>({
+			key: `countHistory`,
+			scope: [scopeFamily(countAtoms, { timelineKey: (countKey) => countKey })],
+		})
+		const selectedKeyAtom = silo.atom<string>({
+			key: `selectedKey`,
+			default: `a`,
+		})
+
+		const { dispose, host } = await mountWithProvider(({ AS, Solid, host }) => {
+			const selectedKey = AS.useO(selectedKeyAtom)
+			const setSelectedKey = AS.useI(selectedKeyAtom)
+			const atDisplay = createDisplay()
+			let disposeTimeline: () => void = () => {}
+			host.append(
+				atDisplay,
+				createButton(`incrementA`, () => {
+					silo.setState(countAtoms, `a`, (current) => current + 1)
+				}),
+				createButton(`incrementB`, () => {
+					silo.setState(countAtoms, `b`, (current) => current + 1)
+				}),
+				createButton(`switchTimeline`, () => {
+					setSelectedKey((current) => (current === `a` ? `b` : `a`))
+				}),
+			)
+			Solid.createEffect(() => {
+				const key = selectedKey()
+				disposeTimeline()
+				Solid.createRoot((innerDispose) => {
+					disposeTimeline = innerDispose
+					const timelineMeta = AS.useTL(countHistories, key)
+					Solid.createEffect(() => {
+						setDisplay(atDisplay, `timelineAt`, `${timelineMeta().at}`)
+					})
+				})
+			})
+			Solid.onCleanup(() => {
+				disposeTimeline()
+			})
+		}, silo.store)
+
+		getByTestId(host, `incrementA`).click()
+		await flush()
+		expect(getByTestId(host, `timelineAt`).textContent).toBe(`1`)
+		getByTestId(host, `switchTimeline`).click()
+		await flush()
+		expect(getByTestId(host, `timelineAt`).textContent).toBe(`0`)
+		getByTestId(host, `incrementB`).click()
+		await flush()
+		expect(getByTestId(host, `timelineAt`).textContent).toBe(`1`)
 
 		dispose()
 		host.remove()

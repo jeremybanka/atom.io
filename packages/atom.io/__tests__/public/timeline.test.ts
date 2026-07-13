@@ -4,17 +4,21 @@ import {
 	atomFamily,
 	clearTimeline,
 	disposeState,
+	disposeTimeline,
 	findState,
+	findTimeline,
 	getState,
 	inspectTimeline,
 	mutableAtomFamily,
 	redo,
 	runTransaction,
+	scopeFamily,
 	selector,
 	selectorFamily,
 	setState,
 	subscribe,
 	timeline,
+	timelineFamily,
 	transaction,
 	undo,
 } from "atom.io"
@@ -544,6 +548,224 @@ describe(`timeline state lifecycle`, () => {
 		redo(countsTL)
 		expect(stateExists(countAtoms, `my-key`)).toBe(true)
 	})
+
+	test(`ordinary timelines may be disposed and recreated`, () => {
+		const countAtom = atom<number>({ key: `count`, default: 0 })
+		const countHistory = timeline({
+			key: `countHistory`,
+			scope: [countAtom],
+		})
+		const onUpdate = vitest.fn()
+		const unsubscribe = subscribe(countHistory, onUpdate)
+
+		setState(countAtom, 1)
+		disposeTimeline(countHistory)
+		expect(() => inspectTimeline(countHistory)).toThrow()
+		setState(countAtom, 2)
+		expect(onUpdate).toHaveBeenCalledTimes(1)
+		unsubscribe()
+
+		const recreatedHistory = timeline({
+			key: `countHistory`,
+			scope: [countAtom],
+		})
+		expect(inspectTimeline(recreatedHistory)).toEqual({ at: 0, length: 0 })
+		setState(countAtom, 3)
+		expect(inspectTimeline(recreatedHistory)).toEqual({ at: 1, length: 1 })
+	})
+})
+
+describe(`timeline families`, () => {
+	test(`routes existing and future atom-family members by key`, () => {
+		const glyphAtoms = atomFamily<number, string>({
+			key: `glyph`,
+			default: 0,
+		})
+		const pointAtoms = atomFamily<number, readonly [string, string]>({
+			key: `point`,
+			default: 0,
+		})
+		const coordinateAtoms = atomFamily<
+			number,
+			readonly [string, string, string]
+		>({
+			key: `coordinate`,
+			default: 0,
+		})
+		const activePointXSelector = selector<number>({
+			key: `activePointX`,
+			get: ({ get }) => get(pointAtoms, [`a`, `future`]),
+			set: ({ set }, value) => {
+				set(pointAtoms, [`a`, `future`], value)
+			},
+		})
+
+		setState(glyphAtoms, `a`, 1)
+		setState(pointAtoms, [`a`, `existing`], 1)
+
+		const glyphHistories = timelineFamily<string>({
+			key: `glyphHistory`,
+			scope: [
+				scopeFamily(glyphAtoms, { timelineKey: (glyphId) => glyphId }),
+				scopeFamily(pointAtoms, {
+					timelineKey: ([glyphId]) =>
+						glyphId === `excluded` ? undefined : glyphId,
+				}),
+				scopeFamily(coordinateAtoms, {
+					timelineKey: ([, glyphId]) => glyphId,
+				}),
+			],
+		})
+		expect(glyphHistories).toEqual({
+			key: `glyphHistory`,
+			type: `timeline_family`,
+		})
+		expect(JSON.parse(JSON.stringify(glyphHistories))).toEqual(glyphHistories)
+		const historyA = findTimeline(glyphHistories, `a`)
+		const historyB = findTimeline(glyphHistories, `b`)
+
+		expect(historyA).toEqual({
+			key: `glyphHistory("a")`,
+			type: `timeline`,
+			family: { key: `glyphHistory`, subKey: `"a"` },
+		})
+		expect(findTimeline(glyphHistories, `a`)).toEqual(historyA)
+
+		clearTimeline(glyphHistories, `a`)
+		clearTimeline(glyphHistories, `b`)
+		getState(pointAtoms, [`a`, `future`])
+		getState(coordinateAtoms, [`regular`, `b`, `future`])
+		getState(pointAtoms, [`excluded`, `future`])
+		clearTimeline(glyphHistories, `a`)
+		clearTimeline(glyphHistories, `b`)
+		setState(pointAtoms, [`a`, `future`], 5)
+		setState(coordinateAtoms, [`regular`, `b`, `future`], 7)
+		setState(pointAtoms, [`excluded`, `future`], 9)
+
+		expect(inspectTimeline(glyphHistories, `a`).length).toBeGreaterThan(0)
+		expect(inspectTimeline(glyphHistories, `b`).length).toBeGreaterThan(0)
+		expect(inspectTimeline(historyA)).toEqual(
+			inspectTimeline(glyphHistories, `a`),
+		)
+
+		undo(glyphHistories, `a`)
+		expect(getState(pointAtoms, [`a`, `future`])).toBe(0)
+		expect(getState(coordinateAtoms, [`regular`, `b`, `future`])).toBe(7)
+		redo(glyphHistories, `a`)
+		expect(getState(pointAtoms, [`a`, `future`])).toBe(5)
+		expect(getState(pointAtoms, [`excluded`, `future`])).toBe(9)
+
+		clearTimeline(historyA)
+		clearTimeline(historyB)
+		const editBothGlyphs = transaction<() => void>({
+			key: `editBothGlyphs`,
+			do: ({ set }) => {
+				set(pointAtoms, [`a`, `future`], 6)
+				set(coordinateAtoms, [`regular`, `b`, `future`], 8)
+			},
+		})
+		runTransaction(editBothGlyphs)()
+		expect(inspectTimeline(historyA)).toEqual({ at: 1, length: 1 })
+		expect(inspectTimeline(historyB)).toEqual({ at: 1, length: 1 })
+
+		clearTimeline(historyA)
+		clearTimeline(historyB)
+		setState(activePointXSelector, 10)
+		expect(inspectTimeline(historyA)).toEqual({ at: 1, length: 1 })
+		expect(inspectTimeline(historyB)).toEqual({ at: 0, length: 0 })
+		undo(historyA)
+		expect(getState(pointAtoms, [`a`, `future`])).toBe(6)
+	})
+
+	test(`supports subscription, disposal, and fresh recreation`, () => {
+		const countAtoms = atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+		})
+		const countHistories = timelineFamily<string>({
+			key: `countHistory`,
+			scope: [scopeFamily(countAtoms, { timelineKey: (countKey) => countKey })],
+		})
+		const countHistory = findTimeline(countHistories, `a`)
+		const onUpdate = vitest.fn()
+		const unsubscribe = subscribe(countHistories, `a`, onUpdate)
+
+		setState(countAtoms, `a`, 1)
+		expect(onUpdate).toHaveBeenCalled()
+		disposeTimeline(countHistories, `a`)
+		expect(() => inspectTimeline(countHistory)).toThrow()
+
+		setState(countAtoms, `a`, 2)
+		expect(onUpdate).toHaveBeenCalledTimes(1)
+		unsubscribe()
+
+		const recreated = findTimeline(countHistories, `a`)
+		expect(recreated).toEqual(countHistory)
+		expect(inspectTimeline(recreated)).toEqual({ at: 0, length: 0 })
+		setState(countAtoms, `a`, 3)
+		expect(inspectTimeline(recreated)).toEqual({ at: 1, length: 1 })
+	})
+
+	test(`routes mutable atom-family members`, () => {
+		const itemAtoms = mutableAtomFamily<UList<string>, string>({
+			key: `item`,
+			class: UList,
+		})
+		const itemHistories = timelineFamily<string>({
+			key: `itemHistory`,
+			scope: [scopeFamily(itemAtoms, { timelineKey: (itemKey) => itemKey })],
+		})
+		const history = findTimeline(itemHistories, `a`)
+		const items = findState(itemAtoms, `a`)
+		getState(items)
+		clearTimeline(history)
+
+		setState(items, (current) => current.add(`one`))
+		expect(getState(items)).toEqual(new UList([`one`]))
+		undo(history)
+		expect(getState(items)).toEqual(new UList())
+		redo(history)
+		expect(getState(items)).toEqual(new UList([`one`]))
+
+		disposeState(items)
+		const recreatedItems = findState(itemAtoms, `a`)
+		setState(recreatedItems, (current) => current.add(`recreated`))
+		expect(inspectTimeline(history).at).toBeGreaterThan(0)
+		undo(history)
+		expect(getState(recreatedItems)).toEqual(new UList())
+	})
+
+	test(`indexes only atom-family members committed by transactions`, () => {
+		const countAtoms = atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+		})
+		const countHistories = timelineFamily<string>({
+			key: `countHistory`,
+			scope: [scopeFamily(countAtoms, { timelineKey: (countKey) => countKey })],
+		})
+		const committedHistory = findTimeline(countHistories, `committed`)
+		const abortedHistory = findTimeline(countHistories, `aborted`)
+		const createCount = transaction<(key: string, abort?: boolean) => void>({
+			key: `createCount`,
+			do: ({ set }, key, abort) => {
+				set(countAtoms, key, 1)
+				if (abort) {
+					throw new Error(`abort`)
+				}
+			},
+		})
+
+		expect(() => {
+			runTransaction(createCount)(`aborted`, true)
+		}).toThrow(`abort`)
+		runTransaction(createCount)(`committed`)
+
+		expect(inspectTimeline(abortedHistory)).toEqual({ at: 0, length: 0 })
+		expect(inspectTimeline(committedHistory)).toEqual({ at: 1, length: 1 })
+		setState(countAtoms, `committed`, 2)
+		expect(inspectTimeline(committedHistory)).toEqual({ at: 2, length: 2 })
+	})
 })
 
 describe(`errors`, () => {
@@ -565,6 +787,65 @@ describe(`errors`, () => {
 		const _countTL2 = timeline({
 			key: `count`,
 			scope: [countAtoms],
+		})
+
+		expect(logger.error).toHaveBeenCalledTimes(1)
+	})
+	test(`timeline families reject duplicate scope descriptors`, () => {
+		const countAtoms = atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+		})
+
+		timelineFamily<string>({
+			key: `countHistory`,
+			scope: [
+				scopeFamily(countAtoms, { timelineKey: (key) => key }),
+				scopeFamily(countAtoms, { timelineKey: (key) => key }),
+			],
+		})
+
+		expect(logger.error).toHaveBeenCalledTimes(1)
+	})
+	test(`timeline families reject atom families owned by ordinary timelines`, () => {
+		const countAtoms = atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+		})
+		timeline({ key: `ordinaryHistory`, scope: [countAtoms] })
+
+		timelineFamily<string>({
+			key: `countHistory`,
+			scope: [scopeFamily(countAtoms, { timelineKey: (key) => key })],
+		})
+
+		expect(logger.error).toHaveBeenCalledTimes(1)
+	})
+	test(`ordinary timelines reject atom families owned by timeline families`, () => {
+		const countAtoms = atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+		})
+		timelineFamily<string>({
+			key: `countHistory`,
+			scope: [scopeFamily(countAtoms, { timelineKey: (key) => key })],
+		})
+
+		timeline({ key: `ordinaryHistory`, scope: [countAtoms] })
+
+		expect(logger.error).toHaveBeenCalledTimes(1)
+	})
+	test(`timeline families reject atom families with an owned live member`, () => {
+		const countAtoms = atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+		})
+		const countA = findState(countAtoms, `a`)
+		timeline({ key: `ordinaryHistory`, scope: [countA] })
+
+		timelineFamily<string>({
+			key: `countHistory`,
+			scope: [scopeFamily(countAtoms, { timelineKey: (key) => key })],
 		})
 
 		expect(logger.error).toHaveBeenCalledTimes(1)

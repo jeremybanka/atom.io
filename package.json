@@ -36,6 +36,7 @@
 		"changes:version": "changeset version && bun run fmt",
 		"test": "CI=true dotenvx run -- turbo run test:once --concurrency=2",
 		"test:breaks": "CI=true dotenvx run -- turbo run test:breaks",
+		"test:stress:realtime-ipc": "dotenvx run -- turbo run test:stress:realtime-ipc --filter=atom.io",
 		"vigilance": "bun scripts/vigilance-bot.bun.ts",
 		"workflows": "bun scripts/update-workflows.bun.ts"
 	},

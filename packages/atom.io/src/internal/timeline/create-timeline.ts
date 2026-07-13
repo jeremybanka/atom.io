@@ -33,6 +33,7 @@ export type Timeline<ManagedAtom extends TimelineManageable> = {
 	history: TimelineEvent<ManagedAtom>[]
 	selectorTime: number | null
 	transactionKey: string | null
+	ownedTopicKeys: Set<string>
 	install: (store: RootStore) => void
 	subject: Subject<TimelineUpdate<ManagedAtom>>
 	subscriptions: Map<string, () => void>
@@ -53,6 +54,7 @@ export function createTimeline<ManagedAtom extends TimelineManageable>(
 		...data,
 		history: data?.history.map((update) => ({ ...update })) ?? [],
 		install: (s) => createTimeline(s, options, tl),
+		ownedTopicKeys: new Set(),
 		subject: new Subject(),
 		subscriptions: new Map(),
 	}
@@ -114,6 +116,7 @@ export function createTimeline<ManagedAtom extends TimelineManageable>(
 				break
 		}
 	}
+	tl.ownedTopicKeys = new Set(store.timelineTopics.getRelatedKeys(tl.key) ?? [])
 
 	store.timelines.set(options.key, tl)
 	const token: TimelineToken<ManagedAtom> = {
@@ -253,9 +256,7 @@ function joinTransaction(
 	const currentTransaction = withdraw(store, currentTxToken)
 	if (currentTxKey && tl.transactionKey === null) {
 		tl.transactionKey = currentTxKey
-		const ownedTopicKeys = new Set(
-			store.timelineTopics.getRelatedKeys(tl.key) ?? [],
-		)
+		const ownedTopicKeys = new Set(tl.ownedTopicKeys)
 		const unsubscribe = currentTransaction.subject.subscribe(
 			`timeline:${tl.key}`,
 			(transactionUpdate) => {

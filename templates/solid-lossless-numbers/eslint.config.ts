@@ -146,6 +146,7 @@ const commonRules = {
 
 	"atom.io/exact-catch-types": ERROR,
 	"atom.io/explicit-state-types": ERROR,
+	"atom.io/explicit-transaction-types": ERROR,
 	"atom.io/naming-convention": ERROR,
 
 	"import/newline-after-import": ERROR,

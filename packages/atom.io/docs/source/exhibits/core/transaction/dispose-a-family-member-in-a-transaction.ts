@@ -15,7 +15,7 @@ export const draftKeysAtom = atom<string[]>({
 	default: [],
 })
 
-export const deleteDraftTX = transaction<(draftId: string) => void>({
+export const deleteDraftTransaction = transaction<(draftId: string) => void>({
 	key: `deleteDraft`,
 	do: ({ dispose, get, set }, draftId) => {
 		const draftIds = get(draftKeysAtom)

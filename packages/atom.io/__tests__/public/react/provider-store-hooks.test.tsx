@@ -25,7 +25,7 @@ describe(`provider store changes`, () => {
 			const silo = createSilo(name)
 			const countAtom = silo.atom<number>({ key: `count`, default: 0 })
 			const countTimeline = silo.timeline({
-				key: `countHistory`,
+				key: `count`,
 				scope: [countAtom],
 			})
 			silo.setState(countAtom, 1)

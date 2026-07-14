@@ -10,7 +10,7 @@ const savedAtAtom = atom<number | null>({
 	default: null,
 })
 
-const saveDraftTX = transaction<() => void>({
+const saveDraftTransaction = transaction<() => void>({
 	key: `saveDraft`,
 	do: ({ set }) => {
 		set(statusAtom, `saving`)
@@ -18,7 +18,7 @@ const saveDraftTX = transaction<() => void>({
 	},
 })
 
-const editsTL = timeline({
+const editsTimeline = timeline({
 	key: `edits`,
 	scope: [statusAtom, savedAtAtom],
 })

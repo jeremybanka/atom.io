@@ -397,7 +397,7 @@ describe(`integrations`, () => {
 			default: 0,
 		})
 
-		const countTL = timeline({
+		const countTimeline = timeline({
 			key: `count`,
 			scope: [countAtoms],
 		})
@@ -417,9 +417,9 @@ describe(`integrations`, () => {
 		setState(countAtoms, `owner`, 1)
 		setState(countAtoms, `owned_item`, 1)
 
-		undo(countTL)
-		undo(countTL)
-		undo(countTL)
+		undo(countTimeline)
+		undo(countTimeline)
+		undo(countTimeline)
 
 		// Utils.inspectTimeline(countTL)
 
@@ -454,7 +454,7 @@ describe(`integrations`, () => {
 			default: ``,
 		})
 
-		const createDocumentTX = transaction<
+		const createDocumentTransaction = transaction<
 			(owner: UserGroupKey | UserKey, id: number) => DocumentKey
 		>({
 			key: `createDocument`,
@@ -465,7 +465,9 @@ describe(`integrations`, () => {
 				return documentKey
 			},
 		})
-		const deleteDocumentTX = transaction<(document: DocumentKey) => void>({
+		const deleteDocumentTransaction = transaction<
+			(document: DocumentKey) => void
+		>({
 			key: `deleteDocument`,
 			do: (_, document) => {
 				documentRealm.deallocate(document)
@@ -474,7 +476,7 @@ describe(`integrations`, () => {
 		function identity<T>(x: T): T {
 			return x
 		}
-		const transferDocumentTX = transaction<
+		const transferDocumentTransaction = transaction<
 			(opts: {
 				to: Above<DocumentKey, DocumentHierarchy>[]
 				document: DocumentKey
@@ -492,12 +494,12 @@ describe(`integrations`, () => {
 		})
 
 		const documentTimeline = timeline({
-			key: `documentTimeline`,
+			key: `document`,
 			scope: [documentAtoms],
 		})
-		const createDocument = runTransaction(createDocumentTX)
-		const deleteDocument = runTransaction(deleteDocumentTX)
-		const transferDocument = runTransaction(transferDocumentTX)
+		const createDocument = runTransaction(createDocumentTransaction)
+		const deleteDocument = runTransaction(deleteDocumentTransaction)
+		const transferDocument = runTransaction(transferDocumentTransaction)
 
 		documentRealm.allocate(`root`, `userGroup::homies`)
 		const documentClaim = createDocument(`userGroup::homies`, 1)

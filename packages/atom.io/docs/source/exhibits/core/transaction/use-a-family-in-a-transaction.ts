@@ -15,7 +15,7 @@ export const userKeysAtom = atom<string[]>({
 	default: [],
 })
 
-export const addUserTX = transaction<(user: PublicUser) => void>({
+export const addUserTransaction = transaction<(user: PublicUser) => void>({
 	key: `addUser`,
 	do: ({ get, set }, user) => {
 		set(publicUserAtoms, user.id, user)

@@ -18,7 +18,7 @@ export const playerInventoryAtoms = atomFamily<Inventory, string>({
 	default: {},
 })
 
-export const giveCoinsTX = transaction<
+export const giveCoinsTransaction = transaction<
 	(playerId: string, amount: number) => Promise<void>
 >({
 	key: `giveCoins`,
@@ -46,7 +46,7 @@ export const giveCoinsTX = transaction<
 })
 ;async () => {
 	try {
-		await runTransaction(giveCoinsTX)(`playerId`, 3)
+		await runTransaction(giveCoinsTransaction)(`playerId`, 3)
 	} catch (thrown) {
 		if (thrown instanceof Error) {
 			alert(thrown.message)

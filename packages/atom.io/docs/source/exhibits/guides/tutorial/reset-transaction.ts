@@ -6,7 +6,7 @@ declare const subpathKeysAtoms: RegularAtomFamilyToken<string[], string>
 declare const preactLogoAtom: AtomToken<Promise<string>>
 
 // @exhibit-region start reset-transaction
-const resetTX = transaction<() => Promise<void>>({
+const resetTransaction = transaction<() => Promise<void>>({
 	key: `reset`,
 	do: async ({ get, reset, set }) => {
 		const logo = await get(preactLogoAtom)
@@ -20,5 +20,5 @@ const resetTX = transaction<() => Promise<void>>({
 	},
 })
 
-const reset = runTransaction(resetTX)
+const reset = runTransaction(resetTransaction)
 // @exhibit-region end reset-transaction

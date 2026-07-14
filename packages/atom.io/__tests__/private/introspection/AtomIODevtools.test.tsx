@@ -377,7 +377,7 @@ describe(`working with families`, () => {
 describe(`working with transactions`, () => {
 	test(`simple transaction`, async () => {
 		const letterAtom = $.atom<string>({ key: `letter`, default: `A` })
-		const setLetterTX = $.transaction<(newLetter: string) => void>({
+		const setLetterTransaction = $.transaction<(newLetter: string) => void>({
 			key: `setLetter`,
 			do: ({ set }, newLetter) => {
 				set(letterAtom, newLetter)
@@ -396,7 +396,7 @@ describe(`working with transactions`, () => {
 		})
 
 		await actAsync(() => {
-			$.runTransaction(setLetterTX)(`B`)
+			$.runTransaction(setLetterTransaction)(`B`)
 		})
 
 		await waitFor(() => getByTestId(`transaction-update-setLetter-0`))
@@ -413,21 +413,21 @@ describe(`working with timelines`, () => {
 				set(countAtom, newValue / 2)
 			},
 		})
-		const decrementTX = $.transaction<() => void>({
-			key: `reset`,
+		const decrementTransaction = $.transaction<() => void>({
+			key: `decrement`,
 			do: ({ set }) => {
 				set(countAtom, (c) => c - 1)
 			},
 		})
-		const tripleAndDecrementTX = $.transaction<() => void>({
+		const tripleAndDecrementTransaction = $.transaction<() => void>({
 			key: `tripleAndDecrement`,
 			do: ({ get, set, run }) => {
 				set(countAtom, (c) => c + get(doubleSelector))
-				run(decrementTX)()
+				run(decrementTransaction)()
 			},
 		})
-		const _letterTL = $.timeline({
-			key: `countTL`,
+		const countTimeline = $.timeline({
+			key: `count`,
 			scope: [countAtom],
 		})
 
@@ -437,10 +437,10 @@ describe(`working with timelines`, () => {
 			getByTestId(`view-timelines`).click()
 		})
 
-		await waitFor(() => getByTestId(`timeline-countTL`))
+		await waitFor(() => getByTestId(`timeline-${countTimeline.key}`))
 
 		await actAsync(() => {
-			getByTestId(`open-close-timeline-countTL`).click()
+			getByTestId(`open-close-timeline-${countTimeline.key}`).click()
 		})
 
 		await actAsync(() => {
@@ -456,7 +456,7 @@ describe(`working with timelines`, () => {
 		await waitFor(() => getByTestId(`timeline-update-double-1`))
 
 		await actAsync(() => {
-			$.runTransaction(tripleAndDecrementTX)()
+			$.runTransaction(tripleAndDecrementTransaction)()
 		})
 
 		await waitFor(() => getByTestId(`timeline-update-tripleAndDecrement-2`))
@@ -466,11 +466,11 @@ describe(`working with timelines`, () => {
 			key: `count`,
 			default: 0,
 		})
-		const countHistories = $.timelineFamily<string>({
+		const countHistoryTimelines = $.timelineFamily<string>({
 			key: `countHistory`,
 			scope: [scopeFamily(countAtoms, { timelineKey: (countKey) => countKey })],
 		})
-		const countHistory = $.findTimeline(countHistories, `a`)
+		const countHistory = $.findTimeline(countHistoryTimelines, `a`)
 		const { getByTestId, queryByTestId } = scenario()
 
 		await actAsync(() => {

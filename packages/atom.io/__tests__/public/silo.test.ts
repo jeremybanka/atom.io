@@ -74,7 +74,7 @@ describe(`silo`, () => {
 			key: `count`,
 			default: 0,
 		})
-		const createCounts = Uno.transaction<(upTo: number) => void>({
+		const incrementTransaction = Uno.transaction<(upTo: number) => void>({
 			key: `increment`,
 			do: ({ set }, upTo) => {
 				let numberToAdd = upTo
@@ -91,7 +91,7 @@ describe(`silo`, () => {
 		})
 
 		expect(Uno.getState(countsListAtom)).toEqual(new UList([]))
-		Uno.runTransaction(createCounts)(3)
+		Uno.runTransaction(incrementTransaction)(3)
 		const countsList = Uno.getState(countsListAtom)
 		expect(countsList).toHaveLength(3)
 		expect(hasImplicitStoreBeenCreated()).toBe(false)
@@ -239,7 +239,7 @@ describe(`silo`, () => {
 			key: `pointX`,
 			default: 0,
 		})
-		const glyphHistories = FontEditor.timelineFamily<GlyphId>({
+		const glyphHistoryTimelines = FontEditor.timelineFamily<GlyphId>({
 			key: `glyphHistory`,
 			scope: [
 				scopeFamily(glyphAtoms, { timelineKey: (glyphId) => glyphId }),
@@ -253,10 +253,10 @@ describe(`silo`, () => {
 			],
 		})
 
-		const historyA = FontEditor.findTimeline(glyphHistories, `A`)
-		const historyB = FontEditor.findTimeline(glyphHistories, `B`)
+		const historyA = FontEditor.findTimeline(glyphHistoryTimelines, `A`)
+		const historyB = FontEditor.findTimeline(glyphHistoryTimelines, `B`)
 		const historyASubscriber = vitest.fn()
-		FontEditor.subscribe(glyphHistories, `A`, historyASubscriber)
+		FontEditor.subscribe(glyphHistoryTimelines, `A`, historyASubscriber)
 
 		// Load the existing outlines, then establish the editor's clean baseline.
 		FontEditor.getState(glyphAtoms, `A`)
@@ -266,43 +266,43 @@ describe(`silo`, () => {
 		FontEditor.getState(glyphAtoms, `B`)
 		FontEditor.getState(pointAtoms, [`B`, `p0`])
 		FontEditor.getState(pointXAtoms, [`regular`, `B`, `p0`])
-		FontEditor.clearTimeline(glyphHistories, `A`)
-		FontEditor.clearTimeline(glyphHistories, `B`)
+		FontEditor.clearTimeline(glyphHistoryTimelines, `A`)
+		FontEditor.clearTimeline(glyphHistoryTimelines, `B`)
 
 		// Insert a point after the histories exist, as happens while drawing a glyph.
 		FontEditor.setState(pointAtoms, [`A`, `p1`], { type: `on-curve` })
 		FontEditor.setState(pointXAtoms, [`regular`, `A`, `p1`], 100)
 		FontEditor.setState(pointXAtoms, [`bold`, `A`, `p1`], 110)
-		FontEditor.clearTimeline(glyphHistories, `A`)
+		FontEditor.clearTimeline(glyphHistoryTimelines, `A`)
 
 		// The reported regression was that moving this new point recorded nothing.
 		FontEditor.setState(pointXAtoms, [`regular`, `A`, `p1`], 140)
 		FontEditor.setState(pointXAtoms, [`preview`, `A`, `p1`], 999)
-		expect(FontEditor.inspectTimeline(glyphHistories, `A`)).toEqual({
+		expect(FontEditor.inspectTimeline(glyphHistoryTimelines, `A`)).toEqual({
 			at: 1,
 			length: 1,
 		})
-		expect(FontEditor.inspectTimeline(glyphHistories, `B`)).toEqual({
+		expect(FontEditor.inspectTimeline(glyphHistoryTimelines, `B`)).toEqual({
 			at: 0,
 			length: 0,
 		})
 		expect(historyASubscriber).toHaveBeenCalled()
 
-		FontEditor.undo(glyphHistories, `A`)
+		FontEditor.undo(glyphHistoryTimelines, `A`)
 		expect(FontEditor.getState(pointXAtoms, [`regular`, `A`, `p1`])).toBe(100)
 		expect(FontEditor.getState(pointXAtoms, [`preview`, `A`, `p1`])).toBe(999)
-		FontEditor.redo(glyphHistories, `A`)
+		FontEditor.redo(glyphHistoryTimelines, `A`)
 		expect(FontEditor.getState(pointXAtoms, [`regular`, `A`, `p1`])).toBe(140)
 
 		FontEditor.setState(pointXAtoms, [`regular`, `B`, `p0`], 20)
 		expect(FontEditor.inspectTimeline(historyA)).toEqual({ at: 1, length: 1 })
 		expect(FontEditor.inspectTimeline(historyB)).toEqual({ at: 1, length: 1 })
-		FontEditor.undo(glyphHistories, `B`)
+		FontEditor.undo(glyphHistoryTimelines, `B`)
 		expect(FontEditor.getState(pointXAtoms, [`regular`, `B`, `p0`])).toBe(0)
 		expect(FontEditor.getState(pointXAtoms, [`regular`, `A`, `p1`])).toBe(140)
 
-		FontEditor.disposeTimeline(glyphHistories, `A`)
-		const recreatedHistoryA = FontEditor.findTimeline(glyphHistories, `A`)
+		FontEditor.disposeTimeline(glyphHistoryTimelines, `A`)
+		const recreatedHistoryA = FontEditor.findTimeline(glyphHistoryTimelines, `A`)
 		expect(recreatedHistoryA).toEqual(historyA)
 		expect(FontEditor.inspectTimeline(recreatedHistoryA)).toEqual({
 			at: 0,
@@ -325,7 +325,7 @@ describe(`silo`, () => {
 			key: `pointX`,
 			default: 0,
 		})
-		const glyphHistories = FontEditor.timelineFamily<GlyphId>({
+		const glyphHistoryTimelines = FontEditor.timelineFamily<GlyphId>({
 			key: `glyphHistory`,
 			scope: [
 				scopeFamily(pointXAtoms, {
@@ -347,16 +347,16 @@ describe(`silo`, () => {
 			},
 		})
 
-		FontEditor.findTimeline(glyphHistories, `A`)
-		FontEditor.findTimeline(glyphHistories, `B`)
+		FontEditor.findTimeline(glyphHistoryTimelines, `A`)
+		FontEditor.findTimeline(glyphHistoryTimelines, `B`)
 
 		// A batch "Add Extrema" command creates one new point in each glyph.
 		FontEditor.setState(addExtremaToGlyphsSelector, [`A`, `B`])
-		expect(FontEditor.inspectTimeline(glyphHistories, `A`)).toEqual({
+		expect(FontEditor.inspectTimeline(glyphHistoryTimelines, `A`)).toEqual({
 			at: 1,
 			length: 1,
 		})
-		expect(FontEditor.inspectTimeline(glyphHistories, `B`)).toEqual({
+		expect(FontEditor.inspectTimeline(glyphHistoryTimelines, `B`)).toEqual({
 			at: 1,
 			length: 1,
 		})
@@ -368,7 +368,7 @@ describe(`silo`, () => {
 		).toBe(true)
 
 		// Undoing A removes A's point without touching B's applied history.
-		FontEditor.undo(glyphHistories, `A`)
+		FontEditor.undo(glyphHistoryTimelines, `A`)
 		expect(
 			stateExistsInStore(FontEditor.store, pointXAtoms, [`A`, `top-extremum`]),
 		).toBe(false)
@@ -376,7 +376,7 @@ describe(`silo`, () => {
 			stateExistsInStore(FontEditor.store, pointXAtoms, [`B`, `top-extremum`]),
 		).toBe(true)
 		expect(FontEditor.getState(pointXAtoms, [`B`, `top-extremum`])).toBe(200)
-		expect(FontEditor.inspectTimeline(glyphHistories, `B`)).toEqual({
+		expect(FontEditor.inspectTimeline(glyphHistoryTimelines, `B`)).toEqual({
 			at: 1,
 			length: 1,
 		})
@@ -400,7 +400,7 @@ describe(`silo`, () => {
 			key: `editedGlyphCount`,
 			default: 0,
 		})
-		const glyphHistories = FontEditor.timelineFamily<GlyphId>({
+		const glyphHistoryTimelines = FontEditor.timelineFamily<GlyphId>({
 			key: `glyphHistory`,
 			scope: [
 				scopeFamily(pointXAtoms, {
@@ -408,7 +408,7 @@ describe(`silo`, () => {
 				}),
 			],
 		})
-		const addExtremaToGlyphsTX = FontEditor.transaction<
+		const addExtremaToGlyphsTransaction = FontEditor.transaction<
 			(glyphIds: readonly GlyphId[]) => void
 		>({
 			key: `addExtremaToGlyphs`,
@@ -423,16 +423,16 @@ describe(`silo`, () => {
 				}
 			},
 		})
-		const historyA = FontEditor.findTimeline(glyphHistories, `A`)
-		const historyB = FontEditor.findTimeline(glyphHistories, `B`)
+		const historyA = FontEditor.findTimeline(glyphHistoryTimelines, `A`)
+		const historyB = FontEditor.findTimeline(glyphHistoryTimelines, `B`)
 
-		FontEditor.runTransaction(addExtremaToGlyphsTX)([`A`, `B`])
+		FontEditor.runTransaction(addExtremaToGlyphsTransaction)([`A`, `B`])
 		expect(FontEditor.getState(editedGlyphCountAtom)).toBe(2)
 		expect(FontEditor.inspectTimeline(historyA)).toEqual({ at: 1, length: 1 })
 		expect(FontEditor.inspectTimeline(historyB)).toEqual({ at: 1, length: 1 })
 
 		// Local history remains available for editing one glyph in isolation.
-		FontEditor.undo(glyphHistories, `A`)
+		FontEditor.undo(glyphHistoryTimelines, `A`)
 		expect(
 			stateExistsInStore(FontEditor.store, pointXAtoms, [`A`, `top-extremum`]),
 		).toBe(false)
@@ -455,7 +455,7 @@ describe(`silo`, () => {
 			historyB,
 			onCoordinatedUndo,
 		)
-		FontEditor.undoTransaction(addExtremaToGlyphsTX)
+		FontEditor.undoTransaction(addExtremaToGlyphsTransaction)
 		expect(
 			stateExistsInStore(FontEditor.store, pointXAtoms, [`A`, `top-extremum`]),
 		).toBe(false)
@@ -470,7 +470,7 @@ describe(`silo`, () => {
 		unsubscribeFromHistoryB()
 
 		// Redo discovers both timelines at the transaction's next head.
-		FontEditor.redoTransaction(addExtremaToGlyphsTX)
+		FontEditor.redoTransaction(addExtremaToGlyphsTransaction)
 		expect(
 			stateExistsInStore(FontEditor.store, pointXAtoms, [`A`, `top-extremum`]),
 		).toBe(true)

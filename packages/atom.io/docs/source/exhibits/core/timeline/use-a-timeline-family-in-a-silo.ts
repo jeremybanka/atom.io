@@ -12,7 +12,7 @@ export const glyphNameAtoms = documentSilo.atomFamily<string, string>({
 })
 
 export const glyphTimelines = documentSilo.timelineFamily<string>({
-	key: `glyphTimeline`,
+	key: `glyph`,
 	scope: [
 		scopeFamily(glyphNameAtoms, {
 			timelineKey: (glyphId) => glyphId,

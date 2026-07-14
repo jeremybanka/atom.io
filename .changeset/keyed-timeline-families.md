@@ -2,6 +2,6 @@
 "atom.io": patch
 ---
 
-Add keyed timeline families with extractor-routed atom-family scope, lazy lookup,
-complete timeline disposal, coordinated transaction undo and redo, and family-aware
-Silo, React, and Solid APIs.
+Add lazy keyed timeline families with extractor-routed atom-family scope, complete
+timeline disposal, introspection and DevTools support, family-aware Silo APIs, and
+React and Solid hooks.

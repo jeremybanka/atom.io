@@ -8,7 +8,7 @@ const countAtom = atom<number>({
 })
 
 const failingTransaction = transaction({
-	key: `failingTransaction`,
+	key: `failing`,
 	do: ({ set }) => {
 		set(countAtom, 1)
 		throw new Error(`nope`)

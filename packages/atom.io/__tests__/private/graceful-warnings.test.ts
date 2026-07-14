@@ -136,11 +136,11 @@ describe(`two timelines attempt to own the same atom`, () => {
 			key: `count`,
 			default: 0,
 		})
-		const countTimeline000 = timeline({
+		const count_historyTimeline = timeline({
 			key: `count_history`,
 			scope: [countAtom],
 		})
-		const countTimeline001 = timeline({
+		const count_history_tooTimeline = timeline({
 			key: `count_history_too`,
 			scope: [countAtom],
 		})
@@ -152,8 +152,8 @@ describe(`two timelines attempt to own the same atom`, () => {
 
 		expect(logger.error).toHaveBeenCalledWith(
 			`❌`,
-			countTimeline001.type,
-			countTimeline001.key,
+			count_history_tooTimeline.type,
+			count_history_tooTimeline.key,
 			`Failed to add atom "count" because it already belongs to timeline "count_history"`,
 		)
 		expect(countTimeline0Data?.history).toHaveLength(1)
@@ -167,12 +167,12 @@ describe(`two timelines attempt to own the same atom`, () => {
 			default: 0,
 		})
 		const countTimeline = timeline({
-			key: `counts_history`,
+			key: `count`,
 			scope: [countAtoms],
 		})
 		const aCount = findState(countAtoms, `a`)
 		const aCountTimeline = timeline({
-			key: `a_count_history`,
+			key: `aCount`,
 			scope: [aCount],
 		})
 		setState(aCount, 1)
@@ -187,7 +187,7 @@ describe(`two timelines attempt to own the same atom`, () => {
 			`❌`,
 			aCountTimeline.type,
 			aCountTimeline.key,
-			`Failed to add atom "count("a")" because its family "count" already belongs to timeline "counts_history"`,
+			`Failed to add atom "count("a")" because its family "count" already belongs to timeline "${countTimeline.key}"`,
 		)
 		expect(countTimelineData?.history).toHaveLength(1)
 		expect(aCountTimelineData?.history).toHaveLength(0)
@@ -321,11 +321,11 @@ describe(`recipes`, () => {
 				key: string,
 			): [state: RegularAtomToken<number>, timeline: TimelineToken<any>] => {
 				const writableToken = findState(countAtoms, key)
-				const timelineToken = timeline({
-					key: `timeline for ${writableToken.key}`,
+				const atomTimeline = timeline({
+					key: `atom`,
 					scope: [writableToken],
 				})
-				return [writableToken, timelineToken]
+				return [writableToken, atomTimeline]
 			}
 			const [a, atl] = ftl(`a`)
 

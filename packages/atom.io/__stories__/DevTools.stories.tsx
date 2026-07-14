@@ -23,7 +23,7 @@ const meta: Meta<typeof AtomIODevtools> = {
 				type="button"
 				onClick={() => {
 					console.log("run")
-					runTransaction(myTX)({ thing: ["hi"] })
+					runTransaction(myTransaction)({ thing: ["hi"] })
 				}}
 			>
 				run
@@ -130,8 +130,8 @@ selector<Record<string, number>>({
 		}
 	},
 })
-const myTX = transaction<(param: object) => object>({
-	key: "myTX",
+const myTransaction = transaction<(param: object) => object>({
+	key: "my",
 	do: ({ set }) => {
 		set(countAtom, 0)
 		set(selectionsAtom, (prev) => [...prev, 4])

@@ -54,7 +54,7 @@ describe(`silo.install`, () => {
 			key: `count`,
 			default: 0,
 		})
-		const countHistories = timelineFamily<string>({
+		const countHistoryTimelines = timelineFamily<string>({
 			key: `countHistory`,
 			scope: [scopeFamily(countAtoms, { timelineKey: (countKey) => countKey })],
 		})
@@ -64,8 +64,8 @@ describe(`silo.install`, () => {
 			isProduction: false,
 		})
 
-		mySilo.install([countAtoms, countHistories])
-		const history = mySilo.findTimeline(countHistories, `a`)
+		mySilo.install([countAtoms, countHistoryTimelines])
+		const history = mySilo.findTimeline(countHistoryTimelines, `a`)
 		mySilo.getState(countAtoms, `a`)
 		mySilo.clearTimeline(history)
 		mySilo.setState(countAtoms, `a`, 1)
@@ -86,18 +86,18 @@ describe(`silo.install`, () => {
 			key: `count`,
 			default: 0,
 		})
-		const myIllConceivedProcedureTX = transaction<() => void>({
-			key: `my-ill-conceived-procedure`,
+		const myIllConceivedProcedureTransaction = transaction<() => void>({
+			key: `myIllConceivedProcedure`,
 			do: () => {
 				mySilo.install([countAtoms])
 			},
 		})
-		mySilo.install([myIllConceivedProcedureTX])
+		mySilo.install([myIllConceivedProcedureTransaction])
 
-		mySilo.runTransaction(myIllConceivedProcedureTX)()
+		mySilo.runTransaction(myIllConceivedProcedureTransaction)()
 		expect(targetLogger.error).toHaveBeenCalledTimes(1)
 
-		runTransaction(myIllConceivedProcedureTX)()
+		runTransaction(myIllConceivedProcedureTransaction)()
 		expect(logger.error).toHaveBeenCalledTimes(1)
 		expect(logger.warn).not.toHaveBeenCalled()
 	})

@@ -40,7 +40,7 @@ const timerRemainingSelectors = selectorFamily<number, string>({
 		},
 })
 
-export const addOneMinuteToAllRunningTimersTX = transaction({
+export const addOneMinuteToAllRunningTimersTransaction = transaction({
 	key: `addOneMinuteToAllRunningTimers`,
 	do: ({ get, set }) => {
 		const timerIds = get(timerKeysAtom)

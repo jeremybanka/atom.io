@@ -115,7 +115,7 @@ describe(`mutable atomic state`, () => {
 		})
 
 		const myTransaction = transaction({
-			key: `myTx`,
+			key: `my`,
 			do: ({ set }) => {
 				set(myMutableAtom, (mySet) => {
 					mySet.add(`a`)
@@ -157,8 +157,8 @@ describe(`mutable time traveling`, () => {
 			class: UList,
 		})
 		const myMutableAtom = findState(myMutableAtoms, `example`)
-		const myTL = timeline({
-			key: `myTimeline`,
+		const myTimeline = timeline({
+			key: `my`,
 			scope: [myMutableAtoms],
 		})
 		subscribe(myMutableAtom, Utils.stdout0)
@@ -168,13 +168,13 @@ describe(`mutable time traveling`, () => {
 		expect(getState(myMutableAtom)).toEqual(new UList([`a`]))
 		setState(myMutableAtom, (set) => set.add(`b`))
 		expect(getState(myMutableAtom)).toEqual(new UList([`a`, `b`]))
-		undo(myTL)
+		undo(myTimeline)
 		expect(getState(myMutableAtom)).toEqual(new UList([`a`]))
-		undo(myTL)
+		undo(myTimeline)
 		expect(getState(myMutableAtom)).toEqual(new UList())
-		redo(myTL)
+		redo(myTimeline)
 		expect(getState(myMutableAtom)).toEqual(new UList([`a`]))
-		redo(myTL)
+		redo(myTimeline)
 		expect(getState(myMutableAtom)).toEqual(new UList([`a`, `b`]))
 	})
 	it(`can travel back and forward in time with a transaction`, () => {
@@ -182,12 +182,12 @@ describe(`mutable time traveling`, () => {
 			key: `myMutable`,
 			class: UList,
 		})
-		const myTL = timeline({
-			key: `myTimeline`,
+		const myTimeline = timeline({
+			key: `my`,
 			scope: [myMutableAtom],
 		})
-		const myTX = transaction<(newItem: string) => void>({
-			key: `myTransaction`,
+		const myTransaction = transaction<(newItem: string) => void>({
+			key: `my`,
 			do: ({ set }, newItem) => {
 				set(myMutableAtom, (s) => s.add(newItem))
 			},
@@ -196,17 +196,17 @@ describe(`mutable time traveling`, () => {
 		subscribe(myMutableAtom, Utils.stdout0)
 
 		expect(getState(myMutableAtom)).toEqual(new UList())
-		runTransaction(myTX)(`a`)
+		runTransaction(myTransaction)(`a`)
 		expect(getState(myMutableAtom)).toEqual(new UList([`a`]))
-		runTransaction(myTX)(`b`)
+		runTransaction(myTransaction)(`b`)
 		expect(getState(myMutableAtom)).toEqual(new UList([`a`, `b`]))
-		undo(myTL)
+		undo(myTimeline)
 		expect(getState(myMutableAtom)).toEqual(new UList([`a`]))
-		undo(myTL)
+		undo(myTimeline)
 		expect(getState(myMutableAtom)).toEqual(new UList())
-		redo(myTL)
+		redo(myTimeline)
 		expect(getState(myMutableAtom)).toEqual(new UList([`a`]))
-		redo(myTL)
+		redo(myTimeline)
 		expect(getState(myMutableAtom)).toEqual(new UList([`a`, `b`]))
 	})
 })

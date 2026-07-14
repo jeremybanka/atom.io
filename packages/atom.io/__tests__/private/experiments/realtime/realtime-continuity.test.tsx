@@ -27,7 +27,7 @@ describe(`synchronizing transactions`, () => {
 			default: 0,
 		})
 
-		const incrementTX = AtomIO.transaction({
+		const incrementTransaction = AtomIO.transaction({
 			key: `increment`,
 			do: ({ set, env }) => {
 				const { name } = env().store.config
@@ -39,14 +39,14 @@ describe(`synchronizing transactions`, () => {
 		})
 		const countContinuity = RT.continuity({
 			key: `count`,
-			config: (group) => group.add(countAtom).add(incrementTX),
+			config: (group) => group.add(countAtom).add(incrementTransaction),
 		})
 
 		const Client = () => {
 			RTR.useSyncContinuity(countContinuity)
 			const count = AR.useO(countAtom)
 			const store = React.useContext(AR.StoreContext)
-			const increment = actUponStore(store, incrementTX, arbitrary())
+			const increment = actUponStore(store, incrementTransaction, arbitrary())
 			return (
 				<>
 					<button
@@ -76,7 +76,7 @@ describe(`synchronizing transactions`, () => {
 					dave: Client,
 				},
 			}),
-			{ countState: countAtom, incrementTX },
+			{ countState: countAtom, incrementTransaction },
 		)
 	}
 
@@ -174,7 +174,7 @@ describe(`mutable atoms in continuity`, () => {
 			class: UList,
 		})
 
-		const addItemTX = AtomIO.transaction<(item: string) => void>({
+		const addItemTransaction = AtomIO.transaction<(item: string) => void>({
 			key: `addItem`,
 			do: ({ set }, item) => {
 				set(myListAtom, (list) => list.add(item))
@@ -183,7 +183,7 @@ describe(`mutable atoms in continuity`, () => {
 
 		const applicationContinuity = RT.continuity({
 			key: `application`,
-			config: (group) => group.add(myListAtom).add(addItemTX),
+			config: (group) => group.add(myListAtom).add(addItemTransaction),
 		})
 
 		return Object.assign(
@@ -204,11 +204,12 @@ describe(`mutable atoms in continuity`, () => {
 					return <span data-testid={`state`}>{myList.length}</span>
 				},
 			}),
-			{ myListAtom, addItemTX },
+			{ myListAtom, addItemTransaction },
 		)
 	}
 	test(`mutable initialization`, async () => {
-		const { client, server, addItemTX, myListAtom, teardown } = scenario()
+		const { client, server, addItemTransaction, myListAtom, teardown } =
+			scenario()
 		const clientApp = client.init()
 		clientApp.enableLogging()
 		await waitFor(() => {
@@ -217,14 +218,14 @@ describe(`mutable atoms in continuity`, () => {
 		const clientState = clientApp.renderResult.getByTestId(`state`)
 		expect(clientState.textContent).toBe(`0`)
 		act(() => {
-			server.silo.runTransaction(addItemTX)(`hello`)
+			server.silo.runTransaction(addItemTransaction)(`hello`)
 		})
 		expect(clientApp.renderResult.getByTestId(`state`).textContent).toBe(`0`)
 		await waitFor(() => clientApp.renderResult.getByTestId(`state`).textContent)
 		expect(clientApp.renderResult.getByTestId(`state`).textContent).toBe(`1`)
 
 		act(() => {
-			clientApp.silo.runTransaction(addItemTX)(`world`)
+			clientApp.silo.runTransaction(addItemTransaction)(`world`)
 		})
 		expect(clientApp.silo.getState(optimisticUpdateQueueAtom)).toHaveLength(1)
 		await waitFor(() => {

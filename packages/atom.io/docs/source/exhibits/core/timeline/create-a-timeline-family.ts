@@ -21,7 +21,7 @@ export const pointXAtoms = atomFamily<number, PointKey>({
 })
 
 export const glyphTimelines = timelineFamily<string>({
-	key: `glyphTimeline`,
+	key: `glyph`,
 	scope: [
 		scopeFamily(glyphNameAtoms, {
 			timelineKey: (glyphId) => glyphId,

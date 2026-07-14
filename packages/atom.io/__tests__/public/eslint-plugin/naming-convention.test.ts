@@ -304,6 +304,175 @@ ruleTester.run(`selector family`, rule, {
 	],
 })
 
+ruleTester.run(`timeline`, rule, {
+	valid: [
+		{
+			name: `happy path: variable ending in "Timeline", with a key consistent with the variable name`,
+			code: `
+        const historyTimeline = timeline({
+          key: "history",
+          scope: [],
+        })
+      `,
+		},
+		{
+			name: `happy path (Silo)`,
+			code: `
+        const historyTimeline = silo.timeline({
+          key: "history",
+          scope: [],
+        })
+      `,
+		},
+	],
+	invalid: [
+		{
+			name: `name does not end in "Timeline"`,
+			code: `
+        const historyTL = timeline({
+          key: "history",
+          scope: [],
+        })
+      `,
+			errors: 1,
+		},
+		{
+			name: `key is not consistent with the variable name (Silo)`,
+			code: `
+        const historyTimeline = silo.timeline({
+          key: "edits",
+          scope: [],
+        })
+      `,
+			errors: 1,
+			output: `
+        const historyTimeline = silo.timeline({
+          key: "history",
+          scope: [],
+        })
+      `,
+		},
+		{
+			name: `ordinary timeline key collides with a timeline family member`,
+			code: `
+        const historyTimeline = timeline({
+          key: 'history("a")',
+          scope: [],
+        })
+      `,
+			errors: 1,
+			output: `
+        const historyTimeline = timeline({
+          key: "history",
+          scope: [],
+        })
+      `,
+		},
+	],
+})
+
+ruleTester.run(`timeline family`, rule, {
+	valid: [
+		{
+			name: `happy path: variable ending in "Timelines", with a key consistent with the variable name`,
+			code: `
+        const historyTimelines = timelineFamily({
+          key: "history",
+          scope: [],
+        })
+      `,
+		},
+		{
+			name: `happy path (Silo)`,
+			code: `
+        const historyTimelines = silo.timelineFamily({
+          key: "history",
+          scope: [],
+        })
+      `,
+		},
+	],
+	invalid: [
+		{
+			name: `name does not end in "Timelines"`,
+			code: `
+        const historyTimelineFamily = timelineFamily({
+          key: "history",
+          scope: [],
+        })
+      `,
+			errors: 1,
+		},
+		{
+			name: `key is not consistent with the variable name (Silo)`,
+			code: `
+        const historyTimelines = silo.timelineFamily({
+          key: "historyTimeline",
+          scope: [],
+        })
+      `,
+			errors: 1,
+			output: `
+        const historyTimelines = silo.timelineFamily({
+          key: "history",
+          scope: [],
+        })
+      `,
+		},
+	],
+})
+
+ruleTester.run(`transaction`, rule, {
+	valid: [
+		{
+			name: `happy path: variable ending in "Transaction", with a key consistent with the variable name`,
+			code: `
+        const incrementTransaction = transaction({
+          key: "increment",
+          do: ({ set }) => set(countAtom, (count) => count + 1),
+        })
+      `,
+		},
+		{
+			name: `happy path (Silo)`,
+			code: `
+        const incrementTransaction = silo.transaction({
+          key: "increment",
+          do: ({ set }) => set(countAtom, (count) => count + 1),
+        })
+      `,
+		},
+	],
+	invalid: [
+		{
+			name: `name does not end in "Transaction"`,
+			code: `
+        const incrementTX = transaction({
+          key: "increment",
+          do: ({ set }) => set(countAtom, (count) => count + 1),
+        })
+      `,
+			errors: 1,
+		},
+		{
+			name: `key is not consistent with the variable name (Silo)`,
+			code: `
+        const incrementTransaction = silo.transaction({
+          key: "addOne",
+          do: ({ set }) => set(countAtom, (count) => count + 1),
+        })
+      `,
+			errors: 1,
+			output: `
+        const incrementTransaction = silo.transaction({
+          key: "increment",
+          do: ({ set }) => set(countAtom, (count) => count + 1),
+        })
+      `,
+		},
+	],
+})
+
 ruleTester.run(`EDGE CASES`, rule, {
 	valid: [
 		{

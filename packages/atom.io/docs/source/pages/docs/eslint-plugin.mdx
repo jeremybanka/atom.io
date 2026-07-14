@@ -50,9 +50,10 @@ to audit.
 
 <Exhibit src="tooling/eslint-plugin/naming-convention.ts" />
 
-For example, `countAtom` should use `key: "count"`, and `userAtoms` should use
-`key: "user"`. The same pattern applies to `selector`, `selectorFamily`,
-`mutableAtom`, and `mutableAtomFamily`.
+For example, `countAtom` should use `key: "count"`, `historyTimeline` should use
+`key: "history"`, and `saveTransaction` should use `key: "save"`. Families use
+plural suffixes, so `userAtoms` uses `key: "user"` and `historyTimelines` uses
+`key: "history"`. The same pattern applies to selectors and mutable atoms.
 
 ### exact-catch-types
 

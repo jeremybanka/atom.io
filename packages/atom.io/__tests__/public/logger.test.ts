@@ -54,14 +54,14 @@ describe(`setLogLevel`, () => {
 		})
 		expect(externalLogger.error).toHaveBeenCalled()
 		implicitStore.loggers[1].logLevel = `error`
-		const countTL = timeline({
+		const countTimeline = timeline({
 			key: `count`,
 			scope: [countAtom],
 		})
-		undo(countTL)
+		undo(countTimeline)
 		expect(externalLogger.warn).not.toHaveBeenCalled()
 		implicitStore.loggers[1].logLevel = `warn`
-		undo(countTL)
+		undo(countTimeline)
 		expect(externalLogger.warn).toHaveBeenCalled()
 	})
 	it(`filters out messages based on a predicate`, () => {
@@ -78,11 +78,11 @@ describe(`setLogLevel`, () => {
 		})
 		expect(internalLogger.error).toHaveBeenCalledOnce()
 		expect(externalLogger.error).not.toHaveBeenCalled()
-		const countTL = timeline({
+		const countTimeline = timeline({
 			key: `count`,
 			scope: [countAtom],
 		})
-		undo(countTL)
+		undo(countTimeline)
 		expect(internalLogger.warn).toHaveBeenCalledOnce()
 		expect(externalLogger.warn).not.toHaveBeenCalled()
 		getState(countAtom)
@@ -95,7 +95,7 @@ describe(`setLogLevel`, () => {
 		})
 		expect(externalLogger.info).toHaveBeenCalledOnce()
 		internalLogger.filter = (icon) => icon === `💁`
-		undo(countTL)
+		undo(countTimeline)
 		expect(externalLogger.warn).toHaveBeenCalledOnce()
 	})
 	it(`refines messages as needed, keeping large objects out of logs`, () => {

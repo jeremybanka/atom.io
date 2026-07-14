@@ -257,7 +257,7 @@ const preactLogoAtom = atom<Loadable<string>>({
 	default: () => fetch(`preact.svg`).then((res) => res.text()),
 })
 
-const resetTX = transaction<() => Promise<void>>({
+const resetTransaction = transaction<() => Promise<void>>({
 	key: `reset`,
 	do: async () => {
 		const logo = await getState(preactLogoAtom)
@@ -389,7 +389,7 @@ const resetTX = transaction<() => Promise<void>>({
 		}
 	},
 })
-const reset = runTransaction(resetTX)
+const reset = runTransaction(resetTransaction)
 
 const WIDTH = 256
 const HEIGHT = 296

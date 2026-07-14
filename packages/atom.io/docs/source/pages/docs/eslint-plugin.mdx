@@ -3,8 +3,8 @@ import { CodeBlock } from "c/CodeBlock";
 
 # <low-emphasis>atom.io</low-emphasis>/eslint-plugin
 
-`atom.io/eslint-plugin` provides rules that keep atom.io state declarations explicit,
-consistent, and safe around typed errors.
+`atom.io/eslint-plugin` provides rules that keep atom.io state and transaction
+declarations explicit, consistent, and safe around typed errors.
 
 ## install
 
@@ -43,6 +43,16 @@ arguments.
 
 This keeps important state types visible at the declaration site, where they are easiest
 to audit.
+
+### explicit-transaction-types
+
+`atom.io/explicit-transaction-types` requires transaction declarations to include
+explicit function type arguments.
+
+<Exhibit src="tooling/eslint-plugin/explicit-transaction-types.ts" />
+
+This keeps transaction inputs and outputs visible without having to inspect the
+implementation.
 
 ### naming-convention
 

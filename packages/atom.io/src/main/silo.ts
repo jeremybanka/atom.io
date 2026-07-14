@@ -154,10 +154,12 @@ export class Silo {
 			}
 		}) as typeof disposeTimeline
 		this.runTransaction = (token, id = arbitrary()) => actUponStore(s, token, id)
-		this.undoTransaction = (token, id) =>
+		this.undoTransaction = (token, id) => {
 			timeTravelTransactionInStore(s, `undo`, token, id)
-		this.redoTransaction = (token, id) =>
+		}
+		this.redoTransaction = (token, id) => {
 			timeTravelTransactionInStore(s, `redo`, token, id)
+		}
 		this.install = (tokens, source = IMPLICIT.STORE) => {
 			installIntoStore(tokens, s, source)
 		}

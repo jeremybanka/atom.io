@@ -12,6 +12,7 @@ import type {
 	RegularAtomToken,
 	SelectorFamilyToken,
 	SelectorToken,
+	TimelineFamilyToken,
 	TimelineManageable,
 	TimelineToken,
 	TransactionToken,
@@ -42,7 +43,7 @@ import type {
 	WritablePureSelectorFamily,
 	WritableState,
 } from "../state-types.ts"
-import type { Timeline } from "../timeline/index.ts"
+import type { Timeline, TimelineFamily } from "../timeline/index.ts"
 import type { Transaction } from "../transaction/index.ts"
 import type { Fn } from "../utility-types.ts"
 
@@ -94,6 +95,9 @@ export function deposit<T, E>(
 ): ReadableFamilyToken<T, any, E>
 
 export function deposit<T extends Fn>(state: Transaction<T>): TransactionToken<T>
+export function deposit<K extends Canonical, M extends TimelineManageable>(
+	state: TimelineFamily<K, M>,
+): TimelineFamilyToken<K, M>
 export function deposit<M extends TimelineManageable>(
 	state: Timeline<M>,
 ): TimelineToken<M>

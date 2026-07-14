@@ -1,6 +1,6 @@
 import type { AtomToken, TimelineToken } from "atom.io"
 import type { Store } from "atom.io/internal"
-import { createRegularAtom } from "atom.io/internal"
+import { createRegularAtom, deposit } from "atom.io/internal"
 
 export const attachTimelineIndex = (
 	store: Store,
@@ -9,16 +9,24 @@ export const attachTimelineIndex = (
 		store,
 		{
 			key: `🔍 Timeline Token Index`,
-			default: () =>
-				[...store.timelines].map(([key]): TimelineToken<any> => {
-					return { key, type: `timeline` }
-				}),
+			default: (): TimelineToken<any>[] =>
+				[...store.timelines.values()].map(
+					(timeline): TimelineToken<any> => deposit(timeline),
+				),
 			effects: [
 				({ setSelf }) => {
 					store.on.timelineCreation.subscribe(
 						`introspection`,
 						(timelineToken) => {
 							setSelf((state) => [...state, timelineToken])
+						},
+					)
+					store.on.timelineDisposal.subscribe(
+						`introspection`,
+						(timelineToken) => {
+							setSelf((state) =>
+								state.filter((token) => token.key !== timelineToken.key),
+							)
 						},
 					)
 				},

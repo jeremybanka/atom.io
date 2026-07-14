@@ -1,7 +1,12 @@
 import type { ReadonlyPureSelectorFamilyToken } from "atom.io"
 import { Subject } from "atom.io/foundations/subject"
 import type { RootStore, Timeline } from "atom.io/internal"
-import { createRegularAtomFamily, createSelectorFamily } from "atom.io/internal"
+import {
+	createRegularAtomFamily,
+	createSelectorFamily,
+	disposeFromStore,
+	seekInStore,
+} from "atom.io/internal"
 
 export const attachTimelineFamily = (
 	store: RootStore,
@@ -46,5 +51,26 @@ export const attachTimelineFamily = (
 			({ get }) =>
 				get(findTimelineLogState__INTERNAL, key),
 	})
+	store.on.timelineDisposal.subscribe(
+		`introspection:timeline-logs`,
+		(timelineToken) => {
+			const publicLog = seekInStore(
+				store,
+				findTimelineLogState,
+				timelineToken.key,
+			)
+			if (publicLog) {
+				disposeFromStore(store, publicLog)
+			}
+			const internalLog = seekInStore(
+				store,
+				findTimelineLogState__INTERNAL,
+				timelineToken.key,
+			)
+			if (internalLog) {
+				disposeFromStore(store, internalLog)
+			}
+		},
+	)
 	return findTimelineLogState
 }

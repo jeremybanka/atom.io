@@ -20,6 +20,7 @@ import type {
 	RegularAtomToken,
 	SelectorFamilyToken,
 	SelectorToken,
+	TimelineFamilyToken,
 	TimelineManageable,
 	TimelineToken,
 	TransactionToken,
@@ -67,7 +68,7 @@ import type {
 	WritableSelectorFamily,
 	WritableState,
 } from "../state-types.ts"
-import type { Timeline } from "../timeline/index.ts"
+import type { Timeline, TimelineFamily } from "../timeline/index.ts"
 import type { Transaction } from "../transaction/index.ts"
 import type { Fn } from "../utility-types.ts"
 import type { Store } from "./store.ts"
@@ -190,6 +191,10 @@ export function withdraw<T extends Fn>(
 	store: Store,
 	token: TransactionToken<T>,
 ): Transaction<T extends Fn ? T : never>
+export function withdraw<K extends Canonical, M extends TimelineManageable>(
+	store: Store,
+	token: TimelineFamilyToken<K, M>,
+): TimelineFamily<K, M>
 export function withdraw<T>(
 	store: Store,
 	token: TimelineToken<T>,
@@ -239,6 +244,9 @@ export function withdraw(
 				break
 			case `timeline`:
 				withdrawn = target.timelines.get(token.key)
+				break
+			case `timeline_family`:
+				withdrawn = target.timelineFamilies.get(token.key)
 				break
 			case `transaction`:
 				withdrawn = target.transactions.get(token.key)

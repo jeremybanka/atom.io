@@ -79,6 +79,14 @@ history.
       </tr>
       <tr>
         <td>
+          <code>timelineFamily</code>
+        </td>
+        <td>
+          Partition atom families into independently addressable histories.
+        </td>
+      </tr>
+      <tr>
+        <td>
           <code>join</code>
         </td>
         <td>Manage bidirectional relations between two sets of keys.</td>
@@ -348,6 +356,51 @@ Use `inspectTimeline` when you need to read the timeline cursor directly. It ret
 the current position as `at`, and the number of retained updates as `length`.
 
 <Exhibit src="core/timeline/inspect-a-timeline.ts" />
+
+### timeline families
+
+Use a timeline family when one dynamic group of atoms needs a separate history for
+each application key. Each `scopeFamily` extractor receives an atom-family member's
+canonical key and returns the timeline key that owns it. Return `undefined` to leave
+a member untracked.
+
+<Exhibit src="core/timeline/create-a-timeline-family.ts" />
+
+`findTimeline` lazily creates and caches a member. Existing matching atoms attach
+without retroactively recording their creation, and later creations, updates,
+transactions, selector writes, and atom disposal are routed to that same member.
+The family overloads of `inspectTimeline`, `subscribe`, `undo`, `redo`, and
+`clearTimeline` perform the same lazy lookup.
+
+`disposeTimeline` is the exception: its family overload does not create a missing
+member. Disposing removes the member's subscriptions and retained history. A later
+lookup creates a fresh timeline and attaches the currently live matching atoms.
+
+A `Silo` exposes bound versions of the same declaration, lookup, control, and
+disposal APIs, so timeline-family work stays inside the Silo's store.
+
+<Exhibit src="core/timeline/use-a-timeline-family-in-a-silo.ts" />
+
+Transactions recorded by several timelines retain one shared operation identity.
+Use `undo` when only one timeline should move. Use `undoTransaction` and
+`redoTransaction` to move an instance wherever it is at the relevant timeline head.
+Timelines that have moved elsewhere are left unchanged.
+
+A transaction applies atomically when it runs. However, if its atoms belong to
+multiple timelines, those timelines can later move independently and split the
+transaction's effects. If the effects must remain atomic over time, do not update
+atoms from multiple timelines in one transaction. Keep that state in one timeline.
+
+<Exhibit src="core/timeline/undo-a-transaction-across-timelines.ts" />
+
+React and Solid both accept a timeline family and key in `useTL`. Their hooks resolve
+the member in the current provider store and switch subscriptions when the key
+changes. When a transaction is at that member's current undo or redo head, the hook
+also exposes the corresponding coordinated transaction control.
+
+<Exhibit src="react/use-timeline-family.tsx" label="React" />
+
+<Exhibit src="solid/use-timeline-family.tsx" label="Solid" />
 
 ## join
 

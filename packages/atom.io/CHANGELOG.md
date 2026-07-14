@@ -1,5 +1,23 @@
 # atom.io
 
+## 0.49.10
+
+### Patch Changes
+
+- 6626776: Add best-effort `undoTransaction` and `redoTransaction`. Each operation moves the
+  transaction on every timeline where it is at the relevant history head while
+  leaving diverged timelines unchanged. Silo methods and situational React and Solid
+  `useTL` controls provide the same behavior. Transactions that span independent
+  timelines can lose atomicity over time as those histories move apart; keep related
+  state in one timeline when its history must remain inseparable.
+- 6626776: Add lazy keyed timeline families with extractor-routed atom-family scope, complete
+  timeline disposal, introspection and DevTools support, family-aware Silo APIs, and
+  React and Solid hooks.
+- 6626776: Keep timeline history scoped to the atoms each timeline owns. Selector writes no
+  longer leak unrelated updates into sibling histories, transactions retain atom
+  creation and disposal events, and mutable family members reattach correctly after
+  disposal.
+
 ## 0.49.9
 
 ### Patch Changes

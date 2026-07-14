@@ -80,6 +80,22 @@ ruleTester.run(`atom`, rule, {
         })
       `,
 		},
+		{
+			name: `key is not a literal`,
+			code: `
+        const countAtom = atom({
+          key: getKey("count"),
+          default: 0,
+        })
+      `,
+			errors: 1,
+			output: `
+        const countAtom = atom({
+          key: "count",
+          default: 0,
+        })
+      `,
+		},
 	],
 })
 ruleTester.run(`atom family`, rule, {

@@ -117,23 +117,16 @@ export const namingConvention: {
 
 				if (!keyProp) return
 
-				// Must be string literal or template literal
-				if (
-					keyProp.value.type !== `Literal` ||
-					typeof keyProp.value.value !== `string`
-				) {
-					if (keyProp.value.type !== `TemplateLiteral`) return
-				}
-
 				const actualKey =
-					keyProp.value.type === `Literal`
+					keyProp.value.type === `Literal` &&
+					typeof keyProp.value.value === `string`
 						? keyProp.value.value
-						: keyProp.value.quasis[0].value.raw
+						: keyProp.value.type === `TemplateLiteral` &&
+							  keyProp.value.expressions.length === 0
+							? keyProp.value.quasis[0].value.cooked
+							: undefined
 
-				if (
-					actualKey !== expectedKey ||
-					(`quasis` in keyProp.value && keyProp.value.quasis.length > 1)
-				) {
+				if (actualKey !== expectedKey) {
 					context.report({
 						node: keyProp.value,
 						message: `Keys of ${plural} should be consistent with the names of their variables.`,

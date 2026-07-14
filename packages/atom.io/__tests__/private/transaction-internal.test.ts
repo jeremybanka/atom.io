@@ -67,7 +67,7 @@ describe(`transaction implementation specifics`, () => {
 			},
 		})
 
-		const modifyExpression = transaction({
+		const modifyExpressionTransaction = transaction({
 			key: `modifyExpression`,
 			do: ({ set }, newExpression: Noun | Plural) => {
 				const newCount = Number(newExpression.split(` `)[0])
@@ -93,7 +93,7 @@ describe(`transaction implementation specifics`, () => {
 		vitest.spyOn(Utils, `stdout`)
 		subscribe(expressionSelector, Utils.stdout)
 
-		runTransaction(modifyExpression)(`3 children`)
+		runTransaction(modifyExpressionTransaction)(`3 children`)
 		// 2 atoms were set, therefore 2 updates were made to the selector
 		// this is a "playback" strategy, where the entire transaction is
 		// captured, one atom at a time. An all-at-once strategy can be
@@ -106,7 +106,7 @@ describe(`transaction implementation specifics`, () => {
 		// but what if the transaction fails?
 		let caught: unknown
 		try {
-			runTransaction(modifyExpression)(`3 ants`)
+			runTransaction(modifyExpressionTransaction)(`3 ants`)
 		} catch (thrown) {
 			caught = thrown
 		}

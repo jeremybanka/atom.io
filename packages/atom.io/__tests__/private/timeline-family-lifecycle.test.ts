@@ -39,15 +39,15 @@ test(`timeline and atom disposal release routed resources`, () => {
 		key: `count`,
 		default: 0,
 	})
-	const countHistories = timelineFamily<string>({
+	const countHistoryTimelines = timelineFamily<string>({
 		key: `countHistory`,
 		scope: [scopeFamily(countAtoms, { timelineKey: (countKey) => countKey })],
 	})
 	const timelineCount = IMPLICIT.STORE.timelines.size
-	disposeTimeline(countHistories, `missing`)
+	disposeTimeline(countHistoryTimelines, `missing`)
 	expect(IMPLICIT.STORE.timelines.size).toBe(timelineCount)
-	const historyA = findTimeline(countHistories, `a`)
-	const historyB = findTimeline(countHistories, `b`)
+	const historyA = findTimeline(countHistoryTimelines, `a`)
+	const historyB = findTimeline(countHistoryTimelines, `b`)
 	const countA = findState(countAtoms, `a`)
 	const countB = findState(countAtoms, `b`)
 	getState(countA)
@@ -95,11 +95,11 @@ test(`store cloning installs timeline families before their members`, () => {
 		key: `count`,
 		default: 0,
 	})
-	const countHistories = timelineFamily<string>({
+	const countHistoryTimelines = timelineFamily<string>({
 		key: `countHistory`,
 		scope: [scopeFamily(countAtoms, { timelineKey: (countKey) => countKey })],
 	})
-	const history = findTimeline(countHistories, `a`)
+	const history = findTimeline(countHistoryTimelines, `a`)
 	setState(countAtoms, `a`, 1)
 
 	const clone = new Store(
@@ -110,7 +110,7 @@ test(`store cloning installs timeline families before their members`, () => {
 		},
 		IMPLICIT.STORE,
 	) as RootStore
-	const clonedHistory = findTimelineInStore(clone, countHistories, `a`)
+	const clonedHistory = findTimelineInStore(clone, countHistoryTimelines, `a`)
 
 	expect(inspectTimelineInStore(clone, clonedHistory)).toEqual(
 		inspectTimeline(history),

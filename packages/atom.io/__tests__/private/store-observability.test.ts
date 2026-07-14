@@ -74,11 +74,11 @@ describe(`store observation`, () => {
 				Utils.stdout(transactionToken)
 			},
 		)
-		const tx = transaction({
+		const txTransaction = transaction({
 			key: `tx`,
 			do: () => null,
 		})
-		expect(Utils.stdout).toHaveBeenCalledWith(tx)
+		expect(Utils.stdout).toHaveBeenCalledWith(txTransaction)
 	})
 	test(`store.on.timelineCreation fires on minting of each new TimelineToken`, () => {
 		Internal.IMPLICIT.STORE.on.timelineCreation.subscribe(
@@ -87,11 +87,11 @@ describe(`store observation`, () => {
 				Utils.stdout(timelineToken)
 			},
 		)
-		const tl = timeline({
+		const tlTimeline = timeline({
 			key: `tl`,
 			scope: [],
 		})
-		expect(Utils.stdout).toHaveBeenCalledWith(tl)
+		expect(Utils.stdout).toHaveBeenCalledWith(tlTimeline)
 	})
 	test(`store.on.timelineDisposal fires on disposal of each TimelineToken`, () => {
 		Internal.IMPLICIT.STORE.on.timelineDisposal.subscribe(
@@ -100,11 +100,11 @@ describe(`store observation`, () => {
 				Utils.stdout(timelineToken)
 			},
 		)
-		const tl = timeline({
+		const tlTimeline = timeline({
 			key: `tl`,
 			scope: [],
 		})
-		disposeTimeline(tl)
-		expect(Utils.stdout).toHaveBeenCalledWith(tl)
+		disposeTimeline(tlTimeline)
+		expect(Utils.stdout).toHaveBeenCalledWith(tlTimeline)
 	})
 })

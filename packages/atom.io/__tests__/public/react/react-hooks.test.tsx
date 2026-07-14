@@ -217,20 +217,20 @@ describe(`timeline`, () => {
 			key: `letter`,
 			default: `A`,
 		})
-		const letterTL = timeline({
-			key: `letterTL`,
+		const letterTimeline = timeline({
+			key: `letter`,
 			scope: [letterAtom],
 		})
 		const Letter: FC = () => {
 			const setLetter = useI(letterAtom)
 			const letter = useO(letterAtom)
-			const letterTimeline = useTL(letterTL)
+			const letterTimelineControls = useTL(letterTimeline)
 			setters.push(setLetter)
 			return (
 				<>
 					<div data-testid={letter}>{letter}</div>
-					<div data-testid="timelineAt">{letterTimeline.at}</div>
-					<div data-testid="timelineLength">{letterTimeline.length}</div>
+					<div data-testid="timelineAt">{letterTimelineControls.at}</div>
+					<div data-testid="timelineLength">{letterTimelineControls.length}</div>
 					<button
 						type="button"
 						onClick={() => {
@@ -248,21 +248,21 @@ describe(`timeline`, () => {
 					<button
 						type="button"
 						onClick={() => {
-							letterTimeline.undo()
+							letterTimelineControls.undo()
 						}}
 						data-testid="undoButton"
 					/>
 					<button
 						type="button"
 						onClick={() => {
-							letterTimeline.redo()
+							letterTimelineControls.redo()
 						}}
 						data-testid="redoButton"
 					/>
 					<button
 						type="button"
 						onClick={() => {
-							letterTimeline.clear()
+							letterTimelineControls.clear()
 						}}
 						data-testid="clearButton"
 					/>
@@ -275,11 +275,11 @@ describe(`timeline`, () => {
 				<Letter />
 			</StoreProvider>,
 		)
-		return { ...utils, letterTL }
+		return { ...utils, letterTimeline }
 	}
 
 	it(`displays metadata`, () => {
-		const { getByTestId, letterTL } = scenario()
+		const { getByTestId, letterTimeline } = scenario()
 		const changeStateButtonB = getByTestId(`changeStateButtonB`)
 		const changeStateButtonC = getByTestId(`changeStateButtonC`)
 		fireEvent.click(changeStateButtonB)
@@ -294,12 +294,12 @@ describe(`timeline`, () => {
 		assert(option2)
 		expect(timelineAt.textContent).toEqual(`2`)
 		act(() => {
-			undo(letterTL)
+			undo(letterTimeline)
 		})
 		expect(timelineAt.textContent).toEqual(`1`)
 		expect(timelineLength.textContent).toEqual(`2`)
 		act(() => {
-			redo(letterTL)
+			redo(letterTimeline)
 		})
 		expect(timelineAt.textContent).toEqual(`2`)
 		expect(timelineLength.textContent).toEqual(`2`)
@@ -339,12 +339,12 @@ describe(`timeline`, () => {
 				key: `letter`,
 				default: `implicit-a`,
 			})
-			const letterTL = timeline({
-				key: `letterTL`,
+			const letterTimeline = timeline({
+				key: `letter`,
 				scope: [letterAtom],
 			})
 			setState(letterAtom, `implicit-b`)
-			return { letterAtom, letterTL }
+			return { letterAtom, letterTimeline }
 		})()
 
 		const silo = new Silo({
@@ -357,17 +357,17 @@ describe(`timeline`, () => {
 				key: `letter`,
 				default: `silo-a`,
 			})
-			const letterTL = silo.timeline({
-				key: `letterTL`,
+			const letterTimeline = silo.timeline({
+				key: `letter`,
 				scope: [letterAtom],
 			})
 			silo.setState(letterAtom, `silo-b`)
-			return { letterAtom, letterTL }
+			return { letterAtom, letterTimeline }
 		})()
 
 		const Letter: FC = () => {
 			const letter = useO(siloState.letterAtom)
-			const letterTimeline = useTL(siloState.letterTL)
+			const letterTimeline = useTL(siloState.letterTimeline)
 			return (
 				<>
 					<div data-testid="letter">{letter}</div>
@@ -403,20 +403,29 @@ describe(`timeline`, () => {
 		expect(getByTestId(`timelineAt`).textContent).toBe(`0`)
 		expect(silo.getState(siloState.letterAtom)).toBe(`silo-a`)
 		expect(getState(implicit.letterAtom)).toBe(`implicit-b`)
-		expect(inspectTimeline(implicit.letterTL)).toEqual({ at: 1, length: 1 })
+		expect(inspectTimeline(implicit.letterTimeline)).toEqual({
+			at: 1,
+			length: 1,
+		})
 
 		fireEvent.click(getByTestId(`redoButton`))
 		expect(getByTestId(`letter`).textContent).toBe(`silo-b`)
 		expect(getByTestId(`timelineAt`).textContent).toBe(`1`)
 		expect(silo.getState(siloState.letterAtom)).toBe(`silo-b`)
 		expect(getState(implicit.letterAtom)).toBe(`implicit-b`)
-		expect(inspectTimeline(implicit.letterTL)).toEqual({ at: 1, length: 1 })
+		expect(inspectTimeline(implicit.letterTimeline)).toEqual({
+			at: 1,
+			length: 1,
+		})
 
 		fireEvent.click(getByTestId(`clearButton`))
 		expect(getByTestId(`timelineAt`).textContent).toBe(`0`)
 		expect(getByTestId(`timelineLength`).textContent).toBe(`0`)
 		expect(getState(implicit.letterAtom)).toBe(`implicit-b`)
-		expect(inspectTimeline(implicit.letterTL)).toEqual({ at: 1, length: 1 })
+		expect(inspectTimeline(implicit.letterTimeline)).toEqual({
+			at: 1,
+			length: 1,
+		})
 	})
 	it(`switches keyed timeline-family members in the provider store`, () => {
 		const silo = new Silo({
@@ -428,7 +437,7 @@ describe(`timeline`, () => {
 			key: `count`,
 			default: 0,
 		})
-		const countHistories = silo.timelineFamily<string>({
+		const countHistoryTimelines = silo.timelineFamily<string>({
 			key: `countHistory`,
 			scope: [scopeFamily(countAtoms, { timelineKey: (countKey) => countKey })],
 		})
@@ -436,7 +445,7 @@ describe(`timeline`, () => {
 		const Count: FC<{ countKey: string }> = ({ countKey }) => {
 			const count = useO(countAtoms, countKey)
 			const setCount = useI(countAtoms, countKey)
-			const history = useTL(countHistories, countKey)
+			const history = useTL(countHistoryTimelines, countKey)
 			return (
 				<>
 					<div data-testid="count">{count}</div>
@@ -485,11 +494,11 @@ describe(`timeline`, () => {
 			key: `count`,
 			default: 0,
 		})
-		const countHistories = silo.timelineFamily<string>({
+		const countHistoryTimelines = silo.timelineFamily<string>({
 			key: `countHistory`,
 			scope: [scopeFamily(countAtoms, { timelineKey: (countKey) => countKey })],
 		})
-		const setBothCountsTX = silo.transaction<(value: number) => void>({
+		const setBothCountsTransaction = silo.transaction<(value: number) => void>({
 			key: `setBothCounts`,
 			do: ({ set }, value) => {
 				set(countAtoms, `a`, value)
@@ -498,14 +507,14 @@ describe(`timeline`, () => {
 		})
 		silo.getState(countAtoms, `a`)
 		silo.getState(countAtoms, `b`)
-		silo.findTimeline(countHistories, `a`)
-		silo.findTimeline(countHistories, `b`)
-		silo.clearTimeline(countHistories, `a`)
-		silo.clearTimeline(countHistories, `b`)
+		silo.findTimeline(countHistoryTimelines, `a`)
+		silo.findTimeline(countHistoryTimelines, `b`)
+		silo.clearTimeline(countHistoryTimelines, `a`)
+		silo.clearTimeline(countHistoryTimelines, `b`)
 
 		const Editor: FC = () => {
 			const countB = useO(countAtoms, `b`)
-			const historyB = useTL(countHistories, `b`)
+			const historyB = useTL(countHistoryTimelines, `b`)
 			return (
 				<>
 					<div data-testid="countB">{countB}</div>
@@ -519,7 +528,7 @@ describe(`timeline`, () => {
 						type="button"
 						data-testid="batch"
 						onClick={() => {
-							silo.runTransaction(setBothCountsTX)(1)
+							silo.runTransaction(setBothCountsTransaction)(1)
 						}}
 					/>
 					<button
@@ -656,12 +665,12 @@ describe(`timeline (dynamic)`, () => {
 			key: `number`,
 			default: 1,
 		})
-		const letterTL = timeline({
-			key: `letterTL`,
+		const letterTimeline = timeline({
+			key: `letter`,
 			scope: [letterAtom],
 		})
-		const numberTL = timeline({
-			key: `numberTL`,
+		const numberTimeline = timeline({
+			key: `number`,
 			scope: [numberAtom],
 		})
 		const whichTimelineAtom = atom<string>({
@@ -672,7 +681,7 @@ describe(`timeline (dynamic)`, () => {
 			key: `timeline`,
 			get: ({ get }) => {
 				const whichTimeline = get(whichTimelineAtom)
-				return whichTimeline === `letter` ? letterTL : numberTL
+				return whichTimeline === `letter` ? letterTimeline : numberTimeline
 			},
 		})
 		const Letter: FC = () => {
@@ -734,11 +743,11 @@ describe(`timeline (dynamic)`, () => {
 				<Letter />
 			</StoreProvider>,
 		)
-		return { ...utils, letterTL }
+		return { ...utils, letterTimeline }
 	}
 
 	it(`displays metadata`, () => {
-		const { getByTestId, letterTL } = scenario()
+		const { getByTestId, letterTimeline } = scenario()
 		const changeLetterButtonB = getByTestId(`changeLetterButtonB`)
 		const changeNumberButton2 = getByTestId(`changeNumberButton2`)
 		const changeTimelineButton = getByTestId(`changeTimelineButton`)
@@ -758,7 +767,7 @@ describe(`timeline (dynamic)`, () => {
 		expect(timelineAt.textContent).toEqual(`1`)
 		expect(timelineLength.textContent).toEqual(`1`)
 		act(() => {
-			undo(letterTL)
+			undo(letterTimeline)
 		})
 		fireEvent.click(changeTimelineButton)
 		expect(timelineAt.textContent).toEqual(`0`)

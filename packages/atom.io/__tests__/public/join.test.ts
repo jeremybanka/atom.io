@@ -195,8 +195,8 @@ describe(`some practical use cases`, () => {
 			isBType: (input): input is `${number}` =>
 				Number(input).toString() === input,
 		})
-		const failingTX = transaction<() => void>({
-			key: `I ALWAYS FAIL`,
+		const failingTransaction = transaction<() => void>({
+			key: `failing`,
 			do: ({ relations }) => {
 				relations.edit(cardValues, (cvs) => {
 					for (let i = 0; i < 100; i++) {
@@ -210,7 +210,7 @@ describe(`some practical use cases`, () => {
 		})
 		let caught: Error | undefined
 		try {
-			runTransaction(failingTX)()
+			runTransaction(failingTransaction)()
 		} catch (thrown) {
 			if (thrown instanceof Error) caught = thrown
 		}

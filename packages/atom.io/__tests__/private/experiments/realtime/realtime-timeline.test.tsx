@@ -7,7 +7,7 @@ import * as RTTest from "atom.io/realtime-testing"
 
 describe(`undo/redo`, () => {
 	const countAtom = AtomIO.atom<number>({ key: `count`, default: 0 })
-	const countTL = AtomIO.timeline({ key: `countTL`, scope: [countAtom] })
+	const countTimeline = AtomIO.timeline({ key: `count`, scope: [countAtom] })
 	const scenario = () =>
 		RTTest.singleClient({
 			server: ({ socket, userKey, silo: { store } }) => {
@@ -34,11 +34,11 @@ describe(`undo/redo`, () => {
 		})
 		await waitFor(() => app.renderResult.getByTestId(`count:1`))
 		act(() => {
-			server.silo.undo(countTL)
+			server.silo.undo(countTimeline)
 		})
 		await waitFor(() => app.renderResult.getByTestId(`count:0`))
 		act(() => {
-			server.silo.redo(countTL)
+			server.silo.redo(countTimeline)
 		})
 		await waitFor(() => app.renderResult.getByTestId(`count:1`))
 		await teardown()

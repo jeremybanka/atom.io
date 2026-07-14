@@ -253,8 +253,8 @@ describe(`timeline`, () => {
 			key: `letter`,
 			default: `A`,
 		})
-		const letterTL = timeline({
-			key: `letterTL`,
+		const letterTimeline = timeline({
+			key: `letter`,
 			scope: [letterAtom],
 		})
 		const mounted = await mountWithProvider(({ AS, Solid, host }) => {
@@ -269,7 +269,7 @@ describe(`timeline`, () => {
 			const Letter = () => {
 				const setLetter = AS.useI(letterAtom)
 				const letter = AS.useO(letterAtom)
-				const letterTimeline = AS.useTL(letterTL)
+				const letterTimelineControls = AS.useTL(letterTimeline)
 				const root = document.createElement(`div`)
 				const letterDisplay = createDisplay()
 				const atDisplay = createDisplay()
@@ -285,15 +285,15 @@ describe(`timeline`, () => {
 						setLetter(`C`)
 					}),
 					createButton(`undoButton`, () => {
-						letterTimeline().undo()
+						letterTimelineControls().undo()
 					}),
 					createButton(`redoButton`, () => {
-						letterTimeline().redo()
+						letterTimelineControls().redo()
 					}),
 				)
 				Solid.createEffect(() => {
 					const value = letter()
-					const meta = letterTimeline()
+					const meta = letterTimelineControls()
 					setters.push(setLetter)
 					setDisplay(letterDisplay, value)
 					setDisplay(atDisplay, `timelineAt`, `${meta.at}`)
@@ -305,11 +305,11 @@ describe(`timeline`, () => {
 			Observer()
 			host.append(Letter())
 		})
-		return { ...mounted, letterTL }
+		return { ...mounted, letterTimeline }
 	}
 
 	it(`displays metadata`, async () => {
-		const { dispose, host, letterTL } = await scenario()
+		const { dispose, host, letterTimeline } = await scenario()
 		getByTestId(host, `changeStateButtonB`).click()
 		await flush()
 		assert(getByTestId(host, `B`))
@@ -321,11 +321,11 @@ describe(`timeline`, () => {
 		await flush()
 		assert(getByTestId(host, `C`))
 		expect(timelineAt.textContent).toEqual(`2`)
-		undo(letterTL)
+		undo(letterTimeline)
 		await flush()
 		expect(timelineAt.textContent).toEqual(`1`)
 		expect(timelineLength.textContent).toEqual(`2`)
-		redo(letterTL)
+		redo(letterTimeline)
 		await flush()
 		expect(timelineAt.textContent).toEqual(`2`)
 		expect(timelineLength.textContent).toEqual(`2`)
@@ -347,12 +347,12 @@ describe(`timeline`, () => {
 				key: `letter`,
 				default: `implicit-a`,
 			})
-			const letterTL = timeline({
-				key: `letterTL`,
+			const letterTimeline = timeline({
+				key: `letter`,
 				scope: [letterAtom],
 			})
 			setState(letterAtom, `implicit-b`)
-			return { letterAtom, letterTL }
+			return { letterAtom, letterTimeline }
 		})()
 
 		const silo = new Silo({
@@ -365,17 +365,17 @@ describe(`timeline`, () => {
 				key: `letter`,
 				default: `silo-a`,
 			})
-			const letterTL = silo.timeline({
-				key: `letterTL`,
+			const letterTimeline = silo.timeline({
+				key: `letter`,
 				scope: [letterAtom],
 			})
 			silo.setState(letterAtom, `silo-b`)
-			return { letterAtom, letterTL }
+			return { letterAtom, letterTimeline }
 		})()
 
 		const { dispose, host } = await mountWithProvider(({ AS, Solid, host }) => {
 			const letter = AS.useO(siloState.letterAtom)
-			const letterTimeline = AS.useTL(siloState.letterTL)
+			const letterTimeline = AS.useTL(siloState.letterTimeline)
 			const letterDisplay = createDisplay()
 			const atDisplay = createDisplay()
 			const lengthDisplay = createDisplay()
@@ -407,7 +407,10 @@ describe(`timeline`, () => {
 		expect(getByTestId(host, `timelineAt`).textContent).toBe(`0`)
 		expect(silo.getState(siloState.letterAtom)).toBe(`silo-a`)
 		expect(getState(implicit.letterAtom)).toBe(`implicit-b`)
-		expect(inspectTimeline(implicit.letterTL)).toEqual({ at: 1, length: 1 })
+		expect(inspectTimeline(implicit.letterTimeline)).toEqual({
+			at: 1,
+			length: 1,
+		})
 
 		getByTestId(host, `redoButton`).click()
 		await flush()
@@ -415,14 +418,20 @@ describe(`timeline`, () => {
 		expect(getByTestId(host, `timelineAt`).textContent).toBe(`1`)
 		expect(silo.getState(siloState.letterAtom)).toBe(`silo-b`)
 		expect(getState(implicit.letterAtom)).toBe(`implicit-b`)
-		expect(inspectTimeline(implicit.letterTL)).toEqual({ at: 1, length: 1 })
+		expect(inspectTimeline(implicit.letterTimeline)).toEqual({
+			at: 1,
+			length: 1,
+		})
 
 		getByTestId(host, `clearButton`).click()
 		await flush()
 		expect(getByTestId(host, `timelineAt`).textContent).toBe(`0`)
 		expect(getByTestId(host, `timelineLength`).textContent).toBe(`0`)
 		expect(getState(implicit.letterAtom)).toBe(`implicit-b`)
-		expect(inspectTimeline(implicit.letterTL)).toEqual({ at: 1, length: 1 })
+		expect(inspectTimeline(implicit.letterTimeline)).toEqual({
+			at: 1,
+			length: 1,
+		})
 
 		dispose()
 		host.remove()
@@ -438,7 +447,7 @@ describe(`timeline`, () => {
 			key: `count`,
 			default: 0,
 		})
-		const countHistories = silo.timelineFamily<string>({
+		const countHistoryTimelines = silo.timelineFamily<string>({
 			key: `countHistory`,
 			scope: [scopeFamily(countAtoms, { timelineKey: (countKey) => countKey })],
 		})
@@ -469,7 +478,7 @@ describe(`timeline`, () => {
 				disposeTimeline()
 				Solid.createRoot((innerDispose) => {
 					disposeTimeline = innerDispose
-					const timelineMeta = AS.useTL(countHistories, key)
+					const timelineMeta = AS.useTL(countHistoryTimelines, key)
 					Solid.createEffect(() => {
 						setDisplay(atDisplay, `timelineAt`, `${timelineMeta().at}`)
 					})
@@ -504,11 +513,11 @@ describe(`timeline`, () => {
 			key: `count`,
 			default: 0,
 		})
-		const countHistories = silo.timelineFamily<string>({
+		const countHistoryTimelines = silo.timelineFamily<string>({
 			key: `countHistory`,
 			scope: [scopeFamily(countAtoms, { timelineKey: (countKey) => countKey })],
 		})
-		const setBothCountsTX = silo.transaction<(value: number) => void>({
+		const setBothCountsTransaction = silo.transaction<(value: number) => void>({
 			key: `setBothCounts`,
 			do: ({ set }, value) => {
 				set(countAtoms, `a`, value)
@@ -517,14 +526,14 @@ describe(`timeline`, () => {
 		})
 		silo.getState(countAtoms, `a`)
 		silo.getState(countAtoms, `b`)
-		silo.findTimeline(countHistories, `a`)
-		silo.findTimeline(countHistories, `b`)
-		silo.clearTimeline(countHistories, `a`)
-		silo.clearTimeline(countHistories, `b`)
+		silo.findTimeline(countHistoryTimelines, `a`)
+		silo.findTimeline(countHistoryTimelines, `b`)
+		silo.clearTimeline(countHistoryTimelines, `a`)
+		silo.clearTimeline(countHistoryTimelines, `b`)
 
 		const { dispose, host } = await mountWithProvider(({ AS, Solid, host }) => {
 			const countB = AS.useO(countAtoms, `b`)
-			const historyB = AS.useTL(countHistories, `b`)
+			const historyB = AS.useTL(countHistoryTimelines, `b`)
 			const countBDisplay = createDisplay()
 			const canUndoDisplay = createDisplay()
 			const canRedoDisplay = createDisplay()
@@ -533,7 +542,7 @@ describe(`timeline`, () => {
 				canUndoDisplay,
 				canRedoDisplay,
 				createButton(`batch`, () => {
-					silo.runTransaction(setBothCountsTX)(1)
+					silo.runTransaction(setBothCountsTransaction)(1)
 				}),
 				createButton(`divergeA`, () => {
 					silo.setState(countAtoms, `a`, 2)
@@ -589,8 +598,8 @@ describe(`timeline (dynamic)`, () => {
 	const scenario = async () => {
 		const letterAtom = atom<string>({ key: `letter`, default: `A` })
 		const numberAtom = atom<number>({ key: `number`, default: 1 })
-		const letterTL = timeline({ key: `letterTL`, scope: [letterAtom] })
-		const numberTL = timeline({ key: `numberTL`, scope: [numberAtom] })
+		const letterTimeline = timeline({ key: `letter`, scope: [letterAtom] })
+		const numberTimeline = timeline({ key: `number`, scope: [numberAtom] })
 		const whichTimelineAtom = atom<string>({
 			key: `whichTimeline`,
 			default: `letter`,
@@ -599,7 +608,7 @@ describe(`timeline (dynamic)`, () => {
 			key: `timeline`,
 			get: ({ get }) => {
 				const whichTimeline = get(whichTimelineAtom)
-				return whichTimeline === `letter` ? letterTL : numberTL
+				return whichTimeline === `letter` ? letterTimeline : numberTimeline
 			},
 		})
 		const mounted = await mountWithProvider(({ AS, Solid, host }) => {
@@ -667,11 +676,11 @@ describe(`timeline (dynamic)`, () => {
 
 			host.append(Letter())
 		})
-		return { ...mounted, letterTL }
+		return { ...mounted, letterTimeline }
 	}
 
 	it(`displays metadata`, async () => {
-		const { dispose, host, letterTL } = await scenario()
+		const { dispose, host, letterTimeline } = await scenario()
 		const timelineAt = getByTestId(host, `timelineAt`)
 		const timelineLength = getByTestId(host, `timelineLength`)
 		getByTestId(host, `changeLetterButtonB`).click()
@@ -688,7 +697,7 @@ describe(`timeline (dynamic)`, () => {
 		assert(getByTestId(host, `2`))
 		expect(timelineAt.textContent).toEqual(`1`)
 		expect(timelineLength.textContent).toEqual(`1`)
-		undo(letterTL)
+		undo(letterTimeline)
 		await flush()
 		getByTestId(host, `changeTimelineButton`).click()
 		await flush()

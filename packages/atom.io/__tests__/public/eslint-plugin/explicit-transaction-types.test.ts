@@ -136,5 +136,16 @@ ruleTester.run(`explicit-transaction-types`, rule, {
       `,
 			errors: [{ messageId: `noTypeArgument` }],
 		},
+		{
+			name: `spread options with quoted explicit keys`,
+			code: `
+        const incrementTransaction = transaction({
+          ...defaults,
+          "key": "increment",
+          "do": ({ get, set }, amount) => set(countAtom, get(countAtom) + amount),
+        })
+      `,
+			errors: [{ messageId: `noTypeArgument` }],
+		},
 	],
 })

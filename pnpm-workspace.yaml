@@ -1,6 +1,7 @@
 blockExoticSubdeps: true
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
+  - atom.io
   - break-check
   - comline
   - lasertag

@@ -4,9 +4,11 @@ import {
 	arbitrary,
 	clearTimelineInStore,
 	findTimelineInStore,
+	getTimelineTransactionAtHead,
 	inspectTimelineInStore,
 	subscribeToTimeline,
 	timeTravel,
+	timeTravelTransactionGroupInStore,
 } from "atom.io/internal"
 import { useContext } from "solid-js"
 
@@ -19,6 +21,10 @@ export type TimelineMeta = {
 	undo: () => void
 	redo: () => void
 	clear: () => void
+	/** Undo the current transaction on every timeline where it is at the head. */
+	undoTransaction?: () => void
+	/** Redo the next transaction on every timeline where it is at the head. */
+	redoTransaction?: () => void
 }
 
 export function useTL(token: TimelineToken<any>): () => TimelineMeta
@@ -39,6 +45,9 @@ export function useTL<K extends Canonical>(
 	const id = arbitrary()
 	const getSnapshot = (): TimelineMeta => {
 		const { at, length } = inspectTimelineInStore(store, token)
+		const timeline = store.timelines.get(token.key)!
+		const undoTransactionGroup = getTimelineTransactionAtHead(timeline, `undo`)
+		const redoTransactionGroup = getTimelineTransactionAtHead(timeline, `redo`)
 		return {
 			at,
 			length,
@@ -51,6 +60,28 @@ export function useTL<K extends Canonical>(
 			clear: () => {
 				clearTimelineInStore(store, token)
 			},
+			...(undoTransactionGroup
+				? {
+						undoTransaction: () => {
+							timeTravelTransactionGroupInStore(
+								store,
+								`undo`,
+								undoTransactionGroup,
+							)
+						},
+					}
+				: {}),
+			...(redoTransactionGroup
+				? {
+						redoTransaction: () => {
+							timeTravelTransactionGroupInStore(
+								store,
+								`redo`,
+								redoTransactionGroup,
+							)
+						},
+					}
+				: {}),
 		}
 	}
 	return useSyncExternalStore<TimelineMeta>((dispatch) => {

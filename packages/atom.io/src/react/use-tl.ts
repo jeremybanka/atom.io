@@ -3,9 +3,11 @@ import type { Canonical } from "atom.io/foundations/canonical"
 import {
 	clearTimelineInStore,
 	findTimelineInStore,
+	getTimelineTransactionAtHead,
 	inspectTimelineInStore,
 	subscribeToTimeline,
 	timeTravel,
+	timeTravelTransactionGroupInStore,
 } from "atom.io/internal"
 import { useContext, useId, useRef, useSyncExternalStore } from "react"
 
@@ -17,6 +19,10 @@ export type TimelineMeta = {
 	undo: () => void
 	redo: () => void
 	clear: () => void
+	/** Undo the current transaction on every timeline where it is at the head. */
+	undoTransaction?: () => void
+	/** Redo the next transaction on every timeline where it is at the head. */
+	redoTransaction?: () => void
 }
 
 export function useTL(token: TimelineToken<any>): TimelineMeta
@@ -37,8 +43,22 @@ export function useTL<K extends Canonical>(
 	const id = useId()
 	const storeRef = useRef(store)
 	const tokenRef = useRef(token)
-	const rebuildMeta = () => {
+	const getTransactionGroups = () => {
+		const timeline = store.timelines.get(token.key)!
+		return {
+			undo: getTimelineTransactionAtHead(timeline, `undo`),
+			redo: getTimelineTransactionAtHead(timeline, `redo`),
+		}
+	}
+	const initialTransactionGroups = getTransactionGroups()
+	const undoTransactionGroupRef = useRef(initialTransactionGroups.undo)
+	const redoTransactionGroupRef = useRef(initialTransactionGroups.redo)
+	const rebuildMeta = (
+		transactionGroups: ReturnType<typeof getTransactionGroups>,
+	) => {
 		const { at, length } = inspectTimelineInStore(store, token)
+		const undoTransactionGroup = transactionGroups.undo
+		const redoTransactionGroup = transactionGroups.redo
 		return {
 			at,
 			length,
@@ -51,20 +71,47 @@ export function useTL<K extends Canonical>(
 			clear: () => {
 				clearTimelineInStore(store, token)
 			},
+			...(undoTransactionGroup
+				? {
+						undoTransaction: () => {
+							timeTravelTransactionGroupInStore(
+								store,
+								`undo`,
+								undoTransactionGroup,
+							)
+						},
+					}
+				: {}),
+			...(redoTransactionGroup
+				? {
+						redoTransaction: () => {
+							timeTravelTransactionGroupInStore(
+								store,
+								`redo`,
+								redoTransactionGroup,
+							)
+						},
+					}
+				: {}),
 		}
 	}
-	const meta = useRef<TimelineMeta>(rebuildMeta())
+	const meta = useRef<TimelineMeta>(rebuildMeta(initialTransactionGroups))
 	const retrieve = () => {
 		const { at, length } = inspectTimelineInStore(store, token)
+		const transactionGroups = getTransactionGroups()
 		if (
 			meta.current.at !== at ||
 			meta.current.length !== length ||
 			storeRef.current !== store ||
-			tokenRef.current.key !== token.key
+			tokenRef.current.key !== token.key ||
+			undoTransactionGroupRef.current !== transactionGroups.undo ||
+			redoTransactionGroupRef.current !== transactionGroups.redo
 		) {
 			storeRef.current = store
 			tokenRef.current = token
-			meta.current = rebuildMeta()
+			undoTransactionGroupRef.current = transactionGroups.undo
+			redoTransactionGroupRef.current = transactionGroups.redo
+			meta.current = rebuildMeta(transactionGroups)
 		}
 		return meta.current
 	}

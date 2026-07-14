@@ -9,7 +9,9 @@ import {
 
 import { glyphTimelines, pointXAtoms } from "./create-a-timeline-family.ts"
 
-export const addExtremaTX = transaction<(glyphIds: readonly string[]) => void>({
+export const addExtremaTransaction = transaction<
+	(glyphIds: readonly string[]) => void
+>({
 	key: `addExtrema`,
 	do: ({ set }, glyphIds) => {
 		for (const glyphId of glyphIds) {
@@ -22,7 +24,7 @@ export function addExtrema(glyphIds: readonly string[]): void {
 	for (const glyphId of glyphIds) {
 		findTimeline(glyphTimelines, glyphId)
 	}
-	runTransaction(addExtremaTX)(glyphIds)
+	runTransaction(addExtremaTransaction)(glyphIds)
 }
 
 export function undoOneGlyph(glyphId: string): void {
@@ -30,9 +32,9 @@ export function undoOneGlyph(glyphId: string): void {
 }
 
 export function undoAddExtrema(): void {
-	undoTransaction(addExtremaTX)
+	undoTransaction(addExtremaTransaction)
 }
 
 export function redoAddExtrema(): void {
-	redoTransaction(addExtremaTX)
+	redoTransaction(addExtremaTransaction)
 }

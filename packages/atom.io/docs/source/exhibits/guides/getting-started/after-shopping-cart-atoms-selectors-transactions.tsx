@@ -71,7 +71,7 @@ const cartTotalSelector = selector<number>({
 	},
 })
 
-const addCartItemTX = transaction<(product: CartProduct) => void>({
+const addCartItemTransaction = transaction<(product: CartProduct) => void>({
 	key: `addCartItem`,
 	do: ({ get, set }, product) => {
 		const itemKeys = get(cartItemsKeysAtom)
@@ -87,9 +87,9 @@ const addCartItemTX = transaction<(product: CartProduct) => void>({
 	},
 })
 
-const addCartItem = runTransaction(addCartItemTX)
+const addCartItem = runTransaction(addCartItemTransaction)
 
-const removeCartItemTX = transaction<(id: string) => void>({
+const removeCartItemTransaction = transaction<(id: string) => void>({
 	key: `removeCartItem`,
 	do: ({ dispose, get, set }, id) => {
 		const itemKeys = get(cartItemsKeysAtom)
@@ -103,7 +103,7 @@ const removeCartItemTX = transaction<(id: string) => void>({
 	},
 })
 
-const removeCartItem = runTransaction(removeCartItemTX)
+const removeCartItem = runTransaction(removeCartItemTransaction)
 
 function AddToCartButton(): JSX.Element {
 	const itemCount = useO(cartItemCountSelector)

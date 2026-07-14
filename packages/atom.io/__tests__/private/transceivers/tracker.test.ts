@@ -62,8 +62,8 @@ describe(`tracker`, () => {
 			class: UList,
 		})
 		const tracker = new Tracker(myMutableAtom, Internal.IMPLICIT.STORE)
-		const updateTrackerTX = transaction({
-			key: `updateTrackerTX`,
+		const updateTrackerTransaction = transaction({
+			key: `updateTracker`,
 			do: ({ set }) => {
 				set(tracker.latestSignalToken, `0\u001F\u0003x`)
 				set(tracker.latestSignalToken, `0\u001F\u0003y`)
@@ -72,7 +72,7 @@ describe(`tracker`, () => {
 
 		expect(getState(myMutableAtom)).toEqual(new UList())
 		expect(getState(tracker.latestSignalToken)).toEqual(null)
-		runTransaction(updateTrackerTX)()
+		runTransaction(updateTrackerTransaction)()
 		expect(getState(myMutableAtom)).toEqual(new UList([`x`, `y`]))
 	})
 })
@@ -102,8 +102,8 @@ describe(`trackerFamily`, () => {
 			setAtoms,
 			Internal.IMPLICIT.STORE,
 		)
-		const updateTrackerTX = transaction<(key: string) => void>({
-			key: `updateTrackerTX`,
+		const updateTrackerTransaction = transaction<(key: string) => void>({
+			key: `updateTracker`,
 			do: ({ set }, key) => {
 				const trackerState = findState(latestUpdateStates, key)
 				set(trackerState, `0\u001F\u0003x`)
@@ -112,7 +112,7 @@ describe(`trackerFamily`, () => {
 
 		expect(getState(findState(setAtoms, `a`))).toEqual(new UList())
 		expect(getState(findState(latestUpdateStates, `a`))).toEqual(null)
-		runTransaction(updateTrackerTX)(`a`)
+		runTransaction(updateTrackerTransaction)(`a`)
 
 		expect(getState(findState(setAtoms, `a`))).toEqual(new UList([`x`]))
 		expect(getState(findState(setAtoms, `b`))).toEqual(new UList())

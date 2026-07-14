@@ -9,6 +9,9 @@ const SUFFIX_DICTIONARY = {
 	mutableAtomFamily: `Atoms`,
 	selector: `Selector`,
 	selectorFamily: `Selectors`,
+	timeline: `Timeline`,
+	timelineFamily: `Timelines`,
+	transaction: `Transaction`,
 } as const
 
 const PLURAL_DICTIONARY = {
@@ -18,9 +21,12 @@ const PLURAL_DICTIONARY = {
 	mutableAtomFamily: `atom families`,
 	selector: `selectors`,
 	selectorFamily: `selector families`,
+	timeline: `timelines`,
+	timelineFamily: `timeline families`,
+	transaction: `transactions`,
 }
 
-type StateFunctionName = keyof typeof SUFFIX_DICTIONARY
+type ResourceFactoryName = keyof typeof SUFFIX_DICTIONARY
 
 export const namingConvention: {
 	meta: {
@@ -38,7 +44,7 @@ export const namingConvention: {
 	meta: {
 		type: `problem`,
 		docs: {
-			description: `The variable names given to atoms, selectors, and their respective families should match their given key property, and should follow a consistent format`,
+			description: `The variable names given to atom.io resources should match their key properties and follow a consistent format`,
 			recommended: false,
 			url: ``,
 		},
@@ -61,15 +67,15 @@ export const namingConvention: {
 				if (node.parent.init !== node) return
 				if (node.parent.id.type !== `Identifier`) return
 
-				let calleeName: StateFunctionName
+				let calleeName: ResourceFactoryName
 
 				switch (node.callee.type) {
 					case `Identifier`:
-						calleeName = node.callee.name as StateFunctionName
+						calleeName = node.callee.name as ResourceFactoryName
 						break
 					case `MemberExpression`:
 						if (node.callee.property.type !== `Identifier`) return
-						calleeName = node.callee.property.name as StateFunctionName
+						calleeName = node.callee.property.name as ResourceFactoryName
 						break
 					default:
 						return
@@ -82,6 +88,9 @@ export const namingConvention: {
 					case `mutableAtomFamily`:
 					case `selector`:
 					case `selectorFamily`:
+					case `timeline`:
+					case `timelineFamily`:
+					case `transaction`:
 						break // ^ targets of this rule
 					default:
 						return
@@ -92,7 +101,7 @@ export const namingConvention: {
 
 				const variableName = node.parent.id.name
 
-				// Enforce FooAtom naming
+				// Enforce the resource-specific suffix
 				if (!variableName.endsWith(suffix)) {
 					context.report({
 						node: node.parent.id,
@@ -117,23 +126,16 @@ export const namingConvention: {
 
 				if (!keyProp) return
 
-				// Must be string literal or template literal
-				if (
-					keyProp.value.type !== `Literal` ||
-					typeof keyProp.value.value !== `string`
-				) {
-					if (keyProp.value.type !== `TemplateLiteral`) return
-				}
-
 				const actualKey =
-					keyProp.value.type === `Literal`
+					keyProp.value.type === `Literal` &&
+					typeof keyProp.value.value === `string`
 						? keyProp.value.value
-						: keyProp.value.quasis[0].value.raw
+						: keyProp.value.type === `TemplateLiteral` &&
+							  keyProp.value.expressions.length === 0
+							? keyProp.value.quasis[0].value.cooked
+							: undefined
 
-				if (
-					actualKey !== expectedKey ||
-					(`quasis` in keyProp.value && keyProp.value.quasis.length > 1)
-				) {
+				if (actualKey !== expectedKey) {
 					context.report({
 						node: keyProp.value,
 						message: `Keys of ${plural} should be consistent with the names of their variables.`,

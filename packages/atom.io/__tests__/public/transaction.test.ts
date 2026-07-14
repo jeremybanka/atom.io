@@ -34,7 +34,7 @@ describe(`transaction`, () => {
 			key: `count`,
 			default: 0,
 		})
-		const incrementTX = transaction({
+		const incrementTransaction = transaction({
 			key: `increment`,
 			do: ({ get, set }) => {
 				const count = get(countAtom)
@@ -42,7 +42,7 @@ describe(`transaction`, () => {
 			},
 		})
 		expect(getState(countAtom)).toEqual(0)
-		runTransaction(incrementTX)()
+		runTransaction(incrementTransaction)()
 		expect(getState(countAtom)).toEqual(1)
 	})
 	it(`resets state`, () => {
@@ -50,7 +50,7 @@ describe(`transaction`, () => {
 			key: `count`,
 			default: 0,
 		})
-		const resetTX = transaction({
+		const resetTransaction = transaction({
 			key: `reset`,
 			do: ({ reset }) => {
 				reset(countAtom)
@@ -59,7 +59,7 @@ describe(`transaction`, () => {
 		expect(getState(countAtom)).toEqual(0)
 		setState(countAtom, 1)
 		expect(getState(countAtom)).toEqual(1)
-		runTransaction(resetTX)()
+		runTransaction(resetTransaction)()
 		expect(getState(countAtom)).toEqual(0)
 	})
 	it(`creates an atom in a transaction`, () => {
@@ -67,7 +67,7 @@ describe(`transaction`, () => {
 			key: `point`,
 			default: { x: 0, y: 0 },
 		})
-		const addPoint = transaction<
+		const add_pointTransaction = transaction<
 			(key: number, x: number, y: number) => { x: number; y: number }
 		>({
 			key: `add_point`,
@@ -77,7 +77,7 @@ describe(`transaction`, () => {
 				return point
 			},
 		})
-		const point = runTransaction(addPoint)(777, 1, 2)
+		const point = runTransaction(add_pointTransaction)(777, 1, 2)
 		expect(point).toEqual({ x: 1, y: 2 })
 	})
 	it(`creates a selector in a transaction`, () => {
@@ -97,7 +97,9 @@ describe(`transaction`, () => {
 					set(countAtom, newCount - someValue)
 				},
 		})
-		const addCountPlusSomeValue = transaction<(someValue: number) => void>({
+		const add_count_plus_some_valueTransaction = transaction<
+			(someValue: number) => void
+		>({
 			key: `add_count_plus_some_value`,
 			do: ({ find, get, set }, someValue: number) => {
 				const countPlusSomeValue = get(
@@ -106,7 +108,7 @@ describe(`transaction`, () => {
 				set(find(countPlusSomeValueSelectors, someValue), countPlusSomeValue + 1)
 			},
 		})
-		runTransaction(addCountPlusSomeValue)(777)
+		runTransaction(add_count_plus_some_valueTransaction)(777)
 		expect(getState(findState(countPlusSomeValueSelectors, 777))).toEqual(778)
 	})
 	it(`disposes of states in a transaction`, () => {
@@ -121,7 +123,7 @@ describe(`transaction`, () => {
 				({ find, get }) =>
 					get(find(countAtoms, id)) * 2,
 		})
-		const incrementTX = transaction({
+		const incrementTransaction = transaction({
 			key: `increment`,
 			do: ({ find, get, set, dispose }) => {
 				const countState = find(countAtoms, `my-key`)
@@ -134,7 +136,7 @@ describe(`transaction`, () => {
 		})
 		findState(countAtoms, `my-key`)
 		findState(doubleSelectors, `my-key`)
-		runTransaction(incrementTX)()
+		runTransaction(incrementTransaction)()
 		expect(stateExists(countAtoms, `my-key`)).toBe(false)
 		expect(stateExists(doubleSelectors, `my-key`)).toBe(false)
 	})
@@ -159,7 +161,7 @@ describe(`transaction`, () => {
 				set(count2Atom, value - 1)
 			},
 		})
-		const setAllCounts = transaction({
+		const setAllCountsTransaction = transaction({
 			key: `setAllCounts`,
 			do: ({ set }, value: number) => {
 				set(count1Atom, value)
@@ -167,7 +169,7 @@ describe(`transaction`, () => {
 			},
 		})
 
-		subscribe(setAllCounts, (data) => {
+		subscribe(setAllCountsTransaction, (data) => {
 			Utils.stdout0(`Transaction update:`, data)
 			for (const update of data.subEvents) {
 				Utils.stdout1(`Atom update:`, update)
@@ -177,7 +179,7 @@ describe(`transaction`, () => {
 			Utils.stdout2(`Selector update:`, data)
 		})
 
-		runTransaction(setAllCounts)(3)
+		runTransaction(setAllCountsTransaction)(3)
 
 		expect(getState(count1Atom)).toEqual(3)
 		expect(Utils.stdout2).toHaveBeenCalledWith(`Selector update:`, {
@@ -238,23 +240,23 @@ describe(`nesting transactions`, () => {
 			key: `count`,
 			default: 0,
 		})
-		const incrementTX = transaction({
+		const incrementTransaction = transaction({
 			key: `increment`,
 			do: ({ get, set }) => {
 				const count = get(countAtom)
 				set(countAtom, count + 1)
 			},
 		})
-		const incrementTwiceTX = transaction({
+		const incrementTwiceTransaction = transaction({
 			key: `incrementTwice`,
 			do: ({ get, set }) => {
 				const count = get(countAtom)
 				set(countAtom, count + 1)
-				runTransaction(incrementTX)()
+				runTransaction(incrementTransaction)()
 				set(countAtom, (prev) => prev + 1)
 			},
 		})
-		runTransaction(incrementTwiceTX)()
+		runTransaction(incrementTwiceTransaction)()
 		expect(getState(countAtom)).toEqual(3)
 	})
 	test(`mutable atoms can be modified in a lower transaction`, () => {
@@ -266,13 +268,15 @@ describe(`nesting transactions`, () => {
 			key: `shoppingList`,
 			class: UList,
 		})
-		const addItemToShoppingListTX = transaction<(item: string) => void>({
-			key: `addItemToShoppingList`,
-			do: ({ set }, item) => {
-				set(shoppingListAtom, (current) => current.add(item))
+		const addItemToShoppingListTransaction = transaction<(item: string) => void>(
+			{
+				key: `addItemToShoppingList`,
+				do: ({ set }, item) => {
+					set(shoppingListAtom, (current) => current.add(item))
+				},
 			},
-		})
-		const addCoffeeCreamerIfNeededTX = transaction<() => void>({
+		)
+		const addCoffeeCreamerIfNeededTransaction = transaction<() => void>({
 			key: `addCoffeeCreamerIfNeeded`,
 			do: ({ get, set }) => {
 				const shoppingList = get(shoppingListAtom)
@@ -281,19 +285,19 @@ describe(`nesting transactions`, () => {
 				}
 			},
 		})
-		const refreshShoppingListTX = transaction<() => void>({
+		const refreshShoppingListTransaction = transaction<() => void>({
 			key: `refreshShoppingList`,
 			do: ({ get, set }) => {
 				const coffeeQuantity = get(coffeeQuantityAtom)
 				if (coffeeQuantity < 1) {
 					set(coffeeQuantityAtom, 1)
-					runTransaction(addItemToShoppingListTX)(`coffee`)
+					runTransaction(addItemToShoppingListTransaction)(`coffee`)
 				}
-				runTransaction(addCoffeeCreamerIfNeededTX)()
+				runTransaction(addCoffeeCreamerIfNeededTransaction)()
 			},
 		})
 		expect(getState(shoppingListAtom)).toEqual(new UList<string>())
-		runTransaction(refreshShoppingListTX)()
+		runTransaction(refreshShoppingListTransaction)()
 		expect(getState(shoppingListAtom)).toEqual(
 			new UList<string>([`coffee`, `coffee creamer`]),
 		)
@@ -310,7 +314,7 @@ describe(`precise scope of transactions`, () => {
 			key: `favoriteWord`,
 			default: ``,
 		})
-		const incrementTX = transaction({
+		const incrementTransaction = transaction({
 			key: `increment`,
 			do: ({ get, set }) => {
 				const count = get(countAtom)
@@ -328,8 +332,8 @@ describe(`precise scope of transactions`, () => {
 			},
 		}
 		vitest.spyOn(validate, `update`)
-		subscribe(incrementTX, validate.update)
-		runTransaction(incrementTX)()
+		subscribe(incrementTransaction, validate.update)
+		runTransaction(incrementTransaction)()
 		expect(validate.update).toHaveBeenCalledTimes(1)
 		expect(getState(countAtom)).toEqual(1)
 		expect(getState(favoriteWordAtom)).toEqual(`cheese`)
@@ -342,7 +346,7 @@ describe(`reversibility of transactions`, () => {
 			key: `count`,
 			default: 0,
 		})
-		const incrementTX = transaction({
+		const incrementTransaction = transaction({
 			key: `increment`,
 			do: ({ find, get, set }) => {
 				const countState = find(countAtoms, `my-key`)
@@ -353,7 +357,7 @@ describe(`reversibility of transactions`, () => {
 		})
 		let caught: unknown
 		try {
-			runTransaction(incrementTX)()
+			runTransaction(incrementTransaction)()
 		} catch (thrown) {
 			caught = thrown
 		}
@@ -366,7 +370,7 @@ describe(`reversibility of transactions`, () => {
 			default: 0,
 		})
 		getState(countAtoms, `my-key`)
-		const incrementTX = transaction({
+		const incrementTransaction = transaction({
 			key: `increment`,
 			do: ({ find, dispose }) => {
 				const countState = find(countAtoms, `my-key`)
@@ -376,7 +380,7 @@ describe(`reversibility of transactions`, () => {
 		})
 		let caught: unknown
 		try {
-			runTransaction(incrementTX)()
+			runTransaction(incrementTransaction)()
 		} catch (thrown) {
 			caught = thrown
 		}

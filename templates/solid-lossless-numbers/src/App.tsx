@@ -108,10 +108,10 @@ const approximateValueSelectors = selectorFamily<string, RationalKey>({
 		},
 })
 
-const combineIntoRationalTx = transaction<
+const combineIntoRationalTransaction = transaction<
 	(key: RationalKey, operation: `add` | `div` | `mul` | `sub`) => void
 >({
-	key: `combineIntoRationalTx`,
+	key: `combineIntoRational`,
 	do: ({ get, set, reset }, key, operation) => {
 		const num = get(newNumeratorAtoms, key) ?? 1n
 		const den = get(newDenominatorAtoms, key) ?? 1n
@@ -139,7 +139,7 @@ export function App(): JSX.Element {
 						type="button"
 						onClick={() => {
 							const key: RationalKey = `rat::${arbitrary()}`
-							runTransaction(combineIntoRationalTx)(key, `add`)
+							runTransaction(combineIntoRationalTransaction)(key, `add`)
 							const newNumerator = getState(newRationalNumeratorAtom) ?? 1n
 							const newDenominator = getState(newRationalDenominatorAtom) ?? 1n
 							const rational = new Rational(newNumerator, newDenominator)
@@ -183,7 +183,7 @@ export function RationalBreakdown(props: { key: RationalKey }): JSX.Element {
 					<button
 						type="button"
 						onClick={() => {
-							runTransaction(combineIntoRationalTx)(props.key, `sub`)
+							runTransaction(combineIntoRationalTransaction)(props.key, `sub`)
 						}}
 					>
 						−
@@ -191,7 +191,7 @@ export function RationalBreakdown(props: { key: RationalKey }): JSX.Element {
 					<button
 						type="button"
 						onClick={() => {
-							runTransaction(combineIntoRationalTx)(props.key, `add`)
+							runTransaction(combineIntoRationalTransaction)(props.key, `add`)
 						}}
 					>
 						+
@@ -199,7 +199,7 @@ export function RationalBreakdown(props: { key: RationalKey }): JSX.Element {
 					<button
 						type="button"
 						onClick={() => {
-							runTransaction(combineIntoRationalTx)(props.key, `div`)
+							runTransaction(combineIntoRationalTransaction)(props.key, `div`)
 						}}
 					>
 						÷
@@ -207,7 +207,7 @@ export function RationalBreakdown(props: { key: RationalKey }): JSX.Element {
 					<button
 						type="button"
 						onClick={() => {
-							runTransaction(combineIntoRationalTx)(props.key, `mul`)
+							runTransaction(combineIntoRationalTransaction)(props.key, `mul`)
 						}}
 					>
 						×

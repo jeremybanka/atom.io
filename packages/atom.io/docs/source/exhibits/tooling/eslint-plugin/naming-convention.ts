@@ -1,4 +1,11 @@
-import { atom, atomFamily, selector } from "atom.io"
+import {
+	atom,
+	atomFamily,
+	selector,
+	timeline,
+	timelineFamily,
+	transaction,
+} from "atom.io"
 
 type User = {
 	id: string
@@ -18,6 +25,23 @@ export const userAtoms = atomFamily<User, string>({
 export const countLabelSelector = selector<string>({
 	key: `countLabel`,
 	get: ({ get }) => `${get(countAtom)} users`,
+})
+
+export const countTimeline = timeline({
+	key: `count`,
+	scope: [countAtom],
+})
+
+export const userTimelines = timelineFamily<string>({
+	key: `user`,
+	scope: [],
+})
+
+export const resetTransaction = transaction<() => void>({
+	key: `reset`,
+	do: ({ reset }) => {
+		reset(countAtom)
+	},
 })
 
 // `userAtoms` with `key: "users"` would be reported and autofixed to `"user"`.

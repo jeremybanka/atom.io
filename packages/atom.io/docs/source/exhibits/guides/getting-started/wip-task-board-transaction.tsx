@@ -19,7 +19,7 @@ const taskBoardErrorAtom = atom<string | null>({
 	default: null,
 })
 
-const markDoneTX = transaction<(taskId: string) => void>({
+const markDoneTransaction = transaction<(taskId: string) => void>({
 	key: `markDone`,
 	do: ({ get, set }, taskId) => {
 		set(
@@ -35,7 +35,7 @@ const markDoneTX = transaction<(taskId: string) => void>({
 	},
 })
 
-const markDone = runTransaction(markDoneTX)
+const markDone = runTransaction(markDoneTransaction)
 
 export function TaskBoard(): JSX.Element {
 	const todoIds = useO(todoIdsAtom)

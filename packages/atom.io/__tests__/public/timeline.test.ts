@@ -65,28 +65,28 @@ describe(`timeline`, () => {
 			},
 		})
 
-		const tl_abc = timeline({
-			key: `a, b, & c`,
+		const abcTimeline = timeline({
+			key: `abc`,
 			scope: [aAtom, bAtom, cAtom],
 		})
 
-		const tx_ab = transaction<() => void>({
-			key: `increment a & b`,
+		const incrementABTransaction = transaction<() => void>({
+			key: `incrementAB`,
 			do: ({ set }) => {
 				set(aAtom, (n) => n + 1)
 				set(bAtom, (n) => n + 1)
 			},
 		})
 
-		const tx_bc = transaction<(plus: number) => void>({
-			key: `increment b & c`,
+		const incrementBCTransaction = transaction<(plus: number) => void>({
+			key: `incrementBC`,
 			do: ({ set }, add = 1) => {
 				set(bAtom, (n) => n + add)
 				set(cAtom, (n) => n + add)
 			},
 		})
 
-		subscribe(tl_abc, Utils.stdout0)
+		subscribe(abcTimeline, Utils.stdout0)
 
 		const expectation0 = () => {
 			expect(getState(aAtom)).toBe(5)
@@ -105,7 +105,7 @@ describe(`timeline`, () => {
 		}
 		expectation1()
 
-		runTransaction(tx_ab)()
+		runTransaction(incrementABTransaction)()
 		const expectation2 = () => {
 			expect(getState(aAtom)).toBe(2)
 			expect(getState(bAtom)).toBe(1)
@@ -114,7 +114,7 @@ describe(`timeline`, () => {
 		}
 		expectation2()
 
-		runTransaction(tx_bc)(2)
+		runTransaction(incrementBCTransaction)(2)
 		const expectation3 = () => {
 			expect(getState(aAtom)).toBe(2)
 			expect(getState(bAtom)).toBe(3)
@@ -122,20 +122,20 @@ describe(`timeline`, () => {
 		}
 		expectation3()
 
-		undo(tl_abc)
+		undo(abcTimeline)
 		expectation2()
 
-		redo(tl_abc)
+		redo(abcTimeline)
 		expectation3()
 
-		undo(tl_abc)
-		undo(tl_abc)
+		undo(abcTimeline)
+		undo(abcTimeline)
 		expectation1()
 
-		undo(tl_abc)
+		undo(abcTimeline)
 		expectation0()
 
-		expect(inspectTimeline(tl_abc)).toEqual({ at: 0, length: 3 })
+		expect(inspectTimeline(abcTimeline)).toEqual({ at: 0, length: 3 })
 		expect(Utils.stdout0).toHaveBeenCalledTimes(8)
 	})
 	test(`time traveling with nested transactions`, () => {
@@ -143,32 +143,34 @@ describe(`timeline`, () => {
 			key: `a`,
 			default: 0,
 		})
-		const incrementTX = transaction<(state: WritableToken<number>) => void>({
+		const incrementTransaction = transaction<
+			(state: WritableToken<number>) => void
+		>({
 			key: `increment`,
 			do: ({ set }, state) => {
 				set(state, (n) => n + 1)
 			},
 		})
 
-		const aTL = timeline({
+		const aTimeline = timeline({
 			key: `a`,
 			scope: [aAtom],
 		})
-		const incrementTimesTX = transaction<
+		const incrementTimesTransaction = transaction<
 			(state: WritableToken<number>, times: number) => void
 		>({
-			key: `increment times`,
+			key: `incrementTimes`,
 			do: ({ run }, state, times) => {
 				for (let i = 0; i < times; ++i) {
-					run(incrementTX)(state)
+					run(incrementTransaction)(state)
 				}
 			},
 		})
-		runTransaction(incrementTimesTX)(aAtom, 3)
+		runTransaction(incrementTimesTransaction)(aAtom, 3)
 		expect(getState(aAtom)).toBe(3)
-		undo(aTL)
+		undo(aTimeline)
 		expect(getState(aAtom)).toBe(0)
-		redo(aTL)
+		redo(aTimeline)
 		expect(getState(aAtom)).toBe(3)
 	})
 	test(`subscriptions when time-traveling`, () => {
@@ -192,8 +194,8 @@ describe(`timeline`, () => {
 			},
 		})
 
-		const timeline_ab = timeline({
-			key: `a & b`,
+		const numbersTimeline = timeline({
+			key: `numbers`,
 			scope: [aAtom, bAtom],
 		})
 
@@ -201,14 +203,14 @@ describe(`timeline`, () => {
 
 		setState(product_abSelector, 1)
 
-		undo(timeline_ab)
+		undo(numbersTimeline)
 
 		expect(getState(aAtom)).toBe(3)
 
 		expect(Utils.stdout).toHaveBeenCalledWith({ oldValue: 3, newValue: 1 })
 		expect(Utils.stdout).toHaveBeenCalledWith({ oldValue: 1, newValue: 3 })
 
-		redo(timeline_ab)
+		redo(numbersTimeline)
 
 		expect(getState(aAtom)).toBe(1)
 		expect(getState(bAtom)).toBe(1)
@@ -249,15 +251,15 @@ describe(`timeline`, () => {
 				},
 		})
 
-		const timeline_ab = timeline({
-			key: `numbers over time`,
+		const numbersTimeline = timeline({
+			key: `numbers`,
 			scope: [numberAtoms],
 		})
 
 		setState(productSquareRootSelectors, [`a`, `b`], 3)
 
-		expect(inspectTimeline(timeline_ab).length).toBe(1)
-		undo(timeline_ab)
+		expect(inspectTimeline(numbersTimeline).length).toBe(1)
+		undo(numbersTimeline)
 	})
 	test(`history erasure from the past`, () => {
 		const nameAtom = atom<string>({
@@ -273,15 +275,15 @@ describe(`timeline`, () => {
 				set(nameAtom, value.toLowerCase())
 			},
 		})
-		const setName = transaction<(s: string) => void>({
-			key: `set name`,
+		const setNameTransaction = transaction<(s: string) => void>({
+			key: `setName`,
 			do: ({ set }, name) => {
 				set(nameCapitalizedSelector, name)
 			},
 		})
 
-		const nameHistory = timeline({
-			key: `name history`,
+		const nameHistoryTimeline = timeline({
+			key: `nameHistory`,
 			scope: [nameAtom],
 		})
 
@@ -289,27 +291,27 @@ describe(`timeline`, () => {
 
 		setState(nameAtom, `vance`)
 		setState(nameCapitalizedSelector, `JON`)
-		runTransaction(setName)(`Sylvia`)
+		runTransaction(setNameTransaction)(`Sylvia`)
 
 		expect(getState(nameAtom)).toBe(`sylvia`)
-		expect(inspectTimeline(nameHistory)).toEqual({ at: 3, length: 3 })
+		expect(inspectTimeline(nameHistoryTimeline)).toEqual({ at: 3, length: 3 })
 
-		undo(nameHistory)
+		undo(nameHistoryTimeline)
 		expect(getState(nameAtom)).toBe(`jon`)
-		expect(inspectTimeline(nameHistory)).toEqual({ at: 2, length: 3 })
+		expect(inspectTimeline(nameHistoryTimeline)).toEqual({ at: 2, length: 3 })
 
-		undo(nameHistory)
+		undo(nameHistoryTimeline)
 		expect(getState(nameAtom)).toBe(`vance`)
-		expect(inspectTimeline(nameHistory)).toEqual({ at: 1, length: 3 })
+		expect(inspectTimeline(nameHistoryTimeline)).toEqual({ at: 1, length: 3 })
 
-		undo(nameHistory)
+		undo(nameHistoryTimeline)
 		expect(getState(nameAtom)).toBe(`josie`)
-		expect(inspectTimeline(nameHistory)).toEqual({ at: 0, length: 3 })
+		expect(inspectTimeline(nameHistoryTimeline)).toEqual({ at: 0, length: 3 })
 
-		runTransaction(setName)(`Mr. Jason Gold`)
+		runTransaction(setNameTransaction)(`Mr. Jason Gold`)
 
 		expect(getState(nameAtom)).toBe(`mr. jason gold`)
-		expect(inspectTimeline(nameHistory)).toEqual({ at: 1, length: 1 })
+		expect(inspectTimeline(nameHistoryTimeline)).toEqual({ at: 1, length: 1 })
 	})
 	it(`adds members of a family already created`, () => {
 		const countAtoms = atomFamily<number, string>({
@@ -317,14 +319,14 @@ describe(`timeline`, () => {
 			default: 0,
 		})
 		const myCountState = findState(countAtoms, `foo`)
-		const countsTL = timeline({
+		const countsTimeline = timeline({
 			key: `counts`,
 			scope: [countAtoms],
 		})
 		expect(getState(myCountState)).toBe(0)
 		setState(myCountState, 1)
 		expect(getState(myCountState)).toBe(1)
-		undo(countsTL)
+		undo(countsTimeline)
 		expect(getState(myCountState)).toBe(0)
 	})
 	it(`passes over non-write events`, () => {
@@ -333,7 +335,7 @@ describe(`timeline`, () => {
 			default: 0,
 		})
 
-		const countTL = timeline({
+		const countTimeline = timeline({
 			key: `count`,
 			scope: [countAtoms],
 		})
@@ -341,16 +343,16 @@ describe(`timeline`, () => {
 		setState(countAtoms, `a`, 1)
 		getState(countAtoms, `b`)
 
-		undo(countTL)
+		undo(countTimeline)
 		expect(getState(countAtoms, `a`)).toBe(0)
 
-		undo(countTL)
+		undo(countTimeline)
 
 		setState(countAtoms, `a`, 1)
 		getState(countAtoms, `b`)
 
-		undo(countTL)
-		redo(countTL)
+		undo(countTimeline)
+		redo(countTimeline)
 		expect(getState(countAtoms, `a`)).toBe(1)
 	})
 	test(`history can be cleared explicitly`, () => {
@@ -358,23 +360,23 @@ describe(`timeline`, () => {
 			key: `letter`,
 			default: `A`,
 		})
-		const letterTL = timeline({
-			key: `letter-history`,
+		const letterTimeline = timeline({
+			key: `letter`,
 			scope: [letterAtom],
 		})
 
 		setState(letterAtom, `B`)
 		setState(letterAtom, `C`)
 
-		expect(inspectTimeline(letterTL)).toEqual({ at: 2, length: 2 })
+		expect(inspectTimeline(letterTimeline)).toEqual({ at: 2, length: 2 })
 
-		clearTimeline(letterTL)
+		clearTimeline(letterTimeline)
 
-		expect(inspectTimeline(letterTL)).toEqual({ at: 0, length: 0 })
+		expect(inspectTimeline(letterTimeline)).toEqual({ at: 0, length: 0 })
 
 		setState(letterAtom, `D`)
 
-		expect(inspectTimeline(letterTL)).toEqual({ at: 1, length: 1 })
+		expect(inspectTimeline(letterTimeline)).toEqual({ at: 1, length: 1 })
 		expect(getState(letterAtom)).toBe(`D`)
 	})
 	test(`mutable reference replacements can be undone and redone`, () => {
@@ -384,21 +386,21 @@ describe(`timeline`, () => {
 		})
 		const items = findState(itemAtoms, `a`)
 		getState(items)
-		const history = timeline({ key: `itemHistory`, scope: [items] })
-		clearTimeline(history)
+		const itemHistoryTimeline = timeline({ key: `itemHistory`, scope: [items] })
+		clearTimeline(itemHistoryTimeline)
 
 		setState(items, new UList([`one`]))
 
 		expect(getState(items)).toEqual(new UList([`one`]))
-		expect(inspectTimeline(history)).toEqual({ at: 1, length: 1 })
+		expect(inspectTimeline(itemHistoryTimeline)).toEqual({ at: 1, length: 1 })
 
-		undo(history)
+		undo(itemHistoryTimeline)
 		expect(getState(items)).toEqual(new UList())
-		expect(inspectTimeline(history)).toEqual({ at: 0, length: 1 })
+		expect(inspectTimeline(itemHistoryTimeline)).toEqual({ at: 0, length: 1 })
 
-		redo(history)
+		redo(itemHistoryTimeline)
 		expect(getState(items)).toEqual(new UList([`one`]))
-		expect(inspectTimeline(history)).toEqual({ at: 1, length: 1 })
+		expect(inspectTimeline(itemHistoryTimeline)).toEqual({ at: 1, length: 1 })
 	})
 	test(`mutable inner signals are recorded exactly once`, () => {
 		const itemAtoms = mutableAtomFamily<UList<string>, string>({
@@ -407,21 +409,21 @@ describe(`timeline`, () => {
 		})
 		const items = findState(itemAtoms, `a`)
 		getState(items)
-		const history = timeline({ key: `itemHistory`, scope: [items] })
-		clearTimeline(history)
+		const itemHistoryTimeline = timeline({ key: `itemHistory`, scope: [items] })
+		clearTimeline(itemHistoryTimeline)
 
 		setState(items, (current) => current.add(`one`))
 
 		expect(getState(items)).toEqual(new UList([`one`]))
-		expect(inspectTimeline(history)).toEqual({ at: 1, length: 1 })
+		expect(inspectTimeline(itemHistoryTimeline)).toEqual({ at: 1, length: 1 })
 
-		undo(history)
+		undo(itemHistoryTimeline)
 		expect(getState(items)).toEqual(new UList())
-		expect(inspectTimeline(history)).toEqual({ at: 0, length: 1 })
+		expect(inspectTimeline(itemHistoryTimeline)).toEqual({ at: 0, length: 1 })
 
-		redo(history)
+		redo(itemHistoryTimeline)
 		expect(getState(items)).toEqual(new UList([`one`]))
-		expect(inspectTimeline(history)).toEqual({ at: 1, length: 1 })
+		expect(inspectTimeline(itemHistoryTimeline)).toEqual({ at: 1, length: 1 })
 	})
 	test(`mutable inner signals from selectors can be undone and redone`, () => {
 		const itemAtoms = mutableAtomFamily<UList<string>, string>({
@@ -436,21 +438,21 @@ describe(`timeline`, () => {
 				set(items, (current) => current.add(item))
 			},
 		})
-		const history = timeline({ key: `itemHistory`, scope: [items] })
-		clearTimeline(history)
+		const itemHistoryTimeline = timeline({ key: `itemHistory`, scope: [items] })
+		clearTimeline(itemHistoryTimeline)
 
 		setState(latestItemSelector, `one`)
 
 		expect(getState(items)).toEqual(new UList([`one`]))
-		expect(inspectTimeline(history)).toEqual({ at: 1, length: 1 })
+		expect(inspectTimeline(itemHistoryTimeline)).toEqual({ at: 1, length: 1 })
 
-		undo(history)
+		undo(itemHistoryTimeline)
 		expect(getState(items)).toEqual(new UList())
-		expect(inspectTimeline(history)).toEqual({ at: 0, length: 1 })
+		expect(inspectTimeline(itemHistoryTimeline)).toEqual({ at: 0, length: 1 })
 
-		redo(history)
+		redo(itemHistoryTimeline)
 		expect(getState(items)).toEqual(new UList([`one`]))
-		expect(inspectTimeline(history)).toEqual({ at: 1, length: 1 })
+		expect(inspectTimeline(itemHistoryTimeline)).toEqual({ at: 1, length: 1 })
 	})
 })
 
@@ -462,18 +464,21 @@ describe(`timeline state lifecycle`, () => {
 		})
 		const items = findState(itemAtoms, `a`)
 		getState(items)
-		const history = timeline({ key: `itemHistory`, scope: [itemAtoms] })
-		clearTimeline(history)
+		const itemHistoryTimeline = timeline({
+			key: `itemHistory`,
+			scope: [itemAtoms],
+		})
+		clearTimeline(itemHistoryTimeline)
 
 		disposeState(itemAtoms, `a`)
 		expect(stateExists(itemAtoms, `a`)).toBe(false)
 
-		undo(history)
+		undo(itemHistoryTimeline)
 		expect(stateExists(itemAtoms, `a`)).toBe(true)
 
 		setState(items, (current) => current.add(`one`))
 		expect(getState(items)).toEqual(new UList([`one`]))
-		expect(inspectTimeline(history)).toEqual({ at: 1, length: 1 })
+		expect(inspectTimeline(itemHistoryTimeline)).toEqual({ at: 1, length: 1 })
 	})
 	test(`member-scoped timelines survive update-then-dispose transactions`, () => {
 		const countAtoms = atomFamily<number, string>({
@@ -482,9 +487,12 @@ describe(`timeline state lifecycle`, () => {
 		})
 		const countA = findState(countAtoms, `a`)
 		getState(countA)
-		const history = timeline({ key: `countHistory`, scope: [countA] })
-		clearTimeline(history)
-		const updateAndRemoveCount = transaction<() => void>({
+		const countHistoryTimeline = timeline({
+			key: `countHistory`,
+			scope: [countA],
+		})
+		clearTimeline(countHistoryTimeline)
+		const updateAndRemoveCountTransaction = transaction<() => void>({
 			key: `updateAndRemoveCount`,
 			do: ({ dispose, set }) => {
 				set(countA, 1)
@@ -493,11 +501,11 @@ describe(`timeline state lifecycle`, () => {
 		})
 
 		expect(() => {
-			runTransaction(updateAndRemoveCount)()
+			runTransaction(updateAndRemoveCountTransaction)()
 		}).not.toThrow()
 		expect(stateExists(countAtoms, `a`)).toBe(false)
 
-		undo(history)
+		undo(countHistoryTimeline)
 		expect(stateExists(countAtoms, `a`)).toBe(true)
 		expect(getState(countA)).toBe(0)
 	})
@@ -510,11 +518,11 @@ describe(`timeline state lifecycle`, () => {
 		const countB = findState(countAtoms, `b`)
 		getState(countA)
 		getState(countB)
-		const history = timeline({
+		const countHistoryTimeline = timeline({
 			key: `countHistory`,
 			scope: [countA, countB],
 		})
-		const removeAAndUpdateB = transaction<() => void>({
+		const removeAAndUpdateBTransaction = transaction<() => void>({
 			key: `removeAAndUpdateB`,
 			do: ({ dispose, set }) => {
 				dispose(countA)
@@ -522,11 +530,11 @@ describe(`timeline state lifecycle`, () => {
 			},
 		})
 
-		runTransaction(removeAAndUpdateB)()
+		runTransaction(removeAAndUpdateBTransaction)()
 		expect(stateExists(countAtoms, `a`)).toBe(false)
 		expect(getState(countB)).toBe(1)
 
-		undo(history)
+		undo(countHistoryTimeline)
 		expect(stateExists(countAtoms, `a`)).toBe(true)
 		expect(getState(countA)).toBe(0)
 		expect(getState(countB)).toBe(0)
@@ -537,43 +545,43 @@ describe(`timeline state lifecycle`, () => {
 			key: `count`,
 			default: 0,
 		})
-		const countsTL = timeline({
+		const countsTimeline = timeline({
 			key: `counts`,
 			scope: [countAtoms],
 		})
 		setState(countAtoms, `my-key`, 1)
 		expect(getState(countAtoms, `my-key`)).toBe(1)
 		disposeState(countAtoms, `my-key`)
-		undo(countsTL)
+		undo(countsTimeline)
 
 		expect(stateExists(countAtoms, `my-key`)).toBe(false)
-		redo(countsTL)
+		redo(countsTimeline)
 		expect(stateExists(countAtoms, `my-key`)).toBe(true)
 	})
 
 	test(`ordinary timelines may be disposed and recreated`, () => {
 		const countAtom = atom<number>({ key: `count`, default: 0 })
-		const countHistory = timeline({
+		let countHistoryTimeline = timeline({
 			key: `countHistory`,
 			scope: [countAtom],
 		})
 		const onUpdate = vitest.fn()
-		const unsubscribe = subscribe(countHistory, onUpdate)
+		const unsubscribe = subscribe(countHistoryTimeline, onUpdate)
 
 		setState(countAtom, 1)
-		disposeTimeline(countHistory)
-		expect(() => inspectTimeline(countHistory)).toThrow()
+		disposeTimeline(countHistoryTimeline)
+		expect(() => inspectTimeline(countHistoryTimeline)).toThrow()
 		setState(countAtom, 2)
 		expect(onUpdate).toHaveBeenCalledTimes(1)
 		unsubscribe()
 
-		const recreatedHistory = timeline({
+		countHistoryTimeline = timeline({
 			key: `countHistory`,
 			scope: [countAtom],
 		})
-		expect(inspectTimeline(recreatedHistory)).toEqual({ at: 0, length: 0 })
+		expect(inspectTimeline(countHistoryTimeline)).toEqual({ at: 0, length: 0 })
 		setState(countAtom, 3)
-		expect(inspectTimeline(recreatedHistory)).toEqual({ at: 1, length: 1 })
+		expect(inspectTimeline(countHistoryTimeline)).toEqual({ at: 1, length: 1 })
 	})
 })
 
@@ -583,17 +591,17 @@ describe(`timeline families`, () => {
 			key: `count`,
 			default: 0,
 		})
-		const countHistories = timelineFamily<string>({
+		const countHistoryTimelines = timelineFamily<string>({
 			key: `countHistory`,
 			scope: [scopeFamily(countAtoms, { timelineKey: (key) => key })],
 		})
-		const historyA = findTimeline(countHistories, `a`)
-		const historyB = findTimeline(countHistories, `b`)
+		const historyA = findTimeline(countHistoryTimelines, `a`)
+		const historyB = findTimeline(countHistoryTimelines, `b`)
 		getState(countAtoms, `a`)
 		getState(countAtoms, `b`)
 		clearTimeline(historyA)
 		clearTimeline(historyB)
-		const setBothCountsTX = transaction<(value: number) => void>({
+		const setBothCountsTransaction = transaction<(value: number) => void>({
 			key: `setBothCounts`,
 			do: ({ set }, value) => {
 				set(countAtoms, `a`, value)
@@ -601,30 +609,30 @@ describe(`timeline families`, () => {
 			},
 		})
 
-		runTransaction(setBothCountsTX, `first`)(1)
-		runTransaction(setBothCountsTX, `second`)(2)
-		undoTransaction(setBothCountsTX)
+		runTransaction(setBothCountsTransaction, `first`)(1)
+		runTransaction(setBothCountsTransaction, `second`)(2)
+		undoTransaction(setBothCountsTransaction)
 		expect(getState(countAtoms, `a`)).toBe(1)
 		expect(getState(countAtoms, `b`)).toBe(1)
 		expect(inspectTimeline(historyA)).toEqual({ at: 1, length: 2 })
 		expect(inspectTimeline(historyB)).toEqual({ at: 1, length: 2 })
 
-		undoTransaction(setBothCountsTX, `first`)
+		undoTransaction(setBothCountsTransaction, `first`)
 		expect(getState(countAtoms, `a`)).toBe(0)
 		expect(getState(countAtoms, `b`)).toBe(0)
 		expect(inspectTimeline(historyA)).toEqual({ at: 0, length: 2 })
 		expect(inspectTimeline(historyB)).toEqual({ at: 0, length: 2 })
 
-		runTransaction(setBothCountsTX, `diverged`)(3)
+		runTransaction(setBothCountsTransaction, `diverged`)(3)
 		setState(countAtoms, `a`, 4)
-		undoTransaction(setBothCountsTX, `diverged`)
+		undoTransaction(setBothCountsTransaction, `diverged`)
 		expect(getState(countAtoms, `a`)).toBe(4)
 		expect(getState(countAtoms, `b`)).toBe(0)
 		expect(inspectTimeline(historyA)).toEqual({ at: 2, length: 2 })
 		expect(inspectTimeline(historyB)).toEqual({ at: 0, length: 1 })
 		expect(logger.error).not.toHaveBeenCalled()
 
-		redoTransaction(setBothCountsTX, `diverged`)
+		redoTransaction(setBothCountsTransaction, `diverged`)
 		expect(getState(countAtoms, `a`)).toBe(4)
 		expect(getState(countAtoms, `b`)).toBe(3)
 		expect(inspectTimeline(historyA)).toEqual({ at: 2, length: 2 })
@@ -658,7 +666,7 @@ describe(`timeline families`, () => {
 		setState(glyphAtoms, `a`, 1)
 		setState(pointAtoms, [`a`, `existing`], 1)
 
-		const glyphHistories = timelineFamily<string>({
+		const glyphHistoryTimelines = timelineFamily<string>({
 			key: `glyphHistory`,
 			scope: [
 				scopeFamily(glyphAtoms, { timelineKey: (glyphId) => glyphId }),
@@ -671,55 +679,57 @@ describe(`timeline families`, () => {
 				}),
 			],
 		})
-		expect(glyphHistories).toEqual({
+		expect(glyphHistoryTimelines).toEqual({
 			key: `glyphHistory`,
 			type: `timeline_family`,
 		})
-		expect(JSON.parse(JSON.stringify(glyphHistories))).toEqual(glyphHistories)
-		const historyA = findTimeline(glyphHistories, `a`)
-		const historyB = findTimeline(glyphHistories, `b`)
+		expect(JSON.parse(JSON.stringify(glyphHistoryTimelines))).toEqual(
+			glyphHistoryTimelines,
+		)
+		const historyA = findTimeline(glyphHistoryTimelines, `a`)
+		const historyB = findTimeline(glyphHistoryTimelines, `b`)
 
 		expect(historyA).toEqual({
 			key: `glyphHistory("a")`,
 			type: `timeline`,
 			family: { key: `glyphHistory`, subKey: `"a"` },
 		})
-		expect(findTimeline(glyphHistories, `a`)).toEqual(historyA)
+		expect(findTimeline(glyphHistoryTimelines, `a`)).toEqual(historyA)
 
-		clearTimeline(glyphHistories, `a`)
-		clearTimeline(glyphHistories, `b`)
+		clearTimeline(glyphHistoryTimelines, `a`)
+		clearTimeline(glyphHistoryTimelines, `b`)
 		getState(pointAtoms, [`a`, `future`])
 		getState(coordinateAtoms, [`regular`, `b`, `future`])
 		getState(pointAtoms, [`excluded`, `future`])
-		clearTimeline(glyphHistories, `a`)
-		clearTimeline(glyphHistories, `b`)
+		clearTimeline(glyphHistoryTimelines, `a`)
+		clearTimeline(glyphHistoryTimelines, `b`)
 		setState(pointAtoms, [`a`, `future`], 5)
 		setState(coordinateAtoms, [`regular`, `b`, `future`], 7)
 		setState(pointAtoms, [`excluded`, `future`], 9)
 
-		expect(inspectTimeline(glyphHistories, `a`).length).toBeGreaterThan(0)
-		expect(inspectTimeline(glyphHistories, `b`).length).toBeGreaterThan(0)
+		expect(inspectTimeline(glyphHistoryTimelines, `a`).length).toBeGreaterThan(0)
+		expect(inspectTimeline(glyphHistoryTimelines, `b`).length).toBeGreaterThan(0)
 		expect(inspectTimeline(historyA)).toEqual(
-			inspectTimeline(glyphHistories, `a`),
+			inspectTimeline(glyphHistoryTimelines, `a`),
 		)
 
-		undo(glyphHistories, `a`)
+		undo(glyphHistoryTimelines, `a`)
 		expect(getState(pointAtoms, [`a`, `future`])).toBe(0)
 		expect(getState(coordinateAtoms, [`regular`, `b`, `future`])).toBe(7)
-		redo(glyphHistories, `a`)
+		redo(glyphHistoryTimelines, `a`)
 		expect(getState(pointAtoms, [`a`, `future`])).toBe(5)
 		expect(getState(pointAtoms, [`excluded`, `future`])).toBe(9)
 
 		clearTimeline(historyA)
 		clearTimeline(historyB)
-		const editBothGlyphs = transaction<() => void>({
+		const editBothGlyphsTransaction = transaction<() => void>({
 			key: `editBothGlyphs`,
 			do: ({ set }) => {
 				set(pointAtoms, [`a`, `future`], 6)
 				set(coordinateAtoms, [`regular`, `b`, `future`], 8)
 			},
 		})
-		runTransaction(editBothGlyphs)()
+		runTransaction(editBothGlyphsTransaction)()
 		expect(inspectTimeline(historyA)).toEqual({ at: 1, length: 1 })
 		expect(inspectTimeline(historyB)).toEqual({ at: 1, length: 1 })
 
@@ -737,24 +747,24 @@ describe(`timeline families`, () => {
 			key: `count`,
 			default: 0,
 		})
-		const countHistories = timelineFamily<string>({
+		const countHistoryTimelines = timelineFamily<string>({
 			key: `countHistory`,
 			scope: [scopeFamily(countAtoms, { timelineKey: (countKey) => countKey })],
 		})
-		const countHistory = findTimeline(countHistories, `a`)
+		const countHistory = findTimeline(countHistoryTimelines, `a`)
 		const onUpdate = vitest.fn()
-		const unsubscribe = subscribe(countHistories, `a`, onUpdate)
+		const unsubscribe = subscribe(countHistoryTimelines, `a`, onUpdate)
 
 		setState(countAtoms, `a`, 1)
 		expect(onUpdate).toHaveBeenCalled()
-		disposeTimeline(countHistories, `a`)
+		disposeTimeline(countHistoryTimelines, `a`)
 		expect(() => inspectTimeline(countHistory)).toThrow()
 
 		setState(countAtoms, `a`, 2)
 		expect(onUpdate).toHaveBeenCalledTimes(1)
 		unsubscribe()
 
-		const recreated = findTimeline(countHistories, `a`)
+		const recreated = findTimeline(countHistoryTimelines, `a`)
 		expect(recreated).toEqual(countHistory)
 		expect(inspectTimeline(recreated)).toEqual({ at: 0, length: 0 })
 		setState(countAtoms, `a`, 3)
@@ -766,11 +776,11 @@ describe(`timeline families`, () => {
 			key: `item`,
 			class: UList,
 		})
-		const itemHistories = timelineFamily<string>({
+		const itemHistoryTimelines = timelineFamily<string>({
 			key: `itemHistory`,
 			scope: [scopeFamily(itemAtoms, { timelineKey: (itemKey) => itemKey })],
 		})
-		const history = findTimeline(itemHistories, `a`)
+		const history = findTimeline(itemHistoryTimelines, `a`)
 		const items = findState(itemAtoms, `a`)
 		getState(items)
 		clearTimeline(history)
@@ -795,13 +805,15 @@ describe(`timeline families`, () => {
 			key: `count`,
 			default: 0,
 		})
-		const countHistories = timelineFamily<string>({
+		const countHistoryTimelines = timelineFamily<string>({
 			key: `countHistory`,
 			scope: [scopeFamily(countAtoms, { timelineKey: (countKey) => countKey })],
 		})
-		const committedHistory = findTimeline(countHistories, `committed`)
-		const abortedHistory = findTimeline(countHistories, `aborted`)
-		const createCount = transaction<(key: string, abort?: boolean) => void>({
+		const committedHistory = findTimeline(countHistoryTimelines, `committed`)
+		const abortedHistory = findTimeline(countHistoryTimelines, `aborted`)
+		const createCountTransaction = transaction<
+			(key: string, abort?: boolean) => void
+		>({
 			key: `createCount`,
 			do: ({ set }, key, abort) => {
 				set(countAtoms, key, 1)
@@ -812,9 +824,9 @@ describe(`timeline families`, () => {
 		})
 
 		expect(() => {
-			runTransaction(createCount)(`aborted`, true)
+			runTransaction(createCountTransaction)(`aborted`, true)
 		}).toThrow(`abort`)
-		runTransaction(createCount)(`committed`)
+		runTransaction(createCountTransaction)(`committed`)
 
 		expect(inspectTimeline(abortedHistory)).toEqual({ at: 0, length: 0 })
 		expect(inspectTimeline(committedHistory)).toEqual({ at: 1, length: 1 })
@@ -834,12 +846,12 @@ describe(`errors`, () => {
 			default: 0,
 		})
 
-		const _countTL = timeline({
-			key: `count`,
+		const _countTimeline = timeline({
+			key: `_count`,
 			scope: [countAtoms],
 		})
 
-		const _countTL2 = timeline({
+		const countTimeline = timeline({
 			key: `count`,
 			scope: [countAtoms],
 		})
@@ -914,12 +926,12 @@ describe(`weird situations`, () => {
 			default: 0,
 		})
 		getState(countAtoms, `foo`)
-		const countTL = timeline({
+		const countTimeline = timeline({
 			key: `count`,
 			scope: [countAtoms],
 		})
 		setState(countAtoms, `foo`, 1)
-		undo(countTL)
+		undo(countTimeline)
 		expect(getState(countAtoms, `foo`)).toBe(0)
 	})
 })

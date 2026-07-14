@@ -19,7 +19,7 @@ const taskBoardErrorAtom = atom<string | null>({
 	default: null,
 })
 
-const markDoneTX = transaction<(taskId: string) => void>({
+const markDoneTransaction = transaction<(taskId: string) => void>({
 	key: `markDone`,
 	do: ({ get, set }, taskId) => {
 		set(
@@ -35,12 +35,12 @@ const markDoneTX = transaction<(taskId: string) => void>({
 	},
 })
 
-const tryMarkDoneTX = transaction<(taskId: string) => void>({
+const tryMarkDoneTransaction = transaction<(taskId: string) => void>({
 	key: `tryMarkDone`,
 	do: ({ run, set }, taskId) => {
 		try {
 			set(taskBoardErrorAtom, null)
-			run(markDoneTX)(taskId)
+			run(markDoneTransaction)(taskId)
 		} catch (thrown) {
 			set(
 				taskBoardErrorAtom,
@@ -50,7 +50,7 @@ const tryMarkDoneTX = transaction<(taskId: string) => void>({
 	},
 })
 
-const markDone = runTransaction(tryMarkDoneTX)
+const markDone = runTransaction(tryMarkDoneTransaction)
 
 export function TaskBoard(): JSX.Element {
 	const todoIds = useO(todoIdsAtom)

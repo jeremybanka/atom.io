@@ -71,6 +71,32 @@ export const explicitTransactionTypes: ESLintUtils.RuleModule<
 						return
 				}
 
+				const transactionOptions = node.arguments[0]
+				if (transactionOptions?.type !== AST_NODE_TYPES.ObjectExpression) {
+					return
+				}
+
+				const optionKeys = new Set(
+					transactionOptions.properties.flatMap((property) => {
+						if (property.type !== AST_NODE_TYPES.Property) {
+							return []
+						}
+						if (property.key.type === AST_NODE_TYPES.Identifier) {
+							return [property.key.name]
+						}
+						if (
+							property.key.type === AST_NODE_TYPES.Literal &&
+							typeof property.key.value === `string`
+						) {
+							return [property.key.value]
+						}
+						return []
+					}),
+				)
+				if (!optionKeys.has(`key`) || !optionKeys.has(`do`)) {
+					return
+				}
+
 				// Check for the *required* generic type argument first
 				if (node.typeArguments) {
 					return // Generic type argument is present, no error

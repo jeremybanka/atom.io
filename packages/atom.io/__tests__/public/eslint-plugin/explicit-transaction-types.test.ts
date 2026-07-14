@@ -43,6 +43,20 @@ ruleTester.run(`explicit-transaction-types`, rule, {
         super()
       `,
 		},
+		{
+			name: `database transaction`,
+			code: `
+        return db.transaction(async (tx) => tx.select())
+      `,
+		},
+		{
+			name: `unrelated transaction options`,
+			code: `
+        return context.db.transaction({
+          behavior: "deferred",
+        })
+      `,
+		},
 	],
 	invalid: [
 		{

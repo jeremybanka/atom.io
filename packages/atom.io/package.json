@@ -91,8 +91,8 @@
 	"devDependencies": {
 		"@atom.io/exhibits": "workspace:*",
 		"@eslint/core": "1.2.1",
-		"@orpc/client": "1.14.7",
-		"@orpc/server": "1.14.7",
+		"@orpc/client": "1.14.8",
+		"@orpc/server": "1.14.8",
 		"@storybook/addon-docs": "10.5.0",
 		"@storybook/addon-onboarding": "10.5.0",
 		"@storybook/react-vite": "10.5.0",

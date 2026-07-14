@@ -81,6 +81,7 @@ export type EntityDenomination =
 	| `socket`
 	| `state`
 	| `timeline`
+	| `timeline_family`
 	| `transaction`
 	| `unknown`
 	| `user`
@@ -103,6 +104,7 @@ export const PRETTY_ENTITY_NAMES: Record<EntityDenomination, string> = {
 	socket: `socket`,
 	state: `state`,
 	timeline: `timeline`,
+	timeline_family: `timeline family`,
 	transaction: `transaction`,
 	unknown: `unknown`,
 	user: `👤`,

@@ -3,7 +3,9 @@ import {
 	atomFamily,
 	NotFoundError,
 	runTransaction,
+	scopeFamily,
 	Silo,
+	timelineFamily,
 	transaction,
 } from "atom.io"
 import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
@@ -44,6 +46,31 @@ describe(`silo.install`, () => {
 		expect(caught).toBeInstanceOf(NotFoundError)
 		mySilo.install([countAtoms])
 		expect(mySilo.getState(countAtoms, `example`)).toBe(0)
+		expect(logger.warn).not.toHaveBeenCalled()
+		expect(logger.error).not.toHaveBeenCalled()
+	})
+	it(`installs timeline families from another store`, () => {
+		const countAtoms = atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+		})
+		const countHistories = timelineFamily<string>({
+			key: `countHistory`,
+			scope: [scopeFamily(countAtoms, { timelineKey: (countKey) => countKey })],
+		})
+		const mySilo = new Silo({
+			name: `timeline-family-silo`,
+			lifespan: `ephemeral`,
+			isProduction: false,
+		})
+
+		mySilo.install([countAtoms, countHistories])
+		const history = mySilo.findTimeline(countHistories, `a`)
+		mySilo.getState(countAtoms, `a`)
+		mySilo.clearTimeline(history)
+		mySilo.setState(countAtoms, `a`, 1)
+
+		expect(mySilo.inspectTimeline(history)).toEqual({ at: 1, length: 1 })
 		expect(logger.warn).not.toHaveBeenCalled()
 		expect(logger.error).not.toHaveBeenCalled()
 	})

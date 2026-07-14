@@ -49,6 +49,7 @@ export function buildTransaction(
 		joins: new MapOverlay(parent.joins),
 		operation: { open: false },
 		readonlySelectors: new MapOverlay(parent.readonlySelectors),
+		timelineFamilies: new MapOverlay(parent.timelineFamilies),
 		timelines: new MapOverlay(parent.timelines),
 		timelineTopics: parent.timelineTopics.overlay(),
 		trackers: new Map(),

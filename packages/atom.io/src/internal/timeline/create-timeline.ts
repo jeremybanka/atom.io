@@ -4,11 +4,11 @@ import type {
 	AtomFamilyToken,
 	AtomToken,
 	AtomUpdateEvent,
+	FamilyMetadata,
 	StateUpdate,
 	TimelineEvent,
 	TimelineManageable,
 	TimelineOptions,
-	TimelineSelectorUpdateEvent,
 	TimelineToken,
 	TimelineUpdate,
 	TransactionOutcomeEvent,
@@ -25,10 +25,16 @@ import type { Atom } from "../state-types.ts"
 import { deposit, type Store, withdraw } from "../store/index.ts"
 import type { RootStore } from "../transaction/index.ts"
 import { isChildStore } from "../transaction/index.ts"
+import type { GroupedTimelineTransactionEvent } from "./timeline-transaction-group.ts"
+import {
+	addTimelineToTransactionGroup,
+	TIMELINE_TRANSACTION_GROUP,
+} from "./timeline-transaction-group.ts"
 
 export type Timeline<ManagedAtom extends TimelineManageable> = {
 	type: `timeline`
 	key: string
+	family?: FamilyMetadata
 	at: number
 	timeTraveling: `into_future` | `into_past` | null
 	history: TimelineEvent<ManagedAtom>[]
@@ -44,10 +50,12 @@ export function createTimeline<ManagedAtom extends TimelineManageable>(
 	store: RootStore,
 	options: TimelineOptions<ManagedAtom>,
 	data?: Timeline<ManagedAtom>,
+	family?: FamilyMetadata,
 ): TimelineToken<ManagedAtom> {
 	const tl: Timeline<ManagedAtom> = {
 		type: `timeline`,
 		key: options.key,
+		...(family ? { family } : {}),
 		at: 0,
 		timeTraveling: null,
 		selectorTime: null,
@@ -123,18 +131,22 @@ export function createTimeline<ManagedAtom extends TimelineManageable>(
 	const token: TimelineToken<ManagedAtom> = {
 		key: timelineKey,
 		type: `timeline`,
+		...(tl.family ? { family: tl.family } : {}),
 	}
 	store.on.timelineCreation.next(token)
 	return token
 }
 
-function addAtomToTimeline(
+export function addAtomToTimeline(
 	store: Store,
 	atomToken: AtomToken<any, any, any>,
 	tl: Timeline<any>,
 ): void {
 	ensureState(store, atomToken)
 	const atom = withdraw(store, atomToken)
+	if (tl.subscriptions.has(atom.key)) {
+		return
+	}
 	if (atom.type === `mutable_atom`) {
 		const updateToken = getUpdateToken(atom)
 		const updateAtom = withdraw(store, updateToken)
@@ -300,23 +312,30 @@ function joinTransaction(
 	const currentTransaction = withdraw(store, currentTxToken)
 	if (currentTxKey && tl.transactionKey === null) {
 		tl.transactionKey = currentTxKey
-		const ownedTopicKeys = new Set(tl.ownedTopicKeys)
+		const ownedTopicKeysAtStart = new Set(tl.ownedTopicKeys)
 		const unsubscribe = currentTransaction.subject.subscribe(
 			`timeline:${tl.key}`,
 			(transactionUpdate) => {
 				unsubscribe()
 				tl.transactionKey = null
 				if (tl.timeTraveling === null && currentTxInstanceId) {
+					const ownedTopicKeys = new Set([
+						...ownedTopicKeysAtStart,
+						...tl.ownedTopicKeys,
+					])
 					const subEventsFiltered = filterTransactionSubEvents(
 						transactionUpdate.subEvents,
 						ownedTopicKeys,
 					)
 
-					const timelineTransactionUpdate: TimelineEvent<any> &
-						TransactionOutcomeEvent<TransactionToken<any>> = {
+					const timelineTransactionUpdate: GroupedTimelineTransactionEvent = {
 						checkpoint: true,
 						...transactionUpdate,
 						subEvents: subEventsFiltered,
+						[TIMELINE_TRANSACTION_GROUP]: addTimelineToTransactionGroup(
+							transactionUpdate,
+							tl.key,
+						),
 					}
 
 					addToHistory(tl, timelineTransactionUpdate)
@@ -336,14 +355,13 @@ function buildSelectorUpdate(
 ) {
 	let latestEvent: TimelineEvent<any> | undefined = tl.history.at(-1)
 	if (currentSelectorTime !== tl.selectorTime) {
-		const selectorUpdate: TimelineEvent<any> & TimelineSelectorUpdateEvent<any> =
-			(latestEvent = {
-				checkpoint: true,
-				type: `selector_update`,
-				timestamp: currentSelectorTime,
-				token: currentSelectorToken,
-				subEvents: [],
-			})
+		latestEvent = {
+			checkpoint: true,
+			type: `selector_update`,
+			timestamp: currentSelectorTime,
+			token: currentSelectorToken,
+			subEvents: [],
+		}
 		if (`type` in eventOrUpdate) {
 			latestEvent.subEvents.push(eventOrUpdate)
 		} else {
@@ -364,20 +382,6 @@ function buildSelectorUpdate(
 			tl.key,
 			`got a selector_update "${currentSelectorToken.key}" with`,
 			latestEvent.subEvents.map((event) => event.token.key),
-		)
-
-		const operation = store.operation
-		const unsub = store.on.operationClose.subscribe(
-			`timeline:${tl.key} (needs to gather nested selector creations)`,
-			() => {
-				unsub()
-				if (operation.open) {
-					selectorUpdate.subEvents = [
-						...operation.subEvents,
-						...selectorUpdate.subEvents,
-					]
-				}
-			},
 		)
 	} else {
 		if (latestEvent?.type === `selector_update`) {
@@ -454,11 +458,15 @@ function filterTransactionSubEvents(
 		})
 }
 
-function handleStateLifecycleEvent(
+export function handleStateLifecycleEvent(
 	store: Store,
 	event: AtomCreationEvent<any> | AtomDisposalEvent<any>,
 	tl: Timeline<any>,
 ): void {
+	const target = newest(store)
+	if (isChildStore(target)) {
+		return
+	}
 	const currentSelectorToken =
 		store.operation.open &&
 		store.operation.token.type === `writable_pure_selector`
@@ -470,29 +478,24 @@ function handleStateLifecycleEvent(
 			? store.operation.timestamp
 			: null
 	if (!tl.timeTraveling) {
-		const target = newest(store)
-		if (isChildStore(target)) {
-			// we don't want to update the true timeline while we are in a transaction
+		const txUpdateInProgress = target.on.transactionApplying.state
+		if (txUpdateInProgress) {
+			joinTransaction(store, tl, txUpdateInProgress.update)
+		} else if (
+			currentSelectorToken &&
+			currentSelectorTime &&
+			event.type === `atom_creation`
+		) {
+			buildSelectorUpdate(
+				store,
+				tl,
+				event.token,
+				event,
+				currentSelectorToken,
+				currentSelectorTime,
+			)
 		} else {
-			const txUpdateInProgress = target.on.transactionApplying.state
-			if (txUpdateInProgress) {
-				joinTransaction(store, tl, txUpdateInProgress.update)
-			} else if (
-				currentSelectorToken &&
-				currentSelectorTime &&
-				event.type === `atom_creation`
-			) {
-				buildSelectorUpdate(
-					store,
-					tl,
-					event.token,
-					event,
-					currentSelectorToken,
-					currentSelectorTime,
-				)
-			} else {
-				addToHistory(tl, event)
-			}
+			addToHistory(tl, event)
 		}
 	}
 	switch (event.type) {

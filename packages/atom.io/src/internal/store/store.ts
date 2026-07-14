@@ -29,7 +29,7 @@ import type {
 	RegularAtomFamily,
 	WritableSelector,
 } from "../state-types.ts"
-import type { Timeline } from "../timeline/index.ts"
+import type { Timeline, TimelineFamily } from "../timeline/index.ts"
 import type {
 	ChildStore,
 	RootStore,
@@ -99,6 +99,7 @@ export class Store implements Lineage {
 	}
 
 	public timelines: Map<string, Timeline<any>> = new Map()
+	public timelineFamilies: Map<string, TimelineFamily<any, any>> = new Map()
 	public timelineTopics: Junction<
 		`timelineKey`,
 		string,
@@ -166,6 +167,7 @@ export class Store implements Lineage {
 		selectorCreation: new Subject(),
 		selectorDisposal: new Subject(),
 		timelineCreation: new Subject(),
+		timelineDisposal: new Subject(),
 		transactionCreation: new Subject(),
 		transactionApplying: new StatefulSubject(null),
 		operationClose: new Subject(),
@@ -245,6 +247,9 @@ export class Store implements Lineage {
 			for (const [, tx] of store.transactions) {
 				tx.install(this as RootStore)
 			}
+			for (const [, timelineFamily] of store.timelineFamilies) {
+				timelineFamily.install(this as RootStore)
+			}
 			for (const [, timeline] of store.timelines) {
 				timeline.install(this as RootStore)
 			}
@@ -258,6 +263,7 @@ export type StoreEventCarrier = {
 	selectorCreation: Subject<SelectorToken<unknown, any, any>>
 	selectorDisposal: Subject<SelectorToken<unknown, any, any>>
 	timelineCreation: Subject<TimelineToken<unknown>>
+	timelineDisposal: Subject<TimelineToken<unknown>>
 	transactionCreation: Subject<TransactionToken<Fn>>
 	transactionApplying: StatefulSubject<TransactionProgress<Fn> | null>
 	operationClose: Subject<OperationProgress>

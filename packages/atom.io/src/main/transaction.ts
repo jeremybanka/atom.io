@@ -4,6 +4,7 @@ import {
 	arbitrary,
 	createTransaction,
 	IMPLICIT,
+	timeTravelTransactionInStore,
 } from "atom.io/internal"
 
 import type { disposeState } from "./dispose-state.ts"
@@ -92,4 +93,36 @@ export function runTransaction<F extends Fn>(
 	id: string = arbitrary(),
 ): (...parameters: Parameters<F>) => ReturnType<F> {
 	return actUponStore(IMPLICIT.STORE, token, id)
+}
+
+/**
+ * Undo a transaction on every timeline where it is the current head.
+ *
+ * Timelines that have moved elsewhere are left unchanged. If `id` is omitted,
+ * the most recent eligible instance is used.
+ *
+ * @param token - The transaction to undo.
+ * @param id - The optional identifier of a specific transaction instance.
+ */
+export function undoTransaction<F extends Fn>(
+	token: TransactionToken<F>,
+	id?: string,
+): void {
+	timeTravelTransactionInStore(IMPLICIT.STORE, `undo`, token, id)
+}
+
+/**
+ * Redo a transaction on every timeline where it is the next head.
+ *
+ * Timelines that have moved elsewhere are left unchanged. If `id` is omitted,
+ * the oldest eligible instance is used.
+ *
+ * @param token - The transaction to redo.
+ * @param id - The optional identifier of a specific transaction instance.
+ */
+export function redoTransaction<F extends Fn>(
+	token: TransactionToken<F>,
+	id?: string,
+): void {
+	timeTravelTransactionInStore(IMPLICIT.STORE, `redo`, token, id)
 }

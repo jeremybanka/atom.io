@@ -9,6 +9,7 @@ import {
 	mutableAtomFamily,
 	redo,
 	resetState,
+	scopeFamily,
 	selector,
 	setState,
 	Silo,
@@ -416,6 +417,152 @@ describe(`timeline`, () => {
 		expect(getByTestId(`timelineLength`).textContent).toBe(`0`)
 		expect(getState(implicit.letterAtom)).toBe(`implicit-b`)
 		expect(inspectTimeline(implicit.letterTL)).toEqual({ at: 1, length: 1 })
+	})
+	it(`switches keyed timeline-family members in the provider store`, () => {
+		const silo = new Silo({
+			name: `use-tl-family-provider-store`,
+			lifespan: `ephemeral`,
+			isProduction: false,
+		})
+		const countAtoms = silo.atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+		})
+		const countHistories = silo.timelineFamily<string>({
+			key: `countHistory`,
+			scope: [scopeFamily(countAtoms, { timelineKey: (countKey) => countKey })],
+		})
+
+		const Count: FC<{ countKey: string }> = ({ countKey }) => {
+			const count = useO(countAtoms, countKey)
+			const setCount = useI(countAtoms, countKey)
+			const history = useTL(countHistories, countKey)
+			return (
+				<>
+					<div data-testid="count">{count}</div>
+					<div data-testid="timelineAt">{history.at}</div>
+					<button
+						type="button"
+						data-testid="increment"
+						onClick={() => {
+							setCount((current) => current + 1)
+						}}
+					/>
+					<button type="button" data-testid="undo" onClick={history.undo} />
+				</>
+			)
+		}
+		const view = (countKey: string) => (
+			<StoreProvider store={silo.store}>
+				<Count countKey={countKey} />
+			</StoreProvider>
+		)
+		const { getByTestId, rerender } = render(view(`a`))
+
+		fireEvent.click(getByTestId(`increment`))
+		expect(getByTestId(`count`).textContent).toBe(`1`)
+		expect(getByTestId(`timelineAt`).textContent).toBe(`1`)
+
+		rerender(view(`b`))
+		expect(getByTestId(`count`).textContent).toBe(`0`)
+		expect(getByTestId(`timelineAt`).textContent).toBe(`0`)
+		fireEvent.click(getByTestId(`increment`))
+
+		rerender(view(`a`))
+		expect(getByTestId(`count`).textContent).toBe(`1`)
+		expect(getByTestId(`timelineAt`).textContent).toBe(`1`)
+		fireEvent.click(getByTestId(`undo`))
+		expect(getByTestId(`count`).textContent).toBe(`0`)
+		expect(silo.getState(countAtoms, `b`)).toBe(1)
+	})
+	it(`offers coordinated transaction travel at a timeline-family head`, () => {
+		const silo = new Silo({
+			name: `use-tl-transaction-head`,
+			lifespan: `ephemeral`,
+			isProduction: false,
+		})
+		const countAtoms = silo.atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+		})
+		const countHistories = silo.timelineFamily<string>({
+			key: `countHistory`,
+			scope: [scopeFamily(countAtoms, { timelineKey: (countKey) => countKey })],
+		})
+		const setBothCountsTX = silo.transaction<(value: number) => void>({
+			key: `setBothCounts`,
+			do: ({ set }, value) => {
+				set(countAtoms, `a`, value)
+				set(countAtoms, `b`, value)
+			},
+		})
+		silo.getState(countAtoms, `a`)
+		silo.getState(countAtoms, `b`)
+		silo.findTimeline(countHistories, `a`)
+		silo.findTimeline(countHistories, `b`)
+		silo.clearTimeline(countHistories, `a`)
+		silo.clearTimeline(countHistories, `b`)
+
+		const Editor: FC = () => {
+			const countB = useO(countAtoms, `b`)
+			const historyB = useTL(countHistories, `b`)
+			return (
+				<>
+					<div data-testid="countB">{countB}</div>
+					<div data-testid="canUndoTransaction">
+						{String(historyB.undoTransaction !== undefined)}
+					</div>
+					<div data-testid="canRedoTransaction">
+						{String(historyB.redoTransaction !== undefined)}
+					</div>
+					<button
+						type="button"
+						data-testid="batch"
+						onClick={() => {
+							silo.runTransaction(setBothCountsTX)(1)
+						}}
+					/>
+					<button
+						type="button"
+						data-testid="divergeA"
+						onClick={() => {
+							silo.setState(countAtoms, `a`, 2)
+						}}
+					/>
+					<button
+						type="button"
+						data-testid="undoTransaction"
+						onClick={() => historyB.undoTransaction?.()}
+					/>
+					<button
+						type="button"
+						data-testid="redoTransaction"
+						onClick={() => historyB.redoTransaction?.()}
+					/>
+				</>
+			)
+		}
+		const { getByTestId } = render(
+			<StoreProvider store={silo.store}>
+				<Editor />
+			</StoreProvider>,
+		)
+
+		expect(getByTestId(`canUndoTransaction`).textContent).toBe(`false`)
+		fireEvent.click(getByTestId(`batch`))
+		expect(getByTestId(`canUndoTransaction`).textContent).toBe(`true`)
+		fireEvent.click(getByTestId(`divergeA`))
+		fireEvent.click(getByTestId(`undoTransaction`))
+		expect(silo.getState(countAtoms, `a`)).toBe(2)
+		expect(getByTestId(`countB`).textContent).toBe(`0`)
+		expect(getByTestId(`canUndoTransaction`).textContent).toBe(`false`)
+		expect(getByTestId(`canRedoTransaction`).textContent).toBe(`true`)
+
+		fireEvent.click(getByTestId(`redoTransaction`))
+		expect(silo.getState(countAtoms, `a`)).toBe(2)
+		expect(getByTestId(`countB`).textContent).toBe(`1`)
+		expect(getByTestId(`canUndoTransaction`).textContent).toBe(`true`)
+		expect(getByTestId(`canRedoTransaction`).textContent).toBe(`false`)
 	})
 })
 

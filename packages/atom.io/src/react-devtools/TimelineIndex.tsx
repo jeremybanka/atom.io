@@ -90,24 +90,45 @@ export const TimelineIndex: FC = () => {
 		useContext(DevtoolsContext)
 
 	const tokenIds = useO(timelineIndex)
+	const visibleTokens = tokenIds.filter((token) => !token.key.startsWith(`👁‍🗨`))
+	const familyMembers = new Map<string, TimelineToken<any>[]>()
+	const standalone: TimelineToken<any>[] = []
+	for (const token of visibleTokens) {
+		if (token.family) {
+			const members = familyMembers.get(token.family.key) ?? []
+			members.push(token)
+			familyMembers.set(token.family.key, members)
+		} else {
+			standalone.push(token)
+		}
+	}
+	const renderTimeline = (token: TimelineToken<any>) => (
+		<TimelineLog
+			key={token.key}
+			token={token}
+			isOpenState={findInStore(store, viewIsOpenAtoms, [token.key])}
+			timelineState={findInStore(store, timelineSelectors, token.key)}
+		/>
+	)
 
 	return (
 		<article className="index timeline_index" data-testid="timeline-index">
-			{tokenIds.length === 0 ? (
+			{visibleTokens.length === 0 ? (
 				<p className="index-empty-state">(no timelines)</p>
 			) : (
-				tokenIds
-					.filter((token) => !token.key.startsWith(`👁‍🗨`))
-					.map((token) => {
-						return (
-							<TimelineLog
-								key={token.key}
-								token={token}
-								isOpenState={findInStore(store, viewIsOpenAtoms, [token.key])}
-								timelineState={findInStore(store, timelineSelectors, token.key)}
-							/>
-						)
-					})
+				<>
+					{standalone.map(renderTimeline)}
+					{[...familyMembers].map(([familyKey, members]) => (
+						<section
+							className="timeline_family"
+							data-testid={`timeline-family-${familyKey}`}
+							key={familyKey}
+						>
+							<h2>{familyKey}</h2>
+							{members.map(renderTimeline)}
+						</section>
+					))}
+				</>
 			)}
 		</article>
 	)

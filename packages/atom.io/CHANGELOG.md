@@ -1,5 +1,18 @@
 # atom.io
 
+## 0.50.0
+
+### Minor Changes
+
+- 7f6bf39: Enforce full naming conventions for timelines, timeline families, and transactions.
+
+### Patch Changes
+
+- ae9f8c8: Add an `explicit-transaction-types` ESLint rule that requires transaction declarations
+  to include an explicit function type argument or, when configured, a top-level type
+  annotation.
+- 7f6bf39: Report naming-convention violations when state keys use non-literal values.
+
 ## 0.49.10
 
 ### Patch Changes

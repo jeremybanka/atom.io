@@ -78,24 +78,20 @@ export const explicitTransactionTypes: ESLintUtils.RuleModule<
 					return
 				}
 
-				const optionKeys = new Set(
-					transactionOptions.properties.flatMap((property) => {
+				const hasOption = (optionName: `do` | `key`): boolean =>
+					transactionOptions.properties.some((property) => {
 						if (property.type !== AST_NODE_TYPES.Property) {
-							return []
+							return false
 						}
 						if (property.key.type === AST_NODE_TYPES.Identifier) {
-							return [property.key.name]
+							return property.key.name === optionName
 						}
-						if (
+						return (
 							property.key.type === AST_NODE_TYPES.Literal &&
-							typeof property.key.value === `string`
-						) {
-							return [property.key.value]
-						}
-						return []
-					}),
-				)
-				if (!optionKeys.has(`key`) || !optionKeys.has(`do`)) {
+							property.key.value === optionName
+						)
+					})
+				if (!hasOption(`key`) || !hasOption(`do`)) {
 					return
 				}
 

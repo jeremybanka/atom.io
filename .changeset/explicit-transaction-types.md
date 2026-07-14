@@ -1,5 +1,5 @@
 ---
-"atom.io": minor
+"atom.io": patch
 ---
 
 Add an `explicit-transaction-types` ESLint rule that requires transaction declarations

@@ -104,16 +104,6 @@ app-shell.class {
 					align-content: center;
 					height: 100%;
 					padding-bottom: 1px;
-
-					> brand-name {
-						font-family: Theia;
-						color: var(--brand-color);
-					}
-				}
-				> span {
-					height: 100%;
-					width: 1px;
-					background: var(--bg-soft-glass-3);
 				}
 			}
 			> left-side {
@@ -121,6 +111,12 @@ app-shell.class {
 				> a {
 					display: inline-flex;
 					margin-left: -10px;
+					> brand-name {
+						font-family: Theia;
+						color: var(--brand-color);
+					}
+
+					/* @lasertag-expect-error: this is the dz2 orbital's island wrapper */
 					> astro-island {
 						display: inline-flex;
 						width: 45px;
@@ -132,6 +128,11 @@ app-shell.class {
 			> right-side {
 				justify-content: flex-end;
 				padding-right: 20px;
+				> span {
+					height: 100%;
+					width: 1px;
+					background: var(--bg-soft-glass-3);
+				}
 			}
 		}
 	}

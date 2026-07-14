@@ -25,6 +25,11 @@ import type { Atom } from "../state-types.ts"
 import { deposit, type Store, withdraw } from "../store/index.ts"
 import type { RootStore } from "../transaction/index.ts"
 import { isChildStore } from "../transaction/index.ts"
+import type { GroupedTimelineTransactionEvent } from "./timeline-transaction-group.ts"
+import {
+	addTimelineToTransactionGroup,
+	TIMELINE_TRANSACTION_GROUP,
+} from "./timeline-transaction-group.ts"
 
 export type Timeline<ManagedAtom extends TimelineManageable> = {
 	type: `timeline`
@@ -323,11 +328,14 @@ function joinTransaction(
 						ownedTopicKeys,
 					)
 
-					const timelineTransactionUpdate: TimelineEvent<any> &
-						TransactionOutcomeEvent<TransactionToken<any>> = {
+					const timelineTransactionUpdate: GroupedTimelineTransactionEvent = {
 						checkpoint: true,
 						...transactionUpdate,
 						subEvents: subEventsFiltered,
+						[TIMELINE_TRANSACTION_GROUP]: addTimelineToTransactionGroup(
+							transactionUpdate,
+							tl.key,
+						),
 					}
 
 					addToHistory(tl, timelineTransactionUpdate)

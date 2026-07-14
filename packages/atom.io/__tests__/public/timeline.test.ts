@@ -11,6 +11,7 @@ import {
 	inspectTimeline,
 	mutableAtomFamily,
 	redo,
+	redoTransaction,
 	runTransaction,
 	scopeFamily,
 	selector,
@@ -21,6 +22,7 @@ import {
 	timelineFamily,
 	transaction,
 	undo,
+	undoTransaction,
 } from "atom.io"
 import { setTestLogLevel, stateExists, takeSnapshot } from "atom.io/testing"
 import { UList } from "atom.io/transceivers/u-list"
@@ -576,6 +578,59 @@ describe(`timeline state lifecycle`, () => {
 })
 
 describe(`timeline families`, () => {
+	test(`coordinates transaction undo across timeline members`, () => {
+		const countAtoms = atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+		})
+		const countHistories = timelineFamily<string>({
+			key: `countHistory`,
+			scope: [scopeFamily(countAtoms, { timelineKey: (key) => key })],
+		})
+		const historyA = findTimeline(countHistories, `a`)
+		const historyB = findTimeline(countHistories, `b`)
+		getState(countAtoms, `a`)
+		getState(countAtoms, `b`)
+		clearTimeline(historyA)
+		clearTimeline(historyB)
+		const setBothCountsTX = transaction<(value: number) => void>({
+			key: `setBothCounts`,
+			do: ({ set }, value) => {
+				set(countAtoms, `a`, value)
+				set(countAtoms, `b`, value)
+			},
+		})
+
+		runTransaction(setBothCountsTX, `first`)(1)
+		runTransaction(setBothCountsTX, `second`)(2)
+		undoTransaction(setBothCountsTX)
+		expect(getState(countAtoms, `a`)).toBe(1)
+		expect(getState(countAtoms, `b`)).toBe(1)
+		expect(inspectTimeline(historyA)).toEqual({ at: 1, length: 2 })
+		expect(inspectTimeline(historyB)).toEqual({ at: 1, length: 2 })
+
+		undoTransaction(setBothCountsTX, `first`)
+		expect(getState(countAtoms, `a`)).toBe(0)
+		expect(getState(countAtoms, `b`)).toBe(0)
+		expect(inspectTimeline(historyA)).toEqual({ at: 0, length: 2 })
+		expect(inspectTimeline(historyB)).toEqual({ at: 0, length: 2 })
+
+		runTransaction(setBothCountsTX, `diverged`)(3)
+		setState(countAtoms, `a`, 4)
+		undoTransaction(setBothCountsTX, `diverged`)
+		expect(getState(countAtoms, `a`)).toBe(4)
+		expect(getState(countAtoms, `b`)).toBe(0)
+		expect(inspectTimeline(historyA)).toEqual({ at: 2, length: 2 })
+		expect(inspectTimeline(historyB)).toEqual({ at: 0, length: 1 })
+		expect(logger.error).not.toHaveBeenCalled()
+
+		redoTransaction(setBothCountsTX, `diverged`)
+		expect(getState(countAtoms, `a`)).toBe(4)
+		expect(getState(countAtoms, `b`)).toBe(3)
+		expect(inspectTimeline(historyA)).toEqual({ at: 2, length: 2 })
+		expect(inspectTimeline(historyB)).toEqual({ at: 1, length: 1 })
+	})
+
 	test(`routes existing and future atom-family members by key`, () => {
 		const glyphAtoms = atomFamily<number, string>({
 			key: `glyph`,

@@ -26,6 +26,7 @@ import {
 	Store,
 	subscribeInStore,
 	timeTravel,
+	timeTravelTransactionInStore,
 } from "atom.io/internal"
 
 import type {
@@ -46,7 +47,12 @@ import type {
 import type { atom, atomFamily, mutableAtom, mutableAtomFamily } from "./atom.ts"
 import type { resetState } from "./reset-state.ts"
 import type { selector, selectorFamily } from "./selector.ts"
-import type { runTransaction, transaction } from "./transaction.ts"
+import type {
+	redoTransaction,
+	runTransaction,
+	transaction,
+	undoTransaction,
+} from "./transaction.ts"
 
 export class Silo {
 	public store: RootStore
@@ -76,6 +82,10 @@ export class Silo {
 	/** {@link disposeTimeline}, bound to this Silo's store. */
 	public disposeTimeline: typeof disposeTimeline
 	public runTransaction: typeof runTransaction
+	/** {@link undoTransaction}, bound to this Silo's store. */
+	public undoTransaction: typeof undoTransaction
+	/** {@link redoTransaction}, bound to this Silo's store. */
+	public redoTransaction: typeof redoTransaction
 	public install: (tokens: AtomIOToken[], store?: RootStore) => void
 
 	public constructor(config: Store[`config`], fromStore: Store | null = null) {
@@ -144,6 +154,10 @@ export class Silo {
 			}
 		}) as typeof disposeTimeline
 		this.runTransaction = (token, id = arbitrary()) => actUponStore(s, token, id)
+		this.undoTransaction = (token, id) =>
+			timeTravelTransactionInStore(s, `undo`, token, id)
+		this.redoTransaction = (token, id) =>
+			timeTravelTransactionInStore(s, `redo`, token, id)
 		this.install = (tokens, source = IMPLICIT.STORE) => {
 			installIntoStore(tokens, s, source)
 		}

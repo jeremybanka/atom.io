@@ -381,9 +381,22 @@ disposal APIs, so timeline-family work stays inside the Silo's store.
 
 <Exhibit src="core/timeline/use-a-timeline-family-in-a-silo.ts" />
 
+Transactions recorded by several timelines retain one shared operation identity.
+Use `undo` when only one timeline should move. Use `undoTransaction` and
+`redoTransaction` to move an instance wherever it is at the relevant timeline head.
+Timelines that have moved elsewhere are left unchanged.
+
+A transaction applies atomically when it runs. However, if its atoms belong to
+multiple timelines, those timelines can later move independently and split the
+transaction's effects. If the effects must remain atomic over time, do not update
+atoms from multiple timelines in one transaction. Keep that state in one timeline.
+
+<Exhibit src="core/timeline/undo-a-transaction-across-timelines.ts" />
+
 React and Solid both accept a timeline family and key in `useTL`. Their hooks resolve
 the member in the current provider store and switch subscriptions when the key
-changes.
+changes. When a transaction is at that member's current undo or redo head, the hook
+also exposes the corresponding coordinated transaction control.
 
 <Exhibit src="react/use-timeline-family.tsx" label="React" />
 

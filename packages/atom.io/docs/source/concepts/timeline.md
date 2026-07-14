@@ -16,6 +16,16 @@ and redone.
 
 Timelines pair naturally with transactions. A transaction can describe a
 meaningful operation, while a timeline records the resulting changes as history.
+When one transaction is recorded by several timelines, `undoTransaction` and
+`redoTransaction` move it wherever it is currently at a timeline head. A timeline
+that has moved elsewhere is left alone. Ordinary `undo` and `redo` remain local to
+one timeline.
+
+The transaction applies atomically when it runs, but recording its effects in
+multiple timelines means those effects can later move independently. In other
+words, crossing timeline boundaries can break the transaction's atomicity over
+time. If the effects must always remain inseparable, do not update atoms from
+multiple timelines in one transaction; keep that state in one timeline instead.
 
 For mutable atoms, timelines record both inner transceiver signals and whole-
 reference replacements. Each change produces one undoable history entry.

@@ -396,6 +396,10 @@ describe(`silo`, () => {
 			key: `pointX`,
 			default: 0,
 		})
+		const editedGlyphCountAtom = FontEditor.atom<number>({
+			key: `editedGlyphCount`,
+			default: 0,
+		})
 		const glyphHistories = FontEditor.timelineFamily<GlyphId>({
 			key: `glyphHistory`,
 			scope: [
@@ -409,6 +413,7 @@ describe(`silo`, () => {
 		>({
 			key: `addExtremaToGlyphs`,
 			do: ({ set }, glyphIds) => {
+				set(editedGlyphCountAtom, glyphIds.length)
 				for (const glyphId of glyphIds) {
 					set(
 						pointXAtoms,
@@ -422,10 +427,11 @@ describe(`silo`, () => {
 		const historyB = FontEditor.findTimeline(glyphHistories, `B`)
 
 		FontEditor.runTransaction(addExtremaToGlyphsTX)([`A`, `B`])
+		expect(FontEditor.getState(editedGlyphCountAtom)).toBe(2)
 		expect(FontEditor.inspectTimeline(historyA)).toEqual({ at: 1, length: 1 })
 		expect(FontEditor.inspectTimeline(historyB)).toEqual({ at: 1, length: 1 })
 
-		// This is the application-level coordination required today.
+		// Local history remains available for editing one glyph in isolation.
 		FontEditor.undo(glyphHistories, `A`)
 		expect(
 			stateExistsInStore(FontEditor.store, pointXAtoms, [`A`, `top-extremum`]),
@@ -435,12 +441,45 @@ describe(`silo`, () => {
 		).toBe(true)
 		expect(FontEditor.inspectTimeline(historyA)).toEqual({ at: 0, length: 1 })
 		expect(FontEditor.inspectTimeline(historyB)).toEqual({ at: 1, length: 1 })
+		expect(FontEditor.getState(editedGlyphCountAtom)).toBe(2)
 
-		FontEditor.undo(glyphHistories, `B`)
+		const onCoordinatedUndo = vitest.fn(() => {
+			expect(
+				stateExistsInStore(FontEditor.store, pointXAtoms, [`A`, `top-extremum`]),
+			).toBe(false)
+			expect(
+				stateExistsInStore(FontEditor.store, pointXAtoms, [`B`, `top-extremum`]),
+			).toBe(false)
+		})
+		const unsubscribeFromHistoryB = FontEditor.subscribe(
+			historyB,
+			onCoordinatedUndo,
+		)
+		FontEditor.undoTransaction(addExtremaToGlyphsTX)
+		expect(
+			stateExistsInStore(FontEditor.store, pointXAtoms, [`A`, `top-extremum`]),
+		).toBe(false)
 		expect(
 			stateExistsInStore(FontEditor.store, pointXAtoms, [`B`, `top-extremum`]),
 		).toBe(false)
+		expect(FontEditor.inspectTimeline(historyA)).toEqual({ at: 0, length: 1 })
 		expect(FontEditor.inspectTimeline(historyB)).toEqual({ at: 0, length: 1 })
+		// State outside the glyph histories is not replayed by coordinated travel.
+		expect(FontEditor.getState(editedGlyphCountAtom)).toBe(2)
+		expect(onCoordinatedUndo).toHaveBeenCalledOnce()
+		unsubscribeFromHistoryB()
+
+		// Redo discovers both timelines at the transaction's next head.
+		FontEditor.redoTransaction(addExtremaToGlyphsTX)
+		expect(
+			stateExistsInStore(FontEditor.store, pointXAtoms, [`A`, `top-extremum`]),
+		).toBe(true)
+		expect(
+			stateExistsInStore(FontEditor.store, pointXAtoms, [`B`, `top-extremum`]),
+		).toBe(true)
+		expect(FontEditor.inspectTimeline(historyA)).toEqual({ at: 1, length: 1 })
+		expect(FontEditor.inspectTimeline(historyB)).toEqual({ at: 1, length: 1 })
+		expect(FontEditor.getState(editedGlyphCountAtom)).toBe(2)
 		expect(hasImplicitStoreBeenCreated()).toBe(false)
 	})
 	it(`retires an ordinary load history from its silo`, () => {

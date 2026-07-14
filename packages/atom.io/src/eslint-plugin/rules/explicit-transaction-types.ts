@@ -61,8 +61,10 @@ export const explicitTransactionTypes: ESLintUtils.RuleModule<
 						break
 					case `MemberExpression`:
 						if (
-							(callee.property.type === `Identifier` &&
-								callee.property.name === `transaction`) === false
+							callee.property.type === AST_NODE_TYPES.Identifier
+								? callee.property.name !== `transaction`
+								: callee.property.type !== AST_NODE_TYPES.Literal ||
+									callee.property.value !== `transaction`
 						) {
 							return
 						}

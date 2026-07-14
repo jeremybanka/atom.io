@@ -103,5 +103,38 @@ ruleTester.run(`explicit-transaction-types`, rule, {
       `,
 			errors: [{ messageId: `noTypeArgument` }],
 		},
+		{
+			name: `returned transaction with top-level annotation option enabled`,
+			options: [{ permitAnnotation: true }],
+			code: `
+        return transaction({
+          key: "increment",
+          do: ({ get, set }, amount) => set(countAtom, get(countAtom) + amount),
+        })
+      `,
+			errors: [{ messageId: `noTypeArgumentOrAnnotation` }],
+		},
+		{
+			name: `destructured transaction with top-level annotation option enabled`,
+			options: [{ permitAnnotation: true }],
+			code: `
+        const { incrementTransaction } = transaction({
+          key: "increment",
+          do: ({ get, set }, amount) => set(countAtom, get(countAtom) + amount),
+        })
+      `,
+			errors: [{ messageId: `noTypeArgumentOrAnnotation` }],
+		},
+		{
+			name: `Silo - bracket member access`,
+			code: `
+        const silo = new Silo("SILO", IMPLICIT.STORE)
+        const incrementTransaction = silo["transaction"]({
+          key: "increment",
+          do: ({ get, set }, amount) => set(countAtom, get(countAtom) + amount),
+        })
+      `,
+			errors: [{ messageId: `noTypeArgument` }],
+		},
 	],
 })

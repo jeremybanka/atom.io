@@ -518,12 +518,16 @@ describe(`timeline`, () => {
 					<button
 						type="button"
 						data-testid="batch"
-						onClick={() => silo.runTransaction(setBothCountsTX)(1)}
+						onClick={() => {
+							silo.runTransaction(setBothCountsTX)(1)
+						}}
 					/>
 					<button
 						type="button"
 						data-testid="divergeA"
-						onClick={() => silo.setState(countAtoms, `a`, 2)}
+						onClick={() => {
+							silo.setState(countAtoms, `a`, 2)
+						}}
 					/>
 					<button
 						type="button"

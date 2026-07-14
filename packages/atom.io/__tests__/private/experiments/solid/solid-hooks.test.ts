@@ -532,8 +532,12 @@ describe(`timeline`, () => {
 				countBDisplay,
 				canUndoDisplay,
 				canRedoDisplay,
-				createButton(`batch`, () => silo.runTransaction(setBothCountsTX)(1)),
-				createButton(`divergeA`, () => silo.setState(countAtoms, `a`, 2)),
+				createButton(`batch`, () => {
+					silo.runTransaction(setBothCountsTX)(1)
+				}),
+				createButton(`divergeA`, () => {
+					silo.setState(countAtoms, `a`, 2)
+				}),
 				createButton(`undoTransaction`, () => {
 					historyB().undoTransaction?.()
 				}),

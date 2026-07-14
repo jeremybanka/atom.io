@@ -9,6 +9,7 @@ const plugin: ESLint.Plugin = {
 		"naming-convention": Rules.namingConvention,
 		"exact-catch-types": Rules.exactCatchTypes as any,
 		"explicit-state-types": Rules.explicitStateTypes as any,
+		"explicit-transaction-types": Rules.explicitTransactionTypes as any,
 	},
 }
 

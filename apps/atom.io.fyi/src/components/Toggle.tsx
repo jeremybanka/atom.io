@@ -1,9 +1,11 @@
 import { ToggleButton } from "./ToggleButton.tsx"
 
 export type ToggleProps = {
+	ariaControls: string
+	ariaLabel: string
 	children: string
 	checked: boolean
-	onChange: () => void
+	onClick: () => void
 	size?: { height: number; width: number }
 }
 

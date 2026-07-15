@@ -97,8 +97,10 @@ export function DocsNavigation(): VNode {
 			<SiteDirectory />
 			<OnThisPage />
 			<Toggle.Button
+				ariaControls="site-directory on-this-page"
+				ariaLabel="Documentation menu"
 				checked={userHasToggled}
-				onChange={() => {
+				onClick={() => {
 					setUserHasToggled((v) => !v)
 				}}
 			>

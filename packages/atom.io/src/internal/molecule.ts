@@ -144,9 +144,9 @@ export function allocateIntoStore<
 export function fuseWithinStore<
 	H extends Hierarchy,
 	C extends CompoundFrom<H>,
-	T extends C extends CompoundTypedKey<infer t, any, any> ? t : never,
-	A extends C extends CompoundTypedKey<any, infer a, any> ? a : never,
-	B extends C extends CompoundTypedKey<any, any, infer b> ? b : never,
+	T extends (C extends CompoundTypedKey<infer t, any, any> ? t : never),
+	A extends (C extends CompoundTypedKey<any, infer a, any> ? a : never),
+	B extends (C extends CompoundTypedKey<any, any, infer b> ? b : never),
 >(
 	store: Store,
 	type: T,

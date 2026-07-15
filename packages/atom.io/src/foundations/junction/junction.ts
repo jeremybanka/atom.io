@@ -152,7 +152,7 @@ export class Junction<
 	protected replaceRelationsSafely(b: B, as: A[]): void
 	protected replaceRelationsSafely<
 		XType extends A | B,
-		YType extends XType extends A ? B : A,
+		YType extends (XType extends A ? B : A),
 	>(x: XType, ys: YType[]): void {
 		const xRelationsPrev = this.relations.get(x)
 		let a: A | undefined = this.isAType?.(x) ? x : undefined
@@ -431,7 +431,7 @@ export class Junction<
 	): this
 	public replaceRelations<
 		XType extends A | B,
-		YType extends XType extends A ? B : A,
+		YType extends (XType extends A ? B : A),
 	>(
 		x: XType,
 		relations: Content extends null ? YType[] : Record<YType, Content>,

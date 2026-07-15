@@ -67,9 +67,9 @@ export class Realm<H extends Hierarchy> {
 	 */
 	public fuse<
 		C extends CompoundFrom<H>,
-		T extends C extends CompoundTypedKey<infer t, any, any> ? t : never,
-		A extends C extends CompoundTypedKey<any, infer v, any> ? v : never,
-		B extends C extends CompoundTypedKey<any, any, infer m> ? m : never,
+		T extends (C extends CompoundTypedKey<infer t, any, any> ? t : never),
+		A extends (C extends CompoundTypedKey<any, infer v, any> ? v : never),
+		B extends (C extends CompoundTypedKey<any, any, infer m> ? m : never),
 	>(
 		type: T,
 		reagentA: SingularTypedKey<A>,

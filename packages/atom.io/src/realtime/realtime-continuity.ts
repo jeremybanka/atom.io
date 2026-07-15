@@ -74,7 +74,7 @@ export class SyncGroup {
 	public add(...args: TransactionToken<any>[]): SyncGroup
 	public add<
 		F extends AtomFamilyToken<any>,
-		T extends F extends AtomFamilyToken<infer U> ? U : never,
+		T extends (F extends AtomFamilyToken<infer U> ? U : never),
 	>(
 		family: AtomFamilyToken<T, any>,
 		index: ReadableFamilyToken<Iterable<AtomToken<T>>, string>,

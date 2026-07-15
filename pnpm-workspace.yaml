@@ -11,6 +11,9 @@ minimumReleaseAgeExclude:
 autoInstallPeers: false
 verifyDepsBeforeRun: error
 
+patchedDependencies:
+  "@astrojs/preact@6.0.1": patches/@astrojs__preact@6.0.1.patch
+
 packages:
   - "apps/*"
   - "packages/*"

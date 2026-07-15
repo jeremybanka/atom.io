@@ -1,0 +1,12 @@
+diff --git a/dist/index.js b/dist/index.js
+index 1aa5372..d93d5eb 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -51,6 +51,7 @@ function index_default({
+     hooks: {
+       "astro:config:setup": ({ addRenderer, updateConfig, command, injectScript }) => {
+         const preactPlugin = preact({
++          devToolsEnabled: devtools ?? false,
+           reactAliasesEnabled: compat ?? false,
+           include,
+           exclude,

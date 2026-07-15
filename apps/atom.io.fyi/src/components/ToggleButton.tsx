@@ -9,9 +9,11 @@ const setCssVars = (
 ): Partial<React.CSSProperties> => vars
 
 export function ToggleButton({
+	ariaControls,
+	ariaLabel,
 	children,
 	checked,
-	onChange,
+	onClick,
 	size = { height: 40, width: 40 },
 }: ToggleProps): VNode {
 	return (
@@ -22,11 +24,16 @@ export function ToggleButton({
 				"--height": `${size.height}px`,
 			})}
 		>
-			<label>
-				<input type="checkbox" checked={checked} onChange={onChange} />
-				<back-fill />
-				<span>{children}</span>
-			</label>
+			<button
+				aria-controls={ariaControls}
+				aria-expanded={checked}
+				aria-label={ariaLabel}
+				onClick={onClick}
+				type="button"
+			>
+				<back-fill aria-hidden="true" />
+				<span aria-hidden="true">{children}</span>
+			</button>
 		</toggle-button>
 	)
 }

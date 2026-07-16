@@ -4,7 +4,7 @@ hk = "1.51.0"
 ni = "30.2.0"
 node = "26.5.0"
 pnpm = "11.13.0"
-ripgrep = "15.1.0"
+ripgrep = "15.2.0"
 
 [tools."asdf:mise-plugins/mise-postgres"]
 version = "18.4"

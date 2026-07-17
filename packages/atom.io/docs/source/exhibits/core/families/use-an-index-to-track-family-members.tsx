@@ -1,7 +1,7 @@
 import { atom } from "atom.io"
 import { useO } from "atom.io/react"
 
-import { Point, xAtoms, yAtoms } from "./declare-a-family.tsx"
+import { Point } from "./declare-a-family.tsx"
 
 export const pointKeysAtom = atom<string[]>({
 	key: `pointKeys`,

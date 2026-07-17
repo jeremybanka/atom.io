@@ -194,17 +194,22 @@ Sometimes you need a lot of the same type of atom or selector. The `atomFamily` 
 
 <Exhibit src="core/families/declare-a-family.tsx" />
 
-For example, maybe we're making an app with `Point`s laid out in two dimensions.
+For example, imagine an editor containing many points. An `atomFamily` can give each
+point its own keyed state while keeping one shared declaration.
 
-We might use an `atomFamily` to handle creating state for each node. Or, better yet, we might make two families—for each node's x and y coordinates.
+Choose state boundaries according to how values are observed and updated. A point's x
+and y coordinates usually form one coherent value: components read them together, and
+dragging replaces them together. Separate coordinate families may be useful when the
+axes genuinely change or are observed independently, but finer granularity also
+introduces more writes, subscriptions, and coordination.
 
-Counterintuitively, it is likely a performance win in highly interactive applications to take the latter approach, because when nodes move, we only need to replace two primitives in the underlying map, rather than a whole object.
+Aim for the smallest coherent unit of state, not the smallest representable value.
+Granularity can prevent unrelated updates, but it is not automatically faster. Let
+application behavior determine the model, and profile before splitting state solely for
+performance.
 
-This is the key to high-performance interactivity in atom.io: **the smaller the state, the better**.
-
-Small state improves observation granularity, but it does not remove the need for good
-collection design. Keep explicit indexes for the family members you need to iterate, and
-use transactions when several small states should change as one operation.
+Keep explicit indexes for the family members you need to iterate. When several
+independent states must change as one operation, update them in a transaction.
 
 <Exhibit src="core/families/use-an-index-to-track-family-members.tsx" />
 
@@ -340,7 +345,7 @@ Timelines allow you to track the history of a group of atoms. If these atoms are
 
 <Exhibit src="core/timeline/create-a-timeline.ts" />
 
-In this example, we create a timeline that tracks the history of two families of atoms.
+In this example, we create a timeline that tracks the history of a family of point atoms.
 
 <Exhibit src="core/timeline/subscribe-to-a-timeline.ts" />
 

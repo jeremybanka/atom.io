@@ -129,7 +129,8 @@ For example:
 
 This means each node can be looked up by a key such as `subpath12`, while still sharing one declaration.
 
-As a user, this is one of the nicest parts of `atom.io`: you can model many small pieces of state without collapsing everything into one giant object.
+As a user, this is one of the nicest parts of `atom.io`: you can model each node as
+its own coherent piece of state without collapsing the whole scene into one giant object.
 
 ## add one button with a transaction
 
@@ -167,6 +168,6 @@ If you want a different style of example afterward:
 
 If you only remember one thing after this guide, make it this:
 
-Keep your state small and explicit, then derive everything else.
+Keep state explicit, choose boundaries that match how it changes, and derive everything else.
 
 That is the core rhythm of `atom.io`.

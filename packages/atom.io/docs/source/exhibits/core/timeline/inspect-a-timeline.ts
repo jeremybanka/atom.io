@@ -1,12 +1,12 @@
 import { inspectTimeline, setState, undo } from "atom.io"
 
-import { xAtoms } from "../families/declare-a-family.tsx"
+import { pointAtoms } from "../families/declare-a-family.tsx"
 import { coordinatesTimeline } from "./create-a-timeline.ts"
 
 inspectTimeline(coordinatesTimeline) // -> { at: 0, length: 0 }
 
-setState(xAtoms, `sample_key`, 1)
-setState(xAtoms, `sample_key`, 2)
+setState(pointAtoms, `sample_key`, { x: 1, y: 0 })
+setState(pointAtoms, `sample_key`, { x: 2, y: 0 })
 
 inspectTimeline(coordinatesTimeline) // -> { at: 2, length: 2 }
 

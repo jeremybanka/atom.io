@@ -1,5 +1,11 @@
 # atom.io
 
+## 0.50.1
+
+### Patch Changes
+
+- b14a9b6: Revise the state-granularity guidance to recommend coherent state boundaries and keep point coordinates together in the family and timeline examples.
+
 ## 0.50.0
 
 ### Minor Changes

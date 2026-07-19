@@ -23,7 +23,7 @@
 	},
 	"devDependencies": {
 		"@eslint-react/eslint-plugin": "5.17.1",
-		"@preact/preset-vite": "2.10.5",
+		"@preact/preset-vite": "2.10.6",
 		"@typescript-eslint/eslint-plugin": "8.64.0",
 		"@typescript-eslint/parser": "8.64.0",
 		"eslint-plugin-import-x": "4.17.1",

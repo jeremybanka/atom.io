@@ -28,9 +28,9 @@ export const RealtimeProvider: React.FC<{
 	).current
 	const setMySocketKey = useI(RTC.mySocketKeyAtom)
 	React.useEffect(() => {
-		setMySocketKey(socket?.id ? `socket::${socket.id}` : undefined)
+		setMySocketKey(socket?.id ? `socket:${socket.id}` : undefined)
 		socket?.on(`connect`, () => {
-			setMySocketKey(socket?.id ? `socket::${socket.id}` : undefined)
+			setMySocketKey(socket?.id ? `socket:${socket.id}` : undefined)
 		})
 		socket?.on(`disconnect`, () => {
 			setMySocketKey(undefined)

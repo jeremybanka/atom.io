@@ -54,7 +54,7 @@ export class ParentSocket<
 		[user: UserKey]: [string, ...Json.Array[]]
 	},
 	O extends Events & {
-		[id in string as `user::${id}`]: [string, ...Json.Array[]]
+		[id in string as `user:${id}`]: [string, ...Json.Array[]]
 	} & {
 		/* eslint-disable quotes */
 		"user-joins": [key: UserKey]

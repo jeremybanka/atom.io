@@ -4,5 +4,5 @@ import { playlistTracks } from "./declare-playlist-tracks.ts"
 
 const playlistsUsingDreamsState = findRelations(
 	playlistTracks,
-	`track::dreams`,
+	`track:dreams`,
 ).playlistKeysOfTrack

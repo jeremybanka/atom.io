@@ -3,13 +3,13 @@ import { resetState, setState } from "atom.io"
 import { client, type RowStatus } from "./client.ts"
 import { rowAtoms } from "./load-remote-rows.ts"
 
-type RowKey = `row::${string}`
+type RowKey = `row:${string}`
 
 export async function updateRowStatus(
 	id: string,
 	status: RowStatus,
 ): Promise<void> {
-	const key: RowKey = `row::${id}`
+	const key: RowKey = `row:${id}`
 
 	setState(rowAtoms, key, async (loadable) => {
 		const row = await loadable

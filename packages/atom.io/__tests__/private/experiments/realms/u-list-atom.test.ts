@@ -46,14 +46,14 @@ describe(`effects`, () => {
 		expect(getState(myMutableAtom)).toEqual(new UList())
 
 		const realm = new Anarchy()
-		realm.allocate(`root`, `item::1`)
-		setState(myMutableAtom, (set) => set.add(`item::1`))
-		expect(getState(myMutableAtom)).toEqual(new UList([`item::1`]))
-		realm.deallocate(`item::1`)
+		realm.allocate(`root`, `item:1`)
+		setState(myMutableAtom, (set) => set.add(`item:1`))
+		expect(getState(myMutableAtom)).toEqual(new UList([`item:1`]))
+		realm.deallocate(`item:1`)
 		expect(getState(myMutableAtom)).toEqual(new UList())
 
-		realm.allocate(`root`, `item::2`)
-		setState(myMutableAtom, (set) => set.add(`item::2`))
+		realm.allocate(`root`, `item:2`)
+		setState(myMutableAtom, (set) => set.add(`item:2`))
 		setState(myMutableAtom, (set) => (set.clear(), set))
 	})
 	it(`disposed key cleanup (transaction)`, () => {
@@ -65,19 +65,19 @@ describe(`effects`, () => {
 		expect(getState(myMutableAtom)).toEqual(new UList())
 
 		const realm = new Anarchy()
-		realm.allocate(`root`, `item::1`)
+		realm.allocate(`root`, `item:1`)
 
 		runTransaction(
 			transaction({
 				key: `hi`,
 				do: ({ set }) => {
-					set(myMutableAtom, (s) => s.add(`item::1`))
+					set(myMutableAtom, (s) => s.add(`item:1`))
 				},
 			}),
 		)()
-		expect(getState(myMutableAtom)).toEqual(new UList([`item::1`]))
+		expect(getState(myMutableAtom)).toEqual(new UList([`item:1`]))
 
-		realm.deallocate(`item::1`)
+		realm.deallocate(`item:1`)
 		expect(getState(myMutableAtom)).toEqual(new UList())
 	})
 })

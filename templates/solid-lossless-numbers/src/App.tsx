@@ -19,7 +19,7 @@ import { For, Show } from "solid-js"
 
 import css from "./App.tsx.module.css"
 
-type RationalKey = `rat::${string}`
+type RationalKey = `rat:${string}`
 const arbitrary = () => Math.random().toString(36).slice(2)
 
 const newRationalNumeratorAtom = atom<bigint | undefined>({
@@ -138,7 +138,7 @@ export function App(): JSX.Element {
 					<button
 						type="button"
 						onClick={() => {
-							const key: RationalKey = `rat::${arbitrary()}`
+							const key: RationalKey = `rat:${arbitrary()}`
 							runTransaction(combineIntoRationalTransaction)(key, `add`)
 							const newNumerator = getState(newRationalNumeratorAtom) ?? 1n
 							const newDenominator = getState(newRationalDenominatorAtom) ?? 1n

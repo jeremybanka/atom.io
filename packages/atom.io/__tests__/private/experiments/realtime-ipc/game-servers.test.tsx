@@ -68,7 +68,7 @@ describe(`multi-process realtime server`, () => {
 			createRoomButton.click()
 		})
 		const deleteRoomButton = await app.renderResult.findByTestId(
-			`delete-room::0-game-instance.bun.ts`,
+			`delete-room:0-game-instance.bun.ts`,
 			undefined,
 			{ timeout: roomStartupTimeout },
 		)
@@ -89,7 +89,7 @@ describe(`multi-process realtime server`, () => {
 		})
 
 		const joinRoomButton = await app.renderResult.findByTestId(
-			`join-room::0-game-instance.bun.ts`,
+			`join-room:0-game-instance.bun.ts`,
 			undefined,
 			{ timeout: roomStartupTimeout },
 		)
@@ -98,7 +98,7 @@ describe(`multi-process realtime server`, () => {
 			joinRoomButton.click()
 		})
 
-		await app.renderResult.findByTestId(`room::0-game-instance.bun.ts`)
+		await app.renderResult.findByTestId(`room:0-game-instance.bun.ts`)
 	})
 	it(`reattaches to a room after disconnecting`, async () => {
 		const { client } = scenario()
@@ -109,14 +109,14 @@ describe(`multi-process realtime server`, () => {
 			createRoomButton.click()
 		})
 		const joinRoomButton = await app.renderResult.findByTestId(
-			`join-room::0-game-instance.bun.ts`,
+			`join-room:0-game-instance.bun.ts`,
 			undefined,
 			{ timeout: roomStartupTimeout },
 		)
 		await actWithFakeTimers(() => {
 			joinRoomButton.click()
 		})
-		await app.renderResult.findByTestId(`room::0-game-instance.bun.ts`)
+		await app.renderResult.findByTestId(`room:0-game-instance.bun.ts`)
 		await app.renderResult.findByTestId(`A`, undefined, { timeout: 3000 })
 
 		await actWithFakeTimers(() => {
@@ -127,7 +127,7 @@ describe(`multi-process realtime server`, () => {
 		await actWithFakeTimers(() => {
 			app.socket.connect()
 		})
-		await app.renderResult.findByTestId(`room::0-game-instance.bun.ts`)
+		await app.renderResult.findByTestId(`room:0-game-instance.bun.ts`)
 		await app.renderResult.findByTestId(`A`, undefined, { timeout: 3000 })
 
 		const leaveRoomButton = await app.renderResult.findByTestId(`leave-room`)

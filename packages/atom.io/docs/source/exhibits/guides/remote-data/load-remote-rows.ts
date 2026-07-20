@@ -2,7 +2,7 @@ import { atom, atomFamily, type Loadable, setState } from "atom.io"
 
 import { client, type Row } from "./client.ts"
 
-type RowKey = `row::${string}`
+type RowKey = `row:${string}`
 
 export const rowKeysAtom = atom<Loadable<readonly RowKey[]>, Error>({
 	key: `rowKeys`,
@@ -16,7 +16,7 @@ export const rowKeysAtom = atom<Loadable<readonly RowKey[]>, Error>({
 export const rowAtoms = atomFamily<Loadable<Row>, RowKey, Error>({
 	key: `row`,
 	default: async (key) => {
-		const id = key.slice(`row::`.length)
+		const id = key.slice(`row:`.length)
 		const row = await client.rows.get({ id })
 		loadRow(row)
 		return row
@@ -25,7 +25,7 @@ export const rowAtoms = atomFamily<Loadable<Row>, RowKey, Error>({
 })
 
 function rowKey(id: string): RowKey {
-	return `row::${id}`
+	return `row:${id}`
 }
 
 function loadRows(rows: readonly Row[]): readonly RowKey[] {

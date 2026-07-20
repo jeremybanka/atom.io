@@ -9,7 +9,7 @@ import {
 
 import { client, type Row, type RowListView } from "./client.ts"
 
-type RowKey = `row::${string}`
+type RowKey = `row:${string}`
 
 type RowIndexView = readonly [
 	pageNumber: RowListView[`offset`],
@@ -28,7 +28,7 @@ export const acquiredRowKeysAtom = atom<readonly RowKey[]>({
 export const rowAtoms = atomFamily<Loadable<Row>, RowKey, Error>({
 	key: `row`,
 	default: async (key) => {
-		const id = key.slice(`row::`.length)
+		const id = key.slice(`row:`.length)
 		const row = await client.rows.get({ id })
 		loadRow(row)
 		return row
@@ -116,7 +116,7 @@ export const visibleRowKeysSelectors = selectorFamily<
 })
 
 function rowKey(id: string): RowKey {
-	return `row::${id}`
+	return `row:${id}`
 }
 
 function loadRows(rows: readonly Row[]): readonly RowKey[] {

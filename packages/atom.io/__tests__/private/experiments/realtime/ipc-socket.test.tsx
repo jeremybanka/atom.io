@@ -236,18 +236,18 @@ describe(`ParentSocket`, () => {
 			}
 		})
 
-		parentToChild.emit(`user-joins`, `user::alice`)
-		expect([...childToParent[`relays`].keys()]).toContain(`user::alice`)
+		parentToChild.emit(`user-joins`, `user:alice`)
+		expect([...childToParent[`relays`].keys()]).toContain(`user:alice`)
 
 		const gotPong = new Promise<string>((resolve) => {
-			parentToChild.on(`user::alice`, (msg: string) => {
+			parentToChild.on(`user:alice`, (msg: string) => {
 				if (msg === `pong`) {
 					resolve(msg)
 				}
 			})
 		})
 
-		parentToChild.emit(`user::alice`, `ping`)
+		parentToChild.emit(`user:alice`, `ping`)
 
 		await gotPong
 

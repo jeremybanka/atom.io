@@ -73,7 +73,7 @@ export function spawnRoom<RoomNames extends string>({
 			socket.id ?? `[ID MISSING?!]`,
 			`👤 ${userKey} spawns room ${roomName}`,
 		)
-		const roomKey = `room::${roomMeta.count++}-${roomName}` satisfies RoomKey
+		const roomKey = `room:${roomMeta.count++}-${roomName}` satisfies RoomKey
 		const [command, args] = resolveRoomScript(roomName)
 		const child = await new Promise<ChildProcessWithoutNullStreams>(
 			(resolve) => {
@@ -360,7 +360,7 @@ const roomKeySchema: StandardSchemaV1<Json.Array, [RoomKey]> = {
 				return {
 					issues: [
 						{
-							message: `Room key must start with "room::"`,
+							message: `Room key must start with "room:"`,
 						},
 					],
 				}

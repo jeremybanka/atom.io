@@ -1,7 +1,7 @@
 import { atomFamily, type Loadable } from "atom.io"
 import { useLoadable } from "atom.io/react"
 
-type DashboardId = `dashboard::${string}`
+type DashboardId = `dashboard:${string}`
 
 type DashboardStats = {
 	openTicketCount: number
@@ -18,7 +18,7 @@ const EMPTY_DASHBOARD_STATS: DashboardStats = {
 async function fetchDashboardStats(
 	dashboardId: DashboardId,
 ): Promise<DashboardStats> {
-	const id = dashboardId.slice(`dashboard::`.length)
+	const id = dashboardId.slice(`dashboard:`.length)
 	const response = await fetch(`/api/dashboards/${id}/stats`)
 	if (!response.ok) {
 		throw new Error(`Could not load dashboard stats.`)
@@ -49,5 +49,5 @@ function DashboardSummary({ dashboardId }: { dashboardId: DashboardId }) {
 // @exhibit-region end keyed-dashboard-stats-loadable-family
 
 export const dashboardSummary = (
-	<DashboardSummary dashboardId="dashboard::support" />
+	<DashboardSummary dashboardId="dashboard:support" />
 )

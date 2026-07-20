@@ -73,7 +73,7 @@ unsubPullUsers = pullMutableAtomFamilyMember(
 
 parentSocket.receiveRelay((socket, userKey) => {
 	editRelations(RTS.usersOfSockets, (relations) => {
-		relations.set(`user::relay:${socket.id}`, `socket::${socket.id}`)
+		relations.set(`user:relay:${socket.id}`, `socket:${socket.id}`)
 	})
 	const exposeContinuity = RTS.prepareToProvideContinuity({
 		socket,

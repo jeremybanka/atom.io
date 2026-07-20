@@ -106,43 +106,43 @@ describe(`join with content`, () => {
 			key: `playersInRooms`,
 			between: [`room`, `player`],
 			cardinality: `n:n`,
-			isAType: (input): input is `room::arena` | `room::lobby` =>
+			isAType: (input): input is `room:arena` | `room:lobby` =>
 				[`lobby`, `arena`].includes(input),
-			isBType: (input): input is `player::josh` | `player::joshua` =>
+			isBType: (input): input is `player:josh` | `player:joshua` =>
 				[`josh`, `joshua`].includes(input),
 		})
 
 		const lobbyPlayersState = findRelations(
 			roomPlayers,
-			`room::lobby`,
+			`room:lobby`,
 		).playerKeysOfRoom
 		const joshuaRoomsState = findRelations(
 			roomPlayers,
-			`player::joshua`,
+			`player:joshua`,
 		).roomKeysOfPlayer
 
 		subscribe(lobbyPlayersState, Utils.stdout0)
 		subscribe(joshuaRoomsState, Utils.stdout1)
 
 		editRelations(roomPlayers, (relations) => {
-			relations.set({ room: `room::lobby`, player: `player::joshua` })
-			expect(relations.has(`player::josh`)).toBe(false)
-			expect(relations.has(`player::josh`, `room::lobby`)).toBe(false)
-			expect(relations.has(`player::joshua`)).toBe(true)
-			expect(relations.has(`player::joshua`, `room::lobby`)).toBe(true)
+			relations.set({ room: `room:lobby`, player: `player:joshua` })
+			expect(relations.has(`player:josh`)).toBe(false)
+			expect(relations.has(`player:josh`, `room:lobby`)).toBe(false)
+			expect(relations.has(`player:joshua`)).toBe(true)
+			expect(relations.has(`player:joshua`, `room:lobby`)).toBe(true)
 		})
 
 		expect(Utils.stdout0).toHaveBeenCalledWith({
 			oldValue: [],
-			newValue: [`player::joshua`],
+			newValue: [`player:joshua`],
 		})
 		expect(Utils.stdout1).toHaveBeenCalledWith({
 			oldValue: [],
-			newValue: [`room::lobby`],
+			newValue: [`room:lobby`],
 		})
 
 		editRelations(roomPlayers, (relations) => {
-			relations.delete(`room::lobby`, `player::joshua`)
+			relations.delete(`room:lobby`, `player:joshua`)
 		})
 
 		expect(getState(lobbyPlayersState)).toEqual([])

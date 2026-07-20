@@ -88,7 +88,7 @@ Because this call accepts a bare string key, it does not know which side you
 meant beyond the key itself. Its TypeScript overloads are clearest when the two
 key types are distinct, and its runtime behavior is clearest when the two key
 spaces cannot overlap. If the same string might appear on both sides, prefer
-non-overlapping keys such as `playlist::road-trip` and `track::dreams` before
+non-overlapping keys such as `playlist:road-trip` and `track:dreams` before
 relying on positional reads like `getRelatedKeys(key)`, `getRelatedKey(key)`,
 `has(key)`, or `replaceRelations(key, relations)`.
 

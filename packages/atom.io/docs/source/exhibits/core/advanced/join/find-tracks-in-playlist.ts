@@ -4,5 +4,5 @@ import { playlistTracks } from "./declare-playlist-tracks.ts"
 
 const tracksInRoadTripState = findRelations(
 	playlistTracks,
-	`playlist::road-trip`,
+	`playlist:road-trip`,
 ).trackKeysOfPlaylist

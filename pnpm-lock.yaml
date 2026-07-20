@@ -198,8 +198,8 @@ importers:
         specifier: 16.3.2
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@tsdown/css':
-        specifier: 0.22.11
-        version: 0.22.11(jiti@2.7.0)(postcss@8.5.19)(tsdown@0.22.11)(tsx@4.22.1)
+        specifier: 0.22.12
+        version: 0.22.12(jiti@2.7.0)(postcss@8.5.19)(tsdown@0.22.12)(tsx@4.22.1)
       '@types/estree':
         specifier: 1.0.9
         version: 1.0.9
@@ -282,8 +282,8 @@ importers:
         specifier: 0.1.8
         version: 0.1.8
       tsdown:
-        specifier: 0.22.11
-        version: 0.22.11(@tsdown/css@0.22.11)(oxc-resolver@11.19.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2))(tsx@4.22.1)(typescript@7.0.2)
+        specifier: 0.22.12
+        version: 0.22.12(@tsdown/css@0.22.12)(oxc-resolver@11.19.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2))(tsx@4.22.1)(typescript@7.0.2)
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -340,8 +340,8 @@ importers:
         specifier: 10.7.0
         version: 10.7.0(jiti@2.7.0)(supports-color@10.2.2)
       tsdown:
-        specifier: 0.22.11
-        version: 0.22.11(@tsdown/css@0.22.11)(oxc-resolver@11.19.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2))(tsx@4.22.1)(typescript@7.0.2)
+        specifier: 0.22.12
+        version: 0.22.12(@tsdown/css@0.22.12)(oxc-resolver@11.19.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2))(tsx@4.22.1)(typescript@7.0.2)
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -2837,8 +2837,8 @@ packages:
   '@textlint/types@15.7.1':
     resolution: {integrity: sha512-Vye/GmFNBTgVzZFtIFJTmLB+s2A7oIADxNG6r9UhfPuY+Czv0z5G3xeyFZZudPlfxURsKUyPIU5XsjOFqVp33A==}
 
-  '@tsdown/css@0.22.11':
-    resolution: {integrity: sha512-YpDperLeI96/84Mq4YBiy/WA+Q+ZQCRaTfG7rchE2k7njnihCfQdKiFnS5GDlkR8ZZmKM+6MBJYUx5mychVXUA==}
+  '@tsdown/css@0.22.12':
+    resolution: {integrity: sha512-y7UMif5Fi96wZ8h9nRUIfxicLdmpIFl89CZNRi3suvyZCfBfPN9zQgUAUjtDK5yYKlGJlJM81LYf/XNLJ0mxWA==}
     engines: {node: ^22.18.0 || >=24.11.0}
     peerDependencies:
       postcss: ^8.4.0
@@ -2846,7 +2846,7 @@ packages:
       postcss-modules: ^6.0.0
       sass: '*'
       sass-embedded: '*'
-      tsdown: 0.22.11
+      tsdown: 0.22.12
     peerDependenciesMeta:
       postcss:
         optional: true
@@ -6498,14 +6498,14 @@ packages:
     peerDependencies:
       react: ^19
 
-  tsdown@0.22.11:
-    resolution: {integrity: sha512-BERdQpqAltv3vYGC0pE4n+mRGPIN91T/on+Ud73bYRkbptknelFm27tJgBBUz4RJ5d3VNeVH90HfjBo1Ouj8yQ==}
+  tsdown@0.22.12:
+    resolution: {integrity: sha512-IzGRfGwSsufXJWOcQ0tmECKMG/dbxhUwDOySTS7JE1AM8pkB9+bpcTPs8bTxxSNrSvGocSczrBlOh97tZObq9Q==}
     engines: {node: ^22.18.0 || >=24.11.0}
     hasBin: true
     peerDependencies:
       '@arethetypeswrong/core': ^0.18.1
-      '@tsdown/css': 0.22.11
-      '@tsdown/exe': 0.22.11
+      '@tsdown/css': 0.22.12
+      '@tsdown/exe': 0.22.12
       '@vitejs/devtools': '*'
       publint: ^0.3.8
       tsx: '*'
@@ -6761,6 +6761,10 @@ packages:
   vary@1.1.2:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
     engines: {node: '>= 0.8'}
+
+  verkit@0.1.1:
+    resolution: {integrity: sha512-cZkglQpdcADQLTV88UEB8ogySmvby1H//AIbq8Se5BzUKYR8Jc6C05c1ABYgjyHkOakUG/GYmgUJdGktjMnxzw==}
+    engines: {node: ^22.18.0 || >=24.11.0}
 
   version-range@4.15.0:
     resolution: {integrity: sha512-Ck0EJbAGxHwprkzFO966t4/5QkRuzh+/I1RxhLgUKKwEn+Cd8NwM60mE3AqBZg5gYODoXW0EFsQvbZjRlvdqbg==}
@@ -9307,12 +9311,12 @@ snapshots:
     dependencies:
       '@textlint/ast-node-types': 15.7.1
 
-  '@tsdown/css@0.22.11(jiti@2.7.0)(postcss@8.5.19)(tsdown@0.22.11)(tsx@4.22.1)':
+  '@tsdown/css@0.22.12(jiti@2.7.0)(postcss@8.5.19)(tsdown@0.22.12)(tsx@4.22.1)':
     dependencies:
       lightningcss: 1.32.0
       postcss-load-config: 6.0.1(jiti@2.7.0)(postcss@8.5.19)(tsx@4.22.1)
       rolldown: 1.2.0
-      tsdown: 0.22.11(@tsdown/css@0.22.11)(oxc-resolver@11.19.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2))(tsx@4.22.1)(typescript@7.0.2)
+      tsdown: 0.22.12(@tsdown/css@0.22.12)(oxc-resolver@11.19.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2))(tsx@4.22.1)(typescript@7.0.2)
     optionalDependencies:
       postcss: 8.5.19
     transitivePeerDependencies:
@@ -13662,7 +13666,7 @@ snapshots:
       '@microsoft/tsdoc': 0.16.0
       react: '@preact/compat@18.3.2(preact@10.29.7)'
 
-  tsdown@0.22.11(@tsdown/css@0.22.11)(oxc-resolver@11.19.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2))(tsx@4.22.1)(typescript@7.0.2):
+  tsdown@0.22.12(@tsdown/css@0.22.12)(oxc-resolver@11.19.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2))(tsx@4.22.1)(typescript@7.0.2):
     dependencies:
       ansis: 4.3.1
       cac: 7.0.0
@@ -13674,13 +13678,13 @@ snapshots:
       picomatch: 4.0.5
       rolldown: 1.2.0
       rolldown-plugin-dts: 0.27.9(oxc-resolver@11.19.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2))(rolldown@1.2.0)(typescript@7.0.2)
-      semver: 7.8.5
       tinyexec: 1.2.4
       tinyglobby: 0.2.17
       tree-kill: 1.2.2
       unconfig-core: 7.5.0
+      verkit: 0.1.1
     optionalDependencies:
-      '@tsdown/css': 0.22.11(jiti@2.7.0)(postcss@8.5.19)(tsdown@0.22.11)(tsx@4.22.1)
+      '@tsdown/css': 0.22.12(jiti@2.7.0)(postcss@8.5.19)(tsdown@0.22.12)(tsx@4.22.1)
       tsx: 4.22.1
       typescript: 7.0.2
     transitivePeerDependencies:
@@ -13928,6 +13932,8 @@ snapshots:
       spdx-expression-parse: 3.0.1
 
   vary@1.1.2: {}
+
+  verkit@0.1.1: {}
 
   version-range@4.15.0: {}
 

@@ -182,7 +182,7 @@ export class Anarchy {
 
 export type T$ = `T$`
 export type TypeTag<T extends string> = `${T$}--${T}`
-export type SingularTypedKey<T extends string = string> = `${T}::${string}`
+export type SingularTypedKey<T extends string = string> = `${T}:${string}`
 export type CompoundTypedKey<
 	T extends string = string,
 	A extends string = string,

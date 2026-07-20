@@ -83,7 +83,7 @@ export function realtime(
 				return
 			}
 			const userClaim = socketRealm.allocate(`root`, result)
-			const socketClaim = socketRealm.allocate(`root`, `socket::${socket.id}`)
+			const socketClaim = socketRealm.allocate(`root`, `socket:${socket.id}`)
 			const socketState = findInStore(store, socketAtoms, socketClaim)
 			setIntoStore(store, socketState, socket)
 			editRelationsInStore(store, usersOfSockets, (relations) => {
@@ -94,7 +94,7 @@ export function realtime(
 			next()
 		})
 		.on(`connection`, async (socket) => {
-			const socketKey = `socket::${socket.id}` satisfies SocketKey
+			const socketKey = `socket:${socket.id}` satisfies SocketKey
 			const userKeySelector = findRelationsInStore(
 				store,
 				usersOfSockets,

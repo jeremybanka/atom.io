@@ -29,7 +29,7 @@ export function realtimeStateReceiver({
 		clientToken,
 		serverToken = clientToken,
 	): () => void {
-		const socketKey = `socket::${socket.id}` satisfies SocketKey
+		const socketKey = `socket:${socket.id}` satisfies SocketKey
 		const mutexAtom = findInStore(store, mutexAtoms, serverToken.key)
 
 		const subscriptions = new Set<() => void>()

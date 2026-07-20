@@ -213,7 +213,7 @@ export const setupRealtimeTestClient = (
 ): RealtimeTestClientBuilder => {
 	const testClient = { dispose: async () => {} }
 	const init = () => {
-		const userKey = `user::${name}-${testNumber}` as RT.UserKey
+		const userKey = `user:${name}-${testNumber}` as RT.UserKey
 		const socket: ClientSocket = io(`http://localhost:${server.port}/`, {
 			auth: { token: `test`, username: userKey },
 		})

@@ -26,7 +26,7 @@ export function useRealtimeRooms<
 	const store = React.useContext(StoreContext)
 	const { socket } = React.useContext(RealtimeContext)
 	usePullMutable(roomKeysAtom)
-	const userKey = usePullAtom(myUserKeyAtom) ?? `user::$_NONE_$`
+	const userKey = usePullAtom(myUserKeyAtom) ?? `user:$_NONE_$`
 
 	const [userKeysFamily, roomKeysFamily] = getInternalRelationsFromStore(
 		store,
@@ -41,7 +41,7 @@ export function useRealtimeRooms<
 		myRoomKey = roomKey
 		break
 	}
-	const roomKey = myRoomKey ?? `room::$_NONE_$`
+	const roomKey = myRoomKey ?? `room:$_NONE_$`
 	const myMutualsAtom = findInStore(store, userKeysFamily, roomKey)
 	usePullMutableAtomFamilyMember(userKeysFamily, roomKey)
 

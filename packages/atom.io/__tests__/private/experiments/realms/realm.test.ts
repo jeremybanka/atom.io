@@ -48,10 +48,10 @@ beforeEach(() => {
 	vitest.spyOn(logger, `info`)
 })
 describe(`game example: allocate + claim + deallocate`, () => {
-	type GameKey = `game::${string}`
-	type UserKey = `user::${string}`
+	type GameKey = `game:${string}`
+	type UserKey = `user:${string}`
 	type PlayerKey = `T$--player==${GameKey}++${UserKey}`
-	type ItemKey = `item::${string}`
+	type ItemKey = `item:${string}`
 
 	type GameHierarchy = Hierarchy<
 		[
@@ -91,11 +91,11 @@ describe(`game example: allocate + claim + deallocate`, () => {
 	type UserMutuals = Mutuals<UserKey, GameHierarchy>
 	type PlayerMutuals = Mutuals<PlayerKey, GameHierarchy>
 	type ItemMutuals = Mutuals<ItemKey, GameHierarchy>
-	const gameXKey = `game::xxx` satisfies GameKey
-	const userAKey = `user::aaa` satisfies UserKey
-	const userBKey = `user::bbb` satisfies UserKey
-	const swordKey = `item::sword` satisfies ItemKey
-	const shieldKey = `item::shield` satisfies ItemKey
+	const gameXKey = `game:xxx` satisfies GameKey
+	const userAKey = `user:aaa` satisfies UserKey
+	const userBKey = `user:bbb` satisfies UserKey
+	const swordKey = `item:sword` satisfies ItemKey
+	const shieldKey = `item:shield` satisfies ItemKey
 
 	test(`happy path`, () => {
 		const dampeningAtom = atom<number>({
@@ -119,7 +119,7 @@ describe(`game example: allocate + claim + deallocate`, () => {
 
 		const gameRealm = new Realm<GameHierarchy>(IMPLICIT.STORE)
 
-		const gameXClaim = gameRealm.allocate(`root`, `game::xxx`)
+		const gameXClaim = gameRealm.allocate(`root`, `game:xxx`)
 		const userAClaim = gameRealm.allocate(`root`, userAKey)
 		const userBClaim = gameRealm.allocate(`root`, userBKey)
 		const playerXAClaim = gameRealm.fuse(`player`, gameXClaim, userAClaim)
@@ -428,9 +428,9 @@ describe(`integrations`, () => {
 		expect(logger.error).toHaveBeenCalledTimes(2)
 	})
 	test(`transaction+timeline support`, () => {
-		type DocumentKey = `document::${number}`
-		type UserKey = `user::${string}`
-		type UserGroupKey = `userGroup::${string}`
+		type DocumentKey = `document:${number}`
+		type UserKey = `user:${string}`
+		type UserGroupKey = `userGroup:${string}`
 		type DocumentHierarchy = Hierarchy<
 			[
 				{
@@ -459,7 +459,7 @@ describe(`integrations`, () => {
 		>({
 			key: `createDocument`,
 			do: ({ set }, owner, id) => {
-				const documentKey = `document::${id}` satisfies DocumentKey
+				const documentKey = `document:${id}` satisfies DocumentKey
 				documentRealm.allocate(owner, documentKey)
 				set(documentAtoms, documentKey, `hello work!`)
 				return documentKey
@@ -501,8 +501,8 @@ describe(`integrations`, () => {
 		const deleteDocument = runTransaction(deleteDocumentTransaction)
 		const transferDocument = runTransaction(transferDocumentTransaction)
 
-		documentRealm.allocate(`root`, `userGroup::homies`)
-		const documentClaim = createDocument(`userGroup::homies`, 1)
+		documentRealm.allocate(`root`, `userGroup:homies`)
+		const documentClaim = createDocument(`userGroup:homies`, 1)
 
 		expect(IMPLICIT.STORE.molecules.size).toBe(3)
 		deleteDocument(documentClaim)
@@ -516,59 +516,56 @@ describe(`integrations`, () => {
 		expect(IMPLICIT.STORE.molecules.size).toBe(3)
 		redo(documentTimeline)
 		expect(IMPLICIT.STORE.molecules.size).toBe(2)
-		documentRealm.allocate(`root`, `userGroup::workPals`)
+		documentRealm.allocate(`root`, `userGroup:workPals`)
 		expect(IMPLICIT.STORE.molecules.size).toBe(3)
-		documentRealm.allocate(`userGroup::homies`, `document::${2}`)
+		documentRealm.allocate(`userGroup:homies`, `document:${2}`)
 		expect(IMPLICIT.STORE.molecules.size).toBe(4)
 		const homiesConfiguration = new Map([
-			[`"document::2":"userGroup::homies"`, { source: `"userGroup::homies"` }],
-			[`"root":"userGroup::homies"`, { source: `"root"` }],
-			[`"root":"userGroup::workPals"`, { source: `"root"` }],
+			[`"document:2":"userGroup:homies"`, { source: `"userGroup:homies"` }],
+			[`"root":"userGroup:homies"`, { source: `"root"` }],
+			[`"root":"userGroup:workPals"`, { source: `"root"` }],
 		])
 		expect(IMPLICIT.STORE.moleculeGraph.contents).toEqual(homiesConfiguration)
-		transferDocument({ to: [`userGroup::workPals`], document: `document::${2}` })
+		transferDocument({ to: [`userGroup:workPals`], document: `document:${2}` })
 		const workPalsConfiguration = new Map([
-			[
-				`"document::2":"userGroup::workPals"`,
-				{ source: `"userGroup::workPals"` },
-			],
+			[`"document:2":"userGroup:workPals"`, { source: `"userGroup:workPals"` }],
 
-			[`"root":"userGroup::homies"`, { source: `"root"` }],
-			[`"root":"userGroup::workPals"`, { source: `"root"` }],
+			[`"root":"userGroup:homies"`, { source: `"root"` }],
+			[`"root":"userGroup:workPals"`, { source: `"root"` }],
 		])
 		expect(IMPLICIT.STORE.moleculeGraph.contents).toEqual(workPalsConfiguration)
 		undo(documentTimeline)
 		expect(IMPLICIT.STORE.moleculeGraph.contents).toEqual(homiesConfiguration)
 
-		documentRealm.deallocate(`userGroup::workPals`)
-		documentRealm.deallocate(`document::${2}`)
-		documentRealm.allocate(`root`, `user::joe`)
-		documentRealm.allocate(`root`, `user::deb`)
-		documentRealm.allocate(`root`, `user::sue`)
-		documentRealm.allocate(`userGroup::homies`, `document::${3}`)
+		documentRealm.deallocate(`userGroup:workPals`)
+		documentRealm.deallocate(`document:${2}`)
+		documentRealm.allocate(`root`, `user:joe`)
+		documentRealm.allocate(`root`, `user:deb`)
+		documentRealm.allocate(`root`, `user:sue`)
+		documentRealm.allocate(`userGroup:homies`, `document:${3}`)
 
 		transferDocument({
-			to: [`user::deb`, `user::joe`],
-			document: `document::${3}`,
+			to: [`user:deb`, `user:joe`],
+			document: `document:${3}`,
 		})
-		documentRealm.deallocate(`userGroup::homies`)
+		documentRealm.deallocate(`userGroup:homies`)
 		const debAndJoeConfiguration = new Map([
-			[`"root":"user::joe"`, { source: `"root"` }],
-			[`"root":"user::deb"`, { source: `"root"` }],
-			[`"root":"user::sue"`, { source: `"root"` }],
-			[`"document::3":"user::deb"`, { source: `"user::deb"` }],
-			[`"document::3":"user::joe"`, { source: `"user::joe"` }],
+			[`"root":"user:joe"`, { source: `"root"` }],
+			[`"root":"user:deb"`, { source: `"root"` }],
+			[`"root":"user:sue"`, { source: `"root"` }],
+			[`"document:3":"user:deb"`, { source: `"user:deb"` }],
+			[`"document:3":"user:joe"`, { source: `"user:joe"` }],
 		])
 		expect(IMPLICIT.STORE.moleculeGraph.contents).toEqual(debAndJoeConfiguration)
 		transferDocument({
-			to: [`user::sue`],
-			document: `document::${3}`,
+			to: [`user:sue`],
+			document: `document:${3}`,
 		})
 		const sueConfiguration = new Map([
-			[`"root":"user::joe"`, { source: `"root"` }],
-			[`"root":"user::deb"`, { source: `"root"` }],
-			[`"root":"user::sue"`, { source: `"root"` }],
-			[`"document::3":"user::sue"`, { source: `"user::sue"` }],
+			[`"root":"user:joe"`, { source: `"root"` }],
+			[`"root":"user:deb"`, { source: `"root"` }],
+			[`"root":"user:sue"`, { source: `"root"` }],
+			[`"document:3":"user:sue"`, { source: `"user:sue"` }],
 		])
 		expect(IMPLICIT.STORE.moleculeGraph.contents).toEqual(sueConfiguration)
 		undo(documentTimeline)
@@ -581,33 +578,33 @@ describe(`integrations`, () => {
 			key: `roomPlayers`,
 			between: [`room`, `user`],
 			cardinality: `1:1`,
-			isAType: (input): input is `room::arena` | `room::lobby` =>
-				[`room::lobby`, `room::arena`].includes(input),
-			isBType: (input): input is `user::joshua` => input === `user::joshua`,
+			isAType: (input): input is `room:arena` | `room:lobby` =>
+				[`room:lobby`, `room:arena`].includes(input),
+			isBType: (input): input is `user:joshua` => input === `user:joshua`,
 		})
 		const anarchy = new Anarchy()
-		anarchy.allocate(`root`, `user::joshua`)
-		anarchy.allocate(`root`, `room::lobby`)
+		anarchy.allocate(`root`, `user:joshua`)
+		anarchy.allocate(`root`, `room:lobby`)
 
 		expect([...IMPLICIT.STORE.molecules.keys()]).toEqual([
 			`"root"`,
-			`"user::joshua"`,
-			`"room::lobby"`,
+			`"user:joshua"`,
+			`"room:lobby"`,
 		])
 		expect(IMPLICIT.STORE.valueMap.size).toBe(0)
 
 		editRelations(roomPlayers, (relations) => {
-			relations.set(`room::lobby`, `user::joshua`)
+			relations.set(`room:lobby`, `user:joshua`)
 		})
-		anarchy.fuse(`player`, `user::joshua`, `room::lobby`)
+		anarchy.fuse(`player`, `user:joshua`, `room:lobby`)
 		expect(IMPLICIT.STORE.molecules.size).toBe(4)
 		expect(IMPLICIT.STORE.moleculeGraph.relations.size).toBe(4)
 		expect(IMPLICIT.STORE.valueMap.size).toBe(4)
 
-		anarchy.deallocate(`T$--player==user::joshua++room::lobby`)
+		anarchy.deallocate(`T$--player==user:joshua++room:lobby`)
 
 		const room = getState(
-			findRelations(roomPlayers, `user::joshua`).roomKeyOfUser,
+			findRelations(roomPlayers, `user:joshua`).roomKeyOfUser,
 		)
 		expect(room).toEqual(null)
 
@@ -615,7 +612,7 @@ describe(`integrations`, () => {
 		expect(IMPLICIT.STORE.moleculeGraph.relations.size).toBe(3)
 		expect(IMPLICIT.STORE.valueMap.size).toBe(5)
 
-		anarchy.deallocate(`room::lobby`)
+		anarchy.deallocate(`room:lobby`)
 
 		expect(IMPLICIT.STORE.molecules.size).toBe(2)
 		expect(IMPLICIT.STORE.moleculeGraph.relations.size).toBe(2)
@@ -625,19 +622,19 @@ describe(`integrations`, () => {
 
 describe(`decomposeCompound`, () => {
 	test(`decomposes compound keys`, () => {
-		const components = decomposeCompound(`T$--player==user::joshua++room::lobby`)
+		const components = decomposeCompound(`T$--player==user:joshua++room:lobby`)
 		assert(components)
 		const [type, a, b] = components
 		expect(type).toBe(`player`)
-		expect(a).toBe(`user::joshua`)
-		expect(b).toBe(`room::lobby`)
+		expect(a).toBe(`user:joshua`)
+		expect(b).toBe(`room:lobby`)
 	})
 	test(`returns null if the key is not a compound`, () => {
 		const components0 = decomposeCompound(`my-key`)
 		expect(components0).toBe(null)
-		const components1 = decomposeCompound(`T$--player==user::joshua++`)
+		const components1 = decomposeCompound(`T$--player==user:joshua++`)
 		expect(components1).toBe(null)
-		const components2 = decomposeCompound(`T$--player==user::joshua`)
+		const components2 = decomposeCompound(`T$--player==user:joshua`)
 		expect(components2).toBe(null)
 	})
 })

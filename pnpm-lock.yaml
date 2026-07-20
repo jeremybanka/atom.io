@@ -198,8 +198,8 @@ importers:
         specifier: 16.3.2
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@tsdown/css':
-        specifier: 0.22.9
-        version: 0.22.9(jiti@2.7.0)(postcss@8.5.19)(tsdown@0.22.9)(tsx@4.22.1)
+        specifier: 0.22.11
+        version: 0.22.11(jiti@2.7.0)(postcss@8.5.19)(tsdown@0.22.11)(tsx@4.22.1)
       '@types/estree':
         specifier: 1.0.9
         version: 1.0.9
@@ -282,8 +282,8 @@ importers:
         specifier: 0.1.8
         version: 0.1.8
       tsdown:
-        specifier: 0.22.9
-        version: 0.22.9(@tsdown/css@0.22.9)(oxc-resolver@11.19.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2))(tsx@4.22.1)(typescript@7.0.2)
+        specifier: 0.22.11
+        version: 0.22.11(@tsdown/css@0.22.11)(oxc-resolver@11.19.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2))(tsx@4.22.1)(typescript@7.0.2)
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -340,8 +340,8 @@ importers:
         specifier: 10.7.0
         version: 10.7.0(jiti@2.7.0)(supports-color@10.2.2)
       tsdown:
-        specifier: 0.22.9
-        version: 0.22.9(@tsdown/css@0.22.9)(oxc-resolver@11.19.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2))(tsx@4.22.1)(typescript@7.0.2)
+        specifier: 0.22.11
+        version: 0.22.11(@tsdown/css@0.22.11)(oxc-resolver@11.19.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2))(tsx@4.22.1)(typescript@7.0.2)
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -2837,8 +2837,8 @@ packages:
   '@textlint/types@15.7.1':
     resolution: {integrity: sha512-Vye/GmFNBTgVzZFtIFJTmLB+s2A7oIADxNG6r9UhfPuY+Czv0z5G3xeyFZZudPlfxURsKUyPIU5XsjOFqVp33A==}
 
-  '@tsdown/css@0.22.9':
-    resolution: {integrity: sha512-FxWI31j8RyKQJvkLbaeLVnSwnaisTVNluVnInN7SE6KDSjp2pyTn5SZ9xETVHegSGd+qUs3khMjTCxq9yRojtQ==}
+  '@tsdown/css@0.22.11':
+    resolution: {integrity: sha512-YpDperLeI96/84Mq4YBiy/WA+Q+ZQCRaTfG7rchE2k7njnihCfQdKiFnS5GDlkR8ZZmKM+6MBJYUx5mychVXUA==}
     engines: {node: ^22.18.0 || >=24.11.0}
     peerDependencies:
       postcss: ^8.4.0
@@ -2846,7 +2846,7 @@ packages:
       postcss-modules: ^6.0.0
       sass: '*'
       sass-embedded: '*'
-      tsdown: 0.22.9
+      tsdown: 0.22.11
     peerDependenciesMeta:
       postcss:
         optional: true
@@ -5596,8 +5596,8 @@ packages:
     resolution: {integrity: sha512-W67iLl4J2EXEGTbfeHCffrjDfitvLANg0UlX3wFUUSTx92KXRFegMHUVgSqE+wvhAbi4WqjGg9czysTV2Epbew==}
     engines: {node: '>= 0.4'}
 
-  obug@2.1.3:
-    resolution: {integrity: sha512-9miFgM2OFba7hB+pRgvtV84pYTBaoTHohvmIgiRt6dRIzbwEOIaNaP+dIlGs2fNFoB0SeISs0Jz5WFVRid6Xyg==}
+  obug@2.1.4:
+    resolution: {integrity: sha512-4a+OsYv9UktOJKE+l1A4OufDgdRF9PifWj+tJnHURo/P+WOxpG4GzUFL9qCalmWauao6ogiG+QvnCovwPoyAWA==}
     engines: {node: '>=12.20.0'}
 
   ofetch@1.5.1:
@@ -6498,14 +6498,14 @@ packages:
     peerDependencies:
       react: ^19
 
-  tsdown@0.22.9:
-    resolution: {integrity: sha512-/0QEjQEhOU1t1YxOIAGzFN7bIssd8P0pBpkOmNLCQi3c5UtrcMF5bvq3f30xHJNW9QCA9aUNcNAorMr2CTd6Lg==}
+  tsdown@0.22.11:
+    resolution: {integrity: sha512-BERdQpqAltv3vYGC0pE4n+mRGPIN91T/on+Ud73bYRkbptknelFm27tJgBBUz4RJ5d3VNeVH90HfjBo1Ouj8yQ==}
     engines: {node: ^22.18.0 || >=24.11.0}
     hasBin: true
     peerDependencies:
       '@arethetypeswrong/core': ^0.18.1
-      '@tsdown/css': 0.22.9
-      '@tsdown/exe': 0.22.9
+      '@tsdown/css': 0.22.11
+      '@tsdown/exe': 0.22.11
       '@vitejs/devtools': '*'
       publint: ^0.3.8
       tsx: '*'
@@ -9308,12 +9308,12 @@ snapshots:
     dependencies:
       '@textlint/ast-node-types': 15.7.1
 
-  '@tsdown/css@0.22.9(jiti@2.7.0)(postcss@8.5.19)(tsdown@0.22.9)(tsx@4.22.1)':
+  '@tsdown/css@0.22.11(jiti@2.7.0)(postcss@8.5.19)(tsdown@0.22.11)(tsx@4.22.1)':
     dependencies:
       lightningcss: 1.32.0
       postcss-load-config: 6.0.1(jiti@2.7.0)(postcss@8.5.19)(tsx@4.22.1)
       rolldown: 1.2.0
-      tsdown: 0.22.9(@tsdown/css@0.22.9)(oxc-resolver@11.19.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2))(tsx@4.22.1)(typescript@7.0.2)
+      tsdown: 0.22.11(@tsdown/css@0.22.11)(oxc-resolver@11.19.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2))(tsx@4.22.1)(typescript@7.0.2)
     optionalDependencies:
       postcss: 8.5.19
     transitivePeerDependencies:
@@ -9711,7 +9711,7 @@ snapshots:
       istanbul-lib-report: 3.0.1
       istanbul-reports: 3.2.0
       magicast: 0.5.3
-      obug: 2.1.3
+      obug: 2.1.4
       std-env: 4.1.0
       tinyrainbow: 3.1.0
       vitest: 4.1.10(@types/node@26.1.1)(@vitest/coverage-v8@4.1.10)(@vitest/ui@4.1.10)(esbuild@0.28.1)(happy-dom@20.11.0)(jiti@2.7.0)(tsx@4.22.1)
@@ -10093,7 +10093,7 @@ snapshots:
       magicast: 0.5.3
       mrmime: 2.0.1
       neotraverse: 0.6.18
-      obug: 2.1.3
+      obug: 2.1.4
       p-limit: 7.3.0
       p-queue: 9.3.0
       package-manager-detector: 1.6.0
@@ -12492,7 +12492,7 @@ snapshots:
 
   object-inspect@1.13.4: {}
 
-  obug@2.1.3: {}
+  obug@2.1.4: {}
 
   ofetch@1.5.1:
     dependencies:
@@ -13116,7 +13116,7 @@ snapshots:
     dependencies:
       dts-resolver: 3.0.0(oxc-resolver@11.19.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2))
       get-tsconfig: 5.0.0-beta.5
-      obug: 2.1.3
+      obug: 2.1.4
       rolldown: 1.2.0
       yuku-ast: 0.1.7
       yuku-codegen: 0.6.1
@@ -13663,7 +13663,7 @@ snapshots:
       '@microsoft/tsdoc': 0.16.0
       react: '@preact/compat@18.3.2(preact@10.29.7)'
 
-  tsdown@0.22.9(@tsdown/css@0.22.9)(oxc-resolver@11.19.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2))(tsx@4.22.1)(typescript@7.0.2):
+  tsdown@0.22.11(@tsdown/css@0.22.11)(oxc-resolver@11.19.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2))(tsx@4.22.1)(typescript@7.0.2):
     dependencies:
       ansis: 4.3.1
       cac: 7.0.0
@@ -13671,7 +13671,7 @@ snapshots:
       empathic: 2.0.1
       hookable: 6.1.1
       import-without-cache: 0.4.0
-      obug: 2.1.3
+      obug: 2.1.4
       picomatch: 4.0.5
       rolldown: 1.2.0
       rolldown-plugin-dts: 0.27.9(oxc-resolver@11.19.1(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.2))(rolldown@1.2.0)(typescript@7.0.2)
@@ -13681,7 +13681,7 @@ snapshots:
       tree-kill: 1.2.2
       unconfig-core: 7.5.0
     optionalDependencies:
-      '@tsdown/css': 0.22.9(jiti@2.7.0)(postcss@8.5.19)(tsdown@0.22.9)(tsx@4.22.1)
+      '@tsdown/css': 0.22.11(jiti@2.7.0)(postcss@8.5.19)(tsdown@0.22.11)(tsx@4.22.1)
       tsx: 4.22.1
       typescript: 7.0.2
     transitivePeerDependencies:
@@ -14002,7 +14002,7 @@ snapshots:
       es-module-lexer: 2.1.0
       expect-type: 1.3.0
       magic-string: 0.30.21
-      obug: 2.1.3
+      obug: 2.1.4
       pathe: 2.0.3
       picomatch: 4.0.5
       std-env: 4.1.0

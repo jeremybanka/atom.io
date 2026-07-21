@@ -4,7 +4,10 @@ import type { JSX } from "react/jsx-runtime"
 
 type DocumentKey = `document::${string}`
 
-const DocumentKey = createKeyContext<DocumentKey>(`DocumentKey`)
+const DocumentKey = createKeyContext<DocumentKey>(
+	`DocumentKey`,
+	`document::untitled`,
+)
 const documentTitleAtoms = atomFamily<string, DocumentKey>({
 	key: `documentTitle`,
 	default: `Untitled`,

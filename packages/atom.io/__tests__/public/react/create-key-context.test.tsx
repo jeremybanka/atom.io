@@ -7,7 +7,7 @@ afterEach(() => vitest.restoreAllMocks())
 
 describe(`createKeyContext`, () => {
 	it(`returns the nearest provided key`, () => {
-		const DocumentKey = createKeyContext<string>(`DocumentKey`)
+		const DocumentKey = createKeyContext<string>(`DocumentKey`, `fallback`)
 		const Consumer = () => <span>{DocumentKey.use()}</span>
 		const logger = setTestLogLevel(null)
 		const warn = vitest.spyOn(logger, `warn`)
@@ -24,17 +24,9 @@ describe(`createKeyContext`, () => {
 		expect(warn).not.toHaveBeenCalled()
 	})
 
-	it(`throws a clear error when strict consumption has no provider`, () => {
-		const DocumentKey = createKeyContext<string>(`DocumentKey`)
-
-		expect(() => renderHook(() => DocumentKey.use())).toThrow(
-			`atom.io: DocumentKey.use() was called outside <DocumentKey.Provider>. Wrap this component in the provider or pass a fallback key to DocumentKey.use(fallback).`,
-		)
-	})
-
 	it(`prefers a provided key over the fallback without warning`, () => {
-		const DocumentKey = createKeyContext<string>(`DocumentKey`)
-		const Consumer = () => <span>{DocumentKey.use(`fallback`)}</span>
+		const DocumentKey = createKeyContext<string>(`DocumentKey`, `fallback`)
+		const Consumer = () => <span>{DocumentKey.use()}</span>
 		const logger = setTestLogLevel(null)
 		const warn = vitest.spyOn(logger, `warn`)
 		const { getByText } = render(
@@ -48,10 +40,10 @@ describe(`createKeyContext`, () => {
 	})
 
 	it(`returns and warns about a fallback key when no provider exists`, async () => {
-		const DocumentKey = createKeyContext<string>(`DocumentKey`)
+		const DocumentKey = createKeyContext<string>(`DocumentKey`, `fallback`)
 		const logger = setTestLogLevel(null)
 		const warn = vitest.spyOn(logger, `warn`)
-		const Consumer = () => <span>{DocumentKey.use(`fallback`)}</span>
+		const Consumer = () => <span>{DocumentKey.use()}</span>
 		const { getByText, rerender } = render(<Consumer />)
 
 		expect(getByText(`fallback`)).toBeTruthy()
@@ -60,7 +52,7 @@ describe(`createKeyContext`, () => {
 				`💁`,
 				`key`,
 				`DocumentKey`,
-				`used a fallback because DocumentKey.use() was called outside <DocumentKey.Provider>:`,
+				`used its fallback because DocumentKey.use() was called outside <DocumentKey.Provider>:`,
 				`fallback`,
 			)
 		})
@@ -69,11 +61,11 @@ describe(`createKeyContext`, () => {
 		expect(warn).toHaveBeenCalledOnce()
 	})
 
-	it(`accepts undefined as an intentional fallback key`, async () => {
-		const OptionalKey = createKeyContext<string | undefined>(`OptionalKey`)
+	it(`returns undefined and warns when no fallback is supplied`, async () => {
+		const OptionalKey = createKeyContext<string>(`OptionalKey`)
 		const logger = setTestLogLevel(null)
 		const warn = vitest.spyOn(logger, `warn`)
-		const { result } = renderHook(() => OptionalKey.use(undefined))
+		const { result } = renderHook(() => OptionalKey.use())
 
 		expect(result.current).toBeUndefined()
 		await waitFor(() => {
@@ -82,15 +74,14 @@ describe(`createKeyContext`, () => {
 	})
 
 	it(`preserves the key type across its provider and hook`, () => {
-		const NumericKey = createKeyContext<number>(`NumericKey`)
+		const NumericKey = createKeyContext<number>(`NumericKey`, 0)
+		const OptionalNumericKey = createKeyContext<number>(`OptionalNumericKey`)
 
 		function TypeExamples() {
-			const strictKey = NumericKey.use()
-			const fallbackKey = NumericKey.use(1)
-			expectTypeOf(strictKey).toEqualTypeOf<number>()
-			expectTypeOf(fallbackKey).toEqualTypeOf<number>()
-			// @ts-expect-error The fallback must match the context key.
-			NumericKey.use(`wrong`)
+			const key = NumericKey.use()
+			const optionalKey = OptionalNumericKey.use()
+			expectTypeOf(key).toEqualTypeOf<number>()
+			expectTypeOf(optionalKey).toEqualTypeOf<number | undefined>()
 			return null
 		}
 

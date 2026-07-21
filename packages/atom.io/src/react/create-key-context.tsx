@@ -8,18 +8,27 @@ export type KeyContextProviderProps<Key> = React.PropsWithChildren<{
 	value: Key
 }>
 
-export type KeyContext<Key> = Readonly<{
+export type KeyContext<Key, Fallback = undefined> = Readonly<{
 	Provider: React.FC<KeyContextProviderProps<Key>>
-	use: (...fallback: [] | [Key]) => Key
+	use: () => Key | Fallback
 }>
 
 /**
  * Create a named React context for supplying an application key to a subtree.
  *
- * Calling `use()` without a matching provider throws. Passing a fallback key
- * returns that key instead and logs a warning through the current atom.io store.
+ * Calling `use()` without a matching provider returns the context's fallback
+ * and logs a warning through the current atom.io store. If no fallback is
+ * supplied, `use()` returns `Key | undefined`.
  */
-export function createKeyContext<Key>(name: string): KeyContext<Key> {
+export function createKeyContext<Key>(name: string): KeyContext<Key, undefined>
+export function createKeyContext<Key>(
+	name: string,
+	fallback: Key,
+): KeyContext<Key, Key>
+export function createKeyContext<Key>(
+	name: string,
+	...fallback: [] | [Key]
+): KeyContext<Key, Key | undefined> {
 	const Context = React.createContext<Key | typeof MISSING_KEY_CONTEXT_VALUE>(
 		MISSING_KEY_CONTEXT_VALUE,
 	)
@@ -31,31 +40,26 @@ export function createKeyContext<Key>(name: string): KeyContext<Key> {
 	}) => <Context.Provider value={value}>{children}</Context.Provider>
 	Provider.displayName = `${name}.Provider`
 
-	function useKey(...fallback: [] | [Key]): Key {
+	function useKey(): Key | undefined {
 		const contextualKey = React.useContext(Context)
 		const store = React.useContext(StoreContext)
 		const isMissing = contextualKey === MISSING_KEY_CONTEXT_VALUE
-		const hasFallback = fallback.length === 1
 		const fallbackKey = fallback[0]
 
 		React.useEffect(() => {
-			if (isMissing && hasFallback) {
+			if (isMissing) {
 				store.logger.warn(
 					`💁`,
 					`key`,
 					name,
-					`used a fallback because ${name}.use() was called outside <${name}.Provider>:`,
+					`used its fallback because ${name}.use() was called outside <${name}.Provider>:`,
 					fallbackKey,
 				)
 			}
-		}, [fallbackKey, hasFallback, isMissing, store, name])
+		}, [fallbackKey, isMissing, store, name])
 
 		if (!isMissing) return contextualKey
-		if (hasFallback) return fallbackKey as Key
-
-		throw new Error(
-			`atom.io: ${name}.use() was called outside <${name}.Provider>. Wrap this component in the provider or pass a fallback key to ${name}.use(fallback).`,
-		)
+		return fallbackKey
 	}
 
 	return { Provider, use: useKey }

@@ -61,16 +61,14 @@ describe(`createKeyContext`, () => {
 		expect(warn).toHaveBeenCalledOnce()
 	})
 
-	it(`returns undefined and warns when no fallback is supplied`, async () => {
+	it(`returns undefined without warning when no fallback is supplied`, () => {
 		const OptionalKey = createKeyContext<string>(`OptionalKey`)
 		const logger = setTestLogLevel(null)
 		const warn = vitest.spyOn(logger, `warn`)
 		const { result } = renderHook(() => OptionalKey.use())
 
 		expect(result.current).toBeUndefined()
-		await waitFor(() => {
-			expect(warn).toHaveBeenCalledOnce()
-		})
+		expect(warn).not.toHaveBeenCalled()
 	})
 
 	it(`preserves the key type across its provider and hook`, () => {

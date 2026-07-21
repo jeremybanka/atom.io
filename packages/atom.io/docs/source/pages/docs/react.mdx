@@ -116,9 +116,10 @@ Pass a fallback key when creating the context. When `use()` runs outside the pro
 it returns that fallback and logs a warning through the current atom.io store so the
 weaker context guarantee remains visible during development.
 
-If no fallback is passed to `createKeyContext`, `use()` returns `Key | undefined` and
-still warns outside the provider. The hook never throws when its declared return type can
-be satisfied.
+If no fallback is passed to `createKeyContext`, `use()` returns `Key | undefined`
+without warning outside the provider. Choosing that return type explicitly accepts a
+missing context so the caller can handle it. The hook never throws when its declared
+return type can be satisfied.
 
 The key context does not resolve family members itself. Components still pass the
 resulting key to `useO`, `useI`, `useTL`, or other keyed APIs. This confines React context

@@ -18,7 +18,7 @@ export type KeyContext<Key, Fallback = undefined> = Readonly<{
  *
  * Calling `use()` without a matching provider returns the context's fallback
  * and logs a warning through the current atom.io store. If no fallback is
- * supplied, `use()` returns `Key | undefined`.
+ * supplied, `use()` returns `Key | undefined` without warning.
  */
 export function createKeyContext<Key>(name: string): KeyContext<Key, undefined>
 export function createKeyContext<Key>(
@@ -44,10 +44,11 @@ export function createKeyContext<Key>(
 		const contextualKey = React.useContext(Context)
 		const store = React.useContext(StoreContext)
 		const isMissing = contextualKey === MISSING_KEY_CONTEXT_VALUE
+		const hasFallback = fallback.length === 1
 		const fallbackKey = fallback[0]
 
 		React.useEffect(() => {
-			if (isMissing) {
+			if (isMissing && hasFallback) {
 				store.logger.warn(
 					`💁`,
 					`key`,
@@ -56,7 +57,7 @@ export function createKeyContext<Key>(
 					fallbackKey,
 				)
 			}
-		}, [fallbackKey, isMissing, store, name])
+		}, [fallbackKey, hasFallback, isMissing, store, name])
 
 		if (!isMissing) return contextualKey
 		return fallbackKey

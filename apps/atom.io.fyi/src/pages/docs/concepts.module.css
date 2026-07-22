@@ -22,31 +22,25 @@ concepts-glossary.class {
 			flex-flow: column;
 			gap: 0.45rem;
 
-			p {
+			> p {
 				display: flex;
 				flex-flow: row wrap;
 				gap: 0.65rem;
 				align-items: baseline;
 				color: var(--fg-soft-1);
 
-				code,
-				span {
+				> span {
 					font-size: 1rem;
 					line-height: 1.5;
 				}
 
-				code {
-					flex: 0 0 auto;
-					color: var(--fg-soft-2);
-				}
-
-				span {
+				> span {
 					flex: 1 1 18rem;
 				}
 			}
 		}
 
-		h2 {
+		> header > h2 {
 			margin-top: 0;
 			scroll-margin-top: 1.25rem;
 		}
@@ -80,7 +74,7 @@ concepts-glossary.class {
 					background: rgb(from var(--bg-hard-1) r g b / 55%);
 				}
 
-				h3 {
+				> section > h3 {
 					margin: 0;
 					color: var(--fg-soft-2);
 					font-size: 12px;
@@ -88,7 +82,7 @@ concepts-glossary.class {
 					line-height: 1;
 				}
 
-				ul {
+				> section > ul {
 					display: flex;
 					flex-flow: row wrap;
 					gap: 0.35rem;
@@ -97,7 +91,7 @@ concepts-glossary.class {
 					list-style: none;
 				}
 
-				li {
+				> section > ul > li {
 					display: inline-flex;
 					align-items: center;
 					min-height: 1.8rem;
@@ -110,7 +104,7 @@ concepts-glossary.class {
 					font-weight: 650;
 				}
 
-				a {
+				> section > ul > li > a {
 					color: var(--fg-soft-1);
 					text-decoration: none;
 

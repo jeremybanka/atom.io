@@ -96,16 +96,18 @@ export function DocsNavigation(): VNode {
 		<docs-navigation class={css.class}>
 			<SiteDirectory />
 			<OnThisPage />
-			<Toggle.Button
-				ariaControls="site-directory on-this-page"
-				ariaLabel="Documentation menu"
-				checked={userHasToggled}
-				onClick={() => {
-					setUserHasToggled((v) => !v)
-				}}
-			>
-				☰
-			</Toggle.Button>
+			<menu-toggle>
+				<Toggle.Button
+					ariaControls="site-directory on-this-page"
+					ariaLabel="Documentation menu"
+					checked={userHasToggled}
+					onClick={() => {
+						setUserHasToggled((v) => !v)
+					}}
+				>
+					☰
+				</Toggle.Button>
+			</menu-toggle>
 		</docs-navigation>
 	)
 }
@@ -242,6 +244,7 @@ function OnThisPage(): VNode {
 					updateSignals={[userHasToggled, pathname, headings]}
 					parentRef={elementRef}
 					variant="surface"
+					hiddenAtViewportWidth={1280}
 				/>
 				<DynamicSpotlight
 					elementIds={spotlightHeadingLinkIds}
@@ -275,6 +278,7 @@ function SiteDirectory(): VNode {
 					updateSignals={[userHasToggled, pathname]}
 					parentRef={elementRef}
 					variant="surface"
+					hiddenAtViewportWidth={960}
 				/>
 				<DynamicSpotlight
 					elementId={pathnameId}

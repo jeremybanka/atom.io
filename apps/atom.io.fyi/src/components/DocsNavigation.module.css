@@ -16,7 +16,7 @@ docs-navigation.class {
 			max-height: 100svh;
 		}
 
-		nav {
+		> nav {
 			position: relative;
 			pointer-events: all;
 			display: flex;
@@ -41,13 +41,11 @@ docs-navigation.class {
 					display: flex;
 					flex-flow: column;
 					gap: 0.2em;
+
 					section {
 						display: flex;
 						flex-flow: column;
 						align-items: flex-start;
-						> section {
-							padding-left: 1em;
-						}
 						> a {
 							padding: 0.2em 0.4em 0.25em;
 							user-select: none;
@@ -70,16 +68,10 @@ docs-navigation.class {
 		}
 
 		@media screen and (max-width: 960px) {
-			nav {
+			> nav {
 				margin-top: 3em;
 			}
 			&[data-user-has-toggled="false"] {
-				display: none;
-			}
-		}
-		dynamic-spotlight[data-spotlight-kind="surface"] {
-			display: block;
-			@media screen and (min-width: 960px) {
 				display: none;
 			}
 		}
@@ -87,6 +79,9 @@ docs-navigation.class {
 	> on-this-page {
 		right: 0px;
 		left: auto;
+		> nav > section > main section > section {
+			padding-left: 1em;
+		}
 
 		@media screen and (min-width: 960px) {
 			--right: 2em;
@@ -104,7 +99,7 @@ docs-navigation.class {
 			}
 		}
 	}
-	> toggle-button {
+	> menu-toggle {
 		position: fixed;
 		top: 3.5em;
 		z-index: 140;
@@ -116,12 +111,6 @@ docs-navigation.class {
 			right: 0.5em;
 		}
 
-		@media screen and (min-width: 1280px) {
-			display: none;
-		}
-	}
-	dynamic-spotlight[data-spotlight-kind="surface"] {
-		display: block;
 		@media screen and (min-width: 1280px) {
 			display: none;
 		}

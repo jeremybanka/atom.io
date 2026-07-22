@@ -36,6 +36,7 @@ docs-layout.class {
 			margin-top: 1.5em;
 		}
 
+		/* @lasertag-disable [selector-crosses-ownership-boundary] this is general styling for common layouts */
 		> * {
 			width: 100%;
 		}
@@ -144,4 +145,5 @@ docs-layout.class {
 			}
 		}
 	}
+	/* @lasertag-enable [selector-crosses-ownership-boundary] */
 }

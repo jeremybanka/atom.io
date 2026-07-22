@@ -118,6 +118,8 @@ code-block.class {
 	}
 
 	color: var(--code-color) !important;
+
+	/* @lasertag-expect-error: styling for code itself */
 	span {
 		text-shadow: 0px 1px 2px var(--bg-hard-2);
 		color: var(--code-color);

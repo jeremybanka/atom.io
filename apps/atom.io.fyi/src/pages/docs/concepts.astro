@@ -52,7 +52,9 @@ const conceptLabelBySlug = new Map(
 							<h3>packages</h3>
 							<ul>
 								{(frontmatter.packages ?? ["atom.io"]).map((packageName) => (
-									<li>{packageName}</li>
+									<li>
+										<package-name>{packageName}</package-name>
+									</li>
 								))}
 							</ul>
 						</section>

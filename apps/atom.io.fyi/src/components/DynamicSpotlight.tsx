@@ -12,6 +12,7 @@ export type SpotlightProps = {
 	updateSignals?: unknown[]
 	parentRef?: React.RefObject<HTMLElement | null>
 	variant?: `surface` | `target`
+	hiddenAtViewportWidth?: 960 | 1280
 }
 export function DynamicSpotlight({
 	elementId = null,
@@ -26,6 +27,7 @@ export function DynamicSpotlight({
 	updateSignals = [],
 	parentRef,
 	variant = `target`,
+	hiddenAtViewportWidth,
 }: SpotlightProps): VNode {
 	const hasElementIds = elementIds !== undefined
 	const elementIdsKey = (elementIds ?? []).join(`\u0000`)
@@ -102,6 +104,7 @@ export function DynamicSpotlight({
 		return (
 			<dynamic-spotlight
 				class={css.class}
+				data-hidden-at-viewport-width={hiddenAtViewportWidth}
 				data-spotlight-kind={variant}
 				style={{ display: `none` }}
 			/>
@@ -111,6 +114,7 @@ export function DynamicSpotlight({
 	return (
 		<dynamic-spotlight
 			class={css.class}
+			data-hidden-at-viewport-width={hiddenAtViewportWidth}
 			data-spotlight-kind={variant}
 			style={{
 				top: position.top - padding,

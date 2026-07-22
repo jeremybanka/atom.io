@@ -3,6 +3,8 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 
 import css from "./CodeBlock.module.css"
 
+const pre = { SyntaxHighlighter }
+
 type CodeBlockProps = {
 	filepath?: string
 	label?: string
@@ -89,12 +91,12 @@ export function CodeBlock({
 					</svg>
 				</button>
 			</file-name>
-			<SyntaxHighlighter
+			<pre.SyntaxHighlighter
 				language={getLanguage(filepath)}
 				useInlineStyles={false}
 			>
 				{code}
-			</SyntaxHighlighter>
+			</pre.SyntaxHighlighter>
 		</code-block>
 	)
 }

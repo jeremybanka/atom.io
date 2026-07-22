@@ -6,6 +6,7 @@ app-shell.class {
 	min-height: 100vh;
 	height: auto;
 
+	/* @lasertag-disable [selector-crosses-ownership-boundary] shared typography for slotted page content */
 	code {
 		font-family: Theia, monospace !important;
 		font-weight: 500;
@@ -27,6 +28,7 @@ app-shell.class {
 			--fg-color: var(--hyperlink-visited-color);
 		}
 	}
+	/* @lasertag-enable [selector-crosses-ownership-boundary] */
 
 	> * {
 		@media screen and (min-width: 960px) {
@@ -144,6 +146,9 @@ app-shell.class {
 		flex-flow: column;
 		position: relative;
 		background-color: var(--bg-color);
+		> page-content {
+			display: contents;
+		}
 		&::before {
 			content: "";
 			position: absolute;

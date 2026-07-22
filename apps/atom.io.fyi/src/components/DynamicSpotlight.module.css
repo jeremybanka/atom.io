@@ -21,6 +21,16 @@ dynamic-spotlight.class {
 		border-right-color: var(--bg-soft-glass-1);
 		border-left-color: var(--bg-soft-glass-1);
 	}
+	&[data-hidden-at-viewport-width="960"] {
+		@media screen and (min-width: 960px) {
+			display: none;
+		}
+	}
+	&[data-hidden-at-viewport-width="1280"] {
+		@media screen and (min-width: 1280px) {
+			display: none;
+		}
+	}
 	&[data-spotlight-kind="target"] {
 		background: var(--bg-hard-2);
 		border-radius: 5px;

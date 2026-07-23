@@ -74,8 +74,8 @@ importers:
         specifier: 2.7.0
         version: 2.7.0
       lasertag:
-        specifier: 0.6.6
-        version: 0.6.6(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.17)(@typescript-eslint/parser@8.65.0(eslint@10.7.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.7.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.0)(motion@12.42.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(preact@10.29.7)(react@19.2.8)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.14)(supports-color@10.2.2)
+        specifier: 0.6.7
+        version: 0.6.7(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.17)(@typescript-eslint/parser@8.65.0(eslint@10.7.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.7.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.0)(motion@12.42.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(preact@10.29.7)(react@19.2.8)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.14)(supports-color@10.2.2)
       oxlint:
         specifier: 1.75.0
         version: 1.75.0(oxlint-tsgolint@7.0.2001)
@@ -156,8 +156,8 @@ importers:
         specifier: 10.7.0
         version: 10.7.0(jiti@2.7.0)(supports-color@10.2.2)
       lasertag:
-        specifier: 0.6.6
-        version: 0.6.6(@preact/compat@18.3.2(preact@10.29.7))(@testing-library/react@16.3.2(@preact/compat@18.3.2(preact@10.29.7))(@preact/compat@18.3.2(preact@10.29.7))(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17))(@types/react@19.2.17)(@typescript-eslint/parser@8.65.0(eslint@10.7.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.7.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.0)(motion@12.42.2(@preact/compat@18.3.2(preact@10.29.7))(@preact/compat@18.3.2(preact@10.29.7)))(preact@10.29.7)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.14)(supports-color@10.2.2)
+        specifier: 0.6.7
+        version: 0.6.7(@preact/compat@18.3.2(preact@10.29.7))(@testing-library/react@16.3.2(@preact/compat@18.3.2(preact@10.29.7))(@preact/compat@18.3.2(preact@10.29.7))(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17))(@types/react@19.2.17)(@typescript-eslint/parser@8.65.0(eslint@10.7.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.7.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.0)(motion@12.42.2(@preact/compat@18.3.2(preact@10.29.7))(@preact/compat@18.3.2(preact@10.29.7)))(preact@10.29.7)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.14)(supports-color@10.2.2)
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -5064,8 +5064,8 @@ packages:
   kolorist@1.8.0:
     resolution: {integrity: sha512-Y+60/zizpJ3HRH8DCss+q95yr6145JXZo46OTpFvDZWLfRCE4qChOyk1b26nMaNpfHHgxagk9dXT5OP0Tfe+dQ==}
 
-  lasertag@0.6.6:
-    resolution: {integrity: sha512-1cb9Hpgzfd5tDvquHSzjT4SWfVRVrnv6ZYjilTiGpboTkaew/eQo6xTyCDFfsK29b1ZlM5+Wt5HQ+D/dl8/Kdw==}
+  lasertag@0.6.7:
+    resolution: {integrity: sha512-IIpYtwPYYxLbyZlsRkVGaUOCrQECewVquh7Y47cMiZ2aRCYDiw1KVPtV3IOrDU5lOONS4ehiOar/vNrkhm8xww==}
     engines: {node: 26.5.0, pnpm: 11.15.1}
     hasBin: true
     peerDependencies:
@@ -11692,7 +11692,7 @@ snapshots:
 
   kolorist@1.8.0: {}
 
-  lasertag@0.6.6(@preact/compat@18.3.2(preact@10.29.7))(@testing-library/react@16.3.2(@preact/compat@18.3.2(preact@10.29.7))(@preact/compat@18.3.2(preact@10.29.7))(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17))(@types/react@19.2.17)(@typescript-eslint/parser@8.65.0(eslint@10.7.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.7.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.0)(motion@12.42.2(@preact/compat@18.3.2(preact@10.29.7))(@preact/compat@18.3.2(preact@10.29.7)))(preact@10.29.7)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.14)(supports-color@10.2.2):
+  lasertag@0.6.7(@preact/compat@18.3.2(preact@10.29.7))(@testing-library/react@16.3.2(@preact/compat@18.3.2(preact@10.29.7))(@preact/compat@18.3.2(preact@10.29.7))(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17))(@types/react@19.2.17)(@typescript-eslint/parser@8.65.0(eslint@10.7.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.7.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.0)(motion@12.42.2(@preact/compat@18.3.2(preact@10.29.7))(@preact/compat@18.3.2(preact@10.29.7)))(preact@10.29.7)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.14)(supports-color@10.2.2):
     dependencies:
       '@astrojs/compiler': 4.0.0
       '@vscode/vsce': 3.9.2(supports-color@10.2.2)
@@ -11724,7 +11724,7 @@ snapshots:
       - socket.io-client
       - supports-color
 
-  lasertag@0.6.6(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.17)(@typescript-eslint/parser@8.65.0(eslint@10.7.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.7.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.0)(motion@12.42.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(preact@10.29.7)(react@19.2.8)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.14)(supports-color@10.2.2):
+  lasertag@0.6.7(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.17)(@typescript-eslint/parser@8.65.0(eslint@10.7.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.7.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.0)(motion@12.42.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(preact@10.29.7)(react@19.2.8)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.14)(supports-color@10.2.2):
     dependencies:
       '@astrojs/compiler': 4.0.0
       '@vscode/vsce': 3.9.2(supports-color@10.2.2)

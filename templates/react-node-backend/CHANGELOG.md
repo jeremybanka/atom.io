@@ -1,5 +1,12 @@
 # @atom.io/template-react-node-backend
 
+## 0.0.83
+
+### Patch Changes
+
+- Updated dependencies [afa2cd8]
+  - atom.io@0.50.2
+
 ## 0.0.82
 
 ### Patch Changes

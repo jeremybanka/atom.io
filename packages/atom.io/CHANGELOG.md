@@ -1,5 +1,11 @@
 # atom.io
 
+## 0.50.2
+
+### Patch Changes
+
+- afa2cd8: Preserve documentation layout, navigation, and code-block styling while making CSS ownership boundaries explicit.
+
 ## 0.50.1
 
 ### Patch Changes

@@ -46,6 +46,14 @@ import Exhibit from "c/Exhibit.astro";
       </tr>
       <tr>
         <td>
+          <code>createKeyContext</code>
+        </td>
+        <td>
+          Create a named context for supplying an application key to a React subtree.
+        </td>
+      </tr>
+      <tr>
+        <td>
           <code>StoreProvider</code>
         </td>
         <td>Supply the store used by descendant atom.io React hooks.</td>
@@ -94,6 +102,29 @@ such as developer tools or binding libraries. Application components should pref
 `StoreProvider` and the standard hooks.
 
 Like `StoreProvider`, `StoreContext` defaults to the implicit store.
+
+## createKeyContext
+
+`createKeyContext` lets a React subtree supply a domain key once while keeping family
+resolution explicit. This is useful when many descendants address state with the same
+document, form, tenant, or other local identity and passing that key through every
+component would add noise.
+
+<Exhibit src="react/create-key-context.tsx" />
+
+Pass a fallback key when creating the context. When `use()` runs outside the provider,
+it returns that fallback and logs a warning through the current atom.io store so the
+weaker context guarantee remains visible during development.
+
+If no fallback is passed to `createKeyContext`, `use()` returns `Key | undefined`
+without warning outside the provider. Choosing that return type explicitly accepts a
+missing context so the caller can handle it. The hook never throws when its declared
+return type can be satisfied.
+
+The key context does not resolve family members itself. Components still pass the
+resulting key to `useO`, `useI`, `useTL`, or other keyed APIs. This confines React context
+to choosing a key while atom.io's state dependencies remain explicit and usable outside
+React.
 
 ## useO
 

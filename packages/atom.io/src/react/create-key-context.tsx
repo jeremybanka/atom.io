@@ -17,7 +17,7 @@ export type KeyContext<Key, Fallback = undefined> = Readonly<{
  * Create a named React context for supplying an application key to a subtree.
  *
  * Calling `use()` without a matching provider returns the context's fallback
- * and logs a warning through the current atom.io store. If no fallback is
+ * and logs a warning once for the current atom.io store. If no fallback is
  * supplied, `use()` returns `Key | undefined` without warning.
  */
 export function createKeyContext<Key>(name: string): KeyContext<Key, undefined>
@@ -32,6 +32,7 @@ export function createKeyContext<Key>(
 	const Context = React.createContext<Key | typeof MISSING_KEY_CONTEXT_VALUE>(
 		MISSING_KEY_CONTEXT_VALUE,
 	)
+	const storesWarnedAboutFallback = new WeakSet<object>()
 	Context.displayName = `${name}.Context`
 
 	const Provider: React.FC<KeyContextProviderProps<Key>> = ({
@@ -47,17 +48,16 @@ export function createKeyContext<Key>(
 		const hasFallback = fallback.length === 1
 		const fallbackKey = fallback[0]
 
-		React.useEffect(() => {
-			if (isMissing && hasFallback) {
-				store.logger.warn(
-					`💁`,
-					`key`,
-					name,
-					`used its fallback because ${name}.use() was called outside <${name}.Provider>:`,
-					fallbackKey,
-				)
-			}
-		}, [fallbackKey, hasFallback, isMissing, store, name])
+		if (isMissing && hasFallback && !storesWarnedAboutFallback.has(store)) {
+			storesWarnedAboutFallback.add(store)
+			store.logger.warn(
+				`💁`,
+				`key`,
+				name,
+				`used its fallback because ${name}.use() was called outside <${name}.Provider>:`,
+				fallbackKey,
+			)
+		}
 
 		if (!isMissing) return contextualKey
 		return fallbackKey

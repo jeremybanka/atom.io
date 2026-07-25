@@ -42,33 +42,53 @@ describe(`createKeyContext`, () => {
 		expect(warn).not.toHaveBeenCalled()
 	})
 
-	it(`warns once across consumers, rerenders, and remounts`, () => {
+	it(`traces each misplaced consumer without repeating on rerender`, () => {
 		const DocumentKey = createKeyContext<string>(`DocumentKey`, `fallback`)
 		const logger = setTestLogLevel(null)
 		const warn = vitest.spyOn(logger, `warn`)
 		const Consumer = () => <span>{DocumentKey.use()}</span>
-		const consumers = (
-			<>
-				<Consumer />
-				<Consumer />
-			</>
-		)
-		const { getAllByText, rerender, unmount } = render(consumers)
+
+		function Owner() {
+			return (
+				<>
+					<Consumer />
+					<Consumer />
+				</>
+			)
+		}
+
+		const { getAllByText, rerender, unmount } = render(<Owner />)
 
 		expect(getAllByText(`fallback`)).toHaveLength(2)
-		expect(warn).toHaveBeenCalledWith(
+		expect(warn).toHaveBeenNthCalledWith(
+			1,
 			`💁`,
 			`key`,
 			`DocumentKey`,
-			`used its fallback because DocumentKey.use() was called outside <DocumentKey.Provider>:`,
+			expect.stringMatching(
+				/^consumer branch ".+" rendered outside <DocumentKey\.Provider>; using fallback:$/,
+			),
 			`fallback`,
+			expect.any(Error),
+			expect.stringContaining(`at Owner`),
 		)
-		expect(warn).toHaveBeenCalledOnce()
+		expect(warn).toHaveBeenCalledTimes(2)
+		expect(warn.mock.calls[0]?.[3]).not.toBe(warn.mock.calls[1]?.[3])
 
-		rerender(consumers)
+		const consumerTrace = warn.mock.calls[0]?.[5]
+		expect(consumerTrace).toBeInstanceOf(Error)
+		expect((consumerTrace as Error).name).toBe(`AtomIOKeyContextWarning`)
+		expect((consumerTrace as Error).message).toBe(
+			`DocumentKey.use() was called by this misplaced consumer`,
+		)
+		expect((consumerTrace as Error).stack).toContain(`at Consumer`)
+
+		rerender(<Owner />)
+		expect(warn).toHaveBeenCalledTimes(2)
+
 		unmount()
-		render(<Consumer />)
-		expect(warn).toHaveBeenCalledOnce()
+		render(<Owner />)
+		expect(warn).toHaveBeenCalledTimes(4)
 	})
 
 	it(`warns once in StrictMode`, () => {
@@ -92,11 +112,16 @@ describe(`createKeyContext`, () => {
 		const warn = vitest.spyOn(logger, `warn`)
 		const Consumer = () => <span>{DocumentKey.use()}</span>
 
-		expect(renderToString(<Consumer />)).toContain(`fallback`)
+		function Owner() {
+			return <Consumer />
+		}
+
+		expect(renderToString(<Owner />)).toContain(`fallback`)
 		expect(warn).toHaveBeenCalledOnce()
+		expect(warn.mock.calls[0]?.[6]).toEqual(expect.stringContaining(`at Owner`))
 	})
 
-	it(`warns once for each atom.io store`, () => {
+	it(`warns for each rendered consumer in each atom.io store`, () => {
 		const DocumentKey = createKeyContext<string>(`DocumentKey`, `fallback`)
 		const uno = new Silo({
 			name: `uno`,
@@ -129,8 +154,8 @@ describe(`createKeyContext`, () => {
 			</>,
 		)
 
-		expect(unoWarn).toHaveBeenCalledOnce()
-		expect(dosWarn).toHaveBeenCalledOnce()
+		expect(unoWarn).toHaveBeenCalledTimes(2)
+		expect(dosWarn).toHaveBeenCalledTimes(2)
 	})
 
 	it(`returns undefined without warning when no fallback is supplied`, () => {

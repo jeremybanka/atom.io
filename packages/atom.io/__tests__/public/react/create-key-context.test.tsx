@@ -2,7 +2,7 @@ import { render, renderHook } from "@testing-library/react"
 import { Silo } from "atom.io"
 import { createKeyContext, StoreProvider } from "atom.io/react"
 import { setTestLogLevel } from "atom.io/testing"
-import { StrictMode } from "react"
+import * as React from "react"
 import { renderToString } from "react-dom/server"
 import { vitest } from "vitest"
 
@@ -98,9 +98,9 @@ describe(`createKeyContext`, () => {
 		const Consumer = () => <span>{DocumentKey.use()}</span>
 
 		render(
-			<StrictMode>
+			<React.StrictMode>
 				<Consumer />
-			</StrictMode>,
+			</React.StrictMode>,
 		)
 
 		expect(warn).toHaveBeenCalledOnce()
@@ -119,6 +119,38 @@ describe(`createKeyContext`, () => {
 		expect(renderToString(<Owner />)).toContain(`fallback`)
 		expect(warn).toHaveBeenCalledOnce()
 		expect(warn.mock.calls[0]?.[6]).toEqual(expect.stringContaining(`at Owner`))
+	})
+
+	it(`retains the component trace when owner stacks are unavailable`, async () => {
+		vitest.doMock(`react`, async (importOriginal) => {
+			const actual = await importOriginal<typeof React>()
+			return { ...actual, captureOwnerStack: undefined }
+		})
+		vitest.resetModules()
+
+		try {
+			const { createKeyContext: createKeyContextWithoutOwnerStack } =
+				await import(`atom.io/react`)
+			const DocumentKey = createKeyContextWithoutOwnerStack(
+				`DocumentKey`,
+				`fallback`,
+			)
+			const logger = setTestLogLevel(null)
+			const warn = vitest.spyOn(logger, `warn`)
+
+			function Consumer() {
+				return <span>{DocumentKey.use()}</span>
+			}
+
+			render(<Consumer />)
+
+			expect(warn).toHaveBeenCalledOnce()
+			expect(warn.mock.calls[0]?.[5]).toBeInstanceOf(Error)
+			expect(warn.mock.calls[0]?.[6]).toBe(`React owner stack unavailable.`)
+		} finally {
+			vitest.doUnmock(`react`)
+			vitest.resetModules()
+		}
 	})
 
 	it(`warns for each rendered consumer in each atom.io store`, () => {

@@ -113,10 +113,13 @@ component would add noise.
 <Exhibit src="react/create-key-context.tsx" />
 
 Pass a fallback key when creating the context. When `use()` runs outside the provider,
-it returns that fallback and logs a warning once for that key context and atom.io store.
-The warning is emitted on the first fallback consumption, including during server
-rendering, and is not limited to development. Whether it is displayed depends on the
-current store's logger configuration.
+it returns that fallback and warns once for each misplaced rendered consumer. The
+warning identifies the consumer's render branch and includes both its component trace
+and React owner path when available. StrictMode replay and ordinary rerenders of the
+same branch do not repeat the warning, while distinct consumers and remounts are each
+reported. Warnings also occur during server rendering and are not limited to
+development; whether they are displayed depends on the current store's logger
+configuration.
 
 If no fallback is passed to `createKeyContext`, `use()` returns `Key | undefined`
 without warning outside the provider. Choosing that return type explicitly accepts a

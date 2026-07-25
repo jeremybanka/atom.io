@@ -1,6 +1,9 @@
-import { render, renderHook, waitFor } from "@testing-library/react"
-import { createKeyContext } from "atom.io/react"
+import { render, renderHook } from "@testing-library/react"
+import { Silo } from "atom.io"
+import { createKeyContext, StoreProvider } from "atom.io/react"
 import { setTestLogLevel } from "atom.io/testing"
+import { StrictMode } from "react"
+import { renderToString } from "react-dom/server"
 import { vitest } from "vitest"
 
 afterEach(() => vitest.restoreAllMocks())
@@ -39,26 +42,95 @@ describe(`createKeyContext`, () => {
 		expect(warn).not.toHaveBeenCalled()
 	})
 
-	it(`returns and warns about a fallback key when no provider exists`, async () => {
+	it(`warns once across consumers, rerenders, and remounts`, () => {
 		const DocumentKey = createKeyContext<string>(`DocumentKey`, `fallback`)
 		const logger = setTestLogLevel(null)
 		const warn = vitest.spyOn(logger, `warn`)
 		const Consumer = () => <span>{DocumentKey.use()}</span>
-		const { getByText, rerender } = render(<Consumer />)
+		const consumers = (
+			<>
+				<Consumer />
+				<Consumer />
+			</>
+		)
+		const { getAllByText, rerender, unmount } = render(consumers)
 
-		expect(getByText(`fallback`)).toBeTruthy()
-		await waitFor(() => {
-			expect(warn).toHaveBeenCalledWith(
-				`💁`,
-				`key`,
-				`DocumentKey`,
-				`used its fallback because DocumentKey.use() was called outside <DocumentKey.Provider>:`,
-				`fallback`,
-			)
-		})
-
-		rerender(<Consumer />)
+		expect(getAllByText(`fallback`)).toHaveLength(2)
+		expect(warn).toHaveBeenCalledWith(
+			`💁`,
+			`key`,
+			`DocumentKey`,
+			`used its fallback because DocumentKey.use() was called outside <DocumentKey.Provider>:`,
+			`fallback`,
+		)
 		expect(warn).toHaveBeenCalledOnce()
+
+		rerender(consumers)
+		unmount()
+		render(<Consumer />)
+		expect(warn).toHaveBeenCalledOnce()
+	})
+
+	it(`warns once in StrictMode`, () => {
+		const DocumentKey = createKeyContext<string>(`DocumentKey`, `fallback`)
+		const logger = setTestLogLevel(null)
+		const warn = vitest.spyOn(logger, `warn`)
+		const Consumer = () => <span>{DocumentKey.use()}</span>
+
+		render(
+			<StrictMode>
+				<Consumer />
+			</StrictMode>,
+		)
+
+		expect(warn).toHaveBeenCalledOnce()
+	})
+
+	it(`warns during server rendering`, () => {
+		const DocumentKey = createKeyContext<string>(`DocumentKey`, `fallback`)
+		const logger = setTestLogLevel(null)
+		const warn = vitest.spyOn(logger, `warn`)
+		const Consumer = () => <span>{DocumentKey.use()}</span>
+
+		expect(renderToString(<Consumer />)).toContain(`fallback`)
+		expect(warn).toHaveBeenCalledOnce()
+	})
+
+	it(`warns once for each atom.io store`, () => {
+		const DocumentKey = createKeyContext<string>(`DocumentKey`, `fallback`)
+		const uno = new Silo({
+			name: `uno`,
+			lifespan: `ephemeral`,
+			isProduction: false,
+		})
+		const dos = new Silo({
+			name: `dos`,
+			lifespan: `ephemeral`,
+			isProduction: true,
+		})
+		const unoWarn = vitest
+			.spyOn(uno.store.logger, `warn`)
+			.mockImplementation(() => {})
+		const dosWarn = vitest
+			.spyOn(dos.store.logger, `warn`)
+			.mockImplementation(() => {})
+		const Consumer = () => <span>{DocumentKey.use()}</span>
+
+		render(
+			<>
+				<StoreProvider store={uno.store}>
+					<Consumer />
+					<Consumer />
+				</StoreProvider>
+				<StoreProvider store={dos.store}>
+					<Consumer />
+					<Consumer />
+				</StoreProvider>
+			</>,
+		)
+
+		expect(unoWarn).toHaveBeenCalledOnce()
+		expect(dosWarn).toHaveBeenCalledOnce()
 	})
 
 	it(`returns undefined without warning when no fallback is supplied`, () => {

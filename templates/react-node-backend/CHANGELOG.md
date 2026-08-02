@@ -1,5 +1,15 @@
 # @atom.io/template-react-node-backend
 
+## 0.0.83
+
+### Patch Changes
+
+- 53686a9: License `atom.io` and `create-atom.io` under MPL 2.0, while licensing the
+  project templates under Apache License 2.0. Document MPL's consumer-friendly,
+  file-level copyleft boundaries.
+- Updated dependencies [53686a9]
+  - atom.io@0.50.2
+
 ## 0.0.82
 
 ### Patch Changes

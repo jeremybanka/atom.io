@@ -1,5 +1,17 @@
 # create-atom.io
 
+## 0.1.41
+
+### Patch Changes
+
+- 53686a9: License `atom.io` and `create-atom.io` under MPL 2.0, while licensing the
+  project templates under Apache License 2.0. Document MPL's consumer-friendly,
+  file-level copyleft boundaries.
+- Updated dependencies [53686a9]
+  - @atom.io/template-preact-svg-editor@0.0.79
+  - @atom.io/template-react-node-backend@0.0.83
+  - @atom.io/template-solid-lossless-numbers@0.0.33
+
 ## 0.1.40
 
 ### Patch Changes

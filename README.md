@@ -84,6 +84,38 @@ installing, start with `node_modules/atom.io/AGENTS.md`; it points to concise
 concept notes, package guides, and source-linked examples in
 `node_modules/atom.io/docs/agent/`.
 
+## License
+
+`atom.io`, `create-atom.io`, and repository content without a nearer license
+are available under the [Mozilla Public License 2.0](./LICENSE). The
+[documentation site](./apps/atom.io.fyi/LICENSE) and each project template are
+available under the Apache License 2.0, as stated by the license file in each
+package. Generated projects therefore receive the Apache-licensed template
+code, not the MPL license of the scaffolding CLI.
+
+### What MPL 2.0 Means for Users
+
+Mozilla describes MPL 2.0 as a simple, **file-level copyleft** license: it keeps
+improvements to MPL-covered files open while allowing those files to be combined
+with open or proprietary code with minimal restrictions. It is not classified as
+a permissive license in the strict MIT/Apache sense, but it is deliberately
+permissive about use and integration. In practical terms:
+
+- You may use `atom.io` for any purpose, including commercial and proprietary
+  applications.
+- Importing, bundling, or even statically linking `atom.io` does **not** require
+  you to publish the source of your application's separate files.
+- If you distribute changes to MPL-covered files, those files remain under MPL
+  and their source must stay available. When distributing `atom.io` in compiled
+  or bundled form, recipients must be told where its corresponding source is
+  available.
+- Private and internal use creates no distribution obligations.
+
+In short: if you modify `atom.io`, share the changes to `atom.io`; merely using
+it does not change your application's license. See
+[Mozilla's official MPL 2.0 FAQ](https://www.mozilla.org/en-US/MPL/2.0/FAQ/) and
+the [complete license text](https://www.mozilla.org/en-US/MPL/2.0/) for details.
+
 ## Provenance
 
 This repository was forked from `jeremybanka/wayforge` as a dedicated home for `atom.io` and related projects. Its Git history now begins with the commit that introduced `atom.io` on April 11, 2023; earlier Wayforge history remains part of the original repository.

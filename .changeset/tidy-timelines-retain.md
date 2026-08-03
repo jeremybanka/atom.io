@@ -1,5 +1,5 @@
 ---
-"atom.io": minor
+"atom.io": patch
 ---
 
 Add atom-style effects for timelines and timeline families. Effects can observe

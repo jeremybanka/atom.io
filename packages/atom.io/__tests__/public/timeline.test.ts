@@ -1,4 +1,4 @@
-import type { Logger, WritableToken } from "atom.io"
+import type { Logger, TimelineEffect, WritableToken } from "atom.io"
 import {
 	atom,
 	atomFamily,
@@ -32,6 +32,12 @@ import * as Utils from "../__util__/index.ts"
 
 let logger: Logger
 const { restore } = takeSnapshot()
+
+const cullUndoStepsOnRecord =
+	(limit: number): TimelineEffect<any> =>
+	({ cullUndoSteps, onRecord }) => {
+		onRecord(() => cullUndoSteps(limit))
+	}
 
 beforeEach(() => {
 	restore()
@@ -456,13 +462,13 @@ describe(`timeline`, () => {
 	})
 })
 
-describe(`timeline retention`, () => {
+describe(`timeline effects`, () => {
 	test(`retains exactly the latest 100 undo steps`, () => {
 		const documentAtom = atom<number>({ key: `document`, default: 0 })
 		const documentTimeline = timeline({
 			key: `document`,
 			scope: [documentAtom],
-			retention: { maxUndoSteps: 100, overflow: `drop-oldest` },
+			effects: [cullUndoStepsOnRecord(100)],
 		})
 
 		for (let version = 1; version <= 105; version++) {
@@ -478,12 +484,27 @@ describe(`timeline retention`, () => {
 		expect(getState(documentAtom)).toBe(5)
 	})
 
+	test(`uses the smallest limit requested by multiple effects`, () => {
+		const countAtom = atom<number>({ key: `count`, default: 0 })
+		const countTimeline = timeline({
+			key: `count`,
+			scope: [countAtom],
+			effects: [cullUndoStepsOnRecord(2), cullUndoStepsOnRecord(1)],
+		})
+
+		setState(countAtom, 1)
+		setState(countAtom, 2)
+		expect(inspectTimeline(countTimeline)).toEqual({ at: 1, length: 1 })
+		undo(countTimeline)
+		expect(getState(countAtom)).toBe(1)
+	})
+
 	test(`truncates redo before eviction and publishes coherent metadata`, () => {
 		const countAtom = atom<number>({ key: `count`, default: 0 })
 		const countTimeline = timeline({
 			key: `count`,
 			scope: [countAtom],
-			retention: { maxUndoSteps: 2, overflow: `drop-oldest` },
+			effects: [cullUndoStepsOnRecord(2)],
 		})
 		const updates: { at: number; length: number }[] = []
 		subscribe(countTimeline, ({ at, length }) => updates.push({ at, length }))
@@ -509,7 +530,52 @@ describe(`timeline retention`, () => {
 		expect(inspectTimeline(countTimeline)).toEqual({ at: 2, length: 2 })
 	})
 
+	test(`culls immediately outside recording and cleans up on disposal`, () => {
+		const countAtom = atom<number>({ key: `count`, default: 0 })
+		const cleanup = vitest.fn()
+		let cullUndoSteps!: (limit: number) => void
+		let cullAlternateHistories!: (limit: number) => void
+		const countTimeline = timeline({
+			key: `count`,
+			scope: [countAtom],
+			effects: [
+				(tools) => {
+					cullUndoSteps = tools.cullUndoSteps
+					cullAlternateHistories = tools.cullAlternateHistories
+					expect(tools.token).toEqual({ key: `count`, type: `timeline` })
+					return cleanup
+				},
+			],
+		})
+		const updates = vitest.fn()
+		subscribe(countTimeline, updates)
+
+		setState(countAtom, 1)
+		setState(countAtom, 2)
+		setState(countAtom, 3)
+		undo(countTimeline)
+		cullUndoSteps(1)
+
+		expect(getState(countAtom)).toBe(2)
+		expect(inspectTimeline(countTimeline)).toEqual({ at: 1, length: 2 })
+		expect(updates).toHaveBeenLastCalledWith({
+			type: `timeline_update`,
+			event: `cull`,
+			at: 1,
+			length: 2,
+		})
+		redo(countTimeline)
+		expect(getState(countAtom)).toBe(3)
+
+		cullAlternateHistories(0)
+		expect(inspectTimeline(countTimeline)).toEqual({ at: 2, length: 2 })
+		disposeTimeline(countTimeline)
+		expect(cleanup).toHaveBeenCalledOnce()
+	})
+
 	test(`evicts selector and transaction checkpoints only as complete groups`, () => {
+		const recordTypes: string[] = []
+		const selectorSubEventCounts: number[] = []
 		const aAtom = atom<number>({ key: `a`, default: 0 })
 		const bAtom = atom<number>({ key: `b`, default: 0 })
 		const pairSelector = selector<number>({
@@ -544,7 +610,17 @@ describe(`timeline retention`, () => {
 		const pairTimeline = timeline({
 			key: `pair`,
 			scope: [aAtom, bAtom],
-			retention: { maxUndoSteps: 2, overflow: `drop-oldest` },
+			effects: [
+				({ cullUndoSteps, onRecord }) => {
+					onRecord(({ event }) => {
+						recordTypes.push(event.type)
+						if (event.type === `selector_update`) {
+							selectorSubEventCounts.push(event.subEvents.length)
+						}
+						cullUndoSteps(2)
+					})
+				},
+			],
 		})
 
 		setState(pairSelector, 1)
@@ -553,6 +629,12 @@ describe(`timeline retention`, () => {
 
 		expect(getState(aAtom)).toBe(4)
 		expect(getState(bAtom)).toBe(4)
+		expect(recordTypes).toEqual([
+			`selector_update`,
+			`transaction_outcome`,
+			`transaction_outcome`,
+		])
+		expect(selectorSubEventCounts).toEqual([2])
 		expect(inspectTimeline(pairTimeline)).toEqual({ at: 2, length: 2 })
 		undo(pairTimeline)
 		expect(getState(aAtom)).toBe(2)
@@ -577,7 +659,7 @@ describe(`timeline retention`, () => {
 		const countHistoryTimeline = timeline({
 			key: `countHistory`,
 			scope: [countAtoms],
-			retention: { maxUndoSteps: 1, overflow: `drop-oldest` },
+			effects: [cullUndoStepsOnRecord(1)],
 		})
 
 		setState(countA, 1)
@@ -592,7 +674,9 @@ describe(`timeline retention`, () => {
 		expect(stateExists(countA)).toBe(false)
 	})
 
-	test(`enforces retention independently for timeline-family members`, () => {
+	test(`enforces effects independently for timeline-family members`, () => {
+		const createdEffects: string[] = []
+		const cleanedEffects: string[] = []
 		const countAtoms = atomFamily<number, string>({
 			key: `count`,
 			default: 0,
@@ -600,10 +684,19 @@ describe(`timeline retention`, () => {
 		const countHistoryTimelines = timelineFamily<string>({
 			key: `countHistory`,
 			scope: [scopeFamily(countAtoms, { timelineKey: (key) => key })],
-			retention: { maxUndoSteps: 2, overflow: `drop-oldest` },
+			effects: (key) => {
+				createdEffects.push(key)
+				return [
+					({ cullUndoSteps, onRecord }) => {
+						onRecord(() => cullUndoSteps(2))
+						return () => cleanedEffects.push(key)
+					},
+				]
+			},
 		})
 		const historyA = findTimeline(countHistoryTimelines, `a`)
 		const historyB = findTimeline(countHistoryTimelines, `b`)
+		expect(createdEffects).toEqual([`a`, `b`])
 		getState(countAtoms, `a`)
 		getState(countAtoms, `b`)
 		clearTimeline(historyA)
@@ -623,7 +716,9 @@ describe(`timeline retention`, () => {
 		expect(getState(countAtoms, `b`)).toBe(0)
 
 		disposeTimeline(countHistoryTimelines, `a`)
+		expect(cleanedEffects).toEqual([`a`])
 		const recreatedHistoryA = findTimeline(countHistoryTimelines, `a`)
+		expect(createdEffects).toEqual([`a`, `b`, `a`])
 		setState(countAtoms, `a`, 4)
 		setState(countAtoms, `a`, 5)
 		setState(countAtoms, `a`, 6)
@@ -641,7 +736,7 @@ describe(`timeline retention`, () => {
 		const countHistoryTimelines = timelineFamily<string>({
 			key: `countHistory`,
 			scope: [scopeFamily(countAtoms, { timelineKey: (key) => key })],
-			retention: { maxUndoSteps: 1, overflow: `drop-oldest` },
+			effects: () => [cullUndoStepsOnRecord(1)],
 		})
 		const historyA = findTimeline(countHistoryTimelines, `a`)
 		const historyB = findTimeline(countHistoryTimelines, `b`)
@@ -1051,15 +1146,15 @@ describe(`timeline families`, () => {
 })
 
 describe(`errors`, () => {
-	test(`retention requires a non-negative safe integer`, () => {
+	test(`culling requires a non-negative safe integer`, () => {
 		const countAtom = atom<number>({ key: `count`, default: 0 })
 		expect(() =>
 			timeline({
 				key: `count`,
 				scope: [countAtom],
-				retention: { maxUndoSteps: -1, overflow: `drop-oldest` },
+				effects: [({ cullUndoSteps }) => cullUndoSteps(-1)],
 			}),
-		).toThrow(`maxUndoSteps must be a non-negative safe integer.`)
+		).toThrow(`A timeline cull limit must be a non-negative safe integer.`)
 	})
 	test(`what if the timeline isn't initialized`, () => {
 		undo({ key: `my-timeline`, type: `timeline` })

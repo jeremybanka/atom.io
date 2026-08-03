@@ -208,7 +208,7 @@ describe(`silo`, () => {
 		expect(hasImplicitStoreBeenCreated()).toBe(false)
 		expect(() => getState(countAtom)).toThrow()
 	})
-	it(`enforces bounded timeline retention in its own store`, () => {
+	it(`runs timeline effects in its own store`, () => {
 		const Uno = new Silo({
 			name: `uno`,
 			lifespan: `ephemeral`,
@@ -219,7 +219,12 @@ describe(`silo`, () => {
 		const countTimeline = Uno.timeline({
 			key: `count`,
 			scope: [countAtom],
-			retention: { maxUndoSteps: 1, overflow: `drop-oldest` },
+			effects: [
+				(tools) => {
+					expect(tools.store).toBe(Uno.store)
+					tools.onRecord(() => tools.cullUndoSteps(1))
+				},
+			],
 		})
 
 		Uno.setState(countAtom, 1)

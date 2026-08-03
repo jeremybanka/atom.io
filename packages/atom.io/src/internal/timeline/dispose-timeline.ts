@@ -49,12 +49,16 @@ export function disposeTimelineInStore<
 		return
 	}
 	const deposited = deposit(timeline) as TimelineToken<M>
+	timeline.cleanup?.()
 	for (const unsubscribe of timeline.subscriptions.values()) {
 		unsubscribe()
 	}
 	timeline.subscriptions.clear()
 	timeline.subject.subscribers.clear()
 	timeline.history = []
+	timeline.onRecordCallbacks.clear()
+	timeline.pendingRecord = null
+	timeline.pendingUndoStepLimit = null
 	timeline.at = 0
 	timeline.selectorTime = null
 	timeline.transactionKey = null

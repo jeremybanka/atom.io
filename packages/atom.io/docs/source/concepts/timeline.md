@@ -33,30 +33,32 @@ reference replacements. Each change produces one undoable history entry.
 Use timelines for editors, design tools, form flows, and other interfaces where
 users expect undo and redo.
 
-## Bounded history
+## Timeline effects
 
-A timeline can declare `retention` with a non-negative safe-integer
-`maxUndoSteps` and the `drop-oldest` overflow strategy. The limit counts logical
-undo checkpoints rather than internal events. A selector write, transaction,
-nested transaction, or multi-atom transaction is therefore retained or evicted as
-one complete step.
+A timeline can declare `effects` that observe and safely collect its history.
+`onRecord` runs once for each complete logical update before that update settles.
+Calling `cullUndoSteps` there retains at most the requested number of undo steps.
+The limit counts logical checkpoints rather than internal events, so a selector
+write, transaction, nested transaction, or multi-atom transaction is retained or
+collected as one complete step.
 
 <Exhibit src="core/timeline/retain-bounded-history.ts" />
 
-When a new change is recorded after an undo, the redo branch is removed first and
-the capacity is then applied to the resulting undo branch. Every subscriber update
-reports the final cursor and length after both operations.
+Without an effect, undo history is unlimited. Effects may also call
+`cullUndoSteps` at arbitrary times, subscribe to application-owned clocks or policy
+signals, and return cleanup for timeline disposal. Increasing a later limit does
+not restore history that has already been collected.
 
-`clearTimeline` empties the history and leaves its retention policy active. Undo,
-redo, `undoTransaction`, and `redoTransaction` can only move checkpoints that are
-still retained. Transaction controls remain best-effort across timelines: a
-timeline where that transaction was evicted is simply not a participant.
+`cullAlternateHistories` is reserved for future branching timelines and currently
+has no effect. Timeline-family `effects` is a factory keyed like atom-family
+effects, so every member owns independent effect state and cleanup. Silo-bound
+timelines and timeline families use the same effect APIs.
 
-Disposal removes an ordinary timeline and its policy; declaring it again determines
-the new policy. A timeline-family policy belongs to the family, so every member
-enforces the limit independently and a member recreated after disposal receives the
-same policy. Silo-bound timelines and timeline families use the same options and
-behavior.
+Recording after an undo removes the redo branch before effects settle the new
+update. Subscribers observe only the final cursor and length. `clearTimeline`
+empties history but leaves effects active, while disposal runs effect cleanup.
+`undoTransaction` and `redoTransaction` can move only transaction checkpoints that
+remain available.
 
 ## Keyed timeline families
 

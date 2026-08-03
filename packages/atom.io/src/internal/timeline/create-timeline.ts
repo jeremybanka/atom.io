@@ -639,7 +639,6 @@ function installTimelineEffects<ManagedAtom extends TimelineManageable>(
 					})
 				}
 			},
-			cullAlternateHistories: validateCullLimit,
 			token,
 			store: eldest(store),
 		})

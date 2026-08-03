@@ -566,14 +566,12 @@ describe(`timeline effects`, () => {
 		const countAtom = atom<number>({ key: `count`, default: 0 })
 		const cleanup = vitest.fn()
 		let cullUndoSteps!: (limit: number) => void
-		let cullAlternateHistories!: (limit: number) => void
 		const countTimeline = timeline({
 			key: `count`,
 			scope: [countAtom],
 			effects: [
 				(tools) => {
 					cullUndoSteps = tools.cullUndoSteps
-					cullAlternateHistories = tools.cullAlternateHistories
 					expect(tools.token).toEqual({ key: `count`, type: `timeline` })
 					return cleanup
 				},
@@ -604,7 +602,6 @@ describe(`timeline effects`, () => {
 		redo(countTimeline)
 		expect(getState(countAtom)).toBe(3)
 
-		cullAlternateHistories(0)
 		expect(inspectTimeline(countTimeline)).toEqual({ at: 2, length: 2 })
 		disposeTimeline(countTimeline)
 		expect(cleanup).toHaveBeenCalledOnce()

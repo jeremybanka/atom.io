@@ -1,3 +1,13 @@
+export type DeepReadonly<T> = T extends (...parameters: any[]) => any
+	? T
+	: T extends ReadonlyMap<infer Key, infer Value>
+		? ReadonlyMap<DeepReadonly<Key>, DeepReadonly<Value>>
+		: T extends ReadonlySet<infer Value>
+			? ReadonlySet<DeepReadonly<Value>>
+			: T extends object
+				? { readonly [Key in keyof T]: DeepReadonly<T[Key]> }
+				: T
+
 export type Flat<R extends { [K in PropertyKey]: any }> = {
 	[K in keyof R]: R[K]
 }

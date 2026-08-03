@@ -1,4 +1,5 @@
 import type { Canonical } from "atom.io/foundations/canonical"
+import type { DeepReadonly } from "atom.io/foundations/type-utils"
 import type { Store } from "atom.io/internal"
 import {
 	clearTimelineInStore,
@@ -33,16 +34,6 @@ export type TimelineInspection = {
 	at: number
 	length: number
 }
-
-type DeepReadonly<T> = T extends (...parameters: any[]) => any
-	? T
-	: T extends ReadonlyMap<infer Key, infer Value>
-		? ReadonlyMap<DeepReadonly<Key>, DeepReadonly<Value>>
-		: T extends ReadonlySet<infer Value>
-			? ReadonlySet<DeepReadonly<Value>>
-			: T extends object
-				? { readonly [Key in keyof T]: DeepReadonly<T[Key]> }
-				: T
 
 /** A deeply readonly logical update that is about to settle in a timeline. */
 export type TimelineRecordEvent<

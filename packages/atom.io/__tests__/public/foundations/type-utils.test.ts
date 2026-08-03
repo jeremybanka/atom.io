@@ -1,6 +1,29 @@
-import type { Flat, ViewOf } from "atom.io/foundations/type-utils"
+import type { DeepReadonly, Flat, ViewOf } from "atom.io/foundations/type-utils"
 
 describe(`type-utils`, () => {
+	test(`DeepReadonly recursively protects objects and collections`, () => {
+		type Document = DeepReadonly<{
+			metadata: { author: string }
+			pages: string[]
+			preferences: Map<string, { enabled: boolean }>
+			tags: Set<{ name: string }>
+		}>
+		const assertReadonly = (document: Document): void => {
+			// @ts-expect-error Nested properties are readonly.
+			document.metadata.author = `Jane Doe`
+			// @ts-expect-error Nested arrays are readonly.
+			document.pages.push(`cover`)
+			// @ts-expect-error Maps become readonly maps.
+			document.preferences.set(`spellcheck`, { enabled: true })
+			for (const tag of document.tags) {
+				// @ts-expect-error Values within sets are deeply readonly.
+				tag.name = `draft`
+			}
+		}
+
+		expect(assertReadonly).toBeTypeOf(`function`)
+	})
+
 	test(`Flat preserves the visible shape of an intersection type`, () => {
 		const value: Flat<{ a: 1 } & { b: 2 }> = { a: 1, b: 2 }
 

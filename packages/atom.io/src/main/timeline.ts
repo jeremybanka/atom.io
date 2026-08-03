@@ -32,6 +32,14 @@ export type TimelineInspection = {
 	length: number
 }
 
+/** A declarative limit on the undo history retained by a timeline. */
+export type TimelineRetention = {
+	/** The greatest number of complete undo checkpoints to retain. */
+	maxUndoSteps: number
+	/** Remove the oldest complete checkpoint when the limit is exceeded. */
+	overflow: `drop-oldest`
+}
+
 /**
  * Describes how one atom family is divided among the members of a timeline family.
  *
@@ -66,6 +74,8 @@ export type TimelineFamilyOptions<
 	key: string
 	/** Atom families partitioned among the timeline-family members. */
 	scope: readonly Scope[]
+	/** The history limit applied independently to every family member. */
+	retention?: TimelineRetention
 }
 
 /**
@@ -247,6 +257,8 @@ export type TimelineOptions<ManagedAtom extends TimelineManageable> = {
 	key: string
 	/** The managed atoms (and families of atoms) to record */
 	scope: ManagedAtom[]
+	/** A declarative limit on retained undo history. */
+	retention?: TimelineRetention
 }
 
 /**

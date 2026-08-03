@@ -345,6 +345,17 @@ Timelines allow you to track the history of a group of atoms. If these atoms are
 
 <Exhibit src="core/timeline/create-a-timeline.ts" />
 
+For long-lived editors, declare a retention policy to bound undo history. Capacity
+is measured in complete undo checkpoints, so selector writes and transactions are
+never split. When the limit is exceeded, the oldest complete checkpoint is removed.
+
+<Exhibit src="core/timeline/retain-bounded-history.ts" />
+
+Recording after an undo removes the redo branch before applying the limit.
+`clearTimeline` removes all retained history without changing the policy, while
+disposing an ordinary timeline removes both. Every timeline-family member applies
+the family's policy independently, including members recreated after disposal.
+
 In this example, we create a timeline that tracks the history of a family of point atoms.
 
 <Exhibit src="core/timeline/subscribe-to-a-timeline.ts" />

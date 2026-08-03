@@ -102,9 +102,23 @@ export type TimelineEvent<ManagedAtom extends TimelineManageable> = {
 	| TransactionOutcomeEvent<TransactionToken<any>>
 )
 
+export type TimelineCullEvent = {
+	type: `timeline_cull`
+	target: `undo_steps`
+	/** Logical undo steps available before collection. */
+	from: number
+	/** Logical undo steps remaining after collection. */
+	to: number
+}
+
 export type TimelineUpdate<ManagedAtom extends TimelineManageable> = {
 	type: `timeline_update`
-	event: TimelineEvent<ManagedAtom> | `clear` | `cull` | `redo` | `undo`
+	event:
+		| TimelineEvent<ManagedAtom>
+		| TimelineCullEvent
+		| `clear`
+		| `redo`
+		| `undo`
 	at: number
 	length: number
 }

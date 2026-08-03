@@ -6,6 +6,7 @@ import type {
 	AtomUpdateEvent,
 	FamilyMetadata,
 	StateUpdate,
+	TimelineCullEvent,
 	TimelineEffect,
 	TimelineEvent,
 	TimelineManageable,
@@ -570,23 +571,32 @@ function settleHistoryRecord(
 	}
 }
 
-function cullTimelineUndoSteps(tl: Timeline<any>, limit: number): boolean {
-	if (tl.at === 0) return false
+function cullTimelineUndoSteps(
+	tl: Timeline<any>,
+	limit: number,
+): TimelineCullEvent | null {
+	if (tl.at === 0) return null
 	const checkpointStarts = [0]
 	for (let index = 1; index < tl.at; index++) {
 		if (tl.history[index].checkpoint === true) {
 			checkpointStarts.push(index)
 		}
 	}
-	const overflow = checkpointStarts.length - limit
+	const from = checkpointStarts.length
+	const overflow = from - limit
 	if (overflow <= 0) {
-		return false
+		return null
 	}
 
 	const deleteCount = limit === 0 ? tl.at : checkpointStarts[overflow]
 	tl.history.splice(0, deleteCount)
 	tl.at -= deleteCount
-	return true
+	return {
+		type: `timeline_cull`,
+		target: `undo_steps`,
+		from,
+		to: limit,
+	}
 }
 
 function validateCullLimit(limit: number): void {
@@ -619,10 +629,11 @@ function installTimelineEffects<ManagedAtom extends TimelineManageable>(
 					)
 					return
 				}
-				if (cullTimelineUndoSteps(tl, limit)) {
+				const cullEvent = cullTimelineUndoSteps(tl, limit)
+				if (cullEvent) {
 					tl.subject.next({
 						type: `timeline_update`,
-						event: `cull`,
+						event: cullEvent,
 						at: tl.at,
 						length: tl.history.length,
 					})

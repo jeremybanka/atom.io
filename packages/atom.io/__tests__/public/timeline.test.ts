@@ -498,12 +498,16 @@ describe(`timeline effects`, () => {
 			scope: [documentAtom],
 			effects: [cullUndoStepsOnRecord(100)],
 		})
+		const updates = vitest.fn()
+		subscribe(documentTimeline, updates)
 
 		for (let version = 1; version <= 105; version++) {
 			setState(documentAtom, version)
 		}
 
 		expect(inspectTimeline(documentTimeline)).toEqual({ at: 100, length: 100 })
+		expect(updates).toHaveBeenCalledTimes(105)
+		expect(updates.mock.lastCall?.[0].event.type).toBe(`atom_update`)
 		for (let step = 0; step < 100; step++) {
 			undo(documentTimeline)
 		}
@@ -588,7 +592,12 @@ describe(`timeline effects`, () => {
 		expect(inspectTimeline(countTimeline)).toEqual({ at: 1, length: 2 })
 		expect(updates).toHaveBeenLastCalledWith({
 			type: `timeline_update`,
-			event: `cull`,
+			event: {
+				type: `timeline_cull`,
+				target: `undo_steps`,
+				from: 2,
+				to: 1,
+			},
 			at: 1,
 			length: 2,
 		})

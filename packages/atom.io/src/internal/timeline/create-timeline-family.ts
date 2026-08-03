@@ -22,7 +22,6 @@ import {
 	createTimeline,
 	handleStateLifecycleEvent,
 	type Timeline,
-	validateTimelineRetention,
 } from "./create-timeline.ts"
 
 export type TimelineFamily<K extends Canonical, M extends TimelineManageable> = {
@@ -183,7 +182,6 @@ export function createTimelineFamily<
 	store: RootStore,
 	options: TimelineFamilyOptions<K, Scope>,
 ): TimelineFamilyToken<K, Scope[`family`]> {
-	validateTimelineRetention(options.retention)
 	const token: TimelineFamilyToken<K, Scope[`family`]> = {
 		key: options.key,
 		type: `timeline_family`,
@@ -230,8 +228,8 @@ export function createTimelineFamilyMember<
 		{
 			key: identity.key,
 			scope: [],
-			...(family.options.retention
-				? { retention: family.options.retention }
+			...(family.options.effects
+				? { effects: family.options.effects(key) }
 				: {}),
 		},
 		data,

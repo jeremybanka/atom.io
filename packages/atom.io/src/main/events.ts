@@ -104,7 +104,7 @@ export type TimelineEvent<ManagedAtom extends TimelineManageable> = {
 
 export type TimelineUpdate<ManagedAtom extends TimelineManageable> = {
 	type: `timeline_update`
-	event: TimelineEvent<ManagedAtom> | `clear` | `redo` | `undo`
+	event: TimelineEvent<ManagedAtom> | `clear` | `cull` | `redo` | `undo`
 	at: number
 	length: number
 }

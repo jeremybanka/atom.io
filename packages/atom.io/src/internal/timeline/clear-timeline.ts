@@ -19,6 +19,8 @@ export function clearTimelineInStore(
 	}
 	timelineData.at = 0
 	timelineData.history = []
+	timelineData.pendingRecord = null
+	timelineData.pendingUndoStepLimit = null
 	timelineData.selectorTime = null
 	timelineData.timeTraveling = null
 	timelineData.transactionKey = null

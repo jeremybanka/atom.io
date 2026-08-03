@@ -1,4 +1,5 @@
 import type { Canonical } from "atom.io/foundations/canonical"
+import type { Store } from "atom.io/internal"
 import {
 	clearTimelineInStore,
 	createTimeline,
@@ -13,6 +14,7 @@ import {
 import type {
 	AtomFamilyToken,
 	AtomToken,
+	TimelineEvent,
 	TimelineFamilyToken,
 	TimelineToken,
 } from "."
@@ -32,13 +34,38 @@ export type TimelineInspection = {
 	length: number
 }
 
-/** A declarative limit on the undo history retained by a timeline. */
-export type TimelineRetention = {
-	/** The greatest number of complete undo checkpoints to retain. */
-	maxUndoSteps: number
-	/** Remove the oldest complete checkpoint when the limit is exceeded. */
-	overflow: `drop-oldest`
+/** A complete logical update that is about to settle in a timeline. */
+export type TimelineRecordEvent<
+	ManagedAtom extends TimelineManageable = TimelineManageable,
+> = {
+	type: `timeline_record`
+	event: TimelineEvent<ManagedAtom>
 }
+
+/** Safe history-collection tools supplied to a {@link TimelineEffect}. */
+export type TimelineEffectors<
+	ManagedAtom extends TimelineManageable = TimelineManageable,
+> = {
+	/** Observe complete logical updates before they settle in the timeline. */
+	onRecord: (callback: (event: TimelineRecordEvent<ManagedAtom>) => void) => void
+	/** Retain at most this many complete undo steps. */
+	cullUndoSteps: (limit: number) => void
+	/**
+	 * Retain at most this many alternate histories.
+	 *
+	 * This is reserved for branching timelines and currently has no effect.
+	 */
+	cullAlternateHistories: (limit: number) => void
+	/** The token of the timeline. */
+	token: TimelineToken<ManagedAtom>
+	/** The store in which the timeline exists. */
+	store: Store
+}
+
+/** A lifecycle hook that observes and safely collects timeline history. */
+export type TimelineEffect<
+	ManagedAtom extends TimelineManageable = TimelineManageable,
+> = (tools: TimelineEffectors<ManagedAtom>) => void | (() => void)
 
 /**
  * Describes how one atom family is divided among the members of a timeline family.
@@ -74,8 +101,8 @@ export type TimelineFamilyOptions<
 	key: string
 	/** Atom families partitioned among the timeline-family members. */
 	scope: readonly Scope[]
-	/** The history limit applied independently to every family member. */
-	retention?: TimelineRetention
+	/** Creates lifecycle hooks for each timeline-family member. */
+	effects?: (key: TimelineKey) => readonly TimelineEffect<Scope[`family`]>[]
 }
 
 /**
@@ -257,8 +284,8 @@ export type TimelineOptions<ManagedAtom extends TimelineManageable> = {
 	key: string
 	/** The managed atoms (and families of atoms) to record */
 	scope: ManagedAtom[]
-	/** A declarative limit on retained undo history. */
-	retention?: TimelineRetention
+	/** Hooks that observe and safely collect timeline history. */
+	effects?: readonly TimelineEffect<ManagedAtom>[]
 }
 
 /**

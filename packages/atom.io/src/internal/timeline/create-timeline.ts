@@ -6,10 +6,11 @@ import type {
 	AtomUpdateEvent,
 	FamilyMetadata,
 	StateUpdate,
+	TimelineEffect,
 	TimelineEvent,
 	TimelineManageable,
 	TimelineOptions,
-	TimelineRetention,
+	TimelineRecordEvent,
 	TimelineToken,
 	TimelineUpdate,
 	TransactionOutcomeEvent,
@@ -20,7 +21,7 @@ import type {
 import { Subject } from "atom.io/foundations/subject"
 
 import { ensureState } from "../get-state/ensure-state.ts"
-import { newest } from "../lineage.ts"
+import { eldest, newest } from "../lineage.ts"
 import { getUpdateToken } from "../mutable/index.ts"
 import type { Atom } from "../state-types.ts"
 import { deposit, type Store, withdraw } from "../store/index.ts"
@@ -39,9 +40,12 @@ export type Timeline<ManagedAtom extends TimelineManageable> = {
 	at: number
 	timeTraveling: `into_future` | `into_past` | null
 	history: TimelineEvent<ManagedAtom>[]
-	retention: TimelineRetention | null
 	selectorTime: number | null
 	transactionKey: string | null
+	onRecordCallbacks: Set<(event: TimelineRecordEvent<ManagedAtom>) => void>
+	pendingRecord: TimelineEvent<ManagedAtom> | null
+	pendingUndoStepLimit: number | null
+	cleanup: (() => void) | null
 	ownedTopicKeys: Set<string>
 	install: (store: RootStore) => void
 	subject: Subject<TimelineUpdate<ManagedAtom>>
@@ -54,7 +58,6 @@ export function createTimeline<ManagedAtom extends TimelineManageable>(
 	data?: Timeline<ManagedAtom>,
 	family?: FamilyMetadata,
 ): TimelineToken<ManagedAtom> {
-	validateTimelineRetention(options.retention)
 	const tl: Timeline<ManagedAtom> = {
 		type: `timeline`,
 		key: options.key,
@@ -63,10 +66,13 @@ export function createTimeline<ManagedAtom extends TimelineManageable>(
 		timeTraveling: null,
 		selectorTime: null,
 		transactionKey: null,
-		retention: options.retention ? { ...options.retention } : null,
 		...data,
 		history: data?.history.map((update) => ({ ...update })) ?? [],
 		install: (s) => createTimeline(s, options, tl),
+		onRecordCallbacks: new Set(),
+		pendingRecord: null,
+		pendingUndoStepLimit: null,
+		cleanup: null,
 		ownedTopicKeys: new Set(),
 		subject: new Subject(),
 		subscriptions: new Map(),
@@ -137,6 +143,7 @@ export function createTimeline<ManagedAtom extends TimelineManageable>(
 		type: `timeline`,
 		...(tl.family ? { family: tl.family } : {}),
 	}
+	installTimelineEffects(store, tl, token, options.effects)
 	store.on.timelineCreation.next(token)
 	return token
 }
@@ -377,8 +384,15 @@ function buildSelectorUpdate(
 			})
 		}
 
-		addToHistory(tl, latestEvent)
+		addToHistory(tl, latestEvent, false)
 		tl.selectorTime = currentSelectorTime
+		const unsubscribe = store.on.operationClose.subscribe(
+			`timeline:${tl.key}:selector:${currentSelectorTime}`,
+			() => {
+				unsubscribe()
+				settleHistoryRecord(tl, latestEvent as TimelineEvent<any>)
+			},
+		)
 
 		store.logger.info(
 			`⌛`,
@@ -407,14 +421,6 @@ function buildSelectorUpdate(
 				latestEvent?.subEvents.map((event) => event.token.key),
 			)
 		}
-	}
-	if (latestEvent) {
-		tl.subject.next({
-			type: `timeline_update`,
-			event: latestEvent,
-			at: tl.at,
-			length: tl.history.length,
-		})
 	}
 }
 
@@ -513,51 +519,118 @@ export function handleStateLifecycleEvent(
 	}
 }
 
-function addToHistory(tl: Timeline<any>, event: TimelineEvent<any>): void {
+function addToHistory(
+	tl: Timeline<any>,
+	event: TimelineEvent<any>,
+	settle = true,
+): void {
 	if (tl.at !== tl.history.length) {
 		tl.history.splice(tl.at)
 	}
 	tl.history.push(event)
 	tl.at = tl.history.length
-	applyTimelineRetention(tl)
-	tl.subject.next({
-		type: `timeline_update`,
-		event,
-		at: tl.at,
-		length: tl.history.length,
-	})
+	tl.pendingRecord = event
+	if (settle) {
+		settleHistoryRecord(tl, event)
+	}
 }
 
-function applyTimelineRetention(tl: Timeline<any>): void {
-	const maxUndoSteps = tl.retention?.maxUndoSteps
-	if (maxUndoSteps === undefined || tl.history.length === 0) {
+function settleHistoryRecord(
+	tl: Timeline<any>,
+	event: TimelineEvent<any>,
+): void {
+	if (tl.pendingRecord !== event) {
 		return
 	}
+	const recordEvent: TimelineRecordEvent<any> = {
+		type: `timeline_record`,
+		event,
+	}
+	try {
+		for (const callback of tl.onRecordCallbacks) {
+			callback(recordEvent)
+		}
+	} finally {
+		const limit = tl.pendingUndoStepLimit
+		tl.pendingRecord = null
+		tl.pendingUndoStepLimit = null
+		if (limit !== null) {
+			cullTimelineUndoSteps(tl, limit)
+		}
+		tl.subject.next({
+			type: `timeline_update`,
+			event,
+			at: tl.at,
+			length: tl.history.length,
+		})
+	}
+}
 
+function cullTimelineUndoSteps(tl: Timeline<any>, limit: number): boolean {
+	if (tl.at === 0) return false
 	const checkpointStarts = [0]
-	for (let index = 1; index < tl.history.length; index++) {
+	for (let index = 1; index < tl.at; index++) {
 		if (tl.history[index].checkpoint === true) {
 			checkpointStarts.push(index)
 		}
 	}
-	const overflow = checkpointStarts.length - maxUndoSteps
+	const overflow = checkpointStarts.length - limit
 	if (overflow <= 0) {
-		return
+		return false
 	}
 
-	const deleteCount =
-		maxUndoSteps === 0 ? tl.history.length : checkpointStarts[overflow]
+	const deleteCount = limit === 0 ? tl.at : checkpointStarts[overflow]
 	tl.history.splice(0, deleteCount)
-	tl.at = Math.max(0, tl.at - deleteCount)
+	tl.at -= deleteCount
+	return true
 }
 
-export function validateTimelineRetention(
-	retention: TimelineRetention | undefined,
+function validateCullLimit(limit: number): void {
+	if (!Number.isSafeInteger(limit) || limit < 0) {
+		throw new RangeError(
+			`A timeline cull limit must be a non-negative safe integer.`,
+		)
+	}
+}
+
+function installTimelineEffects<ManagedAtom extends TimelineManageable>(
+	store: RootStore,
+	tl: Timeline<ManagedAtom>,
+	token: TimelineToken<ManagedAtom>,
+	effects: readonly TimelineEffect<ManagedAtom>[] | undefined,
 ): void {
-	if (
-		retention &&
-		(!Number.isSafeInteger(retention.maxUndoSteps) || retention.maxUndoSteps < 0)
-	) {
-		throw new RangeError(`maxUndoSteps must be a non-negative safe integer.`)
+	if (!effects) return
+	const cleanupFunctions: (() => void)[] = []
+	for (const effect of effects) {
+		const cleanup = effect({
+			onRecord: (callback) => {
+				tl.onRecordCallbacks.add(callback)
+			},
+			cullUndoSteps: (limit) => {
+				validateCullLimit(limit)
+				if (tl.pendingRecord) {
+					tl.pendingUndoStepLimit = Math.min(
+						tl.pendingUndoStepLimit ?? Number.POSITIVE_INFINITY,
+						limit,
+					)
+					return
+				}
+				if (cullTimelineUndoSteps(tl, limit)) {
+					tl.subject.next({
+						type: `timeline_update`,
+						event: `cull`,
+						at: tl.at,
+						length: tl.history.length,
+					})
+				}
+			},
+			cullAlternateHistories: validateCullLimit,
+			token,
+			store: eldest(store),
+		})
+		if (cleanup) cleanupFunctions.push(cleanup)
+	}
+	tl.cleanup = () => {
+		for (const cleanup of cleanupFunctions) cleanup()
 	}
 }

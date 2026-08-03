@@ -1,3 +1,4 @@
+import type { TimelineEffect } from "atom.io"
 import { atom, timeline } from "atom.io"
 
 export const documentAtom = atom<string>({
@@ -5,11 +6,15 @@ export const documentAtom = atom<string>({
 	default: ``,
 })
 
+export const keepLatest100Steps: TimelineEffect = ({
+	cullUndoSteps,
+	onRecord,
+}) => {
+	onRecord(() => cullUndoSteps(100))
+}
+
 export const documentTimeline = timeline({
 	key: `document`,
 	scope: [documentAtom],
-	retention: {
-		maxUndoSteps: 100,
-		overflow: `drop-oldest`,
-	},
+	effects: [keepLatest100Steps],
 })

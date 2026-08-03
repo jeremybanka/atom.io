@@ -5,13 +5,19 @@ import Exhibit from "c/Exhibit.astro";
 Small reusable type helpers that make inferred types easier to read
 or expose readonly views of mutable shapes.
 
-Import `Flat`, `ViewOf`, or both from `atom.io/foundations/type-utils`.
+Import these helpers from `atom.io/foundations/type-utils`.
 
 ## package contents
 
 <table-wrapper>
   <table>
     <tbody>
+	  <tr>
+		<td>
+		  <code>DeepReadonly</code>
+		</td>
+		<td>Recursively derive a readonly view of an object or collection.</td>
+	  </tr>
       <tr>
         <td>
           <code>Flat</code>
@@ -27,6 +33,13 @@ Import `Flat`, `ViewOf`, or both from `atom.io/foundations/type-utils`.
     </tbody>
   </table>
 </table-wrapper>
+
+## DeepReadonly
+
+`DeepReadonly` recursively marks object properties as readonly, converts arrays,
+maps, and sets to their readonly forms, and leaves functions callable.
+
+<Exhibit src="foundations/type-utils/deep-readonly.ts" />
 
 ## Flat
 

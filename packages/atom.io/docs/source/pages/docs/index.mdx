@@ -345,6 +345,22 @@ Timelines allow you to track the history of a group of atoms. If these atoms are
 
 <Exhibit src="core/timeline/create-a-timeline.ts" />
 
+For long-lived editors, add a timeline effect that collects old undo history.
+`onRecord` observes each complete logical update before it settles, while
+exposing that update as deeply readonly data. This lets effects inspect records
+without accidentally changing the timeline's stored event.
+`cullUndoSteps` safely removes the oldest complete checkpoints. Selector writes and
+transactions are never split.
+
+<Exhibit src="core/timeline/retain-bounded-history.ts" />
+
+Without an effect, undo history is unlimited. Effects can also call
+`cullUndoSteps` at arbitrary times, subscribe to application-owned policy signals,
+and return cleanup for disposal. An arbitrary cull that removes history publishes
+a `timeline_cull` event with logical undo-step counts, while culling during
+`onRecord` remains part of that record's atomic update. Timeline-family effect
+factories create an independent effect lifecycle for every member.
+
 In this example, we create a timeline that tracks the history of a family of point atoms.
 
 <Exhibit src="core/timeline/subscribe-to-a-timeline.ts" />

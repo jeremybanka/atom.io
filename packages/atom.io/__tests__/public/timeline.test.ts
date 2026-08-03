@@ -491,6 +491,31 @@ describe(`timeline effects`, () => {
 		expect(readonlyRecordEffect).toBeTypeOf(`function`)
 	})
 
+	test(`retains no undo steps when culled to zero`, () => {
+		const countAtom = atom<number>({ key: `count`, default: 0 })
+		const countTimeline = timeline({
+			key: `count`,
+			scope: [countAtom],
+			effects: [cullUndoStepsOnRecord(0)],
+		})
+		const updates = vitest.fn()
+		subscribe(countTimeline, updates)
+
+		setState(countAtom, 1)
+
+		expect(getState(countAtom)).toBe(1)
+		expect(inspectTimeline(countTimeline)).toEqual({ at: 0, length: 0 })
+		expect(updates).toHaveBeenCalledOnce()
+		expect(updates.mock.lastCall?.[0]).toMatchObject({
+			type: `timeline_update`,
+			event: { type: `atom_update` },
+			at: 0,
+			length: 0,
+		})
+		undo(countTimeline)
+		expect(getState(countAtom)).toBe(1)
+	})
+
 	test(`retains exactly the latest 100 undo steps`, () => {
 		const documentAtom = atom<number>({ key: `document`, default: 0 })
 		const documentTimeline = timeline({

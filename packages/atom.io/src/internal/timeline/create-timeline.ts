@@ -9,6 +9,7 @@ import type {
 	TimelineEvent,
 	TimelineManageable,
 	TimelineOptions,
+	TimelineRetention,
 	TimelineToken,
 	TimelineUpdate,
 	TransactionOutcomeEvent,
@@ -38,6 +39,7 @@ export type Timeline<ManagedAtom extends TimelineManageable> = {
 	at: number
 	timeTraveling: `into_future` | `into_past` | null
 	history: TimelineEvent<ManagedAtom>[]
+	retention: TimelineRetention | null
 	selectorTime: number | null
 	transactionKey: string | null
 	ownedTopicKeys: Set<string>
@@ -52,6 +54,7 @@ export function createTimeline<ManagedAtom extends TimelineManageable>(
 	data?: Timeline<ManagedAtom>,
 	family?: FamilyMetadata,
 ): TimelineToken<ManagedAtom> {
+	validateTimelineRetention(options.retention)
 	const tl: Timeline<ManagedAtom> = {
 		type: `timeline`,
 		key: options.key,
@@ -60,6 +63,7 @@ export function createTimeline<ManagedAtom extends TimelineManageable>(
 		timeTraveling: null,
 		selectorTime: null,
 		transactionKey: null,
+		retention: options.retention ? { ...options.retention } : null,
 		...data,
 		history: data?.history.map((update) => ({ ...update })) ?? [],
 		install: (s) => createTimeline(s, options, tl),
@@ -515,10 +519,45 @@ function addToHistory(tl: Timeline<any>, event: TimelineEvent<any>): void {
 	}
 	tl.history.push(event)
 	tl.at = tl.history.length
+	applyTimelineRetention(tl)
 	tl.subject.next({
 		type: `timeline_update`,
 		event,
 		at: tl.at,
 		length: tl.history.length,
 	})
+}
+
+function applyTimelineRetention(tl: Timeline<any>): void {
+	const maxUndoSteps = tl.retention?.maxUndoSteps
+	if (maxUndoSteps === undefined || tl.history.length === 0) {
+		return
+	}
+
+	const checkpointStarts = [0]
+	for (let index = 1; index < tl.history.length; index++) {
+		if (tl.history[index].checkpoint === true) {
+			checkpointStarts.push(index)
+		}
+	}
+	const overflow = checkpointStarts.length - maxUndoSteps
+	if (overflow <= 0) {
+		return
+	}
+
+	const deleteCount =
+		maxUndoSteps === 0 ? tl.history.length : checkpointStarts[overflow]
+	tl.history.splice(0, deleteCount)
+	tl.at = Math.max(0, tl.at - deleteCount)
+}
+
+export function validateTimelineRetention(
+	retention: TimelineRetention | undefined,
+): void {
+	if (
+		retention &&
+		(!Number.isSafeInteger(retention.maxUndoSteps) || retention.maxUndoSteps < 0)
+	) {
+		throw new RangeError(`maxUndoSteps must be a non-negative safe integer.`)
+	}
 }

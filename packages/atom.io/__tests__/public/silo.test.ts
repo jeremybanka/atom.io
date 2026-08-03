@@ -208,6 +208,27 @@ describe(`silo`, () => {
 		expect(hasImplicitStoreBeenCreated()).toBe(false)
 		expect(() => getState(countAtom)).toThrow()
 	})
+	it(`enforces bounded timeline retention in its own store`, () => {
+		const Uno = new Silo({
+			name: `uno`,
+			lifespan: `ephemeral`,
+			isProduction: false,
+		})
+		Uno.store.logger = createNullLogger()
+		const countAtom = Uno.atom<number>({ key: `count`, default: 0 })
+		const countTimeline = Uno.timeline({
+			key: `count`,
+			scope: [countAtom],
+			retention: { maxUndoSteps: 1, overflow: `drop-oldest` },
+		})
+
+		Uno.setState(countAtom, 1)
+		Uno.setState(countAtom, 2)
+		expect(Uno.inspectTimeline(countTimeline)).toEqual({ at: 1, length: 1 })
+		Uno.undo(countTimeline)
+		expect(Uno.getState(countAtom)).toBe(1)
+		expect(hasImplicitStoreBeenCreated()).toBe(false)
+	})
 	it(`keeps newly inserted font points in their glyph histories`, () => {
 		type GlyphId = `A` | `B`
 		type MasterId = `bold` | `preview` | `regular`

@@ -33,6 +33,31 @@ reference replacements. Each change produces one undoable history entry.
 Use timelines for editors, design tools, form flows, and other interfaces where
 users expect undo and redo.
 
+## Bounded history
+
+A timeline can declare `retention` with a non-negative safe-integer
+`maxUndoSteps` and the `drop-oldest` overflow strategy. The limit counts logical
+undo checkpoints rather than internal events. A selector write, transaction,
+nested transaction, or multi-atom transaction is therefore retained or evicted as
+one complete step.
+
+<Exhibit src="core/timeline/retain-bounded-history.ts" />
+
+When a new change is recorded after an undo, the redo branch is removed first and
+the capacity is then applied to the resulting undo branch. Every subscriber update
+reports the final cursor and length after both operations.
+
+`clearTimeline` empties the history and leaves its retention policy active. Undo,
+redo, `undoTransaction`, and `redoTransaction` can only move checkpoints that are
+still retained. Transaction controls remain best-effort across timelines: a
+timeline where that transaction was evicted is simply not a participant.
+
+Disposal removes an ordinary timeline and its policy; declaring it again determines
+the new policy. A timeline-family policy belongs to the family, so every member
+enforces the limit independently and a member recreated after disposal receives the
+same policy. Silo-bound timelines and timeline families use the same options and
+behavior.
+
 ## Keyed timeline families
 
 A timeline family partitions one or more atom families into independent histories.

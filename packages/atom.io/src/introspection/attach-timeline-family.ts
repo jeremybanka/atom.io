@@ -24,6 +24,7 @@ export const attachTimelineFamily = (
 				at: 0,
 				timeTraveling: null,
 				history: [],
+				retention: null,
 				selectorTime: null,
 				transactionKey: null,
 				ownedTopicKeys: new Set(),

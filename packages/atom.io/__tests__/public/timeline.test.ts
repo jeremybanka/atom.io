@@ -456,6 +456,221 @@ describe(`timeline`, () => {
 	})
 })
 
+describe(`timeline retention`, () => {
+	test(`retains exactly the latest 100 undo steps`, () => {
+		const documentAtom = atom<number>({ key: `document`, default: 0 })
+		const documentTimeline = timeline({
+			key: `document`,
+			scope: [documentAtom],
+			retention: { maxUndoSteps: 100, overflow: `drop-oldest` },
+		})
+
+		for (let version = 1; version <= 105; version++) {
+			setState(documentAtom, version)
+		}
+
+		expect(inspectTimeline(documentTimeline)).toEqual({ at: 100, length: 100 })
+		for (let step = 0; step < 100; step++) {
+			undo(documentTimeline)
+		}
+		expect(getState(documentAtom)).toBe(5)
+		undo(documentTimeline)
+		expect(getState(documentAtom)).toBe(5)
+	})
+
+	test(`truncates redo before eviction and publishes coherent metadata`, () => {
+		const countAtom = atom<number>({ key: `count`, default: 0 })
+		const countTimeline = timeline({
+			key: `count`,
+			scope: [countAtom],
+			retention: { maxUndoSteps: 2, overflow: `drop-oldest` },
+		})
+		const updates: { at: number; length: number }[] = []
+		subscribe(countTimeline, ({ at, length }) => updates.push({ at, length }))
+
+		setState(countAtom, 1)
+		setState(countAtom, 2)
+		setState(countAtom, 3)
+		expect(inspectTimeline(countTimeline)).toEqual({ at: 2, length: 2 })
+		expect(updates.at(-1)).toEqual({ at: 2, length: 2 })
+
+		undo(countTimeline)
+		setState(countAtom, 4)
+		expect(inspectTimeline(countTimeline)).toEqual({ at: 2, length: 2 })
+		expect(updates.at(-1)).toEqual({ at: 2, length: 2 })
+		undo(countTimeline)
+		undo(countTimeline)
+		expect(getState(countAtom)).toBe(1)
+
+		clearTimeline(countTimeline)
+		setState(countAtom, 5)
+		setState(countAtom, 6)
+		setState(countAtom, 7)
+		expect(inspectTimeline(countTimeline)).toEqual({ at: 2, length: 2 })
+	})
+
+	test(`evicts selector and transaction checkpoints only as complete groups`, () => {
+		const aAtom = atom<number>({ key: `a`, default: 0 })
+		const bAtom = atom<number>({ key: `b`, default: 0 })
+		const pairSelector = selector<number>({
+			key: `pair`,
+			get: ({ get }) => get(aAtom),
+			set: ({ set }, value) => {
+				set(aAtom, value)
+				set(bAtom, value)
+			},
+		})
+		const setPairTransaction = transaction<(value: number) => void>({
+			key: `setPair`,
+			do: ({ set }, value) => {
+				set(aAtom, value)
+				set(bAtom, value)
+			},
+		})
+		const incrementPairTransaction = transaction<() => void>({
+			key: `incrementPair`,
+			do: ({ set }) => {
+				set(aAtom, (value) => value + 1)
+				set(bAtom, (value) => value + 1)
+			},
+		})
+		const incrementPairTwiceTransaction = transaction<() => void>({
+			key: `incrementPairTwice`,
+			do: ({ run }) => {
+				run(incrementPairTransaction)()
+				run(incrementPairTransaction)()
+			},
+		})
+		const pairTimeline = timeline({
+			key: `pair`,
+			scope: [aAtom, bAtom],
+			retention: { maxUndoSteps: 2, overflow: `drop-oldest` },
+		})
+
+		setState(pairSelector, 1)
+		runTransaction(setPairTransaction)(2)
+		runTransaction(incrementPairTwiceTransaction)()
+
+		expect(getState(aAtom)).toBe(4)
+		expect(getState(bAtom)).toBe(4)
+		expect(inspectTimeline(pairTimeline)).toEqual({ at: 2, length: 2 })
+		undo(pairTimeline)
+		expect(getState(aAtom)).toBe(2)
+		expect(getState(bAtom)).toBe(2)
+		undo(pairTimeline)
+		expect(getState(aAtom)).toBe(1)
+		expect(getState(bAtom)).toBe(1)
+		undo(pairTimeline)
+		expect(getState(aAtom)).toBe(1)
+		expect(getState(bAtom)).toBe(1)
+	})
+
+	test(`measures checkpoint groups instead of raw lifecycle events`, () => {
+		const countAtoms = atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+		})
+		const countA = findState(countAtoms, `a`)
+		const countB = findState(countAtoms, `b`)
+		getState(countA)
+		getState(countB)
+		const countHistoryTimeline = timeline({
+			key: `countHistory`,
+			scope: [countAtoms],
+			retention: { maxUndoSteps: 1, overflow: `drop-oldest` },
+		})
+
+		setState(countA, 1)
+		disposeState(countA)
+		setState(countB, 1)
+
+		expect(inspectTimeline(countHistoryTimeline)).toEqual({ at: 1, length: 1 })
+		undo(countHistoryTimeline)
+		expect(getState(countB)).toBe(0)
+		expect(stateExists(countA)).toBe(false)
+		undo(countHistoryTimeline)
+		expect(stateExists(countA)).toBe(false)
+	})
+
+	test(`enforces retention independently for timeline-family members`, () => {
+		const countAtoms = atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+		})
+		const countHistoryTimelines = timelineFamily<string>({
+			key: `countHistory`,
+			scope: [scopeFamily(countAtoms, { timelineKey: (key) => key })],
+			retention: { maxUndoSteps: 2, overflow: `drop-oldest` },
+		})
+		const historyA = findTimeline(countHistoryTimelines, `a`)
+		const historyB = findTimeline(countHistoryTimelines, `b`)
+		getState(countAtoms, `a`)
+		getState(countAtoms, `b`)
+		clearTimeline(historyA)
+		clearTimeline(historyB)
+
+		setState(countAtoms, `a`, 1)
+		setState(countAtoms, `a`, 2)
+		setState(countAtoms, `a`, 3)
+		setState(countAtoms, `b`, 1)
+
+		expect(inspectTimeline(historyA)).toEqual({ at: 2, length: 2 })
+		expect(inspectTimeline(historyB)).toEqual({ at: 1, length: 1 })
+		undo(historyA)
+		undo(historyA)
+		expect(getState(countAtoms, `a`)).toBe(1)
+		undo(historyB)
+		expect(getState(countAtoms, `b`)).toBe(0)
+
+		disposeTimeline(countHistoryTimelines, `a`)
+		const recreatedHistoryA = findTimeline(countHistoryTimelines, `a`)
+		setState(countAtoms, `a`, 4)
+		setState(countAtoms, `a`, 5)
+		setState(countAtoms, `a`, 6)
+		expect(inspectTimeline(recreatedHistoryA)).toEqual({ at: 2, length: 2 })
+		undo(recreatedHistoryA)
+		undo(recreatedHistoryA)
+		expect(getState(countAtoms, `a`)).toBe(4)
+	})
+
+	test(`keeps cross-timeline transaction controls coherent after eviction`, () => {
+		const countAtoms = atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+		})
+		const countHistoryTimelines = timelineFamily<string>({
+			key: `countHistory`,
+			scope: [scopeFamily(countAtoms, { timelineKey: (key) => key })],
+			retention: { maxUndoSteps: 1, overflow: `drop-oldest` },
+		})
+		const historyA = findTimeline(countHistoryTimelines, `a`)
+		const historyB = findTimeline(countHistoryTimelines, `b`)
+		getState(countAtoms, `a`)
+		getState(countAtoms, `b`)
+		clearTimeline(historyA)
+		clearTimeline(historyB)
+		const setBothTransaction = transaction<() => void>({
+			key: `setBoth`,
+			do: ({ set }) => {
+				set(countAtoms, `a`, 1)
+				set(countAtoms, `b`, 1)
+			},
+		})
+
+		runTransaction(setBothTransaction)()
+		setState(countAtoms, `a`, 2)
+		undoTransaction(setBothTransaction)
+
+		expect(getState(countAtoms, `a`)).toBe(2)
+		expect(getState(countAtoms, `b`)).toBe(0)
+		expect(inspectTimeline(historyA)).toEqual({ at: 1, length: 1 })
+		expect(inspectTimeline(historyB)).toEqual({ at: 0, length: 1 })
+		redoTransaction(setBothTransaction)
+		expect(getState(countAtoms, `a`)).toBe(2)
+		expect(getState(countAtoms, `b`)).toBe(1)
+	})
+})
+
 describe(`timeline state lifecycle`, () => {
 	test(`mutable members resubscribe after disposal is undone`, () => {
 		const itemAtoms = mutableAtomFamily<UList<string>, string>({
@@ -836,6 +1051,16 @@ describe(`timeline families`, () => {
 })
 
 describe(`errors`, () => {
+	test(`retention requires a non-negative safe integer`, () => {
+		const countAtom = atom<number>({ key: `count`, default: 0 })
+		expect(() =>
+			timeline({
+				key: `count`,
+				scope: [countAtom],
+				retention: { maxUndoSteps: -1, overflow: `drop-oldest` },
+			}),
+		).toThrow(`maxUndoSteps must be a non-negative safe integer.`)
+	})
 	test(`what if the timeline isn't initialized`, () => {
 		undo({ key: `my-timeline`, type: `timeline` })
 		expect(logger.error).toHaveBeenCalledTimes(1)

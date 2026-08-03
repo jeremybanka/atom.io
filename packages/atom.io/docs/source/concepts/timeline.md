@@ -37,6 +37,8 @@ users expect undo and redo.
 
 A timeline can declare `effects` that observe and safely collect its history.
 `onRecord` runs once for each complete logical update before that update settles.
+The record passed to each callback is deeply readonly, so an effect can inspect
+history without accidentally changing the timeline's stored event.
 Calling `cullUndoSteps` there retains at most the requested number of undo steps.
 The limit counts logical checkpoints rather than internal events, so a selector
 write, transaction, nested transaction, or multi-atom transaction is retained or

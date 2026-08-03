@@ -10,7 +10,6 @@ import type {
 	TimelineEvent,
 	TimelineManageable,
 	TimelineOptions,
-	TimelineRecordEvent,
 	TimelineToken,
 	TimelineUpdate,
 	TransactionOutcomeEvent,
@@ -33,6 +32,11 @@ import {
 	TIMELINE_TRANSACTION_GROUP,
 } from "./timeline-transaction-group.ts"
 
+type TimelineRecordCallback = (event: {
+	readonly type: `timeline_record`
+	readonly event: TimelineEvent<any>
+}) => void
+
 export type Timeline<ManagedAtom extends TimelineManageable> = {
 	type: `timeline`
 	key: string
@@ -42,7 +46,7 @@ export type Timeline<ManagedAtom extends TimelineManageable> = {
 	history: TimelineEvent<ManagedAtom>[]
 	selectorTime: number | null
 	transactionKey: string | null
-	onRecordCallbacks: Set<(event: TimelineRecordEvent<ManagedAtom>) => void>
+	onRecordCallbacks: Set<TimelineRecordCallback>
 	pendingRecord: TimelineEvent<ManagedAtom> | null
 	pendingUndoStepLimit: number | null
 	cleanup: (() => void) | null
@@ -542,10 +546,10 @@ function settleHistoryRecord(
 	if (tl.pendingRecord !== event) {
 		return
 	}
-	const recordEvent: TimelineRecordEvent<any> = {
+	const recordEvent = {
 		type: `timeline_record`,
 		event,
-	}
+	} as const
 	try {
 		for (const callback of tl.onRecordCallbacks) {
 			callback(recordEvent)
@@ -604,7 +608,7 @@ function installTimelineEffects<ManagedAtom extends TimelineManageable>(
 	for (const effect of effects) {
 		const cleanup = effect({
 			onRecord: (callback) => {
-				tl.onRecordCallbacks.add(callback)
+				tl.onRecordCallbacks.add(callback as TimelineRecordCallback)
 			},
 			cullUndoSteps: (limit) => {
 				validateCullLimit(limit)

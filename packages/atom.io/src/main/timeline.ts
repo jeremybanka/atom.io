@@ -34,12 +34,22 @@ export type TimelineInspection = {
 	length: number
 }
 
-/** A complete logical update that is about to settle in a timeline. */
+type DeepReadonly<T> = T extends (...parameters: any[]) => any
+	? T
+	: T extends ReadonlyMap<infer Key, infer Value>
+		? ReadonlyMap<DeepReadonly<Key>, DeepReadonly<Value>>
+		: T extends ReadonlySet<infer Value>
+			? ReadonlySet<DeepReadonly<Value>>
+			: T extends object
+				? { readonly [Key in keyof T]: DeepReadonly<T[Key]> }
+				: T
+
+/** A deeply readonly logical update that is about to settle in a timeline. */
 export type TimelineRecordEvent<
 	ManagedAtom extends TimelineManageable = TimelineManageable,
 > = {
-	type: `timeline_record`
-	event: TimelineEvent<ManagedAtom>
+	readonly type: `timeline_record`
+	readonly event: DeepReadonly<TimelineEvent<ManagedAtom>>
 }
 
 /** Safe history-collection tools supplied to a {@link TimelineEffect}. */

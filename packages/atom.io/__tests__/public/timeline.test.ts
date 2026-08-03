@@ -463,6 +463,32 @@ describe(`timeline`, () => {
 })
 
 describe(`timeline effects`, () => {
+	test(`exposes records as deeply readonly`, () => {
+		const documentAtom = atom<{
+			metadata: { author: string }
+			pages: string[]
+		}>({
+			key: `document`,
+			default: { metadata: { author: `John Doe` }, pages: [] },
+		})
+		const readonlyRecordEffect: TimelineEffect<typeof documentAtom> = ({
+			onRecord,
+		}) => {
+			onRecord((record) => {
+				// @ts-expect-error Timeline record events are readonly.
+				record.type = `timeline_record`
+				if (record.event.type === `atom_update`) {
+					// @ts-expect-error Nested record values are readonly.
+					record.event.update.newValue.metadata.author = `Jane Doe`
+					// @ts-expect-error Arrays nested in record values are readonly.
+					record.event.update.newValue.pages.push(`cover`)
+				}
+			})
+		}
+
+		expect(readonlyRecordEffect).toBeTypeOf(`function`)
+	})
+
 	test(`retains exactly the latest 100 undo steps`, () => {
 		const documentAtom = atom<number>({ key: `document`, default: 0 })
 		const documentTimeline = timeline({

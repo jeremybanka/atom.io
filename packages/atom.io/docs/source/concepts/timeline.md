@@ -54,10 +54,9 @@ removes history publishes a `timeline_cull` event whose `from` and `to` fields
 count logical undo steps. Culling during `onRecord` remains part of that record's
 single atomic timeline update.
 
-`cullAlternateHistories` is reserved for future branching timelines and currently
-has no effect. Timeline-family `effects` is a factory keyed like atom-family
-effects, so every member owns independent effect state and cleanup. Silo-bound
-timelines and timeline families use the same effect APIs.
+Timeline-family `effects` is a factory keyed like atom-family effects, so every
+member owns independent effect state and cleanup. Silo-bound timelines and
+timeline families use the same effect APIs.
 
 Recording after an undo removes the redo branch before effects settle the new
 update. Subscribers observe only the final cursor and length. `clearTimeline`

@@ -51,12 +51,6 @@ export type TimelineEffectors<
 	onRecord: (callback: (event: TimelineRecordEvent<ManagedAtom>) => void) => void
 	/** Retain at most this many complete undo steps. */
 	cullUndoSteps: (limit: number) => void
-	/**
-	 * Retain at most this many alternate histories.
-	 *
-	 * This is reserved for branching timelines and currently has no effect.
-	 */
-	cullAlternateHistories: (limit: number) => void
 	/** The token of the timeline. */
 	token: TimelineToken<ManagedAtom>
 	/** The store in which the timeline exists. */

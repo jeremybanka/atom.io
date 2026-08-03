@@ -347,6 +347,8 @@ Timelines allow you to track the history of a group of atoms. If these atoms are
 
 For long-lived editors, add a timeline effect that collects old undo history.
 `onRecord` observes each complete logical update before it settles, while
+exposing that update as deeply readonly data. This lets effects inspect records
+without accidentally changing the timeline's stored event.
 `cullUndoSteps` safely removes the oldest complete checkpoints. Selector writes and
 transactions are never split.
 

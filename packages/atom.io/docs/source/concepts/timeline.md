@@ -49,7 +49,10 @@ collected as one complete step.
 Without an effect, undo history is unlimited. Effects may also call
 `cullUndoSteps` at arbitrary times, subscribe to application-owned clocks or policy
 signals, and return cleanup for timeline disposal. Increasing a later limit does
-not restore history that has already been collected.
+not restore history that has already been collected. An arbitrary cull that
+removes history publishes a `timeline_cull` event whose `from` and `to` fields
+count logical undo steps. Culling during `onRecord` remains part of that record's
+single atomic timeline update.
 
 `cullAlternateHistories` is reserved for future branching timelines and currently
 has no effect. Timeline-family `effects` is a factory keyed like atom-family

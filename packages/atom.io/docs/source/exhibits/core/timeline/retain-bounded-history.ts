@@ -10,7 +10,9 @@ export const keepLatest100Steps: TimelineEffect = ({
 	cullUndoSteps,
 	onRecord,
 }) => {
-	onRecord(() => cullUndoSteps(100))
+	onRecord(() => {
+		cullUndoSteps(100)
+	})
 }
 
 export const documentTimeline = timeline({

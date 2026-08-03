@@ -222,7 +222,9 @@ describe(`silo`, () => {
 			effects: [
 				(tools) => {
 					expect(tools.store).toBe(Uno.store)
-					tools.onRecord(() => tools.cullUndoSteps(1))
+					tools.onRecord(() => {
+						tools.cullUndoSteps(1)
+					})
 				},
 			],
 		})

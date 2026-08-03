@@ -36,7 +36,9 @@ const { restore } = takeSnapshot()
 const cullUndoStepsOnRecord =
 	(limit: number): TimelineEffect<any> =>
 	({ cullUndoSteps, onRecord }) => {
-		onRecord(() => cullUndoSteps(limit))
+		onRecord(() => {
+			cullUndoSteps(limit)
+		})
 	}
 
 beforeEach(() => {
@@ -714,8 +716,12 @@ describe(`timeline effects`, () => {
 				createdEffects.push(key)
 				return [
 					({ cullUndoSteps, onRecord }) => {
-						onRecord(() => cullUndoSteps(2))
-						return () => cleanedEffects.push(key)
+						onRecord(() => {
+							cullUndoSteps(2)
+						})
+						return () => {
+							cleanedEffects.push(key)
+						}
 					},
 				]
 			},
@@ -1178,7 +1184,11 @@ describe(`errors`, () => {
 			timeline({
 				key: `count`,
 				scope: [countAtom],
-				effects: [({ cullUndoSteps }) => cullUndoSteps(-1)],
+				effects: [
+					({ cullUndoSteps }) => {
+						cullUndoSteps(-1)
+					},
+				],
 			}),
 		).toThrow(`A timeline cull limit must be a non-negative safe integer.`)
 	})

@@ -5,5 +5,5 @@ Repo notes:
 - Always use exhibits when including inline code examples in docs.
 - Docs changes deserve a changeset because the published `atom.io` package ships
   the docs.
-- Although `atom.io` is above version 1.0.0, only breaking changes receive a
-  minor release.
+- For all workspace packages, even those above version 1.0.0, only breaking
+  changes receive a minor release.

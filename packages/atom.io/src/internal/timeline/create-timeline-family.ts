@@ -225,7 +225,13 @@ export function createTimelineFamilyMember<
 	const identity = timelineMemberIdentity(family.key, key)
 	const token = createTimeline<M>(
 		store,
-		{ key: identity.key, scope: [] },
+		{
+			key: identity.key,
+			scope: [],
+			...(family.options.effects
+				? { effects: family.options.effects(key) }
+				: {}),
+		},
 		data,
 		identity.family,
 	) as TimelineToken<M, Key>

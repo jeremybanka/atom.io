@@ -1,4 +1,6 @@
 import type { Canonical } from "atom.io/foundations/canonical"
+import type { DeepReadonly } from "atom.io/foundations/type-utils"
+import type { Store } from "atom.io/internal"
 import {
 	clearTimelineInStore,
 	createTimeline,
@@ -13,6 +15,7 @@ import {
 import type {
 	AtomFamilyToken,
 	AtomToken,
+	TimelineEvent,
 	TimelineFamilyToken,
 	TimelineToken,
 } from "."
@@ -31,6 +34,33 @@ export type TimelineInspection = {
 	at: number
 	length: number
 }
+
+/** A deeply readonly logical update that is about to settle in a timeline. */
+export type TimelineRecordEvent<
+	ManagedAtom extends TimelineManageable = TimelineManageable,
+> = {
+	readonly type: `timeline_record`
+	readonly event: DeepReadonly<TimelineEvent<ManagedAtom>>
+}
+
+/** Safe history-collection tools supplied to a {@link TimelineEffect}. */
+export type TimelineEffectors<
+	ManagedAtom extends TimelineManageable = TimelineManageable,
+> = {
+	/** Observe complete logical updates before they settle in the timeline. */
+	onRecord: (callback: (event: TimelineRecordEvent<ManagedAtom>) => void) => void
+	/** Retain at most this many complete undo steps. */
+	cullUndoSteps: (limit: number) => void
+	/** The token of the timeline. */
+	token: TimelineToken<ManagedAtom>
+	/** The store in which the timeline exists. */
+	store: Store
+}
+
+/** A lifecycle hook that observes and safely collects timeline history. */
+export type TimelineEffect<
+	ManagedAtom extends TimelineManageable = TimelineManageable,
+> = (tools: TimelineEffectors<ManagedAtom>) => void | (() => void)
 
 /**
  * Describes how one atom family is divided among the members of a timeline family.
@@ -66,6 +96,8 @@ export type TimelineFamilyOptions<
 	key: string
 	/** Atom families partitioned among the timeline-family members. */
 	scope: readonly Scope[]
+	/** Creates lifecycle hooks for each timeline-family member. */
+	effects?: (key: TimelineKey) => readonly TimelineEffect<Scope[`family`]>[]
 }
 
 /**
@@ -247,6 +279,8 @@ export type TimelineOptions<ManagedAtom extends TimelineManageable> = {
 	key: string
 	/** The managed atoms (and families of atoms) to record */
 	scope: ManagedAtom[]
+	/** Hooks that observe and safely collect timeline history. */
+	effects?: readonly TimelineEffect<ManagedAtom>[]
 }
 
 /**

@@ -1,6 +1,11 @@
 import type { TransactionOutcomeEvent } from "atom.io"
 
 import type { Store } from "../store/index.ts"
+import {
+	beginTransactionNotificationBatch,
+	cancelTransactionNotificationBatch,
+	flushTransactionNotificationBatch,
+} from "../transaction/transaction-notification-batch.ts"
 import { ingestAtomUpdateEvent } from "./ingest-atom-update.ts"
 import {
 	ingestCreationEvent,
@@ -11,6 +16,21 @@ import {
 } from "./ingest-creation-disposal.ts"
 
 export function ingestTransactionOutcomeEvent(
+	store: Store,
+	event: TransactionOutcomeEvent<any>,
+	applying: `newValue` | `oldValue`,
+): void {
+	const ownsNotificationBatch = beginTransactionNotificationBatch(store)
+	try {
+		ingestTransactionSubEvents(store, event, applying)
+	} catch (error) {
+		if (ownsNotificationBatch) cancelTransactionNotificationBatch(store)
+		throw error
+	}
+	if (ownsNotificationBatch) flushTransactionNotificationBatch(store)
+}
+
+function ingestTransactionSubEvents(
 	store: Store,
 	event: TransactionOutcomeEvent<any>,
 	applying: `newValue` | `oldValue`,

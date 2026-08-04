@@ -94,11 +94,8 @@ describe(`transaction implementation specifics`, () => {
 		subscribe(expressionSelector, Utils.stdout)
 
 		runTransaction(modifyExpressionTransaction)(`3 children`)
-		// 2 atoms were set, therefore 2 updates were made to the selector
-		// this is a "playback" strategy, where the entire transaction is
-		// captured, one atom at a time. An all-at-once strategy can be
-		// more performant in some cases, so it may be added in the future.
-		expect(Utils.stdout).toHaveBeenCalledTimes(2)
+		// Both atom values settle before the selector recomputes.
+		expect(Utils.stdout).toHaveBeenCalledTimes(1)
 		expect(getState(countAtom)).toEqual(3)
 		expect(getState(pluralSelector)).toEqual(`children`)
 		expect(getState(nounAtom)).toEqual(`child`)
@@ -117,7 +114,7 @@ describe(`transaction implementation specifics`, () => {
 			)
 		}
 		// the transaction failed, so no updates were made
-		expect(Utils.stdout).toHaveBeenCalledTimes(2)
+		expect(Utils.stdout).toHaveBeenCalledTimes(1)
 		expect(getState(countAtom)).toEqual(3)
 		expect(getState(pluralSelector)).toEqual(`children`)
 		expect(getState(nounAtom)).toEqual(`child`)

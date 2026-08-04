@@ -1,4 +1,4 @@
-import type { TransactionOutcomeEvent } from "atom.io"
+import type { TransactionOutcomeEvent, TransactionToken } from "atom.io"
 import {
 	atom,
 	getState,
@@ -17,10 +17,12 @@ import { vitest } from "vitest"
 
 const { restore } = takeSnapshot()
 
+type ReplayOutcome = TransactionOutcomeEvent<TransactionToken<() => void>>
+
 function replayOutcome(
-	token: TransactionOutcomeEvent<any>[`token`],
-	subEvents: TransactionOutcomeEvent<any>[`subEvents`],
-): TransactionOutcomeEvent<any> {
+	token: ReplayOutcome[`token`],
+	subEvents: ReplayOutcome[`subEvents`],
+): ReplayOutcome {
 	return {
 		type: `transaction_outcome`,
 		token,

@@ -302,4 +302,81 @@ describe(`atomic transaction commits`, () => {
 		expect(updates).toHaveBeenCalledOnce()
 		expect(updates).toHaveBeenCalledWith({ newValue: 2 })
 	})
+
+	it(`finishes commit publication before rethrowing an observer error`, () => {
+		const aAtom = atom<number>({ key: `a`, default: 0 })
+		const bAtom = atom<number>({ key: `b`, default: 0 })
+		const sumSelector = selector<number>({
+			key: `sum`,
+			get: ({ get }) => get(aAtom) + get(bAtom),
+		})
+		const updateTransaction = transaction<() => void>({
+			key: `update`,
+			do: ({ set }) => {
+				set(aAtom, 1)
+				set(bAtom, 2)
+			},
+		})
+		const observerError = new Error(`observer failed`)
+		const survivingAtomObserver = vitest.fn()
+		const selectorObserver = vitest.fn()
+		const transactionObserver = vitest.fn()
+
+		subscribe(aAtom, () => {
+			throw observerError
+		})
+		subscribe(aAtom, survivingAtomObserver)
+		subscribe(sumSelector, selectorObserver)
+		subscribe(updateTransaction, transactionObserver)
+
+		let caught: unknown
+		try {
+			runTransaction(updateTransaction)()
+		} catch (error) {
+			caught = error
+		}
+
+		expect(caught).toBe(observerError)
+		expect([getState(aAtom), getState(bAtom)]).toEqual([1, 2])
+		expect(survivingAtomObserver).toHaveBeenCalledOnce()
+		expect(selectorObserver).toHaveBeenCalledWith({ oldValue: 0, newValue: 3 })
+		expect(transactionObserver).toHaveBeenCalledOnce()
+	})
+
+	it(`aggregates observer errors after commit publication`, () => {
+		const aAtom = atom<number>({ key: `a`, default: 0 })
+		const bAtom = atom<number>({ key: `b`, default: 0 })
+		const updateTransaction = transaction<() => void>({
+			key: `update`,
+			do: ({ set }) => {
+				set(aAtom, 1)
+				set(bAtom, 2)
+			},
+		})
+		const firstError = new Error(`first observer failed`)
+		const secondError = new Error(`second observer failed`)
+		const transactionObserver = vitest.fn()
+
+		subscribe(aAtom, () => {
+			throw firstError
+		})
+		subscribe(bAtom, () => {
+			throw secondError
+		})
+		subscribe(updateTransaction, transactionObserver)
+
+		let caught: unknown
+		try {
+			runTransaction(updateTransaction)()
+		} catch (error) {
+			caught = error
+		}
+
+		expect(caught).toBeInstanceOf(AggregateError)
+		if (caught instanceof AggregateError) {
+			expect(caught.errors).toEqual([firstError, secondError])
+		}
+		expect([getState(aAtom), getState(bAtom)]).toEqual([1, 2])
+		expect(transactionObserver).toHaveBeenCalledOnce()
+	})
 })

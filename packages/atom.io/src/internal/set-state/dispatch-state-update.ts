@@ -23,7 +23,10 @@ import type {
 } from "../state-types.ts"
 import { deposit, type Store } from "../store/index.ts"
 import { isChildStore, isRootStore } from "../transaction/index.ts"
-import { deferTransactionStateNotification } from "../transaction/transaction-notification-batch.ts"
+import {
+	deferTransactionStateNotification,
+	notifyTransactionSubject,
+} from "../transaction/transaction-notification-batch.ts"
 import { evictDownstreamFromAtom } from "./evict-downstream.ts"
 import type { ProtoUpdate } from "./operate-on-store.ts"
 
@@ -123,7 +126,7 @@ export function dispatchOrDeferStateUpdate<T, E>(
 			!notificationCanSettle ||
 			!deferTransactionStateNotification(target, key, subject, update)
 		) {
-			subject.next(update)
+			notifyTransactionSubject(target, subject, update)
 		}
 	}
 

@@ -19,6 +19,7 @@ const transactionNotificationBatches = new WeakMap<
 	Store,
 	TransactionNotificationBatch
 >()
+const transactionNotificationErrors = new WeakMap<Store, unknown[]>()
 
 export function beginTransactionNotificationBatch(store: Store): boolean {
 	if (transactionNotificationBatches.has(store)) return false
@@ -28,6 +29,7 @@ export function beginTransactionNotificationBatch(store: Store): boolean {
 		selectorNotifications: new Map(),
 		stateNotifications: new Map(),
 	})
+	transactionNotificationErrors.set(store, [])
 	return true
 }
 
@@ -88,23 +90,70 @@ export function recallTransactionPreviousValue(
 		: { found: false, value: undefined }
 }
 
-export function flushTransactionNotificationBatch(store: Store): void {
+export function notifyTransactionSubject<T>(
+	store: Store,
+	subject: Subject<T>,
+	value: T,
+): void {
+	const errors = transactionNotificationErrors.get(store)
+	if (!errors) {
+		subject.next(value)
+		return
+	}
+	notifySubjectAndCollectErrors(subject, value, errors)
+}
+
+export function notifySubjectAndCollectErrors<T>(
+	subject: Subject<T>,
+	value: T,
+	errors: unknown[],
+): void {
+	for (const subscriber of subject.subscribers.values()) {
+		try {
+			subscriber(value)
+		} catch (error) {
+			errors.push(error)
+		}
+	}
+}
+
+export function throwCollectedNotificationErrors(errors: unknown[]): void {
+	if (errors.length === 1) throw errors[0]
+	if (errors.length > 1) {
+		throw new AggregateError(
+			errors,
+			`Transaction committed, but multiple observers threw.`,
+		)
+	}
+}
+
+export function flushTransactionNotificationBatch(store: Store): unknown[] {
 	const batch = transactionNotificationBatches.get(store)
-	if (!batch) return
+	const errors = transactionNotificationErrors.get(store) ?? []
+	if (!batch) return errors
 
 	try {
 		batch.phase = `state`
 		for (const { subject, update } of batch.stateNotifications.values()) {
-			subject.next(update)
+			notifyTransactionSubject(store, subject, update)
 		}
 
 		batch.phase = `selector`
-		for (const notify of batch.selectorNotifications.values()) notify()
+		for (const notify of batch.selectorNotifications.values()) {
+			try {
+				notify()
+			} catch (error) {
+				errors.push(error)
+			}
+		}
 	} finally {
 		transactionNotificationBatches.delete(store)
+		transactionNotificationErrors.delete(store)
 	}
+	return errors
 }
 
 export function cancelTransactionNotificationBatch(store: Store): void {
 	transactionNotificationBatches.delete(store)
+	transactionNotificationErrors.delete(store)
 }

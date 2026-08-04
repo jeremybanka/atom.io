@@ -184,12 +184,9 @@ describe(`transaction`, () => {
 		expect(getState(count1Atom)).toEqual(3)
 		expect(Utils.stdout2).toHaveBeenCalledWith(`Selector update:`, {
 			oldValue: 4,
-			newValue: 5,
-		})
-		expect(Utils.stdout2).toHaveBeenCalledWith(`Selector update:`, {
-			oldValue: 5,
 			newValue: 6,
 		})
+		expect(Utils.stdout2).toHaveBeenCalledOnce()
 		expect(Utils.stdout0).toHaveBeenCalledWith(
 			`Transaction update:`,
 			expect.objectContaining({

@@ -10,6 +10,7 @@ import {
 import type { PureSelector, ReadableState } from "./state-types.ts"
 import type { Store } from "./store/index.ts"
 import { isChildStore } from "./transaction/index.ts"
+import { retainTransactionPreviousValue } from "./transaction/transaction-notification-batch.ts"
 
 export function writeToCache<T, E>(
 	target: Store,
@@ -122,6 +123,7 @@ export function evictCachedValue(target: Store, key: string): void {
 	if (target.operation.open) {
 		target.operation.prev.set(key, currentValue)
 	}
+	retainTransactionPreviousValue(target, key, currentValue)
 	target.valueMap.delete(key)
 	target.logger.info(`🗑`, `state`, key, `evicted`)
 }

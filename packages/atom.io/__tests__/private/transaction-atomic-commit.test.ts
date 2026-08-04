@@ -5,15 +5,31 @@ import {
 	inspectTimeline,
 	runTransaction,
 	selector,
+	setState,
 	subscribe,
 	timeline,
 	transaction,
 	undo,
 } from "atom.io"
+import * as Internal from "atom.io/internal"
 import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 import { vitest } from "vitest"
 
 const { restore } = takeSnapshot()
+
+function replayOutcome(
+	token: TransactionOutcomeEvent<any>[`token`],
+	subEvents: TransactionOutcomeEvent<any>[`subEvents`],
+): TransactionOutcomeEvent<any> {
+	return {
+		type: `transaction_outcome`,
+		token,
+		id: `replay`,
+		epoch: 1,
+		timestamp: 0,
+		subEvents,
+	}
+}
 
 beforeEach(() => {
 	restore()
@@ -206,5 +222,80 @@ describe(`atomic transaction commits`, () => {
 
 		expect(getState(aAtom)).toBe(0)
 		expect(subscriber).not.toHaveBeenCalled()
+	})
+
+	it(`cancels deferred notifications when replay fails`, () => {
+		const countAtom = atom<number>({ key: `count`, default: 0 })
+		const replayTransaction = transaction<() => void>({
+			key: `replay`,
+			do: () => {},
+		})
+		const updates = vitest.fn()
+		subscribe(countAtom, updates)
+		const stopThrowing = Internal.IMPLICIT.STORE.on.moleculeCreation.subscribe(
+			`throw-on-creation`,
+			() => {
+				throw new Error(`replay failed`)
+			},
+		)
+
+		expect(() => {
+			Internal.ingestTransactionOutcomeEvent(
+				Internal.IMPLICIT.STORE,
+				replayOutcome(replayTransaction, [
+					{
+						type: `atom_update`,
+						token: countAtom,
+						update: { oldValue: 0, newValue: 1 },
+						timestamp: 0,
+					},
+					{
+						type: `molecule_creation`,
+						key: `failed-child`,
+						provenance: `missing-parent`,
+						timestamp: 0,
+					},
+				]),
+				`newValue`,
+			)
+		}).toThrow(`replay failed`)
+		stopThrowing()
+
+		expect(updates).not.toHaveBeenCalled()
+		setState(countAtom, 2)
+		expect(updates).toHaveBeenCalledOnce()
+		expect(updates).toHaveBeenCalledWith({ oldValue: 1, newValue: 2 })
+	})
+
+	it(`does not promote an intermediate value to the original value`, () => {
+		const countAtom = atom<number>({ key: `count`, default: () => 0 })
+		const replayTransaction = transaction<() => void>({
+			key: `replay`,
+			do: () => {},
+		})
+		const updates = vitest.fn()
+		subscribe(countAtom, updates)
+
+		Internal.ingestTransactionOutcomeEvent(
+			Internal.IMPLICIT.STORE,
+			replayOutcome(replayTransaction, [
+				{
+					type: `atom_update`,
+					token: countAtom,
+					update: { oldValue: 0, newValue: 1 },
+					timestamp: 0,
+				},
+				{
+					type: `atom_update`,
+					token: countAtom,
+					update: { oldValue: 1, newValue: 2 },
+					timestamp: 0,
+				},
+			]),
+			`newValue`,
+		)
+
+		expect(updates).toHaveBeenCalledOnce()
+		expect(updates).toHaveBeenCalledWith({ newValue: 2 })
 	})
 })

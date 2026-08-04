@@ -9,6 +9,7 @@ import {
 	selector,
 	selectorFamily,
 	setState,
+	Silo,
 	subscribe,
 	transaction,
 } from "atom.io"
@@ -110,6 +111,34 @@ describe(`transaction`, () => {
 		})
 		runTransaction(add_count_plus_some_valueTransaction)(777)
 		expect(getState(findState(countPlusSomeValueSelectors, 777))).toEqual(778)
+	})
+	it(`reads a fresh selector-family member through a selector`, () => {
+		const silo = new Silo({
+			name: `fresh-family-selector-transaction`,
+			lifespan: `ephemeral`,
+			isProduction: false,
+		})
+		const valuesAtoms = silo.atomFamily<number, string>({
+			key: `values`,
+			default: 1,
+		})
+		const doubledSelectors = silo.selectorFamily<number, string>({
+			key: `doubled`,
+			get:
+				(key) =>
+				({ get }) =>
+					get(valuesAtoms, key) * 2,
+		})
+		const documentSelector = silo.selector<number>({
+			key: `document`,
+			get: ({ get }) => get(doubledSelectors, `fresh`),
+		})
+		const readDocumentTransaction = silo.transaction<() => number>({
+			key: `readDocument`,
+			do: ({ get }) => get(documentSelector),
+		})
+
+		expect(silo.runTransaction(readDocumentTransaction)()).toBe(2)
 	})
 	it(`disposes of states in a transaction`, () => {
 		const countAtoms = atomFamily<number, string>({

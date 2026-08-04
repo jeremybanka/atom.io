@@ -9,6 +9,8 @@ import {
 	beginTransactionNotificationBatch,
 	cancelTransactionNotificationBatch,
 	flushTransactionNotificationBatch,
+	notifySubjectAndCollectErrors,
+	throwCollectedNotificationErrors,
 } from "./transaction-notification-batch.ts"
 
 export function applyTransaction<F extends Fn>(
@@ -34,6 +36,7 @@ export function applyTransaction<F extends Fn>(
 	const rootCommit = isRootStore(parent)
 	const ownsNotificationBatch =
 		rootCommit && beginTransactionNotificationBatch(parent)
+	const notificationErrors: unknown[] = []
 	try {
 		ingestTransactionOutcomeEvent(
 			parent,
@@ -47,12 +50,20 @@ export function applyTransaction<F extends Fn>(
 				child.transactionMeta.update.token.key,
 				child.transactionMeta.update.epoch,
 			)
-			if (ownsNotificationBatch) flushTransactionNotificationBatch(parent)
+			if (ownsNotificationBatch) {
+				notificationErrors.push(...flushTransactionNotificationBatch(parent))
+			}
 			const myTransaction = withdraw<Fn>(store, {
 				key: child.transactionMeta.update.token.key,
 				type: `transaction`,
 			})
-			myTransaction?.subject.next(child.transactionMeta.update)
+			if (myTransaction) {
+				notifySubjectAndCollectErrors(
+					myTransaction.subject,
+					child.transactionMeta.update,
+					notificationErrors,
+				)
+			}
 			store.logger.info(
 				`🛬`,
 				`transaction`,
@@ -66,4 +77,5 @@ export function applyTransaction<F extends Fn>(
 		if (ownsNotificationBatch) cancelTransactionNotificationBatch(parent)
 		parent.on.transactionApplying.next(null)
 	}
+	throwCollectedNotificationErrors(notificationErrors)
 }

@@ -5,6 +5,7 @@ import {
 	beginTransactionNotificationBatch,
 	cancelTransactionNotificationBatch,
 	flushTransactionNotificationBatch,
+	throwCollectedNotificationErrors,
 } from "../transaction/transaction-notification-batch.ts"
 import { ingestAtomUpdateEvent } from "./ingest-atom-update.ts"
 import {
@@ -27,7 +28,10 @@ export function ingestTransactionOutcomeEvent<T extends TransactionToken<any>>(
 		if (ownsNotificationBatch) cancelTransactionNotificationBatch(store)
 		throw error
 	}
-	if (ownsNotificationBatch) flushTransactionNotificationBatch(store)
+	if (ownsNotificationBatch) {
+		const errors = flushTransactionNotificationBatch(store)
+		throwCollectedNotificationErrors(errors)
+	}
 }
 
 function ingestTransactionSubEvents(

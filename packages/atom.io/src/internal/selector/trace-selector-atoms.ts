@@ -1,4 +1,4 @@
-import { isAtomKey } from "../keys.ts"
+import { newest } from "../lineage.ts"
 import type { Atom } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
 import { getSelectorDependencyKeys } from "./get-selector-dependency-keys.ts"
@@ -8,9 +8,10 @@ export function traceRootSelectorAtoms(
 	selectorKey: string,
 	covered: Set<string> = new Set<string>(),
 ): Map<string, Atom<any, any>> {
-	const dependencies = getSelectorDependencyKeys(store, selectorKey)
+	const target = newest(store)
+	const dependencies = getSelectorDependencyKeys(target, selectorKey)
 
-	const roots = new Map<string, Atom<unknown, unknown>>()
+	const roots = new Map<string, Atom<any, any>>()
 
 	while (dependencies.length > 0) {
 		const dependencyKey = dependencies.pop()!
@@ -18,11 +19,11 @@ export function traceRootSelectorAtoms(
 			continue
 		}
 		covered.add(dependencyKey)
-		if (isAtomKey(store, dependencyKey)) {
-			const atom = store.atoms.get(dependencyKey) as Atom<unknown, unknown>
+		const atom = target.atoms.get(dependencyKey)
+		if (atom) {
 			roots.set(atom.key, atom)
 		} else {
-			dependencies.push(...getSelectorDependencyKeys(store, dependencyKey))
+			dependencies.push(...getSelectorDependencyKeys(target, dependencyKey))
 		}
 	}
 	return roots

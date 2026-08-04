@@ -1,5 +1,11 @@
 # atom.io
 
+## 0.51.1
+
+### Patch Changes
+
+- d0f4f58: Fix transactions crashing when selectors lazily materialize nested selector-family dependencies.
+
 ## 0.51.0
 
 ### Minor Changes

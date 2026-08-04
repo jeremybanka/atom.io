@@ -5,6 +5,13 @@ import type { Fn } from "../utility-types.ts"
 import type { ChildStore } from "./is-root-store.ts"
 import { isChildStore, isRootStore } from "./is-root-store.ts"
 import { setEpochNumberOfAction } from "./set-epoch-number.ts"
+import {
+	beginTransactionNotificationBatch,
+	cancelTransactionNotificationBatch,
+	flushTransactionNotificationBatch,
+	notifySubjectAndCollectErrors,
+	throwCollectedNotificationErrors,
+} from "./transaction-notification-batch.ts"
 
 export function applyTransaction<F extends Fn>(
 	store: ChildStore,
@@ -26,27 +33,49 @@ export function applyTransaction<F extends Fn>(
 		updates,
 	)
 
-	ingestTransactionOutcomeEvent(parent, child.transactionMeta.update, `newValue`)
-
-	if (isRootStore(parent)) {
-		setEpochNumberOfAction(
+	const rootCommit = isRootStore(parent)
+	const ownsNotificationBatch =
+		rootCommit && beginTransactionNotificationBatch(parent)
+	const notificationErrors: unknown[] = []
+	try {
+		ingestTransactionOutcomeEvent(
 			parent,
-			child.transactionMeta.update.token.key,
-			child.transactionMeta.update.epoch,
+			child.transactionMeta.update,
+			`newValue`,
 		)
-		const myTransaction = withdraw<Fn>(store, {
-			key: child.transactionMeta.update.token.key,
-			type: `transaction`,
-		})
-		myTransaction?.subject.next(child.transactionMeta.update)
-		store.logger.info(
-			`🛬`,
-			`transaction`,
-			child.transactionMeta.update.token.key,
-			`applied`,
-		)
-	} else if (isChildStore(parent)) {
-		parent.transactionMeta.update.subEvents.push(child.transactionMeta.update)
+
+		if (rootCommit) {
+			setEpochNumberOfAction(
+				parent,
+				child.transactionMeta.update.token.key,
+				child.transactionMeta.update.epoch,
+			)
+			if (ownsNotificationBatch) {
+				notificationErrors.push(...flushTransactionNotificationBatch(parent))
+			}
+			const myTransaction = withdraw<Fn>(store, {
+				key: child.transactionMeta.update.token.key,
+				type: `transaction`,
+			})
+			if (myTransaction) {
+				notifySubjectAndCollectErrors(
+					myTransaction.subject,
+					child.transactionMeta.update,
+					notificationErrors,
+				)
+			}
+			store.logger.info(
+				`🛬`,
+				`transaction`,
+				child.transactionMeta.update.token.key,
+				`applied`,
+			)
+		} else if (isChildStore(parent)) {
+			parent.transactionMeta.update.subEvents.push(child.transactionMeta.update)
+		}
+	} finally {
+		if (ownsNotificationBatch) cancelTransactionNotificationBatch(parent)
+		parent.on.transactionApplying.next(null)
 	}
-	parent.on.transactionApplying.next(null)
+	throwCollectedNotificationErrors(notificationErrors)
 }

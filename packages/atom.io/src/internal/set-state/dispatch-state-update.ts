@@ -23,6 +23,10 @@ import type {
 } from "../state-types.ts"
 import { deposit, type Store } from "../store/index.ts"
 import { isChildStore, isRootStore } from "../transaction/index.ts"
+import {
+	deferTransactionStateNotification,
+	notifyTransactionSubject,
+} from "../transaction/transaction-notification-batch.ts"
 import { evictDownstreamFromAtom } from "./evict-downstream.ts"
 import type { ProtoUpdate } from "./operate-on-store.ts"
 
@@ -115,7 +119,15 @@ export function dispatchOrDeferStateUpdate<T, E>(
 					subject.subscribers.keys(),
 				)
 		}
-		subject.next(update)
+		const notificationCanSettle =
+			type !== `mutable_atom` &&
+			(type !== `atom` || !hasRole(state, `tracker:signal`))
+		if (
+			!notificationCanSettle ||
+			!deferTransactionStateNotification(target, key, subject, update)
+		) {
+			notifyTransactionSubject(target, subject, update)
+		}
 	}
 
 	if (isChildStore(target) && (type === `mutable_atom` || type === `atom`)) {

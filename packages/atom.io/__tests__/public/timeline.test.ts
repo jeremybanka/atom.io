@@ -959,6 +959,51 @@ describe(`timeline state lifecycle`, () => {
 })
 
 describe(`timeline families`, () => {
+	test(`keeps grouped transaction replay behind one notification boundary`, () => {
+		const countAtoms = atomFamily<number, string>({
+			key: `count`,
+			default: 0,
+		})
+		const countHistoryTimelines = timelineFamily<string>({
+			key: `countHistory`,
+			scope: [scopeFamily(countAtoms, { timelineKey: (key) => key })],
+		})
+		const countA = findState(countAtoms, `a`)
+		const countB = findState(countAtoms, `b`)
+		const historyA = findTimeline(countHistoryTimelines, `a`)
+		const historyB = findTimeline(countHistoryTimelines, `b`)
+		getState(countA)
+		getState(countB)
+		clearTimeline(historyA)
+		clearTimeline(historyB)
+		const setBothCountsTransaction = transaction<() => void>({
+			key: `setBothCounts`,
+			do: ({ set }) => {
+				set(countA, 1)
+				set(countB, 1)
+			},
+		})
+
+		runTransaction(setBothCountsTransaction)()
+		const snapshots: number[][] = []
+		const observe = () => snapshots.push([getState(countA), getState(countB)])
+		subscribe(countA, observe)
+		subscribe(countB, observe)
+
+		undoTransaction(setBothCountsTransaction)
+		expect(snapshots).toEqual([
+			[0, 0],
+			[0, 0],
+		])
+
+		snapshots.length = 0
+		redoTransaction(setBothCountsTransaction)
+		expect(snapshots).toEqual([
+			[1, 1],
+			[1, 1],
+		])
+	})
+
 	test(`coordinates transaction undo across timeline members`, () => {
 		const countAtoms = atomFamily<number, string>({
 			key: `count`,

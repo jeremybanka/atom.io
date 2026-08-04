@@ -1,5 +1,11 @@
 # atom.io
 
+## 0.51.0
+
+### Minor Changes
+
+- 1c97682: Make successful transaction commits expose one settled snapshot to ordinary atom and selector subscribers.
+
 ## 0.50.3
 
 ### Patch Changes

@@ -20,6 +20,10 @@ const transactionNotificationBatches = new WeakMap<
 	TransactionNotificationBatch
 >()
 const transactionNotificationErrors = new WeakMap<Store, unknown[]>()
+const transactionFutureRecomputations = new WeakMap<
+	Store,
+	Map<string, () => void>
+>()
 
 export function beginTransactionNotificationBatch(store: Store): boolean {
 	if (transactionNotificationBatches.has(store)) return false
@@ -30,6 +34,7 @@ export function beginTransactionNotificationBatch(store: Store): boolean {
 		stateNotifications: new Map(),
 	})
 	transactionNotificationErrors.set(store, [])
+	transactionFutureRecomputations.set(store, new Map())
 	return true
 }
 
@@ -64,6 +69,17 @@ export function deferTransactionSelectorNotification(
 	const batch = transactionNotificationBatches.get(store)
 	if (batch?.phase !== `state`) return false
 	batch.selectorNotifications.set(selectorKey, notify)
+	return true
+}
+
+export function deferTransactionFutureRecomputation(
+	store: Store,
+	selectorKey: string,
+	recompute: () => void,
+): boolean {
+	const batch = transactionNotificationBatches.get(store)
+	if (batch?.phase !== `collecting`) return false
+	transactionFutureRecomputations.get(store)?.set(selectorKey, recompute)
 	return true
 }
 
@@ -133,6 +149,15 @@ export function flushTransactionNotificationBatch(store: Store): unknown[] {
 	if (!batch) return errors
 
 	try {
+		for (const recompute of transactionFutureRecomputations
+			.get(store)
+			?.values() ?? []) {
+			try {
+				recompute()
+			} catch (error) {
+				errors.push(error)
+			}
+		}
 		batch.phase = `state`
 		for (const { subject, update } of batch.stateNotifications.values()) {
 			notifyTransactionSubject(store, subject, update)
@@ -149,6 +174,7 @@ export function flushTransactionNotificationBatch(store: Store): unknown[] {
 	} finally {
 		transactionNotificationBatches.delete(store)
 		transactionNotificationErrors.delete(store)
+		transactionFutureRecomputations.delete(store)
 	}
 	return errors
 }
@@ -156,4 +182,5 @@ export function flushTransactionNotificationBatch(store: Store): unknown[] {
 export function cancelTransactionNotificationBatch(store: Store): void {
 	transactionNotificationBatches.delete(store)
 	transactionNotificationErrors.delete(store)
+	transactionFutureRecomputations.delete(store)
 }

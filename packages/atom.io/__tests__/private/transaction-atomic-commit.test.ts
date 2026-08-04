@@ -28,6 +28,8 @@ function replayOutcome(
 		epoch: 1,
 		timestamp: 0,
 		subEvents,
+		params: [],
+		output: undefined,
 	}
 }
 

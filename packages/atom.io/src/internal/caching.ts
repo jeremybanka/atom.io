@@ -10,6 +10,10 @@ import {
 import type { PureSelector, ReadableState } from "./state-types.ts"
 import type { Store } from "./store/index.ts"
 import { isChildStore } from "./transaction/index.ts"
+import {
+	deferTransactionFutureRecomputation,
+	retainTransactionPreviousValue,
+} from "./transaction/transaction-notification-batch.ts"
 
 export function writeToCache<T, E>(
 	target: Store,
@@ -111,17 +115,30 @@ export function readFromCache<T, E>(
 export function evictCachedValue(target: Store, key: string): void {
 	const currentValue = target.valueMap.get(key)
 	if (currentValue instanceof Future) {
+		if (isChildStore(target) && !target.valueMap.hasOwn(key)) {
+			if (target.operation.open) {
+				target.operation.prev.set(key, currentValue)
+			}
+			target.valueMap.delete(key)
+			target.logger.info(`🗑`, `state`, key, `evicted from child store`)
+			return
+		}
 		const readonly = target.readonlySelectors.get(key)
 		const writable = target.writableSelectors.get(key)
 		const selector = readonly ?? writable
-		const recomputed = safeCompute(target, selector as PureSelector<any, any>)
-		// This is needed for certain edge cases where a loadable selector is downstream of another loadable selector
-		currentValue.use(recomputed)
+		const recompute = () => {
+			const recomputed = safeCompute(target, selector as PureSelector<any, any>)
+			// This is needed for certain edge cases where a loadable selector is downstream of another loadable selector
+			currentValue.use(recomputed)
+		}
+		if (deferTransactionFutureRecomputation(target, key, recompute)) return
+		recompute()
 		return
 	}
 	if (target.operation.open) {
 		target.operation.prev.set(key, currentValue)
 	}
+	retainTransactionPreviousValue(target, key, currentValue)
 	target.valueMap.delete(key)
 	target.logger.info(`🗑`, `state`, key, `evicted`)
 }

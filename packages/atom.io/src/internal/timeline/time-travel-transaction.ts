@@ -6,6 +6,13 @@ import type {
 
 import { ingestTransactionOutcomeEvent } from "../events/index.ts"
 import type { Store } from "../store/index.ts"
+import {
+	beginTransactionNotificationBatch,
+	cancelTransactionNotificationBatch,
+	flushTransactionNotificationBatch,
+	notifySubjectAndCollectErrors,
+	throwCollectedNotificationErrors,
+} from "../transaction/transaction-notification-batch.ts"
 import type { Timeline } from "./create-timeline.ts"
 import type { TimelineTransactionGroup } from "./timeline-transaction-group.ts"
 import { getTimelineTransactionGroup } from "./timeline-transaction-group.ts"
@@ -62,10 +69,18 @@ export function timeTravelTransactionGroupInStore(
 		timeline.timeTraveling = timeTraveling
 		timeline.at = action === `redo` ? eventIndex + 1 : eventIndex
 	}
+	const ownsNotificationBatch = beginTransactionNotificationBatch(store)
+	const notificationErrors: unknown[] = []
 	try {
 		for (const { event } of participants) {
 			ingestTransactionOutcomeEvent(store, event, applying)
 		}
+		if (ownsNotificationBatch) {
+			notificationErrors.push(...flushTransactionNotificationBatch(store))
+		}
+	} catch (error) {
+		if (ownsNotificationBatch) cancelTransactionNotificationBatch(store)
+		throw error
 	} finally {
 		for (const { timeline } of participants) {
 			timeline.timeTraveling = null
@@ -78,8 +93,9 @@ export function timeTravelTransactionGroupInStore(
 			at: timeline.at,
 			length: timeline.history.length,
 		}
-		timeline.subject.next(update)
+		notifySubjectAndCollectErrors(timeline.subject, update, notificationErrors)
 	}
+	throwCollectedNotificationErrors(notificationErrors)
 	return true
 }
 

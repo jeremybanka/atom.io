@@ -256,6 +256,11 @@ Reads see changes already made in the transaction. Writes, resets, disposals,
 and nested transactions are applied to the real store only if the transaction
 finishes without throwing.
 
+After a successful transaction, ordinary atom and selector subscribers run only
+after all ordinary atom values have settled. Subscriber callbacks can read other
+atoms changed by the transaction without seeing a partially committed snapshot,
+and selectors affected by several writes recompute once from the settled state.
+
 <table-wrapper>
   <table>
     <tbody>

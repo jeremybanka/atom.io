@@ -1,6 +1,12 @@
-import type { TransactionOutcomeEvent } from "atom.io"
+import type { TransactionOutcomeEvent, TransactionToken } from "atom.io"
 
 import type { Store } from "../store/index.ts"
+import {
+	beginTransactionNotificationBatch,
+	cancelTransactionNotificationBatch,
+	flushTransactionNotificationBatch,
+	throwCollectedNotificationErrors,
+} from "../transaction/transaction-notification-batch.ts"
 import { ingestAtomUpdateEvent } from "./ingest-atom-update.ts"
 import {
 	ingestCreationEvent,
@@ -10,7 +16,25 @@ import {
 	ingestMoleculeTransferEvent,
 } from "./ingest-creation-disposal.ts"
 
-export function ingestTransactionOutcomeEvent(
+export function ingestTransactionOutcomeEvent<T extends TransactionToken<any>>(
+	store: Store,
+	event: TransactionOutcomeEvent<T>,
+	applying: `newValue` | `oldValue`,
+): void {
+	const ownsNotificationBatch = beginTransactionNotificationBatch(store)
+	try {
+		ingestTransactionSubEvents(store, event, applying)
+	} catch (error) {
+		if (ownsNotificationBatch) cancelTransactionNotificationBatch(store)
+		throw error
+	}
+	if (ownsNotificationBatch) {
+		const errors = flushTransactionNotificationBatch(store)
+		throwCollectedNotificationErrors(errors)
+	}
+}
+
+function ingestTransactionSubEvents(
 	store: Store,
 	event: TransactionOutcomeEvent<any>,
 	applying: `newValue` | `oldValue`,

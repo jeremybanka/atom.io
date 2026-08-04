@@ -1,4 +1,8 @@
-import type { TransactionOutcomeEvent, TransactionToken } from "atom.io"
+import type {
+	Loadable,
+	TransactionOutcomeEvent,
+	TransactionToken,
+} from "atom.io"
 import {
 	atom,
 	getState,
@@ -90,6 +94,34 @@ describe(`atomic transaction commits`, () => {
 		expect(compute).toHaveBeenCalledTimes(1)
 		expect(updates).toHaveBeenCalledOnce()
 		expect(updates).toHaveBeenCalledWith({ oldValue: 3, newValue: 30 })
+	})
+
+	it(`recomputes a pending async selector once from the settled snapshot`, () => {
+		const aAtom = atom<number>({ key: `a`, default: 0 })
+		const bAtom = atom<number>({ key: `b`, default: 0 })
+		const snapshots: number[][] = []
+		const pendingSelector = selector<Loadable<number>>({
+			key: `pending`,
+			get: ({ get }) => {
+				snapshots.push([get(aAtom), get(bAtom)])
+				return new Promise<number>(() => {})
+			},
+		})
+		const updateTransaction = transaction<() => void>({
+			key: `update`,
+			do: ({ set }) => {
+				set(aAtom, 1)
+				set(bAtom, 2)
+			},
+		})
+		const updates = vitest.fn()
+
+		subscribe(pendingSelector, updates)
+		snapshots.length = 0
+		runTransaction(updateTransaction)()
+
+		expect(snapshots).toEqual([[1, 2]])
+		expect(updates).toHaveBeenCalledOnce()
 	})
 
 	it(`coalesces repeated writes without rewriting transaction history`, () => {

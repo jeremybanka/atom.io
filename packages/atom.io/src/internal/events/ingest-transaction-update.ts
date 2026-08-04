@@ -1,4 +1,4 @@
-import type { TransactionOutcomeEvent } from "atom.io"
+import type { TransactionOutcomeEvent, TransactionToken } from "atom.io"
 
 import type { Store } from "../store/index.ts"
 import {
@@ -15,9 +15,9 @@ import {
 	ingestMoleculeTransferEvent,
 } from "./ingest-creation-disposal.ts"
 
-export function ingestTransactionOutcomeEvent(
+export function ingestTransactionOutcomeEvent<T extends TransactionToken<any>>(
 	store: Store,
-	event: TransactionOutcomeEvent<any>,
+	event: TransactionOutcomeEvent<T>,
 	applying: `newValue` | `oldValue`,
 ): void {
 	const ownsNotificationBatch = beginTransactionNotificationBatch(store)

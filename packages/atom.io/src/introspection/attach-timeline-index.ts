@@ -10,8 +10,8 @@ export const attachTimelineIndex = (
 		{
 			key: `🔍 Timeline Token Index`,
 			default: (): TimelineToken<any>[] =>
-				[...store.timelines.values()].map(
-					(timeline): TimelineToken<any> => deposit(timeline),
+				[...store.timelines.values()].map((timeline): TimelineToken<any> =>
+					deposit(timeline),
 				),
 			effects: [
 				({ setSelf }) => {

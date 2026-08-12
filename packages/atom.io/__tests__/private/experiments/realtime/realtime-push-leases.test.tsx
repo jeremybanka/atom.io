@@ -2,11 +2,13 @@ import { waitFor } from "@testing-library/react"
 import { type } from "arktype"
 import * as AtomIO from "atom.io"
 import type { Json } from "atom.io/foundations/json"
+import { IMPLICIT } from "atom.io/internal"
 import type {
 	RealtimeLeaseStatus,
 	Socket,
 	StandardSchemaV1,
 } from "atom.io/realtime"
+import * as RTC from "atom.io/realtime-client"
 import * as RTS from "atom.io/realtime-server"
 import * as RTTest from "atom.io/realtime-testing"
 import * as React from "react"
@@ -42,6 +44,45 @@ class ManualClock implements RTS.RealtimeLeaseClock {
 }
 
 const EmptyClient = () => <div />
+
+class TestSocket implements Socket {
+	public id = `test-socket`
+	public emitted: Array<[string, ...Json.Serializable[]]> = []
+	private listeners = new Map<
+		string,
+		Set<(...args: Json.Serializable[]) => void>
+	>()
+
+	public on(
+		event: string,
+		listener: (...args: Json.Serializable[]) => void,
+	): void {
+		let listeners = this.listeners.get(event)
+		if (listeners === undefined) {
+			listeners = new Set()
+			this.listeners.set(event, listeners)
+		}
+		listeners.add(listener)
+	}
+	public off(
+		event: string,
+		listener?: (...args: Json.Serializable[]) => void,
+	): void {
+		if (listener) this.listeners.get(event)?.delete(listener)
+		else this.listeners.delete(event)
+	}
+	public emit(event: string, ...args: Json.Serializable[]): void {
+		this.emitted.push([event, ...args])
+	}
+	public receive(event: string, ...args: Json.Serializable[]): void {
+		this.listeners.get(event)?.forEach((listener) => {
+			listener(...args)
+		})
+	}
+	public onAny(): void {}
+	public onAnyOutgoing(): void {}
+	public offAny(): void {}
+}
 
 function nextStatus(
 	socket: Socket,
@@ -87,7 +128,7 @@ function scenario(
 					renewAfterMs: 30,
 				},
 			),
-		clients: { alice: EmptyClient, bob: EmptyClient },
+		clients: { alice: EmptyClient, bob: EmptyClient, charlie: EmptyClient },
 	})
 }
 
@@ -222,5 +263,138 @@ describe(`realtime push leases`, () => {
 			expect(setup.server.silo.getState(serverCountAtom)).toBe(2)
 		})
 		await setup.teardown()
+	})
+
+	test(`rejects stale control messages and supports legacy publications`, async () => {
+		const setup = scenario(new ManualClock())
+		const { alice, bob } = await connected(setup)
+		const aliceOwned = nextStatus(alice.socket, `owned`)
+		alice.socket.emit(`claim:${countAtom.key}`)
+		const lease = (await aliceOwned) as Extract<
+			RealtimeLeaseStatus,
+			{ state: `owned` }
+		>
+
+		const duplicateOwned = nextStatus(alice.socket, `owned`)
+		alice.socket.emit(`claim:${countAtom.key}`)
+		expect(await duplicateOwned).toMatchObject({ generation: lease.generation })
+		const bobWaiting = nextStatus(bob.socket, `waiting`)
+		bob.socket.emit(`claim:${countAtom.key}`)
+		await bobWaiting
+		const duplicateWaiting = nextStatus(bob.socket, `waiting`)
+		bob.socket.emit(`claim:${countAtom.key}`)
+		expect(await duplicateWaiting).toMatchObject({ position: 1 })
+		bob.socket.emit(`unclaim:${countAtom.key}`)
+		const waitingAgain = nextStatus(bob.socket, `waiting`)
+		bob.socket.emit(`claim:${countAtom.key}`)
+		await waitingAgain
+
+		const staleRenew = nextStatus(alice.socket, `released`)
+		alice.socket.emit(`renew:${countAtom.key}`, {
+			generation: lease.generation + 1,
+			leaseId: lease.leaseId,
+		})
+		expect(await staleRenew).toMatchObject({ reason: `stale` })
+		const staleRelease = nextStatus(alice.socket, `released`)
+		alice.socket.emit(`unclaim:${countAtom.key}`, {
+			generation: lease.generation,
+			leaseId: `wrong`,
+		})
+		expect(await staleRelease).toMatchObject({ reason: `stale` })
+		const sequenceRejection = nextStatus(alice.socket, `released`)
+		publish(alice.socket, lease, 2, 2)
+		expect(await sequenceRejection).toMatchObject({ reason: `stale` })
+
+		bob.socket.emit(`pub:${countAtom.key}`, 99)
+		alice.socket.emit(`pub:${countAtom.key}`, 7)
+		await waitFor(() => {
+			expect(setup.server.silo.getState(serverCountAtom)).toBe(7)
+		})
+		const bobOwned = nextStatus(bob.socket, `owned`)
+		alice.socket.emit(`unclaim:${countAtom.key}`, lease)
+		await bobOwned
+		bob.socket.emit(`unclaim:${countAtom.key}`)
+		await setup.teardown()
+	})
+
+	test(`logs and ignores schema-invalid publications`, async () => {
+		const setup = scenario(new ManualClock())
+		const { alice } = await connected(setup)
+		const error = vitest.spyOn(setup.server.silo.store.logger, `error`)
+		const owned = nextStatus(alice.socket, `owned`)
+		alice.socket.emit(`claim:${countAtom.key}`)
+		const lease = (await owned) as Extract<
+			RealtimeLeaseStatus,
+			{ state: `owned` }
+		>
+		alice.socket.emit(`pub:${countAtom.key}`, {
+			generation: lease.generation,
+			leaseId: lease.leaseId,
+			sequence: 1,
+			value: `not a number`,
+		})
+		await waitFor(() => {
+			expect(error).toHaveBeenCalled()
+		})
+		expect(setup.server.silo.getState(serverCountAtom)).toBe(0)
+		await setup.teardown()
+	})
+
+	test(`push client renews, publishes metadata, stops, and supports legacy servers`, async () => {
+		vitest.useFakeTimers()
+		const silo = new AtomIO.Silo(
+			{
+				isProduction: false,
+				lifespan: `ephemeral`,
+				name: `LEASE-CLIENT`,
+			},
+			IMPLICIT.STORE,
+		)
+		const socket = new TestSocket()
+		const dispose = RTC.pushState(silo.store, socket, countAtom)
+		expect(socket.emitted).toContainEqual([`claim:${countAtom.key}`])
+		const lease = {
+			expiresAt: 90,
+			generation: 1,
+			leaseId: `test-socket:1`,
+			renewAfterMs: 30,
+			state: `owned`,
+		} satisfies RealtimeLeaseStatus
+		socket.receive(`lease-status:${countAtom.key}`, lease)
+		silo.setState(countAtom, 4)
+		expect(socket.emitted.at(-1)).toEqual([
+			`pub:${countAtom.key}`,
+			{ generation: 1, leaseId: `test-socket:1`, sequence: 1, value: 4 },
+		])
+		await vitest.advanceTimersByTimeAsync(30)
+		expect(socket.emitted.at(-1)).toEqual([
+			`renew:${countAtom.key}`,
+			{ generation: 1, leaseId: `test-socket:1` },
+		])
+		socket.receive(`lease-status:${countAtom.key}`, lease)
+		socket.receive(`lease-status:${countAtom.key}`, {
+			generation: 1,
+			reason: `expired`,
+			state: `released`,
+		})
+		const publications = socket.emitted.filter(([event]) =>
+			event.startsWith(`pub:`),
+		).length
+		silo.setState(countAtom, 5)
+		expect(
+			socket.emitted.filter(([event]) => event.startsWith(`pub:`)),
+		).toHaveLength(publications)
+		dispose()
+		await vitest.advanceTimersByTimeAsync(50)
+		expect(socket.emitted.at(-1)).toEqual([`unclaim:${countAtom.key}`])
+
+		const legacySocket = new TestSocket()
+		const disposeLegacy = RTC.pushState(silo.store, legacySocket, countAtom)
+		legacySocket.receive(`claim-result:${countAtom.key}`, true)
+		silo.setState(countAtom, 6)
+		expect(legacySocket.emitted.at(-1)).toEqual([`pub:${countAtom.key}`, 6])
+		disposeLegacy()
+		await vitest.advanceTimersByTimeAsync(50)
+		vitest.useRealTimers()
 	})
 })

@@ -1,5 +1,5 @@
-import { SystemClock } from "atom.io/realtime"
 import type { Socket } from "atom.io/realtime"
+import { SystemClock } from "atom.io/realtime"
 import {
 	createDeterministicTransport,
 	VirtualClock,

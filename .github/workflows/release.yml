@@ -32,10 +32,11 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           packages: bun node pnpm
-      - uses: changesets/action@22ccf9aa43179fe9e27dc62e575971d28cce197c # v2.0.0
+      - uses: changesets/action@a45c4d594aa4e2c509dc14a9f2b3b67ba3780d0d # v1.9.0
         id: changesets
         with:
           # This expects you to have a script called changes:publish which does a build for your packages and calls changeset publish
-          publish-script: bun run changes:publish
-          version-script: bun run changes:version
-          github-token: ${{ steps.app-token.outputs.token }}
+          publish: bun run changes:publish
+          version: bun run changes:version
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}

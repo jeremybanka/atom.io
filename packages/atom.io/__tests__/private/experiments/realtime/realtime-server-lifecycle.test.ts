@@ -1,8 +1,13 @@
 import * as http from "node:http"
 
 import { Silo } from "atom.io"
-import { findRelationsInStore, getFromStore, IMPLICIT } from "atom.io/internal"
-import type { UserKey } from "atom.io/realtime"
+import {
+	editRelationsInStore,
+	findRelationsInStore,
+	getFromStore,
+	IMPLICIT,
+} from "atom.io/internal"
+import { usersInRooms, type RoomKey, type UserKey } from "atom.io/realtime"
 import {
 	onlineUsersAtom,
 	realtime,
@@ -13,6 +18,7 @@ import { Server } from "socket.io"
 import { io, type Socket } from "socket.io-client"
 
 const userKey = `user::same-identity` as UserKey
+const roomKey = `room::persistent-membership` as RoomKey
 
 const connect = (port: number): Promise<Socket> =>
 	new Promise((resolve, reject) => {
@@ -75,6 +81,9 @@ describe(`realtime server lifecycle`, () => {
 				).length,
 			).toBe(2)
 		})
+		editRelationsInStore(silo.store, usersInRooms, (relations) => {
+			relations.set({ room: roomKey, user: userKey })
+		})
 
 		await disconnect(tab0)
 		await vi.waitFor(() => {
@@ -96,6 +105,18 @@ describe(`realtime server lifecycle`, () => {
 			expect(getFromStore(silo.store, onlineUsersAtom).size).toBe(0)
 			expect(getFromStore(silo.store, socketKeysAtom).size).toBe(0)
 		})
+		expect(
+			getFromStore(
+				silo.store,
+				findRelationsInStore(silo.store, usersInRooms, userKey).roomKeyOfUser,
+			),
+		).toBe(roomKey)
+		const finalReconnect = await connect(port)
+		await vi.waitFor(() => {
+			expect(getFromStore(silo.store, onlineUsersAtom).size).toBe(1)
+		})
+		await disconnect(finalReconnect)
+		await dispose()
 		await dispose()
 	})
 
@@ -147,6 +168,20 @@ describe(`realtime server lifecycle`, () => {
 		expect(getFromStore(authentication.silo.store, onlineUsersAtom).size).toBe(0)
 		expect(getFromStore(authentication.silo.store, socketKeysAtom).size).toBe(0)
 		await authentication.dispose()
+		const denied = setup(
+			() => () => {},
+			() => new Error(`auth denied`),
+		)
+		await expect(connect(denied.port)).rejects.toThrow(`auth denied`)
+		await denied.dispose()
+		const nonError = setup(
+			() => () => {},
+			() => Promise.reject(`auth string rejection`),
+		)
+		await expect(connect(nonError.port)).rejects.toThrow(
+			`Authentication failed: auth string rejection`,
+		)
+		await nonError.dispose()
 
 		const cleanup = setup(() => () => {
 			throw new Error(`cleanup rejected`)

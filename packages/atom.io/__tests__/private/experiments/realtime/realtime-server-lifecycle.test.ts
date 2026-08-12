@@ -20,7 +20,9 @@ const connect = (port: number): Promise<Socket> =>
 			auth: { username: userKey },
 			forceNew: true,
 		})
-		socket.once(`connect`, () => resolve(socket))
+		socket.once(`connect`, () => {
+			resolve(socket)
+		})
 		socket.once(`connect_error`, (error) => {
 			socket.close()
 			reject(error)
@@ -29,7 +31,9 @@ const connect = (port: number): Promise<Socket> =>
 
 const disconnect = (socket: Socket): Promise<void> =>
 	new Promise((resolve) => {
-		socket.once(`disconnect`, () => resolve())
+		socket.once(`disconnect`, () => {
+			resolve()
+		})
 		socket.disconnect()
 	})
 
@@ -79,9 +83,9 @@ describe(`realtime server lifecycle`, () => {
 		})
 
 		const reconnectedTab0 = await connect(port)
-		await vi.waitFor(() =>
-			expect(getFromStore(silo.store, socketKeysAtom).size).toBe(2),
-		)
+		await vi.waitFor(() => {
+			expect(getFromStore(silo.store, socketKeysAtom).size).toBe(2)
+		})
 		await disconnect(tab1)
 		await vi.waitFor(() => {
 			expect([...getFromStore(silo.store, onlineUsersAtom)]).toEqual([userKey])
@@ -104,7 +108,9 @@ describe(`realtime server lifecycle`, () => {
 		const socket = await connect(port)
 		await disconnect(socket)
 		resolveSetup(cleanup)
-		await vi.waitFor(() => expect(cleanup).toHaveBeenCalledOnce())
+		await vi.waitFor(() => {
+			expect(cleanup).toHaveBeenCalledOnce()
+		})
 		expect(getFromStore(silo.store, onlineUsersAtom).size).toBe(0)
 		expect(getFromStore(silo.store, socketKeysAtom).size).toBe(0)
 		await dispose()
@@ -112,9 +118,7 @@ describe(`realtime server lifecycle`, () => {
 	})
 
 	test(`unwinds rejected setup and close waits for asynchronous cleanup`, async () => {
-		const rejected = setup(async () => {
-			throw new Error(`setup rejected`)
-		})
+		const rejected = setup(() => Promise.reject(new Error(`setup rejected`)))
 		await connect(rejected.port)
 		await vi.waitFor(() => {
 			expect(getFromStore(rejected.silo.store, onlineUsersAtom).size).toBe(0)
@@ -137,9 +141,7 @@ describe(`realtime server lifecycle`, () => {
 	test(`reports authentication and cleanup failures without leaking state`, async () => {
 		const authentication = setup(
 			() => () => {},
-			async () => {
-				throw new Error(`auth rejected`)
-			},
+			() => Promise.reject(new Error(`auth rejected`)),
 		)
 		await expect(connect(authentication.port)).rejects.toThrow(`auth rejected`)
 		expect(getFromStore(authentication.silo.store, onlineUsersAtom).size).toBe(0)

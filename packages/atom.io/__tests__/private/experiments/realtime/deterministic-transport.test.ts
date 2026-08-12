@@ -1,6 +1,8 @@
-import type { Socket } from "../../../../src/realtime/socket-interface"
-import { createDeterministicTransport } from "../../../../src/realtime-testing/deterministic-transport"
-import { VirtualClock } from "../../../../src/realtime-testing/virtual-clock"
+import type { Socket } from "atom.io/realtime"
+import {
+	createDeterministicTransport,
+	VirtualClock,
+} from "atom.io/realtime-testing"
 
 describe(`VirtualClock`, () => {
 	test(`orders tasks without waiting on wall time`, () => {
@@ -204,8 +206,102 @@ describe(`DeterministicTransport`, () => {
 			{ id: `client`, role: `client` },
 			{ id: `server`, role: `server` },
 		)
-		expect(() => replayPair.left.emit(`different`)).toThrow(
-			/Transport replay mismatch.*expected.*different/,
+		expect(() => {
+			replayPair.left.emit(`different`)
+		}).toThrow(/Transport replay mismatch.*expected.*different/)
+	})
+
+	test(`counts delivery recursively produced by a delivered envelope`, () => {
+		const network = createDeterministicTransport({
+			policies: [
+				{
+					effect: { by: 5, type: `delay` },
+					filter: { event: `request` },
+				},
+			],
+		})
+		const { left: client, right: server } = network.createDuplex(
+			{ id: `client`, role: `client` },
+			{ id: `server`, role: `server` },
 		)
+		const replies: string[] = []
+		server.on(`request`, () => {
+			server.emit(`reply`, `done`)
+		})
+		client.on(`reply`, (reply) => replies.push(reply as string))
+
+		client.emit(`request`)
+		expect(network.runUntilIdle()).toBe(2)
+		expect(replies).toEqual([`done`])
+	})
+
+	test(`drains an incomplete reorder window created during delivery`, () => {
+		const network = createDeterministicTransport({
+			policies: [
+				{
+					effect: { by: 5, type: `delay` },
+					filter: { event: `request` },
+				},
+				{
+					effect: { type: `reorder`, window: 3 },
+					filter: { event: `reply` },
+				},
+			],
+		})
+		const { left: client, right: server } = network.createDuplex(
+			{ id: `client`, role: `client` },
+			{ id: `server`, role: `server` },
+		)
+		let replied = false
+		server.on(`request`, () => {
+			server.emit(`reply`)
+		})
+		client.on(`reply`, () => {
+			replied = true
+		})
+
+		client.emit(`request`)
+		expect(network.runUntilIdle()).toBe(2)
+		expect(replied).toBe(true)
+	})
+
+	test(`heals an asymmetric partition and exposes a protocol revision gap`, () => {
+		const network = createDeterministicTransport()
+		const { left: client, right: server } = network.createDuplex(
+			{ id: `client`, role: `client` },
+			{ id: `server`, role: `server` },
+		)
+		let expectedRevision = 1
+		const gaps: Array<{ actual: number; expected: number }> = []
+		client.on(`revision`, (revision) => {
+			if (revision !== expectedRevision) {
+				gaps.push({ actual: revision as number, expected: expectedRevision })
+			}
+			expectedRevision = (revision as number) + 1
+		})
+
+		server.emit(`revision`, 1)
+		const heal = network.use({
+			effect: { type: `partition` },
+			filter: { direction: `server-to-client` },
+			name: `downstream-only`,
+		})
+		server.emit(`revision`, 2)
+		// The reverse direction remains available during an asymmetric partition.
+		let acknowledged = false
+		server.on(`ack`, () => {
+			acknowledged = true
+		})
+		client.emit(`ack`)
+		expect(acknowledged).toBe(true)
+
+		heal()
+		server.emit(`revision`, 3)
+		expect(gaps).toEqual([{ actual: 3, expected: 2 }])
+		expect(
+			network
+				.exportSchedule()
+				.decisions.map(({ outcome }) => outcome.disposition),
+		).toEqual([`deliver`, `partition`, `deliver`, `deliver`])
 	})
 })

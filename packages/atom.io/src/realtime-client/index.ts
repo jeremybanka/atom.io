@@ -1,4 +1,5 @@
 export * from "./continuity/index.ts"
+export * from "./create-subscriber.ts"
 export * from "./observe-socket-wind-down.ts"
 export * from "./pull-atom.ts"
 export * from "./pull-atom-family-member.ts"

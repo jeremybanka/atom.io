@@ -1,5 +1,5 @@
 import type { Json } from "atom.io/foundations/json"
-import type { Socket } from "atom.io/realtime/socket-interface"
+import type { Socket } from "atom.io/realtime"
 
 import { VirtualClock } from "./virtual-clock"
 
@@ -121,20 +121,20 @@ type ReplayCursor = {
 
 /** A minimal atom.io Socket implementation backed by deterministic memory. */
 export class DeterministicSocket implements Socket {
-	readonly id: string
-	readonly endpoint: TransportEndpoint
+	public readonly id: string
+	public readonly endpoint: TransportEndpoint
 	#anyListeners = new Set<AnyListener>()
 	#listeners = new Map<string, Set<Listener>>()
 	#outgoingListeners = new Set<AnyListener>()
 	#route: ((event: string, args: readonly Json.Serializable[]) => void) | null =
 		null
 
-	constructor(endpoint: TransportEndpoint) {
+	public constructor(endpoint: TransportEndpoint) {
 		this.endpoint = endpoint
 		this.id = endpoint.id
 	}
 
-	on(event: string, listener: Listener): void {
+	public on(event: string, listener: Listener): void {
 		let listeners = this.#listeners.get(event)
 		if (listeners === undefined) {
 			listeners = new Set()
@@ -143,37 +143,37 @@ export class DeterministicSocket implements Socket {
 		listeners.add(listener)
 	}
 
-	onAny(listener: AnyListener): void {
+	public onAny(listener: AnyListener): void {
 		this.#anyListeners.add(listener)
 	}
 
-	onAnyOutgoing(listener: AnyListener): void {
+	public onAnyOutgoing(listener: AnyListener): void {
 		this.#outgoingListeners.add(listener)
 	}
 
-	off(event: string, listener?: Listener): void {
+	public off(event: string, listener?: Listener): void {
 		if (listener === undefined) this.#listeners.delete(event)
 		else this.#listeners.get(event)?.delete(listener)
 	}
 
-	offAny(listener: AnyListener): void {
+	public offAny(listener: AnyListener): void {
 		this.#anyListeners.delete(listener)
 	}
 
-	emit(event: string, ...args: Json.Serializable[]): void {
+	public emit(event: string, ...args: Json.Serializable[]): void {
 		for (const listener of [...this.#outgoingListeners]) listener(event, ...args)
 		this.#route?.(event, args)
 	}
 
 	/** @internal Connect this endpoint to its transport controller. */
-	connect(
+	public connect(
 		route: (event: string, args: readonly Json.Serializable[]) => void,
 	): void {
 		this.#route = route
 	}
 
 	/** @internal Deliver an incoming transport envelope. */
-	receive(event: string, args: readonly Json.Serializable[]): void {
+	public receive(event: string, args: readonly Json.Serializable[]): void {
 		for (const listener of [...(this.#listeners.get(event) ?? [])]) {
 			listener(...args)
 		}
@@ -189,20 +189,21 @@ export class DeterministicSocket implements Socket {
  * Reorder policies hold a window and release it in reverse arrival order.
  */
 export class DeterministicTransport {
-	readonly clock: VirtualClock
-	readonly mode: DeterministicTransportMode
-	readonly seed: number
+	public readonly clock: VirtualClock
+	public readonly mode: DeterministicTransportMode
+	public readonly seed: number
 	#decisions: ScheduleDecision[] = []
 	#deliveries = new Map<number, MutableDelivery>()
 	#nextDeliveryId = 1
 	#nextEnvelopeId = 1
 	#nextQueueOrder = 1
+	#deliveredCount = 0
 	#policies: FaultPolicy[]
 	#randomState: number
 	#reorderBuffers = new Map<string, MutableDelivery[]>()
 	#replay: ReplayCursor | null
 
-	constructor(options: DeterministicTransportOptions = {}) {
+	public constructor(options: DeterministicTransportOptions = {}) {
 		this.clock = options.clock ?? new VirtualClock()
 		this.mode = options.mode ?? `automatic`
 		this.seed = options.replay?.seed ?? options.seed ?? 0x51_0c_10
@@ -214,19 +215,23 @@ export class DeterministicTransport {
 	}
 
 	/** Create two Socket-compatible endpoints connected only to each other. */
-	createDuplex(
+	public createDuplex(
 		leftOptions: DuplexEndpointOptions,
 		rightOptions: DuplexEndpointOptions,
 	): DeterministicDuplex {
 		const left = new DeterministicSocket(this.#endpoint(leftOptions))
 		const right = new DeterministicSocket(this.#endpoint(rightOptions))
-		left.connect((event, args) => this.#emit(left, right, event, args))
-		right.connect((event, args) => this.#emit(right, left, event, args))
+		left.connect((event, args) => {
+			this.#emit(left, right, event, args)
+		})
+		right.connect((event, args) => {
+			this.#emit(right, left, event, args)
+		})
 		return { left, right }
 	}
 
 	/** Install a fault policy. The disposer removes only this occurrence. */
-	use(policy: FaultPolicy): () => void {
+	public use(policy: FaultPolicy): () => void {
 		this.#policies.push(policy)
 		return () => {
 			const index = this.#policies.indexOf(policy)
@@ -235,7 +240,7 @@ export class DeterministicTransport {
 	}
 
 	/** Inspect outstanding traffic in deterministic delivery order. */
-	pending(): readonly PendingDelivery[] {
+	public pending(): readonly PendingDelivery[] {
 		return [...this.#deliveries.values()]
 			.sort(
 				(left, right) =>
@@ -255,7 +260,7 @@ export class DeterministicTransport {
 	}
 
 	/** Deliver one due queued envelope in manual mode. */
-	deliverNext(filter?: EnvelopeFilter): PendingDelivery | null {
+	public deliverNext(filter?: EnvelopeFilter): PendingDelivery | null {
 		const next = [...this.#deliveries.values()]
 			.filter(
 				(delivery) =>
@@ -275,14 +280,14 @@ export class DeterministicTransport {
 	}
 
 	/** Deliver all currently due queued envelopes in manual mode. */
-	deliverDue(filter?: EnvelopeFilter): number {
+	public deliverDue(filter?: EnvelopeFilter): number {
 		let delivered = 0
 		while (this.deliverNext(filter) !== null) delivered++
 		return delivered
 	}
 
 	/** Release incomplete reorder windows, retaining their reverse ordering. */
-	flushReordering(): void {
+	public flushReordering(): void {
 		for (const [bucket, deliveries] of this.#reorderBuffers) {
 			this.#reorderBuffers.delete(bucket)
 			this.#releaseReordered(deliveries)
@@ -292,19 +297,24 @@ export class DeterministicTransport {
 	/**
 	 * Drain all transport and clock work, advancing virtual time as necessary.
 	 */
-	runUntilIdle(maxDeliveries = 10_000): number {
-		this.flushReordering()
+	public runUntilIdle(maxDeliveries = 10_000): number {
 		let delivered = 0
 		while (this.#deliveries.size > 0) {
+			// Delivery callbacks can emit more envelopes and open a new, incomplete
+			// reorder window. Draining makes those held envelopes deliverable too.
+			const beforeFlush = this.#deliveredCount
+			this.flushReordering()
+			delivered += this.#deliveredCount - beforeFlush
+			if (this.#deliveries.size === 0) break
 			if (delivered >= maxDeliveries) {
 				throw new Error(
 					`DeterministicTransport exceeded its ${maxDeliveries}-delivery safety limit; pending: ${JSON.stringify(this.pending())}`,
 				)
 			}
 			if (this.mode === `automatic`) {
-				const before = this.#deliveries.size
+				const before = this.#deliveredCount
 				this.clock.runUntilIdle(maxDeliveries - delivered)
-				delivered += before - this.#deliveries.size
+				delivered += this.#deliveredCount - before
 				continue
 			}
 			const next = this.pending()[0]
@@ -316,12 +326,12 @@ export class DeterministicTransport {
 	}
 
 	/** Export all resolved fault decisions as replayable JSON data. */
-	exportSchedule(): TransportSchedule {
+	public exportSchedule(): TransportSchedule {
 		return { decisions: this.#decisions, seed: this.seed, version: 1 }
 	}
 
 	/** Assert that every decision supplied for replay was consumed. */
-	assertReplayComplete(): void {
+	public assertReplayComplete(): void {
 		if (
 			this.#replay !== null &&
 			this.#replay.position !== this.#replay.schedule.decisions.length
@@ -356,6 +366,7 @@ export class DeterministicTransport {
 				copy,
 				deliver: () => {
 					if (!this.#deliveries.delete(delivery.id)) return
+					this.#deliveredCount++
 					target.receive(envelope.event, structuredClone(envelope.args))
 				},
 				dueAt: envelope.createdAt + delay,

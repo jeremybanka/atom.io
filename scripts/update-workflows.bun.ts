@@ -13,10 +13,13 @@ type WorkflowUse = {
 	originalComment: string | null
 }
 
-type MiseVersionUse = {
+type ActionInputVersionUse = {
 	filePath: string
 	lineIndex: number
 	prefix: string
+	depName: string
+	repository: string
+	containerImage: string | null
 	currentVersion: string
 }
 
@@ -27,10 +30,12 @@ type ActionGroup = {
 	occurrences: WorkflowUse[]
 }
 
-type MiseVersionGroup = {
+type ActionInputVersionGroup = {
 	depName: string
+	repository: string
+	containerImage: string | null
 	currentVersion: string
-	occurrences: MiseVersionUse[]
+	occurrences: ActionInputVersionUse[]
 }
 
 type ParsedVersion = {
@@ -51,7 +56,7 @@ type ResolvedUpdate = {
 	hasUpdate: boolean
 }
 
-type ResolvedMiseUpdate = {
+type ResolvedActionInputUpdate = {
 	depName: string
 	currentVersion: string
 	targetVersion: string
@@ -60,14 +65,32 @@ type ResolvedMiseUpdate = {
 
 type WorkflowInventory = {
 	workflowUses: WorkflowUse[]
-	miseVersionUses: MiseVersionUse[]
+	actionInputVersionUses: ActionInputVersionUse[]
+}
+
+type ActionInputVersionConfig = {
+	depName: string
+	repository: string
+	containerImage?: string
+	inputName: string
 }
 
 const SHA_PATTERN = /^[0-9a-f]{40}$/i
 const USES_PATTERN =
 	/^(?<prefix>\s*(?:-\s+)?uses:\s+)(?<action>[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)@(?<ref>[^\s#]+)(?:\s+#\s*(?<comment>[^\r\n]+))?\s*$/
-const MISE_VERSION_PATTERN =
-	/^(?<prefix>\s*version:\s+)(?<version>\d+\.\d+\.\d+)\s*$/
+const ACTION_INPUT_VERSION_CONFIGS: Record<string, ActionInputVersionConfig> = {
+	"jdx/mise-action": {
+		depName: `jdx/mise`,
+		repository: `jdx/mise`,
+		inputName: `version`,
+	},
+	"renovatebot/github-action": {
+		depName: `ghcr.io/renovatebot/renovate`,
+		repository: `renovatebot/renovate`,
+		containerImage: `renovatebot/renovate`,
+		inputName: `renovate-version`,
+	},
+}
 const ANSI = {
 	reset: `\x1b[0m`,
 	white: `\x1b[37m`,
@@ -79,18 +102,18 @@ async function main(): Promise<void> {
 	const isDryRun = process.argv.includes(`--dry-run`)
 	const workspaceRoot = process.cwd()
 	const workflowFiles = await listWorkflowFiles(workspaceRoot)
-	const { workflowUses, miseVersionUses } =
+	const { workflowUses, actionInputVersionUses } =
 		await collectWorkflowInventory(workflowFiles)
 
-	if (workflowUses.length === 0 && miseVersionUses.length === 0) {
+	if (workflowUses.length === 0 && actionInputVersionUses.length === 0) {
 		console.log(`No external workflow dependencies found under .github`)
 		return
 	}
 
 	const groups = groupWorkflowUses(workflowUses)
 	const updates = await resolveUpdates(groups)
-	const miseGroups = groupMiseVersionUses(miseVersionUses)
-	const miseUpdates = await resolveMiseUpdates(miseGroups)
+	const actionInputGroups = groupActionInputVersionUses(actionInputVersionUses)
+	const actionInputUpdates = await resolveActionInputUpdates(actionInputGroups)
 
 	for (const update of updates) {
 		if (update.hasUpdate) {
@@ -104,7 +127,7 @@ async function main(): Promise<void> {
 		}
 	}
 
-	for (const update of miseUpdates) {
+	for (const update of actionInputUpdates) {
 		if (update.hasUpdate) {
 			console.log(
 				`${colorWhite(update.depName)} ${colorGreen(update.currentVersion)} ${colorCyan(`->`)} ${colorGreen(update.targetVersion)} ✨`,
@@ -127,8 +150,11 @@ async function main(): Promise<void> {
 			update,
 		]),
 	)
-	const miseUpdatesByVersion = new Map(
-		miseUpdates.map((update) => [update.currentVersion, update]),
+	const actionInputUpdatesByKey = new Map(
+		actionInputUpdates.map((update) => [
+			groupKey(update.depName, update.currentVersion),
+			update,
+		]),
 	)
 	const filesToWrite = new Map<string, string[]>()
 
@@ -149,19 +175,24 @@ async function main(): Promise<void> {
 		filesToWrite.set(workflowUse.filePath, fileLines)
 	}
 
-	for (const miseVersionUse of miseVersionUses) {
-		const update = miseUpdatesByVersion.get(miseVersionUse.currentVersion)
+	for (const actionInputVersionUse of actionInputVersionUses) {
+		const update = actionInputUpdatesByKey.get(
+			groupKey(
+				actionInputVersionUse.depName,
+				actionInputVersionUse.currentVersion,
+			),
+		)
 
 		if (!update?.hasUpdate) {
 			continue
 		}
 
 		const fileLines =
-			filesToWrite.get(miseVersionUse.filePath) ??
-			(await Bun.file(miseVersionUse.filePath).text()).split(/\r?\n/)
-		fileLines[miseVersionUse.lineIndex] =
-			`${miseVersionUse.prefix}${update.targetVersion}`
-		filesToWrite.set(miseVersionUse.filePath, fileLines)
+			filesToWrite.get(actionInputVersionUse.filePath) ??
+			(await Bun.file(actionInputVersionUse.filePath).text()).split(/\r?\n/)
+		fileLines[actionInputVersionUse.lineIndex] =
+			`${actionInputVersionUse.prefix}${update.targetVersion}`
+		filesToWrite.set(actionInputVersionUse.filePath, fileLines)
 	}
 
 	for (const [filePath, fileLines] of filesToWrite) {
@@ -187,7 +218,7 @@ async function collectWorkflowInventory(
 	filePaths: string[],
 ): Promise<WorkflowInventory> {
 	const workflowUses: WorkflowUse[] = []
-	const miseVersionUses: MiseVersionUse[] = []
+	const actionInputVersionUses: ActionInputVersionUse[] = []
 
 	for (const filePath of filePaths) {
 		const fileLines = (await Bun.file(filePath).text()).split(/\r?\n/)
@@ -221,16 +252,22 @@ async function collectWorkflowInventory(
 				originalComment,
 			})
 
-			if (actionName === `jdx/mise-action`) {
-				const miseVersionUse = findMiseVersionUse(filePath, fileLines, lineIndex)
-				if (miseVersionUse) {
-					miseVersionUses.push(miseVersionUse)
+			const actionInputVersionConfig = ACTION_INPUT_VERSION_CONFIGS[actionName]
+			if (actionInputVersionConfig) {
+				const actionInputVersionUse = findActionInputVersionUse(
+					filePath,
+					fileLines,
+					lineIndex,
+					actionInputVersionConfig,
+				)
+				if (actionInputVersionUse) {
+					actionInputVersionUses.push(actionInputVersionUse)
 				}
 			}
 		}
 	}
 
-	return { workflowUses, miseVersionUses }
+	return { workflowUses, actionInputVersionUses }
 }
 
 function groupWorkflowUses(workflowUses: WorkflowUse[]): ActionGroup[] {
@@ -258,28 +295,34 @@ function groupWorkflowUses(workflowUses: WorkflowUse[]): ActionGroup[] {
 	)
 }
 
-function groupMiseVersionUses(
-	miseVersionUses: MiseVersionUse[],
-): MiseVersionGroup[] {
-	const groups = new Map<string, MiseVersionGroup>()
+function groupActionInputVersionUses(
+	actionInputVersionUses: ActionInputVersionUse[],
+): ActionInputVersionGroup[] {
+	const groups = new Map<string, ActionInputVersionGroup>()
 
-	for (const miseVersionUse of miseVersionUses) {
-		const existingGroup = groups.get(miseVersionUse.currentVersion)
+	for (const actionInputVersionUse of actionInputVersionUses) {
+		const key = groupKey(
+			actionInputVersionUse.depName,
+			actionInputVersionUse.currentVersion,
+		)
+		const existingGroup = groups.get(key)
 
 		if (existingGroup) {
-			existingGroup.occurrences.push(miseVersionUse)
+			existingGroup.occurrences.push(actionInputVersionUse)
 			continue
 		}
 
-		groups.set(miseVersionUse.currentVersion, {
-			depName: `jdx/mise`,
-			currentVersion: miseVersionUse.currentVersion,
-			occurrences: [miseVersionUse],
+		groups.set(key, {
+			depName: actionInputVersionUse.depName,
+			repository: actionInputVersionUse.repository,
+			containerImage: actionInputVersionUse.containerImage,
+			currentVersion: actionInputVersionUse.currentVersion,
+			occurrences: [actionInputVersionUse],
 		})
 	}
 
 	return [...groups.values()].sort((left, right) =>
-		compareVersionStrings(left.currentVersion, right.currentVersion),
+		left.depName.localeCompare(right.depName),
 	)
 }
 
@@ -323,33 +366,39 @@ async function resolveUpdates(groups: ActionGroup[]): Promise<ResolvedUpdate[]> 
 	)
 }
 
-async function resolveMiseUpdates(
-	groups: MiseVersionGroup[],
-): Promise<ResolvedMiseUpdate[]> {
+async function resolveActionInputUpdates(
+	groups: ActionInputVersionGroup[],
+): Promise<ResolvedActionInputUpdate[]> {
 	if (groups.length === 0) {
 		return []
 	}
 
-	const availableTags = await getRepositoryTags(`jdx/mise`, new Map())
-	const targetTag = selectLatestTag(availableTags)
+	const repoTagCache = new Map<string, string[]>()
 
-	if (!targetTag) {
-		return groups.map((group) => ({
-			depName: group.depName,
-			currentVersion: group.currentVersion,
-			targetVersion: group.currentVersion,
-			hasUpdate: false,
-		}))
-	}
+	return Promise.all(
+		groups.map(async (group) => {
+			const availableTags = await getRepositoryTags(
+				group.repository,
+				repoTagCache,
+			)
+			const targetTag = group.containerImage
+				? await selectLatestPublishedContainerTag(
+						availableTags,
+						group.containerImage,
+					)
+				: selectLatestTag(availableTags)
+			const targetVersion = targetTag
+				? normalizeVersion(targetTag)
+				: group.currentVersion
 
-	const targetVersion = normalizeVersion(targetTag)
-
-	return groups.map((group) => ({
-		depName: group.depName,
-		currentVersion: group.currentVersion,
-		targetVersion,
-		hasUpdate: group.currentVersion !== targetVersion,
-	}))
+			return {
+				depName: group.depName,
+				currentVersion: group.currentVersion,
+				targetVersion,
+				hasUpdate: group.currentVersion !== targetVersion,
+			}
+		}),
+	)
 }
 
 async function getRepositoryTags(
@@ -375,6 +424,10 @@ async function getRepositoryTags(
 }
 
 function selectLatestTag(tags: string[]): string | null {
+	return getSortedVersionTags(tags)[0] ?? null
+}
+
+function getSortedVersionTags(tags: string[]): string[] {
 	const parsedTags = tags
 		.map((tag) => ({ tag, parsed: parseVersion(tag) }))
 		.filter(
@@ -384,11 +437,51 @@ function selectLatestTag(tags: string[]): string | null {
 		.filter((entry) => entry.parsed.prerelease === null)
 
 	if (parsedTags.length === 0) {
-		return null
+		return []
 	}
 
 	parsedTags.sort((left, right) => compareVersions(right.parsed, left.parsed))
-	return parsedTags[0]?.tag ?? null
+	return parsedTags.map((entry) => entry.tag)
+}
+
+async function selectLatestPublishedContainerTag(
+	tags: string[],
+	image: string,
+): Promise<string | null> {
+	const scope = encodeURIComponent(`repository:${image}:pull`)
+	const tokenResponse = await fetch(`https://ghcr.io/token?scope=${scope}`)
+	if (!tokenResponse.ok) {
+		throw new Error(
+			`Unable to authenticate with GHCR for ${image}: ${tokenResponse.status}`,
+		)
+	}
+	const tokenPayload = (await tokenResponse.json()) as { token?: string }
+	if (!tokenPayload.token) {
+		throw new Error(`GHCR did not return a pull token for ${image}`)
+	}
+
+	for (const tag of getSortedVersionTags(tags)) {
+		const manifestResponse = await fetch(
+			`https://ghcr.io/v2/${image}/manifests/${tag}`,
+			{
+				method: `HEAD`,
+				headers: {
+					Accept: `application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json`,
+					Authorization: `Bearer ${tokenPayload.token}`,
+				},
+			},
+		)
+		if (manifestResponse.ok) {
+			return tag
+		}
+		if (manifestResponse.status !== 404) {
+			throw new Error(
+				`Unable to inspect ghcr.io/${image}:${tag}: ${manifestResponse.status}`,
+			)
+		}
+	}
+
+	return null
 }
 
 async function resolveTagCommit(
@@ -475,11 +568,12 @@ function groupKey(actionName: string, version: string): string {
 	return `${actionName}@@${version}`
 }
 
-function findMiseVersionUse(
+function findActionInputVersionUse(
 	filePath: string,
 	fileLines: string[],
 	actionLineIndex: number,
-): MiseVersionUse | null {
+	config: ActionInputVersionConfig,
+): ActionInputVersionUse | null {
 	const actionLine = fileLines[actionLineIndex]
 	if (!actionLine) {
 		return null
@@ -504,7 +598,10 @@ function findMiseVersionUse(
 			return null
 		}
 
-		const versionMatch = MISE_VERSION_PATTERN.exec(line)
+		const versionPattern = new RegExp(
+			`^(?<prefix>\\s*${escapeRegExp(config.inputName)}:\\s+)(?<version>\\d+\\.\\d+\\.\\d+)\\s*$`,
+		)
+		const versionMatch = versionPattern.exec(line)
 
 		if (versionMatch?.groups) {
 			const prefix = versionMatch.groups[`prefix`]
@@ -519,6 +616,9 @@ function findMiseVersionUse(
 				filePath,
 				lineIndex,
 				prefix,
+				depName: config.depName,
+				repository: config.repository,
+				containerImage: config.containerImage ?? null,
 				currentVersion,
 			}
 		}
@@ -527,15 +627,8 @@ function findMiseVersionUse(
 	return null
 }
 
-function compareVersionStrings(left: string, right: string): number {
-	const leftVersion = parseVersion(left)
-	const rightVersion = parseVersion(right)
-
-	if (leftVersion && rightVersion) {
-		return compareVersions(leftVersion, rightVersion)
-	}
-
-	return left.localeCompare(right)
+function escapeRegExp(value: string): string {
+	return value.replace(/[.*+?^${}()|[\]\\]/g, `\\$&`)
 }
 
 function leadingWhitespace(value: string): string {

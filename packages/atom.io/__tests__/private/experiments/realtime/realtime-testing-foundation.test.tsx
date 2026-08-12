@@ -1,3 +1,5 @@
+import * as net from "node:net"
+
 import type * as RT from "atom.io/realtime"
 import {
 	RealtimeTestEventJournal,
@@ -401,6 +403,53 @@ describe(`realtime testing foundations`, () => {
 		await client.dispose()
 		await scenario.server.dispose()
 		await scenario.server.dispose()
+	})
+
+	test(`cleans up every resource when graceful client disposal fails`, async () => {
+		const scenario = RTTest.headless({ server: () => {} })
+		const client = scenario.createClient({ name: `failed-disposal` })
+		await client.waitForIdle()
+		const serverURL = `http://localhost:${scenario.server.port}`
+		await expect(
+			fetch(serverURL).then((response) => response.text()),
+		).resolves.toBe(`Hello World!`)
+		client.waitForIdle = () => Promise.reject(new Error(`graceful drain failed`))
+
+		await expect(scenario.teardown()).rejects.toThrow(`graceful drain failed`)
+		expect(client.socket.connected).toBe(false)
+		const connectionError = await new Promise<{ code?: string }>(
+			(resolve, reject) => {
+				const socket = net.connect(scenario.server.port, `127.0.0.1`)
+				socket.once(`connect`, () => {
+					socket.destroy()
+					reject(new Error(`Realtime test server still accepts connections`))
+				})
+				socket.once(`error`, resolve)
+			},
+		)
+		expect(connectionError.code).toBe(`ECONNREFUSED`)
+	})
+
+	test(`derives default identities and sessions from each scenario`, async () => {
+		const firstScenario = RTTest.headless({ server: () => {} })
+		const secondScenario = RTTest.headless({ server: () => {} })
+		const first = firstScenario.createClient({ name: `deterministic` })
+		const firstSibling = firstScenario.createClient({ name: `deterministic` })
+		const second = secondScenario.createClient({ name: `deterministic` })
+		try {
+			await Promise.all([
+				firstScenario.waitForIdle(),
+				secondScenario.waitForIdle(),
+			])
+			expect(first.sessionId).toBe(`session-1`)
+			expect(firstSibling.sessionId).toBe(`session-2`)
+			expect(second.sessionId).toBe(`session-1`)
+			expect(first.userKey).toBe(`user::deterministic`)
+			expect(second.userKey).toBe(first.userKey)
+		} finally {
+			await firstScenario.teardown()
+			await secondScenario.teardown()
+		}
 	})
 
 	test(`idle timeout errors include the journal transcript`, async () => {

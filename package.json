@@ -33,7 +33,7 @@
 		"manifest:test": "dotenvx run -- turbo run manifest:test",
 		"changes": "changeset",
 		"changes:publish": "bun run build && changeset publish",
-		"changes:version": "changeset version && bun run fmt",
+		"changes:version": "changeset version",
 		"test": "CI=true dotenvx run -- turbo run test:once --concurrency=2",
 		"test:breaks": "CI=true dotenvx run -- turbo run test:breaks",
 		"test:stress:realtime-ipc": "dotenvx run -- turbo run test:stress:realtime-ipc --filter=atom.io",
@@ -41,8 +41,8 @@
 		"workflows": "bun scripts/update-workflows.bun.ts"
 	},
 	"devDependencies": {
-		"@changesets/cli": "2.31.1",
-		"@changesets/config": "3.1.4",
+		"@changesets/cli": "3.0.0",
+		"@changesets/config": "4.0.0",
 		"@dotenvx/dotenvx": "2.21.0",
 		"@dprint/json": "0.23.0",
 		"@dprint/markdown": "0.22.1",

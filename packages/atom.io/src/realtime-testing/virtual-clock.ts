@@ -1,3 +1,5 @@
+import type { Clock } from "atom.io/realtime"
+
 export type VirtualClockTask = {
 	readonly dueAt: number
 	readonly id: number
@@ -145,4 +147,3 @@ export class VirtualClock implements Clock {
 		)
 	}
 }
-import type { Clock } from "atom.io/realtime"

@@ -146,6 +146,105 @@ describe(`restartable server fixtures`, () => {
 })
 
 describe(`multi-node realtime test topologies`, () => {
+	test(`stops a node after every client is detached even when hooks fail`, async () => {
+		const detached: string[] = []
+		let stopped = false
+		const node = createRestartableServerFixture({
+			createDurableState: () => undefined,
+			createEphemeralState: () => undefined,
+			name: `fallible`,
+			start: () =>
+				({
+					disconnect: (session) => {
+						detached.push(`server:${session.clientId}`)
+						if (session.clientId === `alice`) throw new Error(`hook failed`)
+					},
+					receive: () => {},
+				}) satisfies RealtimeTestTopologyNode<unknown, unknown, unknown>,
+			stop: () => {
+				stopped = true
+			},
+		})
+		await node.start()
+		const topology = createRealtimeTestTopology({ nodes: { fallible: node } })
+		for (const clientId of [`alice`, `bob`]) {
+			topology.addClient(clientId, {
+				disconnected: () => detached.push(`client:${clientId}`),
+				receive: () => {},
+			})
+			await topology.connect(clientId, `fallible`)
+		}
+
+		await expect(topology.stopNode(`fallible`)).rejects.toThrow(
+			`Failed to stop topology node`,
+		)
+
+		expect(stopped).toBe(true)
+		expect(node.running).toBe(false)
+		expect(detached).toEqual([
+			`server:alice`,
+			`client:alice`,
+			`server:bob`,
+			`client:bob`,
+		])
+		expect(topology.getState().routes).toEqual([])
+		expect(topology.getEvents().map(({ type }) => type)).toEqual([
+			`client-connected`,
+			`client-connected`,
+			`client-disconnected`,
+			`client-disconnected`,
+			`node-stopped`,
+		])
+	})
+
+	test(`keeps the previous route when a migration target rejects connection`, async () => {
+		const alpha = createCounterServer(`alpha`)
+		const rejecting = createRestartableServerFixture({
+			createDurableState: () => undefined,
+			createEphemeralState: () => undefined,
+			name: `rejecting`,
+			start: () =>
+				({
+					connect: () => {
+						throw new Error(`connection rejected`)
+					},
+					receive: () => {},
+				}) satisfies RealtimeTestTopologyNode<
+					ClientMessage,
+					ServerMessage,
+					Operation
+				>,
+		})
+		await Promise.all([alpha.start(), rejecting.start()])
+		const disconnected: string[] = []
+		const topology = createRealtimeTestTopology<
+			ClientMessage,
+			ServerMessage,
+			Operation
+		>({ nodes: { alpha, rejecting } })
+		topology.addClient(`alice`, {
+			disconnected: (reason) => disconnected.push(reason),
+			receive: () => {},
+		})
+		const original = await topology.connect(`alice`, `alpha`)
+
+		await expect(topology.migrate(`alice`, `rejecting`)).rejects.toThrow(
+			`connection rejected`,
+		)
+		await rejecting.stop()
+		await expect(topology.migrate(`alice`, `rejecting`)).rejects.toThrow(
+			`not running`,
+		)
+		await topology.send(`alice`, {
+			operation: { delta: 2, id: `after-failure` },
+			type: `operation`,
+		})
+
+		expect(disconnected).toEqual([])
+		expect(topology.getState().routes).toEqual([original])
+		expect((await alpha.getDurableState()).count).toBe(2)
+	})
+
 	test(`routes, migrates, kills, partitions, and diagnoses split brain`, async () => {
 		const alpha = createCounterServer(`alpha`)
 		const beta = createCounterServer(`beta`)
@@ -180,10 +279,12 @@ describe(`multi-node realtime test topologies`, () => {
 		expect(aliceMessages.at(-1)).toEqual({ count: 1, type: `snapshot` })
 
 		topology.partitionNodes(`alpha`, `beta`)
-		await topology.send(`alice`, {
+		const circularMessage = {
 			operation: { delta: 10, id: `beta-only` },
 			type: `operation`,
-		})
+		} as ClientMessage & { self?: unknown }
+		circularMessage.self = circularMessage
+		await topology.send(`alice`, circularMessage)
 		await topology.migrate(`bob`, `alpha`)
 		await topology.send(`bob`, {
 			operation: { delta: 100, id: `alpha-only` },
@@ -192,7 +293,17 @@ describe(`multi-node realtime test topologies`, () => {
 
 		expect((await alpha.getDurableState()).count).toBe(101)
 		expect((await beta.getDurableState()).count).toBe(11)
-		expect(topology.formatEvents()).toContain(`replication-blocked`)
+		const splitBrainDiagnostics = topology.formatEvents()
+		expect(splitBrainDiagnostics).toContain(`replication-blocked`)
+		expect(splitBrainDiagnostics).toContain(`beta-only`)
+		expect(splitBrainDiagnostics).toContain(`"message"`)
+		expect(splitBrainDiagnostics).toContain(`"envelope"`)
+		expect(splitBrainDiagnostics).toContain(`[Circular]`)
+		expect(splitBrainDiagnostics).toContain(`"partitions"`)
+		expect(splitBrainDiagnostics).toContain(`"generation":1`)
+		expect(topology.getState().partitions).toEqual([
+			{ left: `alpha`, right: `beta` },
+		])
 
 		topology.healNodes(`alpha`, `beta`)
 		await topology.crashNode(`alpha`)

@@ -35,7 +35,12 @@ export function createSubscriber<K extends string>(
 		sub.refcount++
 	} else {
 		const reconnect = () => {
-			if (!sub || socket.id === undefined || sub.sessionId === socket.id) {
+			if (
+				!sub ||
+				sub.refcount === 0 ||
+				socket.id === undefined ||
+				sub.sessionId === socket.id
+			) {
 				return
 			}
 

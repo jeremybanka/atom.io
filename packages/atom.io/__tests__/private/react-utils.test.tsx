@@ -12,6 +12,8 @@ import { useId } from "react"
 import type { Socket } from "socket.io-client"
 import { vi } from "vitest"
 
+import { createSubscriber } from "../../src/realtime-client/create-subscriber.ts"
+
 function setNodeEnv(value: `development` | `production`) {
 	// @ts-expect-error – test override
 	globalThis.env = { NODE_ENV: value }
@@ -191,5 +193,37 @@ describe(`RealtimeProvider`, () => {
 		unmount()
 		expect(second.listeners.get(`connect`)?.size ?? 0).toBe(0)
 		expect(second.listeners.get(`disconnect`)?.size ?? 0).toBe(0)
+	})
+})
+
+describe(`createSubscriber`, () => {
+	it(`does not reopen an unreferenced subscription during coalesced cleanup`, async () => {
+		const listeners = new Map<string, Set<() => void>>()
+		const socket = {
+			id: `first`,
+			on: (event: string, listener: () => void) => {
+				let eventListeners = listeners.get(event)
+				if (!eventListeners) {
+					eventListeners = new Set()
+					listeners.set(event, eventListeners)
+				}
+				eventListeners.add(listener)
+			},
+			off: (event: string, listener: () => void) => {
+				listeners.get(event)?.delete(listener)
+			},
+		} as unknown as Socket
+		const close = vi.fn()
+		const open = vi.fn(() => close)
+		const unsubscribe = createSubscriber(socket, `state`, open)
+
+		unsubscribe()
+		socket.id = `second`
+		for (const listener of listeners.get(`connect`) ?? []) listener()
+
+		expect(open).toHaveBeenCalledTimes(1)
+		await new Promise((resolve) => setTimeout(resolve, 60))
+		expect(close).toHaveBeenCalledTimes(1)
+		expect(listeners.get(`connect`)?.size ?? 0).toBe(0)
 	})
 })

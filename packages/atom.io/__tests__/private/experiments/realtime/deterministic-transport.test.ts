@@ -2,6 +2,8 @@ import type { Socket } from "atom.io/realtime"
 import { SystemClock } from "atom.io/realtime"
 import {
 	createDeterministicTransport,
+	RealtimeTestInspectors,
+	RealtimeTestWorkTracker,
 	VirtualClock,
 } from "atom.io/realtime-testing"
 
@@ -47,10 +49,17 @@ describe(`VirtualClock`, () => {
 			`VirtualClock startAt must be finite`,
 		)
 		const clock = new VirtualClock({ startAt: 10 })
+		expect(clock.cancel(404)).toBe(false)
 		expect(() => clock.schedule(() => {}, -1)).toThrow(
 			`VirtualClock delay must be finite and non-negative`,
 		)
+		expect(() =>
+			clock.schedule(() => {}, Number.POSITIVE_INFINITY)
+		).toThrow(`VirtualClock delay must be finite and non-negative`)
 		expect(() => clock.advance(-1)).toThrow(
+			`VirtualClock advance duration must be finite and non-negative`,
+		)
+		expect(() => clock.advance(Number.NaN)).toThrow(
 			`VirtualClock advance duration must be finite and non-negative`,
 		)
 		expect(() => clock.advanceTo(9)).toThrow(
@@ -92,6 +101,63 @@ describe(`SystemClock`, () => {
 		expect(() => clock.schedule(() => {}, -1)).toThrow(
 			`SystemClock delay must be finite and non-negative`,
 		)
+	})
+})
+
+describe(`realtime work and failure diagnostics`, () => {
+	test(`settles rejected work and repeats drains until newly tracked work settles`, async () => {
+		const tracker = new RealtimeTestWorkTracker()
+		const rejection = tracker.track(
+			Promise.reject(new Error(`save failed`)),
+			`save`,
+		)
+		await expect(rejection).rejects.toThrow(`save failed`)
+		await vi.waitFor(() => {
+			expect(tracker.pendingLabels()).toEqual([])
+		})
+
+		let drainCalls = 0
+		const unregister = tracker.registerDrain(() => {
+			drainCalls++
+			if (drainCalls === 1) {
+				void tracker.track(Promise.resolve(), `follow-up`)
+			}
+		})
+		const context = {
+			deadline: 1_000,
+			now: () => 0,
+			signal: new AbortController().signal,
+		}
+		await tracker.drain(context)
+		expect(drainCalls).toBe(2)
+		unregister()
+		unregister()
+
+		const aborted = new AbortController()
+		const reason = new Error(`scenario canceled`)
+		aborted.abort(reason)
+		await expect(
+			tracker.drain({ ...context, signal: aborted.signal }),
+		).rejects.toBe(reason)
+	})
+
+	test(`keeps every inspector readable when values cannot be serialized`, () => {
+		const inspectors = new RealtimeTestInspectors()
+		expect(inspectors.transcript()).toBe(`[no selected state registered]`)
+		const removeUndefined = inspectors.register(`undefined`, () => undefined)
+		inspectors.register(`circular`, () => {
+			const value: Record<string, unknown> = {}
+			value[`self`] = value
+			return value
+		})
+		inspectors.register(`throwing`, () => {
+			throw new Error(`read failed`)
+		})
+		expect(inspectors.transcript()).toContain(`undefined: undefined`)
+		expect(inspectors.transcript()).toContain(`inspection failed`)
+		expect(inspectors.transcript()).toContain(`inspection threw`)
+		removeUndefined()
+		expect(inspectors.transcript()).not.toContain(`undefined: undefined`)
 	})
 })
 
@@ -410,6 +476,26 @@ describe(`DeterministicTransport`, () => {
 			envelope: { direction: `peer-to-peer` },
 			outcome: { disposition: `drop` },
 		})
+	})
+
+	test(`limits manual delivery loops and supports listener-wide removal`, () => {
+		const network = createDeterministicTransport({ mode: `manual` })
+		const pair = network.createDuplex(
+			{ id: `peer-a`, role: `peer` },
+			{ id: `peer-b`, role: `peer` },
+		)
+		let received = 0
+		pair.right.on(`message`, () => received++)
+		pair.right.off(`message`)
+		pair.left.emit(`message`)
+		expect(network.exportSchedule().decisions[0]?.envelope.direction).toBe(
+			`peer-to-peer`,
+		)
+		expect(() => network.runUntilIdle(0)).toThrow(
+			`exceeded its 0-delivery safety limit`,
+		)
+		expect(network.deliverDue()).toBe(1)
+		expect(received).toBe(0)
 	})
 
 	test(`counts delivery recursively produced by a delivered envelope`, () => {

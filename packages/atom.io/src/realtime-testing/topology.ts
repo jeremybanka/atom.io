@@ -349,33 +349,27 @@ export class RealtimeTestTopology<
 	/** Stop a node and detach all clients routed to it. */
 	public async stopNode(nodeId: string): Promise<void> {
 		const fixture = this.#requireNode(nodeId)
-		const errors: unknown[] = []
-		try {
-			await this.#detachNodeClients(nodeId, `node-stop`)
-		} catch (error) {
-			errors.push(error)
-		}
-		try {
-			await fixture.stop()
-		} catch (error) {
-			errors.push(error)
-		} finally {
-			this.#emit(`node-stopped`, { nodeId })
-		}
-		if (errors.length > 0) {
-			throw new AggregateError(
-				errors,
-				`Failed to stop topology node "${nodeId}"`,
-			)
-		}
+		await this.#transitionNode({
+			action: () => fixture.stop(),
+			details: { nodeId },
+			event: `node-stopped`,
+			failure: `Failed to stop topology node "${nodeId}"`,
+			nodeId,
+			reason: `node-stop`,
+		})
 	}
 
 	/** Crash a node and detach clients without invoking node disconnect hooks. */
 	public async crashNode(nodeId: string): Promise<void> {
 		const fixture = this.#requireNode(nodeId)
-		await this.#detachNodeClients(nodeId, `node-crash`)
-		await fixture.crash()
-		this.#emit(`node-crashed`, { nodeId })
+		await this.#transitionNode({
+			action: () => fixture.crash(),
+			details: { nodeId },
+			event: `node-crashed`,
+			failure: `Failed to crash topology node "${nodeId}"`,
+			nodeId,
+			reason: `node-crash`,
+		})
 	}
 
 	/** Restart a node, preserving durable state unless requested otherwise. */
@@ -384,15 +378,19 @@ export class RealtimeTestTopology<
 		options: RestartServerOptions = {},
 	): Promise<void> {
 		const fixture = this.#requireNode(nodeId)
-		if (fixture.running) {
-			const reason = options.mode === `crash` ? `node-crash` : `node-stop`
-			await this.#detachNodeClients(nodeId, reason)
-		}
-		await fixture.restart(options)
-		this.#emit(`node-restarted`, {
-			durability: options.durability ?? `preserve`,
-			generation: fixture.generation,
+		const reason = options.mode === `crash` ? `node-crash` : `node-stop`
+		await this.#transitionNode({
+			action: () => fixture.restart(options),
+			details: () => ({
+				durability: options.durability ?? `preserve`,
+				generation: fixture.generation,
+				nodeId,
+			}),
+			detach: fixture.running,
+			event: `node-restarted`,
+			failure: `Failed to restart topology node "${nodeId}"`,
 			nodeId,
+			reason,
 		})
 	}
 
@@ -455,6 +453,42 @@ export class RealtimeTestTopology<
 		return `${events}${events === `` ? `` : `\n`}state ${JSON.stringify(
 			this.getState(),
 		)}`
+	}
+
+	async #transitionNode(options: {
+		action: () => Promise<unknown>
+		details:
+			| Readonly<Record<string, unknown>>
+			| (() => Readonly<Record<string, unknown>>)
+		detach?: boolean
+		event: Extract<
+			RealtimeTestTopologyEvent[`type`],
+			`node-crashed` | `node-restarted` | `node-stopped`
+		>
+		failure: string
+		nodeId: string
+		reason: Extract<TopologyDisconnectReason, `node-crash` | `node-stop`>
+	}): Promise<void> {
+		const errors: unknown[] = []
+		if (options.detach ?? true) {
+			try {
+				await this.#detachNodeClients(options.nodeId, options.reason)
+			} catch (error) {
+				errors.push(error)
+			}
+		}
+		try {
+			await options.action()
+		} catch (error) {
+			errors.push(error)
+		} finally {
+			const details =
+				typeof options.details === `function`
+					? options.details()
+					: options.details
+			this.#emit(options.event, details)
+		}
+		if (errors.length > 0) throw new AggregateError(errors, options.failure)
 	}
 
 	async #detachNodeClients(

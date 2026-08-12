@@ -197,6 +197,62 @@ describe(`multi-node realtime test topologies`, () => {
 		])
 	})
 
+	test(`restarts after every client is detached even when a disconnect hook fails`, async () => {
+		const node = createRestartableServerFixture({
+			createDurableState: () => undefined,
+			createEphemeralState: () => undefined,
+			name: `restartable`,
+			start: () =>
+				({
+					disconnect: (session) => {
+						if (session.clientId === `alice`) throw new Error(`hook failed`)
+					},
+					receive: () => {},
+				}) satisfies RealtimeTestTopologyNode<unknown, unknown, unknown>,
+		})
+		await node.start()
+		const topology = createRealtimeTestTopology({ nodes: { restartable: node } })
+		for (const clientId of [`alice`, `bob`]) {
+			topology.addClient(clientId, { receive: () => {} })
+			await topology.connect(clientId, `restartable`)
+		}
+
+		await expect(topology.restartNode(`restartable`)).rejects.toThrow(
+			`Failed to restart topology node`,
+		)
+
+		expect(node.running).toBe(true)
+		expect(node.generation).toBe(2)
+		expect(topology.getState().routes).toEqual([])
+		expect(topology.getEvents().at(-1)?.type).toBe(`node-restarted`)
+	})
+
+	test(`crashes after every client is detached even when a callback fails`, async () => {
+		const node = createCounterServer(`crashable`)
+		await node.start()
+		const notifications: string[] = []
+		const topology = createRealtimeTestTopology({ nodes: { crashable: node } })
+		for (const clientId of [`alice`, `bob`]) {
+			topology.addClient(clientId, {
+				disconnected: () => {
+					notifications.push(clientId)
+					if (clientId === `alice`) throw new Error(`callback failed`)
+				},
+				receive: () => {},
+			})
+			await topology.connect(clientId, `crashable`)
+		}
+
+		await expect(topology.crashNode(`crashable`)).rejects.toThrow(
+			`Failed to crash topology node`,
+		)
+
+		expect(node.running).toBe(false)
+		expect(notifications).toEqual([`alice`, `bob`])
+		expect(topology.getState().routes).toEqual([])
+		expect(topology.getEvents().at(-1)?.type).toBe(`node-crashed`)
+	})
+
 	test(`keeps the previous route when a migration target rejects connection`, async () => {
 		const alpha = createCounterServer(`alpha`)
 		const rejecting = createRestartableServerFixture({

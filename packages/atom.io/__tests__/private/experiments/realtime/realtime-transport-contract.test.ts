@@ -3,7 +3,9 @@ import type { Socket } from "atom.io/realtime"
 import {
 	createDeterministicTransportAdapter,
 	createSocketIOTransportAdapter,
+	SOCKET_IO_TEST_ENDPOINT_AUTH,
 } from "atom.io/realtime-testing"
+import type { Socket as SocketIOServerSocket } from "socket.io"
 
 const once = (
 	socket: Socket,
@@ -22,8 +24,15 @@ describe.each([
 	[`socket.io`, () => createSocketIOTransportAdapter()],
 ] as const)(`%s transport adapter contract`, (_name, createAdapter) => {
 	test(`delivers duplex events and socket observation hooks`, async () => {
-		const connection = await createAdapter().connect()
+		const connection = await createAdapter().connect({
+			client: { id: `alice`, session: `alice-tab` },
+			server: { id: `origin`, session: `origin-node-1` },
+		})
 		try {
+			expect(connection.endpoints).toEqual({
+				client: { id: `alice`, session: `alice-tab` },
+				server: { id: `origin`, session: `origin-node-1` },
+			})
 			const clientOutgoing: string[] = []
 			const serverIncoming: string[] = []
 			const anyServerListener = (event: string) => serverIncoming.push(event)
@@ -63,4 +72,28 @@ describe.each([
 			await connection.dispose()
 		}
 	})
+
+	test(`rejects invalid logical endpoint metadata`, async () => {
+		await expect(
+			Promise.resolve().then(() =>
+				createAdapter().connect({ client: { id: ``, session: `tab` } }),
+			),
+		).rejects.toThrow(`Transport endpoint id cannot be empty`)
+	})
+})
+
+test(`Socket.IO carries logical client and session metadata in its handshake`, async () => {
+	const connection = await createSocketIOTransportAdapter().connect({
+		client: { id: `alice`, session: `alice-tab` },
+		server: { id: `origin`, session: `origin-node-1` },
+	})
+	try {
+		const server = connection.server as SocketIOServerSocket
+		expect(server.handshake.auth[SOCKET_IO_TEST_ENDPOINT_AUTH]).toEqual({
+			client: { id: `alice`, session: `alice-tab` },
+			server: { id: `origin`, session: `origin-node-1` },
+		})
+	} finally {
+		await connection.dispose()
+	}
 })

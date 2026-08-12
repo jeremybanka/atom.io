@@ -47,6 +47,43 @@ export type ReferenceSequenceState = {
 
 const groupKey = ({ actor, id }: ReferenceEditGroup): string => `${actor}\0${id}`
 
+/** Compare strings by UTF-16 code units, independently of host locale. */
+const compareCodeUnits = (left: string, right: string): number =>
+	left < right ? -1 : left > right ? 1 : 0
+
+/** Compare JSON-like operation payloads without depending on property order. */
+const structurallyEqual = (left: unknown, right: unknown): boolean => {
+	if (Object.is(left, right)) return true
+	if (
+		typeof left !== `object` ||
+		left === null ||
+		typeof right !== `object` ||
+		right === null
+	) {
+		return false
+	}
+	if (Array.isArray(left) || Array.isArray(right)) {
+		return (
+			Array.isArray(left) &&
+			Array.isArray(right) &&
+			left.length === right.length &&
+			left.every((value, index) => structurallyEqual(value, right[index]))
+		)
+	}
+	const leftRecord = left as Record<string, unknown>
+	const rightRecord = right as Record<string, unknown>
+	const leftKeys = Object.keys(leftRecord).sort(compareCodeUnits)
+	const rightKeys = Object.keys(rightRecord).sort(compareCodeUnits)
+	return (
+		leftKeys.length === rightKeys.length &&
+		leftKeys.every(
+			(key, index) =>
+				key === rightKeys[index] &&
+				structurallyEqual(leftRecord[key], rightRecord[key]),
+		)
+	)
+}
+
 /**
  * A deliberately small operation-set reference model for harness conformance.
  *
@@ -62,7 +99,7 @@ export class ReferenceSequenceReplica {
 	public apply(operation: ReferenceSequenceOperation): boolean {
 		const previous = this.#operations.get(operation.id)
 		if (previous !== undefined) {
-			if (JSON.stringify(previous) !== JSON.stringify(operation)) {
+			if (!structurallyEqual(previous, operation)) {
 				throw new Error(
 					`Operation ID ${operation.id} was reused with new content`,
 				)
@@ -84,7 +121,7 @@ export class ReferenceSequenceReplica {
 	/** Stable snapshot of accepted operations, suitable for replication. */
 	public operations(): readonly ReferenceSequenceOperation[] {
 		return [...this.#operations.values()].sort((left, right) =>
-			left.id.localeCompare(right.id),
+			compareCodeUnits(left.id, right.id),
 		)
 	}
 
@@ -111,7 +148,7 @@ export class ReferenceSequenceReplica {
 				invalid.add(operation.nodeId)
 			}
 		}
-		return [...invalid].sort()
+		return [...invalid].sort(compareCodeUnits)
 	}
 
 	/** Materialize deterministic text and visibility without mutating the log. */
@@ -142,7 +179,7 @@ export class ReferenceSequenceReplica {
 			children.set(insert.after, siblings)
 		}
 		for (const siblings of children.values()) {
-			siblings.sort((left, right) => left.nodeId.localeCompare(right.nodeId))
+			siblings.sort((left, right) => compareCodeUnits(left.nodeId, right.nodeId))
 		}
 
 		const nodes: ReferenceSequenceNode[] = []
@@ -200,7 +237,7 @@ export class ReferenceSequenceReplica {
 			const previous = toggles.get(key)
 			if (
 				previous === undefined ||
-				previous.id.localeCompare(operation.id) < 0
+				compareCodeUnits(previous.id, operation.id) < 0
 			) {
 				toggles.set(key, operation)
 			}

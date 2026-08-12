@@ -341,6 +341,16 @@ describe(`model-based realtime scenarios`, () => {
 		const replica = new RTT.ReferenceSequenceReplica()
 		expect(replica.apply(insert)).toBe(true)
 		expect(replica.apply(insert)).toBe(false)
+		expect(
+			replica.apply({
+				value: `A`,
+				type: `insert`,
+				nodeId: `a`,
+				id: `01`,
+				group: { id: `g1`, actor: `alice` },
+				after: null,
+			}),
+		).toBe(false)
 		expect(() => replica.apply({ ...insert, value: `B` })).toThrow(`reused`)
 		expect(() =>
 			new RTT.ReferenceSequenceReplica().apply({ ...insert, value: `` }),
@@ -372,5 +382,51 @@ describe(`model-based realtime scenarios`, () => {
 		])
 		expect(cycle.invalidAnchors()).toEqual([])
 		expect(() => cycle.state()).toThrow(`cyclic or unreachable`)
+	})
+
+	test(`reference ordering is locale-independent for non-ASCII IDs`, () => {
+		const group = { actor: `alice`, id: `group` }
+		const replica = new RTT.ReferenceSequenceReplica()
+		replica.applyAll([
+			{
+				after: null,
+				group,
+				id: `0`,
+				nodeId: `ä`,
+				type: `insert`,
+				value: `Ä`,
+			},
+			{
+				after: null,
+				group,
+				id: `1`,
+				nodeId: `z`,
+				type: `insert`,
+				value: `Z`,
+			},
+			{ active: false, group, id: `z`, type: `toggle-group` },
+			{ active: true, group, id: `ä`, type: `toggle-group` },
+		])
+		expect(replica.operations().map(({ id }) => id)).toEqual([
+			`0`,
+			`1`,
+			`z`,
+			`ä`,
+		])
+		expect(replica.state().text).toBe(`ZÄ`)
+
+		const invalid = new RTT.ReferenceSequenceReplica()
+		invalid.applyAll([
+			{
+				after: `ä`,
+				group,
+				id: `0`,
+				nodeId: `a`,
+				type: `insert`,
+				value: `A`,
+			},
+			{ group, id: `1`, nodeId: `z`, type: `delete` },
+		])
+		expect(invalid.invalidAnchors()).toEqual([`z`, `ä`])
 	})
 })

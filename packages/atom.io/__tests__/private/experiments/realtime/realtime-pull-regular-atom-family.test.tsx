@@ -159,7 +159,9 @@ describe(`running transactions`, () => {
 		await waitFor(() => jane.renderResult.getByTestId(`1`))
 
 		const unavailable = new Promise<void>((resolve) => {
-			jane.socket.once(`unavailable:numberCollection`, () => resolve())
+			jane.socket.once(`unavailable:numberCollection`, () => {
+				resolve()
+			})
 		})
 		act(() => {
 			server.silo.setState(exposedCollectionAtom, new Set<string>())

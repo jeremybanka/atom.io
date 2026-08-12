@@ -123,7 +123,9 @@ describe(`pull aliased state`, () => {
 					<>
 						<button
 							data-testid="unsubscribe"
-							onClick={() => setIsSubscribed(false)}
+							onClick={() => {
+								setIsSubscribed(false)
+							}}
 							type="button"
 						/>
 						{isSubscribed ? <AliasedCount /> : null}
@@ -136,13 +138,19 @@ describe(`pull aliased state`, () => {
 		client.socket.on(`serve:${clientCountAtom.key}`, (value) => {
 			receivedValues.push(value)
 		})
-		await waitFor(() => expect(client.socket.connected).toBe(true))
+		await waitFor(() => {
+			expect(client.socket.connected).toBe(true)
+		})
 		act(() => {
 			server.silo.setState(serverCountAtom, 1)
 		})
-		await waitFor(() => expect(receivedValues).toContain(1))
+		await waitFor(() => {
+			expect(receivedValues).toContain(1)
+		})
 
-		act(() => client.renderResult.getByTestId(`unsubscribe`).click())
+		act(() => {
+			client.renderResult.getByTestId(`unsubscribe`).click()
+		})
 		await new Promise((resolve) => setTimeout(resolve, 100))
 		act(() => {
 			server.silo.setState(serverCountAtom, 2)

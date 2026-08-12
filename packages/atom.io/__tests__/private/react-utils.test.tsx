@@ -131,7 +131,9 @@ describe(`useRealtimeService`, () => {
 })
 
 describe(`RealtimeProvider`, () => {
-	beforeEach(() => cleanup())
+	beforeEach(() => {
+		cleanup()
+	})
 
 	function fakeRealtimeSocket(id: string) {
 		const listeners = new Map<string, Set<(...args: never[]) => void>>()

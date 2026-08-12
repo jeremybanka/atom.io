@@ -62,7 +62,7 @@ const matches = (
 const stringify = (value: unknown): string => {
 	try {
 		const serialized = JSON.stringify(value)
-		return serialized === undefined ? String(value) : serialized
+		return serialized ?? String(value)
 	} catch {
 		return `[unserializable]`
 	}
@@ -79,22 +79,24 @@ export class RealtimeTestEventJournal {
 	readonly #waiters = new Set<Waiter>()
 	readonly #diagnostics: (() => string) | undefined
 
-	constructor(options: { diagnostics?: () => string } = {}) {
+	public constructor(options: { diagnostics?: () => string } = {}) {
 		this.#diagnostics = options.diagnostics
 	}
 
 	/** Return a cursor that excludes all entries currently in the journal. */
-	cursor(): RealtimeTestEventCursor {
+	public cursor(): RealtimeTestEventCursor {
 		return this.#entries.length
 	}
 
 	/** Return a stable snapshot of matching entries in occurrence order. */
-	entries(filter: RealtimeTestEventFilter = {}): readonly RealtimeTestEvent[] {
+	public entries(
+		filter: RealtimeTestEventFilter = {},
+	): readonly RealtimeTestEvent[] {
 		return this.#entries.filter((entry) => matches(entry, filter))
 	}
 
 	/** Count matching occurrences, rather than merely checking event-name presence. */
-	count(filter: RealtimeTestEventFilter = {}): number {
+	public count(filter: RealtimeTestEventFilter = {}): number {
 		return this.entries(filter).length
 	}
 
@@ -102,7 +104,7 @@ export class RealtimeTestEventJournal {
 	 * Wait for the first matching occurrence, including one already in the journal.
 	 * Timeout errors include a compact transcript for diagnosis.
 	 */
-	waitForEvent(
+	public waitForEvent(
 		filter: RealtimeTestEventFilter,
 		options: WaitForRealtimeTestEventOptions = {},
 	): Promise<RealtimeTestEvent> {
@@ -129,7 +131,7 @@ export class RealtimeTestEventJournal {
 	}
 
 	/** Format the newest matching entries as a compact diagnostic transcript. */
-	transcript(
+	public transcript(
 		options: RealtimeTestEventFilter & { limit?: number } = {},
 	): string {
 		const { limit = 20, ...filter } = options
@@ -144,7 +146,7 @@ export class RealtimeTestEventJournal {
 	}
 
 	/** @internal Record a transport observation. */
-	record(
+	public record(
 		entry: Omit<RealtimeTestEvent, `sequence` | `timestamp`>,
 	): RealtimeTestEvent {
 		const recorded: RealtimeTestEvent = {
@@ -163,7 +165,7 @@ export class RealtimeTestEventJournal {
 	}
 
 	/** @internal Reject pending waits when their scenario is torn down. */
-	dispose(): void {
+	public dispose(): void {
 		for (const waiter of this.#waiters) {
 			clearTimeout(waiter.timer)
 			waiter.reject(new Error(`Realtime test scenario was disposed`))

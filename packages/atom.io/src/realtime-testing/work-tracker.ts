@@ -35,7 +35,7 @@ export class RealtimeTestWorkTracker {
 	#revision = 0
 
 	/** Track a Promise and return the original Promise for convenient composition. */
-	track<T>(work: PromiseLike<T>, label = `application work`): Promise<T> {
+	public track<T>(work: PromiseLike<T>, label = `application work`): Promise<T> {
 		const id = ++this.#nextId
 		const promise = Promise.resolve(work)
 		this.#pending.set(id, { label, promise })
@@ -54,7 +54,7 @@ export class RealtimeTestWorkTracker {
 	}
 
 	/** Register a queue/scheduler drain adapter and return its disposer. */
-	registerDrain(drain: RealtimeTestWorkDrain): () => void {
+	public registerDrain(drain: RealtimeTestWorkDrain): () => void {
 		this.#drains.add(drain)
 		this.#revision++
 		return () => {
@@ -63,12 +63,12 @@ export class RealtimeTestWorkTracker {
 	}
 
 	/** Labels for work still pending, suitable for timeout diagnostics. */
-	pendingLabels(): readonly string[] {
+	public pendingLabels(): readonly string[] {
 		return [...this.#pending.values()].map(({ label }) => label)
 	}
 
 	/** @internal Drain adapters and tracked Promises until the tracker is stable. */
-	async drain(context: RealtimeTestDrainContext): Promise<void> {
+	public async drain(context: RealtimeTestDrainContext): Promise<void> {
 		for (;;) {
 			if (context.signal.aborted) throw context.signal.reason
 			const before = this.#revision

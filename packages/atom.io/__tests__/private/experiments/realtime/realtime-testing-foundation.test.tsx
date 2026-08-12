@@ -1,8 +1,102 @@
 import type * as RT from "atom.io/realtime"
-import { singleClient } from "atom.io/realtime-testing"
+import {
+	RealtimeTestEventJournal,
+	RealtimeTestInspectors,
+	RealtimeTestWorkTracker,
+	singleClient,
+} from "atom.io/realtime-testing"
 import * as RTTest from "atom.io/realtime-testing/headless"
 
 describe(`realtime testing foundations`, () => {
+	test(`diagnostic inspectors isolate serialization and selector failures`, () => {
+		const inspectors = new RealtimeTestInspectors()
+		expect(inspectors.transcript()).toBe(`[no selected state registered]`)
+
+		const circular: { self?: unknown } = {}
+		circular.self = circular
+		const disposeUndefined = inspectors.register(`undefined`, () => undefined)
+		const disposeCircular = inspectors.register(`circular`, () => circular)
+		const disposeThrowing = inspectors.register(`throwing`, () => {
+			throw new Error(`selector failed`)
+		})
+
+		expect(inspectors.transcript()).toMatch(
+			/undefined: undefined.*circular: \[inspection failed:.*throwing: \[inspection threw: Error: selector failed\]/s,
+		)
+		disposeUndefined()
+		disposeCircular()
+		disposeThrowing()
+		expect(inspectors.transcript()).toBe(`[no selected state registered]`)
+	})
+
+	test(`event journals support immediate waits, safe transcripts, and disposal`, async () => {
+		const journal = new RealtimeTestEventJournal()
+		const circular: { self?: unknown } = {}
+		circular.self = circular
+		const entry = journal.record({
+			args: [],
+			destination: `server`,
+			direction: `client:outgoing`,
+			event: `recorded`,
+			sessionId: `session-journal`,
+			source: `session-journal`,
+			userKey: `user::journal`,
+		})
+		journal.record({ ...entry, args: [circular], event: `circular` })
+
+		await expect(journal.waitForEvent({ event: `recorded` })).resolves.toBe(
+			entry,
+		)
+		expect(journal.transcript()).toMatch(
+			/recorded.*circular \[unserializable\]/s,
+		)
+		expect(journal.entries({ sessionId: `missing` })).toEqual([])
+
+		const pending = journal.waitForEvent(
+			{ event: `disposed-before-arrival` },
+			{ timeout: 1_000 },
+		)
+		journal.dispose()
+		await expect(pending).rejects.toThrow(`Realtime test scenario was disposed`)
+		await expect(
+			journal.waitForEvent({ event: `timeout` }, { timeout: 5 }),
+		).rejects.toThrow(/Event journal.*recorded/s)
+	})
+
+	test(`application work trackers handle rejection, recursive work, and aborts`, async () => {
+		const tracker = new RealtimeTestWorkTracker()
+		await expect(
+			tracker.track(Promise.reject(new Error(`save failed`)), `failed save`),
+		).rejects.toThrow(`save failed`)
+		expect(tracker.pendingLabels()).toEqual([])
+
+		let drainCount = 0
+		const disposeDrain = tracker.registerDrain(() => {
+			drainCount++
+			if (drainCount === 1) {
+				void tracker.track(Promise.resolve(), `recursive projection`)
+			}
+		})
+		const controller = new AbortController()
+		await tracker.drain({
+			deadline: Date.now() + 100,
+			now: Date.now,
+			signal: controller.signal,
+		})
+		expect(drainCount).toBe(2)
+		disposeDrain()
+		disposeDrain()
+
+		controller.abort(new Error(`cancelled`))
+		await expect(
+			tracker.drain({
+				deadline: Date.now(),
+				now: Date.now,
+				signal: controller.signal,
+			}),
+		).rejects.toThrow(`cancelled`)
+	})
+
 	test(`rejects invalid stability rounds consistently`, async () => {
 		const scenario = RTTest.headless({ server: () => {} })
 		const client = scenario.createClient({ name: `round-validation` })
@@ -230,6 +324,85 @@ describe(`realtime testing foundations`, () => {
 		}
 	})
 
+	test(`validates convergence participants and safely reports cyclic state`, async () => {
+		const scenario = RTTest.headless({ server: () => {} })
+		const first: { self?: unknown } = {}
+		first.self = first
+		const second: { self?: unknown } = {}
+		second.self = second
+		try {
+			await expect(
+				scenario.waitForConvergence({ participants: [] }),
+			).rejects.toThrow(`at least one participant`)
+			await expect(
+				scenario.waitForConvergence({
+					participants: [
+						{ label: `first cyclic`, read: () => first },
+						{ label: `second cyclic`, read: () => second },
+					],
+					timeout: 10,
+				}),
+			).rejects.toThrow(/first cyclic: \[unserializable\]/)
+			await expect(
+				scenario.waitForConvergence({
+					equals: (left, right) => left.id === right.id,
+					participants: [
+						{ label: `first`, read: () => ({ id: 1 }) },
+						{ label: `second`, read: () => ({ id: 1 }) },
+					],
+				}),
+			).resolves.toEqual({ id: 1 })
+		} finally {
+			await scenario.teardown()
+		}
+	})
+
+	test(`application drain timeouts report pending work`, async () => {
+		const scenario = RTTest.headless({ server: () => {} })
+		const client = scenario.createClient({ name: `blocked-work` })
+		let release!: () => void
+		void client.work.track(
+			new Promise<void>((resolve) => {
+				release = resolve
+			}),
+			`blocked projection`,
+		)
+		try {
+			await expect(scenario.drainApplication({ timeout: 10 })).rejects.toThrow(
+				/Timed out draining.*blocked projection/s,
+			)
+		} finally {
+			release()
+			await scenario.teardown()
+		}
+	})
+
+	test(`runs service cleanup and rejects work on disposed clients`, async () => {
+		let cleanedUp = false
+		const scenario = RTTest.headless({
+			server: ({ inspect }) => {
+				inspect(`connection state`, () => `connected`)
+				return () => {
+					cleanedUp = true
+				}
+			},
+		})
+		const client = scenario.createClient({ name: `cleanup-client` })
+		await client.waitForIdle()
+		const cursor = scenario.server.journal.cursor()
+		const received = scenario.server.awaitEvent(client.userKey, `ping`, cursor)
+		client.socket.emit(`ping`)
+		await received
+		await client.dispose()
+		await vi.waitFor(() => {
+			expect(cleanedUp).toBe(true)
+		})
+		await expect(client.drainTransport()).rejects.toThrow(`is disposed`)
+		await client.dispose()
+		await scenario.server.dispose()
+		await scenario.server.dispose()
+	})
+
 	test(`idle timeout errors include the journal transcript`, async () => {
 		const scenario = RTTest.headless({ server: () => {} })
 		const client = scenario.createClient({
@@ -310,8 +483,14 @@ describe(`realtime testing foundations`, () => {
 		const second = scenario.client.init()
 		try {
 			await scenario.waitForIdle()
+			await scenario.client.waitForIdle()
 			expect(first.sessionId).not.toBe(second.sessionId)
 			expect(first.userKey).toBe(second.userKey)
+			const log = vi.spyOn(console, `log`).mockImplementation(() => {})
+			first.prettyPrint()
+			expect(log).toHaveBeenCalled()
+			log.mockRestore()
+			await first.dispose()
 			await first.dispose()
 			expect(second.socket.connected).toBe(true)
 		} finally {

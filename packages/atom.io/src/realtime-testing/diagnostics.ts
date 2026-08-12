@@ -6,7 +6,7 @@ type Inspector = {
 const stringify = (value: unknown): string => {
 	try {
 		const result = JSON.stringify(value, null, 2)
-		return result === undefined ? String(value) : result
+		return result ?? String(value)
 	} catch (error) {
 		return `[inspection failed: ${String(error)}]`
 	}
@@ -17,14 +17,14 @@ export class RealtimeTestInspectors {
 	readonly #inspectors = new Set<Inspector>()
 
 	/** Register selected application state for timeout diagnostics. */
-	register(label: string, read: () => unknown): () => void {
+	public register(label: string, read: () => unknown): () => void {
 		const inspector = { label, read }
 		this.#inspectors.add(inspector)
 		return () => this.#inspectors.delete(inspector)
 	}
 
 	/** Render all registered selectors without allowing one failed selector to hide others. */
-	transcript(): string {
+	public transcript(): string {
 		if (this.#inspectors.size === 0) return `[no selected state registered]`
 		return [...this.#inspectors]
 			.map(({ label, read }) => {

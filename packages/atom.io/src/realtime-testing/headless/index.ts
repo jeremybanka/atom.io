@@ -351,12 +351,12 @@ const waitForConvergence = async <State>(
 			throw convergenceTimeout(error)
 		}
 		lastStates = options.participants.map(({ read }) => read())
-		const first = lastStates[0]!
+		const first = lastStates[0]
 		if (lastStates.every((state) => equals(first, state))) stable++
 		else stable = 0
 		await new Promise<void>((resolve) => setTimeout(resolve, 0))
 	}
-	return lastStates[0]!
+	return lastStates[0]
 }
 
 export const setupRealtimeTestServer = (
@@ -416,10 +416,12 @@ export const setupRealtimeTestServer = (
 					userKey,
 				})
 			}
-			socket.onAny((event, ...args) => record(`server:incoming`, event, args))
-			socket.onAnyOutgoing((event, ...args) =>
-				record(`server:outgoing`, event, args),
-			)
+			socket.onAny((event, ...args) => {
+				record(`server:incoming`, event, args)
+			})
+			socket.onAnyOutgoing((event, ...args) => {
+				record(`server:outgoing`, event, args)
+			})
 			socket.on(BARRIER_REQUEST, (nonce: string) => {
 				socket.emit(BARRIER_RESPONSE, nonce)
 			})
@@ -511,8 +513,7 @@ export const setupHeadlessRealtimeTestClient = (
 	const internalServer = server as InternalRealtimeTestServer
 	const sessionId =
 		options.sessionId ?? `session-${testNumber}-${++sessionNumber}`
-	const userKey =
-		options.userKey ?? (`user::${options.name}-${testNumber}` as RT.UserKey)
+	const userKey = options.userKey ?? `user::${options.name}-${testNumber}`
 	const socket: ClientSocket = io(`http://localhost:${server.port}/`, {
 		autoConnect: options.autoConnect ?? true,
 		auth: { token: `test`, username: userKey, sessionId },
@@ -539,10 +540,12 @@ export const setupHeadlessRealtimeTestClient = (
 			userKey,
 		})
 	}
-	socket.onAny((event, ...args) => record(`client:incoming`, event, args))
-	socket.onAnyOutgoing((event, ...args) =>
-		record(`client:outgoing`, event, args),
-	)
+	socket.onAny((event, ...args) => {
+		record(`client:incoming`, event, args)
+	})
+	socket.onAnyOutgoing((event, ...args) => {
+		record(`client:outgoing`, event, args)
+	})
 	const barrierWaiters = new Map<string, () => void>()
 	socket.on(BARRIER_RESPONSE, (nonce: string) => {
 		const resolve = barrierWaiters.get(nonce)

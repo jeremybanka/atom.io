@@ -143,9 +143,248 @@ describe(`restartable server fixtures`, () => {
 
 		expect(lifecycle).toEqual([`start`, `crash`, `start`, `stop`])
 	})
+
+	test(`recovers from failed lifecycle hooks and preserves truthful state`, async () => {
+		const events: string[] = []
+		const node = createRestartableServerFixture({
+			crash: () => {
+				throw new Error(`crash hook failed`)
+			},
+			createDurableState: () => ({ value: 0 }),
+			createEphemeralState: ({ generation }) => ({ generation }),
+			name: `fallible-lifecycle`,
+			onEvent: (event) => events.push(event.type),
+			start: ({ generation }) => {
+				if (generation === 1) throw new Error(`start hook failed`)
+				return { generation }
+			},
+			stop: () => {
+				throw new Error(`stop hook failed`)
+			},
+		})
+
+		expect(() => node.getRuntime()).toThrow(`is not running`)
+		expect(() => node.getEphemeralState()).toThrow(`is not running`)
+		await expect(node.stop()).rejects.toThrow(`is not running`)
+		await expect(node.crash()).rejects.toThrow(`is not running`)
+		await expect(node.start()).rejects.toThrow(`start hook failed`)
+		expect(node.running).toBe(false)
+		expect(node.generation).toBe(1)
+
+		await expect(node.start()).resolves.toEqual({ generation: 2 })
+		await expect(node.discardDurableState()).rejects.toThrow(
+			`Cannot discard durable state while server fixture`,
+		)
+		await expect(node.stop()).rejects.toThrow(`stop hook failed`)
+		expect(node.running).toBe(false)
+		expect(() => node.getRuntime()).toThrow(`is not running`)
+
+		await node.start()
+		await expect(node.crash()).rejects.toThrow(`crash hook failed`)
+		expect(node.running).toBe(false)
+		await node.discardDurableState()
+		expect(events).toEqual([
+			`started`,
+			`stopped`,
+			`started`,
+			`crashed`,
+			`durable-discarded`,
+		])
+	})
 })
 
 describe(`multi-node realtime test topologies`, () => {
+	test(`validates clients, routes, and idempotent disconnects`, async () => {
+		const alpha = createCounterServer(`alpha`)
+		const beta = createCounterServer(`beta`)
+		await Promise.all([alpha.start(), beta.start()])
+		const observedEvents: string[] = []
+		const topology = createRealtimeTestTopology({
+			nodes: { alpha, beta },
+			onEvent: (event) => observedEvents.push(event.type),
+		})
+
+		expect(topology.formatEvents()).toContain(`state`)
+		topology.addClient(`alice`, { receive: () => {} })
+		expect(() => {
+			topology.addClient(`alice`, { receive: () => {} })
+		}).toThrow(`already exists`)
+		await expect(topology.connect(`unknown`, `alpha`)).rejects.toThrow(
+			`Unknown topology client`,
+		)
+		await expect(topology.connect(`alice`, `missing`)).rejects.toThrow(
+			`Unknown topology node`,
+		)
+
+		await topology.connect(`alice`, `alpha`)
+		await expect(topology.connect(`alice`, `alpha`)).rejects.toThrow(
+			`already connected`,
+		)
+		await topology.disconnect(`alice`)
+		await topology.disconnect(`alice`)
+		await expect(
+			topology.send(`alice`, {
+				operation: { delta: 1, id: `disconnected` },
+				type: `operation`,
+			}),
+		).rejects.toThrow(`is not connected`)
+
+		const reconnected = await topology.migrate(`alice`, `alpha`)
+		expect(reconnected.sessionId).toBe(`alice:2`)
+		topology.partitionNodes(`alpha`, `beta`)
+		expect(topology.getState().partitions).toEqual([
+			{ left: `alpha`, right: `beta` },
+		])
+		topology.healAll()
+		expect(topology.getState().partitions).toEqual([])
+		expect(observedEvents).toEqual(topology.getEvents().map(({ type }) => type))
+	})
+
+	test(`keeps diagnostics bounded and serializable for arbitrary payloads`, async () => {
+		const node = createRestartableServerFixture({
+			createDurableState: () => undefined,
+			createEphemeralState: () => undefined,
+			name: `diagnostics`,
+			start: () => ({ receive: () => {} }),
+		})
+		await node.start()
+		const topology = createRealtimeTestTopology<unknown, never, never>({
+			nodes: { diagnostics: node },
+		})
+		topology.addClient(`alice`, { receive: () => {} })
+		await topology.connect(`alice`, `diagnostics`)
+
+		const unreadableObject = new Proxy(
+			{},
+			{
+				ownKeys: () => {
+					throw new Error(`ownKeys failed`)
+				},
+			},
+		)
+		const unreadableProperty = Object.defineProperty({}, `bad`, {
+			enumerable: true,
+			get: () => {
+				throw new Error(`getter failed`)
+			},
+		})
+		const wide = Object.fromEntries(
+			Array.from({ length: 101 }, (_, index) => [`key-${index}`, index]),
+		)
+		let deep: Record<string, unknown> = {}
+		for (let depth = 0; depth < 9; depth++) deep = { child: deep }
+		const unnamed = Object.defineProperty(() => {}, `name`, { value: `` })
+
+		await topology.send(`alice`, {
+			array: Array.from({ length: 101 }, (_, index) => index),
+			bigint: 10n,
+			date: new Date(`2026-01-02T03:04:05.000Z`),
+			deep,
+			error: new TypeError(`diagnostic failure`),
+			namedFunction: function namedDiagnostic() {},
+			symbol: Symbol(`diagnostic`),
+			undefined,
+			unnamed,
+			unreadableObject,
+			unreadableProperty,
+			wide,
+			long: `x`.repeat(4_097),
+		})
+
+		const event = topology
+			.getEvents()
+			.find(({ type }) => type === `client-message`)
+		expect(event).toBeDefined()
+		const diagnostic = JSON.stringify(event?.details[`message`])
+		expect(diagnostic).toContain(`…[truncated]`)
+		expect(diagnostic).toContain(`[Depth limit]`)
+		expect(diagnostic).toContain(`[Function namedDiagnostic]`)
+		expect(diagnostic).toContain(`[Function anonymous]`)
+		expect(diagnostic).toContain(`[undefined]`)
+		expect(diagnostic).toContain(`10n`)
+		expect(diagnostic).toContain(`Symbol(diagnostic)`)
+		expect(diagnostic).toContain(`2026-01-02T03:04:05.000Z`)
+		expect(diagnostic).toContain(`diagnostic failure`)
+		expect(diagnostic).toContain(`[Unreadable object: Error: ownKeys failed]`)
+		expect(diagnostic).toContain(`[Unreadable property: Error: getter failed]`)
+		expect(diagnostic).toContain(`"[truncated]":true`)
+	})
+
+	test(`commits a migration while surfacing source cleanup failure`, async () => {
+		const alpha = createRestartableServerFixture({
+			createDurableState: () => undefined,
+			createEphemeralState: () => undefined,
+			name: `alpha`,
+			start: () => ({
+				disconnect: () => {
+					throw new Error(`source disconnect failed`)
+				},
+				receive: () => {},
+			}),
+			stop: () => {
+				throw new Error(`source stop failed`)
+			},
+		})
+		const beta = createRestartableServerFixture({
+			createDurableState: () => undefined,
+			createEphemeralState: () => undefined,
+			name: `beta`,
+			start: () =>
+				({
+					connect: (session, context) => {
+						context.send(session, `ready`)
+					},
+					receive: () => {},
+				}) satisfies RealtimeTestTopologyNode<unknown, string, never>,
+		})
+		const rejecting = createRestartableServerFixture({
+			createDurableState: () => undefined,
+			createEphemeralState: () => undefined,
+			name: `rejecting`,
+			start: () => ({
+				connect: () => {
+					throw new Error(`target connect failed`)
+				},
+				disconnect: () => {
+					throw new Error(`target cleanup failed`)
+				},
+				receive: () => {},
+			}),
+		})
+		await Promise.all([alpha.start(), beta.start(), rejecting.start()])
+		const received: string[] = []
+		const topology = createRealtimeTestTopology<unknown, string, never>({
+			nodes: { alpha, beta, rejecting },
+		})
+		topology.addClient(`alice`, {
+			receive: (message) => received.push(message),
+		})
+		topology.addClient(`bob`, { receive: () => {} })
+		await topology.connect(`alice`, `alpha`)
+
+		await expect(topology.migrate(`alice`, `beta`)).rejects.toThrow(
+			`failed to cleanly disconnect its previous route`,
+		)
+		expect(topology.getState().routes).toEqual([
+			{ clientId: `alice`, nodeId: `beta`, sessionId: `alice:2` },
+		])
+		expect(received).toEqual([`ready`])
+
+		await expect(topology.migrate(`alice`, `rejecting`)).rejects.toThrow(
+			`Migration of "alice" to "rejecting" failed`,
+		)
+		await expect(topology.connect(`bob`, `rejecting`)).rejects.toThrow(
+			`target connect failed`,
+		)
+		expect(topology.getState().routes).toHaveLength(1)
+
+		await expect(topology.stopNode(`alpha`)).rejects.toThrow(
+			`Failed to stop topology node`,
+		)
+		expect(alpha.running).toBe(false)
+		expect(topology.getEvents().at(-1)?.type).toBe(`node-stopped`)
+	})
+
 	test(`stops a node after every client is detached even when hooks fail`, async () => {
 		const detached: string[] = []
 		let stopped = false

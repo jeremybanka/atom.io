@@ -7,6 +7,12 @@ import * as React from "react"
 
 import { useRealtimeService } from "./use-realtime-service.ts"
 
+export function usePushStatus<J extends Json.Serializable>(
+	token: AtomIO.WritableToken<J>,
+): RT.RealtimeLeaseStatus {
+	return useO(RT.realtimeLeaseAtoms, token.key)
+}
+
 export function usePush<J extends Json.Serializable>(
 	token: AtomIO.WritableToken<J>,
 ): (<New extends J>(next: New | ((old: J) => New)) => void) | null {

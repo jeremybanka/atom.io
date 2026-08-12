@@ -8,6 +8,7 @@ import type {
 	Socket,
 	StandardSchemaV1,
 } from "atom.io/realtime"
+import { mutexAtoms, realtimeLeaseAtoms } from "atom.io/realtime"
 import * as RTC from "atom.io/realtime-client"
 import * as RTS from "atom.io/realtime-server"
 import * as RTTest from "atom.io/realtime-testing"
@@ -372,11 +373,18 @@ describe(`realtime push leases`, () => {
 			{ generation: 1, leaseId: `test-socket:1` },
 		])
 		socket.receive(`lease-status:${countAtom.key}`, lease)
-		socket.receive(`lease-status:${countAtom.key}`, {
-			generation: 1,
-			reason: `expired`,
-			state: `released`,
+		const renewals = socket.emitted.filter(([event]) =>
+			event.startsWith(`renew:`),
+		).length
+		socket.receive(`disconnect`)
+		expect(silo.getState(mutexAtoms, countAtom.key)).toBe(false)
+		expect(silo.getState(realtimeLeaseAtoms, countAtom.key)).toEqual({
+			state: `idle`,
 		})
+		await vitest.advanceTimersByTimeAsync(60)
+		expect(
+			socket.emitted.filter(([event]) => event.startsWith(`renew:`)),
+		).toHaveLength(renewals)
 		const publications = socket.emitted.filter(([event]) =>
 			event.startsWith(`pub:`),
 		).length

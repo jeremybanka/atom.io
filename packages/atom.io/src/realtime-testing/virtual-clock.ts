@@ -21,14 +21,14 @@ type InternalTask = VirtualClockTask & {
  * Callbacks scheduled for the same instant execute in insertion order. Callbacks
  * may schedule more callbacks, including callbacks for the current instant.
  */
-export class VirtualClock {
+export class VirtualClock implements Clock {
 	readonly #defaultMaxTasks: number
 	#nextId = 1
 	#sequence = 0
 	#tasks = new Map<number, InternalTask>()
 	#time: number
 
-	constructor(options: VirtualClockOptions = {}) {
+	public constructor(options: VirtualClockOptions = {}) {
 		this.#time = options.startAt ?? 0
 		this.#defaultMaxTasks = options.maxTasksPerRun ?? 10_000
 		if (!Number.isFinite(this.#time)) {
@@ -37,12 +37,12 @@ export class VirtualClock {
 	}
 
 	/** The current virtual timestamp. */
-	now(): number {
+	public now(): number {
 		return this.#time
 	}
 
 	/** Schedule synchronous work after a non-negative virtual delay. */
-	schedule(callback: () => void, delay = 0, label?: string): number {
+	public schedule(callback: () => void, delay = 0, label?: string): number {
 		if (!Number.isFinite(delay) || delay < 0) {
 			throw new Error(`VirtualClock delay must be finite and non-negative`)
 		}
@@ -58,12 +58,12 @@ export class VirtualClock {
 	}
 
 	/** Cancel pending work. Returns whether the task was still pending. */
-	cancel(id: number): boolean {
+	public cancel(id: number): boolean {
 		return this.#tasks.delete(id)
 	}
 
 	/** Return pending tasks ordered exactly as the clock will run them. */
-	pending(): readonly VirtualClockTask[] {
+	public pending(): readonly VirtualClockTask[] {
 		return this.#orderedTasks().map(({ dueAt, id, label }) => ({
 			dueAt,
 			id,
@@ -72,7 +72,10 @@ export class VirtualClock {
 	}
 
 	/** Advance by a duration, running every task due within the interval. */
-	advance(duration: number, maxTasks: number = this.#defaultMaxTasks): number {
+	public advance(
+		duration: number,
+		maxTasks: number = this.#defaultMaxTasks,
+	): number {
 		if (!Number.isFinite(duration) || duration < 0) {
 			throw new Error(
 				`VirtualClock advance duration must be finite and non-negative`,
@@ -82,7 +85,7 @@ export class VirtualClock {
 	}
 
 	/** Advance to an absolute virtual timestamp. */
-	advanceTo(
+	public advanceTo(
 		timestamp: number,
 		maxTasks: number = this.#defaultMaxTasks,
 	): number {
@@ -99,7 +102,7 @@ export class VirtualClock {
 	 *
 	 * Throws with pending-task diagnostics when the safety limit is exceeded.
 	 */
-	runUntilIdle(maxTasks: number = this.#defaultMaxTasks): number {
+	public runUntilIdle(maxTasks: number = this.#defaultMaxTasks): number {
 		let ran = 0
 		while (this.#tasks.size > 0) {
 			const next = this.#orderedTasks()[0]
@@ -142,3 +145,4 @@ export class VirtualClock {
 		)
 	}
 }
+import type { Clock } from "atom.io/realtime"

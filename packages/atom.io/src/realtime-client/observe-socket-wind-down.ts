@@ -11,7 +11,9 @@ import { getSubMap } from "./create-subscriber.ts"
  */
 export async function observeSocketWindDown(socket: Socket): Promise<string[]> {
 	const pendingSubscriptions = [...getSubMap(socket)].flatMap(([key, sub]) =>
-		sub.refcount === 0 ? [[key, sub.timer] as const] : [],
+		sub.refcount === 0 && sub.completion !== null
+			? [[key, sub.completion] as const]
+			: [],
 	)
 	await Promise.all(pendingSubscriptions.map(([, timer]) => timer))
 	return pendingSubscriptions.map(([key]) => key)

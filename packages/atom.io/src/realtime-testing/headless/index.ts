@@ -370,7 +370,7 @@ export const setupRealtimeTestServer = (
 	const work = new RealtimeTestWorkTracker()
 	const silo = new AtomIO.Silo(
 		{
-			name: `SERVER`,
+			name: `SERVER-1`,
 			lifespan: options.immortal?.server ? `immortal` : `ephemeral`,
 			isProduction: false,
 		},

@@ -441,6 +441,8 @@ describe(`realtime testing foundations`, () => {
 				firstScenario.waitForIdle(),
 				secondScenario.waitForIdle(),
 			])
+			expect(firstScenario.server.silo.store.config.name).toBe(`SERVER-1`)
+			expect(secondScenario.server.silo.store.config.name).toBe(`SERVER-1`)
 			expect(first.sessionId).toBe(`session-1`)
 			expect(firstSibling.sessionId).toBe(`session-2`)
 			expect(second.sessionId).toBe(`session-1`)

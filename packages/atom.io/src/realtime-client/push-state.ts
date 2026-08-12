@@ -94,6 +94,13 @@ export function pushState<J extends Json.Serializable>(
 				)
 			},
 		)
+		const stopDisconnect = employSocket(socket, `disconnect`, () => {
+			lease = null
+			stopRenewing()
+			stopPublishing()
+			setIntoStore(store, mutexAtoms, token.key, false)
+			setIntoStore(store, realtimeLeaseAtoms, token.key, { state: `idle` })
+		})
 
 		socket.emit(`claim:${token.key}`)
 
@@ -111,6 +118,7 @@ export function pushState<J extends Json.Serializable>(
 			stopPublishing()
 			stopStatus()
 			stopLegacyClaim()
+			stopDisconnect()
 			setIntoStore(store, mutexAtoms, token.key, false)
 			setIntoStore(store, realtimeLeaseAtoms, token.key, { state: `idle` })
 		}

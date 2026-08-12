@@ -1,7 +1,29 @@
 import type * as RT from "atom.io/realtime"
-import * as RTTest from "atom.io/realtime-testing"
+import { singleClient } from "atom.io/realtime-testing"
+import * as RTTest from "atom.io/realtime-testing/headless"
 
 describe(`realtime testing foundations`, () => {
+	test(`rejects invalid stability rounds consistently`, async () => {
+		const scenario = RTTest.headless({ server: () => {} })
+		const client = scenario.createClient({ name: `round-validation` })
+		try {
+			await expect(scenario.waitForIdle({ stableRounds: 0 })).rejects.toThrow(
+				/positive integer/,
+			)
+			await expect(client.waitForIdle({ stableRounds: 1.5 })).rejects.toThrow(
+				/positive integer/,
+			)
+			await expect(
+				scenario.waitForConvergence({
+					participants: [{ label: `only`, read: () => 1 }],
+					stableRounds: -1,
+				}),
+			).rejects.toThrow(/positive integer/)
+		} finally {
+			await scenario.teardown()
+		}
+	})
+
 	test(`creates and disposes headless sessions independently`, async () => {
 		const scenario = RTTest.headless({
 			server: ({ socket, sessionId }) => {
@@ -280,7 +302,7 @@ describe(`realtime testing foundations`, () => {
 	})
 
 	test(`legacy builders can own more than one live instance`, async () => {
-		const scenario = RTTest.singleClient({
+		const scenario = singleClient({
 			client: () => null,
 			server: () => {},
 		})

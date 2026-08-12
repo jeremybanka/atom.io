@@ -48,7 +48,7 @@ const schema = (
 })
 
 describe(`guardSocket`, () => {
-	test(`removes exact and all wrapped listeners symmetrically`, async () => {
+	test(`removes exact and all wrapped listeners symmetrically`, () => {
 		const socket = new TestSocket()
 		const guarded = guardSocket<TestEvents>(socket, {
 			message: schema((args) => ({ value: args as [string] })),
@@ -79,9 +79,7 @@ describe(`guardSocket`, () => {
 		const guarded = guardSocket<TestEvents>(
 			socket,
 			{
-				message: schema(async () => {
-					throw new Error(`validator rejected`)
-				}),
+				message: schema(() => Promise.reject(new Error(`validator rejected`))),
 			},
 			(error) => diagnostics.push(error),
 		)
@@ -90,7 +88,9 @@ describe(`guardSocket`, () => {
 
 		socket.emit(`unknown`, `payload`)
 		socket.emit(`message`, `payload`)
-		await vi.waitFor(() => expect(diagnostics).toHaveLength(3))
+		await vi.waitFor(() => {
+			expect(diagnostics).toHaveLength(3)
+		})
 		expect(listener).not.toHaveBeenCalled()
 		expect(diagnostics.map(String).join(` `)).toContain(`unknown`)
 		expect(diagnostics.map(String).join(` `)).toContain(`validator rejected`)
@@ -110,6 +110,8 @@ describe(`guardSocket`, () => {
 
 		socket.emit(`message`, `first`)
 		socket.emit(`message`, `second`)
-		await vi.waitFor(() => expect(received).toEqual([`first`, `second`]))
+		await vi.waitFor(() => {
+			expect(received).toEqual([`first`, `second`])
+		})
 	})
 })

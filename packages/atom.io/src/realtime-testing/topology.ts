@@ -103,6 +103,13 @@ export type RealtimeTestTopologyEvent = {
 		| `replication-delivered`
 }
 
+/** A point-in-time view of routes, nodes, and network partitions. */
+export type RealtimeTestTopologyState = {
+	nodes: Readonly<Record<string, { generation: number; running: boolean }>>
+	partitions: readonly { left: string; right: string }[]
+	routes: readonly TopologyClientSession[]
+}
+
 /** Options for {@link createRealtimeTestTopology}. */
 export type RealtimeTestTopologyOptions<
 	ClientMessage,
@@ -123,6 +130,70 @@ type AnyServerFixture<ClientMessage, ServerMessage, ReplicationMessage> =
 	RestartableServerController<
 		RealtimeTestTopologyNode<ClientMessage, ServerMessage, ReplicationMessage>
 	>
+
+const DIAGNOSTIC_COLLECTION_LIMIT = 100
+const DIAGNOSTIC_DEPTH_LIMIT = 8
+const DIAGNOSTIC_STRING_LIMIT = 4_096
+
+/** Snapshot an arbitrary protocol payload without retaining or traversing it forever. */
+function toDiagnosticValue(
+	value: unknown,
+	seen: WeakSet<object> = new WeakSet(),
+	depth = 0,
+): unknown {
+	if (typeof value === `string`) {
+		if (value.length <= DIAGNOSTIC_STRING_LIMIT) return value
+		return `${value.slice(0, DIAGNOSTIC_STRING_LIMIT)}…[truncated]`
+	}
+	if (
+		value === null ||
+		typeof value === `boolean` ||
+		typeof value === `number`
+	) {
+		return value
+	}
+	if (typeof value === `bigint`) return `${value}n`
+	if (typeof value === `symbol`) return String(value)
+	if (typeof value === `function`)
+		return `[Function ${value.name || `anonymous`}]`
+	if (value === undefined) return `[undefined]`
+	if (depth >= DIAGNOSTIC_DEPTH_LIMIT) return `[Depth limit]`
+	if (seen.has(value)) return `[Circular]`
+	seen.add(value)
+
+	if (value instanceof Error) {
+		return { message: value.message, name: value.name }
+	}
+	if (value instanceof Date) return value.toISOString()
+	if (Array.isArray(value)) {
+		const result = value
+			.slice(0, DIAGNOSTIC_COLLECTION_LIMIT)
+			.map((item) => toDiagnosticValue(item, seen, depth + 1))
+		if (value.length > DIAGNOSTIC_COLLECTION_LIMIT) result.push(`[truncated]`)
+		return result
+	}
+
+	const result: Record<string, unknown> = {}
+	let keys: string[]
+	try {
+		keys = Object.keys(value)
+	} catch (error) {
+		return `[Unreadable object: ${String(error)}]`
+	}
+	for (const key of keys.slice(0, DIAGNOSTIC_COLLECTION_LIMIT)) {
+		try {
+			result[key] = toDiagnosticValue(
+				(value as Record<string, unknown>)[key],
+				seen,
+				depth + 1,
+			)
+		} catch (error) {
+			result[key] = `[Unreadable property: ${String(error)}]`
+		}
+	}
+	if (keys.length > DIAGNOSTIC_COLLECTION_LIMIT) result[`[truncated]`] = true
+	return result
+}
 
 /**
  * A controllable, transport-independent multi-node router for realtime tests.
@@ -210,10 +281,50 @@ export class RealtimeTestTopology<
 		clientId: string,
 		nodeId: string,
 	): Promise<TopologyClientSession> {
-		if (this.#routes.has(clientId)) {
-			await this.#disconnect(clientId, `migrate`, true)
+		this.#requireClient(clientId)
+		const target = this.#requireRuntime(nodeId)
+		const previous = this.#routes.get(clientId)
+		if (previous === undefined) return this.connect(clientId, nodeId)
+
+		const ordinal = (this.#sessionCounters.get(clientId) ?? 0) + 1
+		const session = { clientId, nodeId, sessionId: `${clientId}:${ordinal}` }
+		const pendingMessages: ServerMessage[] = []
+		try {
+			await target.connect?.(
+				session,
+				this.#contextFor(nodeId, { messages: pendingMessages, session }),
+			)
+		} catch (connectError) {
+			try {
+				await target.disconnect?.(session, `migrate`, this.#contextFor(nodeId))
+			} catch (cleanupError) {
+				throw new AggregateError(
+					[connectError, cleanupError],
+					`Migration of "${clientId}" to "${nodeId}" failed`,
+				)
+			}
+			throw connectError
 		}
-		return this.connect(clientId, nodeId)
+
+		this.#sessionCounters.set(clientId, ordinal)
+		let disconnectError: unknown
+		try {
+			await this.#disconnect(clientId, `migrate`, true)
+		} catch (error) {
+			disconnectError = error
+		}
+		this.#routes.set(clientId, session)
+		this.#emit(`client-connected`, session)
+		for (const message of pendingMessages) {
+			this.#requireClient(clientId).receive(message, session)
+		}
+		if (disconnectError !== undefined) {
+			throw new AggregateError(
+				[disconnectError],
+				`Migrated "${clientId}" but failed to cleanly disconnect its previous route`,
+			)
+		}
+		return session
 	}
 
 	/** Route a client protocol message to its connected node. */
@@ -224,6 +335,7 @@ export class RealtimeTestTopology<
 		}
 		this.#emit(`client-message`, {
 			clientId,
+			message: toDiagnosticValue(message),
 			nodeId: session.nodeId,
 			sessionId: session.sessionId,
 		})
@@ -237,9 +349,25 @@ export class RealtimeTestTopology<
 	/** Stop a node and detach all clients routed to it. */
 	public async stopNode(nodeId: string): Promise<void> {
 		const fixture = this.#requireNode(nodeId)
-		await this.#detachNodeClients(nodeId, `node-stop`)
-		await fixture.stop()
-		this.#emit(`node-stopped`, { nodeId })
+		const errors: unknown[] = []
+		try {
+			await this.#detachNodeClients(nodeId, `node-stop`)
+		} catch (error) {
+			errors.push(error)
+		}
+		try {
+			await fixture.stop()
+		} catch (error) {
+			errors.push(error)
+		} finally {
+			this.#emit(`node-stopped`, { nodeId })
+		}
+		if (errors.length > 0) {
+			throw new AggregateError(
+				errors,
+				`Failed to stop topology node "${nodeId}"`,
+			)
+		}
 	}
 
 	/** Crash a node and detach clients without invoking node disconnect hooks. */
@@ -295,14 +423,38 @@ export class RealtimeTestTopology<
 		return [...this.#events]
 	}
 
+	/** Return the current routes, node generations, and network partitions. */
+	public getState(): RealtimeTestTopologyState {
+		return {
+			nodes: Object.fromEntries(
+				[...this.#nodes.entries()]
+					.sort(([left], [right]) => left.localeCompare(right))
+					.map(([nodeId, node]) => [
+						nodeId,
+						{ generation: node.generation, running: node.running },
+					]),
+			),
+			partitions: [...this.#partitions].sort().map((key) => {
+				const [left, right] = key.split(`\u0000`)
+				return { left, right }
+			}),
+			routes: [...this.#routes.values()]
+				.map((session) => ({ ...session }))
+				.sort((left, right) => left.clientId.localeCompare(right.clientId)),
+		}
+	}
+
 	/** Render topology diagnostics for assertion failures and test reports. */
 	public formatEvents(): string {
-		return this.#events
+		const events = this.#events
 			.map(
 				(event) =>
 					`${event.sequence}. ${event.type} ${JSON.stringify(event.details)}`,
 			)
 			.join(`\n`)
+		return `${events}${events === `` ? `` : `\n`}state ${JSON.stringify(
+			this.getState(),
+		)}`
 	}
 
 	async #detachNodeClients(
@@ -312,8 +464,19 @@ export class RealtimeTestTopology<
 		const clients = [...this.#routes.values()]
 			.filter((session) => session.nodeId === nodeId)
 			.map((session) => session.clientId)
+		const errors: unknown[] = []
 		for (const clientId of clients) {
-			await this.#disconnect(clientId, reason, reason !== `node-crash`)
+			try {
+				await this.#disconnect(clientId, reason, reason !== `node-crash`)
+			} catch (error) {
+				errors.push(error)
+			}
+		}
+		if (errors.length > 0) {
+			throw new AggregateError(
+				errors,
+				`Failed to detach clients from topology node "${nodeId}"`,
+			)
 		}
 	}
 
@@ -325,19 +488,38 @@ export class RealtimeTestTopology<
 		const session = this.#routes.get(clientId)
 		if (session === undefined) return
 		this.#routes.delete(clientId)
+		const errors: unknown[] = []
 		if (notifyNode) {
-			await this.#requireRuntime(session.nodeId).disconnect?.(
-				session,
-				reason,
-				this.#contextFor(session.nodeId),
+			try {
+				await this.#requireRuntime(session.nodeId).disconnect?.(
+					session,
+					reason,
+					this.#contextFor(session.nodeId),
+				)
+			} catch (error) {
+				errors.push(error)
+			}
+		}
+		try {
+			this.#requireClient(clientId).disconnected?.(reason, session)
+		} catch (error) {
+			errors.push(error)
+		}
+		this.#emit(`client-disconnected`, { ...session, reason })
+		if (errors.length > 0) {
+			throw new AggregateError(
+				errors,
+				`Failed to disconnect topology client "${clientId}"`,
 			)
 		}
-		this.#requireClient(clientId).disconnected?.(reason, session)
-		this.#emit(`client-disconnected`, { ...session, reason })
 	}
 
 	#contextFor(
 		nodeId: string,
+		pending?: {
+			messages: ServerMessage[]
+			session: TopologyClientSession
+		},
 	): TopologyNodeContext<ServerMessage, ReplicationMessage> {
 		return {
 			replicate: async (message, destinations) => {
@@ -347,13 +529,18 @@ export class RealtimeTestTopology<
 				for (const to of peers) {
 					const envelope = { from: nodeId, message, to }
 					if (this.#partitions.has(this.#partitionKey(nodeId, to))) {
-						this.#emit(`replication-blocked`, { from: nodeId, to })
+						this.#emit(`replication-blocked`, {
+							envelope: toDiagnosticValue(envelope),
+							from: nodeId,
+							to,
+						})
 						continue
 					}
 					await this.#replication.deliver(envelope, async () => {
 						const target = this.#requireNode(to)
 						if (!target.running) {
 							this.#emit(`replication-blocked`, {
+								envelope: toDiagnosticValue(envelope),
 								from: nodeId,
 								reason: `node-stopped`,
 								to,
@@ -363,11 +550,19 @@ export class RealtimeTestTopology<
 						await target
 							.getRuntime()
 							.receiveReplication?.(envelope, this.#contextFor(to))
-						this.#emit(`replication-delivered`, { from: nodeId, to })
+						this.#emit(`replication-delivered`, {
+							envelope: toDiagnosticValue(envelope),
+							from: nodeId,
+							to,
+						})
 					})
 				}
 			},
 			send: (session, message) => {
+				if (pending?.session.sessionId === session.sessionId) {
+					pending.messages.push(message)
+					return
+				}
 				const route = this.#routes.get(session.clientId)
 				if (route?.sessionId !== session.sessionId) return
 				this.#requireClient(session.clientId).receive(message, session)

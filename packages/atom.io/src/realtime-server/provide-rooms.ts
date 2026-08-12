@@ -34,7 +34,7 @@ import {
 	visibleUsersInRoomsSelectors,
 } from "atom.io/realtime"
 
-import { ChildSocket, PROOF_OF_LIFE_SIGNAL } from "./ipc-sockets/index.ts"
+import { ChildSocket } from "./ipc-sockets/index.ts"
 import { realtimeMutableFamilyProvider } from "./realtime-mutable-family-provider.ts"
 import { realtimeMutableProvider } from "./realtime-mutable-provider.ts"
 
@@ -52,17 +52,163 @@ export const ROOMS: RoomMap =
 
 export const roomMeta: { count: number } = { count: 0 }
 
+export type RoomTimeouts = {
+	startupMs?: number | undefined
+	idleMs?: number | undefined
+	maximumMs?: number | undefined
+	shutdownMs?: number | undefined
+}
+
+export const DEFAULT_ROOM_TIMEOUTS = {
+	startupMs: 5_000,
+	shutdownMs: 1_000,
+} as const
+
+type RoomLifecycle = {
+	activeConnections: number
+	child: ChildProcessWithoutNullStreams
+	cleared: boolean
+	connections: Set<(notifyRoom: boolean) => void>
+	disposers: (() => void)[]
+	idleMs: number | undefined
+	idleTimer?: NodeJS.Timeout
+	maximumTimer?: NodeJS.Timeout
+	room: ChildSocket<any, any, ChildProcessWithoutNullStreams>
+	roomKey: RoomKey
+	shutdownMs: number
+	shutdown?: Promise<void>
+	store: RootStore
+}
+
+const ROOM_LIFECYCLES = new Map<RoomKey, RoomLifecycle>()
+
+const waitForExit = (
+	child: ChildProcessWithoutNullStreams,
+	timeoutMs: number,
+): Promise<boolean> => {
+	if (child.exitCode !== null || child.signalCode !== null)
+		return Promise.resolve(true)
+	return new Promise((resolve) => {
+		let timeout: NodeJS.Timeout
+		const done = (): void => {
+			clearTimeout(timeout)
+			child.off(`exit`, exited)
+			resolve(true)
+		}
+		const exited = (): void => {
+			done()
+		}
+		timeout = setTimeout(() => {
+			child.off(`exit`, exited)
+			resolve(false)
+		}, timeoutMs)
+		child.once(`exit`, exited)
+		if (child.exitCode !== null || child.signalCode !== null) done()
+	})
+}
+
+const clearRoomState = (lifecycle: RoomLifecycle): void => {
+	const { roomKey, store } = lifecycle
+	if (lifecycle.cleared) return
+	lifecycle.cleared = true
+	if (lifecycle.idleTimer) clearTimeout(lifecycle.idleTimer)
+	if (lifecycle.maximumTimer) clearTimeout(lifecycle.maximumTimer)
+	for (const detach of [...lifecycle.connections]) detach(false)
+	for (const dispose of lifecycle.disposers.splice(0)) dispose()
+	lifecycle.room.dispose()
+	ROOMS.delete(roomKey)
+	ROOM_LIFECYCLES.delete(roomKey)
+	setIntoStore(store, roomKeysAtom, (keys) => (keys.delete(roomKey), keys))
+	editRelationsInStore(store, usersInRooms, (relations) => {
+		relations.delete({ room: roomKey })
+	})
+	editRelationsInStore(store, ownersOfRooms, (relations) => {
+		relations.delete({ room: roomKey })
+	})
+}
+
+const shutdownRoom = (
+	lifecycle: RoomLifecycle,
+	cause: string,
+): Promise<void> => {
+	lifecycle.shutdown ??= (async () => {
+		const { child, room, roomKey, shutdownMs, store } = lifecycle
+		store.logger.info(`🔥`, `socket`, roomKey, `room shutdown`, cause)
+		if (child.exitCode === null && child.signalCode === null) {
+			room.emit(`exit`)
+			if (!(await waitForExit(child, shutdownMs))) {
+				store.logger.warn(
+					`🔥`,
+					`socket`,
+					roomKey,
+					`escalating to SIGTERM`,
+					cause,
+				)
+				child.kill(`SIGTERM`)
+				if (!(await waitForExit(child, shutdownMs))) {
+					store.logger.error(
+						`🔥`,
+						`socket`,
+						roomKey,
+						`escalating to SIGKILL`,
+						cause,
+					)
+					child.kill(`SIGKILL`)
+					await waitForExit(child, shutdownMs)
+				}
+			}
+		}
+		clearRoomState(lifecycle)
+	})()
+	return lifecycle.shutdown
+}
+
+const scheduleIdleShutdown = (lifecycle: RoomLifecycle): void => {
+	if (lifecycle.idleTimer) clearTimeout(lifecycle.idleTimer)
+	if (
+		lifecycle.cleared ||
+		lifecycle.idleMs === undefined ||
+		lifecycle.activeConnections > 0
+	)
+		return
+	lifecycle.idleTimer = setTimeout(() => {
+		void shutdownRoom(lifecycle, `idle timeout`)
+	}, lifecycle.idleMs)
+}
+
+const withTimeout = async <T>(
+	value: Promise<T>,
+	timeoutMs: number,
+	message: string,
+): Promise<T> => {
+	let timeout: NodeJS.Timeout | undefined
+	try {
+		return await Promise.race([
+			value,
+			new Promise<never>((_, reject) => {
+				timeout = setTimeout(() => {
+					reject(new Error(message))
+				}, timeoutMs)
+			}),
+		])
+	} finally {
+		if (timeout) clearTimeout(timeout)
+	}
+}
+
 export type SpawnRoomConfig<RoomNames extends string> = {
 	store: RootStore
 	socket: Socket
 	userKey: UserKey
 	resolveRoomScript: (roomName: RoomNames) => [string, string[]]
+	timeouts?: RoomTimeouts
 }
 export function spawnRoom<RoomNames extends string>({
 	store,
 	socket,
 	userKey,
 	resolveRoomScript,
+	timeouts = {},
 }: SpawnRoomConfig<RoomNames>): (
 	roomName: RoomNames,
 ) => Promise<ChildSocket<any, any>> {
@@ -75,26 +221,58 @@ export function spawnRoom<RoomNames extends string>({
 		)
 		const roomKey = `room::${roomMeta.count++}-${roomName}` satisfies RoomKey
 		const [command, args] = resolveRoomScript(roomName)
-		const child = await new Promise<ChildProcessWithoutNullStreams>(
-			(resolve) => {
-				const room = spawn(command, args, {
-					env: { ...process.env, REALTIME_ROOM_KEY: roomKey },
-				})
-				let readinessBuffer = Buffer.alloc(0)
-				const resolver = (data: Buffer) => {
-					readinessBuffer = Buffer.concat([readinessBuffer, data])
-					const signalIndex = readinessBuffer.indexOf(PROOF_OF_LIFE_SIGNAL)
-					if (signalIndex !== -1) {
-						room.stdout.off(`data`, resolver)
-						resolve(room)
-					}
-				}
-				room.stdout.on(`data`, resolver)
-			},
-		)
-
+		const child = spawn(command, args, {
+			env: { ...process.env, REALTIME_ROOM_KEY: roomKey },
+		})
 		const room = new ChildSocket(child, roomKey)
+		const lifecycle: RoomLifecycle = {
+			activeConnections: 0,
+			child,
+			cleared: false,
+			connections: new Set(),
+			disposers: [],
+			idleMs: timeouts.idleMs,
+			room,
+			roomKey,
+			shutdownMs: timeouts.shutdownMs ?? DEFAULT_ROOM_TIMEOUTS.shutdownMs,
+			store,
+		}
+		const startupFailed = (error: unknown): void => {
+			startupFailure(error)
+		}
+		const exitedDuringStartup = (
+			code: number | null,
+			signal: NodeJS.Signals | null,
+		): void => {
+			startupFailure(
+				new Error(
+					`Room exited during startup (${code ?? signal ?? `unknown`}).`,
+				),
+			)
+		}
+		let startupFailure: (error: unknown) => void = () => undefined
+		const failed = new Promise<never>((_, reject) => {
+			startupFailure = reject
+			child.once(`error`, startupFailed)
+			child.once(`exit`, exitedDuringStartup)
+		})
+		try {
+			await withTimeout(
+				Promise.race([room.ready, failed]),
+				timeouts.startupMs ?? DEFAULT_ROOM_TIMEOUTS.startupMs,
+				`Room ${roomKey} did not become ready before its startup timeout.`,
+			)
+		} catch (error) {
+			child.off(`error`, startupFailed)
+			child.off(`exit`, exitedDuringStartup)
+			await shutdownRoom(lifecycle, `startup failed`)
+			throw error
+		}
+		child.off(`error`, startupFailed)
+		child.off(`exit`, exitedDuringStartup)
+
 		ROOMS.set(roomKey, room)
+		ROOM_LIFECYCLES.set(roomKey, lifecycle)
 		setIntoStore(store, roomKeysAtom, (index) => (index.add(roomKey), index))
 		editRelationsInStore(store, ownersOfRooms, (relations) => {
 			relations.set({ room: roomKey, user: userKey })
@@ -118,12 +296,20 @@ export function spawnRoom<RoomNames extends string>({
 			usersInRoomsAtoms,
 			findInStore(store, visibilityFromRoomSelectors, roomKey),
 		)
+		lifecycle.disposers.push(unsubFromOwnerKeys, unsubFromUsersInRooms)
 
 		room.on(`close`, () => {
-			unsubFromOwnerKeys()
-			unsubFromUsersInRooms()
-			destroyRoom({ store, socket, userKey })(roomKey)
+			void shutdownRoom(lifecycle, `child requested close`)
 		})
+		child.once(`exit`, () => {
+			clearRoomState(lifecycle)
+		})
+		if (timeouts.maximumMs !== undefined) {
+			lifecycle.maximumTimer = setTimeout(() => {
+				void shutdownRoom(lifecycle, `maximum lifetime`)
+			}, timeouts.maximumMs)
+		}
+		scheduleIdleShutdown(lifecycle)
 
 		return room
 	}
@@ -140,8 +326,12 @@ export function provideEnterAndExit({
 	socket,
 	roomSocket,
 	userKey,
-}: ProvideEnterAndExitConfig): (roomKey: RoomKey) => void {
+}: ProvideEnterAndExitConfig): ((roomKey: RoomKey) => void) & {
+	dispose: () => void
+} {
+	let detachCurrent: ((removeMembership: boolean) => void) | undefined
 	const enterRoom = (roomKey: RoomKey): void => {
+		detachCurrent?.(true)
 		store.logger.info(
 			`📡`,
 			`socket`,
@@ -149,7 +339,8 @@ export function provideEnterAndExit({
 			`👤 ${userKey} enters ${roomKey}`,
 		)
 		const childSocket = ROOMS.get(roomKey)
-		if (!childSocket) {
+		const lifecycle = ROOM_LIFECYCLES.get(roomKey)
+		if (!childSocket || !lifecycle) {
 			store.logger.error(`❌`, `unknown`, roomKey, `no room found with this id`)
 			return
 		}
@@ -166,7 +357,13 @@ export function provideEnterAndExit({
 		}
 		socket.onAny(forward)
 
-		const dcUserFromRoom = () => {
+		let detached = false
+		const dcUserFromRoom = (
+			removeMembership = false,
+			notifyRoom = true,
+		): void => {
+			if (detached) return
+			detached = true
 			store.logger.info(
 				`📡`,
 				`socket`,
@@ -175,23 +372,20 @@ export function provideEnterAndExit({
 			)
 			socket.offAny(forward)
 			childSocket.off(userKey, toUser)
-			toRoom([`user-leaves`, userKey])
+			if (notifyRoom) toRoom([`user-leaves`, userKey])
+			lifecycle.activeConnections = Math.max(0, lifecycle.activeConnections - 1)
+			lifecycle.connections.delete(detachForRoomShutdown)
+			scheduleIdleShutdown(lifecycle)
+			if (removeMembership) {
+				editRelationsInStore(store, usersInRooms, (relations) => {
+					relations.delete({ room: roomKey, user: userKey })
+				})
+			}
+			if (detachCurrent === dcUserFromRoom) detachCurrent = undefined
 		}
 
-		const exitRoom = () => {
-			store.logger.info(
-				`📡`,
-				`socket`,
-				socket.id ?? `[ID MISSING?!]`,
-				`👤 ${userKey} leaves ${roomKey}`,
-			)
-			dcUserFromRoom()
-			editRelationsInStore(store, usersInRooms, (relations) => {
-				relations.delete({ room: roomKey, user: userKey })
-			})
-
-			roomSocket.off(`leaveRoom`, exitRoom)
-			roomSocket.on(`joinRoom`, enterRoom)
+		const detachForRoomShutdown = (notifyRoom: boolean): void => {
+			dcUserFromRoom(false, notifyRoom)
 		}
 
 		const userIsAlreadyInRoom = getFromStore(
@@ -206,6 +400,9 @@ export function provideEnterAndExit({
 			})
 		}
 		childSocket.emit(`user-joins`, userKey)
+		lifecycle.activeConnections++
+		lifecycle.connections.add(detachForRoomShutdown)
+		if (lifecycle.idleTimer) clearTimeout(lifecycle.idleTimer)
 
 		toRoom = (payload) => {
 			childSocket.emit(...payload)
@@ -215,12 +412,21 @@ export function provideEnterAndExit({
 			if (payload) toRoom(payload)
 		}
 
-		socket.on(`disconnect`, dcUserFromRoom)
-		roomSocket.on(`leaveRoom`, exitRoom)
-		roomSocket.off(`joinRoom`, enterRoom)
+		detachCurrent = dcUserFromRoom
 	}
 	roomSocket.on(`joinRoom`, enterRoom)
-	return enterRoom
+	const leaveRoom = (): void => detachCurrent?.(true)
+	const disconnect = (): void => detachCurrent?.(false)
+	roomSocket.on(`leaveRoom`, leaveRoom)
+	socket.on(`disconnect`, disconnect)
+	return Object.assign(enterRoom, {
+		dispose: () => {
+			detachCurrent?.(false)
+			roomSocket.off(`joinRoom`, enterRoom)
+			roomSocket.off(`leaveRoom`, leaveRoom)
+			socket.off(`disconnect`, disconnect)
+		},
+	})
 }
 
 export type DestroyRoomConfig = {
@@ -233,7 +439,7 @@ export function destroyRoom({
 	socket,
 	userKey,
 }: DestroyRoomConfig): (roomKey: RoomKey) => void {
-	return (roomKey: RoomKey) => {
+	return (roomKey: RoomKey): void => {
 		store.logger.info(
 			`📡`,
 			`socket`,
@@ -255,11 +461,8 @@ export function destroyRoom({
 			editRelationsInStore(store, usersInRooms, (relations) => {
 				relations.delete({ room: roomKey })
 			})
-			const room = ROOMS.get(roomKey)
-			if (room) {
-				room.emit(`exit`)
-				ROOMS.delete(roomKey)
-			}
+			const lifecycle = ROOM_LIFECYCLES.get(roomKey)
+			if (lifecycle) void shutdownRoom(lifecycle, `owner deleted room`)
 			return
 		}
 		store.logger.info(
@@ -276,6 +479,9 @@ export type ProvideRoomsConfig<RoomNames extends string> = {
 	roomAdminsToken: ReadableFamilyToken<boolean, UserKey>
 	roomNames: RoomNames[]
 	roomTimeLimit?: number
+	roomIdleTimeLimit?: number
+	roomShutdownTimeLimit?: number
+	roomStartupTimeLimit?: number
 	userKey: UserKey
 	store: RootStore
 	socket: Socket
@@ -287,6 +493,10 @@ export function provideRooms<RoomNames extends string>({
 	socket,
 	store = IMPLICIT.STORE,
 	userKey,
+	roomTimeLimit,
+	roomIdleTimeLimit,
+	roomShutdownTimeLimit,
+	roomStartupTimeLimit,
 }: ProvideRoomsConfig<RoomNames>): () => void {
 	const isAdmin = getFromStore(store, roomAdminsToken, userKey)
 	const roomSocket = guardSocket<RoomSocketInterface<RoomNames>>(
@@ -337,13 +547,43 @@ export function provideRooms<RoomNames extends string>({
 		break
 	}
 	if (isAdmin) {
-		roomSocket.on(
-			`createRoom`,
-			spawnRoom({ store, socket, userKey, resolveRoomScript }),
-		)
-		roomSocket.on(`deleteRoom`, destroyRoom({ store, socket, userKey }))
+		const create = spawnRoom({
+			store,
+			socket,
+			userKey,
+			resolveRoomScript,
+			timeouts: {
+				startupMs: roomStartupTimeLimit,
+				idleMs: roomIdleTimeLimit,
+				maximumMs: roomTimeLimit,
+				shutdownMs: roomShutdownTimeLimit,
+			},
+		})
+		const createRoom = (roomName: RoomNames): void => {
+			void create(roomName).catch((error: unknown) => {
+				store.logger.error(
+					`❌`,
+					`socket`,
+					socket.id ?? `unknown`,
+					`room startup failed`,
+					String(error),
+				)
+			})
+		}
+		const deleteRoom = destroyRoom({ store, socket, userKey })
+		roomSocket.on(`createRoom`, createRoom)
+		roomSocket.on(`deleteRoom`, deleteRoom)
+		return () => {
+			enterRoom.dispose()
+			roomSocket.off(`createRoom`, createRoom)
+			roomSocket.off(`deleteRoom`, deleteRoom)
+			unsubFromRoomKeys()
+			unsubFromUsersInRooms()
+			unsubFromOwnersOfRooms()
+		}
 	}
 	return () => {
+		enterRoom.dispose()
 		unsubFromRoomKeys()
 		unsubFromUsersInRooms()
 		unsubFromOwnersOfRooms()

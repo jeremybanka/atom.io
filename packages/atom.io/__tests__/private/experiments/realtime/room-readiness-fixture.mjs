@@ -1,6 +1,6 @@
-process.stdout.write(`AL`)
+process.stdout.write(`"AL`)
 setTimeout(() => {
-	process.stdout.write(`IVE`)
+	process.stdout.write(`IVE"\x03["boot","preserved"]\x03`)
 }, 5)
 
 let pending = ``

@@ -48,7 +48,12 @@ const schema = (
 })
 
 describe(`guardSocket`, () => {
-	test(`removes exact and all wrapped listeners symmetrically`, () => {
+	test(`passes through trusted sockets`, () => {
+		const socket = new TestSocket()
+		expect(guardSocket<TestEvents>(socket, `TRUST`)).toBe(socket)
+	})
+
+	test(`removes exact and all wrapped listeners symmetrically`, async () => {
 		const socket = new TestSocket()
 		const guarded = guardSocket<TestEvents>(socket, {
 			message: schema((args) => ({ value: args as [string] })),
@@ -58,10 +63,16 @@ describe(`guardSocket`, () => {
 		const anyListener = vi.fn()
 
 		guarded.on(`message`, listener0)
+		guarded.on(`message`, listener0)
 		guarded.on(`message`, listener1)
+		guarded.onAny(anyListener)
 		guarded.onAny(anyListener)
 		expect(socket.listeners.get(`message`)).toHaveLength(2)
 		expect(socket.anyListeners).toHaveLength(1)
+		socket.emit(`message`, `accepted`)
+		await vi.waitFor(() => {
+			expect(anyListener).toHaveBeenCalledWith(`message`, `accepted`)
+		})
 
 		guarded.off(`message`, listener0)
 		guarded.offAny(anyListener)
@@ -70,6 +81,11 @@ describe(`guardSocket`, () => {
 
 		guarded.off(`message`)
 		expect(socket.listeners.get(`message`)).toHaveLength(0)
+		guarded.off(`message`, listener0)
+		guarded.offAny(anyListener)
+		guarded.onAny(anyListener)
+		guarded.offAny()
+		expect(socket.anyListeners).toHaveLength(0)
 	})
 
 	test(`fails closed for unknown events and rejected validators`, async () => {
@@ -94,6 +110,26 @@ describe(`guardSocket`, () => {
 		expect(listener).not.toHaveBeenCalled()
 		expect(diagnostics.map(String).join(` `)).toContain(`unknown`)
 		expect(diagnostics.map(String).join(` `)).toContain(`validator rejected`)
+	})
+
+	test(`reports invalid values even when diagnostics throw`, async () => {
+		const socket = new TestSocket()
+		const listener = vi.fn()
+		const guarded = guardSocket<TestEvents>(
+			socket,
+			{
+				message: schema(() => ({
+					issues: [{ message: `invalid` }],
+				})),
+			},
+			() => {
+				throw new Error(`diagnostic failed`)
+			},
+		)
+		guarded.on(`message`, listener)
+		socket.emit(`message`, `payload`)
+		await new Promise((resolve) => setTimeout(resolve, 0))
+		expect(listener).not.toHaveBeenCalled()
 	})
 
 	test(`preserves receive order across asynchronous validation`, async () => {

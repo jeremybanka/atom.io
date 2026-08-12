@@ -70,10 +70,10 @@ export function realtime(
 		UserKey,
 		{
 			sockets: Set<SocketKey>
-			claimAllocated: boolean
 			indexed: boolean
 		}
 	>()
+	const claimedUsers = new Set<UserKey>()
 	const cleanupBySocket = new Map<SocketKey, () => Promise<void>>()
 
 	const messageOf = (error: unknown): string =>
@@ -189,10 +189,6 @@ export function realtime(
 						)
 						identity.indexed = false
 					}
-					if (identity.claimAllocated) {
-						socketRealm.deallocate(userKey)
-						identity.claimAllocated = false
-					}
 				}
 				cleanupBySocket.delete(socketKey)
 			})()
@@ -210,12 +206,13 @@ export function realtime(
 				if (identity === undefined) {
 					identity = {
 						sockets: new Set(),
-						claimAllocated: false,
 						indexed: false,
 					}
 					identities.set(userKey, identity)
-					socketRealm.allocate(`root`, userKey)
-					identity.claimAllocated = true
+					if (!claimedUsers.has(userKey)) {
+						socketRealm.allocate(`root`, userKey)
+						claimedUsers.add(userKey)
+					}
 					setIntoStore(store, onlineUsersAtom, (keys) => keys.add(userKey))
 					identity.indexed = true
 				}

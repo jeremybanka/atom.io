@@ -26,25 +26,26 @@ export function pushState<J extends Json.Serializable>(
 			if (renewTimer !== undefined) clearTimeout(renewTimer)
 			renewTimer = undefined
 		}
-		const scheduleRenewal = () => {
+		const scheduleRenewal = (
+			owned: Extract<RealtimeLeaseStatus, { state: `owned` }>,
+		) => {
 			stopRenewing()
-			if (lease === null) return
 			renewTimer = setTimeout(() => {
-				if (lease === null) return
 				socket.emit(`renew:${token.key}`, {
-					generation: lease.generation,
-					leaseId: lease.leaseId,
+					generation: owned.generation,
+					leaseId: owned.leaseId,
 				})
-				scheduleRenewal()
-			}, lease.renewAfterMs)
+				scheduleRenewal(owned)
+			}, owned.renewAfterMs)
 		}
-		const beginPublishing = () => {
+		const beginPublishing = (
+			owned: Extract<RealtimeLeaseStatus, { state: `owned` }>,
+		) => {
 			stopPublishing()
 			stopPublishing = subscribeToState(store, token, `push`, ({ newValue }) => {
-				if (lease === null) return
 				socket.emit(`pub:${token.key}`, {
-					generation: lease.generation,
-					leaseId: lease.leaseId,
+					generation: owned.generation,
+					leaseId: owned.leaseId,
 					sequence: ++publicationSequence,
 					value: newValue,
 				})
@@ -64,9 +65,9 @@ export function pushState<J extends Json.Serializable>(
 					setIntoStore(store, mutexAtoms, token.key, true)
 					if (isNewLease) {
 						publicationSequence = 0
-						beginPublishing()
+						beginPublishing(status)
 					}
-					scheduleRenewal()
+					scheduleRenewal(status)
 					return
 				}
 				lease = null

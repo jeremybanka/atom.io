@@ -1,3 +1,4 @@
+import { SystemClock } from "atom.io/realtime"
 import type { Socket } from "atom.io/realtime"
 import {
 	createDeterministicTransport,
@@ -39,6 +40,58 @@ describe(`VirtualClock`, () => {
 		clock.schedule(() => clock.advance(20), 5)
 		clock.advance(10)
 		expect(clock.now()).toBe(25)
+	})
+
+	test(`validates timestamps and delays and reports cancellation`, () => {
+		expect(() => new VirtualClock({ startAt: Number.NaN })).toThrow(
+			`VirtualClock startAt must be finite`,
+		)
+		const clock = new VirtualClock({ startAt: 10 })
+		expect(() => clock.schedule(() => {}, -1)).toThrow(
+			`VirtualClock delay must be finite and non-negative`,
+		)
+		expect(() => clock.advance(-1)).toThrow(
+			`VirtualClock advance duration must be finite and non-negative`,
+		)
+		expect(() => clock.advanceTo(9)).toThrow(
+			`VirtualClock cannot move backwards from 10 to 9`,
+		)
+		expect(() => clock.advanceTo(Number.POSITIVE_INFINITY)).toThrow(
+			`VirtualClock cannot move backwards`,
+		)
+
+		const task = clock.schedule(() => {}, 5)
+		expect(clock.cancel(task)).toBe(true)
+		expect(clock.cancel(task)).toBe(false)
+		expect(clock.runUntilIdle()).toBe(0)
+	})
+})
+
+describe(`SystemClock`, () => {
+	afterEach(() => {
+		vi.useRealTimers()
+	})
+
+	test(`runs and cancels scheduled wall-clock work`, () => {
+		vi.useFakeTimers()
+		vi.setSystemTime(1_000)
+		const clock = new SystemClock()
+		const calls: string[] = []
+		const cancelled = clock.schedule(() => calls.push(`cancelled`), 10)
+		clock.schedule(() => calls.push(`ran`), 20)
+
+		expect(clock.now()).toBe(1_000)
+		expect(clock.cancel(cancelled)).toBe(true)
+		expect(clock.cancel(cancelled)).toBe(false)
+		vi.advanceTimersByTime(20)
+		expect(calls).toEqual([`ran`])
+	})
+
+	test(`rejects invalid delays`, () => {
+		const clock = new SystemClock()
+		expect(() => clock.schedule(() => {}, -1)).toThrow(
+			`SystemClock delay must be finite and non-negative`,
+		)
 	})
 })
 
@@ -98,6 +151,39 @@ describe(`DeterministicTransport`, () => {
 		])
 		expect(network.deliverDue()).toBe(3)
 		expect(received).toEqual([99, 3, 2, 1])
+	})
+
+	test(`advances manual delivery through delayed traffic until idle`, () => {
+		const network = createDeterministicTransport({
+			mode: `manual`,
+			policies: [{ effect: { by: 10, type: `delay` } }],
+		})
+		const { left, right } = network.createDuplex(
+			{ id: `client`, role: `client` },
+			{ id: `server`, role: `server` },
+		)
+		const received: string[] = []
+		right.on(`message`, (value) => received.push(value as string))
+
+		left.emit(`message`, `later`)
+		expect(network.runUntilIdle()).toBe(1)
+		expect(network.clock.now()).toBe(10)
+		expect(received).toEqual([`later`])
+	})
+
+	test(`guards manual drains with delivery diagnostics`, () => {
+		const network = createDeterministicTransport({
+			mode: `manual`,
+			policies: [{ effect: { copies: 2, spacing: 5, type: `duplicate` } }],
+		})
+		const { left } = network.createDuplex(
+			{ id: `client`, role: `client` },
+			{ id: `server`, role: `server` },
+		)
+		left.emit(`message`)
+		expect(() => network.runUntilIdle(1)).toThrow(
+			/1-delivery safety limit; pending:.*message/,
+		)
 	})
 
 	test(`composes scoped delay, duplication, drop, and partition policies`, () => {
@@ -209,6 +295,94 @@ describe(`DeterministicTransport`, () => {
 		expect(() => {
 			replayPair.left.emit(`different`)
 		}).toThrow(/Transport replay mismatch.*expected.*different/)
+	})
+
+	test(`diagnoses incomplete and exhausted replay schedules`, () => {
+		const original = createDeterministicTransport()
+		const originalPair = original.createDuplex(
+			{ id: `client`, role: `client` },
+			{ id: `server`, role: `server` },
+		)
+		originalPair.left.emit(`first`)
+		originalPair.left.emit(`second`)
+
+		const replay = createDeterministicTransport({
+			replay: original.exportSchedule(),
+		})
+		const replayPair = replay.createDuplex(
+			{ id: `client`, role: `client` },
+			{ id: `server`, role: `server` },
+		)
+		replayPair.left.emit(`first`)
+		expect(() => {
+			replay.assertReplayComplete()
+		}).toThrow(`Transport replay consumed 1/2 decisions`)
+		replayPair.left.emit(`second`)
+		expect(() => {
+			replayPair.left.emit(`third`)
+		}).toThrow(`Transport replay has no decision for envelope 3`)
+	})
+
+	test.each([
+		[
+			`chance`,
+			{ chance: 2, effect: { type: `drop` as const } },
+			`Fault policy chance must be between 0 and 1`,
+		],
+		[
+			`delay`,
+			{ effect: { by: -1, type: `delay` as const } },
+			`Fault policy delay must be finite and non-negative`,
+		],
+		[
+			`copies`,
+			{ effect: { copies: 1, type: `duplicate` as const } },
+			`Duplicate copies must be an integer of at least 2`,
+		],
+		[
+			`spacing`,
+			{ effect: { spacing: -1, type: `duplicate` as const } },
+			`Fault policy duplicate spacing must be finite and non-negative`,
+		],
+		[
+			`reorder window`,
+			{ effect: { type: `reorder` as const, window: 1 } },
+			`Reorder window must be an integer of at least 2`,
+		],
+	] as const)(`rejects invalid %s policies`, (_name, policy, expected) => {
+		const network = createDeterministicTransport({ policies: [policy] })
+		const { left } = network.createDuplex(
+			{ id: `client`, role: `client` },
+			{ id: `server`, role: `server` },
+		)
+		expect(() => {
+			left.emit(`message`)
+		}).toThrow(expected)
+	})
+
+	test(`classifies peer traffic and array filters`, () => {
+		const network = createDeterministicTransport({
+			mode: `manual`,
+			policies: [
+				{
+					effect: { type: `drop` },
+					filter: {
+						event: [`ignored`, `peer-event`],
+						from: [`other`, `peer-a`],
+						to: [`other`, `peer-b`],
+					},
+				},
+			],
+		})
+		const { left } = network.createDuplex(
+			{ id: `peer-a`, role: `peer` },
+			{ id: `peer-b`, role: `peer` },
+		)
+		left.emit(`peer-event`)
+		expect(network.exportSchedule().decisions[0]).toMatchObject({
+			envelope: { direction: `peer-to-peer` },
+			outcome: { disposition: `drop` },
+		})
 	})
 
 	test(`counts delivery recursively produced by a delivered envelope`, () => {

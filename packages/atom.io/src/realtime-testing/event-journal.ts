@@ -77,6 +77,11 @@ const stringify = (value: unknown): string => {
 export class RealtimeTestEventJournal {
 	readonly #entries: RealtimeTestEvent[] = []
 	readonly #waiters = new Set<Waiter>()
+	readonly #diagnostics: (() => string) | undefined
+
+	constructor(options: { diagnostics?: () => string } = {}) {
+		this.#diagnostics = options.diagnostics
+	}
 
 	/** Return a cursor that excludes all entries currently in the journal. */
 	cursor(): RealtimeTestEventCursor {
@@ -114,7 +119,7 @@ export class RealtimeTestEventJournal {
 					this.#waiters.delete(waiter)
 					reject(
 						new Error(
-							`Timed out after ${timeout}ms waiting for realtime event ${stringify(filter)}.\n${this.transcript({ limit: 20 })}`,
+							`Timed out after ${timeout}ms waiting for realtime event ${stringify(filter)}.${this.#diagnostics ? `\n\nSelected state:\n${this.#diagnostics()}` : ``}\n\nEvent journal:\n${this.transcript({ limit: 20 })}`,
 						),
 					)
 				}, timeout),

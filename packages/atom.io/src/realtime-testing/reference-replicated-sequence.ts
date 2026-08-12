@@ -51,39 +51,6 @@ const groupKey = ({ actor, id }: ReferenceEditGroup): string => `${actor}\0${id}
 const compareCodeUnits = (left: string, right: string): number =>
 	left < right ? -1 : left > right ? 1 : 0
 
-/** Compare JSON-like operation payloads without depending on property order. */
-const structurallyEqual = (left: unknown, right: unknown): boolean => {
-	if (Object.is(left, right)) return true
-	if (
-		typeof left !== `object` ||
-		left === null ||
-		typeof right !== `object` ||
-		right === null
-	) {
-		return false
-	}
-	if (Array.isArray(left) || Array.isArray(right)) {
-		return (
-			Array.isArray(left) &&
-			Array.isArray(right) &&
-			left.length === right.length &&
-			left.every((value, index) => structurallyEqual(value, right[index]))
-		)
-	}
-	const leftRecord = left as Record<string, unknown>
-	const rightRecord = right as Record<string, unknown>
-	const leftKeys = Object.keys(leftRecord).sort(compareCodeUnits)
-	const rightKeys = Object.keys(rightRecord).sort(compareCodeUnits)
-	return (
-		leftKeys.length === rightKeys.length &&
-		leftKeys.every(
-			(key, index) =>
-				key === rightKeys[index] &&
-				structurallyEqual(leftRecord[key], rightRecord[key]),
-		)
-	)
-}
-
 /**
  * A deliberately small operation-set reference model for harness conformance.
  *
@@ -247,3 +214,4 @@ export class ReferenceSequenceReplica {
 		)
 	}
 }
+import { structurallyEqual } from "./structural-equality"

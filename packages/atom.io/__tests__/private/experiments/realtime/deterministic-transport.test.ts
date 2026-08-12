@@ -277,6 +277,33 @@ describe(`DeterministicTransport`, () => {
 		expect(replay.exportSchedule()).toEqual(schedule)
 	})
 
+	test(`replays structurally equal payloads with reordered record keys`, () => {
+		const original = createDeterministicTransport()
+		const originalPair = original.createDuplex(
+			{ id: `client`, role: `client` },
+			{ id: `server`, role: `server` },
+		)
+		originalPair.left.emit(`message`, {
+			alpha: 1,
+			nested: { first: true, second: [`value`] },
+		})
+
+		const replay = createDeterministicTransport({
+			replay: original.exportSchedule(),
+		})
+		const replayPair = replay.createDuplex(
+			{ id: `client`, role: `client` },
+			{ id: `server`, role: `server` },
+		)
+		expect(() => {
+			replayPair.left.emit(`message`, {
+				nested: { second: [`value`], first: true },
+				alpha: 1,
+			})
+		}).not.toThrow()
+		replay.assertReplayComplete()
+	})
+
 	test(`diagnoses replay divergence at the first mismatched envelope`, () => {
 		const original = createDeterministicTransport()
 		const pair = original.createDuplex(

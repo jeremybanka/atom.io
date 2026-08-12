@@ -103,8 +103,11 @@ const createClientBuilder = (
 			)
 			const dispose = client.dispose
 			client.dispose = async () => {
-				await dispose()
-				instances.delete(client)
+				try {
+					await dispose()
+				} finally {
+					instances.delete(client)
+				}
 			}
 			instances.add(client)
 			return client
@@ -138,8 +141,11 @@ export const singleClient = (
 		...scenario,
 		client,
 		teardown: async () => {
-			await client.dispose()
-			await scenario.teardown()
+			try {
+				await client.dispose()
+			} finally {
+				await scenario.teardown()
+			}
 		},
 	}
 }
@@ -159,8 +165,11 @@ export const multiClient = <ClientNames extends string>(
 		...scenario,
 		clients,
 		teardown: async () => {
-			for (const [, client] of toEntries(clients)) await client.dispose()
-			await scenario.teardown()
+			try {
+				for (const [, client] of toEntries(clients)) await client.dispose()
+			} finally {
+				await scenario.teardown()
+			}
 		},
 	}
 }

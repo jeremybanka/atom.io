@@ -19,9 +19,6 @@ import {
 	RealtimeTestWorkTracker,
 } from "../work-tracker.ts"
 
-let testNumber = 0
-let sessionNumber = 0
-
 const BARRIER_REQUEST = `atom.io/realtime-testing:barrier-request`
 const BARRIER_RESPONSE = `atom.io/realtime-testing:barrier-response`
 const INTERNAL_EVENTS = new Set([BARRIER_REQUEST, BARRIER_RESPONSE])
@@ -154,6 +151,7 @@ export type RealtimeTestAPI__Headless = RealtimeTestAPI & {
 type InternalRealtimeTestServer = RealtimeTestServer & {
 	clients: ReadonlySet<HeadlessRealtimeTestClient>
 	diagnostics: () => string
+	nextSessionId: () => string
 	registerClient: (client: HeadlessRealtimeTestClient) => void
 	unregisterClient: (client: HeadlessRealtimeTestClient) => void
 }
@@ -362,8 +360,8 @@ const waitForConvergence = async <State>(
 export const setupRealtimeTestServer = (
 	options: TestSetupOptions,
 ): RealtimeTestServer => {
-	++testNumber
 	let readDiagnostics = () => `[realtime server is initializing]`
+	let sessionNumber = 0
 	const journal = new RealtimeTestEventJournal({
 		diagnostics: () => readDiagnostics(),
 	})
@@ -372,7 +370,7 @@ export const setupRealtimeTestServer = (
 	const work = new RealtimeTestWorkTracker()
 	const silo = new AtomIO.Silo(
 		{
-			name: `SERVER-${testNumber}`,
+			name: `SERVER`,
 			lifespan: options.immortal?.server ? `immortal` : `ephemeral`,
 			isProduction: false,
 		},
@@ -494,6 +492,7 @@ export const setupRealtimeTestServer = (
 		},
 		journal,
 		name: `SERVER`,
+		nextSessionId: () => `session-${++sessionNumber}`,
 		port,
 		registerClient: (client) => clients.add(client),
 		inspect: (label, read) => inspectors.register(`server/${label}`, read),
@@ -511,9 +510,8 @@ export const setupHeadlessRealtimeTestClient = (
 	server: RealtimeTestServer,
 ): HeadlessRealtimeTestClient => {
 	const internalServer = server as InternalRealtimeTestServer
-	const sessionId =
-		options.sessionId ?? `session-${testNumber}-${++sessionNumber}`
-	const userKey = options.userKey ?? `user::${options.name}-${testNumber}`
+	const sessionId = options.sessionId ?? internalServer.nextSessionId()
+	const userKey = options.userKey ?? `user::${options.name}`
 	const socket: ClientSocket = io(`http://localhost:${server.port}/`, {
 		autoConnect: options.autoConnect ?? true,
 		auth: { token: `test`, username: userKey, sessionId },
@@ -641,13 +639,16 @@ export const setupHeadlessRealtimeTestClient = (
 		},
 		dispose: async () => {
 			if (disposed) return
-			await RTC.observeSocketWindDown(socket)
-			if (socket.connected) await client.waitForIdle()
-			disposed = true
-			socket.removeAllListeners()
-			socket.disconnect()
-			clearStore(silo.store)
-			internalServer.unregisterClient(client)
+			try {
+				await RTC.observeSocketWindDown(socket)
+				if (socket.connected) await client.waitForIdle()
+			} finally {
+				disposed = true
+				socket.removeAllListeners()
+				socket.disconnect()
+				clearStore(silo.store)
+				internalServer.unregisterClient(client)
+			}
 		},
 		enableLogging: () => {
 			prefixLogger(silo, options.name)
@@ -691,8 +692,11 @@ export const headless = (
 		clients.add(client)
 		const dispose = client.dispose
 		client.dispose = async () => {
-			await dispose()
-			clients.delete(client)
+			try {
+				await dispose()
+			} finally {
+				clients.delete(client)
+			}
 		}
 		return client
 	}
@@ -710,8 +714,24 @@ export const headless = (
 		},
 		server,
 		teardown: async () => {
-			await Promise.all([...clients].map((client) => client.dispose()))
-			await server.dispose()
+			const clientResults = await Promise.allSettled(
+				[...clients].map((client) => client.dispose()),
+			)
+			const cleanupErrors = clientResults.flatMap((result) =>
+				result.status === `rejected` ? [result.reason] : [],
+			)
+			try {
+				await server.dispose()
+			} catch (error) {
+				cleanupErrors.push(error)
+			}
+			if (cleanupErrors.length === 1) throw cleanupErrors[0]
+			if (cleanupErrors.length > 1) {
+				throw new AggregateError(
+					cleanupErrors,
+					`Multiple realtime test resources failed to dispose`,
+				)
+			}
 		},
 		waitForIdle: async (idleOptions) => {
 			await waitForClientsIdle(clients, server, idleOptions)

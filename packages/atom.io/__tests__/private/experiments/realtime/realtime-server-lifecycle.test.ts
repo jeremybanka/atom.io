@@ -7,7 +7,7 @@ import {
 	getFromStore,
 	IMPLICIT,
 } from "atom.io/internal"
-import { usersInRooms, type RoomKey, type UserKey } from "atom.io/realtime"
+import { type RoomKey, type UserKey, usersInRooms } from "atom.io/realtime"
 import {
 	onlineUsersAtom,
 	realtime,

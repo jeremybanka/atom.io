@@ -37,11 +37,11 @@ export const usersOfSockets: JoinToken<
 	UserKey,
 	`socket`,
 	SocketKey,
-	`1:1`
+	`1:n`
 > = join({
 	key: `usersOfSockets`,
 	between: [`user`, `socket`],
-	cardinality: `1:1`,
+	cardinality: `1:n`,
 	isAType: isUserKey,
 	isBType: isSocketKey,
 })

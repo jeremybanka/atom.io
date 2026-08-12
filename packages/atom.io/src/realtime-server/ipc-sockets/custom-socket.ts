@@ -102,8 +102,12 @@ export abstract class CustomSocket<
 		return this
 	}
 
-	public offAny(listener: (event: string, ...args: Json.Array) => void): this {
-		this.globalListeners.delete(listener)
+	public offAny(listener?: (event: string, ...args: Json.Array) => void): this {
+		if (listener) {
+			this.globalListeners.delete(listener)
+		} else {
+			this.globalListeners.clear()
+		}
 		return this
 	}
 }

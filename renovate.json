@@ -21,6 +21,16 @@
 			"depNameTemplate": "jdx/mise",
 			"datasourceTemplate": "github-releases",
 			"versioningTemplate": "semver-coerced"
+		},
+		{
+			"customType": "regex",
+			"managerFilePatterns": ["/^\\.github\\/workflows\\/renovate\\.yml$/"],
+			"matchStrings": [
+				"renovate-version: (?<currentValue>\\S+)"
+			],
+			"depNameTemplate": "ghcr.io/renovatebot/renovate",
+			"datasourceTemplate": "docker",
+			"versioningTemplate": "semver-coerced"
 		}
 	],
 	"packageRules": [
@@ -46,6 +56,13 @@
 		{
 			"matchPackageNames": ["tsdown", "@tsdown/css"],
 			"groupName": "tsdown"
+		},
+		{
+			"matchPackageNames": [
+				"renovatebot/github-action",
+				"ghcr.io/renovatebot/renovate"
+			],
+			"groupName": "renovate"
 		},
 		{
 			"matchPackageNames": [

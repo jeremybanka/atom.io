@@ -119,6 +119,18 @@ test(`Socket.IO carries logical client and session metadata in its handshake`, a
 	} finally {
 		await connection.dispose()
 	}
+	await connection.dispose()
+	expect((connection.client as { connected?: boolean }).connected).toBe(false)
+	expect((connection.server as SocketIOServerSocket).connected).toBe(false)
+})
+
+test(`Socket.IO closes its listener when connection setup fails`, async () => {
+	const adapter = createSocketIOTransportAdapter({
+		clientOptions: { auth: () => ({ token: `dynamic` }) },
+	})
+	await expect(adapter.connect()).rejects.toThrow(`requires object auth`)
+	const recovery = await createSocketIOTransportAdapter().connect()
+	await recovery.dispose()
 })
 
 test(`Socket.IO validates harness metadata and serves its health response`, async () => {

@@ -48,6 +48,14 @@
 			"groupName": "tsdown"
 		},
 		{
+			"matchPackageNames": [
+				"changesets/action",
+				"@changesets/cli",
+				"@changesets/config"
+			],
+			"groupName": "changesets"
+		},
+		{
 			"matchPackageNames": ["eslint-plugin-astro", "astro-eslint-parser"],
 			"groupName": "astro eslint"
 		}

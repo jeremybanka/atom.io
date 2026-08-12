@@ -255,7 +255,6 @@ export class RealtimeTestTopology<
 		}
 
 		const ordinal = (this.#sessionCounters.get(clientId) ?? 0) + 1
-		this.#sessionCounters.set(clientId, ordinal)
 		const session = { clientId, nodeId, sessionId: `${clientId}:${ordinal}` }
 		this.#routes.set(clientId, session)
 		try {
@@ -267,6 +266,7 @@ export class RealtimeTestTopology<
 			this.#routes.delete(clientId)
 			throw error
 		}
+		this.#sessionCounters.set(clientId, ordinal)
 		this.#emit(`client-connected`, session)
 		return session
 	}
@@ -557,9 +557,11 @@ export class RealtimeTestTopology<
 	): TopologyNodeContext<ServerMessage, ReplicationMessage> {
 		return {
 			replicate: async (message, destinations) => {
-				const peers =
-					destinations ??
-					[...this.#nodes.keys()].filter((candidate) => candidate !== nodeId)
+				const peers = destinations
+					? [...new Set(destinations)].filter(
+							(candidate) => candidate !== nodeId,
+						)
+					: [...this.#nodes.keys()].filter((candidate) => candidate !== nodeId)
 				for (const to of peers) {
 					const envelope = { from: nodeId, message, to }
 					if (this.#partitions.has(this.#partitionKey(nodeId, to))) {
@@ -608,9 +610,22 @@ export class RealtimeTestTopology<
 		type: RealtimeTestTopologyEvent[`type`],
 		details: Readonly<Record<string, unknown>>,
 	): void {
-		const event = { details, sequence: ++this.#sequence, type }
+		const event = {
+			details: toDiagnosticValue(details) as Readonly<Record<string, unknown>>,
+			sequence: ++this.#sequence,
+			type,
+		}
 		this.#events.push(event)
-		this.#onEvent?.(event)
+		try {
+			this.#onEvent?.({
+				...event,
+				details: toDiagnosticValue(event.details) as Readonly<
+					Record<string, unknown>
+				>,
+			})
+		} catch {
+			// Diagnostic observers must not change the topology operation outcome.
+		}
 	}
 
 	#partitionKey(left: string, right: string): string {

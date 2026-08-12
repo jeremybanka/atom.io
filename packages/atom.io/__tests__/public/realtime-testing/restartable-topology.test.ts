@@ -191,6 +191,23 @@ describe(`restartable server fixtures`, () => {
 			`durable-discarded`,
 		])
 	})
+
+	test(`isolates lifecycle state from throwing diagnostic observers`, async () => {
+		const node = createRestartableServerFixture({
+			createDurableState: () => undefined,
+			createEphemeralState: () => undefined,
+			name: `observed`,
+			onEvent: () => {
+				throw new Error(`observer failed`)
+			},
+			start: () => ({ generation: 1 }),
+		})
+
+		await expect(node.start()).resolves.toEqual({ generation: 1 })
+		expect(node.running).toBe(true)
+		await expect(node.stop()).resolves.toBeUndefined()
+		expect(node.running).toBe(false)
+	})
 })
 
 describe(`multi-node realtime test topologies`, () => {
@@ -238,6 +255,25 @@ describe(`multi-node realtime test topologies`, () => {
 		topology.healAll()
 		expect(topology.getState().partitions).toEqual([])
 		expect(observedEvents).toEqual(topology.getEvents().map(({ type }) => type))
+	})
+
+	test(`isolates operations and stored diagnostics from observers`, async () => {
+		const node = createCounterServer(`alpha`)
+		await node.start()
+		const topology = createRealtimeTestTopology({
+			nodes: { alpha: node },
+			onEvent: (event) => {
+				const mutableDetails = event.details as Record<string, unknown>
+				mutableDetails[`nodeId`] = `corrupted`
+				throw new Error(`observer failed`)
+			},
+		})
+		topology.addClient(`alice`, { receive: () => {} })
+
+		const session = await topology.connect(`alice`, `alpha`)
+		expect(session.nodeId).toBe(`alpha`)
+		expect(topology.getState().routes).toEqual([session])
+		expect(topology.getEvents()[0]?.details).toMatchObject({ nodeId: `alpha` })
 	})
 
 	test(`keeps diagnostics bounded and serializable for arbitrary payloads`, async () => {
@@ -376,13 +412,58 @@ describe(`multi-node realtime test topologies`, () => {
 		await expect(topology.connect(`bob`, `rejecting`)).rejects.toThrow(
 			`target connect failed`,
 		)
-		expect(topology.getState().routes).toHaveLength(1)
+		await expect(topology.connect(`bob`, `beta`)).resolves.toMatchObject({
+			sessionId: `bob:1`,
+		})
+		expect(topology.getState().routes).toHaveLength(2)
 
 		await expect(topology.stopNode(`alpha`)).rejects.toThrow(
 			`Failed to stop topology node`,
 		)
 		expect(alpha.running).toBe(false)
 		expect(topology.getEvents().at(-1)?.type).toBe(`node-stopped`)
+	})
+
+	test(`deduplicates explicit replication peers and omits the source`, async () => {
+		const received: string[] = []
+		const alpha = createRestartableServerFixture({
+			createDurableState: () => undefined,
+			createEphemeralState: () => undefined,
+			name: `alpha`,
+			start: () =>
+				({
+					receive: async (_session, _message, context) => {
+						await context.replicate(`sync`, [`alpha`, `beta`, `beta`])
+					},
+					receiveReplication: () => {
+						received.push(`alpha`)
+					},
+				}) satisfies RealtimeTestTopologyNode<unknown, never, string>,
+		})
+		const beta = createRestartableServerFixture({
+			createDurableState: () => undefined,
+			createEphemeralState: () => undefined,
+			name: `beta`,
+			start: () =>
+				({
+					receive: () => {},
+					receiveReplication: ({ message }) => {
+						received.push(`beta:${message}`)
+					},
+				}) satisfies RealtimeTestTopologyNode<unknown, never, string>,
+		})
+		await Promise.all([alpha.start(), beta.start()])
+		const topology = createRealtimeTestTopology({ nodes: { alpha, beta } })
+		topology.addClient(`alice`, { receive: () => {} })
+		await topology.connect(`alice`, `alpha`)
+		await topology.send(`alice`, `replicate`)
+
+		expect(received).toEqual([`beta:sync`])
+		expect(
+			topology
+				.getEvents()
+				.filter(({ type }) => type === `replication-delivered`),
+		).toHaveLength(1)
 	})
 
 	test(`stops a node after every client is detached even when hooks fail`, async () => {

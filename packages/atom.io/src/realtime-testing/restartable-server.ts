@@ -231,12 +231,18 @@ export class RestartableServerFixture<DurableState, EphemeralState, Runtime> {
 	}
 
 	#emit(type: RestartableServerEvent[`type`]): void {
-		this.#onEvent?.({
+		if (this.#onEvent === undefined) return
+		const event = {
 			generation: this.#generation,
 			name: this.name,
 			sequence: ++this.#sequence,
 			type,
-		})
+		}
+		try {
+			this.#onEvent(event)
+		} catch {
+			// Diagnostic observers must not change the server lifecycle outcome.
+		}
 	}
 
 	#requireRunning(): {

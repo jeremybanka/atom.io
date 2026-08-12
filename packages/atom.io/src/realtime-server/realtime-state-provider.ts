@@ -90,7 +90,7 @@ export function realtimeStateProvider({
 							),
 						)
 						subscriptions.add(
-							employSocket(socket, `unsub:${serverData.key}`, () => {
+							employSocket(socket, `unsub:${clientToken.key}`, () => {
 								store.logger.info(
 									`🙈`,
 									`user`,

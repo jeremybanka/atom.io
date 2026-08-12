@@ -1,5 +1,5 @@
 import type { Socket } from "atom.io/realtime"
-import { createSubscriber } from "atom.io/realtime-client"
+import { createSubscriber, observeSocketWindDown } from "atom.io/realtime-client"
 import {
 	createDeterministicTransport,
 	VirtualClock,
@@ -34,6 +34,60 @@ describe(`createSubscriber clock injection`, () => {
 
 		releaseSecond()
 		clock.advance(50)
+		expect(closes).toBe(1)
+	})
+
+	test(`resolves an observed wind-down when resubscription cancels it`, async () => {
+		const clock = new VirtualClock()
+		const socket: Socket = createDeterministicTransport({ clock }).createDuplex(
+			{ id: `client`, role: `client` },
+			{ id: `server`, role: `server` },
+		).left
+		const open = () => () => {}
+
+		const releaseFirst = createSubscriber(socket, `document`, open, { clock })
+		releaseFirst()
+		const windDown = observeSocketWindDown(socket)
+		const releaseSecond = createSubscriber(socket, `document`, open, { clock })
+
+		await expect(windDown).resolves.toEqual([`document`])
+		releaseSecond()
+		clock.runUntilIdle()
+	})
+
+	test(`keeps release idempotent and rejects active timing changes`, () => {
+		const clock = new VirtualClock()
+		const otherClock = new VirtualClock()
+		const socket: Socket = createDeterministicTransport({ clock }).createDuplex(
+			{ id: `client`, role: `client` },
+			{ id: `server`, role: `server` },
+		).left
+		let closes = 0
+		const release = createSubscriber(
+			socket,
+			`document`,
+			() => () => {
+				closes++
+			},
+			{ clock, coalesceMs: 25 },
+		)
+
+		expect(() =>
+			createSubscriber(socket, `document`, () => () => {}, {
+				clock: otherClock,
+				coalesceMs: 25,
+			}),
+		).toThrow(`cannot change its clock or coalescing delay while active`)
+		expect(() =>
+			createSubscriber(socket, `document`, () => () => {}, {
+				clock,
+				coalesceMs: 50,
+			}),
+		).toThrow(`cannot change its clock or coalescing delay while active`)
+
+		release()
+		release()
+		clock.advance(25)
 		expect(closes).toBe(1)
 	})
 })

@@ -160,6 +160,25 @@ test(`Socket.IO validates harness metadata and serves its health response`, asyn
 				{ id: `origin`, session: `node-1` },
 			),
 		).toThrow(`Socket.IO endpoint metadata mismatch`)
+		expect(() =>
+			adapter.validateHarnessEndpoint(
+				{ [SOCKET_IO_TEST_ENDPOINT_AUTH]: null },
+				{ id: `alice`, session: `tab-1` },
+				{ id: `origin`, session: `node-1` },
+			),
+		).toThrow(`Socket.IO endpoint metadata mismatch`)
+		expect(() =>
+			adapter.validateHarnessEndpoint(
+				{
+					[SOCKET_IO_TEST_ENDPOINT_AUTH]: {
+						...auth[SOCKET_IO_TEST_ENDPOINT_AUTH],
+						client: { id: `mallory`, session: `tab-1` },
+					},
+				},
+				{ id: `alice`, session: `tab-1` },
+				{ id: `origin`, session: `node-1` },
+			),
+		).toThrow(`Socket.IO endpoint metadata mismatch`)
 	} finally {
 		await harness.server.close()
 	}

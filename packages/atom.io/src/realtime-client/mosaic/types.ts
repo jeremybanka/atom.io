@@ -77,17 +77,15 @@ export type MosaicSyncOptions = {
 	readonly transport?: MosaicClientTransport
 }
 
-export type MosaicCompanionAtoms<
+export type MosaicSyncState<
 	T extends AnyMosaicTransceiver,
 	Presence extends Json.Serializable,
 > = {
-	readonly pending: RegularAtomToken<readonly string[]>
-	readonly presence: RegularAtomToken<
-		readonly MosaicPresenceEnvelope<Presence>[]
-	>
-	readonly problem: RegularAtomToken<MosaicClientProblem<T> | null>
-	readonly revision: RegularAtomToken<number>
-	readonly status: RegularAtomToken<MosaicClientStatus>
+	readonly pending: readonly string[]
+	readonly presence: readonly MosaicPresenceEnvelope<Presence>[]
+	readonly problem: MosaicClientProblem<T> | null
+	readonly revision: number
+	readonly status: MosaicClientStatus
 }
 
 /** Store-owned control plane for an ordinary Mosaic mutable atom. */
@@ -96,11 +94,11 @@ export interface MosaicController<
 	Presence extends Json.Serializable,
 > {
 	readonly actor: string
-	readonly atom: MosaicAtomAddress
+	readonly address: MosaicAtomAddress
+	readonly atom: MutableAtomToken<T>
 	readonly session: string
-	readonly state: MosaicCompanionAtoms<T, Presence>
 	readonly store: RootStore
-	readonly token: MutableAtomToken<T>
+	readonly syncState: RegularAtomToken<MosaicSyncState<T, Presence>>
 	change(
 		intent: MosaicIntent<T>,
 		options?: MosaicSubmitOptions,

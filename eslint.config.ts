@@ -130,10 +130,9 @@ const STORYBOOK: Linter.Config = {
 			"storybook/use-storybook-testing-library": ERROR,
 		} satisfies {
 			// https://storybook.js.org/docs/configure/integration/eslint-plugin
-			[K in keyof StorybookRules as `storybook/${K}`]: StorybookRules[K] extends RuleModuleWithMetaDocs<
-				any,
-				infer Options
-			>
+			[
+				K in keyof StorybookRules as `storybook/${K}`
+			]: StorybookRules[K] extends RuleModuleWithMetaDocs<any, infer Options>
 				? 0 | 1 | 2 | [0 | 1 | 2, Options]
 				: 0 | 1 | 2
 		}),

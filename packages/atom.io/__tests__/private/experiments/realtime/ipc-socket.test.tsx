@@ -1,7 +1,11 @@
 import { PassThrough } from "node:stream"
 
 import type { Json } from "atom.io/foundations/json"
-import { ChildSocket, ParentSocket } from "atom.io/realtime-server"
+import {
+	ChildSocket,
+	encodeJsonFrame,
+	ParentSocket,
+} from "atom.io/realtime-server"
 import { UList } from "atom.io/transceivers/u-list"
 
 import * as Utils from "../../../__util__/index.ts"
@@ -129,6 +133,59 @@ describe(`CustomSocket base class`, () => {
 })
 
 describe(`ChildSocket`, () => {
+	test(`rejects well-formed JSON with invalid event and log shapes`, () => {
+		const received = vi.fn()
+		parentToChild.on(`hi`, received)
+		stdout.write(
+			encodeJsonFrame({ event: `ping` }) + encodeJsonFrame([`hi`, `valid`]),
+		)
+		stderr.write(encodeJsonFrame([`verbose`, `invalid log level`]))
+
+		expect(logger.error).toHaveBeenCalledWith(
+			`1`,
+			`child`,
+			`❌ Invalid event payload from child process`,
+			{ event: `ping` },
+		)
+		expect(logger.error).toHaveBeenCalledWith(
+			`1`,
+			`child`,
+			`❌ Invalid log payload from child process`,
+			[`verbose`, `invalid log level`],
+		)
+		expect(received).toHaveBeenCalledWith(`valid`)
+	})
+
+	test(`accepts proof of life mixed with following event data`, async () => {
+		const isolatedStdout = new PassThrough()
+		const isolated = new ChildSocket<
+			{ boot: [status: string] },
+			Record<string, never>
+		>(
+			{
+				stdin: new PassThrough(),
+				stdout: isolatedStdout,
+				stderr: new PassThrough(),
+				pid: 2,
+			},
+			`mixed-readiness`,
+			logger,
+		)
+		const booted = new Promise<string>((resolve) => {
+			isolated.on(`boot`, (value) => {
+				resolve(value)
+			})
+		})
+
+		isolatedStdout.write(
+			encodeJsonFrame(`ALIVE`) + encodeJsonFrame([`boot`, `preserved`]),
+		)
+
+		await expect(isolated.ready).resolves.toBeUndefined()
+		await expect(booted).resolves.toBe(`preserved`)
+		isolated.dispose()
+	})
+
 	test(`handles EPIPE error`, () => {
 		const spy = vitest.spyOn(console, `error`)
 		const origWrite = parentToChild.proc.stdin.write.bind(
@@ -155,8 +212,8 @@ describe(`ChildSocket`, () => {
 		parentToChild.on(`there`, logger.warn)
 		parentToChild.on(`you`, logger.error)
 
-		stdout.write(`["`)
-		stdout.write(`["hi",{}]\x03`)
+		stdout.write(`not-json\x03["hi"`)
+		stdout.write(`,{}]\x03`)
 		stdout.write(`["there",{}]\x03["`)
 		stdout.write(`you"`)
 		stdout.write(`,{}]\x03`)
@@ -166,8 +223,8 @@ describe(`ChildSocket`, () => {
 		expect(logger.error).toHaveBeenCalledWith({})
 	})
 	test(`handles incomplete logs gracefully`, () => {
-		stderr.write(`["`)
-		stderr.write(`["i",{}]\x03`)
+		stderr.write(`not-json\x03["i"`)
+		stderr.write(`,{}]\x03`)
 		stderr.write(`["w",{}]\x03["`)
 		stderr.write(`e"`)
 		stderr.write(`,{}]\x03`)
@@ -179,6 +236,21 @@ describe(`ChildSocket`, () => {
 })
 
 describe(`ParentSocket`, () => {
+	test(`rejects well-formed JSON with an invalid event shape`, () => {
+		const received = vi.fn()
+		childToParent.on(`hi`, received)
+		childToParent.proc.stdin.write(
+			encodeJsonFrame({ event: `hi` }) + encodeJsonFrame([`hi`, `valid`]),
+		)
+		expect(logger.error).toHaveBeenCalledWith(
+			`1`,
+			`child`,
+			`received invalid event payload from parent process`,
+			{ event: `hi` },
+		)
+		expect(received).toHaveBeenCalledWith(`valid`)
+	})
+
 	test(`handles incomplete data gracefully`, () => {
 		childToParent.proc.stdin.write(`["hi",{}]\x03["there",{}]\x03["`)
 		expect(logger.error).toHaveBeenCalled()
@@ -251,7 +323,16 @@ describe(`ParentSocket`, () => {
 
 		await gotPong
 
-		parentToChild.emit(`user-leaves`, `alice`)
-		expect([...childToParent[`relays`].keys()]).not.toContain(`alice`)
+		parentToChild.emit(`user-leaves`, `user::alice`)
+		expect([...childToParent[`relays`].keys()]).not.toContain(`user::alice`)
+
+		parentToChild.emit(`user-joins`, `user::alice`)
+		const gotSecondPong = new Promise<string>((resolve) => {
+			parentToChild.on(`user::alice`, (msg: string) => {
+				if (msg === `pong`) resolve(msg)
+			})
+		})
+		parentToChild.emit(`user::alice`, `ping`)
+		await expect(gotSecondPong).resolves.toBe(`pong`)
 	})
 })

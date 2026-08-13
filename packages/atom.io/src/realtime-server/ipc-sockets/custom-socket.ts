@@ -8,6 +8,12 @@ export type EventPayload<
 	K extends string & keyof receiveRelay = string & keyof receiveRelay,
 > = [string, ...receiveRelay[K]]
 
+export function isEventPayload(
+	value: unknown,
+): value is [string, ...Json.Array] {
+	return Array.isArray(value) && typeof value[0] === `string`
+}
+
 export interface EventBuffer<
 	E extends Events,
 	K extends string & keyof E = string & keyof E,

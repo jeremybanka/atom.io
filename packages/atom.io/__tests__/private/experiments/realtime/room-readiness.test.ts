@@ -11,7 +11,12 @@ import {
 	SubjectSocket,
 } from "atom.io/realtime-server"
 
-test(`room startup accepts a split proof-of-life signal`, async () => {
+afterEach(() => {
+	vi.restoreAllMocks()
+})
+
+test(`room startup accepts split framed readiness followed by event data`, async () => {
+	const info = vi.spyOn(console, `info`).mockImplementation(() => undefined)
 	const silo = new Silo(
 		{ name: `room-readiness`, lifespan: `ephemeral`, isProduction: false },
 		IMPLICIT.STORE,
@@ -31,6 +36,13 @@ test(`room startup accepts a split proof-of-life signal`, async () => {
 
 	const room = await create(`fixture`)
 	expect(ROOMS.get(room.key)).toBe(room)
+	expect(info).toHaveBeenCalledWith(
+		expect.any(String),
+		room.key,
+		`💸`,
+		`emitted`,
+		[`boot`, `preserved`],
+	)
 	const exited = new Promise<void>((resolve) => {
 		room.proc.stdout.once(`close`, resolve)
 	})

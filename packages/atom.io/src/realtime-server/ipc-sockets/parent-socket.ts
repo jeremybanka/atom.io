@@ -1,14 +1,15 @@
 import type { Readable, Writable } from "node:stream"
 
 import type { Json } from "atom.io/foundations/json"
-import { parseJson, stringifyJson } from "atom.io/foundations/json"
+import { stringifyJson } from "atom.io/foundations/json"
 import { Subject } from "atom.io/foundations/subject"
 import type { UserKey } from "atom.io/realtime"
 import { UList } from "atom.io/transceivers/u-list"
 
 import type { StderrLog } from "./child-socket.ts"
-import type { EventBuffer, EventPayload, Events } from "./custom-socket.ts"
-import { CustomSocket } from "./custom-socket.ts"
+import type { EventPayload, Events } from "./custom-socket.ts"
+import { CustomSocket, isEventPayload } from "./custom-socket.ts"
+import { DelimitedJsonCodec, encodeJsonFrame } from "./delimited-json-codec.ts"
 
 export const PROOF_OF_LIFE_SIGNAL = `ALIVE`
 
@@ -35,7 +36,7 @@ export class SubjectSocket<
 	}
 
 	public dispose(): void {
-		for (const dispose of this.disposalEffects) {
+		for (const dispose of this.disposalEffects.splice(0)) {
 			dispose()
 		}
 	}
@@ -63,8 +64,6 @@ export class ParentSocket<
 	},
 	P extends ParentProcess = ParentProcess,
 > extends CustomSocket<I, O> {
-	protected incompleteData = ``
-	protected unprocessedEvents: string[] = []
 	protected relays: Map<UserKey, SubjectSocket<any, any>>
 	protected initRelay: (
 		socket: SubjectSocket<any, any>,
@@ -97,8 +96,7 @@ export class ParentSocket<
 
 	public constructor(proc: P) {
 		super((event, ...args) => {
-			const stringifiedEvent = JSON.stringify([event, ...args])
-			this.proc.stdout.write(stringifiedEvent + `\x03`)
+			this.proc.stdout.write(encodeJsonFrame([event, ...args]))
 			return this
 		})
 		this.proc = proc
@@ -108,63 +106,29 @@ export class ParentSocket<
 			this.logger.info(`🔗`, `nothing to relay`)
 		}
 
-		this.proc.stdin.on(
-			`data`,
-			<K extends string & keyof I>(buffer: EventBuffer<I, K>) => {
-				const chunk = buffer.toString()
-				const pieces = chunk.split(`\x03`)
-				const initialMaybeWellFormed = pieces[0]
-				pieces[0] = this.incompleteData + initialMaybeWellFormed
-				let idx = 0
-				for (const piece of pieces) {
-					if (piece === ``) {
-						continue
-					}
-					try {
-						const jsonPiece = parseJson(piece)
-						this.logger.info(`🎰`, `received`, jsonPiece)
-						this.handleEvent(...(jsonPiece as EventPayload<I>))
-						this.incompleteData = ``
-					} catch (thrown0) {
-						if (thrown0 instanceof Error) {
-							this.logger.error(
-								[
-									`received malformed data from parent process:`,
-									``,
-									piece,
-									``,
-									thrown0.message,
-								].join(`\n❌\t`),
-							)
-						}
-						try {
-							if (idx === 0) {
-								this.incompleteData = piece
-								const maybeActualJsonPiece = parseJson(initialMaybeWellFormed)
-								this.logger.info(`🎰`, `received`, maybeActualJsonPiece)
-								this.handleEvent(...(maybeActualJsonPiece as EventPayload<I>))
-								this.incompleteData = ``
-							} else {
-								this.incompleteData += piece
-							}
-						} catch (thrown1) {
-							if (thrown1 instanceof Error) {
-								this.logger.error(
-									[
-										`received malformed data from parent process:`,
-										``,
-										initialMaybeWellFormed,
-										``,
-										thrown1.message,
-									].join(`\n❌\t`),
-								)
-							}
-						}
-					}
-					++idx
-				}
+		const events = new DelimitedJsonCodec<EventPayload<I>>({
+			onMalformed: (frame, error) => {
+				this.logger.error(
+					`received malformed data from parent process`,
+					frame,
+					String(error),
+				)
 			},
-		)
+			onValue: (value) => {
+				if (!isEventPayload(value)) {
+					this.logger.error(
+						`received invalid event payload from parent process`,
+						value,
+					)
+					return
+				}
+				this.logger.info(`🎰`, `received`, value)
+				this.handleEvent(...value)
+			},
+		})
+		this.proc.stdin.on(`data`, (buffer: Buffer) => {
+			events.write(buffer)
+		})
 
 		this.on(`exit`, () => {
 			this.logger.info(`🔥`, this.id, `received "exit"`)
@@ -180,12 +144,14 @@ export class ParentSocket<
 			const existingRelay = this.relays.get(userKey)
 			if (existingRelay) {
 				this.logger.info(`🔗`, `reattaching relay services for`, userKey)
+				this.off(userKey)
+				existingRelay.dispose()
 				const cleanupRelay = this.initRelay(existingRelay, userKey)
 				if (cleanupRelay) {
 					existingRelay.disposalEffects.push(cleanupRelay)
 				}
 				this.on(userKey, (...data) => {
-					relay.in.next(data)
+					existingRelay.in.next(data)
 				})
 				existingRelay.disposalEffects.push(
 					existingRelay.out.subscribe(`socket`, (data) => {
@@ -220,7 +186,7 @@ export class ParentSocket<
 			}
 		})
 
-		this.proc.stdout.write(PROOF_OF_LIFE_SIGNAL)
+		this.proc.stdout.write(encodeJsonFrame(PROOF_OF_LIFE_SIGNAL))
 	}
 
 	public receiveRelay(

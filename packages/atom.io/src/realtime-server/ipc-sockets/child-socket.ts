@@ -1,10 +1,10 @@
 import type { Readable, Writable } from "node:stream"
 
-import type { Json, stringified } from "atom.io/foundations/json"
-import { parseJson } from "atom.io/foundations/json"
+import type { Json } from "atom.io/foundations/json"
 
-import type { EventBuffer, EventPayload, Events } from "./custom-socket.ts"
-import { CustomSocket } from "./custom-socket.ts"
+import type { EventPayload, Events } from "./custom-socket.ts"
+import { CustomSocket, isEventPayload } from "./custom-socket.ts"
+import { DelimitedJsonCodec, encodeJsonFrame } from "./delimited-json-codec.ts"
 import { PROOF_OF_LIFE_SIGNAL } from "./parent-socket.ts"
 
 /* eslint-disable no-console */
@@ -18,36 +18,35 @@ export type ChildProcess = {
 
 export type StderrLog = [`e` | `i` | `w`, ...Json.Array]
 
+const isStderrLog = (value: unknown): value is StderrLog =>
+	Array.isArray(value) &&
+	(value[0] === `e` || value[0] === `i` || value[0] === `w`)
+
 export class ChildSocket<
 	I extends Events,
 	O extends Events,
 	P extends ChildProcess = ChildProcess,
 > extends CustomSocket<I, O> {
-	protected incompleteData = ``
-	protected unprocessedEvents: string[] = []
-	protected incompleteLog = ``
-	protected unprocessedLogs: string[] = []
-
+	readonly #disposeEffects: (() => void)[] = []
 	public id = `#####`
+	public readonly ready: Promise<void>
 
 	public proc: P
 	public key: string
 	public logger: Pick<Console, `error` | `info` | `warn`>
 
 	protected handleLog(log: StderrLog): void {
-		if (Array.isArray(log)) {
-			const [level, ...rest] = log
-			switch (level) {
-				case `i`:
-					this.logger.info(...rest)
-					break
-				case `w`:
-					this.logger.warn(...rest)
-					break
-				case `e`:
-					this.logger.error(...rest)
-					break
-			}
+		const [level, ...rest] = log
+		switch (level) {
+			case `i`:
+				this.logger.info(...rest)
+				break
+			case `w`:
+				this.logger.warn(...rest)
+				break
+			case `e`:
+				this.logger.error(...rest)
+				break
 		}
 	}
 
@@ -57,8 +56,7 @@ export class ChildSocket<
 		logger?: Pick<Console, `error` | `info` | `warn`>,
 	) {
 		super((event, ...args) => {
-			const stringifiedEvent = JSON.stringify([event, ...args]) + `\x03`
-			this.proc.stdin.write(stringifiedEvent)
+			this.proc.stdin.write(encodeJsonFrame([event, ...args]))
 			return this
 		})
 
@@ -75,140 +73,84 @@ export class ChildSocket<
 				console.error(this.id, this.key, ...args)
 			},
 		}
-		this.proc.stdout.on(
-			`data`,
-			<K extends string & keyof I>(buffer: EventBuffer<I, K>) => {
-				if (buffer[0] === 27 && buffer[1] === 91 && buffer[2] === 50) {
-					this.logger.info(`STDOUT TERMINAL CLEAR`, buffer)
-					return
-				}
-				const chunk = buffer.toString()
-
-				if (chunk === PROOF_OF_LIFE_SIGNAL) {
-					return
-				}
-
-				const pieces = chunk.split(`\x03`)
-				const initialMaybeWellFormed = pieces[0]
-				pieces[0] = this.incompleteData + initialMaybeWellFormed
-				let idx = 0
-				for (const piece of pieces) {
-					if (piece === ``) {
-						continue
-					}
-					try {
-						const jsonPiece = parseJson(piece as stringified<EventPayload<I, K>>)
-						this.logger.info(`💸`, `emitted`, jsonPiece)
-						this.handleEvent(...jsonPiece)
-						this.incompleteData = ``
-					} catch (thrown0) {
-						if (thrown0 instanceof Error) {
-							console.error(
-								[
-									`❌ Malformed data received from child process:`,
-									``,
-									...piece.split(`\n`),
-									``,
-									thrown0.message,
-								].join(`\n❌\t`) + `\n`,
-							)
-						}
-						try {
-							if (idx === 0) {
-								this.incompleteData = piece
-								const maybeActualJsonPiece = parseJson(
-									initialMaybeWellFormed as stringified<EventPayload<I, K>>,
-								)
-								this.logger.info(`💸`, `emitted`, maybeActualJsonPiece)
-								this.handleEvent(...maybeActualJsonPiece)
-								this.incompleteData = ``
-							} else {
-								this.incompleteData += piece
-							}
-						} catch (thrown1) {
-							if (thrown1 instanceof Error) {
-								console.error(
-									[
-										`❌ Malformed data received from child process:`,
-										``,
-										...initialMaybeWellFormed.split(`\n`),
-										``,
-										thrown1.message,
-									].join(`\n❌\t`) + `\n`,
-								)
-							}
-						}
-					}
-					++idx
-				}
-			},
-		)
-		this.proc.stderr.on(`data`, (buffer: Buffer) => {
-			if (buffer[0] === 27 && buffer[1] === 91 && buffer[2] === 50) {
-				this.logger.info(`STDERR TERMINAL CLEAR`, buffer)
-				return
-			}
-			const chunk = buffer.toString()
-
-			const pieces = chunk.split(`\x03`)
-			const initialMaybeWellFormed = pieces[0]
-			pieces[0] = this.incompleteData + initialMaybeWellFormed
-			let idx = 0
-			for (const piece of pieces) {
-				if (piece === ``) {
-					continue
-				}
-				try {
-					const jsonPiece = parseJson(piece as stringified<StderrLog>)
-					this.handleLog(jsonPiece)
-					this.incompleteData = ``
-				} catch (thrown0) {
-					if (thrown0 instanceof Error) {
-						this.logger.error(
-							[
-								`❌ Malformed log received from child process:`,
-								``,
-								...piece.split(`\n`),
-								``,
-								thrown0.message,
-							].join(`\n❌\t`) + `\n`,
-						)
-					}
-					try {
-						if (idx === 0) {
-							this.incompleteData = piece
-							const maybeActualJsonPiece = parseJson(
-								initialMaybeWellFormed as stringified<StderrLog>,
-							)
-							this.handleLog(maybeActualJsonPiece)
-							this.incompleteData = ``
-						} else {
-							this.incompleteData += piece
-						}
-					} catch (thrown1) {
-						if (thrown1 instanceof Error) {
-							this.logger.error(
-								[
-									`❌ Malformed log received from child process:`,
-									``,
-									...initialMaybeWellFormed.split(`\n`),
-									``,
-									thrown1.message,
-								].join(`\n❌\t`) + `\n`,
-							)
-						}
-					}
-				}
-				++idx
-			}
+		let resolveReady: () => void = () => {}
+		this.ready = new Promise((resolve) => {
+			resolveReady = resolve
 		})
-		this.proc.stdin.once(`error`, (err: { code: string }) => {
+		const events = new DelimitedJsonCodec<
+			EventPayload<I> | typeof PROOF_OF_LIFE_SIGNAL
+		>({
+			onMalformed: (frame, error) => {
+				this.logger.error(
+					`❌ Malformed data received from child process`,
+					frame,
+					String(error),
+				)
+			},
+			onValue: (value) => {
+				if (value === PROOF_OF_LIFE_SIGNAL) {
+					resolveReady()
+					return
+				}
+				if (!isEventPayload(value)) {
+					this.logger.error(`❌ Invalid event payload from child process`, value)
+					return
+				}
+				this.logger.info(`💸`, `emitted`, value)
+				this.handleEvent(...value)
+			},
+		})
+		const logs = new DelimitedJsonCodec<StderrLog>({
+			onMalformed: (frame, error) => {
+				this.logger.error(
+					`❌ Malformed log received from child process`,
+					frame,
+					String(error),
+				)
+			},
+			onValue: (value) => {
+				if (!isStderrLog(value)) {
+					this.logger.error(`❌ Invalid log payload from child process`, value)
+					return
+				}
+				this.handleLog(value)
+			},
+		})
+		const handleStdout = (buffer: Buffer): void => {
+			events.write(buffer)
+		}
+		const handleStderr = (buffer: Buffer): void => {
+			logs.write(buffer)
+		}
+		const endEvents = (): void => {
+			events.end()
+		}
+		const endLogs = (): void => {
+			logs.end()
+		}
+		const handleStdinError = (err: { code: string }): void => {
 			if (err.code === `EPIPE`) {
 				console.error(`EPIPE error during write`, this.proc.stdin)
 			}
-		})
+		}
+		this.proc.stdout.on(`data`, handleStdout)
+		this.proc.stdout.once(`end`, endEvents)
+		this.proc.stderr.on(`data`, handleStderr)
+		this.proc.stderr.once(`end`, endLogs)
+		this.proc.stdin.once(`error`, handleStdinError)
+		this.#disposeEffects.push(
+			() => this.proc.stdout.off(`data`, handleStdout),
+			() => this.proc.stdout.off(`end`, endEvents),
+			() => this.proc.stderr.off(`data`, handleStderr),
+			() => this.proc.stderr.off(`end`, endLogs),
+			() => this.proc.stdin.off(`error`, handleStdinError),
+		)
 		if (proc.pid) {
 			this.id = proc.pid.toString()
 		}
+	}
+
+	public dispose(): void {
+		for (const dispose of this.#disposeEffects.splice(0)) dispose()
 	}
 }

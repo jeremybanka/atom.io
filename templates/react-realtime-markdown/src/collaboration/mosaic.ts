@@ -18,18 +18,18 @@ export const Markdown = mosaicText({
 
 /** The collaborative document is an ordinary mutable atom. */
 export const markdownAtom = mutableAtom<InstanceType<typeof Markdown>>({
-	key: `launchFieldNotes`,
+	key: `markdown`,
 	class: Markdown,
 })
 
 /** Mosaic views participate in the state graph like every other atom value. */
 export const markdownCharacterCountSelector = selector<number>({
-	key: `launchFieldNotesCharacterCount`,
+	key: `markdownCharacterCount`,
 	get: ({ get }) => get(markdownAtom).length,
 })
 
 export const markdownWordCountSelector = selector<number>({
-	key: `launchFieldNotesWordCount`,
+	key: `markdownWordCount`,
 	get: ({ get }) => {
 		const text = get(markdownAtom).text.trim()
 		return text === `` ? 0 : text.split(/\s+/u).length

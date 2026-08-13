@@ -46,17 +46,17 @@ class TestSocket {
 
 const Markdown = mosaicText({ initialText: `Seed` })
 const markdownAtom = mutableAtom<InstanceType<typeof Markdown>>({
-	key: `sharedMarkdown`,
+	key: `markdown`,
 	class: Markdown,
 })
-const markdownLength = selector<number>({
-	key: `sharedMarkdownLength`,
+const markdownLengthSelector = selector<number>({
+	key: `markdownLength`,
 	get: ({ get }) => get(markdownAtom).length,
 })
 
 function Workspace({ label }: { label: string }) {
 	const document = useO(markdownAtom)
-	const length = useO(markdownLength)
+	const length = useO(markdownLengthSelector)
 	const mosaic = useMosaic<InstanceType<typeof Markdown>, MosaicTextSelection>(
 		markdownAtom,
 		{ actor: `alice`, session: `alice:test-session` },
@@ -110,6 +110,7 @@ describe(`useMosaic`, () => {
 			lifespan: `ephemeral`,
 			name: `useMosaic test`,
 		})
+		silo.install([markdownAtom, markdownLengthSelector])
 		const services = new Map()
 		const view = (label: string) => (
 			<StoreProvider store={silo.store}>

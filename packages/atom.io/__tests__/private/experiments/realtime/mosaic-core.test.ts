@@ -1,4 +1,6 @@
 import {
+	compareMosaicIds,
+	createEmptyMosaicText,
 	defineMosaicModel,
 	defineMosaicResource,
 	materializeMosaicText,
@@ -7,7 +9,10 @@ import {
 	mosaicText,
 	type MosaicTextIntent,
 	type MosaicTextOperation,
+	type MosaicTextSnapshot,
 	type MosaicTextState,
+	resolveMosaicTextPosition,
+	splitMosaicText,
 } from "atom.io/realtime"
 
 function context(
@@ -53,6 +58,31 @@ describe(`Mosaic core`, () => {
 		expect(() =>
 			defineMosaicModel({ ...model, key: `invalid`, version: 0 }),
 		).toThrow(`A Mosaic model version must be a positive safe integer`)
+		expect(() => defineMosaicModel({ ...model, key: `` })).toThrow(
+			`A Mosaic model key cannot be empty`,
+		)
+	})
+
+	test(`validates text model bounds and deterministic Unicode primitives`, () => {
+		expect(splitMosaicText(`👨‍👩‍👧‍👦é`)).toEqual([`👨‍👩‍👧‍👦`, `é`])
+		expect(compareMosaicIds(`a`, `b`)).toBe(-1)
+		expect(compareMosaicIds(`b`, `a`)).toBe(1)
+		expect(compareMosaicIds(`same`, `same`)).toBe(0)
+		expect(createEmptyMosaicText()).toEqual({
+			actions: [],
+			activeEdits: {},
+			nodes: {},
+		})
+		expect(mosaicText().text(mosaicText().create())).toBe(``)
+		expect(() => mosaicText({ maximumGraphemes: 0 })).toThrow(
+			`maximumGraphemes must be a positive safe integer`,
+		)
+		expect(() => mosaicText({ maximumGraphemes: 1.5 })).toThrow(
+			`maximumGraphemes must be a positive safe integer`,
+		)
+		expect(() => mosaicText({ initialText: `ab`, maximumGraphemes: 1 })).toThrow(
+			`initialText exceeds maximumGraphemes`,
+		)
 	})
 
 	test(`uses Unicode graphemes as stable sequence nodes`, () => {
@@ -143,6 +173,34 @@ describe(`Mosaic core`, () => {
 		expect(model.text(reversed)).toBe(`A`)
 	})
 
+	test(`orders accepted operations before provisional operations`, () => {
+		const model = mosaicText()
+		const base = model.create()
+		const provisionalContext = context(`provisional`, `alice`)
+		const provisional = prepare(
+			model,
+			base,
+			{ text: `P`, type: `replace-text` },
+			provisionalContext,
+		)
+		const withProvisional = model.apply(base, provisional, provisionalContext)
+		const acceptedContext = {
+			...context(`accepted`, `bob`),
+			revision: 1,
+		}
+		const accepted = prepare(
+			model,
+			base,
+			{ text: `A`, type: `replace-text` },
+			acceptedContext,
+		)
+		const combined = model.apply(withProvisional, accepted, acceptedContext)
+		expect(combined.actions.map(({ id }) => id)).toEqual([
+			`accepted`,
+			`provisional`,
+		])
+	})
+
 	test(`fails closed on operation id collisions and malformed snapshots`, () => {
 		const model = mosaicText({ initialText: `A` })
 		const base = model.create()
@@ -201,6 +259,78 @@ describe(`Mosaic core`, () => {
 		)
 	})
 
+	test(`groups adjacent edits and clears redo when a new edit is applied`, () => {
+		const model = mosaicText({ initialText: `A` })
+		const base = model.create()
+		const firstContext = context(`alice:1`, `alice`, `typing`)
+		const first = prepare(
+			model,
+			base,
+			{ text: `AB`, type: `replace-text` },
+			firstContext,
+		)
+		const afterFirst = model.apply(base, first, firstContext)
+		const secondContext = context(`alice:2`, `alice`, `typing`)
+		const second = prepare(
+			model,
+			afterFirst,
+			{ text: `ABC`, type: `replace-text` },
+			secondContext,
+		)
+		const afterSecond = model.apply(afterFirst, second, secondContext)
+		expect(model.timeline(afterSecond, `alice`).undo.at(-1)).toEqual({
+			group: `typing`,
+			targetOperationIds: [`alice:1`, `alice:2`],
+		})
+
+		const undoContext = context(`alice:3`, `alice`)
+		const undo = prepare(model, afterSecond, { type: `undo` }, undoContext)
+		const undone = model.apply(afterSecond, undo, undoContext)
+		expect(model.timeline(undone, `alice`).redo).toHaveLength(1)
+		const newContext = context(`alice:4`, `alice`, `replacement`)
+		const replacement = prepare(
+			model,
+			undone,
+			{ text: `AX`, type: `replace-text` },
+			newContext,
+		)
+		const replaced = model.apply(undone, replacement, newContext)
+		expect(model.timeline(replaced, `alice`).redo).toEqual([])
+		expect(
+			model.prepare(
+				model.create(),
+				{ type: `undo` },
+				{
+					...newContext,
+					now: 10,
+					revision: null,
+				},
+			),
+		).toBeNull()
+		expect(
+			model.prepare(
+				model.create(),
+				{ type: `redo` },
+				{
+					...newContext,
+					now: 10,
+					revision: null,
+				},
+			),
+		).toBeNull()
+		expect(
+			model.prepare(
+				model.create(),
+				{ text: `A`, type: `replace-text` },
+				{
+					...newContext,
+					now: 10,
+					revision: null,
+				},
+			),
+		).toBeNull()
+	})
+
 	test(`fails stale history closed and defers missing causal anchors`, () => {
 		const model = mosaicText({ initialText: `A` })
 		const base = model.create()
@@ -234,6 +364,191 @@ describe(`Mosaic core`, () => {
 		).toEqual({ reason: `The actor history cursor is stale.`, status: `reject` })
 	})
 
+	test(`fails malformed and non-causal operations closed`, () => {
+		const model = mosaicText({ initialText: `ab`, maximumGraphemes: 2 })
+		const base = model.create()
+		const metadata = context(`alice:1`, `alice`)
+		const firstId = model.visibleNodes(base)[0].id
+		const secondId = model.visibleNodes(base)[1].id
+		const nodeId = `${metadata.id}:node:000000`
+		const edit = (overrides: Record<string, unknown> = {}) => ({
+			deletedIds: [],
+			inserted: [{ after: firstId, before: secondId, id: nodeId, value: `X` }],
+			type: `edit`,
+			...overrides,
+		})
+
+		expect(model.validate(base, null, metadata)).toEqual({
+			reason: `Operation must be an object.`,
+			status: `reject`,
+		})
+		expect(model.validate(base, { type: `edit` }, metadata)).toEqual({
+			reason: `Malformed text edit.`,
+			status: `reject`,
+		})
+		expect(model.validate(base, edit({ inserted: [null] }), metadata)).toEqual({
+			reason: `Malformed inserted grapheme.`,
+			status: `reject`,
+		})
+		expect(
+			model.validate(
+				base,
+				edit({
+					inserted: [
+						{ after: firstId, before: secondId, id: nodeId, value: `XY` },
+					],
+				}),
+				metadata,
+			),
+		).toEqual({ reason: `Invalid inserted grapheme chain.`, status: `reject` })
+		expect(
+			model.validate(
+				base,
+				edit({
+					inserted: [{ after: `missing`, before: null, id: nodeId, value: `X` }],
+				}),
+				metadata,
+			),
+		).toEqual({ reason: `Unknown predecessor anchor.`, status: `reject` })
+		expect(
+			model.validate(
+				base,
+				edit({
+					inserted: [{ after: null, before: `missing`, id: nodeId, value: `X` }],
+				}),
+				context(metadata.id, `alice`, metadata.group ?? metadata.id, [`future`]),
+			),
+		).toEqual({ dependencies: [`future`], status: `defer` })
+		expect(
+			model.validate(
+				base,
+				edit({
+					inserted: [{ after: null, before: `missing`, id: nodeId, value: `X` }],
+				}),
+				metadata,
+			),
+		).toEqual({ reason: `Unknown successor anchor.`, status: `reject` })
+		expect(
+			model.validate(
+				base,
+				edit({
+					inserted: [
+						{ after: secondId, before: firstId, id: nodeId, value: `X` },
+					],
+				}),
+				metadata,
+			),
+		).toEqual({
+			reason: `The insertion interval is inverted.`,
+			status: `reject`,
+		})
+		expect(
+			model.validate(
+				base,
+				edit({ deletedIds: [firstId, firstId], inserted: [] }),
+				metadata,
+			),
+		).toEqual({ reason: `Malformed deletion targets.`, status: `reject` })
+		expect(
+			model.validate(
+				base,
+				edit({ deletedIds: [`missing`], inserted: [] }),
+				metadata,
+			),
+		).toEqual({ reason: `Unknown deletion target.`, status: `reject` })
+		expect(
+			model.validate(
+				base,
+				edit({ deletedIds: [`missing`], inserted: [] }),
+				context(metadata.id, `alice`, metadata.group ?? metadata.id, [`future`]),
+			),
+		).toEqual({ dependencies: [`future`], status: `defer` })
+		expect(model.validate(base, edit(), metadata)).toEqual({
+			reason: `The text exceeds its grapheme capacity.`,
+			status: `reject`,
+		})
+		expect(
+			model.validate(
+				base,
+				{ mode: `undo`, targetOperationIds: [], type: `history` },
+				metadata,
+			),
+		).toEqual({ reason: `Malformed history operation.`, status: `reject` })
+		expect(model.validate(base, { type: `mystery` }, metadata)).toEqual({
+			reason: `Unknown text operation type.`,
+			status: `reject`,
+		})
+	})
+
+	test(`rejects malformed snapshots and reconstructs state from accepted actions`, () => {
+		const model = mosaicText({ initialText: `A` })
+		const base = model.create()
+		const metadata = context(`alice:1`, `alice`)
+		const operation = prepare(
+			model,
+			base,
+			{ text: `AB`, type: `replace-text` },
+			metadata,
+		)
+		const state = model.apply(base, operation, metadata)
+		const snapshot = model.snapshot(state)
+		const poisoned = {
+			...snapshot,
+			activeEdits: {},
+			nodes: {},
+		} satisfies MosaicTextSnapshot
+		expect(model.text(model.hydrate(poisoned))).toBe(`AB`)
+
+		expect(() => model.hydrate(null)).toThrow(`Invalid Mosaic text snapshot`)
+		expect(() => model.hydrate({ actions: [null] })).toThrow(
+			`Invalid Mosaic text snapshot`,
+		)
+		expect(() =>
+			model.hydrate({ actions: [{ ...snapshot.actions[0], actor: `` }] }),
+		).toThrow(`Invalid Mosaic text snapshot`)
+		expect(() =>
+			model.hydrate({
+				actions: [
+					{
+						actor: `alice`,
+						dependencies: [],
+						group: `alice:1`,
+						id: `alice:1`,
+						operation: { type: `mystery` },
+						revision: 1,
+						session: `alice:tab`,
+					},
+				],
+			}),
+		).toThrow(`Unknown text operation type`)
+		expect(() =>
+			model.hydrate({
+				actions: [
+					{
+						actor: `alice`,
+						dependencies: [`future`],
+						group: `alice:1`,
+						id: `alice:1`,
+						operation: {
+							deletedIds: [],
+							inserted: [
+								{
+									after: `future:node`,
+									before: null,
+									id: `alice:1:node:000000`,
+									value: `X`,
+								},
+							],
+							type: `edit`,
+						},
+						revision: 1,
+						session: `alice:tab`,
+					},
+				],
+			}),
+		).toThrow(`missing dependencies future`)
+	})
+
 	test(`relative positions survive hidden anchors and snapshots`, () => {
 		const model = mosaicText({ initialText: `abc` })
 		const base = model.create()
@@ -254,5 +569,40 @@ describe(`Mosaic core`, () => {
 		const hydrated = model.hydrate(model.snapshot(base))
 		expect(materializeMosaicText(hydrated)).toBe(`abc`)
 		expect(hydrated).not.toBe(base)
+	})
+
+	test(`resolves Unicode interiors and relative-position affinity fallbacks`, () => {
+		const emojiModel = mosaicText({ initialText: `😀a` })
+		const emoji = emojiModel.create()
+		const interior = emojiModel.positionAtOffset(emoji, 1)
+		expect(interior.affinity).toBe(`left`)
+		expect(emojiModel.resolvePosition(emoji, interior)).toBe(2)
+
+		const model = mosaicText({ initialText: `abcd` })
+		const base = model.create()
+		const betweenHidden = model.positionAtOffset(base, 2)
+		const deletionContext = context(`alice:delete`, `alice`)
+		const deletion = prepare(
+			model,
+			base,
+			{ text: `ad`, type: `replace-text` },
+			deletionContext,
+		)
+		const deleted = model.apply(base, deletion, deletionContext)
+		expect(model.resolvePosition(deleted, betweenHidden)).toBe(1)
+		expect(
+			resolveMosaicTextPosition(deleted, {
+				affinity: `left`,
+				leftId: null,
+				rightId: model.visibleNodes(deleted)[1].id,
+			}),
+		).toBe(1)
+		expect(
+			resolveMosaicTextPosition(deleted, {
+				affinity: `left`,
+				leftId: `unknown-left`,
+				rightId: `unknown-right`,
+			}),
+		).toBe(0)
 	})
 })

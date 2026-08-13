@@ -1,13 +1,16 @@
 import { createHash } from "node:crypto"
 
+import type { MutableAtomFamilyToken, MutableAtomToken } from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical"
 import type { Json } from "atom.io/foundations/json"
 import {
-	type AnyMosaicModel,
+	type AnyMosaicTransceiver,
 	MOSAIC_EVENTS,
 	MOSAIC_PROTOCOL_VERSION,
 	type MosaicAcceptedOperationEnvelope,
+	type MosaicAtomAddress,
+	mosaicAtomAddressKey,
 	type MosaicJoinEnvelope,
-	type MosaicModelDecision,
 	type MosaicOperation,
 	type MosaicOperationEnvelope,
 	type MosaicOperationProposal,
@@ -15,10 +18,9 @@ import {
 	type MosaicPresenceProposal,
 	type MosaicRejectionCode,
 	type MosaicRejectionEnvelope,
-	type MosaicResource,
 	type MosaicSnapshot,
 	type MosaicSnapshotEnvelope,
-	type MosaicState,
+	type MosaicTransceiverConstructor,
 	type Socket,
 	type StandardSchemaV1,
 } from "atom.io/realtime"
@@ -37,7 +39,7 @@ export type MosaicAuthorizationContext<Operation = Json.Serializable> = {
 	readonly action: MosaicAuthorizationAction
 	readonly actor: string
 	readonly operation?: Operation
-	readonly resource: string
+	readonly atom: MosaicAtomAddress
 	readonly session: string
 }
 
@@ -48,7 +50,7 @@ export type MosaicHistoryRequest = {
 
 export type MosaicHistoryGroup = {
 	readonly group: string
-	readonly operationIds: readonly string[]
+	readonly targetOperationIds: readonly string[]
 }
 
 export type MosaicHistoryTimeline = {
@@ -56,38 +58,40 @@ export type MosaicHistoryTimeline = {
 	readonly undo: readonly MosaicHistoryGroup[]
 }
 
-export type MosaicPresenceContext<State> = {
+export type MosaicPresenceContext<View> = {
 	readonly actor: string
-	readonly resource: string
+	readonly atom: MosaicAtomAddress
 	readonly session: string
-	readonly state: State
+	readonly view: View
 }
 
-export type MosaicHistoryPolicy<State, Operation> = {
-	/** Return null for ordinary operations and a request for history operations. */
-	readonly request: (operation: Operation) => MosaicHistoryRequest | null
-	readonly timeline: (state: State, actor: string) => MosaicHistoryTimeline
-}
+/** A mutable transceiver class whose static metadata identifies its wire model. */
+export type MosaicTransceiverClass<
+	T extends AnyMosaicTransceiver = AnyMosaicTransceiver,
+> = MosaicTransceiverConstructor<T>
 
-export type MosaicServerResource<
-	Model extends AnyMosaicModel,
+export type MosaicServerTarget<T extends AnyMosaicTransceiver> =
+	| MutableAtomToken<T>
+	| MutableAtomFamilyToken<T, Canonical>
+
+export type MosaicServerAtom<
+	T extends AnyMosaicTransceiver,
 	Presence extends Json.Serializable = Json.Serializable,
-> = MosaicResource<Model> & {
+> = {
 	/** Checkpoint automatically after this many accepted operations. */
 	readonly checkpointEvery?: number
-	/** Optional selective-history cursor validation for this model. */
-	readonly history?: MosaicHistoryPolicy<
-		MosaicState<Model>,
-		MosaicOperation<Model>
-	>
+	/** The transceiver class registered for this ordinary mutable atom target. */
+	readonly class: MosaicTransceiverClass<T>
 	/** Validate and normalize untrusted model payloads before authorization. */
-	readonly operationSchema: StandardSchemaV1<unknown, MosaicOperation<Model>>
+	readonly operationSchema: StandardSchemaV1<unknown, MosaicOperation<T>>
 	/** Presence is disabled unless a schema is supplied. */
 	readonly presenceSchema?: StandardSchemaV1<unknown, Presence>
+	/** A mutable atom token or mutable atom family token from the state graph. */
+	readonly target: MosaicServerTarget<T>
 	/** Perform model-aware checks such as validating relative anchors. */
 	readonly validatePresence?: (
 		presence: Presence,
-		context: MosaicPresenceContext<MosaicState<Model>>,
+		context: MosaicPresenceContext<T[`READONLY_VIEW`]>,
 	) => MaybePromise<boolean>
 }
 
@@ -97,12 +101,13 @@ export type MosaicServerConnection = {
 	readonly socket: Socket
 }
 
-/** Internal erasure that preserves heterogeneous resource/presence inference. */
-type ErasedResource = MosaicResource<AnyMosaicModel> & {
+/** Internal erasure that preserves heterogeneous atom/presence inference. */
+type ErasedAtom = {
 	readonly checkpointEvery?: number
-	readonly history?: MosaicHistoryPolicy<any, any>
+	readonly class: MosaicTransceiverClass
 	readonly operationSchema: StandardSchemaV1<unknown, any>
 	readonly presenceSchema?: StandardSchemaV1<unknown, any>
+	readonly target: MosaicServerTarget<AnyMosaicTransceiver>
 	readonly validatePresence?: (
 		presence: any,
 		context: MosaicPresenceContext<any>,
@@ -113,32 +118,33 @@ export type MosaicServerOptions = {
 	readonly authorize?: (
 		context: MosaicAuthorizationContext,
 	) => MaybePromise<boolean>
-	readonly resources: readonly ErasedResource[]
+	readonly atoms: readonly ErasedAtom[]
 	readonly storage?: MosaicStorageAdapter
 }
 
-export type MosaicServerResourceStatus = {
+export type MosaicServerAtomStatus = {
 	readonly initialized: boolean
 	readonly revision: number
 }
 
 export type MosaicServer = {
-	checkpoint(resource: string): Promise<boolean>
+	checkpoint(atom: MosaicAtomAddress): Promise<boolean>
 	connect(connection: MosaicServerConnection): () => Promise<void>
 	dispose(): Promise<void>
-	resourceStatus(resource: string): MosaicServerResourceStatus
+	atomStatus(atom: MosaicAtomAddress): MosaicServerAtomStatus
 }
 
-type ResourceRuntime = {
+type AtomRuntime = {
 	checkpointTail: Promise<void>
 	disposeWatch: (() => void) | undefined
 	headRevision: number
 	initialized: boolean
 	receiptIds: Set<string>
-	resource: ErasedResource
+	atom: ErasedAtom
+	address: MosaicAtomAddress
 	retentionEpoch: number
-	state: unknown
 	tail: Promise<void>
+	transceiver: AnyMosaicTransceiver
 }
 
 type ConnectionState = MosaicServerConnection & {
@@ -157,7 +163,7 @@ type RejectionOptions = {
 	operationId?: string | null
 	reason: string
 	recovery: MosaicRejectionEnvelope[`recovery`]
-	resource: string
+	atom: MosaicAtomAddress
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -165,6 +171,44 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const isIdentifier = (value: unknown, maximum = 512): value is string =>
 	typeof value === `string` && value.length > 0 && value.length <= maximum
+
+const parseAtomAddress = (value: unknown): MosaicAtomAddress | null => {
+	if (
+		!isRecord(value) ||
+		value[`type`] !== `mutable_atom` ||
+		!isIdentifier(value[`key`])
+	) {
+		return null
+	}
+	const family = value[`family`]
+	if (family === undefined) return { key: value[`key`], type: `mutable_atom` }
+	if (
+		!isRecord(family) ||
+		!isIdentifier(family[`key`]) ||
+		!isIdentifier(family[`subKey`]) ||
+		value[`key`] !== `${family[`key`]}(${family[`subKey`]})`
+	) {
+		return null
+	}
+	return {
+		family: { key: family[`key`], subKey: family[`subKey`] },
+		key: value[`key`],
+		type: `mutable_atom`,
+	}
+}
+
+const sameAtom = (left: MosaicAtomAddress, right: MosaicAtomAddress): boolean =>
+	left.key === right.key &&
+	left.type === right.type &&
+	left.family?.key === right.family?.key &&
+	left.family?.subKey === right.family?.subKey
+
+const unknownAtom = { key: `unknown`, type: `mutable_atom` } as const
+
+const atomFromPayload = (payload: unknown): MosaicAtomAddress =>
+	isRecord(payload)
+		? (parseAtomAddress(payload[`atom`]) ?? unknownAtom)
+		: unknownAtom
 
 const matchesModel = (
 	actual: unknown,
@@ -180,6 +224,22 @@ const sameStrings = (
 ): boolean =>
 	left.length === right.length &&
 	left.every((value, index) => value === right[index])
+
+const historyRequest = (value: unknown): MosaicHistoryRequest | null => {
+	if (
+		!isRecord(value) ||
+		value[`type`] !== `history` ||
+		(value[`mode`] !== `undo` && value[`mode`] !== `redo`) ||
+		!Array.isArray(value[`targetOperationIds`]) ||
+		!value[`targetOperationIds`].every((id) => isIdentifier(id))
+	) {
+		return null
+	}
+	return {
+		mode: value[`mode`],
+		targetOperationIds: value[`targetOperationIds`],
+	}
+}
 
 const canonicalize = (value: Json.Serializable): string => {
 	if (value === null || typeof value !== `object`) return JSON.stringify(value)
@@ -203,7 +263,7 @@ export const fingerprintMosaicOperation = (
 		model: operation.model,
 		operation: operation.operation,
 		protocolVersion: operation.protocolVersion,
-		resource: operation.resource,
+		atom: operation.atom,
 		session: operation.session,
 	}
 	return createHash(`sha256`).update(canonicalize(durableMeaning)).digest(`hex`)
@@ -221,47 +281,74 @@ const schemaReason = (issues: readonly StandardSchemaV1.Issue[]): string =>
  */
 export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 	const storage = options.storage ?? new InMemoryMosaicStorage()
-	const resources = new Map<string, ErasedResource>()
-	for (const resource of options.resources) {
-		if (resources.has(resource.key)) {
-			throw new Error(`Duplicate Mosaic resource key "${resource.key}"`)
+	const singletonAtoms = new Map<string, ErasedAtom>()
+	const atomFamilies = new Map<string, ErasedAtom>()
+	for (const atom of options.atoms) {
+		const registrations =
+			atom.target.type === `mutable_atom` ? singletonAtoms : atomFamilies
+		if (
+			registrations.has(atom.target.key) ||
+			(atom.target.type === `mutable_atom`
+				? atomFamilies.has(atom.target.key)
+				: singletonAtoms.has(atom.target.key))
+		) {
+			throw new Error(`Duplicate Mosaic target key "${atom.target.key}"`)
 		}
 		if (
-			resource.checkpointEvery !== undefined &&
-			(!Number.isSafeInteger(resource.checkpointEvery) ||
-				resource.checkpointEvery < 1)
+			atom.checkpointEvery !== undefined &&
+			(!Number.isSafeInteger(atom.checkpointEvery) || atom.checkpointEvery < 1)
 		) {
 			throw new Error(`checkpointEvery must be a positive safe integer`)
 		}
-		resources.set(resource.key, resource)
+		if (
+			!isIdentifier(atom.class.mosaic.key) ||
+			!Number.isSafeInteger(atom.class.mosaic.version) ||
+			atom.class.mosaic.version < 1 ||
+			atom.class.timelinePolicy !== `append-only`
+		) {
+			throw new Error(`A Mosaic transceiver class requires model metadata`)
+		}
+		registrations.set(atom.target.key, atom)
 	}
 
-	const runtimes = new Map<string, ResourceRuntime>()
+	const registeredAtom = (
+		address: MosaicAtomAddress,
+	): ErasedAtom | undefined => {
+		if (address.family === undefined) return singletonAtoms.get(address.key)
+		return atomFamilies.get(address.family.key)
+	}
+
+	const runtimes = new Map<string, AtomRuntime>()
 	const connections = new Set<ConnectionState>()
 	const presence = new Map<string, Map<string, PresenceRecord>>()
 	let disposed = false
 
-	const runtimeFor = (resource: ErasedResource): ResourceRuntime => {
-		let runtime = runtimes.get(resource.key)
+	const runtimeFor = (
+		atom: ErasedAtom,
+		address: MosaicAtomAddress,
+	): AtomRuntime => {
+		const key = mosaicAtomAddressKey(address)
+		let runtime = runtimes.get(key)
 		if (runtime === undefined) {
 			runtime = {
+				address,
 				checkpointTail: Promise.resolve(),
 				disposeWatch: undefined,
 				headRevision: 0,
 				initialized: false,
 				receiptIds: new Set(),
-				resource,
+				atom,
 				retentionEpoch: 0,
-				state: resource.model.create(),
 				tail: Promise.resolve(),
+				transceiver: new atom.class(),
 			}
-			runtimes.set(resource.key, runtime)
+			runtimes.set(key, runtime)
 		}
 		return runtime
 	}
 
 	const enqueue = <Value>(
-		runtime: ResourceRuntime,
+		runtime: AtomRuntime,
 		operation: () => Promise<Value>,
 	): Promise<Value> => {
 		const result = runtime.tail.then(operation, operation)
@@ -273,17 +360,17 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 	}
 
 	const assertRecovery = (
-		resource: ErasedResource,
+		runtime: AtomRuntime,
 		recovery: MosaicStorageRecovery,
 	): void => {
 		if (recovery.checkpoint !== null) {
 			if (
 				recovery.checkpoint.protocolVersion !== MOSAIC_PROTOCOL_VERSION ||
-				recovery.checkpoint.resource !== resource.key ||
-				!matchesModel(recovery.checkpoint.model, resource.model)
+				!sameAtom(recovery.checkpoint.atom, runtime.address) ||
+				!matchesModel(recovery.checkpoint.model, runtime.atom.class.mosaic)
 			) {
 				throw new Error(
-					`Mosaic checkpoint for "${resource.key}" uses an incompatible protocol or model`,
+					`Mosaic checkpoint for "${runtime.address.key}" uses an incompatible protocol or model`,
 				)
 			}
 		}
@@ -291,25 +378,25 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 		for (const accepted of recovery.tail) {
 			if (
 				accepted.revision !== expected ||
-				accepted.operation.resource !== resource.key ||
+				!sameAtom(accepted.operation.atom, runtime.address) ||
 				accepted.operation.protocolVersion !== MOSAIC_PROTOCOL_VERSION ||
-				!matchesModel(accepted.operation.model, resource.model)
+				!matchesModel(accepted.operation.model, runtime.atom.class.mosaic)
 			) {
 				throw new Error(
-					`Mosaic recovery for "${resource.key}" is incompatible or non-contiguous at revision ${expected}`,
+					`Mosaic recovery for "${runtime.address.key}" is incompatible or non-contiguous at revision ${expected}`,
 				)
 			}
 			expected++
 		}
 		if (expected - 1 !== recovery.headRevision) {
 			throw new Error(
-				`Mosaic recovery for "${resource.key}" ended at ${expected - 1}, expected ${recovery.headRevision}`,
+				`Mosaic recovery for "${runtime.address.key}" ended at ${expected - 1}, expected ${recovery.headRevision}`,
 			)
 		}
 	}
 
 	const applyAccepted = (
-		runtime: ResourceRuntime,
+		runtime: AtomRuntime,
 		accepted: MosaicAcceptedOperationEnvelope,
 	): void => {
 		if (accepted.revision !== runtime.headRevision + 1) {
@@ -318,28 +405,31 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 			)
 		}
 		const operation = accepted.operation
-		const reductionContext = { ...operation, revision: accepted.revision }
-		runtime.state = runtime.resource.model.apply(
-			runtime.state,
-			operation.operation,
-			reductionContext,
-		)
+		runtime.transceiver.do({
+			actor: operation.actor,
+			dependencies: operation.dependencies,
+			group: operation.group,
+			id: operation.id,
+			operation: operation.operation,
+			revision: accepted.revision,
+			session: operation.session,
+		})
 		runtime.headRevision = accepted.revision
 		runtime.receiptIds.add(operation.id)
 	}
 
 	const drain = async (
-		runtime: ResourceRuntime,
+		runtime: AtomRuntime,
 		broadcastChanges = false,
 	): Promise<void> => {
 		const before = runtime.headRevision
-		const recovery = await storage.recover(runtime.resource.key)
-		assertRecovery(runtime.resource, recovery)
+		const recovery = await storage.recover(runtime.address)
+		assertRecovery(runtime, recovery)
 		const checkpointRevision = recovery.checkpoint?.revision ?? 0
 		if (!runtime.initialized || checkpointRevision > runtime.headRevision) {
-			runtime.state = recovery.checkpoint
-				? runtime.resource.model.hydrate(recovery.checkpoint.snapshot)
-				: runtime.resource.model.create()
+			runtime.transceiver = recovery.checkpoint
+				? runtime.atom.class.fromJSON(recovery.checkpoint.snapshot)
+				: new runtime.atom.class()
 			runtime.headRevision = checkpointRevision
 			runtime.receiptIds = new Set(recovery.receiptIds)
 			runtime.initialized = true
@@ -353,7 +443,7 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 		if (!broadcastChanges || runtime.headRevision <= before) return
 		if (checkpointRevision > before) {
 			for (const connection of connections) {
-				if (connection.joined.has(runtime.resource.key)) {
+				if (connection.joined.has(mosaicAtomAddressKey(runtime.address))) {
 					emit(
 						connection,
 						MOSAIC_EVENTS.snapshot,
@@ -365,24 +455,21 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 		}
 		for (const accepted of recovery.tail) {
 			if (accepted.revision > before) {
-				broadcastAccepted(runtime.resource.key, accepted)
+				broadcastAccepted(runtime.address, accepted)
 			}
 		}
 	}
 
-	const initialize = async (runtime: ResourceRuntime): Promise<void> => {
+	const initialize = async (runtime: AtomRuntime): Promise<void> => {
 		if (runtime.initialized) return
 		await drain(runtime)
 		if (runtime.disposeWatch === undefined && storage.watchHead !== undefined) {
-			runtime.disposeWatch = await storage.watchHead(
-				runtime.resource.key,
-				(hint) => {
-					if (hint.revision <= runtime.headRevision || disposed) return
-					void enqueue(runtime, async () => {
-						await drain(runtime, true)
-					})
-				},
-			)
+			runtime.disposeWatch = await storage.watchHead(runtime.address, (hint) => {
+				if (hint.revision <= runtime.headRevision || disposed) return
+				void enqueue(runtime, async () => {
+					await drain(runtime, true)
+				})
+			})
 		}
 	}
 
@@ -404,29 +491,29 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 			protocolVersion: MOSAIC_PROTOCOL_VERSION,
 			reason: rejection.reason,
 			recovery: rejection.recovery,
-			resource: rejection.resource,
+			atom: rejection.atom,
 			session: connection.session,
 		}
 		emit(connection, MOSAIC_EVENTS.rejection, envelope)
 	}
 
 	function broadcastAccepted(
-		resource: string,
+		atom: MosaicAtomAddress,
 		accepted: MosaicAcceptedOperationEnvelope,
 	): void {
 		for (const connection of connections) {
-			if (connection.joined.has(resource)) {
+			if (connection.joined.has(mosaicAtomAddressKey(atom))) {
 				emit(connection, MOSAIC_EVENTS.operation, accepted)
 			}
 		}
 	}
 
 	const broadcastPresence = (
-		resource: string,
+		atom: MosaicAtomAddress,
 		envelope: MosaicPresenceEnvelope<Json.Serializable | null>,
 	): void => {
 		for (const connection of connections) {
-			if (connection.joined.has(resource)) {
+			if (connection.joined.has(mosaicAtomAddressKey(atom))) {
 				emit(connection, MOSAIC_EVENTS.presence, envelope)
 			}
 		}
@@ -436,20 +523,15 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 		context: MosaicAuthorizationContext,
 	): Promise<boolean> => (await options.authorize?.(context)) ?? true
 
-	const checkpointRuntime = async (
-		runtime: ResourceRuntime,
-	): Promise<boolean> => {
+	const checkpointRuntime = async (runtime: AtomRuntime): Promise<boolean> => {
 		await initialize(runtime)
 		await drain(runtime)
 		const checkpoint = {
-			model: {
-				key: runtime.resource.model.key,
-				version: runtime.resource.model.version,
-			},
+			atom: runtime.address,
+			model: runtime.atom.class.mosaic,
 			protocolVersion: MOSAIC_PROTOCOL_VERSION,
-			resource: runtime.resource.key,
 			revision: runtime.headRevision,
-			snapshot: runtime.resource.model.snapshot(runtime.state),
+			snapshot: runtime.transceiver.toJSON(),
 		}
 		const result = await storage.checkpoint({
 			checkpoint,
@@ -464,8 +546,8 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 		return true
 	}
 
-	const scheduleCheckpoint = (runtime: ResourceRuntime): void => {
-		const every = runtime.resource.checkpointEvery
+	const scheduleCheckpoint = (runtime: AtomRuntime): void => {
+		const every = runtime.atom.checkpointEvery
 		if (every === undefined || runtime.headRevision % every !== 0) return
 		runtime.checkpointTail = runtime.checkpointTail.then(async () => {
 			await enqueue(runtime, () => checkpointRuntime(runtime))
@@ -473,22 +555,19 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 	}
 
 	const snapshotFor = (
-		runtime: ResourceRuntime,
+		runtime: AtomRuntime,
 		pendingOperationIds: readonly string[],
 		session: string,
 	): MosaicSnapshotEnvelope => ({
 		acceptedPendingOperationIds: pendingOperationIds.filter((id) =>
 			runtime.receiptIds.has(id),
 		),
-		model: {
-			key: runtime.resource.model.key,
-			version: runtime.resource.model.version,
-		},
+		atom: runtime.address,
+		model: runtime.atom.class.mosaic,
 		protocolVersion: MOSAIC_PROTOCOL_VERSION,
-		resource: runtime.resource.key,
 		revision: runtime.headRevision,
 		session,
-		snapshot: runtime.resource.model.snapshot(runtime.state),
+		snapshot: runtime.transceiver.toJSON(),
 	})
 
 	const parseJoin = (payload: unknown): MosaicJoinEnvelope | null => {
@@ -497,7 +576,7 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 		const pendingOperationIds = payload[`pendingOperationIds`]
 		if (
 			payload[`protocolVersion`] !== MOSAIC_PROTOCOL_VERSION ||
-			!isIdentifier(payload[`resource`]) ||
+			parseAtomAddress(payload[`atom`]) === null ||
 			!isIdentifier(payload[`session`]) ||
 			(knownRevision !== null &&
 				(typeof knownRevision !== `number` ||
@@ -517,7 +596,7 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 		const dependencies = payload[`dependencies`]
 		if (
 			payload[`protocolVersion`] !== MOSAIC_PROTOCOL_VERSION ||
-			!isIdentifier(payload[`resource`]) ||
+			parseAtomAddress(payload[`atom`]) === null ||
 			!isIdentifier(payload[`session`]) ||
 			!isIdentifier(payload[`id`]) ||
 			(payload[`group`] !== null && !isIdentifier(payload[`group`])) ||
@@ -538,10 +617,7 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 		payload: unknown,
 	): Promise<void> => {
 		const request = parseJoin(payload)
-		const resourceKey =
-			isRecord(payload) && isIdentifier(payload[`resource`])
-				? payload[`resource`]
-				: `unknown`
+		const fallbackAtom = atomFromPayload(payload)
 		if (
 			isRecord(payload) &&
 			payload[`protocolVersion`] !== MOSAIC_PROTOCOL_VERSION
@@ -550,7 +626,7 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 				code: `incompatible-version`,
 				reason: `The Mosaic protocol version is incompatible.`,
 				recovery: `upgrade`,
-				resource: resourceKey,
+				atom: fallbackAtom,
 			})
 			return
 		}
@@ -559,26 +635,27 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 				code: `invalid-payload`,
 				reason: `Malformed Mosaic join request.`,
 				recovery: `discard-operation`,
-				resource: resourceKey,
+				atom: fallbackAtom,
 			})
 			return
 		}
-		const resource = resources.get(request.resource)
-		if (resource === undefined) {
+		const address = request.atom
+		const atom = registeredAtom(address)
+		if (atom === undefined) {
 			reject(connection, {
-				code: `resource-unavailable`,
-				reason: `That Mosaic resource is unavailable.`,
+				code: `atom-unavailable`,
+				reason: `That Mosaic atom is unavailable.`,
 				recovery: `none`,
-				resource: request.resource,
+				atom: request.atom,
 			})
 			return
 		}
-		if (!matchesModel(request.model, resource.model)) {
+		if (!matchesModel(request.model, atom.class.mosaic)) {
 			reject(connection, {
 				code: `incompatible-version`,
 				reason: `The Mosaic model version is incompatible.`,
 				recovery: `upgrade`,
-				resource: request.resource,
+				atom: request.atom,
 			})
 			return
 		}
@@ -587,7 +664,7 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 				code: `unauthorized`,
 				reason: `The authenticated session does not own this request.`,
 				recovery: `none`,
-				resource: request.resource,
+				atom: request.atom,
 			})
 			return
 		}
@@ -596,25 +673,25 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 			!(await isAuthorized({
 				action: `read`,
 				actor: connection.actor,
-				resource: request.resource,
+				atom: request.atom,
 				session: connection.session,
 			}))
 		) {
 			reject(connection, {
 				code: `unauthorized`,
-				reason: `Not authorized to read this Mosaic resource.`,
+				reason: `Not authorized to read this Mosaic atom.`,
 				recovery: `none`,
-				resource: request.resource,
+				atom: request.atom,
 			})
 			return
 		}
-		const runtime = runtimeFor(resource)
+		const runtime = runtimeFor(atom, address)
 		await enqueue(runtime, async () => {
 			await initialize(runtime)
 			await drain(runtime)
-			connection.joined.add(request.resource)
+			connection.joined.add(mosaicAtomAddressKey(address))
 			await storage.setSessionWatermark(
-				request.resource,
+				request.atom,
 				connection.session,
 				request.knownRevision ?? 0,
 			)
@@ -624,12 +701,13 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 				snapshotFor(runtime, request.pendingOperationIds, connection.session),
 			)
 		})
-		for (const record of presence.get(request.resource)?.values() ?? []) {
+		for (const record of presence.get(mosaicAtomAddressKey(address))?.values() ??
+			[]) {
 			const envelope: MosaicPresenceEnvelope = {
 				actor: record.connection.actor,
 				presence: record.presence,
 				protocolVersion: MOSAIC_PROTOCOL_VERSION,
-				resource: request.resource,
+				atom: request.atom,
 				session: record.connection.session,
 			}
 			emit(connection, MOSAIC_EVENTS.presence, envelope)
@@ -637,18 +715,22 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 	}
 
 	const validateHistory = (
-		runtime: ResourceRuntime,
+		runtime: AtomRuntime,
 		operation: Json.Serializable,
 		actor: string,
 	): string | null => {
-		const policy = runtime.resource.history
-		if (policy === undefined) return null
-		const request = policy.request(operation)
+		const request = historyRequest(operation)
 		if (request === null) return null
-		const actorTimeline = policy.timeline(runtime.state, actor)
+		const view = runtime.transceiver.READONLY_VIEW as {
+			readonly historyFor?: (actor: string) => MosaicHistoryTimeline
+		}
+		const actorTimeline = view.historyFor?.(actor)
+		if (actorTimeline === undefined) {
+			return `This Mosaic transceiver does not expose selective history.`
+		}
 		const expected = actorTimeline[request.mode].at(-1)
 		return expected !== undefined &&
-			sameStrings(expected.operationIds, request.targetOperationIds)
+			sameStrings(expected.targetOperationIds, request.targetOperationIds)
 			? null
 			: `The selective history cursor moved; resnapshot and try again.`
 	}
@@ -658,10 +740,7 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 		payload: unknown,
 	): Promise<void> => {
 		const proposal = parseProposal(payload)
-		const resourceKey =
-			isRecord(payload) && isIdentifier(payload[`resource`])
-				? payload[`resource`]
-				: `unknown`
+		const fallbackAtom = atomFromPayload(payload)
 		const operationId =
 			isRecord(payload) && isIdentifier(payload[`id`]) ? payload[`id`] : null
 		if (
@@ -673,7 +752,7 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 				operationId,
 				reason: `The Mosaic protocol version is incompatible.`,
 				recovery: `upgrade`,
-				resource: resourceKey,
+				atom: fallbackAtom,
 			})
 			return
 		}
@@ -683,25 +762,23 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 				operationId,
 				reason: `Malformed Mosaic operation proposal.`,
 				recovery: `discard-operation`,
-				resource: resourceKey,
+				atom: fallbackAtom,
 			})
 			return
 		}
-		const resource = resources.get(proposal.resource)
+		const address = proposal.atom
+		const atom = registeredAtom(address)
 		if (
-			resource === undefined ||
-			!connection.joined.has(proposal.resource) ||
-			!matchesModel(proposal.model, resource.model)
+			atom === undefined ||
+			!connection.joined.has(mosaicAtomAddressKey(address)) ||
+			!matchesModel(proposal.model, atom.class.mosaic)
 		) {
 			reject(connection, {
-				code:
-					resource === undefined
-						? `resource-unavailable`
-						: `incompatible-version`,
+				code: atom === undefined ? `atom-unavailable` : `incompatible-version`,
 				operationId: proposal.id,
-				reason: `Join a compatible Mosaic resource before proposing operations.`,
+				reason: `Join a compatible Mosaic atom before proposing operations.`,
 				recovery: `resnapshot`,
-				resource: proposal.resource,
+				atom: proposal.atom,
 			})
 			return
 		}
@@ -711,12 +788,12 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 				operationId: proposal.id,
 				reason: `The authenticated session does not own this proposal.`,
 				recovery: `discard-operation`,
-				resource: proposal.resource,
+				atom: proposal.atom,
 			})
 			return
 		}
 
-		const schemaResult = await resource.operationSchema[`~standard`].validate(
+		const schemaResult = await atom.operationSchema[`~standard`].validate(
 			proposal.operation,
 		)
 		if (schemaResult.issues !== undefined) {
@@ -725,7 +802,7 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 				operationId: proposal.id,
 				reason: schemaReason(schemaResult.issues),
 				recovery: `discard-operation`,
-				resource: proposal.resource,
+				atom: proposal.atom,
 			})
 			return
 		}
@@ -735,21 +812,21 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 				action: `propose`,
 				actor: connection.actor,
 				operation: schemaResult.value,
-				resource: proposal.resource,
+				atom: proposal.atom,
 				session: connection.session,
 			}))
 		) {
 			reject(connection, {
 				code: `unauthorized`,
 				operationId: proposal.id,
-				reason: `Not authorized to edit this Mosaic resource.`,
+				reason: `Not authorized to edit this Mosaic atom.`,
 				recovery: `discard-operation`,
-				resource: proposal.resource,
+				atom: proposal.atom,
 			})
 			return
 		}
 
-		const runtime = runtimeFor(resource)
+		const runtime = runtimeFor(atom, address)
 		await enqueue(runtime, async () => {
 			for (let attempt = 0; attempt < 8; attempt++) {
 				await initialize(runtime)
@@ -762,14 +839,14 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 				}
 				const proposalFingerprint = fingerprintMosaicOperation(authenticated)
 				const existing = await storage.receipt(
-					authenticated.resource,
+					authenticated.atom,
 					authenticated.id,
 				)
 				if (existing !== null) {
 					if (existing.fingerprint === proposalFingerprint) {
 						emit(connection, MOSAIC_EVENTS.operation, existing.accepted)
 						await storage.setSessionWatermark(
-							authenticated.resource,
+							authenticated.atom,
 							connection.session,
 							existing.accepted.revision,
 						)
@@ -780,7 +857,7 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 						operationId: authenticated.id,
 						reason: `That operation id was already used for different content.`,
 						recovery: `discard-operation`,
-						resource: authenticated.resource,
+						atom: authenticated.atom,
 					})
 					return
 				}
@@ -793,27 +870,44 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 						operationId: authenticated.id,
 						reason: `Missing dependencies: ${missing.join(`, `)}.`,
 						recovery: `retry`,
-						resource: authenticated.resource,
+						atom: authenticated.atom,
 					})
 					return
 				}
 				const validationContext = {
-					...authenticated,
+					actor: authenticated.actor,
+					dependencies: authenticated.dependencies,
+					group: authenticated.group,
+					id: authenticated.id,
 					revision: runtime.headRevision + 1,
+					session: authenticated.session,
 				}
-				const decision: MosaicModelDecision<Json.Serializable> =
-					runtime.resource.model.validate(
-						runtime.state,
-						authenticated.operation,
-						validationContext,
-					)
+				const historyFailure = validateHistory(
+					runtime,
+					authenticated.operation,
+					authenticated.actor,
+				)
+				if (historyFailure !== null) {
+					reject(connection, {
+						code: `stale-history`,
+						operationId: authenticated.id,
+						reason: historyFailure,
+						recovery: `resnapshot`,
+						atom: authenticated.atom,
+					})
+					return
+				}
+				const decision = runtime.transceiver.validate(
+					authenticated.operation,
+					validationContext,
+				)
 				if (decision.status === `defer`) {
 					reject(connection, {
 						code: `missing-dependency`,
 						operationId: authenticated.id,
 						reason: `The model deferred this operation pending: ${decision.dependencies.join(`, `)}.`,
 						recovery: `retry`,
-						resource: authenticated.resource,
+						atom: authenticated.atom,
 					})
 					return
 				}
@@ -823,28 +917,13 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 						operationId: authenticated.id,
 						reason: decision.reason,
 						recovery: `discard-operation`,
-						resource: authenticated.resource,
+						atom: authenticated.atom,
 					})
 					return
 				}
 				const normalized: MosaicOperationEnvelope = {
 					...authenticated,
 					operation: decision.operation,
-				}
-				const historyFailure = validateHistory(
-					runtime,
-					normalized.operation,
-					normalized.actor,
-				)
-				if (historyFailure !== null) {
-					reject(connection, {
-						code: `stale-history`,
-						operationId: normalized.id,
-						reason: historyFailure,
-						recovery: `resnapshot`,
-						resource: normalized.resource,
-					})
-					return
 				}
 				const accepted: MosaicAcceptedOperationEnvelope = {
 					operation: normalized,
@@ -862,14 +941,14 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 						operationId: normalized.id,
 						reason: `That operation id was already used for different content.`,
 						recovery: `discard-operation`,
-						resource: normalized.resource,
+						atom: normalized.atom,
 					})
 					return
 				}
 				if (result.status === `duplicate`) {
 					emit(connection, MOSAIC_EVENTS.operation, result.accepted)
 					await storage.setSessionWatermark(
-						normalized.resource,
+						normalized.atom,
 						connection.session,
 						result.accepted.revision,
 					)
@@ -877,20 +956,20 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 				}
 				applyAccepted(runtime, result.accepted)
 				await storage.setSessionWatermark(
-					normalized.resource,
+					normalized.atom,
 					connection.session,
 					result.accepted.revision,
 				)
-				broadcastAccepted(normalized.resource, result.accepted)
+				broadcastAccepted(normalized.atom, result.accepted)
 				scheduleCheckpoint(runtime)
 				return
 			}
 			reject(connection, {
-				code: `resource-unavailable`,
+				code: `atom-unavailable`,
 				operationId: proposal.id,
 				reason: `The Mosaic stream remained contended; retry the proposal.`,
 				recovery: `retry`,
-				resource: proposal.resource,
+				atom: proposal.atom,
 			})
 		})
 	}
@@ -902,17 +981,18 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 		if (
 			!isRecord(payload) ||
 			payload[`protocolVersion`] !== MOSAIC_PROTOCOL_VERSION ||
-			!isIdentifier(payload[`resource`]) ||
+			parseAtomAddress(payload[`atom`]) === null ||
 			!isIdentifier(payload[`session`])
 		) {
 			return
 		}
 		const proposal = payload as MosaicPresenceProposal
-		const resource = resources.get(proposal.resource)
+		const address = proposal.atom
+		const atom = registeredAtom(address)
 		if (
-			resource?.presenceSchema === undefined ||
+			atom?.presenceSchema === undefined ||
 			proposal.session !== connection.session ||
-			!connection.joined.has(proposal.resource)
+			!connection.joined.has(mosaicAtomAddressKey(address))
 		) {
 			return
 		}
@@ -922,26 +1002,27 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 					action: `presence`,
 					actor: connection.actor,
 					operation: null,
-					resource: proposal.resource,
+					atom: proposal.atom,
 					session: connection.session,
 				}))
 			) {
 				return
 			}
-			const records = presence.get(proposal.resource)
+			const addressKey = mosaicAtomAddressKey(address)
+			const records = presence.get(addressKey)
 			if (records?.delete(connection.session)) {
-				broadcastPresence(proposal.resource, {
+				broadcastPresence(proposal.atom, {
 					actor: connection.actor,
 					presence: null,
 					protocolVersion: MOSAIC_PROTOCOL_VERSION,
-					resource: proposal.resource,
+					atom: proposal.atom,
 					session: connection.session,
 				})
 			}
-			if (records?.size === 0) presence.delete(proposal.resource)
+			if (records?.size === 0) presence.delete(addressKey)
 			return
 		}
-		const validation = await resource.presenceSchema[`~standard`].validate(
+		const validation = await atom.presenceSchema[`~standard`].validate(
 			proposal.presence,
 		)
 		if (validation.issues !== undefined) return
@@ -950,24 +1031,25 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 				action: `presence`,
 				actor: connection.actor,
 				operation: validation.value,
-				resource: proposal.resource,
+				atom: proposal.atom,
 				session: connection.session,
 			}))
 		) {
 			return
 		}
-		const records = presence.get(proposal.resource) ?? new Map()
-		const runtime = runtimeFor(resource)
+		const addressKey = mosaicAtomAddressKey(address)
+		const records = presence.get(addressKey) ?? new Map()
+		const runtime = runtimeFor(atom, address)
 		await enqueue(runtime, async () => {
 			await initialize(runtime)
 			await drain(runtime, true)
 			if (
-				resource.validatePresence !== undefined &&
-				!(await resource.validatePresence(validation.value, {
+				atom.validatePresence !== undefined &&
+				!(await atom.validatePresence(validation.value, {
 					actor: connection.actor,
-					resource: proposal.resource,
+					atom: proposal.atom,
 					session: connection.session,
-					state: runtime.state,
+					view: runtime.transceiver.READONLY_VIEW,
 				}))
 			) {
 				return
@@ -976,12 +1058,12 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 				connection,
 				presence: validation.value,
 			})
-			presence.set(proposal.resource, records)
-			broadcastPresence(proposal.resource, {
+			presence.set(addressKey, records)
+			broadcastPresence(proposal.atom, {
 				actor: connection.actor,
 				presence: validation.value,
 				protocolVersion: MOSAIC_PROTOCOL_VERSION,
-				resource: proposal.resource,
+				atom: proposal.atom,
 				session: connection.session,
 			})
 		})
@@ -994,27 +1076,29 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 			connection.socket.off(event, listener)
 		}
 		connections.delete(connection)
-		for (const resource of connection.joined) {
-			await storage.clearSession(resource, connection.session)
-			const records = presence.get(resource)
+		for (const atomKey of connection.joined) {
+			const address = runtimes.get(atomKey)?.address
+			if (address === undefined) continue
+			await storage.clearSession(address, connection.session)
+			const records = presence.get(atomKey)
 			if (records?.delete(connection.session)) {
-				broadcastPresence(resource, {
+				broadcastPresence(address, {
 					actor: connection.actor,
 					presence: null,
 					protocolVersion: MOSAIC_PROTOCOL_VERSION,
-					resource,
+					atom: address,
 					session: connection.session,
 				})
 			}
-			if (records?.size === 0) presence.delete(resource)
+			if (records?.size === 0) presence.delete(atomKey)
 		}
 	}
 
 	return {
-		checkpoint: async (resourceKey): Promise<boolean> => {
-			const resource = resources.get(resourceKey)
-			if (resource === undefined) return false
-			const runtime = runtimeFor(resource)
+		checkpoint: async (address): Promise<boolean> => {
+			const atom = registeredAtom(address)
+			if (atom === undefined) return false
+			const runtime = runtimeFor(atom, address)
 			return enqueue(runtime, () => checkpointRuntime(runtime))
 		},
 		connect: (input): (() => Promise<void>) => {
@@ -1035,13 +1119,10 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 				const listener = (...args: Json.Serializable[]): void => {
 					void handler(args[0]).catch(() => {
 						reject(connection, {
-							code: `resource-unavailable`,
+							code: `atom-unavailable`,
 							reason: `The Mosaic server could not process that request.`,
 							recovery: `retry`,
-							resource:
-								isRecord(args[0]) && isIdentifier(args[0][`resource`])
-									? args[0][`resource`]
-									: `unknown`,
+							atom: atomFromPayload(args[0]),
 						})
 					})
 				}
@@ -1068,8 +1149,8 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 				await runtime.checkpointTail
 			}
 		},
-		resourceStatus: (resourceKey): MosaicServerResourceStatus => {
-			const runtime = runtimes.get(resourceKey)
+		atomStatus: (address): MosaicServerAtomStatus => {
+			const runtime = runtimes.get(mosaicAtomAddressKey(address))
 			return {
 				initialized: runtime?.initialized ?? false,
 				revision: runtime?.headRevision ?? 0,
@@ -1078,16 +1159,14 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 	}
 }
 
-/** Preserve model, schema, history and presence inference for one resource. */
-export function defineMosaicServerResource<
-	Model extends AnyMosaicModel,
+/** Preserve transceiver, schema and presence inference for one atom target. */
+export function defineMosaicServerAtom<
+	T extends AnyMosaicTransceiver,
 	Presence extends Json.Serializable = Json.Serializable,
->(
-	resource: MosaicServerResource<Model, Presence>,
-): MosaicServerResource<Model, Presence> {
-	return resource
+>(atom: MosaicServerAtom<T, Presence>): MosaicServerAtom<T, Presence> {
+	return atom
 }
 
-/** Extract the model's JSON-safe durable snapshot type. */
-export type MosaicServerSnapshot<Model extends AnyMosaicModel> =
-	MosaicSnapshot<Model>
+/** Extract the transceiver's JSON-safe durable checkpoint type. */
+export type MosaicServerSnapshot<T extends AnyMosaicTransceiver> =
+	MosaicSnapshot<T>

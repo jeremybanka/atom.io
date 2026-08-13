@@ -85,6 +85,16 @@ function Workspace({ label }: { label: string }) {
 					mosaic.publishPresence(document.selectionFromOffsets(0, 1))
 				}}
 			/>
+			<button
+				type="button"
+				data-testid="controls"
+				onClick={() => {
+					mosaic.clearProblem()
+					mosaic.createGroupId()
+					mosaic.retryPending()
+					mosaic.synchronize()
+				}}
+			/>
 		</main>
 	)
 }
@@ -154,6 +164,10 @@ describe(`useMosaic`, () => {
 				session: `alice:test-session`,
 			},
 		})
+		fireEvent.click(app.getByTestId(`controls`))
+		expect(
+			socket.emitted.filter(({ event }) => event === MOSAIC_EVENTS.join),
+		).toHaveLength(2)
 
 		const joinCount = socket.emitted.filter(
 			({ event }) => event === MOSAIC_EVENTS.join,

@@ -3,6 +3,7 @@
 	"extends": ["config:recommended"],
 	"automerge": true,
 	"branchConcurrentLimit": 9,
+	"ignoreScripts": true,
 	"internalChecksFilter": "strict",
 	"minimumReleaseAge": "1 day",
 	"postUpdateOptions": ["pnpmDedupe"],

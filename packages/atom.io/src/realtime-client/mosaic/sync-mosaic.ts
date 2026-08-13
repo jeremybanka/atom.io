@@ -46,10 +46,10 @@ import type {
 	MosaicClientProblem,
 	MosaicClientStatus,
 	MosaicClientTransport,
-	MosaicCompanionAtoms,
 	MosaicController,
 	MosaicSubmitOptions,
 	MosaicSyncOptions,
+	MosaicSyncState,
 } from "./types.ts"
 
 const SYSTEM_TIME: MosaicClientClock = { now: () => Date.now() }
@@ -74,13 +74,7 @@ const RECOVERIES = new Set([
 	`upgrade`,
 ])
 
-const FAMILY_KEYS = {
-	pending: `🔶mosaic:pending`,
-	presence: `🔶mosaic:presence`,
-	problem: `🔶mosaic:problem`,
-	revision: `🔶mosaic:revision`,
-	status: `🔶mosaic:status`,
-} as const
+const SYNC_STATE_FAMILY_KEY = `🔶mosaic:sync-state`
 
 type CompanionKey = string
 
@@ -214,56 +208,23 @@ function companionAtom<T>(
 	return withdraw(store, family).create(key)
 }
 
-function createCompanionAtoms<
+function createSyncStateAtom<
 	T extends AnyMosaicTransceiver,
 	Presence extends Json.Serializable,
->(store: RootStore, key: CompanionKey): MosaicCompanionAtoms<T, Presence> {
-	return {
-		pending: companionAtom(
-			store,
-			companionFamily(store, FAMILY_KEYS.pending, [] as readonly string[]),
-			key,
-		),
-		presence: companionAtom(
-			store,
-			companionFamily(
-				store,
-				FAMILY_KEYS.presence,
-				[] as readonly MosaicPresenceEnvelope<Presence>[],
-			),
-			key,
-		),
-		problem: companionAtom(
-			store,
-			companionFamily(
-				store,
-				FAMILY_KEYS.problem,
-				null as MosaicClientProblem<T> | null,
-			),
-			key,
-		),
-		revision: companionAtom(
-			store,
-			companionFamily(store, FAMILY_KEYS.revision, 0),
-			key,
-		),
-		status: companionAtom(
-			store,
-			companionFamily(store, FAMILY_KEYS.status, `offline` as const),
-			key,
-		),
-	}
-}
-
-function sameConfiguration(
-	left: StoreBoundMosaicController<any, any>,
-	options: Required<Pick<MosaicSyncOptions, `actor` | `session`>> &
-		Pick<MosaicSyncOptions, `transport`>,
-): boolean {
-	return (
-		left.actor === options.actor &&
-		left.session === options.session &&
-		left.transport === options.transport
+>(
+	store: RootStore,
+	key: CompanionKey,
+): RegularAtomToken<MosaicSyncState<T, Presence>> {
+	return companionAtom(
+		store,
+		companionFamily(store, SYNC_STATE_FAMILY_KEY, {
+			pending: [],
+			presence: [],
+			problem: null,
+			revision: 0,
+			status: `offline`,
+		}),
+		key,
 	)
 }
 
@@ -272,16 +233,18 @@ class StoreBoundMosaicController<
 	Presence extends Json.Serializable,
 > implements MosaicController<T, Presence> {
 	public readonly actor: string
-	public readonly atom: ReturnType<typeof mosaicAtomAddress>
+	public readonly address: ReturnType<typeof mosaicAtomAddress>
+	public readonly atom: MutableAtomToken<T>
 	public readonly session: string
-	public readonly state: MosaicCompanionAtoms<T, Presence>
 	public readonly store: RootStore
-	public readonly token: MutableAtomToken<T>
+	public readonly syncState: RegularAtomToken<MosaicSyncState<T, Presence>>
 	public transport: MosaicClientTransport | undefined
 
 	readonly #clock: MosaicClientClock
+	readonly #clockIdentity: MosaicSyncOptions[`clock`]
 	readonly #TransceiverClass: MosaicTransceiverConstructor<T>
 	readonly #idSource: MosaicClientIdSource
+	readonly #idSourceIdentity: MosaicSyncOptions[`idSource`]
 	readonly #issuedIds = new Set<string>()
 	readonly #key: string
 	readonly #presence = new Map<string, MosaicPresenceEnvelope<Presence>>()
@@ -313,7 +276,9 @@ class StoreBoundMosaicController<
 		this.store = store
 		this.#key = key
 		this.actor = options.actor
-		this.atom = mosaicAtomAddress(token)
+		this.address = mosaicAtomAddress(token)
+		this.atom = token
+		this.#clockIdentity = options.clock
 		this.#clock =
 			typeof options.clock === `function`
 				? { now: options.clock }
@@ -322,20 +287,20 @@ class StoreBoundMosaicController<
 			.class as MosaicTransceiverConstructor<T>
 		if (
 			this.#TransceiverClass.timelinePolicy !== `append-only` ||
-			!isRecord(this.#TransceiverClass.mosaic)
+			!isModelIdentifier(this.#TransceiverClass.mosaic)
 		) {
 			throw new Error(
 				`Mutable atom \"${token.key}\" does not contain a Mosaic transceiver`,
 			)
 		}
+		this.#idSourceIdentity = options.idSource
 		this.#idSource = options.idSource ?? defaultIdSource
 		this.session = options.session
 		this.#issuedIds.add(this.session)
-		this.state = createCompanionAtoms<T, Presence>(
+		this.syncState = createSyncStateAtom<T, Presence>(
 			store,
-			`${mosaicAtomAddressKey(this.atom)}\u0000${this.session}`,
+			`${mosaicAtomAddressKey(this.address)}\u0000${this.session}`,
 		)
-		this.token = token
 		this.transport = options.transport
 		this.#confirmedSnapshot = structuredClone(
 			getFromStore(store, getJsonTokenFromStore(store, token)),
@@ -357,6 +322,18 @@ class StoreBoundMosaicController<
 		if (options.transport !== undefined) this.connect(options.transport)
 	}
 
+	public hasConfiguration(
+		options: MosaicSyncOptions & { readonly session: string },
+	): boolean {
+		return (
+			this.actor === options.actor &&
+			this.session === options.session &&
+			this.transport === options.transport &&
+			this.#clockIdentity === options.clock &&
+			this.#idSourceIdentity === options.idSource
+		)
+	}
+
 	public [Symbol.dispose](): void {
 		this.dispose()
 	}
@@ -376,7 +353,7 @@ class StoreBoundMosaicController<
 			target === this.store
 				? this.#visibleHeads()
 				: (this.#speculativeHeads.get(target) ?? this.#visibleHeads())
-		setIntoStore(target, this.token, (transceiver) => {
+		setIntoStore(target, this.atom, (transceiver) => {
 			signal = transceiver.change(intent, {
 				actor: this.actor,
 				dependencies: [...visibleHeads].sort(),
@@ -482,15 +459,13 @@ class StoreBoundMosaicController<
 		if (this.store.miscResources.get(this.#key) === this) {
 			this.store.miscResources.delete(this.#key)
 		}
-		for (const token of Object.values(this.state)) {
-			disposeFromStore(this.store, token)
-		}
+		disposeFromStore(this.store, this.syncState)
 	}
 
 	public publishPresence(presence: Presence | null): void {
 		if (!this.#online || !this.#hydrated || this.transport === undefined) return
 		const proposal: MosaicPresenceProposal<Presence | null> = {
-			atom: this.atom,
+			atom: this.address,
 			presence,
 			protocolVersion: MOSAIC_PROTOCOL_VERSION,
 			session: this.session,
@@ -532,7 +507,7 @@ class StoreBoundMosaicController<
 		if (this.#pending.some(({ id }) => id === signal.id)) return
 		this.#issuedIds.add(signal.id)
 		this.#pending.push({
-			atom: this.atom,
+			atom: this.address,
 			dependencies: signal.dependencies,
 			group: signal.group,
 			id: signal.id,
@@ -560,7 +535,7 @@ class StoreBoundMosaicController<
 			return (
 				mosaicAtomAddressKey(
 					envelope[`atom`] as unknown as ReturnType<typeof mosaicAtomAddress>,
-				) === mosaicAtomAddressKey(this.atom)
+				) === mosaicAtomAddressKey(this.address)
 			)
 		} catch {
 			return false
@@ -574,7 +549,7 @@ class StoreBoundMosaicController<
 		this.#status = status
 		this.#publishState()
 		const request: MosaicJoinEnvelope = {
-			atom: this.atom,
+			atom: this.address,
 			knownRevision: this.#revision,
 			model: this.#TransceiverClass.mosaic,
 			pendingOperationIds: this.#pending.map(({ id }) => id),
@@ -624,8 +599,10 @@ class StoreBoundMosaicController<
 		return id
 	}
 
-	#protocolProblem(reason: string, recover: boolean): void {
-		const discarded = this.#quarantinePending()
+	#protocolProblem(reason: string, recover: boolean, reproject = true): void {
+		const discarded = reproject
+			? this.#quarantinePending()
+			: this.#discardPending()
 		this.#problem = { discarded, kind: `protocol`, reason }
 		if (recover && this.#online) this.#join(`recovering`)
 		else {
@@ -652,23 +629,17 @@ class StoreBoundMosaicController<
 
 	#publishState(): void {
 		if (this.#disposed) return
-		setIntoStore(
-			this.store,
-			this.state.pending,
-			this.#pending.map(({ id }) => id),
-		)
-		setIntoStore(
-			this.store,
-			this.state.presence,
-			[...this.#presence.values()].sort(
+		setIntoStore(this.store, this.syncState, {
+			pending: this.#pending.map(({ id }) => id),
+			presence: [...this.#presence.values()].sort(
 				(left, right) =>
 					left.actor.localeCompare(right.actor) ||
 					left.session.localeCompare(right.session),
 			),
-		)
-		setIntoStore(this.store, this.state.problem, this.#problem)
-		setIntoStore(this.store, this.state.revision, this.#revision)
-		setIntoStore(this.store, this.state.status, this.#status)
+			problem: this.#problem,
+			revision: this.#revision,
+			status: this.#status,
+		})
 	}
 
 	#quarantineOperationAndDependents(
@@ -696,10 +667,15 @@ class StoreBoundMosaicController<
 	}
 
 	#quarantinePending(): readonly ModelProposal<T>[] {
+		const discarded = this.#discardPending()
+		this.#reproject()
+		return discarded
+	}
+
+	#discardPending(): readonly ModelProposal<T>[] {
 		const discarded = this.#pending
 		this.#pending = []
 		this.#sent.clear()
-		this.#reproject()
 		return discarded
 	}
 
@@ -729,12 +705,8 @@ class StoreBoundMosaicController<
 			return
 		}
 
-		const ownPending = this.#pending.some(
-			(envelope) => envelope.id === accepted.operation.id,
-		)
 		if (accepted.revision <= this.#revision) {
-			if (this.#acceptedIds.has(accepted.operation.id) || ownPending) {
-				this.#acceptedIds.add(accepted.operation.id)
+			if (this.#acceptedIds.has(accepted.operation.id)) {
 				this.#removePending(accepted.operation.id)
 			}
 			return
@@ -755,7 +727,7 @@ class StoreBoundMosaicController<
 			const confirmed = this.#TransceiverClass.fromJSON(
 				this.#confirmedSnapshot as unknown as AsJSON<T>,
 			)
-			confirmed.do({
+			const result: unknown = confirmed.do({
 				actor: accepted.operation.actor,
 				dependencies: accepted.operation.dependencies,
 				group: accepted.operation.group,
@@ -764,6 +736,9 @@ class StoreBoundMosaicController<
 				revision: accepted.revision,
 				session: accepted.operation.session,
 			})
+			if (result !== null) {
+				throw new Error(`Mosaic transceiver did not apply atomically`)
+			}
 			this.#confirmedSnapshot = confirmed.toJSON() as MosaicSnapshot<T>
 		} catch (error) {
 			this.#protocolProblem(
@@ -949,10 +924,10 @@ class StoreBoundMosaicController<
 		try {
 			setIntoStore(
 				this.store,
-				getJsonTokenFromStore(this.store, this.token),
+				getJsonTokenFromStore(this.store, this.atom),
 				structuredClone(this.#confirmedSnapshot) as unknown as AsJSON<T>,
 			)
-			const updateToken = getUpdateToken(this.token)
+			const updateToken = getUpdateToken(this.atom)
 			for (const pending of this.#pending) {
 				setIntoStore(this.store, updateToken, {
 					actor: this.actor,
@@ -969,6 +944,7 @@ class StoreBoundMosaicController<
 			this.#protocolProblem(
 				`A pending operation could not be rebased: ${String(error)}`,
 				true,
+				false,
 			)
 			return false
 		} finally {
@@ -1020,7 +996,7 @@ export function syncMosaic<
 	if (existing !== undefined) {
 		if (
 			existing instanceof StoreBoundMosaicController &&
-			sameConfiguration(existing, configuration)
+			existing.hasConfiguration(configuration)
 		) {
 			return existing as MosaicController<T, Presence>
 		}

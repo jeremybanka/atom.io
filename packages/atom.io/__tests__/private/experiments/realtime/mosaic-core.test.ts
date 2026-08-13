@@ -1,10 +1,13 @@
 import {
 	getState,
 	mutableAtom,
+	mutableAtomFamily,
 	runTransaction,
+	scopeFamily,
 	selector,
 	setState,
 	timeline,
+	timelineFamily,
 	transaction,
 } from "atom.io"
 import {
@@ -84,6 +87,16 @@ describe(`Mosaic text transceiver`, () => {
 		expect(MOSAIC_PROTOCOL_VERSION).toBe(1)
 		expect(() =>
 			timeline({ key: `unsafeDocumentHistory`, scope: [markdownAtom] }),
+		).toThrow(`append-only`)
+		const documentsAtoms = mutableAtomFamily<
+			InstanceType<typeof Markdown>,
+			string
+		>({ key: `documents`, class: Markdown })
+		expect(() =>
+			timelineFamily({
+				key: `unsafeDocumentHistories`,
+				scope: [scopeFamily(documentsAtoms, { timelineKey: (key) => key })],
+			}),
 		).toThrow(`append-only`)
 	})
 

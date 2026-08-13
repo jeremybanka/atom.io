@@ -1,4 +1,6 @@
 import {
+	atom,
+	findState,
 	getState,
 	mutableAtom,
 	mutableAtomFamily,
@@ -82,7 +84,11 @@ describe(`Mosaic text transceiver`, () => {
 		expect(mosaicAtomAddressKey(address)).toBe(
 			`["mutable_atom","markdown",null,null]`,
 		)
-		expect(Markdown.mosaic).toEqual({ key: `text`, version: 1 })
+		expect(Markdown.mosaic).toEqual({
+			configuration: { initialText: `Seed`, maximumGraphemes: 200_000 },
+			key: `text`,
+			version: 1,
+		})
 		expect(Markdown.timelinePolicy).toBe(`append-only`)
 		expect(MOSAIC_PROTOCOL_VERSION).toBe(1)
 		expect(() =>
@@ -92,12 +98,28 @@ describe(`Mosaic text transceiver`, () => {
 			InstanceType<typeof Markdown>,
 			string
 		>({ key: `documents`, class: Markdown })
+		const documentAtom = findState(documentsAtoms, `guide`)
+		expect(mosaicAtomAddress(documentAtom)).toEqual({
+			family: { key: `documents`, subKey: `"guide"` },
+			key: `documents("guide")`,
+			type: `mutable_atom`,
+		})
 		expect(() =>
 			timelineFamily({
 				key: `unsafeDocumentHistories`,
 				scope: [scopeFamily(documentsAtoms, { timelineKey: (key) => key })],
 			}),
 		).toThrow(`append-only`)
+		const ordinaryAtom = atom<number>({ key: `ordinary`, default: 0 })
+		expect(() =>
+			timeline({
+				key: `mixedUnsafeHistory`,
+				scope: [ordinaryAtom, markdownAtom],
+			}),
+		).toThrow(`append-only`)
+		expect(() =>
+			timeline({ key: `ordinaryHistory`, scope: [ordinaryAtom] }),
+		).not.toThrow()
 	})
 
 	test(`participates in selectors and rolls back with transactions`, () => {
@@ -281,7 +303,9 @@ describe(`Mosaic text transceiver`, () => {
 				reduceContext,
 			),
 		).toEqual({
+			code: `stale-history`,
 			reason: `The actor history cursor is stale.`,
+			recovery: `resnapshot`,
 			status: `reject`,
 		})
 	})
@@ -305,6 +329,29 @@ describe(`Mosaic text transceiver`, () => {
 			reason: `Operation must be an object.`,
 			status: `reject`,
 		})
+		expect(document.validate({ type: `edit` }, metadata)).toEqual({
+			reason: `Malformed text edit.`,
+			status: `reject`,
+		})
+		expect(document.validate(edit({ inserted: [null] }), metadata)).toEqual({
+			reason: `Malformed inserted grapheme.`,
+			status: `reject`,
+		})
+		expect(
+			document.validate(
+				edit({
+					inserted: [
+						{
+							after: first.id,
+							before: second.id,
+							id: nodeId,
+							value: `XY`,
+						},
+					],
+				}),
+				metadata,
+			),
+		).toEqual({ reason: `Invalid inserted grapheme chain.`, status: `reject` })
 		expect(document.validate(edit(), metadata)).toEqual({
 			reason: `The text exceeds its grapheme capacity.`,
 			status: `reject`,
@@ -317,6 +364,72 @@ describe(`Mosaic text transceiver`, () => {
 				{ ...metadata, dependencies: [`future`] },
 			),
 		).toEqual({ dependencies: [`future`], status: `defer` })
+		expect(
+			document.validate(
+				edit({
+					inserted: [{ after: `missing`, before: null, id: nodeId, value: `X` }],
+				}),
+				metadata,
+			),
+		).toEqual({ reason: `Unknown predecessor anchor.`, status: `reject` })
+		expect(
+			document.validate(
+				edit({
+					inserted: [{ after: null, before: `missing`, id: nodeId, value: `X` }],
+				}),
+				metadata,
+			),
+		).toEqual({ reason: `Unknown successor anchor.`, status: `reject` })
+		expect(
+			document.validate(
+				edit({
+					inserted: [{ after: null, before: `missing`, id: nodeId, value: `X` }],
+				}),
+				{ ...metadata, dependencies: [`future`] },
+			),
+		).toEqual({ dependencies: [`future`], status: `defer` })
+		expect(
+			document.validate(
+				edit({
+					inserted: [
+						{
+							after: second.id,
+							before: first.id,
+							id: nodeId,
+							value: `X`,
+						},
+					],
+				}),
+				metadata,
+			),
+		).toEqual({
+			reason: `The insertion interval is inverted.`,
+			status: `reject`,
+		})
+		expect(
+			document.validate(
+				edit({ deletedIds: [first.id, first.id], inserted: [] }),
+				metadata,
+			),
+		).toEqual({ reason: `Malformed deletion targets.`, status: `reject` })
+		expect(
+			document.validate(
+				edit({ deletedIds: [`missing`], inserted: [] }),
+				metadata,
+			),
+		).toEqual({ reason: `Unknown deletion target.`, status: `reject` })
+		expect(
+			document.validate(edit({ deletedIds: [`missing`], inserted: [] }), {
+				...metadata,
+				dependencies: [`future`],
+			}),
+		).toEqual({ dependencies: [`future`], status: `defer` })
+		expect(
+			document.validate(
+				{ mode: `undo`, targetOperationIds: [], type: `history` },
+				metadata,
+			),
+		).toEqual({ reason: `Malformed history operation.`, status: `reject` })
 		expect(document.validate({ type: `mystery` }, metadata)).toEqual({
 			reason: `Unknown text operation type.`,
 			status: `reject`,
@@ -347,6 +460,55 @@ describe(`Mosaic text transceiver`, () => {
 		expect(() => Markdown.fromJSON(null as never)).toThrow(
 			`Invalid Mosaic text snapshot`,
 		)
+		expect(() => Markdown.fromJSON({ actions: [null] } as never)).toThrow(
+			`Invalid Mosaic text snapshot`,
+		)
+		expect(() =>
+			Markdown.fromJSON({
+				actions: [{ ...snapshot.actions[0], actor: `` }],
+			} as never),
+		).toThrow(`Invalid Mosaic text snapshot`)
+		expect(() =>
+			Markdown.fromJSON({
+				actions: [
+					{
+						actor: `alice`,
+						dependencies: [],
+						group: `alice:poison`,
+						id: `alice:poison`,
+						operation: { type: `mystery` },
+						revision: 1,
+						session: `alice:tab`,
+					},
+				],
+			} as never),
+		).toThrow(`Unknown text operation type`)
+		expect(() =>
+			Markdown.fromJSON({
+				actions: [
+					{
+						actor: `alice`,
+						dependencies: [`future`],
+						group: `alice:deferred`,
+						id: `alice:deferred`,
+						operation: {
+							deletedIds: [],
+							inserted: [
+								{
+									after: `future:node`,
+									before: null,
+									id: `alice:deferred:node:000000`,
+									value: `X`,
+								},
+							],
+							type: `edit`,
+						},
+						revision: 1,
+						session: `alice:tab`,
+					},
+				],
+			} as never),
+		).toThrow(`missing dependencies future`)
 	})
 
 	test(`relative positions survive hidden anchors and checkpoints`, () => {
@@ -374,6 +536,48 @@ describe(`Mosaic text transceiver`, () => {
 				rightId: `unknown-right`,
 			}),
 		).toBe(0)
+		expect(
+			resolveMosaicTextPosition(restored.toJSON(), {
+				affinity: `left`,
+				leftId: `unknown-left`,
+				rightId: restored.nodes[1].id,
+			}),
+		).toBe(1)
+		const Anchored = mosaicText({ initialText: `abcd` })
+		const hiddenAnchors = new Anchored()
+		const [, hiddenLeft, hiddenRight] = hiddenAnchors.nodes
+		change(
+			hiddenAnchors,
+			{ text: `ad`, type: `replace-text` },
+			context(`alice:hide`, `alice`),
+		)
+		expect(
+			hiddenAnchors.resolvePosition({
+				affinity: `left`,
+				leftId: hiddenLeft.id,
+				rightId: hiddenRight.id,
+			}),
+		).toBe(1)
+		expect(
+			hiddenAnchors.resolvePosition({
+				affinity: `left`,
+				leftId: hiddenLeft.id,
+				rightId: null,
+			}),
+		).toBe(1)
+		const Emoji = mosaicText({ initialText: `😀a` })
+		const emoji = new Emoji()
+		const interior = emoji.positionAtOffset(1)
+		expect(interior.affinity).toBe(`left`)
+		expect(emoji.resolvePosition(interior)).toBe(2)
+		const Empty = mosaicText()
+		expect(
+			new Empty().resolvePosition({
+				affinity: `left`,
+				leftId: null,
+				rightId: null,
+			}),
+		).toBe(0)
 	})
 
 	test(`applies accepted revisions idempotently`, () => {
@@ -389,5 +593,54 @@ describe(`Mosaic text transceiver`, () => {
 		replica.do(operation)
 		replica.do(operation)
 		expect(replica.text).toBe(`hello`)
+		expect(
+			replica.change(
+				{ text: `hello`, type: `replace-text` },
+				context(`alice:noop`, `alice`),
+			),
+		).toBeNull()
+	})
+
+	test(`orders accepted revisions and fails deferred or rejected replay closed`, () => {
+		const Markdown = mosaicText()
+		const base = new Markdown().toJSON()
+		const alice = Markdown.fromJSON(base)
+		const bob = Markdown.fromJSON(base)
+		const aliceSignal = accepted(
+			change(
+				alice,
+				{ text: `A`, type: `replace-text` },
+				context(`alice:1`, `alice`),
+			),
+			1,
+		)
+		const bobSignal = accepted(
+			change(bob, { text: `B`, type: `replace-text` }, context(`bob:1`, `bob`)),
+			2,
+		)
+		const reversed = Markdown.fromJSON(base)
+		reversed.do(bobSignal)
+		reversed.do(aliceSignal)
+		expect(reversed.toJSON().actions.map(({ revision }) => revision)).toEqual([
+			1, 2,
+		])
+
+		const afterAlice = Markdown.fromJSON(base)
+		afterAlice.do(aliceSignal)
+		const dependent = change(
+			afterAlice,
+			{ text: `${afterAlice.text}C`, type: `replace-text` },
+			context(`carol:1`, `carol`, `carol:1`, [aliceSignal.id]),
+		)
+		expect(() => Markdown.fromJSON(base).do(dependent)).toThrow(
+			`missing dependencies`,
+		)
+		expect(() =>
+			Markdown.fromJSON(base).do({
+				...aliceSignal,
+				id: `invalid`,
+				operation: { type: `mystery` } as never,
+			}),
+		).toThrow(`Invalid Mosaic text operation`)
 	})
 })

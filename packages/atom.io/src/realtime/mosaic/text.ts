@@ -520,7 +520,9 @@ function validateTextOperation(
 			!sameTargets(expected.targetOperationIds, operation[`targetOperationIds`])
 		) {
 			return {
+				code: `stale-history`,
 				reason: `The actor history cursor is stale.`,
+				recovery: `resnapshot`,
 				status: `reject` as const,
 			}
 		}
@@ -697,6 +699,7 @@ export function mosaicText(
 ): MosaicTextConstructor {
 	const initialText = options.initialText ?? ``
 	const maximumGraphemes = options.maximumGraphemes ?? 200_000
+	const configuration = { initialText, maximumGraphemes }
 	if (!Number.isSafeInteger(maximumGraphemes) || maximumGraphemes < 1) {
 		throw new Error(`maximumGraphemes must be a positive safe integer`)
 	}
@@ -708,7 +711,11 @@ export function mosaicText(
 	}
 
 	class MosaicText implements MosaicTextTransceiver {
-		public static readonly mosaic = { key: `text`, version: 1 } as const
+		public static readonly mosaic = {
+			configuration,
+			key: `text`,
+			version: 1,
+		} as const
 		public static readonly timelinePolicy = `append-only` as const
 
 		readonly #subject = new Subject<MosaicOperationSignal<MosaicTextOperation>>()

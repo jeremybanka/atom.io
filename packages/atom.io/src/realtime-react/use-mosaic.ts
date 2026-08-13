@@ -1,5 +1,6 @@
 import type { MutableAtomToken } from "atom.io"
 import type { Json } from "atom.io/foundations/json"
+import { StoreContext, useO } from "atom.io/react"
 import type {
 	AnyMosaicTransceiver,
 	MosaicPresenceEnvelope,
@@ -7,13 +8,11 @@ import type {
 import {
 	type MosaicClientProblem,
 	type MosaicClientStatus,
-	type MosaicClientTransport,
 	type MosaicController,
 	type MosaicSubmitOptions,
 	type MosaicSyncOptions,
 	syncMosaic,
 } from "atom.io/realtime-client"
-import { StoreContext, useO } from "atom.io/react"
 import * as React from "react"
 
 import { useRealtimeService } from "./use-realtime-service.ts"
@@ -71,7 +70,7 @@ export function useMosaic<
 	)
 	useRealtimeService(
 		`mosaic:${controller.atom.key}:${controller.session}`,
-		(socket) => controller.connect(socket as MosaicClientTransport),
+		(socket) => controller.connect(socket),
 	)
 
 	const pending = useO(controller.state.pending)

@@ -92,17 +92,30 @@ export function useMosaic<
 		[client, options.resource.key],
 	)
 	useRealtimeService(serviceKey, (socket) => client.connect(socket))
-	React.useEffect(() => () => client.dispose(), [client])
+	React.useEffect(
+		() => () => {
+			client.dispose()
+		},
+		[client],
+	)
 
 	const controls = React.useMemo<MosaicControls<Model, Presence, History>>(
 		() => ({
-			clearProblem: () => client.clearProblem(),
+			clearProblem: () => {
+				client.clearProblem()
+			},
 			createGroupId: () => client.createGroupId(),
-			publishPresence: (presence) => client.publishPresence(presence),
+			publishPresence: (presence) => {
+				client.publishPresence(presence)
+			},
 			redo: (submitOptions) => client.redo(submitOptions),
-			retryPending: () => client.retryPending(),
+			retryPending: () => {
+				client.retryPending()
+			},
 			submit: (intent, submitOptions) => client.submit(intent, submitOptions),
-			synchronize: () => client.synchronize(),
+			synchronize: () => {
+				client.synchronize()
+			},
 			undo: (submitOptions) => client.undo(submitOptions),
 		}),
 		[client],

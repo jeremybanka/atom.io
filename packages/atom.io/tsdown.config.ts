@@ -1,4 +1,4 @@
-import type { UserConfig, UserConfigFn } from "tsdown"
+import type { UserConfig } from "tsdown"
 import { defineConfig } from "tsdown"
 
 import discoverSubmodules from "./__scripts__/discover-submodules.ts"
@@ -18,7 +18,7 @@ const NEVER_BUNDLE = [
 const ALL_ENTRIES = {
 	"main/index": `src/main/index.ts`,
 	...fromEntries(
-		SUBMODULE_NAMES.map(
+		SUBMODULE_NAMES.filter((name) => name !== `realtime-testing/headless`).map(
 			(name) => [`${name}/index`, `src/${name}/index.ts`] as const,
 		),
 	),
@@ -26,8 +26,7 @@ const ALL_ENTRIES = {
 
 console.log({ SUBMODULE_NAMES, ALL_ENTRIES })
 
-const config: UserConfig | UserConfigFn = defineConfig({
-	entry: ALL_ENTRIES,
+const sharedConfig = {
 	deps: {
 		neverBundle: NEVER_BUNDLE,
 	},
@@ -35,7 +34,6 @@ const config: UserConfig | UserConfigFn = defineConfig({
 		splitting: true,
 	},
 
-	clean: true,
 	dts: { sourcemap: true },
 	fixedExtension: false,
 	format: `esm`,
@@ -44,6 +42,21 @@ const config: UserConfig | UserConfigFn = defineConfig({
 	sourcemap: false,
 	treeshake: true,
 	tsconfig: `tsconfig.json`,
-})
+} satisfies UserConfig
+
+const config: UserConfig[] = defineConfig([
+	{
+		...sharedConfig,
+		clean: true,
+		entry: ALL_ENTRIES,
+	},
+	{
+		...sharedConfig,
+		clean: false,
+		entry: {
+			"realtime-testing/headless/index": `src/realtime-testing/headless/index.ts`,
+		},
+	},
+])
 
 export default config

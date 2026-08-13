@@ -7,14 +7,12 @@ import type { RootStore } from "atom.io/internal"
 import {
 	editRelationsInStore,
 	findInStore,
-	findRelationsInStore,
-	getFromStore,
 	IMPLICIT,
 	setIntoStore,
 } from "atom.io/internal"
 import type { RoomKey, Socket, SocketKey, UserKey } from "atom.io/realtime"
 import { myUserKeyAtom } from "atom.io/realtime-client"
-import type { Server } from "socket.io"
+import type { Server, Socket as IOSocket } from "socket.io"
 
 import { realtimeStateProvider } from "./realtime-state-provider.ts"
 import type { SocketSystemHierarchy } from "./server-socket-state.ts"
@@ -67,68 +65,199 @@ export function realtime(
 	store: RootStore = IMPLICIT.STORE,
 ): () => Promise<void> {
 	const socketRealm = new Realm<SocketSystemHierarchy>(store)
+	const authenticatedUsers = new WeakMap<IOSocket, UserKey>()
+	const identities = new Map<
+		UserKey,
+		{
+			sockets: Set<SocketKey>
+			indexed: boolean
+		}
+	>()
+	const claimedUsers = new Set<UserKey>()
+	const cleanupBySocket = new Map<SocketKey, () => Promise<void>>()
 
-	server
-		.use(async (socket, next) => {
-			const result = await auth(socket.handshake)
-			if (result instanceof Error) {
-				store.logger.error(
-					`📡`,
-					`socket`,
-					socket.id,
-					`failed to authenticate`,
-					result.message,
+	const messageOf = (error: unknown): string =>
+		error instanceof Error ? error.message : String(error)
+	const reportFailure = (
+		phase: `authenticate` | `connect` | `disconnect`,
+		socketId: string,
+		error: unknown,
+	): void => {
+		store.logger.error(
+			`📡`,
+			`socket`,
+			socketId,
+			`failed to ${phase}`,
+			messageOf(error),
+		)
+	}
+
+	server.use((socket, next) => {
+		void Promise.resolve()
+			.then(() => auth(socket.handshake))
+			.then((result) => {
+				if (result instanceof Error) {
+					reportFailure(`authenticate`, socket.id, result)
+					next(result)
+					return
+				}
+				authenticatedUsers.set(socket, result)
+				next()
+			})
+			.catch((error: unknown) => {
+				reportFailure(`authenticate`, socket.id, error)
+				next(
+					error instanceof Error
+						? error
+						: new Error(`Authentication failed: ${String(error)}`),
 				)
-				next(result)
-				return
+			})
+	})
+
+	server.on(`connection`, (socket) => {
+		const userKey = authenticatedUsers.get(socket)
+		authenticatedUsers.delete(socket)
+		if (userKey === undefined) {
+			reportFailure(
+				`connect`,
+				socket.id,
+				new Error(`Authenticated identity was unavailable.`),
+			)
+			socket.disconnect(true)
+			return
+		}
+
+		const socketKey = `socket::${socket.id}` satisfies SocketKey
+		let socketClaimAllocated = false
+		let relationCreated = false
+		let socketIndexed = false
+		let unsubFromMyUserKey: (() => void) | undefined
+		let disposeServices: (() => Loadable<void>) | undefined
+		let cleanupPromise: Promise<void> | undefined
+		let resolveSetup: () => void = () => {}
+		const setupSettled = new Promise<void>((resolve) => {
+			resolveSetup = resolve
+		})
+
+		const safely = async (
+			phase: `connect` | `disconnect`,
+			operation: (() => Loadable<void>) | undefined,
+		): Promise<void> => {
+			if (operation === undefined) return
+			try {
+				await operation()
+			} catch (error) {
+				reportFailure(phase, socket.id, error)
 			}
-			const userClaim = socketRealm.allocate(`root`, result)
-			const socketClaim = socketRealm.allocate(`root`, `socket::${socket.id}`)
-			const socketState = findInStore(store, socketAtoms, socketClaim)
-			setIntoStore(store, socketState, socket)
-			editRelationsInStore(store, usersOfSockets, (relations) => {
-				relations.set(userClaim, socketClaim)
-			})
-			setIntoStore(store, onlineUsersAtom, (index) => index.add(userClaim))
-			setIntoStore(store, socketKeysAtom, (index) => index.add(socketClaim))
-			next()
-		})
-		.on(`connection`, async (socket) => {
-			const socketKey = `socket::${socket.id}` satisfies SocketKey
-			const userKeySelector = findRelationsInStore(
-				store,
-				usersOfSockets,
-				socketKey,
-			).userKeyOfSocket
-			const userKey = getFromStore(store, userKeySelector)!
-			const serverConfig: UserServerConfig = { store, socket, consumer: userKey }
-			const provideState = realtimeStateProvider(serverConfig)
-			const unsubFromMyUserKey = provideState(myUserKeyAtom, userKey)
+		}
 
-			const disposeServices = await onConnect(serverConfig)
-
-			socket.on(`disconnect`, async () => {
+		const cleanup = (): Promise<void> => {
+			cleanupPromise ??= (async () => {
+				await setupSettled
 				store.logger.info(`📡`, `socket`, socketKey, `👤 ${userKey} disconnects`)
-				await disposeServices()
-				unsubFromMyUserKey()
-				editRelationsInStore(store, usersOfSockets, (relations) =>
-					relations.delete(socketKey),
-				)
-				setIntoStore(
-					store,
-					onlineUsersAtom,
-					(keys) => (keys.delete(userKey), keys),
-				)
-				setIntoStore(
-					store,
-					socketKeysAtom,
-					(keys) => (keys.delete(socketKey), keys),
-				)
-			})
+				await safely(`disconnect`, disposeServices)
+				await safely(`disconnect`, unsubFromMyUserKey)
+
+				if (relationCreated) {
+					editRelationsInStore(store, usersOfSockets, (relations) => {
+						relations.delete(socketKey)
+					})
+					relationCreated = false
+				}
+				if (socketIndexed) {
+					setIntoStore(
+						store,
+						socketKeysAtom,
+						(keys) => (keys.delete(socketKey), keys),
+					)
+					socketIndexed = false
+				}
+				if (socketClaimAllocated) {
+					socketRealm.deallocate(socketKey)
+					socketClaimAllocated = false
+				}
+
+				const identity = identities.get(userKey)
+				identity?.sockets.delete(socketKey)
+				if (identity?.sockets.size === 0) {
+					identities.delete(userKey)
+					if (identity.indexed) {
+						setIntoStore(
+							store,
+							onlineUsersAtom,
+							(keys) => (keys.delete(userKey), keys),
+						)
+						identity.indexed = false
+					}
+				}
+				cleanupBySocket.delete(socketKey)
+			})()
+			return cleanupPromise
+		}
+
+		cleanupBySocket.set(socketKey, cleanup)
+		socket.once(`disconnect`, () => {
+			void cleanup()
 		})
 
-	const disposeAll = async () => {
-		await server.close()
+		void (async () => {
+			try {
+				let identity = identities.get(userKey)
+				if (identity === undefined) {
+					identity = {
+						sockets: new Set(),
+						indexed: false,
+					}
+					identities.set(userKey, identity)
+					if (!claimedUsers.has(userKey)) {
+						socketRealm.allocate(`root`, userKey)
+						claimedUsers.add(userKey)
+					}
+					setIntoStore(store, onlineUsersAtom, (keys) => keys.add(userKey))
+					identity.indexed = true
+				}
+				identity.sockets.add(socketKey)
+
+				socketRealm.allocate(`root`, socketKey)
+				socketClaimAllocated = true
+				const socketState = findInStore(store, socketAtoms, socketKey)
+				setIntoStore(store, socketState, socket)
+				editRelationsInStore(store, usersOfSockets, (relations) => {
+					relations.set(userKey, socketKey)
+				})
+				relationCreated = true
+				setIntoStore(store, socketKeysAtom, (keys) => keys.add(socketKey))
+				socketIndexed = true
+
+				const serverConfig: UserServerConfig = {
+					store,
+					socket,
+					consumer: userKey,
+				}
+				const provideState = realtimeStateProvider(serverConfig)
+				unsubFromMyUserKey = provideState(myUserKeyAtom, userKey)
+				disposeServices = await onConnect(serverConfig)
+			} catch (error) {
+				reportFailure(`connect`, socket.id, error)
+				socket.disconnect(true)
+			} finally {
+				resolveSetup()
+			}
+		})()
+	})
+
+	let disposePromise: Promise<void> | undefined
+	const disposeAll = (): Promise<void> => {
+		disposePromise ??= (async () => {
+			try {
+				await server.close()
+			} finally {
+				await Promise.all(
+					[...cleanupBySocket.values()].map((cleanup) => cleanup()),
+				)
+			}
+		})()
+		return disposePromise
 	}
 	return disposeAll
 }

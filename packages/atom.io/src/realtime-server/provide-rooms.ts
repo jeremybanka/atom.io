@@ -80,9 +80,11 @@ export function spawnRoom<RoomNames extends string>({
 				const room = spawn(command, args, {
 					env: { ...process.env, REALTIME_ROOM_KEY: roomKey },
 				})
+				let readinessBuffer = Buffer.alloc(0)
 				const resolver = (data: Buffer) => {
-					const chunk = data.toString()
-					if (chunk === PROOF_OF_LIFE_SIGNAL) {
+					readinessBuffer = Buffer.concat([readinessBuffer, data])
+					const signalIndex = readinessBuffer.indexOf(PROOF_OF_LIFE_SIGNAL)
+					if (signalIndex !== -1) {
 						room.stdout.off(`data`, resolver)
 						resolve(room)
 					}

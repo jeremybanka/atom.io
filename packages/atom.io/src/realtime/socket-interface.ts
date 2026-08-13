@@ -63,7 +63,7 @@ export type Socket = {
 	) => void
 	off: (event: string, listener?: (...args: Json.Serializable[]) => void) => void
 	offAny: (
-		listener: (event: string, ...args: Json.Serializable[]) => void,
+		listener?: (event: string, ...args: Json.Serializable[]) => void,
 	) => void
 	emit: (event: string, ...args: Json.Serializable[]) => void
 }

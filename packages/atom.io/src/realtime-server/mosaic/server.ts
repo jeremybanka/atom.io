@@ -344,7 +344,11 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 		if (checkpointRevision > before) {
 			for (const connection of connections) {
 				if (connection.joined.has(runtime.resource.key)) {
-					emit(connection, MOSAIC_EVENTS.snapshot, snapshotFor(runtime, []))
+					emit(
+						connection,
+						MOSAIC_EVENTS.snapshot,
+						snapshotFor(runtime, [], connection.session),
+					)
 				}
 			}
 			return
@@ -391,6 +395,7 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 			reason: rejection.reason,
 			recovery: rejection.recovery,
 			resource: rejection.resource,
+			session: connection.session,
 		}
 		emit(connection, MOSAIC_EVENTS.rejection, envelope)
 	}
@@ -426,8 +431,7 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 	): Promise<boolean> => {
 		await initialize(runtime)
 		await drain(runtime)
-		const checkpoint: MosaicSnapshotEnvelope = {
-			acceptedPendingOperationIds: [],
+		const checkpoint = {
 			model: {
 				key: runtime.resource.model.key,
 				version: runtime.resource.model.version,
@@ -461,6 +465,7 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 	const snapshotFor = (
 		runtime: ResourceRuntime,
 		pendingOperationIds: readonly string[],
+		session: string,
 	): MosaicSnapshotEnvelope => ({
 		acceptedPendingOperationIds: pendingOperationIds.filter((id) =>
 			runtime.receiptIds.has(id),
@@ -472,6 +477,7 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 		protocolVersion: MOSAIC_PROTOCOL_VERSION,
 		resource: runtime.resource.key,
 		revision: runtime.headRevision,
+		session,
 		snapshot: runtime.resource.model.snapshot(runtime.state),
 	})
 
@@ -605,7 +611,7 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 			emit(
 				connection,
 				MOSAIC_EVENTS.snapshot,
-				snapshotFor(runtime, request.pendingOperationIds),
+				snapshotFor(runtime, request.pendingOperationIds, connection.session),
 			)
 		})
 		for (const record of presence.get(request.resource)?.values() ?? []) {
@@ -898,6 +904,31 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 			proposal.session !== connection.session ||
 			!connection.joined.has(proposal.resource)
 		) {
+			return
+		}
+		if (proposal.presence === null) {
+			if (
+				!(await isAuthorized({
+					action: `presence`,
+					actor: connection.actor,
+					operation: null,
+					resource: proposal.resource,
+					session: connection.session,
+				}))
+			) {
+				return
+			}
+			const records = presence.get(proposal.resource)
+			if (records?.delete(connection.session)) {
+				broadcastPresence(proposal.resource, {
+					actor: connection.actor,
+					presence: null,
+					protocolVersion: MOSAIC_PROTOCOL_VERSION,
+					resource: proposal.resource,
+					session: connection.session,
+				})
+			}
+			if (records?.size === 0) presence.delete(proposal.resource)
 			return
 		}
 		const validation = await resource.presenceSchema[`~standard`].validate(

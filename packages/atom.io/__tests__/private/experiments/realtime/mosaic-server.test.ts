@@ -5,7 +5,7 @@ import {
 	MOSAIC_EVENTS,
 	MOSAIC_PROTOCOL_VERSION,
 	type MosaicAcceptedOperationEnvelope,
-	type MosaicOperationMetadata,
+	type MosaicReduceContext,
 	type MosaicRejectionEnvelope,
 	type MosaicSnapshotEnvelope,
 	type Socket,
@@ -25,7 +25,7 @@ type History = {
 	readonly targetOperationIds: readonly string[]
 }
 type CounterOperation = Add | History
-type CounterEntry = MosaicOperationMetadata & {
+type CounterEntry = MosaicReduceContext & {
 	readonly operation: CounterOperation
 }
 type CounterState = {
@@ -39,7 +39,7 @@ const counterModel = defineMosaicModel({
 	apply: (
 		state: CounterState,
 		operation: CounterOperation,
-		context: MosaicOperationMetadata,
+		context: MosaicReduceContext,
 	): CounterState => {
 		const active = { ...state.active }
 		if (operation.kind === `add`) active[context.id] = true
@@ -54,18 +54,27 @@ const counterModel = defineMosaicModel({
 		}
 	},
 	create: emptyState,
-	hydrate: (snapshot: CounterState): CounterState => structuredClone(snapshot),
+	hydrate: (snapshot: unknown): CounterState => {
+		if (
+			typeof snapshot !== `object` ||
+			snapshot === null ||
+			!Array.isArray(Reflect.get(snapshot, `entries`))
+		) {
+			throw new Error(`Invalid counter snapshot.`)
+		}
+		return structuredClone(snapshot) as CounterState
+	},
 	key: `test-counter`,
 	prepare: (_state: CounterState, intent: CounterOperation): CounterOperation =>
 		intent,
 	snapshot: (state: CounterState): CounterState => structuredClone(state),
-	validate: (
-		_state: CounterState,
-		operation: CounterOperation,
-	): { readonly operation: CounterOperation; readonly status: `accept` } => ({
-		operation,
-		status: `accept`,
-	}),
+	validate: (_state: CounterState, operation: unknown) =>
+		typeof operation === `object` &&
+		operation !== null &&
+		(Reflect.get(operation, `kind`) === `add` ||
+			Reflect.get(operation, `kind`) === `history`)
+			? { operation: operation as CounterOperation, status: `accept` as const }
+			: { reason: `Invalid counter operation.`, status: `reject` as const },
 	version: 1,
 })
 
@@ -283,6 +292,7 @@ describe(`Mosaic server`, () => {
 			1,
 		)) as unknown as MosaicRejectionEnvelope[]
 		expect(collision?.code).toBe(`operation-id-collision`)
+		expect(collision?.session).toBe(`alice-session`)
 
 		propose(socket, `alice-session`, `alice:2`, { amount: 1, kind: `add` }, [
 			`missing`,
@@ -357,8 +367,27 @@ describe(`Mosaic server`, () => {
 		const [online] = await waitForValues(bob, MOSAIC_EVENTS.presence, 1)
 		expect(online).toMatchObject({ actor: `alice`, presence: { cursor: 3 } })
 
+		alice.clientEmit(MOSAIC_EVENTS.presence, {
+			presence: null,
+			protocolVersion: MOSAIC_PROTOCOL_VERSION,
+			resource: resource.key,
+			session: `alice-session`,
+		})
+		const departed = await waitForValues(bob, MOSAIC_EVENTS.presence, 2)
+		expect(departed.at(-1)).toMatchObject({
+			actor: `alice`,
+			presence: null,
+		})
+
+		alice.clientEmit(MOSAIC_EVENTS.presence, {
+			presence: { cursor: 4 },
+			protocolVersion: MOSAIC_PROTOCOL_VERSION,
+			resource: resource.key,
+			session: `alice-session`,
+		})
+		await waitForValues(bob, MOSAIC_EVENTS.presence, 3)
 		await disconnectAlice()
-		const presence = await waitForValues(bob, MOSAIC_EVENTS.presence, 2)
+		const presence = await waitForValues(bob, MOSAIC_EVENTS.presence, 4)
 		expect(presence.at(-1)).toMatchObject({
 			actor: `alice`,
 			presence: null,
@@ -405,7 +434,11 @@ describe(`Mosaic server`, () => {
 		)) as unknown as MosaicSnapshotEnvelope<CounterState>[]
 		expect(snapshot?.revision).toBe(2)
 		expect(snapshot?.acceptedPendingOperationIds).toEqual([`alice:1`, `alice:2`])
+		expect(snapshot?.session).toBe(`second-session`)
 		expect(snapshot?.snapshot.entries).toHaveLength(2)
+		expect(snapshot?.snapshot.entries.map(({ revision }) => revision)).toEqual([
+			1, 2,
+		])
 		expect(second.values(MOSAIC_EVENTS.presence)).toHaveLength(0)
 
 		await disconnectSecond()

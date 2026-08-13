@@ -10,9 +10,15 @@ export type MosaicStoredReceipt = {
 	readonly fingerprint: string
 }
 
+/** A durable checkpoint is independent of any requesting client session. */
+export type MosaicStoredCheckpoint = Omit<
+	MosaicSnapshotEnvelope,
+	`acceptedPendingOperationIds` | `session`
+>
+
 export type MosaicStorageRecovery = {
 	/** The latest durable checkpoint, if one has been created. */
-	readonly checkpoint: MosaicSnapshotEnvelope | null
+	readonly checkpoint: MosaicStoredCheckpoint | null
 	/** Every durable operation after `checkpoint`, in revision order. */
 	readonly tail: readonly MosaicAcceptedOperationEnvelope[]
 	/** The current durable stream revision. */
@@ -42,7 +48,7 @@ export type MosaicStorageAppendResult =
 	| { readonly actualRevision: number; readonly status: `stale` }
 
 export type MosaicStorageCheckpointRequest = {
-	readonly checkpoint: MosaicSnapshotEnvelope
+	readonly checkpoint: MosaicStoredCheckpoint
 	readonly expectedRevision: number
 	readonly expectedRetentionEpoch: number
 }
@@ -98,7 +104,7 @@ export interface MosaicStorageAdapter {
 }
 
 type MemoryResource = {
-	checkpoint: MosaicSnapshotEnvelope | null
+	checkpoint: MosaicStoredCheckpoint | null
 	headRevision: number
 	operations: Map<number, MosaicAcceptedOperationEnvelope>
 	receipts: Map<string, MosaicStoredReceipt>

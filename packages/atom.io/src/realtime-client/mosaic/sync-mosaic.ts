@@ -26,6 +26,7 @@ import {
 	mosaicAtomAddressKey,
 	type MosaicIntent,
 	type MosaicJoinEnvelope,
+	type MosaicModelIdentifier,
 	type MosaicOperation,
 	type MosaicOperationEnvelope,
 	type MosaicOperationProposal,
@@ -112,6 +113,75 @@ const defaultIdSource: MosaicClientIdSource = ({
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === `object` && value !== null && !Array.isArray(value)
+
+const canonicalizeJson = (
+	value: unknown,
+	ancestors = new Set<object>(),
+): string | undefined => {
+	if (value === null) return `null`
+	if (typeof value === `boolean`) return value ? `true` : `false`
+	if (typeof value === `number`) {
+		return Number.isFinite(value) ? JSON.stringify(value) : undefined
+	}
+	if (typeof value === `string`) return JSON.stringify(value)
+	if (typeof value !== `object` || ancestors.has(value)) return undefined
+
+	ancestors.add(value)
+	if (Array.isArray(value)) {
+		const entries = value.map((entry) => canonicalizeJson(entry, ancestors))
+		ancestors.delete(value)
+		return entries.some((entry) => entry === undefined)
+			? undefined
+			: `[${entries.join(`,`)}]`
+	}
+	if (Object.prototype.toString.call(value) !== `[object Object]`) {
+		ancestors.delete(value)
+		return undefined
+	}
+	const keys = Object.keys(value).sort()
+	const entries = keys.map((key) => {
+		const entry = canonicalizeJson(
+			(value as Record<string, unknown>)[key],
+			ancestors,
+		)
+		return entry === undefined ? undefined : `${JSON.stringify(key)}:${entry}`
+	})
+	ancestors.delete(value)
+	return entries.some((entry) => entry === undefined)
+		? undefined
+		: `{${entries.join(`,`)}}`
+}
+
+const isModelIdentifier = (value: unknown): value is MosaicModelIdentifier =>
+	isRecord(value) &&
+	typeof value[`key`] === `string` &&
+	value[`key`].length > 0 &&
+	Number.isSafeInteger(value[`version`]) &&
+	(value[`version`] as number) >= 1 &&
+	(!Object.hasOwn(value, `configuration`) ||
+		canonicalizeJson(value[`configuration`]) !== undefined)
+
+const matchesModelIdentifier = (
+	actual: unknown,
+	expected: MosaicModelIdentifier,
+): boolean => {
+	if (
+		!isModelIdentifier(actual) ||
+		actual[`key`] !== expected.key ||
+		actual[`version`] !== expected.version
+	) {
+		return false
+	}
+	const actualHasConfiguration = Object.hasOwn(actual, `configuration`)
+	const expectedHasConfiguration = Object.hasOwn(expected, `configuration`)
+	if (actualHasConfiguration !== expectedHasConfiguration) return false
+	if (!actualHasConfiguration) return true
+	const actualConfiguration = canonicalizeJson(actual[`configuration`])
+	return (
+		actualConfiguration !== undefined &&
+		actualConfiguration === canonicalizeJson(expected.configuration)
+	)
+}
 
 const presenceKey = (actor: string, session: string): string =>
 	`${actor}\u0000${session}`
@@ -526,9 +596,7 @@ class StoreBoundMosaicController<
 			envelope.id.length > 0 &&
 			typeof envelope.session === `string` &&
 			envelope.session.length > 0 &&
-			isRecord(envelope.model) &&
-			envelope.model.key === this.#TransceiverClass.mosaic.key &&
-			envelope.model.version === this.#TransceiverClass.mosaic.version
+			isModelIdentifier(envelope.model)
 		)
 	}
 
@@ -565,6 +633,21 @@ class StoreBoundMosaicController<
 			this.#status = `rejected`
 			this.#publishState()
 		}
+	}
+
+	#upgradeProblem(reason: string): void {
+		const discarded = this.#quarantinePending()
+		this.#problem = {
+			code: `incompatible-version`,
+			discarded,
+			kind: `rejection`,
+			operationId: null,
+			reason,
+			recovery: `upgrade`,
+		}
+		this.#hydrated = false
+		this.#status = `rejected`
+		this.#publishState()
 	}
 
 	#publishState(): void {
@@ -630,6 +713,17 @@ class StoreBoundMosaicController<
 			MosaicOperation<T>
 		>
 		if (!this.#matches(accepted.operation)) return
+		if (
+			!matchesModelIdentifier(
+				accepted.operation.model,
+				this.#TransceiverClass.mosaic,
+			)
+		) {
+			this.#upgradeProblem(
+				`The accepted Mosaic operation uses a different model configuration.`,
+			)
+			return
+		}
 		if (!Number.isSafeInteger(accepted.revision) || accepted.revision < 1) {
 			this.#protocolProblem(`Received an invalid stream revision.`, true)
 			return
@@ -789,18 +883,28 @@ class StoreBoundMosaicController<
 		if (
 			!this.#matchesAtom(value) ||
 			typeof value[`session`] !== `string` ||
-			!isRecord(value[`model`]) ||
-			value[`model`][`key`] !== this.#TransceiverClass.mosaic.key ||
-			value[`model`][`version`] !== this.#TransceiverClass.mosaic.version ||
+			!isModelIdentifier(value[`model`]) ||
 			!Array.isArray(value[`acceptedPendingOperationIds`]) ||
 			!value[`acceptedPendingOperationIds`].every(
 				(id) => typeof id === `string`,
 			) ||
+			!Array.isArray(value[`headOperationIds`]) ||
+			!value[`headOperationIds`].every(
+				(id) => typeof id === `string` && id.length > 0,
+			) ||
+			new Set(value[`headOperationIds`]).size !==
+				value[`headOperationIds`].length ||
 			!Number.isSafeInteger(value[`revision`]) ||
 			(value[`revision`] as number) < 0 ||
 			!(`snapshot` in value)
 		) {
 			this.#protocolProblem(`Received a malformed Mosaic snapshot.`, false)
+			return
+		}
+		if (!matchesModelIdentifier(value[`model`], this.#TransceiverClass.mosaic)) {
+			this.#upgradeProblem(
+				`The Mosaic snapshot uses a different model configuration.`,
+			)
 			return
 		}
 		const envelope = value as unknown as MosaicSnapshotEnvelope<
@@ -822,7 +926,7 @@ class StoreBoundMosaicController<
 
 		this.#revision = envelope.revision
 		this.#acceptedIds = new Set(envelope.acceptedPendingOperationIds)
-		this.#confirmedHeads.clear()
+		this.#confirmedHeads = new Set(envelope.headOperationIds)
 		this.#pending = this.#pending.filter(
 			(operation) => !this.#acceptedIds.has(operation.id),
 		)

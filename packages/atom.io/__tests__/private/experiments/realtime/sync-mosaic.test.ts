@@ -107,6 +107,7 @@ function snapshot(
 	return {
 		acceptedPendingOperationIds: [],
 		atom: controller.atom,
+		headOperationIds: [],
 		model: Text.mosaic,
 		protocolVersion: MOSAIC_PROTOCOL_VERSION,
 		revision: 0,
@@ -302,6 +303,133 @@ describe(`syncMosaic`, () => {
 		)
 		expect(committed).toHaveLength(2)
 		expect(committed[1]?.dependencies).toEqual([`operation-1`])
+	})
+
+	it(`seeds and replaces the frontier while preserving pending causality`, () => {
+		const { controller, socket } = setup(`snapshot-frontier`, true)
+		socket.receive(
+			MOSAIC_EVENTS.snapshot,
+			snapshot(controller, {
+				headOperationIds: [`checkpoint-b`, `checkpoint-a`],
+				revision: 4,
+			}),
+		)
+
+		controller.change({ text: `first`, type: `replace-text` })
+		let proposals = socket.sent<MosaicOperationProposal<MosaicTextOperation>>(
+			MOSAIC_EVENTS.operation,
+		)
+		expect(proposals.at(-1)?.dependencies).toEqual([
+			`checkpoint-a`,
+			`checkpoint-b`,
+		])
+		controller.change({ text: `second`, type: `replace-text` })
+		proposals = socket.sent<MosaicOperationProposal<MosaicTextOperation>>(
+			MOSAIC_EVENTS.operation,
+		)
+		expect(proposals.at(-1)?.dependencies).toEqual([`operation-0`])
+		const first = proposals[0]
+		if (first === undefined) throw new Error(`Expected the first proposal`)
+		const checkpoint = new Text()
+		checkpoint.do({
+			actor: controller.actor,
+			dependencies: first.dependencies,
+			group: first.group,
+			id: first.id,
+			operation: first.operation,
+			revision: 5,
+			session: first.session,
+		})
+
+		socket.receive(
+			MOSAIC_EVENTS.snapshot,
+			snapshot(controller, {
+				acceptedPendingOperationIds: [`operation-0`],
+				headOperationIds: [`replacement-head`],
+				revision: 5,
+				snapshot: checkpoint.toJSON(),
+			}),
+		)
+		controller.change({ text: `third`, type: `replace-text` })
+		proposals = socket.sent<MosaicOperationProposal<MosaicTextOperation>>(
+			MOSAIC_EVENTS.operation,
+		)
+		expect(proposals.at(-1)?.dependencies).toEqual([
+			`operation-1`,
+			`replacement-head`,
+		])
+	})
+
+	it(`requires the complete configured model and directs mismatches to upgrade`, () => {
+		const { $, controller, socket } = setup(`model-configuration`, true)
+		const configured = { initialText: ``, maximumGraphemes: 200_000 } as const
+		expect(Text.mosaic.configuration).toEqual(configured)
+		socket.receive(
+			MOSAIC_EVENTS.snapshot,
+			snapshot(controller, {
+				model: {
+					configuration: {
+						maximumGraphemes: configured.maximumGraphemes,
+						initialText: configured.initialText,
+					},
+					key: Text.mosaic.key,
+					version: Text.mosaic.version,
+				},
+			}),
+		)
+		expect($.getState(controller.state.status)).toBe(`live`)
+		controller.change({ text: `pending`, type: `replace-text` })
+
+		socket.receive(
+			MOSAIC_EVENTS.snapshot,
+			snapshot(controller, {
+				model: {
+					configuration: {
+						maximumGraphemes: configured.maximumGraphemes + 1,
+						initialText: configured.initialText,
+					},
+					key: Text.mosaic.key,
+					version: Text.mosaic.version,
+				},
+			}),
+		)
+
+		expect($.getState(controller.state.status)).toBe(`rejected`)
+		expect($.getState(controller.state.pending)).toEqual([])
+		expect($.getState(controller.state.problem)).toMatchObject({
+			code: `incompatible-version`,
+			discarded: [{ id: `operation-0` }],
+			kind: `rejection`,
+			operationId: null,
+			recovery: `upgrade`,
+		})
+	})
+
+	it(`rejects accepted operations from a differently configured model`, () => {
+		const { $, controller, socket } = setup(`operation-model`, true)
+		hydrate(controller, socket)
+		controller.change({ text: `pending`, type: `replace-text` })
+		const incompatible = proposal(controller, `remote`, `remote-operation`)
+
+		socket.receive(MOSAIC_EVENTS.operation, {
+			...incompatible,
+			operation: {
+				...incompatible.operation,
+				model: {
+					configuration: { initialText: `seed`, maximumGraphemes: 200_000 },
+					key: Text.mosaic.key,
+					version: Text.mosaic.version,
+				},
+			},
+		})
+
+		expect($.getState(controller.state.status)).toBe(`rejected`)
+		expect($.getState(controller.state.problem)).toMatchObject({
+			code: `incompatible-version`,
+			discarded: [{ id: `operation-0` }],
+			kind: `rejection`,
+			recovery: `upgrade`,
+		})
 	})
 
 	it(`exposes stamped presence envelopes through companion state`, () => {

@@ -70,6 +70,9 @@ export function createTimeline<ManagedAtom extends TimelineManageable>(
 		) {
 			continue
 		}
+		if (initialTopic.type === `mutable_atom`) {
+			ensureState(store, initialTopic)
+		}
 		const mutable = withdraw(store, initialTopic)
 		if (`class` in mutable && mutable.class.timelinePolicy === `append-only`) {
 			throw new Error(

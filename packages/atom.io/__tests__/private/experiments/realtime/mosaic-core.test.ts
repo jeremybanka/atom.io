@@ -142,7 +142,9 @@ describe(`Mosaic text transceiver`, () => {
 		const clone = Markdown.fromJSON(document.toJSON())
 		expect(clone.text).toBe(document.text)
 		expect(clone).not.toBe(document)
-		expect(() => clone.undo(signal)).toThrow(`append-only`)
+		expect(() => {
+			clone.undo(signal)
+		}).toThrow(`append-only`)
 	})
 
 	test(`uses deterministic Unicode grapheme primitives`, () => {

@@ -1,3 +1,3 @@
 export * from "./protocol.ts"
 export * from "./text.ts"
-export * from "./transceiver.ts"
+export type * from "./transceiver.ts"

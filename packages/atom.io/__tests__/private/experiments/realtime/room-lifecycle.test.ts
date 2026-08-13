@@ -1,7 +1,7 @@
 import path from "node:path"
 
 import { Silo } from "atom.io"
-import { getFromStore, IMPLICIT } from "atom.io/internal"
+import { clearStore, getFromStore, IMPLICIT } from "atom.io/internal"
 import type {
 	GuardedSocket,
 	RoomKey,
@@ -152,5 +152,19 @@ describe(`room lifecycle`, () => {
 		await vi.waitFor(() => {
 			expect(ROOMS.has(restartedRoom.key)).toBe(false)
 		})
+	})
+
+	test(`finishes child cleanup after the owning store is disposed`, async () => {
+		const server = spawnFixture(`normal`)
+		const room = await server.create(`test`)
+		expect(ROOMS.has(room.key)).toBe(true)
+
+		clearStore(server.silo.store)
+		ROOMS.get(room.key)?.proc.kill(`SIGKILL`)
+
+		await vi.waitFor(() => {
+			expect(ROOMS.has(room.key)).toBe(false)
+		})
+		expect(server.silo.store.atoms.has(roomKeysAtom.key)).toBe(false)
 	})
 })

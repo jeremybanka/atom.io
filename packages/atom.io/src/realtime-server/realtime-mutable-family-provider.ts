@@ -58,34 +58,41 @@ export function realtimeMutableFamilyProvider({
 			for (const unsub of coreSubscriptions) unsub()
 			coreSubscriptions.clear()
 		}
-		const familyMemberSubscriptionsWanted = new Set<stringified<K>>()
-		const familyMemberSubscriptions = new Map<string, () => void>()
+		const requestedFamilyMembers = new Map<
+			stringified<K>,
+			{ key: K; stopWatchingForUnsubscribe: () => void }
+		>()
+		const familyMemberSubscriptions = new Map<stringified<K>, () => void>()
 		const clearFamilySubscriptions = () => {
 			for (const unsub of familyMemberSubscriptions.values()) unsub()
 			familyMemberSubscriptions.clear()
+			for (const request of requestedFamilyMembers.values()) {
+				request.stopWatchingForUnsubscribe()
+			}
+			requestedFamilyMembers.clear()
 		}
 
-		const fillUnsubRequest = (key: string) => {
-			const unsubUnsub = familyMemberSubscriptions.get(`${key}:unsub`)
-			if (unsubUnsub) {
-				unsubUnsub()
-				familyMemberSubscriptions.delete(`${key}:unsub`)
-			}
-			const unsub = familyMemberSubscriptions.get(key)
+		const fillUnsubRequest = (serializedKey: stringified<K>) => {
+			const request = requestedFamilyMembers.get(serializedKey)
+			request?.stopWatchingForUnsubscribe()
+			requestedFamilyMembers.delete(serializedKey)
+			const unsub = familyMemberSubscriptions.get(serializedKey)
 			if (unsub) {
 				unsub()
-				familyMemberSubscriptions.delete(key)
+				familyMemberSubscriptions.delete(serializedKey)
 			}
 		}
 
 		const exposeFamilyMembers = (subKey: K) => {
+			const serializedKey = stringifyJson(subKey)
+			if (familyMemberSubscriptions.has(serializedKey)) return
 			const token = findInStore(store, family, subKey)
 			getFromStore(store, token)
 			const jsonToken = getJsonTokenFromStore(store, token)
 			const updateToken = getUpdateToken(token)
 			socket.emit(`init:${token.key}`, getFromStore(store, jsonToken))
 			familyMemberSubscriptions.set(
-				token.key,
+				serializedKey,
 				subscribeToState(
 					store,
 					updateToken,
@@ -95,12 +102,24 @@ export function realtimeMutableFamilyProvider({
 					},
 				),
 			)
-			familyMemberSubscriptions.set(
-				`${token.key}:unsub`,
-				employSocket(socket, `unsub:${token.key}`, () => {
-					fillUnsubRequest(token.key)
-				}),
-			)
+		}
+
+		const reconcileFamilyMembers = (exposedSubKeys: Iterable<K> | null) => {
+			const availableKeys =
+				exposedSubKeys === null
+					? null
+					: new Set([...exposedSubKeys].map(stringifyJson))
+			for (const [serializedKey, request] of requestedFamilyMembers) {
+				const shouldExpose = availableKeys?.has(serializedKey) === true
+				const isExposed = familyMemberSubscriptions.has(serializedKey)
+				if (shouldExpose && !isExposed) {
+					exposeFamilyMembers(request.key)
+				} else if (!shouldExpose && isExposed) {
+					familyMemberSubscriptions.get(serializedKey)?.()
+					familyMemberSubscriptions.delete(serializedKey)
+					socket.emit(`unavailable:${family.key}`, request.key)
+				}
+			}
 		}
 
 		const start = () => {
@@ -112,6 +131,21 @@ export function realtimeMutableFamilyProvider({
 			)
 			coreSubscriptions.add(
 				employSocket(socket, `sub:${family.key}`, (subKey: K) => {
+					const serializedKey = stringifyJson(subKey)
+					if (!requestedFamilyMembers.has(serializedKey)) {
+						const token = findInStore(store, family, subKey)
+						const stopWatchingForUnsubscribe = employSocket(
+							socket,
+							`unsub:${token.key}`,
+							() => {
+								fillUnsubRequest(serializedKey)
+							},
+						)
+						requestedFamilyMembers.set(serializedKey, {
+							key: subKey,
+							stopWatchingForUnsubscribe,
+						})
+					}
 					let exposedSubKeys: Iterable<K> | null
 					if (dynamicIndex) {
 						exposedSubKeys = getFromStore(store, dynamicIndex)
@@ -139,7 +173,6 @@ export function realtimeMutableFamilyProvider({
 							subKey,
 							`in family "${family.key}"`,
 						)
-						familyMemberSubscriptionsWanted.add(stringifyJson(subKey))
 						socket.emit(`unavailable:${family.key}`, subKey)
 					}
 				}),
@@ -158,20 +191,7 @@ export function realtimeMutableFamilyProvider({
 								`has the following keys available for family "${family.key}"`,
 								newExposedSubKeys,
 							)
-							if (newExposedSubKeys === null) return
-							for (const subKey of newExposedSubKeys) {
-								if (familyMemberSubscriptionsWanted.has(stringifyJson(subKey))) {
-									store.logger.info(
-										`👀`,
-										`user`,
-										consumer,
-										`is retroactively approved for a subscription to`,
-										subKey,
-										`in family "${family.key}"`,
-									)
-									exposeFamilyMembers(subKey)
-								}
-							}
+							reconcileFamilyMembers(newExposedSubKeys)
 						},
 					),
 				)

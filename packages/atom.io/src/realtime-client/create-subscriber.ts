@@ -1,12 +1,17 @@
 import { Future } from "atom.io/foundations/future"
 import type { Socket } from "atom.io/realtime"
 
-type SubData = { refcount: number; timer: Future<void> }
+type SubData = {
+	close: () => void
+	refcount: number
+	sessionId: string | undefined
+	stopWatchingForReconnect: () => void
+	timer: Future<void>
+}
 
 const SUBSCRIPTION_COALESCE_MS = 50
 
 const subscriptions: WeakMap<Socket, Map<string, SubData>> = new WeakMap()
-const socketIds: WeakMap<Socket, string | undefined> = new WeakMap()
 
 export function getSubMap(socket: Socket): Map<string, SubData> {
 	let subMap = subscriptions.get(socket)
@@ -22,11 +27,6 @@ export function createSubscriber<K extends string>(
 	key: K,
 	open: (key: K) => () => void,
 ): () => void {
-	const knownSocketId = socketIds.get(socket)
-	if (knownSocketId !== socket.id) {
-		socketIds.set(socket, socket.id)
-		subscriptions.delete(socket)
-	}
 	const subMap = getSubMap(socket)
 	let sub = subMap.get(key)
 
@@ -34,11 +34,38 @@ export function createSubscriber<K extends string>(
 		sub.timer.use(new Promise<void>(() => {}))
 		sub.refcount++
 	} else {
-		sub = { refcount: 1, timer: new Future<void>(() => {}) }
+		const reconnect = () => {
+			if (
+				!sub ||
+				sub.refcount === 0 ||
+				socket.id === undefined ||
+				sub.sessionId === socket.id
+			) {
+				return
+			}
+
+			const isFirstConnection = sub.sessionId === undefined
+			sub.sessionId = socket.id
+			if (isFirstConnection) return
+
+			sub.close()
+			sub.close = open(key)
+		}
+		socket.on(`connect`, reconnect)
+		sub = {
+			close: open(key),
+			refcount: 1,
+			sessionId: socket.id,
+			stopWatchingForReconnect: () => {
+				socket.off(`connect`, reconnect)
+			},
+			timer: new Future<void>(() => {}),
+		}
 		subMap.set(key, sub)
-		const close = open(key)
-		void sub.timer.then(() => {
-			close()
+		const newSub = sub
+		void newSub.timer.then(() => {
+			newSub.close()
+			newSub.stopWatchingForReconnect()
 			subMap.delete(key)
 		})
 	}

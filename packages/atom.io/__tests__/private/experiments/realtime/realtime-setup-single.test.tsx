@@ -38,4 +38,31 @@ describe(`single-client scenario`, () => {
 		await waitFor(() => app.renderResult.getByTestId(`1`))
 		await teardown()
 	})
+
+	it(`resubscribes after reconnecting without remounting`, async () => {
+		const { client, server, teardown } = scenario()
+		const app = client.init()
+		await waitFor(() => {
+			expect(app.socket.connected).toBe(true)
+		})
+
+		app.socket.disconnect()
+		await waitFor(() => {
+			expect(app.socket.connected).toBe(false)
+		})
+		act(() => {
+			server.silo.setState(countAtom, 1)
+		})
+		app.socket.connect()
+
+		await waitFor(() => {
+			expect(app.socket.connected).toBe(true)
+		})
+		await waitFor(() => app.renderResult.getByTestId(`1`))
+		act(() => {
+			server.silo.setState(countAtom, 2)
+		})
+		await waitFor(() => app.renderResult.getByTestId(`2`))
+		await teardown()
+	})
 })

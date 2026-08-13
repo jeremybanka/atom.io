@@ -1,9 +1,18 @@
 import { cleanup, render } from "@testing-library/react"
-import { useSingleEffect } from "atom.io/react"
-import { RealtimeContext, useRealtimeService } from "atom.io/realtime-react"
+import * as AtomIO from "atom.io"
+import { IMPLICIT } from "atom.io/internal"
+import { StoreProvider, useSingleEffect } from "atom.io/react"
+import { mySocketKeyAtom } from "atom.io/realtime-client"
+import {
+	RealtimeContext,
+	RealtimeProvider,
+	useRealtimeService,
+} from "atom.io/realtime-react"
 import { useId } from "react"
 import type { Socket } from "socket.io-client"
 import { vi } from "vitest"
+
+import { createSubscriber } from "../../src/realtime-client/create-subscriber.ts"
 
 function setNodeEnv(value: `development` | `production`) {
 	// @ts-expect-error – test override
@@ -120,5 +129,101 @@ describe(`useRealtimeService`, () => {
 			},
 		)
 		expect(setupService).toHaveBeenCalledTimes(1)
+	})
+})
+
+describe(`RealtimeProvider`, () => {
+	beforeEach(() => {
+		cleanup()
+	})
+
+	function fakeRealtimeSocket(id: string) {
+		const listeners = new Map<string, Set<(...args: never[]) => void>>()
+		return {
+			id,
+			on: vi.fn((event: string, listener: (...args: never[]) => void) => {
+				let eventListeners = listeners.get(event)
+				if (!eventListeners) {
+					eventListeners = new Set()
+					listeners.set(event, eventListeners)
+				}
+				eventListeners.add(listener)
+			}),
+			off: vi.fn((event: string, listener: (...args: never[]) => void) => {
+				listeners.get(event)?.delete(listener)
+			}),
+			listeners,
+		} as unknown as Socket & {
+			listeners: Map<string, Set<(...args: never[]) => void>>
+		}
+	}
+
+	it(`cleans up listeners in Strict Mode and when replacing sockets`, () => {
+		setNodeEnv(`development`)
+		const silo = new AtomIO.Silo(
+			{
+				name: `realtime-provider-test`,
+				lifespan: `ephemeral`,
+				isProduction: false,
+			},
+			IMPLICIT.STORE,
+		)
+		const first = fakeRealtimeSocket(`first`)
+		const second = fakeRealtimeSocket(`second`)
+		silo.getState(mySocketKeyAtom)
+		const { rerender, unmount } = render(
+			<StoreProvider store={silo.store}>
+				<RealtimeProvider socket={first}>child</RealtimeProvider>
+			</StoreProvider>,
+			{ reactStrictMode: true },
+		)
+
+		expect(first.listeners.get(`connect`)?.size).toBe(1)
+		expect(first.listeners.get(`disconnect`)?.size).toBe(1)
+		rerender(
+			<StoreProvider store={silo.store}>
+				<RealtimeProvider socket={second}>child</RealtimeProvider>
+			</StoreProvider>,
+		)
+		expect(first.listeners.get(`connect`)?.size ?? 0).toBe(0)
+		expect(first.listeners.get(`disconnect`)?.size ?? 0).toBe(0)
+		expect(second.listeners.get(`connect`)?.size).toBe(1)
+		expect(second.listeners.get(`disconnect`)?.size).toBe(1)
+
+		unmount()
+		expect(second.listeners.get(`connect`)?.size ?? 0).toBe(0)
+		expect(second.listeners.get(`disconnect`)?.size ?? 0).toBe(0)
+	})
+})
+
+describe(`createSubscriber`, () => {
+	it(`does not reopen an unreferenced subscription during coalesced cleanup`, async () => {
+		const listeners = new Map<string, Set<() => void>>()
+		const socket = {
+			id: `first`,
+			on: (event: string, listener: () => void) => {
+				let eventListeners = listeners.get(event)
+				if (!eventListeners) {
+					eventListeners = new Set()
+					listeners.set(event, eventListeners)
+				}
+				eventListeners.add(listener)
+			},
+			off: (event: string, listener: () => void) => {
+				listeners.get(event)?.delete(listener)
+			},
+		} as unknown as Socket
+		const close = vi.fn()
+		const open = vi.fn(() => close)
+		const unsubscribe = createSubscriber(socket, `state`, open)
+
+		unsubscribe()
+		socket.id = `second`
+		for (const listener of listeners.get(`connect`) ?? []) listener()
+
+		expect(open).toHaveBeenCalledTimes(1)
+		await new Promise((resolve) => setTimeout(resolve, 60))
+		expect(close).toHaveBeenCalledTimes(1)
+		expect(listeners.get(`connect`)?.size ?? 0).toBe(0)
 	})
 })

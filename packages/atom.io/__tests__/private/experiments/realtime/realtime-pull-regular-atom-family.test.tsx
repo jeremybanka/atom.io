@@ -145,4 +145,38 @@ describe(`running transactions`, () => {
 		await waitFor(() => jane.renderResult.getByTestId(`1`))
 		await teardown()
 	})
+	test(`revokes and later restores a family member subscription`, async () => {
+		const { server, clients, teardown } = scenario()
+		const jane = clients.jane.init()
+
+		act(() => {
+			jane.renderResult.getByTestId(`toggleRealtimeDisplay`).click()
+		})
+		await waitFor(() => jane.renderResult.getByTestId(`foo`))
+		act(() => {
+			server.silo.setState(numberCollectionAtoms, `foo`, [0, 1])
+		})
+		await waitFor(() => jane.renderResult.getByTestId(`1`))
+
+		const unavailable = new Promise<void>((resolve) => {
+			jane.socket.once(`unavailable:numberCollection`, () => {
+				resolve()
+			})
+		})
+		act(() => {
+			server.silo.setState(exposedCollectionAtom, new Set<string>())
+		})
+		await unavailable
+		act(() => {
+			server.silo.setState(numberCollectionAtoms, `foo`, [0, 1, 2])
+		})
+		await new Promise((resolve) => setTimeout(resolve, 100))
+		expect(jane.renderResult.queryByTestId(`2`)).toBeNull()
+
+		act(() => {
+			server.silo.setState(exposedCollectionAtom, new Set([`foo`]))
+		})
+		await waitFor(() => jane.renderResult.getByTestId(`2`))
+		await teardown()
+	})
 })

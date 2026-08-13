@@ -107,4 +107,34 @@ describe(`running transactions`, () => {
 		await waitFor(() => jane.renderResult.getByTestId(`1`))
 		await teardown()
 	})
+	test(`revokes and later restores a mutable family member subscription`, async () => {
+		const { clients, server, teardown } = scenario()
+		const jane = clients.jane.init()
+
+		act(() => {
+			server.silo.setState(numberCollectionAtoms, `foo`, (prev) => prev.add(1))
+		})
+		await waitFor(() => jane.renderResult.getByTestId(`1`))
+
+		const unavailable = new Promise<void>((resolve) => {
+			jane.socket.once(`unavailable:numberCollection`, () => {
+				resolve()
+			})
+		})
+		act(() => {
+			server.silo.setState(exposedCollectionsAtom, new Set<CollectionName>())
+		})
+		await unavailable
+		act(() => {
+			server.silo.setState(numberCollectionAtoms, `foo`, (prev) => prev.add(2))
+		})
+		await new Promise((resolve) => setTimeout(resolve, 100))
+		expect(jane.renderResult.queryByTestId(`2`)).toBeNull()
+
+		act(() => {
+			server.silo.setState(exposedCollectionsAtom, new Set([`foo`]))
+		})
+		await waitFor(() => jane.renderResult.getByTestId(`2`))
+		await teardown()
+	})
 })

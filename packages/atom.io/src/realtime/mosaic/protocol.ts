@@ -16,6 +16,8 @@ export const MOSAIC_EVENTS = {
 export type MosaicProtocolVersion = typeof MOSAIC_PROTOCOL_VERSION
 
 export type MosaicModelIdentifier = {
+	/** Exact behavior-affecting configuration for this model variant. */
+	readonly configuration?: Json.Serializable
 	readonly key: string
 	readonly version: number
 }
@@ -87,6 +89,8 @@ export type MosaicSnapshotEnvelope<
 	/** The subset of the joining client's pending IDs already accepted. */
 	readonly acceptedPendingOperationIds: readonly string[]
 	readonly atom: MosaicAtomAddress
+	/** The current causal frontier from which new local operations depend. */
+	readonly headOperationIds: readonly string[]
 	readonly model: MosaicModelIdentifier
 	readonly protocolVersion: MosaicProtocolVersion
 	readonly revision: number

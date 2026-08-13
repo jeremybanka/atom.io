@@ -4,6 +4,8 @@ import type { ConstructorOf, Transceiver } from "atom.io/internal"
 import type {
 	MosaicModelIdentifier,
 	MosaicOperationMetadata,
+	MosaicRecovery,
+	MosaicRejectionCode,
 } from "./protocol.ts"
 
 /** Metadata available to deterministic validation and reduction. */
@@ -22,7 +24,14 @@ export type MosaicPrepareContext = MosaicOperationMetadata & {
 export type MosaicModelDecision<Operation extends Json.Serializable> =
 	| { readonly operation: Operation; readonly status: `accept` }
 	| { readonly dependencies: readonly string[]; readonly status: `defer` }
-	| { readonly reason: string; readonly status: `reject` }
+	| {
+			/** An optional protocol-safe classification supplied by the model. */
+			readonly code?: MosaicRejectionCode
+			readonly reason: string
+			/** An optional recovery policy supplied by the model. */
+			readonly recovery?: MosaicRecovery
+			readonly status: `reject`
+	  }
 
 /**
  * The serializable signal carried by a Mosaic transceiver. The wire protocol
@@ -54,6 +63,8 @@ export interface MosaicTransceiver<
 		intent: Intent,
 		context: MosaicPrepareContext,
 	): MosaicOperationSignal<Operation> | null
+	/** Apply exactly one validated operation, or throw without mutating. */
+	do(signal: MosaicOperationSignal<Operation>): null
 	/** Validate and normalize an untrusted operation against this projection. */
 	validate(
 		operation: unknown,

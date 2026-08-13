@@ -63,6 +63,20 @@ export function createTimeline<ManagedAtom extends TimelineManageable>(
 	data?: Timeline<ManagedAtom>,
 	family?: FamilyMetadata,
 ): TimelineToken<ManagedAtom> {
+	for (const initialTopic of options.scope) {
+		if (
+			initialTopic.type !== `mutable_atom` &&
+			initialTopic.type !== `mutable_atom_family`
+		) {
+			continue
+		}
+		const mutable = withdraw(store, initialTopic)
+		if (`class` in mutable && mutable.class.timelinePolicy === `append-only`) {
+			throw new Error(
+				`Mutable ${initialTopic.type === `mutable_atom` ? `atom` : `atom family`} "${mutable.key}" is append-only and cannot be attached to native timeline "${options.key}". Use its operation history instead.`,
+			)
+		}
+	}
 	const tl: Timeline<ManagedAtom> = {
 		type: `timeline`,
 		key: options.key,

@@ -9,6 +9,21 @@ const awaitConnection = async (socket: Socket): Promise<void> => {
 }
 
 describe(`React compatibility harness transport boundary`, () => {
+	test(`headless clients open their host and connection through the adapter`, async () => {
+		const adapter = RTTest.createSocketIOTransportAdapter()
+		const openHarness = vi.spyOn(adapter, `openHarness`)
+		const connectHarnessClient = vi.spyOn(adapter, `connectHarnessClient`)
+		const scenario = RTTest.headless({
+			server: () => {},
+			transportAdapter: adapter,
+		})
+		expect(openHarness).toHaveBeenCalledOnce()
+		const client = scenario.createClient({ name: `headless` })
+		expect(connectHarnessClient).toHaveBeenCalledOnce()
+		await awaitConnection(client.socket)
+		await scenario.teardown()
+	})
+
 	test(`singleClient opens its host and client through the adapter`, async () => {
 		const adapter = RTTest.createSocketIOTransportAdapter()
 		const openHarness = vi.spyOn(adapter, `openHarness`)

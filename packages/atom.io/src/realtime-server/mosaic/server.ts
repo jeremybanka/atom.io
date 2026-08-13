@@ -56,6 +56,13 @@ export type MosaicHistoryTimeline = {
 	readonly undo: readonly MosaicHistoryGroup[]
 }
 
+export type MosaicPresenceContext<State> = {
+	readonly actor: string
+	readonly resource: string
+	readonly session: string
+	readonly state: State
+}
+
 export type MosaicHistoryPolicy<State, Operation> = {
 	/** Return null for ordinary operations and a request for history operations. */
 	readonly request: (operation: Operation) => MosaicHistoryRequest | null
@@ -77,6 +84,11 @@ export type MosaicServerResource<
 	readonly operationSchema: StandardSchemaV1<unknown, MosaicOperation<Model>>
 	/** Presence is disabled unless a schema is supplied. */
 	readonly presenceSchema?: StandardSchemaV1<unknown, Presence>
+	/** Perform model-aware checks such as validating relative anchors. */
+	readonly validatePresence?: (
+		presence: Presence,
+		context: MosaicPresenceContext<MosaicState<Model>>,
+	) => MaybePromise<boolean>
 }
 
 export type MosaicServerConnection = {
@@ -296,10 +308,11 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 			)
 		}
 		const operation = accepted.operation
+		const reductionContext = { ...operation, revision: accepted.revision }
 		runtime.state = runtime.resource.model.apply(
 			runtime.state,
 			operation.operation,
-			operation,
+			reductionContext,
 		)
 		runtime.headRevision = accepted.revision
 		runtime.receiptIds.add(operation.id)
@@ -768,11 +781,15 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 					})
 					return
 				}
+				const validationContext = {
+					...authenticated,
+					revision: runtime.headRevision + 1,
+				}
 				const decision: MosaicModelDecision<Json.Serializable> =
 					runtime.resource.model.validate(
 						runtime.state,
 						authenticated.operation,
-						authenticated,
+						validationContext,
 					)
 				if (decision.status === `defer`) {
 					reject(connection, {
@@ -899,17 +916,33 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 			return
 		}
 		const records = presence.get(proposal.resource) ?? new Map()
-		records.set(connection.session, {
-			connection,
-			presence: validation.value,
-		})
-		presence.set(proposal.resource, records)
-		broadcastPresence(proposal.resource, {
-			actor: connection.actor,
-			presence: validation.value,
-			protocolVersion: MOSAIC_PROTOCOL_VERSION,
-			resource: proposal.resource,
-			session: connection.session,
+		const runtime = runtimeFor(resource)
+		await enqueue(runtime, async () => {
+			await initialize(runtime)
+			await drain(runtime, true)
+			if (
+				resource.validatePresence !== undefined &&
+				!(await resource.validatePresence(validation.value, {
+					actor: connection.actor,
+					resource: proposal.resource,
+					session: connection.session,
+					state: runtime.state,
+				}))
+			) {
+				return
+			}
+			records.set(connection.session, {
+				connection,
+				presence: validation.value,
+			})
+			presence.set(proposal.resource, records)
+			broadcastPresence(proposal.resource, {
+				actor: connection.actor,
+				presence: validation.value,
+				protocolVersion: MOSAIC_PROTOCOL_VERSION,
+				resource: proposal.resource,
+				session: connection.session,
+			})
 		})
 	}
 

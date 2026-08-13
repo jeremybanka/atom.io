@@ -240,6 +240,47 @@ describe(`Mosaic text transceiver`, () => {
 		expect(document.text).toBe(`aXc`)
 	})
 
+	test(`defensively bounds malformed external node graphs`, () => {
+		const seedAction = {
+			actor: `system`,
+			dependencies: [],
+			group: `seed`,
+			id: `seed`,
+			operation: { deletedIds: [], inserted: [], type: `edit` as const },
+			revision: 0,
+			session: `system`,
+		}
+		const node = (
+			id: string,
+			after: string | null,
+			before: string | null,
+			value: string,
+		) => ({ after, before, createdBy: `seed`, id, value })
+		const state = (nodes: MosaicTextSnapshot[`nodes`]): MosaicTextSnapshot => ({
+			actions: [seedAction],
+			activeEdits: { seed: true },
+			nodes,
+		})
+
+		expect(
+			materializeMosaicText(
+				state({
+					rightBounded: node(`z`, null, `a`, `Z`),
+					leftBoundary: node(`a`, null, null, `A`),
+				}),
+			),
+		).toBe(`ZA`)
+		expect(
+			materializeMosaicText(
+				state({
+					root: node(`duplicate`, null, `missing`, `A`),
+					sibling: node(`sibling`, null, null, `S`),
+					duplicate: node(`duplicate`, `duplicate`, null, `B`),
+				}),
+			),
+		).toBe(`AS`)
+	})
+
 	test(`selective history preserves foreign work`, () => {
 		const Markdown = mosaicText({ initialText: `Seed` })
 		const document = new Markdown()
@@ -270,6 +311,10 @@ describe(`Mosaic text transceiver`, () => {
 			context(`jane:3`, `jane`, `jane:3`, [undo.id]),
 		)
 		expect(document.text).toBe(`Seed[Jane][Dave]`)
+		expect(document.historyFor(`jane`).undo.at(-1)).toEqual({
+			group: `jane:typing`,
+			targetOperationIds: [jane.id],
+		})
 	})
 
 	test(`groups edits and closes stale history`, () => {
@@ -571,13 +616,28 @@ describe(`Mosaic text transceiver`, () => {
 		expect(interior.affinity).toBe(`left`)
 		expect(emoji.resolvePosition(interior)).toBe(2)
 		const Empty = mosaicText()
+		const empty = new Empty()
+		expect(empty.positionAtOffset(0)).toEqual({
+			affinity: `left`,
+			leftId: null,
+			rightId: null,
+		})
 		expect(
-			new Empty().resolvePosition({
+			empty.resolvePosition({
 				affinity: `left`,
 				leftId: null,
 				rightId: null,
 			}),
 		).toBe(0)
+		const Boundary = mosaicText({ initialText: `a😀` })
+		const boundary = new Boundary()
+		expect(boundary.positionAtOffset(0).leftId).toBeNull()
+		expect(boundary.positionAtOffset(1).leftId).toBe(boundary.nodes[0].id)
+		expect(boundary.positionAtOffset(2)).toEqual({
+			affinity: `left`,
+			leftId: boundary.nodes[1].id,
+			rightId: null,
+		})
 	})
 
 	test(`applies accepted revisions idempotently`, () => {
@@ -598,6 +658,9 @@ describe(`Mosaic text transceiver`, () => {
 				{ text: `hello`, type: `replace-text` },
 				context(`alice:noop`, `alice`),
 			),
+		).toBeNull()
+		expect(
+			replica.change({ type: `undo` }, context(`nobody:undo`, `nobody`)),
 		).toBeNull()
 	})
 
@@ -623,6 +686,26 @@ describe(`Mosaic text transceiver`, () => {
 		reversed.do(aliceSignal)
 		expect(reversed.toJSON().actions.map(({ revision }) => revision)).toEqual([
 			1, 2,
+		])
+
+		const provisionalThenAccepted = Markdown.fromJSON(base)
+		const provisional = change(
+			provisionalThenAccepted,
+			{ text: `P`, type: `replace-text` },
+			{ ...context(`provisional`, `pat`), group: null },
+		)
+		provisionalThenAccepted.do(aliceSignal)
+		expect(
+			provisionalThenAccepted
+				.toJSON()
+				.actions.map(({ id, group, revision }) => ({
+					group,
+					id,
+					revision,
+				})),
+		).toEqual([
+			{ group: `alice:1`, id: `alice:1`, revision: 1 },
+			{ group: provisional.id, id: provisional.id, revision: null },
 		])
 
 		const afterAlice = Markdown.fromJSON(base)

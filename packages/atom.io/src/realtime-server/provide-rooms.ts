@@ -118,6 +118,10 @@ const clearRoomState = (lifecycle: RoomLifecycle): void => {
 	lifecycle.room.dispose()
 	ROOMS.delete(roomKey)
 	ROOM_LIFECYCLES.delete(roomKey)
+	// A child may exit after its owning realtime server has already disposed and
+	// cleared the store. Global/process bookkeeping still has to finish, but the
+	// room state no longer exists and must not be recreated or mutated.
+	if (!store.atoms.has(roomKeysAtom.key)) return
 	setIntoStore(store, roomKeysAtom, (keys) => (keys.delete(roomKey), keys))
 	editRelationsInStore(store, usersInRooms, (relations) => {
 		relations.delete({ room: roomKey })

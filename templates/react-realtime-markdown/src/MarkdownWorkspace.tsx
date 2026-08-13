@@ -1,4 +1,5 @@
 import type { MosaicTextSelection } from "atom.io/realtime"
+import { useO } from "atom.io/react"
 import { useMosaic } from "atom.io/realtime-react"
 import {
 	Fragment,
@@ -15,9 +16,10 @@ import {
 
 import {
 	lineAndColumnAt,
-	markdownHistory,
-	markdownModel,
-	markdownResource,
+	Markdown,
+	markdownAtom,
+	markdownCharacterCountSelector,
+	markdownWordCountSelector,
 	type MarkdownPresence,
 } from "./collaboration/mosaic.ts"
 import { SIMULATED_IDENTITIES } from "./identities.ts"
@@ -183,19 +185,15 @@ export function MarkdownWorkspace({
 	clientId,
 	identity,
 }: MarkdownWorkspaceProps): ReactElement {
-	const mosaic = useMosaic<
-		typeof markdownModel,
-		MarkdownPresence,
-		ReturnType<typeof markdownModel.timeline>
-	>({
-		actor: identity.id,
-		history: markdownHistory,
-		resource: markdownResource,
-		session: clientId,
-	})
-	const document = mosaic.state
-	const markdown = markdownModel.text(document)
-	const timeline = mosaic.history
+	const mosaic = useMosaic<InstanceType<typeof Markdown>, MarkdownPresence>(
+		markdownAtom,
+		{ actor: identity.id, session: clientId },
+	)
+	const document = useO(markdownAtom)
+	const characterCount = useO(markdownCharacterCountSelector)
+	const wordCount = useO(markdownWordCountSelector)
+	const markdown = document.text
+	const history = document.historyFor(identity.id)
 	const presence = mosaic.presence.map(({ actor, presence: peer, session }) => ({
 		...peer,
 		clientId: session,
@@ -206,7 +204,7 @@ export function MarkdownWorkspace({
 	const [scroll, setScroll] = useState({ left: 0, top: 0 })
 	const preview = useMemo(() => renderMarkdown(markdown), [markdown])
 	const collaborators = presence.filter(({ clientId: id }) => id !== clientId)
-	const pending = mosaic.pendingOperationIds.length
+	const pending = mosaic.pending.length
 
 	const publishSelection = (selection: MosaicTextSelection | null): void => {
 		mosaic.publishPresence({
@@ -228,14 +226,13 @@ export function MarkdownWorkspace({
 			return
 		}
 		editor.setSelectionRange(
-			markdownModel.resolvePosition(document, selection.anchor),
-			markdownModel.resolvePosition(document, selection.head),
+			document.resolvePosition(selection.anchor),
+			document.resolvePosition(selection.head),
 		)
-	}, [document])
+	}, [markdown])
 
 	const rememberSelection = (editor: HTMLTextAreaElement): void => {
-		selectionRef.current = markdownModel.selectionFromOffsets(
-			document,
+		selectionRef.current = document.selectionFromOffsets(
 			editor.selectionStart,
 			editor.selectionEnd,
 		)
@@ -259,16 +256,16 @@ export function MarkdownWorkspace({
 				<toolbar-actions>
 					<button
 						type="button"
-						disabled={timeline.undo.length === 0}
-						onClick={() => mosaic.undo()}
+						disabled={history.undo.length === 0}
+						onClick={() => mosaic.change({ type: `undo` })}
 						title="Undo my last change"
 					>
 						↶ <span>Undo mine</span>
 					</button>
 					<button
 						type="button"
-						disabled={timeline.redo.length === 0}
-						onClick={() => mosaic.redo()}
+						disabled={history.redo.length === 0}
+						onClick={() => mosaic.change({ type: `redo` })}
 						title="Redo my last change"
 					>
 						↷ <span>Redo</span>
@@ -299,7 +296,10 @@ export function MarkdownWorkspace({
 				<editor-pane>
 					<pane-heading>
 						<label htmlFor="markdown-source">Markdown</label>
-						<span>{markdown.length.toLocaleString()} characters</span>
+						<span>
+							{characterCount.toLocaleString()} characters ·{` `}
+							{wordCount.toLocaleString()} words
+						</span>
 					</pane-heading>
 					<editor-surface>
 						<textarea
@@ -314,8 +314,7 @@ export function MarkdownWorkspace({
 								const { selectionStart, selectionEnd, value } =
 									event.currentTarget
 								mosaic.change({ text: value, type: `replace-text` })
-								selectionRef.current = markdownModel.selectionFromOffsets(
-									mosaic.client.read().state,
+								selectionRef.current = document.selectionFromOffsets(
 									selectionStart,
 									selectionEnd,
 								)
@@ -325,7 +324,7 @@ export function MarkdownWorkspace({
 								if (!(event.metaKey || event.ctrlKey) || event.key !== `z`)
 									return
 								event.preventDefault()
-								event.shiftKey ? mosaic.redo() : mosaic.undo()
+								mosaic.change({ type: event.shiftKey ? `redo` : `undo` })
 							}}
 							onScroll={(event) => {
 								setScroll({
@@ -342,7 +341,7 @@ export function MarkdownWorkspace({
 							{collaborators.map((person) => {
 								const relative = person.selection?.head
 								if (!relative) return null
-								const offset = markdownModel.resolvePosition(document, relative)
+								const offset = document.resolvePosition(relative)
 								const { line, column } = lineAndColumnAt(markdown, offset)
 								const style: CaretStyle = {
 									"--caret-column": column,
@@ -371,7 +370,7 @@ export function MarkdownWorkspace({
 					<ul>
 						{presence.map((person) => {
 							const offset = person.selection
-								? markdownModel.resolvePosition(document, person.selection.head)
+								? document.resolvePosition(person.selection.head)
 								: null
 							const line =
 								offset === null

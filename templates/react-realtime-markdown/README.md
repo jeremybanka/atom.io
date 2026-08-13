@@ -28,10 +28,10 @@ to check TypeScript, ESLint, and the Lasertag render-story/CSS relationship.
 ## Start Reading
 
 - `src/collaboration/mosaic.ts` is the browser collaboration contract: one
-  resource, a text model, selective history, and model-relative presence.
-- `node/mosaic-resource.ts` adds the server's runtime schemas, history policy,
-  presence validation, and checkpoint cadence without entering the browser
-  bundle.
+  mutable atom, graph-derived selectors, selective history, and model-relative
+  presence.
+- `node/mosaic-atom.ts` adds Zod runtime schemas, presence validation, and
+  checkpoint cadence without entering the browser bundle.
 - atom.io's Mosaic client owns optimistic edits, reconnect rebasing, causal
   retries, and structured recovery.
 - atom.io's Mosaic server authenticates authorship, durably orders revisions,

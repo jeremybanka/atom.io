@@ -1,17 +1,15 @@
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
-import { Silo } from "atom.io"
-import { StoreProvider } from "atom.io/react"
+import { mutableAtom, selector, Silo } from "atom.io"
+import { StoreProvider, useO } from "atom.io/react"
 import {
-	defineMosaicResource,
 	MOSAIC_EVENTS,
 	MOSAIC_PROTOCOL_VERSION,
+	mosaicAtomAddress,
 	type MosaicSnapshotEnvelope,
 	mosaicText,
 	type MosaicTextSelection,
 	type MosaicTextSnapshot,
-	type MosaicTextTimeline,
 } from "atom.io/realtime"
-import type { MosaicClientHistoryAdapter } from "atom.io/realtime-client"
 import { RealtimeContext, useMosaic } from "atom.io/realtime-react"
 import type { Socket } from "socket.io-client"
 
@@ -46,74 +44,47 @@ class TestSocket {
 	}
 }
 
-const model = mosaicText({ initialText: `Seed` })
-const resource = defineMosaicResource({ key: `shared-markdown`, model })
-const history = {
-	intent: (mode) => ({ type: mode }),
-	read: (state, actor) => model.timeline(state, actor),
-} satisfies MosaicClientHistoryAdapter<typeof model, MosaicTextTimeline>
-
-type CursorPresence = MosaicTextSelection
+const Markdown = mosaicText({ initialText: `Seed` })
+const markdownAtom = mutableAtom<InstanceType<typeof Markdown>>({
+	key: `sharedMarkdown`,
+	class: Markdown,
+})
+const markdownLength = selector<number>({
+	key: `sharedMarkdownLength`,
+	get: ({ get }) => get(markdownAtom).length,
+})
 
 function Workspace({ label }: { label: string }) {
-	const mosaic = useMosaic<typeof model, CursorPresence, MosaicTextTimeline>({
-		actor: `alice`,
-		history,
-		resource,
-		session: `alice:test-session`,
-	})
+	const document = useO(markdownAtom)
+	const length = useO(markdownLength)
+	const mosaic = useMosaic<InstanceType<typeof Markdown>, MosaicTextSelection>(
+		markdownAtom,
+		{ actor: `alice`, session: `alice:test-session` },
+	)
 	return (
 		<main>
 			<output data-testid="label">{label}</output>
 			<output data-testid="session">{mosaic.session}</output>
 			<output data-testid="status">{mosaic.status}</output>
-			<output data-testid="text">{model.text(mosaic.state)}</output>
-			<output data-testid="undo-count">{mosaic.history.undo.length}</output>
+			<output data-testid="text">{document.text}</output>
+			<output data-testid="length">{length}</output>
+			<output data-testid="undo-count">
+				{document.historyFor(`alice`).undo.length}
+			</output>
 			<button
 				type="button"
 				data-testid="change"
-				onClick={() =>
-					mosaic.change({
-						text: `${model.text(mosaic.state)}!`,
-						type: `replace-text`,
-					})
-				}
+				onClick={() => {
+					mosaic.change({ text: `${document.text}!`, type: `replace-text` })
+				}}
 			/>
 			<button
 				type="button"
 				data-testid="presence"
 				onClick={() => {
-					mosaic.publishPresence(model.selectionFromOffsets(mosaic.state, 0, 1))
+					mosaic.publishPresence(document.selectionFromOffsets(0, 1))
 				}}
 			/>
-			<button
-				type="button"
-				data-testid="clear-problem"
-				onClick={() => {
-					mosaic.clearProblem()
-				}}
-			/>
-			<button
-				type="button"
-				data-testid="create-group"
-				onClick={() => mosaic.createGroupId()}
-			/>
-			<button
-				type="button"
-				data-testid="retry"
-				onClick={() => {
-					mosaic.retryPending()
-				}}
-			/>
-			<button
-				type="button"
-				data-testid="synchronize"
-				onClick={() => {
-					mosaic.synchronize()
-				}}
-			/>
-			<button type="button" data-testid="undo" onClick={() => mosaic.undo()} />
-			<button type="button" data-testid="redo" onClick={() => mosaic.redo()} />
 		</main>
 	)
 }
@@ -121,17 +92,18 @@ function Workspace({ label }: { label: string }) {
 function snapshot(): MosaicSnapshotEnvelope<MosaicTextSnapshot> {
 	return {
 		acceptedPendingOperationIds: [],
-		model: { key: model.key, version: model.version },
+		atom: mosaicAtomAddress(markdownAtom),
+		headOperationIds: [],
+		model: Markdown.mosaic,
 		protocolVersion: MOSAIC_PROTOCOL_VERSION,
-		resource: resource.key,
 		revision: 0,
 		session: `alice:test-session`,
-		snapshot: model.snapshot(model.create()),
+		snapshot: new Markdown().toJSON(),
 	}
 }
 
 describe(`useMosaic`, () => {
-	test(`connects through the realtime service context and exposes every control`, async () => {
+	test(`connects a Store-native atom and leaves graph observation to useO`, async () => {
 		const socket = new TestSocket()
 		const silo = new Silo({
 			isProduction: false,
@@ -161,49 +133,37 @@ describe(`useMosaic`, () => {
 		})
 		expect(app.getByTestId(`status`).textContent).toBe(`live`)
 		expect(app.getByTestId(`text`).textContent).toBe(`Seed`)
+		expect(app.getByTestId(`length`).textContent).toBe(`4`)
 
 		fireEvent.click(app.getByTestId(`change`))
 		expect(app.getByTestId(`text`).textContent).toBe(`Seed!`)
+		expect(app.getByTestId(`length`).textContent).toBe(`5`)
 		expect(app.getByTestId(`undo-count`).textContent).toBe(`1`)
 		const proposal = socket.emitted.find(
 			({ event }) => event === MOSAIC_EVENTS.operation,
 		)?.payload as Record<string, unknown>
-		expect(proposal[`resource`]).toBe(resource.key)
+		expect(proposal[`atom`]).toEqual(mosaicAtomAddress(markdownAtom))
 		expect(proposal).not.toHaveProperty(`actor`)
 
 		fireEvent.click(app.getByTestId(`presence`))
 		expect(socket.emitted.at(-1)).toMatchObject({
 			event: MOSAIC_EVENTS.presence,
-			payload: { resource: resource.key, session: `alice:test-session` },
+			payload: {
+				atom: mosaicAtomAddress(markdownAtom),
+				session: `alice:test-session`,
+			},
 		})
-		fireEvent.click(app.getByTestId(`clear-problem`))
-		fireEvent.click(app.getByTestId(`create-group`))
-		fireEvent.click(app.getByTestId(`retry`))
-		fireEvent.click(app.getByTestId(`undo`))
-		expect(app.getByTestId(`text`).textContent).toBe(`Seed`)
-		fireEvent.click(app.getByTestId(`redo`))
-		expect(app.getByTestId(`text`).textContent).toBe(`Seed!`)
-		fireEvent.click(app.getByTestId(`synchronize`))
-		expect(app.getByTestId(`status`).textContent).toBe(`syncing`)
-		act(() => {
-			socket.receive(MOSAIC_EVENTS.snapshot, snapshot())
-		})
-		expect(app.getByTestId(`status`).textContent).toBe(`live`)
 
-		const joins = socket.emitted.filter(
+		const joinCount = socket.emitted.filter(
 			({ event }) => event === MOSAIC_EVENTS.join,
 		).length
 		app.rerender(view(`second`))
 		expect(app.getByTestId(`label`).textContent).toBe(`second`)
-		expect(app.getByTestId(`session`).textContent).toBe(`alice:test-session`)
 		expect(
 			socket.emitted.filter(({ event }) => event === MOSAIC_EVENTS.join),
-		).toHaveLength(joins)
+		).toHaveLength(joinCount)
 
 		app.unmount()
-		expect(socket.emitted.at(-1)).toMatchObject({
-			event: MOSAIC_EVENTS.presence,
-			payload: { presence: null },
-		})
+		expect(services.size).toBe(0)
 	})
 })

@@ -1,14 +1,15 @@
 import { act, waitFor } from "@testing-library/react"
+import { useO } from "atom.io/react"
 import type { Socket, UserKey } from "atom.io/realtime"
 import { useMosaic } from "atom.io/realtime-react"
 import { createMosaicServer } from "atom.io/realtime-server"
 import * as RTTest from "atom.io/realtime-testing"
 
-import { markdownServerResource } from "../node/mosaic-resource.ts"
+import { markdownServerAtom } from "../node/mosaic-atom.ts"
 import {
-	markdownHistory,
-	markdownModel,
-	markdownResource,
+	Markdown,
+	markdownAtom,
+	markdownWordCountSelector,
 	type MarkdownPresence,
 } from "../src/collaboration/mosaic.ts"
 import type { Identity } from "../src/identities.ts"
@@ -23,20 +24,18 @@ function identityFor(userKey: UserKey): Identity {
 
 function testClient(identity: Identity, session: string) {
 	return function TestClient() {
-		const mosaic = useMosaic<
-			typeof markdownModel,
-			MarkdownPresence,
-			ReturnType<typeof markdownModel.timeline>
-		>({
-			actor: identity.id,
-			history: markdownHistory,
-			resource: markdownResource,
-			session,
-		})
-		const text = markdownModel.text(mosaic.state)
+		const mosaic = useMosaic<InstanceType<typeof Markdown>, MarkdownPresence>(
+			markdownAtom,
+			{ actor: identity.id, session },
+		)
+		const document = useO(markdownAtom)
+		const wordCount = useO(markdownWordCountSelector)
+		const text = document.text
+		const history = document.historyFor(identity.id)
 		return (
 			<main>
 				<output data-testid="text">{text}</output>
+				<output data-testid="word-count">{wordCount}</output>
 				<output data-testid="status">{mosaic.status}</output>
 				<output data-testid="presence">
 					{mosaic.presence
@@ -62,21 +61,21 @@ function testClient(identity: Identity, session: string) {
 							color: identity.color,
 							lastActiveAt: 1,
 							name: identity.name,
-							selection: markdownModel.selectionFromOffsets(mosaic.state, 0, 0),
+							selection: document.selectionFromOffsets(0, 0),
 						})
 					}}
 				/>
 				<button
 					type="button"
 					data-testid="undo"
-					disabled={mosaic.history.undo.length === 0}
-					onClick={() => mosaic.undo()}
+					disabled={history.undo.length === 0}
+					onClick={() => mosaic.change({ type: `undo` })}
 				/>
 				<button
 					type="button"
 					data-testid="redo"
-					disabled={mosaic.history.redo.length === 0}
-					onClick={() => mosaic.redo()}
+					disabled={history.redo.length === 0}
+					onClick={() => mosaic.change({ type: `redo` })}
 				/>
 			</main>
 		)
@@ -85,7 +84,7 @@ function testClient(identity: Identity, session: string) {
 
 function scenario() {
 	const collaboration = createMosaicServer({
-		resources: [markdownServerResource],
+		atoms: [markdownServerAtom],
 	})
 	const room = RTTest.multiClient({
 		scenarioId: `mosaic-markdown`,
@@ -172,6 +171,9 @@ describe(`realtime collaborative Markdown`, () => {
 			expect(janeText).toBe(daveText)
 			expect(janeText).toContain(`[Jane]`)
 			expect(janeText).toContain(`[Dave]`)
+			expect(jane.renderResult.getByTestId(`word-count`).textContent).toBe(
+				dave.renderResult.getByTestId(`word-count`).textContent,
+			)
 		})
 		await room.teardown()
 	})

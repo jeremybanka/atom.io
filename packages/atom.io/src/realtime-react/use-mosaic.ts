@@ -1,133 +1,113 @@
+import type { MutableAtomToken } from "atom.io"
 import type { Json } from "atom.io/foundations/json"
 import type {
-	AnyMosaicModel,
-	MosaicIntent,
-	MosaicOperation,
-	MosaicOperationProposal,
+	AnyMosaicTransceiver,
+	MosaicPresenceEnvelope,
 } from "atom.io/realtime"
 import {
-	createMosaicClient,
-	type MosaicClient,
-	type MosaicClientOptions,
-	type MosaicClientSnapshot,
+	type MosaicClientProblem,
+	type MosaicClientStatus,
+	type MosaicClientTransport,
+	type MosaicController,
 	type MosaicSubmitOptions,
+	type MosaicSyncOptions,
+	syncMosaic,
 } from "atom.io/realtime-client"
+import { StoreContext, useO } from "atom.io/react"
 import * as React from "react"
 
 import { useRealtimeService } from "./use-realtime-service.ts"
 
-export type UseMosaicOptions<Model extends AnyMosaicModel, History> = Omit<
-	MosaicClientOptions<Model, History>,
-	`transport`
->
+export type UseMosaicOptions = Omit<MosaicSyncOptions, `transport`>
 
-type MosaicControls<
-	Model extends AnyMosaicModel,
+export type UseMosaicResult<
+	T extends AnyMosaicTransceiver,
 	Presence extends Json.Serializable,
-	History,
 > = Pick<
-	MosaicClient<Model, Presence, History>,
+	MosaicController<T, Presence>,
+	| `actor`
+	| `atom`
+	| `change`
 	| `clearProblem`
 	| `createGroupId`
 	| `publishPresence`
-	| `redo`
 	| `retryPending`
-	| `submit`
+	| `session`
+	| `state`
 	| `synchronize`
-	| `undo`
->
-
-export type UseMosaicResult<
-	Model extends AnyMosaicModel,
-	Presence extends Json.Serializable,
-	History,
-> = MosaicClientSnapshot<Model, Presence, History> &
-	MosaicControls<Model, Presence, History> & {
-		/** Friendly alias for {@link MosaicClient.submit}. */
-		readonly change: (
-			intent: MosaicIntent<Model>,
-			options?: MosaicSubmitOptions,
-		) => MosaicOperationProposal<MosaicOperation<Model>> | null
-		/** Escape hatch for advanced lifecycle and protocol controls. */
-		readonly client: MosaicClient<Model, Presence, History>
-	}
-
-let serviceSequence = 0
+> & {
+	/** Escape hatch for protocol- and lifecycle-level controls. */
+	readonly controller: MosaicController<T, Presence>
+	readonly pending: readonly string[]
+	readonly presence: readonly MosaicPresenceEnvelope<Presence>[]
+	readonly problem: MosaicClientProblem<T> | null
+	readonly revision: number
+	readonly status: MosaicClientStatus
+}
 
 /**
- * Create and observe one optimistic Mosaic client through the nearest
- * {@link RealtimeProvider}.
- *
- * Declare the resource and optional history adapter outside render so their
- * identity remains stable. Changing a creation option intentionally creates a
- * fresh client and outbox.
+ * Synchronize one ordinary mutable atom through the nearest RealtimeProvider.
+ * Read the document with `useO(token)` and derive from it with normal selectors;
+ * this hook only exposes the Store-owned collaboration control plane.
  */
 export function useMosaic<
-	Model extends AnyMosaicModel,
+	T extends AnyMosaicTransceiver,
 	Presence extends Json.Serializable = Json.Serializable,
-	History = null,
 >(
-	options: UseMosaicOptions<Model, History>,
-): UseMosaicResult<Model, Presence, History> {
-	const client = React.useMemo(
-		() => createMosaicClient<Model, Presence, History>(options),
+	token: MutableAtomToken<T>,
+	options: UseMosaicOptions,
+): UseMosaicResult<T, Presence> {
+	const store = React.useContext(StoreContext)
+	const controller = React.useMemo(
+		() => syncMosaic<T, Presence>(store, token, options),
 		[
+			store,
+			token.key,
 			options.actor,
 			options.clock,
-			options.history,
 			options.idSource,
-			options.resource,
 			options.session,
 		],
 	)
-	const subscribe = React.useCallback(
-		(listener: () => void) => client.subscribe(listener),
-		[client],
-	)
-	const read = React.useCallback(() => client.read(), [client])
-	const snapshot = React.useSyncExternalStore(subscribe, read, read)
-	const serviceKey = React.useMemo(
-		() =>
-			`mosaic:${options.resource.key}:${client.read().session}:${serviceSequence++}`,
-		[client, options.resource.key],
-	)
-	useRealtimeService(serviceKey, (socket) => client.connect(socket))
-	React.useEffect(
-		() => () => {
-			client.dispose()
-		},
-		[client],
+	useRealtimeService(
+		`mosaic:${controller.atom.key}:${controller.session}`,
+		(socket) => controller.connect(socket as MosaicClientTransport),
 	)
 
-	const controls = React.useMemo<MosaicControls<Model, Presence, History>>(
-		() => ({
-			clearProblem: () => {
-				client.clearProblem()
-			},
-			createGroupId: () => client.createGroupId(),
-			publishPresence: (presence) => {
-				client.publishPresence(presence)
-			},
-			redo: (submitOptions) => client.redo(submitOptions),
-			retryPending: () => {
-				client.retryPending()
-			},
-			submit: (intent, submitOptions) => client.submit(intent, submitOptions),
-			synchronize: () => {
-				client.synchronize()
-			},
-			undo: (submitOptions) => client.undo(submitOptions),
-		}),
-		[client],
-	)
+	const pending = useO(controller.state.pending)
+	const presence = useO(controller.state.presence)
+	const problem = useO(controller.state.problem)
+	const revision = useO(controller.state.revision)
+	const status = useO(controller.state.status)
 
 	return React.useMemo(
 		() => ({
-			...snapshot,
-			...controls,
-			change: controls.submit,
-			client,
+			actor: controller.actor,
+			atom: controller.atom,
+			change: (intent, submitOptions?: MosaicSubmitOptions) =>
+				controller.change(intent, submitOptions),
+			clearProblem: () => {
+				controller.clearProblem()
+			},
+			controller,
+			createGroupId: () => controller.createGroupId(),
+			pending,
+			presence,
+			problem,
+			publishPresence: (nextPresence) => {
+				controller.publishPresence(nextPresence)
+			},
+			retryPending: () => {
+				controller.retryPending()
+			},
+			revision,
+			session: controller.session,
+			state: controller.state,
+			status,
+			synchronize: () => {
+				controller.synchronize()
+			},
 		}),
-		[client, controls, snapshot],
+		[controller, pending, presence, problem, revision, status],
 	)
 }

@@ -1,0 +1,50 @@
+{
+	"name": "@atom.io/template-react-realtime-markdown",
+	"version": "0.0.1",
+	"description": "A realtime multiplayer Markdown editor built with atom.io, React, and Lasertag.",
+	"license": "Apache-2.0",
+	"publishConfig": {
+		"access": "public"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/jeremybanka/atom.io.git",
+		"directory": "templates/react-realtime-markdown"
+	},
+	"type": "module",
+	"scripts": {
+		"dev": "concurrently vite \"tsx node/server.ts\"",
+		"build": "tsc -b && vite build",
+		"lint": "npm run lint:eslint && npm run lint:lasertag && npm run lint:types",
+		"lint:eslint": "eslint .",
+		"lint:lasertag": "lasertag check \"src/**/*.module.css\"",
+		"lint:types": "tsc -b",
+		"preview": "concurrently \"vite preview\" \"tsx node/server.ts\"",
+		"test": "vitest run",
+		"test:once": "vitest run"
+	},
+	"dependencies": {
+		"atom.io": "workspace:*",
+		"react": "19.2.8",
+		"react-dom": "19.2.8",
+		"socket.io": "4.8.3",
+		"socket.io-client": "4.8.3"
+	},
+	"devDependencies": {
+		"@testing-library/dom": "10.4.1",
+		"@testing-library/react": "16.3.2",
+		"@types/node": "26.2.0",
+		"@types/react": "19.2.18",
+		"@types/react-dom": "19.2.4",
+		"@typescript-eslint/parser": "8.67.0",
+		"@vitejs/plugin-react": "6.0.5",
+		"concurrently": "10.0.4",
+		"eslint": "10.8.1",
+		"happy-dom": "20.11.2",
+		"lasertag": "0.7.0",
+		"tsx": "4.22.1",
+		"typescript": "7.0.2",
+		"vite": "8.2.1",
+		"vitest": "4.1.10"
+	}
+}

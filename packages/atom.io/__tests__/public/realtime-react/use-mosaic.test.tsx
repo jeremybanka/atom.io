@@ -2,17 +2,17 @@ import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { Silo } from "atom.io"
 import { StoreProvider } from "atom.io/react"
 import {
+	defineMosaicResource,
 	MOSAIC_EVENTS,
 	MOSAIC_PROTOCOL_VERSION,
 	type MosaicSnapshotEnvelope,
+	mosaicText,
 	type MosaicTextSelection,
 	type MosaicTextSnapshot,
 	type MosaicTextTimeline,
-	mosaicText,
-	defineMosaicResource,
 } from "atom.io/realtime"
 import type { MosaicClientHistoryAdapter } from "atom.io/realtime-client"
-import { RealtimeProvider, useMosaic } from "atom.io/realtime-react"
+import { RealtimeContext, useMosaic } from "atom.io/realtime-react"
 import type { Socket } from "socket.io-client"
 
 type Listener = (...args: any[]) => void
@@ -82,9 +82,9 @@ function Workspace({ label }: { label: string }) {
 			<button
 				type="button"
 				data-testid="presence"
-				onClick={() =>
+				onClick={() => {
 					mosaic.publishPresence(model.selectionFromOffsets(mosaic.state, 0, 1))
-				}
+				}}
 			/>
 			<button type="button" data-testid="undo" onClick={() => mosaic.undo()} />
 		</main>
@@ -111,11 +111,14 @@ describe(`useMosaic`, () => {
 			lifespan: `ephemeral`,
 			name: `useMosaic test`,
 		})
+		const services = new Map()
 		const view = (label: string) => (
 			<StoreProvider store={silo.store}>
-				<RealtimeProvider socket={socket as unknown as Socket}>
+				<RealtimeContext.Provider
+					value={{ services, socket: socket as unknown as Socket }}
+				>
 					<Workspace label={label} />
-				</RealtimeProvider>
+				</RealtimeContext.Provider>
 			</StoreProvider>
 		)
 		const app = render(view(`first`))
@@ -126,7 +129,9 @@ describe(`useMosaic`, () => {
 			).toBe(true)
 		})
 		expect(app.getByTestId(`status`).textContent).toBe(`syncing`)
-		act(() => socket.receive(MOSAIC_EVENTS.snapshot, snapshot()))
+		act(() => {
+			socket.receive(MOSAIC_EVENTS.snapshot, snapshot())
+		})
 		expect(app.getByTestId(`status`).textContent).toBe(`live`)
 		expect(app.getByTestId(`text`).textContent).toBe(`Seed`)
 

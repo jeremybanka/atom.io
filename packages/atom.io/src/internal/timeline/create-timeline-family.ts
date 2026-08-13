@@ -200,6 +200,20 @@ export function createTimelineFamily<
 	if (store.timelineFamilies.has(options.key)) {
 		return token
 	}
+	for (const scope of options.scope) {
+		const atomFamily = withdraw(store, scope.family)
+		const timelinePolicy =
+			`class` in atomFamily &&
+			typeof atomFamily.class === `function` &&
+			`timelinePolicy` in atomFamily.class
+				? atomFamily.class.timelinePolicy
+				: undefined
+		if (timelinePolicy === `append-only`) {
+			throw new Error(
+				`Mutable atom family "${atomFamily.key}" is append-only and cannot be attached to native timeline family "${options.key}". Use its operation history instead.`,
+			)
+		}
+	}
 
 	const family: TimelineFamily<K, Scope[`family`]> = {
 		type: `timeline_family`,

@@ -98,7 +98,16 @@ export type MosaicServerConnection = {
 }
 
 /** Internal erasure that preserves heterogeneous resource/presence inference. */
-type ErasedResource = MosaicServerResource<any, any>
+type ErasedResource = MosaicResource<AnyMosaicModel> & {
+	readonly checkpointEvery?: number
+	readonly history?: MosaicHistoryPolicy<any, any>
+	readonly operationSchema: StandardSchemaV1<unknown, any>
+	readonly presenceSchema?: StandardSchemaV1<unknown, any>
+	readonly validatePresence?: (
+		presence: any,
+		context: MosaicPresenceContext<any>,
+	) => MaybePromise<boolean>
+}
 
 export type MosaicServerOptions = {
 	readonly authorize?: (

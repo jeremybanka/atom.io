@@ -86,7 +86,34 @@ function Workspace({ label }: { label: string }) {
 					mosaic.publishPresence(model.selectionFromOffsets(mosaic.state, 0, 1))
 				}}
 			/>
+			<button
+				type="button"
+				data-testid="clear-problem"
+				onClick={() => {
+					mosaic.clearProblem()
+				}}
+			/>
+			<button
+				type="button"
+				data-testid="create-group"
+				onClick={() => mosaic.createGroupId()}
+			/>
+			<button
+				type="button"
+				data-testid="retry"
+				onClick={() => {
+					mosaic.retryPending()
+				}}
+			/>
+			<button
+				type="button"
+				data-testid="synchronize"
+				onClick={() => {
+					mosaic.synchronize()
+				}}
+			/>
 			<button type="button" data-testid="undo" onClick={() => mosaic.undo()} />
+			<button type="button" data-testid="redo" onClick={() => mosaic.redo()} />
 		</main>
 	)
 }
@@ -104,7 +131,7 @@ function snapshot(): MosaicSnapshotEnvelope<MosaicTextSnapshot> {
 }
 
 describe(`useMosaic`, () => {
-	test(`connects through RealtimeProvider and observes optimistic client state`, async () => {
+	test(`connects through the realtime service context and exposes every control`, async () => {
 		const socket = new TestSocket()
 		const silo = new Silo({
 			isProduction: false,
@@ -149,6 +176,19 @@ describe(`useMosaic`, () => {
 			event: MOSAIC_EVENTS.presence,
 			payload: { resource: resource.key, session: `alice:test-session` },
 		})
+		fireEvent.click(app.getByTestId(`clear-problem`))
+		fireEvent.click(app.getByTestId(`create-group`))
+		fireEvent.click(app.getByTestId(`retry`))
+		fireEvent.click(app.getByTestId(`undo`))
+		expect(app.getByTestId(`text`).textContent).toBe(`Seed`)
+		fireEvent.click(app.getByTestId(`redo`))
+		expect(app.getByTestId(`text`).textContent).toBe(`Seed!`)
+		fireEvent.click(app.getByTestId(`synchronize`))
+		expect(app.getByTestId(`status`).textContent).toBe(`syncing`)
+		act(() => {
+			socket.receive(MOSAIC_EVENTS.snapshot, snapshot())
+		})
+		expect(app.getByTestId(`status`).textContent).toBe(`live`)
 
 		const joins = socket.emitted.filter(
 			({ event }) => event === MOSAIC_EVENTS.join,

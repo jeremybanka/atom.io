@@ -65,6 +65,12 @@ export class UList<P extends primitive>
 		return new UList<P>(json)
 	}
 
+	public static transactionFork<P extends primitive>(
+		source: UList<P>,
+	): UList<P> {
+		return new UList<P>(source)
+	}
+
 	public add(value: P): this {
 		const result = super.add(value)
 		if (this.mode === `record`) {

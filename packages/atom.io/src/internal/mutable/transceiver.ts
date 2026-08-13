@@ -16,7 +16,11 @@ export interface Transceiver<
 export type TransceiverConstructor<
 	J extends Json.Serializable,
 	T extends Transceiver<any, any, J>,
-> = (new () => T) & { fromJSON: (json: J) => T }
+> = (new () => T) & {
+	fromJSON: (json: J) => T
+	/** Create an isolated copy for the first mutable access in a transaction. */
+	transactionFork?: (source: T) => T
+}
 
 export function isTransceiver(
 	value: unknown,

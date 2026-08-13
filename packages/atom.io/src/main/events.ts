@@ -85,7 +85,6 @@ export type TransactionOutcomeEvent<T extends TransactionToken<any>> = {
 	type: `transaction_outcome`
 	token: T
 	id: string
-	epoch: number
 	timestamp: number
 	subEvents: TransactionSubEvent[]
 	params: Parameters<TokenType<T>>

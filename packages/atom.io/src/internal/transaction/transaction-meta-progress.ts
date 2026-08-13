@@ -3,7 +3,6 @@ import type {
 	TransactionOutcomeEvent,
 	TransactionToken,
 } from "atom.io"
-import type { Junction } from "atom.io/foundations/junction"
 
 import type { Fn } from "../utility-types.ts"
 
@@ -16,7 +15,6 @@ export type TransactionProgress<F extends Fn> = {
 	toolkit: ActorToolkit
 }
 
-export type TransactionEpoch = {
-	epoch: Map<string, number>
-	actionContinuities: Junction<`continuity`, string, `action`, string>
+export type RootTransactionMeta = {
+	phase: `idle`
 }

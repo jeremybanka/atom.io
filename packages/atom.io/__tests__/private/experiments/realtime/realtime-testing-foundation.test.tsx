@@ -10,6 +10,87 @@ import {
 import * as RTTest from "atom.io/realtime-testing/headless"
 
 describe(`realtime testing foundations`, () => {
+	test(`scopes generated identities and sessions when a scenario ID is explicit`, async () => {
+		const first = RTTest.headless({
+			scenarioId: `replay-alpha`,
+			server: () => {},
+		})
+		const firstClient = first.createClient({ name: `alice` })
+		const second = RTTest.headless({
+			scenarioId: `replay-beta`,
+			server: () => {},
+		})
+		const secondClient = second.createClient({ name: `alice` })
+		const lateFirstClient = first.createClient({ name: `bob` })
+		try {
+			await Promise.all([first.waitForIdle(), second.waitForIdle()])
+			expect(first.server.scenarioId).toBe(`replay-alpha`)
+			expect(firstClient.sessionId).toBe(`replay-alpha:session-1`)
+			expect(lateFirstClient.sessionId).toBe(`replay-alpha:session-2`)
+			expect(firstClient.userKey).toBe(`user::replay-alpha:alice`)
+			expect(lateFirstClient.userKey).toBe(`user::replay-alpha:bob`)
+			expect(secondClient.sessionId).toBe(`replay-beta:session-1`)
+			expect(secondClient.userKey).toBe(`user::replay-beta:alice`)
+		} finally {
+			await Promise.all([first.teardown(), second.teardown()])
+		}
+		expect(() => RTTest.headless({ scenarioId: ``, server: () => {} })).toThrow(
+			`scenarioId cannot be empty`,
+		)
+	})
+
+	test(`does not abort application drains after successful completion`, async () => {
+		const scenario = RTTest.headless({ server: () => {} })
+		const client = scenario.createClient({ name: `successful-drain` })
+		let aborted = false
+		client.work.registerDrain(({ signal }) => {
+			signal.addEventListener(
+				`abort`,
+				() => {
+					aborted = true
+				},
+				{ once: true },
+			)
+		})
+		try {
+			await client.drainTransport()
+			await client.drainApplication()
+			expect(aborted).toBe(false)
+		} finally {
+			await scenario.teardown()
+		}
+	})
+
+	test(`rejects an in-flight barrier when disposal begins`, async () => {
+		let heldNonce: string | undefined
+		const scenario = RTTest.headless({
+			server: ({ socket }) => {
+				socket.removeAllListeners(`atom.io/realtime-testing:barrier-request`)
+				socket.on(
+					`atom.io/realtime-testing:barrier-request`,
+					(nonce: string) => {
+						if (heldNonce === undefined) {
+							heldNonce = nonce
+							return
+						}
+						socket.emit(`atom.io/realtime-testing:barrier-response`, nonce)
+					},
+				)
+			},
+		})
+		const client = scenario.createClient({ name: `dispose-barrier` })
+		await new Promise<void>((resolve) => client.socket.on(`connect`, resolve))
+		const draining = expect(
+			client.drainTransport({ stableRounds: 1, timeout: 1_000 }),
+		).rejects.toThrow(`was disposed`)
+		await vi.waitFor(() => {
+			expect(heldNonce).toBeDefined()
+		})
+		await client.dispose()
+		await draining
+		await scenario.teardown()
+	})
+
 	test(`diagnostic inspectors isolate serialization and selector failures`, () => {
 		const inspectors = new RealtimeTestInspectors()
 		expect(inspectors.transcript()).toBe(`[no selected state registered]`)

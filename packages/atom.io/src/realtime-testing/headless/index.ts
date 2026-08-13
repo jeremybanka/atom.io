@@ -50,6 +50,8 @@ export type RealtimeTestServerTools = {
 
 export type TestSetupOptions = {
 	immortal?: { server?: boolean }
+	/** Stable namespace for generated identities and sessions. */
+	scenarioId?: string
 	server: (tools: RealtimeTestServerTools) => (() => void) | void
 	/** @internal Override the real transport seam for conformance tests. */
 	transportAdapter?: SocketIOTransportAdapter
@@ -118,6 +120,8 @@ export type RealtimeTestServer = RealtimeTestTools & {
 	inspect: (label: string, read: () => unknown) => () => void
 	journal: RealtimeTestEventJournal
 	port: number
+	/** Namespace used for generated identities and sessions. */
+	scenarioId: string
 	work: RealtimeTestWorkTracker
 }
 
@@ -192,7 +196,6 @@ const withTimeout = async <T>(
 		return await Promise.race([operation(controller.signal), expired])
 	} finally {
 		clearTimeout(timer)
-		controller.abort(new Error(`Realtime test wait completed`))
 	}
 }
 
@@ -366,6 +369,11 @@ const waitForConvergence = async <State>(
 export const setupRealtimeTestServer = (
 	options: TestSetupOptions,
 ): RealtimeTestServer => {
+	const scenarioId = options.scenarioId ?? ``
+	if (options.scenarioId !== undefined && scenarioId.length === 0) {
+		throw new Error(`Realtime test scenarioId cannot be empty`)
+	}
+	const identityPrefix = scenarioId.length === 0 ? `` : `${scenarioId}:`
 	let readDiagnostics = () => `[realtime server is initializing]`
 	let sessionNumber = 0
 	const journal = new RealtimeTestEventJournal({
@@ -495,13 +503,14 @@ export const setupRealtimeTestServer = (
 		journal,
 		harness,
 		name: `SERVER`,
-		nextSessionId: () => `session-${++sessionNumber}`,
+		nextSessionId: () => `${identityPrefix}session-${++sessionNumber}`,
 		port,
 		registerClient: (client) => clients.add(client),
 		inspect: (label, read) => inspectors.register(`server/${label}`, read),
 		silo,
-		transport,
+		scenarioId,
 		unregisterClient: (client) => clients.delete(client),
+		transport,
 		work,
 	}
 	readDiagnostics = result.diagnostics
@@ -515,7 +524,9 @@ export const setupHeadlessRealtimeTestClient = (
 ): HeadlessRealtimeTestClient => {
 	const internalServer = server as InternalRealtimeTestServer
 	const sessionId = options.sessionId ?? internalServer.nextSessionId()
-	const userKey = options.userKey ?? `user::${options.name}`
+	const userKey =
+		options.userKey ??
+		`user::${internalServer.scenarioId.length === 0 ? `` : `${internalServer.scenarioId}:`}${options.name}`
 	const socket: ClientSocket = internalServer.transport.connectHarnessClient(
 		internalServer.harness,
 		{
@@ -554,15 +565,24 @@ export const setupHeadlessRealtimeTestClient = (
 	socket.onAnyOutgoing((event, ...args) => {
 		record(`client:outgoing`, event, args)
 	})
-	const barrierWaiters = new Map<string, () => void>()
+	const barrierWaiters = new Map<
+		string,
+		{ reject: (error: Error) => void; resolve: () => void }
+	>()
+	const rejectBarrierWaiters = (error: Error): void => {
+		for (const waiter of [...barrierWaiters.values()]) waiter.reject(error)
+	}
 	socket.on(BARRIER_RESPONSE, (nonce: string) => {
-		const resolve = barrierWaiters.get(nonce)
-		if (!resolve) return
-		barrierWaiters.delete(nonce)
-		resolve()
+		barrierWaiters.get(nonce)?.resolve()
+	})
+	socket.on(`disconnect`, () => {
+		rejectBarrierWaiters(
+			new Error(`Realtime test client ${sessionId} disconnected`),
+		)
 	})
 
 	let disposed = false
+	let disposePromise: Promise<void> | null = null
 	let barrierNumber = 0
 	const client: InternalRealtimeTestClient = {
 		diagnostics: () =>
@@ -622,14 +642,20 @@ export const setupHeadlessRealtimeTestClient = (
 				const nonce = `${sessionId}:${++barrierNumber}`
 				await withTimeout(
 					(signal) =>
-						new Promise<void>((resolve) => {
+						new Promise<void>((resolve, reject) => {
 							const cleanup = () => {
 								barrierWaiters.delete(nonce)
 								signal.removeEventListener(`abort`, cleanup)
 							}
-							barrierWaiters.set(nonce, () => {
-								cleanup()
-								resolve()
+							barrierWaiters.set(nonce, {
+								reject: (error) => {
+									cleanup()
+									reject(error)
+								},
+								resolve: () => {
+									cleanup()
+									resolve()
+								},
 							})
 							signal.addEventListener(`abort`, cleanup, { once: true })
 							socket.emit(BARRIER_REQUEST, nonce)
@@ -647,18 +673,25 @@ export const setupHeadlessRealtimeTestClient = (
 				previousCursor = cursor
 			}
 		},
-		dispose: async () => {
-			if (disposed) return
-			try {
-				await RTC.observeSocketWindDown(socket)
-				if (socket.connected) await client.waitForIdle()
-			} finally {
-				disposed = true
-				socket.removeAllListeners()
-				socket.disconnect()
-				clearStore(silo.store)
-				internalServer.unregisterClient(client)
-			}
+		dispose: () => {
+			disposePromise ??= (async () => {
+				const disposeError = new Error(
+					`Realtime test client ${sessionId} was disposed`,
+				)
+				rejectBarrierWaiters(disposeError)
+				try {
+					await RTC.observeSocketWindDown(socket)
+					if (socket.connected) await client.waitForIdle()
+				} finally {
+					disposed = true
+					rejectBarrierWaiters(disposeError)
+					socket.removeAllListeners()
+					socket.disconnect()
+					clearStore(silo.store)
+					internalServer.unregisterClient(client)
+				}
+			})()
+			return disposePromise
 		},
 		enableLogging: () => {
 			prefixLogger(silo, options.name)
@@ -750,3 +783,11 @@ export const headless = (
 			waitForConvergence(clients, server, convergenceOptions),
 	}
 }
+
+// Renderer-free scenario utilities are available from the headless subpath.
+export * from "../deterministic-transport.ts"
+export * from "../execution-realms.ts"
+export * from "../model-scenario.ts"
+export * from "../reference-replicated-sequence.ts"
+export * from "../transport-adapter.ts"
+export * from "../virtual-clock.ts"

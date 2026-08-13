@@ -135,24 +135,38 @@ export class SocketIOTransportAdapter implements RealtimeTestTransportAdapter {
 		const serverEndpoint = endpoint(options.server, `server`)
 		const httpServer = http.createServer()
 		const socketServer = new SocketIOServer(httpServer)
-		await new Promise<void>((resolve, reject) => {
-			httpServer.once(`error`, reject)
-			httpServer.listen(0, `127.0.0.1`, () => {
-				httpServer.off(`error`, reject)
-				resolve()
-			})
-		})
-		const address = httpServer.address()
-		if (address === null || typeof address === `string`) {
+		let clientSocket: SocketIOClientSocket | undefined
+		let closed = false
+		const close = async (): Promise<void> => {
+			if (closed) return
+			closed = true
+			clientSocket?.disconnect()
 			await new Promise<void>((resolve) =>
 				socketServer.close(() => {
 					resolve()
 				}),
 			)
-			throw new Error(`Socket.IO adapter could not determine its test port`)
+			if (httpServer.listening) {
+				await new Promise<void>((resolve) => {
+					httpServer.close(() => {
+						resolve()
+					})
+				})
+			}
 		}
 
 		try {
+			await new Promise<void>((resolve, reject) => {
+				httpServer.once(`error`, reject)
+				httpServer.listen(0, `127.0.0.1`, () => {
+					httpServer.off(`error`, reject)
+					resolve()
+				})
+			})
+			const address = httpServer.address()
+			if (address === null || typeof address === `string`) {
+				throw new Error(`Socket.IO adapter could not determine its test port`)
+			}
 			const serverSocketPromise = new Promise<Socket>((resolve, reject) => {
 				socketServer.once(`connection`, (socket) => {
 					try {
@@ -167,7 +181,7 @@ export class SocketIOTransportAdapter implements RealtimeTestTransportAdapter {
 					}
 				})
 			})
-			const clientSocket = io(`http://127.0.0.1:${address.port}`, {
+			clientSocket = io(`http://127.0.0.1:${address.port}`, {
 				forceNew: true,
 				reconnection: false,
 				transports: [`websocket`],
@@ -175,8 +189,16 @@ export class SocketIOTransportAdapter implements RealtimeTestTransportAdapter {
 				auth: this.#auth(clientEndpoint, serverEndpoint),
 			})
 			const connectedPromise = new Promise<void>((resolve, reject) => {
-				clientSocket.once(`connect`, resolve)
-				clientSocket.once(`connect_error`, reject)
+				const onConnect = () => {
+					clientSocket?.off(`connect_error`, onConnectError)
+					resolve()
+				}
+				const onConnectError = (error: Error) => {
+					clientSocket?.off(`connect`, onConnect)
+					reject(error)
+				}
+				clientSocket?.once(`connect`, onConnect)
+				clientSocket?.once(`connect_error`, onConnectError)
 			})
 			const [serverSocket] = await Promise.all([
 				serverSocketPromise,
@@ -184,23 +206,12 @@ export class SocketIOTransportAdapter implements RealtimeTestTransportAdapter {
 			])
 			return {
 				client: clientSocket,
-				dispose: async () => {
-					clientSocket.disconnect()
-					await new Promise<void>((resolve) =>
-						socketServer.close(() => {
-							resolve()
-						}),
-					)
-				},
+				dispose: close,
 				endpoints: { client: clientEndpoint, server: serverEndpoint },
 				server: serverSocket,
 			}
 		} catch (error) {
-			await new Promise<void>((resolve) =>
-				socketServer.close(() => {
-					resolve()
-				}),
-			)
+			await close()
 			throw error
 		}
 	}

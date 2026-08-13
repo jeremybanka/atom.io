@@ -41,8 +41,9 @@ object would bypass the accepted operation stream and clobber collaboration.
 Its actor-scoped capability is named `historyFor`, and undo/redo append normal
 operations that every replica reduces in the same order.
 
-The server validates the actor's current history cursor immediately before the
-append. A stale tab therefore fails closed and resnapshots. Accepted revisions
+The server validates the actor's current history cursor through the text
+transceiver immediately before the append. A stale tab therefore fails closed
+and resnapshots. Accepted revisions
 are durable reduction metadata, so concurrent history operations have one
 canonical order; provisional client projections explicitly use no revision.
 This is exact at operation ownership and intentionally best-effort at recovering
@@ -61,7 +62,7 @@ actor/session record.
 
 The server never acknowledges or broadcasts an operation before persistence.
 Its adapter contract atomically compares the expected revision and reserves the
-resource/operation-ID receipt. A reused ID with different normalized content is
+atom-stream/operation-ID receipt. A reused ID with different normalized content is
 a collision, not an idempotent retry. Receipts survive checkpoint compaction.
 
 Horizontal notifications are wake-up hints only. Every server drains a checked,
@@ -81,9 +82,10 @@ policy before pruning operation bodies.
 Each Atom.io Store creates stable session-scoped operation IDs, applies locally,
 and retains one causal outbox for the mutable atom token. Multiple components in
 that Store share the same replica; a second Silo gets a genuinely independent
-replica. Reconnect snapshots report only which pending IDs were already accepted;
-the client hydrates the transceiver checkpoint, removes those proposals, and
-replays the rest. Duplicate delivery is harmless. A revision gap resnapshots.
+replica. Reconnect snapshots report which pending IDs were already accepted and
+the authoritative causal frontier; the client hydrates the transceiver
+checkpoint, removes those proposals, and replays the rest from that frontier.
+Duplicate delivery is harmless. A revision gap resnapshots.
 Structured rejection policies distinguish retryable work from stale history or
 invalid dependency chains, which are quarantined rather than left as impossible
 optimistic state.

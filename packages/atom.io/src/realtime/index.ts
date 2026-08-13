@@ -1,3 +1,4 @@
+export * from "./clock.ts"
 export * from "./employ-socket.ts"
 export * from "./guard-socket.ts"
 export * from "./mutex-store.ts"

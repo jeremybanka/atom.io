@@ -1,6 +1,6 @@
 /** Context supplied to application-work drain adapters. */
 export type RealtimeTestDrainContext = {
-	/** Aborted when the enclosing wait completes or times out. */
+	/** Aborted only when the enclosing wait times out. */
 	signal: AbortSignal
 	/** Absolute wall-clock deadline for this drain attempt. */
 	deadline: number

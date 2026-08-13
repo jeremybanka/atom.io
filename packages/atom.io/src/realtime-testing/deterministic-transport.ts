@@ -1,6 +1,7 @@
 import type { Json } from "atom.io/foundations/json"
 import type { Socket } from "atom.io/realtime"
 
+import { structurallyEqual } from "./structural-equality"
 import { VirtualClock } from "./virtual-clock"
 
 export type DeterministicTransportMode = `automatic` | `manual`
@@ -396,7 +397,7 @@ export class DeterministicTransport {
 				)
 			}
 			const signature = this.#signature(envelope)
-			if (JSON.stringify(replayed.envelope) !== JSON.stringify(signature)) {
+			if (!structurallyEqual(replayed.envelope, signature)) {
 				throw new Error(
 					`Transport replay mismatch at decision ${this.#replay.position}: expected ${JSON.stringify(replayed.envelope)}, received ${JSON.stringify(signature)}`,
 				)

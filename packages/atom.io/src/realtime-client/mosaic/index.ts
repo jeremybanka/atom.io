@@ -1,2 +1,2 @@
-export * from "./create-mosaic-client.ts"
+export * from "./sync-mosaic.ts"
 export type * from "./types.ts"

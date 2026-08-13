@@ -62,7 +62,8 @@
 				"renovatebot/github-action",
 				"ghcr.io/renovatebot/renovate"
 			],
-			"groupName": "renovate"
+			"groupName": "renovate",
+			"minimumReleaseAge": null
 		},
 		{
 			"matchPackageNames": [

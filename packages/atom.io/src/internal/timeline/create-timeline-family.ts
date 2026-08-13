@@ -112,6 +112,18 @@ function addScope<K extends Canonical, M extends TimelineManageable>(
 	scope: TimelineFamilyScope<K, any, any>,
 ): void {
 	const atomFamilyKey = scope.family.key
+	const atomFamily = withdraw(store, scope.family)
+	const timelinePolicy =
+		`class` in atomFamily &&
+		typeof atomFamily.class === `function` &&
+		`timelinePolicy` in atomFamily.class
+			? atomFamily.class.timelinePolicy
+			: undefined
+	if (timelinePolicy === `append-only`) {
+		throw new Error(
+			`Mutable atom family "${atomFamily.key}" is append-only and cannot be attached to native timeline family "${family.key}". Use its operation history instead.`,
+		)
+	}
 	if (family.routes.has(atomFamilyKey)) {
 		store.logger.error(
 			`❌`,
@@ -154,7 +166,6 @@ function addScope<K extends Canonical, M extends TimelineManageable>(
 		{ timelineKey: family.key, topicKey: atomFamilyKey },
 		{ topicType: `atom_family` },
 	)
-	const atomFamily = withdraw(store, scope.family)
 	const subject = atomFamily.subject as unknown as Subject<
 		AtomLifecycleEvent<AtomToken<any, any, any>>
 	>

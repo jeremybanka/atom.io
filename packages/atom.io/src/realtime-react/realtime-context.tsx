@@ -28,13 +28,22 @@ export const RealtimeProvider: React.FC<{
 	).current
 	const setMySocketKey = useI(RTC.mySocketKeyAtom)
 	React.useEffect(() => {
-		setMySocketKey(socket?.id ? `socket::${socket.id}` : undefined)
-		socket?.on(`connect`, () => {
+		const handleConnect = () => {
 			setMySocketKey(socket?.id ? `socket::${socket.id}` : undefined)
-		})
-		socket?.on(`disconnect`, () => {
+		}
+		const handleDisconnect = () => {
 			setMySocketKey(undefined)
-		})
+		}
+
+		handleConnect()
+		socket?.on(`connect`, handleConnect)
+		socket?.on(`disconnect`, handleDisconnect)
+
+		return () => {
+			socket?.off(`connect`, handleConnect)
+			socket?.off(`disconnect`, handleDisconnect)
+			setMySocketKey(undefined)
+		}
 	}, [socket, setMySocketKey])
 	return (
 		<RealtimeContext.Provider value={{ socket, services }}>

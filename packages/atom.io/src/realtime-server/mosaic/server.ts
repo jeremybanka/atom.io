@@ -97,11 +97,14 @@ export type MosaicServerConnection = {
 	readonly socket: Socket
 }
 
+/** Internal erasure that preserves heterogeneous resource/presence inference. */
+type ErasedResource = MosaicServerResource<any, any>
+
 export type MosaicServerOptions = {
 	readonly authorize?: (
 		context: MosaicAuthorizationContext,
 	) => MaybePromise<boolean>
-	readonly resources: readonly MosaicServerResource<AnyMosaicModel>[]
+	readonly resources: readonly ErasedResource[]
 	readonly storage?: MosaicStorageAdapter
 }
 
@@ -116,8 +119,6 @@ export type MosaicServer = {
 	dispose(): Promise<void>
 	resourceStatus(resource: string): MosaicServerResourceStatus
 }
-
-type ErasedResource = MosaicServerResource<AnyMosaicModel>
 
 type ResourceRuntime = {
 	checkpointTail: Promise<void>

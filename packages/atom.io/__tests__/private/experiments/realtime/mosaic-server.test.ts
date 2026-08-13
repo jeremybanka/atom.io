@@ -17,7 +17,7 @@ import {
 } from "atom.io/realtime"
 import {
 	createMosaicServer,
-	defineMosaicServerAtom,
+	defineMosaicAtomRegistration,
 	fingerprintMosaicOperation,
 	InMemoryMosaicStorage,
 	type MosaicStorageAdapter,
@@ -147,13 +147,39 @@ class Counter {
 		return structuredClone(this.#state)
 	}
 
-	public validate(operation: unknown): MosaicModelDecision<CounterOperation> {
-		return typeof operation === `object` &&
-			operation !== null &&
-			(Reflect.get(operation, `type`) === `add` ||
-				Reflect.get(operation, `type`) === `history`)
-			? { operation: operation as CounterOperation, status: `accept` as const }
-			: { reason: `Invalid counter operation.`, status: `reject` as const }
+	public validate(
+		operation: unknown,
+		context: MosaicReduceContext,
+	): MosaicModelDecision<CounterOperation> {
+		if (
+			typeof operation !== `object` ||
+			operation === null ||
+			(Reflect.get(operation, `type`) !== `add` &&
+				Reflect.get(operation, `type`) !== `history`)
+		) {
+			return { reason: `Invalid counter operation.`, status: `reject` }
+		}
+		const counterOperation = operation as CounterOperation
+		if (counterOperation.type === `history`) {
+			const expected = timeline(this.#state, context.actor)[
+				counterOperation.mode
+			].at(-1)?.targetOperationIds
+			if (
+				expected === undefined ||
+				expected.length !== counterOperation.targetOperationIds.length ||
+				!expected.every(
+					(id, index) => id === counterOperation.targetOperationIds[index],
+				)
+			) {
+				return {
+					code: `stale-history`,
+					reason: `The requested history group is no longer current.`,
+					recovery: `resnapshot`,
+					status: `reject`,
+				}
+			}
+		}
+		return { operation: counterOperation, status: `accept` }
 	}
 }
 
@@ -173,7 +199,7 @@ const counterAtom: MutableAtomToken<Counter> = mutableAtom({
 	key: `counter`,
 })
 const address = mosaicAtomAddress(counterAtom)
-const atom = defineMosaicServerAtom({
+const atom = defineMosaicAtomRegistration({
 	class: Counter,
 	checkpointEvery: 2,
 	operationSchema,
@@ -425,6 +451,7 @@ describe(`in-memory Mosaic storage`, () => {
 		storage.setSessionWatermark(address, `slow`, 0)
 		const checkpoint = {
 			atom: address,
+			headOperationIds: [`alice:2`],
 			model: Counter.mosaic,
 			protocolVersion: MOSAIC_PROTOCOL_VERSION,
 			revision: 2,
@@ -461,8 +488,9 @@ describe(`Mosaic server`, () => {
 			class: Counter,
 			key: `counter`,
 		})
-		const familyAtom = defineMosaicServerAtom({
+		const familyAtom = defineMosaicAtomRegistration({
 			class: Counter,
+			keySchema: z.string(),
 			operationSchema,
 			target: counterAtoms,
 		})
@@ -471,7 +499,7 @@ describe(`Mosaic server`, () => {
 			key: `counter(${JSON.stringify(`document`)})`,
 			type: `mutable_atom` as const,
 		}
-		const server = createMosaicServer({ atoms: [familyAtom] })
+		const server = createMosaicServer({ registrations: [familyAtom] })
 		const socket = new TestSocket(`family`)
 		const disconnect = server.connect({
 			actor: `alice`,
@@ -492,7 +520,97 @@ describe(`Mosaic server`, () => {
 			atom: familyAddress,
 		})
 		await waitForValues(socket, MOSAIC_EVENTS.operation, 1)
-		expect(server.atomStatus(familyAddress).revision).toBe(1)
+		expect((await server.atomStatus(familyAddress)).revision).toBe(1)
+
+		await disconnect()
+		await server.dispose()
+	})
+
+	test(`validates and canonicalizes family keys before storage`, async () => {
+		const documentsAtoms = mutableAtomFamily<Counter, string>({
+			class: Counter,
+			key: `documents`,
+		})
+		const familyRegistration = defineMosaicAtomRegistration({
+			class: Counter,
+			keySchema: z.string().trim().min(1),
+			operationSchema,
+			target: documentsAtoms,
+		})
+		const storage = wrapStorage()
+		const storedRecover = storage.recover.bind(storage)
+		const recover = vi.fn(storedRecover)
+		const server = createMosaicServer({
+			registrations: [familyRegistration],
+			storage: { ...storage, recover },
+		})
+		const socket = new TestSocket(`family-validation`)
+		const disconnect = server.connect({
+			actor: `alice`,
+			session: `family-session`,
+			socket,
+		})
+		const rawSubKey = JSON.stringify(` document `)
+		const rawAddress = {
+			family: { key: `documents`, subKey: rawSubKey },
+			key: `documents(${rawSubKey})`,
+			type: `mutable_atom` as const,
+		}
+		const canonicalSubKey = JSON.stringify(`document`)
+		const canonicalAddress = {
+			family: { key: `documents`, subKey: canonicalSubKey },
+			key: `documents(${canonicalSubKey})`,
+			type: `mutable_atom` as const,
+		}
+		socket.clientEmit(MOSAIC_EVENTS.join, {
+			atom: rawAddress,
+			knownRevision: null,
+			model: Counter.mosaic,
+			pendingOperationIds: [],
+			protocolVersion: MOSAIC_PROTOCOL_VERSION,
+			session: `family-session`,
+		})
+		const [snapshot] = (await waitForValues(
+			socket,
+			MOSAIC_EVENTS.snapshot,
+			1,
+		)) as unknown as MosaicSnapshotEnvelope[]
+		expect(snapshot?.atom).toEqual(canonicalAddress)
+		expect(recover).toHaveBeenCalledWith(canonicalAddress)
+
+		socket.clientEmit(MOSAIC_EVENTS.operation, {
+			...proposal(`family-session`, `family:canonical`),
+			atom: rawAddress,
+		})
+		await waitForValues(socket, MOSAIC_EVENTS.operation, 1)
+		socket.clientEmit(MOSAIC_EVENTS.operation, {
+			...proposal(`family-session`, `family:canonical`),
+			atom: canonicalAddress,
+		})
+		await waitForValues(socket, MOSAIC_EVENTS.operation, 2)
+		expect((await storedRecover(canonicalAddress)).headRevision).toBe(1)
+
+		const recoveries = recover.mock.calls.length
+		const emptySubKey = JSON.stringify(`   `)
+		socket.clientEmit(MOSAIC_EVENTS.join, {
+			atom: {
+				family: { key: `documents`, subKey: emptySubKey },
+				key: `documents(${emptySubKey})`,
+				type: `mutable_atom`,
+			},
+			knownRevision: null,
+			model: Counter.mosaic,
+			pendingOperationIds: [],
+			protocolVersion: MOSAIC_PROTOCOL_VERSION,
+			session: `family-session`,
+		})
+		const [rejection] = (await waitForValues(
+			socket,
+			MOSAIC_EVENTS.rejection,
+			1,
+		)) as unknown as MosaicRejectionEnvelope[]
+		expect(rejection?.code).toBe(`atom-unavailable`)
+		expect(recover).toHaveBeenCalledTimes(recoveries)
 
 		await disconnect()
 		await server.dispose()
@@ -511,11 +629,11 @@ describe(`Mosaic server`, () => {
 				version: 1,
 			},
 		}
-		const compatibleAtom = defineMosaicServerAtom({
+		const compatibleAtom = defineMosaicAtomRegistration({
 			...atom,
 			operationSchema: compatibleSchema,
 		})
-		const server = createMosaicServer({ atoms: [compatibleAtom] })
+		const server = createMosaicServer({ registrations: [compatibleAtom] })
 		const socket = new TestSocket(`standard-schema`)
 		const disconnect = server.connect({
 			actor: `alice`,
@@ -532,12 +650,12 @@ describe(`Mosaic server`, () => {
 	})
 
 	test(`validates configuration and connection lifecycle`, async () => {
-		expect(() => createMosaicServer({ atoms: [atom, atom] })).toThrow(
-			`Duplicate Mosaic target key`,
+		expect(() => createMosaicServer({ registrations: [atom, atom] })).toThrow(
+			`Duplicate Mosaic registration`,
 		)
 		expect(() =>
 			createMosaicServer({
-				atoms: [{ ...atom, checkpointEvery: 0 }],
+				registrations: [{ ...atom, checkpointEvery: 0 }],
 			}),
 		).toThrow(`checkpointEvery must be a positive safe integer`)
 		Object.defineProperty(Counter, `mosaic`, {
@@ -545,7 +663,7 @@ describe(`Mosaic server`, () => {
 			value: { key: ``, version: 1 },
 		})
 		try {
-			expect(() => createMosaicServer({ atoms: [atom] })).toThrow(
+			expect(() => createMosaicServer({ registrations: [atom] })).toThrow(
 				`requires model metadata`,
 			)
 		} finally {
@@ -555,8 +673,8 @@ describe(`Mosaic server`, () => {
 			})
 		}
 
-		const server = createMosaicServer({ atoms: [atom] })
-		expect(server.atomStatus(address)).toEqual({
+		const server = createMosaicServer({ registrations: [atom] })
+		expect(await server.atomStatus(address)).toEqual({
 			initialized: false,
 			revision: 0,
 		})
@@ -595,7 +713,7 @@ describe(`Mosaic server`, () => {
 	})
 
 	test(`rejects malformed, unavailable, incompatible, and spoofed joins`, async () => {
-		const server = createMosaicServer({ atoms: [atom] })
+		const server = createMosaicServer({ registrations: [atom] })
 		const socket = new TestSocket(`alice`)
 		const disconnect = server.connect({
 			actor: `alice`,
@@ -678,6 +796,101 @@ describe(`Mosaic server`, () => {
 		await server.dispose()
 	})
 
+	test(`treats model configuration as part of compatibility`, async () => {
+		class ConfiguredCounter extends Counter {
+			public static override readonly mosaic = {
+				configuration: { limit: 5 },
+				key: `test-counter`,
+				version: 1,
+			} as const
+
+			public static override fromJSON(
+				snapshot: CounterState,
+			): ConfiguredCounter {
+				return new ConfiguredCounter(snapshot)
+			}
+		}
+		const configuredRegistration = defineMosaicAtomRegistration({
+			...atom,
+			class: ConfiguredCounter,
+		})
+		const server = createMosaicServer({
+			registrations: [configuredRegistration],
+		})
+		const socket = new TestSocket(`configured`)
+		const disconnect = server.connect({
+			actor: `alice`,
+			session: `configured-session`,
+			socket,
+		})
+		join(socket, `configured-session`)
+		const [rejection] = (await waitForValues(
+			socket,
+			MOSAIC_EVENTS.rejection,
+			1,
+		)) as unknown as MosaicRejectionEnvelope[]
+		expect(rejection?.code).toBe(`incompatible-version`)
+		socket.clientEmit(MOSAIC_EVENTS.join, {
+			atom: address,
+			knownRevision: null,
+			model: ConfiguredCounter.mosaic,
+			pendingOperationIds: [],
+			protocolVersion: MOSAIC_PROTOCOL_VERSION,
+			session: `configured-session`,
+		})
+		await waitForValues(socket, MOSAIC_EVENTS.snapshot, 1)
+		await disconnect()
+		await server.dispose()
+
+		const recoveryServer = createMosaicServer({
+			registrations: [configuredRegistration],
+			storage: wrapStorage({
+				recover: () => ({
+					checkpoint: {
+						atom: address,
+						headOperationIds: [],
+						model: {
+							...ConfiguredCounter.mosaic,
+							configuration: { limit: 6 },
+						},
+						protocolVersion: MOSAIC_PROTOCOL_VERSION,
+						revision: 0,
+						snapshot: emptyState(),
+					},
+					headRevision: 0,
+					receiptIds: [],
+					retentionEpoch: 0,
+					tail: [],
+				}),
+			}),
+		})
+		const recoverySocket = new TestSocket(`configured-recovery`)
+		const disconnectRecovery = recoveryServer.connect({
+			actor: `alice`,
+			session: `configured-recovery-session`,
+			socket: recoverySocket,
+		})
+		recoverySocket.clientEmit(MOSAIC_EVENTS.join, {
+			atom: address,
+			knownRevision: null,
+			model: ConfiguredCounter.mosaic,
+			pendingOperationIds: [],
+			protocolVersion: MOSAIC_PROTOCOL_VERSION,
+			session: `configured-recovery-session`,
+		})
+		const [recoveryRejection] = (await waitForValues(
+			recoverySocket,
+			MOSAIC_EVENTS.rejection,
+			1,
+		)) as unknown as MosaicRejectionEnvelope[]
+		expect(recoveryRejection).toMatchObject({
+			code: `atom-unavailable`,
+			recovery: `retry`,
+		})
+		await disconnectRecovery()
+		await recoveryServer.dispose()
+	})
+
 	test(`checks read authorization before accessing persistence`, async () => {
 		const recover = vi.fn(() => {
 			throw new Error(`storage must remain private`)
@@ -685,7 +898,7 @@ describe(`Mosaic server`, () => {
 		const storage = wrapStorage({ recover })
 		const server = createMosaicServer({
 			authorize: ({ action }) => action !== `read`,
-			atoms: [atom],
+			registrations: [atom],
 			storage,
 		})
 		const socket = new TestSocket(`alice`)
@@ -708,7 +921,7 @@ describe(`Mosaic server`, () => {
 
 	test(`stamps authorship, persists before broadcast, and handles duplicate ids`, async () => {
 		const storage = new InMemoryMosaicStorage()
-		const server = createMosaicServer({ atoms: [atom], storage })
+		const server = createMosaicServer({ registrations: [atom], storage })
 		const socket = new TestSocket(`alice-socket`)
 		const disconnect = server.connect({
 			actor: `alice`,
@@ -759,7 +972,7 @@ describe(`Mosaic server`, () => {
 		let denyEdits = false
 		const server = createMosaicServer({
 			authorize: ({ action }) => !(action === `propose` && denyEdits),
-			atoms: [atom],
+			registrations: [atom],
 		})
 		const socket = new TestSocket(`alice`)
 		const disconnect = server.connect({
@@ -822,6 +1035,7 @@ describe(`Mosaic server`, () => {
 		class DecisionCounter extends Counter {
 			public override validate(
 				operation: unknown,
+				context: MosaicReduceContext,
 			):
 				| { dependencies: readonly string[]; status: `defer` }
 				| ReturnType<Counter[`validate`]> {
@@ -837,16 +1051,21 @@ describe(`Mosaic server`, () => {
 					operation !== null &&
 					Reflect.get(operation, `amount`) === 92
 				) {
-					return { reason: `model says no`, status: `reject` }
+					return {
+						code: `capacity-exceeded`,
+						reason: `model says no`,
+						recovery: `none`,
+						status: `reject`,
+					}
 				}
-				return super.validate(operation)
+				return super.validate(operation, context)
 			}
 		}
-		const decisionAtom = defineMosaicServerAtom({
+		const decisionAtom = defineMosaicAtomRegistration({
 			...atom,
 			class: DecisionCounter,
 		})
-		const server = createMosaicServer({ atoms: [decisionAtom] })
+		const server = createMosaicServer({ registrations: [decisionAtom] })
 		const socket = new TestSocket(`alice`)
 		const disconnect = server.connect({
 			actor: `alice`,
@@ -864,8 +1083,75 @@ describe(`Mosaic server`, () => {
 		)) as unknown as MosaicRejectionEnvelope[]
 		expect(rejections).toMatchObject([
 			{ code: `missing-dependency`, recovery: `retry` },
-			{ code: `invalid-model-operation`, reason: `model says no` },
+			{ code: `capacity-exceeded`, reason: `model says no`, recovery: `none` },
 		])
+		await disconnect()
+		await server.dispose()
+	})
+
+	test(`preflights model application before durable append`, async () => {
+		class NonAtomicCounter extends Counter {
+			public static override fromJSON(snapshot: CounterState): NonAtomicCounter {
+				return new NonAtomicCounter(snapshot)
+			}
+
+			public override do(signal: MosaicOperationSignal<CounterOperation>): null {
+				if (signal.operation.type === `add` && signal.operation.amount === 93) {
+					return 1 as unknown as null
+				}
+				return super.do(signal)
+			}
+		}
+		const backing = new InMemoryMosaicStorage()
+		const append = vi.fn((request: MosaicStorageAppendRequest) =>
+			backing.append(request),
+		)
+		const storage = wrapStorage({
+			append,
+			recover: (atomAddress) => backing.recover(atomAddress),
+			receipt: (atomAddress, operationId) =>
+				backing.receipt(atomAddress, operationId),
+			setSessionWatermark: (atomAddress, session, revision) => {
+				backing.setSessionWatermark(atomAddress, session, revision)
+			},
+		})
+		const server = createMosaicServer({
+			registrations: [
+				defineMosaicAtomRegistration({ ...atom, class: NonAtomicCounter }),
+			],
+			storage,
+		})
+		const socket = new TestSocket(`preflight`)
+		const disconnect = server.connect({
+			actor: `alice`,
+			session: `preflight-session`,
+			socket,
+		})
+		join(socket, `preflight-session`)
+		await waitForValues(socket, MOSAIC_EVENTS.snapshot, 1)
+		propose(socket, `preflight-session`, `unappliable`, {
+			amount: 93,
+			type: `add`,
+		})
+		const [rejection] = (await waitForValues(
+			socket,
+			MOSAIC_EVENTS.rejection,
+			1,
+		)) as unknown as MosaicRejectionEnvelope[]
+		expect(rejection).toMatchObject({
+			code: `atom-unavailable`,
+			recovery: `retry`,
+		})
+		expect(append).not.toHaveBeenCalled()
+		expect(backing.recover(address).headRevision).toBe(0)
+
+		propose(socket, `preflight-session`, `appliable`, {
+			amount: 1,
+			type: `add`,
+		})
+		await waitForValues(socket, MOSAIC_EVENTS.operation, 1)
+		expect(append).toHaveBeenCalledOnce()
+		expect(backing.recover(address).headRevision).toBe(1)
 		await disconnect()
 		await server.dispose()
 	})
@@ -900,7 +1186,7 @@ describe(`Mosaic server`, () => {
 				append: outcome.append,
 				receipt: () => null,
 			})
-			const server = createMosaicServer({ atoms: [atom], storage })
+			const server = createMosaicServer({ registrations: [atom], storage })
 			const socket = new TestSocket(`socket-${index}`)
 			const disconnect = server.connect({
 				actor: `alice`,
@@ -941,6 +1227,7 @@ describe(`Mosaic server`, () => {
 				...emptyRecovery,
 				checkpoint: {
 					atom: address,
+					headOperationIds: [],
 					model: { key: `wrong`, version: 1 },
 					protocolVersion: MOSAIC_PROTOCOL_VERSION,
 					revision: 0,
@@ -957,7 +1244,7 @@ describe(`Mosaic server`, () => {
 
 		for (const [index, recovery] of corruptions.entries()) {
 			const server = createMosaicServer({
-				atoms: [atom],
+				registrations: [atom],
 				storage: wrapStorage({ recover: () => recovery }),
 			})
 			const socket = new TestSocket(`corrupt-${index}`)
@@ -988,7 +1275,7 @@ describe(`Mosaic server`, () => {
 			status: `stale` as const,
 		}))
 		const server = createMosaicServer({
-			atoms: [atom],
+			registrations: [atom],
 			storage: wrapStorage({ checkpoint }),
 		})
 		expect(await server.checkpoint(address)).toBe(false)
@@ -997,7 +1284,7 @@ describe(`Mosaic server`, () => {
 	})
 
 	test(`enforces the authenticated actor's selective-history cursor`, async () => {
-		const server = createMosaicServer({ atoms: [atom] })
+		const server = createMosaicServer({ registrations: [atom] })
 		const socket = new TestSocket(`alice-socket`)
 		const disconnect = server.connect({
 			actor: `alice`,
@@ -1030,7 +1317,7 @@ describe(`Mosaic server`, () => {
 	})
 
 	test(`presence is ephemeral and removed on disconnect`, async () => {
-		const server = createMosaicServer({ atoms: [atom] })
+		const server = createMosaicServer({ registrations: [atom] })
 		const alice = new TestSocket(`alice-socket`)
 		const bob = new TestSocket(`bob-socket`)
 		const disconnectAlice = server.connect({
@@ -1104,13 +1391,13 @@ describe(`Mosaic server`, () => {
 
 	test(`validates, authorizes, and model-checks presence`, async () => {
 		let allowPresence = false
-		const guardedAtom = defineMosaicServerAtom({
+		const guardedAtom = defineMosaicAtomRegistration({
 			...atom,
 			validatePresence: ({ cursor }: { readonly cursor: number }) => cursor < 10,
 		})
 		const server = createMosaicServer({
 			authorize: ({ action }) => action !== `presence` || allowPresence,
-			atoms: [guardedAtom],
+			registrations: [guardedAtom],
 		})
 		const socket = new TestSocket(`alice`)
 		const disconnect = server.connect({
@@ -1177,7 +1464,7 @@ describe(`Mosaic server`, () => {
 			createEphemeralState: () => ({}),
 			name: `mosaic-counter`,
 			start: ({ durable }) =>
-				createMosaicServer({ atoms: [atom], storage: durable }),
+				createMosaicServer({ registrations: [atom], storage: durable }),
 			stop: (server) => server.dispose(),
 		})
 		let server = await fixture.start()
@@ -1190,7 +1477,10 @@ describe(`Mosaic server`, () => {
 		join(first, `first-session`)
 		await waitForValues(first, MOSAIC_EVENTS.snapshot, 1)
 		propose(first, `first-session`, `alice:1`, { amount: 1, type: `add` })
-		propose(first, `first-session`, `alice:2`, { amount: 2, type: `add` })
+		await waitForValues(first, MOSAIC_EVENTS.operation, 1)
+		propose(first, `first-session`, `alice:2`, { amount: 2, type: `add` }, [
+			`alice:1`,
+		])
 		await waitForValues(first, MOSAIC_EVENTS.operation, 2)
 		await disconnectFirst()
 
@@ -1209,6 +1499,7 @@ describe(`Mosaic server`, () => {
 		)) as unknown as MosaicSnapshotEnvelope<CounterState>[]
 		expect(snapshot?.revision).toBe(2)
 		expect(snapshot?.acceptedPendingOperationIds).toEqual([`alice:1`, `alice:2`])
+		expect(snapshot?.headOperationIds).toEqual([`alice:2`])
 		expect(snapshot?.session).toBe(`second-session`)
 		expect(snapshot?.snapshot.entries).toHaveLength(2)
 		expect(snapshot?.snapshot.entries.map(({ revision }) => revision)).toEqual([
@@ -1222,8 +1513,8 @@ describe(`Mosaic server`, () => {
 
 	test(`shared-storage head hints converge two server projections`, async () => {
 		const storage = new InMemoryMosaicStorage()
-		const firstServer = createMosaicServer({ atoms: [atom], storage })
-		const secondServer = createMosaicServer({ atoms: [atom], storage })
+		const firstServer = createMosaicServer({ registrations: [atom], storage })
+		const secondServer = createMosaicServer({ registrations: [atom], storage })
 		const first = new TestSocket(`first`)
 		const second = new TestSocket(`second`)
 		const disconnectFirst = firstServer.connect({
@@ -1242,9 +1533,9 @@ describe(`Mosaic server`, () => {
 		await waitForValues(second, MOSAIC_EVENTS.snapshot, 1)
 		propose(first, `first-session`, `alice:1`, { amount: 1, type: `add` })
 		propose(second, `second-session`, `bob:1`, { amount: 1, type: `add` })
-		await vi.waitFor(() => {
-			expect(firstServer.atomStatus(address).revision).toBe(2)
-			expect(secondServer.atomStatus(address).revision).toBe(2)
+		await vi.waitFor(async () => {
+			expect((await firstServer.atomStatus(address)).revision).toBe(2)
+			expect((await secondServer.atomStatus(address)).revision).toBe(2)
 		})
 		expect((await storage.recover(address)).headRevision).toBe(2)
 
@@ -1280,18 +1571,18 @@ describe(`Mosaic server`, () => {
 				}
 			},
 		})
-		const ungroupedAtom = defineMosaicServerAtom({
+		const ungroupedAtom = defineMosaicAtomRegistration({
 			class: Counter,
 			operationSchema,
 			presenceSchema,
 			target: counterAtom,
 		})
 		const writerServer = createMosaicServer({
-			atoms: [ungroupedAtom],
+			registrations: [ungroupedAtom],
 			storage,
 		})
 		const readerServer = createMosaicServer({
-			atoms: [ungroupedAtom],
+			registrations: [ungroupedAtom],
 			storage,
 		})
 		const writer = new TestSocket(`writer`)

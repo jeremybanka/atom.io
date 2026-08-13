@@ -33,7 +33,7 @@
 		"manifest:test": "dotenvx run -- turbo run manifest:test",
 		"changes": "changeset",
 		"changes:publish": "bun run build && changeset publish",
-		"changes:version": "changeset version",
+		"changes:version": "pnpm --config.verifyDepsBeforeRun=false exec changeset version",
 		"test": "CI=true dotenvx run -- turbo run test:once --concurrency=2",
 		"test:breaks": "CI=true dotenvx run -- turbo run test:breaks",
 		"test:stress:realtime-ipc": "dotenvx run -- turbo run test:stress:realtime-ipc --filter=atom.io",

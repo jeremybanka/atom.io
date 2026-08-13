@@ -108,6 +108,7 @@ export type SocketIOHarness = {
 
 export type SocketIOHarnessClientOptions = {
 	readonly auth?: Record<string, unknown>
+	readonly autoConnect?: boolean
 	readonly endpoint: TestTransportEndpointOptions
 }
 
@@ -237,6 +238,7 @@ export class SocketIOTransportAdapter implements RealtimeTestTransportAdapter {
 		const clientEndpoint = endpoint(options.endpoint, `client`)
 		return io(`http://localhost:${harness.port}/`, {
 			...this.#options.clientOptions,
+			autoConnect: options.autoConnect ?? true,
 			auth: this.#auth(clientEndpoint, harness.serverEndpoint, options.auth),
 		})
 	}

@@ -466,6 +466,9 @@ importers:
       socket.io-client:
         specifier: 4.8.3
         version: 4.8.3(supports-color@10.2.2)
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
     devDependencies:
       '@testing-library/dom':
         specifier: 10.4.1

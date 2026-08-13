@@ -2,5 +2,6 @@
 "atom.io": patch
 ---
 
-Add the transport-independent Mosaic client engine with optimistic projection,
-reconnect recovery, selective history requests, and ephemeral presence.
+Add Store-bound Mosaic synchronization for ordinary mutable atoms, including
+optimistic reconciliation, causal transaction buffering, companion state,
+relative presence, reconnect recovery, and independent Silo projections.

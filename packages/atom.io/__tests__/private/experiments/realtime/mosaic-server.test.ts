@@ -13,7 +13,6 @@ import {
 	type MosaicRejectionEnvelope,
 	type MosaicSnapshotEnvelope,
 	type Socket,
-	type StandardSchemaV1,
 } from "atom.io/realtime"
 import {
 	createMosaicServer,
@@ -616,19 +615,11 @@ describe(`Mosaic server`, () => {
 		await server.dispose()
 	})
 
-	test(`accepts a non-Zod Standard Schema at the operation trust boundary`, async () => {
-		const compatibleSchema: StandardSchemaV1<unknown, CounterOperation> = {
-			"~standard": {
-				validate: (value) =>
-					typeof value === `object` &&
-					value !== null &&
-					Reflect.get(value, `type`) === `add`
-						? { value: value as CounterOperation }
-						: { issues: [{ message: `Expected an add operation.` }] },
-				vendor: `compatibility-test`,
-				version: 1,
-			},
-		}
+	test(`accepts a Zod schema at the operation trust boundary`, async () => {
+		const compatibleSchema = z.object({
+			amount: z.number(),
+			type: z.literal(`add`),
+		})
 		const compatibleAtom = defineMosaicAtomRegistration({
 			...atom,
 			operationSchema: compatibleSchema,

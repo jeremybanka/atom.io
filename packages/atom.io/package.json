@@ -251,6 +251,10 @@
 		"./web": {
 			"import": "./dist/web/index.js",
 			"types": "./dist/web/index.d.ts"
+		},
+		"./realtime-testing/headless": {
+			"import": "./dist/realtime-testing/headless/index.js",
+			"types": "./dist/realtime-testing/headless/index.d.ts"
 		}
 	}
 }

@@ -164,8 +164,6 @@ type InternalRealtimeTestServer = RealtimeTestServer & {
 	registerClient: (client: HeadlessRealtimeTestClient) => void
 	transport: SocketIOTransportAdapter
 	unregisterClient: (client: HeadlessRealtimeTestClient) => void
-	harness: SocketIOHarness
-	transport: SocketIOTransportAdapter
 }
 
 type InternalRealtimeTestClient = HeadlessRealtimeTestClient & {

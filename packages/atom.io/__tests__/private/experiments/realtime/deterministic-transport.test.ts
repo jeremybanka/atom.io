@@ -53,9 +53,9 @@ describe(`VirtualClock`, () => {
 		expect(() => clock.schedule(() => {}, -1)).toThrow(
 			`VirtualClock delay must be finite and non-negative`,
 		)
-		expect(() =>
-			clock.schedule(() => {}, Number.POSITIVE_INFINITY)
-		).toThrow(`VirtualClock delay must be finite and non-negative`)
+		expect(() => clock.schedule(() => {}, Number.POSITIVE_INFINITY)).toThrow(
+			`VirtualClock delay must be finite and non-negative`,
+		)
 		expect(() => clock.advance(-1)).toThrow(
 			`VirtualClock advance duration must be finite and non-negative`,
 		)

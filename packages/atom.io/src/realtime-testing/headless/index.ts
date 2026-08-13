@@ -1,19 +1,21 @@
-import * as http from "node:http"
-
 import * as AtomIO from "atom.io"
 import { clearStore, IMPLICIT } from "atom.io/internal"
 import * as RT from "atom.io/realtime"
 import * as RTC from "atom.io/realtime-client"
 import * as RTS from "atom.io/realtime-server"
-import * as SocketIO from "socket.io"
+import type * as SocketIO from "socket.io"
 import type { Socket as ClientSocket } from "socket.io-client"
-import { io } from "socket.io-client"
 
 import { RealtimeTestInspectors } from "../diagnostics.ts"
 import {
 	type RealtimeTestEventCursor,
 	RealtimeTestEventJournal,
 } from "../event-journal.ts"
+import {
+	createSocketIOTransportAdapter,
+	type SocketIOHarness,
+	type SocketIOTransportAdapter,
+} from "../transport-adapter.ts"
 import {
 	type RealtimeTestDrainContext,
 	RealtimeTestWorkTracker,
@@ -49,6 +51,8 @@ export type RealtimeTestServerTools = {
 export type TestSetupOptions = {
 	immortal?: { server?: boolean }
 	server: (tools: RealtimeTestServerTools) => (() => void) | void
+	/** @internal Override the real transport seam for conformance tests. */
+	transportAdapter?: SocketIOTransportAdapter
 }
 export type RealtimeTestTools = {
 	name: string
@@ -151,8 +155,10 @@ export type RealtimeTestAPI__Headless = RealtimeTestAPI & {
 type InternalRealtimeTestServer = RealtimeTestServer & {
 	clients: ReadonlySet<HeadlessRealtimeTestClient>
 	diagnostics: () => string
+	harness: SocketIOHarness
 	nextSessionId: () => string
 	registerClient: (client: HeadlessRealtimeTestClient) => void
+	transport: SocketIOTransportAdapter
 	unregisterClient: (client: HeadlessRealtimeTestClient) => void
 }
 
@@ -377,13 +383,9 @@ export const setupRealtimeTestServer = (
 		IMPLICIT.STORE,
 	)
 
-	const httpServer = http.createServer((_, res) => res.end(`Hello World!`))
-	const address = httpServer.listen().address()
-	const port =
-		typeof address === `string` ? null : address === null ? null : address.port
-	if (port === null) throw new Error(`Could not determine port for test server`)
-
-	const server = new SocketIO.Server(httpServer)
+	const transport = options.transportAdapter ?? createSocketIOTransportAdapter()
+	const harness = transport.openHarness()
+	const { port, server } = harness
 	const disposeRealtime = RTS.realtime(
 		server,
 		(handshake) => {
@@ -491,12 +493,14 @@ export const setupRealtimeTestServer = (
 			clearStore(silo.store)
 		},
 		journal,
+		harness,
 		name: `SERVER`,
 		nextSessionId: () => `session-${++sessionNumber}`,
 		port,
 		registerClient: (client) => clients.add(client),
 		inspect: (label, read) => inspectors.register(`server/${label}`, read),
 		silo,
+		transport,
 		unregisterClient: (client) => clients.delete(client),
 		work,
 	}
@@ -512,10 +516,16 @@ export const setupHeadlessRealtimeTestClient = (
 	const internalServer = server as InternalRealtimeTestServer
 	const sessionId = options.sessionId ?? internalServer.nextSessionId()
 	const userKey = options.userKey ?? `user::${options.name}`
-	const socket: ClientSocket = io(`http://localhost:${server.port}/`, {
-		autoConnect: options.autoConnect ?? true,
-		auth: { token: `test`, username: userKey, sessionId },
-	})
+	const socket: ClientSocket = internalServer.transport.connectHarnessClient(
+		internalServer.harness,
+		{
+			auth: { token: `test`, username: userKey, sessionId },
+			...(options.autoConnect === undefined
+				? {}
+				: { autoConnect: options.autoConnect }),
+			endpoint: { id: options.name, session: sessionId },
+		},
+	)
 	const silo = new AtomIO.Silo(
 		{ name: options.name, lifespan: `ephemeral`, isProduction: false },
 		IMPLICIT.STORE,

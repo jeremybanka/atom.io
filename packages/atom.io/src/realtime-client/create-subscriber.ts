@@ -1,15 +1,25 @@
-import { Future } from "atom.io/foundations/future"
-import type { Socket } from "atom.io/realtime"
+import type { Clock, Socket } from "atom.io/realtime"
+import { systemClock } from "atom.io/realtime"
 
 type SubData = {
+	clock: Clock
 	close: () => void
+	coalesceMs: number
+	completion: Promise<void> | null
+	completionResolve: (() => void) | null
 	refcount: number
 	sessionId: string | undefined
 	stopWatchingForReconnect: () => void
-	timer: Future<void>
+	task: number | null
 }
 
-const SUBSCRIPTION_COALESCE_MS = 50
+export const SUBSCRIPTION_COALESCE_MS = 50
+
+export type SubscriberOptions = {
+	/** Injectable for deterministic coalescing tests. Defaults to wall time. */
+	readonly clock?: Clock
+	readonly coalesceMs?: number
+}
 
 const subscriptions: WeakMap<Socket, Map<string, SubData>> = new WeakMap()
 
@@ -26,12 +36,26 @@ export function createSubscriber<K extends string>(
 	socket: Socket,
 	key: K,
 	open: (key: K) => () => void,
+	options: SubscriberOptions = {},
 ): () => void {
+	const clock = options.clock ?? systemClock
+	const coalesceMs = options.coalesceMs ?? SUBSCRIPTION_COALESCE_MS
 	const subMap = getSubMap(socket)
 	let sub = subMap.get(key)
 
 	if (sub) {
-		sub.timer.use(new Promise<void>(() => {}))
+		if (sub.clock !== clock || sub.coalesceMs !== coalesceMs) {
+			throw new Error(
+				`Subscriber "${key}" cannot change its clock or coalescing delay while active`,
+			)
+		}
+		if (sub.task !== null) {
+			sub.clock.cancel(sub.task)
+			sub.task = null
+			sub.completionResolve?.()
+			sub.completion = null
+			sub.completionResolve = null
+		}
 		sub.refcount++
 	} else {
 		const reconnect = () => {
@@ -53,30 +77,45 @@ export function createSubscriber<K extends string>(
 		}
 		socket.on(`connect`, reconnect)
 		sub = {
+			clock,
 			close: open(key),
+			coalesceMs,
+			completion: null,
+			completionResolve: null,
 			refcount: 1,
 			sessionId: socket.id,
 			stopWatchingForReconnect: () => {
 				socket.off(`connect`, reconnect)
 			},
-			timer: new Future<void>(() => {}),
+			task: null,
 		}
 		subMap.set(key, sub)
-		const newSub = sub
-		void newSub.timer.then(() => {
-			newSub.close()
-			newSub.stopWatchingForReconnect()
-			subMap.delete(key)
-		})
 	}
+	let released = false
 	return () => {
+		if (released) return
+		released = true
 		sub.refcount--
 
 		if (sub.refcount === 0) {
-			const timeout = new Promise<void>((resolve) => {
-				setTimeout(resolve, SUBSCRIPTION_COALESCE_MS)
+			sub.completion = new Promise<void>((resolve) => {
+				sub.completionResolve = resolve
 			})
-			sub.timer.use(timeout)
+			sub.task = sub.clock.schedule(
+				() => {
+					try {
+						sub.close()
+					} finally {
+						sub.stopWatchingForReconnect()
+						subMap.delete(key)
+						sub.task = null
+						sub.completionResolve?.()
+						sub.completionResolve = null
+					}
+				},
+				sub.coalesceMs,
+				`subscription:${key}`,
+			)
 		}
 	}
 }

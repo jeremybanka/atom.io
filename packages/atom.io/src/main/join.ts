@@ -90,39 +90,33 @@ export type JoinStates<
 	Cardinality extends `1:1` | `1:n` | `n:n`,
 > = Cardinality extends `1:1`
 	? {
-			readonly [N in AName as `${N}KeyOf${Capitalize<BName>}`]: ReadonlyPureSelectorToken<
-				A | null,
-				B
-			>
+			readonly [
+				N in AName as `${N}KeyOf${Capitalize<BName>}`
+			]: ReadonlyPureSelectorToken<A | null, B>
 		} & {
-			readonly [N in BName as `${N}KeyOf${Capitalize<AName>}`]: ReadonlyPureSelectorToken<
-				B | null,
-				A
-			>
+			readonly [
+				N in BName as `${N}KeyOf${Capitalize<AName>}`
+			]: ReadonlyPureSelectorToken<B | null, A>
 		}
 	: Cardinality extends `1:n`
 		? {
-				readonly [N in AName as `${N}KeyOf${Capitalize<BName>}`]: ReadonlyPureSelectorToken<
-					A | null,
-					B
-				>
+				readonly [
+					N in AName as `${N}KeyOf${Capitalize<BName>}`
+				]: ReadonlyPureSelectorToken<A | null, B>
 			} & {
-				readonly [N in BName as `${N}KeysOf${Capitalize<AName>}`]: ReadonlyPureSelectorToken<
-					B[],
-					A
-				>
+				readonly [
+					N in BName as `${N}KeysOf${Capitalize<AName>}`
+				]: ReadonlyPureSelectorToken<B[], A>
 			}
 		: Cardinality extends `n:n`
 			? {
-					readonly [N in AName as `${N}KeysOf${Capitalize<BName>}`]: ReadonlyPureSelectorToken<
-						A[],
-						B
-					>
+					readonly [
+						N in AName as `${N}KeysOf${Capitalize<BName>}`
+					]: ReadonlyPureSelectorToken<A[], B>
 				} & {
-					readonly [N in BName as `${N}KeysOf${Capitalize<AName>}`]: ReadonlyPureSelectorToken<
-						B[],
-						A
-					>
+					readonly [
+						N in BName as `${N}KeysOf${Capitalize<AName>}`
+					]: ReadonlyPureSelectorToken<B[], A>
 				}
 			: never
 

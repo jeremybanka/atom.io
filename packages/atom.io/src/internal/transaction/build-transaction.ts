@@ -25,7 +25,6 @@ import { getJsonTokenFromStore } from "../mutable/index.ts"
 import { resetInStore, setIntoStore } from "../set-state/index.ts"
 import type { Fn } from "../utility-types.ts"
 import { actUponStore } from "./act-upon-store.ts"
-import { getEpochNumberOfAction } from "./get-epoch-number.ts"
 import type { ChildStore, RootStore } from "./is-root-store.ts"
 import type { TransactionProgress } from "./transaction-meta-progress.ts"
 
@@ -66,15 +65,12 @@ export function buildTransaction(
 		keyRefsInJoins: parent.keyRefsInJoins.overlay(),
 		miscResources: new MapOverlay(parent.miscResources),
 	}
-	const epoch = getEpochNumberOfAction(store, token.key)
-
 	const transactionMeta: TransactionProgress<Fn> = {
 		phase: `building`,
 		update: {
 			type: `transaction_outcome`,
 			token,
 			id,
-			epoch: epoch === undefined ? Number.NaN : epoch + 1,
 			timestamp: Date.now(),
 			subEvents: [],
 			params,

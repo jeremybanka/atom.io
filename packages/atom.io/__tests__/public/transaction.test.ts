@@ -225,7 +225,6 @@ describe(`transaction`, () => {
 					type: `transaction`,
 				}),
 				id: expect.any(String),
-				epoch: expect.any(Number),
 				timestamp: expect.any(Number),
 				params: [3],
 				output: undefined,

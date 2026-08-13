@@ -53,24 +53,12 @@ const LOGGER_ICON_DICTIONARY = {
 	// Realtime
 	"🛰️": `Server socket`,
 	"📡": `Client socket`,
-	"🚀": `Performance measure`,
-	"✅": `Realtime transaction success`,
-	"🔄": `Realtime transaction synchronized`,
-	"🤞": `Realtime optimistic update enqueued`,
-	"👈": `Realtime confirmed update enqueued`,
-	"🧑‍⚖️": `Realtime update beginning reconciliation`,
-	"🛎️": `Realtime transaction received`,
-	"👁": `Determining perspective`,
-	"🔭": `Determining realtime perspective`,
-	"🖌": `Redacting realtime update`,
-	"👋": `Realtime greeting`,
-	"👍": `Realtime acknowledgment`,
+	"👍": `Successful operation`,
 } as const
 export type LoggerIcon = keyof typeof LOGGER_ICON_DICTIONARY
 export type EntityDenomination =
 	| `atom_family`
 	| `atom`
-	| `continuity`
 	| `key`
 	| `mutable_atom_family`
 	| `mutable_atom`
@@ -93,7 +81,6 @@ export type EntityDenomination =
 export const PRETTY_ENTITY_NAMES: Record<EntityDenomination, string> = {
 	atom_family: `atom family`,
 	atom: `atom`,
-	continuity: `continuity`,
 	key: `key`,
 	mutable_atom_family: `atom family [m]`,
 	mutable_atom: `atom [m]`,

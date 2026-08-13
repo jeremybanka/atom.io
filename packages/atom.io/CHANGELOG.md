@@ -1,5 +1,32 @@
 # atom.io
 
+## 0.51.2
+
+### Patch Changes
+
+- b33ad32: Add seeded model-based realtime scenarios with replay and failure shrinking,
+  an operation-set sequence reference model, optional worker/process/browser
+  execution-realm adapters, and bounded load fixtures with per-client metrics.
+- e480372: Finish realtime room child-process cleanup safely when its owning server store
+  has already been disposed.
+- dd4d8c7: Keep authenticated identities online across multiple socket sessions, make server
+  connection cleanup race-safe, and correctly remove guarded socket listeners.
+- 33a1ec9: Add a deterministic in-memory realtime transport, a shared Socket.IO adapter
+  contract, composable network fault policies, replayable delivery schedules, and
+  a virtual test clock. Realtime subscription coalescing now accepts the shared
+  clock seam that future lease, expiry, and retry policies can also use.
+- b5247ee: Make realtime room IPC framing resilient to arbitrary stream chunking and finish
+  bounded room startup, idle, maximum-lifetime, shutdown, and orphan cleanup.
+- 66296ad: Add dynamically creatable headless realtime test clients, occurrence-aware event journals, explicit transport and application-work drains, convergence barriers, and actionable timeout diagnostics while preserving the existing single- and multi-client React harnesses.
+- 6968082: Add transport-independent restartable server fixtures and controllable multi-node topologies to `atom.io/realtime-testing`.
+- b60a9da: Restore active realtime subscriptions after Socket.IO reconnects, revoke family
+  members when dynamic authorization changes, unsubscribe aliased state by its
+  client-facing key, and clean up React provider socket listeners.
+- 64b3bb9: Replace realtime push mutexes with renewable, expiring, generation-fenced
+  leases. Push publications now carry lease identity and sequence metadata,
+  validated publications commit in receive order, and stale owners cannot write
+  after handoff. Detailed lease status is available through `usePushStatus`.
+
 ## 0.51.1
 
 ### Patch Changes

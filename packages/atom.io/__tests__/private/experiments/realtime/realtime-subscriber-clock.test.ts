@@ -1,5 +1,9 @@
 import type { Socket } from "atom.io/realtime"
-import { createSubscriber, observeSocketWindDown } from "atom.io/realtime-client"
+import {
+	createSubscriber,
+	getSubMap,
+	observeSocketWindDown,
+} from "atom.io/realtime-client"
 import {
 	createDeterministicTransport,
 	VirtualClock,
@@ -89,5 +93,28 @@ describe(`createSubscriber clock injection`, () => {
 		release()
 		clock.advance(25)
 		expect(closes).toBe(1)
+	})
+
+	test(`settles wind-down and clears bookkeeping when close throws`, async () => {
+		const clock = new VirtualClock()
+		const socket: Socket = createDeterministicTransport({ clock }).createDuplex(
+			{ id: `client`, role: `client` },
+			{ id: `server`, role: `server` },
+		).left
+		const release = createSubscriber(
+			socket,
+			`document`,
+			() => () => {
+				throw new Error(`close failed`)
+			},
+			{ clock },
+		)
+
+		release()
+		const windDown = observeSocketWindDown(socket)
+		expect(() => clock.advance(50)).toThrow(`close failed`)
+
+		await expect(windDown).resolves.toEqual([`document`])
+		expect(getSubMap(socket).has(`document`)).toBe(false)
 	})
 })

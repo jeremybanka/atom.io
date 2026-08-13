@@ -8,6 +8,8 @@ import { defineMosaicModel } from "./resource.ts"
 
 export type MosaicTextNode = {
 	readonly after: string | null
+	/** The retained right boundary of the insertion interval. */
+	readonly before: string | null
 	readonly createdBy: string
 	readonly id: string
 	readonly value: string
@@ -38,9 +40,12 @@ export type MosaicTextIntent =
 
 export type MosaicTextAppliedOperation = {
 	readonly actor: string
+	readonly dependencies: readonly string[]
 	readonly group: string
 	readonly id: string
 	readonly operation: MosaicTextOperation
+	readonly revision: number | null
+	readonly session: string
 }
 
 export type MosaicTextState = {
@@ -52,6 +57,7 @@ export type MosaicTextState = {
 export type MosaicTextSnapshot = MosaicTextState
 
 export type MosaicTextRelativePosition = {
+	readonly affinity: `left` | `right`
 	readonly leftId: string | null
 	readonly rightId: string | null
 }
@@ -106,6 +112,7 @@ export type MosaicTextOptions = {
 
 type EditDraft = {
 	after: string | null
+	before: string | null
 	deletedIds: string[]
 	insertedValues: string[]
 }
@@ -131,14 +138,41 @@ function applyTextOperation(
 	operation: MosaicTextOperation,
 	context: MosaicReduceContext,
 ): MosaicTextState {
-	if (state.actions.some(({ id }) => id === context.id)) return state
+	const duplicate = state.actions.find(({ id }) => id === context.id)
+	if (duplicate !== undefined) {
+		if (
+			duplicate.actor !== context.actor ||
+			duplicate.group !== (context.group ?? context.id) ||
+			duplicate.session !== context.session ||
+			JSON.stringify(duplicate.operation) !== JSON.stringify(operation)
+		) {
+			throw new Error(`Mosaic operation id collision: ${context.id}`)
+		}
+		return state
+	}
 	const group = context.group ?? context.id
+	const actions = [
+		...state.actions,
+		{
+			actor: context.actor,
+			dependencies: context.dependencies,
+			group,
+			id: context.id,
+			operation,
+			revision: context.revision,
+			session: context.session,
+		},
+	].sort((left, right) => {
+		if (left.revision !== null && right.revision !== null) {
+			return left.revision - right.revision
+		}
+		if (left.revision !== null) return -1
+		if (right.revision !== null) return 1
+		return compareMosaicIds(left.id, right.id)
+	})
 	const next: MosaicTextState = {
-		actions: [
-			...state.actions,
-			{ actor: context.actor, group, id: context.id, operation },
-		],
-		activeEdits: { ...state.activeEdits },
+		actions,
+		activeEdits: {},
 		nodes: { ...state.nodes },
 	}
 	if (operation.type === `edit`) {
@@ -148,11 +182,15 @@ function applyTextOperation(
 				createdBy: context.id,
 			}
 		}
-		;(next.activeEdits as Record<string, boolean>)[context.id] = true
-	} else {
-		const active = operation.mode === `redo`
-		for (const target of operation.targetOperationIds) {
-			;(next.activeEdits as Record<string, boolean>)[target] = active
+	}
+	const activeEdits = next.activeEdits as Record<string, boolean>
+	for (const action of actions) {
+		if (action.operation.type === `edit`) activeEdits[action.id] = true
+		else {
+			const active = action.operation.mode === `redo`
+			for (const target of action.operation.targetOperationIds) {
+				activeEdits[target] = active
+			}
 		}
 	}
 	return next
@@ -165,8 +203,23 @@ function orderedNodes(state: MosaicTextState): MosaicTextNode[] {
 		siblings.push(node)
 		children.set(node.after, siblings)
 	}
+	const isWithin = (candidate: string | null, root: string): boolean => {
+		let cursor = candidate
+		const seen = new Set<string>()
+		while (cursor !== null && !seen.has(cursor)) {
+			if (cursor === root) return true
+			seen.add(cursor)
+			cursor = state.nodes[cursor]?.after ?? null
+		}
+		return false
+	}
 	for (const siblings of children.values()) {
-		siblings.sort((left, right) => compareMosaicIds(left.id, right.id))
+		siblings.sort((left, right) => {
+			const leftBeforeRight = isWithin(left.before, right.id)
+			const rightBeforeLeft = isWithin(right.before, left.id)
+			if (leftBeforeRight !== rightBeforeLeft) return leftBeforeRight ? -1 : 1
+			return compareMosaicIds(left.id, right.id)
+		})
 	}
 	const ordered: MosaicTextNode[] = []
 	const visited = new Set<string>()
@@ -233,6 +286,7 @@ function diffText(state: MosaicTextState, nextText: string): EditDraft | null {
 	if (deleted.length === 0 && insertedValues.length === 0) return null
 	return {
 		after: visible[prefix - 1]?.id ?? null,
+		before: visible[visible.length - suffix]?.id ?? null,
 		deletedIds: deleted.map(({ id }) => id),
 		insertedValues,
 	}
@@ -297,6 +351,7 @@ function prepareText(
 			(value, index): MosaicTextInsertedNode => {
 				const node = {
 					after,
+					before: draft.before,
 					id: `${context.id}:node:${index.toString().padStart(6, `0`)}`,
 					value,
 				}
@@ -328,7 +383,7 @@ function isId(value: unknown): value is string {
 
 function validateTextOperation(
 	state: MosaicTextState,
-	value: MosaicTextOperation,
+	value: unknown,
 	context: MosaicReduceContext,
 	maximumGraphemes: number,
 ): MosaicModelDecision<MosaicTextOperation> {
@@ -345,6 +400,12 @@ function validateTextOperation(
 			return { reason: `Malformed text edit.`, status: `reject` as const }
 		}
 		const known = new Set(Object.keys(state.nodes))
+		const knownBeforeOperation = new Set(known)
+		const orderedBeforeOperation = orderedNodes(state)
+		const acceptedOperationIds = new Set(state.actions.map(({ id }) => id))
+		const missingDependencies = context.dependencies.filter(
+			(dependency) => !acceptedOperationIds.has(dependency),
+		)
 		const inserted: MosaicTextInsertedNode[] = []
 		for (const [index, candidate] of operation[`inserted`].entries()) {
 			if (!isRecord(candidate)) {
@@ -353,13 +414,19 @@ function validateTextOperation(
 					status: `reject` as const,
 				}
 			}
-			const { after, id, value: grapheme } = candidate
+			const { after, before, id, value: grapheme } = candidate
+			const expectedAfter =
+				index === 0 ? after : (inserted[index - 1]?.id ?? null)
 			if (
 				!isId(id) ||
 				!id.startsWith(`${context.id}:node:`) ||
 				id !== `${context.id}:node:${index.toString().padStart(6, `0`)}` ||
 				(after !== null && !isId(after)) ||
+				(before !== null && !isId(before)) ||
+				after !== expectedAfter ||
+				(after !== null && after === before) ||
 				typeof grapheme !== `string` ||
+				grapheme.length > 1_024 ||
 				splitMosaicText(grapheme).length !== 1 ||
 				known.has(id)
 			) {
@@ -369,12 +436,37 @@ function validateTextOperation(
 				}
 			}
 			if (after !== null && !known.has(after)) {
-				return context.dependencies.length === 0
+				return missingDependencies.length === 0
 					? { reason: `Unknown predecessor anchor.`, status: `reject` as const }
-					: { dependencies: context.dependencies, status: `defer` as const }
+					: { dependencies: missingDependencies, status: `defer` as const }
+			}
+			if (before !== null && !knownBeforeOperation.has(before)) {
+				return missingDependencies.length === 0
+					? { reason: `Unknown successor anchor.`, status: `reject` as const }
+					: { dependencies: missingDependencies, status: `defer` as const }
+			}
+			if (index === 0) {
+				const leftIndex =
+					after === null
+						? -1
+						: orderedBeforeOperation.findIndex(
+								({ id: nodeId }) => nodeId === after,
+							)
+				const rightIndex =
+					before === null
+						? orderedBeforeOperation.length
+						: orderedBeforeOperation.findIndex(
+								({ id: nodeId }) => nodeId === before,
+							)
+				if (leftIndex >= rightIndex) {
+					return {
+						reason: `The insertion interval is inverted.`,
+						status: `reject` as const,
+					}
+				}
 			}
 			known.add(id)
-			inserted.push({ after, id, value: grapheme })
+			inserted.push({ after, before, id, value: grapheme })
 		}
 		if (
 			!operation[`deletedIds`].every(isId) ||
@@ -383,16 +475,24 @@ function validateTextOperation(
 			return { reason: `Malformed deletion targets.`, status: `reject` as const }
 		}
 		if (operation[`deletedIds`].some((id) => !state.nodes[id])) {
-			return context.dependencies.length === 0
+			return missingDependencies.length === 0
 				? { reason: `Unknown deletion target.`, status: `reject` as const }
-				: { dependencies: context.dependencies, status: `defer` as const }
+				: { dependencies: missingDependencies, status: `defer` as const }
+		}
+		const normalized: MosaicTextEditOperation = {
+			deletedIds: [...operation[`deletedIds`]],
+			inserted,
+			type: `edit` as const,
+		}
+		const prospective = applyTextOperation(state, normalized, context)
+		if (visibleMosaicTextNodes(prospective).length > maximumGraphemes) {
+			return {
+				reason: `The text exceeds its grapheme capacity.`,
+				status: `reject` as const,
+			}
 		}
 		return {
-			operation: {
-				deletedIds: [...operation[`deletedIds`]],
-				inserted,
-				type: `edit` as const,
-			},
+			operation: normalized,
 			status: `accept` as const,
 		}
 	}
@@ -431,6 +531,58 @@ function validateTextOperation(
 	return { reason: `Unknown text operation type.`, status: `reject` as const }
 }
 
+function hydrateMosaicText(
+	snapshot: unknown,
+	maximumGraphemes: number,
+): MosaicTextState {
+	if (!isRecord(snapshot) || !Array.isArray(snapshot[`actions`])) {
+		throw new Error(`Invalid Mosaic text snapshot`)
+	}
+	let state = createEmptyMosaicText()
+	for (const candidate of snapshot[`actions`]) {
+		if (!isRecord(candidate)) throw new Error(`Invalid Mosaic text snapshot`)
+		const { actor, dependencies, group, id, operation, revision, session } =
+			candidate
+		if (
+			!isId(actor) ||
+			!Array.isArray(dependencies) ||
+			!dependencies.every(isId) ||
+			!isId(group) ||
+			!isId(id) ||
+			!isId(session) ||
+			(revision !== null &&
+				(!Number.isSafeInteger(revision) || (revision as number) < 0))
+		) {
+			throw new Error(`Invalid Mosaic text snapshot`)
+		}
+		const context: MosaicReduceContext = {
+			actor,
+			dependencies,
+			group,
+			id,
+			revision: revision as number | null,
+			session,
+		}
+		const decision = validateTextOperation(
+			state,
+			operation,
+			context,
+			maximumGraphemes,
+		)
+		if (decision.status !== `accept`) {
+			throw new Error(
+				`Invalid Mosaic text snapshot: ${
+					decision.status === `reject`
+						? decision.reason
+						: `missing dependencies ${decision.dependencies.join(`, `)}`
+				}`,
+			)
+		}
+		state = applyTextOperation(state, decision.operation, context)
+	}
+	return state
+}
+
 function createSeededText(text: string): MosaicTextState {
 	let state = createEmptyMosaicText()
 	if (text.length === 0) return state
@@ -440,6 +592,7 @@ function createSeededText(text: string): MosaicTextState {
 		(value, index): MosaicTextInsertedNode => {
 			const node = {
 				after,
+				before: null,
 				id: `${id}:node:${index.toString().padStart(6, `0`)}`,
 				value,
 			}
@@ -450,7 +603,14 @@ function createSeededText(text: string): MosaicTextState {
 	state = applyTextOperation(
 		state,
 		{ deletedIds: [], inserted, type: `edit` },
-		{ actor: `system`, dependencies: [], group: id, id, session: `system` },
+		{
+			actor: `system`,
+			dependencies: [],
+			group: id,
+			id,
+			revision: 0,
+			session: `system`,
+		},
 	)
 	return state
 }
@@ -464,14 +624,26 @@ export function positionAtMosaicTextOffset(
 	for (const [index, node] of visible.entries()) {
 		const end = offset + node.value.length
 		if (utf16Offset <= offset) {
-			return { leftId: visible[index - 1]?.id ?? null, rightId: node.id }
+			return {
+				affinity: `right`,
+				leftId: visible[index - 1]?.id ?? null,
+				rightId: node.id,
+			}
 		}
 		if (utf16Offset < end) {
-			return { leftId: node.id, rightId: visible[index + 1]?.id ?? null }
+			return {
+				affinity: `left`,
+				leftId: node.id,
+				rightId: visible[index + 1]?.id ?? null,
+			}
 		}
 		offset = end
 	}
-	return { leftId: visible.at(-1)?.id ?? null, rightId: null }
+	return {
+		affinity: `left`,
+		leftId: visible.at(-1)?.id ?? null,
+		rightId: null,
+	}
 }
 
 export function resolveMosaicTextPosition(
@@ -486,7 +658,7 @@ export function resolveMosaicTextPosition(
 		offsets.set(node.id, offset)
 		offset += node.value.length
 	}
-	if (position.rightId !== null) {
+	if (position.affinity === `right` && position.rightId !== null) {
 		const right = offsets.get(position.rightId)
 		if (right !== undefined) return right
 	}
@@ -494,6 +666,10 @@ export function resolveMosaicTextPosition(
 		const left = offsets.get(position.leftId)
 		const node = state.nodes[position.leftId]
 		if (left !== undefined && node !== undefined) return left + node.value.length
+	}
+	if (position.rightId !== null) {
+		const right = offsets.get(position.rightId)
+		if (right !== undefined) return right
 	}
 	const anchorIndex = Math.max(
 		position.rightId === null
@@ -517,10 +693,17 @@ export function mosaicText(options: MosaicTextOptions = {}): MosaicTextModel {
 	if (!Number.isSafeInteger(maximumGraphemes) || maximumGraphemes < 1) {
 		throw new Error(`maximumGraphemes must be a positive safe integer`)
 	}
+	if (
+		initialText.length > maximumGraphemes * 1_024 ||
+		splitMosaicText(initialText).length > maximumGraphemes
+	) {
+		throw new Error(`initialText exceeds maximumGraphemes`)
+	}
 	const base = defineMosaicModel({
 		apply: applyTextOperation,
 		create: () => createSeededText(initialText),
-		hydrate: (snapshot: MosaicTextSnapshot) => structuredClone(snapshot),
+		hydrate: (snapshot: unknown) =>
+			hydrateMosaicText(snapshot, maximumGraphemes),
 		key: `text`,
 		prepare: prepareText,
 		snapshot: (state: MosaicTextState) => structuredClone(state),

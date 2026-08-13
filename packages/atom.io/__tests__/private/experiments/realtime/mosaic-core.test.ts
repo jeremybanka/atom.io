@@ -16,7 +16,14 @@ function context(
 	group = id,
 	dependencies: readonly string[] = [],
 ): MosaicReduceContext {
-	return { actor, dependencies, group, id, session: `${actor}:tab` }
+	return {
+		actor,
+		dependencies,
+		group,
+		id,
+		revision: null,
+		session: `${actor}:tab`,
+	}
 }
 
 function prepare(
@@ -25,7 +32,11 @@ function prepare(
 	intent: MosaicTextIntent,
 	metadata: MosaicReduceContext,
 ): MosaicTextOperation {
-	const operation = model.prepare(state, intent, { ...metadata, now: 10 })
+	const operation = model.prepare(state, intent, {
+		...metadata,
+		now: 10,
+		revision: null,
+	})
 	if (operation === null) throw new Error(`Expected an operation`)
 	return operation
 }
@@ -92,6 +103,67 @@ describe(`Mosaic core`, () => {
 		expect(model.text(aliceThenBob)).toBe(model.text(bobThenAlice))
 		expect(model.text(aliceThenBob)).toContain(`[ALICE]`)
 		expect(model.text(aliceThenBob)).toContain(`[BOB]`)
+	})
+
+	test(`bounds a middle replacement before its retained suffix`, () => {
+		const model = mosaicText({ initialText: `abc` })
+		const state = model.create()
+		const metadata = context(`zoe:operation:1`, `zoe`)
+		const operation = prepare(
+			model,
+			state,
+			{ text: `aXc`, type: `replace-text` },
+			metadata,
+		)
+		expect(model.text(model.apply(state, operation, metadata))).toBe(`aXc`)
+	})
+
+	test(`canonicalizes accepted history by server revision`, () => {
+		const model = mosaicText({ initialText: `A` })
+		const base = model.create()
+		const localEdit = context(`alice:1`, `alice`)
+		const edit = prepare(
+			model,
+			base,
+			{ text: `AB`, type: `replace-text` },
+			localEdit,
+		)
+		const editContext = { ...localEdit, revision: 1 }
+		const afterEdit = model.apply(base, edit, editContext)
+		const localUndo = context(`alice:2`, `alice`)
+		const undo = prepare(model, afterEdit, { type: `undo` }, localUndo)
+		const undoContext = { ...localUndo, revision: 2 }
+		const ordered = model.apply(afterEdit, undo, undoContext)
+		const reversed = model.apply(
+			model.apply(base, undo, undoContext),
+			edit,
+			editContext,
+		)
+		expect(model.text(reversed)).toBe(model.text(ordered))
+		expect(model.text(reversed)).toBe(`A`)
+	})
+
+	test(`fails closed on operation id collisions and malformed snapshots`, () => {
+		const model = mosaicText({ initialText: `A` })
+		const base = model.create()
+		const metadata = context(`alice:1`, `alice`)
+		const operation = prepare(
+			model,
+			base,
+			{ text: `AB`, type: `replace-text` },
+			metadata,
+		)
+		const accepted = model.apply(base, operation, metadata)
+		expect(() =>
+			model.apply(
+				accepted,
+				{ deletedIds: [], inserted: [], type: `edit` },
+				metadata,
+			),
+		).toThrow(`Mosaic operation id collision`)
+		expect(() => model.hydrate({ actions: [{}] })).toThrow(
+			`Invalid Mosaic text snapshot`,
+		)
 	})
 
 	test(`selective undo preserves a foreign descendant and redo restores its group`, () => {
@@ -167,6 +239,15 @@ describe(`Mosaic core`, () => {
 		const base = model.create()
 		const position = model.positionAtOffset(base, 2)
 		expect(model.resolvePosition(base, position)).toBe(2)
+		const deletionContext = context(`alice:delete:1`, `alice`)
+		const deletion = prepare(
+			model,
+			base,
+			{ text: `ac`, type: `replace-text` },
+			deletionContext,
+		)
+		const withHiddenAnchor = model.apply(base, deletion, deletionContext)
+		expect(model.resolvePosition(withHiddenAnchor, position)).toBe(1)
 		const selection = model.selectionFromOffsets(base, 1, 3)
 		expect(model.resolvePosition(base, selection.anchor)).toBe(1)
 		expect(model.resolvePosition(base, selection.head)).toBe(3)

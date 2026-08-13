@@ -1,10 +1,13 @@
+import { Subject } from "atom.io/foundations/subject"
+
 import type {
-	MosaicModel,
 	MosaicModelDecision,
+	MosaicOperationSignal,
 	MosaicPrepareContext,
 	MosaicReduceContext,
-} from "./resource.ts"
-import { defineMosaicModel } from "./resource.ts"
+	MosaicTransceiver,
+	MosaicTransceiverConstructor,
+} from "./transceiver.ts"
 
 export type MosaicTextNode = {
 	readonly after: string | null
@@ -67,43 +70,45 @@ export type MosaicTextSelection = {
 	readonly head: MosaicTextRelativePosition
 }
 
-export type MosaicTextTimelineGroup = {
+export type MosaicTextHistoryGroup = {
 	readonly group: string
 	readonly targetOperationIds: readonly string[]
 }
 
-export type MosaicTextTimeline = {
-	readonly redo: readonly MosaicTextTimelineGroup[]
-	readonly undo: readonly MosaicTextTimelineGroup[]
+export type MosaicTextHistory = {
+	readonly redo: readonly MosaicTextHistoryGroup[]
+	readonly undo: readonly MosaicTextHistoryGroup[]
 }
 
-export type MosaicTextModel = MosaicModel<
-	MosaicTextState,
-	MosaicTextIntent,
-	MosaicTextOperation,
-	MosaicTextSnapshot
-> & {
-	readonly fromText: (text: string) => MosaicTextState
-	readonly positionAtOffset: (
-		state: MosaicTextState,
-		offset: number,
-	) => MosaicTextRelativePosition
-	readonly resolvePosition: (
-		state: MosaicTextState,
-		position: MosaicTextRelativePosition,
-	) => number
+export type MosaicTextView = {
+	readonly historyFor: (actor: string) => MosaicTextHistory
+	readonly length: number
+	readonly nodes: readonly MosaicTextNode[]
+	readonly positionAtOffset: (offset: number) => MosaicTextRelativePosition
+	readonly resolvePosition: (position: MosaicTextRelativePosition) => number
 	readonly selectionFromOffsets: (
-		state: MosaicTextState,
 		anchor: number,
 		head: number,
 	) => MosaicTextSelection
-	readonly text: (state: MosaicTextState) => string
-	readonly timeline: (
-		state: MosaicTextState,
-		actor: string,
-	) => MosaicTextTimeline
-	readonly visibleNodes: (state: MosaicTextState) => readonly MosaicTextNode[]
+	readonly subscribe: (
+		key: string,
+		fn: (signal: MosaicOperationSignal<MosaicTextOperation>) => void,
+	) => () => void
+	readonly text: string
 }
+
+export interface MosaicTextTransceiver
+	extends
+		MosaicTransceiver<
+			MosaicTextView,
+			MosaicTextIntent,
+			MosaicTextOperation,
+			MosaicTextSnapshot
+		>,
+		Omit<MosaicTextView, `subscribe`> {}
+
+export type MosaicTextConstructor =
+	MosaicTransceiverConstructor<MosaicTextTransceiver>
 
 export type MosaicTextOptions = {
 	readonly initialText?: string
@@ -302,12 +307,12 @@ function sameTargets(
 	)
 }
 
-export function deriveMosaicTextTimeline(
+export function deriveMosaicTextHistory(
 	state: MosaicTextState,
 	actor: string,
-): MosaicTextTimeline {
-	const undo: MosaicTextTimelineGroup[] = []
-	const redo: MosaicTextTimelineGroup[] = []
+): MosaicTextHistory {
+	const undo: MosaicTextHistoryGroup[] = []
+	const redo: MosaicTextHistoryGroup[] = []
 	for (const action of state.actions) {
 		if (action.actor !== actor) continue
 		if (action.operation.type === `edit`) {
@@ -361,7 +366,7 @@ function prepareText(
 		)
 		return { deletedIds: draft.deletedIds, inserted, type: `edit` }
 	}
-	const target = deriveMosaicTextTimeline(state, context.actor)[intent.type].at(
+	const target = deriveMosaicTextHistory(state, context.actor)[intent.type].at(
 		-1,
 	)
 	return target === undefined
@@ -509,7 +514,7 @@ function validateTextOperation(
 			}
 		}
 		const mode = operation[`mode`]
-		const expected = deriveMosaicTextTimeline(state, context.actor)[mode].at(-1)
+		const expected = deriveMosaicTextHistory(state, context.actor)[mode].at(-1)
 		if (
 			expected === undefined ||
 			!sameTargets(expected.targetOperationIds, operation[`targetOperationIds`])
@@ -686,8 +691,10 @@ export function resolveMosaicTextPosition(
 	return offset
 }
 
-/** Create the built-in convergent Unicode text model. */
-export function mosaicText(options: MosaicTextOptions = {}): MosaicTextModel {
+/** Create the built-in convergent Unicode text transceiver class. */
+export function mosaicText(
+	options: MosaicTextOptions = {},
+): MosaicTextConstructor {
 	const initialText = options.initialText ?? ``
 	const maximumGraphemes = options.maximumGraphemes ?? 200_000
 	if (!Number.isSafeInteger(maximumGraphemes) || maximumGraphemes < 1) {
@@ -699,29 +706,131 @@ export function mosaicText(options: MosaicTextOptions = {}): MosaicTextModel {
 	) {
 		throw new Error(`initialText exceeds maximumGraphemes`)
 	}
-	const base = defineMosaicModel({
-		apply: applyTextOperation,
-		create: () => createSeededText(initialText),
-		hydrate: (snapshot: unknown) =>
-			hydrateMosaicText(snapshot, maximumGraphemes),
-		key: `text`,
-		prepare: prepareText,
-		snapshot: (state: MosaicTextState) => structuredClone(state),
-		validate: (state, operation, context) =>
-			validateTextOperation(state, operation, context, maximumGraphemes),
-		version: 1,
-	})
-	return {
-		...base,
-		fromText: createSeededText,
-		positionAtOffset: positionAtMosaicTextOffset,
-		resolvePosition: resolveMosaicTextPosition,
-		selectionFromOffsets: (state, anchor, head) => ({
-			anchor: positionAtMosaicTextOffset(state, anchor),
-			head: positionAtMosaicTextOffset(state, head),
-		}),
-		text: materializeMosaicText,
-		timeline: deriveMosaicTextTimeline,
-		visibleNodes: visibleMosaicTextNodes,
+
+	class MosaicText implements MosaicTextTransceiver {
+		public static readonly mosaic = { key: `text`, version: 1 } as const
+		public static readonly timelinePolicy = `append-only` as const
+
+		readonly #subject = new Subject<MosaicOperationSignal<MosaicTextOperation>>()
+		#state = createSeededText(initialText)
+
+		public readonly READONLY_VIEW: MosaicTextView = this
+
+		public historyFor(actor: string): MosaicTextHistory {
+			return deriveMosaicTextHistory(this.#state, actor)
+		}
+
+		public get length(): number {
+			return this.text.length
+		}
+
+		public get nodes(): readonly MosaicTextNode[] {
+			return visibleMosaicTextNodes(this.#state)
+		}
+
+		public get text(): string {
+			return materializeMosaicText(this.#state)
+		}
+
+		public change(
+			intent: MosaicTextIntent,
+			context: MosaicPrepareContext,
+		): MosaicOperationSignal<MosaicTextOperation> | null {
+			const operation = prepareText(this.#state, intent, context)
+			if (operation === null) return null
+			const signal: MosaicOperationSignal<MosaicTextOperation> = {
+				actor: context.actor,
+				dependencies: context.dependencies,
+				group: context.group,
+				id: context.id,
+				operation,
+				revision: null,
+				session: context.session,
+			}
+			this.do(signal)
+			this.#subject.next(signal)
+			return signal
+		}
+
+		public do(signal: MosaicOperationSignal<MosaicTextOperation>): null {
+			const context: MosaicReduceContext = {
+				actor: signal.actor,
+				dependencies: signal.dependencies,
+				group: signal.group,
+				id: signal.id,
+				revision: signal.revision,
+				session: signal.session,
+			}
+			if (this.#state.actions.some(({ id }) => id === signal.id)) {
+				this.#state = applyTextOperation(this.#state, signal.operation, context)
+				return null
+			}
+			const decision = this.validate(signal.operation, context)
+			if (decision.status === `defer`) {
+				throw new Error(
+					`Mosaic text operation is missing dependencies: ${decision.dependencies.join(`, `)}`,
+				)
+			}
+			if (decision.status === `reject`) {
+				throw new Error(`Invalid Mosaic text operation: ${decision.reason}`)
+			}
+			this.#state = applyTextOperation(this.#state, decision.operation, context)
+			return null
+		}
+
+		public positionAtOffset(offset: number): MosaicTextRelativePosition {
+			return positionAtMosaicTextOffset(this.#state, offset)
+		}
+
+		public resolvePosition(position: MosaicTextRelativePosition): number {
+			return resolveMosaicTextPosition(this.#state, position)
+		}
+
+		public selectionFromOffsets(
+			anchor: number,
+			head: number,
+		): MosaicTextSelection {
+			return {
+				anchor: positionAtMosaicTextOffset(this.#state, anchor),
+				head: positionAtMosaicTextOffset(this.#state, head),
+			}
+		}
+
+		public subscribe(
+			key: string,
+			fn: (signal: MosaicOperationSignal<MosaicTextOperation>) => void,
+		): () => void {
+			return this.#subject.subscribe(key, fn)
+		}
+
+		public toJSON(): MosaicTextSnapshot {
+			return structuredClone(this.#state)
+		}
+
+		public undo(_signal: MosaicOperationSignal<MosaicTextOperation>): never {
+			throw new Error(
+				`Mosaic text is append-only. Append actor-scoped history operations instead of rewinding it.`,
+			)
+		}
+
+		public validate(
+			operation: unknown,
+			context: MosaicReduceContext,
+		): MosaicModelDecision<MosaicTextOperation> {
+			return validateTextOperation(
+				this.#state,
+				operation,
+				context,
+				maximumGraphemes,
+			)
+		}
+
+		public static fromJSON(snapshot: MosaicTextSnapshot): MosaicText {
+			const text = new MosaicText()
+			text.#state = hydrateMosaicText(snapshot, maximumGraphemes)
+			return text
+		}
 	}
+
+	return MosaicText
 }

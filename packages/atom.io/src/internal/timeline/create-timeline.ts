@@ -160,6 +160,14 @@ export function addAtomToTimeline(
 ): void {
 	ensureState(store, atomToken)
 	const atom = withdraw(store, atomToken)
+	if (
+		atom.type === `mutable_atom` &&
+		atom.class.timelinePolicy === `append-only`
+	) {
+		throw new Error(
+			`Mutable atom "${atom.key}" is append-only and cannot be attached to native timeline "${tl.key}". Use its operation history instead.`,
+		)
+	}
 	if (tl.subscriptions.has(atom.key)) {
 		return
 	}
@@ -294,6 +302,14 @@ function addAtomFamilyToTimeline(
 	tl: Timeline<any>,
 ): void {
 	const family = withdraw(store, atomFamilyToken)
+	if (
+		family.type === `mutable_atom_family` &&
+		family.class.timelinePolicy === `append-only`
+	) {
+		throw new Error(
+			`Mutable atom family "${family.key}" is append-only and cannot be attached to native timeline "${tl.key}". Use its operation history instead.`,
+		)
+	}
 	store.timelineTopics.set(
 		{ topicKey: family.key, timelineKey: tl.key },
 		{ topicType: `atom_family` },

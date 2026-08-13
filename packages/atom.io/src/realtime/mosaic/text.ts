@@ -327,17 +327,13 @@ export function deriveMosaicTextHistory(
 		}
 		const from = action.operation.mode === `undo` ? undo : redo
 		const to = action.operation.mode === `undo` ? redo : undo
+		const targets = action.operation.targetOperationIds
 		const index = from.findLastIndex((candidate) =>
-			sameTargets(
-				candidate.targetOperationIds,
-				action.operation.type === `history`
-					? action.operation.targetOperationIds
-					: [],
-			),
+			sameTargets(candidate.targetOperationIds, targets),
 		)
 		if (index !== -1) {
-			const [group] = from.splice(index, 1)
-			if (group) to.push(group)
+			const group = from.splice(index, 1)[0]
+			to.push(group)
 		}
 	}
 	return { redo, undo }
@@ -420,8 +416,7 @@ function validateTextOperation(
 				}
 			}
 			const { after, before, id, value: grapheme } = candidate
-			const expectedAfter =
-				index === 0 ? after : (inserted[index - 1]?.id ?? null)
+			const expectedAfter = index === 0 ? after : inserted[index - 1].id
 			if (
 				!isId(id) ||
 				!id.startsWith(`${context.id}:node:`) ||

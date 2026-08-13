@@ -6,13 +6,20 @@ import type {
 	MosaicResourceIdentifier,
 } from "./protocol.ts"
 
-/** Durable metadata available to deterministic validation and reduction. */
-export type MosaicReduceContext = MosaicOperationMetadata
+/** Metadata available to deterministic validation and reduction. */
+export type MosaicReduceContext = MosaicOperationMetadata & {
+	/**
+	 * The server stream order, or null for a provisional local projection. Models
+	 * may use an accepted revision to canonicalize order, but never assign one.
+	 */
+	readonly revision: number | null
+}
 
 /** Local-only context used to translate a friendly intent into an operation. */
 export type MosaicPrepareContext = MosaicOperationMetadata & {
 	/** Injected clock time. It must never affect reduction of accepted operations. */
 	readonly now: number
+	readonly revision: null
 }
 
 export type MosaicModelDecision<Operation extends Json.Serializable> =
@@ -32,7 +39,7 @@ export type MosaicModel<
 		context: MosaicReduceContext,
 	) => State
 	readonly create: () => State
-	readonly hydrate: (snapshot: Snapshot) => State
+	readonly hydrate: (snapshot: unknown) => State
 	readonly prepare: (
 		state: State,
 		intent: Intent,
@@ -41,7 +48,7 @@ export type MosaicModel<
 	readonly snapshot: (state: State) => Snapshot
 	readonly validate: (
 		state: State,
-		operation: Operation,
+		operation: unknown,
 		context: MosaicReduceContext,
 	) => MosaicModelDecision<Operation>
 }

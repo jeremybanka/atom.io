@@ -63,6 +63,8 @@ export type MosaicSnapshotEnvelope<
 	readonly protocolVersion: MosaicProtocolVersion
 	readonly resource: string
 	readonly revision: number
+	/** Correlates the snapshot with the currently active client incarnation. */
+	readonly session: string
 	readonly snapshot: Snapshot
 }
 
@@ -110,6 +112,8 @@ export type MosaicRejectionEnvelope = {
 	readonly reason: string
 	readonly recovery: MosaicRecovery
 	readonly resource: string
+	/** Correlates join- and operation-level failures with one client incarnation. */
+	readonly session: string
 }
 
 /** Untrusted ephemeral presence proposed by a bound client session. */

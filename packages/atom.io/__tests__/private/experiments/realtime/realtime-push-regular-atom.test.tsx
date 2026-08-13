@@ -27,16 +27,23 @@ describe(`pushing state`, () => {
 
 	const Increment = () => {
 		const setCount = RTR.usePush(countAtom)
+		const leaseStatus = RTR.usePushStatus(countAtom)
 		return setCount ? (
-			<button
-				type="button"
-				onClick={() => {
-					setCount((c) => c + 1)
-				}}
-				data-testid={`increment`}
-			/>
+			<>
+				<button
+					type="button"
+					onClick={() => {
+						setCount((c) => c + 1)
+					}}
+					data-testid={`increment`}
+				/>
+				<span data-testid={`lease-${leaseStatus.state}`} />
+			</>
 		) : (
-			<span data-testid={`waiting-for-mutex`} />
+			<>
+				<span data-testid={`waiting-for-mutex`} />
+				<span data-testid={`lease-${leaseStatus.state}`} />
+			</>
 		)
 	}
 
@@ -105,6 +112,7 @@ describe(`pushing state`, () => {
 
 		await waitFor(() => jane.renderResult.getByTestId(`waiting-for-mutex`))
 		await waitFor(() => jane.renderResult.getByTestId(`increment`))
+		jane.renderResult.getByTestId(`lease-owned`)
 
 		dave.renderResult.getByTestId(`0`)
 
@@ -113,6 +121,7 @@ describe(`pushing state`, () => {
 		})
 
 		await waitFor(() => dave.renderResult.getByTestId(`waiting-for-mutex`))
+		await waitFor(() => dave.renderResult.getByTestId(`lease-waiting`))
 
 		act(() => {
 			jane.renderResult.getByTestId(`switch`).click()

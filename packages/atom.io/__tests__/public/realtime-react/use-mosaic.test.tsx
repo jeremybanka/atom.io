@@ -63,9 +63,12 @@ function Workspace({ label }: { label: string }) {
 	)
 	return (
 		<main>
+			<output data-testid="address">{mosaic.address.key}</output>
+			<output data-testid="atom">{mosaic.atom.key}</output>
 			<output data-testid="label">{label}</output>
 			<output data-testid="session">{mosaic.session}</output>
 			<output data-testid="status">{mosaic.status}</output>
+			<output data-testid="sync-state">{mosaic.syncState.key}</output>
 			<output data-testid="text">{document.text}</output>
 			<output data-testid="length">{length}</output>
 			<output data-testid="undo-count">
@@ -139,6 +142,13 @@ describe(`useMosaic`, () => {
 			).toBe(true)
 		})
 		expect(app.getByTestId(`status`).textContent).toBe(`syncing`)
+		expect(app.getByTestId(`atom`).textContent).toBe(markdownAtom.key)
+		expect(app.getByTestId(`address`).textContent).toBe(
+			mosaicAtomAddress(markdownAtom).key,
+		)
+		expect(app.getByTestId(`sync-state`).textContent).toContain(
+			`mosaic:sync-state`,
+		)
 		act(() => {
 			socket.receive(MOSAIC_EVENTS.snapshot, snapshot())
 		})

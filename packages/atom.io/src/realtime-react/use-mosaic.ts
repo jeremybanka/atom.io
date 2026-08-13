@@ -25,6 +25,7 @@ export type UseMosaicResult<
 > = Pick<
 	MosaicController<T, Presence>,
 	| `actor`
+	| `address`
 	| `atom`
 	| `change`
 	| `clearProblem`
@@ -32,7 +33,7 @@ export type UseMosaicResult<
 	| `publishPresence`
 	| `retryPending`
 	| `session`
-	| `state`
+	| `syncState`
 	| `synchronize`
 > & {
 	/** Escape hatch for protocol- and lifecycle-level controls. */
@@ -69,19 +70,16 @@ export function useMosaic<
 		],
 	)
 	useRealtimeService(
-		`mosaic:${controller.atom.key}:${controller.session}`,
+		`mosaic:${controller.address.key}:${controller.session}`,
 		(socket) => controller.connect(socket),
 	)
 
-	const pending = useO(controller.state.pending)
-	const presence = useO(controller.state.presence)
-	const problem = useO(controller.state.problem)
-	const revision = useO(controller.state.revision)
-	const status = useO(controller.state.status)
+	const syncState = useO(controller.syncState)
 
 	return React.useMemo(
 		() => ({
 			actor: controller.actor,
+			address: controller.address,
 			atom: controller.atom,
 			change: (intent, submitOptions?: MosaicSubmitOptions) =>
 				controller.change(intent, submitOptions),
@@ -90,23 +88,23 @@ export function useMosaic<
 			},
 			controller,
 			createGroupId: () => controller.createGroupId(),
-			pending,
-			presence,
-			problem,
+			pending: syncState.pending,
+			presence: syncState.presence,
+			problem: syncState.problem,
 			publishPresence: (nextPresence) => {
 				controller.publishPresence(nextPresence)
 			},
 			retryPending: () => {
 				controller.retryPending()
 			},
-			revision,
+			revision: syncState.revision,
 			session: controller.session,
-			state: controller.state,
-			status,
+			status: syncState.status,
+			syncState: controller.syncState,
 			synchronize: () => {
 				controller.synchronize()
 			},
 		}),
-		[controller, pending, presence, problem, revision, status],
+		[controller, syncState],
 	)
 }

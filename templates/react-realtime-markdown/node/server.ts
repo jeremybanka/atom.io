@@ -6,10 +6,10 @@ import { createMosaicServer, realtime } from "atom.io/realtime-server"
 import { Server } from "socket.io"
 
 import { identityById } from "../src/identities.ts"
-import { markdownServerAtom } from "./mosaic-atom.ts"
+import { markdownAtomRegistration } from "./mosaic-atom.ts"
 
 const PORT = 3000
-const mosaic = createMosaicServer({ atoms: [markdownServerAtom] })
+const mosaic = createMosaicServer({ registrations: [markdownAtomRegistration] })
 const silo = new Silo({
 	name: `markdown-collaboration-server`,
 	lifespan: `immortal`,

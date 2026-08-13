@@ -5,7 +5,7 @@ import { useMosaic } from "atom.io/realtime-react"
 import { createMosaicServer } from "atom.io/realtime-server"
 import * as RTTest from "atom.io/realtime-testing"
 
-import { markdownServerAtom } from "../node/mosaic-atom.ts"
+import { markdownAtomRegistration } from "../node/mosaic-atom.ts"
 import {
 	Markdown,
 	markdownAtom,
@@ -84,7 +84,7 @@ function testClient(identity: Identity, session: string) {
 
 function scenario() {
 	const collaboration = createMosaicServer({
-		atoms: [markdownServerAtom],
+		registrations: [markdownAtomRegistration],
 	})
 	const room = RTTest.multiClient({
 		scenarioId: `mosaic-markdown`,

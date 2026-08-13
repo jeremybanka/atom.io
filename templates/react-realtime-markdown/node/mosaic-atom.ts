@@ -3,7 +3,7 @@ import type {
 	MosaicTextSelection,
 	MosaicTextView,
 } from "atom.io/realtime"
-import { defineMosaicServerAtom } from "atom.io/realtime-server"
+import { defineMosaicAtomRegistration } from "atom.io/realtime-server"
 import { z } from "zod"
 
 import {
@@ -76,7 +76,7 @@ const selectionResolvesWithin = (
 		return offset >= 0 && offset <= document.length
 	})
 
-export const markdownServerAtom = defineMosaicServerAtom({
+export const markdownAtomRegistration = defineMosaicAtomRegistration({
 	checkpointEvery: 128,
 	class: Markdown,
 	operationSchema,

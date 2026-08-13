@@ -103,12 +103,15 @@ export function createSubscriber<K extends string>(
 			})
 			sub.task = sub.clock.schedule(
 				() => {
-					sub.close()
-					sub.stopWatchingForReconnect()
-					subMap.delete(key)
-					sub.task = null
-					sub.completionResolve?.()
-					sub.completionResolve = null
+					try {
+						sub.close()
+					} finally {
+						sub.stopWatchingForReconnect()
+						subMap.delete(key)
+						sub.task = null
+						sub.completionResolve?.()
+						sub.completionResolve = null
+					}
 				},
 				sub.coalesceMs,
 				`subscription:${key}`,

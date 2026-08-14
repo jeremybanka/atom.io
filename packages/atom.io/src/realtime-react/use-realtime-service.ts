@@ -2,10 +2,10 @@ import { useSingleEffect } from "atom.io/react"
 import * as React from "react"
 import type { Socket } from "socket.io-client"
 
-import { RealtimeContext } from "./realtime-context.tsx"
+import { RealtimeContext, type RealtimeServiceKey } from "./realtime-context.tsx"
 
 export function useRealtimeService(
-	key: string,
+	key: RealtimeServiceKey,
 	create: (socket: Socket) => () => void,
 ): void {
 	const { socket, services } = React.useContext(RealtimeContext)

@@ -8,9 +8,11 @@ export type RealtimeServiceCounter = {
 	dispose: () => void
 }
 
+export type RealtimeServiceKey = object | string
+
 export type RealtimeReactStore = {
 	socket: Socket | null
-	services: Map<string, RealtimeServiceCounter> | null
+	services: Map<RealtimeServiceKey, RealtimeServiceCounter> | null
 }
 
 export const RealtimeContext: React.Context<RealtimeReactStore> =
@@ -24,7 +26,7 @@ export const RealtimeProvider: React.FC<{
 	socket: Socket | null
 }> = ({ children, socket }) => {
 	const services = React.useRef(
-		new Map<string, RealtimeServiceCounter>(),
+		new Map<RealtimeServiceKey, RealtimeServiceCounter>(),
 	).current
 	const setMySocketKey = useI(RTC.mySocketKeyAtom)
 	React.useEffect(() => {

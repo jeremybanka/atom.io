@@ -6,6 +6,7 @@ import { mySocketKeyAtom } from "atom.io/realtime-client"
 import {
 	RealtimeContext,
 	RealtimeProvider,
+	type RealtimeServiceKey,
 	useRealtimeService,
 } from "atom.io/realtime-react"
 import { useId } from "react"
@@ -103,7 +104,7 @@ describe(`useRealtimeService`, () => {
 	const fakeSocket = {} as unknown as Socket
 
 	const services = new Map<
-		string,
+		RealtimeServiceKey,
 		{ consumerCount: number; dispose: () => void }
 	>()
 

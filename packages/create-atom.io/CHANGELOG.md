@@ -1,5 +1,16 @@
 # create-atom.io
 
+## 0.1.46
+
+### Patch Changes
+
+- e0ad583: Add a React and Lasertag realtime text editor template with simulated identities, presence, convergent offline editing, and selective per-identity undo. Include multi-client collaboration tests and expose the template through the creator CLI.
+- Updated dependencies [e0ad583]
+  - @atom.io/template-react-realtime-text-editor@0.0.2
+  - @atom.io/template-preact-svg-editor@0.0.84
+  - @atom.io/template-react-node-backend@0.0.88
+  - @atom.io/template-solid-lossless-numbers@0.0.38
+
 ## 0.1.45
 
 ### Patch Changes

@@ -1,4 +1,4 @@
-# React Realtime Docs
+# React Realtime Text Editor
 
 Mosaic is a React + atom.io multiplayer Markdown editor with a small Node and
 Socket.IO collaboration server. It ships simulated identities so the complete

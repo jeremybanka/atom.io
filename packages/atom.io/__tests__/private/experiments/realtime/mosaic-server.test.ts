@@ -9,6 +9,7 @@ import {
 	type MosaicModelDecision,
 	type MosaicOperationSignal,
 	type MosaicPrepareContext,
+	type MosaicPresenceEnvelope,
 	type MosaicReduceContext,
 	type MosaicRejectionEnvelope,
 	type MosaicSnapshotEnvelope,
@@ -355,6 +356,25 @@ const waitForValues = async (
 		expect(socket.values(event)).toHaveLength(length)
 	})
 	return socket.values(event)
+}
+
+const createAsyncGate = () => {
+	let enter: () => void = () => {}
+	let open: () => void = () => {}
+	const entered = new Promise<void>((resolve) => {
+		enter = resolve
+	})
+	const opened = new Promise<void>((resolve) => {
+		open = resolve
+	})
+	return {
+		entered,
+		open,
+		wait: async (): Promise<void> => {
+			enter()
+			await opened
+		},
+	}
 }
 
 describe(`in-memory Mosaic storage`, () => {
@@ -1377,6 +1397,189 @@ describe(`Mosaic server`, () => {
 		})
 		await disconnectBob()
 		await disconnectCharlie()
+		await server.dispose()
+	})
+
+	test(`serializes overlapping first presence updates`, async () => {
+		const firstValidation = createAsyncGate()
+		const authorize = vi.fn(() => true)
+		const guardedAtom = defineMosaicAtomRegistration({
+			...atom,
+			validatePresence: async ({ cursor }: { readonly cursor: number }) => {
+				if (cursor === 1) await firstValidation.wait()
+				return true
+			},
+		})
+		const server = createMosaicServer({
+			authorize,
+			registrations: [guardedAtom],
+		})
+		const alice = new TestSocket(`alice`)
+		const charlie = new TestSocket(`charlie`)
+		const disconnectAlice = server.connect({
+			actor: `alice`,
+			session: `alice-session`,
+			socket: alice,
+		})
+		const disconnectCharlie = server.connect({
+			actor: `charlie`,
+			session: `charlie-session`,
+			socket: charlie,
+		})
+		join(alice, `alice-session`)
+		join(charlie, `charlie-session`)
+		await waitForValues(alice, MOSAIC_EVENTS.snapshot, 1)
+		await waitForValues(charlie, MOSAIC_EVENTS.snapshot, 1)
+		authorize.mockClear()
+
+		alice.clientEmit(MOSAIC_EVENTS.presence, {
+			atom: address,
+			presence: { cursor: 1 },
+			protocolVersion: MOSAIC_PROTOCOL_VERSION,
+			session: `alice-session`,
+		})
+		await firstValidation.entered
+		charlie.clientEmit(MOSAIC_EVENTS.presence, {
+			atom: address,
+			presence: { cursor: 2 },
+			protocolVersion: MOSAIC_PROTOCOL_VERSION,
+			session: `charlie-session`,
+		})
+		await vi.waitFor(() => {
+			expect(authorize).toHaveBeenCalledTimes(2)
+		})
+		firstValidation.open()
+		await waitForValues(alice, MOSAIC_EVENTS.presence, 2)
+
+		const observer = new TestSocket(`observer`)
+		const disconnectObserver = server.connect({
+			actor: `observer`,
+			session: `observer-session`,
+			socket: observer,
+		})
+		join(observer, `observer-session`)
+		await waitForValues(observer, MOSAIC_EVENTS.snapshot, 1)
+		const existing = (await waitForValues(
+			observer,
+			MOSAIC_EVENTS.presence,
+			2,
+		)) as unknown as MosaicPresenceEnvelope[]
+		expect(existing.map(({ actor }) => actor).sort()).toEqual([
+			`alice`,
+			`charlie`,
+		])
+
+		await disconnectAlice()
+		await disconnectCharlie()
+		await disconnectObserver()
+		await server.dispose()
+	})
+
+	test(`orders an overlapping presence removal after its update`, async () => {
+		const validation = createAsyncGate()
+		const authorize = vi.fn(() => true)
+		const guardedAtom = defineMosaicAtomRegistration({
+			...atom,
+			validatePresence: async () => {
+				await validation.wait()
+				return true
+			},
+		})
+		const server = createMosaicServer({
+			authorize,
+			registrations: [guardedAtom],
+		})
+		const alice = new TestSocket(`alice`)
+		const observer = new TestSocket(`observer`)
+		const disconnectAlice = server.connect({
+			actor: `alice`,
+			session: `alice-session`,
+			socket: alice,
+		})
+		const disconnectObserver = server.connect({
+			actor: `observer`,
+			session: `observer-session`,
+			socket: observer,
+		})
+		join(alice, `alice-session`)
+		join(observer, `observer-session`)
+		await waitForValues(alice, MOSAIC_EVENTS.snapshot, 1)
+		await waitForValues(observer, MOSAIC_EVENTS.snapshot, 1)
+		authorize.mockClear()
+
+		alice.clientEmit(MOSAIC_EVENTS.presence, {
+			atom: address,
+			presence: { cursor: 1 },
+			protocolVersion: MOSAIC_PROTOCOL_VERSION,
+			session: `alice-session`,
+		})
+		await validation.entered
+		alice.clientEmit(MOSAIC_EVENTS.presence, {
+			atom: address,
+			presence: null,
+			protocolVersion: MOSAIC_PROTOCOL_VERSION,
+			session: `alice-session`,
+		})
+		await vi.waitFor(() => {
+			expect(authorize).toHaveBeenCalledTimes(2)
+		})
+		validation.open()
+		const presence = (await waitForValues(
+			observer,
+			MOSAIC_EVENTS.presence,
+			2,
+		)) as unknown as MosaicPresenceEnvelope[]
+		expect(presence.map(({ presence: value }) => value)).toEqual([
+			{ cursor: 1 },
+			null,
+		])
+
+		await disconnectAlice()
+		await disconnectObserver()
+		await server.dispose()
+	})
+
+	test(`does not publish an update that overlaps disconnect`, async () => {
+		const validation = createAsyncGate()
+		const guardedAtom = defineMosaicAtomRegistration({
+			...atom,
+			validatePresence: async () => {
+				await validation.wait()
+				return true
+			},
+		})
+		const server = createMosaicServer({ registrations: [guardedAtom] })
+		const alice = new TestSocket(`alice`)
+		const observer = new TestSocket(`observer`)
+		const disconnectAlice = server.connect({
+			actor: `alice`,
+			session: `alice-session`,
+			socket: alice,
+		})
+		const disconnectObserver = server.connect({
+			actor: `observer`,
+			session: `observer-session`,
+			socket: observer,
+		})
+		join(alice, `alice-session`)
+		join(observer, `observer-session`)
+		await waitForValues(alice, MOSAIC_EVENTS.snapshot, 1)
+		await waitForValues(observer, MOSAIC_EVENTS.snapshot, 1)
+
+		alice.clientEmit(MOSAIC_EVENTS.presence, {
+			atom: address,
+			presence: { cursor: 1 },
+			protocolVersion: MOSAIC_PROTOCOL_VERSION,
+			session: `alice-session`,
+		})
+		await validation.entered
+		const disconnected = disconnectAlice()
+		validation.open()
+		await disconnected
+		await server.checkpoint(address)
+		expect(observer.values(MOSAIC_EVENTS.presence)).toEqual([])
+
+		await disconnectObserver()
 		await server.dispose()
 	})
 

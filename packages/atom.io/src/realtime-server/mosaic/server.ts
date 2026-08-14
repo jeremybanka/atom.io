@@ -424,7 +424,7 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 
 	const enqueue = <Value>(
 		runtime: AtomRuntime,
-		operation: () => Promise<Value>,
+		operation: () => MaybePromise<Value>,
 	): Promise<Value> => {
 		const result = runtime.tail.then(operation, operation)
 		runtime.tail = result.then(
@@ -635,6 +635,24 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 				emit(connection, MOSAIC_EVENTS.presence, envelope)
 			}
 		}
+	}
+
+	const removePresence = (
+		connection: ConnectionState,
+		atom: MosaicAtomAddress,
+	): void => {
+		const atomKey = mosaicAtomAddressKey(atom)
+		const records = presence.get(atomKey)
+		if (records?.delete(connection.session)) {
+			broadcastPresence(atom, {
+				actor: connection.actor,
+				presence: null,
+				protocolVersion: MOSAIC_PROTOCOL_VERSION,
+				atom,
+				session: connection.session,
+			})
+		}
+		if (records?.size === 0) presence.delete(atomKey)
 	}
 
 	const isAuthorized = async (
@@ -1147,18 +1165,11 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 			) {
 				return
 			}
-			const addressKey = mosaicAtomAddressKey(address)
-			const records = presence.get(addressKey)
-			if (records?.delete(connection.session)) {
-				broadcastPresence(address, {
-					actor: connection.actor,
-					presence: null,
-					protocolVersion: MOSAIC_PROTOCOL_VERSION,
-					atom: address,
-					session: connection.session,
-				})
-			}
-			if (records?.size === 0) presence.delete(addressKey)
+			const runtime = runtimeFor(registration, address)
+			await enqueue(runtime, () => {
+				if (connection.disposed) return
+				removePresence(connection, address)
+			})
 			return
 		}
 		const presenceSchema = registration.presenceSchema
@@ -1178,10 +1189,9 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 		) {
 			return
 		}
-		const addressKey = mosaicAtomAddressKey(address)
-		const records = presence.get(addressKey) ?? new Map()
 		const runtime = runtimeFor(registration, address)
 		await enqueue(runtime, async () => {
+			if (connection.disposed) return
 			await initialize(runtime)
 			await drain(runtime, true)
 			if (
@@ -1195,6 +1205,9 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 			) {
 				return
 			}
+			if (connection.disposed) return
+			const addressKey = mosaicAtomAddressKey(address)
+			const records = presence.get(addressKey) ?? new Map()
 			records.set(connection.session, {
 				connection,
 				presence: validation.value,
@@ -1218,20 +1231,12 @@ export function createMosaicServer(options: MosaicServerOptions): MosaicServer {
 		}
 		connections.delete(connection)
 		for (const atomKey of connection.joined) {
-			const address = runtimes.get(atomKey)?.address
-			if (address === undefined) continue
-			await storage.clearSession(address, connection.session)
-			const records = presence.get(atomKey)
-			if (records?.delete(connection.session)) {
-				broadcastPresence(address, {
-					actor: connection.actor,
-					presence: null,
-					protocolVersion: MOSAIC_PROTOCOL_VERSION,
-					atom: address,
-					session: connection.session,
-				})
-			}
-			if (records?.size === 0) presence.delete(atomKey)
+			const runtime = runtimes.get(atomKey)
+			if (runtime === undefined) continue
+			await enqueue(runtime, async () => {
+				await storage.clearSession(runtime.address, connection.session)
+				removePresence(connection, runtime.address)
+			})
 		}
 	}
 

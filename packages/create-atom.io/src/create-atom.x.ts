@@ -11,7 +11,7 @@ const CREATE_ATOM_OPTS = options(
 	`Create a new project with atom.io.`,
 	type({
 		"packageManager?": `"bun" | "npm" | "pnpm" | "yarn"`,
-		"templateName?": `"preact-svg-editor" | "react-node-backend" | "react-realtime-markdown" | "solid-lossless-numbers"`,
+		"templateName?": `"preact-svg-editor" | "react-node-backend" | "react-realtime-docs" | "solid-lossless-numbers"`,
 		"skipHints?": `boolean`,
 		"useMise?": `boolean`,
 	}),

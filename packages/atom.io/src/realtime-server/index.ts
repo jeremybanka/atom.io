@@ -1,5 +1,6 @@
 export * from "./continuity/provide-continuity.ts"
 export * from "./ipc-sockets/index.ts"
+export * from "./mosaic/index.ts"
 export * from "./provide-rooms.ts"
 export * from "./realtime-family-provider.ts"
 export * from "./realtime-mutable-family-provider.ts"

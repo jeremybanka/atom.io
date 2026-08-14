@@ -296,6 +296,9 @@ importers:
       vitest:
         specifier: 4.1.10
         version: 4.1.10(@types/node@26.2.0)(@vitest/coverage-v8@4.1.10)(@vitest/ui@4.1.10)(esbuild@0.28.1)(happy-dom@20.11.2)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
       zustand:
         specifier: 5.0.15
         version: 5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8))

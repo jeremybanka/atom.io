@@ -13,7 +13,7 @@ import { usersInRooms } from "atom.io/realtime"
 import { pullMutableAtomFamilyMember } from "atom.io/realtime-client"
 import * as RTS from "atom.io/realtime-server"
 
-import { gameContinuity, letterAtoms } from "./game-store.ts"
+import { letterAtoms } from "./game-store.ts"
 
 const LOGGING = false
 
@@ -75,9 +75,9 @@ parentSocket.receiveRelay((socket, userKey) => {
 	editRelations(RTS.usersOfSockets, (relations) => {
 		relations.set(`user::relay:${socket.id}`, `socket::${socket.id}`)
 	})
-	const exposeContinuity = RTS.prepareToProvideContinuity({
+	const exposeFamily = RTS.realtimeAtomFamilyProvider({
 		socket,
 		consumer: userKey,
 	})
-	exposeContinuity(gameContinuity, userKey)
+	return exposeFamily(letterAtoms, [0])
 })

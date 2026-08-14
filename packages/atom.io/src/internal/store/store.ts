@@ -33,8 +33,8 @@ import type { Timeline, TimelineFamily } from "../timeline/index.ts"
 import type {
 	ChildStore,
 	RootStore,
+	RootTransactionMeta,
 	Transaction,
-	TransactionEpoch,
 	TransactionProgress,
 } from "../transaction/index.ts"
 import { isRootStore } from "../transaction/index.ts"
@@ -90,12 +90,8 @@ export class Store implements Lineage {
 	public joins: Map<string, Join<any, any, any, any, any>> = new Map()
 
 	public transactions: Map<string, Transaction<Fn>> = new Map()
-	public transactionMeta: TransactionEpoch | TransactionProgress<Fn> = {
-		epoch: new Map<string, number>(),
-		actionContinuities: new Junction({
-			between: [`continuity`, `action`],
-			cardinality: `1:n`,
-		}),
+	public transactionMeta: RootTransactionMeta | TransactionProgress<Fn> = {
+		phase: `idle`,
 	}
 
 	public timelines: Map<string, Timeline<any>> = new Map()
@@ -205,12 +201,7 @@ export class Store implements Lineage {
 		if (store !== null) {
 			this.operation = { ...store?.operation }
 			if (isRootStore(store)) {
-				this.transactionMeta = {
-					epoch: new Map(store?.transactionMeta.epoch),
-					actionContinuities: new Junction(
-						store?.transactionMeta.actionContinuities.toJSON(),
-					),
-				}
+				this.transactionMeta = { phase: `idle` }
 			}
 
 			for (const [, family] of store.families) {

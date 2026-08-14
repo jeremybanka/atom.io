@@ -3,7 +3,7 @@ import * as RTC from "atom.io/realtime-client"
 import * as RTR from "atom.io/realtime-react"
 import * as React from "react"
 
-import { gameContinuity, letterAtoms } from "./game-store.ts"
+import { letterAtoms } from "./game-store.ts"
 
 type RoomNames = `game-instance.bun.ts`
 
@@ -11,8 +11,7 @@ function Room({
 	roomSocket,
 	myRoomKey,
 }: RTR.RealtimeRoomsTools<RoomNames>): React.ReactNode {
-	RTR.useSyncContinuity(gameContinuity)
-	const letter0 = AR.useO(letterAtoms, 0)
+	const letter0 = RTR.usePullAtomFamilyMember(letterAtoms, 0)
 	return (
 		<main data-testid={myRoomKey}>
 			<h1>{myRoomKey}</h1>

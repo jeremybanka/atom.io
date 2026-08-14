@@ -4,7 +4,6 @@ import { withdraw } from "../store/index.ts"
 import type { Fn } from "../utility-types.ts"
 import type { ChildStore } from "./is-root-store.ts"
 import { isChildStore, isRootStore } from "./is-root-store.ts"
-import { setEpochNumberOfAction } from "./set-epoch-number.ts"
 import {
 	beginTransactionNotificationBatch,
 	cancelTransactionNotificationBatch,
@@ -45,11 +44,6 @@ export function applyTransaction<F extends Fn>(
 		)
 
 		if (rootCommit) {
-			setEpochNumberOfAction(
-				parent,
-				child.transactionMeta.update.token.key,
-				child.transactionMeta.update.epoch,
-			)
 			if (ownsNotificationBatch) {
 				notificationErrors.push(...flushTransactionNotificationBatch(parent))
 			}

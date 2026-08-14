@@ -12,12 +12,12 @@ and leaves you ready to run the app.
 
 ## Templates
 
-| Template                 | What you get                                                                                |
-| :----------------------- | :------------------------------------------------------------------------------------------ |
-| `preact-svg-editor`      | A Preact + Vite SVG editor that leans on atoms, atom families, selectors, and transactions. |
-| `react-node-backend`     | A React app paired with Node services for backend-shaped examples.                          |
-| `react-realtime-docs`    | A realtime React document editor with presence and selective per-user undo.                 |
-| `solid-lossless-numbers` | A Solid + Vite playground for exact rational arithmetic with `atom.io/solid`.               |
+| Template                     | What you get                                                                                |
+| :--------------------------- | :------------------------------------------------------------------------------------------ |
+| `preact-svg-editor`          | A Preact + Vite SVG editor that leans on atoms, atom families, selectors, and transactions. |
+| `react-node-backend`         | A React app paired with Node services for backend-shaped examples.                          |
+| `react-realtime-text-editor` | A realtime React text editor with presence and selective per-user undo.                     |
+| `solid-lossless-numbers`     | A Solid + Vite playground for exact rational arithmetic with `atom.io/solid`.               |
 
 ## Usage
 
@@ -34,12 +34,12 @@ Pass options when you already know what you want:
 npm create atom.io@latest my-app -- --templateName=preact-svg-editor --packageManager=pnpm --useMise=true
 ```
 
-| Option             | Alias | Values                                                                                     |
-| :----------------- | :---- | :----------------------------------------------------------------------------------------- |
-| `--templateName`   | `-t`  | `preact-svg-editor`, `react-node-backend`, `react-realtime-docs`, `solid-lossless-numbers` |
-| `--packageManager` | `-m`  | `bun`, `npm`, `pnpm`, `yarn`                                                               |
-| `--useMise`        |       | `true`, `false`                                                                            |
-| `--skipHints`      | `-k`  | `true`, `false`                                                                            |
+| Option             | Alias | Values                                                                                            |
+| :----------------- | :---- | :------------------------------------------------------------------------------------------------ |
+| `--templateName`   | `-t`  | `preact-svg-editor`, `react-node-backend`, `react-realtime-text-editor`, `solid-lossless-numbers` |
+| `--packageManager` | `-m`  | `bun`, `npm`, `pnpm`, `yarn`                                                                      |
+| `--useMise`        |       | `true`, `false`                                                                                   |
+| `--skipHints`      | `-k`  | `true`, `false`                                                                                   |
 
 ## Next Steps
 

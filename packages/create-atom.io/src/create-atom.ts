@@ -15,7 +15,7 @@ export type PackageManager = `bun` | `npm` | `pnpm` | `yarn`
 export type TemplateName =
 	| `preact-svg-editor`
 	| `react-node-backend`
-	| `react-realtime-docs`
+	| `react-realtime-text-editor`
 	| `solid-lossless-numbers`
 
 export type CreateAtomOptions = {
@@ -53,8 +53,8 @@ export async function createAtom(
 							value: `react-node-backend`,
 						},
 						{
-							label: `React Realtime Docs`,
-							value: `react-realtime-docs`,
+							label: `React Realtime Text Editor`,
+							value: `react-realtime-text-editor`,
 						},
 						{
 							label: `Solid Lossless Numbers`,

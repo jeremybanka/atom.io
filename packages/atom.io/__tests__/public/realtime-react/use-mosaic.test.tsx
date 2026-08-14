@@ -11,6 +11,7 @@ import {
 	type MosaicTextSnapshot,
 } from "atom.io/realtime"
 import { RealtimeContext, useMosaic } from "atom.io/realtime-react"
+import { useEffect } from "react"
 import type { Socket } from "socket.io-client"
 
 type Listener = (...args: any[]) => void
@@ -39,9 +40,18 @@ class TestSocket {
 		return this
 	}
 
+	public listenerCount(event: string): number {
+		return this.#listeners.get(event)?.size ?? 0
+	}
+
 	public receive(event: string, payload?: unknown): void {
 		for (const listener of this.#listeners.get(event) ?? []) listener(payload)
 	}
+}
+
+function setNodeEnv(value: `development` | `production`) {
+	// @ts-expect-error – test override
+	globalThis.env = { NODE_ENV: value }
 }
 
 const Markdown = mosaicText({ initialText: `Seed` })
@@ -100,6 +110,23 @@ function Workspace({ label }: { label: string }) {
 			/>
 		</main>
 	)
+}
+
+function ConnectionProbe({
+	label,
+	onController,
+}: {
+	label: string
+	onController: (controller: object) => void
+}) {
+	const mosaic = useMosaic<InstanceType<typeof Markdown>, MosaicTextSelection>(
+		markdownAtom,
+		{ actor: `alice`, session: `alice:test-session` },
+	)
+	useEffect(() => {
+		onController(mosaic.controller)
+	}, [mosaic.controller, onController])
+	return <output data-testid={`${label}-status`}>{mosaic.status}</output>
 }
 
 function snapshot(): MosaicSnapshotEnvelope<MosaicTextSnapshot> {
@@ -190,5 +217,147 @@ describe(`useMosaic`, () => {
 
 		app.unmount()
 		expect(services.size).toBe(0)
+	})
+
+	test(`keeps one render-stable service through StrictMode replay`, async () => {
+		setNodeEnv(`development`)
+		const socket = new TestSocket()
+		const silo = new Silo({
+			isProduction: false,
+			lifespan: `ephemeral`,
+			name: `useMosaic StrictMode test`,
+		})
+		silo.install([markdownAtom, markdownLengthSelector])
+		const services = new Map()
+		const app = render(
+			<StoreProvider store={silo.store}>
+				<RealtimeContext.Provider
+					value={{ services, socket: socket as unknown as Socket }}
+				>
+					<Workspace label="strict" />
+				</RealtimeContext.Provider>
+			</StoreProvider>,
+			{ reactStrictMode: true },
+		)
+
+		await waitFor(() => {
+			expect(services.size).toBe(1)
+		})
+		expect(socket.listenerCount(MOSAIC_EVENTS.snapshot)).toBe(1)
+		expect(
+			socket.emitted.filter(({ event }) => event === MOSAIC_EVENTS.join),
+		).toHaveLength(1)
+
+		app.unmount()
+		expect(services.size).toBe(0)
+		expect(socket.listenerCount(MOSAIC_EVENTS.snapshot)).toBe(0)
+		setNodeEnv(`production`)
+	})
+
+	test(`refcounts hook instances that share a Store-owned controller`, async () => {
+		const socket = new TestSocket()
+		const silo = new Silo({
+			isProduction: false,
+			lifespan: `ephemeral`,
+			name: `shared useMosaic owner`,
+		})
+		silo.install([markdownAtom])
+		const services = new Map()
+		const controllers = new Set<object>()
+		const recordController = (controller: object): void => {
+			controllers.add(controller)
+		}
+		const view = (showFirst: boolean) => (
+			<StoreProvider store={silo.store}>
+				<RealtimeContext.Provider
+					value={{ services, socket: socket as unknown as Socket }}
+				>
+					{showFirst ? (
+						<ConnectionProbe label="first" onController={recordController} />
+					) : null}
+					<ConnectionProbe label="second" onController={recordController} />
+				</RealtimeContext.Provider>
+			</StoreProvider>
+		)
+		const app = render(view(true))
+
+		await waitFor(() => {
+			expect(services.size).toBe(1)
+		})
+		expect(controllers.size).toBe(1)
+		expect(socket.listenerCount(MOSAIC_EVENTS.snapshot)).toBe(1)
+		expect(
+			socket.emitted.filter(({ event }) => event === MOSAIC_EVENTS.join),
+		).toHaveLength(1)
+
+		app.rerender(view(false))
+		expect(services.size).toBe(1)
+		expect(socket.listenerCount(MOSAIC_EVENTS.snapshot)).toBe(1)
+
+		app.unmount()
+		expect(services.size).toBe(0)
+		expect(socket.listenerCount(MOSAIC_EVENTS.snapshot)).toBe(0)
+	})
+
+	test(`isolates equal atom and session services owned by different Stores`, async () => {
+		const socket = new TestSocket()
+		const first = new Silo({
+			isProduction: false,
+			lifespan: `ephemeral`,
+			name: `first useMosaic owner`,
+		})
+		const second = new Silo({
+			isProduction: false,
+			lifespan: `ephemeral`,
+			name: `second useMosaic owner`,
+		})
+		first.install([markdownAtom])
+		second.install([markdownAtom])
+		const services = new Map()
+		const controllers = new Set<object>()
+		const recordController = (controller: object): void => {
+			controllers.add(controller)
+		}
+		const view = (showFirst: boolean) => (
+			<RealtimeContext.Provider
+				value={{ services, socket: socket as unknown as Socket }}
+			>
+				{showFirst ? (
+					<StoreProvider store={first.store}>
+						<ConnectionProbe label="first" onController={recordController} />
+					</StoreProvider>
+				) : null}
+				<StoreProvider store={second.store}>
+					<ConnectionProbe label="second" onController={recordController} />
+				</StoreProvider>
+			</RealtimeContext.Provider>
+		)
+		const app = render(view(true))
+
+		await waitFor(() => {
+			expect(services.size).toBe(2)
+		})
+		expect(controllers.size).toBe(2)
+		expect(socket.listenerCount(MOSAIC_EVENTS.snapshot)).toBe(2)
+		expect(
+			socket.emitted.filter(({ event }) => event === MOSAIC_EVENTS.join),
+		).toHaveLength(2)
+
+		act(() => {
+			socket.receive(MOSAIC_EVENTS.snapshot, snapshot())
+		})
+		expect(app.getByTestId(`first-status`).textContent).toBe(`live`)
+		expect(app.getByTestId(`second-status`).textContent).toBe(`live`)
+
+		app.rerender(view(false))
+		await waitFor(() => {
+			expect(services.size).toBe(1)
+		})
+		expect(socket.listenerCount(MOSAIC_EVENTS.snapshot)).toBe(1)
+		expect(app.getByTestId(`second-status`).textContent).toBe(`live`)
+
+		app.unmount()
+		expect(services.size).toBe(0)
+		expect(socket.listenerCount(MOSAIC_EVENTS.snapshot)).toBe(0)
 	})
 })

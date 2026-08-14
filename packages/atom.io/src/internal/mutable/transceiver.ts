@@ -12,11 +12,21 @@ export interface Transceiver<
 	toJSON: () => J
 }
 
+/**
+ * Controls whether a mutable atom may participate in native Atom.io time
+ * travel. Append-only transceivers implement history by recording new signals;
+ * rewinding their object graph would violate their consistency contract.
+ */
+export type TransceiverTimelinePolicy = `append-only` | `reversible`
+
 // dprint-ignore
 export type TransceiverConstructor<
 	J extends Json.Serializable,
 	T extends Transceiver<any, any, J>,
-> = (new () => T) & { fromJSON: (json: J) => T }
+> = (new () => T) & {
+	fromJSON: (json: J) => T
+	readonly timelinePolicy?: TransceiverTimelinePolicy
+}
 
 export function isTransceiver(
 	value: unknown,

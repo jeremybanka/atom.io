@@ -25,7 +25,12 @@ test(`environment members remain ordinary React provider state`, async () => {
 		const body = useO(bodyAtom)
 		const setBody = useI(bodyAtom)
 		return (
-			<button type="button" onClick={() => setBody(`edited`)}>
+			<button
+				type="button"
+				onClick={() => {
+					setBody(`edited`)
+				}}
+			>
 				{body}
 			</button>
 		)
@@ -37,7 +42,10 @@ test(`environment members remain ordinary React provider state`, async () => {
 	)
 
 	expect(view.getByRole(`button`).textContent).toBe(`hello`)
-	act(() => fireEvent.click(view.getByRole(`button`)))
+	await act(async () => {
+		fireEvent.click(view.getByRole(`button`))
+		await Promise.resolve()
+	})
 	expect(view.getByRole(`button`).textContent).toBe(`edited`)
 	scope[Symbol.dispose]()
 })

@@ -19,7 +19,7 @@ test(`clearing a Store disposes its active collaboration scopes`, async () => {
 		version: 1,
 	})
 	const scope = await environment.activate({ config: {}, store: silo.store })
-	const registry = [...silo.store.miscResources.values()][0]!
+	const registry = [...silo.store.miscResources.values()][0]
 
 	clearStore(silo.store)
 	registry[Symbol.dispose]()

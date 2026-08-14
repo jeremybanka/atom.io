@@ -395,7 +395,7 @@ async function validate<Schema extends StandardSchemaV1>(
 		const reason = result.issues.map((issue) => issue.message).join(`; `)
 		throw new Error(`${boundary} failed validation: ${reason}`)
 	}
-	return result.value as StandardSchemaV1.InferOutput<Schema>
+	return result.value
 }
 
 /**
@@ -530,13 +530,18 @@ export function collaborationEnvironment<
 					}
 					return { member, token: member.token } as never
 				},
-				async validateValue(member, value) {
-					if (disposed)
-						throw new Error(`This collaboration environment is disposed.`)
+				validateValue(member, value) {
+					if (disposed) {
+						return Promise.reject(
+							new Error(`This collaboration environment is disposed.`),
+						)
+					}
 					const definition = members[member]
 					if (!definition || !(`schema` in definition)) {
-						throw new Error(
-							`Collaboration member "${member}" does not accept remote values.`,
+						return Promise.reject(
+							new Error(
+								`Collaboration member "${member}" does not accept remote values.`,
+							),
 						)
 					}
 					return validate(

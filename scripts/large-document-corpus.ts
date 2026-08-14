@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto"
 import { createReadStream } from "node:fs"
-import type { FileHandle } from "node:fs/promises"
 import fs from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
@@ -211,8 +210,14 @@ async function streamVerifiedDownload(
 	return identity
 }
 
-async function writeComplete(
-	handle: FileHandle,
+export async function writeComplete(
+	handle: {
+		write(
+			payload: Uint8Array,
+			offset: number,
+			length: number,
+		): Promise<{ bytesWritten: number }>
+	},
 	payload: Uint8Array,
 ): Promise<void> {
 	let offset = 0
@@ -222,6 +227,9 @@ async function writeComplete(
 			offset,
 			payload.byteLength - offset,
 		)
+		if (bytesWritten <= 0) {
+			throw new Error(`Unable to make progress while writing corpus data.`)
+		}
 		offset += bytesWritten
 	}
 }
@@ -425,7 +433,7 @@ async function writeRepeatedVariant(
 
 	try {
 		for (let index = 0; index < repeats; index += 1) {
-			await handle.write(source)
+			await writeComplete(handle, source)
 			hash.update(source)
 			bytes += source.byteLength
 		}

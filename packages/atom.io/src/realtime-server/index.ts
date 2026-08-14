@@ -1,4 +1,3 @@
-export * from "./continuity/provide-continuity.ts"
 export * from "./ipc-sockets/index.ts"
 export * from "./mosaic/index.ts"
 export * from "./provide-rooms.ts"

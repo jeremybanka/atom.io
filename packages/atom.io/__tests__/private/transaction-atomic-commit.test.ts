@@ -31,7 +31,6 @@ function replayOutcome(
 		type: `transaction_outcome`,
 		token,
 		id: `replay`,
-		epoch: 1,
 		timestamp: 0,
 		subEvents,
 		params: [],

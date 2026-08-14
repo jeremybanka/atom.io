@@ -15,6 +15,7 @@ export type PackageManager = `bun` | `npm` | `pnpm` | `yarn`
 export type TemplateName =
 	| `preact-svg-editor`
 	| `react-node-backend`
+	| `react-realtime-markdown`
 	| `solid-lossless-numbers`
 
 export type CreateAtomOptions = {
@@ -50,6 +51,10 @@ export async function createAtom(
 						{
 							label: `React Node Backend`,
 							value: `react-node-backend`,
+						},
+						{
+							label: `React Realtime Markdown`,
+							value: `react-realtime-markdown`,
 						},
 						{
 							label: `Solid Lossless Numbers`,

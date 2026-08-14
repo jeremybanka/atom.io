@@ -1,5 +1,5 @@
 import type { ChildProcessWithoutNullStreams } from "node:child_process"
-import { spawn } from "node:child_process"
+import { spawn as spawnChildProcess } from "node:child_process"
 
 import type { ReadableFamilyToken } from "atom.io"
 import type { Json } from "atom.io/foundations/json"
@@ -15,6 +15,7 @@ import {
 } from "atom.io/internal"
 import type {
 	AllEventsListener,
+	Clock,
 	EventsMap,
 	GuardedSocket,
 	RoomKey,
@@ -29,6 +30,7 @@ import {
 	isRoomKey,
 	ownersOfRooms,
 	roomKeysAtom,
+	systemClock,
 	usersInRooms,
 	visibilityFromRoomSelectors,
 	visibleUsersInRoomsSelectors,
@@ -67,12 +69,13 @@ export const DEFAULT_ROOM_TIMEOUTS = {
 type RoomLifecycle = {
 	activeConnections: number
 	child: ChildProcessWithoutNullStreams
+	clock: Clock
 	cleared: boolean
 	connections: Set<(notifyRoom: boolean) => void>
 	disposers: (() => void)[]
 	idleMs: number | undefined
-	idleTimer?: NodeJS.Timeout
-	maximumTimer?: NodeJS.Timeout
+	idleTimer?: number
+	maximumTimer?: number
 	room: ChildSocket<any, any, ChildProcessWithoutNullStreams>
 	roomKey: RoomKey
 	shutdownMs: number
@@ -85,23 +88,28 @@ const ROOM_LIFECYCLES = new Map<RoomKey, RoomLifecycle>()
 const waitForExit = (
 	child: ChildProcessWithoutNullStreams,
 	timeoutMs: number,
+	clock: Clock,
 ): Promise<boolean> => {
 	if (child.exitCode !== null || child.signalCode !== null)
 		return Promise.resolve(true)
 	return new Promise((resolve) => {
-		let timeout: NodeJS.Timeout
+		let timeout: number
 		const done = (): void => {
-			clearTimeout(timeout)
+			clock.cancel(timeout)
 			child.off(`exit`, exited)
 			resolve(true)
 		}
 		const exited = (): void => {
 			done()
 		}
-		timeout = setTimeout(() => {
-			child.off(`exit`, exited)
-			resolve(false)
-		}, timeoutMs)
+		timeout = clock.schedule(
+			() => {
+				child.off(`exit`, exited)
+				resolve(false)
+			},
+			timeoutMs,
+			`room process exit`,
+		)
 		child.once(`exit`, exited)
 		if (child.exitCode !== null || child.signalCode !== null) done()
 	})
@@ -111,8 +119,10 @@ const clearRoomState = (lifecycle: RoomLifecycle): void => {
 	const { roomKey, store } = lifecycle
 	if (lifecycle.cleared) return
 	lifecycle.cleared = true
-	if (lifecycle.idleTimer) clearTimeout(lifecycle.idleTimer)
-	if (lifecycle.maximumTimer) clearTimeout(lifecycle.maximumTimer)
+	if (lifecycle.idleTimer !== undefined)
+		lifecycle.clock.cancel(lifecycle.idleTimer)
+	if (lifecycle.maximumTimer !== undefined)
+		lifecycle.clock.cancel(lifecycle.maximumTimer)
 	for (const detach of [...lifecycle.connections]) detach(false)
 	for (const dispose of lifecycle.disposers.splice(0)) dispose()
 	lifecycle.room.dispose()
@@ -136,11 +146,11 @@ const shutdownRoom = (
 	cause: string,
 ): Promise<void> => {
 	lifecycle.shutdown ??= (async () => {
-		const { child, room, roomKey, shutdownMs, store } = lifecycle
+		const { child, clock, room, roomKey, shutdownMs, store } = lifecycle
 		store.logger.info(`🔥`, `socket`, roomKey, `room shutdown`, cause)
 		if (child.exitCode === null && child.signalCode === null) {
 			room.emit(`exit`)
-			if (!(await waitForExit(child, shutdownMs))) {
+			if (!(await waitForExit(child, shutdownMs, clock))) {
 				store.logger.warn(
 					`🔥`,
 					`socket`,
@@ -149,7 +159,7 @@ const shutdownRoom = (
 					cause,
 				)
 				child.kill(`SIGTERM`)
-				if (!(await waitForExit(child, shutdownMs))) {
+				if (!(await waitForExit(child, shutdownMs, clock))) {
 					store.logger.error(
 						`🔥`,
 						`socket`,
@@ -158,7 +168,7 @@ const shutdownRoom = (
 						cause,
 					)
 					child.kill(`SIGKILL`)
-					await waitForExit(child, shutdownMs)
+					await waitForExit(child, shutdownMs, clock)
 				}
 			}
 		}
@@ -168,39 +178,57 @@ const shutdownRoom = (
 }
 
 const scheduleIdleShutdown = (lifecycle: RoomLifecycle): void => {
-	if (lifecycle.idleTimer) clearTimeout(lifecycle.idleTimer)
+	if (lifecycle.idleTimer !== undefined)
+		lifecycle.clock.cancel(lifecycle.idleTimer)
 	if (
 		lifecycle.cleared ||
 		lifecycle.idleMs === undefined ||
 		lifecycle.activeConnections > 0
 	)
 		return
-	lifecycle.idleTimer = setTimeout(() => {
-		void shutdownRoom(lifecycle, `idle timeout`)
-	}, lifecycle.idleMs)
+	lifecycle.idleTimer = lifecycle.clock.schedule(
+		() => {
+			void shutdownRoom(lifecycle, `idle timeout`)
+		},
+		lifecycle.idleMs,
+		`room ${lifecycle.roomKey} idle timeout`,
+	)
 }
 
 const withTimeout = async <T>(
 	value: Promise<T>,
 	timeoutMs: number,
 	message: string,
+	clock: Clock,
 ): Promise<T> => {
-	let timeout: NodeJS.Timeout | undefined
+	let timeout: number | undefined
 	try {
 		return await Promise.race([
 			value,
 			new Promise<never>((_, reject) => {
-				timeout = setTimeout(() => {
-					reject(new Error(message))
-				}, timeoutMs)
+				timeout = clock.schedule(
+					() => {
+						reject(new Error(message))
+					},
+					timeoutMs,
+					message,
+				)
 			}),
 		])
 	} finally {
-		if (timeout) clearTimeout(timeout)
+		if (timeout !== undefined) clock.cancel(timeout)
 	}
 }
 
+export type RoomProcessFactory = (
+	command: string,
+	args: readonly string[],
+	roomKey: RoomKey,
+) => ChildProcessWithoutNullStreams
+
 export type SpawnRoomConfig<RoomNames extends string> = {
+	clock?: Clock
+	processFactory?: RoomProcessFactory
 	store: RootStore
 	socket: Socket
 	userKey: UserKey
@@ -208,6 +236,11 @@ export type SpawnRoomConfig<RoomNames extends string> = {
 	timeouts?: RoomTimeouts
 }
 export function spawnRoom<RoomNames extends string>({
+	clock = systemClock,
+	processFactory = (command, args, roomKey) =>
+		spawnChildProcess(command, [...args], {
+			env: { ...process.env, REALTIME_ROOM_KEY: roomKey },
+		}),
 	store,
 	socket,
 	userKey,
@@ -225,14 +258,13 @@ export function spawnRoom<RoomNames extends string>({
 		)
 		const roomKey = `room::${roomMeta.count++}-${roomName}` satisfies RoomKey
 		const [command, args] = resolveRoomScript(roomName)
-		const child = spawn(command, args, {
-			env: { ...process.env, REALTIME_ROOM_KEY: roomKey },
-		})
+		const child = processFactory(command, args, roomKey)
 		const room = new ChildSocket(child, roomKey)
 		const lifecycle: RoomLifecycle = {
 			activeConnections: 0,
 			child,
 			cleared: false,
+			clock,
 			connections: new Set(),
 			disposers: [],
 			idleMs: timeouts.idleMs,
@@ -265,6 +297,7 @@ export function spawnRoom<RoomNames extends string>({
 				Promise.race([room.ready, failed]),
 				timeouts.startupMs ?? DEFAULT_ROOM_TIMEOUTS.startupMs,
 				`Room ${roomKey} did not become ready before its startup timeout.`,
+				clock,
 			)
 		} catch (error) {
 			child.off(`error`, startupFailed)
@@ -309,9 +342,13 @@ export function spawnRoom<RoomNames extends string>({
 			clearRoomState(lifecycle)
 		})
 		if (timeouts.maximumMs !== undefined) {
-			lifecycle.maximumTimer = setTimeout(() => {
-				void shutdownRoom(lifecycle, `maximum lifetime`)
-			}, timeouts.maximumMs)
+			lifecycle.maximumTimer = clock.schedule(
+				() => {
+					void shutdownRoom(lifecycle, `maximum lifetime`)
+				},
+				timeouts.maximumMs,
+				`room ${roomKey} maximum lifetime`,
+			)
 		}
 		scheduleIdleShutdown(lifecycle)
 

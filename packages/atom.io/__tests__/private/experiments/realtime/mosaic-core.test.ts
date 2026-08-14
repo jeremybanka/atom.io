@@ -203,6 +203,14 @@ describe(`Mosaic text transceiver`, () => {
 		)
 	})
 
+	test(`orders a deeply chained large document without recursive traversal`, () => {
+		const largeText = `a`.repeat(200_000)
+		const Markdown = mosaicText({ initialText: largeText })
+		const document = new Markdown()
+		expect(document.text).toBe(largeText)
+		expect(document.nodes).toHaveLength(200_000)
+	})
+
 	test(`concurrent inserted runs converge without interleaving`, () => {
 		const Markdown = mosaicText({ initialText: `A` })
 		const base = new Markdown().toJSON()
@@ -479,6 +487,91 @@ describe(`Mosaic text transceiver`, () => {
 			reason: `Unknown text operation type.`,
 			status: `reject`,
 		})
+	})
+
+	test(`waits for the unresolved causal frontier before rejecting node IDs`, () => {
+		const Markdown = mosaicText()
+		const document = new Markdown()
+		const creatorId = `alice:create`
+		const targetId = `${creatorId}:node:000000`
+		const bridgeId = `bob:bridge`
+		const proposal = {
+			deletedIds: [targetId],
+			inserted: [],
+			type: `edit`,
+		}
+		const proposalContext: MosaicReduceContext = {
+			...context(`carol:delete`, `carol`, `carol:delete`, [bridgeId]),
+			revision: null,
+		}
+
+		// The target's creator can be a transitive ancestor of an immediate
+		// frontier dependency, so comparing its node ID directly with bridgeId
+		// would reject a causally valid out-of-order proposal.
+		expect(document.validate(proposal, proposalContext)).toEqual({
+			dependencies: [bridgeId],
+			status: `defer`,
+		})
+
+		document.do({
+			actor: `alice`,
+			dependencies: [],
+			group: creatorId,
+			id: creatorId,
+			operation: {
+				deletedIds: [],
+				inserted: [
+					{
+						after: null,
+						before: null,
+						id: targetId,
+						value: `A`,
+					},
+				],
+				type: `edit`,
+			},
+			revision: 1,
+			session: `alice:tab`,
+		})
+		document.do({
+			actor: `bob`,
+			dependencies: [creatorId],
+			group: bridgeId,
+			id: bridgeId,
+			operation: { deletedIds: [], inserted: [], type: `edit` },
+			revision: 2,
+			session: `bob:tab`,
+		})
+		expect(document.validate(proposal, proposalContext)).toMatchObject({
+			status: `accept`,
+		})
+
+		const missingId = `dana:missing`
+		const invalidProposal = {
+			...proposal,
+			deletedIds: [`never-created:node:000000`],
+		}
+		expect(
+			document.validate(invalidProposal, {
+				...proposalContext,
+				dependencies: [creatorId, missingId],
+			}),
+		).toEqual({ dependencies: [missingId], status: `defer` })
+		document.do({
+			actor: `dana`,
+			dependencies: [bridgeId],
+			group: missingId,
+			id: missingId,
+			operation: { deletedIds: [], inserted: [], type: `edit` },
+			revision: 3,
+			session: `dana:tab`,
+		})
+		expect(
+			document.validate(invalidProposal, {
+				...proposalContext,
+				dependencies: [creatorId, missingId],
+			}),
+		).toEqual({ reason: `Unknown deletion target.`, status: `reject` })
 	})
 
 	test(`rejects collisions and hydrates only validated action history`, () => {

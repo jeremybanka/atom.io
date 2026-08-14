@@ -228,16 +228,19 @@ function orderedNodes(state: MosaicTextState): MosaicTextNode[] {
 	}
 	const ordered: MosaicTextNode[] = []
 	const visited = new Set<string>()
-	const visit = (after: string | null): void => {
-		for (const node of children.get(after) ?? []) {
-			if (visited.has(node.id)) continue
-			visited.add(node.id)
-			ordered.push(node)
-			// Descendants remain traversable when their anchor is hidden.
-			visit(node.id)
+	const stack = [...(children.get(null) ?? [])].reverse()
+	while (stack.length > 0) {
+		const node = stack.pop()!
+		if (visited.has(node.id)) continue
+		visited.add(node.id)
+		ordered.push(node)
+		// Descendants remain traversable when their anchor is hidden. Push them in
+		// reverse so the iterative traversal preserves the recursive DFS order.
+		const descendants = children.get(node.id) ?? []
+		for (let index = descendants.length - 1; index >= 0; index--) {
+			stack.push(descendants[index])
 		}
 	}
-	visit(null)
 	return ordered
 }
 
@@ -407,6 +410,10 @@ function validateTextOperation(
 		const missingDependencies = context.dependencies.filter(
 			(dependency) => !acceptedOperationIds.has(dependency),
 		)
+		// Dependencies name immediate frontier operations, while anchors name model
+		// nodes. A missing node can be owned by a transitive ancestor of any missing
+		// frontier operation, so it is only definitely invalid after that frontier
+		// has been applied. Return only its unresolved operation IDs for retry.
 		const inserted: MosaicTextInsertedNode[] = []
 		for (const [index, candidate] of operation[`inserted`].entries()) {
 			if (!isRecord(candidate)) {

@@ -1,4 +1,5 @@
 export * from "./clock.ts"
+export * from "./collaboration-environment.ts"
 export * from "./employ-socket.ts"
 export * from "./guard-socket.ts"
 export * from "./mosaic/index.ts"

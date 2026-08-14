@@ -1,0 +1,52 @@
+{
+	"schemaVersion": 1,
+	"corpus": {
+		"id": "project-gutenberg-100-2026-08-13",
+		"title": "The Complete Works of William Shakespeare",
+		"author": "William Shakespeare",
+		"landingUrl": "https://www.gutenberg.org/ebooks/100",
+		"sourceUrl": "https://www.gutenberg.org/cache/epub/100/pg100.txt",
+		"mirrorUrl": "https://github.com/jeremybanka/atom.io/releases/download/test-corpus-pg100-2026-08-13/pg100-3cf4b3d44ee14cff.txt",
+		"retrievedAt": "2026-08-13",
+		"bytes": 5638480,
+		"lines": 196398,
+		"sha256": "3cf4b3d44ee14cff4e14e78e2ad3318eff76f3f7f2afc3cee6bb925879110a37",
+		"provenance": "Project Gutenberg ebook #100 UTF-8 plain-text edition, retrieved from the canonical cache URL and mirrored byte-for-byte after verification.",
+		"license": {
+			"status": "public-domain-in-the-us",
+			"note": "Project Gutenberg identifies ebook #100 as public domain in the United States. Users outside the United States are responsible for checking the law of their jurisdiction. The payload retains the Project Gutenberg license text and attribution supplied with the edition."
+		}
+	},
+	"variants": {
+		"headingRich": {
+			"filename": "heading-rich.md",
+			"description": "Prefixes every 64th non-empty source line with a level-two Markdown heading marker.",
+			"bytes": 5647687,
+			"sha256": "1b875535634410016ed77c802129a8fe7861db4db4c9fc547d1904be27a418b1"
+		},
+		"veryLongParagraph": {
+			"filename": "very-long-paragraph.md",
+			"description": "Collapses all source whitespace into one enormous paragraph.",
+			"bytes": 5379879,
+			"sha256": "83d8e399ac264feb65d252ce745dc78ce37ec001fbc76a13d596b171ac22c848"
+		},
+		"fenced": {
+			"filename": "fenced.md",
+			"description": "Wraps the complete source in one Markdown text fence.",
+			"bytes": 5638492,
+			"sha256": "136f800c20b520b77cc5cdba1cca9a7ccbd55d55e51d5cc7aba0d66a941d0c9e"
+		},
+		"repeated50MiB": {
+			"filename": "repeated-at-least-50-mib.md",
+			"description": "Repeats the complete source the minimum whole number of times needed to exceed 50 MiB.",
+			"bytes": 56384800,
+			"sha256": "c930c9deb0262c25e9ca22eb73ed48c4aa90f658b7984e05fa0dcbc219324ee2"
+		},
+		"unicodeAdversarial": {
+			"filename": "unicode-adversarial.md",
+			"description": "Generates stable grapheme, combining-mark, bidirectional-isolate, zero-width-joiner, and non-Latin adversaries.",
+			"bytes": 1531939,
+			"sha256": "a46dd491559e328fbdafca5cb9a65f5473b32929a71063f1c9853c3ebd03dd98"
+		}
+	}
+}

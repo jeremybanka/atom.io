@@ -69,10 +69,7 @@ export function useMosaic<
 			options.session,
 		],
 	)
-	useRealtimeService(
-		`mosaic:${controller.address.key}:${controller.session}`,
-		(socket) => controller.connect(socket),
-	)
+	useRealtimeService(controller, (socket) => controller.connect(socket))
 
 	const syncState = useO(controller.syncState)
 

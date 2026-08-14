@@ -1,6 +1,6 @@
 {
 	"name": "@atom.io/template-react-realtime-text-editor",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"description": "A realtime text editor built with atom.io, React, and Lasertag.",
 	"license": "Apache-2.0",
 	"publishConfig": {

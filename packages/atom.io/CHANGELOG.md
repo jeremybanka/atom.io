@@ -1,5 +1,15 @@
 # atom.io
 
+## 0.51.3
+
+### Patch Changes
+
+- d392d65: Add Store-bound Mosaic synchronization for ordinary mutable atoms, including optimistic reconciliation, causal transaction buffering, companion state, relative presence, reconnect recovery, and independent Silo projections.
+- 3368d42: Add the versioned Mosaic protocol contract and a convergent Mosaic text transceiver for ordinary mutable atoms, including structured atom addresses, selector-compatible views, selective per-identity history, relative positions, checkpoint cloning, and protection from incompatible native time travel.
+- 8e4fcae: Add the Mosaic server and linearizable persistence contract, with durable idempotent receipts, revision-CAS append, checkpoint recovery, selective history validation, multi-node head hints, and ephemeral presence.
+- e0ad583: Add `useMosaic`, a React binding that owns a stable optimistic Mosaic client, connects it through `RealtimeProvider`, and exposes its external-store snapshot and collaboration controls.
+- e0ad583: Make room lifecycle scheduling and process creation injectable, and exercise startup, expiry, crash, and shutdown behavior with the realtime testing virtual clock.
+
 ## 0.51.2
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @atom.io/template-react-realtime-text-editor
 
+## 0.0.3
+
+### Patch Changes
+
+- Updated dependencies [c1c35e6]
+  - atom.io@0.52.0
+
 ## 0.0.2
 
 ### Patch Changes

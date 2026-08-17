@@ -1,6 +1,6 @@
 {
 	"name": "atom.io",
-	"version": "0.51.3",
+	"version": "0.52.0",
 	"description": "Versatile state engine for TypeScript applications.",
 	"homepage": "https://atom.io.fyi",
 	"agentDocs": "./AGENTS.md",
@@ -110,7 +110,7 @@
 		"@vitest/ui": "4.1.10",
 		"arktype": "2.2.3",
 		"break-check": "0.6.33",
-		"concurrently": "10.0.4",
+		"concurrently": "10.0.5",
 		"drizzle-kit": "0.31.10",
 		"drizzle-orm": "0.45.2",
 		"eslint": "10.8.1",

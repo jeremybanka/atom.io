@@ -193,8 +193,18 @@ function operationsMatch(
 		left.rank.denominator === right.rank.denominator &&
 		left.rank.numerator === right.rank.numerator &&
 		left.value === right.value &&
-		JSON.stringify(left.undoTargets) === JSON.stringify(right.undoTargets)
+		sameUndoTargets(left.undoTargets, right.undoTargets)
 	)
+}
+
+function sameUndoTargets(
+	left?: readonly string[],
+	right?: readonly string[],
+): boolean {
+	if (left === undefined || right === undefined) return left === right
+	if (left.length !== right.length) return false
+	const leftSet = new Set(left)
+	return right.every((target) => leftSet.has(target))
 }
 
 function activeSvgOperations<
@@ -306,7 +316,12 @@ export function reduceSvgRegister<Value>(
 		const next = structuredClone(operation)
 		return { operations: { ...state.operations, [next.id]: next } }
 	}
-	if (JSON.stringify(previous) !== JSON.stringify(operation)) {
+	if (
+		previous.actor !== operation.actor ||
+		previous.id !== operation.id ||
+		JSON.stringify(previous.value) !== JSON.stringify(operation.value) ||
+		!sameUndoTargets(previous.undoTargets, operation.undoTargets)
+	) {
 		throw new Error(`SVG register operation ID collision: ${operation.id}`)
 	}
 	return state

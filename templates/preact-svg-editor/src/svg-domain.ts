@@ -1,5 +1,6 @@
 import type { Silo } from "atom.io"
 import { getState, setState } from "atom.io"
+import type { Json } from "atom.io/foundations/json"
 import {
 	mosaicDomain,
 	type MosaicDomainMemberAddress,
@@ -75,42 +76,50 @@ export const svgDragPresenceSchema: z.ZodType<SvgDragPresence> = z
 	})
 	.strict()
 
-const valueModel = <Value, Operation>(seam: {
+type SvgReceiptState = {
+	readonly operations: Readonly<
+		Record<string, { readonly actor?: string | undefined }>
+	>
+}
+
+type AuthoredSvgOperation = {
+	readonly actor?: string | undefined
+	readonly undoTargets?: readonly string[] | undefined
+}
+
+const valueModel = <
+	Value extends SvgReceiptState,
+	Operation extends AuthoredSvgOperation,
+>(seam: {
 	readonly identity: { readonly key: string; readonly version: number }
 	readonly kind: `value`
 	readonly operationSchema: z.ZodType<Operation>
 	readonly reduce: (value: Value, operation: Operation) => Value
-}): MosaicDomainValueModel<any, any> => ({
+}): MosaicDomainValueModel<
+	Value & Json.Serializable,
+	Operation & Json.Serializable
+> => ({
 	identity: seam.identity,
 	kind: `value`,
-	operationSchema: seam.operationSchema,
+	operationSchema: seam.operationSchema as z.ZodType<
+		Operation & Json.Serializable
+	>,
 	reduce: (value, operation, context) => {
-		const authored = operation as {
-			readonly actor?: string
-			readonly undoTargets?: readonly string[]
-		}
-		if (authored.actor !== context.actor) {
+		if (operation.actor !== context.actor) {
 			throw new Error(
 				`An SVG member operation must name its authenticated actor.`,
 			)
 		}
-		if (authored.undoTargets !== undefined) {
-			const receipts = (
-				value as {
-					readonly operations: Readonly<
-						Record<string, { readonly actor?: string }>
-					>
-				}
-			).operations
-			for (const target of authored.undoTargets) {
-				if (receipts[target]?.actor !== context.actor) {
+		if (operation.undoTargets !== undefined) {
+			for (const target of operation.undoTargets) {
+				if (value.operations[target]?.actor !== context.actor) {
 					throw new Error(
 						`An SVG compensation can target only the authenticated actor's operations.`,
 					)
 				}
 			}
 		}
-		return seam.reduce(value, operation)
+		return seam.reduce(value, operation) as Value & Json.Serializable
 	},
 })
 
@@ -336,6 +345,15 @@ export function createSvgDomainEditor(options: {
 }): SvgDomainEditor {
 	const state = options.state ?? implicitState
 	const history: HistoryEntry[] = []
+	const sharePresence = async (
+		work: Promise<void> | undefined,
+	): Promise<void> => {
+		try {
+			await work
+		} catch {
+			// Presence is advisory; its controller retains the actionable status.
+		}
+	}
 	const op = (
 		address: Planned[`address`],
 		operation: Planned[`operation`],
@@ -409,12 +427,14 @@ export function createSvgDomainEditor(options: {
 				svgDragPresenceKey(input.gesture),
 				presence,
 			)
-			await options.presence?.publish(
-				options.domain.address(
-					`dragPresence`,
-					svgDragPresenceKey(input.gesture),
+			await sharePresence(
+				options.presence?.publish(
+					options.domain.address(
+						`dragPresence`,
+						svgDragPresenceKey(input.gesture),
+					),
+					presence,
 				),
-				presence,
 			)
 		},
 		async commitGeometry(input) {
@@ -547,7 +567,9 @@ export function createSvgDomainEditor(options: {
 			const work: Promise<unknown>[] = []
 			if (options.presence !== undefined) {
 				work.push(
-					options.presence.clear(options.domain.address(`dragPresence`, key)),
+					sharePresence(
+						options.presence.clear(options.domain.address(`dragPresence`, key)),
+					),
 				)
 			}
 			if (commit && presence?.gestureId === active.gesture.id) {
@@ -631,9 +653,11 @@ export function createSvgDomainEditor(options: {
 				target: active.target,
 			}
 			state.setState(dragPresenceAtoms, key, presence)
-			await options.presence?.publish(
-				options.domain.address(`dragPresence`, key),
-				presence,
+			await sharePresence(
+				options.presence?.publish(
+					options.domain.address(`dragPresence`, key),
+					presence,
+				),
 			)
 		},
 		async reorderPath(input) {
@@ -690,6 +714,7 @@ export function createSvgDomainEditor(options: {
 			}
 			let ordinal = 0
 			const operations: Planned[] = []
+			const clearedSubpathOrders = new Map<string, SvgOrderState>()
 			let pathOrder = state.getState(pathOrderAtom)
 			for (const { entryId, value: pathId } of materializeSvgOrder(pathOrder)) {
 				let order = state.getState(subpathOrderAtoms, pathId)
@@ -720,6 +745,7 @@ export function createSvgDomainEditor(options: {
 						}),
 					)
 				}
+				clearedSubpathOrders.set(pathId, order)
 				operations.push(
 					op(options.domain.address(`paths`, pathId), {
 						id: svgOperationId(input.gesture, ordinal++),
@@ -758,7 +784,9 @@ export function createSvgDomainEditor(options: {
 					},
 				}
 				operations.push(op(options.domain.address(`pathOrder`), pathPlacement))
-				let order = state.getState(subpathOrderAtoms, path.id)
+				let order =
+					clearedSubpathOrders.get(path.id) ??
+					state.getState(subpathOrderAtoms, path.id)
 				for (const [index, subpath] of path.subpaths.entries()) {
 					operations.push(
 						op(options.domain.address(`subpaths`, subpath.id), {

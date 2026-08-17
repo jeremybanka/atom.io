@@ -1,13 +1,22 @@
 import { Silo } from "atom.io"
 import {
+	assertMosaicDomainPresenceProposal,
+	MOSAIC_DOMAIN_PRESENCE_EVENTS,
 	MOSAIC_DOMAIN_PRESENCE_PROTOCOL_VERSION,
 	mosaicDomain,
+	type MosaicDomainPresenceEnvelope,
+	type MosaicDomainPresenceProposal,
 } from "atom.io/realtime"
 import {
 	createMosaicDomainPresenceClient,
 	createMosaicDomainPresenceSocketTransport,
 } from "atom.io/realtime-client"
-import { createMosaicDomainPresenceServer } from "atom.io/realtime-server"
+import {
+	bindMosaicDomainPresenceServerSocket,
+	createMosaicDomainPresenceServer,
+	type MosaicDomainPresenceConnection,
+	type MosaicDomainPresenceWorkTracker,
+} from "atom.io/realtime-server"
 import { vi } from "vitest"
 import { z } from "zod"
 
@@ -15,7 +24,10 @@ const cursorSchema = z
 	.object({ x: z.number().finite(), y: z.number().finite() })
 	.strict()
 
-async function presenceFixture(name: string) {
+async function presenceFixture(
+	name: string,
+	options: { readonly normalizeKeys?: boolean } = {},
+) {
 	const silo = new Silo({ isProduction: false, lifespan: `ephemeral`, name })
 	const cursorAtoms = silo.atomFamily<
 		z.infer<typeof cursorSchema> | null,
@@ -30,7 +42,13 @@ async function presenceFixture(name: string) {
 		key: `presence-test`,
 		members: {
 			cursors: {
-				keySchema: z.string().min(1),
+				keySchema:
+					options.normalizeKeys === true
+						? z
+								.string()
+								.min(1)
+								.transform((key) => key.trim().toLowerCase())
+						: z.string().min(1),
 				role: `ephemeral`,
 				schema: cursorSchema,
 				token: cursorAtoms,
@@ -45,6 +63,52 @@ async function presenceFixture(name: string) {
 		store: silo.store,
 	})
 	return { cursorAtoms, domain, silo }
+}
+
+function updateProposal(
+	domain: Awaited<ReturnType<typeof presenceFixture>>[`domain`],
+	options: {
+		readonly key?: string
+		readonly sequence?: number
+		readonly session?: string
+		readonly value?: unknown
+	} = {},
+): MosaicDomainPresenceProposal {
+	return {
+		address: domain.address(`cursors`, options.key ?? `ada\u0000tab`),
+		domain: domain.identity,
+		kind: `update`,
+		protocolVersion: MOSAIC_DOMAIN_PRESENCE_PROTOCOL_VERSION,
+		sequence: options.sequence ?? 1,
+		session: options.session ?? `tab`,
+		value: (options.value ?? { x: 1, y: 1 }) as never,
+	}
+}
+
+function fakeSocket() {
+	const listeners = new Map<string, Set<(payload: any) => void>>()
+	const emitted: Array<{ readonly event: string; readonly payload: any }> = []
+	return {
+		dispatch(event: string, payload?: any) {
+			for (const listener of listeners.get(event) ?? []) listener(payload)
+		},
+		emitted,
+		listeners,
+		socket: {
+			emit(event: string, payload: any) {
+				emitted.push({ event, payload })
+			},
+			off(event: string, listener?: (payload: any) => void) {
+				if (listener === undefined) listeners.delete(event)
+				else listeners.get(event)?.delete(listener)
+			},
+			on(event: string, listener: (payload: any) => void) {
+				const current = listeners.get(event) ?? new Set()
+				current.add(listener)
+				listeners.set(event, current)
+			},
+		},
+	}
 }
 
 describe(`Mosaic Domain presence`, () => {
@@ -367,5 +431,675 @@ describe(`Mosaic Domain presence`, () => {
 		await current.disconnect()
 		await observerConnection.disconnect()
 		server[Symbol.dispose]()
+	})
+
+	test(`the wire proposal boundary rejects ambiguous and non-JSON payloads`, async () => {
+		const fixture = await presenceFixture(`presence-wire-boundary`)
+		const valid = updateProposal(fixture.domain)
+		expect(() => {
+			assertMosaicDomainPresenceProposal(valid)
+		}).not.toThrow()
+		expect(() => {
+			assertMosaicDomainPresenceProposal({
+				...valid,
+				value: [null, true, `json`, 1, { nested: [2] }],
+			})
+		}).not.toThrow()
+		for (const [candidate, message] of [
+			[null, `must be an object`],
+			[{ ...valid, protocolVersion: 2 }, `protocol version`],
+			[{ ...valid, session: `` }, `session ID`],
+			[{ ...valid, session: `x`.repeat(513) }, `session ID`],
+			[{ ...valid, sequence: 0 }, `positive integer`],
+			[{ ...valid, sequence: 1.5 }, `positive integer`],
+			[{ ...valid, kind: `move` }, `kind is invalid`],
+			[
+				{
+					address: valid.address,
+					domain: valid.domain,
+					kind: `update`,
+					protocolVersion: valid.protocolVersion,
+					sequence: 1,
+					session: `tab`,
+				},
+				`requires a value`,
+			],
+			[{ ...valid, kind: `clear`, value: null }, `cannot carry a value`],
+			[{ ...valid, value: Number.NaN }, `JSON-serializable`],
+			[{ ...valid, value: new Date() }, `JSON-serializable`],
+			[{ ...valid, value: () => undefined }, `JSON-serializable`],
+		] as const) {
+			expect(() => {
+				assertMosaicDomainPresenceProposal(candidate)
+			}).toThrow(message)
+		}
+		const circular: Record<string, unknown> = {}
+		circular[`self`] = circular
+		expect(() => {
+			assertMosaicDomainPresenceProposal({ ...valid, value: circular })
+		}).toThrow(`JSON-serializable`)
+		const throwingJson = { x: 1, y: 1 }
+		Object.defineProperty(throwingJson, `toJSON`, {
+			enumerable: false,
+			value: () => {
+				throw new Error(`serialization failed`)
+			},
+		})
+		expect(() => {
+			assertMosaicDomainPresenceProposal({ ...valid, value: throwingJson })
+		}).toThrow(`JSON-serializable`)
+		expect(() => {
+			assertMosaicDomainPresenceProposal(
+				{ ...valid, value: { x: 1, y: 1, padding: `x`.repeat(100) } },
+				{ maxBytes: 10 },
+			)
+		}).toThrow(`exceeds 10 bytes`)
+		const stringify = vi
+			.spyOn(JSON, `stringify`)
+			.mockImplementationOnce(() => undefined as never)
+		expect(() => {
+			assertMosaicDomainPresenceProposal(valid)
+		}).toThrow(`JSON-serializable`)
+		stringify.mockRestore()
+		fixture.domain[Symbol.dispose]()
+	})
+
+	test(`server authentication, addressing, lifecycle, and capacity fail closed`, async () => {
+		let now = 0
+		const fixture = await presenceFixture(`presence-server-adversarial`)
+		expect(() =>
+			createMosaicDomainPresenceServer({ domain: fixture.domain, ttlMs: 0 }),
+		).toThrow(`ttlMs`)
+		expect(() =>
+			createMosaicDomainPresenceServer({
+				domain: fixture.domain,
+				limits: { maxSessions: 0 },
+			}),
+		).toThrow(`maxSessions`)
+		const server = createMosaicDomainPresenceServer({
+			domain: fixture.domain,
+			limits: { maxSessions: 1, maxUpdatesPerSecond: 1 },
+			now: () => now,
+		})
+		expect(() => server.connect({ actor: ``, session: `tab` })).toThrow(
+			`actor and session IDs`,
+		)
+		const connection = server.connect({ actor: `ada`, session: `tab` })
+		expect(() => server.connect({ actor: `ada`, session: `tab` })).toThrow(
+			`already connected`,
+		)
+		expect(() => server.connect({ actor: `grace`, session: `watch` })).toThrow(
+			`capacity is exhausted`,
+		)
+		expect(server.forgetSession(`ada`, `tab`)).toBe(false)
+		expect(server.forgetSession(`missing`, `tab`)).toBe(false)
+
+		const logger = vi
+			.spyOn(fixture.domain.store.logger, `error`)
+			.mockImplementation(() => undefined)
+		const observed = vi.fn()
+		connection.subscribe(() => {
+			throw new Error(`observer failed`)
+		})
+		connection.subscribe(observed)
+		const cleanup = server.subscribeCleanup(() => {
+			throw new Error(`cleanup failed`)
+		})
+		expect(
+			(await connection.publish(updateProposal(fixture.domain))).status,
+		).toBe(`accepted`)
+		expect(observed).toHaveBeenCalledOnce()
+		expect(logger).toHaveBeenCalled()
+
+		now = 1_001
+		expect(
+			await connection.publish(
+				updateProposal(fixture.domain, { sequence: 2, session: `other` }),
+			),
+		).toMatchObject({ rejection: { code: `unauthorized` } })
+		now = 2_002
+		expect(
+			await connection.publish({
+				...updateProposal(fixture.domain, { sequence: 2 }),
+				domain: { ...fixture.domain.identity, instance: `other` },
+			}),
+		).toMatchObject({ rejection: { code: `invalid-payload` } })
+		now = 3_003
+		expect(
+			await connection.publish({
+				...updateProposal(fixture.domain, { sequence: 2 }),
+				address: {
+					...fixture.domain.address(`cursors`, `ada`),
+					member: `unknown`,
+				},
+			}),
+		).toMatchObject({ rejection: { code: `invalid-payload` } })
+		now = 4_004
+		expect(
+			await connection.publish({
+				...updateProposal(fixture.domain, { sequence: 2 }),
+				address: fixture.domain.address(`durable`),
+				value: 1,
+			}),
+		).toMatchObject({ rejection: { code: `unauthorized` } })
+		now = 5_005
+		expect(
+			await connection.publish(
+				updateProposal(fixture.domain, {
+					sequence: 2,
+					value: { x: `bad`, y: 1 },
+				}),
+			),
+		).toMatchObject({ rejection: { code: `invalid-payload` } })
+		expect(
+			await connection.publish({
+				...updateProposal(fixture.domain, { sequence: 2 }),
+				protocolVersion: 2,
+			} as never),
+		).toMatchObject({ rejection: { code: `incompatible-version` } })
+		expect(
+			await connection.publish(updateProposal(fixture.domain, { sequence: 2 })),
+		).toMatchObject({ rejection: { code: `rate-limited` } })
+
+		now = 6_006
+		expect(
+			await connection.publish({
+				address: fixture.domain.address(`cursors`, `ada\u0000tab`),
+				domain: fixture.domain.identity,
+				kind: `clear`,
+				protocolVersion: MOSAIC_DOMAIN_PRESENCE_PROTOCOL_VERSION,
+				sequence: 2,
+				session: `tab`,
+			}),
+		).toMatchObject({ status: `accepted` })
+		expect((await connection.snapshot()).presence).toEqual([])
+		await connection.disconnect()
+		await connection.disconnect()
+		cleanup()
+		expect(server.forgetSession(`ada`, `tab`)).toBe(true)
+		expect(server.forgetSession(`ada`, `tab`)).toBe(false)
+		server[Symbol.dispose]()
+		server[Symbol.dispose]()
+		expect(() => server.connect({ actor: `ada`, session: `new` })).toThrow(
+			`disposed`,
+		)
+		expect(
+			await connection.publish(updateProposal(fixture.domain, { sequence: 3 })),
+		).toMatchObject({ rejection: { code: `unauthorized` } })
+		await expect(connection.snapshot()).rejects.toThrow(`closed`)
+		fixture.domain[Symbol.dispose]()
+	})
+
+	test(`server backpressure and disposal win over in-flight validation`, async () => {
+		const fixture = await presenceFixture(`presence-server-backpressure`)
+		const originalValidate = fixture.domain.validateValue.bind(fixture.domain)
+		let release: (() => void) | undefined
+		vi.spyOn(fixture.domain, `validateValue`).mockImplementation(
+			async (...parameters) => {
+				await new Promise<void>((resolve) => {
+					release = resolve
+				})
+				return originalValidate(...parameters)
+			},
+		)
+		const server = createMosaicDomainPresenceServer({
+			domain: fixture.domain,
+			limits: { maxPendingUpdates: 1 },
+		})
+		const connection = server.connect({ actor: `ada`, session: `tab` })
+		const pending = connection.publish(updateProposal(fixture.domain))
+		expect(
+			await connection.publish(updateProposal(fixture.domain, { sequence: 2 })),
+		).toMatchObject({ rejection: { code: `backpressure` } })
+		while (release === undefined) await Promise.resolve()
+		server[Symbol.dispose]()
+		release()
+		expect(await pending).toMatchObject({ rejection: { code: `unauthorized` } })
+		await expect(connection.snapshot()).rejects.toThrow(`closed`)
+		fixture.domain[Symbol.dispose]()
+	})
+
+	test(`client snapshots canonicalize addresses and disposal clears projections`, async () => {
+		const fixture = await presenceFixture(`presence-client-canonical`, {
+			normalizeKeys: true,
+		})
+		const rawAddress = fixture.domain.address(`cursors`, ` ADA `)
+		const envelope: MosaicDomainPresenceEnvelope = {
+			actor: `ada`,
+			address: rawAddress,
+			domain: fixture.domain.identity,
+			expiresAt: 100,
+			kind: `update`,
+			protocolVersion: MOSAIC_DOMAIN_PRESENCE_PROTOCOL_VERSION,
+			sequence: 1,
+			session: `tab`,
+			value: { x: 3, y: 4 },
+		}
+		const replacement: MosaicDomainPresenceEnvelope = {
+			...envelope,
+			actor: `grace`,
+			sequence: 1,
+			session: `watch`,
+			value: { x: 7, y: 8 },
+		}
+		let failSnapshot = true
+		let snapshotPresence = [envelope]
+		let relay: ((presence: MosaicDomainPresenceEnvelope) => void) | undefined
+		const client = createMosaicDomainPresenceClient({
+			domain: fixture.domain,
+			session: `tab`,
+			transport: {
+				publish: () =>
+					Promise.resolve({ accepted: envelope, status: `accepted` }),
+				snapshot: () => {
+					if (failSnapshot) return Promise.reject(new Error(`offline`))
+					return Promise.resolve({ presence: snapshotPresence, sequence: 1 })
+				},
+				subscribe(listener) {
+					relay = listener
+					return () => {
+						relay = undefined
+					}
+				},
+			},
+		})
+		await expect(client.start()).rejects.toThrow(`offline`)
+		expect(client.state.status).toBe(`offline`)
+		failSnapshot = false
+		await client.start()
+		expect(fixture.silo.getState(fixture.cursorAtoms, `ada`)).toEqual({
+			x: 3,
+			y: 4,
+		})
+		snapshotPresence = [replacement]
+		await client.refresh()
+		expect(fixture.silo.getState(fixture.cursorAtoms, `ada`)).toEqual({
+			x: 7,
+			y: 8,
+		})
+		expect(client.state.presence).toEqual([
+			expect.objectContaining({ actor: `grace`, session: `watch` }),
+		])
+		relay?.({
+			...envelope,
+			expiresAt: null,
+			kind: `clear`,
+			sequence: 2,
+		})
+		await client.flush()
+		expect(fixture.silo.getState(fixture.cursorAtoms, `ada`)).toEqual({
+			x: 7,
+			y: 8,
+		})
+		const logger = vi
+			.spyOn(fixture.domain.store.logger, `error`)
+			.mockImplementation(() => undefined)
+		const observed = vi.fn()
+		client.subscribe(() => {
+			throw new Error(`listener failed`)
+		})
+		client.subscribe(observed)
+		relay?.({ ...envelope, sequence: 3, value: { x: 5, y: 6 } })
+		await client.flush()
+		expect(fixture.silo.getState(fixture.cursorAtoms, `ada`)).toEqual({
+			x: 5,
+			y: 6,
+		})
+		expect(observed).toHaveBeenCalled()
+		expect(logger).toHaveBeenCalled()
+		client[Symbol.dispose]()
+		expect(fixture.silo.getState(fixture.cursorAtoms, `ada`)).toBeNull()
+		expect(client.state).toMatchObject({ presence: [], status: `disposed` })
+		await expect(client.start()).rejects.toThrow(`disposed`)
+		await expect(client.publish(rawAddress, { x: 1, y: 1 })).rejects.toThrow(
+			`disposed`,
+		)
+		client[Symbol.dispose]()
+		fixture.domain[Symbol.dispose]()
+	})
+
+	test(`client rejects malformed transport data and reports non-stale failures`, async () => {
+		const fixture = await presenceFixture(`presence-client-adversarial`)
+		const relay = { current: (_presence: MosaicDomainPresenceEnvelope) => {} }
+		let rejectPublish = true
+		const client = createMosaicDomainPresenceClient({
+			domain: fixture.domain,
+			session: `tab`,
+			transport: {
+				publish: async (proposal) =>
+					rejectPublish
+						? {
+								rejection: {
+									code: `unauthorized`,
+									reason: `denied`,
+									recovery: `discard-update`,
+									sequence: proposal.sequence,
+								},
+								status: `rejected`,
+							}
+						: Promise.reject(new Error(`network down`)),
+				snapshot: () => Promise.resolve({ presence: [], sequence: 0 }),
+				subscribe(listener) {
+					relay.current = listener
+					return () => undefined
+				},
+			},
+		})
+		await client.start()
+		await expect(
+			client.publish(fixture.domain.address(`durable`), 1),
+		).rejects.toThrow(`not ephemeral`)
+		await expect(
+			client.publish(fixture.domain.address(`cursors`, `ada`), {
+				x: `bad`,
+				y: 1,
+			}),
+		).rejects.toThrow()
+		await expect(
+			client.publish(fixture.domain.address(`cursors`, `ada`), { x: 1, y: 1 }),
+		).rejects.toThrow(`denied`)
+		expect(client.state).toMatchObject({
+			problem: { code: `unauthorized` },
+			status: `rejected`,
+		})
+		rejectPublish = false
+		await expect(
+			client.publish(fixture.domain.address(`cursors`, `ada`), { x: 1, y: 1 }),
+		).rejects.toThrow(`network down`)
+		expect(client.state.status).toBe(`offline`)
+		relay.current({
+			...updateProposal(fixture.domain),
+			actor: ``,
+			expiresAt: 100,
+		})
+		await client.flush()
+		expect(client.state).toMatchObject({
+			problem: { code: `invalid-payload` },
+			status: `rejected`,
+		})
+		client[Symbol.dispose]()
+		expect(() =>
+			createMosaicDomainPresenceClient({
+				domain: fixture.domain,
+				maxBytes: 0,
+				session: `tab`,
+				transport: {
+					publish: vi.fn(),
+					snapshot: vi.fn(),
+					subscribe: vi.fn(),
+				},
+			}),
+		).toThrow(`positive integers`)
+		fixture.domain[Symbol.dispose]()
+	})
+
+	test(`socket client adapters settle, isolate listeners, time out, and dispose`, async () => {
+		vi.useFakeTimers()
+		try {
+			const fixture = await presenceFixture(`presence-client-socket`)
+			const fake = fakeSocket()
+			const transport = createMosaicDomainPresenceSocketTransport(fake.socket, {
+				requestTimeoutMs: 10,
+			})
+			const snapshotPromise = transport.snapshot()
+			const snapshotRequest = fake.emitted.at(-1)!
+			expect(snapshotRequest.event).toBe(MOSAIC_DOMAIN_PRESENCE_EVENTS.snapshot)
+			fake.dispatch(MOSAIC_DOMAIN_PRESENCE_EVENTS.snapshotResult, {
+				requestId: 1,
+			})
+			fake.dispatch(MOSAIC_DOMAIN_PRESENCE_EVENTS.snapshotResult, {
+				requestId: `unknown`,
+			})
+			fake.dispatch(MOSAIC_DOMAIN_PRESENCE_EVENTS.snapshotResult, {
+				requestId: snapshotRequest.payload.requestId,
+				snapshot: { presence: [], sequence: 0 },
+			})
+			await expect(snapshotPromise).resolves.toEqual({
+				presence: [],
+				sequence: 0,
+			})
+
+			const proposal = updateProposal(fixture.domain)
+			const publishPromise = transport.publish(proposal)
+			const publishRequest = fake.emitted.at(-1)!
+			fake.dispatch(MOSAIC_DOMAIN_PRESENCE_EVENTS.result, { requestId: 1 })
+			fake.dispatch(MOSAIC_DOMAIN_PRESENCE_EVENTS.result, {
+				requestId: `unknown`,
+			})
+			const accepted: MosaicDomainPresenceEnvelope = {
+				...proposal,
+				actor: `ada`,
+				expiresAt: 100,
+			}
+			fake.dispatch(MOSAIC_DOMAIN_PRESENCE_EVENTS.result, {
+				requestId: publishRequest.payload.requestId,
+				result: { accepted, status: `accepted` },
+			})
+			await expect(publishPromise).resolves.toMatchObject({ status: `accepted` })
+			const observed = vi.fn()
+			transport.subscribe(() => {
+				throw new Error(`observer failed`)
+			})
+			const stopObserving = transport.subscribe(observed)
+			fake.dispatch(MOSAIC_DOMAIN_PRESENCE_EVENTS.accepted, accepted)
+			expect(observed).toHaveBeenCalledWith(accepted)
+			stopObserving()
+			fake.dispatch(MOSAIC_DOMAIN_PRESENCE_EVENTS.accepted, accepted)
+			expect(observed).toHaveBeenCalledOnce()
+
+			const timeout = transport.snapshot()
+			const timeoutAssertion = expect(timeout).rejects.toThrow(`timed out`)
+			await vi.advanceTimersByTimeAsync(11)
+			await timeoutAssertion
+			const proposalTimeout = transport.publish(proposal)
+			const proposalTimeoutAssertion =
+				expect(proposalTimeout).rejects.toThrow(`timed out`)
+			await vi.advanceTimersByTimeAsync(11)
+			await proposalTimeoutAssertion
+			const pending = transport.publish(proposal)
+			const pendingAssertion = expect(pending).rejects.toThrow(`disconnected`)
+			fake.dispatch(`disconnect`)
+			await pendingAssertion
+			transport[Symbol.dispose]()
+			transport[Symbol.dispose]()
+			await expect(transport.snapshot()).rejects.toThrow(`disposed`)
+			await expect(transport.publish(proposal)).rejects.toThrow(`disposed`)
+			expect(() =>
+				createMosaicDomainPresenceSocketTransport(fake.socket, {
+					requestTimeoutMs: 0,
+				}),
+			).toThrow(`positive integers`)
+			const invalidIds = createMosaicDomainPresenceSocketTransport(fake.socket, {
+				idSource: () => ``,
+			})
+			await expect(invalidIds.publish(proposal)).rejects.toThrow(`unique`)
+			await expect(invalidIds.snapshot()).rejects.toThrow(`unique`)
+			invalidIds[Symbol.dispose]()
+			fixture.domain[Symbol.dispose]()
+		} finally {
+			vi.useRealTimers()
+		}
+	})
+
+	test(`socket server adapters reject malformed requests and clean up safely`, async () => {
+		const fixture = await presenceFixture(`presence-server-socket`)
+		const fake = fakeSocket()
+		const proposal = updateProposal(fixture.domain)
+		const accepted: MosaicDomainPresenceEnvelope = {
+			...proposal,
+			actor: `ada`,
+			expiresAt: 100,
+		}
+		let relay: ((presence: MosaicDomainPresenceEnvelope) => void) | undefined
+		const disconnect = vi.fn(() => Promise.resolve())
+		const publish = vi.fn(() =>
+			Promise.resolve({ accepted, status: `accepted` } as const),
+		)
+		const snapshot = vi.fn(() =>
+			Promise.resolve({ presence: [accepted], sequence: 1 }),
+		)
+		const unsubscribe = vi.fn()
+		const connection: MosaicDomainPresenceConnection = {
+			disconnect,
+			publish,
+			snapshot,
+			subscribe(listener) {
+				relay = listener
+				return unsubscribe
+			},
+		}
+		const tracker: MosaicDomainPresenceWorkTracker = {
+			track: <Value>(work: PromiseLike<Value>) => Promise.resolve(work),
+		}
+		const cleanup = bindMosaicDomainPresenceServerSocket(
+			connection,
+			fake.socket,
+			tracker,
+		)
+		fake.dispatch(MOSAIC_DOMAIN_PRESENCE_EVENTS.proposal, {
+			requestId: `missing`,
+		})
+		fake.dispatch(MOSAIC_DOMAIN_PRESENCE_EVENTS.proposal, 1n)
+		expect(publish).not.toHaveBeenCalled()
+		fake.dispatch(MOSAIC_DOMAIN_PRESENCE_EVENTS.proposal, {
+			proposal,
+			requestId: `proposal`,
+		})
+		await vi.waitFor(() => {
+			expect(publish).toHaveBeenCalledWith(proposal)
+		})
+		expect(fake.emitted).toContainEqual({
+			event: MOSAIC_DOMAIN_PRESENCE_EVENTS.result,
+			payload: {
+				requestId: `proposal`,
+				result: { accepted, status: `accepted` },
+			},
+		})
+		fake.dispatch(MOSAIC_DOMAIN_PRESENCE_EVENTS.snapshot, { requestId: `` })
+		expect(snapshot).not.toHaveBeenCalled()
+		fake.dispatch(MOSAIC_DOMAIN_PRESENCE_EVENTS.snapshot, {
+			requestId: `snapshot`,
+		})
+		await vi.waitFor(() => {
+			expect(snapshot).toHaveBeenCalledOnce()
+		})
+		relay?.(accepted)
+		expect(fake.emitted).toContainEqual({
+			event: MOSAIC_DOMAIN_PRESENCE_EVENTS.accepted,
+			payload: accepted,
+		})
+		await cleanup()
+		await cleanup()
+		expect(unsubscribe).toHaveBeenCalledOnce()
+		expect(disconnect).toHaveBeenCalledOnce()
+
+		const rejecting = fakeSocket()
+		const rejectionConnection: MosaicDomainPresenceConnection = {
+			...connection,
+			disconnect: vi.fn(() => Promise.reject(new Error(`disconnect failed`))),
+			subscribe: () => () => {
+				throw new Error(`unsubscribe failed`)
+			},
+		}
+		const rejectionCleanup = bindMosaicDomainPresenceServerSocket(
+			rejectionConnection,
+			rejecting.socket,
+		)
+		rejecting.dispatch(`disconnect`)
+		await Promise.resolve()
+		expect(rejectionConnection.disconnect).toHaveBeenCalledOnce()
+		await rejectionCleanup()
+
+		const explicit = fakeSocket()
+		const explicitUnsubscribe = vi.fn(() => {
+			throw new Error(`unsubscribe failed`)
+		})
+		const explicitDisconnect = vi.fn(() =>
+			Promise.reject(new Error(`disconnect failed`)),
+		)
+		const explicitCleanup = bindMosaicDomainPresenceServerSocket(
+			{
+				...connection,
+				disconnect: explicitDisconnect,
+				subscribe: () => explicitUnsubscribe,
+			},
+			explicit.socket,
+		)
+		await expect(explicitCleanup()).rejects.toThrow(`cleanup failed`)
+		expect(explicitUnsubscribe).toHaveBeenCalledOnce()
+		expect(explicitDisconnect).toHaveBeenCalledOnce()
+
+		const malformed = fakeSocket()
+		const tracked: Promise<unknown>[] = []
+		const failingConnection: MosaicDomainPresenceConnection = {
+			disconnect: () => Promise.resolve(),
+			publish: () => Promise.reject(new Error(`publish failed`)),
+			snapshot: () => Promise.reject(new Error(`snapshot failed`)),
+			subscribe: () => () => undefined,
+		}
+		bindMosaicDomainPresenceServerSocket(failingConnection, malformed.socket, {
+			track: <Value>(work: PromiseLike<Value>) => {
+				const trackedWork = Promise.resolve(work)
+				tracked.push(trackedWork)
+				return trackedWork
+			},
+		})
+		malformed.dispatch(MOSAIC_DOMAIN_PRESENCE_EVENTS.proposal, {
+			proposal: () => undefined,
+			requestId: `uncloneable-proposal`,
+		})
+		malformed.dispatch(MOSAIC_DOMAIN_PRESENCE_EVENTS.snapshot, {
+			requestId: `uncloneable-snapshot`,
+			value: () => undefined,
+		})
+		malformed.dispatch(MOSAIC_DOMAIN_PRESENCE_EVENTS.proposal, {
+			proposal,
+			requestId: `rejected-proposal`,
+		})
+		malformed.dispatch(MOSAIC_DOMAIN_PRESENCE_EVENTS.snapshot, {
+			requestId: `rejected-snapshot`,
+		})
+		await Promise.allSettled(tracked)
+		await Promise.resolve()
+		expect(malformed.emitted).toEqual([])
+
+		const late = fakeSocket()
+		let acceptLate: (value: {
+			accepted: typeof accepted
+			status: `accepted`
+		}) => void
+		let snapshotLate: (value: {
+			presence: MosaicDomainPresenceEnvelope[]
+			sequence: number
+		}) => void
+		const lateConnection: MosaicDomainPresenceConnection = {
+			disconnect: () => Promise.resolve(),
+			publish: () =>
+				new Promise((resolve) => {
+					acceptLate = resolve
+				}),
+			snapshot: () =>
+				new Promise((resolve) => {
+					snapshotLate = resolve
+				}),
+			subscribe: () => () => undefined,
+		}
+		const stopLate = bindMosaicDomainPresenceServerSocket(
+			lateConnection,
+			late.socket,
+		)
+		late.dispatch(MOSAIC_DOMAIN_PRESENCE_EVENTS.proposal, {
+			proposal,
+			requestId: `late-proposal`,
+		})
+		late.dispatch(MOSAIC_DOMAIN_PRESENCE_EVENTS.snapshot, {
+			requestId: `late-snapshot`,
+		})
+		await stopLate()
+		acceptLate!({ accepted, status: `accepted` })
+		snapshotLate!({ presence: [accepted], sequence: 1 })
+		await Promise.resolve()
+		expect(late.emitted).toEqual([])
+		fixture.domain[Symbol.dispose]()
 	})
 })

@@ -11,17 +11,31 @@ takes a different path from rigid state proxying and whole-value time travel.
 
 ## Bounded Sequence Intervals
 
-A shared string is not a useful conflict unit. Mosaic Text represents Unicode
-graphemes as stable nodes and edits as insert/delete operations. Each insertion
-records both its retained left boundary and its retained right boundary. The
-second boundary matters: a predecessor-only graph can move a middle replacement
-after the old suffix merely because one author's operation ID sorts later.
-Bounded intervals preserve the user's edit location while deterministic,
-code-unit ID ordering resolves genuinely concurrent insertions.
+A shared string is not a useful conflict unit, and one durable object per
+grapheme is not a scalable representation. Mosaic Text model version 2 stores
+each insertion as a string run with one stable identity. Edits address Unicode
+grapheme boundaries inside that run and represent deletion as merged run
+intervals. The checkpoint stores text once in physical fragments, while compact
+action metadata retains only inserted run identities, deletion intervals, and
+history targets. A runtime run may cache one packed UTF-16 boundary index for
+fast slicing, but it still does not retain a JavaScript object per grapheme.
 
-Deletes are edit-owned visibility marks. Hidden nodes remain as anchor stubs, so
-foreign descendants, late operations, and relative selections do not lose their
-position when an author undoes the edit that introduced an ancestor.
+Each insertion records retained left and right run boundaries. The second
+boundary matters: a predecessor-only graph can move a middle replacement after
+the old suffix merely because one author's operation ID sorts later. Bounded
+intervals preserve the user's edit location while deterministic, code-unit ID
+ordering resolves genuinely concurrent insertions. Hidden runs remain logical
+anchors, so foreign descendants, late operations, and relative selections do
+not lose their position when an author undoes the edit that introduced an
+ancestor.
+
+Physical fragmentation is deliberately not editing. Bounded export splits run
+text only at grapheme boundaries; import accepts reordered and exactly
+duplicated segments, rejects gaps or conflicting duplicates, and rehydrates the
+same action history. A run-relative location therefore remains stable when a
+storage layer splits or merges physical segments. This is the leaf-level
+contract that a bounded document index can compose without teaching the text
+model about Domain routing.
 
 The model uses the host's Unicode grapheme segmenter. A deployment with
 heterogeneous ICU versions should pin runtimes together or ship a versioned
@@ -32,7 +46,7 @@ segmenter before claiming cross-runtime model-version equivalence.
 Whole-document time travel is unsafe in a shared editor: restoring yesterday's
 string can erase another person's accepted work. Mosaic records edit ownership
 and represents undo and redo as durable operations that deactivate or reactivate
-only one authenticated actor's current edit group. A foreign insertion anchored
+only one authenticated actor's current Domain gesture. A foreign insertion anchored
 inside hidden local work remains visible.
 
 Atom.io's native timelines still mean local graph time travel. The Mosaic text
@@ -52,11 +66,12 @@ the prose-level intention behind arbitrary concurrent rewrites.
 ## Relative, Ephemeral Presence
 
 Numeric caret offsets become stale after any preceding edit. Mosaic presence
-uses left/right node anchors plus an explicit affinity. The text model resolves
-those anchors against each local projection, including hidden anchors. Presence
-is schema-checked and model-checked, but never enters the durable operation log
-or a user's history. Explicit departure and disconnect both remove the exact
-actor/session record.
+uses a stable run identity, a grapheme boundary, and an explicit left/right
+affinity. The text model resolves that location against each local projection,
+including hidden runs and split checkpoint fragments. Presence is schema-checked
+and model-checked, but never enters the durable operation log or a user's
+history. Explicit departure and disconnect both remove the exact actor/session
+record.
 
 ## Durable Stream Before Fan-Out
 
@@ -69,8 +84,9 @@ Horizontal notifications are wake-up hints only. Every server drains a checked,
 contiguous tail from the shared linearizable store. Recovery hydrates one
 consistent checkpoint and then applies every later revision. Checkpoint
 installation, tail pruning, session watermarks, and a retention epoch form the
-compaction fence. Text model version 1 retains stable node stubs; a future model
-that removes them will need an explicit anchor-translation protocol.
+compaction fence. Text model version 2 retains the logical runs and tombstone
+intervals required by positions, descendants, and selective history while
+allowing their physical text fragments to be repartitioned independently.
 
 The template uses the in-memory adapter so it runs without infrastructure. It is
 restart-safe only while that adapter instance survives. Production should supply

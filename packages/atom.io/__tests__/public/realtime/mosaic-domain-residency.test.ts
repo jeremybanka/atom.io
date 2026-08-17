@@ -1,5 +1,7 @@
 import { Silo } from "atom.io"
 import {
+	assertMosaicDomainResidencyAcceptedSlice,
+	MAX_MOSAIC_DOMAIN_RESIDENCY_INVALIDATIONS,
 	mosaicDomain,
 	type MosaicDomainBatchProposal,
 	mosaicDomainMemberModelIdentity,
@@ -14,6 +16,7 @@ import {
 import {
 	createMosaicDomainBatchServer,
 	createMosaicDomainResidencyServer,
+	type MosaicDomainBatchServer,
 } from "atom.io/realtime-server"
 import { headless } from "atom.io/realtime-testing/headless"
 import { z } from "zod"
@@ -31,6 +34,11 @@ async function residencyFixture(
 	name: string,
 	silo = new Silo({ isProduction: false, lifespan: `ephemeral`, name }),
 ) {
+	const fixedAtom = silo.atom<number>({ default: 0, key: `fixed` })
+	const cursorAtoms = silo.atomFamily<number, string>({
+		default: 0,
+		key: `cursor`,
+	})
 	const valueAtoms = silo.atomFamily<number, string>({
 		default: 0,
 		key: `value`,
@@ -39,6 +47,13 @@ async function residencyFixture(
 		configSchema: z.object({}),
 		key: `mos12-residency`,
 		members: {
+			cursor: {
+				keySchema: z.string(),
+				role: `ephemeral`,
+				schema: z.number(),
+				token: cursorAtoms,
+			},
+			fixed: { role: `durable`, schema: z.number(), token: fixedAtom },
 			values: {
 				keySchema: z.string().transform((key) => key.trim()),
 				model: valueModel,
@@ -54,7 +69,7 @@ async function residencyFixture(
 		instance: `document`,
 		store: silo.store,
 	})
-	return { domain, silo, valueAtoms }
+	return { cursorAtoms, domain, fixedAtom, silo, valueAtoms }
 }
 
 async function tokenFor(
@@ -80,6 +95,370 @@ const waitFor = async (condition: () => boolean): Promise<void> => {
 }
 
 describe(`Mosaic Domain partial residency`, () => {
+	test(`bounds malformed server scopes before allocation or resolver work`, async () => {
+		const state = await residencyFixture(`residency-server-bounds`)
+		const batches = createMosaicDomainBatchServer({ domain: state.domain })
+		for (const options of [
+			{ maxRequests: 0 },
+			{ maxResidentMembers: 0 },
+			{ maxRangeBytes: 0 },
+			{ maxRangeDepth: 0 },
+		]) {
+			expect(() =>
+				createMosaicDomainResidencyServer({
+					...options,
+					batches,
+					domain: state.domain,
+				}),
+			).toThrow(`positive safe integer`)
+		}
+		expect(() =>
+			createMosaicDomainResidencyServer({
+				batches,
+				domain: state.domain,
+				maxRequests: MAX_MOSAIC_DOMAIN_RESIDENCY_INVALIDATIONS + 1,
+			}),
+		).toThrow(`maxRequests cannot exceed`)
+
+		let resolution: unknown = []
+		let resolverCalls = 0
+		const server = createMosaicDomainResidencyServer({
+			authorize(context) {
+				if (
+					context.action === `read-member` &&
+					context.address.key === `authorization-error`
+				) {
+					throw new Error(`policy unavailable`)
+				}
+				return true
+			},
+			batches,
+			domain: state.domain,
+			maxRangeBytes: 48,
+			maxRangeDepth: 2,
+			maxRequests: 2,
+			maxResidentMembers: 1,
+			range: {
+				resolve: () => {
+					resolverCalls++
+					return resolution as readonly ReturnType<
+						typeof state.domain.address<`values`>
+					>[]
+				},
+				schema: z.any(),
+			},
+		})
+		const connection = server.connect({ actor: `reader`, session: `session-r` })
+		const address = state.domain.address(`values`, `first`)
+		const request = (selection: unknown, id = `request`) =>
+			[{ id, selection }] as never
+		const atomsBefore = state.silo.store.atoms.size
+
+		await expect(connection.hydrate({} as never)).rejects.toThrow(
+			`requests exceed`,
+		)
+		await expect(
+			connection.hydrate([
+				{ id: `one`, selection: { addresses: [address], kind: `members` } },
+				{ id: `two`, selection: { addresses: [address], kind: `members` } },
+				{ id: `three`, selection: { addresses: [address], kind: `members` } },
+			] as never),
+		).rejects.toThrow(`requests exceed 2`)
+		await expect(
+			connection.hydrate([
+				{ id: `same`, selection: { addresses: [], kind: `members` } },
+				{ id: `same`, selection: { addresses: [], kind: `members` } },
+			] as never),
+		).rejects.toThrow(`request ID`)
+		await expect(
+			connection.hydrate(request({ addresses: {}, kind: `members` })),
+		).rejects.toThrow(`member selection`)
+		await expect(
+			connection.hydrate(
+				request({ addresses: [address, address], kind: `members` }),
+			),
+		).rejects.toThrow(`member selection exceeds 1`)
+		await expect(
+			connection.hydrate(request({ kind: `unknown` })),
+		).rejects.toThrow(`selection is invalid`)
+		await expect(
+			connection.hydrate(
+				request({
+					addresses: [state.domain.address(`cursor`, `alice`)],
+					kind: `members`,
+				}),
+			),
+		).rejects.toThrow(`durable members only`)
+		await expect(
+			connection.hydrate(
+				request({
+					addresses: [state.domain.address(`values`, `authorization-error`)],
+					kind: `members`,
+				}),
+			),
+		).rejects.toThrow(`unauthorized`)
+
+		const range = (rangeValue: unknown, limit = 1, member = `values`) => ({
+			kind: `range`,
+			limit,
+			member,
+			range: rangeValue,
+		})
+		await expect(connection.hydrate(request(range({}, 0)))).rejects.toThrow(
+			`limit must be positive`,
+		)
+		await expect(connection.hydrate(request(range({}, 2)))).rejects.toThrow(
+			`limit exceeds 1`,
+		)
+		await expect(
+			connection.hydrate(request(range({ query: `x`.repeat(100) }))),
+		).rejects.toThrow(`range bytes exceed 48`)
+		await expect(
+			connection.hydrate(request(range({ a: { b: { c: true } } }))),
+		).rejects.toThrow(`range depth exceeds 2`)
+		await expect(connection.hydrate(request(range(new Date())))).rejects.toThrow(
+			`JSON-serializable`,
+		)
+		const cyclic: { self?: unknown } = {}
+		cyclic.self = cyclic
+		await expect(connection.hydrate(request(range(cyclic)))).rejects.toThrow(
+			`JSON-serializable`,
+		)
+		await expect(
+			connection.hydrate(request(range({}, 1, `fixed`))),
+		).rejects.toThrow(`durable family member`)
+		expect(resolverCalls).toBe(0)
+
+		resolution = {}
+		await expect(connection.hydrate(request(range({})))).rejects.toThrow(
+			`range resolution is invalid`,
+		)
+		resolution = [address, address]
+		await expect(connection.hydrate(request(range({})))).rejects.toThrow(
+			`resolver exceeded its limit`,
+		)
+		resolution = [state.domain.address(`fixed`)]
+		await expect(connection.hydrate(request(range({})))).rejects.toThrow(
+			`resolved another member`,
+		)
+		resolution = []
+		await expect(
+			connection.hydrate(request(range([true, `small`, null, 1]))),
+		).resolves.toMatchObject({ members: [] })
+		resolution = [address]
+		await expect(
+			connection.hydrate([
+				{ id: `one`, selection: { addresses: [address], kind: `members` } },
+				{
+					id: `two`,
+					selection: {
+						addresses: [state.domain.address(`values`, `second`)],
+						kind: `members`,
+					},
+				},
+			] as never),
+		).rejects.toThrow(`resolved residency exceeds 1`)
+		expect(state.silo.store.atoms.size).toBe(atomsBefore)
+
+		const stop = await connection.subscribe([], () => {})
+		stop()
+		stop()
+		connection.dispose?.()
+		connection.dispose?.()
+		await expect(
+			connection.hydrate(request({ addresses: [], kind: `members` })),
+		).rejects.toThrow(`connection is disposed`)
+		const remaining = server.connect({ actor: `reader`, session: `remaining` })
+		await remaining.subscribe([], () => {})
+		server[Symbol.dispose]()
+		server[Symbol.dispose]()
+		expect(() => server.connect({ actor: `reader`, session: `later` })).toThrow(
+			`server is disposed`,
+		)
+	})
+
+	test(`fails a checkpoint whose authoritative revision never stabilizes`, async () => {
+		const state = await residencyFixture(`residency-server-unstable-checkpoint`)
+		let revision = 0
+		const batches = {
+			connect: () => ({
+				propose: () => Promise.reject(new Error(`not used`)),
+				recover: () => Promise.resolve({ headRevision: revision++, tail: [] }),
+				subscribe: () => () => {},
+			}),
+			dispose: () => {},
+			get revision() {
+				return revision
+			},
+		} satisfies MosaicDomainBatchServer
+		const server = createMosaicDomainResidencyServer({
+			batches,
+			domain: state.domain,
+		})
+		const connection = server.connect({ actor: `reader`, session: `unstable` })
+
+		await expect(connection.hydrate([])).rejects.toThrow(
+			`could not stabilize a checkpoint`,
+		)
+	})
+
+	test(`rejects ranges when no range resolver is configured`, async () => {
+		const state = await residencyFixture(`residency-server-no-range`)
+		const server = createMosaicDomainResidencyServer({
+			batches: createMosaicDomainBatchServer({ domain: state.domain }),
+			domain: state.domain,
+		})
+
+		await expect(
+			server.connect({ actor: `reader`, session: `no-range` }).hydrate([
+				{
+					id: `range`,
+					selection: {
+						kind: `range`,
+						limit: 1,
+						member: `values`,
+						range: {},
+					},
+				},
+			]),
+		).rejects.toThrow(`does not provide range resolution`)
+	})
+
+	test(`rejects invalid range schemas before lookup`, async () => {
+		const state = await residencyFixture(`residency-server-range-schema`)
+		const batches = createMosaicDomainBatchServer({ domain: state.domain })
+		let resolverCalls = 0
+		const invalid = createMosaicDomainResidencyServer({
+			batches,
+			domain: state.domain,
+			range: {
+				resolve: () => {
+					resolverCalls++
+					return []
+				},
+				schema: z.object({ ok: z.literal(true) }),
+			},
+		}).connect({ actor: `reader`, session: `invalid-schema` })
+		await expect(
+			invalid.hydrate([
+				{
+					id: `range`,
+					selection: {
+						kind: `range`,
+						limit: 1,
+						member: `values`,
+						range: { ok: false },
+					},
+				},
+			] as never),
+		).rejects.toThrow(`range failed validation`)
+
+		const drifting = createMosaicDomainResidencyServer({
+			batches,
+			domain: state.domain,
+			range: {
+				resolve: () => {
+					resolverCalls++
+					return []
+				},
+				schema: z
+					.object({ step: z.number() })
+					.transform(({ step }) => ({ step: step + 1 })),
+			},
+		}).connect({ actor: `reader`, session: `drifting-schema` })
+		await expect(
+			drifting.hydrate([
+				{
+					id: `range`,
+					selection: {
+						kind: `range`,
+						limit: 1,
+						member: `values`,
+						range: { step: 0 },
+					},
+				},
+			]),
+		).rejects.toThrow(`normalize idempotently`)
+		expect(resolverCalls).toBe(0)
+	})
+
+	test(`validates every bounded accepted-slice field`, async () => {
+		const state = await residencyFixture(`residency-slice-validation`)
+		const address = state.domain.address(`values`, `member`)
+		const batch = {
+			affectedMembers: [address],
+			actor: `writer`,
+			dependencies: [],
+			domain: state.domain.identity,
+			group: null,
+			id: `batch`,
+			operations: [
+				{
+					address,
+					id: `operation`,
+					model: mosaicDomainMemberModelIdentity(valueModel),
+					operation: { type: `set`, value: 1 },
+				},
+			],
+			protocolVersion: 1,
+			session: `session-writer`,
+		}
+		const accepted = {
+			batch: { batch, revision: 1 },
+			invalidations: [
+				{
+					matchedOperationCount: 1,
+					refresh: false,
+					requestId: `request`,
+					revisionToken: `revision:1`,
+				},
+			],
+			metadata: {
+				actor: `writer`,
+				affectedMemberCount: 1,
+				batchId: `batch`,
+				dependencyCount: 0,
+				group: null,
+				operationCount: 1,
+				revision: 1,
+				revisionToken: `revision:1`,
+				session: `session-writer`,
+			},
+		}
+		expect(() => {
+			assertMosaicDomainResidencyAcceptedSlice(accepted)
+		}).not.toThrow()
+		expect(() => {
+			assertMosaicDomainResidencyAcceptedSlice({
+				...accepted,
+				batch: undefined,
+			})
+		}).not.toThrow()
+		const invalid = (mutate: (value: any) => void): void => {
+			const value = structuredClone(accepted)
+			mutate(value)
+			expect(() => {
+				assertMosaicDomainResidencyAcceptedSlice(value)
+			}).toThrow()
+		}
+		expect(() => {
+			assertMosaicDomainResidencyAcceptedSlice(null)
+		}).toThrow(`acceptance is invalid`)
+		invalid((value) => (value.metadata.actor = ``))
+		invalid((value) => (value.metadata.group = ``))
+		invalid((value) => (value.metadata.operationCount = -1))
+		invalid((value) => (value.metadata.revision = 0))
+		invalid((value) => (value.invalidations = {}))
+		expect(() => {
+			assertMosaicDomainResidencyAcceptedSlice(accepted, 0)
+		}).toThrow(`invalidations are invalid`)
+		invalid((value) => value.invalidations.push(value.invalidations[0]))
+		invalid((value) => (value.invalidations[0].revisionToken = `wrong`))
+		invalid((value) => (value.batch = null))
+		invalid((value) => (value.batch.revision = 2))
+		invalid((value) => (value.batch.batch.actor = `other`))
+	})
+
 	test(`rejects unauthorized or over-capacity acquisition before allocation`, async () => {
 		const serverState = await residencyFixture(`residency-server-denied`)
 		const clientState = await residencyFixture(`residency-client-denied`)
@@ -135,6 +514,293 @@ describe(`Mosaic Domain partial residency`, () => {
 		).rejects.toThrow(`count exceeds 1`)
 		expect(allowed.state.residentMemberCount).toBe(1)
 		await allowed.dispose()
+	})
+
+	test(`covers the headless lifecycle without conflating hydration and ownership`, async () => {
+		const serverState = await residencyFixture(`residency-server-lifecycle`)
+		const clientState = await residencyFixture(`residency-client-lifecycle`)
+		const batches = createMosaicDomainBatchServer({ domain: serverState.domain })
+		const server = createMosaicDomainResidencyServer({
+			batches,
+			domain: serverState.domain,
+		})
+		const transport = server.connect({ actor: `alice`, session: `session-a` })
+		const client = createMosaicDomainResidencyClient({
+			actor: `alice`,
+			domain: clientState.domain,
+			session: `session-a`,
+			transport,
+		})
+		expect(() =>
+			createMosaicDomainResidencyClient({
+				actor: `alice`,
+				domain: clientState.domain,
+				session: `session-a`,
+				transport,
+			}),
+		).toThrow(`already owns this Store session`)
+		for (const options of [
+			{ maxBufferedAcceptances: 0 },
+			{ maxResidentBytes: 0 },
+			{ maxResidentMembers: 0 },
+		]) {
+			expect(() =>
+				createMosaicDomainResidencyClient({
+					actor: `invalid-${Object.keys(options)[0]}`,
+					domain: clientState.domain,
+					...options,
+					session: `invalid`,
+					transport,
+				}),
+			).toThrow(`positive safe integer`)
+		}
+
+		const stateListener = vi.fn()
+		const stopState = client.subscribeState(stateListener)
+		const stopThrowingState = client.subscribeState(() => {
+			throw new Error(`state observer failed`)
+		})
+		const address = clientState.domain.address(`values`, `hydrated`)
+		await client.hydrate({ addresses: [address], kind: `members` })
+		stopThrowingState()
+		expect(client.state).toMatchObject({
+			requestedMemberCount: 0,
+			residentMemberCount: 1,
+		})
+		await expect(
+			client.submit({
+				address,
+				operation: { type: `set`, value: 1 },
+			}),
+		).rejects.toThrow(`acquired, hydrated member`)
+		await expect(client.evict(address)).resolves.toBe(true)
+		await expect(client.evict(address)).resolves.toBe(false)
+		await expect(
+			client.acquire(clientState.domain.address(`cursor`, `alice`)),
+		).rejects.toThrow(`durable members only`)
+		await expect(client.submit([])).rejects.toThrow(`requires an operation`)
+
+		const fixed = await client.acquire(clientState.domain.address(`fixed`))
+		await expect(
+			client.submit({
+				address: fixed.address,
+				operation: { type: `set`, value: 1 },
+			}),
+		).rejects.toThrow(`no batch model`)
+		fixed[Symbol.dispose]()
+		fixed.release()
+		await waitFor(() => !fixed.active)
+		await expect(client.evict(fixed.address)).rejects.toThrow(
+			`singleton Mosaic Domain member`,
+		)
+
+		const subscription = await client.subscribe({
+			addresses: [clientState.domain.address(`values`, `subscribed`)],
+			kind: `members`,
+		})
+		expect(subscription.active).toBe(true)
+		subscription[Symbol.dispose]()
+		await waitFor(() => !subscription.active)
+		await subscription.release()
+		stopState()
+		expect(stateListener).toHaveBeenCalled()
+		client[Symbol.dispose]()
+		await waitFor(() => client.state.residentMemberCount === 0)
+		await client.dispose()
+		await expect(client.acquire(address)).rejects.toThrow(`disposed`)
+		await expect(
+			client.submit({
+				address,
+				operation: { type: `set`, value: 1 },
+			}),
+		).rejects.toThrow(`disposed`)
+		await expect(
+			client.subscribe({ addresses: [address], kind: `members` }),
+		).rejects.toThrow(`disposed`)
+	})
+
+	test(`fails closed on malformed checkpoints without allocating members`, async () => {
+		type Checkpoint = {
+			headRevision: number
+			members: any[]
+			resolutions: any[]
+		}
+		const cases: readonly {
+			readonly expected: string
+			readonly maxResidentBytes?: number
+			readonly mutate: (
+				checkpoint: Checkpoint,
+				state: Awaited<ReturnType<typeof residencyFixture>>,
+			) => unknown
+		}[] = [
+			{
+				expected: `revision is invalid`,
+				mutate: (checkpoint) => ({ ...checkpoint, headRevision: -1 }),
+			},
+			{
+				expected: `resolution is invalid`,
+				mutate: (checkpoint) => {
+					checkpoint.resolutions[0].requestId = ``
+					return checkpoint
+				},
+			},
+			{
+				expected: `resolution is invalid`,
+				mutate: (checkpoint) => {
+					checkpoint.resolutions[0].revisionToken = ``
+					return checkpoint
+				},
+			},
+			{
+				expected: `resolution is invalid`,
+				mutate: (checkpoint) => {
+					checkpoint.resolutions.push(structuredClone(checkpoint.resolutions[0]))
+					return checkpoint
+				},
+			},
+			{
+				expected: `checkpoint is incomplete`,
+				mutate: (checkpoint) => ({ ...checkpoint, resolutions: [] }),
+			},
+			{
+				expected: `non-durable member`,
+				mutate: (checkpoint, state) => {
+					const cursor = state.domain.address(`cursor`, `alice`)
+					checkpoint.resolutions[0].addresses = [cursor]
+					checkpoint.members = [{ address: cursor, value: 0 }]
+					return checkpoint
+				},
+			},
+			{
+				expected: `checkpoint member is invalid`,
+				mutate: (checkpoint) => ({ ...checkpoint, members: [null] }),
+			},
+			{
+				expected: `checkpoint member is invalid`,
+				mutate: (checkpoint, state) => {
+					checkpoint.members[0].address = state.domain.address(`values`, `other`)
+					return checkpoint
+				},
+			},
+			{
+				expected: `checkpoint member is invalid`,
+				mutate: (checkpoint) => {
+					checkpoint.members.push(structuredClone(checkpoint.members[0]))
+					return checkpoint
+				},
+			},
+			{
+				expected: `checkpoint is incomplete`,
+				mutate: (checkpoint) => ({ ...checkpoint, members: [] }),
+			},
+			{
+				expected: `resident bytes exceed 1`,
+				maxResidentBytes: 1,
+				mutate: (checkpoint) => {
+					checkpoint.members[0].value = 100
+					return checkpoint
+				},
+			},
+		]
+		for (let index = 0; index < cases.length; index++) {
+			const testCase = cases[index]
+			const state = await residencyFixture(`residency-checkpoint-${index}`)
+			const address = state.domain.address(`values`, `member`)
+			const atomsBefore = state.silo.store.atoms.size
+			const client = createMosaicDomainResidencyClient({
+				actor: `reader`,
+				domain: state.domain,
+				...(testCase.maxResidentBytes === undefined
+					? {}
+					: { maxResidentBytes: testCase.maxResidentBytes }),
+				session: `session-${index}`,
+				transport: {
+					hydrate(requests) {
+						const checkpoint: Checkpoint = {
+							headRevision: 1,
+							members: [{ address, value: 0 }],
+							resolutions: [
+								{
+									addresses: [address],
+									requestId: requests[0].id,
+									revisionToken: `revision:1`,
+								},
+							],
+						}
+						return Promise.resolve(testCase.mutate(checkpoint, state) as never)
+					},
+					propose: () => Promise.reject(new Error(`unused`)),
+					subscribe: () => () => {},
+				},
+			})
+			await expect(client.acquire(address)).rejects.toThrow(testCase.expected)
+			expect(state.silo.store.atoms.size).toBe(atomsBefore)
+			await client.dispose()
+		}
+
+		const emptyState = await residencyFixture(`residency-checkpoint-empty`)
+		const emptyAddress = emptyState.domain.address(`values`, `empty`)
+		const emptyClient = createMosaicDomainResidencyClient({
+			actor: `reader`,
+			domain: emptyState.domain,
+			session: `empty`,
+			transport: {
+				hydrate: (requests) =>
+					Promise.resolve({
+						headRevision: 0,
+						members: [],
+						resolutions: [
+							{
+								addresses: [],
+								requestId: requests[0].id,
+								revisionToken: `revision:0`,
+							},
+						],
+					}),
+				propose: () => Promise.reject(new Error(`unused`)),
+				subscribe: () => () => {},
+			},
+		})
+		await expect(emptyClient.acquire(emptyAddress)).rejects.toThrow(
+			`acquisition returned no member`,
+		)
+		await emptyClient.dispose()
+	})
+
+	test(`rejects stale one-shot hydration without replacing newer state`, async () => {
+		const state = await residencyFixture(`residency-stale-hydration`)
+		const address = state.domain.address(`values`, `member`)
+		let revision = 2
+		let value = 2
+		const client = createMosaicDomainResidencyClient({
+			actor: `reader`,
+			domain: state.domain,
+			session: `session-reader`,
+			transport: {
+				hydrate: (requests) =>
+					Promise.resolve({
+						headRevision: revision,
+						members: [{ address, value }],
+						resolutions: [
+							{
+								addresses: [address],
+								requestId: requests[0].id,
+								revisionToken: `revision:${revision}`,
+							},
+						],
+					}),
+				propose: () => Promise.reject(new Error(`unused`)),
+				subscribe: () => () => {},
+			},
+		})
+		await client.hydrate({ addresses: [address], kind: `members` })
+		revision = 1
+		value = 1
+		await expect(
+			client.hydrate({ addresses: [address], kind: `members` }),
+		).rejects.toThrow(`moved backwards`)
+		expect(state.silo.getState(await tokenFor(state, `member`))).toBe(2)
+		await client.dispose()
 	})
 
 	test(`authorizes normalized keys before lookup and reference-counts leases`, async () => {
@@ -262,12 +928,16 @@ describe(`Mosaic Domain partial residency`, () => {
 			address,
 			operation: { type: `set`, value: 41 },
 		})
-		expect(client.state.pendingBatchIds).toHaveLength(1)
+		await client.submit({
+			address,
+			operation: { type: `set`, value: 42 },
+		})
+		expect(client.state.pendingBatchIds).toHaveLength(2)
 		lease.release()
 		await settle()
 		await expect(client.evict(address)).resolves.toBe(true)
 		expect(client.state).toMatchObject({
-			pendingBatchIds: [expect.any(String)],
+			pendingBatchIds: [expect.any(String), expect.any(String)],
 			residentMemberCount: 0,
 		})
 
@@ -276,13 +946,201 @@ describe(`Mosaic Domain partial residency`, () => {
 		expect(client.state.pendingBatchIds).toEqual([])
 		expect(client.state.residentMemberCount).toBe(0)
 		const reacquired = await client.acquire(address)
-		expect(clientState.silo.getState(reacquired.token)).toBe(41)
+		expect(clientState.silo.getState(reacquired.token)).toBe(42)
 		await client.dispose()
 		expect(clientState.silo.store.atoms.has(reacquired.token.key)).toBe(false)
 		expect(cleaned).toEqual([`offline-member`, `offline-member`])
 		expect(
 			serverState.silo.getState(serverState.valueAtoms, `offline-member`),
-		).toBe(41)
+		).toBe(42)
+	})
+
+	test(`keeps optimism intact when proposal receipts are malformed`, async () => {
+		const serverState = await residencyFixture(`residency-server-receipts`)
+		const batches = createMosaicDomainBatchServer({ domain: serverState.domain })
+		const server = createMosaicDomainResidencyServer({
+			batches,
+			domain: serverState.domain,
+		})
+		const cases: readonly {
+			readonly expected: string
+			readonly result: (proposal: MosaicDomainBatchProposal) => unknown
+		}[] = [
+			{
+				expected: `proposal result is invalid`,
+				result: () => ({ status: `unknown` }),
+			},
+			{
+				expected: `acceptance receipt is invalid`,
+				result: (proposal) => ({
+					accepted: {
+						batch: { ...proposal, actor: `intruder` },
+						revision: 1,
+					},
+					status: `accepted`,
+				}),
+			},
+			{
+				expected: `rejection is invalid`,
+				result: (proposal) => ({
+					rejection: { batchId: proposal.id },
+					status: `rejected`,
+				}),
+			},
+			{
+				expected: `rejection is invalid`,
+				result: () => ({
+					rejection: {
+						batchId: `another-batch`,
+						code: `unauthorized`,
+						reason: `denied`,
+						recovery: `discard-batch`,
+					},
+					status: `rejected`,
+				}),
+			},
+		]
+		for (let index = 0; index < cases.length; index++) {
+			const testCase = cases[index]
+			const state = await residencyFixture(`residency-client-receipt-${index}`)
+			const connected = server.connect({
+				actor: `actor-${index}`,
+				session: `session-${index}`,
+			})
+			const client = createMosaicDomainResidencyClient({
+				actor: `actor-${index}`,
+				domain: state.domain,
+				session: `session-${index}`,
+				transport: {
+					dispose: () => connected.dispose?.(),
+					hydrate: (requests) => connected.hydrate(requests),
+					propose: (proposal) =>
+						Promise.resolve(testCase.result(proposal) as never),
+					subscribe: (requests, listener) =>
+						connected.subscribe(requests, listener),
+				},
+			})
+			const lease = await client.acquire(
+				state.domain.address(`values`, `member-${index}`),
+			)
+			await expect(
+				client.submit({
+					address: lease.address,
+					operation: { type: `set`, value: 5 },
+				}),
+			).rejects.toThrow(testCase.expected)
+			expect(state.silo.getState(lease.token)).toBe(5)
+			expect(client.state).toMatchObject({
+				connectivity: `offline`,
+				pendingBatchIds: [expect.any(String)],
+			})
+			await client.dispose()
+		}
+	})
+
+	test(`settles a valid rejection by rolling back its entire optimistic batch`, async () => {
+		const serverState = await residencyFixture(`residency-server-rejection`)
+		const clientState = await residencyFixture(`residency-client-rejection`)
+		const batches = createMosaicDomainBatchServer({ domain: serverState.domain })
+		const server = createMosaicDomainResidencyServer({
+			batches,
+			domain: serverState.domain,
+		})
+		const connected = server.connect({ actor: `alice`, session: `session-a` })
+		const client = createMosaicDomainResidencyClient({
+			actor: `alice`,
+			domain: clientState.domain,
+			session: `session-a`,
+			transport: {
+				dispose: () => connected.dispose?.(),
+				hydrate: (requests) => connected.hydrate(requests),
+				propose: (proposal) =>
+					Promise.resolve({
+						rejection: {
+							batchId: proposal.id,
+							code: `unauthorized` as const,
+							reason: `denied`,
+							recovery: `discard-batch` as const,
+						},
+						status: `rejected` as const,
+					}),
+				subscribe: (requests, listener) =>
+					connected.subscribe(requests, listener),
+			},
+		})
+		const lease = await client.acquire(
+			clientState.domain.address(`values`, `rejected`),
+		)
+		await client.submit({
+			address: lease.address,
+			operation: { type: `set`, value: 9 },
+		})
+		expect(clientState.silo.getState(lease.token)).toBe(0)
+		expect(client.state).toMatchObject({
+			connectivity: `live`,
+			pendingBatchIds: [],
+			problem: { code: `unauthorized` },
+		})
+		await client.dispose()
+	})
+
+	test(`recovers after hydration failure and rejects malformed live events`, async () => {
+		const serverState = await residencyFixture(
+			`residency-server-recovery-errors`,
+		)
+		const clientState = await residencyFixture(
+			`residency-client-recovery-errors`,
+		)
+		const batches = createMosaicDomainBatchServer({ domain: serverState.domain })
+		const server = createMosaicDomainResidencyServer({
+			batches,
+			domain: serverState.domain,
+		})
+		const connected = server.connect({ actor: `alice`, session: `session-a` })
+		let failHydration = true
+		let liveListener:
+			| Parameters<
+					MosaicDomainResidencyTransport<
+						typeof clientState.domain.identity
+					>[`subscribe`]
+			  >[1]
+			| undefined
+		let stops = 0
+		const client = createMosaicDomainResidencyClient({
+			actor: `alice`,
+			domain: clientState.domain,
+			session: `session-a`,
+			transport: {
+				dispose: () => connected.dispose?.(),
+				hydrate(requests) {
+					if (failHydration) {
+						failHydration = false
+						return Promise.reject(new Error(`checkpoint unavailable`))
+					}
+					return connected.hydrate(requests)
+				},
+				propose: (proposal) => connected.propose(proposal),
+				subscribe(_requests, listener) {
+					liveListener = listener
+					const ordinal = stops
+					return () => {
+						stops++
+						if (ordinal === 0) throw new Error(`failed subscription stop`)
+					}
+				},
+			},
+		})
+		const address = clientState.domain.address(`values`, `member`)
+		await expect(client.acquire(address)).rejects.toThrow(
+			`checkpoint unavailable`,
+		)
+		expect(client.state.connectivity).toBe(`offline`)
+		const lease = await client.acquire(address)
+		expect(clientState.silo.getState(lease.token)).toBe(0)
+		liveListener?.(null as never)
+		await waitFor(() => client.state.connectivity === `offline`)
+		expect(client.state.pendingBatchIds).toEqual([])
+		await client.dispose()
 	})
 
 	test(`refreshes an injected range from bounded per-request invalidation`, async () => {
@@ -328,6 +1186,7 @@ describe(`Mosaic Domain partial residency`, () => {
 			(accepted) => {
 				invalidations.push(accepted.invalidations[0].matchedOperationCount)
 				invalidationValues.push(clientState.silo.getState(secondToken))
+				throw new Error(`selection observer failed`)
 			},
 		)
 		const writerSecond = await writer.acquire(
@@ -421,6 +1280,89 @@ describe(`Mosaic Domain partial residency`, () => {
 			headRevision: 2,
 			residentMemberCount: 1,
 		})
+		await Promise.all([reader.dispose(), writer.dispose()])
+	})
+
+	test(`bounds catch-up buffering and replaces throwing subscriptions`, async () => {
+		const serverState = await residencyFixture(`residency-server-buffer`)
+		const readerState = await residencyFixture(`residency-reader-buffer`)
+		const writerState = await residencyFixture(`residency-writer-buffer`)
+		const batches = createMosaicDomainBatchServer({ domain: serverState.domain })
+		const server = createMosaicDomainResidencyServer({
+			batches,
+			domain: serverState.domain,
+		})
+		const writer = createMosaicDomainResidencyClient({
+			actor: `writer`,
+			domain: writerState.domain,
+			session: `session-writer`,
+			transport: server.connect({ actor: `writer`, session: `session-writer` }),
+		})
+		const writerLease = await writer.acquire(
+			writerState.domain.address(`values`, `buffered`),
+		)
+		const connected = server.connect({
+			actor: `reader`,
+			session: `session-reader`,
+		})
+		let deliveries = 0
+		let hydrateCalls = 0
+		let subscriptionCount = 0
+		let throwingStops = 0
+		const reader = createMosaicDomainResidencyClient({
+			actor: `reader`,
+			domain: readerState.domain,
+			maxBufferedAcceptances: 1,
+			session: `session-reader`,
+			transport: {
+				dispose: () => connected.dispose?.(),
+				async hydrate(requests) {
+					hydrateCalls++
+					const checkpoint = await connected.hydrate(requests)
+					if (hydrateCalls === 1) {
+						await writer.submit({
+							address: writerLease.address,
+							operation: { type: `set`, value: 1 },
+						})
+						await writer.submit({
+							address: writerLease.address,
+							operation: { type: `set`, value: 2 },
+						})
+						await waitFor(() => deliveries === 2)
+					}
+					return checkpoint
+				},
+				propose: (batch) => connected.propose(batch),
+				async subscribe(requests, listener) {
+					subscriptionCount++
+					const ordinal = subscriptionCount
+					const stop = await connected.subscribe(requests, (accepted) => {
+						deliveries++
+						listener(accepted)
+					})
+					return () => {
+						stop()
+						if (ordinal === 1) {
+							throwingStops++
+							throw new Error(`old subscription stop failed`)
+						}
+					}
+				},
+			},
+		})
+		const lease = await reader.acquire(
+			readerState.domain.address(`values`, `buffered`),
+		)
+
+		expect(readerState.silo.getState(lease.token)).toBe(2)
+		expect(reader.state).toMatchObject({
+			connectivity: `live`,
+			headRevision: 2,
+			residentMemberCount: 1,
+		})
+		expect(hydrateCalls).toBe(2)
+		expect(subscriptionCount).toBe(2)
+		expect(throwingStops).toBe(1)
 		await Promise.all([reader.dispose(), writer.dispose()])
 	})
 

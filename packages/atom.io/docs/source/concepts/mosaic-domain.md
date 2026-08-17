@@ -164,6 +164,13 @@ transceiver models can instead register their constructor and operation schema;
 preflight clones their serializable checkpoint before asking the model to
 validate and reduce an operation.
 
+Standard Schema outputs, rather than their untrusted inputs, become the accepted
+member addresses, operations, and resulting values. The server authorizes,
+stores, and broadcasts that normalized envelope so peers never repeat a lossy
+or environment-sensitive input coercion after acceptance. Family-key and
+operation schemas must normalize idempotently; preflight rejects schemas whose
+output changes when validated again at an authoritative replay boundary.
+
 <Exhibit src="realtime/coordinate-a-domain-batch.ts" />
 
 One call to the batch client's submission method accepts either one operation or
@@ -190,7 +197,10 @@ ordinary Store transaction. This also replaces provisional metadata with the
 authoritative revision without exposing a transient rollback frame. Revision
 gaps recover and project a contiguous accepted tail before later work is made
 visible. Offline proposals remain whole and are resent idempotently after
-recovery.
+recovery. New edits made while offline stay behind earlier pending batches.
+Invalid transport acknowledgements and conflicting accepted IDs discard the
+entire optimistic projection in one transaction before resnapshot recovery;
+they cannot leave non-applied pending handles in the queue.
 
 Mixed value and transceiver batches required one generic transaction repair.
 When a transaction writes through a mutable atom's JSON proxy, atom.io now
@@ -204,6 +214,10 @@ Mosaic-only state registry.
 Per-proposal byte, distinct-member, operation-count, and pending-queue limits
 bound validation and backpressure. They do not impose a Domain or document-size
 limit. Applications scale total state by using bounded atom-family members.
+
+Store observers run only after a settlement has committed. An observer failure
+is reported through the Store logger without reclassifying accepted durable work
+as uncommitted or applying its reducer a second time during recovery.
 
 The atomic-batch layer deliberately does not implement partial residency,
 incremental checkpoint graphs, or actor-selective retained history. Those

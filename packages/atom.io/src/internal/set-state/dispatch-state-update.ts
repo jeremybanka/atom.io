@@ -8,6 +8,7 @@ import type {
 	TransactionSubEvent,
 } from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical/index.ts"
+import type { Json } from "atom.io/foundations/json"
 import type { Subject } from "atom.io/foundations/subject"
 
 import { hasRole } from "../atom/index.ts"
@@ -168,8 +169,8 @@ export function dispatchOrDeferStateUpdate<T, E>(
 				token: deposit(mutableAtom),
 				timestamp,
 				update: {
-					newValue: newValue as any,
-					oldValue: oldValue as any,
+					newValue: structuredClone(newValue) as Json.Serializable,
+					oldValue: structuredClone(oldValue) as Json.Serializable,
 				},
 			}
 			target.transactionMeta.update.subEvents.push(snapshotUpdate)

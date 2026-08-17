@@ -6,6 +6,7 @@ import {
 	getFromStore,
 	getJsonTokenFromStore,
 	type RootStore,
+	transactionCommitCount,
 } from "atom.io/internal"
 
 import type {
@@ -123,7 +124,9 @@ export const DEFAULT_MOSAIC_DOMAIN_BATCH_LIMITS: MosaicDomainBatchLimits =
 
 type InternalUpdate = {
 	readonly next: unknown
+	readonly nextExists: boolean
 	readonly previous: unknown
+	readonly previousExists: boolean
 	readonly token: WritableToken<any, any, any>
 }
 
@@ -200,6 +203,16 @@ const canonicalize = (value: Json.Serializable): string => {
 		.join(`,`)}}`
 }
 
+const deepFreeze = <Value extends Json.Serializable>(value: Value): Value => {
+	if (value !== null && typeof value === `object`) {
+		for (const child of Object.values(value)) {
+			deepFreeze(child)
+		}
+		Object.freeze(value)
+	}
+	return value
+}
+
 /** Canonical authenticated content used for collision-safe receipt matching. */
 export function mosaicDomainBatchMeaningKey(
 	batch: MosaicDomainBatchEnvelope,
@@ -234,6 +247,25 @@ async function validate<Output>(
 		)
 	}
 	return result.value
+}
+
+async function validateOperation<Output extends Json.Serializable>(
+	schema: StandardSchemaV1<unknown, Output>,
+	value: unknown,
+	boundary: string,
+): Promise<Output> {
+	const normalized = await validate(schema, value, boundary)
+	if (!isJsonSerializable(normalized)) {
+		throw new Error(`${boundary} produced a non-serializable operation.`)
+	}
+	const repeated = await validate(schema, structuredClone(normalized), boundary)
+	if (
+		!isJsonSerializable(repeated) ||
+		canonicalize(normalized) !== canonicalize(repeated)
+	) {
+		throw new Error(`${boundary} schema must normalize idempotently.`)
+	}
+	return normalized
 }
 
 /** Validate protocol shape and per-proposal safety limits before model work. */
@@ -334,6 +366,36 @@ function wireValue(value: unknown): unknown {
 		: value
 }
 
+function readMemberValueWithoutAllocating(
+	domain: MosaicDomainInstance<any, any, any>,
+	parsed: Awaited<
+		ReturnType<MosaicDomainInstance<any, any, any>[`parseAddress`]>
+	>,
+	token: WritableToken<any, any, any>,
+	exists: boolean,
+): unknown {
+	if (!(`family` in token) || exists) {
+		return getFromStore(domain.store, token)
+	}
+	const family = domain.store.families.get(parsed.member.token.key)
+	if (family === undefined) {
+		throw new Error(
+			`Mosaic Domain durable family member "${parsed.address.member}" is not installed.`,
+		)
+	}
+	if (family.type === `mutable_atom_family`) {
+		return new family.class().toJSON()
+	}
+	if (family.type === `atom_family`) {
+		return typeof family.default === `function`
+			? family.default(parsed.address.key)
+			: family.default
+	}
+	throw new Error(
+		`Mosaic Domain durable family member "${parsed.address.member}" is not an atom family.`,
+	)
+}
+
 async function preflightMosaicDomainBatchWithProjection<
 	Identity extends MosaicDomainIdentity,
 >(
@@ -344,6 +406,7 @@ async function preflightMosaicDomainBatchWithProjection<
 		readonly revision?: number | null
 	} = {},
 	projectedValues?: ReadonlyMap<string, unknown>,
+	projectedExisting?: ReadonlySet<string>,
 ): Promise<PreparedMosaicDomainBatch<Identity>> {
 	if (domain.disposed) throw new Error(`This Mosaic Domain is disposed.`)
 	const limits = { ...DEFAULT_MOSAIC_DOMAIN_BATCH_LIMITS, ...options.limits }
@@ -354,6 +417,7 @@ async function preflightMosaicDomainBatchWithProjection<
 	}
 
 	const staged = new Map<string, InternalUpdate>()
+	const normalizedOperations: MosaicDomainBatchMemberOperation<Identity>[] = []
 	for (const operation of stableBatch.operations) {
 		const parsed = await domain.parseAddress(operation.address)
 		if (parsed.member.role !== `durable`) {
@@ -372,12 +436,15 @@ async function preflightMosaicDomainBatchWithProjection<
 				`Mosaic Domain member "${operation.address.member}" has incompatible model metadata.`,
 			)
 		}
-		const normalized = await validate(
+		const normalized = await validateOperation(
 			model.operationSchema,
 			operation.operation,
 			`Mosaic Domain member "${operation.address.member}" operation`,
 		)
+		const operationForModel = structuredClone(normalized)
 		const acquired = await domain.acquire(parsed)
+		const memberExists =
+			!(`family` in acquired.token) || domain.store.atoms.has(acquired.token.key)
 		const token: WritableToken<any, any, any> =
 			model.kind === `transceiver`
 				? getJsonTokenFromStore(
@@ -392,7 +459,12 @@ async function preflightMosaicDomainBatchWithProjection<
 			prior?.previous ??
 			(projectedValues?.has(key) === true
 				? projected
-				: getFromStore(domain.store, token))
+				: readMemberValueWithoutAllocating(domain, parsed, token, memberExists))
+		const previousExists =
+			prior?.previousExists ??
+			(projectedValues?.has(key) === true
+				? projectedExisting?.has(key) === true
+				: memberExists)
 		const current = prior?.next ?? previous
 		const context: MosaicReduceContext = {
 			actor: stableBatch.actor,
@@ -400,20 +472,20 @@ async function preflightMosaicDomainBatchWithProjection<
 			group: stableBatch.group,
 			id: operation.id,
 			revision: options.revision ?? null,
-			session: batch.session,
+			session: stableBatch.session,
 		}
 		let next: unknown
 		if (model.kind === `value`) {
 			next = model.reduce(
 				structuredClone(current as Json.Serializable),
-				normalized,
+				operationForModel,
 				context,
 			)
 		} else {
 			const projection = model.class.fromJSON(
 				structuredClone(current as Json.Serializable),
 			)
-			const decision = projection.validate(normalized, context)
+			const decision = projection.validate(operationForModel, context)
 			if (decision.status !== `accept`) {
 				throw new Error(
 					decision.status === `defer`
@@ -430,17 +502,42 @@ async function preflightMosaicDomainBatchWithProjection<
 				`Mosaic Domain member "${operation.address.member}" produced a non-serializable value.`,
 			)
 		}
-		await domain.validateValue(operation.address.member, output)
+		const validated = await domain.validateValue(parsed.address.member, output)
 		staged.set(key, {
-			next,
+			next: validated,
+			nextExists: true,
 			previous,
+			previousExists,
 			token,
 		})
+		normalizedOperations.push({
+			address: parsed.address,
+			id: operation.id,
+			model: structuredClone(mosaicDomainMemberModelIdentity(model)),
+			operation: structuredClone(normalized),
+		})
 	}
+	const normalizedMembers = new Map<
+		string,
+		MosaicDomainMemberAddress<Identity>
+	>()
+	for (const operation of normalizedOperations) {
+		normalizedMembers.set(
+			mosaicDomainMemberAddressKey(operation.address),
+			operation.address,
+		)
+	}
+	const normalizedBatch = deepFreeze(
+		structuredClone({
+			...stableBatch,
+			affectedMembers: [...normalizedMembers.values()],
+			operations: normalizedOperations,
+		}),
+	)
 
 	const prepared = Object.freeze({
-		batch: stableBatch,
-		members: Object.freeze([...stableBatch.affectedMembers]),
+		batch: normalizedBatch,
+		members: Object.freeze([...normalizedBatch.affectedMembers]),
 	})
 	preparedUpdates.set(prepared, [...staged.values()])
 	preparedApplied.set(prepared, false)
@@ -475,21 +572,35 @@ function settleUpdates(
 	if (transaction === undefined) {
 		transaction = createTransaction<() => void>(store, {
 			key: `atom.io/realtime/mosaic-domain-batch-settlement`,
-			do: ({ set }) => {
+			do: ({ dispose, set }) => {
 				const settlement = settlements.get(store)
 				if (settlement === undefined) {
 					throw new Error(`A Mosaic Domain settlement has no prepared values.`)
 				}
 				for (const update of settlement.updates) {
-					set(update.token, update[settlement.which])
+					const exists = update[`${settlement.which}Exists`]
+					if (exists) set(update.token, update[settlement.which])
+					else dispose(update.token as never)
 				}
 			},
 		})
 		settlementTransactions.set(store, transaction)
 	}
 	settlements.set(store, { updates, which })
+	const commitsBefore = transactionCommitCount(store)
 	try {
-		actUponStore(store, transaction, transactionId)()
+		try {
+			actUponStore(store, transaction, transactionId)()
+		} catch (error) {
+			if (transactionCommitCount(store) === commitsBefore) throw error
+			store.logger.error(
+				`🐞`,
+				`transaction`,
+				transactionId,
+				`A Mosaic Domain settlement committed, but an observer threw.`,
+				error,
+			)
+		}
 	} finally {
 		settlements.delete(store)
 	}
@@ -549,7 +660,11 @@ export async function reprojectMosaicDomainBatches<
 	}
 
 	const projectedValues = new Map<string, unknown>()
-	for (const [key, update] of base) projectedValues.set(key, update.previous)
+	const projectedExisting = new Set<string>()
+	for (const [key, update] of base) {
+		projectedValues.set(key, update.previous)
+		if (update.previousExists) projectedExisting.add(key)
+	}
 	const preparedProjection: PreparedMosaicDomainBatch<Identity>[] = []
 	for (const item of project) {
 		const prepared = await preflightMosaicDomainBatchWithProjection(
@@ -557,11 +672,13 @@ export async function reprojectMosaicDomainBatches<
 			item.batch,
 			item.revision === undefined ? {} : { revision: item.revision },
 			projectedValues,
+			projectedExisting,
 		)
 		preparedProjection.push(prepared)
 		for (const update of preparedUpdates.get(prepared) ?? []) {
 			tokens.set(update.token.key, update.token)
 			projectedValues.set(update.token.key, update.next)
+			projectedExisting.add(update.token.key)
 		}
 	}
 
@@ -571,7 +688,9 @@ export async function reprojectMosaicDomainBatches<
 			next: projectedValues.has(key)
 				? projectedValues.get(key)
 				: base.get(key)?.previous,
+			nextExists: projectedExisting.has(key),
 			previous: getFromStore(domain.store, token),
+			previousExists: true,
 			token,
 		})
 	}

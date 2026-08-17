@@ -111,10 +111,22 @@ export type TransactionOutcomeEvent<T extends TransactionToken<any>> = {
  * `sequence` is monotonic within the Store that emitted the event.
  */
 export type TransactionCommitEvent = {
+	/** Values that could not be isolated are replaced by an explicit sentinel. */
+	readonly isolationFailures: readonly TransactionCommitIsolationFailure[]
 	readonly outcome: TransactionOutcomeEvent<TransactionToken<any>>
 	readonly sequence: number
 	readonly snapshots: readonly TransactionCommitStateSnapshot[]
 	readonly type: `transaction_commit`
+}
+
+export type TransactionCommitIsolationFailure = {
+	readonly path: string
+	readonly reason: string
+}
+
+export type TransactionCommitUncloneableValue = {
+	readonly failure: TransactionCommitIsolationFailure
+	readonly type: `transaction_commit_uncloneable`
 }
 
 /** The exact pre/post state retained by a committed transaction event. */

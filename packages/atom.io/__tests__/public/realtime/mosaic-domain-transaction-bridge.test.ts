@@ -65,8 +65,10 @@ async function fixture(
 		{ from: number; to: number; type: `set` }
 	> = registerModel(),
 	silo = new Silo({ isProduction: false, lifespan: `ephemeral`, name }),
+	countKey = `count`,
 ) {
-	const countAtom = silo.atom<number>({ default: 0, key: `count` })
+	// eslint-disable-next-line atom.io/naming-convention -- fixtures exercise arbitrary legal keys
+	const countAtom = silo.atom<number>({ default: 0, key: countKey })
 	const localAtom = silo.atom<number>({ default: 0, key: `local` })
 	const textAtom = silo.mutableAtom<InstanceType<typeof Text>>({
 		class: Text,
@@ -370,6 +372,7 @@ describe(`Mosaic Domain transaction bridge`, () => {
 		clientState.silo.runTransaction(updateTransaction)(2)
 		await Promise.resolve()
 		expect(recorded.proposals).toHaveLength(0)
+		expect(bridge.pendingCommitCount).toBe(2)
 		blocked = false
 		releaseFirst()
 		await bridge.flush()
@@ -489,6 +492,61 @@ describe(`Mosaic Domain transaction bridge`, () => {
 		expect(clientState.silo.getState(clientState.countAtom)).toBe(6)
 	})
 
+	test(`bridges an ordinary durable atom whose key starts with a star`, async () => {
+		const serverState = await fixture(
+			`bridge-star-server`,
+			registerModel(),
+			new Silo({
+				isProduction: false,
+				lifespan: `ephemeral`,
+				name: `bridge-star-server`,
+			}),
+			`*count`,
+		)
+		const clientState = await fixture(
+			`bridge-star-client`,
+			registerModel(),
+			new Silo({
+				isProduction: false,
+				lifespan: `ephemeral`,
+				name: `bridge-star-client`,
+			}),
+			`*count`,
+		)
+		const server = createMosaicDomainBatchServer({ domain: serverState.domain })
+		const recorded = recordingTransport(
+			server.connect({ actor: `alice`, session: `session-a` }),
+		)
+		const client = createMosaicDomainBatchClient({
+			actor: `alice`,
+			domain: clientState.domain,
+			session: `session-a`,
+			transport: recorded.transport,
+		})
+		await client.start()
+		const updateTransaction = clientState.silo.transaction<
+			(callback: () => void) => () => void
+		>({
+			do: ({ set }, callback) => {
+				set(clientState.countAtom, 7)
+				return callback
+			},
+			key: `update`,
+		})
+		const bridge = createMosaicDomainTransactionBridge({
+			client,
+			domain: clientState.domain,
+			transactions: [updateTransaction],
+		})
+
+		clientState.silo.runTransaction(updateTransaction)(() => undefined)
+		await bridge.flush()
+
+		expect(recorded.proposals).toHaveLength(1)
+		expect(clientState.silo.getState(clientState.countAtom)).toBe(7)
+		expect(serverState.silo.getState(serverState.countAtom)).toBe(7)
+	})
+
 	test(`fails closed for a durable member without a transaction encoder`, async () => {
 		const model = registerModel()
 		const state = await fixture(`bridge-missing-encoder`, {
@@ -525,9 +583,12 @@ describe(`Mosaic Domain transaction bridge`, () => {
 		await expect(bridge.flush()).rejects.toThrow(`has no transaction encoder`)
 		expect(state.silo.getState(state.countAtom)).toBe(1)
 		expect(proposed).not.toHaveBeenCalled()
+		expect(bridge.pendingCommitCount).toBe(1)
 		await expect(bridge.retry()).rejects.toThrow(`has no transaction encoder`)
 
 		bridge[Symbol.dispose]()
+		expect(bridge.pendingCommitCount).toBe(0)
+		expect(bridge.problem).toBeNull()
 		bridge[Symbol.dispose]()
 	})
 

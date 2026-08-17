@@ -36,6 +36,8 @@ export type MosaicDomainTransactionBridgeOptions = {
 export type MosaicDomainTransactionBridge = Disposable & {
 	/** Wait for captured commits and the batch client's current delivery work. */
 	flush(): Promise<void>
+	/** Commits retained for preparation, including the current failed commit. */
+	readonly pendingCommitCount: number
 	readonly problem: Error | null
 	/** Retry the first retained preparation failure, preserving commit order. */
 	retry(): Promise<void>
@@ -123,8 +125,8 @@ function collectCandidates(
 	const candidates: Candidate[] = []
 	for (const event of flattenTransactionEvents(commit.outcome.subEvents)) {
 		if (event.type === `atom_update`) {
-			const tracker = event.token.key.startsWith(`*`)
-			const owned = ownedMemberForToken(domain, event.token, tracker)
+			const tracked = ownedMemberForToken(domain, event.token, true)
+			const owned = tracked ?? ownedMemberForToken(domain, event.token, false)
 			if (owned === null) continue
 			if (owned.member.model.encodeTransaction === undefined) {
 				throw new Error(
@@ -292,7 +294,9 @@ export function createMosaicDomainTransactionBridge(
 					)
 					retained.shift()
 				} catch (error) {
-					problem = error instanceof Error ? error : new Error(String(error))
+					if (!disposed) {
+						problem = error instanceof Error ? error : new Error(String(error))
+					}
 				}
 			}
 		})
@@ -319,6 +323,9 @@ export function createMosaicDomainTransactionBridge(
 		get problem() {
 			return problem
 		},
+		get pendingCommitCount() {
+			return retained.length
+		},
 		async retry() {
 			problem = null
 			await drain()
@@ -329,6 +336,8 @@ export function createMosaicDomainTransactionBridge(
 			if (disposed) return
 			disposed = true
 			unsubscribe()
+			retained.length = 0
+			problem = null
 		},
 	}
 }

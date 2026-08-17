@@ -239,9 +239,12 @@ validation boundary for both forms.
 The Store publishes an immutable, monotonically sequenced commit event only
 after a successful outermost transaction has settled. Nested outcomes retain
 their order inside that event, while an aborted outer transaction publishes
-nothing. The bridge listens only for the application transaction tokens named
-in its configuration, so its own settlement and reprojection transactions
-cannot recursively produce proposals.
+nothing. Cyclic values are cloned and frozen safely. Values such as functions
+that cannot be isolated are represented by an explicit sentinel and listed in
+`isolationFailures`; they are never silently replaced with `undefined`. The
+bridge listens only for the application transaction tokens named in its
+configuration, so its own settlement and reprojection transactions cannot
+recursively produce proposals.
 
 Encoding and asynchronous Standard Schema validation run after the commit stack
 and in commit order. All owned member changes from one transaction become one
@@ -251,4 +254,9 @@ retains isolated pre/post member snapshots as a Store-owned capability. The
 client uses that capability to adopt the already-visible optimistic result
 without running reducers twice, while retaining the exact pre-state needed for
 atomic rejection and reprojection. A failed preparation remains available on
-the bridge and blocks later commits until the application retries it.
+the bridge and blocks later commits until the application retries it. The
+bridge never truncates retained commits: silently dropping one would break
+convergence. Applications should monitor `problem` and `pendingCommitCount`,
+repair and retry failures promptly, and dispose the bridge when abandoning a
+collaborative session. Disposal stops new capture and releases commits that
+have not begun preparation; preparation already in flight may finish.

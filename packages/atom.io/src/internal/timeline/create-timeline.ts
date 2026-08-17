@@ -476,6 +476,7 @@ function filterTransactionSubEvents(
 			let familyKey: string | undefined
 			switch (updateFromTx.type) {
 				case `atom_update`:
+				case `mutable_atom_snapshot`:
 				case `atom_creation`:
 				case `atom_disposal`:
 					key = updateFromTx.token.key

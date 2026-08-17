@@ -1,16 +1,16 @@
 import { Silo } from "atom.io"
 import { clearStore } from "atom.io/internal"
-import { collaborationEnvironment } from "atom.io/realtime"
+import { mosaicDomain } from "atom.io/realtime"
 import { z } from "zod"
 
-test(`clearing a Store disposes its active collaboration scopes`, async () => {
+test(`clearing a Store disposes its active Mosaic Domain instances`, async () => {
 	const silo = new Silo({
 		isProduction: false,
 		lifespan: `ephemeral`,
 		name: `collaboration-disposal`,
 	})
 	const stateAtom = silo.atom<number>({ default: 0, key: `state` })
-	const environment = collaborationEnvironment({
+	const domain = mosaicDomain({
 		configSchema: z.object({}),
 		key: `disposal`,
 		members: {
@@ -18,22 +18,22 @@ test(`clearing a Store disposes its active collaboration scopes`, async () => {
 		},
 		version: 1,
 	})
-	const scope = await environment.activate({
+	const instance = await domain.activate({
 		config: {},
 		instance: `disposal/one`,
 		store: silo.store,
 	})
 	const registry = silo.store.miscResources.get(
-		`atom.io/realtime/collaboration-environments`,
+		`atom.io/realtime/mosaic-domains`,
 	)!
 
 	clearStore(silo.store)
 	registry[Symbol.dispose]()
-	expect(scope.disposed).toBe(true)
-	expect(() => scope.address(`state`)).toThrow(`disposed`)
+	expect(instance.disposed).toBe(true)
+	expect(() => instance.address(`state`)).toThrow(`disposed`)
 
 	const nextStateAtom = silo.atom<number>({ default: 0, key: `nextState` })
-	const nextEnvironment = collaborationEnvironment({
+	const nextDomain = mosaicDomain({
 		configSchema: z.object({}),
 		key: `next-disposal`,
 		members: {
@@ -42,7 +42,7 @@ test(`clearing a Store disposes its active collaboration scopes`, async () => {
 		version: 1,
 	})
 	await expect(
-		nextEnvironment.activate({
+		nextDomain.activate({
 			config: {},
 			instance: `next/one`,
 			store: silo.store,

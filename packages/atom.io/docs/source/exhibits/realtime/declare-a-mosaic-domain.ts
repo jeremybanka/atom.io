@@ -1,5 +1,5 @@
 import { Silo } from "atom.io"
-import { collaborationEnvironment } from "atom.io/realtime"
+import { mosaicDomain } from "atom.io/realtime"
 import { z } from "zod"
 
 const documentSilo = new Silo({
@@ -33,7 +33,7 @@ export const titleLengthSelector = documentSilo.selector<number>({
 	key: `titleLength`,
 })
 
-export const documentEnvironment = collaborationEnvironment({
+export const documentDomain = mosaicDomain({
 	configSchema: z.object({ room: z.string().min(1) }),
 	key: `document`,
 	members: {
@@ -66,10 +66,8 @@ export const documentEnvironment = collaborationEnvironment({
 	version: 1,
 })
 
-export const documentEnvironmentActivationPromise = documentEnvironment.activate(
-	{
-		config: { room: `documents` },
-		instance: `design-notes`,
-		store: documentSilo.store,
-	},
-)
+export const documentDomainActivationPromise = documentDomain.activate({
+	config: { room: `documents` },
+	instance: `design-notes`,
+	store: documentSilo.store,
+})

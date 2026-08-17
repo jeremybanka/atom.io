@@ -895,6 +895,43 @@ describe(`Mosaic Domain atomic batches`, () => {
 		])
 	})
 
+	test(`fails closed on a malformed rejection acknowledgement`, async () => {
+		const state = await designFixture(`client-malformed-rejection`)
+		const transport: MosaicDomainBatchClientTransport = {
+			propose() {
+				return Promise.resolve({
+					rejection: null,
+					status: `rejected`,
+				} as never)
+			},
+			recover() {
+				return Promise.resolve({ headRevision: 0, tail: [] })
+			},
+			subscribe() {
+				return () => undefined
+			},
+		}
+		const client = createMosaicDomainBatchClient({
+			actor: `alice`,
+			domain: state.domain,
+			session: `session-a`,
+			transport,
+		})
+
+		await client.submit({
+			address: state.domain.address(`paths`),
+			operation: { path: `discarded`, type: `append` },
+		})
+
+		expect(client.state).toMatchObject({
+			pendingBatchIds: [],
+			problem: { code: `invalid-payload`, recovery: `resnapshot` },
+			revision: 0,
+			status: `rejected`,
+		})
+		expect(state.silo.getState(state.pathsAtom)).toEqual([])
+	})
+
 	test(`fails closed when recovery reuses a pending batch ID`, async () => {
 		const state = await designFixture(`client-forged-recovery`)
 		let recoverPending = false

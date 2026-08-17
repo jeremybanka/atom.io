@@ -93,6 +93,46 @@ const defaultIdSource = ({
 }: MosaicDomainBatchClientIdContext): string =>
 	`${actor}:${session}:${kind}:${sequence}`
 
+const rejectionCodes = new Set<string>([
+	`backpressure`,
+	`batch-id-collision`,
+	`capacity-exceeded`,
+	`gap`,
+	`incompatible-version`,
+	`invalid-model-operation`,
+	`invalid-payload`,
+	`missing-dependency`,
+	`operation-id-collision`,
+	`unauthorized`,
+])
+const recoveryActions = new Set<string>([
+	`discard-batch`,
+	`resnapshot`,
+	`retry`,
+	`upgrade`,
+])
+
+function assertRejection(
+	value: unknown,
+): asserts value is MosaicDomainBatchRejection {
+	if (
+		typeof value !== `object` ||
+		value === null ||
+		!(`batchId` in value) ||
+		(value.batchId !== null && typeof value.batchId !== `string`) ||
+		!(`code` in value) ||
+		typeof value.code !== `string` ||
+		!rejectionCodes.has(value.code) ||
+		!(`reason` in value) ||
+		typeof value.reason !== `string` ||
+		!(`recovery` in value) ||
+		typeof value.recovery !== `string` ||
+		!recoveryActions.has(value.recovery)
+	) {
+		throw new Error(`The Mosaic Domain transport returned an invalid rejection.`)
+	}
+}
+
 /**
  * Bind atomic Domain optimism/reprojection to one Store and client session.
  * Every local batch is one Store transaction, and outbound delivery begins only
@@ -395,9 +435,12 @@ export function createMosaicDomainBatchClient(
 		}
 		await enqueue(async () => {
 			try {
-				await (result.status === `accepted`
-					? applyAccepted(result.accepted)
-					: handleRejection(item.proposal, result.rejection))
+				if (result.status === `accepted`) {
+					await applyAccepted(result.accepted)
+				} else {
+					assertRejection(result.rejection)
+					await handleRejection(item.proposal, result.rejection)
+				}
 			} catch (error) {
 				await rejectProtocol(error, item.proposal.id)
 			}

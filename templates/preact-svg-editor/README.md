@@ -12,6 +12,10 @@ editing with Mosaic Domains.
 - selector families that derive SVG path data from the ordinary state graph
 - atomic transactions for import, insert, delete, split, reorder, and geometry
   gestures
+- public Mosaic Domain registration and heterogeneous batch planners for every
+  structural gesture
+- deterministic same-node contention, offline replay, duplicate delivery,
+  whole-batch rejection, and actor-selective compensation
 - actor/session-scoped logical-coordinate drag presence with one durable commit
   at pointer-up
 - explicit local-only workspace, viewport, DOM reference, pointer capture, and
@@ -43,15 +47,18 @@ npm test
 - `src/svg-convergence.ts`: pure convergent sequence/register schemas and
   reducers.
 - `src/svg-editor-state.ts`: the durable graph, local/ephemeral boundaries,
-  selectors, transactions, gesture identities, and MOS-11 integration seams.
+  selectors, transactions, and gesture identities.
+- `src/svg-domain.ts`: public Domain registration, structural batch planning,
+  presence projection, and actor-selective compensating batches.
 - `src/BezierPlayground.tsx`: the Preact renderer and pointer adapter.
-- `COLLABORATION.md`: correctness decisions and the gated realtime remainder.
+- `COLLABORATION.md`: correctness decisions, innovations, and remaining
+  persistence gates.
 - `src/style.css`: layout and editor styling.
 
 ## Realtime Boundary
 
-This template does not claim to synchronize itself. Mosaic Domain atomic batch
-registration, public transport wiring, rejection and offline replay, and
-actor-selective history depend on MOS-11. Keeping that boundary explicit makes
-the local model reusable by the canonical realtime vector-editor template
-without introducing a private protocol.
+The reusable model fixture now synchronizes through public Mosaic Domain batch
+and presence APIs. The visible playground intentionally remains a small local
+renderer; MOS-23 consumes this fixture in the canonical realtime vector-editor
+template. Partial residency, checkpoints, and process restart remain gated on
+MOS-12 and MOS-13 rather than being simulated by application state.

@@ -9,6 +9,8 @@ export type {
 	MosaicDomainBatchClientTransport,
 } from "./mosaic-domain-batch-client.ts"
 export { createMosaicDomainBatchClient } from "./mosaic-domain-batch-client.ts"
+export * from "./mosaic-domain-presence-client.ts"
+export * from "./mosaic-domain-presence-socket.ts"
 export * from "./mosaic-domain-residency-client.ts"
 export * from "./mosaic-domain-transaction-bridge.ts"
 export * from "./observe-socket-wind-down.ts"

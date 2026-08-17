@@ -6,11 +6,14 @@ export type SvgOrderRank = {
 }
 
 export type SvgOrderOperation = {
+	readonly actor?: string | undefined
 	readonly entryId: string
 	readonly id: string
 	readonly present: boolean
 	readonly rank: SvgOrderRank
 	readonly value: string
+	/** Exact earlier operations hidden by an actor-selective compensation. */
+	readonly undoTargets?: readonly string[] | undefined
 }
 
 export type SvgOrderState = {
@@ -24,8 +27,11 @@ export type SvgOrderedEntry = {
 }
 
 export type SvgRegisterOperation<Value> = {
+	readonly actor?: string | undefined
 	readonly id: string
 	readonly value: Value
+	/** Exact earlier operations hidden by an actor-selective compensation. */
+	readonly undoTargets?: readonly string[] | undefined
 }
 
 export type SvgRegisterState<Value> = {
@@ -44,13 +50,21 @@ export const svgOrderRankSchema: z.ZodType<SvgOrderRank> = z
 
 export const svgOrderOperationSchema: z.ZodType<SvgOrderOperation> = z
 	.object({
+		actor: z.string().min(1).optional(),
 		entryId: z.string().min(1),
 		id: z.string().min(1),
 		present: z.boolean(),
 		rank: svgOrderRankSchema,
 		value: z.string().min(1),
+		undoTargets: z.array(z.string().min(1)).min(1).optional(),
 	})
 	.strict()
+	.refine(
+		({ undoTargets }) =>
+			undoTargets === undefined ||
+			new Set(undoTargets).size === undoTargets.length,
+		{ message: `SVG undo targets must be unique` },
+	)
 
 export const svgOrderStateSchema: z.ZodType<SvgOrderState> = z
 	.object({
@@ -66,7 +80,20 @@ export const svgOrderStateSchema: z.ZodType<SvgOrderState> = z
 export function svgRegisterOperationSchema<Value>(
 	valueSchema: z.ZodType<Value>,
 ): z.ZodType<SvgRegisterOperation<Value>> {
-	return z.object({ id: z.string().min(1), value: valueSchema }).strict()
+	return z
+		.object({
+			actor: z.string().min(1).optional(),
+			id: z.string().min(1),
+			undoTargets: z.array(z.string().min(1)).min(1).optional(),
+			value: valueSchema,
+		})
+		.strict()
+		.refine(
+			({ undoTargets }) =>
+				undoTargets === undefined ||
+				new Set(undoTargets).size === undoTargets.length,
+			{ message: `SVG undo targets must be unique` },
+		)
 }
 
 export function svgRegisterStateSchema<Value>(
@@ -160,11 +187,27 @@ function operationsMatch(
 ): boolean {
 	return (
 		left.entryId === right.entryId &&
+		left.actor === right.actor &&
 		left.id === right.id &&
 		left.present === right.present &&
 		left.rank.denominator === right.rank.denominator &&
 		left.rank.numerator === right.rank.numerator &&
-		left.value === right.value
+		left.value === right.value &&
+		JSON.stringify(left.undoTargets) === JSON.stringify(right.undoTargets)
+	)
+}
+
+function activeSvgOperations<
+	Operation extends {
+		readonly id: string
+		readonly undoTargets?: readonly string[] | undefined
+	},
+>(operations: Iterable<Operation>): readonly Operation[] {
+	const all = [...operations]
+	const undone = new Set(all.flatMap(({ undoTargets }) => undoTargets ?? []))
+	return all.filter(
+		(operation) =>
+			operation.undoTargets === undefined && !undone.has(operation.id),
 	)
 }
 
@@ -193,7 +236,7 @@ function latestSvgOrderOperations(
 	state: SvgOrderState,
 ): ReadonlyMap<string, SvgOrderOperation> {
 	const latest = new Map<string, SvgOrderOperation>()
-	for (const operation of Object.values(state.operations)) {
+	for (const operation of activeSvgOperations(Object.values(state.operations))) {
 		const previous = latest.get(operation.entryId)
 		if (previous === undefined || compareSvgIds(previous.id, operation.id) < 0) {
 			latest.set(operation.entryId, operation)
@@ -263,7 +306,7 @@ export function reduceSvgRegister<Value>(
 		const next = structuredClone(operation)
 		return { operations: { ...state.operations, [next.id]: next } }
 	}
-	if (JSON.stringify(previous.value) !== JSON.stringify(operation.value)) {
+	if (JSON.stringify(previous) !== JSON.stringify(operation)) {
 		throw new Error(`SVG register operation ID collision: ${operation.id}`)
 	}
 	return state
@@ -273,7 +316,7 @@ export function readSvgRegister<Value>(
 	state: SvgRegisterState<Value>,
 ): Value | undefined {
 	let latest: SvgRegisterOperation<Value> | undefined
-	for (const operation of Object.values(state.operations)) {
+	for (const operation of activeSvgOperations(Object.values(state.operations))) {
 		if (latest === undefined || compareSvgIds(latest.id, operation.id) < 0) {
 			latest = operation
 		}

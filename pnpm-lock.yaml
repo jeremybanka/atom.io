@@ -371,6 +371,9 @@ importers:
       react-dom:
         specifier: npm:@preact/compat@18.3.2
         version: '@preact/compat@18.3.2(preact@10.29.8)'
+      zod:
+        specifier: 4.4.3
+        version: 4.4.3
     devDependencies:
       '@dprint/json':
         specifier: 0.23.0
@@ -416,7 +419,10 @@ importers:
         version: 7.0.2
       vite:
         specifier: 8.2.2
-        version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
+		version: 8.2.2(@types/node@26.4.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
+	  vitest:
+		specifier: 4.1.11
+		version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(esbuild@0.28.2)(happy-dom@20.12.0)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
 
   templates/react-node-backend:
     dependencies:

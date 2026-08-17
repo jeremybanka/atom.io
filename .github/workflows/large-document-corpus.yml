@@ -1,0 +1,52 @@
+name: Long-form text corpus
+
+on:
+  schedule:
+    - cron: "23 10 * * 1"
+  workflow_dispatch:
+    inputs:
+      source:
+        description: Corpus source used for recovery or an explicit upstream refresh
+        required: true
+        default: mirror
+        type: choice
+        options:
+          - mirror
+          - upstream
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  VerifyAndDerive:
+    name: Verify and derive
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ATOM_IO_LARGE_DOCUMENT_CACHE: ${{ runner.temp }}/atom-io-large-document-corpus
+      CORPUS_CACHE_KEY: pg100-2026-08-13-3cf4b3d44ee14cff4e14e78e2ad3318eff76f3f7f2afc3cee6bb925879110a37
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+        with:
+          packages: bun node pnpm
+      - uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ${{ env.ATOM_IO_LARGE_DOCUMENT_CACHE }}
+          key: ${{ runner.os }}-large-document-${{ env.CORPUS_CACHE_KEY }}
+      - name: Verify or recover from the first-party corpus
+        if: inputs.source != 'upstream'
+        run: pnpm corpus:large:prepare
+      - name: Explicitly refresh from canonical upstream
+        if: inputs.source == 'upstream'
+        run: pnpm corpus:large:prepare --source=upstream --refresh
+      - name: Re-verify untrusted cache and derive variants
+        run: pnpm test:large-document

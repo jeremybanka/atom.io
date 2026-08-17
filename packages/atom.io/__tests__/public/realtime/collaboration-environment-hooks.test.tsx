@@ -20,7 +20,11 @@ test(`environment members remain ordinary React provider state`, async () => {
 		},
 		version: 1,
 	})
-	const scope = await environment.activate({ config: {}, store: silo.store })
+	const scope = await environment.activate({
+		config: {},
+		instance: `react/one`,
+		store: silo.store,
+	})
 	const Body = () => {
 		const body = useO(bodyAtom)
 		const setBody = useI(bodyAtom)
@@ -63,7 +67,11 @@ test(`environment members remain ordinary Solid provider state`, async () => {
 		},
 		version: 1,
 	})
-	const scope = await environment.activate({ config: {}, store: silo.store })
+	const scope = await environment.activate({
+		config: {},
+		instance: `solid/one`,
+		store: silo.store,
+	})
 	const observed: string[] = []
 	let dispose = () => {}
 

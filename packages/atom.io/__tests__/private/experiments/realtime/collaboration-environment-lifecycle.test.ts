@@ -18,8 +18,14 @@ test(`clearing a Store disposes its active collaboration scopes`, async () => {
 		},
 		version: 1,
 	})
-	const scope = await environment.activate({ config: {}, store: silo.store })
-	const registry = [...silo.store.miscResources.values()][0]
+	const scope = await environment.activate({
+		config: {},
+		instance: `disposal/one`,
+		store: silo.store,
+	})
+	const registry = silo.store.miscResources.get(
+		`atom.io/realtime/collaboration-environments`,
+	)!
 
 	clearStore(silo.store)
 	registry[Symbol.dispose]()
@@ -36,6 +42,10 @@ test(`clearing a Store disposes its active collaboration scopes`, async () => {
 		version: 1,
 	})
 	await expect(
-		nextEnvironment.activate({ config: {}, store: silo.store }),
+		nextEnvironment.activate({
+			config: {},
+			instance: `next/one`,
+			store: silo.store,
+		}),
 	).resolves.toBeDefined()
 })

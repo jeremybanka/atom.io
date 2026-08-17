@@ -75,6 +75,7 @@ export type SvgDragPresence = {
 	readonly gestureId: string
 	readonly point: PointXY
 	readonly sequence: number
+	readonly session: string
 	readonly target: SvgDragTarget
 }
 
@@ -186,11 +187,18 @@ export const workspaceAtom = atom<SvgWorkspace>({
 	default: { activePathId: null, selectedSubpathIds: [] },
 })
 
-/** Ephemeral presence is addressable by logical actor, never by a DOM node. */
+/** Ephemeral presence is addressable by logical actor/session, never by a DOM node. */
 export const dragPresenceAtoms = atomFamily<SvgDragPresence | null, string>({
 	key: `svgDragPresence`,
 	default: null,
 })
+
+/** Distinguish concurrent sessions belonging to the same logical actor. */
+export function svgDragPresenceKey(
+	identity: Pick<SvgGesture, `actor` | `session`>,
+): string {
+	return `${identity.actor}\u0000${identity.session}`
+}
 
 export const projectedNodeSelectors = selectorFamily<PointXY | null, string>({
 	key: `svgProjectedNode`,
@@ -202,7 +210,8 @@ export const projectedNodeSelectors = selectorFamily<PointXY | null, string>({
 			if (drag?.target.kind !== `node` || drag.target.subpathId !== subpathId) {
 				return durable
 			}
-			return get(dragPresenceAtoms, drag.gesture.actor)?.point ?? durable
+			const presence = get(dragPresenceAtoms, svgDragPresenceKey(drag.gesture))
+			return presence?.gestureId === drag.gesture.id ? presence.point : durable
 		},
 })
 
@@ -220,7 +229,9 @@ export const projectedEdgeSelectors = selectorFamily<SvgEdge | null, string>({
 			) {
 				return durable
 			}
-			const point = get(dragPresenceAtoms, drag.gesture.actor)?.point
+			const presence = get(dragPresenceAtoms, svgDragPresenceKey(drag.gesture))
+			const point =
+				presence?.gestureId === drag.gesture.id ? presence.point : undefined
 			if (point === undefined) return durable
 			return drag.target.control === `c`
 				? { ...durable, c: point }
@@ -306,7 +317,7 @@ export const structureViolationsSelector = selector<
 			}
 			for (const subpathId of subpathIds) {
 				const subpath = readSvgRegister(get(subpathAtoms, subpathId))
-				if (subpath === undefined || subpath === null) {
+				if (subpath?.id !== subpathId) {
 					violations.push({ code: `missing-subpath`, pathId, subpathId })
 					continue
 				}
@@ -317,7 +328,7 @@ export const structureViolationsSelector = selector<
 				const edgeState = get(edgeAtoms, subpathId)
 				const node = readSvgRegister(nodeState)
 				const edge = readSvgRegister(edgeState)
-				if (nodeState.operation === null) {
+				if (Object.keys(nodeState.operations).length === 0) {
 					violations.push({ code: `missing-node`, pathId, subpathId })
 				}
 				if (edge === undefined || edge === null) {
@@ -339,7 +350,14 @@ export function createSvgGestureClock(options: {
 	readonly begin: () => SvgGesture
 	readonly observe: (logicalTime: number) => void
 } {
-	let logicalTime = options.initialLogicalTime ?? 0
+	if (options.actor.length === 0 || options.session.length === 0) {
+		throw new Error(`SVG gesture actor and session identities must be nonempty`)
+	}
+	const initialLogicalTime = options.initialLogicalTime ?? 0
+	if (!Number.isSafeInteger(initialLogicalTime) || initialLogicalTime < 0) {
+		throw new Error(`Initial SVG logical time must be a nonnegative integer`)
+	}
+	let logicalTime = initialLogicalTime
 	return {
 		begin: () => {
 			logicalTime++
@@ -726,6 +744,14 @@ export const splitSubpathTransaction = transaction<
 		) {
 			throw new Error(`Only a close edge may have a null SVG node`)
 		}
+		const targetNodeState = get(nodeAtoms, input.targetSubpathId)
+		if (Object.keys(targetNodeState.operations).length === 0) {
+			throw new Error(`Cannot split a missing SVG node`)
+		}
+		const targetNode = readSvgRegister(targetNodeState)
+		if ((input.continuationEdge.kind === `close`) !== (targetNode === null)) {
+			throw new Error(`Only a close edge may have a null SVG node`)
+		}
 		set(
 			subpathAtoms,
 			input.inserted.subpathId,
@@ -884,6 +910,7 @@ export function beginSvgDrag(options: {
 	readonly pointerId: number
 	readonly target: SvgDragTarget
 }): void {
+	const presenceKey = svgDragPresenceKey(options.gesture)
 	setState(activeDragAtom, {
 		gesture: options.gesture,
 		pointerId: options.pointerId,
@@ -893,11 +920,12 @@ export function beginSvgDrag(options: {
 		element: options.element,
 		pointerId: options.pointerId,
 	})
-	setState(dragPresenceAtoms, options.gesture.actor, {
+	setState(dragPresenceAtoms, presenceKey, {
 		actor: options.gesture.actor,
 		gestureId: options.gesture.id,
 		point: options.point,
 		sequence: 0,
+		session: options.gesture.session,
 		target: options.target,
 	})
 }
@@ -905,34 +933,43 @@ export function beginSvgDrag(options: {
 export function previewSvgDrag(point: PointXY): void {
 	const active = getState(activeDragAtom)
 	if (active === null) return
-	setState(dragPresenceAtoms, active.gesture.actor, (previous) => ({
-		actor: active.gesture.actor,
-		gestureId: active.gesture.id,
-		point,
-		sequence: (previous?.sequence ?? -1) + 1,
-		target: active.target,
-	}))
+	setState(
+		dragPresenceAtoms,
+		svgDragPresenceKey(active.gesture),
+		(previous) => ({
+			actor: active.gesture.actor,
+			gestureId: active.gesture.id,
+			point,
+			sequence: (previous?.sequence ?? -1) + 1,
+			session: active.gesture.session,
+			target: active.target,
+		}),
+	)
 }
 
 /** End one pointer gesture with at most one durable geometry transaction. */
 export function finishSvgDrag(options: { readonly commit: boolean }): void {
 	const active = getState(activeDragAtom)
 	if (active === null) return
-	const presence = getState(dragPresenceAtoms, active.gesture.actor)
-	if (
-		options.commit &&
-		presence !== null &&
-		presence.gestureId === active.gesture.id
-	) {
-		runGestureTransaction(commitGeometryTransaction, {
-			gesture: active.gesture,
-			point: presence.point,
-			target: active.target,
-		})
+	const presenceKey = svgDragPresenceKey(active.gesture)
+	const presence = getState(dragPresenceAtoms, presenceKey)
+	try {
+		if (
+			options.commit &&
+			presence !== null &&
+			presence.gestureId === active.gesture.id
+		) {
+			runGestureTransaction(commitGeometryTransaction, {
+				gesture: active.gesture,
+				point: presence.point,
+				target: active.target,
+			})
+		}
+	} finally {
+		setState(dragPresenceAtoms, presenceKey, null)
+		setState(activeDragAtom, null)
+		setState(pointerCaptureAtom, null)
 	}
-	setState(dragPresenceAtoms, active.gesture.actor, null)
-	setState(activeDragAtom, null)
-	setState(pointerCaptureAtom, null)
 }
 
 /**

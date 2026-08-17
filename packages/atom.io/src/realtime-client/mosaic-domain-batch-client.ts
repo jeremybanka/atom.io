@@ -17,7 +17,6 @@ import {
 	preflightMosaicDomainBatch,
 	type PreparedMosaicDomainBatch,
 	reprojectMosaicDomainBatches,
-	revertMosaicDomainBatch,
 } from "atom.io/realtime"
 
 export type MosaicDomainBatchClientTransport = {
@@ -108,6 +107,7 @@ export function createMosaicDomainBatchClient(
 	let sequence = 0
 	let revision = 0
 	let headBatchId: string | null = null
+	let headBatchMeaningKey: string | null = null
 	let problem: MosaicDomainBatchRejection | null = null
 	let status: MosaicDomainBatchClientState[`status`] = `connecting`
 	let disposed = false
@@ -154,15 +154,27 @@ export function createMosaicDomainBatchClient(
 		...pending.map(({ proposal }) => proposal.id),
 	]
 
-	const rollbackPending = (): void => {
-		for (const item of [...pending].reverse()) {
-			revertMosaicDomainBatch(item.prepared)
+	const rejectPending = async (
+		rejection: MosaicDomainBatchRejection,
+	): Promise<void> => {
+		if (pending.length > 0) {
+			await reprojectMosaicDomainBatches(
+				options.domain,
+				pending.map(({ prepared }) => prepared),
+				[],
+			)
+			pending.splice(0, pending.length)
 		}
+		problem = rejection
+		status = `rejected`
+		notify()
 	}
 
-	const rejectProtocol = (error: unknown, batchId: string | null): void => {
-		rollbackPending()
-		problem = {
+	const rejectProtocol = async (
+		error: unknown,
+		batchId: string | null,
+	): Promise<void> => {
+		await rejectPending({
 			batchId,
 			code: `invalid-payload`,
 			reason:
@@ -170,9 +182,7 @@ export function createMosaicDomainBatchClient(
 					? error.message
 					: `The Mosaic Domain transport returned an invalid response.`,
 			recovery: `resnapshot`,
-		}
-		status = `rejected`
-		notify()
+		})
 	}
 
 	const replaceProjection = async (
@@ -184,8 +194,12 @@ export function createMosaicDomainBatchClient(
 			pending.map(({ prepared }) => prepared),
 			[
 				...confirmed,
-				...nextPending.map(({ proposal }) => ({
-					batch: { ...proposal, actor: options.actor },
+				...nextPending.map(({ prepared, proposal }) => ({
+					batch: {
+						...prepared.batch,
+						actor: options.actor,
+						dependencies: proposal.dependencies,
+					},
 					revision: null,
 				})),
 			],
@@ -203,7 +217,23 @@ export function createMosaicDomainBatchClient(
 	const applyAccepted = async (
 		accepted: MosaicAcceptedDomainBatchEnvelope,
 	): Promise<void> => {
-		if (accepted.revision <= revision) return
+		if (!Number.isSafeInteger(accepted.revision) || accepted.revision < 1) {
+			throw new Error(
+				`A Mosaic Domain accepted revision must be a positive safe integer.`,
+			)
+		}
+		if (accepted.revision < revision) return
+		if (accepted.revision === revision) {
+			if (
+				headBatchMeaningKey === null ||
+				headBatchMeaningKey !== mosaicDomainBatchMeaningKey(accepted.batch)
+			) {
+				throw new Error(
+					`Mosaic Domain revision ${revision} was replayed with conflicting content.`,
+				)
+			}
+			return
+		}
 		if (accepted.revision !== revision + 1) {
 			await recover()
 			return
@@ -212,23 +242,17 @@ export function createMosaicDomainBatchClient(
 			({ proposal }) => proposal.id === accepted.batch.id,
 		)
 		if (ownIndex >= 0) {
-			const expected: MosaicDomainBatchEnvelope = {
-				...pending[ownIndex].proposal,
-				actor: options.actor,
-			}
+			const expected = pending[ownIndex].prepared.batch
 			if (
 				mosaicDomainBatchMeaningKey(expected) !==
 				mosaicDomainBatchMeaningKey(accepted.batch)
 			) {
-				rollbackPending()
-				problem = {
+				await rejectPending({
 					batchId: accepted.batch.id,
 					code: `batch-id-collision`,
 					reason: `An accepted batch reused a pending ID with different authenticated content.`,
 					recovery: `resnapshot`,
-				}
-				status = `rejected`
-				notify()
+				})
 				return
 			}
 		}
@@ -236,11 +260,17 @@ export function createMosaicDomainBatchClient(
 		// provisional projection. Compute the confirmed-plus-pending replacement
 		// off-Store, then reveal it with one ordinary Store transaction.
 		await replaceProjection(
-			[{ batch: accepted.batch, revision: accepted.revision }],
+			[
+				{
+					batch: accepted.batch,
+					revision: accepted.revision,
+				},
+			],
 			pending.filter((_item, index) => index !== ownIndex),
 		)
 		revision = accepted.revision
 		headBatchId = accepted.batch.id
+		headBatchMeaningKey = mosaicDomainBatchMeaningKey(accepted.batch)
 		problem = null
 		status = `live`
 		notify()
@@ -260,6 +290,7 @@ export function createMosaicDomainBatchClient(
 		try {
 			let recoveredRevision = revision
 			let recoveredHeadBatchId = headBatchId
+			let recoveredHeadBatchMeaningKey = headBatchMeaningKey
 			const recovered: MosaicDomainBatchProjection[] = []
 			let nextPending = [...pending]
 			for (const accepted of recovery.tail) {
@@ -272,23 +303,17 @@ export function createMosaicDomainBatchClient(
 					({ proposal }) => proposal.id === accepted.batch.id,
 				)
 				if (ownIndex >= 0) {
-					const expected: MosaicDomainBatchEnvelope = {
-						...nextPending[ownIndex].proposal,
-						actor: options.actor,
-					}
+					const expected = nextPending[ownIndex].prepared.batch
 					if (
 						mosaicDomainBatchMeaningKey(expected) !==
 						mosaicDomainBatchMeaningKey(accepted.batch)
 					) {
-						problem = {
+						await rejectPending({
 							batchId: accepted.batch.id,
 							code: `batch-id-collision`,
 							reason: `An accepted recovery batch reused a pending ID with different authenticated content.`,
 							recovery: `resnapshot`,
-						}
-						status = `rejected`
-						rollbackPending()
-						notify()
+						})
 						return
 					}
 					nextPending.splice(ownIndex, 1)
@@ -299,6 +324,9 @@ export function createMosaicDomainBatchClient(
 				})
 				recoveredRevision = accepted.revision
 				recoveredHeadBatchId = accepted.batch.id
+				recoveredHeadBatchMeaningKey = mosaicDomainBatchMeaningKey(
+					accepted.batch,
+				)
 			}
 			if (recoveredRevision !== recovery.headRevision) {
 				throw new Error(`Mosaic Domain recovery returned an incomplete tail.`)
@@ -308,11 +336,12 @@ export function createMosaicDomainBatchClient(
 			}
 			revision = recoveredRevision
 			headBatchId = recoveredHeadBatchId
+			headBatchMeaningKey = recoveredHeadBatchMeaningKey
 			status = `live`
 			problem = null
 			notify()
 		} catch (error) {
-			rejectProtocol(error, null)
+			await rejectProtocol(error, null)
 			throw error
 		}
 	}
@@ -324,6 +353,7 @@ export function createMosaicDomainBatchClient(
 		const index = pending.findIndex(
 			({ proposal }) => proposal.id === rejected.id,
 		)
+		if (index < 0) return
 		const nextPending = pending.filter((_item, itemIndex) => itemIndex !== index)
 		for (
 			let pendingIndex = 0;
@@ -355,8 +385,12 @@ export function createMosaicDomainBatchClient(
 		try {
 			result = await options.transport.propose(item.proposal)
 		} catch {
-			status = `offline`
-			notify()
+			await enqueue(() => {
+				if (!pending.includes(item)) return Promise.resolve()
+				status = `offline`
+				notify()
+				return Promise.resolve()
+			})
 			return
 		}
 		await enqueue(async () => {
@@ -365,7 +399,7 @@ export function createMosaicDomainBatchClient(
 					? applyAccepted(result.accepted)
 					: handleRejection(item.proposal, result.rejection))
 			} catch (error) {
-				rejectProtocol(error, item.proposal.id)
+				await rejectProtocol(error, item.proposal.id)
 			}
 		})
 	}
@@ -375,7 +409,7 @@ export function createMosaicDomainBatchClient(
 			try {
 				await applyAccepted(accepted)
 			} catch (error) {
-				rejectProtocol(error, null)
+				await rejectProtocol(error, null)
 			}
 		})
 	})
@@ -384,6 +418,7 @@ export function createMosaicDomainBatchClient(
 		async flush() {
 			if (disposed)
 				throw new Error(`This Mosaic Domain batch client is disposed.`)
+			await submitTail
 			await enqueue(recover)
 			if (status !== `live`) return
 			const queued = new Set(pending.map(({ proposal }) => proposal.id))
@@ -409,77 +444,89 @@ export function createMosaicDomainBatchClient(
 				if (disposed)
 					throw new Error(`This Mosaic Domain batch client is disposed.`)
 				if (!started) await this.start()
-				const inputs = Array.isArray(input) ? input : [input]
-				if (inputs.length === 0) {
-					throw new Error(
-						`A Mosaic Domain batch requires at least one operation.`,
-					)
-				}
-				const batchId = idSource({
-					actor: options.actor,
-					kind: `batch`,
-					sequence: sequence++,
-					session: options.session,
-				})
-				const operations: MosaicDomainBatchMemberOperation[] = []
-				for (const inputOperation of inputs) {
-					const parsed = await options.domain.parseAddress(
-						inputOperation.address,
-					)
-					if (
-						parsed.member.role !== `durable` ||
-						parsed.member.model === undefined
-					) {
+				let item: Pending | undefined
+				let sendImmediately = false
+				await enqueue(async () => {
+					if (disposed) {
+						throw new Error(`This Mosaic Domain batch client is disposed.`)
+					}
+					const inputs = Array.isArray(input) ? input : [input]
+					if (inputs.length === 0) {
 						throw new Error(
-							`Mosaic Domain member "${inputOperation.address.member}" has no durable batch model.`,
+							`A Mosaic Domain batch requires at least one operation.`,
 						)
 					}
-					operations.push({
-						address: parsed.address,
-						id:
-							inputOperation.id ??
-							idSource({
-								actor: options.actor,
-								kind: `operation`,
-								sequence: sequence++,
-								session: options.session,
-							}),
-						model: mosaicDomainMemberModelIdentity(parsed.member.model),
-						operation: structuredClone(inputOperation.operation),
+					const batchId = idSource({
+						actor: options.actor,
+						kind: `batch`,
+						sequence: sequence++,
+						session: options.session,
 					})
-				}
-				const affected = new Map<string, MosaicDomainMemberAddress>()
-				for (const operation of operations) {
-					affected.set(
-						mosaicDomainMemberAddressKey(operation.address),
-						operation.address,
+					const operations: MosaicDomainBatchMemberOperation[] = []
+					for (const inputOperation of inputs) {
+						const parsed = await options.domain.parseAddress(
+							inputOperation.address,
+						)
+						if (
+							parsed.member.role !== `durable` ||
+							parsed.member.model === undefined
+						) {
+							throw new Error(
+								`Mosaic Domain member "${inputOperation.address.member}" has no durable batch model.`,
+							)
+						}
+						operations.push({
+							address: structuredClone(inputOperation.address),
+							id:
+								inputOperation.id ??
+								idSource({
+									actor: options.actor,
+									kind: `operation`,
+									sequence: sequence++,
+									session: options.session,
+								}),
+							model: mosaicDomainMemberModelIdentity(parsed.member.model),
+							operation: structuredClone(inputOperation.operation),
+						})
+					}
+					const affected = new Map<string, MosaicDomainMemberAddress>()
+					for (const operation of operations) {
+						affected.set(
+							mosaicDomainMemberAddressKey(operation.address),
+							operation.address,
+						)
+					}
+					const proposed: MosaicDomainBatchProposal = {
+						affectedMembers: [...affected.values()],
+						dependencies: dependencies(),
+						domain: options.domain.identity,
+						group,
+						id: batchId,
+						operations,
+						protocolVersion: MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
+						session: options.session,
+					}
+					const envelope: MosaicDomainBatchEnvelope = {
+						...proposed,
+						actor: options.actor,
+					}
+					const prepared = await preflightMosaicDomainBatch(
+						options.domain,
+						envelope,
 					)
+					applyMosaicDomainBatch(prepared)
+					item = { prepared, proposal: proposed }
+					pending.push(item)
+					sendImmediately = status === `live`
+					if (sendImmediately) problem = null
+					notify()
+				})
+				if (sendImmediately) {
+					if (item === undefined) {
+						throw new Error(`A Mosaic Domain batch was not prepared.`)
+					}
+					await send(item)
 				}
-				const proposal: MosaicDomainBatchProposal = {
-					affectedMembers: [...affected.values()],
-					dependencies: dependencies(),
-					domain: options.domain.identity,
-					group,
-					id: batchId,
-					operations,
-					protocolVersion: MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
-					session: options.session,
-				}
-				const envelope: MosaicDomainBatchEnvelope = {
-					...proposal,
-					actor: options.actor,
-				}
-				const prepared = await preflightMosaicDomainBatch(
-					options.domain,
-					envelope,
-				)
-				applyMosaicDomainBatch(prepared)
-				const item = { prepared, proposal }
-				pending.push(item)
-				status = `live`
-				problem = null
-				notify()
-				await send(item)
 			})
 			submitTail = work.then(
 				() => undefined,

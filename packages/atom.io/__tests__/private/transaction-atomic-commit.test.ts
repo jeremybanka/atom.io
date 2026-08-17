@@ -8,6 +8,7 @@ import {
 	getState,
 	inspectTimeline,
 	mutableAtom,
+	redo,
 	runTransaction,
 	selector,
 	setState,
@@ -19,6 +20,7 @@ import {
 import * as Internal from "atom.io/internal"
 import { mosaicText } from "atom.io/realtime"
 import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
+import { UList } from "atom.io/transceivers/u-list"
 import { vitest } from "vitest"
 
 const { restore } = takeSnapshot()
@@ -280,6 +282,111 @@ describe(`atomic transaction commits`, () => {
 		expect(summaries).not.toHaveBeenCalled()
 	})
 
+	it(`nests mutable snapshots under one reversible outer boundary`, () => {
+		const itemsAtom = mutableAtom<UList<string>>({
+			class: UList,
+			key: `items`,
+		})
+		const countAtom = atom<number>({ default: 0, key: `count` })
+		const summarySelector = selector<string>({
+			get: ({ get }) => `${[...get(itemsAtom)].join(`,`)}:${get(countAtom)}`,
+			key: `summary`,
+		})
+		const innerTransaction = transaction<() => void>({
+			do: ({ json, set }) => {
+				set(json(itemsAtom), [`intermediate`])
+			},
+			key: `inner`,
+		})
+		const outerTransaction = transaction<() => void>({
+			do: ({ json, run, set }) => {
+				run(innerTransaction)()
+				set(json(itemsAtom), [`final`])
+				set(countAtom, 1)
+			},
+			key: `outer`,
+		})
+		const historyTimeline = timeline({
+			key: `history`,
+			scope: [itemsAtom, countAtom],
+		})
+		const summaries = vitest.fn()
+		let outcome: TransactionOutcomeEvent<typeof outerTransaction> | undefined
+		subscribe(summarySelector, summaries)
+		subscribe(outerTransaction, (event) => {
+			outcome = event
+		})
+
+		runTransaction(outerTransaction)()
+
+		expect(getState(summarySelector)).toBe(`final:1`)
+		expect(summaries).toHaveBeenCalledOnce()
+		expect(outcome?.subEvents.map(({ type }) => type)).toEqual([
+			`transaction_outcome`,
+			`mutable_atom_snapshot`,
+			`atom_update`,
+		])
+		expect(
+			outcome?.subEvents[0]?.type === `transaction_outcome`
+				? outcome.subEvents[0].subEvents.map(({ type }) => type)
+				: [],
+		).toEqual([`mutable_atom_snapshot`])
+		expect(inspectTimeline(historyTimeline)).toEqual({ at: 1, length: 1 })
+
+		summaries.mockClear()
+		undo(historyTimeline)
+		expect(getState(summarySelector)).toBe(`:0`)
+		expect(summaries).toHaveBeenCalledOnce()
+
+		summaries.mockClear()
+		redo(historyTimeline)
+		expect(getState(summarySelector)).toBe(`final:1`)
+		expect(summaries).toHaveBeenCalledOnce()
+
+		const abortOuterTransaction = transaction<() => void>({
+			do: ({ run }) => {
+				run(innerTransaction)()
+				throw new Error(`abort outer snapshot`)
+			},
+			key: `abortOuter`,
+		})
+		summaries.mockClear()
+		expect(() => {
+			runTransaction(abortOuterTransaction)()
+		}).toThrow(`abort outer snapshot`)
+		expect(getState(summarySelector)).toBe(`final:1`)
+		expect(summaries).not.toHaveBeenCalled()
+		expect(inspectTimeline(historyTimeline)).toEqual({ at: 1, length: 1 })
+	})
+
+	it(`captures mutable JSON event payloads before caller mutation`, () => {
+		const itemsAtom = mutableAtom<UList<string>>({
+			class: UList,
+			key: `items`,
+		})
+		const payload = [`captured`]
+		const replaceTransaction = transaction<() => void>({
+			do: ({ json, set }) => {
+				set(json(itemsAtom), payload)
+				payload.push(`mutated-after-set`)
+			},
+			key: `replace`,
+		})
+		let outcome: TransactionOutcomeEvent<typeof replaceTransaction> | undefined
+		subscribe(replaceTransaction, (event) => {
+			outcome = event
+		})
+
+		runTransaction(replaceTransaction)()
+
+		expect([...getState(itemsAtom)]).toEqual([`captured`])
+		expect(
+			outcome?.subEvents[0]?.type === `mutable_atom_snapshot`
+				? outcome.subEvents[0].update.newValue
+				: null,
+		).toEqual([`captured`])
+	})
+
 	it(`retains one reversible timeline event`, () => {
 		const aAtom = atom<number>({ key: `a`, default: 0 })
 		const bAtom = atom<number>({ key: `b`, default: 0 })
@@ -321,12 +428,18 @@ describe(`atomic transaction commits`, () => {
 		const subscriber = vitest.fn()
 
 		subscribe(aAtom, subscriber)
+		const commitsBefore = Internal.transactionCommitCount(
+			Internal.IMPLICIT.STORE,
+		)
 		expect(() => {
 			runTransaction(updateTransaction)()
 		}).toThrow(`no commit`)
 
 		expect(getState(aAtom)).toBe(0)
 		expect(subscriber).not.toHaveBeenCalled()
+		expect(Internal.transactionCommitCount(Internal.IMPLICIT.STORE)).toBe(
+			commitsBefore,
+		)
 	})
 
 	it(`cancels deferred notifications when replay fails`, () => {
@@ -431,6 +544,9 @@ describe(`atomic transaction commits`, () => {
 		subscribe(updateTransaction, transactionObserver)
 
 		let caught: unknown
+		const commitsBefore = Internal.transactionCommitCount(
+			Internal.IMPLICIT.STORE,
+		)
 		try {
 			runTransaction(updateTransaction)()
 		} catch (error) {
@@ -438,6 +554,9 @@ describe(`atomic transaction commits`, () => {
 		}
 
 		expect(caught).toBe(observerError)
+		expect(Internal.transactionCommitCount(Internal.IMPLICIT.STORE)).toBe(
+			commitsBefore + 1,
+		)
 		expect([getState(aAtom), getState(bAtom)]).toEqual([1, 2])
 		expect(survivingAtomObserver).toHaveBeenCalledOnce()
 		expect(selectorObserver).toHaveBeenCalledWith({ oldValue: 0, newValue: 3 })

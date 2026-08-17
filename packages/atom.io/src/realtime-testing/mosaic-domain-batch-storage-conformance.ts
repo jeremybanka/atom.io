@@ -138,4 +138,29 @@ export async function testMosaicDomainBatchStorageAdapter(
 			suffix.tail[0]?.batch.id === `batch-3`,
 		`recovery did not honor its exclusive revision cursor`,
 	)
+
+	const concurrentStorage = create()
+	const concurrent = await Promise.all([
+		concurrentStorage.appendBatch({
+			accepted: accepted(`batch-left`, [`operation-left`], 1),
+			expectedRevision: 0,
+			fingerprint: `fingerprint-left`,
+		}),
+		concurrentStorage.appendBatch({
+			accepted: accepted(`batch-right`, [`operation-right`], 1),
+			expectedRevision: 0,
+			fingerprint: `fingerprint-right`,
+		}),
+	])
+	assert(
+		concurrent.filter(({ status }) => status === `accepted`).length === 1 &&
+			concurrent.filter(({ status }) => status === `stale`).length === 1,
+		`concurrent appends did not linearize at the expected revision`,
+	)
+	const concurrentRecovery = await concurrentStorage.recover(identity)
+	assert(
+		concurrentRecovery.headRevision === 1 &&
+			concurrentRecovery.tail.length === 1,
+		`concurrent appends produced a split or missing revision`,
+	)
 }

@@ -136,7 +136,10 @@ export function createMosaicDomainBatchServer(
 		const prepared = await preflightMosaicDomainBatch(
 			options.domain,
 			accepted.batch,
-			{ limits, revision: accepted.revision },
+			{
+				limits,
+				revision: accepted.revision,
+			},
 		)
 		applyMosaicDomainBatch(prepared)
 		revision = accepted.revision
@@ -236,6 +239,7 @@ export function createMosaicDomainBatchServer(
 				limits,
 				revision: revision + 1,
 			})
+			batch = prepared.batch
 		} catch (error) {
 			return rejection(
 				`invalid-model-operation`,
@@ -281,6 +285,7 @@ export function createMosaicDomainBatchServer(
 					limits,
 					revision: revision + 1,
 				})
+				batch = prepared.batch
 			} catch (error) {
 				return rejection(
 					`gap`,
@@ -361,9 +366,22 @@ export function createMosaicDomainBatchServer(
 							`retry`,
 						)
 					}
+					let received: MosaicDomainBatchProposal
+					try {
+						received = structuredClone(proposal)
+					} catch (error) {
+						return rejection(
+							`invalid-payload`,
+							error instanceof Error
+								? error.message
+								: `A Mosaic Domain proposal could not be cloned.`,
+							proposedBatchId(proposal),
+							`discard-batch`,
+						)
+					}
 					pendingProposals++
 					const result = tail.then(() =>
-						processProposal(proposal, actor, session),
+						processProposal(received, actor, session),
 					)
 					tail = result.then(
 						() => undefined,

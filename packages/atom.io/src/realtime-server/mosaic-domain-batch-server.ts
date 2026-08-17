@@ -319,6 +319,7 @@ export function createMosaicDomainBatchServer(
 			)
 		}
 		if (appended.status === `duplicate`) {
+			await synchronize()
 			return { accepted: appended.accepted, status: `accepted` }
 		}
 

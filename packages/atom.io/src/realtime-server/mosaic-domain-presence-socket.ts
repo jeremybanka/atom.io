@@ -41,7 +41,8 @@ export function bindMosaicDomainPresenceServerSocket(
 			typeof request !== `object` ||
 			request === null ||
 			typeof request.requestId !== `string` ||
-			request.requestId.length === 0
+			request.requestId.length === 0 ||
+			!(`proposal` in request)
 		) {
 			return
 		}
@@ -97,11 +98,26 @@ export function bindMosaicDomainPresenceServerSocket(
 		socket.off(MOSAIC_DOMAIN_PRESENCE_EVENTS.proposal, onProposal)
 		socket.off(MOSAIC_DOMAIN_PRESENCE_EVENTS.snapshot, onSnapshot)
 		socket.off(`disconnect`, onDisconnect)
-		unsubscribe()
-		await connection.disconnect()
+		const failures: unknown[] = []
+		try {
+			unsubscribe()
+		} catch (error) {
+			failures.push(error)
+		}
+		try {
+			await connection.disconnect()
+		} catch (error) {
+			failures.push(error)
+		}
+		if (failures.length > 0) {
+			throw new AggregateError(
+				failures,
+				`Mosaic Domain presence socket cleanup failed.`,
+			)
+		}
 	}
 	const onDisconnect = (): void => {
-		void cleanup()
+		void cleanup().catch(() => undefined)
 	}
 	socket.on(`disconnect`, onDisconnect)
 	return cleanup

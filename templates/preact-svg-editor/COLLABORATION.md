@@ -114,6 +114,10 @@ The SVG projection carries only logical target identity and document
 coordinates. DOM nodes, pointer capture, active drag, viewport, zoom, and
 workspace state remain local atoms. Pointer moves update ephemeral presence;
 pointer-up contributes at most one durable geometry operation.
+Presence publication is advisory: a transient transport failure updates the
+controller's status but never aborts a local drag or its durable commit. Disposing
+the controller immediately removes every ephemeral projection it owns, so a
+recreated client cannot briefly display a cursor or preview from its predecessor.
 
 ## Executable Conformance and Remaining Gates
 

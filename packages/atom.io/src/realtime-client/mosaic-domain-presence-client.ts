@@ -77,6 +77,10 @@ export function createMosaicDomainPresenceClient(
 		throw new Error(`Presence limits must be positive integers.`)
 	}
 	const entries = new Map<string, MosaicDomainPresenceEnvelope>()
+	const projections = new Map<
+		string,
+		{ readonly addressKey: string; readonly token: unknown }
+	>()
 	const cursors = new Map<string, number>()
 	const listeners = new Set<(state: MosaicDomainPresenceClientState) => void>()
 	let sequence = 0
@@ -127,8 +131,8 @@ export function createMosaicDomainPresenceClient(
 
 	const apply = async (
 		presence: MosaicDomainPresenceEnvelope,
-	): Promise<void> => {
-		if (disposed) return
+	): Promise<string | null> => {
+		if (disposed) return null
 		if (
 			typeof presence.actor !== `string` ||
 			presence.actor.length === 0 ||
@@ -152,37 +156,49 @@ export function createMosaicDomainPresenceClient(
 			throw new Error(`The presence transport delivered an invalid envelope.`)
 		}
 		const parsed = await options.domain.parseAddress(presence.address)
-		if (disposed) return
+		if (disposed) return null
 		if (parsed.member.role !== `ephemeral`) {
 			throw new Error(
 				`Mosaic Domain member "${parsed.address.member}" is not ephemeral.`,
 			)
 		}
 		const key = scopeKey({ ...presence, address: parsed.address })
-		if (presence.sequence <= (cursors.get(key) ?? 0)) return
+		if (presence.sequence <= (cursors.get(key) ?? 0)) return key
 		if (presence.session === options.session) {
 			sequence = Math.max(sequence, presence.sequence)
 		}
 		const acquired = await options.domain.acquire(parsed)
-		if (disposed) return
+		if (disposed) return null
 		if (presence.kind === `update`) {
 			const value = await options.domain.validateValue(
 				parsed.address.member,
 				presence.value,
 			)
-			if (disposed) return
+			if (disposed) return null
+			const addressKey = mosaicDomainMemberAddressKey(parsed.address)
+			for (const [otherKey, projection] of projections) {
+				if (otherKey === key || projection.addressKey !== addressKey) continue
+				projections.delete(otherKey)
+				entries.delete(otherKey)
+			}
 			setIntoStore(options.domain.store, acquired.token as never, value)
+			projections.set(key, { addressKey, token: acquired.token })
 			entries.set(key, {
 				...structuredClone(presence),
 				address: structuredClone(parsed.address),
 				value: structuredClone(value),
 			})
 		} else {
-			disposeFromStore(options.domain.store, acquired.token as never)
+			const projected = projections.get(key)?.token
+			if (projected !== undefined) {
+				disposeFromStore(options.domain.store, projected as never)
+			}
+			projections.delete(key)
 			entries.delete(key)
 		}
 		cursors.set(key, presence.sequence)
 		notify()
+		return key
 	}
 
 	const reconcile = async (
@@ -200,15 +216,17 @@ export function createMosaicDomainPresenceClient(
 		const received = new Set<string>()
 		for (const presence of initial.presence) {
 			if (disposed) return
-			await apply(presence)
-			received.add(scopeKey(presence))
+			const key = await apply(presence)
+			if (key !== null) received.add(key)
 		}
-		for (const [key, presence] of [...entries]) {
+		for (const key of [...entries.keys()]) {
 			if (disposed) return
 			if (received.has(key)) continue
-			const parsed = await options.domain.parseAddress(presence.address)
-			const acquired = await options.domain.acquire(parsed)
-			disposeFromStore(options.domain.store, acquired.token as never)
+			const token = projections.get(key)?.token
+			if (token !== undefined) {
+				disposeFromStore(options.domain.store, token as never)
+				projections.delete(key)
+			}
 			entries.delete(key)
 		}
 		status = `live`
@@ -352,7 +370,17 @@ export function createMosaicDomainPresenceClient(
 		},
 		subscribe(listener) {
 			listeners.add(listener)
-			listener(snapshot())
+			try {
+				listener(snapshot())
+			} catch (error) {
+				options.domain.store.logger.error(
+					`🐞`,
+					`unknown`,
+					options.session,
+					`A Mosaic Domain presence client listener threw.`,
+					error,
+				)
+			}
 			return () => listeners.delete(listener)
 		},
 		[Symbol.dispose]() {
@@ -360,6 +388,13 @@ export function createMosaicDomainPresenceClient(
 			disposed = true
 			status = `disposed`
 			unsubscribe()
+			for (const projectionToken of new Set(
+				[...projections.values()].map((projection) => projection.token),
+			)) {
+				disposeFromStore(options.domain.store, projectionToken as never)
+			}
+			projections.clear()
+			entries.clear()
 			listeners.clear()
 		},
 	}

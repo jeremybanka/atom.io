@@ -4,19 +4,21 @@ import {
 	type MosaicDomainBatchClientTransport,
 } from "atom.io/realtime-client"
 import { createMosaicDomainBatchServer } from "atom.io/realtime-server"
-import { afterEach, describe, expect, test } from "vitest"
+import { afterEach, describe, expect, test, vi } from "vitest"
 
-import { readSvgRegister } from "./svg-convergence.ts"
+import { materializeSvgOrder, readSvgRegister } from "./svg-convergence.ts"
 import {
 	createSvgDomainEditor,
 	activateSvgDesignDomain,
 	type SvgDomainState,
 } from "./svg-domain.ts"
 import {
+	activeDragAtom,
 	createSvgGestureClock,
 	nodeAtoms,
 	pathDrawSelectors,
 	structureViolationsSelector,
+	subpathOrderAtoms,
 	svgOperationId,
 	type SvgDrawingFixture,
 } from "./svg-editor-state.ts"
@@ -395,5 +397,81 @@ describe(`SVG Mosaic Domain`, () => {
 				offlineDomain[Symbol.dispose]()
 			},
 		)
+	})
+
+	test(`reset/import ranks only replacement subpaths after planned removals`, async () => {
+		const fixture = await distributedFixture()
+		const clock = createSvgGestureClock({ actor: `alice`, session: `alice-tab` })
+		await fixture.aliceEditor.replaceDrawing({
+			drawing,
+			gesture: clock.begin(),
+		})
+		const replacement: SvgDrawingFixture = {
+			paths: [
+				{
+					id: `path-a`,
+					subpaths: [
+						{ edge: { kind: `move` }, id: `b0`, node: { x: 1, y: 1 } },
+						{ edge: { kind: `line` }, id: `b1`, node: { x: 2, y: 2 } },
+						{ edge: { kind: `line` }, id: `b2`, node: { x: 3, y: 3 } },
+					],
+				},
+			],
+		}
+		await fixture.aliceEditor.replaceDrawing({
+			drawing: replacement,
+			gesture: clock.begin(),
+		})
+		await fixture.bob.flush()
+		for (const silo of [
+			fixture.serverSilo,
+			fixture.aliceSilo,
+			fixture.bobSilo,
+		]) {
+			expect(
+				materializeSvgOrder(silo.getState(subpathOrderAtoms, `path-a`)).map(
+					({ value }) => value,
+				),
+			).toEqual([`b0`, `b1`, `b2`])
+			expect(silo.getState(structureViolationsSelector)).toEqual([])
+		}
+	})
+
+	test(`presence failures never abort local drag or its durable commit`, async () => {
+		const fixture = await distributedFixture()
+		const clock = createSvgGestureClock({ actor: `alice`, session: `alice-tab` })
+		await fixture.aliceEditor.replaceDrawing({
+			drawing,
+			gesture: clock.begin(),
+		})
+		const publish = vi.fn(() => Promise.reject(new Error(`presence offline`)))
+		const clear = vi.fn(() => Promise.reject(new Error(`presence offline`)))
+		const editor = createSvgDomainEditor({
+			batch: fixture.alice,
+			domain: fixture.aliceDomain,
+			presence: { clear, publish } as never,
+			state: {
+				getState: fixture.aliceSilo.getState,
+				setState: fixture.aliceSilo.setState,
+			},
+		})
+		const gesture = clock.begin()
+		await expect(
+			editor.beginDrag({
+				element: {} as Element,
+				gesture,
+				point: { x: 4, y: 5 },
+				pointerId: 1,
+				target: { kind: `node`, subpathId: `a0` },
+			}),
+		).resolves.toBeUndefined()
+		await expect(editor.previewDrag({ x: 8, y: 9 })).resolves.toBeUndefined()
+		await expect(editor.finishDrag({ commit: true })).resolves.toBeUndefined()
+		expect(fixture.aliceSilo.getState(activeDragAtom)).toBeNull()
+		expect(readSvgRegister(fixture.aliceSilo.getState(nodeAtoms, `a0`))).toEqual(
+			{ x: 8, y: 9 },
+		)
+		expect(publish).toHaveBeenCalledTimes(2)
+		expect(clear).toHaveBeenCalledOnce()
 	})
 })

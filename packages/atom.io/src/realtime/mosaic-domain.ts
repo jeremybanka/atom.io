@@ -9,9 +9,10 @@ import type {
 	SelectorToken,
 	Silo,
 } from "atom.io"
-import type { Canonical } from "atom.io/foundations/canonical"
+import { type Canonical, packCanonical } from "atom.io/foundations/canonical"
 import { findInStore, IMPLICIT, type Store, withdraw } from "atom.io/internal"
 
+import type { MosaicDomainMemberModel } from "./mosaic-domain-batch.ts"
 import type { StandardSchemaV1 } from "./standard-schema.ts"
 
 const REGISTRY_KEY = `atom.io/realtime/mosaic-domains`
@@ -69,6 +70,7 @@ type MosaicDomainFamilyMember<
 }
 
 type MosaicDomainValidatedMember = {
+	readonly model?: MosaicDomainMemberModel
 	readonly schema: StandardSchemaV1
 }
 
@@ -491,6 +493,32 @@ function assertMembership(members: MosaicDomainMembers): void {
 				`Mosaic Domain member "${name}" must declare a Standard Schema.`,
 			)
 		}
+		if (`model` in member && member.model !== undefined) {
+			if (member.role !== `durable`) {
+				throw new Error(
+					`Mosaic Domain member "${name}" can register a batch model only when durable.`,
+				)
+			}
+			const model = member.model
+			const modelIdentity =
+				model.kind === `transceiver` ? model.class?.mosaic : model.identity
+			if (
+				(model.kind !== `transceiver` && model.kind !== `value`) ||
+				typeof modelIdentity?.key !== `string` ||
+				modelIdentity.key.length === 0 ||
+				!Number.isSafeInteger(modelIdentity.version) ||
+				modelIdentity.version < 1 ||
+				typeof model.operationSchema?.[`~standard`]?.validate !== `function` ||
+				(model.kind === `value` && typeof model.reduce !== `function`) ||
+				(model.kind === `transceiver` &&
+					(model.class.timelinePolicy !== `append-only` ||
+						typeof model.class.fromJSON !== `function`))
+			) {
+				throw new Error(
+					`Mosaic Domain member "${name}" has invalid batch model metadata.`,
+				)
+			}
+		}
 		const previous = tokens.get(member.token.key)
 		if (previous) {
 			throw new Error(
@@ -512,6 +540,20 @@ async function validate<Schema extends StandardSchemaV1>(
 		throw new Error(`${boundary} failed validation: ${reason}`)
 	}
 	return result.value
+}
+
+async function validateKey<Schema extends StandardSchemaV1<any, Canonical>>(
+	schema: Schema,
+	value: unknown,
+	boundary: string,
+): Promise<StandardSchemaV1.InferOutput<Schema>> {
+	const parsed = await validate(schema, value, boundary)
+	const normalizedKey = packCanonical(parsed)
+	const repeated = await validate(schema, structuredClone(parsed), boundary)
+	if (normalizedKey !== packCanonical(repeated)) {
+		throw new Error(`${boundary} schema must normalize idempotently.`)
+	}
+	return parsed
 }
 
 /**
@@ -582,6 +624,13 @@ export function mosaicDomain<
 				instance: instanceKey,
 			})
 			const domain = domainKey(instanceIdentity)
+			const parsedAddresses = new WeakMap<
+				object,
+				{
+					readonly address: MosaicDomainMemberAddress
+					readonly member: RemotelyAddressableMember
+				}
+			>()
 			let disposed = false
 			const domainInstance: MosaicDomainInstance<
 				typeof instanceIdentity,
@@ -669,33 +718,48 @@ export function mosaicDomain<
 						)
 					}
 					if (isFamily(member.token)) {
-						const parsedKey = await validate(
+						const parsedKey = await validateKey(
 							member.keySchema!,
 							candidate[`key`],
 							`Mosaic Domain member "${name}" key`,
 						)
-						return {
+						const parsed = {
 							address: {
-								domain: instanceIdentity,
+								domain: structuredClone(instanceIdentity),
 								key: parsedKey,
 								member: name,
 							},
 							member,
-						} as never
+						}
+						parsedAddresses.set(parsed, {
+							address: structuredClone(parsed.address),
+							member,
+						})
+						return parsed as never
 					}
 					if (`key` in candidate) {
 						throw new Error(
 							`Mosaic Domain singleton member "${name}" does not accept a key.`,
 						)
 					}
-					return {
-						address: { domain: instanceIdentity, member: name },
+					const parsed = {
+						address: {
+							domain: structuredClone(instanceIdentity),
+							member: name,
+						},
 						member,
-					} as never
+					}
+					parsedAddresses.set(parsed, {
+						address: structuredClone(parsed.address),
+						member,
+					})
+					return parsed as never
 				},
 				async acquire(parsed) {
 					if (disposed) throw new Error(`This Mosaic Domain is disposed.`)
-					const checked = await domainInstance.parseAddress(parsed.address)
+					const trusted = parsedAddresses.get(parsed)
+					const checked =
+						trusted ?? (await domainInstance.parseAddress(parsed.address))
 					if (isFamily(checked.member.token)) {
 						const token = findInStore(
 							store,

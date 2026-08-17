@@ -442,6 +442,87 @@ describe(`atomic transaction commits`, () => {
 		)
 	})
 
+	it(`publishes one isolated outer commit and stays silent for aborted work`, () => {
+		const aAtom = atom<number>({ key: `a`, default: 0 })
+		const bAtom = atom<number>({ key: `b`, default: 0 })
+		const innerTransaction = transaction<() => void>({
+			key: `inner`,
+			do: ({ set }) => {
+				set(aAtom, 1)
+			},
+		})
+		const outerTransaction = transaction<() => void>({
+			key: `outer`,
+			do: ({ run, set }) => {
+				run(innerTransaction)()
+				set(bAtom, 2)
+			},
+		})
+		const abortingTransaction = transaction<() => void>({
+			key: `aborting`,
+			do: ({ run }) => {
+				run(innerTransaction)()
+				throw new Error(`abort outer`)
+			},
+		})
+		const commits = vitest.fn()
+		const unsubscribe = Internal.IMPLICIT.STORE.on.transactionCommit.subscribe(
+			`test-commit-lifecycle`,
+			commits,
+		)
+
+		runTransaction(outerTransaction, `outer-id`)()
+		expect(() => {
+			runTransaction(abortingTransaction)()
+		}).toThrow(`abort outer`)
+		runTransaction(outerTransaction, `outer-id-2`)()
+
+		expect(commits).toHaveBeenCalledTimes(2)
+		const commit = commits.mock.calls[0]?.[0]
+		const nextCommit = commits.mock.calls[1]?.[0]
+		expect(commit).toMatchObject({
+			outcome: { id: `outer-id`, token: outerTransaction },
+			type: `transaction_commit`,
+		})
+		expect(commit.sequence).toBeGreaterThan(0)
+		expect(nextCommit.sequence).toBe(commit.sequence + 1)
+		expect(Object.isFrozen(commit)).toBe(true)
+		expect(Object.isFrozen(commit.outcome)).toBe(true)
+		expect(Object.isFrozen(commit.outcome.subEvents)).toBe(true)
+		expect(
+			commit.outcome.subEvents.map(({ type }: { type: string }) => type),
+		).toEqual([`transaction_outcome`, `atom_update`])
+		expect([getState(aAtom), getState(bAtom)]).toEqual([1, 2])
+		unsubscribe()
+	})
+
+	it(`does not let a commit listener failure hide a committed outcome`, () => {
+		const countAtom = atom<number>({ key: `count`, default: 0 })
+		const updateTransaction = transaction<() => void>({
+			key: `update`,
+			do: ({ set }) => {
+				set(countAtom, 1)
+			},
+		})
+		const stateObserver = vitest.fn()
+		const observerError = new Error(`commit listener failed`)
+		const unsubscribe = Internal.IMPLICIT.STORE.on.transactionCommit.subscribe(
+			`throwing-commit-listener`,
+			() => {
+				throw observerError
+			},
+		)
+		subscribe(countAtom, stateObserver)
+
+		expect(() => {
+			runTransaction(updateTransaction)()
+		}).toThrow(observerError)
+
+		expect(getState(countAtom)).toBe(1)
+		expect(stateObserver).toHaveBeenCalledWith({ oldValue: 0, newValue: 1 })
+		unsubscribe()
+	})
+
 	it(`cancels deferred notifications when replay fails`, () => {
 		const countAtom = atom<number>({ key: `count`, default: 0 })
 		const replayTransaction = transaction<() => void>({

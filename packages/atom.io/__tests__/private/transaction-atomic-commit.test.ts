@@ -506,7 +506,9 @@ describe(`atomic transaction commits`, () => {
 			default: { label: `old` },
 			key: `cyclic`,
 		})
-		const updateTransaction = transaction<(callback: () => void) => () => void>({
+		const updateTransaction = transaction<
+			(callback: () => void, mutable: Map<string, string>) => () => void
+		>({
 			do: ({ set }, callback) => {
 				const cyclic: Cyclic = { label: `new` }
 				cyclic.self = cyclic
@@ -525,8 +527,9 @@ describe(`atomic transaction commits`, () => {
 		)
 		subscribe(cyclicAtom, stateObserver)
 		const callback = () => undefined
+		const mutable = new Map([[`mutable`, `container`]])
 
-		expect(runTransaction(updateTransaction)(callback)).toBe(callback)
+		expect(runTransaction(updateTransaction)(callback, mutable)).toBe(callback)
 
 		expect(stateObserver).toHaveBeenCalledOnce()
 		expect(commit).not.toBeNull()
@@ -534,11 +537,15 @@ describe(`atomic transaction commits`, () => {
 		expect(published.isolationFailures.map(({ path }) => path)).toEqual([
 			`outcome.output`,
 			`outcome.params[0]`,
+			`outcome.params[1]`,
 		])
 		expect(published.outcome.output).toMatchObject({
 			type: `transaction_commit_uncloneable`,
 		})
 		expect(published.outcome.params[0]).toMatchObject({
+			type: `transaction_commit_uncloneable`,
+		})
+		expect(published.outcome.params[1]).toMatchObject({
 			type: `transaction_commit_uncloneable`,
 		})
 		const snapshot = published.snapshots[0]

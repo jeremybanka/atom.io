@@ -239,8 +239,9 @@ validation boundary for both forms.
 The Store publishes an immutable, monotonically sequenced commit event only
 after a successful outermost transaction has settled. Nested outcomes retain
 their order inside that event, while an aborted outer transaction publishes
-nothing. Cyclic values are cloned and frozen safely. Values such as functions
-that cannot be isolated are represented by an explicit sentinel and listed in
+nothing. Cyclic structural values are cloned and frozen safely. Values such as
+functions, `Map`, `Set`, and other containers whose internal slots cannot be
+made immutable are represented by an explicit sentinel and listed in
 `isolationFailures`; they are never silently replaced with `undefined`. The
 bridge listens only for the application transaction tokens named in its
 configuration, so its own settlement and reprojection transactions cannot

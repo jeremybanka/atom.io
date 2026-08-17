@@ -7,6 +7,7 @@ import {
 	atom,
 	getState,
 	inspectTimeline,
+	mutableAtom,
 	runTransaction,
 	selector,
 	setState,
@@ -16,6 +17,7 @@ import {
 	undo,
 } from "atom.io"
 import * as Internal from "atom.io/internal"
+import { mosaicText } from "atom.io/realtime"
 import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 import { vitest } from "vitest"
 
@@ -208,6 +210,74 @@ describe(`atomic transaction commits`, () => {
 			[`new`, `name`],
 		])
 		expect(getState(fullNameSelector)).toBe(`new name`)
+	})
+
+	it(`commits a mutable JSON snapshot with ordinary atom writes`, () => {
+		const Text = mosaicText({ initialText: `old` })
+		const textAtom = mutableAtom<InstanceType<typeof Text>>({
+			class: Text,
+			key: `text`,
+		})
+		const countAtom = atom<number>({ default: 0, key: `count` })
+		const summarySelector = selector<string>({
+			get: ({ get }) => `${get(textAtom).text}:${get(countAtom)}`,
+			key: `summary`,
+		})
+		const replacement = new Text()
+		replacement.change(
+			{ text: `new`, type: `replace-text` },
+			{
+				actor: `test`,
+				dependencies: [],
+				group: `replace`,
+				id: `replace`,
+				now: 0,
+				revision: null,
+				session: `test`,
+			},
+		)
+		const replaceTransaction = transaction<() => void>({
+			do: ({ json, set }) => {
+				set(json(textAtom), replacement.toJSON())
+				set(countAtom, 1)
+			},
+			key: `replace`,
+		})
+		const summaries = vitest.fn()
+		let outcome: TransactionOutcomeEvent<typeof replaceTransaction> | undefined
+
+		subscribe(summarySelector, summaries)
+		expect(getState(summarySelector)).toBe(`old:0`)
+		subscribe(replaceTransaction, (event) => {
+			outcome = event
+		})
+		runTransaction(replaceTransaction)()
+
+		expect(getState(summarySelector)).toBe(`new:1`)
+		expect(summaries).toHaveBeenCalledOnce()
+		expect(summaries).toHaveBeenCalledWith({
+			newValue: `new:1`,
+			oldValue: `old:0`,
+		})
+		expect(outcome?.subEvents.map(({ type }) => type)).toEqual([
+			`mutable_atom_snapshot`,
+			`atom_update`,
+		])
+
+		const abortTransaction = transaction<() => void>({
+			do: ({ json, set }) => {
+				set(json(textAtom), new Text().toJSON())
+				set(countAtom, 2)
+				throw new Error(`abort snapshot`)
+			},
+			key: `abort`,
+		})
+		summaries.mockClear()
+		expect(() => {
+			runTransaction(abortTransaction)()
+		}).toThrow(`abort snapshot`)
+		expect(getState(summarySelector)).toBe(`new:1`)
+		expect(summaries).not.toHaveBeenCalled()
 	})
 
 	it(`retains one reversible timeline event`, () => {

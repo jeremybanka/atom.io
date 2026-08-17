@@ -13,7 +13,7 @@ export type MarkdownPresence = {
 
 export const Markdown = mosaicText({
 	initialText: INITIAL_MARKDOWN,
-	maximumGraphemes: 200_000,
+	maximumRunGraphemes: 200_000,
 })
 
 /** The collaborative document is an ordinary mutable atom. */

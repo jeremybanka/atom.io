@@ -558,15 +558,21 @@ describe(`syncMosaic`, () => {
 
 	it(`requires the complete configured model and directs mismatches to upgrade`, () => {
 		const { $, controller, socket } = setup(`model-configuration`, true)
-		const configured = { initialText: ``, maximumGraphemes: 200_000 } as const
+		const configured = {
+			initialText: ``,
+			maximumDeletionIntervalsPerOperation: 16_384,
+			maximumHistoryTargets: 10_000,
+			maximumRunGraphemes: 200_000,
+			maximumRunUtf16Units: 4_000_000,
+			maximumRunsPerOperation: 16,
+		} as const
 		expect(Text.mosaic.configuration).toEqual(configured)
 		socket.receive(
 			MOSAIC_EVENTS.snapshot,
 			snapshot(controller, {
 				model: {
 					configuration: {
-						maximumGraphemes: configured.maximumGraphemes,
-						initialText: configured.initialText,
+						...configured,
 					},
 					key: Text.mosaic.key,
 					version: Text.mosaic.version,
@@ -581,8 +587,8 @@ describe(`syncMosaic`, () => {
 			snapshot(controller, {
 				model: {
 					configuration: {
-						maximumGraphemes: configured.maximumGraphemes + 1,
-						initialText: configured.initialText,
+						...configured,
+						maximumRunGraphemes: configured.maximumRunGraphemes + 1,
 					},
 					key: Text.mosaic.key,
 					version: Text.mosaic.version,
@@ -612,7 +618,14 @@ describe(`syncMosaic`, () => {
 			operation: {
 				...incompatible.operation,
 				model: {
-					configuration: { initialText: `seed`, maximumGraphemes: 200_000 },
+					configuration: {
+						initialText: `seed`,
+						maximumDeletionIntervalsPerOperation: 16_384,
+						maximumHistoryTargets: 10_000,
+						maximumRunGraphemes: 200_000,
+						maximumRunUtf16Units: 4_000_000,
+						maximumRunsPerOperation: 16,
+					},
 					key: Text.mosaic.key,
 					version: Text.mosaic.version,
 				},

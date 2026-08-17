@@ -4,6 +4,7 @@ import { withdraw } from "../store/index.ts"
 import type { Fn } from "../utility-types.ts"
 import type { ChildStore } from "./is-root-store.ts"
 import { isChildStore, isRootStore } from "./is-root-store.ts"
+import { markTransactionCommitted } from "./transaction-commit-status.ts"
 import {
 	beginTransactionNotificationBatch,
 	cancelTransactionNotificationBatch,
@@ -44,6 +45,7 @@ export function applyTransaction<F extends Fn>(
 		)
 
 		if (rootCommit) {
+			markTransactionCommitted(parent)
 			if (ownsNotificationBatch) {
 				notificationErrors.push(...flushTransactionNotificationBatch(parent))
 			}

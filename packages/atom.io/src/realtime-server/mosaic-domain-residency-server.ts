@@ -3,11 +3,11 @@ import type { Json } from "atom.io/foundations/json"
 import { getFromStore, getJsonTokenFromStore } from "atom.io/internal"
 import {
 	type AnyMosaicTransceiver,
+	MAX_MOSAIC_DOMAIN_RESIDENCY_INVALIDATIONS,
 	type MosaicAcceptedDomainBatchEnvelope,
 	type MosaicDomainIdentity,
 	type MosaicDomainInstance,
 	type MosaicDomainMemberAddress,
-	MAX_MOSAIC_DOMAIN_RESIDENCY_INVALIDATIONS,
 	mosaicDomainMemberAddressKey,
 	type MosaicDomainResidencyAcceptedSlice,
 	type MosaicDomainResidencyCheckpoint,

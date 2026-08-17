@@ -1,5 +1,5 @@
 import type { Canonical } from "atom.io/foundations/canonical"
-import { collaborationEnvironment } from "atom.io/realtime"
+import { mosaicDomain } from "atom.io/realtime"
 import { UList } from "atom.io/transceivers/u-list"
 import { z } from "zod"
 
@@ -8,15 +8,15 @@ import { Silo } from "../../../src/main/index.ts"
 const makeSilo = (name: string) =>
 	new Silo({ isProduction: false, lifespan: `ephemeral`, name })
 
-describe(`Mosaic Environments`, () => {
-	test(`a one-member environment scopes an ordinary atom and inferred config`, async () => {
+describe(`Mosaic Domains`, () => {
+	test(`a one-member domain coordinates an ordinary atom and inferred config`, async () => {
 		const silo = makeSilo(`one-member`)
 		const bodyAtom = silo.atom<string>({ default: `hello`, key: `body` })
 		const bodyLengthSelector = silo.selector<number>({
 			get: ({ get }) => get(bodyAtom).length,
 			key: `bodyLength`,
 		})
-		const document = collaborationEnvironment({
+		const document = mosaicDomain({
 			configSchema: z.object({ room: z.string() }).transform(({ room }) => ({
 				room: room.toUpperCase(),
 			})),
@@ -26,28 +26,28 @@ describe(`Mosaic Environments`, () => {
 			},
 			version: 1,
 		})
-		const scope = await document.activate({
+		const instance = await document.activate({
 			config: { room: `alpha` },
 			instance: `notes/alpha`,
 			store: silo.store,
 		})
 
-		expect(scope.config).toEqual({ room: `ALPHA` })
-		expectTypeOf(scope.config).toEqualTypeOf<{ room: string }>()
+		expect(instance.config).toEqual({ room: `ALPHA` })
+		expectTypeOf(instance.config).toEqualTypeOf<{ room: string }>()
 		silo.setState(bodyAtom, `world`)
 		expect(silo.getState(bodyAtom)).toBe(`world`)
 		expect(silo.getState(bodyLengthSelector)).toBe(5)
-		expect(scope.address(`body`)).toEqual({
-			environment: {
+		expect(instance.address(`body`)).toEqual({
+			domain: {
 				definition: { key: `document`, version: 1 },
 				instance: `notes/alpha`,
 			},
 			member: `body`,
 		})
-		expect(scope.definitionIdentity).toEqual({ key: `document`, version: 1 })
-		expect(await scope.validateValue(`body`, `remote`)).toBe(`remote`)
-		await expect(scope.validateValue(`body`, 2)).rejects.toThrow(
-			`Mosaic Environment member "body" value failed validation`,
+		expect(instance.definitionIdentity).toEqual({ key: `document`, version: 1 })
+		expect(await instance.validateValue(`body`, `remote`)).toBe(`remote`)
+		await expect(instance.validateValue(`body`, 2)).rejects.toThrow(
+			`Mosaic Domain member "body" value failed validation`,
 		)
 	})
 
@@ -66,7 +66,7 @@ describe(`Mosaic Environments`, () => {
 			},
 			key: `rename`,
 		})
-		const environment = collaborationEnvironment({
+		const domain = mosaicDomain({
 			configSchema: z.object({}),
 			key: `ordinary-state`,
 			members: {
@@ -80,7 +80,7 @@ describe(`Mosaic Environments`, () => {
 			},
 			version: 1,
 		})
-		const scope = await environment.activate({
+		const instance = await domain.activate({
 			config: {},
 			instance: `project/one`,
 			store: silo.store,
@@ -93,7 +93,7 @@ describe(`Mosaic Environments`, () => {
 		expect(silo.getState(summarySelector)).toBe(`Notes@1`)
 		expect(updates).toHaveBeenCalledTimes(1)
 		unsubscribe()
-		scope[Symbol.dispose]()
+		instance[Symbol.dispose]()
 	})
 
 	test(`parses family addresses without allocation and acquires explicitly`, async () => {
@@ -102,9 +102,9 @@ describe(`Mosaic Environments`, () => {
 			default: ``,
 			key: `blocks`,
 		})
-		const environment = collaborationEnvironment({
+		const domain = mosaicDomain({
 			configSchema: z.object({}),
-			key: `blocks-environment`,
+			key: `blocks-domain`,
 			members: {
 				blocks: {
 					keySchema: z.string().min(1),
@@ -115,36 +115,38 @@ describe(`Mosaic Environments`, () => {
 			},
 			version: 2,
 		})
-		const scope = await environment.activate({
+		const instance = await domain.activate({
 			config: {},
 			instance: `document/one`,
 			store: silo.store,
 		})
-		const address = scope.address(`blocks`, `late`)
+		const address = instance.address(`blocks`, `late`)
 		const atomsBeforeParsing = silo.store.atoms.size
-		const parsed = await scope.parseAddress(JSON.parse(JSON.stringify(address)))
+		const parsed = await instance.parseAddress(
+			JSON.parse(JSON.stringify(address)),
+		)
 
 		expect(parsed.address).toEqual(address)
 		expect(silo.store.atoms.size).toBe(atomsBeforeParsing)
 
-		const acquired = await scope.acquire(parsed)
+		const acquired = await instance.acquire(parsed)
 
 		expect(acquired.token).toEqual(silo.findState(blocksAtoms, `late`))
 		silo.setState(acquired.token, `created after activation`)
 		expect(silo.store.atoms.size).toBe(atomsBeforeParsing + 1)
 		expect(silo.getState(blocksAtoms, `late`)).toBe(`created after activation`)
-		await expect(scope.parseAddress({ ...address, key: `` })).rejects.toThrow(
-			`Mosaic Environment member "blocks" key failed validation`,
+		await expect(instance.parseAddress({ ...address, key: `` })).rejects.toThrow(
+			`Mosaic Domain member "blocks" key failed validation`,
 		)
 		await expect(
-			scope.parseAddress({
+			instance.parseAddress({
 				...address,
-				environment: {
+				domain: {
 					definition: { key: `other`, version: 2 },
 					instance: `document/one`,
 				},
 			}),
-		).rejects.toThrow(`another environment definition`)
+		).rejects.toThrow(`another domain definition`)
 	})
 
 	test(`models local, derived, and ephemeral lifecycle without durable claims`, async () => {
@@ -168,55 +170,55 @@ describe(`Mosaic Environments`, () => {
 			draft: { role: `local`, token: draftAtom },
 			length: { role: `derived`, token: lengthSelector },
 		} as const
-		const first = collaborationEnvironment({
+		const first = mosaicDomain({
 			configSchema: z.object({}),
 			key: `roles-one`,
 			members,
 			version: 1,
 		})
-		const second = collaborationEnvironment({
+		const second = mosaicDomain({
 			configSchema: z.object({}),
 			key: `roles-two`,
 			members,
 			version: 1,
 		})
 
-		const firstScope = await first.activate({
+		const firstInstance = await first.activate({
 			config: {},
 			instance: `roles/one`,
 			store: silo.store,
 		})
-		const secondScope = await second.activate({
+		const secondInstance = await second.activate({
 			config: {},
 			instance: `roles/two`,
 			store: silo.store,
 		})
-		expect(await firstScope.validateValue(`cursor`, 3)).toBe(3)
+		expect(await firstInstance.validateValue(`cursor`, 3)).toBe(3)
 		await expect(
 			// @ts-expect-error Local members do not accept remote values.
-			firstScope.validateValue(`draft`, `remote`),
+			firstInstance.validateValue(`draft`, `remote`),
 		).rejects.toThrow(`does not accept remote values`)
 		expect(() => {
 			// @ts-expect-error Local members do not have transport addresses.
-			firstScope.address(`draft`)
+			firstInstance.address(`draft`)
 		}).toThrow(`not remotely addressable`)
 		expect(() => {
 			// @ts-expect-error Derived members do not have transport addresses.
-			firstScope.address(`length`)
+			firstInstance.address(`length`)
 		}).toThrow(`not remotely addressable`)
 		await expect(
-			firstScope.parseAddress({
-				environment: firstScope.identity,
+			firstInstance.parseAddress({
+				domain: firstInstance.identity,
 				member: `draft`,
 			}),
 		).rejects.toThrow(`not remotely addressable`)
 		silo.setState(draftAtom, `local`)
 		expect(silo.getState(lengthSelector)).toBe(5)
-		firstScope[Symbol.dispose]()
-		secondScope[Symbol.dispose]()
+		firstInstance[Symbol.dispose]()
+		secondInstance[Symbol.dispose]()
 	})
 
-	test(`durable claims are Store-local and released by scope disposal`, async () => {
+	test(`durable claims are Store-local and released by instance disposal`, async () => {
 		const uno = makeSilo(`uno`)
 		const dos = makeSilo(`dos`)
 		// eslint-disable-next-line atom.io/naming-convention
@@ -224,7 +226,7 @@ describe(`Mosaic Environments`, () => {
 		// eslint-disable-next-line atom.io/naming-convention
 		const DOS__bodyAtom = dos.atom<string>({ default: ``, key: `body` })
 		const define = (key: string, token: typeof UNO__bodyAtom) =>
-			collaborationEnvironment({
+			mosaicDomain({
 				configSchema: z.object({}),
 				key,
 				members: {
@@ -235,7 +237,7 @@ describe(`Mosaic Environments`, () => {
 		const first = define(`first`, UNO__bodyAtom)
 		const competing = define(`competing`, UNO__bodyAtom)
 		const equivalentInAnotherStore = define(`other-store`, DOS__bodyAtom)
-		const firstScope = await first.activate({
+		const firstInstance = await first.activate({
 			config: {},
 			instance: `first/one`,
 			store: uno.store,
@@ -247,7 +249,7 @@ describe(`Mosaic Environments`, () => {
 				instance: `competing/one`,
 				store: uno.store,
 			}),
-		).rejects.toThrow(`already owned by environment "first@1#first/one"`)
+		).rejects.toThrow(`already owned by domain "first@1#first/one"`)
 		await expect(
 			equivalentInAnotherStore.activate({
 				config: {},
@@ -256,8 +258,8 @@ describe(`Mosaic Environments`, () => {
 			}),
 		).resolves.toBeDefined()
 
-		firstScope[Symbol.dispose]()
-		expect(firstScope.disposed).toBe(true)
+		firstInstance[Symbol.dispose]()
+		expect(firstInstance.disposed).toBe(true)
 		await expect(
 			competing.activate({
 				config: {},
@@ -275,7 +277,7 @@ describe(`Mosaic Environments`, () => {
 		})
 		const lateBlockAtom = silo.findState(blocksAtoms, `late`)
 		silo.getState(lateBlockAtom)
-		const familyEnvironment = collaborationEnvironment({
+		const familyDomain = mosaicDomain({
 			configSchema: z.object({}),
 			key: `family-owner`,
 			members: {
@@ -288,7 +290,7 @@ describe(`Mosaic Environments`, () => {
 			},
 			version: 1,
 		})
-		const memberEnvironment = collaborationEnvironment({
+		const memberDomain = mosaicDomain({
 			configSchema: z.object({}),
 			key: `member-owner`,
 			members: {
@@ -296,33 +298,33 @@ describe(`Mosaic Environments`, () => {
 			},
 			version: 1,
 		})
-		const scope = await familyEnvironment.activate({
+		const instance = await familyDomain.activate({
 			config: {},
 			instance: `family/one`,
 			store: silo.store,
 		})
 
 		await expect(
-			memberEnvironment.activate({
+			memberDomain.activate({
 				config: {},
 				instance: `member/one`,
 				store: silo.store,
 			}),
-		).rejects.toThrow(`already owned by environment "family-owner@1#family/one"`)
-		scope[Symbol.dispose]()
-		const memberScope = await memberEnvironment.activate({
+		).rejects.toThrow(`already owned by domain "family-owner@1#family/one"`)
+		instance[Symbol.dispose]()
+		const memberInstance = await memberDomain.activate({
 			config: {},
 			instance: `member/one`,
 			store: silo.store,
 		})
 		await expect(
-			familyEnvironment.activate({
+			familyDomain.activate({
 				config: {},
 				instance: `family/one`,
 				store: silo.store,
 			}),
-		).rejects.toThrow(`already owned by environment "member-owner@1#member/one"`)
-		memberScope[Symbol.dispose]()
+		).rejects.toThrow(`already owned by domain "member-owner@1#member/one"`)
+		memberInstance[Symbol.dispose]()
 	})
 
 	test(`rejects overlapping durable claims inside one activation`, async () => {
@@ -333,7 +335,7 @@ describe(`Mosaic Environments`, () => {
 		})
 		const blockAtom = silo.findState(blocksAtoms, `one`)
 		silo.getState(blockAtom)
-		const environment = collaborationEnvironment({
+		const domain = mosaicDomain({
 			configSchema: z.object({}),
 			key: `overlapping`,
 			members: {
@@ -349,38 +351,36 @@ describe(`Mosaic Environments`, () => {
 		})
 
 		await expect(
-			environment.activate({
+			domain.activate({
 				config: {},
 				instance: `overlapping/one`,
 				store: silo.store,
 			}),
-		).rejects.toThrow(
-			`already owned by environment "overlapping@1#overlapping/one"`,
-		)
+		).rejects.toThrow(`already owned by domain "overlapping@1#overlapping/one"`)
 	})
 
 	test(`claim failures are atomic`, async () => {
 		const silo = makeSilo(`atomic-claims`)
 		const occupiedAtom = silo.atom<number>({ default: 0, key: `occupied` })
 		const availableAtom = silo.atom<number>({ default: 0, key: `available` })
-		const environment = (
+		const domain = (
 			key: string,
 			members: Record<
 				string,
 				{ role: `durable`; schema: z.ZodNumber; token: typeof occupiedAtom }
 			>,
 		) =>
-			collaborationEnvironment({
+			mosaicDomain({
 				configSchema: z.object({}),
 				key,
 				members,
 				version: 1,
 			})
-		const owner = await environment(`owner`, {
+		const owner = await domain(`owner`, {
 			occupied: { role: `durable`, schema: z.number(), token: occupiedAtom },
 		}).activate({ config: {}, instance: `owner/one`, store: silo.store })
 		await expect(
-			environment(`partial`, {
+			domain(`partial`, {
 				available: { role: `durable`, schema: z.number(), token: availableAtom },
 				occupied: { role: `durable`, schema: z.number(), token: occupiedAtom },
 			}).activate({
@@ -389,18 +389,18 @@ describe(`Mosaic Environments`, () => {
 				store: silo.store,
 			}),
 		).rejects.toThrow(`already owned`)
-		const successor = await environment(`successor`, {
+		const successor = await domain(`successor`, {
 			available: { role: `durable`, schema: z.number(), token: availableAtom },
 		}).activate({ config: {}, instance: `successor/one`, store: silo.store })
 		owner[Symbol.dispose]()
 		successor[Symbol.dispose]()
 	})
 
-	test(`invalid config claims nothing and activation rejects duplicate scopes`, async () => {
+	test(`invalid config claims nothing and activation rejects duplicate instances`, async () => {
 		const silo = makeSilo(`config`)
 		const countAtom = silo.atom<number>({ default: 0, key: `count` })
 		const define = (key: string) =>
-			collaborationEnvironment({
+			mosaicDomain({
 				configSchema: z.object({ room: z.string().min(1) }),
 				key,
 				members: {
@@ -424,7 +424,7 @@ describe(`Mosaic Environments`, () => {
 				store: silo.store,
 			}),
 		).rejects.toThrow(`instance cannot be empty`)
-		const scope = await valid.activate({
+		const instance = await valid.activate({
 			config: { room: `room` },
 			instance: `valid/one`,
 			store: silo.store,
@@ -436,14 +436,14 @@ describe(`Mosaic Environments`, () => {
 				store: silo.store,
 			}),
 		).rejects.toThrow(`already active`)
-		scope[Symbol.dispose]()
+		instance[Symbol.dispose]()
 	})
 
 	test(`rejects incoherent membership declarations at definition time`, () => {
 		const silo = makeSilo(`invalid-membership`)
 		const stateAtom = silo.atom<number>({ default: 0, key: `state` })
 		expect(() =>
-			collaborationEnvironment({
+			mosaicDomain({
 				configSchema: z.object({}),
 				key: `bad`,
 				members: {
@@ -470,7 +470,7 @@ describe(`Mosaic Environments`, () => {
 			state: { role: `durable`, schema: z.number(), token: stateAtom },
 		} as const
 		const define = (key: string, version: number, members: never) =>
-			collaborationEnvironment({
+			mosaicDomain({
 				configSchema: z.object({}),
 				key,
 				members,
@@ -532,7 +532,7 @@ describe(`Mosaic Environments`, () => {
 			default: ``,
 			key: `block`,
 		})
-		const environment = collaborationEnvironment({
+		const domain = mosaicDomain({
 			configSchema: z.object({}),
 			key: `addresses`,
 			members: {
@@ -546,12 +546,12 @@ describe(`Mosaic Environments`, () => {
 			},
 			version: 1,
 		})
-		const scope = await environment.activate({
+		const instance = await domain.activate({
 			config: {},
 			instance: `addresses/one`,
 			store: silo.store,
 		})
-		const imperativeAddress = scope.address as unknown as (
+		const imperativeAddress = instance.address as unknown as (
 			member: string,
 			...key: readonly Canonical[]
 		) => unknown
@@ -561,62 +561,64 @@ describe(`Mosaic Environments`, () => {
 		expect(() => imperativeAddress(`body`, `extra`)).toThrow(
 			`does not accept a key`,
 		)
-		await expect(scope.parseAddress(null)).rejects.toThrow(`must be an object`)
-		await expect(scope.parseAddress(`address`)).rejects.toThrow(
+		await expect(instance.parseAddress(null)).rejects.toThrow(
+			`must be an object`,
+		)
+		await expect(instance.parseAddress(`address`)).rejects.toThrow(
 			`must be an object`,
 		)
 		await expect(
-			scope.parseAddress({ environment: null, member: `body` }),
-		).rejects.toThrow(`another environment`)
+			instance.parseAddress({ domain: null, member: `body` }),
+		).rejects.toThrow(`another domain`)
 		await expect(
-			scope.parseAddress({
-				environment: {
+			instance.parseAddress({
+				domain: {
 					definition: { key: `addresses`, version: 2 },
 					instance: `addresses/one`,
 				},
 				member: `body`,
 			}),
-		).rejects.toThrow(`another environment definition`)
+		).rejects.toThrow(`another domain definition`)
 		await expect(
-			scope.parseAddress({
-				environment: {
+			instance.parseAddress({
+				domain: {
 					definition: { key: `addresses`, version: 1 },
 					instance: `addresses/two`,
 				},
 				member: `body`,
 			}),
-		).rejects.toThrow(`another environment instance`)
+		).rejects.toThrow(`another domain instance`)
 		await expect(
-			scope.parseAddress({
-				environment: scope.identity,
+			instance.parseAddress({
+				domain: instance.identity,
 				member: 1,
 			}),
 		).rejects.toThrow(`unknown member`)
 		await expect(
-			scope.parseAddress({
-				environment: scope.identity,
+			instance.parseAddress({
+				domain: instance.identity,
 				member: `toString`,
 			}),
 		).rejects.toThrow(`unknown member`)
 		await expect(
-			scope.parseAddress({
-				environment: scope.identity,
+			instance.parseAddress({
+				domain: instance.identity,
 				key: `extra`,
 				member: `body`,
 			}),
 		).rejects.toThrow(`does not accept a key`)
-		const parsed = await scope.parseAddress(scope.address(`body`))
-		await expect(scope.acquire(parsed)).resolves.toEqual({
-			member: scope.members.body,
+		const parsed = await instance.parseAddress(instance.address(`body`))
+		await expect(instance.acquire(parsed)).resolves.toEqual({
+			member: instance.members.body,
 			token: bodyAtom,
 		})
 
-		scope[Symbol.dispose]()
-		scope[Symbol.dispose]()
-		expect(() => scope.address(`body`)).toThrow(`disposed`)
-		await expect(scope.parseAddress({})).rejects.toThrow(`disposed`)
-		await expect(scope.acquire(parsed)).rejects.toThrow(`disposed`)
-		await expect(scope.validateValue(`body`, ``)).rejects.toThrow(`disposed`)
+		instance[Symbol.dispose]()
+		instance[Symbol.dispose]()
+		expect(() => instance.address(`body`)).toThrow(`disposed`)
+		await expect(instance.parseAddress({})).rejects.toThrow(`disposed`)
+		await expect(instance.acquire(parsed)).rejects.toThrow(`disposed`)
+		await expect(instance.validateValue(`body`, ``)).rejects.toThrow(`disposed`)
 	})
 
 	test(`schema outputs are tied to their member values and family keys`, () => {
@@ -630,7 +632,7 @@ describe(`Mosaic Environments`, () => {
 			class: UList,
 			key: `selectedAtoms`,
 		})
-		collaborationEnvironment({
+		mosaicDomain({
 			configSchema: z.object({}),
 			key: `mutable-snapshot-schema`,
 			members: {
@@ -642,7 +644,7 @@ describe(`Mosaic Environments`, () => {
 			},
 			version: 1,
 		})
-		collaborationEnvironment({
+		mosaicDomain({
 			configSchema: z.object({}),
 			key: `bad-value-schema`,
 			members: {
@@ -655,7 +657,7 @@ describe(`Mosaic Environments`, () => {
 			},
 			version: 1,
 		})
-		collaborationEnvironment({
+		mosaicDomain({
 			configSchema: z.object({}),
 			key: `bad-key-schema`,
 			members: {

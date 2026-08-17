@@ -1,7 +1,7 @@
 import { act, fireEvent, render } from "@testing-library/react"
 import { Silo } from "atom.io"
 import { StoreProvider, useI, useO } from "atom.io/react"
-import { collaborationEnvironment } from "atom.io/realtime"
+import { mosaicDomain } from "atom.io/realtime"
 import { z } from "zod"
 
 vi.mock(`solid-js`, async () => import(`solid-js/dist/solid.js`))
@@ -9,10 +9,10 @@ vi.mock(`solid-js`, async () => import(`solid-js/dist/solid.js`))
 const makeSilo = (name: string) =>
 	new Silo({ isProduction: false, lifespan: `ephemeral`, name })
 
-test(`environment members remain ordinary React provider state`, async () => {
+test(`domain members remain ordinary React provider state`, async () => {
 	const silo = makeSilo(`react-collaboration`)
 	const bodyAtom = silo.atom<string>({ default: `hello`, key: `body` })
-	const environment = collaborationEnvironment({
+	const domain = mosaicDomain({
 		configSchema: z.object({}),
 		key: `react-document`,
 		members: {
@@ -20,7 +20,7 @@ test(`environment members remain ordinary React provider state`, async () => {
 		},
 		version: 1,
 	})
-	const scope = await environment.activate({
+	const instance = await domain.activate({
 		config: {},
 		instance: `react/one`,
 		store: silo.store,
@@ -51,15 +51,15 @@ test(`environment members remain ordinary React provider state`, async () => {
 		await Promise.resolve()
 	})
 	expect(view.getByRole(`button`).textContent).toBe(`edited`)
-	scope[Symbol.dispose]()
+	instance[Symbol.dispose]()
 })
 
-test(`environment members remain ordinary Solid provider state`, async () => {
+test(`domain members remain ordinary Solid provider state`, async () => {
 	const Solid = await import(`solid-js`)
 	const AtomIOSolid = await import(`atom.io/solid`)
 	const silo = makeSilo(`solid-collaboration`)
 	const bodyAtom = silo.atom<string>({ default: `hello`, key: `body` })
-	const environment = collaborationEnvironment({
+	const domain = mosaicDomain({
 		configSchema: z.object({}),
 		key: `solid-document`,
 		members: {
@@ -67,7 +67,7 @@ test(`environment members remain ordinary Solid provider state`, async () => {
 		},
 		version: 1,
 	})
-	const scope = await environment.activate({
+	const instance = await domain.activate({
 		config: {},
 		instance: `solid/one`,
 		store: silo.store,
@@ -91,5 +91,5 @@ test(`environment members remain ordinary Solid provider state`, async () => {
 
 	expect(observed).toEqual([`hello`, `edited`])
 	dispose()
-	scope[Symbol.dispose]()
+	instance[Symbol.dispose]()
 })

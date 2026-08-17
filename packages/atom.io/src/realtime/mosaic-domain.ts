@@ -14,7 +14,7 @@ import { findInStore, IMPLICIT, type Store, withdraw } from "atom.io/internal"
 
 import type { StandardSchemaV1 } from "./standard-schema.ts"
 
-const REGISTRY_KEY = `atom.io/realtime/collaboration-environments`
+const REGISTRY_KEY = `atom.io/realtime/mosaic-domains`
 
 type AnyAtom = AtomToken<any, any, any>
 type AnyAtomFamily = AtomFamilyToken<any, any, any>
@@ -23,7 +23,7 @@ type AnyReadableFamily = ReadableFamilyToken<any, any, any>
 type AnySelector = SelectorToken<any, any, any>
 type AnySelectorFamily = SelectorFamilyToken<any, any, any>
 
-export type MosaicEnvironmentDefinitionIdentity<
+export type MosaicDomainDefinitionIdentity<
 	Key extends string = string,
 	Version extends number = number,
 > = {
@@ -31,23 +31,23 @@ export type MosaicEnvironmentDefinitionIdentity<
 	readonly version: Version
 }
 
-export type MosaicEnvironmentIdentity<
-	Definition extends MosaicEnvironmentDefinitionIdentity =
-		MosaicEnvironmentDefinitionIdentity,
+export type MosaicDomainIdentity<
+	Definition extends MosaicDomainDefinitionIdentity =
+		MosaicDomainDefinitionIdentity,
 	Instance extends string = string,
 > = {
 	readonly definition: Definition
 	readonly instance: Instance
 }
 
-export type MosaicEnvironmentMemberRole =
+export type MosaicDomainMemberRole =
 	| `derived`
 	| `durable`
 	| `ephemeral`
 	| `local`
 
-type MosaicEnvironmentSingletonMember<
-	Role extends MosaicEnvironmentMemberRole,
+type MosaicDomainSingletonMember<
+	Role extends MosaicDomainMemberRole,
 	Token extends AnyReadable,
 > = {
 	readonly role: Role
@@ -55,8 +55,8 @@ type MosaicEnvironmentSingletonMember<
 	readonly keySchema?: never
 }
 
-type MosaicEnvironmentFamilyMember<
-	Role extends MosaicEnvironmentMemberRole,
+type MosaicDomainFamilyMember<
+	Role extends MosaicDomainMemberRole,
 	Token extends AnyReadableFamily,
 	KeySchema extends StandardSchemaV1<any, Canonical> = StandardSchemaV1<
 		any,
@@ -68,39 +68,37 @@ type MosaicEnvironmentFamilyMember<
 	readonly keySchema: KeySchema
 }
 
-type MosaicEnvironmentValidatedMember = {
+type MosaicDomainValidatedMember = {
 	readonly schema: StandardSchemaV1
 }
 
-export type MosaicEnvironmentDurableMember = MosaicEnvironmentValidatedMember &
+export type MosaicDomainDurableMember = MosaicDomainValidatedMember &
 	(
-		| MosaicEnvironmentSingletonMember<`durable`, AnyAtom>
-		| MosaicEnvironmentFamilyMember<`durable`, AnyAtomFamily>
+		| MosaicDomainSingletonMember<`durable`, AnyAtom>
+		| MosaicDomainFamilyMember<`durable`, AnyAtomFamily>
 	)
 
-export type MosaicEnvironmentEphemeralMember = MosaicEnvironmentValidatedMember &
+export type MosaicDomainEphemeralMember = MosaicDomainValidatedMember &
 	(
-		| MosaicEnvironmentSingletonMember<`ephemeral`, AnyAtom>
-		| MosaicEnvironmentFamilyMember<`ephemeral`, AnyAtomFamily>
+		| MosaicDomainSingletonMember<`ephemeral`, AnyAtom>
+		| MosaicDomainFamilyMember<`ephemeral`, AnyAtomFamily>
 	)
 
-export type MosaicEnvironmentLocalMember =
-	| MosaicEnvironmentSingletonMember<`local`, AnyAtom>
-	| MosaicEnvironmentFamilyMember<`local`, AnyAtomFamily>
+export type MosaicDomainLocalMember =
+	| MosaicDomainSingletonMember<`local`, AnyAtom>
+	| MosaicDomainFamilyMember<`local`, AnyAtomFamily>
 
-export type MosaicEnvironmentDerivedMember =
-	| MosaicEnvironmentSingletonMember<`derived`, AnySelector>
-	| MosaicEnvironmentFamilyMember<`derived`, AnySelectorFamily>
+export type MosaicDomainDerivedMember =
+	| MosaicDomainSingletonMember<`derived`, AnySelector>
+	| MosaicDomainFamilyMember<`derived`, AnySelectorFamily>
 
-export type MosaicEnvironmentMember =
-	| MosaicEnvironmentDerivedMember
-	| MosaicEnvironmentDurableMember
-	| MosaicEnvironmentEphemeralMember
-	| MosaicEnvironmentLocalMember
+export type MosaicDomainMember =
+	| MosaicDomainDerivedMember
+	| MosaicDomainDurableMember
+	| MosaicDomainEphemeralMember
+	| MosaicDomainLocalMember
 
-export type MosaicEnvironmentMembers = Readonly<
-	Record<string, MosaicEnvironmentMember>
->
+export type MosaicDomainMembers = Readonly<Record<string, MosaicDomainMember>>
 
 type TokenValue<Token> = Token extends
 	| MutableAtomFamilyToken<infer Mutable, any>
@@ -119,11 +117,11 @@ type CompatibleSchema<Schema, Output> =
 			: never
 		: never
 
-type ValidMosaicEnvironmentMember<Member extends MosaicEnvironmentMember> =
+type ValidMosaicDomainMember<Member extends MosaicDomainMember> =
 	Member[`token`] extends ReadableFamilyToken<any, infer Key, any>
 		? Member & {
 				readonly keySchema: CompatibleSchema<Member[`keySchema`], Key>
-			} & (Member extends MosaicEnvironmentValidatedMember
+			} & (Member extends MosaicDomainValidatedMember
 					? {
 							readonly schema: CompatibleSchema<
 								Member[`schema`],
@@ -131,7 +129,7 @@ type ValidMosaicEnvironmentMember<Member extends MosaicEnvironmentMember> =
 							>
 						}
 					: unknown)
-		: Member extends MosaicEnvironmentValidatedMember
+		: Member extends MosaicDomainValidatedMember
 			? Member & {
 					readonly schema: CompatibleSchema<
 						Member[`schema`],
@@ -140,30 +138,30 @@ type ValidMosaicEnvironmentMember<Member extends MosaicEnvironmentMember> =
 				}
 			: Member
 
-type MemberKey<Member extends MosaicEnvironmentMember> =
+type MemberKey<Member extends MosaicDomainMember> =
 	Member[`token`] extends ReadableFamilyToken<any, infer Key, any> ? Key : never
 
-type MemberValue<Member extends MosaicEnvironmentMember> =
-	Member extends MosaicEnvironmentValidatedMember
+type MemberValue<Member extends MosaicDomainMember> =
+	Member extends MosaicDomainValidatedMember
 		? StandardSchemaV1.InferOutput<Member[`schema`]>
 		: never
 
 type RemotelyAddressableMember =
-	| MosaicEnvironmentDurableMember
-	| MosaicEnvironmentEphemeralMember
+	| MosaicDomainDurableMember
+	| MosaicDomainEphemeralMember
 
-type RemotelyAddressableMemberName<Members extends MosaicEnvironmentMembers> = {
+type RemotelyAddressableMemberName<Members extends MosaicDomainMembers> = {
 	[Name in keyof Members]: Members[Name] extends RemotelyAddressableMember
 		? Name
 		: never
 }[keyof Members]
 
-export type MosaicEnvironmentMemberAddress<
-	Identity extends MosaicEnvironmentIdentity = MosaicEnvironmentIdentity,
+export type MosaicDomainMemberAddress<
+	Identity extends MosaicDomainIdentity = MosaicDomainIdentity,
 	Name extends string = string,
 	Key extends Canonical = Canonical,
 > = {
-	readonly environment: Identity
+	readonly domain: Identity
 	readonly member: Name
 	readonly key?: Key
 }
@@ -175,12 +173,12 @@ type ResolvedToken<Token> =
 			? SelectorToken<Value, Key, Error>
 			: Token
 
-export type ParsedMosaicEnvironmentMember<
-	Identity extends MosaicEnvironmentIdentity = MosaicEnvironmentIdentity,
+export type ParsedMosaicDomainMember<
+	Identity extends MosaicDomainIdentity = MosaicDomainIdentity,
 	Member extends RemotelyAddressableMember = RemotelyAddressableMember,
 > = Member extends RemotelyAddressableMember
 	? {
-			readonly address: MosaicEnvironmentMemberAddress<
+			readonly address: MosaicDomainMemberAddress<
 				Identity,
 				string,
 				MemberKey<Member>
@@ -189,7 +187,7 @@ export type ParsedMosaicEnvironmentMember<
 		}
 	: never
 
-export type AcquiredMosaicEnvironmentMember<
+export type AcquiredMosaicDomainMember<
 	Member extends RemotelyAddressableMember = RemotelyAddressableMember,
 > = Member extends RemotelyAddressableMember
 	? {
@@ -198,21 +196,21 @@ export type AcquiredMosaicEnvironmentMember<
 		}
 	: never
 
-export type MosaicEnvironmentOptions<
+export type MosaicDomainDefinitionOptions<
 	Key extends string,
 	Version extends number,
 	ConfigSchema extends StandardSchemaV1,
-	Members extends MosaicEnvironmentMembers,
+	Members extends MosaicDomainMembers,
 > = {
 	readonly configSchema: ConfigSchema
 	readonly key: Key
 	readonly members: Members & {
-		readonly [Name in keyof Members]: ValidMosaicEnvironmentMember<Members[Name]>
+		readonly [Name in keyof Members]: ValidMosaicDomainMember<Members[Name]>
 	}
 	readonly version: Version
 }
 
-export type ActivateMosaicEnvironmentOptions<
+export type MosaicDomainActivationOptions<
 	ConfigSchema,
 	Instance extends string,
 > = {
@@ -223,10 +221,10 @@ export type ActivateMosaicEnvironmentOptions<
 	readonly store?: Silo[`store`]
 }
 
-export interface MosaicEnvironmentScope<
-	Identity extends MosaicEnvironmentIdentity,
+export interface MosaicDomainInstance<
+	Identity extends MosaicDomainIdentity,
 	Config,
-	Members extends MosaicEnvironmentMembers,
+	Members extends MosaicDomainMembers,
 > extends Disposable {
 	readonly config: Config
 	readonly definitionIdentity: Identity[`definition`]
@@ -239,22 +237,22 @@ export interface MosaicEnvironmentScope<
 		...key: MemberKey<Members[Name]> extends never
 			? readonly []
 			: readonly [key: MemberKey<Members[Name]>]
-	): MosaicEnvironmentMemberAddress<Identity, Name, MemberKey<Members[Name]>>
+	): MosaicDomainMemberAddress<Identity, Name, MemberKey<Members[Name]>>
 	parseAddress(
 		address: unknown,
 	): Promise<
-		ParsedMosaicEnvironmentMember<
+		ParsedMosaicDomainMember<
 			Identity,
 			Extract<Members[keyof Members], RemotelyAddressableMember>
 		>
 	>
 	acquire(
-		parsed: ParsedMosaicEnvironmentMember<
+		parsed: ParsedMosaicDomainMember<
 			Identity,
 			Extract<Members[keyof Members], RemotelyAddressableMember>
 		>,
 	): Promise<
-		AcquiredMosaicEnvironmentMember<
+		AcquiredMosaicDomainMember<
 			Extract<Members[keyof Members], RemotelyAddressableMember>
 		>
 	>
@@ -266,19 +264,19 @@ export interface MosaicEnvironmentScope<
 	): Promise<MemberValue<Members[Name]>>
 }
 
-export type MosaicEnvironmentDefinition<
-	DefinitionIdentity extends MosaicEnvironmentDefinitionIdentity,
+export type MosaicDomainDefinition<
+	DefinitionIdentity extends MosaicDomainDefinitionIdentity,
 	ConfigSchema extends StandardSchemaV1,
-	Members extends MosaicEnvironmentMembers,
+	Members extends MosaicDomainMembers,
 > = {
 	readonly configSchema: ConfigSchema
 	readonly definitionIdentity: DefinitionIdentity
 	readonly members: Members
 	activate<const Instance extends string>(
-		options: ActivateMosaicEnvironmentOptions<ConfigSchema, Instance>,
+		options: MosaicDomainActivationOptions<ConfigSchema, Instance>,
 	): Promise<
-		MosaicEnvironmentScope<
-			MosaicEnvironmentIdentity<DefinitionIdentity, Instance>,
+		MosaicDomainInstance<
+			MosaicDomainIdentity<DefinitionIdentity, Instance>,
 			StandardSchemaV1.InferOutput<ConfigSchema>,
 			Members
 		>
@@ -291,7 +289,7 @@ type DurableClaim = {
 }
 
 type ClaimOwner = {
-	readonly environment: string
+	readonly domain: string
 	readonly family: string | null
 }
 
@@ -356,12 +354,12 @@ function removeClaim(index: ClaimIndex, claim: DurableClaim): void {
 	if (members.size === 0) index.membersByFamily.delete(claim.family)
 }
 
-class MosaicEnvironmentRegistry implements Disposable {
+class MosaicDomainRegistry implements Disposable {
 	readonly #active = new Map<
 		string,
 		{
 			readonly claims: readonly DurableClaim[]
-			readonly scope: MosaicEnvironmentScope<any, any, any>
+			readonly instance: MosaicDomainInstance<any, any, any>
 		}
 	>()
 	readonly #durable = emptyClaimIndex()
@@ -373,29 +371,29 @@ class MosaicEnvironmentRegistry implements Disposable {
 
 	public claim(
 		definition: string,
-		environment: string,
+		domain: string,
 		claims: readonly DurableClaim[],
-		scope: MosaicEnvironmentScope<any, any, any>,
+		instance: MosaicDomainInstance<any, any, any>,
 	): void {
 		if (this.#active.has(definition)) {
 			throw new Error(
-				`Mosaic Environment definition "${definition}" is already active in this Store. Use a separate Store or Silo for another instance.`,
+				`Mosaic Domain definition "${definition}" is already active in this Store. Use a separate Store or Silo for another instance.`,
 			)
 		}
 		const staged = emptyClaimIndex()
-		const owner = { environment, family: null }
+		const owner = { domain, family: null }
 		for (const claim of claims) {
 			const conflict =
 				findClaimConflict(this.#durable, claim) ??
 				findClaimConflict(staged, claim)
 			if (conflict) {
 				throw new Error(
-					`Durable Mosaic Environment member "${claim.key}" is already owned by environment "${conflict.environment}" in this Store.`,
+					`Durable Mosaic Domain member "${claim.key}" is already owned by domain "${conflict.domain}" in this Store.`,
 				)
 			}
 			addClaim(staged, claim, { ...owner, family: claim.family })
 		}
-		this.#active.set(definition, { claims, scope })
+		this.#active.set(definition, { claims, instance })
 		for (const claim of claims) {
 			addClaim(this.#durable, claim, { ...owner, family: claim.family })
 		}
@@ -411,7 +409,8 @@ class MosaicEnvironmentRegistry implements Disposable {
 	public [Symbol.dispose](): void {
 		if (this.#disposed) return
 		this.#disposed = true
-		for (const { scope } of [...this.#active.values()]) scope[Symbol.dispose]()
+		for (const { instance } of [...this.#active.values()])
+			instance[Symbol.dispose]()
 		this.#active.clear()
 		this.#durable.byKey.clear()
 		this.#durable.families.clear()
@@ -419,22 +418,22 @@ class MosaicEnvironmentRegistry implements Disposable {
 	}
 }
 
-const registries = new WeakMap<Store, MosaicEnvironmentRegistry>()
+const registries = new WeakMap<Store, MosaicDomainRegistry>()
 
-function registryFor(store: Store): MosaicEnvironmentRegistry {
+function registryFor(store: Store): MosaicDomainRegistry {
 	const existing = registries.get(store)
 	if (existing && !existing.disposed) return existing
-	const registry = new MosaicEnvironmentRegistry()
+	const registry = new MosaicDomainRegistry()
 	registries.set(store, registry)
 	store.miscResources.set(REGISTRY_KEY, registry)
 	return registry
 }
 
-function definitionKey(identity: MosaicEnvironmentDefinitionIdentity): string {
+function definitionKey(identity: MosaicDomainDefinitionIdentity): string {
 	return `${identity.key}@${identity.version}`
 }
 
-function environmentKey(identity: MosaicEnvironmentIdentity): string {
+function domainKey(identity: MosaicDomainIdentity): string {
 	return `${definitionKey(identity.definition)}#${identity.instance}`
 }
 
@@ -444,7 +443,7 @@ function isFamily(
 	return token.type.endsWith(`_family`)
 }
 
-function claimsFor(members: MosaicEnvironmentMembers): DurableClaim[] {
+function claimsFor(members: MosaicDomainMembers): DurableClaim[] {
 	const claims: DurableClaim[] = []
 	for (const member of Object.values(members)) {
 		if (member.role !== `durable`) continue
@@ -463,15 +462,15 @@ function claimsFor(members: MosaicEnvironmentMembers): DurableClaim[] {
 	return claims
 }
 
-function assertMembership(members: MosaicEnvironmentMembers): void {
+function assertMembership(members: MosaicDomainMembers): void {
 	const tokens = new Map<string, string>()
 	for (const [name, member] of Object.entries(members)) {
 		if (name.length === 0)
-			throw new Error(`Mosaic Environment member names cannot be empty.`)
+			throw new Error(`Mosaic Domain member names cannot be empty.`)
 		const family = isFamily(member.token)
 		if (family !== `keySchema` in member) {
 			throw new Error(
-				`Mosaic Environment family member "${name}" must declare a keySchema; singleton members must not.`,
+				`Mosaic Domain family member "${name}" must declare a keySchema; singleton members must not.`,
 			)
 		}
 		const typeIsAtom =
@@ -481,7 +480,7 @@ function assertMembership(members: MosaicEnvironmentMembers): void {
 			member.token.type === `mutable_atom_family`
 		if (member.role === `derived` ? typeIsAtom : !typeIsAtom) {
 			throw new Error(
-				`Mosaic Environment member "${name}" has role "${member.role}", which is incompatible with token type "${member.token.type}".`,
+				`Mosaic Domain member "${name}" has role "${member.role}", which is incompatible with token type "${member.token.type}".`,
 			)
 		}
 		if (
@@ -489,13 +488,13 @@ function assertMembership(members: MosaicEnvironmentMembers): void {
 			!(`schema` in member)
 		) {
 			throw new Error(
-				`Mosaic Environment member "${name}" must declare a Standard Schema.`,
+				`Mosaic Domain member "${name}" must declare a Standard Schema.`,
 			)
 		}
 		const previous = tokens.get(member.token.key)
 		if (previous) {
 			throw new Error(
-				`Mosaic Environment members "${previous}" and "${name}" refer to the same token "${member.token.key}".`,
+				`Mosaic Domain members "${previous}" and "${name}" refer to the same token "${member.token.key}".`,
 			)
 		}
 		tokens.set(member.token.key, name)
@@ -516,30 +515,30 @@ async function validate<Schema extends StandardSchemaV1>(
 }
 
 /**
- * Declare a Mosaic Environment over ordinary atom.io states.
+ * Declare a Mosaic Domain over ordinary atom.io states.
  *
  * The returned definition owns no state. Activating it reserves durable members
- * in one Store and returns an identity-neutral, disposable scope for transport
- * layers. Synchronization controllers bind actors and sessions to that scope.
+ * in one Store and returns an identity-neutral, disposable instance for transport
+ * layers. Synchronization controllers bind actors and sessions to that instance.
  */
-export function collaborationEnvironment<
+export function mosaicDomain<
 	const Key extends string,
 	const Version extends number,
 	ConfigSchema extends StandardSchemaV1,
-	const Members extends MosaicEnvironmentMembers,
+	const Members extends MosaicDomainMembers,
 >(
-	options: MosaicEnvironmentOptions<Key, Version, ConfigSchema, Members>,
-): MosaicEnvironmentDefinition<
-	MosaicEnvironmentDefinitionIdentity<Key, Version>,
+	options: MosaicDomainDefinitionOptions<Key, Version, ConfigSchema, Members>,
+): MosaicDomainDefinition<
+	MosaicDomainDefinitionIdentity<Key, Version>,
 	ConfigSchema,
 	Members
 > {
 	if (options.key.length === 0) {
-		throw new Error(`A Mosaic Environment definition key cannot be empty.`)
+		throw new Error(`A Mosaic Domain definition key cannot be empty.`)
 	}
 	if (!Number.isSafeInteger(options.version) || options.version < 1) {
 		throw new Error(
-			`A Mosaic Environment definition version must be a positive integer.`,
+			`A Mosaic Domain definition version must be a positive integer.`,
 		)
 	}
 	assertMembership(options.members)
@@ -560,89 +559,91 @@ export function collaborationEnvironment<
 		configSchema: options.configSchema,
 		definitionIdentity: identity,
 		members,
-		async activate({ config: input, instance, store = IMPLICIT.STORE }) {
-			if (typeof instance !== `string` || instance.length === 0) {
-				throw new Error(`A Mosaic Environment instance cannot be empty.`)
+		async activate({
+			config: input,
+			instance: instanceKey,
+			store = IMPLICIT.STORE,
+		}) {
+			if (typeof instanceKey !== `string` || instanceKey.length === 0) {
+				throw new Error(`A Mosaic Domain instance cannot be empty.`)
 			}
 			const config = await validate(
 				options.configSchema,
 				input,
-				`Mosaic Environment "${definitionKey(identity)}#${instance}" config`,
+				`Mosaic Domain "${definitionKey(identity)}#${instanceKey}" config`,
 			)
 			for (const member of Object.values(members)) {
 				withdraw(store, member.token)
 			}
 			const registry = registryFor(store)
 			const definition = definitionKey(identity)
-			const scopeIdentity = Object.freeze({
+			const instanceIdentity = Object.freeze({
 				definition: identity,
-				instance,
+				instance: instanceKey,
 			})
-			const environment = environmentKey(scopeIdentity)
+			const domain = domainKey(instanceIdentity)
 			let disposed = false
-			const scope: MosaicEnvironmentScope<
-				typeof scopeIdentity,
+			const domainInstance: MosaicDomainInstance<
+				typeof instanceIdentity,
 				typeof config,
 				Members
 			> = {
 				config,
 				definitionIdentity: identity,
-				identity: scopeIdentity,
+				identity: instanceIdentity,
 				members,
 				store,
 				get disposed() {
 					return disposed
 				},
 				address(member, ...memberKey) {
-					if (disposed) throw new Error(`This Mosaic Environment is disposed.`)
+					if (disposed) throw new Error(`This Mosaic Domain is disposed.`)
 					const memberDefinition = members[member]
 					if (!memberDefinition) {
-						throw new Error(`Unknown Mosaic Environment member "${member}".`)
+						throw new Error(`Unknown Mosaic Domain member "${member}".`)
 					}
 					if (
 						memberDefinition.role === `local` ||
 						memberDefinition.role === `derived`
 					) {
 						throw new Error(
-							`Mosaic Environment member "${member}" is not remotely addressable.`,
+							`Mosaic Domain member "${member}" is not remotely addressable.`,
 						)
 					}
 					const family = isFamily(memberDefinition.token)
 					if (family !== (memberKey.length === 1)) {
 						throw new Error(
 							family
-								? `Mosaic Environment family member "${member}" requires a key.`
-								: `Mosaic Environment singleton member "${member}" does not accept a key.`,
+								? `Mosaic Domain family member "${member}" requires a key.`
+								: `Mosaic Domain singleton member "${member}" does not accept a key.`,
 						)
 					}
 					return {
-						environment: scopeIdentity,
+						domain: instanceIdentity,
 						member,
 						...(family ? { key: memberKey[0] } : {}),
 					} as never
 				},
 				async parseAddress(address) {
-					if (disposed) throw new Error(`This Mosaic Environment is disposed.`)
+					if (disposed) throw new Error(`This Mosaic Domain is disposed.`)
 					if (typeof address !== `object` || address === null) {
-						throw new Error(
-							`A Mosaic Environment member address must be an object.`,
-						)
+						throw new Error(`A Mosaic Domain member address must be an object.`)
 					}
 					const candidate = address as Record<string, unknown>
-					const addressEnvironment = candidate[`environment`]
+					const addressDomain = candidate[`domain`]
 					if (
-						typeof addressEnvironment !== `object` ||
-						addressEnvironment === null ||
-						(addressEnvironment as Record<string, unknown>)[`instance`] !==
-							scopeIdentity.instance
+						typeof addressDomain !== `object` ||
+						addressDomain === null ||
+						(addressDomain as Record<string, unknown>)[`instance`] !==
+							instanceIdentity.instance
 					) {
 						throw new Error(
-							`The Mosaic Environment member address belongs to another environment instance.`,
+							`The Mosaic Domain member address belongs to another domain instance.`,
 						)
 					}
-					const addressDefinition = (
-						addressEnvironment as Record<string, unknown>
-					)[`definition`]
+					const addressDefinition = (addressDomain as Record<string, unknown>)[
+						`definition`
+					]
 					if (
 						typeof addressDefinition !== `object` ||
 						addressDefinition === null ||
@@ -652,30 +653,30 @@ export function collaborationEnvironment<
 							identity.version
 					) {
 						throw new Error(
-							`The Mosaic Environment member address belongs to another environment definition.`,
+							`The Mosaic Domain member address belongs to another domain definition.`,
 						)
 					}
 					const name = candidate[`member`]
 					if (typeof name !== `string` || !Object.hasOwn(members, name)) {
 						throw new Error(
-							`The Mosaic Environment member address has an unknown member.`,
+							`The Mosaic Domain member address has an unknown member.`,
 						)
 					}
 					const member = members[name]
 					if (member.role === `local` || member.role === `derived`) {
 						throw new Error(
-							`Mosaic Environment member "${name}" is not remotely addressable.`,
+							`Mosaic Domain member "${name}" is not remotely addressable.`,
 						)
 					}
 					if (isFamily(member.token)) {
 						const parsedKey = await validate(
 							member.keySchema!,
 							candidate[`key`],
-							`Mosaic Environment member "${name}" key`,
+							`Mosaic Domain member "${name}" key`,
 						)
 						return {
 							address: {
-								environment: scopeIdentity,
+								domain: instanceIdentity,
 								key: parsedKey,
 								member: name,
 							},
@@ -684,17 +685,17 @@ export function collaborationEnvironment<
 					}
 					if (`key` in candidate) {
 						throw new Error(
-							`Mosaic Environment singleton member "${name}" does not accept a key.`,
+							`Mosaic Domain singleton member "${name}" does not accept a key.`,
 						)
 					}
 					return {
-						address: { environment: scopeIdentity, member: name },
+						address: { domain: instanceIdentity, member: name },
 						member,
 					} as never
 				},
 				async acquire(parsed) {
-					if (disposed) throw new Error(`This Mosaic Environment is disposed.`)
-					const checked = await scope.parseAddress(parsed.address)
+					if (disposed) throw new Error(`This Mosaic Domain is disposed.`)
+					const checked = await domainInstance.parseAddress(parsed.address)
 					if (isFamily(checked.member.token)) {
 						const token = findInStore(
 							store,
@@ -707,22 +708,20 @@ export function collaborationEnvironment<
 				},
 				validateValue(member, value) {
 					if (disposed) {
-						return Promise.reject(
-							new Error(`This Mosaic Environment is disposed.`),
-						)
+						return Promise.reject(new Error(`This Mosaic Domain is disposed.`))
 					}
 					const memberDefinition = members[member]
 					if (!memberDefinition || !(`schema` in memberDefinition)) {
 						return Promise.reject(
 							new Error(
-								`Mosaic Environment member "${member}" does not accept remote values.`,
+								`Mosaic Domain member "${member}" does not accept remote values.`,
 							),
 						)
 					}
 					return validate(
 						memberDefinition.schema,
 						value,
-						`Mosaic Environment member "${member}" value`,
+						`Mosaic Domain member "${member}" value`,
 					) as never
 				},
 				[Symbol.dispose]() {
@@ -731,8 +730,8 @@ export function collaborationEnvironment<
 					registry.release(definition)
 				},
 			}
-			registry.claim(definition, environment, claimsFor(members), scope)
-			return scope
+			registry.claim(definition, domain, claimsFor(members), domainInstance)
+			return domainInstance
 		},
 	})
 }

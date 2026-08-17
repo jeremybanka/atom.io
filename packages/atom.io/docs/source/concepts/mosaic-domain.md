@@ -215,14 +215,55 @@ Per-proposal byte, distinct-member, operation-count, and pending-queue limits
 bound validation and backpressure. They do not impose a Domain or document-size
 limit. Applications scale total state by using bounded atom-family members.
 
+## Partial residency
+
+The headless residency controller projects an unbounded durable family address
+space into a bounded set of members in one client Store. Acquisition first
+normalizes an address and asks the server to authorize and hydrate it. Only a
+successful checkpoint may materialize the family member. Disposable leases are
+reference-counted: releasing one consumer cannot evict a member that another
+consumer still owns, and eviction is distinct from release.
+
+<Exhibit src="realtime/coordinate-partial-residency.ts" />
+
+Member and range subscriptions share one filtered transport scope. An accepted
+batch carries operations only for the resolved scope, plus bounded metadata and
+a revision token for each request. When several affected members are resident,
+their filtered operations settle in one ordinary Store transaction. Other
+addresses are never acquired merely because the same durable batch mentions
+them. Range invalidations cause a fresh, consistent hydration cut instead of
+guessing membership from a partial address list.
+
+Range descriptions are application-defined JSON validated through an injected
+Standard Schema. The server authorizes the normalized range before consulting
+its resolver and then authorizes every normalized result before value lookup.
+The resolver is deliberately an adapter seam: MOS-15 can supply a durable
+spatial or ordered index without putting index policy into the Domain core.
+Likewise, hydration returns a checkpoint-shaped cut with an opaque revision
+token, allowing MOS-13 to replace tail-derived snapshots without changing the
+client lifecycle.
+
+Release stops requesting a member but leaves its cached Store value until
+explicit eviction. Reacquisition always rehydrates before declaring the member
+current. Physical member count and estimated durable bytes include released
+caches, so configured limits remain deterministic and an application must evict
+before admitting more state. A locally authored optimistic proposal remains in
+the session outbox even if every affected member is released and evicted;
+reconnect resends that owned work without restoring unrelated residency.
+
+Controller disposal removes transport listeners and resident family members but
+does not touch authoritative storage. A generic cleanup callback lets presence
+projections and application-owned derived caches follow the same lifecycle
+without embedding a second presence protocol in residency.
+
 Store observers run only after a settlement has committed. An observer failure
 is reported through the Store logger without reclassifying accepted durable work
 as uncommitted or applying its reducer a second time during recovery.
 
-The atomic-batch layer deliberately does not implement partial residency,
-incremental checkpoint graphs, or actor-selective retained history. Those
-facilities build on the batch revision and gesture boundaries in MOS-12,
-MOS-13, and MOS-16 respectively. This release's recovery adapter retains the
+The residency layer deliberately does not implement incremental checkpoint
+graphs, durable range indexes, or actor-selective retained history. Those
+facilities build on its revision, resolver, and gesture boundaries in MOS-13,
+MOS-15, and MOS-16 respectively. This release's recovery adapter retains the
 accepted tail; a production adapter may compact only after those later
 checkpoint and retention contracts define a safe cut.
 

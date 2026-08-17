@@ -1,10 +1,11 @@
 import type { ViewOf } from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
-import type { stringified } from "atom.io/foundations/json"
+import type { Json, stringified } from "atom.io/foundations/json"
 
 import type { AtomOnly, TimelineManageable } from "./timeline.ts"
 import type {
 	AtomToken,
+	MutableAtomToken,
 	ReadableToken,
 	SelectorToken,
 	TokenType,
@@ -21,6 +22,19 @@ export type AtomUpdateEvent<A extends AtomToken<any, any, any>> = {
 	type: `atom_update`
 	token: A
 	update: StateUpdate<TokenType<A>>
+	timestamp: number
+}
+
+/** A serializable whole-value replacement for a mutable atom transaction. */
+export type MutableAtomSnapshotEvent<
+	A extends MutableAtomToken<any, any> = MutableAtomToken<any, any>,
+> = {
+	type: `mutable_atom_snapshot`
+	token: A
+	update: {
+		oldValue: Json.Serializable
+		newValue: Json.Serializable
+	}
 	timestamp: number
 }
 
@@ -76,6 +90,7 @@ export type MoleculeTransferEvent = {
 export type TransactionSubEvent =
 	| AtomLifecycleEvent<AtomToken<unknown, any, any>>
 	| AtomUpdateEvent<AtomToken<any, any, any>>
+	| MutableAtomSnapshotEvent
 	| MoleculeCreationEvent
 	| MoleculeDisposalEvent
 	| MoleculeTransferEvent

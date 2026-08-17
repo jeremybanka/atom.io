@@ -128,6 +128,16 @@ describe(`Mosaic Domains`, () => {
 
 		expect(parsed.address).toEqual(address)
 		expect(silo.store.atoms.size).toBe(atomsBeforeParsing)
+		const mutableParsed = parsed as {
+			address: {
+				domain: { instance: string }
+				key: string
+				member: string
+			}
+		}
+		mutableParsed.address.domain.instance = `forged`
+		mutableParsed.address.key = `forged`
+		mutableParsed.address.member = `forged`
 
 		const acquired = await instance.acquire(parsed)
 

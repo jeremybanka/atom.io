@@ -87,6 +87,7 @@ export type MosaicDomainResidencyClientOptions<
 	readonly domain: MosaicDomainInstance<Identity, any, any>
 	readonly estimateBytes?: (snapshot: Json.Serializable) => number
 	readonly idSource?: (context: MosaicDomainResidencyIdContext) => string
+	readonly maxBufferedAcceptances?: number
 	readonly maxResidentBytes?: number
 	readonly maxResidentMembers?: number
 	readonly session: string
@@ -163,6 +164,52 @@ const validLimit = (name: string, value: number): void => {
 	}
 }
 
+const validIdentifier = (value: unknown): value is string =>
+	typeof value === `string` && value.length > 0 && value.length <= 512
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+	typeof value === `object` && value !== null && !Array.isArray(value)
+
+const rejectionCodes = new Set<string>([
+	`backpressure`,
+	`batch-id-collision`,
+	`capacity-exceeded`,
+	`gap`,
+	`incompatible-version`,
+	`invalid-model-operation`,
+	`invalid-payload`,
+	`missing-dependency`,
+	`operation-id-collision`,
+	`unauthorized`,
+])
+const recoveryActions = new Set<string>([
+	`discard-batch`,
+	`resnapshot`,
+	`retry`,
+	`upgrade`,
+])
+
+function assertRejection(
+	value: unknown,
+): asserts value is MosaicDomainBatchRejection {
+	if (
+		typeof value !== `object` ||
+		value === null ||
+		!(`batchId` in value) ||
+		(value.batchId !== null && typeof value.batchId !== `string`) ||
+		!(`code` in value) ||
+		typeof value.code !== `string` ||
+		!rejectionCodes.has(value.code) ||
+		!(`reason` in value) ||
+		typeof value.reason !== `string` ||
+		!(`recovery` in value) ||
+		typeof value.recovery !== `string` ||
+		!recoveryActions.has(value.recovery)
+	) {
+		throw new Error(`The Mosaic Domain residency rejection is invalid.`)
+	}
+}
+
 /**
  * Maintain a bounded, explicitly requested projection of one Mosaic Domain.
  * Durable authority stays in MOS-11 storage; this controller owns only Store
@@ -176,8 +223,10 @@ export function createMosaicDomainResidencyClient<
 ): MosaicDomainResidencyClient<Identity, Range> {
 	const estimateBytes = options.estimateBytes ?? defaultEstimateBytes
 	const idSource = options.idSource ?? defaultIdSource
+	const maxBufferedAcceptances = options.maxBufferedAcceptances ?? 256
 	const maxResidentBytes = options.maxResidentBytes ?? 16 * 1024 * 1024
 	const maxResidentMembers = options.maxResidentMembers ?? 1024
+	validLimit(`maxBufferedAcceptances`, maxBufferedAcceptances)
 	validLimit(`maxResidentBytes`, maxResidentBytes)
 	validLimit(`maxResidentMembers`, maxResidentMembers)
 
@@ -265,6 +314,19 @@ export function createMosaicDomainResidencyClient<
 				error,
 			)
 		})
+	}
+	const safelyStop = (stop: (() => void) | null, boundary: string): void => {
+		try {
+			stop?.()
+		} catch (error) {
+			options.domain.store.logger.error(
+				`🐞`,
+				`transaction`,
+				`mosaic-domain-residency`,
+				boundary,
+				error,
+			)
+		}
 	}
 
 	const wireRequests = (): MosaicDomainResidencyRequest<Identity, Range>[] =>
@@ -362,6 +424,17 @@ export function createMosaicDomainResidencyClient<
 		}
 		const nextPending = pendingProjection(keys)
 		const projection = [...acceptedProjection, ...nextPending.projection]
+		const measurementKeys = new Set<string>()
+		for (const prepared of remove) {
+			for (const address of prepared.members) {
+				measurementKeys.add(mosaicDomainMemberAddressKey(address))
+			}
+		}
+		for (const item of projection) {
+			for (const operation of item.batch.operations) {
+				measurementKeys.add(mosaicDomainMemberAddressKey(operation.address))
+			}
+		}
 		const prepared =
 			checkpoint === undefined
 				? await reprojectMosaicDomainBatches(options.domain, remove, projection)
@@ -376,7 +449,7 @@ export function createMosaicDomainResidencyClient<
 			pending[nextPending.indexes[index]].prepared =
 				prepared[acceptedProjection.length + index]
 		}
-		refreshResidentBytes(keys)
+		if (checkpoint === undefined) refreshResidentBytes(measurementKeys)
 	}
 
 	const validateCheckpoint = async (
@@ -386,6 +459,9 @@ export function createMosaicDomainResidencyClient<
 		ReadonlyMap<string, readonly MosaicDomainMemberAddress<Identity>[]>
 	> => {
 		if (
+			!isRecord(checkpoint) ||
+			!Array.isArray(checkpoint.members) ||
+			!Array.isArray(checkpoint.resolutions) ||
 			!Number.isSafeInteger(checkpoint.headRevision) ||
 			checkpoint.headRevision < 0
 		) {
@@ -399,13 +475,17 @@ export function createMosaicDomainResidencyClient<
 		const union = new Set<string>()
 		for (const resolution of checkpoint.resolutions) {
 			if (
-				!expectedIds.delete(resolution.requestId) ||
-				resolutions.has(resolution.requestId)
+				!isRecord(resolution) ||
+				!validIdentifier(resolution[`requestId`]) ||
+				!validIdentifier(resolution[`revisionToken`]) ||
+				!Array.isArray(resolution[`addresses`]) ||
+				!expectedIds.delete(resolution[`requestId`]) ||
+				resolutions.has(resolution[`requestId`])
 			) {
 				throw new Error(`A Mosaic Domain residency resolution is invalid.`)
 			}
 			const normalized: MosaicDomainMemberAddress<Identity>[] = []
-			for (const address of resolution.addresses) {
+			for (const address of resolution[`addresses`]) {
 				const parsed = await options.domain.parseAddress(address)
 				if (parsed.member.role !== `durable`) {
 					throw new Error(
@@ -416,7 +496,7 @@ export function createMosaicDomainResidencyClient<
 				union.add(key)
 				normalized.push(parsed.address)
 			}
-			resolutions.set(resolution.requestId, normalized)
+			resolutions.set(resolution[`requestId`], normalized)
 		}
 		if (expectedIds.size > 0) {
 			throw new Error(`A Mosaic Domain residency checkpoint is incomplete.`)
@@ -434,7 +514,12 @@ export function createMosaicDomainResidencyClient<
 		)
 		const replaced = new Set<string>()
 		for (const member of checkpoint.members) {
-			const parsed = await options.domain.parseAddress(member.address)
+			if (!isRecord(member) || !(`address` in member) || !(`value` in member)) {
+				throw new Error(
+					`A Mosaic Domain residency checkpoint member is invalid.`,
+				)
+			}
+			const parsed = await options.domain.parseAddress(member[`address`])
 			const key = mosaicDomainMemberAddressKey(parsed.address)
 			if (!union.has(key) || snapshots.has(key)) {
 				throw new Error(
@@ -442,7 +527,7 @@ export function createMosaicDomainResidencyClient<
 				)
 			}
 			snapshots.add(key)
-			const estimated = measureBytes(member.value)
+			const estimated = measureBytes(member[`value`] as Json.Serializable)
 			const previous = residents.get(key)
 			if (previous !== undefined && !replaced.has(key)) bytes -= previous.bytes
 			replaced.add(key)
@@ -462,10 +547,10 @@ export function createMosaicDomainResidencyClient<
 		wire: readonly MosaicDomainResidencyRequest<Identity, Range>[],
 		extraRemove: readonly PreparedMosaicDomainBatch<Identity>[] = [],
 	): Promise<void> => {
+		const resolutions = await validateCheckpoint(checkpoint, wire)
 		if (checkpoint.headRevision < headRevision) {
 			throw new Error(`A Mosaic Domain residency checkpoint moved backwards.`)
 		}
-		const resolutions = await validateCheckpoint(checkpoint, wire)
 		const checkpointKeys = new Set(
 			checkpoint.members.map(({ address }) =>
 				mosaicDomainMemberAddressKey(address),
@@ -526,14 +611,20 @@ export function createMosaicDomainResidencyClient<
 		let nextStop: (() => void) | null = null
 		const buffered: MosaicDomainResidencyAcceptedSlice<Identity>[] = []
 		let buffering = true
+		let bufferOverflowed = false
 		try {
 			if (wire.length > 0) {
 				nextStop = await options.transport.subscribe(
 					structuredClone(wire),
 					(accepted) => {
 						const received = structuredClone(accepted)
-						if (buffering) buffered.push(received)
-						else {
+						if (buffering) {
+							if (buffered.length < maxBufferedAcceptances) {
+								buffered.push(received)
+							} else {
+								bufferOverflowed = true
+							}
+						} else {
 							background(
 								enqueue(() => handleAcceptedSlice(received)),
 								`A Mosaic Domain residency event failed.`,
@@ -555,17 +646,27 @@ export function createMosaicDomainResidencyClient<
 			const previousStop = stopTransport
 			stopTransport = nextStop
 			nextStop = null
-			previousStop?.()
+			safelyStop(
+				previousStop,
+				`A Mosaic Domain residency unsubscribe failed during resync.`,
+			)
 			buffering = false
-			for (const accepted of buffered) {
-				if (accepted.metadata.revision > headRevision) {
-					await handleAcceptedSlice(accepted)
+			if (bufferOverflowed) {
+				resyncAgain = true
+			} else {
+				for (const accepted of buffered) {
+					if (accepted.metadata.revision > headRevision) {
+						await handleAcceptedSlice(accepted)
+					}
 				}
+				connectivity = `live`
+				notify()
 			}
-			connectivity = `live`
-			notify()
 		} catch (error) {
-			nextStop?.()
+			safelyStop(
+				nextStop,
+				`A failed Mosaic Domain residency subscription could not stop.`,
+			)
 			connectivity = `offline`
 			notify()
 			throw error
@@ -733,11 +834,14 @@ export function createMosaicDomainResidencyClient<
 							`The Mosaic Domain residency acceptance receipt is invalid.`,
 						)
 					}
-				} else if (
-					result.rejection.batchId !== null &&
-					result.rejection.batchId !== item.proposal.id
-				) {
-					throw new Error(`The Mosaic Domain residency rejection is invalid.`)
+				} else {
+					assertRejection(result.rejection)
+					if (
+						result.rejection.batchId !== null &&
+						result.rejection.batchId !== item.proposal.id
+					) {
+						throw new Error(`The Mosaic Domain residency rejection is invalid.`)
+					}
 				}
 			} catch (error) {
 				connectivity = `offline`
@@ -782,7 +886,11 @@ export function createMosaicDomainResidencyClient<
 				resident.token.family !== undefined &&
 				options.domain.store.atoms.has(resident.token.key)
 			) {
-				disposeFromStore(options.domain.store, resident.token)
+				try {
+					disposeFromStore(options.domain.store, resident.token)
+				} catch (error) {
+					failures.push(error)
+				}
 			}
 			if (options.cleanup !== undefined) {
 				cleanup.push(
@@ -875,6 +983,11 @@ export function createMosaicDomainResidencyClient<
 					),
 				)
 				await validateCheckpoint(checkpoint, [{ id, selection: received }])
+				if (checkpoint.headRevision < headRevision) {
+					throw new Error(
+						`A Mosaic Domain residency checkpoint moved backwards.`,
+					)
+				}
 				await replaceProjection([], checkpoint)
 				for (const snapshot of checkpoint.members) {
 					const parsed = await options.domain.parseAddress(snapshot.address)
@@ -1033,7 +1146,17 @@ export function createMosaicDomainResidencyClient<
 		},
 		subscribeState(listener) {
 			stateListeners.add(listener)
-			listener(stateSnapshot())
+			try {
+				listener(stateSnapshot())
+			} catch (error) {
+				options.domain.store.logger.error(
+					`🐞`,
+					`transaction`,
+					`mosaic-domain-residency`,
+					`A Mosaic Domain residency state listener threw.`,
+					error,
+				)
+			}
 			return () => stateListeners.delete(listener)
 		},
 		[Symbol.dispose]() {

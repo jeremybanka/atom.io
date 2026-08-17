@@ -237,6 +237,12 @@ guessing membership from a partial address list.
 Range descriptions are application-defined JSON validated through an injected
 Standard Schema. The server authorizes the normalized range before consulting
 its resolver and then authorizes every normalized result before value lookup.
+Direct member lists are capped before address parsing, while range inputs and
+normalized outputs have byte and depth limits before canonicalization. This
+keeps authorization, schema validation, and resolver work ahead of Store
+allocation without accepting an unbounded request tree. The client's catch-up
+buffer is bounded too; overflow discards the partial buffer and takes a fresh
+checkpoint rather than applying an unknowable suffix.
 The resolver is deliberately an adapter seam: MOS-15 can supply a durable
 spatial or ordered index without putting index policy into the Domain core.
 Likewise, hydration returns a checkpoint-shaped cut with an opaque revision

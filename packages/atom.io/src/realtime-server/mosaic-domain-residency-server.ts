@@ -7,6 +7,7 @@ import {
 	type MosaicDomainIdentity,
 	type MosaicDomainInstance,
 	type MosaicDomainMemberAddress,
+	MAX_MOSAIC_DOMAIN_RESIDENCY_INVALIDATIONS,
 	mosaicDomainMemberAddressKey,
 	type MosaicDomainResidencyAcceptedSlice,
 	type MosaicDomainResidencyCheckpoint,
@@ -61,6 +62,8 @@ export type MosaicDomainResidencyServerOptions<
 	) => MaybePromise<boolean>
 	readonly batches: MosaicDomainBatchServer
 	readonly domain: MosaicDomainInstance<Identity, any, any>
+	readonly maxRangeBytes?: number
+	readonly maxRangeDepth?: number
 	readonly maxRequests?: number
 	readonly maxResidentMembers?: number
 	readonly range?: {
@@ -94,6 +97,83 @@ const revisionToken = (
 const validId = (value: unknown): value is string =>
 	typeof value === `string` && value.length > 0 && value.length <= 512
 
+function assertBoundedRange(
+	value: unknown,
+	maxBytes: number,
+	maxDepth: number,
+): asserts value is Json.Serializable {
+	type Visit =
+		| { readonly kind: `enter`; readonly depth: number; readonly value: unknown }
+		| { readonly kind: `leave`; readonly value: object }
+	const encoder = new TextEncoder()
+	const ancestors = new WeakSet<object>()
+	const visits: Visit[] = [{ depth: 0, kind: `enter`, value }]
+	let bytes = 0
+	const add = (valueBytes: number): void => {
+		bytes += valueBytes
+		if (bytes > maxBytes) {
+			throw new Error(`Mosaic Domain range bytes exceed ${maxBytes}.`)
+		}
+	}
+	while (visits.length > 0) {
+		const visit = visits.pop()!
+		if (visit.kind === `leave`) {
+			ancestors.delete(visit.value)
+			continue
+		}
+		if (visit.depth > maxDepth) {
+			throw new Error(`Mosaic Domain range depth exceeds ${maxDepth}.`)
+		}
+		const item = visit.value
+		if (
+			item === null ||
+			typeof item === `boolean` ||
+			typeof item === `string` ||
+			(typeof item === `number` && Number.isFinite(item))
+		) {
+			add(encoder.encode(JSON.stringify(item)).byteLength)
+			continue
+		}
+		if (typeof item !== `object` || ancestors.has(item)) {
+			throw new Error(`A Mosaic Domain range must be JSON-serializable.`)
+		}
+		const prototype = Object.getPrototypeOf(item) as {
+			readonly constructor?: { readonly name?: string }
+		} | null
+		if (
+			!Array.isArray(item) &&
+			prototype !== null &&
+			prototype.constructor?.name !== `Object`
+		) {
+			throw new Error(`A Mosaic Domain range must be JSON-serializable.`)
+		}
+		ancestors.add(item)
+		visits.push({ kind: `leave`, value: item })
+		if (Array.isArray(item)) {
+			add(2 + Math.max(0, item.length - 1))
+			for (let index = item.length - 1; index >= 0; index--) {
+				visits.push({
+					depth: visit.depth + 1,
+					kind: `enter`,
+					value: item[index],
+				})
+			}
+			continue
+		}
+		const entries = Object.entries(item)
+		add(2 + Math.max(0, entries.length - 1))
+		for (let index = entries.length - 1; index >= 0; index--) {
+			const [key, child] = entries[index]
+			add(encoder.encode(JSON.stringify(key)).byteLength + 1)
+			visits.push({
+				depth: visit.depth + 1,
+				kind: `enter`,
+				value: child,
+			})
+		}
+	}
+}
+
 const canonicalize = (value: Json.Serializable): string => {
 	if (value === null || typeof value !== `object`) return JSON.stringify(value)
 	if (Array.isArray(value)) return `[${value.map(canonicalize).join(`,`)}]`
@@ -117,13 +197,22 @@ export function createMosaicDomainResidencyServer<
 ): MosaicDomainResidencyServer<Identity, Range> {
 	const maxRequests = options.maxRequests ?? 64
 	const maxResidentMembers = options.maxResidentMembers ?? 1024
+	const maxRangeBytes = options.maxRangeBytes ?? 16 * 1024
+	const maxRangeDepth = options.maxRangeDepth ?? 32
 	for (const [name, value] of [
 		[`maxRequests`, maxRequests],
 		[`maxResidentMembers`, maxResidentMembers],
+		[`maxRangeBytes`, maxRangeBytes],
+		[`maxRangeDepth`, maxRangeDepth],
 	] as const) {
 		if (!Number.isSafeInteger(value) || value < 1) {
 			throw new Error(`${name} must be a positive safe integer.`)
 		}
+	}
+	if (maxRequests > MAX_MOSAIC_DOMAIN_RESIDENCY_INVALIDATIONS) {
+		throw new Error(
+			`maxRequests cannot exceed ${MAX_MOSAIC_DOMAIN_RESIDENCY_INVALIDATIONS}.`,
+		)
 	}
 	let disposed = false
 	const connectionDisposers = new Set<() => void>()
@@ -172,6 +261,7 @@ export function createMosaicDomainResidencyServer<
 					`A Mosaic Domain range limit exceeds ${maxResidentMembers}.`,
 				)
 			}
+			assertBoundedRange(selection.range, maxRangeBytes, maxRangeDepth)
 			const member = options.domain.members[selection.member]
 			if (
 				member === undefined ||
@@ -192,9 +282,13 @@ export function createMosaicDomainResidencyServer<
 						.join(`; `)}`,
 				)
 			}
+			assertBoundedRange(result.value, maxRangeBytes, maxRangeDepth)
 			const repeated = await options.range.schema[`~standard`].validate(
 				structuredClone(result.value),
 			)
+			if (!repeated.issues) {
+				assertBoundedRange(repeated.value, maxRangeBytes, maxRangeDepth)
+			}
 			if (
 				repeated.issues ||
 				canonicalize(result.value) !== canonicalize(repeated.value)
@@ -234,6 +328,11 @@ export function createMosaicDomainResidencyServer<
 					if (!Array.isArray(selection.addresses)) {
 						throw new Error(`A Mosaic Domain member selection is invalid.`)
 					}
+					if (selection.addresses.length > maxResidentMembers) {
+						throw new Error(
+							`Mosaic Domain residency member selection exceeds ${maxResidentMembers}.`,
+						)
+					}
 					candidates = selection.addresses
 				} else if (selection?.kind === `range`) {
 					const normalized = await normalizeRange(selection)
@@ -244,17 +343,19 @@ export function createMosaicDomainResidencyServer<
 						selection: structuredClone(normalized),
 						session,
 					})
-					candidates = structuredClone(
-						await options.range!.resolve({
-							domain: options.domain,
-							limit: normalized.limit,
-							member: normalized.member,
-							range: structuredClone(normalized.range),
-						}),
-					)
-					if (candidates.length > normalized.limit) {
+					const resolvedCandidates = await options.range!.resolve({
+						domain: options.domain,
+						limit: normalized.limit,
+						member: normalized.member,
+						range: structuredClone(normalized.range),
+					})
+					if (!Array.isArray(resolvedCandidates)) {
+						throw new Error(`A Mosaic Domain range resolution is invalid.`)
+					}
+					if (resolvedCandidates.length > normalized.limit) {
 						throw new Error(`A Mosaic Domain range resolver exceeded its limit.`)
 					}
+					candidates = structuredClone(resolvedCandidates)
 				} else {
 					throw new Error(`A Mosaic Domain residency selection is invalid.`)
 				}

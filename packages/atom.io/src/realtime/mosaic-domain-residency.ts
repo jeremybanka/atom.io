@@ -139,6 +139,9 @@ export type MosaicDomainResidencyTransport<
 	): Promise<() => void> | (() => void)
 }
 
+/** Maximum bounded invalidation entries accepted in one filtered event. */
+export const MAX_MOSAIC_DOMAIN_RESIDENCY_INVALIDATIONS: number = 1024
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === `object` && value !== null && !Array.isArray(value)
 
@@ -148,7 +151,7 @@ const identifier = (value: unknown): value is string =>
 /** Validate an untrusted filtered acceptance before it can affect a Store. */
 export function assertMosaicDomainResidencyAcceptedSlice(
 	value: unknown,
-	maxInvalidations = 1024,
+	maxInvalidations: number = MAX_MOSAIC_DOMAIN_RESIDENCY_INVALIDATIONS,
 ): asserts value is MosaicDomainResidencyAcceptedSlice {
 	if (!isRecord(value) || !isRecord(value[`metadata`])) {
 		throw new Error(`A Mosaic Domain residency acceptance is invalid.`)

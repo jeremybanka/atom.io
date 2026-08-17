@@ -19,10 +19,13 @@ const valueModel = {
 	reduce: (_value, operation) => operation.value,
 } satisfies MosaicDomainValueModel<number, { type: `set`; value: number }>
 
-async function fixture(name: string) {
+async function fixture(name: string, disposeEffect?: () => void) {
 	const silo = new Silo({ isProduction: false, lifespan: `ephemeral`, name })
 	const valueAtoms = silo.atomFamily<number, string>({
 		default: 0,
+		...(disposeEffect === undefined
+			? {}
+			: { effects: () => [() => disposeEffect] }),
 		key: `value`,
 	})
 	const definition = mosaicDomain({
@@ -77,14 +80,20 @@ test(`Store disposal tears down residency resources without durable deletion`, a
 
 test(`disposal finishes every cleanup boundary when one disposer throws`, async () => {
 	const serverState = await fixture(`residency-server-adversarial-disposal`)
-	const clientState = await fixture(`residency-client-adversarial-disposal`)
+	const boundaries: string[] = []
+	const clientState = await fixture(
+		`residency-client-adversarial-disposal`,
+		() => {
+			boundaries.push(`store`)
+			throw new Error(`Store member cleanup failed`)
+		},
+	)
 	const batches = createMosaicDomainBatchServer({ domain: serverState.domain })
 	const server = createMosaicDomainResidencyServer({
 		batches,
 		domain: serverState.domain,
 	})
 	const connected = server.connect({ actor: `alice`, session: `session-a` })
-	const boundaries: string[] = []
 	const transport: MosaicDomainResidencyTransport<
 		typeof clientState.domain.identity
 	> = {
@@ -119,7 +128,7 @@ test(`disposal finishes every cleanup boundary when one disposer throws`, async 
 	)
 
 	await expect(client.dispose()).rejects.toThrow(`did not complete cleanly`)
-	expect(boundaries).toEqual([`subscription`, `transport`, `resident`])
+	expect(boundaries).toEqual([`subscription`, `transport`, `store`, `resident`])
 	expect(lease.active).toBe(false)
 	expect(client.state.residentMemberCount).toBe(0)
 	await expect(client.reconnect()).rejects.toThrow(`disposed`)

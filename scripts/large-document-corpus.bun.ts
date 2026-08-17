@@ -20,10 +20,19 @@ async function main(): Promise<void> {
 	switch (command) {
 		case `prepare`: {
 			const source = readSourceOption(options)
-			const result = await prepareCorpus({ cacheRoot, source })
-			console.log(
-				`${result.downloaded ? `PREPARED` : `VERIFIED`} ${manifest.corpus.id} at ${result.sourcePath}`,
-			)
+			const result = await prepareCorpus({
+				cacheRoot,
+				refresh: options.includes(`--refresh`),
+				source,
+			})
+			const status = result.recovered
+				? `RECOVERED`
+				: result.refreshed
+					? `REFRESHED`
+					: result.downloaded
+						? `PREPARED`
+						: `VERIFIED`
+			console.log(`${status} ${manifest.corpus.id} at ${result.sourcePath}`)
 			console.log(`${result.identity.bytes} bytes / ${result.identity.sha256}`)
 			return
 		}
@@ -68,7 +77,7 @@ async function main(): Promise<void> {
 	}
 }
 
-const usage = `Usage: pnpm corpus:large:{prepare|verify|derive} or pnpm test:large-document`
+const usage = `Usage: pnpm corpus:large:prepare [--source=mirror|upstream] [--refresh], pnpm corpus:large:{verify|derive}, or pnpm test:large-document`
 
 function isCommand(value: string | undefined): value is Command {
 	return (

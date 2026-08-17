@@ -14,7 +14,9 @@ import {
 	manifest,
 	prepareCorpus,
 	resolveCacheLayout,
+	resolveCacheRoot,
 	resolveCorpusUrl,
+	validateManifest,
 	verifySource,
 	verifySourceIfPresent,
 	writeComplete,
@@ -41,7 +43,65 @@ describe(`large-document corpus tooling`, () => {
 			sourceUrl: `https://www.gutenberg.org/cache/epub/100/pg100.txt`,
 		})
 		expect(manifest.corpus.mirrorUrl).toContain(`/releases/download/`)
+		expect(manifest.corpus.mirrorReleaseUrl).toContain(`/releases/tag/`)
+		expect(manifest.corpus.mirrorPublishedAt).toBe(`2026-08-14T23:40:11Z`)
 		expect(manifest.corpus.license.note).toContain(`jurisdiction`)
+	})
+
+	test(`validates the complete source and variant manifest`, () => {
+		const missingVariant = structuredClone(manifest)
+		delete (missingVariant.variants as Partial<typeof manifest.variants>).fenced
+		expect(() => validateManifest(missingVariant)).toThrow(
+			`manifest.variants must contain exactly`,
+		)
+
+		const invalidDigest = structuredClone(manifest)
+		invalidDigest.variants.headingRich.sha256 = `not-a-digest`
+		expect(() => validateManifest(invalidDigest)).toThrow(
+			`manifest.variants.headingRich.sha256`,
+		)
+
+		const unsafeFilename = structuredClone(manifest)
+		unsafeFilename.variants.headingRich.filename = `../heading-rich.md`
+		expect(() => validateManifest(unsafeFilename)).toThrow(
+			`manifest.variants.headingRich.filename`,
+		)
+
+		const duplicateFilename = structuredClone(manifest)
+		duplicateFilename.variants.headingRich.filename =
+			duplicateFilename.variants.fenced.filename
+		expect(() => validateManifest(duplicateFilename)).toThrow(
+			`Duplicate variant filename`,
+		)
+	})
+
+	test(`uses platform cache conventions unless explicitly configured`, () => {
+		expect(resolveCacheRoot({}, `darwin`, `/Users/atom`)).toBe(
+			path.join(
+				`/Users/atom`,
+				`Library`,
+				`Caches`,
+				`atom.io`,
+				`large-document-corpus`,
+			),
+		)
+		expect(
+			resolveCacheRoot(
+				{ LOCALAPPDATA: `/local-cache` },
+				`win32`,
+				`C:/Users/atom`,
+			),
+		).toBe(path.join(`/local-cache`, `atom.io`, `large-document-corpus`))
+		expect(
+			resolveCacheRoot({ XDG_CACHE_HOME: `/xdg-cache` }, `linux`, `/home/atom`),
+		).toBe(path.join(`/xdg-cache`, `atom.io`, `large-document-corpus`))
+		expect(
+			resolveCacheRoot(
+				{ ATOM_IO_LARGE_DOCUMENT_CACHE: `/configured` },
+				`linux`,
+				`/home/atom`,
+			),
+		).toBe(path.resolve(`/configured`))
 	})
 
 	test(`applies byte-stable transforms to a small offline fixture`, () => {
@@ -80,6 +140,15 @@ describe(`large-document corpus tooling`, () => {
 			payload,
 		)
 		expect(Uint8Array.from(written)).toEqual(payload)
+		await expectFailure(
+			writeComplete(
+				{
+					write: () => Promise.resolve({ bytesWritten: 0 }),
+				},
+				payload,
+			),
+			`Unable to make progress`,
+		)
 	})
 
 	test(`uses the first-party mirror unless upstream is explicit`, async () => {
@@ -89,17 +158,44 @@ describe(`large-document corpus tooling`, () => {
 
 		const cacheRoot = await makeTemporaryDirectory()
 		let requestedUrl: string | undefined
+		const response = new Response(`intentionally invalid fixture`)
 		await expectFailure(
 			prepareCorpus({
 				cacheRoot,
 				fetchImpl: (input) => {
 					requestedUrl = input
-					return Promise.resolve(new Response(`intentionally invalid fixture`))
+					return Promise.resolve(response)
 				},
 			}),
 			`did not match the pinned manifest`,
 		)
 		expect(requestedUrl).toBe(manifest.corpus.mirrorUrl)
+		expect(response.body?.locked).toBeFalse()
+	})
+
+	test(`repairs a corrupt cache only after a verified replacement exists`, async () => {
+		const cacheRoot = await makeTemporaryDirectory()
+		const layout = resolveCacheLayout(cacheRoot)
+		await fs.mkdir(layout.corpusDir, { recursive: true })
+		await fs.writeFile(layout.sourcePath, `corrupt cache entry`)
+		let requests = 0
+
+		await expectFailure(
+			prepareCorpus({
+				cacheRoot,
+				fetchImpl: () => {
+					requests += 1
+					return Promise.resolve(new Response(`invalid replacement`))
+				},
+			}),
+			`Downloaded corpus did not match`,
+		)
+
+		expect(requests).toBe(1)
+		expect(await fs.readFile(layout.sourcePath, `utf8`)).toBe(
+			`corrupt cache entry`,
+		)
+		expect(await fs.readdir(layout.corpusDir)).toEqual([`source.txt`])
 	})
 
 	test(`rejects a poisoned cache before parsing it`, async () => {
@@ -142,6 +238,7 @@ describe(`large-document corpus tooling`, () => {
 		)
 		const layout = resolveCacheLayout(cacheRoot)
 		expect(cancelled).toBeTrue()
+		expect(oversized.locked).toBeFalse()
 		expect(emittedBytes).toBeLessThan(manifest.corpus.bytes + 2 * chunkBytes)
 		const missingSource = await expectFailure(
 			fs.stat(layout.sourcePath),

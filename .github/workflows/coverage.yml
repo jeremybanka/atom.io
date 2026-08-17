@@ -4,7 +4,8 @@ on:
   push:
     branches: ["main"]
   pull_request:
-    types: [opened, synchronize]
+    branches: ["main", "mosaic-domains"]
+    types: [edited, opened, reopened, synchronize]
 
 permissions:
   contents: read

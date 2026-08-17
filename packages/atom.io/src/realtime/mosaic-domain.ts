@@ -12,6 +12,7 @@ import type {
 import type { Canonical } from "atom.io/foundations/canonical"
 import { findInStore, IMPLICIT, type Store, withdraw } from "atom.io/internal"
 
+import type { MosaicDomainMemberModel } from "./mosaic-domain-batch.ts"
 import type { StandardSchemaV1 } from "./standard-schema.ts"
 
 const REGISTRY_KEY = `atom.io/realtime/mosaic-domains`
@@ -69,6 +70,7 @@ type MosaicDomainFamilyMember<
 }
 
 type MosaicDomainValidatedMember = {
+	readonly model?: MosaicDomainMemberModel
 	readonly schema: StandardSchemaV1
 }
 
@@ -490,6 +492,32 @@ function assertMembership(members: MosaicDomainMembers): void {
 			throw new Error(
 				`Mosaic Domain member "${name}" must declare a Standard Schema.`,
 			)
+		}
+		if (`model` in member && member.model !== undefined) {
+			if (member.role !== `durable`) {
+				throw new Error(
+					`Mosaic Domain member "${name}" can register a batch model only when durable.`,
+				)
+			}
+			const model = member.model
+			const modelIdentity =
+				model.kind === `transceiver` ? model.class?.mosaic : model.identity
+			if (
+				(model.kind !== `transceiver` && model.kind !== `value`) ||
+				typeof modelIdentity?.key !== `string` ||
+				modelIdentity.key.length === 0 ||
+				!Number.isSafeInteger(modelIdentity.version) ||
+				modelIdentity.version < 1 ||
+				typeof model.operationSchema?.[`~standard`]?.validate !== `function` ||
+				(model.kind === `value` && typeof model.reduce !== `function`) ||
+				(model.kind === `transceiver` &&
+					(model.class.timelinePolicy !== `append-only` ||
+						typeof model.class.fromJSON !== `function`))
+			) {
+				throw new Error(
+					`Mosaic Domain member "${name}" has invalid batch model metadata.`,
+				)
+			}
 		}
 		const previous = tokens.get(member.token.key)
 		if (previous) {

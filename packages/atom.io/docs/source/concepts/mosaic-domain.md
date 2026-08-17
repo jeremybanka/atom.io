@@ -155,3 +155,68 @@ model into bounded members. Because family membership is intensional, activating
 the domain does not enumerate or materialize the whole document. This
 contract establishes that scalable shape; synchronization and reconciliation
 layers decide when particular members are loaded and exchanged.
+
+## Atomic batches
+
+A durable member may register a deterministic batch model. Value models pair a
+Standard Schema operation boundary with a pure reducer. Existing Mosaic
+transceiver models can instead register their constructor and operation schema;
+preflight clones their serializable checkpoint before asking the model to
+validate and reduce an operation.
+
+<Exhibit src="realtime/coordinate-a-domain-batch.ts" />
+
+One call to the batch client's submission method accepts either one operation or
+an array. Both forms prepare and settle through one ordinary atom.io
+transaction, so an application does not choose between a single-operation API
+and a transaction API. Model reduction and resulting value validation finish
+before the Store is mutated. If any address, key, model, operation, or final
+value fails, no local notification or outbound proposal is produced.
+
+The wire envelope identifies the exact Domain definition and instance, protocol
+version, authenticated actor, session, gesture group, dependencies, batch ID,
+affected addresses, and individually identified member operations. The server
+resolves and preflights the complete envelope before whole-batch authorization.
+Its storage adapter then reserves the next Domain revision, batch ID, and every
+operation ID in one atomic append. Only an accepted append is settled and
+broadcast. Retries with identical authenticated content return the original
+receipt; reuse with different content fails closed.
+
+Optimistic client settlement preserves the batch boundary. A rejection rolls
+back all of its resident members in one Store transaction. Foreign acceptance
+while local work is pending reduces the confirmed batch and replays complete
+pending batches off-Store, then reveals the entire replacement through one
+ordinary Store transaction. This also replaces provisional metadata with the
+authoritative revision without exposing a transient rollback frame. Revision
+gaps recover and project a contiguous accepted tail before later work is made
+visible. Offline proposals remain whole and are resent idempotently after
+recovery.
+
+Mixed value and transceiver batches required one generic transaction repair.
+When a transaction writes through a mutable atom's JSON proxy, atom.io now
+retains a serializable mutable-snapshot subevent and publishes that replacement
+with the rest of the transaction. Previously the child Store held the new
+transceiver while the committed transaction omitted it. Keeping this mechanism
+in the ordinary transaction event model lets Domain reprojection atomically
+replace append-only transceiver checkpoints alongside regular atoms without a
+Mosaic-only state registry.
+
+Per-proposal byte, distinct-member, operation-count, and pending-queue limits
+bound validation and backpressure. They do not impose a Domain or document-size
+limit. Applications scale total state by using bounded atom-family members.
+
+The atomic-batch layer deliberately does not implement partial residency,
+incremental checkpoint graphs, or actor-selective retained history. Those
+facilities build on the batch revision and gesture boundaries in MOS-12,
+MOS-13, and MOS-16 respectively. This release's recovery adapter retains the
+accepted tail; a production adapter may compact only after those later
+checkpoint and retention contracts define a safe cut.
+
+The current client submission boundary owns the ordinary transaction that
+settles its one-or-many member operations. Automatically translating writes
+from an independently authored atom.io transaction remains an integration
+boundary: doing so correctly requires a generic committed-transaction lifecycle
+hook and model-owned change encoding. Inferring completion from timing or
+mirroring the transaction in a Mosaic-only registry would make rollback and
+asynchronous schema validation unsound, so this draft leaves that bridge
+explicit rather than weakening the commit guarantee.

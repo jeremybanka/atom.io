@@ -2,6 +2,7 @@ import type {
 	AtomCreationEvent,
 	AtomToken,
 	AtomUpdateEvent,
+	MutableAtomSnapshotEvent,
 	StateUpdate,
 	TimelineEvent,
 	TransactionSubEvent,
@@ -19,16 +20,40 @@ import type {
 	AtomFamily,
 	MutableAtom,
 	WritableFamily,
+	WritablePureSelector,
 	WritableState,
 } from "../state-types.ts"
 import { deposit, type Store } from "../store/index.ts"
 import { isChildStore, isRootStore } from "../transaction/index.ts"
 import {
 	deferTransactionStateNotification,
+	isApplyingMutableSnapshot,
 	notifyTransactionSubject,
 } from "../transaction/transaction-notification-batch.ts"
 import { evictDownstreamFromAtom } from "./evict-downstream.ts"
 import type { ProtoUpdate } from "./operate-on-store.ts"
+
+function mutableAtomForJsonSelector(
+	target: Store,
+	selector: WritablePureSelector<any, any>,
+): MutableAtom<any> | undefined {
+	let mutableKey: string
+	if (selector.family === undefined) {
+		if (!selector.key.endsWith(`:JSON`)) return undefined
+		mutableKey = selector.key.slice(0, -`:JSON`.length)
+	} else {
+		const family = target.families.get(selector.family.key)
+		if (
+			!family?.internalRoles?.includes(`json`) ||
+			!selector.family.key.endsWith(`:JSON`)
+		) {
+			return undefined
+		}
+		mutableKey = `${selector.family.key.slice(0, -`:JSON`.length)}(${selector.family.subKey})`
+	}
+	const atom = target.atoms.get(mutableKey)
+	return atom?.type === `mutable_atom` ? atom : undefined
+}
 
 export function dispatchOrDeferStateUpdate<T, E>(
 	target: Store & { operation: OpenOperation<any> },
@@ -120,13 +145,35 @@ export function dispatchOrDeferStateUpdate<T, E>(
 				)
 		}
 		const notificationCanSettle =
-			type !== `mutable_atom` &&
+			(type !== `mutable_atom` || isApplyingMutableSnapshot(target)) &&
 			(type !== `atom` || !hasRole(state, `tracker:signal`))
 		if (
 			!notificationCanSettle ||
 			!deferTransactionStateNotification(target, key, subject, update)
 		) {
 			notifyTransactionSubject(target, subject, update)
+		}
+	}
+
+	if (
+		isChildStore(target) &&
+		state.type === `writable_pure_selector` &&
+		target.on.transactionApplying.state === null
+	) {
+		const mutableAtom = mutableAtomForJsonSelector(target, state)
+		if (mutableAtom !== undefined && hasOldValue) {
+			const { timestamp } = target.operation
+			const snapshotUpdate: MutableAtomSnapshotEvent = {
+				type: `mutable_atom_snapshot`,
+				token: deposit(mutableAtom),
+				timestamp,
+				update: {
+					newValue: newValue as any,
+					oldValue: oldValue as any,
+				},
+			}
+			target.transactionMeta.update.subEvents.push(snapshotUpdate)
+			return
 		}
 	}
 

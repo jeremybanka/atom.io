@@ -29,7 +29,7 @@ export type SvgRegisterOperation<Value> = {
 }
 
 export type SvgRegisterState<Value> = {
-	readonly operation: SvgRegisterOperation<Value> | null
+	readonly operations: Readonly<Record<string, SvgRegisterOperation<Value>>>
 }
 
 const integerStringSchema = z.string().regex(/^-?(?:0|[1-9]\d*)$/u)
@@ -73,14 +73,23 @@ export function svgRegisterStateSchema<Value>(
 	valueSchema: z.ZodType<Value>,
 ): z.ZodType<SvgRegisterState<Value>> {
 	return z
-		.object({ operation: svgRegisterOperationSchema(valueSchema).nullable() })
+		.object({
+			operations: z.record(z.string(), svgRegisterOperationSchema(valueSchema)),
+		})
 		.strict()
+		.refine(
+			({ operations }) =>
+				Object.entries(operations).every(
+					([id, operation]) => id === operation.id,
+				),
+			{ message: `SVG register operation map keys must match operation IDs` },
+		)
 }
 
 export const EMPTY_SVG_ORDER: SvgOrderState = { operations: {} }
 
 export function emptySvgRegister<Value>(): SvgRegisterState<Value> {
-	return { operation: null }
+	return { operations: {} }
 }
 
 /** Locale-independent ordering used by every SVG convergence decision. */
@@ -241,16 +250,19 @@ export function removeSvgOrderEntry(
 	return reduceSvgOrder(state, { ...current, id, present: false })
 }
 
-/** A deterministic last-operation-wins register with duplicate protection. */
+/**
+ * A deterministic last-operation-wins register with delivery-order-independent
+ * duplicate protection. Receipts remain until MOS-16 supplies bounded compaction.
+ */
 export function reduceSvgRegister<Value>(
 	state: SvgRegisterState<Value>,
 	operation: SvgRegisterOperation<Value>,
 ): SvgRegisterState<Value> {
-	const previous = state.operation
-	if (previous === null || compareSvgIds(previous.id, operation.id) < 0) {
-		return { operation: structuredClone(operation) }
+	const previous = state.operations[operation.id]
+	if (previous === undefined) {
+		const next = structuredClone(operation)
+		return { operations: { ...state.operations, [next.id]: next } }
 	}
-	if (previous.id > operation.id) return state
 	if (JSON.stringify(previous.value) !== JSON.stringify(operation.value)) {
 		throw new Error(`SVG register operation ID collision: ${operation.id}`)
 	}
@@ -260,5 +272,11 @@ export function reduceSvgRegister<Value>(
 export function readSvgRegister<Value>(
 	state: SvgRegisterState<Value>,
 ): Value | undefined {
-	return state.operation?.value
+	let latest: SvgRegisterOperation<Value> | undefined
+	for (const operation of Object.values(state.operations)) {
+		if (latest === undefined || compareSvgIds(latest.id, operation.id) < 0) {
+			latest = operation
+		}
+	}
+	return latest?.value
 }

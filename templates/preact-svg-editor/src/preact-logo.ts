@@ -15,7 +15,8 @@ const COMMAND_ARITY = {
 
 type SvgCommand = keyof typeof COMMAND_ARITY
 
-const tokenPattern = /[CLMVZclmvz]|[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/giu
+const tokenPattern = /[A-Za-z]|[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/giu
+const separatorPattern = /^[\s,]*$/u
 
 function isCommand(token: string): token is SvgCommand {
 	return token in COMMAND_ARITY
@@ -25,20 +26,40 @@ function instructions(pathData: string): readonly {
 	readonly command: SvgCommand
 	readonly numbers: readonly number[]
 }[] {
-	const tokens = pathData.match(tokenPattern) ?? []
+	const tokens: string[] = []
+	let previousEnd = 0
+	for (const match of pathData.matchAll(tokenPattern)) {
+		if (!separatorPattern.test(pathData.slice(previousEnd, match.index))) {
+			throw new Error(`SVG path data contains an invalid token`)
+		}
+		tokens.push(match[0])
+		previousEnd = match.index + match[0].length
+	}
+	if (!separatorPattern.test(pathData.slice(previousEnd))) {
+		throw new Error(`SVG path data contains an invalid token`)
+	}
 	const result: { command: SvgCommand; numbers: number[] }[] = []
 	let command: SvgCommand | null = null
+	let awaitingArguments = false
 	let index = 0
 	while (index < tokens.length) {
 		const token = tokens[index]
 		if (isCommand(token)) {
+			if (command !== null && awaitingArguments) {
+				throw new Error(`SVG path command ${command} is incomplete`)
+			}
 			command = token
+			awaitingArguments = true
 			index++
 			if (COMMAND_ARITY[command] === 0) {
 				result.push({ command, numbers: [] })
 				command = null
+				awaitingArguments = false
 			}
 			continue
+		}
+		if (/^[A-Za-z]$/u.test(token)) {
+			throw new Error(`Unsupported SVG path command ${token}`)
 		}
 		if (command === null) throw new Error(`SVG path data is missing a command`)
 		const arity = COMMAND_ARITY[command]
@@ -50,9 +71,13 @@ function instructions(pathData: string): readonly {
 			throw new Error(`SVG path command ${command} is incomplete`)
 		}
 		result.push({ command, numbers })
+		awaitingArguments = false
 		index += arity
 		if (command === `m`) command = `l`
 		if (command === `M`) command = `L`
+	}
+	if (command !== null && awaitingArguments) {
+		throw new Error(`SVG path command ${command} is incomplete`)
 	}
 	return result
 }

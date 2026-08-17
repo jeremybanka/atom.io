@@ -1,8 +1,18 @@
-import { findState, getState, runTransaction, subscribe } from "atom.io"
+import {
+	findState,
+	getState,
+	runTransaction,
+	setState,
+	subscribe,
+} from "atom.io"
 import { beforeEach, describe, expect, test, vi } from "vitest"
 
 import { parsePreactLogo } from "./preact-logo.ts"
-import { materializeSvgOrder, readSvgRegister } from "./svg-convergence.ts"
+import {
+	materializeSvgOrder,
+	readSvgRegister,
+	reduceSvgRegister,
+} from "./svg-convergence.ts"
 import {
 	activeDragAtom,
 	beginSvgDrag,
@@ -24,7 +34,10 @@ import {
 	replaceSvgDrawing,
 	splitSubpathTransaction,
 	structureViolationsSelector,
+	subpathAtoms,
 	subpathOrderAtoms,
+	svgDragPresenceKey,
+	svgOperationId,
 	type SvgDrawingFixture,
 } from "./svg-editor-state.ts"
 
@@ -60,6 +73,19 @@ beforeEach(() => {
 })
 
 describe(`SVG editor state`, () => {
+	test(`gesture clocks reject ambiguous identities and invalid initial time`, () => {
+		expect(() =>
+			createSvgGestureClock({ actor: ``, session: `fixture` }),
+		).toThrow(`identities must be nonempty`)
+		expect(() =>
+			createSvgGestureClock({
+				actor: `actor`,
+				initialLogicalTime: Number.NaN,
+				session: `fixture`,
+			}),
+		).toThrow(`nonnegative integer`)
+	})
+
 	test(`imports a complete graph and derives SVG without a renderer registry`, () => {
 		expect(getState(structureViolationsSelector)).toEqual([])
 		expect(
@@ -173,6 +199,48 @@ describe(`SVG editor state`, () => {
 		unsubscribe()
 	})
 
+	test(`split rejects an incompatible continuation without partial settlement`, () => {
+		const before = getState(pathDrawSelectors, `path-a`)
+		const gesture = clock.begin()
+
+		expect(() => {
+			runTransaction(
+				splitSubpathTransaction,
+				gesture.id,
+			)({
+				continuationEdge: { kind: `close` },
+				gesture,
+				inserted: {
+					edge: { kind: `line` },
+					node: { x: 5, y: 5 },
+					subpathId: `invalid-split`,
+				},
+				pathId: `path-a`,
+				targetSubpathId: `a1`,
+			})
+		}).toThrow(`Only a close edge may have a null SVG node`)
+		expect(getState(pathDrawSelectors, `path-a`)).toBe(before)
+		expect(getState(structureViolationsSelector)).toEqual([])
+	})
+
+	test(`the invariant selector detects a mismatched subpath identity`, () => {
+		const gesture = clock.begin()
+		setState(
+			subpathAtoms,
+			`a1`,
+			reduceSvgRegister(getState(subpathAtoms, `a1`), {
+				id: svgOperationId(gesture, 0),
+				value: { id: `another-subpath`, pathId: `path-a` },
+			}),
+		)
+
+		expect(getState(structureViolationsSelector)).toContainEqual({
+			code: `missing-subpath`,
+			pathId: `path-a`,
+			subpathId: `a1`,
+		})
+	})
+
 	test(`a rejected import leaves the previous drawing intact`, () => {
 		const before = getState(pathDrawSelectors, `path-a`)
 		expect(() => {
@@ -214,7 +282,9 @@ describe(`SVG editor state`, () => {
 
 		expect(readSvgRegister(getState(nodeAtoms, `a1`))).toEqual(durableBefore)
 		expect(getState(projectedNodeSelectors, `a1`)).toEqual({ x: 50, y: 60 })
-		expect(getState(dragPresenceAtoms, gesture.actor)).toMatchObject({
+		expect(
+			getState(dragPresenceAtoms, svgDragPresenceKey(gesture)),
+		).toMatchObject({
 			gestureId: gesture.id,
 			sequence: 2,
 			target: { kind: `node`, subpathId: `a1` },
@@ -226,7 +296,7 @@ describe(`SVG editor state`, () => {
 		expect(readSvgRegister(getState(nodeAtoms, `a1`))).toEqual({ x: 50, y: 60 })
 		expect(durableUpdates).toHaveBeenCalledTimes(1)
 		expect(getState(activeDragAtom)).toBeNull()
-		expect(getState(dragPresenceAtoms, gesture.actor)).toBeNull()
+		expect(getState(dragPresenceAtoms, svgDragPresenceKey(gesture))).toBeNull()
 		expect(getState(pointerCaptureAtom)).toBeNull()
 		unsubscribe()
 	})
@@ -245,7 +315,70 @@ describe(`SVG editor state`, () => {
 		finishSvgDrag({ commit: false })
 
 		expect(readSvgRegister(getState(edgeAtoms, `a2`))).toEqual(before)
-		expect(getState(dragPresenceAtoms, gesture.actor)).toBeNull()
+		expect(getState(dragPresenceAtoms, svgDragPresenceKey(gesture))).toBeNull()
+	})
+
+	test(`presence and cleanup distinguish concurrent sessions for one actor`, () => {
+		const local = clock.begin()
+		const peer = createSvgGestureClock({
+			actor: local.actor,
+			initialLogicalTime: local.logicalTime,
+			session: `peer-session`,
+		}).begin()
+		setState(dragPresenceAtoms, svgDragPresenceKey(peer), {
+			actor: peer.actor,
+			gestureId: peer.id,
+			point: { x: 70, y: 80 },
+			sequence: 1,
+			session: peer.session,
+			target: { kind: `node`, subpathId: `a1` },
+		})
+		beginSvgDrag({
+			element: {} as Element,
+			gesture: local,
+			point: { x: 10, y: 10 },
+			pointerId: 10,
+			target: { kind: `node`, subpathId: `a1` },
+		})
+		previewSvgDrag({ x: 30, y: 40 })
+		finishSvgDrag({ commit: false })
+
+		expect(getState(dragPresenceAtoms, svgDragPresenceKey(local))).toBeNull()
+		expect(getState(dragPresenceAtoms, svgDragPresenceKey(peer))).toMatchObject({
+			point: { x: 70, y: 80 },
+			session: `peer-session`,
+		})
+		setState(dragPresenceAtoms, svgDragPresenceKey(peer), null)
+	})
+
+	test(`a rejected drag commit still releases local gesture state`, () => {
+		const dragGesture = clock.begin()
+		beginSvgDrag({
+			element: {} as Element,
+			gesture: dragGesture,
+			point: { x: 10, y: 10 },
+			pointerId: 11,
+			target: { kind: `node`, subpathId: `a1` },
+		})
+		previewSvgDrag({ x: 30, y: 40 })
+		const deleteGesture = clock.begin()
+		runTransaction(
+			deleteSubpathTransaction,
+			deleteGesture.id,
+		)({
+			gesture: deleteGesture,
+			pathId: `path-a`,
+			subpathId: `a1`,
+		})
+
+		expect(() => {
+			finishSvgDrag({ commit: true })
+		}).toThrow(`Cannot move a missing or closing SVG node`)
+		expect(getState(activeDragAtom)).toBeNull()
+		expect(getState(pointerCaptureAtom)).toBeNull()
+		expect(
+			getState(dragPresenceAtoms, svgDragPresenceKey(dragGesture)),
+		).toBeNull()
 	})
 
 	test(`the bundled parser expands repeated commands into complete members`, () => {
@@ -258,5 +391,11 @@ describe(`SVG editor state`, () => {
 			{ edge: { kind: `line` }, id: `subpath2`, node: { x: 10, y: 10 } },
 			{ edge: { kind: `close` }, id: `subpath3`, node: null },
 		])
+		expect(() =>
+			parsePreactLogo(`<svg><path d="M0 0H10 20"></path></svg>`),
+		).toThrow(`Unsupported SVG path command H`)
+		expect(() => parsePreactLogo(`<svg><path d="M0 0L"></path></svg>`)).toThrow(
+			`SVG path command L is incomplete`,
+		)
 	})
 })

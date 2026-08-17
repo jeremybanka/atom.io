@@ -16,6 +16,9 @@ placements at the same rank use stable entry identity as their tie-breaker.
 Geometry and entity members use deterministic last-operation-wins registers.
 Both reducers are independent of delivery order, reject operation-ID collisions,
 and publish strict Zod schemas for the future MOS-11 member-model hook.
+Register receipts remain in the fixture state so that reuse of a superseded
+operation ID still fails closed regardless of delivery order. Bounding those
+receipts is deliberately reserved for MOS-16 model-aware compaction.
 
 The local structural operations are transactions. Import validates the complete
 fixture before writing. Insert, delete, split, and reorder update every required
@@ -32,13 +35,15 @@ totally ordered operation identities from it.
 Pointer moves update only ephemeral presence in SVG document coordinates. The
 ordinary drawing selector projects that preview for immediate feedback. Pointer-up
 coalesces the entire drag into one durable geometry transaction; cancellation
-drops the presence and writes nothing durable. A disconnect can therefore expire
-the preview rather than leaving partially committed geometry.
+drops the presence and writes nothing durable. Rejection still releases local
+pointer and presence state. A disconnect can therefore expire the preview rather
+than leaving partially committed geometry.
 
 DOM references, the actual pointer-capture owner, active drag, zoom, pan,
-selection, and workspace state have explicit local atoms. Presence carries a
-logical resource target and coordinates, never a DOM identity or client viewport
-coordinate.
+selection, and workspace state have explicit local atoms. Presence is keyed by
+logical actor and session, so concurrent sessions for one identity cannot
+overwrite or clear each other. It carries a logical resource target and
+coordinates, never a DOM identity or client viewport coordinate.
 
 ## Why This Takes Its Own Path
 

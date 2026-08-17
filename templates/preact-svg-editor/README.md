@@ -12,7 +12,8 @@ editing with Mosaic Domains.
 - selector families that derive SVG path data from the ordinary state graph
 - atomic transactions for import, insert, delete, split, reorder, and geometry
   gestures
-- logical-coordinate drag presence with one durable commit at pointer-up
+- actor/session-scoped logical-coordinate drag presence with one durable commit
+  at pointer-up
 - explicit local-only workspace, viewport, DOM reference, pointer capture, and
   active-drag state
 - `useAtomicRef` for keeping the local SVG element available to atom.io logic

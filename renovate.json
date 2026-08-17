@@ -63,6 +63,7 @@
 				"renovatebot/github-action",
 				"ghcr.io/renovatebot/renovate"
 			],
+			"dependencyDashboardApproval": true,
 			"groupName": "renovate",
 			"minimumReleaseAge": null
 		},

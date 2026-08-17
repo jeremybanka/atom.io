@@ -7,6 +7,8 @@
 		"landingUrl": "https://www.gutenberg.org/ebooks/100",
 		"sourceUrl": "https://www.gutenberg.org/cache/epub/100/pg100.txt",
 		"mirrorUrl": "https://github.com/jeremybanka/atom.io/releases/download/test-corpus-pg100-2026-08-13/pg100-3cf4b3d44ee14cff.txt",
+		"mirrorReleaseUrl": "https://github.com/jeremybanka/atom.io/releases/tag/test-corpus-pg100-2026-08-13",
+		"mirrorPublishedAt": "2026-08-14T23:40:11Z",
 		"retrievedAt": "2026-08-13",
 		"bytes": 5638480,
 		"lines": 196398,

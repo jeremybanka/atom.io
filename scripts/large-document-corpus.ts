@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto"
+import { createHash, randomUUID } from "node:crypto"
 import { createReadStream } from "node:fs"
 import fs from "node:fs/promises"
 import os from "node:os"
@@ -9,6 +9,14 @@ import manifestJson from "../test-corpus/large-document/manifest.json" with { ty
 
 const FIFTY_MEBIBYTES = 50 * 1024 * 1024
 const CACHE_ENV = `ATOM_IO_LARGE_DOCUMENT_CACHE`
+
+export const VARIANT_IDS = [
+	`fenced`,
+	`headingRich`,
+	`repeated50MiB`,
+	`unicodeAdversarial`,
+	`veryLongParagraph`,
+] as const
 
 export type FileIdentity = {
 	bytes: number
@@ -26,6 +34,8 @@ export type CorpusManifest = {
 			status: string
 		}
 		lines: number
+		mirrorPublishedAt: string
+		mirrorReleaseUrl: string
 		mirrorUrl: string
 		provenance: string
 		retrievedAt: string
@@ -35,12 +45,7 @@ export type CorpusManifest = {
 	variants: Record<VariantId, VariantManifest>
 }
 
-export type VariantId =
-	| `fenced`
-	| `headingRich`
-	| `repeated50MiB`
-	| `unicodeAdversarial`
-	| `veryLongParagraph`
+export type VariantId = (typeof VARIANT_IDS)[number]
 
 export type VariantManifest = FileIdentity & {
 	description: string
@@ -65,11 +70,36 @@ export type CacheLayout = {
 
 export const manifest = validateManifest(manifestJson)
 
-export function resolveCacheRoot(env = process.env): string {
+export function resolveCacheRoot(
+	env: NodeJS.ProcessEnv = process.env,
+	platform: NodeJS.Platform = process.platform,
+	homeDirectory = os.homedir(),
+): string {
 	const configured = env[CACHE_ENV]?.trim()
 	if (configured) return path.resolve(configured)
 
-	return path.join(os.homedir(), `.cache`, `atom.io`, `large-document-corpus`)
+	if (platform === `darwin`) {
+		return path.join(
+			homeDirectory,
+			`Library`,
+			`Caches`,
+			`atom.io`,
+			`large-document-corpus`,
+		)
+	}
+	if (platform === `win32`) {
+		return path.join(
+			env[`LOCALAPPDATA`] ?? path.join(homeDirectory, `AppData`, `Local`),
+			`atom.io`,
+			`large-document-corpus`,
+		)
+	}
+
+	return path.join(
+		env[`XDG_CACHE_HOME`] ?? path.join(homeDirectory, `.cache`),
+		`atom.io`,
+		`large-document-corpus`,
+	)
 }
 
 export function resolveCacheLayout(cacheRoot = resolveCacheRoot()): CacheLayout {
@@ -123,20 +153,36 @@ export async function prepareCorpus(options?: {
 	fetchImpl?:
 		| ((input: string, init?: RequestInit) => Promise<Response>)
 		| undefined
+	refresh?: boolean | undefined
 	source?: `mirror` | `upstream`
 }): Promise<{
 	downloaded: boolean
 	identity: FileIdentity
+	recovered: boolean
+	refreshed: boolean
 	sourcePath: string
 }> {
 	const layout = resolveCacheLayout(options?.cacheRoot)
 	const source = options?.source ?? `mirror`
+	let cachedFileExists = false
+	let recovered = false
 
 	if (await fileExists(layout.sourcePath)) {
-		return {
-			downloaded: false,
-			identity: await verifySource(layout.sourcePath),
-			sourcePath: layout.sourcePath,
+		cachedFileExists = true
+		try {
+			const identity = await verifySource(layout.sourcePath)
+			if (!options?.refresh) {
+				return {
+					downloaded: false,
+					identity,
+					recovered: false,
+					refreshed: false,
+					sourcePath: layout.sourcePath,
+				}
+			}
+		} catch (error) {
+			if (!(error instanceof CorpusIntegrityError)) throw error
+			recovered = true
 		}
 	}
 
@@ -151,7 +197,7 @@ export async function prepareCorpus(options?: {
 		)
 	}
 
-	const temporaryPath = `${layout.sourcePath}.${process.pid}.tmp`
+	const temporaryPath = `${layout.sourcePath}.${process.pid}.${randomUUID()}.tmp`
 	let identity: FileIdentity
 	try {
 		identity = await streamVerifiedDownload(response, temporaryPath)
@@ -159,19 +205,25 @@ export async function prepareCorpus(options?: {
 		await fs.rm(temporaryPath, { force: true })
 		const detail = error instanceof Error ? ` ${error.message}` : ``
 		throw new Error(
-			`Downloaded corpus did not match the pinned manifest.${detail} No file was accepted. If the upstream edition intentionally changed, verify its provenance and update the manifest and first-party release asset together.`,
+			`Downloaded corpus did not match the pinned manifest.${detail} No file was accepted. The previous cache entry, if any, was left in place. If the upstream edition intentionally changed, verify its provenance and publish the replacement first-party asset before updating the manifest.`,
 			{ cause: error },
 		)
 	}
 
 	try {
-		await fs.rename(temporaryPath, layout.sourcePath)
+		await replaceFile(temporaryPath, layout.sourcePath)
 	} catch (error) {
 		await fs.rm(temporaryPath, { force: true })
 		throw error
 	}
 
-	return { downloaded: true, identity, sourcePath: layout.sourcePath }
+	return {
+		downloaded: true,
+		identity,
+		recovered,
+		refreshed: cachedFileExists && !recovered,
+		sourcePath: layout.sourcePath,
+	}
 }
 
 async function streamVerifiedDownload(
@@ -181,18 +233,22 @@ async function streamVerifiedDownload(
 	if (!response.body) throw new Error(`Download response had no body.`)
 
 	const reader = response.body.getReader()
-	const handle = await fs.open(temporaryPath, `wx`)
+	let handle: Awaited<ReturnType<typeof fs.open>> | undefined
 	const hash = createHash(`sha256`)
 	let bytes = 0
+	let consumed = false
 
 	try {
+		handle = await fs.open(temporaryPath, `wx`)
 		while (true) {
 			const result = await reader.read()
-			if (result.done) break
+			if (result.done) {
+				consumed = true
+				break
+			}
 
 			bytes += result.value.byteLength
 			if (bytes > manifest.corpus.bytes) {
-				await reader.cancel(`Pinned corpus byte count exceeded.`)
 				throw new Error(
 					`Download exceeded the pinned ${manifest.corpus.bytes}-byte limit.`,
 				)
@@ -202,7 +258,11 @@ async function streamVerifiedDownload(
 			await writeComplete(handle, result.value)
 		}
 	} finally {
-		await handle.close()
+		if (!consumed) {
+			await reader.cancel(`Corpus download did not complete.`).catch(() => {})
+		}
+		reader.releaseLock()
+		await handle?.close()
 	}
 
 	const identity = { bytes, sha256: hash.digest(`hex`) }
@@ -300,11 +360,13 @@ export async function deriveVariants(options?: {
 
 		if (options?.enforceManifest !== false) {
 			for (const [id, actual] of Object.entries(variants)) {
-				assertIdentity(
-					`variant ${id}`,
-					actual,
-					manifest.variants[id as VariantId],
-				)
+				const expected = manifest.variants[id as VariantId]
+				if (actual.filename !== expected.filename) {
+					throw new Error(
+						`variant ${id} used ${actual.filename}; expected ${expected.filename}.`,
+					)
+				}
+				assertIdentity(`variant ${id}`, actual, expected)
 			}
 		}
 
@@ -370,24 +432,74 @@ export function makeUnicodeAdversarial(rows = 8192): string {
 	return output
 }
 
-function validateManifest(value: unknown): CorpusManifest {
-	if (!value || typeof value !== `object`) {
-		throw new TypeError(`Large-document corpus manifest must be an object.`)
+export function validateManifest(value: unknown): CorpusManifest {
+	const candidate = expectRecord(value, `manifest`)
+	if (candidate[`schemaVersion`] !== 1) {
+		throw new TypeError(`Manifest schemaVersion must be 1.`)
 	}
 
-	const candidate = value as CorpusManifest
+	const corpus = expectRecord(candidate[`corpus`], `manifest.corpus`)
+	expectNonEmptyString(corpus[`id`], `manifest.corpus.id`)
+	expectNonEmptyString(corpus[`title`], `manifest.corpus.title`)
+	expectNonEmptyString(corpus[`author`], `manifest.corpus.author`)
+	expectHttpsUrl(corpus[`landingUrl`], `manifest.corpus.landingUrl`)
+	expectHttpsUrl(corpus[`sourceUrl`], `manifest.corpus.sourceUrl`)
+	expectHttpsUrl(corpus[`mirrorUrl`], `manifest.corpus.mirrorUrl`)
+	expectHttpsUrl(corpus[`mirrorReleaseUrl`], `manifest.corpus.mirrorReleaseUrl`)
+	expectTimestamp(
+		corpus[`mirrorPublishedAt`],
+		`manifest.corpus.mirrorPublishedAt`,
+	)
+	expectDate(corpus[`retrievedAt`], `manifest.corpus.retrievedAt`)
+	expectPositiveInteger(corpus[`bytes`], `manifest.corpus.bytes`)
+	expectPositiveInteger(corpus[`lines`], `manifest.corpus.lines`)
+	expectDigest(corpus[`sha256`], `manifest.corpus.sha256`)
+	expectNonEmptyString(corpus[`provenance`], `manifest.corpus.provenance`)
+	const license = expectRecord(corpus[`license`], `manifest.corpus.license`)
+	expectNonEmptyString(license[`status`], `manifest.corpus.license.status`)
+	expectNonEmptyString(license[`note`], `manifest.corpus.license.note`)
+
+	const variants = expectRecord(candidate[`variants`], `manifest.variants`)
+	const variantKeys = Object.keys(variants).sort()
+	const requiredKeys = [...VARIANT_IDS].sort()
 	if (
-		candidate.schemaVersion !== 1 ||
-		!candidate.corpus?.id ||
-		!candidate.corpus.sha256 ||
-		candidate.corpus.bytes <= 0 ||
-		!candidate.corpus.mirrorUrl ||
-		!candidate.variants
+		variantKeys.length !== requiredKeys.length ||
+		variantKeys.some((key, index) => key !== requiredKeys[index])
 	) {
-		throw new TypeError(`Large-document corpus manifest is incomplete.`)
+		throw new TypeError(
+			`manifest.variants must contain exactly: ${requiredKeys.join(`, `)}.`,
+		)
 	}
 
-	return candidate
+	const filenames = new Set<string>()
+	for (const id of VARIANT_IDS) {
+		const label = `manifest.variants.${id}`
+		const variant = expectRecord(variants[id], label)
+		const filename = expectNonEmptyString(
+			variant[`filename`],
+			`${label}.filename`,
+		)
+		if (
+			filename === `.` ||
+			filename === `..` ||
+			filename === `report.json` ||
+			/[\\/]/u.test(filename) ||
+			!filename.endsWith(`.md`)
+		) {
+			throw new TypeError(
+				`${label}.filename must be a unique Markdown basename other than report.json.`,
+			)
+		}
+		if (filenames.has(filename)) {
+			throw new TypeError(`Duplicate variant filename: ${filename}.`)
+		}
+		filenames.add(filename)
+		expectNonEmptyString(variant[`description`], `${label}.description`)
+		expectPositiveInteger(variant[`bytes`], `${label}.bytes`)
+		expectDigest(variant[`sha256`], `${label}.sha256`)
+	}
+
+	return value as CorpusManifest
 }
 
 function identityOf(buffer: Uint8Array): FileIdentity {
@@ -403,10 +515,73 @@ function assertIdentity(
 	expected: FileIdentity,
 ): void {
 	if (actual.bytes !== expected.bytes || actual.sha256 !== expected.sha256) {
-		throw new Error(
+		throw new CorpusIntegrityError(
 			`${label} failed integrity verification: expected ${expected.bytes} bytes / ${expected.sha256}, received ${actual.bytes} bytes / ${actual.sha256}.`,
 		)
 	}
+}
+
+class CorpusIntegrityError extends Error {
+	public override name = `CorpusIntegrityError`
+}
+
+function expectRecord(value: unknown, label: string): Record<string, unknown> {
+	if (!value || typeof value !== `object` || Array.isArray(value)) {
+		throw new TypeError(`${label} must be an object.`)
+	}
+	return value as Record<string, unknown>
+}
+
+function expectNonEmptyString(value: unknown, label: string): string {
+	if (typeof value !== `string` || value.trim().length === 0) {
+		throw new TypeError(`${label} must be a non-empty string.`)
+	}
+	return value
+}
+
+function expectPositiveInteger(value: unknown, label: string): number {
+	if (typeof value !== `number` || !Number.isInteger(value) || value <= 0) {
+		throw new TypeError(`${label} must be a positive integer.`)
+	}
+	return value
+}
+
+function expectDigest(value: unknown, label: string): string {
+	const digest = expectNonEmptyString(value, label)
+	if (!/^[a-f\d]{64}$/u.test(digest)) {
+		throw new TypeError(`${label} must be a lowercase SHA-256 digest.`)
+	}
+	return digest
+}
+
+function expectHttpsUrl(value: unknown, label: string): string {
+	const source = expectNonEmptyString(value, label)
+	let url: URL
+	try {
+		url = new URL(source)
+	} catch (error) {
+		throw new TypeError(`${label} must be a valid HTTPS URL.`, { cause: error })
+	}
+	if (url.protocol !== `https:`) {
+		throw new TypeError(`${label} must be a valid HTTPS URL.`)
+	}
+	return source
+}
+
+function expectDate(value: unknown, label: string): string {
+	const date = expectNonEmptyString(value, label)
+	if (!/^\d{4}-\d{2}-\d{2}$/u.test(date) || Number.isNaN(Date.parse(date))) {
+		throw new TypeError(`${label} must be an ISO calendar date.`)
+	}
+	return date
+}
+
+function expectTimestamp(value: unknown, label: string): string {
+	const timestamp = expectNonEmptyString(value, label)
+	if (Number.isNaN(Date.parse(timestamp))) {
+		throw new TypeError(`${label} must be an ISO timestamp.`)
+	}
+	return timestamp
 }
 
 async function writeVariant(
@@ -454,10 +629,27 @@ async function fileExists(filePath: string): Promise<boolean> {
 	}
 }
 
+async function replaceFile(
+	sourcePath: string,
+	targetPath: string,
+): Promise<void> {
+	try {
+		await fs.rename(sourcePath, targetPath)
+	} catch (error) {
+		if (!hasErrorCode(error, `EEXIST`, `EACCES`, `EPERM`)) throw error
+		await fs.rm(targetPath, { force: true })
+		await fs.rename(sourcePath, targetPath)
+	}
+}
+
 function isMissingFile(error: unknown): boolean {
+	return hasErrorCode(error, `ENOENT`)
+}
+
+function hasErrorCode(error: unknown, ...codes: string[]): boolean {
 	return (
 		error instanceof Error &&
 		`code` in error &&
-		(error as NodeJS.ErrnoException).code === `ENOENT`
+		codes.includes((error as NodeJS.ErrnoException).code ?? ``)
 	)
 }

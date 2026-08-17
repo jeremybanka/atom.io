@@ -60,7 +60,10 @@ const textModel = {
 
 async function fixture(
 	name: string,
-	model = registerModel(),
+	model: MosaicDomainValueModel<
+		number,
+		{ from: number; to: number; type: `set` }
+	> = registerModel(),
 	silo = new Silo({ isProduction: false, lifespan: `ephemeral`, name }),
 ) {
 	const countAtom = silo.atom<number>({ default: 0, key: `count` })
@@ -484,6 +487,140 @@ describe(`Mosaic Domain transaction bridge`, () => {
 		).toEqual([5, 6])
 		expect(serverState.silo.getState(serverState.countAtom)).toBe(6)
 		expect(clientState.silo.getState(clientState.countAtom)).toBe(6)
+	})
+
+	test(`fails closed for a durable member without a transaction encoder`, async () => {
+		const model = registerModel()
+		const state = await fixture(`bridge-missing-encoder`, {
+			identity: model.identity,
+			kind: model.kind,
+			operationSchema: model.operationSchema,
+			reduce: model.reduce,
+		})
+		const proposed = vitest.fn()
+		const client = createMosaicDomainBatchClient({
+			actor: `alice`,
+			domain: state.domain,
+			session: `session-a`,
+			transport: {
+				propose: proposed,
+				recover: () => Promise.resolve({ headRevision: 0, tail: [] }),
+				subscribe: () => () => undefined,
+			},
+		})
+		await client.start()
+		const updateTransaction = state.silo.transaction<() => void>({
+			do: ({ set }) => {
+				set(state.countAtom, 1)
+			},
+			key: `update`,
+		})
+		const bridge = createMosaicDomainTransactionBridge({
+			client,
+			domain: state.domain,
+			transactions: [updateTransaction],
+		})
+
+		state.silo.runTransaction(updateTransaction)()
+		await expect(bridge.flush()).rejects.toThrow(`has no transaction encoder`)
+		expect(state.silo.getState(state.countAtom)).toBe(1)
+		expect(proposed).not.toHaveBeenCalled()
+		await expect(bridge.retry()).rejects.toThrow(`has no transaction encoder`)
+
+		bridge[Symbol.dispose]()
+		bridge[Symbol.dispose]()
+	})
+
+	test(`fails closed for direct transceiver snapshots and mixed signal groups`, async () => {
+		const state = await fixture(`bridge-transceiver-boundaries`)
+		const proposed = vitest.fn()
+		const client = createMosaicDomainBatchClient({
+			actor: `alice`,
+			domain: state.domain,
+			session: `session-a`,
+			transport: {
+				propose: proposed,
+				recover: () => Promise.resolve({ headRevision: 0, tail: [] }),
+				subscribe: () => () => undefined,
+			},
+		})
+		await client.start()
+		const snapshotTransaction = state.silo.transaction<() => void>({
+			do: ({ json, set }) => {
+				const replacement = new Text()
+				replacement.change(
+					{ text: `snapshot`, type: `replace-text` },
+					{
+						actor: `alice`,
+						dependencies: [],
+						group: `snapshot`,
+						id: `snapshot-operation`,
+						now: 0,
+						revision: null,
+						session: `session-a`,
+					},
+				)
+				set(json(state.textAtom), replacement.toJSON())
+			},
+			key: `snapshot`,
+		})
+		const snapshotBridge = createMosaicDomainTransactionBridge({
+			client,
+			domain: state.domain,
+			transactions: [snapshotTransaction],
+		})
+
+		state.silo.runTransaction(snapshotTransaction)()
+		await expect(snapshotBridge.flush()).rejects.toThrow(
+			`must change through model signals`,
+		)
+		expect(proposed).not.toHaveBeenCalled()
+		snapshotBridge[Symbol.dispose]()
+
+		const mixedGroupsTransaction = state.silo.transaction<() => void>({
+			do: ({ set }) => {
+				set(state.textAtom, (text) => {
+					text.change(
+						{ text: `first`, type: `replace-text` },
+						{
+							actor: `alice`,
+							dependencies: [],
+							group: `group-a`,
+							id: `group-a-operation`,
+							now: 1,
+							revision: null,
+							session: `session-a`,
+						},
+					)
+					text.change(
+						{ text: `second`, type: `replace-text` },
+						{
+							actor: `alice`,
+							dependencies: [],
+							group: `group-b`,
+							id: `group-b-operation`,
+							now: 2,
+							revision: null,
+							session: `session-a`,
+						},
+					)
+					return text
+				})
+			},
+			key: `mixedGroups`,
+		})
+		const groupBridge = createMosaicDomainTransactionBridge({
+			client,
+			domain: state.domain,
+			transactions: [mixedGroupsTransaction],
+		})
+
+		state.silo.runTransaction(mixedGroupsTransaction)()
+		await expect(groupBridge.flush()).rejects.toThrow(
+			`cannot combine different signal groups`,
+		)
+		expect(proposed).not.toHaveBeenCalled()
+		groupBridge[Symbol.dispose]()
 	})
 
 	test(`settles a bridged transaction through a realtime-testing topology`, async () => {

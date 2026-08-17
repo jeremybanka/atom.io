@@ -1,6 +1,6 @@
 # Long-form collaborative text corpus
 
-This harness pins Project Gutenberg ebook #100, _The Complete Works of William Shakespeare_, for the Mosaic Environment long-form collaborative text vertical (#700) without adding its 5.6 MB payload or generated variants to git. It implements MOS-20 (#679) and feeds the text-specific scalability gate (#680); it is not a corpus or release gate for the collaborative-design vertical.
+This harness pins Project Gutenberg ebook #100, _The Complete Works of William Shakespeare_, for the Mosaic Domain long-form collaborative text vertical (#700) without adding its 5.6 MB payload or generated variants to git. It implements MOS-20 (#679) and feeds the text-specific scalability gate (#680); it is not a corpus or release gate for the collaborative-design vertical.
 
 `pnpm corpus:large:prepare` is the clean-checkout preparation command. It verifies a cached source or downloads the published first-party GitHub Release asset into the external user cache. A corrupt cache entry is never accepted: preparation downloads and verifies a replacement before replacing that entry. Add `--refresh` to replace an otherwise valid entry intentionally. Live Gutenberg access happens only when an operator explicitly selects `--source=upstream`; the scheduled workflow and default preparation path use the first-party release.
 

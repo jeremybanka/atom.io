@@ -367,7 +367,6 @@ function operationForAction(
 		deleted: action.operation.deleted,
 		inserted: action.operation.insertedRunIds.map((id) => {
 			const run = state.runs[id]
-			if (run === undefined) throw new Error(`Invalid Mosaic text state`)
 			return {
 				after: run.after,
 				before: run.before,
@@ -375,6 +374,30 @@ function operationForAction(
 				text: indexRun(run).text,
 			}
 		}),
+		type: `edit`,
+	}
+}
+
+function canonicalTextOperation(
+	operation: MosaicTextOperation,
+): MosaicTextOperation {
+	if (operation.type === `history`) {
+		return {
+			mode: operation.mode,
+			targetOperationIds: [...operation.targetOperationIds],
+			type: `history`,
+		}
+	}
+	return {
+		deleted: normalizeDeletionIntervals(operation.deleted),
+		inserted: operation.inserted.map(({ after, before, id, text }) => ({
+			after:
+				after === null ? null : { offset: after.offset, runId: after.runId },
+			before:
+				before === null ? null : { offset: before.offset, runId: before.runId },
+			id,
+			text,
+		})),
 		type: `edit`,
 	}
 }
@@ -393,7 +416,7 @@ function applyTextOperation(
 			duplicate.session !== context.session ||
 			!sameTargets(duplicate.dependencies, context.dependencies) ||
 			JSON.stringify(operationForAction(state, duplicate)) !==
-				JSON.stringify(operation) ||
+				JSON.stringify(canonicalTextOperation(operation)) ||
 			(duplicate.revision !== null &&
 				context.revision !== null &&
 				duplicate.revision !== context.revision)
@@ -464,6 +487,21 @@ function boundaryIsWithinRun(
 		if (cursor === rootRunId) return true
 		seen.add(cursor)
 		cursor = state.runs[cursor]?.after?.runId ?? null
+	}
+	return false
+}
+
+function boundaryDescendsFrom(
+	state: MosaicTextState,
+	candidate: MosaicTextBoundary,
+	ancestor: MosaicTextBoundary,
+): boolean {
+	let cursor: MosaicTextRun | undefined = state.runs[candidate.runId]
+	const seen = new Set<string>()
+	while (cursor !== undefined && !seen.has(cursor.id)) {
+		seen.add(cursor.id)
+		if (sameBoundary(cursor.after, ancestor)) return true
+		cursor = cursor.after === null ? undefined : state.runs[cursor.after.runId]
 	}
 	return false
 }
@@ -581,13 +619,10 @@ function traverseText(state: MosaicTextState, options: TraverseOptions): number 
 	for (let index = children.roots.length - 1; index >= 0; index--) {
 		stack.push({ kind: `run`, run: children.roots[index] })
 	}
-	const visited = new Set<string>()
 	let utf16Offset = 0
 	while (stack.length > 0) {
 		const task = stack.pop()!
 		if (task.kind === `run`) {
-			if (visited.has(task.run.id)) continue
-			visited.add(task.run.id)
 			const eventOffsets = new Set<number>([0, task.run.graphemes])
 			const targets = options.boundaryTargets?.get(task.run.id)
 			if (targets !== undefined) {
@@ -1020,24 +1055,25 @@ function validateTextOperation(
 			}
 			const after = validateBoundary(state, candidate[`after`], missing)
 			const before = validateBoundary(state, candidate[`before`], missing)
+			let parsedAfter: MosaicTextBoundary | null
 			if (index > 0) {
 				const previous = inserted[index - 1]
-				const parsedAfter = parseBoundary(candidate[`after`])
+				const chainedAfter = parseBoundary(candidate[`after`])
 				if (
-					parsedAfter === undefined ||
-					!sameBoundary(parsedAfter, {
+					chainedAfter === undefined ||
+					!sameBoundary(chainedAfter, {
 						offset: splitMosaicText(previous.text).length,
 						runId: previous.id,
 					})
 				) {
 					return { reason: `Invalid inserted run chain.`, status: `reject` }
 				}
-			} else if (after.status === `invalid`) return after.decision
-			if (before.status === `invalid`) return before.decision
-			const parsedAfter = parseBoundary(candidate[`after`])
-			if (parsedAfter === undefined) {
-				return { reason: `Malformed run boundary.`, status: `reject` }
+				parsedAfter = chainedAfter
+			} else {
+				if (after.status === `invalid`) return after.decision
+				parsedAfter = after.boundary
 			}
+			if (before.status === `invalid`) return before.decision
 			inserted.push({
 				after: parsedAfter,
 				before: before.boundary,
@@ -1051,7 +1087,13 @@ function validateTextOperation(
 			if (first.after !== null && first.before !== null) {
 				const left = structuralBoundaryOffset(state, first.after)
 				const right = structuralBoundaryOffset(state, first.before)
-				if (left !== null && right !== null && left > right) {
+				if (
+					left !== null &&
+					right !== null &&
+					left > right &&
+					!boundaryDescendsFrom(state, first.after, first.before) &&
+					!boundaryDescendsFrom(state, first.before, first.after)
+				) {
 					return {
 						reason: `The insertion interval is inverted.`,
 						status: `reject`,
@@ -1147,7 +1189,10 @@ function snapshotFromState(state: MosaicTextState): MosaicTextSnapshot {
 	}
 }
 
-function validateCheckpointRun(value: unknown): MosaicTextRun {
+function validateCheckpointRun(
+	value: unknown,
+	limits: Pick<MosaicTextLimits, `maximumRunGraphemes` | `maximumRunUtf16Units`>,
+): MosaicTextRun {
 	if (
 		!isRecord(value) ||
 		!isId(value[`id`]) ||
@@ -1155,7 +1200,8 @@ function validateCheckpointRun(value: unknown): MosaicTextRun {
 		!isBoundedInteger(value[`graphemes`]) ||
 		(value[`graphemes`] as number) < 1 ||
 		!Array.isArray(value[`fragments`]) ||
-		value[`fragments`].length === 0
+		value[`fragments`].length === 0 ||
+		value[`fragments`].length > limits.maximumRunGraphemes
 	) {
 		throw new Error(`Invalid Mosaic text checkpoint run`)
 	}
@@ -1166,6 +1212,7 @@ function validateCheckpointRun(value: unknown): MosaicTextRun {
 	}
 	const fragments: MosaicTextRunFragment[] = []
 	let offset = 0
+	let utf16Units = 0
 	for (const fragment of value[`fragments`]) {
 		if (
 			!isRecord(fragment) ||
@@ -1175,8 +1222,14 @@ function validateCheckpointRun(value: unknown): MosaicTextRun {
 		) {
 			throw new Error(`Invalid Mosaic text checkpoint fragments`)
 		}
+		utf16Units += fragment[`text`].length
+		if (utf16Units > limits.maximumRunUtf16Units) {
+			throw new Error(`Invalid Mosaic text checkpoint run`)
+		}
 		const count = splitMosaicText(fragment[`text`]).length
-		if (count === 0) throw new Error(`Invalid Mosaic text checkpoint fragments`)
+		if (count === 0 || offset + count > limits.maximumRunGraphemes) {
+			throw new Error(`Invalid Mosaic text checkpoint fragments`)
+		}
 		fragments.push({ start: offset, text: fragment[`text`] })
 		offset += count
 	}
@@ -1216,7 +1269,7 @@ function hydrateMosaicText(
 	}
 	const checkpointRuns = new Map<string, MosaicTextRun>()
 	for (const candidate of snapshot[`runs`]) {
-		const run = validateCheckpointRun(candidate)
+		const run = validateCheckpointRun(candidate, limits)
 		if (
 			checkpointRuns.has(run.id) ||
 			run.graphemes > limits.maximumRunGraphemes ||
@@ -1248,6 +1301,13 @@ function hydrateMosaicText(
 		}
 		if (seenActions.has(id)) {
 			throw new Error(`Invalid Mosaic text checkpoint duplicate action`)
+		}
+		if (
+			dependencies.length > 10_000 ||
+			new Set(dependencies).size !== dependencies.length ||
+			dependencies.includes(id)
+		) {
+			throw new Error(`Invalid Mosaic text checkpoint dependencies`)
 		}
 		seenActions.add(id)
 		let wireOperation: MosaicTextOperation
@@ -1519,18 +1579,22 @@ export function exportMosaicTextSegments(
 	let current: { fragments: MosaicTextSegmentFragment[]; index: number } | null =
 		null
 	let currentGraphemes = 0
+	let currentUtf16Units = 0
 	const append = (fragment: MosaicTextSegmentFragment, count: number): void => {
 		if (
 			current === null ||
 			current.fragments.length >= maximumFragmentsPerSegment ||
-			currentGraphemes + count > maximumGraphemesPerSegment
+			currentGraphemes + count > maximumGraphemesPerSegment ||
+			currentUtf16Units + fragment.text.length > MAXIMUM_UTF16_LIMIT
 		) {
 			current = { fragments: [], index: segments.length }
 			segments.push(current)
 			currentGraphemes = 0
+			currentUtf16Units = 0
 		}
 		current.fragments.push(fragment)
 		currentGraphemes += count
+		currentUtf16Units += fragment.text.length
 	}
 	for (const run of Object.values(state.runs).sort((left, right) =>
 		compareMosaicIds(left.id, right.id),
@@ -1608,6 +1672,11 @@ export function importMosaicTextSegments(
 			continue
 		}
 		let graphemes = 0
+		let utf16Units = 0
+		const maximumUtf16Units = Math.min(
+			MAXIMUM_UTF16_LIMIT,
+			maximumGraphemesPerSegment * MAXIMUM_GRAPHEME_UTF16_UNITS,
+		)
 		for (const fragment of segment[`fragments`]) {
 			if (
 				!isRecord(fragment) ||
@@ -1617,6 +1686,10 @@ export function importMosaicTextSegments(
 				fragment[`text`].length === 0
 			) {
 				throw new Error(`Invalid Mosaic text segment fragment`)
+			}
+			utf16Units += fragment[`text`].length
+			if (utf16Units > maximumUtf16Units) {
+				throw new Error(`Mosaic text physical segment exceeds its bound`)
 			}
 			graphemes += splitMosaicText(fragment[`text`]).length
 		}

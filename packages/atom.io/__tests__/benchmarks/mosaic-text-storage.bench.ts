@@ -30,6 +30,24 @@ const graphemeNodeReference = Array.from(
 	}),
 )
 
+const runCheckpointBytes = JSON.stringify(runCheckpoint).length
+const graphemeNodeReferenceBytes = JSON.stringify(graphemeNodeReference).length
+const durableRunObjects = runCheckpoint.runs.length
+
+// These are intentionally generous gates rather than machine-sensitive timing
+// assertions. A run checkpoint must retain its order-of-magnitude storage and
+// resident-object advantage before serialization throughput is benchmarked.
+if (runCheckpointBytes * 10 >= graphemeNodeReferenceBytes) {
+	throw new Error(
+		`Run checkpoint exceeded 10% of the grapheme-node reference bytes`,
+	)
+}
+if (durableRunObjects * 100 >= GRAPHEME_COUNT) {
+	throw new Error(
+		`Durable run objects exceeded 1% of the grapheme-node reference objects`,
+	)
+}
+
 describe(`Mosaic text checkpoint serialization`, () => {
 	bench(`run-oriented checkpoint`, () => {
 		JSON.stringify(runCheckpoint)

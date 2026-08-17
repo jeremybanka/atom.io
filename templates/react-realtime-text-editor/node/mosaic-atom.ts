@@ -15,11 +15,18 @@ import {
 const idSchema = z.string().min(1).max(512)
 const nullableIdSchema = idSchema.nullable()
 
+const boundarySchema = z
+	.object({
+		offset: z.number().int().nonnegative().max(1_000_000),
+		runId: idSchema,
+	})
+	.strict()
+
 const relativePositionSchema = z
 	.object({
 		affinity: z.enum([`left`, `right`]),
-		leftId: nullableIdSchema,
-		rightId: nullableIdSchema,
+		offset: z.number().int().nonnegative().max(1_000_000),
+		runId: nullableIdSchema,
 	})
 	.strict()
 
@@ -33,19 +40,29 @@ const selectionSchema = z
 const operationSchema = z.discriminatedUnion(`type`, [
 	z
 		.object({
-			deletedIds: z.array(idSchema).max(200_000),
+			deleted: z
+				.array(
+					z
+						.object({
+							end: z.number().int().positive().max(1_000_000),
+							runId: idSchema,
+							start: z.number().int().nonnegative().max(1_000_000),
+						})
+						.strict(),
+				)
+				.max(16_384),
 			inserted: z
 				.array(
 					z
 						.object({
-							after: nullableIdSchema,
-							before: nullableIdSchema,
+							after: boundarySchema.nullable(),
+							before: boundarySchema.nullable(),
 							id: idSchema,
-							value: z.string().max(1_024),
+							text: z.string().min(1).max(4_000_000),
 						})
 						.strict(),
 				)
-				.max(200_000),
+				.max(16),
 			type: z.literal(`edit`),
 		})
 		.strict(),

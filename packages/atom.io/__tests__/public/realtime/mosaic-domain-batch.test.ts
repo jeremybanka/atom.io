@@ -1,6 +1,8 @@
 import { Silo } from "atom.io"
 import type { Json } from "atom.io/foundations/json"
 import {
+	applyMosaicDomainBatch,
+	assertMosaicDomainBatchEnvelope,
 	MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
 	mosaicDomain,
 	type MosaicDomainBatchEnvelope,
@@ -12,6 +14,9 @@ import {
 	mosaicText,
 	type MosaicTextOperation,
 	type MosaicTextSnapshot,
+	preflightMosaicDomainBatch,
+	reprojectMosaicDomainBatches,
+	revertMosaicDomainBatch,
 } from "atom.io/realtime"
 import {
 	createMosaicDomainBatchClient,
@@ -20,6 +25,8 @@ import {
 import {
 	createMosaicDomainBatchServer,
 	InMemoryMosaicDomainBatchStorage,
+	type MosaicDomainBatchAppendRequest,
+	type MosaicDomainBatchStorageAdapter,
 } from "atom.io/realtime-server"
 import { testMosaicDomainBatchStorageAdapter } from "atom.io/realtime-testing"
 import { headless } from "atom.io/realtime-testing/headless"
@@ -211,7 +218,7 @@ async function textFixture(name: string) {
 		instance: `document`,
 		store: silo.store,
 	})
-	return { domain, silo, textAtom }
+	return { domain, silo, textAtom, textModel }
 }
 
 const proposal = (
@@ -258,6 +265,531 @@ async function waitFor(
 }
 
 describe(`Mosaic Domain atomic batches`, () => {
+	test(`rejects every malformed or over-capacity envelope boundary`, async () => {
+		const state = await designFixture(`envelope-boundaries`)
+		const valid: MosaicDomainBatchEnvelope = {
+			...proposal(state.domain),
+			actor: `alice`,
+		}
+		expect(() => {
+			assertMosaicDomainBatchEnvelope(valid)
+		}).not.toThrow()
+		const firstAddress = valid.affectedMembers[0]
+		const secondOperation = valid.operations[1]
+		const malformed: unknown[] = [
+			null,
+			{ ...valid, protocolVersion: 2 },
+			{ ...valid, actor: `` },
+			{ ...valid, actor: `x`.repeat(513) },
+			{ ...valid, id: 1 },
+			{ ...valid, session: `` },
+			{ ...valid, group: 1 },
+			{ ...valid, dependencies: null },
+			{ ...valid, dependencies: [`same`, `same`] },
+			{ ...valid, dependencies: [``] },
+			{ ...valid, operations: null },
+			{ ...valid, operations: [] },
+			{ ...valid, affectedMembers: null },
+			{
+				...valid,
+				operations: [
+					{ ...valid.operations[0], operation: { invalid: undefined } },
+				],
+				affectedMembers: [firstAddress],
+			},
+			{ ...valid, operations: [null] },
+			{
+				...valid,
+				operations: [{ ...valid.operations[0], id: `` }],
+				affectedMembers: [firstAddress],
+			},
+			{
+				...valid,
+				operations: [
+					valid.operations[0],
+					{ ...secondOperation, id: valid.operations[0].id },
+				],
+			},
+			{ ...valid, affectedMembers: [firstAddress, firstAddress] },
+			{ ...valid, affectedMembers: [firstAddress] },
+			{
+				...valid,
+				affectedMembers: [
+					firstAddress,
+					{ ...valid.affectedMembers[1], key: `another-node` },
+				],
+			},
+		]
+		for (const value of malformed) {
+			expect(() => {
+				assertMosaicDomainBatchEnvelope(value as MosaicDomainBatchEnvelope)
+			}).toThrow()
+		}
+		expect(() => {
+			assertMosaicDomainBatchEnvelope(valid, {
+				maxBytes: 1,
+				maxMembers: 256,
+				maxOperations: 1024,
+			})
+		}).toThrow(`bytes`)
+		expect(() => {
+			assertMosaicDomainBatchEnvelope(valid, {
+				maxBytes: 256 * 1024,
+				maxMembers: 1,
+				maxOperations: 1024,
+			})
+		}).toThrow(`member count`)
+		expect(() => {
+			assertMosaicDomainBatchEnvelope(valid, {
+				maxBytes: 256 * 1024,
+				maxMembers: 256,
+				maxOperations: 1,
+			})
+		}).toThrow(`operation count`)
+	})
+
+	test(`rejects domain, model, operation, and value contract violations before settlement`, async () => {
+		const state = await designFixture(`preflight-contract-boundaries`)
+		const batch: MosaicDomainBatchEnvelope = {
+			...proposal(state.domain),
+			actor: `alice`,
+		}
+		await expect(
+			preflightMosaicDomainBatch(state.domain, {
+				...batch,
+				domain: { ...batch.domain, instance: `another-document` },
+			}),
+		).rejects.toThrow(`another domain`)
+		await expect(
+			preflightMosaicDomainBatch(state.domain, {
+				...batch,
+				operations: batch.operations.map((operation, index) =>
+					index === 0
+						? { ...operation, model: { key: `wrong`, version: 1 } }
+						: operation,
+				),
+			}),
+		).rejects.toThrow(`incompatible model metadata`)
+
+		const silo = new Silo({
+			isProduction: false,
+			lifespan: `ephemeral`,
+			name: `preflight-member-contracts`,
+		})
+		const localAtom = silo.atom<number>({ default: 0, key: `local` })
+		const unmodeledAtom = silo.atom<number>({ default: 0, key: `unmodeled` })
+		const memberDefinition = mosaicDomain({
+			configSchema: z.object({}),
+			key: `mos11-member-contracts`,
+			members: {
+				local: { role: `ephemeral`, schema: z.number(), token: localAtom },
+				unmodeled: {
+					role: `durable`,
+					schema: z.number(),
+					token: unmodeledAtom,
+				},
+			},
+			version: 1,
+		})
+		const memberDomain = await memberDefinition.activate({
+			config: {},
+			instance: `document`,
+			store: silo.store,
+		})
+		const memberBatch = (
+			member: `local` | `unmodeled`,
+		): MosaicDomainBatchEnvelope => {
+			const address = memberDomain.address(member)
+			return {
+				affectedMembers: [address],
+				actor: `alice`,
+				dependencies: [],
+				domain: memberDomain.identity,
+				group: null,
+				id: `${member}-batch`,
+				operations: [
+					{
+						address,
+						id: `${member}-operation`,
+						model: { key: `unused`, version: 1 },
+						operation: { type: `set` },
+					},
+				],
+				protocolVersion: MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
+				session: `session-a`,
+			}
+		}
+		await expect(
+			preflightMosaicDomainBatch(memberDomain, memberBatch(`local`)),
+		).rejects.toThrow(`is not durable`)
+		await expect(
+			preflightMosaicDomainBatch(memberDomain, memberBatch(`unmodeled`)),
+		).rejects.toThrow(`has no batch model`)
+		expect(silo.getState(localAtom)).toBe(0)
+		expect(silo.getState(unmodeledAtom)).toBe(0)
+
+		const unsafeSilo = new Silo({
+			isProduction: false,
+			lifespan: `ephemeral`,
+			name: `preflight-unsafe-models`,
+		})
+		const unsafeAtom = unsafeSilo.atom<number>({ default: 0, key: `unsafe` })
+		const nonserialOperationModel = {
+			identity: { key: `nonserial-operation`, version: 1 },
+			kind: `value`,
+			operationSchema: z
+				.object({ type: z.literal(`invalid-operation`) })
+				.transform(() => ({ invalid: undefined })),
+			reduce: () => 1,
+		} as unknown as MosaicDomainValueModel<number, Json.Serializable>
+		const nonserialValueModel = {
+			identity: { key: `nonserial-value`, version: 1 },
+			kind: `value`,
+			operationSchema: z.object({ type: z.literal(`invalid-value`) }),
+			reduce: () => ({ invalid: () => undefined }),
+		} as unknown as MosaicDomainValueModel<number, Json.Serializable>
+		const wireValueModel = {
+			identity: { key: `wire-value`, version: 1 },
+			kind: `value`,
+			operationSchema: z.object({ type: z.literal(`wire-value`) }),
+			reduce: () => ({ toJSON: () => 42 }),
+		} as unknown as MosaicDomainValueModel<number, Json.Serializable>
+		const unsafeDefinition = mosaicDomain({
+			configSchema: z.object({}),
+			key: `mos11-unsafe-models`,
+			members: {
+				unsafe: {
+					model: nonserialOperationModel,
+					role: `durable`,
+					schema: z.number(),
+					token: unsafeAtom,
+				},
+			},
+			version: 1,
+		})
+		const unsafeDomain = await unsafeDefinition.activate({
+			config: {},
+			instance: `document`,
+			store: unsafeSilo.store,
+		})
+		const unsafeBatch = (
+			domain: MosaicDomainBatchEnvelope[`domain`],
+			address: MosaicDomainBatchEnvelope[`affectedMembers`][number],
+			model: MosaicDomainValueModel<number, Json.Serializable>,
+			operation: Json.Serializable,
+		): MosaicDomainBatchEnvelope => {
+			return {
+				affectedMembers: [address],
+				actor: `alice`,
+				dependencies: [],
+				domain,
+				group: null,
+				id: `unsafe-batch`,
+				operations: [
+					{
+						address,
+						id: `unsafe-operation`,
+						model: mosaicDomainMemberModelIdentity(model),
+						operation,
+					},
+				],
+				protocolVersion: MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
+				session: `session-a`,
+			}
+		}
+		await expect(
+			preflightMosaicDomainBatch(
+				unsafeDomain,
+				unsafeBatch(
+					unsafeDomain.identity,
+					unsafeDomain.address(`unsafe`),
+					nonserialOperationModel,
+					{ type: `invalid-operation` },
+				),
+			),
+		).rejects.toThrow(`non-serializable operation`)
+
+		unsafeDomain[Symbol.dispose]()
+		const valueDefinition = mosaicDomain({
+			configSchema: z.object({}),
+			key: `mos11-unsafe-models`,
+			members: {
+				unsafe: {
+					model: nonserialValueModel,
+					role: `durable`,
+					schema: z.number(),
+					token: unsafeAtom,
+				},
+			},
+			version: 1,
+		})
+		const valueDomain = await valueDefinition.activate({
+			config: {},
+			instance: `value-document`,
+			store: unsafeSilo.store,
+		})
+		const valueAddress = valueDomain.address(`unsafe`)
+		const valueBatch: MosaicDomainBatchEnvelope = {
+			...unsafeBatch(valueDomain.identity, valueAddress, nonserialValueModel, {
+				type: `invalid-value`,
+			}),
+			affectedMembers: [valueAddress],
+			domain: valueDomain.identity,
+			operations: [
+				{
+					address: valueAddress,
+					id: `unsafe-value-operation`,
+					model: mosaicDomainMemberModelIdentity(nonserialValueModel),
+					operation: { type: `invalid-value` },
+				},
+			],
+		}
+		await expect(
+			preflightMosaicDomainBatch(valueDomain, valueBatch),
+		).rejects.toThrow(`non-serializable value`)
+
+		valueDomain[Symbol.dispose]()
+		const wireDefinition = mosaicDomain({
+			configSchema: z.object({}),
+			key: `mos11-unsafe-models`,
+			members: {
+				unsafe: {
+					model: wireValueModel,
+					role: `durable`,
+					schema: z.number(),
+					token: unsafeAtom,
+				},
+			},
+			version: 1,
+		})
+		const wireDomain = await wireDefinition.activate({
+			config: {},
+			instance: `wire-document`,
+			store: unsafeSilo.store,
+		})
+		const wireAddress = wireDomain.address(`unsafe`)
+		const prepared = await preflightMosaicDomainBatch(wireDomain, {
+			...unsafeBatch(wireDomain.identity, wireAddress, wireValueModel, {
+				type: `wire-value`,
+			}),
+			affectedMembers: [wireAddress],
+			domain: wireDomain.identity,
+			operations: [
+				{
+					address: wireAddress,
+					id: `wire-operation`,
+					model: mosaicDomainMemberModelIdentity(wireValueModel),
+					operation: { type: `wire-value` },
+				},
+			],
+		})
+		applyMosaicDomainBatch(prepared)
+		expect(unsafeSilo.getState(unsafeAtom)).toBe(42)
+
+		const text = await textFixture(`preflight-text-decisions`)
+		const textAddress = text.domain.address(`text`)
+		const missingAnchor: MosaicTextOperation = {
+			deletedIds: [],
+			inserted: [
+				{
+					after: `missing-anchor`,
+					before: null,
+					id: `text-decision-operation:node:000000`,
+					value: `X`,
+				},
+			],
+			type: `edit`,
+		}
+		const textBatch = (
+			dependencies: readonly string[],
+		): MosaicDomainBatchEnvelope => ({
+			affectedMembers: [textAddress],
+			actor: `alice`,
+			dependencies,
+			domain: text.domain.identity,
+			group: null,
+			id: `text-decision-batch`,
+			operations: [
+				{
+					address: textAddress,
+					id: `text-decision-operation`,
+					model: mosaicDomainMemberModelIdentity(text.textModel),
+					operation: missingAnchor,
+				},
+			],
+			protocolVersion: MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
+			session: `session-a`,
+		})
+		await expect(
+			preflightMosaicDomainBatch(text.domain, textBatch([`future-batch`])),
+		).rejects.toThrow(`missing model dependencies`)
+		await expect(
+			preflightMosaicDomainBatch(text.domain, textBatch([])),
+		).rejects.toThrow(`Unknown predecessor anchor`)
+	})
+
+	test(`keeps prepared batches capability-bound across apply, revert, and reprojection`, async () => {
+		const state = await designFixture(`prepared-capabilities`)
+		const batch: MosaicDomainBatchEnvelope = {
+			...proposal(state.domain),
+			actor: `alice`,
+		}
+		const prepared = await preflightMosaicDomainBatch(state.domain, batch)
+		applyMosaicDomainBatch(prepared)
+		applyMosaicDomainBatch(prepared)
+		expect(state.silo.getState(state.pathsAtom)).toEqual([`p1`])
+		await expect(
+			reprojectMosaicDomainBatches(state.domain, [prepared, prepared], []),
+		).rejects.toThrow(`removed twice`)
+		await reprojectMosaicDomainBatches(state.domain, [prepared], [])
+		expect(state.silo.getState(state.pathsAtom)).toEqual([])
+		revertMosaicDomainBatch(prepared)
+		await expect(
+			reprojectMosaicDomainBatches(state.domain, [prepared], []),
+		).rejects.toThrow(`only applied batches`)
+		expect(() => {
+			applyMosaicDomainBatch({ batch, members: batch.affectedMembers })
+		}).toThrow(`cannot be forged`)
+		state.domain[Symbol.dispose]()
+		await expect(
+			preflightMosaicDomainBatch(state.domain, batch),
+		).rejects.toThrow(`disposed`)
+	})
+
+	test(`fails closed across client recovery and lifecycle boundaries`, async () => {
+		const makeAccepted = (
+			state: Awaited<ReturnType<typeof designFixture>>,
+			revision: number,
+			id: string,
+			path: string,
+		) => ({
+			batch: {
+				...proposal(state.domain, {
+					id,
+					operations: proposal(state.domain).operations.map(
+						(operation, index) => ({
+							...operation,
+							id: `${id}-operation-${index}`,
+							operation:
+								index === 0
+									? { path, type: `append` }
+									: { type: `move`, x: revision, y: revision },
+						}),
+					),
+				}),
+				actor: `bob`,
+			},
+			revision,
+		})
+
+		const gapState = await designFixture(`client-recovery-gap`)
+		const gap = createMosaicDomainBatchClient({
+			actor: `alice`,
+			domain: gapState.domain,
+			session: `session-a`,
+			transport: {
+				propose: () => Promise.reject(new Error(`not used`)),
+				recover: () =>
+					Promise.resolve({
+						headRevision: 2,
+						tail: [makeAccepted(gapState, 2, `gap`, `gap`)],
+					}),
+				subscribe: () => () => undefined,
+			},
+		})
+		await expect(gap.start()).rejects.toThrow(`recovery gap`)
+		expect(gap.state.status).toBe(`rejected`)
+
+		const incompleteState = await designFixture(`client-incomplete-recovery`)
+		const incomplete = createMosaicDomainBatchClient({
+			actor: `alice`,
+			domain: incompleteState.domain,
+			session: `session-a`,
+			transport: {
+				propose: () => Promise.reject(new Error(`not used`)),
+				recover: () => Promise.resolve({ headRevision: 1, tail: [] }),
+				subscribe: () => () => undefined,
+			},
+		})
+		await expect(incomplete.start()).rejects.toThrow(`incomplete tail`)
+		expect(incomplete.state.status).toBe(`rejected`)
+
+		const offlineState = await designFixture(`client-offline-recovery`)
+		const offline = createMosaicDomainBatchClient({
+			actor: `alice`,
+			domain: offlineState.domain,
+			session: `session-a`,
+			transport: {
+				propose: () => Promise.reject(new Error(`not used`)),
+				recover: () => Promise.reject(new Error(`network unavailable`)),
+				subscribe: () => () => undefined,
+			},
+		})
+		await expect(offline.start()).rejects.toThrow(`network unavailable`)
+		expect(offline.state.status).toBe(`offline`)
+
+		const liveState = await designFixture(`client-lifecycle`)
+		let broadcast:
+			| ((accepted: ReturnType<typeof makeAccepted>) => void)
+			| undefined
+		let unsubscribeCount = 0
+		const live = createMosaicDomainBatchClient({
+			actor: `alice`,
+			domain: liveState.domain,
+			session: `session-a`,
+			transport: {
+				propose: () => Promise.reject(new Error(`not used`)),
+				recover: () => Promise.resolve({ headRevision: 0, tail: [] }),
+				subscribe: (listener) => {
+					broadcast = listener
+					return () => {
+						unsubscribeCount++
+					}
+				},
+			},
+		})
+		const listenerErrors = vitest
+			.spyOn(liveState.silo.store.logger, `error`)
+			.mockImplementation(() => undefined)
+		let firstNotification = true
+		live.subscribe(() => {
+			if (firstNotification) firstNotification = false
+			else throw new Error(`client listener failed`)
+		})
+		await live.start()
+		expect(listenerErrors).toHaveBeenCalled()
+		await live.start()
+		await expect(live.submit([])).rejects.toThrow(`at least one operation`)
+		const first = makeAccepted(liveState, 1, `accepted-1`, `one`)
+		broadcast?.(first)
+		await waitFor(
+			() => live.state.revision === 1,
+			`Client did not reach revision 1`,
+		)
+		broadcast?.(first)
+		const second = makeAccepted(liveState, 2, `accepted-2`, `two`)
+		broadcast?.(second)
+		await waitFor(
+			() => live.state.revision === 2,
+			`Client did not reach revision 2`,
+		)
+		broadcast?.(first)
+		await new Promise<void>((resolve) => setTimeout(resolve, 0))
+		expect(live.state.revision).toBe(2)
+		live[Symbol.dispose]()
+		live[Symbol.dispose]()
+		expect(unsubscribeCount).toBe(1)
+		await expect(live.start()).rejects.toThrow(`disposed`)
+		await expect(live.flush()).rejects.toThrow(`disposed`)
+		await expect(
+			live.submit({
+				address: liveState.domain.address(`paths`),
+				operation: { path: `never`, type: `append` },
+			}),
+		).rejects.toThrow(`disposed`)
+		listenerErrors.mockRestore()
+	})
+
 	test(`settles heterogeneous members atomically for several clients`, async () => {
 		const serverState = await designFixture(`server`)
 		const aliceState = await designFixture(`alice`)
@@ -1415,6 +1947,25 @@ describe(`Mosaic Domain atomic batches`, () => {
 		expect((await storage.recover(state.domain.identity)).headRevision).toBe(1)
 	})
 
+	test(`rejects invalid in-memory storage revisions and recovery cursors`, async () => {
+		const state = await designFixture(`storage-revision-validation`)
+		const storage = new InMemoryMosaicDomainBatchStorage()
+		const batch: MosaicDomainBatchEnvelope = {
+			...proposal(state.domain),
+			actor: `alice`,
+		}
+		expect(() =>
+			storage.appendBatch({
+				accepted: { batch, revision: 2 },
+				expectedRevision: 0,
+				fingerprint: `invalid-revision`,
+			}),
+		).toThrow(`must use revision 1`)
+		expect(() => storage.recover(state.domain.identity, -1)).toThrow(
+			`must be non-negative`,
+		)
+	})
+
 	test(`publishes a reusable storage-adapter conformance fixture`, async () => {
 		await testMosaicDomainBatchStorageAdapter(
 			() => new InMemoryMosaicDomainBatchStorage(),
@@ -1466,6 +2017,318 @@ describe(`Mosaic Domain atomic batches`, () => {
 			status: `rejected`,
 		})
 		expect(server.revision).toBe(1)
+	})
+
+	test(`fails closed across server configuration, identity, authorization, and disposal boundaries`, async () => {
+		const state = await designFixture(`server-failure-boundaries`)
+		expect(() =>
+			createMosaicDomainBatchServer({
+				domain: state.domain,
+				limits: { maxPendingProposals: 0 },
+			}),
+		).toThrow(`maxPendingProposals`)
+		expect(() =>
+			createMosaicDomainBatchServer({
+				domain: state.domain,
+				limits: { maxBytes: 0 },
+			}),
+		).toThrow(`maxBytes`)
+		const server = createMosaicDomainBatchServer({ domain: state.domain })
+		expect(() => server.connect({ actor: ``, session: `session-a` })).toThrow(
+			`actor and session IDs`,
+		)
+		const connection = server.connect({ actor: `alice`, session: `session-a` })
+		await expect(
+			connection.propose({
+				...proposal(state.domain),
+				session: `another-session`,
+			}),
+		).resolves.toMatchObject({ rejection: { code: `invalid-payload` } })
+		await expect(
+			connection.propose({
+				...proposal(state.domain),
+				dependencies: [`missing`],
+			}),
+		).resolves.toMatchObject({ rejection: { code: `missing-dependency` } })
+		await expect(
+			connection.propose({
+				...proposal(state.domain),
+				uncloneable: () => undefined,
+			} as never),
+		).resolves.toMatchObject({ rejection: { code: `invalid-payload` } })
+
+		const deniedState = await designFixture(`server-authorization-error`)
+		const denied = createMosaicDomainBatchServer({
+			authorize: () => {
+				throw new Error(`authorization unavailable`)
+			},
+			domain: deniedState.domain,
+		})
+		await expect(
+			denied
+				.connect({ actor: `alice`, session: `session-a` })
+				.propose(proposal(deniedState.domain)),
+		).resolves.toMatchObject({ rejection: { code: `unauthorized` } })
+
+		const observedState = await designFixture(`server-listener-error`)
+		const observed = createMosaicDomainBatchServer({
+			domain: observedState.domain,
+		})
+		const observedErrors = vitest
+			.spyOn(observedState.silo.store.logger, `error`)
+			.mockImplementation(() => undefined)
+		observed.connect({ actor: `bob`, session: `session-b` }).subscribe(() => {
+			throw new Error(`listener failed`)
+		})
+		await expect(
+			observed
+				.connect({ actor: `alice`, session: `session-a` })
+				.propose(proposal(observedState.domain)),
+		).resolves.toMatchObject({ status: `accepted` })
+		expect(observedErrors).toHaveBeenCalled()
+		observedErrors.mockRestore()
+
+		const disposingState = await designFixture(`server-disposed-before-append`)
+		let releaseAuthorization: (() => void) | undefined
+		let signalAuthorization: (() => void) | undefined
+		const authorizationStarted = new Promise<void>((resolve) => {
+			signalAuthorization = resolve
+		})
+		const authorization = new Promise<void>((resolve) => {
+			releaseAuthorization = resolve
+		})
+		const disposing = createMosaicDomainBatchServer({
+			authorize: async () => {
+				signalAuthorization?.()
+				await authorization
+				return true
+			},
+			domain: disposingState.domain,
+		})
+		const disposingConnection = disposing.connect({
+			actor: `alice`,
+			session: `session-a`,
+		})
+		const pending = disposingConnection.propose(proposal(disposingState.domain))
+		await authorizationStarted
+		disposing.dispose()
+		releaseAuthorization?.()
+		await expect(pending).resolves.toMatchObject({
+			rejection: { code: `backpressure`, recovery: `retry` },
+		})
+		await expect(
+			disposingConnection.propose(
+				proposal(disposingState.domain, { id: `after-dispose` }),
+			),
+		).resolves.toMatchObject({ rejection: { code: `backpressure` } })
+
+		const invalidModelState = await designFixture(`server-invalid-model`)
+		const invalidModel = createMosaicDomainBatchServer({
+			domain: invalidModelState.domain,
+		}).connect({ actor: `alice`, session: `session-a` })
+		await expect(
+			invalidModel.propose({
+				...proposal(invalidModelState.domain),
+				operations: proposal(invalidModelState.domain).operations.map(
+					(operation, index) =>
+						index === 0
+							? { ...operation, model: { key: `wrong`, version: 1 } }
+							: operation,
+				),
+			}),
+		).resolves.toMatchObject({
+			rejection: { code: `invalid-model-operation` },
+			status: `rejected`,
+		})
+
+		const invalidRecovery = async (
+			name: string,
+			recovery: ReturnType<InMemoryMosaicDomainBatchStorage[`recover`]>,
+			error: string,
+		) => {
+			const invalidState = await designFixture(name)
+			const storage: MosaicDomainBatchStorageAdapter = {
+				appendBatch: () => {
+					throw new Error(`append must not run`)
+				},
+				receipt: () => null,
+				recover: () => recovery,
+			}
+			const invalidServer = createMosaicDomainBatchServer({
+				domain: invalidState.domain,
+				storage,
+			})
+			await expect(
+				invalidServer
+					.connect({ actor: `alice`, session: `session-a` })
+					.propose(proposal(invalidState.domain)),
+			).rejects.toThrow(error)
+		}
+		const recoveryGapState = await designFixture(`server-recovery-gap-envelope`)
+		await invalidRecovery(
+			`server-recovery-gap`,
+			{
+				headRevision: 2,
+				tail: [
+					{
+						batch: {
+							...proposal(recoveryGapState.domain),
+							actor: `alice`,
+						},
+						revision: 2,
+					},
+				],
+			},
+			`revision gap`,
+		)
+		await invalidRecovery(
+			`server-incomplete-recovery`,
+			{ headRevision: 1, tail: [] },
+			`incomplete recovery tail`,
+		)
+
+		const behindState = await designFixture(`server-storage-behind`)
+		const behindBacking = new InMemoryMosaicDomainBatchStorage()
+		let moveBehind = false
+		const behindStorage: MosaicDomainBatchStorageAdapter = {
+			appendBatch: (request) => behindBacking.appendBatch(request),
+			receipt: (domain, batchId) => behindBacking.receipt(domain, batchId),
+			recover: (domain, afterRevision) =>
+				moveBehind
+					? { headRevision: 0, tail: [] }
+					: behindBacking.recover(domain, afterRevision),
+		}
+		const behindServer = createMosaicDomainBatchServer({
+			domain: behindState.domain,
+			storage: behindStorage,
+		})
+		const behindConnection = behindServer.connect({
+			actor: `alice`,
+			session: `session-a`,
+		})
+		await expect(
+			behindConnection.propose(proposal(behindState.domain)),
+		).resolves.toMatchObject({ accepted: { revision: 1 } })
+		moveBehind = true
+		await expect(
+			behindConnection.propose(
+				proposal(behindState.domain, {
+					id: `after-storage-moved-behind`,
+					operations: proposal(behindState.domain).operations.map(
+						(operation, index) => ({
+							...operation,
+							id: `after-storage-moved-behind-operation-${index}`,
+						}),
+					),
+				}),
+			),
+		).rejects.toThrow(`storage moved behind`)
+	})
+
+	test(`synchronizes append races before accepting, retrying, or applying backpressure`, async () => {
+		const setup = async (
+			name: string,
+			mode: `duplicate` | `retry` | `twice-stale`,
+		) => {
+			const state = await designFixture(name)
+			const backing = new InMemoryMosaicDomainBatchStorage()
+			const foreign: MosaicDomainBatchEnvelope = {
+				...proposal(state.domain, {
+					id: `${name}-foreign`,
+					operations: proposal(state.domain).operations.map(
+						(operation, index) => ({
+							...operation,
+							id: `${name}-foreign-operation-${index}`,
+							operation:
+								index === 0
+									? { path: `${name}-foreign`, type: `append` }
+									: { type: `move`, x: 1, y: 2 },
+						}),
+					),
+				}),
+				actor: `bob`,
+			}
+			let appendCount = 0
+			const storage: MosaicDomainBatchStorageAdapter = {
+				appendBatch(request: MosaicDomainBatchAppendRequest) {
+					appendCount++
+					if (mode === `duplicate`) {
+						const committed = backing.appendBatch(request)
+						if (committed.status !== `accepted`) {
+							throw new Error(`The duplicate-race fixture failed to commit.`)
+						}
+						return { accepted: committed.accepted, status: `duplicate` }
+					}
+					if (appendCount === 1) {
+						const committed = backing.appendBatch({
+							accepted: { batch: foreign, revision: 1 },
+							expectedRevision: 0,
+							fingerprint: `${name}-foreign-fingerprint`,
+						})
+						if (committed.status !== `accepted`) {
+							throw new Error(`The stale-race fixture failed to commit.`)
+						}
+						return { actualRevision: 1, status: `stale` }
+					}
+					return mode === `twice-stale`
+						? { actualRevision: 1, status: `stale` }
+						: backing.appendBatch(request)
+				},
+				receipt: (domain, batchId) => backing.receipt(domain, batchId),
+				recover: (domain, afterRevision) =>
+					backing.recover(domain, afterRevision),
+			}
+			return { state, storage }
+		}
+
+		const duplicate = await setup(`server-duplicate-append`, `duplicate`)
+		const duplicateServer = createMosaicDomainBatchServer({
+			domain: duplicate.state.domain,
+			storage: duplicate.storage,
+		})
+		await expect(
+			duplicateServer
+				.connect({ actor: `alice`, session: `session-a` })
+				.propose(proposal(duplicate.state.domain)),
+		).resolves.toMatchObject({ accepted: { revision: 1 }, status: `accepted` })
+		expect(duplicateServer.revision).toBe(1)
+		expect(duplicate.state.silo.getState(duplicate.state.pathsAtom)).toEqual([
+			`p1`,
+		])
+
+		const retry = await setup(`server-stale-retry`, `retry`)
+		const retryServer = createMosaicDomainBatchServer({
+			domain: retry.state.domain,
+			storage: retry.storage,
+		})
+		await expect(
+			retryServer
+				.connect({ actor: `alice`, session: `session-a` })
+				.propose(proposal(retry.state.domain)),
+		).resolves.toMatchObject({ accepted: { revision: 2 }, status: `accepted` })
+		expect(retryServer.revision).toBe(2)
+		expect(retry.state.silo.getState(retry.state.pathsAtom)).toEqual([
+			`server-stale-retry-foreign`,
+			`p1`,
+		])
+
+		const twiceStale = await setup(`server-twice-stale`, `twice-stale`)
+		const twiceStaleServer = createMosaicDomainBatchServer({
+			domain: twiceStale.state.domain,
+			storage: twiceStale.storage,
+		})
+		await expect(
+			twiceStaleServer
+				.connect({ actor: `alice`, session: `session-a` })
+				.propose(proposal(twiceStale.state.domain)),
+		).resolves.toMatchObject({
+			rejection: { code: `backpressure`, recovery: `retry` },
+			status: `rejected`,
+		})
+		expect(twiceStaleServer.revision).toBe(1)
+		expect(twiceStale.state.silo.getState(twiceStale.state.pathsAtom)).toEqual([
+			`server-twice-stale-foreign`,
+		])
 	})
 
 	test(`snapshots queued proposals before callers can mutate them`, async () => {

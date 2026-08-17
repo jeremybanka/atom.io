@@ -1,6 +1,6 @@
 ---
 slug: collaboration-environment
-title: Collaboration environment
+title: Mosaic Environment
 summary: A Store-owned coordination boundary over ordinary atom.io state.
 packages:
   - atom.io
@@ -13,35 +13,54 @@ related:
   - transceiver
 ---
 
-A collaboration environment describes which parts of an atom.io state graph
-participate in one collaboration protocol. It does not create another state
-graph or wrap its members in special resources. Its members are ordinary atoms,
-atom families, and selectors, so core APIs and the existing React and Solid hooks
-continue to read and write them directly.
+A Mosaic Environment describes which parts of an atom.io state graph participate
+in one collaboration protocol. The declaration API is
+`collaborationEnvironment()`. It does not create another state graph or wrap its
+members in special resources. Its members are ordinary atoms, atom families,
+and selectors, so core APIs and the existing React and Solid hooks continue to
+read and write them directly.
 
 <Exhibit src="realtime/declare-a-collaboration-environment.ts" />
 
 The environment definition is Store-independent. Activating it validates its
 configuration with Standard Schema, checks that every member belongs to the
-target Store, reserves its durable membership, and returns a disposable scope.
-This makes the same definition usable in the implicit Store, an application
+target Store, reserves its durable members, and returns a disposable scope.
+This makes equivalent definitions usable in the implicit Store, an application
 Silo, or an isolated headless test Silo.
+
+Definition identity, environment-instance identity, and configuration have
+different jobs:
+
+- The definition key and version identify wire-visible schema and protocol
+  behavior. Change the version when parsing, convergence, addressing, or other
+  replicated behavior changes.
+- The instance identifies one particular shared resource, such as one document
+  or design project. Every transport address carries it.
+- Configuration is validated activation input for deployment and controller
+  setup. It is not part of an address and must not silently change replicated
+  semantics. A synchronization controller must negotiate any configuration that
+  peers need to agree upon; that negotiation arrives with environment batches.
+
+One definition can have only one active instance in a Store. Use a separate
+Store or Silo when a process needs another instance of that definition. This
+keeps ordinary atom identities unambiguous while allowing transport routers to
+distinguish instances hosted in different Stores.
 
 ## Ownership
 
 Atoms still own values, effects, subscriptions, and family-member disposal.
-Selectors still own derivation. A collaboration environment owns only the
+Selectors still own derivation. A Mosaic Environment owns only the
 coordination metadata needed by a collaboration transport: identity, protocol
-version, validated configuration, named membership, addresses, and durable
-membership claims.
+version, instance identity, validated configuration, named members, addresses,
+and durable ownership claims.
 
-Each durable atom address can belong to at most one active collaboration
-environment in a Store. A durable family declaration is intensional: it claims
-the family pattern rather than enumerating its current members. Members created
-later are therefore covered, and another environment cannot claim either the
-same family or one of its individual members. Claims are local to a Store and
-are released when the scope is disposed. Clearing the Store also disposes all of
-its active collaboration scopes.
+Each durable atom address can belong to at most one active Mosaic Environment in
+a Store. A durable family declaration is intensional: it claims the family
+pattern rather than enumerating its current members. Members created later are
+therefore covered, and another environment cannot claim either the same family
+or one of its individual members. Claims are local to a Store and are released
+when the scope is disposed. Clearing the Store also disposes all of its active
+Mosaic Environment scopes.
 
 Activation is atomic. Invalid configuration, a missing Store member, or any
 ownership conflict leaves all proposed claims unowned.
@@ -68,14 +87,16 @@ ownership conflict leaves all proposed claims unowned.
         <td><code>local</code></td>
         <td>
           Store-local application state, such as a local selection or draft.
-          It participates in the model without being accepted from a remote peer.
+          It participates in application composition without receiving a
+          transport address or being accepted from a remote peer.
         </td>
       </tr>
       <tr>
         <td><code>derived</code></td>
         <td>
           Selectors derived from collaborative and local members. Derivation
-          remains entirely inside the ordinary atomic state graph.
+          remains entirely inside the ordinary atomic state graph. Derived
+          members do not receive transport addresses.
         </td>
       </tr>
       <tr>
@@ -91,8 +112,9 @@ ownership conflict leaves all proposed claims unowned.
 
 Durable and ephemeral value schemas, family-key schemas, and the configuration
 schema are validation boundaries. The environment does not validate ordinary
-local writes. A realtime implementation validates untrusted input before it
-resolves a family address or applies a remote value.
+local writes. Only durable and ephemeral members are remotely addressable. Local
+and derived members remain available through the scope's ordinary member map
+for application composition, but cannot masquerade as transport resources.
 
 For a regular atom, the value schema produces the atom's value type. For a
 mutable atom, it produces the serializable snapshot returned by the
@@ -102,18 +124,25 @@ with snapshot writes. Batching and synchronization layers can therefore choose
 the appropriate payload policy without weakening this environment's state and
 address schemas.
 
-## Member addresses
+## Addresses and residency
 
 An active scope creates serializable member addresses from the environment
-identity, version, logical member name, and, for a family, its canonical key.
-Resolving an untrusted address verifies the environment and member name, then
-validates a family key before atom.io can mint the family member. Singleton
-addresses reject keys.
+definition, version, instance, logical member name, and, for a family, its
+canonical key. Parsing an untrusted address verifies all of those fields and
+validates a family key without minting or hydrating the family member. Singleton
+addresses reject keys. Acquisition is a separate, explicit operation that may
+materialize a validated family member in the Store.
 
 The address contract is intentionally transport-neutral. It establishes the
-Store and schema boundary that batching, ordering, reconciliation, persistence,
-and presence layers can build on without moving application state out of
-atom.io.
+Store, schema, and allocation boundary that authorization, persistence, routing,
+batching, ordering, reconciliation, and presence layers can build on without
+moving application state out of atom.io.
+
+Activation is intentionally actor- and session-neutral. Synchronization
+controllers bind authenticated actors and fresh connection sessions to an active
+scope, and environment batch envelopes carry those identities. A server can
+therefore serve many sessions through one Store-owned scope without putting
+authentication into state declaration.
 
 ## Granularity
 

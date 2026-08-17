@@ -66,7 +66,10 @@ export const documentEnvironment = collaborationEnvironment({
 	version: 1,
 })
 
-export const documentCollaboration = documentEnvironment.activate({
-	config: { room: `design-notes` },
-	store: documentSilo.store,
-})
+export const documentEnvironmentActivationPromise = documentEnvironment.activate(
+	{
+		config: { room: `documents` },
+		instance: `design-notes`,
+		store: documentSilo.store,
+	},
+)

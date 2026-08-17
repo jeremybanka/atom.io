@@ -8,7 +8,7 @@ import { Silo } from "../../../src/main/index.ts"
 const makeSilo = (name: string) =>
 	new Silo({ isProduction: false, lifespan: `ephemeral`, name })
 
-describe(`collaboration environments`, () => {
+describe(`Mosaic Environments`, () => {
 	test(`a one-member environment scopes an ordinary atom and inferred config`, async () => {
 		const silo = makeSilo(`one-member`)
 		const bodyAtom = silo.atom<string>({ default: `hello`, key: `body` })
@@ -28,6 +28,7 @@ describe(`collaboration environments`, () => {
 		})
 		const scope = await document.activate({
 			config: { room: `alpha` },
+			instance: `notes/alpha`,
 			store: silo.store,
 		})
 
@@ -37,16 +38,65 @@ describe(`collaboration environments`, () => {
 		expect(silo.getState(bodyAtom)).toBe(`world`)
 		expect(silo.getState(bodyLengthSelector)).toBe(5)
 		expect(scope.address(`body`)).toEqual({
-			environment: { key: `document`, version: 1 },
+			environment: {
+				definition: { key: `document`, version: 1 },
+				instance: `notes/alpha`,
+			},
 			member: `body`,
 		})
+		expect(scope.definitionIdentity).toEqual({ key: `document`, version: 1 })
 		expect(await scope.validateValue(`body`, `remote`)).toBe(`remote`)
 		await expect(scope.validateValue(`body`, 2)).rejects.toThrow(
-			`Collaboration member "body" value failed validation`,
+			`Mosaic Environment member "body" value failed validation`,
 		)
 	})
 
-	test(`validates family addresses and resolves members minted after activation`, async () => {
+	test(`members retain ordinary subscriptions, selectors, and transactions`, async () => {
+		const silo = makeSilo(`ordinary-state`)
+		const titleAtom = silo.atom<string>({ default: `Untitled`, key: `title` })
+		const revisionAtom = silo.atom<number>({ default: 0, key: `revision` })
+		const summarySelector = silo.selector<string>({
+			get: ({ get }) => `${get(titleAtom)}@${get(revisionAtom)}`,
+			key: `summary`,
+		})
+		const renameTransaction = silo.transaction<(title: string) => void>({
+			do: ({ set }, title) => {
+				set(titleAtom, title)
+				set(revisionAtom, (revision) => revision + 1)
+			},
+			key: `rename`,
+		})
+		const environment = collaborationEnvironment({
+			configSchema: z.object({}),
+			key: `ordinary-state`,
+			members: {
+				revision: {
+					role: `durable`,
+					schema: z.number(),
+					token: revisionAtom,
+				},
+				summary: { role: `derived`, token: summarySelector },
+				title: { role: `durable`, schema: z.string(), token: titleAtom },
+			},
+			version: 1,
+		})
+		const scope = await environment.activate({
+			config: {},
+			instance: `project/one`,
+			store: silo.store,
+		})
+		const updates = vi.fn()
+		const unsubscribe = silo.subscribe(summarySelector, updates)
+
+		silo.runTransaction(renameTransaction)(`Notes`)
+
+		expect(silo.getState(summarySelector)).toBe(`Notes@1`)
+		expect(updates).toHaveBeenCalledTimes(1)
+		unsubscribe()
+		scope[Symbol.dispose]()
+	})
+
+	test(`parses family addresses without allocation and acquires explicitly`, async () => {
 		const silo = makeSilo(`families`)
 		const blocksAtoms = silo.atomFamily<string, string>({
 			default: ``,
@@ -65,22 +115,36 @@ describe(`collaboration environments`, () => {
 			},
 			version: 2,
 		})
-		const scope = await environment.activate({ config: {}, store: silo.store })
+		const scope = await environment.activate({
+			config: {},
+			instance: `document/one`,
+			store: silo.store,
+		})
 		const address = scope.address(`blocks`, `late`)
-		const resolved = await scope.resolve(JSON.parse(JSON.stringify(address)))
+		const atomsBeforeParsing = silo.store.atoms.size
+		const parsed = await scope.parseAddress(JSON.parse(JSON.stringify(address)))
 
-		expect(resolved.token).toEqual(silo.findState(blocksAtoms, `late`))
-		silo.setState(resolved.token, `created after activation`)
+		expect(parsed.address).toEqual(address)
+		expect(silo.store.atoms.size).toBe(atomsBeforeParsing)
+
+		const acquired = await scope.acquire(parsed)
+
+		expect(acquired.token).toEqual(silo.findState(blocksAtoms, `late`))
+		silo.setState(acquired.token, `created after activation`)
+		expect(silo.store.atoms.size).toBe(atomsBeforeParsing + 1)
 		expect(silo.getState(blocksAtoms, `late`)).toBe(`created after activation`)
-		await expect(scope.resolve({ ...address, key: `` })).rejects.toThrow(
-			`Collaboration member "blocks" key failed validation`,
+		await expect(scope.parseAddress({ ...address, key: `` })).rejects.toThrow(
+			`Mosaic Environment member "blocks" key failed validation`,
 		)
 		await expect(
-			scope.resolve({
+			scope.parseAddress({
 				...address,
-				environment: { key: `other`, version: 2 },
+				environment: {
+					definition: { key: `other`, version: 2 },
+					instance: `document/one`,
+				},
 			}),
-		).rejects.toThrow(`belongs to another environment`)
+		).rejects.toThrow(`another environment definition`)
 	})
 
 	test(`models local, derived, and ephemeral lifecycle without durable claims`, async () => {
@@ -117,12 +181,35 @@ describe(`collaboration environments`, () => {
 			version: 1,
 		})
 
-		const firstScope = await first.activate({ config: {}, store: silo.store })
-		const secondScope = await second.activate({ config: {}, store: silo.store })
+		const firstScope = await first.activate({
+			config: {},
+			instance: `roles/one`,
+			store: silo.store,
+		})
+		const secondScope = await second.activate({
+			config: {},
+			instance: `roles/two`,
+			store: silo.store,
+		})
 		expect(await firstScope.validateValue(`cursor`, 3)).toBe(3)
-		await expect(firstScope.validateValue(`draft`, `remote`)).rejects.toThrow(
-			`does not accept remote values`,
-		)
+		await expect(
+			// @ts-expect-error Local members do not accept remote values.
+			firstScope.validateValue(`draft`, `remote`),
+		).rejects.toThrow(`does not accept remote values`)
+		expect(() => {
+			// @ts-expect-error Local members do not have transport addresses.
+			firstScope.address(`draft`)
+		}).toThrow(`not remotely addressable`)
+		expect(() => {
+			// @ts-expect-error Derived members do not have transport addresses.
+			firstScope.address(`length`)
+		}).toThrow(`not remotely addressable`)
+		await expect(
+			firstScope.parseAddress({
+				environment: firstScope.identity,
+				member: `draft`,
+			}),
+		).rejects.toThrow(`not remotely addressable`)
 		silo.setState(draftAtom, `local`)
 		expect(silo.getState(lengthSelector)).toBe(5)
 		firstScope[Symbol.dispose]()
@@ -148,19 +235,35 @@ describe(`collaboration environments`, () => {
 		const first = define(`first`, UNO__bodyAtom)
 		const competing = define(`competing`, UNO__bodyAtom)
 		const equivalentInAnotherStore = define(`other-store`, DOS__bodyAtom)
-		const firstScope = await first.activate({ config: {}, store: uno.store })
+		const firstScope = await first.activate({
+			config: {},
+			instance: `first/one`,
+			store: uno.store,
+		})
 
 		await expect(
-			competing.activate({ config: {}, store: uno.store }),
-		).rejects.toThrow(`already owned by environment "first@1"`)
+			competing.activate({
+				config: {},
+				instance: `competing/one`,
+				store: uno.store,
+			}),
+		).rejects.toThrow(`already owned by environment "first@1#first/one"`)
 		await expect(
-			equivalentInAnotherStore.activate({ config: {}, store: dos.store }),
+			equivalentInAnotherStore.activate({
+				config: {},
+				instance: `other-store/one`,
+				store: dos.store,
+			}),
 		).resolves.toBeDefined()
 
 		firstScope[Symbol.dispose]()
 		expect(firstScope.disposed).toBe(true)
 		await expect(
-			competing.activate({ config: {}, store: uno.store }),
+			competing.activate({
+				config: {},
+				instance: `competing/one`,
+				store: uno.store,
+			}),
 		).resolves.toBeDefined()
 	})
 
@@ -195,20 +298,30 @@ describe(`collaboration environments`, () => {
 		})
 		const scope = await familyEnvironment.activate({
 			config: {},
+			instance: `family/one`,
 			store: silo.store,
 		})
 
 		await expect(
-			memberEnvironment.activate({ config: {}, store: silo.store }),
-		).rejects.toThrow(`already owned by environment "family-owner@1"`)
+			memberEnvironment.activate({
+				config: {},
+				instance: `member/one`,
+				store: silo.store,
+			}),
+		).rejects.toThrow(`already owned by environment "family-owner@1#family/one"`)
 		scope[Symbol.dispose]()
 		const memberScope = await memberEnvironment.activate({
 			config: {},
+			instance: `member/one`,
 			store: silo.store,
 		})
 		await expect(
-			familyEnvironment.activate({ config: {}, store: silo.store }),
-		).rejects.toThrow(`already owned by environment "member-owner@1"`)
+			familyEnvironment.activate({
+				config: {},
+				instance: `family/one`,
+				store: silo.store,
+			}),
+		).rejects.toThrow(`already owned by environment "member-owner@1#member/one"`)
 		memberScope[Symbol.dispose]()
 	})
 
@@ -236,8 +349,14 @@ describe(`collaboration environments`, () => {
 		})
 
 		await expect(
-			environment.activate({ config: {}, store: silo.store }),
-		).rejects.toThrow(`already owned by environment "overlapping@1"`)
+			environment.activate({
+				config: {},
+				instance: `overlapping/one`,
+				store: silo.store,
+			}),
+		).rejects.toThrow(
+			`already owned by environment "overlapping@1#overlapping/one"`,
+		)
 	})
 
 	test(`claim failures are atomic`, async () => {
@@ -259,16 +378,20 @@ describe(`collaboration environments`, () => {
 			})
 		const owner = await environment(`owner`, {
 			occupied: { role: `durable`, schema: z.number(), token: occupiedAtom },
-		}).activate({ config: {}, store: silo.store })
+		}).activate({ config: {}, instance: `owner/one`, store: silo.store })
 		await expect(
 			environment(`partial`, {
 				available: { role: `durable`, schema: z.number(), token: availableAtom },
 				occupied: { role: `durable`, schema: z.number(), token: occupiedAtom },
-			}).activate({ config: {}, store: silo.store }),
+			}).activate({
+				config: {},
+				instance: `partial/one`,
+				store: silo.store,
+			}),
 		).rejects.toThrow(`already owned`)
 		const successor = await environment(`successor`, {
 			available: { role: `durable`, schema: z.number(), token: availableAtom },
-		}).activate({ config: {}, store: silo.store })
+		}).activate({ config: {}, instance: `successor/one`, store: silo.store })
 		owner[Symbol.dispose]()
 		successor[Symbol.dispose]()
 	})
@@ -287,15 +410,31 @@ describe(`collaboration environments`, () => {
 			})
 		const invalid = define(`invalid`)
 		await expect(
-			invalid.activate({ config: { room: `` }, store: silo.store }),
+			invalid.activate({
+				config: { room: `` },
+				instance: `invalid/one`,
+				store: silo.store,
+			}),
 		).rejects.toThrow(`config failed validation`)
 		const valid = define(`valid`)
+		await expect(
+			valid.activate({
+				config: { room: `room` },
+				instance: ``,
+				store: silo.store,
+			}),
+		).rejects.toThrow(`instance cannot be empty`)
 		const scope = await valid.activate({
 			config: { room: `room` },
+			instance: `valid/one`,
 			store: silo.store,
 		})
 		await expect(
-			valid.activate({ config: { room: `room` }, store: silo.store }),
+			valid.activate({
+				config: { room: `room` },
+				instance: `valid/two`,
+				store: silo.store,
+			}),
 		).rejects.toThrow(`already active`)
 		scope[Symbol.dispose]()
 	})
@@ -407,7 +546,11 @@ describe(`collaboration environments`, () => {
 			},
 			version: 1,
 		})
-		const scope = await environment.activate({ config: {}, store: silo.store })
+		const scope = await environment.activate({
+			config: {},
+			instance: `addresses/one`,
+			store: silo.store,
+		})
 		const imperativeAddress = scope.address as unknown as (
 			member: string,
 			...key: readonly Canonical[]
@@ -418,37 +561,52 @@ describe(`collaboration environments`, () => {
 		expect(() => imperativeAddress(`body`, `extra`)).toThrow(
 			`does not accept a key`,
 		)
-		await expect(scope.resolve(null)).rejects.toThrow(`must be an object`)
-		await expect(scope.resolve(`address`)).rejects.toThrow(`must be an object`)
+		await expect(scope.parseAddress(null)).rejects.toThrow(`must be an object`)
+		await expect(scope.parseAddress(`address`)).rejects.toThrow(
+			`must be an object`,
+		)
 		await expect(
-			scope.resolve({ environment: null, member: `body` }),
+			scope.parseAddress({ environment: null, member: `body` }),
 		).rejects.toThrow(`another environment`)
 		await expect(
-			scope.resolve({
-				environment: { key: `addresses`, version: 2 },
+			scope.parseAddress({
+				environment: {
+					definition: { key: `addresses`, version: 2 },
+					instance: `addresses/one`,
+				},
 				member: `body`,
 			}),
-		).rejects.toThrow(`another environment`)
+		).rejects.toThrow(`another environment definition`)
 		await expect(
-			scope.resolve({
-				environment: { key: `addresses`, version: 1 },
+			scope.parseAddress({
+				environment: {
+					definition: { key: `addresses`, version: 1 },
+					instance: `addresses/two`,
+				},
+				member: `body`,
+			}),
+		).rejects.toThrow(`another environment instance`)
+		await expect(
+			scope.parseAddress({
+				environment: scope.identity,
 				member: 1,
 			}),
 		).rejects.toThrow(`unknown member`)
 		await expect(
-			scope.resolve({
-				environment: { key: `addresses`, version: 1 },
+			scope.parseAddress({
+				environment: scope.identity,
 				member: `toString`,
 			}),
 		).rejects.toThrow(`unknown member`)
 		await expect(
-			scope.resolve({
-				environment: { key: `addresses`, version: 1 },
+			scope.parseAddress({
+				environment: scope.identity,
 				key: `extra`,
 				member: `body`,
 			}),
 		).rejects.toThrow(`does not accept a key`)
-		await expect(scope.resolve(scope.address(`body`))).resolves.toEqual({
+		const parsed = await scope.parseAddress(scope.address(`body`))
+		await expect(scope.acquire(parsed)).resolves.toEqual({
 			member: scope.members.body,
 			token: bodyAtom,
 		})
@@ -456,7 +614,8 @@ describe(`collaboration environments`, () => {
 		scope[Symbol.dispose]()
 		scope[Symbol.dispose]()
 		expect(() => scope.address(`body`)).toThrow(`disposed`)
-		await expect(scope.resolve({})).rejects.toThrow(`disposed`)
+		await expect(scope.parseAddress({})).rejects.toThrow(`disposed`)
+		await expect(scope.acquire(parsed)).rejects.toThrow(`disposed`)
 		await expect(scope.validateValue(`body`, ``)).rejects.toThrow(`disposed`)
 	})
 

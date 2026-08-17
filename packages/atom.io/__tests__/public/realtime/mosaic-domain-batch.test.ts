@@ -589,13 +589,13 @@ describe(`Mosaic Domain atomic batches`, () => {
 		const text = await textFixture(`preflight-text-decisions`)
 		const textAddress = text.domain.address(`text`)
 		const missingAnchor: MosaicTextOperation = {
-			deletedIds: [],
+			deleted: [],
 			inserted: [
 				{
-					after: `missing-anchor`,
+					after: { offset: 0, runId: `missing-anchor` },
 					before: null,
-					id: `text-decision-operation:node:000000`,
-					value: `X`,
+					id: `text-decision-operation:run:000000`,
+					text: `X`,
 				},
 			],
 			type: `edit`,
@@ -625,7 +625,7 @@ describe(`Mosaic Domain atomic batches`, () => {
 		).rejects.toThrow(`missing model dependencies`)
 		await expect(
 			preflightMosaicDomainBatch(text.domain, textBatch([])),
-		).rejects.toThrow(`Unknown predecessor anchor`)
+		).rejects.toThrow(`Unknown run boundary`)
 	})
 
 	test(`keeps prepared batches capability-bound across apply, revert, and reprojection`, async () => {

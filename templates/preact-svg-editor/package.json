@@ -17,14 +17,17 @@
 		"lint:eslint": "eslint --max-warnings 0 .",
 		"lint:oxlint": "oxlint --deny-warnings .",
 		"lint:types": "tsc -b",
-		"preview": "vite preview"
+		"preview": "vite preview",
+		"test": "vitest run",
+		"test:once": "vitest run"
 	},
 	"dependencies": {
 		"@atom.io/react": "workspace:*",
 		"atom.io": "workspace:*",
 		"preact": "11.0.1",
 		"react": "npm:@preact/compat@18.3.2",
-		"react-dom": "npm:@preact/compat@18.3.2"
+		"react-dom": "npm:@preact/compat@18.3.2",
+		"zod": "4.4.3"
 	},
 	"devDependencies": {
 		"@atom.io/eslint-plugin": "workspace:*",
@@ -43,7 +46,8 @@
 		"oxlint": "1.89.0",
 		"oxlint-tsgolint": "7.0.2004",
 		"typescript": "npm:@typescript/typescript6@6.0.2",
-		"vite": "8.3.4"
+		"vite": "8.3.4",
+		"vitest": "5.0.5"
 	},
 	"publishConfig": {
 		"access": "public"

@@ -1,5 +1,7 @@
 export * from "./ipc-sockets/index.ts"
 export * from "./mosaic/index.ts"
+export * from "./mosaic-domain-batch-server.ts"
+export * from "./mosaic-domain-batch-storage.ts"
 export * from "./provide-rooms.ts"
 export * from "./realtime-family-provider.ts"
 export * from "./realtime-mutable-family-provider.ts"

@@ -1,6 +1,7 @@
 import type {
 	AtomToken,
 	AtomUpdateEvent,
+	MutableAtomSnapshotEvent,
 	TimelineEvent,
 	TransactionOutcomeEvent,
 	TransactionToken,
@@ -13,7 +14,9 @@ import * as React from "react"
 
 const AtomUpdateFC: React.FC<{
 	serialNumber: number
-	atomUpdate: AtomUpdateEvent<AtomToken<unknown, any, any>>
+	atomUpdate:
+		| AtomUpdateEvent<AtomToken<unknown, any, any>>
+		| MutableAtomSnapshotEvent
 }> = ({ atomUpdate }) => {
 	return (
 		<article
@@ -107,6 +110,7 @@ const TransactionUpdateFC: React.FC<{
 						.map((update, index) => {
 							switch (update.type) {
 								case `atom_update`:
+								case `mutable_atom_snapshot`:
 									return (
 										<article.AtomUpdate
 											key={`${transactionUpdate.token.key}:${index}:${update.token.key}`}
@@ -168,6 +172,7 @@ export const TimelineUpdateFC: React.FC<{
 						.map((subEvent, index) => {
 							switch (subEvent.type) {
 								case `atom_update`:
+								case `mutable_atom_snapshot`:
 									return (
 										<article.AtomUpdate
 											key={`${timelineUpdate.token.key}:${index}:${subEvent.token.key}`}

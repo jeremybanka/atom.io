@@ -24,6 +24,28 @@ const transactionFutureRecomputations = new WeakMap<
 	Store,
 	Map<string, () => void>
 >()
+const mutableSnapshotApplications = new WeakMap<Store, number>()
+
+export function applyMutableSnapshot<Value>(
+	store: Store,
+	apply: () => Value,
+): Value {
+	mutableSnapshotApplications.set(
+		store,
+		(mutableSnapshotApplications.get(store) ?? 0) + 1,
+	)
+	try {
+		return apply()
+	} finally {
+		const remaining = (mutableSnapshotApplications.get(store) ?? 1) - 1
+		if (remaining === 0) mutableSnapshotApplications.delete(store)
+		else mutableSnapshotApplications.set(store, remaining)
+	}
+}
+
+export function isApplyingMutableSnapshot(store: Store): boolean {
+	return mutableSnapshotApplications.has(store)
+}
 
 export function beginTransactionNotificationBatch(store: Store): boolean {
 	if (transactionNotificationBatches.has(store)) return false

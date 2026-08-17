@@ -103,6 +103,39 @@ async function fixture(
 	return { countAtom, domain, localAtom, silo, textAtom }
 }
 
+async function textFamilyFixture(name: string) {
+	const silo = new Silo({ isProduction: false, lifespan: `ephemeral`, name })
+	const textAtoms = silo.mutableAtomFamily<InstanceType<typeof Text>, string>({
+		class: Text,
+		key: `text`,
+	})
+	const definition = mosaicDomain({
+		configSchema: z.object({}),
+		key: `transaction-bridge-family`,
+		members: {
+			text: {
+				keySchema: z.string(),
+				model: textModel,
+				role: `durable`,
+				schema: z.custom<MosaicTextSnapshot>(
+					(value) => typeof value === `object` && value !== null,
+				),
+				token: textAtoms,
+			},
+		},
+		version: 1,
+	})
+	const domain = await definition.activate({
+		config: {},
+		instance: `document`,
+		store: silo.store,
+	})
+	const textAtom = silo.findState(textAtoms, `chapter`)
+	// Materializing the transceiver also establishes its JSON tracker.
+	silo.getState(textAtom)
+	return { domain, silo, textAtom }
+}
+
 function recordingTransport(transport: MosaicDomainBatchClientTransport) {
 	const proposals: Parameters<MosaicDomainBatchClientTransport[`propose`]>[0][] =
 		[]
@@ -247,6 +280,57 @@ describe(`Mosaic Domain transaction bridge`, () => {
 		expect(serverState.silo.getState(serverState.countAtom)).toBe(1)
 		expect(serverState.silo.getState(serverState.textAtom).text).toBe(`hello`)
 		expect(client.state).toMatchObject({ revision: 1, status: `live` })
+	})
+
+	test(`aligns mutable-family snapshots with transceiver JSON projections`, async () => {
+		const serverState = await textFamilyFixture(`bridge-family-server`)
+		const clientState = await textFamilyFixture(`bridge-family-client`)
+		const server = createMosaicDomainBatchServer({ domain: serverState.domain })
+		const recorded = recordingTransport(
+			server.connect({ actor: `alice`, session: `session-a` }),
+		)
+		const client = createMosaicDomainBatchClient({
+			actor: `alice`,
+			domain: clientState.domain,
+			session: `session-a`,
+			transport: recorded.transport,
+		})
+		await client.start()
+		const editTransaction = clientState.silo.transaction<() => void>({
+			do: ({ set }) => {
+				set(clientState.textAtom, (text) => {
+					text.change(
+						{ text: `family`, type: `replace-text` },
+						{
+							actor: `alice`,
+							dependencies: [],
+							group: `gesture-family`,
+							id: `text-family-operation`,
+							now: 0,
+							revision: null,
+							session: `session-a`,
+						},
+					)
+					return text
+				})
+			},
+			key: `edit`,
+		})
+		const bridge = createMosaicDomainTransactionBridge({
+			client,
+			domain: clientState.domain,
+			transactions: [editTransaction],
+		})
+
+		clientState.silo.runTransaction(editTransaction)()
+		await bridge.flush()
+
+		expect(recorded.proposals).toHaveLength(1)
+		expect(recorded.proposals[0]?.affectedMembers).toEqual([
+			clientState.domain.address(`text`, `chapter`),
+		])
+		expect(clientState.silo.getState(clientState.textAtom).text).toBe(`family`)
+		expect(serverState.silo.getState(serverState.textAtom).text).toBe(`family`)
 	})
 
 	test(`preserves the outer boundary, ignores aborts, and survives observers`, async () => {

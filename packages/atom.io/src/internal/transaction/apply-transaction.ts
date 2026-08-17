@@ -41,7 +41,9 @@ export function applyTransaction<F extends Fn>(
 	const ownsNotificationBatch =
 		rootCommit && beginTransactionNotificationBatch(parent)
 	const notificationErrors: unknown[] = []
-	const commitSnapshots = rootCommit
+	const publishesCommit =
+		rootCommit && parent.on.transactionCommit.subscribers.size > 0
+	const commitSnapshots = publishesCommit
 		? captureTransactionCommitSnapshots(
 				parent,
 				child,
@@ -56,17 +58,20 @@ export function applyTransaction<F extends Fn>(
 		)
 
 		if (rootCommit) {
-			const commitEvent = createTransactionCommitEvent(
-				parent,
-				child.transactionMeta.update,
-				markTransactionCommitted(parent),
-				commitSnapshots,
-			)
-			notifySubjectAndCollectErrors(
-				parent.on.transactionCommit,
-				commitEvent,
-				notificationErrors,
-			)
+			const sequence = markTransactionCommitted(parent)
+			if (publishesCommit) {
+				const commitEvent = createTransactionCommitEvent(
+					parent,
+					child.transactionMeta.update,
+					sequence,
+					commitSnapshots,
+				)
+				notifySubjectAndCollectErrors(
+					parent.on.transactionCommit,
+					commitEvent,
+					notificationErrors,
+				)
+			}
 			if (ownsNotificationBatch) {
 				notificationErrors.push(...flushTransactionNotificationBatch(parent))
 			}

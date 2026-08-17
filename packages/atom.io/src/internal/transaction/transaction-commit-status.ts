@@ -55,6 +55,10 @@ function deepFreeze<Value>(value: Value, seen = new WeakSet<object>()): Value {
 		return value
 	}
 	if (seen.has(value)) return value
+	const tag = Object.prototype.toString.call(value)
+	if (!Array.isArray(value) && tag !== `[object Object]`) {
+		throw new TypeError(`${tag} cannot be made deeply immutable.`)
+	}
 	seen.add(value)
 	for (const child of Object.values(value)) deepFreeze(child, seen)
 	return Object.freeze(value)

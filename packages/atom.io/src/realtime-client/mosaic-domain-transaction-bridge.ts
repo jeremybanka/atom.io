@@ -4,8 +4,7 @@ import type {
 	TransactionSubEvent,
 	TransactionToken,
 } from "atom.io"
-import { unpackCanonical } from "atom.io/foundations/canonical"
-import type { Json } from "atom.io/foundations/json"
+import { type Json, parseJson } from "atom.io/foundations/json"
 import {
 	MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
 	type MosaicDomainBatchEnvelope,
@@ -73,7 +72,7 @@ function memberAddress(
 	if (token.family.key !== expectedKey) return null
 	return (domain.address as (...input: any[]) => MosaicDomainMemberAddress)(
 		name,
-		unpackCanonical(token.family.subKey),
+		parseJson(token.family.subKey),
 	)
 }
 

@@ -627,7 +627,10 @@ function leafRange(
 
 /** Stable atom-family key for bounded stale-leaf translation metadata. */
 export function mosaicTextIndexAliasKey(source: string): string {
-	return `alias:${hashId(source)}:${source.length}`
+	// Leaf IDs are short, bounded physical identifiers. Retaining the source in
+	// the durable key makes alias identity injective instead of trusting a
+	// 32-bit hash to remain collision-free across a long-lived document.
+	return `alias:${hashId(source)}:${source.length}:${source}`
 }
 
 function buildAliases(

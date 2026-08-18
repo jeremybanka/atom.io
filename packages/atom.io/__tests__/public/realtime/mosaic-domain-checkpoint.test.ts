@@ -350,6 +350,29 @@ describe(`Mosaic Domain incremental checkpoint graph`, () => {
 		).toBeNull()
 	})
 
+	test(`a protected root independently preserves the tail after its revision`, async () => {
+		const { coordinator, storage, values } = fixture()
+		const memberAddress = address(`root-tail-floor`)
+		values.set(mosaicDomainMemberAddressKey(memberAddress), `old`)
+		await append(storage, 1, [memberAddress])
+		const first = await coordinator.checkpoint()
+		values.set(mosaicDomainMemberAddressKey(memberAddress), `new`)
+		await append(storage, 2, [memberAddress])
+		await coordinator.checkpoint()
+		await storage.upsertCheckpointRetentionLease(identity, {
+			id: `old-root`,
+			kind: `history`,
+			minimumRevision: 2,
+			rootKeys: [first.rootKey],
+		})
+		const epoch = (await storage.checkpointHead(identity)).retentionEpoch
+		await storage.collectCheckpointGarbage({
+			domain: identity,
+			expectedRetentionEpoch: epoch,
+		})
+		expect(storage.readCheckpointTail(identity, 1, 2)).toHaveLength(1)
+	})
+
 	test(`bounded recovery fails closed instead of constructing an unbounded suffix`, async () => {
 		const { coordinator, storage, values } = fixture(undefined, {
 			maxRecoveryBatches: 1,
@@ -641,6 +664,51 @@ describe(`Mosaic Domain incremental checkpoint graph`, () => {
 		domain[Symbol.dispose]()
 	})
 
+	test(`singleton functional defaults are invoked without a family key`, async () => {
+		const silo = new Silo({
+			isProduction: false,
+			lifespan: `ephemeral`,
+			name: `checkpoint-singleton-default`,
+		})
+		let argumentCount = -1
+		const singletonAtom = silo.atom<string>({
+			default: function () {
+				argumentCount = arguments.length
+				return `singleton-default`
+			},
+			key: `singleton`,
+		})
+		const model = {
+			identity: { key: `checkpoint-singleton-register`, version: 1 },
+			kind: `value`,
+			operationSchema: z.object({ type: z.literal(`set`), value: z.string() }),
+			reduce: (_current, operation) => operation.value,
+		} satisfies MosaicDomainValueModel<string, { type: `set`; value: string }>
+		const definition = mosaicDomain({
+			configSchema: z.object({}),
+			key: `checkpoint-singleton-default-domain`,
+			members: {
+				singleton: {
+					model,
+					role: `durable`,
+					schema: z.string(),
+					token: singletonAtom,
+				},
+			},
+			version: 1,
+		})
+		const domain = await definition.activate({
+			config: {},
+			instance: `document`,
+			store: silo.store,
+		})
+		await expect(
+			defaultMosaicDomainMemberCheckpoint(domain, domain.address(`singleton`)),
+		).resolves.toBe(`singleton-default`)
+		expect(argumentCount).toBe(0)
+		domain[Symbol.dispose]()
+	})
+
 	test(`invalid limits, values, index paths, paging, and content keys fail closed`, async () => {
 		expect(() => fixture(undefined, { maxAttempts: 0 })).toThrow(
 			`maxAttempts must be a positive`,
@@ -682,6 +750,17 @@ describe(`Mosaic Domain incremental checkpoint graph`, () => {
 				{ key: `sha256:${`a`.repeat(64)}`, value: object },
 			]),
 		).toThrow(`content key is invalid`)
+		expect(() =>
+			storage.stageCheckpointObjects(identity, [
+				{
+					key: `sha256:${`b`.repeat(64)}`,
+					value: {
+						...object,
+						entries: [{ key: `invalid`, value: undefined }],
+					} as never,
+				},
+			]),
+		).toThrow(`checkpoint object is invalid`)
 	})
 
 	test(`storage rejects malformed lifecycle boundaries and retained-horizon reads`, async () => {
@@ -693,6 +772,14 @@ describe(`Mosaic Domain incremental checkpoint graph`, () => {
 				minimumRevision: 0,
 			}),
 		).toThrow(`retention lease is invalid`)
+		expect(() =>
+			storage.upsertCheckpointRetentionLease(identity, {
+				id: `missing-root`,
+				kind: `history`,
+				minimumRevision: 0,
+				rootKeys: [`sha256:${`c`.repeat(64)}`],
+			}),
+		).toThrow(`retention root is invalid`)
 		expect(() =>
 			storage.stageCheckpointObjects(identity, null as never),
 		).toThrow(`must be an array`)

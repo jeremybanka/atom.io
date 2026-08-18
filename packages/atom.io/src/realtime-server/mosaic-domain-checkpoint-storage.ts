@@ -142,8 +142,41 @@ type MemoryDomain = {
 
 const clone = <Value>(value: Value): Value => structuredClone(value)
 
+const isJsonSafe = (
+	value: unknown,
+	ancestors: WeakSet<object> = new WeakSet(),
+): boolean => {
+	if (
+		value === null ||
+		typeof value === `boolean` ||
+		typeof value === `string`
+	) {
+		return true
+	}
+	if (typeof value === `number`) return Number.isFinite(value)
+	if (typeof value !== `object` || ancestors.has(value)) return false
+	const prototype = Object.getPrototypeOf(value) as {
+		readonly constructor?: { readonly name?: string }
+	} | null
+	if (
+		!Array.isArray(value) &&
+		prototype !== null &&
+		prototype.constructor?.name !== `Object`
+	) {
+		return false
+	}
+	ancestors.add(value)
+	const valid = Object.values(value).every((child) =>
+		isJsonSafe(child, ancestors),
+	)
+	ancestors.delete(value)
+	return valid
+}
+
 const canonicalize = (value: unknown): string => {
-	if (value === null || typeof value !== `object`) return JSON.stringify(value)
+	if (value === null || typeof value !== `object`) {
+		return JSON.stringify(value)
+	}
 	if (Array.isArray(value)) return `[${value.map(canonicalize).join(`,`)}]`
 	const object = value as Readonly<Record<string, unknown>>
 	return `{${Object.keys(object)
@@ -245,6 +278,31 @@ export class InMemoryMosaicDomainCheckpointStorage implements MosaicDomainCheckp
 		if (request.expectedRetentionEpoch !== state.retentionEpoch) {
 			return { retentionEpoch: state.retentionEpoch, status: `stale` }
 		}
+		const root =
+			state.rootKey === null
+				? null
+				: (state.objects.get(state.rootKey) as
+						| MosaicDomainCheckpointRoot
+						| undefined)
+		if (state.rootKey !== null && root?.kind !== `root`) {
+			throw new Error(`A Mosaic Domain checkpoint root is missing.`)
+		}
+		let retainAfter = root?.revision ?? 0
+		for (const lease of state.retentionLeases.values()) {
+			retainAfter = Math.min(retainAfter, lease.minimumRevision)
+			for (const key of lease.rootKeys ?? []) {
+				const protectedRoot = state.objects.get(key)
+				if (
+					protectedRoot?.kind !== `root` ||
+					domainKey(protectedRoot.domain) !== domainKey(request.domain)
+				) {
+					throw new Error(
+						`A Mosaic Domain checkpoint retention root is invalid.`,
+					)
+				}
+				retainAfter = Math.min(retainAfter, protectedRoot.revision)
+			}
+		}
 		const live = new Set<MosaicDomainCheckpointObjectKey>()
 		const pending = new Set<MosaicDomainCheckpointObjectKey>()
 		if (state.rootKey !== null) pending.add(state.rootKey)
@@ -274,16 +332,6 @@ export class InMemoryMosaicDomainCheckpointStorage implements MosaicDomainCheckp
 			deletedObjectCount++
 		}
 
-		const root =
-			state.rootKey === null
-				? null
-				: (state.objects.get(state.rootKey) as
-						| MosaicDomainCheckpointRoot
-						| undefined)
-		let retainAfter = root?.revision ?? 0
-		for (const lease of state.retentionLeases.values()) {
-			retainAfter = Math.min(retainAfter, lease.minimumRevision)
-		}
 		let deletedTailBatchCount = 0
 		for (const revision of [...state.tail.keys()]) {
 			if (revision > retainAfter) continue
@@ -520,7 +568,7 @@ export class InMemoryMosaicDomainCheckpointStorage implements MosaicDomainCheckp
 			if (
 				typeof item?.key !== `string` ||
 				!item.key.startsWith(`sha256:`) ||
-				item.value === undefined
+				!isJsonSafe(item.value)
 			) {
 				throw new Error(`A Mosaic Domain checkpoint object is invalid.`)
 			}
@@ -550,6 +598,15 @@ export class InMemoryMosaicDomainCheckpointStorage implements MosaicDomainCheckp
 	): number {
 		assertLease(lease)
 		const state = this.#domain(domain)
+		for (const key of lease.rootKeys ?? []) {
+			const root = state.objects.get(key)
+			if (
+				root?.kind !== `root` ||
+				domainKey(root.domain) !== domainKey(domain)
+			) {
+				throw new Error(`A Mosaic Domain checkpoint retention root is invalid.`)
+			}
+		}
 		const received = clone(lease)
 		const current = state.retentionLeases.get(lease.id)
 		if (current !== undefined && same(current, received))

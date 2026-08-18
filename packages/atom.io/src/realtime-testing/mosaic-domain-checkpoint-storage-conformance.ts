@@ -120,7 +120,7 @@ export async function testMosaicDomainCheckpointStorageAdapter(
 	await storage.upsertCheckpointRetentionLease(identity, {
 		id: `supported-session`,
 		kind: `session`,
-		minimumRevision: 1,
+		minimumRevision: 2,
 		rootKeys: [first.rootKey],
 	})
 	const changed = address(`a`)
@@ -144,6 +144,10 @@ export async function testMosaicDomainCheckpointStorageAdapter(
 		protectedCollection.status === `collected` &&
 			(await storage.readCheckpointObject(identity, first.rootKey)) !== null,
 		`a supported session did not preserve its checkpoint root`,
+	)
+	assert(
+		(await storage.readCheckpointTail(identity, 1, 2)).length === 1,
+		`a protected root did not independently preserve its required tail`,
 	)
 	await storage.deleteCheckpointRetentionLease(identity, `supported-session`)
 	epoch = (await storage.checkpointHead(identity)).retentionEpoch

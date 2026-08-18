@@ -18,10 +18,21 @@ const storage = new InMemoryMosaicDomainCheckpointStorage({
 const batches = createMosaicDomainBatchServer({ domain, storage })
 const history = createMosaicDomainHistoryCoordinator({
 	batches,
+	completeCompensation: completeDerivedMaintenance,
 	domain,
 	limits: { undoStepsPerActor: 100 },
 	storage,
 })
+
+declare function completeDerivedMaintenance(context: {
+	readonly batchId: string
+	readonly operations: readonly { readonly operation: Json.Serializable }[]
+}): Promise<
+	readonly {
+		readonly address: MosaicDomainMemberAddress
+		readonly operation: Json.Serializable
+	}[]
+>
 
 const checkpoints = createMosaicDomainCheckpointCoordinator({
 	domain: domain.identity,

@@ -266,6 +266,32 @@ Store observers run only after a settlement has committed. An observer failure
 is reported through the Store logger without reclassifying accepted durable work
 as uncommitted or applying its reducer a second time during recovery.
 
+## Ephemeral presence
+
+The Domain presence controller coordinates remotely addressable `ephemeral`
+members without writing the durable batch log or entering application history.
+The server authenticates actor and session, resolves the Domain address,
+validates the value with the member's Standard Schema, and requires a monotonic
+sequence for that session. Disconnect and expiry produce monotonic clear
+envelopes. Retained session cursors prevent delayed packets from resurrecting a
+cleared value; a quiescent cursor can be explicitly retired when the surrounding
+authentication or residency layer retires that session epoch.
+
+<Exhibit src="realtime/coordinate-domain-presence.ts" />
+
+One ephemeral address has one live actor-session owner. Applications normally
+use an atom family keyed by logical actor and session when several collaborators
+publish the same kind of presence. Two sessions belonging to one actor therefore
+cannot overwrite or clear each other. Client and server controllers project
+accepted envelopes into the ordinary family members declared by the Domain.
+
+Presence has independent byte, rate, live-session, pending-update, and socket
+request bounds. The Socket.IO adapters use named request, response, snapshot,
+and broadcast events; the transport-neutral controllers can instead use another
+authenticated transport. Server cleanup subscriptions and quiescent-session
+retirement are exposed for later residency integration without making ephemeral
+updates durable.
+
 The residency layer deliberately does not implement incremental checkpoint
 graphs, durable range indexes, or actor-selective retained history. Those
 facilities build on its revision, resolver, and gesture boundaries in MOS-13,

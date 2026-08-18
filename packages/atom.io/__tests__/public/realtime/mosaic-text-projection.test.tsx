@@ -323,6 +323,8 @@ async function localSystem(text = `alpha\nbeta\ngamma\ndelta`) {
 		})
 		const connected = server.connect({ actor, session: `session-${name}` })
 		let activeTransports = 0
+		let remotePositionReads = 0
+		let remotePositionResolutions = 0
 		let subscriptions = 0
 		const transport: MosaicDomainResidencyTransport<
 			typeof state.domain.identity,
@@ -372,10 +374,12 @@ async function localSystem(text = `alpha\nbeta\ngamma\ndelta`) {
 					selection: { addresses: [address], kind: `members` },
 				}
 			},
-			positionAtOffset: (offset) =>
-				createMosaicTextIndexReader(
+			positionAtOffset: (offset) => {
+				remotePositionReads++
+				return createMosaicTextIndexReader(
 					mosaicTextIndexSource(current.bundle),
-				).positionAtOffset(offset),
+				).positionAtOffset(offset)
+			},
 			rangeMember: `index`,
 			rangeMemberLimit: 16,
 			async requestHistory(mode, context) {
@@ -392,8 +396,10 @@ async function localSystem(text = `alpha\nbeta\ngamma\ndelta`) {
 				if (result.status === `accepted`) historySequence = nextSequence
 			},
 			residency,
-			resolvePosition: (position) =>
-				Promise.resolve(resolvePosition(current.bundle, position)),
+			resolvePosition: (position) => {
+				remotePositionResolutions++
+				return Promise.resolve(resolvePosition(current.bundle, position))
+			},
 			rootAddress: state.domain.address(`root`),
 			session: `session-${name}`,
 		} satisfies MosaicTextProjectionClientOptions<
@@ -408,6 +414,12 @@ async function localSystem(text = `alpha\nbeta\ngamma\ndelta`) {
 			},
 			get subscriptions() {
 				return subscriptions
+			},
+			get remotePositionReads() {
+				return remotePositionReads
+			},
+			get remotePositionResolutions() {
+				return remotePositionResolutions
 			},
 			residency,
 			historyConnection,
@@ -500,6 +512,12 @@ describe(`Mosaic text range projections`, () => {
 			leaves(system.current.bundle).length + 1,
 		)
 		expect(system.current.materializations).toBe(0)
+		const remoteReads = reader.remotePositionReads
+		const remoteResolutions = reader.remotePositionResolutions
+		const residentPosition = await reader.client.positionAtOffset(4)
+		expect(await reader.client.resolvePosition(residentPosition)).toBe(4)
+		expect(reader.remotePositionReads).toBe(remoteReads)
+		expect(reader.remotePositionResolutions).toBe(remoteResolutions)
 		expect(await reader.client.readLength()).toBe(
 			materializeBundle(system.current.bundle).length,
 		)

@@ -1,5 +1,9 @@
 import { Subject } from "atom.io/foundations/subject"
 
+import {
+	countMosaicTextGraphemes,
+	visitMosaicTextGraphemes,
+} from "./graphemes.ts"
 import type {
 	MosaicModelDecision,
 	MosaicOperationSignal,
@@ -52,6 +56,11 @@ export type MosaicTextOperation =
 
 export type MosaicTextIntent =
 	| { readonly text: string; readonly type: `replace-text` }
+	| {
+			readonly selection: MosaicTextSelection
+			readonly text: string
+			readonly type: `replace-selection`
+	  }
 	| { readonly type: `redo` }
 	| { readonly type: `undo` }
 
@@ -164,7 +173,15 @@ export interface MosaicTextTransceiver
 			MosaicTextOperation,
 			MosaicTextSnapshot
 		>,
-		Omit<MosaicTextView, `subscribe`> {}
+		Omit<MosaicTextView, `subscribe`> {
+	prepare(
+		intent: MosaicTextIntent,
+		context: MosaicPrepareContext,
+	): MosaicOperationSignal<MosaicTextOperation> | null
+	preview(
+		signal: MosaicOperationSignal<MosaicTextOperation>,
+	): readonly MosaicTextVisibleRun[]
+}
 
 export type MosaicTextConstructor =
 	MosaicTransceiverConstructor<MosaicTextTransceiver> & {
@@ -243,11 +260,13 @@ type TextUnitArrays = {
 	values: string[]
 }
 
-const segmenter = new Intl.Segmenter(undefined, { granularity: `grapheme` })
-
 /** Split text into the Unicode graphemes used by Mosaic Text model version 2. */
 export function splitMosaicText(text: string): string[] {
-	return Array.from(segmenter.segment(text), ({ segment }) => segment)
+	const graphemes: string[] = []
+	visitMosaicTextGraphemes(text, (start, end) =>
+		graphemes.push(text.slice(start, end)),
+	)
+	return graphemes
 }
 
 /** Locale-independent ordering required for convergence across runtimes. */
@@ -331,6 +350,14 @@ function indexRun(run: MosaicTextRun): {
 }
 
 function sliceRun(run: MosaicTextRun, start: number, end: number): string {
+	if (
+		start === 0 &&
+		end === run.graphemes &&
+		run.fragments.length === 1 &&
+		run.fragments[0].start === 0
+	) {
+		return run.fragments[0].text
+	}
 	const { offsets, text } = indexRun(run)
 	return text.slice(offsets[start], offsets[end])
 }
@@ -339,7 +366,7 @@ function createRun(
 	inserted: MosaicTextInsertedRun,
 	createdBy: string,
 ): MosaicTextRun {
-	const graphemes = splitMosaicText(inserted.text).length
+	const graphemes = countMosaicTextGraphemes(inserted.text)
 	return {
 		after: inserted.after,
 		before: inserted.before,
@@ -616,6 +643,8 @@ type TraversalTask =
 
 type TraverseOptions = {
 	readonly boundaryTargets?: ReadonlyMap<string, ReadonlySet<number>>
+	/** Skip UTF-16 materialization when a caller only needs logical order. */
+	readonly measureUtf16?: boolean
 	readonly mode: `structural` | `visible`
 	readonly onBoundary?: (
 		run: MosaicTextRun,
@@ -629,6 +658,11 @@ type TraverseOptions = {
 		end: number,
 		text: string,
 		utf16Offset: number,
+	) => void
+	readonly onStructuralSlice?: (
+		run: MosaicTextRun,
+		start: number,
+		end: number,
 	) => void
 }
 
@@ -706,17 +740,23 @@ function traverseText(state: MosaicTextState, options: TraverseOptions): number 
 				if (interval.end <= cursor || interval.start >= task.end) continue
 				const visibleEnd = Math.min(interval.start, task.end)
 				if (cursor < visibleEnd) {
-					const text = sliceRun(task.run, cursor, visibleEnd)
-					options.onSlice?.(task.run, cursor, visibleEnd, text, utf16Offset)
-					utf16Offset += text.length
+					options.onStructuralSlice?.(task.run, cursor, visibleEnd)
+					if (options.measureUtf16 !== false) {
+						const text = sliceRun(task.run, cursor, visibleEnd)
+						options.onSlice?.(task.run, cursor, visibleEnd, text, utf16Offset)
+						utf16Offset += text.length
+					}
 				}
 				cursor = Math.max(cursor, interval.end)
 				if (cursor >= task.end) break
 			}
 			if (cursor < task.end) {
-				const text = sliceRun(task.run, cursor, task.end)
-				options.onSlice?.(task.run, cursor, task.end, text, utf16Offset)
-				utf16Offset += text.length
+				options.onStructuralSlice?.(task.run, cursor, task.end)
+				if (options.measureUtf16 !== false) {
+					const text = sliceRun(task.run, cursor, task.end)
+					options.onSlice?.(task.run, cursor, task.end, text, utf16Offset)
+					utf16Offset += text.length
+				}
 			}
 		}
 	}
@@ -818,6 +858,42 @@ function chunkGraphemes(
 	return chunks
 }
 
+function chunkMosaicText(
+	text: string,
+	limits: Pick<MosaicTextLimits, `maximumRunGraphemes` | `maximumRunUtf16Units`>,
+): { readonly graphemes: number; readonly text: string }[] {
+	const chunks: { graphemes: number; text: string }[] = []
+	let chunkStart = 0
+	let chunkEnd = 0
+	let graphemes = 0
+	const flush = (): void => {
+		if (graphemes === 0) return
+		chunks.push({ graphemes, text: text.slice(chunkStart, chunkEnd) })
+		chunkStart = chunkEnd
+		graphemes = 0
+	}
+	visitMosaicTextGraphemes(text, (start, end) => {
+		if (end - start > MAXIMUM_GRAPHEME_UTF16_UNITS) {
+			throw new RangeError(`Text contains an oversized Unicode grapheme`)
+		}
+		if (end - start > limits.maximumRunUtf16Units) {
+			throw new RangeError(`Text contains a grapheme larger than a run`)
+		}
+		if (
+			graphemes > 0 &&
+			(graphemes === limits.maximumRunGraphemes ||
+				end - chunkStart > limits.maximumRunUtf16Units)
+		) {
+			flush()
+			chunkStart = start
+		}
+		chunkEnd = end
+		graphemes++
+	})
+	flush()
+	return chunks
+}
+
 function diffText(
 	state: MosaicTextState,
 	nextText: string,
@@ -896,6 +972,135 @@ function diffText(
 	return { deleted, inserted, type: `edit` }
 }
 
+function selectionTargets(
+	selection: MosaicTextSelection,
+): ReadonlyMap<string, ReadonlySet<number>> {
+	const targets = new Map<string, Set<number>>()
+	for (const position of [selection.anchor, selection.head]) {
+		if (position.runId === null) continue
+		const offsets = targets.get(position.runId) ?? new Set<number>()
+		offsets.add(position.offset)
+		targets.set(position.runId, offsets)
+	}
+	return targets
+}
+
+function sameRelativePosition(
+	left: MosaicTextRelativePosition,
+	right: MosaicTextRelativePosition,
+): boolean {
+	return (
+		left.affinity === right.affinity &&
+		left.offset === right.offset &&
+		left.runId === right.runId
+	)
+}
+
+function boundaryEventMatches(
+	position: MosaicTextRelativePosition,
+	run: MosaicTextRun,
+	offset: number,
+	phase: `left` | `right`,
+): boolean {
+	return (
+		position.runId === run.id &&
+		position.offset === offset &&
+		position.affinity === phase
+	)
+}
+
+function orderedSelection(
+	state: MosaicTextState,
+	selection: MosaicTextSelection,
+): readonly [MosaicTextRelativePosition, MosaicTextRelativePosition] {
+	if (sameRelativePosition(selection.anchor, selection.head)) {
+		return [selection.anchor, selection.head]
+	}
+	const order = new Map<MosaicTextRelativePosition, number>()
+	let ordinal = 0
+	for (const position of [selection.anchor, selection.head]) {
+		if (position.runId === null) {
+			order.set(position, position.affinity === `right` ? -1 : MAXIMUM_LIMIT)
+		}
+	}
+	traverseText(state, {
+		boundaryTargets: selectionTargets(selection),
+		measureUtf16: false,
+		mode: `visible`,
+		onBoundary: (run, offset, phase) => {
+			for (const position of [selection.anchor, selection.head]) {
+				if (boundaryEventMatches(position, run, offset, phase)) {
+					order.set(position, ordinal)
+				}
+			}
+			ordinal++
+		},
+	})
+	const anchor = order.get(selection.anchor)
+	const head = order.get(selection.head)
+	if (anchor === undefined || head === undefined) {
+		throw new RangeError(`Mosaic text selection contains an unknown position`)
+	}
+	return anchor <= head
+		? [selection.anchor, selection.head]
+		: [selection.head, selection.anchor]
+}
+
+function replaceSelection(
+	state: MosaicTextState,
+	selection: MosaicTextSelection,
+	text: string,
+	context: MosaicPrepareContext,
+	limits: MosaicTextLimits,
+): MosaicTextEditOperation | null {
+	const [start, end] = orderedSelection(state, selection)
+	const deleted: MosaicTextDeletionInterval[] = []
+	if (!sameRelativePosition(start, end)) {
+		let selecting = start.runId === null && start.affinity === `right`
+		traverseText(state, {
+			boundaryTargets: selectionTargets({ anchor: start, head: end }),
+			measureUtf16: false,
+			mode: `visible`,
+			onBoundary: (run, offset, phase) => {
+				if (boundaryEventMatches(end, run, offset, phase)) selecting = false
+				if (boundaryEventMatches(start, run, offset, phase)) selecting = true
+			},
+			onStructuralSlice: (run, sliceStart, sliceEnd) => {
+				if (!selecting) return
+				deleted.push({ end: sliceEnd, runId: run.id, start: sliceStart })
+			},
+		})
+	}
+	const normalized = normalizeDeletionIntervals(deleted)
+	if (normalized.length > limits.maximumDeletionIntervalsPerOperation) {
+		throw new RangeError(
+			`Text edit exceeds maximumDeletionIntervalsPerOperation`,
+		)
+	}
+	const chunks = chunkMosaicText(text, limits)
+	if (chunks.length > limits.maximumRunsPerOperation) {
+		throw new RangeError(`Text edit exceeds maximumRunsPerOperation`)
+	}
+	const afterBoundary: MosaicTextBoundary | null =
+		start.runId === null ? null : { offset: start.offset, runId: start.runId }
+	const beforeBoundary: MosaicTextBoundary | null =
+		end.runId === null ? null : { offset: end.offset, runId: end.runId }
+	const inserted: MosaicTextInsertedRun[] = []
+	let after = afterBoundary
+	for (const [index, chunk] of chunks.entries()) {
+		const run: MosaicTextInsertedRun = {
+			after,
+			before: beforeBoundary,
+			id: `${context.id}:run:${index.toString().padStart(6, `0`)}`,
+			text: chunk.text,
+		}
+		inserted.push(run)
+		after = { offset: chunk.graphemes, runId: run.id }
+	}
+	if (normalized.length === 0 && inserted.length === 0) return null
+	return { deleted: normalized, inserted, type: `edit` }
+}
+
 function sameTargets(
 	left: readonly string[],
 	right: readonly string[],
@@ -946,6 +1151,15 @@ function prepareText(
 ): MosaicTextOperation | null {
 	if (intent.type === `replace-text`) {
 		return diffText(state, intent.text, context, limits)
+	}
+	if (intent.type === `replace-selection`) {
+		return replaceSelection(
+			state,
+			intent.selection,
+			intent.text,
+			context,
+			limits,
+		)
 	}
 	const target = historyFromState(state, context.actor)[intent.type].at(-1)
 	return target === undefined
@@ -1061,13 +1275,16 @@ function validateTextOperation(
 			) {
 				return { reason: `Invalid inserted run.`, status: `reject` }
 			}
-			const graphemes = splitMosaicText(text)
+			let graphemeCount = 0
+			let oversized = false
+			visitMosaicTextGraphemes(text, (start, end) => {
+				graphemeCount++
+				if (end - start > MAXIMUM_GRAPHEME_UTF16_UNITS) oversized = true
+			})
 			if (
-				graphemes.length === 0 ||
-				graphemes.length > limits.maximumRunGraphemes ||
-				graphemes.some(
-					(grapheme) => grapheme.length > MAXIMUM_GRAPHEME_UTF16_UNITS,
-				)
+				graphemeCount === 0 ||
+				graphemeCount > limits.maximumRunGraphemes ||
+				oversized
 			) {
 				return {
 					reason: `Inserted run exceeds its grapheme bound.`,
@@ -1083,7 +1300,7 @@ function validateTextOperation(
 				if (
 					chainedAfter === undefined ||
 					!sameBoundary(chainedAfter, {
-						offset: splitMosaicText(previous.text).length,
+						offset: countMosaicTextGraphemes(previous.text),
 						runId: previous.id,
 					})
 				) {
@@ -1247,22 +1464,24 @@ function validateCheckpointRun(
 		if (utf16Units > limits.maximumRunUtf16Units) {
 			throw new Error(`Invalid Mosaic text checkpoint run`)
 		}
-		const count = splitMosaicText(fragment[`text`]).length
+		const count = countMosaicTextGraphemes(fragment[`text`])
 		if (count === 0 || offset + count > limits.maximumRunGraphemes) {
 			throw new Error(`Invalid Mosaic text checkpoint fragments`)
 		}
 		fragments.push({ start: offset, text: fragment[`text`] })
 		offset += count
 	}
-	const combinedGraphemes = splitMosaicText(
-		fragments.map(({ text }) => text).join(``),
-	)
+	const combined = fragments.map(({ text }) => text).join(``)
+	let combinedGraphemes = 0
+	let oversized = false
+	visitMosaicTextGraphemes(combined, (start, end) => {
+		combinedGraphemes++
+		if (end - start > MAXIMUM_GRAPHEME_UTF16_UNITS) oversized = true
+	})
 	if (
 		offset !== value[`graphemes`] ||
-		combinedGraphemes.length !== offset ||
-		combinedGraphemes.some(
-			(grapheme) => grapheme.length > MAXIMUM_GRAPHEME_UTF16_UNITS,
-		)
+		combinedGraphemes !== offset ||
+		oversized
 	) {
 		throw new Error(`Invalid Mosaic text checkpoint grapheme count`)
 	}
@@ -1431,8 +1650,7 @@ function createSeededText(
 	limits: MosaicTextLimits,
 ): MosaicTextState {
 	let state = createEmptyState()
-	const values = splitMosaicText(text)
-	const chunks = chunkGraphemes(values, limits)
+	const chunks = chunkMosaicText(text, limits)
 	let after: MosaicTextBoundary | null = null
 	let actionIndex = 0
 	for (
@@ -1451,15 +1669,15 @@ function createSeededText(
 			start < operationEnd;
 			start++, runIndex++
 		) {
-			const runValues = chunks[start]
+			const chunk = chunks[start]
 			const run: MosaicTextInsertedRun = {
 				after,
 				before: null,
 				id: `${id}:run:${runIndex.toString().padStart(6, `0`)}`,
-				text: runValues.join(``),
+				text: chunk.text,
 			}
 			inserted.push(run)
-			after = { offset: runValues.length, runId: run.id }
+			after = { offset: chunk.graphemes, runId: run.id }
 		}
 		state = applyTextOperation(
 			state,
@@ -2076,20 +2294,60 @@ export function mosaicText(
 			intent: MosaicTextIntent,
 			context: MosaicPrepareContext,
 		): MosaicOperationSignal<MosaicTextOperation> | null {
-			const operation = prepareText(this.#state, intent, context, limits)
-			if (operation === null) return null
-			const signal: MosaicOperationSignal<MosaicTextOperation> = {
-				actor: context.actor,
-				dependencies: context.dependencies,
-				group: context.group,
-				id: context.id,
-				operation,
-				revision: null,
-				session: context.session,
-			}
+			const signal = this.prepare(intent, context)
+			if (signal === null) return null
 			this.do(signal)
 			this.#subject.next(signal)
 			return signal
+		}
+
+		public prepare(
+			intent: MosaicTextIntent,
+			context: MosaicPrepareContext,
+		): MosaicOperationSignal<MosaicTextOperation> | null {
+			const operation = prepareText(this.#state, intent, context, limits)
+			return operation === null
+				? null
+				: {
+						actor: context.actor,
+						dependencies: context.dependencies,
+						group: context.group,
+						id: context.id,
+						operation,
+						revision: null,
+						session: context.session,
+					}
+		}
+
+		public preview(
+			signal: MosaicOperationSignal<MosaicTextOperation>,
+		): readonly MosaicTextVisibleRun[] {
+			const context: MosaicReduceContext = {
+				actor: signal.actor,
+				dependencies: signal.dependencies,
+				group: signal.group,
+				id: signal.id,
+				revision: signal.revision,
+				session: signal.session,
+			}
+			const decision = validateTextOperation(
+				this.#state,
+				signal.operation,
+				context,
+				limits,
+			)
+			if (decision.status !== `accept`) {
+				throw new Error(
+					decision.status === `reject`
+						? decision.reason
+						: `Mosaic text preview is missing dependencies: ${decision.dependencies.join(
+								`, `,
+							)}`,
+				)
+			}
+			return visibleRunsFromState(
+				applyTextOperation(this.#state, decision.operation, context),
+			)
 		}
 
 		public do(signal: MosaicOperationSignal<MosaicTextOperation>): null {

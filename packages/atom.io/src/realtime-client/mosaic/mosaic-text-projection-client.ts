@@ -229,9 +229,16 @@ function localOffsetForPosition(
 	leaf: MosaicTextIndexLeaf,
 	position: MosaicTextRelativePosition,
 ): number | null {
+	return localOffsetForFragments(leaf.fragments, position)
+}
+
+function localOffsetForFragments(
+	fragments: readonly MosaicTextIndexFragment[],
+	position: MosaicTextRelativePosition,
+): number | null {
 	if (position.runId === null) return null
 	let utf16 = 0
-	for (const fragment of leaf.fragments) {
+	for (const fragment of fragments) {
 		if (fragment.runId === position.runId) {
 			const graphemes = splitMosaicText(fragment.text)
 			const local = position.offset - fragment.start
@@ -251,34 +258,41 @@ function positionAtLocalOffset(
 	leaves: readonly MosaicTextIndexLeaf[],
 	offset: number,
 ): MosaicTextRelativePosition {
+	return positionAtFragments(
+		leaves.flatMap(({ fragments }) => fragments),
+		offset,
+	)
+}
+
+function positionAtFragments(
+	fragments: readonly MosaicTextIndexFragment[],
+	offset: number,
+): MosaicTextRelativePosition {
 	let remaining = offset
-	for (const leaf of leaves) {
-		for (const fragment of leaf.fragments) {
-			const graphemes = splitMosaicText(fragment.text)
-			let utf16 = 0
-			for (let index = 0; index < graphemes.length; index++) {
-				const next = utf16 + graphemes[index].length
-				if (remaining < next) {
-					return {
-						affinity: `right`,
-						offset: fragment.start + index,
-						runId: fragment.runId,
-					}
+	for (const fragment of fragments) {
+		const graphemes = splitMosaicText(fragment.text)
+		let utf16 = 0
+		for (let index = 0; index < graphemes.length; index++) {
+			const next = utf16 + graphemes[index].length
+			if (remaining < next) {
+				return {
+					affinity: `right`,
+					offset: fragment.start + index,
+					runId: fragment.runId,
 				}
-				if (remaining === next) {
-					return {
-						affinity: `left`,
-						offset: fragment.start + index + 1,
-						runId: fragment.runId,
-					}
-				}
-				utf16 = next
 			}
-			remaining -= utf16
+			if (remaining === next) {
+				return {
+					affinity: `left`,
+					offset: fragment.start + index + 1,
+					runId: fragment.runId,
+				}
+			}
+			utf16 = next
 		}
+		remaining -= utf16
 	}
-	const lastLeaf = leaves.at(-1)
-	const last = lastLeaf?.fragments.at(-1)
+	const last = fragments.at(-1)
 	if (last === undefined) return { affinity: `left`, offset: 0, runId: null }
 	return {
 		affinity: `left`,
@@ -666,6 +680,7 @@ export function createMosaicTextProjectionClient<
 						await refreshRecord(record, changed)
 					})
 					.catch((error) => {
+						if (error instanceof Error && error.name === `AbortError`) return
 						options.residency.store.logger.error(
 							`🐞`,
 							`transaction`,
@@ -985,6 +1000,12 @@ export function createMosaicTextProjectionClient<
 			if (!Number.isSafeInteger(offset) || offset < 0 || offset > length) {
 				throw new RangeError(`Mosaic text offset is outside the document.`)
 			}
+			for (const record of records.values()) {
+				for (const segment of record.projection?.segments ?? []) {
+					if (offset < segment.start || offset > segment.end) continue
+					return positionAtFragments(segment.fragments, offset - segment.start)
+				}
+			}
 			return (await options.positionAtOffset(offset)).position
 		},
 		async readLength() {
@@ -999,6 +1020,12 @@ export function createMosaicTextProjectionClient<
 			}
 		},
 		resolvePosition(position) {
+			for (const record of records.values()) {
+				for (const segment of record.projection?.segments ?? []) {
+					const local = localOffsetForFragments(segment.fragments, position)
+					if (local !== null) return Promise.resolve(segment.start + local)
+				}
+			}
 			return options.resolvePosition(structuredClone(position))
 		},
 		residency: options.residency,

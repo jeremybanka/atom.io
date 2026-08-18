@@ -598,6 +598,163 @@ export function preflightMosaicDomainBatch<
 }
 
 /**
+ * Read a durable member's deterministic initial checkpoint without allocating
+ * a family member or consulting its mutable current value.
+ */
+export async function defaultMosaicDomainMemberCheckpoint<
+	Identity extends MosaicDomainIdentity,
+>(
+	domain: MosaicDomainInstance<Identity, any, any>,
+	address: MosaicDomainMemberAddress<Identity>,
+): Promise<Json.Serializable> {
+	const parsed = await domain.parseAddress(address)
+	if (parsed.member.role !== `durable`) {
+		throw new Error(`A Mosaic Domain checkpoint member must be durable.`)
+	}
+	const declared = parsed.member.token
+	const installed = declared.type.endsWith(`_family`)
+		? domain.store.families.get(declared.key)
+		: domain.store.atoms.get(declared.key)
+	if (installed === undefined) {
+		throw new Error(`A Mosaic Domain checkpoint member is not installed.`)
+	}
+	const token = installed as unknown as
+		| {
+				readonly class: new () => { toJSON(): unknown }
+				readonly type: `mutable_atom` | `mutable_atom_family`
+		  }
+		| {
+				readonly default: unknown
+				readonly type: `atom` | `atom_family`
+		  }
+	let value: unknown
+	if (`class` in token) {
+		value = new token.class().toJSON()
+	} else {
+		value =
+			typeof token.default === `function`
+				? token.type === `atom_family`
+					? token.default(parsed.address.key)
+					: token.default()
+				: token.default
+	}
+	const output = wireValue(value)
+	if (!isJsonSerializable(output)) {
+		throw new Error(`A Mosaic Domain member default is not serializable.`)
+	}
+	const validated = await domain.validateValue(
+		parsed.address.member,
+		structuredClone(output),
+	)
+	if (!isJsonSerializable(validated)) {
+		throw new Error(`A Mosaic Domain member default is not serializable.`)
+	}
+	return structuredClone(validated)
+}
+
+/**
+ * Reduce one checkpoint member through an accepted tail without acquiring it
+ * in the Store. This is the lazy MOS-12/MOS-13 hydration boundary.
+ */
+export async function projectMosaicDomainCheckpointMember<
+	Identity extends MosaicDomainIdentity,
+>(
+	domain: MosaicDomainInstance<Identity, any, any>,
+	address: MosaicDomainMemberAddress<Identity>,
+	initial: Json.Serializable,
+	tail: readonly MosaicAcceptedDomainBatchEnvelope<Identity>[],
+): Promise<Json.Serializable> {
+	const parsed = await domain.parseAddress(address)
+	if (parsed.member.role !== `durable` || parsed.member.model === undefined) {
+		throw new Error(
+			`A Mosaic Domain checkpoint member must be durable and modeled.`,
+		)
+	}
+	const model = parsed.member.model
+	const addressKey = mosaicDomainMemberAddressKey(parsed.address)
+	let current = await domain.validateValue(
+		parsed.address.member,
+		structuredClone(initial),
+	)
+	if (!isJsonSerializable(current)) {
+		throw new Error(`A Mosaic Domain checkpoint member is not serializable.`)
+	}
+	let previousRevision = -1
+	for (const accepted of tail) {
+		assertMosaicDomainBatchEnvelope(accepted.batch)
+		if (
+			!Number.isSafeInteger(accepted.revision) ||
+			accepted.revision < 1 ||
+			accepted.revision <= previousRevision ||
+			(previousRevision >= 0 && accepted.revision !== previousRevision + 1) ||
+			canonicalize(accepted.batch.domain) !== canonicalize(domain.identity)
+		) {
+			throw new Error(`A Mosaic Domain checkpoint tail is invalid.`)
+		}
+		previousRevision = accepted.revision
+		for (const operation of accepted.batch.operations) {
+			if (mosaicDomainMemberAddressKey(operation.address) !== addressKey)
+				continue
+			if (!sameModel(operation.model, mosaicDomainMemberModelIdentity(model))) {
+				throw new Error(`A Mosaic Domain checkpoint tail model is incompatible.`)
+			}
+			const normalized = await validateOperation(
+				model.operationSchema,
+				operation.operation,
+				`Mosaic Domain checkpoint member operation`,
+			)
+			const context: MosaicReduceContext = {
+				actor: accepted.batch.actor,
+				dependencies: accepted.batch.dependencies,
+				group: accepted.batch.group,
+				id: operation.id,
+				revision: accepted.revision,
+				session: accepted.batch.session,
+			}
+			let next: unknown
+			if (model.kind === `value`) {
+				next = model.reduce(
+					structuredClone(current),
+					structuredClone(normalized),
+					context,
+				)
+			} else {
+				const projection = model.class.fromJSON(structuredClone(current))
+				const decision = projection.validate(
+					structuredClone(normalized),
+					context,
+				)
+				if (decision.status !== `accept`) {
+					throw new Error(
+						decision.status === `defer`
+							? `A Mosaic Domain checkpoint tail is missing model dependencies.`
+							: decision.reason,
+					)
+				}
+				projection.do({ ...context, operation: decision.operation })
+				next = projection.toJSON()
+			}
+			const output = wireValue(next)
+			if (!isJsonSerializable(output)) {
+				throw new Error(
+					`A Mosaic Domain checkpoint projection is not serializable.`,
+				)
+			}
+			current = await domain.validateValue(
+				parsed.address.member,
+				structuredClone(output),
+			)
+			if (!isJsonSerializable(current)) {
+				throw new Error(
+					`A Mosaic Domain checkpoint projection is not serializable.`,
+				)
+			}
+		}
+	}
+	return structuredClone(current)
+}
+
+/**
  * Prepare optimism that an authenticated Store commit has already revealed.
  * The Store-owned event is an unforgeable adoption capability; this function
  * validates the model reduction against the isolated committed snapshots but

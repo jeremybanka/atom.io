@@ -709,6 +709,48 @@ describe(`Mosaic text range projections`, () => {
 		await system.writer.residency.dispose()
 	})
 
+	test(`resolves both affinities of an inserted resident boundary locally`, async () => {
+		const system = await localSystem(`abcdefgh`)
+		await system.replaceIndex(
+			maintainMosaicTextIndex(
+				system.current.bundle,
+				[
+					fragment(`abcd`, `base`, 0),
+					fragment(`XY`, `foreign`, 0),
+					fragment(`efgh`, `base`, 4),
+				],
+				compact,
+			).index,
+		)
+		const reader = await system.makeClient(`affinity-reader`)
+		const lease = await reader.client.acquireRange({
+			end: 10,
+			kind: `utf16-range`,
+			start: 0,
+		})
+		const remoteResolutions = reader.remotePositionResolutions
+		expect(
+			await reader.client.resolvePosition({
+				affinity: `left`,
+				offset: 4,
+				runId: `base`,
+			}),
+		).toBe(4)
+		expect(
+			await reader.client.resolvePosition({
+				affinity: `right`,
+				offset: 4,
+				runId: `base`,
+			}),
+		).toBe(6)
+		expect(reader.remotePositionResolutions).toBe(remoteResolutions)
+		await lease.release()
+		await reader.client.dispose()
+		await reader.residency.dispose()
+		await system.writer.client.dispose()
+		await system.writer.residency.dispose()
+	})
+
 	test(`fails bounded lifecycle misuse closed and disposes active Store resources`, async () => {
 		const system = await localSystem(`abcdefghijklmnop`)
 		const reader = await system.makeClient(`boundaries`)

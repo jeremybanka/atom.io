@@ -331,4 +331,26 @@ describe(`incremental realtime Markdown Domain`, () => {
 			await setup.teardown()
 		}
 	})
+
+	test(`settles an offline command when its collaboration client is disposed`, async () => {
+		const setup = await scenario()
+		try {
+			const harness = initialize(setup)
+			const clients = await live(setup)
+			const caret = await clients.ada.projection.positionAtOffset(4)
+			act(() => harness.ada.socket.disconnect())
+			await waitFor(() =>
+				expect(clients.ada.status().connection).toBe(`offline`),
+			)
+			const pending = clients.ada.replace({
+				selection: { anchor: caret, head: caret },
+				text: `[abandoned]`,
+			})
+			await Promise.resolve()
+			clients.ada[Symbol.dispose]()
+			await expect(pending).rejects.toThrow(`disposed`)
+		} finally {
+			await setup.teardown()
+		}
+	})
 })

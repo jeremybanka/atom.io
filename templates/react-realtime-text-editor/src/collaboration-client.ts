@@ -178,6 +178,7 @@ export async function createMarkdownCollaborationClient(options: {
 	let historySnapshot: MosaicDomainHistorySnapshot | null = null
 	let pendingCommands = 0
 	let disposed = false
+	const connectionWaiters = new Set<() => void>()
 	let commandTail = Promise.resolve()
 	let synchronization = Promise.resolve()
 	const listeners = new Set<(status: MarkdownClientStatus) => void>()
@@ -211,14 +212,37 @@ export async function createMarkdownCollaborationClient(options: {
 		await refreshHistory()
 		notify()
 	}
+	const waitForConnection = (): Promise<void> =>
+		new Promise((resolve, reject) => {
+			let settled = false
+			const cleanup = (): void => {
+				socket.off(`connect`, onConnect)
+				connectionWaiters.delete(onDispose)
+			}
+			const onConnect = (): void => {
+				if (settled) return
+				settled = true
+				cleanup()
+				resolve()
+			}
+			const onDispose = (): void => {
+				if (settled) return
+				settled = true
+				cleanup()
+				reject(new Error(`The Markdown client is disposed.`))
+			}
+			socket.once(`connect`, onConnect)
+			connectionWaiters.add(onDispose)
+			if (socket.connected) onConnect()
+			else if (disposed) onDispose()
+		})
 	const sendCommand = async (command: MarkdownCommand): Promise<void> => {
 		for (;;) {
 			if (disposed) throw new Error(`The Markdown client is disposed.`)
-			if (!socket.connected) {
-				await new Promise<void>((resolve) => socket.once(`connect`, resolve))
-			}
+			if (!socket.connected) await waitForConnection()
 			try {
 				await synchronization
+				if (disposed) throw new Error(`The Markdown client is disposed.`)
 				if (!socket.connected) continue
 				await request(socket, MARKDOWN_EVENTS.command, command)
 				return
@@ -324,6 +348,8 @@ export async function createMarkdownCollaborationClient(options: {
 		[Symbol.dispose]() {
 			if (disposed) return
 			disposed = true
+			for (const cancel of [...connectionWaiters]) cancel()
+			connectionWaiters.clear()
 			socket.off(`connect`, reconnect)
 			socket.off(`disconnect`, disconnect)
 			stopResidency()

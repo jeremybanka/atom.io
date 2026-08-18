@@ -1,13 +1,17 @@
 import type {
 	Loadable,
+	TransactionCommitEvent,
+	TransactionCommitStateSnapshot,
 	TransactionOutcomeEvent,
 	TransactionToken,
 } from "atom.io"
 import {
 	atom,
+	findState,
 	getState,
 	inspectTimeline,
 	mutableAtom,
+	mutableAtomFamily,
 	redo,
 	runTransaction,
 	selector,
@@ -440,6 +444,189 @@ describe(`atomic transaction commits`, () => {
 		expect(Internal.transactionCommitCount(Internal.IMPLICIT.STORE)).toBe(
 			commitsBefore,
 		)
+	})
+
+	it(`publishes one isolated outer commit and stays silent for aborted work`, () => {
+		const aAtom = atom<number>({ key: `a`, default: 0 })
+		const bAtom = atom<number>({ key: `b`, default: 0 })
+		const innerTransaction = transaction<() => void>({
+			key: `inner`,
+			do: ({ set }) => {
+				set(aAtom, 1)
+			},
+		})
+		const outerTransaction = transaction<() => void>({
+			key: `outer`,
+			do: ({ run, set }) => {
+				run(innerTransaction)()
+				set(bAtom, 2)
+			},
+		})
+		const abortingTransaction = transaction<() => void>({
+			key: `aborting`,
+			do: ({ run }) => {
+				run(innerTransaction)()
+				throw new Error(`abort outer`)
+			},
+		})
+		const commits = vitest.fn()
+		const unsubscribe = Internal.IMPLICIT.STORE.on.transactionCommit.subscribe(
+			`test-commit-lifecycle`,
+			commits,
+		)
+
+		runTransaction(outerTransaction, `outer-id`)()
+		expect(() => {
+			runTransaction(abortingTransaction)()
+		}).toThrow(`abort outer`)
+		runTransaction(outerTransaction, `outer-id-2`)()
+
+		expect(commits).toHaveBeenCalledTimes(2)
+		const commit = commits.mock.calls[0]?.[0]
+		const nextCommit = commits.mock.calls[1]?.[0]
+		expect(commit).toMatchObject({
+			outcome: { id: `outer-id`, token: outerTransaction },
+			type: `transaction_commit`,
+		})
+		expect(commit.sequence).toBeGreaterThan(0)
+		expect(nextCommit.sequence).toBe(commit.sequence + 1)
+		expect(Object.isFrozen(commit)).toBe(true)
+		expect(Object.isFrozen(commit.outcome)).toBe(true)
+		expect(Object.isFrozen(commit.outcome.subEvents)).toBe(true)
+		expect(
+			commit.outcome.subEvents.map(({ type }: { type: string }) => type),
+		).toEqual([`transaction_outcome`, `atom_update`])
+		expect([getState(aAtom), getState(bAtom)]).toEqual([1, 2])
+		unsubscribe()
+	})
+
+	it(`isolates cyclic values and reports uncloneable values explicitly`, () => {
+		type Cyclic = { label: string; self?: Cyclic }
+		const cyclicAtom = atom<Cyclic>({
+			default: { label: `old` },
+			key: `cyclic`,
+		})
+		const updateTransaction = transaction<
+			(callback: () => void, mutable: Map<string, string>) => () => void
+		>({
+			do: ({ set }, callback) => {
+				const cyclic: Cyclic = { label: `new` }
+				cyclic.self = cyclic
+				set(cyclicAtom, cyclic)
+				return callback
+			},
+			key: `update`,
+		})
+		let commit: TransactionCommitEvent | null = null
+		const stateObserver = vitest.fn()
+		const unsubscribe = Internal.IMPLICIT.STORE.on.transactionCommit.subscribe(
+			`cyclic-commit-lifecycle`,
+			(event) => {
+				commit = event
+			},
+		)
+		subscribe(cyclicAtom, stateObserver)
+		const callback = () => undefined
+		const mutable = new Map([[`mutable`, `container`]])
+
+		expect(runTransaction(updateTransaction)(callback, mutable)).toBe(callback)
+
+		expect(stateObserver).toHaveBeenCalledOnce()
+		expect(commit).not.toBeNull()
+		const published = commit!
+		expect(published.isolationFailures.map(({ path }) => path)).toEqual([
+			`outcome.output`,
+			`outcome.params[0]`,
+			`outcome.params[1]`,
+		])
+		expect(published.outcome.output).toMatchObject({
+			type: `transaction_commit_uncloneable`,
+		})
+		expect(published.outcome.params[0]).toMatchObject({
+			type: `transaction_commit_uncloneable`,
+		})
+		expect(published.outcome.params[1]).toMatchObject({
+			type: `transaction_commit_uncloneable`,
+		})
+		const snapshot = published.snapshots[0]
+		const isolated = snapshot.newValue as Cyclic
+		expect(isolated.self).toBe(isolated)
+		expect(Object.isFrozen(isolated)).toBe(true)
+		expect(Object.isFrozen(getState(cyclicAtom))).toBe(false)
+		unsubscribe()
+	})
+
+	it(`distinguishes star-prefixed atoms from transceiver family trackers`, () => {
+		// eslint-disable-next-line atom.io/naming-convention -- exercises a legal key that resembles the internal tracker prefix
+		const ordinaryAtom = atom<number>({ default: 0, key: `*ordinary` })
+		const listAtoms = mutableAtomFamily<UList<string>, string>({
+			class: UList,
+			key: `list`,
+		})
+		const listAtom = findState(listAtoms, `a`)
+		getState(listAtom)
+		const updateTransaction = transaction<() => void>({
+			do: ({ set }) => {
+				set(ordinaryAtom, 1)
+				set(listAtom, (list) => list.add(`x`))
+			},
+			key: `update`,
+		})
+		let snapshots: readonly TransactionCommitStateSnapshot[] = []
+		const unsubscribe = Internal.IMPLICIT.STORE.on.transactionCommit.subscribe(
+			`tracker-snapshot-lifecycle`,
+			(event) => {
+				snapshots = event.snapshots
+			},
+		)
+
+		runTransaction(updateTransaction)()
+
+		const ordinary = snapshots.find(
+			({ token }) => token.key === ordinaryAtom.key,
+		)
+		const list = snapshots.find(({ token }) => token.key === listAtom.key)
+		expect(ordinary).toMatchObject({
+			newExists: true,
+			newValue: 1,
+			oldExists: true,
+			oldValue: 0,
+		})
+		expect(list).toMatchObject({
+			newExists: true,
+			newValue: [`x`],
+			oldExists: true,
+			oldValue: [],
+			token: { family: listAtom.family, key: listAtom.key },
+		})
+		unsubscribe()
+	})
+
+	it(`does not let a commit listener failure hide a committed outcome`, () => {
+		const countAtom = atom<number>({ key: `count`, default: 0 })
+		const updateTransaction = transaction<() => void>({
+			key: `update`,
+			do: ({ set }) => {
+				set(countAtom, 1)
+			},
+		})
+		const stateObserver = vitest.fn()
+		const observerError = new Error(`commit listener failed`)
+		const unsubscribe = Internal.IMPLICIT.STORE.on.transactionCommit.subscribe(
+			`throwing-commit-listener`,
+			() => {
+				throw observerError
+			},
+		)
+		subscribe(countAtom, stateObserver)
+
+		expect(() => {
+			runTransaction(updateTransaction)()
+		}).toThrow(observerError)
+
+		expect(getState(countAtom)).toBe(1)
+		expect(stateObserver).toHaveBeenCalledWith({ oldValue: 0, newValue: 1 })
+		unsubscribe()
 	})
 
 	it(`cancels deferred notifications when replay fails`, () => {

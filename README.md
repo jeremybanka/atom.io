@@ -56,14 +56,16 @@ export function InboxButton() {
 
 ## What's Here
 
-| Path                                                                   | Purpose                                                                                                                       |
-| :--------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------- |
-| [packages/atom.io](./packages/atom.io)                                 | Core state engine, framework adapters, realtime packages, devtools, testing utilities, docs source, and package-level README. |
-| [packages/create-atom.io](./packages/create-atom.io)                   | CLI for creating new `atom.io` projects from this repo's templates.                                                           |
-| [apps/atom.io.fyi](./apps/atom.io.fyi)                                 | Astro documentation site for guides, concepts, API docs, and examples.                                                        |
-| [templates/preact-svg-editor](./templates/preact-svg-editor)           | Preact/Vite starter showing interactive SVG state.                                                                            |
-| [templates/react-node-backend](./templates/react-node-backend)         | React starter paired with Node services for backend-oriented examples.                                                        |
-| [templates/solid-lossless-numbers](./templates/solid-lossless-numbers) | Solid/Vite starter focused on precise numeric state.                                                                          |
+| Path                                                                                 | Purpose                                                                                                                       |
+| :----------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------- |
+| [packages/atom.io](./packages/atom.io)                                               | Core state engine, framework adapters, realtime packages, devtools, testing utilities, docs source, and package-level README. |
+| [packages/create-atom.io](./packages/create-atom.io)                                 | CLI for creating new `atom.io` projects from this repo's templates.                                                           |
+| [apps/atom.io.fyi](./apps/atom.io.fyi)                                               | Astro documentation site for guides, concepts, API docs, and examples.                                                        |
+| [templates/preact-realtime-vector-editor](./templates/preact-realtime-vector-editor) | Preact vector editor showing Mosaic Domain batching, presence, recovery, and actor-safe history.                              |
+| [templates/preact-svg-editor](./templates/preact-svg-editor)                         | Preact/Vite starter showing interactive SVG state.                                                                            |
+| [templates/react-node-backend](./templates/react-node-backend)                       | React starter paired with Node services for backend-oriented examples.                                                        |
+| [templates/react-realtime-text-editor](./templates/react-realtime-text-editor)       | React markdown editor showing collaborative text, presence, and selective per-user undo.                                      |
+| [templates/solid-lossless-numbers](./templates/solid-lossless-numbers)               | Solid/Vite starter focused on precise numeric state.                                                                          |
 
 ## Working Locally
 

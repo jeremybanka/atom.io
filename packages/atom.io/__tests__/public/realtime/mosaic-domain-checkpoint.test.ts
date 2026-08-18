@@ -62,6 +62,7 @@ const accepted = (
 			operation: { type: `set` },
 		})),
 		protocolVersion: MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
+		sequence: Math.ceil(revision / 2),
 		session: `session-${revision % 2}`,
 	},
 	revision,
@@ -481,6 +482,7 @@ describe(`Mosaic Domain incremental checkpoint graph`, () => {
 					},
 				],
 				protocolVersion: MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
+				sequence: 1,
 				session: `one`,
 			})
 		expect(first.status).toBe(`accepted`)
@@ -518,6 +520,7 @@ describe(`Mosaic Domain incremental checkpoint graph`, () => {
 					},
 				],
 				protocolVersion: MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
+				sequence: 1,
 				session: `external`,
 			},
 			revision: 2,
@@ -630,6 +633,7 @@ describe(`Mosaic Domain incremental checkpoint graph`, () => {
 						},
 					],
 					protocolVersion: MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
+					sequence: 1,
 					session: `tab`,
 				},
 				revision: 1,

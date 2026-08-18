@@ -180,6 +180,7 @@ export function createMosaicDomainBatchClient(
 	const pending: Pending[] = []
 	let sequence = 0
 	let batchSequence = 0
+	let durableBatchSequence = 0
 	let revision = 0
 	let headBatchId: string | null = null
 	let headBatchMeaningKey: string | null = null
@@ -274,6 +275,7 @@ export function createMosaicDomainBatchClient(
 						...prepared.batch,
 						actor: options.actor,
 						dependencies: proposal.dependencies,
+						sequence: proposal.sequence,
 					},
 					revision: null,
 				})),
@@ -306,6 +308,16 @@ export function createMosaicDomainBatchClient(
 				throw new Error(
 					`Mosaic Domain revision ${revision} was replayed with conflicting content.`,
 				)
+			}
+			if (
+				accepted.batch.actor === options.actor &&
+				accepted.batch.session === options.session
+			) {
+				durableBatchSequence = Math.max(
+					durableBatchSequence,
+					accepted.batch.sequence,
+				)
+				batchSequence = Math.max(batchSequence, durableBatchSequence)
 			}
 			return
 		}
@@ -346,6 +358,16 @@ export function createMosaicDomainBatchClient(
 		revision = accepted.revision
 		headBatchId = accepted.batch.id
 		headBatchMeaningKey = mosaicDomainBatchMeaningKey(accepted.batch)
+		if (
+			accepted.batch.actor === options.actor &&
+			accepted.batch.session === options.session
+		) {
+			durableBatchSequence = Math.max(
+				durableBatchSequence,
+				accepted.batch.sequence,
+			)
+			batchSequence = Math.max(batchSequence, durableBatchSequence)
+		}
 		problem = null
 		status = `live`
 		notify()
@@ -366,6 +388,7 @@ export function createMosaicDomainBatchClient(
 			let recoveredRevision = revision
 			let recoveredHeadBatchId = headBatchId
 			let recoveredHeadBatchMeaningKey = headBatchMeaningKey
+			let recoveredDurableBatchSequence = durableBatchSequence
 			const recovered: MosaicDomainBatchProjection[] = []
 			let nextPending = [...pending]
 			for (const accepted of recovery.tail) {
@@ -402,6 +425,15 @@ export function createMosaicDomainBatchClient(
 				recoveredHeadBatchMeaningKey = mosaicDomainBatchMeaningKey(
 					accepted.batch,
 				)
+				if (
+					accepted.batch.actor === options.actor &&
+					accepted.batch.session === options.session
+				) {
+					recoveredDurableBatchSequence = Math.max(
+						recoveredDurableBatchSequence,
+						accepted.batch.sequence,
+					)
+				}
 			}
 			if (recoveredRevision !== recovery.headRevision) {
 				throw new Error(`Mosaic Domain recovery returned an incomplete tail.`)
@@ -412,6 +444,8 @@ export function createMosaicDomainBatchClient(
 			revision = recoveredRevision
 			headBatchId = recoveredHeadBatchId
 			headBatchMeaningKey = recoveredHeadBatchMeaningKey
+			durableBatchSequence = recoveredDurableBatchSequence
+			batchSequence = Math.max(batchSequence, durableBatchSequence)
 			status = `live`
 			problem = null
 			notify()
@@ -430,12 +464,14 @@ export function createMosaicDomainBatchClient(
 		)
 		if (index < 0) return
 		const nextPending = pending.filter((_item, itemIndex) => itemIndex !== index)
+		let nextSequence = durableBatchSequence
 		for (
 			let pendingIndex = 0;
 			pendingIndex < nextPending.length;
 			pendingIndex++
 		) {
 			const previous = nextPending[pendingIndex]
+			nextSequence++
 			nextPending[pendingIndex] = {
 				...previous,
 				proposal: {
@@ -446,9 +482,11 @@ export function createMosaicDomainBatchClient(
 							.slice(0, pendingIndex)
 							.map(({ proposal }) => proposal.id),
 					],
+					sequence: nextSequence,
 				},
 			}
 		}
+		batchSequence = nextSequence
 		await replaceProjection([], nextPending)
 		problem = rejection
 		status = `rejected`

@@ -241,6 +241,7 @@ export function createMosaicDomainResidencyClient<
 	let headRevision = 0
 	let problem: MosaicDomainBatchRejection | null = null
 	let sequence = 0
+	let batchSequence = 0
 	let queue = Promise.resolve()
 	let stopTransport: (() => void) | null = null
 	const resourceKey = `atom.io/realtime/mosaic-domain-residency:${options.domain.identity.definition.key}@${options.domain.identity.definition.version}#${options.domain.identity.instance}:${options.actor}:${options.session}`
@@ -1080,6 +1081,7 @@ export function createMosaicDomainResidencyClient<
 						operation.address,
 					)
 				}
+				const nextBatchSequence = batchSequence + 1
 				const proposal: MosaicDomainBatchProposal<Identity> = {
 					affectedMembers: [...affected.values()],
 					dependencies: pending.map((pendingItem) => pendingItem.proposal.id),
@@ -1093,12 +1095,14 @@ export function createMosaicDomainResidencyClient<
 					}),
 					operations,
 					protocolVersion: MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
+					sequence: nextBatchSequence,
 					session: options.session,
 				}
 				const prepared = await preflightMosaicDomainBatch(options.domain, {
 					...proposal,
 					actor: options.actor,
 				})
+				batchSequence = nextBatchSequence
 				applyMosaicDomainBatch(prepared)
 				const next = { confirmed: false, prepared, proposal }
 				pending.push(next)

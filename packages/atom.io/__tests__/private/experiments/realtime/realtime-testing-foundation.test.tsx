@@ -9,6 +9,17 @@ import {
 } from "atom.io/realtime-testing"
 import * as RTTest from "atom.io/realtime-testing/headless"
 
+const advanceVirtualClock = async (
+	clock: RTTest.VirtualClock,
+	duration: number,
+): Promise<void> => {
+	for (let elapsed = 0; elapsed < duration; elapsed++) {
+		for (let turn = 0; turn < 10; turn++) await Promise.resolve()
+		clock.advance(1)
+	}
+	for (let turn = 0; turn < 10; turn++) await Promise.resolve()
+}
+
 describe(`realtime testing foundations`, () => {
 	test(`scopes generated identities and sessions when a scenario ID is explicit`, async () => {
 		const first = RTTest.headless({
@@ -386,12 +397,13 @@ describe(`realtime testing foundations`, () => {
 	})
 
 	test(`reports divergent participant state with registered diagnostics`, async () => {
-		const scenario = RTTest.headless({ server: () => {} })
+		const clock = new RTTest.VirtualClock()
+		const scenario = RTTest.headless({ clock, server: () => {} })
 		const client = scenario.createClient({ name: `divergent-client` })
 		scenario.server.inspect(`accepted revision`, () => 8)
 		client.inspect(`pending action`, () => `edit-9`)
 		try {
-			await expect(
+			const rejection = expect(
 				scenario.waitForConvergence({
 					participants: [
 						{ label: `server value`, read: () => `alpha` },
@@ -402,7 +414,26 @@ describe(`realtime testing foundations`, () => {
 			).rejects.toThrow(
 				/server value.*alpha.*client value.*beta.*accepted revision.*8.*pending action.*edit-9.*Event journal/s,
 			)
+			await advanceVirtualClock(clock, 20)
+			await rejection
 		} finally {
+			await scenario.teardown()
+		}
+	})
+
+	test(`reports an inner convergence barrier failure`, async () => {
+		const scenario = RTTest.headless({ server: () => {} })
+		const disposeDrain = scenario.server.work.registerDrain(() => {
+			throw new Error(`projection drain failed`)
+		})
+		try {
+			await expect(
+				scenario.waitForConvergence({
+					participants: [{ label: `server`, read: () => `ready` }],
+				}),
+			).rejects.toThrow(/Last barrier error: projection drain failed/)
+		} finally {
+			disposeDrain()
 			await scenario.teardown()
 		}
 	})

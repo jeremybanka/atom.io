@@ -437,6 +437,59 @@ Applications register presence, annotation, outbox, and proposal references
 through the protection API shown above, then release each protection with its
 owner's lifecycle.
 
+## Bounded text projections
+
+The Store-owned text projection client turns bounded index and residency
+facilities into a renderer-neutral document API. It exposes document length,
+position lookup, one-shot range reads, observed range leases, logical edits,
+and explicit full materialization. Range acquisition accepts overscan but is
+still bounded by configured UTF-16, active-range, and resolved-member limits.
+React owns only the viewport lifecycle through a hook; headless clients and a
+future Solid adapter consume the same controller and ordinary selectors.
+
+<Exhibit src="realtime/project-a-mosaic-text-viewport.tsx" />
+
+Each live range has a selector whose truthful dependencies are one membership
+atom plus the exact resident leaves returned by the normalized range request.
+The membership atom is necessary because a physical leaf split or merge can
+change which leaves make up a logical range without changing any previously
+resident leaf value. This is the deliberate seam added beyond the original
+residency contract: a subscription exposes its current normalized addresses,
+and the controller can inspect already-hydrated members without acquiring a
+second ownership lease. The seam remains model-neutral; the Domain core has no
+text-specific branch.
+
+Equal ranges share one Store resource and reference-counted residency request.
+Overlapping ranges share hydrated family members while retaining independent
+selector membership. Releasing the last view disposes its selector and
+membership atom, releases the filtered request, and may evict the now-unowned
+leaf cache. Thus scrolling and unmounting do not accumulate selector or Store
+resources, and full-document state cannot be pulled in accidentally.
+Controller identity includes the root address and range-member name, so two text
+indexes in one Domain cannot accidentally share projection state. Cleanup is
+best-effort across every owned resource: one failed transport release is
+reported without preventing selector, membership, observer, and cache cleanup.
+
+Projected blocks use run-relative anchors as render keys. Their identities
+therefore survive physical index splits and merges, preserving React focus and
+selection across maintenance. The projected text is clipped to the requested
+logical half-open range even though the backing leaves are hydrated whole.
+
+Logical edit planning stays in an application adapter because a text model's
+operation language and physical routing are not generic Domain policy. One
+replace submits one gesture group through residency. A model-specific edit may
+temporarily select unloaded members; that selection is released even on
+failure. After a submit succeeds, release trouble is logged instead of turning
+an accepted gesture into a rejected edit promise that could invite a duplicate
+retry.
+
+Undo and redo take a different path. The optional history adapter delegates them
+to the authoritative MOS-16 coordinator transport, which owns actor cursors,
+horizons, unloaded affected members, compensation, retention, and resnapshot
+guidance. The projection client does not mirror history in residency or invent a
+second timeline. Applications without MOS-16 can omit the adapter and plan a
+model-specific undo or redo operation through the original edit seam.
+
 ## Ordinary transaction bridge
 
 An application can bind independently authored transactions to a batch client.

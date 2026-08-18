@@ -123,4 +123,22 @@ describe(`SVG member convergence`, () => {
 			}),
 		).toBe(register)
 	})
+
+	test(`a malformed compensation cycle fails closed`, () => {
+		const cyclic = reduceSvgRegister(
+			reduceSvgRegister(emptySvgRegister(), {
+				id: `undo-a`,
+				undoTargets: [`undo-b`],
+				value: { x: 1, y: 1 },
+			}),
+			{
+				id: `undo-b`,
+				undoTargets: [`undo-a`],
+				value: { x: 2, y: 2 },
+			},
+		)
+		expect(() => readSvgRegister(cyclic)).toThrow(
+			`SVG compensation graph contains a cycle`,
+		)
+	})
 })

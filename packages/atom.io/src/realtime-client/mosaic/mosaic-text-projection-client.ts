@@ -77,7 +77,7 @@ export type MosaicTextProjectionEditPlan<
 	readonly operations:
 		| MosaicDomainResidencyClientOperation<Identity>
 		| readonly MosaicDomainResidencyClientOperation<Identity>[]
-	/** Members needed to prepare and settle this gesture, including unloaded history. */
+	/** Members needed to prepare and settle this model-specific edit. */
 	readonly selection?: MosaicDomainResidencySelection<Identity, Range>
 }
 
@@ -110,6 +110,11 @@ export type MosaicTextProjectionClientOptions<
 	readonly positionAtOffset: (offset: number) => Promise<MosaicTextIndexLookup>
 	readonly rangeMember: string
 	readonly rangeMemberLimit?: number
+	/** Delegate undo/redo to the authoritative MOS-16 history transport. */
+	readonly requestHistory?: (
+		mode: `redo` | `undo`,
+		context: MosaicTextProjectionEditContext & { readonly range: null },
+	) => MaybePromise<void>
 	readonly residency: MosaicDomainResidencyClient<Identity, Range>
 	readonly resolvePosition: (
 		position: MosaicTextRelativePosition,
@@ -890,12 +895,20 @@ export function createMosaicTextProjectionClient<
 					start: Math.min(anchor, head),
 				})
 			}
-			const plan = await options.planEdit(received, {
+			const context = {
 				actor: options.actor,
 				gestureId,
 				range,
 				session: options.session,
-			})
+			}
+			if (received.type !== `replace` && options.requestHistory !== undefined) {
+				await options.requestHistory(received.type, {
+					...context,
+					range: null,
+				})
+				return
+			}
+			const plan = await options.planEdit(received, context)
 			const operations = Array.isArray(plan.operations)
 				? plan.operations
 				: [plan.operations]

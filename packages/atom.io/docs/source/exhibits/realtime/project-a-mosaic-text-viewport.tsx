@@ -19,6 +19,9 @@ type TextAdapter = Pick<
 declare const residency: MosaicDomainResidencyClient<Identity>
 declare const rootAddress: MosaicDomainMemberAddress<Identity>
 declare const textAdapter: TextAdapter
+declare const requestHistory: NonNullable<
+	MosaicTextProjectionClientOptions<Identity>[`requestHistory`]
+>
 
 const text = createMosaicTextProjectionClient({
 	actor: `ada`,
@@ -29,6 +32,7 @@ const text = createMosaicTextProjectionClient({
 	...textAdapter,
 	rangeMember: `indexMembers`,
 	rangeMemberLimit: 64,
+	requestHistory,
 	residency,
 	rootAddress,
 	session: `tab-1`,

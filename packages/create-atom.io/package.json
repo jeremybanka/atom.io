@@ -26,6 +26,7 @@
 	"bin": "./bin/create-atom.bin.js",
 	"dependencies": {
 		"@atom.io/template-preact-svg-editor": "workspace:*",
+		"@atom.io/template-preact-realtime-vector-editor": "workspace:*",
 		"@atom.io/template-react-realtime-text-editor": "workspace:*",
 		"@atom.io/template-react-node-backend": "workspace:*",
 		"@atom.io/template-solid-lossless-numbers": "workspace:*",

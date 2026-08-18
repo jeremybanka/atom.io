@@ -570,11 +570,11 @@ export function createMosaicTextProjectionClient<
 		const addresses = subscription.addresses
 		const keys = addresses.map(mosaicDomainMemberAddressKey)
 		const previousAddresses = record.addresses
-		const previous = previousAddresses.map(mosaicDomainMemberAddressKey)
+		const previousKeys = previousAddresses.map(mosaicDomainMemberAddressKey)
 		if (
 			!force &&
-			keys.length === previous.length &&
-			keys.every((key, index) => key === previous[index])
+			keys.length === previousKeys.length &&
+			keys.every((key, index) => key === previousKeys[index])
 		) {
 			return
 		}
@@ -703,7 +703,9 @@ export function createMosaicTextProjectionClient<
 			requireStore(),
 			record.selector,
 			`${resourceKey}:observe:${recordKey(record.range)}`,
-			({ newValue }) => publish(newValue),
+			({ newValue }) => {
+				publish(newValue)
+			},
 		)
 	}
 
@@ -774,7 +776,7 @@ export function createMosaicTextProjectionClient<
 			if (!active) return
 			active = false
 			if (disposed) return
-			await releaseRecord(record!)
+			await releaseRecord(record)
 		}
 		return {
 			get active() {
@@ -784,7 +786,7 @@ export function createMosaicTextProjectionClient<
 			read: () => {
 				if (!active || disposed)
 					throw new Error(`This Mosaic text range lease is released.`)
-				return getFromStore(requireStore(), record!.selector)
+				return getFromStore(requireStore(), record.selector)
 			},
 			release,
 			selector: record.selector,

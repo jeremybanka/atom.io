@@ -8,6 +8,7 @@ import type {
 } from "atom.io/realtime-client"
 import { createMosaicTextProjectionClient } from "atom.io/realtime-client"
 import { useMosaicTextRange } from "atom.io/realtime-react"
+import type { JSX } from "react"
 
 type Identity = MosaicDomainIdentity
 type TextAdapter = Pick<
@@ -36,7 +37,7 @@ const text = createMosaicTextProjectionClient({
 export function TextViewport(props: {
 	readonly end: number
 	readonly start: number
-}) {
+}): JSX.Element {
 	const view = useMosaicTextRange(
 		text,
 		{ end: props.end, kind: `utf16-range`, start: props.start },

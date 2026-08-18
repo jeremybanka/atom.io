@@ -85,6 +85,38 @@ type Pending = {
 	proposal: MosaicDomainBatchProposal
 }
 
+const committedBatchAdopters = new WeakMap<
+	MosaicDomainBatchClient,
+	(
+		prepare: (
+			context: MosaicDomainBatchClientAdoptionContext,
+		) => Promise<PreparedMosaicDomainBatch>,
+	) => Promise<void>
+>()
+
+/** @internal Identity and ordering allocated by the owning batch client. */
+export type MosaicDomainBatchClientAdoptionContext = {
+	readonly actor: string
+	readonly batchId: string
+	readonly dependencies: readonly string[]
+	operationId(): string
+	readonly session: string
+}
+
+/** @internal Adopt Store-committed optimism without applying it again. */
+export function adoptCommittedMosaicDomainBatchClientOptimism(
+	client: MosaicDomainBatchClient,
+	prepare: (
+		context: MosaicDomainBatchClientAdoptionContext,
+	) => Promise<PreparedMosaicDomainBatch>,
+): Promise<void> {
+	const adopt = committedBatchAdopters.get(client)
+	if (adopt === undefined) {
+		throw new Error(`A Mosaic Domain batch client adoption cannot be forged.`)
+	}
+	return adopt(prepare)
+}
+
 const defaultIdSource = ({
 	actor,
 	kind,
@@ -457,7 +489,7 @@ export function createMosaicDomainBatchClient(
 		})
 	})
 
-	return {
+	const client: MosaicDomainBatchClient = {
 		async flush() {
 			if (disposed)
 				throw new Error(`This Mosaic Domain batch client is disposed.`)
@@ -589,4 +621,68 @@ export function createMosaicDomainBatchClient(
 			listeners.clear()
 		},
 	}
+	committedBatchAdopters.set(client, async (prepare) => {
+		const work = submitTail.then(async () => {
+			if (disposed)
+				throw new Error(`This Mosaic Domain batch client is disposed.`)
+			if (!started) await client.start()
+			let item: Pending | undefined
+			let sendImmediately = false
+			await enqueue(async () => {
+				if (disposed) {
+					throw new Error(`This Mosaic Domain batch client is disposed.`)
+				}
+				const batchId = idSource({
+					actor: options.actor,
+					kind: `batch`,
+					sequence: sequence++,
+					session: options.session,
+				})
+				const prepared = await prepare({
+					actor: options.actor,
+					batchId,
+					dependencies: dependencies(),
+					operationId: () =>
+						idSource({
+							actor: options.actor,
+							kind: `operation`,
+							sequence: sequence++,
+							session: options.session,
+						}),
+					session: options.session,
+				})
+				if (
+					prepared.batch.actor !== options.actor ||
+					prepared.batch.session !== options.session ||
+					prepared.batch.domain.instance !== options.domain.identity.instance ||
+					prepared.batch.domain.definition.key !==
+						options.domain.identity.definition.key ||
+					prepared.batch.domain.definition.version !==
+						options.domain.identity.definition.version
+				) {
+					throw new Error(
+						`Committed Mosaic Domain optimism belongs to another client identity or Domain.`,
+					)
+				}
+				const { actor: _actor, ...proposal } = prepared.batch
+				item = { prepared, proposal }
+				pending.push(item)
+				sendImmediately = status === `live`
+				if (sendImmediately) problem = null
+				notify()
+			})
+			if (sendImmediately) {
+				if (item === undefined) {
+					throw new Error(`Committed Mosaic Domain optimism was not adopted.`)
+				}
+				await send(item)
+			}
+		})
+		submitTail = work.then(
+			() => undefined,
+			() => undefined,
+		)
+		return work
+	})
+	return client
 }

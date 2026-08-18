@@ -1,6 +1,15 @@
 export * from "./create-subscriber.ts"
 export * from "./mosaic/index.ts"
-export * from "./mosaic-domain-batch-client.ts"
+export type {
+	MosaicDomainBatchClient,
+	MosaicDomainBatchClientIdContext,
+	MosaicDomainBatchClientOperation,
+	MosaicDomainBatchClientOptions,
+	MosaicDomainBatchClientState,
+	MosaicDomainBatchClientTransport,
+} from "./mosaic-domain-batch-client.ts"
+export { createMosaicDomainBatchClient } from "./mosaic-domain-batch-client.ts"
+export * from "./mosaic-domain-transaction-bridge.ts"
 export * from "./observe-socket-wind-down.ts"
 export * from "./pull-atom.ts"
 export * from "./pull-atom-family-member.ts"

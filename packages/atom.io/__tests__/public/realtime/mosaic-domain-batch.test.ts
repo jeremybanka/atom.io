@@ -2169,6 +2169,81 @@ describe(`Mosaic Domain atomic batches`, () => {
 				.propose(proposal(deniedState.domain)),
 		).resolves.toMatchObject({ rejection: { code: `unauthorized` } })
 
+		const classificationSilo = new Silo({
+			isProduction: false,
+			lifespan: `ephemeral`,
+			name: `server-history-classification-error`,
+		})
+		const pathsAtom = classificationSilo.atom<string[]>({
+			default: [],
+			key: `paths`,
+		})
+		const classificationModel = {
+			...pathModel,
+			history: {
+				classify() {
+					throw new Error(`classification unavailable`)
+				},
+				compensate() {
+					return { path: `compensated`, type: `append` } as const
+				},
+			},
+			identity: { key: `throwing-history-path`, version: 1 },
+		} satisfies MosaicDomainValueModel<
+			string[],
+			{ path: string; type: `append` }
+		>
+		const classificationDefinition = mosaicDomain({
+			configSchema: z.object({}),
+			key: `throwing-history-domain`,
+			members: {
+				paths: {
+					model: classificationModel,
+					role: `durable`,
+					schema: z.array(z.string()),
+					token: pathsAtom,
+				},
+			},
+			version: 1,
+		})
+		const classificationDomain = await classificationDefinition.activate({
+			config: {},
+			instance: `document`,
+			store: classificationSilo.store,
+		})
+		const classificationAddress = classificationDomain.address(`paths`)
+		const classificationServer = createMosaicDomainBatchServer({
+			domain: classificationDomain,
+		})
+		await expect(
+			classificationServer
+				.connect({ actor: `alice`, session: `session-a` })
+				.propose({
+					affectedMembers: [classificationAddress],
+					dependencies: [],
+					domain: classificationDomain.identity,
+					group: `gesture`,
+					id: `classification-batch`,
+					operations: [
+						{
+							address: classificationAddress,
+							id: `classification-operation`,
+							model: mosaicDomainMemberModelIdentity(classificationModel),
+							operation: { path: `classified`, type: `append` },
+						},
+					],
+					protocolVersion: MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
+					sequence: 1,
+					session: `session-a`,
+				}),
+		).resolves.toMatchObject({
+			rejection: {
+				code: `invalid-model-operation`,
+				reason: `classification unavailable`,
+			},
+			status: `rejected`,
+		})
+
 		const observedState = await designFixture(`server-listener-error`)
 		const observed = createMosaicDomainBatchServer({
 			domain: observedState.domain,

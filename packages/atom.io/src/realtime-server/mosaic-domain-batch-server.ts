@@ -266,28 +266,39 @@ export function createMosaicDomainBatchServer(
 			)
 		}
 		if (historyValidation === undefined) {
-			for (const operation of batch.operations) {
-				const parsed = await options.domain.parseAddress(operation.address)
-				const model = parsed.member.model
-				if (model === undefined) continue
-				const policy = mosaicDomainMemberHistoryPolicy(model)
-				if (
-					policy?.classify(operation.operation, {
-						actor,
-						dependencies: batch.dependencies,
-						group: batch.group,
-						id: operation.id,
-						revision: revision + 1,
-						session,
-					}).kind === `compensation`
-				) {
-					return rejection(
-						`unauthorized`,
-						`Collaborative compensation must use the Domain history coordinator.`,
-						batch.id,
-						`discard-batch`,
-					)
+			try {
+				for (const operation of batch.operations) {
+					const parsed = await options.domain.parseAddress(operation.address)
+					const model = parsed.member.model
+					if (model === undefined) continue
+					const policy = mosaicDomainMemberHistoryPolicy(model)
+					if (
+						policy?.classify(operation.operation, {
+							actor,
+							dependencies: batch.dependencies,
+							group: batch.group,
+							id: operation.id,
+							revision: revision + 1,
+							session,
+						}).kind === `compensation`
+					) {
+						return rejection(
+							`unauthorized`,
+							`Collaborative compensation must use the Domain history coordinator.`,
+							batch.id,
+							`discard-batch`,
+						)
+					}
 				}
+			} catch (error) {
+				return rejection(
+					`invalid-model-operation`,
+					error instanceof Error
+						? error.message
+						: `The Domain history classification failed.`,
+					batch.id,
+					`discard-batch`,
+				)
 			}
 		} else {
 			try {

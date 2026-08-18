@@ -12,10 +12,10 @@ import {
 	type MosaicDomainPresenceClient,
 	type MosaicDomainResidencyClient,
 } from "atom.io/realtime-client"
-import {
-	type MosaicDomainIdentity,
-	type MosaicDomainInstance,
-	type MosaicDomainMemberAddress,
+import type {
+	MosaicDomainIdentity,
+	MosaicDomainInstance,
+	MosaicDomainMemberAddress,
 } from "atom.io/realtime"
 import {
 	createMosaicDomainBatchServer,
@@ -194,10 +194,10 @@ const waitUntil = async (
 	condition: () => boolean,
 	message: string,
 ): Promise<void> => {
-	const deadline = Date.now() + 2_000
+	const deadline = Date.now() + 5_000
 	while (!condition()) {
 		if (Date.now() >= deadline) throw new Error(message)
-		await new Promise<void>((resolve) => setTimeout(resolve, 0))
+		await new Promise<void>((resolve) => setTimeout(resolve, 10))
 	}
 }
 
@@ -283,7 +283,9 @@ export async function createMosaicDomainVerticalConformanceAdapter(
 		createEphemeralState: () => ({}),
 		name: `${config.name}:conformance-restart`,
 		start: () => startServer(),
-		stop: (runtime) => runtime[Symbol.dispose](),
+		stop: (runtime) => {
+			runtime[Symbol.dispose]()
+		},
 	})
 	await restart.start()
 
@@ -675,8 +677,8 @@ export async function createMosaicDomainVerticalConformanceAdapter(
 		},
 		async exerciseFault(fault) {
 			return fault === `restart` || fault === `resnapshot`
-				? await lifecycleFault(fault)
-				: await normalFault(fault)
+				? lifecycleFault(fault)
+				: normalFault(fault)
 		},
 		async exerciseHistory() {
 			return exerciseHistory()

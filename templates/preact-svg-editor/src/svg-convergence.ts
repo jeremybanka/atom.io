@@ -241,13 +241,37 @@ function historyMatches(
 	left: SvgHistoryOperation,
 	right: SvgHistoryOperation,
 ): boolean {
+	const rightTargets = new Set(right.targetOperationIds)
 	return (
 		left.actor === right.actor &&
 		left.id === right.id &&
 		left.mode === right.mode &&
 		left.targetOperationIds.length === right.targetOperationIds.length &&
-		left.targetOperationIds.every((target) =>
-			right.targetOperationIds.includes(target),
+		left.targetOperationIds.every((target) => rightTargets.has(target))
+	)
+}
+
+function jsonValuesMatch(left: unknown, right: unknown): boolean {
+	if (Object.is(left, right)) return true
+	if (typeof left !== `object` || left === null) return false
+	if (typeof right !== `object` || right === null) return false
+	if (Array.isArray(left) || Array.isArray(right)) {
+		if (!Array.isArray(left) || !Array.isArray(right)) return false
+		return (
+			left.length === right.length &&
+			left.every((value, index) => jsonValuesMatch(value, right[index]))
+		)
+	}
+	const leftRecord = left as Record<string, unknown>
+	const rightRecord = right as Record<string, unknown>
+	const leftKeys = Object.keys(leftRecord)
+	const rightKeys = Object.keys(rightRecord)
+	return (
+		leftKeys.length === rightKeys.length &&
+		leftKeys.every(
+			(key) =>
+				Object.hasOwn(rightRecord, key) &&
+				jsonValuesMatch(leftRecord[key], rightRecord[key]),
 		)
 	)
 }
@@ -423,7 +447,7 @@ export function reduceSvgRegister<Value>(
 	if (
 		previous.actor !== operation.actor ||
 		previous.id !== operation.id ||
-		JSON.stringify(previous.value) !== JSON.stringify(operation.value)
+		!jsonValuesMatch(previous.value, operation.value)
 	) {
 		throw new Error(`SVG register operation ID collision: ${operation.id}`)
 	}

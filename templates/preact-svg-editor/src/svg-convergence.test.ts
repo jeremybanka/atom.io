@@ -78,6 +78,19 @@ describe(`SVG member convergence`, () => {
 		).toThrow(`operation ID collision`)
 	})
 
+	test(`operation duplicates ignore JSON object insertion order`, () => {
+		const initial = reduceSvgRegister(emptySvgRegister(), {
+			id: `same`,
+			value: { point: { x: 1, y: 2 }, selected: true },
+		})
+		expect(
+			reduceSvgRegister(initial, {
+				id: `same`,
+				value: { selected: true, point: { y: 2, x: 1 } },
+			}),
+		).toBe(initial)
+	})
+
 	test(`superseded operation ID collisions fail in every delivery order`, () => {
 		const old = { id: `0001`, value: { x: 1, y: 1 } }
 		const latest = { id: `0002`, value: { x: 2, y: 2 } }

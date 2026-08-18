@@ -1009,13 +1009,21 @@ const svgHistoryPolicy = <State>(
 		readonly targetOperationIds?: readonly string[]
 		readonly type?: string
 	}) {
-		return operation.type === `history`
-			? {
-					kind: `compensation` as const,
-					mode: operation.mode!,
-					targetOperationIds: operation.targetOperationIds!,
-				}
-			: { kind: `change` as const }
+		if (operation.type !== `history`) return { kind: `change` as const }
+		if (
+			(operation.mode !== `redo` && operation.mode !== `undo`) ||
+			!Array.isArray(operation.targetOperationIds) ||
+			operation.targetOperationIds.some(
+				(id) => typeof id !== `string` || id.length === 0,
+			)
+		) {
+			throw new Error(`Invalid SVG history compensation operation.`)
+		}
+		return {
+			kind: `compensation` as const,
+			mode: operation.mode,
+			targetOperationIds: operation.targetOperationIds,
+		}
 	},
 	compact,
 	compensate(context: {

@@ -376,9 +376,10 @@ The storage contract is vendor-neutral. Adapters expose stable-key object reads
 and bounded cursor enumeration alongside the existing atomic batch append.
 Session watermarks, active outboxes, retained history groups, in-flight reads,
 and pending proposals use named retention leases. Garbage collection traces the
-current root and every leased root, retains the lowest required tail floor, and
-advances the retention epoch atomically. It cannot delete a member version or
-tail still reachable by a supported collaborator.
+current root and every leased root, derives a tail floor from each root's own
+revision as well as the lease watermark, and advances the retention epoch
+atomically. It cannot delete a member version or tail still reachable by a
+supported collaborator.
 
 ## Ordinary transaction bridge
 

@@ -633,7 +633,9 @@ export async function defaultMosaicDomainMemberCheckpoint<
 	} else {
 		value =
 			typeof token.default === `function`
-				? token.default(parsed.address.key)
+				? token.type === `atom_family`
+					? token.default(parsed.address.key)
+					: token.default()
 				: token.default
 	}
 	const output = wireValue(value)

@@ -62,8 +62,19 @@ export type MosaicDomainResidencyLease<
 	readonly token: ReadableToken<any, any, any>
 }
 
-export type MosaicDomainResidencySubscription = Disposable & {
+export type MosaicDomainResidentMember<
+	Identity extends MosaicDomainIdentity = MosaicDomainIdentity,
+> = {
+	readonly address: MosaicDomainMemberAddress<Identity>
+	readonly token: ReadableToken<any, any, any>
+}
+
+export type MosaicDomainResidencySubscription<
+	Identity extends MosaicDomainIdentity = MosaicDomainIdentity,
+> = Disposable & {
 	readonly active: boolean
+	/** The normalized durable members represented by this request's latest cut. */
+	readonly addresses: readonly MosaicDomainMemberAddress<Identity>[]
 	readonly id: string
 	release(): Promise<void>
 }
@@ -108,7 +119,13 @@ export type MosaicDomainResidencyClient<
 		selection: MosaicDomainResidencySelection<Identity, Range>,
 	): Promise<void>
 	reconnect(): Promise<void>
+	/** Inspect an already-hydrated member without creating another ownership lease. */
+	resident(
+		address: MosaicDomainMemberAddress<Identity>,
+	): Promise<MosaicDomainResidentMember<Identity> | null>
 	readonly state: MosaicDomainResidencyClientState
+	/** The single Store that owns resident members and derived resources. */
+	readonly store: MosaicDomainInstance<Identity, any, any>[`store`]
 	submit(
 		operation:
 			| MosaicDomainResidencyClientOperation<Identity>
@@ -118,7 +135,7 @@ export type MosaicDomainResidencyClient<
 	subscribe(
 		selection: MosaicDomainResidencySelection<Identity, Range>,
 		listener?: (accepted: MosaicDomainResidencyAcceptedSlice<Identity>) => void,
-	): Promise<MosaicDomainResidencySubscription>
+	): Promise<MosaicDomainResidencySubscription<Identity>>
 	subscribeState(
 		listener: (state: MosaicDomainResidencyClientState) => void,
 	): () => void
@@ -137,6 +154,7 @@ type Request<
 	Range extends Json.Serializable,
 > = {
 	active: boolean
+	addresses: readonly MosaicDomainMemberAddress<Identity>[]
 	listener?: (accepted: MosaicDomainResidencyAcceptedSlice<Identity>) => void
 	selection: MosaicDomainResidencySelection<Identity, Range>
 }
@@ -560,6 +578,8 @@ export function createMosaicDomainResidencyClient<
 		await replaceProjection([], checkpoint, extraRemove, checkpointKeys)
 		for (const resident of residents.values()) resident.owners.clear()
 		for (const [requestId, addresses] of resolutions) {
+			const request = requests.get(requestId)
+			if (request !== undefined) request.addresses = addresses
 			for (const address of addresses) {
 				const key = mosaicDomainMemberAddressKey(address)
 				let resident = residents.get(key)
@@ -930,6 +950,7 @@ export function createMosaicDomainResidencyClient<
 			})
 			const request: Request<Identity, Range> = {
 				active: true,
+				addresses: [],
 				selection: { addresses: [normalized], kind: `members` },
 			}
 			await enqueue(() => addRequest(id, request))
@@ -1025,9 +1046,26 @@ export function createMosaicDomainResidencyClient<
 				for (const item of [...pending]) await send(item)
 			})()
 		},
+		async resident(address) {
+			if (disposed)
+				throw new Error(`This Mosaic Domain residency client is disposed.`)
+			const parsed = await options.domain.parseAddress(structuredClone(address))
+			const resident = residents.get(
+				mosaicDomainMemberAddressKey(parsed.address),
+			)
+			if (
+				resident === undefined ||
+				!resident.hydrated ||
+				resident.owners.size === 0
+			) {
+				return null
+			}
+			return { address: resident.address, token: resident.token }
+		},
 		get state() {
 			return stateSnapshot()
 		},
+		store: options.domain.store,
 		async submit(input, group = null) {
 			const received = structuredClone(input)
 			const item = await enqueue(async () => {
@@ -1130,6 +1168,7 @@ export function createMosaicDomainResidencyClient<
 			})
 			const request: Request<Identity, Range> = {
 				active: true,
+				addresses: [],
 				...(listener === undefined ? {} : { listener }),
 				selection: structuredClone(selection),
 			}
@@ -1137,6 +1176,9 @@ export function createMosaicDomainResidencyClient<
 			return {
 				get active() {
 					return request.active
+				},
+				get addresses() {
+					return structuredClone(request.addresses)
 				},
 				id,
 				release: () => enqueue(() => releaseRequest(id)),

@@ -504,6 +504,21 @@ describe(`Mosaic text range projections`, () => {
 			expect(rendered.getByTestId(`block`)).toBe(input)
 			expect(document.activeElement).toBe(input)
 		})
+		const expectedResidentCount = async (): Promise<number> => {
+			const resolution = await createMosaicTextIndexReader(
+				mosaicTextIndexSource(system.current.bundle),
+			).resolveRange(
+				{ end: 12, kind: `utf16-range`, start: 0 },
+				reader.projectionOptions.rangeMemberLimit,
+			)
+			if (resolution.status === `resnapshot`) throw new Error(`unexpected cut`)
+			return resolution.leafIds.length + 1
+		}
+		await eventually(
+			async () =>
+				reader.residency.state.residentMemberCount <=
+				(await expectedResidentCount()),
+		)
 		const relaxed = createMosaicTextIndex(
 			[fragment(materializeBundle(system.current.bundle))],
 			compact,
@@ -513,6 +528,11 @@ describe(`Mosaic text range projections`, () => {
 			expect(rendered.getByTestId(`block`)).toBe(input)
 			expect(document.activeElement).toBe(input)
 		})
+		await eventually(
+			async () =>
+				reader.residency.state.residentMemberCount <=
+				(await expectedResidentCount()),
+		)
 		expect(await reader.client.resolvePosition(anchor)).toBe(0)
 		expect(reader.client.state.residentRangeCount).toBe(1)
 		rendered.unmount()

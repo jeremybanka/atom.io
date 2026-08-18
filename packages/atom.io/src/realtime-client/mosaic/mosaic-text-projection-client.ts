@@ -567,8 +567,10 @@ export function createMosaicTextProjectionClient<
 		) {
 			return
 		}
-		const keys = subscription.addresses.map(mosaicDomainMemberAddressKey)
-		const previous = record.addresses.map(mosaicDomainMemberAddressKey)
+		const addresses = subscription.addresses
+		const keys = addresses.map(mosaicDomainMemberAddressKey)
+		const previousAddresses = record.addresses
+		const previous = previousAddresses.map(mosaicDomainMemberAddressKey)
 		if (
 			!force &&
 			keys.length === previous.length &&
@@ -577,7 +579,7 @@ export function createMosaicTextProjectionClient<
 			return
 		}
 		const tokens: ReadableToken<any, any, any>[] = []
-		for (const address of subscription.addresses) {
+		for (const address of addresses) {
 			const resident = await options.residency.resident(address)
 			if (resident === null) {
 				if (record.released || disposed) return
@@ -588,9 +590,17 @@ export function createMosaicTextProjectionClient<
 		if (record.released || disposed || record.subscription !== subscription) {
 			return
 		}
-		record.addresses = subscription.addresses
+		record.addresses = addresses
 		record.tokens = tokens
 		setIntoStore(requireStore(), record.membership, (revision) => revision + 1)
+		if (options.evictReleased ?? true) {
+			const current = new Set(keys)
+			for (const address of previousAddresses) {
+				if (!current.has(mosaicDomainMemberAddressKey(address))) {
+					await options.residency.evict(address)
+				}
+			}
+		}
 	}
 
 	const createRecord = (range: MosaicTextIndexRange): RangeRecord<Identity> => {

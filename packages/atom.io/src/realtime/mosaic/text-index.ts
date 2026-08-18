@@ -251,6 +251,39 @@ function splitSpan(
 	return spans
 }
 
+function refineCachedSpans(
+	spans: readonly Span[],
+	limits: TextIndexLimits,
+	cuts: ReadonlySet<number>,
+): readonly Span[] {
+	const orderedCuts = [...cuts].sort((left, right) => left - right)
+	let cutIndex = 0
+	return spans.flatMap((item) => {
+		while (
+			orderedCuts[cutIndex] !== undefined &&
+			orderedCuts[cutIndex] <= item.start
+		) {
+			cutIndex++
+		}
+		const end = item.start + item.graphemes
+		const localCuts = new Set<number>()
+		while (orderedCuts[cutIndex] !== undefined && orderedCuts[cutIndex] < end) {
+			localCuts.add(orderedCuts[cutIndex])
+			cutIndex++
+		}
+		if (
+			localCuts.size === 0 &&
+			item.graphemes <= limits.targetLeafGraphemes &&
+			item.text.length <= limits.maximumLeafUtf16Units
+		) {
+			return [item]
+		}
+		// Cached source spans are already bounded. Revisit only a span affected by
+		// a new ownership cut or tightened limit, never the unchanged document.
+		return splitSpan(item, limits, localCuts)
+	})
+}
+
 function summaryForSpans(spans: readonly Span[]): MosaicTextIndexSummary {
 	return spans.reduce(
 		(summary, item) => ({
@@ -593,15 +626,9 @@ function streamingLeaves(
 		ranges.push({ end, start: fragment.start })
 		rangesByRun.set(fragment.runId, ranges)
 		const cuts = ownerCuts(fragment.runId, fragment.start, end, owners)
-		const pieces: readonly Span[] =
-			cachedMatches &&
-			cached.spans.every(
-				(item) =>
-					item.graphemes <= limits.targetLeafGraphemes &&
-					item.text.length <= limits.maximumLeafUtf16Units,
-			)
-				? cached.spans
-				: splitSpan(initial, limits, cuts)
+		const pieces: readonly Span[] = cachedMatches
+			? refineCachedSpans(cached.spans, limits, cuts)
+			: splitSpan(initial, limits, cuts)
 		cacheSourceSpans(nextCache, fragment, {
 			source: fragment.text,
 			spans: pieces,

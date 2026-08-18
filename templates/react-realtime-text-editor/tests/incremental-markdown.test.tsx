@@ -65,6 +65,21 @@ describe(`incremental Markdown rendering`, () => {
 		])
 	})
 
+	test(`honors a cancelation signal that was already aborted`, async () => {
+		const parser = new IncrementalMarkdownParser()
+		const controller = new AbortController()
+		controller.abort()
+		const result = await parser.parse([block(`# Never parsed`, 0)], {
+			signal: controller.signal,
+		})
+		expect(result.blocks).toEqual([])
+		expect(result.instrumentation).toMatchObject({
+			canceled: true,
+			parsedBlocks: 0,
+			scannedUtf16Units: 0,
+		})
+	})
+
 	test(`keeps source and preview windows bounded at a deterministic 50 MB length`, () => {
 		const totalUtf16Units = 56_384_800
 		for (const scrollTop of [0, 1_000_000, 15_000_000]) {

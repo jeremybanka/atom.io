@@ -484,7 +484,9 @@ export async function createMarkdownDocumentService(
 				socket.off(MARKDOWN_EVENTS.materialize, onMaterialize)
 				socket.off(MARKDOWN_EVENTS.positionAtOffset, onPosition)
 				socket.off(MARKDOWN_EVENTS.resolvePosition, onResolve)
+				range.dispose?.()
 				historyConnection[Symbol.dispose]()
+				// The socket binding owns the presence connection and disconnects it.
 				await unbindPresence()
 				cleanups.delete(cleanup)
 			}

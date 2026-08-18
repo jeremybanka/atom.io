@@ -242,12 +242,21 @@ function localOffsetForFragments(
 		if (fragment.runId === position.runId) {
 			const graphemes = splitMosaicText(fragment.text)
 			const local = position.offset - fragment.start
-			if (local >= 0 && local <= graphemes.length) {
-				return (
-					utf16 +
-					graphemes.slice(0, local).reduce((sum, item) => sum + item.length, 0)
-				)
+			if (local < 0) return null
+			if (local === 0 && position.affinity === `right`) return utf16
+			if (local === graphemes.length && position.affinity === `left`) {
+				return utf16 + fragment.text.length
 			}
+			if (local > 0 && local < graphemes.length) {
+				let localUtf16 = 0
+				for (let index = 0; index < local; index++) {
+					localUtf16 += graphemes[index].length
+				}
+				return utf16 + localUtf16
+			}
+			// A right-affinity end may follow intervening inserted runs, and a
+			// left-affinity start may precede them. Keep scanning for the matching
+			// side of the logical boundary; fall back remotely if it is not resident.
 		}
 		utf16 += fragment.text.length
 	}
@@ -886,6 +895,17 @@ export function createMosaicTextProjectionClient<
 			`${options.actor}:${options.session}:gesture:${sequence}`
 		)
 	}
+	const residentPositionAtOffset = (
+		offset: number,
+	): MosaicTextRelativePosition | null => {
+		for (const record of records.values()) {
+			for (const segment of record.projection?.segments ?? []) {
+				if (offset < segment.start || offset > segment.end) continue
+				return positionAtFragments(segment.fragments, offset - segment.start)
+			}
+		}
+		return null
+	}
 
 	const client: MosaicTextProjectionClient<Identity, Range> = {
 		acquireRange,
@@ -996,16 +1016,19 @@ export function createMosaicTextProjectionClient<
 			}
 		},
 		async positionAtOffset(offset) {
-			const length = await client.readLength()
-			if (!Number.isSafeInteger(offset) || offset < 0 || offset > length) {
+			if (!Number.isSafeInteger(offset) || offset < 0) {
 				throw new RangeError(`Mosaic text offset is outside the document.`)
 			}
-			for (const record of records.values()) {
-				for (const segment of record.projection?.segments ?? []) {
-					if (offset < segment.start || offset > segment.end) continue
-					return positionAtFragments(segment.fragments, offset - segment.start)
-				}
+			// Capture a logical anchor from the caller's already-rendered resident
+			// snapshot before yielding to a root read or a concurrent refresh.
+			const resident = residentPositionAtOffset(offset)
+			if (resident !== null) return resident
+			const length = await client.readLength()
+			if (offset > length) {
+				throw new RangeError(`Mosaic text offset is outside the document.`)
 			}
+			const refreshedResident = residentPositionAtOffset(offset)
+			if (refreshedResident !== null) return refreshedResident
 			return (await options.positionAtOffset(offset)).position
 		},
 		async readLength() {

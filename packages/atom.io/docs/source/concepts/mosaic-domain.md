@@ -464,6 +464,10 @@ selector membership. Releasing the last view disposes its selector and
 membership atom, releases the filtered request, and may evict the now-unowned
 leaf cache. Thus scrolling and unmounting do not accumulate selector or Store
 resources, and full-document state cannot be pulled in accidentally.
+Controller identity includes the root address and range-member name, so two text
+indexes in one Domain cannot accidentally share projection state. Cleanup is
+best-effort across every owned resource: one failed transport release is
+reported without preventing selector, membership, observer, and cache cleanup.
 
 Projected blocks use run-relative anchors as render keys. Their identities
 therefore survive physical index splits and merges, preserving React focus and
@@ -478,6 +482,10 @@ settles an undo. The selection is released even on failure. This makes
 actor-selective compensating edits possible under partial residency without
 hydrating unrelated document content or treating index maintenance as user
 history.
+After a submit succeeds, failure to release that temporary selection is logged
+as cleanup trouble rather than reported as a failed edit. The accepted gesture
+is already authoritative at that point, and a rejected edit promise could cause
+an application to retry a gesture that actually committed.
 Bounded retained-history pruning remains the MOS-16 policy layer; the projection
 client bounds view state and temporary hydration but does not invent a second
 timeline.

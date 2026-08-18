@@ -621,6 +621,13 @@ describe(`Mosaic text range projections`, () => {
 		const reader = await system.makeClient(`boundaries`)
 		const duplicate = createMosaicTextProjectionClient(reader.projectionOptions)
 		expect(duplicate).toBe(reader.client)
+		const distinctRoot = createMosaicTextProjectionClient({
+			...reader.projectionOptions,
+			rootAddress: reader.state.domain.address(`history`, `document`),
+		})
+		expect(distinctRoot).not.toBe(reader.client)
+		await expect(distinctRoot.readLength()).rejects.toThrow(`root is invalid`)
+		await distinctRoot.dispose()
 		for (const options of [
 			{ maximumActiveRanges: 0 },
 			{ maximumRangeUtf16Units: 0 },
@@ -760,6 +767,36 @@ describe(`Mosaic text range projections`, () => {
 		).rejects.toThrow(`not a leaf`)
 		await invalidLeaf.dispose()
 
+		const invalidActivationCleanup = createMosaicTextProjectionClient({
+			...reader.projectionOptions,
+			domainKey: `invalid-activation-cleanup`,
+			rangeMember: `history`,
+			residency: {
+				...reader.residency,
+				async subscribe(selection, listener) {
+					const subscription = await reader.residency.subscribe(
+						selection,
+						listener,
+					)
+					return {
+						...subscription,
+						async release() {
+							await subscription.release()
+							throw new Error(`activation subscription release failed`)
+						},
+					}
+				},
+			},
+		})
+		await expect(
+			invalidActivationCleanup.acquireRange({
+				end: 1,
+				kind: `utf16-range`,
+				start: 0,
+			}),
+		).rejects.toThrow(`activation and cleanup failed`)
+		await invalidActivationCleanup.dispose()
+
 		for (const [domainKey, runId] of [
 			[`null-position`, null],
 			[`missing-position`, `missing`],
@@ -834,6 +871,70 @@ describe(`Mosaic text range projections`, () => {
 		await sequenced.edit({ type: `undo` })
 		expect(gestureIds).toEqual([`provided`, `custom:0`])
 		await sequenced.dispose()
+
+		const rangeCleanup = createMosaicTextProjectionClient({
+			...reader.projectionOptions,
+			domainKey: `range-cleanup`,
+			residency: {
+				...reader.residency,
+				async evict(address) {
+					await reader.residency.evict(address)
+					throw new Error(`range eviction failed`)
+				},
+				async subscribe(selection, listener) {
+					const subscription = await reader.residency.subscribe(
+						selection,
+						listener,
+					)
+					return {
+						...subscription,
+						async release() {
+							await subscription.release()
+							throw new Error(`subscription release failed`)
+						},
+					}
+				},
+			},
+		})
+		const cleanupLease = await rangeCleanup.acquireRange({
+			end: 1,
+			kind: `utf16-range`,
+			start: 0,
+		})
+		expect(
+			reader.state.silo.store.readonlySelectors.has(cleanupLease.selector.key),
+		).toBe(true)
+		await expect(cleanupLease.release()).rejects.toThrow(
+			`range cleanup did not complete cleanly`,
+		)
+		expect(
+			reader.state.silo.store.readonlySelectors.has(cleanupLease.selector.key),
+		).toBe(false)
+		expect(rangeCleanup.state.residentRangeCount).toBe(0)
+		await rangeCleanup.dispose()
+
+		const editCleanup = createMosaicTextProjectionClient({
+			...reader.projectionOptions,
+			domainKey: `edit-cleanup`,
+			residency: {
+				...reader.residency,
+				async subscribe(selection, listener) {
+					const subscription = await reader.residency.subscribe(
+						selection,
+						listener,
+					)
+					return {
+						...subscription,
+						async release() {
+							await subscription.release()
+							throw new Error(`temporary selection release failed`)
+						},
+					}
+				},
+			},
+		})
+		await expect(editCleanup.edit({ type: `undo` })).resolves.toBeUndefined()
+		await editCleanup.dispose()
 
 		const gate = () => {
 			let open!: () => void
@@ -940,8 +1041,17 @@ describe(`Mosaic text range projections`, () => {
 			kind: `utf16-range`,
 			start: 0,
 		})
+		const observerAtDispose = await bounds.observeRange(
+			{ end: 1, kind: `utf16-range`, start: 0 },
+			() => {},
+		)
+		expect(bounds.state.observerCount).toBe(1)
 		await bounds.dispose()
 		expect(activeAtDispose.active).toBe(false)
+		expect(observerAtDispose.active).toBe(false)
+		expect(bounds.state.observerCount).toBe(0)
+		await observerAtDispose.release()
+		expect(bounds.state.observerCount).toBe(0)
 		await bounds.dispose()
 		await bounds.dispose()
 		stopThrowing()

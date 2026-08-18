@@ -2,14 +2,20 @@ import type { Silo } from "atom.io"
 import type {
 	MosaicAcceptedDomainBatchEnvelope,
 	MosaicDomainBatchProposal,
+	MosaicDomainResidencyTransport,
 } from "atom.io/realtime"
 import {
 	createMosaicDomainBatchClient,
+	createMosaicDomainHistoryClient,
+	createMosaicDomainHistorySocketTransport,
 	createMosaicDomainPresenceClient,
 	createMosaicDomainPresenceSocketTransport,
+	createMosaicDomainResidencyClient,
 	type MosaicDomainBatchClient,
 	type MosaicDomainBatchClientTransport,
+	type MosaicDomainHistoryClient,
 	type MosaicDomainPresenceClient,
+	type MosaicDomainResidencyClient,
 } from "atom.io/realtime-client"
 import type { Socket } from "socket.io-client"
 
@@ -22,7 +28,11 @@ import {
 	type SvgDomainEditor,
 } from "./design-model.ts"
 import type { Identity } from "./identities.ts"
-import { VECTOR_BATCH_EVENTS, type VectorAcknowledgement } from "./protocol.ts"
+import {
+	VECTOR_BATCH_EVENTS,
+	VECTOR_RESIDENCY_EVENTS,
+	type VectorAcknowledgement,
+} from "./protocol.ts"
 
 export type VectorClientStatus = {
 	readonly connection: `connecting` | `live` | `offline` | `rejected`
@@ -40,7 +50,9 @@ export type VectorCollaborationClient = Disposable & {
 	readonly domain: SvgDesignDomain
 	readonly editor: SvgDomainEditor
 	readonly identity: Identity
+	readonly history: MosaicDomainHistoryClient
 	readonly presence: MosaicDomainPresenceClient
+	readonly residency: MosaicDomainResidencyClient<SvgDesignDomain[`identity`]>
 	readonly sessionId: string
 	readonly silo: VectorClientStore
 	readonly socket: Socket
@@ -83,6 +95,47 @@ function batchTransport(socket: Socket): MosaicDomainBatchClientTransport {
 	}
 }
 
+function residencyTransport(
+	socket: Socket,
+): MosaicDomainResidencyTransport<SvgDesignDomain[`identity`]> {
+	let subscriptionSequence = 0
+	const request = <Value>(
+		event: string,
+		...parameters: readonly unknown[]
+	): Promise<Value> =>
+		new Promise((resolve, reject) => {
+			if (!socket.connected) {
+				reject(new Error(`offline`))
+				return
+			}
+			socket.emit(
+				event,
+				...parameters,
+				(acknowledgement: VectorAcknowledgement<Value>) => {
+					if (acknowledgement.ok) resolve(acknowledgement.value)
+					else reject(new Error(acknowledgement.reason))
+				},
+			)
+		})
+	return {
+		hydrate: (requests) => request(VECTOR_RESIDENCY_EVENTS.hydrate, requests),
+		propose: (proposal) => request(VECTOR_RESIDENCY_EVENTS.propose, proposal),
+		subscribe(requests, listener) {
+			const id = `vector-residency:${subscriptionSequence++}`
+			const receive = (incomingId: string, accepted: unknown): void => {
+				if (incomingId === id) listener(accepted as never)
+			}
+			socket.on(VECTOR_RESIDENCY_EVENTS.accepted, receive)
+			return request<void>(VECTOR_RESIDENCY_EVENTS.subscribe, id, requests).then(
+				() => () => {
+					socket.off(VECTOR_RESIDENCY_EVENTS.accepted, receive)
+					socket.emit(VECTOR_RESIDENCY_EVENTS.unsubscribe, id)
+				},
+			)
+		},
+	}
+}
+
 export async function createVectorCollaborationClient(options: {
 	readonly identity: Identity
 	readonly sessionId: string
@@ -99,6 +152,14 @@ export async function createVectorCollaborationClient(options: {
 		session: options.sessionId,
 		transport: batchTransport(options.socket),
 	})
+	const residency = createMosaicDomainResidencyClient({
+		actor: options.identity.id,
+		domain,
+		maxResidentBytes: 4 * 1024 * 1024,
+		maxResidentMembers: 256,
+		session: options.sessionId,
+		transport: residencyTransport(options.socket),
+	})
 	const presenceTransport = createMosaicDomainPresenceSocketTransport(
 		options.socket,
 		{ idSource: () => `${options.sessionId}:presence:${crypto.randomUUID()}` },
@@ -108,31 +169,66 @@ export async function createVectorCollaborationClient(options: {
 		session: options.sessionId,
 		transport: presenceTransport,
 	})
+	const historyTransport = createMosaicDomainHistorySocketTransport(
+		options.socket,
+		{ idSource: () => `${options.sessionId}:history:${crypto.randomUUID()}` },
+	)
+	const history = createMosaicDomainHistoryClient({
+		actor: options.identity.id,
+		onObserverError: (error) =>
+			domain.store.logger.error(
+				`🐞`,
+				`unknown`,
+				options.sessionId,
+				`A Mosaic Domain history client listener threw.`,
+				error,
+			),
+		session: options.sessionId,
+		transport: historyTransport,
+	})
 	const editor = createSvgDomainEditor({
 		batch,
 		domain,
+		history,
 		presence,
 		state: { getState: options.silo.getState, setState: options.silo.setState },
 	})
 	const listeners = new Set<(status: VectorClientStatus) => void>()
 	const status = (): VectorClientStatus => {
 		const batchState = batch.state
+		const historyState = history.state
 		const presenceState = presence.state
 		const rejected =
-			batchState.status === `rejected` || presenceState.status === `rejected`
+			batchState.status === `rejected` ||
+			historyState.status === `rejected` ||
+			presenceState.status === `rejected`
 		const offline =
-			batchState.status === `offline` || presenceState.status === `offline`
+			batchState.status === `offline` ||
+			historyState.status === `offline` ||
+			presenceState.status === `offline` ||
+			residency.state.connectivity === `offline`
 		return {
 			connection: rejected
 				? `rejected`
 				: offline
 					? `offline`
-					: batchState.status === `live` && presenceState.status === `live`
+					: batchState.status === `live` &&
+						  historyState.status === `live` &&
+						  presenceState.status === `live` &&
+						  residency.state.connectivity === `live`
 						? `live`
 						: `connecting`,
-			pending: batchState.pendingBatchIds.length + presenceState.pending,
+			pending:
+				batchState.pendingBatchIds.length +
+				historyState.pending +
+				presenceState.pending +
+				residency.state.pendingBatchIds.length,
 			reason:
-				batchState.problem?.reason ?? presenceState.problem?.reason ?? null,
+				batchState.problem?.reason ??
+				historyState.problem?.reason ??
+				presenceState.problem?.reason ??
+				residency.state.problem?.reason ??
+				null,
 		}
 	}
 	const notify = (): void => {
@@ -140,7 +236,9 @@ export async function createVectorCollaborationClient(options: {
 		for (const listener of listeners) listener(next)
 	}
 	const unsubscribeBatch = batch.subscribe(notify)
+	const unsubscribeHistory = history.subscribe(notify)
 	const unsubscribePresence = presence.subscribe(notify)
+	const unsubscribeResidency = residency.subscribeState(notify)
 	const synchronize = async (): Promise<void> => {
 		await batch.start()
 		await batch.flush()
@@ -150,6 +248,9 @@ export async function createVectorCollaborationClient(options: {
 			// A refresh still retains the actionable offline/rejected state.
 		}
 		await presence.refresh()
+		await residency.reconnect()
+		if (history.state.snapshot === null) await history.start()
+		else await history.refresh()
 	}
 	const reconnect = (): void => {
 		void synchronize().then(notify, notify)
@@ -168,8 +269,10 @@ export async function createVectorCollaborationClient(options: {
 		batch,
 		domain,
 		editor,
+		history,
 		identity: options.identity,
 		presence,
+		residency,
 		sessionId: options.sessionId,
 		silo: options.silo,
 		socket: options.socket,
@@ -183,10 +286,15 @@ export async function createVectorCollaborationClient(options: {
 			options.socket.off(`connect`, reconnect)
 			options.socket.off(`disconnect`, disconnect)
 			unsubscribeBatch()
+			unsubscribeHistory()
 			unsubscribePresence()
+			unsubscribeResidency()
 			presence[Symbol.dispose]()
 			presenceTransport[Symbol.dispose]()
+			history[Symbol.dispose]()
+			historyTransport[Symbol.dispose]()
 			batch[Symbol.dispose]()
+			void residency.dispose()
 			domain[Symbol.dispose]()
 			listeners.clear()
 		},

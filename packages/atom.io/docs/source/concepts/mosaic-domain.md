@@ -436,6 +436,7 @@ victim, and the resulting retired horizon requires a Domain resnapshot.
 Applications register presence, annotation, outbox, and proposal references
 through the protection API shown above, then release each protection with its
 owner's lifecycle.
+
 ## Bounded text projections
 
 The Store-owned text projection client turns bounded index and residency
@@ -475,20 +476,20 @@ selection across maintenance. The projected text is clipped to the requested
 logical half-open range even though the backing leaves are hydrated whole.
 
 Logical edit planning stays in an application adapter because a text model's
-operation and history members are not generic Domain policy. One edit submits
-one gesture group through residency. The adapter may request a temporary
-selection—for example, an unloaded actor-history member—while it prepares and
-settles an undo. The selection is released even on failure. This makes
-actor-selective compensating edits possible under partial residency without
-hydrating unrelated document content or treating index maintenance as user
-history.
-After a submit succeeds, failure to release that temporary selection is logged
-as cleanup trouble rather than reported as a failed edit. The accepted gesture
-is already authoritative at that point, and a rejected edit promise could cause
-an application to retry a gesture that actually committed.
-Bounded retained-history pruning remains the MOS-16 policy layer; the projection
-client bounds view state and temporary hydration but does not invent a second
-timeline.
+operation language and physical routing are not generic Domain policy. One
+replace submits one gesture group through residency. A model-specific edit may
+temporarily select unloaded members; that selection is released even on
+failure. After a submit succeeds, release trouble is logged instead of turning
+an accepted gesture into a rejected edit promise that could invite a duplicate
+retry.
+
+Undo and redo take a different path. The optional history adapter delegates them
+to the authoritative MOS-16 coordinator transport, which owns actor cursors,
+horizons, unloaded affected members, compensation, retention, and resnapshot
+guidance. The projection client does not mirror history in residency or invent a
+second timeline. Applications without MOS-16 can omit the adapter and plan a
+model-specific undo or redo operation through the original edit seam.
+
 ## Ordinary transaction bridge
 
 An application can bind independently authored transactions to a batch client.

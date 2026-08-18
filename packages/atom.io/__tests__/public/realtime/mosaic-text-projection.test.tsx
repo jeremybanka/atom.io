@@ -23,6 +23,7 @@ import {
 import { useMosaicTextRange } from "atom.io/realtime-react"
 import {
 	createMosaicDomainBatchServer,
+	createMosaicDomainHistoryCoordinator,
 	createMosaicDomainResidencyServer,
 } from "atom.io/realtime-server"
 import { headless } from "atom.io/realtime-testing/headless"
@@ -46,9 +47,18 @@ type SetIndex<Value extends IndexValue = IndexValue> = {
 	readonly type: `set`
 	readonly value: Value
 }
-type History = Readonly<Record<string, string>>
-type HistoryOperation =
-	| { readonly type: `undo` }
+type ContentChange = {
+	readonly active: boolean
+	readonly actor: string
+	readonly value: string
+}
+type Content = Readonly<Record<string, ContentChange>>
+type ContentOperation =
+	| {
+			readonly mode: `redo` | `undo`
+			readonly targetOperationIds: readonly string[]
+			readonly type: `history`
+	  }
 	| { readonly type: `write`; readonly value: string }
 
 const indexMemberModel = {
@@ -81,22 +91,56 @@ const indexRootModel = {
 	SetIndex<MosaicTextIndexRoot>
 >
 
-const historyModel = {
-	identity: { key: `mosaic-text-actor-history`, version: 1 },
+const contentModel = {
+	history: {
+		classify(operation) {
+			return operation.type === `write`
+				? { kind: `change` as const }
+				: {
+						kind: `compensation` as const,
+						mode: operation.mode,
+						targetOperationIds: operation.targetOperationIds,
+					}
+		},
+		compensate({ mode, targets }) {
+			return {
+				mode,
+				targetOperationIds: targets.map(({ id }) => id),
+				type: `history` as const,
+			}
+		},
+	},
+	identity: { key: `mosaic-text-content`, version: 1 },
 	kind: `value`,
 	operationSchema: z.discriminatedUnion(`type`, [
-		z.object({ type: z.literal(`undo`) }),
+		z.object({
+			mode: z.enum([`redo`, `undo`]),
+			targetOperationIds: z.array(z.string().min(1)).min(1),
+			type: z.literal(`history`),
+		}),
 		z.object({ type: z.literal(`write`), value: z.string() }),
 	]),
 	reduce(value, operation, context) {
 		if (operation.type === `write`) {
-			return { ...value, [context.actor]: operation.value }
+			return {
+				...value,
+				[context.id]: {
+					active: true,
+					actor: context.actor,
+					value: operation.value,
+				},
+			}
 		}
-		return Object.fromEntries(
-			Object.entries(value).filter(([actor]) => actor !== context.actor),
-		)
+		const next = { ...value }
+		for (const id of operation.targetOperationIds) {
+			const change = next[id]
+			if (change !== undefined) {
+				next[id] = { ...change, active: operation.mode === `redo` }
+			}
+		}
+		return next
 	},
-} satisfies MosaicDomainValueModel<History, HistoryOperation>
+} satisfies MosaicDomainValueModel<Content, ContentOperation>
 
 const emptySummary = {
 	graphemes: 0,
@@ -182,20 +226,27 @@ async function textFixture(
 		default: (id) => structuredClone(byId.get(id) ?? emptyLeaf(id)),
 		key: `index`,
 	})
-	const historyAtoms = silo.atomFamily<History, string>({
+	const contentAtoms = silo.atomFamily<Content, string>({
 		default: {},
-		key: `history`,
+		key: `content`,
 	})
 	const definition = mosaicDomain({
 		configSchema: z.object({}),
 		key: `mos17-text-projection`,
 		members: {
-			history: {
+			content: {
 				keySchema: z.string(),
-				model: historyModel,
+				model: contentModel,
 				role: `durable`,
-				schema: z.record(z.string(), z.string()),
-				token: historyAtoms,
+				schema: z.record(
+					z.string(),
+					z.object({
+						active: z.boolean(),
+						actor: z.string(),
+						value: z.string(),
+					}),
+				),
+				token: contentAtoms,
 			},
 			index: {
 				keySchema: z.string(),
@@ -218,7 +269,7 @@ async function textFixture(
 		instance: `document`,
 		store: silo.store,
 	})
-	return { domain, historyAtoms, indexAtoms, rootAtom, silo }
+	return { contentAtoms, domain, indexAtoms, rootAtom, silo }
 }
 
 const eventually = async (
@@ -238,13 +289,17 @@ async function localSystem(text = `alpha\nbeta\ngamma\ndelta`) {
 	}
 	const serverState = await textFixture(`mos17-server`, current.bundle)
 	const batches = createMosaicDomainBatchServer({ domain: serverState.domain })
+	const history = createMosaicDomainHistoryCoordinator({
+		batches,
+		domain: serverState.domain,
+	})
 	const server = createMosaicDomainResidencyServer({
 		batches,
 		domain: serverState.domain,
 		range: {
 			async resolve({ domain, limit, member, range }) {
-				if (member === `history`) {
-					return [domain.address(`history`, `document`)]
+				if (member === `content`) {
+					return [domain.address(`content`, `document`)]
 				}
 				const resolution = await createMosaicTextIndexReader(
 					mosaicTextIndexSource(current.bundle),
@@ -293,6 +348,11 @@ async function localSystem(text = `alpha\nbeta\ngamma\ndelta`) {
 			session: `session-${name}`,
 			transport,
 		})
+		const historyConnection = history.connect({
+			actor,
+			session: `session-${name}`,
+		})
+		let historySequence = 0
 		const projectionOptions = {
 			actor,
 			materialize: () => {
@@ -300,14 +360,14 @@ async function localSystem(text = `alpha\nbeta\ngamma\ndelta`) {
 				return Promise.resolve(materializeBundle(current.bundle))
 			},
 			planEdit(edit) {
-				const address = state.domain.address(`history`, `document`)
+				if (edit.type !== `replace`) {
+					throw new Error(`Undo and redo use the Domain history adapter.`)
+				}
+				const address = state.domain.address(`content`, `document`)
 				return {
 					operations: {
 						address,
-						operation:
-							edit.type === `replace`
-								? { type: `write`, value: edit.text }
-								: { type: `undo` },
+						operation: { type: `write`, value: edit.text },
 					},
 					selection: { addresses: [address], kind: `members` },
 				}
@@ -318,6 +378,19 @@ async function localSystem(text = `alpha\nbeta\ngamma\ndelta`) {
 				).positionAtOffset(offset),
 			rangeMember: `index`,
 			rangeMemberLimit: 16,
+			async requestHistory(mode, context) {
+				const snapshot = await historyConnection.snapshot()
+				const nextSequence = historySequence + 1
+				const result = await historyConnection.request({
+					cursor: snapshot.cursor,
+					id: context.gestureId,
+					mode,
+					sequence: nextSequence,
+					session: `session-${name}`,
+				})
+				if (result.status === `rejected`) throw new Error(result.reason)
+				if (result.status === `accepted`) historySequence = nextSequence
+			},
 			residency,
 			resolvePosition: (position) =>
 				Promise.resolve(resolvePosition(current.bundle, position)),
@@ -337,6 +410,7 @@ async function localSystem(text = `alpha\nbeta\ngamma\ndelta`) {
 				return subscriptions
 			},
 			residency,
+			historyConnection,
 			projectionOptions,
 			state,
 		}
@@ -377,6 +451,7 @@ async function localSystem(text = `alpha\nbeta\ngamma\ndelta`) {
 	return {
 		batches,
 		current,
+		history,
 		makeClient,
 		replaceIndex,
 		server,
@@ -621,9 +696,12 @@ describe(`Mosaic text range projections`, () => {
 		const reader = await system.makeClient(`boundaries`)
 		const duplicate = createMosaicTextProjectionClient(reader.projectionOptions)
 		expect(duplicate).toBe(reader.client)
+		const { requestHistory, ...projectionWithoutHistory } =
+			reader.projectionOptions
+		expect(requestHistory).toBeDefined()
 		const distinctRoot = createMosaicTextProjectionClient({
 			...reader.projectionOptions,
-			rootAddress: reader.state.domain.address(`history`, `document`),
+			rootAddress: reader.state.domain.address(`content`, `document`),
 		})
 		expect(distinctRoot).not.toBe(reader.client)
 		await expect(distinctRoot.readLength()).rejects.toThrow(`root is invalid`)
@@ -719,7 +797,7 @@ describe(`Mosaic text range projections`, () => {
 		expect(() => active.read()).toThrow(`released`)
 
 		const emptyPlan = createMosaicTextProjectionClient({
-			...reader.projectionOptions,
+			...projectionWithoutHistory,
 			domainKey: `empty-plan`,
 			planEdit: () => ({ operations: [] }),
 		})
@@ -752,7 +830,7 @@ describe(`Mosaic text range projections`, () => {
 		const invalidRoot = createMosaicTextProjectionClient({
 			...reader.projectionOptions,
 			domainKey: `invalid-root`,
-			rootAddress: reader.state.domain.address(`history`, `document`),
+			rootAddress: reader.state.domain.address(`content`, `document`),
 		})
 		await expect(invalidRoot.readLength()).rejects.toThrow(`root is invalid`)
 		await invalidRoot.dispose()
@@ -760,7 +838,7 @@ describe(`Mosaic text range projections`, () => {
 		const invalidLeaf = createMosaicTextProjectionClient({
 			...reader.projectionOptions,
 			domainKey: `invalid-leaf`,
-			rangeMember: `history`,
+			rangeMember: `content`,
 		})
 		await expect(
 			invalidLeaf.acquireRange({ end: 1, kind: `utf16-range`, start: 0 }),
@@ -770,7 +848,7 @@ describe(`Mosaic text range projections`, () => {
 		const invalidActivationCleanup = createMosaicTextProjectionClient({
 			...reader.projectionOptions,
 			domainKey: `invalid-activation-cleanup`,
-			rangeMember: `history`,
+			rangeMember: `content`,
 			residency: {
 				...reader.residency,
 				async subscribe(selection, listener) {
@@ -862,9 +940,9 @@ describe(`Mosaic text range projections`, () => {
 			...reader.projectionOptions,
 			domainKey: `sequenced`,
 			idSource: (sequence) => `custom:${sequence}`,
-			planEdit(edit, context) {
+			requestHistory(mode, context) {
 				gestureIds.push(context.gestureId)
-				return reader.projectionOptions.planEdit(edit)
+				return reader.projectionOptions.requestHistory(mode, context)
 			},
 		})
 		await sequenced.edit({ gestureId: `provided`, type: `undo` })
@@ -914,8 +992,18 @@ describe(`Mosaic text range projections`, () => {
 		await rangeCleanup.dispose()
 
 		const editCleanup = createMosaicTextProjectionClient({
-			...reader.projectionOptions,
+			...projectionWithoutHistory,
 			domainKey: `edit-cleanup`,
+			planEdit() {
+				const address = reader.state.domain.address(`content`, `document`)
+				return {
+					operations: {
+						address,
+						operation: { type: `write`, value: `cleanup` },
+					},
+					selection: { addresses: [address], kind: `members` },
+				}
+			},
 			residency: {
 				...reader.residency,
 				async subscribe(selection, listener) {
@@ -1075,16 +1163,19 @@ describe(`Mosaic text range projections`, () => {
 		await system.writer.residency.dispose()
 	})
 
-	test(`hydrates unloaded actor history for one compensating gesture and preserves foreign work`, async () => {
+	test(`delegates unloaded actor history to MOS-16 and preserves foreign work`, async () => {
 		const system = await localSystem()
 		const alice = await system.makeClient(`alice`, `alice`)
 		const bob = await system.makeClient(`bob`, `bob`)
-		const history = bob.state.domain.address(`history`, `document`)
-		const bobHistory = await bob.residency.acquire(history)
-		await bob.residency.submit({
-			address: history,
-			operation: { type: `write`, value: `foreign` },
-		})
+		const content = bob.state.domain.address(`content`, `document`)
+		const bobContent = await bob.residency.acquire(content)
+		await bob.residency.submit(
+			{
+				address: content,
+				operation: { type: `write`, value: `foreign` },
+			},
+			`bob-write`,
+		)
 		await alice.client.edit({
 			anchor: { affinity: `right`, offset: 0, runId: `base` },
 			gestureId: `alice-write`,
@@ -1095,21 +1186,25 @@ describe(`Mosaic text range projections`, () => {
 		await alice.client.edit({ gestureId: `alice-undo`, type: `undo` })
 		await eventually(() => system.batches.revision === 3)
 		expect(system.current.materializations).toBe(0)
-		const serverHistory = system.serverState.silo.getState(
-			system.serverState.historyAtoms,
+		const serverContent = system.serverState.silo.getState(
+			system.serverState.contentAtoms,
 			`document`,
 		)
-		expect(serverHistory).toEqual({ bob: `foreign` })
+		expect(
+			Object.values(serverContent)
+				.filter(({ active }) => active)
+				.map(({ actor, value }) => ({ actor, value })),
+		).toEqual([{ actor: `bob`, value: `foreign` }])
 		const recovered = await system.batches
 			.connect({ actor: `inspection`, session: `inspection` })
 			.recover()
 		expect(recovered.tail.at(-1)?.batch).toMatchObject({
 			actor: `alice`,
-			group: `alice-undo`,
-			operations: [{ operation: { type: `undo` } }],
+			operations: [{ operation: { mode: `undo`, type: `history` } }],
 		})
+		expect(recovered.tail.at(-1)?.batch.group).toMatch(/^history:/)
 		expect(alice.residency.state.requestedMemberCount).toBe(0)
-		bobHistory.release()
+		bobContent.release()
 		await alice.client.dispose()
 		await alice.residency.dispose()
 		await bob.client.dispose()

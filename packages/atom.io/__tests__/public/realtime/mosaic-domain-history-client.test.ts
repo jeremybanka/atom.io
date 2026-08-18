@@ -81,17 +81,21 @@ describe(`Mosaic Domain history client`, () => {
 			onObserverError: (error) => observerErrors.push(error),
 			session: `tab`,
 			transport: {
-				async request(request) {
+				request(request) {
 					requests.push(structuredClone(request))
 					if (attempt++ === 0) {
-						return {
+						return Promise.resolve({
 							reason: `stale cursor`,
 							recovery: `history-resnapshot`,
 							snapshot: recovered,
 							status: `rejected`,
-						}
+						})
 					}
-					return { acceptedRevision: 6, snapshot: accepted, status: `accepted` }
+					return Promise.resolve({
+						acceptedRevision: 6,
+						snapshot: accepted,
+						status: `accepted`,
+					})
 				},
 				snapshot: () => Promise.resolve(initial),
 			},
@@ -243,7 +247,9 @@ describe(`Mosaic Domain history client`, () => {
 		})
 		await disposed.start()
 		const request = disposed.undo()
-		await vi.waitFor(() => expect(disposed.state.pending).toBe(1))
+		await vi.waitFor(() => {
+			expect(disposed.state.pending).toBe(1)
+		})
 		disposed[Symbol.dispose]()
 		settleRequest({
 			acceptedRevision: 2,
@@ -392,7 +398,9 @@ describe(`Mosaic Domain history server socket`, () => {
 			},
 			requestId: `request-1`,
 		})
-		await vi.waitFor(() => expect(wire.emitted).toHaveLength(1))
+		await vi.waitFor(() => {
+			expect(wire.emitted).toHaveLength(1)
+		})
 		expect(requests[0]?.session).toBe(`authenticated-tab`)
 		expect(wire.emitted[0]).toMatchObject({
 			event: MOSAIC_DOMAIN_HISTORY_EVENTS.response,
@@ -418,7 +426,9 @@ describe(`Mosaic Domain history server socket`, () => {
 			},
 			requestId: `request-3`,
 		})
-		await vi.waitFor(() => expect(wire.emitted).toHaveLength(3))
+		await vi.waitFor(() => {
+			expect(wire.emitted).toHaveLength(3)
+		})
 		expect(wire.emitted.at(-1)).toMatchObject({
 			payload: {
 				error: { code: `internal`, reason: `denied`, retryable: true },
@@ -429,7 +439,9 @@ describe(`Mosaic Domain history server socket`, () => {
 		wire.dispatch(MOSAIC_DOMAIN_HISTORY_EVENTS.snapshot, {
 			requestId: `snapshot-1`,
 		})
-		await vi.waitFor(() => expect(wire.emitted).toHaveLength(4))
+		await vi.waitFor(() => {
+			expect(wire.emitted).toHaveLength(4)
+		})
 		expect(wire.emitted.at(-1)?.event).toBe(
 			MOSAIC_DOMAIN_HISTORY_EVENTS.snapshotResponse,
 		)

@@ -1,24 +1,16 @@
 import { createServer } from "node:http"
 
-import { Silo } from "atom.io"
-import type { UserKey } from "atom.io/realtime"
-import { createMosaicServer, realtime } from "atom.io/realtime-server"
 import { Server } from "socket.io"
 
 import { identityById } from "../src/identities.ts"
-import { markdownAtomRegistration } from "./mosaic-atom.ts"
+import { createMarkdownDocumentService } from "./service.ts"
 
 const PORT = 3000
-const mosaic = createMosaicServer({ registrations: [markdownAtomRegistration] })
-const silo = new Silo({
-	name: `markdown-collaboration-server`,
-	lifespan: `immortal`,
-	isProduction: process.env.NODE_ENV === `production`,
-})
+const collaboration = await createMarkdownDocumentService()
 const httpServer = createServer((request, response) => {
 	if (request.url === `/health`) {
 		response.writeHead(200, { "content-type": `application/json` })
-		response.end(JSON.stringify({ ok: true }))
+		response.end(JSON.stringify({ ok: true, revision: collaboration.revision }))
 		return
 	}
 	response.writeHead(404)
@@ -26,32 +18,26 @@ const httpServer = createServer((request, response) => {
 })
 const socketServer = new Server(httpServer)
 
-const disposeRealtime = realtime(
-	socketServer,
-	(handshake) => {
-		const requestedId =
-			typeof handshake.auth.userId === `string`
-				? handshake.auth.userId
-				: undefined
-		const sessionId =
-			typeof handshake.auth.sessionId === `string`
-				? handshake.auth.sessionId
-				: undefined
-		if (!sessionId || sessionId.includes(`::`)) {
-			return new Error(`A valid Mosaic session is required.`)
-		}
-		const identity = identityById(requestedId)
-		return `user::${identity.id}::${sessionId}` satisfies UserKey
-	},
-	({ socket, consumer }) => {
-		const [, actor, session] = consumer.split(`::`)
-		if (!actor || !session) {
-			throw new Error(`Malformed Mosaic user session.`)
-		}
-		return mosaic.connect({ actor, session, socket })
-	},
-	silo.store,
-)
+socketServer.on(`connection`, (socket) => {
+	const requestedActor =
+		typeof socket.handshake.auth.actor === `string`
+			? socket.handshake.auth.actor
+			: undefined
+	const session =
+		typeof socket.handshake.auth.session === `string`
+			? socket.handshake.auth.session
+			: ``
+	const identity = identityById(requestedActor)
+	if (
+		identity.id !== requestedActor ||
+		session.length === 0 ||
+		session.includes(`::`)
+	) {
+		socket.disconnect(true)
+		return
+	}
+	void collaboration.bindSocket({ actor: identity.id, session, socket })
+})
 
 httpServer.listen(PORT, () => {
 	console.log(
@@ -60,8 +46,9 @@ httpServer.listen(PORT, () => {
 })
 
 const shutdown = async (): Promise<void> => {
-	await disposeRealtime()
-	await mosaic.dispose()
+	collaboration[Symbol.dispose]()
+	socketServer.close()
+	httpServer.close()
 }
 process.once(`SIGINT`, () => void shutdown())
 process.once(`SIGTERM`, () => void shutdown())

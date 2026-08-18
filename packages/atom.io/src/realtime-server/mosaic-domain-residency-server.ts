@@ -3,6 +3,7 @@ import type { Json } from "atom.io/foundations/json"
 import { getFromStore, getJsonTokenFromStore } from "atom.io/internal"
 import {
 	type AnyMosaicTransceiver,
+	defaultMosaicDomainMemberCheckpoint,
 	MAX_MOSAIC_DOMAIN_RESIDENCY_INVALIDATIONS,
 	type MosaicAcceptedDomainBatchEnvelope,
 	type MosaicDomainIdentity,
@@ -14,6 +15,7 @@ import {
 	type MosaicDomainResidencyRequest,
 	type MosaicDomainResidencySelection,
 	type MosaicDomainResidencyTransport,
+	projectMosaicDomainCheckpointMember,
 	sliceMosaicDomainAcceptedBatch,
 	type StandardSchemaV1,
 } from "atom.io/realtime"
@@ -22,6 +24,7 @@ import type {
 	MosaicDomainBatchConnection,
 	MosaicDomainBatchServer,
 } from "./mosaic-domain-batch-server.ts"
+import type { MosaicDomainCheckpointCoordinator } from "./mosaic-domain-checkpoint.ts"
 
 type MaybePromise<Value> = Promise<Value> | Value
 
@@ -61,6 +64,10 @@ export type MosaicDomainResidencyServerOptions<
 		context: MosaicDomainResidencyAuthorizationContext<Identity, Range>,
 	) => MaybePromise<boolean>
 	readonly batches: MosaicDomainBatchServer
+	readonly checkpoint?: Pick<
+		MosaicDomainCheckpointCoordinator<Identity>,
+		`recover`
+	>
 	readonly domain: MosaicDomainInstance<Identity, any, any>
 	readonly maxRangeBytes?: number
 	readonly maxRangeDepth?: number
@@ -406,6 +413,53 @@ export function createMosaicDomainResidencyServer<
 		const readCheckpoint = async (
 			requests: readonly MosaicDomainResidencyRequest<Identity, Range>[],
 		): Promise<MosaicDomainResidencyCheckpoint<Identity>> => {
+			if (options.checkpoint !== undefined) {
+				const resolved = await resolve(requests)
+				const addresses = new Map<string, MosaicDomainMemberAddress<Identity>>()
+				for (const request of resolved) {
+					for (const address of request.addresses) {
+						addresses.set(mosaicDomainMemberAddressKey(address), address)
+					}
+				}
+				const recovery = await options.checkpoint.recover([
+					...addresses.values(),
+				])
+				const base = new Map(
+					recovery.members.map((member) => [
+						mosaicDomainMemberAddressKey(member.address),
+						member.value,
+					]),
+				)
+				const members: MosaicDomainResidencyCheckpoint<Identity>[`members`][number][] =
+					[]
+				for (const [key, address] of addresses) {
+					const initial =
+						base.get(key) ??
+						(await defaultMosaicDomainMemberCheckpoint(options.domain, address))
+					members.push({
+						address,
+						value: await projectMosaicDomainCheckpointMember(
+							options.domain,
+							address,
+							initial,
+							recovery.tail,
+						),
+					})
+				}
+				const token = revisionToken(
+					options.domain.identity,
+					recovery.headRevision,
+				)
+				return {
+					headRevision: recovery.headRevision,
+					members,
+					resolutions: resolved.map((request) => ({
+						addresses: request.addresses,
+						requestId: request.id,
+						revisionToken: token,
+					})),
+				}
+			}
 			for (let attempt = 0; attempt < 8; attempt++) {
 				const before = await batchConnection.recover()
 				const resolved = await resolve(requests)

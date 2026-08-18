@@ -13,6 +13,7 @@ const s = prompts.spinner()
 
 export type PackageManager = `bun` | `npm` | `pnpm` | `yarn`
 export type TemplateName =
+	| `preact-realtime-vector-editor`
 	| `preact-svg-editor`
 	| `react-node-backend`
 	| `react-realtime-text-editor`
@@ -44,6 +45,10 @@ export async function createAtom(
 					message: `Template:`,
 					initialValue: `preact-svg-editor`,
 					options: [
+						{
+							label: `Preact Realtime Vector Editor`,
+							value: `preact-realtime-vector-editor`,
+						},
 						{
 							label: `Preact SVG Editor`,
 							value: `preact-svg-editor`,

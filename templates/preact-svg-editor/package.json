@@ -11,6 +11,11 @@
 		"directory": "templates/preact-svg-editor"
 	},
 	"type": "module",
+	"exports": {
+		"./convergence": "./src/svg-convergence.ts",
+		"./domain": "./src/svg-domain.ts",
+		"./model": "./src/svg-editor-state.ts"
+	},
 	"scripts": {
 		"dev": "vite",
 		"build": "vite build",

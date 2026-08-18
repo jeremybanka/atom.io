@@ -1,4 +1,6 @@
 #!/usr/bin/env bun
+import path from "node:path"
+
 import {
 	deriveVariants,
 	manifest,
@@ -7,6 +9,7 @@ import {
 	verifySource,
 	verifySourceIfPresent,
 } from "./large-document-corpus"
+import { validateMarkdownEditorCorpus } from "./validate-markdown-editor-corpus"
 
 type Command = `derive` | `prepare` | `test` | `verify`
 
@@ -68,7 +71,12 @@ async function main(): Promise<void> {
 		case `test`: {
 			await verifySource(layout.sourcePath)
 			const report = await deriveVariants({ cacheRoot })
+			const editor = await validateMarkdownEditorCorpus([
+				layout.sourcePath,
+				path.join(layout.variantsDir, manifest.variants.repeated50MiB.filename),
+			])
 			console.log(JSON.stringify(report, null, `\t`))
+			console.log(JSON.stringify({ editor }, null, `\t`))
 			console.log(
 				`PASSED large-document corpus integrity and derivation checks.`,
 			)

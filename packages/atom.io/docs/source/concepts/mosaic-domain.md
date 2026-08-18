@@ -156,6 +156,15 @@ the domain does not enumerate or materialize the whole document. This
 contract establishes that scalable shape; synchronization and reconciliation
 layers decide when particular members are loaded and exchanged.
 
+Mosaic Text can prepare a logical selection replacement without materializing
+or mutating the accepted document. Its preview exposes the next visible runs so
+an authoritative composer can derive bounded index maintenance before
+submitting both operation families in one Domain batch. Streaming Unicode
+chunking remains inside Mosaic Text; an application supplies one logical string
+and does not manufacture CRDT runs or storage shards.
+
+<Exhibit src="realtime/prepare-logical-text-edit.ts" />
+
 ## Atomic batches
 
 A durable member may register a deterministic batch model. Value models pair a
@@ -390,6 +399,14 @@ redo asks each affected member model for its own compensation operation, then
 submits every compensation in one ordinary atomic Domain batch. The coordinator
 never restores a prior Store snapshot, so concurrent foreign work is left in
 place and ordinary Atom.io timelines remain a separate local facility.
+
+An optional compensation-completion callback may append derived maintenance to
+that same batch. This is the seam used by bounded text: the run-text model owns
+the compensation while its root and leaf index maintenance remains atomically
+consistent at the accepted revision. Every appended operation must be declared
+history-free by its member model. The coordinator rejects a completion that
+introduces a new history change or compensation, and still verifies that the
+original gesture was compensated exactly.
 
 <Exhibit src="realtime/coordinate-domain-history.ts" />
 

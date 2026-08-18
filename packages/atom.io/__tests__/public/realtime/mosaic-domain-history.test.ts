@@ -20,6 +20,7 @@ import {
 	createMosaicDomainResidencyServer,
 	InMemoryMosaicDomainCheckpointStorage,
 	type MosaicDomainBatchServer,
+	type MosaicDomainHistoryCoordinatorOptions,
 } from "atom.io/realtime-server"
 import {
 	generateModelScenario,
@@ -172,6 +173,7 @@ const EMPTY_COUNTER: CounterState = { baseline: 0, changes: {} }
 async function fixture(
 	storage = new InMemoryMosaicDomainCheckpointStorage(),
 	name = `history-fixture`,
+	completeCompensation?: MosaicDomainHistoryCoordinatorOptions<any>[`completeCompensation`],
 ) {
 	const silo = new Silo({ isProduction: false, lifespan: `ephemeral`, name })
 	const leftAtom = silo.atom<CounterState>({
@@ -229,6 +231,7 @@ async function fixture(
 	const batches = createMosaicDomainBatchServer({ domain, storage })
 	const history = createMosaicDomainHistoryCoordinator({
 		batches,
+		...(completeCompensation === undefined ? {} : { completeCompensation }),
 		domain,
 		limits: { maxCheckpointRaceSnapshots: 3, undoStepsPerActor: 3 },
 		storage,
@@ -300,6 +303,151 @@ const recoveringBatchServer = (
 })
 
 describe(`Mosaic Domain actor-selective history`, () => {
+	test(`completes compensation with atomic history-free maintenance`, async () => {
+		let maintenanceAddress: MosaicDomainMemberAddress | undefined
+		const setup = await fixture(
+			undefined,
+			`history-completion`,
+			({ operations }) => {
+				expect(operations).toHaveLength(1)
+				expect(operations[0].operation).toMatchObject({
+					mode: `undo`,
+					type: `history`,
+				})
+				return [
+					{
+						address: maintenanceAddress!,
+						operation: { type: `maintenance` },
+					},
+				]
+			},
+		)
+		const leftAddress = setup.domain.address(`left`)
+		maintenanceAddress = setup.domain.address(`segments`, `index-root`)
+		const connection = setup.batches.connect({
+			actor: `alice`,
+			session: `alice-editor`,
+		})
+		const observed: MosaicAcceptedDomainBatchEnvelope[] = []
+		const stop = connection.subscribe((accepted) => observed.push(accepted))
+		const edited = await connection.propose({
+			affectedMembers: [leftAddress],
+			dependencies: [],
+			domain: setup.domain.identity,
+			group: `typing`,
+			id: `edit`,
+			operations: [
+				{
+					address: leftAddress,
+					id: `edit:0`,
+					model: mosaicDomainMemberModelIdentity(leftModel),
+					operation: { amount: 1, type: `add` },
+				},
+			],
+			protocolVersion: MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
+			sequence: 1,
+			session: `alice-editor`,
+		})
+		expect(edited.status).toBe(`accepted`)
+		await setup.history.flush()
+		const history = setup.history.connect({
+			actor: `alice`,
+			session: `alice-history`,
+		})
+		const snapshot = await history.snapshot()
+		const undone = await history.request({
+			cursor: snapshot.cursor,
+			id: `undo`,
+			mode: `undo`,
+			sequence: 1,
+			session: `alice-history`,
+		})
+		expect(undone).toMatchObject({ acceptedRevision: 2, status: `accepted` })
+		expect(observed.at(-1)?.batch.operations).toHaveLength(2)
+		expect(observed.at(-1)?.batch.operations[1]).toMatchObject({
+			address: maintenanceAddress,
+			operation: { type: `maintenance` },
+		})
+		expect(counterValue(setup.silo.getState(setup.left))).toBe(0)
+		stop()
+		history[Symbol.dispose]()
+		setup.history[Symbol.dispose]()
+		setup.batches.dispose()
+		setup.domain[Symbol.dispose]()
+	})
+
+	test(`rejects compensation completion that is unmodeled or enters history`, async () => {
+		for (const invalid of [`change`, `unmodeled`] as const) {
+			let completionAddress: MosaicDomainMemberAddress | undefined
+			const setup = await fixture(
+				undefined,
+				`invalid-history-completion-${invalid}`,
+				() => [
+					{
+						address: completionAddress!,
+						operation:
+							invalid === `change`
+								? { amount: 1, type: `add` }
+								: { type: `maintenance` },
+					},
+				],
+			)
+			completionAddress = setup.domain.address(
+				invalid === `change` ? `left` : `unmodeled`,
+			)
+			const leftAddress = setup.domain.address(`left`)
+			const connection = setup.batches.connect({
+				actor: `alice`,
+				session: `alice-editor`,
+			})
+			expect(
+				await connection.propose({
+					affectedMembers: [leftAddress],
+					dependencies: [],
+					domain: setup.domain.identity,
+					group: `typing`,
+					id: `edit`,
+					operations: [
+						{
+							address: leftAddress,
+							id: `edit:0`,
+							model: mosaicDomainMemberModelIdentity(leftModel),
+							operation: { amount: 1, type: `add` },
+						},
+					],
+					protocolVersion: MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
+					sequence: 1,
+					session: `alice-editor`,
+				}),
+			).toMatchObject({ status: `accepted` })
+			await setup.history.flush()
+			const history = setup.history.connect({
+				actor: `alice`,
+				session: `alice-history`,
+			})
+			const snapshot = await history.snapshot()
+			const request = history.request({
+				cursor: snapshot.cursor,
+				id: `undo`,
+				mode: `undo`,
+				sequence: 1,
+				session: `alice-history`,
+			})
+			if (invalid === `unmodeled`) {
+				await expect(request).rejects.toThrow(`no operation model`)
+			} else {
+				expect(await request).toMatchObject({
+					reason: expect.stringContaining(`participates in history`),
+					status: `rejected`,
+				})
+			}
+			history[Symbol.dispose]()
+			setup.history[Symbol.dispose]()
+			setup.batches.dispose()
+			setup.domain[Symbol.dispose]()
+		}
+	})
+
 	test(`one compensation atomically undoes a heterogeneous gesture without erasing a foreign edit`, async () => {
 		const { batches, domain, history, left, segments, silo } = await fixture()
 		const leftAddress = domain.address(`left`)

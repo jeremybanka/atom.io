@@ -1,129 +1,100 @@
-# Mosaic Reconciliation Notes
+# Incremental Markdown Decisions
 
-This template began as an application-local experiment. The collaboration
-machinery now lives in atom.io's Mosaic module, but Mosaic is not a parallel
-state system: the document is a transceiver held by an ordinary mutable atom.
-That atom token is its network address, its read-only view feeds ordinary
-selectors and renderer hooks, and each Store owns the optimistic replica bound
-to it. The server registers the same transceiver class as the authority for that
-address. The decisions below are the places where this transceiver deliberately
-takes a different path from rigid state proxying and whole-value time travel.
+MOS-18 is the first application that composes the run-text model, bounded text
+index, partial residency, Domain history, and renderer projections as one user
+experience. Most of the implementation is application composition. One missing
+generic seam had to move into realtime core so the result could remain correct
+at every accepted revision.
 
-## Bounded Sequence Intervals
+## One Logical Source, Bounded Resident Views
 
-A shared string is not a useful conflict unit, and one durable object per
-grapheme is not a scalable representation. Mosaic Text model version 2 stores
-each insertion as a string run with one stable identity. Edits address Unicode
-grapheme boundaries inside that run and represent deletion as merged run
-intervals. The checkpoint stores text once in physical fragments, while compact
-action metadata retains only inserted run identities, deletion intervals, and
-history targets. A runtime run may cache one packed UTF-16 boundary index for
-fast slicing, but it still does not retain a JavaScript object per grapheme.
+The authoritative service owns one Mosaic run-text checkpoint and the MOS-15
+bounded-fanout index derived from it. The index root, nodes, aliases, and leaves
+are ordinary durable Domain members. A browser never acquires the source member:
+MOS-12 authorizes and hydrates only the root and the leaves resolved for a
+bounded UTF-16 range, and MOS-17 projects those leaves through ordinary
+selectors. Full materialization remains an explicit command.
 
-Each insertion records retained left and right run boundaries. The second
-boundary matters: a predecessor-only graph can move a middle replacement after
-the old suffix merely because one author's operation ID sorts later. Bounded
-intervals preserve the user's edit location while deterministic, code-unit ID
-ordering resolves genuinely concurrent insertions. Hidden runs remain logical
-anchors, so foreign descendants, late operations, and relative selections do
-not lose their position when an author undoes the edit that introduced an
-ancestor.
+This is not application-authored paragraph or file sharding. Syntax cannot
+change storage shape, so a huge paragraph or fenced block crosses the same
+physical thresholds as ordinary prose. Presence and render keys name logical
+run positions rather than physical leaves.
 
-Physical fragmentation is deliberately not editing. Bounded export splits run
-text only at grapheme boundaries; import accepts reordered and exactly
-duplicated segments, rejects gaps or conflicting duplicates, and rehydrates the
-same action history. A run-relative location therefore remains stable when a
-storage layer splits or merges physical segments. This is the leaf-level
-contract that a bounded document index can compose without teaching the text
-model about Domain routing.
+MOS-18 exposed a scalability flaw that small MOS-15 conformance fixtures could
+not: index composition expanded every source grapheme into a separate JavaScript
+object. The core index now streams large fragments into bounded spans, caches
+unchanged source spans on the resulting index bundle, and reuses physical leaf
+ownership. Ordinary edits scan run/span identities and touch changed leaves plus
+their bounded tree paths; they do not manufacture a document-sized unit array.
 
-The model uses the host's Unicode grapheme segmenter. A deployment with
-heterogeneous ICU versions should pin runtimes together or ship a versioned
-segmenter before claiming cross-runtime model-version equivalence.
+The same exercise exposed that `replace-text` is the wrong input seam for a
+large editor because it materializes and diffs the entire old and new strings.
+Mosaic Text now accepts a logical `replace-selection` intent and exposes pure
+`prepare` and `preview` phases. The authoritative service can derive a bounded
+operation and its next visible run projection before proposing the atomic
+Domain batch, without mutating accepted state or asking the application to
+construct CRDT runs. Unicode chunking is streaming, preserves CRLF and complex
+grapheme boundaries, and remains core-owned rather than application sharding.
 
-## Selective, Per-Identity History — Not a Timeline
+## Atomic History Completion
 
-Whole-document time travel is unsafe in a shared editor: restoring yesterday's
-string can erase another person's accepted work. Mosaic records edit ownership
-and represents undo and redo as durable operations that deactivate or reactivate
-only one authenticated actor's current Domain gesture. A foreign insertion anchored
-inside hidden local work remains visible.
+MOS-16 previously generated a correct run-text compensation but had no way to
+include the index maintenance describing that compensated text. Appending
+maintenance afterward would expose one revision whose source and range index
+disagreed.
 
-Atom.io's native timelines still mean local graph time travel. The Mosaic text
-transceiver is marked append-only and cannot be attached to one: rewinding its
-object would bypass the accepted operation stream and clobber collaboration.
-Its actor-scoped capability is named `historyFor`, and undo/redo append normal
-operations that every replica reduces in the same order.
+The history coordinator now accepts an optional `completeCompensation` callback.
+It runs after member policies create compensation operations and before the
+private history proposal is preflighted. Returned operations join that same
+batch only when their member policies classify them as history-free. The
+coordinator still proves that the original target set was compensated exactly;
+an appended change or second compensation fails closed. This seam is generic to
+derived durable indexes and contains no Markdown branch.
 
-The server validates the actor's current history cursor through the text
-transceiver immediately before the append. A stale tab therefore fails closed
-and resnapshots. Accepted revisions
-are durable reduction metadata, so concurrent history operations have one
-canonical order; provisional client projections explicitly use no revision.
-This is exact at operation ownership and intentionally best-effort at recovering
-the prose-level intention behind arbitrary concurrent rewrites.
+## Local Input and Logical Presence
 
-## Relative, Ephemeral Presence
+The mounted textarea contains only one resident source window. Keystrokes update
+a local draft immediately, minimal replacement intent is derived from the draft,
+and reconnect delivery retains its gesture identity and sequence. Local DOM
+selection, composition, scroll, and pending input remain React-local. Published
+presence converts them to run-relative positions, so collaborators can resolve
+them against another partial working set or simply report that the actor is in a
+different viewport.
 
-Numeric caret offsets become stale after any preceding edit. Mosaic presence
-uses a stable run identity, a grapheme boundary, and an explicit left/right
-affinity. The text model resolves that location against each local projection,
-including hidden runs and split checkpoint fragments. Presence is schema-checked
-and model-checked, but never enters the durable operation log or a user's
-history. Explicit departure and disconnect both remove the exact actor/session
-record.
+The demo deliberately coalesces an offline draft for its current viewport. It
+does not claim semantic intent recovery for arbitrary rewrites made in several
+unloaded regions. A richer product can retain several bounded draft windows and
+still submit them as one Domain gesture.
 
-## Durable Stream Before Fan-Out
+## Incremental, Cancelable Semantics
 
-The server never acknowledges or broadcasts an operation before persistence.
-Its adapter contract atomically compares the expected revision and reserves the
-atom-stream/operation-ID receipt. A reused ID with different normalized content is
-a collision, not an idempotent retry. Receipts survive checkpoint compaction.
+Parsing is not a render-time whole-document function. The headless parser caches
+input and output block state, yields after a bounded amount of UTF-16 work, and
+cancels an obsolete generation as soon as a newer projection arrives. Fence
+state propagates through following blocks only until an unchanged cached input
+state establishes a stable boundary. React mounts only semantic blocks in the
+current preview window.
 
-Horizontal notifications are wake-up hints only. Every server drains a checked,
-contiguous tail from the shared linearizable store. Recovery hydrates one
-consistent checkpoint and then applies every later revision. Checkpoint
-installation, tail pruning, session watermarks, and a retention epoch form the
-compaction fence. Text model version 2 retains the logical runs and tombstone
-intervals required by positions, descendants, and selective history while
-allowing their physical text fragments to be repartitioned independently.
+The included grammar is intentionally a safe illustrative Markdown subset. A
+production CommonMark/GFM worker can replace it behind the same source-block,
+cancelation, stable-state, and instrumentation contract. Sanitization remains a
+renderer responsibility; this template creates React nodes and never injects
+HTML.
 
-The template uses the in-memory adapter so it runs without infrastructure. It is
-restart-safe only while that adapter instance survives. Production should supply
-a transactional database implementation and define an offline-session retention
-policy before pruning operation bodies.
+## Import, Corpus, and Recovery Boundaries
 
-## Optimistic Reconciliation and Recovery
+Reset/import is one authorized Domain proposal containing the source operation
+and all index maintenance. It is not a browser initialization effect. Ordinary
+joins request only their viewport. The corpus gate opens each pinned source
+through the actual Markdown Domain service as one authorized source-and-index
+batch, performs logarithmic index lookups, and then uses the exact virtual-window
+and parser path against the 5.6 MB source and repeated 50 MB variant. It asserts
+bounded batch, range, materialization, and mounted-block work at three
+deterministic positions.
 
-Each Atom.io Store creates stable session-scoped operation IDs, applies locally,
-and retains one causal outbox for the mutable atom token. Multiple components in
-that Store share the same replica; a second Silo gets a genuinely independent
-replica. Reconnect snapshots report which pending IDs were already accepted and
-the authoritative causal frontier; the client hydrates the transceiver
-checkpoint, removes those proposals, and replays the rest from that frontier.
-Duplicate delivery is harmless. A revision gap resnapshots.
-Structured rejection policies distinguish retryable work from stale history or
-invalid dependency chains, which are quarantined rather than left as impossible
-optimistic state.
-
-Local wall-clock time may group typing gestures. It is deliberately absent from
-accepted reduction semantics, fingerprints, and convergence decisions. Local
-signals created inside an Atom.io transaction are observed only after commit;
-aborted transaction clones are discarded before they can enter the network
-outbox.
-
-## Testing Arbitrary Protocols
-
-Mosaic is not implemented as push/pull state proxying, yet atom.io's realtime
-test harness can exercise it because the harness exposes the transport and
-lifecycle rather than assuming a particular protocol. The template's
-multi-client scenarios run independent React stores and Socket.IO sessions,
-disconnect both editors, accept simultaneous offline work, verify selective
-history, and verify presence removal. Core suites add deterministic drop,
-duplicate, reorder, restart, multi-node, checkpoint, and session-correlation
-schedules.
-
-The remaining seam is application work tracking: integrations that schedule
-work beyond transport callbacks should register that work with the harness when
-they need barrier-based quiescence. Mosaic's conformance suite otherwise uses
-the same public server, client, and renderer APIs as this application.
+The zero-setup server is intentionally in-memory. Restart durability requires
+the MOS-13 checkpoint coordinator plus a transactional storage adapter; the core
+already supplies those facilities, but pretending the demo adapter survives a
+process loss would give users a false guarantee. Client range resnapshot,
+split/merge invalidation, reconnect delivery, and selective history are covered
+without weakening that production boundary.

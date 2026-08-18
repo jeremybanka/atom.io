@@ -150,7 +150,9 @@ export function bindMosaicDomainHistoryServerSocket(
 		socket.off(`disconnect`, onDisconnect)
 		connection[Symbol.dispose]()
 	}
-	const onDisconnect = (): void => cleanup()
+	const onDisconnect = (): void => {
+		cleanup()
+	}
 	socket.on(MOSAIC_DOMAIN_HISTORY_EVENTS.request, onRequest)
 	socket.on(MOSAIC_DOMAIN_HISTORY_EVENTS.snapshot, onSnapshot)
 	socket.on(`disconnect`, onDisconnect)

@@ -77,10 +77,14 @@ export function createMosaicDomainHistorySocketTransport(
 	}
 	const onResponse = (
 		response: MosaicDomainHistorySocketResponse<MosaicDomainHistoryRequestResult>,
-	): void => settle(requests, response)
+	): void => {
+		settle(requests, response)
+	}
 	const onSnapshotResponse = (
 		response: MosaicDomainHistorySocketResponse<MosaicDomainHistorySnapshot>,
-	): void => settle(snapshots, response)
+	): void => {
+		settle(snapshots, response)
+	}
 	const rejectAll = (reason: Error): void => {
 		for (const request of [...requests.values(), ...snapshots.values()]) {
 			clearTimeout(request.timer)
@@ -89,9 +93,10 @@ export function createMosaicDomainHistorySocketTransport(
 		requests.clear()
 		snapshots.clear()
 	}
-	const onDisconnect = (): void =>
+	const onDisconnect = (): void => {
 		rejectAll(new Error(`History socket disconnected before acknowledgement.`))
-	const ask = <Value>(options: {
+	}
+	const ask = <Value>(requestOptions: {
 		readonly event: string
 		readonly payload: (requestId: string) => Json.Serializable
 		readonly pending: Map<string, Pending<Value>>
@@ -107,12 +112,12 @@ export function createMosaicDomainHistorySocketTransport(
 		}
 		return new Promise((resolve, reject) => {
 			const timer = setTimeout(() => {
-				options.pending.delete(requestId)
-				reject(new Error(options.timeoutMessage))
+				requestOptions.pending.delete(requestId)
+				reject(new Error(requestOptions.timeoutMessage))
 			}, requestTimeoutMs)
 			if (`unref` in timer) timer.unref()
-			options.pending.set(requestId, { reject, resolve, timer })
-			socket.emit(options.event, options.payload(requestId))
+			requestOptions.pending.set(requestId, { reject, resolve, timer })
+			socket.emit(requestOptions.event, requestOptions.payload(requestId))
 		})
 	}
 	socket.on(MOSAIC_DOMAIN_HISTORY_EVENTS.response, onResponse)

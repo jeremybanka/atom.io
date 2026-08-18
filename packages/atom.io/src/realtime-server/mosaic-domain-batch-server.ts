@@ -12,6 +12,7 @@ import {
 	type MosaicDomainBatchRejection,
 	type MosaicDomainIdentity,
 	type MosaicDomainInstance,
+	mosaicDomainMemberHistoryPolicy,
 	preflightMosaicDomainBatch,
 } from "atom.io/realtime"
 
@@ -20,6 +21,7 @@ import {
 	type MosaicDomainBatchRecovery,
 	type MosaicDomainBatchStorageAdapter,
 } from "./mosaic-domain-batch-storage.ts"
+import { registerMosaicDomainHistoryBatchProposer } from "./mosaic-domain-history-capability.ts"
 
 type MaybePromise<Value> = Promise<Value> | Value
 
@@ -36,6 +38,7 @@ export type MosaicDomainBatchServerOptions = {
 	readonly domain: MosaicDomainInstance<any, any, any>
 	readonly limits?: Partial<MosaicDomainBatchLimits> & {
 		readonly maxPendingProposals?: number
+		readonly maxRecentDependencies?: number
 	}
 	readonly storage?: MosaicDomainBatchStorageAdapter
 }
@@ -107,8 +110,15 @@ export function createMosaicDomainBatchServer(
 		...options.limits,
 	}
 	const maxPendingProposals = options.limits?.maxPendingProposals ?? 64
+	const maxRecentDependencies = options.limits?.maxRecentDependencies ?? 4_096
 	if (!Number.isSafeInteger(maxPendingProposals) || maxPendingProposals < 1) {
 		throw new Error(`maxPendingProposals must be a positive safe integer.`)
+	}
+	if (
+		!Number.isSafeInteger(maxRecentDependencies) ||
+		maxRecentDependencies < 1
+	) {
+		throw new Error(`maxRecentDependencies must be a positive safe integer.`)
 	}
 	for (const [name, value] of Object.entries(limits)) {
 		if (!Number.isSafeInteger(value) || value < 1) {
@@ -120,7 +130,7 @@ export function createMosaicDomainBatchServer(
 	let revision = 0
 	let pendingProposals = 0
 	let tail = Promise.resolve()
-	const acceptedIds = new Set<string>()
+	const acceptedIds = new Map<string, number>()
 	const listeners = new Set<
 		(accepted: MosaicAcceptedDomainBatchEnvelope) => void
 	>()
@@ -143,7 +153,10 @@ export function createMosaicDomainBatchServer(
 		)
 		applyMosaicDomainBatch(prepared)
 		revision = accepted.revision
-		acceptedIds.add(accepted.batch.id)
+		acceptedIds.set(accepted.batch.id, accepted.revision)
+		while (acceptedIds.size > maxRecentDependencies) {
+			acceptedIds.delete(acceptedIds.keys().next().value!)
+		}
 	}
 
 	const synchronize = async (): Promise<void> => {
@@ -165,6 +178,10 @@ export function createMosaicDomainBatchServer(
 		proposal: MosaicDomainBatchProposal,
 		actor: string,
 		session: string,
+		historyValidation?: (
+			batch: MosaicDomainBatchEnvelope,
+			revision: number,
+		) => Promise<void> | void,
 	): Promise<MosaicDomainBatchProposalResult> => {
 		await ready
 		const batchId = proposedBatchId(proposal)
@@ -248,6 +265,55 @@ export function createMosaicDomainBatchServer(
 				`discard-batch`,
 			)
 		}
+		if (historyValidation === undefined) {
+			try {
+				for (const operation of batch.operations) {
+					const parsed = await options.domain.parseAddress(operation.address)
+					const model = parsed.member.model
+					if (model === undefined) continue
+					const policy = mosaicDomainMemberHistoryPolicy(model)
+					if (
+						policy?.classify(operation.operation, {
+							actor,
+							dependencies: batch.dependencies,
+							group: batch.group,
+							id: operation.id,
+							revision: revision + 1,
+							session,
+						}).kind === `compensation`
+					) {
+						return rejection(
+							`unauthorized`,
+							`Collaborative compensation must use the Domain history coordinator.`,
+							batch.id,
+							`discard-batch`,
+						)
+					}
+				}
+			} catch (error) {
+				return rejection(
+					`invalid-model-operation`,
+					error instanceof Error
+						? error.message
+						: `The Domain history classification failed.`,
+					batch.id,
+					`discard-batch`,
+				)
+			}
+		} else {
+			try {
+				await historyValidation(batch, revision + 1)
+			} catch (error) {
+				return rejection(
+					`invalid-payload`,
+					error instanceof Error
+						? error.message
+						: `The Domain history compensation contract failed.`,
+					batch.id,
+					`discard-batch`,
+				)
+			}
+		}
 		let authorized = true
 		try {
 			authorized =
@@ -300,6 +366,24 @@ export function createMosaicDomainBatchServer(
 				fingerprint,
 			})
 		}
+		if (appended.status === `retired` || appended.status === `sequence-gap`) {
+			return rejection(
+				appended.status === `retired` ? `sequence-retired` : `gap`,
+				appended.status === `retired`
+					? `Batch sequence ${batch.sequence} is older than this session's durable watermark ${appended.actualSequence}.`
+					: `Batch sequence ${batch.sequence} is not the next sequence after ${appended.actualSequence}.`,
+				batch.id,
+				appended.status === `retired` ? `resnapshot` : `retry`,
+			)
+		}
+		if (appended.status === `session-capacity`) {
+			return rejection(
+				`backpressure`,
+				`The Mosaic Domain durable session watermark capacity is full.`,
+				batch.id,
+				`retry`,
+			)
+		}
 		if (appended.status === `collision`) {
 			return rejection(
 				appended.collision === `batch`
@@ -326,7 +410,10 @@ export function createMosaicDomainBatchServer(
 		// The prepared projection was computed at the exact appended revision.
 		applyMosaicDomainBatch(prepared)
 		revision = appended.accepted.revision
-		acceptedIds.add(batch.id)
+		acceptedIds.set(batch.id, revision)
+		while (acceptedIds.size > maxRecentDependencies) {
+			acceptedIds.delete(acceptedIds.keys().next().value!)
+		}
 		for (const listener of listeners) {
 			try {
 				listener(appended.accepted)
@@ -343,7 +430,7 @@ export function createMosaicDomainBatchServer(
 		return { accepted: appended.accepted, status: `accepted` }
 	}
 
-	return {
+	const server: MosaicDomainBatchServer = {
 		connect({ actor, session }) {
 			if (
 				typeof actor !== `string` ||
@@ -412,4 +499,29 @@ export function createMosaicDomainBatchServer(
 			return revision
 		},
 	}
+	registerMosaicDomainHistoryBatchProposer(
+		server,
+		(identity, proposal, validate) => {
+			if (pendingProposals >= maxPendingProposals) {
+				return Promise.resolve(
+					rejection(
+						`backpressure`,
+						`The Mosaic Domain proposal queue is full.`,
+						proposedBatchId(proposal),
+						`retry`,
+					),
+				)
+			}
+			pendingProposals++
+			const result = tail.then(() =>
+				processProposal(proposal, identity.actor, identity.session, validate),
+			)
+			tail = result.then(
+				() => undefined,
+				() => undefined,
+			)
+			return result.finally(() => pendingProposals--)
+		},
+	)
+	return server
 }

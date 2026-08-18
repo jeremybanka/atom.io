@@ -328,12 +328,57 @@ complete family in a client Store. UTF-16 ranges are half-open. A collapsed
 caret range hydrates the leaf to its right, or the final containing leaf at the
 end of the document.
 
-The residency layer deliberately does not implement incremental checkpoint
-graphs, durable range indexes, or actor-selective retained history. Those
-facilities build on its revision, resolver, and gesture boundaries in MOS-13,
-MOS-15, and MOS-16 respectively. This release's recovery adapter retains the
-accepted tail; a production adapter may compact only after those later
-checkpoint and retention contracts define a safe cut.
+The residency server can use an incremental checkpoint coordinator as its
+hydration source. It then loads only requested member versions and reduces
+those members through the accepted tail without acquiring unrelated family
+members or reading a mutable live Store cut. Durable range indexes and
+actor-selective retained history remain separate facilities built on the same
+revision, resolver, and gesture boundaries.
+
+## Incremental checkpoint graph
+
+A checkpoint coordinator persists a Mosaic Domain as a content-addressed graph,
+not one eagerly serialized Store snapshot. Its small immutable root records one
+accepted Domain revision and points to bounded persistent directories for
+member versions and application-defined index paths. Directory leaves and
+branches have fixed fanout. Updating one member therefore writes its immutable
+version plus only the directory path leading to it; every untouched subtree is
+shared with the prior root.
+
+<Exhibit src="realtime/checkpoint-a-domain-incrementally.ts" />
+
+The coordinator derives its dirty member set from the contiguous accepted tail
+since the prior root. Its member reader receives the exact target revision, and
+an optional index callback returns only affected bounded paths. The coordinator
+enforces limits on tail batches, dirty members, dirty index paths, and individual
+object bytes. Instrumentation reports the number and bytes of objects actually
+persisted, so an ordinary edit can be checked against bounded work rather than
+total Domain size.
+
+Immutable objects are staged before publication. Staging may partially succeed
+or be repeated safely because no reader can reach those objects yet. Root
+publication is the atomic boundary: storage verifies every referenced object
+is readable and compares the accepted-stream revision, prior root, and retention
+epoch in one operation. An append, another checkpoint writer, or a changed
+protection set makes the attempt stale; the coordinator retries from a fresh
+cut. A crash before publication leaves reclaimable orphans, while a crash after
+publication leaves a complete graph.
+
+Recovery atomically opens a protected root-plus-head view, traverses directory
+paths for only the requested addresses, and returns those versions with the
+contiguous accepted tail through the captured head. This prevents reclamation
+from racing lazy hydration and lets two clients request disjoint working sets
+without either downloading the complete Domain. Tail length is bounded; a
+request beyond the supported horizon fails closed instead of constructing an
+unbounded suffix.
+
+The storage contract is vendor-neutral. Adapters expose stable-key object reads
+and bounded cursor enumeration alongside the existing atomic batch append.
+Session watermarks, active outboxes, retained history groups, in-flight reads,
+and pending proposals use named retention leases. Garbage collection traces the
+current root and every leased root, retains the lowest required tail floor, and
+advances the retention epoch atomically. It cannot delete a member version or
+tail still reachable by a supported collaborator.
 
 ## Ordinary transaction bridge
 

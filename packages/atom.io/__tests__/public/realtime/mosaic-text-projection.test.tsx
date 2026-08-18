@@ -712,15 +712,18 @@ describe(`Mosaic text range projections`, () => {
 	test(`resolves both affinities of an inserted resident boundary locally`, async () => {
 		const system = await localSystem(`abcdefgh`)
 		await system.replaceIndex(
-			maintainMosaicTextIndex(
-				system.current.bundle,
+			createMosaicTextIndex(
 				[
 					fragment(`abcd`, `base`, 0),
 					fragment(`XY`, `foreign`, 0),
 					fragment(`efgh`, `base`, 4),
 				],
-				compact,
-			).index,
+				{
+					...compact,
+					maximumLeafGraphemes: 2,
+					targetLeafGraphemes: 2,
+				},
+			),
 		)
 		const reader = await system.makeClient(`affinity-reader`)
 		const lease = await reader.client.acquireRange({
@@ -745,6 +748,31 @@ describe(`Mosaic text range projections`, () => {
 		).toBe(6)
 		expect(reader.remotePositionResolutions).toBe(remoteResolutions)
 		await lease.release()
+		await eventually(() => reader.client.state.residentRangeCount === 0)
+
+		const suffix = await reader.client.acquireRange({
+			end: 8,
+			kind: `utf16-range`,
+			start: 7,
+		})
+		const remoteReads = reader.remotePositionReads
+		expect(await reader.client.positionAtOffset(0)).toEqual({
+			affinity: `right`,
+			offset: 0,
+			runId: `base`,
+		})
+		expect(reader.remotePositionReads).toBe(remoteReads + 1)
+		await expect(reader.client.positionAtOffset(11)).rejects.toThrow(`outside`)
+		const suffixResolutions = reader.remotePositionResolutions
+		expect(
+			await reader.client.resolvePosition({
+				affinity: `right`,
+				offset: 0,
+				runId: `base`,
+			}),
+		).toBe(0)
+		expect(reader.remotePositionResolutions).toBe(suffixResolutions + 1)
+		await suffix.release()
 		await reader.client.dispose()
 		await reader.residency.dispose()
 		await system.writer.client.dispose()

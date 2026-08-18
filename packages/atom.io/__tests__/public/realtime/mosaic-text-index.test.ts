@@ -233,6 +233,9 @@ describe(`Mosaic bounded text index`, () => {
 		)
 		expect(merged.index.root.reference?.summary.utf16Units).toBe(8)
 		expect(mosaicTextIndexAliasKey(staleLeaf.id)).toMatch(/^alias:/)
+		expect(
+			mosaicTextIndexAliasKey(staleLeaf.id).endsWith(`:${staleLeaf.id}`),
+		).toBe(true)
 	})
 
 	test(`settles cross-leaf edits and maintenance as one history-safe Domain gesture`, () => {

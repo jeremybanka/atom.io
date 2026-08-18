@@ -584,6 +584,38 @@ describe(`Mosaic text range projections`, () => {
 		await system.writer.residency.dispose()
 	})
 
+	test(`snaps UTF-16 block anchors to stable grapheme boundaries`, async () => {
+		const emoji = `👩‍🚀`
+		const system = await localSystem(`A${emoji}B`)
+		const reader = await system.makeClient(`unicode-reader`)
+		const inside = await reader.client.acquireRange({
+			end: 3,
+			kind: `utf16-range`,
+			start: 2,
+		})
+		expect(inside.read().blocks[0].anchor).toEqual({
+			affinity: `right`,
+			offset: 1,
+			runId: `base`,
+		})
+		const boundary = await reader.client.acquireRange({
+			end: 1 + emoji.length,
+			kind: `utf16-range`,
+			start: 1 + emoji.length,
+		})
+		expect(boundary.read().blocks[0].anchor).toEqual({
+			affinity: `left`,
+			offset: 2,
+			runId: `base`,
+		})
+		await inside.release()
+		await boundary.release()
+		await reader.client.dispose()
+		await reader.residency.dispose()
+		await system.writer.client.dispose()
+		await system.writer.residency.dispose()
+	})
+
 	test(`fails bounded lifecycle misuse closed and disposes active Store resources`, async () => {
 		const system = await localSystem(`abcdefghijklmnop`)
 		const reader = await system.makeClient(`boundaries`)
@@ -788,6 +820,20 @@ describe(`Mosaic text range projections`, () => {
 		await expect(throwingRelease.dispose()).rejects.toThrow(
 			`cleanup did not complete`,
 		)
+		const gestureIds: string[] = []
+		const sequenced = createMosaicTextProjectionClient({
+			...reader.projectionOptions,
+			domainKey: `sequenced`,
+			idSource: (sequence) => `custom:${sequence}`,
+			planEdit(edit, context) {
+				gestureIds.push(context.gestureId)
+				return reader.projectionOptions.planEdit(edit)
+			},
+		})
+		await sequenced.edit({ gestureId: `provided`, type: `undo` })
+		await sequenced.edit({ type: `undo` })
+		expect(gestureIds).toEqual([`provided`, `custom:0`])
+		await sequenced.dispose()
 
 		const gate = () => {
 			let open!: () => void

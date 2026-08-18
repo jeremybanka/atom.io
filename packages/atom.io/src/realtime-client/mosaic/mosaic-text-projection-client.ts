@@ -252,21 +252,22 @@ function positionAtLocalOffset(
 			const graphemes = splitMosaicText(fragment.text)
 			let utf16 = 0
 			for (let index = 0; index < graphemes.length; index++) {
-				if (remaining <= utf16) {
+				const next = utf16 + graphemes[index].length
+				if (remaining < next) {
 					return {
 						affinity: `right`,
 						offset: fragment.start + index,
 						runId: fragment.runId,
 					}
 				}
-				utf16 += graphemes[index].length
-			}
-			if (remaining <= utf16) {
-				return {
-					affinity: `left`,
-					offset: fragment.start + graphemes.length,
-					runId: fragment.runId,
+				if (remaining === next) {
+					return {
+						affinity: `left`,
+						offset: fragment.start + index + 1,
+						runId: fragment.runId,
+					}
 				}
+				utf16 = next
 			}
 			remaining -= utf16
 		}
@@ -836,6 +837,13 @@ export function createMosaicTextProjectionClient<
 			)
 		}
 	}
+	const createGestureId = (): string => {
+		const sequence = editSequence++
+		return (
+			options.idSource?.(sequence) ??
+			`${options.actor}:${options.session}:gesture:${sequence}`
+		)
+	}
 
 	const client: MosaicTextProjectionClient<Identity, Range> = {
 		acquireRange,
@@ -845,9 +853,7 @@ export function createMosaicTextProjectionClient<
 				throw new Error(`This Mosaic text projection client is disposed.`)
 			const received = structuredClone(edit)
 			const gestureId = identifier(
-				received.gestureId ??
-					options.idSource?.(editSequence++) ??
-					`${options.actor}:${options.session}:gesture:${editSequence++}`,
+				received.gestureId ?? createGestureId(),
 				`gestureId`,
 			)
 			let range: MosaicTextIndexRange | null = null

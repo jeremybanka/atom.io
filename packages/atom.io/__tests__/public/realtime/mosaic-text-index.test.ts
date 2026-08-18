@@ -109,6 +109,23 @@ describe(`Mosaic bounded text index`, () => {
 		expect(resident).toMatchObject({ status: `ok` })
 		if (resident.status === `ok`) expect(resident.leafIds).toHaveLength(2)
 		expect(reads.length).toBeLessThan(membersOf(index, `node`).length)
+		const boundary = await reader.resolveRange(
+			{ end: 8, kind: `utf16-range`, start: 4 },
+			3,
+		)
+		expect(boundary).toMatchObject({ status: `ok` })
+		if (boundary.status === `ok`) expect(boundary.leafIds).toHaveLength(1)
+		const caret = await reader.resolveRange(
+			{ end: 4, kind: `utf16-range`, start: 4 },
+			3,
+		)
+		expect(caret).toEqual(boundary)
+		const eof = await reader.resolveRange(
+			{ end: 64, kind: `utf16-range`, start: 64 },
+			3,
+		)
+		expect(eof).toMatchObject({ status: `ok` })
+		if (eof.status === `ok`) expect(eof.leafIds).toHaveLength(1)
 
 		const tooWide = await reader.resolveRange(
 			{ end: 63, kind: `utf16-range`, start: 0 },
@@ -177,6 +194,14 @@ describe(`Mosaic bounded text index`, () => {
 			leafId: staleLeaf.id,
 			position: { affinity: `right` as const, offset: 6, runId: `run` },
 		}
+		const collaborativeAnchors = {
+			annotations: [{ end: anchor.position, start: anchor.position }],
+			pendingProposals: [{ after: anchor.position, id: `alice:pending:1` }],
+			presence: {
+				selection: { anchor: anchor.position, head: anchor.position },
+			},
+		}
+		const anchorsBeforeMaintenance = structuredClone(collaborativeAnchors)
 		const split = maintainMosaicTextIndex(
 			before,
 			[
@@ -199,6 +224,7 @@ describe(`Mosaic bounded text index`, () => {
 			offset: 6,
 			runId: `run`,
 		})
+		expect(collaborativeAnchors).toEqual(anchorsBeforeMaintenance)
 
 		const merged = maintainMosaicTextIndex(
 			split.index,
@@ -446,14 +472,36 @@ describe(`Mosaic bounded text index`, () => {
 		await expect(
 			reader.resolveRange({ end: 2, kind: `utf16-range`, start: 3 }, 1),
 		).rejects.toThrow(`Invalid`)
-		await expect(reader.resolveAlias(`missing`)).rejects.toThrow(`Missing`)
+		await expect(
+			reader.resolveAlias(`missing`, {
+				end: 4,
+				kind: `utf16-range`,
+				start: 2,
+			}),
+		).resolves.toEqual({
+			recovery: {
+				code: `range-resnapshot`,
+				range: { end: 4, kind: `utf16-range`, start: 2 },
+				reason: `alias-missing`,
+			},
+			status: `resnapshot`,
+		})
+		await expect(
+			reader.resolveAlias(`missing`, {
+				end: 1,
+				kind: `utf16-range`,
+				start: 2,
+			}),
+		).rejects.toThrow(`Invalid Mosaic text index range`)
 
 		const empty = createMosaicTextIndex([])
+		const emptyReader = createMosaicTextIndexReader(mosaicTextIndexSource(empty))
+		await expect(emptyReader.positionAtOffset(0)).rejects.toThrow(
+			`index is empty`,
+		)
 		await expect(
-			createMosaicTextIndexReader(mosaicTextIndexSource(empty)).positionAtOffset(
-				0,
-			),
-		).rejects.toThrow(`index is empty`)
+			emptyReader.resolveRange({ end: 0, kind: `utf16-range`, start: 0 }, 1),
+		).resolves.toEqual({ leafIds: [], status: `ok` })
 		const invalidRoot = createMosaicTextIndexReader({
 			read: () => Promise.resolve(undefined),
 			root: () => Promise.resolve({ ...empty.root, kind: `invalid` } as never),
@@ -488,8 +536,45 @@ describe(`Mosaic bounded text index`, () => {
 		await expect(emptyNodeReader.positionAtOffset(0)).rejects.toThrow(
 			`Empty Mosaic text index node`,
 		)
+		const nested = createMosaicTextIndex([fragment(`a`.repeat(64))], compact)
+		const nestedRootReference = nested.root.reference!
+		const nestedLeaf = membersOf(nested, `leaf`)[0]
+		const wrongNodeReader = createMosaicTextIndexReader({
+			read: (id) => Promise.resolve({ ...nestedLeaf, id }),
+			root: () => Promise.resolve(nested.root),
+		})
+		await expect(wrongNodeReader.positionAtOffset(1)).rejects.toThrow(
+			`reference kind mismatch`,
+		)
+		await expect(
+			wrongNodeReader.resolveRange({ end: 2, kind: `utf16-range`, start: 1 }, 2),
+		).rejects.toThrow(`reference kind mismatch`)
+		expect(nestedRootReference.kind).toBe(`node`)
 
+		const wrongLeafReader = createMosaicTextIndexReader({
+			read: (id) =>
+				Promise.resolve({
+					children: [],
+					id,
+					kind: `node`,
+					level: 1,
+					summary: index.root.reference!.summary,
+					version: 1,
+				}),
+			root: () => Promise.resolve(index.root),
+		})
+		await expect(wrongLeafReader.positionAtOffset(1)).rejects.toThrow(
+			`reference kind mismatch`,
+		)
 		const firstLeaf = membersOf(index, `leaf`)[0]
+		const staleMemberReader = createMosaicTextIndexReader({
+			read: (id) => Promise.resolve({ ...firstLeaf, id, version: 2 } as never),
+			root: () => Promise.resolve(index.root),
+		})
+		await expect(staleMemberReader.positionAtOffset(1)).rejects.toThrow(
+			`Missing Mosaic text index member`,
+		)
+
 		const mismatchedAliasReader = createMosaicTextIndexReader({
 			read: (id) => Promise.resolve({ ...firstLeaf, id }),
 			root: () => Promise.resolve(index.root),

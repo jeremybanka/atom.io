@@ -324,7 +324,9 @@ current leaves. Alias fanout and range member limits fail with a structured
 range-resnapshot signal instead of returning an incomplete selection. The
 server-side resolver reads the durable index and returns only the authorized
 leaf addresses requested through partial residency; it does not allocate the
-complete family in a client Store.
+complete family in a client Store. UTF-16 ranges are half-open. A collapsed
+caret range hydrates the leaf to its right, or the final containing leaf at the
+end of the document.
 
 The residency layer deliberately does not implement incremental checkpoint
 graphs, durable range indexes, or actor-selective retained history. Those

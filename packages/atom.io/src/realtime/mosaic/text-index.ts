@@ -41,6 +41,7 @@ export type MosaicTextIndexNode = {
 }
 
 export type MosaicTextIndexRange = {
+	/** Exclusive UTF-16 end. A collapsed range hydrates its containing leaf. */
 	readonly end: number
 	readonly kind: `utf16-range`
 	readonly start: number
@@ -757,6 +758,113 @@ function memberMap(
 	return new Map(bundle.members.map((member) => [member.id, member]))
 }
 
+function sameSummary(
+	left: MosaicTextIndexSummary,
+	right: MosaicTextIndexSummary,
+): boolean {
+	return (
+		left.graphemes === right.graphemes &&
+		left.leafCount === right.leafCount &&
+		left.lineBreaks === right.lineBreaks &&
+		left.utf16Units === right.utf16Units
+	)
+}
+
+function sameReference(
+	left: MosaicTextIndexReference | null,
+	right: MosaicTextIndexReference | null,
+): boolean {
+	return (
+		left === right ||
+		(left !== null &&
+			right !== null &&
+			left.id === right.id &&
+			left.kind === right.kind &&
+			sameSummary(left.summary, right.summary))
+	)
+}
+
+function sameRecovery(
+	left: MosaicTextIndexRecovery | undefined,
+	right: MosaicTextIndexRecovery | undefined,
+): boolean {
+	return (
+		left === right ||
+		(left !== undefined &&
+			right !== undefined &&
+			left.code === right.code &&
+			left.reason === right.reason &&
+			left.range.kind === right.range.kind &&
+			left.range.start === right.range.start &&
+			left.range.end === right.range.end)
+	)
+}
+
+function sameStrings(
+	left: readonly string[] | undefined,
+	right: readonly string[] | undefined,
+): boolean {
+	return (
+		left === right ||
+		(left !== undefined &&
+			right !== undefined &&
+			left.length === right.length &&
+			left.every((value, index) => value === right[index]))
+	)
+}
+
+function sameMember(
+	left: MosaicTextIndexMember | undefined,
+	right: MosaicTextIndexMember,
+): boolean {
+	if (left === undefined || left.kind !== right.kind || left.id !== right.id) {
+		return false
+	}
+	if (left.kind === `alias` && right.kind === `alias`) {
+		return (
+			left.generation === right.generation &&
+			left.source === right.source &&
+			sameRecovery(left.recovery, right.recovery) &&
+			sameStrings(left.targets, right.targets)
+		)
+	}
+	if (left.kind === `leaf` && right.kind === `leaf`) {
+		return (
+			sameSummary(left.summary, right.summary) &&
+			left.fragments.length === right.fragments.length &&
+			left.fragments.every((value, index) => {
+				const candidate = right.fragments[index]
+				return (
+					value.runId === candidate.runId &&
+					value.start === candidate.start &&
+					value.text === candidate.text
+				)
+			})
+		)
+	}
+	if (left.kind === `node` && right.kind === `node`) {
+		return (
+			left.level === right.level &&
+			sameSummary(left.summary, right.summary) &&
+			left.children.length === right.children.length &&
+			left.children.every((value, index) =>
+				sameReference(value, right.children[index]),
+			)
+		)
+	}
+	return false
+}
+
+function sameRoot(
+	left: MosaicTextIndexRoot,
+	right: MosaicTextIndexRoot,
+): boolean {
+	return (
+		left.generation === right.generation &&
+		sameReference(left.reference, right.reference)
+	)
+}
+
 /**
  * Reconcile physical leaves while retaining boundaries inside the configured
  * hysteresis window. The returned writes form one actor-history-free Domain
@@ -803,13 +911,12 @@ export function maintainMosaicTextIndex(
 	const before = memberMap(previous)
 	const after = memberMap(index)
 	const upsert = index.members.filter(
-		(member) => JSON.stringify(before.get(member.id)) !== JSON.stringify(member),
+		(member) => !sameMember(before.get(member.id), member),
 	)
 	const remove = [...before.keys()]
 		.filter((id) => !after.has(id))
 		.sort((left, right) => left.localeCompare(right))
-	const rootChanged =
-		JSON.stringify(previous.root) !== JSON.stringify(index.root)
+	const rootChanged = !sameRoot(previous.root, index.root)
 	const maintenance: MosaicTextIndexMaintenance = {
 		history: `exclude`,
 		kind: `maintenance`,
@@ -898,7 +1005,10 @@ export type MosaicTextIndexReader = {
 	positionAtGrapheme(offset: number): Promise<MosaicTextIndexLookup>
 	positionAtLine(line: number): Promise<MosaicTextIndexLookup>
 	positionAtOffset(offset: number): Promise<MosaicTextIndexLookup>
-	resolveAlias(id: string): Promise<
+	resolveAlias(
+		id: string,
+		range?: MosaicTextIndexRange,
+	): Promise<
 		| { readonly leafIds: readonly string[]; readonly status: `ok` }
 		| {
 				readonly recovery: MosaicTextIndexRecovery
@@ -1018,14 +1128,24 @@ export function createMosaicTextIndexReader(
 		}
 		return root
 	}
-	const readMember = async (id: string): Promise<MosaicTextIndexMember> => {
+	const readOptionalMember = async (
+		id: string,
+	): Promise<MosaicTextIndexMember | undefined> => {
 		const member = await source.read(id)
-		if (member === undefined || member.id !== id || member.version !== 1) {
+		if (member === undefined) return undefined
+		if (member.id !== id || member.version !== 1) {
 			throw new Error(`Missing Mosaic text index member: ${id}`)
 		}
 		if (member.kind === `leaf`) counters.leaves++
 		else if (member.kind === `node`) counters.nodes++
 		else counters.aliases++
+		return member
+	}
+	const readMember = async (id: string): Promise<MosaicTextIndexMember> => {
+		const member = await readOptionalMember(id)
+		if (member === undefined) {
+			throw new Error(`Missing Mosaic text index member: ${id}`)
+		}
 		return member
 	}
 	const locate = async (metric: Metric, value: number): Promise<LocatedLeaf> => {
@@ -1096,6 +1216,14 @@ export function createMosaicTextIndexReader(
 		const total = root.reference?.summary.utf16Units ?? 0
 		assertOffset(range.end, total, `range end`)
 		if (root.reference === null) return { leafIds: [], status: `ok` }
+		// Ranges are half-open. A collapsed caret range selects the character to
+		// its right, except at EOF where it selects the final containing leaf.
+		const collapsed = range.start === range.end
+		const queryStart =
+			collapsed && range.start === total
+				? Math.max(0, range.start - 1)
+				: range.start
+		const queryEnd = collapsed ? Math.min(total, queryStart + 1) : range.end
 		const leafIds: string[] = []
 		const visit = async (
 			reference: MosaicTextIndexReference,
@@ -1103,7 +1231,7 @@ export function createMosaicTextIndexReader(
 		): Promise<void> => {
 			if (leafIds.length > limit) return
 			const end = start + reference.summary.utf16Units
-			if (end < range.start || start > range.end) return
+			if (end <= queryStart || start >= queryEnd) return
 			if (reference.kind === `leaf`) {
 				leafIds.push(reference.id)
 				return
@@ -1137,8 +1265,27 @@ export function createMosaicTextIndexReader(
 		positionAtGrapheme: (offset) => lookup(`graphemes`, offset),
 		positionAtLine: (line) => lookup(`lineBreaks`, line),
 		positionAtOffset: (offset) => lookup(`utf16Units`, offset),
-		async resolveAlias(id) {
-			const member = await readMember(mosaicTextIndexAliasKey(id))
+		async resolveAlias(id, range = { end: 0, kind: `utf16-range`, start: 0 }) {
+			if (
+				range.kind !== `utf16-range` ||
+				!Number.isSafeInteger(range.start) ||
+				!Number.isSafeInteger(range.end) ||
+				range.start < 0 ||
+				range.end < range.start
+			) {
+				throw new RangeError(`Invalid Mosaic text index range`)
+			}
+			const member = await readOptionalMember(mosaicTextIndexAliasKey(id))
+			if (member === undefined) {
+				return {
+					recovery: {
+						code: `range-resnapshot`,
+						range,
+						reason: `alias-missing`,
+					},
+					status: `resnapshot`,
+				}
+			}
 			if (member.kind !== `alias` || member.source !== id) {
 				throw new Error(`Mosaic text index alias mismatch`)
 			}

@@ -292,6 +292,40 @@ authenticated transport. Server cleanup subscriptions and quiescent-session
 retirement are exposed for later residency integration without making ephemeral
 updates durable.
 
+## Bounded text indexes
+
+Long-form text uses a model-specific bounded-fanout index behind the generic
+residency range seam. The root points to one node or leaf summary. Internal
+nodes point to a bounded number of child summaries, and leaves retain bounded
+logical run fragments. Root and node summaries carry UTF-16, grapheme, line
+break, and leaf counts, so an offset, line, or bounded range reads one path
+rather than materializing preceding text. A large single line or fenced block
+therefore splits at the configured physical thresholds just like other text;
+syntax does not become an accidental document-size limit.
+
+<Exhibit src="realtime/index-bounded-text.ts" />
+
+Index roots and members remain ordinary durable atoms and atom-family members.
+The application persists them through the same Domain checkpoint and batch
+boundaries as other state. Rebalancing retains existing leaf and node boundaries
+inside configurable minimum, target, and maximum hysteresis thresholds. A
+local edit usually changes one leaf, one node per tree level, and the root;
+the maximum leaf size is a split threshold, not a whole-document cap.
+
+Physical maintenance is explicitly excluded from actor-selective text history.
+A cross-leaf edit, paste, or replacement submits its model operations and the
+index maintenance writes as one Domain gesture, so resident selectors cannot
+observe half of the structural change. Logical positions continue to name a
+run and grapheme boundary rather than a leaf. Annotations, presence, and pending
+proposals therefore keep their semantic anchor when a leaf splits or merges.
+
+Short-lived aliases translate a stale leaf identity into a bounded set of
+current leaves. Alias fanout and range member limits fail with a structured
+range-resnapshot signal instead of returning an incomplete selection. The
+server-side resolver reads the durable index and returns only the authorized
+leaf addresses requested through partial residency; it does not allocate the
+complete family in a client Store.
+
 The residency layer deliberately does not implement incremental checkpoint
 graphs, durable range indexes, or actor-selective retained history. Those
 facilities build on its revision, resolver, and gesture boundaries in MOS-13,

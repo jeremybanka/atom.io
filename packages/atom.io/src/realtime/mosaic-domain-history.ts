@@ -14,6 +14,18 @@ export const MOSAIC_DOMAIN_HISTORY_PROTOCOL_VERSION = 1 as const
 export const MOSAIC_DOMAIN_HISTORY_CHECKPOINT_INDEX = `mosaic-domain-history`
 export const MOSAIC_DOMAIN_HISTORY_CHECKPOINT_PATH = `state`
 
+export const MOSAIC_DOMAIN_HISTORY_EVENTS: Readonly<{
+	request: `mosaic-domain-history:request`
+	response: `mosaic-domain-history:response`
+	snapshot: `mosaic-domain-history:snapshot`
+	snapshotResponse: `mosaic-domain-history:snapshot-response`
+}> = Object.freeze({
+	request: `mosaic-domain-history:request`,
+	response: `mosaic-domain-history:response`,
+	snapshot: `mosaic-domain-history:snapshot`,
+	snapshotResponse: `mosaic-domain-history:snapshot-response`,
+})
+
 export type MosaicDomainHistoryMode = `redo` | `undo`
 
 export type MosaicDomainHistoryGestureOperation<
@@ -83,6 +95,8 @@ export type MosaicDomainHistorySnapshot = {
 	readonly actor: string
 	readonly cursor: MosaicDomainHistoryCursor
 	readonly horizon: MosaicDomainHistoryHorizon
+	/** Last accepted request sequence for this authenticated session. */
+	readonly sessionSequence: number
 }
 
 export type MosaicDomainHistoryRequest = {
@@ -110,6 +124,118 @@ export type MosaicDomainHistoryRequestResult =
 			readonly snapshot: MosaicDomainHistorySnapshot
 			readonly status: `unavailable`
 	  }
+
+export type MosaicDomainHistorySocketCommand = Omit<
+	MosaicDomainHistoryRequest,
+	`session`
+>
+
+export type MosaicDomainHistorySocketRequest = {
+	readonly command: MosaicDomainHistorySocketCommand
+	readonly requestId: string
+}
+
+export type MosaicDomainHistorySnapshotSocketRequest = {
+	readonly requestId: string
+}
+
+export type MosaicDomainHistorySocketError = {
+	readonly code: `internal` | `invalid-request`
+	readonly reason: string
+	readonly retryable: boolean
+}
+
+export type MosaicDomainHistorySocketResponse<Value> =
+	| { readonly ok: true; readonly requestId: string; readonly value: Value }
+	| {
+			readonly error: MosaicDomainHistorySocketError
+			readonly ok: false
+			readonly requestId: string
+	  }
+
+const historyIdentifier = (value: unknown): value is string =>
+	typeof value === `string` && value.length > 0 && value.length <= 512
+
+const historyRevision = (value: unknown): value is number =>
+	Number.isSafeInteger(value) && (value as number) >= 0
+
+/** Fail closed when a transport returns a non-monotonic history projection. */
+export function assertMosaicDomainHistorySnapshot(
+	value: unknown,
+	options: {
+		readonly actor?: string
+		readonly minimumRevision?: number
+	} = {},
+): asserts value is MosaicDomainHistorySnapshot {
+	if (typeof value !== `object` || value === null) {
+		throw new Error(`A Mosaic Domain history snapshot must be an object.`)
+	}
+	const snapshot = value as Partial<MosaicDomainHistorySnapshot>
+	const cursor = snapshot.cursor as
+		| Partial<MosaicDomainHistoryCursor>
+		| undefined
+	const horizon = snapshot.horizon as
+		| Partial<MosaicDomainHistoryHorizon>
+		| undefined
+	const validGestureId = (id: unknown): boolean =>
+		id === null || historyIdentifier(id)
+	if (
+		!historyIdentifier(snapshot.actor) ||
+		(options.actor !== undefined && snapshot.actor !== options.actor) ||
+		cursor === undefined ||
+		!historyRevision(cursor.revision) ||
+		!validGestureId(cursor.undoGestureId) ||
+		!validGestureId(cursor.redoGestureId) ||
+		horizon === undefined ||
+		typeof horizon.canUndo !== `boolean` ||
+		typeof horizon.canRedo !== `boolean` ||
+		!historyRevision(horizon.undoSteps) ||
+		!historyRevision(horizon.redoSteps) ||
+		!historyRevision(horizon.oldestRetainedRevision) ||
+		!historyRevision(horizon.truncatedBeforeRevision) ||
+		!historyRevision(snapshot.sessionSequence) ||
+		horizon.canUndo !== horizon.undoSteps > 0 ||
+		horizon.canRedo !== horizon.redoSteps > 0 ||
+		(cursor.undoGestureId === null) !== (horizon.undoSteps === 0) ||
+		(cursor.redoGestureId === null) !== (horizon.redoSteps === 0) ||
+		horizon.oldestRetainedRevision > cursor.revision ||
+		horizon.truncatedBeforeRevision > cursor.revision ||
+		(options.minimumRevision !== undefined &&
+			cursor.revision < options.minimumRevision)
+	) {
+		throw new Error(`A Mosaic Domain history snapshot is invalid.`)
+	}
+}
+
+export function assertMosaicDomainHistoryRequestResult(
+	value: unknown,
+	options: { readonly actor?: string; readonly minimumRevision?: number } = {},
+): asserts value is MosaicDomainHistoryRequestResult {
+	if (typeof value !== `object` || value === null || !(`status` in value)) {
+		throw new Error(`A Mosaic Domain history result must be an object.`)
+	}
+	const result = value as Partial<MosaicDomainHistoryRequestResult>
+	assertMosaicDomainHistorySnapshot(result.snapshot, options)
+	if (result.status === `accepted`) {
+		if (
+			!historyRevision(result.acceptedRevision) ||
+			result.acceptedRevision !== result.snapshot.cursor.revision
+		) {
+			throw new Error(`A Mosaic Domain history result is invalid.`)
+		}
+		return
+	}
+	if (result.status === `unavailable`) return
+	if (
+		result.status !== `rejected` ||
+		!historyIdentifier(result.reason) ||
+		!([`domain-resnapshot`, `history-resnapshot`, `retry`] as const).includes(
+			result.recovery as never,
+		)
+	) {
+		throw new Error(`A Mosaic Domain history result is invalid.`)
+	}
+}
 
 export type MosaicDomainHistoryProtection = {
 	readonly id: string

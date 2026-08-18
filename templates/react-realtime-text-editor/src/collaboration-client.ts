@@ -1,16 +1,18 @@
 import type { Silo } from "atom.io"
 import type {
-	MosaicDomainHistorySnapshot,
 	MosaicDomainResidencyTransport,
 	MosaicTextIndexLookup,
 	MosaicTextSelection,
 } from "atom.io/realtime"
 import {
+	createMosaicDomainHistoryClient,
+	createMosaicDomainHistorySocketTransport,
 	createMosaicDomainPresenceClient,
 	createMosaicDomainPresenceSocketTransport,
 	createMosaicDomainResidencyClient,
 	createMosaicTextProjectionClient,
 	type MosaicDomainPresenceClient,
+	type MosaicDomainHistoryClient,
 	type MosaicDomainResidencyClient,
 	type MosaicTextProjectionClient,
 	type MosaicTextLogicalEdit,
@@ -40,6 +42,7 @@ export type MarkdownClientStatus = {
 
 export type MarkdownCollaborationClient = Disposable & {
 	readonly domain: MarkdownDocumentDomain
+	readonly history: MosaicDomainHistoryClient
 	readonly identity: Identity
 	readonly presence: MosaicDomainPresenceClient
 	readonly projection: MosaicTextProjectionClient<
@@ -173,9 +176,23 @@ export async function createMarkdownCollaborationClient(options: {
 		session: sessionId,
 		transport: presenceTransport,
 	})
+	const historyTransport = createMosaicDomainHistorySocketTransport(socket, {
+		idSource: () => `${sessionId}:history-socket:${crypto.randomUUID()}`,
+	})
+	const history = createMosaicDomainHistoryClient({
+		actor: identity.id,
+		onObserverError: (error) =>
+			domain.store.logger.error(
+				`🐞`,
+				`unknown`,
+				sessionId,
+				`A Mosaic Domain history client listener threw.`,
+				error,
+			),
+		session: sessionId,
+		transport: historyTransport,
+	})
 	let commandSequence = 0
-	let historySequence = 0
-	let historySnapshot: MosaicDomainHistorySnapshot | null = null
 	let pendingCommands = 0
 	let disposed = false
 	const connectionWaiters = new Set<() => void>()
@@ -184,22 +201,31 @@ export async function createMarkdownCollaborationClient(options: {
 	const listeners = new Set<(status: MarkdownClientStatus) => void>()
 
 	const status = (): MarkdownClientStatus => {
-		const state = residency.state
+		const historyState = history.state
+		const residencyState = residency.state
 		return {
 			connection:
-				!socket.connected || state.connectivity === `offline`
-					? `offline`
-					: state.connectivity,
-			pending: pendingCommands + state.pendingBatchIds.length,
-			reason: state.problem?.reason ?? null,
+				historyState.status === `rejected`
+					? `recovering`
+					: !socket.connected ||
+						  historyState.status === `offline` ||
+						  residencyState.connectivity === `offline`
+						? `offline`
+						: historyState.status === `live` &&
+							  residencyState.connectivity === `live`
+							? `live`
+							: `connecting`,
+			pending:
+				pendingCommands +
+				historyState.pending +
+				residencyState.pendingBatchIds.length,
+			reason:
+				residencyState.problem?.reason ?? historyState.problem?.reason ?? null,
 		}
 	}
 	const notify = (): void => {
 		const value = status()
 		for (const listener of listeners) listener(value)
-	}
-	const refreshHistory = async (): Promise<void> => {
-		historySnapshot = await request(socket, MARKDOWN_EVENTS.historySnapshot)
 	}
 	const synchronize = async (): Promise<void> => {
 		await residency.reconnect()
@@ -209,7 +235,8 @@ export async function createMarkdownCollaborationClient(options: {
 			// Presence is advisory and retains its actionable state.
 		}
 		await presence.refresh()
-		await refreshHistory()
+		if (history.state.snapshot === null) await history.start()
+		else await history.refresh()
 		notify()
 	}
 	const waitForConnection = (): Promise<void> =>
@@ -266,7 +293,7 @@ export async function createMarkdownCollaborationClient(options: {
 		const sequence = ++commandSequence
 		const work = commandTail.then(async () => {
 			await sendCommand({ ...command, sequence })
-			await refreshHistory()
+			await history.refresh()
 		})
 		commandTail = work.then(
 			() => undefined,
@@ -278,26 +305,20 @@ export async function createMarkdownCollaborationClient(options: {
 		})
 	}
 	const requestHistory = async (mode: `redo` | `undo`): Promise<boolean> => {
-		await refreshHistory()
-		const snapshot = historySnapshot!
+		await history.refresh()
+		const snapshot = history.state.snapshot!
 		if (
 			mode === `undo` ? !snapshot.horizon.canUndo : !snapshot.horizon.canRedo
 		) {
 			return false
 		}
-		const result = await request<any>(socket, MARKDOWN_EVENTS.history, {
-			cursor: snapshot.cursor,
-			id: `${sessionId}:history:${historySequence + 1}`,
-			mode,
-			sequence: ++historySequence,
-			session: sessionId,
-		})
-		historySnapshot = result.snapshot
+		const result = await history.request(mode)
 		if (result.status === `rejected`) throw new Error(result.reason)
 		return result.status === `accepted`
 	}
 	const stopResidency = residency.subscribeState(notify)
 	const stopPresence = presence.subscribe(notify)
+	const stopHistory = history.subscribe(notify)
 	const reconnect = (): void => {
 		synchronization = synchronize()
 		void synchronization.catch(notify)
@@ -312,6 +333,7 @@ export async function createMarkdownCollaborationClient(options: {
 
 	return {
 		domain,
+		history,
 		identity,
 		presence,
 		projection,
@@ -354,8 +376,11 @@ export async function createMarkdownCollaborationClient(options: {
 			socket.off(`disconnect`, disconnect)
 			stopResidency()
 			stopPresence()
+			stopHistory()
 			presence[Symbol.dispose]()
 			presenceTransport[Symbol.dispose]()
+			history[Symbol.dispose]()
+			historyTransport[Symbol.dispose]()
 			void projection
 				.dispose()
 				.catch(() => undefined)

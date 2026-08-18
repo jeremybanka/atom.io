@@ -60,6 +60,7 @@ export const CREATE_COMPATIBILITY_SURFACE = {
 
 export type CreateCompatibilityGeometryTarget = {
 	readonly glyphId: string
+	/** Product-local point ID; the adapter namespaces it by glyph for Domain use. */
 	readonly pointId: string
 }
 
@@ -81,6 +82,14 @@ const translate = (point: PointXY, delta: PointXY): PointXY => ({
 	x: point.x + delta.x,
 	y: point.y + delta.y,
 })
+
+/** Preserve Create-*'s glyph-local point IDs at the globally addressed seam. */
+export function createCompatibilityPointMemberId(target: {
+	readonly glyphId: string
+	readonly pointId: string
+}): string {
+	return `${target.glyphId}\u0000${target.pointId}`
+}
 
 const translateEdge = (edge: SvgEdge, delta: PointXY): SvgEdge => {
 	if (edge.kind !== `cubic`) return edge
@@ -109,27 +118,32 @@ export function createCreateCompatibilityAdapter(options: {
 			const operations: MosaicDomainBatchClientOperation[] = []
 			let ordinal = 0
 			for (const target of targets) {
-				if (seen.has(target.pointId)) {
-					throw new Error(`Duplicate Create-* point target ${target.pointId}.`)
+				const memberId = createCompatibilityPointMemberId(target)
+				if (seen.has(memberId)) {
+					throw new Error(
+						`Duplicate Create-* point target ${target.glyphId}/${target.pointId}.`,
+					)
 				}
-				seen.add(target.pointId)
+				seen.add(memberId)
 				const contour = readSvgRegister<SvgSubpath | null>(
-					options.state.getState(subpathAtoms, target.pointId),
+					options.state.getState(subpathAtoms, memberId),
 				)
 				if (contour?.pathId !== target.glyphId) {
 					throw new Error(
-						`Create-* point ${target.pointId} is not in glyph ${target.glyphId}.`,
+						`Create-* point ${target.glyphId}/${target.pointId} is not in its glyph.`,
 					)
 				}
 				const point = readSvgRegister<PointXY | null>(
-					options.state.getState(nodeAtoms, target.pointId),
+					options.state.getState(nodeAtoms, memberId),
 				)
 				if (point == null) {
-					throw new Error(`Create-* point ${target.pointId} has no geometry.`)
+					throw new Error(
+						`Create-* point ${target.glyphId}/${target.pointId} has no geometry.`,
+					)
 				}
 				const nodeOperationId = svgOperationId(gesture, ordinal++)
 				operations.push({
-					address: options.domain.address(`nodes`, target.pointId),
+					address: options.domain.address(`nodes`, memberId),
 					id: nodeOperationId,
 					operation: {
 						actor: gesture.actor,
@@ -138,12 +152,12 @@ export function createCreateCompatibilityAdapter(options: {
 					},
 				})
 				const edge = readSvgRegister<SvgEdge | null>(
-					options.state.getState(edgeAtoms, target.pointId),
+					options.state.getState(edgeAtoms, memberId),
 				)
 				if (edge?.kind === `cubic`) {
 					const edgeOperationId = svgOperationId(gesture, ordinal++)
 					operations.push({
-						address: options.domain.address(`edges`, target.pointId),
+						address: options.domain.address(`edges`, memberId),
 						id: edgeOperationId,
 						operation: {
 							actor: gesture.actor,

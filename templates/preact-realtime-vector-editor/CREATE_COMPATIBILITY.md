@@ -17,6 +17,8 @@ This fixture validates a representative Create-* state shape against public Atom
 
 `CREATE_COMPATIBILITY_SURFACE` is a compile-time compatibility fixture over these public tokens. `createCreateCompatibilityAdapter` converts one representative multi-glyph command into public batch operations. Neither defines a replacement transport or convergence protocol.
 
+Create-* point IDs are glyph-local, while SVG member addresses are Domain-global. The adapter preserves the product ID and derives a deterministic glyph-plus-point member key at that seam. Two glyphs may therefore contain the same point ID without colliding or being mistaken for a duplicate selection.
+
 ## Responsibility boundary
 
 | Supplied by Atom.io                                                                                                                                                                               | Supplied by a Create-* adapter                                                                                                                                                                              | Owned by Create-*                                                                                                                                                                                                                                |
@@ -45,6 +47,8 @@ MOS-23's review established reusable requirements for consumers:
 - Simulated identity is never described as production authentication.
 
 MOS-24 inherits these invariants by using Plane's collaboration client and service rather than adding another Socket.IO protocol.
+
+The public batch client currently exposes aggregate status after `submit`, rather than a stable result for that exact submission. The serialized single-command path used here installs its rejection before `submit` resolves, but arbitrary concurrent consumers need an unambiguous per-batch settlement handle. That generic gap is tracked in [atom.io #721](https://github.com/jeremybanka/atom.io/issues/721) instead of being patched with Create-* protocol state.
 
 ## Compatibility proof
 

@@ -16,6 +16,7 @@ import {
 import {
 	CREATE_COMPATIBILITY_SURFACE,
 	createCreateCompatibilityAdapter,
+	createCompatibilityPointMemberId,
 } from "../src/create-compatibility.ts"
 import {
 	createSvgGestureClock,
@@ -29,20 +30,38 @@ import type { Identity } from "../src/identities.ts"
 const MAYA = { id: `maya`, name: `Maya`, color: `#8b7bff` } satisfies Identity
 const THEO = { id: `theo`, name: `Theo`, color: `#ff6b9a` } satisfies Identity
 const sessions = { maya: `compat:maya`, theo: `compat:theo` } as const
+const POINT_0 = `point:0`
+const POINT_1 = `point:1`
+const A_0 = createCompatibilityPointMemberId({
+	glyphId: `glyph-a`,
+	pointId: POINT_0,
+})
+const A_1 = createCompatibilityPointMemberId({
+	glyphId: `glyph-a`,
+	pointId: POINT_1,
+})
+const O_0 = createCompatibilityPointMemberId({
+	glyphId: `glyph-o`,
+	pointId: POINT_0,
+})
+const O_1 = createCompatibilityPointMemberId({
+	glyphId: `glyph-o`,
+	pointId: POINT_1,
+})
 
 const CREATE_DRAWING: SvgDrawingFixture = {
 	paths: [
 		{
 			id: `glyph-a`,
 			subpaths: [
-				{ edge: { kind: `move` }, id: `a-0`, node: { x: 0, y: 0 } },
+				{ edge: { kind: `move` }, id: A_0, node: { x: 0, y: 0 } },
 				{
 					edge: {
 						c: { x: 20, y: 0 },
 						kind: `cubic`,
 						s: { x: 30, y: 10 },
 					},
-					id: `a-1`,
+					id: A_1,
 					node: { x: 40, y: 40 },
 				},
 			],
@@ -50,14 +69,14 @@ const CREATE_DRAWING: SvgDrawingFixture = {
 		{
 			id: `glyph-o`,
 			subpaths: [
-				{ edge: { kind: `move` }, id: `o-0`, node: { x: 80, y: 0 } },
+				{ edge: { kind: `move` }, id: O_0, node: { x: 80, y: 0 } },
 				{
 					edge: {
 						c: { x: 100, y: 0 },
 						kind: `cubic`,
 						s: { x: 110, y: 10 },
 					},
-					id: `o-1`,
+					id: O_1,
 					node: { x: 120, y: 40 },
 				},
 			],
@@ -66,11 +85,13 @@ const CREATE_DRAWING: SvgDrawingFixture = {
 }
 
 type RuntimeRegistry = Map<string, VectorCollaborationClient>
+type CreationProblems = Map<string, string>
 
 function compatibilityClient(
 	identity: Identity,
 	sessionId: string,
 	runtimes: RuntimeRegistry,
+	problems: CreationProblems,
 ) {
 	return function CreateCompatibilityClient() {
 		const { socket } = useContext(RealtimeContext)
@@ -92,17 +113,29 @@ function compatibilityClient(
 				sessionId,
 				silo,
 				socket,
-			}).then((client) => {
-				created = client
-				if (active) runtimes.set(sessionId, client)
-				else client[Symbol.dispose]()
-			})
+			}).then(
+				(client) => {
+					created = client
+					if (active) runtimes.set(sessionId, client)
+					else client[Symbol.dispose]()
+				},
+				(error: unknown) => {
+					created?.[Symbol.dispose]()
+					runtimes.delete(sessionId)
+					if (!active) return
+					problems.set(
+						sessionId,
+						error instanceof Error ? error.message : String(error),
+					)
+				},
+			)
 			return () => {
 				active = false
 				runtimes.delete(sessionId)
+				problems.delete(sessionId)
 				created?.[Symbol.dispose]()
 			}
-		}, [silo, socket])
+		}, [identity, problems, runtimes, sessionId, silo, socket])
 		return createElement(
 			`output`,
 			null,
@@ -114,6 +147,7 @@ function compatibilityClient(
 describe(`Create-* public compatibility`, () => {
 	test(`one authorized multi-glyph gesture settles atomically while local and ephemeral state stay separate`, async () => {
 		const runtimes: RuntimeRegistry = new Map()
+		const problems: CreationProblems = new Map()
 		const restart = createRestartableServerFixture({
 			name: `create-compatibility`,
 			createDurableState: () => ({}),
@@ -139,8 +173,8 @@ describe(`Create-* public compatibility`, () => {
 				return () => void binding.then((cleanup) => cleanup())
 			},
 			clients: {
-				maya: compatibilityClient(MAYA, sessions.maya, runtimes),
-				theo: compatibilityClient(THEO, sessions.theo, runtimes),
+				maya: compatibilityClient(MAYA, sessions.maya, runtimes, problems),
+				theo: compatibilityClient(THEO, sessions.theo, runtimes, problems),
 			},
 		})
 		try {
@@ -153,6 +187,10 @@ describe(`Create-* public compatibility`, () => {
 				userKey: `user::theo`,
 			})
 			await waitFor(() => {
+				const problem = problems.values().next().value
+				if (problem !== undefined) {
+					throw new Error(`Create-* compatibility client failed: ${problem}`)
+				}
 				expect(runtimes.get(sessions.maya)?.status().connection).toBe(`live`)
 				expect(runtimes.get(sessions.theo)?.status().connection).toBe(`live`)
 			})
@@ -174,7 +212,7 @@ describe(`Create-* public compatibility`, () => {
 
 			maya.silo.setState(CREATE_COMPATIBILITY_SURFACE.local.workspace, {
 				activePathId: `glyph-a`,
-				selectedSubpathIds: [`a-1`, `o-1`],
+				selectedSubpathIds: [A_1, O_1],
 			})
 			theo.silo.setState(CREATE_COMPATIBILITY_SURFACE.local.workspace, {
 				activePathId: `glyph-o`,
@@ -195,8 +233,8 @@ describe(`Create-* public compatibility`, () => {
 				delta: { x: 5, y: -3 },
 				gesture: mayaClock.begin(),
 				targets: [
-					{ glyphId: `glyph-a`, pointId: `a-1` },
-					{ glyphId: `glyph-o`, pointId: `o-1` },
+					{ glyphId: `glyph-a`, pointId: POINT_1 },
+					{ glyphId: `glyph-o`, pointId: POINT_1 },
 				],
 			})
 			await theo.batch.flush()
@@ -206,7 +244,7 @@ describe(`Create-* public compatibility`, () => {
 					readSvgRegister(
 						client.silo.getState(
 							CREATE_COMPATIBILITY_SURFACE.durable.nodes,
-							`a-1`,
+							A_1,
 						),
 					),
 				).toEqual({ x: 45, y: 37 })
@@ -214,15 +252,12 @@ describe(`Create-* public compatibility`, () => {
 					readSvgRegister(
 						client.silo.getState(
 							CREATE_COMPATIBILITY_SURFACE.durable.nodes,
-							`o-1`,
+							O_1,
 						),
 					),
 				).toEqual({ x: 125, y: 37 })
 				const edge = readSvgRegister<SvgEdge | null>(
-					client.silo.getState(
-						CREATE_COMPATIBILITY_SURFACE.durable.edges,
-						`o-1`,
-					),
+					client.silo.getState(CREATE_COMPATIBILITY_SURFACE.durable.edges, O_1),
 				)
 				expect(edge).toMatchObject({
 					c: { x: 105, y: -3 },
@@ -247,7 +282,7 @@ describe(`Create-* public compatibility`, () => {
 				color: MAYA.color,
 				name: MAYA.name,
 				pointer: { x: 45, y: 37 },
-				selectedSubpathId: `a-1`,
+				selectedSubpathId: A_1,
 			})
 			await room.waitForIdle()
 			await theo.presence.flush()
@@ -268,12 +303,12 @@ describe(`Create-* public compatibility`, () => {
 				viewerAdapter.translateGeometry({
 					delta: { x: 100, y: 100 },
 					gesture: theoClock.begin(),
-					targets: [{ glyphId: `glyph-a`, pointId: `a-1` }],
+					targets: [{ glyphId: `glyph-a`, pointId: POINT_1 }],
 				}),
 			).rejects.toThrow(`not authorized`)
 			expect(
 				readSvgRegister(
-					maya.silo.getState(CREATE_COMPATIBILITY_SURFACE.durable.nodes, `a-1`),
+					maya.silo.getState(CREATE_COMPATIBILITY_SURFACE.durable.nodes, A_1),
 				),
 			).toEqual({ x: 45, y: 37 })
 		} finally {

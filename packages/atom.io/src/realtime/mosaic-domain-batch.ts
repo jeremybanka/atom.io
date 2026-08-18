@@ -187,6 +187,13 @@ export type MosaicDomainBatchProjection<
 	readonly revision?: number | null
 }
 
+export type MosaicDomainMemberHydration<
+	Identity extends MosaicDomainIdentity = MosaicDomainIdentity,
+> = {
+	readonly address: MosaicDomainMemberAddress<Identity>
+	readonly value: Json.Serializable
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === `object` && value !== null && !Array.isArray(value)
 
@@ -760,6 +767,31 @@ export async function reprojectMosaicDomainBatches<
 	remove: readonly PreparedMosaicDomainBatch<Identity>[],
 	project: readonly MosaicDomainBatchProjection<Identity>[],
 ): Promise<readonly PreparedMosaicDomainBatch<Identity>[]> {
+	return rebaseMosaicDomainBatches(domain, remove, [], project)
+}
+
+/**
+ * Replace a confirmed hydration cut and its optimistic projection through one
+ * Store transaction. All addresses and values validate before family members
+ * are acquired, and no intermediate checkpoint is observable.
+ */
+export async function hydrateMosaicDomainBatches<
+	Identity extends MosaicDomainIdentity,
+>(
+	domain: MosaicDomainInstance<Identity, any, any>,
+	remove: readonly PreparedMosaicDomainBatch<Identity>[],
+	members: readonly MosaicDomainMemberHydration<Identity>[],
+	project: readonly MosaicDomainBatchProjection<Identity>[],
+): Promise<readonly PreparedMosaicDomainBatch<Identity>[]> {
+	return rebaseMosaicDomainBatches(domain, remove, members, project)
+}
+
+async function rebaseMosaicDomainBatches<Identity extends MosaicDomainIdentity>(
+	domain: MosaicDomainInstance<Identity, any, any>,
+	remove: readonly PreparedMosaicDomainBatch<Identity>[],
+	members: readonly MosaicDomainMemberHydration<Identity>[],
+	project: readonly MosaicDomainBatchProjection<Identity>[],
+): Promise<readonly PreparedMosaicDomainBatch<Identity>[]> {
 	const base = new Map<string, InternalUpdate>()
 	const tokens = new Map<string, WritableToken<any, any, any>>()
 	const seen = new Set<PreparedMosaicDomainBatch<Identity>>()
@@ -790,6 +822,61 @@ export async function reprojectMosaicDomainBatches<
 		projectedValues.set(key, update.previous)
 		if (update.previousExists) projectedExisting.add(key)
 	}
+
+	// Parse and validate the complete checkpoint before `acquire` can expose any
+	// newly materialized family member to the Store.
+	const parsedHydrations: {
+		readonly parsed: Awaited<ReturnType<typeof domain.parseAddress>>
+		readonly value: Json.Serializable
+	}[] = []
+	const hydrationAddresses = new Set<string>()
+	for (const hydration of members) {
+		const parsed = await domain.parseAddress(hydration.address)
+		if (parsed.member.role !== `durable`) {
+			throw new Error(
+				`Mosaic Domain member "${parsed.address.member}" is not durable.`,
+			)
+		}
+		const addressKey = mosaicDomainMemberAddressKey(parsed.address)
+		if (hydrationAddresses.has(addressKey)) {
+			throw new Error(`A Mosaic Domain hydration address must be unique.`)
+		}
+		hydrationAddresses.add(addressKey)
+		const value = await domain.validateValue(
+			parsed.address.member,
+			structuredClone(hydration.value),
+		)
+		if (!isJsonSerializable(value)) {
+			throw new Error(
+				`Mosaic Domain member "${parsed.address.member}" hydration is not serializable.`,
+			)
+		}
+		parsedHydrations.push({ parsed, value })
+	}
+	for (const { parsed, value } of parsedHydrations) {
+		const acquired = await domain.acquire(parsed)
+		const memberExists =
+			!(`family` in acquired.token) || domain.store.atoms.has(acquired.token.key)
+		const token: WritableToken<any, any, any> =
+			acquired.member.model?.kind === `transceiver`
+				? getJsonTokenFromStore(
+						domain.store,
+						acquired.token as MutableAtomToken<AnyMosaicTransceiver>,
+					)
+				: (acquired.token as WritableToken<any, any, any>)
+		tokens.set(token.key, token)
+		projectedValues.set(token.key, structuredClone(value))
+		projectedExisting.add(token.key)
+		if (!base.has(token.key)) {
+			base.set(token.key, {
+				next: value,
+				nextExists: true,
+				previous: memberExists ? getFromStore(domain.store, token) : undefined,
+				previousExists: memberExists,
+				token,
+			})
+		}
+	}
 	const preparedProjection: PreparedMosaicDomainBatch<Identity>[] = []
 	for (const item of project) {
 		const prepared = await preflightMosaicDomainBatchWithProjection(
@@ -809,13 +896,17 @@ export async function reprojectMosaicDomainBatches<
 
 	const updates: InternalUpdate[] = []
 	for (const [key, token] of tokens) {
+		const current = base.get(key)
 		updates.push({
 			next: projectedValues.has(key)
 				? projectedValues.get(key)
 				: base.get(key)?.previous,
 			nextExists: projectedExisting.has(key),
-			previous: getFromStore(domain.store, token),
-			previousExists: true,
+			previous:
+				current?.previousExists === false
+					? current.previous
+					: getFromStore(domain.store, token),
+			previousExists: current?.previousExists ?? true,
 			token,
 		})
 	}

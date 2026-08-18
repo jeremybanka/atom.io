@@ -37,3 +37,11 @@ The shipped application renders with Preact. The current `multiClient` rendered 
 ## Same-origin transport
 
 The browser connects to its current origin. Vite proxies `/socket.io` and `/health` to the Node process in both development and preview. The transport names are application protocol, while validation, atomic settlement, recovery, presence expiry, and actor authorization remain public Atom.io controllers.
+
+## Create-* compatibility as an adapter, not a fork
+
+The executable compatibility surface maps glyph order, contour order, geometry families, ordinary outline selectors, local workspace state, and logical-coordinate presence onto the same public model used by Plane. Its representative group transform settles nodes and cubic controls in two glyphs as one heterogeneous batch. It does not add a font-aware Domain branch or duplicate the SVG reducers.
+
+The MOS-23 review hardened three seams that the fixture deliberately inherits. Socket acknowledgements are typed and answer on success or failure; initial connection and later reconnection use one synchronization workflow; malformed compensation cycles fail closed. Treating a cycle as an inactive operation was considered and rejected because silently materializing a corrupt history graph would be less correct than surfacing it.
+
+The complete support boundary, including the deliberate differences between Atom.io's actor-safe history capability and Create-*'s current product history policy, is recorded in `CREATE_COMPATIBILITY.md`.

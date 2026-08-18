@@ -9,3 +9,5 @@ The identity picker is an exploration aid, not authentication: any client can cl
 The canvas supports node dragging, atomic node insertion and deletion, private zoom, advisory focus, lossy remote pointers and drag previews, actor-selective undo and redo, offline replay, and visible pending or rejected work. The local-only `preact-svg-editor` remains the smaller atoms, families, selectors, and transactions tutorial.
 
 Read `INNOVATIONS.md` before adapting the example. It names the correctness boundaries and the places where this template intentionally takes an application-specific path.
+
+Read `CREATE_COMPATIBILITY.md` for the executable Create-* support-contract fixture and the boundary between Atom.io, a consumer adapter, and the product.

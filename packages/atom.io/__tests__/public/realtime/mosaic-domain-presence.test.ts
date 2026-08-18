@@ -613,6 +613,10 @@ describe(`Mosaic Domain presence`, () => {
 			}),
 		).toMatchObject({ status: `accepted` })
 		expect((await connection.snapshot()).presence).toEqual([])
+		now = 7_007
+		expect(
+			await connection.publish(updateProposal(fixture.domain, { sequence: 3 })),
+		).toMatchObject({ status: `accepted` })
 		await connection.disconnect()
 		await connection.disconnect()
 		cleanup()
@@ -634,27 +638,38 @@ describe(`Mosaic Domain presence`, () => {
 		const fixture = await presenceFixture(`presence-server-backpressure`)
 		const originalValidate = fixture.domain.validateValue.bind(fixture.domain)
 		let release: (() => void) | undefined
+		let validationCount = 0
 		vi.spyOn(fixture.domain, `validateValue`).mockImplementation(
 			async (...parameters) => {
-				await new Promise<void>((resolve) => {
-					release = resolve
-				})
+				if (validationCount++ === 0) {
+					await new Promise<void>((resolve) => {
+						release = resolve
+					})
+				}
 				return originalValidate(...parameters)
 			},
 		)
 		const server = createMosaicDomainPresenceServer({
 			domain: fixture.domain,
-			limits: { maxPendingUpdates: 1 },
+			limits: { maxPendingUpdates: 2 },
 		})
 		const connection = server.connect({ actor: `ada`, session: `tab` })
 		const pending = connection.publish(updateProposal(fixture.domain))
+		const queued = connection.publish(
+			updateProposal(fixture.domain, { sequence: 2 }),
+		)
+		const queuedSnapshot = connection.snapshot()
+		const queuedSnapshotAssertion =
+			expect(queuedSnapshot).rejects.toThrow(`closed`)
 		expect(
-			await connection.publish(updateProposal(fixture.domain, { sequence: 2 })),
+			await connection.publish(updateProposal(fixture.domain, { sequence: 3 })),
 		).toMatchObject({ rejection: { code: `backpressure` } })
 		while (release === undefined) await Promise.resolve()
 		server[Symbol.dispose]()
 		release()
 		expect(await pending).toMatchObject({ rejection: { code: `unauthorized` } })
+		expect(await queued).toMatchObject({ rejection: { code: `unauthorized` } })
+		await queuedSnapshotAssertion
 		await expect(connection.snapshot()).rejects.toThrow(`closed`)
 		fixture.domain[Symbol.dispose]()
 	})
@@ -761,6 +776,7 @@ describe(`Mosaic Domain presence`, () => {
 	test(`client rejects malformed transport data and reports non-stale failures`, async () => {
 		const fixture = await presenceFixture(`presence-client-adversarial`)
 		const relay = { current: (_presence: MosaicDomainPresenceEnvelope) => {} }
+		let invalidSnapshot = true
 		let rejectPublish = true
 		const client = createMosaicDomainPresenceClient({
 			domain: fixture.domain,
@@ -778,13 +794,20 @@ describe(`Mosaic Domain presence`, () => {
 								status: `rejected`,
 							}
 						: Promise.reject(new Error(`network down`)),
-				snapshot: () => Promise.resolve({ presence: [], sequence: 0 }),
+				snapshot: () =>
+					Promise.resolve(
+						invalidSnapshot
+							? ({ presence: null, sequence: -1 } as never)
+							: { presence: [], sequence: 0 },
+					),
 				subscribe(listener) {
 					relay.current = listener
 					return () => undefined
 				},
 			},
 		})
+		await expect(client.start()).rejects.toThrow(`invalid snapshot`)
+		invalidSnapshot = false
 		await client.start()
 		await expect(
 			client.publish(fixture.domain.address(`durable`), 1),
@@ -817,6 +840,22 @@ describe(`Mosaic Domain presence`, () => {
 			problem: { code: `invalid-payload` },
 			status: `rejected`,
 		})
+		relay.current({
+			...updateProposal(fixture.domain, { sequence: 2 }),
+			actor: `ada`,
+			domain: { ...fixture.domain.identity, instance: `other` },
+			expiresAt: 100,
+		})
+		await client.flush()
+		expect(client.state.problem?.reason).toContain(`invalid envelope`)
+		relay.current({
+			...updateProposal(fixture.domain, { sequence: 3, value: 1 }),
+			actor: `ada`,
+			address: fixture.domain.address(`durable`),
+			expiresAt: 100,
+		})
+		await client.flush()
+		expect(client.state.problem?.reason).toContain(`not ephemeral`)
 		client[Symbol.dispose]()
 		expect(() =>
 			createMosaicDomainPresenceClient({
@@ -992,6 +1031,9 @@ describe(`Mosaic Domain presence`, () => {
 		await cleanup()
 		expect(unsubscribe).toHaveBeenCalledOnce()
 		expect(disconnect).toHaveBeenCalledOnce()
+		const emittedAfterCleanup = fake.emitted.length
+		relay?.(accepted)
+		expect(fake.emitted).toHaveLength(emittedAfterCleanup)
 
 		const rejecting = fakeSocket()
 		const rejectionConnection: MosaicDomainPresenceConnection = {

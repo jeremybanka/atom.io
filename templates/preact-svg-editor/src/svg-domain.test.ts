@@ -301,6 +301,63 @@ describe(`SVG Mosaic Domain`, () => {
 				y: 60,
 			})
 		}
+		expect(await fixture.aliceEditor.redo(aliceClock.begin())).toBe(true)
+		await fixture.bob.flush()
+		for (const silo of [
+			fixture.serverSilo,
+			fixture.aliceSilo,
+			fixture.bobSilo,
+		]) {
+			expect(readSvgRegister(silo.getState(nodeAtoms, `a0`))).toEqual({
+				x: 60,
+				y: 60,
+			})
+		}
+	})
+
+	test(`redo follows undo order and a new gesture clears the redo suffix`, async () => {
+		const fixture = await distributedFixture()
+		const clock = createSvgGestureClock({ actor: `alice`, session: `alice-tab` })
+		await fixture.aliceEditor.replaceDrawing({ drawing, gesture: clock.begin() })
+		await fixture.aliceEditor.commitGeometry({
+			gesture: clock.begin(),
+			point: { x: 50, y: 50 },
+			target: { kind: `node`, subpathId: `a0` },
+		})
+		await fixture.aliceEditor.commitGeometry({
+			gesture: clock.begin(),
+			point: { x: 70, y: 70 },
+			target: { kind: `node`, subpathId: `a1` },
+		})
+
+		expect(await fixture.aliceEditor.undo(clock.begin())).toBe(true)
+		expect(await fixture.aliceEditor.undo(clock.begin())).toBe(true)
+		expect(readSvgRegister(fixture.aliceSilo.getState(nodeAtoms, `a0`))).toEqual(
+			{ x: 0, y: 0 },
+		)
+		expect(readSvgRegister(fixture.aliceSilo.getState(nodeAtoms, `a1`))).toEqual(
+			{ x: 10, y: 10 },
+		)
+
+		expect(await fixture.aliceEditor.redo(clock.begin())).toBe(true)
+		expect(readSvgRegister(fixture.aliceSilo.getState(nodeAtoms, `a0`))).toEqual(
+			{ x: 50, y: 50 },
+		)
+		expect(readSvgRegister(fixture.aliceSilo.getState(nodeAtoms, `a1`))).toEqual(
+			{ x: 10, y: 10 },
+		)
+		expect(await fixture.aliceEditor.redo(clock.begin())).toBe(true)
+		expect(readSvgRegister(fixture.aliceSilo.getState(nodeAtoms, `a1`))).toEqual(
+			{ x: 70, y: 70 },
+		)
+
+		expect(await fixture.aliceEditor.undo(clock.begin())).toBe(true)
+		await fixture.aliceEditor.commitGeometry({
+			gesture: clock.begin(),
+			point: { x: 80, y: 80 },
+			target: { kind: `node`, subpathId: `a0` },
+		})
+		expect(await fixture.aliceEditor.redo(clock.begin())).toBe(false)
 	})
 
 	test(`final-member rejection rolls back the complete structural gesture`, async () => {

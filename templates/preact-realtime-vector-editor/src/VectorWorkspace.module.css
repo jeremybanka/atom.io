@@ -1,0 +1,204 @@
+vector-workspace.class {
+	--ink: #ebeaf3;
+	--muted: #9d9aaa;
+	--panel: #1d1c24;
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr) auto;
+	min-height: 100svh;
+	color: var(--ink);
+	background: radial-gradient(circle at 55% -20%, #44378f 0, #141319 42rem);
+
+	> header {
+		display: grid;
+		grid-template-columns: 1fr 1fr 1fr;
+		align-items: center;
+		gap: 1rem;
+		padding: 0.8rem 1.2rem;
+		border-bottom: 1px solid #ffffff18;
+		background: #191820e8;
+		backdrop-filter: blur(1.2rem);
+
+		> brand-lockup, > toolbar-actions, > document-title, label-set {
+			display: flex;
+			align-items: center;
+			gap: 0.65rem;
+		}
+		> brand-lockup > mark, avatar-dot {
+			display: grid;
+			place-items: center;
+			width: 2rem;
+			aspect-ratio: 1;
+			border-radius: 0.65rem;
+			color: white;
+			background: var(--person-color, #7d68ff);
+			font-weight: 800;
+		}
+		label-set, > document-title {
+			flex-flow: column;
+			align-items: flex-start;
+			gap: 0.08rem;
+			> span {
+				color: var(--muted);
+				font-size: 0.68rem;
+			}
+		}
+		> document-title {
+			align-items: center;
+		}
+		> toolbar-actions {
+			justify-content: flex-end;
+		}
+	}
+
+	button, select {
+		padding: 0.5rem 0.7rem;
+		border: 1px solid #ffffff22;
+		border-radius: 0.55rem;
+		color: var(--ink);
+		background: #292733;
+		font: inherit;
+		font-size: 0.72rem;
+		&:hover:not(:disabled) {
+			border-color: #8f7aff;
+			background: #332f45;
+		}
+		&:disabled {
+			opacity: 0.4;
+		}
+	}
+
+	> main {
+		display: grid;
+		grid-template-columns: 9rem minmax(24rem, 1fr) 17rem;
+		min-height: 0;
+		gap: 0.8rem;
+		padding: 0.8rem;
+
+		> tool-rail, > presence-rail {
+			display: flex;
+			flex-flow: column;
+			gap: 0.55rem;
+			padding: 0.8rem;
+			border: 1px solid #ffffff12;
+			border-radius: 0.85rem;
+			background: var(--panel);
+			> strong {
+				margin-top: 0.35rem;
+				font-size: 0.7rem;
+				text-transform: uppercase;
+			}
+		}
+		> canvas-pane {
+			position: relative;
+			display: grid;
+			place-items: center;
+			overflow: hidden;
+			border: 1px solid #ffffff12;
+			border-radius: 0.85rem;
+			background: #0f0e13;
+			> svg {
+				width: min(78svh, 100%);
+				height: min(78svh, 100%);
+				touch-action: none;
+				> rect[data-kind="artboard"] {
+					fill: #f8f5ed;
+				}
+				> g > path[data-kind="path"] {
+					fill: #8f7aff24;
+					stroke: #c4baff;
+					stroke-width: 2;
+					pointer-events: none;
+				}
+				> g > circle[data-kind="node"] {
+					fill: #17151f;
+					stroke: #b7adff;
+					stroke-width: 2;
+					cursor: grab;
+					&[data-selected="true"] {
+						fill: #8f7aff;
+						stroke: white;
+						cursor: grabbing;
+					}
+				}
+				> circle[data-kind="remote-preview"] {
+					fill: none;
+					stroke: #ffcb70;
+					stroke-dasharray: 3 2;
+					stroke-width: 2;
+					pointer-events: none;
+				}
+				> circle[data-kind="remote-pointer"] {
+					fill: var(--person-color);
+					stroke: white;
+					stroke-width: 1;
+					pointer-events: none;
+				}
+			}
+			> output {
+				position: absolute;
+				right: 1rem;
+				bottom: 1rem;
+				max-width: 30rem;
+				padding: 0.65rem;
+				border-radius: 0.5rem;
+				color: #ffd4dc;
+				background: #5b2030;
+				font-size: 0.72rem;
+			}
+		}
+		> presence-rail {
+			> collaborator-card {
+				display: flex;
+				align-items: center;
+				gap: 0.55rem;
+				padding: 0.55rem;
+				border-radius: 0.6rem;
+				background: #272530;
+				> avatar-dot {
+					width: 1.8rem;
+				}
+				> label-set {
+					display: flex;
+					min-width: 0;
+					flex-flow: column;
+					> span {
+						overflow: hidden;
+						color: var(--muted);
+						font-size: 0.62rem;
+						text-overflow: ellipsis;
+						white-space: nowrap;
+					}
+				}
+			}
+			> small {
+				margin-top: auto;
+				color: var(--muted);
+				line-height: 1.45;
+			}
+		}
+	}
+
+	> footer {
+		padding: 0.55rem 1rem;
+		color: var(--muted);
+		text-align: center;
+		font-size: 0.65rem;
+	}
+}
+
+@media (max-width: 850px) {
+	vector-workspace.class {
+		> header {
+			grid-template-columns: 1fr auto;
+			> document-title {
+				display: none;
+			}
+		}
+		> main {
+			grid-template-columns: 1fr;
+			> tool-rail, > presence-rail {
+				display: none;
+			}
+		}
+	}
+}

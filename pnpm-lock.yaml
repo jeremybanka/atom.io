@@ -496,6 +496,9 @@ importers:
 
   packages/create-atom.io:
     dependencies:
+      '@atom.io/template-preact-realtime-vector-editor':
+        specifier: workspace:*
+        version: link:../../templates/preact-realtime-vector-editor
       '@atom.io/template-preact-svg-editor':
         specifier: workspace:*
         version: link:../../templates/preact-svg-editor

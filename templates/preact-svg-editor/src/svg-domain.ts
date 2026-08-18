@@ -24,6 +24,7 @@ import {
 } from "./svg-convergence.ts"
 import {
 	activeDragAtom,
+	collaborationPresenceAtoms,
 	dragPresenceAtoms,
 	edgeAtoms,
 	nodeAtoms,
@@ -43,6 +44,7 @@ import {
 	viewportAtom,
 	workspaceAtom,
 	type PointXY,
+	type SvgCollaborationPresence,
 	type SvgDrawingFixture,
 	type SvgDragPresence,
 	type SvgDragTarget,
@@ -75,6 +77,19 @@ export const svgDragPresenceSchema: z.ZodType<SvgDragPresence> = z
 		target: dragTargetSchema,
 	})
 	.strict()
+
+export const svgCollaborationPresenceSchema: z.ZodType<SvgCollaborationPresence> =
+	z
+		.object({
+			activePathId: keySchema.nullable(),
+			actor: keySchema,
+			color: keySchema.max(64),
+			name: keySchema.max(128),
+			pointer: pointSchema.nullable(),
+			selectedSubpathId: keySchema.nullable(),
+			session: keySchema,
+		})
+		.strict()
 
 type SvgReceiptState = {
 	readonly operations: Readonly<
@@ -129,6 +144,12 @@ export const svgDesignDomain = mosaicDomain({
 	key: `svg-design`,
 	members: {
 		activeDrag: { role: `local`, token: activeDragAtom },
+		collaborator: {
+			keySchema,
+			role: `ephemeral`,
+			schema: svgCollaborationPresenceSchema,
+			token: collaborationPresenceAtoms,
+		},
 		dragPresence: {
 			keySchema,
 			role: `ephemeral`,
@@ -199,6 +220,7 @@ export const svgDesignDomain = mosaicDomain({
 /** Install the ordinary template tokens before activating in an isolated Silo. */
 export const SVG_DOMAIN_TOKENS = [
 	activeDragAtom,
+	collaborationPresenceAtoms,
 	dragPresenceAtoms,
 	edgeAtoms,
 	nodeAtoms,
@@ -218,7 +240,7 @@ export const SVG_DOMAIN_TOKENS = [
 
 export async function activateSvgDesignDomain(options: {
 	readonly instance: string
-	readonly silo: Silo
+	readonly silo: Pick<Silo, `install` | `store`>
 }): Promise<SvgDesignDomain> {
 	options.silo.install([...SVG_DOMAIN_TOKENS])
 	return svgDesignDomain.activate({
@@ -249,6 +271,7 @@ type Planned = {
 }
 
 type HistoryEntry = {
+	compensations?: readonly Planned[]
 	readonly gesture: SvgGesture
 	readonly operations: readonly Planned[]
 	undone: boolean
@@ -306,6 +329,7 @@ export type SvgDomainEditor = {
 		readonly drawing: SvgDrawingFixture
 		readonly gesture: SvgGesture
 	}): Promise<void>
+	redo(gesture: SvgGesture): Promise<boolean>
 	splitSubpath(input: {
 		readonly continuationEdge: SvgEdge
 		readonly gesture: SvgGesture
@@ -377,7 +401,11 @@ export function createSvgDomainEditor(options: {
 					`The SVG Domain batch was rejected.`,
 			)
 		}
-		if (record) history.push({ gesture, operations: authored, undone: false })
+		if (record) {
+			const firstUndone = history.findIndex((entry) => entry.undone)
+			if (firstUndone !== -1) history.splice(firstUndone)
+			history.push({ gesture, operations: authored, undone: false })
+		}
 	}
 	const orderPlacement = (
 		current: SvgOrderState,
@@ -677,6 +705,20 @@ export function createSvgDomainEditor(options: {
 				),
 			])
 		},
+		async redo(gesture) {
+			const target = history.find((entry) => entry.undone)
+			if (target?.compensations === undefined) return false
+			const operations = target.compensations.map((compensation, ordinal) =>
+				op(compensation.address, {
+					...structuredClone(compensation.operation),
+					id: svgOperationId(gesture, ordinal),
+					undoTargets: [compensation.id],
+				}),
+			)
+			await submit(gesture, operations, false)
+			target.undone = false
+			return true
+		},
 		async reorderSubpath(input) {
 			const subpath = readSvgRegister<SvgSubpath | null>(
 				state.getState(subpathAtoms, input.subpathId),
@@ -888,6 +930,7 @@ export function createSvgDomainEditor(options: {
 				return op(original.address, operation)
 			})
 			await submit(gesture, operations, false)
+			target.compensations = operations
 			target.undone = true
 			return true
 		},

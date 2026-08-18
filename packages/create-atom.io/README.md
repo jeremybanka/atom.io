@@ -17,6 +17,7 @@ programmatic project-creation API.
 
 | Template                     | What you get                                                                                |
 | :--------------------------- | :------------------------------------------------------------------------------------------ |
+| `preact-realtime-vector-editor` | A Preact vector editor with Mosaic Domain batching, presence, recovery, and actor-safe history. |
 | `preact-svg-editor`          | A Preact + Vite SVG editor that leans on atoms, atom families, selectors, and transactions. |
 | `react-node-backend`         | A React app paired with Node services for backend-shaped examples.                          |
 | `react-realtime-text-editor` | A realtime React text editor with presence and selective per-user undo.                     |
@@ -39,7 +40,7 @@ npm create atom.io@latest my-app -- --templateName=preact-svg-editor --packageMa
 
 | Option             | Aliases                               | Values                                                                                            |
 | :----------------- | :------------------------------------ | :------------------------------------------------------------------------------------------------ |
-| `--templateName`   | `--template`, `--template-name`, `-t` | `preact-svg-editor`, `react-node-backend`, `react-realtime-text-editor`, `solid-lossless-numbers` |
+| `--templateName`   | `--template`, `--template-name`, `-t` | `preact-realtime-vector-editor`, `preact-svg-editor`, `react-node-backend`, `react-realtime-text-editor`, `solid-lossless-numbers` |
 | `--packageManager` | `--package-manager`, `-m`             | `bun`, `npm`, `pnpm`, `yarn`                                                                      |
 | `--useMise`        | `--use-mise`                          | `true`, `false`                                                                                   |
 | `--skipHints`      | `--skip-hints`, `-k`                  | `true`, `false`                                                                                   |

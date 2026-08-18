@@ -79,6 +79,16 @@ export type SvgDragPresence = {
 	readonly target: SvgDragTarget
 }
 
+export type SvgCollaborationPresence = {
+	readonly activePathId: string | null
+	readonly actor: string
+	readonly color: string
+	readonly name: string
+	readonly pointer: PointXY | null
+	readonly selectedSubpathId: string | null
+	readonly session: string
+}
+
 export type SvgActiveDrag = {
 	readonly gesture: SvgGesture
 	readonly pointerId: number
@@ -193,12 +203,20 @@ export const dragPresenceAtoms = atomFamily<SvgDragPresence | null, string>({
 	default: null,
 })
 
+/** Identity, focus, pointer, and selection are lossy collaboration presence. */
+export const collaborationPresenceAtoms = atomFamily<
+	SvgCollaborationPresence | null,
+	string
+>({ key: `svgCollaborationPresence`, default: null })
+
 /** Distinguish concurrent sessions belonging to the same logical actor. */
 export function svgDragPresenceKey(
 	identity: Pick<SvgGesture, `actor` | `session`>,
 ): string {
 	return `${identity.actor}\u0000${identity.session}`
 }
+
+export const svgCollaborationPresenceKey = svgDragPresenceKey
 
 export const projectedNodeSelectors = selectorFamily<PointXY | null, string>({
 	key: `svgProjectedNode`,

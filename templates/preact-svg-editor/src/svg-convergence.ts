@@ -214,10 +214,34 @@ function activeSvgOperations<
 	},
 >(operations: Iterable<Operation>): readonly Operation[] {
 	const all = [...operations]
-	const undone = new Set(all.flatMap(({ undoTargets }) => undoTargets ?? []))
+	const targetedBy = new Map<string, Operation[]>()
+	for (const operation of all) {
+		for (const target of operation.undoTargets ?? []) {
+			const targeting = targetedBy.get(target) ?? []
+			targeting.push(operation)
+			targetedBy.set(target, targeting)
+		}
+	}
+	const memo = new Map<string, boolean>()
+	const visiting = new Set<string>()
+	const isActive = (operation: Operation): boolean => {
+		const known = memo.get(operation.id)
+		if (known !== undefined) return known
+		if (visiting.has(operation.id)) {
+			throw new Error(`SVG compensation graph contains a cycle`)
+		}
+		visiting.add(operation.id)
+		try {
+			const active = !(targetedBy.get(operation.id) ?? []).some(isActive)
+			memo.set(operation.id, active)
+			return active
+		} finally {
+			visiting.delete(operation.id)
+		}
+	}
+	for (const operation of all) isActive(operation)
 	return all.filter(
-		(operation) =>
-			operation.undoTargets === undefined && !undone.has(operation.id),
+		(operation) => operation.undoTargets === undefined && memo.get(operation.id),
 	)
 }
 

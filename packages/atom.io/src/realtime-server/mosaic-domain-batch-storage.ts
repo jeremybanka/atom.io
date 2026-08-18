@@ -28,6 +28,9 @@ export type MosaicDomainBatchAppendResult =
 			readonly id: string
 			readonly status: `collision`
 	  }
+	| { readonly actualSequence: number; readonly status: `retired` }
+	| { readonly actualSequence: number; readonly status: `sequence-gap` }
+	| { readonly status: `session-capacity` }
 	| { readonly actualRevision: number; readonly status: `stale` }
 
 export type MosaicDomainBatchRecovery = {
@@ -61,6 +64,8 @@ type MemoryDomain = {
 	headRevision: number
 	operations: Map<string, string>
 	receipts: Map<string, MosaicDomainBatchReceipt>
+	recentReceiptIds: string[]
+	sessionWatermarks: Map<string, number>
 	tail: Map<number, MosaicAcceptedDomainBatchEnvelope>
 }
 
@@ -76,6 +81,30 @@ const domainKey = (domain: MosaicDomainIdentity): string =>
 /** In-process reference adapter and storage-conformance fixture. */
 export class InMemoryMosaicDomainBatchStorage implements MosaicDomainBatchStorageAdapter {
 	readonly #domains = new Map<string, MemoryDomain>()
+	readonly #maxRecentReceipts: number
+	readonly #maxSessionWatermarks: number
+
+	public constructor(
+		options: {
+			readonly maxRecentReceipts?: number
+			readonly maxSessionWatermarks?: number
+		} = {},
+	) {
+		this.#maxRecentReceipts = options.maxRecentReceipts ?? 4_096
+		this.#maxSessionWatermarks = options.maxSessionWatermarks ?? 4_096
+		if (
+			!Number.isSafeInteger(this.#maxRecentReceipts) ||
+			this.#maxRecentReceipts < 1
+		) {
+			throw new Error(`maxRecentReceipts must be a positive safe integer.`)
+		}
+		if (
+			!Number.isSafeInteger(this.#maxSessionWatermarks) ||
+			this.#maxSessionWatermarks < 1
+		) {
+			throw new Error(`maxSessionWatermarks must be a positive safe integer.`)
+		}
+	}
 
 	public appendBatch(
 		request: MosaicDomainBatchAppendRequest,
@@ -103,7 +132,20 @@ export class InMemoryMosaicDomainBatchStorage implements MosaicDomainBatchStorag
 				`Mosaic Domain append must use revision ${nextRevision}; received ${request.accepted.revision}.`,
 			)
 		}
-
+		const sessionKey = JSON.stringify([batch.actor, batch.session])
+		if (
+			!state.sessionWatermarks.has(sessionKey) &&
+			state.sessionWatermarks.size >= this.#maxSessionWatermarks
+		) {
+			return { status: `session-capacity` }
+		}
+		const watermark = state.sessionWatermarks.get(sessionKey) ?? 0
+		if (batch.sequence <= watermark) {
+			return { actualSequence: watermark, status: `retired` }
+		}
+		if (batch.sequence !== watermark + 1) {
+			return { actualSequence: watermark, status: `sequence-gap` }
+		}
 		// No mutation occurs before every constraint above has passed.
 		const accepted = clone(request.accepted)
 		state.tail.set(nextRevision, accepted)
@@ -111,10 +153,22 @@ export class InMemoryMosaicDomainBatchStorage implements MosaicDomainBatchStorag
 			accepted,
 			fingerprint: request.fingerprint,
 		})
+		state.recentReceiptIds.push(batch.id)
+		state.sessionWatermarks.set(sessionKey, batch.sequence)
 		for (const operation of batch.operations) {
 			state.operations.set(operation.id, batch.id)
 		}
 		state.headRevision = nextRevision
+		while (state.recentReceiptIds.length > this.#maxRecentReceipts) {
+			const retired = state.recentReceiptIds.shift()!
+			const retiredReceipt = state.receipts.get(retired)
+			state.receipts.delete(retired)
+			for (const operation of retiredReceipt?.accepted.batch.operations ?? []) {
+				if (state.operations.get(operation.id) === retired) {
+					state.operations.delete(operation.id)
+				}
+			}
+		}
 		return { accepted: clone(accepted), status: `accepted` }
 	}
 
@@ -151,6 +205,21 @@ export class InMemoryMosaicDomainBatchStorage implements MosaicDomainBatchStorag
 		return { headRevision: state.headRevision, tail }
 	}
 
+	public stats(domain: MosaicDomainIdentity): {
+		readonly operationReceiptCount: number
+		readonly receiptCount: number
+		readonly sessionWatermarkCount: number
+		readonly tailBatchCount: number
+	} {
+		const state = this.#domain(domain)
+		return {
+			operationReceiptCount: state.operations.size,
+			receiptCount: state.receipts.size,
+			sessionWatermarkCount: state.sessionWatermarks.size,
+			tailBatchCount: state.tail.size,
+		}
+	}
+
 	#domain(identity: MosaicDomainIdentity): MemoryDomain {
 		const key = domainKey(identity)
 		let state = this.#domains.get(key)
@@ -159,6 +228,8 @@ export class InMemoryMosaicDomainBatchStorage implements MosaicDomainBatchStorag
 				headRevision: 0,
 				operations: new Map(),
 				receipts: new Map(),
+				recentReceiptIds: [],
+				sessionWatermarks: new Map(),
 				tail: new Map(),
 			}
 			this.#domains.set(key, state)

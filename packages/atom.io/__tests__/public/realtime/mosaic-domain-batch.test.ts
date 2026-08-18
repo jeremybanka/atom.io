@@ -248,6 +248,7 @@ const proposal = (
 			},
 		],
 		protocolVersion: MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
+		sequence: 1,
 		session: `session-a`,
 		...overrides,
 	}
@@ -416,6 +417,7 @@ describe(`Mosaic Domain atomic batches`, () => {
 					},
 				],
 				protocolVersion: MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
+				sequence: 1,
 				session: `session-a`,
 			}
 		}
@@ -494,6 +496,7 @@ describe(`Mosaic Domain atomic batches`, () => {
 					},
 				],
 				protocolVersion: MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
+				sequence: 1,
 				session: `session-a`,
 			}
 		}
@@ -618,6 +621,7 @@ describe(`Mosaic Domain atomic batches`, () => {
 				},
 			],
 			protocolVersion: MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
+			sequence: 1,
 			session: `session-a`,
 		})
 		await expect(
@@ -2360,6 +2364,7 @@ describe(`Mosaic Domain atomic batches`, () => {
 					operation: { path: `before-mutation`, type: `append` },
 				},
 			],
+			sequence: 2,
 		})
 		const queued = connection.propose(second)
 		;(second.operations[0].operation as { path: string }).path = `after-mutation`

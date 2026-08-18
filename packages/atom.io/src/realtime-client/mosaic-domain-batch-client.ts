@@ -100,6 +100,7 @@ export type MosaicDomainBatchClientAdoptionContext = {
 	readonly batchId: string
 	readonly dependencies: readonly string[]
 	operationId(): string
+	readonly sequence: number
 	readonly session: string
 }
 
@@ -135,6 +136,7 @@ const rejectionCodes = new Set<string>([
 	`invalid-payload`,
 	`missing-dependency`,
 	`operation-id-collision`,
+	`sequence-retired`,
 	`unauthorized`,
 ])
 const recoveryActions = new Set<string>([
@@ -177,6 +179,7 @@ export function createMosaicDomainBatchClient(
 	const listeners = new Set<(state: MosaicDomainBatchClientState) => void>()
 	const pending: Pending[] = []
 	let sequence = 0
+	let batchSequence = 0
 	let revision = 0
 	let headBatchId: string | null = null
 	let headBatchMeaningKey: string | null = null
@@ -571,6 +574,7 @@ export function createMosaicDomainBatchClient(
 							operation.address,
 						)
 					}
+					const nextBatchSequence = batchSequence + 1
 					const proposed: MosaicDomainBatchProposal = {
 						affectedMembers: [...affected.values()],
 						dependencies: dependencies(),
@@ -579,6 +583,7 @@ export function createMosaicDomainBatchClient(
 						id: batchId,
 						operations,
 						protocolVersion: MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
+						sequence: nextBatchSequence,
 						session: options.session,
 					}
 					const envelope: MosaicDomainBatchEnvelope = {
@@ -589,6 +594,7 @@ export function createMosaicDomainBatchClient(
 						options.domain,
 						envelope,
 					)
+					batchSequence = nextBatchSequence
 					applyMosaicDomainBatch(prepared)
 					item = { prepared, proposal: proposed }
 					pending.push(item)
@@ -638,6 +644,7 @@ export function createMosaicDomainBatchClient(
 					sequence: sequence++,
 					session: options.session,
 				})
+				const nextBatchSequence = batchSequence + 1
 				const prepared = await prepare({
 					actor: options.actor,
 					batchId,
@@ -649,8 +656,10 @@ export function createMosaicDomainBatchClient(
 							sequence: sequence++,
 							session: options.session,
 						}),
+					sequence: nextBatchSequence,
 					session: options.session,
 				})
+				batchSequence = nextBatchSequence
 				if (
 					prepared.batch.actor !== options.actor ||
 					prepared.batch.session !== options.session ||

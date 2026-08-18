@@ -382,11 +382,9 @@ export function createMosaicTextProjectionClient<
 	)
 	const domainKey = options.domainKey ?? `text`
 	identifier(domainKey, `domainKey`)
-	const identity = options.rootAddress.domain
 	const resourceKey = `atom.io/realtime/mosaic-text-projection:${JSON.stringify([
-		identity.definition.key,
-		identity.definition.version,
-		identity.instance,
+		mosaicDomainMemberAddressKey(options.rootAddress),
+		options.rangeMember,
 		options.actor,
 		options.session,
 		domainKey,
@@ -403,7 +401,6 @@ export function createMosaicTextProjectionClient<
 	let lengthToken: ReadonlyPureSelectorToken<number> | null = null
 	let disposed = false
 	let editSequence = 0
-	let observerCount = 0
 	const records = new Map<string, RangeRecord<Identity>>()
 	const closures = new Map<string, Promise<void>>()
 	const stateListeners = new Set<
@@ -460,7 +457,10 @@ export function createMosaicTextProjectionClient<
 				(sum, record) => sum + record.references,
 				0,
 			),
-			observerCount,
+			observerCount: [...records.values()].reduce(
+				(sum, record) => sum + record.observers.size,
+				0,
+			),
 			residentRangeCount: records.size,
 		})
 	const notifyState = (): void => {
@@ -722,20 +722,35 @@ export function createMosaicTextProjectionClient<
 		records.delete(key)
 		notifyState()
 		const closing = (async () => {
+			const failures: unknown[] = []
 			record.stopSelector?.()
 			record.stopSelector = null
 			const subscription = record.subscription
 			record.subscription = null
-			await subscription?.release()
+			try {
+				await subscription?.release()
+			} catch (error) {
+				failures.push(error)
+			}
 			await record.refresh
 			if (options.evictReleased ?? true) {
 				for (const address of record.addresses) {
-					await options.residency.evict(address)
+					try {
+						await options.residency.evict(address)
+					} catch (error) {
+						failures.push(error)
+					}
 				}
 			}
 			disposeFromStore(requireStore(), rangeFamily, key)
 			disposeFromStore(requireStore(), membershipFamily, key)
 			record.observers.clear()
+			if (failures.length > 0) {
+				throw new AggregateError(
+					failures,
+					`Mosaic text range cleanup did not complete cleanly.`,
+				)
+			}
 		})().finally(() => closures.delete(key))
 		closures.set(key, closing)
 		await closing
@@ -769,7 +784,14 @@ export function createMosaicTextProjectionClient<
 		try {
 			await record.activation
 		} catch (error) {
-			await releaseRecord(record)
+			try {
+				await releaseRecord(record)
+			} catch (cleanupError) {
+				throw new AggregateError(
+					[error, cleanupError],
+					`Mosaic text range activation and cleanup failed.`,
+				)
+			}
 			throw error
 		}
 		let active = true
@@ -887,7 +909,17 @@ export function createMosaicTextProjectionClient<
 			try {
 				await options.residency.submit(operations, gestureId)
 			} finally {
-				await scope?.release()
+				try {
+					await scope?.release()
+				} catch (error) {
+					options.residency.store.logger.error(
+						`🐞`,
+						`transaction`,
+						`mosaic-text-projection`,
+						`A temporary Mosaic text edit selection could not be released.`,
+						error,
+					)
+				}
 			}
 		},
 		lengthSelector: getLengthSelector,
@@ -905,7 +937,6 @@ export function createMosaicTextProjectionClient<
 			}
 			let active = true
 			record.observers.add(listener)
-			observerCount++
 			try {
 				listener(lease.read())
 			} catch (error) {
@@ -922,7 +953,6 @@ export function createMosaicTextProjectionClient<
 				if (!active) return
 				active = false
 				record.observers.delete(listener)
-				observerCount--
 				if (disposed) return
 				await lease.release()
 			}

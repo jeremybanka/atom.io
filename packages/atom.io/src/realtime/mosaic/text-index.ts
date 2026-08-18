@@ -1,3 +1,7 @@
+import {
+	countMosaicTextGraphemes,
+	visitMosaicTextGraphemes,
+} from "./graphemes.ts"
 import type { MosaicTextRelativePosition, MosaicTextSnapshot } from "./text.ts"
 import { splitMosaicText, visibleMosaicTextRuns } from "./text.ts"
 
@@ -131,15 +135,187 @@ export type MosaicTextIndexMaintenanceResult = {
 }
 
 type Unit = {
+	readonly runId: string
+	readonly start: number
+	readonly text: string
+}
+
+type Span = {
+	readonly graphemes: number
+	readonly lineBreaks: number
 	readonly owner?: string | undefined
 	readonly runId: string
 	readonly start: number
 	readonly text: string
 }
 
-type LeafGroup = {
-	id: string
-	units: Unit[]
+type SourceSpanCache = ReadonlyMap<
+	string,
+	ReadonlyMap<
+		number,
+		{ readonly source: string; readonly spans: readonly Span[] }
+	>
+>
+
+const sourceSpansByIndex = new WeakMap<MosaicTextIndexBundle, SourceSpanCache>()
+
+const cachedSourceSpans = (
+	cache: SourceSpanCache | undefined,
+	fragment: Pick<MosaicTextIndexFragment, `runId` | `start`>,
+) => cache?.get(fragment.runId)?.get(fragment.start)
+
+const cacheSourceSpans = (
+	cache: Map<
+		string,
+		Map<number, { readonly source: string; readonly spans: readonly Span[] }>
+	>,
+	fragment: Pick<MosaicTextIndexFragment, `runId` | `start`>,
+	value: { readonly source: string; readonly spans: readonly Span[] },
+): void => {
+	const run = cache.get(fragment.runId) ?? new Map()
+	run.set(fragment.start, value)
+	cache.set(fragment.runId, run)
+}
+
+const lineBreaksIn = (text: string): number => {
+	let lineBreaks = 0
+	for (let index = text.indexOf(`\n`); index !== -1;) {
+		lineBreaks++
+		index = text.indexOf(`\n`, index + 1)
+	}
+	return lineBreaks
+}
+
+function span(fragment: MosaicTextIndexFragment, owner?: string): Span {
+	return {
+		graphemes: countMosaicTextGraphemes(fragment.text),
+		lineBreaks: lineBreaksIn(fragment.text),
+		...(owner === undefined ? {} : { owner }),
+		runId: fragment.runId,
+		start: fragment.start,
+		text: fragment.text,
+	}
+}
+
+function splitSpan(
+	source: Span,
+	limits: TextIndexLimits,
+	cuts: ReadonlySet<number> = new Set(),
+): Span[] {
+	if (
+		cuts.size === 0 &&
+		source.graphemes <= limits.targetLeafGraphemes &&
+		source.text.length <= limits.maximumLeafUtf16Units
+	) {
+		return [source]
+	}
+	const spans: Span[] = []
+	let utf16Start = 0
+	let utf16End = 0
+	let graphemeStart = source.start
+	let graphemes = 0
+	let processed = 0
+	const flush = (): void => {
+		if (graphemes === 0) return
+		const text = source.text.slice(utf16Start, utf16End)
+		spans.push({
+			graphemes,
+			lineBreaks: lineBreaksIn(text),
+			...(source.owner === undefined ? {} : { owner: source.owner }),
+			runId: source.runId,
+			start: graphemeStart,
+			text,
+		})
+		graphemeStart += graphemes
+		utf16Start = utf16End
+		graphemes = 0
+	}
+	visitMosaicTextGraphemes(source.text, (start, end) => {
+		if (end - start > limits.maximumLeafUtf16Units) {
+			throw new RangeError(`A Unicode grapheme exceeds maximumLeafUtf16Units`)
+		}
+		if (
+			graphemes > 0 &&
+			(cuts.has(source.start + processed) ||
+				graphemes === limits.targetLeafGraphemes ||
+				end - utf16Start > limits.maximumLeafUtf16Units)
+		) {
+			flush()
+			utf16Start = start
+		}
+		utf16End = end
+		graphemes++
+		processed++
+	})
+	flush()
+	return spans
+}
+
+function refineCachedSpans(
+	spans: readonly Span[],
+	limits: TextIndexLimits,
+	cuts: ReadonlySet<number>,
+): readonly Span[] {
+	const orderedCuts = [...cuts].sort((left, right) => left - right)
+	let cutIndex = 0
+	return spans.flatMap((item) => {
+		while (
+			orderedCuts[cutIndex] !== undefined &&
+			orderedCuts[cutIndex] <= item.start
+		) {
+			cutIndex++
+		}
+		const end = item.start + item.graphemes
+		const localCuts = new Set<number>()
+		while (orderedCuts[cutIndex] !== undefined && orderedCuts[cutIndex] < end) {
+			localCuts.add(orderedCuts[cutIndex])
+			cutIndex++
+		}
+		if (
+			localCuts.size === 0 &&
+			item.graphemes <= limits.targetLeafGraphemes &&
+			item.text.length <= limits.maximumLeafUtf16Units
+		) {
+			return [item]
+		}
+		// Cached source spans are already bounded. Revisit only a span affected by
+		// a new ownership cut or tightened limit, never the unchanged document.
+		return splitSpan(item, limits, localCuts)
+	})
+}
+
+function summaryForSpans(spans: readonly Span[]): MosaicTextIndexSummary {
+	return spans.reduce(
+		(summary, item) => ({
+			graphemes: summary.graphemes + item.graphemes,
+			leafCount: 1,
+			lineBreaks: summary.lineBreaks + item.lineBreaks,
+			utf16Units: summary.utf16Units + item.text.length,
+		}),
+		{ graphemes: 0, leafCount: 1, lineBreaks: 0, utf16Units: 0 },
+	)
+}
+
+function fragmentsFromSpans(spans: readonly Span[]): MosaicTextIndexFragment[] {
+	const fragments: MosaicTextIndexFragment[] = []
+	let previousEnd = -1
+	for (const item of spans) {
+		const previous = fragments.at(-1)
+		if (previous?.runId === item.runId && previousEnd === item.start) {
+			fragments[fragments.length - 1] = {
+				...previous,
+				text: previous.text + item.text,
+			}
+		} else {
+			fragments.push({
+				runId: item.runId,
+				start: item.start,
+				text: item.text,
+			})
+		}
+		previousEnd = item.start + item.graphemes
+	}
+	return fragments
 }
 
 type ReferenceGroup = {
@@ -314,108 +490,6 @@ function unitsFromFragments(
 	return units
 }
 
-function fragmentsFromUnits(units: readonly Unit[]): MosaicTextIndexFragment[] {
-	const fragments: MosaicTextIndexFragment[] = []
-	for (const unit of units) {
-		const previous = fragments.at(-1)
-		if (
-			previous?.runId === unit.runId &&
-			previous.start + splitMosaicText(previous.text).length === unit.start
-		) {
-			fragments[fragments.length - 1] = {
-				...previous,
-				text: previous.text + unit.text,
-			}
-		} else {
-			fragments.push({ runId: unit.runId, start: unit.start, text: unit.text })
-		}
-	}
-	return fragments
-}
-
-function leafFits(units: readonly Unit[], limits: TextIndexLimits): boolean {
-	const summary = summaryForUnits(units)
-	return (
-		summary.graphemes <= limits.maximumLeafGraphemes &&
-		summary.utf16Units <= limits.maximumLeafUtf16Units &&
-		fragmentsFromUnits(units).length <= limits.maximumFragmentsPerLeaf
-	)
-}
-
-function leafIsSmall(units: readonly Unit[], limits: TextIndexLimits): boolean {
-	return units.length < limits.minimumLeafGraphemes
-}
-
-function splitLeafGroup(
-	group: LeafGroup,
-	keepWithinHysteresis: boolean,
-	limits: TextIndexLimits,
-	used: Set<string>,
-): LeafGroup[] {
-	if (keepWithinHysteresis && leafFits(group.units, limits)) return [group]
-	const chunks: LeafGroup[] = []
-	let units: Unit[] = []
-	const flush = (): void => {
-		if (units.length === 0) return
-		const seed = `${unitKey(units[0])}:${unitKey(units.at(-1)!)}:${units
-			.map(({ text }) => text)
-			.join(``)}`
-		chunks.push({
-			id: chunks.length === 0 ? group.id : freshId(`leaf`, seed, used),
-			units,
-		})
-		units = []
-	}
-	for (const unit of group.units) {
-		if (unit.text.length > limits.maximumLeafUtf16Units) {
-			throw new RangeError(`A Unicode grapheme exceeds maximumLeafUtf16Units`)
-		}
-		const candidate = [...units, unit]
-		if (
-			units.length > 0 &&
-			(!leafFits(candidate, limits) ||
-				units.length >= limits.targetLeafGraphemes)
-		) {
-			flush()
-		}
-		units.push(unit)
-	}
-	flush()
-	return chunks
-}
-
-function mergeSmallLeaves(
-	groups: LeafGroup[],
-	limits: TextIndexLimits,
-): LeafGroup[] {
-	for (let index = 0; index < groups.length && groups.length > 1; index++) {
-		const group = groups[index]
-		if (!leafIsSmall(group.units, limits)) continue
-		const next = groups[index + 1]
-		const previous = groups[index - 1]
-		if (
-			next !== undefined &&
-			leafFits([...group.units, ...next.units], limits)
-		) {
-			groups.splice(index, 2, {
-				id: group.id,
-				units: [...group.units, ...next.units],
-			})
-			index--
-		} else if (
-			previous !== undefined &&
-			leafFits([...previous.units, ...group.units], limits)
-		) {
-			groups.splice(index - 1, 2, {
-				id: previous.id,
-				units: [...previous.units, ...group.units],
-			})
-			index -= 2
-		}
-	}
-	return groups
-}
-
 function priorLeaves(
 	bundle: MosaicTextIndexBundle | undefined,
 ): MosaicTextIndexLeaf[] {
@@ -426,57 +500,258 @@ function priorLeaves(
 	)
 }
 
-function partitionLeaves(
+type OwnerInterval = {
+	readonly end: number
+	readonly leafId: string
+	readonly start: number
+}
+
+function ownerIntervals(
+	previous: MosaicTextIndexBundle | undefined,
+): ReadonlyMap<string, readonly OwnerInterval[]> {
+	const byRun = new Map<string, OwnerInterval[]>()
+	for (const leaf of priorLeaves(previous)) {
+		for (const fragment of leaf.fragments) {
+			const intervals = byRun.get(fragment.runId) ?? []
+			intervals.push({
+				end: fragment.start + countMosaicTextGraphemes(fragment.text),
+				leafId: leaf.id,
+				start: fragment.start,
+			})
+			byRun.set(fragment.runId, intervals)
+		}
+	}
+	for (const intervals of byRun.values()) {
+		intervals.sort((left, right) => left.start - right.start)
+	}
+	return byRun
+}
+
+function ownerForSpan(
+	item: Span,
+	owners: ReadonlyMap<string, readonly OwnerInterval[]>,
+): string | undefined {
+	const intervals = owners.get(item.runId)
+	if (intervals === undefined) return undefined
+	let lower = 0
+	let upper = intervals.length
+	while (lower < upper) {
+		const middle = Math.floor((lower + upper) / 2)
+		if (intervals[middle].start <= item.start) lower = middle + 1
+		else upper = middle
+	}
+	const interval = intervals[lower - 1]
+	const end = item.start + item.graphemes
+	return interval?.end >= end ? interval.leafId : undefined
+}
+
+function ownerCuts(
+	runId: string,
+	start: number,
+	end: number,
+	owners: ReadonlyMap<string, readonly OwnerInterval[]>,
+): ReadonlySet<number> {
+	const cuts = new Set<number>()
+	const intervals = owners.get(runId)
+	if (intervals === undefined) return cuts
+	let lower = 0
+	let upper = intervals.length
+	while (lower < upper) {
+		const middle = Math.floor((lower + upper) / 2)
+		if (intervals[middle].end <= start) lower = middle + 1
+		else upper = middle
+	}
+	for (let index = lower; index < intervals.length; index++) {
+		const interval = intervals[index]
+		if (interval.start >= end) break
+		if (interval.start > start) cuts.add(interval.start)
+		if (interval.end < end) cuts.add(interval.end)
+	}
+	return cuts
+}
+
+function spansFitLeaf(spans: readonly Span[], limits: TextIndexLimits): boolean {
+	const summary = summaryForSpans(spans)
+	return (
+		summary.graphemes <= limits.maximumLeafGraphemes &&
+		summary.utf16Units <= limits.maximumLeafUtf16Units &&
+		fragmentsFromSpans(spans).length <= limits.maximumFragmentsPerLeaf
+	)
+}
+
+function streamingLeaves(
 	fragments: readonly MosaicTextIndexFragment[],
 	previous: MosaicTextIndexBundle | undefined,
 	limits: TextIndexLimits,
-): MosaicTextIndexLeaf[] {
-	const oldLeaves = priorLeaves(previous)
-	const ownerByUnit = new Map<string, string>()
-	for (const leaf of oldLeaves) {
-		for (const unit of unitsFromFragments(leaf.fragments)) {
-			ownerByUnit.set(unitKey(unit), leaf.id)
+): { readonly cache: SourceSpanCache; readonly leaves: MosaicTextIndexLeaf[] } {
+	const owners = ownerIntervals(previous)
+	const previousCache =
+		previous === undefined ? undefined : sourceSpansByIndex.get(previous)
+	const nextCache = new Map<
+		string,
+		Map<number, { readonly source: string; readonly spans: readonly Span[] }>
+	>()
+	const rangesByRun = new Map<
+		string,
+		{ readonly end: number; readonly start: number }[]
+	>()
+	const source = fragments.flatMap<Span>((fragment) => {
+		if (
+			fragment.runId.length === 0 ||
+			!Number.isSafeInteger(fragment.start) ||
+			fragment.start < 0 ||
+			fragment.text.length === 0
+		) {
+			throw new Error(`Invalid Mosaic text index fragment`)
+		}
+		const cached = cachedSourceSpans(previousCache, fragment)
+		const cachedMatches = cached?.source === fragment.text
+		const initial = cachedMatches
+			? {
+					graphemes: cached.spans.reduce(
+						(total, item) => total + item.graphemes,
+						0,
+					),
+					lineBreaks: cached.spans.reduce(
+						(total, item) => total + item.lineBreaks,
+						0,
+					),
+					runId: fragment.runId,
+					start: fragment.start,
+					text: fragment.text,
+				}
+			: span(fragment)
+		const end = fragment.start + initial.graphemes
+		const ranges = rangesByRun.get(fragment.runId) ?? []
+		ranges.push({ end, start: fragment.start })
+		rangesByRun.set(fragment.runId, ranges)
+		const cuts = ownerCuts(fragment.runId, fragment.start, end, owners)
+		const pieces: readonly Span[] = cachedMatches
+			? refineCachedSpans(cached.spans, limits, cuts)
+			: splitSpan(initial, limits, cuts)
+		cacheSourceSpans(nextCache, fragment, {
+			source: fragment.text,
+			spans: pieces,
+		})
+		return pieces.map((item) => {
+			const owner = ownerForSpan(item, owners)
+			return owner === undefined ? item : { ...item, owner }
+		})
+	})
+	for (const ranges of rangesByRun.values()) {
+		ranges.sort((left, right) => left.start - right.start)
+		for (let index = 1; index < ranges.length; index++) {
+			if (ranges[index].start < ranges[index - 1].end) {
+				throw new Error(`Duplicate logical Mosaic text index position`)
+			}
 		}
 	}
-	const sourceUnits = unitsFromFragments(fragments).map((unit) => ({
-		...unit,
-		owner: ownerByUnit.get(unitKey(unit)),
-	}))
-	if (sourceUnits.length === 0) return []
-	const nextOwner: (string | undefined)[] = new Array(sourceUnits.length)
+	if (source.length === 0) return { cache: nextCache, leaves: [] }
+	const followingOwners: (string | undefined)[] = new Array(source.length)
 	let following: string | undefined
-	for (let index = sourceUnits.length - 1; index >= 0; index--) {
-		following = sourceUnits[index].owner ?? following
-		nextOwner[index] = following
+	for (let index = source.length - 1; index >= 0; index--) {
+		following = source[index].owner ?? following
+		followingOwners[index] = following
 	}
-	const used = new Set(oldLeaves.map(({ id }) => id))
-	const groups: LeafGroup[] = []
+	const oldIds = new Set(priorLeaves(previous).map(({ id }) => id))
+	const used = new Set(oldIds)
+	const groups: { id: string; spans: Span[] }[] = []
 	let currentOwner: string | undefined
-	const initialId = (): string =>
-		freshId(
-			`leaf`,
-			`${unitKey(sourceUnits[0])}:${unitKey(sourceUnits.at(-1)!)}`,
-			used,
-		)
-	for (const [index, unit] of sourceUnits.entries()) {
-		const owner = unit.owner ?? currentOwner ?? nextOwner[index] ?? initialId()
+	for (const [index, item] of source.entries()) {
+		const owner =
+			item.owner ??
+			currentOwner ??
+			followingOwners[index] ??
+			freshId(`leaf`, `${item.runId}:${item.start}:${item.text}`, used)
 		const group = groups.at(-1)
-		if (group?.id === owner) group.units.push(unit)
-		else groups.push({ id: owner, units: [unit] })
+		if (group?.id === owner) {
+			group.spans.push(item)
+		} else {
+			groups.push({ id: owner, spans: [item] })
+		}
 		currentOwner = owner
 	}
-	const oldIds = new Set(oldLeaves.map(({ id }) => id))
-	const split = groups.flatMap((group) =>
-		splitLeafGroup(group, oldIds.has(group.id), limits, used),
-	)
-	const balanced = mergeSmallLeaves(split, limits)
-	return balanced.map(({ id, units }) => ({
-		fragments: fragmentsFromUnits(units),
-		id,
-		kind: `leaf`,
-		summary: summaryForUnits(units),
-		version: 1,
-	}))
+
+	const split: { id: string; spans: Span[] }[] = []
+	const emittedIds = new Set<string>()
+	for (const group of groups) {
+		if (
+			oldIds.has(group.id) &&
+			!emittedIds.has(group.id) &&
+			spansFitLeaf(group.spans, limits)
+		) {
+			split.push(group)
+			emittedIds.add(group.id)
+			continue
+		}
+		let spans: Span[] = []
+		const flush = (): void => {
+			if (spans.length === 0) return
+			const first = spans[0]
+			const last = spans.at(-1)!
+			const id = !emittedIds.has(group.id)
+				? group.id
+				: freshId(
+						`leaf`,
+						`${first.runId}:${first.start}:${last.runId}:${last.start + last.graphemes}`,
+						used,
+					)
+			split.push({ id, spans })
+			emittedIds.add(id)
+			spans = []
+		}
+		for (const item of group.spans) {
+			const candidate = [...spans, item]
+			const summary = summaryForSpans(candidate)
+			if (
+				spans.length > 0 &&
+				(!spansFitLeaf(candidate, limits) ||
+					summary.graphemes > limits.targetLeafGraphemes)
+			) {
+				flush()
+			}
+			spans.push(item)
+		}
+		flush()
+	}
+
+	for (let index = 0; index < split.length && split.length > 1; index++) {
+		const group = split[index]
+		if (summaryForSpans(group.spans).graphemes >= limits.minimumLeafGraphemes) {
+			continue
+		}
+		const next = split[index + 1]
+		const previousGroup = split[index - 1]
+		if (
+			next !== undefined &&
+			spansFitLeaf([...group.spans, ...next.spans], limits)
+		) {
+			split.splice(index, 2, {
+				id: group.id,
+				spans: [...group.spans, ...next.spans],
+			})
+			index--
+		} else if (
+			previousGroup !== undefined &&
+			spansFitLeaf([...previousGroup.spans, ...group.spans], limits)
+		) {
+			split.splice(index - 1, 2, {
+				id: previousGroup.id,
+				spans: [...previousGroup.spans, ...group.spans],
+			})
+			index -= 2
+		}
+	}
+	return {
+		cache: nextCache,
+		leaves: split.map(({ id, spans }) => ({
+			fragments: fragmentsFromSpans(spans),
+			id,
+			kind: `leaf`,
+			summary: summaryForSpans(spans),
+			version: 1,
+		})),
+	}
 }
 
 function referenceFor(
@@ -633,35 +908,42 @@ export function mosaicTextIndexAliasKey(source: string): string {
 	return `alias:${hashId(source)}:${source.length}:${source}`
 }
 
-function buildAliases(
+function buildStreamingAliases(
 	previous: MosaicTextIndexBundle | undefined,
 	leaves: readonly MosaicTextIndexLeaf[],
 	generation: number,
 	limits: TextIndexLimits,
 ): MosaicTextIndexAlias[] {
 	if (previous === undefined) return []
-	const oldLeaves = priorLeaves(previous)
-	const currentByUnit = new Map<string, string>()
-	for (const leaf of leaves) {
-		for (const unit of unitsFromFragments(leaf.fragments)) {
-			currentByUnit.set(unitKey(unit), leaf.id)
-		}
-	}
+	const current = ownerIntervals({
+		members: leaves,
+		root: {
+			generation,
+			id: `root`,
+			kind: `root`,
+			reference: null,
+			version: 1,
+		},
+	})
 	const fresh = new Map<string, MosaicTextIndexAlias>()
 	let oldUtf16Start = 0
-	for (const [oldIndex, oldLeaf] of oldLeaves.entries()) {
+	for (const [oldIndex, oldLeaf] of priorLeaves(previous).entries()) {
 		const oldRange = leafRange(oldLeaf, oldUtf16Start)
 		oldUtf16Start = oldRange.end
 		const targets = new Set<string>()
-		for (const unit of unitsFromFragments(oldLeaf.fragments)) {
-			const target = currentByUnit.get(unitKey(unit))
-			if (target !== undefined) targets.add(target)
+		for (const fragment of oldLeaf.fragments) {
+			const start = fragment.start
+			const end = start + countMosaicTextGraphemes(fragment.text)
+			for (const interval of current.get(fragment.runId) ?? []) {
+				if (interval.end <= start || interval.start >= end) continue
+				targets.add(interval.leafId)
+			}
 		}
 		if (targets.size === 0 && leaves.length > 0) {
 			targets.add(leaves[Math.min(oldIndex, leaves.length - 1)].id)
 		}
 		if (targets.size === 1 && targets.has(oldLeaf.id)) continue
-		const alias: MosaicTextIndexAlias = {
+		fresh.set(oldLeaf.id, {
 			generation,
 			id: mosaicTextIndexAliasKey(oldLeaf.id),
 			kind: `alias`,
@@ -676,8 +958,7 @@ function buildAliases(
 							reason: `alias-fanout` as const,
 						},
 					}),
-		}
-		fresh.set(alias.source, alias)
+		})
 	}
 	for (const member of previous.members) {
 		if (
@@ -700,7 +981,8 @@ function buildAliases(
 				for (const resolved of translated.targets) targets.add(resolved)
 			} else targets.add(target)
 		}
-		const translatedAlias: MosaicTextIndexAlias =
+		fresh.set(
+			member.source,
 			recovery !== undefined || targets.size > limits.maximumAliasTargets
 				? {
 						...member,
@@ -712,28 +994,123 @@ function buildAliases(
 								reason: `alias-fanout`,
 							} satisfies MosaicTextIndexRecovery),
 					}
-				: { ...member, targets: [...targets].sort() }
-		fresh.set(member.source, translatedAlias)
+				: { ...member, targets: [...targets].sort() },
+		)
 	}
 	return [...fresh.values()].sort((left, right) =>
 		left.source.localeCompare(right.source),
 	)
 }
 
-function buildIndex(
+function buildStreamingIndex(
 	fragments: readonly MosaicTextIndexFragment[],
 	previous: MosaicTextIndexBundle | undefined,
 	options: MosaicTextIndexOptions,
 ): MosaicTextIndexBundle {
 	const limits = textIndexLimits(options)
-	const leaves = partitionLeaves(fragments, previous, limits)
+	const { cache, leaves } = streamingLeaves(fragments, previous, limits)
 	const { nodes, reference } = buildNodes(leaves, previous, limits)
 	const generation = (previous?.root.generation ?? -1) + 1
-	const aliases = buildAliases(previous, leaves, generation, limits)
-	return {
+	const aliases = buildStreamingAliases(previous, leaves, generation, limits)
+	const index: MosaicTextIndexBundle = {
 		members: [...leaves, ...nodes, ...aliases],
 		root: { generation, id: `root`, kind: `root`, reference, version: 1 },
 	}
+	sourceSpansByIndex.set(index, cache)
+	return index
+}
+
+const sourceFragmentsByIndex = new WeakMap<
+	MosaicTextIndexBundle,
+	readonly MosaicTextIndexFragment[]
+>()
+
+const retainSourceFragments = (
+	fragments: readonly MosaicTextIndexFragment[],
+): MosaicTextIndexFragment[] =>
+	fragments.map(({ runId, start, text }) => ({ runId, start, text }))
+
+function sameSourceFragments(
+	left: readonly MosaicTextIndexFragment[] | undefined,
+	right: readonly MosaicTextIndexFragment[],
+): boolean {
+	return (
+		left !== undefined &&
+		left.length === right.length &&
+		left.every((fragment, index) => {
+			const candidate = right[index]
+			return (
+				fragment.runId === candidate.runId &&
+				fragment.start === candidate.start &&
+				fragment.text === candidate.text
+			)
+		})
+	)
+}
+
+function sameLogicalFragments(
+	previous: MosaicTextIndexBundle,
+	next: readonly MosaicTextIndexFragment[],
+): boolean {
+	const left = priorLeaves(previous).flatMap(({ fragments }) => fragments)
+	const leftCounts = left.map(({ text }) => countMosaicTextGraphemes(text))
+	const rightCounts = next.map((fragment) => {
+		if (
+			fragment.runId.length === 0 ||
+			!Number.isSafeInteger(fragment.start) ||
+			fragment.start < 0 ||
+			fragment.text.length === 0
+		) {
+			throw new Error(`Invalid Mosaic text index fragment`)
+		}
+		return countMosaicTextGraphemes(fragment.text)
+	})
+	let leftIndex = 0
+	let rightIndex = 0
+	let leftUtf16 = 0
+	let rightUtf16 = 0
+	let leftGraphemes = 0
+	let rightGraphemes = 0
+	while (leftIndex < left.length && rightIndex < next.length) {
+		const leftFragment = left[leftIndex]
+		const rightFragment = next[rightIndex]
+		if (
+			leftFragment.runId !== rightFragment.runId ||
+			leftFragment.start + leftGraphemes !== rightFragment.start + rightGraphemes
+		) {
+			return false
+		}
+		const leftRemaining = leftFragment.text.length - leftUtf16
+		const rightRemaining = rightFragment.text.length - rightUtf16
+		const length = Math.min(leftRemaining, rightRemaining)
+		for (let offset = 0; offset < length; offset++) {
+			if (
+				leftFragment.text.charCodeAt(leftUtf16 + offset) !==
+				rightFragment.text.charCodeAt(rightUtf16 + offset)
+			) {
+				return false
+			}
+		}
+		const consumed =
+			leftRemaining === length
+				? leftCounts[leftIndex] - leftGraphemes
+				: rightCounts[rightIndex] - rightGraphemes
+		leftUtf16 += length
+		rightUtf16 += length
+		leftGraphemes += consumed
+		rightGraphemes += consumed
+		if (leftUtf16 === leftFragment.text.length) {
+			leftIndex++
+			leftUtf16 = 0
+			leftGraphemes = 0
+		}
+		if (rightUtf16 === rightFragment.text.length) {
+			rightIndex++
+			rightUtf16 = 0
+			rightGraphemes = 0
+		}
+	}
+	return leftIndex === left.length && rightIndex === next.length
 }
 
 /** Convert a run-text checkpoint into stable logical fragments for indexing. */
@@ -752,7 +1129,9 @@ export function createMosaicTextIndex(
 	fragments: readonly MosaicTextIndexFragment[],
 	options: MosaicTextIndexOptions = {},
 ): MosaicTextIndexBundle {
-	return buildIndex(fragments, undefined, options)
+	const index = buildStreamingIndex(fragments, undefined, options)
+	sourceFragmentsByIndex.set(index, retainSourceFragments(fragments))
+	return index
 }
 
 function memberMap(
@@ -903,21 +1282,10 @@ export function maintainMosaicTextIndex(
 	// Options remain part of the maintenance contract even for replay. This also
 	// lets an operator tighten hard limits without first manufacturing a text edit.
 	const limits = textIndexLimits(options)
-	// Accepted duplicate delivery and restart replay do not manufacture a new
-	// physical generation when the logical sequence is already indexed within
-	// the currently configured hard bounds.
-	const currentUnits = priorLeaves(previous).flatMap((leaf) =>
-		unitsFromFragments(leaf.fragments),
-	)
-	const nextUnits = unitsFromFragments(fragments)
 	if (
-		currentUnits.length === nextUnits.length &&
 		fitsHardLimits(previous, limits) &&
-		currentUnits.every(
-			(unit, index) =>
-				unitKey(unit) === unitKey(nextUnits[index]) &&
-				unit.text === nextUnits[index].text,
-		)
+		(sameSourceFragments(sourceFragmentsByIndex.get(previous), fragments) ||
+			sameLogicalFragments(previous, fragments))
 	) {
 		return {
 			counters: {
@@ -937,7 +1305,8 @@ export function maintainMosaicTextIndex(
 			},
 		}
 	}
-	const index = buildIndex(fragments, previous, options)
+	const index = buildStreamingIndex(fragments, previous, options)
+	sourceFragmentsByIndex.set(index, retainSourceFragments(fragments))
 	const before = memberMap(previous)
 	const after = memberMap(index)
 	const upsert = index.members.filter(

@@ -18,11 +18,11 @@ Here, “authenticated” means bound to the actor and session accepted by the D
 
 The UI publishes pointer movement without waiting for acknowledgement. This favors current information over a false guarantee that every intermediate frame matters. Pointer-up is the durable boundary.
 
-## Actor-safe history
+## Actor-safe history and the generic coordinator
 
 Undo emits an authenticated compensating batch targeting only the actor's own operation receipts. Foreign operations remain active. Plane adds redo as a compensation of that compensation rather than replaying a fresh last-writer operation; this preserves foreign edits. To support nested compensation correctly, the SVG reducers now determine whether a compensation is itself active before hiding its target.
 
-This history is intentionally session-memory UX. Durable operation receipts enforce safety, but a browser reload does not reconstruct a personalized undo menu. A production design tool may persist an actor-specific command index without making it shared document state.
+This template history is intentionally session-memory UX. Durable operation receipts enforce safety, but a browser reload does not reconstruct a personalized undo menu. MOS-16 now provides the generic server-owned actor history, cursor, retention, and model-compaction contract; Plane has not yet declared SVG history policies or wired that coordinator through its transport. The local stack cannot be removed without also supplying those pieces and preserving the existing undo, redo, reconnect, rejection, and restart UX. MOS-25 owns that cross-vertical adoption rather than this Create-* adapter fixture.
 
 ## Recovery and restart
 

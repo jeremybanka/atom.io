@@ -226,11 +226,38 @@ MOS-13, and MOS-16 respectively. This release's recovery adapter retains the
 accepted tail; a production adapter may compact only after those later
 checkpoint and retention contracts define a safe cut.
 
-The current client submission boundary owns the ordinary transaction that
-settles its one-or-many member operations. Automatically translating writes
-from an independently authored atom.io transaction remains an integration
-boundary: doing so correctly requires a generic committed-transaction lifecycle
-hook and model-owned change encoding. Inferring completion from timing or
-mirroring the transaction in a Mosaic-only registry would make rollback and
-asynchronous schema validation unsound, so this draft leaves that bridge
-explicit rather than weakening the commit guarantee.
+## Ordinary transaction bridge
+
+An application can bind independently authored transactions to a batch client.
+Each value model opts in with a deterministic transaction encoder that receives
+the exact old and new values. A transceiver model instead receives the signal
+that changed it. The existing operation schema remains the normalization and
+validation boundary for both forms.
+
+<Exhibit src="realtime/bridge-a-domain-transaction.ts" />
+
+The Store publishes an immutable, monotonically sequenced commit event only
+after a successful outermost transaction has settled. Nested outcomes retain
+their order inside that event, while an aborted outer transaction publishes
+nothing. Cyclic structural values are cloned and frozen safely. Values such as
+functions, `Map`, `Set`, and other containers whose internal slots cannot be
+made immutable are represented by an explicit sentinel and listed in
+`isolationFailures`; they are never silently replaced with `undefined`. The
+bridge listens only for the application transaction tokens named in its
+configuration, so its own settlement and reprojection transactions cannot
+recursively produce proposals.
+
+Encoding and asynchronous Standard Schema validation run after the commit stack
+and in commit order. All owned member changes from one transaction become one
+batch, including several operations for the same member. A transaction that
+does not change a durable member produces no batch. The commit event also
+retains isolated pre/post member snapshots as a Store-owned capability. The
+client uses that capability to adopt the already-visible optimistic result
+without running reducers twice, while retaining the exact pre-state needed for
+atomic rejection and reprojection. A failed preparation remains available on
+the bridge and blocks later commits until the application retries it. The
+bridge never truncates retained commits: silently dropping one would break
+convergence. Applications should monitor `problem` and `pendingCommitCount`,
+repair and retry failures promptly, and dispose the bridge when abandoning a
+collaborative session. Disposal stops new capture and releases commits that
+have not begun preparation; preparation already in flight may finish.

@@ -106,6 +106,38 @@ export type TransactionOutcomeEvent<T extends TransactionToken<any>> = {
 	output: ReturnType<TokenType<T>>
 }
 
+/**
+ * An isolated record of one successfully committed outermost transaction.
+ * `sequence` is monotonic within the Store that emitted the event.
+ */
+export type TransactionCommitEvent = {
+	/** Values that could not be isolated are replaced by an explicit sentinel. */
+	readonly isolationFailures: readonly TransactionCommitIsolationFailure[]
+	readonly outcome: TransactionOutcomeEvent<TransactionToken<any>>
+	readonly sequence: number
+	readonly snapshots: readonly TransactionCommitStateSnapshot[]
+	readonly type: `transaction_commit`
+}
+
+export type TransactionCommitIsolationFailure = {
+	readonly path: string
+	readonly reason: string
+}
+
+export type TransactionCommitUncloneableValue = {
+	readonly failure: TransactionCommitIsolationFailure
+	readonly type: `transaction_commit_uncloneable`
+}
+
+/** The exact pre/post state retained by a committed transaction event. */
+export type TransactionCommitStateSnapshot = {
+	readonly newExists: boolean
+	readonly newValue: unknown
+	readonly oldExists: boolean
+	readonly oldValue: unknown
+	readonly token: AtomToken<any, any, any>
+}
+
 export type TimelineEvent<ManagedAtom extends TimelineManageable> = {
 	checkpoint?: true
 } & (

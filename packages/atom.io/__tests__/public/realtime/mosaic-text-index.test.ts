@@ -183,6 +183,34 @@ describe(`Mosaic bounded text index`, () => {
 		})
 	})
 
+	test(`validates replay options and deterministically migrates tightened hard bounds`, () => {
+		const roomy = { ...compact, maximumLeafGraphemes: 16 }
+		const fragments = [fragment(`abcdefghijklmnop`)]
+		const before = createMosaicTextIndex(fragments, roomy)
+		expect(membersOf(before, `leaf`)).toHaveLength(4)
+
+		const tightened = maintainMosaicTextIndex(before, fragments, {
+			...compact,
+			maximumLeafGraphemes: 3,
+			targetLeafGraphemes: 3,
+		})
+		expect(tightened.index).not.toBe(before)
+		expect(
+			membersOf(tightened.index, `leaf`).every(
+				({ summary }) => summary.graphemes <= 3,
+			),
+		).toBe(true)
+		expect(tightened.counters.rootWritten).toBe(1)
+		expect(tightened.index.root.generation).toBe(before.root.generation + 1)
+
+		expect(() =>
+			maintainMosaicTextIndex(before, fragments, {
+				...compact,
+				maximumAliasTargets: 0,
+			}),
+		).toThrow(`maximumAliasTargets`)
+	})
+
 	test(`translates stale leaf residence across split and merge without changing logical anchors`, async () => {
 		const splitOptions = { ...compact, targetLeafGraphemes: 8 }
 		const before = createMosaicTextIndex(
@@ -219,6 +247,16 @@ describe(`Mosaic bounded text index`, () => {
 			mosaicTextIndexSource(split.index),
 		).resolveAlias(anchor.leafId)
 		expect(translation).toMatchObject({ status: `ok` })
+		const duplicateSplit = maintainMosaicTextIndex(
+			split.index,
+			[
+				fragment(`abcd`, `run`, 0),
+				fragment(`0123456789`, `foreign`),
+				fragment(`efgh`, `run`, 4),
+			],
+			splitOptions,
+		)
+		expect(duplicateSplit.index).toBe(split.index)
 		expect(anchor.position).toEqual({
 			affinity: `right`,
 			offset: 6,
@@ -611,6 +649,16 @@ describe(`Mosaic bounded text index`, () => {
 			recovery: { reason: `alias-fanout` },
 			status: `resnapshot`,
 		})
+		const recoveryReplay = maintainMosaicTextIndex(
+			split.index,
+			[
+				fragment(`abcd`, `base`, 0),
+				fragment(`0123456789`, `insert`),
+				fragment(`efgh`, `base`, 4),
+			],
+			options,
+		)
+		expect(recoveryReplay.index).toBe(split.index)
 
 		const retained = maintainMosaicTextIndex(
 			split.index,

@@ -868,6 +868,28 @@ function sameRoot(
 	)
 }
 
+function fitsHardLimits(
+	bundle: MosaicTextIndexBundle,
+	limits: TextIndexLimits,
+): boolean {
+	return bundle.members.every((member) => {
+		if (member.kind === `leaf`) {
+			return (
+				member.summary.graphemes <= limits.maximumLeafGraphemes &&
+				member.summary.utf16Units <= limits.maximumLeafUtf16Units &&
+				member.fragments.length <= limits.maximumFragmentsPerLeaf
+			)
+		}
+		if (member.kind === `node`) {
+			return member.children.length <= limits.maximumChildrenPerNode
+		}
+		return (
+			(member.targets?.length ?? 0) <= limits.maximumAliasTargets &&
+			bundle.root.generation - member.generation < limits.maximumAliasGenerations
+		)
+	})
+}
+
 /**
  * Reconcile physical leaves while retaining boundaries inside the configured
  * hysteresis window. The returned writes form one actor-history-free Domain
@@ -878,14 +900,19 @@ export function maintainMosaicTextIndex(
 	fragments: readonly MosaicTextIndexFragment[],
 	options: MosaicTextIndexOptions = {},
 ): MosaicTextIndexMaintenanceResult {
+	// Options remain part of the maintenance contract even for replay. This also
+	// lets an operator tighten hard limits without first manufacturing a text edit.
+	const limits = textIndexLimits(options)
 	// Accepted duplicate delivery and restart replay do not manufacture a new
-	// physical generation when the logical sequence is already indexed.
+	// physical generation when the logical sequence is already indexed within
+	// the currently configured hard bounds.
 	const currentUnits = priorLeaves(previous).flatMap((leaf) =>
 		unitsFromFragments(leaf.fragments),
 	)
 	const nextUnits = unitsFromFragments(fragments)
 	if (
 		currentUnits.length === nextUnits.length &&
+		fitsHardLimits(previous, limits) &&
 		currentUnits.every(
 			(unit, index) =>
 				unitKey(unit) === unitKey(nextUnits[index]) &&

@@ -1,5 +1,6 @@
 import type {
 	MosaicTextProjectionClient,
+	MosaicTextRangeObserver,
 	MosaicTextRangeProjection,
 } from "atom.io/realtime-client"
 import type { MosaicTextIndexRange } from "atom.io/realtime"
@@ -40,7 +41,18 @@ export function useMosaicTextRange(
 	const overscan = options.overscan
 	useEffect(() => {
 		let active = true
-		let release: (() => Promise<void>) | null = null
+		let observer: MosaicTextRangeObserver | null = null
+		const release = (target: MosaicTextRangeObserver): void => {
+			void target.release().catch((error: unknown) => {
+				client.residency.store.logger.error(
+					`🐞`,
+					`transaction`,
+					`mosaic-text-projection`,
+					`A Mosaic text projection observer could not be released.`,
+					error,
+				)
+			})
+		}
 		setView(LOADING)
 		void client
 			.observeRange(
@@ -51,11 +63,11 @@ export function useMosaicTextRange(
 				},
 				overscan === undefined ? {} : { overscan },
 			)
-			.then((observer) => {
+			.then((nextObserver) => {
 				if (active) {
-					release = () => observer.release()
+					observer = nextObserver
 				} else {
-					void observer.release()
+					release(nextObserver)
 				}
 			})
 			.catch((error: unknown) => {
@@ -63,7 +75,7 @@ export function useMosaicTextRange(
 			})
 		return () => {
 			active = false
-			void release?.()
+			if (observer !== null) release(observer)
 		}
 	}, [client, end, overscan, start])
 	return view

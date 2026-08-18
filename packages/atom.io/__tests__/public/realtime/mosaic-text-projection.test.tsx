@@ -528,6 +528,36 @@ describe(`Mosaic text range projections`, () => {
 		const invalid = render(<InvalidViewport />)
 		await invalid.findByText(`error`)
 		invalid.unmount()
+		const releaseFailureClient: typeof reader.client = {
+			...reader.client,
+			async observeRange(range, listener, acquisition) {
+				const observer = await reader.client.observeRange(
+					range,
+					listener,
+					acquisition,
+				)
+				return {
+					...observer,
+					async release() {
+						await observer.release()
+						throw new Error(`release observer failed`)
+					},
+				}
+			},
+		}
+		const ReleaseFailureViewport = () => {
+			const view = useMosaicTextRange(releaseFailureClient, {
+				end: 1,
+				kind: `utf16-range`,
+				start: 0,
+			})
+			return <span>{view.status}</span>
+		}
+		const releaseFailure = render(<ReleaseFailureViewport />)
+		await releaseFailure.findByText(`ready`)
+		releaseFailure.unmount()
+		await eventually(() => reader.client.state.residentRangeCount === 0)
+		await Promise.resolve()
 		await reader.client.dispose()
 		await reader.residency.dispose()
 		await system.writer.client.dispose()
@@ -793,6 +823,32 @@ describe(`Mosaic text range projections`, () => {
 		await slowRange.dispose()
 		rangeGate.open()
 		await expect(pendingRange).rejects.toThrow(`disposed`)
+		await eventually(
+			() => reader.residency.state.requestedMemberCount === baselineRequests,
+		)
+		const residentGate = gate()
+		const residentStarted = gate()
+		const slowResident = createMosaicTextProjectionClient({
+			...reader.projectionOptions,
+			domainKey: `slow-resident`,
+			residency: {
+				...reader.residency,
+				async resident(address) {
+					residentStarted.open()
+					await residentGate.promise
+					return reader.residency.resident(address)
+				},
+			},
+		})
+		const pendingResident = slowResident.acquireRange({
+			end: 1,
+			kind: `utf16-range`,
+			start: 0,
+		})
+		await residentStarted.promise
+		await slowResident.dispose()
+		residentGate.open()
+		await expect(pendingResident).rejects.toThrow(`disposed`)
 		await eventually(
 			() => reader.residency.state.requestedMemberCount === baselineRequests,
 		)

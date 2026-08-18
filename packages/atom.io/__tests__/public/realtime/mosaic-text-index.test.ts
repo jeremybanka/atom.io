@@ -344,8 +344,8 @@ describe(`Mosaic bounded text index`, () => {
 				id: `${clientId}:${random.integer(4)}`,
 				present: index % 3 !== 0,
 			}),
-			generateFault: ({ clientIds, random }) => ({
-				clientId: random.pick(clientIds),
+			generateFault: ({ clientIds: availableClientIds, random }) => ({
+				clientId: random.pick(availableClientIds),
 				type: random.pick([
 					`duplicate`,
 					`offline`,
@@ -455,8 +455,8 @@ describe(`Mosaic bounded text index`, () => {
 			),
 		).rejects.toThrow(`index is empty`)
 		const invalidRoot = createMosaicTextIndexReader({
-			read: async () => undefined,
-			root: async () => ({ ...empty.root, kind: `invalid` }) as never,
+			read: () => Promise.resolve(undefined),
+			root: () => Promise.resolve({ ...empty.root, kind: `invalid` } as never),
 		})
 		await expect(invalidRoot.positionAtOffset(0)).rejects.toThrow(`Invalid`)
 
@@ -474,15 +474,16 @@ describe(`Mosaic bounded text index`, () => {
 			version: 1,
 		}
 		const emptyNodeReader = createMosaicTextIndexReader({
-			read: async () => ({
-				children: [],
-				id: `empty-node`,
-				kind: `node`,
-				level: 1,
-				summary: zeroSummary,
-				version: 1,
-			}),
-			root: async () => emptyNodeRoot,
+			read: () =>
+				Promise.resolve({
+					children: [],
+					id: `empty-node`,
+					kind: `node`,
+					level: 1,
+					summary: zeroSummary,
+					version: 1,
+				}),
+			root: () => Promise.resolve(emptyNodeRoot),
 		})
 		await expect(emptyNodeReader.positionAtOffset(0)).rejects.toThrow(
 			`Empty Mosaic text index node`,
@@ -490,8 +491,8 @@ describe(`Mosaic bounded text index`, () => {
 
 		const firstLeaf = membersOf(index, `leaf`)[0]
 		const mismatchedAliasReader = createMosaicTextIndexReader({
-			read: async (id) => ({ ...firstLeaf, id }),
-			root: async () => index.root,
+			read: (id) => Promise.resolve({ ...firstLeaf, id }),
+			root: () => Promise.resolve(index.root),
 		})
 		await expect(mismatchedAliasReader.resolveAlias(`stale`)).rejects.toThrow(
 			`alias mismatch`,

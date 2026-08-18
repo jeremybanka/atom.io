@@ -295,9 +295,9 @@ async function localSystem(text = `alpha\nbeta\ngamma\ndelta`) {
 		})
 		const projectionOptions = {
 			actor,
-			materialize: async () => {
+			materialize: () => {
 				current.materializations++
-				return materializeBundle(current.bundle)
+				return Promise.resolve(materializeBundle(current.bundle))
 			},
 			planEdit(edit) {
 				const address = state.domain.address(`history`, `document`)
@@ -319,8 +319,8 @@ async function localSystem(text = `alpha\nbeta\ngamma\ndelta`) {
 			rangeMember: `index`,
 			rangeMemberLimit: 16,
 			residency,
-			resolvePosition: async (position) =>
-				resolvePosition(current.bundle, position),
+			resolvePosition: (position) =>
+				Promise.resolve(resolvePosition(current.bundle, position)),
 			rootAddress: state.domain.address(`root`),
 			session: `session-${name}`,
 		} satisfies MosaicTextProjectionClientOptions<
@@ -755,7 +755,7 @@ describe(`Mosaic text range projections`, () => {
 			domainKey: `missing-resident`,
 			residency: {
 				...reader.residency,
-				resident: async () => null,
+				resident: () => Promise.resolve(null),
 			},
 		})
 		await expect(
@@ -1067,12 +1067,12 @@ test(`realtime-testing carries disjoint multi-client range projections`, async (
 				}
 				harness.socket.on(acceptedEvent, receive)
 				return new Promise((resolve) =>
-					harness.socket.emit(subscribeEvent, id, requests, () =>
+					harness.socket.emit(subscribeEvent, id, requests, () => {
 						resolve(() => {
 							harness.socket.off(acceptedEvent, receive)
 							harness.socket.emit(unsubscribeEvent, id)
-						}),
-					),
+						})
+					}),
 				)
 			},
 		}
@@ -1101,7 +1101,7 @@ test(`realtime-testing carries disjoint multi-client range projections`, async (
 			projections.push(
 				createMosaicTextProjectionClient({
 					actor: harness.userKey,
-					materialize: async () => materializeBundle(bundle),
+					materialize: () => Promise.resolve(materializeBundle(bundle)),
 					planEdit: () => ({ operations: [] }),
 					positionAtOffset: (offset) =>
 						createMosaicTextIndexReader(
@@ -1109,7 +1109,8 @@ test(`realtime-testing carries disjoint multi-client range projections`, async (
 						).positionAtOffset(offset),
 					rangeMember: `index`,
 					residency,
-					resolvePosition: async (position) => resolvePosition(bundle, position),
+					resolvePosition: (position) =>
+						Promise.resolve(resolvePosition(bundle, position)),
 					rootAddress: state.domain.address(`root`),
 					session: harness.sessionId,
 				}),

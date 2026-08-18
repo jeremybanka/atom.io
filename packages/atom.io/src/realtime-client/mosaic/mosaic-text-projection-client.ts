@@ -24,7 +24,7 @@ import type {
 	MosaicTextIndexRoot,
 	MosaicTextRelativePosition,
 } from "atom.io/realtime"
-import { splitMosaicText } from "atom.io/realtime"
+import { mosaicDomainMemberAddressKey, splitMosaicText } from "atom.io/realtime"
 
 import type {
 	MosaicDomainResidencyClient,
@@ -559,9 +559,16 @@ export function createMosaicTextProjectionClient<
 		force = false,
 	): Promise<void> => {
 		const subscription = record.subscription
-		if (subscription === null || !subscription.active) return
-		const keys = subscription.addresses.map((address) => JSON.stringify(address))
-		const previous = record.addresses.map((address) => JSON.stringify(address))
+		if (
+			record.released ||
+			disposed ||
+			subscription === null ||
+			!subscription.active
+		) {
+			return
+		}
+		const keys = subscription.addresses.map(mosaicDomainMemberAddressKey)
+		const previous = record.addresses.map(mosaicDomainMemberAddressKey)
 		if (
 			!force &&
 			keys.length === previous.length &&
@@ -573,9 +580,13 @@ export function createMosaicTextProjectionClient<
 		for (const address of subscription.addresses) {
 			const resident = await options.residency.resident(address)
 			if (resident === null) {
+				if (record.released || disposed) return
 				throw new Error(`A resolved Mosaic text leaf is not resident.`)
 			}
 			tokens.push(resident.token)
+		}
+		if (record.released || disposed || record.subscription !== subscription) {
+			return
 		}
 		record.addresses = subscription.addresses
 		record.tokens = tokens

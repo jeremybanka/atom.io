@@ -1,51 +1,63 @@
 # React Realtime Text Editor
 
-Mosaic is a React + atom.io multiplayer Markdown editor with a small Node and
-Socket.IO collaboration server. It ships simulated identities so the complete
-shared-editing experience can be explored locally without provisioning auth.
+Mosaic is a React + atom.io multiplayer Markdown editor with simulated
+identities. It demonstrates the scalable long-form text path: bounded Domain
+members, viewport-first residency, logical presence, selective history,
+incremental parsing, and virtualized source and preview rendering.
 
 ## Run It
 
-Run `npm run dev`, then open the displayed Vite URL. Open a second tab and use
-the avatar menu to switch identities. The Vite app runs on port 5173 and the
-collaboration service runs on port 3000. The browser always connects to its
-current origin; Vite proxies `/socket.io` and `/health` to the collaboration
-service in both development and preview modes.
+Run `npm run dev`, then open the displayed Vite URL in two tabs and choose a
+different identity in each tab. The browser connects to `window.location.origin`.
+Vite proxies `/socket.io` and `/health` to the collaboration service in both
+development and preview, so the deployment contract does not require browser
+CORS exceptions.
 
 ## What It Shows
 
-- optimistic shared text that converges after simultaneous and offline edits;
-- live identity, connection, caret, and line-level presence;
-- selection anchors that survive edits around them;
-- per-identity undo and redo that preserve other authors' work;
-- durable-stream snapshots, idempotent operation replay, and server validation;
-- a safe, dependency-free Markdown preview rendered as React nodes; and
-- structural component styling checked by Lasertag.
+- one logical Markdown document indexed by bounded-fanout ordinary Domain atom
+  families;
+- viewport hydration before full materialization, with released ranges evicted;
+- local input drafts that remain responsive while offline or while an
+  authoritative gesture settles;
+- run-relative selection, viewport, and collaborator presence across physical
+  leaf splits and merges;
+- actor-selective undo and redo whose text compensation and index maintenance
+  settle in one Domain revision;
+- cancelable incremental Markdown parsing that yields outside the input turn and
+  stops propagating when cached parser state reaches a stable boundary;
+- source and preview virtualization with no architecture switch at the 5.6 MB or
+  deterministic 50 MB corpus sizes; and
+- one explicitly authorized reset/import transaction rather than an effect run
+  by every joining browser.
 
-Run `npm test` for the multi-client collaboration scenarios. Run `npm run lint`
-to enforce ESLint, type-aware Oxlint, React hook call-order correctness, TypeScript, and
-the Lasertag render-story/CSS relationship with zero warnings. Run
+Run `npm test` for the multi-client contention, offline/reconnect, history,
+presence, import, parser, and virtualization scenarios. Run `npm run lint` to
+enforce ESLint, type-aware Oxlint, React hook call-order correctness, TypeScript,
+and the Lasertag render-story/CSS relationship with zero warnings. Run
 `npm run fmt:check` in CI and `npm run fmt` to apply the pinned dprint
-configuration locally.
+configuration locally. The scheduled repository command
+`pnpm test:large-document` verifies the pinned corpus and exercises the same
+one-batch Domain composition, bounded index routing, and viewport/parser path at
+the beginning, middle, and end of both canonical sizes.
 
 ## Start Reading
 
-- `src/collaboration/mosaic.ts` is the browser collaboration contract: one
-  mutable atom, graph-derived selectors, selective history, and model-relative
-  presence.
-- `node/mosaic-atom.ts` registers the mutable atom with Zod runtime schemas,
-  presence validation, and checkpoint cadence without entering the browser
-  bundle.
-- atom.io's Mosaic client owns optimistic edits, reconnect rebasing, causal
-  retries, and structured recovery.
-- atom.io's Mosaic server authenticates authorship, durably orders revisions,
-  checkpoints streams, and publishes ephemeral presence.
-- `src/MarkdownWorkspace.tsx` is the React editing experience.
-- `INNOVATIONS.md` records the reconciliation decisions that became Mosaic and
-  the remaining production boundaries.
+- `src/document-domain.ts` declares the ordinary durable source, index root,
+  index family, local selection, and ephemeral collaborator members.
+- `node/service.ts` is the authoritative composition seam. It serializes a text
+  gesture with MOS-15 index maintenance and delegates history retention and
+  compensation to MOS-16.
+- `src/collaboration-client.ts` combines MOS-12 residency, MOS-17 range
+  projections, presence, current-location transport, and reconnecting command
+  delivery.
+- `src/incremental-markdown.ts` contains the renderer-neutral, cancelable parser.
+- `src/MarkdownWorkspace.tsx` owns only React viewport, local input, and DOM
+  lifecycle state.
+- `INNOVATIONS.md` records the new core seam and the deliberate production
+  boundaries.
 
-The template selects Mosaic's in-memory storage adapter for a zero-setup demo.
-Production deployments should provide a linearizable storage adapter, document
-ACLs, rate limits, and metrics as described in `INNOVATIONS.md`. Keep the
-same-origin contract in your deployment by forwarding `/socket.io` to the
-collaboration service at the edge.
+The template uses in-memory persistence and simulated authorization for a
+zero-setup demo. A production service still needs a linearizable storage
+adapter, document ACLs, rate limits, metrics, and a durable offline-retention
+policy.

@@ -9,5 +9,5 @@
 			"lasertag/react-jsx"
 		]
 	},
-	"include": ["node/mosaic-atom.ts", "src", "tests"]
+	"include": ["node", "src", "tests"]
 }

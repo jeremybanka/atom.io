@@ -90,4 +90,37 @@ describe(`SVG member convergence`, () => {
 			`operation ID collision`,
 		)
 	})
+
+	test(`compensation target sets are idempotent regardless of wire order`, () => {
+		const orderOperation: SvgOrderOperation = {
+			actor: `alice`,
+			entryId: `a`,
+			id: `undo`,
+			present: false,
+			rank: rankSvgOrderBetween(null, null),
+			undoTargets: [`first`, `second`],
+			value: `path-a`,
+		}
+		const order = reduceSvgOrder(EMPTY_SVG_ORDER, orderOperation)
+		expect(
+			reduceSvgOrder(order, {
+				...orderOperation,
+				undoTargets: [`second`, `first`],
+			}),
+		).toBe(order)
+
+		const registerOperation = {
+			actor: `alice`,
+			id: `undo`,
+			undoTargets: [`first`, `second`],
+			value: { x: 1, y: 2 },
+		}
+		const register = reduceSvgRegister(emptySvgRegister(), registerOperation)
+		expect(
+			reduceSvgRegister(register, {
+				...registerOperation,
+				undoTargets: [`second`, `first`],
+			}),
+		).toBe(register)
+	})
 })

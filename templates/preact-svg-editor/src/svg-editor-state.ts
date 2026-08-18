@@ -9,9 +9,12 @@ import {
 	setState,
 	transaction,
 } from "atom.io"
+import type { MosaicDomainHistoryCompactionContext } from "atom.io/realtime"
 import { z } from "zod"
 
 import {
+	compactSvgOrderHistory,
+	compactSvgRegisterHistory,
 	EMPTY_SVG_ORDER,
 	emptySvgRegister,
 	materializeSvgOrder,
@@ -20,12 +23,13 @@ import {
 	reduceSvgOrder,
 	reduceSvgRegister,
 	removeSvgOrderEntry,
-	svgOrderOperationSchema,
-	svgOrderStateSchema,
-	svgRegisterOperationSchema,
-	svgRegisterStateSchema,
+	type SvgHistoryOperation,
+	svgOrderModelOperationSchema,
 	type SvgOrderState,
+	svgOrderStateSchema,
+	svgRegisterModelOperationSchema,
 	type SvgRegisterState,
+	svgRegisterStateSchema,
 } from "./svg-convergence.ts"
 
 export type PointXY = { readonly x: number; readonly y: number }
@@ -131,21 +135,21 @@ const subpathSchema: z.ZodType<SvgSubpath> = z
 	.strict()
 
 export const svgNodeStateSchema = svgRegisterStateSchema(pointSchema.nullable())
-export const svgNodeOperationSchema = svgRegisterOperationSchema(
+export const svgNodeOperationSchema = svgRegisterModelOperationSchema(
 	pointSchema.nullable(),
 )
 export const svgEdgeStateSchema = svgRegisterStateSchema(edgeSchema.nullable())
-export const svgEdgeOperationSchema = svgRegisterOperationSchema(
+export const svgEdgeOperationSchema = svgRegisterModelOperationSchema(
 	edgeSchema.nullable(),
 )
 export const svgPathStateSchema = svgRegisterStateSchema(pathSchema.nullable())
-export const svgPathOperationSchema = svgRegisterOperationSchema(
+export const svgPathOperationSchema = svgRegisterModelOperationSchema(
 	pathSchema.nullable(),
 )
 export const svgSubpathStateSchema = svgRegisterStateSchema(
 	subpathSchema.nullable(),
 )
-export const svgSubpathOperationSchema = svgRegisterOperationSchema(
+export const svgSubpathOperationSchema = svgRegisterModelOperationSchema(
 	subpathSchema.nullable(),
 )
 
@@ -994,37 +998,78 @@ export function finishSvgDrag(options: { readonly commit: boolean }): void {
  * Explicit integration seam: schemas/reducers are public application modules,
  * while ownership, batching, transport, and history remain MOS-11 concerns.
  */
+const svgHistoryPolicy = <State>(
+	compact: (
+		state: State,
+		context: MosaicDomainHistoryCompactionContext,
+	) => State,
+) => ({
+	classify(operation: {
+		readonly mode?: `redo` | `undo`
+		readonly targetOperationIds?: readonly string[]
+		readonly type?: string
+	}) {
+		return operation.type === `history`
+			? {
+					kind: `compensation` as const,
+					mode: operation.mode!,
+					targetOperationIds: operation.targetOperationIds!,
+				}
+			: { kind: `change` as const }
+	},
+	compact,
+	compensate(context: {
+		readonly actor: string
+		readonly mode: `redo` | `undo`
+		readonly requestId: string
+		readonly targets: readonly { readonly id: string }[]
+	}): SvgHistoryOperation {
+		return {
+			actor: context.actor,
+			id: `svg-history:${context.requestId}`,
+			mode: context.mode,
+			targetOperationIds: context.targets.map(({ id }) => id),
+			type: `history`,
+		}
+	},
+})
+
 export const SVG_MEMBER_MODEL_SEAMS = {
 	edge: {
-		identity: { key: `svg/edge-register`, version: 1 },
+		history: svgHistoryPolicy(compactSvgRegisterHistory<SvgEdge | null>),
+		identity: { key: `svg/edge-register`, version: 2 },
 		kind: `value`,
 		operationSchema: svgEdgeOperationSchema,
 		reduce: reduceSvgRegister<SvgEdge | null>,
 		stateSchema: svgEdgeStateSchema,
 	},
 	node: {
-		identity: { key: `svg/node-register`, version: 1 },
+		history: svgHistoryPolicy(compactSvgRegisterHistory<PointXY | null>),
+		identity: { key: `svg/node-register`, version: 2 },
 		kind: `value`,
 		operationSchema: svgNodeOperationSchema,
 		reduce: reduceSvgRegister<PointXY | null>,
 		stateSchema: svgNodeStateSchema,
 	},
 	order: {
-		identity: { key: `svg/order`, version: 1 },
+		history: svgHistoryPolicy(compactSvgOrderHistory),
+		identity: { key: `svg/order`, version: 2 },
 		kind: `value`,
-		operationSchema: svgOrderOperationSchema,
+		operationSchema: svgOrderModelOperationSchema,
 		reduce: reduceSvgOrder,
 		stateSchema: svgOrderStateSchema,
 	},
 	path: {
-		identity: { key: `svg/path-register`, version: 1 },
+		history: svgHistoryPolicy(compactSvgRegisterHistory<SvgPath | null>),
+		identity: { key: `svg/path-register`, version: 2 },
 		kind: `value`,
 		operationSchema: svgPathOperationSchema,
 		reduce: reduceSvgRegister<SvgPath | null>,
 		stateSchema: svgPathStateSchema,
 	},
 	subpath: {
-		identity: { key: `svg/subpath-register`, version: 1 },
+		history: svgHistoryPolicy(compactSvgRegisterHistory<SvgSubpath | null>),
+		identity: { key: `svg/subpath-register`, version: 2 },
 		kind: `value`,
 		operationSchema: svgSubpathOperationSchema,
 		reduce: reduceSvgRegister<SvgSubpath | null>,

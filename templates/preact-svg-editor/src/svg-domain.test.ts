@@ -3,13 +3,17 @@ import {
 	createMosaicDomainBatchClient,
 	type MosaicDomainBatchClientTransport,
 } from "atom.io/realtime-client"
-import { createMosaicDomainBatchServer } from "atom.io/realtime-server"
+import {
+	createMosaicDomainBatchServer,
+	createMosaicDomainHistoryCoordinator,
+	type MosaicDomainHistoryConnection,
+} from "atom.io/realtime-server"
 import { afterEach, describe, expect, test, vi } from "vitest"
 
 import { materializeSvgOrder, readSvgRegister } from "./svg-convergence.ts"
 import {
-	createSvgDomainEditor,
 	activateSvgDesignDomain,
+	createSvgDomainEditor,
 	type SvgDomainState,
 } from "./svg-domain.ts"
 import {
@@ -19,8 +23,8 @@ import {
 	pathDrawSelectors,
 	structureViolationsSelector,
 	subpathOrderAtoms,
-	svgOperationId,
 	type SvgDrawingFixture,
+	svgOperationId,
 } from "./svg-editor-state.ts"
 
 const drawing: SvgDrawingFixture = {
@@ -36,6 +40,30 @@ const drawing: SvgDrawingFixture = {
 }
 
 const disposals: Array<() => void> = []
+
+function historyAdapter(
+	connection: MosaicDomainHistoryConnection,
+	session: string,
+) {
+	let sequence = 0
+	const request = async (mode: `redo` | `undo`) => {
+		const snapshot = await connection.snapshot()
+		const next = sequence + 1
+		const result = await connection.request({
+			cursor: snapshot.cursor,
+			id: `${session}:history:${next.toString()}`,
+			mode,
+			sequence: next,
+			session,
+		})
+		if (result.status === `accepted`) sequence = next
+		return result
+	}
+	return {
+		redo: () => request(`redo`),
+		undo: () => request(`undo`),
+	}
+}
 
 afterEach(() => {
 	for (const dispose of disposals.splice(0).reverse()) dispose()
@@ -68,6 +96,10 @@ async function distributedFixture(
 		domain: serverDomain,
 		...(authorize === undefined ? {} : { authorize }),
 	})
+	const history = createMosaicDomainHistoryCoordinator({
+		batches: server,
+		domain: serverDomain,
+	})
 	const aliceConnection = server.connect({
 		actor: `alice`,
 		session: `alice-tab`,
@@ -93,14 +125,25 @@ async function distributedFixture(
 	const aliceEditor = createSvgDomainEditor({
 		batch: alice,
 		domain: aliceDomain,
+		history: historyAdapter(
+			history.connect({ actor: `alice`, session: `alice-tab` }),
+			`alice-tab`,
+		),
 		state: state(aliceSilo),
 	})
 	const bobEditor = createSvgDomainEditor({
 		batch: bob,
 		domain: bobDomain,
+		history: historyAdapter(
+			history.connect({ actor: `bob`, session: `bob-tab` }),
+			`bob-tab`,
+		),
 		state: state(bobSilo),
 	})
 	disposals.push(
+		() => {
+			history[Symbol.dispose]()
+		},
 		() => {
 			server.dispose()
 		},
@@ -274,8 +317,9 @@ describe(`SVG Mosaic Domain`, () => {
 					operation: {
 						actor: `bob`,
 						id: svgOperationId(malicious, 0),
-						undoTargets: [aliceOperation.id],
-						value: { x: 0, y: 0 },
+						mode: `undo`,
+						targetOperationIds: [aliceOperation.id],
+						type: `history`,
 					},
 				},
 				malicious.id,

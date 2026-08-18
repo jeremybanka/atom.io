@@ -12,11 +12,20 @@ export type SvgOrderOperation = {
 	readonly present: boolean
 	readonly rank: SvgOrderRank
 	readonly value: string
-	/** Exact earlier operations hidden by an actor-selective compensation. */
-	readonly undoTargets?: readonly string[] | undefined
 }
 
+export type SvgHistoryOperation = {
+	readonly actor: string
+	readonly id: string
+	readonly mode: `redo` | `undo`
+	readonly targetOperationIds: readonly string[]
+	readonly type: `history`
+}
+
+export type SvgOrderModelOperation = SvgHistoryOperation | SvgOrderOperation
+
 export type SvgOrderState = {
+	readonly history?: Readonly<Record<string, SvgHistoryOperation>> | undefined
 	readonly operations: Readonly<Record<string, SvgOrderOperation>>
 }
 
@@ -30,11 +39,14 @@ export type SvgRegisterOperation<Value> = {
 	readonly actor?: string | undefined
 	readonly id: string
 	readonly value: Value
-	/** Exact earlier operations hidden by an actor-selective compensation. */
-	readonly undoTargets?: readonly string[] | undefined
 }
 
+export type SvgRegisterModelOperation<Value> =
+	| SvgHistoryOperation
+	| SvgRegisterOperation<Value>
+
 export type SvgRegisterState<Value> = {
+	readonly history?: Readonly<Record<string, SvgHistoryOperation>> | undefined
 	readonly operations: Readonly<Record<string, SvgRegisterOperation<Value>>>
 }
 
@@ -56,18 +68,30 @@ export const svgOrderOperationSchema: z.ZodType<SvgOrderOperation> = z
 		present: z.boolean(),
 		rank: svgOrderRankSchema,
 		value: z.string().min(1),
-		undoTargets: z.array(z.string().min(1)).min(1).optional(),
+	})
+	.strict()
+
+export const svgHistoryOperationSchema: z.ZodType<SvgHistoryOperation> = z
+	.object({
+		actor: z.string().min(1),
+		id: z.string().min(1),
+		mode: z.enum([`redo`, `undo`]),
+		targetOperationIds: z.array(z.string().min(1)).min(1),
+		type: z.literal(`history`),
 	})
 	.strict()
 	.refine(
-		({ undoTargets }) =>
-			undoTargets === undefined ||
-			new Set(undoTargets).size === undoTargets.length,
-		{ message: `SVG undo targets must be unique` },
+		({ targetOperationIds }) =>
+			new Set(targetOperationIds).size === targetOperationIds.length,
+		{ message: `SVG history targets must be unique` },
 	)
+
+export const svgOrderModelOperationSchema: z.ZodType<SvgOrderModelOperation> =
+	z.union([svgHistoryOperationSchema, svgOrderOperationSchema])
 
 export const svgOrderStateSchema: z.ZodType<SvgOrderState> = z
 	.object({
+		history: z.record(z.string(), svgHistoryOperationSchema).optional(),
 		operations: z.record(z.string(), svgOrderOperationSchema),
 	})
 	.strict()
@@ -75,6 +99,13 @@ export const svgOrderStateSchema: z.ZodType<SvgOrderState> = z
 		({ operations }) =>
 			Object.entries(operations).every(([id, operation]) => id === operation.id),
 		{ message: `SVG order operation map keys must match operation IDs` },
+	)
+	.refine(
+		({ history }) =>
+			Object.entries(history ?? {}).every(
+				([id, operation]) => id === operation.id,
+			),
+		{ message: `SVG order history map keys must match operation IDs` },
 	)
 
 export function svgRegisterOperationSchema<Value>(
@@ -84,16 +115,18 @@ export function svgRegisterOperationSchema<Value>(
 		.object({
 			actor: z.string().min(1).optional(),
 			id: z.string().min(1),
-			undoTargets: z.array(z.string().min(1)).min(1).optional(),
 			value: valueSchema,
 		})
 		.strict()
-		.refine(
-			({ undoTargets }) =>
-				undoTargets === undefined ||
-				new Set(undoTargets).size === undoTargets.length,
-			{ message: `SVG undo targets must be unique` },
-		)
+}
+
+export function svgRegisterModelOperationSchema<Value>(
+	valueSchema: z.ZodType<Value>,
+): z.ZodType<SvgRegisterModelOperation<Value>> {
+	return z.union([
+		svgHistoryOperationSchema,
+		svgRegisterOperationSchema(valueSchema),
+	])
 }
 
 export function svgRegisterStateSchema<Value>(
@@ -101,6 +134,7 @@ export function svgRegisterStateSchema<Value>(
 ): z.ZodType<SvgRegisterState<Value>> {
 	return z
 		.object({
+			history: z.record(z.string(), svgHistoryOperationSchema).optional(),
 			operations: z.record(z.string(), svgRegisterOperationSchema(valueSchema)),
 		})
 		.strict()
@@ -110,6 +144,13 @@ export function svgRegisterStateSchema<Value>(
 					([id, operation]) => id === operation.id,
 				),
 			{ message: `SVG register operation map keys must match operation IDs` },
+		)
+		.refine(
+			({ history }) =>
+				Object.entries(history ?? {}).every(
+					([id, operation]) => id === operation.id,
+				),
+			{ message: `SVG register history map keys must match operation IDs` },
 		)
 }
 
@@ -192,57 +233,52 @@ function operationsMatch(
 		left.present === right.present &&
 		left.rank.denominator === right.rank.denominator &&
 		left.rank.numerator === right.rank.numerator &&
-		left.value === right.value &&
-		sameUndoTargets(left.undoTargets, right.undoTargets)
+		left.value === right.value
 	)
 }
 
-function sameUndoTargets(
-	left?: readonly string[],
-	right?: readonly string[],
+function historyMatches(
+	left: SvgHistoryOperation,
+	right: SvgHistoryOperation,
 ): boolean {
-	if (left === undefined || right === undefined) return left === right
-	if (left.length !== right.length) return false
-	const leftSet = new Set(left)
-	return right.every((target) => leftSet.has(target))
+	return (
+		left.actor === right.actor &&
+		left.id === right.id &&
+		left.mode === right.mode &&
+		left.targetOperationIds.length === right.targetOperationIds.length &&
+		left.targetOperationIds.every((target) =>
+			right.targetOperationIds.includes(target),
+		)
+	)
 }
 
 function activeSvgOperations<
-	Operation extends {
-		readonly id: string
-		readonly undoTargets?: readonly string[] | undefined
-	},
->(operations: Iterable<Operation>): readonly Operation[] {
-	const all = [...operations]
-	const targetedBy = new Map<string, Operation[]>()
-	for (const operation of all) {
-		for (const target of operation.undoTargets ?? []) {
-			const targeting = targetedBy.get(target) ?? []
-			targeting.push(operation)
-			targetedBy.set(target, targeting)
+	Operation extends { actor?: string | undefined; id: string },
+>(
+	operations: Iterable<Operation>,
+	history: Iterable<SvgHistoryOperation>,
+): readonly Operation[] {
+	const changes = [...operations]
+	const byId = new Map(changes.map((operation) => [operation.id, operation]))
+	const counts = new Map<string, { redo: number; undo: number }>()
+	for (const operation of history) {
+		for (const targetId of operation.targetOperationIds) {
+			const target = byId.get(targetId)
+			if (target === undefined || target.actor !== operation.actor) {
+				throw new Error(`SVG history targeted an unknown or foreign operation`)
+			}
+			const count = counts.get(targetId) ?? { redo: 0, undo: 0 }
+			count[operation.mode]++
+			counts.set(targetId, count)
 		}
 	}
-	const memo = new Map<string, boolean>()
-	const visiting = new Set<string>()
-	const isActive = (operation: Operation): boolean => {
-		const known = memo.get(operation.id)
-		if (known !== undefined) return known
-		if (visiting.has(operation.id)) {
-			throw new Error(`SVG compensation graph contains a cycle`)
+	return changes.filter((operation) => {
+		const count = counts.get(operation.id) ?? { redo: 0, undo: 0 }
+		if (count.undo < count.redo || count.undo > count.redo + 1) {
+			throw new Error(`SVG history modes do not form an alternating cursor`)
 		}
-		visiting.add(operation.id)
-		try {
-			const active = !(targetedBy.get(operation.id) ?? []).some(isActive)
-			memo.set(operation.id, active)
-			return active
-		} finally {
-			visiting.delete(operation.id)
-		}
-	}
-	for (const operation of all) isActive(operation)
-	return all.filter(
-		(operation) => operation.undoTargets === undefined && memo.get(operation.id),
-	)
+		return count.undo === count.redo
+	})
 }
 
 /**
@@ -251,9 +287,27 @@ function activeSvgOperations<
  */
 export function reduceSvgOrder(
 	state: SvgOrderState,
-	operation: SvgOrderOperation,
+	operation: SvgOrderModelOperation,
 ): SvgOrderState {
-	const normalized = svgOrderOperationSchema.parse(operation)
+	const normalized = svgOrderModelOperationSchema.parse(operation)
+	if (`type` in normalized) {
+		const previous = state.history?.[normalized.id]
+		if (previous !== undefined) {
+			if (!historyMatches(previous, normalized)) {
+				throw new Error(`SVG order history ID collision: ${normalized.id}`)
+			}
+			return state
+		}
+		const next = {
+			history: { ...state.history, [normalized.id]: normalized },
+			operations: state.operations,
+		}
+		activeSvgOperations(
+			Object.values(next.operations),
+			Object.values(next.history),
+		)
+		return next
+	}
 	const previous = state.operations[normalized.id]
 	if (previous !== undefined) {
 		if (!operationsMatch(previous, normalized)) {
@@ -262,6 +316,7 @@ export function reduceSvgOrder(
 		return state
 	}
 	return {
+		...(state.history === undefined ? {} : { history: state.history }),
 		operations: { ...state.operations, [normalized.id]: normalized },
 	}
 }
@@ -270,7 +325,10 @@ function latestSvgOrderOperations(
 	state: SvgOrderState,
 ): ReadonlyMap<string, SvgOrderOperation> {
 	const latest = new Map<string, SvgOrderOperation>()
-	for (const operation of activeSvgOperations(Object.values(state.operations))) {
+	for (const operation of activeSvgOperations(
+		Object.values(state.operations),
+		Object.values(state.history ?? {}),
+	)) {
 		const previous = latest.get(operation.entryId)
 		if (previous === undefined || compareSvgIds(previous.id, operation.id) < 0) {
 			latest.set(operation.entryId, operation)
@@ -329,22 +387,43 @@ export function removeSvgOrderEntry(
 
 /**
  * A deterministic last-operation-wins register with delivery-order-independent
- * duplicate protection. Receipts remain until MOS-16 supplies bounded compaction.
+ * duplicate protection and model-owned actor-selective compensation.
  */
 export function reduceSvgRegister<Value>(
 	state: SvgRegisterState<Value>,
-	operation: SvgRegisterOperation<Value>,
+	operation: SvgRegisterModelOperation<Value>,
 ): SvgRegisterState<Value> {
+	if (`type` in operation) {
+		const normalized = svgHistoryOperationSchema.parse(operation)
+		const previous = state.history?.[normalized.id]
+		if (previous !== undefined) {
+			if (!historyMatches(previous, normalized)) {
+				throw new Error(`SVG register history ID collision: ${normalized.id}`)
+			}
+			return state
+		}
+		const next = {
+			history: { ...state.history, [normalized.id]: normalized },
+			operations: state.operations,
+		}
+		activeSvgOperations(
+			Object.values(next.operations),
+			Object.values(next.history),
+		)
+		return next
+	}
 	const previous = state.operations[operation.id]
 	if (previous === undefined) {
 		const next = structuredClone(operation)
-		return { operations: { ...state.operations, [next.id]: next } }
+		return {
+			...(state.history === undefined ? {} : { history: state.history }),
+			operations: { ...state.operations, [next.id]: next },
+		}
 	}
 	if (
 		previous.actor !== operation.actor ||
 		previous.id !== operation.id ||
-		JSON.stringify(previous.value) !== JSON.stringify(operation.value) ||
-		!sameUndoTargets(previous.undoTargets, operation.undoTargets)
+		JSON.stringify(previous.value) !== JSON.stringify(operation.value)
 	) {
 		throw new Error(`SVG register operation ID collision: ${operation.id}`)
 	}
@@ -355,10 +434,109 @@ export function readSvgRegister<Value>(
 	state: SvgRegisterState<Value>,
 ): Value | undefined {
 	let latest: SvgRegisterOperation<Value> | undefined
-	for (const operation of activeSvgOperations(Object.values(state.operations))) {
+	for (const operation of activeSvgOperations(
+		Object.values(state.operations),
+		Object.values(state.history ?? {}),
+	)) {
 		if (latest === undefined || compareSvgIds(latest.id, operation.id) < 0) {
 			latest = operation
 		}
 	}
 	return latest?.value
+}
+
+function compactedHistory(
+	operations: Readonly<
+		Record<string, { readonly actor?: string | undefined; readonly id: string }>
+	>,
+	history: Readonly<Record<string, SvgHistoryOperation>> | undefined,
+	retainedOperationIds: ReadonlySet<string>,
+	throughRevision: number,
+): Readonly<Record<string, SvgHistoryOperation>> | undefined {
+	const active = new Set(
+		activeSvgOperations(
+			Object.values(operations),
+			Object.values(history ?? {}),
+		).map(({ id }) => id),
+	)
+	const compacted: Record<string, SvgHistoryOperation> = {}
+	for (const targetId of [...retainedOperationIds].sort()) {
+		const target = operations[targetId]
+		if (target === undefined || active.has(targetId)) continue
+		if (target.actor === undefined) {
+			throw new Error(`SVG history cannot compact an unauthored operation`)
+		}
+		const id = `svg-history-cut:${throughRevision.toString()}:${targetId}`
+		compacted[id] = {
+			actor: target.actor,
+			id,
+			mode: `undo`,
+			targetOperationIds: [targetId],
+			type: `history`,
+		}
+	}
+	return Object.keys(compacted).length === 0 ? undefined : compacted
+}
+
+/** Fold retired register receipts while preserving visible and protected state. */
+export function compactSvgRegisterHistory<Value>(
+	state: SvgRegisterState<Value>,
+	context: {
+		readonly retainedOperationIds: ReadonlySet<string>
+		readonly throughRevision: number
+	},
+): SvgRegisterState<Value> {
+	const active = activeSvgOperations(
+		Object.values(state.operations),
+		Object.values(state.history ?? {}),
+	)
+	const latest = active.reduce<SvgRegisterOperation<Value> | undefined>(
+		(current, operation) =>
+			current === undefined || compareSvgIds(current.id, operation.id) < 0
+				? operation
+				: current,
+		undefined,
+	)
+	const keep = new Set(context.retainedOperationIds)
+	if (latest !== undefined) keep.add(latest.id)
+	const operations = Object.fromEntries(
+		Object.entries(state.operations).filter(([id]) => keep.has(id)),
+	)
+	const history = compactedHistory(
+		state.operations,
+		state.history,
+		context.retainedOperationIds,
+		context.throughRevision,
+	)
+	return {
+		...(history === undefined ? {} : { history }),
+		operations,
+	}
+}
+
+/** Fold retired ordering receipts to one visible decision per resource. */
+export function compactSvgOrderHistory(
+	state: SvgOrderState,
+	context: {
+		readonly retainedOperationIds: ReadonlySet<string>
+		readonly throughRevision: number
+	},
+): SvgOrderState {
+	const keep = new Set(context.retainedOperationIds)
+	for (const operation of latestSvgOrderOperations(state).values()) {
+		keep.add(operation.id)
+	}
+	const operations = Object.fromEntries(
+		Object.entries(state.operations).filter(([id]) => keep.has(id)),
+	)
+	const history = compactedHistory(
+		state.operations,
+		state.history,
+		context.retainedOperationIds,
+		context.throughRevision,
+	)
+	return {
+		...(history === undefined ? {} : { history }),
+		operations,
+	}
 }

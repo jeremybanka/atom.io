@@ -1,5 +1,4 @@
 import type {
-	MosaicDomainHistoryRequest,
 	MosaicTextIndexRange,
 	MosaicTextRelativePosition,
 } from "atom.io/realtime"
@@ -7,8 +6,6 @@ import type {
 export const MARKDOWN_EVENTS = {
 	accepted: `markdown-domain:accepted`,
 	command: `markdown-domain:command`,
-	history: `markdown-domain:history`,
-	historySnapshot: `markdown-domain:history-snapshot`,
 	hydrate: `markdown-domain:hydrate`,
 	materialize: `markdown-domain:materialize`,
 	positionAtOffset: `markdown-domain:position-at-offset`,
@@ -39,7 +36,5 @@ export type MarkdownImportCommand = {
 }
 
 export type MarkdownCommand = MarkdownEditCommand | MarkdownImportCommand
-
-export type MarkdownHistoryCommand = MosaicDomainHistoryRequest
 
 export type MarkdownViewport = MosaicTextIndexRange

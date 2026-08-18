@@ -1,9 +1,9 @@
+import type { MosaicTextIndexRange } from "atom.io/realtime"
 import type {
 	MosaicTextProjectionClient,
 	MosaicTextRangeObserver,
 	MosaicTextRangeProjection,
 } from "atom.io/realtime-client"
-import type { MosaicTextIndexRange } from "atom.io/realtime"
 import { useEffect, useState } from "react"
 
 export type MosaicTextRangeView =

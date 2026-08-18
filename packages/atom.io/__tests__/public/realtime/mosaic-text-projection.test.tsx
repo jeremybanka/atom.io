@@ -176,15 +176,15 @@ async function textFixture(
 	const byId = new Map(bundle.members.map((member) => [member.id, member]))
 	const rootAtom = silo.atom<MosaicTextIndexRoot>({
 		default: structuredClone(bundle.root),
-		key: `${name}:root`,
+		key: `root`,
 	})
 	const indexAtoms = silo.atomFamily<MosaicTextIndexMember, string>({
 		default: (id) => structuredClone(byId.get(id) ?? emptyLeaf(id)),
-		key: `${name}:index`,
+		key: `index`,
 	})
 	const historyAtoms = silo.atomFamily<History, string>({
 		default: {},
-		key: `${name}:history`,
+		key: `history`,
 	})
 	const definition = mosaicDomain({
 		configSchema: z.object({}),

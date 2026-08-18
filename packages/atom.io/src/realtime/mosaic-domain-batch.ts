@@ -1,17 +1,23 @@
-import type { MutableAtomToken, TransactionToken, WritableToken } from "atom.io"
+import type {
+	MutableAtomToken,
+	TransactionCommitEvent,
+	TransactionToken,
+	WritableToken,
+} from "atom.io"
 import type { Json } from "atom.io/foundations/json"
 import {
 	actUponStore,
+	assertTransactionCommitEventOwner,
 	createTransaction,
 	getFromStore,
 	getJsonTokenFromStore,
 	type RootStore,
-	transactionCommitCount,
 } from "atom.io/internal"
 
 import type {
 	AnyMosaicTransceiver,
 	MosaicModelIdentifier,
+	MosaicOperationSignal,
 	MosaicReduceContext,
 	MosaicTransceiverConstructor,
 } from "./mosaic/index.ts"
@@ -35,6 +41,11 @@ export type MosaicDomainValueModel<
 	readonly identity: MosaicModelIdentifier
 	readonly kind: `value`
 	readonly operationSchema: StandardSchemaV1<unknown, Operation>
+	/** Encode one committed ordinary Atom.io state change for this model. */
+	encodeTransaction?(
+		change: MosaicDomainValueTransactionChange<Value>,
+		context: MosaicDomainTransactionEncodeContext,
+	): unknown
 	/** Pure, synchronous reduction used for both preflight and settlement. */
 	reduce(value: Value, operation: Operation, context: MosaicReduceContext): Value
 }
@@ -45,6 +56,23 @@ export type MosaicDomainTransceiverModel<
 	readonly class: MosaicTransceiverConstructor<TransceiverType>
 	readonly kind: `transceiver`
 	readonly operationSchema: StandardSchemaV1<unknown, Json.Serializable>
+	/** Encode one committed transceiver signal for this model. */
+	encodeTransaction?(
+		signal: MosaicOperationSignal,
+		context: MosaicDomainTransactionEncodeContext,
+	): unknown
+}
+
+export type MosaicDomainValueTransactionChange<
+	Value extends Json.Serializable = Json.Serializable,
+> = {
+	readonly newValue: Value
+	readonly oldValue: Value
+}
+
+/** Stable metadata supplied to model-owned transaction encoders. */
+export type MosaicDomainTransactionEncodeContext = MosaicReduceContext & {
+	readonly revision: null
 }
 
 /** A deterministic member model registered directly on a MOS-10 member. */
@@ -562,6 +590,91 @@ export function preflightMosaicDomainBatch<
 	return preflightMosaicDomainBatchWithProjection(domain, batch, options)
 }
 
+/**
+ * Prepare optimism that an authenticated Store commit has already revealed.
+ * The Store-owned event is an unforgeable adoption capability; this function
+ * validates the model reduction against the isolated committed snapshots but
+ * never applies the resulting values a second time.
+ *
+ * @internal Used by the realtime-client transaction bridge.
+ */
+export async function prepareCommittedMosaicDomainBatch<
+	Identity extends MosaicDomainIdentity,
+>(
+	domain: MosaicDomainInstance<Identity, any, any>,
+	batch: MosaicDomainBatchEnvelope<Identity>,
+	commit: TransactionCommitEvent,
+): Promise<PreparedMosaicDomainBatch<Identity>> {
+	assertTransactionCommitEventOwner(domain.store, commit)
+	assertMosaicDomainBatchEnvelope(batch)
+	const previousValues = new Map<string, unknown>()
+	const previousExisting = new Set<string>()
+	const committedValues = new Map<string, Json.Serializable>()
+	const committedExisting = new Set<string>()
+	for (const address of batch.affectedMembers) {
+		const parsed = await domain.parseAddress(address)
+		const acquired = await domain.acquire(parsed)
+		if (parsed.member.role !== `durable` || parsed.member.model === undefined) {
+			throw new Error(
+				`A committed Mosaic Domain snapshot must address a durable modeled member.`,
+			)
+		}
+		const token: WritableToken<any, any, any> =
+			parsed.member.model.kind === `transceiver`
+				? getJsonTokenFromStore(
+						domain.store,
+						acquired.token as MutableAtomToken<AnyMosaicTransceiver>,
+					)
+				: acquired.token
+		const snapshot = commit.snapshots.find(
+			(candidate) => candidate.token.key === acquired.token.key,
+		)
+		if (
+			snapshot === undefined ||
+			!isJsonSerializable(snapshot.oldValue) ||
+			!isJsonSerializable(snapshot.newValue)
+		) {
+			throw new Error(
+				`A committed Mosaic Domain batch is missing an exact serializable member snapshot.`,
+			)
+		}
+		previousValues.set(token.key, structuredClone(snapshot.oldValue))
+		committedValues.set(token.key, structuredClone(snapshot.newValue))
+		if (snapshot.oldExists) previousExisting.add(token.key)
+		if (snapshot.newExists) committedExisting.add(token.key)
+	}
+	const prepared = await preflightMosaicDomainBatchWithProjection(
+		domain,
+		batch,
+		{},
+		previousValues,
+		previousExisting,
+	)
+	const updates = preparedUpdates.get(prepared)
+	if (updates === undefined) {
+		throw new Error(`A committed Mosaic Domain batch lost its prepared values.`)
+	}
+	for (const update of updates) {
+		if (!committedValues.has(update.token.key)) {
+			throw new Error(
+				`A committed Mosaic Domain batch is missing a member snapshot.`,
+			)
+		}
+		const expectedExists = committedExisting.has(update.token.key)
+		const matches =
+			update.nextExists === expectedExists &&
+			canonicalize(update.next as Json.Serializable) ===
+				canonicalize(committedValues.get(update.token.key)!)
+		if (!matches) {
+			throw new Error(
+				`A Mosaic Domain transaction encoder did not reproduce the committed value.`,
+			)
+		}
+	}
+	preparedApplied.set(prepared, true)
+	return prepared
+}
+
 function settleUpdates(
 	store: RootStore,
 	updates: readonly InternalUpdate[],
@@ -587,12 +700,23 @@ function settleUpdates(
 		settlementTransactions.set(store, transaction)
 	}
 	settlements.set(store, { updates, which })
-	const commitsBefore = transactionCommitCount(store)
+	let committed = false
+	const unsubscribe = store.on.transactionCommit.subscribe(
+		`mosaic-domain-settlement:${transactionId}`,
+		(event) => {
+			if (
+				event.outcome.token.key === transaction.key &&
+				event.outcome.id === transactionId
+			) {
+				committed = true
+			}
+		},
+	)
 	try {
 		try {
 			actUponStore(store, transaction, transactionId)()
 		} catch (error) {
-			if (transactionCommitCount(store) === commitsBefore) throw error
+			if (!committed) throw error
 			store.logger.error(
 				`🐞`,
 				`transaction`,
@@ -602,6 +726,7 @@ function settleUpdates(
 			)
 		}
 	} finally {
+		unsubscribe()
 		settlements.delete(store)
 	}
 }

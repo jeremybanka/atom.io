@@ -544,7 +544,7 @@ function packReferenceGroups(
 					? group.id
 					: freshId(
 							`node`,
-							`${level}:${children.map(({ id }) => id).join(`:`)}`,
+							`${level}:${children.map(({ id: childId }) => childId).join(`:`)}`,
 							used,
 						)
 			split.push({ id, references: children })
@@ -596,14 +596,16 @@ function buildNodes(
 	let level = 1
 	while (references.length > 1) {
 		const groups = packReferenceGroups(references, level, previous, limits, used)
-		const levelNodes = groups.map<MosaicTextIndexNode>(({ id, references }) => ({
-			children: references,
-			id,
-			kind: `node`,
-			level,
-			summary: summaryForReferences(references),
-			version: 1,
-		}))
+		const levelNodes = groups.map<MosaicTextIndexNode>(
+			({ id, references: children }) => ({
+				children,
+				id,
+				kind: `node`,
+				level,
+				summary: summaryForReferences(children),
+				version: 1,
+			}),
+		)
 		nodes.push(...levelNodes)
 		references = levelNodes.map(referenceFor)
 		level++
@@ -1155,7 +1157,7 @@ export function mosaicTextIndexSource(
 ): MosaicTextIndexSource {
 	const members = memberMap(bundle)
 	return {
-		read: async (id) => members.get(id),
-		root: async () => bundle.root,
+		read: (id) => Promise.resolve(members.get(id)),
+		root: () => Promise.resolve(bundle.root),
 	}
 }

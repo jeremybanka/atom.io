@@ -65,15 +65,37 @@ export function createMosaicDomainHistorySocketTransport(
 	}
 	const settle = <Value>(
 		pending: Map<string, Pending<Value>>,
-		response: MosaicDomainHistorySocketResponse<Value>,
+		response: unknown,
 	): void => {
-		if (typeof response?.requestId !== `string`) return
-		const request = pending.get(response.requestId)
+		if (typeof response !== `object` || response === null) return
+		const requestId = (response as { readonly requestId?: unknown }).requestId
+		if (typeof requestId !== `string`) return
+		const request = pending.get(requestId)
 		if (request === undefined) return
-		pending.delete(response.requestId)
+		pending.delete(requestId)
 		clearTimeout(request.timer)
-		if (response.ok) request.resolve(response.value)
-		else request.reject(new Error(response.error.reason))
+		const candidate = response as {
+			readonly error?: unknown
+			readonly ok?: unknown
+			readonly value?: unknown
+		}
+		if (candidate.ok === true) {
+			request.resolve(candidate.value as Value)
+			return
+		}
+		if (candidate.ok !== false) {
+			request.reject(new Error(`History socket response is invalid.`))
+			return
+		}
+		const reason = (candidate.error as { readonly reason?: unknown } | undefined)
+			?.reason
+		request.reject(
+			new Error(
+				typeof reason === `string`
+					? reason
+					: `History socket response is invalid.`,
+			),
+		)
 	}
 	const onResponse = (
 		response: MosaicDomainHistorySocketResponse<MosaicDomainHistoryRequestResult>,
@@ -115,9 +137,15 @@ export function createMosaicDomainHistorySocketTransport(
 				requestOptions.pending.delete(requestId)
 				reject(new Error(requestOptions.timeoutMessage))
 			}, requestTimeoutMs)
-			if (`unref` in timer) timer.unref()
+			;(timer as { unref?: () => void }).unref?.()
 			requestOptions.pending.set(requestId, { reject, resolve, timer })
-			socket.emit(requestOptions.event, requestOptions.payload(requestId))
+			try {
+				socket.emit(requestOptions.event, requestOptions.payload(requestId))
+			} catch (error) {
+				clearTimeout(timer)
+				requestOptions.pending.delete(requestId)
+				reject(error)
+			}
 		})
 	}
 	socket.on(MOSAIC_DOMAIN_HISTORY_EVENTS.response, onResponse)

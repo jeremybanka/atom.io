@@ -126,12 +126,15 @@ function residencyTransport(
 				if (incomingId === id) listener(accepted as never)
 			}
 			socket.on(VECTOR_RESIDENCY_EVENTS.accepted, receive)
-			return request<void>(VECTOR_RESIDENCY_EVENTS.subscribe, id, requests).then(
-				() => () => {
+			return request<void>(VECTOR_RESIDENCY_EVENTS.subscribe, id, requests)
+				.then(() => () => {
 					socket.off(VECTOR_RESIDENCY_EVENTS.accepted, receive)
 					socket.emit(VECTOR_RESIDENCY_EVENTS.unsubscribe, id)
-				},
-			)
+				})
+				.catch((error: unknown) => {
+					socket.off(VECTOR_RESIDENCY_EVENTS.accepted, receive)
+					throw error
+				})
 		},
 	}
 }
@@ -175,14 +178,15 @@ export async function createVectorCollaborationClient(options: {
 	)
 	const history = createMosaicDomainHistoryClient({
 		actor: options.identity.id,
-		onObserverError: (error) =>
+		onObserverError: (error) => {
 			domain.store.logger.error(
 				`🐞`,
 				`unknown`,
 				options.sessionId,
 				`A Mosaic Domain history client listener threw.`,
 				error,
-			),
+			)
+		},
 		session: options.sessionId,
 		transport: historyTransport,
 	})
@@ -294,7 +298,7 @@ export async function createVectorCollaborationClient(options: {
 			history[Symbol.dispose]()
 			historyTransport[Symbol.dispose]()
 			batch[Symbol.dispose]()
-			void residency.dispose()
+			void residency.dispose().catch(() => undefined)
 			domain[Symbol.dispose]()
 			listeners.clear()
 		},

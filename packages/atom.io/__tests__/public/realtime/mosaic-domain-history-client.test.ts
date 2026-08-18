@@ -45,14 +45,23 @@ const snapshot = (options: {
 function fakeSocket() {
 	const listeners = new Map<string, Set<(payload: any) => void>>()
 	const emitted: Array<{ readonly event: string; readonly payload: any }> = []
+	let emitError: Error | undefined
 	return {
 		dispatch(event: string, payload?: any) {
 			for (const listener of listeners.get(event) ?? []) listener(payload)
 		},
 		emitted,
+		failNextEmit(error: Error) {
+			emitError = error
+		},
 		listeners,
 		socket: {
 			emit(event: string, payload: any) {
+				if (emitError !== undefined) {
+					const error = emitError
+					emitError = undefined
+					throw error
+				}
 				emitted.push({ event, payload })
 			},
 			off(event: string, listener?: (payload: any) => void) {
@@ -263,6 +272,27 @@ describe(`Mosaic Domain history client`, () => {
 })
 
 describe(`Mosaic Domain history socket transport`, () => {
+	test(`generates default request IDs and accepts browser numeric timers`, async () => {
+		const timer = vi
+			.spyOn(globalThis, `setTimeout`)
+			.mockImplementationOnce((() => 1) as unknown as typeof setTimeout)
+		try {
+			const wire = fakeSocket()
+			const transport = createMosaicDomainHistorySocketTransport(wire.socket)
+			const pending = transport.snapshot()
+			expect(wire.emitted[0]?.payload.requestId).toBe(`history-socket:1`)
+			wire.dispatch(MOSAIC_DOMAIN_HISTORY_EVENTS.snapshotResponse, {
+				ok: true,
+				requestId: `history-socket:1`,
+				value: snapshot({ revision: 1, sequence: 0 }),
+			})
+			await expect(pending).resolves.toMatchObject({ sessionSequence: 0 })
+			transport[Symbol.dispose]()
+		} finally {
+			timer.mockRestore()
+		}
+	})
+
 	test(`settles typed request and snapshot acknowledgements`, async () => {
 		const wire = fakeSocket()
 		let id = 0
@@ -335,6 +365,19 @@ describe(`Mosaic Domain history socket transport`, () => {
 			wire.dispatch(`disconnect`)
 			await disconnected
 
+			const duplicateWire = fakeSocket()
+			const duplicateTransport = createMosaicDomainHistorySocketTransport(
+				duplicateWire.socket,
+				{ idSource: () => `duplicate`, maxPendingRequests: 2 },
+			)
+			const duplicatePending = duplicateTransport.snapshot()
+			await expect(duplicateTransport.snapshot()).rejects.toThrow(
+				`unique and nonempty`,
+			)
+			duplicateWire.dispatch(`disconnect`)
+			await expect(duplicatePending).rejects.toThrow(`disconnected`)
+			duplicateTransport[Symbol.dispose]()
+
 			const timed = transport.snapshot()
 			const timeout = expect(timed).rejects.toThrow(`timed out`)
 			await vi.advanceTimersByTimeAsync(10)
@@ -351,6 +394,35 @@ describe(`Mosaic Domain history socket transport`, () => {
 		} finally {
 			vi.useRealTimers()
 		}
+	})
+
+	test(`cleans up malformed acknowledgements and synchronous emit failures`, async () => {
+		const wire = fakeSocket()
+		const transport = createMosaicDomainHistorySocketTransport(wire.socket, {
+			idSource: () => `reused-after-settlement`,
+			maxPendingRequests: 1,
+		})
+		wire.failNextEmit(new Error(`wire failure`))
+		await expect(transport.snapshot()).rejects.toThrow(`wire failure`)
+
+		const malformed = transport.snapshot()
+		wire.dispatch(MOSAIC_DOMAIN_HISTORY_EVENTS.snapshotResponse, {
+			ok: true,
+			requestId: 42,
+			value: snapshot({ revision: 1, sequence: 0 }),
+		})
+		wire.dispatch(MOSAIC_DOMAIN_HISTORY_EVENTS.snapshotResponse, {
+			ok: false,
+			requestId: `reused-after-settlement`,
+		})
+		await expect(malformed).rejects.toThrow(`response is invalid`)
+
+		const malformedStatus = transport.snapshot()
+		wire.dispatch(MOSAIC_DOMAIN_HISTORY_EVENTS.snapshotResponse, {
+			requestId: `reused-after-settlement`,
+		})
+		await expect(malformedStatus).rejects.toThrow(`response is invalid`)
+		transport[Symbol.dispose]()
 	})
 })
 

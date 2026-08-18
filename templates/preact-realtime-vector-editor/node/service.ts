@@ -126,18 +126,23 @@ export async function createVectorCollaborationService(
 		respond: (acknowledgement: VectorAcknowledgement<Value>) => void,
 	): void => {
 		void work.then(
-			(value) => respond({ ok: true, value }),
-			(error: unknown) =>
+			(value) => {
+				respond({ ok: true, value })
+			},
+			(error: unknown) => {
 				respond({
 					ok: false,
 					reason: error instanceof Error ? error.message : String(error),
-				}),
+				})
+			},
 		)
 	}
 
 	return {
-		async bindSocket({ actor, session, socket }) {
-			if (disposed) throw new Error(`The vector service is disposed.`)
+		bindSocket({ actor, session, socket }) {
+			if (disposed) {
+				return Promise.reject(new Error(`The vector service is disposed.`))
+			}
 			const batch = batchServer.connect({ actor, session })
 			const presence = presenceServer.connect({ actor, session })
 			const residency = residencyServer.connect({ actor, session })
@@ -238,7 +243,7 @@ export async function createVectorCollaborationService(
 				socket.off(VECTOR_RESIDENCY_EVENTS.propose, onResidencyPropose)
 				socket.off(VECTOR_RESIDENCY_EVENTS.subscribe, onResidencySubscribe)
 				socket.off(VECTOR_RESIDENCY_EVENTS.unsubscribe, onResidencyUnsubscribe)
-				residency.dispose?.()
+				await Promise.resolve(residency.dispose?.()).catch(() => undefined)
 				unbindHistory()
 				await unbindPresence()
 				cleanups.delete(cleanup)
@@ -248,7 +253,7 @@ export async function createVectorCollaborationService(
 			}
 			socket.on(`disconnect`, onDisconnect)
 			cleanups.add(cleanup)
-			return cleanup
+			return Promise.resolve(cleanup)
 		},
 		checkpoints: {
 			checkpoint: () => exclusively(() => checkpoints.checkpoint()),

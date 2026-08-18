@@ -175,6 +175,7 @@ type RangeRecord<Identity extends MosaicDomainIdentity> = {
 	membership: RegularAtomToken<number>
 	observers: Set<(projection: MosaicTextRangeProjection) => void>
 	projection: MosaicTextRangeProjection | null
+	released: boolean
 	readonly range: MosaicTextIndexRange
 	refresh: Promise<void>
 	references: number
@@ -485,6 +486,10 @@ export function createMosaicTextProjectionClient<
 		rootActivation ??= options.residency
 			.acquire(options.rootAddress)
 			.then((lease) => {
+				if (disposed) {
+					lease.release()
+					throw new Error(`This Mosaic text projection client is disposed.`)
+				}
 				rootLease = lease
 				rootToken = lease.token
 			})
@@ -499,6 +504,8 @@ export function createMosaicTextProjectionClient<
 
 	const readRoot = async (): Promise<MosaicTextIndexRoot> => {
 		await ensureRoot()
+		if (disposed)
+			throw new Error(`This Mosaic text projection client is disposed.`)
 		return assertRoot(getFromStore(requireStore(), rootToken!))
 	}
 
@@ -506,6 +513,8 @@ export function createMosaicTextProjectionClient<
 		ReadonlyPureSelectorToken<number>
 	> => {
 		await ensureRoot()
+		if (disposed)
+			throw new Error(`This Mosaic text projection client is disposed.`)
 		if (lengthToken !== null) return lengthToken
 		getFromStore(requireStore(), lengthFamily, `length`)
 		lengthToken = findInStore(requireStore(), lengthFamily, `length`)
@@ -586,6 +595,7 @@ export function createMosaicTextProjectionClient<
 			projection: null,
 			range,
 			refresh: Promise.resolve(),
+			released: false,
 			references: 0,
 			selector:
 				null as unknown as ReadonlyPureSelectorToken<MosaicTextRangeProjection>,
@@ -639,11 +649,18 @@ export function createMosaicTextProjectionClient<
 					})
 			},
 		)
+		if (record.released || disposed) {
+			await subscription.release()
+			throw new Error(`This Mosaic text projection client is disposed.`)
+		}
 		record.subscription = subscription
 		if (subscription.addresses.length > 0) {
 			await updateLookup(record)
 		}
 		await refreshRecord(record)
+		if (record.released || disposed) {
+			throw new Error(`This Mosaic text projection client is disposed.`)
+		}
 		const publish = (projection: MosaicTextRangeProjection): void => {
 			record.projection = projection
 			for (const observer of record.observers) {
@@ -675,6 +692,8 @@ export function createMosaicTextProjectionClient<
 			notifyState()
 			return
 		}
+		if (record.released) return
+		record.released = true
 		const key = recordKey(record.range)
 		records.delete(key)
 		notifyState()
@@ -706,6 +725,8 @@ export function createMosaicTextProjectionClient<
 			throw new Error(`This Mosaic text projection client is disposed.`)
 		await ensureRoot()
 		const normalized = await canonicalRange(range, acquisition)
+		if (disposed)
+			throw new Error(`This Mosaic text projection client is disposed.`)
 		const key = recordKey(normalized)
 		await closures.get(key)
 		let record = records.get(key)
@@ -848,7 +869,11 @@ export function createMosaicTextProjectionClient<
 		},
 		async observeRange(range, listener, acquisition) {
 			const lease = await acquireRange(range, acquisition)
-			const record = records.get(recordKey(lease.range))!
+			const record = records.get(recordKey(lease.range))
+			if (record === undefined || !lease.active) {
+				await lease.release()
+				throw new Error(`This Mosaic text projection client is disposed.`)
+			}
 			let active = true
 			record.observers.add(listener)
 			observerCount++

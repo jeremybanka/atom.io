@@ -739,6 +739,64 @@ describe(`Mosaic text range projections`, () => {
 			`cleanup did not complete`,
 		)
 
+		const gate = () => {
+			let open!: () => void
+			const promise = new Promise<void>((resolve) => {
+				open = resolve
+			})
+			return { open, promise }
+		}
+		const baselineRequests = reader.residency.state.requestedMemberCount
+		const rootGate = gate()
+		const rootStarted = gate()
+		const slowRoot = createMosaicTextProjectionClient({
+			...reader.projectionOptions,
+			domainKey: `slow-root`,
+			residency: {
+				...reader.residency,
+				async acquire(address) {
+					rootStarted.open()
+					await rootGate.promise
+					return reader.residency.acquire(address)
+				},
+			},
+		})
+		const pendingRoot = slowRoot.readLength()
+		await rootStarted.promise
+		await slowRoot.dispose()
+		rootGate.open()
+		await expect(pendingRoot).rejects.toThrow(`disposed`)
+		await eventually(
+			() => reader.residency.state.requestedMemberCount === baselineRequests,
+		)
+
+		const rangeGate = gate()
+		const rangeStarted = gate()
+		const slowRange = createMosaicTextProjectionClient({
+			...reader.projectionOptions,
+			domainKey: `slow-range`,
+			residency: {
+				...reader.residency,
+				async subscribe(selection, listener) {
+					rangeStarted.open()
+					await rangeGate.promise
+					return reader.residency.subscribe(selection, listener)
+				},
+			},
+		})
+		const pendingRange = slowRange.acquireRange({
+			end: 1,
+			kind: `utf16-range`,
+			start: 0,
+		})
+		await rangeStarted.promise
+		await slowRange.dispose()
+		rangeGate.open()
+		await expect(pendingRange).rejects.toThrow(`disposed`)
+		await eventually(
+			() => reader.residency.state.requestedMemberCount === baselineRequests,
+		)
+
 		const update = maintainMosaicTextIndex(
 			system.current.bundle,
 			[fragment(`Z${materializeBundle(system.current.bundle).slice(1)}`)],

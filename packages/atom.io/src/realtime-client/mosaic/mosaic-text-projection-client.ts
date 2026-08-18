@@ -1027,8 +1027,6 @@ export function createMosaicTextProjectionClient<
 			if (offset > length) {
 				throw new RangeError(`Mosaic text offset is outside the document.`)
 			}
-			const refreshedResident = residentPositionAtOffset(offset)
-			if (refreshedResident !== null) return refreshedResident
 			return (await options.positionAtOffset(offset)).position
 		},
 		async readLength() {

@@ -3,7 +3,9 @@ import { getState, setState } from "atom.io"
 import type { Json } from "atom.io/foundations/json"
 import {
 	mosaicDomain,
+	type MosaicDomainHistoryRequestResult,
 	type MosaicDomainMemberAddress,
+	type MosaicDomainMemberHistoryPolicy,
 	type MosaicDomainValueModel,
 } from "atom.io/realtime"
 import type {
@@ -18,6 +20,7 @@ import {
 	placeSvgOrderEntry,
 	readSvgRegister,
 	removeSvgOrderEntry,
+	type SvgHistoryOperation,
 	type SvgOrderOperation,
 	type SvgOrderState,
 	type SvgRegisterOperation,
@@ -32,25 +35,25 @@ import {
 	pathDrawSelectors,
 	pathOrderAtom,
 	pointerCaptureAtom,
+	type PointXY,
 	projectedEdgeSelectors,
 	projectedNodeSelectors,
 	structureViolationsSelector,
 	subpathAtoms,
 	subpathOrderAtoms,
-	svgDragPresenceKey,
-	svgElementAtom,
-	svgOperationId,
 	SVG_MEMBER_MODEL_SEAMS,
+	type SvgCollaborationPresence,
+	type SvgDragPresence,
+	svgDragPresenceKey,
+	type SvgDragTarget,
+	type SvgDrawingFixture,
+	type SvgEdge,
+	svgElementAtom,
+	type SvgGesture,
+	svgOperationId,
+	type SvgSubpath,
 	viewportAtom,
 	workspaceAtom,
-	type PointXY,
-	type SvgCollaborationPresence,
-	type SvgDrawingFixture,
-	type SvgDragPresence,
-	type SvgDragTarget,
-	type SvgEdge,
-	type SvgGesture,
-	type SvgSubpath,
 } from "./svg-editor-state.ts"
 
 const keySchema = z.string().min(1)
@@ -99,7 +102,8 @@ type SvgReceiptState = {
 
 type AuthoredSvgOperation = {
 	readonly actor?: string | undefined
-	readonly undoTargets?: readonly string[] | undefined
+	readonly targetOperationIds?: readonly string[] | undefined
+	readonly type?: string | undefined
 }
 
 const valueModel = <
@@ -107,6 +111,7 @@ const valueModel = <
 	Operation extends AuthoredSvgOperation,
 >(seam: {
 	readonly identity: { readonly key: string; readonly version: number }
+	readonly history: object
 	readonly kind: `value`
 	readonly operationSchema: z.ZodType<Operation>
 	readonly reduce: (value: Value, operation: Operation) => Value
@@ -114,6 +119,10 @@ const valueModel = <
 	Value & Json.Serializable,
 	Operation & Json.Serializable
 > => ({
+	history: seam.history as MosaicDomainMemberHistoryPolicy<
+		Value & Json.Serializable,
+		Operation & Json.Serializable
+	>,
 	identity: seam.identity,
 	kind: `value`,
 	operationSchema: seam.operationSchema as z.ZodType<
@@ -125,8 +134,8 @@ const valueModel = <
 				`An SVG member operation must name its authenticated actor.`,
 			)
 		}
-		if (operation.undoTargets !== undefined) {
-			for (const target of operation.undoTargets) {
+		if (operation.targetOperationIds !== undefined) {
+			for (const target of operation.targetOperationIds) {
 				if (value.operations[target]?.actor !== context.actor) {
 					throw new Error(
 						`An SVG compensation can target only the authenticated actor's operations.`,
@@ -214,7 +223,7 @@ export const svgDesignDomain = mosaicDomain({
 		viewport: { role: `local`, token: viewportAtom },
 		workspace: { role: `local`, token: workspaceAtom },
 	},
-	version: 1,
+	version: 2,
 })
 
 /** Install the ordinary template tokens before activating in an isolated Silo. */
@@ -267,14 +276,10 @@ const implicitState: SvgDomainState = {
 type Planned = {
 	readonly address: MosaicDomainMemberAddress
 	readonly id: string
-	readonly operation: SvgOrderOperation | SvgRegisterOperation<any>
-}
-
-type HistoryEntry = {
-	compensations?: readonly Planned[]
-	readonly gesture: SvgGesture
-	readonly operations: readonly Planned[]
-	undone: boolean
+	readonly operation:
+		| SvgHistoryOperation
+		| SvgOrderOperation
+		| SvgRegisterOperation<any>
 }
 
 export type SvgDomainEditor = {
@@ -364,11 +369,14 @@ function assertClosePair(edge: SvgEdge, node: PointXY | null): void {
 export function createSvgDomainEditor(options: {
 	readonly batch: MosaicDomainBatchClient
 	readonly domain: SvgDesignDomain
+	readonly history?: {
+		redo(): Promise<MosaicDomainHistoryRequestResult>
+		undo(): Promise<MosaicDomainHistoryRequestResult>
+	}
 	readonly presence?: MosaicDomainPresenceClient
 	readonly state?: SvgDomainState
 }): SvgDomainEditor {
 	const state = options.state ?? implicitState
-	const history: HistoryEntry[] = []
 	const sharePresence = async (
 		work: Promise<void> | undefined,
 	): Promise<void> => {
@@ -385,7 +393,6 @@ export function createSvgDomainEditor(options: {
 	const submit = async (
 		gesture: SvgGesture,
 		operations: readonly Planned[],
-		record = true,
 	): Promise<void> => {
 		const authored = operations.map((planned) => ({
 			...planned,
@@ -400,11 +407,6 @@ export function createSvgDomainEditor(options: {
 				options.batch.state.problem?.reason ??
 					`The SVG Domain batch was rejected.`,
 			)
-		}
-		if (record) {
-			const firstUndone = history.findIndex((entry) => entry.undone)
-			if (firstUndone !== -1) history.splice(firstUndone)
-			history.push({ gesture, operations: authored, undone: false })
 		}
 	}
 	const orderPlacement = (
@@ -706,18 +708,11 @@ export function createSvgDomainEditor(options: {
 			])
 		},
 		async redo(gesture) {
-			const target = history.find((entry) => entry.undone)
-			if (target?.compensations === undefined) return false
-			const operations = target.compensations.map((compensation, ordinal) =>
-				op(compensation.address, {
-					...structuredClone(compensation.operation),
-					id: svgOperationId(gesture, ordinal),
-					undoTargets: [compensation.id],
-				}),
-			)
-			await submit(gesture, operations, false)
-			target.undone = false
-			return true
+			void gesture
+			if (options.history === undefined) return false
+			const result = await options.history.redo()
+			if (result.status === `rejected`) throw new Error(result.reason)
+			return result.status === `accepted`
 		},
 		async reorderSubpath(input) {
 			const subpath = readSvgRegister<SvgSubpath | null>(
@@ -918,21 +913,11 @@ export function createSvgDomainEditor(options: {
 			])
 		},
 		async undo(gesture) {
-			const target = history.findLast((entry) => !entry.undone)
-			if (target === undefined) return false
-			const operations = target.operations.map((original, ordinal) => {
-				const previous = original.operation
-				const operation = {
-					...structuredClone(previous),
-					id: svgOperationId(gesture, ordinal),
-					undoTargets: [previous.id],
-				}
-				return op(original.address, operation)
-			})
-			await submit(gesture, operations, false)
-			target.compensations = operations
-			target.undone = true
-			return true
+			void gesture
+			if (options.history === undefined) return false
+			const result = await options.history.undo()
+			if (result.status === `rejected`) throw new Error(result.reason)
+			return result.status === `accepted`
 		},
 	}
 	return editor

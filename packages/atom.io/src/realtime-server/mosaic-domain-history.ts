@@ -364,6 +364,7 @@ function stateFromCheckpoint<Identity extends MosaicDomainIdentity>(
 function snapshotFor<Identity extends MosaicDomainIdentity>(
 	state: HistoryState<Identity>,
 	actor: string,
+	session: string,
 ): MosaicDomainHistorySnapshot {
 	const history = state.actors.get(actor)
 	const undo = history?.undo ?? []
@@ -389,6 +390,8 @@ function snapshotFor<Identity extends MosaicDomainIdentity>(
 			truncatedBeforeRevision,
 			undoSteps: undo.length,
 		},
+		sessionSequence:
+			state.sessions.get(canonicalize([actor, session]))?.sequence ?? 0,
 	}
 }
 
@@ -750,7 +753,7 @@ export function createMosaicDomainHistoryCoordinator<
 				return {
 					reason: `A Mosaic Domain history request is invalid.`,
 					recovery: `history-resnapshot`,
-					snapshot: snapshotFor(state, actor),
+					snapshot: snapshotFor(state, actor, session),
 					status: `rejected`,
 				}
 			}
@@ -764,7 +767,7 @@ export function createMosaicDomainHistoryCoordinator<
 					: {
 							reason: `A Mosaic Domain history sequence was reused with different content.`,
 							recovery: `domain-resnapshot`,
-							snapshot: snapshotFor(state, actor),
+							snapshot: snapshotFor(state, actor, session),
 							status: `rejected`,
 						}
 			}
@@ -775,7 +778,7 @@ export function createMosaicDomainHistoryCoordinator<
 				return {
 					reason: `The Mosaic Domain history session capacity is full.`,
 					recovery: `retry`,
-					snapshot: snapshotFor(state, actor),
+					snapshot: snapshotFor(state, actor, session),
 					status: `rejected`,
 				}
 			}
@@ -784,7 +787,7 @@ export function createMosaicDomainHistoryCoordinator<
 				return {
 					reason: `The Mosaic Domain history request is older than the retained receipt window.`,
 					recovery: `history-resnapshot`,
-					snapshot: snapshotFor(state, actor),
+					snapshot: snapshotFor(state, actor, session),
 					status: `rejected`,
 				}
 			}
@@ -792,11 +795,11 @@ export function createMosaicDomainHistoryCoordinator<
 				return {
 					reason: `The Mosaic Domain history request sequence has a gap.`,
 					recovery: `retry`,
-					snapshot: snapshotFor(state, actor),
+					snapshot: snapshotFor(state, actor, session),
 					status: `rejected`,
 				}
 			}
-			const current = snapshotFor(state, actor)
+			const current = snapshotFor(state, actor, session)
 			if (!sameCursor(received.cursor, current.cursor)) {
 				const minimumRecoveryRevision =
 					(await options.minimumRecoveryRevision?.()) ?? 0
@@ -962,23 +965,23 @@ export function createMosaicDomainHistoryCoordinator<
 						accepted.rejection.recovery === `retry`
 							? `retry`
 							: `domain-resnapshot`,
-					snapshot: snapshotFor(state, actor),
+					snapshot: snapshotFor(state, actor, session),
 					status: `rejected`,
 				}
 			}
 			await applyAccepted(
 				accepted.accepted as MosaicAcceptedDomainBatchEnvelope<Identity>,
 			)
-			const result: MosaicDomainHistoryRequestResult = {
-				acceptedRevision: accepted.accepted.revision,
-				snapshot: snapshotFor(state, actor),
-				status: `accepted`,
-			}
 			state.sessions.set(sessionKey, {
 				actor,
 				sequence: received.sequence,
 				session,
 			})
+			const result: MosaicDomainHistoryRequestResult = {
+				acceptedRevision: accepted.accepted.revision,
+				snapshot: snapshotFor(state, actor, session),
+				status: `accepted`,
+			}
 			rememberCheckpointRaceSnapshot()
 			recentRequests.set(receiptKey, { fingerprint, result: clone(result) })
 			while (recentRequests.size > limits.maxRecentRequests) {
@@ -1009,7 +1012,7 @@ export function createMosaicDomainHistoryCoordinator<
 						throw new Error(`This Domain history connection is closed.`)
 					await ready
 					await tail
-					return snapshotFor(state, actor)
+					return snapshotFor(state, actor, session)
 				},
 				[Symbol.dispose]() {
 					closed = true

@@ -454,6 +454,110 @@ Applications register presence, annotation, outbox, and proposal references
 through the protection API shown above, then release each protection with its
 owner's lifecycle.
 
+## Cross-vertical conformance
+
+Long-form text and vector design are two verticals over one Mosaic Domain
+architecture, not two coordination systems with similar names. Their Domain
+definitions and member-model identities are intentionally different. What they
+share is the contract for identity and addressing, atomic batches, partial
+residency, checkpoints and recovery, actor-selective history, ephemeral
+presence, and projection through an ordinary Store.
+
+The public conformance runner fixes one sequence of duplicate, delayed,
+reordered, rejected, disconnected, restarted, and resnapshot scenarios. A
+vertical adapter translates those scenarios into its own operation language and
+reports evidence back in the common vocabulary. The runner then checks atomic
+selector settlement, convergence, actor-safe compensation, disjoint partial
+residency, presence cleanup, and recovery. This lets a new vertical prove the
+same guarantees without teaching the runner what a text run or vector point is.
+
+<Exhibit src="realtime/conform-text-and-design-domains.ts" />
+
+The stable conformance seams and measurements are:
+
+<table-wrapper>
+  <table>
+    <thead>
+      <tr>
+        <th>Seam</th>
+        <th>Shared evidence</th>
+        <th>Instrumentation</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Identity and addressing</td>
+        <td>Distinct representative addresses resolve to the declared Domain instance.</td>
+        <td>Address and definition validation failures.</td>
+      </tr>
+      <tr>
+        <td>Batch settlement</td>
+        <td>One logical gesture changes several model elements at one Domain revision without a partial selector frame.</td>
+        <td>Delivered payloads and selector invalidations.</td>
+      </tr>
+      <tr>
+        <td>Residency</td>
+        <td>Two clients can hold disjoint, incomplete working sets without eagerly loading the Domain.</td>
+        <td>Resident member count and estimated resident bytes where the adapter exposes them.</td>
+      </tr>
+      <tr>
+        <td>Checkpoint and recovery</td>
+        <td>Restart and resnapshot converge on the authoritative projection.</td>
+        <td>Checkpoint writes, persisted objects, and persisted bytes.</td>
+      </tr>
+      <tr>
+        <td>History</td>
+        <td>Undo and redo restore the actor's projection without stamping over a foreign gesture.</td>
+        <td>Retained gestures, operations, protections, and session watermarks.</td>
+      </tr>
+      <tr>
+        <td>Presence</td>
+        <td>Disconnect cleanup removes the departed actor without changing durable state.</td>
+        <td>Live actor-sessions and cleanup events.</td>
+      </tr>
+    </tbody>
+  </table>
+</table-wrapper>
+
+These counters describe comparable kinds of work, not universal performance
+budgets. A text range and a vector resource closure can contain very different
+amounts of model data. Each vertical therefore publishes its own scale
+thresholds while retaining the same monotonic counter meanings and correctness
+schedule.
+
+The generic layer owns coordination, but the member model still owns meaning.
+Text decides how logical positions, run operations, bounded indexes, history
+compensation, and compaction work. Vector design decides how paths, points,
+ordering, geometry, resource closures, compensation, and compaction work. A
+residency adapter decides how a model-specific range or viewport resolves to
+member addresses. Renderer-neutral projections decide how those members become
+application views. None of those policies belongs in a generic Domain branch.
+
+This boundary also separates the three realtime paradigms. The rigid paradigm
+proxies deliberately constrained state with push and pull. Atomic Mosaic gives
+one replicated value an operation language and convergence policy. Mosaic
+Domains compose ordinary atomic state into application-scale gestures,
+residency, recovery, history, and presence. A Domain may use atomic Mosaic
+members, but does not replace their model-owned semantics.
+
+### Durability is a host responsibility
+
+The example applications use process-local, in-memory storage so their
+collaboration behavior is easy to run and test. They can demonstrate client
+disconnects, coordinator replacement, and restart over a retained fixture, but
+they do not promise recovery after the demo process, container, or host loses
+its memory. A checkpoint coordinator defines a safe persistence protocol; it
+does not make an in-memory storage adapter durable.
+
+A production host must supply durable batch, checkpoint-object, root,
+history-index, receipt, session-watermark, and retention-lease storage with the
+required atomic comparisons. It also owns authentication, authorization,
+backups, retention policy, deployment fencing, and schema migration. Product
+integration must test cold-process recovery against that adapter. Changing a
+member operation language, compensation rule, address interpretation, or other
+replicated behavior requires a new model or Domain version and an explicit
+migration policy.
+
 ## Bounded text projections
 
 The Store-owned text projection client turns bounded index and residency

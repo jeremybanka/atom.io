@@ -40,6 +40,7 @@ const accepted = (
 			operation: { type: `set` },
 		})),
 		protocolVersion: MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
+		sequence: revision,
 		session: `session`,
 	},
 	revision,

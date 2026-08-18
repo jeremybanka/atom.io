@@ -14,6 +14,7 @@ import {
 	MosaicTextIndexRangeRecoveryError,
 	type MosaicTextIndexRoot,
 	mosaicTextIndexSource,
+	splitMosaicText,
 } from "atom.io/realtime"
 import * as RTT from "atom.io/realtime-testing/headless"
 import { z } from "zod"
@@ -47,6 +48,91 @@ const membersOf = <Kind extends MosaicTextIndexMember[`kind`]>(
 	)
 
 describe(`Mosaic bounded text index`, () => {
+	test(`streams large leaf composition without document-sized unit arrays`, () => {
+		const runs = Array.from({ length: 18 }, (_, index) =>
+			fragment(`x`.repeat(65_536), `run:${index}`),
+		)
+		const options = {
+			...compact,
+			maximumChildrenPerNode: 32,
+			maximumFragmentsPerLeaf: 8,
+			maximumLeafGraphemes: 65_536,
+			maximumLeafUtf16Units: 65_536,
+			minimumChildrenPerNode: 8,
+			minimumLeafGraphemes: 16_384,
+			targetChildrenPerNode: 16,
+			targetLeafGraphemes: 32_768,
+		}
+		const before = createMosaicTextIndex(runs, options)
+		expect(before.root.reference?.summary.utf16Units).toBe(1_179_648)
+		const after = maintainMosaicTextIndex(
+			before,
+			[...runs.slice(0, 9), fragment(`insert`, `foreign`), ...runs.slice(9)],
+			options,
+		)
+		expect(after.index.root.reference?.summary.utf16Units).toBe(1_179_654)
+		expect(after.counters.leavesWritten).toBeLessThan(4)
+		expect(after.counters.nodesWritten).toBeLessThan(8)
+	})
+
+	test(`keeps the streaming grapheme fast path Unicode-equivalent`, () => {
+		const source = `ASCII\r\nCafe\u0301 👨‍👩‍👧‍👦 العربية 中文 Z`
+		const expected = Array.from(
+			new Intl.Segmenter(undefined, { granularity: `grapheme` }).segment(source),
+			({ segment }) => segment,
+		)
+		expect(splitMosaicText(source)).toEqual(expected)
+		expect(
+			createMosaicTextIndex([fragment(source)], compact).root.reference?.summary
+				.graphemes,
+		).toBe(expected.length)
+	})
+
+	test(`prepares a logical selection edit without mutating the source`, () => {
+		const Text = mosaicText({ maximumRunGraphemes: 4 })
+		const text = new Text()
+		text.change(
+			{ text: `A👩🏽‍💻BC`, type: `replace-text` },
+			{
+				actor: `seed`,
+				dependencies: [],
+				group: `seed`,
+				id: `seed`,
+				now: 0,
+				revision: null,
+				session: `seed`,
+			},
+		)
+		const signal = text.prepare(
+			{
+				selection: {
+					anchor: text.positionAtOffset(8),
+					head: text.positionAtOffset(9),
+				},
+				text: `X`,
+				type: `replace-selection`,
+			},
+			{
+				actor: `ada`,
+				dependencies: [`seed`],
+				group: `ada:replace`,
+				id: `ada:replace`,
+				now: 1,
+				revision: null,
+				session: `ada`,
+			},
+		)!
+		expect(text.text).toBe(`A👩🏽‍💻BC`)
+		expect(
+			text
+				.preview(signal)
+				.map(({ text: value }) => value)
+				.join(``),
+		).toBe(`A👩🏽‍💻XC`)
+		text.do(signal)
+		expect(text.text).toBe(`A👩🏽‍💻XC`)
+	})
+
 	test(`stores bounded leaves and bounded-fanout nodes without a flat root`, () => {
 		const singleLine = `x`.repeat(80)
 		const fenced = `\n\`\`\`ts\n${`const value = 1\n`.repeat(8)}\`\`\`\n`
@@ -502,6 +588,13 @@ describe(`Mosaic bounded text index`, () => {
 		).toThrow(`grapheme`)
 
 		const index = createMosaicTextIndex([fragment(`abcd`)], compact)
+		expect(() =>
+			maintainMosaicTextIndex(
+				index,
+				[{ runId: `run`, start: 0, text: `` }, fragment(`abcd`)],
+				compact,
+			),
+		).toThrow(`Invalid Mosaic text index fragment`)
 		const reader = createMosaicTextIndexReader(mosaicTextIndexSource(index))
 		await expect(reader.positionAtOffset(4)).resolves.toMatchObject({
 			globalUtf16: 4,

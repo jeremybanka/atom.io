@@ -8,6 +8,7 @@ import {
 	MOSAIC_DOMAIN_HISTORY_PROTOCOL_VERSION,
 	type MosaicAcceptedDomainBatchEnvelope,
 	type MosaicDomainActorHistory,
+	type MosaicDomainBatchMemberOperation,
 	type MosaicDomainHistoryCheckpoint,
 	type MosaicDomainHistoryCursor,
 	type MosaicDomainHistoryGesture,
@@ -88,6 +89,26 @@ export type MosaicDomainHistoryCoordinatorOptions<
 > = {
 	readonly batches: MosaicDomainBatchServer
 	readonly checkpoint?: Pick<MosaicDomainCheckpointCoordinator, `readIndex`>
+	/**
+	 * Complete a model compensation with derived, history-free maintenance in the
+	 * same authoritative batch. This is intended for durable indexes and other
+	 * projections whose values must describe the compensated model at every
+	 * observable Domain revision.
+	 */
+	readonly completeCompensation?: (context: {
+		readonly actor: string
+		readonly batchId: string
+		readonly gesture: MosaicDomainHistoryGesture<Identity>
+		readonly mode: `redo` | `undo`
+		readonly operations: readonly MosaicDomainBatchMemberOperation<Identity>[]
+		readonly requestId: string
+		readonly session: string
+	}) => MaybePromise<
+		readonly {
+			readonly address: MosaicDomainMemberAddress<Identity>
+			readonly operation: Json.Serializable
+		}[]
+	>
 	readonly domain: MosaicDomainInstance<Identity, any, any>
 	readonly limits?: Partial<MosaicDomainHistoryLimits>
 	readonly minimumRecoveryRevision?: () => MaybePromise<number>
@@ -813,7 +834,7 @@ export function createMosaicDomainHistoryCoordinator<
 			const historyBatchId = `history:${createHash(`sha256`)
 				.update(canonicalize([actor, session, received.id, received.sequence]))
 				.digest(`hex`)}`
-			const operations = []
+			const operations: MosaicDomainBatchMemberOperation<Identity>[] = []
 			let ordinal = 0
 			for (const targets of byAddress.values()) {
 				const parsed = await options.domain.parseAddress(targets[0].address)
@@ -838,6 +859,32 @@ export function createMosaicDomainHistoryCoordinator<
 					}),
 				})
 			}
+			const compensationOperationCount = operations.length
+			const maintenance =
+				(await options.completeCompensation?.({
+					actor,
+					batchId: historyBatchId,
+					gesture: clone(gesture),
+					mode: received.mode,
+					operations: clone(operations),
+					requestId: received.id,
+					session,
+				})) ?? []
+			for (const item of maintenance) {
+				const parsed = await options.domain.parseAddress(item.address)
+				const model = parsed.member.model
+				if (model === undefined) {
+					throw new Error(
+						`A Domain history maintenance member has no operation model.`,
+					)
+				}
+				operations.push({
+					address: clone(parsed.address),
+					id: `${historyBatchId}:${ordinal++}`,
+					model: mosaicDomainMemberModelIdentity(model),
+					operation: clone(item.operation),
+				})
+			}
 			const historySession = `history:${createHash(`sha256`)
 				.update(canonicalize([actor, session]))
 				.digest(`hex`)}`
@@ -845,7 +892,14 @@ export function createMosaicDomainHistoryCoordinator<
 				options.batches,
 				{ actor, session: historySession },
 				{
-					affectedMembers: operations.map(({ address }) => address),
+					affectedMembers: [
+						...new Map(
+							operations.map(({ address }) => [
+								mosaicDomainMemberAddressKey(address),
+								address,
+							]),
+						).values(),
+					],
 					dependencies: state.headBatchId === null ? [] : [state.headBatchId],
 					domain: options.domain.identity,
 					group: historyBatchId,
@@ -858,7 +912,7 @@ export function createMosaicDomainHistoryCoordinator<
 				async (batch, revision) => {
 					const expected = new Set(gesture.operations.map(({ id }) => id))
 					const actual = new Set<string>()
-					for (const operation of batch.operations) {
+					for (const [index, operation] of batch.operations.entries()) {
 						const parsed = await options.domain.parseAddress(operation.address)
 						const model = parsed.member.model
 						const policy =
@@ -873,6 +927,14 @@ export function createMosaicDomainHistoryCoordinator<
 							revision,
 							session: historySession,
 						})
+						if (index >= compensationOperationCount) {
+							if (classification?.kind !== `exclude`) {
+								throw new Error(
+									`A Domain history completion generated an operation that participates in history.`,
+								)
+							}
+							continue
+						}
 						if (
 							classification?.kind !== `compensation` ||
 							classification.mode !== received.mode

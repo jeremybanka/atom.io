@@ -1,24 +1,34 @@
 import "./globals.css"
 
-import { RealtimeProvider } from "atom.io/realtime-react"
-import { StrictMode } from "react"
+import { Silo } from "atom.io"
+import { StoreProvider } from "atom.io/react"
 import { createRoot } from "react-dom/client"
 import { io } from "socket.io-client"
 
+import { createMarkdownCollaborationClient } from "./collaboration-client.ts"
 import { MarkdownWorkspace } from "./MarkdownWorkspace.tsx"
-import { getBrowserSession, realtimeAuth } from "./session.ts"
+import { getBrowserSession } from "./session.ts"
 
 const session = getBrowserSession()
+const silo = new Silo({
+	isProduction: import.meta.env.PROD,
+	lifespan: `ephemeral`,
+	name: `markdown-client:${session.clientId}`,
+})
 const socket = io(window.location.origin, {
-	auth: realtimeAuth(session.identity, session.clientId),
+	auth: { actor: session.identity.id, session: session.clientId },
 	reconnection: true,
 	reconnectionDelayMax: 4_000,
 })
+const client = await createMarkdownCollaborationClient({
+	identity: session.identity,
+	sessionId: session.clientId,
+	silo,
+	socket,
+})
 
 createRoot(document.getElementById(`root`)!).render(
-	<StrictMode>
-		<RealtimeProvider socket={socket}>
-			<MarkdownWorkspace {...session} />
-		</RealtimeProvider>
-	</StrictMode>,
+	<StoreProvider store={silo.store}>
+		<MarkdownWorkspace client={client} />
+	</StoreProvider>,
 )

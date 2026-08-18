@@ -15,6 +15,7 @@ import {
 	type MosaicTextRelativePosition,
 } from "atom.io/realtime"
 import {
+	bindMosaicDomainHistoryServerSocket,
 	bindMosaicDomainPresenceServerSocket,
 	createMosaicDomainBatchServer,
 	createMosaicDomainHistoryCoordinator,
@@ -408,6 +409,11 @@ export async function createMarkdownDocumentService(
 		async bindSocket({ actor, session, socket }) {
 			const range = residency.connect({ actor, session })
 			const historyConnection = history.connect({ actor, session })
+			const unbindHistory = bindMosaicDomainHistoryServerSocket(
+				historyConnection,
+				socket,
+				{ session },
+			)
 			const presenceConnection = presence.connect({ actor, session })
 			const unbindPresence = bindMosaicDomainPresenceServerSocket(
 				presenceConnection,
@@ -440,12 +446,6 @@ export async function createMarkdownDocumentService(
 			const onCommand = (command: MarkdownCommand, respond: any): void => {
 				acknowledge(enqueueCommand({ actor, command, session }), respond)
 			}
-			const onHistorySnapshot = (respond: any): void => {
-				acknowledge(historyConnection.snapshot(), respond)
-			}
-			const onHistory = (request: any, respond: any): void => {
-				acknowledge(historyConnection.request(request), respond)
-			}
 			const onMaterialize = (respond: any): void => {
 				acknowledge(Promise.resolve(materializeDocument()), respond)
 			}
@@ -463,8 +463,6 @@ export async function createMarkdownDocumentService(
 			socket.on(MARKDOWN_EVENTS.subscribe, onSubscribe)
 			socket.on(MARKDOWN_EVENTS.unsubscribe, onUnsubscribe)
 			socket.on(MARKDOWN_EVENTS.command, onCommand)
-			socket.on(MARKDOWN_EVENTS.historySnapshot, onHistorySnapshot)
-			socket.on(MARKDOWN_EVENTS.history, onHistory)
 			socket.on(MARKDOWN_EVENTS.materialize, onMaterialize)
 			socket.on(MARKDOWN_EVENTS.positionAtOffset, onPosition)
 			socket.on(MARKDOWN_EVENTS.resolvePosition, onResolve)
@@ -479,13 +477,11 @@ export async function createMarkdownDocumentService(
 				socket.off(MARKDOWN_EVENTS.subscribe, onSubscribe)
 				socket.off(MARKDOWN_EVENTS.unsubscribe, onUnsubscribe)
 				socket.off(MARKDOWN_EVENTS.command, onCommand)
-				socket.off(MARKDOWN_EVENTS.historySnapshot, onHistorySnapshot)
-				socket.off(MARKDOWN_EVENTS.history, onHistory)
 				socket.off(MARKDOWN_EVENTS.materialize, onMaterialize)
 				socket.off(MARKDOWN_EVENTS.positionAtOffset, onPosition)
 				socket.off(MARKDOWN_EVENTS.resolvePosition, onResolve)
 				range.dispose?.()
-				historyConnection[Symbol.dispose]()
+				unbindHistory()
 				// The socket binding owns the presence connection and disconnects it.
 				await unbindPresence()
 				cleanups.delete(cleanup)

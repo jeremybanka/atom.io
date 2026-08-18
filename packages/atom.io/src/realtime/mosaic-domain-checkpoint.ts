@@ -88,7 +88,13 @@ export type MosaicDomainCheckpointRecovery<
 /** A named liveness constraint used by safe checkpoint and tail reclamation. */
 export type MosaicDomainCheckpointRetentionLease = {
 	readonly id: string
-	readonly kind: `history` | `outbox` | `proposal` | `session`
+	readonly kind:
+		| `annotation`
+		| `history`
+		| `outbox`
+		| `presence`
+		| `proposal`
+		| `session`
 	readonly minimumRevision: number
 	readonly rootKeys?: readonly MosaicDomainCheckpointObjectKey[]
 }

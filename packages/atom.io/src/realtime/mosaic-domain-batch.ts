@@ -38,6 +38,7 @@ export type MosaicDomainValueModel<
 	Value extends Json.Serializable = Json.Serializable,
 	Operation extends Json.Serializable = Json.Serializable,
 > = {
+	readonly history?: MosaicDomainMemberHistoryPolicy<Value, Operation>
 	readonly identity: MosaicModelIdentifier
 	readonly kind: `value`
 	readonly operationSchema: StandardSchemaV1<unknown, Operation>
@@ -54,6 +55,10 @@ export type MosaicDomainTransceiverModel<
 	TransceiverType extends AnyMosaicTransceiver = AnyMosaicTransceiver,
 > = {
 	readonly class: MosaicTransceiverConstructor<TransceiverType>
+	readonly history?: MosaicDomainMemberHistoryPolicy<
+		ReturnType<TransceiverType[`toJSON`]>,
+		Json.Serializable
+	>
 	readonly kind: `transceiver`
 	readonly operationSchema: StandardSchemaV1<unknown, Json.Serializable>
 	/** Encode one committed transceiver signal for this model. */
@@ -61,6 +66,63 @@ export type MosaicDomainTransceiverModel<
 		signal: MosaicOperationSignal,
 		context: MosaicDomainTransactionEncodeContext,
 	): unknown
+}
+
+export type MosaicDomainHistoryOperationClassification =
+	| { readonly kind: `change` }
+	| {
+			readonly kind: `compensation`
+			readonly mode: `redo` | `undo`
+			readonly targetOperationIds: readonly string[]
+	  }
+	| { readonly kind: `exclude` }
+
+export type MosaicDomainHistoryTarget<
+	Operation extends Json.Serializable = Json.Serializable,
+> = {
+	readonly id: string
+	readonly operation: Operation
+	readonly revision: number
+	readonly session: string
+}
+
+export type MosaicDomainHistoryCompensationContext<
+	Operation extends Json.Serializable = Json.Serializable,
+> = {
+	readonly actor: string
+	readonly gestureId: string
+	readonly mode: `redo` | `undo`
+	readonly requestId: string
+	readonly targets: readonly MosaicDomainHistoryTarget<Operation>[]
+}
+
+export type MosaicDomainHistoryCompactionContext = {
+	readonly retainedOperationIds: ReadonlySet<string>
+	readonly throughRevision: number
+}
+
+/**
+ * Model-owned selective-history semantics for one Domain member.
+ *
+ * The Domain owns gesture order and atomic submission. The member model owns
+ * the meaning of compensation and how retired operations fold into an
+ * equivalent checkpoint. This keeps text, design, and future models out of the
+ * generic coordination layer.
+ */
+export type MosaicDomainMemberHistoryPolicy<
+	Value extends Json.Serializable = Json.Serializable,
+	Operation extends Json.Serializable = Json.Serializable,
+> = {
+	classify(
+		operation: Operation,
+		context: MosaicReduceContext,
+	): MosaicDomainHistoryOperationClassification
+	compact?(value: Value, context: MosaicDomainHistoryCompactionContext): Value
+	compensate(
+		context: MosaicDomainHistoryCompensationContext<Operation>,
+	): Operation
+	/** Operation IDs embedded in durable annotations that must survive a cut. */
+	references?(value: Value): readonly string[]
 }
 
 export type MosaicDomainValueTransactionChange<
@@ -100,6 +162,8 @@ export type MosaicDomainBatchProposal<
 	readonly id: string
 	readonly operations: readonly MosaicDomainBatchMemberOperation<Identity>[]
 	readonly protocolVersion: MosaicDomainBatchProtocolVersion
+	/** Strictly monotonic within one authenticated actor/session incarnation. */
+	readonly sequence: number
 	readonly session: string
 }
 
@@ -128,6 +192,7 @@ export type MosaicDomainBatchRejectionCode =
 	| `invalid-payload`
 	| `missing-dependency`
 	| `operation-id-collision`
+	| `sequence-retired`
 	| `unauthorized`
 
 export type MosaicDomainBatchRejection = {
@@ -320,6 +385,9 @@ export function assertMosaicDomainBatchEnvelope(
 	] as const) {
 		if (!identifier(id))
 			throw new Error(`A Mosaic Domain ${name} ID is invalid.`)
+	}
+	if (!Number.isSafeInteger(value.sequence) || value.sequence < 1) {
+		throw new Error(`A Mosaic Domain batch sequence is invalid.`)
 	}
 	if (value.group !== null && !identifier(value.group)) {
 		throw new Error(`A Mosaic Domain gesture group ID is invalid.`)

@@ -13,6 +13,7 @@ const identity: MosaicDomainIdentity = {
 const batch = (
 	id: string,
 	operationIds: readonly string[],
+	sequence: number,
 ): MosaicDomainBatchEnvelope => {
 	const address = { domain: identity, member: `member` }
 	return {
@@ -29,6 +30,7 @@ const batch = (
 			operation: { operationId },
 		})),
 		protocolVersion: 1,
+		sequence,
 		session: `session`,
 	}
 }
@@ -38,7 +40,7 @@ const accepted = (
 	operationIds: readonly string[],
 	revision: number,
 ): MosaicAcceptedDomainBatchEnvelope => ({
-	batch: batch(id, operationIds),
+	batch: batch(id, operationIds, revision),
 	revision,
 })
 
@@ -90,6 +92,25 @@ export async function testMosaicDomainBatchStorageAdapter(
 		batchCollision.status === `collision` &&
 			batchCollision.collision === `batch`,
 		`conflicting batch-ID reuse did not fail closed`,
+	)
+	const next = accepted(`batch-sequence`, [`operation-sequence`], 2)
+	const retired = await storage.appendBatch({
+		accepted: { ...next, batch: { ...next.batch, sequence: 1 } },
+		expectedRevision: 1,
+		fingerprint: `fingerprint-retired`,
+	})
+	assert(
+		retired.status === `retired` && retired.actualSequence === 1,
+		`a retired per-session sequence was accepted`,
+	)
+	const gap = await storage.appendBatch({
+		accepted: { ...next, batch: { ...next.batch, sequence: 3 } },
+		expectedRevision: 1,
+		fingerprint: `fingerprint-gap`,
+	})
+	assert(
+		gap.status === `sequence-gap` && gap.actualSequence === 1,
+		`a per-session sequence gap was accepted`,
 	)
 
 	const collision = await storage.appendBatch({

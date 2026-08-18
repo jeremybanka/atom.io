@@ -167,7 +167,28 @@ export interface MosaicTextTransceiver
 		Omit<MosaicTextView, `subscribe`> {}
 
 export type MosaicTextConstructor =
-	MosaicTransceiverConstructor<MosaicTextTransceiver>
+	MosaicTransceiverConstructor<MosaicTextTransceiver> & {
+		readonly domainHistory: {
+			classify(operation: MosaicTextOperation):
+				| { readonly kind: `change` }
+				| {
+						readonly kind: `compensation`
+						readonly mode: `redo` | `undo`
+						readonly targetOperationIds: readonly string[]
+				  }
+			compact(
+				value: MosaicTextSnapshot,
+				context: {
+					readonly retainedOperationIds: ReadonlySet<string>
+					readonly throughRevision: number
+				},
+			): MosaicTextSnapshot
+			compensate(context: {
+				readonly mode: `redo` | `undo`
+				readonly targets: readonly { readonly id: string }[]
+			}): MosaicTextHistoryOperation
+		}
+	}
 
 export type MosaicTextOptions = {
 	readonly initialText?: string
@@ -1351,7 +1372,40 @@ function hydrateMosaicText(
 			revision: revision as number | null,
 			session,
 		}
-		const decision = validateTextOperation(state, wireOperation, context, limits)
+		const trustedBaseline =
+			actor === `system` &&
+			session === `system` &&
+			revision === 0 &&
+			gestureId === id &&
+			dependencies.length === 0 &&
+			id.startsWith(`mosaic:text:baseline:`) &&
+			wireOperation.type === `edit`
+		if (trustedBaseline && wireOperation.type === `edit`) {
+			for (const inserted of wireOperation.inserted) {
+				for (const boundary of [inserted.after, inserted.before]) {
+					if (boundary === null) continue
+					const run = checkpointRuns.get(boundary.runId)
+					if (run === undefined || boundary.offset > run.graphemes) {
+						throw new Error(`Invalid Mosaic text baseline boundary`)
+					}
+				}
+			}
+			for (const interval of wireOperation.deleted) {
+				const run = checkpointRuns.get(interval.runId)
+				if (
+					run === undefined ||
+					!isBoundedInteger(interval.start) ||
+					!isBoundedInteger(interval.end) ||
+					interval.start >= interval.end ||
+					interval.end > run.graphemes
+				) {
+					throw new Error(`Invalid Mosaic text baseline deletion`)
+				}
+			}
+		}
+		const decision = trustedBaseline
+			? ({ operation: wireOperation, status: `accept` } as const)
+			: validateTextOperation(state, wireOperation, context, limits)
 		if (decision.status !== `accept`) {
 			throw new Error(
 				`Invalid Mosaic text snapshot: ${
@@ -1458,6 +1512,187 @@ export function deriveMosaicTextHistory(
 	actor: string,
 ): MosaicTextHistory {
 	return historyFromState(stateForHelper(value), actor)
+}
+
+/**
+ * Fold operations older than the Domain history horizon into an equivalent
+ * baseline while retaining stable runs and every still-addressable operation.
+ */
+export function compactMosaicTextHistory(
+	value: MosaicTextSnapshot | MosaicTextState,
+	retainedOperationIds: ReadonlySet<string>,
+	throughRevision = 0,
+): MosaicTextSnapshot {
+	if (!isBoundedInteger(throughRevision, Number.MAX_SAFE_INTEGER)) {
+		throw new Error(`Invalid Mosaic text history compaction revision`)
+	}
+	const state = stateForHelper(value)
+	const retained = new Set(retainedOperationIds)
+	const explicitlyRetainedHistory = new Set(
+		state.actions
+			.filter(
+				(action) =>
+					action.operation.type === `history` && retained.has(action.id),
+			)
+			.map(({ id }) => id),
+	)
+	for (const action of state.actions) {
+		if (
+			action.operation.type === `history` &&
+			explicitlyRetainedHistory.has(action.id)
+		) {
+			for (const id of action.operation.targetOperationIds) retained.add(id)
+		}
+	}
+	const retainedGestures = new Set(
+		state.actions
+			.filter(
+				(action) => action.operation.type === `edit` && retained.has(action.id),
+			)
+			.map(({ gestureId }) => gestureId),
+	)
+	for (const action of state.actions) {
+		if (
+			action.operation.type === `edit` &&
+			retainedGestures.has(action.gestureId)
+		) {
+			retained.add(action.id)
+		}
+	}
+	for (const gestureId of retainedGestures) {
+		const targetIds = state.actions
+			.filter(
+				(action) =>
+					action.operation.type === `edit` && action.gestureId === gestureId,
+			)
+			.map(({ id }) => id)
+		const histories = state.actions.filter(
+			(action) =>
+				action.operation.type === `history` &&
+				sameTargets(action.operation.targetOperationIds, targetIds),
+		)
+		if (histories.some(({ id }) => explicitlyRetainedHistory.has(id))) {
+			// A durable reference to a compensation retains the complete toggle chain;
+			// otherwise replaying that protected operation could change final state.
+			for (const action of histories) retained.add(action.id)
+		} else if (targetIds.some((id) => state.activeEdits[id] !== true)) {
+			const finalUndo = [...histories]
+				.reverse()
+				.find(
+					(action) =>
+						action.operation.type === `history` &&
+						action.operation.mode === `undo`,
+				)
+			if (finalUndo !== undefined) retained.add(finalUndo.id)
+		}
+	}
+
+	const kept = state.actions.filter(({ id }) => retained.has(id))
+	const removed = state.actions.filter(({ id }) => !retained.has(id))
+	const retiredEdits = removed.filter(
+		(
+			action,
+		): action is MosaicTextAppliedOperation & {
+			readonly operation: MosaicTextCheckpointEditOperation
+		} => action.operation.type === `edit`,
+	)
+	if (removed.length === 0) return snapshotFromState(state)
+	if (retiredEdits.length === 0) {
+		const compacted = stateForHelper({
+			actions: structuredClone(kept),
+			runs: structuredClone(Object.values(state.runs)),
+			version: 2,
+		})
+		if (materializeState(compacted) !== materializeState(state)) {
+			throw new Error(`Mosaic text history compaction changed visible content`)
+		}
+		return snapshotFromState(compacted)
+	}
+	const activeRunIds = new Set<string>()
+	const inactiveRunIds = new Set<string>()
+	const activeDeletions: MosaicTextDeletionInterval[] = []
+	const retiredEditIds = new Set(retiredEdits.map(({ id }) => id))
+	for (const action of retiredEdits) {
+		const active = state.activeEdits[action.id] === true
+		for (const runId of action.operation.insertedRunIds) {
+			;(active ? activeRunIds : inactiveRunIds).add(runId)
+		}
+		if (active) activeDeletions.push(...action.operation.deleted)
+	}
+	const baselineActions: MosaicTextAppliedOperation[] = []
+	const baselineRuns = { ...state.runs }
+	const usedActionIds = new Set(kept.map(({ id }) => id))
+	const uniqueInternalId = (base: string): string => {
+		let id = base
+		let suffix = 0
+		while (usedActionIds.has(id)) id = `${base}:${++suffix}`
+		usedActionIds.add(id)
+		return id
+	}
+	const createBaseline = (
+		mode: `active` | `inactive`,
+		runIds: ReadonlySet<string>,
+		deletions: readonly MosaicTextDeletionInterval[],
+	): string | null => {
+		if (runIds.size === 0 && deletions.length === 0) return null
+		const id = uniqueInternalId(
+			`mosaic:text:baseline:${throughRevision}:${mode}`,
+		)
+		for (const runId of runIds) {
+			const run = baselineRuns[runId]
+			if (run === undefined) {
+				throw new Error(`Mosaic text history compaction lost a retained run`)
+			}
+			baselineRuns[runId] = { ...run, createdBy: id }
+		}
+		baselineActions.push({
+			actor: `system`,
+			dependencies: [],
+			gestureId: id,
+			id,
+			operation: {
+				deleted: normalizeDeletionIntervals(deletions),
+				insertedRunIds: [...runIds].sort(compareMosaicIds),
+				type: `edit`,
+			},
+			revision: 0,
+			session: `system`,
+		})
+		return id
+	}
+	createBaseline(`active`, activeRunIds, activeDeletions)
+	const inactiveBaselineId = createBaseline(`inactive`, inactiveRunIds, [])
+	if (inactiveBaselineId !== null) {
+		const hiddenId = uniqueInternalId(`${inactiveBaselineId}:hidden`)
+		baselineActions.push({
+			actor: `system`,
+			dependencies: [inactiveBaselineId],
+			gestureId: hiddenId,
+			id: hiddenId,
+			operation: {
+				mode: `undo`,
+				targetOperationIds: [inactiveBaselineId],
+				type: `history`,
+			},
+			revision: 0,
+			session: `system`,
+		})
+	}
+	for (const run of Object.values(baselineRuns)) {
+		if (!retiredEditIds.has(run.createdBy)) continue
+		throw new Error(`Mosaic text history compaction left an unowned run`)
+	}
+	const compacted: MosaicTextSnapshot = {
+		actions: structuredClone([...baselineActions, ...kept]),
+		runs: structuredClone(Object.values(baselineRuns)),
+		version: 2,
+	}
+	// Hydration proves that folding retained the model's structural invariants.
+	const checked = stateForHelper(compacted)
+	if (materializeState(checked) !== materializeState(state)) {
+		throw new Error(`Mosaic text history compaction changed visible content`)
+	}
+	return snapshotFromState(checked)
 }
 
 function positionAtStateOffset(
@@ -1781,6 +2016,40 @@ export function mosaicText(
 			version: 2,
 		} as const
 		public static readonly timelinePolicy = `append-only` as const
+		public static readonly domainHistory = {
+			classify(operation: MosaicTextOperation) {
+				return operation.type === `edit`
+					? ({ kind: `change` } as const)
+					: ({
+							kind: `compensation`,
+							mode: operation.mode,
+							targetOperationIds: operation.targetOperationIds,
+						} as const)
+			},
+			compact(
+				value: MosaicTextSnapshot,
+				context: {
+					readonly retainedOperationIds: ReadonlySet<string>
+					readonly throughRevision: number
+				},
+			) {
+				return compactMosaicTextHistory(
+					value,
+					context.retainedOperationIds,
+					context.throughRevision,
+				)
+			},
+			compensate(context: {
+				readonly mode: `redo` | `undo`
+				readonly targets: readonly { readonly id: string }[]
+			}): MosaicTextHistoryOperation {
+				return {
+					mode: context.mode,
+					targetOperationIds: context.targets.map(({ id }) => id),
+					type: `history`,
+				}
+			},
+		} as const
 
 		readonly #subject = new Subject<MosaicOperationSignal<MosaicTextOperation>>()
 		#state = createSeededText(initialText, limits)

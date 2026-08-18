@@ -401,6 +401,7 @@ describe(`Mosaic Domain partial residency`, () => {
 				},
 			],
 			protocolVersion: 1,
+			sequence: 1,
 			session: `session-writer`,
 		}
 		const accepted = {

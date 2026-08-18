@@ -256,6 +256,7 @@ async function prepareCommit(
 		id: context.batchId,
 		operations,
 		protocolVersion: MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
+		sequence: context.sequence,
 		session: context.session,
 	}
 	return prepareCommittedMosaicDomainBatch(domain, envelope, commit)

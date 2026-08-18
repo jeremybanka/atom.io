@@ -381,6 +381,62 @@ revision as well as the lease watermark, and advances the retention epoch
 atomically. It cannot delete a member version or tail still reachable by a
 supported collaborator.
 
+## Actor-selective Domain history
+
+A Domain history coordinator turns accepted gesture groups into bounded,
+actor-relative undo and redo stacks. One gesture remains one history step even
+when its batch changes heterogeneous singleton and family members. An undo or
+redo asks each affected member model for its own compensation operation, then
+submits every compensation in one ordinary atomic Domain batch. The coordinator
+never restores a prior Store snapshot, so concurrent foreign work is left in
+place and ordinary Atom.io timelines remain a separate local facility.
+
+<Exhibit src="realtime/coordinate-domain-history.ts" />
+
+History is opt-in at the member model. A policy classifies changes,
+compensations, and history-free maintenance; constructs a compensation for its
+own operation language; and may fold retired operations into an equivalent
+checkpoint value. The generic coordinator understands actors, sessions,
+gestures, revisions, addresses, and atomicity, but it contains no text, SVG,
+renderer, or application-state branch. The run-text model, for example, folds
+retired actions into bounded system baselines while preserving stable
+run-relative positions. Index maintenance remains explicitly excluded.
+
+Every actor snapshot exposes a cursor and an explicit horizon: available undo
+and redo counts, the oldest retained revision, and the cut before which history
+was truncated. Two sessions for one actor may read the same cursor, but only
+the first competing request can advance it; the other receives a structured
+history resnapshot. A cursor older than the supported recovery floor instead
+requires a complete Domain resnapshot. History requests and Domain proposals
+carry monotonic per-session sequences, so retired arbitrary identifiers do not
+require immortal receipts.
+
+A non-null batch group is the actor-scoped, durable identity of one gesture,
+not a claim that its transport batches are adjacent. The same identity remains
+one history step when foreign batches interleave; an actor must use a fresh
+group for a later gesture. A long gesture can therefore cross bounded payloads
+without network timing changing its history boundary.
+
+The coordinator persists its bounded actor stacks and supported session
+watermarks as an application index in the incremental checkpoint graph. A
+returning session therefore continues its monotonic request sequence after a
+restart instead of replaying an already-retired request. At the same checkpoint
+cut, model-owned
+compaction receives the exact operation IDs still protected by retained
+history, presence anchors, annotations, outboxes, pending proposals, and
+supported sessions. Those protections also update the checkpoint retention
+lease. Garbage collection may then reclaim old roots and accepted tails while a
+small collision window and durable session watermarks keep retry and ID-reuse
+behavior deterministic.
+
+Supported history sessions fence their actor from stack eviction whenever an
+unsupported victim exists. At actor capacity, an unsupported oldest stack is
+retired first; boundedness wins only when an imported state offers no such
+victim, and the resulting retired horizon requires a Domain resnapshot.
+Applications register presence, annotation, outbox, and proposal references
+through the protection API shown above, then release each protection with its
+owner's lifecycle.
+
 ## Ordinary transaction bridge
 
 An application can bind independently authored transactions to a batch client.

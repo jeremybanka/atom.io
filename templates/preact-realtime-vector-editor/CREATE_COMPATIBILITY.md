@@ -31,11 +31,15 @@ Durable collaboration, ephemeral presence, and local editor state are also separ
 
 ## History policy
 
-Mosaic's SVG model can express actor-selective compensation and keeps foreign operations active. The current Create-* product issues instead specify server-owned, scope-shared timeline undo and intentionally disable offline document replay. Both policies can consume the same Domain identity, member, batch, presence, checkpoint, and authorization foundations.
+Atom.io now supplies a generic, server-owned actor-selective Domain history coordinator. A member model opts in by classifying its operations, constructing its own compensation, and defining compaction. The coordinator owns authenticated history requests, actor cursors, gesture boundaries, retention, and atomic submission without learning SVG or text semantics.
+
+Plane's SVG operations can express actor-selective compensation and keep foreign operations active, but the template does not yet register SVG history policies or transport requests to that coordinator. Its current undo menu therefore remains session-memory application orchestration over safe compensation batches. Removing that local stack merely because MOS-16 merged would remove working undo and redo; replacing it safely requires model policy, server capability, client cursor/resnapshot, checkpoint compaction, and restart coverage together. That cross-vertical adoption belongs to [MOS-25](https://github.com/jeremybanka/atom.io/issues/704), which requires text and vector models to exercise the same generic history API.
+
+The current Create-* product issues instead specify server-owned, scope-shared timeline undo and intentionally disable offline document replay. That is a product-policy difference, not a reason to fork Domain identity, member, batch, presence, checkpoint, or authorization foundations.
 
 The compatibility fixture therefore does not impose Plane's undo menu or offline UX on Create-\*. A Create-\* adapter must choose and test its product history and disconnected-editing policy explicitly. It must not translate local Atom.io timeline rewinds directly into unauthenticated network commands.
 
-Compensation graphs fail closed when cyclic. A review suggestion to treat a cycle as inactive was rejected because that would silently choose a document interpretation for corrupt history.
+Compensation graphs fail closed when cyclic. A review suggestion to treat a cycle as inactive was rejected because that would silently choose a document interpretation for corrupt history. MOS-16 follows the same fail-closed rule for model-generated compensation: ordinary clients cannot forge it, and the server reclassifies and target-checks it before append.
 
 ## Review-derived transport invariants
 

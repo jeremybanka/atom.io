@@ -1189,6 +1189,16 @@ describe(`Mosaic Domain atomic batches`, () => {
 			{ node: { x: 999, y: 999 }, paths: [`rejected`] },
 			{ node: { x: 0, y: 0 }, paths: [] },
 		])
+
+		await client.flush()
+		await client.submit({
+			address: clientState.domain.address(`paths`),
+			operation: { path: `accepted-after-rejection`, type: `append` },
+		})
+		expect(client.state).toMatchObject({ revision: 1, status: `live` })
+		expect(serverState.silo.getState(serverState.pathsAtom)).toEqual([
+			`accepted-after-rejection`,
+		])
 	})
 
 	test(`does not allocate a missing family member during rejected preflight`, async () => {
@@ -1606,6 +1616,38 @@ describe(`Mosaic Domain atomic batches`, () => {
 		expect(bobState.silo.getState(bobState.pathsAtom)).toEqual([`p1`, `p2`])
 	})
 
+	test(`resumes the recovered durable session sequence before proposing`, async () => {
+		const serverState = await designFixture(`server-session-restart`)
+		const restartedClientState = await designFixture(
+			`restarted-client-session-restart`,
+		)
+		const server = createMosaicDomainBatchServer({ domain: serverState.domain })
+		const identity = { actor: `alice`, session: `session-a` }
+		await server.connect(identity).propose(proposal(serverState.domain))
+
+		const restartedClient = createMosaicDomainBatchClient({
+			...identity,
+			domain: restartedClientState.domain,
+			idSource: ({ kind, sequence }) => `resumed:${kind}:${sequence}`,
+			transport: server.connect(identity),
+		})
+		await restartedClient.start()
+		await restartedClient.submit({
+			address: restartedClientState.domain.address(`paths`),
+			operation: { path: `after-restart`, type: `append` },
+		})
+
+		expect(restartedClient.state).toMatchObject({
+			pendingBatchIds: [],
+			revision: 2,
+			status: `live`,
+		})
+		expect(serverState.silo.getState(serverState.pathsAtom)).toEqual([
+			`p1`,
+			`after-restart`,
+		])
+	})
+
 	test(`retains one whole offline batch and replays it idempotently`, async () => {
 		const serverState = await designFixture(`server-offline`)
 		const clientState = await designFixture(`client-offline`)
@@ -1707,6 +1749,59 @@ describe(`Mosaic Domain atomic batches`, () => {
 		expect(serverState.silo.getState(serverState.pathsAtom)).toEqual([
 			`first`,
 			`second`,
+		])
+	})
+
+	test(`resequences later offline work after a terminal rejection`, async () => {
+		const serverState = await designFixture(`server-offline-rejection`)
+		const clientState = await designFixture(`client-offline-rejection`)
+		const server = createMosaicDomainBatchServer({
+			authorize: ({ batch }) =>
+				(batch.operations[0].operation as { path: string }).path !== `rejected`,
+			domain: serverState.domain,
+		})
+		const connection = server.connect({ actor: `alice`, session: `session-a` })
+		let offline = true
+		const client = createMosaicDomainBatchClient({
+			actor: `alice`,
+			domain: clientState.domain,
+			session: `session-a`,
+			transport: {
+				...connection,
+				propose: (batch) =>
+					offline
+						? Promise.reject(new Error(`offline`))
+						: connection.propose(batch),
+			},
+		})
+		await client.start()
+		await client.submit({
+			address: clientState.domain.address(`paths`),
+			operation: { path: `rejected`, type: `append` },
+		})
+		await client.submit({
+			address: clientState.domain.address(`paths`),
+			operation: { path: `accepted`, type: `append` },
+		})
+
+		offline = false
+		await client.flush()
+		expect(client.state).toMatchObject({
+			pendingBatchIds: [expect.any(String)],
+			status: `rejected`,
+		})
+		expect(clientState.silo.getState(clientState.pathsAtom)).toEqual([
+			`accepted`,
+		])
+
+		await client.flush()
+		expect(client.state).toMatchObject({
+			pendingBatchIds: [],
+			revision: 1,
+			status: `live`,
+		})
+		expect(serverState.silo.getState(serverState.pathsAtom)).toEqual([
+			`accepted`,
 		])
 	})
 

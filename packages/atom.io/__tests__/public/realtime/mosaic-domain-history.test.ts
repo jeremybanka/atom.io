@@ -303,6 +303,125 @@ const recoveringBatchServer = (
 })
 
 describe(`Mosaic Domain actor-selective history`, () => {
+	test(`owns immutable gestures across observers, race cuts, and compensation hooks`, async () => {
+		const setup = await fixture(
+			undefined,
+			`history-immutable-ownership`,
+			({ gesture, operations }) => {
+				const gestureOperation = gesture.operations[0]
+				const compensation = operations[0]
+				if (gestureOperation === undefined || compensation === undefined) {
+					throw new Error(`Expected compensation operations`)
+				}
+				if (
+					typeof gestureOperation.operation !== `object` ||
+					gestureOperation.operation === null ||
+					Array.isArray(gestureOperation.operation) ||
+					typeof compensation.operation !== `object` ||
+					compensation.operation === null ||
+					Array.isArray(compensation.operation)
+				) {
+					throw new Error(`Expected object operations`)
+				}
+				Object.assign(gestureOperation.operation, { amount: 999 })
+				Object.assign(compensation.operation, {
+					targetOperationIds: [`forged`],
+				})
+				return []
+			},
+		)
+		const address = setup.domain.address(`left`)
+		const writer = setup.batches.connect({
+			actor: `alice`,
+			session: `immutable-writer`,
+		})
+		const proposal = {
+			affectedMembers: [address],
+			dependencies: [],
+			domain: setup.domain.identity,
+			group: `immutable-gesture`,
+			id: `immutable-batch`,
+			operations: [
+				{
+					address,
+					id: `immutable-operation`,
+					model: mosaicDomainMemberModelIdentity(leftModel),
+					operation: { amount: 1, type: `add` as const },
+				},
+			],
+			protocolVersion: MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
+			sequence: 1,
+			session: `immutable-writer`,
+		} satisfies MosaicDomainBatchProposal
+		const pending = writer.propose(proposal)
+		const proposedOperation = proposal.operations[0]
+		if (proposedOperation === undefined) throw new Error(`Expected proposal`)
+		proposedOperation.operation.amount = 111
+		const accepted = await pending
+		if (accepted.status !== `accepted`) throw new Error(`Expected accepted edit`)
+		const acceptedOperation = accepted.accepted.batch.operations[0]
+		if (acceptedOperation === undefined) throw new Error(`Expected operation`)
+		if (
+			typeof acceptedOperation.operation !== `object` ||
+			acceptedOperation.operation === null ||
+			Array.isArray(acceptedOperation.operation)
+		) {
+			throw new Error(`Expected object operation`)
+		}
+		Object.assign(acceptedOperation.operation, { amount: 222 })
+		await setup.history.flush()
+		expect(counterValue(setup.silo.getState(setup.left))).toBe(1)
+
+		type MutableCheckpointProbe = {
+			actors: {
+				undo: { operations: { operation: { amount?: number } }[] }[]
+			}[]
+		}
+		const readCheckpoint = async (): Promise<MutableCheckpointProbe> => {
+			const update = (
+				await setup.history.checkpoint.indexes({
+					batches: [],
+					fromRevision: 0,
+					revision: 1,
+				})
+			)[0]
+			if (update === undefined) throw new Error(`Expected history checkpoint`)
+			return update.value as unknown as MutableCheckpointProbe
+		}
+		const mutatedCheckpoint = await readCheckpoint()
+		const mutableOperation = mutatedCheckpoint.actors[0]?.undo[0]?.operations[0]
+		if (mutableOperation === undefined) throw new Error(`Expected checkpoint`)
+		mutableOperation.operation.amount = 333
+		const rereadOperation = (await readCheckpoint()).actors[0]?.undo[0]
+			?.operations[0]
+		expect(rereadOperation?.operation.amount).toBe(1)
+
+		const history = setup.history.connect({
+			actor: `alice`,
+			session: `immutable-history`,
+		})
+		const beforeUndo = await history.snapshot()
+		const undone = await history.request({
+			cursor: beforeUndo.cursor,
+			id: `immutable-undo`,
+			mode: `undo`,
+			sequence: 1,
+			session: `immutable-history`,
+		})
+		expect(undone.status).toBe(`accepted`)
+		expect(counterValue(setup.silo.getState(setup.left))).toBe(0)
+		if (undone.status !== `accepted`) throw new Error(`Expected accepted undo`)
+		const redone = await history.request({
+			cursor: undone.snapshot.cursor,
+			id: `immutable-redo`,
+			mode: `redo`,
+			sequence: 2,
+			session: `immutable-history`,
+		})
+		expect(redone.status).toBe(`accepted`)
+		expect(counterValue(setup.silo.getState(setup.left))).toBe(1)
+	})
+
 	test(`completes compensation with atomic history-free maintenance`, async () => {
 		let maintenanceAddress: MosaicDomainMemberAddress | undefined
 		const setup = await fixture(
@@ -1745,7 +1864,34 @@ describe(`Mosaic Domain actor-selective history`, () => {
 			throughRevision: 101,
 		})
 		expect(boundedActive.actions).toHaveLength(1)
-		expect(Text.fromJSON(boundedActive).text).toBe(`ABC`)
+		const activeRestart = Text.fromJSON(boundedActive)
+		expect(activeRestart.text).toBe(`ABC`)
+		activeRestart.change(
+			{ type: `undo` },
+			{
+				actor: `alice`,
+				dependencies: [`edit-1`],
+				group: null,
+				id: `compacted-undo`,
+				now: 102,
+				revision: null,
+				session: `tab`,
+			},
+		)
+		expect(activeRestart.text).toBe(``)
+		activeRestart.change(
+			{ type: `redo` },
+			{
+				actor: `alice`,
+				dependencies: [`compacted-undo`],
+				group: null,
+				id: `compacted-redo`,
+				now: 103,
+				revision: null,
+				session: `tab`,
+			},
+		)
+		expect(activeRestart.text).toBe(`ABC`)
 		text.change(
 			{ type: `undo` },
 			{
@@ -1763,7 +1909,21 @@ describe(`Mosaic Domain actor-selective history`, () => {
 			throughRevision: 102,
 		})
 		expect(boundedInactive.actions).toHaveLength(2)
-		expect(Text.fromJSON(boundedInactive).text).toBe(``)
+		const inactiveRestart = Text.fromJSON(boundedInactive)
+		expect(inactiveRestart.text).toBe(``)
+		inactiveRestart.change(
+			{ type: `redo` },
+			{
+				actor: `alice`,
+				dependencies: [`edit-1`],
+				group: null,
+				id: `compacted-inactive-redo`,
+				now: 103,
+				revision: null,
+				session: `tab`,
+			},
+		)
+		expect(inactiveRestart.text).toBe(`ABC`)
 
 		const collision = new Text()
 		collision.change(
@@ -1859,7 +2019,101 @@ describe(`Mosaic Domain actor-selective history`, () => {
 			throughRevision: 108,
 		})
 		expect(Text.fromJSON(inactiveCompacted).text).toBe(``)
-		expect(inactiveCompacted.actions).toHaveLength(2)
+		expect(inactiveCompacted.actions).toHaveLength(0)
+		expect(inactiveCompacted.runs).toHaveLength(0)
+
+		let churn = new Text()
+		const retainedChurn: string[] = []
+		for (let index = 1; index <= 64; index++) {
+			const id = `churn-${index}`
+			churn.do({
+				actor: `alice`,
+				dependencies: index === 1 ? [] : [`churn-${index - 1}`],
+				group: id,
+				id,
+				operation: {
+					deleted: churn.runs.map(({ end, id: runId, start }) => ({
+						end,
+						runId,
+						start,
+					})),
+					inserted: [
+						{
+							after: null,
+							before: null,
+							id: `${id}:run:000000`,
+							text: index % 2 === 0 ? `A` : `B`,
+						},
+					],
+					type: `edit`,
+				},
+				revision: index,
+				session: `tab`,
+			})
+			retainedChurn.push(id)
+			while (retainedChurn.length > 8) retainedChurn.shift()
+			if (index % 8 === 0) {
+				churn = Text.fromJSON(
+					policy.compact(churn.toJSON(), {
+						retainedOperationIds: new Set(retainedChurn),
+						throughRevision: index,
+					}),
+				)
+			}
+		}
+		expect(churn.toJSON().actions.length).toBeLessThanOrEqual(9)
+		expect(churn.toJSON().runs.length).toBeLessThanOrEqual(9)
+
+		const descendants = new Text()
+		descendants.change(
+			{ text: `AB`, type: `replace-text` },
+			{
+				actor: `alice`,
+				dependencies: [],
+				group: `ancestor`,
+				id: `ancestor`,
+				now: 1,
+				revision: null,
+				session: `alice`,
+			},
+		)
+		const protectedAnchor = descendants.positionAtOffset(1)
+		const foreignSignal = descendants.change(
+			{
+				selection: descendants.selectionFromOffsets(1, 1),
+				text: `X`,
+				type: `replace-selection`,
+			},
+			{
+				actor: `bob`,
+				dependencies: [`ancestor`],
+				group: `foreign-descendant`,
+				id: `foreign-descendant`,
+				now: 2,
+				revision: null,
+				session: `bob`,
+			},
+		)
+		if (foreignSignal === null) throw new Error(`Expected foreign insertion`)
+		const protectedOffset = descendants.resolvePosition(protectedAnchor)
+		const descendantCompacted = policy.compact(descendants.toJSON(), {
+			retainedOperationIds: new Set([`foreign-descendant`]),
+			throughRevision: 2,
+		})
+		const descendantRestart = Text.fromJSON(descendantCompacted)
+		expect(descendantRestart.text).toBe(`AXB`)
+		expect(descendantRestart.resolvePosition(protectedAnchor)).toBe(
+			protectedOffset,
+		)
+		expect(
+			descendantCompacted.runs.some(({ createdBy }) =>
+				createdBy.startsWith(`mosaic:text:baseline:`),
+			),
+		).toBe(true)
+		expect(() =>
+			descendantRestart.do(structuredClone(foreignSignal)),
+		).not.toThrow()
+		expect(descendantRestart.text).toBe(`AXB`)
 
 		const invalidBoundary = structuredClone(compacted)
 		const boundaryRun = invalidBoundary.runs[0]

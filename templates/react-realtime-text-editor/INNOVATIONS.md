@@ -81,20 +81,102 @@ cancelation, stable-state, and instrumentation contract. Sanitization remains a
 renderer responsibility; this template creates React nodes and never injects
 HTML.
 
-## Import, Corpus, and Recovery Boundaries
+## Mosaic Text v3: Atomic Roots Instead of Giant Operations
 
-Reset/import is one authorized Domain proposal containing the source operation
-and all index maintenance. It is not a browser initialization effect. Ordinary
-joins request only their viewport. The corpus gate opens each pinned source
-through the actual Markdown Domain service as one authorized source-and-index
-batch, performs logarithmic index lookups, and then uses the exact virtual-window
-and parser path against the 5.6 MB source and repeated 50 MB variant. It asserts
-bounded batch, range, materialization, and mounted-block work at three
-deterministic positions.
+A 50 MB import cannot be both a bounded operation and a single giant Domain
+payload. Splitting that payload into several accepted source revisions was also
+rejected: a crash would expose a prefix, and retry could collide with the
+already-accepted prefix or duplicate it. Mosaic Text v3 takes a different path.
+It stages immutable content-addressed leaves and bounded-fanout branches while
+they are unreachable, protects the staged graph with the same atomic storage
+write, and publishes one small root operation. Before that root is accepted the
+old document remains authoritative; afterward the complete new graph is
+authoritative. Exact retry is idempotent.
 
-The zero-setup server is intentionally in-memory. Restart durability requires
-the MOS-13 checkpoint coordinator plus a transactional storage adapter; the core
-already supplies those facilities, but pretending the demo adapter survives a
-process loss would give users a false guarantee. Client range resnapshot,
-split/merge invalidation, reconnect delivery, and selective history are covered
-without weakening that production boundary.
+This required one model-neutral addition to the MOS-13 checkpoint spine:
+checkpoints may name validated external roots. Staging and its expiring proposal
+lease are atomic; the accepted append atomically promotes that lease to durable
+accepted-root protection; and checkpoint publication adopts and releases the
+protection in the same commit. Restart exposes accepted-but-not-yet-checkpointed
+roots to the coordinator, while history and outbox leases protect older roots.
+Garbage collection traces every edge behind a retention-epoch fence. Missing
+parents, stale parents, forged summaries, hash collisions, corrupt objects, and
+stage/append/checkpoint/GC races all fail closed. Abandoned proposals expire by
+time, revision, and bounded retention epochs instead of becoming perpetual
+leases.
+
+The external root stores its incremental proof separately from the root header.
+An initial import necessarily reads the whole input once. A later edit
+path-copies only the touched leaf and branch path, sends removals for superseded
+paths, and verifies its delta against the protected parent summary. Commit can
+therefore reuse authenticated subtree totals instead of rehashing a document
+manifest. Range recovery is paged and visits addressed paths rather than
+hydrating the graph.
+
+This is deliberately versioned as Mosaic Text v3 rather than silently changing
+v2's run snapshot. The generic Domain hook knows only content-addressed object
+graphs, bounds, and lifecycle dependencies; rope shape, grapheme-safe chunking,
+reference counts, range reads, and root replacement remain text-owned. That is
+where this work takes its own path beyond the original push/pull and monolithic
+checkpoint facilities.
+
+## History and Checkpoint Amplification
+
+Scale auditing also found a non-text-specific amplifier in Domain history.
+Accepted gestures were deep-cloned into every retained checkpoint-race cut, so a
+large operation could be retained many times even when text storage itself was
+segmented. History now clones and freezes accepted JSON once at its trusted
+ingress, shares those immutable gesture payloads across race cuts, replaces a
+gesture immutably when it is extended, and clones only at public or storage
+egress. Caller mutation, malicious compensation callbacks, restart hydration,
+and checkpoint observers remain isolated.
+
+Mosaic v2 compaction received a related correctness fix. It removes only retired
+runs that are provably unreachable while preserving logical positions, foreign
+descendants, undo/redo protection, checkpoints, restart, and duplicate replay.
+The scale gate keeps the v2 history/index stabilization loop because those are
+the user-facing selective-history and alias contracts, then drives more than
+100,000 operations through the real Domain receipt, checkpoint, retention, and
+garbage-collection lifecycle.
+
+## Deterministic Release Gate
+
+The MOS-20 manifest is the sole corpus authority. The gate verifies its source
+and derived digests before opening the canonical 5.6 MB source, deterministic
+50 MB repetition, huge paragraph, fenced block, heading-rich, and adversarial
+Unicode variants. A single worker owns one authoritative graph at a time. Each
+document runs multi-client disjoint and shared-boundary edits, duplicate,
+delayed and reordered delivery, rejection, disconnect/resnapshot, partial
+hydration and eviction, split/merge path copies, individualized undo/redo, and
+storage-plus-coordinator restart. Failure output includes the seed, fault and
+client schedules, frontier, resident ranges, and replay transcript.
+
+The gate never constructs a second full-document oracle. Its independent flat
+model is a UTF-16-addressed piece table over the canonical file, and final
+verification streams source ranges directly into the digest. Instrumentation
+fails the gate if any service read materializes a document larger than the
+configured residency bound; clients, parsing, join, and resnapshot remain
+bounded projections over the one authoritative segmented graph.
+
+Normative counters cover leaf and branch visits and writes, UTF-16 scanned,
+object reads, validation hashing and serialization, bytes persisted, checkpoint
+and batch payloads, resident and delivered bytes, selector invalidations, and
+parser work. Ordinary edits are bounded to addressed leaves and tree height;
+join and parser work are bounded to resident windows; checkpoints reuse clean
+objects. The 100,001-operation stabilization assertion bounds history, aliases,
+receipts, tail, sessions, and live checkpoint objects. Elapsed time and RSS are
+reported observations only because runner load and allocator behavior are not
+deterministic correctness signals.
+
+Current architecture limits are explicit: text leaves target 32,768 graphemes
+and at most 65,536 UTF-16 units; import chunks are at most 262,144 UTF-16 units;
+branches contain at most 32 children; one edit inserts at most 256 KiB; a range
+read defaults to 128 objects; external graphs default to depth 64, 64 roots, 256
+recovery reads, 1 GiB aggregate bytes, and 4 MiB per object; proposal retention
+defaults to 64 epochs and is limited to 1–1,024. These are safety contracts, not
+claims that arbitrarily large documents are fully resident.
+
+The zero-setup editor server remains in-memory and uses simulated authorization.
+A product adapter must provide the linearizable semantics exercised by the
+in-memory conformance adapter, plus durable ACLs, rate limits, observability, and
+an offline-retention policy.

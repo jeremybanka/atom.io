@@ -10,9 +10,15 @@ import {
 	type MosaicDomainBatchMemberOperation,
 	type MosaicDomainBatchProposal,
 	type MosaicTextIndexBundle,
+	type MosaicTextIndexReader,
+	type MosaicTextIndexReadCounters,
 	type MosaicTextIndexLookup,
+	type MosaicTextIndexRange,
+	type MosaicTextIndexSummary,
+	type MosaicTextInsertedRun,
 	type MosaicTextOperation,
 	type MosaicTextRelativePosition,
+	type MosaicTextSnapshot,
 } from "atom.io/realtime"
 import {
 	bindMosaicDomainHistoryServerSocket,
@@ -23,6 +29,7 @@ import {
 	createMosaicDomainResidencyServer,
 	InMemoryMosaicDomainCheckpointStorage,
 	type MosaicDomainHistoryConnection,
+	type MosaicDomainCheckpointStorageAdapter,
 	type MosaicDomainResidencyServer,
 } from "atom.io/realtime-server"
 import type { Socket } from "socket.io"
@@ -30,11 +37,11 @@ import { z } from "zod"
 
 import {
 	activateMarkdownDocumentDomain,
-	emptyMarkdownTextSnapshot,
 	markdownIndexMemberModel,
 	markdownIndexRootModel,
 	markdownSourceModel,
-	MarkdownText,
+	markdownSourceAtom,
+	type MarkdownText,
 	type MarkdownDocumentDomain,
 } from "../src/document-domain.ts"
 import { INITIAL_MARKDOWN } from "../src/initial-markdown.ts"
@@ -62,11 +69,35 @@ type StagedDocument = {
 }
 
 export type MarkdownDocumentInstrumentation = {
+	readonly activeFullDocumentModels: number
 	readonly batches: number
+	readonly deliveredPayloadBytes: number
 	readonly indexLeavesWritten: number
 	readonly indexNodesWritten: number
+	readonly lastIndexAliasesWritten: number
+	readonly lastIndexLeavesWritten: number
+	readonly lastIndexMembersRemoved: number
+	readonly lastIndexNodesWritten: number
 	readonly lastBatchOperations: number
+	readonly memberLoads: number
 	readonly materializations: number
+	readonly maximumBatchOperations: number
+	readonly maximumDeliveredPayloadBytes: number
+	readonly maximumFullDocumentModels: number
+}
+
+export type MarkdownDocumentRangeInspection = {
+	readonly counters: MosaicTextIndexReadCounters
+	readonly leafIds: readonly string[]
+	readonly projectionText: string
+	readonly residentBytes: number
+	readonly residentMemberCount: number
+}
+
+export type MarkdownDocumentSnapshot = {
+	readonly index: MosaicTextIndexBundle
+	readonly revision: number
+	readonly source: MosaicTextSnapshot
 }
 
 export type MarkdownDocumentService = Disposable & {
@@ -86,10 +117,21 @@ export type MarkdownDocumentService = Disposable & {
 		readonly session: string
 	}): MosaicDomainHistoryConnection
 	readonly instrumentation: MarkdownDocumentInstrumentation
+	readonly indexSummary: MosaicTextIndexSummary | null
+	inspectRange(
+		range: MosaicTextIndexRange,
+	): Promise<MarkdownDocumentRangeInspection>
+	readonly length: number
 	materialize(): string
 	positionAtOffset(offset: number): Promise<MosaicTextIndexLookup>
+	resolveIndexAlias(
+		id: string,
+		range: MosaicTextIndexRange,
+	): ReturnType<MosaicTextIndexReader[`resolveAlias`]>
 	resolvePosition(position: MosaicTextRelativePosition): Promise<number>
 	readonly revision: number
+	snapshot(): MarkdownDocumentSnapshot
+	sourceSnapshot(): MosaicTextSnapshot
 }
 
 const uniqueAddresses = (
@@ -108,6 +150,124 @@ const uniqueAddresses = (
 		})
 }
 
+const markdownSegmenter = new Intl.Segmenter(undefined, {
+	granularity: `grapheme`,
+})
+
+/**
+ * Visit graphemes without allocating a document-sized array. The ASCII fast
+ * path is important for corpus imports; Intl.Segmenter owns every complex
+ * boundary, including CRLF, combining marks, and emoji ZWJ sequences.
+ */
+const visitMarkdownGraphemes = (
+	text: string,
+	visit: (start: number, end: number) => void,
+): void => {
+	let cursor = 0
+	while (cursor < text.length) {
+		if (text.charCodeAt(cursor) <= 0x7f) {
+			let end = cursor + 1
+			while (end < text.length && text.charCodeAt(end) <= 0x7f) end++
+			const retained =
+				end < text.length &&
+				end - cursor >= 2 &&
+				text.charCodeAt(end - 2) === 0x0d &&
+				text.charCodeAt(end - 1) === 0x0a
+					? 2
+					: 1
+			const fastEnd =
+				end === text.length ? end : Math.max(cursor, end - retained)
+			while (cursor < fastEnd) {
+				const next =
+					text.charCodeAt(cursor) === 0x0d &&
+					cursor + 1 < fastEnd &&
+					text.charCodeAt(cursor + 1) === 0x0a
+						? cursor + 2
+						: cursor + 1
+				visit(cursor, next)
+				cursor = next
+			}
+			if (cursor === text.length) break
+		}
+
+		const complexStart = cursor
+		let complexEnd = text.length
+		for (let index = cursor + 1; index < text.length; index++) {
+			const previous = text.charCodeAt(index - 1)
+			const current = text.charCodeAt(index)
+			if (
+				previous <= 0x7f &&
+				current <= 0x7f &&
+				!(previous === 0x0d && current === 0x0a)
+			) {
+				complexEnd = index
+				break
+			}
+		}
+		const complex = text.slice(complexStart, complexEnd)
+		for (const { index, segment } of markdownSegmenter.segment(complex)) {
+			visit(complexStart + index, complexStart + index + segment.length)
+		}
+		cursor = complexEnd
+	}
+}
+
+const prepareMarkdownImportOperation = (
+	source: InstanceType<typeof MarkdownText>,
+	text: string,
+	operationId: string,
+): MosaicTextOperation => {
+	const inserted: MosaicTextInsertedRun[] = []
+	let chunkStart = 0
+	let chunkEnd = 0
+	let chunkGraphemes = 0
+	const flush = (): void => {
+		if (chunkGraphemes === 0) return
+		const previous = inserted.at(-1)
+		inserted.push({
+			after:
+				previous === undefined
+					? null
+					: {
+							offset: chunkGraphemesIn(previous.text),
+							runId: previous.id,
+						},
+			before: null,
+			id: `${operationId}:run:${inserted.length.toString().padStart(6, `0`)}`,
+			text: text.slice(chunkStart, chunkEnd),
+		})
+		chunkStart = chunkEnd
+		chunkGraphemes = 0
+	}
+	visitMarkdownGraphemes(text, (start, end) => {
+		if (
+			chunkGraphemes > 0 &&
+			(chunkGraphemes === 32_768 || end - chunkStart > 65_536)
+		) {
+			chunkEnd = start
+			flush()
+		}
+		chunkEnd = end
+		chunkGraphemes++
+	})
+	flush()
+	return {
+		deleted: source.runs.map(({ end, id, start }) => ({
+			end,
+			runId: id,
+			start,
+		})),
+		inserted,
+		type: `edit`,
+	}
+}
+
+const chunkGraphemesIn = (text: string): number => {
+	let count = 0
+	visitMarkdownGraphemes(text, () => count++)
+	return count
+}
+
 export async function createMarkdownDocumentService(
 	options: {
 		readonly authorizeImport?: (identity: {
@@ -116,8 +276,11 @@ export async function createMarkdownDocumentService(
 		}) => boolean | Promise<boolean>
 		readonly initialText?: string
 		readonly silo?: Silo
+		readonly storage?: MosaicDomainCheckpointStorageAdapter
 	} = {},
 ): Promise<MarkdownDocumentService> {
+	const authorizeImport = options.authorizeImport
+	let bootstrapText = options.initialText ?? INITIAL_MARKDOWN
 	const silo =
 		options.silo ??
 		new Silo({
@@ -126,7 +289,7 @@ export async function createMarkdownDocumentService(
 			name: `markdown-document-server`,
 		})
 	const domain = await activateMarkdownDocumentDomain({ silo })
-	const storage = new InMemoryMosaicDomainCheckpointStorage()
+	const storage = options.storage ?? new InMemoryMosaicDomainCheckpointStorage()
 	const batches = createMosaicDomainBatchServer({
 		domain,
 		limits: {
@@ -136,20 +299,43 @@ export async function createMarkdownDocumentService(
 		},
 		storage,
 	})
+	const recovery = await batches
+		.connect({ actor: `markdown-recovery`, session: `markdown-recovery` })
+		.recover()
+	// The activated Domain already owns and recovers the authoritative text
+	// transceiver. A second service-side shadow would double every large source
+	// and make process restart needlessly replay it twice.
+	const source = (): InstanceType<typeof MarkdownText> =>
+		// getState deliberately exposes the read-only view. The Domain owns the
+		// same transceiver instance; this server uses only its pure prepare,
+		// preview, and serialization methods.
+		silo.getState(markdownSourceAtom) as InstanceType<typeof MarkdownText>
 	let current: StagedDocument = {
-		index: createMosaicTextIndex([], INDEX_OPTIONS),
+		index: createMosaicTextIndex(
+			source().runs.map(({ id, start, text }) => ({ runId: id, start, text })),
+			INDEX_OPTIONS,
+		),
 	}
-	const source = MarkdownText.fromJSON(emptyMarkdownTextSnapshot())
-	let headBatchId: string | null = null
+	let headBatchId: string | null = recovery.tail.at(-1)?.batch.id ?? null
 	let disposed = false
 	let commandTail = Promise.resolve()
 	const staged = new Map<string, StagedDocument>()
 	const counters = {
+		activeFullDocumentModels: 1,
 		batches: 0,
+		deliveredPayloadBytes: 0,
 		indexLeavesWritten: 0,
 		indexNodesWritten: 0,
+		lastIndexAliasesWritten: 0,
+		lastIndexLeavesWritten: 0,
+		lastIndexMembersRemoved: 0,
+		lastIndexNodesWritten: 0,
 		lastBatchOperations: 0,
+		memberLoads: 0,
 		materializations: 0,
+		maximumBatchOperations: 0,
+		maximumDeliveredPayloadBytes: 0,
+		maximumFullDocumentModels: 1,
 	}
 
 	const stageRuns = (
@@ -172,6 +358,10 @@ export async function createMarkdownDocumentService(
 		)
 		counters.indexLeavesWritten += maintenance.counters.leavesWritten
 		counters.indexNodesWritten += maintenance.counters.nodesWritten
+		counters.lastIndexAliasesWritten = maintenance.counters.aliasesWritten
+		counters.lastIndexLeavesWritten = maintenance.counters.leavesWritten
+		counters.lastIndexMembersRemoved = maintenance.counters.membersRemoved
+		counters.lastIndexNodesWritten = maintenance.counters.nodesWritten
 		const document = { index: maintenance.index }
 		const operations: MosaicDomainBatchMemberOperation<
 			typeof domain.identity
@@ -199,10 +389,11 @@ export async function createMarkdownDocumentService(
 	const history = createMosaicDomainHistoryCoordinator({
 		batches,
 		completeCompensation({ actor, batchId, operations, session }) {
-			let preview = source.runs
+			const currentSource = source()
+			let preview = currentSource.runs
 			for (const operation of operations) {
 				if (operation.address.member !== `source`) continue
-				preview = source.preview({
+				preview = currentSource.preview({
 					actor,
 					dependencies: headBatchId === null ? [] : [headBatchId],
 					group: batchId,
@@ -220,24 +411,81 @@ export async function createMarkdownDocumentService(
 		limits: { undoStepsPerActor: 100 },
 		storage,
 	})
+	const inspectRange = async (
+		range: MosaicTextIndexRange,
+	): Promise<MarkdownDocumentRangeInspection> => {
+		const members = new Map(
+			current.index.members.map((member) => [member.id, member]),
+		)
+		const resident = new Map<string, unknown>()
+		const reader = createMosaicTextIndexReader({
+			read(id) {
+				const member = members.get(id)
+				if (member !== undefined) resident.set(id, member)
+				return Promise.resolve(member)
+			},
+			root() {
+				resident.set(`root`, current.index.root)
+				return Promise.resolve(current.index.root)
+			},
+		})
+		const result = await reader.resolveRange(range, 128)
+		if (result.status === `resnapshot`) {
+			throw new Error(`Range resnapshot required: ${result.recovery.reason}.`)
+		}
+		for (const leafId of result.leafIds) {
+			const leaf = members.get(leafId)
+			if (leaf !== undefined) resident.set(leafId, leaf)
+		}
+		const memberLoads = Object.values(reader.counters).reduce(
+			(total, value) => total + value,
+			0,
+		)
+		counters.memberLoads += memberLoads
+		const projectionText = result.leafIds
+			.flatMap((leafId) => {
+				const member = members.get(leafId)
+				return member?.kind === `leaf`
+					? member.fragments.map(({ text }) => text)
+					: []
+			})
+			.join(``)
+		return {
+			counters: { ...reader.counters },
+			leafIds: [...result.leafIds],
+			projectionText,
+			residentBytes: Buffer.byteLength(JSON.stringify([...resident.values()])),
+			residentMemberCount: resident.size,
+		}
+	}
+	const positionAtOffset = async (
+		offset: number,
+	): Promise<MosaicTextIndexLookup> => {
+		const reader = createMosaicTextIndexReader(
+			mosaicTextIndexSource(current.index),
+		)
+		const lookup = await reader.positionAtOffset(offset)
+		counters.memberLoads += Object.values(reader.counters).reduce(
+			(total, value) => total + value,
+			0,
+		)
+		return lookup
+	}
+	const resolveIndexAlias = (
+		id: string,
+		range: MosaicTextIndexRange,
+	): ReturnType<MosaicTextIndexReader[`resolveAlias`]> => {
+		const reader = createMosaicTextIndexReader(
+			mosaicTextIndexSource(current.index),
+		)
+		return reader.resolveAlias(id, range)
+	}
 
 	const acceptedConnection = batches.connect({
 		actor: `markdown-service`,
 		session: `markdown-service`,
 	})
 	const stopAccepted = acceptedConnection.subscribe((accepted) => {
-		for (const operation of accepted.batch.operations) {
-			if (operation.address.member !== `source`) continue
-			source.do({
-				actor: accepted.batch.actor,
-				dependencies: accepted.batch.dependencies,
-				group: accepted.batch.group,
-				id: operation.id,
-				operation: operation.operation as MosaicTextOperation,
-				revision: accepted.revision,
-				session: accepted.batch.session,
-			})
-		}
 		headBatchId = accepted.batch.id
 		const next = staged.get(accepted.batch.id)
 		if (next !== undefined) {
@@ -245,7 +493,17 @@ export async function createMarkdownDocumentService(
 			staged.delete(accepted.batch.id)
 		}
 		counters.batches++
+		const deliveredPayloadBytes = Buffer.byteLength(JSON.stringify(accepted))
+		counters.deliveredPayloadBytes += deliveredPayloadBytes
 		counters.lastBatchOperations = accepted.batch.operations.length
+		counters.maximumBatchOperations = Math.max(
+			counters.maximumBatchOperations,
+			accepted.batch.operations.length,
+		)
+		counters.maximumDeliveredPayloadBytes = Math.max(
+			counters.maximumDeliveredPayloadBytes,
+			deliveredPayloadBytes,
+		)
 	})
 
 	const residency: MosaicDomainResidencyServer<
@@ -258,15 +516,11 @@ export async function createMarkdownDocumentService(
 		range: {
 			async resolve({ domain: active, limit, member, range }) {
 				if (member !== `indexMembers`) return []
-				const result = await createMosaicTextIndexReader(
-					mosaicTextIndexSource(current.index),
-				).resolveRange(range, limit)
-				if (result.status === `resnapshot`) {
-					throw new Error(
-						`Range resnapshot required: ${result.recovery.reason}.`,
-					)
+				const inspection = await inspectRange(range)
+				if (inspection.leafIds.length > limit) {
+					throw new Error(`Range resnapshot required: range-member-limit.`)
 				}
-				return result.leafIds.map((leafId) =>
+				return inspection.leafIds.map((leafId) =>
 					active.address(`indexMembers`, leafId),
 				)
 			},
@@ -294,34 +548,40 @@ export async function createMarkdownDocumentService(
 		if (disposed) throw new Error(`The Markdown document service is disposed.`)
 		if (command.type === `import`) {
 			const authorized =
-				options.authorizeImport === undefined
+				authorizeImport === undefined
 					? actor === `ada` || session === `bootstrap`
-					: await options.authorizeImport({ actor, session })
+					: await authorizeImport({ actor, session })
 			if (!authorized) throw new Error(`Only an authorized actor may import.`)
 		}
 		const sourceOperationId = `${command.gestureId}:source`
-		const signal = source.prepare(
-			{
-				selection:
-					command.type === `import`
-						? {
-								anchor: { affinity: `right`, offset: 0, runId: null },
-								head: { affinity: `left`, offset: 0, runId: null },
-							}
-						: { anchor: command.anchor, head: command.head },
-				text: command.text,
-				type: `replace-selection`,
-			},
-			{
-				actor,
-				dependencies: headBatchId === null ? [] : [headBatchId],
-				group: command.gestureId,
-				id: sourceOperationId,
-				now: 0,
-				revision: null,
-				session,
-			},
-		)
+		const context = {
+			actor,
+			dependencies: headBatchId === null ? [] : [headBatchId],
+			group: command.gestureId,
+			id: sourceOperationId,
+			now: 0,
+			revision: null,
+			session,
+		}
+		const currentSource = source()
+		const signal =
+			command.type === `import`
+				? {
+						...context,
+						operation: prepareMarkdownImportOperation(
+							currentSource,
+							command.text,
+							sourceOperationId,
+						),
+					}
+				: currentSource.prepare(
+						{
+							selection: { anchor: command.anchor, head: command.head },
+							text: command.text,
+							type: `replace-selection`,
+						},
+						context,
+					)
 		if (signal === null) throw new Error(`The Markdown command made no change.`)
 		const sourceOperation: MosaicDomainBatchMemberOperation<
 			typeof domain.identity
@@ -331,7 +591,7 @@ export async function createMarkdownDocumentService(
 			model: mosaicDomainMemberModelIdentity(markdownSourceModel),
 			operation: signal.operation,
 		}
-		const index = stageRuns(source.preview(signal), command.gestureId)
+		const index = stageRuns(currentSource.preview(signal), command.gestureId)
 		const operations = [sourceOperation, ...index.operations]
 		const proposal: MosaicDomainBatchProposal = {
 			affectedMembers: uniqueAddresses(operations),
@@ -365,48 +625,50 @@ export async function createMarkdownDocumentService(
 		return result
 	}
 
-	if ((options.initialText ?? INITIAL_MARKDOWN).length > 0) {
+	if (bootstrapText.length > 0) {
 		await enqueueCommand({
 			actor: `system`,
 			command: {
 				gestureId: `bootstrap`,
 				sequence: 1,
-				text: options.initialText ?? INITIAL_MARKDOWN,
+				text: bootstrapText,
 				type: `import`,
 			},
 			session: `bootstrap`,
 		})
 		await history.flush()
 	}
+	// Do not retain the caller's original whole-document string in the service
+	// closure after the Domain has accepted it.
+	bootstrapText = ``
 
 	const cleanups = new Set<() => Promise<void>>()
 	const materializeDocument = (): string => {
 		counters.materializations++
-		return source.text
+		return source().text
 	}
-	const positionAtOffset = (offset: number): Promise<MosaicTextIndexLookup> =>
-		createMosaicTextIndexReader(
-			mosaicTextIndexSource(current.index),
-		).positionAtOffset(offset)
 	const resolvePosition = (
 		position: MosaicTextRelativePosition,
-	): Promise<number> => Promise.resolve(source.resolvePosition(position))
+	): Promise<number> => Promise.resolve(source().resolvePosition(position))
 	const acknowledge = <Value>(
 		work: Promise<Value>,
 		respond: (acknowledgement: MarkdownAcknowledgement<Value>) => void,
 	): void => {
 		void work.then(
-			(value) => respond({ ok: true, value }),
-			(error: unknown) =>
+			(value) => {
+				respond({ ok: true, value })
+			},
+			(error: unknown) => {
 				respond({
 					ok: false,
 					reason: error instanceof Error ? error.message : String(error),
-				}),
+				})
+			},
 		)
 	}
 
 	return {
-		async bindSocket({ actor, session, socket }) {
+		bindSocket({ actor, session, socket }) {
 			const range = residency.connect({ actor, session })
 			const historyConnection = history.connect({ actor, session })
 			const unbindHistory = bindMosaicDomainHistoryServerSocket(
@@ -487,7 +749,7 @@ export async function createMarkdownDocumentService(
 				cleanups.delete(cleanup)
 			}
 			cleanups.add(cleanup)
-			return cleanup
+			return Promise.resolve(cleanup)
 		},
 		command: enqueueCommand,
 		domain,
@@ -495,11 +757,29 @@ export async function createMarkdownDocumentService(
 		get instrumentation() {
 			return { ...counters }
 		},
+		get indexSummary() {
+			return structuredClone(current.index.root.reference?.summary ?? null)
+		},
+		inspectRange,
+		get length() {
+			return current.index.root.reference?.summary.utf16Units ?? 0
+		},
 		materialize: materializeDocument,
 		positionAtOffset,
+		resolveIndexAlias,
 		resolvePosition,
 		get revision() {
 			return batches.revision
+		},
+		snapshot() {
+			return {
+				index: structuredClone(current.index),
+				revision: batches.revision,
+				source: source().toJSON(),
+			}
+		},
+		sourceSnapshot() {
+			return source().toJSON()
 		},
 		[Symbol.dispose]() {
 			if (disposed) return

@@ -196,10 +196,12 @@ the whole attempt succeeds. The pinned 50 MiB corpus gate raises the incremental
 stage budget because its input is authenticated by the MOS-20 manifest and read
 under a fixed deadline. That exception is not the default production request
 budget: it permits at most 128 MiB of cumulative authenticated staging work and
-32,768 objects while the ordinary defaults remain 16 MiB and 4,096 objects.
-Staged bytes count every immutable text, index, directory, and proof object
-serialized and hashed during the attempt; they are not retained bytes, resident
-memory, or the protected graph's 64 MiB size cap.
+32,768 objects while the ordinary defaults remain 16 MiB and 4,096 objects. The
+reported text-stage bytes count every immutable text or index node serialized
+and hashed at the model boundary; directory and proof staging, then storage
+verification, independently enforce the same work budget before publication.
+These cumulative work budgets are not retained bytes, resident memory, or the
+protected graph's 64 MiB value-size cap.
 
 The zero-setup editor server remains in-memory and uses simulated authorization.
 A product adapter must provide the linearizable semantics exercised by the

@@ -68,8 +68,39 @@ const canonicalize = (value: unknown): string => {
 		.join(`,`)}}`
 }
 
-const nodePath = (value: MosaicTextRootObject): string =>
-	createHash(`sha256`).update(canonicalize(value)).digest(`hex`)
+const visitCanonicalJson = (
+	value: unknown,
+	visit: (chunk: string) => void,
+): void => {
+	if (value === null || typeof value !== `object`) {
+		visit(JSON.stringify(value))
+		return
+	}
+	if (Array.isArray(value)) {
+		visit(`[`)
+		for (const [index, item] of value.entries()) {
+			if (index > 0) visit(`,`)
+			visitCanonicalJson(item, visit)
+		}
+		visit(`]`)
+		return
+	}
+	visit(`{`)
+	const object = value as Readonly<Record<string, unknown>>
+	for (const [index, key] of Object.keys(object).sort().entries()) {
+		if (index > 0) visit(`,`)
+		visit(JSON.stringify(key))
+		visit(`:`)
+		visitCanonicalJson(object[key], visit)
+	}
+	visit(`}`)
+}
+
+const nodePath = (value: MosaicTextRootObject): string => {
+	const hash = createHash(`sha256`)
+	visitCanonicalJson(value, (chunk) => hash.update(chunk))
+	return hash.digest(`hex`)
+}
 
 const indexObject = (
 	options: Pick<MosaicTextRootCheckpointStageOptions, `baseRevision`>,
@@ -199,7 +230,8 @@ export function createMosaicTextRootCheckpointStage(
 				storage: options.storage,
 				updates,
 			})
-			for (const expected of pendingByKey.values()) {
+			for (const [nodeKey, expected] of pendingByKey) {
+				if ((referenceDeltas.get(nodeKey) ?? 0) <= 0) continue
 				const key = mosaicDomainCheckpointObjectKey(expected)
 				const stored = await options.storage.readCheckpointObject(
 					options.domain,

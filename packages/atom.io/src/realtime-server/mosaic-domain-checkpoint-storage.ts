@@ -19,6 +19,8 @@ import type {
 	MosaicDomainBatchStorageResult,
 } from "./mosaic-domain-batch-storage.ts"
 
+const encoder = new TextEncoder()
+
 export type MosaicDomainCheckpointHead = {
 	/** Durable external roots accepted after the currently published checkpoint. */
 	readonly acceptedRootKeys?: readonly MosaicDomainCheckpointObjectKey[]
@@ -428,7 +430,7 @@ const leaseExpired = (
 	now: number,
 ): boolean =>
 	(lease.expiresAfterRevision !== undefined &&
-		state.headRevision > lease.expiresAfterRevision) ||
+		state.headRevision >= lease.expiresAfterRevision) ||
 	(lease.expiresAt !== undefined && now >= lease.expiresAt) ||
 	(lease.expiresAtRetentionEpoch !== undefined &&
 		state.retentionEpoch >= lease.expiresAtRetentionEpoch)
@@ -481,10 +483,10 @@ const verifyExternalGraphProof = (
 		}
 		const serialized = canonicalize(object)
 		state.externalValidationObjectReads++
-		state.externalValidationHashedBytes += new TextEncoder().encode(
-			serialized,
-		).byteLength
-		if (mosaicDomainCheckpointObjectKey(object) !== key) {
+		state.externalValidationHashedBytes += encoder.encode(serialized).byteLength
+		if (
+			`sha256:${createHash(`sha256`).update(serialized).digest(`hex`)}` !== key
+		) {
 			throw new Error(`A Mosaic Domain checkpoint content key is invalid.`)
 		}
 		return object
@@ -558,6 +560,15 @@ const verifyExternalGraphProof = (
 		MosaicDomainCheckpointObjectKey,
 		MosaicDomainCheckpointObject
 	>()
+	const logicalKeyHashes = new Map<string, string>()
+	const segmentFor = (logicalKey: string, at: number): string => {
+		let hash = logicalKeyHashes.get(logicalKey)
+		if (hash === undefined) {
+			hash = createHash(`sha256`).update(logicalKey).digest(`hex`)
+			logicalKeyHashes.set(logicalKey, hash)
+		}
+		return hash[at]
+	}
 	const put = (
 		object: MosaicDomainCheckpointObject,
 	): MosaicDomainCheckpointObjectKey => {
@@ -590,7 +601,7 @@ const verifyExternalGraphProof = (
 		}
 		const groups = new Map<string, typeof sorted>()
 		for (const entry of sorted) {
-			const segment = createHash(`sha256`).update(entry.key).digest(`hex`)[at]
+			const segment = segmentFor(entry.key, at)
 			const group = groups.get(segment)
 			if (group === undefined) groups.set(segment, [entry])
 			else group.push(entry)
@@ -623,9 +634,7 @@ const verifyExternalGraphProof = (
 				throw new Error(`A Mosaic Domain checkpoint directory is invalid.`)
 			}
 			assertDirectoryObject(node)
-			const segment = createHash(`sha256`).update(logicalKey).digest(`hex`)[
-				node.depth
-			]
+			const segment = segmentFor(logicalKey, node.depth)
 			key =
 				node.children.find((child) => child.segment === segment)?.value ?? null
 		}
@@ -653,9 +662,7 @@ const verifyExternalGraphProof = (
 				throw new Error(`A Mosaic Domain checkpoint directory is invalid.`)
 			}
 			assertDirectoryObject(node)
-			const segment = createHash(`sha256`).update(logicalKey).digest(`hex`)[
-				node.depth
-			]
+			const segment = segmentFor(logicalKey, node.depth)
 			const child = node.children.find((item) => item.segment === segment)
 			const next =
 				child === undefined
@@ -693,9 +700,7 @@ const verifyExternalGraphProof = (
 				throw new Error(`A Mosaic Domain checkpoint directory is invalid.`)
 			}
 			assertDirectoryObject(node)
-			const segment = createHash(`sha256`).update(logicalKey).digest(`hex`)[
-				node.depth
-			]
+			const segment = segmentFor(logicalKey, node.depth)
 			const child = node.children.find((item) => item.segment === segment)
 			if (child === undefined) return key
 			const next = remove(child.value)
@@ -731,7 +736,7 @@ const verifyExternalGraphProof = (
 				throw new Error(`A Mosaic Domain external checkpoint proof is invalid.`)
 			}
 			const serialized = JSON.stringify(previousValue.value)
-			const serializedBytes = new TextEncoder().encode(serialized).byteLength
+			const serializedBytes = encoder.encode(serialized).byteLength
 			state.externalValidationSerializedBytes += serializedBytes
 			bytes -= serializedBytes
 		}
@@ -749,7 +754,7 @@ const verifyExternalGraphProof = (
 			throw new Error(`A Mosaic Domain external checkpoint proof is invalid.`)
 		}
 		const serialized = JSON.stringify(value.value)
-		const serializedBytes = new TextEncoder().encode(serialized).byteLength
+		const serializedBytes = encoder.encode(serialized).byteLength
 		state.externalValidationSerializedBytes += serializedBytes
 		bytes += serializedBytes
 		directory = updateDirectory(directory, logicalKey, update.valueKey)
@@ -1204,7 +1209,7 @@ export class InMemoryMosaicDomainCheckpointStorage implements MosaicDomainCheckp
 				externalBytes.set(
 					item.external.rootKey,
 					externalBytes.get(item.external.rootKey)! +
-						new TextEncoder().encode(JSON.stringify(object.value)).byteLength,
+						encoder.encode(JSON.stringify(object.value)).byteLength,
 				)
 			}
 		}
@@ -1449,9 +1454,7 @@ export class InMemoryMosaicDomainCheckpointStorage implements MosaicDomainCheckp
 			}
 			const value = clone(item.value)
 			candidates.set(item.key, value)
-			persistedBytes += new TextEncoder().encode(
-				JSON.stringify(value),
-			).byteLength
+			persistedBytes += encoder.encode(JSON.stringify(value)).byteLength
 			persistedObjectCount++
 		}
 		if (
@@ -1468,15 +1471,16 @@ export class InMemoryMosaicDomainCheckpointStorage implements MosaicDomainCheckp
 		if (options.externalGraph !== undefined && options.proposal !== undefined) {
 			const proposal = options.proposal
 			const retentionEpochs = proposal.retentionEpochs ?? 64
+			const now = this.#now()
 			if (
 				proposal.rootKey !== options.externalGraph.rootKey ||
 				!validObjectKey(proposal.rootKey) ||
 				!Number.isSafeInteger(proposal.minimumRevision) ||
 				proposal.minimumRevision < 0 ||
 				!Number.isSafeInteger(proposal.expiresAfterRevision) ||
-				proposal.expiresAfterRevision < state.headRevision ||
+				proposal.expiresAfterRevision <= state.headRevision ||
 				!Number.isFinite(proposal.expiresAt) ||
-				proposal.expiresAt <= this.#now() ||
+				proposal.expiresAt <= now ||
 				!Number.isSafeInteger(retentionEpochs) ||
 				retentionEpochs < 1 ||
 				retentionEpochs > 1024
@@ -1534,7 +1538,7 @@ export class InMemoryMosaicDomainCheckpointStorage implements MosaicDomainCheckp
 				domain,
 				candidates,
 				options.externalGraph,
-				this.#now(),
+				now,
 			)
 		}
 		for (const [key, value] of candidates) {

@@ -472,7 +472,8 @@ describe(`realtime testing foundations`, () => {
 	})
 
 	test(`application drain timeouts report pending work`, async () => {
-		const scenario = RTTest.headless({ server: () => {} })
+		const clock = new RTTest.VirtualClock()
+		const scenario = RTTest.headless({ clock, server: () => {} })
 		const client = scenario.createClient({ name: `blocked-work` })
 		let release!: () => void
 		void client.work.track(
@@ -482,13 +483,46 @@ describe(`realtime testing foundations`, () => {
 			`blocked projection`,
 		)
 		try {
-			await expect(scenario.drainApplication({ timeout: 10 })).rejects.toThrow(
+			await expect(scenario.drainApplication({ timeout: 0 })).rejects.toThrow(
 				/Timed out draining.*blocked projection/s,
 			)
+			const rejection = expect(
+				scenario.drainApplication({ timeout: 10 }),
+			).rejects.toThrow(/Timed out draining.*blocked projection/s)
+			await advanceVirtualClock(clock, 10)
+			await rejection
 		} finally {
 			release()
 			await scenario.teardown()
 		}
+	})
+
+	test(`shares an absolute deadline across idle transport rounds`, async () => {
+		const run = async (wait: `transport` | `idle`) => {
+			const clock = new RTTest.VirtualClock()
+			const scenario = RTTest.headless({ clock, server: () => {} })
+			const client = scenario.createClient({ name: `${wait}-deadline` })
+			await new Promise<void>((resolve) => client.socket.on(`connect`, resolve))
+			client.socket.once(`atom.io/realtime-testing:barrier-response`, () =>
+				clock.advance(10),
+			)
+			try {
+				const result =
+					wait === `transport`
+						? scenario.drainTransport({ timeout: 10 })
+						: scenario.waitForIdle({ timeout: 10 })
+				await expect(result).rejects.toThrow(
+					wait === `transport`
+						? `Timed out draining realtime transport queues`
+						: `Timed out waiting for the realtime scenario to become idle`,
+				)
+			} finally {
+				await scenario.teardown()
+			}
+		}
+
+		await run(`transport`)
+		await run(`idle`)
 	})
 
 	test(`runs service cleanup and rejects work on disposed clients`, async () => {

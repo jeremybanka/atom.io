@@ -21,6 +21,7 @@ import {
 	InMemoryMosaicDomainCheckpointStorage,
 	type MosaicDomainCheckpointCoordinator,
 	mosaicDomainCheckpointObjectKey,
+	type MosaicDomainExternalCheckpointReader,
 } from "../packages/atom.io/src/realtime-server/index.ts"
 
 export type MosaicTextRootPublication = {
@@ -255,7 +256,8 @@ export class MosaicTextRootScaleService {
 	readonly #identity: MosaicDomainIdentity
 	readonly #sequences = new Map<string, number>()
 	#storage: InMemoryMosaicDomainCheckpointStorage
-	#checkpoint: MosaicDomainCheckpointCoordinator
+	#checkpoint: MosaicDomainCheckpointCoordinator &
+		MosaicDomainExternalCheckpointReader
 	#checkpointBytes = 0
 	#deliveredBytes = 0
 	#initialExternalPersistedBytes = 0
@@ -324,7 +326,8 @@ export class MosaicTextRootScaleService {
 		return service
 	}
 
-	#createCheckpoint(): MosaicDomainCheckpointCoordinator {
+	#createCheckpoint(): MosaicDomainCheckpointCoordinator &
+		MosaicDomainExternalCheckpointReader {
 		return createMosaicDomainCheckpointCoordinator({
 			domain: this.#identity,
 			externalRoots: () =>

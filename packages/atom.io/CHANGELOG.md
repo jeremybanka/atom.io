@@ -1,5 +1,11 @@
 # atom.io
 
+## 0.52.1
+
+### Patch Changes
+
+- a082cfd: Make realtime convergence waits share an injectable clock, deadline, and abort signal so their timeout coverage is deterministic.
+
 ## 0.52.0
 
 ### Minor Changes

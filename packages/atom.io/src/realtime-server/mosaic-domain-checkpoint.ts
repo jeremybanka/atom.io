@@ -86,13 +86,6 @@ export type MosaicDomainCheckpointCoordinator<
 	Identity extends MosaicDomainIdentity = MosaicDomainIdentity,
 > = {
 	checkpoint(): Promise<MosaicDomainCheckpointResult>
-	readExternalIndexes(
-		rootKey: MosaicDomainCheckpointObjectKey,
-		addresses: readonly {
-			readonly index: string
-			readonly path: string
-		}[],
-	): Promise<readonly MosaicDomainCheckpointIndex[]>
 	readIndex(
 		index: string,
 		path: string,
@@ -100,6 +93,17 @@ export type MosaicDomainCheckpointCoordinator<
 	recover(
 		addresses: readonly MosaicDomainMemberAddress<Identity>[],
 	): Promise<MosaicDomainCheckpointRecovery<Identity>>
+}
+
+/** Bounded reads from model-owned roots published by a Domain checkpoint. */
+export type MosaicDomainExternalCheckpointReader = {
+	readExternalIndexes(
+		rootKey: MosaicDomainCheckpointObjectKey,
+		addresses: readonly {
+			readonly index: string
+			readonly path: string
+		}[],
+	): Promise<readonly MosaicDomainCheckpointIndex[]>
 }
 
 export type MosaicDomainExternalCheckpointGraphUpdate =
@@ -603,7 +607,8 @@ export function createMosaicDomainCheckpointCoordinator<
 	Identity extends MosaicDomainIdentity,
 >(
 	options: MosaicDomainCheckpointCoordinatorOptions<Identity>,
-): MosaicDomainCheckpointCoordinator<Identity> {
+): MosaicDomainCheckpointCoordinator<Identity> &
+	MosaicDomainExternalCheckpointReader {
 	const maxAttempts = options.limits?.maxAttempts ?? 8
 	const maxDirtyIndexPaths = options.limits?.maxDirtyIndexPaths ?? 4096
 	const maxDirtyMembers = options.limits?.maxDirtyMembers ?? 4096

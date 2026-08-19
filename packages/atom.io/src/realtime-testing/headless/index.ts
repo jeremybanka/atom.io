@@ -49,6 +49,8 @@ export type RealtimeTestServerTools = {
 }
 
 export type TestSetupOptions = {
+	/** Clock used for wait deadlines and convergence polling. */
+	clock?: RT.Clock
 	immortal?: { server?: boolean }
 	/** Stable namespace for generated identities and sessions. */
 	scenarioId?: string
@@ -100,13 +102,19 @@ export type HeadlessRealtimeTestClient = RealtimeTestTools & {
 }
 
 export type WaitOptions = {
-	/** Maximum wall-clock wait. Defaults to 1,000 milliseconds. */
+	/** Maximum wait on the scenario's clock. Defaults to 1,000 milliseconds. */
 	timeout?: number
 }
 
 export type WaitForIdleOptions = WaitOptions & {
 	/** Consecutive unchanged barrier rounds required. Defaults to two. */
 	stableRounds?: number
+}
+
+type WaitDeadline = {
+	clock: RT.Clock
+	controller: AbortController
+	expiresAt: number
 }
 
 export type RealtimeTestServer = RealtimeTestTools & {
@@ -158,6 +166,7 @@ export type RealtimeTestAPI__Headless = RealtimeTestAPI & {
 }
 type InternalRealtimeTestServer = RealtimeTestServer & {
 	clients: ReadonlySet<HeadlessRealtimeTestClient>
+	clock: RT.Clock
 	diagnostics: () => string
 	harness: SocketIOHarness
 	nextSessionId: () => string
@@ -168,6 +177,10 @@ type InternalRealtimeTestServer = RealtimeTestServer & {
 
 type InternalRealtimeTestClient = HeadlessRealtimeTestClient & {
 	diagnostics: () => string
+	drainTransportWithin: (
+		deadline: WaitDeadline,
+		stableRounds: number,
+	) => Promise<void>
 }
 
 const timeoutError = (
@@ -180,27 +193,47 @@ const timeoutError = (
 
 const withTimeout = async <T>(
 	operation: (signal: AbortSignal) => Promise<T>,
-	timeout: number,
+	deadline: WaitDeadline,
 	onTimeout: () => Error,
 ): Promise<T> => {
-	const controller = new AbortController()
-	let timer!: ReturnType<typeof setTimeout>
+	const timeout = deadline.expiresAt - deadline.clock.now()
+	if (timeout <= 0) throw onTimeout()
+	let timer!: number
 	const expired = new Promise<never>((_, reject) => {
-		timer = setTimeout(() => {
-			const error = onTimeout()
-			controller.abort(error)
-			reject(error)
-		}, timeout)
+		timer = deadline.clock.schedule(
+			() => {
+				const error = onTimeout()
+				deadline.controller.abort(error)
+				reject(error)
+			},
+			timeout,
+			`realtime-test:deadline`,
+		)
 	})
 	try {
-		return await Promise.race([operation(controller.signal), expired])
+		return await Promise.race([operation(deadline.controller.signal), expired])
 	} finally {
-		clearTimeout(timer)
+		deadline.clock.cancel(timer)
 	}
 }
 
-const remaining = (started: number, timeout: number): number =>
-	timeout - (Date.now() - started)
+const createDeadline = (clock: RT.Clock, timeout: number): WaitDeadline => ({
+	clock,
+	controller: new AbortController(),
+	expiresAt: clock.now() + timeout,
+})
+
+const remaining = (deadline: WaitDeadline): number =>
+	deadline.expiresAt - deadline.clock.now()
+
+const waitForClock = (
+	clock: RT.Clock,
+	delay: number,
+	label: string,
+): Promise<void> =>
+	new Promise((resolve) => {
+		clock.schedule(resolve, delay, label)
+	})
 
 const validateStableRounds = (stableRounds: number): void => {
 	if (!Number.isInteger(stableRounds) || stableRounds < 1) {
@@ -220,19 +253,20 @@ const drainApplicationWork = async (
 	trackers: Iterable<RealtimeTestWorkTracker>,
 	server: InternalRealtimeTestServer,
 	options: WaitOptions = {},
+	parentDeadline?: WaitDeadline,
 ): Promise<void> => {
 	const timeout = options.timeout ?? 1_000
-	const started = Date.now()
+	const deadline = parentDeadline ?? createDeadline(server.clock, timeout)
 	await withTimeout(
 		async (signal) => {
 			const context: RealtimeTestDrainContext = {
-				deadline: started + timeout,
-				now: Date.now,
+				deadline: deadline.expiresAt,
+				now: deadline.clock.now.bind(deadline.clock),
 				signal,
 			}
 			for (const tracker of trackers) await tracker.drain(context)
 		},
-		timeout,
+		deadline,
 		() => timeoutError(`Timed out draining realtime application work`, server),
 	)
 }
@@ -241,23 +275,27 @@ const drainClientsTransport = async (
 	clients: Iterable<HeadlessRealtimeTestClient>,
 	server: InternalRealtimeTestServer,
 	options: WaitForIdleOptions = {},
+	parentDeadline?: WaitDeadline,
 ): Promise<void> => {
 	const timeout = options.timeout ?? 1_000
+	const deadline = parentDeadline ?? createDeadline(server.clock, timeout)
 	const stableRounds = options.stableRounds ?? 2
 	validateStableRounds(stableRounds)
-	const started = Date.now()
 	let stable = 0
 	let previousCursor = server.journal.cursor()
 	while (stable < stableRounds) {
 		for (const client of clients) {
-			const timeLeft = remaining(started, timeout)
+			const timeLeft = remaining(deadline)
 			if (timeLeft <= 0) {
 				throw timeoutError(
 					`Timed out draining realtime transport queues`,
 					server,
 				)
 			}
-			await client.drainTransport({ timeout: timeLeft, stableRounds: 1 })
+			await (client as InternalRealtimeTestClient).drainTransportWithin(
+				deadline,
+				1,
+			)
 		}
 		const cursor = server.journal.cursor()
 		stable = cursor === previousCursor ? stable + 1 : 0
@@ -269,16 +307,17 @@ const waitForClientsIdle = async (
 	clients: Iterable<HeadlessRealtimeTestClient>,
 	server: InternalRealtimeTestServer,
 	options: WaitForIdleOptions = {},
+	parentDeadline?: WaitDeadline,
 ): Promise<void> => {
 	const selectedClients = [...clients]
 	const timeout = options.timeout ?? 1_000
+	const deadline = parentDeadline ?? createDeadline(server.clock, timeout)
 	const stableRounds = options.stableRounds ?? 2
 	validateStableRounds(stableRounds)
-	const started = Date.now()
 	let stable = 0
 	let previousCursor = server.journal.cursor()
 	while (stable < stableRounds) {
-		const timeLeft = remaining(started, timeout)
+		const timeLeft = remaining(deadline)
 		if (timeLeft <= 0) {
 			throw timeoutError(
 				`Timed out waiting for the realtime scenario to become idle`,
@@ -289,11 +328,17 @@ const waitForClientsIdle = async (
 			applicationTrackers(selectedClients, server),
 			server,
 			{ timeout: timeLeft },
+			deadline,
 		)
-		await drainClientsTransport(selectedClients, server, {
-			stableRounds: 1,
-			timeout: remaining(started, timeout),
-		})
+		await drainClientsTransport(
+			selectedClients,
+			server,
+			{
+				stableRounds: 1,
+				timeout: remaining(deadline),
+			},
+			deadline,
+		)
 		const cursor = server.journal.cursor()
 		const pending = applicationTrackers(selectedClients, server).flatMap(
 			(tracker) => tracker.pendingLabels(),
@@ -332,7 +377,7 @@ const waitForConvergence = async <State>(
 	const stableRounds = options.stableRounds ?? 2
 	validateStableRounds(stableRounds)
 	const equals = options.equals ?? defaultEquals
-	const started = Date.now()
+	const deadline = createDeadline(server.clock, timeout)
 	let stable = 0
 	let lastStates: State[] = []
 	const convergenceTimeout = (cause?: unknown) => {
@@ -347,13 +392,18 @@ const waitForConvergence = async <State>(
 		)
 	}
 	while (stable < stableRounds) {
-		const timeLeft = remaining(started, timeout)
+		const timeLeft = remaining(deadline)
 		if (timeLeft <= 0) throw convergenceTimeout()
 		try {
-			await waitForClientsIdle(clients, server, {
-				stableRounds: 1,
-				timeout: timeLeft,
-			})
+			await waitForClientsIdle(
+				clients,
+				server,
+				{
+					stableRounds: 1,
+					timeout: timeLeft,
+				},
+				deadline,
+			)
 		} catch (error) {
 			throw convergenceTimeout(error)
 		}
@@ -361,7 +411,11 @@ const waitForConvergence = async <State>(
 		const first = lastStates[0]
 		if (lastStates.every((state) => equals(first, state))) stable++
 		else stable = 0
-		await new Promise<void>((resolve) => setTimeout(resolve, 0))
+		await waitForClock(
+			deadline.clock,
+			Math.min(1, Math.max(0, remaining(deadline))),
+			`realtime-test:convergence-poll`,
+		)
 	}
 	return lastStates[0]
 }
@@ -380,6 +434,7 @@ export const setupRealtimeTestServer = (
 		diagnostics: () => readDiagnostics(),
 	})
 	const clients = new Set<HeadlessRealtimeTestClient>()
+	const clock = options.clock ?? RT.systemClock
 	const inspectors = new RealtimeTestInspectors()
 	const work = new RealtimeTestWorkTracker()
 	const silo = new AtomIO.Silo(
@@ -482,6 +537,7 @@ export const setupRealtimeTestServer = (
 			})
 		},
 		clients,
+		clock,
 		diagnostics: () =>
 			[
 				inspectors.transcript(),
@@ -584,6 +640,86 @@ export const setupHeadlessRealtimeTestClient = (
 	let disposed = false
 	let disposePromise: Promise<void> | null = null
 	let barrierNumber = 0
+	const drainTransportWithin = async (
+		deadline: WaitDeadline,
+		stableRounds: number,
+	): Promise<void> => {
+		if (disposed)
+			throw new Error(`Realtime test client ${sessionId} is disposed`)
+		validateStableRounds(stableRounds)
+		if (!socket.connected) {
+			await withTimeout(
+				(signal) =>
+					new Promise<void>((resolve, reject) => {
+						const cleanup = () => {
+							socket.off(`connect`, onConnect)
+							socket.off(`connect_error`, onConnectError)
+							signal.removeEventListener(`abort`, cleanup)
+						}
+						const onConnect = () => {
+							cleanup()
+							resolve()
+						}
+						const onConnectError = (error: Error) => {
+							cleanup()
+							reject(error)
+						}
+						signal.addEventListener(`abort`, cleanup, { once: true })
+						socket.on(`connect`, onConnect)
+						socket.on(`connect_error`, onConnectError)
+					}),
+				deadline,
+				() =>
+					timeoutError(
+						`Timed out waiting for ${sessionId} to connect`,
+						internalServer,
+					),
+			)
+		}
+		let stable = 0
+		let previousCursor = internalServer.journal.cursor()
+		while (stable < stableRounds) {
+			const timeLeft = remaining(deadline)
+			if (timeLeft <= 0) {
+				throw timeoutError(
+					`Timed out draining the ${sessionId} transport queue`,
+					internalServer,
+				)
+			}
+			const nonce = `${sessionId}:${++barrierNumber}`
+			await withTimeout(
+				(signal) =>
+					new Promise<void>((resolve, reject) => {
+						const cleanup = () => {
+							barrierWaiters.delete(nonce)
+							signal.removeEventListener(`abort`, cleanup)
+						}
+						barrierWaiters.set(nonce, {
+							reject: (error) => {
+								cleanup()
+								reject(error)
+							},
+							resolve: () => {
+								cleanup()
+								resolve()
+							},
+						})
+						signal.addEventListener(`abort`, cleanup, { once: true })
+						socket.emit(BARRIER_REQUEST, nonce)
+					}),
+				deadline,
+				() =>
+					timeoutError(
+						`Timed out waiting for the ${sessionId} transport barrier. Socket.IO cannot retract an emitted packet; its late response will be ignored.`,
+						internalServer,
+					),
+			)
+			await Promise.resolve()
+			const cursor = internalServer.journal.cursor()
+			stable = cursor === previousCursor ? stable + 1 : 0
+			previousCursor = cursor
+		}
+	}
 	const client: InternalRealtimeTestClient = {
 		diagnostics: () =>
 			[
@@ -596,83 +732,12 @@ export const setupHeadlessRealtimeTestClient = (
 			await drainApplicationWork([work], internalServer, drainOptions)
 		},
 		drainTransport: async ({ timeout = 1_000, stableRounds = 2 } = {}) => {
-			if (disposed)
-				throw new Error(`Realtime test client ${sessionId} is disposed`)
-			validateStableRounds(stableRounds)
-			if (!socket.connected) {
-				await withTimeout(
-					(signal) =>
-						new Promise<void>((resolve, reject) => {
-							const cleanup = () => {
-								socket.off(`connect`, onConnect)
-								socket.off(`connect_error`, onConnectError)
-								signal.removeEventListener(`abort`, cleanup)
-							}
-							const onConnect = () => {
-								cleanup()
-								resolve()
-							}
-							const onConnectError = (error: Error) => {
-								cleanup()
-								reject(error)
-							}
-							signal.addEventListener(`abort`, cleanup, { once: true })
-							socket.on(`connect`, onConnect)
-							socket.on(`connect_error`, onConnectError)
-						}),
-					timeout,
-					() =>
-						timeoutError(
-							`Timed out waiting for ${sessionId} to connect`,
-							internalServer,
-						),
-				)
-			}
-			const started = Date.now()
-			let stable = 0
-			let previousCursor = internalServer.journal.cursor()
-			while (stable < stableRounds) {
-				const timeLeft = remaining(started, timeout)
-				if (timeLeft <= 0) {
-					throw timeoutError(
-						`Timed out draining the ${sessionId} transport queue`,
-						internalServer,
-					)
-				}
-				const nonce = `${sessionId}:${++barrierNumber}`
-				await withTimeout(
-					(signal) =>
-						new Promise<void>((resolve, reject) => {
-							const cleanup = () => {
-								barrierWaiters.delete(nonce)
-								signal.removeEventListener(`abort`, cleanup)
-							}
-							barrierWaiters.set(nonce, {
-								reject: (error) => {
-									cleanup()
-									reject(error)
-								},
-								resolve: () => {
-									cleanup()
-									resolve()
-								},
-							})
-							signal.addEventListener(`abort`, cleanup, { once: true })
-							socket.emit(BARRIER_REQUEST, nonce)
-						}),
-					timeLeft,
-					() =>
-						timeoutError(
-							`Timed out waiting for the ${sessionId} transport barrier. Socket.IO cannot retract an emitted packet; its late response will be ignored.`,
-							internalServer,
-						),
-				)
-				await Promise.resolve()
-				const cursor = internalServer.journal.cursor()
-				stable = cursor === previousCursor ? stable + 1 : 0
-				previousCursor = cursor
-			}
+			await drainTransportWithin(
+				createDeadline(internalServer.clock, timeout),
+				stableRounds,
+			)
 		},
+		drainTransportWithin,
 		dispose: () => {
 			disposePromise ??= (async () => {
 				const disposeError = new Error(

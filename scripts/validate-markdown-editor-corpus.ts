@@ -6,6 +6,7 @@ import path from "node:path"
 import { IncrementalMarkdownParser } from "../templates/react-realtime-text-editor/src/incremental-markdown.ts"
 import { markdownVirtualWindow } from "../templates/react-realtime-text-editor/src/virtualization.ts"
 import {
+	MOSAIC_TEXT_TRUSTED_IMPORT_MAX_STAGED_BYTES,
 	type MosaicTextRootScaleClient,
 	type MosaicTextRootScaleEdit,
 	MosaicTextRootScaleService,
@@ -14,6 +15,7 @@ import {
 	MOSAIC_TEXT_SCALE_FAULTS,
 	type MosaicTextScaleDiagnostic,
 	mosaicTextScaleFailure,
+	type MosaicTextScaleFault,
 	type MosaicTextStabilizationReport,
 	stabilizeMosaicTextLifecycle,
 } from "./mosaic-text-scalability.ts"
@@ -43,6 +45,7 @@ export type MarkdownCorpusValidation = {
 			readonly branchesWritten: number
 			readonly leavesWritten: number
 			readonly persistedBytes: number
+			readonly stagedBytes: number
 			readonly utf16Scanned: number
 		}
 		readonly local: {
@@ -72,7 +75,7 @@ export type MarkdownCorpusValidation = {
 		readonly samples: number
 		readonly selectorInvalidations: number
 	}[]
-	readonly faultSchedule: typeof MOSAIC_TEXT_SCALE_FAULTS
+	readonly faultSchedule: readonly MosaicTextScaleFault[]
 	readonly seed: number
 	readonly stabilization: MosaicTextStabilizationReport
 }
@@ -88,6 +91,45 @@ const anchor = (offset: number) => ({
 	offset,
 	runId: `mosaic-text-root:v3`,
 })
+
+const shuffled = <Value>(
+	values: readonly Value[],
+	seed: number,
+): { readonly seed: number; readonly values: readonly Value[] } => {
+	let state = seed >>> 0
+	const random = (): number => {
+		state ^= state << 13
+		state ^= state >>> 17
+		state ^= state << 5
+		return state >>> 0
+	}
+	const result = [...values]
+	for (let index = result.length - 1; index > 0; index--) {
+		const swap = random() % (index + 1)
+		;[result[index], result[swap]] = [result[swap], result[index]]
+	}
+	return { seed: state, values: result }
+}
+
+export const mosaicTextScaleFaultSchedule = (
+	seed: number,
+): readonly MosaicTextScaleFault[] => {
+	const delivery = shuffled(
+		MOSAIC_TEXT_SCALE_FAULTS.filter(
+			(fault) =>
+				fault === `duplicate` || fault === `delay` || fault === `reorder`,
+		),
+		seed,
+	)
+	const lifecycle = shuffled(
+		MOSAIC_TEXT_SCALE_FAULTS.filter(
+			(fault) =>
+				fault !== `duplicate` && fault !== `delay` && fault !== `reorder`,
+		),
+		delivery.seed,
+	)
+	return [...delivery.values, ...lifecycle.values]
+}
 
 type OraclePiece =
 	| { readonly end: number; readonly kind: `source`; readonly start: number }
@@ -105,12 +147,66 @@ const sliceOraclePiece = (
 		? { end: piece.start + end, kind: `source`, start: piece.start + start }
 		: { kind: `inserted`, text: piece.text.slice(start, end) }
 
-/** Hash the piece-table oracle without ever materializing the source document. */
-const digestOracle = async (
+type OracleRange = {
+	readonly end: number
+	readonly id: string
+	readonly start: number
+}
+
+type OracleInspection = {
+	readonly digest: string
+	readonly ranges: Readonly<Record<string, string>>
+	readonly summary: {
+		readonly graphemes: number
+		readonly lineBreaks: number
+		readonly utf16Units: number
+	}
+}
+
+const oracleSegmenter = new Intl.Segmenter(undefined, {
+	granularity: `grapheme`,
+})
+
+/** Inspect the flat oracle without ever materializing the source document. */
+const inspectOracle = async (
 	filename: string,
 	pieces: readonly OraclePiece[],
-): Promise<string> => {
+	ranges: readonly OracleRange[],
+): Promise<OracleInspection> => {
 	const hash = createHash(`sha256`)
+	const rangeText = new Map(ranges.map(({ id }) => [id, ``]))
+	let logicalOffset = 0
+	let carry = ``
+	let graphemes = 0
+	let lineBreaks = 0
+	let utf16Units = 0
+	const count = (segment: string): void => {
+		graphemes++
+		if (segment === `\n` || segment === `\r\n`) lineBreaks++
+	}
+	const inspect = (text: string): void => {
+		if (text.length === 0) return
+		hash.update(text)
+		for (const range of ranges) {
+			const start = Math.max(0, range.start - logicalOffset)
+			const end = Math.min(text.length, range.end - logicalOffset)
+			if (end > start) {
+				rangeText.set(
+					range.id,
+					`${rangeText.get(range.id)}${text.slice(start, end)}`,
+				)
+			}
+		}
+		logicalOffset += text.length
+		utf16Units += text.length
+		const combined = `${carry}${text}`
+		let previous: string | undefined
+		for (const { segment } of oracleSegmenter.segment(combined)) {
+			if (previous !== undefined) count(previous)
+			previous = segment
+		}
+		carry = previous ?? carry
+	}
 	const stream = createReadStream(filename, {
 		encoding: `utf8`,
 		highWaterMark: 128 * 1024,
@@ -121,7 +217,7 @@ const digestOracle = async (
 	let sourceOffset = 0
 	const consumeThrough = async (
 		target: number,
-		write: boolean,
+		visit: boolean,
 	): Promise<void> => {
 		if (!Number.isSafeInteger(target) || target < sourceOffset) {
 			throw new Error(`A scale oracle source range is invalid.`)
@@ -139,7 +235,7 @@ const digestOracle = async (
 				chunkOffset = 0
 			}
 			const length = Math.min(target - sourceOffset, chunk.length - chunkOffset)
-			if (write) hash.update(chunk.slice(chunkOffset, chunkOffset + length))
+			if (visit) inspect(chunk.slice(chunkOffset, chunkOffset + length))
 			chunkOffset += length
 			sourceOffset += length
 		}
@@ -147,13 +243,23 @@ const digestOracle = async (
 	try {
 		for (const piece of pieces) {
 			if (piece.kind === `inserted`) {
-				hash.update(piece.text)
+				inspect(piece.text)
 				continue
 			}
 			await consumeThrough(piece.start, false)
 			await consumeThrough(piece.end, true)
 		}
-		return hash.digest(`hex`)
+		if (carry.length > 0) count(carry)
+		for (const range of ranges) {
+			if ((rangeText.get(range.id) ?? ``).length !== range.end - range.start) {
+				throw new Error(`A scale oracle resident range is incomplete.`)
+			}
+		}
+		return {
+			digest: hash.digest(`hex`),
+			ranges: Object.fromEntries(rangeText),
+			summary: { graphemes, lineBreaks, utf16Units },
+		}
 	} finally {
 		stream.destroy()
 	}
@@ -290,6 +396,8 @@ const validateBounds = (
 		metrics.maximumLocalCounters.branchesVisited > 4 ||
 		metrics.maximumLocalCounters.branchesWritten > 10 ||
 		metrics.maximumLocalCounters.utf16Scanned > 768 * 1024 ||
+		metrics.importCounters.stagedBytes >=
+			MOSAIC_TEXT_TRUSTED_IMPORT_MAX_STAGED_BYTES ||
 		metrics.maximumLocalExternalPersistedBytes > 4 * 1024 * 1024 ||
 		metrics.maximumMemberLoads > 256 ||
 		metrics.maximumLocalValidationObjectReads > 256 ||
@@ -297,6 +405,8 @@ const validateBounds = (
 		metrics.maximumLocalValidationSerializedBytes > 2 * 1024 * 1024 ||
 		metrics.maximumFullDocumentReplicas > 1 ||
 		metrics.serializedBatchBytes > 32 * 1024 ||
+		metrics.checkpointBytes > 512 * 1024 ||
+		metrics.deliveredBytes > 384 * 1024 ||
 		metrics.maximumResidentBytes > 256 * 1024 ||
 		parser.maximumScannedUtf16Units > 65_536
 	) {
@@ -321,8 +431,15 @@ async function validateDocument(
 		}
 	}
 	const rssBefore = process.memoryUsage.rss()
+	const faultSchedule = mosaicTextScaleFaultSchedule(seed)
+	const clientSchedule: string[] = []
+	const replayTranscript: string[] = [
+		`open:${JSON.stringify({ file: path.basename(filename) })}`,
+		`faults:${JSON.stringify(faultSchedule)}`,
+	]
 	const transcript: string[] = []
 	let service: MosaicTextRootScaleService | undefined
+	let clients: readonly MosaicTextRootScaleClient[] = []
 	try {
 		service = await MosaicTextRootScaleService.open(filename, { deadline })
 		const sourceUtf16Units = service.length
@@ -330,6 +447,17 @@ async function validateDocument(
 		const importMetrics = service.metrics
 		const ada = service.connect(`ada`)
 		const lin = service.connect(`lin`)
+		clients = [ada, lin]
+		const commit = async (
+			client: MosaicTextRootScaleClient,
+			options: Parameters<MosaicTextRootScaleClient[`commit`]>[0],
+		) => {
+			clientSchedule.push(`${client.id}:${options.id}`)
+			replayTranscript.push(
+				`commit:${JSON.stringify({ actor: client.id, ...options })}`,
+			)
+			return client.commit(options)
+		}
 		const ranges = [
 			{ end: Math.min(service.length, 4_096), start: 0 },
 			{
@@ -338,6 +466,9 @@ async function validateDocument(
 			},
 			{ end: service.length, start: Math.max(0, service.length - 4_096) },
 		]
+		replayTranscript.push(
+			`hydrate:${JSON.stringify({ clients: [ada.id, lin.id], ranges })}`,
+		)
 		await Promise.all(
 			ranges.flatMap(({ end, start }) => [
 				ada.hydrate(start, end),
@@ -355,7 +486,7 @@ async function validateDocument(
 			Math.min(service.length, 1_032),
 			`right`,
 		)
-		await ada.commit({
+		await commit(ada, {
 			end: disjointEnd,
 			id: `scale:ada:disjoint`,
 			inserted: `[ada-disjoint]`,
@@ -369,7 +500,7 @@ async function validateDocument(
 			Math.min(service.length, tailStart + 8),
 			`right`,
 		)
-		await lin.commit({
+		await commit(lin, {
 			end: tailEnd,
 			id: `scale:lin:disjoint`,
 			inserted: `[lin-disjoint]`,
@@ -378,30 +509,61 @@ async function validateDocument(
 		transcript.push(`multi-client:disjoint-viewports`)
 
 		const delayed = service.connect(`delayed`)
+		clients = [ada, lin, delayed]
 		service.disconnect(delayed)
 		const boundary = await service.resolveBoundary(
 			Math.floor(service.length / 2),
 			`left`,
 		)
-		const firstBoundary = await ada.commit({
-			end: boundary,
-			id: `scale:ada:boundary`,
-			inserted: `[ada]`,
-			start: boundary,
-		})
-		const secondBoundary = await lin.commit({
-			end: boundary,
-			id: `scale:lin:boundary`,
-			inserted: `[lin]`,
-			start: boundary,
-		})
-		delayed.deliver(secondBoundary)
-		delayed.deliver(secondBoundary)
-		delayed.deliver(firstBoundary)
+		const boundaryCommands = [
+			{ client: ada, inserted: `[ada]` },
+			{ client: lin, inserted: `[lin]` },
+		]
+		if ((seed & 1) === 1) boundaryCommands.reverse()
+		const boundaryAccepted: MosaicAcceptedDomainBatchEnvelope[] = []
+		for (const { client, inserted } of boundaryCommands) {
+			boundaryAccepted.push(
+				await commit(client, {
+					end: boundary,
+					id: `scale:${client.id}:boundary`,
+					inserted,
+					start: boundary,
+				}),
+			)
+		}
+		const orderedBoundary = boundaryAccepted.toSorted(
+			(left, right) => left.revision - right.revision,
+		)
+		const [earlierBoundary, laterBoundary] = orderedBoundary
+		if (earlierBoundary === undefined || laterBoundary === undefined) {
+			throw new Error(`The shared-boundary schedule is incomplete.`)
+		}
+		const delayedRevision = delayed.revision
+		for (const fault of faultSchedule.filter(
+			(candidate) =>
+				candidate === `duplicate` ||
+				candidate === `delay` ||
+				candidate === `reorder`,
+		)) {
+			replayTranscript.push(`fault:${fault}`)
+			clientSchedule.push(`delayed:${fault}`)
+			if (fault === `duplicate`) {
+				delayed.deliver(laterBoundary)
+				delayed.deliver(laterBoundary)
+			} else if (fault === `reorder`) {
+				delayed.deliver(laterBoundary)
+			} else if (delayed.revision !== delayedRevision) {
+				throw new Error(`A delayed client advanced before delivery.`)
+			}
+		}
+		delayed.deliver(laterBoundary)
+		delayed.deliver(earlierBoundary)
 		if (delayed.revision !== service.revision) {
 			throw new Error(`A delayed/reordered client did not converge.`)
 		}
-		transcript.push(`duplicate/delay/reorder:shared-boundary`)
+		transcript.push(
+			`duplicate/delay/reorder:${faultSchedule.slice(0, 3).join(`>`)}:shared-boundary`,
+		)
 		assertBeforeDeadline(`contention`)
 
 		const crossStart = await service.resolveBoundary(
@@ -412,39 +574,25 @@ async function validateDocument(
 			Math.min(service.length, crossStart + 96),
 			`right`,
 		)
-		await ada.commit({
+		await commit(ada, {
 			end: crossEnd,
 			id: `scale:ada:cross-leaf`,
 			inserted: `[cross-leaf-paste]`,
 			start: crossStart,
 		})
-		await lin.commit({
+		await commit(lin, {
 			end: service.length,
 			id: `scale:lin:foreign`,
 			inserted: `[foreign]`,
 			start: service.length,
 		})
-		const revisionBeforeRejection = service.revision
-		await service
-			.replace({
-				actor: `lin`,
-				end: 0,
-				id: `scale:rejected`,
-				inserted: `x`.repeat(256 * 1024 + 1),
-				start: 0,
-			})
-			.then(
-				() => {
-					throw new Error(`An oversized edit was accepted.`)
-				},
-				() => undefined,
-			)
-		if (service.revision !== revisionBeforeRejection) {
-			throw new Error(`Rejected work changed the Domain revision.`)
-		}
-		transcript.push(`reject:operation-safety-limit`)
-
+		replayTranscript.push(
+			`undo:${JSON.stringify({ actor: ada.id, id: `scale:history:undo` })}`,
+		)
 		await ada.undo(`scale:history:undo`)
+		replayTranscript.push(
+			`redo:${JSON.stringify({ actor: ada.id, id: `scale:history:redo` })}`,
+		)
 		await ada.redo(`scale:history:redo`)
 		const foreignTailStart = Math.max(0, service.length - 9)
 		if (
@@ -457,23 +605,21 @@ async function validateDocument(
 		transcript.push(`history:individual-foreign-safe-undo-redo`)
 		assertBeforeDeadline(`history`)
 
-		service.disconnect(lin)
-		await ada.commit({
-			end: 0,
-			id: `scale:ada:offline`,
-			inserted: `[offline]`,
-			start: 0,
-		})
-		lin.resnapshot()
-		if (lin.revision !== service.revision) {
-			throw new Error(`A disconnected client did not resnapshot.`)
-		}
-		transcript.push(`disconnect/stale-root/resnapshot:bounded-root`)
-
 		const middle = {
 			end: Math.min(service.length, Math.floor(service.length / 2) + 1_024),
 			start: Math.max(0, Math.floor(service.length / 2) - 1_024),
 		}
+		replayTranscript.push(
+			`hydrate:${JSON.stringify({
+				actor: ada.id,
+				ranges: [
+					middle,
+					{ end: Math.min(service.length, 2_048), start: 0 },
+					{ end: service.length, start: Math.max(0, service.length - 2_048) },
+					middle,
+				],
+			})}`,
+		)
 		const beforeEviction = await ada.hydrate(middle.start, middle.end)
 		await ada.hydrate(0, Math.min(service.length, 2_048))
 		await ada.hydrate(Math.max(0, service.length - 2_048), service.length)
@@ -482,9 +628,57 @@ async function validateDocument(
 			throw new Error(`Evicted range reacquisition did not converge.`)
 		}
 		transcript.push(`partial-hydration:evict/reacquire`)
-		transcript.push(`split/merge:path-copy-boundary-race`)
 
-		await service.restart()
+		for (const fault of faultSchedule.filter(
+			(candidate) =>
+				candidate !== `duplicate` &&
+				candidate !== `delay` &&
+				candidate !== `reorder`,
+		)) {
+			replayTranscript.push(`fault:${fault}`)
+			clientSchedule.push(`lifecycle:${fault}`)
+			if (fault === `reject`) {
+				const revisionBeforeRejection = service.revision
+				replayTranscript.push(
+					`reject:${JSON.stringify({ actor: `lin`, inserted: { count: 256 * 1024 + 1, repeat: `x` } })}`,
+				)
+				await service
+					.replace({
+						actor: `lin`,
+						end: 0,
+						id: `scale:rejected`,
+						inserted: `x`.repeat(256 * 1024 + 1),
+						start: 0,
+					})
+					.then(
+						() => {
+							throw new Error(`An oversized edit was accepted.`)
+						},
+						() => undefined,
+					)
+				if (service.revision !== revisionBeforeRejection) {
+					throw new Error(`Rejected work changed the Domain revision.`)
+				}
+				transcript.push(`reject:operation-safety-limit`)
+			} else if (fault === `disconnect`) {
+				service.disconnect(lin)
+				await commit(ada, {
+					end: 0,
+					id: `scale:ada:offline`,
+					inserted: `[offline]`,
+					start: 0,
+				})
+				transcript.push(`disconnect:stale-root`)
+			} else if (fault === `restart`) {
+				await service.restart()
+				transcript.push(`restart:domain-root-and-frontier`)
+			} else {
+				for (const client of clients) client.resnapshot()
+				transcript.push(`resnapshot:bounded-root`)
+			}
+			assertBeforeDeadline(`fault ${fault}`)
+		}
+
 		ada.resnapshot()
 		lin.resnapshot()
 		delayed.resnapshot()
@@ -495,8 +689,26 @@ async function validateDocument(
 		) {
 			throw new Error(`Clients did not converge after restart.`)
 		}
-		transcript.push(`restart:domain-root-and-frontier`)
-		assertBeforeDeadline(`restart`)
+		transcript.push(`fault-schedule:${faultSchedule.join(`>`)}`)
+		replayTranscript.push(
+			`resnapshot:${JSON.stringify({ clients: clients.map(({ id }) => id) })}`,
+		)
+		replayTranscript.push(
+			`hydrate:${JSON.stringify({
+				actor: lin.id,
+				ranges: [middle],
+			})}`,
+		)
+		await lin.hydrate(middle.start, middle.end)
+		replayTranscript.push(
+			`hydrate:${JSON.stringify({
+				actor: delayed.id,
+				ranges: [
+					{ end: service.length, start: Math.max(0, service.length - 2_048) },
+				],
+			})}`,
+		)
+		await delayed.hydrate(Math.max(0, service.length - 2_048), service.length)
 
 		const parser = await inspectParser(service, ada)
 		assertBeforeDeadline(`parser`)
@@ -518,13 +730,45 @@ async function validateDocument(
 			{ end: sourceUtf16Units, kind: `source`, start: 0 },
 		]
 		for (const edit of service.edits) oracle = applyOracleEdit(oracle, edit)
-		const expectedDigest = await digestOracle(filename, oracle)
+		const residentProjections = clients.flatMap((client) =>
+			client.residentProjections.map((projection, index) => ({
+				client: client.id,
+				id: `${client.id}:${index}`,
+				projection,
+			})),
+		)
+		const expected = await inspectOracle(
+			filename,
+			oracle,
+			residentProjections.map(({ id, projection }) => ({
+				end: projection.end,
+				id,
+				start: projection.start,
+			})),
+		)
 		oracle = []
 		Bun.gc(true)
 		const actualDigest = await digestService(service)
 		assertBeforeDeadline(`convergence digest`)
-		if (actualDigest !== expectedDigest) {
+		if (actualDigest !== expected.digest) {
 			throw new Error(`Mosaic Text v3 did not converge with its flat oracle.`)
+		}
+		if (
+			indexSummary.graphemes !== expected.summary.graphemes ||
+			indexSummary.lineBreaks !== expected.summary.lineBreaks ||
+			indexSummary.utf16Units !== expected.summary.utf16Units
+		) {
+			throw new Error(`Mosaic Text v3 index summaries diverged from the oracle.`)
+		}
+		for (const { client, id, projection } of residentProjections) {
+			if (
+				projection.revision !== service.revision ||
+				projection.text !== expected.ranges[id]
+			) {
+				throw new Error(
+					`Mosaic Text v3 resident projection for ${client} diverged from the oracle.`,
+				)
+			}
 		}
 		validateBounds(service, parser)
 		const metrics = service.metrics
@@ -538,7 +782,7 @@ async function validateDocument(
 				},
 				digest: actualDigest,
 				domainRevision: service.revision,
-				faultSteps: MOSAIC_TEXT_SCALE_FAULTS.length,
+				faultSteps: faultSchedule.length,
 				frontierBatchId,
 				history: {
 					ada: ada.history,
@@ -557,6 +801,7 @@ async function validateDocument(
 				branchesWritten: importMetrics.importCounters.branchesWritten,
 				leavesWritten: importMetrics.importCounters.leavesWritten,
 				persistedBytes: importMetrics.initialExternalPersistedBytes,
+				stagedBytes: importMetrics.importCounters.stagedBytes,
 				utf16Scanned: importMetrics.importCounters.utf16Scanned,
 			},
 			local: {
@@ -588,13 +833,27 @@ async function validateDocument(
 		}
 	} catch (error) {
 		const diagnostic: MosaicTextScaleDiagnostic = {
-			clientSchedule: [`ada:first`, `lin:last`, `ada:middle`, `lin:middle`],
+			clientSchedule,
 			domainRevision: service?.revision ?? 0,
-			faultSchedule: MOSAIC_TEXT_SCALE_FAULTS,
-			memberRevisions: { source: service?.revision ?? 0 },
-			residentRanges: [],
+			faultSchedule,
+			memberRevisions: Object.fromEntries([
+				[`source`, service?.revision ?? 0],
+				...clients.map(
+					(client) => [`client:${client.id}`, client.revision] as const,
+				),
+			]),
+			residentRanges: Object.fromEntries(
+				clients.map((client) => [client.id, client.residentRanges]),
+			),
 			seed,
-			transcript: [...(service?.transcript ?? []), ...transcript],
+			transcript: [
+				...replayTranscript,
+				`resident:${JSON.stringify(
+					Object.fromEntries(
+						clients.map((client) => [client.id, client.residentRanges]),
+					),
+				)}`,
+			],
 		}
 		throw mosaicTextScaleFailure(error, diagnostic)
 	}
@@ -617,7 +876,7 @@ export async function validateMarkdownEditorCorpus(
 	}
 	return {
 		documents,
-		faultSchedule: MOSAIC_TEXT_SCALE_FAULTS,
+		faultSchedule: mosaicTextScaleFaultSchedule(seed),
 		seed,
 		stabilization: await stabilizeMosaicTextLifecycle(
 			options.stabilizationOperations ?? 100_001,

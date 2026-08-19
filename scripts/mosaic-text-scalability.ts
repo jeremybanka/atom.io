@@ -1,8 +1,10 @@
 import {
 	compactMosaicTextHistory,
 	createMosaicTextIndex,
+	createMosaicTextIndexReader,
 	maintainMosaicTextIndex,
 	MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
+	mosaicTextIndexSource,
 } from "../packages/atom.io/src/realtime/index.ts"
 import {
 	createMosaicDomainCheckpointCoordinator,
@@ -22,15 +24,16 @@ export const MOSAIC_TEXT_SCALE_FAULTS = Object.freeze([
 
 export type MosaicTextScaleFault = (typeof MOSAIC_TEXT_SCALE_FAULTS)[number]
 
+export const MOSAIC_TEXT_SCALE_MAX_REPLAY_STEPS = 32
+
 export type MosaicTextScaleDiagnostic = {
 	readonly clientSchedule: readonly string[]
 	readonly domainRevision: number
 	readonly faultSchedule: readonly MosaicTextScaleFault[]
 	readonly memberRevisions: Readonly<Record<string, number>>
-	readonly residentRanges: readonly {
-		readonly end: number
-		readonly start: number
-	}[]
+	readonly residentRanges: Readonly<
+		Record<string, readonly { readonly end: number; readonly start: number }[]>
+	>
 	readonly seed: number
 	readonly transcript: readonly string[]
 }
@@ -55,13 +58,15 @@ export type MosaicTextStabilizationReport = {
 	readonly retainedActions: number
 	readonly retainedRuns: number
 	readonly rssDeltaBytes: number
+	readonly splitMergeVerified: boolean
+	readonly staleAliasRecoveryVerified: boolean
 	readonly tailOperations: number
 }
 
 export async function stabilizeMosaicTextLifecycle(
 	operations: number,
 ): Promise<MosaicTextStabilizationReport> {
-	const text = stabilizeMosaicTextHistory(operations)
+	const text = await stabilizeMosaicTextHistory(operations)
 	const identity = {
 		definition: { key: `mosaic-text-lifecycle-scale`, version: 3 },
 		instance: `stabilization`,
@@ -173,14 +178,73 @@ const INDEX_OPTIONS = {
 	targetLeafGraphemes: 32_768,
 } as const
 
+const verifyIndexSplitMergeAndStaleAlias = async (): Promise<void> => {
+	const options = {
+		maximumAliasGenerations: 3,
+		maximumAliasTargets: 3,
+		maximumChildrenPerNode: 4,
+		maximumFragmentsPerLeaf: 4,
+		maximumLeafGraphemes: 8,
+		maximumLeafUtf16Units: 32,
+		minimumChildrenPerNode: 2,
+		minimumLeafGraphemes: 2,
+		targetChildrenPerNode: 3,
+		targetLeafGraphemes: 8,
+	} as const
+	const fragment = (text: string, runId: string, start = 0) => ({
+		runId,
+		start,
+		text,
+	})
+	const before = createMosaicTextIndex([fragment(`abcdefgh`, `base`)], options)
+	const staleLeaf = before.members.find(({ kind }) => kind === `leaf`)
+	if (staleLeaf === undefined) {
+		throw new Error(`The Mosaic Text split/merge fixture has no leaf.`)
+	}
+	const split = maintainMosaicTextIndex(
+		before,
+		[
+			fragment(`abcd`, `base`),
+			fragment(`0123456789`, `foreign`),
+			fragment(`efgh`, `base`, 4),
+		],
+		options,
+	).index
+	const splitLeaves = split.members.filter(({ kind }) => kind === `leaf`).length
+	const beforeLeaves = before.members.filter(
+		({ kind }) => kind === `leaf`,
+	).length
+	if (splitLeaves <= beforeLeaves) {
+		throw new Error(`The Mosaic Text index did not split at a shared boundary.`)
+	}
+	const stale = await createMosaicTextIndexReader(
+		mosaicTextIndexSource(split),
+	).resolveAlias(staleLeaf.id)
+	if (stale.status !== `ok`) {
+		throw new Error(`The Mosaic Text stale alias did not resolve after a split.`)
+	}
+	const merged = maintainMosaicTextIndex(
+		split,
+		[fragment(`abcdefgh`, `base`)],
+		options,
+	).index
+	if (
+		merged.members.filter(({ kind }) => kind === `leaf`).length >= splitLeaves
+	) {
+		throw new Error(
+			`The Mosaic Text index did not merge after contention settled.`,
+		)
+	}
+}
+
 /** Exercise retention beyond 100k operations without retaining 100k objects. */
-export function stabilizeMosaicTextHistory(
+export async function stabilizeMosaicTextHistory(
 	operations: number,
 	options: {
 		readonly checkpointInterval?: number
 		readonly historySteps?: number
 	} = {},
-): MosaicTextStabilizationReport {
+): Promise<MosaicTextStabilizationReport> {
 	if (!Number.isSafeInteger(operations) || operations < 1) {
 		throw new RangeError(`operations must be a positive safe integer.`)
 	}
@@ -265,6 +329,8 @@ export function stabilizeMosaicTextHistory(
 		retainedActions: snapshot.actions.length,
 		retainedRuns: snapshot.runs.length,
 		rssDeltaBytes: Math.max(0, process.memoryUsage.rss() - rssBefore),
+		splitMergeVerified: true,
+		staleAliasRecoveryVerified: true,
 		tailOperations,
 	} satisfies MosaicTextStabilizationReport
 	if (
@@ -279,6 +345,7 @@ export function stabilizeMosaicTextHistory(
 			`Mosaic Text retention did not stabilize: ${JSON.stringify(report)}`,
 		)
 	}
+	await verifyIndexSplitMergeAndStaleAlias()
 	return report
 }
 
@@ -287,8 +354,18 @@ export function mosaicTextScaleFailure(
 	diagnostic: MosaicTextScaleDiagnostic,
 ): Error {
 	const message = error instanceof Error ? error.message : String(error)
+	const transcript =
+		diagnostic.transcript.length <= MOSAIC_TEXT_SCALE_MAX_REPLAY_STEPS
+			? diagnostic.transcript
+			: [
+					diagnostic.transcript[0] ?? `open:{}`,
+					`commands:${JSON.stringify(diagnostic.transcript.slice(1))}`,
+				]
 	return new Error(
-		`${message}\nMOSAIC_TEXT_SCALE_REPLAY=${JSON.stringify(diagnostic)}`,
+		`${message}\nMOSAIC_TEXT_SCALE_REPLAY=${JSON.stringify({
+			...diagnostic,
+			transcript,
+		})}`,
 		{ cause: error },
 	)
 }

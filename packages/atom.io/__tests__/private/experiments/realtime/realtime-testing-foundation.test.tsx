@@ -9,6 +9,17 @@ import {
 } from "atom.io/realtime-testing"
 import * as RTTest from "atom.io/realtime-testing/headless"
 
+const advanceVirtualClock = async (
+	clock: RTTest.VirtualClock,
+	duration: number,
+): Promise<void> => {
+	for (let elapsed = 0; elapsed < duration; elapsed++) {
+		for (let turn = 0; turn < 10; turn++) await Promise.resolve()
+		clock.advance(1)
+	}
+	for (let turn = 0; turn < 10; turn++) await Promise.resolve()
+}
+
 describe(`realtime testing foundations`, () => {
 	test(`scopes generated identities and sessions when a scenario ID is explicit`, async () => {
 		const first = RTTest.headless({
@@ -386,12 +397,13 @@ describe(`realtime testing foundations`, () => {
 	})
 
 	test(`reports divergent participant state with registered diagnostics`, async () => {
-		const scenario = RTTest.headless({ server: () => {} })
+		const clock = new RTTest.VirtualClock()
+		const scenario = RTTest.headless({ clock, server: () => {} })
 		const client = scenario.createClient({ name: `divergent-client` })
 		scenario.server.inspect(`accepted revision`, () => 8)
 		client.inspect(`pending action`, () => `edit-9`)
 		try {
-			await expect(
+			const rejection = expect(
 				scenario.waitForConvergence({
 					participants: [
 						{ label: `server value`, read: () => `alpha` },
@@ -402,7 +414,26 @@ describe(`realtime testing foundations`, () => {
 			).rejects.toThrow(
 				/server value.*alpha.*client value.*beta.*accepted revision.*8.*pending action.*edit-9.*Event journal/s,
 			)
+			await advanceVirtualClock(clock, 20)
+			await rejection
 		} finally {
+			await scenario.teardown()
+		}
+	})
+
+	test(`reports an inner convergence barrier failure`, async () => {
+		const scenario = RTTest.headless({ server: () => {} })
+		const disposeDrain = scenario.server.work.registerDrain(() => {
+			throw new Error(`projection drain failed`)
+		})
+		try {
+			await expect(
+				scenario.waitForConvergence({
+					participants: [{ label: `server`, read: () => `ready` }],
+				}),
+			).rejects.toThrow(/Last barrier error: projection drain failed/)
+		} finally {
+			disposeDrain()
 			await scenario.teardown()
 		}
 	})
@@ -441,7 +472,8 @@ describe(`realtime testing foundations`, () => {
 	})
 
 	test(`application drain timeouts report pending work`, async () => {
-		const scenario = RTTest.headless({ server: () => {} })
+		const clock = new RTTest.VirtualClock()
+		const scenario = RTTest.headless({ clock, server: () => {} })
 		const client = scenario.createClient({ name: `blocked-work` })
 		let release!: () => void
 		void client.work.track(
@@ -451,13 +483,46 @@ describe(`realtime testing foundations`, () => {
 			`blocked projection`,
 		)
 		try {
-			await expect(scenario.drainApplication({ timeout: 10 })).rejects.toThrow(
+			await expect(scenario.drainApplication({ timeout: 0 })).rejects.toThrow(
 				/Timed out draining.*blocked projection/s,
 			)
+			const rejection = expect(
+				scenario.drainApplication({ timeout: 10 }),
+			).rejects.toThrow(/Timed out draining.*blocked projection/s)
+			await advanceVirtualClock(clock, 10)
+			await rejection
 		} finally {
 			release()
 			await scenario.teardown()
 		}
+	})
+
+	test(`shares an absolute deadline across idle transport rounds`, async () => {
+		const run = async (wait: `transport` | `idle`) => {
+			const clock = new RTTest.VirtualClock()
+			const scenario = RTTest.headless({ clock, server: () => {} })
+			const client = scenario.createClient({ name: `${wait}-deadline` })
+			await new Promise<void>((resolve) => client.socket.on(`connect`, resolve))
+			client.socket.once(`atom.io/realtime-testing:barrier-response`, () =>
+				clock.advance(10),
+			)
+			try {
+				const result =
+					wait === `transport`
+						? scenario.drainTransport({ timeout: 10 })
+						: scenario.waitForIdle({ timeout: 10 })
+				await expect(result).rejects.toThrow(
+					wait === `transport`
+						? `Timed out draining realtime transport queues`
+						: `Timed out waiting for the realtime scenario to become idle`,
+				)
+			} finally {
+				await scenario.teardown()
+			}
+		}
+
+		await run(`transport`)
+		await run(`idle`)
 	})
 
 	test(`runs service cleanup and rejects work on disposed clients`, async () => {

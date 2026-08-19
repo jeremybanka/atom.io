@@ -2,9 +2,9 @@
 export type RealtimeTestDrainContext = {
 	/** Aborted only when the enclosing wait times out. */
 	signal: AbortSignal
-	/** Absolute wall-clock deadline for this drain attempt. */
+	/** Absolute deadline on the enclosing scenario's clock. */
 	deadline: number
-	/** Injectable time seam for a future virtual-clock implementation. */
+	/** Read the enclosing scenario's system or virtual clock. */
 	now: () => number
 }
 

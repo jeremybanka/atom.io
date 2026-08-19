@@ -83,6 +83,68 @@ describe(`Mosaic Text v3 storage roots`, () => {
 		}
 	})
 
+	test(`bounds text staging before hashing or storage publication`, async () => {
+		const identity: MosaicDomainIdentity = {
+			definition: { key: `mosaic-text-root-budget`, version: 3 },
+			instance: `document`,
+		}
+		const storage = new InMemoryMosaicDomainCheckpointStorage()
+		const leaf = (text: string): MosaicTextRootObject => ({
+			depth: 0,
+			kind: `mosaic-text-root-leaf`,
+			summary: {
+				graphemes: text.length,
+				lineBreaks: 0,
+				utf16Units: text.length,
+			},
+			text,
+			version: 3,
+		})
+		const byteBound = createMosaicTextRootCheckpointStage({
+			baseRevision: 1,
+			domain: identity,
+			limits: { maxStagedBytes: 128 },
+			storage,
+		})
+		expect(() => byteBound.put(leaf(`x`.repeat(1_024)))).toThrow(
+			`staging byte limit was exceeded`,
+		)
+
+		const objectBound = createMosaicTextRootCheckpointStage({
+			baseRevision: 1,
+			domain: identity,
+			limits: { maxStagedObjects: 1 },
+			storage,
+		})
+		await objectBound.put(leaf(`one`))
+		expect(() => objectBound.put(leaf(`two`))).toThrow(
+			`staging exceeds 1 objects`,
+		)
+
+		const controller = new AbortController()
+		controller.abort()
+		expect(() =>
+			createMosaicTextRootCheckpointStage({
+				baseRevision: 1,
+				domain: identity,
+				signal: controller.signal,
+				storage,
+			}),
+		).toThrow(`staging was aborted`)
+		expect(() =>
+			createMosaicTextRootCheckpointStage({
+				baseRevision: 1,
+				domain: identity,
+				limits: { deadline: Date.now() - 1 },
+				storage,
+			}),
+		).toThrow(`deadline expired`)
+		expect(storage.stats(identity)).toMatchObject({
+			objectCount: 0,
+			retentionLeaseCount: 0,
+		})
+	})
+
 	test(`publishes and reopens reference-counted roots through a real checkpoint`, async () => {
 		const identity: MosaicDomainIdentity = {
 			definition: { key: `mosaic-text-root-test`, version: 3 },

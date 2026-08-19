@@ -126,20 +126,30 @@ export type MosaicDomainExternalCheckpointGraphResult = {
 	readonly rootKey: MosaicDomainCheckpointObjectKey
 }
 
+export type MosaicDomainExternalCheckpointGraphLimits = {
+	/** Absolute `Date.now()` deadline checked between bounded staging units. */
+	readonly deadline?: number
+	/** Maximum authenticated size of the complete resulting graph. */
+	readonly maxBytes?: number
+	readonly maxObjectBytes?: number
+	readonly maxObjectDepth?: number
+	readonly maxObjectNodes?: number
+	/** Maximum serialized bytes hashed by this incremental staging call. */
+	readonly maxStagedBytes?: number
+	/** Maximum objects hashed by this incremental staging call. */
+	readonly maxStagedObjects?: number
+	readonly maxUpdates?: number
+}
+
 export type MosaicDomainExternalCheckpointGraphOptions<
 	Identity extends MosaicDomainIdentity,
 > = {
 	readonly baseRevision: number
 	readonly domain: Identity
-	readonly limits?:
-		| {
-				readonly maxBytes?: number
-				readonly maxObjectBytes?: number
-				readonly maxUpdates?: number
-		  }
-		| undefined
+	readonly limits?: MosaicDomainExternalCheckpointGraphLimits | undefined
 	readonly previousRootKey?: MosaicDomainCheckpointObjectKey
 	readonly proposal?: Omit<MosaicDomainCheckpointStageProposal, `rootKey`>
+	readonly signal?: AbortSignal
 	readonly storage: MosaicDomainCheckpointStorageAdapter
 	readonly updates: readonly MosaicDomainExternalCheckpointGraphUpdate[]
 }
@@ -162,17 +172,96 @@ const sameDomain = (
 	right: MosaicDomainIdentity,
 ): boolean => canonicalize(left) === canonicalize(right)
 
-const assertJson = (value: unknown, maxBytes: number): Json.Serializable => {
+const jsonStringBytes = (
+	value: string,
+	maxBytes: number,
+	assertActive: () => void,
+): number => {
+	let bytes = 2
+	for (let index = 0; index < value.length; index++) {
+		if ((index & 1023) === 0) assertActive()
+		const code = value.charCodeAt(index)
+		if (code === 0x22 || code === 0x5c) bytes += 2
+		else if (
+			code === 0x08 ||
+			code === 0x09 ||
+			code === 0x0a ||
+			code === 0x0c ||
+			code === 0x0d
+		)
+			bytes += 2
+		else if (code < 0x20) bytes += 6
+		else if (code < 0x80) bytes++
+		else if (code < 0x800) bytes += 2
+		else if (code >= 0xd800 && code <= 0xdbff) {
+			const next = value.charCodeAt(index + 1)
+			if (next >= 0xdc00 && next <= 0xdfff) {
+				bytes += 4
+				index++
+			} else bytes += 6
+		} else if (code >= 0xdc00 && code <= 0xdfff) bytes += 6
+		else bytes += 3
+		if (bytes > maxBytes) return bytes
+	}
+	return bytes
+}
+
+const inspectJson = (
+	value: unknown,
+	maxBytes: number,
+	maxDepth = Number.MAX_SAFE_INTEGER,
+	maxNodes = Number.MAX_SAFE_INTEGER,
+	assertActive: () => void = () => undefined,
+): { readonly bytes: number; readonly value: Json.Serializable } => {
 	const seen = new WeakSet<object>()
-	const pending: unknown[] = [value]
+	const pending: { readonly depth: number; readonly value: unknown }[] = [
+		{ depth: 0, value },
+	]
+	let bytes = 0
+	let nodes = 0
+	let scheduledNodes = 1
+	const addBytes = (additional: number): void => {
+		if (additional > maxBytes - bytes) {
+			throw new Error(
+				`A Mosaic Domain checkpoint object exceeds ${maxBytes} bytes.`,
+			)
+		}
+		bytes += additional
+	}
+	const schedule = (depth: number, child: unknown): void => {
+		if (nodes + scheduledNodes >= maxNodes) {
+			throw new Error(
+				`A Mosaic Domain checkpoint object exceeds ${maxNodes} nodes.`,
+			)
+		}
+		pending.push({ depth, value: child })
+		scheduledNodes++
+	}
 	while (pending.length > 0) {
-		const item = pending.pop()
+		assertActive()
+		const { depth, value: item } = pending.pop()!
+		scheduledNodes--
+		nodes++
+		if (nodes > maxNodes) {
+			throw new Error(
+				`A Mosaic Domain checkpoint object exceeds ${maxNodes} nodes.`,
+			)
+		}
+		if (depth > maxDepth) {
+			throw new Error(
+				`A Mosaic Domain checkpoint object exceeds depth ${maxDepth}.`,
+			)
+		}
 		if (
 			item === null ||
-			typeof item === `string` ||
 			typeof item === `boolean` ||
 			(typeof item === `number` && Number.isFinite(item))
 		) {
+			addBytes(JSON.stringify(item).length)
+			continue
+		}
+		if (typeof item === `string`) {
+			addBytes(jsonStringBytes(item, maxBytes - bytes, assertActive))
 			continue
 		}
 		if (typeof item !== `object` || seen.has(item)) {
@@ -192,19 +281,50 @@ const assertJson = (value: unknown, maxBytes: number): Json.Serializable => {
 			)
 		}
 		seen.add(item)
-		for (const child of Array.isArray(item) ? item : Object.values(item)) {
-			pending.push(child)
+		addBytes(2)
+		if (Array.isArray(item)) {
+			if (item.length > 0) addBytes(item.length - 1)
+			for (let index = item.length - 1; index >= 0; index--) {
+				const descriptor = Object.getOwnPropertyDescriptor(item, String(index))
+				if (descriptor === undefined || !(`value` in descriptor)) {
+					throw new Error(
+						`A Mosaic Domain checkpoint value must be JSON-serializable.`,
+					)
+				}
+				schedule(depth + 1, descriptor.value)
+			}
+			continue
+		}
+		let propertyCount = 0
+		for (const key in item) {
+			if (!Object.hasOwn(item, key)) continue
+			const descriptor = Object.getOwnPropertyDescriptor(item, key)
+			if (descriptor?.enumerable !== true) continue
+			if (!(`value` in descriptor)) {
+				throw new Error(
+					`A Mosaic Domain checkpoint value must be JSON-serializable.`,
+				)
+			}
+			if (propertyCount > 0) addBytes(1)
+			addBytes(jsonStringBytes(key, maxBytes - bytes, assertActive))
+			addBytes(1)
+			propertyCount++
+			schedule(depth + 1, descriptor.value)
 		}
 	}
+	assertActive()
 	const cloned = structuredClone(value) as Json.Serializable
-	const bytes = new TextEncoder().encode(JSON.stringify(cloned)).byteLength
-	if (bytes > maxBytes) {
-		throw new Error(
-			`A Mosaic Domain checkpoint object exceeds ${maxBytes} bytes.`,
-		)
-	}
-	return cloned
+	return { bytes, value: cloned }
 }
+
+const assertJson = (
+	value: unknown,
+	maxBytes: number,
+	maxDepth?: number,
+	maxNodes?: number,
+	assertActive?: () => void,
+): Json.Serializable =>
+	inspectJson(value, maxBytes, maxDepth, maxNodes, assertActive).value
 
 const validName = (value: string): boolean =>
 	value.length > 0 && value.length <= 512
@@ -222,6 +342,15 @@ const assertPositiveLimit = (name: string, value: number): void => {
 		throw new Error(`${name} must be a positive safe integer.`)
 	}
 }
+
+const DEFAULT_EXTERNAL_GRAPH_MAX_BYTES = 64 * 1024 * 1024
+const DEFAULT_EXTERNAL_GRAPH_MAX_OBJECT_BYTES = 4 * 1024 * 1024
+const DEFAULT_EXTERNAL_GRAPH_MAX_OBJECT_DEPTH = 64
+const DEFAULT_EXTERNAL_GRAPH_MAX_OBJECT_NODES = 262_144
+const DEFAULT_EXTERNAL_GRAPH_MAX_STAGED_BYTES = 16 * 1024 * 1024
+const DEFAULT_EXTERNAL_GRAPH_MAX_STAGED_OBJECTS = 4_096
+const DEFAULT_EXTERNAL_GRAPH_MAX_UPDATES = 256
+const DEFAULT_EXTERNAL_ROOTS_MAX_BYTES = 64 * 1024 * 1024
 
 const assertExternalRoot = <Identity extends MosaicDomainIdentity>(
 	value: MosaicDomainCheckpointObject,
@@ -318,18 +447,53 @@ const readVerifiedCheckpointObject = async (
 /**
  * Stage a model-owned persistent index graph without publishing it. Until a
  * Domain checkpoint records the returned root key, ordinary GC may reclaim it.
+ *
+ * This is a trusted server composition seam, not a transport handler. Its
+ * defaults bound accidental work, but applications that derive updates from
+ * untrusted requests must authorize and rate-limit those requests before this
+ * function hashes them. Raise the limits only for authenticated, quota-bound
+ * work such as a server-owned bulk import with its own deadline.
  */
 export async function stageMosaicDomainExternalCheckpointGraph<
 	Identity extends MosaicDomainIdentity,
 >(
 	options: MosaicDomainExternalCheckpointGraphOptions<Identity>,
 ): Promise<MosaicDomainExternalCheckpointGraphResult> {
-	const maxBytes = options.limits?.maxBytes ?? 1024 * 1024 * 1024
-	const maxObjectBytes = options.limits?.maxObjectBytes ?? 4 * 1024 * 1024
-	const maxUpdates = options.limits?.maxUpdates ?? 4096
+	const maxBytes = options.limits?.maxBytes ?? DEFAULT_EXTERNAL_GRAPH_MAX_BYTES
+	const maxObjectBytes =
+		options.limits?.maxObjectBytes ?? DEFAULT_EXTERNAL_GRAPH_MAX_OBJECT_BYTES
+	const maxObjectDepth =
+		options.limits?.maxObjectDepth ?? DEFAULT_EXTERNAL_GRAPH_MAX_OBJECT_DEPTH
+	const maxObjectNodes =
+		options.limits?.maxObjectNodes ?? DEFAULT_EXTERNAL_GRAPH_MAX_OBJECT_NODES
+	const maxStagedBytes =
+		options.limits?.maxStagedBytes ?? DEFAULT_EXTERNAL_GRAPH_MAX_STAGED_BYTES
+	const maxStagedObjects =
+		options.limits?.maxStagedObjects ?? DEFAULT_EXTERNAL_GRAPH_MAX_STAGED_OBJECTS
+	const maxUpdates =
+		options.limits?.maxUpdates ?? DEFAULT_EXTERNAL_GRAPH_MAX_UPDATES
 	assertPositiveLimit(`maxBytes`, maxBytes)
 	assertPositiveLimit(`maxObjectBytes`, maxObjectBytes)
+	assertPositiveLimit(`maxObjectDepth`, maxObjectDepth)
+	assertPositiveLimit(`maxObjectNodes`, maxObjectNodes)
+	assertPositiveLimit(`maxStagedBytes`, maxStagedBytes)
+	assertPositiveLimit(`maxStagedObjects`, maxStagedObjects)
 	assertPositiveLimit(`maxUpdates`, maxUpdates)
+	const deadline = options.limits?.deadline
+	if (deadline !== undefined && !Number.isFinite(deadline)) {
+		throw new Error(`deadline must be finite.`)
+	}
+	const assertStageActive = (): void => {
+		if (options.signal?.aborted) {
+			throw new Error(`Mosaic Domain external checkpoint staging was aborted.`)
+		}
+		if (deadline !== undefined && Date.now() >= deadline) {
+			throw new Error(
+				`Mosaic Domain external checkpoint staging deadline expired.`,
+			)
+		}
+	}
+	assertStageActive()
 	if (!Number.isSafeInteger(options.baseRevision) || options.baseRevision < 0) {
 		throw new Error(
 			`A Mosaic Domain external checkpoint base revision is invalid.`,
@@ -345,14 +509,46 @@ export async function stageMosaicDomainExternalCheckpointGraph<
 		MosaicDomainCheckpointObjectKey,
 		MosaicDomainCheckpointObject
 	>()
-	const readObject = (key: MosaicDomainCheckpointObjectKey) =>
-		readVerifiedCheckpointObject(options.storage, options.domain, key, staged)
+	let stagedBytes = 0
+	let stagedObjectCount = 0
+	const readObject = async (key: MosaicDomainCheckpointObjectKey) => {
+		assertStageActive()
+		const object = await readVerifiedCheckpointObject(
+			options.storage,
+			options.domain,
+			key,
+			staged,
+		)
+		assertStageActive()
+		return object
+	}
 	const put = (
 		object: MosaicDomainCheckpointObject,
 	): MosaicDomainCheckpointObjectKey => {
-		assertJson(object, maxObjectBytes)
-		const key = mosaicDomainCheckpointObjectKey(object)
-		staged.set(key, object)
+		assertStageActive()
+		if (stagedObjectCount >= maxStagedObjects) {
+			throw new Error(
+				`Mosaic Domain external checkpoint staging exceeds ${maxStagedObjects} objects.`,
+			)
+		}
+		const inspected = inspectJson(
+			object,
+			maxObjectBytes,
+			maxObjectDepth,
+			maxObjectNodes,
+			assertStageActive,
+		)
+		if (stagedBytes + inspected.bytes > maxStagedBytes) {
+			throw new Error(
+				`Mosaic Domain external checkpoint staging exceeds ${maxStagedBytes} bytes.`,
+			)
+		}
+		stagedBytes += inspected.bytes
+		stagedObjectCount++
+		assertStageActive()
+		const value = inspected.value as MosaicDomainCheckpointObject
+		const key = mosaicDomainCheckpointObjectKey(value)
+		staged.set(key, value)
 		return key
 	}
 	let maximumDepth = 0
@@ -375,6 +571,7 @@ export async function stageMosaicDomainExternalCheckpointGraph<
 		}
 		const groups = new Map<string, typeof sorted>()
 		for (const entry of sorted) {
+			assertStageActive()
 			const segment = logicalHash(entry.key)[depth]
 			const group = groups.get(segment)
 			if (group === undefined) groups.set(segment, [entry])
@@ -506,14 +703,18 @@ export async function stageMosaicDomainExternalCheckpointGraph<
 		  }
 	)[] = []
 	for (const update of options.updates) {
-		const logicalKey = canonicalize([update?.index, update?.path])
-		const removing = `remove` in update
+		assertStageActive()
+		const removing =
+			update !== null && typeof update === `object` && `remove` in update
 		if (
 			!validName(update?.index) ||
 			!validName(update?.path) ||
-			unique.has(logicalKey) ||
 			(removing && (update.remove !== true || `value` in update))
 		) {
+			throw new Error(`A Mosaic Domain external checkpoint update is invalid.`)
+		}
+		const logicalKey = canonicalize([update.index, update.path])
+		if (unique.has(logicalKey)) {
 			throw new Error(`A Mosaic Domain external checkpoint update is invalid.`)
 		}
 		unique.add(logicalKey)
@@ -541,8 +742,15 @@ export async function stageMosaicDomainExternalCheckpointGraph<
 			}
 			continue
 		}
-		const value = assertJson(update.value, maxObjectBytes)
-		bytes += jsonBytes(value)
+		const inspected = inspectJson(
+			update.value,
+			maxObjectBytes,
+			maxObjectDepth,
+			maxObjectNodes,
+			assertStageActive,
+		)
+		const value = inspected.value
+		bytes += inspected.bytes
 		if (bytes > maxBytes) {
 			throw new Error(
 				`A Mosaic Domain external checkpoint graph exceeds ${maxBytes} bytes.`,
@@ -583,21 +791,33 @@ export async function stageMosaicDomainExternalCheckpointGraph<
 		proof,
 	}
 	const rootKey = put(root)
+	assertStageActive()
 	const stage = await options.storage.stageCheckpointObjects(
 		options.domain,
 		[...staged].map(([key, value]) => ({ key, value })),
-		options.proposal === undefined
-			? undefined
-			: {
-					externalGraph: {
-						...(options.previousRootKey === undefined
-							? {}
-							: { previousRootKey: options.previousRootKey }),
-						rootKey,
-						updates: proofUpdates,
-					},
-					proposal: { ...options.proposal, rootKey },
-				},
+		{
+			limits: {
+				...(deadline === undefined ? {} : { deadline }),
+				maxObjectBytes,
+				maxObjectDepth,
+				maxObjectNodes,
+				maxStagedBytes,
+				maxStagedObjects,
+			},
+			...(options.proposal === undefined
+				? {}
+				: {
+						externalGraph: {
+							...(options.previousRootKey === undefined
+								? {}
+								: { previousRootKey: options.previousRootKey }),
+							rootKey,
+							updates: proofUpdates,
+						},
+						proposal: { ...options.proposal, rootKey },
+					}),
+			...(options.signal === undefined ? {} : { signal: options.signal }),
+		},
 	)
 	return { ...stage, bytes, depth: maximumDepth, rootKey }
 }
@@ -612,7 +832,8 @@ export function createMosaicDomainCheckpointCoordinator<
 	const maxAttempts = options.limits?.maxAttempts ?? 8
 	const maxDirtyIndexPaths = options.limits?.maxDirtyIndexPaths ?? 4096
 	const maxDirtyMembers = options.limits?.maxDirtyMembers ?? 4096
-	const maxExternalBytes = options.limits?.maxExternalBytes ?? 1024 * 1024 * 1024
+	const maxExternalBytes =
+		options.limits?.maxExternalBytes ?? DEFAULT_EXTERNAL_ROOTS_MAX_BYTES
 	const maxExternalDepth = options.limits?.maxExternalDepth ?? HASH_SEGMENTS
 	const maxExternalReads = options.limits?.maxExternalReads ?? 256
 	const maxExternalRoots = options.limits?.maxExternalRoots ?? 64

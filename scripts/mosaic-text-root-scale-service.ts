@@ -95,6 +95,26 @@ const maximumCounters = (
 const jsonBytes = (value: unknown): number =>
 	new TextEncoder().encode(JSON.stringify(value)).byteLength
 
+export const MOSAIC_TEXT_TRUSTED_IMPORT_MAX_STAGED_BYTES = 128 * 1024 * 1024
+
+const TRUSTED_CORPUS_STAGE_LIMITS = Object.freeze({
+	maxBytes: 64 * 1024 * 1024,
+	maxObjectBytes: 4 * 1024 * 1024,
+	maxObjectDepth: 64,
+	maxStagedBytes: MOSAIC_TEXT_TRUSTED_IMPORT_MAX_STAGED_BYTES,
+	maxStagedObjects: 32_768,
+	maxUpdates: 4_096,
+})
+
+const LOCAL_EDIT_STAGE_LIMITS = Object.freeze({
+	maxBytes: TRUSTED_CORPUS_STAGE_LIMITS.maxBytes,
+	maxObjectBytes: 1024 * 1024,
+	maxObjectDepth: 64,
+	maxStagedBytes: 4 * 1024 * 1024,
+	maxStagedObjects: 256,
+	maxUpdates: 256,
+})
+
 const fingerprint = (value: unknown): string =>
 	createHash(`sha256`).update(JSON.stringify(value)).digest(`hex`)
 
@@ -245,6 +265,12 @@ export class MosaicTextRootScaleClient {
 		return [...this.#resident.values()].map(({ end, start }) => ({ end, start }))
 	}
 
+	public get residentProjections(): readonly ResidentProjection[] {
+		return [...this.#resident.values()].map((projection) =>
+			structuredClone(projection),
+		)
+	}
+
 	public get revision(): number {
 		return this.#revision
 	}
@@ -307,6 +333,15 @@ export class MosaicTextRootScaleService {
 		const stage = createMosaicTextRootCheckpointStage({
 			baseRevision: 1,
 			domain: service.#identity,
+			limits: {
+				...TRUSTED_CORPUS_STAGE_LIMITS,
+				...(options.deadline === undefined
+					? {}
+					: {
+							deadline:
+								Date.now() + Math.max(1, options.deadline - performance.now()),
+						}),
+			},
 			proposal: service.#proposal(`import`, 1),
 			storage: service.#storage,
 		})
@@ -333,7 +368,7 @@ export class MosaicTextRootScaleService {
 			externalRoots: () =>
 				this.#publication === null ? [] : [this.#publication.externalRoot],
 			limits: {
-				maxExternalBytes: 1024 * 1024 * 1024,
+				maxExternalBytes: TRUSTED_CORPUS_STAGE_LIMITS.maxBytes,
 				maxExternalReads: 8,
 			},
 			readMember: () => {
@@ -376,7 +411,7 @@ export class MosaicTextRootScaleService {
 			mosaicDomainCheckpointObjectKey(staged) !== publication.externalRoot ||
 			staged.baseRevision !== this.#revision + 1 ||
 			staged.depth > 64 ||
-			staged.bytes > 1024 * 1024 * 1024
+			staged.bytes > TRUSTED_CORPUS_STAGE_LIMITS.maxBytes
 		) {
 			throw new Error(`A Mosaic Text v3 staged publication is invalid.`)
 		}
@@ -488,6 +523,7 @@ export class MosaicTextRootScaleService {
 		const stage = createMosaicTextRootCheckpointStage({
 			baseRevision: this.#revision + 1,
 			domain: this.#identity,
+			limits: LOCAL_EDIT_STAGE_LIMITS,
 			previous: reader,
 			previousRootKey: current.externalRoot,
 			proposal: this.#proposal(options.id, this.#revision + 1),

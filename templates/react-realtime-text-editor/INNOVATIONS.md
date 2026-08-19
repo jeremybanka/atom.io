@@ -147,34 +147,59 @@ and derived digests before opening the canonical 5.6 MB source, deterministic
 Unicode variants. A single worker owns one authoritative graph at a time. Each
 document runs multi-client disjoint and shared-boundary edits, duplicate,
 delayed and reordered delivery, rejection, disconnect/resnapshot, partial
-hydration and eviction, split/merge path copies, individualized undo/redo, and
-storage-plus-coordinator restart. Failure output includes the seed, fault and
-client schedules, frontier, resident ranges, and replay transcript.
+hydration and eviction, individualized undo/redo, and storage-plus-coordinator
+restart. The seed shuffles the client, delivery, and lifecycle fault order that
+is actually executed. Failure output includes that seed, the realized fault and
+client schedules, resident ranges, source and client revisions, and a bounded
+semantic transcript containing the exact commands needed for replay.
 
 The gate never constructs a second full-document oracle. Its independent flat
 model is a UTF-16-addressed piece table over the canonical file, and final
-verification streams source ranges directly into the digest. Instrumentation
-fails the gate if any service read materializes a document larger than the
-configured residency bound; clients, parsing, join, and resnapshot remain
-bounded projections over the one authoritative segmented graph.
+verification streams source ranges directly into the digest. The same pass
+independently counts graphemes, line breaks, and UTF-16 units and reconstructs
+each client's bounded resident ranges; all are compared with the published root
+summary and client projections. Instrumentation fails the gate if any service
+read materializes a document larger than the configured residency bound;
+clients, parsing, join, and resnapshot remain bounded projections over the one
+authoritative segmented graph.
 
 Normative counters cover leaf and branch visits and writes, UTF-16 scanned,
 object reads, validation hashing and serialization, bytes persisted, checkpoint
 and batch payloads, resident and delivered bytes, selector invalidations, and
 parser work. Ordinary edits are bounded to addressed leaves and tree height;
 join and parser work are bounded to resident windows; checkpoints reuse clean
-objects. The 100,001-operation stabilization assertion bounds history, aliases,
-receipts, tail, sessions, and live checkpoint objects. Elapsed time and RSS are
-reported observations only because runner load and allocator behavior are not
-deterministic correctness signals.
+objects. A local checkpoint may persist at most 512 KiB and a viewport transfer
+or accepted delivery at most 384 KiB. The 100,001-operation stabilization
+assertion bounds history, aliases, receipts, tail, sessions, and live checkpoint
+objects, then forces a real index split, resolves its stale leaf alias through
+the public reader, and verifies the leaves merge after contention settles.
+Elapsed time and RSS are reported observations only because runner load and
+allocator behavior are not deterministic correctness signals.
 
 Current architecture limits are explicit: text leaves target 32,768 graphemes
 and at most 65,536 UTF-16 units; import chunks are at most 262,144 UTF-16 units;
 branches contain at most 32 children; one edit inserts at most 256 KiB; a range
-read defaults to 128 objects; external graphs default to depth 64, 64 roots, 256
-recovery reads, 1 GiB aggregate bytes, and 4 MiB per object; proposal retention
-defaults to 64 epochs and is limited to 1–1,024. These are safety contracts, not
-claims that arbitrarily large documents are fully resident.
+read defaults to 128 objects; an external graph defaults to 64 MiB total while
+one staging call may add at most 16 MiB across 4,096 objects and 256 logical
+updates, with 4 MiB and depth 64 per object; and a coordinator defaults to 64
+roots, 256 recovery reads, and 64 MiB aggregate external bytes. Proposal
+retention defaults to 64 epochs and is limited to 1–1,024. These are safety
+contracts, not claims that arbitrarily large documents are fully resident.
+
+External staging is a trusted server composition seam, not a socket protocol.
+Client intents first cross Domain authorization and proposal limits; a product
+that derives external updates from an untrusted request must also apply its own
+per-document quota, rate limit, and deadline before hashing begins. Stage work
+is counted before content hashing, checks an abort signal and absolute deadline
+between bounded units, and becomes visible with its proposal lease only after
+the whole attempt succeeds. The pinned 50 MiB corpus gate raises the incremental
+stage budget because its input is authenticated by the MOS-20 manifest and read
+under a fixed deadline. That exception is not the default production request
+budget: it permits at most 128 MiB of cumulative authenticated staging work and
+32,768 objects while the ordinary defaults remain 16 MiB and 4,096 objects.
+Staged bytes count every immutable text, index, directory, and proof object
+serialized and hashed during the attempt; they are not retained bytes, resident
+memory, or the protected graph's 64 MiB size cap.
 
 The zero-setup editor server remains in-memory and uses simulated authorization.
 A product adapter must provide the linearizable semantics exercised by the

@@ -705,6 +705,7 @@ describe(`Mosaic Domain incremental checkpoint graph`, () => {
 			await stageMosaicDomainExternalCheckpointGraph({
 				baseRevision: 1,
 				domain: identity,
+				limits: { maxUpdates: 512 },
 				proposal: {
 					expiresAfterRevision: 1,
 					expiresAt: 100_000,
@@ -1832,6 +1833,204 @@ describe(`Mosaic Domain incremental checkpoint graph`, () => {
 		expect(removed.bytes).toBe(0)
 	})
 
+	test(`external staging budgets fail atomically before proposal visibility`, async () => {
+		const storage = new InMemoryMosaicDomainCheckpointStorage({ now: () => 100 })
+		const proposal = (id: string) => ({
+			expiresAfterRevision: 1,
+			expiresAt: 1_000,
+			id,
+			minimumRevision: 0,
+		})
+		await expect(
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 1,
+				domain: identity,
+				limits: { maxStagedObjects: 1 },
+				proposal: proposal(`object-budget`),
+				storage,
+				updates: [{ index: `rope`, path: `root`, value: `value` }],
+			}),
+		).rejects.toThrow(`staging exceeds 1 objects`)
+		await expect(
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 1,
+				domain: identity,
+				limits: { maxStagedBytes: 1 },
+				proposal: proposal(`byte-budget`),
+				storage,
+				updates: [{ index: `rope`, path: `root`, value: `value` }],
+			}),
+		).rejects.toThrow(`staging exceeds 1 bytes`)
+		for (const [id, limits, value, message] of [
+			[
+				`oversized-string`,
+				{ maxObjectBytes: 128 },
+				`x`.repeat(1_024),
+				`object exceeds 128 bytes`,
+			],
+			[
+				`broad-object`,
+				{ maxObjectNodes: 4 },
+				Object.fromEntries(
+					Array.from({ length: 32 }, (_, index) => [`key-${index}`, index]),
+				),
+				`object exceeds 4 nodes`,
+			],
+			[
+				`deep-object`,
+				{ maxObjectDepth: 2 },
+				{ one: { two: { three: `too-deep` } } },
+				`object exceeds depth 2`,
+			],
+		] as const) {
+			await expect(
+				stageMosaicDomainExternalCheckpointGraph({
+					baseRevision: 1,
+					domain: identity,
+					limits,
+					proposal: proposal(id),
+					storage,
+					updates: [{ index: `rope`, path: `root`, value }],
+				}),
+			).rejects.toThrow(message)
+		}
+
+		const controller = new AbortController()
+		controller.abort()
+		await expect(
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 1,
+				domain: identity,
+				proposal: proposal(`aborted`),
+				signal: controller.signal,
+				storage,
+				updates: [{ index: `rope`, path: `root`, value: `value` }],
+			}),
+		).rejects.toThrow(`staging was aborted`)
+		await expect(
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 1,
+				domain: identity,
+				limits: { deadline: Date.now() - 1 },
+				proposal: proposal(`deadline`),
+				storage,
+				updates: [{ index: `rope`, path: `root`, value: `value` }],
+			}),
+		).rejects.toThrow(`deadline expired`)
+		expect(storage.stats(identity)).toMatchObject({
+			objectCount: 0,
+			retentionLeaseCount: 0,
+		})
+
+		let laterObjectRead = false
+		const first = { kind: `external-proof`, updates: [] } as const
+		const later = Object.defineProperty({}, `kind`, {
+			enumerable: true,
+			get() {
+				laterObjectRead = true
+				return `external-proof`
+			},
+		}) as MosaicDomainCheckpointObject
+		expect(() =>
+			storage.stageCheckpointObjects(
+				identity,
+				[
+					{ key: mosaicDomainCheckpointObjectKey(first), value: first },
+					{ key: `sha256:${`0`.repeat(64)}`, value: later },
+				],
+				{ limits: { maxStagedObjects: 1 } },
+			),
+		).toThrow(`staging exceeds 1 objects`)
+		expect(laterObjectRead).toBe(false)
+		expect(() =>
+			storage.stageCheckpointObjects(
+				identity,
+				[
+					{
+						key: `sha256:${`0`.repeat(64)}`,
+						value: {
+							kind: `external-proof`,
+							padding: `x`.repeat(1_024),
+							updates: [],
+						} as never,
+					},
+				],
+				{ limits: { maxObjectBytes: 128 } },
+			),
+		).toThrow(`object exceeds 128 bytes`)
+		const firstStored = {
+			key: mosaicDomainCheckpointObjectKey(first),
+			value: first,
+		}
+		expect(() =>
+			storage.stageCheckpointObjects(
+				identity,
+				Array.from({ length: 4_097 }, () => firstStored),
+				{
+					proposal: {
+						...proposal(`proposal-only-default-budget`),
+						rootKey: firstStored.key,
+					},
+				},
+			),
+		).toThrow(`staging exceeds 4096 objects`)
+		expect(storage.stats(identity)).toMatchObject({
+			objectCount: 0,
+			retentionLeaseCount: 0,
+		})
+	})
+
+	test(`a tiny staged delta can retain an authenticated graph over 50 MiB`, async () => {
+		const storage = new InMemoryMosaicDomainCheckpointStorage({ now: () => 100 })
+		const mebibyte = 1024 * 1024
+		const parent = await stageMosaicDomainExternalCheckpointGraph({
+			baseRevision: 1,
+			domain: identity,
+			limits: {
+				maxBytes: 64 * mebibyte,
+				maxObjectBytes: 2 * mebibyte,
+				maxStagedBytes: 60 * mebibyte,
+				maxStagedObjects: 1_024,
+				maxUpdates: 64,
+			},
+			proposal: {
+				expiresAfterRevision: 1,
+				expiresAt: 1_000,
+				id: `large-parent`,
+				minimumRevision: 0,
+			},
+			storage,
+			updates: Array.from({ length: 51 }, (_, index) => ({
+				index: `rope`,
+				path: `chunk-${index.toString().padStart(2, `0`)}`,
+				value: `x`.repeat(mebibyte),
+			})),
+		})
+		expect(parent.bytes).toBeGreaterThan(50 * mebibyte)
+
+		const local = await stageMosaicDomainExternalCheckpointGraph({
+			baseRevision: 1,
+			domain: identity,
+			limits: {
+				maxBytes: 64 * mebibyte,
+				maxStagedBytes: 512 * 1024,
+				maxStagedObjects: 128,
+				maxUpdates: 4,
+			},
+			previousRootKey: parent.rootKey,
+			proposal: {
+				expiresAfterRevision: 1,
+				expiresAt: 1_000,
+				id: `tiny-local-delta`,
+				minimumRevision: 0,
+			},
+			storage,
+			updates: [{ index: `rope`, path: `chunk-25`, value: `tiny` }],
+		})
+		expect(local.bytes).toBeGreaterThan(50 * mebibyte)
+		expect(local.persistedBytes).toBeLessThan(512 * 1024)
+	}, 30_000)
+
 	test(`external graph builders reject malformed bounds and proposal transitions`, async () => {
 		expect(
 			() => new InMemoryMosaicDomainCheckpointStorage({ maxRecentReceipts: 0 }),
@@ -1871,6 +2070,18 @@ describe(`Mosaic Domain incremental checkpoint graph`, () => {
 				],
 			}),
 		).rejects.toThrow(`updates exceed 1`)
+		await expect(
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 0,
+				domain: identity,
+				storage,
+				updates: Array.from({ length: 257 }, (_, index) => ({
+					index: `rope`,
+					path: `path-${index}`,
+					value: index,
+				})),
+			}),
+		).rejects.toThrow(`updates exceed 256`)
 		await expect(
 			stageMosaicDomainExternalCheckpointGraph({
 				baseRevision: 0,

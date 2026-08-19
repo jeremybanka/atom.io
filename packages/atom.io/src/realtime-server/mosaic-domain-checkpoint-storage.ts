@@ -20,6 +20,17 @@ import type {
 } from "./mosaic-domain-batch-storage.ts"
 
 const encoder = new TextEncoder()
+const DEFAULT_EXTERNAL_STAGE_MAX_BYTES = 16 * 1024 * 1024
+const DEFAULT_EXTERNAL_STAGE_MAX_OBJECT_BYTES = 4 * 1024 * 1024
+const DEFAULT_EXTERNAL_STAGE_MAX_OBJECT_DEPTH = 64
+const DEFAULT_EXTERNAL_STAGE_MAX_OBJECT_NODES = 262_144
+const DEFAULT_EXTERNAL_STAGE_MAX_OBJECTS = 4_096
+
+const assertPositiveLimit = (name: string, value: number): void => {
+	if (!Number.isSafeInteger(value) || value < 1) {
+		throw new Error(`${name} must be a positive safe integer.`)
+	}
+}
 
 export type MosaicDomainCheckpointHead = {
 	/** Durable external roots accepted after the currently published checkpoint. */
@@ -82,8 +93,18 @@ export type MosaicDomainCheckpointExternalGraphProof = {
 
 export type MosaicDomainCheckpointStageOptions = {
 	readonly externalGraph?: MosaicDomainCheckpointExternalGraphProof
+	readonly limits?: {
+		/** Absolute `Date.now()` deadline checked between bounded staging units. */
+		readonly deadline?: number
+		readonly maxObjectBytes?: number
+		readonly maxObjectDepth?: number
+		readonly maxObjectNodes?: number
+		readonly maxStagedBytes?: number
+		readonly maxStagedObjects?: number
+	}
 	/** Atomically protect one of the objects staged by this call. */
 	readonly proposal?: MosaicDomainCheckpointStageProposal
+	readonly signal?: AbortSignal
 }
 
 export type MosaicDomainCheckpointCommitRequest = {
@@ -226,35 +247,143 @@ type MemoryDomain = {
 
 const clone = <Value>(value: Value): Value => structuredClone(value)
 
-const isJsonSafe = (
+const jsonStringBytes = (
+	value: string,
+	maxBytes: number,
+	assertActive: () => void,
+): number => {
+	let bytes = 2
+	for (let index = 0; index < value.length; index++) {
+		if ((index & 1023) === 0) assertActive()
+		const code = value.charCodeAt(index)
+		if (code === 0x22 || code === 0x5c) bytes += 2
+		else if (
+			code === 0x08 ||
+			code === 0x09 ||
+			code === 0x0a ||
+			code === 0x0c ||
+			code === 0x0d
+		)
+			bytes += 2
+		else if (code < 0x20) bytes += 6
+		else if (code < 0x80) bytes++
+		else if (code < 0x800) bytes += 2
+		else if (code >= 0xd800 && code <= 0xdbff) {
+			const next = value.charCodeAt(index + 1)
+			if (next >= 0xdc00 && next <= 0xdfff) {
+				bytes += 4
+				index++
+			} else bytes += 6
+		} else if (code >= 0xdc00 && code <= 0xdfff) bytes += 6
+		else bytes += 3
+		if (bytes > maxBytes) return bytes
+	}
+	return bytes
+}
+
+const inspectJsonSafe = (
 	value: unknown,
-	ancestors: WeakSet<object> = new WeakSet(),
-): boolean => {
-	if (
-		value === null ||
-		typeof value === `boolean` ||
-		typeof value === `string`
-	) {
-		return true
+	maxBytes: number,
+	maxDepth = Number.MAX_SAFE_INTEGER,
+	maxNodes = Number.MAX_SAFE_INTEGER,
+	assertActive: () => void = () => undefined,
+): number | null => {
+	const ancestors = new WeakSet<object>()
+	const pending: (
+		| { readonly depth: number; readonly enter: true; readonly value: unknown }
+		| { readonly enter: false; readonly value: object }
+	)[] = [{ depth: 0, enter: true, value }]
+	let bytes = 0
+	let nodes = 0
+	let scheduledNodes = 1
+	const addBytes = (additional: number): void => {
+		if (additional > maxBytes - bytes) {
+			throw new Error(
+				`A Mosaic Domain checkpoint object exceeds ${maxBytes} bytes.`,
+			)
+		}
+		bytes += additional
 	}
-	if (typeof value === `number`) return Number.isFinite(value)
-	if (typeof value !== `object` || ancestors.has(value)) return false
-	const prototype = Object.getPrototypeOf(value) as {
-		readonly constructor?: { readonly name?: string }
-	} | null
-	if (
-		!Array.isArray(value) &&
-		prototype !== null &&
-		prototype.constructor?.name !== `Object`
-	) {
-		return false
+	const schedule = (depth: number, child: unknown): void => {
+		if (nodes + scheduledNodes >= maxNodes) {
+			throw new Error(
+				`A Mosaic Domain checkpoint object exceeds ${maxNodes} nodes.`,
+			)
+		}
+		pending.push({ depth, enter: true, value: child })
+		scheduledNodes++
 	}
-	ancestors.add(value)
-	const valid = Object.values(value).every((child) =>
-		isJsonSafe(child, ancestors),
-	)
-	ancestors.delete(value)
-	return valid
+	while (pending.length > 0) {
+		assertActive()
+		const frame = pending.pop()!
+		if (!frame.enter) {
+			ancestors.delete(frame.value)
+			continue
+		}
+		scheduledNodes--
+		const item = frame.value
+		nodes++
+		if (nodes > maxNodes) {
+			throw new Error(
+				`A Mosaic Domain checkpoint object exceeds ${maxNodes} nodes.`,
+			)
+		}
+		if (frame.depth > maxDepth) {
+			throw new Error(
+				`A Mosaic Domain checkpoint object exceeds depth ${maxDepth}.`,
+			)
+		}
+		if (
+			item === null ||
+			typeof item === `boolean` ||
+			(typeof item === `number` && Number.isFinite(item))
+		) {
+			addBytes(JSON.stringify(item).length)
+			continue
+		}
+		if (typeof item === `string`) {
+			addBytes(jsonStringBytes(item, maxBytes - bytes, assertActive))
+			continue
+		}
+		if (typeof item !== `object` || ancestors.has(item)) {
+			return null
+		}
+		const prototype = Object.getPrototypeOf(item) as {
+			readonly constructor?: { readonly name?: string }
+		} | null
+		if (
+			!Array.isArray(item) &&
+			prototype !== null &&
+			prototype.constructor?.name !== `Object`
+		) {
+			return null
+		}
+		ancestors.add(item)
+		pending.push({ enter: false, value: item })
+		addBytes(2)
+		if (Array.isArray(item)) {
+			if (item.length > 0) addBytes(item.length - 1)
+			for (let index = item.length - 1; index >= 0; index--) {
+				const descriptor = Object.getOwnPropertyDescriptor(item, String(index))
+				if (descriptor === undefined || !(`value` in descriptor)) return null
+				schedule(frame.depth + 1, descriptor.value)
+			}
+			continue
+		}
+		let propertyCount = 0
+		for (const key in item) {
+			if (!Object.hasOwn(item, key)) continue
+			const descriptor = Object.getOwnPropertyDescriptor(item, key)
+			if (descriptor?.enumerable !== true) continue
+			if (!(`value` in descriptor)) return null
+			if (propertyCount > 0) addBytes(1)
+			addBytes(jsonStringBytes(key, maxBytes - bytes, assertActive))
+			addBytes(1)
+			propertyCount++
+			schedule(frame.depth + 1, descriptor.value)
+		}
+	}
+	return bytes
 }
 
 const canonicalize = (value: unknown): string => {
@@ -473,10 +602,12 @@ const verifyExternalGraphProof = (
 	>,
 	proof: MosaicDomainCheckpointExternalGraphProof,
 	now: number,
+	assertActive: () => void = () => undefined,
 ): { readonly bytes: number; readonly depth: number } => {
 	const read = (
 		key: MosaicDomainCheckpointObjectKey,
 	): MosaicDomainCheckpointObject => {
+		assertActive()
 		const object = candidates.get(key) ?? state.objects.get(key)
 		if (object === undefined) {
 			throw new Error(`A Mosaic Domain external checkpoint object is missing.`)
@@ -489,6 +620,7 @@ const verifyExternalGraphProof = (
 		) {
 			throw new Error(`A Mosaic Domain checkpoint content key is invalid.`)
 		}
+		assertActive()
 		return object
 	}
 	const rootObject = read(proof.rootKey)
@@ -714,6 +846,7 @@ const verifyExternalGraphProof = (
 	}
 	const seen = new Set<string>()
 	for (const update of proof.updates) {
+		assertActive()
 		const logicalKey = canonicalize([update.index, update.path])
 		if (
 			seen.has(logicalKey) ||
@@ -1426,6 +1559,54 @@ export class InMemoryMosaicDomainCheckpointStorage implements MosaicDomainCheckp
 		if (!Array.isArray(objects)) {
 			throw new Error(`Mosaic Domain checkpoint objects must be an array.`)
 		}
+		const bounded =
+			options.externalGraph !== undefined ||
+			options.proposal !== undefined ||
+			options.limits !== undefined
+		const maxStagedBytes =
+			options.limits?.maxStagedBytes ??
+			(bounded ? DEFAULT_EXTERNAL_STAGE_MAX_BYTES : Number.MAX_SAFE_INTEGER)
+		const maxObjectBytes =
+			options.limits?.maxObjectBytes ??
+			(bounded
+				? DEFAULT_EXTERNAL_STAGE_MAX_OBJECT_BYTES
+				: Number.MAX_SAFE_INTEGER)
+		const maxObjectDepth =
+			options.limits?.maxObjectDepth ??
+			(bounded
+				? DEFAULT_EXTERNAL_STAGE_MAX_OBJECT_DEPTH
+				: Number.MAX_SAFE_INTEGER)
+		const maxObjectNodes =
+			options.limits?.maxObjectNodes ??
+			(bounded
+				? DEFAULT_EXTERNAL_STAGE_MAX_OBJECT_NODES
+				: Number.MAX_SAFE_INTEGER)
+		const maxStagedObjects =
+			options.limits?.maxStagedObjects ??
+			(bounded ? DEFAULT_EXTERNAL_STAGE_MAX_OBJECTS : Number.MAX_SAFE_INTEGER)
+		assertPositiveLimit(`maxStagedBytes`, maxStagedBytes)
+		assertPositiveLimit(`maxObjectBytes`, maxObjectBytes)
+		assertPositiveLimit(`maxObjectDepth`, maxObjectDepth)
+		assertPositiveLimit(`maxObjectNodes`, maxObjectNodes)
+		assertPositiveLimit(`maxStagedObjects`, maxStagedObjects)
+		const deadline = options.limits?.deadline
+		if (deadline !== undefined && !Number.isFinite(deadline)) {
+			throw new Error(`deadline must be finite.`)
+		}
+		const assertStageActive = (): void => {
+			if (options.signal?.aborted) {
+				throw new Error(`Mosaic Domain checkpoint staging was aborted.`)
+			}
+			if (deadline !== undefined && Date.now() >= deadline) {
+				throw new Error(`Mosaic Domain checkpoint staging deadline expired.`)
+			}
+		}
+		assertStageActive()
+		if (objects.length > maxStagedObjects) {
+			throw new Error(
+				`Mosaic Domain checkpoint staging exceeds ${maxStagedObjects} objects.`,
+			)
+		}
 		const state = this.#domain(domain)
 		const candidates = new Map<
 			MosaicDomainCheckpointObjectKey,
@@ -1433,28 +1614,43 @@ export class InMemoryMosaicDomainCheckpointStorage implements MosaicDomainCheckp
 		>()
 		let persistedBytes = 0
 		let persistedObjectCount = 0
+		let stagedBytes = 0
 		for (const item of objects) {
-			if (
-				typeof item?.key !== `string` ||
-				!item.key.startsWith(`sha256:`) ||
-				!isJsonSafe(item.value)
-			) {
+			assertStageActive()
+			if (typeof item?.key !== `string` || !item.key.startsWith(`sha256:`)) {
 				throw new Error(`A Mosaic Domain checkpoint object is invalid.`)
 			}
-			if (item.key !== mosaicDomainCheckpointObjectKey(item.value)) {
+			const inspectedBytes = inspectJsonSafe(
+				item.value,
+				maxObjectBytes,
+				maxObjectDepth,
+				maxObjectNodes,
+				assertStageActive,
+			)
+			if (inspectedBytes === null) {
+				throw new Error(`A Mosaic Domain checkpoint object is invalid.`)
+			}
+			const value = clone(item.value)
+			if (stagedBytes + inspectedBytes > maxStagedBytes) {
+				throw new Error(
+					`Mosaic Domain checkpoint staging exceeds ${maxStagedBytes} bytes.`,
+				)
+			}
+			stagedBytes += inspectedBytes
+			assertStageActive()
+			if (item.key !== mosaicDomainCheckpointObjectKey(value)) {
 				throw new Error(`A Mosaic Domain checkpoint content key is invalid.`)
 			}
 			const existing = state.objects.get(item.key)
 			if (existing !== undefined) {
-				if (!same(existing, item.value)) {
+				if (!same(existing, value)) {
 					throw new Error(`A checkpoint content key collided.`)
 				}
 				candidates.set(item.key, existing)
 				continue
 			}
-			const value = clone(item.value)
 			candidates.set(item.key, value)
-			persistedBytes += encoder.encode(JSON.stringify(value)).byteLength
+			persistedBytes += inspectedBytes
 			persistedObjectCount++
 		}
 		if (
@@ -1539,8 +1735,10 @@ export class InMemoryMosaicDomainCheckpointStorage implements MosaicDomainCheckp
 				candidates,
 				options.externalGraph,
 				now,
+				assertStageActive,
 			)
 		}
+		assertStageActive()
 		for (const [key, value] of candidates) {
 			if (!state.objects.has(key)) state.objects.set(key, value)
 		}

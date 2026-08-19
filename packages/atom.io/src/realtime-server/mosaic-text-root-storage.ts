@@ -11,6 +11,7 @@ import type {
 } from "atom.io/realtime"
 
 import {
+	type MosaicDomainExternalCheckpointGraphLimits,
 	type MosaicDomainExternalCheckpointGraphResult,
 	stageMosaicDomainExternalCheckpointGraph,
 } from "./mosaic-domain-checkpoint.ts"
@@ -35,15 +36,12 @@ export type MosaicTextRootCheckpointReader = MosaicTextRootReadAdapter & {
 export type MosaicTextRootCheckpointStageOptions = {
 	readonly baseRevision: number
 	readonly domain: MosaicDomainIdentity
-	readonly limits?: {
-		readonly maxBytes?: number
-		readonly maxObjectBytes?: number
-		readonly maxUpdates?: number
-	}
+	readonly limits?: MosaicDomainExternalCheckpointGraphLimits
 	readonly previousRootKey?: MosaicDomainCheckpointObjectKey
 	/** Bounded reader for nodes in the previously published external root. */
 	readonly previous?: MosaicTextRootCheckpointReader
 	readonly proposal?: Omit<MosaicDomainCheckpointStageProposal, `rootKey`>
+	readonly signal?: AbortSignal
 	readonly storage: MosaicDomainCheckpointStorageAdapter
 }
 
@@ -71,35 +69,106 @@ const canonicalize = (value: unknown): string => {
 const visitCanonicalJson = (
 	value: unknown,
 	visit: (chunk: string) => void,
+	reserveNodes: (count: number) => void,
+	depth = 0,
+	maxDepth = Number.MAX_SAFE_INTEGER,
+	reserved = false,
 ): void => {
+	if (!reserved) reserveNodes(1)
+	if (depth > maxDepth) {
+		throw new Error(
+			`A Mosaic Text v3 checkpoint object exceeds depth ${maxDepth}.`,
+		)
+	}
 	if (value === null || typeof value !== `object`) {
 		visit(JSON.stringify(value))
 		return
 	}
 	if (Array.isArray(value)) {
 		visit(`[`)
+		reserveNodes(value.length)
 		for (const [index, item] of value.entries()) {
 			if (index > 0) visit(`,`)
-			visitCanonicalJson(item, visit)
+			visitCanonicalJson(item, visit, reserveNodes, depth + 1, maxDepth, true)
 		}
 		visit(`]`)
 		return
 	}
 	visit(`{`)
 	const object = value as Readonly<Record<string, unknown>>
-	for (const [index, key] of Object.keys(object).sort().entries()) {
+	const keys: string[] = []
+	for (const key in object) {
+		if (!Object.hasOwn(object, key)) continue
+		reserveNodes(1)
+		keys.push(key)
+	}
+	for (const [index, key] of keys.sort().entries()) {
 		if (index > 0) visit(`,`)
 		visit(JSON.stringify(key))
 		visit(`:`)
-		visitCanonicalJson(object[key], visit)
+		visitCanonicalJson(
+			object[key],
+			visit,
+			reserveNodes,
+			depth + 1,
+			maxDepth,
+			true,
+		)
 	}
 	visit(`}`)
 }
 
-const nodePath = (value: MosaicTextRootObject): string => {
+const inspectNode = (
+	value: MosaicTextRootObject,
+	limits: {
+		readonly maxBytes: number
+		readonly maxDepth: number
+		readonly maxNodes: number
+		readonly remainingBytes: number
+	},
+	assertActive: () => void,
+): { readonly bytes: number; readonly path: string } => {
+	if (
+		value.kind === `mosaic-text-root-leaf` &&
+		value.text.length > Math.min(limits.maxBytes, limits.remainingBytes)
+	) {
+		throw new Error(
+			`A Mosaic Text v3 checkpoint staging byte limit was exceeded.`,
+		)
+	}
 	const hash = createHash(`sha256`)
-	visitCanonicalJson(value, (chunk) => hash.update(chunk))
-	return hash.digest(`hex`)
+	const encoder = new TextEncoder()
+	let bytes = 0
+	let nodes = 0
+	visitCanonicalJson(
+		value,
+		(chunk) => {
+			assertActive()
+			const chunkBytes = encoder.encode(chunk).byteLength
+			if (
+				bytes + chunkBytes > limits.maxBytes ||
+				bytes + chunkBytes > limits.remainingBytes
+			) {
+				throw new Error(
+					`A Mosaic Text v3 checkpoint staging byte limit was exceeded.`,
+				)
+			}
+			bytes += chunkBytes
+			hash.update(chunk)
+		},
+		(count) => {
+			assertActive()
+			if (count > limits.maxNodes - nodes) {
+				throw new Error(
+					`A Mosaic Text v3 checkpoint object exceeds ${limits.maxNodes} nodes.`,
+				)
+			}
+			nodes += count
+		},
+		0,
+		limits.maxDepth,
+	)
+	return { bytes, path: hash.digest(`hex`) }
 }
 
 const indexObject = (
@@ -114,6 +183,20 @@ const indexObject = (
 	value,
 })
 
+const DEFAULT_TEXT_STAGE_MAX_OBJECT_BYTES = 4 * 1024 * 1024
+const DEFAULT_TEXT_STAGE_MAX_OBJECT_DEPTH = 64
+const DEFAULT_TEXT_STAGE_MAX_OBJECT_NODES = 262_144
+const DEFAULT_TEXT_STAGE_MAX_STAGED_BYTES = 16 * 1024 * 1024
+const DEFAULT_TEXT_STAGE_MAX_STAGED_OBJECTS = 4_096
+const DEFAULT_TEXT_STAGE_MAX_UPDATES = 256
+
+const positiveLimit = (name: string, value: number): number => {
+	if (!Number.isSafeInteger(value) || value < 1) {
+		throw new Error(`${name} must be a positive safe integer.`)
+	}
+	return value
+}
+
 /**
  * Adapt Mosaic Text v3's Merkle writer to an unreachable MOS-13 external graph.
  * `stage()` persists the bounded graph but does not publish it as authoritative.
@@ -121,6 +204,45 @@ const indexObject = (
 export function createMosaicTextRootCheckpointStage(
 	options: MosaicTextRootCheckpointStageOptions,
 ): MosaicTextRootCheckpointStage {
+	const maxObjectBytes = positiveLimit(
+		`maxObjectBytes`,
+		options.limits?.maxObjectBytes ?? DEFAULT_TEXT_STAGE_MAX_OBJECT_BYTES,
+	)
+	const maxObjectDepth = positiveLimit(
+		`maxObjectDepth`,
+		options.limits?.maxObjectDepth ?? DEFAULT_TEXT_STAGE_MAX_OBJECT_DEPTH,
+	)
+	const maxObjectNodes = positiveLimit(
+		`maxObjectNodes`,
+		options.limits?.maxObjectNodes ?? DEFAULT_TEXT_STAGE_MAX_OBJECT_NODES,
+	)
+	const maxStagedBytes = positiveLimit(
+		`maxStagedBytes`,
+		options.limits?.maxStagedBytes ?? DEFAULT_TEXT_STAGE_MAX_STAGED_BYTES,
+	)
+	const maxStagedObjects = positiveLimit(
+		`maxStagedObjects`,
+		options.limits?.maxStagedObjects ?? DEFAULT_TEXT_STAGE_MAX_STAGED_OBJECTS,
+	)
+	const maxUpdates = positiveLimit(
+		`maxUpdates`,
+		options.limits?.maxUpdates ?? DEFAULT_TEXT_STAGE_MAX_UPDATES,
+	)
+	const deadline = options.limits?.deadline
+	if (deadline !== undefined && !Number.isFinite(deadline)) {
+		throw new Error(`deadline must be finite.`)
+	}
+	const assertStageActive = (): void => {
+		if (options.signal?.aborted) {
+			throw new Error(`Mosaic Text v3 checkpoint staging was aborted.`)
+		}
+		if (deadline !== undefined && Date.now() >= deadline) {
+			throw new Error(`Mosaic Text v3 checkpoint staging deadline expired.`)
+		}
+	}
+	assertStageActive()
+	let stagedBytes = 0
+	let stagedObjectCount = 0
 	let completed:
 		| {
 				readonly result: MosaicDomainExternalCheckpointGraphResult
@@ -137,12 +259,37 @@ export function createMosaicTextRootCheckpointStage(
 		key: MosaicDomainCheckpointObjectKey,
 		delta: number,
 	): void => {
+		assertStageActive()
+		if (
+			!referenceDeltas.has(key) &&
+			1 + (referenceDeltas.size + 1) * 2 > maxUpdates
+		) {
+			throw new Error(
+				`Mosaic Text v3 checkpoint staging exceeds ${maxUpdates} updates.`,
+			)
+		}
 		referenceDeltas.set(key, (referenceDeltas.get(key) ?? 0) + delta)
 	}
 
 	return {
 		put(value) {
-			const path = nodePath(value)
+			assertStageActive()
+			if (stagedObjectCount >= maxStagedObjects) {
+				throw new Error(
+					`Mosaic Text v3 checkpoint staging exceeds ${maxStagedObjects} objects.`,
+				)
+			}
+			const inspected = inspectNode(
+				value,
+				{
+					maxBytes: maxObjectBytes,
+					maxDepth: maxObjectDepth,
+					maxNodes: maxObjectNodes,
+					remainingBytes: maxStagedBytes - stagedBytes,
+				},
+				assertStageActive,
+			)
+			const path = inspected.path
 			const nodeKey = `sha256:${path}` as const
 			const object = indexObject(options, path, value)
 			const prior = pendingByPath.get(path)
@@ -152,22 +299,35 @@ export function createMosaicTextRootCheckpointStage(
 			) {
 				throw new Error(`A Mosaic Text v3 checkpoint path collided.`)
 			}
+			const newReference = !referenceDeltas.has(nodeKey)
+			if (1 + (referenceDeltas.size + (newReference ? 1 : 0)) * 2 > maxUpdates) {
+				throw new Error(
+					`Mosaic Text v3 checkpoint staging exceeds ${maxUpdates} updates.`,
+				)
+			}
+			stagedBytes += inspected.bytes
+			stagedObjectCount++
 			pendingByPath.set(path, object)
 			pendingByKey.set(nodeKey, object)
 			adjustReferences(nodeKey, 1)
 			return nodeKey
 		},
 		retire(key) {
+			assertStageActive()
 			adjustReferences(key, -1)
 		},
 		async read(key) {
+			assertStageActive()
 			const pending = pendingByKey.get(key)
 			if (pending !== undefined) {
 				return structuredClone(pending.value) as unknown as MosaicTextRootObject
 			}
-			return (await options.previous?.read(key)) ?? null
+			const value = (await options.previous?.read(key)) ?? null
+			assertStageActive()
+			return value
 		},
 		async stage(root) {
+			assertStageActive()
 			if (completed !== undefined) {
 				if (canonicalize(completed.root) !== canonicalize(root)) {
 					throw new Error(`A Mosaic Text v3 stage was reused for another root.`)
@@ -183,6 +343,7 @@ export function createMosaicTextRootCheckpointStage(
 				value: root,
 			})
 			for (const [key, delta] of referenceDeltas) {
+				assertStageActive()
 				if (delta === 0) continue
 				const path = key.slice(`sha256:`.length)
 				const previous = await options.previous?.referenceCount(key)
@@ -227,6 +388,7 @@ export function createMosaicTextRootCheckpointStage(
 				...(options.proposal === undefined
 					? {}
 					: { proposal: options.proposal }),
+				...(options.signal === undefined ? {} : { signal: options.signal }),
 				storage: options.storage,
 				updates,
 			})

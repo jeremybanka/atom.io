@@ -1980,6 +1980,148 @@ describe(`Mosaic Domain incremental checkpoint graph`, () => {
 		})
 	})
 
+	test(`canonical staging accounts Unicode and rejects hostile JSON shapes without observation`, async () => {
+		const storage = new InMemoryMosaicDomainCheckpointStorage({ now: () => 100 })
+		const special = `"\\\b\t\n\f\r\u0001é漢🙂${String.fromCharCode(
+			0xd800,
+		)}x${String.fromCharCode(0xdc00)}`
+		const value = {
+			array: [null, true, false, 1],
+			text: special,
+		}
+		const staged = await stageMosaicDomainExternalCheckpointGraph({
+			baseRevision: 1,
+			domain: identity,
+			proposal: {
+				expiresAfterRevision: 1,
+				expiresAt: 1_000,
+				id: `canonical-json`,
+				minimumRevision: 0,
+			},
+			storage,
+			updates: [{ index: `rope`, path: `root`, value }],
+		})
+		expect(staged.bytes).toBe(
+			new TextEncoder().encode(JSON.stringify(value)).byteLength,
+		)
+
+		const sparse: unknown[] = []
+		sparse.length = 1
+		const cyclic: Record<string, unknown> = {}
+		cyclic[`self`] = cyclic
+		let accessorRead = false
+		const accessor = Object.defineProperty({}, `value`, {
+			enumerable: true,
+			get() {
+				accessorRead = true
+				throw new Error(`must not observe accessors`)
+			},
+		})
+		for (const [index, hostile] of [1n, sparse, cyclic, accessor].entries()) {
+			await expect(
+				stageMosaicDomainExternalCheckpointGraph({
+					baseRevision: 1,
+					domain: identity,
+					storage,
+					updates: [
+						{ index: `hostile`, path: String(index), value: hostile as never },
+					],
+				}),
+			).rejects.toThrow(`JSON-serializable`)
+		}
+		expect(accessorRead).toBe(false)
+
+		for (const hostile of [sparse, cyclic, accessor, new Date()]) {
+			expect(() =>
+				storage.stageCheckpointObjects(identity, [
+					{
+						key: `sha256:${`0`.repeat(64)}`,
+						value: {
+							hostile,
+							kind: `external-proof`,
+							updates: [],
+						} as never,
+					},
+				]),
+			).toThrow(`checkpoint object is invalid`)
+		}
+		expect(accessorRead).toBe(false)
+
+		const inheritedProof = Object.assign(
+			Object.create({ inherited: `ignored` }) as Record<string, unknown>,
+			{ kind: `external-proof`, updates: [] },
+		) as MosaicDomainCheckpointObject
+		Object.defineProperty(inheritedProof, `nonEnumerable`, { value: `ignored` })
+		const inheritedProofKey = mosaicDomainCheckpointObjectKey(inheritedProof)
+		expect(
+			storage.stageCheckpointObjects(identity, [
+				{ key: inheritedProofKey, value: inheritedProof },
+			]),
+		).toMatchObject({ persistedObjectCount: 1 })
+
+		const inheritedValue = Object.assign(
+			Object.create({ inherited: `ignored` }) as Record<string, unknown>,
+			{ own: `kept` },
+		)
+		Object.defineProperty(inheritedValue, `nonEnumerable`, { value: `ignored` })
+		await expect(
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 1,
+				domain: identity,
+				storage,
+				updates: [
+					{
+						index: `canonical`,
+						path: `inherited`,
+						value: inheritedValue as never,
+					},
+				],
+			}),
+		).resolves.toMatchObject({
+			bytes: new TextEncoder().encode(JSON.stringify({ own: `kept` }))
+				.byteLength,
+		})
+		await expect(
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 1,
+				domain: identity,
+				limits: { deadline: Number.NaN },
+				storage,
+				updates: [],
+			}),
+		).rejects.toThrow(`deadline must be finite`)
+
+		for (const [limits, padding, message] of [
+			[
+				{ maxObjectNodes: 4 },
+				{ a: 1, b: 2, c: 3, d: 4 },
+				`object exceeds 4 nodes`,
+			],
+			[
+				{ maxObjectDepth: 2 },
+				{ one: { two: { three: true } } },
+				`object exceeds depth 2`,
+			],
+		] as const) {
+			expect(() =>
+				storage.stageCheckpointObjects(
+					identity,
+					[
+						{
+							key: `sha256:${`0`.repeat(64)}`,
+							value: {
+								kind: `external-proof`,
+								padding,
+								updates: [],
+							} as never,
+						},
+					],
+					{ limits },
+				),
+			).toThrow(message)
+		}
+	})
+
 	test(`a tiny staged delta can retain an authenticated graph over 50 MiB`, async () => {
 		const storage = new InMemoryMosaicDomainCheckpointStorage({ now: () => 100 })
 		const mebibyte = 1024 * 1024

@@ -1,12 +1,15 @@
 import { Silo } from "atom.io"
 import type { Json } from "atom.io/foundations/json"
 import {
+	assertMosaicDomainHistoryRequestResult,
+	assertMosaicDomainHistorySnapshot,
 	MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
 	type MosaicAcceptedDomainBatchEnvelope,
 	mosaicDomain,
 	type MosaicDomainBatchProposal,
 	type MosaicDomainHistoryCursor,
 	type MosaicDomainMemberAddress,
+	mosaicDomainMemberHistoryPolicy,
 	mosaicDomainMemberModelIdentity,
 	type MosaicDomainValueModel,
 	mosaicText,
@@ -303,6 +306,85 @@ const recoveringBatchServer = (
 })
 
 describe(`Mosaic Domain actor-selective history`, () => {
+	test(`validates history projections and request outcomes at the transport boundary`, () => {
+		const snapshot = {
+			actor: `ada`,
+			cursor: {
+				redoGestureId: null,
+				revision: 2,
+				undoGestureId: `gesture-2`,
+			},
+			horizon: {
+				canRedo: false,
+				canUndo: true,
+				oldestRetainedRevision: 1,
+				redoSteps: 0,
+				truncatedBeforeRevision: 0,
+				undoSteps: 1,
+			},
+			sessionSequence: 3,
+		}
+		assertMosaicDomainHistorySnapshot(snapshot, {
+			actor: `ada`,
+			minimumRevision: 2,
+		})
+		expect(() => {
+			assertMosaicDomainHistorySnapshot(null)
+		}).toThrow(`snapshot must be an object`)
+		expect(() => {
+			assertMosaicDomainHistorySnapshot(
+				{ ...snapshot, actor: `lin` },
+				{ actor: `ada` },
+			)
+		}).toThrow(`snapshot is invalid`)
+
+		assertMosaicDomainHistoryRequestResult({
+			acceptedRevision: 2,
+			snapshot,
+			status: `accepted`,
+		})
+		assertMosaicDomainHistoryRequestResult({ snapshot, status: `unavailable` })
+		assertMosaicDomainHistoryRequestResult({
+			reason: `stale actor cursor`,
+			recovery: `history-resnapshot`,
+			snapshot,
+			status: `rejected`,
+		})
+		expect(() => {
+			assertMosaicDomainHistoryRequestResult(null)
+		}).toThrow(`result must be an object`)
+		expect(() => {
+			assertMosaicDomainHistoryRequestResult({
+				acceptedRevision: 1,
+				snapshot,
+				status: `accepted`,
+			})
+		}).toThrow(`result is invalid`)
+		expect(() => {
+			assertMosaicDomainHistoryRequestResult({
+				reason: ``,
+				recovery: `invalid`,
+				snapshot,
+				status: `rejected`,
+			})
+		}).toThrow(`result is invalid`)
+
+		const declaredPolicy = { exclude: () => true }
+		expect(
+			mosaicDomainMemberHistoryPolicy({
+				history: declaredPolicy,
+				identity: { key: `declared`, version: 1 },
+				kind: `value`,
+			} as never),
+		).toBe(declaredPolicy)
+		expect(
+			mosaicDomainMemberHistoryPolicy({
+				class: { domainHistory: declaredPolicy },
+				kind: `transceiver`,
+			} as never),
+		).toBe(declaredPolicy)
+	})
+
 	test(`owns immutable gestures across observers, race cuts, and compensation hooks`, async () => {
 		const setup = await fixture(
 			undefined,

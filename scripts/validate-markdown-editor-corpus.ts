@@ -446,8 +446,9 @@ async function validateDocument(
 
 		await ada.undo(`scale:history:undo`)
 		await ada.redo(`scale:history:redo`)
+		const foreignTailStart = Math.max(0, service.length - 9)
 		if (
-			!(await service.readRange(service.length - 9, service.length)).includes(
+			!(await service.readRange(foreignTailStart, service.length)).includes(
 				`[foreign]`,
 			)
 		) {

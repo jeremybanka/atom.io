@@ -114,7 +114,13 @@ const canonicalize = (value: unknown): string => {
 export async function mosaicTextRootObjectKey(
 	value: MosaicTextRootObject,
 ): Promise<MosaicDomainCheckpointObjectKey> {
-	const digest = await globalThis.crypto.subtle.digest(
+	const subtle = globalThis.crypto?.subtle
+	if (subtle === undefined) {
+		throw new Error(
+			`WebCrypto SubtleCrypto is required for Mosaic Text v3 keys.`,
+		)
+	}
+	const digest = await subtle.digest(
 		`SHA-256`,
 		encoder.encode(canonicalize(value)),
 	)

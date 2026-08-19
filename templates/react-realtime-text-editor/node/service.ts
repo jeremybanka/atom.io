@@ -221,21 +221,24 @@ const prepareMarkdownImportOperation = (
 	let chunkStart = 0
 	let chunkEnd = 0
 	let chunkGraphemes = 0
+	let previousRun: { readonly graphemes: number; readonly id: string } | null =
+		null
 	const flush = (): void => {
 		if (chunkGraphemes === 0) return
-		const previous = inserted.at(-1)
+		const id = `${operationId}:run:${inserted.length.toString().padStart(6, `0`)}`
 		inserted.push({
 			after:
-				previous === undefined
+				previousRun === null
 					? null
 					: {
-							offset: chunkGraphemesIn(previous.text),
-							runId: previous.id,
+							offset: previousRun.graphemes,
+							runId: previousRun.id,
 						},
 			before: null,
-			id: `${operationId}:run:${inserted.length.toString().padStart(6, `0`)}`,
+			id,
 			text: text.slice(chunkStart, chunkEnd),
 		})
+		previousRun = { graphemes: chunkGraphemes, id }
 		chunkStart = chunkEnd
 		chunkGraphemes = 0
 	}
@@ -260,12 +263,6 @@ const prepareMarkdownImportOperation = (
 		inserted,
 		type: `edit`,
 	}
-}
-
-const chunkGraphemesIn = (text: string): number => {
-	let count = 0
-	visitMarkdownGraphemes(text, () => count++)
-	return count
 }
 
 export async function createMarkdownDocumentService(

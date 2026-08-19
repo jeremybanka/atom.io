@@ -3,9 +3,11 @@ import { createHash } from "node:crypto"
 import {
 	createMosaicTextRootReader,
 	MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
+	type MosaicDomainCheckpointIndex,
 	type MosaicDomainCheckpointObjectKey,
 	type MosaicDomainIdentity,
 	type MosaicTextRootObject,
+	mosaicTextRootObjectKey,
 	type MosaicTextRootWriteAdapter,
 	stageMosaicTextRootImport,
 	stageMosaicTextRootImportStream,
@@ -57,6 +59,30 @@ class MemoryTextRootStore implements MosaicTextRootWriteAdapter {
 }
 
 describe(`Mosaic Text v3 storage roots`, () => {
+	test(`reports the WebCrypto requirement explicitly`, async () => {
+		const crypto = globalThis.crypto
+		Object.defineProperty(globalThis, `crypto`, {
+			configurable: true,
+			value: undefined,
+		})
+		try {
+			await expect(
+				mosaicTextRootObjectKey({
+					depth: 0,
+					kind: `mosaic-text-root-leaf`,
+					summary: { graphemes: 8, lineBreaks: 0, utf16Units: 8 },
+					text: `portable`,
+					version: 3,
+				}),
+			).rejects.toThrow(`WebCrypto SubtleCrypto is required`)
+		} finally {
+			Object.defineProperty(globalThis, `crypto`, {
+				configurable: true,
+				value: crypto,
+			})
+		}
+	})
+
 	test(`publishes and reopens reference-counted roots through a real checkpoint`, async () => {
 		const identity: MosaicDomainIdentity = {
 			definition: { key: `mosaic-text-root-test`, version: 3 },
@@ -120,6 +146,7 @@ describe(`Mosaic Text v3 storage roots`, () => {
 			checkpoint: coordinator,
 			rootKey: external.rootKey,
 		})
+		expect(await reader.root()).toEqual(imported.root)
 		expect(await reader.referenceCount(rootKey)).toBe(1)
 		const editStage = createMosaicTextRootCheckpointStage({
 			baseRevision: 2,
@@ -137,6 +164,107 @@ describe(`Mosaic Text v3 storage roots`, () => {
 		const nextExternal = await editStage.stage(edited.root)
 		publication = { externalRoot: nextExternal.rootKey, root: edited.root }
 		expect(publication.root.reference?.key).not.toBe(rootKey)
+	})
+
+	test(`fails closed across text checkpoint staging and paged reader boundaries`, async () => {
+		const identity: MosaicDomainIdentity = {
+			definition: { key: `mosaic-text-root-boundaries`, version: 3 },
+			instance: `document`,
+		}
+		const storage = new InMemoryMosaicDomainCheckpointStorage()
+		const stage = createMosaicTextRootCheckpointStage({
+			baseRevision: 1,
+			domain: identity,
+			storage,
+		})
+		const imported = await stageMosaicTextRootImport(stage, `x`.repeat(100_000))
+		const rootKey = imported.root.reference!.key
+		expect(await stage.read(rootKey)).not.toBeNull()
+		const publication = await stage.stage(imported.root)
+		await expect(stage.stage(imported.root)).resolves.toEqual(publication)
+		await expect(
+			stage.stage({ ...imported.root, generation: 2 }),
+		).rejects.toThrow(`stage was reused for another root`)
+
+		const balanced = createMosaicTextRootCheckpointStage({
+			baseRevision: 1,
+			domain: identity,
+			storage: new InMemoryMosaicDomainCheckpointStorage(),
+		})
+		const balancedKey = await balanced.put({
+			depth: 0,
+			kind: `mosaic-text-root-leaf`,
+			summary: { graphemes: 1, lineBreaks: 0, utf16Units: 1 },
+			text: `x`,
+			version: 3,
+		})
+		await balanced.retire?.(balancedKey)
+		await expect(
+			balanced.stage({ generation: 1, reference: null, version: 3 }),
+		).resolves.toMatchObject({ persistedObjectCount: expect.any(Number) })
+
+		const underflow = createMosaicTextRootCheckpointStage({
+			baseRevision: 1,
+			domain: identity,
+			storage: new InMemoryMosaicDomainCheckpointStorage(),
+		})
+		await underflow.retire?.(`sha256:${`0`.repeat(64)}`)
+		await expect(
+			underflow.stage({ generation: 1, reference: null, version: 3 }),
+		).rejects.toThrow(`reference count is invalid`)
+
+		class MissingReadStorage extends InMemoryMosaicDomainCheckpointStorage {
+			public override readCheckpointObject() {
+				return null
+			}
+		}
+		const missingStorage = new MissingReadStorage()
+		const unverified = createMosaicTextRootCheckpointStage({
+			baseRevision: 1,
+			domain: identity,
+			storage: missingStorage,
+		})
+		const unverifiedImport = await stageMosaicTextRootImport(
+			unverified,
+			`unverified`,
+		)
+		await expect(unverified.stage(unverifiedImport.root)).rejects.toThrow(
+			`staged object failed verification`,
+		)
+
+		const key = `sha256:${`1`.repeat(64)}` as const
+		const missingReader = createMosaicTextRootCheckpointReader({
+			checkpoint: { readExternalIndexes: () => Promise.resolve([]) },
+			rootKey: publication.rootKey,
+		})
+		await expect(missingReader.read(`not-a-key` as never)).resolves.toBeNull()
+		await expect(missingReader.read(key)).resolves.toBeNull()
+		await expect(
+			missingReader.referenceCount(`not-a-key` as never),
+		).resolves.toBe(0)
+		await expect(missingReader.referenceCount(key)).resolves.toBe(0)
+		await expect(missingReader.root()).rejects.toThrow(
+			`root manifest is invalid`,
+		)
+
+		const invalidCountReader = createMosaicTextRootCheckpointReader({
+			checkpoint: {
+				readExternalIndexes: (_rootKey, [address]) =>
+					Promise.resolve([
+						{
+							index: address.index,
+							kind: `index`,
+							path: address.path,
+							revision: 1,
+							value: 0,
+						} satisfies MosaicDomainCheckpointIndex,
+					]),
+			},
+			rootKey: publication.rootKey,
+		})
+		await expect(invalidCountReader.referenceCount(key)).rejects.toThrow(
+			`reference count is invalid`,
+		)
 	})
 
 	test(`streaming import is chunk-boundary invariant across Unicode and CRLF`, async () => {
@@ -284,6 +412,97 @@ describe(`Mosaic Text v3 storage roots`, () => {
 				start: 0,
 			}),
 		).rejects.toThrow(`Invalid Mosaic Text v3 root object`)
+	})
+
+	test(`validates streamed import, empty roots, writer keys, and bounded reads`, async () => {
+		const store = new MemoryTextRootStore()
+		await expect(stageMosaicTextRootImport(store, `invalid`, 0)).rejects.toThrow(
+			`generation must be positive`,
+		)
+		await expect(
+			stageMosaicTextRootImportStream(
+				store,
+				(async function* () {
+					await Promise.resolve()
+				})(),
+				0,
+			),
+		).rejects.toThrow(`generation must be positive`)
+		await expect(
+			stageMosaicTextRootImportStream(
+				store,
+				(async function* () {
+					await Promise.resolve()
+					yield 1
+				})() as unknown as AsyncIterable<string>,
+			),
+		).rejects.toThrow(`chunk must be a string`)
+		await expect(
+			stageMosaicTextRootImportStream(
+				store,
+				(async function* () {
+					await Promise.resolve()
+					yield ``
+					yield `x`.repeat(262_145)
+				})(),
+			),
+		).rejects.toThrow(`import chunk exceeds`)
+
+		const invalidWriter: MosaicTextRootWriteAdapter = {
+			put: () => `sha256:${`0`.repeat(64)}`,
+			read: () => null,
+		}
+		await expect(
+			stageMosaicTextRootImport(invalidWriter, `content-key`),
+		).rejects.toThrow(`writer returned an invalid content key`)
+
+		const empty = await stageMosaicTextRootImport(store, ``)
+		const reader = createMosaicTextRootReader(store)
+		await expect(
+			reader.readRange(empty.root, { end: 0, start: 0 }),
+		).resolves.toMatchObject({ text: `` })
+		await expect(
+			reader.resolveUtf16Boundary(empty.root, 0, `left`),
+		).resolves.toMatchObject({ offset: 0 })
+		await expect(
+			reader.readRange(empty.root, { end: 1, start: 0 }),
+		).rejects.toThrow(`Invalid Mosaic Text v3 read range`)
+		await expect(
+			reader.resolveUtf16Boundary(empty.root, -1, `left`),
+		).rejects.toThrow(`Invalid Mosaic Text v3 boundary lookup`)
+
+		const seeded = await stageMosaicTextRootReplace(
+			store,
+			empty.root,
+			{ end: 0, start: 0 },
+			`seed`,
+		)
+		expect(
+			await reader.readRange(seeded.root, { end: 4, start: 0 }),
+		).toMatchObject({ text: `seed` })
+		await expect(
+			stageMosaicTextRootReplace(store, seeded.root, { end: 5, start: 0 }, ``),
+		).rejects.toThrow(`Invalid Mosaic Text v3 replacement range`)
+
+		const branched = await stageMosaicTextRootImport(store, `a`.repeat(100_000))
+		const branch = store.objects.get(branched.root.reference!.key)!
+		if (branch.kind !== `mosaic-text-root-branch`) {
+			throw new Error(`Expected a branch fixture.`)
+		}
+		const firstBoundary = branch.children[0].summary.utf16Units
+		await expect(
+			reader.resolveUtf16Boundary(branched.root, firstBoundary, `left`),
+		).resolves.toMatchObject({ offset: firstBoundary })
+		await expect(
+			reader.resolveUtf16Boundary(branched.root, firstBoundary + 1, `left`, 1),
+		).rejects.toThrow(`boundary lookup exceeded 1 objects`)
+		const cleared = await stageMosaicTextRootReplace(
+			store,
+			branched.root,
+			{ end: 100_000, start: 0 },
+			``,
+		)
+		expect(cleared.root.reference).toBeNull()
 	})
 
 	test(`randomized path copies remain equivalent to a flat UTF-16 oracle`, async () => {

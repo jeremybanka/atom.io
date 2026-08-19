@@ -121,6 +121,75 @@ describe(`Mosaic Text v3 storage roots`, () => {
 			`staging exceeds 1 objects`,
 		)
 
+		for (const limits of [
+			{ maxObjectBytes: 0 },
+			{ maxObjectDepth: 0 },
+			{ maxObjectNodes: 0 },
+			{ maxStagedBytes: 0 },
+			{ maxStagedObjects: 0 },
+			{ maxUpdates: 0 },
+		]) {
+			expect(() =>
+				createMosaicTextRootCheckpointStage({
+					baseRevision: 1,
+					domain: identity,
+					limits,
+					storage,
+				}),
+			).toThrow(`must be a positive safe integer`)
+		}
+		expect(() =>
+			createMosaicTextRootCheckpointStage({
+				baseRevision: 1,
+				domain: identity,
+				limits: { deadline: Number.NaN },
+				storage,
+			}),
+		).toThrow(`deadline must be finite`)
+
+		const depthBound = createMosaicTextRootCheckpointStage({
+			baseRevision: 1,
+			domain: identity,
+			limits: { maxObjectDepth: 1 },
+			storage,
+		})
+		expect(() => depthBound.put(leaf(`deep`))).toThrow(`exceeds depth 1`)
+		const nodeBound = createMosaicTextRootCheckpointStage({
+			baseRevision: 1,
+			domain: identity,
+			limits: { maxObjectNodes: 1 },
+			storage,
+		})
+		expect(() => nodeBound.put(leaf(`broad`))).toThrow(`exceeds 1 nodes`)
+		const putUpdateBound = createMosaicTextRootCheckpointStage({
+			baseRevision: 1,
+			domain: identity,
+			limits: { maxUpdates: 1 },
+			storage,
+		})
+		expect(() => putUpdateBound.put(leaf(`put`))).toThrow(`exceeds 1 updates`)
+		const retireUpdateBound = createMosaicTextRootCheckpointStage({
+			baseRevision: 1,
+			domain: identity,
+			limits: { maxUpdates: 1 },
+			storage,
+		})
+		expect(() => retireUpdateBound.retire?.(`sha256:${`0`.repeat(64)}`)).toThrow(
+			`exceeds 1 updates`,
+		)
+
+		const inheritedLeaf = Object.assign(
+			Object.create({ inherited: `ignored` }) as Record<string, unknown>,
+			leaf(`inherited`),
+		) as MosaicTextRootObject
+		expect(
+			createMosaicTextRootCheckpointStage({
+				baseRevision: 1,
+				domain: identity,
+				storage,
+			}).put(inheritedLeaf),
+		).toMatch(/^sha256:/)
+
 		const controller = new AbortController()
 		controller.abort()
 		expect(() =>

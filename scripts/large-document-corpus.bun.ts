@@ -71,10 +71,24 @@ async function main(): Promise<void> {
 		case `test`: {
 			await verifySource(layout.sourcePath)
 			const report = await deriveVariants({ cacheRoot })
-			const editor = await validateMarkdownEditorCorpus([
-				layout.sourcePath,
-				path.join(layout.variantsDir, manifest.variants.repeated50MiB.filename),
-			])
+			const editor = await validateMarkdownEditorCorpus(
+				[
+					layout.sourcePath,
+					manifest.variants.headingRich,
+					manifest.variants.veryLongParagraph,
+					manifest.variants.fenced,
+					manifest.variants.repeated50MiB,
+					manifest.variants.unicodeAdversarial,
+				].map((variant) =>
+					typeof variant === `string`
+						? variant
+						: path.join(layout.variantsDir, variant.filename),
+				),
+				{
+					stabilizationOperations: 100_001,
+					timeoutMsPerDocument: 180_000,
+				},
+			)
 			console.log(JSON.stringify(report, null, `\t`))
 			console.log(JSON.stringify({ editor }, null, `\t`))
 			console.log(

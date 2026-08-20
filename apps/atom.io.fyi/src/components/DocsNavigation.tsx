@@ -334,6 +334,51 @@ function SiteDirectory(): VNode {
 					</main>
 				</section>
 				<section>
+					<header>Interface</header>
+					<main>
+						<section>
+							<a id="-docs-atom-io-link" href={`/docs/atom-io`}>
+								atom.io
+							</a>
+						</section>
+						<section>
+							<a id="-docs-react-link" href={`/docs/react`}>
+								<low-emphasis>atom.io</low-emphasis>/react
+							</a>
+						</section>
+						<section>
+							<a id="-docs-web-link" href={`/docs/web`}>
+								<low-emphasis>atom.io</low-emphasis>/web
+							</a>
+						</section>
+						<section>
+							<a id="-docs-transceivers-link" href={`/docs/transceivers`}>
+								<low-emphasis>atom.io</low-emphasis>/transceivers
+							</a>
+						</section>
+					</main>
+				</section>
+				<section>
+					<header>Tooling</header>
+					<main>
+						<section>
+							<a id="-docs-eslint-plugin-link" href={`/docs/eslint-plugin`}>
+								<low-emphasis>atom.io</low-emphasis>/eslint-plugin
+							</a>
+						</section>
+						<section>
+							<a id="-docs-react-devtools-link" href={`/docs/react-devtools`}>
+								<low-emphasis>atom.io</low-emphasis>/react-devtools
+							</a>
+						</section>
+						<section>
+							<a id="-docs-testing-link" href={`/docs/testing`}>
+								<low-emphasis>atom.io</low-emphasis>/testing
+							</a>
+						</section>
+					</main>
+				</section>
+				<section>
 					<header>Realtime</header>
 					<main>
 						<section>
@@ -390,51 +435,6 @@ function SiteDirectory(): VNode {
 								href="/docs/realtime/reference"
 							>
 								component reference
-							</a>
-						</section>
-					</main>
-				</section>
-				<section>
-					<header>Interface</header>
-					<main>
-						<section>
-							<a id="-docs-atom-io-link" href={`/docs/atom-io`}>
-								atom.io
-							</a>
-						</section>
-						<section>
-							<a id="-docs-react-link" href={`/docs/react`}>
-								<low-emphasis>atom.io</low-emphasis>/react
-							</a>
-						</section>
-						<section>
-							<a id="-docs-web-link" href={`/docs/web`}>
-								<low-emphasis>atom.io</low-emphasis>/web
-							</a>
-						</section>
-						<section>
-							<a id="-docs-transceivers-link" href={`/docs/transceivers`}>
-								<low-emphasis>atom.io</low-emphasis>/transceivers
-							</a>
-						</section>
-					</main>
-				</section>
-				<section>
-					<header>Tooling</header>
-					<main>
-						<section>
-							<a id="-docs-eslint-plugin-link" href={`/docs/eslint-plugin`}>
-								<low-emphasis>atom.io</low-emphasis>/eslint-plugin
-							</a>
-						</section>
-						<section>
-							<a id="-docs-react-devtools-link" href={`/docs/react-devtools`}>
-								<low-emphasis>atom.io</low-emphasis>/react-devtools
-							</a>
-						</section>
-						<section>
-							<a id="-docs-testing-link" href={`/docs/testing`}>
-								<low-emphasis>atom.io</low-emphasis>/testing
 							</a>
 						</section>
 					</main>

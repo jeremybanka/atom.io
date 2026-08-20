@@ -7,13 +7,13 @@ import {
 	type MosaicAcceptedDomainBatchEnvelope,
 	type MosaicDomainBatchEnvelope,
 	type MosaicDomainBatchLimits,
-	mosaicDomainBatchMeaningKey,
 	type MosaicDomainBatchProposal,
 	type MosaicDomainBatchRejection,
 	type MosaicDomainIdentity,
 	type MosaicDomainInstance,
 	mosaicDomainMemberHistoryPolicy,
 	preflightMosaicDomainBatch,
+	visitMosaicCanonicalJson,
 } from "atom.io/realtime"
 
 import {
@@ -75,8 +75,11 @@ export type MosaicDomainBatchServer = {
 /** Fingerprint every durable and authenticated field in one Domain batch. */
 export const fingerprintMosaicDomainBatch = (
 	batch: MosaicDomainBatchEnvelope,
-): string =>
-	createHash(`sha256`).update(mosaicDomainBatchMeaningKey(batch)).digest(`hex`)
+): string => {
+	const hash = createHash(`sha256`)
+	visitMosaicCanonicalJson(batch, (chunk) => hash.update(chunk))
+	return hash.digest(`hex`)
+}
 
 const rejection = (
 	code: MosaicDomainBatchRejection[`code`],

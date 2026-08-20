@@ -3,6 +3,8 @@ minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
   - atom.io
   - break-check
+  - bun
+  - bun-types
   - comline
   - lasertag
   - recoverage

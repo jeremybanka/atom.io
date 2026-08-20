@@ -38,6 +38,8 @@
 		{
 			"matchPackageNames": [
 				"break-check",
+				"bun",
+				"bun-types",
 				"comline",
 				"lasertag",
 				"recoverage",

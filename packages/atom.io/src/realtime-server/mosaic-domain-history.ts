@@ -164,6 +164,14 @@ type RequestReceipt = {
 
 const clone = <Value>(value: Value): Value => structuredClone(value)
 
+const immutable = <Value>(value: Value): Value => {
+	if (value === null || typeof value !== `object` || Object.isFrozen(value)) {
+		return value
+	}
+	for (const child of Object.values(value)) immutable(child)
+	return Object.freeze(value)
+}
+
 const identifier = (value: unknown): value is string =>
 	typeof value === `string` && value.length > 0 && value.length <= 512
 
@@ -227,9 +235,13 @@ function checkpointFromState<Identity extends MosaicDomainIdentity>(
 			.map((history) => ({
 				actor: history.actor,
 				cursorRevision: history.cursorRevision,
-				redo: clone(history.redo),
+				// Gestures and their operation payloads are immutable after
+				// classification. Copy the mutable stack, then structurally share its
+				// entries across the bounded race-cut window. External checkpoint
+				// boundaries still clone before returning or persisting a value.
+				redo: [...history.redo],
 				truncatedBeforeRevision: history.truncatedBeforeRevision,
-				undo: clone(history.undo),
+				undo: [...history.undo],
 			})),
 		headBatchId: state.headBatchId,
 		protocolVersion: MOSAIC_DOMAIN_HISTORY_PROTOCOL_VERSION,
@@ -241,7 +253,40 @@ function checkpointFromState<Identity extends MosaicDomainIdentity>(
 					left.actor.localeCompare(right.actor) ||
 					left.session.localeCompare(right.session),
 			)
-			.map(clone),
+			.map((session) => ({ ...session })),
+	}
+}
+
+const assertCheckpointPayloadSharing = <Identity extends MosaicDomainIdentity>(
+	state: HistoryState<Identity>,
+	checkpoint: MosaicDomainHistoryCheckpoint<Identity>,
+): void => {
+	const checkpointActors = new Map(
+		checkpoint.actors.map((history) => [history.actor, history]),
+	)
+	for (const history of state.actors.values()) {
+		const snapshot = checkpointActors.get(history.actor)
+		if (snapshot === undefined) {
+			throw new Error(`A Mosaic Domain history race cut omitted an actor.`)
+		}
+		for (const [retained, shared] of [
+			[history.undo, snapshot.undo],
+			[history.redo, snapshot.redo],
+		] as const) {
+			if (
+				retained.length !== shared.length ||
+				retained.some(
+					(gesture, index) =>
+						gesture !== shared[index] ||
+						!Object.isFrozen(gesture) ||
+						!Object.isFrozen(gesture.operations),
+				)
+			) {
+				throw new Error(
+					`A Mosaic Domain history race cut duplicated mutable operation payloads.`,
+				)
+			}
+		}
 	}
 }
 
@@ -337,9 +382,9 @@ function stateFromCheckpoint<Identity extends MosaicDomainIdentity>(
 		state.actors.set(actor.actor, {
 			actor: actor.actor,
 			cursorRevision: actor.cursorRevision,
-			redo: clone(actor.redo),
+			redo: actor.redo.map((gesture) => immutable(clone(gesture))),
 			truncatedBeforeRevision: actor.truncatedBeforeRevision,
-			undo: clone(actor.undo),
+			undo: actor.undo.map((gesture) => immutable(clone(gesture))),
 		})
 		state.retiredBeforeRevision = Math.max(
 			state.retiredBeforeRevision,
@@ -432,7 +477,9 @@ export function createMosaicDomainHistoryCoordinator<
 	}
 
 	const rememberCheckpointRaceSnapshot = (): void => {
-		checkpointRaceSnapshots.set(state.revision, checkpointFromState(state))
+		const snapshot = checkpointFromState(state)
+		assertCheckpointPayloadSharing(state, snapshot)
+		checkpointRaceSnapshots.set(state.revision, snapshot)
 		while (checkpointRaceSnapshots.size > limits.maxCheckpointRaceSnapshots) {
 			checkpointRaceSnapshots.delete(
 				checkpointRaceSnapshots.keys().next().value!,
@@ -536,14 +583,16 @@ export function createMosaicDomainHistoryCoordinator<
 				})
 				continue
 			}
-			changes.push({
-				address: clone(operation.address),
-				id: operation.id,
-				model: clone(operation.model),
-				operation: clone(operation.operation),
-				revision: accepted.revision,
-				session: accepted.batch.session,
-			})
+			changes.push(
+				immutable({
+					address: operation.address,
+					id: operation.id,
+					model: operation.model,
+					operation: operation.operation,
+					revision: accepted.revision,
+					session: accepted.batch.session,
+				}),
+			)
 		}
 		return { changes, compensations }
 	}
@@ -596,19 +645,21 @@ export function createMosaicDomainHistoryCoordinator<
 				if (operations.length > limits.maxOperationsPerGesture) {
 					throw new Error(`A Mosaic Domain history gesture exceeds its bounds.`)
 				}
-				history.undo[history.undo.length - 1] = {
+				history.undo[history.undo.length - 1] = immutable({
 					...previous,
 					lastRevision: accepted.revision,
 					operations,
-				}
-			} else {
-				history.undo.push({
-					actor: accepted.batch.actor,
-					firstRevision: accepted.revision,
-					id: gestureId,
-					lastRevision: accepted.revision,
-					operations: changes,
 				})
+			} else {
+				history.undo.push(
+					immutable({
+						actor: accepted.batch.actor,
+						firstRevision: accepted.revision,
+						id: gestureId,
+						lastRevision: accepted.revision,
+						operations: changes,
+					}),
+				)
 			}
 			history.redo.splice(0)
 			history.cursorRevision = accepted.revision
@@ -631,7 +682,9 @@ export function createMosaicDomainHistoryCoordinator<
 		const recovery = await observer.recover(state.revision)
 		for (const accepted of recovery.tail) {
 			await applyAccepted(
-				accepted as MosaicAcceptedDomainBatchEnvelope<Identity>,
+				immutable(
+					clone(accepted),
+				) as MosaicAcceptedDomainBatchEnvelope<Identity>,
 			)
 		}
 		if (state.revision !== recovery.headRevision) {
@@ -661,8 +714,9 @@ export function createMosaicDomainHistoryCoordinator<
 
 	const ready = initialize()
 	const unsubscribe = observer.subscribe((accepted) => {
+		const owned = immutable(clone(accepted))
 		void enqueue(() =>
-			applyAccepted(accepted as MosaicAcceptedDomainBatchEnvelope<Identity>),
+			applyAccepted(owned as MosaicAcceptedDomainBatchEnvelope<Identity>),
 		)
 	})
 
@@ -970,7 +1024,9 @@ export function createMosaicDomainHistoryCoordinator<
 				}
 			}
 			await applyAccepted(
-				accepted.accepted as MosaicAcceptedDomainBatchEnvelope<Identity>,
+				immutable(
+					clone(accepted.accepted),
+				) as MosaicAcceptedDomainBatchEnvelope<Identity>,
 			)
 			state.sessions.set(sessionKey, {
 				actor,

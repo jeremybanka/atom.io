@@ -49,5 +49,5 @@ jobs:
       - name: Explicitly refresh from canonical upstream
         if: inputs.source == 'upstream'
         run: pnpm corpus:large:prepare --source=upstream --refresh
-      - name: Re-verify untrusted cache and derive variants
+      - name: Run the one-worker deterministic scale gate
         run: pnpm test:large-document

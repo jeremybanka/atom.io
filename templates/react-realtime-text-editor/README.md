@@ -38,8 +38,11 @@ and the Lasertag render-story/CSS relationship with zero warnings. Run
 `npm run fmt:check` in CI and `npm run fmt` to apply the pinned dprint
 configuration locally. The scheduled repository command
 `pnpm test:large-document` verifies the pinned corpus and exercises the same
-one-batch Domain composition, bounded index routing, and viewport/parser path at
-the beginning, middle, and end of both canonical sizes.
+logical editing, history, residency, and viewport/parser contracts over Mosaic
+Text v3's content-addressed storage roots. It runs sequentially with one
+authoritative document graph at a time across the canonical 5.6 MB document,
+the deterministic 50 MB repetition, huge-paragraph and fenced-block shapes, and
+the Unicode adversarial corpus.
 
 ## Start Reading
 
@@ -60,4 +63,7 @@ the beginning, middle, and end of both canonical sizes.
 The template uses in-memory persistence and simulated authorization for a
 zero-setup demo. A production service still needs a linearizable storage
 adapter, document ACLs, rate limits, metrics, and a durable offline-retention
-policy.
+policy. The corpus gate deliberately uses the same public checkpoint adapter
+contract as production, including restart, proposal expiry, retention fences,
+and garbage collection; wall-clock and RSS readings are diagnostics rather than
+portable release thresholds.

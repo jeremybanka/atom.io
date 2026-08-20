@@ -21,7 +21,16 @@ import {
 	verifySourceIfPresent,
 	writeComplete,
 } from "./large-document-corpus"
-import { validateMarkdownEditorCorpus } from "./validate-markdown-editor-corpus"
+import { MOSAIC_TEXT_TRUSTED_IMPORT_MAX_STAGED_BYTES } from "./mosaic-text-root-scale-service"
+import {
+	MOSAIC_TEXT_SCALE_FAULTS,
+	MOSAIC_TEXT_SCALE_MAX_REPLAY_STEPS,
+	mosaicTextScaleFailure,
+} from "./mosaic-text-scalability"
+import {
+	mosaicTextScaleFaultSchedule,
+	validateMarkdownEditorCorpus,
+} from "./validate-markdown-editor-corpus"
 
 const temporaryDirectories: string[] = []
 
@@ -133,16 +142,97 @@ describe(`large-document corpus tooling`, () => {
 		const repeated = path.join(cacheRoot, `repeated.md`)
 		await fs.writeFile(canonical, `# Heading\n\n${`alpha `.repeat(1_000)}`)
 		await fs.writeFile(repeated, `\`\`\`text\n${`beta `.repeat(10_000)}\n\`\`\``)
-		const result = await validateMarkdownEditorCorpus([canonical, repeated])
+		const result = await validateMarkdownEditorCorpus([canonical, repeated], {
+			stabilizationOperations: 1_001,
+			timeoutMsPerDocument: 30_000,
+		})
 		expect(result.documents).toHaveLength(2)
 		for (const document of result.documents) {
-			expect(document.composition.revision).toBe(1)
-			expect(document.composition.batchOperations).toBeGreaterThan(1)
-			expect(document.composition.batchOperations).toBeLessThan(65_536)
+			expect(document.convergence.domainRevision).toBeGreaterThan(1)
+			expect(document.import.leavesWritten).toBeGreaterThan(0)
+			expect(document.import.stagedBytes).toBeLessThan(
+				MOSAIC_TEXT_TRUSTED_IMPORT_MAX_STAGED_BYTES,
+			)
+			expect(document.local.serializedBatchBytes).toBeLessThan(32 * 1024)
+			expect(document.local.memberLoads).toBeLessThan(256)
 			expect(document.samples).toBe(3)
 			expect(document.maximumScannedUtf16Units).toBeLessThan(65_536)
 			expect(document.maximumMountedBlocks).toBeLessThan(2_000)
+			expect(document.maximumResidentBytes).toBeLessThan(256 * 1024)
+			expect(document.maximumFullDocumentReplicas).toBe(1)
+			expect(document.local.persistedBytes).toBeLessThan(4 * 1024 * 1024)
+			expect(document.local.checkpointBytes).toBeLessThan(512 * 1024)
+			expect(document.maximumDeliveredBytes).toBeLessThan(384 * 1024)
+			expect(document.convergence.transcript).toContain(
+				`history:individual-foreign-safe-undo-redo`,
+			)
+			expect(document.convergence.clientRevisions).toEqual({
+				ada: document.convergence.domainRevision,
+				delayed: document.convergence.domainRevision,
+				lin: document.convergence.domainRevision,
+			})
+			expect(document.convergence.history.ada.redo).toBe(0)
+			expect(document.convergence.indexSummary.utf16Units).toBeGreaterThan(0)
 		}
+		expect(new Set(result.faultSchedule)).toEqual(
+			new Set(MOSAIC_TEXT_SCALE_FAULTS),
+		)
+		expect(result.faultSchedule).toEqual(
+			mosaicTextScaleFaultSchedule(result.seed),
+		)
+		expect(result.stabilization.operations).toBe(1_001)
+		expect(result.stabilization.retainedActions).toBeLessThanOrEqual(104)
+		expect(result.stabilization.domainReceipts).toBeLessThanOrEqual(4_096)
+		expect(result.stabilization.domainOperationReceipts).toBeLessThanOrEqual(
+			4_096,
+		)
+		expect(result.stabilization.domainTailBatches).toBeLessThanOrEqual(256)
+		expect(result.stabilization.domainSessionWatermarks).toBe(1)
+		expect(result.stabilization.checkpointObjects).toBeLessThanOrEqual(64)
+		expect(result.stabilization.splitMergeVerified).toBe(true)
+		expect(result.stabilization.staleAliasRecoveryVerified).toBe(true)
+	})
+
+	test(`seeds real fault order and emits bounded replay diagnostics`, () => {
+		const first = mosaicTextScaleFaultSchedule(1)
+		const second = mosaicTextScaleFaultSchedule(2)
+		expect(first).not.toEqual(second)
+		expect(new Set(first)).toEqual(new Set(MOSAIC_TEXT_SCALE_FAULTS))
+		const diagnostic = {
+			clientSchedule: [`ada:edit`],
+			domainRevision: 7,
+			faultSchedule: first,
+			memberRevisions: { source: 7, "client:ada": 6 },
+			residentRanges: { ada: [{ end: 32, start: 16 }] },
+			seed: 1,
+			transcript: [`open:{\"file\":\"fixture.md\"}`, `fault:delay`],
+		}
+		const failure = mosaicTextScaleFailure(
+			new Error(`fixture failed`),
+			diagnostic,
+		)
+		expect(failure.message).toContain(`MOSAIC_TEXT_SCALE_REPLAY=`)
+		expect(failure.message).toContain(`\"seed\":1`)
+		expect(failure.message).toContain(`\"residentRanges\"`)
+		expect(failure.message).toContain(`\"client:ada\":6`)
+		expect(diagnostic.transcript.length).toBeLessThanOrEqual(
+			MOSAIC_TEXT_SCALE_MAX_REPLAY_STEPS,
+		)
+		const oversized = mosaicTextScaleFailure(new Error(`fixture failed`), {
+			...diagnostic,
+			transcript: Array.from(
+				{ length: MOSAIC_TEXT_SCALE_MAX_REPLAY_STEPS + 1 },
+				(_, index) => `command:${index}`,
+			),
+		})
+		const replay = JSON.parse(
+			oversized.message.slice(
+				oversized.message.indexOf(`MOSAIC_TEXT_SCALE_REPLAY=`) +
+					`MOSAIC_TEXT_SCALE_REPLAY=`.length,
+			),
+		) as { transcript: readonly string[] }
+		expect(replay.transcript).toHaveLength(2)
+		expect(replay.transcript[1]).toContain(`command:32`)
 	})
 
 	test(`completes short writes before reporting generated bytes`, async () => {

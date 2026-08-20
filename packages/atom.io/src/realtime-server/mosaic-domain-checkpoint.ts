@@ -5,6 +5,7 @@ import {
 	MOSAIC_DOMAIN_CHECKPOINT_PROTOCOL_VERSION,
 	type MosaicAcceptedDomainBatchEnvelope,
 	type MosaicDomainCheckpointDirectoryNode,
+	type MosaicDomainCheckpointExternalRoot,
 	type MosaicDomainCheckpointIndex,
 	type MosaicDomainCheckpointMember,
 	type MosaicDomainCheckpointObject,
@@ -18,6 +19,7 @@ import {
 
 import {
 	mosaicDomainCheckpointObjectKey,
+	type MosaicDomainCheckpointStageProposal,
 	type MosaicDomainCheckpointStorageAdapter,
 	type MosaicDomainCheckpointStoredObject,
 } from "./mosaic-domain-checkpoint-storage.ts"
@@ -35,6 +37,13 @@ export type MosaicDomainCheckpointCoordinatorOptions<
 	Identity extends MosaicDomainIdentity,
 > = {
 	readonly domain: Identity
+	readonly externalRoots?: (context: {
+		readonly batches: readonly MosaicAcceptedDomainBatchEnvelope<Identity>[]
+		readonly fromRevision: number
+		readonly revision: number
+	}) =>
+		| Promise<readonly MosaicDomainCheckpointObjectKey[]>
+		| readonly MosaicDomainCheckpointObjectKey[]
 	readonly indexes?: (context: {
 		readonly batches: readonly MosaicAcceptedDomainBatchEnvelope<Identity>[]
 		readonly fromRevision: number
@@ -46,6 +55,10 @@ export type MosaicDomainCheckpointCoordinatorOptions<
 		readonly maxAttempts?: number
 		readonly maxDirtyIndexPaths?: number
 		readonly maxDirtyMembers?: number
+		readonly maxExternalBytes?: number
+		readonly maxExternalDepth?: number
+		readonly maxExternalReads?: number
+		readonly maxExternalRoots?: number
 		readonly maxObjectBytes?: number
 		readonly maxRecoveryBatches?: number
 	}
@@ -82,6 +95,65 @@ export type MosaicDomainCheckpointCoordinator<
 	): Promise<MosaicDomainCheckpointRecovery<Identity>>
 }
 
+/** Bounded reads from model-owned roots published by a Domain checkpoint. */
+export type MosaicDomainExternalCheckpointReader = {
+	readExternalIndexes(
+		rootKey: MosaicDomainCheckpointObjectKey,
+		addresses: readonly {
+			readonly index: string
+			readonly path: string
+		}[],
+	): Promise<readonly MosaicDomainCheckpointIndex[]>
+}
+
+export type MosaicDomainExternalCheckpointGraphUpdate =
+	| {
+			readonly index: string
+			readonly path: string
+			readonly remove: true
+	  }
+	| {
+			readonly index: string
+			readonly path: string
+			readonly value: Json.Serializable
+	  }
+
+export type MosaicDomainExternalCheckpointGraphResult = {
+	readonly bytes: number
+	readonly depth: number
+	readonly persistedBytes: number
+	readonly persistedObjectCount: number
+	readonly rootKey: MosaicDomainCheckpointObjectKey
+}
+
+export type MosaicDomainExternalCheckpointGraphLimits = {
+	/** Absolute `Date.now()` deadline checked between bounded staging units. */
+	readonly deadline?: number
+	/** Maximum authenticated size of the complete resulting graph. */
+	readonly maxBytes?: number
+	readonly maxObjectBytes?: number
+	readonly maxObjectDepth?: number
+	readonly maxObjectNodes?: number
+	/** Maximum serialized bytes hashed by this incremental staging call. */
+	readonly maxStagedBytes?: number
+	/** Maximum objects hashed by this incremental staging call. */
+	readonly maxStagedObjects?: number
+	readonly maxUpdates?: number
+}
+
+export type MosaicDomainExternalCheckpointGraphOptions<
+	Identity extends MosaicDomainIdentity,
+> = {
+	readonly baseRevision: number
+	readonly domain: Identity
+	readonly limits?: MosaicDomainExternalCheckpointGraphLimits | undefined
+	readonly previousRootKey?: MosaicDomainCheckpointObjectKey
+	readonly proposal?: Omit<MosaicDomainCheckpointStageProposal, `rootKey`>
+	readonly signal?: AbortSignal
+	readonly storage: MosaicDomainCheckpointStorageAdapter
+	readonly updates: readonly MosaicDomainExternalCheckpointGraphUpdate[]
+}
+
 const canonicalize = (value: unknown): string => {
 	if (value === null || typeof value !== `object`) return JSON.stringify(value)
 	if (Array.isArray(value)) return `[${value.map(canonicalize).join(`,`)}]`
@@ -100,17 +172,96 @@ const sameDomain = (
 	right: MosaicDomainIdentity,
 ): boolean => canonicalize(left) === canonicalize(right)
 
-const assertJson = (value: unknown, maxBytes: number): Json.Serializable => {
+const jsonStringBytes = (
+	value: string,
+	maxBytes: number,
+	assertActive: () => void,
+): number => {
+	let bytes = 2
+	for (let index = 0; index < value.length; index++) {
+		if ((index & 1023) === 0) assertActive()
+		const code = value.charCodeAt(index)
+		if (code === 0x22 || code === 0x5c) bytes += 2
+		else if (
+			code === 0x08 ||
+			code === 0x09 ||
+			code === 0x0a ||
+			code === 0x0c ||
+			code === 0x0d
+		)
+			bytes += 2
+		else if (code < 0x20) bytes += 6
+		else if (code < 0x80) bytes++
+		else if (code < 0x800) bytes += 2
+		else if (code >= 0xd800 && code <= 0xdbff) {
+			const next = value.charCodeAt(index + 1)
+			if (next >= 0xdc00 && next <= 0xdfff) {
+				bytes += 4
+				index++
+			} else bytes += 6
+		} else if (code >= 0xdc00 && code <= 0xdfff) bytes += 6
+		else bytes += 3
+		if (bytes > maxBytes) return bytes
+	}
+	return bytes
+}
+
+const inspectJson = (
+	value: unknown,
+	maxBytes: number,
+	maxDepth = Number.MAX_SAFE_INTEGER,
+	maxNodes = Number.MAX_SAFE_INTEGER,
+	assertActive: () => void = () => undefined,
+): { readonly bytes: number; readonly value: Json.Serializable } => {
 	const seen = new WeakSet<object>()
-	const pending: unknown[] = [value]
+	const pending: { readonly depth: number; readonly value: unknown }[] = [
+		{ depth: 0, value },
+	]
+	let bytes = 0
+	let nodes = 0
+	let scheduledNodes = 1
+	const addBytes = (additional: number): void => {
+		if (additional > maxBytes - bytes) {
+			throw new Error(
+				`A Mosaic Domain checkpoint object exceeds ${maxBytes} bytes.`,
+			)
+		}
+		bytes += additional
+	}
+	const schedule = (depth: number, child: unknown): void => {
+		if (nodes + scheduledNodes >= maxNodes) {
+			throw new Error(
+				`A Mosaic Domain checkpoint object exceeds ${maxNodes} nodes.`,
+			)
+		}
+		pending.push({ depth, value: child })
+		scheduledNodes++
+	}
 	while (pending.length > 0) {
-		const item = pending.pop()
+		assertActive()
+		const { depth, value: item } = pending.pop()!
+		scheduledNodes--
+		nodes++
+		if (nodes > maxNodes) {
+			throw new Error(
+				`A Mosaic Domain checkpoint object exceeds ${maxNodes} nodes.`,
+			)
+		}
+		if (depth > maxDepth) {
+			throw new Error(
+				`A Mosaic Domain checkpoint object exceeds depth ${maxDepth}.`,
+			)
+		}
 		if (
 			item === null ||
-			typeof item === `string` ||
 			typeof item === `boolean` ||
 			(typeof item === `number` && Number.isFinite(item))
 		) {
+			addBytes(JSON.stringify(item).length)
+			continue
+		}
+		if (typeof item === `string`) {
+			addBytes(jsonStringBytes(item, maxBytes - bytes, assertActive))
 			continue
 		}
 		if (typeof item !== `object` || seen.has(item)) {
@@ -130,44 +281,580 @@ const assertJson = (value: unknown, maxBytes: number): Json.Serializable => {
 			)
 		}
 		seen.add(item)
-		for (const child of Array.isArray(item) ? item : Object.values(item)) {
-			pending.push(child)
+		addBytes(2)
+		if (Array.isArray(item)) {
+			if (item.length > 0) addBytes(item.length - 1)
+			for (let index = item.length - 1; index >= 0; index--) {
+				const descriptor = Object.getOwnPropertyDescriptor(item, String(index))
+				if (descriptor === undefined || !(`value` in descriptor)) {
+					throw new Error(
+						`A Mosaic Domain checkpoint value must be JSON-serializable.`,
+					)
+				}
+				schedule(depth + 1, descriptor.value)
+			}
+			continue
+		}
+		let propertyCount = 0
+		for (const key in item) {
+			if (!Object.hasOwn(item, key)) continue
+			const descriptor = Object.getOwnPropertyDescriptor(item, key)
+			if (descriptor?.enumerable !== true) continue
+			if (!(`value` in descriptor)) {
+				throw new Error(
+					`A Mosaic Domain checkpoint value must be JSON-serializable.`,
+				)
+			}
+			if (propertyCount > 0) addBytes(1)
+			addBytes(jsonStringBytes(key, maxBytes - bytes, assertActive))
+			addBytes(1)
+			propertyCount++
+			schedule(depth + 1, descriptor.value)
 		}
 	}
+	assertActive()
 	const cloned = structuredClone(value) as Json.Serializable
-	const bytes = new TextEncoder().encode(JSON.stringify(cloned)).byteLength
-	if (bytes > maxBytes) {
-		throw new Error(
-			`A Mosaic Domain checkpoint object exceeds ${maxBytes} bytes.`,
-		)
-	}
-	return cloned
+	return { bytes, value: cloned }
 }
+
+const assertJson = (
+	value: unknown,
+	maxBytes: number,
+	maxDepth?: number,
+	maxNodes?: number,
+	assertActive?: () => void,
+): Json.Serializable =>
+	inspectJson(value, maxBytes, maxDepth, maxNodes, assertActive).value
 
 const validName = (value: string): boolean =>
 	value.length > 0 && value.length <= 512
+
+const validObjectKey = (
+	value: unknown,
+): value is MosaicDomainCheckpointObjectKey =>
+	typeof value === `string` && /^sha256:[\da-f]{64}$/.test(value)
+
+const jsonBytes = (value: Json.Serializable): number =>
+	new TextEncoder().encode(JSON.stringify(value)).byteLength
+
+const assertPositiveLimit = (name: string, value: number): void => {
+	if (!Number.isSafeInteger(value) || value < 1) {
+		throw new Error(`${name} must be a positive safe integer.`)
+	}
+}
+
+const DEFAULT_EXTERNAL_GRAPH_MAX_BYTES = 64 * 1024 * 1024
+const DEFAULT_EXTERNAL_GRAPH_MAX_OBJECT_BYTES = 4 * 1024 * 1024
+const DEFAULT_EXTERNAL_GRAPH_MAX_OBJECT_DEPTH = 64
+const DEFAULT_EXTERNAL_GRAPH_MAX_OBJECT_NODES = 262_144
+const DEFAULT_EXTERNAL_GRAPH_MAX_STAGED_BYTES = 16 * 1024 * 1024
+const DEFAULT_EXTERNAL_GRAPH_MAX_STAGED_OBJECTS = 4_096
+const DEFAULT_EXTERNAL_GRAPH_MAX_UPDATES = 256
+const DEFAULT_EXTERNAL_ROOTS_MAX_BYTES = 64 * 1024 * 1024
+
+const assertExternalRoot = <Identity extends MosaicDomainIdentity>(
+	value: MosaicDomainCheckpointObject,
+	domain: Identity,
+	limits: {
+		readonly maxBytes: number
+		readonly maxDepth: number
+		readonly revision: number
+	},
+): MosaicDomainCheckpointExternalRoot<Identity> => {
+	if (
+		value.kind !== `external-root` ||
+		!sameDomain(value.domain, domain) ||
+		!Number.isSafeInteger(value.baseRevision) ||
+		value.baseRevision < 0 ||
+		value.baseRevision > limits.revision ||
+		!Number.isSafeInteger(value.depth) ||
+		value.depth < 0 ||
+		value.depth > limits.maxDepth ||
+		!Number.isSafeInteger(value.bytes) ||
+		value.bytes < 0 ||
+		value.bytes > limits.maxBytes ||
+		(value.directory !== null && !validObjectKey(value.directory)) ||
+		(value.proof !== undefined && !validObjectKey(value.proof))
+	) {
+		throw new Error(`A Mosaic Domain external checkpoint root is invalid.`)
+	}
+	return value as MosaicDomainCheckpointExternalRoot<Identity>
+}
+
+const assertDirectoryNode = (
+	value: MosaicDomainCheckpointObject,
+): MosaicDomainCheckpointDirectoryNode => {
+	if (
+		value.kind === `directory-leaf` &&
+		Number.isSafeInteger(value.depth) &&
+		value.depth >= 0 &&
+		value.depth <= HASH_SEGMENTS &&
+		Array.isArray(value.entries) &&
+		value.entries.length <= DIRECTORY_LEAF_SIZE &&
+		value.entries.every(
+			(entry) =>
+				typeof entry.key === `string` &&
+				entry.key.length > 0 &&
+				entry.key.length <= 2048 &&
+				validObjectKey(entry.value),
+		) &&
+		new Set(value.entries.map(({ key }) => key)).size === value.entries.length
+	) {
+		return value
+	}
+	if (
+		value.kind === `directory-branch` &&
+		Number.isSafeInteger(value.depth) &&
+		value.depth >= 0 &&
+		value.depth < HASH_SEGMENTS &&
+		Array.isArray(value.children) &&
+		value.children.length > 0 &&
+		value.children.length <= 16 &&
+		value.children.every(
+			(child) => /^[\da-f]$/.test(child.segment) && validObjectKey(child.value),
+		) &&
+		new Set(value.children.map(({ segment }) => segment)).size ===
+			value.children.length
+	) {
+		return value
+	}
+	throw new Error(`A Mosaic Domain checkpoint directory is invalid.`)
+}
+
+const readVerifiedCheckpointObject = async (
+	storage: MosaicDomainCheckpointStorageAdapter,
+	domain: MosaicDomainIdentity,
+	key: MosaicDomainCheckpointObjectKey,
+	staged?: ReadonlyMap<
+		MosaicDomainCheckpointObjectKey,
+		MosaicDomainCheckpointObject
+	>,
+): Promise<MosaicDomainCheckpointObject> => {
+	if (!validObjectKey(key)) {
+		throw new Error(`A Mosaic Domain checkpoint object key is invalid.`)
+	}
+	const object =
+		staged?.get(key) ?? (await storage.readCheckpointObject(domain, key))
+	if (object === null || object === undefined) {
+		throw new Error(`Mosaic Domain checkpoint object "${key}" is missing.`)
+	}
+	if (mosaicDomainCheckpointObjectKey(object) !== key) {
+		throw new Error(`A Mosaic Domain checkpoint content key is invalid.`)
+	}
+	return object
+}
+
+/**
+ * Stage a model-owned persistent index graph without publishing it. Until a
+ * Domain checkpoint records the returned root key, ordinary GC may reclaim it.
+ *
+ * This is a trusted server composition seam, not a transport handler. Its
+ * defaults bound accidental work, but applications that derive updates from
+ * untrusted requests must authorize and rate-limit those requests before this
+ * function hashes them. Raise the limits only for authenticated, quota-bound
+ * work such as a server-owned bulk import with its own deadline.
+ */
+export async function stageMosaicDomainExternalCheckpointGraph<
+	Identity extends MosaicDomainIdentity,
+>(
+	options: MosaicDomainExternalCheckpointGraphOptions<Identity>,
+): Promise<MosaicDomainExternalCheckpointGraphResult> {
+	const maxBytes = options.limits?.maxBytes ?? DEFAULT_EXTERNAL_GRAPH_MAX_BYTES
+	const maxObjectBytes =
+		options.limits?.maxObjectBytes ?? DEFAULT_EXTERNAL_GRAPH_MAX_OBJECT_BYTES
+	const maxObjectDepth =
+		options.limits?.maxObjectDepth ?? DEFAULT_EXTERNAL_GRAPH_MAX_OBJECT_DEPTH
+	const maxObjectNodes =
+		options.limits?.maxObjectNodes ?? DEFAULT_EXTERNAL_GRAPH_MAX_OBJECT_NODES
+	const maxStagedBytes =
+		options.limits?.maxStagedBytes ?? DEFAULT_EXTERNAL_GRAPH_MAX_STAGED_BYTES
+	const maxStagedObjects =
+		options.limits?.maxStagedObjects ?? DEFAULT_EXTERNAL_GRAPH_MAX_STAGED_OBJECTS
+	const maxUpdates =
+		options.limits?.maxUpdates ?? DEFAULT_EXTERNAL_GRAPH_MAX_UPDATES
+	assertPositiveLimit(`maxBytes`, maxBytes)
+	assertPositiveLimit(`maxObjectBytes`, maxObjectBytes)
+	assertPositiveLimit(`maxObjectDepth`, maxObjectDepth)
+	assertPositiveLimit(`maxObjectNodes`, maxObjectNodes)
+	assertPositiveLimit(`maxStagedBytes`, maxStagedBytes)
+	assertPositiveLimit(`maxStagedObjects`, maxStagedObjects)
+	assertPositiveLimit(`maxUpdates`, maxUpdates)
+	const deadline = options.limits?.deadline
+	if (deadline !== undefined && !Number.isFinite(deadline)) {
+		throw new Error(`deadline must be finite.`)
+	}
+	const assertStageActive = (): void => {
+		if (options.signal?.aborted) {
+			throw new Error(`Mosaic Domain external checkpoint staging was aborted.`)
+		}
+		if (deadline !== undefined && Date.now() >= deadline) {
+			throw new Error(
+				`Mosaic Domain external checkpoint staging deadline expired.`,
+			)
+		}
+	}
+	assertStageActive()
+	if (!Number.isSafeInteger(options.baseRevision) || options.baseRevision < 0) {
+		throw new Error(
+			`A Mosaic Domain external checkpoint base revision is invalid.`,
+		)
+	}
+	if (!Array.isArray(options.updates) || options.updates.length > maxUpdates) {
+		throw new Error(
+			`Mosaic Domain external checkpoint updates exceed ${maxUpdates}.`,
+		)
+	}
+
+	const staged = new Map<
+		MosaicDomainCheckpointObjectKey,
+		MosaicDomainCheckpointObject
+	>()
+	let stagedBytes = 0
+	let stagedObjectCount = 0
+	const readObject = async (key: MosaicDomainCheckpointObjectKey) => {
+		assertStageActive()
+		const object = await readVerifiedCheckpointObject(
+			options.storage,
+			options.domain,
+			key,
+			staged,
+		)
+		assertStageActive()
+		return object
+	}
+	const put = (
+		object: MosaicDomainCheckpointObject,
+	): MosaicDomainCheckpointObjectKey => {
+		assertStageActive()
+		if (stagedObjectCount >= maxStagedObjects) {
+			throw new Error(
+				`Mosaic Domain external checkpoint staging exceeds ${maxStagedObjects} objects.`,
+			)
+		}
+		const inspected = inspectJson(
+			object,
+			maxObjectBytes,
+			maxObjectDepth,
+			maxObjectNodes,
+			assertStageActive,
+		)
+		if (stagedBytes + inspected.bytes > maxStagedBytes) {
+			throw new Error(
+				`Mosaic Domain external checkpoint staging exceeds ${maxStagedBytes} bytes.`,
+			)
+		}
+		stagedBytes += inspected.bytes
+		stagedObjectCount++
+		assertStageActive()
+		const value = inspected.value as MosaicDomainCheckpointObject
+		const key = mosaicDomainCheckpointObjectKey(value)
+		staged.set(key, value)
+		return key
+	}
+	let maximumDepth = 0
+	const buildDirectory = (
+		depth: number,
+		entries: readonly {
+			readonly key: string
+			readonly value: MosaicDomainCheckpointObjectKey
+		}[],
+	): MosaicDomainCheckpointObjectKey => {
+		maximumDepth = Math.max(maximumDepth, depth)
+		const sorted = [...entries].sort((left, right) =>
+			left.key.localeCompare(right.key),
+		)
+		if (sorted.length <= DIRECTORY_LEAF_SIZE || depth >= HASH_SEGMENTS) {
+			if (sorted.length > DIRECTORY_LEAF_SIZE) {
+				throw new Error(`A Mosaic Domain checkpoint directory hash collided.`)
+			}
+			return put({ depth, entries: sorted, kind: `directory-leaf` })
+		}
+		const groups = new Map<string, typeof sorted>()
+		for (const entry of sorted) {
+			assertStageActive()
+			const segment = logicalHash(entry.key)[depth]
+			const group = groups.get(segment)
+			if (group === undefined) groups.set(segment, [entry])
+			else group.push(entry)
+		}
+		return put({
+			children: [...groups]
+				.sort(([left], [right]) => left.localeCompare(right))
+				.map(([segment, group]) => ({
+					segment,
+					value: buildDirectory(depth + 1, group),
+				})),
+			depth,
+			kind: `directory-branch`,
+		})
+	}
+	const updateDirectory = async (
+		rootKey: MosaicDomainCheckpointObjectKey | null,
+		logicalKey: string,
+		value: MosaicDomainCheckpointObjectKey,
+	): Promise<MosaicDomainCheckpointObjectKey> => {
+		const update = async (
+			key: MosaicDomainCheckpointObjectKey,
+		): Promise<MosaicDomainCheckpointObjectKey> => {
+			const node = assertDirectoryNode(await readObject(key))
+			if (node.kind === `directory-leaf`) {
+				maximumDepth = Math.max(maximumDepth, node.depth)
+				const entries = node.entries.filter((entry) => entry.key !== logicalKey)
+				entries.push({ key: logicalKey, value })
+				return buildDirectory(node.depth, entries)
+			}
+			if (node.kind !== `directory-branch`) {
+				throw new Error(`A Mosaic Domain checkpoint directory is invalid.`)
+			}
+			maximumDepth = Math.max(maximumDepth, node.depth)
+			const segment = logicalHash(logicalKey)[node.depth]
+			const child = node.children.find(
+				(candidate) => candidate.segment === segment,
+			)
+			const next =
+				child === undefined
+					? buildDirectory(node.depth + 1, [{ key: logicalKey, value }])
+					: await update(child.value)
+			return put({
+				children: node.children
+					.filter((candidate) => candidate.segment !== segment)
+					.concat({ segment, value: next })
+					.sort((left, right) => left.segment.localeCompare(right.segment)),
+				depth: node.depth,
+				kind: `directory-branch`,
+			})
+		}
+		return rootKey === null
+			? buildDirectory(0, [{ key: logicalKey, value }])
+			: update(rootKey)
+	}
+	const removeDirectory = async (
+		rootKey: MosaicDomainCheckpointObjectKey | null,
+		logicalKey: string,
+	): Promise<MosaicDomainCheckpointObjectKey | null> => {
+		if (rootKey === null) return null
+		const remove = async (
+			key: MosaicDomainCheckpointObjectKey,
+		): Promise<MosaicDomainCheckpointObjectKey | null> => {
+			const node = assertDirectoryNode(await readObject(key))
+			if (node.kind === `directory-leaf`) {
+				const entries = node.entries.filter((entry) => entry.key !== logicalKey)
+				if (entries.length === node.entries.length) return key
+				return entries.length === 0 ? null : put({ ...node, entries })
+			}
+			const segment = logicalHash(logicalKey)[node.depth]
+			const child = node.children.find(
+				(candidate) => candidate.segment === segment,
+			)
+			if (child === undefined) return key
+			const next = await remove(child.value)
+			const children = node.children
+				.filter((candidate) => candidate.segment !== segment)
+				.concat(next === null ? [] : [{ segment, value: next }])
+				.sort((left, right) => left.segment.localeCompare(right.segment))
+			return children.length === 0 ? null : put({ ...node, children })
+		}
+		return remove(rootKey)
+	}
+	const directoryValue = async (
+		rootKey: MosaicDomainCheckpointObjectKey | null,
+		logicalKey: string,
+	): Promise<MosaicDomainCheckpointObjectKey | null> => {
+		let key = rootKey
+		while (key !== null) {
+			const node = assertDirectoryNode(await readObject(key))
+			if (node.kind === `directory-leaf`) {
+				return (
+					node.entries.find((entry) => entry.key === logicalKey)?.value ?? null
+				)
+			}
+			if (node.kind !== `directory-branch`) {
+				throw new Error(`A Mosaic Domain checkpoint directory is invalid.`)
+			}
+			key =
+				node.children.find(
+					(candidate) =>
+						candidate.segment === logicalHash(logicalKey)[node.depth],
+				)?.value ?? null
+		}
+		return null
+	}
+
+	let bytes = 0
+	let directory: MosaicDomainCheckpointObjectKey | null = null
+	if (options.previousRootKey !== undefined) {
+		const previousObject = await readObject(options.previousRootKey)
+		const previous = assertExternalRoot(previousObject, options.domain, {
+			maxBytes,
+			maxDepth: HASH_SEGMENTS,
+			revision: options.baseRevision,
+		})
+		bytes = previous.bytes
+		directory = previous.directory
+		maximumDepth = previous.depth
+	}
+	const unique = new Set<string>()
+	const proofUpdates: (
+		| { readonly index: string; readonly path: string; readonly remove: true }
+		| {
+				readonly index: string
+				readonly path: string
+				readonly valueKey: MosaicDomainCheckpointObjectKey
+		  }
+	)[] = []
+	for (const update of options.updates) {
+		assertStageActive()
+		const removing =
+			update !== null && typeof update === `object` && `remove` in update
+		if (
+			!validName(update?.index) ||
+			!validName(update?.path) ||
+			(removing && (update.remove !== true || `value` in update))
+		) {
+			throw new Error(`A Mosaic Domain external checkpoint update is invalid.`)
+		}
+		const logicalKey = canonicalize([update.index, update.path])
+		if (unique.has(logicalKey)) {
+			throw new Error(`A Mosaic Domain external checkpoint update is invalid.`)
+		}
+		unique.add(logicalKey)
+		const previousValueKey = await directoryValue(directory, logicalKey)
+		if (previousValueKey !== null) {
+			const previousValue = await readObject(previousValueKey)
+			if (
+				previousValue.kind !== `index` ||
+				previousValue.index !== update.index ||
+				previousValue.path !== update.path
+			) {
+				throw new Error(`A Mosaic Domain external checkpoint index is invalid.`)
+			}
+			bytes -= jsonBytes(previousValue.value)
+		}
+		if (removing) {
+			directory = await removeDirectory(directory, logicalKey)
+			proofUpdates.push({
+				index: update.index,
+				path: update.path,
+				remove: true,
+			})
+			if (bytes < 0) {
+				throw new Error(`A Mosaic Domain external checkpoint graph is invalid.`)
+			}
+			continue
+		}
+		const inspected = inspectJson(
+			update.value,
+			maxObjectBytes,
+			maxObjectDepth,
+			maxObjectNodes,
+			assertStageActive,
+		)
+		const value = inspected.value
+		bytes += inspected.bytes
+		if (bytes > maxBytes) {
+			throw new Error(
+				`A Mosaic Domain external checkpoint graph exceeds ${maxBytes} bytes.`,
+			)
+		}
+		const index: MosaicDomainCheckpointIndex = {
+			index: update.index,
+			kind: `index`,
+			path: update.path,
+			revision: options.baseRevision,
+			value,
+		}
+		const valueKey = put(index)
+		directory = await updateDirectory(directory, logicalKey, valueKey)
+		proofUpdates.push({ index: update.index, path: update.path, valueKey })
+	}
+	if (
+		directory === null &&
+		options.previousRootKey === undefined &&
+		options.updates.length === 0
+	) {
+		throw new Error(`A Mosaic Domain external checkpoint graph is empty.`)
+	}
+	const proof = put({
+		kind: `external-proof`,
+		...(options.previousRootKey === undefined
+			? {}
+			: { previousRootKey: options.previousRootKey }),
+		updates: proofUpdates,
+	})
+	const root: MosaicDomainCheckpointExternalRoot<Identity> = {
+		baseRevision: options.baseRevision,
+		bytes,
+		depth: maximumDepth,
+		directory,
+		domain: structuredClone(options.domain),
+		kind: `external-root`,
+		proof,
+	}
+	const rootKey = put(root)
+	assertStageActive()
+	const stage = await options.storage.stageCheckpointObjects(
+		options.domain,
+		[...staged].map(([key, value]) => ({ key, value })),
+		{
+			limits: {
+				...(deadline === undefined ? {} : { deadline }),
+				maxObjectBytes,
+				maxObjectDepth,
+				maxObjectNodes,
+				maxStagedBytes,
+				maxStagedObjects,
+			},
+			...(options.proposal === undefined
+				? {}
+				: {
+						externalGraph: {
+							...(options.previousRootKey === undefined
+								? {}
+								: { previousRootKey: options.previousRootKey }),
+							rootKey,
+							updates: proofUpdates,
+						},
+						proposal: { ...options.proposal, rootKey },
+					}),
+			...(options.signal === undefined ? {} : { signal: options.signal }),
+		},
+	)
+	return { ...stage, bytes, depth: maximumDepth, rootKey }
+}
 
 /** Coordinate immutable graph construction and atomic root publication. */
 export function createMosaicDomainCheckpointCoordinator<
 	Identity extends MosaicDomainIdentity,
 >(
 	options: MosaicDomainCheckpointCoordinatorOptions<Identity>,
-): MosaicDomainCheckpointCoordinator<Identity> {
+): MosaicDomainCheckpointCoordinator<Identity> &
+	MosaicDomainExternalCheckpointReader {
 	const maxAttempts = options.limits?.maxAttempts ?? 8
 	const maxDirtyIndexPaths = options.limits?.maxDirtyIndexPaths ?? 4096
 	const maxDirtyMembers = options.limits?.maxDirtyMembers ?? 4096
+	const maxExternalBytes =
+		options.limits?.maxExternalBytes ?? DEFAULT_EXTERNAL_ROOTS_MAX_BYTES
+	const maxExternalDepth = options.limits?.maxExternalDepth ?? HASH_SEGMENTS
+	const maxExternalReads = options.limits?.maxExternalReads ?? 256
+	const maxExternalRoots = options.limits?.maxExternalRoots ?? 64
 	const maxObjectBytes = options.limits?.maxObjectBytes ?? 4 * 1024 * 1024
 	const maxRecoveryBatches = options.limits?.maxRecoveryBatches ?? 1024
 	for (const [name, value] of [
 		[`maxAttempts`, maxAttempts],
 		[`maxDirtyIndexPaths`, maxDirtyIndexPaths],
 		[`maxDirtyMembers`, maxDirtyMembers],
+		[`maxExternalBytes`, maxExternalBytes],
+		[`maxExternalReads`, maxExternalReads],
+		[`maxExternalRoots`, maxExternalRoots],
 		[`maxObjectBytes`, maxObjectBytes],
 		[`maxRecoveryBatches`, maxRecoveryBatches],
 	] as const) {
 		if (!Number.isSafeInteger(value) || value < 1) {
 			throw new Error(`${name} must be a positive safe integer.`)
 		}
+	}
+	if (!Number.isSafeInteger(maxExternalDepth) || maxExternalDepth < 0) {
+		throw new Error(`maxExternalDepth must be a non-negative safe integer.`)
 	}
 
 	const readObject = async (
@@ -177,13 +864,12 @@ export function createMosaicDomainCheckpointCoordinator<
 			MosaicDomainCheckpointObject
 		>,
 	): Promise<MosaicDomainCheckpointObject> => {
-		const object =
-			staged?.get(key) ??
-			(await options.storage.readCheckpointObject(options.domain, key))
-		if (object === null || object === undefined) {
-			throw new Error(`Mosaic Domain checkpoint object "${key}" is missing.`)
-		}
-		return object
+		return readVerifiedCheckpointObject(
+			options.storage,
+			options.domain,
+			key,
+			staged,
+		)
 	}
 
 	const readRoot = async (
@@ -197,11 +883,104 @@ export function createMosaicDomainCheckpointCoordinator<
 			!Number.isSafeInteger(root.revision) ||
 			root.revision < 0 ||
 			!Number.isSafeInteger(root.retentionEpoch) ||
-			root.retentionEpoch < 1
+			root.retentionEpoch < 1 ||
+			(root.externalRoots !== undefined &&
+				(!Array.isArray(root.externalRoots) ||
+					root.externalRoots.length > maxExternalRoots ||
+					root.externalRoots.some(
+						(externalKey) => !validObjectKey(externalKey),
+					) ||
+					new Set(root.externalRoots).size !== root.externalRoots.length))
 		) {
 			throw new Error(`A Mosaic Domain checkpoint root is invalid.`)
 		}
-		return root as MosaicDomainCheckpointRoot<Identity>
+		const typed = root as MosaicDomainCheckpointRoot<Identity>
+		let externalBytes = 0
+		for (const externalKey of typed.externalRoots ?? []) {
+			const external = assertExternalRoot(
+				await readObject(externalKey),
+				options.domain,
+				{
+					maxBytes: maxExternalBytes,
+					maxDepth: maxExternalDepth,
+					revision: typed.revision,
+				},
+			)
+			externalBytes += external.bytes
+			if (externalBytes > maxExternalBytes) {
+				throw new Error(
+					`Mosaic Domain external checkpoint roots exceed ${maxExternalBytes} bytes.`,
+				)
+			}
+		}
+		return typed
+	}
+
+	const externalRoot = async (
+		key: MosaicDomainCheckpointObjectKey,
+		revision: number,
+	): Promise<MosaicDomainCheckpointExternalRoot<Identity>> =>
+		assertExternalRoot(await readObject(key), options.domain, {
+			maxBytes: maxExternalBytes,
+			maxDepth: maxExternalDepth,
+			revision,
+		})
+
+	const externalRootKeys = async (
+		context: {
+			readonly batches: readonly MosaicAcceptedDomainBatchEnvelope<Identity>[]
+			readonly fromRevision: number
+			readonly revision: number
+		},
+		fallback: readonly MosaicDomainCheckpointObjectKey[],
+		accepted: readonly MosaicDomainCheckpointObjectKey[] = [],
+	): Promise<readonly MosaicDomainCheckpointObjectKey[]> => {
+		const received =
+			options.externalRoots === undefined
+				? fallback
+				: await options.externalRoots(context)
+		if (!Array.isArray(received) || received.length > maxExternalRoots) {
+			throw new Error(
+				`Mosaic Domain external checkpoint roots exceed ${maxExternalRoots}.`,
+			)
+		}
+		const unique = new Set<MosaicDomainCheckpointObjectKey>()
+		for (const key of received) {
+			if (!validObjectKey(key) || unique.has(key)) {
+				throw new Error(
+					`A Mosaic Domain external checkpoint root key is invalid.`,
+				)
+			}
+			unique.add(key)
+		}
+		if (!Array.isArray(accepted)) {
+			throw new Error(
+				`A Mosaic Domain accepted external checkpoint root list is invalid.`,
+			)
+		}
+		for (const key of accepted) {
+			if (!validObjectKey(key)) {
+				throw new Error(
+					`A Mosaic Domain accepted external checkpoint root key is invalid.`,
+				)
+			}
+			unique.add(key)
+		}
+		if (unique.size > maxExternalRoots) {
+			throw new Error(
+				`Mosaic Domain external checkpoint roots exceed ${maxExternalRoots}.`,
+			)
+		}
+		let bytes = 0
+		for (const key of unique) {
+			bytes += (await externalRoot(key, context.revision)).bytes
+			if (bytes > maxExternalBytes) {
+				throw new Error(
+					`Mosaic Domain external checkpoint roots exceed ${maxExternalBytes} bytes.`,
+				)
+			}
+		}
+		return [...unique].sort()
 	}
 
 	const put = (
@@ -256,7 +1035,7 @@ export function createMosaicDomainCheckpointCoordinator<
 		const update = async (
 			key: MosaicDomainCheckpointObjectKey,
 		): Promise<MosaicDomainCheckpointObjectKey> => {
-			const node = await readObject(key, staged)
+			const node = assertDirectoryNode(await readObject(key, staged))
 			if (node.kind === `directory-leaf`) {
 				const entries = node.entries.filter((entry) => entry.key !== logicalKey)
 				entries.push({ key: logicalKey, value })
@@ -293,7 +1072,7 @@ export function createMosaicDomainCheckpointCoordinator<
 	): Promise<MosaicDomainCheckpointObjectKey | null> => {
 		let key = rootKey
 		while (key !== null) {
-			const node = await readObject(key)
+			const node = assertDirectoryNode(await readObject(key))
 			if (node.kind === `directory-leaf`) {
 				return (
 					node.entries.find((entry) => entry.key === logicalKey)?.value ?? null
@@ -333,7 +1112,25 @@ export function createMosaicDomainCheckpointCoordinator<
 						`Mosaic Domain checkpoint tail exceeds ${maxRecoveryBatches} batches.`,
 					)
 				}
-				if (previous !== null && recovery.headRevision === previous.revision) {
+				const context = {
+					batches: structuredClone(
+						recovery.tail,
+					) as MosaicAcceptedDomainBatchEnvelope<Identity>[],
+					fromRevision,
+					revision: recovery.headRevision,
+				}
+				const requestedExternalRoots = await externalRootKeys(
+					context,
+					previous?.externalRoots ?? [],
+					head.acceptedRootKeys ?? [],
+				)
+				const previousExternalRoots = [...(previous?.externalRoots ?? [])].sort()
+				if (
+					previous !== null &&
+					recovery.headRevision === previous.revision &&
+					canonicalize(requestedExternalRoots) ===
+						canonicalize(previousExternalRoots)
+				) {
 					const retentionEpoch =
 						await options.storage.deleteCheckpointRetentionLease(
 							options.domain,
@@ -368,9 +1165,7 @@ export function createMosaicDomainCheckpointCoordinator<
 				}
 				const updates =
 					(await options.indexes?.({
-						batches: structuredClone(
-							recovery.tail,
-						) as MosaicAcceptedDomainBatchEnvelope<Identity>[],
+						batches: structuredClone(context.batches),
 						fromRevision,
 						revision: recovery.headRevision,
 					})) ?? []
@@ -438,6 +1233,7 @@ export function createMosaicDomainCheckpointCoordinator<
 				}
 				const root: MosaicDomainCheckpointRoot<Identity> = {
 					domain: structuredClone(options.domain),
+					externalRoots: requestedExternalRoots,
 					indexDirectory,
 					kind: `root`,
 					memberDirectory,
@@ -594,5 +1390,75 @@ export function createMosaicDomainCheckpointCoordinator<
 		}
 	}
 
-	return { checkpoint, readIndex, recover }
+	const readExternalIndexes = async (
+		rootKey: MosaicDomainCheckpointObjectKey,
+		addresses: readonly {
+			readonly index: string
+			readonly path: string
+		}[],
+	): Promise<readonly MosaicDomainCheckpointIndex[]> => {
+		if (
+			!validObjectKey(rootKey) ||
+			!Array.isArray(addresses) ||
+			addresses.length > maxExternalReads
+		) {
+			throw new Error(
+				`Mosaic Domain external checkpoint reads exceed ${maxExternalReads}.`,
+			)
+		}
+		const leaseId = `external-index:${randomUUID()}`
+		const head = await options.storage.openCheckpointRead(
+			options.domain,
+			leaseId,
+		)
+		try {
+			if (head.rootKey === null) {
+				throw new Error(`This Mosaic Domain has no checkpoint.`)
+			}
+			const root = await readRoot(head.rootKey)
+			if (!(root.externalRoots ?? []).includes(rootKey)) {
+				throw new Error(
+					`A Mosaic Domain external checkpoint root is not published.`,
+				)
+			}
+			const external = await externalRoot(rootKey, root.revision)
+			const seen = new Set<string>()
+			const indexes: MosaicDomainCheckpointIndex[] = []
+			for (const address of addresses) {
+				const logicalKey = canonicalize([address?.index, address?.path])
+				if (
+					!validName(address?.index) ||
+					!validName(address?.path) ||
+					seen.has(logicalKey)
+				) {
+					throw new Error(
+						`A Mosaic Domain external checkpoint index address is invalid.`,
+					)
+				}
+				seen.add(logicalKey)
+				const key = await directoryValue(external.directory, logicalKey)
+				if (key === null) continue
+				const value = await readObject(key)
+				if (
+					value.kind !== `index` ||
+					value.index !== address.index ||
+					value.path !== address.path ||
+					value.revision > external.baseRevision
+				) {
+					throw new Error(
+						`A Mosaic Domain external checkpoint index is invalid.`,
+					)
+				}
+				indexes.push(value)
+			}
+			return indexes
+		} finally {
+			await options.storage.deleteCheckpointRetentionLease(
+				options.domain,
+				leaseId,
+			)
+		}
+	}
+
+	return { checkpoint, readExternalIndexes, readIndex, recover }
 }

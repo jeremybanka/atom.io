@@ -347,6 +347,29 @@ describe(`Mosaic Domain atomic batches`, () => {
 				maxOperations: 1,
 			})
 		}).toThrow(`operation count`)
+
+		const escapedUnicode = {
+			...valid,
+			actor: `é"\n👩🏽‍💻`,
+			group: `e\u0301\\group`,
+		} satisfies MosaicDomainBatchEnvelope
+		const exactBytes = new TextEncoder().encode(
+			JSON.stringify(escapedUnicode),
+		).byteLength
+		expect(() => {
+			assertMosaicDomainBatchEnvelope(escapedUnicode, {
+				maxBytes: exactBytes,
+				maxMembers: 256,
+				maxOperations: 1024,
+			})
+		}).not.toThrow()
+		expect(() => {
+			assertMosaicDomainBatchEnvelope(escapedUnicode, {
+				maxBytes: exactBytes - 1,
+				maxMembers: 256,
+				maxOperations: 1024,
+			})
+		}).toThrow(`bytes`)
 	})
 
 	test(`rejects domain, model, operation, and value contract violations before settlement`, async () => {

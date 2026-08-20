@@ -4,6 +4,7 @@ import { mosaicText } from "atom.io/realtime"
 import {
 	createMosaicServer,
 	defineMosaicAtomRegistration,
+	type MosaicAuthorizationContext,
 } from "atom.io/realtime-server"
 import { z } from "zod"
 
@@ -63,7 +64,27 @@ const markdown = defineMosaicAtomRegistration({
 	target: markdownAtom,
 })
 
+declare function readDocumentAccess(context: {
+	actor: string
+	document: string
+	session: string
+}): Promise<{ read: boolean; write: boolean }>
+
+const authorize = async ({
+	action,
+	actor,
+	atom,
+	session,
+}: MosaicAuthorizationContext): Promise<boolean> => {
+	const access = await readDocumentAccess({
+		actor,
+		document: atom.key,
+		session,
+	})
+	return action === `read` ? access.read : access.write
+}
+
 export const mosaicServer = createMosaicServer({
-	authorize: ({ action, actor }) => action === `read` || actor === `user-42`,
+	authorize,
 	registrations: [markdown],
 })

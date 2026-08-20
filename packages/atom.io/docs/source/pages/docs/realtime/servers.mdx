@@ -1,0 +1,137 @@
+import Exhibit from "c/Exhibit.astro";
+
+# servers and storage
+
+`atom.io/realtime-server` hosts authoritative state transitions. Its public
+surfaces are transport-neutral where possible, with Socket.IO binders for the
+standard protocol paths.
+
+The server is responsible for authentication, authorization, validation,
+serialization, durable ordering, bounded recovery, cleanup, and persistence.
+The package supplies contracts and in-memory reference adapters; your
+deployment supplies verified identity and durable storage.
+
+## authenticate before composition
+
+The rigid `realtime()` helper authenticates a Socket.IO handshake before it
+creates user state or invokes the connection callback. Domain binders should be
+given actor and session identity from the authenticated connection, not accept
+those identities from a proposal body.
+
+Authorization is still required after authentication. Check action, actor,
+session, Domain instance, member/key, operation meaning, and product role before
+acceptance. A user who may read a design does not necessarily get to edit every
+glyph or publish arbitrary presence.
+
+## server component map
+
+<table-wrapper>
+  <table>
+    <thead><tr><th>Component</th><th>Responsibility</th></tr></thead>
+    <tbody>
+      <tr><td><code>createMosaicServer</code></td><td>Atomic Mosaic registration, join, reduce, recovery, presence, and checkpoints for individual mutable atoms.</td></tr>
+      <tr><td><code>createMosaicDomainBatchServer</code></td><td>Normalize, authorize, serialize, append, and broadcast atomic Domain batches.</td></tr>
+      <tr><td><code>createMosaicDomainResidencyServer</code></td><td>Authorize explicit/range selections and deliver filtered snapshots and tails.</td></tr>
+      <tr><td><code>createMosaicDomainPresenceServer</code></td><td>Bind actor/session presence, rate limit, snapshot, expire, and clean up.</td></tr>
+      <tr><td><code>createMosaicDomainHistoryCoordinator</code></td><td>Maintain actor cursors/horizons and submit validated compensating batches.</td></tr>
+      <tr><td><code>createMosaicDomainCheckpointCoordinator</code></td><td>Publish fenced content-addressed roots, recover selections, and coordinate retention/GC.</td></tr>
+      <tr><td><code>realtimeStateProvider</code></td><td>Serve rigid snapshots and subscriptions.</td></tr>
+      <tr><td><code>realtimeStateReceiver</code></td><td>Validate leased rigid publications and expire ownership.</td></tr>
+      <tr><td><code>provideRooms</code></td><td>Authorize and host isolated room processes with bounded lifecycle.</td></tr>
+    </tbody>
+  </table>
+</table-wrapper>
+
+## batch authority
+
+<Exhibit src="realtime/coordinate-a-domain-batch.ts" />
+
+The batch server performs normalization exactly once at the public boundary and
+uses the canonical result for authorization, storage, reduction, and broadcast.
+Do not authorize one value and persist a caller-mutated or pre-normalized object.
+
+Append is serialized. Duplicate ids are accepted only when their canonical
+fingerprint matches. A collision fails closed. If another writer commits the
+same batch between lookup and append, synchronize resident revision and
+projection before acknowledging the duplicate.
+
+## storage adapters
+
+Production adapters implement the public batch and checkpoint storage
+contracts. In-memory adapters are useful for tests and examples, not process
+durability. Run the reusable conformance suites against every adapter:
+
+- atomic append and stale-head behavior;
+- exact duplicate versus id collision;
+- recovery gaps and bounded tails;
+- concurrent writers and restart;
+- root/revision/retention fencing;
+- content-key verification and pagination;
+- retention leases and eventual garbage collection;
+- partial failure that cannot publish a half checkpoint.
+
+The checkpoint storage adapter may also be the batch storage adapter so one
+revision stream and checkpoint root share an atomic backing implementation.
+
+## checkpoints
+
+<Exhibit src="realtime/checkpoint-a-domain-incrementally.ts" />
+
+Object staging is harmless until a root is published. Root publication must
+compare the expected stream revision, previous root, and retention epoch.
+Checkpoint readers pin a root and page requested member/index paths rather than
+loading every object.
+
+External roots, such as Mosaic Text v3, require an accepted-root handoff: an
+accepted proposal protects its staged root across restart until a Domain
+checkpoint adopts it. A checkpoint that omits an accepted external root must be
+rejected.
+
+## history authority
+
+<Exhibit src="realtime/coordinate-domain-history.ts" />
+
+Only the server coordinator may mint collaborative compensation capability.
+Public batch clients cannot forge an operation and label it undo. Before append,
+the coordinator revalidates the actor cursor, session sequence, horizon,
+original targets, model classification, and any excluded maintenance appended
+by `completeCompensation`.
+
+History indexes and session watermarks must survive restart. Compact model
+snapshots with the exact retained operation-id set supplied by the coordinator.
+
+## residency and range resolvers
+
+Residency authorization occurs before family allocation. A range resolver must
+enforce its own schema, byte/depth/count bounds, and maximum output addresses.
+Return only addresses belonging to the active Domain. When an index identity is
+stale after split/merge, provide a structured resnapshot/recovery result rather
+than guessing.
+
+Filtered accepted envelopes retain bounded batch metadata so resident members
+touched by one batch can settle atomically even when other batch members are not
+loaded.
+
+## presence cleanup
+
+Presence servers enforce payload bytes, updates per second, pending updates,
+sessions per actor, total sessions, and transport queues. Disconnect and expiry
+must clear projections even when listeners throw. Session retirement is also a
+hook for releasing associated residency or retention resources.
+
+## deployment ownership
+
+Atom.io does not choose your database, identity provider, admission policy,
+replication topology, backups, or disaster-recovery objective. A production
+host should define:
+
+- an atomic transaction for batch append, receipts, watermarks, and checkpoint roots;
+- authenticated actor/session derivation and revocation;
+- per-tenant and per-resource quotas;
+- retention and backup policy for immutable objects and roots;
+- graceful shutdown that drains or rejects pending authoritative work;
+- schema/model version rollout and rollback; and
+- observable revisions, queue depth, rejection codes, checkpoint age, and GC progress.
+
+Continue with [operations and security](/docs/realtime/operations) for the
+release checklist.

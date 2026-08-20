@@ -1,0 +1,169 @@
+import Exhibit from "c/Exhibit.astro";
+
+# realtime
+
+Atom.io realtime keeps collaborative state in ordinary atom.io Stores. Your
+atoms, mutable atoms, families, selectors, transactions, Silos, and React hooks
+remain the application model; the realtime packages add transport,
+authorization, convergence, recovery, and presence around them.
+
+This section starts with a choice. Atom.io deliberately offers three realtime
+paradigms because a shared preference, a collaborative text value, and a design
+document do not have the same contention or recovery needs.
+
+## choose a paradigm
+
+<table-wrapper>
+  <table>
+    <thead>
+      <tr>
+        <th>Paradigm</th>
+        <th>Choose it when</th>
+        <th>Contention model</th>
+        <th>Primary interface</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a href="/docs/realtime/rigid">Rigid</a></td>
+        <td>
+          State has one authoritative value and either the server or one leased
+          client should write it at a time.
+        </td>
+        <td>Single writer; replace the value.</td>
+        <td><code>pullAtom</code>, <code>pushState</code>, React pull/push hooks.</td>
+      </tr>
+      <tr>
+        <td><a href="/docs/realtime/mosaic">Atomic Mosaic</a></td>
+        <td>
+          One mutable atom needs model-aware concurrent operations, recovery,
+          presence, and convergence.
+        </td>
+        <td>Model-defined operations reduce deterministically.</td>
+        <td><code>MosaicTransceiver</code>, <code>syncMosaic</code>, <code>useMosaic</code>.</td>
+      </tr>
+      <tr>
+        <td><a href="/docs/realtime/domains">Mosaic Domain</a></td>
+        <td>
+          One user gesture can span several atoms or families, clients load
+          only part of a large resource, or history must be actor-selective.
+        </td>
+        <td>Atomic operation batches across a declared state graph.</td>
+        <td><code>mosaicDomain</code> and the Domain controllers.</td>
+      </tr>
+    </tbody>
+  </table>
+</table-wrapper>
+
+Start with the least powerful model that truthfully describes the product. A
+server-owned status flag does not need an operation algebra. A collaborative
+paragraph should not use last-writer-wins. A design gesture that changes a path,
+its order, and its index must not be split into separately observable commits.
+
+## five packages, one Store
+
+<table-wrapper>
+  <table>
+    <thead>
+      <tr>
+        <th>Package</th>
+        <th>Responsibility</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>atom.io/realtime</code></td>
+        <td>
+          Transport-neutral contracts, Mosaic models, Domain declarations,
+          addresses, protocol envelopes, limits, clocks, rooms, and mutex state.
+        </td>
+      </tr>
+      <tr>
+        <td><code>atom.io/realtime-client</code></td>
+        <td>
+          Headless pull/push functions and Mosaic controllers for batches,
+          residency, presence, history, projections, and transaction capture.
+        </td>
+      </tr>
+      <tr>
+        <td><code>atom.io/realtime-server</code></td>
+        <td>
+          Authentication boundaries, authoritative reducers, storage adapters,
+          checkpoints, retention, residency, presence cleanup, and room hosting.
+        </td>
+      </tr>
+      <tr>
+        <td><code>atom.io/realtime-react</code></td>
+        <td>
+          A shared Socket.IO provider plus lifecycle hooks over the headless
+          clients. React renders ordinary Store state; it does not own replicas.
+        </td>
+      </tr>
+      <tr>
+        <td><code>atom.io/realtime-testing</code></td>
+        <td>
+          Multi-client fixtures, deterministic transports and clocks,
+          restartable servers, journals, model schedules, and storage/domain
+          conformance suites.
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</table-wrapper>
+
+## connect React once
+
+Install Socket.IO alongside atom.io, create one client socket, and put a
+`RealtimeProvider` inside the same atom.io Store or Silo provider as the UI.
+The realtime hooks coalesce repeated consumers and release their service when
+the final consumer unmounts.
+
+<Exhibit src="realtime/provide-realtime-react.tsx" />
+
+For same-origin deployments, use the current location as the connection basis
+and proxy the Socket.IO path through the frontend server. That gives the browser
+one origin and keeps transport routing an infrastructure concern.
+
+## the correctness model
+
+Across all three paradigms, keep these boundaries explicit:
+
+- **Identity:** application authentication establishes an actor; each live tab
+  or process has a separate session.
+- **Validation:** every remote address, key, value, operation, presence payload,
+  and recovery envelope is untrusted input.
+- **Authority:** the server authorizes before accepting work. Simulated
+  identities are for examples and tests, not production admission.
+- **Atomicity:** an accepted Domain batch settles its resident members in one
+  ordinary Store transaction.
+- **Convergence:** Mosaic models reduce accepted operations deterministically;
+  neither timing nor object equality is a conflict-resolution policy.
+- **Recovery:** reconnect is a protocol. Clients reconcile checkpoints, tails,
+  pending work, session watermarks, and resnapshot requests explicitly.
+- **Boundedness:** bytes, operations, members, queues, resident selections,
+  history, receipts, checkpoints, and staging work all need enforced limits.
+- **Ownership:** durable application data, ephemeral presence, local drafts,
+  and derived selectors have different lifecycles.
+
+## learning path
+
+1. Read [rigid realtime](/docs/realtime/rigid) for shared state with one writer.
+2. Read [Atomic Mosaic](/docs/realtime/mosaic) for one convergent mutable value.
+3. Read [Mosaic Domains](/docs/realtime/domains) for collaborative applications.
+4. For documents, continue to [Mosaic Text](/docs/realtime/text).
+5. Use [clients and React](/docs/realtime/clients) and
+   [servers and storage](/docs/realtime/servers) while assembling the system.
+6. Before shipping, apply [operations and security](/docs/realtime/operations)
+   and [realtime testing](/docs/realtime/testing).
+
+Keep the [component reference](/docs/realtime/reference) open when you know the
+concern but need to find the owning package or controller.
+
+The canonical templates are executable architecture references:
+
+- [Realtime Markdown editor](https://github.com/jeremybanka/atom.io/tree/main/templates/react-realtime-text-editor)
+- [Realtime vector editor](https://github.com/jeremybanka/atom.io/tree/main/templates/preact-realtime-vector-editor)
+
+They intentionally exercise different state shapes through the same Domain
+spine. Copy the composition pattern, not their simulated authentication or
+in-memory persistence.

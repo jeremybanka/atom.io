@@ -1,0 +1,132 @@
+import Exhibit from "c/Exhibit.astro";
+
+# Mosaic Text
+
+Atom.io provides two complementary text representations. Choose according to
+the size and residency requirements of the document, not according to the UI
+framework.
+
+<table-wrapper>
+  <table>
+    <thead><tr><th>Representation</th><th>Use it for</th><th>Durable unit</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Mosaic Text v2 run model</td>
+        <td>Convergent edits, stable positions, operation history, and bounded checkpoints.</td>
+        <td>Logical insertion runs and deletion intervals.</td>
+      </tr>
+      <tr>
+        <td>Mosaic Text v3 root</td>
+        <td>Very large text that must be staged, read, edited, and checkpointed by bounded ranges.</td>
+        <td>Content-addressed leaves beneath a small Merkle root.</td>
+      </tr>
+    </tbody>
+  </table>
+</table-wrapper>
+
+The canonical Markdown editor composes the two concerns with a bounded text
+index, partial residency, projections, Domain history, and checkpoints.
+
+## logical runs and positions
+
+Mosaic Text v2 stores each insertion as a stable logical run. Physical
+checkpoint fragments may split that run without changing its identity.
+Positions use a run id, grapheme offset, and affinity; they do not use a fragile
+whole-document UTF-16 offset.
+
+<Exhibit src="realtime/prepare-logical-text-edit.ts" />
+
+This model makes concurrent descendants and actor-selective compensation
+possible. Undo emits a history operation against retained operation ids instead
+of replacing the document with a previous snapshot.
+
+## bounded indexes
+
+Long documents need a physical index in addition to the logical edit model.
+Mosaic Text indexes use bounded leaf, node, and alias members. Readers resolve
+UTF-16, grapheme, line, and range queries logarithmically and can recover from a
+stale leaf identity after a split or merge.
+
+<Exhibit src="realtime/index-bounded-text.ts" />
+
+Index maintenance belongs in the same accepted Domain batch as the source edit.
+A source revision and an index revision that can diverge are not a correct
+partial-residency system.
+
+## range projections
+
+The headless projection controller acquires a root summary and only the range
+members required for a viewport plus overscan. It creates ordinary selectors
+for exact resident leaves and shares leases when consumers overlap.
+
+<Exhibit src="realtime/project-a-mosaic-text-viewport.tsx" />
+
+React owns acquisition and release lifecycle only. Parsing, layout, syntax
+highlighting, and rendering should consume the bounded projection rather than
+materializing the full document.
+
+## v3 content-addressed roots
+
+A Mosaic Text v3 root contains a generation and a reference to a bounded tree of
+immutable branch and leaf objects. Bulk import streams grapheme-safe chunks.
+Local replacement path-copies only touched leaves and their branch path.
+
+The staging sequence is:
+
+1. stream or path-copy immutable text objects into unreachable checkpoint storage;
+2. verify content keys, graph shape, bytes, depth, object count, deadline, and cancellation;
+3. create a proposal protection for the staged external root;
+4. accept one small Domain operation that publishes the root; and
+5. have the next Domain checkpoint adopt the accepted root before releasing proposal protection.
+
+A crash between acceptance and checkpoint must not let garbage collection erase
+the newly authoritative text. A rejected or abandoned proposal must eventually
+expire and become collectible.
+
+## checkpoints and structural sharing
+
+<Exhibit src="realtime/checkpoint-a-domain-incrementally.ts" />
+
+MOS-13 checkpoints store a small atomic Domain root and content-addressed member
+and index objects. Mosaic Text v3 contributes an external root dependency.
+Unchanged text objects are structurally shared; a local edit persists the new
+leaf/path/root rather than another full document.
+
+History compaction, outboxes, sessions, proposals, presence anchors, and active
+readers may all protect revisions or operation ids. Garbage collection traces
+every retained root and advances a retention epoch only after a fenced sweep.
+
+## Unicode boundaries
+
+Public selections are grapheme-aware. Before applying a raw UTF-16 browser
+selection, resolve each endpoint through the text reader with an explicit left
+or right affinity. This prevents edits from splitting surrogate pairs,
+combining sequences, or emoji joined by zero-width joiners.
+
+Keep a bounded maximum for one grapheme and for one edit. Unicode correctness is
+not permission to accept an unbounded string as one operation.
+
+## limits that belong in the design
+
+Enforce and test limits for:
+
+- inserted bytes and runs per operation;
+- deletion intervals and history targets;
+- leaf UTF-16 units, graphemes, and fragments;
+- branch fanout, tree depth, and alias generations;
+- resident ranges, members, bytes, and object reads;
+- staged objects, updates, bytes, object depth, deadline, and cancellation;
+- checkpoint objects, tail batches, retained actions, receipts, and sessions;
+- parser input, rendered blocks, overscan, and queued local drafts.
+
+The package defaults are safety boundaries, not a capacity promise for every
+deployment. Set tighter application limits where possible and run the actual
+corpus and hardware profile you intend to support.
+
+## reference implementation
+
+The [Realtime Markdown editor](https://github.com/jeremybanka/atom.io/tree/main/templates/react-realtime-text-editor)
+demonstrates logical edits, indexing, range residency, viewport projections,
+actor-selective history, staged roots, restart, same-origin transport, and
+large-corpus instrumentation. Its `INNOVATIONS.md` records the places where the
+implementation had to establish new realtime contracts.

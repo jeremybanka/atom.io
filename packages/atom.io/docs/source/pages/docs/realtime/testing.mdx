@@ -1,11 +1,44 @@
 import Exhibit from "c/Exhibit.astro";
 
-# realtime testing
+# <low-emphasis>atom.io</low-emphasis>/realtime-testing
 
 Realtime correctness is a property of several clients, an authoritative server,
 storage, clocks, failures, and restart—not of one component in isolation.
 `atom.io/realtime-testing` provides deterministic pieces for assembling and
 replaying that system.
+
+## package contents
+
+Every public export from `atom.io/realtime-testing` is listed below. The main
+entrypoint contains the complete surface. The
+`atom.io/realtime-testing/headless` subpath is a strict subset containing the
+headless topology, deterministic transport and adapters, execution realms,
+model scenarios, the reference-sequence oracle, and virtual time. Import the
+main entrypoint for rendered clients, journals, work tracking, restart fixtures,
+replication topology, and conformance suites.
+
+<table-wrapper>
+  <table>
+    <thead><tr><th>Area</th><th>Runtime exports</th><th>Associated contracts</th></tr></thead>
+    <tbody>
+      <tr><td>Rendered topology</td><td><code>multiClient</code>, <code>setupRealtimeTestClient</code>, <code>singleClient</code></td><td><code>RealtimeTestAPI__MultiClient</code>, <code>RealtimeTestAPI__SingleClient</code>, <code>RealtimeTestClient</code>, <code>RealtimeTestClientBuilder</code>, <code>TestSetupOptions__MultiClient</code>, <code>TestSetupOptions__SingleClient</code></td></tr>
+      <tr><td>Headless topology</td><td><code>headless</code>, <code>setupHeadlessRealtimeTestClient</code>, <code>setupRealtimeTestServer</code></td><td><code>HeadlessRealtimeTestClient</code>, <code>RealtimeTestAPI</code>, <code>RealtimeTestAPI__Headless</code>, <code>RealtimeTestClientOptions</code>, <code>RealtimeTestConvergenceParticipant</code>, <code>RealtimeTestServer</code>, <code>RealtimeTestServerTools</code>, <code>RealtimeTestTools</code>, <code>TestSetupOptions</code>, <code>WaitForConvergenceOptions</code>, <code>WaitForIdleOptions</code>, <code>WaitOptions</code></td></tr>
+      <tr><td>Deterministic transport</td><td><code>DeterministicSocket</code>, <code>DeterministicTransport</code>, <code>createDeterministicTransport</code></td><td><code>DeliveryOutcome</code>, <code>DeterministicDuplex</code>, <code>DeterministicSocket</code>, <code>DeterministicTransport</code>, <code>DeterministicTransportMode</code>, <code>DeterministicTransportOptions</code>, <code>DuplexEndpointOptions</code>, <code>EnvelopeFilter</code>, <code>FaultEffect</code>, <code>FaultPolicy</code>, <code>PendingDelivery</code>, <code>ScheduleDecision</code>, <code>TransportDirection</code>, <code>TransportEndpoint</code>, <code>TransportEndpointRole</code>, <code>TransportEnvelope</code>, <code>TransportSchedule</code></td></tr>
+      <tr><td>Harness transport adapters</td><td><code>DeterministicTransportAdapter</code>, <code>SOCKET_IO_TEST_ENDPOINT_AUTH</code>, <code>SocketIOTransportAdapter</code>, <code>createDeterministicTransportAdapter</code>, <code>createSocketIOTransportAdapter</code></td><td><code>DeterministicTransportAdapter</code>, <code>RealtimeTestTransportAdapter</code>, <code>SocketIOHarness</code>, <code>SocketIOHarnessClientOptions</code>, <code>SocketIOTestEndpointAuth</code>, <code>SocketIOTransportAdapter</code>, <code>SocketIOTransportAdapterOptions</code>, <code>TestTransportConnection</code>, <code>TestTransportConnectionOptions</code>, <code>TestTransportEndpoint</code>, <code>TestTransportEndpointOptions</code></td></tr>
+      <tr><td>Event journal</td><td><code>RealtimeTestEventJournal</code></td><td><code>RealtimeTestEvent</code>, <code>RealtimeTestEventCursor</code>, <code>RealtimeTestEventDirection</code>, <code>RealtimeTestEventFilter</code>, <code>RealtimeTestEventJournal</code>, <code>WaitForRealtimeTestEventOptions</code></td></tr>
+      <tr><td>Diagnostics</td><td><code>RealtimeTestInspectors</code></td><td><code>RealtimeTestInspectors</code></td></tr>
+      <tr><td>Work tracking</td><td><code>RealtimeTestWorkTracker</code></td><td><code>RealtimeTestDrainContext</code>, <code>RealtimeTestWorkDrain</code>, <code>RealtimeTestWorkTracker</code></td></tr>
+      <tr><td>Virtual time</td><td><code>VirtualClock</code></td><td><code>VirtualClock</code>, <code>VirtualClockOptions</code>, <code>VirtualClockTask</code></td></tr>
+      <tr><td>Model scenarios</td><td><code>ModelScenarioFailure</code>, <code>SeededScenarioRandom</code>, <code>generateModelScenario</code>, <code>runModelScenario</code>, <code>runSeededModelScenario</code>, <code>shrinkModelScenario</code></td><td><code>ModelScenarioCheckpoint</code>, <code>ModelScenarioFailure</code>, <code>ModelScenarioGenerationContext</code>, <code>ModelScenarioGenerationOptions</code>, <code>ModelScenarioRunOptions</code>, <code>ModelScenarioRuntime</code>, <code>ModelScenarioSchedule</code>, <code>ModelScenarioShrinkOptions</code>, <code>ModelScenarioStep</code>, <code>SeededModelScenarioOptions</code>, <code>SeededScenarioRandom</code></td></tr>
+      <tr><td>Restartable servers</td><td><code>RestartableServerFixture</code>, <code>createRestartableServerFixture</code></td><td><code>MaybePromise</code>, <code>RestartServerOptions</code>, <code>RestartableServerContext</code>, <code>RestartableServerController</code>, <code>RestartableServerEvent</code>, <code>RestartableServerFixture</code>, <code>RestartableServerHooks</code>, <code>RestartableServerOptions</code>, <code>TestServerDurability</code>, <code>TestServerStopMode</code></td></tr>
+      <tr><td>Execution realms and load</td><td><code>createBridgedExecutionRealmAdapter</code>, <code>createBrowserExecutionRealmAdapter</code>, <code>createInProcessExecutionRealmAdapter</code>, <code>createProcessExecutionRealmAdapter</code>, <code>createWorkerExecutionRealmAdapter</code>, <code>runRealtimeLoadFixture</code></td><td><code>BridgedRealmLaunch</code>, <code>InProcessRealmContext</code>, <code>InProcessRealmRuntime</code>, <code>RealtimeExecutionRealmAdapter</code>, <code>RealtimeExecutionRealmClient</code>, <code>RealtimeLoadClientMetrics</code>, <code>RealtimeLoadFixtureOptions</code>, <code>RealtimeLoadReport</code>, <code>RealtimeRealmBridge</code>, <code>RealtimeRealmEndpoint</code>, <code>RealtimeRealmKind</code>, <code>RealtimeRealmMetrics</code></td></tr>
+      <tr><td>Replication topology</td><td><code>RealtimeTestTopology</code>, <code>createImmediateReplicationAdapter</code>, <code>createRealtimeTestTopology</code></td><td><code>RealtimeTestReplicationAdapter</code>, <code>RealtimeTestTopology</code>, <code>RealtimeTestTopologyClient</code>, <code>RealtimeTestTopologyEvent</code>, <code>RealtimeTestTopologyNode</code>, <code>RealtimeTestTopologyOptions</code>, <code>RealtimeTestTopologyState</code>, <code>TopologyClientSession</code>, <code>TopologyDisconnectReason</code>, <code>TopologyNodeContext</code>, <code>TopologyReplicationEnvelope</code></td></tr>
+      <tr><td>Reference sequence oracle</td><td><code>ReferenceSequenceReplica</code></td><td><code>ReferenceEditGroup</code>, <code>ReferenceSequenceDelete</code>, <code>ReferenceSequenceInsert</code>, <code>ReferenceSequenceNode</code>, <code>ReferenceSequenceOperation</code>, <code>ReferenceSequenceReplica</code>, <code>ReferenceSequenceState</code>, <code>ReferenceSequenceToggle</code></td></tr>
+      <tr><td>Storage conformance</td><td><code>testMosaicDomainBatchStorageAdapter</code>, <code>testMosaicDomainCheckpointStorageAdapter</code></td><td>—</td></tr>
+      <tr><td>Domain conformance</td><td><code>MOSAIC_DOMAIN_CONFORMANCE_FAULT_SCHEDULE</code>, <code>testMosaicDomainConformance</code></td><td><code>MosaicDomainConformanceAdapter</code>, <code>MosaicDomainConformanceAtomicBatchEvidence</code>, <code>MosaicDomainConformanceCounters</code>, <code>MosaicDomainConformanceFault</code>, <code>MosaicDomainConformanceFaultEvidence</code>, <code>MosaicDomainConformanceFoundation</code>, <code>MosaicDomainConformanceHistoryEvidence</code>, <code>MosaicDomainConformancePresenceEvidence</code>, <code>MosaicDomainConformanceReport</code>, <code>MosaicDomainConformanceResidencyEvidence</code></td></tr>
+    </tbody>
+  </table>
+</table-wrapper>
 
 ## testing layers
 
@@ -43,7 +76,7 @@ it was applied and released.
 
 ## multi-client topology
 
-`setupRealtimeTest` renders several clients with separate Silos and socket
+`singleClient` and `multiClient` render clients with separate Silos and socket
 connections. The headless entrypoint supplies the same topology without a
 renderer. Use unique actor and session identities deliberately:
 

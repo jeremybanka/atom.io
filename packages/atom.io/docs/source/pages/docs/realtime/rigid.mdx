@@ -46,7 +46,7 @@ ownership during cleanup.
 
 ## consume it from React
 
-Place a [RealtimeProvider](/docs/realtime/clients#react-provider) above the
+Place a [RealtimeProvider](/docs/realtime-react#provider-and-service-ownership) above the
 component. `usePullAtom` returns the ordinary atom value. `usePush` returns a
 normal setter only while this client owns the lease; a null setter is a useful,
 honest UI state.

@@ -63,7 +63,7 @@ const textRangeSchema = z.object({
 	start: z.number().int().nonnegative(),
 })
 
-// A production implementation reads these bounded objects from the MOS-13
+// A production implementation reads these bounded objects from the Domain
 // checkpoint graph. The resolver never constructs unloaded client atoms.
 declare const loadIndexMember: (
 	id: string,

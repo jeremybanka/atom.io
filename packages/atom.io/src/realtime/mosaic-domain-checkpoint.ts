@@ -50,6 +50,43 @@ export type MosaicDomainCheckpointIndex = {
 	readonly value: Json.Serializable
 }
 
+/** One bounded authenticated delta used to verify an external graph root. */
+export type MosaicDomainCheckpointExternalProof = {
+	readonly kind: `external-proof`
+	readonly previousRootKey?: MosaicDomainCheckpointObjectKey
+	readonly updates: readonly (
+		| {
+				readonly index: string
+				readonly path: string
+				readonly remove: true
+		  }
+		| {
+				readonly index: string
+				readonly path: string
+				readonly valueKey: MosaicDomainCheckpointObjectKey
+		  }
+	)[]
+}
+
+/**
+ * A model-owned persistent index graph staged independently from a Domain root.
+ * The graph becomes live only when a published Domain root references its key.
+ */
+export type MosaicDomainCheckpointExternalRoot<
+	Identity extends MosaicDomainIdentity = MosaicDomainIdentity,
+> = {
+	readonly baseRevision: number
+	/** Total serialized bytes of the graph's logical index values. */
+	readonly bytes: number
+	/** Maximum directory depth admitted by this root and its parent lineage. */
+	readonly depth: number
+	readonly directory: MosaicDomainCheckpointObjectKey | null
+	readonly domain: Identity
+	readonly kind: `external-root`
+	/** Authenticated bounded delta from a previously verified root, if any. */
+	readonly proof?: MosaicDomainCheckpointObjectKey
+}
+
 /**
  * The small atomic root of a checkpoint graph. Member and application-index
  * directories are persistent bounded tries, so unchanged subtrees are shared.
@@ -58,6 +95,8 @@ export type MosaicDomainCheckpointRoot<
 	Identity extends MosaicDomainIdentity = MosaicDomainIdentity,
 > = {
 	readonly domain: Identity
+	/** Model-owned checkpoint graphs protected by this root's lifecycle. */
+	readonly externalRoots?: readonly MosaicDomainCheckpointObjectKey[]
 	readonly indexDirectory: MosaicDomainCheckpointObjectKey | null
 	readonly kind: `root`
 	readonly memberDirectory: MosaicDomainCheckpointObjectKey | null
@@ -70,6 +109,8 @@ export type MosaicDomainCheckpointObject<
 	Identity extends MosaicDomainIdentity = MosaicDomainIdentity,
 > =
 	| MosaicDomainCheckpointDirectoryNode
+	| MosaicDomainCheckpointExternalProof
+	| MosaicDomainCheckpointExternalRoot<Identity>
 	| MosaicDomainCheckpointIndex
 	| MosaicDomainCheckpointMember<Identity>
 	| MosaicDomainCheckpointRoot<Identity>
@@ -87,6 +128,9 @@ export type MosaicDomainCheckpointRecovery<
 
 /** A named liveness constraint used by safe checkpoint and tail reclamation. */
 export type MosaicDomainCheckpointRetentionLease = {
+	readonly expiresAfterRevision?: number
+	readonly expiresAt?: number
+	readonly expiresAtRetentionEpoch?: number
 	readonly id: string
 	readonly kind:
 		| `annotation`

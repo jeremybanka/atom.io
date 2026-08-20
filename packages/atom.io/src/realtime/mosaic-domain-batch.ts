@@ -303,6 +303,102 @@ const canonicalize = (value: Json.Serializable): string => {
 		.join(`,`)}}`
 }
 
+/** Visit canonical JSON without constructing a value-sized intermediate string. */
+export function visitMosaicCanonicalJson(
+	value: Json.Serializable,
+	visit: (chunk: string) => void,
+): void {
+	if (value === null || typeof value !== `object`) {
+		visit(JSON.stringify(value))
+		return
+	}
+	if (Array.isArray(value)) {
+		visit(`[`)
+		for (const [index, item] of value.entries()) {
+			if (index > 0) visit(`,`)
+			visitMosaicCanonicalJson(item, visit)
+		}
+		visit(`]`)
+		return
+	}
+	visit(`{`)
+	const object = value as Readonly<Record<string, Json.Serializable>>
+	for (const [index, key] of Object.keys(object).sort().entries()) {
+		if (index > 0) visit(`,`)
+		visit(JSON.stringify(key))
+		visit(`:`)
+		visitMosaicCanonicalJson(object[key], visit)
+	}
+	visit(`}`)
+}
+
+const sameCanonicalJson = (
+	left: Json.Serializable,
+	right: Json.Serializable,
+): boolean => {
+	if (left === right) return true
+	if (
+		left === null ||
+		right === null ||
+		typeof left !== `object` ||
+		typeof right !== `object` ||
+		Array.isArray(left) !== Array.isArray(right)
+	) {
+		return false
+	}
+	if (Array.isArray(left) && Array.isArray(right)) {
+		return (
+			left.length === right.length &&
+			left.every((item, index) => sameCanonicalJson(item, right[index]))
+		)
+	}
+	const leftObject = left as Readonly<Record<string, Json.Serializable>>
+	const rightObject = right as Readonly<Record<string, Json.Serializable>>
+	const leftKeys = Object.keys(leftObject).sort()
+	const rightKeys = Object.keys(rightObject).sort()
+	return (
+		leftKeys.length === rightKeys.length &&
+		leftKeys.every(
+			(key, index) =>
+				key === rightKeys[index] &&
+				sameCanonicalJson(leftObject[key], rightObject[key]),
+		)
+	)
+}
+
+const jsonUtf8ByteLength = (
+	value: Json.Serializable,
+	maximum: number,
+): number => {
+	const encoder = new TextEncoder()
+	let bytes = 0
+	const visit = (item: Json.Serializable): void => {
+		if (item === null || typeof item !== `object`) {
+			bytes += encoder.encode(JSON.stringify(item)).byteLength
+			if (bytes > maximum) return
+			return
+		}
+		if (Array.isArray(item)) {
+			bytes += 2 + Math.max(0, item.length - 1)
+			for (const child of item) {
+				if (bytes > maximum) return
+				visit(child)
+			}
+			return
+		}
+		const object = item as Readonly<Record<string, Json.Serializable>>
+		const keys = Object.keys(object)
+		bytes += 2 + Math.max(0, keys.length - 1)
+		for (const key of keys) {
+			if (bytes > maximum) return
+			bytes += encoder.encode(JSON.stringify(key)).byteLength + 1
+			visit(object[key])
+		}
+	}
+	visit(value)
+	return bytes
+}
+
 const deepFreeze = <Value extends Json.Serializable>(value: Value): Value => {
 	if (value !== null && typeof value === `object`) {
 		for (const child of Object.values(value)) {
@@ -361,7 +457,7 @@ async function validateOperation<Output extends Json.Serializable>(
 	const repeated = await validate(schema, structuredClone(normalized), boundary)
 	if (
 		!isJsonSerializable(repeated) ||
-		canonicalize(normalized) !== canonicalize(repeated)
+		!sameCanonicalJson(normalized, repeated)
 	) {
 		throw new Error(`${boundary} schema must normalize idempotently.`)
 	}
@@ -446,12 +542,7 @@ export function assertMosaicDomainBatchEnvelope(
 			`Mosaic Domain affected members must exactly match member operations.`,
 		)
 	}
-	let bytes: number
-	try {
-		bytes = new TextEncoder().encode(JSON.stringify(value)).byteLength
-	} catch {
-		throw new Error(`A Mosaic Domain batch must be JSON-serializable.`)
-	}
+	const bytes = jsonUtf8ByteLength(value, limits.maxBytes)
 	if (bytes > limits.maxBytes) {
 		throw new Error(`Mosaic Domain batch bytes exceed ${limits.maxBytes}.`)
 	}

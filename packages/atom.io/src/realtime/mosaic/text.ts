@@ -1826,19 +1826,55 @@ export function compactMosaicTextHistory(
 		}
 		return snapshotFromState(compacted)
 	}
-	const activeRunIds = new Set<string>()
+	const retiredActiveRunIds = new Set<string>()
 	const inactiveRunIds = new Set<string>()
 	const activeDeletions: MosaicTextDeletionInterval[] = []
 	const retiredEditIds = new Set(retiredEdits.map(({ id }) => id))
 	for (const action of retiredEdits) {
 		const active = state.activeEdits[action.id] === true
 		for (const runId of action.operation.insertedRunIds) {
-			;(active ? activeRunIds : inactiveRunIds).add(runId)
+			;(active ? retiredActiveRunIds : inactiveRunIds).add(runId)
 		}
 		if (active) activeDeletions.push(...action.operation.deleted)
 	}
 	const baselineActions: MosaicTextAppliedOperation[] = []
-	const baselineRuns = { ...state.runs }
+	const requiredRunIds = new Set(visibleRunsFromState(state).map(({ id }) => id))
+	for (const action of kept) {
+		if (action.operation.type !== `edit`) continue
+		for (const runId of action.operation.insertedRunIds)
+			requiredRunIds.add(runId)
+		for (const deletion of action.operation.deleted) {
+			requiredRunIds.add(deletion.runId)
+		}
+	}
+	const pendingRequired = [...requiredRunIds]
+	let nextRequiredIndex = 0
+	while (nextRequiredIndex < pendingRequired.length) {
+		const runId = pendingRequired[nextRequiredIndex]
+		nextRequiredIndex++
+		const run = state.runs[runId]
+		if (run === undefined) continue
+		for (const boundary of [run.after, run.before]) {
+			if (boundary === null || requiredRunIds.has(boundary.runId)) continue
+			requiredRunIds.add(boundary.runId)
+			pendingRequired.push(boundary.runId)
+		}
+	}
+	const retainedInactiveRunIds = new Set(
+		[...inactiveRunIds].filter((runId) => requiredRunIds.has(runId)),
+	)
+	const retainedActiveRunIds = new Set(
+		[...retiredActiveRunIds].filter((runId) => requiredRunIds.has(runId)),
+	)
+	const retainedActiveDeletions = activeDeletions.filter(({ runId }) =>
+		requiredRunIds.has(runId),
+	)
+	const baselineRuns = Object.fromEntries(
+		Object.entries(state.runs).filter(
+			([runId, run]) =>
+				!retiredEditIds.has(run.createdBy) || requiredRunIds.has(runId),
+		),
+	)
 	const usedActionIds = new Set(kept.map(({ id }) => id))
 	const uniqueInternalId = (base: string): string => {
 		let id = base
@@ -1878,8 +1914,12 @@ export function compactMosaicTextHistory(
 		})
 		return id
 	}
-	createBaseline(`active`, activeRunIds, activeDeletions)
-	const inactiveBaselineId = createBaseline(`inactive`, inactiveRunIds, [])
+	createBaseline(`active`, retainedActiveRunIds, retainedActiveDeletions)
+	const inactiveBaselineId = createBaseline(
+		`inactive`,
+		retainedInactiveRunIds,
+		[],
+	)
 	if (inactiveBaselineId !== null) {
 		const hiddenId = uniqueInternalId(`${inactiveBaselineId}:hidden`)
 		baselineActions.push({

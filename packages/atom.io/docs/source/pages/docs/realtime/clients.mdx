@@ -1,0 +1,137 @@
+import Exhibit from "c/Exhibit.astro";
+
+# <low-emphasis>atom.io</low-emphasis>/realtime-client
+
+`atom.io/realtime-client` contains renderer-neutral synchronization functions
+and controllers. They write projections into an ordinary atom.io Store and own
+transport, recovery, outbox, lease, and disposal lifecycle.
+
+Use it directly for services, workers, non-React renderers, and advanced React
+composition. Use [`atom.io/realtime-react`](/docs/realtime-react) when component
+lifecycle is the only missing piece.
+
+## package contents
+
+Every public export from `atom.io/realtime-client` is listed below. Runtime
+exports construct or expose behavior; the associated contracts are their public
+TypeScript surface.
+
+<table-wrapper>
+  <table>
+    <thead><tr><th>Area</th><th>Runtime exports</th><th>Associated contracts</th></tr></thead>
+    <tbody>
+      <tr><td>Rigid atoms</td><td><code>pullAtom</code>, <code>pullAtomFamilyMember</code></td><td>—</td></tr>
+      <tr><td>Rigid mutable atoms</td><td><code>pullMutableAtom</code>, <code>pullMutableAtomFamilyMember</code></td><td>—</td></tr>
+      <tr><td>Rigid selectors</td><td><code>pullSelector</code>, <code>pullSelectorFamilyMember</code></td><td>—</td></tr>
+      <tr><td>Rigid publication</td><td><code>pushState</code></td><td>—</td></tr>
+      <tr><td>Subscription coalescing</td><td><code>SUBSCRIPTION_COALESCE_MS</code>, <code>createSubscriber</code>, <code>getSubMap</code></td><td><code>SubscriberOptions</code></td></tr>
+      <tr><td>Socket lifecycle</td><td><code>observeSocketWindDown</code></td><td>—</td></tr>
+      <tr><td>Client Store state</td><td><code>myRoomKeySelector</code>, <code>mySocketKeyAtom</code>, <code>myUserKeyAtom</code>, <code>roomOwnerSelector</code>, <code>usersHereSelector</code></td><td>—</td></tr>
+      <tr><td>Atomic Mosaic</td><td><code>syncMosaic</code></td><td><code>MosaicClientClock</code>, <code>MosaicClientIdContext</code>, <code>MosaicClientIdKind</code>, <code>MosaicClientIdSource</code>, <code>MosaicClientProblem</code>, <code>MosaicClientStatus</code>, <code>MosaicClientTransport</code>, <code>MosaicController</code>, <code>MosaicSubmitOptions</code>, <code>MosaicSyncOptions</code>, <code>MosaicSyncState</code></td></tr>
+      <tr><td>Domain batches</td><td><code>createMosaicDomainBatchClient</code></td><td><code>MosaicDomainBatchClient</code>, <code>MosaicDomainBatchClientIdContext</code>, <code>MosaicDomainBatchClientOperation</code>, <code>MosaicDomainBatchClientOptions</code>, <code>MosaicDomainBatchClientState</code>, <code>MosaicDomainBatchClientTransport</code></td></tr>
+      <tr><td>Transaction bridge</td><td><code>createMosaicDomainTransactionBridge</code></td><td><code>MosaicDomainTransactionBridge</code>, <code>MosaicDomainTransactionBridgeOptions</code></td></tr>
+      <tr><td>Domain residency</td><td><code>createMosaicDomainResidencyClient</code></td><td><code>MosaicDomainResidencyClient</code>, <code>MosaicDomainResidencyClientOperation</code>, <code>MosaicDomainResidencyClientOptions</code>, <code>MosaicDomainResidencyClientState</code>, <code>MosaicDomainResidencyIdContext</code>, <code>MosaicDomainResidencyLease</code>, <code>MosaicDomainResidencySubscription</code>, <code>MosaicDomainResidentMember</code></td></tr>
+      <tr><td>Domain presence</td><td><code>createMosaicDomainPresenceClient</code>, <code>createMosaicDomainPresenceSocketTransport</code></td><td><code>MosaicDomainPresenceClient</code>, <code>MosaicDomainPresenceClientOptions</code>, <code>MosaicDomainPresenceClientSocket</code>, <code>MosaicDomainPresenceClientState</code>, <code>MosaicDomainPresenceClientTransport</code></td></tr>
+      <tr><td>Domain history</td><td><code>createMosaicDomainHistoryClient</code>, <code>createMosaicDomainHistorySocketTransport</code></td><td><code>MosaicDomainHistoryClient</code>, <code>MosaicDomainHistoryClientOptions</code>, <code>MosaicDomainHistoryClientProblem</code>, <code>MosaicDomainHistoryClientSocket</code>, <code>MosaicDomainHistoryClientState</code>, <code>MosaicDomainHistoryClientTransport</code></td></tr>
+      <tr><td>Text projection</td><td><code>createMosaicTextProjectionClient</code></td><td><code>MosaicTextLogicalEdit</code>, <code>MosaicTextProjectedBlock</code>, <code>MosaicTextProjectedSegment</code>, <code>MosaicTextProjectionClient</code>, <code>MosaicTextProjectionClientOptions</code>, <code>MosaicTextProjectionClientState</code>, <code>MosaicTextProjectionEditContext</code>, <code>MosaicTextProjectionEditPlan</code>, <code>MosaicTextRangeAcquisitionOptions</code>, <code>MosaicTextRangeLease</code>, <code>MosaicTextRangeObserver</code>, <code>MosaicTextRangeProjection</code></td></tr>
+    </tbody>
+  </table>
+</table-wrapper>
+
+## rigid synchronization
+
+Every pull function accepts an explicit Store and socket, subscribes to the
+remote state, projects accepted values into the Store, and returns a disposer.
+`pushState` publishes under explicit lease ownership rather than pretending
+every local write can succeed.
+
+## Atomic Mosaic client
+
+`syncMosaic` returns a `MosaicController`; `useMosaic` wraps it for React. Both
+provide `change`, `publishPresence`, `synchronize`, `retryPending`,
+`clearProblem`, and `createGroupId`, plus an ordinary sync-state atom.
+
+<Exhibit src="realtime/synchronize-a-mosaic-value.tsx" />
+
+Read the mutable atom with `useO` and derive from it with selectors. The Mosaic
+hook is a command/status interface, not a replacement value hook.
+
+## Domain batch client
+
+`createMosaicDomainBatchClient` owns confirmed/pending reprojection and the
+outbox for explicit Domain operations. `submit` can accept one operation or a
+heterogeneous list under one gesture id. It performs complete local preflight
+before optimism, sends only after the Store commit succeeds, and reserializes
+offline work in proposal sequence.
+
+Observe its immutable state for revision, pending ids, status, and a typed
+problem. A protocol collision or malformed authoritative response fails closed;
+an ordinary authorization rejection removes only the rejected proposal and
+resequences surviving offline work.
+
+## transaction bridge
+
+<Exhibit src="realtime/bridge-a-domain-transaction.ts" />
+
+The bridge is opt-in per transaction token and per model encoder. It captures
+only successful outermost commits and adopts already-committed optimism without
+double application. Retain and monitor its pending committed work: silently
+dropping a committed operation to enforce an arbitrary local cap would break
+convergence.
+
+## residency client
+
+`createMosaicDomainResidencyClient` exposes:
+
+- `acquire(address)` for a ref-counted authorized member lease;
+- `hydrate(selection)` for a bounded one-shot projection;
+- `subscribe(selection, listener)` for a changing member set;
+- `release` and `evict` for Store/resource lifecycle;
+- `reconnect` for rehydrate-before-replay; and
+- instrumentation for resident members, bytes, loads, subscriptions, and outbox work.
+
+Selections are either explicit member addresses or a model-specific range.
+Parsing and authorization happen before Store-family allocation. Dispose every
+lease and subscription even if a transport stop call fails; cleanup should
+aggregate errors rather than abandon later resources.
+
+## text projection
+
+<Exhibit src="realtime/project-a-mosaic-text-viewport.tsx" />
+
+`createMosaicTextProjectionClient` converts bounded resident text leaves into
+ordinary selectors and logical edit anchors. Overlapping consumers share
+canonical range records. The React package's `useMosaicTextRange` acquires a
+viewport plus overscan and releases it on change or unmount.
+
+The controller can temporarily acquire unloaded members to route one edit or
+history request, then clean them up. An accepted edit must not be reported as a
+failed edit solely because best-effort cleanup later failed; otherwise a retry
+could duplicate durable intent.
+
+## presence and history clients
+
+`createMosaicDomainPresenceClient` maintains a monotonic session projection and
+publishes bounded ephemeral updates. `createMosaicDomainHistoryClient` maintains
+the authenticated actor cursor, horizon, pending request, status, and typed
+problem. The Socket.IO transport helpers use typed success/error
+acknowledgements with bounded pending requests and timeouts.
+
+Both controllers isolate observer exceptions from protocol progress. Subscribe
+for UI state; do not let a rendering callback invalidate an already accepted
+transport result.
+
+## status and failure UX
+
+Design the interface for these states:
+
+- **connecting/hydrating:** show durable cached or local state honestly;
+- **ready:** accept normal commands;
+- **offline with pending work:** keep explicit retry/resume affordances;
+- **rejected:** explain permissions or stale command context without losing unrelated work;
+- **resnapshot required:** block edits whose anchors cannot be proven and recover;
+- **protocol failure:** fail closed and surface diagnostics rather than looping;
+- **disposed:** ignore late responses and release all Store resources.
+
+Optimistic UI is not permission to conceal uncertainty. A user should be able to
+tell whether their intent is local, pending, accepted, rejected, or unrecoverable.

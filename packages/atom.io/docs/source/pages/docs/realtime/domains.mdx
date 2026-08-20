@@ -1,0 +1,187 @@
+import Exhibit from "c/Exhibit.astro";
+
+# Mosaic Domains
+
+A Mosaic Domain is the collaboration boundary for an ordinary atom.io state
+graph. It gives heterogeneous atoms and family members one protocol identity,
+one authorization boundary, atomic batches, partial residency, checkpoints,
+presence, and actor-selective history.
+
+The Domain is a control plane. It does not create a second state graph. Durable
+values still live in atoms and mutable atoms, local drafts remain local atoms,
+and selectors still derive the view rendered by the application.
+
+## declare the boundary
+
+<Exhibit src="realtime/declare-a-mosaic-domain.ts" />
+
+The definition key and version identify replicated behavior. The instance
+identifies one particular document, design, game, or room. Configuration is
+validated activation input; it is not silently folded into addresses.
+
+One definition may have one active instance in a Store. Use another Silo or
+Store for another instance. This preserves unambiguous ordinary token identity.
+
+## member roles
+
+<table-wrapper>
+  <table>
+    <thead><tr><th>Role</th><th>Transport and ownership</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>durable</code></td>
+        <td>Validated replicated state with exclusive Domain ownership and an address.</td>
+      </tr>
+      <tr>
+        <td><code>ephemeral</code></td>
+        <td>Validated collaborative presence with session/expiry lifecycle, not durable storage.</td>
+      </tr>
+      <tr>
+        <td><code>local</code></td>
+        <td>Store-local drafts, DOM/pointer state, viewport state, and local preferences; never remotely addressable.</td>
+      </tr>
+      <tr>
+        <td><code>derived</code></td>
+        <td>Ordinary selectors computed from durable, ephemeral, and local members; never remotely writable.</td>
+      </tr>
+    </tbody>
+  </table>
+</table-wrapper>
+
+Durable family claims are intensional. The Domain claims the family pattern,
+including members allocated later, without eagerly allocating every member.
+
+## addresses do not hydrate
+
+An address contains the definition identity, instance, member name, and an
+optional canonical family key. Parsing verifies and normalizes untrusted input
+without allocating a family member. Acquisition is a separate operation.
+
+This distinction matters for authorization and partial residency: a rejected
+request must not mutate Store topology merely by naming a family key.
+
+## atomic batches
+
+<Exhibit src="realtime/coordinate-a-domain-batch.ts" />
+
+A batch carries stable batch, actor, session, group, dependency, member, and
+operation identities. The server performs complete schema normalization,
+address validation, model preflight, authorization, limit checks, and storage
+append before broadcasting acceptance.
+
+All resident members touched by an accepted batch settle in one Store
+transaction. Unloaded members remain unloaded. Rejection reprojects confirmed
+and surviving pending work as one transaction rather than publishing a partial
+rollback.
+
+Use a Domain batch for one user gesture, not for arbitrary temporal proximity.
+Stable gesture ids make retry and actor history deterministic.
+
+## ordinary transaction bridge
+
+Application code can continue to write ordinary atoms in an atom.io
+transaction. An opt-in bridge listens for successful outermost commits, asks
+each registered model to encode its old/new value or transceiver signal, and
+adopts the already-applied work without applying it twice.
+
+<Exhibit src="realtime/bridge-a-domain-transaction.ts" />
+
+The bridge binds explicit transaction tokens. Aborted transactions, nested
+implementation commits, Domain settlement, and unrelated Store work are not
+captured by timing or equality heuristics. Models without an encoder fail
+closed.
+
+## partial residency
+
+<Exhibit src="realtime/coordinate-partial-residency.ts" />
+
+Residency separates three operations:
+
+- **hydrate** obtains an authorized bounded snapshot;
+- **subscribe** follows a member set or model-specific range selection; and
+- **acquire/release** controls which ordinary family tokens exist in the Store.
+
+On reconnect, the client rehydrates desired leases and subscriptions before it
+replays relevant pending proposals. Catch-up overflow requests an authoritative
+resnapshot instead of keeping an unbounded event buffer.
+
+Range selection is a server resolver seam. Generic Domain code carries an
+opaque, validated range; a text index, spatial index, or application resource
+index resolves it to concrete addresses.
+
+## presence
+
+<Exhibit src="realtime/coordinate-domain-presence.ts" />
+
+Presence binds actor and session on the authenticated server connection. It has
+monotonic update/clear cursors, snapshots for reconnect, byte/rate/session/queue
+limits, expiry, and disconnect cleanup. Presence transport failure is advisory;
+durable editing should not fail because a pointer preview was dropped.
+
+Store logical coordinates and stable resource ids. Keep DOM nodes, pixel-space
+layout, pointer capture, and local viewport state out of the Domain.
+
+## actor-selective history
+
+<Exhibit src="realtime/coordinate-domain-history.ts" />
+
+The history coordinator groups accepted changes by authenticated actor and
+gesture. Models classify changes, generate compensating operations, and compact
+checkpoints while preserving protected targets. Undo submits one authoritative
+Domain batch; it does not restore an old Store or document snapshot.
+
+History has an explicit actor cursor and horizon. Same-actor sessions use
+persisted session sequences so a recreated controller cannot restart at
+sequence one and leave a permanent request gap. Maintenance operations such as
+text-index repair are classified `exclude` and may be appended to compensation
+only after the original targets are accounted for exactly.
+
+Atom.io core timelines are local Store history. Domain history is replicated
+actor intent. They solve different problems and should not be layered together
+implicitly.
+
+## incremental checkpoints
+
+<Exhibit src="realtime/checkpoint-a-domain-incrementally.ts" />
+
+The coordinator derives dirty addresses from a contiguous accepted tail,
+materializes only those member versions, path-copies affected indexes, stages
+immutable objects, and atomically publishes a fenced root. Recovery loads the
+root, requested members, and a bounded tail.
+
+Retention leases protect roots and lower tail floors for sessions, outboxes,
+history, proposals, and presence anchors. Garbage collection traces every live
+root and uses retention epochs to reject stale publishers and collectors.
+
+## bounded projections
+
+For large text, the residency client feeds a Store-owned projection controller.
+Exact resident leaves become selector dependencies; overlapping consumers share
+leases, and release/eviction disposes unused family members.
+
+<Exhibit src="realtime/project-a-mosaic-text-viewport.tsx" />
+
+This pattern generalizes to spatial tiles, glyphs, scenes, or other indexed
+resources. The model-specific index decides which members a range means; the
+Domain owns authorization, transport, and atomic settlement.
+
+## controller map
+
+<table-wrapper>
+  <table>
+    <thead><tr><th>Concern</th><th>Client</th><th>Server</th></tr></thead>
+    <tbody>
+      <tr><td>Durable change</td><td><code>createMosaicDomainBatchClient</code></td><td><code>createMosaicDomainBatchServer</code></td></tr>
+      <tr><td>Partial data</td><td><code>createMosaicDomainResidencyClient</code></td><td><code>createMosaicDomainResidencyServer</code></td></tr>
+      <tr><td>Presence</td><td><code>createMosaicDomainPresenceClient</code></td><td><code>createMosaicDomainPresenceServer</code></td></tr>
+      <tr><td>History</td><td><code>createMosaicDomainHistoryClient</code></td><td><code>createMosaicDomainHistoryCoordinator</code></td></tr>
+      <tr><td>Checkpoints</td><td>Recovered through residency/batch composition.</td><td><code>createMosaicDomainCheckpointCoordinator</code></td></tr>
+      <tr><td>Store transactions</td><td><code>createMosaicDomainTransactionBridge</code></td><td>Accepted as ordinary batches.</td></tr>
+    </tbody>
+  </table>
+</table-wrapper>
+
+Continue with [`atom.io/realtime-client`](/docs/realtime-client),
+[`atom.io/realtime-react`](/docs/realtime-react),
+[`atom.io/realtime-server`](/docs/realtime-server), and the complete
+[Mosaic Domain concept reference](/docs/concepts#mosaic-domain).

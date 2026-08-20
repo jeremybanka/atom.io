@@ -7,6 +7,12 @@ problem and need to find the owning package.
 Types, protocol constants, event names, limit types, rejection codes, and
 envelope validators are exported beside the functions listed here.
 
+For exhaustive entrypoint inventories, use the package pages for
+[`atom.io/realtime-client`](/docs/realtime-client),
+[`atom.io/realtime-react`](/docs/realtime-react),
+[`atom.io/realtime-server`](/docs/realtime-server), and
+[`atom.io/realtime-testing`](/docs/realtime-testing).
+
 ## <low-emphasis>atom.io</low-emphasis>/realtime
 
 ### common transport and identity
@@ -163,7 +169,7 @@ disposer.
   <table>
     <thead><tr><th>Component</th><th>Use</th></tr></thead>
     <tbody>
-      <tr><td><code>setupRealtimeTest</code></td><td>Rendered multi-client topology with isolated Silos and sockets.</td></tr>
+      <tr><td><code>singleClient</code> / <code>multiClient</code></td><td>Rendered topologies with isolated Silos and sockets.</td></tr>
       <tr><td><code>atom.io/realtime-testing/headless</code></td><td>Multi-client topology without a renderer.</td></tr>
       <tr><td>deterministic transport</td><td>Hold, duplicate, reorder, reject, drop, and release messages.</td></tr>
       <tr><td>virtual clock</td><td>Advance timers, leases, expiry, retry, and deadlines deterministically.</td></tr>

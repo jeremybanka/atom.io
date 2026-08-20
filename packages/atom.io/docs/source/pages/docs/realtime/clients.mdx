@@ -1,47 +1,49 @@
 import Exhibit from "c/Exhibit.astro";
 
-# clients and React
+# <low-emphasis>atom.io</low-emphasis>/realtime-client
 
-`atom.io/realtime-client` contains renderer-neutral controllers.
-`atom.io/realtime-react` starts and stops those services according to component
-lifecycle. Both write projections into an ordinary atom.io Store.
+`atom.io/realtime-client` contains renderer-neutral synchronization functions
+and controllers. They write projections into an ordinary atom.io Store and own
+transport, recovery, outbox, lease, and disposal lifecycle.
 
-Prefer the headless package for services, workers, non-React renderers, and
-complex composition. Prefer the React hooks when lifecycle is the only missing
-piece. Do not create a second application state model inside either layer.
+Use it directly for services, workers, non-React renderers, and advanced React
+composition. Use [`atom.io/realtime-react`](/docs/realtime-react) when component
+lifecycle is the only missing piece.
 
-## React provider
+## package contents
 
-<Exhibit src="realtime/provide-realtime-react.tsx" />
-
-`RealtimeProvider` supplies one Socket.IO client and coalesces services by
-stable key. Nest it inside the Store/Silo provider whose atoms participate in
-collaboration. Replacing the socket disconnects old services and lets them
-reconnect through the new transport.
-
-Use the current origin for browser connections when a Vite, reverse proxy, or
-edge worker forwards the realtime route to the backend.
-
-## rigid hooks
+Every public export from `atom.io/realtime-client` is listed below. Runtime
+exports construct or expose behavior; the associated contracts are their public
+TypeScript surface.
 
 <table-wrapper>
   <table>
-    <thead><tr><th>React hook</th><th>Headless equivalent</th></tr></thead>
+    <thead><tr><th>Area</th><th>Runtime exports</th><th>Associated contracts</th></tr></thead>
     <tbody>
-      <tr><td><code>usePullAtom</code></td><td><code>pullAtom</code></td></tr>
-      <tr><td><code>usePullAtomFamilyMember</code></td><td><code>pullAtomFamilyMember</code></td></tr>
-      <tr><td><code>usePullMutable</code></td><td><code>pullMutableAtom</code></td></tr>
-      <tr><td><code>usePullMutableAtomFamilyMember</code></td><td><code>pullMutableAtomFamilyMember</code></td></tr>
-      <tr><td><code>usePullSelector</code></td><td><code>pullSelector</code></td></tr>
-      <tr><td><code>usePullSelectorFamilyMember</code></td><td><code>pullSelectorFamilyMember</code></td></tr>
-      <tr><td><code>usePush</code> / <code>usePushStatus</code></td><td><code>pushState</code> plus lease atoms</td></tr>
-      <tr><td><code>useRealtimeRooms</code></td><td>Room socket events and room state atoms</td></tr>
+      <tr><td>Rigid atoms</td><td><code>pullAtom</code>, <code>pullAtomFamilyMember</code></td><td>—</td></tr>
+      <tr><td>Rigid mutable atoms</td><td><code>pullMutableAtom</code>, <code>pullMutableAtomFamilyMember</code></td><td>—</td></tr>
+      <tr><td>Rigid selectors</td><td><code>pullSelector</code>, <code>pullSelectorFamilyMember</code></td><td>—</td></tr>
+      <tr><td>Rigid publication</td><td><code>pushState</code></td><td>—</td></tr>
+      <tr><td>Subscription coalescing</td><td><code>SUBSCRIPTION_COALESCE_MS</code>, <code>createSubscriber</code>, <code>getSubMap</code></td><td><code>SubscriberOptions</code></td></tr>
+      <tr><td>Socket lifecycle</td><td><code>observeSocketWindDown</code></td><td>—</td></tr>
+      <tr><td>Client Store state</td><td><code>myRoomKeySelector</code>, <code>mySocketKeyAtom</code>, <code>myUserKeyAtom</code>, <code>roomOwnerSelector</code>, <code>usersHereSelector</code></td><td>—</td></tr>
+      <tr><td>Atomic Mosaic</td><td><code>syncMosaic</code></td><td><code>MosaicClientClock</code>, <code>MosaicClientIdContext</code>, <code>MosaicClientIdKind</code>, <code>MosaicClientIdSource</code>, <code>MosaicClientProblem</code>, <code>MosaicClientStatus</code>, <code>MosaicClientTransport</code>, <code>MosaicController</code>, <code>MosaicSubmitOptions</code>, <code>MosaicSyncOptions</code>, <code>MosaicSyncState</code></td></tr>
+      <tr><td>Domain batches</td><td><code>createMosaicDomainBatchClient</code></td><td><code>MosaicDomainBatchClient</code>, <code>MosaicDomainBatchClientIdContext</code>, <code>MosaicDomainBatchClientOperation</code>, <code>MosaicDomainBatchClientOptions</code>, <code>MosaicDomainBatchClientState</code>, <code>MosaicDomainBatchClientTransport</code></td></tr>
+      <tr><td>Transaction bridge</td><td><code>createMosaicDomainTransactionBridge</code></td><td><code>MosaicDomainTransactionBridge</code>, <code>MosaicDomainTransactionBridgeOptions</code></td></tr>
+      <tr><td>Domain residency</td><td><code>createMosaicDomainResidencyClient</code></td><td><code>MosaicDomainResidencyClient</code>, <code>MosaicDomainResidencyClientOperation</code>, <code>MosaicDomainResidencyClientOptions</code>, <code>MosaicDomainResidencyClientState</code>, <code>MosaicDomainResidencyIdContext</code>, <code>MosaicDomainResidencyLease</code>, <code>MosaicDomainResidencySubscription</code>, <code>MosaicDomainResidentMember</code></td></tr>
+      <tr><td>Domain presence</td><td><code>createMosaicDomainPresenceClient</code>, <code>createMosaicDomainPresenceSocketTransport</code></td><td><code>MosaicDomainPresenceClient</code>, <code>MosaicDomainPresenceClientOptions</code>, <code>MosaicDomainPresenceClientSocket</code>, <code>MosaicDomainPresenceClientState</code>, <code>MosaicDomainPresenceClientTransport</code></td></tr>
+      <tr><td>Domain history</td><td><code>createMosaicDomainHistoryClient</code>, <code>createMosaicDomainHistorySocketTransport</code></td><td><code>MosaicDomainHistoryClient</code>, <code>MosaicDomainHistoryClientOptions</code>, <code>MosaicDomainHistoryClientProblem</code>, <code>MosaicDomainHistoryClientSocket</code>, <code>MosaicDomainHistoryClientState</code>, <code>MosaicDomainHistoryClientTransport</code></td></tr>
+      <tr><td>Text projection</td><td><code>createMosaicTextProjectionClient</code></td><td><code>MosaicTextLogicalEdit</code>, <code>MosaicTextProjectedBlock</code>, <code>MosaicTextProjectedSegment</code>, <code>MosaicTextProjectionClient</code>, <code>MosaicTextProjectionClientOptions</code>, <code>MosaicTextProjectionClientState</code>, <code>MosaicTextProjectionEditContext</code>, <code>MosaicTextProjectionEditPlan</code>, <code>MosaicTextRangeAcquisitionOptions</code>, <code>MosaicTextRangeLease</code>, <code>MosaicTextRangeObserver</code>, <code>MosaicTextRangeProjection</code></td></tr>
     </tbody>
   </table>
 </table-wrapper>
 
-Pull hooks subscribe only while consumed. Push hooks expose lease ownership
-rather than pretending every local write can succeed.
+## rigid synchronization
+
+Every pull function accepts an explicit Store and socket, subscribes to the
+remote state, projects accepted values into the Store, and returns a disposer.
+`pushState` publishes under explicit lease ownership rather than pretending
+every local write can succeed.
 
 ## Atomic Mosaic client
 
@@ -93,14 +95,14 @@ Parsing and authorization happen before Store-family allocation. Dispose every
 lease and subscription even if a transport stop call fails; cleanup should
 aggregate errors rather than abandon later resources.
 
-## text projection and React viewport
+## text projection
 
 <Exhibit src="realtime/project-a-mosaic-text-viewport.tsx" />
 
 `createMosaicTextProjectionClient` converts bounded resident text leaves into
-ordinary selectors and logical edit anchors. `useMosaicTextRange` acquires a
-viewport plus overscan and releases it on change/unmount. Overlapping consumers
-share canonical range records.
+ordinary selectors and logical edit anchors. Overlapping consumers share
+canonical range records. The React package's `useMosaicTextRange` acquires a
+viewport plus overscan and releases it on change or unmount.
 
 The controller can temporarily acquire unloaded members to route one edit or
 history request, then clean them up. An accepted edit must not be reported as a

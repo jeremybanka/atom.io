@@ -1,0 +1,135 @@
+import Exhibit from "c/Exhibit.astro";
+
+# clients and React
+
+`atom.io/realtime-client` contains renderer-neutral controllers.
+`atom.io/realtime-react` starts and stops those services according to component
+lifecycle. Both write projections into an ordinary atom.io Store.
+
+Prefer the headless package for services, workers, non-React renderers, and
+complex composition. Prefer the React hooks when lifecycle is the only missing
+piece. Do not create a second application state model inside either layer.
+
+## React provider
+
+<Exhibit src="realtime/provide-realtime-react.tsx" />
+
+`RealtimeProvider` supplies one Socket.IO client and coalesces services by
+stable key. Nest it inside the Store/Silo provider whose atoms participate in
+collaboration. Replacing the socket disconnects old services and lets them
+reconnect through the new transport.
+
+Use the current origin for browser connections when a Vite, reverse proxy, or
+edge worker forwards the realtime route to the backend.
+
+## rigid hooks
+
+<table-wrapper>
+  <table>
+    <thead><tr><th>React hook</th><th>Headless equivalent</th></tr></thead>
+    <tbody>
+      <tr><td><code>usePullAtom</code></td><td><code>pullAtom</code></td></tr>
+      <tr><td><code>usePullAtomFamilyMember</code></td><td><code>pullAtomFamilyMember</code></td></tr>
+      <tr><td><code>usePullMutable</code></td><td><code>pullMutableAtom</code></td></tr>
+      <tr><td><code>usePullMutableAtomFamilyMember</code></td><td><code>pullMutableAtomFamilyMember</code></td></tr>
+      <tr><td><code>usePullSelector</code></td><td><code>pullSelector</code></td></tr>
+      <tr><td><code>usePullSelectorFamilyMember</code></td><td><code>pullSelectorFamilyMember</code></td></tr>
+      <tr><td><code>usePush</code> / <code>usePushStatus</code></td><td><code>pushState</code> plus lease atoms</td></tr>
+      <tr><td><code>useRealtimeRooms</code></td><td>Room socket events and room state atoms</td></tr>
+    </tbody>
+  </table>
+</table-wrapper>
+
+Pull hooks subscribe only while consumed. Push hooks expose lease ownership
+rather than pretending every local write can succeed.
+
+## Atomic Mosaic client
+
+`syncMosaic` returns a `MosaicController`; `useMosaic` wraps it for React. Both
+provide `change`, `publishPresence`, `synchronize`, `retryPending`,
+`clearProblem`, and `createGroupId`, plus an ordinary sync-state atom.
+
+<Exhibit src="realtime/synchronize-a-mosaic-value.tsx" />
+
+Read the mutable atom with `useO` and derive from it with selectors. The Mosaic
+hook is a command/status interface, not a replacement value hook.
+
+## Domain batch client
+
+`createMosaicDomainBatchClient` owns confirmed/pending reprojection and the
+outbox for explicit Domain operations. `submit` can accept one operation or a
+heterogeneous list under one gesture id. It performs complete local preflight
+before optimism, sends only after the Store commit succeeds, and reserializes
+offline work in proposal sequence.
+
+Observe its immutable state for revision, pending ids, status, and a typed
+problem. A protocol collision or malformed authoritative response fails closed;
+an ordinary authorization rejection removes only the rejected proposal and
+resequences surviving offline work.
+
+## transaction bridge
+
+<Exhibit src="realtime/bridge-a-domain-transaction.ts" />
+
+The bridge is opt-in per transaction token and per model encoder. It captures
+only successful outermost commits and adopts already-committed optimism without
+double application. Retain and monitor its pending committed work: silently
+dropping a committed operation to enforce an arbitrary local cap would break
+convergence.
+
+## residency client
+
+`createMosaicDomainResidencyClient` exposes:
+
+- `acquire(address)` for a ref-counted authorized member lease;
+- `hydrate(selection)` for a bounded one-shot projection;
+- `subscribe(selection, listener)` for a changing member set;
+- `release` and `evict` for Store/resource lifecycle;
+- `reconnect` for rehydrate-before-replay; and
+- instrumentation for resident members, bytes, loads, subscriptions, and outbox work.
+
+Selections are either explicit member addresses or a model-specific range.
+Parsing and authorization happen before Store-family allocation. Dispose every
+lease and subscription even if a transport stop call fails; cleanup should
+aggregate errors rather than abandon later resources.
+
+## text projection and React viewport
+
+<Exhibit src="realtime/project-a-mosaic-text-viewport.tsx" />
+
+`createMosaicTextProjectionClient` converts bounded resident text leaves into
+ordinary selectors and logical edit anchors. `useMosaicTextRange` acquires a
+viewport plus overscan and releases it on change/unmount. Overlapping consumers
+share canonical range records.
+
+The controller can temporarily acquire unloaded members to route one edit or
+history request, then clean them up. An accepted edit must not be reported as a
+failed edit solely because best-effort cleanup later failed; otherwise a retry
+could duplicate durable intent.
+
+## presence and history clients
+
+`createMosaicDomainPresenceClient` maintains a monotonic session projection and
+publishes bounded ephemeral updates. `createMosaicDomainHistoryClient` maintains
+the authenticated actor cursor, horizon, pending request, status, and typed
+problem. The Socket.IO transport helpers use typed success/error
+acknowledgements with bounded pending requests and timeouts.
+
+Both controllers isolate observer exceptions from protocol progress. Subscribe
+for UI state; do not let a rendering callback invalidate an already accepted
+transport result.
+
+## status and failure UX
+
+Design the interface for these states:
+
+- **connecting/hydrating:** show durable cached or local state honestly;
+- **ready:** accept normal commands;
+- **offline with pending work:** keep explicit retry/resume affordances;
+- **rejected:** explain permissions or stale command context without losing unrelated work;
+- **resnapshot required:** block edits whose anchors cannot be proven and recover;
+- **protocol failure:** fail closed and surface diagnostics rather than looping;
+- **disposed:** ignore late responses and release all Store resources.
+
+Optimistic UI is not permission to conceal uncertainty. A user should be able to
+tell whether their intent is local, pending, accepted, rejected, or unrecoverable.

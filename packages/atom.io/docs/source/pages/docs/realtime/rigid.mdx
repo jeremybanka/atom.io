@@ -1,0 +1,116 @@
+import Exhibit from "c/Exhibit.astro";
+
+# rigid realtime
+
+Rigid realtime exposes an authoritative atom.io value to clients. Clients pull
+the latest value and may push replacements only while they own a renewable
+lease. It is the clearest model for server state, room configuration, cursors
+with an elected owner, and small shared controls.
+
+Rigid means the ownership and value shape are intentionally constrained. It
+does not mean the transport is unreliable or that writes race without rules.
+
+## mental model
+
+- A **provider** serves an atom, family member, selector, or mutable value.
+- A **receiver** validates proposed replacement values.
+- A **pulling client** subscribes while at least one consumer needs the value.
+- A **pushing client** first claims a renewable lease. Only the current lease
+  generation and sequence may publish.
+- The server releases ownership on unclaim, expiry, or disconnect.
+
+There is no merge function. Two concurrent writers do not both win. If the
+product requires both users' intent to survive, use
+[Atomic Mosaic](/docs/realtime/mosaic) instead.
+
+## declare shared state
+
+Client and server import the same atom token. Its key is the wire-visible
+identity, while the server-side Standard Schema is the trust boundary for
+pushed values.
+
+<Exhibit src="realtime/declare-rigid-state.ts" />
+
+## provide and receive on the server
+
+The connection config contains an authenticated consumer, a socket, and
+optionally a Store. Provide the state for reads and register a receiver only if
+clients may write it.
+
+<Exhibit src="realtime/serve-rigid-state.ts" />
+
+`realtimeStateProvider` sends the initial value and subsequent changes until
+the client unsubscribes. `realtimeStateReceiver` owns the lease coordinator,
+validates publications, rejects stale generations or sequences, and clears
+ownership during cleanup.
+
+## consume it from React
+
+Place a [RealtimeProvider](/docs/realtime/clients#react-provider) above the
+component. `usePullAtom` returns the ordinary atom value. `usePush` returns a
+normal setter only while this client owns the lease; a null setter is a useful,
+honest UI state.
+
+<Exhibit src="realtime/use-rigid-state.tsx" />
+
+Do not keep a stale setter after ownership changes. Render from the current
+hook result, and use `usePushStatus` when the interface needs to distinguish
+idle, claiming, owned, and blocked states.
+
+## headless clients
+
+`atom.io/realtime-client` exposes the same lifecycle without React:
+
+<table-wrapper>
+  <table>
+    <thead>
+      <tr><th>Function</th><th>Pulls or pushes</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>pullAtom</code></td><td>A regular atom.</td></tr>
+      <tr><td><code>pullAtomFamilyMember</code></td><td>One regular family member.</td></tr>
+      <tr><td><code>pullMutableAtom</code></td><td>A mutable atom snapshot/stream.</td></tr>
+      <tr><td><code>pullMutableAtomFamilyMember</code></td><td>One mutable family member.</td></tr>
+      <tr><td><code>pullSelector</code></td><td>A server-derived selector value.</td></tr>
+      <tr><td><code>pullSelectorFamilyMember</code></td><td>One selector-family result.</td></tr>
+      <tr><td><code>pushState</code></td><td>A leased writable atom value.</td></tr>
+    </tbody>
+  </table>
+</table-wrapper>
+
+Every function accepts an explicit Store and socket and returns a disposer.
+Call that disposer during unmount, route change, room change, or socket teardown.
+
+## rooms
+
+`provideRooms` and `useRealtimeRooms` are useful when each room is an isolated
+process or Store with its own state graph. Room membership and visibility are
+server-authoritative. Configure startup, idle, maximum-life, and shutdown
+timeouts; do not allow abandoned room processes to become unbounded storage or
+compute.
+
+Rooms are hosting topology, not a convergence primitive. State inside a room
+may still use rigid values, Mosaic values, or a Mosaic Domain.
+
+## where rigid works well
+
+- Server-owned status, configuration, scores, and feature controls.
+- Small collaborative tools with an explicit editor lock.
+- A presenter/follower interface where one participant owns navigation.
+- Values where replacing the complete state is the intended business rule.
+- Incremental adoption when a full operation model would be unnecessary.
+
+## where it stops working
+
+Rigid realtime is the wrong fit when:
+
+- offline edits from several actors must survive;
+- the value is large enough that replacement is expensive;
+- users edit disjoint regions simultaneously;
+- undo must remove one actor's intent without erasing another actor's work;
+- one gesture changes several atom/family members atomically; or
+- conflict resolution depends on the meaning of an operation.
+
+Those are model requirements, not transport tuning problems. Move one
+convergent value to [Atomic Mosaic](/docs/realtime/mosaic), or move an
+application graph to [Mosaic Domains](/docs/realtime/domains).

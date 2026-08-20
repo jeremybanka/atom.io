@@ -1,0 +1,174 @@
+# operations and security
+
+Realtime makes application state a network protocol. A correct model can still
+be unsafe if identity is simulated, storage is not atomic, limits are absent,
+or a version rollout lets peers disagree about reduction.
+
+Use this page as a production-readiness checklist.
+
+## identity and authorization
+
+- Authenticate the socket before creating user/Domain state.
+- Derive actor and session on the server. Do not trust proposal identity fields.
+- Authorize reads, writes, member keys, range selections, history requests, and presence separately.
+- Revalidate authorization at acceptance; long-lived connections can outlive role changes.
+- Keep simulated identity behind development/test configuration.
+- Define session retirement, user revocation, resource deletion, and tenant deletion.
+
+Actor identity represents the product user for selective history. Session
+identity represents one live client/reconnect sequence. Conflating them makes
+multi-tab ordering and undo ambiguous.
+
+## schemas and versions
+
+Every transport boundary uses Standard Schema or an equally explicit runtime
+validator. Validate nested arrays and objects, finite/safe numbers, canonical
+keys, known discriminants, maximum depth, and maximum encoded bytes.
+
+Version model behavior when any of these change:
+
+- operation or snapshot parsing;
+- reduction, conflict, or compensation semantics;
+- member naming or addressing;
+- index layout and stale-identity recovery;
+- checkpoint/external-root representation; or
+- behavior-affecting configuration peers must share.
+
+Deploy servers that can reject or migrate old versions before deploying clients
+that emit a new version. Never let two model versions share an identity and hope
+their results happen to match.
+
+## limits and backpressure
+
+Set and observe limits at each layer:
+
+<table-wrapper>
+  <table>
+    <thead><tr><th>Layer</th><th>Bound</th></tr></thead>
+    <tbody>
+      <tr><td>Socket</td><td>Message bytes, acknowledgement timeout, pending requests, send/receive queues.</td></tr>
+      <tr><td>Batch</td><td>Operations, members, dependencies, bytes, pending proposals, recent receipts.</td></tr>
+      <tr><td>Model</td><td>Operation fields, referenced objects, inserted content, snapshot/checkpoint complexity.</td></tr>
+      <tr><td>Residency</td><td>Selection bytes/depth, addresses, resident members/bytes, catch-up events.</td></tr>
+      <tr><td>Presence</td><td>Payload bytes, rate, sessions, pending work, expiry.</td></tr>
+      <tr><td>History</td><td>Undo horizon, actors, sessions, retained targets, race cuts, compaction work.</td></tr>
+      <tr><td>Checkpoint</td><td>Objects, object bytes/depth, tail batches, page size, aggregate recovery, staging deadline.</td></tr>
+      <tr><td>Host</td><td>Rooms, connections, tenants, storage, CPU, memory, request deadline, shutdown drain.</td></tr>
+    </tbody>
+  </table>
+</table-wrapper>
+
+Reject before expensive model work. Backpressure is preferable to accepting
+more durable work than the process can reconcile safely.
+
+## persistence contract
+
+The in-memory adapters demonstrate semantics. Production storage must provide:
+
+- serialized or compare-and-swap batch append;
+- idempotency receipts with collision detection;
+- session watermarks and bounded recent dependencies;
+- atomic checkpoint-root publication fenced by revision and retention epoch;
+- immutable content-addressed objects with verified keys;
+- paged object/index reads;
+- retention leases and a fenced tracing collector; and
+- backup/restore that preserves the relationship between stream, roots, and objects.
+
+Run the exported storage conformance against the real adapter.
+
+## restart and recovery
+
+Clients reconnect by known revision plus pending ids. Servers recover a pinned
+checkpoint root and bounded contiguous tail. If either side cannot prove
+continuity, request a resnapshot; do not patch a gap by accepting later messages.
+
+Test crashes during:
+
+- proposal staging;
+- append before broadcast;
+- duplicate append by another writer;
+- checkpoint object staging;
+- accepted external root before checkpoint adoption;
+- root publication;
+- garbage collection; and
+- disconnect cleanup.
+
+Each phase needs a safe retry or a safe collectible remainder.
+
+## observability
+
+Record identifiers and counters, not document contents or presence payloads.
+Useful telemetry includes:
+
+- Domain definition/version/instance and member address;
+- actor/session only under your privacy policy;
+- proposal, batch, operation, gesture, request, and checkpoint ids;
+- accepted/client/checkpoint revisions and resnapshot count;
+- pending, resident, receipt, tail, history, session, and lease counts;
+- validation, storage, reduction, projection, and checkpoint latency;
+- payload, resident, staged, checkpoint, and delivered bytes;
+- rejection/problem codes; and
+- GC roots traced, objects retained/removed, and retention epoch.
+
+Logs should be sufficient to reproduce ordering without exposing collaborative
+content.
+
+## deployment topology
+
+For browser applications, prefer one public origin. Proxy the Socket.IO path
+and any collaboration HTTP routes through the frontend host. Derive the client
+connection from `location.origin`; configure explicit trusted forwarding and
+origin policy at the backend.
+
+Use sticky routing only when the server design requires resident process state.
+Durable ordering and receipts still belong in shared storage. A process-local
+map is not a multi-instance coordination strategy.
+
+## durability and product ownership
+
+Atom.io supplies protocol contracts and controller/storage seams. The host owns:
+
+- identity proof and account/session revocation;
+- tenant/resource admission and authorization rules;
+- database choice, migrations, replication, backup, restore, and retention;
+- encryption and secret management;
+- abuse controls, quotas, deadlines, and incident response;
+- product-specific conflict and compensation semantics; and
+- user-facing offline, rejection, and recovery experience.
+
+Templates use simulated identities and in-memory storage so they remain easy to
+run. Treat those as explicit seams to replace.
+
+## migrating older realtime code
+
+Continuities are removed. Do not introduce a compatibility layer that preserves
+their old lifecycle model.
+
+Map existing code by intent:
+
+- server-authoritative proxying or one-writer state → **rigid pull/push**;
+- one convergent mutable atom → **Atomic Mosaic**;
+- heterogeneous collaborative resource → **Mosaic Domain**;
+- local UI undo → core **timeline**;
+- replicated actor intent → **Domain history coordinator**.
+
+Migrate one resource boundary at a time. Give new Mosaic models and Domains new
+wire versions, run old/new data fixtures through explicit migration, and use a
+server rollout that can reject unsupported clients clearly.
+
+## release gate
+
+Before production, require:
+
+- public and total coverage non-regression;
+- model permutation and independent-oracle tests;
+- multi-client duplicate/delay/reorder/reject/disconnect/resnapshot tests;
+- checkpoint and storage conformance on the production adapter;
+- restart and crash-window tests;
+- bounded large-document/long-stream tests where applicable;
+- a security review of every remotely reachable staging and range resolver;
+- migration and rollback rehearsal for every wire-version change; and
+- a manual UX pass for offline, pending, rejected, and resnapshot states.
+
+The [realtime testing guide](/docs/realtime/testing) provides the fixtures and
+assertion strategy for these gates.

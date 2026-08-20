@@ -1,0 +1,136 @@
+import Exhibit from "c/Exhibit.astro";
+
+# realtime testing
+
+Realtime correctness is a property of several clients, an authoritative server,
+storage, clocks, failures, and restart—not of one component in isolation.
+`atom.io/realtime-testing` provides deterministic pieces for assembling and
+replaying that system.
+
+## testing layers
+
+Use all four layers:
+
+1. **Model tests** permute operations and assert convergence against an independent oracle.
+2. **Controller tests** exercise optimism, rejection, duplicates, gaps, reconnect, and disposal.
+3. **Storage conformance** verifies atomic append, recovery, checkpoint fencing, leases, paging, and GC.
+4. **Rendered multi-client tests** prove real users observe the intended UI and individualized history.
+
+A happy-path Socket.IO test is useful, but it cannot substitute for deterministic
+fault control or restart with shared storage.
+
+## replayable model schedules
+
+Generate a serializable schedule with a fixed seed, apply one action or fault at
+a time, drain work to quiescence, and assert invariants after every step.
+
+<Exhibit src="realtime/generate-a-replayable-scenario.ts" />
+
+When a run fails, `ModelScenarioFailure.replay()` returns the precise JSON
+schedule. `shrinkModelScenario` can remove chunks and try model-specific smaller
+steps while preserving the failure.
+
+## deterministic transport and time
+
+The deterministic transport lets a test hold, duplicate, reorder, reject, drop,
+or release protocol messages deliberately. The virtual clock advances lease,
+expiry, retry, queue, and timeout behavior without wall-clock sleeps. The event
+journal records sent, received, accepted, rejected, cleanup, and application
+events with barriers for quiescence.
+
+Do not infer a fault from timing. Name the fault in the schedule and record when
+it was applied and released.
+
+## multi-client topology
+
+`setupRealtimeTest` renders several clients with separate Silos and socket
+connections. The headless entrypoint supplies the same topology without a
+renderer. Use unique actor and session identities deliberately:
+
+- same actor, different sessions for reconnect and shared actor history;
+- different actors for contention and individualized undo;
+- viewers and editors for authorization rejection;
+- overlapping and disjoint residency ranges; and
+- a restarted controller reusing a persisted session watermark.
+
+The canonical cross-vertical conformance uses one schedule for both a Markdown
+Domain and a vector-design Domain:
+
+<Exhibit src="realtime/conform-text-and-design-domains.ts" />
+
+That is the point of the adapter contract: innovations can supply arbitrary
+application/model operations while the runner keeps fault semantics and
+measurements comparable.
+
+## restartable servers
+
+`createRestartableServerFixture` preserves the storage adapter while replacing
+server/controller process state. A restart test should prove:
+
+- accepted operations and session watermarks recover;
+- pending clients reconcile without duplicate durable application;
+- checkpoint root plus bounded tail reaches the same frontier;
+- partial clients reload only requested members;
+- history cursor/horizon and protected targets survive;
+- presence does not survive as durable data; and
+- stale callbacks from the disposed server cannot mutate the replacement.
+
+Restarting a JavaScript object while retaining all in-memory projections is not
+a restart test.
+
+## conformance suites
+
+`atom.io/realtime-testing` exports reusable conformance for:
+
+- `MosaicDomainBatchStorageAdapter`;
+- `MosaicDomainCheckpointStorageAdapter`; and
+- cross-vertical Mosaic Domain adapters.
+
+Run storage conformance against the exact production adapter and transaction
+mode. A mock that reimplements the desired behavior can prove the mock, not the
+database integration.
+
+## minimum fault matrix
+
+At minimum, test:
+
+- duplicate proposal and duplicate acceptance;
+- two messages delivered in both orders;
+- delayed first proposal followed by later local work;
+- terminal authorization rejection;
+- malformed or colliding protocol identity;
+- disconnect with pending work, then reconnect;
+- server restart with checkpoint and tail;
+- stale checkpoint/residency snapshot requiring resnapshot;
+- observer/listener exceptions after durable commit;
+- cleanup failures during release/disposal;
+- same actor across concurrent sessions; and
+- a large bounded stream that forces compaction and garbage collection.
+
+## assertions that matter
+
+Assert more than equal final JSON:
+
+- authoritative and client revisions/frontiers;
+- independent logical digest or model oracle;
+- one Store transaction for one accepted gesture;
+- no temporary structural holes visible to selectors;
+- resident member and byte bounds;
+- delivered payload, queue, checkpoint, and object-read bounds;
+- retained receipts, tail, history, sessions, aliases, and roots after stabilization;
+- zero leaked listeners, leases, family members, timers, or pending promises; and
+- actor A's undo preserves actor B's surviving intent.
+
+On failure, emit the seed, completed schedule, active fault, actor/session ids,
+revisions, resident selections, pending ids, checkpoint root, and bounded event
+tail. Reproduction should not require the original CI machine.
+
+## resource discipline
+
+Large-corpus and 100,000-operation gates should run alone with one worker,
+explicit per-document and suite timeouts, deterministic cached inputs, and
+measured memory/work counters. A parser-only benchmark is not proof that the
+full collaboration composition is bounded.
+
+Keep heavy gates scheduled or explicitly targeted; keep smaller adversarial
+contracts in ordinary pull-request CI.

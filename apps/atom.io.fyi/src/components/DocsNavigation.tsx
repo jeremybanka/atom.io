@@ -407,18 +407,23 @@ function SiteDirectory(): VNode {
 							</a>
 						</section>
 						<section>
-							<a id="-docs-realtime-clients-link" href="/docs/realtime/clients">
-								clients and React
+							<a id="-docs-realtime-client-link" href="/docs/realtime-client">
+								<low-emphasis>atom.io</low-emphasis>/realtime-client
 							</a>
 						</section>
 						<section>
-							<a id="-docs-realtime-servers-link" href="/docs/realtime/servers">
-								servers and storage
+							<a id="-docs-realtime-react-link" href="/docs/realtime-react">
+								<low-emphasis>atom.io</low-emphasis>/realtime-react
 							</a>
 						</section>
 						<section>
-							<a id="-docs-realtime-testing-link" href="/docs/realtime/testing">
-								testing
+							<a id="-docs-realtime-server-link" href="/docs/realtime-server">
+								<low-emphasis>atom.io</low-emphasis>/realtime-server
+							</a>
+						</section>
+						<section>
+							<a id="-docs-realtime-testing-link" href="/docs/realtime-testing">
+								<low-emphasis>atom.io</low-emphasis>/realtime-testing
 							</a>
 						</section>
 						<section>

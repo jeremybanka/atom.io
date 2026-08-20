@@ -79,28 +79,28 @@ its order, and its index must not be split into separately observable commits.
         </td>
       </tr>
       <tr>
-        <td><code>atom.io/realtime-client</code></td>
+        <td><a href="/docs/realtime-client"><code>atom.io/realtime-client</code></a></td>
         <td>
           Headless pull/push functions and Mosaic controllers for batches,
           residency, presence, history, projections, and transaction capture.
         </td>
       </tr>
       <tr>
-        <td><code>atom.io/realtime-server</code></td>
+        <td><a href="/docs/realtime-server"><code>atom.io/realtime-server</code></a></td>
         <td>
           Authentication boundaries, authoritative reducers, storage adapters,
           checkpoints, retention, residency, presence cleanup, and room hosting.
         </td>
       </tr>
       <tr>
-        <td><code>atom.io/realtime-react</code></td>
+        <td><a href="/docs/realtime-react"><code>atom.io/realtime-react</code></a></td>
         <td>
           A shared Socket.IO provider plus lifecycle hooks over the headless
           clients. React renders ordinary Store state; it does not own replicas.
         </td>
       </tr>
       <tr>
-        <td><code>atom.io/realtime-testing</code></td>
+        <td><a href="/docs/realtime-testing"><code>atom.io/realtime-testing</code></a></td>
         <td>
           Multi-client fixtures, deterministic transports and clocks,
           restartable servers, journals, model schedules, and storage/domain
@@ -153,10 +153,11 @@ Across all three paradigms, keep these boundaries explicit:
 2. Read [Atomic Mosaic](/docs/realtime/mosaic) for one convergent mutable value.
 3. Read [Mosaic Domains](/docs/realtime/domains) for collaborative applications.
 4. For documents, continue to [Mosaic Text](/docs/realtime/text).
-5. Use [clients and React](/docs/realtime/clients) and
-   [servers and storage](/docs/realtime/servers) while assembling the system.
+5. Use [`atom.io/realtime-client`](/docs/realtime-client),
+   [`atom.io/realtime-react`](/docs/realtime-react), and
+   [`atom.io/realtime-server`](/docs/realtime-server) while assembling the system.
 6. Before shipping, apply [operations and security](/docs/realtime/operations)
-   and [realtime testing](/docs/realtime/testing).
+   and [`atom.io/realtime-testing`](/docs/realtime-testing).
 
 Keep the [component reference](/docs/realtime/reference) open when you know the
 concern but need to find the owning package or controller.

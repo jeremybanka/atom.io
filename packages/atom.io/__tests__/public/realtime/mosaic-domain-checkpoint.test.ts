@@ -4,6 +4,7 @@ import {
 	MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
 	type MosaicAcceptedDomainBatchEnvelope,
 	mosaicDomain,
+	type MosaicDomainCheckpointObject,
 	type MosaicDomainIdentity,
 	type MosaicDomainMemberAddress,
 	mosaicDomainMemberAddressKey,
@@ -24,6 +25,7 @@ import {
 	mosaicDomainCheckpointObjectKey,
 	type MosaicDomainCheckpointStageResult,
 	type MosaicDomainCheckpointStoredObject,
+	stageMosaicDomainExternalCheckpointGraph,
 } from "atom.io/realtime-server"
 import {
 	testMosaicDomainBatchStorageAdapter,
@@ -155,6 +157,665 @@ describe(`Mosaic Domain incremental checkpoint graph`, () => {
 			{ body: `initial:member-0005` },
 			{ body: `changed` },
 		])
+	})
+
+	test(`published roots transitively protect staged external graphs without ad-hoc leases`, async () => {
+		const storage = new InMemoryMosaicDomainCheckpointStorage({
+			now: () => 1_000,
+		})
+		const memberAddress = address(`external-graph`)
+		const values = new Map<string, unknown>([
+			[mosaicDomainMemberAddressKey(memberAddress), `one`],
+		])
+		const firstExternal = await stageMosaicDomainExternalCheckpointGraph({
+			baseRevision: 1,
+			domain: identity,
+			proposal: {
+				expiresAfterRevision: 1,
+				expiresAt: 10_000,
+				id: `staged-proposal`,
+				minimumRevision: 0,
+			},
+			storage,
+			updates: Array.from({ length: 32 }, (_, index) => ({
+				index: `rope`,
+				path: `node-${index.toString().padStart(2, `0`)}`,
+				value: { text: `fragment-${index}` },
+			})),
+		})
+		const companionExternal = await stageMosaicDomainExternalCheckpointGraph({
+			baseRevision: 1,
+			domain: identity,
+			proposal: {
+				expiresAfterRevision: 1,
+				expiresAt: 10_000,
+				id: `staged-companion`,
+				minimumRevision: 0,
+			},
+			storage,
+			updates: [{ index: `thumbnail`, path: `root`, value: { color: `gold` } }],
+		})
+		let epoch = (await storage.checkpointHead(identity)).retentionEpoch
+		await storage.collectCheckpointGarbage({
+			domain: identity,
+			expectedRetentionEpoch: epoch,
+		})
+		expect(
+			await storage.readCheckpointObject(identity, firstExternal.rootKey),
+		).not.toBeNull()
+		let externalRoots: readonly `sha256:${string}`[] = [
+			firstExternal.rootKey,
+			companionExternal.rootKey,
+		]
+			.sort()
+			.reverse()
+		const coordinator = createMosaicDomainCheckpointCoordinator({
+			domain: identity,
+			externalRoots: () => externalRoots,
+			limits: { maxExternalReads: 2 },
+			readMember: ({ address: requested }) =>
+				values.get(mosaicDomainMemberAddressKey(requested)) as string,
+			storage,
+		})
+		await append(storage, 1, [memberAddress])
+		const firstCheckpoint = await coordinator.checkpoint()
+		await storage.deleteCheckpointRetentionLease(identity, `staged-proposal`)
+		await storage.deleteCheckpointRetentionLease(identity, `staged-companion`)
+		expect((await coordinator.recover([])).root.externalRoots).toEqual(
+			[companionExternal.rootKey, firstExternal.rootKey].sort(),
+		)
+		expect(
+			await coordinator.readExternalIndexes(firstExternal.rootKey, [
+				{ index: `rope`, path: `node-00` },
+				{ index: `rope`, path: `node-31` },
+			]),
+		).toMatchObject([
+			{ path: `node-00`, value: { text: `fragment-0` } },
+			{ path: `node-31`, value: { text: `fragment-31` } },
+		])
+		await expect(
+			coordinator.readExternalIndexes(firstExternal.rootKey, [
+				{ index: `rope`, path: `node-00` },
+				{ index: `rope`, path: `node-01` },
+				{ index: `rope`, path: `node-02` },
+			]),
+		).rejects.toThrow(`reads exceed 2`)
+		const retiredIndex = (
+			await coordinator.readExternalIndexes(firstExternal.rootKey, [
+				{ index: `rope`, path: `node-17` },
+			])
+		)[0]
+		const retiredIndexKey = mosaicDomainCheckpointObjectKey(retiredIndex)
+
+		for (const kind of [`history`, `outbox`] as const) {
+			await storage.upsertCheckpointRetentionLease(identity, {
+				id: `external-${kind}`,
+				kind,
+				minimumRevision: 1,
+				rootKeys: [firstCheckpoint.rootKey],
+			})
+		}
+		const secondExternal = await stageMosaicDomainExternalCheckpointGraph({
+			baseRevision: 2,
+			domain: identity,
+			previousRootKey: firstExternal.rootKey,
+			proposal: {
+				expiresAfterRevision: 2,
+				expiresAt: 10_000,
+				id: `second-proposal`,
+				minimumRevision: 1,
+			},
+			storage,
+			updates: [
+				{ index: `rope`, path: `node-17`, remove: true },
+				{ index: `rope`, path: `node-new`, value: { text: `changed` } },
+			],
+		})
+		expect(secondExternal.persistedObjectCount).toBeLessThan(
+			firstExternal.persistedObjectCount,
+		)
+		externalRoots = [secondExternal.rootKey]
+		values.set(mosaicDomainMemberAddressKey(memberAddress), `two`)
+		await append(storage, 2, [memberAddress])
+		await coordinator.checkpoint()
+		await storage.deleteCheckpointRetentionLease(identity, `second-proposal`)
+		expect(
+			await coordinator.readExternalIndexes(secondExternal.rootKey, [
+				{ index: `rope`, path: `node-17` },
+				{ index: `rope`, path: `node-new` },
+			]),
+		).toMatchObject([{ path: `node-new`, value: { text: `changed` } }])
+
+		epoch = (await storage.checkpointHead(identity)).retentionEpoch
+		await storage.collectCheckpointGarbage({
+			domain: identity,
+			expectedRetentionEpoch: epoch,
+		})
+		expect(
+			await storage.readCheckpointObject(identity, firstExternal.rootKey),
+		).not.toBeNull()
+		await storage.deleteCheckpointRetentionLease(identity, `external-history`)
+		epoch = (await storage.checkpointHead(identity)).retentionEpoch
+		await storage.collectCheckpointGarbage({
+			domain: identity,
+			expectedRetentionEpoch: epoch,
+		})
+		expect(
+			await storage.readCheckpointObject(identity, firstExternal.rootKey),
+		).not.toBeNull()
+		await storage.deleteCheckpointRetentionLease(identity, `external-outbox`)
+		epoch = (await storage.checkpointHead(identity)).retentionEpoch
+		await storage.collectCheckpointGarbage({
+			domain: identity,
+			expectedRetentionEpoch: epoch,
+		})
+		expect(
+			await storage.readCheckpointObject(identity, firstExternal.rootKey),
+		).toBeNull()
+		expect(
+			await storage.readCheckpointObject(identity, retiredIndexKey),
+		).toBeNull()
+		expect(
+			await storage.readCheckpointObject(identity, secondExternal.rootKey),
+		).not.toBeNull()
+	})
+
+	test(`unpublished external graphs are unreachable and malformed dependencies fail closed`, async () => {
+		const stagedOnlyStorage = new InMemoryMosaicDomainCheckpointStorage()
+		const stagedOnly = await stageMosaicDomainExternalCheckpointGraph({
+			baseRevision: 0,
+			domain: identity,
+			storage: stagedOnlyStorage,
+			updates: [{ index: `rope`, path: `root`, value: { text: `staged` } }],
+		})
+		await stagedOnlyStorage.collectCheckpointGarbage({
+			domain: identity,
+			expectedRetentionEpoch: 0,
+		})
+		expect(
+			await stagedOnlyStorage.readCheckpointObject(identity, stagedOnly.rootKey),
+		).toBeNull()
+
+		class TamperingStorage extends InMemoryMosaicDomainCheckpointStorage {
+			public tamper: `sha256:${string}` | null = null
+
+			public override readCheckpointObject(
+				domain: MosaicDomainIdentity,
+				key: `sha256:${string}`,
+			): MosaicDomainCheckpointObject | null {
+				const value = super.readCheckpointObject(domain, key)
+				return key === this.tamper && value?.kind === `external-root`
+					? { ...value, bytes: value.bytes + 1 }
+					: value
+			}
+		}
+		const storage = new TamperingStorage()
+		const external = await stageMosaicDomainExternalCheckpointGraph({
+			baseRevision: 1,
+			domain: identity,
+			storage,
+			updates: [{ index: `rope`, path: `root`, value: { text: `safe` } }],
+		})
+		expect(
+			await stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 2,
+				domain: identity,
+				previousRootKey: external.rootKey,
+				storage,
+				updates: [],
+			}),
+		).toMatchObject({ bytes: external.bytes })
+		storage.tamper = external.rootKey
+		await append(storage, 1, [address(`tamper`)])
+		const coordinator = createMosaicDomainCheckpointCoordinator({
+			domain: identity,
+			externalRoots: () => [external.rootKey],
+			readMember: () => `value`,
+			storage,
+		})
+		await expect(coordinator.checkpoint()).rejects.toThrow(`content key`)
+		expect((await storage.checkpointHead(identity)).rootKey).toBeNull()
+
+		storage.tamper = null
+		const stagedExternal = await storage.readCheckpointObject(
+			identity,
+			external.rootKey,
+		)
+		if (stagedExternal?.kind !== `external-root`) {
+			throw new Error(`The staged external root fixture is missing.`)
+		}
+		const inaccurate = {
+			...stagedExternal,
+			bytes: stagedExternal.bytes + 1,
+		}
+		const inaccurateKey = mosaicDomainCheckpointObjectKey(inaccurate)
+		await storage.stageCheckpointObjects(identity, [
+			{ key: inaccurateKey, value: inaccurate },
+		])
+		const inaccurateCoordinator = createMosaicDomainCheckpointCoordinator({
+			domain: identity,
+			externalRoots: () => [inaccurateKey],
+			readMember: () => `value`,
+			storage,
+		})
+		await expect(inaccurateCoordinator.checkpoint()).rejects.toThrow(
+			`external checkpoint summary is invalid`,
+		)
+
+		const malformed = {
+			baseRevision: 2,
+			bytes: -1,
+			depth: 65,
+			directory: null,
+			domain: identity,
+			kind: `external-root`,
+		} as const
+		const malformedKey = mosaicDomainCheckpointObjectKey(malformed)
+		await storage.stageCheckpointObjects(identity, [
+			{ key: malformedKey, value: malformed },
+		])
+		const malformedCoordinator = createMosaicDomainCheckpointCoordinator({
+			domain: identity,
+			externalRoots: () => [malformedKey],
+			readMember: () => `value`,
+			storage,
+		})
+		await expect(malformedCoordinator.checkpoint()).rejects.toThrow(
+			`external checkpoint root is invalid`,
+		)
+	})
+
+	test(`atomic proposal staging is idempotent, fenced, and expires after abandonment`, async () => {
+		let now = 1_000
+		const storage = new InMemoryMosaicDomainCheckpointStorage({ now: () => now })
+		const stage = () =>
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 1,
+				domain: identity,
+				proposal: {
+					expiresAfterRevision: 1,
+					expiresAt: 2_000,
+					id: `atomic-proposal`,
+					minimumRevision: 0,
+					retentionEpochs: 4,
+				},
+				storage,
+				updates: [{ index: `rope`, path: `root`, value: { text: `safe` } }],
+			})
+		const first = await stage()
+		const stagedEpoch = (await storage.checkpointHead(identity)).retentionEpoch
+		const duplicate = await stage()
+		expect(duplicate).toMatchObject({
+			persistedBytes: 0,
+			persistedObjectCount: 0,
+			rootKey: first.rootKey,
+		})
+		expect((await storage.checkpointHead(identity)).retentionEpoch).toBe(
+			stagedEpoch,
+		)
+		expect(
+			await storage.collectCheckpointGarbage({
+				domain: identity,
+				expectedRetentionEpoch: 0,
+			}),
+		).toMatchObject({ status: `stale` })
+		expect(
+			await storage.readCheckpointObject(identity, first.rootKey),
+		).not.toBeNull()
+		now = 2_000
+		expect(
+			await storage.collectCheckpointGarbage({
+				domain: identity,
+				expectedRetentionEpoch: stagedEpoch,
+			}),
+		).toMatchObject({ status: `collected` })
+		expect(
+			await storage.readCheckpointObject(identity, first.rootKey),
+		).toBeNull()
+		expect(storage.stats(identity).retentionLeaseCount).toBe(0)
+
+		const failed = new InMemoryMosaicDomainCheckpointStorage({ now: () => now })
+		await expect(
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 1,
+				domain: identity,
+				proposal: {
+					expiresAfterRevision: 1,
+					expiresAt: now,
+					id: `expired-before-publish`,
+					minimumRevision: 0,
+				},
+				storage: failed,
+				updates: [{ index: `rope`, path: `root`, value: `not-visible` }],
+			}),
+		).rejects.toThrow(`proposal is invalid`)
+		expect(failed.stats(identity)).toMatchObject({
+			objectCount: 0,
+			retentionLeaseCount: 0,
+		})
+
+		now = 3_000
+		const acceptedStorage = new InMemoryMosaicDomainCheckpointStorage({
+			now: () => now,
+		})
+		const acceptedStage = await stageMosaicDomainExternalCheckpointGraph({
+			baseRevision: 1,
+			domain: identity,
+			proposal: {
+				expiresAfterRevision: 1,
+				expiresAt: 4_000,
+				id: `accepted-crash`,
+				minimumRevision: 0,
+			},
+			storage: acceptedStorage,
+			updates: [{ index: `rope`, path: `root`, value: `accepted` }],
+		})
+		await append(acceptedStorage, 1, [address(`accepted-crash`)])
+		await expect(
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 1,
+				domain: identity,
+				proposal: {
+					expiresAfterRevision: 1,
+					expiresAt: 4_000,
+					id: `already-missed-revision`,
+					minimumRevision: 0,
+				},
+				storage: acceptedStorage,
+				updates: [{ index: `rope`, path: `missed`, value: `missed` }],
+			}),
+		).rejects.toThrow(`proposal is invalid`)
+		const acceptedEpoch = (await acceptedStorage.checkpointHead(identity))
+			.retentionEpoch
+		await acceptedStorage.collectCheckpointGarbage({
+			domain: identity,
+			expectedRetentionEpoch: acceptedEpoch,
+		})
+		expect(
+			await acceptedStorage.readCheckpointObject(
+				identity,
+				acceptedStage.rootKey,
+			),
+		).toBeNull()
+	})
+
+	test(`accepted external roots cross expiry and crash until checkpoint adoption`, async () => {
+		let lateNow = 900
+		const lateStorage = new InMemoryMosaicDomainCheckpointStorage({
+			now: () => lateNow,
+		})
+		const lateStage = await stageMosaicDomainExternalCheckpointGraph({
+			baseRevision: 1,
+			domain: identity,
+			proposal: {
+				expiresAfterRevision: 1,
+				expiresAt: 1_000,
+				id: `expired-before-append`,
+				minimumRevision: 0,
+			},
+			storage: lateStorage,
+			updates: [{ index: `rope`, path: `root`, value: `late` }],
+		})
+		lateNow = 1_000
+		expect(() =>
+			lateStorage.appendBatch({
+				accepted: accepted(`batch-1`, 1, [address(`late-root`)]),
+				checkpointProposals: [
+					{ id: `expired-before-append`, rootKey: lateStage.rootKey },
+				],
+				expectedRevision: 0,
+				fingerprint: `late-root-fingerprint`,
+			}),
+		).toThrow(`append proposal is invalid`)
+		const lateEpoch = (await lateStorage.checkpointHead(identity)).retentionEpoch
+		await lateStorage.collectCheckpointGarbage({
+			domain: identity,
+			expectedRetentionEpoch: lateEpoch,
+		})
+		expect(
+			await lateStorage.readCheckpointObject(identity, lateStage.rootKey),
+		).toBeNull()
+
+		let now = 900
+		const storage = new InMemoryMosaicDomainCheckpointStorage({ now: () => now })
+		const memberAddress = address(`accepted-root`)
+		const proposal = {
+			expiresAfterRevision: 1,
+			expiresAt: 1_000,
+			id: `accepted-root-proposal`,
+			minimumRevision: 0,
+			retentionEpochs: 1,
+		}
+		const stage = await stageMosaicDomainExternalCheckpointGraph({
+			baseRevision: 1,
+			domain: identity,
+			proposal,
+			storage,
+			updates: [{ index: `rope`, path: `root`, value: `accepted` }],
+		})
+		const acceptedEnvelope = accepted(`batch-1`, 1, [memberAddress])
+		const appendRequest = {
+			accepted: acceptedEnvelope,
+			checkpointProposals: [{ id: proposal.id, rootKey: stage.rootKey }],
+			expectedRevision: 0,
+			fingerprint: `accepted-root-fingerprint`,
+		}
+		const beforeAppendEpoch = (await storage.checkpointHead(identity))
+			.retentionEpoch
+		expect(await storage.appendBatch(appendRequest)).toMatchObject({
+			status: `accepted`,
+		})
+		expect(await storage.appendBatch(appendRequest)).toMatchObject({
+			status: `duplicate`,
+		})
+		expect(
+			await storage.appendBatch({
+				...appendRequest,
+				checkpointProposals: [
+					{ id: `different-proposal`, rootKey: stage.rootKey },
+				],
+			}),
+		).toMatchObject({ collision: `batch`, status: `collision` })
+		expect(
+			await storage.collectCheckpointGarbage({
+				domain: identity,
+				expectedRetentionEpoch: beforeAppendEpoch,
+			}),
+		).toMatchObject({ status: `stale` })
+
+		// Both proposal expiry mechanisms have elapsed after acceptance. The durable
+		// accepted record, not the old proposal lease, now owns protection.
+		now = 10_000
+		const restarted = storage.restart()
+		expect(restarted.stats(identity)).toMatchObject({
+			acceptedRootProtectionCount: 1,
+			retentionLeaseCount: 0,
+		})
+		let epoch = (await restarted.checkpointHead(identity)).retentionEpoch
+		expect(
+			await restarted.collectCheckpointGarbage({
+				domain: identity,
+				expectedRetentionEpoch: epoch,
+			}),
+		).toMatchObject({ status: `collected` })
+		expect(
+			await restarted.readCheckpointObject(identity, stage.rootKey),
+		).not.toBeNull()
+
+		const head = await restarted.checkpointHead(identity)
+		const omittedRoot = {
+			domain: identity,
+			externalRoots: [],
+			indexDirectory: null,
+			kind: `root`,
+			memberDirectory: null,
+			protocolVersion: 1,
+			retentionEpoch: head.retentionEpoch + 1,
+			revision: 1,
+		} as const
+		const omittedRootKey = mosaicDomainCheckpointObjectKey(omittedRoot)
+		await restarted.stageCheckpointObjects(identity, [
+			{ key: omittedRootKey, value: omittedRoot },
+		])
+		expect(() =>
+			restarted.commitCheckpoint({
+				domain: identity,
+				expectedRetentionEpoch: head.retentionEpoch,
+				expectedRevision: 1,
+				expectedRootKey: null,
+				rootKey: omittedRootKey,
+			}),
+		).toThrow(`omitted an accepted external root`)
+
+		const coordinator = createMosaicDomainCheckpointCoordinator({
+			domain: identity,
+			readMember: () => `accepted`,
+			storage: restarted,
+		})
+		await coordinator.checkpoint()
+		expect(restarted.stats(identity).acceptedRootProtectionCount).toBe(0)
+		expect(
+			await restarted.readCheckpointObject(identity, stage.rootKey),
+		).not.toBeNull()
+
+		await append(restarted, 2, [memberAddress])
+		await createMosaicDomainCheckpointCoordinator({
+			domain: identity,
+			externalRoots: () => [],
+			readMember: () => `later`,
+			storage: restarted,
+		}).checkpoint()
+		epoch = (await restarted.checkpointHead(identity)).retentionEpoch
+		await restarted.collectCheckpointGarbage({
+			domain: identity,
+			expectedRetentionEpoch: epoch,
+		})
+		expect(
+			await restarted.readCheckpointObject(identity, stage.rootKey),
+		).toBeNull()
+	})
+
+	test(`incremental external publication authenticates only dirty paths after restart`, async () => {
+		const storage = new InMemoryMosaicDomainCheckpointStorage({
+			now: () => 1_000,
+		})
+		const memberAddress = address(`bounded-external-proof`)
+		let memberValue = `one`
+		let externalRoot = (
+			await stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 1,
+				domain: identity,
+				limits: { maxUpdates: 512 },
+				proposal: {
+					expiresAfterRevision: 1,
+					expiresAt: 100_000,
+					id: `proof-initial`,
+					minimumRevision: 0,
+				},
+				storage,
+				updates: Array.from({ length: 512 }, (_, index) => ({
+					index: `rope`,
+					path: `node-${index.toString().padStart(4, `0`)}`,
+					value: { text: `fragment-${index}` },
+				})),
+			})
+		).rootKey
+		await append(storage, 1, [memberAddress])
+		const publishedStorage = storage.restart()
+		const initialCoordinator = createMosaicDomainCheckpointCoordinator({
+			domain: identity,
+			externalRoots: () => [externalRoot],
+			readMember: () => memberValue,
+			storage: publishedStorage,
+		})
+		await initialCoordinator.checkpoint()
+		await publishedStorage.deleteCheckpointRetentionLease(
+			identity,
+			`proof-initial`,
+		)
+
+		const restarted = publishedStorage.restart()
+		const before = restarted.stats(identity)
+		const local = await stageMosaicDomainExternalCheckpointGraph({
+			baseRevision: 2,
+			domain: identity,
+			previousRootKey: externalRoot,
+			proposal: {
+				expiresAfterRevision: 2,
+				expiresAt: 100_000,
+				id: `proof-local`,
+				minimumRevision: 1,
+			},
+			storage: restarted,
+			updates: [
+				{ index: `rope`, path: `node-0256`, remove: true },
+				{ index: `rope`, path: `node-new`, value: { text: `local` } },
+			],
+		})
+		const afterStage = restarted.stats(identity)
+		expect(local.persistedObjectCount).toBeLessThan(24)
+		expect(
+			afterStage.externalValidationObjectReads -
+				before.externalValidationObjectReads,
+		).toBeLessThan(48)
+		expect(
+			afterStage.externalValidationSerializedBytes -
+				before.externalValidationSerializedBytes,
+		).toBeLessThan(1_024)
+		expect(
+			afterStage.externalValidationHashedBytes -
+				before.externalValidationHashedBytes,
+		).toBeLessThan(128 * 1_024)
+
+		externalRoot = local.rootKey
+		memberValue = `two`
+		await append(restarted, 2, [memberAddress])
+		const restartedCoordinator = createMosaicDomainCheckpointCoordinator({
+			domain: identity,
+			externalRoots: () => [externalRoot],
+			readMember: () => memberValue,
+			storage: restarted,
+		})
+		await restartedCoordinator.checkpoint()
+		expect(restarted.stats(identity)).toMatchObject({
+			externalValidationHashedBytes: afterStage.externalValidationHashedBytes,
+			externalValidationObjectReads: afterStage.externalValidationObjectReads,
+			externalValidationSerializedBytes:
+				afterStage.externalValidationSerializedBytes,
+		})
+		await restarted.deleteCheckpointRetentionLease(identity, `proof-local`)
+		let epoch = (await restarted.checkpointHead(identity)).retentionEpoch
+		await restarted.collectCheckpointGarbage({
+			domain: identity,
+			expectedRetentionEpoch: epoch,
+		})
+
+		const restartedAgain = restarted.restart()
+		memberValue = `three`
+		await append(restartedAgain, 3, [memberAddress])
+		await createMosaicDomainCheckpointCoordinator({
+			domain: identity,
+			externalRoots: () => [externalRoot],
+			readMember: () => memberValue,
+			storage: restartedAgain,
+		}).checkpoint()
+		const third = await stageMosaicDomainExternalCheckpointGraph({
+			baseRevision: 4,
+			domain: identity,
+			previousRootKey: externalRoot,
+			proposal: {
+				expiresAfterRevision: 4,
+				expiresAt: 100_000,
+				id: `proof-after-parent-gc`,
+				minimumRevision: 3,
+			},
+			storage: restartedAgain,
+			updates: [
+				{ index: `rope`, path: `node-new`, remove: true },
+				{ index: `rope`, path: `node-newer`, value: { text: `third` } },
+			],
+		})
+		expect(third.persistedObjectCount).toBeLessThan(24)
 	})
 
 	test(`restart and two partial clients hydrate only requested members plus one cut tail`, async () => {
@@ -847,6 +1508,1211 @@ describe(`Mosaic Domain incremental checkpoint graph`, () => {
 				after: `sha256:${`f`.repeat(64)}`,
 			}),
 		).toEqual({ cursor: null, objects: [] })
+	})
+
+	test(`storage rejects malformed retained graphs and canonicalizes accepted proposals`, async () => {
+		const invalidJsonStorage = new InMemoryMosaicDomainCheckpointStorage()
+		expect(() =>
+			invalidJsonStorage.stageCheckpointObjects(identity, [
+				{
+					key: `sha256:${`0`.repeat(64)}`,
+					value: new Date() as never,
+				},
+			]),
+		).toThrow(`checkpoint object is invalid`)
+
+		const retainedGraph = (
+			externalRoots: readonly `sha256:${string}`[],
+			objects: readonly MosaicDomainCheckpointObject[],
+		) => {
+			const storage = new InMemoryMosaicDomainCheckpointStorage()
+			const root = {
+				domain: identity,
+				externalRoots,
+				indexDirectory: null,
+				kind: `root`,
+				memberDirectory: null,
+				protocolVersion: 1,
+				retentionEpoch: 1,
+				revision: 0,
+			} as const
+			const rootKey = mosaicDomainCheckpointObjectKey(root)
+			storage.stageCheckpointObjects(
+				identity,
+				[...objects, root].map((value) => ({
+					key: mosaicDomainCheckpointObjectKey(value),
+					value,
+				})),
+			)
+			storage.upsertCheckpointRetentionLease(identity, {
+				id: `retained-malformed`,
+				kind: `history`,
+				minimumRevision: 0,
+				rootKeys: [rootKey],
+			})
+			return storage
+		}
+		const malformedExternal = {
+			baseRevision: 0,
+			bytes: 0,
+			depth: 65,
+			directory: null,
+			domain: identity,
+			kind: `external-root`,
+		} as const
+		const malformedExternalKey =
+			mosaicDomainCheckpointObjectKey(malformedExternal)
+		const malformedExternalStorage = retainedGraph(
+			[malformedExternalKey],
+			[malformedExternal],
+		)
+		expect(() =>
+			malformedExternalStorage.collectCheckpointGarbage({
+				domain: identity,
+				expectedRetentionEpoch: 1,
+			}),
+		).toThrow(`external checkpoint root is invalid`)
+		const duplicate = `sha256:${`1`.repeat(64)}` as const
+		const malformedRootStorage = retainedGraph([duplicate, duplicate], [])
+		expect(() =>
+			malformedRootStorage.collectCheckpointGarbage({
+				domain: identity,
+				expectedRetentionEpoch: 1,
+			}),
+		).toThrow(`checkpoint root is invalid`)
+
+		const orderedStorage = new InMemoryMosaicDomainCheckpointStorage({
+			now: () => 0,
+		})
+		const proposals = []
+		for (const id of [`z-last`, `a-first`]) {
+			const staged = await stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 1,
+				domain: identity,
+				proposal: {
+					expiresAfterRevision: 1,
+					expiresAt: 1_000,
+					id,
+					minimumRevision: 0,
+				},
+				storage: orderedStorage,
+				updates: [{ index: id, path: `root`, value: id }],
+			})
+			proposals.push({ id, rootKey: staged.rootKey })
+		}
+		expect(
+			orderedStorage.appendBatch({
+				accepted: accepted(`ordered-proposals`, 1, [address(`ordered`)]),
+				checkpointProposals: proposals,
+				expectedRevision: 0,
+				fingerprint: `ordered-proposals`,
+			}).status,
+		).toBe(`accepted`)
+	})
+
+	test(`authenticated delta proofs fail closed at parent and update boundaries`, async () => {
+		const stored = (value: MosaicDomainCheckpointObject) => ({
+			key: mosaicDomainCheckpointObjectKey(value),
+			value,
+		})
+		const root = (
+			proof?: `sha256:${string}`,
+			overrides: Record<string, unknown> = {},
+		) =>
+			({
+				baseRevision: 1,
+				bytes: 0,
+				depth: 0,
+				directory: null,
+				domain: identity,
+				kind: `external-root`,
+				...(proof === undefined ? {} : { proof }),
+				...overrides,
+			}) as Extract<MosaicDomainCheckpointObject, { kind: `external-root` }>
+		const stageProof = (
+			storage: InMemoryMosaicDomainCheckpointStorage,
+			external: ReturnType<typeof root>,
+			updates: unknown,
+			objects: readonly MosaicDomainCheckpointObject[],
+			id: string,
+		) => {
+			const rootKey = mosaicDomainCheckpointObjectKey(external)
+			const proof = objects.find((object) => object.kind === `external-proof`)
+			return storage.stageCheckpointObjects(
+				identity,
+				[...objects.map(stored), stored(external)],
+				{
+					externalGraph: {
+						...(proof?.kind === `external-proof` &&
+						proof.previousRootKey !== undefined
+							? { previousRootKey: proof.previousRootKey }
+							: {}),
+						rootKey,
+						updates,
+					} as never,
+					proposal: {
+						expiresAfterRevision: 1,
+						expiresAt: 1_000,
+						id,
+						minimumRevision: 0,
+						rootKey,
+					},
+				},
+			)
+		}
+		const fresh = () =>
+			new InMemoryMosaicDomainCheckpointStorage({ now: () => 0 })
+
+		expect(() => stageProof(fresh(), root(), [], [], `missing-proof`)).toThrow(
+			`external checkpoint proof is invalid`,
+		)
+		const mismatch = { kind: `external-proof`, updates: [] } as const
+		expect(() =>
+			stageProof(
+				fresh(),
+				root(mosaicDomainCheckpointObjectKey(mismatch)),
+				[{ index: `rope`, path: `root`, remove: true }],
+				[mismatch],
+				`mismatch`,
+			),
+		).toThrow(`external checkpoint proof is invalid`)
+		const malformed = {
+			kind: `external-proof`,
+			updates: null,
+		} as never as MosaicDomainCheckpointObject
+		expect(() =>
+			stageProof(
+				fresh(),
+				root(mosaicDomainCheckpointObjectKey(malformed)),
+				null,
+				[malformed],
+				`malformed`,
+			),
+		).toThrow(`external checkpoint proof is invalid`)
+		const duplicateUpdates = [
+			{ index: `rope`, path: `root`, remove: true },
+			{ index: `rope`, path: `root`, remove: true },
+		] as const
+		const duplicateProof = {
+			kind: `external-proof`,
+			updates: duplicateUpdates,
+		} as const
+		expect(() =>
+			stageProof(
+				fresh(),
+				root(mosaicDomainCheckpointObjectKey(duplicateProof)),
+				duplicateUpdates,
+				[duplicateProof],
+				`duplicate`,
+			),
+		).toThrow(`external checkpoint proof is invalid`)
+		const staleIndex = {
+			index: `rope`,
+			kind: `index`,
+			path: `root`,
+			revision: 0,
+			value: `stale`,
+		} as const
+		const staleUpdate = {
+			index: `rope`,
+			path: `root`,
+			valueKey: mosaicDomainCheckpointObjectKey(staleIndex),
+		} as const
+		const staleProof = {
+			kind: `external-proof`,
+			updates: [staleUpdate],
+		} as const
+		expect(() =>
+			stageProof(
+				fresh(),
+				root(mosaicDomainCheckpointObjectKey(staleProof)),
+				[staleUpdate],
+				[staleIndex, staleProof],
+				`stale-index`,
+			),
+		).toThrow(`external checkpoint proof is invalid`)
+
+		const expiredStorage = fresh()
+		const expiring = await stageMosaicDomainExternalCheckpointGraph({
+			baseRevision: 1,
+			domain: identity,
+			proposal: {
+				expiresAfterRevision: 1,
+				expiresAt: 1_000,
+				id: `expiring-parent`,
+				minimumRevision: 0,
+			},
+			storage: expiredStorage,
+			updates: [{ index: `rope`, path: `root`, value: `parent` }],
+		})
+		await append(expiredStorage, 1, [address(`expire-parent`)])
+		await expect(
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 2,
+				domain: identity,
+				previousRootKey: expiring.rootKey,
+				proposal: {
+					expiresAfterRevision: 2,
+					expiresAt: 1_000,
+					id: `expired-child`,
+					minimumRevision: 1,
+				},
+				storage: expiredStorage,
+				updates: [],
+			}),
+		).rejects.toThrow(`parent is not protected`)
+
+		const protectedStorage = fresh()
+		const parent = root(undefined, { baseRevision: 0 })
+		const parentKey = mosaicDomainCheckpointObjectKey(parent)
+		const protection = {
+			domain: identity,
+			externalRoots: [parentKey],
+			indexDirectory: null,
+			kind: `root`,
+			memberDirectory: null,
+			protocolVersion: 1,
+			retentionEpoch: 1,
+			revision: 0,
+		} as const
+		const protectionKey = mosaicDomainCheckpointObjectKey(protection)
+		protectedStorage.stageCheckpointObjects(identity, [
+			stored(parent),
+			stored(protection),
+		])
+		protectedStorage.upsertCheckpointRetentionLease(identity, {
+			id: `parent-protection`,
+			kind: `history`,
+			minimumRevision: 0,
+			rootKeys: [protectionKey],
+		})
+		const childProof = {
+			kind: `external-proof`,
+			previousRootKey: parentKey,
+			updates: [],
+		} as const
+		expect(() =>
+			stageProof(
+				protectedStorage,
+				root(mosaicDomainCheckpointObjectKey(childProof)),
+				[],
+				[childProof],
+				`stale-parent`,
+			),
+		).toThrow(`parent is stale`)
+
+		const removableStorage = fresh()
+		const removable = await stageMosaicDomainExternalCheckpointGraph({
+			baseRevision: 1,
+			domain: identity,
+			proposal: {
+				expiresAfterRevision: 1,
+				expiresAt: 1_000,
+				id: `removable-parent`,
+				minimumRevision: 0,
+			},
+			storage: removableStorage,
+			updates: [{ index: `rope`, path: `root`, value: `value` }],
+		})
+		const removed = await stageMosaicDomainExternalCheckpointGraph({
+			baseRevision: 1,
+			domain: identity,
+			previousRootKey: removable.rootKey,
+			proposal: {
+				expiresAfterRevision: 1,
+				expiresAt: 1_000,
+				id: `removable-child`,
+				minimumRevision: 0,
+			},
+			storage: removableStorage,
+			updates: [
+				{ index: `rope`, path: `absent`, remove: true },
+				{ index: `rope`, path: `root`, remove: true },
+			],
+		})
+		expect(removed.bytes).toBe(0)
+	})
+
+	test(`external staging budgets fail atomically before proposal visibility`, async () => {
+		const storage = new InMemoryMosaicDomainCheckpointStorage({ now: () => 100 })
+		const proposal = (id: string) => ({
+			expiresAfterRevision: 1,
+			expiresAt: 1_000,
+			id,
+			minimumRevision: 0,
+		})
+		await expect(
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 1,
+				domain: identity,
+				limits: { maxStagedObjects: 1 },
+				proposal: proposal(`object-budget`),
+				storage,
+				updates: [{ index: `rope`, path: `root`, value: `value` }],
+			}),
+		).rejects.toThrow(`staging exceeds 1 objects`)
+		await expect(
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 1,
+				domain: identity,
+				limits: { maxStagedBytes: 1 },
+				proposal: proposal(`byte-budget`),
+				storage,
+				updates: [{ index: `rope`, path: `root`, value: `value` }],
+			}),
+		).rejects.toThrow(`staging exceeds 1 bytes`)
+		for (const [id, limits, value, message] of [
+			[
+				`oversized-string`,
+				{ maxObjectBytes: 128 },
+				`x`.repeat(1_024),
+				`object exceeds 128 bytes`,
+			],
+			[
+				`broad-object`,
+				{ maxObjectNodes: 4 },
+				Object.fromEntries(
+					Array.from({ length: 32 }, (_, index) => [`key-${index}`, index]),
+				),
+				`object exceeds 4 nodes`,
+			],
+			[
+				`deep-object`,
+				{ maxObjectDepth: 2 },
+				{ one: { two: { three: `too-deep` } } },
+				`object exceeds depth 2`,
+			],
+		] as const) {
+			await expect(
+				stageMosaicDomainExternalCheckpointGraph({
+					baseRevision: 1,
+					domain: identity,
+					limits,
+					proposal: proposal(id),
+					storage,
+					updates: [{ index: `rope`, path: `root`, value }],
+				}),
+			).rejects.toThrow(message)
+		}
+
+		const controller = new AbortController()
+		controller.abort()
+		await expect(
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 1,
+				domain: identity,
+				proposal: proposal(`aborted`),
+				signal: controller.signal,
+				storage,
+				updates: [{ index: `rope`, path: `root`, value: `value` }],
+			}),
+		).rejects.toThrow(`staging was aborted`)
+		await expect(
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 1,
+				domain: identity,
+				limits: { deadline: Date.now() - 1 },
+				proposal: proposal(`deadline`),
+				storage,
+				updates: [{ index: `rope`, path: `root`, value: `value` }],
+			}),
+		).rejects.toThrow(`deadline expired`)
+		expect(storage.stats(identity)).toMatchObject({
+			objectCount: 0,
+			retentionLeaseCount: 0,
+		})
+
+		let laterObjectRead = false
+		const first = { kind: `external-proof`, updates: [] } as const
+		const later = Object.defineProperty({}, `kind`, {
+			enumerable: true,
+			get() {
+				laterObjectRead = true
+				return `external-proof`
+			},
+		}) as MosaicDomainCheckpointObject
+		expect(() =>
+			storage.stageCheckpointObjects(
+				identity,
+				[
+					{ key: mosaicDomainCheckpointObjectKey(first), value: first },
+					{ key: `sha256:${`0`.repeat(64)}`, value: later },
+				],
+				{ limits: { maxStagedObjects: 1 } },
+			),
+		).toThrow(`staging exceeds 1 objects`)
+		expect(laterObjectRead).toBe(false)
+		expect(() =>
+			storage.stageCheckpointObjects(
+				identity,
+				[
+					{
+						key: `sha256:${`0`.repeat(64)}`,
+						value: {
+							kind: `external-proof`,
+							padding: `x`.repeat(1_024),
+							updates: [],
+						} as never,
+					},
+				],
+				{ limits: { maxObjectBytes: 128 } },
+			),
+		).toThrow(`object exceeds 128 bytes`)
+		const firstStored = {
+			key: mosaicDomainCheckpointObjectKey(first),
+			value: first,
+		}
+		expect(() =>
+			storage.stageCheckpointObjects(
+				identity,
+				Array.from({ length: 4_097 }, () => firstStored),
+				{
+					proposal: {
+						...proposal(`proposal-only-default-budget`),
+						rootKey: firstStored.key,
+					},
+				},
+			),
+		).toThrow(`staging exceeds 4096 objects`)
+		expect(storage.stats(identity)).toMatchObject({
+			objectCount: 0,
+			retentionLeaseCount: 0,
+		})
+	})
+
+	test(`canonical staging accounts Unicode and rejects hostile JSON shapes without observation`, async () => {
+		const storage = new InMemoryMosaicDomainCheckpointStorage({ now: () => 100 })
+		const special = `"\\\b\t\n\f\r\u0001é漢🙂${String.fromCharCode(
+			0xd800,
+		)}x${String.fromCharCode(0xdc00)}`
+		const value = {
+			array: [null, true, false, 1],
+			text: special,
+		}
+		const staged = await stageMosaicDomainExternalCheckpointGraph({
+			baseRevision: 1,
+			domain: identity,
+			proposal: {
+				expiresAfterRevision: 1,
+				expiresAt: 1_000,
+				id: `canonical-json`,
+				minimumRevision: 0,
+			},
+			storage,
+			updates: [{ index: `rope`, path: `root`, value }],
+		})
+		expect(staged.bytes).toBe(
+			new TextEncoder().encode(JSON.stringify(value)).byteLength,
+		)
+
+		const sparse: unknown[] = []
+		sparse.length = 1
+		const cyclic: Record<string, unknown> = {}
+		cyclic[`self`] = cyclic
+		let accessorRead = false
+		const accessor = Object.defineProperty({}, `value`, {
+			enumerable: true,
+			get() {
+				accessorRead = true
+				throw new Error(`must not observe accessors`)
+			},
+		})
+		for (const [index, hostile] of [1n, sparse, cyclic, accessor].entries()) {
+			await expect(
+				stageMosaicDomainExternalCheckpointGraph({
+					baseRevision: 1,
+					domain: identity,
+					storage,
+					updates: [
+						{ index: `hostile`, path: String(index), value: hostile as never },
+					],
+				}),
+			).rejects.toThrow(`JSON-serializable`)
+		}
+		expect(accessorRead).toBe(false)
+
+		for (const hostile of [sparse, cyclic, accessor, new Date()]) {
+			expect(() =>
+				storage.stageCheckpointObjects(identity, [
+					{
+						key: `sha256:${`0`.repeat(64)}`,
+						value: {
+							hostile,
+							kind: `external-proof`,
+							updates: [],
+						} as never,
+					},
+				]),
+			).toThrow(`checkpoint object is invalid`)
+		}
+		expect(accessorRead).toBe(false)
+
+		const inheritedProof = Object.assign(
+			Object.create({ inherited: `ignored` }) as Record<string, unknown>,
+			{ kind: `external-proof`, updates: [] },
+		) as MosaicDomainCheckpointObject
+		Object.defineProperty(inheritedProof, `nonEnumerable`, { value: `ignored` })
+		const inheritedProofKey = mosaicDomainCheckpointObjectKey(inheritedProof)
+		expect(
+			storage.stageCheckpointObjects(identity, [
+				{ key: inheritedProofKey, value: inheritedProof },
+			]),
+		).toMatchObject({ persistedObjectCount: 1 })
+
+		const inheritedValue = Object.assign(
+			Object.create({ inherited: `ignored` }) as Record<string, unknown>,
+			{ own: `kept` },
+		)
+		Object.defineProperty(inheritedValue, `nonEnumerable`, { value: `ignored` })
+		await expect(
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 1,
+				domain: identity,
+				storage,
+				updates: [
+					{
+						index: `canonical`,
+						path: `inherited`,
+						value: inheritedValue as never,
+					},
+				],
+			}),
+		).resolves.toMatchObject({
+			bytes: new TextEncoder().encode(JSON.stringify({ own: `kept` }))
+				.byteLength,
+		})
+		await expect(
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 1,
+				domain: identity,
+				limits: { deadline: Number.NaN },
+				storage,
+				updates: [],
+			}),
+		).rejects.toThrow(`deadline must be finite`)
+
+		for (const [limits, padding, message] of [
+			[
+				{ maxObjectNodes: 4 },
+				{ a: 1, b: 2, c: 3, d: 4 },
+				`object exceeds 4 nodes`,
+			],
+			[
+				{ maxObjectDepth: 2 },
+				{ one: { two: { three: true } } },
+				`object exceeds depth 2`,
+			],
+		] as const) {
+			expect(() =>
+				storage.stageCheckpointObjects(
+					identity,
+					[
+						{
+							key: `sha256:${`0`.repeat(64)}`,
+							value: {
+								kind: `external-proof`,
+								padding,
+								updates: [],
+							} as never,
+						},
+					],
+					{ limits },
+				),
+			).toThrow(message)
+		}
+	})
+
+	test(`a tiny staged delta can retain an authenticated graph over 50 MiB`, async () => {
+		const storage = new InMemoryMosaicDomainCheckpointStorage({ now: () => 100 })
+		const mebibyte = 1024 * 1024
+		const parent = await stageMosaicDomainExternalCheckpointGraph({
+			baseRevision: 1,
+			domain: identity,
+			limits: {
+				maxBytes: 64 * mebibyte,
+				maxObjectBytes: 2 * mebibyte,
+				maxStagedBytes: 60 * mebibyte,
+				maxStagedObjects: 1_024,
+				maxUpdates: 64,
+			},
+			proposal: {
+				expiresAfterRevision: 1,
+				expiresAt: 1_000,
+				id: `large-parent`,
+				minimumRevision: 0,
+			},
+			storage,
+			updates: Array.from({ length: 51 }, (_, index) => ({
+				index: `rope`,
+				path: `chunk-${index.toString().padStart(2, `0`)}`,
+				value: `x`.repeat(mebibyte),
+			})),
+		})
+		expect(parent.bytes).toBeGreaterThan(50 * mebibyte)
+
+		const local = await stageMosaicDomainExternalCheckpointGraph({
+			baseRevision: 1,
+			domain: identity,
+			limits: {
+				maxBytes: 64 * mebibyte,
+				maxStagedBytes: 512 * 1024,
+				maxStagedObjects: 128,
+				maxUpdates: 4,
+			},
+			previousRootKey: parent.rootKey,
+			proposal: {
+				expiresAfterRevision: 1,
+				expiresAt: 1_000,
+				id: `tiny-local-delta`,
+				minimumRevision: 0,
+			},
+			storage,
+			updates: [{ index: `rope`, path: `chunk-25`, value: `tiny` }],
+		})
+		expect(local.bytes).toBeGreaterThan(50 * mebibyte)
+		expect(local.persistedBytes).toBeLessThan(512 * 1024)
+	}, 30_000)
+
+	test(`external graph builders reject malformed bounds and proposal transitions`, async () => {
+		expect(
+			() => new InMemoryMosaicDomainCheckpointStorage({ maxRecentReceipts: 0 }),
+		).toThrow(`maxRecentReceipts must be a positive`)
+		expect(
+			() =>
+				new InMemoryMosaicDomainCheckpointStorage({ maxSessionWatermarks: 0 }),
+		).toThrow(`maxSessionWatermarks must be a positive`)
+
+		const storage = new InMemoryMosaicDomainCheckpointStorage({ now: () => 100 })
+		await expect(
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 0,
+				domain: identity,
+				limits: { maxBytes: 0 },
+				storage,
+				updates: [{ index: `rope`, path: `root`, value: `value` }],
+			}),
+		).rejects.toThrow(`maxBytes must be a positive`)
+		await expect(
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: -1,
+				domain: identity,
+				storage,
+				updates: [],
+			}),
+		).rejects.toThrow(`base revision is invalid`)
+		await expect(
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 0,
+				domain: identity,
+				limits: { maxUpdates: 1 },
+				storage,
+				updates: [
+					{ index: `rope`, path: `a`, value: `a` },
+					{ index: `rope`, path: `b`, value: `b` },
+				],
+			}),
+		).rejects.toThrow(`updates exceed 1`)
+		await expect(
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 0,
+				domain: identity,
+				storage,
+				updates: Array.from({ length: 257 }, (_, index) => ({
+					index: `rope`,
+					path: `path-${index}`,
+					value: index,
+				})),
+			}),
+		).rejects.toThrow(`updates exceed 256`)
+		await expect(
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 0,
+				domain: identity,
+				storage,
+				updates: [],
+			}),
+		).rejects.toThrow(`graph is empty`)
+		await expect(
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 0,
+				domain: identity,
+				storage,
+				updates: [
+					{ index: `rope`, path: `same`, value: `one` },
+					{ index: `rope`, path: `same`, value: `two` },
+				],
+			}),
+		).rejects.toThrow(`update is invalid`)
+		await expect(
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 0,
+				domain: identity,
+				limits: { maxBytes: 4 },
+				storage,
+				updates: [{ index: `rope`, path: `root`, value: `too large` }],
+			}),
+		).rejects.toThrow(`graph exceeds 4 bytes`)
+		await expect(
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 0,
+				domain: identity,
+				previousRootKey: `invalid` as never,
+				storage,
+				updates: [],
+			}),
+		).rejects.toThrow(`object key is invalid`)
+		await expect(
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 0,
+				domain: identity,
+				previousRootKey: `sha256:${`0`.repeat(64)}`,
+				storage,
+				updates: [],
+			}),
+		).rejects.toThrow(`is missing`)
+
+		const emptyRemoval = await stageMosaicDomainExternalCheckpointGraph({
+			baseRevision: 0,
+			domain: identity,
+			storage,
+			updates: [{ index: `rope`, path: `absent`, remove: true }],
+		})
+		expect(emptyRemoval.bytes).toBe(0)
+
+		const staged = (value: MosaicDomainCheckpointObject) => ({
+			key: mosaicDomainCheckpointObjectKey(value),
+			value,
+		})
+		const leaf = staged({ depth: 0, entries: [], kind: `directory-leaf` })
+		expect(() =>
+			storage.stageCheckpointObjects(identity, [leaf], {
+				proposal: {
+					expiresAfterRevision: 1,
+					expiresAt: 1_000,
+					id: `unpaired`,
+					minimumRevision: 0,
+					rootKey: leaf.key,
+				},
+			}),
+		).toThrow(`requires one atomic proposal`)
+		expect(() =>
+			storage.stageCheckpointObjects(identity, [leaf], {
+				externalGraph: { rootKey: leaf.key, updates: [] },
+				proposal: {
+					expiresAfterRevision: 1,
+					expiresAt: 1_000,
+					id: `wrong-root-kind`,
+					minimumRevision: 0,
+					rootKey: leaf.key,
+				},
+			}),
+		).toThrow(`proposal root is invalid`)
+		expect(() =>
+			storage.appendBatch({
+				accepted: accepted(`invalid-proposal-list`, 1, [address(`bad-list`)]),
+				checkpointProposals: null as never,
+				expectedRevision: 0,
+				fingerprint: `invalid-proposal-list`,
+			}),
+		).toThrow(`proposal list is invalid`)
+
+		const collision = (value: string, expiresAt: number) =>
+			stageMosaicDomainExternalCheckpointGraph({
+				baseRevision: 1,
+				domain: identity,
+				proposal: {
+					expiresAfterRevision: 1,
+					expiresAt,
+					id: `stable-proposal-id`,
+					minimumRevision: 0,
+				},
+				storage,
+				updates: [{ index: `rope`, path: `root`, value }],
+			})
+		await collision(`first`, 1_000)
+		await expect(collision(`different`, 1_000)).rejects.toThrow(
+			`proposal identity collided`,
+		)
+		await expect(collision(`first`, 900)).rejects.toThrow(`cannot shorten`)
+	})
+
+	test(`legacy external graphs are fully verified and paged reads fail closed`, async () => {
+		const storage = new InMemoryMosaicDomainCheckpointStorage()
+		const logicalKey = JSON.stringify([`rope`, `root`])
+		const index = {
+			index: `different-index`,
+			kind: `index`,
+			path: `different-path`,
+			revision: 1,
+			value: `legacy-value`,
+		} as const
+		const indexKey = mosaicDomainCheckpointObjectKey(index)
+		const directory = {
+			depth: 0,
+			entries: [{ key: logicalKey, value: indexKey }],
+			kind: `directory-leaf`,
+		} as const
+		const directoryKey = mosaicDomainCheckpointObjectKey(directory)
+		const external = {
+			baseRevision: 1,
+			bytes: new TextEncoder().encode(JSON.stringify(index.value)).byteLength,
+			depth: 0,
+			directory: directoryKey,
+			domain: identity,
+			kind: `external-root`,
+		} as const
+		const externalKey = mosaicDomainCheckpointObjectKey(external)
+		await storage.stageCheckpointObjects(identity, [
+			{ key: indexKey, value: index },
+			{ key: directoryKey, value: directory },
+			{ key: externalKey, value: external },
+		])
+		await append(storage, 1, [address(`legacy`)])
+		await createMosaicDomainCheckpointCoordinator({
+			domain: identity,
+			externalRoots: () => [externalKey],
+			readMember: () => `legacy`,
+			storage,
+		}).checkpoint()
+
+		const reader = createMosaicDomainCheckpointCoordinator({
+			domain: identity,
+			readMember: () => `legacy`,
+			storage,
+		})
+		await expect(
+			reader.readExternalIndexes(externalKey, [
+				{ index: `rope`, path: `absent` },
+				{ index: `rope`, path: `absent` },
+			]),
+		).rejects.toThrow(`index address is invalid`)
+		await expect(
+			reader.readExternalIndexes(externalKey, [{ index: `rope`, path: `root` }]),
+		).rejects.toThrow(`external checkpoint index is invalid`)
+
+		const unpublished = {
+			...external,
+			bytes: 0,
+			directory: null,
+		} as const
+		const unpublishedKey = mosaicDomainCheckpointObjectKey(unpublished)
+		await storage.stageCheckpointObjects(identity, [
+			{ key: unpublishedKey, value: unpublished },
+		])
+		await expect(reader.readExternalIndexes(unpublishedKey, [])).rejects.toThrow(
+			`root is not published`,
+		)
+		await expect(
+			createMosaicDomainCheckpointCoordinator({
+				domain: { ...identity, instance: `without-checkpoint` },
+				readMember: () => null,
+				storage,
+			}).readExternalIndexes(externalKey, []),
+		).rejects.toThrow(`has no checkpoint`)
+
+		const firstPage = await storage.listCheckpointObjects(identity, { limit: 1 })
+		expect(firstPage.objects).toHaveLength(1)
+		expect(firstPage.cursor).not.toBeNull()
+		expect(
+			await storage.listCheckpointObjects(identity, {
+				after: firstPage.cursor!,
+				limit: 1,
+			}),
+		).toMatchObject({ objects: [{ key: expect.any(String) }] })
+
+		const foreignRoot = {
+			domain: { ...identity, instance: `foreign` },
+			externalRoots: [],
+			indexDirectory: null,
+			kind: `root`,
+			memberDirectory: null,
+			protocolVersion: 1,
+			retentionEpoch: 1,
+			revision: 0,
+		} as const
+		const foreignRootKey = mosaicDomainCheckpointObjectKey(foreignRoot)
+		await storage.stageCheckpointObjects(identity, [
+			{ key: foreignRootKey, value: foreignRoot },
+		])
+		expect(() =>
+			storage.upsertCheckpointRetentionLease(identity, {
+				id: `foreign-root`,
+				kind: `history`,
+				minimumRevision: 0,
+				rootKeys: [foreignRootKey],
+			}),
+		).toThrow(`retention root is invalid`)
+		expect(() =>
+			storage.upsertCheckpointRetentionLease(identity, {
+				id: `external-root`,
+				kind: `history`,
+				minimumRevision: 0,
+				rootKeys: [unpublishedKey],
+			}),
+		).toThrow(`must be protected by atomic staging`)
+		expect(() =>
+			storage.upsertCheckpointRetentionLease(identity, {
+				id: `index-root`,
+				kind: `history`,
+				minimumRevision: 0,
+				rootKeys: [indexKey],
+			}),
+		).toThrow(`retention root is invalid`)
+
+		const brokenRoot = {
+			domain: identity,
+			externalRoots: [],
+			indexDirectory: null,
+			kind: `root`,
+			memberDirectory: `sha256:${`d`.repeat(64)}`,
+			protocolVersion: 1,
+			retentionEpoch: 1,
+			revision: 0,
+		} as const
+		const brokenRootKey = mosaicDomainCheckpointObjectKey(brokenRoot)
+		await storage.stageCheckpointObjects(identity, [
+			{ key: brokenRootKey, value: brokenRoot },
+		])
+		await storage.upsertCheckpointRetentionLease(identity, {
+			id: `broken-root`,
+			kind: `history`,
+			minimumRevision: 0,
+			rootKeys: [brokenRootKey],
+		})
+		const brokenEpoch = (await storage.checkpointHead(identity)).retentionEpoch
+		expect(() =>
+			storage.collectCheckpointGarbage({
+				domain: identity,
+				expectedRetentionEpoch: brokenEpoch,
+			}),
+		).toThrow(`checkpoint object is missing`)
+	})
+
+	test(`legacy commit validation rejects malformed authenticated subgraphs`, async () => {
+		const commitLegacy = async (options: {
+			readonly bytes?: number
+			readonly directory: MosaicDomainCheckpointObject
+			readonly directoryKey?: `sha256:${string}`
+			readonly externalDepth?: number
+			readonly extra?: readonly MosaicDomainCheckpointObject[]
+		}) => {
+			const storage = new InMemoryMosaicDomainCheckpointStorage()
+			await append(storage, 1, [address(`legacy-malformed`)])
+			const objects = [...(options.extra ?? []), options.directory]
+			const stored = objects.map((value) => ({
+				key: mosaicDomainCheckpointObjectKey(value),
+				value,
+			}))
+			const directoryKey =
+				options.directoryKey ??
+				mosaicDomainCheckpointObjectKey(options.directory)
+			const external = {
+				baseRevision: 1,
+				bytes: options.bytes ?? 0,
+				depth: options.externalDepth ?? 0,
+				directory: directoryKey,
+				domain: identity,
+				kind: `external-root`,
+			} as const
+			const externalKey = mosaicDomainCheckpointObjectKey(external)
+			const root = {
+				domain: identity,
+				externalRoots: [externalKey],
+				indexDirectory: null,
+				kind: `root`,
+				memberDirectory: null,
+				protocolVersion: 1,
+				retentionEpoch: 1,
+				revision: 1,
+			} as const
+			const rootKey = mosaicDomainCheckpointObjectKey(root)
+			await storage.stageCheckpointObjects(identity, [
+				...stored,
+				{ key: externalKey, value: external },
+				{ key: rootKey, value: root },
+			])
+			return () =>
+				storage.commitCheckpoint({
+					domain: identity,
+					expectedRetentionEpoch: 0,
+					expectedRevision: 1,
+					expectedRootKey: null,
+					rootKey,
+				})
+		}
+
+		const deepLeaf = {
+			depth: 1,
+			entries: [],
+			kind: `directory-leaf`,
+		} as const
+		expect(await commitLegacy({ directory: deepLeaf })).toThrow(
+			`external checkpoint depth is invalid`,
+		)
+
+		const futureIndex = {
+			index: `rope`,
+			kind: `index`,
+			path: `future`,
+			revision: 2,
+			value: `future`,
+		} as const
+		expect(
+			await commitLegacy({
+				bytes: new TextEncoder().encode(JSON.stringify(futureIndex.value))
+					.byteLength,
+				directory: futureIndex,
+			}),
+		).toThrow(`external checkpoint index is invalid`)
+
+		const currentIndex = { ...futureIndex, revision: 1 }
+		expect(await commitLegacy({ bytes: 0, directory: currentIndex })).toThrow(
+			`external checkpoint graph is invalid`,
+		)
+
+		const member = {
+			address: address(`not-a-directory`),
+			kind: `member`,
+			revision: 1,
+			value: null,
+		} as const
+		expect(await commitLegacy({ directory: member })).toThrow(
+			`external checkpoint graph is invalid`,
+		)
+
+		const missing = `sha256:${`e`.repeat(64)}` as const
+		const missingLeaf = {
+			depth: 0,
+			entries: [{ key: `missing`, value: missing }],
+			kind: `directory-leaf`,
+		} as const
+		expect(await commitLegacy({ directory: missingLeaf })).toThrow(
+			`checkpoint object is missing`,
+		)
+
+		const invalidDirectory = {
+			depth: -1,
+			entries: [],
+			kind: `directory-leaf`,
+		} as const
+		expect(await commitLegacy({ directory: invalidDirectory })).toThrow(
+			`checkpoint directory is invalid`,
+		)
+	})
+
+	test(`external-root selection validates hook, recovery, and accepted-head bounds`, async () => {
+		expect(() => fixture(undefined, { maxExternalDepth: -1 })).toThrow(
+			`maxExternalDepth must be a non-negative`,
+		)
+		const invalidHookStorage = new InMemoryMosaicDomainCheckpointStorage()
+		await expect(
+			createMosaicDomainCheckpointCoordinator({
+				domain: identity,
+				externalRoots: () => null as never,
+				readMember: () => null,
+				storage: invalidHookStorage,
+			}).checkpoint(),
+		).rejects.toThrow(`roots exceed 64`)
+		const fake = `sha256:${`1`.repeat(64)}` as const
+		await expect(
+			createMosaicDomainCheckpointCoordinator({
+				domain: identity,
+				externalRoots: () => [fake, fake],
+				readMember: () => null,
+				storage: invalidHookStorage,
+			}).checkpoint(),
+		).rejects.toThrow(`root key is invalid`)
+
+		class AcceptedHeadStorage extends InMemoryMosaicDomainCheckpointStorage {
+			public accepted: unknown = []
+
+			public override openCheckpointRead(
+				...args: Parameters<
+					InMemoryMosaicDomainCheckpointStorage[`openCheckpointRead`]
+				>
+			) {
+				return {
+					...super.openCheckpointRead(...args),
+					acceptedRootKeys: this.accepted as never,
+				}
+			}
+		}
+		const acceptedHead = new AcceptedHeadStorage()
+		const acceptedCoordinator = createMosaicDomainCheckpointCoordinator({
+			domain: identity,
+			readMember: () => null,
+			storage: acceptedHead,
+		})
+		acceptedHead.accepted = {}
+		await expect(acceptedCoordinator.checkpoint()).rejects.toThrow(
+			`accepted external checkpoint root list is invalid`,
+		)
+		acceptedHead.accepted = [`invalid`]
+		await expect(acceptedCoordinator.checkpoint()).rejects.toThrow(
+			`accepted external checkpoint root key is invalid`,
+		)
+		acceptedHead.accepted = Array.from(
+			{ length: 65 },
+			(_, index) => `sha256:${index.toString(16).padStart(64, `0`)}` as const,
+		)
+		await expect(acceptedCoordinator.checkpoint()).rejects.toThrow(
+			`roots exceed 64`,
+		)
+
+		const storage = new InMemoryMosaicDomainCheckpointStorage()
+		const left = await stageMosaicDomainExternalCheckpointGraph({
+			baseRevision: 1,
+			domain: identity,
+			storage,
+			updates: [{ index: `left`, path: `root`, value: `aaaa` }],
+		})
+		const right = await stageMosaicDomainExternalCheckpointGraph({
+			baseRevision: 1,
+			domain: identity,
+			storage,
+			updates: [{ index: `right`, path: `root`, value: `bbbb` }],
+		})
+		await append(storage, 1, [address(`aggregate-external`)])
+		await createMosaicDomainCheckpointCoordinator({
+			domain: identity,
+			externalRoots: () => [left.rootKey, right.rootKey],
+			readMember: () => `aggregate`,
+			storage,
+		}).checkpoint()
+		await expect(
+			createMosaicDomainCheckpointCoordinator({
+				domain: identity,
+				limits: { maxExternalBytes: left.bytes + right.bytes - 1 },
+				readMember: () => `aggregate`,
+				storage,
+			}).recover([]),
+		).rejects.toThrow(`roots exceed`)
+
+		const unpublishedStorage = new InMemoryMosaicDomainCheckpointStorage()
+		const stagedLeft = await stageMosaicDomainExternalCheckpointGraph({
+			baseRevision: 1,
+			domain: identity,
+			storage: unpublishedStorage,
+			updates: [{ index: `left`, path: `root`, value: `aaaa` }],
+		})
+		const stagedRight = await stageMosaicDomainExternalCheckpointGraph({
+			baseRevision: 1,
+			domain: identity,
+			storage: unpublishedStorage,
+			updates: [{ index: `right`, path: `root`, value: `bbbb` }],
+		})
+		await append(unpublishedStorage, 1, [address(`bounded-external`)])
+		await expect(
+			createMosaicDomainCheckpointCoordinator({
+				domain: identity,
+				externalRoots: () => [stagedLeft.rootKey, stagedRight.rootKey],
+				limits: {
+					maxExternalBytes: stagedLeft.bytes + stagedRight.bytes - 1,
+				},
+				readMember: () => `bounded`,
+				storage: unpublishedStorage,
+			}).checkpoint(),
+		).rejects.toThrow(`roots exceed`)
 	})
 
 	test(`coordinator bounds and malformed read requests fail before publication`, async () => {

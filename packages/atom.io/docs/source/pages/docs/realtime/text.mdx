@@ -11,12 +11,12 @@ framework.
     <thead><tr><th>Representation</th><th>Use it for</th><th>Durable unit</th></tr></thead>
     <tbody>
       <tr>
-        <td>Mosaic Text v2 run model</td>
+        <td>Logical-run text model</td>
         <td>Convergent edits, stable positions, operation history, and bounded checkpoints.</td>
         <td>Logical insertion runs and deletion intervals.</td>
       </tr>
       <tr>
-        <td>Mosaic Text v3 root</td>
+        <td>Content-addressed text root</td>
         <td>Very large text that must be staged, read, edited, and checkpointed by bounded ranges.</td>
         <td>Content-addressed leaves beneath a small Merkle root.</td>
       </tr>
@@ -29,7 +29,7 @@ index, partial residency, projections, Domain history, and checkpoints.
 
 ## logical runs and positions
 
-Mosaic Text v2 stores each insertion as a stable logical run. Physical
+The logical-run model stores each insertion as a stable logical run. Physical
 checkpoint fragments may split that run without changing its identity.
 Positions use a run id, grapheme offset, and affinity; they do not use a fragile
 whole-document UTF-16 offset.
@@ -65,11 +65,11 @@ React owns acquisition and release lifecycle only. Parsing, layout, syntax
 highlighting, and rendering should consume the bounded projection rather than
 materializing the full document.
 
-## v3 content-addressed roots
+## content-addressed text roots
 
-A Mosaic Text v3 root contains a generation and a reference to a bounded tree of
-immutable branch and leaf objects. Bulk import streams grapheme-safe chunks.
-Local replacement path-copies only touched leaves and their branch path.
+A content-addressed text root contains a generation and a reference to a bounded
+tree of immutable branch and leaf objects. Bulk import streams grapheme-safe
+chunks. Local replacement path-copies only touched leaves and their branch path.
 
 The staging sequence is:
 
@@ -87,10 +87,10 @@ expire and become collectible.
 
 <Exhibit src="realtime/checkpoint-a-domain-incrementally.ts" />
 
-MOS-13 checkpoints store a small atomic Domain root and content-addressed member
-and index objects. Mosaic Text v3 contributes an external root dependency.
-Unchanged text objects are structurally shared; a local edit persists the new
-leaf/path/root rather than another full document.
+Domain checkpoints store a small atomic root and content-addressed member and
+index objects. The content-addressed text representation contributes an external
+root dependency. Unchanged text objects are structurally shared; a local edit
+persists the new leaf/path/root rather than another full document.
 
 History compaction, outboxes, sessions, proposals, presence anchors, and active
 readers may all protect revisions or operation ids. Garbage collection traces

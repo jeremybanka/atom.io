@@ -38,7 +38,7 @@ envelope validators are exported beside the functions listed here.
       <tr><td><code>mosaicText</code></td><td>Built-in convergent Unicode run-text transceiver.</td></tr>
       <tr><td>Mosaic Text position/selection helpers</td><td>Create and resolve stable run-relative grapheme positions and bounded segment bundles.</td></tr>
       <tr><td>Mosaic Text index</td><td>Create, maintain, split/merge, recover aliases, and read bounded text ranges.</td></tr>
-      <tr><td>Mosaic Text v3 root</td><td>Stream imports, path-copy replacements, resolve grapheme-safe UTF-16 boundaries, and read bounded ranges.</td></tr>
+      <tr><td>Content-addressed Mosaic Text root</td><td>Stream imports, path-copy replacements, resolve grapheme-safe UTF-16 boundaries, and read bounded ranges.</td></tr>
     </tbody>
   </table>
 </table-wrapper>
@@ -133,8 +133,8 @@ disposer.
       <tr><td><code>createMosaicDomainHistoryCoordinator</code></td><td>Authoritative selective undo/redo, compaction, protection, cursor, and horizon.</td></tr>
       <tr><td><code>createMosaicDomainCheckpointCoordinator</code></td><td>Dirty-tail checkpoints, structural sharing, recovery, external roots, and GC coordination.</td></tr>
       <tr><td><code>MosaicDomainCheckpointStorageAdapter</code></td><td>Immutable objects, fenced roots, indexes, leases, pagination, tracing, and collection.</td></tr>
-      <tr><td><code>createMosaicTextRootCheckpointStage</code></td><td>Stage bounded Mosaic Text v3 objects and an unreachable external root.</td></tr>
-      <tr><td><code>createMosaicTextRootCheckpointReader</code></td><td>Read a pinned v3 manifest, reference counts, and individually addressed nodes.</td></tr>
+      <tr><td><code>createMosaicTextRootCheckpointStage</code></td><td>Stage bounded content-addressed text objects and an unreachable external root.</td></tr>
+      <tr><td><code>createMosaicTextRootCheckpointReader</code></td><td>Read a pinned text-root manifest, reference counts, and individually addressed nodes.</td></tr>
       <tr><td>Socket server binders</td><td>Authenticated history and presence Socket.IO request/response binding.</td></tr>
     </tbody>
   </table>

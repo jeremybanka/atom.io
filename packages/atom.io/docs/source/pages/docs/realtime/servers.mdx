@@ -82,10 +82,10 @@ compare the expected stream revision, previous root, and retention epoch.
 Checkpoint readers pin a root and page requested member/index paths rather than
 loading every object.
 
-External roots, such as Mosaic Text v3, require an accepted-root handoff: an
-accepted proposal protects its staged root across restart until a Domain
-checkpoint adopts it. A checkpoint that omits an accepted external root must be
-rejected.
+External roots, such as a content-addressed Mosaic Text root, require an
+accepted-root handoff: an accepted proposal protects its staged root across
+restart until a Domain checkpoint adopts it. A checkpoint that omits an accepted
+external root must be rejected.
 
 ## history authority
 

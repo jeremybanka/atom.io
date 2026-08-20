@@ -19,10 +19,14 @@ const schedule = generateModelScenario<Action, Fault>({
 	seed: 0x21_25,
 })
 
-await runModelScenario({
-	createRuntime: async () => createCounterRuntime(),
-	schedule,
-})
+const main = async (): Promise<void> => {
+	await runModelScenario({
+		createRuntime: async () => createCounterRuntime(),
+		schedule,
+	})
+}
+
+void main()
 
 declare function createCounterRuntime(): Promise<{
 	applyAction(clientId: string, action: Action): Promise<void>

@@ -116,13 +116,15 @@ its order, and its index must not be split into separately observable commits.
 Install Socket.IO alongside atom.io, create one client socket, and put a
 `RealtimeProvider` inside the same atom.io Store or Silo provider as the UI.
 The realtime hooks coalesce repeated consumers and release their service when
-the final consumer unmounts.
+the final consumer unmounts. Supply a short-lived product credential through
+the handshake; the server must validate it and derive actor/session identity.
 
 <Exhibit src="realtime/provide-realtime-react.tsx" />
 
 For same-origin deployments, use the current location as the connection basis
 and proxy the Socket.IO path through the frontend server. That gives the browser
-one origin and keeps transport routing an infrastructure concern.
+one origin and keeps transport routing an infrastructure concern. The server
+still validates the handshake origin and applies admission and rate limits.
 
 ## the correctness model
 

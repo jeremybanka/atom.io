@@ -5,6 +5,11 @@ import type { Fn } from "../utility-types.ts"
 import type { ChildStore } from "./is-root-store.ts"
 import { isChildStore, isRootStore } from "./is-root-store.ts"
 import {
+	captureTransactionCommitSnapshots,
+	createTransactionCommitEvent,
+	markTransactionCommitted,
+} from "./transaction-commit-status.ts"
+import {
 	beginTransactionNotificationBatch,
 	cancelTransactionNotificationBatch,
 	flushTransactionNotificationBatch,
@@ -36,6 +41,15 @@ export function applyTransaction<F extends Fn>(
 	const ownsNotificationBatch =
 		rootCommit && beginTransactionNotificationBatch(parent)
 	const notificationErrors: unknown[] = []
+	const publishesCommit =
+		rootCommit && parent.on.transactionCommit.subscribers.size > 0
+	const commitSnapshots = publishesCommit
+		? captureTransactionCommitSnapshots(
+				parent,
+				child,
+				child.transactionMeta.update,
+			)
+		: []
 	try {
 		ingestTransactionOutcomeEvent(
 			parent,
@@ -44,6 +58,20 @@ export function applyTransaction<F extends Fn>(
 		)
 
 		if (rootCommit) {
+			const sequence = markTransactionCommitted(parent)
+			if (publishesCommit) {
+				const commitEvent = createTransactionCommitEvent(
+					parent,
+					child.transactionMeta.update,
+					sequence,
+					commitSnapshots,
+				)
+				notifySubjectAndCollectErrors(
+					parent.on.transactionCommit,
+					commitEvent,
+					notificationErrors,
+				)
+			}
 			if (ownsNotificationBatch) {
 				notificationErrors.push(...flushTransactionNotificationBatch(parent))
 			}

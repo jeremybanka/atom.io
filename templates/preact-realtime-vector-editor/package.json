@@ -1,0 +1,50 @@
+{
+	"name": "@atom.io/template-preact-realtime-vector-editor",
+	"version": "0.0.1",
+	"description": "A realtime collaborative vector editor built with Atom.io Mosaic Domains and Preact.",
+	"license": "Apache-2.0",
+	"publishConfig": { "access": "public" },
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/jeremybanka/atom.io.git",
+		"directory": "templates/preact-realtime-vector-editor"
+	},
+	"type": "module",
+	"engines": { "node": ">=24.12.0" },
+	"scripts": {
+		"dev": "concurrently vite \"node --watch node/server.ts\"",
+		"build": "tsc -b && vite build",
+		"lint": "npm run lint:eslint && npm run lint:lasertag && npm run lint:types",
+		"lint:eslint": "eslint .",
+		"lint:lasertag": "lasertag check \"src/**/*.module.css\"",
+		"lint:types": "tsc -b",
+		"preview": "concurrently \"vite preview\" \"node node/server.ts\"",
+		"test": "vitest run",
+		"test:once": "vitest run"
+	},
+	"dependencies": {
+		"@atom.io/template-preact-svg-editor": "workspace:*",
+		"atom.io": "workspace:*",
+		"preact": "10.29.8",
+		"socket.io": "4.8.3",
+		"socket.io-client": "4.8.3"
+	},
+	"devDependencies": {
+		"@testing-library/dom": "10.4.1",
+		"@testing-library/react": "16.3.2",
+		"@types/node": "26.2.0",
+		"@types/react": "19.2.18",
+		"@types/react-dom": "19.2.4",
+		"@typescript-eslint/parser": "8.67.0",
+		"@preact/preset-vite": "2.10.6",
+		"concurrently": "10.0.5",
+		"eslint": "10.8.1",
+		"happy-dom": "20.11.2",
+		"lasertag": "0.7.0",
+		"react": "19.2.8",
+		"react-dom": "19.2.8",
+		"typescript": "7.0.2",
+		"vite": "8.2.1",
+		"vitest": "4.1.11"
+	}
+}

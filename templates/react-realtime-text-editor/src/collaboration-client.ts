@@ -248,7 +248,7 @@ export async function createMarkdownCollaborationClient(options: {
 			// Presence is advisory and retains its actionable state.
 		}
 		await presence.refresh()
-		await publishLatestPresence()
+		await publishLatestPresence().catch(() => undefined)
 		if (history.state.snapshot === null) await history.start()
 		else await history.refresh()
 		notify()
@@ -333,16 +333,23 @@ export async function createMarkdownCollaborationClient(options: {
 	const stopResidency = residency.subscribeState(notify)
 	const stopPresence = presence.subscribe(notify)
 	const stopHistory = history.subscribe(notify)
+	let presenceRenewalInFlight = false
 	const presenceRenewalTimer = setInterval(() => {
 		if (
 			disposed ||
 			!socket.connected ||
 			latestPresence === null ||
-			presence.state.pending > 0
+			presence.state.pending > 0 ||
+			presenceRenewalInFlight
 		) {
 			return
 		}
-		void publishLatestPresence().catch(() => undefined)
+		presenceRenewalInFlight = true
+		void publishLatestPresence()
+			.catch(() => undefined)
+			.finally(() => {
+				presenceRenewalInFlight = false
+			})
 	}, presenceRenewalMs)
 	;(presenceRenewalTimer as { unref?: () => void }).unref?.()
 	const reconnect = (): void => {

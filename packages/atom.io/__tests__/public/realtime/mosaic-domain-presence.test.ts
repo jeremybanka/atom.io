@@ -883,33 +883,38 @@ describe(`Mosaic Domain presence`, () => {
 			const browserTransport = createMosaicDomainPresenceSocketTransport(
 				browser.socket,
 			)
-			const browserSnapshot = browserTransport.snapshot()
-			const browserSnapshotRequest = browser.emitted.at(-1)!
-			browser.dispatch(MOSAIC_DOMAIN_PRESENCE_EVENTS.snapshotResult, {
-				requestId: browserSnapshotRequest.payload.requestId,
-				snapshot: { presence: [], sequence: 0 },
-			})
-			await expect(browserSnapshot).resolves.toEqual({
-				presence: [],
-				sequence: 0,
-			})
-			const browserProposal = updateProposal(fixture.domain)
-			const browserPublish = browserTransport.publish(browserProposal)
-			const browserPublishRequest = browser.emitted.at(-1)!
-			browser.dispatch(MOSAIC_DOMAIN_PRESENCE_EVENTS.result, {
-				requestId: browserPublishRequest.payload.requestId,
-				result: {
-					accepted: {
-						...browserProposal,
-						actor: `ada`,
-						expiresAt: 100,
+			try {
+				const browserSnapshot = browserTransport.snapshot()
+				const browserSnapshotRequest = browser.emitted.at(-1)!
+				browser.dispatch(MOSAIC_DOMAIN_PRESENCE_EVENTS.snapshotResult, {
+					requestId: browserSnapshotRequest.payload.requestId,
+					snapshot: { presence: [], sequence: 0 },
+				})
+				await expect(browserSnapshot).resolves.toEqual({
+					presence: [],
+					sequence: 0,
+				})
+				const browserProposal = updateProposal(fixture.domain)
+				const browserPublish = browserTransport.publish(browserProposal)
+				const browserPublishRequest = browser.emitted.at(-1)!
+				browser.dispatch(MOSAIC_DOMAIN_PRESENCE_EVENTS.result, {
+					requestId: browserPublishRequest.payload.requestId,
+					result: {
+						accepted: {
+							...browserProposal,
+							actor: `ada`,
+							expiresAt: 100,
+						},
+						status: `accepted`,
 					},
+				})
+				await expect(browserPublish).resolves.toMatchObject({
 					status: `accepted`,
-				},
-			})
-			await expect(browserPublish).resolves.toMatchObject({ status: `accepted` })
-			browserTransport[Symbol.dispose]()
-			numericTimer.mockRestore()
+				})
+			} finally {
+				browserTransport[Symbol.dispose]()
+				numericTimer.mockRestore()
+			}
 			const fake = fakeSocket()
 			const transport = createMosaicDomainPresenceSocketTransport(fake.socket, {
 				requestTimeoutMs: 10,

@@ -12,6 +12,7 @@ import type { WritablePureSelector } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
 import type { RootStore } from "../transaction/index.ts"
 import { registerSelector } from "./register-selector.ts"
+import { SelectorDependencyTracker } from "./selector-dependency-tracker.ts"
 
 export function createWritablePureSelector<T, K extends Canonical, E>(
 	store: Store,
@@ -20,29 +21,24 @@ export function createWritablePureSelector<T, K extends Canonical, E>(
 ): WritablePureSelectorToken<T, K, E> {
 	const target = newest(store)
 	const subject = new Subject<StateUpdate<E | T>>()
-	const covered = new Set<string>()
 	const key = options.key
 	const type = `writable_pure_selector` as const
+	const dependencies = new SelectorDependencyTracker(key)
 	store.logger.info(`🔨`, type, key, `is being created`)
 
-	const setterToolkit = registerSelector(target, type, key, covered)
+	const setterToolkit = registerSelector(target, type, key, dependencies)
 	const { find, get, json, relations } = setterToolkit
 	const getterToolkit = { find, get, json, relations }
 
 	const getFrom = (innerTarget: Store): E | T => {
-		const upstreamStates = innerTarget.selectorGraph.getRelationEntries({
-			downstreamSelectorKey: key,
-		})
-		for (const [downstreamSelectorKey, { source }] of upstreamStates) {
-			if (source !== key) {
-				innerTarget.selectorGraph.delete(downstreamSelectorKey, key)
-			}
+		dependencies.begin()
+		try {
+			const value = options.get(getterToolkit)
+			store.logger.info(`✨`, type, key, `=`, value)
+			return value
+		} finally {
+			dependencies.finish(innerTarget)
 		}
-		innerTarget.selectorAtoms.delete(key)
-		const value = options.get(getterToolkit)
-		store.logger.info(`✨`, type, key, `=`, value)
-		covered.clear()
-		return value
 	}
 
 	const setSelf = (newValue: T): void => {

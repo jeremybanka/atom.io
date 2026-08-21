@@ -11,6 +11,7 @@ import type { ReadonlyHeldSelector } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
 import type { RootStore } from "../transaction/index.ts"
 import { registerSelector } from "./register-selector.ts"
+import { SelectorDependencyTracker } from "./selector-dependency-tracker.ts"
 
 export function createReadonlyHeldSelector<T extends object>(
 	store: Store,
@@ -19,33 +20,28 @@ export function createReadonlyHeldSelector<T extends object>(
 ): ReadonlyHeldSelectorToken<T> {
 	const target = newest(store)
 	const subject = new Subject<{ newValue: T; oldValue: T }>()
-	const covered = new Set<string>()
 	const { key, const: constant } = options
 	const type = `readonly_held_selector` as const
+	const dependencies = new SelectorDependencyTracker(key)
 	store.logger.info(`🔨`, type, key, `is being created`)
 
 	const { get, find, json, relations } = registerSelector(
 		target,
 		type,
 		key,
-		covered,
+		dependencies,
 	)
 
 	const getFrom = (innerTarget: Store) => {
-		const upstreamStates = innerTarget.selectorGraph.getRelationEntries({
-			downstreamSelectorKey: key,
-		})
-		for (const [downstreamSelectorKey, { source }] of upstreamStates) {
-			if (source !== key) {
-				innerTarget.selectorGraph.delete(downstreamSelectorKey, key)
-			}
+		dependencies.begin()
+		try {
+			options.get({ get, find, json, relations }, constant)
+			writeToCache(innerTarget, readonlySelector, constant)
+			store.logger.info(`✨`, type, key, `=`, constant)
+			return constant
+		} finally {
+			dependencies.finish(innerTarget)
 		}
-		innerTarget.selectorAtoms.delete(key)
-		options.get({ get, find, json, relations }, constant)
-		writeToCache(innerTarget, readonlySelector, constant)
-		store.logger.info(`✨`, type, key, `=`, constant)
-		covered.clear()
-		return constant
 	}
 
 	const readonlySelector: ReadonlyHeldSelector<T> = {

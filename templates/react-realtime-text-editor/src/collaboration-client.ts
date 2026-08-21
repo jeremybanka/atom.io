@@ -1,5 +1,6 @@
 import type { Silo } from "atom.io"
 import type {
+	MosaicAcceptedDomainBatchEnvelope,
 	MosaicDomainResidencyTransport,
 	MosaicTextIndexLookup,
 	MosaicTextSelection,
@@ -277,6 +278,30 @@ export async function createMarkdownCollaborationClient(options: {
 			if (socket.connected) onConnect()
 			else if (disposed) onDispose()
 		})
+	const waitForResidencyRevision = (revision: number): Promise<void> =>
+		new Promise((resolve, reject) => {
+			let settled = false
+			let stop = (): void => undefined
+			const timeout = setTimeout(() => {
+				if (settled) return
+				settled = true
+				stop()
+				reject(
+					new Error(
+						`The shared viewport did not settle revision ${revision} in time.`,
+					),
+				)
+			}, 10_000)
+			const unsubscribe = residency.subscribeState((state) => {
+				if (settled || state.headRevision < revision) return
+				settled = true
+				clearTimeout(timeout)
+				stop()
+				resolve()
+			})
+			stop = unsubscribe
+			if (settled) stop()
+		})
 	const sendCommand = async (command: MarkdownCommand): Promise<void> => {
 		for (;;) {
 			if (disposed) throw new Error(`The Markdown client is disposed.`)
@@ -285,7 +310,12 @@ export async function createMarkdownCollaborationClient(options: {
 				await synchronization
 				if (disposed) throw new Error(`The Markdown client is disposed.`)
 				if (!socket.connected) continue
-				await request(socket, MARKDOWN_EVENTS.command, command)
+				const accepted = await request<MosaicAcceptedDomainBatchEnvelope>(
+					socket,
+					MARKDOWN_EVENTS.command,
+					command,
+				)
+				await waitForResidencyRevision(accepted.revision)
 				return
 			} catch (error) {
 				if (

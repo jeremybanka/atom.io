@@ -53,13 +53,35 @@ derived durable indexes and contains no Markdown branch.
 
 ## Local Input and Logical Presence
 
-The mounted textarea contains only one resident source window. Keystrokes update
-a local draft immediately, minimal replacement intent is derived from the draft,
-and reconnect delivery retains its gesture identity and sequence. Local DOM
-selection, composition, scroll, and pending input remain React-local. Published
-presence converts them to run-relative positions, so collaborators can resolve
-them against another partial working set or simply report that the actor is in a
-different viewport.
+The mounted Lexical plain-text editor contains only one resident source window.
+Keystrokes update a local draft immediately, minimal replacement intent is
+derived from the draft, and reconnect delivery retains its gesture identity and
+sequence. Local DOM selection, composition, scroll, and pending input remain
+React-local. Published presence converts them to run-relative positions, so
+collaborators can resolve them against another partial working set or simply
+report that the actor is in a different viewport.
+
+Lexical is deliberately a browser editing and geometry layer rather than a
+second collaboration authority. Its Yjs collaboration integration and history
+plugin are not mounted. Mosaic owns accepted text, convergence, logical
+positions, actor history, partial residency, and presence leases. The adapter
+projects the current bounded source into Lexical, translates local selection
+offsets back into Mosaic positions, and resolves foreign positions into DOM
+ranges for colored caret labels and selection overlays. A projection-tagged
+update cannot echo back as a local edit, while native composition remains local
+until it is ready for the existing coalesced Domain gesture.
+
+The React range hook now reacquires a failed viewport when residency transitions
+back to live. This closes the cold-start race where Vite could render before the
+realtime server accepted its first Socket.IO connection, leaving an otherwise
+healthy client permanently parked on an internal resnapshot error.
+
+An accepted edit may also shorten a document while an existing subscription
+still names the old viewport end. The Markdown range adapter therefore clamps
+that durable subscription to the new authoritative length, and command
+acknowledgements do not clear the optimistic draft until residency has settled
+the accepted revision. This prevents a valid remote replacement from stranding
+the UI on a stale projection or briefly presenting the stale text as saved.
 
 The demo deliberately coalesces an offline draft for its current viewport. It
 does not claim semantic intent recovery for arbitrary rewrites made in several

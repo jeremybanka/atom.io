@@ -24,6 +24,10 @@ import {
 	type MarkdownSemanticBlock,
 } from "./incremental-markdown.ts"
 import { SIMULATED_IDENTITIES } from "./identities.ts"
+import {
+	LexicalMarkdownEditor,
+	type RenderedCollaboratorSelection,
+} from "./LexicalMarkdownEditor.tsx"
 import { switchBrowserIdentity } from "./session.ts"
 import { markdownVirtualWindow } from "./virtualization.ts"
 import css from "./MarkdownWorkspace.module.css"
@@ -152,9 +156,12 @@ export function MarkdownWorkspace({
 	const [parse, setParse] = useState<readonly MarkdownSemanticBlock[]>([])
 	const [parseMetrics, setParseMetrics] =
 		useState<MarkdownParseInstrumentation>(EMPTY_PARSE_METRICS)
+	const [remoteSelections, setRemoteSelections] = useState<
+		readonly RenderedCollaboratorSelection[]
+	>([])
+	const [readProblem, setReadProblem] = useState<string | null>(null)
 	const [problem, setProblem] = useState<string | null>(null)
 	const parser = useRef(new IncrementalMarkdownParser())
-	const editor = useRef<HTMLTextAreaElement | null>(null)
 	const pendingDraft = useRef<{
 		base: string
 		replacement: string
@@ -183,11 +190,15 @@ export function MarkdownWorkspace({
 	const displayed = draft ?? projection?.text ?? ``
 
 	const refreshLength = useCallback(() => {
-		void client.projection
-			.readLength()
-			.then(setTotalLength, (error: unknown) => {
-				setProblem(error instanceof Error ? error.message : String(error))
-			})
+		void client.projection.readLength().then(
+			(length) => {
+				setTotalLength(length)
+				setReadProblem(null)
+			},
+			(error: unknown) => {
+				setReadProblem(error instanceof Error ? error.message : String(error))
+			},
+		)
 	}, [client])
 
 	const commitDraft = useCallback(async (): Promise<void> => {
@@ -247,7 +258,10 @@ export function MarkdownWorkspace({
 	useEffect(() => {
 		const stopStatus = client.subscribe((next) => {
 			setStatus(next)
-			if (next.connection === `live`) scheduleCommit()
+			if (next.connection === `live`) {
+				scheduleCommit()
+				refreshLength()
+			}
 		})
 		const stopPresence = client.presence.subscribe(() => {
 			setPresence(activePresence(client))
@@ -291,12 +305,63 @@ export function MarkdownWorkspace({
 		)
 	}, [client, draft, projection, window.range.end, window.range.start])
 
-	const publishSelection = (target: HTMLTextAreaElement): void => {
-		const start = window.range.start + target.selectionStart
-		const end = window.range.start + target.selectionEnd
+	useEffect(() => {
+		if (projection === null) {
+			setRemoteSelections([])
+			return
+		}
+		let active = true
+		const peers = presence.filter(
+			(person) =>
+				person.session !== client.sessionId && person.selection !== null,
+		)
+		void Promise.all(
+			peers.map(async (person) => {
+				try {
+					const [anchor, head] = await Promise.all([
+						client.projection.resolvePosition(person.selection!.anchor),
+						client.projection.resolvePosition(person.selection!.head),
+					])
+					const absoluteStart = Math.min(anchor, head)
+					const absoluteEnd = Math.max(anchor, head)
+					const viewStart = projection.range.start
+					const viewEnd = projection.range.end
+					if (
+						absoluteStart === absoluteEnd
+							? absoluteStart < viewStart || absoluteStart > viewEnd
+							: absoluteEnd <= viewStart || absoluteStart >= viewEnd
+					) {
+						return null
+					}
+					return {
+						color: person.color,
+						end: Math.max(0, Math.min(projection.text.length, head - viewStart)),
+						name: person.name,
+						session: person.session,
+						start: Math.max(
+							0,
+							Math.min(projection.text.length, anchor - viewStart),
+						),
+					} satisfies RenderedCollaboratorSelection
+				} catch {
+					return null
+				}
+			}),
+		).then((resolved) => {
+			if (active) setRemoteSelections(resolved.filter((item) => item !== null))
+		})
+		return () => {
+			active = false
+		}
+	}, [client, presence, projection])
+
+	const publishSelection = (anchorOffset: number, headOffset: number): void => {
+		if (projection === null) return
+		const anchorIndex = projection.range.start + anchorOffset
+		const headIndex = projection.range.start + headOffset
 		void Promise.all([
-			client.projection.positionAtOffset(start),
-			client.projection.positionAtOffset(end),
+			client.projection.positionAtOffset(anchorIndex),
+			client.projection.positionAtOffset(headIndex),
 		]).then(([anchor, head]) =>
 			client.publishPresence({
 				color: client.identity.color,
@@ -377,16 +442,25 @@ export function MarkdownWorkspace({
 						/>
 						{view.status === `loading` ? <p>Hydrating viewport…</p> : null}
 						{view.status === `error` ? (
-							<p>Viewport needs a resnapshot.</p>
+							<p role="status">
+								{status.connection === `offline`
+									? `Waiting for the realtime backend…`
+									: `Restoring the shared viewport…`}
+							</p>
 						) : null}
 						{projection ? (
-							<textarea
-								id="markdown-source"
-								ref={editor}
-								aria-label="Shared markdown source viewport"
-								value={displayed}
-								onChange={(event) => {
-									const value = event.currentTarget.value
+							<LexicalMarkdownEditor
+								onError={(error) => setProblem(error.message)}
+								onRedo={() => void client.redo()}
+								onSelectionChange={publishSelection}
+								onUndo={() => void client.undo()}
+								onValueChange={(value, composing) => {
+									if (value === displayed) {
+										if (!composing && pendingDraft.current !== null) {
+											scheduleCommit()
+										}
+										return
+									}
 									const base = pendingDraft.current?.base ?? projection.text
 									const change = commonEdit(base, value)
 									const token = ++editToken.current
@@ -409,16 +483,10 @@ export function MarkdownWorkspace({
 										token,
 										value,
 									}
-									scheduleCommit()
+									if (!composing) scheduleCommit()
 								}}
-								onKeyDown={(event) => {
-									if (!(event.metaKey || event.ctrlKey) || event.key !== `z`)
-										return
-									event.preventDefault()
-									void (event.shiftKey ? client.redo() : client.undo())
-								}}
-								onSelect={(event) => publishSelection(event.currentTarget)}
-								spellCheck
+								selections={remoteSelections}
+								value={displayed}
 							/>
 						) : null}
 						<virtual-spacer
@@ -479,8 +547,8 @@ export function MarkdownWorkspace({
 				<small>
 					Resident {client.residency.state.residentMemberCount} members
 				</small>
-				{(problem ?? status.reason) ? (
-					<output>{problem ?? status.reason}</output>
+				{(problem ?? readProblem ?? status.reason) ? (
+					<output>{problem ?? readProblem ?? status.reason}</output>
 				) : null}
 			</footer>
 		</markdown-workspace>

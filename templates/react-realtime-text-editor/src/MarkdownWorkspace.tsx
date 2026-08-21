@@ -164,6 +164,10 @@ export function MarkdownWorkspace({
 	const pendingDraft = useRef<{
 		value: string
 	} | null>(null)
+	const pendingSelection = useRef<{
+		anchorOffset: number
+		headOffset: number
+	} | null>(null)
 	const committing = useRef(false)
 	const commitTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 	const deferredScroll = useRef<typeof scroll | null>(null)
@@ -184,6 +188,37 @@ export function MarkdownWorkspace({
 	const projectionRef = useRef(projection)
 	projectionRef.current = projection
 	const displayed = draft ?? projection?.text ?? ``
+	const publishPendingSelection = useCallback((): void => {
+		const selection = pendingSelection.current
+		const currentProjection = projectionRef.current
+		if (
+			selection === null ||
+			currentProjection === null ||
+			pendingDraft.current !== null
+		) {
+			return
+		}
+		const anchorIndex = currentProjection.range.start + selection.anchorOffset
+		const headIndex = currentProjection.range.start + selection.headOffset
+		void Promise.all([
+			client.projection.positionAtOffset(anchorIndex),
+			client.projection.positionAtOffset(headIndex),
+		]).then(([anchor, head]) => {
+			// A later local selection or draft supersedes this asynchronous lookup.
+			if (
+				pendingSelection.current !== selection ||
+				pendingDraft.current !== null
+			) {
+				return
+			}
+			return client.publishPresence({
+				color: client.identity.color,
+				name: client.identity.name,
+				selection: { anchor, head },
+				viewport: null,
+			})
+		})
+	}, [client])
 
 	const refreshLength = useCallback(() => {
 		void client.projection.readLength().then(
@@ -291,6 +326,10 @@ export function MarkdownWorkspace({
 
 	useEffect(() => {
 		if (projection === null || draft !== null) return
+		if (pendingSelection.current !== null) {
+			publishPendingSelection()
+			return
+		}
 		const start = window.range.start
 		const end = window.range.end
 		void Promise.all([
@@ -304,7 +343,14 @@ export function MarkdownWorkspace({
 				viewport: { anchor, head },
 			}),
 		)
-	}, [client, draft, projection, window.range.end, window.range.start])
+	}, [
+		client,
+		draft,
+		projection,
+		publishPendingSelection,
+		window.range.end,
+		window.range.start,
+	])
 
 	useEffect(() => {
 		if (projection === null) {
@@ -357,20 +403,8 @@ export function MarkdownWorkspace({
 	}, [client, presence, projection])
 
 	const publishSelection = (anchorOffset: number, headOffset: number): void => {
-		if (projection === null) return
-		const anchorIndex = projection.range.start + anchorOffset
-		const headIndex = projection.range.start + headOffset
-		void Promise.all([
-			client.projection.positionAtOffset(anchorIndex),
-			client.projection.positionAtOffset(headIndex),
-		]).then(([anchor, head]) =>
-			client.publishPresence({
-				color: client.identity.color,
-				name: client.identity.name,
-				selection: { anchor, head },
-				viewport: null,
-			}),
-		)
+		pendingSelection.current = { anchorOffset, headOffset }
+		publishPendingSelection()
 	}
 
 	return (

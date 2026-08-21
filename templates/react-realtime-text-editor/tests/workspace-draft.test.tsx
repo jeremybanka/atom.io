@@ -6,6 +6,7 @@ import type { MarkdownCollaborationClient } from "../src/collaboration-client.ts
 import type { RenderedCollaboratorSelection } from "../src/LexicalMarkdownEditor.tsx"
 
 type EditorProperties = {
+	readonly onSelectionChange: (anchor: number, head: number) => void
 	readonly onValueChange: (value: string, composing: boolean) => void
 	readonly selections: readonly RenderedCollaboratorSelection[]
 	readonly value: string
@@ -44,7 +45,7 @@ const deferred = () => {
 }
 
 describe(`Markdown workspace drafts`, () => {
-	test(`rebases typing that continues during an accepted edit`, async () => {
+	test(`rebases trailing typing and publishes its selection after settlement`, async () => {
 		const first = deferred()
 		const second = deferred()
 		const replacements: Array<{
@@ -53,6 +54,12 @@ describe(`Markdown workspace drafts`, () => {
 				readonly head: { readonly offset: number }
 			}
 			readonly text: string
+		}> = []
+		const publishedPresence: Array<{
+			readonly selection: null | {
+				readonly anchor: { readonly offset: number }
+				readonly head: { readonly offset: number }
+			}
 		}> = []
 		const status = {
 			connection: `live` as const,
@@ -76,7 +83,9 @@ describe(`Markdown workspace drafts`, () => {
 				resolvePosition: async (position: { readonly offset: number }) =>
 					position.offset,
 			},
-			publishPresence: async () => undefined,
+			publishPresence: async (presence: (typeof publishedPresence)[number]) => {
+				publishedPresence.push(presence)
+			},
 			redo: async () => false,
 			replace: (input: (typeof replacements)[number]) => {
 				replacements.push(input)
@@ -96,6 +105,7 @@ describe(`Markdown workspace drafts`, () => {
 		await waitFor(() => expect(harness.editor?.value).toBe(`Add rollout owners`))
 
 		act(() => harness.editor?.onValueChange(`Add rollout ow`, false))
+		act(() => harness.editor?.onSelectionChange(14, 14))
 		await waitFor(() => expect(replacements).toHaveLength(1))
 		expect(replacements[0]).toMatchObject({
 			selection: { anchor: { offset: 14 }, head: { offset: 18 } },
@@ -103,6 +113,10 @@ describe(`Markdown workspace drafts`, () => {
 		})
 
 		act(() => harness.editor?.onValueChange(`Add rollout owners`, false))
+		act(() => harness.editor?.onSelectionChange(18, 18))
+		expect(
+			publishedPresence.filter((presence) => presence.selection !== null),
+		).toHaveLength(0)
 		harness.projection = {
 			...harness.projection,
 			range: { end: 14, kind: `utf16-range`, start: 0 },
@@ -124,5 +138,17 @@ describe(`Markdown workspace drafts`, () => {
 		rendered.rerender(<MarkdownWorkspace client={client} />)
 		second.resolve()
 		await waitFor(() => expect(harness.editor?.value).toBe(`Add rollout owners`))
+		await waitFor(() =>
+			expect(
+				publishedPresence.filter((presence) => presence.selection !== null),
+			).toMatchObject([
+				{
+					selection: {
+						anchor: { offset: 18 },
+						head: { offset: 18 },
+					},
+				},
+			]),
+		)
 	})
 })

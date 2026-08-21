@@ -272,6 +272,7 @@ export async function createMarkdownDocumentService(
 			readonly session: string
 		}) => boolean | Promise<boolean>
 		readonly initialText?: string
+		readonly presenceTtlMs?: number
 		readonly silo?: Silo
 		readonly storage?: MosaicDomainCheckpointStorageAdapter
 	} = {},
@@ -531,7 +532,10 @@ export async function createMarkdownDocumentService(
 				.refine(({ end, start }) => end >= start),
 		},
 	})
-	const presence = createMosaicDomainPresenceServer({ domain })
+	const presence = createMosaicDomainPresenceServer({
+		domain,
+		ttlMs: options.presenceTtlMs,
+	})
 
 	const submitCommand = async ({
 		actor,

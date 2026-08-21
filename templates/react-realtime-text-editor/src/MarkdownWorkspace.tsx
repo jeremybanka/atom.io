@@ -1,4 +1,3 @@
-import type { MosaicTextSelection } from "atom.io/realtime"
 import { useMosaicTextRange } from "atom.io/realtime-react"
 import {
 	Fragment,
@@ -163,16 +162,11 @@ export function MarkdownWorkspace({
 	const [problem, setProblem] = useState<string | null>(null)
 	const parser = useRef(new IncrementalMarkdownParser())
 	const pendingDraft = useRef<{
-		base: string
-		replacement: string
-		selection: Promise<MosaicTextSelection | null>
-		token: number
 		value: string
 	} | null>(null)
 	const committing = useRef(false)
 	const commitTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 	const deferredScroll = useRef<typeof scroll | null>(null)
-	const editToken = useRef(0)
 	const window = useMemo(
 		() =>
 			markdownVirtualWindow(scroll, {
@@ -187,6 +181,8 @@ export function MarkdownWorkspace({
 		overscan: 2_048,
 	})
 	const projection = view.status === `ready` ? view.projection : null
+	const projectionRef = useRef(projection)
+	projectionRef.current = projection
 	const displayed = draft ?? projection?.text ?? ``
 
 	const refreshLength = useCallback(() => {
@@ -206,7 +202,8 @@ export function MarkdownWorkspace({
 		if (
 			pending === null ||
 			committing.current ||
-			client.status().connection !== `live`
+			client.status().connection !== `live` ||
+			projectionRef.current === null
 		) {
 			return
 		}
@@ -216,17 +213,21 @@ export function MarkdownWorkspace({
 			commitTimer.current = null
 		}
 		try {
-			if (pending.base !== pending.value) {
-				const selection = await pending.selection
-				if (pendingDraft.current?.token !== pending.token) return
-				if (selection === null) {
-					throw new Error(
-						`The local draft lost its resident logical anchor; edit again after the viewport resnapshots.`,
-					)
-				}
+			const base = projectionRef.current
+			if (base === null) return
+			if (base.text !== pending.value) {
+				const change = commonEdit(base.text, pending.value)
+				const [anchor, head] = await Promise.all([
+					client.projection.positionAtOffset(base.range.start + change.start),
+					client.projection.positionAtOffset(base.range.start + change.end),
+				])
+				// Do not send an intermediate snapshot if the user changed it while
+				// its logical anchors were being resolved. The newer draft will be
+				// encoded against the next authoritative projection instead.
+				if (pendingDraft.current !== pending) return
 				await client.replace({
-					selection,
-					text: pending.replacement,
+					selection: { anchor, head },
+					text: change.text,
 				})
 			}
 			if (pendingDraft.current === pending) {
@@ -461,28 +462,8 @@ export function MarkdownWorkspace({
 										}
 										return
 									}
-									const base = pendingDraft.current?.base ?? projection.text
-									const change = commonEdit(base, value)
-									const token = ++editToken.current
 									setDraft(value)
-									pendingDraft.current = {
-										base,
-										replacement: change.text,
-										selection: Promise.all([
-											client.projection.positionAtOffset(
-												projection.range.start + change.start,
-											),
-											client.projection.positionAtOffset(
-												projection.range.start + change.end,
-											),
-										]).then(
-											([anchor, head]) =>
-												editToken.current === token ? { anchor, head } : null,
-											() => null,
-										),
-										token,
-										value,
-									}
+									pendingDraft.current = { value }
 									if (!composing) scheduleCommit()
 								}}
 								selections={remoteSelections}

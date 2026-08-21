@@ -43,10 +43,7 @@ docs-layout.class {
 		h1 {
 			font-size: 48px;
 			line-height: 54px;
-			> low-emphasis {
-				font-size: inherit;
-				color: var(--fg-soft-3);
-			}
+
 			> code {
 				font-size: 48px;
 				font-weight: 300;
@@ -72,6 +69,10 @@ docs-layout.class {
 			padding: 0 15px;
 			overflow-x: scroll;
 			overflow-y: hidden;
+			> low-emphasis {
+				font-size: inherit;
+				color: var(--fg-soft-3);
+			}
 		}
 		code-block,
 		table-wrapper {

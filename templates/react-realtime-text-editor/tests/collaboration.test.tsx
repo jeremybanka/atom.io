@@ -27,6 +27,7 @@ function testClient(
 	identity: Identity,
 	sessionId: string,
 	runtimes: RuntimeRegistry,
+	presenceRenewalMs?: number,
 ) {
 	return function MarkdownTestClient() {
 		const { socket } = useContext(RealtimeContext)
@@ -49,6 +50,7 @@ function testClient(
 			let created: MarkdownCollaborationClient | null = null
 			void createMarkdownCollaborationClient({
 				identity,
+				presenceRenewalMs,
 				sessionId,
 				silo,
 				socket,
@@ -79,8 +81,16 @@ function testClient(
 	}
 }
 
-async function scenario() {
-	const service = await createMarkdownDocumentService({ initialText: INITIAL })
+async function scenario(
+	options: {
+		readonly presenceRenewalMs?: number
+		readonly presenceTtlMs?: number
+	} = {},
+) {
+	const service = await createMarkdownDocumentService({
+		initialText: INITIAL,
+		presenceTtlMs: options.presenceTtlMs,
+	})
 	const runtimes: RuntimeRegistry = new Map()
 	const room = multiClient({
 		scenarioId: `mosaic-markdown-domain`,
@@ -98,8 +108,8 @@ async function scenario() {
 			}
 		},
 		clients: {
-			ada: testClient(ADA, sessions.ada, runtimes),
-			lin: testClient(LIN, sessions.lin, runtimes),
+			ada: testClient(ADA, sessions.ada, runtimes, options.presenceRenewalMs),
+			lin: testClient(LIN, sessions.lin, runtimes, options.presenceRenewalMs),
 		},
 	})
 	return {
@@ -144,6 +154,18 @@ async function live(room: Awaited<ReturnType<typeof scenario>>) {
 }
 
 describe(`incremental realtime Markdown Domain`, () => {
+	test(`rejects invalid presence renewal intervals before allocating a Domain`, async () => {
+		await expect(
+			createMarkdownCollaborationClient({
+				identity: ADA,
+				presenceRenewalMs: 0,
+				sessionId: `invalid-presence-renewal`,
+				silo: {} as never,
+				socket: {} as never,
+			}),
+		).rejects.toThrow(`positive integer`)
+	})
+
 	test(`hydrates viewport first, converges contention/offline work, and keeps selective history foreign-safe`, async () => {
 		const setup = await scenario()
 		try {
@@ -244,7 +266,10 @@ describe(`incremental realtime Markdown Domain`, () => {
 	})
 
 	test(`presence is logical/ephemeral and import is one authorized resnapshot cut`, async () => {
-		const setup = await scenario()
+		const setup = await scenario({
+			presenceRenewalMs: 20,
+			presenceTtlMs: 80,
+		})
 		try {
 			const harness = initialize(setup)
 			const clients = await live(setup)
@@ -255,6 +280,14 @@ describe(`incremental realtime Markdown Domain`, () => {
 				selection: { anchor: caret, head: caret },
 				viewport: null,
 			})
+			await setup.room.waitForIdle()
+			await clients.lin.presence.flush()
+			expect(
+				clients.lin.presence.state.presence.some(
+					(envelope) => envelope.kind === `update` && envelope.actor === ADA.id,
+				),
+			).toBe(true)
+			await new Promise((resolve) => setTimeout(resolve, 200))
 			await setup.room.waitForIdle()
 			await clients.lin.presence.flush()
 			expect(

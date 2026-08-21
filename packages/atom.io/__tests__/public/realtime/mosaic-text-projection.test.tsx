@@ -739,6 +739,60 @@ describe(`Mosaic text range projections`, () => {
 		await system.writer.residency.dispose()
 	})
 
+	test(`keeps a focused React viewport mounted while its changed range reacquires`, async () => {
+		const system = await localSystem(`alpha\nbeta`)
+		const reader = await system.makeClient(`react-range-change-reader`)
+		let releaseSecondAcquisition = (): void => undefined
+		const secondAcquisition = new Promise<void>((resolve) => {
+			releaseSecondAcquisition = resolve
+		})
+		let attempts = 0
+		const delayedClient = new Proxy(reader.client, {
+			get(target, property) {
+				if (property === `observeRange`) {
+					return async (
+						...parameters: Parameters<typeof target.observeRange>
+					) => {
+						attempts++
+						if (attempts === 2) await secondAcquisition
+						return target.observeRange(...parameters)
+					}
+				}
+				return Reflect.get(target, property)
+			},
+		})
+		const Viewport = ({ end }: { readonly end: number }) => {
+			const view = useMosaicTextRange(delayedClient, {
+				end,
+				kind: `utf16-range`,
+				start: 0,
+			})
+			return view.status === `ready` ? (
+				<input data-testid="viewport" readOnly value={view.projection.text} />
+			) : (
+				<span>{view.status}</span>
+			)
+		}
+		const rendered = render(<Viewport end={5} />)
+		const input = await rendered.findByDisplayValue(`alpha`)
+		input.focus()
+		rendered.rerender(<Viewport end={6} />)
+		await act(async () => Promise.resolve())
+		expect(rendered.getByTestId(`viewport`)).toBe(input)
+		expect(document.activeElement).toBe(input)
+		expect(attempts).toBe(2)
+		releaseSecondAcquisition()
+		await waitForReact(() => {
+			expect(rendered.getByTestId(`viewport`)).toBe(input)
+			expect(document.activeElement).toBe(input)
+		})
+		rendered.unmount()
+		await reader.client.dispose()
+		await reader.residency.dispose()
+		await system.writer.client.dispose()
+		await system.writer.residency.dispose()
+	})
+
 	test(`snaps UTF-16 block anchors to stable grapheme boundaries`, async () => {
 		const emoji = `👩‍🚀`
 		const system = await localSystem(`A${emoji}B`)

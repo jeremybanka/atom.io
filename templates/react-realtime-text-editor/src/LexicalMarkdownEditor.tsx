@@ -79,8 +79,14 @@ function pointAtOffset(
 		const start = traversed
 		const end = start + size
 		last = node
-		if (target < end && $isTextNode(node)) {
-			return { node, offset: target - start }
+		if (target < end) {
+			if ($isTextNode(node)) return { node, offset: target - start }
+			const parent = node.getParent()
+			if (parent === null) return null
+			return {
+				node: parent,
+				offset: node.getIndexWithinParent() + (target === start ? 0 : 1),
+			}
 		}
 		if (target === start) {
 			if ($isTextNode(node)) return { node, offset: 0 }
@@ -259,6 +265,7 @@ function MosaicPresencePlugin({
 
 	useLayoutEffect(() => {
 		let frame: number | null = null
+		let resizeObserver: ResizeObserver | null = null
 		const render = (): void => {
 			if (frame !== null) cancelAnimationFrame(frame)
 			frame = requestAnimationFrame(() => {
@@ -271,25 +278,29 @@ function MosaicPresencePlugin({
 				)
 			})
 		}
+		const observeSize = (root: HTMLElement | null): void => {
+			resizeObserver?.disconnect()
+			if (root === null || typeof ResizeObserver === `undefined`) {
+				resizeObserver = null
+				return
+			}
+			resizeObserver = new ResizeObserver(render)
+			resizeObserver.observe(root)
+		}
 		const stopUpdate = editor.registerUpdateListener(render)
 		const stopRoot = editor.registerRootListener((root, previous) => {
 			previous?.removeEventListener(`scroll`, render)
 			root?.addEventListener(`scroll`, render, { passive: true })
+			observeSize(root)
 			render()
 		})
-		const root = editor.getRootElement()
-		const observer =
-			root === null || typeof ResizeObserver === `undefined`
-				? null
-				: new ResizeObserver(render)
-		if (root !== null) observer?.observe(root)
 		window.addEventListener(`resize`, render)
 		render()
 		return () => {
 			if (frame !== null) cancelAnimationFrame(frame)
 			stopUpdate()
 			stopRoot()
-			observer?.disconnect()
+			resizeObserver?.disconnect()
 			window.removeEventListener(`resize`, render)
 		}
 	}, [editor, selections])

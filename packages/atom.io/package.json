@@ -115,7 +115,7 @@
 		"drizzle-orm": "0.45.2",
 		"eslint": "10.8.1",
 		"happy-dom": "20.11.2",
-		"motion": "13.1.0",
+		"motion": "13.1.1",
 		"postgres": "3.4.9",
 		"preact": "10.29.8",
 		"react": "19.2.8",

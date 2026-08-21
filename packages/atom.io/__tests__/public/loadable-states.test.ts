@@ -101,6 +101,14 @@ describe(`async selector`, () => {
 	const PORT = 3443
 	const ORIGIN = `http://localhost:${PORT}`
 	const server = http.createServer((req, res) => {
+		res.setHeader(`Access-Control-Allow-Headers`, `Authorization, Content-Type`)
+		res.setHeader(`Access-Control-Allow-Methods`, `GET, POST, OPTIONS`)
+		res.setHeader(`Access-Control-Allow-Origin`, `*`)
+		if (req.method === `OPTIONS`) {
+			res.writeHead(204)
+			res.end()
+			return
+		}
 		let data: Uint8Array[] = []
 		req
 			.on(`data`, (chunk) => {

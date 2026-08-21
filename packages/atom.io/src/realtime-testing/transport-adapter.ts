@@ -226,7 +226,18 @@ export class SocketIOTransportAdapter implements RealtimeTestTransportAdapter {
 		serverOptions: TestTransportEndpointOptions = { id: `server` },
 	): SocketIOHarness {
 		const serverEndpoint = endpoint(serverOptions, `server`)
-		const httpServer = http.createServer((_, response) => {
+		const httpServer = http.createServer((request, response) => {
+			response.setHeader(
+				`Access-Control-Allow-Headers`,
+				`Authorization, Content-Type`,
+			)
+			response.setHeader(`Access-Control-Allow-Methods`, `GET, POST, OPTIONS`)
+			response.setHeader(`Access-Control-Allow-Origin`, `*`)
+			if (request.method === `OPTIONS`) {
+				response.writeHead(204)
+				response.end()
+				return
+			}
 			response.end(`Hello World!`)
 		})
 		const address = httpServer.listen().address()

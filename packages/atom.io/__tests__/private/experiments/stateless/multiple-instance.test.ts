@@ -35,6 +35,14 @@ const createRoundRobinProxyServer = (targets: string[]) => {
 	let targetIndex = 0
 
 	return http.createServer((req, res) => {
+		res.setHeader(`Access-Control-Allow-Headers`, `Authorization, Content-Type`)
+		res.setHeader(`Access-Control-Allow-Methods`, `GET, POST, OPTIONS`)
+		res.setHeader(`Access-Control-Allow-Origin`, `*`)
+		if (req.method === `OPTIONS`) {
+			res.writeHead(204)
+			res.end()
+			return
+		}
 		const target = new URL(req.url ?? `/`, targets[targetIndex])
 		targetIndex = (targetIndex + 1) % targets.length
 

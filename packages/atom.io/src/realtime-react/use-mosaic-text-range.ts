@@ -40,6 +40,9 @@ export function useMosaicTextRange(
 	const end = range.end
 	const overscan = options.overscan
 	useEffect(() => {
+		setView(LOADING)
+	}, [client])
+	useEffect(() => {
 		let active = true
 		let observer: MosaicTextRangeObserver | null = null
 		let attempting = false
@@ -62,7 +65,11 @@ export function useMosaicTextRange(
 			if (attemptedEpoch === connectivityEpoch) return
 			attemptedEpoch = connectivityEpoch
 			attempting = true
-			setView(LOADING)
+			// A range change (for example after an edit changes document length)
+			// must not unmount an already-rendered viewport while its replacement
+			// observer is acquired. Preserve that projection until the next one is
+			// ready; changing clients resets it in the effect above.
+			setView((current) => (current.status === `ready` ? current : LOADING))
 			void client
 				.observeRange(
 					{ end, kind: `utf16-range`, start },

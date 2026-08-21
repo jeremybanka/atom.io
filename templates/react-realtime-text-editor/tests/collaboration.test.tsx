@@ -195,6 +195,15 @@ describe(`incremental realtime Markdown Domain`, () => {
 				),
 			).toBeNull()
 
+			const shrinkStart = await clients.ada.projection.positionAtOffset(2)
+			const shrinkEnd = await clients.ada.projection.positionAtOffset(28)
+			await clients.ada.replace({
+				selection: { anchor: shrinkStart, head: shrinkEnd },
+				text: `[Ada-shrinks]`,
+			})
+			expect(first.read().text).toContain(`[Ada-shrinks]`)
+			expect(first.read().text).not.toContain(`Field notes for the launch`)
+
 			const sameBoundary = await clients.ada.projection.positionAtOffset(16)
 			await Promise.all([
 				clients.ada.replace({
@@ -209,6 +218,10 @@ describe(`incremental realtime Markdown Domain`, () => {
 			const contended = await clients.ada.projection.materialize()
 			expect(contended).toContain(`[Ada]`)
 			expect(contended).toContain(`[Lin]`)
+			await waitFor(() => {
+				expect(first.read().text).toContain(`[Ada]`)
+				expect(first.read().text).toContain(`[Lin]`)
+			})
 			await waitFor(async () => {
 				expect(await clients.ada.projection.readLength()).toBe(contended.length)
 			})

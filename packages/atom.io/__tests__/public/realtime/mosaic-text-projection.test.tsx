@@ -677,6 +677,68 @@ describe(`Mosaic text range projections`, () => {
 		await system.writer.residency.dispose()
 	})
 
+	test(`reacquires a failed React viewport after residency reconnects`, async () => {
+		const system = await localSystem(`alpha\nbeta`)
+		const reader = await system.makeClient(`react-reconnect-reader`)
+		let connectivity = `offline` as `live` | `offline`
+		const stateListeners = new Set<
+			Parameters<typeof reader.residency.subscribeState>[0]
+		>()
+		let attempts = 0
+		const reconnectingResidency = new Proxy(reader.residency, {
+			get(target, property) {
+				if (property === `state`) {
+					return { ...target.state, connectivity }
+				}
+				if (property === `subscribeState`) {
+					return (listener: Parameters<typeof target.subscribeState>[0]) => {
+						stateListeners.add(listener)
+						listener({ ...target.state, connectivity })
+						return () => stateListeners.delete(listener)
+					}
+				}
+				return Reflect.get(target, property)
+			},
+		})
+		const reconnectingClient = new Proxy(reader.client, {
+			get(target, property) {
+				if (property === `residency`) return reconnectingResidency
+				if (property === `observeRange`) {
+					return (...parameters: Parameters<typeof target.observeRange>) => {
+						attempts++
+						return attempts === 1
+							? Promise.reject(new Error(`offline`))
+							: target.observeRange(...parameters)
+					}
+				}
+				return Reflect.get(target, property)
+			},
+		})
+		const Viewport = () => {
+			const view = useMosaicTextRange(reconnectingClient, {
+				end: 5,
+				kind: `utf16-range`,
+				start: 0,
+			})
+			return <span>{view.status}</span>
+		}
+		const rendered = render(<Viewport />)
+		await rendered.findByText(`error`)
+		act(() => {
+			connectivity = `live`
+			for (const listener of stateListeners) {
+				listener({ ...reader.residency.state, connectivity })
+			}
+		})
+		await rendered.findByText(`ready`)
+		expect(attempts).toBe(2)
+		rendered.unmount()
+		await reader.client.dispose()
+		await reader.residency.dispose()
+		await system.writer.client.dispose()
+		await system.writer.residency.dispose()
+	})
+
 	test(`snaps UTF-16 block anchors to stable grapheme boundaries`, async () => {
 		const emoji = `👩‍🚀`
 		const system = await localSystem(`A${emoji}B`)

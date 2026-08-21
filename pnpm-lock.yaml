@@ -75,7 +75,7 @@ importers:
         version: 2.7.0
       lasertag:
         specifier: 0.7.0
-        version: 0.7.0(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.2)(motion@13.1.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(preact@10.29.8)(react@19.2.8)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15)(supports-color@10.2.2)
+        version: 0.7.0(@floating-ui/react-dom@2.1.9(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@floating-ui/react@0.27.20(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.2)(motion@13.1.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(preact@10.29.8)(react@19.2.8)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15)(supports-color@10.2.2)
       oxlint:
         specifier: 1.79.0
         version: 1.79.0(oxlint-tsgolint@7.0.2001)
@@ -93,7 +93,7 @@ importers:
         version: 7.0.2
       vitest:
         specifier: 4.1.11
-        version: 4.1.11(@types/node@26.2.0)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(esbuild@0.28.1)(happy-dom@20.11.2)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
+        version: 4.1.11(@types/node@26.2.0)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(happy-dom@20.11.2)(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0))
 
   apps/atom.io.fyi:
     dependencies:
@@ -157,7 +157,7 @@ importers:
         version: 10.8.1(jiti@2.7.0)(supports-color@10.2.2)
       lasertag:
         specifier: 0.7.0
-        version: 0.7.0(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/react@16.3.2(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18))(@types/react@19.2.18)(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.2)(motion@13.1.0(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8)))(preact@10.29.8)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15)(supports-color@10.2.2)
+        version: 0.7.0(@floating-ui/react-dom@2.1.9(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8)))(@floating-ui/react@0.27.20(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8)))(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/react@16.3.2(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18))(@types/react@19.2.18)(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.2)(motion@13.1.0(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8)))(preact@10.29.8)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15)(supports-color@10.2.2)
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -295,7 +295,7 @@ importers:
         version: 8.2.1(@types/node@26.2.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
       vitest:
         specifier: 4.1.11
-        version: 4.1.11(@types/node@26.2.0)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(esbuild@0.28.1)(happy-dom@20.11.2)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
+        version: 4.1.11(@types/node@26.2.0)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(happy-dom@20.11.2)(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0))
       zod:
         specifier: 4.4.3
         version: 4.4.3
@@ -407,7 +407,7 @@ importers:
         version: 20.11.2
       lasertag:
         specifier: 0.7.0
-        version: 0.7.0(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.2)(motion@13.1.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(preact@10.29.8)(react@19.2.8)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15)(supports-color@10.2.2)
+        version: 0.7.0(@floating-ui/react-dom@2.1.9(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@floating-ui/react@0.27.20(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.2)(motion@13.1.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(preact@10.29.8)(react@19.2.8)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15)(supports-color@10.2.2)
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -422,7 +422,7 @@ importers:
         version: 8.2.1(@types/node@26.2.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
       vitest:
         specifier: 4.1.11
-        version: 4.1.11(@types/node@26.2.0)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(esbuild@0.28.1)(happy-dom@20.11.2)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
+        version: 4.1.11(@types/node@26.2.0)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(happy-dom@20.11.2)(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0))
 
   templates/preact-svg-editor:
     dependencies:
@@ -468,7 +468,7 @@ importers:
         version: 8.2.1(@types/node@26.2.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
       vitest:
         specifier: 4.1.11
-        version: 4.1.11(@types/node@26.2.0)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(esbuild@0.28.1)(happy-dom@20.11.2)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
+        version: 4.1.11(@types/node@26.2.0)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(happy-dom@20.11.2)(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0))
 
   templates/react-node-backend:
     dependencies:
@@ -527,9 +527,18 @@ importers:
 
   templates/react-realtime-text-editor:
     dependencies:
+      '@lexical/react':
+        specifier: ^0.49.0
+        version: 0.49.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@7.0.2)
+      '@lexical/selection':
+        specifier: ^0.49.0
+        version: 0.49.0(typescript@7.0.2)
       atom.io:
         specifier: workspace:*
         version: link:../../packages/atom.io
+      lexical:
+        specifier: ^0.49.0
+        version: 0.49.0(typescript@7.0.2)
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -578,7 +587,7 @@ importers:
         version: 20.11.2
       lasertag:
         specifier: 0.7.0
-        version: 0.7.0(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.2)(motion@13.1.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(preact@10.29.8)(react@19.2.8)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15)(supports-color@10.2.2)
+        version: 0.7.0(@floating-ui/react-dom@2.1.9(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@floating-ui/react@0.27.20(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.2)(motion@13.1.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(preact@10.29.8)(react@19.2.8)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15)(supports-color@10.2.2)
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -587,7 +596,7 @@ importers:
         version: 8.2.1(@types/node@26.2.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
       vitest:
         specifier: 4.1.11
-        version: 4.1.11(@types/node@26.2.0)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(esbuild@0.28.1)(happy-dom@20.11.2)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
+        version: 4.1.11(@types/node@26.2.0)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(happy-dom@20.11.2)(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0))
 
   templates/solid-lossless-numbers:
     dependencies:
@@ -1825,6 +1834,27 @@ packages:
     resolution: {integrity: sha512-+CNAzxglkrpNf/kKywqQfk74QjtceuOE7Qm+AF8miRvPF/wmmK5+OJOgVh3AVTT3RP2mH3+FOaxlE5v72owk0A==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
 
+  '@floating-ui/core@1.8.0':
+    resolution: {integrity: sha512-0CIZ5itps/8x7BG8dEIhs53BvCUH2PCoogtakwRTut+Arm58sJooJ0AuZhLw2HJYIR5cMLNPBSS728sPho2khQ==}
+
+  '@floating-ui/dom@1.8.0':
+    resolution: {integrity: sha512-yXSrzeHZBTZadLOlfyhCkJHNeLJnHRnRInwdZ40L7ZiaAtrBwoYlsDrX3v5zB1Utk7CLfzcOVnVVWoXEky7Ceg==}
+
+  '@floating-ui/react-dom@2.1.9':
+    resolution: {integrity: sha512-JDjEFGCpImxDCA7JJKviA0M9+RtmJdj0m/NVU5IMgBK+AmZouAQQ7/+2GLH0GXXY0YMw9oXPB8hKdbPYg5QLYg==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+
+  '@floating-ui/react@0.27.20':
+    resolution: {integrity: sha512-CMqMy7OaXl9W0eq1Uy7L7i2Y/anPvHmFmESd2CEw0t5YvZhcVCeo4MBevAmswRllX7Y2dEidA4ozGPunLSTQpw==}
+    peerDependencies:
+      react: '>=17.0.0'
+      react-dom: '>=17.0.0'
+
+  '@floating-ui/utils@0.2.12':
+    resolution: {integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==}
+
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
     engines: {node: '>=18.18.0'}
@@ -2189,6 +2219,198 @@ packages:
 
   '@kwsites/promise-deferred@1.1.1':
     resolution: {integrity: sha512-GaHYm+c0O9MjZRu0ongGBRbinu8gVAMd2UZjji6jVmqKtZluZnptXGWhz1E8j8D2HJ3f/yMxKAUC0b+57wncIw==}
+
+  '@lexical/a11y@0.49.0':
+    resolution: {integrity: sha512-ypvO0SI9DCzEAjxkRLq+gNzRqfjg632RCkwu16Hk94PCBrEmcDhx5iUGg3SRJC7WnM2wXC/F/SB8yWDEfq7tEw==}
+    peerDependencies:
+      typescript: '>=5.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@lexical/clipboard@0.49.0':
+    resolution: {integrity: sha512-AVKj21xH1qU7JAFA/v0hCoafa+Yti1I7cHG+JQIgc/EqCtP8ePeJyIfTPNN/tXskoCdq++HewQoiSXRwwlocVg==}
+    peerDependencies:
+      typescript: '>=5.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@lexical/code-core@0.49.0':
+    resolution: {integrity: sha512-29sXI4ydcN/OyBJNlZXkGKtQXzfiIWet+YN20+wT97zkqityOvRilK6qzTRz9Cd0ungEPlJENqXQhsy6BJeXpg==}
+    peerDependencies:
+      typescript: '>=5.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@lexical/devtools-core@0.49.0':
+    resolution: {integrity: sha512-LgjNlvRiuO/QF36aG6kfR4ptEvSw587o2+YF6SOsaOB7iw2Z3pqpsKloWSEF4QXaLFI65Li8JjMdQj+BaFMIOA==}
+    peerDependencies:
+      react: '>=18.x'
+      react-dom: '>=18.x'
+      typescript: '>=5.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@lexical/dragon@0.49.0':
+    resolution: {integrity: sha512-62/4DP5qyX/l4Yf5qRyyQrs9BV725eRU3OmLUW6g7T5xrcHXxAo7tia/NvqjqvXdpvQzyHjWgsy7dMitGITUsw==}
+    peerDependencies:
+      typescript: '>=5.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@lexical/extension@0.49.0':
+    resolution: {integrity: sha512-Wv0VsuqxorbxHCK4ms1PwAu6cXIGNLtflq66auF+zwxOtBprkSFV8VzzzdKLOYD2admP0VK6EqVCeGXFK1GggA==}
+    peerDependencies:
+      typescript: '>=5.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@lexical/hashtag@0.49.0':
+    resolution: {integrity: sha512-aQTpNjrEO5apsaohWGl4ku22EgHpWUzZg5CIzvriS2A1vNmIfzLoCL+lDFpzAwk3DT1Kj1yvGHh5TvhYsb9D8w==}
+    peerDependencies:
+      typescript: '>=5.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@lexical/history@0.49.0':
+    resolution: {integrity: sha512-uQdtEd34gIJklXNSdHS2Wko1zxx1xUMVXbiodcLO6a3GeFTE5bKnx6af1zGX78KpYhUQYnHWorKuUvtdZlJPaA==}
+    peerDependencies:
+      typescript: '>=5.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@lexical/html@0.49.0':
+    resolution: {integrity: sha512-NQqAydKzRjQl7Jx+bTTyC2iuz5uhuDaQX0SSPrdfgaFDCPjqQEejcBkCt1QXnu1CkbVHutZKVGVzljx40Y6y+Q==}
+    peerDependencies:
+      typescript: '>=5.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@lexical/internal@0.49.0':
+    resolution: {integrity: sha512-s+XjPC7Qb39A/Xx9ahcz1s69CPix4ultaqyW+MDG0AXYW2quDr7m0USqReKIAiuoLIWtGN5HW8BwV2Y6t4qr6Q==}
+    peerDependencies:
+      typescript: '>=5.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@lexical/link@0.49.0':
+    resolution: {integrity: sha512-CsZVu1OfnPOn6IKWVO5DbmKwIuicGtgWSzrZMdMB8w6yPoMgFyPWeVulhPE7LNz2FhaQCWv+lVVYVAiJrUzJsg==}
+    peerDependencies:
+      typescript: '>=5.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@lexical/list@0.49.0':
+    resolution: {integrity: sha512-zs6wYkxakDRcJO0KmwrPPHgeLLIxzjD+P2CRu+scJCHRuA5e2iSw2iFjH5n/LlWBrlnPMSjeQse4QqsRy9nnqA==}
+    peerDependencies:
+      typescript: '>=5.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@lexical/mark@0.49.0':
+    resolution: {integrity: sha512-JSYD8UYQQOMT6oDYh1KsLPK3KMGfQzU7E9fJkugKEO0/XebfsmiuNtkLCGDVIZOo8bNHlwb1YVvmswC2bjotMQ==}
+    peerDependencies:
+      typescript: '>=5.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@lexical/markdown@0.49.0':
+    resolution: {integrity: sha512-n7x/3OLdi5R0ztICCn8udxRIWFZFVtmQS3a06Tjkyvm/j/dPlFQ/henKSOFjjX/IqVzQzSmiNaDhqKWxXM5npQ==}
+    peerDependencies:
+      typescript: '>=5.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@lexical/overflow@0.49.0':
+    resolution: {integrity: sha512-h5Qjv2SkpI76kaukvKJzvWehG9hwB06GEmAnp6aJaioOzoDcBAeWpmYBebtBUwRm0PNLFe3YICFFLpZ5Tg5VoQ==}
+    peerDependencies:
+      typescript: '>=5.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@lexical/plain-text@0.49.0':
+    resolution: {integrity: sha512-l7IuUj9n9CtFfz4Fz6zU6mmO+VkcnvyyebABx+lHevvTa7B6YI5PPVgABFfzdyPanyW/FGs7qpKBf59inAqbkg==}
+    peerDependencies:
+      typescript: '>=5.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@lexical/react@0.49.0':
+    resolution: {integrity: sha512-NqXF4i/IBFKVDDLDJYTwmBXE++MQuIrTQs7VTux6IPyDEpyfeFMn1rQTFb949S3f7rs33Rcu1uGtFbODQfS1Iw==}
+    peerDependencies:
+      react: '>=18.x'
+      react-dom: '>=18.x'
+      typescript: '>=5.2'
+      yjs: '>=13.5.22'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+      yjs:
+        optional: true
+
+  '@lexical/rich-text@0.49.0':
+    resolution: {integrity: sha512-LM+d8ULmQvi2Av6UaW4NAIa/Bj9FOo9oh6+dglTzuoFPFQ3sogy5c38i2K9k0ul7aE+bFsXkSmHbu4LkrHIkBQ==}
+    peerDependencies:
+      typescript: '>=5.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@lexical/selection@0.49.0':
+    resolution: {integrity: sha512-08Vd1+VoC6YnztWOFWVsqF/Hxw5EP8qeL1c7t3+rVCV8revLzXxdQw+vbPX3tgM4fmjOBDUXk6Ws1+rTtsqjcQ==}
+    peerDependencies:
+      typescript: '>=5.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@lexical/table@0.49.0':
+    resolution: {integrity: sha512-PG+dxSTBPbUZUY2kBZm0pJuqCEOGom4RrGrc6Jlj/7o0F37k/gGRVprFSRKuf3CqO03QIP6qRovXGDuKb+Exuw==}
+    peerDependencies:
+      typescript: '>=5.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@lexical/text@0.49.0':
+    resolution: {integrity: sha512-mowedvbvx0HDaW+ymVdYmWVhueqgauhhqIWaCtbJj33tPk8pOu1BB0pZuJQbOB+1bDnFiZhkJV8W/CvR2M9lEA==}
+    peerDependencies:
+      typescript: '>=5.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@lexical/utils@0.49.0':
+    resolution: {integrity: sha512-Jaa6DERBqxiFOFa49VPRV1WOb7mzRbMZ5U+v+RFagjzTmBhfxDmEkbQQ9nYTU3n3DPfdT8Hkyffextmw04etXg==}
+    peerDependencies:
+      typescript: '>=5.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@lexical/yjs@0.49.0':
+    resolution: {integrity: sha512-uqV3D0AOLqQ1f/Bo6ZtuDLoJYGlBm0RlucNYhNvfMAncEw0f/xHc1pTyXeWjdCI/iWgWR/MV6hgVi26TSPs+Vg==}
+    peerDependencies:
+      typescript: '>=5.2'
+      yjs: '>=13.5.22'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
 
   '@manypkg/find-root@2.2.3':
     resolution: {integrity: sha512-jtEZKczWTueJYHjGpxU3KJQ08Gsrf4r6Q2GjmPp/RGk5leeYAA1eyDADSAF+KVCsQ6EwZd/FMcOFCoMhtqdCtQ==}
@@ -3264,6 +3486,9 @@ packages:
 
   '@types/three@0.185.4':
     resolution: {integrity: sha512-gAsBIC07NIFrxjbf7tH2t71c38uulFfk/RFoC7FNBSjMRAQ8J1x/RBvusX0N5PJouaYFJawXQqfCQ0RKUx/1nA==}
+
+  '@types/trusted-types@2.0.7':
+    resolution: {integrity: sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw==}
 
   '@types/unist@2.0.11':
     resolution: {integrity: sha512-CmBKiL6NNo/OqgmMn95Fk9Whlp2mtvIv+KNpQKN2F4SjvrEesubTRWGYSg+BnWZOnlCaSTU1sMpsBOzgbYhnsA==}
@@ -5315,6 +5540,14 @@ packages:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
     engines: {node: '>= 0.8.0'}
 
+  lexical@0.49.0:
+    resolution: {integrity: sha512-9V1ZIzGpJEd8rIN+nN7veL4fW4fFWbS66Un4JNqSZB4D5t9euzN9+3+jEXy83FjNjNy0MiiUI3+DQaGCLYko0w==}
+    peerDependencies:
+      typescript: '>=5.2'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   lightningcss-android-arm64@1.33.0:
     resolution: {integrity: sha512-gEpRTalKdosp4Bb8qWtc2iOgE5SeIHlpS1up9bFq2wAyYhl1UdTObYiHe98zEM9SQvSoqQZ1IQD0JNpg3Ml5pg==}
     engines: {node: '>= 12.0.0'}
@@ -6534,6 +6767,9 @@ packages:
     engines: {node: '>=16'}
     hasBin: true
 
+  tabbable@6.5.0:
+    resolution: {integrity: sha512-wieBHXygIm7OyQOu5hQlkk62/WyCFYGlWg7L6/ZCUZwx0o398Zkn4pVmMyfYhfMG8kGrj/Krt8eIk6UKC6VzwA==}
+
   table@6.9.0:
     resolution: {integrity: sha512-9kY+CygyYM6j02t5YFHbNz2FN5QmYGv9zAjVp4lCDjlCw7amdckXlEt/bjMhUIfj4ThGRE4gCUH5+yGnNuPo5A==}
     engines: {node: '>=10.0.0'}
@@ -7015,6 +7251,7 @@ packages:
       '@vitest/ui': 4.1.11
       happy-dom: '*'
       jsdom: '*'
+      vite: ^6.0.0 || ^7.0.0 || ^8.0.0
     peerDependenciesMeta:
       '@edge-runtime/vm':
         optional: true
@@ -8430,6 +8667,47 @@ snapshots:
       '@eslint/core': 1.2.1
       levn: 0.4.1
 
+  '@floating-ui/core@1.8.0':
+    dependencies:
+      '@floating-ui/utils': 0.2.12
+
+  '@floating-ui/dom@1.8.0':
+    dependencies:
+      '@floating-ui/core': 1.8.0
+      '@floating-ui/utils': 0.2.12
+
+  '@floating-ui/react-dom@2.1.9(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8))':
+    dependencies:
+      '@floating-ui/dom': 1.8.0
+      react: '@preact/compat@18.3.2(preact@10.29.8)'
+      react-dom: '@preact/compat@18.3.2(preact@10.29.8)'
+    optional: true
+
+  '@floating-ui/react-dom@2.1.9(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+    dependencies:
+      '@floating-ui/dom': 1.8.0
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+
+  '@floating-ui/react@0.27.20(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8))':
+    dependencies:
+      '@floating-ui/react-dom': 2.1.9(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8))
+      '@floating-ui/utils': 0.2.12
+      react: '@preact/compat@18.3.2(preact@10.29.8)'
+      react-dom: '@preact/compat@18.3.2(preact@10.29.8)'
+      tabbable: 6.5.0
+    optional: true
+
+  '@floating-ui/react@0.27.20(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+    dependencies:
+      '@floating-ui/react-dom': 2.1.9(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@floating-ui/utils': 0.2.12
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+      tabbable: 6.5.0
+
+  '@floating-ui/utils@0.2.12': {}
+
   '@humanfs/core@0.19.2':
     dependencies:
       '@humanfs/types': 0.15.0
@@ -8685,6 +8963,234 @@ snapshots:
       - supports-color
 
   '@kwsites/promise-deferred@1.1.1': {}
+
+  '@lexical/a11y@0.49.0(typescript@7.0.2)':
+    dependencies:
+      '@lexical/extension': 0.49.0(typescript@7.0.2)
+      '@lexical/utils': 0.49.0(typescript@7.0.2)
+      lexical: 0.49.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@lexical/clipboard@0.49.0(typescript@7.0.2)':
+    dependencies:
+      '@lexical/extension': 0.49.0(typescript@7.0.2)
+      '@lexical/html': 0.49.0(typescript@7.0.2)
+      '@lexical/internal': 0.49.0(typescript@7.0.2)
+      '@lexical/list': 0.49.0(typescript@7.0.2)
+      '@lexical/selection': 0.49.0(typescript@7.0.2)
+      '@lexical/utils': 0.49.0(typescript@7.0.2)
+      '@types/trusted-types': 2.0.7
+      lexical: 0.49.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@lexical/code-core@0.49.0(typescript@7.0.2)':
+    dependencies:
+      '@lexical/extension': 0.49.0(typescript@7.0.2)
+      '@lexical/html': 0.49.0(typescript@7.0.2)
+      '@lexical/internal': 0.49.0(typescript@7.0.2)
+      '@lexical/utils': 0.49.0(typescript@7.0.2)
+      lexical: 0.49.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@lexical/devtools-core@0.49.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@7.0.2)':
+    dependencies:
+      '@lexical/html': 0.49.0(typescript@7.0.2)
+      '@lexical/link': 0.49.0(typescript@7.0.2)
+      '@lexical/mark': 0.49.0(typescript@7.0.2)
+      '@lexical/table': 0.49.0(typescript@7.0.2)
+      '@lexical/utils': 0.49.0(typescript@7.0.2)
+      lexical: 0.49.0(typescript@7.0.2)
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@lexical/dragon@0.49.0(typescript@7.0.2)':
+    dependencies:
+      '@lexical/extension': 0.49.0(typescript@7.0.2)
+      lexical: 0.49.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@lexical/extension@0.49.0(typescript@7.0.2)':
+    dependencies:
+      '@lexical/internal': 0.49.0(typescript@7.0.2)
+      '@lexical/utils': 0.49.0(typescript@7.0.2)
+      '@preact/signals-core': 1.14.2
+      lexical: 0.49.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@lexical/hashtag@0.49.0(typescript@7.0.2)':
+    dependencies:
+      '@lexical/text': 0.49.0(typescript@7.0.2)
+      '@lexical/utils': 0.49.0(typescript@7.0.2)
+      lexical: 0.49.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@lexical/history@0.49.0(typescript@7.0.2)':
+    dependencies:
+      '@lexical/extension': 0.49.0(typescript@7.0.2)
+      '@lexical/utils': 0.49.0(typescript@7.0.2)
+      lexical: 0.49.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@lexical/html@0.49.0(typescript@7.0.2)':
+    dependencies:
+      '@lexical/extension': 0.49.0(typescript@7.0.2)
+      '@lexical/internal': 0.49.0(typescript@7.0.2)
+      '@lexical/selection': 0.49.0(typescript@7.0.2)
+      '@lexical/utils': 0.49.0(typescript@7.0.2)
+      lexical: 0.49.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@lexical/internal@0.49.0(typescript@7.0.2)':
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@lexical/link@0.49.0(typescript@7.0.2)':
+    dependencies:
+      '@lexical/extension': 0.49.0(typescript@7.0.2)
+      '@lexical/html': 0.49.0(typescript@7.0.2)
+      '@lexical/internal': 0.49.0(typescript@7.0.2)
+      '@lexical/utils': 0.49.0(typescript@7.0.2)
+      lexical: 0.49.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@lexical/list@0.49.0(typescript@7.0.2)':
+    dependencies:
+      '@lexical/extension': 0.49.0(typescript@7.0.2)
+      '@lexical/html': 0.49.0(typescript@7.0.2)
+      '@lexical/internal': 0.49.0(typescript@7.0.2)
+      '@lexical/utils': 0.49.0(typescript@7.0.2)
+      lexical: 0.49.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@lexical/mark@0.49.0(typescript@7.0.2)':
+    dependencies:
+      '@lexical/utils': 0.49.0(typescript@7.0.2)
+      lexical: 0.49.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@lexical/markdown@0.49.0(typescript@7.0.2)':
+    dependencies:
+      '@lexical/code-core': 0.49.0(typescript@7.0.2)
+      '@lexical/internal': 0.49.0(typescript@7.0.2)
+      '@lexical/link': 0.49.0(typescript@7.0.2)
+      '@lexical/list': 0.49.0(typescript@7.0.2)
+      '@lexical/rich-text': 0.49.0(typescript@7.0.2)
+      '@lexical/selection': 0.49.0(typescript@7.0.2)
+      '@lexical/text': 0.49.0(typescript@7.0.2)
+      '@lexical/utils': 0.49.0(typescript@7.0.2)
+      lexical: 0.49.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@lexical/overflow@0.49.0(typescript@7.0.2)':
+    dependencies:
+      lexical: 0.49.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@lexical/plain-text@0.49.0(typescript@7.0.2)':
+    dependencies:
+      '@lexical/clipboard': 0.49.0(typescript@7.0.2)
+      '@lexical/dragon': 0.49.0(typescript@7.0.2)
+      '@lexical/extension': 0.49.0(typescript@7.0.2)
+      '@lexical/selection': 0.49.0(typescript@7.0.2)
+      '@lexical/utils': 0.49.0(typescript@7.0.2)
+      lexical: 0.49.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@lexical/react@0.49.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@7.0.2)':
+    dependencies:
+      '@floating-ui/react': 0.27.20(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@lexical/a11y': 0.49.0(typescript@7.0.2)
+      '@lexical/devtools-core': 0.49.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@7.0.2)
+      '@lexical/dragon': 0.49.0(typescript@7.0.2)
+      '@lexical/extension': 0.49.0(typescript@7.0.2)
+      '@lexical/hashtag': 0.49.0(typescript@7.0.2)
+      '@lexical/history': 0.49.0(typescript@7.0.2)
+      '@lexical/internal': 0.49.0(typescript@7.0.2)
+      '@lexical/link': 0.49.0(typescript@7.0.2)
+      '@lexical/list': 0.49.0(typescript@7.0.2)
+      '@lexical/mark': 0.49.0(typescript@7.0.2)
+      '@lexical/markdown': 0.49.0(typescript@7.0.2)
+      '@lexical/overflow': 0.49.0(typescript@7.0.2)
+      '@lexical/plain-text': 0.49.0(typescript@7.0.2)
+      '@lexical/rich-text': 0.49.0(typescript@7.0.2)
+      '@lexical/table': 0.49.0(typescript@7.0.2)
+      '@lexical/text': 0.49.0(typescript@7.0.2)
+      '@lexical/utils': 0.49.0(typescript@7.0.2)
+      '@lexical/yjs': 0.49.0(typescript@7.0.2)
+      lexical: 0.49.0(typescript@7.0.2)
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@lexical/rich-text@0.49.0(typescript@7.0.2)':
+    dependencies:
+      '@lexical/clipboard': 0.49.0(typescript@7.0.2)
+      '@lexical/dragon': 0.49.0(typescript@7.0.2)
+      '@lexical/extension': 0.49.0(typescript@7.0.2)
+      '@lexical/html': 0.49.0(typescript@7.0.2)
+      '@lexical/selection': 0.49.0(typescript@7.0.2)
+      '@lexical/utils': 0.49.0(typescript@7.0.2)
+      lexical: 0.49.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@lexical/selection@0.49.0(typescript@7.0.2)':
+    dependencies:
+      '@lexical/internal': 0.49.0(typescript@7.0.2)
+      lexical: 0.49.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@lexical/table@0.49.0(typescript@7.0.2)':
+    dependencies:
+      '@lexical/clipboard': 0.49.0(typescript@7.0.2)
+      '@lexical/extension': 0.49.0(typescript@7.0.2)
+      '@lexical/html': 0.49.0(typescript@7.0.2)
+      '@lexical/internal': 0.49.0(typescript@7.0.2)
+      '@lexical/utils': 0.49.0(typescript@7.0.2)
+      lexical: 0.49.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@lexical/text@0.49.0(typescript@7.0.2)':
+    dependencies:
+      '@lexical/internal': 0.49.0(typescript@7.0.2)
+      lexical: 0.49.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@lexical/utils@0.49.0(typescript@7.0.2)':
+    dependencies:
+      '@lexical/internal': 0.49.0(typescript@7.0.2)
+      '@lexical/selection': 0.49.0(typescript@7.0.2)
+      lexical: 0.49.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
+
+  '@lexical/yjs@0.49.0(typescript@7.0.2)':
+    dependencies:
+      '@lexical/internal': 0.49.0(typescript@7.0.2)
+      '@lexical/selection': 0.49.0(typescript@7.0.2)
+      lexical: 0.49.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
 
   '@manypkg/find-root@2.2.3':
     dependencies:
@@ -9688,6 +10194,8 @@ snapshots:
       fflate: 0.8.3
       meshoptimizer: 1.1.1
 
+  '@types/trusted-types@2.0.7': {}
+
   '@types/unist@2.0.11': {}
 
   '@types/unist@3.0.3': {}
@@ -9953,7 +10461,7 @@ snapshots:
       obug: 2.1.4
       std-env: 4.1.0
       tinyrainbow: 3.1.0
-      vitest: 4.1.11(@types/node@26.2.0)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(esbuild@0.28.1)(happy-dom@20.11.2)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
+      vitest: 4.1.11(@types/node@26.2.0)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(happy-dom@20.11.2)(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0))
 
   '@vitest/expect@3.2.4':
     dependencies:
@@ -10015,7 +10523,7 @@ snapshots:
       sirv: 3.0.2
       tinyglobby: 0.2.17
       tinyrainbow: 3.1.0
-      vitest: 4.1.11(@types/node@26.2.0)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(esbuild@0.28.1)(happy-dom@20.11.2)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
+      vitest: 4.1.11(@types/node@26.2.0)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(happy-dom@20.11.2)(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0))
 
   '@vitest/utils@3.2.4':
     dependencies:
@@ -10384,8 +10892,10 @@ snapshots:
 
   asynckit@0.4.0: {}
 
-  atom.io@0.50.1(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/react@16.3.2(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18))(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.2)(motion@13.1.0(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8)))(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15):
+  atom.io@0.50.1(@floating-ui/react-dom@2.1.9(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8)))(@floating-ui/react@0.27.20(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8)))(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/react@16.3.2(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18))(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.2)(motion@13.1.0(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8)))(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15):
     optionalDependencies:
+      '@floating-ui/react': 0.27.20(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8))
+      '@floating-ui/react-dom': 2.1.9(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8))
       '@testing-library/react': 16.3.2(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)
       '@typescript-eslint/parser': 8.67.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
       eslint: 10.8.1(jiti@2.7.0)(supports-color@10.2.2)
@@ -10396,8 +10906,10 @@ snapshots:
       socket.io-client: 4.8.3(supports-color@10.2.2)
       solid-js: 1.9.15
 
-  atom.io@0.50.1(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.2)(motion@13.1.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15):
+  atom.io@0.50.1(@floating-ui/react-dom@2.1.9(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@floating-ui/react@0.27.20(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.2)(motion@13.1.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15):
     optionalDependencies:
+      '@floating-ui/react': 0.27.20(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@floating-ui/react-dom': 2.1.9(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@testing-library/react': 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@typescript-eslint/parser': 8.67.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
       eslint: 10.8.1(jiti@2.7.0)(supports-color@10.2.2)
@@ -11863,11 +12375,11 @@ snapshots:
 
   kolorist@1.8.0: {}
 
-  lasertag@0.7.0(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/react@16.3.2(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18))(@types/react@19.2.18)(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.2)(motion@13.1.0(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8)))(preact@10.29.8)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15)(supports-color@10.2.2):
+  lasertag@0.7.0(@floating-ui/react-dom@2.1.9(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8)))(@floating-ui/react@0.27.20(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8)))(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/react@16.3.2(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18))(@types/react@19.2.18)(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.2)(motion@13.1.0(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8)))(preact@10.29.8)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15)(supports-color@10.2.2):
     dependencies:
       '@astrojs/compiler': 4.0.0
       '@vscode/vsce': 3.9.2(supports-color@10.2.2)
-      atom.io: 0.50.1(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/react@16.3.2(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18))(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.2)(motion@13.1.0(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8)))(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15)
+      atom.io: 0.50.1(@floating-ui/react-dom@2.1.9(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8)))(@floating-ui/react@0.27.20(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8)))(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/react@16.3.2(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18))(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.2)(motion@13.1.0(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8)))(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15)
       comline: 0.5.1(arktype@2.2.3)(zod@4.4.3)
       rolldown: 1.2.1
       takua: 0.2.2
@@ -11895,11 +12407,11 @@ snapshots:
       - socket.io-client
       - supports-color
 
-  lasertag@0.7.0(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.2)(motion@13.1.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(preact@10.29.8)(react@19.2.8)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15)(supports-color@10.2.2):
+  lasertag@0.7.0(@floating-ui/react-dom@2.1.9(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@floating-ui/react@0.27.20(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@types/react@19.2.18)(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.2)(motion@13.1.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(preact@10.29.8)(react@19.2.8)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15)(supports-color@10.2.2):
     dependencies:
       '@astrojs/compiler': 4.0.0
       '@vscode/vsce': 3.9.2(supports-color@10.2.2)
-      atom.io: 0.50.1(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.2)(motion@13.1.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15)
+      atom.io: 0.50.1(@floating-ui/react-dom@2.1.9(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@floating-ui/react@0.27.20(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(@typescript-eslint/parser@8.67.0(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.11.2)(motion@13.1.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15)
       comline: 0.5.1(arktype@2.2.3)(zod@4.4.3)
       rolldown: 1.2.1
       takua: 0.2.2
@@ -11938,6 +12450,12 @@ snapshots:
     dependencies:
       prelude-ls: 1.2.1
       type-check: 0.4.0
+
+  lexical@0.49.0(typescript@7.0.2):
+    dependencies:
+      '@lexical/internal': 0.49.0(typescript@7.0.2)
+    optionalDependencies:
+      typescript: 7.0.2
 
   lightningcss-android-arm64@1.33.0:
     optional: true
@@ -13701,6 +14219,8 @@ snapshots:
       picocolors: 1.1.1
       sax: 1.6.0
 
+  tabbable@6.5.0: {}
+
   table@6.9.0:
     dependencies:
       ajv: 8.20.0
@@ -14137,7 +14657,7 @@ snapshots:
     optionalDependencies:
       vite: 8.2.1(@types/node@26.2.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
 
-  vitest@4.1.11(@types/node@26.2.0)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(esbuild@0.28.1)(happy-dom@20.11.2)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0):
+  vitest@4.1.11(@types/node@26.2.0)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(happy-dom@20.11.2)(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)):
     dependencies:
       '@vitest/expect': 4.1.11
       '@vitest/mocker': 4.1.11(vite@8.2.1(@types/node@26.2.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0))
@@ -14165,18 +14685,7 @@ snapshots:
       '@vitest/ui': 4.1.11(vitest@4.1.11)
       happy-dom: 20.11.2
     transitivePeerDependencies:
-      - '@vitejs/devtools'
-      - esbuild
-      - jiti
-      - less
       - msw
-      - sass
-      - sass-embedded
-      - stylus
-      - sugarss
-      - terser
-      - tsx
-      - yaml
 
   vscode-jsonrpc@9.0.1: {}
 

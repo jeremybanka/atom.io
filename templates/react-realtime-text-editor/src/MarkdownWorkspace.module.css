@@ -216,27 +216,6 @@ markdown-workspace.class {
 					display: block;
 					inline-size: 1px;
 				}
-
-				> textarea {
-					display: block;
-					width: 100%;
-					min-height: 32rem;
-					resize: none;
-					padding: 1.45rem 1.45rem 3rem 3.7rem;
-					border: 0;
-					outline: 0;
-					color: #383542;
-					background: transparent;
-					caret-color: var(--accent);
-					font-family: "DM Mono", monospace;
-					font-size: 0.83rem;
-					line-height: 1.72rem;
-					tab-size: 2;
-
-					&:disabled {
-						opacity: 0.58;
-					}
-				}
 			}
 		}
 

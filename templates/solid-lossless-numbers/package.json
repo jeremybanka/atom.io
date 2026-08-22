@@ -23,7 +23,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "26.2.0",
-		"eslint": "10.8.1",
+		"eslint": "10.9.0",
 		"typescript": "7.0.2",
 		"vite": "8.2.2",
 		"vite-plugin-solid": "2.11.14"

@@ -16,6 +16,7 @@ import {
 	$getRootRelativeSelectionOffsets,
 	$insertTextAtBlankLineBoundary,
 	$pointAtRootOffset,
+	lineEndCaretReference,
 	lineStartCaretReference,
 	transformSelectionAcrossTextChange,
 } from "../src/lexical-linear-offset.ts"
@@ -87,6 +88,14 @@ describe(`Lexical Markdown editor`, () => {
 			lineDelta: 1,
 		})
 		expect(lineStartCaretReference(`alpha\nbeta`, 3)).toBeNull()
+	})
+
+	test(`locates interior and terminal nonempty line ends`, () => {
+		expect(lineEndCaretReference(`alpha\nbeta`, 5)).toBe(4)
+		expect(lineEndCaretReference(`alpha\nbeta`, 10)).toBe(9)
+		expect(lineEndCaretReference(`alpha\nbeta`, 7)).toBeNull()
+		expect(lineEndCaretReference(`alpha\n`, 6)).toBeNull()
+		expect(lineEndCaretReference(``, 0)).toBeNull()
 	})
 
 	test(`restores the last focused DOM caret across a remote prefix`, async () => {

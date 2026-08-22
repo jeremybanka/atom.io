@@ -9,16 +9,11 @@ import {
 	$createParagraphNode,
 	$createRangeSelection,
 	$createTextNode,
-	$getCharacterOffsets,
 	$getRoot,
 	$getSelection,
-	$isElementNode,
 	$isRangeSelection,
-	$isTextNode,
 	$setSelection,
-	type ElementNode,
 	type LexicalEditor as LexicalEditorInstance,
-	type LexicalNode,
 } from "lexical"
 import {
 	type CSSProperties,
@@ -31,6 +26,10 @@ import {
 } from "react"
 
 import css from "./LexicalMarkdownEditor.module.css"
+import {
+	$getRootRelativeSelectionOffsets,
+	$pointAtRootOffset,
+} from "./lexical-linear-offset.ts"
 
 const MOSAIC_PROJECTION_TAG = `mosaic-projection`
 
@@ -56,62 +55,6 @@ type OverlaySelection = RenderedCollaboratorSelection & {
 	readonly rects: readonly OverlayRect[]
 }
 
-type LinearPoint = { readonly node: LexicalNode; readonly offset: number }
-
-function pointAtOffset(
-	root: ElementNode,
-	requested: number,
-): LinearPoint | null {
-	const length = root.getTextContentSize()
-	const target = Math.max(0, Math.min(requested, length))
-	let traversed = 0
-	let last: LexicalNode | null = null
-
-	const visit = (node: LexicalNode): LinearPoint | null => {
-		if ($isElementNode(node)) {
-			for (const child of node.getChildren()) {
-				const result = visit(child)
-				if (result !== null) return result
-			}
-			return null
-		}
-		const size = node.getTextContentSize()
-		const start = traversed
-		const end = start + size
-		last = node
-		if (target < end) {
-			if ($isTextNode(node)) return { node, offset: target - start }
-			const parent = node.getParent()
-			if (parent === null) return null
-			return {
-				node: parent,
-				offset: node.getIndexWithinParent() + (target === start ? 0 : 1),
-			}
-		}
-		if (target === start) {
-			if ($isTextNode(node)) return { node, offset: 0 }
-			const parent = node.getParent()
-			return parent === null
-				? null
-				: { node: parent, offset: node.getIndexWithinParent() }
-		}
-		traversed = end
-		return null
-	}
-
-	const found = visit(root)
-	if (found !== null) return found
-	if (last === null) return { node: root, offset: 0 }
-	const finalNode = last as LexicalNode
-	if ($isTextNode(finalNode)) {
-		return { node: finalNode, offset: finalNode.getTextContentSize() }
-	}
-	const parent = finalNode.getParent()
-	return parent === null
-		? { node: root, offset: root.getChildrenSize() }
-		: { node: parent, offset: finalNode.getIndexWithinParent() + 1 }
-}
-
 function localRect(rect: DOMRect, container: DOMRect): OverlayRect {
 	return {
 		height: rect.height,
@@ -129,9 +72,15 @@ function measureSelection(
 	if (rootElement === null) return null
 	return editor.getEditorState().read(() => {
 		const root = $getRoot()
-		const start = pointAtOffset(root, Math.min(selection.start, selection.end))
-		const end = pointAtOffset(root, Math.max(selection.start, selection.end))
-		const head = pointAtOffset(root, selection.end)
+		const start = $pointAtRootOffset(
+			root,
+			Math.min(selection.start, selection.end),
+		)
+		const end = $pointAtRootOffset(
+			root,
+			Math.max(selection.start, selection.end),
+		)
+		const head = $pointAtRootOffset(root, selection.end)
 		if (start === null || end === null || head === null) return null
 		const range = createDOMRange(
 			editor,
@@ -181,7 +130,7 @@ function MosaicProjectionPlugin({ value }: { readonly value: string }): null {
 				if (root.getTextContent() === value) return
 				const currentSelection = $getSelection()
 				const offsets = $isRangeSelection(currentSelection)
-					? $getCharacterOffsets(currentSelection)
+					? $getRootRelativeSelectionOffsets(currentSelection)
 					: null
 				const paragraph = $createParagraphNode()
 				root.clear().append(paragraph)
@@ -227,7 +176,7 @@ function MosaicInputPlugin({
 					const selection = $getSelection()
 					return {
 						selection: $isRangeSelection(selection)
-							? $getCharacterOffsets(selection)
+							? $getRootRelativeSelectionOffsets(selection)
 							: null,
 						text: $getRoot().getTextContent(),
 					}

@@ -14,6 +14,7 @@ type EditorProperties = {
 
 const harness = vi.hoisted(() => ({
 	editor: null as EditorProperties | null,
+	length: 18,
 	projection: {
 		blocks: [],
 		range: { end: 18, kind: `utf16-range` as const, start: 0 },
@@ -45,9 +46,17 @@ const deferred = () => {
 }
 
 describe(`Markdown workspace drafts`, () => {
-	test(`rebases trailing typing and publishes its selection after settlement`, async () => {
+	test(`rebases queued typing without exposing an incomplete resident tail`, async () => {
 		const first = deferred()
 		const second = deferred()
+		const third = deferred()
+		const fourth = deferred()
+		harness.length = 18
+		harness.projection = {
+			blocks: [],
+			range: { end: 18, kind: `utf16-range`, start: 0 },
+			text: `Add rollout owners`,
+		}
 		const replacements: Array<{
 			readonly selection: {
 				readonly anchor: { readonly offset: number }
@@ -79,7 +88,7 @@ describe(`Markdown workspace drafts`, () => {
 					offset,
 					runId: `base`,
 				}),
-				readLength: async () => harness.projection.text.length,
+				readLength: async () => harness.length,
 				resolvePosition: async (position: { readonly offset: number }) =>
 					position.offset,
 			},
@@ -89,7 +98,7 @@ describe(`Markdown workspace drafts`, () => {
 			redo: async () => false,
 			replace: (input: (typeof replacements)[number]) => {
 				replacements.push(input)
-				return replacements.length === 1 ? first.promise : second.promise
+				return [first, second, third, fourth][replacements.length - 1]?.promise
 			},
 			residency: { state: { residentMemberCount: 2 } },
 			sessionId: `ada-session`,
@@ -122,6 +131,7 @@ describe(`Markdown workspace drafts`, () => {
 			range: { end: 14, kind: `utf16-range`, start: 0 },
 			text: `Add rollout ow`,
 		}
+		harness.length = 14
 		rendered.rerender(<MarkdownWorkspace client={client} />)
 		first.resolve()
 
@@ -135,6 +145,7 @@ describe(`Markdown workspace drafts`, () => {
 			range: { end: 18, kind: `utf16-range`, start: 0 },
 			text: `Add rollout owners`,
 		}
+		harness.length = 18
 		rendered.rerender(<MarkdownWorkspace client={client} />)
 		second.resolve()
 		await waitFor(() => expect(harness.editor?.value).toBe(`Add rollout owners`))
@@ -150,5 +161,55 @@ describe(`Markdown workspace drafts`, () => {
 				},
 			]),
 		)
+
+		const inserted = `Add careful rollout owners`
+		act(() => harness.editor?.onValueChange(inserted, false))
+		await waitFor(() => expect(replacements).toHaveLength(3))
+		expect(replacements[2]).toMatchObject({
+			selection: { anchor: { offset: 4 }, head: { offset: 4 } },
+			text: `careful `,
+		})
+
+		// The accepted operation advances the authoritative document length before
+		// residency has replaced the old-length viewport. Keep the complete local
+		// draft visible rather than exposing a projection that eats its tail.
+		harness.length = inserted.length
+		harness.projection = {
+			...harness.projection,
+			// A newly acquired observer can already advertise the requested range
+			// while its resident leaf still contains the prior, shorter value.
+			range: { end: inserted.length, kind: `utf16-range`, start: 0 },
+			text: inserted.slice(0, 18),
+		}
+		rendered.rerender(<MarkdownWorkspace client={client} />)
+		third.resolve()
+		await waitFor(() => expect(harness.editor?.value).toBe(inserted))
+		act(() => harness.editor?.onValueChange(`${inserted}!`, false))
+		await new Promise((resolve) => setTimeout(resolve, 200))
+		expect(replacements).toHaveLength(3)
+
+		harness.projection = {
+			...harness.projection,
+			range: { end: inserted.length, kind: `utf16-range`, start: 0 },
+			text: inserted,
+		}
+		rendered.rerender(<MarkdownWorkspace client={client} />)
+		await waitFor(() => expect(replacements).toHaveLength(4))
+		expect(replacements[3]).toMatchObject({
+			selection: {
+				anchor: { offset: inserted.length },
+				head: { offset: inserted.length },
+			},
+			text: `!`,
+		})
+		harness.length = inserted.length + 1
+		harness.projection = {
+			...harness.projection,
+			range: { end: inserted.length + 1, kind: `utf16-range`, start: 0 },
+			text: `${inserted}!`,
+		}
+		rendered.rerender(<MarkdownWorkspace client={client} />)
+		fourth.resolve()
+		await waitFor(() => expect(harness.editor?.value).toBe(`${inserted}!`))
 	})
 })

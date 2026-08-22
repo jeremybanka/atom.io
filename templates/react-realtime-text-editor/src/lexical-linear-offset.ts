@@ -1,6 +1,8 @@
 import {
+	$createTextNode,
 	$getRoot,
 	$isElementNode,
+	$isLineBreakNode,
 	$isTextNode,
 	type ElementNode,
 	type LexicalNode,
@@ -40,6 +42,31 @@ export function lineStartCaretReference(
 			.split(`\n`)
 			.slice(1).length,
 	}
+}
+
+/** Materialize text on an empty visual row instead of joining the next line. */
+export function $insertTextAtBlankLineBoundary(
+	selection: RangeSelection,
+	text: string,
+): boolean {
+	if (!selection.isCollapsed() || selection.anchor.type !== `element`)
+		return false
+	const parent = selection.anchor.getNode()
+	if (!$isElementNode(parent)) return false
+	const offset = selection.anchor.offset
+	const next = parent.getChildAtIndex(offset)
+	const previous = offset === 0 ? null : parent.getChildAtIndex(offset - 1)
+	if (
+		!$isLineBreakNode(next) &&
+		!(next === null && $isLineBreakNode(previous))
+	) {
+		return false
+	}
+	const inserted = $createTextNode(text)
+	if (next === null) parent.append(inserted)
+	else next.insertBefore(inserted)
+	inserted.selectEnd()
+	return true
 }
 
 /** Carry a root-relative selection through one authoritative text replacement. */

@@ -6,13 +6,18 @@ import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary"
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin"
 import { PlainTextPlugin } from "@lexical/react/LexicalPlainTextPlugin"
 import {
+	$createLineBreakNode,
 	$createParagraphNode,
 	$createRangeSelection,
 	$createTextNode,
 	$getRoot,
 	$getSelection,
 	$isRangeSelection,
+	$isTextNode,
 	$setSelection,
+	COMMAND_PRIORITY_HIGH,
+	CONTROLLED_TEXT_INSERTION_COMMAND,
+	type ElementNode,
 	type LexicalEditor as LexicalEditorInstance,
 } from "lexical"
 import {
@@ -21,6 +26,7 @@ import {
 	type MutableRefObject,
 	type ReactElement,
 	useCallback,
+	useEffect,
 	useLayoutEffect,
 	useRef,
 	useState,
@@ -29,6 +35,7 @@ import {
 import css from "./LexicalMarkdownEditor.module.css"
 import {
 	$getRootRelativeSelectionOffsets,
+	$insertTextAtBlankLineBoundary,
 	$pointAtRootOffset,
 	lineStartCaretReference,
 	transformSelectionAcrossTextChange,
@@ -56,6 +63,36 @@ type OverlayRect = {
 type OverlaySelection = RenderedCollaboratorSelection & {
 	readonly caret: OverlayRect
 	readonly rects: readonly OverlayRect[]
+}
+
+function $appendProjectedText(paragraph: ElementNode, value: string): void {
+	const lines = value.split(`\n`)
+	for (let index = 0; index < lines.length; index++) {
+		const line = lines[index]
+		if (line.length > 0) paragraph.append($createTextNode(line))
+		if (index < lines.length - 1) paragraph.append($createLineBreakNode())
+	}
+}
+
+function $restoreRootRelativeSelection(
+	root: ElementNode,
+	offsets: readonly [number, number],
+): void {
+	const anchor = $pointAtRootOffset(root, offsets[0])
+	const focus = $pointAtRootOffset(root, offsets[1])
+	if (anchor === null || focus === null) return
+	const selection = $createRangeSelection()
+	selection.anchor.set(
+		anchor.node.getKey(),
+		anchor.offset,
+		$isTextNode(anchor.node) ? `text` : `element`,
+	)
+	selection.focus.set(
+		focus.node.getKey(),
+		focus.offset,
+		$isTextNode(focus.node) ? `text` : `element`,
+	)
+	$setSelection(selection)
 }
 
 function localRect(rect: DOMRect, container: DOMRect): OverlayRect {
@@ -212,18 +249,11 @@ function MosaicProjectionPlugin({
 					paragraph.selectStart()
 					return
 				}
-				const text = $createTextNode(value)
-				paragraph.append(text)
+				$appendProjectedText(paragraph, value)
 				if (transformedOffsets !== null) {
 					selectionRef.current = transformedOffsets
 					suppressedSelectionRef.current = transformedOffsets
-					const selection = $createRangeSelection().setTextNodeRange(
-						text,
-						Math.min(transformedOffsets[0], value.length),
-						text,
-						Math.min(transformedOffsets[1], value.length),
-					)
-					$setSelection(selection)
+					$restoreRootRelativeSelection(root, transformedOffsets)
 				}
 			},
 			{ tag: MOSAIC_PROJECTION_TAG },
@@ -247,8 +277,32 @@ function MosaicInputPlugin({
 	>
 	readonly value: string
 }): ReactElement {
+	const [editor] = useLexicalComposerContext()
 	const lastSelection = useRef<string | null>(null)
 	const composing = useRef(false)
+	useEffect(
+		() =>
+			editor.registerCommand(
+				CONTROLLED_TEXT_INSERTION_COMMAND,
+				(eventOrText) => {
+					if (editor.isComposing()) return false
+					const text =
+						typeof eventOrText === `string`
+							? eventOrText
+							: eventOrText.dataTransfer === null
+								? eventOrText.data
+								: null
+					if (text === null || text.length === 0) return false
+					const selection = $getSelection()
+					return (
+						$isRangeSelection(selection) &&
+						$insertTextAtBlankLineBoundary(selection, text)
+					)
+				},
+				COMMAND_PRIORITY_HIGH,
+			),
+		[editor],
+	)
 	return (
 		<OnChangePlugin
 			ignoreSelectionChange={false}

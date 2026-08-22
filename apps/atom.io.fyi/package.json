@@ -41,7 +41,7 @@
 		"@types/react-syntax-highlighter": "15.5.13",
 		"@types/three": "0.185.4",
 		"concurrently": "10.0.5",
-		"eslint": "10.8.1",
+		"eslint": "10.9.0",
 		"lasertag": "0.7.0",
 		"typescript": "7.0.2",
 		"wrangler": "4.125.0"

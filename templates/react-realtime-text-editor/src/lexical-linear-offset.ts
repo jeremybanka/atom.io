@@ -20,6 +20,17 @@ export type LineStartCaretReference = {
 	readonly lineDelta: number
 }
 
+/** Find the preceding glyph for a caret at a nonempty visual line end. */
+export function lineEndCaretReference(
+	text: string,
+	requestedOffset: number,
+): number | null {
+	const offset = Math.max(0, Math.min(requestedOffset, text.length))
+	if (offset === 0 || text[offset - 1] === `\n`) return null
+	if (offset < text.length && text[offset] !== `\n`) return null
+	return offset - 1
+}
+
 /** Find measurable neighboring text for a caret at an explicit line start. */
 export function lineStartCaretReference(
 	text: string,

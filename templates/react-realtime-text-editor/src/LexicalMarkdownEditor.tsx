@@ -37,6 +37,7 @@ import {
 	$getRootRelativeSelectionOffsets,
 	$insertTextAtBlankLineBoundary,
 	$pointAtRootOffset,
+	lineEndCaretReference,
 	lineStartCaretReference,
 	transformSelectionAcrossTextChange,
 } from "./lexical-linear-offset.ts"
@@ -140,8 +141,15 @@ function measureCaret(
 ): DOMRect {
 	const style = getComputedStyle(rootElement)
 	const lineHeight = numericStyle(style.lineHeight) || 24
-	const reference = lineStartCaretReference(root.getTextContent(), offset)
+	const text = root.getTextContent()
+	const reference = lineStartCaretReference(text, offset)
 	if (reference === null) {
+		const lineEnd = lineEndCaretReference(text, offset)
+		const measured =
+			lineEnd === null ? null : measureCharacter(editor, root, lineEnd)
+		if (measured !== null && measured.height > 0) {
+			return new DOMRect(measured.right, measured.top, 0, measured.height)
+		}
 		return boundary.height > 0
 			? boundary
 			: new DOMRect(boundary.x, boundary.y, 0, lineHeight)

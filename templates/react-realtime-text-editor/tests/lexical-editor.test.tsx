@@ -1,5 +1,6 @@
 import { act, render, waitFor } from "@testing-library/react"
 import {
+	$createLineBreakNode,
 	$createParagraphNode,
 	$createRangeSelection,
 	$createTextNode,
@@ -13,6 +14,7 @@ import {
 import { LexicalMarkdownEditor } from "../src/LexicalMarkdownEditor.tsx"
 import {
 	$getRootRelativeSelectionOffsets,
+	$insertTextAtBlankLineBoundary,
 	$pointAtRootOffset,
 	lineStartCaretReference,
 	transformSelectionAcrossTextChange,
@@ -132,6 +134,76 @@ describe(`Lexical Markdown editor`, () => {
 		})
 		expect(reported).toEqual([6, 6])
 		expect(document.activeElement).toBe(editor)
+	})
+
+	test(`preserves explicit blank-line nodes across authoritative projections`, async () => {
+		const properties = {
+			onError: (error: Error) => {
+				throw error
+			},
+			onRedo: () => undefined,
+			onSelectionChange: () => undefined,
+			onUndo: () => undefined,
+			onValueChange: () => undefined,
+			selection: [6, 6] as const,
+			selections: [],
+		}
+		const rendered = render(
+			<LexicalMarkdownEditor {...properties} value={`alpha\n\n1. item`} />,
+		)
+		const editor = await rendered.findByRole(`textbox`)
+		await waitFor(() => expect(editor.querySelectorAll(`br`)).toHaveLength(2))
+		await waitFor(() => {
+			const selection = getSelection()
+			expect(selection?.anchorNode).toBe(editor.querySelector(`p`))
+			expect(selection?.anchorOffset).toBe(2)
+			expect(selection?.focusNode).toBe(editor.querySelector(`p`))
+			expect(selection?.focusOffset).toBe(2)
+		})
+
+		rendered.rerender(
+			<LexicalMarkdownEditor
+				{...properties}
+				selection={[6, 6]}
+				value={`alpha\n\n1. item!`}
+			/>,
+		)
+		await waitFor(() => expect(editor.querySelectorAll(`br`)).toHaveLength(2))
+		await waitFor(() => {
+			const selection = getSelection()
+			expect(selection?.anchorNode).toBe(editor.querySelector(`p`))
+			expect(selection?.anchorOffset).toBe(2)
+		})
+	})
+
+	test(`inserts text at a blank-line element boundary`, async () => {
+		const editor = createEditor({
+			onError: (error) => {
+				throw error
+			},
+		})
+		await new Promise<void>((resolve) => {
+			editor.update(
+				() => {
+					const root = $getRoot()
+					const paragraph = $createParagraphNode().append(
+						$createTextNode(`alpha`),
+						$createLineBreakNode(),
+						$createLineBreakNode(),
+						$createTextNode(`1. item`),
+					)
+					root.clear().append(paragraph)
+					paragraph.select(2, 2)
+					const selection = $getSelection()
+					expect($isRangeSelection(selection)).toBe(true)
+					if (!$isRangeSelection(selection)) return
+					expect($insertTextAtBlankLineBoundary(selection, `marker`)).toBe(true)
+					expect(root.getTextContent()).toBe(`alpha\nmarker\n1. item`)
+					expect($getRootRelativeSelectionOffsets(selection)).toEqual([12, 12])
+				},
+				{ onUpdate: resolve },
+			)
+		})
 	})
 
 	test(`reports and restores a root-relative caret after Enter`, async () => {

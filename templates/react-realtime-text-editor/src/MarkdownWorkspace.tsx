@@ -38,6 +38,10 @@ type SettledDraft = {
 	readonly base: MosaicTextRangeProjection
 	readonly requiredEnd: number
 }
+type RenderedProjection = {
+	readonly projection: MosaicTextRangeProjection
+	readonly selection: readonly [number, number] | null
+}
 
 const EMPTY_PARSE_METRICS: MarkdownParseInstrumentation = {
 	canceled: false,
@@ -175,6 +179,7 @@ export function MarkdownWorkspace({
 		anchorOffset: number
 		headOffset: number
 	} | null>(null)
+	const resolvedPendingSelection = useRef<typeof pendingSelection.current>(null)
 	const committing = useRef(false)
 	const commitTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 	const deferredScroll = useRef<typeof scroll | null>(null)
@@ -191,7 +196,14 @@ export function MarkdownWorkspace({
 	const view = useMosaicTextRange(client.projection, window.range, {
 		overscan: 2_048,
 	})
-	const projection = view.status === `ready` ? view.projection : null
+	const incomingProjection = view.status === `ready` ? view.projection : null
+	const [renderedProjection, setRenderedProjection] =
+		useState<RenderedProjection | null>(null)
+	const logicalSelection = useRef<NonNullable<
+		MarkdownPresence[`selection`]
+	> | null>(null)
+	const projection = renderedProjection?.projection ?? null
+	const projectedSelection = renderedProjection?.selection ?? null
 	const [settledDraft, setSettledDraft] = useState<SettledDraft | null>(null)
 	const settledDraftRef = useRef<SettledDraft | null>(settledDraft)
 	const projectionRef = useRef(projection)
@@ -208,6 +220,7 @@ export function MarkdownWorkspace({
 		) {
 			return
 		}
+		if (resolvedPendingSelection.current === selection) return
 		const anchorIndex = currentProjection.range.start + selection.anchorOffset
 		const headIndex = currentProjection.range.start + selection.headOffset
 		void Promise.all([
@@ -222,14 +235,56 @@ export function MarkdownWorkspace({
 			) {
 				return
 			}
+			const resolvedSelection = { anchor, head }
+			resolvedPendingSelection.current = selection
+			logicalSelection.current = resolvedSelection
 			return client.publishPresence({
 				color: client.identity.color,
 				name: client.identity.name,
-				selection: { anchor, head },
+				selection: resolvedSelection,
 				viewport: null,
 			})
 		})
 	}, [client])
+
+	useEffect(() => {
+		if (incomingProjection === null) return
+		const selection = logicalSelection.current
+		if (selection === null) {
+			setRenderedProjection({ projection: incomingProjection, selection: null })
+			return
+		}
+		let active = true
+		void Promise.all([
+			client.projection.resolvePosition(selection.anchor),
+			client.projection.resolvePosition(selection.head),
+		]).then(([anchor, head]) => {
+			if (!active || logicalSelection.current !== selection) return
+			const start = incomingProjection.range.start
+			const projectedSelection = {
+				anchorOffset: Math.max(
+					0,
+					Math.min(incomingProjection.text.length, anchor - start),
+				),
+				headOffset: Math.max(
+					0,
+					Math.min(incomingProjection.text.length, head - start),
+				),
+			}
+			pendingSelection.current = projectedSelection
+			resolvedPendingSelection.current = projectedSelection
+			setRenderedProjection({
+				projection: incomingProjection,
+				selection: [
+					projectedSelection.anchorOffset,
+					projectedSelection.headOffset,
+				],
+			})
+		})
+		return () => {
+			active = false
+		}
+	}, [client, incomingProjection])
 
 	const refreshLength = useCallback(async (): Promise<number | null> => {
 		try {
@@ -461,6 +516,13 @@ export function MarkdownWorkspace({
 	}, [client, presence, projection])
 
 	const publishSelection = (anchorOffset: number, headOffset: number): void => {
+		const current = pendingSelection.current
+		if (
+			current?.anchorOffset === anchorOffset &&
+			current.headOffset === headOffset
+		) {
+			return
+		}
 		pendingSelection.current = { anchorOffset, headOffset }
 		publishPendingSelection()
 	}
@@ -559,6 +621,7 @@ export function MarkdownWorkspace({
 									if (!composing) scheduleCommit()
 								}}
 								selections={remoteSelections}
+								selection={draft === null ? projectedSelection : null}
 								value={displayed}
 							/>
 						) : null}

@@ -18,6 +18,7 @@ import {
 import {
 	type CSSProperties,
 	type KeyboardEvent,
+	type MutableRefObject,
 	type ReactElement,
 	useCallback,
 	useLayoutEffect,
@@ -29,6 +30,7 @@ import css from "./LexicalMarkdownEditor.module.css"
 import {
 	$getRootRelativeSelectionOffsets,
 	$pointAtRootOffset,
+	transformSelectionAcrossTextChange,
 } from "./lexical-linear-offset.ts"
 
 const MOSAIC_PROJECTION_TAG = `mosaic-projection`
@@ -121,17 +123,37 @@ function measureSelection(
 	})
 }
 
-function MosaicProjectionPlugin({ value }: { readonly value: string }): null {
+function MosaicProjectionPlugin({
+	selection,
+	selectionRef,
+	suppressedSelectionRef,
+	value,
+}: {
+	readonly selection: readonly [number, number] | null
+	readonly selectionRef: MutableRefObject<readonly [number, number] | null>
+	readonly suppressedSelectionRef: MutableRefObject<
+		readonly [number, number] | null
+	>
+	readonly value: string
+}): null {
 	const [editor] = useLexicalComposerContext()
 	useLayoutEffect(() => {
 		editor.update(
 			() => {
 				const root = $getRoot()
-				if (root.getTextContent() === value) return
+				const previousValue = root.getTextContent()
+				if (previousValue === value) return
 				const currentSelection = $getSelection()
-				const offsets = $isRangeSelection(currentSelection)
-					? $getRootRelativeSelectionOffsets(currentSelection)
-					: null
+				const offsets =
+					selectionRef.current ??
+					($isRangeSelection(currentSelection)
+						? $getRootRelativeSelectionOffsets(currentSelection)
+						: null)
+				const transformedOffsets =
+					selection ??
+					(offsets === null
+						? null
+						: transformSelectionAcrossTextChange(previousValue, value, offsets))
 				const paragraph = $createParagraphNode()
 				root.clear().append(paragraph)
 				if (value.length === 0) {
@@ -140,29 +162,37 @@ function MosaicProjectionPlugin({ value }: { readonly value: string }): null {
 				}
 				const text = $createTextNode(value)
 				paragraph.append(text)
-				if (offsets !== null) {
+				if (transformedOffsets !== null) {
+					selectionRef.current = transformedOffsets
+					suppressedSelectionRef.current = transformedOffsets
 					const selection = $createRangeSelection().setTextNodeRange(
 						text,
-						Math.min(offsets[0], value.length),
+						Math.min(transformedOffsets[0], value.length),
 						text,
-						Math.min(offsets[1], value.length),
+						Math.min(transformedOffsets[1], value.length),
 					)
 					$setSelection(selection)
 				}
 			},
 			{ tag: MOSAIC_PROJECTION_TAG },
 		)
-	}, [editor, value])
+	}, [editor, selection, selectionRef, suppressedSelectionRef, value])
 	return null
 }
 
 function MosaicInputPlugin({
 	onSelectionChange,
 	onValueChange,
+	selectionRef,
+	suppressedSelectionRef,
 	value,
 }: {
 	readonly onSelectionChange: (anchor: number, head: number) => void
 	readonly onValueChange: (value: string, composing: boolean) => void
+	readonly selectionRef: MutableRefObject<readonly [number, number] | null>
+	readonly suppressedSelectionRef: MutableRefObject<
+		readonly [number, number] | null
+	>
 	readonly value: string
 }): ReactElement {
 	const lastSelection = useRef<string | null>(null)
@@ -195,6 +225,17 @@ function MosaicInputPlugin({
 				) {
 					return
 				}
+				selectionRef.current = snapshot.selection
+				const suppressed = suppressedSelectionRef.current
+				if (
+					suppressed !== null &&
+					suppressed[0] === snapshot.selection[0] &&
+					suppressed[1] === snapshot.selection[1]
+				) {
+					suppressedSelectionRef.current = null
+					return
+				}
+				suppressedSelectionRef.current = null
 				const signature = snapshot.selection.join(`:`)
 				if (lastSelection.current === signature) return
 				lastSelection.current = signature
@@ -303,15 +344,19 @@ function LexicalEditor({
 	onKeyDown,
 	onSelectionChange,
 	onValueChange,
+	selection,
 	selections,
 	value,
 }: {
 	readonly onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void
 	readonly onSelectionChange: (anchor: number, head: number) => void
 	readonly onValueChange: (value: string, composing: boolean) => void
+	readonly selection: readonly [number, number] | null
 	readonly selections: readonly RenderedCollaboratorSelection[]
 	readonly value: string
 }): ReactElement {
+	const selectionRef = useRef<readonly [number, number] | null>(null)
+	const suppressedSelectionRef = useRef<readonly [number, number] | null>(null)
 	return (
 		<lexical-editor>
 			<PlainTextPlugin
@@ -328,10 +373,17 @@ function LexicalEditor({
 					<editor-placeholder>Start writing Markdown…</editor-placeholder>
 				}
 			/>
-			<MosaicProjectionPlugin value={value} />
+			<MosaicProjectionPlugin
+				selection={selection}
+				selectionRef={selectionRef}
+				suppressedSelectionRef={suppressedSelectionRef}
+				value={value}
+			/>
 			<MosaicInputPlugin
 				onSelectionChange={onSelectionChange}
 				onValueChange={onValueChange}
+				selectionRef={selectionRef}
+				suppressedSelectionRef={suppressedSelectionRef}
 				value={value}
 			/>
 			<MosaicPresencePlugin selections={selections} />
@@ -345,6 +397,7 @@ export function LexicalMarkdownEditor({
 	onSelectionChange,
 	onUndo,
 	onValueChange,
+	selection = null,
 	selections,
 	value,
 }: {
@@ -353,6 +406,7 @@ export function LexicalMarkdownEditor({
 	readonly onSelectionChange: (anchor: number, head: number) => void
 	readonly onUndo: () => void
 	readonly onValueChange: (value: string, composing: boolean) => void
+	readonly selection?: readonly [number, number] | null
 	readonly selections: readonly RenderedCollaboratorSelection[]
 	readonly value: string
 }): ReactElement {
@@ -380,6 +434,7 @@ export function LexicalMarkdownEditor({
 					onKeyDown={onKeyDown}
 					onSelectionChange={onSelectionChange}
 					onValueChange={onValueChange}
+					selection={selection}
 					selections={selections}
 					value={value}
 				/>

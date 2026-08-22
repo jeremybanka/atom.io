@@ -1,4 +1,4 @@
-import { render, waitFor } from "@testing-library/react"
+import { act, render, waitFor } from "@testing-library/react"
 import {
 	$createParagraphNode,
 	$createRangeSelection,
@@ -14,6 +14,7 @@ import { LexicalMarkdownEditor } from "../src/LexicalMarkdownEditor.tsx"
 import {
 	$getRootRelativeSelectionOffsets,
 	$pointAtRootOffset,
+	transformSelectionAcrossTextChange,
 } from "../src/lexical-linear-offset.ts"
 
 describe(`Lexical Markdown editor`, () => {
@@ -39,6 +40,76 @@ describe(`Lexical Markdown editor`, () => {
 		rendered.rerender(<LexicalMarkdownEditor {...properties} value="alpha!" />)
 		await waitFor(() => expect(editor.textContent).toBe(`alpha!`))
 		expect(rendered.getByRole(`textbox`)).toBe(editor)
+		expect(document.activeElement).toBe(editor)
+	})
+
+	test(`moves carets and reversed selections across remote prefixes`, () => {
+		expect(
+			transformSelectionAcrossTextChange(
+				`alpha omega`,
+				`prefix alpha omega`,
+				[6, 6],
+			),
+		).toEqual([13, 13])
+		expect(
+			transformSelectionAcrossTextChange(
+				`prefix alpha omega`,
+				`prefix more alpha omega`,
+				[18, 13],
+			),
+		).toEqual([23, 18])
+		expect(
+			transformSelectionAcrossTextChange(`prefix alpha`, `prefix`, [12, 12]),
+		).toEqual([6, 6])
+		expect(
+			transformSelectionAcrossTextChange(`alpha`, `alpha!`, [2, 2]),
+		).toEqual([2, 2])
+	})
+
+	test(`restores the last focused DOM caret across a remote prefix`, async () => {
+		let reported: readonly [number, number] | null = null
+		const properties = {
+			onError: (error: Error) => {
+				throw error
+			},
+			onRedo: () => undefined,
+			onSelectionChange: (anchor: number, head: number) => {
+				reported = [anchor, head]
+			},
+			onUndo: () => undefined,
+			onValueChange: () => undefined,
+			selections: [],
+		}
+		const rendered = render(
+			<LexicalMarkdownEditor {...properties} value="alpha omega" />,
+		)
+		const editor = await rendered.findByRole(`textbox`)
+		await waitFor(() => expect(editor.textContent).toBe(`alpha omega`))
+		const text = editor.querySelector(`span`)?.firstChild ?? null
+		expect(text).toBeInstanceOf(Text)
+		const selection = getSelection()
+		expect(selection).not.toBeNull()
+		await act(async () => {
+			selection!.setBaseAndExtent(text!, 6, text!, 6)
+			editor.focus()
+			await Promise.resolve()
+		})
+		await waitFor(() => expect(reported).toEqual([6, 6]))
+
+		rendered.rerender(
+			<LexicalMarkdownEditor
+				{...properties}
+				selection={[13, 13]}
+				value="prefix alpha omega"
+			/>,
+		)
+		await waitFor(() => expect(editor.textContent).toBe(`prefix alpha omega`))
+		await waitFor(() => {
+			const restored = getSelection()
+			expect(restored?.anchorOffset).toBe(13)
+			expect(restored?.focusOffset).toBe(13)
+		})
+		expect(reported).toEqual([6, 6])
 		expect(document.activeElement).toBe(editor)
 	})
 

@@ -15,6 +15,23 @@ type EditorProperties = {
 const harness = vi.hoisted(() => ({
 	editor: null as EditorProperties | null,
 	length: 18,
+	presence: [
+		{
+			address: { member: `collaborator` },
+			kind: `update`,
+			value: {
+				actor: `lin`,
+				color: `#f00`,
+				name: `Lin`,
+				selection: {
+					anchor: { offset: 18 },
+					head: { offset: 18 },
+				},
+				session: `lin-session`,
+				viewport: null,
+			},
+		},
+	],
 	projection: {
 		blocks: [],
 		range: { end: 18, kind: `utf16-range` as const, start: 0 },
@@ -79,7 +96,7 @@ describe(`Markdown workspace drafts`, () => {
 			history: {},
 			identity: { color: `#000`, id: `ada`, name: `Ada` },
 			presence: {
-				state: { presence: [] },
+				state: { presence: harness.presence },
 				subscribe: () => () => undefined,
 			},
 			projection: {
@@ -90,7 +107,9 @@ describe(`Markdown workspace drafts`, () => {
 				}),
 				readLength: async () => harness.length,
 				resolvePosition: async (position: { readonly offset: number }) =>
-					position.offset,
+					position.offset === 18 && harness.length > 18
+						? position.offset + `careful `.length
+						: position.offset,
 			},
 			publishPresence: async (presence: (typeof publishedPresence)[number]) => {
 				publishedPresence.push(presence)
@@ -112,6 +131,11 @@ describe(`Markdown workspace drafts`, () => {
 		const { MarkdownWorkspace } = await import(`../src/MarkdownWorkspace.tsx`)
 		const rendered = render(<MarkdownWorkspace client={client} />)
 		await waitFor(() => expect(harness.editor?.value).toBe(`Add rollout owners`))
+		await waitFor(() =>
+			expect(harness.editor?.selections).toMatchObject([
+				{ end: 18, name: `Lin`, start: 18 },
+			]),
+		)
 
 		act(() => harness.editor?.onValueChange(`Add rollout ow`, false))
 		act(() => harness.editor?.onSelectionChange(14, 14))
@@ -164,6 +188,11 @@ describe(`Markdown workspace drafts`, () => {
 
 		const inserted = `Add careful rollout owners`
 		act(() => harness.editor?.onValueChange(inserted, false))
+		await waitFor(() =>
+			expect(harness.editor?.selections).toMatchObject([
+				{ end: 26, name: `Lin`, start: 26 },
+			]),
+		)
 		await waitFor(() => expect(replacements).toHaveLength(3))
 		expect(replacements[2]).toMatchObject({
 			selection: { anchor: { offset: 4 }, head: { offset: 4 } },

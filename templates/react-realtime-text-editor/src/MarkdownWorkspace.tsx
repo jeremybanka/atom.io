@@ -28,6 +28,7 @@ import {
 	LexicalMarkdownEditor,
 	type RenderedCollaboratorSelection,
 } from "./LexicalMarkdownEditor.tsx"
+import { transformSelectionAcrossTextChange } from "./lexical-linear-offset.ts"
 import { switchBrowserIdentity } from "./session.ts"
 import { markdownVirtualWindow } from "./virtualization.ts"
 import css from "./MarkdownWorkspace.module.css"
@@ -209,6 +210,19 @@ export function MarkdownWorkspace({
 	const projectionRef = useRef(projection)
 	projectionRef.current = projection
 	const displayed = draft ?? projection?.text ?? ``
+	const displayedRemoteSelections = useMemo(() => {
+		if (projection === null || projection.text === displayed) {
+			return remoteSelections
+		}
+		return remoteSelections.map((selection) => {
+			const [start, end] = transformSelectionAcrossTextChange(
+				projection.text,
+				displayed,
+				[selection.start, selection.end],
+			)
+			return { ...selection, end, start }
+		})
+	}, [displayed, projection, remoteSelections])
 	const publishPendingSelection = useCallback((): void => {
 		const selection = pendingSelection.current
 		const currentProjection = projectionRef.current
@@ -620,7 +634,7 @@ export function MarkdownWorkspace({
 									pendingDraft.current = { value }
 									if (!composing) scheduleCommit()
 								}}
-								selections={remoteSelections}
+								selections={displayedRemoteSelections}
 								selection={draft === null ? projectedSelection : null}
 								value={displayed}
 							/>

@@ -412,6 +412,12 @@ export async function createMarkdownDocumentService(
 	const inspectRange = async (
 		range: MosaicTextIndexRange,
 	): Promise<MarkdownDocumentRangeInspection> => {
+		const length = current.index.root.reference?.summary.utf16Units ?? 0
+		const residentRange = {
+			end: Math.min(range.end, length),
+			kind: `utf16-range` as const,
+			start: Math.min(range.start, length),
+		}
 		const members = new Map(
 			current.index.members.map((member) => [member.id, member]),
 		)
@@ -427,7 +433,7 @@ export async function createMarkdownDocumentService(
 				return Promise.resolve(current.index.root)
 			},
 		})
-		const result = await reader.resolveRange(range, 128)
+		const result = await reader.resolveRange(residentRange, 128)
 		if (result.status === `resnapshot`) {
 			throw new Error(`Range resnapshot required: ${result.recovery.reason}.`)
 		}

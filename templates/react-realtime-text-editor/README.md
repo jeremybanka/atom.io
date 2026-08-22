@@ -22,6 +22,9 @@ CORS exceptions.
   authoritative gesture settles;
 - run-relative selection, viewport, and collaborator presence across physical
   leaf splits and merges;
+- a Lexical plain-text editing surface that renders named remote carets and
+  translucent selections without delegating convergence or history to a second
+  collaboration model;
 - actor-selective undo and redo whose text compensation and index maintenance
   settle in one Domain revision;
 - cancelable incremental Markdown parsing that yields outside the input turn and
@@ -51,6 +54,8 @@ the Unicode adversarial corpus.
 - `src/collaboration-client.ts` combines MOS-12 residency, MOS-17 range
   projections, presence, current-location transport, and reconnecting command
   delivery.
+- `src/LexicalMarkdownEditor.tsx` projects a bounded Mosaic source window into
+  Lexical and renders collaborator geometry from resolved logical positions.
 - `src/incremental-markdown.ts` contains the renderer-neutral, cancelable parser.
 - `src/MarkdownWorkspace.tsx` owns only React viewport, local input, and DOM
   lifecycle state.

@@ -195,6 +195,15 @@ describe(`incremental realtime Markdown Domain`, () => {
 				),
 			).toBeNull()
 
+			const shrinkStart = await clients.ada.projection.positionAtOffset(2)
+			const shrinkEnd = await clients.ada.projection.positionAtOffset(28)
+			await clients.ada.replace({
+				selection: { anchor: shrinkStart, head: shrinkEnd },
+				text: `[Ada-shrinks]`,
+			})
+			expect(first.read().text).toContain(`[Ada-shrinks]`)
+			expect(first.read().text).not.toContain(`Field notes for the launch`)
+
 			const sameBoundary = await clients.ada.projection.positionAtOffset(16)
 			await Promise.all([
 				clients.ada.replace({
@@ -209,6 +218,10 @@ describe(`incremental realtime Markdown Domain`, () => {
 			const contended = await clients.ada.projection.materialize()
 			expect(contended).toContain(`[Ada]`)
 			expect(contended).toContain(`[Lin]`)
+			await waitFor(() => {
+				expect(first.read().text).toContain(`[Ada]`)
+				expect(first.read().text).toContain(`[Lin]`)
+			})
 			await waitFor(async () => {
 				expect(await clients.ada.projection.readLength()).toBe(contended.length)
 			})
@@ -273,7 +286,8 @@ describe(`incremental realtime Markdown Domain`, () => {
 		try {
 			const harness = initialize(setup)
 			const clients = await live(setup)
-			const caret = await clients.ada.projection.positionAtOffset(8)
+			const caretOffset = INITIAL.lastIndexOf(`partial residency`)
+			const caret = await clients.ada.projection.positionAtOffset(caretOffset)
 			await clients.ada.publishPresence({
 				color: ADA.color,
 				name: ADA.name,
@@ -287,6 +301,17 @@ describe(`incremental realtime Markdown Domain`, () => {
 					(envelope) => envelope.kind === `update` && envelope.actor === ADA.id,
 				),
 			).toBe(true)
+			const documentStart = await clients.lin.projection.positionAtOffset(0)
+			const prefix = `[Lin-prefix]`
+			await clients.lin.replace({
+				selection: { anchor: documentStart, head: documentStart },
+				text: prefix,
+			})
+			await waitFor(async () => {
+				expect(await clients.lin.projection.resolvePosition(caret)).toBe(
+					caretOffset + prefix.length,
+				)
+			})
 			await new Promise((resolve) => setTimeout(resolve, 200))
 			await setup.room.waitForIdle()
 			await clients.lin.presence.flush()

@@ -580,7 +580,9 @@ describe(`Mosaic text range projections`, () => {
 			)
 		}
 		const rendered = render(<Viewport />)
-		const input = await rendered.findByDisplayValue(`alpha`)
+		const input = (await rendered.findByDisplayValue(
+			`alpha`,
+		)) as HTMLInputElement
 		input.focus()
 		const anchor = await reader.client.positionAtOffset(0)
 		const tightened = maintainMosaicTextIndex(
@@ -671,6 +673,178 @@ describe(`Mosaic text range projections`, () => {
 		releaseFailure.unmount()
 		await eventually(() => reader.client.state.residentRangeCount === 0)
 		await Promise.resolve()
+		await reader.client.dispose()
+		await reader.residency.dispose()
+		await system.writer.client.dispose()
+		await system.writer.residency.dispose()
+	})
+
+	test(`reacquires a failed React viewport after residency reconnects`, async () => {
+		const system = await localSystem(`alpha\nbeta`)
+		const reader = await system.makeClient(`react-reconnect-reader`)
+		let connectivity = `offline` as `live` | `offline`
+		const stateListeners = new Set<
+			Parameters<typeof reader.residency.subscribeState>[0]
+		>()
+		let attempts = 0
+		const reconnectingResidency = new Proxy(reader.residency, {
+			get(target, property) {
+				if (property === `state`) {
+					return { ...target.state, connectivity }
+				}
+				if (property === `subscribeState`) {
+					return (listener: Parameters<typeof target.subscribeState>[0]) => {
+						stateListeners.add(listener)
+						listener({ ...target.state, connectivity })
+						return () => stateListeners.delete(listener)
+					}
+				}
+				return Reflect.get(target, property)
+			},
+		})
+		const reconnectingClient = new Proxy(reader.client, {
+			get(target, property) {
+				if (property === `residency`) return reconnectingResidency
+				if (property === `observeRange`) {
+					return (...parameters: Parameters<typeof target.observeRange>) => {
+						attempts++
+						return attempts === 1
+							? Promise.reject(new Error(`offline`))
+							: target.observeRange(...parameters)
+					}
+				}
+				return Reflect.get(target, property)
+			},
+		})
+		const Viewport = () => {
+			const view = useMosaicTextRange(reconnectingClient, {
+				end: 5,
+				kind: `utf16-range`,
+				start: 0,
+			})
+			return <span>{view.status}</span>
+		}
+		const rendered = render(<Viewport />)
+		await rendered.findByText(`error`)
+		act(() => {
+			connectivity = `live`
+			for (const listener of stateListeners) {
+				listener({ ...reader.residency.state, connectivity })
+			}
+		})
+		await rendered.findByText(`ready`)
+		expect(attempts).toBe(2)
+		rendered.unmount()
+		await reader.client.dispose()
+		await reader.residency.dispose()
+		await system.writer.client.dispose()
+		await system.writer.residency.dispose()
+	})
+
+	test(`keeps a focused React viewport mounted while its changed range reacquires`, async () => {
+		const system = await localSystem(`alpha\nbeta`)
+		const reader = await system.makeClient(`react-range-change-reader`)
+		const stateListeners = new Set<
+			Parameters<typeof reader.residency.subscribeState>[0]
+		>()
+		const retryingResidency = new Proxy(reader.residency, {
+			get(target, property) {
+				if (property === `subscribeState`) {
+					return (listener: Parameters<typeof target.subscribeState>[0]) => {
+						stateListeners.add(listener)
+						listener(target.state)
+						return () => stateListeners.delete(listener)
+					}
+				}
+				return Reflect.get(target, property)
+			},
+		})
+		let releaseCompleteProjection = (): void => undefined
+		const completeProjection = new Promise<void>((resolve) => {
+			releaseCompleteProjection = resolve
+		})
+		let attempts = 0
+		const delayedClient = new Proxy(reader.client, {
+			get(target, property) {
+				if (property === `residency`) return retryingResidency
+				if (property === `observeRange`) {
+					return async (
+						...parameters: Parameters<typeof target.observeRange>
+					) => {
+						attempts++
+						if (attempts === 2) {
+							throw new Error(
+								`resident root is still behind the requested range`,
+							)
+						}
+						if (attempts === 3) {
+							const [range, listener, acquisition] = parameters
+							let readyProjection: Parameters<typeof listener>[0] | null = null
+							const observer = await target.observeRange(
+								range,
+								(projection) => {
+									readyProjection = projection
+								},
+								acquisition,
+							)
+							if (readyProjection === null) {
+								throw new Error(`expected a complete projection`)
+							}
+							const projection: Parameters<typeof listener>[0] = readyProjection
+							listener({
+								...projection,
+								text: projection.text.slice(0, -1),
+							})
+							await completeProjection
+							listener(projection)
+							return observer
+						}
+						return target.observeRange(...parameters)
+					}
+				}
+				return Reflect.get(target, property)
+			},
+		})
+		const Viewport = ({ end }: { readonly end: number }) => {
+			const view = useMosaicTextRange(delayedClient, {
+				end,
+				kind: `utf16-range`,
+				start: 0,
+			})
+			return view.status === `ready` ? (
+				<textarea data-testid="viewport" readOnly value={view.projection.text} />
+			) : (
+				<span>{view.status}</span>
+			)
+		}
+		const rendered = render(<Viewport end={5} />)
+		const input = (await rendered.findByDisplayValue(
+			`alpha`,
+		)) as HTMLTextAreaElement
+		input.focus()
+		rendered.rerender(<Viewport end={6} />)
+		await waitForReact(() => {
+			expect(attempts).toBe(2)
+		})
+		expect(rendered.getByTestId(`viewport`)).toBe(input)
+		expect(document.activeElement).toBe(input)
+		act(() => {
+			for (const listener of stateListeners) listener(reader.residency.state)
+		})
+		await waitForReact(() => {
+			expect(attempts).toBe(3)
+		})
+		expect(rendered.getByTestId(`viewport`)).toBe(input)
+		expect(input.value).toBe(`alpha`)
+		expect(document.activeElement).toBe(input)
+		releaseCompleteProjection()
+		await waitForReact(() => {
+			expect(rendered.getByTestId(`viewport`)).toBe(input)
+			expect(document.activeElement).toBe(input)
+			expect(attempts).toBe(3)
+			expect(input.value).toBe(`alpha\n`)
+		})
+		rendered.unmount()
 		await reader.client.dispose()
 		await reader.residency.dispose()
 		await system.writer.client.dispose()

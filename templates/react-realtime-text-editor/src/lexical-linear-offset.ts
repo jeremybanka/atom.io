@@ -13,6 +13,35 @@ export type LexicalLinearPoint = {
 	readonly offset: number
 }
 
+export type LineStartCaretReference = {
+	readonly index: number | null
+	readonly lineDelta: number
+}
+
+/** Find measurable neighboring text for a caret at an explicit line start. */
+export function lineStartCaretReference(
+	text: string,
+	requestedOffset: number,
+): LineStartCaretReference | null {
+	const offset = Math.max(0, Math.min(requestedOffset, text.length))
+	if (offset !== 0 && text[offset - 1] !== `\n`) return null
+	let next = offset
+	while (next < text.length && text[next] === `\n`) next++
+	if (next < text.length) {
+		return { index: next, lineDelta: -(next - offset) }
+	}
+	let previous = offset - 1
+	while (previous >= 0 && text[previous] === `\n`) previous--
+	if (previous < 0) return { index: null, lineDelta: 0 }
+	return {
+		index: previous,
+		lineDelta: text
+			.slice(previous + 1, offset)
+			.split(`\n`)
+			.slice(1).length,
+	}
+}
+
 /** Carry a root-relative selection through one authoritative text replacement. */
 export function transformSelectionAcrossTextChange(
 	before: string,

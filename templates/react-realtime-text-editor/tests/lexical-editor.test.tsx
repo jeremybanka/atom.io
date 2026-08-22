@@ -14,6 +14,7 @@ import { LexicalMarkdownEditor } from "../src/LexicalMarkdownEditor.tsx"
 import {
 	$getRootRelativeSelectionOffsets,
 	$pointAtRootOffset,
+	lineStartCaretReference,
 	transformSelectionAcrossTextChange,
 } from "../src/lexical-linear-offset.ts"
 
@@ -64,6 +65,26 @@ describe(`Lexical Markdown editor`, () => {
 		expect(
 			transformSelectionAcrossTextChange(`alpha`, `alpha!`, [2, 2]),
 		).toEqual([2, 2])
+	})
+
+	test(`locates leading, interior, and trailing empty-line carets`, () => {
+		expect(lineStartCaretReference(`\nalpha`, 0)).toEqual({
+			index: 1,
+			lineDelta: -1,
+		})
+		expect(lineStartCaretReference(`alpha\n\nbeta`, 6)).toEqual({
+			index: 7,
+			lineDelta: -1,
+		})
+		expect(lineStartCaretReference(`alpha\n\n`, 7)).toEqual({
+			index: 4,
+			lineDelta: 2,
+		})
+		expect(lineStartCaretReference(`alpha\n`, 7)).toEqual({
+			index: 4,
+			lineDelta: 1,
+		})
+		expect(lineStartCaretReference(`alpha\nbeta`, 3)).toBeNull()
 	})
 
 	test(`restores the last focused DOM caret across a remote prefix`, async () => {

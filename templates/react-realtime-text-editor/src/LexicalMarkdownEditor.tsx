@@ -30,6 +30,7 @@ import css from "./LexicalMarkdownEditor.module.css"
 import {
 	$getRootRelativeSelectionOffsets,
 	$pointAtRootOffset,
+	lineStartCaretReference,
 	transformSelectionAcrossTextChange,
 } from "./lexical-linear-offset.ts"
 
@@ -64,6 +65,62 @@ function localRect(rect: DOMRect, container: DOMRect): OverlayRect {
 		top: rect.top - container.top,
 		width: rect.width,
 	}
+}
+
+function numericStyle(value: string): number {
+	const parsed = Number.parseFloat(value)
+	return Number.isFinite(parsed) ? parsed : 0
+}
+
+function measureCharacter(
+	editor: LexicalEditorInstance,
+	root: ReturnType<typeof $getRoot>,
+	index: number,
+): DOMRect | null {
+	const start = $pointAtRootOffset(root, index)
+	const end = $pointAtRootOffset(root, index + 1)
+	if (start === null || end === null) return null
+	const range = createDOMRange(
+		editor,
+		start.node,
+		start.offset,
+		end.node,
+		end.offset,
+	)
+	if (range === null) return null
+	return (
+		Array.from(range.getClientRects()).find((rect) => rect.height > 0) ??
+		range.getBoundingClientRect()
+	)
+}
+
+function measureCaret(
+	editor: LexicalEditorInstance,
+	root: ReturnType<typeof $getRoot>,
+	rootElement: HTMLElement,
+	offset: number,
+	boundary: DOMRect,
+): DOMRect {
+	const style = getComputedStyle(rootElement)
+	const lineHeight = numericStyle(style.lineHeight) || 24
+	const reference = lineStartCaretReference(root.getTextContent(), offset)
+	if (reference === null) {
+		return boundary.height > 0
+			? boundary
+			: new DOMRect(boundary.x, boundary.y, 0, lineHeight)
+	}
+	const rootRect = rootElement.getBoundingClientRect()
+	const measured =
+		reference.index === null
+			? null
+			: measureCharacter(editor, root, reference.index)
+	return new DOMRect(
+		rootRect.left + numericStyle(style.paddingLeft),
+		(measured?.top ?? rootRect.top + numericStyle(style.paddingTop)) +
+			reference.lineDelta * lineHeight,
+		0,
+		lineHeight,
+	)
 }
 
 function measureSelection(
@@ -104,19 +161,14 @@ function measureSelection(
 		const measured = createRectsFromDOMRange(editor, range)
 			.filter((rect) => rect.height > 0)
 			.map((rect) => localRect(rect, container))
-		const boundary = headRange.getBoundingClientRect()
-		const fallbackHeight = Number.parseFloat(
-			getComputedStyle(rootElement).lineHeight,
-		)
 		const caret = localRect(
-			boundary.height > 0
-				? boundary
-				: new DOMRect(
-						boundary.x,
-						boundary.y,
-						0,
-						Number.isFinite(fallbackHeight) ? fallbackHeight : 24,
-					),
+			measureCaret(
+				editor,
+				root,
+				rootElement,
+				selection.end,
+				headRange.getBoundingClientRect(),
+			),
 			container,
 		)
 		return { ...selection, caret, rects: measured }

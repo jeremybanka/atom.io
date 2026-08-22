@@ -75,6 +75,15 @@ export function useMosaicTextRange(
 					{ end, kind: `utf16-range`, start },
 					(projection) => {
 						if (!active) return
+						// A subscription can learn the new logical range before its
+						// resident leaves settle. Do not expose that shorter intermediate
+						// value to renderers as an authoritative projection.
+						if (
+							projection.text.length !==
+							projection.range.end - projection.range.start
+						) {
+							return
+						}
 						setView({ error: null, projection, status: `ready` })
 					},
 					overscan === undefined ? {} : { overscan },
@@ -87,7 +96,13 @@ export function useMosaicTextRange(
 					}
 				})
 				.catch((error: unknown) => {
-					if (active) setView({ error, projection: null, status: `error` })
+					if (active) {
+						setView((current) =>
+							current.status === `ready`
+								? current
+								: { error, projection: null, status: `error` },
+						)
+					}
 				})
 				.finally(() => {
 					attempting = false
@@ -96,7 +111,11 @@ export function useMosaicTextRange(
 		}
 		const stopResidency = client.residency.subscribeState((state) => {
 			const nextConnectivity = state.connectivity
-			if (connectivity !== `live` && nextConnectivity === `live`) {
+			if (
+				nextConnectivity === `live` &&
+				observer === null &&
+				(connectivity !== `live` || attemptedEpoch === connectivityEpoch)
+			) {
 				connectivityEpoch++
 				observe()
 			}

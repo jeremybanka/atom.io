@@ -1,4 +1,5 @@
 import { useMosaicTextRange } from "atom.io/realtime-react"
+import type { MosaicTextRangeProjection } from "atom.io/realtime-client"
 import {
 	Fragment,
 	createElement,
@@ -33,6 +34,10 @@ import css from "./MarkdownWorkspace.module.css"
 
 type MarkdownWorkspaceProps = { readonly client: MarkdownCollaborationClient }
 type PersonStyle = CSSProperties & Record<`--person-color`, string>
+type SettledDraft = {
+	readonly base: MosaicTextRangeProjection
+	readonly requiredEnd: number
+}
 
 const EMPTY_PARSE_METRICS: MarkdownParseInstrumentation = {
 	canceled: false,
@@ -150,6 +155,8 @@ export function MarkdownWorkspace({
 	const [status, setStatus] = useState(() => client.status())
 	const [presence, setPresence] = useState(() => activePresence(client))
 	const [totalLength, setTotalLength] = useState(0)
+	const totalLengthRef = useRef(totalLength)
+	totalLengthRef.current = totalLength
 	const [scroll, setScroll] = useState({ height: 560, scrollTop: 0 })
 	const [draft, setDraft] = useState<string | null>(null)
 	const [parse, setParse] = useState<readonly MarkdownSemanticBlock[]>([])
@@ -185,6 +192,8 @@ export function MarkdownWorkspace({
 		overscan: 2_048,
 	})
 	const projection = view.status === `ready` ? view.projection : null
+	const [settledDraft, setSettledDraft] = useState<SettledDraft | null>(null)
+	const settledDraftRef = useRef<SettledDraft | null>(settledDraft)
 	const projectionRef = useRef(projection)
 	projectionRef.current = projection
 	const displayed = draft ?? projection?.text ?? ``
@@ -194,7 +203,8 @@ export function MarkdownWorkspace({
 		if (
 			selection === null ||
 			currentProjection === null ||
-			pendingDraft.current !== null
+			pendingDraft.current !== null ||
+			settledDraftRef.current !== null
 		) {
 			return
 		}
@@ -207,7 +217,8 @@ export function MarkdownWorkspace({
 			// A later local selection or draft supersedes this asynchronous lookup.
 			if (
 				pendingSelection.current !== selection ||
-				pendingDraft.current !== null
+				pendingDraft.current !== null ||
+				settledDraftRef.current !== null
 			) {
 				return
 			}
@@ -220,16 +231,17 @@ export function MarkdownWorkspace({
 		})
 	}, [client])
 
-	const refreshLength = useCallback(() => {
-		void client.projection.readLength().then(
-			(length) => {
-				setTotalLength(length)
-				setReadProblem(null)
-			},
-			(error: unknown) => {
-				setReadProblem(error instanceof Error ? error.message : String(error))
-			},
-		)
+	const refreshLength = useCallback(async (): Promise<number | null> => {
+		try {
+			const length = await client.projection.readLength()
+			totalLengthRef.current = length
+			setTotalLength(length)
+			setReadProblem(null)
+			return length
+		} catch (error) {
+			setReadProblem(error instanceof Error ? error.message : String(error))
+			return null
+		}
 	}, [client])
 
 	const commitDraft = useCallback(async (): Promise<void> => {
@@ -237,6 +249,7 @@ export function MarkdownWorkspace({
 		if (
 			pending === null ||
 			committing.current ||
+			settledDraftRef.current !== null ||
 			client.status().connection !== `live` ||
 			projectionRef.current === null
 		) {
@@ -250,8 +263,13 @@ export function MarkdownWorkspace({
 		try {
 			const base = projectionRef.current
 			if (base === null) return
+			const coveredDocumentEnd = base.range.end >= totalLengthRef.current
 			if (base.text !== pending.value) {
 				const change = commonEdit(base.text, pending.value)
+				const expectedRangeEnd = Math.max(
+					base.range.start,
+					base.range.end + pending.value.length - base.text.length,
+				)
 				const [anchor, head] = await Promise.all([
 					client.projection.positionAtOffset(base.range.start + change.start),
 					client.projection.positionAtOffset(base.range.start + change.end),
@@ -264,16 +282,31 @@ export function MarkdownWorkspace({
 					selection: { anchor, head },
 					text: change.text,
 				})
+				const authoritativeLength = await refreshLength()
+				const settlement = {
+					base,
+					requiredEnd: coveredDocumentEnd
+						? (authoritativeLength ?? expectedRangeEnd)
+						: base.range.end,
+				}
+				settledDraftRef.current = settlement
+				setSettledDraft(settlement)
+				if (pendingDraft.current === pending) {
+					pendingDraft.current = null
+				}
+				return
 			}
 			if (pendingDraft.current === pending) {
 				pendingDraft.current = null
 				setDraft(null)
+				settledDraftRef.current = null
+				setSettledDraft(null)
 				if (deferredScroll.current !== null) {
 					setScroll(deferredScroll.current)
 					deferredScroll.current = null
 				}
 			}
-			refreshLength()
+			void refreshLength()
 		} catch (error) {
 			setProblem(error instanceof Error ? error.message : String(error))
 		} finally {
@@ -292,17 +325,42 @@ export function MarkdownWorkspace({
 	}, [commitDraft])
 
 	useEffect(() => {
+		if (
+			settledDraft === null ||
+			draft === null ||
+			projection === null ||
+			projection === settledDraft.base ||
+			projection.range.start > settledDraft.base.range.start ||
+			projection.range.end < settledDraft.requiredEnd ||
+			projection.range.start + projection.text.length < settledDraft.requiredEnd
+		) {
+			return
+		}
+		settledDraftRef.current = null
+		setSettledDraft(null)
+		if (pendingDraft.current === null) {
+			setDraft(null)
+			if (deferredScroll.current !== null) {
+				setScroll(deferredScroll.current)
+				deferredScroll.current = null
+			}
+		} else {
+			scheduleCommit()
+		}
+	}, [draft, projection, scheduleCommit, settledDraft])
+
+	useEffect(() => {
 		const stopStatus = client.subscribe((next) => {
 			setStatus(next)
 			if (next.connection === `live`) {
 				scheduleCommit()
-				refreshLength()
+				void refreshLength()
 			}
 		})
 		const stopPresence = client.presence.subscribe(() => {
 			setPresence(activePresence(client))
 		})
-		refreshLength()
+		void refreshLength()
 		return () => {
 			stopStatus()
 			stopPresence()

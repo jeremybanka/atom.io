@@ -6,8 +6,10 @@ import type { MarkdownCollaborationClient } from "../src/collaboration-client.ts
 import type { RenderedCollaboratorSelection } from "../src/LexicalMarkdownEditor.tsx"
 
 type EditorProperties = {
+	readonly onDirty: () => void
 	readonly onSelectionChange: (anchor: number, head: number) => void
 	readonly onValueChange: (value: string, composing: boolean) => void
+	readonly selection: readonly [number, number] | null
 	readonly selections: readonly RenderedCollaboratorSelection[]
 	readonly value: string
 }
@@ -24,8 +26,8 @@ const harness = vi.hoisted(() => ({
 				color: `#f00`,
 				name: `Lin`,
 				selection: {
-					anchor: { offset: 18 },
-					head: { offset: 18 },
+					anchor: { offset: 18, runId: `remote` },
+					head: { offset: 18, runId: `remote` },
 				},
 				session: `lin-session`,
 				viewport: null,
@@ -35,8 +37,18 @@ const harness = vi.hoisted(() => ({
 	projection: {
 		blocks: [],
 		range: { end: 18, kind: `utf16-range` as const, start: 0 },
+		segments: [
+			{
+				end: 18,
+				fragments: [{ runId: `base`, start: 0, text: `Add rollout owners` }],
+				id: `leaf`,
+				start: 0,
+				text: `Add rollout owners`,
+			},
+		],
 		text: `Add rollout owners`,
 	},
+	remoteResolution: null as Promise<number> | null,
 }))
 
 vi.mock(`atom.io/realtime-react`, () => ({
@@ -62,6 +74,29 @@ const deferred = () => {
 	return { promise, resolve }
 }
 
+const deferredValue = <Value,>() => {
+	let resolve = (_value: Value): void => undefined
+	const promise = new Promise<Value>((complete) => {
+		resolve = complete
+	})
+	return { promise, resolve }
+}
+
+const projection = (text: string, rangeEnd = text.length) => ({
+	blocks: [],
+	range: { end: rangeEnd, kind: `utf16-range` as const, start: 0 },
+	segments: [
+		{
+			end: text.length,
+			fragments: [{ runId: `base`, start: 0, text }],
+			id: `leaf`,
+			start: 0,
+			text,
+		},
+	],
+	text,
+})
+
 describe(`Markdown workspace drafts`, () => {
 	test(`rebases queued typing without exposing an incomplete resident tail`, async () => {
 		const first = deferred()
@@ -69,11 +104,8 @@ describe(`Markdown workspace drafts`, () => {
 		const third = deferred()
 		const fourth = deferred()
 		harness.length = 18
-		harness.projection = {
-			blocks: [],
-			range: { end: 18, kind: `utf16-range`, start: 0 },
-			text: `Add rollout owners`,
-		}
+		harness.remoteResolution = null
+		harness.projection = projection(`Add rollout owners`)
 		const replacements: Array<{
 			readonly selection: {
 				readonly anchor: { readonly offset: number }
@@ -106,10 +138,17 @@ describe(`Markdown workspace drafts`, () => {
 					runId: `base`,
 				}),
 				readLength: async () => harness.length,
-				resolvePosition: async (position: { readonly offset: number }) =>
-					position.offset === 18 && harness.length > 18
+				resolvePosition: async (position: {
+					readonly offset: number
+					readonly runId?: string
+				}) => {
+					if (position.runId === `remote` && harness.remoteResolution !== null) {
+						return harness.remoteResolution
+					}
+					return position.offset === 18 && harness.length > 18
 						? position.offset + `careful `.length
-						: position.offset,
+						: position.offset
+				},
 			},
 			publishPresence: async (presence: (typeof publishedPresence)[number]) => {
 				publishedPresence.push(presence)
@@ -131,13 +170,17 @@ describe(`Markdown workspace drafts`, () => {
 		const { MarkdownWorkspace } = await import(`../src/MarkdownWorkspace.tsx`)
 		const rendered = render(<MarkdownWorkspace client={client} />)
 		await waitFor(() => expect(harness.editor?.value).toBe(`Add rollout owners`))
+		expect(rendered.getAllByText(`All changes saved`)).toHaveLength(2)
 		await waitFor(() =>
 			expect(harness.editor?.selections).toMatchObject([
 				{ end: 18, name: `Lin`, start: 18 },
 			]),
 		)
 
+		act(() => harness.editor?.onDirty())
+		expect(rendered.getAllByText(`Saving 1 gesture…`)).toHaveLength(2)
 		act(() => harness.editor?.onValueChange(`Add rollout ow`, false))
+		expect(rendered.getAllByText(`Saving 1 gesture…`)).toHaveLength(2)
 		act(() => harness.editor?.onSelectionChange(14, 14))
 		await waitFor(() => expect(replacements).toHaveLength(1))
 		expect(replacements[0]).toMatchObject({
@@ -150,11 +193,7 @@ describe(`Markdown workspace drafts`, () => {
 		expect(
 			publishedPresence.filter((presence) => presence.selection !== null),
 		).toHaveLength(0)
-		harness.projection = {
-			...harness.projection,
-			range: { end: 14, kind: `utf16-range`, start: 0 },
-			text: `Add rollout ow`,
-		}
+		harness.projection = projection(`Add rollout ow`)
 		harness.length = 14
 		rendered.rerender(<MarkdownWorkspace client={client} />)
 		first.resolve()
@@ -164,15 +203,12 @@ describe(`Markdown workspace drafts`, () => {
 			selection: { anchor: { offset: 14 }, head: { offset: 14 } },
 			text: `ners`,
 		})
-		harness.projection = {
-			...harness.projection,
-			range: { end: 18, kind: `utf16-range`, start: 0 },
-			text: `Add rollout owners`,
-		}
+		harness.projection = projection(`Add rollout owners`)
 		harness.length = 18
 		rendered.rerender(<MarkdownWorkspace client={client} />)
 		second.resolve()
 		await waitFor(() => expect(harness.editor?.value).toBe(`Add rollout owners`))
+		await waitFor(() => expect(harness.editor?.selection).toEqual([18, 18]))
 		await waitFor(() =>
 			expect(
 				publishedPresence.filter((presence) => presence.selection !== null),
@@ -198,30 +234,37 @@ describe(`Markdown workspace drafts`, () => {
 			selection: { anchor: { offset: 4 }, head: { offset: 4 } },
 			text: `careful `,
 		})
+		const remoteResolution = deferredValue<number>()
+		harness.remoteResolution = remoteResolution.promise
 
 		// The accepted operation advances the authoritative document length before
 		// residency has replaced the old-length viewport. Keep the complete local
 		// draft visible rather than exposing a projection that eats its tail.
 		harness.length = inserted.length
-		harness.projection = {
-			...harness.projection,
-			// A newly acquired observer can already advertise the requested range
-			// while its resident leaf still contains the prior, shorter value.
-			range: { end: inserted.length, kind: `utf16-range`, start: 0 },
-			text: inserted.slice(0, 18),
-		}
+		// A newly acquired observer can already advertise the requested range while
+		// its resident leaf still contains the prior, shorter value.
+		harness.projection = projection(inserted.slice(0, 18), inserted.length)
 		rendered.rerender(<MarkdownWorkspace client={client} />)
 		third.resolve()
 		await waitFor(() => expect(harness.editor?.value).toBe(inserted))
+		// The previous cursor offsets remain bound to the projection that resolved
+		// them until the next logical lookup completes. Never reinterpret them
+		// against the accepted text and briefly regress the overlay.
+		expect(harness.editor?.selections).toMatchObject([
+			{ end: 26, name: `Lin`, start: 26 },
+		])
+		remoteResolution.resolve(26)
+		harness.remoteResolution = null
+		await waitFor(() =>
+			expect(harness.editor?.selections).toMatchObject([
+				{ end: 26, name: `Lin`, start: 26 },
+			]),
+		)
 		act(() => harness.editor?.onValueChange(`${inserted}!`, false))
 		await new Promise((resolve) => setTimeout(resolve, 200))
 		expect(replacements).toHaveLength(3)
 
-		harness.projection = {
-			...harness.projection,
-			range: { end: inserted.length, kind: `utf16-range`, start: 0 },
-			text: inserted,
-		}
+		harness.projection = projection(inserted)
 		rendered.rerender(<MarkdownWorkspace client={client} />)
 		await waitFor(() => expect(replacements).toHaveLength(4))
 		expect(replacements[3]).toMatchObject({
@@ -232,13 +275,12 @@ describe(`Markdown workspace drafts`, () => {
 			text: `!`,
 		})
 		harness.length = inserted.length + 1
-		harness.projection = {
-			...harness.projection,
-			range: { end: inserted.length + 1, kind: `utf16-range`, start: 0 },
-			text: `${inserted}!`,
-		}
+		harness.projection = projection(`${inserted}!`)
 		rendered.rerender(<MarkdownWorkspace client={client} />)
 		fourth.resolve()
 		await waitFor(() => expect(harness.editor?.value).toBe(`${inserted}!`))
+		await waitFor(() =>
+			expect(rendered.getAllByText(`All changes saved`)).toHaveLength(2),
+		)
 	})
 })

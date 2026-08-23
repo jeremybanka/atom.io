@@ -47,6 +47,44 @@ describe(`Lexical Markdown editor`, () => {
 		expect(document.activeElement).toBe(editor)
 	})
 
+	test(`does not clamp a future collaborator caret to the current document end`, async () => {
+		const properties = {
+			onError: (error: Error) => {
+				throw error
+			},
+			onRedo: () => undefined,
+			onSelectionChange: () => undefined,
+			onUndo: () => undefined,
+			onValueChange: () => undefined,
+			selections: [
+				{
+					color: `#f00`,
+					end: 8,
+					name: `Lin`,
+					session: `lin-session`,
+					start: 8,
+				},
+			],
+		}
+		const rendered = render(
+			<LexicalMarkdownEditor {...properties} value="alpha" />,
+		)
+		await rendered.findByRole(`textbox`)
+		await new Promise((resolve) => requestAnimationFrame(resolve))
+		expect(rendered.container.querySelector(`collaborator-presence`)).toBeNull()
+
+		rendered.rerender(
+			<LexicalMarkdownEditor {...properties} value="alphabet!" />,
+		)
+		await waitFor(() => {
+			const presence = rendered.container.querySelector(
+				`collaborator-presence[data-session="lin-session"]`,
+			)
+			expect(presence?.getAttribute(`data-selection-start`)).toBe(`8`)
+			expect(presence?.getAttribute(`data-selection-end`)).toBe(`8`)
+		})
+	})
+
 	test(`moves carets and reversed selections across remote prefixes`, () => {
 		expect(
 			transformSelectionAcrossTextChange(

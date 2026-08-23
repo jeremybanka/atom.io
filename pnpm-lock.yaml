@@ -324,8 +324,8 @@ importers:
         specifier: 2.2.3
         version: 2.2.3
       comline:
-        specifier: 0.5.1
-        version: 0.5.1(arktype@2.2.3)(zod@4.4.3)
+        specifier: 0.5.2
+        version: 0.5.2(arktype@2.2.3)(zod@4.4.3)
       local-pkg:
         specifier: 1.2.1
         version: 1.2.1
@@ -4223,6 +4223,17 @@ packages:
 
   comline@0.5.1:
     resolution: {integrity: sha512-Ld9dLjIJt4UgQ2/PBcL346ARXwybfwmzrrGEMgQE/AzLFnyTLMVlrxkwwmRCte1NJIW6rKMVaYbt0E7IC/1hnw==}
+    peerDependencies:
+      arktype: ^2.1.28
+      zod: ^4.2.0
+    peerDependenciesMeta:
+      arktype:
+        optional: true
+      zod:
+        optional: true
+
+  comline@0.5.2:
+    resolution: {integrity: sha512-eMGYMIw2Q34LtO4vaNvQCPWcVTasnMUCDj7YnOADvyfc4ddKqhKX1TwQgYiiKp8qSjgXdMYE+EHJl9cznQ7azA==}
     peerDependencies:
       arktype: ^2.1.28
       zod: ^4.2.0
@@ -10735,6 +10746,14 @@ snapshots:
     dependencies:
       '@standard-schema/spec': 1.1.0
       treetrunks: 0.1.8
+    optionalDependencies:
+      arktype: 2.2.3
+      zod: 4.4.3
+
+  comline@0.5.2(arktype@2.2.3)(zod@4.4.3):
+    dependencies:
+      '@standard-schema/spec': 1.1.0
+      treetrunks: 0.1.9
     optionalDependencies:
       arktype: 2.2.3
       zod: 4.4.3

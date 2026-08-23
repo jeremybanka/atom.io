@@ -465,6 +465,21 @@ export async function createMarkdownDocumentService(
 	const positionAtOffset = async (
 		offset: number,
 	): Promise<MosaicTextIndexLookup> => {
+		if (current.index.root.reference === null) {
+			if (offset !== 0) {
+				throw new RangeError(`utf16Units is outside the Mosaic text index`)
+			}
+			return {
+				globalGrapheme: 0,
+				globalLine: 0,
+				globalUtf16: 0,
+				// An empty index has no leaf. The lookup's leaf identifier is opaque to
+				// projection clients, so use the stable root identity while exposing the
+				// canonical empty-text logical position.
+				leafId: current.index.root.id,
+				position: { affinity: `left`, offset: 0, runId: null },
+			}
+		}
 		const reader = createMosaicTextIndexReader(
 			mosaicTextIndexSource(current.index),
 		)

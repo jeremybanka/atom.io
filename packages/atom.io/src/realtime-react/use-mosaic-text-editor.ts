@@ -12,7 +12,7 @@ import {
 	resolveMosaicTextProjectionPosition,
 	transformMosaicTextSelection,
 } from "atom.io/realtime-client"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react"
 
 export type MosaicTextEditorPeer<Value> = {
 	readonly id: string
@@ -76,9 +76,7 @@ type SettledDraft = {
 	readonly requiredEnd: number
 }
 
-type ResolvedRemote<Value> = MosaicTextEditorRemoteSelection<Value> & {
-	readonly logicalKey: string
-}
+type ResolvedRemote<Value> = MosaicTextEditorRemoteSelection<Value>
 
 type ResolvedRemoteState<Value> = {
 	readonly projection: MosaicTextRangeProjection
@@ -92,6 +90,19 @@ type DisplayedRemoteState<Value> = {
 }
 
 const WAITING_FOR_RESIDENT_SELECTION = Symbol(`waiting-for-resident-selection`)
+
+function isSameProjectionCut(
+	left: MosaicTextRangeProjection,
+	right: MosaicTextRangeProjection,
+): boolean {
+	return (
+		left === right ||
+		(left.revision === right.revision &&
+			left.range.start === right.range.start &&
+			left.range.end === right.range.end &&
+			left.text === right.text)
+	)
+}
 
 /**
  * Renderer-neutral editing lifecycle for one bounded Mosaic text projection.
@@ -137,7 +148,9 @@ export function useMosaicTextEditor<Value>(
 	const [resolvedRemoteSelections, setResolvedRemoteSelections] =
 		useState<ResolvedRemoteState<Value> | null>(null)
 	const resolvedRemoteSelectionsRef = useRef(resolvedRemoteSelections)
-	resolvedRemoteSelectionsRef.current = resolvedRemoteSelections
+	useLayoutEffect(() => {
+		resolvedRemoteSelectionsRef.current = resolvedRemoteSelections
+	}, [resolvedRemoteSelections])
 	const displayedRemoteSelectionsRef =
 		useRef<DisplayedRemoteState<Value> | null>(null)
 	const displayed = draft ?? projection?.text ?? ``
@@ -146,44 +159,46 @@ export function useMosaicTextEditor<Value>(
 		[],
 	)
 
-	const displayedRemoteSelections = (() => {
-		if (projection === null || resolvedRemoteSelections === null) {
-			displayedRemoteSelectionsRef.current = null
-			return []
-		}
-		const resolvedProjection = resolvedRemoteSelections.projection
-		if (resolvedProjection.range.start !== projection.range.start) {
-			displayedRemoteSelectionsRef.current = null
-			return []
-		}
+	// A cursor and its source text are one renderable unit. Do not reinterpret an
+	// offset from an older cut against a newer cut while logical resolution is in
+	// flight; carry the last committed unit through the visible text change.
+	const nextDisplayedRemoteSelections = (() => {
+		if (projection === null) return null
 		const previous = displayedRemoteSelectionsRef.current
-		const selections = resolvedRemoteSelections.selections.map((selection) => {
-			const optimistic =
-				previous?.rangeStart === projection.range.start
-					? previous.selections.find(
-							(candidate) =>
-								candidate.id === selection.id &&
-								candidate.logicalKey === selection.logicalKey,
-						)
-					: undefined
-			const source = optimistic ?? selection
-			const sourceText =
-				optimistic === undefined ? resolvedProjection.text : previous!.text
-			if (sourceText === displayed)
-				return { ...selection, end: source.end, start: source.start }
+		const resolvedProjection = resolvedRemoteSelections?.projection
+		const candidates =
+			resolvedRemoteSelections !== null &&
+			resolvedProjection !== undefined &&
+			isSameProjectionCut(resolvedProjection, projection)
+				? resolvedRemoteSelections.selections.map((selection) => ({
+						selection,
+						sourceText: resolvedProjection.text,
+					}))
+				: previous?.rangeStart === projection.range.start
+					? previous.selections.map((selection) => ({
+							selection,
+							sourceText: previous.text,
+						}))
+					: []
+		const selections = candidates.map(({ selection, sourceText }) => {
+			if (sourceText === displayed) return selection
 			const [start, end] = transformMosaicTextSelection(sourceText, displayed, [
-				source.start,
-				source.end,
+				selection.start,
+				selection.end,
 			])
 			return { ...selection, end, start }
 		})
-		displayedRemoteSelectionsRef.current = {
+		return {
 			rangeStart: projection.range.start,
 			selections,
 			text: displayed,
-		}
-		return selections
+		} satisfies DisplayedRemoteState<Value>
 	})()
+	useLayoutEffect(() => {
+		displayedRemoteSelectionsRef.current = nextDisplayedRemoteSelections
+	}, [nextDisplayedRemoteSelections])
+	const displayedRemoteSelections =
+		nextDisplayedRemoteSelections?.selections ?? []
 
 	const publishPendingSelection = useCallback((): void => {
 		const selection = pendingSelection.current
@@ -454,7 +469,6 @@ export function useMosaicTextEditor<Value>(
 				if (peer.selection === null) return []
 				return [
 					(async () => {
-						const logicalKey = JSON.stringify(peer.selection)
 						const residentAnchor = resolveMosaicTextProjectionPosition(
 							projection,
 							peer.selection!.anchor,
@@ -481,7 +495,7 @@ export function useMosaicTextEditor<Value>(
 						)
 						if (
 							(residentAnchor === null || residentHead === null) &&
-							previous?.logicalKey === logicalKey
+							previous !== undefined
 						) {
 							const previousStart =
 								previousState!.projection.range.start + previous.start
@@ -512,7 +526,6 @@ export function useMosaicTextEditor<Value>(
 								Math.min(projection.text.length, head - viewStart),
 							),
 							id: peer.id,
-							logicalKey,
 							start: Math.max(
 								0,
 								Math.min(projection.text.length, anchor - viewStart),

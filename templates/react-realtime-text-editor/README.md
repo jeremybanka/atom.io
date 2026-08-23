@@ -46,14 +46,17 @@ the Unicode adversarial corpus.
 
 ## Start Reading
 
-- `src/document-domain.ts` declares the ordinary durable source, index root,
-  index family, local selection, and ephemeral collaborator members.
-- `node/service.ts` is the authoritative composition seam. It serializes a text
-  gesture with MOS-15 index maintenance and delegates history retention and
-  compensation to MOS-16.
-- `src/collaboration-client.ts` combines MOS-12 residency, MOS-17 range
-  projections, presence, current-location transport, and reconnecting command
-  delivery.
+- `src/document-domain.ts` names the application's durable source and index
+  members plus its ephemeral collaborator shape. Core supplies the text and
+  index models, schemas, and history policy.
+- `node/service.ts` chooses persistence, authorization, presence lifetime, and
+  the app-specific Socket.IO commands. The core text document coordinator owns
+  atomic source/index proposals, range reads, and history compensation, while
+  the core residency binder owns its wire protocol.
+- `src/collaboration-client.ts` supplies browser identity, viewport policy, and
+  application commands. Core owns residency transport, reconnect
+  synchronization, accepted-revision settlement, presence renewal, and
+  selective history sequencing.
 - `atom.io/realtime-react` owns optimistic draft settlement and maps local and
   remote selections across complete, revision-tagged projection cuts.
 - `src/LexicalMarkdownEditor.tsx` adapts that bounded editor state to Lexical

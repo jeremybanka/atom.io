@@ -90,6 +90,15 @@ does not claim semantic intent recovery for arbitrary rewrites made in several
 unloaded regions. A richer product can retain several bounded draft windows and
 still submit them as one Domain gesture.
 
+The production patterns discovered while stabilizing that lifecycle no longer
+live as Markdown-specific template machinery. Core now publishes the Mosaic
+text source/index models and schemas, a server text-document coordinator for
+atomic import/edit/index/history work, a validated residency socket bridge, and
+a browser session coordinator for reconnect and accepted-revision settlement.
+The template supplies its member names, limits, authorization policy, simulated
+identities, viewport, and renderer. This keeps the correctness boundary reusable
+without pretending that editor layout or product policy is generic.
+
 ## Incremental, Cancelable Semantics
 
 Parsing is not a render-time whole-document function. The headless parser caches

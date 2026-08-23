@@ -1,5 +1,7 @@
+export * from "./graphemes.ts"
 export * from "./protocol.ts"
 export * from "./text.ts"
+export * from "./text-domain.ts"
 export * from "./text-index.ts"
 export * from "./text-root.ts"
 export type * from "./transceiver.ts"

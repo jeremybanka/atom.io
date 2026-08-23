@@ -276,8 +276,8 @@ importers:
         specifier: 10.5.10
         version: 10.5.10(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       takua:
-        specifier: 0.2.2
-        version: 0.2.2
+        specifier: 0.2.3
+        version: 0.2.3
       treetrunks:
         specifier: 0.1.8
         version: 0.1.8
@@ -6587,6 +6587,9 @@ packages:
 
   takua@0.2.2:
     resolution: {integrity: sha512-yjNZ/dE7vzzecyyMyzpV9IF74cirv8H1ci6U+1fICICOtsb/5Cstz86Hu4GK8IgO9HTlA6rgjg7d/ljq7RDNWQ==}
+
+  takua@0.2.3:
+    resolution: {integrity: sha512-X/UsrLMSttBXrgAthtDZW9iuorphm7dgm5h6AskgpONCtpwd59zo8dN3sPHzi9LkEZ2mfxTVWMqAZpsoeEIt1Q==}
 
   tar-fs@2.1.5:
     resolution: {integrity: sha512-OboTd8mmMhZDNPV+UjQcK9yKAatXu2aJ+r1w4im1Otd4M4fl2hwvdoXUxIYHFTHWK/3y3FarBP70v3vwmGlOxw==}
@@ -13831,6 +13834,8 @@ snapshots:
   takua@0.2.1: {}
 
   takua@0.2.2: {}
+
+  takua@0.2.3: {}
 
   tar-fs@2.1.5:
     dependencies:

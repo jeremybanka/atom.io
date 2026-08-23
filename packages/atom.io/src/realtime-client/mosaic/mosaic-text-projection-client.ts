@@ -63,7 +63,11 @@ export type MosaicTextProjectedBlock = {
 
 export type MosaicTextRangeProjection = {
 	readonly blocks: readonly MosaicTextProjectedBlock[]
+	/** True when the resident text covers the complete projected range. */
+	readonly complete?: boolean
 	readonly range: MosaicTextIndexRange
+	/** The accepted Domain cut from which this projection was derived. */
+	readonly revision?: number
 	/** Full resident leaves; renderers may virtualize these directly. */
 	readonly segments: readonly MosaicTextProjectedSegment[]
 	/** Only the requested bounded range, never the complete document by default. */
@@ -263,6 +267,21 @@ function localOffsetForFragments(
 	return null
 }
 
+/** Resolve a logical position against one already-resident projection cut. */
+export function resolveMosaicTextProjectionPosition(
+	projection: MosaicTextRangeProjection,
+	position: MosaicTextRelativePosition,
+): number | null {
+	if (position.runId === null) {
+		return projection.range.start === 0 && projection.range.end === 0 ? 0 : null
+	}
+	for (const segment of projection.segments) {
+		const local = localOffsetForFragments(segment.fragments, position)
+		if (local !== null) return segment.start + local
+	}
+	return null
+}
+
 function positionAtLocalOffset(
 	leaves: readonly MosaicTextIndexLeaf[],
 	offset: number,
@@ -310,6 +329,70 @@ function positionAtFragments(
 	}
 }
 
+/** Capture a logical position from one already-rendered projection cut. */
+export function positionAtMosaicTextProjectionOffset(
+	projection: MosaicTextRangeProjection,
+	absoluteOffset: number,
+): MosaicTextRelativePosition | null {
+	if (!Number.isSafeInteger(absoluteOffset) || absoluteOffset < 0) return null
+	if (
+		absoluteOffset === 0 &&
+		projection.range.start === 0 &&
+		projection.range.end === 0
+	) {
+		return { affinity: `left`, offset: 0, runId: null }
+	}
+	for (const segment of projection.segments) {
+		if (absoluteOffset < segment.start || absoluteOffset > segment.end) continue
+		return positionAtFragments(segment.fragments, absoluteOffset - segment.start)
+	}
+	return null
+}
+
+/** Carry UTF-16 selection offsets through one contiguous text replacement. */
+export function transformMosaicTextSelection(
+	before: string,
+	after: string,
+	selection: readonly [number, number],
+): readonly [number, number] {
+	const edit = mosaicTextContiguousEdit(before, after)
+	const removedLength = edit.end - edit.start
+	const transform = (offset: number): number => {
+		if (offset < edit.start) return offset
+		if (offset > edit.end) return offset + edit.text.length - removedLength
+		return edit.start + edit.text.length
+	}
+	return [transform(selection[0]), transform(selection[1])]
+}
+
+/** Find the smallest contiguous replacement between two text snapshots. */
+export function mosaicTextContiguousEdit(
+	before: string,
+	after: string,
+): { readonly end: number; readonly start: number; readonly text: string } {
+	let start = 0
+	while (
+		start < before.length &&
+		start < after.length &&
+		before[start] === after[start]
+	) {
+		start++
+	}
+	let suffix = 0
+	while (
+		suffix < before.length - start &&
+		suffix < after.length - start &&
+		before[before.length - suffix - 1] === after[after.length - suffix - 1]
+	) {
+		suffix++
+	}
+	return {
+		end: before.length - suffix,
+		start,
+		text: after.slice(start, after.length - suffix),
+	}
+}
+
 function assertLeaf(value: unknown): MosaicTextIndexLeaf {
 	if (
 		typeof value !== `object` ||
@@ -339,6 +422,7 @@ function projectRange(
 	range: MosaicTextIndexRange,
 	leaves: readonly MosaicTextIndexLeaf[],
 	residentStart: number,
+	revision: number,
 ): MosaicTextRangeProjection {
 	let cursor = residentStart
 	const segments = leaves.map((leaf): MosaicTextProjectedSegment => {
@@ -377,7 +461,9 @@ function projectRange(
 	}
 	return Object.freeze({
 		blocks: Object.freeze(blocks),
+		complete: text.length === range.end - range.start,
 		range: Object.freeze(structuredClone(range)),
+		revision,
 		segments: Object.freeze(segments),
 		text,
 	})
@@ -453,7 +539,12 @@ export function createMosaicTextProjectionClient<
 				get(record.membership)
 				const leaves = record.tokens.map((token) => assertLeaf(get(token)))
 				if (leaves.length === 0) {
-					return projectRange(record.range, [], record.range.start)
+					return projectRange(
+						record.range,
+						[],
+						record.range.start,
+						options.residency.state.headRevision,
+					)
 				}
 				const first = leaves[0]
 				const lookup = recordLookup.get(record)
@@ -464,7 +555,12 @@ export function createMosaicTextProjectionClient<
 				if (local === null) {
 					throw new Error(`Mosaic text projection position is not resident.`)
 				}
-				return projectRange(record.range, leaves, lookup.globalUtf16 - local)
+				return projectRange(
+					record.range,
+					leaves,
+					lookup.globalUtf16 - local,
+					options.residency.state.headRevision,
+				)
 			},
 		key: `${resourceKey}:range`,
 	})
@@ -1026,6 +1122,9 @@ export function createMosaicTextProjectionClient<
 			const length = await client.readLength()
 			if (offset > length) {
 				throw new RangeError(`Mosaic text offset is outside the document.`)
+			}
+			if (length === 0) {
+				return { affinity: `left`, offset: 0, runId: null }
 			}
 			return (await options.positionAtOffset(offset)).position
 		},

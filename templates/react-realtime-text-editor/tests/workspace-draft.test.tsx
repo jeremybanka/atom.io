@@ -1,4 +1,5 @@
 import { render, waitFor } from "@testing-library/react"
+import type * as RealtimeReact from "atom.io/realtime-react"
 import { act, createElement } from "react"
 import { vi } from "vitest"
 
@@ -36,7 +37,9 @@ const harness = vi.hoisted(() => ({
 	],
 	projection: {
 		blocks: [],
+		complete: true,
 		range: { end: 18, kind: `utf16-range` as const, start: 0 },
+		revision: 0,
 		segments: [
 			{
 				end: 18,
@@ -50,7 +53,8 @@ const harness = vi.hoisted(() => ({
 	},
 }))
 
-vi.mock(`atom.io/realtime-react`, () => ({
+vi.mock(`atom.io/realtime-react`, async (importOriginal) => ({
+	...(await importOriginal<typeof RealtimeReact>()),
 	useMosaicTextRange: () => ({
 		error: null,
 		projection: harness.projection,
@@ -77,9 +81,12 @@ const projection = (
 	text: string,
 	rangeEnd = text.length,
 	fragments = [{ runId: `base`, start: 0, text }],
+	revision = 0,
 ) => ({
 	blocks: [],
+	complete: text.length === rangeEnd,
 	range: { end: rangeEnd, kind: `utf16-range` as const, start: 0 },
+	revision,
 	segments: [
 		{
 			end: text.length,
@@ -184,7 +191,7 @@ describe(`Markdown workspace drafts`, () => {
 		expect(
 			publishedPresence.filter((presence) => presence.selection !== null),
 		).toHaveLength(0)
-		harness.projection = projection(`Add rollout ow`)
+		harness.projection = projection(`Add rollout ow`, 14, undefined, 1)
 		harness.length = 14
 		rendered.rerender(<MarkdownWorkspace client={client} />)
 		first.resolve()
@@ -194,7 +201,7 @@ describe(`Markdown workspace drafts`, () => {
 			selection: { anchor: { offset: 14 }, head: { offset: 14 } },
 			text: `ners`,
 		})
-		harness.projection = projection(`Add rollout owners`)
+		harness.projection = projection(`Add rollout owners`, 18, undefined, 2)
 		harness.length = 18
 		rendered.rerender(<MarkdownWorkspace client={client} />)
 		second.resolve()
@@ -231,9 +238,12 @@ describe(`Markdown workspace drafts`, () => {
 		harness.length = inserted.length
 		// A newly acquired observer can already advertise the requested range while
 		// its resident leaf still contains the prior, shorter value.
-		harness.projection = projection(inserted.slice(0, 18), inserted.length, [
-			{ runId: `stale`, start: 0, text: inserted.slice(0, 18) },
-		])
+		harness.projection = projection(
+			inserted.slice(0, 18),
+			inserted.length,
+			[{ runId: `stale`, start: 0, text: inserted.slice(0, 18) }],
+			3,
+		)
 		rendered.rerender(<MarkdownWorkspace client={client} />)
 		third.resolve()
 		await waitFor(() => expect(harness.editor?.value).toBe(inserted))
@@ -247,10 +257,15 @@ describe(`Markdown workspace drafts`, () => {
 		await new Promise((resolve) => setTimeout(resolve, 200))
 		expect(replacements).toHaveLength(3)
 
-		harness.projection = projection(inserted, inserted.length, [
-			{ runId: `careful`, start: 0, text: `careful ` },
-			{ runId: `base`, start: 0, text: `Add rollout owners` },
-		])
+		harness.projection = projection(
+			inserted,
+			inserted.length,
+			[
+				{ runId: `careful`, start: 0, text: `careful ` },
+				{ runId: `base`, start: 0, text: `Add rollout owners` },
+			],
+			3,
+		)
 		rendered.rerender(<MarkdownWorkspace client={client} />)
 		await waitFor(() => expect(replacements).toHaveLength(4))
 		expect(replacements[3]).toMatchObject({
@@ -261,11 +276,16 @@ describe(`Markdown workspace drafts`, () => {
 			text: `!`,
 		})
 		harness.length = inserted.length + 1
-		harness.projection = projection(`${inserted}!`, inserted.length + 1, [
-			{ runId: `careful`, start: 0, text: `careful ` },
-			{ runId: `base`, start: 0, text: `Add rollout owners` },
-			{ runId: `bang`, start: 0, text: `!` },
-		])
+		harness.projection = projection(
+			`${inserted}!`,
+			inserted.length + 1,
+			[
+				{ runId: `careful`, start: 0, text: `careful ` },
+				{ runId: `base`, start: 0, text: `Add rollout owners` },
+				{ runId: `bang`, start: 0, text: `!` },
+			],
+			4,
+		)
 		rendered.rerender(<MarkdownWorkspace client={client} />)
 		fourth.resolve()
 		await waitFor(() => expect(harness.editor?.value).toBe(`${inserted}!`))

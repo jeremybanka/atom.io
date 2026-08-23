@@ -54,22 +54,24 @@ derived durable indexes and contains no Markdown branch.
 ## Local Input and Logical Presence
 
 The mounted Lexical plain-text editor contains only one resident source window.
-Keystrokes update a local draft immediately, minimal replacement intent is
-derived from the draft, and reconnect delivery retains its gesture identity and
-sequence. Local DOM selection, composition, scroll, and pending input remain
-React-local. Published presence converts them to run-relative positions, so
-collaborators can resolve them against another partial working set or simply
-report that the actor is in a different viewport.
+The renderer-neutral Mosaic text editor hook keeps keystrokes in an optimistic
+draft, derives minimal replacement intent, and retains that draft until a
+complete newer projection cut settles. It also publishes local selections as
+run-relative positions and resolves collaborator selections through the same
+visible text deltas, so renderers do not briefly display an absolute cursor at a
+stale offset. DOM selection, composition, scroll, and caret geometry remain
+renderer-owned.
 
 Lexical is deliberately a browser editing and geometry layer rather than a
 second collaboration authority. Its Yjs collaboration integration and history
 plugin are not mounted. Mosaic owns accepted text, convergence, logical
-positions, actor history, partial residency, and presence leases. The adapter
-projects the current bounded source into Lexical, translates local selection
-offsets back into Mosaic positions, and resolves foreign positions into DOM
-ranges for colored caret labels and selection overlays. A projection-tagged
-update cannot echo back as a local edit, while native composition remains local
-until it is ready for the existing coalesced Domain gesture.
+positions, actor history, partial residency, and renewable presence leases. The
+core editor lifecycle projects the current bounded source, translates local
+selection offsets into Mosaic positions, and resolves foreign positions. The
+Lexical adapter only maps those offsets to DOM ranges for colored caret labels
+and selection overlays. A projection-tagged update cannot echo back as a local
+edit, while native composition remains local until it is ready for the existing
+coalesced Domain gesture.
 
 The React range hook now reacquires a failed viewport when residency transitions
 back to live. This closes the cold-start race where Vite could render before the

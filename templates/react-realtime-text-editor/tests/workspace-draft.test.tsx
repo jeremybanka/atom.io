@@ -26,8 +26,8 @@ const harness = vi.hoisted(() => ({
 				color: `#f00`,
 				name: `Lin`,
 				selection: {
-					anchor: { offset: 18, runId: `remote` },
-					head: { offset: 18, runId: `remote` },
+					anchor: { affinity: `right`, offset: 10, runId: `base` },
+					head: { affinity: `right`, offset: 10, runId: `base` },
 				},
 				session: `lin-session`,
 				viewport: null,
@@ -48,7 +48,6 @@ const harness = vi.hoisted(() => ({
 		],
 		text: `Add rollout owners`,
 	},
-	remoteResolution: null as Promise<number> | null,
 }))
 
 vi.mock(`atom.io/realtime-react`, () => ({
@@ -74,21 +73,17 @@ const deferred = () => {
 	return { promise, resolve }
 }
 
-const deferredValue = <Value,>() => {
-	let resolve = (_value: Value): void => undefined
-	const promise = new Promise<Value>((complete) => {
-		resolve = complete
-	})
-	return { promise, resolve }
-}
-
-const projection = (text: string, rangeEnd = text.length) => ({
+const projection = (
+	text: string,
+	rangeEnd = text.length,
+	fragments = [{ runId: `base`, start: 0, text }],
+) => ({
 	blocks: [],
 	range: { end: rangeEnd, kind: `utf16-range` as const, start: 0 },
 	segments: [
 		{
 			end: text.length,
-			fragments: [{ runId: `base`, start: 0, text }],
+			fragments,
 			id: `leaf`,
 			start: 0,
 			text,
@@ -104,7 +99,6 @@ describe(`Markdown workspace drafts`, () => {
 		const third = deferred()
 		const fourth = deferred()
 		harness.length = 18
-		harness.remoteResolution = null
 		harness.projection = projection(`Add rollout owners`)
 		const replacements: Array<{
 			readonly selection: {
@@ -142,10 +136,7 @@ describe(`Markdown workspace drafts`, () => {
 					readonly offset: number
 					readonly runId?: string
 				}) => {
-					if (position.runId === `remote` && harness.remoteResolution !== null) {
-						return harness.remoteResolution
-					}
-					return position.offset === 18 && harness.length > 18
+					return harness.length > 18
 						? position.offset + `careful `.length
 						: position.offset
 				},
@@ -173,7 +164,7 @@ describe(`Markdown workspace drafts`, () => {
 		expect(rendered.getAllByText(`All changes saved`)).toHaveLength(2)
 		await waitFor(() =>
 			expect(harness.editor?.selections).toMatchObject([
-				{ end: 18, name: `Lin`, start: 18 },
+				{ end: 10, name: `Lin`, start: 10 },
 			]),
 		)
 
@@ -226,7 +217,7 @@ describe(`Markdown workspace drafts`, () => {
 		act(() => harness.editor?.onValueChange(inserted, false))
 		await waitFor(() =>
 			expect(harness.editor?.selections).toMatchObject([
-				{ end: 26, name: `Lin`, start: 26 },
+				{ end: 18, name: `Lin`, start: 18 },
 			]),
 		)
 		await waitFor(() => expect(replacements).toHaveLength(3))
@@ -234,16 +225,15 @@ describe(`Markdown workspace drafts`, () => {
 			selection: { anchor: { offset: 4 }, head: { offset: 4 } },
 			text: `careful `,
 		})
-		const remoteResolution = deferredValue<number>()
-		harness.remoteResolution = remoteResolution.promise
-
 		// The accepted operation advances the authoritative document length before
 		// residency has replaced the old-length viewport. Keep the complete local
 		// draft visible rather than exposing a projection that eats its tail.
 		harness.length = inserted.length
 		// A newly acquired observer can already advertise the requested range while
 		// its resident leaf still contains the prior, shorter value.
-		harness.projection = projection(inserted.slice(0, 18), inserted.length)
+		harness.projection = projection(inserted.slice(0, 18), inserted.length, [
+			{ runId: `stale`, start: 0, text: inserted.slice(0, 18) },
+		])
 		rendered.rerender(<MarkdownWorkspace client={client} />)
 		third.resolve()
 		await waitFor(() => expect(harness.editor?.value).toBe(inserted))
@@ -251,31 +241,31 @@ describe(`Markdown workspace drafts`, () => {
 		// them until the next logical lookup completes. Never reinterpret them
 		// against the accepted text and briefly regress the overlay.
 		expect(harness.editor?.selections).toMatchObject([
-			{ end: 26, name: `Lin`, start: 26 },
+			{ end: 18, name: `Lin`, start: 18 },
 		])
-		remoteResolution.resolve(26)
-		harness.remoteResolution = null
-		await waitFor(() =>
-			expect(harness.editor?.selections).toMatchObject([
-				{ end: 26, name: `Lin`, start: 26 },
-			]),
-		)
 		act(() => harness.editor?.onValueChange(`${inserted}!`, false))
 		await new Promise((resolve) => setTimeout(resolve, 200))
 		expect(replacements).toHaveLength(3)
 
-		harness.projection = projection(inserted)
+		harness.projection = projection(inserted, inserted.length, [
+			{ runId: `careful`, start: 0, text: `careful ` },
+			{ runId: `base`, start: 0, text: `Add rollout owners` },
+		])
 		rendered.rerender(<MarkdownWorkspace client={client} />)
 		await waitFor(() => expect(replacements).toHaveLength(4))
 		expect(replacements[3]).toMatchObject({
 			selection: {
-				anchor: { offset: inserted.length },
-				head: { offset: inserted.length },
+				anchor: { affinity: `left`, offset: 18, runId: `base` },
+				head: { affinity: `left`, offset: 18, runId: `base` },
 			},
 			text: `!`,
 		})
 		harness.length = inserted.length + 1
-		harness.projection = projection(`${inserted}!`)
+		harness.projection = projection(`${inserted}!`, inserted.length + 1, [
+			{ runId: `careful`, start: 0, text: `careful ` },
+			{ runId: `base`, start: 0, text: `Add rollout owners` },
+			{ runId: `bang`, start: 0, text: `!` },
+		])
 		rendered.rerender(<MarkdownWorkspace client={client} />)
 		fourth.resolve()
 		await waitFor(() => expect(harness.editor?.value).toBe(`${inserted}!`))

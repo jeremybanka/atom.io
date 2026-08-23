@@ -273,6 +273,36 @@ describe(`incremental realtime Markdown Domain`, () => {
 			expect(reconnected).toContain(`[offline]`)
 			expect(reconnected).toContain(`[online]`)
 			expect(setup.service.instrumentation.lastBatchOperations).toBeLessThan(16)
+
+			const resetStart = await clients.ada.projection.positionAtOffset(0)
+			const resetEnd = await clients.ada.projection.positionAtOffset(
+				reconnected.length,
+			)
+			await clients.ada.replace({
+				selection: { anchor: resetStart, head: resetEnd },
+				text: ``,
+			})
+			await waitFor(async () => {
+				expect(await clients.lin.projection.readLength()).toBe(0)
+			})
+			expect(await clients.lin.projection.materialize()).toBe(``)
+			await expect(setup.service.positionAtOffset(1)).rejects.toThrow(
+				`outside the Mosaic text index`,
+			)
+			expect((await setup.service.positionAtOffset(0)).position).toEqual({
+				affinity: `left`,
+				offset: 0,
+				runId: null,
+			})
+			const empty = await clients.ada.projection.positionAtOffset(0)
+			expect(empty).toEqual({ affinity: `left`, offset: 0, runId: null })
+			await clients.ada.replace({
+				selection: { anchor: empty, head: empty },
+				text: `[reset-all]`,
+			})
+			await waitFor(async () => {
+				expect(await clients.lin.projection.materialize()).toBe(`[reset-all]`)
+			})
 		} finally {
 			await setup.teardown()
 		}

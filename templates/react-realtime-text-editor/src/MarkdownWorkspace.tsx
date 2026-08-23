@@ -49,7 +49,15 @@ type RenderedProjection = {
 }
 type ResolvedRemoteSelections = {
 	readonly projection: MosaicTextRangeProjection
-	readonly selections: readonly RenderedCollaboratorSelection[]
+	readonly selections: readonly ResolvedCollaboratorSelection[]
+}
+type ResolvedCollaboratorSelection = RenderedCollaboratorSelection & {
+	readonly logicalKey: string
+}
+type DisplayedRemoteSelections = {
+	readonly rangeStart: number
+	readonly selections: readonly ResolvedCollaboratorSelection[]
+	readonly text: string
 }
 
 const EMPTY_PARSE_METRICS: MarkdownParseInstrumentation = {
@@ -171,7 +179,9 @@ function resolvePositionInProjection(
 	projection: MosaicTextRangeProjection,
 	position: MosaicTextRelativePosition,
 ): number | null {
-	if (position.runId === null) return null
+	if (position.runId === null) {
+		return projection.range.start === 0 && projection.range.end === 0 ? 0 : null
+	}
 	for (const segment of projection.segments) {
 		let utf16 = 0
 		for (const fragment of segment.fragments) {
@@ -203,6 +213,13 @@ function positionAtOffsetInProjection(
 	projection: MosaicTextRangeProjection,
 	absoluteOffset: number,
 ): MosaicTextRelativePosition | null {
+	if (
+		absoluteOffset === 0 &&
+		projection.range.start === 0 &&
+		projection.range.end === 0
+	) {
+		return { affinity: `left`, offset: 0, runId: null }
+	}
 	for (const segment of projection.segments) {
 		if (absoluteOffset < segment.start || absoluteOffset > segment.end) continue
 		let remaining = absoluteOffset - segment.start
@@ -249,6 +266,11 @@ export function MarkdownWorkspace({
 		useState<MarkdownParseInstrumentation>(EMPTY_PARSE_METRICS)
 	const [resolvedRemoteSelections, setResolvedRemoteSelections] =
 		useState<ResolvedRemoteSelections | null>(null)
+	const resolvedRemoteSelectionsRef = useRef(resolvedRemoteSelections)
+	resolvedRemoteSelectionsRef.current = resolvedRemoteSelections
+	const displayedRemoteSelectionsRef = useRef<DisplayedRemoteSelections | null>(
+		null,
+	)
 	const [readProblem, setReadProblem] = useState<string | null>(null)
 	const [problem, setProblem] = useState<string | null>(null)
 	const parser = useRef(new IncrementalMarkdownParser())
@@ -290,22 +312,45 @@ export function MarkdownWorkspace({
 	const projectionRef = useRef(projection)
 	projectionRef.current = projection
 	const displayed = draft ?? projection?.text ?? ``
-	const displayedRemoteSelections = useMemo(() => {
-		if (projection === null || resolvedRemoteSelections === null) return []
-		const resolvedProjection = resolvedRemoteSelections.projection
-		if (resolvedProjection.range.start !== projection.range.start) return []
-		if (resolvedProjection.text === displayed) {
-			return resolvedRemoteSelections.selections
+	const displayedRemoteSelections = (() => {
+		if (projection === null || resolvedRemoteSelections === null) {
+			displayedRemoteSelectionsRef.current = null
+			return []
 		}
-		return resolvedRemoteSelections.selections.map((selection) => {
+		const resolvedProjection = resolvedRemoteSelections.projection
+		if (resolvedProjection.range.start !== projection.range.start) {
+			displayedRemoteSelectionsRef.current = null
+			return []
+		}
+		const previous = displayedRemoteSelectionsRef.current
+		const selections = resolvedRemoteSelections.selections.map((selection) => {
+			const optimistic =
+				previous?.rangeStart === projection.range.start
+					? previous.selections.find(
+							(candidate) =>
+								candidate.session === selection.session &&
+								candidate.logicalKey === selection.logicalKey,
+						)
+					: undefined
+			const source = optimistic ?? selection
+			const sourceText =
+				optimistic === undefined ? resolvedProjection.text : previous!.text
+			if (sourceText === displayed)
+				return { ...selection, end: source.end, start: source.start }
 			const [start, end] = transformSelectionAcrossTextChange(
-				resolvedProjection.text,
+				sourceText,
 				displayed,
-				[selection.start, selection.end],
+				[source.start, source.end],
 			)
 			return { ...selection, end, start }
 		})
-	}, [displayed, projection, resolvedRemoteSelections])
+		displayedRemoteSelectionsRef.current = {
+			rangeStart: projection.range.start,
+			selections,
+			text: displayed,
+		}
+		return selections
+	})()
 	const publishPendingSelection = useCallback((): void => {
 		const selection = pendingSelection.current
 		const currentProjection = projectionRef.current
@@ -400,6 +445,19 @@ export function MarkdownWorkspace({
 			if (!active || logicalSelection.current !== selection) return
 			const start = incomingProjection.range.start
 			const residentEnd = start + incomingProjection.text.length
+			const previous = pendingSelection.current
+			if (
+				(residentAnchor === null || residentHead === null) &&
+				previous !== null &&
+				[anchor, head].some(
+					(offset) => offset === start || offset === residentEnd,
+				) &&
+				[previous.anchorOffset, previous.headOffset].every(
+					(offset) => offset !== 0 && offset !== incomingProjection.text.length,
+				)
+			) {
+				return
+			}
 			if (
 				[anchor, head].some(
 					(offset) =>
@@ -631,6 +689,7 @@ export function MarkdownWorkspace({
 		void Promise.all(
 			peers.map(async (person) => {
 				try {
+					const logicalKey = JSON.stringify(person.selection)
 					const residentAnchor = resolvePositionInProjection(
 						projection,
 						person.selection!.anchor,
@@ -651,6 +710,29 @@ export function MarkdownWorkspace({
 					const viewStart = projection.range.start
 					const viewEnd = projection.range.end
 					const residentEnd = viewStart + projection.text.length
+					const previousState = resolvedRemoteSelectionsRef.current
+					const previous = previousState?.selections.find(
+						(selection) => selection.session === person.session,
+					)
+					if (
+						(residentAnchor === null || residentHead === null) &&
+						previous?.logicalKey === logicalKey
+					) {
+						const previousStart =
+							previousState!.projection.range.start + previous.start
+						const previousEnd =
+							previousState!.projection.range.start + previous.end
+						if (
+							[anchor, head].some(
+								(offset) => offset === viewStart || offset === residentEnd,
+							) &&
+							[previousStart, previousEnd].every(
+								(offset) => offset !== viewStart && offset !== residentEnd,
+							)
+						) {
+							return WAITING_FOR_RESIDENT_SELECTION
+						}
+					}
 					if (
 						absoluteStart === absoluteEnd
 							? absoluteStart < viewStart || absoluteStart > viewEnd
@@ -665,12 +747,13 @@ export function MarkdownWorkspace({
 						color: person.color,
 						end: Math.max(0, Math.min(projection.text.length, head - viewStart)),
 						name: person.name,
+						logicalKey,
 						session: person.session,
 						start: Math.max(
 							0,
 							Math.min(projection.text.length, anchor - viewStart),
 						),
-					} satisfies RenderedCollaboratorSelection
+					} satisfies ResolvedCollaboratorSelection
 				} catch {
 					return null
 				}
@@ -680,7 +763,7 @@ export function MarkdownWorkspace({
 				setResolvedRemoteSelections({
 					projection,
 					selections: resolved.filter(
-						(item): item is RenderedCollaboratorSelection =>
+						(item): item is ResolvedCollaboratorSelection =>
 							item !== null && item !== WAITING_FOR_RESIDENT_SELECTION,
 					),
 				})

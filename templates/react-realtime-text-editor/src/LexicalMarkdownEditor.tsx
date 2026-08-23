@@ -348,17 +348,21 @@ function MosaicInputPlugin({
 				) {
 					return
 				}
-				selectionRef.current = snapshot.selection
 				const suppressed = suppressedSelectionRef.current
-				if (
-					suppressed !== null &&
-					suppressed[0] === snapshot.selection[0] &&
-					suppressed[1] === snapshot.selection[1]
-				) {
-					suppressedSelectionRef.current = null
+				if (suppressed !== null) {
+					if (
+						suppressed[0] === snapshot.selection[0] &&
+						suppressed[1] === snapshot.selection[1]
+					) {
+						selectionRef.current = snapshot.selection
+						suppressedSelectionRef.current = null
+					}
+					// A projection can briefly move the DOM selection before Lexical has
+					// restored the intended logical caret. Never publish that synthetic
+					// intermediate position as collaborator presence.
 					return
 				}
-				suppressedSelectionRef.current = null
+				selectionRef.current = snapshot.selection
 				const signature = snapshot.selection.join(`:`)
 				if (lastSelection.current === signature) return
 				lastSelection.current = signature
@@ -502,8 +506,17 @@ function LexicalEditor({
 					<ContentEditable
 						aria-label="Shared markdown source viewport"
 						id="markdown-source"
-						onBeforeInput={onDirty}
-						onKeyDown={onKeyDown}
+						onBeforeInput={() => {
+							suppressedSelectionRef.current = null
+							onDirty()
+						}}
+						onKeyDown={(event) => {
+							suppressedSelectionRef.current = null
+							onKeyDown(event)
+						}}
+						onPointerDown={() => {
+							suppressedSelectionRef.current = null
+						}}
 						spellCheck
 					/>
 				}

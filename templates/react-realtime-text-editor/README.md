@@ -54,11 +54,13 @@ the Unicode adversarial corpus.
 - `src/collaboration-client.ts` combines MOS-12 residency, MOS-17 range
   projections, presence, current-location transport, and reconnecting command
   delivery.
-- `src/LexicalMarkdownEditor.tsx` projects a bounded Mosaic source window into
-  Lexical and renders collaborator geometry from resolved logical positions.
+- `atom.io/realtime-react` owns optimistic draft settlement and maps local and
+  remote selections across complete, revision-tagged projection cuts.
+- `src/LexicalMarkdownEditor.tsx` adapts that bounded editor state to Lexical
+  DOM selection and renders collaborator geometry.
 - `src/incremental-markdown.ts` contains the renderer-neutral, cancelable parser.
-- `src/MarkdownWorkspace.tsx` owns only React viewport, local input, and DOM
-  lifecycle state.
+- `src/MarkdownWorkspace.tsx` owns application viewport policy, parser work,
+  simulated identities, and UI state.
 - `INNOVATIONS.md` records the new core seam and the deliberate production
   boundaries.
 

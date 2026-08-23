@@ -80,38 +80,6 @@ export function $insertTextAtBlankLineBoundary(
 	return true
 }
 
-/** Carry a root-relative selection through one authoritative text replacement. */
-export function transformSelectionAcrossTextChange(
-	before: string,
-	after: string,
-	selection: readonly [number, number],
-): readonly [number, number] {
-	let start = 0
-	while (
-		start < before.length &&
-		start < after.length &&
-		before[start] === after[start]
-	) {
-		start++
-	}
-	let suffix = 0
-	while (
-		suffix < before.length - start &&
-		suffix < after.length - start &&
-		before[before.length - suffix - 1] === after[after.length - suffix - 1]
-	) {
-		suffix++
-	}
-	const end = before.length - suffix
-	const insertedLength = after.length - start - suffix
-	const transform = (offset: number): number => {
-		if (offset < start) return offset
-		if (offset > end) return offset + insertedLength - (end - start)
-		return start + insertedLength
-	}
-	return [transform(selection[0]), transform(selection[1])]
-}
-
 /** Convert a root-relative UTF-16 offset back to a Lexical node-local point. */
 export function $pointAtRootOffset(
 	root: ElementNode,

@@ -1,4 +1,5 @@
 import { act, render, waitFor } from "@testing-library/react"
+import { transformMosaicTextSelection } from "atom.io/realtime-client"
 import {
 	$createLineBreakNode,
 	$createParagraphNode,
@@ -18,7 +19,6 @@ import {
 	$pointAtRootOffset,
 	lineEndCaretReference,
 	lineStartCaretReference,
-	transformSelectionAcrossTextChange,
 } from "../src/lexical-linear-offset.ts"
 
 describe(`Lexical Markdown editor`, () => {
@@ -87,25 +87,21 @@ describe(`Lexical Markdown editor`, () => {
 
 	test(`moves carets and reversed selections across remote prefixes`, () => {
 		expect(
-			transformSelectionAcrossTextChange(
-				`alpha omega`,
-				`prefix alpha omega`,
-				[6, 6],
-			),
+			transformMosaicTextSelection(`alpha omega`, `prefix alpha omega`, [6, 6]),
 		).toEqual([13, 13])
 		expect(
-			transformSelectionAcrossTextChange(
+			transformMosaicTextSelection(
 				`prefix alpha omega`,
 				`prefix more alpha omega`,
 				[18, 13],
 			),
 		).toEqual([23, 18])
 		expect(
-			transformSelectionAcrossTextChange(`prefix alpha`, `prefix`, [12, 12]),
+			transformMosaicTextSelection(`prefix alpha`, `prefix`, [12, 12]),
 		).toEqual([6, 6])
-		expect(
-			transformSelectionAcrossTextChange(`alpha`, `alpha!`, [2, 2]),
-		).toEqual([2, 2])
+		expect(transformMosaicTextSelection(`alpha`, `alpha!`, [2, 2])).toEqual([
+			2, 2,
+		])
 	})
 
 	test(`locates leading, interior, and trailing empty-line carets`, () => {

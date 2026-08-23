@@ -179,6 +179,7 @@ export async function createMarkdownCollaborationClient(options: {
 	})
 	const presence = createMosaicDomainPresenceClient({
 		domain,
+		renewalMs: presenceRenewalMs,
 		session: sessionId,
 		transport: presenceTransport,
 	})
@@ -201,7 +202,6 @@ export async function createMarkdownCollaborationClient(options: {
 	let commandSequence = 0
 	let pendingCommands = 0
 	let disposed = false
-	let latestPresence: MarkdownPresence | null = null
 	const connectionWaiters = new Set<() => void>()
 	let commandTail = Promise.resolve()
 	let synchronization = Promise.resolve()
@@ -233,13 +233,6 @@ export async function createMarkdownCollaborationClient(options: {
 		const value = status()
 		for (const listener of listeners) listener(value)
 	}
-	const publishLatestPresence = async (): Promise<void> => {
-		if (latestPresence === null) return
-		await presence.publish(
-			domain.address(`collaborator`, markdownPresenceKey(latestPresence)),
-			latestPresence,
-		)
-	}
 	const synchronize = async (): Promise<void> => {
 		await residency.reconnect()
 		try {
@@ -248,7 +241,7 @@ export async function createMarkdownCollaborationClient(options: {
 			// Presence is advisory and retains its actionable state.
 		}
 		await presence.refresh()
-		await publishLatestPresence().catch(() => undefined)
+		await presence.republish().catch(() => undefined)
 		if (history.state.snapshot === null) await history.start()
 		else await history.refresh()
 		notify()
@@ -362,25 +355,6 @@ export async function createMarkdownCollaborationClient(options: {
 	const stopResidency = residency.subscribeState(notify)
 	const stopPresence = presence.subscribe(notify)
 	const stopHistory = history.subscribe(notify)
-	let presenceRenewalInFlight = false
-	const presenceRenewalTimer = setInterval(() => {
-		if (
-			disposed ||
-			!socket.connected ||
-			latestPresence === null ||
-			presence.state.pending > 0 ||
-			presenceRenewalInFlight
-		) {
-			return
-		}
-		presenceRenewalInFlight = true
-		void publishLatestPresence()
-			.catch(() => undefined)
-			.finally(() => {
-				presenceRenewalInFlight = false
-			})
-	}, presenceRenewalMs)
-	;(presenceRenewalTimer as { unref?: () => void }).unref?.()
 	const reconnect = (): void => {
 		synchronizingConnection = true
 		notify()
@@ -410,12 +384,15 @@ export async function createMarkdownCollaborationClient(options: {
 		presence,
 		projection,
 		publishPresence(value) {
-			latestPresence = structuredClone({
+			const latestPresence = structuredClone({
 				...value,
 				actor: identity.id,
 				session: sessionId,
 			})
-			return publishLatestPresence()
+			return presence.publish(
+				domain.address(`collaborator`, markdownPresenceKey(latestPresence)),
+				latestPresence,
+			)
 		},
 		redo: () => requestHistory(`redo`),
 		replace({ selection, text }) {
@@ -439,7 +416,6 @@ export async function createMarkdownCollaborationClient(options: {
 		[Symbol.dispose]() {
 			if (disposed) return
 			disposed = true
-			clearInterval(presenceRenewalTimer)
 			for (const cancel of [...connectionWaiters]) cancel()
 			connectionWaiters.clear()
 			socket.off(`connect`, reconnect)

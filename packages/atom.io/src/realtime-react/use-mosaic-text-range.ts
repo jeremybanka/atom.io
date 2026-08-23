@@ -75,12 +75,12 @@ export function useMosaicTextRange(
 					{ end, kind: `utf16-range`, start },
 					(projection) => {
 						if (!active) return
-						// A subscription can learn the new logical range before its
-						// resident leaves settle. Do not expose that shorter intermediate
-						// value to renderers as an authoritative projection.
+						// Projection completeness is a core contract; retain the last
+						// complete viewport while its replacement cut settles.
 						if (
+							projection.complete === false ||
 							projection.text.length !==
-							projection.range.end - projection.range.start
+								projection.range.end - projection.range.start
 						) {
 							return
 						}

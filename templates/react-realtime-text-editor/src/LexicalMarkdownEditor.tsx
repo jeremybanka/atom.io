@@ -1,4 +1,5 @@
 import { createDOMRange, createRectsFromDOMRange } from "@lexical/selection"
+import { transformMosaicTextSelection } from "atom.io/realtime-client"
 import { ContentEditable } from "@lexical/react/LexicalContentEditable"
 import { LexicalComposer } from "@lexical/react/LexicalComposer"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
@@ -39,7 +40,6 @@ import {
 	$pointAtRootOffset,
 	lineEndCaretReference,
 	lineStartCaretReference,
-	transformSelectionAcrossTextChange,
 } from "./lexical-linear-offset.ts"
 
 const MOSAIC_PROJECTION_TAG = `mosaic-projection`
@@ -259,7 +259,7 @@ function MosaicProjectionPlugin({
 					selection ??
 					(offsets === null
 						? null
-						: transformSelectionAcrossTextChange(previousValue, value, offsets))
+						: transformMosaicTextSelection(previousValue, value, offsets))
 				const paragraph = $createParagraphNode()
 				root.clear().append(paragraph)
 				if (value.length === 0) {

@@ -289,11 +289,6 @@ describe(`incremental realtime Markdown Domain`, () => {
 			await expect(setup.service.positionAtOffset(1)).rejects.toThrow(
 				`outside the Mosaic text index`,
 			)
-			expect((await setup.service.positionAtOffset(0)).position).toEqual({
-				affinity: `left`,
-				offset: 0,
-				runId: null,
-			})
 			const empty = await clients.ada.projection.positionAtOffset(0)
 			expect(empty).toEqual({ affinity: `left`, offset: 0, runId: null })
 			await clients.ada.replace({

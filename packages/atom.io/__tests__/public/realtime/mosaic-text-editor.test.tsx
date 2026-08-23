@@ -615,4 +615,111 @@ describe(`Mosaic text editing`, () => {
 		).toEqual([])
 		rendered.unmount()
 	})
+
+	test(`never collapses a future collaborator position onto the displayed end`, async () => {
+		let projection = projected(`abcdef`, 0)
+		let peers: readonly MosaicTextEditorPeer<Peer>[] = [
+			{
+				id: `lin`,
+				selection: {
+					anchor: { affinity: `left`, offset: 2, runId: `base` },
+					head: { affinity: `left`, offset: 2, runId: `base` },
+				},
+				value: { name: `Lin` },
+			},
+		]
+		let resolveFuture: ((offset: number) => void) | null = null
+		const future = new Promise<number>((resolve) => {
+			resolveFuture = resolve
+		})
+		let view: MosaicTextEditorView<Peer> | null = null
+		const client = {
+			positionAtOffset: () => Promise.reject(new Error(`unused`)),
+			readLength: () => Promise.resolve(projection.text.length),
+			resolvePosition: () => future,
+		} as Pick<
+			MosaicTextProjectionClient,
+			`positionAtOffset` | `readLength` | `resolvePosition`
+		>
+		const Probe = (): ReactElement => {
+			view = useMosaicTextEditor({
+				client,
+				connected: true,
+				documentLength: projection.text.length,
+				peers,
+				projection,
+				publishSelection: () => undefined,
+				replace: () => Promise.resolve(),
+			})
+			return <output>{view.text}</output>
+		}
+		const rendered = render(<Probe />)
+		await waitFor(() => {
+			expect(view?.remoteSelections).toMatchObject([
+				{ end: 2, id: `lin`, start: 2 },
+			])
+		})
+
+		projection = {
+			...projected(`++abcdef`, 1),
+			segments: [
+				{
+					end: 8,
+					fragments: [
+						{ runId: `prefix`, start: 0, text: `++` },
+						{ runId: `base`, start: 0, text: `abcdef` },
+					],
+					id: `leaf:1`,
+					start: 0,
+					text: `++abcdef`,
+				},
+			],
+		}
+		peers = [
+			{
+				...peers[0],
+				selection: {
+					anchor: { affinity: `left`, offset: 2, runId: `future` },
+					head: { affinity: `left`, offset: 2, runId: `future` },
+				},
+			},
+		]
+		rendered.rerender(<Probe />)
+		await waitFor(() => {
+			expect(view?.text).toBe(`++abcdef`)
+		})
+		expect(
+			(view as unknown as MosaicTextEditorView<Peer>).remoteSelections,
+		).toMatchObject([{ end: 4, id: `lin`, start: 4 }])
+
+		act(() => resolveFuture?.(8))
+		await new Promise((resolve) => setTimeout(resolve, 10))
+		expect(
+			(view as unknown as MosaicTextEditorView<Peer>).remoteSelections,
+		).toMatchObject([{ end: 4, id: `lin`, start: 4 }])
+
+		projection = {
+			...projection,
+			revision: 2,
+			segments: [
+				{
+					end: 8,
+					fragments: [
+						{ runId: `prefix`, start: 0, text: `++` },
+						{ runId: `future`, start: 0, text: `abcdef` },
+					],
+					id: `leaf:2`,
+					start: 0,
+					text: `++abcdef`,
+				},
+			],
+		}
+		rendered.rerender(<Probe />)
+		await waitFor(() => {
+			expect(view?.remoteSelections).toMatchObject([
+				{ end: 4, id: `lin`, start: 4 },
+			])
+		})
+		rendered.unmount()
+	})
 })

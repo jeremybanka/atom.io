@@ -279,8 +279,8 @@ importers:
         specifier: 0.2.3
         version: 0.2.3
       treetrunks:
-        specifier: 0.1.8
-        version: 0.1.8
+        specifier: 0.1.9
+        version: 0.1.9
       tsdown:
         specifier: 0.22.14
         version: 0.22.14(@tsdown/css@0.22.14)(oxc-resolver@11.21.2)(tsx@4.22.1)(typescript@7.0.2)
@@ -6666,6 +6666,9 @@ packages:
 
   treetrunks@0.1.8:
     resolution: {integrity: sha512-fD1vRlo9LqlSxjnKlyZvJ6U4hrOIwNUrSEl+3npElgpm7UvwwVqh6ncl8663IqhIxMy34BQILddW5vgz/NaGbA==}
+
+  treetrunks@0.1.9:
+    resolution: {integrity: sha512-+K9abw3ZRJ3dKrSPNmUWMyGYkTjL++2WkehbxywrnsdgHHClPbBLY5L1ksKtKF/JfX4RzxaUj9tONAW5hgRABw==}
 
   trim-lines@3.0.1:
     resolution: {integrity: sha512-kRj8B+YHZCc9kQYdWfJB2/oUl9rA99qbowYYBtr4ui4mZyAQ2JpvVBd/6U2YloATfqBhBTSMhTpgBHtU0Mf3Rg==}
@@ -13901,6 +13904,8 @@ snapshots:
   treetrunks@0.1.7: {}
 
   treetrunks@0.1.8: {}
+
+  treetrunks@0.1.9: {}
 
   trim-lines@3.0.1: {}
 

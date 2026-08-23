@@ -205,6 +205,7 @@ export async function createMarkdownCollaborationClient(options: {
 	const connectionWaiters = new Set<() => void>()
 	let commandTail = Promise.resolve()
 	let synchronization = Promise.resolve()
+	let synchronizingConnection = false
 	const listeners = new Set<(status: MarkdownClientStatus) => void>()
 
 	const status = (): MarkdownClientStatus => {
@@ -218,14 +219,12 @@ export async function createMarkdownCollaborationClient(options: {
 						  historyState.status === `offline` ||
 						  residencyState.connectivity === `offline`
 						? `offline`
-						: historyState.status === `live` &&
-							  residencyState.connectivity === `live`
-							? `live`
-							: `connecting`,
-			pending:
-				pendingCommands +
-				historyState.pending +
-				residencyState.pendingBatchIds.length,
+						: synchronizingConnection
+							? `connecting`
+							: `live`,
+			// Residency also tracks accepted batches arriving from collaborators.
+			// Only work initiated by this client belongs in its save indicator.
+			pending: pendingCommands + historyState.pending,
 			reason:
 				residencyState.problem?.reason ?? historyState.problem?.reason ?? null,
 		}
@@ -383,15 +382,25 @@ export async function createMarkdownCollaborationClient(options: {
 	}, presenceRenewalMs)
 	;(presenceRenewalTimer as { unref?: () => void }).unref?.()
 	const reconnect = (): void => {
-		synchronization = synchronize()
-		void synchronization.catch(notify)
+		synchronizingConnection = true
+		notify()
+		const work = synchronize()
+		synchronization = work
+		void work.catch(notify).finally(() => {
+			if (synchronization !== work) return
+			synchronizingConnection = false
+			notify()
+		})
 	}
 	const disconnect = (): void => notify()
 	socket.on(`connect`, reconnect)
 	socket.on(`disconnect`, disconnect)
 	if (socket.connected) {
-		synchronization = synchronize()
-		await synchronization.catch(() => undefined)
+		synchronizingConnection = true
+		const work = synchronize()
+		synchronization = work
+		await work.catch(() => undefined)
+		if (synchronization === work) synchronizingConnection = false
 	}
 
 	return {

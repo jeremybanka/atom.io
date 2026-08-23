@@ -176,6 +176,15 @@ function measureSelection(
 	if (rootElement === null) return null
 	return editor.getEditorState().read(() => {
 		const root = $getRoot()
+		const length = root.getTextContentSize()
+		if (
+			selection.start < 0 ||
+			selection.end < 0 ||
+			selection.start > length ||
+			selection.end > length
+		) {
+			return null
+		}
 		const start = $pointAtRootOffset(
 			root,
 			Math.min(selection.start, selection.end),
@@ -361,8 +370,10 @@ function MosaicInputPlugin({
 
 function MosaicPresencePlugin({
 	selections,
+	value,
 }: {
 	readonly selections: readonly RenderedCollaboratorSelection[]
+	readonly value: string
 }): ReactElement {
 	const [editor] = useLexicalComposerContext()
 	const [overlays, setOverlays] = useState<readonly OverlaySelection[]>([])
@@ -374,10 +385,18 @@ function MosaicPresencePlugin({
 			if (frame !== null) cancelAnimationFrame(frame)
 			frame = requestAnimationFrame(() => {
 				frame = null
-				setOverlays(
+				const editorHasProjection = editor
+					.getEditorState()
+					.read(() => $getRoot().getTextContent() === value)
+				if (!editorHasProjection) return
+				setOverlays((current) =>
 					selections.flatMap((selection) => {
 						const measured = measureSelection(editor, selection)
-						return measured === null ? [] : [measured]
+						if (measured !== null) return [measured]
+						const previous = current.find(
+							(candidate) => candidate.session === selection.session,
+						)
+						return previous === undefined ? [] : [previous]
 					}),
 				)
 			})
@@ -407,7 +426,7 @@ function MosaicPresencePlugin({
 			resizeObserver?.disconnect()
 			window.removeEventListener(`resize`, render)
 		}
-	}, [editor, selections])
+	}, [editor, selections, value])
 
 	return (
 		<collaborator-overlays aria-hidden="true">
@@ -421,6 +440,9 @@ function MosaicPresencePlugin({
 						key={selection.session}
 						data-collaborator={selection.name}
 						data-presence-kind={collapsed ? `caret` : `selection`}
+						data-selection-end={selection.end}
+						data-selection-start={selection.start}
+						data-session={selection.session}
 						style={style}
 					>
 						{collapsed
@@ -455,6 +477,7 @@ function MosaicPresencePlugin({
 }
 
 function LexicalEditor({
+	onDirty,
 	onKeyDown,
 	onSelectionChange,
 	onValueChange,
@@ -462,6 +485,7 @@ function LexicalEditor({
 	selections,
 	value,
 }: {
+	readonly onDirty: () => void
 	readonly onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void
 	readonly onSelectionChange: (anchor: number, head: number) => void
 	readonly onValueChange: (value: string, composing: boolean) => void
@@ -478,6 +502,7 @@ function LexicalEditor({
 					<ContentEditable
 						aria-label="Shared markdown source viewport"
 						id="markdown-source"
+						onBeforeInput={onDirty}
 						onKeyDown={onKeyDown}
 						spellCheck
 					/>
@@ -500,13 +525,14 @@ function LexicalEditor({
 				suppressedSelectionRef={suppressedSelectionRef}
 				value={value}
 			/>
-			<MosaicPresencePlugin selections={selections} />
+			<MosaicPresencePlugin selections={selections} value={value} />
 		</lexical-editor>
 	)
 }
 
 export function LexicalMarkdownEditor({
 	onError,
+	onDirty = () => undefined,
 	onRedo,
 	onSelectionChange,
 	onUndo,
@@ -515,6 +541,7 @@ export function LexicalMarkdownEditor({
 	selections,
 	value,
 }: {
+	readonly onDirty?: () => void
 	readonly onError: (error: Error) => void
 	readonly onRedo: () => void
 	readonly onSelectionChange: (anchor: number, head: number) => void
@@ -545,6 +572,7 @@ export function LexicalMarkdownEditor({
 				}}
 			>
 				<LexicalEditor
+					onDirty={onDirty}
 					onKeyDown={onKeyDown}
 					onSelectionChange={onSelectionChange}
 					onValueChange={onValueChange}

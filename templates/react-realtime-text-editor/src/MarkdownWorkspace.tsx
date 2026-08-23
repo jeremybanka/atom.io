@@ -1,6 +1,10 @@
 import { useMosaicTextRange } from "atom.io/realtime-react"
 import type { MosaicTextRangeProjection } from "atom.io/realtime-client"
 import {
+	splitMosaicText,
+	type MosaicTextRelativePosition,
+} from "atom.io/realtime"
+import {
 	Fragment,
 	createElement,
 	type CSSProperties,
@@ -43,6 +47,10 @@ type RenderedProjection = {
 	readonly projection: MosaicTextRangeProjection
 	readonly selection: readonly [number, number] | null
 }
+type ResolvedRemoteSelections = {
+	readonly projection: MosaicTextRangeProjection
+	readonly selections: readonly RenderedCollaboratorSelection[]
+}
 
 const EMPTY_PARSE_METRICS: MarkdownParseInstrumentation = {
 	canceled: false,
@@ -52,6 +60,7 @@ const EMPTY_PARSE_METRICS: MarkdownParseInstrumentation = {
 	scannedUtf16Units: 0,
 	stableBoundaryIndex: null,
 }
+const WAITING_FOR_RESIDENT_SELECTION = Symbol(`waiting-for-resident-selection`)
 
 function safeHref(candidate: string): string | undefined {
 	return /^(https?:\/\/|mailto:|#)/u.test(candidate) ? candidate : undefined
@@ -121,13 +130,17 @@ function activePresence(
 	)
 }
 
-function statusLabel(status: MarkdownClientStatus): string {
+function statusLabel(
+	status: MarkdownClientStatus,
+	hasLocalDraft: boolean,
+): string {
 	if (status.connection === `offline`) return `Offline · draft stays local`
 	if (status.connection === `recovering`) return `Resnapshotting working set…`
 	if (status.connection === `connecting`) return `Connecting…`
-	return status.pending === 0
+	const pending = Math.max(status.pending, hasLocalDraft ? 1 : 0)
+	return pending === 0
 		? `All changes saved`
-		: `Saving ${status.pending} gesture${status.pending === 1 ? `` : `s`}…`
+		: `Saving ${pending} gesture${pending === 1 ? `` : `s`}…`
 }
 
 const commonEdit = (before: string, after: string) => {
@@ -154,6 +167,72 @@ const commonEdit = (before: string, after: string) => {
 	}
 }
 
+function resolvePositionInProjection(
+	projection: MosaicTextRangeProjection,
+	position: MosaicTextRelativePosition,
+): number | null {
+	if (position.runId === null) return null
+	for (const segment of projection.segments) {
+		let utf16 = 0
+		for (const fragment of segment.fragments) {
+			if (fragment.runId === position.runId) {
+				const graphemes = splitMosaicText(fragment.text)
+				const local = position.offset - fragment.start
+				if (local < 0) return null
+				if (local === 0 && position.affinity === `right`) {
+					return segment.start + utf16
+				}
+				if (local === graphemes.length && position.affinity === `left`) {
+					return segment.start + utf16 + fragment.text.length
+				}
+				if (local > 0 && local < graphemes.length) {
+					let localUtf16 = 0
+					for (let index = 0; index < local; index++) {
+						localUtf16 += graphemes[index].length
+					}
+					return segment.start + utf16 + localUtf16
+				}
+			}
+			utf16 += fragment.text.length
+		}
+	}
+	return null
+}
+
+function positionAtOffsetInProjection(
+	projection: MosaicTextRangeProjection,
+	absoluteOffset: number,
+): MosaicTextRelativePosition | null {
+	for (const segment of projection.segments) {
+		if (absoluteOffset < segment.start || absoluteOffset > segment.end) continue
+		let remaining = absoluteOffset - segment.start
+		for (const fragment of segment.fragments) {
+			const graphemes = splitMosaicText(fragment.text)
+			let utf16 = 0
+			for (let index = 0; index < graphemes.length; index++) {
+				const next = utf16 + graphemes[index].length
+				if (remaining < next) {
+					return {
+						affinity: `right`,
+						offset: fragment.start + index,
+						runId: fragment.runId,
+					}
+				}
+				if (remaining === next) {
+					return {
+						affinity: `left`,
+						offset: fragment.start + index + 1,
+						runId: fragment.runId,
+					}
+				}
+				utf16 = next
+			}
+			remaining -= utf16
+		}
+	}
+	return null
+}
+
 export function MarkdownWorkspace({
 	client,
 }: MarkdownWorkspaceProps): ReactElement {
@@ -164,12 +243,12 @@ export function MarkdownWorkspace({
 	totalLengthRef.current = totalLength
 	const [scroll, setScroll] = useState({ height: 560, scrollTop: 0 })
 	const [draft, setDraft] = useState<string | null>(null)
+	const [localDirty, setLocalDirty] = useState(false)
 	const [parse, setParse] = useState<readonly MarkdownSemanticBlock[]>([])
 	const [parseMetrics, setParseMetrics] =
 		useState<MarkdownParseInstrumentation>(EMPTY_PARSE_METRICS)
-	const [remoteSelections, setRemoteSelections] = useState<
-		readonly RenderedCollaboratorSelection[]
-	>([])
+	const [resolvedRemoteSelections, setResolvedRemoteSelections] =
+		useState<ResolvedRemoteSelections | null>(null)
 	const [readProblem, setReadProblem] = useState<string | null>(null)
 	const [problem, setProblem] = useState<string | null>(null)
 	const parser = useRef(new IncrementalMarkdownParser())
@@ -181,6 +260,7 @@ export function MarkdownWorkspace({
 		headOffset: number
 	} | null>(null)
 	const resolvedPendingSelection = useRef<typeof pendingSelection.current>(null)
+	const localSelectionPending = useRef(false)
 	const committing = useRef(false)
 	const commitTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 	const deferredScroll = useRef<typeof scroll | null>(null)
@@ -211,18 +291,21 @@ export function MarkdownWorkspace({
 	projectionRef.current = projection
 	const displayed = draft ?? projection?.text ?? ``
 	const displayedRemoteSelections = useMemo(() => {
-		if (projection === null || projection.text === displayed) {
-			return remoteSelections
+		if (projection === null || resolvedRemoteSelections === null) return []
+		const resolvedProjection = resolvedRemoteSelections.projection
+		if (resolvedProjection.range.start !== projection.range.start) return []
+		if (resolvedProjection.text === displayed) {
+			return resolvedRemoteSelections.selections
 		}
-		return remoteSelections.map((selection) => {
+		return resolvedRemoteSelections.selections.map((selection) => {
 			const [start, end] = transformSelectionAcrossTextChange(
-				projection.text,
+				resolvedProjection.text,
 				displayed,
 				[selection.start, selection.end],
 			)
 			return { ...selection, end, start }
 		})
-	}, [displayed, projection, remoteSelections])
+	}, [displayed, projection, resolvedRemoteSelections])
 	const publishPendingSelection = useCallback((): void => {
 		const selection = pendingSelection.current
 		const currentProjection = projectionRef.current
@@ -234,12 +317,25 @@ export function MarkdownWorkspace({
 		) {
 			return
 		}
-		if (resolvedPendingSelection.current === selection) return
+		if (
+			!localSelectionPending.current &&
+			resolvedPendingSelection.current === selection
+		) {
+			return
+		}
 		const anchorIndex = currentProjection.range.start + selection.anchorOffset
 		const headIndex = currentProjection.range.start + selection.headOffset
+		const residentAnchor = positionAtOffsetInProjection(
+			currentProjection,
+			anchorIndex,
+		)
+		const residentHead = positionAtOffsetInProjection(
+			currentProjection,
+			headIndex,
+		)
 		void Promise.all([
-			client.projection.positionAtOffset(anchorIndex),
-			client.projection.positionAtOffset(headIndex),
+			residentAnchor ?? client.projection.positionAtOffset(anchorIndex),
+			residentHead ?? client.projection.positionAtOffset(headIndex),
 		]).then(([anchor, head]) => {
 			// A later local selection or draft supersedes this asynchronous lookup.
 			if (
@@ -252,6 +348,7 @@ export function MarkdownWorkspace({
 			const resolvedSelection = { anchor, head }
 			resolvedPendingSelection.current = selection
 			logicalSelection.current = resolvedSelection
+			localSelectionPending.current = false
 			return client.publishPresence({
 				color: client.identity.color,
 				name: client.identity.name,
@@ -263,18 +360,54 @@ export function MarkdownWorkspace({
 
 	useEffect(() => {
 		if (incomingProjection === null) return
+		if (
+			pendingDraft.current !== null ||
+			settledDraftRef.current !== null ||
+			localSelectionPending.current
+		) {
+			const localSelection = pendingSelection.current
+			setRenderedProjection({
+				projection: incomingProjection,
+				selection:
+					localSelection === null
+						? null
+						: [localSelection.anchorOffset, localSelection.headOffset],
+			})
+			return
+		}
 		const selection = logicalSelection.current
 		if (selection === null) {
 			setRenderedProjection({ projection: incomingProjection, selection: null })
 			return
 		}
 		let active = true
-		void Promise.all([
-			client.projection.resolvePosition(selection.anchor),
-			client.projection.resolvePosition(selection.head),
-		]).then(([anchor, head]) => {
+		const residentAnchor = resolvePositionInProjection(
+			incomingProjection,
+			selection.anchor,
+		)
+		const residentHead = resolvePositionInProjection(
+			incomingProjection,
+			selection.head,
+		)
+		const resolved =
+			residentAnchor === null || residentHead === null
+				? Promise.all([
+						client.projection.resolvePosition(selection.anchor),
+						client.projection.resolvePosition(selection.head),
+					])
+				: Promise.resolve([residentAnchor, residentHead] as const)
+		void resolved.then(([anchor, head]) => {
 			if (!active || logicalSelection.current !== selection) return
 			const start = incomingProjection.range.start
+			const residentEnd = start + incomingProjection.text.length
+			if (
+				[anchor, head].some(
+					(offset) =>
+						offset > residentEnd && offset <= incomingProjection.range.end,
+				)
+			) {
+				return
+			}
 			const projectedSelection = {
 				anchorOffset: Math.max(
 					0,
@@ -339,9 +472,13 @@ export function MarkdownWorkspace({
 					base.range.start,
 					base.range.end + pending.value.length - base.text.length,
 				)
+				const anchorOffset = base.range.start + change.start
+				const headOffset = base.range.start + change.end
+				const residentAnchor = positionAtOffsetInProjection(base, anchorOffset)
+				const residentHead = positionAtOffsetInProjection(base, headOffset)
 				const [anchor, head] = await Promise.all([
-					client.projection.positionAtOffset(base.range.start + change.start),
-					client.projection.positionAtOffset(base.range.start + change.end),
+					residentAnchor ?? client.projection.positionAtOffset(anchorOffset),
+					residentHead ?? client.projection.positionAtOffset(headOffset),
 				])
 				// Do not send an intermediate snapshot if the user changed it while
 				// its logical anchors were being resolved. The newer draft will be
@@ -368,6 +505,7 @@ export function MarkdownWorkspace({
 			if (pendingDraft.current === pending) {
 				pendingDraft.current = null
 				setDraft(null)
+				setLocalDirty(false)
 				settledDraftRef.current = null
 				setSettledDraft(null)
 				if (deferredScroll.current !== null) {
@@ -409,6 +547,7 @@ export function MarkdownWorkspace({
 		setSettledDraft(null)
 		if (pendingDraft.current === null) {
 			setDraft(null)
+			setLocalDirty(false)
 			if (deferredScroll.current !== null) {
 				setScroll(deferredScroll.current)
 				deferredScroll.current = null
@@ -481,7 +620,7 @@ export function MarkdownWorkspace({
 
 	useEffect(() => {
 		if (projection === null) {
-			setRemoteSelections([])
+			setResolvedRemoteSelections(null)
 			return
 		}
 		let active = true
@@ -492,20 +631,35 @@ export function MarkdownWorkspace({
 		void Promise.all(
 			peers.map(async (person) => {
 				try {
-					const [anchor, head] = await Promise.all([
-						client.projection.resolvePosition(person.selection!.anchor),
-						client.projection.resolvePosition(person.selection!.head),
-					])
+					const residentAnchor = resolvePositionInProjection(
+						projection,
+						person.selection!.anchor,
+					)
+					const residentHead = resolvePositionInProjection(
+						projection,
+						person.selection!.head,
+					)
+					const [anchor, head] =
+						residentAnchor === null || residentHead === null
+							? await Promise.all([
+									client.projection.resolvePosition(person.selection!.anchor),
+									client.projection.resolvePosition(person.selection!.head),
+								])
+							: [residentAnchor, residentHead]
 					const absoluteStart = Math.min(anchor, head)
 					const absoluteEnd = Math.max(anchor, head)
 					const viewStart = projection.range.start
 					const viewEnd = projection.range.end
+					const residentEnd = viewStart + projection.text.length
 					if (
 						absoluteStart === absoluteEnd
 							? absoluteStart < viewStart || absoluteStart > viewEnd
 							: absoluteEnd <= viewStart || absoluteStart >= viewEnd
 					) {
 						return null
+					}
+					if (absoluteEnd > residentEnd) {
+						return WAITING_FOR_RESIDENT_SELECTION
 					}
 					return {
 						color: person.color,
@@ -522,7 +676,15 @@ export function MarkdownWorkspace({
 				}
 			}),
 		).then((resolved) => {
-			if (active) setRemoteSelections(resolved.filter((item) => item !== null))
+			if (active && !resolved.includes(WAITING_FOR_RESIDENT_SELECTION)) {
+				setResolvedRemoteSelections({
+					projection,
+					selections: resolved.filter(
+						(item): item is RenderedCollaboratorSelection =>
+							item !== null && item !== WAITING_FOR_RESIDENT_SELECTION,
+					),
+				})
+			}
 		})
 		return () => {
 			active = false
@@ -553,7 +715,7 @@ export function MarkdownWorkspace({
 				</brand-lockup>
 				<document-title>
 					<strong>Launch field notes</strong>
-					<span>{statusLabel(status)}</span>
+					<span>{statusLabel(status, localDirty || draft !== null)}</span>
 				</document-title>
 				<toolbar-actions>
 					<button type="button" onClick={() => void client.undo()}>
@@ -619,17 +781,26 @@ export function MarkdownWorkspace({
 						) : null}
 						{projection ? (
 							<LexicalMarkdownEditor
+								onDirty={() => {
+									localSelectionPending.current = true
+									setLocalDirty(true)
+								}}
 								onError={(error) => setProblem(error.message)}
 								onRedo={() => void client.redo()}
 								onSelectionChange={publishSelection}
 								onUndo={() => void client.undo()}
 								onValueChange={(value, composing) => {
 									if (value === displayed) {
+										if (pendingDraft.current === null) {
+											localSelectionPending.current = false
+											setLocalDirty(false)
+										}
 										if (!composing && pendingDraft.current !== null) {
 											scheduleCommit()
 										}
 										return
 									}
+									localSelectionPending.current = true
 									setDraft(value)
 									pendingDraft.current = { value }
 									if (!composing) scheduleCommit()
@@ -693,7 +864,7 @@ export function MarkdownWorkspace({
 			</main>
 			<footer>
 				<span data-status={status.connection} />
-				<strong>{statusLabel(status)}</strong>
+				<strong>{statusLabel(status, localDirty || draft !== null)}</strong>
 				<small>
 					Resident {client.residency.state.residentMemberCount} members
 				</small>

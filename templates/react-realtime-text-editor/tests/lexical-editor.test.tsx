@@ -85,6 +85,62 @@ describe(`Lexical Markdown editor`, () => {
 		})
 	})
 
+	test(`advances collaborator semantics in the projection render`, async () => {
+		const properties = {
+			onError: (error: Error) => {
+				throw error
+			},
+			onRedo: () => undefined,
+			onSelectionChange: () => undefined,
+			onUndo: () => undefined,
+			onValueChange: () => undefined,
+		}
+		const rendered = render(
+			<LexicalMarkdownEditor
+				{...properties}
+				selections={[
+					{
+						color: `#f00`,
+						end: 6,
+						name: `Lin`,
+						session: `lin-session`,
+						start: 6,
+					},
+				]}
+				value="alpha kind"
+			/>,
+		)
+		await rendered.findByRole(`textbox`)
+		await waitFor(() => {
+			expect(
+				rendered.container
+					.querySelector(`collaborator-presence`)
+					?.getAttribute(`data-selection-end`),
+			).toBe(`6`)
+		})
+
+		rendered.rerender(
+			<LexicalMarkdownEditor
+				{...properties}
+				selections={[
+					{
+						color: `#f00`,
+						end: 7,
+						name: `Lin`,
+						session: `lin-session`,
+						start: 7,
+					},
+				]}
+				value="xalpha kind"
+			/>,
+		)
+		expect(
+			rendered.container
+				.querySelector(`collaborator-presence`)
+				?.getAttribute(`data-selection-end`),
+		).toBe(`7`)
+	})
+
 	test(`moves carets and reversed selections across remote prefixes`, () => {
 		expect(
 			transformMosaicTextSelection(`alpha omega`, `prefix alpha omega`, [6, 6]),
@@ -243,6 +299,36 @@ describe(`Lexical Markdown editor`, () => {
 					expect($insertTextAtBlankLineBoundary(selection, `marker`)).toBe(true)
 					expect(root.getTextContent()).toBe(`alpha\nmarker\n1. item`)
 					expect($getRootRelativeSelectionOffsets(selection)).toEqual([12, 12])
+				},
+				{ onUpdate: resolve },
+			)
+		})
+	})
+
+	test(`inserts text on an empty row represented after consecutive breaks`, async () => {
+		const editor = createEditor({
+			onError: (error) => {
+				throw error
+			},
+		})
+		await new Promise<void>((resolve) => {
+			editor.update(
+				() => {
+					const root = $getRoot()
+					const paragraph = $createParagraphNode().append(
+						$createTextNode(`alpha`),
+						$createLineBreakNode(),
+						$createLineBreakNode(),
+						$createTextNode(`1. item`),
+					)
+					root.clear().append(paragraph)
+					paragraph.select(3, 3)
+					const selection = $getSelection()
+					expect($isRangeSelection(selection)).toBe(true)
+					if (!$isRangeSelection(selection)) return
+					expect($insertTextAtBlankLineBoundary(selection, `marker`)).toBe(true)
+					expect(root.getTextContent()).toBe(`alpha\n\nmarker\n1. item`)
+					expect($getRootRelativeSelectionOffsets(selection)).toEqual([13, 13])
 				},
 				{ onUpdate: resolve },
 			)

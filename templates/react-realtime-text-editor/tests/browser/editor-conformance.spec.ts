@@ -111,7 +111,9 @@ async function focusLineStart(page: Page, prefix: string): Promise<void> {
 		.filter({ hasText: new RegExp(`^${prefix.replaceAll(`.`, `\\.`)}`) })
 		.first()
 	await expect(line).toBeVisible()
-	await line.click()
+	// Click the first rendered row, not the locator's visual center: long logical
+	// lines can wrap, and Home operates on the clicked visual row.
+	await line.click({ position: { x: 2, y: 2 } })
 	await page.keyboard.press(`Home`)
 }
 
@@ -166,7 +168,7 @@ test.describe(`Mosaic text editor browser conformance`, () => {
 		}
 	})
 
-	test(`known defect: typing from a settled empty-row boundary stays on that row`, async ({
+	test(`typing from a settled empty-row boundary stays on that row`, async ({
 		browser,
 	}) => {
 		const clients = await openClients(browser)
@@ -188,10 +190,6 @@ test.describe(`Mosaic text editor browser conformance`, () => {
 			await waitForSaved(clients.maya)
 
 			const settled = await sourceText(clients.maya)
-			test.fail(
-				true,
-				`Known defect: a settled blank-row element boundary redirects input into the following line.`,
-			)
 			expect(settled).toContain(`\n[EMPTY-LINE]\n1.`)
 			expect(settled).not.toContain(`[EMPTY-LINE]1.`)
 			await waitForText(clients.theo, settled)
@@ -203,7 +201,7 @@ test.describe(`Mosaic text editor browser conformance`, () => {
 		}
 	})
 
-	test(`known defect: seeded rapid replacements preserve a plain-text oracle`, async ({
+	test(`seeded rapid replacements preserve a plain-text oracle`, async ({
 		browser,
 	}) => {
 		test.setTimeout(90_000)
@@ -231,15 +229,11 @@ test.describe(`Mosaic text editor browser conformance`, () => {
 				oracle = `${oracle.slice(0, start)}${inserted}${oracle.slice(end)}`
 				expect(
 					await sourceText(clients.maya),
-					`seed 0x510c10 step ${step}`,
+					`seed 0x510c10 step ${step}: replace ${start}..${end} with ${JSON.stringify(inserted)}`,
 				).toBe(oracle)
 				await clients.maya.waitForTimeout(random.pick([20, 45, 90, 180]))
 			}
 
-			test.fail(
-				true,
-				`Known defect: a legal seeded edit schedule can leave one gesture permanently pending.`,
-			)
 			await waitForSaved(clients.maya)
 			await waitForText(clients.theo, oracle)
 			expect(await sourceText(clients.maya)).toBe(oracle)
@@ -248,7 +242,7 @@ test.describe(`Mosaic text editor browser conformance`, () => {
 		}
 	})
 
-	test(`known defect: remote cursors follow their semantic target in every frame`, async ({
+	test(`remote cursors follow their semantic target in every frame`, async ({
 		browser,
 	}) => {
 		const clients = await openClients(browser)
@@ -326,10 +320,6 @@ test.describe(`Mosaic text editor browser conformance`, () => {
 					sample.rect.height === 0 ||
 					sample.end !== sample.kind ||
 					sample.end === sample.length,
-			)
-			test.fail(
-				true,
-				`Known defect: collaborator positions lag their semantic target for one or more animation frames.`,
 			)
 			expect(invalid, JSON.stringify(invalid.slice(0, 12), null, 2)).toEqual([])
 

@@ -527,6 +527,29 @@ describe(`Mosaic text range projections`, () => {
 		expect(system.current.materializations).toBe(1)
 
 		const beforeUpdates = updates.length
+		const beforeInPlace = system.current.bundle
+		const firstLeaf = leaves(beforeInPlace)[0]
+		const firstFragment = firstLeaf.fragments[0]
+		const replacedFragment = {
+			...firstFragment,
+			text: `${firstFragment.text.slice(0, 3)}!${firstFragment.text.slice(4)}`,
+		}
+		const inPlace = {
+			members: beforeInPlace.members.map((member) =>
+				member.id === firstLeaf.id
+					? { ...firstLeaf, fragments: [replacedFragment] }
+					: member,
+			),
+			root: beforeInPlace.root,
+		} satisfies MosaicTextIndexBundle
+		expect(leaves(inPlace).map(({ id }) => id)).toEqual(
+			leaves(beforeInPlace).map(({ id }) => id),
+		)
+		await system.replaceIndex(inPlace)
+		await eventually(() => updates.length > beforeUpdates)
+		expect(updates.at(-1)).toBe(materializeBundle(inPlace).slice(2, 10))
+		const afterInPlaceUpdates = updates.length
+
 		const before = system.current.bundle
 		const next = maintainMosaicTextIndex(
 			before,
@@ -540,7 +563,9 @@ describe(`Mosaic text range projections`, () => {
 		)
 		await eventually(() => reader.residency.state.connectivity === `live`)
 		expect(await reader.client.readLength()).toBe(materializeBundle(next).length)
-		expect(updates.slice(beforeUpdates)).toEqual([`pha\nbeta`])
+		expect(updates.slice(afterInPlaceUpdates)).toEqual([
+			materializeBundle(inPlace).slice(2, 10),
+		])
 		expect(reader.residency.state.residentMemberCount).toBeLessThan(
 			leaves(next).length + 1,
 		)

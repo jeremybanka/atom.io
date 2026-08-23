@@ -371,10 +371,17 @@ export function useMosaicTextEditor<Value>(
 					base,
 					headOffset,
 				)
-				const [anchor, head] = await Promise.all([
-					residentAnchor ?? options.client.positionAtOffset(anchorOffset),
-					residentHead ?? options.client.positionAtOffset(headOffset),
-				])
+				const insertionPosition =
+					anchorOffset === headOffset
+						? positionAtMosaicTextProjectionOffset(base, anchorOffset, `right`)
+						: null
+				const [anchor, head] =
+					insertionPosition === null
+						? await Promise.all([
+								residentAnchor ?? options.client.positionAtOffset(anchorOffset),
+								residentHead ?? options.client.positionAtOffset(headOffset),
+							])
+						: ([insertionPosition, insertionPosition] as const)
 				if (pendingDraft.current !== pending) return
 				await replaceRef.current({
 					selection: { anchor, head },

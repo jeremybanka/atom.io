@@ -70,6 +70,9 @@ describe(`Mosaic text editing`, () => {
 			runId: `base`,
 		})
 		expect(
+			positionAtMosaicTextProjectionOffset(projection, 3, `right`),
+		).toMatchObject({ affinity: `right`, offset: 2, runId: `base` })
+		expect(
 			resolveMosaicTextProjectionPosition(projection, {
 				affinity: `left`,
 				offset: 2,
@@ -107,6 +110,67 @@ describe(`Mosaic text editing`, () => {
 		expect(
 			transformMosaicTextSelection(`prefix alpha`, `prefix`, [12, 12]),
 		).toEqual([6, 6])
+	})
+
+	test(`canonicalizes collapsed insertion boundaries before committing`, async () => {
+		const projection = projected(`a\n\nb`, 0)
+		let view: MosaicTextEditorView<Peer> | null = null
+		let replacement: {
+			readonly selection: MosaicTextSelection
+			readonly text: string
+		} | null = null
+		const positionReads: number[] = []
+		const client = {
+			positionAtOffset(offset: number) {
+				positionReads.push(offset)
+				return Promise.resolve({
+					affinity: `right` as const,
+					offset,
+					runId: `base`,
+				})
+			},
+			readLength: () => Promise.resolve(10),
+			resolvePosition: () => Promise.resolve(0),
+		} satisfies Pick<
+			MosaicTextProjectionClient,
+			`positionAtOffset` | `readLength` | `resolvePosition`
+		>
+		const Probe = (): ReactElement => {
+			view = useMosaicTextEditor({
+				client,
+				commitDelayMs: 1,
+				connected: true,
+				documentLength: projection.text.length,
+				peers: [],
+				projection,
+				publishSelection: () => undefined,
+				replace(input) {
+					replacement = input
+					return Promise.resolve()
+				},
+			})
+			return <output>{view.text}</output>
+		}
+		const rendered = render(<Probe />)
+		await waitFor(() => {
+			expect(view?.projection).not.toBeNull()
+		})
+		act(() => {
+			view?.onDirty()
+			view?.onValueChange(`a\nmarker\nb`, false)
+		})
+		await waitFor(() => {
+			expect(replacement).not.toBeNull()
+		})
+		expect(positionReads).toEqual([])
+		expect(replacement).toMatchObject({
+			selection: {
+				anchor: { affinity: `right`, offset: 2 },
+				head: { affinity: `right`, offset: 2 },
+			},
+			text: `marker`,
+		})
+		rendered.unmount()
 	})
 
 	test(`owns optimistic settlement, logical selections, and remote projection`, async () => {

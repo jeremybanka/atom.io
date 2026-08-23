@@ -125,7 +125,7 @@
 		"socket.io-client": "4.8.3",
 		"solid-js": "1.9.15",
 		"storybook": "10.5.10",
-		"takua": "0.2.2",
+		"takua": "0.2.3",
 		"treetrunks": "0.1.8",
 		"tsdown": "0.22.14",
 		"typescript": "7.0.2",

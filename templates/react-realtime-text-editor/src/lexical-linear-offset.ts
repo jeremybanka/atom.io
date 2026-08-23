@@ -1,4 +1,5 @@
 import {
+	$createLineBreakNode,
 	$createTextNode,
 	$getRoot,
 	$isElementNode,
@@ -60,22 +61,33 @@ export function $insertTextAtBlankLineBoundary(
 	selection: RangeSelection,
 	text: string,
 ): boolean {
-	if (!selection.isCollapsed() || selection.anchor.type !== `element`)
-		return false
-	const parent = selection.anchor.getNode()
-	if (!$isElementNode(parent)) return false
-	const offset = selection.anchor.offset
+	if (!selection.isCollapsed()) return false
+	const anchor = selection.anchor.getNode()
+	const point =
+		selection.anchor.type === `element` && $isElementNode(anchor)
+			? { offset: selection.anchor.offset, parent: anchor }
+			: null
+	if (point === null) return false
+	const { offset, parent } = point
 	const next = parent.getChildAtIndex(offset)
 	const previous = offset === 0 ? null : parent.getChildAtIndex(offset - 1)
+	const beforePrevious = offset < 2 ? null : parent.getChildAtIndex(offset - 2)
+	const isBlankRowBeforeText =
+		next !== null &&
+		!$isLineBreakNode(next) &&
+		$isLineBreakNode(previous) &&
+		$isLineBreakNode(beforePrevious)
 	if (
 		!$isLineBreakNode(next) &&
-		!(next === null && $isLineBreakNode(previous))
+		!(next === null && $isLineBreakNode(previous)) &&
+		!isBlankRowBeforeText
 	) {
 		return false
 	}
 	const inserted = $createTextNode(text)
 	if (next === null) parent.append(inserted)
 	else next.insertBefore(inserted)
+	if (isBlankRowBeforeText) inserted.insertAfter($createLineBreakNode())
 	inserted.selectEnd()
 	return true
 }

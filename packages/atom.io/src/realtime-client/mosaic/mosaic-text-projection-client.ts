@@ -295,6 +295,7 @@ function positionAtLocalOffset(
 function positionAtFragments(
 	fragments: readonly MosaicTextIndexFragment[],
 	offset: number,
+	boundaryAffinity: `left` | `right` = `left`,
 ): MosaicTextRelativePosition {
 	let remaining = offset
 	for (const fragment of fragments) {
@@ -310,6 +311,17 @@ function positionAtFragments(
 				}
 			}
 			if (remaining === next) {
+				if (boundaryAffinity === `right`) {
+					if (index + 1 < graphemes.length) {
+						return {
+							affinity: `right`,
+							offset: fragment.start + index + 1,
+							runId: fragment.runId,
+						}
+					}
+					utf16 = next
+					break
+				}
 				return {
 					affinity: `left`,
 					offset: fragment.start + index + 1,
@@ -333,6 +345,7 @@ function positionAtFragments(
 export function positionAtMosaicTextProjectionOffset(
 	projection: MosaicTextRangeProjection,
 	absoluteOffset: number,
+	boundaryAffinity: `left` | `right` = `left`,
 ): MosaicTextRelativePosition | null {
 	if (!Number.isSafeInteger(absoluteOffset) || absoluteOffset < 0) return null
 	if (
@@ -342,9 +355,20 @@ export function positionAtMosaicTextProjectionOffset(
 	) {
 		return { affinity: `left`, offset: 0, runId: null }
 	}
-	for (const segment of projection.segments) {
+	for (const [index, segment] of projection.segments.entries()) {
 		if (absoluteOffset < segment.start || absoluteOffset > segment.end) continue
-		return positionAtFragments(segment.fragments, absoluteOffset - segment.start)
+		if (
+			boundaryAffinity === `right` &&
+			absoluteOffset === segment.end &&
+			projection.segments[index + 1]?.start === absoluteOffset
+		) {
+			continue
+		}
+		return positionAtFragments(
+			segment.fragments,
+			absoluteOffset - segment.start,
+			boundaryAffinity,
+		)
 	}
 	return null
 }
@@ -781,8 +805,12 @@ export function createMosaicTextProjectionClient<
 			() => {
 				record.refresh = record.refresh
 					.then(async () => {
-						const changed = await updateLookup(record)
-						await refreshRecord(record, changed)
+						await updateLookup(record)
+						// A range invalidation can replace text inside the same leaf
+						// without changing either its address or the range's starting
+						// lookup. Advance the membership epoch so the selector observes
+						// the freshly hydrated member value in that case too.
+						await refreshRecord(record, true)
 					})
 					.catch((error) => {
 						if (error instanceof Error && error.name === `AbortError`) return
@@ -809,6 +837,17 @@ export function createMosaicTextProjectionClient<
 			throw new Error(`This Mosaic text projection client is disposed.`)
 		}
 		const publish = (projection: MosaicTextRangeProjection): void => {
+			const current = record.projection
+			if (
+				current !== null &&
+				current.complete === projection.complete &&
+				current.range.start === projection.range.start &&
+				current.range.end === projection.range.end &&
+				current.revision === projection.revision &&
+				current.text === projection.text
+			) {
+				return
+			}
 			record.projection = projection
 			for (const observer of record.observers) {
 				try {

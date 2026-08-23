@@ -280,12 +280,14 @@ function MosaicProjectionPlugin({
 }
 
 function MosaicInputPlugin({
+	onDirty,
 	onSelectionChange,
 	onValueChange,
 	selectionRef,
 	suppressedSelectionRef,
 	value,
 }: {
+	readonly onDirty: () => void
 	readonly onSelectionChange: (anchor: number, head: number) => void
 	readonly onValueChange: (value: string, composing: boolean) => void
 	readonly selectionRef: MutableRefObject<readonly [number, number] | null>
@@ -297,6 +299,34 @@ function MosaicInputPlugin({
 	const [editor] = useLexicalComposerContext()
 	const lastSelection = useRef<string | null>(null)
 	const composing = useRef(false)
+	useEffect(() => {
+		const insertAtBlankRow = (event: InputEvent): void => {
+			const data = event.data
+			if (
+				event.inputType !== `insertText` ||
+				data === null ||
+				data.length === 0 ||
+				event.isComposing
+			) {
+				return
+			}
+			let handled = false
+			editor.update(() => {
+				const selection = $getSelection()
+				handled =
+					$isRangeSelection(selection) &&
+					$insertTextAtBlankLineBoundary(selection, data)
+			})
+			if (!handled) return
+			event.preventDefault()
+			event.stopImmediatePropagation()
+			onDirty()
+		}
+		return editor.registerRootListener((root, previous) => {
+			previous?.removeEventListener(`beforeinput`, insertAtBlankRow, true)
+			root?.addEventListener(`beforeinput`, insertAtBlankRow, true)
+		})
+	}, [editor, onDirty])
 	useEffect(
 		() =>
 			editor.registerCommand(
@@ -434,7 +464,11 @@ function MosaicPresencePlugin({
 
 	return (
 		<collaborator-overlays aria-hidden="true">
-			{overlays.map((selection) => {
+			{selections.flatMap((selection) => {
+				const measured = overlays.find(
+					(candidate) => candidate.session === selection.session,
+				)
+				if (measured === undefined) return []
 				const style = {
 					"--collaborator-color": selection.color,
 				} as CollaboratorStyle
@@ -451,7 +485,7 @@ function MosaicPresencePlugin({
 					>
 						{collapsed
 							? null
-							: selection.rects.map((rect, index) => (
+							: measured.rects.map((rect, index) => (
 									<collaborator-selection
 										key={index}
 										style={{
@@ -464,11 +498,11 @@ function MosaicPresencePlugin({
 								))}
 						<collaborator-caret
 							style={{
-								height: Math.max(selection.caret.height, 20),
+								height: Math.max(measured.caret.height, 20),
 								left: collapsed
-									? selection.caret.left
-									: selection.caret.left + selection.caret.width,
-								top: selection.caret.top,
+									? measured.caret.left
+									: measured.caret.left + measured.caret.width,
+								top: measured.caret.top,
 							}}
 						>
 							<collaborator-label>{selection.name}</collaborator-label>
@@ -532,6 +566,7 @@ function LexicalEditor({
 				value={value}
 			/>
 			<MosaicInputPlugin
+				onDirty={onDirty}
 				onSelectionChange={onSelectionChange}
 				onValueChange={onValueChange}
 				selectionRef={selectionRef}

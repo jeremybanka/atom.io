@@ -411,9 +411,10 @@ test.describe(`Mosaic text editor browser conformance`, () => {
 		await backend.close()
 	})
 
-	test(`starts dark and switches to the explicit light color scheme`, async ({
+	test(`starts dark and follows the system light color scheme`, async ({
 		page,
 	}) => {
+		await page.emulateMedia({ colorScheme: `dark` })
 		await page.goto(`/?as=maya`)
 		await expect(page.locator(`meta[name="color-scheme"]`)).toHaveAttribute(
 			`content`,
@@ -421,10 +422,6 @@ test.describe(`Mosaic text editor browser conformance`, () => {
 		)
 		await page.locator(EDITOR).waitFor({ state: `visible` })
 		await waitForSaved(page)
-		await expect(page.locator(`html`)).toHaveAttribute(
-			`data-color-scheme`,
-			`dark`,
-		)
 		expect(await colorSchemeSnapshot(page)).toEqual({
 			editorBackground: `rgb(28, 25, 34)`,
 			editorInk: `rgb(229, 223, 234)`,
@@ -432,11 +429,7 @@ test.describe(`Mosaic text editor browser conformance`, () => {
 			pageBackground: `rgb(18, 16, 22)`,
 		})
 
-		await page.getByRole(`button`, { name: `Use light mode` }).click()
-		await expect(page.locator(`html`)).toHaveAttribute(
-			`data-color-scheme`,
-			`light`,
-		)
+		await page.emulateMedia({ colorScheme: `light` })
 		await expect
 			.poll(() => colorSchemeSnapshot(page))
 			.toEqual({

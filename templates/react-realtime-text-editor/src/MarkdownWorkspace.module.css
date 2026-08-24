@@ -57,7 +57,7 @@ markdown-workspace.class {
 		),
 		var(--workspace);
 
-	&[data-color-scheme="light"] {
+	@media (prefers-color-scheme: light) {
 		--accent: #6d50ea;
 		--aside-border: #e3dcff;
 		--aside-body: #6d6680;

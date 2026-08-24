@@ -1,4 +1,4 @@
-import { render, waitFor } from "@testing-library/react"
+import { fireEvent, render, waitFor } from "@testing-library/react"
 import type * as RealtimeReact from "atom.io/realtime-react"
 import { act, createElement } from "react"
 import { vi } from "vitest"
@@ -168,6 +168,16 @@ describe(`Markdown workspace drafts`, () => {
 		const { MarkdownWorkspace } = await import(`../src/MarkdownWorkspace.tsx`)
 		const rendered = render(<MarkdownWorkspace client={client} />)
 		await waitFor(() => expect(harness.editor?.value).toBe(`Add rollout owners`))
+		expect(document.documentElement.dataset.colorScheme).toBe(`dark`)
+		expect(
+			rendered.container
+				.querySelector(`markdown-workspace`)
+				?.getAttribute(`data-color-scheme`),
+		).toBe(`dark`)
+		fireEvent.click(rendered.getByRole(`button`, { name: `Use light mode` }))
+		expect(document.documentElement.dataset.colorScheme).toBe(`light`)
+		fireEvent.click(rendered.getByRole(`button`, { name: `Use dark mode` }))
+		expect(document.documentElement.dataset.colorScheme).toBe(`dark`)
 		expect(rendered.getAllByText(`All changes saved`)).toHaveLength(2)
 		await waitFor(() =>
 			expect(harness.editor?.selections).toMatchObject([

@@ -519,8 +519,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/atom.io
       rationality:
-        specifier: 0.1.0
-        version: 0.1.0
+        specifier: 0.1.1
+        version: 0.1.1
       solid-js:
         specifier: 1.9.15
         version: 1.9.15
@@ -6128,8 +6128,8 @@ packages:
   radix3@1.1.2:
     resolution: {integrity: sha512-b484I/7b8rDEdSDKckSSBA8knMpcdsXudlE/LNL639wFoHKwLbEkQFZHWEYwDC0wa0FKUcCY+GAF73Z7wxNVFA==}
 
-  rationality@0.1.0:
-    resolution: {integrity: sha512-r6ZPbM8aydZqD2hiXZEbDuCF4De6M6O3o53ZOdMWqN7xKqvLqOyLINAd+TXxwUeq3nDtiE+LrGN3L/o+zBC4YA==}
+  rationality@0.1.1:
+    resolution: {integrity: sha512-tfoMbmEp12q3sX77sY/qyIcvIsYa5HaUA9nqUAKU7Oai1YilucgtedWsWiTfebFueRNpKP/ZgOpqDF6nDrdtpA==}
 
   rc-config-loader@4.1.4:
     resolution: {integrity: sha512-3GiwEzklkbXTDp52UR5nT8iXgYAx1V9ZG/kDZT7p60u2GCv2XTwQq4NzinMoMpNtXhmt3WkhYXcj6HH8HdwCEQ==}
@@ -13120,7 +13120,7 @@ snapshots:
 
   radix3@1.1.2: {}
 
-  rationality@0.1.0: {}
+  rationality@0.1.1: {}
 
   rc-config-loader@4.1.4(supports-color@10.2.2):
     dependencies:

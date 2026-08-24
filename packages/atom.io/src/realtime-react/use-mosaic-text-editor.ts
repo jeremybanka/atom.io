@@ -84,6 +84,10 @@ type ResolvedRemoteState<Value> = {
 }
 
 type DisplayedRemoteState<Value> = {
+	readonly logicalSelections: readonly {
+		readonly id: string
+		readonly selection: MosaicTextSelection | null
+	}[]
 	readonly projection: MosaicTextRangeProjection
 	readonly rangeStart: number
 	readonly selections: readonly ResolvedRemote<Value>[]
@@ -102,6 +106,30 @@ function isSameProjectionCut(
 			left.range.start === right.range.start &&
 			left.range.end === right.range.end &&
 			left.text === right.text)
+	)
+}
+
+function isSameRelativePosition(
+	left: MosaicTextRelativePosition,
+	right: MosaicTextRelativePosition,
+): boolean {
+	return (
+		left.affinity === right.affinity &&
+		left.offset === right.offset &&
+		left.runId === right.runId
+	)
+}
+
+function isSameLogicalSelection(
+	left: MosaicTextSelection | null | undefined,
+	right: MosaicTextSelection | null,
+): boolean {
+	return (
+		left !== undefined &&
+		left !== null &&
+		right !== null &&
+		isSameRelativePosition(left.anchor, right.anchor) &&
+		isSameRelativePosition(left.head, right.head)
 	)
 }
 
@@ -231,15 +259,33 @@ export function useMosaicTextEditor<Value>(
 			isSameProjectionCut(resolvedProjection, projection)
 		const candidates = options.peers.flatMap((peer) => {
 			if (peer.selection === null) return []
-			const resident = resolveResidentRemoteSelection(projection, peer)
-			if (resident !== null) {
-				return [{ selection: resident, sourceText: projection.text }]
-			}
 			const retainedState =
 				previous?.rangeStart === projection.range.start ? previous : null
 			const retained = retainedState?.selections.find(
 				(selection) => selection.id === peer.id,
 			)
+			const sameLogicalSelection = isSameLogicalSelection(
+				retainedState?.logicalSelections.find(({ id }) => id === peer.id)
+					?.selection,
+				peer.selection,
+			)
+			if (
+				draft !== null &&
+				sameLogicalSelection &&
+				retainedState !== null &&
+				retained !== undefined
+			) {
+				return [
+					{
+						selection: { ...retained, value: peer.value },
+						sourceText: retainedState.text,
+					},
+				]
+			}
+			const resident = resolveResidentRemoteSelection(projection, peer)
+			if (resident !== null) {
+				return [{ selection: resident, sourceText: projection.text }]
+			}
 			const reprojected =
 				retainedState === null || retained === undefined
 					? null
@@ -286,6 +332,10 @@ export function useMosaicTextEditor<Value>(
 			return { ...selection, end, start }
 		})
 		return {
+			logicalSelections: options.peers.map(({ id, selection }) => ({
+				id,
+				selection,
+			})),
 			projection,
 			rangeStart: projection.range.start,
 			selections,

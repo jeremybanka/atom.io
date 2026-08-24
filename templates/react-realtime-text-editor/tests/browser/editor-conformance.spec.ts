@@ -42,6 +42,33 @@ type CursorSamplerWindow = Window & {
 	__mosaicCursorSamples?: CursorSample[]
 }
 
+type VisibleCursorSample = {
+	readonly caret: {
+		readonly height: number
+		readonly left: number
+		readonly top: number
+	} | null
+	readonly expected: {
+		readonly height: number
+		readonly left: number
+		readonly top: number
+	} | null
+	readonly phase: number
+	readonly reason: `animation-frame` | `mutation`
+	readonly overlayCount: number
+	readonly selectionEnd: number | null
+	readonly session: string | null
+	readonly targetIndex: number
+	readonly textLength: number
+}
+
+type VisibleCursorSamplerWindow = Window & {
+	__mosaicVisibleCursorFrame?: number
+	__mosaicVisibleCursorObserver?: MutationObserver
+	__mosaicVisibleCursorPhase?: number
+	__mosaicVisibleCursorSamples?: VisibleCursorSample[]
+}
+
 async function openClients(browser: Browser): Promise<Clients> {
 	const mayaContext = await browser.newContext()
 	const theoContext = await browser.newContext()
@@ -182,6 +209,127 @@ async function stopCursorSampler(page: Page): Promise<readonly CursorSample[]> {
 			cancelAnimationFrame(target.__mosaicCursorFrame)
 		}
 		return target.__mosaicCursorSamples ?? []
+	})
+}
+
+async function startVisibleCursorSampler(
+	page: Page,
+	collaborator: string,
+	semanticTarget: string,
+): Promise<void> {
+	await page.evaluate(
+		({ collaboratorName, targetText }) => {
+			const target = window as VisibleCursorSamplerWindow
+			target.__mosaicVisibleCursorSamples = []
+			target.__mosaicVisibleCursorPhase = 0
+
+			const expectedCaret = (): DOMRect | null => {
+				const root = document.querySelector<HTMLElement>(
+					`[data-lexical-editor="true"]`,
+				)
+				if (root === null) return null
+				const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+				let match: { readonly index: number; readonly node: Text } | null = null
+				for (
+					let node = walker.nextNode();
+					node !== null;
+					node = walker.nextNode()
+				) {
+					if (!(node instanceof Text)) continue
+					const index = node.data.lastIndexOf(targetText)
+					if (index >= 0) match = { index, node }
+				}
+				if (match === null) return null
+				const range = document.createRange()
+				range.setStart(match.node, match.index)
+				range.setEnd(match.node, match.index + 1)
+				return range.getBoundingClientRect()
+			}
+
+			const capture = (reason: `animation-frame` | `mutation`): void => {
+				const root = document.querySelector<HTMLElement>(
+					`[data-lexical-editor="true"]`,
+				)
+				const expected = expectedCaret()
+				const overlays = document.querySelectorAll<HTMLElement>(
+					`collaborator-presence[data-collaborator="${collaboratorName}"]`,
+				)
+				const matchedOverlays: readonly (HTMLElement | null)[] =
+					overlays.length === 0 ? [null] : [...overlays]
+				for (const overlay of matchedOverlays) {
+					const caret = overlay?.querySelector<HTMLElement>(`collaborator-caret`)
+					const caretRect = caret?.getBoundingClientRect()
+					const selectionEnd = overlay?.getAttribute(`data-selection-end`)
+					target.__mosaicVisibleCursorSamples!.push({
+						caret:
+							caretRect === undefined
+								? null
+								: {
+										height: caretRect.height,
+										left: caretRect.left,
+										top: caretRect.top,
+									},
+						expected:
+							expected === null
+								? null
+								: {
+										height: expected.height,
+										left: expected.left,
+										top: expected.top,
+									},
+						phase: target.__mosaicVisibleCursorPhase ?? 0,
+						reason,
+						overlayCount: overlays.length,
+						selectionEnd:
+							selectionEnd !== null && Number.isFinite(Number(selectionEnd))
+								? Number(selectionEnd)
+								: null,
+						session: overlay?.getAttribute(`data-session`) ?? null,
+						targetIndex: root?.innerText.lastIndexOf(targetText) ?? -1,
+						textLength: root?.innerText.length ?? 0,
+					})
+				}
+				target.__mosaicVisibleCursorPhase =
+					(target.__mosaicVisibleCursorPhase ?? 0) + 1
+			}
+
+			target.__mosaicVisibleCursorObserver = new MutationObserver(() => {
+				capture(`mutation`)
+			})
+			const overlayRoot = document.querySelector(`collaborator-overlays`)
+			if (overlayRoot !== null) {
+				target.__mosaicVisibleCursorObserver.observe(overlayRoot, {
+					attributeFilter: [
+						`data-selection-end`,
+						`data-selection-start`,
+						`style`,
+					],
+					attributes: true,
+					childList: true,
+					subtree: true,
+				})
+			}
+			const frame = (): void => {
+				capture(`animation-frame`)
+				target.__mosaicVisibleCursorFrame = requestAnimationFrame(frame)
+			}
+			capture(`mutation`)
+			target.__mosaicVisibleCursorFrame = requestAnimationFrame(frame)
+		},
+		{ collaboratorName: collaborator, targetText: semanticTarget },
+	)
+}
+
+async function stopVisibleCursorSampler(
+	page: Page,
+): Promise<readonly VisibleCursorSample[]> {
+	return page.evaluate(() => {
+		const target = window as VisibleCursorSamplerWindow
+		if (target.__mosaicVisibleCursorFrame !== undefined) {
+			cancelAnimationFrame(target.__mosaicVisibleCursorFrame)
+		}
+		target.__mosaicVisibleCursorObserver?.disconnect()
+		return target.__mosaicVisibleCursorSamples ?? []
 	})
 }
 
@@ -341,6 +489,88 @@ test.describe(`Mosaic text editor browser conformance`, () => {
 			expect(await clients.theo.locator(`footer strong`).textContent()).toBe(
 				`All changes saved`,
 			)
+		} finally {
+			await closeClients(clients)
+		}
+	})
+
+	test(`every painted remote caret remains on its semantic glyph`, async ({
+		browser,
+	}) => {
+		const clients = await openClients(browser)
+		try {
+			const marker = `CURSOR!!`
+			const fixture = await sourceText(clients.maya)
+			const rollout = fixture.lastIndexOf(`rollout`)
+			expect(rollout).toBeGreaterThan(0)
+			await moveCaret(clients.theo, rollout)
+			await clients.theo.keyboard.press(`ArrowRight`)
+			await clients.theo.keyboard.press(`ArrowLeft`)
+
+			const presence = clients.maya.locator(
+				`collaborator-presence[data-collaborator="Theo Brooks"]`,
+			)
+			await expect(presence).toHaveCount(1)
+			await expect(presence).toHaveAttribute(
+				`data-selection-end`,
+				String(rollout),
+			)
+
+			const devtools = await clients.mayaContext.newCDPSession(clients.maya)
+			await devtools.send(`Network.enable`)
+			await devtools.send(`Network.emulateNetworkConditions`, {
+				downloadThroughput: 20_000_000,
+				latency: 100,
+				offline: false,
+				uploadThroughput: 20_000_000,
+			})
+			await devtools.send(`Emulation.setCPUThrottlingRate`, { rate: 3 })
+			await startVisibleCursorSampler(clients.maya, `Theo Brooks`, `rollout`)
+			await moveCaret(clients.maya, 0)
+			let typed = ``
+			for (const character of marker) {
+				await clients.maya.keyboard.type(character)
+				typed += character
+				await expect
+					.poll(() => sourceText(clients.maya), { timeout: 2_000 })
+					.toBe(`${typed}${fixture}`)
+				await clients.maya.waitForTimeout(150)
+			}
+			await clients.maya.waitForTimeout(750)
+			const samples = await stopVisibleCursorSampler(clients.maya)
+			expect(samples.length).toBeGreaterThan(30)
+			const expectedText = `${marker}${fixture}`
+
+			const invalid = samples.filter((sample) => {
+				if (
+					sample.overlayCount !== 1 ||
+					sample.caret === null ||
+					sample.expected === null ||
+					sample.selectionEnd !== sample.targetIndex
+				) {
+					return true
+				}
+				return (
+					Math.abs(sample.caret.left - sample.expected.left) > 1 ||
+					Math.abs(sample.caret.top - sample.expected.top) > 1
+				)
+			})
+			const terminal = invalid.filter(
+				(sample) =>
+					sample.caret !== null &&
+					sample.expected !== null &&
+					sample.caret.top > sample.expected.top + 50 &&
+					sample.selectionEnd !== null &&
+					sample.selectionEnd >= sample.textLength - 1,
+			)
+			expect(
+				invalid.length,
+				`A user can see every painted cursor, including a stale duplicate or one-frame terminal projection. ${invalid.length}/${samples.length} samples were invalid and ${terminal.length} painted at the document terminus. First failures:\n${JSON.stringify(invalid.slice(0, 6), null, 2)}`,
+			).toBe(0)
+
+			await waitForSaved(clients.maya)
+			await waitForText(clients.theo, expectedText)
+			expect(await sourceText(clients.maya)).toBe(expectedText)
 		} finally {
 			await closeClients(clients)
 		}

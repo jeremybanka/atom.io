@@ -22,9 +22,9 @@ import {
 import type { Socket as ServerSocket } from "socket.io"
 
 import {
-	activateSvgDesignDomain,
-	type SvgDesignDomain,
-	type SvgDomainState,
+	activateSvgContourDomain,
+	type SvgContourDomain,
+	type SvgContourStateAccess,
 } from "../src/design-model.ts"
 import {
 	VECTOR_BATCH_EVENTS,
@@ -39,10 +39,10 @@ export type VectorCollaborationService = Disposable & {
 		readonly socket: ServerSocket
 	}): Promise<() => Promise<void>>
 	readonly checkpoints: MosaicDomainCheckpointCoordinator<
-		SvgDesignDomain[`identity`]
+		SvgContourDomain[`identity`]
 	>
-	readonly domain: SvgDesignDomain
-	readonly history: MosaicDomainHistoryCoordinator<SvgDesignDomain[`identity`]>
+	readonly domain: SvgContourDomain
+	readonly history: MosaicDomainHistoryCoordinator<SvgContourDomain[`identity`]>
 	readonly revision: number
 }
 
@@ -64,17 +64,17 @@ export async function createVectorCollaborationService(
 			isProduction: process.env.NODE_ENV === `production`,
 		})
 	const storage = options.storage ?? new InMemoryMosaicDomainCheckpointStorage()
-	const domain = await activateSvgDesignDomain({
+	const domain = await activateSvgContourDomain({
 		instance: `shared-drawing`,
 		silo,
 	})
-	const readState = silo.getState as SvgDomainState[`getState`]
+	const readState = silo.getState as SvgContourStateAccess[`getState`]
 	const batchServer = createMosaicDomainBatchServer({
 		...(options.authorize === undefined ? {} : { authorize: options.authorize }),
 		domain,
 		storage,
 	})
-	let history!: MosaicDomainHistoryCoordinator<SvgDesignDomain[`identity`]>
+	let history!: MosaicDomainHistoryCoordinator<SvgContourDomain[`identity`]>
 	const checkpoints = createMosaicDomainCheckpointCoordinator({
 		domain: domain.identity,
 		indexes: (context) => history.checkpoint.indexes(context),
@@ -108,7 +108,7 @@ export async function createVectorCollaborationService(
 		maxResidentMembers: 512,
 	})
 	type VectorResidencyTransport = MosaicDomainResidencyTransport<
-		SvgDesignDomain[`identity`]
+		SvgContourDomain[`identity`]
 	>
 	const cleanups = new Set<() => Promise<void>>()
 	let disposed = false

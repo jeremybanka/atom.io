@@ -131,8 +131,8 @@ importers:
         specifier: 0.185.1
         version: 0.185.1
       tsdoc.json:
-        specifier: 0.6.8
-        version: 0.6.8(@preact/compat@18.3.2(preact@10.29.8))
+        specifier: 0.6.9
+        version: 0.6.9(@preact/compat@18.3.2(preact@10.29.8))
     devDependencies:
       '@atom.io/exhibits':
         specifier: workspace:*
@@ -6704,8 +6704,8 @@ packages:
     resolution: {integrity: sha512-NoZ4roiN7LnbKn9QqE1amc9DJfzvZXxF4xDavcOWt1BPkdx+m+0gJuPM+S0vCe7zTJMYUP0R8pO2XMr+Y8oLIg==}
     engines: {node: '>=6'}
 
-  tsdoc.json@0.6.8:
-    resolution: {integrity: sha512-Yv7V+FXGrIcN2M+JKDzut3SMjAEbwn62oW1Cz29tXKjBg3Vte1QSkTmhLUyKWsLLL4YpmqPOVnQnvcnSh9YtVQ==}
+  tsdoc.json@0.6.9:
+    resolution: {integrity: sha512-RUz1Kgrq+oxt6qGPCrCpi/SoBoBvU1EgJwBOLpSFU3gCvISp2E82A08hhoN7rB5/tf32Zd+bZ5/+U/F+fud/zg==}
     peerDependencies:
       react: ^19
 
@@ -13948,7 +13948,7 @@ snapshots:
       minimist: 1.2.8
       strip-bom: 3.0.0
 
-  tsdoc.json@0.6.8(@preact/compat@18.3.2(preact@10.29.8)):
+  tsdoc.json@0.6.9(@preact/compat@18.3.2(preact@10.29.8)):
     dependencies:
       '@microsoft/tsdoc': 0.16.0
       react: '@preact/compat@18.3.2(preact@10.29.8)'

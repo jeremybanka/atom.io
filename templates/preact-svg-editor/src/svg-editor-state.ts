@@ -998,7 +998,7 @@ export function finishSvgDrag(options: { readonly commit: boolean }): void {
  * Explicit integration seam: schemas/reducers are public application modules,
  * while ownership, batching, transport, and history remain MOS-11 concerns.
  */
-const svgHistoryPolicy = <State>(
+export const svgHistoryPolicy = <State>(
 	compact: (
 		state: State,
 		context: MosaicDomainHistoryCompactionContext,

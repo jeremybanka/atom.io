@@ -35,6 +35,8 @@ export type MosaicDomainPresenceClientOptions = {
 	readonly domain: MosaicDomainInstance<any, any, any>
 	readonly maxBytes?: number
 	readonly maxPendingUpdates?: number
+	/** Republish the latest local values before a server TTL can expire them. */
+	readonly renewalMs?: number
 	readonly session: string
 	readonly transport: MosaicDomainPresenceClientTransport
 }
@@ -44,6 +46,7 @@ export type MosaicDomainPresenceClient = Disposable & {
 	flush(): Promise<void>
 	publish(address: MosaicDomainMemberAddress, value: unknown): Promise<void>
 	refresh(): Promise<void>
+	republish(): Promise<void>
 	readonly state: MosaicDomainPresenceClientState
 	start(): Promise<void>
 	subscribe(
@@ -68,11 +71,14 @@ export function createMosaicDomainPresenceClient(
 	const maxPending = options.maxPendingUpdates ?? 64
 	const maxBytes =
 		options.maxBytes ?? DEFAULT_MOSAIC_DOMAIN_PRESENCE_LIMITS.maxBytes
+	const renewalMs = options.renewalMs
 	if (
 		!Number.isSafeInteger(maxPending) ||
 		maxPending < 1 ||
 		!Number.isSafeInteger(maxBytes) ||
-		maxBytes < 1
+		maxBytes < 1 ||
+		(renewalMs !== undefined &&
+			(!Number.isSafeInteger(renewalMs) || renewalMs < 1))
 	) {
 		throw new Error(`Presence limits must be positive integers.`)
 	}
@@ -82,6 +88,15 @@ export function createMosaicDomainPresenceClient(
 		{ readonly addressKey: string; readonly token: unknown }
 	>()
 	const cursors = new Map<string, number>()
+	const latestLocal = new Map<
+		string,
+		{
+			readonly address: MosaicDomainMemberAddress
+			readonly kind: MosaicDomainPresenceProposal[`kind`]
+			readonly sequence: number
+			readonly value?: unknown
+		}
+	>()
 	const listeners = new Set<(state: MosaicDomainPresenceClientState) => void>()
 	let sequence = 0
 	let pending = 0
@@ -311,6 +326,7 @@ export function createMosaicDomainPresenceClient(
 						)
 					: undefined
 			if (disposed) return
+			const addressKey = mosaicDomainMemberAddressKey(parsed.address)
 			let proposal: MosaicDomainPresenceProposal = {
 				address: structuredClone(parsed.address),
 				domain: structuredClone(options.domain.identity),
@@ -320,13 +336,30 @@ export function createMosaicDomainPresenceClient(
 				session: options.session,
 				...(kind === `update` ? { value: validatedValue! } : {}),
 			}
+			latestLocal.set(addressKey, {
+				address: structuredClone(parsed.address),
+				kind,
+				sequence: proposal.sequence,
+				...(kind === `update` ? { value: structuredClone(validatedValue) } : {}),
+			})
 			let result = await publish(proposal)
 			if (disposed) return
 			if (result.status === `rejected` && result.rejection.code === `stale`) {
 				sequence = Math.max(sequence, result.rejection.sequence ?? 0)
 				await refresh()
 				if (disposed) return
+				const previousSequence = proposal.sequence
 				proposal = { ...proposal, sequence: ++sequence }
+				if (latestLocal.get(addressKey)?.sequence === previousSequence) {
+					latestLocal.set(addressKey, {
+						address: structuredClone(parsed.address),
+						kind,
+						sequence: proposal.sequence,
+						...(kind === `update`
+							? { value: structuredClone(validatedValue) }
+							: {}),
+					})
+				}
 				result = await publish(proposal)
 				if (disposed) return
 			}
@@ -338,6 +371,12 @@ export function createMosaicDomainPresenceClient(
 			}
 			await enqueue(() => apply(result.accepted))
 			if (disposed) return
+			if (
+				kind === `clear` &&
+				result.accepted.sequence >= (latestLocal.get(addressKey)?.sequence ?? 0)
+			) {
+				latestLocal.delete(addressKey)
+			}
 			problem = null
 			status = `live`
 		} finally {
@@ -346,6 +385,35 @@ export function createMosaicDomainPresenceClient(
 		}
 	}
 
+	const republish = async (): Promise<void> => {
+		for (const { address, kind, value } of latestLocal.values()) {
+			if (disposed) return
+			await send(address, kind, value)
+		}
+	}
+	let renewalInFlight = false
+	const renewalTimer =
+		renewalMs === undefined
+			? null
+			: setInterval(() => {
+					if (
+						disposed ||
+						!started ||
+						pending > 0 ||
+						renewalInFlight ||
+						latestLocal.size === 0
+					) {
+						return
+					}
+					renewalInFlight = true
+					void republish()
+						.catch(() => undefined)
+						.finally(() => {
+							renewalInFlight = false
+						})
+				}, renewalMs)
+	;(renewalTimer as { unref?: () => void } | null)?.unref?.()
+
 	const controller: MosaicDomainPresenceClient = {
 		clear: (address) => send(address, `clear`),
 		async flush() {
@@ -353,6 +421,7 @@ export function createMosaicDomainPresenceClient(
 		},
 		publish: (address, value) => send(address, `update`, value),
 		refresh,
+		republish,
 		get state() {
 			return snapshot()
 		},
@@ -387,6 +456,7 @@ export function createMosaicDomainPresenceClient(
 			if (disposed) return
 			disposed = true
 			status = `disposed`
+			if (renewalTimer !== null) clearInterval(renewalTimer)
 			unsubscribe()
 			for (const projectionToken of new Set(
 				[...projections.values()].map((projection) => projection.token),
@@ -395,6 +465,7 @@ export function createMosaicDomainPresenceClient(
 			}
 			projections.clear()
 			entries.clear()
+			latestLocal.clear()
 			listeners.clear()
 		},
 	}

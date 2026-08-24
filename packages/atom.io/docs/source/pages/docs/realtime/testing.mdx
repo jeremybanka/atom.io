@@ -42,15 +42,63 @@ replication topology, and conformance suites.
 
 ## testing layers
 
-Use all four layers:
+Use all six layers for an interactive collaborative editor:
 
 1. **Model tests** permute operations and assert convergence against an independent oracle.
 2. **Controller tests** exercise optimism, rejection, duplicates, gaps, reconnect, and disposal.
 3. **Storage conformance** verifies atomic append, recovery, checkpoint fencing, leases, paging, and GC.
-4. **Rendered multi-client tests** prove real users observe the intended UI and individualized history.
+4. **Editor-hook conformance** drives strings, selections, composition, accepted projection cuts, and collaborator positions without a browser renderer.
+5. **Rendered multi-client tests** prove isolated clients observe the intended text, selections, status, and individualized history.
+6. **Browser conformance** sends native keyboard and selection events and samples every immediate and animation frame that can be painted.
 
 A happy-path Socket.IO test is useful, but it cannot substitute for deterministic
 fault control or restart with shared storage.
+
+Final equality is necessary but insufficient for editing. A test that observes
+only the settled document will miss a one-frame caret at document end, a blank
+line temporarily mapped to the next text node, a focused editor replaced during
+settlement, or one typed character committed from an earlier selection. Treat
+every paintable projection cut as an assertion boundary.
+
+## text editor conformance
+
+Drive the renderer-neutral editor hook with the same sequence a browser emits:
+
+1. publish a complete projection and collapsed or ranged selection;
+2. mark the editor dirty before the native value changes;
+3. report each successive full visible string at a human typing cadence;
+4. interleave remote accepted cuts and logical presence;
+5. advance the commit clock and settle the authoritative projection; and
+6. assert text, focus intent, local selection, remote selections, and status at every step.
+
+Include empty documents, interior and trailing blank lines, line ends, IME
+composition, select-all replacement, rapid deletion/retyping, edits before a
+peer cursor, and typing while an earlier local gesture is in flight. For each
+keystroke, compare against an independent plain-text oracle and require exact
+character order—not merely equal length or eventual convergence.
+
+The hook test should also prove the consumer's pit of success: a renderer that
+passes the returned text and selections back with native events receives stable
+optimism and logical coordinates without implementing its own queue or cursor
+transform.
+
+## browser paint assertions
+
+Run at least two independent browser contexts with different actor/session
+identities. Use real keyboard and selection APIs. For every character, sample
+the DOM immediately after the event and again in `requestAnimationFrame` before
+the next character. Assert that:
+
+- the writer retains one connected, focused editor root and the intended caret;
+- every growing source prefix matches the oracle in order;
+- a remote caret's logical attributes and measured rectangle belong to the same text cut;
+- no remote caret flashes to document start/end or disappears at a valid blank/line-end position;
+- only the writer shows pending-save state; and
+- both clients settle to the same revision, text, and logical selections.
+
+Keep these browser fixtures private to the conformance suite unless they become
+stable, renderer-neutral library contracts. Test infrastructure is not a public
+API merely because it catches an important regression.
 
 ## replayable model schedules
 
@@ -135,6 +183,11 @@ At minimum, test:
 - disconnect with pending work, then reconnect;
 - server restart with checkpoint and tail;
 - stale checkpoint/residency snapshot requiring resnapshot;
+- local typing interleaved with accepted projection replacement;
+- remote presence arriving before, with, and after its referenced text run;
+- empty-line, line-end, and document-end collapsed selections;
+- select-all deletion followed by immediate retyping;
+- ordinary 40–60 WPM typing with every prefix checked for character order;
 - observer/listener exceptions after durable commit;
 - cleanup failures during release/disposal;
 - same actor across concurrent sessions; and
@@ -153,6 +206,12 @@ Assert more than equal final JSON:
 - retained receipts, tail, history, sessions, aliases, and roots after stabilization;
 - zero leaked listeners, leases, family members, timers, or pending promises; and
 - actor A's undo preserves actor B's surviving intent.
+
+For rendered editors, additionally assert continuous focus, stable editor-root
+identity, exact local and remote selection offsets, selection rectangles for
+every paintable frame, exact typed prefixes, and writer-local save status. A
+cursor that is eventually correct after visibly jumping to document end is a
+failing result.
 
 On failure, emit the seed, completed schedule, active fault, actor/session ids,
 revisions, resident selections, pending ids, checkpoint root, and bounded event

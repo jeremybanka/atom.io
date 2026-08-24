@@ -36,7 +36,8 @@ also name their instance type appear in both runtime and contract columns.
       <tr><td>Checkpoint storage</td><td><code>InMemoryMosaicDomainCheckpointStorage</code>, <code>mosaicDomainCheckpointObjectKey</code></td><td><code>InMemoryMosaicDomainCheckpointStorage</code>, <code>MosaicDomainCheckpointAcceptedProposal</code>, <code>MosaicDomainCheckpointBatchAppendRequest</code>, <code>MosaicDomainCheckpointCollectionRequest</code>, <code>MosaicDomainCheckpointCollectionResult</code>, <code>MosaicDomainCheckpointCommitRequest</code>, <code>MosaicDomainCheckpointCommitResult</code>, <code>MosaicDomainCheckpointExternalGraphProof</code>, <code>MosaicDomainCheckpointHead</code>, <code>MosaicDomainCheckpointObjectPage</code>, <code>MosaicDomainCheckpointStageOptions</code>, <code>MosaicDomainCheckpointStageProposal</code>, <code>MosaicDomainCheckpointStageResult</code>, <code>MosaicDomainCheckpointStorageAdapter</code>, <code>MosaicDomainCheckpointStoredObject</code></td></tr>
       <tr><td>Domain history</td><td><code>DEFAULT_MOSAIC_DOMAIN_HISTORY_LIMITS</code>, <code>bindMosaicDomainHistoryServerSocket</code>, <code>createMosaicDomainHistoryCoordinator</code></td><td><code>MosaicDomainHistoryCheckpointIntegration</code>, <code>MosaicDomainHistoryConnection</code>, <code>MosaicDomainHistoryCoordinator</code>, <code>MosaicDomainHistoryCoordinatorOptions</code>, <code>MosaicDomainHistoryLimits</code>, <code>MosaicDomainHistoryServerSocket</code>, <code>MosaicDomainHistoryStats</code>, <code>MosaicDomainHistoryWorkTracker</code></td></tr>
       <tr><td>Domain presence</td><td><code>bindMosaicDomainPresenceServerSocket</code>, <code>createMosaicDomainPresenceServer</code></td><td><code>MosaicDomainPresenceConnection</code>, <code>MosaicDomainPresenceServer</code>, <code>MosaicDomainPresenceServerOptions</code>, <code>MosaicDomainPresenceServerSocket</code>, <code>MosaicDomainPresenceWorkTracker</code></td></tr>
-      <tr><td>Domain residency</td><td><code>createMosaicDomainResidencyServer</code></td><td><code>MosaicDomainRangeResolver</code>, <code>MosaicDomainResidencyAuthorizationContext</code>, <code>MosaicDomainResidencyServer</code>, <code>MosaicDomainResidencyServerOptions</code></td></tr>
+      <tr><td>Domain residency</td><td><code>bindMosaicDomainResidencyServerSocket</code>, <code>createMosaicDomainResidencyServer</code></td><td><code>MosaicDomainRangeResolver</code>, <code>MosaicDomainResidencyAuthorizationContext</code>, <code>MosaicDomainResidencyServer</code>, <code>MosaicDomainResidencyServerOptions</code>, <code>MosaicDomainResidencyServerSocket</code>, <code>MosaicDomainResidencyWorkTracker</code></td></tr>
+      <tr><td>Text document coordination</td><td><code>createMosaicTextDocumentCoordinator</code>, <code>prepareMosaicTextImportOperation</code></td><td><code>MosaicTextDocumentCommand</code>, <code>MosaicTextDocumentCoordinator</code>, <code>MosaicTextDocumentInstrumentation</code>, <code>MosaicTextDocumentRangeInspection</code></td></tr>
       <tr><td>Content-addressed text storage</td><td><code>MOSAIC_TEXT_ROOT_CHECKPOINT_INDEX</code>, <code>MOSAIC_TEXT_ROOT_MANIFEST_INDEX</code>, <code>MOSAIC_TEXT_ROOT_REFERENCE_COUNT_INDEX</code>, <code>createMosaicTextRootCheckpointReader</code>, <code>createMosaicTextRootCheckpointStage</code></td><td><code>MosaicTextRootCheckpointReader</code>, <code>MosaicTextRootCheckpointStage</code>, <code>MosaicTextRootCheckpointStageOptions</code>, <code>MosaicTextRootExternalIndexReader</code></td></tr>
     </tbody>
   </table>
@@ -63,6 +64,7 @@ glyph or publish arbitrary presence.
       <tr><td><code>createMosaicServer</code></td><td>Atomic Mosaic registration, join, reduce, recovery, presence, and checkpoints for individual mutable atoms.</td></tr>
       <tr><td><code>createMosaicDomainBatchServer</code></td><td>Normalize, authorize, serialize, append, and broadcast atomic Domain batches.</td></tr>
       <tr><td><code>createMosaicDomainResidencyServer</code></td><td>Authorize explicit/range selections and deliver filtered snapshots and tails.</td></tr>
+      <tr><td><code>createMosaicTextDocumentCoordinator</code></td><td>Stage/import content-addressed text, translate commands into atomic source/index batches, inspect bounded ranges, and expose measured work.</td></tr>
       <tr><td><code>createMosaicDomainPresenceServer</code></td><td>Bind actor/session presence, rate limit, snapshot, expire, and clean up.</td></tr>
       <tr><td><code>createMosaicDomainHistoryCoordinator</code></td><td>Maintain actor cursors/horizons and submit validated compensating batches.</td></tr>
       <tr><td><code>createMosaicDomainCheckpointCoordinator</code></td><td>Publish fenced content-addressed roots, recover selections, and coordinate retention/GC.</td></tr>
@@ -142,6 +144,27 @@ than guessing.
 Filtered accepted envelopes retain bounded batch metadata so resident members
 touched by one batch can settle atomically even when other batch members are not
 loaded.
+
+`bindMosaicDomainResidencyServerSocket` binds that authority to an
+authenticated Socket.IO connection and tracks pending work for orderly
+shutdown. The binder receives trusted actor/session identity from composition;
+it does not accept identity from a residency request.
+
+## text document coordination
+
+`createMosaicTextDocumentCoordinator` is the application-facing server seam for
+large collaborative text. It stages grapheme-safe imports, prepares atomic
+logical-text and index operations, publishes accepted external roots through
+the Domain checkpoint lifecycle, serves bounded range inspection, and reports
+object, byte, scan, and persistence work. Consumers provide policy and storage;
+they should not assemble a second sidecar text model.
+
+The coordinator and external-root staging helpers are trusted server
+composition APIs, not socket handlers. Authenticate and authorize the resource,
+then enforce operation, object, byte, depth, rate, deadline, and cancellation
+limits before constructing work from client-controlled input. The larger limits
+needed for a manifest-authenticated bulk import are not safe defaults for an
+ordinary interactive edit.
 
 ## presence cleanup
 

@@ -44,7 +44,8 @@ For exhaustive entrypoint inventories, use the package pages for
       <tr><td><code>mosaicText</code></td><td>Built-in convergent Unicode run-text transceiver.</td></tr>
       <tr><td>Mosaic Text position/selection helpers</td><td>Create and resolve stable run-relative grapheme positions and bounded segment bundles.</td></tr>
       <tr><td>Mosaic Text index</td><td>Create, maintain, split/merge, recover aliases, and read bounded text ranges.</td></tr>
-      <tr><td>Content-addressed Mosaic Text root</td><td>Stream imports, path-copy replacements, resolve grapheme-safe UTF-16 boundaries, and read bounded ranges.</td></tr>
+      <tr><td><code>createMosaicTextDomainModels</code></td><td>Declare the source, index, manifest, and reference-count members and their atomic operation rules.</td></tr>
+      <tr><td>Content-addressed Mosaic Text root</td><td><code>stageMosaicTextRootImportStream</code>, <code>stageMosaicTextRootImport</code>, <code>stageMosaicTextRootReplace</code>, and <code>createMosaicTextRootReader</code> stream imports, path-copy edits, and read bounded ranges.</td></tr>
     </tbody>
   </table>
 </table-wrapper>
@@ -98,10 +99,13 @@ disposer.
       <tr><td><code>createMosaicDomainBatchClient</code></td><td>Explicit operation submission, optimism, offline FIFO, rejection, recovery, and reprojection.</td></tr>
       <tr><td><code>createMosaicDomainTransactionBridge</code></td><td>Encode successful ordinary outer transactions into already-applied Domain proposals.</td></tr>
       <tr><td><code>createMosaicDomainResidencyClient</code></td><td>Hydrate, subscribe, acquire, release, evict, reconnect, and instrument partial state.</td></tr>
+      <tr><td><code>createMosaicDomainResidencySocketTransport</code></td><td>Typed bounded Socket.IO transport for residency hydrate, subscribe, and stop requests.</td></tr>
+      <tr><td><code>createMosaicDomainSessionClient</code></td><td>Compose reconnect, residency, presence, history, serialized commands, status, and disposal for one authenticated session.</td></tr>
       <tr><td><code>createMosaicDomainPresenceClient</code></td><td>Publish and observe bounded actor/session presence.</td></tr>
       <tr><td><code>createMosaicDomainHistoryClient</code></td><td>Refresh cursor/horizon and serialize undo/redo requests.</td></tr>
       <tr><td><code>createMosaicTextProjectionClient</code></td><td>Project resident text leaves into shared Store selectors and route bounded edits/history.</td></tr>
-      <tr><td>Socket transport helpers</td><td>Typed Socket.IO acknowledgement transports for history and presence.</td></tr>
+      <tr><td>Mosaic Text projection helpers</td><td>Resolve logical positions, map projection offsets, derive contiguous edits, and transform selections through visible drafts.</td></tr>
+      <tr><td>Socket transport helpers</td><td>Typed Socket.IO acknowledgement transports for residency, history, and presence.</td></tr>
     </tbody>
   </table>
 </table-wrapper>
@@ -135,13 +139,15 @@ disposer.
       <tr><td><code>createMosaicDomainBatchServer</code></td><td>Canonical preflight, authorization, serialized append, synchronization, and broadcast.</td></tr>
       <tr><td><code>MosaicDomainBatchStorageAdapter</code></td><td>Durable batch receipts, append, session watermarks, and recovery.</td></tr>
       <tr><td><code>createMosaicDomainResidencyServer</code></td><td>Authorized snapshots, filtered subscriptions, range resolution, and cleanup.</td></tr>
+      <tr><td><code>bindMosaicDomainResidencyServerSocket</code></td><td>Bind authenticated residency requests and track pending connection work through shutdown.</td></tr>
       <tr><td><code>createMosaicDomainPresenceServer</code></td><td>Actor/session presence projection, limits, expiry, and cleanup.</td></tr>
       <tr><td><code>createMosaicDomainHistoryCoordinator</code></td><td>Authoritative selective undo/redo, compaction, protection, cursor, and horizon.</td></tr>
       <tr><td><code>createMosaicDomainCheckpointCoordinator</code></td><td>Dirty-tail checkpoints, structural sharing, recovery, external roots, and GC coordination.</td></tr>
       <tr><td><code>MosaicDomainCheckpointStorageAdapter</code></td><td>Immutable objects, fenced roots, indexes, leases, pagination, tracing, and collection.</td></tr>
       <tr><td><code>createMosaicTextRootCheckpointStage</code></td><td>Stage bounded content-addressed text objects and an unreachable external root.</td></tr>
       <tr><td><code>createMosaicTextRootCheckpointReader</code></td><td>Read a pinned text-root manifest, reference counts, and individually addressed nodes.</td></tr>
-      <tr><td>Socket server binders</td><td>Authenticated history and presence Socket.IO request/response binding.</td></tr>
+      <tr><td><code>createMosaicTextDocumentCoordinator</code></td><td>Prepare atomic text/index commands, staged imports, bounded inspections, and measured persistence work.</td></tr>
+      <tr><td>Socket server binders</td><td>Authenticated residency, history, and presence Socket.IO request/response binding.</td></tr>
     </tbody>
   </table>
 </table-wrapper>
@@ -159,6 +165,7 @@ disposer.
       <tr><td><code>useRealtimeRooms</code></td><td>Join/leave rooms and observe room availability.</td></tr>
       <tr><td><code>useMosaic</code></td><td>Lifecycle wrapper for one Atomic Mosaic controller.</td></tr>
       <tr><td><code>useMosaicTextRange</code></td><td>Acquire/release a projected text viewport with overscan.</td></tr>
+      <tr><td><code>useMosaicTextEditor</code></td><td>Coordinate optimistic drafts, logical selections, collaborator reprojection, and accepted-cut settlement independently of the DOM editor.</td></tr>
     </tbody>
   </table>
 </table-wrapper>
@@ -181,6 +188,8 @@ disposer.
       <tr><td>batch storage conformance</td><td>Verify append/idempotency/collision/recovery behavior.</td></tr>
       <tr><td>checkpoint storage conformance</td><td>Verify roots, objects, paging, leases, fencing, restart, and GC.</td></tr>
       <tr><td>cross-vertical Domain conformance</td><td>Run one fault schedule and comparable counters against arbitrary model adapters.</td></tr>
+      <tr><td>Editor-hook conformance</td><td>Drive native-style value/selection sequences, optimistic drafts, projection cuts, and logical peer positions without relying on settled equality alone.</td></tr>
+      <tr><td>Browser conformance</td><td>Use independent sessions and native input while checking every paintable text, focus, status, and collaborator-caret frame.</td></tr>
     </tbody>
   </table>
 </table-wrapper>

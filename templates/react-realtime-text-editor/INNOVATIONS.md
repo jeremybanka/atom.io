@@ -53,18 +53,51 @@ derived durable indexes and contains no Markdown branch.
 
 ## Local Input and Logical Presence
 
-The mounted textarea contains only one resident source window. Keystrokes update
-a local draft immediately, minimal replacement intent is derived from the draft,
-and reconnect delivery retains its gesture identity and sequence. Local DOM
-selection, composition, scroll, and pending input remain React-local. Published
-presence converts them to run-relative positions, so collaborators can resolve
-them against another partial working set or simply report that the actor is in a
-different viewport.
+The mounted Lexical plain-text editor contains only one resident source window.
+The renderer-neutral Mosaic text editor hook keeps keystrokes in an optimistic
+draft, derives minimal replacement intent, and retains that draft until a
+complete newer projection cut settles. It also publishes local selections as
+run-relative positions and resolves collaborator selections through the same
+visible text deltas, so renderers do not briefly display an absolute cursor at a
+stale offset. DOM selection, composition, scroll, and caret geometry remain
+renderer-owned.
+
+Lexical is deliberately a browser editing and geometry layer rather than a
+second collaboration authority. Its Yjs collaboration integration and history
+plugin are not mounted. Mosaic owns accepted text, convergence, logical
+positions, actor history, partial residency, and renewable presence leases. The
+core editor lifecycle projects the current bounded source, translates local
+selection offsets into Mosaic positions, and resolves foreign positions. The
+Lexical adapter only maps those offsets to DOM ranges for colored caret labels
+and selection overlays. A projection-tagged update cannot echo back as a local
+edit, while native composition remains local until it is ready for the existing
+coalesced Domain gesture.
+
+The React range hook now reacquires a failed viewport when residency transitions
+back to live. This closes the cold-start race where Vite could render before the
+realtime server accepted its first Socket.IO connection, leaving an otherwise
+healthy client permanently parked on an internal resnapshot error.
+
+An accepted edit may also shorten a document while an existing subscription
+still names the old viewport end. The Markdown range adapter therefore clamps
+that durable subscription to the new authoritative length, and command
+acknowledgements do not clear the optimistic draft until residency has settled
+the accepted revision. This prevents a valid remote replacement from stranding
+the UI on a stale projection or briefly presenting the stale text as saved.
 
 The demo deliberately coalesces an offline draft for its current viewport. It
 does not claim semantic intent recovery for arbitrary rewrites made in several
 unloaded regions. A richer product can retain several bounded draft windows and
 still submit them as one Domain gesture.
+
+The production patterns discovered while stabilizing that lifecycle no longer
+live as Markdown-specific template machinery. Core now publishes the Mosaic
+text source/index models and schemas, a server text-document coordinator for
+atomic import/edit/index/history work, a validated residency socket bridge, and
+a browser session coordinator for reconnect and accepted-revision settlement.
+The template supplies its member names, limits, authorization policy, simulated
+identities, viewport, and renderer. This keeps the correctness boundary reusable
+without pretending that editor layout or product policy is generic.
 
 ## Incremental, Cancelable Semantics
 

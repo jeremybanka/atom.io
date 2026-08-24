@@ -37,6 +37,13 @@ type CursorSample = {
 	} | null
 }
 
+type ColorSchemeSnapshot = {
+	readonly editorBackground: string
+	readonly editorInk: string
+	readonly footerBackground: string
+	readonly pageBackground: string
+}
+
 type CursorSamplerWindow = Window & {
 	__mosaicCursorFrame?: number
 	__mosaicCursorSamples?: CursorSample[]
@@ -105,6 +112,23 @@ async function sourceText(page: Page): Promise<string> {
 	// Chromium exposes Lexical's managed empty-paragraph <br> as one visual
 	// newline even though the editor model contains zero UTF-16 units.
 	return text === `\n` ? `` : text
+}
+
+async function colorSchemeSnapshot(page: Page): Promise<ColorSchemeSnapshot> {
+	return page.evaluate(() => {
+		const editorPane = document.querySelector(`editor-pane`)
+		const editor = document.querySelector(`[data-lexical-editor="true"]`)
+		const footer = document.querySelector(`footer`)
+		if (editorPane === null || editor === null || footer === null) {
+			throw new Error(`The themed editor surface is not ready.`)
+		}
+		return {
+			editorBackground: getComputedStyle(editorPane).backgroundColor,
+			editorInk: getComputedStyle(editor).color,
+			footerBackground: getComputedStyle(footer).backgroundColor,
+			pageBackground: getComputedStyle(document.documentElement).backgroundColor,
+		}
+	})
 }
 
 async function waitForSaved(page: Page): Promise<void> {
@@ -385,6 +409,29 @@ test.describe(`Mosaic text editor browser conformance`, () => {
 
 	test.afterEach(async () => {
 		await backend.close()
+	})
+
+	test(`follows the browser light and dark color schemes`, async ({ page }) => {
+		await page.emulateMedia({ colorScheme: `light` })
+		await page.goto(`/?as=maya`)
+		await page.locator(EDITOR).waitFor({ state: `visible` })
+		await waitForSaved(page)
+		expect(await colorSchemeSnapshot(page)).toEqual({
+			editorBackground: `rgb(255, 254, 250)`,
+			editorInk: `rgb(56, 53, 66)`,
+			footerBackground: `rgb(250, 249, 252)`,
+			pageBackground: `rgb(243, 242, 247)`,
+		})
+
+		await page.emulateMedia({ colorScheme: `dark` })
+		await expect
+			.poll(() => colorSchemeSnapshot(page))
+			.toEqual({
+				editorBackground: `rgb(28, 25, 34)`,
+				editorInk: `rgb(229, 223, 234)`,
+				footerBackground: `rgb(25, 23, 31)`,
+				pageBackground: `rgb(18, 16, 22)`,
+			})
 	})
 
 	test(`delete-all and immediate retyping preserve exact intent`, async ({

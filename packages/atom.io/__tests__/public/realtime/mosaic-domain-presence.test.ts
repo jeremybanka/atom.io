@@ -112,6 +112,85 @@ function fakeSocket() {
 }
 
 describe(`Mosaic Domain presence`, () => {
+	test(`renews the latest local value and stops renewal on clear or disposal`, async () => {
+		vi.useFakeTimers()
+		const fixture = await presenceFixture(`presence-renewal`)
+		const proposals: MosaicDomainPresenceProposal[] = []
+		let rejectNext = false
+		const client = createMosaicDomainPresenceClient({
+			domain: fixture.domain,
+			renewalMs: 10,
+			session: `tab`,
+			transport: {
+				publish(proposal) {
+					proposals.push(structuredClone(proposal))
+					if (rejectNext) {
+						rejectNext = false
+						return Promise.resolve({
+							rejection: {
+								code: `rate-limited`,
+								reason: `retry later`,
+								recovery: `retry`,
+								sequence: proposal.sequence,
+							},
+							status: `rejected`,
+						})
+					}
+					return Promise.resolve({
+						accepted: {
+							...structuredClone(proposal),
+							actor: `ada`,
+							expiresAt: proposal.kind === `update` ? Date.now() + 100 : null,
+						},
+						status: `accepted`,
+					})
+				},
+				snapshot() {
+					return Promise.resolve({ presence: [], sequence: 0 })
+				},
+				subscribe() {
+					return () => undefined
+				},
+			},
+		})
+		await client.start()
+		const address = fixture.domain.address(`cursors`, `ada\u0000tab`)
+		await client.publish(address, { x: 1, y: 2 })
+		expect(proposals).toHaveLength(1)
+		await vi.advanceTimersByTimeAsync(25)
+		expect(proposals.length).toBeGreaterThanOrEqual(3)
+		const beforeClear = proposals.length
+		await client.clear(address)
+		await vi.advanceTimersByTimeAsync(25)
+		expect(proposals).toHaveLength(beforeClear + 1)
+		await client.publish(address, { x: 3, y: 4 })
+		await client.republish()
+		expect(proposals.at(-1)).toMatchObject({ value: { x: 3, y: 4 } })
+		rejectNext = true
+		await expect(client.publish(address, { x: 9, y: 9 })).rejects.toThrow(
+			`retry later`,
+		)
+		await vi.advanceTimersByTimeAsync(10)
+		expect(proposals.at(-1)).toMatchObject({ value: { x: 9, y: 9 } })
+		client[Symbol.dispose]()
+		const beforeDispose = proposals.length
+		await vi.advanceTimersByTimeAsync(25)
+		expect(proposals).toHaveLength(beforeDispose)
+		expect(() =>
+			createMosaicDomainPresenceClient({
+				domain: fixture.domain,
+				renewalMs: 0,
+				session: `invalid`,
+				transport: {
+					publish: () => Promise.reject(new Error(`unused`)),
+					snapshot: () => Promise.resolve({ presence: [], sequence: 0 }),
+					subscribe: () => () => undefined,
+				},
+			}),
+		).toThrow(`positive integers`)
+		vi.useRealTimers()
+	})
+
 	test(`sessions are independent and stale updates cannot resurrect a clear`, async () => {
 		const [serverState, firstState, secondState, observerState] =
 			await Promise.all([

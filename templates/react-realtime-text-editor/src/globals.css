@@ -1,9 +1,10 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,650&display=swap");
 
 :root {
+	color-scheme: light dark;
 	font-family: "Manrope", system-ui, sans-serif;
-	color: #292936;
-	background: #f3f2f7;
+	color: light-dark(#292936, #f1edf7);
+	background: light-dark(#f3f2f7, #121016);
 	font-synthesis: none;
 	text-rendering: optimizeLegibility;
 }

@@ -14,7 +14,7 @@ lexical-markdown-editor.class {
 			min-height: 32rem;
 			padding: 1.45rem 1.45rem 3rem 3.7rem;
 			outline: 0;
-			color: #383542;
+			color: var(--editor-ink);
 			caret-color: var(--accent);
 			font-family: "DM Mono", monospace;
 			font-size: 0.83rem;
@@ -33,7 +33,7 @@ lexical-markdown-editor.class {
 			top: 1.45rem;
 			left: 3.7rem;
 			display: block;
-			color: #9c98a6;
+			color: var(--editor-placeholder);
 			font-family: "DM Mono", monospace;
 			font-size: 0.83rem;
 			pointer-events: none;
@@ -65,7 +65,7 @@ lexical-markdown-editor.class {
 			collaborator-caret {
 				width: 2px;
 				background: var(--collaborator-color);
-				box-shadow: 0 0 0 1px #ffffffb8;
+				box-shadow: 0 0 0 1px var(--overlay-outline);
 
 				> collaborator-label {
 					position: absolute;

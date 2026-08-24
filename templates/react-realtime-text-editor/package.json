@@ -27,10 +27,14 @@
 		"lint:types": "tsc -b",
 		"preview": "concurrently \"vite preview\" \"node node/server.ts\"",
 		"test": "vitest run",
+		"test:browser": "playwright test",
 		"test:once": "vitest run"
 	},
 	"dependencies": {
+		"@lexical/react": "0.49.0",
+		"@lexical/selection": "0.49.0",
 		"atom.io": "workspace:*",
+		"lexical": "0.49.0",
 		"react": "19.2.8",
 		"react-dom": "19.2.8",
 		"socket.io": "4.8.3",
@@ -41,6 +45,7 @@
 		"@dprint/json": "0.23.0",
 		"@dprint/markdown": "0.23.2",
 		"@dprint/oxc": "0.37.0",
+		"@playwright/test": "1.62.1",
 		"@testing-library/dom": "10.4.1",
 		"@testing-library/react": "16.3.3",
 		"@types/node": "26.4.0",

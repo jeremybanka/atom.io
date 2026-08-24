@@ -134,7 +134,7 @@ export function createMosaicDomainPresenceSocketTransport(
 					proposalRequests.delete(requestId)
 					reject(new Error(`Presence socket proposal timed out.`))
 				}, requestTimeoutMs)
-				if (`unref` in timer) timer.unref()
+				;(timer as { unref?: () => void }).unref?.()
 				proposalRequests.set(requestId, { reject, resolve, timer })
 				const request: MosaicDomainPresenceRequest = { proposal, requestId }
 				socket.emit(MOSAIC_DOMAIN_PRESENCE_EVENTS.proposal, request)
@@ -154,7 +154,7 @@ export function createMosaicDomainPresenceSocketTransport(
 					snapshotRequests.delete(requestId)
 					reject(new Error(`Presence socket snapshot timed out.`))
 				}, requestTimeoutMs)
-				if (`unref` in timer) timer.unref()
+				;(timer as { unref?: () => void }).unref?.()
 				snapshotRequests.set(requestId, { reject, resolve, timer })
 				const request: MosaicDomainPresenceSnapshotRequest = { requestId }
 				socket.emit(MOSAIC_DOMAIN_PRESENCE_EVENTS.snapshot, request)

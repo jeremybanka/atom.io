@@ -1,5 +1,4 @@
-import type { MosaicTextSelection } from "atom.io/realtime"
-import { useMosaicTextRange } from "atom.io/realtime-react"
+import { useMosaicTextEditor, useMosaicTextRange } from "atom.io/realtime-react"
 import {
 	Fragment,
 	createElement,
@@ -24,6 +23,10 @@ import {
 	type MarkdownSemanticBlock,
 } from "./incremental-markdown.ts"
 import { SIMULATED_IDENTITIES } from "./identities.ts"
+import {
+	LexicalMarkdownEditor,
+	type RenderedCollaboratorSelection,
+} from "./LexicalMarkdownEditor.tsx"
 import { switchBrowserIdentity } from "./session.ts"
 import { markdownVirtualWindow } from "./virtualization.ts"
 import css from "./MarkdownWorkspace.module.css"
@@ -108,37 +111,17 @@ function activePresence(
 	)
 }
 
-function statusLabel(status: MarkdownClientStatus): string {
+function statusLabel(
+	status: MarkdownClientStatus,
+	hasLocalDraft: boolean,
+): string {
 	if (status.connection === `offline`) return `Offline · draft stays local`
 	if (status.connection === `recovering`) return `Resnapshotting working set…`
 	if (status.connection === `connecting`) return `Connecting…`
-	return status.pending === 0
+	const pending = Math.max(status.pending, hasLocalDraft ? 1 : 0)
+	return pending === 0
 		? `All changes saved`
-		: `Saving ${status.pending} gesture${status.pending === 1 ? `` : `s`}…`
-}
-
-const commonEdit = (before: string, after: string) => {
-	let prefix = 0
-	while (
-		prefix < before.length &&
-		prefix < after.length &&
-		before[prefix] === after[prefix]
-	) {
-		prefix++
-	}
-	let suffix = 0
-	while (
-		suffix < before.length - prefix &&
-		suffix < after.length - prefix &&
-		before[before.length - suffix - 1] === after[after.length - suffix - 1]
-	) {
-		suffix++
-	}
-	return {
-		end: before.length - suffix,
-		start: prefix,
-		text: after.slice(prefix, after.length - suffix),
-	}
+		: `Saving ${pending} gesture${pending === 1 ? `` : `s`}…`
 }
 
 export function MarkdownWorkspace({
@@ -148,24 +131,13 @@ export function MarkdownWorkspace({
 	const [presence, setPresence] = useState(() => activePresence(client))
 	const [totalLength, setTotalLength] = useState(0)
 	const [scroll, setScroll] = useState({ height: 560, scrollTop: 0 })
-	const [draft, setDraft] = useState<string | null>(null)
 	const [parse, setParse] = useState<readonly MarkdownSemanticBlock[]>([])
 	const [parseMetrics, setParseMetrics] =
 		useState<MarkdownParseInstrumentation>(EMPTY_PARSE_METRICS)
+	const [readProblem, setReadProblem] = useState<string | null>(null)
 	const [problem, setProblem] = useState<string | null>(null)
 	const parser = useRef(new IncrementalMarkdownParser())
-	const editor = useRef<HTMLTextAreaElement | null>(null)
-	const pendingDraft = useRef<{
-		base: string
-		replacement: string
-		selection: Promise<MosaicTextSelection | null>
-		token: number
-		value: string
-	} | null>(null)
-	const committing = useRef(false)
-	const commitTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 	const deferredScroll = useRef<typeof scroll | null>(null)
-	const editToken = useRef(0)
 	const window = useMemo(
 		() =>
 			markdownVirtualWindow(scroll, {
@@ -179,87 +151,84 @@ export function MarkdownWorkspace({
 	const view = useMosaicTextRange(client.projection, window.range, {
 		overscan: 2_048,
 	})
-	const projection = view.status === `ready` ? view.projection : null
-	const displayed = draft ?? projection?.text ?? ``
-
-	const refreshLength = useCallback(() => {
-		void client.projection
-			.readLength()
-			.then(setTotalLength, (error: unknown) => {
-				setProblem(error instanceof Error ? error.message : String(error))
-			})
+	const incomingProjection = view.status === `ready` ? view.projection : null
+	const refreshLength = useCallback(async (): Promise<number | null> => {
+		try {
+			const length = await client.projection.readLength()
+			setTotalLength(length)
+			setReadProblem(null)
+			return length
+		} catch (error) {
+			setReadProblem(error instanceof Error ? error.message : String(error))
+			return null
+		}
 	}, [client])
 
-	const commitDraft = useCallback(async (): Promise<void> => {
-		const pending = pendingDraft.current
-		if (
-			pending === null ||
-			committing.current ||
-			client.status().connection !== `live`
-		) {
-			return
-		}
-		committing.current = true
-		if (commitTimer.current !== null) {
-			clearTimeout(commitTimer.current)
-			commitTimer.current = null
-		}
-		try {
-			if (pending.base !== pending.value) {
-				const selection = await pending.selection
-				if (pendingDraft.current?.token !== pending.token) return
-				if (selection === null) {
-					throw new Error(
-						`The local draft lost its resident logical anchor; edit again after the viewport resnapshots.`,
-					)
-				}
-				await client.replace({
-					selection,
-					text: pending.replacement,
-				})
-			}
-			if (pendingDraft.current === pending) {
-				pendingDraft.current = null
-				setDraft(null)
-				if (deferredScroll.current !== null) {
-					setScroll(deferredScroll.current)
-					deferredScroll.current = null
-				}
-			}
-			refreshLength()
-		} catch (error) {
-			setProblem(error instanceof Error ? error.message : String(error))
-		} finally {
-			committing.current = false
-			if (pendingDraft.current !== null && pendingDraft.current !== pending) {
-				commitTimer.current = setTimeout(() => void commitDraft(), 120)
-			}
-		}
-	}, [client, refreshLength])
-	const scheduleCommit = useCallback((): void => {
-		if (commitTimer.current !== null) clearTimeout(commitTimer.current)
-		commitTimer.current = setTimeout(() => {
-			commitTimer.current = null
-			void commitDraft()
-		}, 120)
-	}, [commitDraft])
+	const peers = useMemo(
+		() =>
+			presence
+				.filter((person) => person.session !== client.sessionId)
+				.map((person) => ({
+					id: person.session,
+					selection: person.selection,
+					value: person,
+				})),
+		[client.sessionId, presence],
+	)
+	const publishSelection = useCallback(
+		(selection: NonNullable<MarkdownPresence[`selection`]>) =>
+			client.publishPresence({
+				color: client.identity.color,
+				name: client.identity.name,
+				selection,
+				viewport: null,
+			}),
+		[client],
+	)
+	const replace = useCallback(
+		(input: Parameters<MarkdownCollaborationClient[`replace`]>[0]) =>
+			client.replace(input),
+		[client],
+	)
+	const reportEditorError = useCallback((error: unknown): void => {
+		setProblem(error instanceof Error ? error.message : String(error))
+	}, [])
+	const editor = useMosaicTextEditor({
+		client: client.projection,
+		connected: status.connection === `live`,
+		documentLength: totalLength,
+		onDocumentLength: setTotalLength,
+		onError: reportEditorError,
+		peers,
+		projection: incomingProjection,
+		publishSelection,
+		replace,
+	})
+	const projection = editor.projection
 
 	useEffect(() => {
 		const stopStatus = client.subscribe((next) => {
 			setStatus(next)
-			if (next.connection === `live`) scheduleCommit()
+			if (next.connection === `live`) {
+				void refreshLength()
+			}
 		})
 		const stopPresence = client.presence.subscribe(() => {
 			setPresence(activePresence(client))
 		})
-		refreshLength()
+		void refreshLength()
 		return () => {
 			stopStatus()
 			stopPresence()
-			if (commitTimer.current !== null) clearTimeout(commitTimer.current)
 			parser.current.cancel()
 		}
-	}, [client, refreshLength, scheduleCommit])
+	}, [client, refreshLength])
+
+	useEffect(() => {
+		if (editor.hasLocalDraft || deferredScroll.current === null) return
+		setScroll(deferredScroll.current)
+		deferredScroll.current = null
+	}, [editor.hasLocalDraft])
 
 	useEffect(() => {
 		if (projection === null) return
@@ -275,7 +244,13 @@ export function MarkdownWorkspace({
 	}, [projection])
 
 	useEffect(() => {
-		if (projection === null || draft !== null) return
+		if (
+			projection === null ||
+			editor.hasLocalDraft ||
+			editor.hasLocalSelection
+		) {
+			return
+		}
 		const start = window.range.start
 		const end = window.range.end
 		void Promise.all([
@@ -289,23 +264,23 @@ export function MarkdownWorkspace({
 				viewport: { anchor, head },
 			}),
 		)
-	}, [client, draft, projection, window.range.end, window.range.start])
+	}, [
+		client,
+		editor.hasLocalDraft,
+		editor.hasLocalSelection,
+		projection,
+		window.range.end,
+		window.range.start,
+	])
 
-	const publishSelection = (target: HTMLTextAreaElement): void => {
-		const start = window.range.start + target.selectionStart
-		const end = window.range.start + target.selectionEnd
-		void Promise.all([
-			client.projection.positionAtOffset(start),
-			client.projection.positionAtOffset(end),
-		]).then(([anchor, head]) =>
-			client.publishPresence({
-				color: client.identity.color,
-				name: client.identity.name,
-				selection: { anchor, head },
-				viewport: null,
-			}),
-		)
-	}
+	const collaboratorSelections: readonly RenderedCollaboratorSelection[] =
+		editor.remoteSelections.map(({ end, id, start, value: person }) => ({
+			color: person.color,
+			end,
+			name: person.name,
+			session: id,
+			start,
+		}))
 
 	return (
 		<markdown-workspace className={css.class}>
@@ -319,7 +294,7 @@ export function MarkdownWorkspace({
 				</brand-lockup>
 				<document-title>
 					<strong>Launch field notes</strong>
-					<span>{statusLabel(status)}</span>
+					<span>{statusLabel(status, editor.hasLocalDraft)}</span>
 				</document-title>
 				<toolbar-actions>
 					<button type="button" onClick={() => void client.undo()}>
@@ -363,9 +338,8 @@ export function MarkdownWorkspace({
 								height: element.clientHeight,
 								scrollTop: element.scrollTop,
 							}
-							if (pendingDraft.current !== null) {
+							if (editor.hasLocalDraft) {
 								deferredScroll.current = nextScroll
-								scheduleCommit()
 							} else {
 								setScroll(nextScroll)
 							}
@@ -377,48 +351,23 @@ export function MarkdownWorkspace({
 						/>
 						{view.status === `loading` ? <p>Hydrating viewport…</p> : null}
 						{view.status === `error` ? (
-							<p>Viewport needs a resnapshot.</p>
+							<p role="status">
+								{status.connection === `offline`
+									? `Waiting for the realtime backend…`
+									: `Restoring the shared viewport…`}
+							</p>
 						) : null}
 						{projection ? (
-							<textarea
-								id="markdown-source"
-								ref={editor}
-								aria-label="Shared markdown source viewport"
-								value={displayed}
-								onChange={(event) => {
-									const value = event.currentTarget.value
-									const base = pendingDraft.current?.base ?? projection.text
-									const change = commonEdit(base, value)
-									const token = ++editToken.current
-									setDraft(value)
-									pendingDraft.current = {
-										base,
-										replacement: change.text,
-										selection: Promise.all([
-											client.projection.positionAtOffset(
-												projection.range.start + change.start,
-											),
-											client.projection.positionAtOffset(
-												projection.range.start + change.end,
-											),
-										]).then(
-											([anchor, head]) =>
-												editToken.current === token ? { anchor, head } : null,
-											() => null,
-										),
-										token,
-										value,
-									}
-									scheduleCommit()
-								}}
-								onKeyDown={(event) => {
-									if (!(event.metaKey || event.ctrlKey) || event.key !== `z`)
-										return
-									event.preventDefault()
-									void (event.shiftKey ? client.redo() : client.undo())
-								}}
-								onSelect={(event) => publishSelection(event.currentTarget)}
-								spellCheck
+							<LexicalMarkdownEditor
+								onDirty={editor.onDirty}
+								onError={(error) => setProblem(error.message)}
+								onRedo={() => void client.redo()}
+								onSelectionChange={editor.onSelectionChange}
+								onUndo={() => void client.undo()}
+								onValueChange={editor.onValueChange}
+								selections={collaboratorSelections}
+								selection={editor.selection}
+								value={editor.text}
 							/>
 						) : null}
 						<virtual-spacer
@@ -475,12 +424,12 @@ export function MarkdownWorkspace({
 			</main>
 			<footer>
 				<span data-status={status.connection} />
-				<strong>{statusLabel(status)}</strong>
+				<strong>{statusLabel(status, editor.hasLocalDraft)}</strong>
 				<small>
 					Resident {client.residency.state.residentMemberCount} members
 				</small>
-				{(problem ?? status.reason) ? (
-					<output>{problem ?? status.reason}</output>
+				{(problem ?? readProblem ?? status.reason) ? (
+					<output>{problem ?? readProblem ?? status.reason}</output>
 				) : null}
 			</footer>
 		</markdown-workspace>

@@ -12,6 +12,7 @@
 	},
 	"type": "module",
 	"exports": {
+		"./contour": "./src/svg-contour.ts",
 		"./convergence": "./src/svg-convergence.ts",
 		"./domain": "./src/svg-domain.ts",
 		"./model": "./src/svg-editor-state.ts"

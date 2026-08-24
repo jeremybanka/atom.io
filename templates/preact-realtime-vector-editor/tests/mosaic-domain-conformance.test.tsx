@@ -10,12 +10,9 @@ import {
 	markdownIndexRootAtom,
 	markdownSourceAtom,
 } from "../../react-realtime-text-editor/src/document-domain.ts"
-import {
-	activateSvgDesignDomain,
-	edgeAtoms,
-	nodeAtoms,
-	readSvgRegister,
-} from "../src/design-model.ts"
+import { readSvgRegister } from "@atom.io/template-preact-svg-editor/convergence"
+import { activateSvgDesignDomain } from "@atom.io/template-preact-svg-editor/domain"
+import { edgeAtoms, nodeAtoms } from "@atom.io/template-preact-svg-editor/model"
 import {
 	createMosaicDomainVerticalConformanceAdapter,
 	type MosaicDomainVerticalConformanceConfig,

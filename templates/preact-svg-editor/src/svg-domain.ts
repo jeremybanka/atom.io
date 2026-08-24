@@ -721,13 +721,34 @@ export function createSvgDomainEditor(options: {
 			if (subpath?.pathId !== input.pathId) {
 				throw new Error(`Cannot reorder a missing SVG subpath`)
 			}
+			const node = readSvgRegister<PointXY | null>(
+				state.getState(nodeAtoms, input.subpathId),
+			)
+			const edge = readSvgRegister<SvgEdge | null>(
+				state.getState(edgeAtoms, input.subpathId),
+			)
+			if (edge == null || node === undefined) {
+				throw new Error(`Cannot reorder an incomplete SVG subpath`)
+			}
 			await submit(input.gesture, [
+				op(options.domain.address(`subpaths`, input.subpathId), {
+					id: svgOperationId(input.gesture, 0),
+					value: subpath,
+				}),
+				op(options.domain.address(`nodes`, input.subpathId), {
+					id: svgOperationId(input.gesture, 1),
+					value: node,
+				}),
+				op(options.domain.address(`edges`, input.subpathId), {
+					id: svgOperationId(input.gesture, 2),
+					value: edge,
+				}),
 				op(
 					options.domain.address(`subpathOrder`, input.pathId),
 					orderPlacement(
 						state.getState(subpathOrderAtoms, input.pathId),
 						input.gesture,
-						0,
+						3,
 						input.subpathId,
 						input.index,
 					),

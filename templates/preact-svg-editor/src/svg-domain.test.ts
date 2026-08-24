@@ -404,6 +404,46 @@ describe(`SVG Mosaic Domain`, () => {
 		expect(await fixture.aliceEditor.redo(clock.begin())).toBe(false)
 	})
 
+	test(`foreign participation cannot keep topology alive after its creator undoes insertion`, async () => {
+		const fixture = await distributedFixture()
+		const aliceClock = createSvgGestureClock({
+			actor: `alice`,
+			session: `alice-tab`,
+		})
+		const bobClock = createSvgGestureClock({ actor: `bob`, session: `bob-tab` })
+		await fixture.aliceEditor.replaceDrawing({
+			drawing,
+			gesture: aliceClock.begin(),
+		})
+		await fixture.aliceEditor.insertSubpath({
+			edge: { kind: `line` },
+			gesture: aliceClock.begin(),
+			index: 1,
+			node: { x: 5, y: 5 },
+			pathId: `path-a`,
+			subpathId: `shared`,
+		})
+		await fixture.bob.flush()
+		await fixture.bobEditor.reorderSubpath({
+			gesture: bobClock.begin(),
+			index: 2,
+			pathId: `path-a`,
+			subpathId: `shared`,
+		})
+		await fixture.alice.flush()
+
+		expect(await fixture.aliceEditor.undo(aliceClock.begin())).toBe(true)
+		await fixture.bob.flush()
+
+		for (const silo of [
+			fixture.serverSilo,
+			fixture.aliceSilo,
+			fixture.bobSilo,
+		]) {
+			expect(silo.getState(structureViolationsSelector)).toEqual([])
+		}
+	})
+
 	test(`final-member rejection rolls back the complete structural gesture`, async () => {
 		let denyEdges = false
 		const fixture = await distributedFixture(

@@ -103,13 +103,13 @@ vector-workspace.class {
 				> rect[data-kind="artboard"] {
 					fill: #f8f5ed;
 				}
-				> g > path[data-kind="path"] {
+				> path[data-kind="path"] {
 					fill: #8f7aff24;
 					stroke: #c4baff;
 					stroke-width: 2;
 					pointer-events: none;
 				}
-				> g > circle[data-kind="node"] {
+				> circle[data-kind="node"] {
 					fill: #17151f;
 					stroke: #b7adff;
 					stroke-width: 2;

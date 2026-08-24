@@ -126,24 +126,48 @@ describe(`Mosaic Domain session client`, () => {
 		fixture.history.request
 			.mockResolvedValueOnce({ status: `accepted` })
 			.mockResolvedValueOnce({ status: `rejected`, reason: `stale` })
+		const send = vi.fn(() => {
+			queueMicrotask(() => {
+				fixture.publishRevision(1)
+			})
+			return Promise.resolve({ revision: 1 }) as never
+		})
 		const client = await createMosaicDomainSessionClient({
 			...fixture,
-			send: vi.fn(() => Promise.resolve({ revision: 1 }) as never),
+			send,
 			socket: fixture.socket,
 		})
 		expect(client.state().connection).toBe(`offline`)
+		const connectedSubmission = client.submit(() => `after-connect`)
+		await Promise.resolve()
 		fixture.socket.connected = true
 		fixture.socket.dispatch(`connect`)
+		await connectedSubmission
+		expect(send).toHaveBeenCalledWith(`after-connect`)
+		fixture.presence.republish.mockRejectedValueOnce(new Error(`advisory`))
 		await client.synchronize()
 		expect(fixture.residency.reconnect).toHaveBeenCalled()
 		await expect(client.history(`undo`)).resolves.toBe(true)
 		await expect(client.history(`redo`)).rejects.toThrow(`stale`)
-
+		fixture.historyState.snapshot = null
+		await expect(client.history(`undo`)).resolves.toBe(false)
+		fixture.historyState.snapshot = {
+			horizon: { canRedo: false, canUndo: false },
+		}
+		await expect(client.history(`undo`)).resolves.toBe(false)
+		const states: any[] = []
+		client.subscribe((state) => states.push(state))
 		fixture.socket.connected = false
+		fixture.socket.dispatch(`disconnect`)
+		expect(states.at(-1)).toMatchObject({ connection: `offline` })
+
 		const pending = client.submit(() => `offline`)
+		await Promise.resolve()
 		client[Symbol.dispose]()
 		await expect(pending).rejects.toThrow(`disposed`)
 		await expect(client.synchronize()).rejects.toThrow(`disposed`)
+		await expect(client.submit(() => `late`)).rejects.toThrow(`disposed`)
+		client[Symbol.dispose]()
 	})
 
 	test(`restores pending accounting when command construction fails`, async () => {
@@ -197,5 +221,17 @@ describe(`Mosaic Domain session client`, () => {
 		await Promise.resolve()
 		disposing[Symbol.dispose]()
 		await expect(unsettled).rejects.toThrow(`disposed`)
+
+		const failedInitial = sessionFixture()
+		failedInitial.residency.reconnect.mockRejectedValueOnce(
+			new Error(`initial reconnect failed`),
+		)
+		const recovered = await createMosaicDomainSessionClient({
+			...failedInitial,
+			send: vi.fn(),
+			socket: failedInitial.socket,
+		})
+		expect(recovered.state().connection).toBe(`live`)
+		recovered[Symbol.dispose]()
 	})
 })

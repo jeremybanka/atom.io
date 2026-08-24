@@ -250,6 +250,59 @@ describe(`Mosaic text Domain models and document coordinator`, () => {
 				type: `edit`,
 			}),
 		).toHaveProperty(`issues`)
+		expect(
+			validate(models.sourceModel.operationSchema, {
+				mode: `undo`,
+				targetOperationIds: [`operation`],
+				type: `history`,
+			}),
+		).toHaveProperty(`value`)
+		expect(
+			validate(models.indexMemberSchema, {
+				id: `unknown`,
+				kind: `unknown`,
+				version: 1,
+			}),
+		).toHaveProperty(`issues`)
+		expect(
+			validate(models.indexMemberSchema, { id: ``, kind: `leaf`, version: 1 }),
+		).toHaveProperty(`issues`)
+		expect(
+			validate(models.sourceModel.operationSchema, {
+				deleted: [],
+				inserted: [],
+				type: `unknown`,
+			}),
+		).toHaveProperty(`issues`)
+		expect(validate(models.sourceModel.operationSchema, null)).toHaveProperty(
+			`issues`,
+		)
+		expect(
+			validate(models.indexMemberSchema, {
+				generation: 1,
+				id: `alias`,
+				kind: `alias`,
+				recovery: {
+					code: `range-resnapshot`,
+					range: { end: 2, kind: `utf16-range`, start: 1 },
+					reason: `alias-fanout`,
+				},
+				source: `source`,
+				targets: [`target`],
+				version: 1,
+			}),
+		).toHaveProperty(`value`)
+		expect(
+			validate(models.indexRootSchema, { clone: () => undefined }),
+		).toHaveProperty(`issues`)
+		expect(validate(models.sourceSnapshotSchema, {})).toHaveProperty(`issues`)
+		expect(() =>
+			(
+				models.indexMemberModel.history!.compensate as (
+					...args: any[]
+				) => unknown
+			)(),
+		).toThrow(`never enters actor history`)
 
 		const text = new Text()
 		const operation = prepareMosaicTextImportOperation(

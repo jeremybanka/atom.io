@@ -349,7 +349,7 @@ describe(`Mosaic text editing`, () => {
 		let projection = projected(canonical, 0, { runId: `base` })
 		let view: MosaicTextEditorView<Peer> | null = null
 		let peerName = `Lin`
-		const logicalSelection = {
+		let logicalSelection = {
 			anchor: { affinity: `left` as const, offset: rollout, runId: `base` },
 			head: { affinity: `left` as const, offset: rollout, runId: `base` },
 		}
@@ -365,7 +365,7 @@ describe(`Mosaic text editing`, () => {
 			view = useMosaicTextEditor({
 				client,
 				commitDelayMs: 10_000,
-				connected: true,
+				connected: false,
 				documentLength: canonical.length,
 				peers: [
 					{
@@ -431,6 +431,17 @@ describe(`Mosaic text editing`, () => {
 		expect(
 			(view as unknown as MosaicTextEditorView<Peer>).remoteSelections[0]?.value,
 		).toEqual({ name: `Lin updated` })
+
+		logicalSelection = {
+			anchor: { affinity: `left`, offset: 1, runId: `future` },
+			head: { affinity: `left`, offset: 1, runId: `future` },
+		}
+		act(() => {
+			rendered.rerender(<Probe />)
+		})
+		expect(
+			(view as unknown as MosaicTextEditorView<Peer>).remoteSelections,
+		).toMatchObject([{ end: rollout + 2, id: `lin`, start: rollout + 2 }])
 		rendered.unmount()
 	})
 
@@ -620,6 +631,153 @@ describe(`Mosaic text editing`, () => {
 		rendered.rerender(<Probe />)
 		await waitFor(() => {
 			expect(view?.selection).toEqual([6, 6])
+		})
+		rendered.unmount()
+	})
+
+	test(`keeps the local selection stable through stale and boundary resolutions`, async () => {
+		let projection = projected(`abcdef`, 0)
+		let view: MosaicTextEditorView<Peer> | null = null
+		let resolved: number | Promise<number> = 3
+		let resolveStale = (_offset: number): void => undefined
+		let resolutionReads = 0
+		const published: MosaicTextSelection[] = []
+		const client = {
+			positionAtOffset: (offset: number) =>
+				Promise.resolve({ affinity: `left` as const, offset, runId: `base` }),
+			readLength: () => Promise.resolve(projection.text.length),
+			resolvePosition: () => {
+				resolutionReads++
+				return Promise.resolve(resolved)
+			},
+		} satisfies Pick<
+			MosaicTextProjectionClient,
+			`positionAtOffset` | `readLength` | `resolvePosition`
+		>
+		const Probe = (): ReactElement => {
+			view = useMosaicTextEditor({
+				client,
+				connected: true,
+				documentLength: 10,
+				peers: [],
+				projection,
+				publishSelection(selection) {
+					published.push(selection)
+				},
+				replace: () => Promise.resolve(),
+			})
+			return <output>{view.text}</output>
+		}
+		const rendered = render(<Probe />)
+		await waitFor(() => {
+			expect(view?.projection).not.toBeNull()
+		})
+		act(() => view?.onSelectionChange(3, 3))
+		await waitFor(() => {
+			expect(published).toHaveLength(1)
+		})
+
+		resolved = new Promise<number>((resolve) => {
+			resolveStale = resolve
+		})
+		projection = projected(`ABCDEF`, 1, { runId: `other` })
+		rendered.rerender(<Probe />)
+		await waitFor(() => {
+			expect(resolutionReads).toBe(2)
+		})
+
+		resolved = 0
+		projection = projected(`ABCDEF`, 2, { runId: `other` })
+		rendered.rerender(<Probe />)
+		resolveStale(4)
+		await waitFor(() => {
+			expect(resolutionReads).toBe(4)
+		})
+		expect(
+			(view as unknown as MosaicTextEditorView<Peer>).projection?.revision,
+		).toBe(0)
+
+		resolved = 7
+		projection = projected(`ABCDEF`, 3, {
+			rangeEnd: 10,
+			runId: `other`,
+		})
+		rendered.rerender(<Probe />)
+		await waitFor(() => {
+			expect(resolutionReads).toBe(6)
+		})
+		expect(
+			(view as unknown as MosaicTextEditorView<Peer>).projection?.revision,
+		).toBe(0)
+
+		resolved = 4
+		projection = projected(`ABCDEF`, 4, { runId: `other` })
+		rendered.rerender(<Probe />)
+		await waitFor(() => {
+			expect(view?.selection).toEqual([4, 4])
+		})
+		rendered.unmount()
+	})
+
+	test(`does not publish a delayed selection after a newer selection supersedes it`, async () => {
+		const projection = projected(`alpha`, 0, { rangeEnd: 10 })
+		let view: MosaicTextEditorView<Peer> | null = null
+		let resolvePositionRead: (() => void) | null = null
+		const positionRead = new Promise<void>((resolve) => {
+			resolvePositionRead = resolve
+		})
+		let positionReads = 0
+		const published: MosaicTextSelection[] = []
+		const client = {
+			positionAtOffset: async (offset: number) => {
+				positionReads++
+				await positionRead
+				return { affinity: `left` as const, offset, runId: `base` }
+			},
+			readLength: () => Promise.resolve(6),
+			resolvePosition: () => Promise.resolve(0),
+		} satisfies Pick<
+			MosaicTextProjectionClient,
+			`positionAtOffset` | `readLength` | `resolvePosition`
+		>
+		const Probe = (): ReactElement => {
+			view = useMosaicTextEditor({
+				client,
+				commitDelayMs: 10_000,
+				connected: true,
+				documentLength: 10,
+				peers: [],
+				projection,
+				publishSelection(selection) {
+					published.push(selection)
+				},
+				replace: () => Promise.resolve(),
+			})
+			return <output>{view.text}</output>
+		}
+		const rendered = render(<Probe />)
+		await waitFor(() => {
+			expect(view?.projection).not.toBeNull()
+		})
+		act(() => {
+			view?.onSelectionChange(8, 8)
+		})
+		expect(positionReads).toBe(2)
+		act(() => {
+			view?.onSelectionChange(1, 1)
+			view?.onSelectionChange(1, 1)
+		})
+		await waitFor(() => {
+			expect(published).toHaveLength(1)
+		})
+		act(() => {
+			resolvePositionRead?.()
+		})
+		await Promise.resolve()
+		expect(published).toHaveLength(1)
+		expect(published[0]).toMatchObject({
+			anchor: { offset: 1 },
+			head: { offset: 1 },
 		})
 		rendered.unmount()
 	})

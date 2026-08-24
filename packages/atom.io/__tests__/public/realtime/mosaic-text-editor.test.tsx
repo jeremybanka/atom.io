@@ -786,4 +786,92 @@ describe(`Mosaic text editing`, () => {
 		})
 		rendered.unmount()
 	})
+
+	test(`maps resident peer positions before diffing bounded projection cuts`, async () => {
+		const before = `abc rollout owners tail\n`
+		const insertion = before.indexOf(`rollout`)
+		let projection = projected(before, 0, { runId: `base` })
+		let peers: readonly MosaicTextEditorPeer<Peer>[] = [
+			{
+				id: `lin`,
+				selection: {
+					anchor: { affinity: `left`, offset: insertion, runId: `base` },
+					head: { affinity: `left`, offset: insertion, runId: `base` },
+				},
+				value: { name: `Lin` },
+			},
+		]
+		let view: MosaicTextEditorView<Peer> | null = null
+		const client = {
+			positionAtOffset: () => Promise.reject(new Error(`unused`)),
+			readLength: () => Promise.resolve(before.length + 1),
+			resolvePosition: () => new Promise<number>(() => undefined),
+		} as Pick<
+			MosaicTextProjectionClient,
+			`positionAtOffset` | `readLength` | `resolvePosition`
+		>
+		const Probe = (): ReactElement => {
+			view = useMosaicTextEditor({
+				client,
+				connected: true,
+				documentLength: before.length,
+				peers,
+				projection,
+				publishSelection: () => undefined,
+				replace: () => Promise.resolve(),
+			})
+			return <output>{view.text}</output>
+		}
+		const rendered = render(<Probe />)
+		await waitFor(() => {
+			expect(view?.remoteSelections).toMatchObject([
+				{ end: insertion, id: `lin`, start: insertion },
+			])
+		})
+
+		const after = `${before.slice(0, insertion)}[${before.slice(insertion, -1)}`
+		projection = {
+			...projected(after, 1),
+			segments: [
+				{
+					end: after.length,
+					fragments: [
+						{
+							runId: `base`,
+							start: 0,
+							text: before.slice(0, insertion),
+						},
+						{ runId: `insert`, start: 0, text: `[` },
+						{
+							runId: `base`,
+							start: insertion,
+							text: before.slice(insertion, -1),
+						},
+					],
+					id: `leaf:1`,
+					start: 0,
+					text: after,
+				},
+			],
+		}
+		peers = [
+			{
+				...peers[0],
+				selection: {
+					anchor: { affinity: `left`, offset: 1, runId: `insert` },
+					head: { affinity: `left`, offset: 1, runId: `insert` },
+				},
+			},
+		]
+		act(() => {
+			rendered.rerender(<Probe />)
+		})
+		expect(
+			(view as unknown as MosaicTextEditorView<Peer>).remoteSelections,
+		).toMatchObject([{ end: insertion + 1, id: `lin`, start: insertion + 1 }])
+		expect(
+			(view as unknown as MosaicTextEditorView<Peer>).remoteSelections[0]?.end,
+		).not.toBe(after.length)
+		rendered.unmount()
+	})
 })

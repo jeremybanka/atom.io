@@ -37,6 +37,11 @@ type CursorSample = {
 	} | null
 }
 
+type CursorSamplerWindow = Window & {
+	__mosaicCursorFrame?: number
+	__mosaicCursorSamples?: CursorSample[]
+}
+
 async function openClients(browser: Browser): Promise<Clients> {
 	const mayaContext = await browser.newContext()
 	const theoContext = await browser.newContext()
@@ -127,6 +132,57 @@ async function typeLiteral(
 		else await page.keyboard.type(character)
 		if (delay > 0) await page.waitForTimeout(delay)
 	}
+}
+
+async function startCursorSampler(
+	page: Page,
+	session: string,
+	semanticTarget: string,
+): Promise<void> {
+	await page.evaluate(
+		({ exactSession, targetText }) => {
+			const target = window as CursorSamplerWindow
+			target.__mosaicCursorSamples = []
+			let phase = 0
+			const sample = (): void => {
+				const root = document.querySelector<HTMLElement>(
+					`[data-lexical-editor="true"]`,
+				)
+				const text = root?.innerText ?? ``
+				const overlay = document.querySelector<HTMLElement>(
+					`collaborator-presence[data-session="${exactSession}"]`,
+				)
+				const caret = overlay?.querySelector<HTMLElement>(`collaborator-caret`)
+				const rect = caret?.getBoundingClientRect()
+				target.__mosaicCursorSamples!.push({
+					end:
+						overlay === null
+							? null
+							: Number(overlay.getAttribute(`data-selection-end`)),
+					kind: text.lastIndexOf(targetText),
+					length: text.length,
+					phase: phase++,
+					rect:
+						rect === undefined
+							? null
+							: { height: rect.height, left: rect.left, top: rect.top },
+				})
+				target.__mosaicCursorFrame = requestAnimationFrame(sample)
+			}
+			target.__mosaicCursorFrame = requestAnimationFrame(sample)
+		},
+		{ exactSession: session, targetText: semanticTarget },
+	)
+}
+
+async function stopCursorSampler(page: Page): Promise<readonly CursorSample[]> {
+	return page.evaluate(() => {
+		const target = window as CursorSamplerWindow
+		if (target.__mosaicCursorFrame !== undefined) {
+			cancelAnimationFrame(target.__mosaicCursorFrame)
+		}
+		return target.__mosaicCursorSamples ?? []
+	})
 }
 
 test.describe(`Mosaic text editor browser conformance`, () => {
@@ -259,59 +315,14 @@ test.describe(`Mosaic text editor browser conformance`, () => {
 			await expect(presence).toHaveAttribute(`data-selection-end`, String(kind))
 			const session = await presence.getAttribute(`data-session`)
 			expect(session).not.toBeNull()
+			if (session === null) throw new Error(`Theo's presence has no session.`)
 
-			await clients.maya.evaluate(
-				({ session: exactSession }) => {
-					const target = window as unknown as {
-						__mosaicCursorFrame?: number
-						__mosaicCursorSamples?: CursorSample[]
-					}
-					target.__mosaicCursorSamples = []
-					let phase = 0
-					const sample = (): void => {
-						const root = document.querySelector<HTMLElement>(
-							`[data-lexical-editor="true"]`,
-						)
-						const text = root?.innerText ?? ``
-						const overlay = document.querySelector<HTMLElement>(
-							`collaborator-presence[data-session="${exactSession}"]`,
-						)
-						const caret =
-							overlay?.querySelector<HTMLElement>(`collaborator-caret`)
-						const rect = caret?.getBoundingClientRect()
-						target.__mosaicCursorSamples!.push({
-							end:
-								overlay === null
-									? null
-									: Number(overlay.getAttribute(`data-selection-end`)),
-							kind: text.lastIndexOf(`kind`),
-							length: text.length,
-							phase: phase++,
-							rect:
-								rect === undefined
-									? null
-									: { height: rect.height, left: rect.left, top: rect.top },
-						})
-						target.__mosaicCursorFrame = requestAnimationFrame(sample)
-					}
-					target.__mosaicCursorFrame = requestAnimationFrame(sample)
-				},
-				{ session },
-			)
+			await startCursorSampler(clients.maya, session, `kind`)
 
 			await moveCaret(clients.maya, 0)
 			await typeLiteral(clients.maya, WRITER_MARKER, 80)
 			await clients.maya.waitForTimeout(500)
-			const samples = await clients.maya.evaluate(() => {
-				const target = window as unknown as {
-					__mosaicCursorFrame?: number
-					__mosaicCursorSamples?: CursorSample[]
-				}
-				if (target.__mosaicCursorFrame !== undefined) {
-					cancelAnimationFrame(target.__mosaicCursorFrame)
-				}
-				return target.__mosaicCursorSamples ?? []
-			})
+			const samples = await stopCursorSampler(clients.maya)
 			expect(samples.length).toBeGreaterThan(WRITER_MARKER.length)
 			const invalid = samples.filter(
 				(sample) =>
@@ -329,6 +340,73 @@ test.describe(`Mosaic text editor browser conformance`, () => {
 			expect(await sourceText(clients.maya)).toBe(expected)
 			expect(await clients.theo.locator(`footer strong`).textContent()).toBe(
 				`All changes saved`,
+			)
+		} finally {
+			await closeClients(clients)
+		}
+	})
+
+	test(`an active remote writer never paints at the document terminus`, async ({
+		browser,
+	}) => {
+		const clients = await openClients(browser)
+		try {
+			const fixture = await sourceText(clients.maya)
+			const rollout = fixture.lastIndexOf(`rollout`)
+			expect(rollout).toBeGreaterThan(0)
+			await moveCaret(clients.theo, rollout)
+			await clients.theo.keyboard.press(`ArrowRight`)
+			await clients.theo.keyboard.press(`ArrowLeft`)
+			const presence = clients.maya.locator(
+				`collaborator-presence[data-collaborator="Theo Brooks"]`,
+			)
+			await expect(presence).toHaveCount(1)
+			await expect(presence).toHaveAttribute(
+				`data-selection-end`,
+				String(rollout),
+			)
+			const session = await presence.getAttribute(`data-session`)
+			expect(session).not.toBeNull()
+			if (session === null) throw new Error(`Theo's presence has no session.`)
+
+			const devtools = await clients.mayaContext.newCDPSession(clients.maya)
+			await devtools.send(`Network.enable`)
+			await devtools.send(`Network.emulateNetworkConditions`, {
+				downloadThroughput: 20_000_000,
+				latency: 55,
+				offline: false,
+				uploadThroughput: 20_000_000,
+			})
+			await devtools.send(`Emulation.setCPUThrottlingRate`, { rate: 3 })
+
+			await startCursorSampler(clients.maya, session, `rollout`)
+			let typed = ``
+			for (const character of `[ACTIVE-THEO]`) {
+				await clients.theo.keyboard.type(character)
+				typed += character
+				const expected = `${fixture.slice(0, rollout)}${typed}${fixture.slice(rollout)}`
+				expect(await sourceText(clients.theo)).toBe(expected)
+				await clients.theo.waitForTimeout(120)
+				expect(await sourceText(clients.theo)).toBe(expected)
+			}
+			await clients.theo.waitForTimeout(600)
+			const samples = await stopCursorSampler(clients.maya)
+			expect(samples.length).toBeGreaterThan(`[ACTIVE-THEO]`.length)
+			const terminal = samples.filter(
+				(sample) =>
+					sample.end !== null &&
+					sample.kind >= 0 &&
+					sample.end === sample.length,
+			)
+			expect(terminal, JSON.stringify(terminal, null, 2)).toEqual([])
+			const expected = `${fixture.slice(0, rollout)}[ACTIVE-THEO]${fixture.slice(rollout)}`
+			await Promise.all([
+				waitForText(clients.maya, expected),
+				waitForText(clients.theo, expected),
+			])
+			await expect(presence).toHaveAttribute(
+				`data-selection-end`,
+				String(rollout + `[ACTIVE-THEO]`.length),
 			)
 		} finally {
 			await closeClients(clients)

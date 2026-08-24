@@ -16,6 +16,10 @@ import {
 	mosaicTextIndexSource,
 	splitMosaicText,
 } from "atom.io/realtime"
+import {
+	type MosaicTextRangeProjection,
+	positionAtMosaicTextProjectionOffset,
+} from "atom.io/realtime-client"
 import * as RTT from "atom.io/realtime-testing/headless"
 import { z } from "zod"
 
@@ -131,6 +135,98 @@ describe(`Mosaic bounded text index`, () => {
 		).toBe(`A👩🏽‍💻XC`)
 		text.do(signal)
 		expect(text.text).toBe(`A👩🏽‍💻XC`)
+	})
+
+	test(`inserts on a blank row without collapsing the following line`, () => {
+		const Text = mosaicText({ maximumRunGraphemes: 32 })
+		const text = new Text()
+		text.change(
+			{ text: `a\nb`, type: `replace-text` },
+			{
+				actor: `seed`,
+				dependencies: [],
+				group: `seed`,
+				id: `seed`,
+				now: 0,
+				revision: null,
+				session: `seed`,
+			},
+		)
+		const projection = (): MosaicTextRangeProjection => ({
+			blocks: [],
+			complete: true,
+			range: { end: text.length, kind: `utf16-range`, start: 0 },
+			revision: 1,
+			segments: [
+				{
+					end: text.length,
+					fragments: text.runs.map(({ id, start, text: value }) => ({
+						runId: id,
+						start,
+						text: value,
+					})),
+					id: `leaf`,
+					start: 0,
+					text: text.text,
+				},
+			],
+			text: text.text,
+		})
+		const insert = (
+			offset: number,
+			value: string,
+			id: string,
+			dependency: string,
+		): void => {
+			const resident = positionAtMosaicTextProjectionOffset(
+				projection(),
+				offset,
+			)!
+			text.change(
+				{
+					selection: { anchor: resident, head: resident },
+					text: value,
+					type: `replace-selection`,
+				},
+				{
+					actor: `writer`,
+					dependencies: [dependency],
+					group: id,
+					id,
+					now: 1,
+					revision: null,
+					session: `writer`,
+				},
+			)
+		}
+		insert(2, `\n\n\n`, `newlines`, `seed`)
+		insert(5, `\n`, `final-newline`, `newlines`)
+		const resident = text.positionAtOffset(5)
+		const signal = text.prepare(
+			{
+				selection: {
+					anchor: { ...resident, affinity: `left` },
+					head: { ...resident, affinity: `left` },
+				},
+				text: `marker`,
+				type: `replace-selection`,
+			},
+			{
+				actor: `writer`,
+				dependencies: [`final-newline`],
+				group: `replace`,
+				id: `replace`,
+				now: 2,
+				revision: null,
+				session: `writer`,
+			},
+		)!
+		expect(
+			text
+				.preview(signal)
+				.map(({ text: value }) => value)
+				.join(``),
+		).toBe(`a\n\n\n\nmarker\nb`)
 	})
 
 	test(`stores bounded leaves and bounded-fanout nodes without a flat root`, () => {

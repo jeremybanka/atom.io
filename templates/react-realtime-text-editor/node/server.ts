@@ -1,54 +1,19 @@
-import { createServer } from "node:http"
+import { createMarkdownCollaborationHttpServer } from "./http-server.ts"
 
-import { Server } from "socket.io"
-
-import { identityById } from "../src/identities.ts"
-import { createMarkdownDocumentService } from "./service.ts"
-
-const PORT = 3000
-const collaboration = await createMarkdownDocumentService()
-const httpServer = createServer((request, response) => {
-	if (request.url === `/health`) {
-		response.writeHead(200, { "content-type": `application/json` })
-		response.end(JSON.stringify({ ok: true, revision: collaboration.revision }))
-		return
-	}
-	response.writeHead(404)
-	response.end()
-})
-const socketServer = new Server(httpServer)
-
-socketServer.on(`connection`, (socket) => {
-	const requestedActor =
-		typeof socket.handshake.auth.actor === `string`
-			? socket.handshake.auth.actor
-			: undefined
-	const session =
-		typeof socket.handshake.auth.session === `string`
-			? socket.handshake.auth.session
-			: ``
-	const identity = identityById(requestedActor)
-	if (
-		identity.id !== requestedActor ||
-		session.length === 0 ||
-		session.includes(`::`)
-	) {
-		socket.disconnect(true)
-		return
-	}
-	void collaboration.bindSocket({ actor: identity.id, session, socket })
-})
-
-httpServer.listen(PORT, () => {
-	console.log(
-		`Markdown collaboration server listening on http://localhost:${PORT}`,
-	)
-})
+const portArgument = process.argv.indexOf(`--port`)
+const configuredPort =
+	portArgument === -1 ? process.env.PORT : process.argv[portArgument + 1]
+const PORT = Number.parseInt(configuredPort ?? `3000`, 10)
+if (!Number.isSafeInteger(PORT) || PORT < 1 || PORT > 65_535) {
+	throw new Error(`PORT must be an integer between 1 and 65535.`)
+}
+const server = await createMarkdownCollaborationHttpServer({ port: PORT })
+console.log(
+	`Markdown collaboration server listening on http://localhost:${PORT}`,
+)
 
 const shutdown = async (): Promise<void> => {
-	collaboration[Symbol.dispose]()
-	socketServer.close()
-	httpServer.close()
+	await server.close()
 }
 process.once(`SIGINT`, () => void shutdown())
 process.once(`SIGTERM`, () => void shutdown())

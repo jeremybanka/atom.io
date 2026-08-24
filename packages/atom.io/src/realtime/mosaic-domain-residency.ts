@@ -121,6 +121,64 @@ export type MosaicDomainResidencyProposalResult<
 			readonly status: `rejected`
 	  }
 
+export const MOSAIC_DOMAIN_RESIDENCY_EVENTS = {
+	accepted: `mosaic-domain-residency:accepted`,
+	hydrate: `mosaic-domain-residency:hydrate`,
+	hydrateResult: `mosaic-domain-residency:hydrate-result`,
+	propose: `mosaic-domain-residency:propose`,
+	proposeResult: `mosaic-domain-residency:propose-result`,
+	subscribe: `mosaic-domain-residency:subscribe`,
+	subscribeResult: `mosaic-domain-residency:subscribe-result`,
+	unsubscribe: `mosaic-domain-residency:unsubscribe`,
+} as const
+
+export type MosaicDomainResidencySocketError = {
+	readonly reason: string
+}
+
+export type MosaicDomainResidencySocketResponse<Value> =
+	| { readonly ok: true; readonly requestId: string; readonly value: Value }
+	| {
+			readonly error: MosaicDomainResidencySocketError
+			readonly ok: false
+			readonly requestId: string
+	  }
+
+export type MosaicDomainResidencyHydrateSocketRequest<
+	Identity extends MosaicDomainIdentity = MosaicDomainIdentity,
+	Range extends Json.Serializable = Json.Serializable,
+> = {
+	readonly requestId: string
+	readonly requests: readonly MosaicDomainResidencyRequest<Identity, Range>[]
+}
+
+export type MosaicDomainResidencyProposeSocketRequest<
+	Identity extends MosaicDomainIdentity = MosaicDomainIdentity,
+> = {
+	readonly proposal: MosaicDomainBatchProposal<Identity>
+	readonly requestId: string
+}
+
+export type MosaicDomainResidencySubscribeSocketRequest<
+	Identity extends MosaicDomainIdentity = MosaicDomainIdentity,
+	Range extends Json.Serializable = Json.Serializable,
+> = {
+	readonly requestId: string
+	readonly requests: readonly MosaicDomainResidencyRequest<Identity, Range>[]
+	readonly subscriptionId: string
+}
+
+export type MosaicDomainResidencyUnsubscribeSocketRequest = {
+	readonly subscriptionId: string
+}
+
+export type MosaicDomainResidencyAcceptedSocketEvent<
+	Identity extends MosaicDomainIdentity = MosaicDomainIdentity,
+> = {
+	readonly accepted: MosaicDomainResidencyAcceptedSlice<Identity>
+	readonly subscriptionId: string
+}
+
 /** Headless transport seam shared by browser, worker, and test clients. */
 export type MosaicDomainResidencyTransport<
 	Identity extends MosaicDomainIdentity = MosaicDomainIdentity,

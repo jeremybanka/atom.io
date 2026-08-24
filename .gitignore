@@ -13,7 +13,9 @@ dist
 node_modules
 .pnpm-store
 package-lock.json
+playwright-report
 projects
+test-results
 metafile-*
 pkg
 **/htmx-concept/**/*.gen.ts

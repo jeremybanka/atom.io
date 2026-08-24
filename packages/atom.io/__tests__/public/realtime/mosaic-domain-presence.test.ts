@@ -112,6 +112,85 @@ function fakeSocket() {
 }
 
 describe(`Mosaic Domain presence`, () => {
+	test(`renews the latest local value and stops renewal on clear or disposal`, async () => {
+		vi.useFakeTimers()
+		const fixture = await presenceFixture(`presence-renewal`)
+		const proposals: MosaicDomainPresenceProposal[] = []
+		let rejectNext = false
+		const client = createMosaicDomainPresenceClient({
+			domain: fixture.domain,
+			renewalMs: 10,
+			session: `tab`,
+			transport: {
+				publish(proposal) {
+					proposals.push(structuredClone(proposal))
+					if (rejectNext) {
+						rejectNext = false
+						return Promise.resolve({
+							rejection: {
+								code: `rate-limited`,
+								reason: `retry later`,
+								recovery: `retry`,
+								sequence: proposal.sequence,
+							},
+							status: `rejected`,
+						})
+					}
+					return Promise.resolve({
+						accepted: {
+							...structuredClone(proposal),
+							actor: `ada`,
+							expiresAt: proposal.kind === `update` ? Date.now() + 100 : null,
+						},
+						status: `accepted`,
+					})
+				},
+				snapshot() {
+					return Promise.resolve({ presence: [], sequence: 0 })
+				},
+				subscribe() {
+					return () => undefined
+				},
+			},
+		})
+		await client.start()
+		const address = fixture.domain.address(`cursors`, `ada\u0000tab`)
+		await client.publish(address, { x: 1, y: 2 })
+		expect(proposals).toHaveLength(1)
+		await vi.advanceTimersByTimeAsync(25)
+		expect(proposals.length).toBeGreaterThanOrEqual(3)
+		const beforeClear = proposals.length
+		await client.clear(address)
+		await vi.advanceTimersByTimeAsync(25)
+		expect(proposals).toHaveLength(beforeClear + 1)
+		await client.publish(address, { x: 3, y: 4 })
+		await client.republish()
+		expect(proposals.at(-1)).toMatchObject({ value: { x: 3, y: 4 } })
+		rejectNext = true
+		await expect(client.publish(address, { x: 9, y: 9 })).rejects.toThrow(
+			`retry later`,
+		)
+		await vi.advanceTimersByTimeAsync(10)
+		expect(proposals.at(-1)).toMatchObject({ value: { x: 9, y: 9 } })
+		client[Symbol.dispose]()
+		const beforeDispose = proposals.length
+		await vi.advanceTimersByTimeAsync(25)
+		expect(proposals).toHaveLength(beforeDispose)
+		expect(() =>
+			createMosaicDomainPresenceClient({
+				domain: fixture.domain,
+				renewalMs: 0,
+				session: `invalid`,
+				transport: {
+					publish: () => Promise.reject(new Error(`unused`)),
+					snapshot: () => Promise.resolve({ presence: [], sequence: 0 }),
+					subscribe: () => () => undefined,
+				},
+			}),
+		).toThrow(`positive integers`)
+		vi.useRealTimers()
+	})
+
 	test(`sessions are independent and stale updates cannot resurrect a clear`, async () => {
 		const [serverState, firstState, secondState, observerState] =
 			await Promise.all([
@@ -876,6 +955,45 @@ describe(`Mosaic Domain presence`, () => {
 		vi.useFakeTimers()
 		try {
 			const fixture = await presenceFixture(`presence-client-socket`)
+			const browser = fakeSocket()
+			const numericTimer = vi
+				.spyOn(globalThis, `setTimeout`)
+				.mockImplementation(() => 8 as never)
+			const browserTransport = createMosaicDomainPresenceSocketTransport(
+				browser.socket,
+			)
+			try {
+				const browserSnapshot = browserTransport.snapshot()
+				const browserSnapshotRequest = browser.emitted.at(-1)!
+				browser.dispatch(MOSAIC_DOMAIN_PRESENCE_EVENTS.snapshotResult, {
+					requestId: browserSnapshotRequest.payload.requestId,
+					snapshot: { presence: [], sequence: 0 },
+				})
+				await expect(browserSnapshot).resolves.toEqual({
+					presence: [],
+					sequence: 0,
+				})
+				const browserProposal = updateProposal(fixture.domain)
+				const browserPublish = browserTransport.publish(browserProposal)
+				const browserPublishRequest = browser.emitted.at(-1)!
+				browser.dispatch(MOSAIC_DOMAIN_PRESENCE_EVENTS.result, {
+					requestId: browserPublishRequest.payload.requestId,
+					result: {
+						accepted: {
+							...browserProposal,
+							actor: `ada`,
+							expiresAt: 100,
+						},
+						status: `accepted`,
+					},
+				})
+				await expect(browserPublish).resolves.toMatchObject({
+					status: `accepted`,
+				})
+			} finally {
+				browserTransport[Symbol.dispose]()
+				numericTimer.mockRestore()
+			}
 			const fake = fakeSocket()
 			const transport = createMosaicDomainPresenceSocketTransport(fake.socket, {
 				requestTimeoutMs: 10,

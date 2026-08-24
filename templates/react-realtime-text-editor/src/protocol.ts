@@ -4,15 +4,10 @@ import type {
 } from "atom.io/realtime"
 
 export const MARKDOWN_EVENTS = {
-	accepted: `markdown-domain:accepted`,
 	command: `markdown-domain:command`,
-	hydrate: `markdown-domain:hydrate`,
 	materialize: `markdown-domain:materialize`,
 	positionAtOffset: `markdown-domain:position-at-offset`,
-	recover: `markdown-domain:recover`,
 	resolvePosition: `markdown-domain:resolve-position`,
-	subscribe: `markdown-domain:subscribe`,
-	unsubscribe: `markdown-domain:unsubscribe`,
 } as const
 
 export type MarkdownAcknowledgement<Value> =

@@ -1,6 +1,5 @@
 import type { Silo } from "atom.io"
 import type {
-	MosaicDomainResidencyTransport,
 	MosaicTextIndexLookup,
 	MosaicTextSelection,
 } from "atom.io/realtime"
@@ -10,10 +9,13 @@ import {
 	createMosaicDomainPresenceClient,
 	createMosaicDomainPresenceSocketTransport,
 	createMosaicDomainResidencyClient,
+	createMosaicDomainResidencySocketTransport,
+	createMosaicDomainSessionClient,
 	createMosaicTextProjectionClient,
-	type MosaicDomainPresenceClient,
 	type MosaicDomainHistoryClient,
+	type MosaicDomainPresenceClient,
 	type MosaicDomainResidencyClient,
+	type MosaicDomainSessionClientState,
 	type MosaicTextProjectionClient,
 	type MosaicTextLogicalEdit,
 } from "atom.io/realtime-client"
@@ -33,12 +35,7 @@ import {
 } from "./protocol.ts"
 
 type MarkdownRange = { end: number; kind: `utf16-range`; start: number }
-
-export type MarkdownClientStatus = {
-	readonly connection: `connecting` | `live` | `offline` | `recovering`
-	readonly pending: number
-	readonly reason: string | null
-}
+export type MarkdownClientStatus = MosaicDomainSessionClientState
 
 export type MarkdownCollaborationClient = Disposable & {
 	readonly domain: MarkdownDocumentDomain
@@ -99,48 +96,32 @@ const request = <Value>(
 		)
 	})
 
-function residencyTransport(
-	socket: Socket,
-): MosaicDomainResidencyTransport<
-	MarkdownDocumentDomain[`identity`],
-	MarkdownRange
-> {
-	let subscriptionSequence = 0
-	return {
-		hydrate: (requests) => request(socket, MARKDOWN_EVENTS.hydrate, requests),
-		propose: (proposal) => request(socket, MARKDOWN_EVENTS.recover, proposal),
-		subscribe(requests, listener) {
-			const id = `range:${subscriptionSequence++}`
-			const receive = (incomingId: string, accepted: unknown): void => {
-				if (incomingId === id) listener(accepted as never)
-			}
-			socket.on(MARKDOWN_EVENTS.accepted, receive)
-			return request<void>(socket, MARKDOWN_EVENTS.subscribe, id, requests).then(
-				() => () => {
-					socket.off(MARKDOWN_EVENTS.accepted, receive)
-					socket.emit(MARKDOWN_EVENTS.unsubscribe, id)
-				},
-			)
-		},
-	}
-}
-
 export async function createMarkdownCollaborationClient(options: {
 	readonly identity: Identity
+	readonly presenceRenewalMs?: number
 	readonly sessionId: string
 	readonly silo: Pick<Silo, `install` | `store`>
 	readonly socket: Socket
 }): Promise<MarkdownCollaborationClient> {
 	const { identity, sessionId, socket } = options
+	const presenceRenewalMs = options.presenceRenewalMs ?? 5_000
+	if (!Number.isSafeInteger(presenceRenewalMs) || presenceRenewalMs < 1) {
+		throw new Error(`Presence renewal must be a positive integer.`)
+	}
 	const domain = await activateMarkdownDocumentDomain({ silo: options.silo })
-	const transport = residencyTransport(socket)
+	const residencyTransport = createMosaicDomainResidencySocketTransport<
+		MarkdownDocumentDomain[`identity`],
+		MarkdownRange
+	>(socket, {
+		idSource: () => `${sessionId}:residency:${crypto.randomUUID()}`,
+	})
 	const residency = createMosaicDomainResidencyClient({
 		actor: identity.id,
 		domain,
 		maxResidentBytes: 4 * 1024 * 1024,
 		maxResidentMembers: 128,
 		session: sessionId,
-		transport,
+		transport: residencyTransport,
 	})
 	const projection = createMosaicTextProjectionClient({
 		actor: identity.id,
@@ -173,11 +154,12 @@ export async function createMarkdownCollaborationClient(options: {
 	})
 	const presence = createMosaicDomainPresenceClient({
 		domain,
+		renewalMs: presenceRenewalMs,
 		session: sessionId,
 		transport: presenceTransport,
 	})
 	const historyTransport = createMosaicDomainHistorySocketTransport(socket, {
-		idSource: () => `${sessionId}:history-socket:${crypto.randomUUID()}`,
+		idSource: () => `${sessionId}:history:${crypto.randomUUID()}`,
 	})
 	const history = createMosaicDomainHistoryClient({
 		actor: identity.id,
@@ -192,144 +174,13 @@ export async function createMarkdownCollaborationClient(options: {
 		session: sessionId,
 		transport: historyTransport,
 	})
-	let commandSequence = 0
-	let pendingCommands = 0
-	let disposed = false
-	const connectionWaiters = new Set<() => void>()
-	let commandTail = Promise.resolve()
-	let synchronization = Promise.resolve()
-	const listeners = new Set<(status: MarkdownClientStatus) => void>()
-
-	const status = (): MarkdownClientStatus => {
-		const historyState = history.state
-		const residencyState = residency.state
-		return {
-			connection:
-				historyState.status === `rejected`
-					? `recovering`
-					: !socket.connected ||
-						  historyState.status === `offline` ||
-						  residencyState.connectivity === `offline`
-						? `offline`
-						: historyState.status === `live` &&
-							  residencyState.connectivity === `live`
-							? `live`
-							: `connecting`,
-			pending:
-				pendingCommands +
-				historyState.pending +
-				residencyState.pendingBatchIds.length,
-			reason:
-				residencyState.problem?.reason ?? historyState.problem?.reason ?? null,
-		}
-	}
-	const notify = (): void => {
-		const value = status()
-		for (const listener of listeners) listener(value)
-	}
-	const synchronize = async (): Promise<void> => {
-		await residency.reconnect()
-		try {
-			await presence.start()
-		} catch {
-			// Presence is advisory and retains its actionable state.
-		}
-		await presence.refresh()
-		if (history.state.snapshot === null) await history.start()
-		else await history.refresh()
-		notify()
-	}
-	const waitForConnection = (): Promise<void> =>
-		new Promise((resolve, reject) => {
-			let settled = false
-			const cleanup = (): void => {
-				socket.off(`connect`, onConnect)
-				connectionWaiters.delete(onDispose)
-			}
-			const onConnect = (): void => {
-				if (settled) return
-				settled = true
-				cleanup()
-				resolve()
-			}
-			const onDispose = (): void => {
-				if (settled) return
-				settled = true
-				cleanup()
-				reject(new Error(`The Markdown client is disposed.`))
-			}
-			socket.once(`connect`, onConnect)
-			connectionWaiters.add(onDispose)
-			if (socket.connected) onConnect()
-			else if (disposed) onDispose()
-		})
-	const sendCommand = async (command: MarkdownCommand): Promise<void> => {
-		for (;;) {
-			if (disposed) throw new Error(`The Markdown client is disposed.`)
-			if (!socket.connected) await waitForConnection()
-			try {
-				await synchronization
-				if (disposed) throw new Error(`The Markdown client is disposed.`)
-				if (!socket.connected) continue
-				await request(socket, MARKDOWN_EVENTS.command, command)
-				return
-			} catch (error) {
-				if (
-					!socket.connected ||
-					(error instanceof Error &&
-						(error.message === `offline` || error.name === `AbortError`))
-				) {
-					continue
-				}
-				throw error
-			}
-		}
-	}
-	const submit = (
-		command: Omit<Extract<MarkdownCommand, { type: `replace` }>, `sequence`>,
-	): Promise<void> => {
-		pendingCommands++
-		notify()
-		const sequence = ++commandSequence
-		const work = commandTail.then(async () => {
-			await sendCommand({ ...command, sequence })
-			await history.refresh()
-		})
-		commandTail = work.then(
-			() => undefined,
-			() => undefined,
-		)
-		return work.finally(() => {
-			pendingCommands--
-			notify()
-		})
-	}
-	const requestHistory = async (mode: `redo` | `undo`): Promise<boolean> => {
-		await history.refresh()
-		const snapshot = history.state.snapshot!
-		if (
-			mode === `undo` ? !snapshot.horizon.canUndo : !snapshot.horizon.canRedo
-		) {
-			return false
-		}
-		const result = await history.request(mode)
-		if (result.status === `rejected`) throw new Error(result.reason)
-		return result.status === `accepted`
-	}
-	const stopResidency = residency.subscribeState(notify)
-	const stopPresence = presence.subscribe(notify)
-	const stopHistory = history.subscribe(notify)
-	const reconnect = (): void => {
-		synchronization = synchronize()
-		void synchronization.catch(notify)
-	}
-	const disconnect = (): void => notify()
-	socket.on(`connect`, reconnect)
-	socket.on(`disconnect`, disconnect)
-	if (socket.connected) {
-		synchronization = synchronize()
-		await synchronization.catch(() => undefined)
-	}
+	const session = await createMosaicDomainSessionClient<MarkdownCommand>({
+		history,
+		presence,
+		residency,
+		send: (command) => request(socket, MARKDOWN_EVENTS.command, command),
+		socket,
+	})
 
 	return {
 		domain,
@@ -338,45 +189,34 @@ export async function createMarkdownCollaborationClient(options: {
 		presence,
 		projection,
 		publishPresence(value) {
-			const presenceValue: MarkdownPresence = {
+			const latest = structuredClone({
 				...value,
 				actor: identity.id,
 				session: sessionId,
-			}
+			})
 			return presence.publish(
-				domain.address(`collaborator`, markdownPresenceKey(presenceValue)),
-				presenceValue,
+				domain.address(`collaborator`, markdownPresenceKey(latest)),
+				latest,
 			)
 		},
-		redo: () => requestHistory(`redo`),
+		redo: () => session.history(`redo`),
 		replace({ selection, text }) {
-			return submit({
+			return session.submit((sequence) => ({
 				anchor: selection.anchor,
-				gestureId: `${identity.id}:${sessionId}:edit:${commandSequence + 1}`,
+				gestureId: `${identity.id}:${sessionId}:edit:${sequence}`,
 				head: selection.head,
+				sequence,
 				text,
 				type: `replace`,
-			})
+			}))
 		},
 		residency,
 		sessionId,
-		status,
-		subscribe(listener) {
-			listeners.add(listener)
-			listener(status())
-			return () => listeners.delete(listener)
-		},
-		undo: () => requestHistory(`undo`),
+		status: session.state,
+		subscribe: session.subscribe,
+		undo: () => session.history(`undo`),
 		[Symbol.dispose]() {
-			if (disposed) return
-			disposed = true
-			for (const cancel of [...connectionWaiters]) cancel()
-			connectionWaiters.clear()
-			socket.off(`connect`, reconnect)
-			socket.off(`disconnect`, disconnect)
-			stopResidency()
-			stopPresence()
-			stopHistory()
+			session[Symbol.dispose]()
 			presence[Symbol.dispose]()
 			presenceTransport[Symbol.dispose]()
 			history[Symbol.dispose]()
@@ -387,7 +227,6 @@ export async function createMarkdownCollaborationClient(options: {
 				.then(() => residency.dispose())
 				.catch(() => undefined)
 				.finally(() => domain[Symbol.dispose]())
-			listeners.clear()
 		},
 	}
 }

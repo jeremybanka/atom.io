@@ -108,8 +108,10 @@ as a run-relative selection, tool, or pointer in document coordinates. Do not
 replicate DOM nodes, pixels tied to one viewport, pointer-capture objects, or
 full durable values through presence.
 
-Presence expires and clears on disconnect. Product code must tolerate missed,
-reordered, and coalesced presence updates.
+Presence expires and clears on disconnect. An active session should renew its
+latest logical presence before expiry and republish after reconnect, without
+allowing advisory failure to abort durable synchronization. Product code must
+still tolerate missed, reordered, coalesced, and expired presence updates.
 
 ## when to promote to a Domain
 

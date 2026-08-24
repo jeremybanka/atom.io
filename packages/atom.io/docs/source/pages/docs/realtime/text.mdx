@@ -61,9 +61,34 @@ for exact resident leaves and shares leases when consumers overlap.
 
 <Exhibit src="realtime/project-a-mosaic-text-viewport.tsx" />
 
-React owns acquisition and release lifecycle only. Parsing, layout, syntax
-highlighting, and rendering should consume the bounded projection rather than
+`useMosaicTextRange` owns React acquisition and release lifecycle. It retains
+the last complete viewport while a replacement observer is acquired, reconnects
+after residency returns, and ignores incomplete cuts. Parsing, layout, syntax
+highlighting, and rendering should consume that bounded projection rather than
 materializing the full document.
+
+## editor lifecycle
+
+<Exhibit src="realtime/edit-a-mosaic-text-projection.tsx" />
+
+`useMosaicTextEditor` owns the coordination that must be identical across
+renderers: the optimistic draft, IME state, contiguous logical edit, local
+selection anchors, remote selection reprojection, commit delay, and the point
+at which a complete accepted cut replaces the draft. It deliberately keeps the
+last proven text and selections when residency or presence arrives ahead of the
+members needed to resolve them.
+
+The renderer owns native input and geometry. It reports the editor's complete
+visible string and selection offsets to the hook, applies the selection returned
+by the hook, and draws returned collaborator ranges against the same returned
+string. It must measure logical attributes and geometry in one layout cut so a
+new coordinate cannot be painted with an old rectangle.
+
+Application composition owns identity, permissions, status labels, viewport
+policy, and the calls that publish presence or submit a replacement. It should
+not implement another draft queue, cursor transform, or projection fallback.
+This boundary is more important than minimizing the number of template lines;
+a short template should be the consequence of using the core contracts.
 
 ## content-addressed text roots
 
@@ -102,6 +127,11 @@ Public selections are grapheme-aware. Before applying a raw UTF-16 browser
 selection, resolve each endpoint through the text reader with an explicit left
 or right affinity. This prevents edits from splitting surrogate pairs,
 combining sequences, or emoji joined by zero-width joiners.
+
+Presence carries these logical positions, never raw viewport offsets. Resolve a
+collaborator against the same projection cut used to render the text. If the
+run or boundary is not resident yet, retain the last proven selection or omit it;
+do not clamp it to document start/end or reinterpret it in a different cut.
 
 Keep a bounded maximum for one grapheme and for one edit. Unicode correctness is
 not permission to accept an unbounded string as one operation.

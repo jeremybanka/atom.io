@@ -112,8 +112,24 @@ describe(`Mosaic text editing`, () => {
 		).toEqual([6, 6])
 	})
 
-	test(`canonicalizes collapsed insertion boundaries before committing`, async () => {
-		const projection = projected(`a\n\nb`, 0)
+	test(`brackets collapsed insertion between visible runs before committing`, async () => {
+		const text = `a\nThe qui\nb`
+		const projection: MosaicTextRangeProjection = {
+			...projected(text, 0),
+			segments: [
+				{
+					end: text.length,
+					fragments: [
+						{ runId: `base`, start: 0, text: `a\n` },
+						{ runId: `typed`, start: 0, text: `The qui` },
+						{ runId: `base`, start: 2, text: `\nb` },
+					],
+					id: `leaf:0`,
+					start: 0,
+					text,
+				},
+			],
+		}
 		let view: MosaicTextEditorView<Peer> | null = null
 		let replacement: {
 			readonly selection: MosaicTextSelection
@@ -157,7 +173,7 @@ describe(`Mosaic text editing`, () => {
 		})
 		act(() => {
 			view?.onDirty()
-			view?.onValueChange(`a\nmarker\nb`, false)
+			view?.onValueChange(`a\nThe quic\nb`, false)
 		})
 		await waitFor(() => {
 			expect(replacement).not.toBeNull()
@@ -165,10 +181,10 @@ describe(`Mosaic text editing`, () => {
 		expect(positionReads).toEqual([])
 		expect(replacement).toMatchObject({
 			selection: {
-				anchor: { affinity: `right`, offset: 2 },
-				head: { affinity: `right`, offset: 2 },
+				anchor: { affinity: `left`, offset: 7, runId: `typed` },
+				head: { affinity: `right`, offset: 2, runId: `base` },
 			},
-			text: `marker`,
+			text: `c`,
 		})
 		rendered.unmount()
 	})

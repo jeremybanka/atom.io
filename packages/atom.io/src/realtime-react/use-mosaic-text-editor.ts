@@ -519,17 +519,26 @@ export function useMosaicTextEditor<Value>(
 					base,
 					headOffset,
 				)
-				const insertionPosition =
+				const insertionSelection =
 					anchorOffset === headOffset
-						? positionAtMosaicTextProjectionOffset(base, anchorOffset, `right`)
+						? ([
+								positionAtMosaicTextProjectionOffset(base, anchorOffset, `left`),
+								positionAtMosaicTextProjectionOffset(
+									base,
+									anchorOffset,
+									`right`,
+								),
+							] as const)
 						: null
+				const insertionAnchor = insertionSelection?.[0] ?? null
+				const insertionHead = insertionSelection?.[1] ?? null
 				const [anchor, head] =
-					insertionPosition === null
+					insertionAnchor === null || insertionHead === null
 						? await Promise.all([
 								residentAnchor ?? options.client.positionAtOffset(anchorOffset),
 								residentHead ?? options.client.positionAtOffset(headOffset),
 							])
-						: ([insertionPosition, insertionPosition] as const)
+						: ([insertionAnchor, insertionHead] as const)
 				if (pendingDraft.current !== pending) return
 				await replaceRef.current({
 					selection: { anchor, head },

@@ -59,7 +59,7 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           packages: bun node pnpm
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm --filter @atom.io/template-react-realtime-text-editor exec playwright install --with-deps chromium
       - run: pnpm --filter @atom.io/template-react-realtime-text-editor test:browser
 
   Manifest:

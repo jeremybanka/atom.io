@@ -50,6 +50,11 @@ const TEST_CONFIG_BASE = {
 	globals: true,
 	testTimeout: 10_000,
 	environment: `happy-dom`,
+	environmentOptions: {
+		happyDOM: {
+			settings: { fetch: { disableSameOriginPolicy: true } },
+		},
+	},
 	coverage: COVERAGE_CONFIG_BASE,
 } as const satisfies TestUserConfig
 

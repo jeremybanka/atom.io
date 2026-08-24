@@ -118,6 +118,11 @@ monotonic update/clear cursors, snapshots for reconnect, byte/rate/session/queue
 limits, expiry, and disconnect cleanup. Presence transport failure is advisory;
 durable editing should not fail because a pointer preview was dropped.
 
+An active client renews its latest presence before expiry and republishes it
+after reconnect. Renewal is bounded and coalesced; it must not create overlapping
+requests or block durable residency/history recovery. Consumers must still
+tolerate a missed update and remove an expired session.
+
 Store logical coordinates and stable resource ids. Keep DOM nodes, pixel-space
 layout, pointer capture, and local viewport state out of the Domain.
 
@@ -173,6 +178,7 @@ Domain owns authorization, transport, and atomic settlement.
     <tbody>
       <tr><td>Durable change</td><td><code>createMosaicDomainBatchClient</code></td><td><code>createMosaicDomainBatchServer</code></td></tr>
       <tr><td>Partial data</td><td><code>createMosaicDomainResidencyClient</code></td><td><code>createMosaicDomainResidencyServer</code></td></tr>
+      <tr><td>Session composition</td><td><code>createMosaicDomainSessionClient</code></td><td>Authenticated binders compose the authoritative services.</td></tr>
       <tr><td>Presence</td><td><code>createMosaicDomainPresenceClient</code></td><td><code>createMosaicDomainPresenceServer</code></td></tr>
       <tr><td>History</td><td><code>createMosaicDomainHistoryClient</code></td><td><code>createMosaicDomainHistoryCoordinator</code></td></tr>
       <tr><td>Checkpoints</td><td>Recovered through residency/batch composition.</td><td><code>createMosaicDomainCheckpointCoordinator</code></td></tr>

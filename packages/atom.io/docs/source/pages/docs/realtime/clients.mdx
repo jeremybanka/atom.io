@@ -30,10 +30,11 @@ TypeScript surface.
       <tr><td>Atomic Mosaic</td><td><code>syncMosaic</code></td><td><code>MosaicClientClock</code>, <code>MosaicClientIdContext</code>, <code>MosaicClientIdKind</code>, <code>MosaicClientIdSource</code>, <code>MosaicClientProblem</code>, <code>MosaicClientStatus</code>, <code>MosaicClientTransport</code>, <code>MosaicController</code>, <code>MosaicSubmitOptions</code>, <code>MosaicSyncOptions</code>, <code>MosaicSyncState</code></td></tr>
       <tr><td>Domain batches</td><td><code>createMosaicDomainBatchClient</code></td><td><code>MosaicDomainBatchClient</code>, <code>MosaicDomainBatchClientIdContext</code>, <code>MosaicDomainBatchClientOperation</code>, <code>MosaicDomainBatchClientOptions</code>, <code>MosaicDomainBatchClientState</code>, <code>MosaicDomainBatchClientTransport</code></td></tr>
       <tr><td>Transaction bridge</td><td><code>createMosaicDomainTransactionBridge</code></td><td><code>MosaicDomainTransactionBridge</code>, <code>MosaicDomainTransactionBridgeOptions</code></td></tr>
-      <tr><td>Domain residency</td><td><code>createMosaicDomainResidencyClient</code></td><td><code>MosaicDomainResidencyClient</code>, <code>MosaicDomainResidencyClientOperation</code>, <code>MosaicDomainResidencyClientOptions</code>, <code>MosaicDomainResidencyClientState</code>, <code>MosaicDomainResidencyIdContext</code>, <code>MosaicDomainResidencyLease</code>, <code>MosaicDomainResidencySubscription</code>, <code>MosaicDomainResidentMember</code></td></tr>
+      <tr><td>Domain residency</td><td><code>createMosaicDomainResidencyClient</code>, <code>createMosaicDomainResidencySocketTransport</code></td><td><code>MosaicDomainResidencyClient</code>, <code>MosaicDomainResidencyClientOperation</code>, <code>MosaicDomainResidencyClientOptions</code>, <code>MosaicDomainResidencyClientSocket</code>, <code>MosaicDomainResidencyClientState</code>, <code>MosaicDomainResidencyIdContext</code>, <code>MosaicDomainResidencyLease</code>, <code>MosaicDomainResidencySubscription</code>, <code>MosaicDomainResidentMember</code></td></tr>
+      <tr><td>Domain session composition</td><td><code>createMosaicDomainSessionClient</code></td><td><code>MosaicDomainSessionClient</code>, <code>MosaicDomainSessionClientState</code>, <code>MosaicDomainSessionSocket</code></td></tr>
       <tr><td>Domain presence</td><td><code>createMosaicDomainPresenceClient</code>, <code>createMosaicDomainPresenceSocketTransport</code></td><td><code>MosaicDomainPresenceClient</code>, <code>MosaicDomainPresenceClientOptions</code>, <code>MosaicDomainPresenceClientSocket</code>, <code>MosaicDomainPresenceClientState</code>, <code>MosaicDomainPresenceClientTransport</code></td></tr>
       <tr><td>Domain history</td><td><code>createMosaicDomainHistoryClient</code>, <code>createMosaicDomainHistorySocketTransport</code></td><td><code>MosaicDomainHistoryClient</code>, <code>MosaicDomainHistoryClientOptions</code>, <code>MosaicDomainHistoryClientProblem</code>, <code>MosaicDomainHistoryClientSocket</code>, <code>MosaicDomainHistoryClientState</code>, <code>MosaicDomainHistoryClientTransport</code></td></tr>
-      <tr><td>Text projection</td><td><code>createMosaicTextProjectionClient</code></td><td><code>MosaicTextLogicalEdit</code>, <code>MosaicTextProjectedBlock</code>, <code>MosaicTextProjectedSegment</code>, <code>MosaicTextProjectionClient</code>, <code>MosaicTextProjectionClientOptions</code>, <code>MosaicTextProjectionClientState</code>, <code>MosaicTextProjectionEditContext</code>, <code>MosaicTextProjectionEditPlan</code>, <code>MosaicTextRangeAcquisitionOptions</code>, <code>MosaicTextRangeLease</code>, <code>MosaicTextRangeObserver</code>, <code>MosaicTextRangeProjection</code></td></tr>
+      <tr><td>Text projection</td><td><code>createMosaicTextProjectionClient</code>, <code>mosaicTextContiguousEdit</code>, <code>positionAtMosaicTextProjectionOffset</code>, <code>resolveMosaicTextProjectionPosition</code>, <code>transformMosaicTextSelection</code></td><td><code>MosaicTextLogicalEdit</code>, <code>MosaicTextProjectedBlock</code>, <code>MosaicTextProjectedSegment</code>, <code>MosaicTextProjectionClient</code>, <code>MosaicTextProjectionClientOptions</code>, <code>MosaicTextProjectionClientState</code>, <code>MosaicTextProjectionEditContext</code>, <code>MosaicTextProjectionEditPlan</code>, <code>MosaicTextRangeAcquisitionOptions</code>, <code>MosaicTextRangeLease</code>, <code>MosaicTextRangeObserver</code>, <code>MosaicTextRangeProjection</code></td></tr>
     </tbody>
   </table>
 </table-wrapper>
@@ -109,13 +110,30 @@ history request, then clean them up. An accepted edit must not be reported as a
 failed edit solely because best-effort cleanup later failed; otherwise a retry
 could duplicate durable intent.
 
+The projection helpers are the renderer-neutral bridge between logical and
+visible coordinates. Use them to resolve positions in one projection cut,
+derive a contiguous browser edit, and transform selections through a visible
+draft. Do not clamp an unresolved logical position to the start or end of a new
+projection; retain the last proven cut until the required members arrive.
+
+## session composition
+
+`createMosaicDomainSessionClient` composes one authenticated socket session's
+residency, presence, history, commands, and connection lifecycle. It waits for a
+live connection, reconnects residency before replaying work, republishes
+advisory presence, serializes commands, and rejects late work after disposal.
+This is the appropriate headless seam for an application service; React
+components should consume the service rather than reimplement its socket state
+machine.
+
 ## presence and history clients
 
 `createMosaicDomainPresenceClient` maintains a monotonic session projection and
 publishes bounded ephemeral updates. `createMosaicDomainHistoryClient` maintains
 the authenticated actor cursor, horizon, pending request, status, and typed
 problem. The Socket.IO transport helpers use typed success/error
-acknowledgements with bounded pending requests and timeouts.
+acknowledgements for residency, history, and presence with bounded pending
+requests and timeouts.
 
 Both controllers isolate observer exceptions from protocol progress. Subscribe
 for UI state; do not let a rendering callback invalidate an already accepted

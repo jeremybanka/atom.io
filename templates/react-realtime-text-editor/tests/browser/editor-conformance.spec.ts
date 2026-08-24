@@ -69,6 +69,19 @@ type VisibleCursorSamplerWindow = Window & {
 	__mosaicVisibleCursorSamples?: VisibleCursorSample[]
 }
 
+type WriterOrderObservation = {
+	readonly activeElement: string | null
+	readonly actual: string
+	readonly anchorOffset: number | null
+	readonly anchorText: string | null
+	readonly character: string
+	readonly collapsed: boolean | null
+	readonly expected: string
+	readonly index: number
+	readonly phase: `immediate` | `paced`
+	readonly status: string
+}
+
 async function openClients(browser: Browser): Promise<Clients> {
 	const mayaContext = await browser.newContext()
 	const theoContext = await browser.newContext()
@@ -113,6 +126,38 @@ async function moveCaret(page: Page, offset: number): Promise<void> {
 	for (let index = 0; index < offset; index++) {
 		await page.keyboard.press(`ArrowRight`)
 	}
+}
+
+async function observeWriterOrder(
+	page: Page,
+	input: Omit<
+		WriterOrderObservation,
+		| `activeElement`
+		| `actual`
+		| `anchorOffset`
+		| `anchorText`
+		| `collapsed`
+		| `status`
+	>,
+): Promise<WriterOrderObservation> {
+	const browser = await page.evaluate((editorSelector) => {
+		const root = document.querySelector<HTMLElement>(editorSelector)
+		const selection = window.getSelection()
+		const anchor = selection?.anchorNode
+		return {
+			activeElement:
+				document.activeElement instanceof HTMLElement
+					? (document.activeElement.getAttribute(`data-lexical-editor`) ??
+						document.activeElement.tagName)
+					: null,
+			actual: root?.innerText === `\n` ? `` : (root?.innerText ?? ``),
+			anchorOffset: selection?.anchorOffset ?? null,
+			anchorText: anchor instanceof Text ? anchor.data : null,
+			collapsed: selection?.isCollapsed ?? null,
+			status: document.querySelector(`footer strong`)?.textContent ?? ``,
+		}
+	}, EDITOR)
+	return { ...input, ...browser }
 }
 
 function graphemeBoundaries(value: string): readonly number[] {
@@ -441,6 +486,69 @@ test.describe(`Mosaic text editor browser conformance`, () => {
 			await waitForSaved(clients.maya)
 			await waitForText(clients.theo, oracle)
 			expect(await sourceText(clients.maya)).toBe(oracle)
+		} finally {
+			await closeClients(clients)
+		}
+	})
+
+	test(`human-paced typing on a new line preserves keystroke order`, async ({
+		browser,
+	}) => {
+		test.setTimeout(60_000)
+		const clients = await openClients(browser)
+		try {
+			const editor = clients.maya.locator(EDITOR)
+			await editor.click()
+			await clients.maya.keyboard.press(`ControlOrMeta+A`)
+			await clients.maya.keyboard.press(`Backspace`)
+			await waitForText(clients.maya, ``)
+			await waitForSaved(clients.maya)
+			const fixture = `anchor\n\nsentinel`
+			await clients.maya.keyboard.insertText(fixture)
+			await waitForText(clients.maya, fixture)
+			await waitForSaved(clients.maya)
+			await waitForText(clients.theo, fixture)
+			const insertion = fixture.indexOf(`\n`) + 1
+			await moveCaret(clients.maya, insertion)
+			const phrase = `The quick brown fox jumps over the lazy dog`
+			const observations: WriterOrderObservation[] = []
+			let typed = ``
+
+			for (const [index, character] of [...phrase].entries()) {
+				await clients.maya.keyboard.type(character)
+				typed += character
+				const expected = `${fixture.slice(0, insertion)}${typed}${fixture.slice(insertion)}`
+				observations.push(
+					await observeWriterOrder(clients.maya, {
+						character,
+						expected,
+						index,
+						phase: `immediate`,
+					}),
+				)
+				await clients.maya.waitForTimeout(200)
+				observations.push(
+					await observeWriterOrder(clients.maya, {
+						character,
+						expected,
+						index,
+						phase: `paced`,
+					}),
+				)
+
+				const firstFailure = observations.find(
+					(observation) => observation.actual !== observation.expected,
+				)
+				expect(
+					firstFailure,
+					`A human-paced key was committed out of order. First failure:\n${JSON.stringify(firstFailure, null, 2)}\nRecent writer trace:\n${JSON.stringify(observations.slice(-8), null, 2)}`,
+				).toBeUndefined()
+			}
+
+			const expected = `${fixture.slice(0, insertion)}${phrase}${fixture.slice(insertion)}`
+			await waitForSaved(clients.maya)
+			await waitForText(clients.theo, expected)
+			expect(await sourceText(clients.maya)).toBe(expected)
 		} finally {
 			await closeClients(clients)
 		}

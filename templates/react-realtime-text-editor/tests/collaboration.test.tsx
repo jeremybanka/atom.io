@@ -27,6 +27,7 @@ function testClient(
 	identity: Identity,
 	sessionId: string,
 	runtimes: RuntimeRegistry,
+	presenceRenewalMs?: number,
 ) {
 	return function MarkdownTestClient() {
 		const { socket } = useContext(RealtimeContext)
@@ -49,6 +50,7 @@ function testClient(
 			let created: MarkdownCollaborationClient | null = null
 			void createMarkdownCollaborationClient({
 				identity,
+				presenceRenewalMs,
 				sessionId,
 				silo,
 				socket,
@@ -79,8 +81,16 @@ function testClient(
 	}
 }
 
-async function scenario() {
-	const service = await createMarkdownDocumentService({ initialText: INITIAL })
+async function scenario(
+	options: {
+		readonly presenceRenewalMs?: number
+		readonly presenceTtlMs?: number
+	} = {},
+) {
+	const service = await createMarkdownDocumentService({
+		initialText: INITIAL,
+		presenceTtlMs: options.presenceTtlMs,
+	})
 	const runtimes: RuntimeRegistry = new Map()
 	const room = multiClient({
 		scenarioId: `mosaic-markdown-domain`,
@@ -98,8 +108,8 @@ async function scenario() {
 			}
 		},
 		clients: {
-			ada: testClient(ADA, sessions.ada, runtimes),
-			lin: testClient(LIN, sessions.lin, runtimes),
+			ada: testClient(ADA, sessions.ada, runtimes, options.presenceRenewalMs),
+			lin: testClient(LIN, sessions.lin, runtimes, options.presenceRenewalMs),
 		},
 	})
 	return {
@@ -144,6 +154,18 @@ async function live(room: Awaited<ReturnType<typeof scenario>>) {
 }
 
 describe(`incremental realtime Markdown Domain`, () => {
+	test(`rejects invalid presence renewal intervals before allocating a Domain`, async () => {
+		await expect(
+			createMarkdownCollaborationClient({
+				identity: ADA,
+				presenceRenewalMs: 0,
+				sessionId: `invalid-presence-renewal`,
+				silo: {} as never,
+				socket: {} as never,
+			}),
+		).rejects.toThrow(`positive integer`)
+	})
+
 	test(`hydrates viewport first, converges contention/offline work, and keeps selective history foreign-safe`, async () => {
 		const setup = await scenario()
 		try {
@@ -173,6 +195,15 @@ describe(`incremental realtime Markdown Domain`, () => {
 				),
 			).toBeNull()
 
+			const shrinkStart = await clients.ada.projection.positionAtOffset(2)
+			const shrinkEnd = await clients.ada.projection.positionAtOffset(28)
+			await clients.ada.replace({
+				selection: { anchor: shrinkStart, head: shrinkEnd },
+				text: `[Ada-shrinks]`,
+			})
+			expect(first.read().text).toContain(`[Ada-shrinks]`)
+			expect(first.read().text).not.toContain(`Field notes for the launch`)
+
 			const sameBoundary = await clients.ada.projection.positionAtOffset(16)
 			await Promise.all([
 				clients.ada.replace({
@@ -187,6 +218,10 @@ describe(`incremental realtime Markdown Domain`, () => {
 			const contended = await clients.ada.projection.materialize()
 			expect(contended).toContain(`[Ada]`)
 			expect(contended).toContain(`[Lin]`)
+			await waitFor(() => {
+				expect(first.read().text).toContain(`[Ada]`)
+				expect(first.read().text).toContain(`[Lin]`)
+			})
 			await waitFor(async () => {
 				expect(await clients.ada.projection.readLength()).toBe(contended.length)
 			})
@@ -238,23 +273,71 @@ describe(`incremental realtime Markdown Domain`, () => {
 			expect(reconnected).toContain(`[offline]`)
 			expect(reconnected).toContain(`[online]`)
 			expect(setup.service.instrumentation.lastBatchOperations).toBeLessThan(16)
+
+			const resetStart = await clients.ada.projection.positionAtOffset(0)
+			const resetEnd = await clients.ada.projection.positionAtOffset(
+				reconnected.length,
+			)
+			await clients.ada.replace({
+				selection: { anchor: resetStart, head: resetEnd },
+				text: ``,
+			})
+			await waitFor(async () => {
+				expect(await clients.lin.projection.readLength()).toBe(0)
+			})
+			expect(await clients.lin.projection.materialize()).toBe(``)
+			await expect(setup.service.positionAtOffset(1)).rejects.toThrow(
+				`outside the Mosaic text index`,
+			)
+			const empty = await clients.ada.projection.positionAtOffset(0)
+			expect(empty).toEqual({ affinity: `left`, offset: 0, runId: null })
+			await clients.ada.replace({
+				selection: { anchor: empty, head: empty },
+				text: `[reset-all]`,
+			})
+			await waitFor(async () => {
+				expect(await clients.lin.projection.materialize()).toBe(`[reset-all]`)
+			})
 		} finally {
 			await setup.teardown()
 		}
 	})
 
 	test(`presence is logical/ephemeral and import is one authorized resnapshot cut`, async () => {
-		const setup = await scenario()
+		const setup = await scenario({
+			presenceRenewalMs: 20,
+			presenceTtlMs: 80,
+		})
 		try {
 			const harness = initialize(setup)
 			const clients = await live(setup)
-			const caret = await clients.ada.projection.positionAtOffset(8)
+			const caretOffset = INITIAL.lastIndexOf(`partial residency`)
+			const caret = await clients.ada.projection.positionAtOffset(caretOffset)
 			await clients.ada.publishPresence({
 				color: ADA.color,
 				name: ADA.name,
 				selection: { anchor: caret, head: caret },
 				viewport: null,
 			})
+			await setup.room.waitForIdle()
+			await clients.lin.presence.flush()
+			expect(
+				clients.lin.presence.state.presence.some(
+					(envelope) => envelope.kind === `update` && envelope.actor === ADA.id,
+				),
+			).toBe(true)
+			const documentStart = await clients.lin.projection.positionAtOffset(0)
+			const prefix = `[Lin-prefix]`
+			await clients.lin.replace({
+				selection: { anchor: documentStart, head: documentStart },
+				text: prefix,
+			})
+			await waitFor(async () => {
+				expect(await clients.lin.projection.resolvePosition(caret)).toBe(
+					caretOffset + prefix.length,
+				)
+			})
+			await new Promise((resolve) => setTimeout(resolve, 200))
 			await setup.room.waitForIdle()
 			await clients.lin.presence.flush()
 			expect(

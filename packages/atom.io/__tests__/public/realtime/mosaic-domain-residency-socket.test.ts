@@ -91,6 +91,7 @@ describe(`Mosaic Domain residency socket transport`, () => {
 				let id = 0
 				return () => `request-${++id}`
 			})(),
+			maxSubscriptions: 1,
 		})
 
 		await expect(transport.hydrate([])).resolves.toMatchObject({
@@ -101,17 +102,75 @@ describe(`Mosaic Domain residency socket transport`, () => {
 		})
 		const listener = vi.fn()
 		const unsubscribe = await transport.subscribe([], listener)
+		await expect(transport.subscribe([], vi.fn())).rejects.toThrow(
+			`subscription limit`,
+		)
 		publish?.(accepted(4))
 		expect(listener).toHaveBeenCalledWith(accepted(4))
+		unsubscribe()
 		unsubscribe()
 		expect(stop).toHaveBeenCalledOnce()
 		publish?.(accepted(5))
 		expect(listener).toHaveBeenCalledTimes(1)
 
 		transport[Symbol.dispose]()
+		transport[Symbol.dispose]()
 		cleanup()
 		expect(connection.dispose).toHaveBeenCalledOnce()
 		await expect(transport.hydrate([])).rejects.toThrow(`disposed`)
+	})
+
+	test(`filters malformed events and enforces client request bounds`, async () => {
+		const malformed = socketPair()
+		let requestId = ``
+		malformed.server.on(MOSAIC_DOMAIN_RESIDENCY_EVENTS.hydrate, (request) => {
+			requestId = request.requestId
+		})
+		const transport = createMosaicDomainResidencySocketTransport(
+			malformed.client,
+		)
+		const hydration = transport.hydrate([])
+		malformed.server.emit(MOSAIC_DOMAIN_RESIDENCY_EVENTS.hydrateResult, null)
+		malformed.server.emit(MOSAIC_DOMAIN_RESIDENCY_EVENTS.hydrateResult, {
+			ok: true,
+			requestId: null,
+		})
+		malformed.server.emit(MOSAIC_DOMAIN_RESIDENCY_EVENTS.hydrateResult, {
+			ok: true,
+			requestId: `unknown`,
+		})
+		malformed.server.emit(MOSAIC_DOMAIN_RESIDENCY_EVENTS.hydrateResult, {
+			ok: true,
+			requestId,
+			value: { headRevision: 0, members: [], resolutions: [] },
+		})
+		await expect(hydration).resolves.toMatchObject({ headRevision: 0 })
+		malformed.server.emit(MOSAIC_DOMAIN_RESIDENCY_EVENTS.accepted, null)
+		malformed.server.emit(MOSAIC_DOMAIN_RESIDENCY_EVENTS.accepted, {
+			subscriptionId: null,
+		})
+		malformed.server.emit(MOSAIC_DOMAIN_RESIDENCY_EVENTS.accepted, {
+			subscriptionId: `unknown`,
+		})
+
+		const invalidId = createMosaicDomainResidencySocketTransport(
+			socketPair().client,
+			{ idSource: () => `` },
+		)
+		await expect(invalidId.hydrate([])).rejects.toThrow(`unique and nonempty`)
+
+		const queued = createMosaicDomainResidencySocketTransport(
+			socketPair().client,
+			{
+				maxPendingRequests: 1,
+				requestTimeoutMs: 10_000,
+			},
+		)
+		const first = queued.hydrate([])
+		await expect(queued.hydrate([])).rejects.toThrow(`queue is full`)
+		queued[Symbol.dispose]()
+		await expect(first).rejects.toThrow(`disposed`)
+		transport[Symbol.dispose]()
 	})
 
 	test(`fails closed on malformed, throwing, disconnected, and timed-out work`, async () => {
@@ -202,5 +261,75 @@ describe(`Mosaic Domain residency socket transport`, () => {
 				{ maxSubscriptions: 0 },
 			),
 		).toThrow(`positive integers`)
+	})
+
+	test(`server socket rejects malformed request bodies and cleans active work`, async () => {
+		const pair = socketPair()
+		const responses: any[] = []
+		for (const event of [
+			MOSAIC_DOMAIN_RESIDENCY_EVENTS.hydrateResult,
+			MOSAIC_DOMAIN_RESIDENCY_EVENTS.proposeResult,
+			MOSAIC_DOMAIN_RESIDENCY_EVENTS.subscribeResult,
+		]) {
+			pair.client.on(event, (response) => responses.push(response))
+		}
+		const stop = vi.fn()
+		const connection = {
+			dispose: vi.fn(),
+			hydrate: vi.fn(),
+			propose: vi.fn(),
+			subscribe: vi.fn(() => stop),
+		}
+		const cleanup = bindMosaicDomainResidencyServerSocket(
+			connection,
+			pair.server,
+		)
+		pair.client.emit(MOSAIC_DOMAIN_RESIDENCY_EVENTS.hydrate, {
+			clone: () => undefined,
+			requestId: `uncloneable`,
+		})
+		pair.client.emit(MOSAIC_DOMAIN_RESIDENCY_EVENTS.propose, {
+			clone: () => undefined,
+			requestId: `uncloneable`,
+		})
+		pair.client.emit(MOSAIC_DOMAIN_RESIDENCY_EVENTS.subscribe, {
+			clone: () => undefined,
+			requestId: `uncloneable`,
+		})
+		pair.client.emit(MOSAIC_DOMAIN_RESIDENCY_EVENTS.hydrate, {
+			requestId: `hydrate`,
+			requests: null,
+		})
+		pair.client.emit(MOSAIC_DOMAIN_RESIDENCY_EVENTS.propose, {
+			proposal: null,
+			requestId: `propose`,
+		})
+		pair.client.emit(MOSAIC_DOMAIN_RESIDENCY_EVENTS.subscribe, {
+			requestId: `subscribe`,
+			requests: null,
+			subscriptionId: `bad`,
+		})
+		pair.client.emit(MOSAIC_DOMAIN_RESIDENCY_EVENTS.unsubscribe, {
+			subscriptionId: null,
+		})
+		expect(responses).toHaveLength(3)
+		expect(responses).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ ok: false, requestId: `hydrate` }),
+				expect.objectContaining({ ok: false, requestId: `propose` }),
+				expect.objectContaining({ ok: false, requestId: `subscribe` }),
+			]),
+		)
+		pair.client.emit(MOSAIC_DOMAIN_RESIDENCY_EVENTS.subscribe, {
+			requestId: `active`,
+			requests: [],
+			subscriptionId: `active`,
+		})
+		await Promise.resolve()
+		await Promise.resolve()
+		pair.disconnect()
+		expect(stop).toHaveBeenCalledOnce()
+		expect(connection.dispose).toHaveBeenCalledOnce()
+		cleanup()
 	})
 })

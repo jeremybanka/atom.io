@@ -528,16 +528,16 @@ importers:
   templates/react-realtime-text-editor:
     dependencies:
       '@lexical/react':
-        specifier: ^0.49.0
+        specifier: 0.49.0
         version: 0.49.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@7.0.2)
       '@lexical/selection':
-        specifier: ^0.49.0
+        specifier: 0.49.0
         version: 0.49.0(typescript@7.0.2)
       atom.io:
         specifier: workspace:*
         version: link:../../packages/atom.io
       lexical:
-        specifier: ^0.49.0
+        specifier: 0.49.0
         version: 0.49.0(typescript@7.0.2)
       react:
         specifier: 19.2.8

@@ -326,6 +326,98 @@ describe(`Mosaic text editing`, () => {
 		rendered.unmount()
 	})
 
+	test(`carries unchanged remote selections across transitional draft cuts`, async () => {
+		const canonical = `alpha rollout omega`
+		const rollout = canonical.indexOf(`rollout`)
+		const draft = `++${canonical}`
+		let projection = projected(canonical, 0, { runId: `base` })
+		let view: MosaicTextEditorView<Peer> | null = null
+		let peerName = `Lin`
+		const logicalSelection = {
+			anchor: { affinity: `left` as const, offset: rollout, runId: `base` },
+			head: { affinity: `left` as const, offset: rollout, runId: `base` },
+		}
+		const client = {
+			positionAtOffset: () => Promise.reject(new Error(`unused`)),
+			readLength: () => Promise.resolve(draft.length),
+			resolvePosition: () => Promise.resolve(rollout),
+		} satisfies Pick<
+			MosaicTextProjectionClient,
+			`positionAtOffset` | `readLength` | `resolvePosition`
+		>
+		const Probe = (): ReactElement => {
+			view = useMosaicTextEditor({
+				client,
+				commitDelayMs: 10_000,
+				connected: true,
+				documentLength: canonical.length,
+				peers: [
+					{
+						id: `lin`,
+						selection: logicalSelection,
+						value: { name: peerName },
+					},
+				],
+				projection,
+				publishSelection: () => undefined,
+				replace: () => Promise.resolve(),
+			})
+			return <output>{view.text}</output>
+		}
+		const rendered = render(<Probe />)
+		await waitFor(() => {
+			expect(view?.remoteSelections).toMatchObject([
+				{ end: rollout, id: `lin`, start: rollout },
+			])
+		})
+
+		act(() => {
+			view?.onDirty()
+			view?.onValueChange(draft, false)
+		})
+		expect((view as unknown as MosaicTextEditorView<Peer>).text).toBe(draft)
+		expect(
+			(view as unknown as MosaicTextEditorView<Peer>).remoteSelections,
+		).toMatchObject([{ end: rollout + 2, id: `lin`, start: rollout + 2 }])
+
+		const transitional = `+${canonical.slice(0, rollout)}`
+		projection = {
+			...projected(transitional, 1),
+			range: { end: draft.length, kind: `utf16-range`, start: 0 },
+			segments: [
+				{
+					end: transitional.length,
+					fragments: [
+						{ runId: `prefix`, start: 0, text: `+` },
+						{
+							runId: `base`,
+							start: 0,
+							text: canonical.slice(0, rollout),
+						},
+					],
+					id: `leaf:transition`,
+					start: 0,
+					text: transitional,
+				},
+			],
+		}
+		peerName = `Lin updated`
+		act(() => {
+			rendered.rerender(<Probe />)
+		})
+		expect((view as unknown as MosaicTextEditorView<Peer>).text).toBe(draft)
+		expect(
+			(view as unknown as MosaicTextEditorView<Peer>).remoteSelections,
+		).toMatchObject([{ end: rollout + 2, id: `lin`, start: rollout + 2 }])
+		expect(
+			(view as unknown as MosaicTextEditorView<Peer>).remoteSelections[0]?.end,
+		).not.toBe(draft.length)
+		expect(
+			(view as unknown as MosaicTextEditorView<Peer>).remoteSelections[0]?.value,
+		).toEqual({ name: `Lin updated` })
+		rendered.unmount()
+	})
+
 	test(`uses the canonical empty position and retains peers through bad cuts`, async () => {
 		let projection = projected(``, 0)
 		let view: MosaicTextEditorView<Peer> | null = null

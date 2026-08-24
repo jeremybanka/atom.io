@@ -415,24 +415,30 @@ function MosaicPresencePlugin({
 	useLayoutEffect(() => {
 		let frame: number | null = null
 		let resizeObserver: ResizeObserver | null = null
+		const measure = (): void => {
+			const editorHasProjection = editor
+				.getEditorState()
+				.read(() => $getRoot().getTextContent() === value)
+			if (!editorHasProjection) return
+			setOverlays((current) =>
+				selections.flatMap((selection) => {
+					const measured = measureSelection(editor, selection)
+					if (measured !== null) return [measured]
+					const previous = current.find(
+						(candidate) =>
+							candidate.session === selection.session &&
+							candidate.start === selection.start &&
+							candidate.end === selection.end,
+					)
+					return previous === undefined ? [] : [previous]
+				}),
+			)
+		}
 		const render = (): void => {
 			if (frame !== null) cancelAnimationFrame(frame)
 			frame = requestAnimationFrame(() => {
 				frame = null
-				const editorHasProjection = editor
-					.getEditorState()
-					.read(() => $getRoot().getTextContent() === value)
-				if (!editorHasProjection) return
-				setOverlays((current) =>
-					selections.flatMap((selection) => {
-						const measured = measureSelection(editor, selection)
-						if (measured !== null) return [measured]
-						const previous = current.find(
-							(candidate) => candidate.session === selection.session,
-						)
-						return previous === undefined ? [] : [previous]
-					}),
-				)
+				measure()
 			})
 		}
 		const observeSize = (root: HTMLElement | null): void => {
@@ -452,7 +458,10 @@ function MosaicPresencePlugin({
 			render()
 		})
 		window.addEventListener(`resize`, render)
-		render()
+		// A collaborator selection and its measured geometry must advance in the
+		// same layout phase. Deferring this prop-driven measurement would render
+		// the new logical offset with the previous offset's caret for one frame.
+		measure()
 		return () => {
 			if (frame !== null) cancelAnimationFrame(frame)
 			stopUpdate()

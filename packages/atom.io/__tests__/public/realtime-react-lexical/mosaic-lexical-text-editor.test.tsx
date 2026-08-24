@@ -1,6 +1,14 @@
 import { act, render, waitFor } from "@testing-library/react"
 import { transformMosaicTextSelection } from "atom.io/realtime-client"
 import {
+	$getRootRelativeSelectionOffsets,
+	$insertTextAtBlankLineBoundary,
+	$pointAtRootOffset,
+	lineEndCaretReference,
+	lineStartCaretReference,
+	MosaicLexicalTextEditor,
+} from "atom.io/realtime-react-lexical"
+import {
 	$createLineBreakNode,
 	$createParagraphNode,
 	$createRangeSelection,
@@ -11,15 +19,6 @@ import {
 	$setSelection,
 	createEditor,
 } from "lexical"
-
-import { LexicalMarkdownEditor } from "../src/LexicalMarkdownEditor.tsx"
-import {
-	$getRootRelativeSelectionOffsets,
-	$insertTextAtBlankLineBoundary,
-	$pointAtRootOffset,
-	lineEndCaretReference,
-	lineStartCaretReference,
-} from "../src/lexical-linear-offset.ts"
 
 describe(`Lexical Markdown editor`, () => {
 	test(`preserves its focused root across authoritative projection updates`, async () => {
@@ -34,7 +33,7 @@ describe(`Lexical Markdown editor`, () => {
 			selections: [],
 		}
 		const rendered = render(
-			<LexicalMarkdownEditor {...properties} value="alpha" />,
+			<MosaicLexicalTextEditor {...properties} value="alpha" />,
 		)
 		const editor = await rendered.findByRole(`textbox`)
 		await waitFor(() => {
@@ -43,7 +42,7 @@ describe(`Lexical Markdown editor`, () => {
 		editor.focus()
 		expect(document.activeElement).toBe(editor)
 
-		rendered.rerender(<LexicalMarkdownEditor {...properties} value="alpha!" />)
+		rendered.rerender(<MosaicLexicalTextEditor {...properties} value="alpha!" />)
 		await waitFor(() => {
 			expect(editor.textContent).toBe(`alpha!`)
 		})
@@ -71,14 +70,14 @@ describe(`Lexical Markdown editor`, () => {
 			],
 		}
 		const rendered = render(
-			<LexicalMarkdownEditor {...properties} value="alpha" />,
+			<MosaicLexicalTextEditor {...properties} value="alpha" />,
 		)
 		await rendered.findByRole(`textbox`)
 		await new Promise((resolve) => requestAnimationFrame(resolve))
 		expect(rendered.container.querySelector(`collaborator-presence`)).toBeNull()
 
 		rendered.rerender(
-			<LexicalMarkdownEditor {...properties} value="alphabet!" />,
+			<MosaicLexicalTextEditor {...properties} value="alphabet!" />,
 		)
 		await waitFor(() => {
 			const presence = rendered.container.querySelector(
@@ -100,7 +99,7 @@ describe(`Lexical Markdown editor`, () => {
 			onValueChange: () => undefined,
 		}
 		const rendered = render(
-			<LexicalMarkdownEditor
+			<MosaicLexicalTextEditor
 				{...properties}
 				selections={[
 					{
@@ -124,7 +123,7 @@ describe(`Lexical Markdown editor`, () => {
 		})
 
 		rendered.rerender(
-			<LexicalMarkdownEditor
+			<MosaicLexicalTextEditor
 				{...properties}
 				selections={[
 					{
@@ -207,7 +206,7 @@ describe(`Lexical Markdown editor`, () => {
 			selections: [],
 		}
 		const rendered = render(
-			<LexicalMarkdownEditor {...properties} value="alpha omega" />,
+			<MosaicLexicalTextEditor {...properties} value="alpha omega" />,
 		)
 		const editor = await rendered.findByRole(`textbox`)
 		await waitFor(() => {
@@ -227,7 +226,7 @@ describe(`Lexical Markdown editor`, () => {
 		})
 
 		rendered.rerender(
-			<LexicalMarkdownEditor
+			<MosaicLexicalTextEditor
 				{...properties}
 				selection={[13, 13]}
 				value="prefix alpha omega"
@@ -258,7 +257,7 @@ describe(`Lexical Markdown editor`, () => {
 			selections: [],
 		}
 		const rendered = render(
-			<LexicalMarkdownEditor {...properties} value={`alpha\n\n1. item`} />,
+			<MosaicLexicalTextEditor {...properties} value={`alpha\n\n1. item`} />,
 		)
 		const editor = await rendered.findByRole(`textbox`)
 		await waitFor(() => {
@@ -273,7 +272,7 @@ describe(`Lexical Markdown editor`, () => {
 		})
 
 		rendered.rerender(
-			<LexicalMarkdownEditor
+			<MosaicLexicalTextEditor
 				{...properties}
 				selection={[6, 6]}
 				value={`alpha\n\n1. item!`}

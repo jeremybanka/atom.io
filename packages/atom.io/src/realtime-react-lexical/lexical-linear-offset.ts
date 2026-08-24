@@ -1,3 +1,4 @@
+/** Linear UTF-16 addressing helpers for Mosaic text inside a Lexical root. */
 import {
 	$createLineBreakNode,
 	$createTextNode,

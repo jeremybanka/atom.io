@@ -60,6 +60,61 @@ const deferred = () => {
 }
 
 describe(`Mosaic text editing`, () => {
+	test(`reports draft lifecycle and publishes a settled viewport`, async () => {
+		const projection = projected(`terminal kind`, 0)
+		const draftStates: boolean[] = []
+		const viewports: MosaicTextSelection[] = []
+		let view: MosaicTextEditorView<Peer> | null = null
+		const client = {
+			positionAtOffset: (offset: number) =>
+				Promise.resolve({
+					affinity: `right` as const,
+					offset,
+					runId: `base`,
+				}),
+			readLength: () => Promise.resolve(projection.text.length),
+			resolvePosition: () => Promise.resolve(0),
+		} satisfies Pick<
+			MosaicTextProjectionClient,
+			`positionAtOffset` | `readLength` | `resolvePosition`
+		>
+		const Probe = (): ReactElement => {
+			view = useMosaicTextEditor({
+				client,
+				commitDelayMs: 10_000,
+				connected: true,
+				documentLength: projection.text.length,
+				onLocalDraftChange: (dirty) => draftStates.push(dirty),
+				peers: [],
+				projection,
+				publishSelection: () => undefined,
+				publishViewport: (viewport) => {
+					viewports.push(viewport)
+				},
+				replace: () => Promise.resolve(),
+			})
+			return <output>{view.text}</output>
+		}
+		const rendered = render(<Probe />)
+		await waitFor(() => {
+			expect(viewports).toMatchObject([
+				{
+					anchor: { offset: 0 },
+					head: { offset: projection.text.length },
+				},
+			])
+		})
+		expect(draftStates).toContain(false)
+		act(() => {
+			view?.onDirty()
+			view?.onValueChange(`${projection.text}!`, false)
+		})
+		await waitFor(() => {
+			expect(draftStates).toContain(true)
+		})
+		rendered.unmount()
+	})
+
 	test(`exposes projection-local mapping and contiguous transforms`, () => {
 		const projection = projected(`a😀b`, 7)
 		expect(projection.complete).toBe(true)

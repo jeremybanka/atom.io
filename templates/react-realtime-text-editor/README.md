@@ -60,13 +60,17 @@ the Unicode adversarial corpus.
   application commands. Core owns residency transport, reconnect
   synchronization, accepted-revision settlement, presence renewal, and
   selective history sequencing.
+- `atom.io/realtime-client` owns the Store-backed range controller, preserving
+  the last complete projection while replacement residency is acquired.
 - `atom.io/realtime-react` owns optimistic draft settlement and maps local and
   remote selections across complete, revision-tagged projection cuts.
-- `src/LexicalMarkdownEditor.tsx` adapts that bounded editor state to Lexical
-  DOM selection and renders collaborator geometry.
+- `atom.io/realtime-react-lexical` owns projection replacement, native input
+  boundaries, DOM selection restoration, and collaborator geometry. The local
+  `src/LexicalMarkdownEditor.tsx` file only supplies template styling.
 - `src/incremental-markdown.ts` contains the renderer-neutral, cancelable parser.
-- `src/MarkdownWorkspace.tsx` owns application viewport policy, parser work,
-  simulated identities, and UI state.
+- `src/workspace-state.ts` expresses status, presence, viewport, parser output,
+  diagnostics, and derived peers as Atom state. `src/MarkdownWorkspace.tsx`
+  reads those tokens and owns only application presentation and interaction.
 - `INNOVATIONS.md` records the new core seam and the deliberate production
   boundaries.
 

@@ -78,6 +78,10 @@
 			"import": "./dist/realtime-react/index.js",
 			"types": "./dist/realtime-react/index.d.ts"
 		},
+		"./realtime-react-lexical": {
+			"import": "./dist/realtime-react-lexical/index.js",
+			"types": "./dist/realtime-react-lexical/index.d.ts"
+		},
 		"./realtime-server": {
 			"import": "./dist/realtime-server/index.js",
 			"types": "./dist/realtime-server/index.d.ts"
@@ -185,7 +189,10 @@
 		"vite": "8.3.4",
 		"vitest": "5.0.5",
 		"zod": "4.6.7",
-		"zustand": "5.0.15"
+		"zustand": "5.0.15",
+		"@lexical/react": "0.49.0",
+		"@lexical/selection": "0.49.0",
+		"lexical": "0.49.0"
 	},
 	"peerDependencies": {
 		"@atom.io/react": "~0.0.0",
@@ -194,7 +201,10 @@
 		"happy-dom": ">=17.4.4",
 		"react": "^18.0.0 || ^19.0.0",
 		"socket.io": ">=4.0.0",
-		"socket.io-client": ">=4.0.0"
+		"socket.io-client": ">=4.0.0",
+		"@lexical/react": ">=0.49.0",
+		"@lexical/selection": ">=0.49.0",
+		"lexical": ">=0.49.0"
 	},
 	"peerDependenciesMeta": {
 		"@atom.io/react": {
@@ -216,6 +226,15 @@
 			"optional": true
 		},
 		"socket.io-client": {
+			"optional": true
+		},
+		"@lexical/react": {
+			"optional": true
+		},
+		"@lexical/selection": {
+			"optional": true
+		},
+		"lexical": {
 			"optional": true
 		}
 	},

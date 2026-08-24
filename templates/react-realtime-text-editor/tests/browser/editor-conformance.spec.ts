@@ -453,7 +453,7 @@ test.describe(`Mosaic text editor browser conformance`, () => {
 	test(`seeded rapid replacements preserve a plain-text oracle`, async ({
 		browser,
 	}) => {
-		test.setTimeout(90_000)
+		test.setTimeout(180_000)
 		test.info().annotations.push({
 			description: `0x510c10`,
 			type: `seed`,

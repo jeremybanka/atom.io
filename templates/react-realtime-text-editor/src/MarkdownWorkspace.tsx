@@ -7,7 +7,6 @@ import {
 	type ReactNode,
 	useCallback,
 	useEffect,
-	useLayoutEffect,
 	useMemo,
 	useRef,
 	useState,
@@ -128,7 +127,6 @@ function statusLabel(
 export function MarkdownWorkspace({
 	client,
 }: MarkdownWorkspaceProps): ReactElement {
-	const [colorScheme, setColorScheme] = useState<`dark` | `light`>(`dark`)
 	const [status, setStatus] = useState(() => client.status())
 	const [presence, setPresence] = useState(() => activePresence(client))
 	const [totalLength, setTotalLength] = useState(0)
@@ -208,13 +206,6 @@ export function MarkdownWorkspace({
 	})
 	const projection = editor.projection
 
-	useLayoutEffect(() => {
-		document.documentElement.dataset.colorScheme = colorScheme
-		return () => {
-			delete document.documentElement.dataset.colorScheme
-		}
-	}, [colorScheme])
-
 	useEffect(() => {
 		const stopStatus = client.subscribe((next) => {
 			setStatus(next)
@@ -292,7 +283,7 @@ export function MarkdownWorkspace({
 		}))
 
 	return (
-		<markdown-workspace className={css.class} data-color-scheme={colorScheme}>
+		<markdown-workspace className={css.class}>
 			<header>
 				<brand-lockup>
 					<mark>M</mark>
@@ -306,19 +297,6 @@ export function MarkdownWorkspace({
 					<span>{statusLabel(status, editor.hasLocalDraft)}</span>
 				</document-title>
 				<toolbar-actions>
-					<button
-						aria-label={`Use ${colorScheme === `dark` ? `light` : `dark`} mode`}
-						type="button"
-						onClick={() =>
-							setColorScheme((current) =>
-								current === `dark` ? `light` : `dark`,
-							)
-						}
-					>
-						{colorScheme === `dark` ? `☀` : `☾`}
-						{` `}
-						<span>{colorScheme === `dark` ? `Light` : `Dark`} mode</span>
-					</button>
 					<button type="button" onClick={() => void client.undo()}>
 						↶ <span>Undo mine</span>
 					</button>

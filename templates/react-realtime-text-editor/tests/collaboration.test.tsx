@@ -10,6 +10,7 @@ import {
 	type MarkdownCollaborationClient,
 } from "../src/collaboration-client.ts"
 import type { Identity } from "../src/identities.ts"
+import { createMarkdownWorkspaceState } from "../src/workspace-state.ts"
 
 const ADA = { color: `#7057ff`, id: `ada`, name: `Ada` } satisfies Identity
 const LIN = { color: `#df527c`, id: `lin`, name: `Lin` } satisfies Identity
@@ -116,6 +117,52 @@ async function live(room: Awaited<ReturnType<typeof scenario>>) {
 }
 
 describe(`incremental realtime Markdown Domain`, () => {
+	test(`the store-owned workspace hydrates its initial viewport`, async () => {
+		const setup = await scenario()
+		try {
+			const harness = await initialize(setup)
+			const clients = await live(setup)
+			const observeErrors: unknown[] = []
+			const originalObserveRange = clients.ada.projection.observeRange
+			const observeRange = vi
+				.spyOn(clients.ada.projection, `observeRange`)
+				.mockImplementation(async (...parameters) => {
+					try {
+						return await originalObserveRange(...parameters)
+					} catch (error) {
+						observeErrors.push(error)
+						throw error
+					}
+				})
+			const workspace = createMarkdownWorkspaceState({
+				client: clients.ada,
+				silo: harness.ada.silo,
+			})
+			try {
+				await waitFor(() => {
+					expect(harness.ada.silo.getState(workspace.totalLength)).toBe(
+						INITIAL.length,
+					)
+				})
+				expect(observeRange.mock.calls.map(([range]) => range)).toEqual([
+					{ end: INITIAL.length, kind: `utf16-range`, start: 0 },
+				])
+				await waitFor(() => {
+					expect(observeErrors).toEqual([])
+					expect(observeRange).toHaveBeenCalled()
+					expect(harness.ada.silo.getState(workspace.view)).toMatchObject({
+						projection: { text: INITIAL },
+						status: `ready`,
+					})
+				})
+			} finally {
+				workspace[Symbol.dispose]()
+			}
+		} finally {
+			await setup.teardown()
+		}
+	})
+
 	test(`rejects invalid presence renewal intervals before allocating a Domain`, async () => {
 		await expect(
 			createMarkdownCollaborationClient({

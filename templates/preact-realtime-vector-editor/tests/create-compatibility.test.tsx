@@ -102,7 +102,7 @@ function compatibilityClient(
 					lifespan: `ephemeral`,
 					name: `create-compatibility:${sessionId}`,
 				}),
-			[sessionId],
+			[],
 		)
 		useEffect(() => {
 			if (socket === null) return
@@ -135,7 +135,7 @@ function compatibilityClient(
 				problems.delete(sessionId)
 				created?.[Symbol.dispose]()
 			}
-		}, [identity, problems, runtimes, sessionId, silo, socket])
+		}, [silo, socket])
 		return createElement(
 			`output`,
 			null,
@@ -156,7 +156,9 @@ describe(`Create-* public compatibility`, () => {
 				createVectorCollaborationService({
 					authorize: ({ actor }) => actor === MAYA.id,
 				}),
-			stop: (service) => service[Symbol.dispose](),
+			stop: (service) => {
+				service[Symbol.dispose]()
+			},
 		})
 		await restart.start()
 		const room = multiClient({

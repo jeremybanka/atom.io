@@ -168,7 +168,9 @@ export function MarkdownWorkspace({
 						<select
 							aria-label="Simulated identity"
 							value={client.identity.id}
-							onChange={(event) => switchBrowserIdentity(event.target.value)}
+							onChange={(event) => {
+								switchBrowserIdentity(event.target.value)
+							}}
 						>
 							{SIMULATED_IDENTITIES.map((person) => (
 								<option key={person.id} value={person.id}>

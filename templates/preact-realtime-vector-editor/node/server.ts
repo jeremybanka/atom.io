@@ -47,7 +47,7 @@ httpServer.listen(PORT, () => {
 
 const shutdown = (): void => {
 	collaboration[Symbol.dispose]()
-	socketServer.close()
+	void socketServer.close()
 	httpServer.close()
 }
 process.once(`SIGINT`, shutdown)

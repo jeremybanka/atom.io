@@ -56,7 +56,7 @@ function testClient(
 					lifespan: `ephemeral`,
 					name: `plane-test-client:${sessionId}`,
 				}),
-			[sessionId],
+			[],
 		)
 		const [runtime, setRuntime] = useState<VectorCollaborationClient | null>(
 			null,
@@ -342,7 +342,9 @@ describe(`Plane realtime vector collaboration`, () => {
 			})
 			expect(peers.maya.status().connection).toBe(`offline`)
 			act(() => clients.maya.socket.connect())
-			await waitFor(() => expect(peers.maya.status().connection).toBe(`live`))
+			await waitFor(() => {
+				expect(peers.maya.status().connection).toBe(`live`)
+			})
 			await peers.theo.batch.flush()
 			expect(
 				readSvgRegister(peers.theo.silo.getState(nodeAtoms, `mark-0`)),
@@ -399,14 +401,14 @@ describe(`Plane realtime vector collaboration`, () => {
 				peers.theo.silo.getState(dragPresenceAtoms, svgDragPresenceKey(gesture)),
 			).toMatchObject({ point: { x: 32, y: 33 } })
 			act(() => clients.maya.socket.disconnect())
-			await waitFor(() =>
+			await waitFor(() => {
 				expect(
 					peers.theo.silo.getState(
 						dragPresenceAtoms,
 						svgDragPresenceKey(gesture),
 					),
-				).toBeNull(),
-			)
+				).toBeNull()
+			})
 			expect(peers.maya.silo.getState(activeDragAtom)).toBeNull()
 			expect(
 				readSvgRegister(peers.theo.silo.getState(nodeAtoms, `mark-0`)),

@@ -7,7 +7,7 @@ import * as RTTest from "atom.io/realtime-testing"
 
 import { markdownAtomRegistration } from "../node/mosaic-atom.ts"
 import {
-	Markdown,
+	type Markdown,
 	markdownAtom,
 	markdownWordCountSelector,
 	type MarkdownPresence,

@@ -79,16 +79,8 @@ function Bezier({
 	prevSubpathKey: string
 	node?: PointXY
 }) {
-	let node: PointXY | null
-	// eslint-disable-next-line @typescript-eslint/switch-exhaustiveness-check
-	switch (typeof maybeNode) {
-		case `undefined`:
-			// eslint-disable-next-line @eslint-react/rules-of-hooks
-			node = useO(nodeAtoms, prevSubpathKey)
-			break
-		default:
-			node = maybeNode
-	}
+	const previousNode = useO(nodeAtoms, prevSubpathKey)
+	const node = maybeNode ?? previousNode
 	return node === null ? null : (
 		<>
 			<line

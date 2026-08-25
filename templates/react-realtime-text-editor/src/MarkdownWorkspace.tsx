@@ -16,7 +16,7 @@ import {
 
 import {
 	lineAndColumnAt,
-	Markdown,
+	type Markdown,
 	markdownAtom,
 	markdownCharacterCountSelector,
 	markdownWordCountSelector,
@@ -216,8 +216,15 @@ export function MarkdownWorkspace({
 	}
 
 	useEffect(() => {
-		if (mosaic.status === `live`) publishSelection(selectionRef.current)
-	}, [mosaic.status])
+		if (mosaic.status === `live`) {
+			mosaic.publishPresence({
+				color: identity.color,
+				lastActiveAt: Date.now(),
+				name: identity.name,
+				selection: selectionRef.current,
+			})
+		}
+	}, [identity.color, identity.name, mosaic])
 
 	useLayoutEffect(() => {
 		const editor = editorRef.current
@@ -229,7 +236,7 @@ export function MarkdownWorkspace({
 			document.resolvePosition(selection.anchor),
 			document.resolvePosition(selection.head),
 		)
-	}, [markdown])
+	}, [document, markdown])
 
 	const rememberSelection = (editor: HTMLTextAreaElement): void => {
 		selectionRef.current = document.selectionFromOffsets(

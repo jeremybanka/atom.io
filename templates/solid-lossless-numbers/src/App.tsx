@@ -124,7 +124,7 @@ const combineIntoRationalTransaction = transaction<
 export function App(): JSX.Element {
 	const rationals = useO(rationalListAtom)
 	return (
-		<app class={css.class}>
+		<rationality-app class={css.class}>
 			<header>
 				<h1>Rationality Playground</h1>
 			</header>
@@ -153,7 +153,7 @@ export function App(): JSX.Element {
 					</button>
 				</new-rational>
 			</main>
-		</app>
+		</rationality-app>
 	)
 }
 
@@ -172,7 +172,7 @@ export function RationalBreakdown(props: { key: RationalKey }): JSX.Element {
 						return (
 							<>
 								<Show when={index() !== 0}>
-									<plus>+</plus>
+									<rational-plus>+</rational-plus>
 								</Show>
 								<Fraction numerator={numerator} denominator={denominator} />
 							</>
@@ -216,17 +216,21 @@ export function RationalBreakdown(props: { key: RationalKey }): JSX.Element {
 				<RationalCombineFields key={props.key} />
 			</fraction-list>
 
-			<equals>=</equals>
+			<rational-equals>=</rational-equals>
 			<Fraction numerator={simplified()[0]} denominator={simplified()[1]} />
-			<equals>{isFloatPrecise() ? `=` : `≈`}</equals>
-			<quotient>
+			<rational-equals>{isFloatPrecise() ? `=` : `≈`}</rational-equals>
+			<rational-quotient>
 				<quotient-bits>
 					<For each={bits()}>
-						{(bit) => <bit data-css={bit === `1` ? `one` : undefined} />}
+						{(bit) => (
+							<quotient-bit data-css={bit === `1` ? `one` : undefined} />
+						)}
 					</For>
 				</quotient-bits>
-				<number>{isFloatPrecise() ? float() : approximateValue()}</number>
-			</quotient>
+				<rational-number>
+					{isFloatPrecise() ? float() : approximateValue()}
+				</rational-number>
+			</rational-quotient>
 		</rational-breakdown>
 	)
 }
@@ -236,15 +240,17 @@ export function Fraction(props: {
 	denominator: bigint
 }): JSX.Element {
 	return (
-		<fraction>
-			<numerator data-css={props.numerator === 1n ? `one` : undefined}>
+		<rational-fraction>
+			<rational-numerator data-css={props.numerator === 1n ? `one` : undefined}>
 				{Number(props.numerator)}
-			</numerator>
-			<solidus />
-			<denominator data-css={props.denominator === 1n ? `one` : undefined}>
+			</rational-numerator>
+			<rational-solidus />
+			<rational-denominator
+				data-css={props.denominator === 1n ? `one` : undefined}
+			>
 				{Number(props.denominator)}
-			</denominator>
-		</fraction>
+			</rational-denominator>
+		</rational-fraction>
 	)
 }
 
@@ -284,7 +290,7 @@ export function RationalFields({
 				}}
 				placeholder="1"
 			/>
-			<solidus />
+			<rational-solidus />
 			<input
 				type="number"
 				value={denominator()?.toString()}

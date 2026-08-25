@@ -37,6 +37,7 @@ const LOADING: MosaicTextRangeView = Object.freeze({
 export type MosaicTextRangeController = Disposable & {
 	readonly range: RegularAtomToken<MosaicTextIndexRange>
 	readonly view: RegularAtomToken<MosaicTextRangeView>
+	start(): void
 }
 
 export type MosaicTextRangeControllerOptions<
@@ -44,6 +45,7 @@ export type MosaicTextRangeControllerOptions<
 	Range extends Json.Serializable = MosaicTextIndexRange,
 > = {
 	readonly client: MosaicTextProjectionClient<Identity, Range>
+	readonly deferStart?: boolean
 	readonly initialRange: MosaicTextIndexRange
 	readonly key: string
 	readonly overscan?: number
@@ -80,10 +82,11 @@ export function createMosaicTextRangeController<
 		key: `${options.key}:view`,
 	})
 	let active = true
+	let started = options.deferStart !== true
 	let observer: MosaicTextRangeObserver | null = null
-	let attempting = false
 	let generation = 0
 	let attemptedGeneration = -1
+	const pendingGenerations = new Set<number>()
 	let connectivity = client.residency.state.connectivity
 	let observedRange = options.initialRange
 
@@ -99,11 +102,13 @@ export function createMosaicTextRangeController<
 		})
 	}
 	const observe = (): void => {
-		if (!active || attempting || observer !== null) return
+		if (!active || !started || connectivity !== `live` || observer !== null)
+			return
+		if (pendingGenerations.has(generation)) return
 		if (attemptedGeneration === generation) return
 		const attempt = generation
 		attemptedGeneration = attempt
-		attempting = true
+		pendingGenerations.add(attempt)
 		const requested = silo.getState(rangeAtom)
 		silo.setState(viewAtom, (current) =>
 			current.status === `ready` ? current : LOADING,
@@ -145,7 +150,7 @@ export function createMosaicTextRangeController<
 				)
 			})
 			.finally(() => {
-				attempting = false
+				pendingGenerations.delete(attempt)
 				if (attemptedGeneration < generation) observe()
 			})
 	}
@@ -157,28 +162,39 @@ export function createMosaicTextRangeController<
 			release(observer)
 			observer = null
 		}
-		observe()
+		if (started) observe()
 	}
 	const stopRange = silo.subscribe(rangeAtom, ({ newValue }) => {
 		replaceRange(newValue)
 	})
 	const stopResidency = client.residency.subscribeState((state) => {
+		const previousConnectivity = connectivity
 		const nextConnectivity = state.connectivity
+		connectivity = nextConnectivity
 		if (
+			started &&
 			nextConnectivity === `live` &&
 			observer === null &&
-			(connectivity !== `live` || attemptedGeneration === generation)
+			!pendingGenerations.has(generation) &&
+			(previousConnectivity !== `live` || attemptedGeneration === generation)
 		) {
 			generation++
 			observe()
 		}
-		connectivity = nextConnectivity
 	})
-	generation++
-	observe()
+	if (started) {
+		generation++
+		observe()
+	}
 
 	return {
 		range: rangeAtom,
+		start() {
+			if (!active || started) return
+			started = true
+			generation++
+			observe()
+		},
 		view: viewAtom,
 		[Symbol.dispose]() {
 			if (!active) return

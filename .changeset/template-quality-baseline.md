@@ -6,4 +6,4 @@
 "@atom.io/template-solid-lossless-numbers": patch
 ---
 
-Give every released template a pinned, standalone Oxlint, ESLint, TypeScript, and dprint quality baseline with zero-warning scripts and a shared configuration shipped by atom.io.
+Give every released template a pinned, standalone Oxlint, ESLint, TypeScript, and dprint quality baseline with zero-warning scripts and a single canonical configuration shipped at the atom.io package root.

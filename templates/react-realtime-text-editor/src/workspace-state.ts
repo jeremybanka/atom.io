@@ -83,35 +83,43 @@ export function createMarkdownWorkspaceState(options: {
 	const key = `markdown-workspace:${client.sessionId}`
 	const statusAtom = silo.atom<MarkdownClientStatus>({
 		default: client.status(),
-		key: `status`,
+		// eslint-disable-next-line atom.io/naming-convention -- A shared Store needs one workspace namespace per realtime session.
+		key: `${key}:status`,
 	})
 	const presenceAtom = silo.atom<readonly MarkdownPresence[]>({
 		default: activePresence(client),
-		key: `presence`,
+		// eslint-disable-next-line atom.io/naming-convention -- A shared Store needs one workspace namespace per realtime session.
+		key: `${key}:presence`,
 	})
 	const totalLengthAtom = silo.atom<number>({
 		default: 0,
-		key: `totalLength`,
+		// eslint-disable-next-line atom.io/naming-convention -- A shared Store needs one workspace namespace per realtime session.
+		key: `${key}:totalLength`,
 	})
 	const scrollAtom = silo.atom<MarkdownScrollViewport>({
 		default: { height: 560, scrollTop: 0 },
-		key: `scroll`,
+		// eslint-disable-next-line atom.io/naming-convention -- A shared Store needs one workspace namespace per realtime session.
+		key: `${key}:scroll`,
 	})
 	const parseAtom = silo.atom<readonly MarkdownSemanticBlock[]>({
 		default: [],
-		key: `parse`,
+		// eslint-disable-next-line atom.io/naming-convention -- A shared Store needs one workspace namespace per realtime session.
+		key: `${key}:parse`,
 	})
 	const parseMetricsAtom = silo.atom<MarkdownParseInstrumentation>({
 		default: EMPTY_PARSE_METRICS,
-		key: `parseMetrics`,
+		// eslint-disable-next-line atom.io/naming-convention -- A shared Store needs one workspace namespace per realtime session.
+		key: `${key}:parseMetrics`,
 	})
 	const readProblemAtom = silo.atom<string | null>({
 		default: null,
-		key: `readProblem`,
+		// eslint-disable-next-line atom.io/naming-convention -- A shared Store needs one workspace namespace per realtime session.
+		key: `${key}:readProblem`,
 	})
 	const problemAtom = silo.atom<string | null>({
 		default: null,
-		key: `problem`,
+		// eslint-disable-next-line atom.io/naming-convention -- A shared Store needs one workspace namespace per realtime session.
+		key: `${key}:problem`,
 	})
 	const windowSelector = silo.selector<MarkdownVirtualWindow>({
 		get: ({ get }) =>
@@ -121,7 +129,8 @@ export function createMarkdownWorkspaceState(options: {
 				rowHeight: 24,
 				totalUtf16Units: get(totalLengthAtom),
 			}),
-		key: `window`,
+		// eslint-disable-next-line atom.io/naming-convention -- A shared Store needs one workspace namespace per realtime session.
+		key: `${key}:window`,
 	})
 	const peersSelector = silo.selector<readonly MarkdownWorkspacePeer[]>({
 		get: ({ get }) =>
@@ -132,11 +141,13 @@ export function createMarkdownWorkspaceState(options: {
 					selection: person.selection,
 					value: person,
 				})),
-		key: `peers`,
+		// eslint-disable-next-line atom.io/naming-convention -- A shared Store needs one workspace namespace per realtime session.
+		key: `${key}:peers`,
 	})
 	const initialWindow = silo.getState(windowSelector)
 	const range: MosaicTextRangeController = createMosaicTextRangeController({
 		client: client.projection,
+		deferStart: true,
 		initialRange: initialWindow.range,
 		key: `${key}:text-range`,
 		overscan: 2_048,
@@ -152,6 +163,21 @@ export function createMarkdownWorkspaceState(options: {
 			if (disposed) return null
 			silo.setState(totalLengthAtom, length)
 			silo.setState(readProblemAtom, null)
+			if (length === 0) {
+				silo.setState(range.view, {
+					error: null,
+					projection: {
+						blocks: [],
+						complete: true,
+						range: { end: 0, kind: `utf16-range`, start: 0 },
+						segments: [],
+						text: ``,
+					},
+					status: `ready`,
+				})
+			} else {
+				range.start()
+			}
 			return length
 		} catch (error) {
 			if (!disposed) {

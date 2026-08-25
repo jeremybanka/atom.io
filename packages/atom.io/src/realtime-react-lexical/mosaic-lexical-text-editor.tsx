@@ -93,7 +93,6 @@ function $restoreRootRelativeSelection(
 ): void {
 	const anchor = $pointAtRootOffset(root, offsets[0])
 	const focus = $pointAtRootOffset(root, offsets[1])
-	if (anchor === null || focus === null) return
 	const selection = $createRangeSelection()
 	selection.anchor.set(
 		anchor.node.getKey(),
@@ -129,7 +128,6 @@ function measureCharacter(
 ): DOMRect | null {
 	const start = $pointAtRootOffset(root, index)
 	const end = $pointAtRootOffset(root, index + 1)
-	if (start === null || end === null) return null
 	const range = createDOMRange(
 		editor,
 		start.node,
@@ -206,7 +204,6 @@ function measureSelection(
 			Math.max(selection.start, selection.end),
 		)
 		const head = $pointAtRootOffset(root, selection.end)
-		if (start === null || end === null || head === null) return null
 		const range = createDOMRange(
 			editor,
 			start.node,
@@ -487,7 +484,10 @@ function MosaicPresencePlugin({
 		<collaborator-overlays aria-hidden="true">
 			{selections.flatMap((selection) => {
 				const measured = overlays.find(
-					(candidate) => candidate.session === selection.session,
+					(candidate) =>
+						candidate.session === selection.session &&
+						candidate.start === selection.start &&
+						candidate.end === selection.end,
 				)
 				if (measured === undefined) return []
 				const style = {

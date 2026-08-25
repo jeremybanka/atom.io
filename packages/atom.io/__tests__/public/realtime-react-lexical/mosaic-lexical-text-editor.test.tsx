@@ -1,4 +1,4 @@
-import { act, render, waitFor } from "@testing-library/react"
+import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { transformMosaicTextSelection } from "atom.io/realtime-client"
 import {
 	$getRootRelativeSelectionOffsets,
@@ -16,11 +16,218 @@ import {
 	$getRoot,
 	$getSelection,
 	$isRangeSelection,
+	$isTextNode,
 	$setSelection,
 	createEditor,
 } from "lexical"
 
 describe(`Lexical Markdown editor`, () => {
+	test(`renders measured collaborator selections and line-boundary carets`, async () => {
+		const rangeRect = new DOMRect(30, 40, 48, 18)
+		const getClientRects = vi
+			.spyOn(Range.prototype, `getClientRects`)
+			.mockReturnValue({
+				0: rangeRect,
+				item: (index: number) => (index === 0 ? rangeRect : null),
+				length: 1,
+				[Symbol.iterator]: function* () {
+					yield rangeRect
+				},
+			} as DOMRectList)
+		const getBoundingClientRect = vi
+			.spyOn(Range.prototype, `getBoundingClientRect`)
+			.mockReturnValue(rangeRect)
+		const elementRect = vi
+			.spyOn(HTMLElement.prototype, `getBoundingClientRect`)
+			.mockReturnValue(new DOMRect(10, 20, 400, 200))
+		const properties = {
+			onError: (error: Error) => {
+				throw error
+			},
+			onRedo: () => undefined,
+			onSelectionChange: () => undefined,
+			onUndo: () => undefined,
+			onValueChange: () => undefined,
+		}
+		const rendered = render(
+			<MosaicLexicalTextEditor
+				{...properties}
+				selections={[
+					{
+						color: `#f00`,
+						end: 5,
+						name: `Lin`,
+						session: `lin-session`,
+						start: 1,
+					},
+				]}
+				value={`alpha\n\nbeta`}
+			/>,
+		)
+		await rendered.findByRole(`textbox`)
+		await waitFor(() => {
+			const presence = rendered.container.querySelector(
+				`collaborator-presence[data-session="lin-session"]`,
+			)
+			expect(presence?.getAttribute(`data-presence-kind`)).toBe(`selection`)
+			expect(presence?.querySelector(`collaborator-selection`)).not.toBeNull()
+			expect(presence?.querySelector(`collaborator-caret`)).not.toBeNull()
+		})
+
+		rendered.rerender(
+			<MosaicLexicalTextEditor
+				{...properties}
+				selections={[
+					{
+						color: `#f00`,
+						end: 6,
+						name: `Lin`,
+						session: `lin-session`,
+						start: 6,
+					},
+				]}
+				value={`alpha\n\nbeta`}
+			/>,
+		)
+		await waitFor(() => {
+			expect(
+				rendered.container
+					.querySelector(`collaborator-presence`)
+					?.getAttribute(`data-presence-kind`),
+			).toBe(`caret`)
+		})
+		rendered.rerender(
+			<MosaicLexicalTextEditor
+				{...properties}
+				selections={[
+					{
+						color: `#f00`,
+						end: 2,
+						name: `Lin`,
+						session: `lin-session`,
+						start: 2,
+					},
+				]}
+				value={`\n\n`}
+			/>,
+		)
+		await waitFor(() => {
+			expect(
+				rendered.container
+					.querySelector(`collaborator-caret`)
+					?.getAttribute(`style`),
+			).toContain(`height`)
+		})
+		getClientRects.mockRestore()
+		getBoundingClientRect.mockRestore()
+		elementRect.mockRestore()
+	})
+
+	test(`handles history shortcuts and dirty input through the public adapter`, async () => {
+		const onDirty = vi.fn()
+		const onRedo = vi.fn()
+		const onUndo = vi.fn()
+		const rendered = render(
+			<MosaicLexicalTextEditor
+				onDirty={onDirty}
+				onError={(error) => {
+					throw error
+				}}
+				onRedo={onRedo}
+				onSelectionChange={() => undefined}
+				onUndo={onUndo}
+				onValueChange={() => undefined}
+				selection={[6, 6]}
+				selections={[]}
+				value={`alpha\n\n1. item`}
+			/>,
+		)
+		const editor = await rendered.findByRole(`textbox`)
+		fireEvent.pointerDown(editor)
+		fireEvent.keyDown(editor, { key: `a` })
+		fireEvent.keyDown(editor, { ctrlKey: true, key: `z` })
+		fireEvent.keyDown(editor, { ctrlKey: true, key: `Z`, shiftKey: true })
+		expect(onUndo).toHaveBeenCalledOnce()
+		expect(onRedo).toHaveBeenCalledOnce()
+		const ignoredInput = new InputEvent(`beforeinput`, {
+			bubbles: true,
+			cancelable: true,
+			inputType: `deleteContentBackward`,
+		})
+		fireEvent(editor, ignoredInput)
+		expect(ignoredInput.defaultPrevented).toBe(false)
+
+		const beforeInput = new InputEvent(`beforeinput`, {
+			bubbles: true,
+			cancelable: true,
+			data: `marker`,
+			inputType: `insertText`,
+		})
+		fireEvent(editor, beforeInput)
+		await waitFor(() => {
+			expect(editor.textContent).toBe(`alphamarker1. item`)
+			expect(editor.querySelectorAll(`br`)).toHaveLength(2)
+		})
+		expect(beforeInput.defaultPrevented).toBe(true)
+		expect(onDirty).toHaveBeenCalled()
+		const ordinaryInput = new InputEvent(`beforeinput`, {
+			bubbles: true,
+			cancelable: true,
+			data: `x`,
+			inputType: `insertText`,
+		})
+		fireEvent(editor, ordinaryInput)
+		expect(ordinaryInput.defaultPrevented).toBe(false)
+		const dirtyCalls = onDirty.mock.calls.length
+		fireEvent(
+			editor,
+			new InputEvent(`textInput`, {
+				bubbles: true,
+				cancelable: true,
+				data: `x`,
+				inputType: `insertText`,
+			}),
+		)
+		expect(onDirty).toHaveBeenCalledTimes(dirtyCalls + 1)
+	})
+
+	test(`projects an empty authoritative value without replacing the editor root`, async () => {
+		const properties = {
+			onError: (error: Error) => {
+				throw error
+			},
+			onRedo: () => undefined,
+			onSelectionChange: () => undefined,
+			onUndo: () => undefined,
+			onValueChange: () => undefined,
+			selections: [],
+		}
+		const rendered = render(
+			<MosaicLexicalTextEditor {...properties} value="alpha" />,
+		)
+		const editor = await rendered.findByRole(`textbox`)
+		fireEvent(
+			editor,
+			new InputEvent(`textInput`, {
+				bubbles: true,
+				cancelable: true,
+				data: `x`,
+				inputType: `insertText`,
+			}),
+		)
+		rendered.rerender(
+			<MosaicLexicalTextEditor
+				{...properties}
+				selection={[1, 1]}
+				value="alpha"
+			/>,
+		)
+		rendered.rerender(<MosaicLexicalTextEditor {...properties} value="" />)
+		await waitFor(() => {
+			expect(editor.textContent).toBe(``)
+		})
+		expect(rendered.getByRole(`textbox`)).toBe(editor)
+	})
 	test(`preserves its focused root across authoritative projection updates`, async () => {
 		const properties = {
 			onError: (error: Error) => {
@@ -137,11 +344,13 @@ describe(`Lexical Markdown editor`, () => {
 				value="xalpha kind"
 			/>,
 		)
-		expect(
-			rendered.container
-				.querySelector(`collaborator-presence`)
-				?.getAttribute(`data-selection-end`),
-		).toBe(`7`)
+		await waitFor(() => {
+			expect(
+				rendered.container
+					.querySelector(`collaborator-presence`)
+					?.getAttribute(`data-selection-end`),
+			).toBe(`7`)
+		})
 	})
 
 	test(`moves carets and reversed selections across remote prefixes`, () => {
@@ -361,7 +570,7 @@ describe(`Lexical Markdown editor`, () => {
 					const first = $createParagraphNode().append($createTextNode(`alpha`))
 					const second = $createParagraphNode()
 					root.clear().append(first, second)
-					second.selectStart()
+					second.select(0, 0)
 					const entered = $getSelection()
 					expect($isRangeSelection(entered)).toBe(true)
 					if (!$isRangeSelection(entered)) return
@@ -390,6 +599,107 @@ describe(`Lexical Markdown editor`, () => {
 					if ($isRangeSelection(restored)) {
 						expect($getRootRelativeSelectionOffsets(restored)).toEqual([7, 7])
 					}
+				},
+				{ onUpdate: resolve },
+			)
+		})
+	})
+
+	test(`maps element, break, empty-root, and detached selection points`, async () => {
+		const editor = createEditor({
+			onError: (error) => {
+				throw error
+			},
+		})
+		await new Promise<void>((resolve) => {
+			editor.update(
+				() => {
+					const root = $getRoot()
+					expect($pointAtRootOffset(root, 0)).toEqual({ node: root, offset: 0 })
+
+					const paragraph = $createParagraphNode().append(
+						$createTextNode(`alpha`),
+						$createLineBreakNode(),
+						$createTextNode(`beta`),
+					)
+					root.append(paragraph)
+					expect($pointAtRootOffset(root, 5)).toEqual({
+						node: paragraph,
+						offset: 1,
+					})
+					paragraph.select(0, 0)
+					const ordinaryBoundary = $getSelection()
+					expect($isRangeSelection(ordinaryBoundary)).toBe(true)
+					if ($isRangeSelection(ordinaryBoundary)) {
+						expect(
+							$insertTextAtBlankLineBoundary(ordinaryBoundary, `ignored`),
+						).toBe(false)
+					}
+					paragraph.select(0, 1)
+					const noncollapsed = $getSelection()
+					expect($isRangeSelection(noncollapsed)).toBe(true)
+					if ($isRangeSelection(noncollapsed)) {
+						expect($insertTextAtBlankLineBoundary(noncollapsed, `ignored`)).toBe(
+							false,
+						)
+					}
+
+					const firstText = paragraph.getFirstChild()
+					expect($isTextNode(firstText)).toBe(true)
+					if (!$isTextNode(firstText)) return
+					firstText.select(2, 2)
+					const textSelection = $getSelection()
+					expect($isRangeSelection(textSelection)).toBe(true)
+					if ($isRangeSelection(textSelection)) {
+						expect(
+							$insertTextAtBlankLineBoundary(textSelection, `ignored`),
+						).toBe(false)
+					}
+
+					const trailing = $createParagraphNode().append(
+						$createTextNode(`tail`),
+						$createLineBreakNode(),
+					)
+					$setSelection(null)
+					root.clear().append(trailing)
+					trailing.select(2, 2)
+					const trailingSelection = $getSelection()
+					expect($isRangeSelection(trailingSelection)).toBe(true)
+					if ($isRangeSelection(trailingSelection)) {
+						expect(
+							$insertTextAtBlankLineBoundary(trailingSelection, `append`),
+						).toBe(true)
+					}
+					expect(root.getTextContent()).toBe(`tail\nappend`)
+
+					const first = $createParagraphNode().append($createTextNode(`first`))
+					const second = $createParagraphNode().append($createTextNode(`second`))
+					$setSelection(null)
+					root.clear().append(first, second)
+					expect($pointAtRootOffset(root, 6)).toEqual({ node: root, offset: 1 })
+					const elementSelection = $createRangeSelection()
+					elementSelection.anchor.set(second.getKey(), 0, `element`)
+					elementSelection.focus.set(second.getKey(), 0, `element`)
+					$setSelection(elementSelection)
+					expect($getRootRelativeSelectionOffsets(elementSelection)).toEqual([
+						7, 7,
+					])
+					const rootSelection = $createRangeSelection()
+					rootSelection.anchor.set(root.getKey(), 1, `element`)
+					rootSelection.focus.set(root.getKey(), 1, `element`)
+					$setSelection(rootSelection)
+					expect($getRootRelativeSelectionOffsets(rootSelection)).toEqual([7, 7])
+
+					const detached = $createParagraphNode()
+					detached.selectStart()
+					const detachedSelection = $getSelection()
+					expect($isRangeSelection(detachedSelection)).toBe(true)
+					if ($isRangeSelection(detachedSelection)) {
+						expect(() =>
+							$getRootRelativeSelectionOffsets(detachedSelection),
+						).toThrow(`outside the Markdown root`)
+					}
+					$setSelection(null)
 				},
 				{ onUpdate: resolve },
 			)

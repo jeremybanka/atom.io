@@ -217,11 +217,14 @@ export function App(): React.JSX.Element {
 function Todo({ todoKey }: { todoKey: number }): React.JSX.Element {
 	const todo = useLoadable(todoAtoms, todoKey, TODO_FALLBACK)
 	const isSuspended = todo.loading || !Number.isInteger(todoKey)
-	const toggleDone = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-		const isNowDone = e.target.checked ? 1 : 0
-		void toggleTodoDone(todoKey, isNowDone)
-	}, [])
-	const deleteThisTodo = useCallback(() => deleteTodo(todoKey), [])
+	const toggleDone = useCallback(
+		(e: React.ChangeEvent<HTMLInputElement>) => {
+			const isNowDone = e.target.checked ? 1 : 0
+			void toggleTodoDone(todoKey, isNowDone)
+		},
+		[todoKey],
+	)
+	const deleteThisTodo = useCallback(() => deleteTodo(todoKey), [todoKey])
 	return (
 		<div className={cn(`todo`, isSuspended && `loading`)}>
 			<input
@@ -249,9 +252,12 @@ const newTodoTextAtom = atom<string>({
 function NewTodo(): React.JSX.Element {
 	const text = useO(newTodoTextAtom)
 	const setText = useI(newTodoTextAtom)
-	const change = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-		setText(e.target.value)
-	}, [])
+	const change = useCallback(
+		(e: React.ChangeEvent<HTMLInputElement>) => {
+			setText(e.target.value)
+		},
+		[setText],
+	)
 	const submit = useCallback((e: React.SubmitEvent<HTMLFormElement>) => {
 		e.preventDefault()
 		void addTodo()
@@ -289,7 +295,7 @@ function LongLoadTimes(): React.JSX.Element {
 		})
 		const newState = await res.json()
 		setState(longLoadTimesAtom, newState)
-	}, [longLoadTimes])
+	}, [])
 	return (
 		<div className="long-load-times">
 			<label>

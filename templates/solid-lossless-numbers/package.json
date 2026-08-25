@@ -14,6 +14,12 @@
 	"scripts": {
 		"dev": "vite",
 		"build": "vite build",
+		"fmt": "dprint fmt .",
+		"fmt:check": "dprint check .",
+		"lint": "npm run lint:eslint && npm run lint:oxlint && npm run lint:types",
+		"lint:eslint": "eslint --max-warnings 0 .",
+		"lint:oxlint": "oxlint --deny-warnings .",
+		"lint:types": "tsc -b",
 		"preview": "vite preview"
 	},
 	"dependencies": {
@@ -22,8 +28,16 @@
 		"solid-js": "1.9.15"
 	},
 	"devDependencies": {
+		"@dprint/json": "0.23.0",
+		"@dprint/markdown": "0.22.1",
+		"@dprint/oxc": "0.36.0",
 		"@types/node": "26.4.0",
+		"dprint": "0.56.1",
+		"dprint-plugin-malva": "0.16.0",
 		"eslint": "10.9.1",
+		"lasertag": "0.7.0",
+		"oxlint": "1.80.0",
+		"oxlint-tsgolint": "7.0.2001",
 		"typescript": "7.0.2",
 		"vite": "8.2.2",
 		"vite-plugin-solid": "2.11.14"

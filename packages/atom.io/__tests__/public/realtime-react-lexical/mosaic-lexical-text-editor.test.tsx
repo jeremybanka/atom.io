@@ -18,7 +18,9 @@ import {
 	$isRangeSelection,
 	$isTextNode,
 	$setSelection,
+	CONTROLLED_TEXT_INSERTION_COMMAND,
 	createEditor,
+	type LexicalEditor,
 } from "lexical"
 
 describe(`Lexical Markdown editor`, () => {
@@ -189,6 +191,50 @@ describe(`Lexical Markdown editor`, () => {
 			}),
 		)
 		expect(onDirty).toHaveBeenCalledTimes(dirtyCalls + 1)
+	})
+
+	test(`handles controlled insertion at a blank-line boundary`, async () => {
+		const rendered = render(
+			<MosaicLexicalTextEditor
+				onError={(error) => {
+					throw error
+				}}
+				onRedo={() => undefined}
+				onSelectionChange={() => undefined}
+				onUndo={() => undefined}
+				onValueChange={() => undefined}
+				selection={[6, 6]}
+				selections={[]}
+				value={`alpha\n\n1. item`}
+			/>,
+		)
+		const root = await rendered.findByRole(`textbox`)
+		const editor = (
+			root as HTMLElement & { readonly __lexicalEditor?: LexicalEditor }
+		).__lexicalEditor
+		expect(editor).toBeDefined()
+		await waitFor(() => {
+			expect(root.querySelectorAll(`br`)).toHaveLength(2)
+		})
+
+		act(() => {
+			expect(
+				editor?.dispatchCommand(CONTROLLED_TEXT_INSERTION_COMMAND, ``),
+			).toBe(true)
+			expect(
+				editor?.dispatchCommand(
+					CONTROLLED_TEXT_INSERTION_COMMAND,
+					new InputEvent(`beforeinput`, {
+						data: `marker`,
+						inputType: `insertText`,
+					}),
+				),
+			).toBe(true)
+		})
+		await waitFor(() => {
+			expect(root.textContent).toBe(`alphamarker1. item`)
+			expect(root.querySelectorAll(`br`)).toHaveLength(2)
+		})
 	})
 
 	test(`projects an empty authoritative value without replacing the editor root`, async () => {

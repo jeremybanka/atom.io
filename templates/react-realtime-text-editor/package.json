@@ -43,7 +43,7 @@
 		"@typescript-eslint/parser": "8.68.0",
 		"@vitejs/plugin-react": "6.1.0",
 		"concurrently": "10.0.5",
-		"eslint": "10.9.0",
+		"eslint": "10.9.1",
 		"happy-dom": "20.11.6",
 		"lasertag": "0.7.0",
 		"typescript": "7.0.2",

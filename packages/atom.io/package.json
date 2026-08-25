@@ -139,7 +139,6 @@
 	"files": [
 		"dist",
 		"src",
-		"oxlint.json",
 		"css.d.ts",
 		"AGENTS.md",
 		"docs/agent"

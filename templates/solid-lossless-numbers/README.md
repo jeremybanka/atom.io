@@ -23,6 +23,10 @@ npm run build
 npm run preview
 ```
 
+## Quality Checks
+
+Run `npm run lint` before committing. It enforces ESLint, type-aware Oxlint, and TypeScript with zero warnings. Run `npm run fmt:check` in CI and `npm run fmt` to apply the pinned dprint configuration locally.
+
 ## Where To Look
 
 - `src/App.tsx`: the atom.io state model, Solid components, and rational arithmetic UI.

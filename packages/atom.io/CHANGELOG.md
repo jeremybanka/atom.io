@@ -1,5 +1,11 @@
 # atom.io
 
+## 0.52.2
+
+### Patch Changes
+
+- 56837a4: Format the bundled documentation with the updated Markdown formatter.
+
 ## 0.52.1
 
 ### Patch Changes

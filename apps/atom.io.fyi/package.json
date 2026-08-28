@@ -44,6 +44,6 @@
 		"eslint": "10.9.1",
 		"lasertag": "0.7.0",
 		"typescript": "7.0.2",
-		"wrangler": "4.126.0"
+		"wrangler": "4.127.0"
 	}
 }

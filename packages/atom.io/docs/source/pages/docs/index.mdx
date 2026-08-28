@@ -15,135 +15,137 @@ history.
 ## package contents
 
 <table-wrapper>
-  <table>
-    <tbody>
-      {/* <tr>
-        <th>Exports</th>
-        <th>Description</th>
-      </tr> */}
-      <tr>
-        <td>
-          <code>atom</code>
-        </td>
-        <td>Declare a reactive variable.</td>
-      </tr>
-      <tr>
-        <td>
-          <code>mutableAtom</code>
-        </td>
-        <td>
-          Declare a reactive variable backed by a mutable, trackable data
-          structure.
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <code>selector</code>
-        </td>
-        <td>
-          Declare a reactive variable derived from other reactive variables.
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <code>atomFamily</code>
-        </td>
-        <td>
-          Compose a function that can create reactive variables of a single type
-          dynamically.
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <code>selectorFamily</code>
-        </td>
-        <td>
-          Compose a function that can create reactive variables derived from other
-          reactive variables dynamically.
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <code>transaction</code>
-        </td>
-        <td>
-          Declare a function that can batch multiple atom changes into a single
-          update.
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <code>timeline</code>
-        </td>
-        <td>Track the history of a group of reactive variables.</td>
-      </tr>
-      <tr>
-        <td>
-          <code>timelineFamily</code>
-        </td>
-        <td>
-          Partition atom families into independently addressable histories.
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <code>join</code>
-        </td>
-        <td>Manage bidirectional relations between two sets of keys.</td>
-      </tr>
-      <tr>
-        <td>
-          <code>subscribe</code>
-        </td>
-        <td>
-          Subscribe to a reactive variable, calling a callback whenever it is
-          updated.
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <code>getState</code>
-        </td>
-        <td>
-          Get the value of a reactive variable. If the reactive variable is a
-          selector, the value is derived from other reactive variables.
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <code>setState</code>
-        </td>
-        <td>
-          Set the value of an atom or a writable selector. If the target is a
-          writable selector, atom.io calls the selector's <code>set</code>
-          callback so it can update the dependencies that determine the
-          selector's next value.
-        </td>
-      </tr>
-      <tr>
-        <td>
-          <code>resetState</code>
-        </td>
-        <td>Reset a writable state to its default value.</td>
-      </tr>
-      <tr>
-        <td>
-          <code>disposeState</code>
-        </td>
-        <td>Dispose of an allocated family member and run its cleanup.</td>
-      </tr>
-      <tr>
-        <td>
-          <code>Silo</code>
-        </td>
-        <td>
-          An isolated store with all of the above functions bound to it. Use one
-          for each independently instantiated application graph, request,
-          preview, test, or sandbox.
-        </td>
-      </tr>
-    </tbody>
-  </table>
+	<table>
+		<tbody>
+			{/*
+			<tr>
+				<th>Exports</th>
+				<th>Description</th>
+			</tr>
+			*/}
+			<tr>
+				<td>
+					<code>atom</code>
+				</td>
+				<td>Declare a reactive variable.</td>
+			</tr>
+			<tr>
+				<td>
+					<code>mutableAtom</code>
+				</td>
+				<td>
+					Declare a reactive variable backed by a mutable, trackable data
+					structure.
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<code>selector</code>
+				</td>
+				<td>
+					Declare a reactive variable derived from other reactive variables.
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<code>atomFamily</code>
+				</td>
+				<td>
+					Compose a function that can create reactive variables of a single type
+					dynamically.
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<code>selectorFamily</code>
+				</td>
+				<td>
+					Compose a function that can create reactive variables derived from other
+					reactive variables dynamically.
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<code>transaction</code>
+				</td>
+				<td>
+					Declare a function that can batch multiple atom changes into a single
+					update.
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<code>timeline</code>
+				</td>
+				<td>Track the history of a group of reactive variables.</td>
+			</tr>
+			<tr>
+				<td>
+					<code>timelineFamily</code>
+				</td>
+				<td>
+					Partition atom families into independently addressable histories.
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<code>join</code>
+				</td>
+				<td>Manage bidirectional relations between two sets of keys.</td>
+			</tr>
+			<tr>
+				<td>
+					<code>subscribe</code>
+				</td>
+				<td>
+					Subscribe to a reactive variable, calling a callback whenever it is
+					updated.
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<code>getState</code>
+				</td>
+				<td>
+					Get the value of a reactive variable. If the reactive variable is a
+					selector, the value is derived from other reactive variables.
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<code>setState</code>
+				</td>
+				<td>
+					Set the value of an atom or a writable selector. If the target is a
+					writable selector, atom.io calls the selector's <code>set</code>
+					callback so it can update the dependencies that determine the
+					selector's next value.
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<code>resetState</code>
+				</td>
+				<td>Reset a writable state to its default value.</td>
+			</tr>
+			<tr>
+				<td>
+					<code>disposeState</code>
+				</td>
+				<td>Dispose of an allocated family member and run its cleanup.</td>
+			</tr>
+			<tr>
+				<td>
+					<code>Silo</code>
+				</td>
+				<td>
+					An isolated store with all of the above functions bound to it. Use one
+					for each independently instantiated application graph, request,
+					preview, test, or sandbox.
+				</td>
+			</tr>
+		</tbody>
+	</table>
 </table-wrapper>
 
 ## atom
@@ -262,69 +264,69 @@ atoms changed by the transaction without seeing a partially committed snapshot,
 and selectors affected by several writes recompute once from the settled state.
 
 <table-wrapper>
-  <table>
-    <tbody>
-      <tr>
-        <td>
-          <code>get</code>
-        </td>
-        <td>Read the value of an atom or selector.</td>
-      </tr>
-      <tr>
-        <td>
-          <code>set</code>
-        </td>
-        <td>Write the value of an atom or writable selector.</td>
-      </tr>
-      <tr>
-        <td>
-          <code>reset</code>
-        </td>
-        <td>Reset a writable state while keeping it in the store.</td>
-      </tr>
-      <tr>
-        <td>
-          <code>find</code>
-        </td>
-        <td>Get a token for a family member without reading its value.</td>
-      </tr>
-      <tr>
-        <td>
-          <code>json</code>
-        </td>
-        <td>Get the writable JSON token for a mutable atom.</td>
-      </tr>
-      <tr>
-        <td>
-          <code>dispose</code>
-        </td>
-        <td>Dispose of an allocated family member.</td>
-      </tr>
-      <tr>
-        <td>
-          <code>run</code>
-        </td>
-        <td>Run another transaction inside this transaction.</td>
-      </tr>
-      <tr>
-        <td>
-          <code>env</code>
-        </td>
-        <td>Read environment data for the current store.</td>
-      </tr>
-      <tr>
-        <td>
-          <code>relations</code>
-        </td>
-        <td>
-          Work with <a href="#join"><code>join</code></a> relations inside the
-          transaction. Use <code>find</code> for relation selectors,
-          <code>edit</code> to mutate relations, and <code>internal</code> only
-          when advanced integrations need the underlying relation atom families.
-        </td>
-      </tr>
-    </tbody>
-  </table>
+	<table>
+		<tbody>
+			<tr>
+				<td>
+					<code>get</code>
+				</td>
+				<td>Read the value of an atom or selector.</td>
+			</tr>
+			<tr>
+				<td>
+					<code>set</code>
+				</td>
+				<td>Write the value of an atom or writable selector.</td>
+			</tr>
+			<tr>
+				<td>
+					<code>reset</code>
+				</td>
+				<td>Reset a writable state while keeping it in the store.</td>
+			</tr>
+			<tr>
+				<td>
+					<code>find</code>
+				</td>
+				<td>Get a token for a family member without reading its value.</td>
+			</tr>
+			<tr>
+				<td>
+					<code>json</code>
+				</td>
+				<td>Get the writable JSON token for a mutable atom.</td>
+			</tr>
+			<tr>
+				<td>
+					<code>dispose</code>
+				</td>
+				<td>Dispose of an allocated family member.</td>
+			</tr>
+			<tr>
+				<td>
+					<code>run</code>
+				</td>
+				<td>Run another transaction inside this transaction.</td>
+			</tr>
+			<tr>
+				<td>
+					<code>env</code>
+				</td>
+				<td>Read environment data for the current store.</td>
+			</tr>
+			<tr>
+				<td>
+					<code>relations</code>
+				</td>
+				<td>
+					Work with <a href="#join"><code>join</code></a> relations inside the
+					transaction. Use <code>find</code> for relation selectors,
+					<code>edit</code> to mutate relations, and <code>internal</code> only
+					when advanced integrations need the underlying relation atom families.
+				</td>
+			</tr>
+		</tbody>
+	</table>
 </table-wrapper>
 
 <Exhibit src="core/transaction/use-a-family-in-a-transaction.ts" />

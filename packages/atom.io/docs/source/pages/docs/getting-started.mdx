@@ -41,7 +41,7 @@ rest of the app.
 <Exhibit src="guides/getting-started/wip-product-search-atom.tsx" soft />
 
 <h3 id="replace-use-state-with-use-i-and-use-o">
-  {`replace useState with useI and useO`}
+	{`replace useState with useI and useO`}
 </h3>
 
 Then replace `useState` with `useO` and `useI`. `useO` reads the atom's current value.
@@ -77,7 +77,7 @@ another component reads it, and a provider gets added so they can stay in sync.
 <Exhibit src="guides/getting-started/before-ticket-filter-context-provider.tsx" soft />
 
 <h3 id="replace-the-context-wrapper-with-an-atom">
-  {`replace the context wrapper with an atom`}
+	{`replace the context wrapper with an atom`}
 </h3>
 
 Move the shared value into an atom, then read or update it directly from each component.
@@ -94,7 +94,7 @@ state: shared values, selectors, and actions living together in one hook-shaped 
 <Exhibit src="guides/getting-started/before-shopping-cart-zustand-store.tsx" soft />
 
 <h3 id="split-the-store-into-atoms-selectors-and-transactions">
-  {`split the store into atoms, selectors, and transactions`}
+	{`split the store into atoms, selectors, and transactions`}
 </h3>
 
 Move collection keys into one atom, each item into an atom family, derived views into
@@ -112,7 +112,7 @@ between those writes, the callback has to restore both states by hand.
 <Exhibit src="guides/getting-started/before-task-board-use-callback-rollback.tsx" soft />
 
 <h3 id="replace-the-callback-with-a-transaction">
-  {`replace the callback with a transaction`}
+	{`replace the callback with a transaction`}
 </h3>
 
 Move the coordinated writes into a transaction, and keep the error message in atom state
@@ -122,7 +122,7 @@ transaction store and never reach the store React observes.
 <Exhibit src="guides/getting-started/wip-task-board-transaction.tsx" soft />
 
 <h3 id="move-the-handler-into-a-nested-transaction">
-  {`move the handler into a nested transaction`}
+	{`move the handler into a nested transaction`}
 </h3>
 
 Finally, make the handler itself a transaction. It clears the error, `run`s the
@@ -139,7 +139,7 @@ component branches for loading, error, and refresh states.
 <Exhibit src="guides/getting-started/before-dashboard-summary-react-query.tsx" soft />
 
 <h3 id="replace-use-query-with-a-loadable-atom">
-  {`replace useQuery with a Loadable atom`}
+	{`replace useQuery with a Loadable atom`}
 </h3>
 
 Move the query function into a `Loadable` atom, then read it with `useLoadable`. The
@@ -149,7 +149,7 @@ an `atom.io` token that other components can share.
 <Exhibit src="guides/getting-started/after-dashboard-summary-loadable-atom.tsx" />
 
 <h3 id="do-not-refresh-loadables-on-mount">
-  {`do not refresh Loadables on mount`}
+	{`do not refresh Loadables on mount`}
 </h3>
 
 The `Loadable` atom is already the loading trigger. Reading it with `useLoadable`
@@ -176,7 +176,7 @@ For richer query data and fetched data screens, especially with type-safe RPC
 [remote data guide](/docs/remote-data) for loading and suspense-like patterns.
 
 <h2 id="replace-react-localStorage-effect">
-  {`replace React localStorage effect`}
+	{`replace React localStorage effect`}
 </h2>
 
 Another common React pattern is synchronizing local UI state with a browser API. For
@@ -186,7 +186,7 @@ then write back whenever the user changes it.
 <Exhibit src="guides/getting-started/before-sidebar-local-storage-use-effect.tsx" soft />
 
 <h3 id="replace-use-effect-with-storage-sync">
-  {`replace useEffect with storageSync`}
+	{`replace useEffect with storageSync`}
 </h3>
 
 Now the component only reads and updates atom state. The local-storage behavior lives with
@@ -195,7 +195,7 @@ the state definition instead of in the render tree.
 <Exhibit src="guides/getting-started/after-sidebar-local-storage-sync-atom.tsx" />
 
 <h2 id="replace-react-setInterval-effect">
-  {`replace React setInterval effect`}
+	{`replace React setInterval effect`}
 </h2>
 
 Timers are another common effect hiding inside React components. A last-saved indicator,
@@ -204,7 +204,7 @@ for example, might keep a ticking `now` value just so the label can update every
 <Exhibit src="guides/getting-started/before-last-saved-interval-use-effect.tsx" soft />
 
 <h3 id="replace-use-effect-with-timer-atom">
-  {`replace useEffect with a timer atom`}
+	{`replace useEffect with a timer atom`}
 </h3>
 
 Move the interval into a custom atom effect, then derive the display label with a selector.

@@ -1,9 +1,14 @@
 <div align="center">
-  <img alt="atom.io logo" src="https://raw.githubusercontent.com/jeremybanka/atom.io/main/apps/atom.io.fyi/public/favicon.png" width="144" height="144">
+	<img
+		alt="atom.io logo"
+		src="https://raw.githubusercontent.com/jeremybanka/atom.io/main/apps/atom.io.fyi/public/favicon.png"
+		width="144"
+		height="144"
+	>
 </div>
 
 <h1 align="center">
-  <code>atom.io</code>
+	<code>atom.io</code>
 </h1>
 
 `atom.io` is a TypeScript state engine for modern ECMAScript apps. It centers on

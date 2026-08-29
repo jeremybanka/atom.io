@@ -44,7 +44,7 @@
 		"@vitejs/plugin-react": "6.1.1",
 		"concurrently": "10.0.5",
 		"eslint": "10.9.1",
-		"happy-dom": "20.11.12",
+		"happy-dom": "20.11.13",
 		"lasertag": "0.7.0",
 		"typescript": "7.0.2",
 		"vite": "8.2.2",

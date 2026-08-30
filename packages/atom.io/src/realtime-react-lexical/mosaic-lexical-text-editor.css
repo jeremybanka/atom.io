@@ -1,0 +1,104 @@
+mosaic-lexical-text-editor {
+	display: contents;
+
+	> lexical-editor {
+		position: relative;
+		display: block;
+		min-height: var(--mosaic-lexical-min-height, 20rem);
+
+		> [contenteditable="true"] {
+			position: relative;
+			z-index: 1;
+			min-height: var(--mosaic-lexical-min-height, 20rem);
+			padding: var(--mosaic-lexical-content-padding, 1rem);
+			outline: 0;
+			color: var(--mosaic-lexical-ink, CanvasText);
+			caret-color: var(--mosaic-lexical-accent, Highlight);
+			font-family: var(
+				--mosaic-lexical-font-family,
+				ui-monospace,
+				SFMono-Regular,
+				Consolas,
+				monospace
+			);
+			font-size: var(--mosaic-lexical-font-size, 0.875rem);
+			line-height: var(--mosaic-lexical-line-height, 1.5rem);
+			overflow-wrap: anywhere;
+			tab-size: 2;
+			white-space: pre-wrap;
+
+			> p {
+				margin: 0;
+			}
+		}
+
+		> editor-placeholder {
+			position: absolute;
+			top: var(--mosaic-lexical-placeholder-top, 1rem);
+			left: var(--mosaic-lexical-placeholder-left, 1rem);
+			display: block;
+			color: var(--mosaic-lexical-placeholder, GrayText);
+			font-family: var(
+				--mosaic-lexical-font-family,
+				ui-monospace,
+				SFMono-Regular,
+				Consolas,
+				monospace
+			);
+			font-size: var(--mosaic-lexical-font-size, 0.875rem);
+			pointer-events: none;
+		}
+
+		> collaborator-overlays {
+			position: absolute;
+			z-index: 2;
+			inset: 0;
+			display: block;
+			pointer-events: none;
+
+			collaborator-presence {
+				display: contents;
+			}
+
+			collaborator-selection,
+			collaborator-caret {
+				position: absolute;
+				display: block;
+			}
+
+			collaborator-selection {
+				border-radius: 0.18rem;
+				background: color-mix(
+					in srgb,
+					var(--collaborator-color) 25%,
+					transparent
+				);
+				box-shadow: inset 0 -1px var(--collaborator-color);
+			}
+
+			collaborator-caret {
+				width: 2px;
+				background: var(--collaborator-color);
+				box-shadow: 0 0 0 1px var(--mosaic-lexical-overlay-outline, Canvas);
+
+				> collaborator-label {
+					position: absolute;
+					top: -1.25rem;
+					left: -1px;
+					display: block;
+					max-width: 10rem;
+					padding: 0.16rem 0.38rem;
+					border-radius: 0.28rem 0.28rem 0.28rem 0;
+					color: white;
+					background: var(--collaborator-color);
+					font-family: system-ui, sans-serif;
+					font-size: 0.58rem;
+					font-weight: 750;
+					line-height: 1.05rem;
+					text-overflow: ellipsis;
+					white-space: nowrap;
+				}
+			}
+		}
+	}
+}

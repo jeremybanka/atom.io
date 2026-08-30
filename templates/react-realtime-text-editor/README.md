@@ -65,8 +65,9 @@ the Unicode adversarial corpus.
 - `atom.io/realtime-react` owns optimistic draft settlement and maps local and
   remote selections across complete, revision-tagged projection cuts.
 - `atom.io/realtime-react-lexical` owns projection replacement, native input
-  boundaries, DOM selection restoration, and collaborator geometry. The local
-  `src/LexicalMarkdownEditor.tsx` file only supplies template styling.
+  boundaries, DOM selection restoration, collaborator geometry, and its
+  internal stylesheet. The local `src/LexicalMarkdownEditor.tsx` imports that
+  supported stylesheet and supplies only template theme and layout variables.
 - `src/incremental-markdown.ts` contains the renderer-neutral, cancelable parser.
 - `src/workspace-state.ts` expresses status, presence, viewport, parser output,
   diagnostics, and derived peers as Atom state. `src/MarkdownWorkspace.tsx`

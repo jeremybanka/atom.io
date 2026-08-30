@@ -1,8 +1,6 @@
 ---
-"@atom.io/bundle-size": minor
+"tonnage": patch
 "atom.io": patch
 ---
 
-Add a reusable CI-first bundle-size reporter and replace Atom.io's Bundlephobia
-badge with checked-in runtime-JavaScript measurements for public modules and
-common application recipes.
+Add the reusable CI-first tonnage bundle size reporter and replace Atom.io's Bundlephobia badge with checked-in runtime-JavaScript measurements for public modules and representative runtimes.

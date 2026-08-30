@@ -3,10 +3,10 @@ import path from "node:path"
 
 import { measureEntry, measureImports } from "./measure.ts"
 import type {
-	BundleSizeConfig,
-	BundleSizeExports,
-	BundleSizeReport,
-	BundleSizeRow,
+	TonnageConfig,
+	TonnageExports,
+	TonnageReport,
+	TonnageRow,
 } from "./types.ts"
 
 type PackageJson = {
@@ -15,10 +15,10 @@ type PackageJson = {
 	peerDependencies?: Record<string, string>
 }
 
-export async function createBundleSizeReport(
-	config: BundleSizeConfig,
+export async function createTonnageReport(
+	config: TonnageConfig,
 	configDirectory: string,
-): Promise<BundleSizeReport> {
+): Promise<TonnageReport> {
 	const packageJsonPath = path.resolve(
 		configDirectory,
 		config.packageJson ?? `package.json`,
@@ -40,7 +40,7 @@ export async function createBundleSizeReport(
 	)
 
 	const exportRows = await Promise.all(
-		exportImports.map(async (specifier): Promise<BundleSizeRow> => ({
+		exportImports.map(async (specifier): Promise<TonnageRow> => ({
 			...(await measureImports([specifier], {
 				external,
 				platform: config.platform,
@@ -71,9 +71,9 @@ export async function createBundleSizeReport(
 	}
 }
 
-export function renderBundleSizeMarkdown(
-	report: BundleSizeReport,
-	config: BundleSizeConfig = {},
+export function renderTonnageMarkdown(
+	report: TonnageReport,
+	config: TonnageConfig = {},
 ): string {
 	const lines = [
 		`## ${config.heading ?? `Bundle size`}`,
@@ -122,15 +122,14 @@ export function renderBundleSizeMarkdown(
 function selectExportImports(
 	packageName: string,
 	exportsValue: unknown,
-	selection: BundleSizeConfig[`exports`],
+	selection: TonnageConfig[`exports`],
 ): string[] {
 	if (selection === false) {
 		return []
 	}
 
 	const exportKeys = getExportKeys(exportsValue)
-	const options: BundleSizeExports =
-		typeof selection === `object` ? selection : {}
+	const options: TonnageExports = typeof selection === `object` ? selection : {}
 	const included = options.include
 		? [...options.include]
 		: exportKeys.filter((exportKey) => exportKey !== `./package.json`)

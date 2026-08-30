@@ -29,7 +29,7 @@ export async function measureImports(
 	options: MeasureImportsOptions,
 ): Promise<BundleMeasurement> {
 	if (imports.length === 0) {
-		throw new Error(`A bundle-size entry must import at least one module.`)
+		throw new Error(`A tonnage entry must import at least one module.`)
 	}
 
 	const entry = imports
@@ -44,7 +44,7 @@ export async function measureImports(
 				contents: entry,
 				loader: `js`,
 				resolveDir: options.resolveDirectory,
-				sourcefile: `bundle-size-entry.js`,
+				sourcefile: `tonnage-entry.js`,
 			},
 		},
 		options,
@@ -80,7 +80,7 @@ async function measureBuild(
 		.filter((output) => output.path.endsWith(`.js`))
 		.sort((left, right) => left.path.localeCompare(right.path))
 	if (outputFiles.length === 0) {
-		throw new Error(`The bundle-size entry did not emit any runtime JavaScript.`)
+		throw new Error(`The tonnage entry did not emit any runtime JavaScript.`)
 	}
 	const rawBytes = outputFiles.reduce(
 		(total, output) => total + output.contents.byteLength,

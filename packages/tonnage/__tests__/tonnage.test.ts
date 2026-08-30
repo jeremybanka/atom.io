@@ -5,15 +5,15 @@ import path from "node:path"
 import { describe, expect, test } from "vitest"
 
 import {
-	bundleSizeMarkers,
-	createBundleSizeReport,
+	createTonnageReport,
 	measureImports,
-	renderBundleSizeMarkdown,
-	runBundleSize,
+	renderTonnageMarkdown,
+	runTonnage,
+	tonnageMarkers,
 	updateGeneratedSection,
 } from "../src/index.ts"
 
-describe(`bundle-size reports`, () => {
+describe(`tonnage reports`, () => {
 	test(`measures the actual bundled output`, async () => {
 		const fixture = await makeFixture()
 		const measurement = await measureImports([fixture.entryPath], {
@@ -60,7 +60,7 @@ describe(`bundle-size reports`, () => {
 				},
 			],
 		}
-		const report = await createBundleSizeReport(config, fixture.directory)
+		const report = await createTonnageReport(config, fixture.directory)
 
 		expect(report.exports.map((row) => row.name)).toEqual([
 			`fixture-package`,
@@ -74,12 +74,12 @@ describe(`bundle-size reports`, () => {
 			(report.exports[0]?.rawBytes ?? 0) + (report.exports[1]?.rawBytes ?? 0),
 		)
 		expect(report.recipes[0]?.entry).toBe(`recipe.js`)
-		expect(renderBundleSizeMarkdown(report)).toContain(`shared modules`)
+		expect(renderTonnageMarkdown(report)).toContain(`shared modules`)
 	})
 
 	test(`writes generated README sections and detects drift`, async () => {
 		const fixture = await makeFixture()
-		const { end, start } = bundleSizeMarkers(`fixture`)
+		const { end, start } = tonnageMarkers(`fixture`)
 		await fs.writeFile(
 			fixture.readmePath,
 			[`# Fixture`, ``, start, `stale`, end, ``].join(`\n`),
@@ -90,19 +90,19 @@ describe(`bundle-size reports`, () => {
 			readme: `README.md`,
 		}
 
-		const stale = await runBundleSize(config, {
+		const stale = await runTonnage(config, {
 			configDirectory: fixture.directory,
 			mode: `check`,
 		})
 		expect(stale.changed).toBe(true)
 
-		const written = await runBundleSize(config, {
+		const written = await runTonnage(config, {
 			configDirectory: fixture.directory,
 			mode: `write`,
 		})
 		expect(written.changed).toBe(true)
 
-		const current = await runBundleSize(config, {
+		const current = await runTonnage(config, {
 			configDirectory: fixture.directory,
 			mode: `check`,
 		})
@@ -121,12 +121,12 @@ async function makeFixture(): Promise<{
 	entryPath: string
 	readmePath: string
 }> {
-	const directory = await fs.mkdtemp(path.join(os.tmpdir(), `bundle-size-test-`))
+	const directory = await fs.mkdtemp(path.join(os.tmpdir(), `tonnage-test-`))
 	const entryPath = path.join(directory, `index.js`)
 	const featurePath = path.join(directory, `feature.js`)
 	const recipePath = path.join(directory, `recipe.js`)
 	const readmePath = path.join(directory, `README.md`)
-	const compressibleText = `atom.io bundle-size `.repeat(200)
+	const compressibleText = `atom.io tonnage `.repeat(200)
 
 	await Promise.all([
 		fs.writeFile(

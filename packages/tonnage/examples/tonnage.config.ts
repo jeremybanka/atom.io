@@ -1,7 +1,7 @@
-import { type BundleSizeConfig, defineConfig } from "@atom.io/bundle-size"
+import { defineConfig, type TonnageConfig } from "tonnage"
 
 // @exhibit-region start config
-const config: BundleSizeConfig = defineConfig({
+const config: TonnageConfig = defineConfig({
 	exports: {
 		exclude: [`./package.json`],
 	},

@@ -2,6 +2,7 @@ import {
 	MosaicLexicalTextEditor,
 	type MosaicLexicalTextEditorProps,
 } from "atom.io/realtime-react-lexical"
+import "atom.io/realtime-react-lexical/css"
 import type { ReactElement } from "react"
 
 import css from "./LexicalMarkdownEditor.module.css"

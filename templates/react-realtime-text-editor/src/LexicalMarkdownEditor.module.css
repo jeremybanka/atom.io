@@ -1,95 +1,15 @@
 lexical-markdown-editor.class {
 	display: block;
 	min-height: 32rem;
-
-	/* @lasertag-disable [opaque-component-root-may-collide] The supported adapter exposes its owned Lexical child through a display-contents boundary. */
-	> mosaic-lexical-text-editor {
-		display: contents;
-
-		> lexical-editor {
-			position: relative;
-			display: block;
-			min-height: 32rem;
-
-			> [contenteditable="true"] {
-				position: relative;
-				z-index: 1;
-				min-height: 32rem;
-				padding: 1.45rem 1.45rem 3rem 3.7rem;
-				outline: 0;
-				color: var(--editor-ink);
-				caret-color: var(--accent);
-				font-family: "DM Mono", monospace;
-				font-size: 0.83rem;
-				line-height: 1.72rem;
-				overflow-wrap: anywhere;
-				tab-size: 2;
-				white-space: pre-wrap;
-
-				> p {
-					margin: 0;
-				}
-			}
-
-			> editor-placeholder {
-				position: absolute;
-				top: 1.45rem;
-				left: 3.7rem;
-				display: block;
-				color: var(--editor-placeholder);
-				font-family: "DM Mono", monospace;
-				font-size: 0.83rem;
-				pointer-events: none;
-			}
-
-			> collaborator-overlays {
-				position: absolute;
-				z-index: 2;
-				inset: 0;
-				display: block;
-				pointer-events: none;
-
-				collaborator-selection,
-				collaborator-caret {
-					position: absolute;
-					display: block;
-				}
-
-				collaborator-selection {
-					border-radius: 0.18rem;
-					background: color-mix(
-						in srgb,
-						var(--collaborator-color) 25%,
-						transparent
-					);
-					box-shadow: inset 0 -1px var(--collaborator-color);
-				}
-
-				collaborator-caret {
-					width: 2px;
-					background: var(--collaborator-color);
-					box-shadow: 0 0 0 1px var(--overlay-outline);
-
-					> collaborator-label {
-						position: absolute;
-						top: -1.25rem;
-						left: -1px;
-						display: block;
-						max-width: 10rem;
-						padding: 0.16rem 0.38rem;
-						border-radius: 0.28rem 0.28rem 0.28rem 0;
-						color: white;
-						background: var(--collaborator-color);
-						font-family: system-ui, sans-serif;
-						font-size: 0.58rem;
-						font-weight: 750;
-						line-height: 1.05rem;
-						text-overflow: ellipsis;
-						white-space: nowrap;
-					}
-				}
-			}
-		}
-	}
-	/* @lasertag-enable [opaque-component-root-may-collide] */
+	--mosaic-lexical-min-height: 32rem;
+	--mosaic-lexical-content-padding: 1.45rem 1.45rem 3rem 3.7rem;
+	--mosaic-lexical-placeholder-top: 1.45rem;
+	--mosaic-lexical-placeholder-left: 3.7rem;
+	--mosaic-lexical-ink: var(--editor-ink);
+	--mosaic-lexical-accent: var(--accent);
+	--mosaic-lexical-placeholder: var(--editor-placeholder);
+	--mosaic-lexical-overlay-outline: var(--overlay-outline);
+	--mosaic-lexical-font-family: "DM Mono", monospace;
+	--mosaic-lexical-font-size: 0.83rem;
+	--mosaic-lexical-line-height: 1.72rem;
 }

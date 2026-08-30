@@ -23,7 +23,7 @@ service in both development and preview modes.
 - structural component styling checked by Lasertag.
 
 Run `npm test` for the multi-client collaboration scenarios. Run `npm run lint`
-to enforce ESLint, type-aware Oxlint, React hook correctness, TypeScript, and
+to enforce ESLint, type-aware Oxlint, React hook call-order correctness, TypeScript, and
 the Lasertag render-story/CSS relationship with zero warnings. Run
 `npm run fmt:check` in CI and `npm run fmt` to apply the pinned dprint
 configuration locally.

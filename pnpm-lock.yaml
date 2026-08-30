@@ -279,8 +279,8 @@ importers:
         specifier: 0.2.3
         version: 0.2.3
       tonnage:
-        specifier: workspace:*
-        version: link:../tonnage
+        specifier: 0.0.0
+        version: 0.0.0
       treetrunks:
         specifier: 0.1.9
         version: 0.1.9
@@ -356,28 +356,6 @@ importers:
         version: 7.0.2
 
   packages/exhibits: {}
-
-  packages/tonnage:
-    dependencies:
-      esbuild:
-        specifier: 0.28.1
-        version: 0.28.1
-    devDependencies:
-      '@types/node':
-        specifier: 26.4.0
-        version: 26.4.0
-      eslint:
-        specifier: 10.9.1
-        version: 10.9.1(jiti@2.7.0)(supports-color@10.2.2)
-      tsdown:
-        specifier: 0.22.14
-        version: 0.22.14(@tsdown/css@0.22.14)(oxc-resolver@11.21.2)(tsx@4.22.1)(typescript@7.0.2)
-      typescript:
-        specifier: 7.0.2
-        version: 7.0.2
-      vitest:
-        specifier: 4.1.11
-        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(esbuild@0.28.1)(happy-dom@20.11.15)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
 
   templates/preact-svg-editor:
     dependencies:
@@ -6841,6 +6819,11 @@ packages:
   to-regex-range@5.0.1:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
     engines: {node: '>=8.0'}
+
+  tonnage@0.0.0:
+    resolution: {integrity: sha512-1Rx+lQTJMgGdVUPo5viHnN5y7fDPYWttEFnGUDNR0pJzqNJz6KXRr41hkSwL495BnCK9xdq/2uPjAtWh0ilY2g==}
+    engines: {node: '>=22.18.0'}
+    hasBin: true
 
   totalist@3.0.1:
     resolution: {integrity: sha512-sf4i37nQ2LBx4m3wB74y+ubopq6W/dIzXg0FDGjsYnZHVa1Da8FH853wlL2gtUhg+xJXjfk3kUZS3BRoQeoQBQ==}
@@ -14114,6 +14097,10 @@ snapshots:
   to-regex-range@5.0.1:
     dependencies:
       is-number: 7.0.0
+
+  tonnage@0.0.0:
+    dependencies:
+      esbuild: 0.28.1
 
   totalist@3.0.1: {}
 

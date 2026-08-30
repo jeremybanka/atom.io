@@ -59,7 +59,6 @@ export function InboxButton() {
 | Path                                                                   | Purpose                                                                                                                       |
 | :--------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------- |
 | [packages/atom.io](./packages/atom.io)                                 | Core state engine, framework adapters, realtime packages, devtools, testing utilities, docs source, and package-level README. |
-| [packages/tonnage](./packages/tonnage)                                 | CI-first bundle measurement and deterministic README report generation.                                                       |
 | [packages/create-atom.io](./packages/create-atom.io)                   | CLI for creating new `atom.io` projects from this repo's templates.                                                           |
 | [apps/atom.io.fyi](./apps/atom.io.fyi)                                 | Astro documentation site for guides, concepts, API docs, and examples.                                                        |
 | [templates/preact-svg-editor](./templates/preact-svg-editor)           | Preact/Vite starter showing interactive SVG state.                                                                            |
@@ -97,9 +96,7 @@ are available under the [Mozilla Public License 2.0](./LICENSE). The
 [documentation site](./apps/atom.io.fyi/LICENSE) and each project template are
 available under the Apache License 2.0, as stated by the license file in each
 package. Generated projects therefore receive the Apache-licensed template
-code, not the MPL license of the scaffolding CLI. The
-[`tonnage` package](./packages/tonnage/LICENSE) is available under the MIT
-License.
+code, not the MPL license of the scaffolding CLI.
 
 ### What MPL 2.0 Means for Users
 

@@ -8,6 +8,7 @@ minimumReleaseAgeExclude:
   - lasertag
   - recoverage
   - takua
+  - tonnage
   - treetrunks
 autoInstallPeers: false
 verifyDepsBeforeRun: error

@@ -1,4 +1,4 @@
-app.class {
+rationality-app.class {
 	--line: rgba(23, 36, 51, 0.14);
 
 	& /* local globals */,
@@ -8,14 +8,14 @@ app.class {
 
 	flex-direction: column;
 
-	fraction,
+	rational-fraction,
 	fieldset {
 		flex-flow: column;
 		font-size: 24px;
 		border: none;
 		padding: 0;
-		> numerator,
-		> denominator,
+		> rational-numerator,
+		> rational-denominator,
 		> input {
 			margin: 0;
 			height: 36px;
@@ -26,7 +26,7 @@ app.class {
 				color: #0002;
 			}
 		}
-		> solidus {
+		> rational-solidus {
 			height: 2px;
 			background: #000;
 		}
@@ -51,7 +51,7 @@ app.class {
 			padding: 2px 12px;
 			> fraction-list {
 				flex-grow: 1;
-				> plus {
+				> rational-plus {
 					font-size: 30px;
 					color: #0002;
 					align-items: center;
@@ -60,13 +60,13 @@ app.class {
 					flex-flow: column;
 				}
 			}
-			> equals {
+			> rational-equals {
 				font-size: 48px;
 				align-items: center;
 				color: #0002;
 			}
-			> fraction {}
-			> quotient {
+			> rational-fraction {}
+			> rational-quotient {
 				align-items: center;
 				font-size: 48px;
 				position: relative;
@@ -80,7 +80,7 @@ app.class {
 					justify-content: flex-start;
 					justify-items: flex-start;
 					align-content: flex-start;
-					> bit {
+					> quotient-bit {
 						flex-shrink: 0;
 						flex-grow: 0;
 						height: 5px;

@@ -16,7 +16,7 @@ import {
 
 import {
 	lineAndColumnAt,
-	Markdown,
+	type Markdown,
 	markdownAtom,
 	markdownCharacterCountSelector,
 	markdownWordCountSelector,

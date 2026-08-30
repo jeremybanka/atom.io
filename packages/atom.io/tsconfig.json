@@ -23,6 +23,7 @@
 		"__scripts__",
 		"__stories__",
 		"__unstable__",
+		"bundle-size-recipes",
 		".storybook/*.ts",
 		"css.d.ts"
 	]

@@ -25,13 +25,37 @@ describe(`bundle-size reports`, () => {
 		expect(measurement.gzipBytes).toBeLessThan(measurement.rawBytes)
 	})
 
+	test(`counts emitted runtime JavaScript only`, async () => {
+		const fixture = await makeFixture()
+		const javascriptOnly = await measureImports([fixture.entryPath], {
+			resolveDirectory: fixture.directory,
+		})
+		const entry = await fs.readFile(fixture.entryPath, `utf8`)
+		await Promise.all([
+			fs.writeFile(fixture.entryPath, `import "./style.css";\n${entry}`),
+			fs.writeFile(
+				path.join(fixture.directory, `style.css`),
+				`.fixture { content: "${`runtime-js-only`.repeat(2_000)}"; }`,
+			),
+		])
+
+		const withCss = await measureImports([fixture.entryPath], {
+			resolveDirectory: fixture.directory,
+		})
+
+		expect(withCss.rawBytes).toBe(javascriptOnly.rawBytes)
+		expect(Math.abs(withCss.gzipBytes - javascriptOnly.gzipBytes)).toBeLessThan(
+			5,
+		)
+	})
+
 	test(`discovers package exports and deduplicates recipe graphs`, async () => {
 		const fixture = await makeFixture()
 		const config = {
 			packageJson: `package.json`,
 			recipes: [
 				{
-					imports: [`fixture-package`, `fixture-package/feature`],
+					entry: `recipe.js`,
 					name: `Everything`,
 				},
 			],
@@ -44,8 +68,12 @@ describe(`bundle-size reports`, () => {
 		])
 		expect(report.recipes).toHaveLength(1)
 		expect(report.recipes[0]?.rawBytes).toBeLessThan(
+			report.exports[0]?.rawBytes ?? 0,
+		)
+		expect(report.recipes[0]?.rawBytes).toBeLessThan(
 			(report.exports[0]?.rawBytes ?? 0) + (report.exports[1]?.rawBytes ?? 0),
 		)
+		expect(report.recipes[0]?.entry).toBe(`recipe.js`)
 		expect(renderBundleSizeMarkdown(report)).toContain(`shared modules`)
 	})
 
@@ -96,6 +124,7 @@ async function makeFixture(): Promise<{
 	const directory = await fs.mkdtemp(path.join(os.tmpdir(), `bundle-size-test-`))
 	const entryPath = path.join(directory, `index.js`)
 	const featurePath = path.join(directory, `feature.js`)
+	const recipePath = path.join(directory, `recipe.js`)
 	const readmePath = path.join(directory, `README.md`)
 	const compressibleText = `atom.io bundle-size `.repeat(200)
 
@@ -117,6 +146,10 @@ async function makeFixture(): Promise<{
 			`export { feature } from "./feature.js"; export const text = ${JSON.stringify(compressibleText)};`,
 		),
 		fs.writeFile(featurePath, `export const feature = "feature";`),
+		fs.writeFile(
+			recipePath,
+			`export { feature } from "fixture-package"; export { feature as directFeature } from "fixture-package/feature";`,
+		),
 		fs.writeFile(readmePath, `# Fixture\n`),
 	])
 

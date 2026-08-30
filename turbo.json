@@ -29,6 +29,7 @@
 			"inputs": [
 				"package.json",
 				"bundle-size.config.ts",
+				"bundle-size-recipes/**",
 				"README.md",
 				"dist/**"
 			]

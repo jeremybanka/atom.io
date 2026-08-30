@@ -28,7 +28,14 @@ export default function main(mode: string): void {
 
 	const submodules = discoverSubmodules()
 
-	newPackageJson.files = [`dist`, `src`, `css.d.ts`, `AGENTS.md`, `docs/agent`]
+	newPackageJson.files = [
+		`dist`,
+		`src`,
+		`oxlint.json`,
+		`css.d.ts`,
+		`AGENTS.md`,
+		`docs/agent`,
+	]
 
 	newPackageJson.exports = {
 		"./package.json": `./package.json`,

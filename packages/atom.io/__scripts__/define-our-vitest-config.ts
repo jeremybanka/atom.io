@@ -13,7 +13,7 @@ export type OurVitestConfigOptions = {
 	test?: Partial<TestUserConfig>
 }
 
-export const PATHS_COMPLETE_SOURCE = [`**/src`] as const
+export const PATHS_COMPLETE_SOURCE = [`**/src/**/*.{ts,tsx}`] as const
 
 export const PATHS_PUBLIC_TESTS = [
 	`__tests__/public/**/*.test.{ts,tsx}`,

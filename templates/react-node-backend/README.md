@@ -30,6 +30,10 @@ npm run build
 npm run preview
 ```
 
+## Quality Checks
+
+Run `npm run lint` before committing. It enforces ESLint, type-aware Oxlint, React hook call-order correctness, and TypeScript with zero warnings. Run `npm run fmt:check` in CI and `npm run fmt` to apply the pinned dprint configuration locally.
+
 ## Where To Look
 
 - `src/App.tsx`: the React UI, loadable atoms, atom families, optimistic writes, and derived stats.

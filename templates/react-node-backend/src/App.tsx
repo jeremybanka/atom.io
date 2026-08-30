@@ -9,7 +9,6 @@ import {
 	setState,
 } from "atom.io"
 import { useI, useLoadable, useO } from "atom.io/react"
-import { useCallback } from "react"
 import z from "zod"
 
 const SERVER_URL = `http://localhost:3000`
@@ -217,14 +216,13 @@ export function App(): React.JSX.Element {
 function Todo({ todoKey }: { todoKey: number }): React.JSX.Element {
 	const todo = useLoadable(todoAtoms, todoKey, TODO_FALLBACK)
 	const isSuspended = todo.loading || !Number.isInteger(todoKey)
-	const toggleDone = useCallback(
-		(e: React.ChangeEvent<HTMLInputElement>) => {
-			const isNowDone = e.target.checked ? 1 : 0
-			void toggleTodoDone(todoKey, isNowDone)
-		},
-		[todoKey],
-	)
-	const deleteThisTodo = useCallback(() => deleteTodo(todoKey), [todoKey])
+	const toggleDone = (e: React.ChangeEvent<HTMLInputElement>): void => {
+		const isNowDone = e.target.checked ? 1 : 0
+		void toggleTodoDone(todoKey, isNowDone)
+	}
+	const deleteThisTodo = (): void => {
+		void deleteTodo(todoKey)
+	}
 	return (
 		<div className={cn(`todo`, isSuspended && `loading`)}>
 			<input
@@ -252,16 +250,13 @@ const newTodoTextAtom = atom<string>({
 function NewTodo(): React.JSX.Element {
 	const text = useO(newTodoTextAtom)
 	const setText = useI(newTodoTextAtom)
-	const change = useCallback(
-		(e: React.ChangeEvent<HTMLInputElement>) => {
-			setText(e.target.value)
-		},
-		[setText],
-	)
-	const submit = useCallback((e: React.SubmitEvent<HTMLFormElement>) => {
+	const change = (e: React.ChangeEvent<HTMLInputElement>): void => {
+		setText(e.target.value)
+	}
+	const submit = (e: React.SubmitEvent<HTMLFormElement>): void => {
 		e.preventDefault()
 		void addTodo()
-	}, [])
+	}
 	return (
 		<form className="todo" onSubmit={submit}>
 			<input type="checkbox" checked={false} disabled />
@@ -287,7 +282,7 @@ const longLoadTimesAtom = atom<Loadable<boolean>>({
 })
 function LongLoadTimes(): React.JSX.Element {
 	const longLoadTimes = useLoadable(longLoadTimesAtom, false)
-	const toggle = useCallback(async () => {
+	const toggle = async (): Promise<void> => {
 		const url = new URL(`/long-load-times`, SERVER_URL)
 		const res = await fetch(url, {
 			method: `POST`,
@@ -295,7 +290,7 @@ function LongLoadTimes(): React.JSX.Element {
 		})
 		const newState = await res.json()
 		setState(longLoadTimesAtom, newState)
-	}, [])
+	}
 	return (
 		<div className="long-load-times">
 			<label>

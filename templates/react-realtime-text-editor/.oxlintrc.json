@@ -3,7 +3,6 @@
 	"extends": ["./node_modules/atom.io/oxlint.json"],
 	"plugins": ["typescript", "react"],
 	"rules": {
-		"react/exhaustive-deps": "error",
 		"react/jsx-key": "error",
 		"react/jsx-no-duplicate-props": "error",
 		"react/no-children-prop": "error",

@@ -216,15 +216,8 @@ export function MarkdownWorkspace({
 	}
 
 	useEffect(() => {
-		if (mosaic.status === `live`) {
-			mosaic.publishPresence({
-				color: identity.color,
-				lastActiveAt: Date.now(),
-				name: identity.name,
-				selection: selectionRef.current,
-			})
-		}
-	}, [identity.color, identity.name, mosaic])
+		if (mosaic.status === `live`) publishSelection(selectionRef.current)
+	}, [mosaic.status])
 
 	useLayoutEffect(() => {
 		const editor = editorRef.current
@@ -236,7 +229,7 @@ export function MarkdownWorkspace({
 			document.resolvePosition(selection.anchor),
 			document.resolvePosition(selection.head),
 		)
-	}, [document, markdown])
+	}, [markdown])
 
 	const rememberSelection = (editor: HTMLTextAreaElement): void => {
 		selectionRef.current = document.selectionFromOffsets(

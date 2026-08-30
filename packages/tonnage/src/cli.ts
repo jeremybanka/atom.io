@@ -4,13 +4,13 @@ import fs from "node:fs/promises"
 import path from "node:path"
 import { pathToFileURL } from "node:url"
 
-import { runBundleSize } from "./run.ts"
-import type { BundleSizeConfig, BundleSizeMode } from "./types.ts"
+import { runTonnage } from "./run.ts"
+import type { TonnageConfig, TonnageMode } from "./types.ts"
 
 const DEFAULT_CONFIG_FILES = [
-	`bundle-size.config.ts`,
-	`bundle-size.config.mjs`,
-	`bundle-size.config.js`,
+	`tonnage.config.ts`,
+	`tonnage.config.mjs`,
+	`tonnage.config.js`,
 ]
 
 async function main(): Promise<void> {
@@ -18,14 +18,14 @@ async function main(): Promise<void> {
 	const mode = parseMode(command)
 	const configPath = await findConfig(process.argv[3])
 	const config = await loadConfig(configPath)
-	const result = await runBundleSize(config, {
+	const result = await runTonnage(config, {
 		configDirectory: path.dirname(configPath),
 		mode,
 	})
 
 	if (mode === `check` && result.changed) {
 		process.stderr.write(
-			`${path.relative(process.cwd(), result.readmePath)} is out of date. Run bundle-size write.\n`,
+			`${path.relative(process.cwd(), result.readmePath)} is out of date. Run tonnage write.\n`,
 		)
 		process.exitCode = 1
 		return
@@ -39,7 +39,7 @@ async function main(): Promise<void> {
 	)
 }
 
-function parseMode(command: string | undefined): BundleSizeMode {
+function parseMode(command: string | undefined): TonnageMode {
 	switch (command) {
 		case `check`:
 		case `test`:
@@ -49,7 +49,7 @@ function parseMode(command: string | undefined): BundleSizeMode {
 			return `write`
 		case undefined:
 		default:
-			throw new Error(`Usage: bundle-size <write|check> [bundle-size.config.ts]`)
+			throw new Error(`Usage: tonnage <write|check> [tonnage.config.ts]`)
 	}
 }
 
@@ -69,16 +69,16 @@ async function findConfig(configArgument: string | undefined): Promise<string> {
 	}
 
 	throw new Error(
-		`Could not find a bundle-size config (${DEFAULT_CONFIG_FILES.join(`, `)}).`,
+		`Could not find a tonnage config (${DEFAULT_CONFIG_FILES.join(`, `)}).`,
 	)
 }
 
-async function loadConfig(configPath: string): Promise<BundleSizeConfig> {
+async function loadConfig(configPath: string): Promise<TonnageConfig> {
 	const imported = (await import(pathToFileURL(configPath).href)) as {
 		default?: unknown
 	}
 	if (!imported.default || typeof imported.default !== `object`) {
-		throw new Error(`${configPath} must default-export a bundle-size config.`)
+		throw new Error(`${configPath} must default-export a tonnage config.`)
 	}
 	return imported.default
 }

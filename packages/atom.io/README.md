@@ -54,7 +54,7 @@ npm i atom.io
 	<i>Or read them right from your hard drive.</i>
 </h4>
 
-<!-- bundle-size:atom.io:start -->
+<!-- tonnage:atom.io:start -->
 
 ## Bundle size
 
@@ -94,14 +94,14 @@ Public-module rows retain complete runtime export surfaces. Recipe rows bundle t
 
 ### Representative runtimes (tree-shaken)
 
-| Recipe                     | Entry                                                     | Minified JS |  Gzip JS |
-| -------------------------- | --------------------------------------------------------- | ----------: | -------: |
-| Core (for example, an LSP) | <code>bundle-size-recipes/core.ts</code>                  |    46,006 B | 13,097 B |
-| React app                  | <code>bundle-size-recipes/react-app.ts</code>             |    47,983 B | 13,736 B |
-| Realtime React client      | <code>bundle-size-recipes/realtime-react-client.ts</code> |    76,957 B | 22,540 B |
-| Realtime server            | <code>bundle-size-recipes/realtime-server.ts</code>       |    98,576 B | 27,866 B |
+| Recipe                     | Entry                                                 | Minified JS |  Gzip JS |
+| -------------------------- | ----------------------------------------------------- | ----------: | -------: |
+| Core (for example, an LSP) | <code>tonnage-recipes/core.ts</code>                  |    46,006 B | 13,097 B |
+| React app                  | <code>tonnage-recipes/react-app.ts</code>             |    47,983 B | 13,736 B |
+| Realtime React client      | <code>tonnage-recipes/realtime-react-client.ts</code> |    76,957 B | 22,540 B |
+| Realtime server            | <code>tonnage-recipes/realtime-server.ts</code>       |    98,576 B | 27,866 B |
 
-<!-- bundle-size:atom.io:end -->
+<!-- tonnage:atom.io:end -->
 
 🤖 Are you a robot? Great news! `atom.io` ships easy-to-grep documentation right
 alongside its SDK. After installing, start with `node_modules/atom.io/AGENTS.md`.

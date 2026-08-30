@@ -1,11 +1,11 @@
-export function bundleSizeMarkers(marker = `default`): {
+export function tonnageMarkers(marker = `default`): {
 	end: string
 	start: string
 } {
 	validateMarker(marker)
 	return {
-		end: `<!-- bundle-size:${marker}:end -->`,
-		start: `<!-- bundle-size:${marker}:start -->`,
+		end: `<!-- tonnage:${marker}:end -->`,
+		start: `<!-- tonnage:${marker}:start -->`,
 	}
 }
 
@@ -14,7 +14,7 @@ export function updateGeneratedSection(
 	markdown: string,
 	marker?: string,
 ): string {
-	const { end, start } = bundleSizeMarkers(marker)
+	const { end, start } = tonnageMarkers(marker)
 	const startIndex = readme.indexOf(start)
 	const endIndex = readme.indexOf(end)
 
@@ -42,7 +42,7 @@ export function updateGeneratedSection(
 function validateMarker(marker: string): void {
 	if (!/^[a-z0-9][a-z0-9._-]*$/i.test(marker)) {
 		throw new Error(
-			`Bundle-size marker names may contain letters, numbers, dots, underscores, and hyphens.`,
+			`Tonnage marker names may contain letters, numbers, dots, underscores, and hyphens.`,
 		)
 	}
 }

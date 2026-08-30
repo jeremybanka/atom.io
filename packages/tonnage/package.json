@@ -1,7 +1,7 @@
 {
-	"name": "@atom.io/bundle-size",
+	"name": "tonnage",
 	"version": "0.0.0",
-	"description": "Keep deterministic bundle-size reports in README files and CI.",
+	"description": "Keep deterministic bundle size reports in README files and CI.",
 	"type": "module",
 	"license": "MIT",
 	"author": "Jeremy Banka",
@@ -13,8 +13,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/jeremybanka/atom.io.git",
-		"directory": "packages/bundle-size"
+		"url": "git+https://github.com/jeremybanka/tonnage.git"
 	},
 	"files": [
 		"bin",
@@ -24,7 +23,7 @@
 		"README.md"
 	],
 	"bin": {
-		"bundle-size": "./bin/bundle-size.bin.js"
+		"tonnage": "./bin/tonnage.bin.js"
 	},
 	"exports": {
 		".": {

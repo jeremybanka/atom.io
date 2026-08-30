@@ -19,17 +19,17 @@
 				"__scripts__/**"
 			]
 		},
-		"bundle:size": {
+		"tonnage": {
 			"dependsOn": ["build", "^build"],
 			"cache": false
 		},
-		"bundle:size:test": {
+		"tonnage:test": {
 			"dependsOn": ["build", "^build"],
 			"outputs": [],
 			"inputs": [
 				"package.json",
-				"bundle-size.config.ts",
-				"bundle-size-recipes/**",
+				"tonnage.config.ts",
+				"tonnage-recipes/**",
 				"README.md",
 				"dist/**"
 			]

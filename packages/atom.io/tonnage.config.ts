@@ -1,6 +1,6 @@
-import { type BundleSizeConfig, defineConfig } from "@atom.io/bundle-size"
+import { defineConfig, type TonnageConfig } from "tonnage"
 
-const config: BundleSizeConfig = defineConfig({
+const config: TonnageConfig = defineConfig({
 	exports: {
 		exclude: [`./react-devtools/css`],
 	},
@@ -8,22 +8,22 @@ const config: BundleSizeConfig = defineConfig({
 	marker: `atom.io`,
 	recipes: [
 		{
-			entry: `bundle-size-recipes/core.ts`,
+			entry: `tonnage-recipes/core.ts`,
 			name: `Core (for example, an LSP)`,
 			platform: `node`,
 		},
 		{
-			entry: `bundle-size-recipes/react-app.ts`,
+			entry: `tonnage-recipes/react-app.ts`,
 			name: `React app`,
 			platform: `browser`,
 		},
 		{
-			entry: `bundle-size-recipes/realtime-react-client.ts`,
+			entry: `tonnage-recipes/realtime-react-client.ts`,
 			name: `Realtime React client`,
 			platform: `browser`,
 		},
 		{
-			entry: `bundle-size-recipes/realtime-server.ts`,
+			entry: `tonnage-recipes/realtime-server.ts`,
 			name: `Realtime server`,
 			platform: `node`,
 		},

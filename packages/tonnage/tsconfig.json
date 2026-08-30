@@ -6,7 +6,7 @@
 		"declaration": true,
 		"isolatedDeclarations": true,
 		"paths": {
-			"@atom.io/bundle-size": ["./src/index.ts"]
+			"tonnage": ["./src/index.ts"]
 		},
 		"types": ["node", "vitest/globals"],
 		"target": "ES2022"

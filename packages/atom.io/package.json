@@ -248,6 +248,10 @@
 			"import": "./dist/realtime-react-lexical/index.js",
 			"types": "./dist/realtime-react-lexical/index.d.ts"
 		},
+		"./realtime-react-lexical/css": {
+			"import": "./dist/realtime-react-lexical/index.css",
+			"types": "./css.d.ts"
+		},
 		"./realtime-server": {
 			"import": "./dist/realtime-server/index.js",
 			"types": "./dist/realtime-server/index.d.ts"

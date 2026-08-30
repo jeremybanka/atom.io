@@ -8,25 +8,24 @@ const config: BundleSizeConfig = defineConfig({
 	marker: `atom.io`,
 	recipes: [
 		{
-			imports: [`atom.io`],
+			entry: `bundle-size-recipes/core.ts`,
 			name: `Core (for example, an LSP)`,
 			platform: `node`,
 		},
 		{
-			imports: [`atom.io`, `atom.io/react`],
+			entry: `bundle-size-recipes/react-app.ts`,
 			name: `React app`,
 			platform: `browser`,
 		},
 		{
-			imports: [
-				`atom.io`,
-				`atom.io/react`,
-				`atom.io/realtime`,
-				`atom.io/realtime-client`,
-				`atom.io/realtime-react`,
-			],
-			name: `Realtime React app`,
+			entry: `bundle-size-recipes/realtime-react-client.ts`,
+			name: `Realtime React client`,
 			platform: `browser`,
+		},
+		{
+			entry: `bundle-size-recipes/realtime-server.ts`,
+			name: `Realtime server`,
+			platform: `node`,
 		},
 	],
 })

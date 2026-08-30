@@ -8,7 +8,7 @@ const config: BundleSizeConfig = defineConfig({
 	marker: `my-package`,
 	recipes: [
 		{
-			imports: [`my-package`, `my-package/react`],
+			entry: `examples/recipes/react-app.ts`,
 			name: `React app`,
 			platform: `browser`,
 		},

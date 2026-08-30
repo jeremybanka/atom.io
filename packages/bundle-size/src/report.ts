@@ -1,7 +1,7 @@
 import fs from "node:fs/promises"
 import path from "node:path"
 
-import { measureImports } from "./measure.ts"
+import { measureEntry, measureImports } from "./measure.ts"
 import type {
 	BundleSizeConfig,
 	BundleSizeExports,
@@ -52,14 +52,14 @@ export async function createBundleSizeReport(
 		})),
 	)
 	const recipeRows = await Promise.all(
-		(config.recipes ?? []).map(async (recipe): Promise<BundleSizeRow> => ({
-			...(await measureImports(recipe.imports, {
+		(config.recipes ?? []).map(async (recipe) => ({
+			...(await measureEntry(recipe.entry, {
 				external: unique([...external, ...(recipe.external ?? [])]),
 				platform: recipe.platform ?? config.platform,
 				resolveDirectory,
 				target: config.target,
 			})),
-			imports: recipe.imports,
+			entry: recipe.entry,
 			name: recipe.name,
 		})),
 	)
@@ -78,16 +78,16 @@ export function renderBundleSizeMarkdown(
 	const lines = [
 		`## ${config.heading ?? `Bundle size`}`,
 		``,
-		`Each row bundles the real public entry points, retains their complete runtime export surfaces, and reports exact minified and level-9 gzip byte counts. Peer dependencies stay external. Recipe imports are bundled together, so shared modules are counted once.`,
+		`Public-module rows retain complete runtime export surfaces. Recipe rows bundle their reviewable entry files and tree-shake unused exports. Both report exact minified and level-9 gzip JavaScript byte counts; declarations, source maps, CSS, and other assets are excluded. Peer dependencies stay external, and shared modules are counted once per bundle.`,
 	]
 
 	if (report.exports.length > 0) {
 		lines.push(
 			``,
-			`### Public modules`,
+			`### Public modules (whole export surface)`,
 			``,
 			...markdownTable(
-				[`Import`, `Minified`, `Gzip`],
+				[`Import`, `Minified JS`, `Gzip JS`],
 				report.exports.map((row) => [
 					code(row.name),
 					formatBytes(row.rawBytes),
@@ -101,13 +101,13 @@ export function renderBundleSizeMarkdown(
 	if (report.recipes.length > 0) {
 		lines.push(
 			``,
-			`### Common recipes`,
+			`### Representative runtimes (tree-shaken)`,
 			``,
 			...markdownTable(
-				[`Recipe`, `Public imports`, `Minified`, `Gzip`],
+				[`Recipe`, `Entry`, `Minified JS`, `Gzip JS`],
 				report.recipes.map((row) => [
 					escapeCell(row.name),
-					row.imports.map(code).join(`<br>`),
+					code(row.entry),
 					formatBytes(row.rawBytes),
 					formatBytes(row.gzipBytes),
 				]),

@@ -6,8 +6,8 @@ export type BundleSizeExports = {
 }
 
 export type BundleSizeRecipe = {
+	entry: string
 	external?: readonly string[]
-	imports: readonly string[]
 	name: string
 	platform?: BundlePlatform
 }
@@ -34,10 +34,15 @@ export type BundleSizeRow = BundleMeasurement & {
 	name: string
 }
 
+export type BundleSizeRecipeRow = BundleMeasurement & {
+	entry: string
+	name: string
+}
+
 export type BundleSizeReport = {
 	exports: readonly BundleSizeRow[]
 	packageName: string
-	recipes: readonly BundleSizeRow[]
+	recipes: readonly BundleSizeRecipeRow[]
 }
 
 export type BundleSizeMode = `check` | `write`

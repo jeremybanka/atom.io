@@ -4,5 +4,5 @@
 ---
 
 Add a reusable CI-first bundle-size reporter and replace Atom.io's Bundlephobia
-badge with checked-in measurements for public modules and common application
-recipes.
+badge with checked-in runtime-JavaScript measurements for public modules and
+common application recipes.

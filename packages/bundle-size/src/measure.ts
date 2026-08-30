@@ -1,6 +1,7 @@
+import path from "node:path"
 import { gzipSync } from "node:zlib"
 
-import { build } from "esbuild"
+import { build, type BuildOptions } from "esbuild"
 
 import type { BundleMeasurement, BundlePlatform } from "./types.ts"
 
@@ -9,6 +10,18 @@ export type MeasureImportsOptions = {
 	platform?: BundlePlatform | undefined
 	resolveDirectory: string
 	target?: string | undefined
+}
+
+export type MeasureEntryOptions = MeasureImportsOptions
+
+export async function measureEntry(
+	entry: string,
+	options: MeasureEntryOptions,
+): Promise<BundleMeasurement> {
+	return measureBuild(
+		{ entryPoints: [path.resolve(options.resolveDirectory, entry)] },
+		options,
+	)
 }
 
 export async function measureImports(
@@ -25,6 +38,23 @@ export async function measureImports(
 				`export * as entry${index} from ${JSON.stringify(specifier)}`,
 		)
 		.join(`\n`)
+	return measureBuild(
+		{
+			stdin: {
+				contents: entry,
+				loader: `js`,
+				resolveDir: options.resolveDirectory,
+				sourcefile: `bundle-size-entry.js`,
+			},
+		},
+		options,
+	)
+}
+
+async function measureBuild(
+	entry: Pick<BuildOptions, `entryPoints` | `stdin`>,
+	options: MeasureEntryOptions,
+): Promise<BundleMeasurement> {
 	const platform = options.platform ?? `neutral`
 
 	const result = await build({
@@ -40,20 +70,18 @@ export async function measureImports(
 		minify: true,
 		outdir: `out`,
 		platform,
-		stdin: {
-			contents: entry,
-			loader: `js`,
-			resolveDir: options.resolveDirectory,
-			sourcefile: `bundle-size-entry.js`,
-		},
+		...entry,
 		target: options.target ?? `es2022`,
 		treeShaking: true,
 		write: false,
 	})
 
-	const outputFiles = [...(result.outputFiles ?? [])].sort((left, right) =>
-		left.path.localeCompare(right.path),
-	)
+	const outputFiles = [...(result.outputFiles ?? [])]
+		.filter((output) => output.path.endsWith(`.js`))
+		.sort((left, right) => left.path.localeCompare(right.path))
+	if (outputFiles.length === 0) {
+		throw new Error(`The bundle-size entry did not emit any runtime JavaScript.`)
+	}
 	const rawBytes = outputFiles.reduce(
 		(total, output) => total + output.contents.byteLength,
 		0,

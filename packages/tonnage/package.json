@@ -23,7 +23,7 @@
 		"README.md"
 	],
 	"bin": {
-		"tonnage": "./bin/tonnage.bin.js"
+		"tonnage": "bin/tonnage.bin.js"
 	},
 	"exports": {
 		".": {

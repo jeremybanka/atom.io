@@ -229,7 +229,7 @@ importers:
         version: 2.2.3
       break-check:
         specifier: 0.6.34
-        version: 0.6.34(supports-color@10.2.2)(zod@4.5.2)
+        version: 0.6.34(supports-color@10.2.2)(zod@4.5.4)
       concurrently:
         specifier: 10.0.5
         version: 10.0.5
@@ -262,7 +262,7 @@ importers:
         version: 19.2.8(react@19.2.8)
       recoverage:
         specifier: 0.1.16
-        version: 0.1.16(supports-color@10.2.2)(typescript@7.0.2)(zod@4.5.2)
+        version: 0.1.16(supports-color@10.2.2)(typescript@7.0.2)(zod@4.5.4)
       socket.io:
         specifier: 4.8.3
         version: 4.8.3(supports-color@10.2.2)
@@ -297,8 +297,8 @@ importers:
         specifier: 4.1.11
         version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(esbuild@0.28.1)(happy-dom@20.12.0)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
       zod:
-        specifier: 4.5.2
-        version: 4.5.2
+        specifier: 4.5.4
+        version: 4.5.4
       zustand:
         specifier: 5.0.15
         version: 5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8))
@@ -325,7 +325,7 @@ importers:
         version: 2.2.3
       comline:
         specifier: 0.5.2
-        version: 0.5.2(arktype@2.2.3)(zod@4.5.2)
+        version: 0.5.2(arktype@2.2.3)(zod@4.5.4)
       local-pkg:
         specifier: 1.2.1
         version: 1.2.1
@@ -427,8 +427,8 @@ importers:
         specifier: 19.2.8
         version: 19.2.8(react@19.2.8)
       zod:
-        specifier: 4.5.2
-        version: 4.5.2
+        specifier: 4.5.4
+        version: 4.5.4
     devDependencies:
       '@dprint/json':
         specifier: 0.23.0
@@ -512,8 +512,8 @@ importers:
         specifier: 4.8.3
         version: 4.8.3(supports-color@10.2.2)
       zod:
-        specifier: 4.5.2
-        version: 4.5.2
+        specifier: 4.5.4
+        version: 4.5.4
     devDependencies:
       '@dprint/json':
         specifier: 0.23.0
@@ -7457,8 +7457,8 @@ packages:
   zod@4.4.3:
     resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
-  zod@4.5.2:
-    resolution: {integrity: sha512-XkYXCol10+ba/6F/cueWV+TezUeOqXW0hdeJt5CdXjTYeAgAQg5N03RQdJ80mhfFE72+pblvYMW4wy2Qp4Qbrg==}
+  zod@4.5.4:
+    resolution: {integrity: sha512-sC95tT5iHHH9gtpj6A81kh+NEaRAUFN+qlUPDUbRfOMvNf5QCBqsb3WgvnpVtK5Y+4UfA6KqufotuTvMGiTlsA==}
 
   zustand@5.0.15:
     resolution: {integrity: sha512-MpSEjRiBkA9crSYeOUH32rJC7SVqAbm0Fqcqge/bUi2PPoLcBWKOsG+C8mevmpr8TwXHBVkChbbJiyvkE+i/3A==}
@@ -8559,7 +8559,7 @@ snapshots:
       eslint: 10.9.1(jiti@2.7.0)(supports-color@10.2.2)
       ts-pattern: 5.9.0
       typescript: 7.0.2
-      zod: 4.5.2
+      zod: 4.5.4
     transitivePeerDependencies:
       - supports-color
 
@@ -9748,11 +9748,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@t3-oss/env-core@0.13.11(arktype@2.2.0)(typescript@7.0.2)(zod@4.5.2)':
+  '@t3-oss/env-core@0.13.11(arktype@2.2.0)(typescript@7.0.2)(zod@4.5.4)':
     optionalDependencies:
       arktype: 2.2.0
       typescript: 7.0.2
-      zod: 4.5.2
+      zod: 4.5.4
 
   '@tanstack/query-core@5.102.8': {}
 
@@ -10631,7 +10631,7 @@ snapshots:
       vitefu: 1.1.3(vite@8.2.2(@types/node@26.4.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0))
       xxhash-wasm: 1.1.0
       yargs-parser: 22.0.0
-      zod: 4.5.2
+      zod: 4.5.4
     optionalDependencies:
       '@astrojs/markdown-remark': 7.2.4(supports-color@10.2.2)
       sharp: 0.35.4(@types/node@26.4.0)
@@ -10764,10 +10764,10 @@ snapshots:
     dependencies:
       fill-range: 7.1.1
 
-  break-check@0.6.34(supports-color@10.2.2)(zod@4.5.2):
+  break-check@0.6.34(supports-color@10.2.2)(zod@4.5.4):
     dependencies:
       arktype: 2.2.3
-      comline: 0.5.2(arktype@2.2.3)(zod@4.5.2)
+      comline: 0.5.2(arktype@2.2.3)(zod@4.5.4)
       minimatch: 10.2.6
       simple-git: 3.36.0(supports-color@10.2.2)
       takua: 0.2.3
@@ -10904,12 +10904,12 @@ snapshots:
     dependencies:
       delayed-stream: 1.0.0
 
-  comline@0.4.6(arktype@2.2.0)(zod@4.5.2):
+  comline@0.4.6(arktype@2.2.0)(zod@4.5.4):
     dependencies:
       treetrunks: 0.1.7
     optionalDependencies:
       arktype: 2.2.0
-      zod: 4.5.2
+      zod: 4.5.4
 
   comline@0.5.1(arktype@2.2.3)(zod@4.4.3):
     dependencies:
@@ -10919,13 +10919,13 @@ snapshots:
       arktype: 2.2.3
       zod: 4.4.3
 
-  comline@0.5.2(arktype@2.2.3)(zod@4.5.2):
+  comline@0.5.2(arktype@2.2.3)(zod@4.5.4):
     dependencies:
       '@standard-schema/spec': 1.1.0
       treetrunks: 0.1.9
     optionalDependencies:
       arktype: 2.2.3
-      zod: 4.5.2
+      zod: 4.5.4
 
   comma-separated-tokens@2.0.3: {}
 
@@ -13416,11 +13416,11 @@ snapshots:
       unified: 11.0.5
       vfile: 6.0.3
 
-  recoverage@0.1.16(supports-color@10.2.2)(typescript@7.0.2)(zod@4.5.2):
+  recoverage@0.1.16(supports-color@10.2.2)(typescript@7.0.2)(zod@4.5.4):
     dependencies:
-      '@t3-oss/env-core': 0.13.11(arktype@2.2.0)(typescript@7.0.2)(zod@4.5.2)
+      '@t3-oss/env-core': 0.13.11(arktype@2.2.0)(typescript@7.0.2)(zod@4.5.4)
       arktype: 2.2.0
-      comline: 0.4.6(arktype@2.2.0)(zod@4.5.2)
+      comline: 0.4.6(arktype@2.2.0)(zod@4.5.4)
       diff: 9.0.0
       istanbul-lib-coverage: 3.2.2
       istanbul-lib-report: 3.0.1
@@ -14706,7 +14706,7 @@ snapshots:
 
   zod@4.4.3: {}
 
-  zod@4.5.2: {}
+  zod@4.5.4: {}
 
   zustand@5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8)):
     optionalDependencies:

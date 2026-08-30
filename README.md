@@ -59,6 +59,7 @@ export function InboxButton() {
 | Path                                                                   | Purpose                                                                                                                       |
 | :--------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------- |
 | [packages/atom.io](./packages/atom.io)                                 | Core state engine, framework adapters, realtime packages, devtools, testing utilities, docs source, and package-level README. |
+| [packages/bundle-size](./packages/bundle-size)                         | CI-first bundle measurement and deterministic README report generation.                                                       |
 | [packages/create-atom.io](./packages/create-atom.io)                   | CLI for creating new `atom.io` projects from this repo's templates.                                                           |
 | [apps/atom.io.fyi](./apps/atom.io.fyi)                                 | Astro documentation site for guides, concepts, API docs, and examples.                                                        |
 | [templates/preact-svg-editor](./templates/preact-svg-editor)           | Preact/Vite starter showing interactive SVG state.                                                                            |

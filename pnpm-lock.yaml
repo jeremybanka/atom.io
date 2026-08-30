@@ -167,6 +167,9 @@ importers:
 
   packages/atom.io:
     devDependencies:
+      '@atom.io/bundle-size':
+        specifier: workspace:*
+        version: link:../bundle-size
       '@atom.io/exhibits':
         specifier: workspace:*
         version: link:../exhibits
@@ -302,6 +305,28 @@ importers:
       zustand:
         specifier: 5.0.15
         version: 5.0.15(@types/react@19.2.18)(react@19.2.8)(use-sync-external-store@1.6.0(react@19.2.8))
+
+  packages/bundle-size:
+    dependencies:
+      esbuild:
+        specifier: 0.28.1
+        version: 0.28.1
+    devDependencies:
+      '@types/node':
+        specifier: 26.4.0
+        version: 26.4.0
+      eslint:
+        specifier: 10.9.1
+        version: 10.9.1(jiti@2.7.0)(supports-color@10.2.2)
+      tsdown:
+        specifier: 0.22.14
+        version: 0.22.14(@tsdown/css@0.22.14)(oxc-resolver@11.21.2)(tsx@4.22.1)(typescript@7.0.2)
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vitest:
+        specifier: 4.1.11
+        version: 4.1.11(@types/node@26.4.0)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(esbuild@0.28.1)(happy-dom@20.11.15)(jiti@2.7.0)(tsx@4.22.1)(yaml@2.9.0)
 
   packages/create-atom.io:
     dependencies:

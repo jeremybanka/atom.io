@@ -1,0 +1,12 @@
+file-types = ["json"]
+gitignore = true
+
+[schema-map]
+"**/break-check.config.json" = "packages/atom.io/node_modules/break-check/dist/break-check.main.schema.json"
+
+[type-map]
+"**/.vscode/*.json" = "jsonc"
+"**/tsconfig*.json" = "jsonc"
+
+[validators.json]
+forbid-duplicate-keys = true

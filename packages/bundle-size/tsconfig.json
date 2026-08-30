@@ -1,0 +1,14 @@
+{
+	"extends": "../../tsconfig.json",
+	"include": ["src", "__tests__", "examples", "*.config.ts"],
+	"compilerOptions": {
+		"allowJs": false,
+		"declaration": true,
+		"isolatedDeclarations": true,
+		"paths": {
+			"@atom.io/bundle-size": ["./src/index.ts"]
+		},
+		"types": ["node", "vitest/globals"],
+		"target": "ES2022"
+	}
+}

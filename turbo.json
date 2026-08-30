@@ -19,6 +19,20 @@
 				"__scripts__/**"
 			]
 		},
+		"bundle:size": {
+			"dependsOn": ["build", "^build"],
+			"cache": false
+		},
+		"bundle:size:test": {
+			"dependsOn": ["build", "^build"],
+			"outputs": [],
+			"inputs": [
+				"package.json",
+				"bundle-size.config.ts",
+				"README.md",
+				"dist/**"
+			]
+		},
 		"manifest:test": {
 			"dependsOn": [],
 			"outputs": [],

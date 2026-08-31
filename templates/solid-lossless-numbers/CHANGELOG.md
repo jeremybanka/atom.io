@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.0.41
+
+### Patch Changes
+
+- 88f81c3: Use Lasertag's semantic Solid JSX declarations instead of maintaining a handwritten intrinsic-element shim.
+- 88f81c3: Give every released template a pinned, standalone Oxlint, ESLint, TypeScript, and dprint quality baseline with zero-warning scripts and a single canonical configuration shipped at the atom.io package root.
+- Updated dependencies [98d897b]
+- Updated dependencies [88f81c3]
+  - atom.io@0.52.2
+
 ## 0.0.40
 
 ### Patch Changes

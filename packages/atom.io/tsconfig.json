@@ -23,6 +23,7 @@
 		"__scripts__",
 		"__stories__",
 		"__unstable__",
+		"tonnage-recipes",
 		".storybook/*.ts",
 		"css.d.ts"
 	]

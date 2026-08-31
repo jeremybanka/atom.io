@@ -17,6 +17,8 @@
 	],
 	"scripts": {
 		"build": "dotenvx run -- turbo run build",
+		"tonnage": "dotenvx run -- turbo run tonnage --filter=atom.io",
+		"tonnage:test": "dotenvx run -- turbo run tonnage:test --filter=atom.io",
 		"cov:public": "dotenvx run -- turbo run cov:public",
 		"cov:recoverage": "dotenvx run -- turbo run cov:recoverage",
 		"dev": "dotenvx run -- turbo run dev",

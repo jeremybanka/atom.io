@@ -19,6 +19,21 @@
 				"__scripts__/**"
 			]
 		},
+		"tonnage": {
+			"dependsOn": ["build", "^build"],
+			"cache": false
+		},
+		"tonnage:test": {
+			"dependsOn": ["build", "^build"],
+			"outputs": [],
+			"inputs": [
+				"package.json",
+				"tonnage.config.ts",
+				"tonnage-recipes/**",
+				"README.md",
+				"dist/**"
+			]
+		},
 		"manifest:test": {
 			"dependsOn": [],
 			"outputs": [],

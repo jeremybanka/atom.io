@@ -278,6 +278,9 @@ importers:
       takua:
         specifier: 0.2.3
         version: 0.2.3
+      tonnage:
+        specifier: 0.0.0
+        version: 0.0.0
       treetrunks:
         specifier: 0.1.9
         version: 0.1.9
@@ -6816,6 +6819,11 @@ packages:
   to-regex-range@5.0.1:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
     engines: {node: '>=8.0'}
+
+  tonnage@0.0.0:
+    resolution: {integrity: sha512-1Rx+lQTJMgGdVUPo5viHnN5y7fDPYWttEFnGUDNR0pJzqNJz6KXRr41hkSwL495BnCK9xdq/2uPjAtWh0ilY2g==}
+    engines: {node: '>=22.18.0'}
+    hasBin: true
 
   totalist@3.0.1:
     resolution: {integrity: sha512-sf4i37nQ2LBx4m3wB74y+ubopq6W/dIzXg0FDGjsYnZHVa1Da8FH853wlL2gtUhg+xJXjfk3kUZS3BRoQeoQBQ==}
@@ -14089,6 +14097,10 @@ snapshots:
   to-regex-range@5.0.1:
     dependencies:
       is-number: 7.0.0
+
+  tonnage@0.0.0:
+    dependencies:
+      esbuild: 0.28.1
 
   totalist@3.0.1: {}
 

@@ -40,12 +40,6 @@ npm i atom.io
 			src="https://img.shields.io/npm/types/atom.io?style=for-the-badge"
 		>
 	</a>
-	<a href="https://bundlephobia.com/result?p=atom.io">
-		<img
-			alt="Bundlephobia"
-			src="https://img.shields.io/bundlephobia/minzip/atom.io?style=for-the-badge"
-		>
-	</a>
 </p>
 
 <h3 align="center">
@@ -59,6 +53,55 @@ npm i atom.io
 <h4 align="center">
 	<i>Or read them right from your hard drive.</i>
 </h4>
+
+<!-- tonnage:atom.io:start -->
+
+## Bundle size
+
+Public-module rows retain complete runtime export surfaces. Recipe rows bundle their reviewable entry files and tree-shake unused exports. Both report exact minified and level-9 gzip JavaScript byte counts; declarations, source maps, CSS, and other assets are excluded. Peer dependencies stay external, and shared modules are counted once per bundle.
+
+### Public modules (whole export surface)
+
+| Import                                         | Minified JS |  Gzip JS |
+| ---------------------------------------------- | ----------: | -------: |
+| <code>atom.io</code>                           |    76,586 B | 21,036 B |
+| <code>atom.io/eslint-plugin</code>             |     8,505 B |  2,695 B |
+| <code>atom.io/experiments/realms</code>        |    66,585 B | 18,472 B |
+| <code>atom.io/foundations/canonical</code>     |       500 B |    302 B |
+| <code>atom.io/foundations/entries</code>       |       243 B |    177 B |
+| <code>atom.io/foundations/enumeration</code>   |       214 B |    181 B |
+| <code>atom.io/foundations/future</code>        |       583 B |    334 B |
+| <code>atom.io/foundations/json</code>          |       602 B |    376 B |
+| <code>atom.io/foundations/junction</code>      |     9,361 B |  2,516 B |
+| <code>atom.io/foundations/overlays</code>      |     3,991 B |  1,034 B |
+| <code>atom.io/foundations/subject</code>       |       481 B |    285 B |
+| <code>atom.io/foundations/type-utils</code>    |        30 B |     50 B |
+| <code>atom.io/internal</code>                  |    76,821 B | 21,354 B |
+| <code>atom.io/introspection</code>             |    57,758 B | 16,026 B |
+| <code>atom.io/react</code>                     |    47,061 B | 13,717 B |
+| <code>atom.io/react-devtools</code>            |    93,273 B | 26,486 B |
+| <code>atom.io/realtime</code>                  |    60,021 B | 17,714 B |
+| <code>atom.io/realtime-client</code>           |    69,584 B | 20,285 B |
+| <code>atom.io/realtime-react</code>            |    73,086 B | 21,342 B |
+| <code>atom.io/realtime-server</code>           |   103,587 B | 30,626 B |
+| <code>atom.io/realtime-testing</code>          |   122,297 B | 36,804 B |
+| <code>atom.io/solid</code>                     |    45,953 B | 13,278 B |
+| <code>atom.io/testing</code>                   |    17,406 B |  5,008 B |
+| <code>atom.io/transceivers/o-list</code>       |     7,354 B |  2,124 B |
+| <code>atom.io/transceivers/u-list</code>       |     2,032 B |    861 B |
+| <code>atom.io/web</code>                       |       761 B |    417 B |
+| <code>atom.io/realtime-testing/headless</code> |   111,683 B | 33,172 B |
+
+### Representative runtimes (tree-shaken)
+
+| Recipe                     | Entry                                                 | Minified JS |  Gzip JS |
+| -------------------------- | ----------------------------------------------------- | ----------: | -------: |
+| Core (for example, an LSP) | <code>tonnage-recipes/core.ts</code>                  |    46,006 B | 13,097 B |
+| React app                  | <code>tonnage-recipes/react-app.ts</code>             |    47,983 B | 13,736 B |
+| Realtime React client      | <code>tonnage-recipes/realtime-react-client.ts</code> |    76,957 B | 22,540 B |
+| Realtime server            | <code>tonnage-recipes/realtime-server.ts</code>       |    98,576 B | 27,866 B |
+
+<!-- tonnage:atom.io:end -->
 
 🤖 Are you a robot? Great news! `atom.io` ships easy-to-grep documentation right
 alongside its SDK. After installing, start with `node_modules/atom.io/AGENTS.md`.

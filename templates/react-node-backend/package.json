@@ -39,7 +39,7 @@
 		"@vitejs/plugin-react": "6.1.1",
 		"babel-plugin-react-compiler": "1.0.0",
 		"concurrently": "10.0.5",
-		"dprint": "0.56.1",
+		"dprint": "0.57.0",
 		"dprint-plugin-malva": "0.16.0",
 		"eslint": "10.9.1",
 		"eslint-plugin-react-refresh": "0.5.5",

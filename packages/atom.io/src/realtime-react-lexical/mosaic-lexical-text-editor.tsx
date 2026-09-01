@@ -1,5 +1,3 @@
-import "./mosaic-lexical-text-editor.css"
-
 import { LexicalComposer } from "@lexical/react/LexicalComposer"
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext"
 import { ContentEditable } from "@lexical/react/LexicalContentEditable"
@@ -53,8 +51,22 @@ export type RenderedCollaboratorSelection = {
 	readonly start: number
 }
 
+/** Optional styling hooks for DOM parts rendered below the editor root. */
+export type MosaicLexicalTextEditorClassNames = {
+	readonly caret?: string
+	readonly contentEditable?: string
+	readonly editor?: string
+	readonly label?: string
+	readonly overlays?: string
+	readonly paragraph?: string
+	readonly placeholder?: string
+	readonly presence?: string
+	readonly selection?: string
+}
+
 export type MosaicLexicalTextEditorProps = {
 	readonly className?: string
+	readonly classNames?: MosaicLexicalTextEditorClassNames
 	readonly onDirty?: () => void
 	readonly onError: (error: Error) => void
 	readonly onRedo: () => void
@@ -414,9 +426,11 @@ function MosaicInputPlugin({
 }
 
 function MosaicPresencePlugin({
+	classNames,
 	selections,
 	value,
 }: {
+	readonly classNames: MosaicLexicalTextEditorClassNames
 	readonly selections: readonly RenderedCollaboratorSelection[]
 	readonly value: string
 }): ReactElement {
@@ -483,7 +497,7 @@ function MosaicPresencePlugin({
 	}, [editor, selections, value])
 
 	return (
-		<collaborator-overlays aria-hidden="true">
+		<collaborator-overlays aria-hidden="true" className={classNames.overlays}>
 			{selections.flatMap((selection) => {
 				const measured = overlays.find(
 					(candidate) =>
@@ -498,6 +512,7 @@ function MosaicPresencePlugin({
 				const collapsed = selection.start === selection.end
 				return (
 					<collaborator-presence
+						className={classNames.presence}
 						key={selection.session}
 						data-collaborator={selection.name}
 						data-presence-kind={collapsed ? `caret` : `selection`}
@@ -510,6 +525,7 @@ function MosaicPresencePlugin({
 							? null
 							: measured.rects.map((rect, index) => (
 									<collaborator-selection
+										className={classNames.selection}
 										key={index}
 										style={{
 											height: rect.height,
@@ -520,6 +536,7 @@ function MosaicPresencePlugin({
 									/>
 								))}
 						<collaborator-caret
+							className={classNames.caret}
 							style={{
 								height: Math.max(measured.caret.height, 20),
 								left: collapsed
@@ -528,7 +545,9 @@ function MosaicPresencePlugin({
 								top: measured.caret.top,
 							}}
 						>
-							<collaborator-label>{selection.name}</collaborator-label>
+							<collaborator-label className={classNames.label}>
+								{selection.name}
+							</collaborator-label>
 						</collaborator-caret>
 					</collaborator-presence>
 				)
@@ -538,6 +557,7 @@ function MosaicPresencePlugin({
 }
 
 function LexicalEditor({
+	classNames,
 	onDirty,
 	onKeyDown,
 	onSelectionChange,
@@ -546,6 +566,7 @@ function LexicalEditor({
 	selections,
 	value,
 }: {
+	readonly classNames: MosaicLexicalTextEditorClassNames
 	readonly onDirty: () => void
 	readonly onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void
 	readonly onSelectionChange: (anchor: number, head: number) => void
@@ -557,11 +578,12 @@ function LexicalEditor({
 	const selectionRef = useRef<readonly [number, number] | null>(null)
 	const suppressedSelectionRef = useRef<readonly [number, number] | null>(null)
 	return (
-		<lexical-editor>
+		<lexical-editor className={classNames.editor}>
 			<PlainTextPlugin
 				contentEditable={
 					<ContentEditable
 						aria-label="Shared markdown source viewport"
+						className={classNames.contentEditable}
 						id="markdown-source"
 						onBeforeInput={() => {
 							suppressedSelectionRef.current = null
@@ -579,7 +601,9 @@ function LexicalEditor({
 				}
 				ErrorBoundary={LexicalErrorBoundary}
 				placeholder={
-					<editor-placeholder>Start writing Markdown…</editor-placeholder>
+					<editor-placeholder className={classNames.placeholder}>
+						Start writing Markdown…
+					</editor-placeholder>
 				}
 			/>
 			<MosaicProjectionPlugin
@@ -596,7 +620,11 @@ function LexicalEditor({
 				suppressedSelectionRef={suppressedSelectionRef}
 				value={value}
 			/>
-			<MosaicPresencePlugin selections={selections} value={value} />
+			<MosaicPresencePlugin
+				classNames={classNames}
+				selections={selections}
+				value={value}
+			/>
 		</lexical-editor>
 	)
 }
@@ -610,6 +638,7 @@ function LexicalEditor({
  */
 export function MosaicLexicalTextEditor({
 	className,
+	classNames = {},
 	onError,
 	onDirty = () => undefined,
 	onRedo,
@@ -637,10 +666,14 @@ export function MosaicLexicalTextEditor({
 				initialConfig={{
 					namespace: `MosaicMarkdownSource`,
 					onError,
-					theme: {},
+					theme:
+						classNames.paragraph === undefined
+							? {}
+							: { paragraph: classNames.paragraph },
 				}}
 			>
 				<LexicalEditor
+					classNames={classNames}
 					onDirty={onDirty}
 					onKeyDown={onKeyDown}
 					onSelectionChange={onSelectionChange}

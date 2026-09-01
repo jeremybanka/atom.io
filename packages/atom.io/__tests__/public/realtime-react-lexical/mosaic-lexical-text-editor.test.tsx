@@ -54,6 +54,18 @@ describe(`Lexical Markdown editor`, () => {
 		const rendered = render(
 			<MosaicLexicalTextEditor
 				{...properties}
+				className="root-class"
+				classNames={{
+					caret: `caret-class`,
+					contentEditable: `content-class`,
+					editor: `editor-class`,
+					label: `label-class`,
+					overlays: `overlays-class`,
+					paragraph: `paragraph-class`,
+					placeholder: `placeholder-class`,
+					presence: `presence-class`,
+					selection: `selection-class`,
+				}}
 				selections={[
 					{
 						color: `#f00`,
@@ -67,6 +79,19 @@ describe(`Lexical Markdown editor`, () => {
 			/>,
 		)
 		await rendered.findByRole(`textbox`)
+		expect(
+			rendered.container.querySelector(`mosaic-lexical-text-editor`)?.className,
+		).toBe(`root-class`)
+		expect(rendered.container.querySelector(`lexical-editor`)?.className).toBe(
+			`editor-class`,
+		)
+		expect(rendered.getByRole(`textbox`).className).toBe(`content-class`)
+		expect(
+			rendered.container.querySelector(`collaborator-overlays`)?.className,
+		).toBe(`overlays-class`)
+		expect(rendered.container.querySelector(`p`)?.className).toBe(
+			`paragraph-class`,
+		)
 		await waitFor(() => {
 			const presence = rendered.container.querySelector(
 				`collaborator-presence[data-session="lin-session"]`,
@@ -74,6 +99,16 @@ describe(`Lexical Markdown editor`, () => {
 			expect(presence?.getAttribute(`data-presence-kind`)).toBe(`selection`)
 			expect(presence?.querySelector(`collaborator-selection`)).not.toBeNull()
 			expect(presence?.querySelector(`collaborator-caret`)).not.toBeNull()
+			expect(presence?.className).toBe(`presence-class`)
+			expect(presence?.querySelector(`collaborator-selection`)?.className).toBe(
+				`selection-class`,
+			)
+			expect(presence?.querySelector(`collaborator-caret`)?.className).toBe(
+				`caret-class`,
+			)
+			expect(presence?.querySelector(`collaborator-label`)?.className).toBe(
+				`label-class`,
+			)
 		})
 
 		rendered.rerender(
@@ -119,6 +154,19 @@ describe(`Lexical Markdown editor`, () => {
 					.querySelector(`collaborator-caret`)
 					?.getAttribute(`style`),
 			).toContain(`height`)
+		})
+		rendered.rerender(
+			<MosaicLexicalTextEditor
+				{...properties}
+				classNames={{ placeholder: `placeholder-class` }}
+				selections={[]}
+				value=""
+			/>,
+		)
+		await waitFor(() => {
+			expect(
+				rendered.container.querySelector(`editor-placeholder`)?.className,
+			).toBe(`placeholder-class`)
 		})
 		getClientRects.mockRestore()
 		getBoundingClientRect.mockRestore()

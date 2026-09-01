@@ -133,25 +133,28 @@ describe(`Markdown workspace drafts`, () => {
 				subscribe: () => () => undefined,
 			},
 			projection: {
-				positionAtOffset: async (offset: number) => ({
-					affinity: `right` as const,
-					offset,
-					runId: `base`,
-				}),
-				readLength: async () => harness.length,
-				resolvePosition: async (position: {
+				positionAtOffset: (offset: number) =>
+					Promise.resolve({
+						affinity: `right` as const,
+						offset,
+						runId: `base`,
+					}),
+				readLength: () => Promise.resolve(harness.length),
+				resolvePosition: (position: {
 					readonly offset: number
 					readonly runId?: string
-				}) => {
-					return harness.length > 18
-						? position.offset + `careful `.length
-						: position.offset
-				},
+				}) =>
+					Promise.resolve(
+						harness.length > 18
+							? position.offset + `careful `.length
+							: position.offset,
+					),
 			},
-			publishPresence: async (presence: (typeof publishedPresence)[number]) => {
+			publishPresence: (presence: (typeof publishedPresence)[number]) => {
 				publishedPresence.push(presence)
+				return Promise.resolve()
 			},
-			redo: async () => false,
+			redo: () => Promise.resolve(false),
 			replace: (input: (typeof replacements)[number]) => {
 				replacements.push(input)
 				return [first, second, third, fourth][replacements.length - 1]?.promise
@@ -163,24 +166,28 @@ describe(`Markdown workspace drafts`, () => {
 				listener(status)
 				return () => undefined
 			},
-			undo: async () => false,
+			undo: () => Promise.resolve(false),
 		} as unknown as MarkdownCollaborationClient
 		const { MarkdownWorkspace } = await import(`../src/MarkdownWorkspace.tsx`)
 		const rendered = render(<MarkdownWorkspace client={client} />)
-		await waitFor(() => expect(harness.editor?.value).toBe(`Add rollout owners`))
+		await waitFor(() => {
+			expect(harness.editor?.value).toBe(`Add rollout owners`)
+		})
 		expect(rendered.getAllByText(`All changes saved`)).toHaveLength(2)
-		await waitFor(() =>
+		await waitFor(() => {
 			expect(harness.editor?.selections).toMatchObject([
 				{ end: 10, name: `Lin`, start: 10 },
-			]),
-		)
+			])
+		})
 
 		act(() => harness.editor?.onDirty())
 		expect(rendered.getAllByText(`Saving 1 gesture…`)).toHaveLength(2)
 		act(() => harness.editor?.onValueChange(`Add rollout ow`, false))
 		expect(rendered.getAllByText(`Saving 1 gesture…`)).toHaveLength(2)
 		act(() => harness.editor?.onSelectionChange(14, 14))
-		await waitFor(() => expect(replacements).toHaveLength(1))
+		await waitFor(() => {
+			expect(replacements).toHaveLength(1)
+		})
 		expect(replacements[0]).toMatchObject({
 			selection: { anchor: { offset: 14 }, head: { offset: 18 } },
 			text: ``,
@@ -196,7 +203,9 @@ describe(`Markdown workspace drafts`, () => {
 		rendered.rerender(<MarkdownWorkspace client={client} />)
 		first.resolve()
 
-		await waitFor(() => expect(replacements).toHaveLength(2))
+		await waitFor(() => {
+			expect(replacements).toHaveLength(2)
+		})
 		expect(replacements[1]).toMatchObject({
 			selection: { anchor: { offset: 14 }, head: { offset: 14 } },
 			text: `ners`,
@@ -205,9 +214,13 @@ describe(`Markdown workspace drafts`, () => {
 		harness.length = 18
 		rendered.rerender(<MarkdownWorkspace client={client} />)
 		second.resolve()
-		await waitFor(() => expect(harness.editor?.value).toBe(`Add rollout owners`))
-		await waitFor(() => expect(harness.editor?.selection).toEqual([18, 18]))
-		await waitFor(() =>
+		await waitFor(() => {
+			expect(harness.editor?.value).toBe(`Add rollout owners`)
+		})
+		await waitFor(() => {
+			expect(harness.editor?.selection).toEqual([18, 18])
+		})
+		await waitFor(() => {
 			expect(
 				publishedPresence.filter((presence) => presence.selection !== null),
 			).toMatchObject([
@@ -217,17 +230,19 @@ describe(`Markdown workspace drafts`, () => {
 						head: { offset: 18 },
 					},
 				},
-			]),
-		)
+			])
+		})
 
 		const inserted = `Add careful rollout owners`
 		act(() => harness.editor?.onValueChange(inserted, false))
-		await waitFor(() =>
+		await waitFor(() => {
 			expect(harness.editor?.selections).toMatchObject([
 				{ end: 18, name: `Lin`, start: 18 },
-			]),
-		)
-		await waitFor(() => expect(replacements).toHaveLength(3))
+			])
+		})
+		await waitFor(() => {
+			expect(replacements).toHaveLength(3)
+		})
 		expect(replacements[2]).toMatchObject({
 			selection: { anchor: { offset: 4 }, head: { offset: 4 } },
 			text: `careful `,
@@ -246,7 +261,9 @@ describe(`Markdown workspace drafts`, () => {
 		)
 		rendered.rerender(<MarkdownWorkspace client={client} />)
 		third.resolve()
-		await waitFor(() => expect(harness.editor?.value).toBe(inserted))
+		await waitFor(() => {
+			expect(harness.editor?.value).toBe(inserted)
+		})
 		// The previous cursor offsets remain bound to the projection that resolved
 		// them until the next logical lookup completes. Never reinterpret them
 		// against the accepted text and briefly regress the overlay.
@@ -267,7 +284,9 @@ describe(`Markdown workspace drafts`, () => {
 			3,
 		)
 		rendered.rerender(<MarkdownWorkspace client={client} />)
-		await waitFor(() => expect(replacements).toHaveLength(4))
+		await waitFor(() => {
+			expect(replacements).toHaveLength(4)
+		})
 		expect(replacements[3]).toMatchObject({
 			selection: {
 				anchor: { affinity: `left`, offset: 18, runId: `base` },
@@ -288,9 +307,11 @@ describe(`Markdown workspace drafts`, () => {
 		)
 		rendered.rerender(<MarkdownWorkspace client={client} />)
 		fourth.resolve()
-		await waitFor(() => expect(harness.editor?.value).toBe(`${inserted}!`))
-		await waitFor(() =>
-			expect(rendered.getAllByText(`All changes saved`)).toHaveLength(2),
-		)
+		await waitFor(() => {
+			expect(harness.editor?.value).toBe(`${inserted}!`)
+		})
+		await waitFor(() => {
+			expect(rendered.getAllByText(`All changes saved`)).toHaveLength(2)
+		})
 	})
 })

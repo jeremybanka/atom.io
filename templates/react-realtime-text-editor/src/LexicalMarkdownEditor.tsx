@@ -353,7 +353,7 @@ function MosaicInputPlugin({
 	return (
 		<OnChangePlugin
 			ignoreSelectionChange={false}
-			onChange={(editorState, editor, tags) => {
+			onChange={(editorState, lexicalEditor, tags) => {
 				if (tags.has(MOSAIC_PROJECTION_TAG)) return
 				const snapshot = editorState.read(() => {
 					const selection = $getSelection()
@@ -364,12 +364,12 @@ function MosaicInputPlugin({
 						text: $getRoot().getTextContent(),
 					}
 				})
-				const nextComposing = editor.isComposing()
+				const nextComposing = lexicalEditor.isComposing()
 				if (snapshot.text !== value || composing.current !== nextComposing) {
 					onValueChange(snapshot.text, nextComposing)
 				}
 				composing.current = nextComposing
-				const root = editor.getRootElement()
+				const root = lexicalEditor.getRootElement()
 				if (
 					snapshot.selection === null ||
 					root === null ||

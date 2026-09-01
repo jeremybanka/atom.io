@@ -14,14 +14,14 @@ import {
 	pathDrawSelectors,
 	pathOrderAtom,
 	pointerCaptureAtom,
+	type PointXY,
 	previewSvgDrag,
 	projectedEdgeSelectors,
 	projectedNodeSelectors,
 	replaceSvgDrawing,
 	subpathOrderAtoms,
-	svgElementAtom,
-	type PointXY,
 	type SvgDragTarget,
+	svgElementAtom,
 } from "./svg-editor-state.ts"
 
 const WIDTH = 256

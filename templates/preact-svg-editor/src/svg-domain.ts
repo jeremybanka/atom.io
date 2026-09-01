@@ -10,7 +10,6 @@ import {
 } from "atom.io/realtime"
 import type {
 	MosaicDomainBatchClient,
-	MosaicDomainBatchClientOperation,
 	MosaicDomainPresenceClient,
 } from "atom.io/realtime-client"
 import { z } from "zod"
@@ -116,17 +115,17 @@ const valueModel = <
 	readonly operationSchema: z.ZodType<Operation>
 	readonly reduce: (value: Value, operation: Operation) => Value
 }): MosaicDomainValueModel<
-	Value & Json.Serializable,
-	Operation & Json.Serializable
+	Json.Serializable & Value,
+	Json.Serializable & Operation
 > => ({
 	history: seam.history as MosaicDomainMemberHistoryPolicy<
-		Value & Json.Serializable,
-		Operation & Json.Serializable
+		Json.Serializable & Value,
+		Json.Serializable & Operation
 	>,
 	identity: seam.identity,
 	kind: `value`,
 	operationSchema: seam.operationSchema as z.ZodType<
-		Operation & Json.Serializable
+		Json.Serializable & Operation
 	>,
 	reduce: (value, operation, context) => {
 		if (operation.actor !== context.actor) {
@@ -143,7 +142,7 @@ const valueModel = <
 				}
 			}
 		}
-		return seam.reduce(value, operation) as Value & Json.Serializable
+		return seam.reduce(value, operation) as Json.Serializable & Value
 	},
 })
 
@@ -398,10 +397,7 @@ export function createSvgDomainEditor(options: {
 			...planned,
 			operation: { ...planned.operation, actor: gesture.actor },
 		}))
-		await options.batch.submit(
-			authored as readonly MosaicDomainBatchClientOperation[],
-			gesture.id,
-		)
+		await options.batch.submit(authored, gesture.id)
 		if (options.batch.state.status === `rejected`) {
 			throw new Error(
 				options.batch.state.problem?.reason ??

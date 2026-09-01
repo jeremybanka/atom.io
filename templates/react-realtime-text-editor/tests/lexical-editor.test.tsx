@@ -37,12 +37,16 @@ describe(`Lexical Markdown editor`, () => {
 			<LexicalMarkdownEditor {...properties} value="alpha" />,
 		)
 		const editor = await rendered.findByRole(`textbox`)
-		await waitFor(() => expect(editor.textContent).toBe(`alpha`))
+		await waitFor(() => {
+			expect(editor.textContent).toBe(`alpha`)
+		})
 		editor.focus()
 		expect(document.activeElement).toBe(editor)
 
 		rendered.rerender(<LexicalMarkdownEditor {...properties} value="alpha!" />)
-		await waitFor(() => expect(editor.textContent).toBe(`alpha!`))
+		await waitFor(() => {
+			expect(editor.textContent).toBe(`alpha!`)
+		})
 		expect(rendered.getByRole(`textbox`)).toBe(editor)
 		expect(document.activeElement).toBe(editor)
 	})
@@ -206,7 +210,9 @@ describe(`Lexical Markdown editor`, () => {
 			<LexicalMarkdownEditor {...properties} value="alpha omega" />,
 		)
 		const editor = await rendered.findByRole(`textbox`)
-		await waitFor(() => expect(editor.textContent).toBe(`alpha omega`))
+		await waitFor(() => {
+			expect(editor.textContent).toBe(`alpha omega`)
+		})
 		const text = editor.querySelector(`span`)?.firstChild ?? null
 		expect(text).toBeInstanceOf(Text)
 		const selection = getSelection()
@@ -216,7 +222,9 @@ describe(`Lexical Markdown editor`, () => {
 			editor.focus()
 			await Promise.resolve()
 		})
-		await waitFor(() => expect(reported).toEqual([6, 6]))
+		await waitFor(() => {
+			expect(reported).toEqual([6, 6])
+		})
 
 		rendered.rerender(
 			<LexicalMarkdownEditor
@@ -225,7 +233,9 @@ describe(`Lexical Markdown editor`, () => {
 				value="prefix alpha omega"
 			/>,
 		)
-		await waitFor(() => expect(editor.textContent).toBe(`prefix alpha omega`))
+		await waitFor(() => {
+			expect(editor.textContent).toBe(`prefix alpha omega`)
+		})
 		await waitFor(() => {
 			const restored = getSelection()
 			expect(restored?.anchorOffset).toBe(13)
@@ -251,7 +261,9 @@ describe(`Lexical Markdown editor`, () => {
 			<LexicalMarkdownEditor {...properties} value={`alpha\n\n1. item`} />,
 		)
 		const editor = await rendered.findByRole(`textbox`)
-		await waitFor(() => expect(editor.querySelectorAll(`br`)).toHaveLength(2))
+		await waitFor(() => {
+			expect(editor.querySelectorAll(`br`)).toHaveLength(2)
+		})
 		await waitFor(() => {
 			const selection = getSelection()
 			expect(selection?.anchorNode).toBe(editor.querySelector(`p`))
@@ -267,7 +279,9 @@ describe(`Lexical Markdown editor`, () => {
 				value={`alpha\n\n1. item!`}
 			/>,
 		)
-		await waitFor(() => expect(editor.querySelectorAll(`br`)).toHaveLength(2))
+		await waitFor(() => {
+			expect(editor.querySelectorAll(`br`)).toHaveLength(2)
+		})
 		await waitFor(() => {
 			const selection = getSelection()
 			expect(selection?.anchorNode).toBe(editor.querySelector(`p`))

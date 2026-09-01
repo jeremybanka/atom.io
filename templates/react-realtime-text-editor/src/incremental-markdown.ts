@@ -184,7 +184,9 @@ export class IncrementalMarkdownParser {
 		this.cancel()
 		const generation = new AbortController()
 		this.#generation = generation
-		const abort = (): void => generation.abort()
+		const abort = (): void => {
+			generation.abort()
+		}
 		if (options.signal?.aborted) abort()
 		options.signal?.addEventListener(`abort`, abort, { once: true })
 		const started = performance.now()

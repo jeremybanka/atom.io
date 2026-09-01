@@ -17,30 +17,176 @@ Every public export from `atom.io/realtime-server` is listed below. Classes that
 also name their instance type appear in both runtime and contract columns.
 
 <table-wrapper>
-  <table>
-    <thead><tr><th>Area</th><th>Runtime exports</th><th>Associated contracts</th></tr></thead>
-    <tbody>
-      <tr><td>Connection entrypoint</td><td><code>realtime</code></td><td><code>Handshake</code>, <code>ServerConfig</code>, <code>UserServerConfig</code></td></tr>
-      <tr><td>Rigid providers</td><td><code>realtimeAtomFamilyProvider</code>, <code>realtimeMutableFamilyProvider</code>, <code>realtimeMutableProvider</code>, <code>realtimeStateProvider</code>, <code>realtimeStateReceiver</code></td><td><code>FamilyProvider</code>, <code>MutableFamilyProvider</code>, <code>MutableProvider</code>, <code>RealtimeLeaseClock</code>, <code>RealtimeStateReceiverOptions</code>, <code>StateProvider</code>, <code>StateReceiver</code></td></tr>
-      <tr><td>Socket state</td><td><code>onlineUsersAtom</code>, <code>socketAtoms</code>, <code>socketKeysAtom</code>, <code>usersOfSockets</code></td><td><code>SocketSystemHierarchy</code></td></tr>
-      <tr><td>Rooms</td><td><code>DEFAULT_ROOM_TIMEOUTS</code>, <code>ROOMS</code>, <code>destroyRoom</code>, <code>provideEnterAndExit</code>, <code>provideRooms</code>, <code>roomMeta</code>, <code>spawnRoom</code></td><td><code>DestroyRoomConfig</code>, <code>ProvideEnterAndExitConfig</code>, <code>ProvideRoomsConfig</code>, <code>RoomMap</code>, <code>RoomProcessFactory</code>, <code>RoomTimeouts</code>, <code>SpawnRoomConfig</code></td></tr>
-      <tr><td>IPC child socket</td><td><code>ChildSocket</code></td><td><code>ChildProcess</code>, <code>ChildSocket</code>, <code>StderrLog</code></td></tr>
-      <tr><td>IPC custom socket</td><td><code>CustomSocket</code>, <code>isEventPayload</code></td><td><code>CustomSocket</code>, <code>EventBuffer</code>, <code>EventPayload</code>, <code>Events</code></td></tr>
-      <tr><td>IPC framing</td><td><code>DelimitedJsonCodec</code>, <code>IPC_FRAME_DELIMITER</code>, <code>encodeJsonFrame</code></td><td><code>DelimitedJsonCodec</code>, <code>DelimitedJsonCodecOptions</code></td></tr>
-      <tr><td>IPC parent socket</td><td><code>PROOF_OF_LIFE_SIGNAL</code>, <code>ParentSocket</code>, <code>SubjectSocket</code></td><td><code>ParentProcess</code>, <code>ParentSocket</code>, <code>SubjectSocket</code></td></tr>
-      <tr><td>Atomic Mosaic server</td><td><code>createMosaicServer</code>, <code>defineMosaicAtomRegistration</code>, <code>fingerprintMosaicOperation</code></td><td><code>MosaicAtomRegistration</code>, <code>MosaicAuthorizationAction</code>, <code>MosaicAuthorizationContext</code>, <code>MosaicPresenceContext</code>, <code>MosaicServer</code>, <code>MosaicServerAtomStatus</code>, <code>MosaicServerConnection</code>, <code>MosaicServerOptions</code>, <code>MosaicServerSnapshot</code>, <code>MosaicServerTarget</code>, <code>MosaicTransceiverClass</code></td></tr>
-      <tr><td>Atomic Mosaic storage</td><td><code>InMemoryMosaicStorage</code></td><td><code>InMemoryMosaicStorage</code>, <code>MosaicHeadHint</code>, <code>MosaicStorageAdapter</code>, <code>MosaicStorageAppendRequest</code>, <code>MosaicStorageAppendResult</code>, <code>MosaicStorageCheckpointRequest</code>, <code>MosaicStorageCheckpointResult</code>, <code>MosaicStorageRecovery</code>, <code>MosaicStorageResult</code>, <code>MosaicStoredCheckpoint</code>, <code>MosaicStoredReceipt</code></td></tr>
-      <tr><td>Domain batch authority</td><td><code>createMosaicDomainBatchServer</code>, <code>fingerprintMosaicDomainBatch</code></td><td><code>MosaicDomainBatchAuthorizationContext</code>, <code>MosaicDomainBatchConnection</code>, <code>MosaicDomainBatchProposalResult</code>, <code>MosaicDomainBatchServer</code>, <code>MosaicDomainBatchServerOptions</code></td></tr>
-      <tr><td>Domain batch storage</td><td><code>InMemoryMosaicDomainBatchStorage</code></td><td><code>InMemoryMosaicDomainBatchStorage</code>, <code>MosaicDomainBatchAppendRequest</code>, <code>MosaicDomainBatchAppendResult</code>, <code>MosaicDomainBatchReceipt</code>, <code>MosaicDomainBatchRecovery</code>, <code>MosaicDomainBatchStorageAdapter</code>, <code>MosaicDomainBatchStorageResult</code></td></tr>
-      <tr><td>Checkpoint coordinator</td><td><code>createMosaicDomainCheckpointCoordinator</code>, <code>stageMosaicDomainExternalCheckpointGraph</code></td><td><code>MosaicDomainCheckpointCoordinator</code>, <code>MosaicDomainCheckpointCoordinatorOptions</code>, <code>MosaicDomainCheckpointIndexUpdate</code>, <code>MosaicDomainCheckpointResult</code>, <code>MosaicDomainExternalCheckpointGraphLimits</code>, <code>MosaicDomainExternalCheckpointGraphOptions</code>, <code>MosaicDomainExternalCheckpointGraphResult</code>, <code>MosaicDomainExternalCheckpointGraphUpdate</code>, <code>MosaicDomainExternalCheckpointReader</code></td></tr>
-      <tr><td>Checkpoint storage</td><td><code>InMemoryMosaicDomainCheckpointStorage</code>, <code>mosaicDomainCheckpointObjectKey</code></td><td><code>InMemoryMosaicDomainCheckpointStorage</code>, <code>MosaicDomainCheckpointAcceptedProposal</code>, <code>MosaicDomainCheckpointBatchAppendRequest</code>, <code>MosaicDomainCheckpointCollectionRequest</code>, <code>MosaicDomainCheckpointCollectionResult</code>, <code>MosaicDomainCheckpointCommitRequest</code>, <code>MosaicDomainCheckpointCommitResult</code>, <code>MosaicDomainCheckpointExternalGraphProof</code>, <code>MosaicDomainCheckpointHead</code>, <code>MosaicDomainCheckpointObjectPage</code>, <code>MosaicDomainCheckpointStageOptions</code>, <code>MosaicDomainCheckpointStageProposal</code>, <code>MosaicDomainCheckpointStageResult</code>, <code>MosaicDomainCheckpointStorageAdapter</code>, <code>MosaicDomainCheckpointStoredObject</code></td></tr>
-      <tr><td>Domain history</td><td><code>DEFAULT_MOSAIC_DOMAIN_HISTORY_LIMITS</code>, <code>bindMosaicDomainHistoryServerSocket</code>, <code>createMosaicDomainHistoryCoordinator</code></td><td><code>MosaicDomainHistoryCheckpointIntegration</code>, <code>MosaicDomainHistoryConnection</code>, <code>MosaicDomainHistoryCoordinator</code>, <code>MosaicDomainHistoryCoordinatorOptions</code>, <code>MosaicDomainHistoryLimits</code>, <code>MosaicDomainHistoryServerSocket</code>, <code>MosaicDomainHistoryStats</code>, <code>MosaicDomainHistoryWorkTracker</code></td></tr>
-      <tr><td>Domain presence</td><td><code>bindMosaicDomainPresenceServerSocket</code>, <code>createMosaicDomainPresenceServer</code></td><td><code>MosaicDomainPresenceConnection</code>, <code>MosaicDomainPresenceServer</code>, <code>MosaicDomainPresenceServerOptions</code>, <code>MosaicDomainPresenceServerSocket</code>, <code>MosaicDomainPresenceWorkTracker</code></td></tr>
-      <tr><td>Domain residency</td><td><code>bindMosaicDomainResidencyServerSocket</code>, <code>createMosaicDomainResidencyServer</code></td><td><code>MosaicDomainRangeResolver</code>, <code>MosaicDomainResidencyAuthorizationContext</code>, <code>MosaicDomainResidencyServer</code>, <code>MosaicDomainResidencyServerOptions</code>, <code>MosaicDomainResidencyServerSocket</code>, <code>MosaicDomainResidencyWorkTracker</code></td></tr>
-      <tr><td>Text document coordination</td><td><code>createMosaicTextDocumentCoordinator</code>, <code>prepareMosaicTextImportOperation</code></td><td><code>MosaicTextDocumentCommand</code>, <code>MosaicTextDocumentCoordinator</code>, <code>MosaicTextDocumentInstrumentation</code>, <code>MosaicTextDocumentRangeInspection</code></td></tr>
-      <tr><td>Content-addressed text storage</td><td><code>MOSAIC_TEXT_ROOT_CHECKPOINT_INDEX</code>, <code>MOSAIC_TEXT_ROOT_MANIFEST_INDEX</code>, <code>MOSAIC_TEXT_ROOT_REFERENCE_COUNT_INDEX</code>, <code>createMosaicTextRootCheckpointReader</code>, <code>createMosaicTextRootCheckpointStage</code></td><td><code>MosaicTextRootCheckpointReader</code>, <code>MosaicTextRootCheckpointStage</code>, <code>MosaicTextRootCheckpointStageOptions</code>, <code>MosaicTextRootExternalIndexReader</code></td></tr>
-    </tbody>
-  </table>
+	<table>
+		<thead>
+			<tr>
+				<th>Area</th>
+				<th>Runtime exports</th>
+				<th>Associated contracts</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>Connection entrypoint</td>
+				<td><code>realtime</code></td>
+				<td>
+					<code>Handshake</code>, <code>ServerConfig</code>, <code>UserServerConfig</code>
+				</td>
+			</tr>
+			<tr>
+				<td>Rigid providers</td>
+				<td>
+					<code>realtimeAtomFamilyProvider</code>, <code>realtimeMutableFamilyProvider</code>, <code>realtimeMutableProvider</code>, <code>realtimeStateProvider</code>, <code>realtimeStateReceiver</code>
+				</td>
+				<td>
+					<code>FamilyProvider</code>, <code>MutableFamilyProvider</code>, <code>MutableProvider</code>, <code>RealtimeLeaseClock</code>, <code>RealtimeStateReceiverOptions</code>, <code>StateProvider</code>, <code>StateReceiver</code>
+				</td>
+			</tr>
+			<tr>
+				<td>Socket state</td>
+				<td>
+					<code>onlineUsersAtom</code>, <code>socketAtoms</code>, <code>socketKeysAtom</code>, <code>usersOfSockets</code>
+				</td>
+				<td><code>SocketSystemHierarchy</code></td>
+			</tr>
+			<tr>
+				<td>Rooms</td>
+				<td>
+					<code>DEFAULT_ROOM_TIMEOUTS</code>, <code>ROOMS</code>, <code>destroyRoom</code>, <code>provideEnterAndExit</code>, <code>provideRooms</code>, <code>roomMeta</code>, <code>spawnRoom</code>
+				</td>
+				<td>
+					<code>DestroyRoomConfig</code>, <code>ProvideEnterAndExitConfig</code>, <code>ProvideRoomsConfig</code>, <code>RoomMap</code>, <code>RoomProcessFactory</code>, <code>RoomTimeouts</code>, <code>SpawnRoomConfig</code>
+				</td>
+			</tr>
+			<tr>
+				<td>IPC child socket</td>
+				<td><code>ChildSocket</code></td>
+				<td>
+					<code>ChildProcess</code>, <code>ChildSocket</code>, <code>StderrLog</code>
+				</td>
+			</tr>
+			<tr>
+				<td>IPC custom socket</td>
+				<td><code>CustomSocket</code>, <code>isEventPayload</code></td>
+				<td>
+					<code>CustomSocket</code>, <code>EventBuffer</code>, <code>EventPayload</code>, <code>Events</code>
+				</td>
+			</tr>
+			<tr>
+				<td>IPC framing</td>
+				<td>
+					<code>DelimitedJsonCodec</code>, <code>IPC_FRAME_DELIMITER</code>, <code>encodeJsonFrame</code>
+				</td>
+				<td>
+					<code>DelimitedJsonCodec</code>, <code>DelimitedJsonCodecOptions</code>
+				</td>
+			</tr>
+			<tr>
+				<td>IPC parent socket</td>
+				<td>
+					<code>PROOF_OF_LIFE_SIGNAL</code>, <code>ParentSocket</code>, <code>SubjectSocket</code>
+				</td>
+				<td>
+					<code>ParentProcess</code>, <code>ParentSocket</code>, <code>SubjectSocket</code>
+				</td>
+			</tr>
+			<tr>
+				<td>Atomic Mosaic server</td>
+				<td>
+					<code>createMosaicServer</code>, <code>defineMosaicAtomRegistration</code>, <code>fingerprintMosaicOperation</code>
+				</td>
+				<td>
+					<code>MosaicAtomRegistration</code>, <code>MosaicAuthorizationAction</code>, <code>MosaicAuthorizationContext</code>, <code>MosaicPresenceContext</code>, <code>MosaicServer</code>, <code>MosaicServerAtomStatus</code>, <code>MosaicServerConnection</code>, <code>MosaicServerOptions</code>, <code>MosaicServerSnapshot</code>, <code>MosaicServerTarget</code>, <code>MosaicTransceiverClass</code>
+				</td>
+			</tr>
+			<tr>
+				<td>Atomic Mosaic storage</td>
+				<td><code>InMemoryMosaicStorage</code></td>
+				<td>
+					<code>InMemoryMosaicStorage</code>, <code>MosaicHeadHint</code>, <code>MosaicStorageAdapter</code>, <code>MosaicStorageAppendRequest</code>, <code>MosaicStorageAppendResult</code>, <code>MosaicStorageCheckpointRequest</code>, <code>MosaicStorageCheckpointResult</code>, <code>MosaicStorageRecovery</code>, <code>MosaicStorageResult</code>, <code>MosaicStoredCheckpoint</code>, <code>MosaicStoredReceipt</code>
+				</td>
+			</tr>
+			<tr>
+				<td>Domain batch authority</td>
+				<td>
+					<code>createMosaicDomainBatchServer</code>, <code>fingerprintMosaicDomainBatch</code>
+				</td>
+				<td>
+					<code>MosaicDomainBatchAuthorizationContext</code>, <code>MosaicDomainBatchConnection</code>, <code>MosaicDomainBatchProposalResult</code>, <code>MosaicDomainBatchServer</code>, <code>MosaicDomainBatchServerOptions</code>
+				</td>
+			</tr>
+			<tr>
+				<td>Domain batch storage</td>
+				<td><code>InMemoryMosaicDomainBatchStorage</code></td>
+				<td>
+					<code>InMemoryMosaicDomainBatchStorage</code>, <code>MosaicDomainBatchAppendRequest</code>, <code>MosaicDomainBatchAppendResult</code>, <code>MosaicDomainBatchReceipt</code>, <code>MosaicDomainBatchRecovery</code>, <code>MosaicDomainBatchStorageAdapter</code>, <code>MosaicDomainBatchStorageResult</code>
+				</td>
+			</tr>
+			<tr>
+				<td>Checkpoint coordinator</td>
+				<td>
+					<code>createMosaicDomainCheckpointCoordinator</code>, <code>stageMosaicDomainExternalCheckpointGraph</code>
+				</td>
+				<td>
+					<code>MosaicDomainCheckpointCoordinator</code>, <code>MosaicDomainCheckpointCoordinatorOptions</code>, <code>MosaicDomainCheckpointIndexUpdate</code>, <code>MosaicDomainCheckpointResult</code>, <code>MosaicDomainExternalCheckpointGraphLimits</code>, <code>MosaicDomainExternalCheckpointGraphOptions</code>, <code>MosaicDomainExternalCheckpointGraphResult</code>, <code>MosaicDomainExternalCheckpointGraphUpdate</code>, <code>MosaicDomainExternalCheckpointReader</code>
+				</td>
+			</tr>
+			<tr>
+				<td>Checkpoint storage</td>
+				<td>
+					<code>InMemoryMosaicDomainCheckpointStorage</code>, <code>mosaicDomainCheckpointObjectKey</code>
+				</td>
+				<td>
+					<code>InMemoryMosaicDomainCheckpointStorage</code>, <code>MosaicDomainCheckpointAcceptedProposal</code>, <code>MosaicDomainCheckpointBatchAppendRequest</code>, <code>MosaicDomainCheckpointCollectionRequest</code>, <code>MosaicDomainCheckpointCollectionResult</code>, <code>MosaicDomainCheckpointCommitRequest</code>, <code>MosaicDomainCheckpointCommitResult</code>, <code>MosaicDomainCheckpointExternalGraphProof</code>, <code>MosaicDomainCheckpointHead</code>, <code>MosaicDomainCheckpointObjectPage</code>, <code>MosaicDomainCheckpointStageOptions</code>, <code>MosaicDomainCheckpointStageProposal</code>, <code>MosaicDomainCheckpointStageResult</code>, <code>MosaicDomainCheckpointStorageAdapter</code>, <code>MosaicDomainCheckpointStoredObject</code>
+				</td>
+			</tr>
+			<tr>
+				<td>Domain history</td>
+				<td>
+					<code>DEFAULT_MOSAIC_DOMAIN_HISTORY_LIMITS</code>, <code>bindMosaicDomainHistoryServerSocket</code>, <code>createMosaicDomainHistoryCoordinator</code>
+				</td>
+				<td>
+					<code>MosaicDomainHistoryCheckpointIntegration</code>, <code>MosaicDomainHistoryConnection</code>, <code>MosaicDomainHistoryCoordinator</code>, <code>MosaicDomainHistoryCoordinatorOptions</code>, <code>MosaicDomainHistoryLimits</code>, <code>MosaicDomainHistoryServerSocket</code>, <code>MosaicDomainHistoryStats</code>, <code>MosaicDomainHistoryWorkTracker</code>
+				</td>
+			</tr>
+			<tr>
+				<td>Domain presence</td>
+				<td>
+					<code>bindMosaicDomainPresenceServerSocket</code>, <code>createMosaicDomainPresenceServer</code>
+				</td>
+				<td>
+					<code>MosaicDomainPresenceConnection</code>, <code>MosaicDomainPresenceServer</code>, <code>MosaicDomainPresenceServerOptions</code>, <code>MosaicDomainPresenceServerSocket</code>, <code>MosaicDomainPresenceWorkTracker</code>
+				</td>
+			</tr>
+			<tr>
+				<td>Domain residency</td>
+				<td>
+					<code>bindMosaicDomainResidencyServerSocket</code>, <code>createMosaicDomainResidencyServer</code>
+				</td>
+				<td>
+					<code>MosaicDomainRangeResolver</code>, <code>MosaicDomainResidencyAuthorizationContext</code>, <code>MosaicDomainResidencyServer</code>, <code>MosaicDomainResidencyServerOptions</code>, <code>MosaicDomainResidencyServerSocket</code>, <code>MosaicDomainResidencyWorkTracker</code>
+				</td>
+			</tr>
+			<tr>
+				<td>Text document coordination</td>
+				<td>
+					<code>createMosaicTextDocumentCoordinator</code>, <code>prepareMosaicTextImportOperation</code>
+				</td>
+				<td>
+					<code>MosaicTextDocumentCommand</code>, <code>MosaicTextDocumentCoordinator</code>, <code>MosaicTextDocumentInstrumentation</code>, <code>MosaicTextDocumentRangeInspection</code>
+				</td>
+			</tr>
+			<tr>
+				<td>Content-addressed text storage</td>
+				<td>
+					<code>MOSAIC_TEXT_ROOT_CHECKPOINT_INDEX</code>, <code>MOSAIC_TEXT_ROOT_MANIFEST_INDEX</code>, <code>MOSAIC_TEXT_ROOT_REFERENCE_COUNT_INDEX</code>, <code>createMosaicTextRootCheckpointReader</code>, <code>createMosaicTextRootCheckpointStage</code>
+				</td>
+				<td>
+					<code>MosaicTextRootCheckpointReader</code>, <code>MosaicTextRootCheckpointStage</code>, <code>MosaicTextRootCheckpointStageOptions</code>, <code>MosaicTextRootExternalIndexReader</code>
+				</td>
+			</tr>
+		</tbody>
+	</table>
 </table-wrapper>
 
 ## authenticate before composition
@@ -58,21 +204,70 @@ glyph or publish arbitrary presence.
 ## server component map
 
 <table-wrapper>
-  <table>
-    <thead><tr><th>Component</th><th>Responsibility</th></tr></thead>
-    <tbody>
-      <tr><td><code>createMosaicServer</code></td><td>Atomic Mosaic registration, join, reduce, recovery, presence, and checkpoints for individual mutable atoms.</td></tr>
-      <tr><td><code>createMosaicDomainBatchServer</code></td><td>Normalize, authorize, serialize, append, and broadcast atomic Domain batches.</td></tr>
-      <tr><td><code>createMosaicDomainResidencyServer</code></td><td>Authorize explicit/range selections and deliver filtered snapshots and tails.</td></tr>
-      <tr><td><code>createMosaicTextDocumentCoordinator</code></td><td>Stage/import content-addressed text, translate commands into atomic source/index batches, inspect bounded ranges, and expose measured work.</td></tr>
-      <tr><td><code>createMosaicDomainPresenceServer</code></td><td>Bind actor/session presence, rate limit, snapshot, expire, and clean up.</td></tr>
-      <tr><td><code>createMosaicDomainHistoryCoordinator</code></td><td>Maintain actor cursors/horizons and submit validated compensating batches.</td></tr>
-      <tr><td><code>createMosaicDomainCheckpointCoordinator</code></td><td>Publish fenced content-addressed roots, recover selections, and coordinate retention/GC.</td></tr>
-      <tr><td><code>realtimeStateProvider</code></td><td>Serve rigid snapshots and subscriptions.</td></tr>
-      <tr><td><code>realtimeStateReceiver</code></td><td>Validate leased rigid publications and expire ownership.</td></tr>
-      <tr><td><code>provideRooms</code></td><td>Authorize and host isolated room processes with bounded lifecycle.</td></tr>
-    </tbody>
-  </table>
+	<table>
+		<thead>
+			<tr>
+				<th>Component</th>
+				<th>Responsibility</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td><code>createMosaicServer</code></td>
+				<td>
+					Atomic Mosaic registration, join, reduce, recovery, presence, and checkpoints for individual mutable atoms.
+				</td>
+			</tr>
+			<tr>
+				<td><code>createMosaicDomainBatchServer</code></td>
+				<td>
+					Normalize, authorize, serialize, append, and broadcast atomic Domain batches.
+				</td>
+			</tr>
+			<tr>
+				<td><code>createMosaicDomainResidencyServer</code></td>
+				<td>
+					Authorize explicit/range selections and deliver filtered snapshots and tails.
+				</td>
+			</tr>
+			<tr>
+				<td><code>createMosaicTextDocumentCoordinator</code></td>
+				<td>
+					Stage/import content-addressed text, translate commands into atomic source/index batches, inspect bounded ranges, and expose measured work.
+				</td>
+			</tr>
+			<tr>
+				<td><code>createMosaicDomainPresenceServer</code></td>
+				<td>
+					Bind actor/session presence, rate limit, snapshot, expire, and clean up.
+				</td>
+			</tr>
+			<tr>
+				<td><code>createMosaicDomainHistoryCoordinator</code></td>
+				<td>
+					Maintain actor cursors/horizons and submit validated compensating batches.
+				</td>
+			</tr>
+			<tr>
+				<td><code>createMosaicDomainCheckpointCoordinator</code></td>
+				<td>
+					Publish fenced content-addressed roots, recover selections, and coordinate retention/GC.
+				</td>
+			</tr>
+			<tr>
+				<td><code>realtimeStateProvider</code></td>
+				<td>Serve rigid snapshots and subscriptions.</td>
+			</tr>
+			<tr>
+				<td><code>realtimeStateReceiver</code></td>
+				<td>Validate leased rigid publications and expire ownership.</td>
+			</tr>
+			<tr>
+				<td><code>provideRooms</code></td>
+				<td>Authorize and host isolated room processes with bounded lifecycle.</td>
+			</tr>
+		</tbody>
+	</table>
 </table-wrapper>
 
 ## batch authority

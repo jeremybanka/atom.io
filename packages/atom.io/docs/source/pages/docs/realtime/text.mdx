@@ -7,21 +7,31 @@ the size and residency requirements of the document, not according to the UI
 framework.
 
 <table-wrapper>
-  <table>
-    <thead><tr><th>Representation</th><th>Use it for</th><th>Durable unit</th></tr></thead>
-    <tbody>
-      <tr>
-        <td>Logical-run text model</td>
-        <td>Convergent edits, stable positions, operation history, and bounded checkpoints.</td>
-        <td>Logical insertion runs and deletion intervals.</td>
-      </tr>
-      <tr>
-        <td>Content-addressed text root</td>
-        <td>Very large text that must be staged, read, edited, and checkpointed by bounded ranges.</td>
-        <td>Content-addressed leaves beneath a small Merkle root.</td>
-      </tr>
-    </tbody>
-  </table>
+	<table>
+		<thead>
+			<tr>
+				<th>Representation</th>
+				<th>Use it for</th>
+				<th>Durable unit</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>Logical-run text model</td>
+				<td>
+					Convergent edits, stable positions, operation history, and bounded checkpoints.
+				</td>
+				<td>Logical insertion runs and deletion intervals.</td>
+			</tr>
+			<tr>
+				<td>Content-addressed text root</td>
+				<td>
+					Very large text that must be staged, read, edited, and checkpointed by bounded ranges.
+				</td>
+				<td>Content-addressed leaves beneath a small Merkle root.</td>
+			</tr>
+		</tbody>
+	</table>
 </table-wrapper>
 
 The canonical Markdown editor composes the two concerns with a bounded text

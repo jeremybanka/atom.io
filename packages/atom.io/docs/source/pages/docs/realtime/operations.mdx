@@ -43,19 +43,62 @@ their results happen to match.
 Set and observe limits at each layer:
 
 <table-wrapper>
-  <table>
-    <thead><tr><th>Layer</th><th>Bound</th></tr></thead>
-    <tbody>
-      <tr><td>Socket</td><td>Message bytes, acknowledgement timeout, pending requests, send/receive queues.</td></tr>
-      <tr><td>Batch</td><td>Operations, members, dependencies, bytes, pending proposals, recent receipts.</td></tr>
-      <tr><td>Model</td><td>Operation fields, referenced objects, inserted content, snapshot/checkpoint complexity.</td></tr>
-      <tr><td>Residency</td><td>Selection bytes/depth, addresses, resident members/bytes, catch-up events.</td></tr>
-      <tr><td>Presence</td><td>Payload bytes, rate, sessions, pending work, expiry.</td></tr>
-      <tr><td>History</td><td>Undo horizon, actors, sessions, retained targets, race cuts, compaction work.</td></tr>
-      <tr><td>Checkpoint</td><td>Objects, object bytes/depth, tail batches, page size, aggregate recovery, staging deadline.</td></tr>
-      <tr><td>Host</td><td>Rooms, connections, tenants, storage, CPU, memory, request deadline, shutdown drain.</td></tr>
-    </tbody>
-  </table>
+	<table>
+		<thead>
+			<tr>
+				<th>Layer</th>
+				<th>Bound</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>Socket</td>
+				<td>
+					Message bytes, acknowledgement timeout, pending requests, send/receive queues.
+				</td>
+			</tr>
+			<tr>
+				<td>Batch</td>
+				<td>
+					Operations, members, dependencies, bytes, pending proposals, recent receipts.
+				</td>
+			</tr>
+			<tr>
+				<td>Model</td>
+				<td>
+					Operation fields, referenced objects, inserted content, snapshot/checkpoint complexity.
+				</td>
+			</tr>
+			<tr>
+				<td>Residency</td>
+				<td>
+					Selection bytes/depth, addresses, resident members/bytes, catch-up events.
+				</td>
+			</tr>
+			<tr>
+				<td>Presence</td>
+				<td>Payload bytes, rate, sessions, pending work, expiry.</td>
+			</tr>
+			<tr>
+				<td>History</td>
+				<td>
+					Undo horizon, actors, sessions, retained targets, race cuts, compaction work.
+				</td>
+			</tr>
+			<tr>
+				<td>Checkpoint</td>
+				<td>
+					Objects, object bytes/depth, tail batches, page size, aggregate recovery, staging deadline.
+				</td>
+			</tr>
+			<tr>
+				<td>Host</td>
+				<td>
+					Rooms, connections, tenants, storage, CPU, memory, request deadline, shutdown drain.
+				</td>
+			</tr>
+		</tbody>
+	</table>
 </table-wrapper>
 
 Reject before expensive model work. Backpressure is preferable to accepting

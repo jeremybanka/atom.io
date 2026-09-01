@@ -25,27 +25,40 @@ Store for another instance. This preserves unambiguous ordinary token identity.
 ## member roles
 
 <table-wrapper>
-  <table>
-    <thead><tr><th>Role</th><th>Transport and ownership</th></tr></thead>
-    <tbody>
-      <tr>
-        <td><code>durable</code></td>
-        <td>Validated replicated state with exclusive Domain ownership and an address.</td>
-      </tr>
-      <tr>
-        <td><code>ephemeral</code></td>
-        <td>Validated collaborative presence with session/expiry lifecycle, not durable storage.</td>
-      </tr>
-      <tr>
-        <td><code>local</code></td>
-        <td>Store-local drafts, DOM/pointer state, viewport state, and local preferences; never remotely addressable.</td>
-      </tr>
-      <tr>
-        <td><code>derived</code></td>
-        <td>Ordinary selectors computed from durable, ephemeral, and local members; never remotely writable.</td>
-      </tr>
-    </tbody>
-  </table>
+	<table>
+		<thead>
+			<tr>
+				<th>Role</th>
+				<th>Transport and ownership</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td><code>durable</code></td>
+				<td>
+					Validated replicated state with exclusive Domain ownership and an address.
+				</td>
+			</tr>
+			<tr>
+				<td><code>ephemeral</code></td>
+				<td>
+					Validated collaborative presence with session/expiry lifecycle, not durable storage.
+				</td>
+			</tr>
+			<tr>
+				<td><code>local</code></td>
+				<td>
+					Store-local drafts, DOM/pointer state, viewport state, and local preferences; never remotely addressable.
+				</td>
+			</tr>
+			<tr>
+				<td><code>derived</code></td>
+				<td>
+					Ordinary selectors computed from durable, ephemeral, and local members; never remotely writable.
+				</td>
+			</tr>
+		</tbody>
+	</table>
 </table-wrapper>
 
 Durable family claims are intensional. The Domain claims the family pattern,
@@ -173,18 +186,52 @@ Domain owns authorization, transport, and atomic settlement.
 ## controller map
 
 <table-wrapper>
-  <table>
-    <thead><tr><th>Concern</th><th>Client</th><th>Server</th></tr></thead>
-    <tbody>
-      <tr><td>Durable change</td><td><code>createMosaicDomainBatchClient</code></td><td><code>createMosaicDomainBatchServer</code></td></tr>
-      <tr><td>Partial data</td><td><code>createMosaicDomainResidencyClient</code></td><td><code>createMosaicDomainResidencyServer</code></td></tr>
-      <tr><td>Session composition</td><td><code>createMosaicDomainSessionClient</code></td><td>Authenticated binders compose the authoritative services.</td></tr>
-      <tr><td>Presence</td><td><code>createMosaicDomainPresenceClient</code></td><td><code>createMosaicDomainPresenceServer</code></td></tr>
-      <tr><td>History</td><td><code>createMosaicDomainHistoryClient</code></td><td><code>createMosaicDomainHistoryCoordinator</code></td></tr>
-      <tr><td>Checkpoints</td><td>Recovered through residency/batch composition.</td><td><code>createMosaicDomainCheckpointCoordinator</code></td></tr>
-      <tr><td>Store transactions</td><td><code>createMosaicDomainTransactionBridge</code></td><td>Accepted as ordinary batches.</td></tr>
-    </tbody>
-  </table>
+	<table>
+		<thead>
+			<tr>
+				<th>Concern</th>
+				<th>Client</th>
+				<th>Server</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>Durable change</td>
+				<td><code>createMosaicDomainBatchClient</code></td>
+				<td><code>createMosaicDomainBatchServer</code></td>
+			</tr>
+			<tr>
+				<td>Partial data</td>
+				<td><code>createMosaicDomainResidencyClient</code></td>
+				<td><code>createMosaicDomainResidencyServer</code></td>
+			</tr>
+			<tr>
+				<td>Session composition</td>
+				<td><code>createMosaicDomainSessionClient</code></td>
+				<td>Authenticated binders compose the authoritative services.</td>
+			</tr>
+			<tr>
+				<td>Presence</td>
+				<td><code>createMosaicDomainPresenceClient</code></td>
+				<td><code>createMosaicDomainPresenceServer</code></td>
+			</tr>
+			<tr>
+				<td>History</td>
+				<td><code>createMosaicDomainHistoryClient</code></td>
+				<td><code>createMosaicDomainHistoryCoordinator</code></td>
+			</tr>
+			<tr>
+				<td>Checkpoints</td>
+				<td>Recovered through residency/batch composition.</td>
+				<td><code>createMosaicDomainCheckpointCoordinator</code></td>
+			</tr>
+			<tr>
+				<td>Store transactions</td>
+				<td><code>createMosaicDomainTransactionBridge</code></td>
+				<td>Accepted as ordinary batches.</td>
+			</tr>
+		</tbody>
+	</table>
 </table-wrapper>
 
 Continue with [`atom.io/realtime-client`](/docs/realtime-client),

@@ -68,46 +68,46 @@ ownership conflict leaves all proposed claims unowned.
 ## Member roles
 
 <table-wrapper>
-  <table>
-    <thead>
-      <tr>
-        <th>Role</th>
-        <th>Ownership and lifecycle</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td><code>durable</code></td>
-        <td>
-          Replicated application state. The domain reserves exclusive
-          durable ownership and exposes a Standard Schema for untrusted values.
-        </td>
-      </tr>
-      <tr>
-        <td><code>local</code></td>
-        <td>
-          Store-local application state, such as a local selection or draft.
-          It participates in application composition without receiving a
-          transport address or being accepted from a remote peer.
-        </td>
-      </tr>
-      <tr>
-        <td><code>derived</code></td>
-        <td>
-          Selectors derived from collaborative and local members. Derivation
-          remains entirely inside the ordinary atomic state graph. Derived
-          members do not receive transport addresses.
-        </td>
-      </tr>
-      <tr>
-        <td><code>ephemeral</code></td>
-        <td>
-          Validated, non-durable collaborative state such as presence. It does
-          not receive an exclusive durable claim.
-        </td>
-      </tr>
-    </tbody>
-  </table>
+	<table>
+		<thead>
+			<tr>
+				<th>Role</th>
+				<th>Ownership and lifecycle</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td><code>durable</code></td>
+				<td>
+					Replicated application state. The domain reserves exclusive
+					durable ownership and exposes a Standard Schema for untrusted values.
+				</td>
+			</tr>
+			<tr>
+				<td><code>local</code></td>
+				<td>
+					Store-local application state, such as a local selection or draft.
+					It participates in application composition without receiving a
+					transport address or being accepted from a remote peer.
+				</td>
+			</tr>
+			<tr>
+				<td><code>derived</code></td>
+				<td>
+					Selectors derived from collaborative and local members. Derivation
+					remains entirely inside the ordinary atomic state graph. Derived
+					members do not receive transport addresses.
+				</td>
+			</tr>
+			<tr>
+				<td><code>ephemeral</code></td>
+				<td>
+					Validated, non-durable collaborative state such as presence. It does
+					not receive an exclusive durable claim.
+				</td>
+			</tr>
+		</tbody>
+	</table>
 </table-wrapper>
 
 Durable and ephemeral value schemas, family-key schemas, and the configuration
@@ -476,47 +476,59 @@ same guarantees without teaching the runner what a text run or vector point is.
 The stable conformance seams and measurements are:
 
 <table-wrapper>
-  <table>
-    <thead>
-      <tr>
-        <th>Seam</th>
-        <th>Shared evidence</th>
-        <th>Instrumentation</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>Identity and addressing</td>
-        <td>Distinct representative addresses resolve to the declared Domain instance.</td>
-        <td>Address and definition validation failures.</td>
-      </tr>
-      <tr>
-        <td>Batch settlement</td>
-        <td>One logical gesture changes several model elements at one Domain revision without a partial selector frame.</td>
-        <td>Delivered payloads and selector invalidations.</td>
-      </tr>
-      <tr>
-        <td>Residency</td>
-        <td>Two clients can hold disjoint, incomplete working sets without eagerly loading the Domain.</td>
-        <td>Resident member count and estimated resident bytes where the adapter exposes them.</td>
-      </tr>
-      <tr>
-        <td>Checkpoint and recovery</td>
-        <td>Restart and resnapshot converge on the authoritative projection.</td>
-        <td>Checkpoint writes, persisted objects, and persisted bytes.</td>
-      </tr>
-      <tr>
-        <td>History</td>
-        <td>Undo and redo restore the actor's projection without stamping over a foreign gesture.</td>
-        <td>Retained gestures, operations, protections, and session watermarks.</td>
-      </tr>
-      <tr>
-        <td>Presence</td>
-        <td>Disconnect cleanup removes the departed actor without changing durable state.</td>
-        <td>Live actor-sessions and cleanup events.</td>
-      </tr>
-    </tbody>
-  </table>
+	<table>
+		<thead>
+			<tr>
+				<th>Seam</th>
+				<th>Shared evidence</th>
+				<th>Instrumentation</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>Identity and addressing</td>
+				<td>
+					Distinct representative addresses resolve to the declared Domain instance.
+				</td>
+				<td>Address and definition validation failures.</td>
+			</tr>
+			<tr>
+				<td>Batch settlement</td>
+				<td>
+					One logical gesture changes several model elements at one Domain revision without a partial selector frame.
+				</td>
+				<td>Delivered payloads and selector invalidations.</td>
+			</tr>
+			<tr>
+				<td>Residency</td>
+				<td>
+					Two clients can hold disjoint, incomplete working sets without eagerly loading the Domain.
+				</td>
+				<td>
+					Resident member count and estimated resident bytes where the adapter exposes them.
+				</td>
+			</tr>
+			<tr>
+				<td>Checkpoint and recovery</td>
+				<td>Restart and resnapshot converge on the authoritative projection.</td>
+				<td>Checkpoint writes, persisted objects, and persisted bytes.</td>
+			</tr>
+			<tr>
+				<td>History</td>
+				<td>
+					Undo and redo restore the actor's projection without stamping over a foreign gesture.
+				</td>
+				<td>Retained gestures, operations, protections, and session watermarks.</td>
+			</tr>
+			<tr>
+				<td>Presence</td>
+				<td>
+					Disconnect cleanup removes the departed actor without changing durable state.
+				</td>
+				<td>Live actor-sessions and cleanup events.</td>
+			</tr>
+		</tbody>
+	</table>
 </table-wrapper>
 
 These counters describe comparable kinds of work, not universal performance

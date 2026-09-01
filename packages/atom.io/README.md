@@ -81,8 +81,9 @@ Public-module rows retain complete runtime export surfaces. Recipe rows bundle t
 | <code>atom.io/react</code>                     |    48,011 B | 13,990 B |
 | <code>atom.io/react-devtools</code>            |    96,984 B | 27,626 B |
 | <code>atom.io/realtime</code>                  |   153,210 B | 44,030 B |
-| <code>atom.io/realtime-client</code>           |   156,080 B | 44,103 B |
-| <code>atom.io/realtime-react</code>            |    84,936 B | 25,381 B |
+| <code>atom.io/realtime-client</code>           |   157,481 B | 44,649 B |
+| <code>atom.io/realtime-react</code>            |    85,381 B | 25,497 B |
+| <code>atom.io/realtime-react-lexical</code>    |    10,296 B |  4,074 B |
 | <code>atom.io/realtime-server</code>           |   238,880 B | 66,622 B |
 | <code>atom.io/realtime-testing</code>          |   150,492 B | 45,084 B |
 | <code>atom.io/solid</code>                     |    46,903 B | 13,554 B |

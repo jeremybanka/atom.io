@@ -49,7 +49,7 @@ export default function main(mode: string): void {
 					import: `./dist/${folder}/index.js`,
 					types: `./dist/${folder}/index.d.ts`,
 				}
-				if (folder === `react-devtools` || folder === `realtime-react-lexical`) {
+				if (folder === `react-devtools`) {
 					acc[`./${folder}/css`] = {
 						import: `./dist/${folder}/index.css`,
 						types: `./css.d.ts`,

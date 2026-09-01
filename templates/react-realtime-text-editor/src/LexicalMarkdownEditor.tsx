@@ -2,14 +2,13 @@ import {
 	MosaicLexicalTextEditor,
 	type MosaicLexicalTextEditorProps,
 } from "atom.io/realtime-react-lexical"
-import "atom.io/realtime-react-lexical/css"
 import type { ReactElement } from "react"
 
 import css from "./LexicalMarkdownEditor.module.css"
 
 export type { RenderedCollaboratorSelection } from "atom.io/realtime-react-lexical"
 
-/** Template styling around Atom.io's supported Mosaic-to-Lexical adapter. */
+/** Template-owned visual treatment for Atom.io's headless Lexical adapter. */
 export function LexicalMarkdownEditor(
 	properties: MosaicLexicalTextEditorProps,
 ): ReactElement {

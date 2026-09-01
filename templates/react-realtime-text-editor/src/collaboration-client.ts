@@ -81,8 +81,11 @@ const request = <Value>(
 			socket.off(`disconnect`, disconnected)
 			result()
 		}
-		const disconnected = (): void =>
-			finish(() => reject(new DOMException(`Socket disconnected`, `AbortError`)))
+		const disconnected = (): void => {
+			finish(() => {
+				reject(new DOMException(`Socket disconnected`, `AbortError`))
+			})
+		}
 		socket.once(`disconnect`, disconnected)
 		socket.emit(
 			event,
@@ -163,14 +166,15 @@ export async function createMarkdownCollaborationClient(options: {
 	})
 	const history = createMosaicDomainHistoryClient({
 		actor: identity.id,
-		onObserverError: (error) =>
+		onObserverError: (error) => {
 			domain.store.logger.error(
 				`🐞`,
 				`unknown`,
 				sessionId,
 				`A Mosaic Domain history client listener threw.`,
 				error,
-			),
+			)
+		},
 		session: sessionId,
 		transport: historyTransport,
 	})
@@ -226,7 +230,9 @@ export async function createMarkdownCollaborationClient(options: {
 				.catch(() => undefined)
 				.then(() => residency.dispose())
 				.catch(() => undefined)
-				.finally(() => domain[Symbol.dispose]())
+				.finally(() => {
+					domain[Symbol.dispose]()
+				})
 		},
 	}
 }

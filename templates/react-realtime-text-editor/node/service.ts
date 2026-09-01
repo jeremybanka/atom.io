@@ -1,11 +1,11 @@
 import { Silo } from "atom.io"
-import {
-	type MosaicAcceptedDomainBatchEnvelope,
-	type MosaicTextIndexLookup,
-	type MosaicTextIndexRange,
-	type MosaicTextIndexSummary,
-	type MosaicTextRelativePosition,
-	type MosaicTextSnapshot,
+import type {
+	MosaicAcceptedDomainBatchEnvelope,
+	MosaicTextIndexLookup,
+	MosaicTextIndexRange,
+	MosaicTextIndexSummary,
+	MosaicTextRelativePosition,
+	MosaicTextSnapshot,
 } from "atom.io/realtime"
 import {
 	bindMosaicDomainHistoryServerSocket,
@@ -162,7 +162,7 @@ export async function createMarkdownDocumentService(
 		domain,
 		ttlMs: options.presenceTtlMs,
 	})
-	const command = ({
+	const submitCommand = ({
 		actor,
 		command,
 		session,
@@ -187,7 +187,7 @@ export async function createMarkdownDocumentService(
 		})
 
 	if (bootstrapText.length > 0) {
-		await command({
+		await submitCommand({
 			actor: `system`,
 			command: {
 				gestureId: `bootstrap`,
@@ -208,12 +208,15 @@ export async function createMarkdownDocumentService(
 		respond: (acknowledgement: MarkdownAcknowledgement<Value>) => void,
 	): void => {
 		void work.then(
-			(value) => respond({ ok: true, value }),
-			(error: unknown) =>
+			(value) => {
+				respond({ ok: true, value })
+			},
+			(error: unknown) => {
 				respond({
 					ok: false,
 					reason: error instanceof Error ? error.message : String(error),
-				}),
+				})
+			},
 		)
 	}
 
@@ -232,17 +235,21 @@ export async function createMarkdownDocumentService(
 				presence.connect({ actor, session }),
 				socket,
 			)
-			const onCommand = (input: MarkdownCommand, respond: any): void =>
-				acknowledge(command({ actor, command: input, session }), respond)
-			const onMaterialize = (respond: any): void =>
+			const onCommand = (input: MarkdownCommand, respond: any): void => {
+				acknowledge(submitCommand({ actor, command: input, session }), respond)
+			}
+			const onMaterialize = (respond: any): void => {
 				acknowledge(Promise.resolve(document.materialize()), respond)
-			const onPosition = (offset: number, respond: any): void =>
+			}
+			const onPosition = (offset: number, respond: any): void => {
 				acknowledge(document.positionAtOffset(offset), respond)
+			}
 			const onResolve = (
 				position: MosaicTextRelativePosition,
 				respond: any,
-			): void =>
+			): void => {
 				acknowledge(Promise.resolve(document.resolvePosition(position)), respond)
+			}
 			socket.on(MARKDOWN_EVENTS.command, onCommand)
 			socket.on(MARKDOWN_EVENTS.materialize, onMaterialize)
 			socket.on(MARKDOWN_EVENTS.positionAtOffset, onPosition)
@@ -263,7 +270,7 @@ export async function createMarkdownDocumentService(
 			cleanups.add(cleanup)
 			return Promise.resolve(cleanup)
 		},
-		command,
+		command: submitCommand,
 		domain,
 		history: (identity) => history.connect(identity),
 		get instrumentation() {

@@ -11,21 +11,75 @@ render ordinary atom.io Store state; they do not create a second replica model.
 Every public export from `atom.io/realtime-react` is listed below.
 
 <table-wrapper>
-  <table>
-    <thead><tr><th>Area</th><th>Runtime exports</th><th>Associated contracts</th></tr></thead>
-    <tbody>
-      <tr><td>Provider and context</td><td><code>RealtimeContext</code>, <code>RealtimeProvider</code></td><td><code>RealtimeReactStore</code>, <code>RealtimeServiceCounter</code>, <code>RealtimeServiceKey</code></td></tr>
-      <tr><td>Service lifecycle</td><td><code>useRealtimeService</code></td><td>—</td></tr>
-      <tr><td>Rigid atoms</td><td><code>usePullAtom</code>, <code>usePullAtomFamilyMember</code></td><td>—</td></tr>
-      <tr><td>Rigid mutable atoms</td><td><code>usePullMutable</code>, <code>usePullMutableAtomFamilyMember</code></td><td>—</td></tr>
-      <tr><td>Rigid selectors</td><td><code>usePullSelector</code>, <code>usePullSelectorFamilyMember</code></td><td>—</td></tr>
-      <tr><td>Rigid publication</td><td><code>usePush</code>, <code>usePushStatus</code></td><td>—</td></tr>
-      <tr><td>Rooms</td><td><code>useRealtimeRooms</code></td><td><code>RealtimeRoomsTools</code></td></tr>
-      <tr><td>Atomic Mosaic</td><td><code>useMosaic</code></td><td><code>UseMosaicOptions</code>, <code>UseMosaicResult</code></td></tr>
-      <tr><td>Mosaic Text residency</td><td><code>useMosaicTextRange</code></td><td><code>MosaicTextRangeView</code></td></tr>
-      <tr><td>Mosaic Text editing</td><td><code>useMosaicTextEditor</code></td><td><code>MosaicTextEditorPeer</code>, <code>MosaicTextEditorRemoteSelection</code>, <code>MosaicTextEditorView</code>, <code>UseMosaicTextEditorOptions</code></td></tr>
-    </tbody>
-  </table>
+	<table>
+		<thead>
+			<tr>
+				<th>Area</th>
+				<th>Runtime exports</th>
+				<th>Associated contracts</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>Provider and context</td>
+				<td><code>RealtimeContext</code>, <code>RealtimeProvider</code></td>
+				<td>
+					<code>RealtimeReactStore</code>, <code>RealtimeServiceCounter</code>, <code>RealtimeServiceKey</code>
+				</td>
+			</tr>
+			<tr>
+				<td>Service lifecycle</td>
+				<td><code>useRealtimeService</code></td>
+				<td>—</td>
+			</tr>
+			<tr>
+				<td>Rigid atoms</td>
+				<td><code>usePullAtom</code>, <code>usePullAtomFamilyMember</code></td>
+				<td>—</td>
+			</tr>
+			<tr>
+				<td>Rigid mutable atoms</td>
+				<td>
+					<code>usePullMutable</code>, <code>usePullMutableAtomFamilyMember</code>
+				</td>
+				<td>—</td>
+			</tr>
+			<tr>
+				<td>Rigid selectors</td>
+				<td>
+					<code>usePullSelector</code>, <code>usePullSelectorFamilyMember</code>
+				</td>
+				<td>—</td>
+			</tr>
+			<tr>
+				<td>Rigid publication</td>
+				<td><code>usePush</code>, <code>usePushStatus</code></td>
+				<td>—</td>
+			</tr>
+			<tr>
+				<td>Rooms</td>
+				<td><code>useRealtimeRooms</code></td>
+				<td><code>RealtimeRoomsTools</code></td>
+			</tr>
+			<tr>
+				<td>Atomic Mosaic</td>
+				<td><code>useMosaic</code></td>
+				<td><code>UseMosaicOptions</code>, <code>UseMosaicResult</code></td>
+			</tr>
+			<tr>
+				<td>Mosaic Text residency</td>
+				<td><code>useMosaicTextRange</code></td>
+				<td><code>MosaicTextRangeView</code></td>
+			</tr>
+			<tr>
+				<td>Mosaic Text editing</td>
+				<td><code>useMosaicTextEditor</code></td>
+				<td>
+					<code>MosaicTextEditorPeer</code>, <code>MosaicTextEditorRemoteSelection</code>, <code>MosaicTextEditorView</code>, <code>UseMosaicTextEditorOptions</code>
+				</td>
+			</tr>
+		</tbody>
+	</table>
 </table-wrapper>
 
 ## provider and service ownership
@@ -50,19 +104,48 @@ ownership deliberately.
 ## rigid hooks
 
 <table-wrapper>
-  <table>
-    <thead><tr><th>React hook</th><th>Headless equivalent</th></tr></thead>
-    <tbody>
-      <tr><td><code>usePullAtom</code></td><td><code>pullAtom</code></td></tr>
-      <tr><td><code>usePullAtomFamilyMember</code></td><td><code>pullAtomFamilyMember</code></td></tr>
-      <tr><td><code>usePullMutable</code></td><td><code>pullMutableAtom</code></td></tr>
-      <tr><td><code>usePullMutableAtomFamilyMember</code></td><td><code>pullMutableAtomFamilyMember</code></td></tr>
-      <tr><td><code>usePullSelector</code></td><td><code>pullSelector</code></td></tr>
-      <tr><td><code>usePullSelectorFamilyMember</code></td><td><code>pullSelectorFamilyMember</code></td></tr>
-      <tr><td><code>usePush</code> / <code>usePushStatus</code></td><td><code>pushState</code> plus lease atoms</td></tr>
-      <tr><td><code>useRealtimeRooms</code></td><td>Room socket events and room state atoms</td></tr>
-    </tbody>
-  </table>
+	<table>
+		<thead>
+			<tr>
+				<th>React hook</th>
+				<th>Headless equivalent</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td><code>usePullAtom</code></td>
+				<td><code>pullAtom</code></td>
+			</tr>
+			<tr>
+				<td><code>usePullAtomFamilyMember</code></td>
+				<td><code>pullAtomFamilyMember</code></td>
+			</tr>
+			<tr>
+				<td><code>usePullMutable</code></td>
+				<td><code>pullMutableAtom</code></td>
+			</tr>
+			<tr>
+				<td><code>usePullMutableAtomFamilyMember</code></td>
+				<td><code>pullMutableAtomFamilyMember</code></td>
+			</tr>
+			<tr>
+				<td><code>usePullSelector</code></td>
+				<td><code>pullSelector</code></td>
+			</tr>
+			<tr>
+				<td><code>usePullSelectorFamilyMember</code></td>
+				<td><code>pullSelectorFamilyMember</code></td>
+			</tr>
+			<tr>
+				<td><code>usePush</code> / <code>usePushStatus</code></td>
+				<td><code>pushState</code> plus lease atoms</td>
+			</tr>
+			<tr>
+				<td><code>useRealtimeRooms</code></td>
+				<td>Room socket events and room state atoms</td>
+			</tr>
+		</tbody>
+	</table>
 </table-wrapper>
 
 Pull hooks subscribe only while consumed. Push hooks expose lease ownership and

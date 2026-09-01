@@ -62,20 +62,44 @@ idle, claiming, owned, and blocked states.
 `atom.io/realtime-client` exposes the same lifecycle without React:
 
 <table-wrapper>
-  <table>
-    <thead>
-      <tr><th>Function</th><th>Pulls or pushes</th></tr>
-    </thead>
-    <tbody>
-      <tr><td><code>pullAtom</code></td><td>A regular atom.</td></tr>
-      <tr><td><code>pullAtomFamilyMember</code></td><td>One regular family member.</td></tr>
-      <tr><td><code>pullMutableAtom</code></td><td>A mutable atom snapshot/stream.</td></tr>
-      <tr><td><code>pullMutableAtomFamilyMember</code></td><td>One mutable family member.</td></tr>
-      <tr><td><code>pullSelector</code></td><td>A server-derived selector value.</td></tr>
-      <tr><td><code>pullSelectorFamilyMember</code></td><td>One selector-family result.</td></tr>
-      <tr><td><code>pushState</code></td><td>A leased writable atom value.</td></tr>
-    </tbody>
-  </table>
+	<table>
+		<thead>
+			<tr>
+				<th>Function</th>
+				<th>Pulls or pushes</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td><code>pullAtom</code></td>
+				<td>A regular atom.</td>
+			</tr>
+			<tr>
+				<td><code>pullAtomFamilyMember</code></td>
+				<td>One regular family member.</td>
+			</tr>
+			<tr>
+				<td><code>pullMutableAtom</code></td>
+				<td>A mutable atom snapshot/stream.</td>
+			</tr>
+			<tr>
+				<td><code>pullMutableAtomFamilyMember</code></td>
+				<td>One mutable family member.</td>
+			</tr>
+			<tr>
+				<td><code>pullSelector</code></td>
+				<td>A server-derived selector value.</td>
+			</tr>
+			<tr>
+				<td><code>pullSelectorFamilyMember</code></td>
+				<td>One selector-family result.</td>
+			</tr>
+			<tr>
+				<td><code>pushState</code></td>
+				<td>A leased writable atom value.</td>
+			</tr>
+		</tbody>
+	</table>
 </table-wrapper>
 
 Every function accepts an explicit Store and socket and returns a disposer.

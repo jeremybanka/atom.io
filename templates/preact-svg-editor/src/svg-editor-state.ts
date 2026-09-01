@@ -35,13 +35,13 @@ import {
 export type PointXY = { readonly x: number; readonly y: number }
 
 export type SvgEdge =
-	| { readonly kind: `close` }
-	| { readonly kind: `line` | `move` }
 	| {
 			readonly c?: PointXY | undefined
 			readonly kind: `cubic`
 			readonly s: PointXY
 	  }
+	| { readonly kind: `close` }
+	| { readonly kind: `line` | `move` }
 
 export type SvgPath = { readonly id: string }
 export type SvgSubpath = { readonly id: string; readonly pathId: string }
@@ -67,12 +67,12 @@ export type SvgGesture = {
 }
 
 export type SvgDragTarget =
-	| { readonly kind: `node`; readonly subpathId: string }
 	| {
 			readonly control: `c` | `s`
 			readonly kind: `edge-control`
 			readonly subpathId: string
 	  }
+	| { readonly kind: `node`; readonly subpathId: string }
 
 export type SvgDragPresence = {
 	readonly actor: string
@@ -155,27 +155,27 @@ export const svgSubpathOperationSchema = svgRegisterModelOperationSchema(
 
 /** Durable members remain ordinary Atom.io atoms and atom families. */
 export const pathOrderAtom = atom<SvgOrderState>({
-	key: `svgPathOrder`,
+	key: `pathOrder`,
 	default: EMPTY_SVG_ORDER,
 })
 export const pathAtoms = atomFamily<SvgRegisterState<SvgPath | null>, string>({
-	key: `svgPaths`,
+	key: `path`,
 	default: emptySvgRegister(),
 })
 export const subpathOrderAtoms = atomFamily<SvgOrderState, string>({
-	key: `svgSubpathOrder`,
+	key: `subpathOrder`,
 	default: EMPTY_SVG_ORDER,
 })
 export const subpathAtoms = atomFamily<
 	SvgRegisterState<SvgSubpath | null>,
 	string
->({ key: `svgSubpaths`, default: emptySvgRegister() })
+>({ key: `subpath`, default: emptySvgRegister() })
 export const nodeAtoms = atomFamily<SvgRegisterState<PointXY | null>, string>({
-	key: `svgNodes`,
+	key: `node`,
 	default: emptySvgRegister(),
 })
 export const edgeAtoms = atomFamily<SvgRegisterState<SvgEdge | null>, string>({
-	key: `svgEdges`,
+	key: `edge`,
 	default: emptySvgRegister(),
 })
 
@@ -187,23 +187,23 @@ export const svgElementAtom = atom<SVGSVGElement | null>({
 export const pointerCaptureAtom = atom<{
 	readonly element: Element
 	readonly pointerId: number
-} | null>({ key: `svgPointerCapture`, default: null })
+} | null>({ key: `pointerCapture`, default: null })
 export const activeDragAtom = atom<SvgActiveDrag | null>({
-	key: `svgActiveDrag`,
+	key: `activeDrag`,
 	default: null,
 })
 export const viewportAtom = atom<SvgViewport>({
-	key: `svgViewport`,
+	key: `viewport`,
 	default: { pan: { x: 0, y: 0 }, zoom: 1 },
 })
 export const workspaceAtom = atom<SvgWorkspace>({
-	key: `svgWorkspace`,
+	key: `workspace`,
 	default: { activePathId: null, selectedSubpathIds: [] },
 })
 
 /** Ephemeral presence is addressable by logical actor/session, never by a DOM node. */
 export const dragPresenceAtoms = atomFamily<SvgDragPresence | null, string>({
-	key: `svgDragPresence`,
+	key: `dragPresence`,
 	default: null,
 })
 
@@ -211,7 +211,7 @@ export const dragPresenceAtoms = atomFamily<SvgDragPresence | null, string>({
 export const collaborationPresenceAtoms = atomFamily<
 	SvgCollaborationPresence | null,
 	string
->({ key: `svgCollaborationPresence`, default: null })
+>({ key: `collaborationPresence`, default: null })
 
 /** Distinguish concurrent sessions belonging to the same logical actor. */
 export function svgDragPresenceKey(
@@ -223,7 +223,7 @@ export function svgDragPresenceKey(
 export const svgCollaborationPresenceKey = svgDragPresenceKey
 
 export const projectedNodeSelectors = selectorFamily<PointXY | null, string>({
-	key: `svgProjectedNode`,
+	key: `projectedNode`,
 	get:
 		(subpathId) =>
 		({ get }) => {
@@ -238,7 +238,7 @@ export const projectedNodeSelectors = selectorFamily<PointXY | null, string>({
 })
 
 export const projectedEdgeSelectors = selectorFamily<SvgEdge | null, string>({
-	key: `svgProjectedEdge`,
+	key: `projectedEdge`,
 	get:
 		(subpathId) =>
 		({ get }) => {
@@ -262,7 +262,7 @@ export const projectedEdgeSelectors = selectorFamily<SvgEdge | null, string>({
 })
 
 export const pathDrawSelectors = selectorFamily<string, string>({
-	key: `svgPathDraw`,
+	key: `pathDraw`,
 	get:
 		(pathId) =>
 		({ get }) =>
@@ -316,7 +316,7 @@ function duplicateValues(values: readonly string[]): ReadonlySet<string> {
 export const structureViolationsSelector = selector<
 	readonly SvgStructureViolation[]
 >({
-	key: `svgStructureViolations`,
+	key: `structureViolations`,
 	get: ({ get }) => {
 		const violations: SvgStructureViolation[] = []
 		const pathIds = materializeSvgOrder(get(pathOrderAtom)).map(
@@ -436,7 +436,7 @@ type GestureInput = { readonly gesture: SvgGesture }
 export const replaceDrawingTransaction = transaction<
 	(input: GestureInput & { readonly drawing: SvgDrawingFixture }) => void
 >({
-	key: `replaceSvgDrawing`,
+	key: `replaceDrawing`,
 	do: ({ get, set }, { drawing, gesture }) => {
 		assertFixture(drawing)
 		let ordinal = 0
@@ -551,7 +551,7 @@ export const insertPathTransaction = transaction<
 		},
 	) => void
 >({
-	key: `insertSvgPath`,
+	key: `insertPath`,
 	do: ({ get, set }, { gesture, index, pathId }) => {
 		if (readSvgRegister(get(pathAtoms, pathId)) != null) {
 			throw new Error(`SVG path ${pathId} already exists`)
@@ -579,7 +579,7 @@ export const insertPathTransaction = transaction<
 export const deletePathTransaction = transaction<
 	(input: GestureInput & { readonly pathId: string }) => void
 >({
-	key: `deleteSvgPath`,
+	key: `deletePath`,
 	do: ({ get, set }, { gesture, pathId }) => {
 		if (readSvgRegister(get(pathAtoms, pathId)) == null) {
 			throw new Error(`SVG path ${pathId} does not exist`)
@@ -638,7 +638,7 @@ type SubpathInput = GestureInput & {
 export const insertSubpathTransaction = transaction<
 	(input: SubpathInput) => void
 >({
-	key: `insertSvgSubpath`,
+	key: `insertSubpath`,
 	do: ({ get, set }, input) => {
 		if (readSvgRegister(get(pathAtoms, input.pathId)) == null) {
 			throw new Error(`SVG path ${input.pathId} does not exist`)
@@ -694,7 +694,7 @@ export const deleteSubpathTransaction = transaction<
 		},
 	) => void
 >({
-	key: `deleteSvgSubpath`,
+	key: `deleteSubpath`,
 	do: ({ get, set }, input) => {
 		const subpath = readSvgRegister(get(subpathAtoms, input.subpathId))
 		if (subpath?.pathId !== input.pathId) {
@@ -750,7 +750,7 @@ export const splitSubpathTransaction = transaction<
 		},
 	) => void
 >({
-	key: `splitSvgSubpath`,
+	key: `splitSubpath`,
 	do: ({ get, set }, input) => {
 		const order = materializeSvgOrder(get(subpathOrderAtoms, input.pathId))
 		const targetIndex = order.findIndex(
@@ -824,7 +824,7 @@ export const reorderPathTransaction = transaction<
 		input: GestureInput & { readonly index: number; readonly pathId: string },
 	) => void
 >({
-	key: `reorderSvgPath`,
+	key: `reorderPath`,
 	do: ({ get, set }, input) => {
 		if (readSvgRegister(get(pathAtoms, input.pathId)) == null) {
 			throw new Error(`Cannot reorder a missing SVG path`)
@@ -850,7 +850,7 @@ export const reorderSubpathTransaction = transaction<
 		},
 	) => void
 >({
-	key: `reorderSvgSubpath`,
+	key: `reorderSubpath`,
 	do: ({ get, set }, input) => {
 		const subpath = readSvgRegister(get(subpathAtoms, input.subpathId))
 		if (subpath?.pathId !== input.pathId) {
@@ -877,7 +877,7 @@ export const commitGeometryTransaction = transaction<
 		},
 	) => void
 >({
-	key: `commitSvgGeometry`,
+	key: `commitGeometry`,
 	do: ({ get, set }, input) => {
 		if (input.target.kind === `node`) {
 			if (readSvgRegister(get(nodeAtoms, input.target.subpathId)) == null) {

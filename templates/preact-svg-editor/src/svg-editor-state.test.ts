@@ -37,8 +37,8 @@ import {
 	subpathAtoms,
 	subpathOrderAtoms,
 	svgDragPresenceKey,
-	svgOperationId,
 	type SvgDrawingFixture,
+	svgOperationId,
 } from "./svg-editor-state.ts"
 
 const clock = createSvgGestureClock({

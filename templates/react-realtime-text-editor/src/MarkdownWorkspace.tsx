@@ -240,7 +240,9 @@ export function MarkdownWorkspace({
 				setParse(result.blocks)
 				setParseMetrics(result.instrumentation)
 			})
-		return () => controller.abort()
+		return () => {
+			controller.abort()
+		}
 	}, [projection])
 
 	useEffect(() => {
@@ -312,7 +314,9 @@ export function MarkdownWorkspace({
 						<select
 							aria-label="Simulated identity"
 							value={client.identity.id}
-							onChange={(event) => switchBrowserIdentity(event.target.value)}
+							onChange={(event) => {
+								switchBrowserIdentity(event.target.value)
+							}}
 						>
 							{SIMULATED_IDENTITIES.map((person) => (
 								<option key={person.id} value={person.id}>
@@ -360,7 +364,9 @@ export function MarkdownWorkspace({
 						{projection ? (
 							<LexicalMarkdownEditor
 								onDirty={editor.onDirty}
-								onError={(error) => setProblem(error.message)}
+								onError={(error) => {
+									setProblem(error.message)
+								}}
 								onRedo={() => void client.redo()}
 								onSelectionChange={editor.onSelectionChange}
 								onUndo={() => void client.undo()}

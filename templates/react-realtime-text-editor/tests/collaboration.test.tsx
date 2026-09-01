@@ -64,8 +64,9 @@ function testClient(
 					runtimes.set(sessionId, client)
 					setRuntime(client)
 				},
-				(error: unknown) =>
-					setProblem(error instanceof Error ? error.message : String(error)),
+				(error: unknown) => {
+					setProblem(error instanceof Error ? error.message : String(error))
+				},
 			)
 			return () => {
 				active = false
@@ -251,7 +252,9 @@ describe(`incremental realtime Markdown Domain`, () => {
 			expect(await clients.ada.redo()).toBe(true)
 			await last.release()
 
-			act(() => harness.ada.socket.disconnect())
+			act(() => {
+				void harness.ada.socket.disconnect()
+			})
 			const offlineAnchor = await clients.ada.projection.positionAtOffset(4)
 			const pending = clients.ada.replace({
 				selection: { anchor: offlineAnchor, head: offlineAnchor },
@@ -262,10 +265,17 @@ describe(`incremental realtime Markdown Domain`, () => {
 				selection: { anchor: foreignAnchor, head: foreignAnchor },
 				text: `[online]`,
 			})
-			act(() => harness.ada.socket.connect())
-			await waitFor(() => expect(clients.ada.status().connection).toBe(`live`), {
-				timeout: 5_000,
+			act(() => {
+				void harness.ada.socket.connect()
 			})
+			await waitFor(
+				() => {
+					expect(clients.ada.status().connection).toBe(`live`)
+				},
+				{
+					timeout: 5_000,
+				},
+			)
 			await pending
 			await setup.room.waitForIdle()
 			await first.release()
@@ -345,15 +355,17 @@ describe(`incremental realtime Markdown Domain`, () => {
 					(envelope) => envelope.kind === `update` && envelope.actor === ADA.id,
 				),
 			).toBe(true)
-			act(() => harness.ada.socket.disconnect())
-			await waitFor(() =>
+			act(() => {
+				void harness.ada.socket.disconnect()
+			})
+			await waitFor(() => {
 				expect(
 					clients.lin.presence.state.presence.some(
 						(envelope) =>
 							envelope.kind === `update` && envelope.actor === ADA.id,
 					),
-				).toBe(false),
-			)
+				).toBe(false)
+			})
 
 			const importedRange = await clients.lin.projection.acquireRange({
 				end: 16,
@@ -390,11 +402,11 @@ describe(`incremental realtime Markdown Domain`, () => {
 			expect(setup.service.instrumentation.lastBatchOperations).toBeGreaterThan(
 				4,
 			)
-			await waitFor(() =>
+			await waitFor(() => {
 				expect(importedRange.read().text.startsWith(`# Imported once`)).toBe(
 					true,
-				),
-			)
+				)
+			})
 			await setup.service.command({
 				actor: ADA.id,
 				command: {
@@ -406,9 +418,9 @@ describe(`incremental realtime Markdown Domain`, () => {
 				session: `ada-admin`,
 			})
 			expect(setup.service.revision).toBe(revision + 2)
-			await waitFor(() =>
-				expect(importedRange.read().text).toBe(`# Compacted agai`),
-			)
+			await waitFor(() => {
+				expect(importedRange.read().text).toBe(`# Compacted agai`)
+			})
 			await importedRange.release()
 		} finally {
 			await setup.teardown()
@@ -421,10 +433,12 @@ describe(`incremental realtime Markdown Domain`, () => {
 			const harness = initialize(setup)
 			const clients = await live(setup)
 			const caret = await clients.ada.projection.positionAtOffset(4)
-			act(() => harness.ada.socket.disconnect())
-			await waitFor(() =>
-				expect(clients.ada.status().connection).toBe(`offline`),
-			)
+			act(() => {
+				void harness.ada.socket.disconnect()
+			})
+			await waitFor(() => {
+				expect(clients.ada.status().connection).toBe(`offline`)
+			})
 			const pending = clients.ada.replace({
 				selection: { anchor: caret, head: caret },
 				text: `[abandoned]`,

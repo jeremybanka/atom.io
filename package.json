@@ -64,7 +64,7 @@
 		"eslint-plugin-simple-import-sort": "14.0.0",
 		"eslint-plugin-storybook": "10.5.10",
 		"jiti": "2.7.0",
-		"lasertag": "0.7.1",
+		"lasertag": "0.8.0",
 		"oxlint": "1.80.0",
 		"oxlint-tsgolint": "7.0.2001",
 		"pin-dependencies-checker": "2.7.1",

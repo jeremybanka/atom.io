@@ -152,10 +152,10 @@ const MARKDOWN_DOMAIN_TOKENS = [
 	markdownPresenceAtoms,
 ] as const
 
-export async function activateMarkdownDocumentDomain(options: {
+export function activateMarkdownDocumentDomain(options: {
 	readonly instance?: string
 	readonly silo: Pick<Silo, `install` | `store`>
-}) {
+}): ReturnType<typeof markdownDocumentDomain.activate> {
 	options.silo.install([...MARKDOWN_DOMAIN_TOKENS])
 	return markdownDocumentDomain.activate({
 		config: {},

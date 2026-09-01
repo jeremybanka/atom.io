@@ -288,7 +288,7 @@ function activeSvgOperations<
 	for (const operation of history) {
 		for (const targetId of operation.targetOperationIds) {
 			const target = byId.get(targetId)
-			if (target === undefined || target.actor !== operation.actor) {
+			if (target?.actor !== operation.actor || target === undefined) {
 				throw new Error(`SVG history targeted an unknown or foreign operation`)
 			}
 			const count = counts.get(targetId) ?? { redo: 0, undo: 0 }

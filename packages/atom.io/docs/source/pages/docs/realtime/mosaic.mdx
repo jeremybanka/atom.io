@@ -16,15 +16,32 @@ one user gesture spans several resources, use a
 A `MosaicTransceiver` separates four concepts:
 
 <table-wrapper>
-  <table>
-    <thead><tr><th>Concept</th><th>Purpose</th></tr></thead>
-    <tbody>
-      <tr><td>Intent</td><td>A local command such as insert, delete, undo, or move.</td></tr>
-      <tr><td>Operation</td><td>The serializable, validated fact sent through the protocol.</td></tr>
-      <tr><td>Readonly view</td><td>The Store-owned value read by selectors and renderers.</td></tr>
-      <tr><td>Snapshot</td><td>A bounded recovery representation, not a remote overwrite command.</td></tr>
-    </tbody>
-  </table>
+	<table>
+		<thead>
+			<tr>
+				<th>Concept</th>
+				<th>Purpose</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>Intent</td>
+				<td>A local command such as insert, delete, undo, or move.</td>
+			</tr>
+			<tr>
+				<td>Operation</td>
+				<td>The serializable, validated fact sent through the protocol.</td>
+			</tr>
+			<tr>
+				<td>Readonly view</td>
+				<td>The Store-owned value read by selectors and renderers.</td>
+			</tr>
+			<tr>
+				<td>Snapshot</td>
+				<td>A bounded recovery representation, not a remote overwrite command.</td>
+			</tr>
+		</tbody>
+	</table>
 </table-wrapper>
 
 The static `mosaic` key and version identify model behavior on the wire. Change

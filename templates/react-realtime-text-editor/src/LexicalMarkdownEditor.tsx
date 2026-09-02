@@ -33,8 +33,11 @@ export function LexicalMarkdownEditor(
 ): ReactElement {
 	return (
 		<lexical-markdown-editor className={css.class}>
-			{/* @lasertag-own-subtree */}
-			<MosaicLexicalTextEditor {...properties} classNames={classNames} />
+			<MosaicLexicalTextEditor
+				/* @lasertag-adopt-subtree */
+				{...properties}
+				classNames={classNames}
+			/>
 		</lexical-markdown-editor>
 	)
 }

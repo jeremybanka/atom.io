@@ -1,0 +1,186 @@
+import Exhibit from "c/Exhibit.astro";
+
+# <low-emphasis>atom.io</low-emphasis>/realtime-react
+
+`atom.io/realtime-react` binds the renderer-neutral services from
+[`atom.io/realtime-client`](/docs/realtime-client) to React lifecycle. Its hooks
+render ordinary atom.io Store state; they do not create a second replica model.
+
+## package contents
+
+Every public export from `atom.io/realtime-react` is listed below.
+
+<table-wrapper>
+	<table>
+		<thead>
+			<tr>
+				<th>Area</th>
+				<th>Runtime exports</th>
+				<th>Associated contracts</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>Provider and context</td>
+				<td><code>RealtimeContext</code>, <code>RealtimeProvider</code></td>
+				<td>
+					<code>RealtimeReactStore</code>, <code>RealtimeServiceCounter</code>, <code>RealtimeServiceKey</code>
+				</td>
+			</tr>
+			<tr>
+				<td>Service lifecycle</td>
+				<td><code>useRealtimeService</code></td>
+				<td>—</td>
+			</tr>
+			<tr>
+				<td>Rigid atoms</td>
+				<td><code>usePullAtom</code>, <code>usePullAtomFamilyMember</code></td>
+				<td>—</td>
+			</tr>
+			<tr>
+				<td>Rigid mutable atoms</td>
+				<td>
+					<code>usePullMutable</code>, <code>usePullMutableAtomFamilyMember</code>
+				</td>
+				<td>—</td>
+			</tr>
+			<tr>
+				<td>Rigid selectors</td>
+				<td>
+					<code>usePullSelector</code>, <code>usePullSelectorFamilyMember</code>
+				</td>
+				<td>—</td>
+			</tr>
+			<tr>
+				<td>Rigid publication</td>
+				<td><code>usePush</code>, <code>usePushStatus</code></td>
+				<td>—</td>
+			</tr>
+			<tr>
+				<td>Rooms</td>
+				<td><code>useRealtimeRooms</code></td>
+				<td><code>RealtimeRoomsTools</code></td>
+			</tr>
+			<tr>
+				<td>Atomic Mosaic</td>
+				<td><code>useMosaic</code></td>
+				<td><code>UseMosaicOptions</code>, <code>UseMosaicResult</code></td>
+			</tr>
+			<tr>
+				<td>Mosaic Text residency</td>
+				<td><code>useMosaicTextRange</code></td>
+				<td><code>MosaicTextRangeView</code></td>
+			</tr>
+			<tr>
+				<td>Mosaic Text editing</td>
+				<td><code>useMosaicTextEditor</code></td>
+				<td>
+					<code>MosaicTextEditorPeer</code>, <code>MosaicTextEditorRemoteSelection</code>, <code>MosaicTextEditorView</code>, <code>UseMosaicTextEditorOptions</code>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+</table-wrapper>
+
+## provider and service ownership
+
+<Exhibit src="realtime/provide-realtime-react.tsx" />
+
+`RealtimeProvider` supplies one Socket.IO client and coalesces services by
+stable key. Nest it inside the Store/Silo provider whose atoms participate in
+collaboration. Replacing the socket disconnects old services and lets them
+reconnect through the new transport.
+
+Use the current origin for browser connections when a Vite, reverse proxy, or
+edge worker forwards the realtime route to the backend. The server must still
+validate the handshake origin, authenticate the credential, and apply admission
+and rate limits.
+
+`useRealtimeService` starts one keyed headless service for the lifetime of its
+consumers. It disposes that service only after the last matching consumer
+unmounts. Keep the service key and factory stable enough to express that
+ownership deliberately.
+
+## rigid hooks
+
+<table-wrapper>
+	<table>
+		<thead>
+			<tr>
+				<th>React hook</th>
+				<th>Headless equivalent</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td><code>usePullAtom</code></td>
+				<td><code>pullAtom</code></td>
+			</tr>
+			<tr>
+				<td><code>usePullAtomFamilyMember</code></td>
+				<td><code>pullAtomFamilyMember</code></td>
+			</tr>
+			<tr>
+				<td><code>usePullMutable</code></td>
+				<td><code>pullMutableAtom</code></td>
+			</tr>
+			<tr>
+				<td><code>usePullMutableAtomFamilyMember</code></td>
+				<td><code>pullMutableAtomFamilyMember</code></td>
+			</tr>
+			<tr>
+				<td><code>usePullSelector</code></td>
+				<td><code>pullSelector</code></td>
+			</tr>
+			<tr>
+				<td><code>usePullSelectorFamilyMember</code></td>
+				<td><code>pullSelectorFamilyMember</code></td>
+			</tr>
+			<tr>
+				<td><code>usePush</code> / <code>usePushStatus</code></td>
+				<td><code>pushState</code> plus lease atoms</td>
+			</tr>
+			<tr>
+				<td><code>useRealtimeRooms</code></td>
+				<td>Room socket events and room state atoms</td>
+			</tr>
+		</tbody>
+	</table>
+</table-wrapper>
+
+Pull hooks subscribe only while consumed. Push hooks expose lease ownership and
+status so the UI can distinguish pending, owned, and denied publication.
+
+## Mosaic hooks
+
+`useMosaic` owns one `MosaicController` created by `syncMosaic`. It exposes
+commands and status; render the mutable atom itself through normal atom.io hooks.
+
+<Exhibit src="realtime/synchronize-a-mosaic-value.tsx" />
+
+`useMosaicTextRange` acquires a projected viewport plus overscan through a
+`MosaicTextProjectionClient`, updates the acquisition as the viewport moves,
+retains the last complete projection while a replacement range settles, and
+releases it on unmount.
+
+<Exhibit src="realtime/project-a-mosaic-text-viewport.tsx" />
+
+`useMosaicTextEditor` composes that projection with the editing lifecycle that
+every renderer otherwise has to rediscover: optimistic drafts, IME composition,
+debounced logical replacement, stable local selections, collaborator selection
+reprojection, and settlement on a complete accepted projection cut. It exposes
+text, selections, and event callbacks; it does not prescribe a DOM editor.
+
+<Exhibit src="realtime/edit-a-mosaic-text-projection.tsx" />
+
+The renderer translates native editor events into `onDirty`,
+`onValueChange`, and `onSelectionChange`, then draws the returned logical
+selection offsets against the returned text. Lexical, a textarea overlay, or a
+custom canvas editor may provide that final geometry. Do not rebuild optimistic
+draft reconciliation or reinterpret old numeric offsets in the renderer.
+
+## lifecycle rule
+
+The provider, socket, service keys, and surrounding Store/Silo define ownership.
+Do not open sockets or construct controllers during render. Late asynchronous
+responses after disposal must not update the replacement service or Store.

@@ -44,7 +44,7 @@
 		"eslint": "10.9.1",
 		"eslint-plugin-react-refresh": "0.5.5",
 		"globals": "17.12.0",
-		"oxlint": "1.80.0",
+		"oxlint": "1.81.0",
 		"oxlint-tsgolint": "7.0.2001",
 		"oxc-transform-react": "0.148.0",
 		"typescript": "7.0.2",

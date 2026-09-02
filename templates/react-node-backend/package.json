@@ -48,7 +48,7 @@
 		"oxlint-tsgolint": "7.0.2001",
 		"oxc-transform-react": "0.147.0",
 		"typescript": "7.0.2",
-		"typescript-eslint": "8.68.0",
+		"typescript-eslint": "8.69.0",
 		"vite": "8.2.2"
 	}
 }

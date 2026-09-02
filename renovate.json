@@ -7,6 +7,14 @@
 	"internalChecksFilter": "strict",
 	"minimumReleaseAge": "1 day",
 	"postUpdateOptions": ["pnpmDedupe"],
+	"postUpgradeTasks": {
+		"commands": [
+			"pnpm install --frozen-lockfile",
+			"pnpm tonnage"
+		],
+		"executionMode": "branch",
+		"fileFilters": ["packages/*/README.md"]
+	},
 	"prConcurrentLimit": 3,
 	"prHourlyLimit": 9,
 	"pruneBranchAfterAutomerge": true,

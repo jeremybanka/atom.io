@@ -2,12 +2,12 @@
 
 declare const reset: () => void
 
+// @exhibit-region start reset-button
 const resetButton = (
-	// @exhibit-region start reset-button
 	<button type="button" class="flat" onClick={reset}>
 		Reset
 	</button>
-	// @exhibit-region end reset-button
 )
+// @exhibit-region end reset-button
 
 void resetButton

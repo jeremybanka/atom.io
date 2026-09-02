@@ -164,7 +164,7 @@ export async function createMarkdownDocumentService(
 	})
 	const submitCommand = ({
 		actor,
-		command,
+		command: input,
 		session,
 	}: {
 		readonly actor: string
@@ -174,13 +174,13 @@ export async function createMarkdownDocumentService(
 		document.submit({
 			actor,
 			command:
-				command.type === `import`
-					? command
+				input.type === `import`
+					? input
 					: {
-							gestureId: command.gestureId,
-							selection: { anchor: command.anchor, head: command.head },
-							sequence: command.sequence,
-							text: command.text,
+							gestureId: input.gestureId,
+							selection: { anchor: input.anchor, head: input.head },
+							sequence: input.sequence,
+							text: input.text,
 							type: `replace`,
 						},
 			session,

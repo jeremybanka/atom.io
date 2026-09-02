@@ -50,7 +50,7 @@ export default function main(mode: string): void {
 					types: `./dist/${folder}/index.d.ts`,
 				}
 				if (folder === `react-devtools`) {
-					acc[`./react-devtools/css`] = {
+					acc[`./${folder}/css`] = {
 						import: `./dist/${folder}/index.css`,
 						types: `./css.d.ts`,
 					}

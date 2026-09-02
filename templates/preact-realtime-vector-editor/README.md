@@ -11,3 +11,7 @@ The canvas supports node dragging, atomic node insertion and deletion, private z
 Read `INNOVATIONS.md` before adapting the example. It names the correctness boundaries and the places where this template intentionally takes an application-specific path.
 
 Read `CREATE_COMPATIBILITY.md` for the executable Create-* support-contract fixture and the boundary between Atom.io, a consumer adapter, and the product.
+
+## Quality Checks
+
+Run `npm run lint` before committing. It enforces ESLint, type-aware Oxlint, React hook call-order correctness, TypeScript, and CSS-module reachability with zero warnings. Run `npm run fmt:check` in CI and `npm run fmt` to apply the pinned dprint configuration locally.

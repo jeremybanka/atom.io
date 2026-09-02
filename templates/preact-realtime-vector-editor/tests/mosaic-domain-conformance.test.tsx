@@ -335,7 +335,7 @@ describe(`cross-vertical Mosaic Domain conformance`, () => {
 				expect(report.counters.deliveredPayloads).toBeGreaterThan(0)
 				expect(report.counters.retainedHistory).toBeGreaterThan(0)
 			} finally {
-				await adapter[Symbol.dispose]()
+				adapter[Symbol.dispose]()
 			}
 		},
 	)

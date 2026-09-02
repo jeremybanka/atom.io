@@ -1,10 +1,11 @@
+import { comptime } from "comptime/rolldown"
 import type { UserConfig } from "tsdown"
 import { defineConfig } from "tsdown"
 
 import discoverSubmodules from "./__scripts__/discover-submodules.ts"
 import { fromEntries } from "./src/foundations/entries/index.ts"
 
-const SUBMODULE_NAMES = discoverSubmodules()
+const SUBMODULE_NAMES = new Set(discoverSubmodules())
 
 const NEVER_BUNDLE = [
 	/^node:/,
@@ -12,19 +13,19 @@ const NEVER_BUNDLE = [
 	/^@eslint\//,
 	/^@typescript-eslint\//,
 	`atom.io`,
-	...SUBMODULE_NAMES.map((submodule) => `atom.io/${submodule}`),
+	...[...SUBMODULE_NAMES].map((submodule) => `atom.io/${submodule}`),
 ]
 
 const ALL_ENTRIES = {
 	"main/index": `src/main/index.ts`,
 	...fromEntries(
-		SUBMODULE_NAMES.map(
+		[...SUBMODULE_NAMES].map(
 			(name) => [`${name}/index`, `src/${name}/index.ts`] as const,
 		),
 	),
 }
 
-console.log({ SUBMODULE_NAMES, ALL_ENTRIES })
+console.log({ SUBMODULE_NAMES: [...SUBMODULE_NAMES], ALL_ENTRIES })
 
 const sharedConfig = {
 	deps: {
@@ -39,6 +40,7 @@ const sharedConfig = {
 	format: `esm`,
 	outDir: `dist`,
 	platform: `neutral`,
+	plugins: [comptime()],
 	sourcemap: false,
 	treeshake: true,
 	tsconfig: `tsconfig.json`,

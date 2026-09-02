@@ -23,7 +23,7 @@
 			"dependsOn": ["build", "^build"],
 			"cache": false
 		},
-		"tonnage:test": {
+		"tonnage:check": {
 			"dependsOn": ["build", "^build"],
 			"outputs": [],
 			"inputs": [

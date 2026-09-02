@@ -703,8 +703,7 @@ export function createSvgDomainEditor(options: {
 				),
 			])
 		},
-		async redo(gesture) {
-			void gesture
+		async redo(_gesture) {
 			if (options.history === undefined) return false
 			const result = await options.history.redo()
 			if (result.status === `rejected`) throw new Error(result.reason)
@@ -908,8 +907,7 @@ export function createSvgDomainEditor(options: {
 				),
 			])
 		},
-		async undo(gesture) {
-			void gesture
+		async undo(_gesture) {
 			if (options.history === undefined) return false
 			const result = await options.history.undo()
 			if (result.status === `rejected`) throw new Error(result.reason)

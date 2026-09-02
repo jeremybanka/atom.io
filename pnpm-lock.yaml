@@ -248,6 +248,9 @@ importers:
       happy-dom:
         specifier: 20.14.0
         version: 20.14.0
+      magic-string:
+        specifier: 0.30.21
+        version: 0.30.21
       motion:
         specifier: 13.2.0
         version: 13.2.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)

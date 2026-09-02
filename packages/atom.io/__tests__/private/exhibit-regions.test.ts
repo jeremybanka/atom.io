@@ -57,45 +57,6 @@ describe(`exhibit regions`, () => {
 		).toBe([`const value = 1`, `if (value) {`, `\treturn value`, `}`].join(`\n`))
 	})
 
-	test(`includes an opening parenthesis when requested`, () => {
-		const code = [
-			`const element = (`,
-			`\t// @exhibit-region start element include-opening-paren`,
-			`\t<div />`,
-			`)`,
-			`// @exhibit-region end element`,
-		].join(`\n`)
-
-		expect(
-			extractExhibitCode(code, parseExhibitReference(`demo.tsx#element`)),
-		).toBe([`(`, `\t<div />`, `)`].join(`\n`))
-	})
-
-	test(`requires a preceding opening parenthesis`, () => {
-		const code = [
-			`const element =`,
-			`\t// @exhibit-region start element include-opening-paren`,
-			`\t<div />`,
-			`// @exhibit-region end element`,
-		].join(`\n`)
-
-		expect(() =>
-			extractExhibitCode(code, parseExhibitReference(`demo.tsx#element`)),
-		).toThrow(`the previous line does not end with one`)
-	})
-
-	test(`rejects an opening-parenthesis option on end markers`, () => {
-		const code = [
-			`// @exhibit-region start element`,
-			`<div />`,
-			`// @exhibit-region end element include-opening-paren`,
-		].join(`\n`)
-
-		expect(() =>
-			extractExhibitCode(code, parseExhibitReference(`demo.tsx#element`)),
-		).toThrow(`end marker "element" cannot include an opening parenthesis`)
-	})
-
 	test(`throws when a requested region does not exist`, () => {
 		const code = [
 			`// @exhibit-region start good`,

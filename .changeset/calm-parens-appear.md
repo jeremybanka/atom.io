@@ -2,4 +2,4 @@
 "atom.io": patch
 ---
 
-Include both parentheses in tutorial JSX exhibits so formatters preserve their region boundaries.
+Expand tutorial JSX exhibits to include their declarations so formatter-controlled parentheses remain within their region boundaries.

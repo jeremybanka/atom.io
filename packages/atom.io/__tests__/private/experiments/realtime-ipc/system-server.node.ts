@@ -9,7 +9,14 @@ function resolveRoomScript(name: string): [string, string[]] {
 	const script = process.env[`ATOM_IO_TEST_ROOM_STARTUP_DELAY_MS`]
 		? `delayed-game-instance.bun.ts`
 		: name
-	return [`bun`, [path.join(__dirname, script)]]
+	return [
+		`bun`,
+		[
+			`--preload`,
+			path.join(__dirname, `comptime-runtime.bun.ts`),
+			path.join(__dirname, script),
+		],
+	]
 }
 const isRoomAdminSelectors = selectorFamily<boolean, UserKey>({
 	key: `isRoomAdmin`,

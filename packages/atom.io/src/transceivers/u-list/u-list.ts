@@ -6,6 +6,8 @@ import { Subject } from "atom.io/foundations/subject"
 import type { Fn, Transceiver, TransceiverMode } from "atom.io/internal"
 import { comptime } from "comptime"
 
+import { enumeration } from "../../foundations/enumeration/index.ts"
+
 export type SetMutations = Exclude<
 	keyof Set<any>,
 	symbol | keyof ReadonlySet<any>
@@ -29,14 +31,7 @@ export type PackedSetUpdate<P extends primitive> = string & {
 }
 
 export const SET_UPDATE_ENUM: Enumeration<[`add`, `delete`, `clear`]> = comptime(
-	async () => {
-		// comptime evaluates after dist is cleaned, so load this dependency from source.
-		// dprint-ignore
-		const { enumeration } = await import(
-			`../../foundations/enumeration/index.ts`
-		)
-		return enumeration([`add`, `delete`, `clear`] as const)
-	},
+	() => enumeration([`add`, `delete`, `clear`] as const),
 )
 
 export type SetMutationHandler = { [K in UListUpdateType]: Fn }

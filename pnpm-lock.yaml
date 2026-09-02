@@ -282,8 +282,8 @@ importers:
         specifier: 0.1.2
         version: 0.1.2(arktype@2.2.3)(zod@4.5.4)
       treetrunks:
-        specifier: 0.1.10
-        version: 0.1.10
+        specifier: 0.1.11
+        version: 0.1.11
       tsdown:
         specifier: 0.22.14
         version: 0.22.14(@tsdown/css@0.22.14)(oxc-resolver@11.21.2)(tsx@4.22.1)(typescript@7.0.2)

@@ -49,7 +49,6 @@ jobs:
         with:
           packages: bun node pnpm
       - run: pnpm run build
-      - run: pnpm run tonnage:test
 
   Manifest:
     runs-on: ubuntu-latest

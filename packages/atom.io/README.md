@@ -58,48 +58,52 @@ npm i atom.io
 
 ## Bundle size
 
-Public-module rows retain complete runtime export surfaces. Recipe rows bundle their reviewable entry files and tree-shake unused exports. Both report exact minified and level-9 gzip JavaScript byte counts; declarations, source maps, CSS, and other assets are excluded. Peer dependencies stay external, and shared modules are counted once per bundle.
+Package export sizes include complete runtime export surfaces.
+Usage example sizes bundle their entry files and tree-shake unused exports.
+Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, source maps, CSS, and other assets are excluded. Peer dependencies stay external, and shared modules are counted once per bundle.
 
-### Public modules (whole export surface)
+### Package exports
 
 | Import                                         | Minified JS |  Gzip JS |
 | ---------------------------------------------- | ----------: | -------: |
-| <code>atom.io</code>                           |    76,586 B | 21,036 B |
-| <code>atom.io/eslint-plugin</code>             |     8,505 B |  2,695 B |
-| <code>atom.io/experiments/realms</code>        |    66,585 B | 18,472 B |
+| <code>atom.io</code>                           |    75,958 B | 20,749 B |
+| <code>atom.io/eslint-plugin</code>             |     8,460 B |  2,712 B |
+| <code>atom.io/experiments/realms</code>        |    65,852 B | 18,204 B |
 | <code>atom.io/foundations/canonical</code>     |       500 B |    302 B |
 | <code>atom.io/foundations/entries</code>       |       243 B |    177 B |
-| <code>atom.io/foundations/enumeration</code>   |       214 B |    181 B |
-| <code>atom.io/foundations/future</code>        |       583 B |    334 B |
-| <code>atom.io/foundations/json</code>          |       602 B |    376 B |
-| <code>atom.io/foundations/junction</code>      |     9,361 B |  2,516 B |
-| <code>atom.io/foundations/overlays</code>      |     3,991 B |  1,034 B |
-| <code>atom.io/foundations/subject</code>       |       481 B |    285 B |
-| <code>atom.io/foundations/type-utils</code>    |        30 B |     50 B |
-| <code>atom.io/internal</code>                  |    76,821 B | 21,354 B |
-| <code>atom.io/introspection</code>             |    57,758 B | 16,026 B |
-| <code>atom.io/react</code>                     |    47,061 B | 13,717 B |
-| <code>atom.io/react-devtools</code>            |    93,273 B | 26,486 B |
-| <code>atom.io/realtime</code>                  |    60,021 B | 17,714 B |
-| <code>atom.io/realtime-client</code>           |    69,584 B | 20,285 B |
-| <code>atom.io/realtime-react</code>            |    73,086 B | 21,342 B |
-| <code>atom.io/realtime-server</code>           |   103,587 B | 30,626 B |
-| <code>atom.io/realtime-testing</code>          |   122,297 B | 36,804 B |
-| <code>atom.io/solid</code>                     |    45,953 B | 13,278 B |
-| <code>atom.io/testing</code>                   |    17,406 B |  5,008 B |
-| <code>atom.io/transceivers/o-list</code>       |     7,354 B |  2,124 B |
-| <code>atom.io/transceivers/u-list</code>       |     2,032 B |    861 B |
-| <code>atom.io/web</code>                       |       761 B |    417 B |
-| <code>atom.io/realtime-testing/headless</code> |   111,683 B | 33,172 B |
+| <code>atom.io/foundations/enumeration</code>   |       214 B |    183 B |
+| <code>atom.io/foundations/future</code>        |       583 B |    332 B |
+| <code>atom.io/foundations/json</code>          |       602 B |    377 B |
+| <code>atom.io/foundations/junction</code>      |     9,349 B |  2,531 B |
+| <code>atom.io/foundations/overlays</code>      |     3,991 B |  1,033 B |
+| <code>atom.io/foundations/subject</code>       |       481 B |    284 B |
+| <code>atom.io/foundations/type-utils</code>    |       604 B |    371 B |
+| <code>atom.io/internal</code>                  |    76,189 B | 21,085 B |
+| <code>atom.io/introspection</code>             |    57,202 B | 15,833 B |
+| <code>atom.io/react</code>                     |    46,209 B | 13,484 B |
+| <code>atom.io/react-devtools</code>            |    91,086 B | 25,771 B |
+| <code>atom.io/realtime</code>                  |    59,690 B | 17,508 B |
+| <code>atom.io/realtime-client</code>           |    69,031 B | 19,978 B |
+| <code>atom.io/realtime-react</code>            |    72,192 B | 20,990 B |
+| <code>atom.io/realtime-server</code>           |   102,941 B | 30,213 B |
+| <code>atom.io/realtime-testing</code>          |   122,137 B | 36,294 B |
+| <code>atom.io/solid</code>                     |    45,205 B | 13,078 B |
+| <code>atom.io/testing</code>                   |    17,319 B |  4,956 B |
+| <code>atom.io/transceivers/o-list</code>       |     7,225 B |  2,089 B |
+| <code>atom.io/transceivers/u-list</code>       |     2,032 B |    869 B |
+| <code>atom.io/web</code>                       |       757 B |    418 B |
+| <code>atom.io/realtime-testing/headless</code> |   111,431 B | 33,081 B |
 
-### Representative runtimes (tree-shaken)
+### Usage examples
 
 | Recipe                     | Entry                                                 | Minified JS |  Gzip JS |
 | -------------------------- | ----------------------------------------------------- | ----------: | -------: |
-| Core (for example, an LSP) | <code>tonnage-recipes/core.ts</code>                  |    46,006 B | 13,097 B |
-| React app                  | <code>tonnage-recipes/react-app.ts</code>             |    47,983 B | 13,736 B |
-| Realtime React client      | <code>tonnage-recipes/realtime-react-client.ts</code> |    76,957 B | 22,540 B |
-| Realtime server            | <code>tonnage-recipes/realtime-server.ts</code>       |    98,576 B | 27,866 B |
+| Core (for example, an LSP) | <code>tonnage-recipes/core.ts</code>                  |    45,715 B | 12,909 B |
+| React app                  | <code>tonnage-recipes/react-app.ts</code>             |    47,596 B | 13,514 B |
+| Realtime React client      | <code>tonnage-recipes/realtime-react-client.ts</code> |    76,694 B | 22,391 B |
+| Realtime server            | <code>tonnage-recipes/realtime-server.ts</code>       |    98,653 B | 27,878 B |
+
+Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 
 <!-- tonnage:atom.io:end -->
 

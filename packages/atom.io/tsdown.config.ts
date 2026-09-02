@@ -30,6 +30,9 @@ console.log({ SUBMODULE_NAMES: [...SUBMODULE_NAMES], ALL_ENTRIES })
 const sharedConfig = {
 	deps: {
 		neverBundle: NEVER_BUNDLE,
+		dts: {
+			neverBundle: [...NEVER_BUNDLE, /foundations\/enumeration\/index\.ts$/],
+		},
 	},
 	css: {
 		splitting: true,

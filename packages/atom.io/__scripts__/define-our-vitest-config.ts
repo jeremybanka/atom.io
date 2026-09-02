@@ -1,6 +1,7 @@
 import { cpus } from "node:os"
 import { resolve } from "node:path"
 
+import { comptime } from "comptime/vite"
 import type * as Vite from "vite"
 import type { TestUserConfig } from "vitest/config"
 import { defineConfig } from "vitest/config"
@@ -75,6 +76,7 @@ export function defineOurVitestConfig(
 	}
 
 	const config: Vite.UserConfig = defineConfig({
+		plugins: options.target === `src` ? [comptime()] : [],
 		resolve: { alias },
 		test: {
 			...TEST_CONFIG_BASE,

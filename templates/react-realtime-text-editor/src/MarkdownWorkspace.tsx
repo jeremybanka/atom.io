@@ -1,46 +1,54 @@
-import type { MosaicTextSelection } from "atom.io/realtime"
-import { useO } from "atom.io/react"
-import { useMosaic } from "atom.io/realtime-react"
+import { useMosaicTextEditor, useMosaicTextRange } from "atom.io/realtime-react"
 import {
 	Fragment,
 	createElement,
 	type CSSProperties,
 	type ReactElement,
 	type ReactNode,
+	useCallback,
 	useEffect,
-	useLayoutEffect,
 	useMemo,
 	useRef,
 	useState,
 } from "react"
 
+import type {
+	MarkdownClientStatus,
+	MarkdownCollaborationClient,
+} from "./collaboration-client.ts"
+import type { MarkdownPresence } from "./document-domain.ts"
 import {
-	lineAndColumnAt,
-	type Markdown,
-	markdownAtom,
-	markdownCharacterCountSelector,
-	markdownWordCountSelector,
-	type MarkdownPresence,
-} from "./collaboration/mosaic.ts"
+	IncrementalMarkdownParser,
+	type MarkdownParseInstrumentation,
+	type MarkdownSemanticBlock,
+} from "./incremental-markdown.ts"
 import { SIMULATED_IDENTITIES } from "./identities.ts"
-import type { Identity } from "./identities.ts"
+import {
+	LexicalMarkdownEditor,
+	type RenderedCollaboratorSelection,
+} from "./LexicalMarkdownEditor.tsx"
 import { switchBrowserIdentity } from "./session.ts"
+import { markdownVirtualWindow } from "./virtualization.ts"
 import css from "./MarkdownWorkspace.module.css"
 
-type MarkdownWorkspaceProps = {
-	clientId: string
-	identity: Identity
+type MarkdownWorkspaceProps = { readonly client: MarkdownCollaborationClient }
+type PersonStyle = CSSProperties & Record<`--person-color`, string>
+
+const EMPTY_PARSE_METRICS: MarkdownParseInstrumentation = {
+	canceled: false,
+	elapsedMs: 0,
+	parsedBlocks: 0,
+	reusedBlocks: 0,
+	scannedUtf16Units: 0,
+	stableBoundaryIndex: null,
 }
 
-type CaretStyle = CSSProperties &
-	Record<`--caret-column` | `--caret-line` | `--person-color`, number | string>
-
 function safeHref(candidate: string): string | undefined {
-	return /^(https?:\/\/|mailto:|#)/.test(candidate) ? candidate : undefined
+	return /^(https?:\/\/|mailto:|#)/u.test(candidate) ? candidate : undefined
 }
 
 function renderInline(text: string, keyPrefix: string): ReactNode[] {
-	const pattern = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\([^)]+\))/g
+	const pattern = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\([^)]+\))/gu
 	const nodes: ReactNode[] = []
 	let cursor = 0
 	for (const match of text.matchAll(pattern)) {
@@ -55,7 +63,7 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
 		} else if (token.startsWith(`*`)) {
 			nodes.push(<em key={key}>{token.slice(1, -1)}</em>)
 		} else {
-			const link = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(token)
+			const link = /^\[([^\]]+)\]\(([^)]+)\)$/u.exec(token)
 			const href = safeHref(link?.[2] ?? ``)
 			nodes.push(
 				href ? (
@@ -73,171 +81,208 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
 	return nodes
 }
 
-function startsBlock(line: string): boolean {
-	return /^(#{1,6} |```|> |[-*] |\d+\. )/.test(line)
+function renderSemantic(block: MarkdownSemanticBlock): ReactElement {
+	const content = renderInline(block.text, block.key)
+	switch (block.kind) {
+		case `heading`:
+			return createElement(`h${block.level ?? 2}`, { key: block.key }, content)
+		case `blockquote`:
+			return <blockquote key={block.key}>{content}</blockquote>
+		case `code`:
+			return (
+				<pre key={block.key}>
+					<code>{block.text}</code>
+				</pre>
+			)
+		case `list-item`:
+			return <p key={block.key}>• {content}</p>
+		case `paragraph`:
+			return <p key={block.key}>{content}</p>
+	}
 }
 
-function renderMarkdown(markdown: string): ReactNode[] {
-	const lines = markdown.split(`\n`)
-	const blocks: ReactNode[] = []
-	let index = 0
-	while (index < lines.length) {
-		const line = lines[index]
-		if (line.trim() === ``) {
-			index++
-			continue
-		}
-		if (line.startsWith(`\`\`\``)) {
-			const language = line.slice(3).trim()
-			const code: string[] = []
-			index++
-			while (index < lines.length && !lines[index].startsWith(`\`\`\``)) {
-				code.push(lines[index])
-				index++
-			}
-			index++
-			blocks.push(
-				<pre key={`code:${index}`} data-language={language || undefined}>
-					<code>{code.join(`\n`)}</code>
-				</pre>,
-			)
-			continue
-		}
-		const heading = /^(#{1,6}) (.*)$/.exec(line)
-		if (heading) {
-			blocks.push(
-				createElement(
-					`h${heading[1].length}`,
-					{ key: `heading:${index}` },
-					renderInline(heading[2], `heading:${index}`),
-				),
-			)
-			index++
-			continue
-		}
-		if (/^[-*] /.test(line)) {
-			const items: ReactNode[] = []
-			while (index < lines.length && /^[-*] /.test(lines[index])) {
-				items.push(
-					<li key={`item:${index}`}>
-						{renderInline(lines[index].slice(2), `item:${index}`)}
-					</li>,
-				)
-				index++
-			}
-			blocks.push(<ul key={`list:${index}`}>{items}</ul>)
-			continue
-		}
-		if (/^\d+\. /.test(line)) {
-			const items: ReactNode[] = []
-			while (index < lines.length && /^\d+\. /.test(lines[index])) {
-				items.push(
-					<li key={`item:${index}`}>
-						{renderInline(lines[index].replace(/^\d+\. /, ``), `item:${index}`)}
-					</li>,
-				)
-				index++
-			}
-			blocks.push(<ol key={`list:${index}`}>{items}</ol>)
-			continue
-		}
-		if (line.startsWith(`> `)) {
-			blocks.push(
-				<blockquote key={`quote:${index}`}>
-					{renderInline(line.slice(2), `quote:${index}`)}
-				</blockquote>,
-			)
-			index++
-			continue
-		}
-
-		const paragraph = [line]
-		index++
-		while (
-			index < lines.length &&
-			lines[index].trim() !== `` &&
-			!startsBlock(lines[index])
-		) {
-			paragraph.push(lines[index])
-			index++
-		}
-		blocks.push(
-			<p key={`paragraph:${index}`}>
-				{renderInline(paragraph.join(` `), `paragraph:${index}`)}
-			</p>,
-		)
-	}
-	return blocks
+function activePresence(
+	client: MarkdownCollaborationClient,
+): MarkdownPresence[] {
+	return client.presence.state.presence.flatMap((envelope) =>
+		envelope.kind === `update` && envelope.address.member === `collaborator`
+			? [envelope.value as MarkdownPresence]
+			: [],
+	)
 }
 
-function getStatusLabel(status: string, pending: number): string {
-	if (status === `offline`) return `Offline · changes stay queued`
-	if (status === `recovering` || status === `syncing`) {
-		return `Catching up…`
-	}
-	if (status === `rejected`) return `Collaboration needs attention`
+function statusLabel(
+	status: MarkdownClientStatus,
+	hasLocalDraft: boolean,
+): string {
+	if (status.connection === `offline`) return `Offline · draft stays local`
+	if (status.connection === `recovering`) return `Resnapshotting working set…`
+	if (status.connection === `connecting`) return `Connecting…`
+	const pending = Math.max(status.pending, hasLocalDraft ? 1 : 0)
 	return pending === 0
 		? `All changes saved`
-		: `Saving ${pending} change${pending === 1 ? `` : `s`}…`
+		: `Saving ${pending} gesture${pending === 1 ? `` : `s`}…`
 }
 
 export function MarkdownWorkspace({
-	clientId,
-	identity,
+	client,
 }: MarkdownWorkspaceProps): ReactElement {
-	const mosaic = useMosaic<InstanceType<typeof Markdown>, MarkdownPresence>(
-		markdownAtom,
-		{ actor: identity.id, session: clientId },
+	const [status, setStatus] = useState(() => client.status())
+	const [presence, setPresence] = useState(() => activePresence(client))
+	const [totalLength, setTotalLength] = useState(0)
+	const [scroll, setScroll] = useState({ height: 560, scrollTop: 0 })
+	const [parse, setParse] = useState<readonly MarkdownSemanticBlock[]>([])
+	const [parseMetrics, setParseMetrics] =
+		useState<MarkdownParseInstrumentation>(EMPTY_PARSE_METRICS)
+	const [readProblem, setReadProblem] = useState<string | null>(null)
+	const [problem, setProblem] = useState<string | null>(null)
+	const parser = useRef(new IncrementalMarkdownParser())
+	const deferredScroll = useRef<typeof scroll | null>(null)
+	const window = useMemo(
+		() =>
+			markdownVirtualWindow(scroll, {
+				averageUtf16UnitsPerRow: 88,
+				overscanRows: 24,
+				rowHeight: 24,
+				totalUtf16Units: totalLength,
+			}),
+		[scroll, totalLength],
 	)
-	const document = useO(markdownAtom)
-	const characterCount = useO(markdownCharacterCountSelector)
-	const wordCount = useO(markdownWordCountSelector)
-	const markdown = document.text
-	const history = document.historyFor(identity.id)
-	const presence = mosaic.presence.map(({ actor, presence: peer, session }) => ({
-		...peer,
-		clientId: session,
-		id: actor,
-	}))
-	const editorRef = useRef<HTMLTextAreaElement | null>(null)
-	const selectionRef = useRef<MosaicTextSelection | null>(null)
-	const [scroll, setScroll] = useState({ left: 0, top: 0 })
-	const preview = useMemo(() => renderMarkdown(markdown), [markdown])
-	const collaborators = presence.filter(({ clientId: id }) => id !== clientId)
-	const pending = mosaic.pending.length
+	const view = useMosaicTextRange(client.projection, window.range, {
+		overscan: 2_048,
+	})
+	const incomingProjection = view.status === `ready` ? view.projection : null
+	const refreshLength = useCallback(async (): Promise<number | null> => {
+		try {
+			const length = await client.projection.readLength()
+			setTotalLength(length)
+			setReadProblem(null)
+			return length
+		} catch (error) {
+			setReadProblem(error instanceof Error ? error.message : String(error))
+			return null
+		}
+	}, [client])
 
-	const publishSelection = (selection: MosaicTextSelection | null): void => {
-		mosaic.publishPresence({
-			color: identity.color,
-			lastActiveAt: Date.now(),
-			name: identity.name,
-			selection,
-		})
-	}
+	const peers = useMemo(
+		() =>
+			presence
+				.filter((person) => person.session !== client.sessionId)
+				.map((person) => ({
+					id: person.session,
+					selection: person.selection,
+					value: person,
+				})),
+		[client.sessionId, presence],
+	)
+	const publishSelection = useCallback(
+		(selection: NonNullable<MarkdownPresence[`selection`]>) =>
+			client.publishPresence({
+				color: client.identity.color,
+				name: client.identity.name,
+				selection,
+				viewport: null,
+			}),
+		[client],
+	)
+	const replace = useCallback(
+		(input: Parameters<MarkdownCollaborationClient[`replace`]>[0]) =>
+			client.replace(input),
+		[client],
+	)
+	const reportEditorError = useCallback((error: unknown): void => {
+		setProblem(error instanceof Error ? error.message : String(error))
+	}, [])
+	const editor = useMosaicTextEditor({
+		client: client.projection,
+		connected: status.connection === `live`,
+		documentLength: totalLength,
+		onDocumentLength: setTotalLength,
+		onError: reportEditorError,
+		peers,
+		projection: incomingProjection,
+		publishSelection,
+		replace,
+	})
+	const projection = editor.projection
 
 	useEffect(() => {
-		if (mosaic.status === `live`) publishSelection(selectionRef.current)
-	}, [mosaic.status])
+		const stopStatus = client.subscribe((next) => {
+			setStatus(next)
+			if (next.connection === `live`) {
+				void refreshLength()
+			}
+		})
+		const stopPresence = client.presence.subscribe(() => {
+			setPresence(activePresence(client))
+		})
+		void refreshLength()
+		return () => {
+			stopStatus()
+			stopPresence()
+			parser.current.cancel()
+		}
+	}, [client, refreshLength])
 
-	useLayoutEffect(() => {
-		const editor = editorRef.current
-		const selection = selectionRef.current
-		if (!editor || !selection || globalThis.document.activeElement !== editor) {
+	useEffect(() => {
+		if (editor.hasLocalDraft || deferredScroll.current === null) return
+		setScroll(deferredScroll.current)
+		deferredScroll.current = null
+	}, [editor.hasLocalDraft])
+
+	useEffect(() => {
+		if (projection === null) return
+		const controller = new AbortController()
+		void parser.current
+			.parse(projection.blocks, { signal: controller.signal })
+			.then((result) => {
+				if (result.instrumentation.canceled) return
+				setParse(result.blocks)
+				setParseMetrics(result.instrumentation)
+			})
+		return () => {
+			controller.abort()
+		}
+	}, [projection])
+
+	useEffect(() => {
+		if (
+			projection === null ||
+			editor.hasLocalDraft ||
+			editor.hasLocalSelection
+		) {
 			return
 		}
-		editor.setSelectionRange(
-			document.resolvePosition(selection.anchor),
-			document.resolvePosition(selection.head),
+		const start = window.range.start
+		const end = window.range.end
+		void Promise.all([
+			client.projection.positionAtOffset(start),
+			client.projection.positionAtOffset(end),
+		]).then(([anchor, head]) =>
+			client.publishPresence({
+				color: client.identity.color,
+				name: client.identity.name,
+				selection: null,
+				viewport: { anchor, head },
+			}),
 		)
-	}, [markdown])
+	}, [
+		client,
+		editor.hasLocalDraft,
+		editor.hasLocalSelection,
+		projection,
+		window.range.end,
+		window.range.start,
+	])
 
-	const rememberSelection = (editor: HTMLTextAreaElement): void => {
-		selectionRef.current = document.selectionFromOffsets(
-			editor.selectionStart,
-			editor.selectionEnd,
-		)
-		publishSelection(selectionRef.current)
-	}
+	const collaboratorSelections: readonly RenderedCollaboratorSelection[] =
+		editor.remoteSelections.map(({ end, id, start, value: person }) => ({
+			color: person.color,
+			end,
+			name: person.name,
+			session: id,
+			start,
+		}))
 
 	return (
 		<markdown-workspace className={css.class}>
@@ -251,34 +296,24 @@ export function MarkdownWorkspace({
 				</brand-lockup>
 				<document-title>
 					<strong>Launch field notes</strong>
-					<span>{getStatusLabel(mosaic.status, pending)}</span>
+					<span>{statusLabel(status, editor.hasLocalDraft)}</span>
 				</document-title>
 				<toolbar-actions>
-					<button
-						type="button"
-						disabled={history.undo.length === 0}
-						onClick={() => mosaic.change({ type: `undo` })}
-						title="Undo my last change"
-					>
+					<button type="button" onClick={() => void client.undo()}>
 						↶ <span>Undo mine</span>
 					</button>
-					<button
-						type="button"
-						disabled={history.redo.length === 0}
-						onClick={() => mosaic.change({ type: `redo` })}
-						title="Redo my last change"
-					>
+					<button type="button" onClick={() => void client.redo()}>
 						↷ <span>Redo</span>
 					</button>
 					<label>
 						<avatar-dot
-							style={{ "--person-color": identity.color } as CSSProperties}
+							style={{ "--person-color": client.identity.color } as PersonStyle}
 						>
-							{identity.name[0]}
+							{client.identity.name[0]}
 						</avatar-dot>
 						<select
 							aria-label="Simulated identity"
-							value={identity.id}
+							value={client.identity.id}
 							onChange={(event) => {
 								switchBrowserIdentity(event.target.value)
 							}}
@@ -297,127 +332,111 @@ export function MarkdownWorkspace({
 					<pane-heading>
 						<label htmlFor="markdown-source">Markdown</label>
 						<span>
-							{characterCount.toLocaleString()} characters ·{` `}
-							{wordCount.toLocaleString()} words
+							{totalLength.toLocaleString()} UTF-16 units · bounded viewport
 						</span>
 					</pane-heading>
-					<editor-surface>
-						<textarea
-							id="markdown-source"
-							ref={editorRef}
-							aria-label="Shared markdown source"
-							value={markdown}
-							disabled={
-								mosaic.status === `recovering` || mosaic.status === `syncing`
+					<editor-surface
+						onScroll={(event) => {
+							const element = event.currentTarget
+							const nextScroll = {
+								height: element.clientHeight,
+								scrollTop: element.scrollTop,
 							}
-							onChange={(event) => {
-								const { selectionStart, selectionEnd, value } =
-									event.currentTarget
-								mosaic.change({ text: value, type: `replace-text` })
-								selectionRef.current = document.selectionFromOffsets(
-									selectionStart,
-									selectionEnd,
-								)
-								publishSelection(selectionRef.current)
-							}}
-							onKeyDown={(event) => {
-								if (!(event.metaKey || event.ctrlKey) || event.key !== `z`)
-									return
-								event.preventDefault()
-								mosaic.change({ type: event.shiftKey ? `redo` : `undo` })
-							}}
-							onScroll={(event) => {
-								setScroll({
-									left: event.currentTarget.scrollLeft,
-									top: event.currentTarget.scrollTop,
-								})
-							}}
-							onSelect={(event) => {
-								rememberSelection(event.currentTarget)
-							}}
-							spellCheck
+							if (editor.hasLocalDraft) {
+								deferredScroll.current = nextScroll
+							} else {
+								setScroll(nextScroll)
+							}
+						}}
+					>
+						<virtual-spacer
+							aria-hidden="true"
+							style={{ height: window.topSpacer }}
 						/>
-						<caret-layer aria-hidden="true">
-							{collaborators.map((person) => {
-								const relative = person.selection?.head
-								if (!relative) return null
-								const offset = document.resolvePosition(relative)
-								const { line, column } = lineAndColumnAt(markdown, offset)
-								const style: CaretStyle = {
-									"--caret-column": column,
-									"--caret-line": line,
-									"--person-color": person.color,
-									translate: `${-scroll.left}px ${-scroll.top}px`,
-								}
-								return (
-									<remote-caret key={person.clientId} style={style}>
-										<span>{person.name.split(` `)[0]}</span>
-									</remote-caret>
-								)
-							})}
-						</caret-layer>
+						{view.status === `loading` ? <p>Hydrating viewport…</p> : null}
+						{view.status === `error` ? (
+							<p role="status">
+								{status.connection === `offline`
+									? `Waiting for the realtime backend…`
+									: `Restoring the shared viewport…`}
+							</p>
+						) : null}
+						{projection ? (
+							<LexicalMarkdownEditor
+								onDirty={editor.onDirty}
+								onError={(error) => {
+									setProblem(error.message)
+								}}
+								onRedo={() => void client.redo()}
+								onSelectionChange={editor.onSelectionChange}
+								onUndo={() => void client.undo()}
+								onValueChange={editor.onValueChange}
+								selections={collaboratorSelections}
+								selection={editor.selection}
+								value={editor.text}
+							/>
+						) : null}
+						<virtual-spacer
+							aria-hidden="true"
+							style={{ height: window.bottomSpacer }}
+						/>
 					</editor-surface>
 				</editor-pane>
 				<preview-pane>
 					<pane-heading>
 						<strong>Preview</strong>
-						<span>React-rendered · safe HTML</span>
+						<span>
+							{parseMetrics.parsedBlocks} parsed · {parseMetrics.reusedBlocks}
+							{` `}
+							reused
+						</span>
 					</pane-heading>
-					<article>{preview}</article>
+					<article>{parse.map(renderSemantic)}</article>
 				</preview-pane>
 				<presence-rail>
-					<strong>In this document</strong>
+					<strong>In this viewport</strong>
 					<ul>
-						{presence.map((person) => {
-							const offset = person.selection
-								? document.resolvePosition(person.selection.head)
-								: null
-							const line =
-								offset === null
-									? null
-									: lineAndColumnAt(markdown, offset).line + 1
-							return (
-								<li
-									key={person.clientId}
-									data-self={person.clientId === clientId}
+						{presence.map((person) => (
+							<li
+								key={`${person.actor}:${person.session}`}
+								data-self={person.session === client.sessionId}
+							>
+								<avatar-dot
+									style={{ "--person-color": person.color } as PersonStyle}
 								>
-									<avatar-dot
-										style={{ "--person-color": person.color } as CSSProperties}
-									>
-										{person.name[0]}
-									</avatar-dot>
-									<person-label>
-										<strong>{person.name}</strong>
-										<span>
-											{person.clientId === clientId
-												? `You · editing now`
-												: line
-													? `Editing near line ${line}`
-													: `Viewing`}
-										</span>
-									</person-label>
-								</li>
-							)
-						})}
+									{person.name[0]}
+								</avatar-dot>
+								<person-label>
+									<strong>{person.name}</strong>
+									<span>
+										{person.session === client.sessionId
+											? `You · local input`
+											: person.selection
+												? `Editing a logical position`
+												: `Viewing another range`}
+									</span>
+								</person-label>
+							</li>
+						))}
 					</ul>
 					<aside>
-						<strong>Undo without collisions</strong>
+						<strong>Bounded by design</strong>
 						<p>
-							Your history removes only characters and deletion marks you
-							authored. Everyone else’s work stays put.
+							Only this source and preview window is resident. Presence and
+							selective history use logical run positions across splits.
 						</p>
 					</aside>
 				</presence-rail>
 			</main>
 			<footer>
-				<span data-status={mosaic.status} />
-				<strong>
-					{mosaic.status === `live`
-						? `Realtime connected`
-						: getStatusLabel(mosaic.status, pending)}
-				</strong>
-				<small>Revision {mosaic.revision}</small>
-				{mosaic.problem ? <output>{mosaic.problem.reason}</output> : null}
+				<span data-status={status.connection} />
+				<strong>{statusLabel(status, editor.hasLocalDraft)}</strong>
+				<small>
+					Resident {client.residency.state.residentMemberCount} members
+				</small>
+				{(problem ?? readProblem ?? status.reason) ? (
+					<output>{problem ?? readProblem ?? status.reason}</output>
+				) : null}
 			</footer>
 		</markdown-workspace>
 	)

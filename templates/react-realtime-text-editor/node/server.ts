@@ -1,67 +1,19 @@
-import { createServer } from "node:http"
+import { createMarkdownCollaborationHttpServer } from "./http-server.ts"
 
-import { Silo } from "atom.io"
-import type { UserKey } from "atom.io/realtime"
-import { createMosaicServer, realtime } from "atom.io/realtime-server"
-import { Server } from "socket.io"
-
-import { identityById } from "../src/identities.ts"
-import { markdownAtomRegistration } from "./mosaic-atom.ts"
-
-const PORT = 3000
-const mosaic = createMosaicServer({ registrations: [markdownAtomRegistration] })
-const silo = new Silo({
-	name: `markdown-collaboration-server`,
-	lifespan: `immortal`,
-	isProduction: process.env.NODE_ENV === `production`,
-})
-const httpServer = createServer((request, response) => {
-	if (request.url === `/health`) {
-		response.writeHead(200, { "content-type": `application/json` })
-		response.end(JSON.stringify({ ok: true }))
-		return
-	}
-	response.writeHead(404)
-	response.end()
-})
-const socketServer = new Server(httpServer)
-
-const disposeRealtime = realtime(
-	socketServer,
-	(handshake) => {
-		const requestedId =
-			typeof handshake.auth.userId === `string`
-				? handshake.auth.userId
-				: undefined
-		const sessionId =
-			typeof handshake.auth.sessionId === `string`
-				? handshake.auth.sessionId
-				: undefined
-		if (!sessionId || sessionId.includes(`::`)) {
-			return new Error(`A valid Mosaic session is required.`)
-		}
-		const identity = identityById(requestedId)
-		return `user::${identity.id}::${sessionId}` satisfies UserKey
-	},
-	({ socket, consumer }) => {
-		const [, actor, session] = consumer.split(`::`)
-		if (!actor || !session) {
-			throw new Error(`Malformed Mosaic user session.`)
-		}
-		return mosaic.connect({ actor, session, socket })
-	},
-	silo.store,
+const portArgument = process.argv.indexOf(`--port`)
+const configuredPort =
+	portArgument === -1 ? process.env.PORT : process.argv[portArgument + 1]
+const PORT = Number.parseInt(configuredPort ?? `3000`, 10)
+if (!Number.isSafeInteger(PORT) || PORT < 1 || PORT > 65_535) {
+	throw new Error(`PORT must be an integer between 1 and 65535.`)
+}
+const server = await createMarkdownCollaborationHttpServer({ port: PORT })
+console.log(
+	`Markdown collaboration server listening on http://localhost:${PORT}`,
 )
 
-httpServer.listen(PORT, () => {
-	console.log(
-		`Markdown collaboration server listening on http://localhost:${PORT}`,
-	)
-})
-
 const shutdown = async (): Promise<void> => {
-	await disposeRealtime()
-	await mosaic.dispose()
+	await server.close()
 }
 process.once(`SIGINT`, () => void shutdown())
 process.once(`SIGTERM`, () => void shutdown())

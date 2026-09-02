@@ -1,16 +1,111 @@
 markdown-workspace.class {
-	--accent: #6d50ea;
-	--border: #dfdce8;
-	--ink: #292936;
-	--muted: #817e90;
-	--paper: #fffefa;
-	--panel: #faf9fc;
+	--accent: #aa91ff;
+	--aside-border: #4f426f;
+	--aside-body: #b8afc5;
+	--aside-gradient-end: #201b2d;
+	--aside-gradient-start: #29223a;
+	--aside-title: #c5b6ff;
+	--avatar-ring: #1c1922;
+	--border: #393441;
+	--button-background: #25212c;
+	--button-hover-background: #302840;
+	--button-hover-border: #6f6195;
+	--button-ink: #d4cedd;
+	--chrome: #19171f;
+	--chrome-border: #302c38;
+	--chrome-glass: #19171fe6;
+	--code-background: #121016;
+	--code-border: #463f50;
+	--code-ink: #f1edff;
+	--editor-gutter: #211e28;
+	--editor-ink: #e5dfea;
+	--editor-placeholder: #88818f;
+	--error: #ff91ad;
+	--footer-ink: #c4bdca;
+	--heading: #f4effa;
+	--ink: #f1edf7;
+	--inline-code-background: #2c2540;
+	--inline-code-ink: #cbbcff;
+	--link: #baa6ff;
+	--link-underline: #7565af;
+	--muted: #aaa4b7;
+	--overlay-outline: #121016c9;
+	--paper: #1c1922;
+	--pane-heading: #211e28;
+	--pane-heading-border: #37323f;
+	--panel: #18161d;
+	--preview-ink: #d9d4e0;
+	--quote-background: #272132;
+	--quote-border: #8e75ef;
+	--quote-ink: #c8bfd7;
+	--shadow: #00000038;
+	--status-idle: #736d7c;
+	--status-live: #4bd5a4;
+	--status-live-ring: #4bd5a429;
+	--status-offline: #f0a75a;
+	--strong-ink: #fffaff;
+	--workspace: #121016;
+	--workspace-glow: #2c2147;
 	display: grid;
 	grid-template-rows: auto minmax(0, 1fr) auto;
 	min-height: 100svh;
 	background:
-		radial-gradient(circle at 80% 0%, #eee9ff 0, transparent 28rem),
-		#f3f2f7;
+		radial-gradient(
+			circle at 80% 0%,
+			var(--workspace-glow) 0,
+			transparent 28rem
+		),
+		var(--workspace);
+
+	@media (prefers-color-scheme: light) {
+		--accent: #6d50ea;
+		--aside-border: #e3dcff;
+		--aside-body: #6d6680;
+		--aside-gradient-end: #f1edff;
+		--aside-gradient-start: #f9f7ff;
+		--aside-title: #5941b4;
+		--avatar-ring: white;
+		--border: #dfdce8;
+		--button-background: white;
+		--button-hover-background: #f8f6ff;
+		--button-hover-border: #bdb4df;
+		--button-ink: #565363;
+		--chrome: #faf9fc;
+		--chrome-border: #e5e2ec;
+		--chrome-glass: #fbfaffe6;
+		--code-background: #302c3a;
+		--code-border: #e2deea;
+		--code-ink: #ede9ff;
+		--editor-gutter: #f8f6fb;
+		--editor-ink: #383542;
+		--editor-placeholder: #9c98a6;
+		--error: #a5435e;
+		--footer-ink: #5f5b69;
+		--heading: #282430;
+		--ink: #292936;
+		--inline-code-background: #f0ecff;
+		--inline-code-ink: #6547d6;
+		--link: #6547d6;
+		--link-underline: #b9abf2;
+		--muted: #817e90;
+		--overlay-outline: #ffffffb8;
+		--paper: #fffefa;
+		--pane-heading: #fcfbfd;
+		--pane-heading-border: #ebe8ef;
+		--panel: #faf9fc;
+		--preview-ink: #37333d;
+		--quote-background: #f7f4ff;
+		--quote-border: #b5a5f6;
+		--quote-ink: #5d566b;
+		--shadow: #2b21450c;
+		--status-idle: #aaa5b3;
+		--status-live: #21a879;
+		--status-live-ring: #21a8791c;
+		--status-offline: #df8c35;
+		--strong-ink: #332d42;
+		--workspace: #f3f2f7;
+		--workspace-glow: #eee9ff;
+	}
 
 	> header {
 		display: grid;
@@ -21,9 +116,9 @@ markdown-workspace.class {
 		z-index: 3;
 		min-height: 5.4rem;
 		padding: 0.75rem 1.5rem;
-		border-bottom: 1px solid #e5e2ec;
-		background: color-mix(in srgb, #fbfaff 90%, transparent);
-		box-shadow: 0 0.25rem 1.8rem #3023510a;
+		border-bottom: 1px solid var(--chrome-border);
+		background: var(--chrome-glass);
+		box-shadow: 0 0.25rem 1.8rem var(--shadow);
 		backdrop-filter: blur(1.5rem);
 
 		> brand-lockup {
@@ -103,15 +198,15 @@ markdown-workspace.class {
 				padding: 0.4rem 0.68rem;
 				border: 1px solid var(--border);
 				border-radius: 0.65rem;
-				color: #565363;
-				background: white;
+				color: var(--button-ink);
+				background: var(--button-background);
 				font-size: 0.73rem;
 				font-weight: 700;
 
 				&:hover:not(:disabled) {
-					border-color: #bdb4df;
+					border-color: var(--button-hover-border);
 					color: var(--accent);
-					background: #f8f6ff;
+					background: var(--button-hover-background);
 				}
 
 				&:disabled {
@@ -127,7 +222,7 @@ markdown-workspace.class {
 				padding: 0.27rem 0.35rem;
 				border: 1px solid var(--border);
 				border-radius: 99rem;
-				background: white;
+				background: var(--button-background);
 
 				> avatar-dot {
 					display: grid;
@@ -145,7 +240,7 @@ markdown-workspace.class {
 					max-width: 8rem;
 					border: 0;
 					outline: 0;
-					color: #4a4755;
+					color: var(--button-ink);
 					background: transparent;
 					font-size: 0.72rem;
 					font-weight: 700;
@@ -169,7 +264,7 @@ markdown-workspace.class {
 			border: 1px solid var(--border);
 			border-radius: 1.1rem;
 			background: var(--paper);
-			box-shadow: 0 0.9rem 2.4rem #2b21450c;
+			box-shadow: 0 0.9rem 2.4rem var(--shadow);
 		}
 
 		> editor-pane,
@@ -184,8 +279,8 @@ markdown-workspace.class {
 				justify-content: space-between;
 				min-height: 3.15rem;
 				padding: 0.75rem 1rem;
-				border-bottom: 1px solid #ebe8ef;
-				background: #fcfbfd;
+				border-bottom: 1px solid var(--pane-heading-border);
+				background: var(--pane-heading);
 
 				> span {
 					color: var(--muted);
@@ -206,62 +301,19 @@ markdown-workspace.class {
 
 			> editor-surface {
 				position: relative;
+				overflow: auto;
 				min-height: 0;
 				background:
-					linear-gradient(90deg, #f8f6fb 2.75rem, transparent 2.75rem),
+					linear-gradient(
+						90deg,
+						var(--editor-gutter) 2.75rem,
+						transparent 2.75rem
+					),
 					var(--panel);
 
-				> textarea {
-					position: absolute;
-					inset: 0;
-					z-index: 1;
-					width: 100%;
-					height: 100%;
-					resize: none;
-					padding: 1.45rem 1.45rem 8rem 3.7rem;
-					border: 0;
-					outline: 0;
-					color: #383542;
-					background: transparent;
-					caret-color: var(--accent);
-					font-family: "DM Mono", monospace;
-					font-size: 0.83rem;
-					line-height: 1.72rem;
-					tab-size: 2;
-
-					&:disabled {
-						opacity: 0.58;
-					}
-				}
-
-				> caret-layer {
-					position: absolute;
-					inset: 0;
-					z-index: 2;
-					overflow: hidden;
-					pointer-events: none;
-
-					> remote-caret {
-						position: absolute;
-						top: calc(1.45rem + var(--caret-line) * 1.72rem);
-						left: calc(3.7rem + var(--caret-column) * 0.5rem);
-						width: 2px;
-						height: 1.25rem;
-						background: var(--person-color);
-
-						> span {
-							position: absolute;
-							top: -1.05rem;
-							left: 0;
-							padding: 0.14rem 0.35rem;
-							border-radius: 0.3rem 0.3rem 0.3rem 0;
-							color: white;
-							background: var(--person-color);
-							font-size: 0.56rem;
-							font-weight: 800;
-							white-space: nowrap;
-						}
-					}
+				> virtual-spacer {
+					display: block;
+					inline-size: 1px;
 				}
 			}
 		}
@@ -279,7 +331,7 @@ markdown-workspace.class {
 			> article {
 				overflow: auto;
 				padding: clamp(1.6rem, 4vw, 4rem);
-				color: #37333d;
+				color: var(--preview-ink);
 				font-family: "Newsreader", Georgia, serif;
 				font-size: 1.05rem;
 				line-height: 1.72;
@@ -291,7 +343,7 @@ markdown-workspace.class {
 				> h5,
 				> h6 {
 					margin: 1.8em 0 0.55em;
-					color: #282430;
+					color: var(--heading);
 					font-weight: 650;
 					letter-spacing: -0.025em;
 					line-height: 1.1;
@@ -321,41 +373,41 @@ markdown-workspace.class {
 
 				> blockquote {
 					padding: 0.75rem 1.1rem;
-					border-left: 3px solid #b5a5f6;
-					color: #5d566b;
-					background: #f7f4ff;
+					border-left: 3px solid var(--quote-border);
+					color: var(--quote-ink);
+					background: var(--quote-background);
 					font-style: italic;
 				}
 
 				> pre {
 					overflow: auto;
 					padding: 1rem 1.15rem;
-					border: 1px solid #e2deea;
+					border: 1px solid var(--code-border);
 					border-radius: 0.7rem;
-					color: #ede9ff;
-					background: #302c3a;
+					color: var(--code-ink);
+					background: var(--code-background);
 					font-family: "DM Mono", monospace;
 					font-size: 0.76rem;
 					line-height: 1.65;
 				}
 
 				strong {
-					color: #332d42;
+					color: var(--strong-ink);
 					font-weight: 650;
 				}
 
 				code:not(pre code) {
 					padding: 0.15em 0.35em;
 					border-radius: 0.25rem;
-					color: #6547d6;
-					background: #f0ecff;
+					color: var(--inline-code-ink);
+					background: var(--inline-code-background);
 					font-family: "DM Mono", monospace;
 					font-size: 0.8em;
 				}
 
 				a {
-					color: #6547d6;
-					text-decoration-color: #b9abf2;
+					color: var(--link);
+					text-decoration-color: var(--link-underline);
 					text-underline-offset: 0.15em;
 				}
 			}
@@ -393,7 +445,7 @@ markdown-workspace.class {
 						place-items: center;
 						width: 2rem;
 						aspect-ratio: 1;
-						border: 2px solid white;
+						border: 2px solid var(--avatar-ring);
 						border-radius: 50%;
 						color: white;
 						background: var(--person-color);
@@ -426,18 +478,22 @@ markdown-workspace.class {
 			> aside {
 				margin-top: auto;
 				padding: 0.9rem;
-				border: 1px solid #e3dcff;
+				border: 1px solid var(--aside-border);
 				border-radius: 0.8rem;
-				background: linear-gradient(145deg, #f9f7ff, #f1edff);
+				background: linear-gradient(
+					145deg,
+					var(--aside-gradient-start),
+					var(--aside-gradient-end)
+				);
 
 				> strong {
-					color: #5941b4;
+					color: var(--aside-title);
 					font-size: 0.7rem;
 				}
 
 				> p {
 					margin: 0.4rem 0 0;
-					color: #6d6680;
+					color: var(--aside-body);
 					font-size: 0.65rem;
 					line-height: 1.55;
 				}
@@ -451,29 +507,29 @@ markdown-workspace.class {
 		gap: 0.45rem;
 		min-height: 2.6rem;
 		padding: 0.55rem 1.5rem;
-		border-top: 1px solid #e2dfe8;
+		border-top: 1px solid var(--chrome-border);
 		color: var(--muted);
-		background: #faf9fc;
+		background: var(--chrome);
 		font-size: 0.66rem;
 
 		> span {
 			width: 0.48rem;
 			aspect-ratio: 1;
 			border-radius: 50%;
-			background: #aaa5b3;
+			background: var(--status-idle);
 
 			&[data-status="live"] {
-				background: #21a879;
-				box-shadow: 0 0 0 0.22rem #21a8791c;
+				background: var(--status-live);
+				box-shadow: 0 0 0 0.22rem var(--status-live-ring);
 			}
 
 			&[data-status="offline"] {
-				background: #df8c35;
+				background: var(--status-offline);
 			}
 		}
 
 		> strong {
-			color: #5f5b69;
+			color: var(--footer-ink);
 			font-weight: 700;
 		}
 
@@ -482,7 +538,7 @@ markdown-workspace.class {
 		}
 
 		> output {
-			color: #a5435e;
+			color: var(--error);
 		}
 	}
 

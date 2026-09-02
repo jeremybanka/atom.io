@@ -1,5 +1,7 @@
 export * from "./realtime-context.tsx"
 export * from "./use-mosaic.ts"
+export * from "./use-mosaic-text-editor.ts"
+export * from "./use-mosaic-text-range.ts"
 export * from "./use-pull-atom.ts"
 export * from "./use-pull-atom-family-member.ts"
 export * from "./use-pull-mutable-atom.ts"

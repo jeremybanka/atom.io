@@ -4,6 +4,7 @@ export type ExhibitReference = {
 }
 
 type RegionMarker = {
+	includeOpeningParen: boolean
 	kind: `end` | `start`
 	name: string
 }
@@ -103,7 +104,21 @@ function collectExhibitRegions(
 					`Duplicate exhibit region "${marker.name}" in ${source}:${lineNumber}; first declared at line ${previous.startLine}.`,
 				)
 			}
-			active = { lines: [], name: marker.name, startLine: lineNumber }
+			const regionLines: string[] = []
+			if (marker.includeOpeningParen) {
+				const previousLine = lines[index - 1]
+				if (!previousLine?.trimEnd().endsWith(`(`)) {
+					throw new Error(
+						`Exhibit region "${marker.name}" in ${source}:${lineNumber} requested an opening parenthesis, but the previous line does not end with one.`,
+					)
+				}
+				regionLines.push(`(`)
+			}
+			active = {
+				lines: regionLines,
+				name: marker.name,
+				startLine: lineNumber,
+			}
 			continue
 		}
 
@@ -161,7 +176,10 @@ function readRegionMarker(line: string): RegionMarker | null {
 		marker = marker.slice(0, -2).trim()
 	}
 
-	const match = /^@exhibit-region\s+(start|end)\s+(\S+)$/.exec(marker)
+	const match =
+		/^@exhibit-region\s+(start|end)\s+(\S+)(?:\s+(include-opening-paren))?$/.exec(
+			marker,
+		)
 	if (!match) {
 		return null
 	}
@@ -173,7 +191,15 @@ function readRegionMarker(line: string): RegionMarker | null {
 		)
 	}
 
-	return { kind: match[1] as `end` | `start`, name }
+	const kind = match[1] as `end` | `start`
+	const includeOpeningParen = match[3] === `include-opening-paren`
+	if (kind === `end` && includeOpeningParen) {
+		throw new Error(
+			`Exhibit region end marker "${name}" cannot include an opening parenthesis.`,
+		)
+	}
+
+	return { includeOpeningParen, kind, name }
 }
 
 function trimRegionLines(lines: string[]): string[] {

@@ -1,4 +1,5 @@
 import * as RTTest from "atom.io/realtime-testing"
+import * as RTTestReact from "atom.io/realtime-testing/react"
 import type { Socket } from "socket.io-client"
 
 const awaitConnection = async (socket: Socket): Promise<void> => {
@@ -28,7 +29,7 @@ describe(`React compatibility harness transport boundary`, () => {
 		const adapter = RTTest.createSocketIOTransportAdapter()
 		const openHarness = vi.spyOn(adapter, `openHarness`)
 		const connectHarnessClient = vi.spyOn(adapter, `connectHarnessClient`)
-		const scenario = RTTest.singleClient({
+		const scenario = RTTestReact.singleClient({
 			client: () => null,
 			server: () => {},
 			transportAdapter: adapter,
@@ -44,7 +45,7 @@ describe(`React compatibility harness transport boundary`, () => {
 		const adapter = RTTest.createSocketIOTransportAdapter()
 		const openHarness = vi.spyOn(adapter, `openHarness`)
 		const connectHarnessClient = vi.spyOn(adapter, `connectHarnessClient`)
-		const scenario = RTTest.multiClient({
+		const scenario = RTTestReact.multiClient({
 			clients: { alice: () => null, bob: () => null },
 			server: () => {},
 			transportAdapter: adapter,

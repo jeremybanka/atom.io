@@ -848,11 +848,3 @@ export const headless = (
 			waitForConvergence(clients, server, convergenceOptions),
 	}
 }
-
-// Renderer-free scenario utilities are available from the headless subpath.
-export * from "../deterministic-transport.ts"
-export * from "../execution-realms.ts"
-export * from "../model-scenario.ts"
-export * from "../reference-replicated-sequence.ts"
-export * from "../transport-adapter.ts"
-export * from "../virtual-clock.ts"

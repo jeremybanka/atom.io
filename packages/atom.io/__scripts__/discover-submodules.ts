@@ -17,7 +17,7 @@ export default function discoverSubmodules(): string[] {
 						path.join(dirent.name, content === `main` ? `` : content),
 					)
 		})
-	return [...folders, `realtime-testing/headless`]
+	return [...folders, `realtime-testing/react`]
 	// 	.filter((dirent) => dirent.isDirectory())
 	// 	.filter((dirent) => !EXCLUDE_LIST.includes(dirent.name))
 	// 	.flatMap((dirent) => {

@@ -13,8 +13,11 @@ import type {
 	RealtimeTestServer,
 	TestSetupOptions,
 	WaitForIdleOptions,
-} from "./headless/index.ts"
-import { headless, setupHeadlessRealtimeTestClient } from "./headless/index.ts"
+} from "atom.io/realtime-testing"
+import {
+	headless,
+	setupHeadlessRealtimeTestClient,
+} from "atom.io/realtime-testing"
 
 export type TestSetupOptions__SingleClient = TestSetupOptions & {
 	client: React.FC

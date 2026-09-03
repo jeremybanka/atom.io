@@ -1,4 +1,4 @@
-import * as RTT from "atom.io/realtime-testing/headless"
+import * as RTT from "atom.io/realtime-testing"
 
 describe(`model-based realtime scenarios`, () => {
 	test(`generation is bounded, seeded, and JSON replayable`, async () => {

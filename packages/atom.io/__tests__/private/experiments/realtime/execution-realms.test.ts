@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process"
 import { Worker } from "node:worker_threads"
 
-import * as RTT from "atom.io/realtime-testing/headless"
+import * as RTT from "atom.io/realtime-testing"
 
 const request = async (
 	client: RTT.RealtimeExecutionRealmClient<string, string>,

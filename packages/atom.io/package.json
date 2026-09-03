@@ -17,9 +17,9 @@
 		"directory": "packages/atom.io"
 	},
 	"scripts": {
-		"build": "bun build:docs && tsdown && bun build:check",
-		"build:docs": "./__scripts__/agent-docs.bun.ts",
-		"build:check": "./__scripts__/validate-dist.node.ts",
+		"build": "pnpm build:docs && tsdown && pnpm build:check",
+		"build:docs": "node ./__scripts__/agent-docs.node.ts",
+		"build:check": "node ./__scripts__/validate-dist.node.ts",
 		"tonnage": "tonnage write",
 		"tonnage:check": "tonnage check",
 		"manifest": "./__scripts__/manifest-build.node.ts",

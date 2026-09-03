@@ -10,6 +10,7 @@ const FILEPATH = url.fileURLToPath(import.meta.url)
 const SCRIPT_NAME = FILEPATH.split(`/`).pop()?.split(`.`)[0] ?? `unknown_file`
 const ARGS = process.argv.slice(2)
 const SHOULD_RUN = ARGS.includes(`--run`)
+const SOURCE_CONDITION = `atom.io/source`
 if (SHOULD_RUN) {
 	const mode = ARGS.at(-1)
 	if (!mode) {
@@ -40,12 +41,14 @@ export default function main(mode: string): void {
 	newPackageJson.exports = {
 		"./package.json": `./package.json`,
 		".": {
+			[SOURCE_CONDITION]: `./src/main/index.ts`,
 			import: `./dist/main/index.js`,
 			types: `./dist/main/index.d.ts`,
 		},
 		...submodules.reduce(
 			(acc, folder) => {
 				acc[`./${folder}`] = {
+					[SOURCE_CONDITION]: `./src/${folder}/index.ts`,
 					import: `./dist/${folder}/index.js`,
 					types: `./dist/${folder}/index.d.ts`,
 				}
@@ -57,7 +60,10 @@ export default function main(mode: string): void {
 				}
 				return acc
 			},
-			{} as Record<string, string | { import: string; types?: string }>,
+			{} as Record<
+				string,
+				string | { [SOURCE_CONDITION]?: string; import: string; types?: string }
+			>,
 		),
 	}
 

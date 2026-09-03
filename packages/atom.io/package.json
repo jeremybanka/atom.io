@@ -17,7 +17,7 @@
 		"directory": "packages/atom.io"
 	},
 	"scripts": {
-		"build": "pnpm build:docs && tsdown && pnpm build:check",
+		"build": "pnpm build:docs && NODE_OPTIONS=--conditions=atom.io/source tsdown && pnpm build:check",
 		"build:docs": "node ./__scripts__/agent-docs.node.ts",
 		"build:check": "node ./__scripts__/validate-dist.node.ts",
 		"tonnage": "tonnage write",
@@ -118,7 +118,6 @@
 		"drizzle-orm": "0.45.2",
 		"eslint": "10.9.1",
 		"happy-dom": "20.14.0",
-		"magic-string": "0.30.21",
 		"motion": "13.2.0",
 		"postgres": "3.4.9",
 		"preact": "10.29.8",
@@ -152,66 +151,82 @@
 	"exports": {
 		"./package.json": "./package.json",
 		".": {
+			"atom.io/source": "./src/main/index.ts",
 			"import": "./dist/main/index.js",
 			"types": "./dist/main/index.d.ts"
 		},
 		"./eslint-plugin": {
+			"atom.io/source": "./src/eslint-plugin/index.ts",
 			"import": "./dist/eslint-plugin/index.js",
 			"types": "./dist/eslint-plugin/index.d.ts"
 		},
 		"./experiments/realms": {
+			"atom.io/source": "./src/experiments/realms/index.ts",
 			"import": "./dist/experiments/realms/index.js",
 			"types": "./dist/experiments/realms/index.d.ts"
 		},
 		"./foundations/canonical": {
+			"atom.io/source": "./src/foundations/canonical/index.ts",
 			"import": "./dist/foundations/canonical/index.js",
 			"types": "./dist/foundations/canonical/index.d.ts"
 		},
 		"./foundations/entries": {
+			"atom.io/source": "./src/foundations/entries/index.ts",
 			"import": "./dist/foundations/entries/index.js",
 			"types": "./dist/foundations/entries/index.d.ts"
 		},
 		"./foundations/enumeration": {
+			"atom.io/source": "./src/foundations/enumeration/index.ts",
 			"import": "./dist/foundations/enumeration/index.js",
 			"types": "./dist/foundations/enumeration/index.d.ts"
 		},
 		"./foundations/future": {
+			"atom.io/source": "./src/foundations/future/index.ts",
 			"import": "./dist/foundations/future/index.js",
 			"types": "./dist/foundations/future/index.d.ts"
 		},
 		"./foundations/json": {
+			"atom.io/source": "./src/foundations/json/index.ts",
 			"import": "./dist/foundations/json/index.js",
 			"types": "./dist/foundations/json/index.d.ts"
 		},
 		"./foundations/junction": {
+			"atom.io/source": "./src/foundations/junction/index.ts",
 			"import": "./dist/foundations/junction/index.js",
 			"types": "./dist/foundations/junction/index.d.ts"
 		},
 		"./foundations/overlays": {
+			"atom.io/source": "./src/foundations/overlays/index.ts",
 			"import": "./dist/foundations/overlays/index.js",
 			"types": "./dist/foundations/overlays/index.d.ts"
 		},
 		"./foundations/subject": {
+			"atom.io/source": "./src/foundations/subject/index.ts",
 			"import": "./dist/foundations/subject/index.js",
 			"types": "./dist/foundations/subject/index.d.ts"
 		},
 		"./foundations/type-utils": {
+			"atom.io/source": "./src/foundations/type-utils/index.ts",
 			"import": "./dist/foundations/type-utils/index.js",
 			"types": "./dist/foundations/type-utils/index.d.ts"
 		},
 		"./internal": {
+			"atom.io/source": "./src/internal/index.ts",
 			"import": "./dist/internal/index.js",
 			"types": "./dist/internal/index.d.ts"
 		},
 		"./introspection": {
+			"atom.io/source": "./src/introspection/index.ts",
 			"import": "./dist/introspection/index.js",
 			"types": "./dist/introspection/index.d.ts"
 		},
 		"./react": {
+			"atom.io/source": "./src/react/index.ts",
 			"import": "./dist/react/index.js",
 			"types": "./dist/react/index.d.ts"
 		},
 		"./react-devtools": {
+			"atom.io/source": "./src/react-devtools/index.ts",
 			"import": "./dist/react-devtools/index.js",
 			"types": "./dist/react-devtools/index.d.ts"
 		},
@@ -220,46 +235,57 @@
 			"types": "./css.d.ts"
 		},
 		"./realtime": {
+			"atom.io/source": "./src/realtime/index.ts",
 			"import": "./dist/realtime/index.js",
 			"types": "./dist/realtime/index.d.ts"
 		},
 		"./realtime-client": {
+			"atom.io/source": "./src/realtime-client/index.ts",
 			"import": "./dist/realtime-client/index.js",
 			"types": "./dist/realtime-client/index.d.ts"
 		},
 		"./realtime-react": {
+			"atom.io/source": "./src/realtime-react/index.ts",
 			"import": "./dist/realtime-react/index.js",
 			"types": "./dist/realtime-react/index.d.ts"
 		},
 		"./realtime-server": {
+			"atom.io/source": "./src/realtime-server/index.ts",
 			"import": "./dist/realtime-server/index.js",
 			"types": "./dist/realtime-server/index.d.ts"
 		},
 		"./realtime-testing/headless": {
+			"atom.io/source": "./src/realtime-testing/headless/index.ts",
 			"import": "./dist/realtime-testing/headless/index.js",
 			"types": "./dist/realtime-testing/headless/index.d.ts"
 		},
 		"./realtime-testing/react": {
+			"atom.io/source": "./src/realtime-testing/react/index.ts",
 			"import": "./dist/realtime-testing/react/index.js",
 			"types": "./dist/realtime-testing/react/index.d.ts"
 		},
 		"./solid": {
+			"atom.io/source": "./src/solid/index.ts",
 			"import": "./dist/solid/index.js",
 			"types": "./dist/solid/index.d.ts"
 		},
 		"./testing": {
+			"atom.io/source": "./src/testing/index.ts",
 			"import": "./dist/testing/index.js",
 			"types": "./dist/testing/index.d.ts"
 		},
 		"./transceivers/o-list": {
+			"atom.io/source": "./src/transceivers/o-list/index.ts",
 			"import": "./dist/transceivers/o-list/index.js",
 			"types": "./dist/transceivers/o-list/index.d.ts"
 		},
 		"./transceivers/u-list": {
+			"atom.io/source": "./src/transceivers/u-list/index.ts",
 			"import": "./dist/transceivers/u-list/index.js",
 			"types": "./dist/transceivers/u-list/index.d.ts"
 		},
 		"./web": {
+			"atom.io/source": "./src/web/index.ts",
 			"import": "./dist/web/index.js",
 			"types": "./dist/web/index.d.ts"
 		}

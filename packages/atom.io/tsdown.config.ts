@@ -18,7 +18,7 @@ const NEVER_BUNDLE = [
 const ALL_ENTRIES = {
 	"main/index": `src/main/index.ts`,
 	...fromEntries(
-		SUBMODULE_NAMES.filter((name) => name !== `realtime-testing/headless`).map(
+		SUBMODULE_NAMES.filter((name) => name !== `realtime-testing/react`).map(
 			(name) => [`${name}/index`, `src/${name}/index.ts`] as const,
 		),
 	),
@@ -54,7 +54,7 @@ const config: UserConfig[] = defineConfig([
 		...sharedConfig,
 		clean: false,
 		entry: {
-			"realtime-testing/headless/index": `src/realtime-testing/headless/index.ts`,
+			"realtime-testing/react/index": `src/realtime-testing/react/index.ts`,
 		},
 	},
 ])

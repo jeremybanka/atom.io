@@ -3,7 +3,7 @@ import * as AtomIO from "atom.io"
 import * as AR from "atom.io/react"
 import * as RTR from "atom.io/realtime-react"
 import * as RTS from "atom.io/realtime-server"
-import * as RTTest from "atom.io/realtime-testing"
+import * as RTTest from "atom.io/realtime-testing/react"
 import * as React from "react"
 
 /* eslint-disable no-console */

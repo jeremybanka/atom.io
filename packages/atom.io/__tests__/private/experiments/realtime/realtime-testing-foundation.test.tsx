@@ -5,9 +5,9 @@ import {
 	RealtimeTestEventJournal,
 	RealtimeTestInspectors,
 	RealtimeTestWorkTracker,
-	singleClient,
 } from "atom.io/realtime-testing"
-import * as RTTest from "atom.io/realtime-testing/headless"
+import * as RTTest from "atom.io/realtime-testing"
+import { singleClient } from "atom.io/realtime-testing/react"
 
 const advanceVirtualClock = async (
 	clock: RTTest.VirtualClock,

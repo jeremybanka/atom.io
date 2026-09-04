@@ -1,5 +1,12 @@
 # atom.io
 
+## 0.52.3
+
+### Patch Changes
+
+- d001b21: Expand tutorial JSX exhibits to include their declarations so formatter-controlled parentheses remain within their region boundaries.
+- 21f9a44: Refresh the published bundle-size report with Tonnage 0.1.2.
+
 ## 0.52.2
 
 ### Patch Changes

@@ -18,7 +18,7 @@ const NEVER_BUNDLE = [
 const ALL_ENTRIES = {
 	"main/index": `src/main/index.ts`,
 	...fromEntries(
-		SUBMODULE_NAMES.filter((name) => name !== `realtime-testing/react`).map(
+		SUBMODULE_NAMES.map(
 			(name) => [`${name}/index`, `src/${name}/index.ts`] as const,
 		),
 	),
@@ -44,19 +44,10 @@ const sharedConfig = {
 	tsconfig: `tsconfig.json`,
 } satisfies UserConfig
 
-const config: UserConfig[] = defineConfig([
-	{
-		...sharedConfig,
-		clean: true,
-		entry: ALL_ENTRIES,
-	},
-	{
-		...sharedConfig,
-		clean: false,
-		entry: {
-			"realtime-testing/react/index": `src/realtime-testing/react/index.ts`,
-		},
-	},
-])
+const config: UserConfig = defineConfig({
+	...sharedConfig,
+	clean: true,
+	entry: ALL_ENTRIES,
+})
 
 export default config

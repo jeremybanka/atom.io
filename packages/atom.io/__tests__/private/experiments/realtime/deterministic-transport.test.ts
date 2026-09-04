@@ -5,7 +5,7 @@ import {
 	RealtimeTestInspectors,
 	RealtimeTestWorkTracker,
 	VirtualClock,
-} from "atom.io/realtime-testing"
+} from "atom.io/realtime-testing/headless"
 
 describe(`VirtualClock`, () => {
 	test(`orders tasks without waiting on wall time`, () => {

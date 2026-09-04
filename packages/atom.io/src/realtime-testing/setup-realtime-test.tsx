@@ -10,11 +10,11 @@ import type {
 	RealtimeTestServer,
 	TestSetupOptions,
 	WaitForIdleOptions,
-} from "atom.io/realtime-testing"
+} from "atom.io/realtime-testing/headless"
 import {
 	headless,
 	setupHeadlessRealtimeTestClient,
-} from "atom.io/realtime-testing"
+} from "atom.io/realtime-testing/headless"
 import * as Happy from "happy-dom"
 import * as React from "react"
 

@@ -1,5 +1,5 @@
 ---
-"atom.io": patch
+"atom.io": minor
 ---
 
-Move React realtime test utilities to `atom.io/realtime-testing/react` and make `atom.io/realtime-testing` renderer-neutral.
+Split realtime test utilities into the renderer-neutral `atom.io/realtime-testing/headless` entrypoint and the React-specific `atom.io/realtime-testing/react` entrypoint.

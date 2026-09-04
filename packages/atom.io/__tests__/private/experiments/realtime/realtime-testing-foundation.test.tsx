@@ -1,12 +1,12 @@
 import * as net from "node:net"
 
 import type * as RT from "atom.io/realtime"
-import * as RTTest from "atom.io/realtime-testing"
+import * as RTTest from "atom.io/realtime-testing/headless"
 import {
 	RealtimeTestEventJournal,
 	RealtimeTestInspectors,
 	RealtimeTestWorkTracker,
-} from "atom.io/realtime-testing"
+} from "atom.io/realtime-testing/headless"
 import { singleClient } from "atom.io/realtime-testing/react"
 
 const advanceVirtualClock = async (

@@ -3,7 +3,7 @@ import {
 	createRealtimeTestTopology,
 	createRestartableServerFixture,
 	type RealtimeTestTopologyNode,
-} from "atom.io/realtime-testing"
+} from "atom.io/realtime-testing/headless"
 import { describe, expect, test } from "vitest"
 
 type Operation = { delta: number; id: string }

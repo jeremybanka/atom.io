@@ -1,4 +1,4 @@
-import * as RTTest from "atom.io/realtime-testing"
+import * as RTTest from "atom.io/realtime-testing/headless"
 import * as RTTestReact from "atom.io/realtime-testing/react"
 import type { Socket } from "socket.io-client"
 

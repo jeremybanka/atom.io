@@ -3,9 +3,6 @@ import { prettyDOM, render } from "@testing-library/react"
 import { toEntries } from "atom.io/foundations/entries"
 import * as AR from "atom.io/react"
 import * as RTR from "atom.io/realtime-react"
-import * as Happy from "happy-dom"
-import * as React from "react"
-
 import type {
 	HeadlessRealtimeTestClient,
 	RealtimeTestAPI,
@@ -18,6 +15,8 @@ import {
 	headless,
 	setupHeadlessRealtimeTestClient,
 } from "atom.io/realtime-testing"
+import * as Happy from "happy-dom"
+import * as React from "react"
 
 export type TestSetupOptions__SingleClient = TestSetupOptions & {
 	client: React.FC

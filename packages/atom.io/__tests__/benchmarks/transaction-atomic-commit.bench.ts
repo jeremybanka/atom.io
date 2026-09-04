@@ -1,5 +1,5 @@
 import { Silo } from "atom.io"
-import { afterAll, bench, describe } from "vitest"
+import { afterAll, describe, test } from "vitest"
 
 const WRITE_COUNT = 64
 
@@ -27,8 +27,10 @@ describe(`transaction commit with a shared downstream selector`, () => {
 	})
 	const stop = silo.subscribe(totalSelector, () => {})
 
-	bench(`64 writes feeding one selector`, () => {
-		silo.runTransaction(incrementAllTransaction)()
+	test(`64 writes feeding one selector`, async ({ bench }) => {
+		await bench(`commit`, () => {
+			silo.runTransaction(incrementAllTransaction)()
+		}).run()
 	})
 
 	afterAll(() => {

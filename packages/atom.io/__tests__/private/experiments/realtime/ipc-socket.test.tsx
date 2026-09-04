@@ -31,6 +31,7 @@ let stderr: PassThrough
 let parentToChild: ChildSocket<any, any, VirtualProcess>
 let childToParent: ParentSocket<any, any, VirtualProcess & { exit: () => void }>
 beforeEach(() => {
+	vitest.clearAllMocks()
 	vitest.spyOn(logger, `info`)
 	vitest.spyOn(logger, `warn`)
 	vitest.spyOn(logger, `error`)
@@ -253,7 +254,7 @@ describe(`ParentSocket`, () => {
 
 	test(`handles incomplete data gracefully`, () => {
 		childToParent.proc.stdin.write(`["hi",{}]\x03["there",{}]\x03["`)
-		expect(logger.error).toHaveBeenCalled()
+		expect(logger.error).not.toHaveBeenCalled()
 		childToParent.proc.stdin.write(`you"`)
 		childToParent.proc.stdin.write(`,{}]\x03`)
 

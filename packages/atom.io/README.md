@@ -92,7 +92,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 | <code>atom.io/transceivers/o-list</code>     |     7,225 B |  2,089 B |
 | <code>atom.io/transceivers/u-list</code>     |     2,032 B |    869 B |
 | <code>atom.io/web</code>                     |       757 B |    418 B |
-| <code>atom.io/realtime-testing/react</code>  |    96,514 B | 28,336 B |
+| <code>atom.io/realtime-testing/react</code>  |    96,514 B | 28,338 B |
 
 ### Usage examples
 

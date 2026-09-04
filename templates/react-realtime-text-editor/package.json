@@ -49,7 +49,7 @@
 		"@typescript-eslint/parser": "8.69.0",
 		"@vitejs/plugin-react": "6.1.1",
 		"concurrently": "10.0.5",
-		"dprint": "0.57.0",
+		"dprint": "0.57.1",
 		"dprint-plugin-malva": "0.16.0",
 		"eslint": "10.9.1",
 		"happy-dom": "20.13.2",

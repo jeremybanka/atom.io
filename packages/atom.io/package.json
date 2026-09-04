@@ -233,9 +233,9 @@
 			"import": "./dist/realtime-server/index.js",
 			"types": "./dist/realtime-server/index.d.ts"
 		},
-		"./realtime-testing": {
-			"import": "./dist/realtime-testing/index.js",
-			"types": "./dist/realtime-testing/index.d.ts"
+		"./realtime-testing/headless": {
+			"import": "./dist/realtime-testing/headless/index.js",
+			"types": "./dist/realtime-testing/headless/index.d.ts"
 		},
 		"./solid": {
 			"import": "./dist/solid/index.js",

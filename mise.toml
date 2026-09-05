@@ -1,5 +1,5 @@
 [tools]
-bun = "1.4.0"
+bun = "1.4.1"
 "github:Boeing/config-file-validator" = "2.3.0"
 hk = "1.57.0"
 ni = "30.5.0"

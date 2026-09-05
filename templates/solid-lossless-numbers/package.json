@@ -34,7 +34,7 @@
 		"@types/node": "26.4.1",
 		"dprint": "0.57.1",
 		"dprint-plugin-malva": "0.16.0",
-		"eslint": "10.9.1",
+		"eslint": "10.10.0",
 		"lasertag": "0.8.0",
 		"oxlint": "1.81.0",
 		"oxlint-tsgolint": "7.0.2001",

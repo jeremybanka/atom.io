@@ -849,10 +849,14 @@ export const headless = (
 	}
 }
 
-// Renderer-free scenario utilities are available from the headless subpath.
 export * from "../deterministic-transport.ts"
+export * from "../diagnostics.ts"
+export * from "../event-journal.ts"
 export * from "../execution-realms.ts"
 export * from "../model-scenario.ts"
 export * from "../reference-replicated-sequence.ts"
+export * from "../restartable-server.ts"
+export * from "../topology.ts"
 export * from "../transport-adapter.ts"
 export * from "../virtual-clock.ts"
+export * from "../work-tracker.ts"

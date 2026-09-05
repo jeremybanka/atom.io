@@ -24,7 +24,7 @@ import {
 	type MosaicStorageAppendRequest,
 	type MosaicStorageRecovery,
 } from "atom.io/realtime-server"
-import { createRestartableServerFixture } from "atom.io/realtime-testing"
+import { createRestartableServerFixture } from "atom.io/realtime-testing/headless"
 import { z } from "zod"
 
 type Add = { readonly amount: number; readonly type: `add` }

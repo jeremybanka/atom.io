@@ -6,7 +6,7 @@ import {
 	createDeterministicTransportAdapter,
 	createSocketIOTransportAdapter,
 	SOCKET_IO_TEST_ENDPOINT_AUTH,
-} from "atom.io/realtime-testing"
+} from "atom.io/realtime-testing/headless"
 import type { Socket as SocketIOServerSocket } from "socket.io"
 
 const once = (

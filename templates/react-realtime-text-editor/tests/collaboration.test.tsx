@@ -3,7 +3,7 @@ import { useO } from "atom.io/react"
 import type { Socket, UserKey } from "atom.io/realtime"
 import { useMosaic } from "atom.io/realtime-react"
 import { createMosaicServer } from "atom.io/realtime-server"
-import * as RTTest from "atom.io/realtime-testing"
+import * as RTTest from "atom.io/realtime-testing/react"
 
 import { markdownAtomRegistration } from "../node/mosaic-atom.ts"
 import {

@@ -20,7 +20,7 @@ import {
 	spawnRoom,
 	SubjectSocket,
 } from "atom.io/realtime-server"
-import { VirtualClock } from "atom.io/realtime-testing"
+import { VirtualClock } from "atom.io/realtime-testing/headless"
 
 const owner = `user::room-owner` as UserKey
 

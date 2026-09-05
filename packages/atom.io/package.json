@@ -233,9 +233,13 @@
 			"import": "./dist/realtime-server/index.js",
 			"types": "./dist/realtime-server/index.d.ts"
 		},
-		"./realtime-testing": {
-			"import": "./dist/realtime-testing/index.js",
-			"types": "./dist/realtime-testing/index.d.ts"
+		"./realtime-testing/headless": {
+			"import": "./dist/realtime-testing/headless/index.js",
+			"types": "./dist/realtime-testing/headless/index.d.ts"
+		},
+		"./realtime-testing/react": {
+			"import": "./dist/realtime-testing/react/index.js",
+			"types": "./dist/realtime-testing/react/index.d.ts"
 		},
 		"./solid": {
 			"import": "./dist/solid/index.js",
@@ -256,10 +260,6 @@
 		"./web": {
 			"import": "./dist/web/index.js",
 			"types": "./dist/web/index.d.ts"
-		},
-		"./realtime-testing/headless": {
-			"import": "./dist/realtime-testing/headless/index.js",
-			"types": "./dist/realtime-testing/headless/index.d.ts"
 		}
 	}
 }

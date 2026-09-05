@@ -1,5 +1,11 @@
 # atom.io
 
+## 0.53.0
+
+### Minor Changes
+
+- c60aa7c: Split realtime test utilities into the renderer-neutral `atom.io/realtime-testing/headless` entrypoint and the React-specific `atom.io/realtime-testing/react` entrypoint.
+
 ## 0.52.3
 
 ### Patch Changes

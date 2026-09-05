@@ -11,7 +11,7 @@ import type {
 import { mutexAtoms, realtimeLeaseAtoms } from "atom.io/realtime"
 import * as RTC from "atom.io/realtime-client"
 import * as RTS from "atom.io/realtime-server"
-import * as RTTest from "atom.io/realtime-testing"
+import * as RTTest from "atom.io/realtime-testing/react"
 import * as React from "react"
 
 const countAtom = AtomIO.atom<number>({ key: `count`, default: 0 })

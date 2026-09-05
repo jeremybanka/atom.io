@@ -9,15 +9,22 @@ export default function discoverSubmodules(): string[] {
 		.filter((dirent) => dirent.isDirectory())
 		.filter((dirent) => dirent.name !== `main`)
 		.flatMap((dirent) => {
-			const contents = fs.readdirSync(path.join(ATOM_IO_SRC, dirent.name))
-			const isLeaf = contents.includes(`index.ts`)
+			const contents = fs.readdirSync(path.join(ATOM_IO_SRC, dirent.name), {
+				withFileTypes: true,
+			})
+			const isLeaf = contents.some((content) => content.name === `index.ts`)
 			return isLeaf
 				? dirent.name
-				: contents.map((content) =>
-						path.join(dirent.name, content === `main` ? `` : content),
-					)
+				: contents
+						.filter((content) => content.isDirectory())
+						.map((content) =>
+							path.join(
+								dirent.name,
+								content.name === `main` ? `` : content.name,
+							),
+						)
 		})
-	return [...folders, `realtime-testing/headless`]
+	return folders
 	// 	.filter((dirent) => dirent.isDirectory())
 	// 	.filter((dirent) => !EXCLUDE_LIST.includes(dirent.name))
 	// 	.flatMap((dirent) => {

@@ -7,7 +7,7 @@ import {
 import {
 	createDeterministicTransport,
 	VirtualClock,
-} from "atom.io/realtime-testing"
+} from "atom.io/realtime-testing/headless"
 
 describe(`createSubscriber clock injection`, () => {
 	test(`coalesces unsubscribe and resubscribe under virtual time`, () => {

@@ -52,7 +52,7 @@
 		"dprint": "0.57.1",
 		"dprint-plugin-malva": "0.16.0",
 		"eslint": "10.9.1",
-		"happy-dom": "20.13.2",
+		"happy-dom": "20.14.0",
 		"lasertag": "0.8.0",
 		"oxlint": "1.81.0",
 		"oxlint-tsgolint": "7.0.2001",

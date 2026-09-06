@@ -32,7 +32,7 @@
 		"@dprint/markdown": "0.23.3",
 		"@dprint/oxc": "0.38.0",
 		"@types/node": "26.4.1",
-		"dprint": "0.57.2",
+		"dprint": "0.57.3",
 		"dprint-plugin-malva": "0.16.0",
 		"eslint": "10.10.0",
 		"lasertag": "0.8.0",

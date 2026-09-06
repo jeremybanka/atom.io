@@ -13,7 +13,11 @@
 			"pnpm tonnage"
 		],
 		"executionMode": "branch",
-		"fileFilters": ["packages/*/README.md"]
+		"fileFilters": ["packages/*/README.md"],
+		"installTools": {
+			"node": {},
+			"pnpm": {}
+		}
 	},
 	"prConcurrentLimit": 3,
 	"prHourlyLimit": 9,

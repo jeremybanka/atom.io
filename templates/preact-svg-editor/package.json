@@ -35,7 +35,7 @@
 		"@preact/preset-vite": "2.10.6",
 		"@typescript-eslint/eslint-plugin": "8.69.0",
 		"@typescript-eslint/parser": "8.69.0",
-		"dprint": "0.57.2",
+		"dprint": "0.57.3",
 		"dprint-plugin-malva": "0.16.0",
 		"eslint": "10.10.0",
 		"eslint-plugin-import-x": "4.17.1",

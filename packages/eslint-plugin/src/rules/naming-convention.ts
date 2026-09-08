@@ -1,4 +1,3 @@
-import type { RuleType } from "@eslint/core"
 import type { Rule } from "eslint"
 import type * as ESTree from "estree"
 
@@ -30,7 +29,7 @@ type ResourceFactoryName = keyof typeof SUFFIX_DICTIONARY
 
 export const namingConvention: {
 	meta: {
-		type: RuleType
+		type: NonNullable<Rule.RuleMetaData[`type`]>
 		docs: {
 			description: string
 			recommended: boolean

@@ -67,7 +67,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 | Import                                         | Minified JS |  Gzip JS |
 | ---------------------------------------------- | ----------: | -------: |
 | <code>atom.io</code>                           |    75,958 B | 20,749 B |
-| <code>atom.io/eslint-plugin</code>             |     8,460 B |  2,712 B |
+| <code>atom.io/eslint-plugin</code>             |    20,617 B |  5,725 B |
 | <code>atom.io/experiments/realms</code>        |    65,852 B | 18,204 B |
 | <code>atom.io/foundations/canonical</code>     |       500 B |    302 B |
 | <code>atom.io/foundations/entries</code>       |       243 B |    177 B |

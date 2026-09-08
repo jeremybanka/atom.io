@@ -1,22 +1,28 @@
 import Exhibit from "c/Exhibit.astro";
-import { CodeBlock } from "c/CodeBlock";
 
-# <low-emphasis>atom.io</low-emphasis>/eslint-plugin
+# <low-emphasis>@atom.io</low-emphasis>/eslint-plugin
 
-`atom.io/eslint-plugin` provides rules that keep atom.io state and transaction
+`@atom.io/eslint-plugin` provides rules that keep atom.io state and transaction
 declarations explicit, consistent, and safe around typed errors.
 
 ## install
 
-If your project already depends on `atom.io`, the plugin is already available from that
-package. For a minimal TypeScript flat config, you also need ESLint and
-`typescript-eslint`:
+Install the plugin alongside ESLint and typescript-eslint version 8. The plugin peers
+on ESLint and `@typescript-eslint/parser` version 8; its utilities are installed
+transitively, so you do not need to declare `@typescript-eslint/utils` yourself.
 
-<CodeBlock
-filepath="sample.sh"
-label="install eslint"
-code={`pnpm add -D eslint typescript-eslint`}
-/>
+<Exhibit src="tooling/eslint-plugin/install.sh.txt" />
+
+## migrating from atom.io/eslint-plugin
+
+Install `@atom.io/eslint-plugin` as a development dependency and change your plugin
+import to `@atom.io/eslint-plugin`, as shown below. The default export, named `Rules`
+export, and `atom.io/` rule names stay the same.
+
+The `atom.io/eslint-plugin` export remains available for compatibility in this patch
+release. Its implementation is bundled into that entry point, so core `atom.io`
+no longer has ESLint or typescript-eslint peer dependencies. Applications that only
+use the state runtime do not need to install the plugin.
 
 ## minimal flat config
 

@@ -8,7 +8,7 @@ import { default as SimpleImportSortPlugin } from "eslint-plugin-simple-import-s
 import StorybookPlugin from "eslint-plugin-storybook"
 import LasertagPlugin from "lasertag/eslint-plugin"
 
-import AtomIOPlugin from "./packages/atom.io/src/eslint-plugin/index.ts"
+import AtomIOPlugin from "./packages/eslint-plugin/src/index.ts"
 import { LINT_IGNORES } from "./scripts/lint-common.ts"
 
 type Rules = Linter.Config[`rules`]

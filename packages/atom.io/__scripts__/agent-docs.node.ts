@@ -173,7 +173,7 @@ const DOC_PAGES: DocPage[] = [
 	{
 		output: `atom.io-eslint-plugin.md`,
 		source: `docs/source/pages/docs/eslint-plugin.mdx`,
-		title: `atom.io/eslint-plugin`,
+		title: `@atom.io/eslint-plugin`,
 		url: `/docs/eslint-plugin`,
 	},
 	{

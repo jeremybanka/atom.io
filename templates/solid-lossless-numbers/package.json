@@ -28,10 +28,12 @@
 		"solid-js": "1.9.15"
 	},
 	"devDependencies": {
+		"@atom.io/eslint-plugin": "workspace:*",
 		"@dprint/json": "0.23.0",
 		"@dprint/markdown": "0.23.3",
 		"@dprint/oxc": "0.38.0",
 		"@types/node": "26.5.0",
+		"@typescript-eslint/parser": "8.70.0",
 		"dprint": "0.57.4",
 		"dprint-plugin-malva": "0.16.0",
 		"eslint": "10.10.0",

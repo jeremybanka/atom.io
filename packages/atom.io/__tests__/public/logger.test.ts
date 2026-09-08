@@ -11,15 +11,16 @@ import {
 import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 
 import { createNullLogger } from "../__util__/index.ts"
+import { RUNTIME } from "../__util__/runtime.ts"
 
 let internalLogger: AtomIOLogger
-let implicitStore: NonNullable<typeof globalThis.ATOM_IO_IMPLICIT_STORE>
+let implicitStore: NonNullable<typeof RUNTIME.implicitStore>
 const externalLogger: Logger = createNullLogger()
 const { restore } = takeSnapshot()
 
 beforeEach(() => {
 	restore()
-	const store = globalThis.ATOM_IO_IMPLICIT_STORE
+	const store = RUNTIME.implicitStore
 	if (store === undefined) {
 		throw new Error(`Expected the implicit store to exist.`)
 	}

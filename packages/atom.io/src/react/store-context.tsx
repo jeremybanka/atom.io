@@ -1,9 +1,10 @@
 import type { RootStore } from "atom.io/internal"
-import { IMPLICIT } from "atom.io/internal"
+import { IMPLICIT, runtimeContext } from "atom.io/internal"
 import { createContext } from "react"
 
-export const StoreContext: React.Context<RootStore> = createContext(
-	IMPLICIT.STORE,
+export const StoreContext: React.Context<RootStore> = runtimeContext(
+	`react/store`,
+	() => createContext(IMPLICIT.STORE),
 )
 
 export const StoreProvider: React.FC<{

@@ -1,3 +1,4 @@
+import { runtimeContext } from "atom.io/internal"
 import { useI } from "atom.io/react"
 import * as RTC from "atom.io/realtime-client"
 import * as React from "react"
@@ -15,11 +16,14 @@ export type RealtimeReactStore = {
 	services: Map<RealtimeServiceKey, RealtimeServiceCounter> | null
 }
 
-export const RealtimeContext: React.Context<RealtimeReactStore> =
-	React.createContext({
-		socket: null,
-		services: null,
-	})
+export const RealtimeContext: React.Context<RealtimeReactStore> = runtimeContext(
+	`react/realtime`,
+	() =>
+		React.createContext<RealtimeReactStore>({
+			socket: null,
+			services: null,
+		}),
+)
 
 export const RealtimeProvider: React.FC<{
 	children: React.ReactNode

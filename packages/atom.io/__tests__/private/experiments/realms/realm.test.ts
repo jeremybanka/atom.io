@@ -27,7 +27,7 @@ import {
 	Realm,
 	type Vassal,
 } from "atom.io/experiments/realms"
-import { clearStore, IMPLICIT } from "atom.io/internal"
+import { clearStore, IMPLICIT, RUNTIME } from "atom.io/internal"
 import { stateExists } from "atom.io/testing"
 import { UList } from "atom.io/transceivers/u-list"
 
@@ -367,7 +367,7 @@ describe(`integrations`, () => {
 					({ find, get }) =>
 						get(find(countAtoms, id)) * 3,
 			})
-			const store = globalThis.ATOM_IO_IMPLICIT_STORE
+			const store = RUNTIME.implicitStore
 			if (store === undefined) {
 				throw new Error(`Expected the implicit store to exist.`)
 			}

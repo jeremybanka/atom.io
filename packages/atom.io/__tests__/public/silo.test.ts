@@ -10,9 +10,10 @@ import { UList } from "atom.io/transceivers/u-list"
 import { u } from "motion/react-client"
 
 import { createNullLogger } from "../__util__/nullLogger.ts"
+import { RUNTIME } from "../__util__/runtime.ts"
 
 afterEach(() => {
-	globalThis.ATOM_IO_IMPLICIT_STORE = undefined
+	RUNTIME.implicitStore = undefined
 })
 
 describe(`silo`, () => {

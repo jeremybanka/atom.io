@@ -20,6 +20,7 @@ import type { Tracker, Transceiver } from "../mutable/index.ts"
 import { getJsonTokenFromStore, getUpdateToken } from "../mutable/index.ts"
 import type { OperationProgress } from "../operation.ts"
 import { isReservedIntrospectionKey } from "../reserved-keys.ts"
+import { RUNTIME } from "../runtime.ts"
 import type {
 	Atom,
 	HeldSelectorFamily,
@@ -262,18 +263,14 @@ export type StoreEventCarrier = {
 	moleculeDisposal: Subject<MoleculeDisposalEvent>
 }
 
-declare global {
-	var ATOM_IO_IMPLICIT_STORE: RootStore | undefined
-}
-
 export const IMPLICIT: { readonly STORE: RootStore } = {
 	get STORE(): RootStore {
-		globalThis.ATOM_IO_IMPLICIT_STORE ??= new Store({
+		RUNTIME.implicitStore ??= new Store({
 			name: `IMPLICIT_STORE`,
 			lifespan: `ephemeral`,
 			isProduction: globalThis.process?.env?.[`NODE_ENV`] === `production`,
 		}) as RootStore
-		return globalThis.ATOM_IO_IMPLICIT_STORE
+		return RUNTIME.implicitStore
 	},
 }
 

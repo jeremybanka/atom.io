@@ -30,6 +30,7 @@
 		"lint:types": "tsc && tsc -p tsconfig.exhibits.json",
 		"lint:types:docs": "tsc -p tsconfig.exhibits.json",
 		"test": "vitest",
+		"test:packaging:eslint": "node ./__scripts__/eslint-plugin-packaging.node.ts",
 		"test:once": "vitest run --config vitest.dist.config.ts",
 		"test:once:public": "vitest run --config vitest.public-dist.config.ts",
 		"test:stress:realtime-ipc": "ATOM_IO_TEST_ROOM_STARTUP_DELAY_MS=1250 vitest run --config vitest.dist.config.ts __tests__/private/experiments/realtime-ipc/game-servers.test.tsx",
@@ -46,8 +47,6 @@
 		"@floating-ui/react": ">=0.25.0",
 		"@floating-ui/react-dom": ">=2.0.0",
 		"@testing-library/react": ">=14.0.0",
-		"@typescript-eslint/parser": ">=8.0.0",
-		"eslint": ">=9.0.0",
 		"happy-dom": ">=17.4.4",
 		"motion": ">=11.0.0",
 		"react": "^18.0.0 || ^19.0.0",
@@ -65,16 +64,10 @@
 		"@testing-library/react": {
 			"optional": true
 		},
-		"@typescript-eslint/parser": {
-			"optional": true
-		},
 		"react": {
 			"optional": true
 		},
 		"solid-js": {
-			"optional": true
-		},
-		"eslint": {
 			"optional": true
 		},
 		"happy-dom": {
@@ -91,8 +84,8 @@
 		}
 	},
 	"devDependencies": {
+		"@atom.io/eslint-plugin": "workspace:*",
 		"@atom.io/exhibits": "workspace:*",
-		"@eslint/core": "1.2.1",
 		"@orpc/client": "1.15.0",
 		"@orpc/server": "1.15.0",
 		"@storybook/addon-docs": "10.6.0",
@@ -102,12 +95,10 @@
 		"@testing-library/dom": "10.4.1",
 		"@testing-library/react": "16.3.3",
 		"@tsdown/css": "0.23.0",
-		"@types/estree": "1.0.9",
 		"@types/node": "26.5.0",
 		"@types/react": "19.2.18",
 		"@typescript-eslint/parser": "8.70.0",
 		"@typescript-eslint/rule-tester": "8.70.0",
-		"@typescript-eslint/utils": "8.70.0",
 		"@vitest/coverage-v8": "5.0.0",
 		"@vitest/ui": "5.0.0",
 		"arktype": "2.2.3",
@@ -132,7 +123,6 @@
 		"treetrunks": "0.1.11",
 		"tsdown": "0.23.0",
 		"typescript": "7.0.2",
-		"typescript-eslint-typescript": "npm:typescript@6.0.3",
 		"vite": "8.2.2",
 		"vitest": "5.0.0",
 		"zod": "4.5.4",

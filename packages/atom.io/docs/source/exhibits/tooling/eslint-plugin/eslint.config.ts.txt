@@ -1,4 +1,4 @@
-import atomIO from "atom.io/eslint-plugin"
+import atomIO from "@atom.io/eslint-plugin"
 import tseslint from "typescript-eslint"
 
 export default tseslint.config(

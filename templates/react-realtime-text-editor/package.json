@@ -38,6 +38,7 @@
 		"zod": "4.5.4"
 	},
 	"devDependencies": {
+		"@atom.io/eslint-plugin": "workspace:*",
 		"@dprint/json": "0.23.0",
 		"@dprint/markdown": "0.23.3",
 		"@dprint/oxc": "0.38.0",

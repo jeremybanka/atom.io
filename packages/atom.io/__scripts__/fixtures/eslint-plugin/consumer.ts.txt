@@ -1,0 +1,48 @@
+import plugin, { Rules } from "@atom.io/eslint-plugin"
+import parser from "@typescript-eslint/parser"
+import legacy, { Rules as LegacyRules } from "atom.io/eslint-plugin"
+import { Linter } from "eslint"
+
+// Check declarations with skipLibCheck disabled and no direct utils dependency.
+const plugins: Linter.Config["plugins"] = { "atom.io": plugin, legacy }
+if (Object.keys(Rules).join() !== Object.keys(LegacyRules).join()) {
+	throw new Error("The compatibility export must preserve all named rules")
+}
+
+const source = `
+declare function atom<T, E>(options: { key: string; default: T }): void
+const countAtom = atom<number, Error>({ key: "count", default: 0 })
+`
+const syntaxSource = `const countAtom = atom({ key: "wrong", default: 0 }); const saveTransaction = transaction({ key: "save", do: () => {} })`
+for (const name of Object.keys(plugins)) {
+	const linter = new Linter()
+	const config: Linter.Config = {
+		files: ["**/*.ts"],
+		plugins,
+		languageOptions: {
+			parser,
+			parserOptions: {
+				projectService: { allowDefaultProject: ["typed.ts"] },
+				tsconfigRootDir: new URL(".", import.meta.url).pathname,
+			},
+		},
+		rules: { [`${name}/exact-catch-types`]: "error" },
+	}
+	const typedMessages = linter.verify(source, config, { filename: "typed.ts" })
+	if (typedMessages.length !== 1 || typedMessages[0]?.messageId !== "missingCatchProperty") {
+		throw new Error(JSON.stringify(typedMessages))
+	}
+	const messages = linter.verify(syntaxSource, {
+		files: ["**/*.ts"],
+		plugins,
+		languageOptions: { parser },
+		rules: {
+			[`${name}/explicit-state-types`]: "error",
+			[`${name}/explicit-transaction-types`]: "error",
+			[`${name}/naming-convention`]: "error",
+		},
+	}, { filename: "syntax.ts" })
+	if (messages.length !== 3 || !messages.some((message) => message.fix?.text === '"count"')) {
+		throw new Error(JSON.stringify(messages))
+	}
+}

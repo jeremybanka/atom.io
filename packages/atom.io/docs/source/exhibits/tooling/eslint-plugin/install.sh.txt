@@ -1,0 +1,1 @@
+pnpm add -D @atom.io/eslint-plugin eslint @typescript-eslint/parser@^8 typescript-eslint@^8

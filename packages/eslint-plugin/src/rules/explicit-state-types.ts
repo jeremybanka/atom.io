@@ -1,9 +1,20 @@
 /* oxlint-disable typescript/switch-exhaustiveness-check */
-import { AST_NODE_TYPES, ESLintUtils } from "@typescript-eslint/utils"
+import { AST_NODE_TYPES } from "@typescript-eslint/types"
+import type { ESLintUtils } from "@typescript-eslint/utils"
+import { RuleCreator } from "@typescript-eslint/utils/eslint-utils"
 
-const createRule = ESLintUtils.RuleCreator(
+const createRule = RuleCreator(
 	(name) => `https://atom.io.fyi/docs/eslint-plugin#${name}`,
 )
+
+const STATE_FUNCTIONS = [
+	`atom`,
+	`atomFamily`,
+	`mutableAtom`,
+	`mutableAtomFamily`,
+	`selector`,
+	`selectorFamily`,
+]
 
 type Options = [
 	{
@@ -11,21 +22,21 @@ type Options = [
 	},
 ]
 
-export const explicitTransactionTypes: ESLintUtils.RuleModule<
+export const explicitStateTypes: ESLintUtils.RuleModule<
 	`noTypeArgument` | `noTypeArgumentOrAnnotation`,
 	Options,
 	unknown,
 	ESLintUtils.RuleListener
 > = createRule({
-	name: `explicit-transaction-types`,
+	name: `explicit-state-types`,
 	meta: {
 		type: `problem`,
 		docs: {
-			description: `Transaction declarations must have generic type arguments directly passed to them`,
+			description: `State declarations must have generic type arguments directly passed to them`,
 		},
 		messages: {
-			noTypeArgument: `Transaction declarations must have generic type arguments directly passed to them.`,
-			noTypeArgumentOrAnnotation: `Transaction declarations must have generic type arguments directly passed to them, or a top-level type annotation.`,
+			noTypeArgument: `State declarations must have generic type arguments directly passed to them.`,
+			noTypeArgumentOrAnnotation: `State declarations must have generic type arguments directly passed to them, or a top-level type annotation.`,
 		},
 		schema: [
 			{
@@ -55,44 +66,20 @@ export const explicitTransactionTypes: ESLintUtils.RuleModule<
 
 				switch (callee.type) {
 					case `Identifier`:
-						if (callee.name !== `transaction`) {
+						if (STATE_FUNCTIONS.includes(callee.name) === false) {
 							return
 						}
 						break
 					case `MemberExpression`:
 						if (
-							callee.property.type === AST_NODE_TYPES.Identifier
-								? callee.property.name !== `transaction`
-								: callee.property.type !== AST_NODE_TYPES.Literal ||
-									callee.property.value !== `transaction`
+							(callee.property.type === `Identifier` &&
+								STATE_FUNCTIONS.includes(callee.property.name)) === false
 						) {
 							return
 						}
 						break
 					default:
 						return
-				}
-
-				const transactionOptions = node.arguments[0]
-				if (transactionOptions?.type !== AST_NODE_TYPES.ObjectExpression) {
-					return
-				}
-
-				const hasOption = (optionName: `do` | `key`): boolean =>
-					transactionOptions.properties.some((property) => {
-						if (property.type !== AST_NODE_TYPES.Property) {
-							return false
-						}
-						if (property.key.type === AST_NODE_TYPES.Identifier) {
-							return property.key.name === optionName
-						}
-						return (
-							property.key.type === AST_NODE_TYPES.Literal &&
-							property.key.value === optionName
-						)
-					})
-				if (!hasOption(`key`) || !hasOption(`do`)) {
-					return
 				}
 
 				// Check for the *required* generic type argument first
@@ -112,7 +99,7 @@ export const explicitTransactionTypes: ESLintUtils.RuleModule<
 						// Check if the VariableDeclarator has an id with a TypeAnnotation
 						const declaratorId = parent.id
 						if (declaratorId.type === AST_NODE_TYPES.Identifier) {
-							// Check for 'const myTransaction: TransactionToken<() => void> = ...'
+							// Check for 'const myAtom: AtomToken<string> = ...'
 							hasAnnotation = Boolean(declaratorId.typeAnnotation)
 						}
 					}

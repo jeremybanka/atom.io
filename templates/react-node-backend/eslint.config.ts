@@ -1,6 +1,6 @@
 import { default as TypeScriptPlugin } from "@typescript-eslint/eslint-plugin"
 import * as parser from "@typescript-eslint/parser"
-import AtomIOPlugin from "atom.io/eslint-plugin"
+import AtomIOPlugin from "@atom.io/eslint-plugin"
 import type { Linter } from "eslint"
 import * as ImportPlugin from "eslint-plugin-import-x"
 import { default as SimpleImportSortPlugin } from "eslint-plugin-simple-import-sort"

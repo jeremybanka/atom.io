@@ -1,17 +1,20 @@
+import process from "node:process"
+
 const mode = process.argv[2] ?? `normal`
 let pending = ``
 
-const write = (value) => process.stdout.write(JSON.stringify(value) + `\x03`)
+const write = (value: unknown) =>
+	process.stdout.write(JSON.stringify(value) + `\x03`)
 
 process.stdin.setEncoding(`utf8`)
-process.stdin.on(`data`, (chunk) => {
+process.stdin.on(`data`, (chunk: Buffer | string) => {
 	pending += chunk.toString()
 	let boundary = pending.indexOf(`\x03`)
 	while (boundary !== -1) {
 		const frame = pending.slice(0, boundary)
 		pending = pending.slice(boundary + 1)
 		try {
-			const [event, ...args] = JSON.parse(frame)
+			const [event, ...args] = JSON.parse(frame) as [string, ...unknown[]]
 			if (event === `exit`) {
 				if (mode !== `stubborn`) process.exit(0)
 			} else if (event.startsWith(`user::`)) {

@@ -1,3 +1,5 @@
+import process from "node:process"
+
 process.stdout.write(`"AL`)
 setTimeout(() => {
 	process.stdout.write(`IVE"\x03["boot","preserved"]\x03`)
@@ -6,7 +8,7 @@ setTimeout(() => {
 let pending = ``
 setInterval(Date.now, 1_000)
 process.stdin.setEncoding(`utf8`)
-process.stdin.on(`data`, (chunk) => {
+process.stdin.on(`data`, (chunk: Buffer | string) => {
 	pending += chunk.toString()
 	if (pending.includes(`["exit"]`)) process.exit(0)
 })

@@ -12,10 +12,7 @@ import type * as SolidAdapter from "atom.io/solid"
 import { Window } from "happy-dom"
 import * as React from "react"
 import type * as ReactDOMClient from "react-dom/client"
-import {
-	createRoot as createSolidRoot,
-	useContext as useSolidContext,
-} from "solid-js"
+import * as Solid from "solid-js"
 
 type FixtureModules = {
 	main: typeof Core
@@ -61,9 +58,9 @@ try {
 			join(destination, `package.json`),
 		)
 	}
-	// A second pair of atom.io copies resolves a separate physical React runtime.
+	// A second pair of atom.io copies resolves separate physical React and Solid runtimes.
 	const isolatedDependencies = join(fixtureRoot, `isolated/node_modules`)
-	for (const peer of [`react`, `react-dom`]) {
+	for (const peer of [`react`, `react-dom`, `solid-js`]) {
 		const peerRoot = dirname(
 			fileURLToPath(import.meta.resolve(`${peer}/package.json`)),
 		)
@@ -186,19 +183,47 @@ try {
 	const solidA = await load(`a`, `solid`)
 	const solidB = await load(`b`, `solid`)
 	assert.equal(solidA.StoreContext, solidB.StoreContext)
-	createSolidRoot((dispose) => {
-		try {
-			solidA.StoreContext.Provider({
-				value: outer.silo.store,
+	const testSolidStore = (
+		runtime: typeof Solid,
+		provider: typeof SolidAdapter,
+		consumer: typeof SolidAdapter,
+		initial: number,
+	): void => {
+		const { silo, token } = makeSilo(`solid-${initial}`, initial)
+		let read: (() => number) | undefined
+		let write: ((next: CounterUpdate) => void) | undefined
+		let observed: number | undefined
+		const dispose = runtime.createRoot((rootDispose) => {
+			provider.StoreContext.Provider({
+				value: silo.store,
 				get children() {
-					assert.equal(useSolidContext(solidB.StoreContext), outer.silo.store)
+					assert.equal(runtime.useContext(consumer.StoreContext), silo.store)
+					const value = consumer.useO(token)
+					read = value
+					write = consumer.useI(token)
+					runtime.createEffect(() => {
+						observed = value()
+					})
 					return null
 				},
 			})
+			return rootDispose
+		})
+		try {
+			assert.ok(read)
+			assert.ok(write)
+			assert.equal(read(), initial)
+			assert.equal(observed, initial)
+			write((value) => value + 1)
+			assert.equal(read(), initial + 1)
+			assert.equal(observed, initial + 1)
+			assert.equal(silo.getState(token), initial + 1)
+			assert.equal(outer.silo.getState(outer.token), 2)
 		} finally {
 			dispose()
 		}
-	})
+	}
+	testSolidStore(Solid, solidA, solidB, 2000)
 	const realtimeA = await load(`a`, `realtime-react`)
 	const realtimeB = await load(`b`, `realtime-react`)
 	assert.equal(realtimeA.RealtimeContext, realtimeB.RealtimeContext)
@@ -289,6 +314,15 @@ try {
 			await Promise.resolve()
 		})
 	}
+	const isolatedSolid = (await import(
+		pathToFileURL(join(isolatedDependencies, `solid-js/dist/solid.js`)).href
+	)) as typeof Solid
+	assert.notEqual(isolatedSolid.createContext, Solid.createContext)
+	const solidC = await load(`isolated/c`, `solid`)
+	const solidD = await load(`isolated/d`, `solid`)
+	assert.equal(solidC.StoreContext, solidD.StoreContext)
+	assert.notEqual(solidC.StoreContext, solidA.StoreContext)
+	testSolidStore(isolatedSolid, solidC, solidD, 3000)
 } finally {
 	await window.happyDOM.close()
 	await rm(fixtureRoot, { recursive: true, force: true })

@@ -5,6 +5,7 @@ import { enumeration } from "atom.io/foundations/enumeration"
 import type { primitive } from "atom.io/foundations/json"
 import { Subject } from "atom.io/foundations/subject"
 import type { Fn, Transceiver, TransceiverMode } from "atom.io/internal"
+import { comptime } from "comptime"
 
 export type ArrayMutations = Exclude<keyof Array<any>, keyof ReadonlyArray<any>>
 export type ArrayUpdate<P extends primitive> =
@@ -91,8 +92,9 @@ true satisfies ArrayUpdate<any>[`type`] extends (typeof ARRAY_UPDATES)[number]
 	? true
 	: Exclude<ArrayUpdate<any>[`type`], (typeof ARRAY_UPDATES)[number]>
 
-export const ARRAY_UPDATE_ENUM: Enumeration<typeof ARRAY_UPDATES> =
-	enumeration(ARRAY_UPDATES)
+export const ARRAY_UPDATE_ENUM: Enumeration<typeof ARRAY_UPDATES> = comptime(
+	() => enumeration(ARRAY_UPDATES),
+)
 
 export type ArrayMutationHandler = {
 	[K in Exclude<OListUpdateType, `extend` | `set` | `truncate`>]: Fn

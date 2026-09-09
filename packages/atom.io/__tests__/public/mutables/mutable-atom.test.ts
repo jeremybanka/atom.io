@@ -21,14 +21,13 @@ import { UList } from "atom.io/transceivers/u-list"
 import { vitest } from "vitest"
 
 import * as Utils from "../../__util__/index.ts"
-import { RUNTIME } from "../../__util__/runtime.ts"
 
 let logger: Logger
 const { restore } = takeSnapshot()
 
 beforeEach(() => {
 	restore()
-	const store = RUNTIME.implicitStore
+	const store = globalThis.ATOM_IO_IMPLICIT_STORE
 	if (store === undefined) {
 		throw new Error(`Expected the implicit store to exist.`)
 	}

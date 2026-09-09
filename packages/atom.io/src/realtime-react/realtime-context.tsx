@@ -1,4 +1,3 @@
-import { runtimeContext } from "atom.io/internal"
 import { useI } from "atom.io/react"
 import * as RTC from "atom.io/realtime-client"
 import * as React from "react"
@@ -16,14 +15,18 @@ export type RealtimeReactStore = {
 	services: Map<RealtimeServiceKey, RealtimeServiceCounter> | null
 }
 
-export const RealtimeContext: React.Context<RealtimeReactStore> = runtimeContext(
-	`react/realtime`,
-	() =>
-		React.createContext<RealtimeReactStore>({
-			socket: null,
-			services: null,
-		}),
-)
+declare global {
+	var ATOM_IO_REALTIME_REACT_CONTEXT:
+		| React.Context<RealtimeReactStore>
+		| undefined
+}
+
+// Reuse the context across physical package copies, like the implicit store.
+export const RealtimeContext: React.Context<RealtimeReactStore> =
+	(globalThis.ATOM_IO_REALTIME_REACT_CONTEXT ??= React.createContext({
+		socket: null,
+		services: null,
+	}))
 
 export const RealtimeProvider: React.FC<{
 	children: React.ReactNode

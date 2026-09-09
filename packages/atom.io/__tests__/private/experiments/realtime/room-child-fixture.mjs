@@ -5,7 +5,7 @@ const write = (value) => process.stdout.write(JSON.stringify(value) + `\x03`)
 
 process.stdin.setEncoding(`utf8`)
 process.stdin.on(`data`, (chunk) => {
-	pending += chunk
+	pending += chunk.toString()
 	let boundary = pending.indexOf(`\x03`)
 	while (boundary !== -1) {
 		const frame = pending.slice(0, boundary)

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.0.44
+
+### Patch Changes
+
+- Updated dependencies [7eb3413]
+  - atom.io@0.53.1
+
 ## 0.0.43
 
 ### Patch Changes

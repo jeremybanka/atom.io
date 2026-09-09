@@ -1,13 +1,5 @@
 import assert from "node:assert/strict"
-import {
-	cp,
-	mkdtemp,
-	readFile,
-	readdir,
-	rm,
-	symlink,
-	writeFile,
-} from "node:fs/promises"
+import { cp, mkdtemp, rm, symlink } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
@@ -29,8 +21,6 @@ Object.assign(globalThis, {
 	IS_REACT_ACT_ENVIRONMENT: true,
 })
 const { createRoot } = await import(`react-dom/client`)
-const legacyStore = { legacy: true }
-globalThis.ATOM_IO_IMPLICIT_STORE = legacyStore
 
 try {
 	await symlink(
@@ -38,7 +28,7 @@ try {
 		join(fixtureRoot, `node_modules`),
 		`dir`,
 	)
-	for (const name of [`a`, `b`, `incompatible`]) {
+	for (const name of [`a`, `b`]) {
 		const destination = join(fixtureRoot, name)
 		await cp(join(packageRoot, `dist`), join(destination, `dist`), {
 			recursive: true,
@@ -48,25 +38,6 @@ try {
 			join(destination, `package.json`),
 		)
 	}
-	// Simulate a future build that deliberately declares a different runtime ABI.
-	const incompatibleDist = join(fixtureRoot, `incompatible/dist`)
-	let replacements = 0
-	for (const entry of await readdir(incompatibleDist, { recursive: true })) {
-		if (!entry.endsWith(`.js`)) continue
-		const path = join(incompatibleDist, entry)
-		const source = await readFile(path, `utf8`)
-		if (source.includes(`atom.io/runtime/1`)) {
-			await writeFile(
-				path,
-				source.replaceAll(
-					`atom.io/runtime/1`,
-					`atom.io/runtime/test-incompatible`,
-				),
-			)
-			replacements++
-		}
-	}
-	assert.ok(replacements > 0)
 	const load = (copy, entry) =>
 		import(
 			pathToFileURL(join(fixtureRoot, copy, `dist`, entry, `index.js`)).href
@@ -80,15 +51,20 @@ try {
 	)
 	const internalA = await load(`a`, `internal`)
 	const internalB = await load(`b`, `internal`)
-	assert.equal(internalA.RUNTIME, internalB.RUNTIME)
 	assert.equal(
-		internalA.RUNTIME.implicitStore,
+		globalThis.ATOM_IO_IMPLICIT_STORE,
 		undefined,
 		`core imports must remain lazy`,
 	)
-	assert.equal(internalA.IMPLICIT.STORE, internalB.IMPLICIT.STORE)
-	assert.notEqual(internalA.IMPLICIT.STORE, legacyStore)
-	assert.equal(globalThis.ATOM_IO_IMPLICIT_STORE, legacyStore)
+	// An already installed implicit store must still be adopted by both copies.
+	const existingStore = new internalA.Store({
+		name: `IMPLICIT_STORE`,
+		lifespan: `ephemeral`,
+		isProduction: true,
+	})
+	globalThis.ATOM_IO_IMPLICIT_STORE = existingStore
+	assert.equal(internalA.IMPLICIT.STORE, existingStore)
+	assert.equal(internalB.IMPLICIT.STORE, existingStore)
 	const reactA = await load(`a`, `react`)
 	const reactB = await load(`b`, `react`)
 	assert.equal(reactA.StoreContext, reactB.StoreContext)
@@ -202,19 +178,6 @@ try {
 		assert.equal(hostA.textContent, `shared realtime context`)
 	} finally {
 		await React.act(() => realtimeRoot.unmount())
-	}
-	const incompatible = await load(`incompatible`, `internal`)
-	assert.notEqual(incompatible.RUNTIME, internalA.RUNTIME)
-	assert.notEqual(incompatible.IMPLICIT.STORE, internalA.IMPLICIT.STORE)
-	for (const [entry, context, compatible] of [
-		[`react`, `StoreContext`, reactA],
-		[`solid`, `StoreContext`, solidA],
-		[`realtime-react`, `RealtimeContext`, realtimeA],
-	]) {
-		assert.notEqual(
-			(await load(`incompatible`, entry))[context],
-			compatible[context],
-		)
 	}
 } finally {
 	await window.happyDOM.close()

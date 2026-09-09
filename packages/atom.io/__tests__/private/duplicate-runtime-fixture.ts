@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { cp, mkdtemp, rm, symlink } from "node:fs/promises"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 
 import type * as Core from "atom.io"
@@ -11,6 +11,7 @@ import type * as RealtimeReact from "atom.io/realtime-react"
 import type * as SolidAdapter from "atom.io/solid"
 import { Window } from "happy-dom"
 import * as React from "react"
+import type * as ReactDOMClient from "react-dom/client"
 import {
 	createRoot as createSolidRoot,
 	useContext as useSolidContext,
@@ -50,7 +51,7 @@ try {
 		join(fixtureRoot, `node_modules`),
 		`dir`,
 	)
-	for (const name of [`a`, `b`]) {
+	for (const name of [`a`, `b`, `isolated/c`, `isolated/d`]) {
 		const destination = join(fixtureRoot, name)
 		await cp(join(packageRoot, `dist`), join(destination, `dist`), {
 			recursive: true,
@@ -60,8 +61,16 @@ try {
 			join(destination, `package.json`),
 		)
 	}
+	// A second pair of atom.io copies resolves a separate physical React runtime.
+	const isolatedDependencies = join(fixtureRoot, `isolated/node_modules`)
+	for (const peer of [`react`, `react-dom`]) {
+		const peerRoot = dirname(
+			fileURLToPath(import.meta.resolve(`${peer}/package.json`)),
+		)
+		await cp(peerRoot, join(isolatedDependencies, peer), { recursive: true })
+	}
 	const load = <Entry extends keyof FixtureModules>(
-		copy: `a` | `b`,
+		copy: `a` | `b` | `isolated/c` | `isolated/d`,
 		entry: Entry,
 	): Promise<FixtureModules[Entry]> =>
 		import(
@@ -216,6 +225,68 @@ try {
 	} finally {
 		await act(() => {
 			realtimeRoot.unmount()
+		})
+	}
+	const isolatedReact = (await import(
+		pathToFileURL(join(isolatedDependencies, `react/index.js`)).href
+	)) as typeof React
+	const isolatedDOM = (await import(
+		pathToFileURL(join(isolatedDependencies, `react-dom/client.js`)).href
+	)) as typeof ReactDOMClient
+	assert.notEqual(isolatedReact.createContext, React.createContext)
+	const reactC = await load(`isolated/c`, `react`)
+	const reactD = await load(`isolated/d`, `react`)
+	const realtimeC = await load(`isolated/c`, `realtime-react`)
+	const realtimeD = await load(`isolated/d`, `realtime-react`)
+	assert.equal(reactC.StoreContext, reactD.StoreContext)
+	assert.notEqual(reactC.StoreContext, reactA.StoreContext)
+	assert.equal(realtimeC.RealtimeContext, realtimeD.RealtimeContext)
+	assert.notEqual(realtimeC.RealtimeContext, realtimeA.RealtimeContext)
+
+	const isolated = makeSilo(`isolated`, 1000)
+	const isolatedRealtimeValue: RealtimeReact.RealtimeReactStore = {
+		socket: null,
+		services: new Map(),
+	}
+	let setIsolated: ((next: CounterUpdate) => void) | undefined
+	function IsolatedCounter(): React.ReactElement {
+		const value = reactD.useO(isolated.token)
+		setIsolated = reactD.useI(isolated.token)
+		assert.equal(
+			isolatedReact.useContext(realtimeD.RealtimeContext),
+			isolatedRealtimeValue,
+		)
+		return isolatedReact.createElement(`span`, null, value)
+	}
+	const isolatedHost = document.createElement(`div`)
+	const isolatedRoot = isolatedDOM.createRoot(isolatedHost)
+	try {
+		await isolatedReact.act(async () => {
+			isolatedRoot.render(
+				isolatedReact.createElement(reactC.StoreProvider, {
+					store: isolated.silo.store,
+					children: isolatedReact.createElement(
+						realtimeC.RealtimeContext.Provider,
+						{ value: isolatedRealtimeValue },
+						isolatedReact.createElement(IsolatedCounter),
+					),
+				}),
+			)
+			await Promise.resolve()
+		})
+		assert.equal(isolatedHost.textContent, `1000`)
+		await isolatedReact.act(async () => {
+			assert.ok(setIsolated)
+			setIsolated((value) => value + 1)
+			await Promise.resolve()
+		})
+		assert.equal(isolatedHost.textContent, `1001`)
+		assert.equal(isolated.silo.getState(isolated.token), 1001)
+		assert.equal(outer.silo.getState(outer.token), 2)
+	} finally {
+		await isolatedReact.act(async () => {
+			isolatedRoot.unmount()
+			await Promise.resolve()
 		})
 	}
 } finally {

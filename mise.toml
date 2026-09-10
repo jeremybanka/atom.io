@@ -3,7 +3,7 @@ bun = "1.4.2"
 "github:Boeing/config-file-validator" = "2.3.0"
 hk = "1.58.1"
 ni = "30.5.0"
-node = "26.8.1"
+node = "26.8.2"
 pnpm = "12.3.4"
 ripgrep = "15.2.0"
 

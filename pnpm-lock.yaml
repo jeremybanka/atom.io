@@ -389,8 +389,8 @@ importers:
         specifier: 2.2.3
         version: 2.2.3
       break-check:
-        specifier: 0.6.37
-        version: 0.6.37(supports-color@10.2.2)(zod@4.6.2)
+        specifier: 0.6.38
+        version: 0.6.38(supports-color@10.2.2)(zod@4.6.2)
       concurrently:
         specifier: 10.0.5
         version: 10.0.5
@@ -4517,8 +4517,8 @@ packages:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
     engines: {node: '>=8'}
 
-  break-check@0.6.37:
-    resolution: {integrity: sha512-SoQpOS0OFOtAcwAm8j39KeVAQJEdnSQW92hjb+TcIoqQyuoetoyUMqNyC83/8l/rmE7TVjzSspU+ZwxutSwXaQ==}
+  break-check@0.6.38:
+    resolution: {integrity: sha512-6H6yBJ9SIvfruNrA/LRY/c4KhMIW1co2IxZSL1nqx4f/LPwpjhazzCNfsf1Gy/BN2MGbaA/5QUz8O/6r1jsvSw==}
     hasBin: true
 
   browserslist@4.28.2:
@@ -4679,8 +4679,8 @@ packages:
       zod:
         optional: true
 
-  comline@0.6.0:
-    resolution: {integrity: sha512-xGnbd0VKp770L6uRq6iS3I4p/Vd+2J+zyQad2ZaDn0HzoVIN+JdYB588W49Dt6lNnPGo5P2HvEJRrne0yHmEzA==}
+  comline@0.6.1:
+    resolution: {integrity: sha512-Fg9dLzYpaIPdpmhVLBuE6polGpm+H4VOpbORkIUxVXkxsWHXRLMrCRW3wBJYs1HrknFvI9TNjH8vJmpSJNfWfQ==}
     peerDependencies:
       arktype: ^2.1.28
       zod: ^4.2.0
@@ -11229,10 +11229,10 @@ snapshots:
     dependencies:
       fill-range: 7.1.1
 
-  break-check@0.6.37(supports-color@10.2.2)(zod@4.6.2):
+  break-check@0.6.38(supports-color@10.2.2)(zod@4.6.2):
     dependencies:
       arktype: 2.2.3
-      comline: 0.6.0(arktype@2.2.3)(zod@4.6.2)
+      comline: 0.6.1(arktype@2.2.3)(zod@4.6.2)
       minimatch: 10.2.6
       simple-git: 3.36.0(supports-color@10.2.2)
       takua: 0.2.3
@@ -11400,7 +11400,7 @@ snapshots:
       arktype: 2.2.3
       zod: 4.5.4
 
-  comline@0.6.0(arktype@2.2.3)(zod@4.6.2):
+  comline@0.6.1(arktype@2.2.3)(zod@4.6.2):
     dependencies:
       '@standard-schema/spec': 1.1.0
       treetrunks: 0.1.11

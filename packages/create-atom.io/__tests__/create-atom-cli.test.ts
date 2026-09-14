@@ -1,175 +1,298 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
+import {
+	access,
+	mkdir,
+	readdir,
+	readFile,
+	rm,
+	stat,
+	writeFile,
+} from "node:fs/promises"
 import { join } from "node:path"
 
-import type { MockInstance } from "vitest"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
-import { runCreateAtomCli } from "../src/create-atom-cli.ts"
+import type { CliFixture } from "./fixtures/cli.ts"
+import {
+	installations,
+	makeCliFixture,
+	runCli,
+	runInteractiveCli,
+} from "./fixtures/cli.ts"
 
-const { createAtom } = vi.hoisted(() => ({
-	createAtom: vi.fn().mockResolvedValue(undefined),
-}))
+let fixture: CliFixture
 
-vi.mock(`../src/create-atom.ts`, () => ({ createAtom }))
-
-let workingDirectory: string
-let warningLog: MockInstance<typeof console.warn>
-
-beforeEach(() => {
-	vi.clearAllMocks()
-	workingDirectory = mkdtempSync(join(tmpdir(), `create-atom-cli-`))
-	vi.spyOn(process, `cwd`).mockReturnValue(workingDirectory)
-	vi.spyOn(process.stdout, `write`).mockReturnValue(true)
-	warningLog = vi.spyOn(console, `warn`).mockImplementation(() => {})
+beforeEach(async () => {
+	fixture = await makeCliFixture()
 })
 
-afterEach(() => {
-	vi.restoreAllMocks()
-	rmSync(workingDirectory, { recursive: true, force: true })
+afterEach(async () => {
+	await rm(fixture.root, { recursive: true, force: true })
 })
 
-function invoke(...words: string[]): Promise<void> {
-	return runCreateAtomCli([process.execPath, `/bin/create-atom.io`, ...words])
-}
+const suppliedOptions = [
+	`--template=react-node-backend`,
+	`--package-manager=pnpm`,
+	`--use-mise=false`,
+	`--skip-hints`,
+]
 
-function stdout(): string {
-	return vi
-		.mocked(process.stdout.write)
-		.mock.calls.map(([text]) => text)
-		.join(``)
-}
-
-describe(`CLI options`, () => {
+describe(`one-shot CLI`, () => {
 	it.each([
-		[`--templateName`, `--packageManager`, `--skipHints`, `--useMise`],
-		[`--template`, `--package-manager`, `--skip-hints`, `--use-mise`],
-		[`--template-name`, `-m`, `-k`, `--use-mise`],
-		[`-t`, `-m`, `-k`, `--useMise`],
+		{
+			template: `preact-svg-editor`,
+			manager: `npm`,
+			flags: [`--templateName`, `--packageManager`, `--skipHints`, `--useMise`],
+		},
+		{
+			template: `react-node-backend`,
+			manager: `pnpm`,
+			flags: [`--template`, `--package-manager`, `--skip-hints`, `--use-mise`],
+		},
+		{
+			template: `react-realtime-text-editor`,
+			manager: `bun`,
+			flags: [`--template-name`, `-m`, `-k`, `--use-mise`],
+		},
+		{
+			template: `solid-lossless-numbers`,
+			manager: `yarn`,
+			flags: [`-t`, `-m`, `-k`, `--useMise`],
+		},
 	])(
-		`accepts %s and its companion flags`,
-		async (template, manager, hints, mise) => {
-			await invoke(
-				`${template}=react-node-backend`,
-				`${manager}=pnpm`,
-				hints,
-				`${mise}=false`,
+		`creates $template with $manager without prompting`,
+		async ({ template, manager, flags }) => {
+			const output = await runCli(fixture, [
+				`${flags[0]}=${template}`,
+				`${flags[1]}=${manager}`,
+				flags[2],
+				`${flags[3]}=true`,
 				`my-app`,
+			])
+			const project = join(fixture.cwd, `my-app`)
+			expect(output.exitCode, output.stderr + output.stdout).toBe(0)
+			expect(output.stderr).toBe(``)
+			expect(output.stdout).toContain(`You're all set!`)
+			expect(output.stdout).not.toContain(`Template:`)
+			expect(output.stdout).not.toContain(`Project directory:`)
+			expect(output.stdout).not.toContain(`Would you like to use mise`)
+			expect(output.stdout).not.toContain(`Getting Started`)
+			expect(await readFile(join(project, `src`, `template.txt`), `utf8`)).toBe(
+				template,
 			)
-
-			expect(createAtom).toHaveBeenCalledExactlyOnceWith(`my-app`, {
-				templateName: `react-node-backend`,
-				packageManager: `pnpm`,
-				skipHints: true,
-				useMise: false,
-			})
-			expect(warningLog).not.toHaveBeenCalled()
+			expect(await readFile(join(project, `README.md`), `utf8`)).toContain(
+				manager === `bun` || manager === `npm`
+					? `${manager} run dev`
+					: `${manager} dev`,
+			)
+			expect(await readFile(join(project, `.gitignore`), `utf8`)).toBe(
+				`node_modules\n`,
+			)
+			expect(await readFile(join(project, `mise.toml`), `utf8`)).toContain(
+				`${manager === `npm` ? `node` : manager} = "@latest"`,
+			)
+			expect(await installations(fixture)).toEqual([
+				{
+					command: manager,
+					args: manager === `yarn` ? [] : [`install`],
+					cwd: project,
+				},
+			])
+			if (template === `react-node-backend`) {
+				expect(
+					(await stat(join(project, `node`, `server.ts`))).mode & 0o777,
+				).toBe(0o755)
+				expect(
+					(await stat(join(project, `node`, `nested`, `data.txt`))).mode & 0o111,
+				).toBe(0)
+			}
 		},
 	)
 
-	it(`accepts options after the project name and separated values`, async () => {
-		await invoke(
+	it(`accepts separated option values after the directory and omits mise`, async () => {
+		const output = await runCli(fixture, [
 			`my-app`,
 			`--template`,
 			`preact-svg-editor`,
+			`--package-manager`,
+			`npm`,
 			`--use-mise`,
 			`false`,
-		)
-		expect(createAtom).toHaveBeenCalledExactlyOnceWith(`my-app`, {
-			templateName: `preact-svg-editor`,
-			useMise: false,
-		})
+		])
+		expect(output.exitCode, output.stderr + output.stdout).toBe(0)
+		expect(output.stdout).toContain(`Getting Started`)
+		await expect(
+			access(join(fixture.cwd, `my-app`, `mise.toml`)),
+		).rejects.toThrow()
 	})
 
-	it(`leaves the project name optional without consuming it as a boolean`, async () => {
-		await invoke(`--skip-hints`)
-		expect(createAtom).toHaveBeenCalledExactlyOnceWith(undefined, {
-			skipHints: true,
-		})
-		createAtom.mockClear()
-		await invoke(`--skip-hints`, `my-app`)
-		expect(createAtom).toHaveBeenCalledExactlyOnceWith(`my-app`, {
-			skipHints: true,
-		})
-	})
-
-	it.each([`--literal-directory`, `completion`, `create-atom`])(
-		`preserves the literal project name %s after the delimiter`,
-		async (projectName) => {
-			await invoke(`--skip-hints`, `--`, projectName)
-			expect(createAtom).toHaveBeenCalledExactlyOnceWith(projectName, {
-				skipHints: true,
-			})
-			expect(warningLog).not.toHaveBeenCalled()
+	it.each([`--literal-directory`, `completion`, `create-atom`, ``])(
+		`preserves the directory argument %j after the delimiter`,
+		async (directory) => {
+			const output = await runCli(fixture, [...suppliedOptions, `--`, directory])
+			expect(output.exitCode, output.stderr + output.stdout).toBe(0)
+			expect(output.stderr).toBe(``)
+			expect(output.stdout).not.toContain(`Project directory:`)
+			expect(
+				await readFile(
+					join(fixture.cwd, directory, `src`, `template.txt`),
+					`utf8`,
+				),
+			).toBe(`react-node-backend`)
 		},
 	)
 
-	it(`warns about ignored options before starting the initializer`, async () => {
-		await invoke(`my-app`, `--templat=react-node-backend`, `-=malformed`)
-		const warning = warningLog
-		expect(warning).toHaveBeenCalledOnce()
-		expect(warning.mock.calls[0]?.[0]).toContain(`--templat`)
-		expect(warning.mock.calls[0]?.[0]).toContain(`create-atom.io my-app`)
-		expect(warning.mock.calls[0]?.[0]).toContain(`Unknown option "-"`)
-		expect(warning.mock.invocationCallOrder[0]).toBeLessThan(
-			createAtom.mock.invocationCallOrder[0],
-		)
-		expect(createAtom).toHaveBeenCalledExactlyOnceWith(`my-app`, {})
-		expect(stdout()).toBe(``)
+	it(`reports ignored options on stderr and still creates the project`, async () => {
+		const output = await runCli(fixture, [
+			...suppliedOptions,
+			`my-app`,
+			`--templat=unknown`,
+			`-=malformed`,
+		])
+		expect(output.exitCode, output.stderr + output.stdout).toBe(0)
+		expect(output.stderr).toContain(`--templat`)
+		expect(output.stderr).toContain(`Unknown option "-"`)
+		expect(output.stdout).not.toContain(`Warning:`)
+		expect(
+			await readFile(join(fixture.cwd, `my-app`, `src`, `template.txt`), `utf8`),
+		).toBe(`react-node-backend`)
 	})
 
-	it(`rejects invalid alias values before starting the initializer`, async () => {
-		await expect(invoke(`my-app`, `--template=unknown`)).rejects.toThrow()
-		expect(createAtom).not.toHaveBeenCalled()
+	it(`rejects an invalid template without creating a project or installing`, async () => {
+		const output = await runCli(fixture, [`my-app`, `--template=unknown`])
+		expect(output.exitCode).not.toBe(0)
+		expect(output.stderr).toContain(`templateName`)
+		expect(output.stdout).toBe(``)
+		expect(await readdir(fixture.cwd)).toEqual([])
+		expect(await installations(fixture)).toEqual([])
 	})
 
-	it(`ignores config files and uses command-line options`, async () => {
+	it(`ignores both config filenames`, async () => {
 		for (const filename of [
 			`create-atom.config.json`,
 			`create-atom.io.config.json`,
 		]) {
-			writeFileSync(join(workingDirectory, filename), `invalid json`)
+			await writeFile(join(fixture.cwd, filename), `invalid json`)
 		}
-		await invoke(`my-app`, `--package-manager=pnpm`, `--use-mise=false`)
-		expect(createAtom).toHaveBeenCalledExactlyOnceWith(`my-app`, {
-			packageManager: `pnpm`,
-			useMise: false,
-		})
+		const output = await runCli(fixture, [...suppliedOptions, `my-app`])
+		expect(output.exitCode, output.stderr + output.stdout).toBe(0)
+		expect(output.stderr).toBe(``)
+		expect(
+			await readFile(join(fixture.cwd, `my-app`, `src`, `template.txt`), `utf8`),
+		).toBe(`react-node-backend`)
 	})
 })
 
-describe(`shell completion`, () => {
+describe(`interactive CLI`, () => {
+	it(`asks for the template, directory, and mise choice, then creates the selected project`, async () => {
+		const output = await runInteractiveCli(
+			fixture,
+			[],
+			[
+				{ waitFor: `Solid Lossless Numbers`, input: `\u001b[B\u001b[B\r` },
+				{ waitFor: `Project directory:`, input: `interactive-app\r` },
+				{ waitFor: `Would you like to use mise`, input: `n\r` },
+			],
+		)
+		const project = join(fixture.cwd, `interactive-app`)
+		expect(output.exitCode, output.output).toBe(0)
+		expect(output.output).toContain(`You're all set!`)
+		expect(output.output).toContain(`Getting Started`)
+		expect(await readFile(join(project, `src`, `template.txt`), `utf8`)).toBe(
+			`react-realtime-text-editor`,
+		)
+		await expect(access(join(project, `mise.toml`))).rejects.toThrow()
+		expect(await installations(fixture)).toEqual([
+			{ command: `npm`, args: [`install`], cwd: project },
+		])
+	}, 15_000)
+
+	it(`asks only for the missing directory when options are already supplied`, async () => {
+		const output = await runInteractiveCli(fixture, suppliedOptions, [
+			{ waitFor: `Project directory:`, input: `my-app\r` },
+		])
+		expect(output.exitCode, output.output).toBe(0)
+		expect(output.output).not.toContain(`Template:`)
+		expect(output.output).not.toContain(`Would you like to use mise`)
+		expect(output.output).not.toContain(`Getting Started`)
+		expect(
+			await readFile(join(fixture.cwd, `my-app`, `src`, `template.txt`), `utf8`),
+		).toBe(`react-node-backend`)
+	}, 15_000)
+
+	it(`lets the user correct an existing directory without overwriting it`, async () => {
+		await mkdir(join(fixture.cwd, `existing`))
+		await writeFile(join(fixture.cwd, `existing`, `keep.txt`), `keep`)
+		const output = await runInteractiveCli(fixture, suppliedOptions, [
+			{ waitFor: `Project directory:`, input: `existing\r` },
+			{
+				waitFor: `Refusing to overwrite`,
+				input: `-new\r`,
+			},
+		])
+		expect(output.exitCode, output.output).toBe(0)
+		expect(
+			await readFile(join(fixture.cwd, `existing`, `keep.txt`), `utf8`),
+		).toBe(`keep`)
+		expect(await readdir(join(fixture.cwd, `existing`))).toEqual([`keep.txt`])
+		expect(
+			await readFile(
+				join(fixture.cwd, `existing-new`, `src`, `template.txt`),
+				`utf8`,
+			),
+		).toBe(`react-node-backend`)
+	}, 15_000)
+
+	it.each([
+		{ args: [], prompt: `Solid Lossless Numbers` },
+		{ args: suppliedOptions, prompt: `Project directory:` },
+	])(
+		`cancels at $prompt without creating a project`,
+		async ({ args, prompt }) => {
+			const output = await runInteractiveCli(fixture, args, [
+				{ waitFor: prompt, input: `\u0003` },
+			])
+			expect(output.exitCode, output.output).toBe(0)
+			expect(output.output).toContain(`Cancelled`)
+			expect(await readdir(fixture.cwd)).toEqual([])
+			expect(await installations(fixture)).toEqual([])
+		},
+		15_000,
+	)
+})
+
+describe(`completion commands`, () => {
 	it.each([`bash`, `zsh`, `fish`, `nushell`, `carapace`])(
-		`generates the %s integration for the installed binary without initializing`,
+		`prints a %s integration without starting the initializer`,
 		async (target) => {
-			await invoke(`completion`, target)
-			expect(stdout()).toContain(`create-atom.io`)
-			expect(createAtom).not.toHaveBeenCalled()
-			expect(warningLog).not.toHaveBeenCalled()
+			const output = await runCli(fixture, [`completion`, target])
+			expect(output.exitCode, output.stderr + output.stdout).toBe(0)
+			expect(output.stderr).toBe(``)
+			expect(output.stdout).toContain(`create-atom.io`)
+			expect(output.stdout).not.toContain(`Template:`)
+			expect(await readdir(fixture.cwd)).toEqual([])
+			expect(await installations(fixture)).toEqual([])
 		},
 	)
 
 	it.each([
 		{
 			words: [`--template=react-`],
-			expected: [`react-node-backend`, `react-realtime-text-editor`],
+			candidates: [`react-node-backend`, `react-realtime-text-editor`],
 		},
-		{ words: [`my-app`, `--package-manager`, `p`], expected: [`pnpm`] },
-		{ words: [`--use-mise`, `f`], expected: [`false`] },
-		{ words: [`--skip-`], expected: [`--skip-hints`] },
+		{ words: [`my-app`, `--package-manager`, `p`], candidates: [`pnpm`] },
+		{ words: [`--use-mise`, `f`], candidates: [`false`] },
+		{ words: [`--skip-`], candidates: [`--skip-hints`] },
 		{
 			words: [`completion`, `install`, ``],
-			expected: [`bash`, `zsh`, `fish`, `nushell`, `carapace`],
+			candidates: [`bash`, `zsh`, `fish`, `nushell`, `carapace`],
 		},
-	])(
-		`completes $words using the CLI definition`,
-		async ({ words, expected }) => {
-			await invoke(`__completeNoDesc`, ...words)
-			expect(stdout().trim().split(`\n`)).toEqual(
-				expect.arrayContaining(expected),
-			)
-			expect(createAtom).not.toHaveBeenCalled()
-			expect(warningLog).not.toHaveBeenCalled()
-		},
-	)
+	])(`completes $words`, async ({ words, candidates }) => {
+		const output = await runCli(fixture, [`__completeNoDesc`, ...words])
+		expect(output.exitCode, output.stderr + output.stdout).toBe(0)
+		expect(output.stderr).toBe(``)
+		expect(output.stdout.trim().split(`\n`)).toEqual(
+			expect.arrayContaining(candidates),
+		)
+		expect(await installations(fixture)).toEqual([])
+	})
 })

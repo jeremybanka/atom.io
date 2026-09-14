@@ -22,8 +22,6 @@
 		"src",
 		"templates"
 	],
-	"main": "dist/create-atom.js",
-	"types": "dist/create-atom.d.ts",
 	"bin": "./bin/create-atom.bin.js",
 	"dependencies": {
 		"@atom.io/template-preact-svg-editor": "workspace:*",
@@ -37,11 +35,11 @@
 		"tinyexec": "1.3.1"
 	},
 	"scripts": {
-		"build": "tsdown && rm -f dist/*.x.d.ts",
+		"build": "tsdown",
 		"lint:eslint": "eslint",
 		"lint:oxlint": "oxlint",
 		"lint:types": "tsc",
-		"test:once": "vitest run"
+		"test:once": "pnpm run build && vitest run"
 	},
 	"devDependencies": {
 		"@types/bun": "npm:bun-types@1.4.2",

@@ -2,10 +2,10 @@ import type { InlineConfig, UserConfig } from "tsdown"
 import { defineConfig } from "tsdown"
 
 const config: UserConfig = defineConfig({
-	entry: [`src/create-atom.ts`, `src/create-atom.x.ts`],
+	entry: [`src/create-atom.x.ts`],
 
 	clean: true,
-	dts: { sourcemap: true },
+	dts: false,
 	fixedExtension: false,
 	format: `esm`,
 	outDir: `dist`,

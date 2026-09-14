@@ -39,7 +39,8 @@
 		"build": "tsdown && rm -f dist/*.x.d.ts",
 		"lint:eslint": "eslint",
 		"lint:oxlint": "oxlint",
-		"lint:types": "tsc"
+		"lint:types": "tsc",
+		"test:once": "vitest run"
 	},
 	"devDependencies": {
 		"@types/bun": "npm:bun-types@1.4.2",

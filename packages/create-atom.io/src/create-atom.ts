@@ -65,9 +65,8 @@ export async function createAtom(
 						})
 					: Promise.resolve(options.templateName),
 			dir: () =>
-				argDir
-					? Promise.resolve(argDir)
-					: prompts.text({
+				argDir === undefined
+					? prompts.text({
 							message: `Project directory:`,
 							placeholder: `my-app`,
 							validate(value) {
@@ -78,7 +77,8 @@ export async function createAtom(
 									return `Refusing to overwrite existing directory or file! Please provide a non-clashing name.`
 								}
 							},
-						}),
+						})
+					: Promise.resolve(argDir),
 			useMise: () =>
 				options.useMise === undefined
 					? prompts.confirm({

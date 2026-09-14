@@ -19,6 +19,7 @@ vi.mock(`@clack/prompts`, async (importOriginal) => ({
 	outro: vi.fn(),
 	select: vi.fn(),
 	spinner: () => ({ start: vi.fn(), stop: vi.fn() }),
+	text: vi.fn(),
 }))
 
 vi.mock(`local-pkg`, () => ({ getPackageInfo: getPackageInfoMock }))
@@ -31,7 +32,7 @@ const templates: TemplateName[] = [
 	`solid-lossless-numbers`,
 ]
 
-describe(`createAtom template selection`, () => {
+describe(`createAtom preloaded options`, () => {
 	let testDir: string
 	let targetDir: string
 
@@ -48,9 +49,11 @@ describe(`createAtom template selection`, () => {
 			rootPath: join(testDir, name),
 		}))
 		vi.mocked(prompts.select).mockResolvedValue(`solid-lossless-numbers`)
+		vi.mocked(prompts.text).mockResolvedValue(targetDir)
 	})
 
 	afterEach(async () => {
+		vi.restoreAllMocks()
 		await rm(testDir, { recursive: true, force: true })
 	})
 
@@ -65,6 +68,7 @@ describe(`createAtom template selection`, () => {
 			})
 
 			expect(prompts.select).not.toHaveBeenCalled()
+			expect(prompts.text).not.toHaveBeenCalled()
 			expect(await readFile(join(targetDir, `template.txt`), `utf-8`)).toBe(
 				templateName,
 			)
@@ -84,6 +88,36 @@ describe(`createAtom template selection`, () => {
 		expect(prompts.select).toHaveBeenCalledOnce()
 		expect(await readFile(join(targetDir, `template.txt`), `utf-8`)).toBe(
 			`solid-lossless-numbers`,
+		)
+	})
+
+	it(`prompts for a project directory when it is undefined`, async () => {
+		await createAtom(undefined, {
+			packageManager: `npm`,
+			skipHints: true,
+			templateName: `react-node-backend`,
+			useMise: false,
+		})
+
+		expect(prompts.text).toHaveBeenCalledOnce()
+		expect(await readFile(join(targetDir, `template.txt`), `utf-8`)).toBe(
+			`react-node-backend`,
+		)
+	})
+
+	it(`uses the current directory when the supplied directory is empty`, async () => {
+		vi.spyOn(process, `cwd`).mockReturnValue(targetDir)
+
+		await createAtom(``, {
+			packageManager: `npm`,
+			skipHints: true,
+			templateName: `react-node-backend`,
+			useMise: false,
+		})
+
+		expect(prompts.text).not.toHaveBeenCalled()
+		expect(await readFile(join(targetDir, `template.txt`), `utf-8`)).toBe(
+			`react-node-backend`,
 		)
 	})
 })

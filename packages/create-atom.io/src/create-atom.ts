@@ -40,28 +40,30 @@ export async function createAtom(
 	const { dir, templateName, useMise } = await prompts.group(
 		{
 			templateName: () =>
-				prompts.select<TemplateName>({
-					message: `Template:`,
-					initialValue: `preact-svg-editor`,
-					options: [
-						{
-							label: `Preact SVG Editor`,
-							value: `preact-svg-editor`,
-						},
-						{
-							label: `React Node Backend`,
-							value: `react-node-backend`,
-						},
-						{
-							label: `React Realtime Text Editor`,
-							value: `react-realtime-text-editor`,
-						},
-						{
-							label: `Solid Lossless Numbers`,
-							value: `solid-lossless-numbers`,
-						},
-					],
-				}),
+				options.templateName === undefined
+					? prompts.select<TemplateName>({
+							message: `Template:`,
+							initialValue: `preact-svg-editor`,
+							options: [
+								{
+									label: `Preact SVG Editor`,
+									value: `preact-svg-editor`,
+								},
+								{
+									label: `React Node Backend`,
+									value: `react-node-backend`,
+								},
+								{
+									label: `React Realtime Text Editor`,
+									value: `react-realtime-text-editor`,
+								},
+								{
+									label: `Solid Lossless Numbers`,
+									value: `solid-lossless-numbers`,
+								},
+							],
+						})
+					: Promise.resolve(options.templateName),
 			dir: () =>
 				argDir
 					? Promise.resolve(argDir)

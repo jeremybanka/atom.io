@@ -143,8 +143,11 @@ async function useSpinner(
 	s.stop(color(`green`, finishMessage))
 }
 
-async function scaffold(to: string, opts: CreateAtomOptions): Promise<void> {
-	await fs.mkdir(to, { recursive: true })
+async function scaffold(
+	directoryToCreate: string,
+	opts: CreateAtomOptions,
+): Promise<void> {
+	await fs.mkdir(directoryToCreate, { recursive: true })
 
 	const templateInfo = await getPackageInfo(
 		`@atom.io/template-${opts.templateName}`,
@@ -154,34 +157,16 @@ async function scaffold(to: string, opts: CreateAtomOptions): Promise<void> {
 	)
 	if (!templateInfo) throw new Error(`Could not find template package`)
 	const { rootPath } = templateInfo
-	await templateDir(rootPath, to, opts)
-	const nodeDirPath = resolve(to, `node`)
-
-	try {
-		await fs.access(nodeDirPath)
-	} catch {
-		return
-	}
-
-	const nodeDir = await fs.stat(nodeDirPath)
-	if (!nodeDir.isDirectory()) return
-
-	const nodeFiles = await fs.readdir(nodeDirPath, { withFileTypes: true })
-
-	await Promise.all(
-		nodeFiles.map(async (dirent) => {
-			if (!dirent.isFile()) return
-			const filename = resolve(nodeDirPath, dirent.name)
-			await fs.chmod(filename, 0o755)
-		}),
-	)
+	await makeTemplateDir(rootPath, directoryToCreate, opts)
+	const nodeDirPath = resolve(directoryToCreate, `node`)
+	await makeFileContentsExecutable(nodeDirPath)
 }
 
 /**
  * Recursive fs copy, swiped from `create-wmr`:
  * https://github.com/preactjs/wmr/blob/3c5672ecd2f958c8eaf372d33c084dc69228ae3f/packages/create-wmr/src/index.js#L108-L124
  */
-async function templateDir(
+async function makeTemplateDir(
 	from: string,
 	to: string,
 	opts: CreateAtomOptions,
@@ -193,7 +178,7 @@ async function templateDir(
 			const filename = resolve(from, f)
 			if ((await fs.stat(filename)).isDirectory()) {
 				await fs.mkdir(resolve(to, f), { recursive: true })
-				return templateDir(filename, resolve(to, f), opts)
+				return makeTemplateDir(filename, resolve(to, f), opts)
 			}
 			if (opts.packageManager !== `npm` && f === `README.md`) {
 				await fs.writeFile(
@@ -217,6 +202,31 @@ async function templateDir(
 		}),
 	)
 	return results.flat(99)
+}
+
+async function makeFileContentsExecutable(
+	directoryPath: string,
+): Promise<string[]> {
+	try {
+		await fs.access(directoryPath)
+	} catch {
+		return []
+	}
+
+	const nodeDir = await fs.stat(directoryPath)
+	if (!nodeDir.isDirectory()) return []
+
+	const nodeFiles = await fs.readdir(directoryPath, { withFileTypes: true })
+
+	return Promise.all(
+		nodeFiles
+			.filter((dirent) => dirent.isFile())
+			.map(async (dirent) => {
+				const filename = resolve(directoryPath, dirent.name)
+				await fs.chmod(filename, 0o755)
+				return filename
+			}),
+	)
 }
 
 function createMiseToml(packageManager: PackageManager): string {

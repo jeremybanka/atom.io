@@ -46,6 +46,9 @@ starts. They remain ignored; invalid values for recognized options fail validati
 An argument delimiter delivered to the initializer ends option parsing, so all
 following arguments are treated as literal project directory names.
 
+The CLI does not discover or load configuration files. Supply options through
+command-line arguments or answer the interactive prompts.
+
 ## Shell Completion
 
 The globally installed command supports optional completion for Bash, Zsh, Fish,

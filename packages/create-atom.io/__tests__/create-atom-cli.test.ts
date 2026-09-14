@@ -123,15 +123,14 @@ describe(`CLI options`, () => {
 		expect(createAtom).not.toHaveBeenCalled()
 	})
 
-	it(`preserves the existing config filename and command-line overrides`, async () => {
-		writeFileSync(
-			join(workingDirectory, `create-atom.config.json`),
-			JSON.stringify({
-				packageManager: `yarn`,
-				useMise: false,
-			}),
-		)
-		await invoke(`my-app`, `--package-manager=pnpm`)
+	it(`ignores config files and uses command-line options`, async () => {
+		for (const filename of [
+			`create-atom.config.json`,
+			`create-atom.io.config.json`,
+		]) {
+			writeFileSync(join(workingDirectory, filename), `invalid json`)
+		}
+		await invoke(`my-app`, `--package-manager=pnpm`, `--use-mise=false`)
 		expect(createAtom).toHaveBeenCalledExactlyOnceWith(`my-app`, {
 			packageManager: `pnpm`,
 			useMise: false,
@@ -140,14 +139,6 @@ describe(`CLI options`, () => {
 })
 
 describe(`shell completion`, () => {
-	beforeEach(() => {
-		// Completion must also work when ordinary invocation cannot load config.
-		writeFileSync(
-			join(workingDirectory, `create-atom.config.json`),
-			`invalid json`,
-		)
-	})
-
 	it.each([`bash`, `zsh`, `fish`, `nushell`, `carapace`])(
 		`generates the %s integration for the installed binary without initializing`,
 		async (target) => {

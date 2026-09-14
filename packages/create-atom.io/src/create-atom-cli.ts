@@ -1,5 +1,3 @@
-import { resolve } from "node:path"
-
 import { type } from "arktype"
 import type { OptionsGroup } from "comline"
 import {
@@ -56,8 +54,7 @@ const CREATE_ATOM_OPTS = options(
 
 const definition = {
 	cliName: `create-atom.io`,
-	// Preserve the config filename used before the executable name was corrected.
-	discoverConfigPath: () => resolve(process.cwd(), `create-atom.config.json`),
+	discoverConfigPath: () => undefined,
 	routes: optional({ $projectName: null }),
 	routeOptions: {
 		"": CREATE_ATOM_OPTS,
@@ -81,5 +78,6 @@ export async function runCreateAtomCli(argv: string[]): Promise<void> {
 	logWarnings(warnings)
 
 	const { createAtom } = await import(`./create-atom.ts`)
-	await createAtom(inputs.path[0], inputs.opts)
+	const argDir = inputs.path[0]
+	await createAtom(argDir, inputs.opts)
 }

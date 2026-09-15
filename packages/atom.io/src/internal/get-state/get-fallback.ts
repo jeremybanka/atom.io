@@ -1,6 +1,6 @@
 import type { ReadableToken, ViewOf } from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
-import { stringifyJson } from "atom.io/foundations/json"
+import { type stringified, stringifyJson } from "atom.io/foundations/json"
 
 import type { ReadableFamily } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
@@ -10,9 +10,10 @@ export function getFallback<T, K extends Canonical, E>(
 	token: ReadableToken<T, K, E>,
 	family: ReadableFamily<T, K, E>,
 	subKey: NoInfer<K>,
+	encodedSubKey: stringified<K> = stringifyJson(subKey),
 ): ViewOf<E | T> {
 	const disposal = store.disposalTraces.buffer.find(
-		(item) => item?.key === stringifyJson(subKey),
+		(item) => item?.key === encodedSubKey,
 	)
 	store.logger.error(
 		`❌`,

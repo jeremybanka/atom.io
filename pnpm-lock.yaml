@@ -389,8 +389,8 @@ importers:
         specifier: 2.2.3
         version: 2.2.3
       break-check:
-        specifier: 0.7.1
-        version: 0.7.1(supports-color@10.2.2)(zod@4.6.5)
+        specifier: 0.7.2
+        version: 0.7.2(supports-color@10.2.2)(zod@4.6.5)
       concurrently:
         specifier: 10.0.5
         version: 10.0.5
@@ -4307,8 +4307,8 @@ packages:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
     engines: {node: '>=8'}
 
-  break-check@0.7.1:
-    resolution: {integrity: sha512-8TnwbUqXV9ihvr909iicoTpBdIEnNoOEL6sMuxhdMRO6gMjM7cJLptHKwxouWu+rI+yvZ9FI07gr5RpGVqnPzQ==}
+  break-check@0.7.2:
+    resolution: {integrity: sha512-A8sWvxRZ0JExrti++MrtkHEc6uaXc1DaRn3HsvkXgaHKqYIY9+TseVPyMXaadpgGjZ3B2vV0+soK5/XjIgDFJQ==}
     hasBin: true
 
   browserslist@4.28.9:
@@ -4449,6 +4449,17 @@ packages:
 
   comline@0.7.0:
     resolution: {integrity: sha512-xKBcV5Aus84akxLWXUQZtalExNTXg/njodI5qMAS2/SdAHO7AOIg0+tZQEJjDOZCN7Ph8pJLs8N1/DSC8e4LIQ==}
+    peerDependencies:
+      arktype: ^2.1.28
+      zod: ^4.2.0
+    peerDependenciesMeta:
+      arktype:
+        optional: true
+      zod:
+        optional: true
+
+  comline@0.8.0:
+    resolution: {integrity: sha512-Np5SpA0LnzFMWcUvgPFypzh7rf98QuzGA5IbjHNMs0UjGcjAh5twPF0QvJqg4YRkWFBHxZ13EzlUpabxBUYT+g==}
     peerDependencies:
       arktype: ^2.1.28
       zod: ^4.2.0
@@ -10713,10 +10724,10 @@ snapshots:
     dependencies:
       fill-range: 7.1.1
 
-  break-check@0.7.1(supports-color@10.2.2)(zod@4.6.5):
+  break-check@0.7.2(supports-color@10.2.2)(zod@4.6.5):
     dependencies:
       arktype: 2.2.3
-      comline: 0.7.0(arktype@2.2.3)(zod@4.6.5)
+      comline: 0.8.0(arktype@2.2.3)(zod@4.6.5)
       minimatch: 10.2.6
       simple-git: 3.36.0(supports-color@10.2.2)
       takua: 0.2.3
@@ -10869,6 +10880,14 @@ snapshots:
       zod: 4.6.5
 
   comline@0.7.0(arktype@2.2.3)(zod@4.6.5):
+    dependencies:
+      '@standard-schema/spec': 1.1.0
+      treetrunks: 0.1.11
+    optionalDependencies:
+      arktype: 2.2.3
+      zod: 4.6.5
+
+  comline@0.8.0(arktype@2.2.3)(zod@4.6.5):
     dependencies:
       '@standard-schema/spec': 1.1.0
       treetrunks: 0.1.11

@@ -1,5 +1,4 @@
 /* oxlint-disable typescript/switch-exhaustiveness-check */
-import { AST_NODE_TYPES } from "@typescript-eslint/types"
 import type { ESLintUtils } from "@typescript-eslint/utils"
 import { RuleCreator } from "@typescript-eslint/utils/eslint-utils"
 
@@ -63,9 +62,9 @@ export const explicitTransactionTypes: ESLintUtils.RuleModule<
 						break
 					case `MemberExpression`:
 						if (
-							callee.property.type === AST_NODE_TYPES.Identifier
+							callee.property.type === `Identifier`
 								? callee.property.name !== `transaction`
-								: callee.property.type !== AST_NODE_TYPES.Literal ||
+								: callee.property.type !== `Literal` ||
 									callee.property.value !== `transaction`
 						) {
 							return
@@ -76,20 +75,20 @@ export const explicitTransactionTypes: ESLintUtils.RuleModule<
 				}
 
 				const transactionOptions = node.arguments[0]
-				if (transactionOptions?.type !== AST_NODE_TYPES.ObjectExpression) {
+				if (transactionOptions?.type !== `ObjectExpression`) {
 					return
 				}
 
 				const hasOption = (optionName: `do` | `key`): boolean =>
 					transactionOptions.properties.some((property) => {
-						if (property.type !== AST_NODE_TYPES.Property) {
+						if (property.type !== `Property`) {
 							return false
 						}
-						if (property.key.type === AST_NODE_TYPES.Identifier) {
+						if (property.key.type === `Identifier`) {
 							return property.key.name === optionName
 						}
 						return (
-							property.key.type === AST_NODE_TYPES.Literal &&
+							property.key.type === `Literal` &&
 							property.key.value === optionName
 						)
 					})
@@ -107,13 +106,10 @@ export const explicitTransactionTypes: ESLintUtils.RuleModule<
 					let hasAnnotation = false
 					// Check if the CallExpression is the initializer of a variable declarator
 					const parent = node.parent
-					if (
-						parent?.type === AST_NODE_TYPES.VariableDeclarator &&
-						parent.init === node
-					) {
+					if (parent?.type === `VariableDeclarator` && parent.init === node) {
 						// Check if the VariableDeclarator has an id with a TypeAnnotation
 						const declaratorId = parent.id
-						if (declaratorId.type === AST_NODE_TYPES.Identifier) {
+						if (declaratorId.type === `Identifier`) {
 							// Check for 'const myTransaction: TransactionToken<() => void> = ...'
 							hasAnnotation = Boolean(declaratorId.typeAnnotation)
 						}

@@ -1,6 +1,6 @@
 {
 	"name": "@atom.io/template-preact-svg-editor",
-	"version": "0.0.89",
+	"version": "0.0.90",
 	"license": "Apache-2.0",
 	"publishConfig": {
 		"access": "public"
@@ -29,10 +29,9 @@
 		"react-dom": "npm:@preact/compat@18.3.2"
 	},
 	"devDependencies": {
-		"@atom.io/eslint-plugin": "workspace:*",
 		"@dprint/json": "0.23.0",
-		"@dprint/markdown": "0.23.3",
-		"@dprint/oxc": "0.38.0",
+		"@dprint/markdown": "0.24.0",
+		"@dprint/oxc": "0.39.0",
 		"@preact/preset-vite": "2.10.6",
 		"@typescript-eslint/eslint-plugin": "8.70.0",
 		"@typescript-eslint/parser": "8.70.0",
@@ -44,6 +43,6 @@
 		"oxlint": "1.82.0",
 		"oxlint-tsgolint": "7.0.2001",
 		"typescript": "7.0.2",
-		"vite": "8.2.2"
+		"vite": "8.3.0"
 	}
 }

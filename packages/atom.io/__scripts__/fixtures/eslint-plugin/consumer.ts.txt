@@ -1,12 +1,21 @@
-import plugin, { Rules } from "@atom.io/eslint-plugin"
 import parser from "@typescript-eslint/parser"
-import legacy, { Rules as LegacyRules } from "atom.io/eslint-plugin"
+import plugin, { Rules } from "atom.io/eslint-plugin"
 import { Linter } from "eslint"
 
-// Check declarations with skipLibCheck disabled and no direct utils dependency.
-const plugins: Linter.Config["plugins"] = { "atom.io": plugin, legacy }
-if (Object.keys(Rules).join() !== Object.keys(LegacyRules).join()) {
-	throw new Error("The compatibility export must preserve all named rules")
+// Both export forms must stay typed without any authoring utilities installed.
+type IsAny<T> = 0 extends (1 & T) ? true : false
+const typed: [IsAny<typeof plugin>, IsAny<typeof Rules.exactCatchTypes>, IsAny<typeof Rules.exactCatchTypes.create>] = [false, false, false]
+void typed
+// @ts-expect-error A missing declaration must not turn the plugin into any.
+plugin.nonexistentProperty
+const plugins: Linter.Config["plugins"] = {
+	"atom.io": plugin,
+	individual: { rules: {
+		"exact-catch-types": Rules.exactCatchTypes,
+		"explicit-state-types": Rules.explicitStateTypes,
+		"explicit-transaction-types": Rules.explicitTransactionTypes,
+		"naming-convention": Rules.namingConvention,
+	} },
 }
 
 const source = `

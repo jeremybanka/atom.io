@@ -1,6 +1,6 @@
 {
 	"name": "create-atom.io",
-	"version": "0.1.51",
+	"version": "0.1.53",
 	"license": "MPL-2.0",
 	"author": {
 		"name": "Jeremy Banka",
@@ -21,29 +21,28 @@
 		"src",
 		"templates"
 	],
-	"main": "dist/create-atom.js",
-	"types": "dist/create-atom.d.ts",
 	"bin": "./bin/create-atom.bin.js",
 	"dependencies": {
 		"@atom.io/template-preact-svg-editor": "workspace:*",
 		"@atom.io/template-react-realtime-text-editor": "workspace:*",
 		"@atom.io/template-react-node-backend": "workspace:*",
 		"@atom.io/template-solid-lossless-numbers": "workspace:*",
-		"@clack/prompts": "1.8.0",
+		"@clack/prompts": "1.8.1",
 		"arktype": "2.2.3",
-		"comline": "0.5.4",
+		"comline": "0.7.0",
 		"local-pkg": "1.2.1",
 		"tinyexec": "1.3.1"
 	},
 	"scripts": {
-		"build": "tsdown && rm -f dist/*.x.d.ts",
+		"build": "tsdown",
 		"lint:eslint": "eslint",
 		"lint:oxlint": "oxlint",
-		"lint:types": "tsc"
+		"lint:types": "tsc",
+		"test:once": "pnpm run build && vitest run"
 	},
 	"devDependencies": {
 		"@types/bun": "npm:bun-types@1.4.2",
-		"@types/node": "26.5.0",
+		"@types/node": "26.5.1",
 		"concurrently": "10.0.5",
 		"eslint": "10.10.0",
 		"tsdown": "0.23.0",

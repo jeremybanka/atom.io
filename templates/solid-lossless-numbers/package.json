@@ -1,6 +1,6 @@
 {
 	"name": "@atom.io/template-solid-lossless-numbers",
-	"version": "0.0.43",
+	"version": "0.0.44",
 	"license": "Apache-2.0",
 	"publishConfig": {
 		"access": "public"
@@ -28,20 +28,18 @@
 		"solid-js": "1.9.15"
 	},
 	"devDependencies": {
-		"@atom.io/eslint-plugin": "workspace:*",
 		"@dprint/json": "0.23.0",
-		"@dprint/markdown": "0.23.3",
-		"@dprint/oxc": "0.38.0",
-		"@types/node": "26.5.0",
-		"@typescript-eslint/parser": "8.70.0",
+		"@dprint/markdown": "0.24.0",
+		"@dprint/oxc": "0.39.0",
+		"@types/node": "26.5.1",
 		"dprint": "0.57.4",
 		"dprint-plugin-malva": "0.16.0",
 		"eslint": "10.10.0",
-		"lasertag": "0.8.0",
+		"lasertag": "0.8.1",
 		"oxlint": "1.82.0",
 		"oxlint-tsgolint": "7.0.2001",
 		"typescript": "7.0.2",
-		"vite": "8.2.2",
+		"vite": "8.3.0",
 		"vite-plugin-solid": "2.11.14"
 	}
 }

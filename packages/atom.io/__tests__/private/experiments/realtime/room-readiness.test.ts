@@ -25,7 +25,7 @@ test(`room startup accepts split framed readiness followed by event data`, async
 		`room-readiness`,
 	)
 	const owner = `user::room-readiness` as UserKey
-	const fixture = path.join(__dirname, `room-readiness-fixture.mjs`)
+	const fixture = path.join(__dirname, `room-readiness-fixture.ts`)
 	roomMeta.count = 0
 	const create = spawnRoom({
 		store: silo.store,

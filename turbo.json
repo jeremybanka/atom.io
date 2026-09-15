@@ -47,6 +47,8 @@
 				"package.json",
 				"tsconfig.json",
 				"*.config.ts",
+				"bin/**",
+				"../../mise.toml",
 				"src/**",
 				"docs/source/**",
 				"__tests__/**",

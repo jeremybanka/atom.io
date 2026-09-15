@@ -15,11 +15,22 @@ export type RealtimeReactStore = {
 	services: Map<RealtimeServiceKey, RealtimeServiceCounter> | null
 }
 
+declare global {
+	var ATOM_IO_REALTIME_REACT_CONTEXTS:
+		| WeakMap<typeof React.createContext, React.Context<RealtimeReactStore>>
+		| undefined
+}
+
+// Share with copies using this React instance, retaining separate renderer state.
+const realtimeContexts = (globalThis.ATOM_IO_REALTIME_REACT_CONTEXTS ??=
+	new WeakMap())
 export const RealtimeContext: React.Context<RealtimeReactStore> =
-	React.createContext({
+	realtimeContexts.get(React.createContext) ??
+	React.createContext<RealtimeReactStore>({
 		socket: null,
 		services: null,
 	})
+realtimeContexts.set(React.createContext, RealtimeContext)
 
 export const RealtimeProvider: React.FC<{
 	children: React.ReactNode

@@ -1,6 +1,6 @@
 {
 	"name": "@atom.io/template-react-realtime-text-editor",
-	"version": "0.0.7",
+	"version": "0.0.8",
 	"description": "A realtime text editor built with atom.io, React, and Lasertag.",
 	"license": "Apache-2.0",
 	"publishConfig": {
@@ -31,34 +31,33 @@
 	},
 	"dependencies": {
 		"atom.io": "workspace:*",
-		"react": "19.2.8",
-		"react-dom": "19.2.8",
+		"react": "19.3.0",
+		"react-dom": "19.3.0",
 		"socket.io": "4.8.3",
 		"socket.io-client": "4.8.3",
-		"zod": "4.5.4"
+		"zod": "4.6.5"
 	},
 	"devDependencies": {
-		"@atom.io/eslint-plugin": "workspace:*",
 		"@dprint/json": "0.23.0",
-		"@dprint/markdown": "0.23.3",
-		"@dprint/oxc": "0.38.0",
-		"@testing-library/dom": "10.4.1",
+		"@dprint/markdown": "0.24.0",
+		"@dprint/oxc": "0.39.0",
+		"@testing-library/dom": "10.4.2",
 		"@testing-library/react": "16.3.3",
-		"@types/node": "26.5.0",
-		"@types/react": "19.2.18",
-		"@types/react-dom": "19.2.7",
+		"@types/node": "26.5.1",
+		"@types/react": "19.3.0",
+		"@types/react-dom": "19.3.0",
 		"@typescript-eslint/parser": "8.70.0",
 		"@vitejs/plugin-react": "6.1.1",
 		"concurrently": "10.0.5",
 		"dprint": "0.57.4",
 		"dprint-plugin-malva": "0.16.0",
 		"eslint": "10.10.0",
-		"happy-dom": "20.14.0",
-		"lasertag": "0.8.0",
+		"happy-dom": "20.14.5",
+		"lasertag": "0.8.1",
 		"oxlint": "1.82.0",
 		"oxlint-tsgolint": "7.0.2001",
 		"typescript": "7.0.2",
-		"vite": "8.2.2",
+		"vite": "8.3.0",
 		"vitest": "5.0.0"
 	}
 }

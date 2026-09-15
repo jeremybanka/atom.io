@@ -1,5 +1,23 @@
 # create-atom.io
 
+## 0.1.53
+
+### Patch Changes
+
+- 8457b3c: Upgrade comline to 0.7.0, report ignored options on stderr, and accept kebab-case option aliases and --template alongside existing camelCase options and short flags. Honor the -- delimiter so project directory names can be passed literally.
+
+  Simplify the CLI implementation with shared utilities and tests for both one-shot and interactive use. Remove the programmatic createAtom entry point and automatic config-file discovery; create projects through the CLI and supply options through flags or interactive prompts.
+- 2383899: Honor a preselected template when creating a project, skipping the template prompt and scaffolding the requested template. Prompt for a project directory only when no directory argument is supplied.
+
+## 0.1.52
+
+### Patch Changes
+
+- @atom.io/template-preact-svg-editor@0.0.90
+  - @atom.io/template-react-node-backend@0.0.94
+  - @atom.io/template-react-realtime-text-editor@0.0.8
+  - @atom.io/template-solid-lossless-numbers@0.0.44
+
 ## 0.1.51
 
 ### Patch Changes

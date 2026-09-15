@@ -4,14 +4,7 @@ import { resolve } from "node:path"
 import * as prompts from "@clack/prompts"
 import { type } from "arktype"
 import type { OptionsGroup } from "comline"
-import {
-	cli,
-	completionResponse,
-	logWarnings,
-	optional,
-	options,
-	parseBooleanOption,
-} from "comline"
+import { cli, logWarnings, optional, options, parseBooleanOption } from "comline"
 
 import type {
 	CreateAtomOptions,
@@ -75,12 +68,6 @@ const definition = {
 		"": CREATE_ATOM_OPTIONS,
 		$projectName: CREATE_ATOM_OPTIONS,
 	},
-}
-
-const completion = await completionResponse(definition, process.argv)
-if (completion !== undefined) {
-	process.stdout.write(completion)
-	process.exit(0)
 }
 
 const parse = cli(definition, {

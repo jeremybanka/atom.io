@@ -18,7 +18,6 @@
 	"files": [
 		"bin",
 		"dist",
-		"exhibits",
 		"src",
 		"templates"
 	],

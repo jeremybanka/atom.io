@@ -52,29 +52,6 @@ following arguments are treated as literal project directory names.
 The CLI does not discover or load configuration files. Supply options through
 command-line arguments or answer the interactive prompts.
 
-## Shell Completion
-
-The globally installed command supports optional completion for Bash, Zsh, Fish,
-Nushell, and Carapace. Follow the [shell completion exhibit](./exhibits/completion.sh)
-to install the command and the integration for your shell, then open a new shell.
-These integrations complete the direct command on your PATH; they do not add
-completion to package-manager create wrappers.
-
-Completion suggests option names, aliases, template names, package managers, and
-boolean values from the same definitions used to parse commands. Completion
-requests and integration generation do not start prompts or scaffold a project.
-Installation is explicit and writes a completion file without editing shell profiles.
-
-Completion management and its hidden protocols reserve the initial command names
-`completion`, `__complete`, `__completeNoDesc`, `_comline`, and `_carapace`.
-To use a reserved name as a project directory, put the argument delimiter before
-it; the exhibit includes an example.
-
-Bash requires Bash 4+ with bash-completion 2.18+ enabled. Zsh requires compinit,
-Fish requires version 4+, Nushell requires external completions enabled, and
-Carapace requires its existing shell integration. Nushell users already using
-Carapace need only the Carapace integration.
-
 ## Next Steps
 
 ```sh

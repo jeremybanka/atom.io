@@ -62,7 +62,6 @@ const CREATE_ATOM_OPTIONS = options(
 
 const definition = {
 	cliName: `create-atom.io`,
-	discoverConfigPath: () => undefined,
 	routes: optional({ $projectName: null }),
 	routeOptions: {
 		"": CREATE_ATOM_OPTIONS,

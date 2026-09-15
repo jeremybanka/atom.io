@@ -40,7 +40,7 @@
 	"devDependencies": {
 		"@dprint/json": "0.23.0",
 		"@dprint/markdown": "0.24.0",
-		"@dprint/oxc": "0.39.0",
+		"@dprint/oxc": "0.40.0",
 		"@testing-library/dom": "10.4.2",
 		"@testing-library/react": "16.3.3",
 		"@types/node": "26.5.1",

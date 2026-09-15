@@ -488,8 +488,8 @@ importers:
         specifier: 2.2.3
         version: 2.2.3
       comline:
-        specifier: 0.7.0
-        version: 0.7.0(arktype@2.2.3)(zod@4.6.5)
+        specifier: 0.8.0
+        version: 0.8.0(arktype@2.2.3)(zod@4.6.5)
       local-pkg:
         specifier: 1.2.1
         version: 1.2.1

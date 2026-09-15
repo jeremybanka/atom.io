@@ -10,6 +10,9 @@ npm create atom.io@latest my-app
 optionally adds a `mise.toml`, installs dependencies with your package manager,
 and leaves you ready to run the app.
 
+This package provides a CLI for creating projects. It does not expose a
+programmatic project-creation API.
+
 ## Templates
 
 | Template                     | What you get                                                                                |
@@ -34,12 +37,20 @@ Pass options when you already know what you want:
 npm create atom.io@latest my-app -- --templateName=preact-svg-editor --packageManager=pnpm --useMise=true
 ```
 
-| Option             | Alias | Values                                                                                            |
-| :----------------- | :---- | :------------------------------------------------------------------------------------------------ |
-| `--templateName`   | `-t`  | `preact-svg-editor`, `react-node-backend`, `react-realtime-text-editor`, `solid-lossless-numbers` |
-| `--packageManager` | `-m`  | `bun`, `npm`, `pnpm`, `yarn`                                                                      |
-| `--useMise`        |       | `true`, `false`                                                                                   |
-| `--skipHints`      | `-k`  | `true`, `false`                                                                                   |
+| Option             | Aliases                               | Values                                                                                            |
+| :----------------- | :------------------------------------ | :------------------------------------------------------------------------------------------------ |
+| `--templateName`   | `--template`, `--template-name`, `-t` | `preact-svg-editor`, `react-node-backend`, `react-realtime-text-editor`, `solid-lossless-numbers` |
+| `--packageManager` | `--package-manager`, `-m`             | `bun`, `npm`, `pnpm`, `yarn`                                                                      |
+| `--useMise`        | `--use-mise`                          | `true`, `false`                                                                                   |
+| `--skipHints`      | `--skip-hints`, `-k`                  | `true`, `false`                                                                                   |
+
+Unknown or malformed options produce warnings on stderr before the initializer
+starts. They remain ignored; invalid values for recognized options fail validation.
+An argument delimiter delivered to the initializer ends option parsing, so all
+following arguments are treated as literal project directory names.
+
+The CLI does not discover or load configuration files. Supply options through
+command-line arguments or answer the interactive prompts.
 
 ## Next Steps
 
@@ -51,3 +62,11 @@ npm run dev
 
 Swap in `pnpm dev`, `bun run dev`, or `yarn dev` if you chose a different
 package manager.
+
+## Development
+
+The package test script builds the executable, then tests one-shot invocations
+and interactive sessions in a real terminal. The terminal driver uses the Bun
+version pinned in the repository's mise configuration. Tests use isolated template
+packages and substitute package-manager commands that record installation requests,
+so they do not download dependencies.

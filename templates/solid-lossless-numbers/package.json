@@ -1,15 +1,12 @@
 {
 	"name": "@atom.io/template-solid-lossless-numbers",
 	"version": "0.0.44",
-	"license": "Apache-2.0",
-	"publishConfig": {
-		"access": "public"
-	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/jeremybanka/atom.io.git",
 		"directory": "templates/solid-lossless-numbers"
 	},
+	"license": "Apache-2.0",
 	"type": "module",
 	"scripts": {
 		"dev": "vite",
@@ -28,7 +25,7 @@
 		"solid-js": "1.9.15"
 	},
 	"devDependencies": {
-		"@dprint/json": "0.23.0",
+		"@dprint/json": "0.24.0",
 		"@dprint/markdown": "0.24.0",
 		"@dprint/oxc": "0.40.0",
 		"@types/node": "26.6.1",
@@ -41,5 +38,8 @@
 		"typescript": "7.0.2",
 		"vite": "8.3.0",
 		"vite-plugin-solid": "2.11.14"
+	},
+	"publishConfig": {
+		"access": "public"
 	}
 }

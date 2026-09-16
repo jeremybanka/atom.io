@@ -33,7 +33,7 @@
 		"@dprint/json": "0.23.0",
 		"@dprint/markdown": "0.24.0",
 		"@dprint/oxc": "0.40.0",
-		"@types/node": "26.6.0",
+		"@types/node": "26.6.1",
 		"@types/react": "19.3.0",
 		"@types/react-dom": "19.3.0",
 		"@vitejs/plugin-react": "6.1.1",

@@ -1,12 +1,9 @@
 {
 	"name": "atom.io.fyi",
-	"type": "module",
 	"version": "0.2.92",
 	"private": true,
 	"license": "Apache-2.0",
-	"engines": {
-		"node": "26.8.2"
-	},
+	"type": "module",
 	"scripts": {
 		"dev": "./scripts/rm-dev-lock.node.ts && astro dev",
 		"build": "bun run build:docs && bun run build:astro",
@@ -45,5 +42,8 @@
 		"lasertag": "0.8.2",
 		"typescript": "7.0.2",
 		"wrangler": "4.132.0"
+	},
+	"engines": {
+		"node": "26.8.2"
 	}
 }

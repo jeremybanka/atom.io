@@ -1,15 +1,11 @@
 {
 	"name": "@atom.io/monorepo",
 	"version": "0.0.0",
-	"type": "module",
-	"repository": "https://github.com/jeremybanka/atom.io",
-	"author": "jeremybanka",
-	"license": "MPL-2.0",
 	"private": true,
-	"packageManager": "pnpm@12.4.2",
-	"engines": {
-		"node": "26.8.2"
-	},
+	"repository": "https://github.com/jeremybanka/atom.io",
+	"license": "MPL-2.0",
+	"author": "jeremybanka",
+	"type": "module",
 	"workspaces": [
 		"apps/*",
 		"packages/*",
@@ -46,7 +42,7 @@
 		"@changesets/cli": "3.0.3",
 		"@changesets/config": "4.0.1",
 		"@dotenvx/dotenvx": "2.26.1",
-		"@dprint/json": "0.23.0",
+		"@dprint/json": "0.24.0",
 		"@dprint/markdown": "0.24.0",
 		"@dprint/oxc": "0.40.0",
 		"@dprint/toml": "0.8.0",
@@ -71,5 +67,9 @@
 		"turbo": "2.10.13",
 		"typescript": "7.0.2",
 		"vitest": "5.0.1"
+	},
+	"packageManager": "pnpm@12.4.2",
+	"engines": {
+		"node": "26.8.2"
 	}
 }

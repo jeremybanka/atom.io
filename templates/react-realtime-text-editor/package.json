@@ -2,19 +2,13 @@
 	"name": "@atom.io/template-react-realtime-text-editor",
 	"version": "0.0.8",
 	"description": "A realtime text editor built with atom.io, React, and Lasertag.",
-	"license": "Apache-2.0",
-	"publishConfig": {
-		"access": "public"
-	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/jeremybanka/atom.io.git",
 		"directory": "templates/react-realtime-text-editor"
 	},
+	"license": "Apache-2.0",
 	"type": "module",
-	"engines": {
-		"node": ">=24.12.0"
-	},
 	"scripts": {
 		"dev": "concurrently vite \"node --watch node/server.ts\"",
 		"build": "tsc -b && vite build",
@@ -38,7 +32,7 @@
 		"zod": "4.6.5"
 	},
 	"devDependencies": {
-		"@dprint/json": "0.23.0",
+		"@dprint/json": "0.24.0",
 		"@dprint/markdown": "0.24.0",
 		"@dprint/oxc": "0.40.0",
 		"@testing-library/dom": "10.4.2",
@@ -59,5 +53,11 @@
 		"typescript": "7.0.2",
 		"vite": "8.3.0",
 		"vitest": "5.0.1"
+	},
+	"engines": {
+		"node": ">=24.12.0"
+	},
+	"publishConfig": {
+		"access": "public"
 	}
 }

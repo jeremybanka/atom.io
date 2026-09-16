@@ -1,5 +1,11 @@
 # @atom.io/template-react-realtime-text-editor
 
+## 0.0.9
+
+### Patch Changes
+
+- a2665e5: Upgrade `@dprint/json` to 0.24.0 and format template package manifests to follow its default package.json conventions.
+
 ## 0.0.8
 
 ### Patch Changes

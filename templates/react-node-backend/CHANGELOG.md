@@ -1,5 +1,11 @@
 # @atom.io/template-react-node-backend
 
+## 0.0.95
+
+### Patch Changes
+
+- a2665e5: Upgrade `@dprint/json` to 0.24.0 and format template package manifests to follow its default package.json conventions.
+
 ## 0.0.94
 
 ### Patch Changes

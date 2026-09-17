@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.45
+
+### Patch Changes
+
+- a2665e5: Upgrade `@dprint/json` to 0.24.0 and format template package manifests to follow its default package.json conventions.
+
 ## 0.0.44
 
 ### Patch Changes

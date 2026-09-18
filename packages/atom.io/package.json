@@ -196,7 +196,7 @@
 		"preact": "10.29.8",
 		"react": "19.3.0",
 		"react-dom": "19.3.0",
-		"recoverage": "0.1.16",
+		"recoverage": "0.1.17",
 		"socket.io": "4.8.3",
 		"socket.io-client": "4.8.3",
 		"solid-js": "1.9.15",

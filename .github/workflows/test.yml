@@ -49,6 +49,7 @@ jobs:
         with:
           packages: bun node pnpm
       - run: pnpm run build
+      - run: pnpm --filter atom.io test:react-types-peer
 
   Manifest:
     runs-on: ubuntu-latest

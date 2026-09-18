@@ -152,6 +152,7 @@
 		"test": "vitest",
 		"test:once": "vitest run --config vitest.dist.config.ts",
 		"test:once:public": "vitest run --config vitest.public-dist.config.ts",
+		"test:react-types-peer": "node ./__scripts__/test-react-types-peer.node.ts",
 		"test:stress:realtime-ipc": "ATOM_IO_TEST_ROOM_STARTUP_DELAY_MS=1250 vitest run --config vitest.dist.config.ts __tests__/private/experiments/realtime-ipc/game-servers.test.tsx",
 		"test:breaks": "break-check break-check.config.json --verbose",
 		"cov": "vitest run --config vitest.total-coverage.config.ts --coverage",
@@ -215,6 +216,7 @@
 		"@floating-ui/react": ">=0.25.0",
 		"@floating-ui/react-dom": ">=2.0.0",
 		"@testing-library/react": ">=14.0.0",
+		"@types/react": "^18.0.0 || ^19.0.0",
 		"@typescript-eslint/parser": ">=8.0.0",
 		"eslint": ">=9.0.0",
 		"happy-dom": ">=17.4.4",
@@ -232,6 +234,9 @@
 			"optional": true
 		},
 		"@testing-library/react": {
+			"optional": true
+		},
+		"@types/react": {
 			"optional": true
 		},
 		"@typescript-eslint/parser": {

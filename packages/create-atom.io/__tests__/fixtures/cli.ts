@@ -6,6 +6,7 @@ import { delimiter, dirname, join, resolve } from "node:path"
 import { stripVTControlCharacters } from "node:util"
 
 const templates = [
+	`jquery-admin-dashboard`,
 	`preact-svg-editor`,
 	`react-node-backend`,
 	`react-realtime-text-editor`,

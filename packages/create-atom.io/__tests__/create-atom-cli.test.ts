@@ -39,6 +39,11 @@ const suppliedOptions = [
 describe(`one-shot CLI`, () => {
 	it.each([
 		{
+			template: `jquery-admin-dashboard`,
+			manager: `npm`,
+			flags: [`--template`, `--package-manager`, `--skip-hints`, `--use-mise`],
+		},
+		{
 			template: `preact-svg-editor`,
 			manager: `npm`,
 			flags: [`--templateName`, `--packageManager`, `--skipHints`, `--useMise`],

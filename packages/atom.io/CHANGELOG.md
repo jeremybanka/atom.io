@@ -1,5 +1,11 @@
 # atom.io
 
+## 0.53.2
+
+### Patch Changes
+
+- 69d3d61: Declare `@types/react` as an optional peer dependency so React entry-point declarations retain their types in pnpm workspaces with dependency hoisting disabled.
+
 ## 0.53.1
 
 ### Patch Changes

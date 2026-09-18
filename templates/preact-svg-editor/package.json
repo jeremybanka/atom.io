@@ -1,6 +1,6 @@
 {
 	"name": "@atom.io/template-preact-svg-editor",
-	"version": "0.0.91",
+	"version": "0.0.92",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/jeremybanka/atom.io.git",

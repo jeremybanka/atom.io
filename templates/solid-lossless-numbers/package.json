@@ -1,6 +1,6 @@
 {
 	"name": "@atom.io/template-solid-lossless-numbers",
-	"version": "0.0.45",
+	"version": "0.0.46",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/jeremybanka/atom.io.git",

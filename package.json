@@ -62,7 +62,7 @@
 		"jiti": "2.7.0",
 		"lasertag": "0.8.2",
 		"oxlint": "1.83.0",
-		"oxlint-tsgolint": "7.0.2001",
+		"oxlint-tsgolint": "7.0.2002",
 		"pin-dependencies-checker": "2.7.1",
 		"turbo": "2.10.13",
 		"typescript": "7.0.2",

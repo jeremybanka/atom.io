@@ -469,6 +469,9 @@ importers:
 
   packages/create-atom.io:
     dependencies:
+      '@atom.io/template-jquery-admin-dashboard':
+        specifier: workspace:*
+        version: link:../../templates/jquery-admin-dashboard
       '@atom.io/template-preact-svg-editor':
         specifier: workspace:*
         version: link:../../templates/preact-svg-editor
@@ -517,6 +520,70 @@ importers:
         version: 7.0.2
 
   packages/exhibits: {}
+
+  templates/jquery-admin-dashboard:
+    dependencies:
+      atom.io:
+        specifier: workspace:*
+        version: link:../../packages/atom.io
+      jquery:
+        specifier: 4.0.0
+        version: 4.0.0
+    devDependencies:
+      '@dprint/json':
+        specifier: 0.23.0
+        version: 0.23.0
+      '@dprint/markdown':
+        specifier: 0.24.0
+        version: 0.24.0
+      '@dprint/oxc':
+        specifier: 0.40.0
+        version: 0.40.0
+      '@types/jquery':
+        specifier: 4.0.1
+        version: 4.0.1
+      '@types/node':
+        specifier: 26.5.1
+        version: 26.5.1
+      '@typescript-eslint/parser':
+        specifier: 8.70.0
+        version: 8.70.0(eslint@10.10.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
+      '@typescript-eslint/utils':
+        specifier: 8.70.0
+        version: 8.70.0(eslint@10.10.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
+      dprint:
+        specifier: 0.57.4
+        version: 0.57.4
+      dprint-plugin-malva:
+        specifier: 0.16.0
+        version: 0.16.0
+      dprint-plugin-markup:
+        specifier: 0.27.3
+        version: 0.27.3
+      eslint:
+        specifier: 10.10.0
+        version: 10.10.0(jiti@2.7.0)(supports-color@10.2.2)
+      happy-dom:
+        specifier: 20.14.5
+        version: 20.14.5
+      jiti:
+        specifier: 2.7.0
+        version: 2.7.0
+      oxlint:
+        specifier: 1.83.0
+        version: 1.83.0(oxlint-tsgolint@7.0.2001)
+      oxlint-tsgolint:
+        specifier: 7.0.2001
+        version: 7.0.2001
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+      vite:
+        specifier: 8.3.0
+        version: 8.3.0(@types/node@26.5.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
+      vitest:
+        specifier: 5.0.0
+        version: 5.0.0(@types/node@26.5.1)(@vitest/coverage-v8@5.0.0)(@vitest/ui@5.0.0)(happy-dom@20.14.5)(vite@8.3.0(@types/node@26.5.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
 
   templates/preact-svg-editor:
     dependencies:
@@ -3480,6 +3547,9 @@ packages:
   '@types/hast@3.0.5':
     resolution: {integrity: sha512-rp/ezSWaD1m44dPKICGhiskI13nVr7qTloFwDa/IYkhhf5nzwP+zIQcIJh3WIFSBOy/H1PzB40jPjMDksN4F+g==}
 
+  '@types/jquery@4.0.1':
+    resolution: {integrity: sha512-9a59A/tycXgYuPABcp6/3spSShn0NT2UOM4EfHvMumjYi4lJWTsK5SZWjhx3yRm9IHGCeWXdV2YfNsrWrft/CA==}
+
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
@@ -5564,6 +5634,9 @@ packages:
 
   jju@1.4.0:
     resolution: {integrity: sha512-8wb9Yw966OSxApiCt0K3yNJL8pnNeIv+OEq2YMidz4FKP6nonSRoOXc80iXY4JaN2FC11B9qsNmDsm+ZOfMROA==}
+
+  jquery@4.0.0:
+    resolution: {integrity: sha512-TXCHVR3Lb6TZdtw1l3RTLf8RBWVGexdxL6AC8/e0xZKEpBflBsjh9/8LXw+dkNFuOyW9B7iB3O1sP7hS0Kiacg==}
 
   js-tokens@10.0.0:
     resolution: {integrity: sha512-lM/UBzQmfJRo9ABXbPWemivdCW8V2G8FHaHdypQaIy523snUjog0W71ayWXTjiR+ixeMyVHN2XcpnTd/liPg/Q==}
@@ -10007,6 +10080,8 @@ snapshots:
     dependencies:
       '@types/unist': 3.0.3
 
+  '@types/jquery@4.0.1': {}
+
   '@types/json-schema@7.0.15': {}
 
   '@types/mdast@4.0.4':
@@ -12259,6 +12334,8 @@ snapshots:
   jiti@2.7.0: {}
 
   jju@1.4.0: {}
+
+  jquery@4.0.0: {}
 
   js-tokens@10.0.0: {}
 

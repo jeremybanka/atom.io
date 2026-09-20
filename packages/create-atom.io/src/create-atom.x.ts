@@ -23,7 +23,7 @@ const CREATE_ATOM_OPTIONS = options(
 	`Create a new project with atom.io.`,
 	type({
 		"packageManager?": `"bun" | "npm" | "pnpm" | "yarn"`,
-		"templateName?": `"preact-svg-editor" | "react-node-backend" | "react-realtime-text-editor" | "solid-lossless-numbers"`,
+		"templateName?": `"jquery-admin-dashboard" | "preact-svg-editor" | "react-node-backend" | "react-realtime-text-editor" | "solid-lossless-numbers"`,
 		"skipHints?": `boolean`,
 		"useMise?": `boolean`,
 	}),
@@ -92,6 +92,10 @@ const { dir, templateName, useMise } = await prompts.group(
 						message: `Template:`,
 						initialValue: `preact-svg-editor`,
 						options: [
+							{
+								label: `jQuery Admin Dashboard`,
+								value: `jquery-admin-dashboard`,
+							},
 							{
 								label: `Preact SVG Editor`,
 								value: `preact-svg-editor`,

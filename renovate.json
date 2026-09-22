@@ -74,6 +74,10 @@
 			"groupName": "tsdown"
 		},
 		{
+			"matchPackageNames": ["drizzle-kit", "drizzle-orm"],
+			"groupName": "drizzle"
+		},
+		{
 			"matchPackageNames": [
 				"renovatebot/github-action",
 				"ghcr.io/renovatebot/renovate"

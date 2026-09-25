@@ -41,7 +41,7 @@
 		"eslint": "10.11.0",
 		"lasertag": "0.8.5",
 		"typescript": "7.0.2",
-		"wrangler": "4.137.0"
+		"wrangler": "4.138.0"
 	},
 	"engines": {
 		"node": "26.10.0"

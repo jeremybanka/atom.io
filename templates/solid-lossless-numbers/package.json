@@ -34,7 +34,7 @@
 		"eslint": "10.11.0",
 		"lasertag": "0.8.5",
 		"oxlint": "1.85.0",
-		"oxlint-tsgolint": "7.0.2002",
+		"oxlint-tsgolint": "7.0.2003",
 		"typescript": "7.0.2",
 		"vite": "8.3.0",
 		"vite-plugin-solid": "2.11.14"

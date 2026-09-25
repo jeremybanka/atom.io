@@ -199,8 +199,8 @@ importers:
         specifier: 8.70.1
         version: 8.70.1(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
       astro-eslint-parser:
-        specifier: 3.1.0
-        version: 3.1.0(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(supports-color@10.2.2)
+        specifier: 3.2.0
+        version: 3.2.0(supports-color@10.2.2)
       dprint:
         specifier: 0.57.4
         version: 0.57.4
@@ -218,7 +218,7 @@ importers:
         version: 10.11.0(jiti@2.7.0)(supports-color@10.2.2)
       eslint-plugin-astro:
         specifier: 3.2.1
-        version: 3.2.1(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@typescript-eslint/parser@8.70.1(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript-eslint@8.70.0(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))
+        version: 3.2.1(@typescript-eslint/parser@8.70.1(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript-eslint@8.70.0(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))
       eslint-plugin-import-x:
         specifier: 4.17.1
         version: 4.17.1(@typescript-eslint/utils@8.70.1(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
@@ -818,22 +818,10 @@ packages:
     cpu: [arm64]
     os: [android]
 
-  '@astrojs/compiler-binding-darwin-arm64@0.4.0':
-    resolution: {integrity: sha512-ZVUwHundaQyFNjE6uoa0usaC0WOCitDCLS/4mdb4rOiJXwVUuKJBMxI5WMzXLWmamsXtK/Z//ifLXvV5Yeh4Hw==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [darwin]
-
   '@astrojs/compiler-binding-darwin-arm64@0.5.0':
     resolution: {integrity: sha512-5NNIkaGeiztD9QQfhOy+nNrBCZVeHqVZPlfJVjTKq4yJiiSsxAhuBzmVlmK3BDhbSgUT8dai4JV5m6t4/BIQaw==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
-    os: [darwin]
-
-  '@astrojs/compiler-binding-darwin-x64@0.4.0':
-    resolution: {integrity: sha512-FI6G8AY8u6fR1SI/QRR5yGMwtvZwP34CDmZpZ5HwJGa50UM1VISTLhqkhV4a476pmgd25X1Aur2dqw6hUnrlKA==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [x64]
     os: [darwin]
 
   '@astrojs/compiler-binding-darwin-x64@0.5.0':
@@ -842,26 +830,12 @@ packages:
     cpu: [x64]
     os: [darwin]
 
-  '@astrojs/compiler-binding-linux-arm64-gnu@0.4.0':
-    resolution: {integrity: sha512-lB9gLFJK7m82EnjaU8nlRBEfcwGNeHidW3sSjODTUjMNaoewVuUz9fwwdY5M4jiSXIqWLH3yl6TX8FTDKA74Sw==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [linux]
-    libc: [glibc]
-
   '@astrojs/compiler-binding-linux-arm64-gnu@0.5.0':
     resolution: {integrity: sha512-a21petBJRi0mNBf+gkRZFoWdGH+VOo0zRQSzM4Nuez5RL5rFFkmbondMejkaRZzvE3LVYU2NVD5MGRgAs4V+nQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
-
-  '@astrojs/compiler-binding-linux-arm64-musl@0.4.0':
-    resolution: {integrity: sha512-HPbvWqbxFxyaoQJhLxCaSjtYBx9KBo7JGVzEFZCmMl968a2PsSH0UfiODYgYPXofTOIsIH2aoCcrHXML0IA3ig==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [linux]
-    libc: [musl]
 
   '@astrojs/compiler-binding-linux-arm64-musl@0.5.0':
     resolution: {integrity: sha512-t5rmu23b/6e6v0bhPibCtwPdABXMRL+bUaJXdkJwTpkINp4zCgH6fNa5Z6+RgkgFSCpmg9uf1MtRIqx1gdmBaA==}
@@ -870,26 +844,12 @@ packages:
     os: [linux]
     libc: [musl]
 
-  '@astrojs/compiler-binding-linux-x64-gnu@0.4.0':
-    resolution: {integrity: sha512-tQKolMxoJ/+0AmLWm1PmJ/i+z3i10ZU1bNuVjEDulCf48azEMtUNjTZgHJ5MPtpYRNc7dlETr8QujUfduzoC7Q==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [x64]
-    os: [linux]
-    libc: [glibc]
-
   '@astrojs/compiler-binding-linux-x64-gnu@0.5.0':
     resolution: {integrity: sha512-JWtouuxSiDb2OKKFsxOwfqlpJuZHo1ExirlBGfDgoJVG5zeJWwcd2tU2w4UaJA4suT/tAFSLk/vFhM5fLjWV4A==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
-
-  '@astrojs/compiler-binding-linux-x64-musl@0.4.0':
-    resolution: {integrity: sha512-5v5YymudsxMHp3NBLCS8BUlu5CRqeLtWD9cKS/4nIhIEHCbpz9okmVV6I0HWqmBAPhWYcDa3vw/vltYPrOQCTA==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [x64]
-    os: [linux]
-    libc: [musl]
 
   '@astrojs/compiler-binding-linux-x64-musl@0.5.0':
     resolution: {integrity: sha512-LlaSO5v3UC6IxuTKXDViWV/fFHYhLKSO9Of118lNBXv/sjIWwziU+jjENxPgxfq/4oUeOu+613y6H93LBPNTOA==}
@@ -898,32 +858,15 @@ packages:
     os: [linux]
     libc: [musl]
 
-  '@astrojs/compiler-binding-wasm32-wasi@0.4.0':
-    resolution: {integrity: sha512-m/phuH3x3PREvv1OnkM44NoPh4MatUadix1fB1u5SvMLCyDTUZykDJbKnWf1cjnYmHdlB8HcjTjl6JrCqAIXcw==}
-    engines: {node: '>=14.0.0'}
-    cpu: [wasm32]
-
   '@astrojs/compiler-binding-wasm32-wasi@0.5.0':
     resolution: {integrity: sha512-IP+Cp0m9yKg/AUT47077vHEaAOh/oT/iUZx1PDnV2GJzUxLSEotdQy5Hhv+ycvEadO/DbETSJfAWeV7kte4etQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [wasm32]
 
-  '@astrojs/compiler-binding-win32-arm64-msvc@0.4.0':
-    resolution: {integrity: sha512-B9zYf3okEY83kM8gydlpH2BHP00w4ifxPqlYlWrgTwuD6wnkrJDCwBlgy1q31cERjCJRXN1lrE2VmkLvFjv/6g==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [arm64]
-    os: [win32]
-
   '@astrojs/compiler-binding-win32-arm64-msvc@0.5.0':
     resolution: {integrity: sha512-v6plwy5GQBGvfv4QgiGhy/qkkQvYKW7Zh2vBArOnsGEDNHyUS43CWYwIQdw4ZdVVmLsFyhwTiueDZEP6zejddQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
     cpu: [arm64]
-    os: [win32]
-
-  '@astrojs/compiler-binding-win32-x64-msvc@0.4.0':
-    resolution: {integrity: sha512-zB0Nrv0dGc0zZWPGDRmmETTPhDRqyZjAjk+gWMlVrJX5U89obpB3VUUE1ZiHxOCN5LQojeLK6O8L/dnoHolvNQ==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-    cpu: [x64]
     os: [win32]
 
   '@astrojs/compiler-binding-win32-x64-msvc@0.5.0':
@@ -932,17 +875,9 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@astrojs/compiler-binding@0.4.0':
-    resolution: {integrity: sha512-x2RjDUuWfwLNtc3mjAdSRInwqh/rqbLar9cm/5FOMbHvmYZB7yfKewzSclAxWjIZsypJDXv1lhaP2WG+P8TK3g==}
-    engines: {node: ^20.19.0 || >=22.12.0}
-
   '@astrojs/compiler-binding@0.5.0':
     resolution: {integrity: sha512-PxFTx3WoxQnbgUvvwmF6LRQwhHO77a4pewOtJvzxlrYtQ90tLgomLKvks/akrd2iix2ngGlOhxQonKNd8YoBHg==}
     engines: {node: ^20.19.0 || >=22.12.0}
-
-  '@astrojs/compiler-rs@0.4.0':
-    resolution: {integrity: sha512-koVikeon1kreEy+/JzLQRy3vzHHQVOjycs4degg4vFufKApZOwMZvSSAEztYNhmcQVfNVsVZZI4cEge3cexAbQ==}
-    engines: {node: '>=22.12.0'}
 
   '@astrojs/compiler-rs@0.5.0':
     resolution: {integrity: sha512-2xIypn5R33FRWCXXXv0sfbDj8xcOvc2VmIbteytxMjOzP9LiGfvqaAFJjhdAjzhs6+ZKzYzbSE79rrPObYW5mg==}
@@ -4349,8 +4284,8 @@ packages:
     resolution: {integrity: sha512-LElXdjswlqjWrPpJFg1Fx4wpkOCxj1TDHlSV4PlaRxHGWko024xICaa97ZkMfs6DRKlCguiAI+rbXv5GWwXIkg==}
     hasBin: true
 
-  astro-eslint-parser@3.1.0:
-    resolution: {integrity: sha512-lS5qlx401Q1ZUhQ44XQnM4uT2qI6hA0H+vstrd841xGVxunFOs0ut3DWJGYHK1l7mxRxQdDi1j53pfE7/AyGlA==}
+  astro-eslint-parser@3.2.0:
+    resolution: {integrity: sha512-WavQUarfgwSbpCq4xsdcIBdX5KArfI2d6DD8EIloJIMthnB1508iNpx4C77EhUyMd03LpEt8HAPzwF/cG0V39g==}
     engines: {node: ^22.22.3 || ^24.16.0 || >=26.3.0}
 
   astro@7.3.5:
@@ -7518,48 +7453,22 @@ snapshots:
   '@astrojs/compiler-binding-android-arm64@0.5.0':
     optional: true
 
-  '@astrojs/compiler-binding-darwin-arm64@0.4.0':
-    optional: true
-
   '@astrojs/compiler-binding-darwin-arm64@0.5.0':
-    optional: true
-
-  '@astrojs/compiler-binding-darwin-x64@0.4.0':
     optional: true
 
   '@astrojs/compiler-binding-darwin-x64@0.5.0':
     optional: true
 
-  '@astrojs/compiler-binding-linux-arm64-gnu@0.4.0':
-    optional: true
-
   '@astrojs/compiler-binding-linux-arm64-gnu@0.5.0':
-    optional: true
-
-  '@astrojs/compiler-binding-linux-arm64-musl@0.4.0':
     optional: true
 
   '@astrojs/compiler-binding-linux-arm64-musl@0.5.0':
     optional: true
 
-  '@astrojs/compiler-binding-linux-x64-gnu@0.4.0':
-    optional: true
-
   '@astrojs/compiler-binding-linux-x64-gnu@0.5.0':
     optional: true
 
-  '@astrojs/compiler-binding-linux-x64-musl@0.4.0':
-    optional: true
-
   '@astrojs/compiler-binding-linux-x64-musl@0.5.0':
-    optional: true
-
-  '@astrojs/compiler-binding-wasm32-wasi@0.4.0(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)':
-    dependencies:
-      '@napi-rs/wasm-runtime': 1.2.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)
-    transitivePeerDependencies:
-      - '@emnapi/core'
-      - '@emnapi/runtime'
     optional: true
 
   '@astrojs/compiler-binding-wasm32-wasi@0.5.0':
@@ -7569,32 +7478,11 @@ snapshots:
       '@napi-rs/wasm-runtime': 1.2.4(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)
     optional: true
 
-  '@astrojs/compiler-binding-win32-arm64-msvc@0.4.0':
-    optional: true
-
   '@astrojs/compiler-binding-win32-arm64-msvc@0.5.0':
-    optional: true
-
-  '@astrojs/compiler-binding-win32-x64-msvc@0.4.0':
     optional: true
 
   '@astrojs/compiler-binding-win32-x64-msvc@0.5.0':
     optional: true
-
-  '@astrojs/compiler-binding@0.4.0(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)':
-    optionalDependencies:
-      '@astrojs/compiler-binding-darwin-arm64': 0.4.0
-      '@astrojs/compiler-binding-darwin-x64': 0.4.0
-      '@astrojs/compiler-binding-linux-arm64-gnu': 0.4.0
-      '@astrojs/compiler-binding-linux-arm64-musl': 0.4.0
-      '@astrojs/compiler-binding-linux-x64-gnu': 0.4.0
-      '@astrojs/compiler-binding-linux-x64-musl': 0.4.0
-      '@astrojs/compiler-binding-wasm32-wasi': 0.4.0(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)
-      '@astrojs/compiler-binding-win32-arm64-msvc': 0.4.0
-      '@astrojs/compiler-binding-win32-x64-msvc': 0.4.0
-    transitivePeerDependencies:
-      - '@emnapi/core'
-      - '@emnapi/runtime'
 
   '@astrojs/compiler-binding@0.5.0':
     optionalDependencies:
@@ -7608,13 +7496,6 @@ snapshots:
       '@astrojs/compiler-binding-wasm32-wasi': 0.5.0
       '@astrojs/compiler-binding-win32-arm64-msvc': 0.5.0
       '@astrojs/compiler-binding-win32-x64-msvc': 0.5.0
-
-  '@astrojs/compiler-rs@0.4.0(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)':
-    dependencies:
-      '@astrojs/compiler-binding': 0.4.0(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)
-    transitivePeerDependencies:
-      - '@emnapi/core'
-      - '@emnapi/runtime'
 
   '@astrojs/compiler-rs@0.5.0':
     dependencies:
@@ -10569,9 +10450,9 @@ snapshots:
 
   astring@1.9.0: {}
 
-  astro-eslint-parser@3.1.0(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(supports-color@10.2.2):
+  astro-eslint-parser@3.2.0(supports-color@10.2.2):
     dependencies:
-      '@astrojs/compiler-rs': 0.4.0(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)
+      '@astrojs/compiler-rs': 0.5.0
       '@typescript-eslint/scope-manager': 8.70.1
       '@typescript-eslint/types': 8.70.1
       debug: 4.4.3(supports-color@10.2.2)
@@ -10581,8 +10462,6 @@ snapshots:
       semver: 7.8.5
       tinyglobby: 0.2.17
     transitivePeerDependencies:
-      - '@emnapi/core'
-      - '@emnapi/runtime'
       - supports-color
 
   astro@7.3.5(@astrojs/markdown-remark@7.3.1(supports-color@10.2.2))(@azure/identity@4.13.2(supports-color@10.2.2))(@types/node@26.5.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1):
@@ -11309,12 +11188,12 @@ snapshots:
     optionalDependencies:
       unrs-resolver: 1.12.2
 
-  eslint-plugin-astro@3.2.1(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@typescript-eslint/parser@8.70.1(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript-eslint@8.70.0(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)):
+  eslint-plugin-astro@3.2.1(@typescript-eslint/parser@8.70.1(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript-eslint@8.70.0(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)):
     dependencies:
       '@eslint-community/eslint-utils': 4.10.1(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))
       '@jridgewell/sourcemap-codec': 1.6.0
       '@typescript-eslint/types': 8.70.1
-      astro-eslint-parser: 3.1.0(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(supports-color@10.2.2)
+      astro-eslint-parser: 3.2.0(supports-color@10.2.2)
       eslint: 10.11.0(jiti@2.7.0)(supports-color@10.2.2)
       espree: 11.2.0
       globals: 17.12.0
@@ -11325,8 +11204,6 @@ snapshots:
       '@typescript-eslint/parser': 8.70.1(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
       typescript-eslint: 8.70.0(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
     transitivePeerDependencies:
-      - '@emnapi/core'
-      - '@emnapi/runtime'
       - supports-color
 
   eslint-plugin-import-x@4.17.1(@typescript-eslint/utils@8.70.1(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2):

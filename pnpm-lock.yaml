@@ -425,11 +425,11 @@ importers:
         specifier: 0.1.17
         version: 0.1.17(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.5)
       socket.io:
-        specifier: 4.8.3
-        version: 4.8.3(supports-color@10.2.2)
+        specifier: 4.8.4
+        version: 4.8.4(supports-color@10.2.2)
       socket.io-client:
-        specifier: 4.8.3
-        version: 4.8.3(supports-color@10.2.2)
+        specifier: 4.8.4
+        version: 4.8.4(supports-color@10.2.2)
       solid-js:
         specifier: 1.9.15
         version: 1.9.15
@@ -670,11 +670,11 @@ importers:
         specifier: 19.3.0
         version: 19.3.0(react@19.3.0)
       socket.io:
-        specifier: 4.8.3
-        version: 4.8.3(supports-color@10.2.2)
+        specifier: 4.8.4
+        version: 4.8.4(supports-color@10.2.2)
       socket.io-client:
-        specifier: 4.8.3
-        version: 4.8.3(supports-color@10.2.2)
+        specifier: 4.8.4
+        version: 4.8.4(supports-color@10.2.2)
       zod:
         specifier: 4.6.5
         version: 4.6.5
@@ -726,7 +726,7 @@ importers:
         version: 20.14.5
       lasertag:
         specifier: 0.8.5
-        version: 0.8.5(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@types/react@19.3.0)(@typescript-eslint/parser@8.70.1(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.14.5)(motion@13.2.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(preact@10.29.8)(react@19.3.0)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15)(supports-color@10.2.2)
+        version: 0.8.5(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@types/react@19.3.0)(@typescript-eslint/parser@8.70.1(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.14.5)(motion@13.2.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(preact@10.29.8)(react@19.3.0)(socket.io-client@4.8.4(supports-color@10.2.2))(socket.io@4.8.4(supports-color@10.2.2))(solid-js@1.9.15)(supports-color@10.2.2)
       oxlint:
         specifier: 1.85.0
         version: 1.85.0(oxlint-tsgolint@7.0.2003)
@@ -6629,12 +6629,20 @@ packages:
     resolution: {integrity: sha512-uP0bpjWrjQmUt5DTHq9RuoCBdFJF10cdX9X+a368j/Ft0wmaVgxlrjvK3kjvgCODOMMOz9lcaRzxmso0bTWZ/g==}
     engines: {node: '>=10.0.0'}
 
+  socket.io-client@4.8.4:
+    resolution: {integrity: sha512-7wjKAvVXYOJsbmUgkWbnhPD4bFpkqrUR0++XOjpGFmqDqsqV1CI93VTraeExLxpjxEqrWgFoSRZu1ihjLWfkAA==}
+    engines: {node: '>=10.0.0'}
+
   socket.io-parser@4.2.7:
     resolution: {integrity: sha512-IH/iSeO9T6gz1KkFleGDWkG9N3dl4jXVYUtMhIqH10Md0ttMer8nUNWiP1DKuNrybD2xBrixLJdCC9J6ECoYkg==}
     engines: {node: '>=10.0.0'}
 
   socket.io@4.8.3:
     resolution: {integrity: sha512-2Dd78bqzzjE6KPkD5fHZmDAKRNe3J15q+YHDrIsy9WEkqttc7GY+kT9OBLSMaPbQaEd0x1BjcmtMtXkfpc+T5A==}
+    engines: {node: '>=10.2.0'}
+
+  socket.io@4.8.4:
+    resolution: {integrity: sha512-9ZV9zg8vN8hO3Y25DhR7nUkJ1VDnBhq5O/JrXhFT9s6+F0gqytSASTHVfCFc2mJXaTfARroErplXlzFWwETZqQ==}
     engines: {node: '>=10.2.0'}
 
   solid-js@1.9.15:
@@ -10608,6 +10616,19 @@ snapshots:
       socket.io-client: 4.8.3(supports-color@10.2.2)
       solid-js: 1.9.15
 
+  atom.io@0.53.2(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@types/react@19.3.0)(@typescript-eslint/parser@8.70.1(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.14.5)(motion@13.2.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)(socket.io-client@4.8.4(supports-color@10.2.2))(socket.io@4.8.4(supports-color@10.2.2))(solid-js@1.9.15):
+    optionalDependencies:
+      '@testing-library/react': 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@types/react': 19.3.0
+      '@typescript-eslint/parser': 8.70.1(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
+      eslint: 10.11.0(jiti@2.7.0)(supports-color@10.2.2)
+      happy-dom: 20.14.5
+      motion: 13.2.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react: 19.3.0
+      socket.io: 4.8.4(supports-color@10.2.2)
+      socket.io-client: 4.8.4(supports-color@10.2.2)
+      solid-js: 1.9.15
+
   axobject-query@4.1.0: {}
 
   azure-devops-node-api@12.5.0:
@@ -10643,7 +10664,8 @@ snapshots:
 
   balanced-match@4.0.4: {}
 
-  base64id@2.0.0: {}
+  base64id@2.0.0:
+    optional: true
 
   baseline-browser-mapping@2.11.23: {}
 
@@ -12031,6 +12053,38 @@ snapshots:
       '@astrojs/compiler': 4.0.0
       '@vscode/vsce': 4.0.0(supports-color@10.2.2)
       atom.io: 0.53.2(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@types/react@19.3.0)(@typescript-eslint/parser@8.70.1(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.14.5)(motion@13.2.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15)
+      comline: 0.8.1(arktype@2.2.3)(zod@4.6.5)
+      rolldown: 1.2.10
+      takua: 0.2.3
+      tinyglobby: 0.2.17
+      typescript: 7.0.2
+      vscode-languageclient: 10.1.1
+      vscode-languageserver: 10.1.1
+      vscode-languageserver-textdocument: 1.0.14
+      zod: 4.6.5
+    optionalDependencies:
+      '@types/react': 19.3.0
+      eslint: 10.11.0(jiti@2.7.0)(supports-color@10.2.2)
+      preact: 10.29.8(preact-render-to-string@6.7.0)
+      solid-js: 1.9.15
+    transitivePeerDependencies:
+      - '@floating-ui/react'
+      - '@floating-ui/react-dom'
+      - '@testing-library/react'
+      - '@typescript-eslint/parser'
+      - arktype
+      - happy-dom
+      - motion
+      - react
+      - socket.io
+      - socket.io-client
+      - supports-color
+
+  lasertag@0.8.5(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@types/react@19.3.0)(@typescript-eslint/parser@8.70.1(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.14.5)(motion@13.2.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(preact@10.29.8)(react@19.3.0)(socket.io-client@4.8.4(supports-color@10.2.2))(socket.io@4.8.4(supports-color@10.2.2))(solid-js@1.9.15)(supports-color@10.2.2):
+    dependencies:
+      '@astrojs/compiler': 4.0.0
+      '@vscode/vsce': 4.0.0(supports-color@10.2.2)
+      atom.io: 0.53.2(@testing-library/react@16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@types/react@19.3.0)(@typescript-eslint/parser@8.70.1(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.14.5)(motion@13.2.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)(socket.io-client@4.8.4(supports-color@10.2.2))(socket.io@4.8.4(supports-color@10.2.2))(solid-js@1.9.15)
       comline: 0.8.1(arktype@2.2.3)(zod@4.6.5)
       rolldown: 1.2.10
       takua: 0.2.3
@@ -13526,6 +13580,18 @@ snapshots:
       - bufferutil
       - supports-color
       - utf-8-validate
+    optional: true
+
+  socket.io-client@4.8.4(supports-color@10.2.2):
+    dependencies:
+      '@socket.io/component-emitter': 3.1.2
+      debug: 4.4.3(supports-color@10.2.2)
+      engine.io-client: 6.6.6(supports-color@10.2.2)
+      socket.io-parser: 4.2.7(supports-color@10.2.2)
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
 
   socket.io-parser@4.2.7(supports-color@10.2.2):
     dependencies:
@@ -13538,6 +13604,20 @@ snapshots:
     dependencies:
       accepts: 1.3.8
       base64id: 2.0.0
+      cors: 2.8.6
+      debug: 4.4.3(supports-color@10.2.2)
+      engine.io: 6.6.10(supports-color@10.2.2)
+      socket.io-adapter: 2.5.8(supports-color@10.2.2)
+      socket.io-parser: 4.2.7(supports-color@10.2.2)
+    transitivePeerDependencies:
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+    optional: true
+
+  socket.io@4.8.4(supports-color@10.2.2):
+    dependencies:
+      accepts: 1.3.8
       cors: 2.8.6
       debug: 4.4.3(supports-color@10.2.2)
       engine.io: 6.6.10(supports-color@10.2.2)

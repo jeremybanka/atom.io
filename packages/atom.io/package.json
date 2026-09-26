@@ -184,7 +184,7 @@
 		"@typescript-eslint/utils": "8.70.1",
 		"@vitest/coverage-v8": "5.0.1",
 		"@vitest/ui": "5.0.1",
-		"arktype": "2.2.3",
+		"arktype": "2.2.5",
 		"break-check": "0.7.3",
 		"concurrently": "10.0.5",
 		"drizzle-kit": "0.31.11",

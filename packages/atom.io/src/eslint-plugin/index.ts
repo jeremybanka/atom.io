@@ -1,15 +1,15 @@
 import type { ESLint } from "eslint"
 
-import * as Rules from "./rules/index.ts"
+import * as Rules from "./public-rules.ts"
 
 export { Rules }
 
 const plugin: ESLint.Plugin = {
 	rules: {
 		"naming-convention": Rules.namingConvention,
-		"exact-catch-types": Rules.exactCatchTypes as any,
-		"explicit-state-types": Rules.explicitStateTypes as any,
-		"explicit-transaction-types": Rules.explicitTransactionTypes as any,
+		"exact-catch-types": Rules.exactCatchTypes,
+		"explicit-state-types": Rules.explicitStateTypes,
+		"explicit-transaction-types": Rules.explicitTransactionTypes,
 	},
 }
 

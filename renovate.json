@@ -76,6 +76,8 @@
 		{
 			"matchPackageNames": ["drizzle-kit", "drizzle-orm"],
 			"groupName": "drizzle",
+			"description": "Allow numbered v1.0 release candidates and stable releases.",
+			"allowedVersions": "/^(\\d+\\.\\d+\\.\\d+|1\\.0\\.0-rc\\.\\d+)$/",
 			"ignoreUnstable": false,
 			"respectLatest": false
 		},

@@ -39,6 +39,7 @@ jobs:
           postgres-version: "18"
           port: "59432"
       - run: pnpm run test
+      - run: pnpm --filter atom.io test:packaging:eslint
 
   Build:
     runs-on: ubuntu-latest

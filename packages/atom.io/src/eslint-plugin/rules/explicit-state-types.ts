@@ -1,7 +1,8 @@
 /* oxlint-disable typescript/switch-exhaustiveness-check */
-import { AST_NODE_TYPES, ESLintUtils } from "@typescript-eslint/utils"
+import type { ESLintUtils } from "@typescript-eslint/utils"
+import { RuleCreator } from "@typescript-eslint/utils/eslint-utils"
 
-const createRule = ESLintUtils.RuleCreator(
+const createRule = RuleCreator(
 	(name) => `https://atom.io.fyi/docs/eslint-plugin#${name}`,
 )
 
@@ -90,13 +91,10 @@ export const explicitStateTypes: ESLintUtils.RuleModule<
 					let hasAnnotation = false
 					// Check if the CallExpression is the initializer of a variable declarator
 					const parent = node.parent
-					if (
-						parent?.type === AST_NODE_TYPES.VariableDeclarator &&
-						parent.init === node
-					) {
+					if (parent?.type === `VariableDeclarator` && parent.init === node) {
 						// Check if the VariableDeclarator has an id with a TypeAnnotation
 						const declaratorId = parent.id
-						if (declaratorId.type === AST_NODE_TYPES.Identifier) {
+						if (declaratorId.type === `Identifier`) {
 							// Check for 'const myAtom: AtomToken<string> = ...'
 							hasAnnotation = Boolean(declaratorId.typeAnnotation)
 						}

@@ -161,11 +161,11 @@
 		"cov:public": "vitest run --config vitest.public-coverage.config.ts --coverage",
 		"cov:dev": "vitest --config vitest.public-coverage.config.ts --coverage",
 		"storybook": "storybook dev -p 6006",
-		"storybook:build": "storybook build"
+		"storybook:build": "storybook build",
+		"test:packaging:eslint": "node ./__scripts__/eslint-plugin-packaging.node.ts"
 	},
 	"devDependencies": {
 		"@atom.io/exhibits": "workspace:*",
-		"@eslint/core": "1.2.1",
 		"@orpc/client": "1.15.4",
 		"@orpc/server": "1.15.4",
 		"@storybook/addon-docs": "10.6.1",

@@ -1,9 +1,12 @@
 import { RuleTester } from "@typescript-eslint/rule-tester"
 import { Rules } from "atom.io/eslint-plugin"
 
+import type { explicitTransactionTypes } from "../../../src/eslint-plugin/rules/explicit-transaction-types.ts"
+
 const ruleTester = new RuleTester()
 Object.assign(ruleTester, { describe, it })
-const rule = Rules.explicitTransactionTypes
+const rule =
+	Rules.explicitTransactionTypes as unknown as typeof explicitTransactionTypes
 
 ruleTester.run(`explicit-transaction-types`, rule, {
 	valid: [

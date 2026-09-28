@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs"
 import { createRequire } from "node:module"
-import { dirname, join } from "node:path"
+import { dirname, join, resolve } from "node:path"
 
 import type { Rolldown } from "tsdown"
 
@@ -11,6 +11,10 @@ export function eslintPluginHelpers(): Rolldown.Plugin {
 		require.resolve(`@typescript-eslint/utils/eslint-utils`),
 	)
 	const entry = `\0atom.io/eslint-helpers`
+	const pluginSource = resolve(
+		import.meta.dirname,
+		`../src/eslint-plugin/index.ts`,
+	)
 	const helpers = new Set(
 		[
 			`RuleCreator`,
@@ -36,11 +40,25 @@ export function eslintPluginHelpers(): Rolldown.Plugin {
 				.join(`\n`)
 		},
 		generateBundle(_options, bundle) {
-			if (!bundle[`eslint-plugin/index.js`]) return
-			const chunks = new Set([`eslint-plugin/index.js`])
+			const entries = Object.values(bundle).filter(
+				(chunk) =>
+					chunk.type === `chunk` &&
+					chunk.isEntry &&
+					chunk.facadeModuleId === pluginSource,
+			)
+			if (entries.length !== 1) {
+				this.error(
+					`Expected one runtime entry for atom.io/eslint-plugin, found ${entries.length}`,
+				)
+			}
+			const chunks = new Set(entries.map((chunk) => chunk.fileName))
 			for (const filename of chunks) {
 				const chunk = bundle[filename]
-				if (chunk?.type !== `chunk`) continue
+				if (chunk?.type !== `chunk`) {
+					this.error(
+						`Cannot validate atom.io/eslint-plugin runtime chunk: ${filename}`,
+					)
+				}
 				for (const id of Object.keys(chunk.modules)) {
 					if (id.includes(`/node_modules/`) && !helpers.has(id)) {
 						this.error(
@@ -60,7 +78,7 @@ export function eslintPluginHelpers(): Rolldown.Plugin {
 			this.emitFile({
 				type: `asset`,
 				fileName: `eslint-plugin/THIRD_PARTY_LICENSES.txt`,
-				source: `Bundled @typescript-eslint/utils helpers:\n\n${readFileSync(join(directory, `../../LICENSE`), `utf8`)}`,
+				source: `Bundled @typescript-eslint/utils runtime helpers and rule declarations:\n\n${readFileSync(join(directory, `../../LICENSE`), `utf8`)}`,
 			})
 		},
 	}

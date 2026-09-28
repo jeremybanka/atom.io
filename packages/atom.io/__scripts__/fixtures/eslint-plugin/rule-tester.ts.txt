@@ -1,0 +1,14 @@
+import { RuleTester } from "@typescript-eslint/rule-tester"
+import { Rules } from "atom.io/eslint-plugin"
+
+// Compile against the packed public exports without assertions or source imports.
+const tester = new RuleTester()
+tester.run("explicit-state-types", Rules.explicitStateTypes, {
+	valid: [], invalid: [{ code: "const countAtom = atom({ key: 'count', default: 0 })", errors: [{ messageId: "noTypeArgument" }] }],
+})
+tester.run("explicit-transaction-types", Rules.explicitTransactionTypes, {
+	valid: [], invalid: [{ code: "const saveTransaction = transaction({ key: 'save', do: () => {} })", errors: [{ messageId: "noTypeArgument" }] }],
+})
+tester.run("exact-catch-types", Rules.exactCatchTypes, {
+	valid: [], invalid: [{ code: "atom<number, Error>({ key: 'count', default: 0 })", errors: [{ messageId: "missingCatchProperty" }] }],
+})

@@ -3,6 +3,7 @@ import { defineConfig } from "tsdown"
 
 import discoverSubmodules from "./__scripts__/discover-submodules.ts"
 import { eslintPluginHelpers } from "./__scripts__/eslint-plugin-build.ts"
+import { eslintPluginTypes } from "./__scripts__/eslint-plugin-types.ts"
 import { fromEntries } from "./src/foundations/entries/index.ts"
 
 const SUBMODULE_NAMES = discoverSubmodules()
@@ -32,10 +33,11 @@ const sharedConfig = {
 		neverBundle: NEVER_BUNDLE,
 		alwaysBundle: [`@typescript-eslint/utils/eslint-utils`],
 		dts: {
-			neverBundle: [...NEVER_BUNDLE, `eslint`, /^@typescript-eslint\//],
+			neverBundle: [...NEVER_BUNDLE, `eslint`],
+			alwaysBundle: [/^@typescript-eslint\/utils(?:\/|$)/],
 		},
 	},
-	plugins: [eslintPluginHelpers()],
+	plugins: [eslintPluginHelpers(), eslintPluginTypes()],
 	css: {
 		splitting: true,
 	},

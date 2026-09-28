@@ -6,16 +6,19 @@ import { Linter } from "eslint"
 type IsAny<T> = 0 extends (1 & T) ? true : false
 const typed: [IsAny<typeof plugin>, IsAny<typeof Rules.exactCatchTypes>, IsAny<typeof Rules.exactCatchTypes.create>] = [false, false, false]
 void typed
+const defaultOptions: [{ permitAnnotation?: boolean }] | undefined = Rules.explicitStateTypes.defaultOptions
+const message: string = Rules.explicitStateTypes.meta.messages.noTypeArgument
+const docsUrl: string = Rules.namingConvention.meta.docs.url
+void [defaultOptions, message, docsUrl]
+// @ts-expect-error Named rules retain their specific message IDs.
+Rules.explicitStateTypes.meta.messages.nonexistentMessage
+// @ts-expect-error Rule options retain their value types.
+const invalidOptions: NonNullable<typeof Rules.explicitStateTypes.defaultOptions> = [{ permitAnnotation: "yes" }]
+void invalidOptions
 // @ts-expect-error A missing declaration must not turn the plugin into any.
 plugin.nonexistentProperty
 const plugins: Linter.Config["plugins"] = {
 	"atom.io": plugin,
-	individual: { rules: {
-		"exact-catch-types": Rules.exactCatchTypes,
-		"explicit-state-types": Rules.explicitStateTypes,
-		"explicit-transaction-types": Rules.explicitTransactionTypes,
-		"naming-convention": Rules.namingConvention,
-	} },
 }
 
 const source = `

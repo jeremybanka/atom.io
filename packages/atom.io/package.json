@@ -162,7 +162,7 @@
 		"cov:dev": "vitest --config vitest.public-coverage.config.ts --coverage",
 		"storybook": "storybook dev -p 6006",
 		"storybook:build": "storybook build",
-		"test:packaging:eslint": "node ./__scripts__/eslint-plugin-packaging.node.ts"
+		"test:packaging:eslint": "node ./__scripts__/eslint-plugin-build.test.node.ts && node ./__scripts__/eslint-plugin-packaging.node.ts"
 	},
 	"devDependencies": {
 		"@atom.io/exhibits": "workspace:*",

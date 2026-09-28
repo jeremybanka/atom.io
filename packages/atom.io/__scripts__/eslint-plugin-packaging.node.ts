@@ -89,6 +89,23 @@ try {
 				cwd: appRoot,
 				stdio: `inherit`,
 			})
+			// A rule author chooses RuleTester; ordinary plugin consumers above do not.
+			pnpm(
+				appRoot,
+				`add`,
+				`--ignore-scripts`,
+				`-D`,
+				`@typescript-eslint/rule-tester@${tooling.parser}`,
+			)
+			await cp(
+				join(import.meta.dirname, `fixtures/eslint-plugin/rule-tester.ts.txt`),
+				join(appRoot, `rule-tester.ts`),
+			)
+			const tsconfigPath = join(appRoot, `tsconfig.json`)
+			const tsconfig = JSON.parse(await readFile(tsconfigPath, `utf8`))
+			tsconfig.include.push(`rule-tester.ts`)
+			await json(tsconfigPath, tsconfig)
+			pnpm(appRoot, `exec`, `tsc`)
 		} else {
 			for (const dependency of [`eslint`, `@typescript-eslint/parser`]) {
 				assert.throws(() => pluginRequire.resolve(dependency))

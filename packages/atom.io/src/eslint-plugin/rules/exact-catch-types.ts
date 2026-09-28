@@ -1,4 +1,8 @@
-import type { ESLintUtils, TSESTree } from "@typescript-eslint/utils"
+import type { TSESTree } from "@typescript-eslint/utils"
+import type {
+	RuleListener,
+	RuleModule,
+} from "@typescript-eslint/utils/eslint-utils"
 import {
 	getParserServices,
 	RuleCreator,
@@ -23,11 +27,11 @@ const STATE_FUNCTIONS_WITH_CATCH = [
 ]
 const FAMILY_FUNCTIONS = [`atomFamily`, `selectorFamily`]
 
-export const exactCatchTypes: ESLintUtils.RuleModule<
+export const exactCatchTypes: RuleModule<
 	`extraneousErrorTypes` | `invalidCatchProperty` | `missingCatchProperty`,
 	[],
 	unknown,
-	ESLintUtils.RuleListener
+	RuleListener
 > = createRule({
 	name: `catch-constructor-type`,
 	meta: {

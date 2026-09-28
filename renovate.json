@@ -75,7 +75,9 @@
 		},
 		{
 			"matchPackageNames": ["drizzle-kit", "drizzle-orm"],
-			"groupName": "drizzle"
+			"groupName": "drizzle",
+			"ignoreUnstable": false,
+			"respectLatest": false
 		},
 		{
 			"matchPackageNames": [

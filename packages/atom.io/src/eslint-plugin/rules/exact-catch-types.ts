@@ -1,5 +1,8 @@
-import type { TSESTree } from "@typescript-eslint/utils"
-import { AST_NODE_TYPES, ESLintUtils } from "@typescript-eslint/utils"
+import type { ESLintUtils, TSESTree } from "@typescript-eslint/utils"
+import {
+	getParserServices,
+	RuleCreator,
+} from "@typescript-eslint/utils/eslint-utils"
 // TypeScript 7 no longer exposes these classic compiler API types at "typescript".
 import type {
 	InterfaceType,
@@ -8,7 +11,7 @@ import type {
 	TypeNode,
 } from "typescript-eslint-typescript"
 
-const createRule = ESLintUtils.RuleCreator(
+const createRule = RuleCreator(
 	(name) => `https://atom.io.fyi/docs/eslint-plugin#${name}`,
 )
 
@@ -51,7 +54,7 @@ export const exactCatchTypes: ESLintUtils.RuleModule<
 	},
 	defaultOptions: [],
 	create(context) {
-		const parserServices = ESLintUtils.getParserServices(context)
+		const parserServices = getParserServices(context)
 		const checker = parserServices.program.getTypeChecker()
 
 		return {
@@ -66,13 +69,13 @@ export const exactCatchTypes: ESLintUtils.RuleModule<
 
 				// Check if the function call is one of the targeted state functions
 				let functionName: string | null = null
-				if (callee.type === AST_NODE_TYPES.Identifier) {
+				if (callee.type === `Identifier`) {
 					if (STATE_FUNCTIONS_WITH_CATCH.includes(callee.name)) {
 						functionName = callee.name
 					}
-				} else if (callee.type === AST_NODE_TYPES.MemberExpression) {
+				} else if (callee.type === `MemberExpression`) {
 					if (
-						callee.property.type === AST_NODE_TYPES.Identifier &&
+						callee.property.type === `Identifier` &&
 						STATE_FUNCTIONS_WITH_CATCH.includes(callee.property.name)
 					) {
 						functionName = callee.property.name
@@ -87,13 +90,10 @@ export const exactCatchTypes: ESLintUtils.RuleModule<
 					typeArguments = directTypeArguments
 				} else {
 					const parent = node.parent
-					if (
-						parent?.type === AST_NODE_TYPES.VariableDeclarator &&
-						parent.init === node
-					) {
+					if (parent?.type === `VariableDeclarator` && parent.init === node) {
 						// Check if the VariableDeclarator has an id with a TypeAnnotation
 						const declaratorId = parent.id
-						if (declaratorId.type === AST_NODE_TYPES.Identifier) {
+						if (declaratorId.type === `Identifier`) {
 							// Check for 'const myAtom: AtomToken<string> = ...'
 							const typeAnnotation = declaratorId.typeAnnotation?.typeAnnotation
 							if (
@@ -110,7 +110,7 @@ export const exactCatchTypes: ESLintUtils.RuleModule<
 
 				const optionsObject = callArguments[0]
 
-				if (optionsObject?.type !== AST_NODE_TYPES.ObjectExpression) return
+				if (optionsObject?.type !== `ObjectExpression`) return
 
 				const isFamilyDeclaration = FAMILY_FUNCTIONS.includes(functionName)
 				if (isFamilyDeclaration) {
@@ -126,12 +126,11 @@ export const exactCatchTypes: ESLintUtils.RuleModule<
 
 				let catchProperty: TSESTree.Property | undefined
 				optionsObject.properties.forEach((property) => {
-					if (property.type === AST_NODE_TYPES.Property) {
+					if (property.type === `Property`) {
 						if (
-							(property.key.type === AST_NODE_TYPES.Identifier &&
+							(property.key.type === `Identifier` &&
 								property.key.name === `catch`) ||
-							(property.key.type === AST_NODE_TYPES.Literal &&
-								property.key.value === `catch`)
+							(property.key.type === `Literal` && property.key.value === `catch`)
 						) {
 							catchProperty = property
 						}
@@ -156,7 +155,7 @@ export const exactCatchTypes: ESLintUtils.RuleModule<
 
 				// --- New Validation: Check Constructor Types ---
 				const catchArray = catchProperty.value
-				if (catchArray.type !== AST_NODE_TYPES.ArrayExpression) {
+				if (catchArray.type !== `ArrayExpression`) {
 					// We only check array literals (e.g., [Ctor1, Ctor2])
 					return
 				}
@@ -193,7 +192,7 @@ export const exactCatchTypes: ESLintUtils.RuleModule<
 
 				// Iterate over each constructor reference in the 'catch' array
 				for (const element of catchArray.elements) {
-					if (element?.type !== AST_NODE_TYPES.Identifier) {
+					if (element?.type !== `Identifier`) {
 						// Only check simple identifier references (e.g., [ClientError])
 						continue
 					}

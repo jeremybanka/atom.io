@@ -46,7 +46,7 @@ export class DatabaseManager {
 		}
 		this.config = { ...this.config, database: this.dbName }
 		this.sql = postgres(this.config)
-		this.drizzle = drizzle(this.sql)
+		this.drizzle = drizzle({ client: this.sql })
 	}
 
 	public async setupTriggersAndNotifications(): Promise<void> {

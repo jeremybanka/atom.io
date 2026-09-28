@@ -37,7 +37,7 @@ const main = async () => {
 		if (LOGGING) console.log(`Received notification: ${message}`)
 	})
 
-	const db = drizzle(sql)
+	const db = drizzle({ client: sql })
 
 	http
 		.createServer((req, res) => {

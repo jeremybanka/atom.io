@@ -1,11 +1,9 @@
 import { RuleTester } from "@typescript-eslint/rule-tester"
 import { Rules } from "atom.io/eslint-plugin"
 
-import type { explicitStateTypes } from "../../../src/eslint-plugin/rules/explicit-state-types.ts"
-
 const ruleTester = new RuleTester()
 Object.assign(ruleTester, { describe, it })
-const rule = Rules.explicitStateTypes as unknown as typeof explicitStateTypes
+const rule = Rules.explicitStateTypes
 
 ruleTester.run(`explicit-state-types`, rule, {
 	valid: [

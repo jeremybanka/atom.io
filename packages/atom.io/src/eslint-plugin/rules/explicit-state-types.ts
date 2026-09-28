@@ -1,5 +1,8 @@
 /* oxlint-disable typescript/switch-exhaustiveness-check */
-import type { ESLintUtils } from "@typescript-eslint/utils"
+import type {
+	RuleListener,
+	RuleModule,
+} from "@typescript-eslint/utils/eslint-utils"
 import { RuleCreator } from "@typescript-eslint/utils/eslint-utils"
 
 const createRule = RuleCreator(
@@ -21,11 +24,11 @@ type Options = [
 	},
 ]
 
-export const explicitStateTypes: ESLintUtils.RuleModule<
+export const explicitStateTypes: RuleModule<
 	`noTypeArgument` | `noTypeArgumentOrAnnotation`,
 	Options,
 	unknown,
-	ESLintUtils.RuleListener
+	RuleListener
 > = createRule({
 	name: `explicit-state-types`,
 	meta: {

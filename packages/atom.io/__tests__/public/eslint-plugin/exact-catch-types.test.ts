@@ -3,8 +3,6 @@ import * as path from "node:path"
 import { RuleTester } from "@typescript-eslint/rule-tester"
 import { Rules } from "atom.io/eslint-plugin"
 
-import type { exactCatchTypes } from "../../../src/eslint-plugin/rules/exact-catch-types.ts"
-
 const ruleTester = new RuleTester({
 	languageOptions: {
 		parserOptions: {
@@ -17,7 +15,7 @@ const ruleTester = new RuleTester({
 	},
 })
 Object.assign(ruleTester, { describe, it })
-const rule = Rules.exactCatchTypes as unknown as typeof exactCatchTypes
+const rule = Rules.exactCatchTypes
 
 ruleTester.run(`exact-catch-types`, rule, {
 	valid: [

@@ -200,15 +200,6 @@ export function withdraw<T>(
 	token: TimelineToken<T>,
 ): Timeline<T extends TimelineManageable ? T : never>
 
-export function withdraw<T, E>(
-	store: Store,
-	token: WritableToken<T, any, E>,
-): WritableState<T, E>
-export function withdraw<T, E>(
-	store: Store,
-	token: ReadableToken<T, any, E>,
-): ReadableState<T, E>
-
 export function withdraw(
 	store: Store,
 	token: AtomIOToken,

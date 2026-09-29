@@ -1,5 +1,11 @@
 # atom.io
 
+## 0.53.3
+
+### Patch Changes
+
+- 9082f7a: Remove duplicate internal `withdraw` overload declarations flagged by oxlint 1.86.0.
+
 ## 0.53.2
 
 ### Patch Changes

@@ -422,8 +422,8 @@ importers:
         specifier: 19.3.0
         version: 19.3.0(react@19.3.0)
       recoverage:
-        specifier: 0.1.18
-        version: 0.1.18(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.5)
+        specifier: 0.1.19
+        version: 0.1.19(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.5)
       socket.io:
         specifier: 4.8.4
         version: 4.8.4(supports-color@10.2.2)
@@ -6339,8 +6339,8 @@ packages:
   recma-stringify@1.0.0:
     resolution: {integrity: sha512-cjwII1MdIIVloKvC9ErQ+OgAtwHBmcZ0Bg4ciz78FtbT8In39aAYbaA7zvxQ61xVMSPE8WxhLwLbhif4Js2C+g==}
 
-  recoverage@0.1.18:
-    resolution: {integrity: sha512-xyNQk4T7IEyEuQva5g3dmIba3xUgAbFYdO5F7eKtxPj8UWE3fvCH074QYiA2nm3xM5bUgX5Eq8VKRGkbOoiQ0w==}
+  recoverage@0.1.19:
+    resolution: {integrity: sha512-HGNdxZKrCFt9cfT2kFDgSVNtR2kRn5lZ1JvgWwf6vfUAZusncn2oice0dBvWDesxgQglL2nYa09DS0evKrZsTA==}
     hasBin: true
 
   redent@3.0.0:
@@ -13053,7 +13053,7 @@ snapshots:
       unified: 11.0.5
       vfile: 6.0.3
 
-  recoverage@0.1.18(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.5):
+  recoverage@0.1.19(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.5):
     dependencies:
       '@t3-oss/env-core': 0.13.11(arktype@2.2.5)(typescript@7.0.2)(zod@4.6.5)
       arktype: 2.2.5

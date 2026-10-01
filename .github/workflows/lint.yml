@@ -63,7 +63,12 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           packages: github:Boeing/config-file-validator node pnpm
-      - run: validator .
+      - run: |
+          report="$RUNNER_TEMP/cfv-report.json"
+          cfv check --reporter=json . > "$report" || [ "$?" -eq 1 ]
+          # Dprint checks formatting; unformatted files passed syntax and schema validation.
+          jq '.files[] | select(.status != "passed" and .status != "unformatted")' "$report"
+          jq -e 'all(.files[]; .status == "passed" or .status == "unformatted")' "$report" > /dev/null
 
   Lasertag:
     runs-on: ubuntu-latest

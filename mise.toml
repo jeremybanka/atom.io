@@ -1,6 +1,6 @@
 [tools]
 bun = "1.4.2"
-"github:Boeing/config-file-validator" = "3.0.0"
+"github:Boeing/config-file-validator" = { version = "3.0.0", matching = "cfv-" }
 hk = "2.4.0"
 ni = "30.6.0"
 node = "26.10.0"

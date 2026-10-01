@@ -2,7 +2,17 @@ file-types = ["json"]
 gitignore = true
 
 [schema-map]
+"**/.changeset/config.json" = "node_modules/@changesets/config/schema.json"
 "**/break-check.config.json" = "packages/atom.io/node_modules/break-check/dist/break-check.main.schema.json"
+"**/dprint.json" = "https://dprint.dev/schemas/v0.json"
+"turbo.json" = "https://turbo.build/schema.json"
+"renovate.json" = "https://docs.renovatebot.com/renovate-schema.json"
+"**/packages/atom.io/oxlint.json" = "node_modules/oxlint/configuration_schema.json"
+"**/templates/preact-svg-editor/.oxlintrc.json" = "templates/preact-svg-editor/node_modules/oxlint/configuration_schema.json"
+"**/templates/react-node-backend/.oxlintrc.json" = "templates/react-node-backend/node_modules/oxlint/configuration_schema.json"
+"**/templates/react-realtime-text-editor/.oxlintrc.json" = "templates/react-realtime-text-editor/node_modules/oxlint/configuration_schema.json"
+"**/templates/solid-lossless-numbers/.oxlintrc.json" = "templates/solid-lossless-numbers/node_modules/oxlint/configuration_schema.json"
+"**/apps/atom.io.fyi/wrangler.jsonc" = "apps/atom.io.fyi/node_modules/wrangler/config-schema.json"
 
 [type-map]
 "**/.vscode/*.json" = "jsonc"

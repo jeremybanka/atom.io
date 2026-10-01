@@ -1,5 +1,11 @@
 # @atom.io/template-preact-svg-editor
 
+## 0.1.0
+
+### Minor Changes
+
+- 6f1c669: Upgrade the SVG editor template from Preact 10.29.8 to Preact 11.0.0. Newly generated projects use Preact 11, including its breaking changes.
+
 ## 0.0.93
 
 ### Patch Changes

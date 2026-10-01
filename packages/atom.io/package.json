@@ -193,7 +193,7 @@
 		"happy-dom": "20.14.5",
 		"motion": "13.4.6",
 		"postgres": "3.4.9",
-		"preact": "11.0.0",
+		"preact": "10.29.8",
 		"react": "19.3.0",
 		"react-dom": "19.3.0",
 		"recoverage": "0.1.19",

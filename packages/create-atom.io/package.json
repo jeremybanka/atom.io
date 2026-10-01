@@ -27,6 +27,7 @@
 		"test:once": "pnpm run build && vitest run"
 	},
 	"dependencies": {
+		"@atom.io/template-jquery-admin-dashboard": "workspace:*",
 		"@atom.io/template-preact-svg-editor": "workspace:*",
 		"@atom.io/template-react-node-backend": "workspace:*",
 		"@atom.io/template-react-realtime-text-editor": "workspace:*",

@@ -266,7 +266,7 @@ importers:
         version: 8.0.2(@astrojs/markdown-remark@7.3.1(supports-color@10.2.2))(astro@7.3.5(@astrojs/markdown-remark@7.3.1(supports-color@10.2.2))(@azure/identity@4.13.2(supports-color@10.2.2))(@types/node@26.5.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
       '@astrojs/preact':
         specifier: 6.0.5
-        version: 6.0.5(@babel/core@7.29.7(supports-color@10.2.2))(@types/node@26.5.1)(esbuild@0.28.2)(jiti@2.7.0)(preact@10.29.8)(supports-color@10.2.2)(tsx@4.23.13)(yaml@2.9.1)
+        version: 6.0.5(@babel/core@7.29.7(supports-color@10.2.2))(@types/node@26.5.1)(esbuild@0.28.2)(jiti@2.7.0)(preact@11.0.0)(supports-color@10.2.2)(tsx@4.23.13)(yaml@2.9.1)
       astro:
         specifier: 7.3.5
         version: 7.3.5(@astrojs/markdown-remark@7.3.1(supports-color@10.2.2))(@azure/identity@4.13.2(supports-color@10.2.2))(@types/node@26.5.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
@@ -274,23 +274,23 @@ importers:
         specifier: workspace:*
         version: link:../../packages/atom.io
       preact:
-        specifier: 10.29.8
-        version: 10.29.8(preact-render-to-string@6.7.0)
+        specifier: 11.0.0
+        version: 11.0.0(preact-render-to-string@6.7.0)
       react:
         specifier: npm:@preact/compat@18.3.2
-        version: '@preact/compat@18.3.2(preact@10.29.8)'
+        version: '@preact/compat@18.3.2(preact@11.0.0)'
       react-dom:
         specifier: npm:@preact/compat@18.3.2
-        version: '@preact/compat@18.3.2(preact@10.29.8)'
+        version: '@preact/compat@18.3.2(preact@11.0.0)'
       react-syntax-highlighter:
         specifier: 16.1.1
-        version: 16.1.1(@preact/compat@18.3.2(preact@10.29.8))
+        version: 16.1.1(@preact/compat@18.3.2(preact@11.0.0))
       three:
         specifier: 0.186.1
         version: 0.186.1
       tsdoc.json:
         specifier: 0.6.11
-        version: 0.6.11(@preact/compat@18.3.2(preact@10.29.8))
+        version: 0.6.11(@preact/compat@18.3.2(preact@11.0.0))
     devDependencies:
       '@atom.io/exhibits':
         specifier: workspace:*
@@ -315,7 +315,7 @@ importers:
         version: 10.11.0(jiti@2.7.0)(supports-color@10.2.2)
       lasertag:
         specifier: 0.8.6
-        version: 0.8.6(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/react@16.3.3(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0))(@types/react@19.3.0)(@typescript-eslint/parser@8.71.0(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.14.5)(motion@13.2.0(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8)))(preact@10.29.8)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15)(supports-color@10.2.2)
+        version: 0.8.6(@preact/compat@18.3.2(preact@11.0.0))(@testing-library/react@16.3.3(@preact/compat@18.3.2(preact@11.0.0))(@preact/compat@18.3.2(preact@11.0.0))(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0))(@types/react@19.3.0)(@typescript-eslint/parser@8.71.0(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.14.5)(motion@13.2.0(@preact/compat@18.3.2(preact@11.0.0))(@preact/compat@18.3.2(preact@11.0.0)))(preact@11.0.0)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15)(supports-color@10.2.2)
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -413,8 +413,8 @@ importers:
         specifier: 3.4.9
         version: 3.4.9
       preact:
-        specifier: 10.29.8
-        version: 10.29.8(preact-render-to-string@6.7.0)
+        specifier: 11.0.0
+        version: 11.0.0(preact-render-to-string@6.7.0)
       react:
         specifier: 19.3.0
         version: 19.3.0
@@ -524,14 +524,14 @@ importers:
         specifier: workspace:*
         version: link:../../packages/atom.io
       preact:
-        specifier: 10.29.8
-        version: 10.29.8(preact-render-to-string@6.7.0)
+        specifier: 11.0.0
+        version: 11.0.0(preact-render-to-string@6.7.0)
       react:
         specifier: npm:@preact/compat@18.3.2
-        version: '@preact/compat@18.3.2(preact@10.29.8)'
+        version: '@preact/compat@18.3.2(preact@11.0.0)'
       react-dom:
         specifier: npm:@preact/compat@18.3.2
-        version: '@preact/compat@18.3.2(preact@10.29.8)'
+        version: '@preact/compat@18.3.2(preact@11.0.0)'
     devDependencies:
       '@dprint/json':
         specifier: 0.25.0
@@ -544,7 +544,7 @@ importers:
         version: 0.42.0
       '@preact/preset-vite':
         specifier: 2.10.6
-        version: 2.10.6(@babel/core@7.29.7(supports-color@10.2.2))(preact@10.29.8)(supports-color@10.2.2)(vite@8.3.1(@types/node@26.5.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+        version: 2.10.6(@babel/core@7.29.7(supports-color@10.2.2))(preact@11.0.0)(supports-color@10.2.2)(vite@8.3.1(@types/node@26.5.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
       '@typescript-eslint/eslint-plugin':
         specifier: 8.71.0
         version: 8.71.0(@typescript-eslint/parser@8.71.0(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
@@ -6233,6 +6233,14 @@ packages:
       preact-render-to-string:
         optional: true
 
+  preact@11.0.0:
+    resolution: {integrity: sha512-LRTLKuSe6VYPhvBDjwFaX+nuZnpsw6IN2GSboisAvhGsncylBmrbDCERhgKDn6yP2mAwbGvsB5OVyTe33M8gBg==}
+    peerDependencies:
+      preact-render-to-string: '>=6.7.0'
+    peerDependenciesMeta:
+      preact-render-to-string:
+        optional: true
+
   prelude-ls@1.2.1:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
     engines: {node: '>= 0.8.0'}
@@ -7514,14 +7522,14 @@ snapshots:
     optionalDependencies:
       '@astrojs/markdown-remark': 7.3.1(supports-color@10.2.2)
 
-  '@astrojs/preact@6.0.5(@babel/core@7.29.7(supports-color@10.2.2))(@types/node@26.5.1)(esbuild@0.28.2)(jiti@2.7.0)(preact@10.29.8)(supports-color@10.2.2)(tsx@4.23.13)(yaml@2.9.1)':
+  '@astrojs/preact@6.0.5(@babel/core@7.29.7(supports-color@10.2.2))(@types/node@26.5.1)(esbuild@0.28.2)(jiti@2.7.0)(preact@11.0.0)(supports-color@10.2.2)(tsx@4.23.13)(yaml@2.9.1)':
     dependencies:
       '@astrojs/internal-helpers': 0.11.0
-      '@preact/preset-vite': 2.10.6(@babel/core@7.29.7(supports-color@10.2.2))(preact@10.29.8)(supports-color@10.2.2)(vite@8.3.1(@types/node@26.5.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
-      '@preact/signals': 2.11.2(preact@10.29.8)
+      '@preact/preset-vite': 2.10.6(@babel/core@7.29.7(supports-color@10.2.2))(preact@11.0.0)(supports-color@10.2.2)(vite@8.3.1(@types/node@26.5.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+      '@preact/signals': 2.11.2(preact@11.0.0)
       devalue: 5.9.2
-      preact: 10.29.8(preact-render-to-string@6.7.0)
-      preact-render-to-string: 6.7.0(preact@10.29.8)
+      preact: 11.0.0(preact-render-to-string@6.7.0)
+      preact-render-to-string: 6.7.0(preact@11.0.0)
       vite: 8.3.1(@types/node@26.5.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
     transitivePeerDependencies:
       - '@babel/core'
@@ -9211,16 +9219,16 @@ snapshots:
 
   '@poppinss/exception@1.2.3': {}
 
-  '@preact/compat@18.3.2(preact@10.29.8)':
+  '@preact/compat@18.3.2(preact@11.0.0)':
     dependencies:
-      preact: 10.29.8(preact-render-to-string@6.7.0)
+      preact: 11.0.0(preact-render-to-string@6.7.0)
 
-  '@preact/preset-vite@2.10.6(@babel/core@7.29.7(supports-color@10.2.2))(preact@10.29.8)(supports-color@10.2.2)(vite@8.3.1(@types/node@26.5.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))':
+  '@preact/preset-vite@2.10.6(@babel/core@7.29.7(supports-color@10.2.2))(preact@11.0.0)(supports-color@10.2.2)(vite@8.3.1(@types/node@26.5.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))':
     dependencies:
       '@babel/core': 7.29.7(supports-color@10.2.2)
       '@babel/plugin-transform-react-jsx': 7.29.7(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2)
       '@babel/plugin-transform-react-jsx-development': 7.29.7(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2)
-      '@prefresh/vite': 2.4.12(preact@10.29.8)(supports-color@10.2.2)(vite@8.3.1(@types/node@26.5.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+      '@prefresh/vite': 2.4.12(preact@11.0.0)(supports-color@10.2.2)(vite@8.3.1(@types/node@26.5.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
       '@rollup/pluginutils': 5.4.0
       babel-plugin-transform-hook-names: 1.0.2(@babel/core@7.29.7(supports-color@10.2.2))
       debug: 4.4.3(supports-color@10.2.2)
@@ -9236,29 +9244,29 @@ snapshots:
 
   '@preact/signals-core@1.14.4': {}
 
-  '@preact/signals@2.11.2(preact@10.29.8)':
+  '@preact/signals@2.11.2(preact@11.0.0)':
     dependencies:
       '@preact/signals-core': 1.14.4
-      preact: 10.29.8(preact-render-to-string@6.7.0)
+      preact: 11.0.0(preact-render-to-string@6.7.0)
 
   '@prefresh/babel-plugin@0.5.4(@babel/core@7.29.7(supports-color@10.2.2))':
     dependencies:
       '@babel/core': 7.29.7(supports-color@10.2.2)
 
-  '@prefresh/core@1.5.11(preact@10.29.8)':
+  '@prefresh/core@1.5.11(preact@11.0.0)':
     dependencies:
-      preact: 10.29.8(preact-render-to-string@6.7.0)
+      preact: 11.0.0(preact-render-to-string@6.7.0)
 
   '@prefresh/utils@1.2.1': {}
 
-  '@prefresh/vite@2.4.12(preact@10.29.8)(supports-color@10.2.2)(vite@8.3.1(@types/node@26.5.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))':
+  '@prefresh/vite@2.4.12(preact@11.0.0)(supports-color@10.2.2)(vite@8.3.1(@types/node@26.5.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))':
     dependencies:
       '@babel/core': 7.29.7(supports-color@10.2.2)
       '@prefresh/babel-plugin': 0.5.4(@babel/core@7.29.7(supports-color@10.2.2))
-      '@prefresh/core': 1.5.11(preact@10.29.8)
+      '@prefresh/core': 1.5.11(preact@11.0.0)
       '@prefresh/utils': 1.2.1
       '@rollup/pluginutils': 4.2.1
-      preact: 10.29.8(preact-render-to-string@6.7.0)
+      preact: 11.0.0(preact-render-to-string@6.7.0)
       vite: 8.3.1(@types/node@26.5.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
     transitivePeerDependencies:
       - supports-color
@@ -9515,12 +9523,12 @@ snapshots:
       picocolors: 1.1.1
       redent: 3.0.0
 
-  '@testing-library/react@16.3.3(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)':
+  '@testing-library/react@16.3.3(@preact/compat@18.3.2(preact@11.0.0))(@preact/compat@18.3.2(preact@11.0.0))(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)':
     dependencies:
       '@babel/runtime': 7.29.7
       '@testing-library/dom': 10.4.2
-      react: '@preact/compat@18.3.2(preact@10.29.8)'
-      react-dom: '@preact/compat@18.3.2(preact@10.29.8)'
+      react: '@preact/compat@18.3.2(preact@11.0.0)'
+      react-dom: '@preact/compat@18.3.2(preact@11.0.0)'
     optionalDependencies:
       '@types/react': 19.3.0
       '@types/react-dom': 19.3.0(@types/react@19.3.0)
@@ -10459,15 +10467,15 @@ snapshots:
       - uploadthing
       - yaml
 
-  atom.io@0.53.2(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/react@16.3.3(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0))(@types/react@19.3.0)(@typescript-eslint/parser@8.71.0(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.14.5)(motion@13.2.0(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8)))(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15):
+  atom.io@0.53.2(@preact/compat@18.3.2(preact@11.0.0))(@testing-library/react@16.3.3(@preact/compat@18.3.2(preact@11.0.0))(@preact/compat@18.3.2(preact@11.0.0))(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0))(@types/react@19.3.0)(@typescript-eslint/parser@8.71.0(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.14.5)(motion@13.2.0(@preact/compat@18.3.2(preact@11.0.0))(@preact/compat@18.3.2(preact@11.0.0)))(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15):
     optionalDependencies:
-      '@testing-library/react': 16.3.3(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)
+      '@testing-library/react': 16.3.3(@preact/compat@18.3.2(preact@11.0.0))(@preact/compat@18.3.2(preact@11.0.0))(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)
       '@types/react': 19.3.0
       '@typescript-eslint/parser': 8.71.0(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
       eslint: 10.11.0(jiti@2.7.0)(supports-color@10.2.2)
       happy-dom: 20.14.5
-      motion: 13.2.0(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8))
-      react: '@preact/compat@18.3.2(preact@10.29.8)'
+      motion: 13.2.0(@preact/compat@18.3.2(preact@11.0.0))(@preact/compat@18.3.2(preact@11.0.0))
+      react: '@preact/compat@18.3.2(preact@11.0.0)'
       socket.io: 4.8.3(supports-color@10.2.2)
       socket.io-client: 4.8.3(supports-color@10.2.2)
       solid-js: 1.9.15
@@ -11419,14 +11427,14 @@ snapshots:
 
   format@0.2.2: {}
 
-  framer-motion@13.4.6(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8)):
+  framer-motion@13.4.6(@preact/compat@18.3.2(preact@11.0.0))(@preact/compat@18.3.2(preact@11.0.0)):
     dependencies:
       motion-dom: 13.4.5
       motion-utils: 13.3.0
       tslib: 2.8.1
     optionalDependencies:
-      react: '@preact/compat@18.3.2(preact@10.29.8)'
-      react-dom: '@preact/compat@18.3.2(preact@10.29.8)'
+      react: '@preact/compat@18.3.2(preact@11.0.0)'
+      react-dom: '@preact/compat@18.3.2(preact@11.0.0)'
     optional: true
 
   framer-motion@13.4.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
@@ -11860,11 +11868,11 @@ snapshots:
 
   kolorist@1.8.0: {}
 
-  lasertag@0.8.6(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/react@16.3.3(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0))(@types/react@19.3.0)(@typescript-eslint/parser@8.71.0(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.14.5)(motion@13.2.0(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8)))(preact@10.29.8)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15)(supports-color@10.2.2):
+  lasertag@0.8.6(@preact/compat@18.3.2(preact@11.0.0))(@testing-library/react@16.3.3(@preact/compat@18.3.2(preact@11.0.0))(@preact/compat@18.3.2(preact@11.0.0))(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0))(@types/react@19.3.0)(@typescript-eslint/parser@8.71.0(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(arktype@2.2.3)(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.14.5)(motion@13.2.0(@preact/compat@18.3.2(preact@11.0.0))(@preact/compat@18.3.2(preact@11.0.0)))(preact@11.0.0)(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15)(supports-color@10.2.2):
     dependencies:
       '@astrojs/compiler': 4.0.0
       '@vscode/vsce': 4.0.0(supports-color@10.2.2)
-      atom.io: 0.53.2(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/react@16.3.3(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8))(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0))(@types/react@19.3.0)(@typescript-eslint/parser@8.71.0(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.14.5)(motion@13.2.0(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8)))(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15)
+      atom.io: 0.53.2(@preact/compat@18.3.2(preact@11.0.0))(@testing-library/react@16.3.3(@preact/compat@18.3.2(preact@11.0.0))(@preact/compat@18.3.2(preact@11.0.0))(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0))(@types/react@19.3.0)(@typescript-eslint/parser@8.71.0(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.11.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@20.14.5)(motion@13.2.0(@preact/compat@18.3.2(preact@11.0.0))(@preact/compat@18.3.2(preact@11.0.0)))(socket.io-client@4.8.3(supports-color@10.2.2))(socket.io@4.8.3(supports-color@10.2.2))(solid-js@1.9.15)
       comline: 0.9.0(arktype@2.2.3)(zod@4.6.5)
       rolldown: 1.2.11
       takua: 0.2.3
@@ -11877,7 +11885,7 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.3.0
       eslint: 10.11.0(jiti@2.7.0)(supports-color@10.2.2)
-      preact: 10.29.8(preact-render-to-string@6.7.0)
+      preact: 11.0.0(preact-render-to-string@6.7.0)
       solid-js: 1.9.15
     transitivePeerDependencies:
       - '@floating-ui/react'
@@ -12601,13 +12609,13 @@ snapshots:
 
   motion-utils@13.3.0: {}
 
-  motion@13.2.0(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8)):
+  motion@13.2.0(@preact/compat@18.3.2(preact@11.0.0))(@preact/compat@18.3.2(preact@11.0.0)):
     dependencies:
-      framer-motion: 13.4.6(@preact/compat@18.3.2(preact@10.29.8))(@preact/compat@18.3.2(preact@10.29.8))
+      framer-motion: 13.4.6(@preact/compat@18.3.2(preact@11.0.0))(@preact/compat@18.3.2(preact@11.0.0))
       tslib: 2.8.1
     optionalDependencies:
-      react: '@preact/compat@18.3.2(preact@10.29.8)'
-      react-dom: '@preact/compat@18.3.2(preact@10.29.8)'
+      react: '@preact/compat@18.3.2(preact@11.0.0)'
+      react-dom: '@preact/compat@18.3.2(preact@11.0.0)'
     optional: true
 
   motion@13.2.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
@@ -12928,10 +12936,20 @@ snapshots:
   preact-render-to-string@6.7.0(preact@10.29.8):
     dependencies:
       preact: 10.29.8(preact-render-to-string@6.7.0)
+    optional: true
+
+  preact-render-to-string@6.7.0(preact@11.0.0):
+    dependencies:
+      preact: 11.0.0(preact-render-to-string@6.7.0)
 
   preact@10.29.8(preact-render-to-string@6.7.0):
     optionalDependencies:
       preact-render-to-string: 6.7.0(preact@10.29.8)
+    optional: true
+
+  preact@11.0.0(preact-render-to-string@6.7.0):
+    optionalDependencies:
+      preact-render-to-string: 6.7.0(preact@11.0.0)
 
   prelude-ls@1.2.1: {}
 
@@ -13002,14 +13020,14 @@ snapshots:
 
   react-is@17.0.2: {}
 
-  react-syntax-highlighter@16.1.1(@preact/compat@18.3.2(preact@10.29.8)):
+  react-syntax-highlighter@16.1.1(@preact/compat@18.3.2(preact@11.0.0)):
     dependencies:
       '@babel/runtime': 7.29.7
       highlight.js: 10.7.3
       highlightjs-vue: 1.0.0
       lowlight: 1.20.0
       prismjs: 1.30.0
-      react: '@preact/compat@18.3.2(preact@10.29.8)'
+      react: '@preact/compat@18.3.2(preact@11.0.0)'
       refractor: 5.0.0
 
   react@19.3.0: {}
@@ -13659,10 +13677,10 @@ snapshots:
       minimist: 1.2.8
       strip-bom: 3.0.0
 
-  tsdoc.json@0.6.11(@preact/compat@18.3.2(preact@10.29.8)):
+  tsdoc.json@0.6.11(@preact/compat@18.3.2(preact@11.0.0)):
     dependencies:
       '@microsoft/tsdoc': 0.16.0
-      react: '@preact/compat@18.3.2(preact@10.29.8)'
+      react: '@preact/compat@18.3.2(preact@11.0.0)'
 
   tsdown@0.23.0(@tsdown/css@0.23.0)(oxc-resolver@11.21.2)(tsx@4.23.13)(typescript@7.0.2):
     dependencies:

@@ -189,7 +189,7 @@
 		"concurrently": "10.0.5",
 		"drizzle-kit": "1.0.0-rc.4",
 		"drizzle-orm": "1.0.0-rc.4",
-		"eslint": "10.11.0",
+		"eslint": "10.12.0",
 		"happy-dom": "20.14.5",
 		"motion": "13.5.1",
 		"postgres": "3.4.9",

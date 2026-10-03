@@ -386,8 +386,8 @@ importers:
         specifier: 5.0.3
         version: 5.0.3(vitest@5.0.3)
       arktype:
-        specifier: 2.2.6
-        version: 2.2.6
+        specifier: 2.2.7
+        version: 2.2.7
       break-check:
         specifier: 0.8.0
         version: 0.8.0(supports-color@10.2.2)(zod@4.6.5)
@@ -399,7 +399,7 @@ importers:
         version: 1.0.0-rc.4
       drizzle-orm:
         specifier: 1.0.0-rc.4
-        version: 1.0.0-rc.4(arktype@2.2.6)(bun-types@1.4.2)(postgres@3.4.9)(zod@4.6.5)
+        version: 1.0.0-rc.4(arktype@2.2.7)(bun-types@1.4.2)(postgres@3.4.9)(zod@4.6.5)
       eslint:
         specifier: 10.11.0
         version: 10.11.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -441,7 +441,7 @@ importers:
         version: 0.2.3
       tonnage:
         specifier: 0.1.3
-        version: 0.1.3(arktype@2.2.6)(zod@4.6.5)
+        version: 0.1.3(arktype@2.2.7)(zod@4.6.5)
       treetrunks:
         specifier: 0.1.12
         version: 0.1.12
@@ -485,11 +485,11 @@ importers:
         specifier: 1.8.1
         version: 1.8.1
       arktype:
-        specifier: 2.2.6
-        version: 2.2.6
+        specifier: 2.2.7
+        version: 2.2.7
       comline:
         specifier: 0.9.0
-        version: 0.9.0(arktype@2.2.6)(zod@4.6.5)
+        version: 0.9.0(arktype@2.2.7)(zod@4.6.5)
       local-pkg:
         specifier: 1.2.1
         version: 1.2.1
@@ -806,8 +806,8 @@ packages:
   '@ark/schema@0.56.4':
     resolution: {integrity: sha512-nd4OqaWdKZJeGF5zNmZysDQO7NyyJ1ycl4S7i16Hj1VxqL+x72Z66lOn7ErpsoMUZtCtslAMHMjqJhuQSxciyw==}
 
-  '@ark/schema@0.56.5':
-    resolution: {integrity: sha512-ZSh8eGK1Z7LNHPZe0b1Q2XuV1mgznv6dpRmerzUmkfnDQ99GK9xYfxquyuG6a/32IsbpC45G+NELCaIQn+NJgQ==}
+  '@ark/schema@0.56.6':
+    resolution: {integrity: sha512-OmLv80BCF2ib+zjecrXDosip/CSnZSYBGjblhqWYZWFOzdLQka6QymHToE9u7Z/HZW2KA8Hwc8MCNXoI3uGSIA==}
 
   '@ark/util@0.56.2':
     resolution: {integrity: sha512-9kU2sUE38FZEGG7l3hamYMBieLYEJh2L1mrYD2eXpT+78EnQSV1bhjxJhnxGBMSTbtwpBSDNSK+K60WvaI/DTQ==}
@@ -815,8 +815,8 @@ packages:
   '@ark/util@0.56.4':
     resolution: {integrity: sha512-KKqwGSia44cvuuDY70jGfbiUdG2E8F2cM4npdqvJ22S5a0LknlwG6nIrfQG1nF8fzxpzP30098wp0a8ASs0prQ==}
 
-  '@ark/util@0.56.5':
-    resolution: {integrity: sha512-Klxtj2QlkLnl5tdaUUtLHqRHdmQNUsuJelkAj/vyIK6crz/xT0kbUvF2sIf+fIDkhit80OGf/1lBmmDn1bBWpw==}
+  '@ark/util@0.56.6':
+    resolution: {integrity: sha512-mHqq0f0HyDd9YadpFl25w0QECAP7d8HGIUpEC85duD+L+xr4i/CwfOid/Z7zJFFF/47oLt6+pZB9RbqWpBYTYg==}
 
   '@astrojs/cloudflare@14.3.3':
     resolution: {integrity: sha512-kYb1xf+BBa8oAIMSZPfXxZWVWSEDhA+AgBN6ClDDDZspIN1M2XsIC6/fozyuCApNuiyqa3eUQbai62WohqJUgQ==}
@@ -4184,8 +4184,8 @@ packages:
   arkregex@0.0.10:
     resolution: {integrity: sha512-+iDWBYBjH8w7wqEv8VY4loBwRldFxX84KNwKbobH3FJPay/18XI9sTesmXYpKyIrgbC5z/s16+vSJYHCC9FEvQ==}
 
-  arkregex@0.0.11:
-    resolution: {integrity: sha512-b7bu/QijB2MCuRrivlzIc2e7TccVA16eswurQFZbtCzd9tubIdVRh1c3clVRVTdO2ExTXXuoRctkkLIsWNP00w==}
+  arkregex@0.0.12:
+    resolution: {integrity: sha512-sOxL0eX50pnRYO4OyajKZChGuuj/iHwC5tysiAaGOPBu+zJwJQckWn7/DRH2++ol5uaKpyRn7N0hKT7nDqGmgg==}
 
   arkregex@0.0.8:
     resolution: {integrity: sha512-PJcx6G1kQTgLKPUbeYlYecDRaKq15AMSGVajlKFYWlPeJRQL+j3dKE6tyMs40HZ99djS1l9Vhl3ezAHy9JBIqQ==}
@@ -4196,8 +4196,8 @@ packages:
   arktype@2.2.5:
     resolution: {integrity: sha512-c9oqY1eBab2LceqvpWX50xae2HB8P/nJPxRhuhPVf5lEDi3WQpf7WQflJFMsyCiA3NGh6zENOlse30gWBzlwDg==}
 
-  arktype@2.2.6:
-    resolution: {integrity: sha512-0ygTf58QUodmxeEXdGm/1DGzd2lOdER5rIrtNWrCUV8QUMYdv0Ig1vzC9dwP1GP86aMgvrrI6k9FvYncDxp4tQ==}
+  arktype@2.2.7:
+    resolution: {integrity: sha512-AbgM5SQvwCTURSR+ENfPtOG7cL5VZ0hqOVtoWyXKw2SviFddZhCBEUAjjVJYKCNFlPPR1VX5LGUKxsSqqc4Kdw==}
 
   array-iterate@2.0.1:
     resolution: {integrity: sha512-I1jXZMjAgCMmxT4qxXfPXa6SthSoE8h6gkSI9BGGNv8mP8G/v0blc+qFnZu6K42vTOiuME596QaLO0TP3Lk0xg==}
@@ -7421,16 +7421,16 @@ snapshots:
     dependencies:
       '@ark/util': 0.56.4
 
-  '@ark/schema@0.56.5':
+  '@ark/schema@0.56.6':
     dependencies:
-      '@ark/util': 0.56.5
+      '@ark/util': 0.56.6
 
   '@ark/util@0.56.2':
     optional: true
 
   '@ark/util@0.56.4': {}
 
-  '@ark/util@0.56.5': {}
+  '@ark/util@0.56.6': {}
 
   '@astrojs/cloudflare@14.3.3(@types/node@26.5.1)(astro@7.3.5(@astrojs/markdown-remark@7.3.1(supports-color@10.2.2))(@azure/identity@4.13.2(supports-color@10.2.2))(@types/node@26.5.1)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(wrangler@4.146.0(@types/node@26.5.1))(yaml@2.9.1)':
     dependencies:
@@ -10367,9 +10367,9 @@ snapshots:
     dependencies:
       '@ark/util': 0.56.4
 
-  arkregex@0.0.11:
+  arkregex@0.0.12:
     dependencies:
-      '@ark/util': 0.56.5
+      '@ark/util': 0.56.6
 
   arkregex@0.0.8:
     dependencies:
@@ -10389,11 +10389,11 @@ snapshots:
       '@ark/util': 0.56.4
       arkregex: 0.0.10
 
-  arktype@2.2.6:
+  arktype@2.2.7:
     dependencies:
-      '@ark/schema': 0.56.5
-      '@ark/util': 0.56.5
-      arkregex: 0.0.11
+      '@ark/schema': 0.56.6
+      '@ark/util': 0.56.6
+      arkregex: 0.0.12
 
   array-iterate@2.0.1: {}
 
@@ -10713,12 +10713,12 @@ snapshots:
 
   collapse-white-space@2.1.0: {}
 
-  comline@0.7.0(arktype@2.2.6)(zod@4.6.5):
+  comline@0.7.0(arktype@2.2.7)(zod@4.6.5):
     dependencies:
       '@standard-schema/spec': 1.1.0
       treetrunks: 0.1.11
     optionalDependencies:
-      arktype: 2.2.6
+      arktype: 2.2.7
       zod: 4.6.5
 
   comline@0.9.0(arktype@2.2.3)(zod@4.6.5):
@@ -10737,12 +10737,12 @@ snapshots:
       arktype: 2.2.5
       zod: 4.6.5
 
-  comline@0.9.0(arktype@2.2.6)(zod@4.6.5):
+  comline@0.9.0(arktype@2.2.7)(zod@4.6.5):
     dependencies:
       '@standard-schema/spec': 1.1.0
       treetrunks: 0.1.12
     optionalDependencies:
-      arktype: 2.2.6
+      arktype: 2.2.7
       zod: 4.6.5
 
   comma-separated-tokens@2.0.3: {}
@@ -10948,9 +10948,9 @@ snapshots:
       get-tsconfig: 4.14.3
       jiti: 2.7.0
 
-  drizzle-orm@1.0.0-rc.4(arktype@2.2.6)(bun-types@1.4.2)(postgres@3.4.9)(zod@4.6.5):
+  drizzle-orm@1.0.0-rc.4(arktype@2.2.7)(bun-types@1.4.2)(postgres@3.4.9)(zod@4.6.5):
     optionalDependencies:
-      arktype: 2.2.6
+      arktype: 2.2.7
       bun-types: 1.4.2
       postgres: 3.4.9
       zod: 4.6.5
@@ -13694,9 +13694,9 @@ snapshots:
     dependencies:
       is-number: 7.0.0
 
-  tonnage@0.1.3(arktype@2.2.6)(zod@4.6.5):
+  tonnage@0.1.3(arktype@2.2.7)(zod@4.6.5):
     dependencies:
-      comline: 0.7.0(arktype@2.2.6)(zod@4.6.5)
+      comline: 0.7.0(arktype@2.2.7)(zod@4.6.5)
       esbuild: 0.28.2
     transitivePeerDependencies:
       - arktype

@@ -1,0 +1,90 @@
+{
+	"files": ["**/*.json", "**/*.jsonc"],
+	"exclude": [
+		"**/.astro/**",
+		"**/.cache/**",
+		"**/.pnpm-store/**",
+		"**/.turbo/**",
+		"**/.wrangler/**",
+		"**/coverage/**",
+		"**/coverage-public/**",
+		"**/storybook-static/**",
+		"**/package-lock.json",
+		"**/metafile-*.json",
+		"**/heap.json",
+		"**/*.tsdoc.json",
+		"projects/**",
+		"pkg/**",
+		"packages/atom.io/__reports__/**",
+		"packages/atom.io/docs/agent/**",
+		"apps/atom.io.fyi/agent-docs/**"
+	],
+	"associations": [
+		{
+			"name": "Correctly",
+			"files": ["correctly.config.json"],
+			"schema": "node_modules/correctly/src/core/config.schema.json"
+		},
+		{
+			"name": "Changesets",
+			"files": [".changeset/config.json"],
+			"schema": "node_modules/@changesets/config/schema.json"
+		},
+		{
+			"name": "Break Check",
+			"files": ["**/break-check.config.json"],
+			"schema": "packages/atom.io/node_modules/break-check/dist/break-check.main.schema.json"
+		},
+		{
+			"name": "Dprint",
+			"files": ["**/dprint.json"],
+			"schema": "https://dprint.dev/schemas/v0.json"
+		},
+		{
+			"name": "Turbo",
+			"files": ["turbo.json"],
+			"schema": "https://turbo.build/schema.json"
+		},
+		{
+			"name": "Renovate",
+			"files": ["renovate.json"],
+			"schema": "https://docs.renovatebot.com/renovate-schema.json"
+		},
+		{
+			"name": "Oxlint",
+			"files": ["packages/atom.io/oxlint.json"],
+			"schema": "node_modules/oxlint/configuration_schema.json"
+		},
+		{
+			"name": "Preact SVG Editor Oxlint",
+			"files": ["templates/preact-svg-editor/.oxlintrc.json"],
+			"schema": "templates/preact-svg-editor/node_modules/oxlint/configuration_schema.json"
+		},
+		{
+			"name": "React Node Backend Oxlint",
+			"files": ["templates/react-node-backend/.oxlintrc.json"],
+			"schema": "templates/react-node-backend/node_modules/oxlint/configuration_schema.json"
+		},
+		{
+			"name": "React Realtime Text Editor Oxlint",
+			"files": ["templates/react-realtime-text-editor/.oxlintrc.json"],
+			"schema": "templates/react-realtime-text-editor/node_modules/oxlint/configuration_schema.json"
+		},
+		{
+			"name": "Solid Lossless Numbers Oxlint",
+			"files": ["templates/solid-lossless-numbers/.oxlintrc.json"],
+			"schema": "templates/solid-lossless-numbers/node_modules/oxlint/configuration_schema.json"
+		},
+		{
+			"name": "Wrangler",
+			"files": ["apps/atom.io.fyi/wrangler.jsonc"],
+			"schema": "apps/atom.io.fyi/node_modules/wrangler/config-schema.json"
+		},
+		{
+			"name": "TypeScript and editor settings",
+			"files": ["**/tsconfig*.json", "**/.vscode/*.json", "**/.zed/*.json"],
+			"schema": null,
+			"mode": "jsonc"
+		}
+	]
+}

@@ -28,7 +28,7 @@
 		"@dprint/json": "0.25.1",
 		"@dprint/markdown": "0.24.0",
 		"@dprint/oxc": "0.42.0",
-		"@types/node": "26.6.3",
+		"@types/node": "26.6.4",
 		"dprint": "0.58.0",
 		"dprint-plugin-malva": "0.16.0",
 		"eslint": "10.11.0",

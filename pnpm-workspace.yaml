@@ -5,6 +5,7 @@ minimumReleaseAgeExclude:
   - break-check
   - bun-types
   - comline
+  - correctly
   - lasertag
   - recoverage
   - takua

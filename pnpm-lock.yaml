@@ -181,8 +181,8 @@ importers:
         specifier: 0.25.1
         version: 0.25.1
       '@dprint/markdown':
-        specifier: 0.25.0
-        version: 0.25.0
+        specifier: 0.26.0
+        version: 0.26.0
       '@dprint/oxc':
         specifier: 0.43.0
         version: 0.43.0
@@ -537,8 +537,8 @@ importers:
         specifier: 0.25.1
         version: 0.25.1
       '@dprint/markdown':
-        specifier: 0.25.0
-        version: 0.25.0
+        specifier: 0.26.0
+        version: 0.26.0
       '@dprint/oxc':
         specifier: 0.43.0
         version: 0.43.0
@@ -598,8 +598,8 @@ importers:
         specifier: 0.25.1
         version: 0.25.1
       '@dprint/markdown':
-        specifier: 0.25.0
-        version: 0.25.0
+        specifier: 0.26.0
+        version: 0.26.0
       '@dprint/oxc':
         specifier: 0.43.0
         version: 0.43.0
@@ -683,8 +683,8 @@ importers:
         specifier: 0.25.1
         version: 0.25.1
       '@dprint/markdown':
-        specifier: 0.25.0
-        version: 0.25.0
+        specifier: 0.26.0
+        version: 0.26.0
       '@dprint/oxc':
         specifier: 0.43.0
         version: 0.43.0
@@ -759,8 +759,8 @@ importers:
         specifier: 0.25.1
         version: 0.25.1
       '@dprint/markdown':
-        specifier: 0.25.0
-        version: 0.25.0
+        specifier: 0.26.0
+        version: 0.26.0
       '@dprint/oxc':
         specifier: 0.43.0
         version: 0.43.0
@@ -1396,8 +1396,8 @@ packages:
     os: [linux]
     libc: [musl]
 
-  '@dprint/markdown@0.25.0':
-    resolution: {integrity: sha512-Jf+uAX9ld2Iq/5ScHF9rNjDcyt7sIE1WKsSfq8cKjYeF3rX4iv/qpAD6f6MxBX9Mflaquq/Lg4lu8/O6UdN9kg==}
+  '@dprint/markdown@0.26.0':
+    resolution: {integrity: sha512-6BZ6DYia7E0O6TyEvbw7uuENbhxD364LXfmWE1jiL1b7uFuhDJPiBIK++2qSz00gpSs8ydArkorWlfHquTtgvQ==}
 
   '@dprint/oxc@0.43.0':
     resolution: {integrity: sha512-eSkBZvddbv9I0dHjgSm9YERu4LijfJmJoNXdXVAE6Jc3SM8fH7DQbfQxI/CnhHW/8v4UWADrbh+EtaeX2UeFCQ==}
@@ -7999,7 +7999,7 @@ snapshots:
   '@dprint/linux-x64-musl@0.59.0':
     optional: true
 
-  '@dprint/markdown@0.25.0': {}
+  '@dprint/markdown@0.26.0': {}
 
   '@dprint/oxc@0.43.0': {}
 

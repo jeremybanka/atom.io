@@ -1,10 +1,12 @@
 blockExoticSubdeps: true
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
+  - "@correctlyjs/schemars"
   - atom.io
   - break-check
   - bun-types
   - comline
+  - correctly
   - lasertag
   - recoverage
   - takua

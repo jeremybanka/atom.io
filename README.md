@@ -82,6 +82,47 @@ pnpm --filter atom.io.fyi dev
 pnpm --filter create-atom.io build
 ```
 
+### Language Servers and Editors
+
+After installing workspace dependencies, these language servers are available
+locally and communicate over stdio:
+
+| Server    | Project executable                | Purpose                                                                                        |
+| --------- | --------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Lasertag  | `node_modules/.bin/lasertag-lsp`  | CSS Module diagnostics, completions, and cleanup actions for CSS, TSX, and Astro.              |
+| Correctly | `node_modules/.bin/correctly-lsp` | Configuration diagnostics for JSON/JSONC, YAML, and TOML; completion and hover for JSON/JSONC. |
+
+Correctly uses [correctly.config.ts](./correctly.config.ts) and the project's
+installed validators, including repository and nested Git ignore rules. It checks
+GitHub workflows and actions, pnpm workspace settings, Mise configuration, and
+our JSON/JSONC tooling files. Dprint handles formatting.
+
+#### VS Code
+
+Install the bundled VSIX clients, which launch the same language servers. Use
+VS Code 1.105 or later, open the repository root, and trust the workspace so
+Correctly can load its TypeScript configuration. The extensions are distributed
+outside the VS Code Marketplace.
+
+Build and install Lasertag's extension from the project's pinned npm package:
+
+```sh
+pnpm exec lasertag vsix
+```
+
+Build Correctly's extension from a separate sibling checkout matching the
+repository's pinned Correctly version. Starting from the atom.io repository root:
+
+```sh
+git clone --branch correctly@0.1.2 --depth 1 https://github.com/jeremybanka/correctly.git ../correctly-editor
+cd ../correctly-editor
+pnpm install --frozen-lockfile
+pnpm build:vsix
+code --install-extension artifacts/Correctly-0.1.2.vsix
+```
+
+Rebuild and reinstall the corresponding VSIX after upgrading either tool.
+
 ## AI Agent Docs
 
 The published `atom.io` package includes agent-friendly documentation. After

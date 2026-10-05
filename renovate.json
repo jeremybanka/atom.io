@@ -1,5 +1,4 @@
 {
-	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
 	"extends": ["config:recommended"],
 	"automerge": true,
 	"branchConcurrentLimit": 9,
@@ -49,10 +48,12 @@
 	"packageRules": [
 		{
 			"matchPackageNames": [
+				"@correctlyjs/schemars",
 				"break-check",
 				"bun",
 				"bun-types",
 				"comline",
+				"correctly",
 				"lasertag",
 				"recoverage",
 				"takua",

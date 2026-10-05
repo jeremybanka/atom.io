@@ -87,13 +87,27 @@ pnpm --filter create-atom.io build
 Install the **Lasertag** and **Correctly** VSIX extensions for live CSS Module
 feedback and configuration diagnostics. Correctly also provides completion and
 hover for JSON/JSONC. Both tools are workspace dependencies; their editor
-extensions are installed separately, outside the VS Code Marketplace. The
-[editor setup exhibit](./packages/atom.io/docs/source/exhibits/tooling/editor-setup.sh.txt)
-contains the installation commands.
+extensions are installed separately, outside the VS Code Marketplace.
 
-Lasertag builds and installs its extension from the project's pinned npm package.
-Correctly builds its extension from a separate checkout of the matching
-release tag. Use VS Code 1.105 or later, open the atom.io repository root, and trust
+After installing workspace dependencies, run this from the repository root to
+build and install Lasertag's extension from the pinned npm package:
+
+```sh
+pnpm exec lasertag vsix
+```
+
+Build Correctly's extension from a separate sibling checkout matching the
+repository's pinned Correctly version. Starting from the atom.io repository root:
+
+```sh
+git clone --branch correctly@0.1.2 --depth 1 https://github.com/jeremybanka/correctly.git ../correctly-editor
+cd ../correctly-editor
+pnpm install --frozen-lockfile
+pnpm build:vsix
+code --install-extension artifacts/Correctly-0.1.2.vsix
+```
+
+Use VS Code 1.105 or later, open the atom.io repository root, and trust
 the workspace so Correctly can load [correctly.config.ts](./correctly.config.ts)
 and the project's installed validators. Rebuild and reinstall the corresponding
 VSIX after upgrading either tool. Dprint continues to handle formatting.

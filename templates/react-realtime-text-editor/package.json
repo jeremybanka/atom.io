@@ -32,7 +32,7 @@
 		"zod": "4.6.5"
 	},
 	"devDependencies": {
-		"@dprint/json": "0.25.1",
+		"@dprint/json": "0.25.2",
 		"@dprint/markdown": "0.26.0",
 		"@dprint/oxc": "0.43.0",
 		"@testing-library/dom": "10.4.2",

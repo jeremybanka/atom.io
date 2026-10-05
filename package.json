@@ -44,7 +44,7 @@
 		"@changesets/config": "4.0.1",
 		"@correctlyjs/schemars": "0.0.2",
 		"@dotenvx/dotenvx": "2.32.4",
-		"@dprint/json": "0.25.1",
+		"@dprint/json": "0.25.2",
 		"@dprint/markdown": "0.26.0",
 		"@dprint/oxc": "0.43.0",
 		"@dprint/toml": "0.8.0",

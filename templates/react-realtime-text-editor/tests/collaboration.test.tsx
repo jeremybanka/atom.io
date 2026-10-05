@@ -1,8 +1,8 @@
-import { act, waitFor } from "@testing-library/react"
-import { Silo } from "atom.io"
-import { RealtimeContext } from "atom.io/realtime-react"
-import { multiClient, type RealtimeTestClient } from "atom.io/realtime-testing"
-import { createElement, useContext, useEffect, useMemo, useState } from "react"
+import { waitFor } from "@testing-library/react"
+import {
+	headless,
+	type HeadlessRealtimeTestClient,
+} from "atom.io/realtime-testing"
 
 import { createMarkdownDocumentService } from "../node/service.ts"
 import {
@@ -10,6 +10,7 @@ import {
 	type MarkdownCollaborationClient,
 } from "../src/collaboration-client.ts"
 import type { Identity } from "../src/identities.ts"
+import { createMarkdownWorkspaceState } from "../src/workspace-state.ts"
 
 const ADA = { color: `#7057ff`, id: `ada`, name: `Ada` } satisfies Identity
 const LIN = { color: `#df527c`, id: `lin`, name: `Lin` } satisfies Identity
@@ -23,65 +24,6 @@ const INITIAL = `# Bounded notes\n\n${Array.from(
 		`Paragraph ${index} has enough text to exercise partial residency.`,
 ).join(`\n\n`)}\n`
 
-function testClient(
-	identity: Identity,
-	sessionId: string,
-	runtimes: RuntimeRegistry,
-	presenceRenewalMs?: number,
-) {
-	return function MarkdownTestClient() {
-		const { socket } = useContext(RealtimeContext)
-		const silo = useMemo(
-			() =>
-				new Silo({
-					isProduction: false,
-					lifespan: `ephemeral`,
-					name: `markdown-test:${sessionId}`,
-				}),
-			[sessionId],
-		)
-		const [runtime, setRuntime] = useState<MarkdownCollaborationClient | null>(
-			null,
-		)
-		const [problem, setProblem] = useState<string | null>(null)
-		useEffect(() => {
-			if (socket === null) return
-			let active = true
-			let created: MarkdownCollaborationClient | null = null
-			void createMarkdownCollaborationClient({
-				identity,
-				presenceRenewalMs,
-				sessionId,
-				silo,
-				socket,
-			}).then(
-				(client) => {
-					created = client
-					if (!active) {
-						client[Symbol.dispose]()
-						return
-					}
-					runtimes.set(sessionId, client)
-					setRuntime(client)
-				},
-				(error: unknown) => {
-					setProblem(error instanceof Error ? error.message : String(error))
-				},
-			)
-			return () => {
-				active = false
-				runtimes.delete(sessionId)
-				created?.[Symbol.dispose]()
-			}
-		}, [silo, socket])
-		return createElement(
-			`output`,
-			{ "data-testid": `status` },
-			problem ?? runtime?.status().connection ?? `connecting`,
-		)
-	}
-}
-
 async function scenario(
 	options: {
 		readonly presenceRenewalMs?: number
@@ -93,7 +35,7 @@ async function scenario(
 		presenceTtlMs: options.presenceTtlMs,
 	})
 	const runtimes: RuntimeRegistry = new Map()
-	const room = multiClient({
+	const room = headless({
 		scenarioId: `mosaic-markdown-domain`,
 		server: (tools) => {
 			const binding = tools.work.track(
@@ -108,36 +50,56 @@ async function scenario(
 				void binding.then((cleanup) => cleanup())
 			}
 		},
-		clients: {
-			ada: testClient(ADA, sessions.ada, runtimes, options.presenceRenewalMs),
-			lin: testClient(LIN, sessions.lin, runtimes, options.presenceRenewalMs),
-		},
 	})
 	return {
 		room,
 		runtimes,
 		service,
+		presenceRenewalMs: options.presenceRenewalMs,
 		async teardown() {
+			for (const runtime of runtimes.values()) runtime[Symbol.dispose]()
+			runtimes.clear()
 			await room.teardown()
 			service[Symbol.dispose]()
 		},
 	}
 }
 
-function initialize(room: Awaited<ReturnType<typeof scenario>>): {
-	ada: RealtimeTestClient
-	lin: RealtimeTestClient
-} {
-	return {
-		ada: room.room.clients.ada.init({
+async function initialize(room: Awaited<ReturnType<typeof scenario>>): Promise<{
+	ada: HeadlessRealtimeTestClient
+	lin: HeadlessRealtimeTestClient
+}> {
+	const harness = {
+		ada: room.room.createClient({
+			name: `ada`,
 			sessionId: sessions.ada,
 			userKey: `user::ada`,
 		}),
-		lin: room.room.clients.lin.init({
+		lin: room.room.createClient({
+			name: `lin`,
 			sessionId: sessions.lin,
 			userKey: `user::lin`,
 		}),
 	}
+	const [ada, lin] = await Promise.all([
+		createMarkdownCollaborationClient({
+			identity: ADA,
+			presenceRenewalMs: room.presenceRenewalMs,
+			sessionId: sessions.ada,
+			silo: harness.ada.silo,
+			socket: harness.ada.socket,
+		}),
+		createMarkdownCollaborationClient({
+			identity: LIN,
+			presenceRenewalMs: room.presenceRenewalMs,
+			sessionId: sessions.lin,
+			silo: harness.lin.silo,
+			socket: harness.lin.socket,
+		}),
+	])
+	room.runtimes.set(sessions.ada, ada)
+	room.runtimes.set(sessions.lin, lin)
+	return harness
 }
 
 async function live(room: Awaited<ReturnType<typeof scenario>>) {
@@ -155,6 +117,52 @@ async function live(room: Awaited<ReturnType<typeof scenario>>) {
 }
 
 describe(`incremental realtime Markdown Domain`, () => {
+	test(`the store-owned workspace hydrates its initial viewport`, async () => {
+		const setup = await scenario()
+		try {
+			const harness = await initialize(setup)
+			const clients = await live(setup)
+			const observeErrors: unknown[] = []
+			const originalObserveRange = clients.ada.projection.observeRange
+			const observeRange = vi
+				.spyOn(clients.ada.projection, `observeRange`)
+				.mockImplementation(async (...parameters) => {
+					try {
+						return await originalObserveRange(...parameters)
+					} catch (error) {
+						observeErrors.push(error)
+						throw error
+					}
+				})
+			const workspace = createMarkdownWorkspaceState({
+				client: clients.ada,
+				silo: harness.ada.silo,
+			})
+			try {
+				await waitFor(() => {
+					expect(harness.ada.silo.getState(workspace.totalLength)).toBe(
+						INITIAL.length,
+					)
+				})
+				expect(observeRange.mock.calls.map(([range]) => range)).toEqual([
+					{ end: INITIAL.length, kind: `utf16-range`, start: 0 },
+				])
+				await waitFor(() => {
+					expect(observeErrors).toEqual([])
+					expect(observeRange).toHaveBeenCalled()
+					expect(harness.ada.silo.getState(workspace.view)).toMatchObject({
+						projection: { text: INITIAL },
+						status: `ready`,
+					})
+				})
+			} finally {
+				workspace[Symbol.dispose]()
+			}
+		} finally {
+			await setup.teardown()
+		}
+	})
+
 	test(`rejects invalid presence renewal intervals before allocating a Domain`, async () => {
 		await expect(
 			createMarkdownCollaborationClient({
@@ -170,7 +178,7 @@ describe(`incremental realtime Markdown Domain`, () => {
 	test(`hydrates viewport first, converges contention/offline work, and keeps selective history foreign-safe`, async () => {
 		const setup = await scenario()
 		try {
-			const harness = initialize(setup)
+			const harness = await initialize(setup)
 			const clients = await live(setup)
 			const length = await clients.ada.projection.readLength()
 			const [first, last] = await Promise.all([
@@ -252,9 +260,7 @@ describe(`incremental realtime Markdown Domain`, () => {
 			expect(await clients.ada.redo()).toBe(true)
 			await last.release()
 
-			act(() => {
-				void harness.ada.socket.disconnect()
-			})
+			harness.ada.socket.disconnect()
 			const offlineAnchor = await clients.ada.projection.positionAtOffset(4)
 			const pending = clients.ada.replace({
 				selection: { anchor: offlineAnchor, head: offlineAnchor },
@@ -265,9 +271,7 @@ describe(`incremental realtime Markdown Domain`, () => {
 				selection: { anchor: foreignAnchor, head: foreignAnchor },
 				text: `[online]`,
 			})
-			act(() => {
-				void harness.ada.socket.connect()
-			})
+			harness.ada.socket.connect()
 			await waitFor(
 				() => {
 					expect(clients.ada.status().connection).toBe(`live`)
@@ -319,7 +323,7 @@ describe(`incremental realtime Markdown Domain`, () => {
 			presenceTtlMs: 80,
 		})
 		try {
-			const harness = initialize(setup)
+			const harness = await initialize(setup)
 			const clients = await live(setup)
 			const caretOffset = INITIAL.lastIndexOf(`partial residency`)
 			const caret = await clients.ada.projection.positionAtOffset(caretOffset)
@@ -355,9 +359,7 @@ describe(`incremental realtime Markdown Domain`, () => {
 					(envelope) => envelope.kind === `update` && envelope.actor === ADA.id,
 				),
 			).toBe(true)
-			act(() => {
-				void harness.ada.socket.disconnect()
-			})
+			harness.ada.socket.disconnect()
 			await waitFor(() => {
 				expect(
 					clients.lin.presence.state.presence.some(
@@ -430,12 +432,10 @@ describe(`incremental realtime Markdown Domain`, () => {
 	test(`settles an offline command when its collaboration client is disposed`, async () => {
 		const setup = await scenario()
 		try {
-			const harness = initialize(setup)
+			const harness = await initialize(setup)
 			const clients = await live(setup)
 			const caret = await clients.ada.projection.positionAtOffset(4)
-			act(() => {
-				void harness.ada.socket.disconnect()
-			})
+			harness.ada.socket.disconnect()
 			await waitFor(() => {
 				expect(clients.ada.status().connection).toBe(`offline`)
 			})

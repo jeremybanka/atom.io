@@ -1,47 +1,32 @@
-import { useMosaicTextEditor, useMosaicTextRange } from "atom.io/realtime-react"
+import { useO } from "atom.io/react"
+import { useMosaicTextEditor } from "atom.io/realtime-react"
 import {
 	Fragment,
 	createElement,
 	type CSSProperties,
 	type ReactElement,
 	type ReactNode,
-	useCallback,
-	useEffect,
-	useMemo,
-	useRef,
-	useState,
 } from "react"
 
 import type {
 	MarkdownClientStatus,
 	MarkdownCollaborationClient,
 } from "./collaboration-client.ts"
-import type { MarkdownPresence } from "./document-domain.ts"
-import {
-	IncrementalMarkdownParser,
-	type MarkdownParseInstrumentation,
-	type MarkdownSemanticBlock,
-} from "./incremental-markdown.ts"
+import type { MarkdownSemanticBlock } from "./incremental-markdown.ts"
 import { SIMULATED_IDENTITIES } from "./identities.ts"
 import {
 	LexicalMarkdownEditor,
 	type RenderedCollaboratorSelection,
 } from "./LexicalMarkdownEditor.tsx"
 import { switchBrowserIdentity } from "./session.ts"
-import { markdownVirtualWindow } from "./virtualization.ts"
+import type { MarkdownWorkspaceState } from "./workspace-state.ts"
 import css from "./MarkdownWorkspace.module.css"
 
-type MarkdownWorkspaceProps = { readonly client: MarkdownCollaborationClient }
-type PersonStyle = CSSProperties & Record<`--person-color`, string>
-
-const EMPTY_PARSE_METRICS: MarkdownParseInstrumentation = {
-	canceled: false,
-	elapsedMs: 0,
-	parsedBlocks: 0,
-	reusedBlocks: 0,
-	scannedUtf16Units: 0,
-	stableBoundaryIndex: null,
+type MarkdownWorkspaceProps = {
+	readonly client: MarkdownCollaborationClient
+	readonly state: MarkdownWorkspaceState
 }
+type PersonStyle = CSSProperties & Record<`--person-color`, string>
 
 function safeHref(candidate: string): string | undefined {
 	return /^(https?:\/\/|mailto:|#)/u.test(candidate) ? candidate : undefined
@@ -101,16 +86,6 @@ function renderSemantic(block: MarkdownSemanticBlock): ReactElement {
 	}
 }
 
-function activePresence(
-	client: MarkdownCollaborationClient,
-): MarkdownPresence[] {
-	return client.presence.state.presence.flatMap((envelope) =>
-		envelope.kind === `update` && envelope.address.member === `collaborator`
-			? [envelope.value as MarkdownPresence]
-			: [],
-	)
-}
-
 function statusLabel(
 	status: MarkdownClientStatus,
 	hasLocalDraft: boolean,
@@ -126,154 +101,33 @@ function statusLabel(
 
 export function MarkdownWorkspace({
 	client,
+	state,
 }: MarkdownWorkspaceProps): ReactElement {
-	const [status, setStatus] = useState(() => client.status())
-	const [presence, setPresence] = useState(() => activePresence(client))
-	const [totalLength, setTotalLength] = useState(0)
-	const [scroll, setScroll] = useState({ height: 560, scrollTop: 0 })
-	const [parse, setParse] = useState<readonly MarkdownSemanticBlock[]>([])
-	const [parseMetrics, setParseMetrics] =
-		useState<MarkdownParseInstrumentation>(EMPTY_PARSE_METRICS)
-	const [readProblem, setReadProblem] = useState<string | null>(null)
-	const [problem, setProblem] = useState<string | null>(null)
-	const parser = useRef(new IncrementalMarkdownParser())
-	const deferredScroll = useRef<typeof scroll | null>(null)
-	const window = useMemo(
-		() =>
-			markdownVirtualWindow(scroll, {
-				averageUtf16UnitsPerRow: 88,
-				overscanRows: 24,
-				rowHeight: 24,
-				totalUtf16Units: totalLength,
-			}),
-		[scroll, totalLength],
-	)
-	const view = useMosaicTextRange(client.projection, window.range, {
-		overscan: 2_048,
-	})
+	const status = useO(state.status)
+	const presence = useO(state.presence)
+	const totalLength = useO(state.totalLength)
+	const parse = useO(state.parse)
+	const parseMetrics = useO(state.parseMetrics)
+	const readProblem = useO(state.readProblem)
+	const problem = useO(state.problem)
+	const window = useO(state.window)
+	const view = useO(state.view)
+	const peers = useO(state.peers)
 	const incomingProjection = view.status === `ready` ? view.projection : null
-	const refreshLength = useCallback(async (): Promise<number | null> => {
-		try {
-			const length = await client.projection.readLength()
-			setTotalLength(length)
-			setReadProblem(null)
-			return length
-		} catch (error) {
-			setReadProblem(error instanceof Error ? error.message : String(error))
-			return null
-		}
-	}, [client])
-
-	const peers = useMemo(
-		() =>
-			presence
-				.filter((person) => person.session !== client.sessionId)
-				.map((person) => ({
-					id: person.session,
-					selection: person.selection,
-					value: person,
-				})),
-		[client.sessionId, presence],
-	)
-	const publishSelection = useCallback(
-		(selection: NonNullable<MarkdownPresence[`selection`]>) =>
-			client.publishPresence({
-				color: client.identity.color,
-				name: client.identity.name,
-				selection,
-				viewport: null,
-			}),
-		[client],
-	)
-	const replace = useCallback(
-		(input: Parameters<MarkdownCollaborationClient[`replace`]>[0]) =>
-			client.replace(input),
-		[client],
-	)
-	const reportEditorError = useCallback((error: unknown): void => {
-		setProblem(error instanceof Error ? error.message : String(error))
-	}, [])
 	const editor = useMosaicTextEditor({
 		client: client.projection,
 		connected: status.connection === `live`,
 		documentLength: totalLength,
-		onDocumentLength: setTotalLength,
-		onError: reportEditorError,
+		onDocumentLength: state.setDocumentLength,
+		onError: state.reportEditorError,
+		onLocalDraftChange: state.flushDeferredScroll,
 		peers,
 		projection: incomingProjection,
-		publishSelection,
-		replace,
+		publishSelection: state.publishSelection,
+		publishViewport: state.publishViewport,
+		replace: state.replace,
 	})
 	const projection = editor.projection
-
-	useEffect(() => {
-		const stopStatus = client.subscribe((next) => {
-			setStatus(next)
-			if (next.connection === `live`) {
-				void refreshLength()
-			}
-		})
-		const stopPresence = client.presence.subscribe(() => {
-			setPresence(activePresence(client))
-		})
-		void refreshLength()
-		return () => {
-			stopStatus()
-			stopPresence()
-			parser.current.cancel()
-		}
-	}, [client, refreshLength])
-
-	useEffect(() => {
-		if (editor.hasLocalDraft || deferredScroll.current === null) return
-		setScroll(deferredScroll.current)
-		deferredScroll.current = null
-	}, [editor.hasLocalDraft])
-
-	useEffect(() => {
-		if (projection === null) return
-		const controller = new AbortController()
-		void parser.current
-			.parse(projection.blocks, { signal: controller.signal })
-			.then((result) => {
-				if (result.instrumentation.canceled) return
-				setParse(result.blocks)
-				setParseMetrics(result.instrumentation)
-			})
-		return () => {
-			controller.abort()
-		}
-	}, [projection])
-
-	useEffect(() => {
-		if (
-			projection === null ||
-			editor.hasLocalDraft ||
-			editor.hasLocalSelection
-		) {
-			return
-		}
-		const start = window.range.start
-		const end = window.range.end
-		void Promise.all([
-			client.projection.positionAtOffset(start),
-			client.projection.positionAtOffset(end),
-		]).then(([anchor, head]) =>
-			client.publishPresence({
-				color: client.identity.color,
-				name: client.identity.name,
-				selection: null,
-				viewport: { anchor, head },
-			}),
-		)
-	}, [
-		client,
-		editor.hasLocalDraft,
-		editor.hasLocalSelection,
-		projection,
-		window.range.end,
-		window.range.start,
-	])
 
 	const collaboratorSelections: readonly RenderedCollaboratorSelection[] =
 		editor.remoteSelections.map(({ end, id, start, value: person }) => ({
@@ -342,11 +196,7 @@ export function MarkdownWorkspace({
 								height: element.clientHeight,
 								scrollTop: element.scrollTop,
 							}
-							if (editor.hasLocalDraft) {
-								deferredScroll.current = nextScroll
-							} else {
-								setScroll(nextScroll)
-							}
+							state.setScroll(nextScroll, editor.hasLocalDraft)
 						}}
 					>
 						<virtual-spacer
@@ -364,9 +214,7 @@ export function MarkdownWorkspace({
 						{projection ? (
 							<LexicalMarkdownEditor
 								onDirty={editor.onDirty}
-								onError={(error) => {
-									setProblem(error.message)
-								}}
+								onError={state.reportEditorError}
 								onRedo={() => void client.redo()}
 								onSelectionChange={editor.onSelectionChange}
 								onUndo={() => void client.undo()}

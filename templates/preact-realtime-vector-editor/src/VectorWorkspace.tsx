@@ -317,18 +317,14 @@ export function VectorWorkspace({ client }: WorkspaceProps): VNode {
 						Redo mine
 					</button>
 					<label>
-						<avatar-dot
-							style={
-								{ [`--person-color`]: client.identity.color } as PresenceStyle
-							}
-						>
+						<avatar-dot style={{ [`--person-color`]: client.identity.color }}>
 							{client.identity.name[0]}
 						</avatar-dot>
 						<select
 							aria-label="Simulated identity"
-							onChange={(event) =>
+							onChange={(event) => {
 								switchBrowserIdentity(event.currentTarget.value)
-							}
+							}}
 							value={client.identity.id}
 						>
 							{SIMULATED_IDENTITIES.map((identity) => (
@@ -356,23 +352,23 @@ export function VectorWorkspace({ client }: WorkspaceProps): VNode {
 					</button>
 					<strong>Viewport</strong>
 					<button
-						onClick={() =>
+						onClick={() => {
 							client.silo.setState(viewportAtom, {
 								...viewport,
 								zoom: Math.min(2, viewport.zoom + 0.1),
 							})
-						}
+						}}
 						type="button"
 					>
 						Zoom in
 					</button>
 					<button
-						onClick={() =>
+						onClick={() => {
 							client.silo.setState(viewportAtom, {
 								...viewport,
 								zoom: Math.max(0.5, viewport.zoom - 0.1),
 							})
-						}
+						}}
 						type="button"
 					>
 						Zoom out
@@ -382,7 +378,9 @@ export function VectorWorkspace({ client }: WorkspaceProps): VNode {
 					<svg
 						aria-label="Shared vector canvas"
 						data-testid="canvas"
-						onPointerCancel={() => finishDrag(false)}
+						onPointerCancel={() => {
+							finishDrag(false)
+						}}
 						onPointerMove={(event) => {
 							const point = logicalPoint(event)
 							void publishFocus(point)
@@ -390,7 +388,9 @@ export function VectorWorkspace({ client }: WorkspaceProps): VNode {
 								void client.editor.previewDrag(point)
 							}
 						}}
-						onPointerUp={() => finishDrag(true)}
+						onPointerUp={() => {
+							finishDrag(true)
+						}}
 						viewBox={`${viewport.pan.x} ${viewport.pan.y} ${256 / viewport.zoom} ${256 / viewport.zoom}`}
 					>
 						<title>Shared vector canvas</title>

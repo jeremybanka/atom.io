@@ -1,3 +1,4 @@
+/** Linear UTF-16 addressing helpers for Mosaic text inside a Lexical root. */
 import {
 	$createLineBreakNode,
 	$createTextNode,
@@ -96,11 +97,10 @@ export function $insertTextAtBlankLineBoundary(
 export function $pointAtRootOffset(
 	root: ElementNode,
 	requested: number,
-): LexicalLinearPoint | null {
+): LexicalLinearPoint {
 	const length = root.getTextContentSize()
 	const target = Math.max(0, Math.min(requested, length))
 	let traversed = 0
-	let last: LexicalNode | null = null
 	const visit = (node: LexicalNode): LexicalLinearPoint | null => {
 		if ($isElementNode(node)) {
 			if (node !== root && target === traversed) return { node, offset: 0 }
@@ -123,37 +123,23 @@ export function $pointAtRootOffset(
 		const size = node.getTextContentSize()
 		const start = traversed
 		const end = start + size
-		last = node
 		if (target < end) {
 			if ($isTextNode(node)) return { node, offset: target - start }
-			const parent = node.getParent()
-			if (parent === null) return null
 			return {
-				node: parent,
+				node: node.getParentOrThrow(),
 				offset: node.getIndexWithinParent() + (target === start ? 0 : 1),
 			}
-		}
-		if (target === start) {
-			if ($isTextNode(node)) return { node, offset: 0 }
-			const parent = node.getParent()
-			return parent === null
-				? null
-				: { node: parent, offset: node.getIndexWithinParent() }
 		}
 		traversed = end
 		return null
 	}
 	const found = visit(root)
 	if (found !== null) return found
-	if (last === null) return { node: root, offset: 0 }
-	const finalNode = last as LexicalNode
-	if ($isTextNode(finalNode)) {
-		return { node: finalNode, offset: finalNode.getTextContentSize() }
-	}
-	const parent = finalNode.getParent()
-	return parent === null
-		? { node: root, offset: root.getChildrenSize() }
-		: { node: parent, offset: finalNode.getIndexWithinParent() + 1 }
+	// The target is clamped to the root's text size, so visiting the root always
+	// resolves it. Keep the invariant explicit if a future Lexical node type
+	// changes the traversal accounting.
+	/* v8 ignore next */
+	throw new Error(`A clamped Markdown offset could not be resolved.`)
 }
 
 function rootRelativePointOffset(root: ElementNode, point: PointType): number {

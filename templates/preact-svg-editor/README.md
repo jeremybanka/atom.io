@@ -45,6 +45,10 @@ Run the model conformance tests:
 npm test
 ```
 
+## Quality Checks
+
+Run `npm run lint` before committing. It enforces ESLint, type-aware Oxlint, and TypeScript with zero warnings. Run `npm run fmt:check` in CI and `npm run fmt` to apply the pinned dprint configuration locally.
+
 ## Where To Look
 
 - `src/index.tsx`: Preact entry point and resource links.

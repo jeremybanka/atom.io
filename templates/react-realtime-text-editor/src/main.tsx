@@ -8,6 +8,7 @@ import { io } from "socket.io-client"
 import { createMarkdownCollaborationClient } from "./collaboration-client.ts"
 import { MarkdownWorkspace } from "./MarkdownWorkspace.tsx"
 import { getBrowserSession } from "./session.ts"
+import { createMarkdownWorkspaceState } from "./workspace-state.ts"
 
 const session = getBrowserSession()
 const silo = new Silo({
@@ -26,9 +27,19 @@ const client = await createMarkdownCollaborationClient({
 	silo,
 	socket,
 })
+const workspace = createMarkdownWorkspaceState({ client, silo })
+window.addEventListener(
+	`pagehide`,
+	() => {
+		workspace[Symbol.dispose]()
+		client[Symbol.dispose]()
+		socket.close()
+	},
+	{ once: true },
+)
 
 createRoot(document.getElementById(`root`)!).render(
 	<StoreProvider store={silo.store}>
-		<MarkdownWorkspace client={client} />
+		<MarkdownWorkspace client={client} state={workspace} />
 	</StoreProvider>,
 )

@@ -48,46 +48,10 @@ export default defineConfig({
 		},
 		{
 			name: `Oxlint`,
-			files: [`packages/atom.io/oxlint.json`],
+			files: [`**/oxlint.json`, `**/.oxlintrc.json`],
 			parse: json(),
 			validate: ajv({
 				schema: `node_modules/oxlint/configuration_schema.json`,
-				extensions: [schemars({ version: `0.8.22` })],
-			}),
-		},
-		{
-			name: `Preact SVG Editor Oxlint`,
-			files: [`templates/preact-svg-editor/.oxlintrc.json`],
-			parse: json(),
-			validate: ajv({
-				schema: `templates/preact-svg-editor/node_modules/oxlint/configuration_schema.json`,
-				extensions: [schemars({ version: `0.8.22` })],
-			}),
-		},
-		{
-			name: `React Node Backend Oxlint`,
-			files: [`templates/react-node-backend/.oxlintrc.json`],
-			parse: json(),
-			validate: ajv({
-				schema: `templates/react-node-backend/node_modules/oxlint/configuration_schema.json`,
-				extensions: [schemars({ version: `0.8.22` })],
-			}),
-		},
-		{
-			name: `React Realtime Text Editor Oxlint`,
-			files: [`templates/react-realtime-text-editor/.oxlintrc.json`],
-			parse: json(),
-			validate: ajv({
-				schema: `templates/react-realtime-text-editor/node_modules/oxlint/configuration_schema.json`,
-				extensions: [schemars({ version: `0.8.22` })],
-			}),
-		},
-		{
-			name: `Solid Lossless Numbers Oxlint`,
-			files: [`templates/solid-lossless-numbers/.oxlintrc.json`],
-			parse: json(),
-			validate: ajv({
-				schema: `templates/solid-lossless-numbers/node_modules/oxlint/configuration_schema.json`,
 				extensions: [schemars({ version: `0.8.22` })],
 			}),
 		},

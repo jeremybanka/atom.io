@@ -82,6 +82,21 @@ pnpm --filter atom.io.fyi dev
 pnpm --filter create-atom.io build
 ```
 
+### Editor Tooling
+
+Install the **Lasertag** and **Correctly** VSIX extensions for live CSS Module
+feedback and JSON/JSONC schema diagnostics, completion, and hover. Both tools are
+workspace dependencies; their editor extensions are installed separately, outside
+the VS Code Marketplace. The [editor setup exhibit](./packages/atom.io/docs/source/exhibits/tooling/editor-setup.sh.txt)
+contains the installation commands.
+
+Lasertag builds and installs its extension from the project's pinned npm package.
+Correctly 0.1.0 builds its extension from a separate checkout of the matching
+release tag. Use VS Code 1.105 or later, open the atom.io repository root, and trust
+the workspace so Correctly can load [correctly.config.ts](./correctly.config.ts)
+and the project's installed validators. Rebuild and reinstall the corresponding
+VSIX after upgrading either tool. Dprint continues to handle formatting.
+
 ## AI Agent Docs
 
 The published `atom.io` package includes agent-friendly documentation. After

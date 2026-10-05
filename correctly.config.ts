@@ -43,6 +43,7 @@ export default defineConfig({
 			name: `Dprint`,
 			files: [`**/dprint.json`],
 			parse: json(),
+			// Dprint's installed npm packages do not ship a JSON Schema.
 			validate: ajv({ schema: `https://dprint.dev/schemas/v0.json` }),
 		},
 		{
@@ -50,7 +51,7 @@ export default defineConfig({
 			files: [`turbo.json`],
 			parse: json(),
 			validate: ajv({
-				schema: `https://turbo.build/schema.json`,
+				schema: `node_modules/turbo/schema.json`,
 				extensions: [schemars({ version: `0.8.22` })],
 			}),
 		},
@@ -59,6 +60,7 @@ export default defineConfig({
 			files: [`renovate.json`],
 			parse: json(),
 			validate: ajv({
+				// Renovate runs in CI; it is not an installed workspace dependency.
 				schema: `https://docs.renovatebot.com/renovate-schema.json`,
 				extensions: [renovate()],
 			}),

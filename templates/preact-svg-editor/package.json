@@ -26,7 +26,7 @@
 		"react-dom": "npm:@preact/compat@18.3.2"
 	},
 	"devDependencies": {
-		"@dprint/json": "0.25.1",
+		"@dprint/json": "0.25.2",
 		"@dprint/markdown": "0.26.0",
 		"@dprint/oxc": "0.43.0",
 		"@preact/preset-vite": "2.10.6",

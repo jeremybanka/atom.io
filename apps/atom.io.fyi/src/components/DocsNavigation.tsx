@@ -379,6 +379,72 @@ function SiteDirectory(): VNode {
 					</main>
 				</section>
 				<section>
+					<header>Realtime</header>
+					<main>
+						<section>
+							<a id="-docs-realtime-link" href="/docs/realtime">
+								overview
+							</a>
+						</section>
+						<section>
+							<a id="-docs-realtime-rigid-link" href="/docs/realtime/rigid">
+								rigid
+							</a>
+						</section>
+						<section>
+							<a id="-docs-realtime-mosaic-link" href="/docs/realtime/mosaic">
+								atomic mosaic
+							</a>
+						</section>
+						<section>
+							<a id="-docs-realtime-domains-link" href="/docs/realtime/domains">
+								mosaic domains
+							</a>
+						</section>
+						<section>
+							<a id="-docs-realtime-text-link" href="/docs/realtime/text">
+								mosaic text
+							</a>
+						</section>
+						<section>
+							<a id="-docs-realtime-client-link" href="/docs/realtime-client">
+								<low-emphasis>atom.io</low-emphasis>/realtime-client
+							</a>
+						</section>
+						<section>
+							<a id="-docs-realtime-react-link" href="/docs/realtime-react">
+								<low-emphasis>atom.io</low-emphasis>/realtime-react
+							</a>
+						</section>
+						<section>
+							<a id="-docs-realtime-server-link" href="/docs/realtime-server">
+								<low-emphasis>atom.io</low-emphasis>/realtime-server
+							</a>
+						</section>
+						<section>
+							<a id="-docs-realtime-testing-link" href="/docs/realtime-testing">
+								<low-emphasis>atom.io</low-emphasis>/realtime-testing
+							</a>
+						</section>
+						<section>
+							<a
+								id="-docs-realtime-operations-link"
+								href="/docs/realtime/operations"
+							>
+								operations and security
+							</a>
+						</section>
+						<section>
+							<a
+								id="-docs-realtime-reference-link"
+								href="/docs/realtime/reference"
+							>
+								component reference
+							</a>
+						</section>
+					</main>
+				</section>
+				<section>
 					<header>Foundations</header>
 					<main>
 						<section>

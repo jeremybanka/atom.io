@@ -1,0 +1,146 @@
+import Exhibit from "c/Exhibit.astro";
+
+# Atomic Mosaic
+
+Atomic Mosaic synchronizes one ordinary mutable atom by exchanging validated
+operations rather than replacing snapshots. The mutable atom's transceiver
+class defines how an intent becomes an operation, how accepted operations
+reduce, how snapshots hydrate, and which concurrent operations converge.
+
+Use Atomic Mosaic when one resource is the correct collaboration boundary. If
+one user gesture spans several resources, use a
+[Mosaic Domain](/docs/realtime/domains).
+
+## intent, operation, view, snapshot
+
+A `MosaicTransceiver` separates four concepts:
+
+<table-wrapper>
+	<table>
+		<thead>
+			<tr>
+				<th>Concept</th>
+				<th>Purpose</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>Intent</td>
+				<td>A local command such as insert, delete, undo, or move.</td>
+			</tr>
+			<tr>
+				<td>Operation</td>
+				<td>The serializable, validated fact sent through the protocol.</td>
+			</tr>
+			<tr>
+				<td>Readonly view</td>
+				<td>The Store-owned value read by selectors and renderers.</td>
+			</tr>
+			<tr>
+				<td>Snapshot</td>
+				<td>A bounded recovery representation, not a remote overwrite command.</td>
+			</tr>
+		</tbody>
+	</table>
+</table-wrapper>
+
+The static `mosaic` key and version identify model behavior on the wire. Change
+the version whenever parsing, reduction, addressing, or convergence semantics
+change. A model migration is a protocol migration, not merely a TypeScript
+refactor.
+
+## built-in Mosaic Text
+
+`mosaicText()` creates a Unicode-aware run-text transceiver. Its positions are
+logical run boundaries, its edit operations contain inserted runs and deletion
+intervals, and its history operations compensate selected actor operations.
+
+<Exhibit src="realtime/prepare-logical-text-edit.ts" />
+
+Stable logical positions survive physical checkpoint fragmentation. Concurrent
+inserts and deletes settle deterministically, and one actor's undo does not
+restore an old whole-document snapshot over another actor's changes.
+
+## use it from React
+
+Declare a normal mutable atom with the Mosaic class. `useO` still reads it;
+`useMosaic` owns only collaboration lifecycle and commands.
+
+<Exhibit src="realtime/synchronize-a-mosaic-value.tsx" />
+
+`useMosaic` exposes actor/session identity, status, revision, pending operation
+ids, presence, problems, retry, synchronization, and group-id creation. Group
+several local operations under one stable gesture id when they should appear as
+one history step.
+
+## register it on the server
+
+The server registers the ordinary mutable atom, its transceiver class, and a
+Standard Schema for operations. The model validates semantic anchors after the
+schema validates protocol shape. Authorization runs for reads, proposals, and
+presence.
+
+<Exhibit src="realtime/serve-a-mosaic-value.ts" />
+
+The exhibit validates every nested operation field. Also enforce byte, array,
+depth, and model limits before model work. Never treat a TypeScript type
+assertion as remote validation.
+
+## client lifecycle
+
+The headless `syncMosaic` controller:
+
+1. joins with its atom address, model identity, known revision, and pending ids;
+2. hydrates or recovers from the authoritative snapshot and tail;
+3. prepares local intent optimistically in the Store;
+4. submits operations with stable ids, actor, session, group, and dependencies;
+5. reprojects confirmed and pending work after acceptance or rejection; and
+6. retains recoverable pending work across disconnects.
+
+The renderer observes one ordinary Store projection. Rejection and rebase do
+not deliberately flash a rollback frame between two Store transactions.
+
+## contention and convergence
+
+Atomic Mosaic does not provide a universal merge algorithm. The model owns the
+algebra. A sound model should make these properties explicit:
+
+- deterministic reduction for every accepted ordering;
+- idempotent handling of duplicate operation ids;
+- stable logical identity for objects and positions;
+- validation of references against the current model state;
+- bounded operation and snapshot shapes;
+- a deliberate answer for concurrent insert/delete/move/replace;
+- a compensation rule if actor-selective history is supported; and
+- compaction that preserves every retained dependency and history target.
+
+Use `atom.io/realtime-testing` to permute delivery, duplicate messages, reject
+work, disconnect clients, restart the server, and compare every client with an
+independent model oracle.
+
+## presence
+
+Mosaic presence is validated but not durable. Publish logical information such
+as a run-relative selection, tool, or pointer in document coordinates. Do not
+replicate DOM nodes, pixels tied to one viewport, pointer-capture objects, or
+full durable values through presence.
+
+Presence expires and clears on disconnect. An active session should renew its
+latest logical presence before expiry and republish after reconnect, without
+allowing advisory failure to abort durable synchronization. Product code must
+still tolerate missed, reordered, coalesced, and expired presence updates.
+
+## when to promote to a Domain
+
+Atomic Mosaic is intentionally one-member coordination. Promote the model when
+you need any of the following:
+
+- an atomic gesture across several atoms or family members;
+- selective hydration of a very large resource;
+- checkpoints shared by heterogeneous members;
+- actor history coordinated across member types;
+- durable values plus ephemeral presence under one declared identity; or
+- one authorization and version boundary for an application resource.
+
+The transceiver remains useful inside the Domain; promotion adds coordination
+around it rather than replacing its convergence model.

@@ -97,36 +97,6 @@ installed validators, including repository and nested Git ignore rules. It check
 GitHub workflows and actions, pnpm workspace settings, Mise configuration, and
 our JSON/JSONC tooling files. Dprint handles formatting.
 
-#### Helix
-
-Open Helix from the repository root. Merge these entries into your
-[languages.toml](https://docs.helix-editor.com/languages.html), either in your Helix
-configuration directory or a local, uncommitted .helix directory:
-
-```toml
-[language-server.lasertag]
-command = "pnpm"
-args = ["--workspace-root", "exec", "lasertag-lsp", "--stdio"]
-
-[language-server.correctly]
-command = "pnpm"
-args = ["--workspace-root", "exec", "correctly-lsp", "--stdio"]
-
-[[language]]
-name = "css"
-language-servers = ["vscode-css-language-server", "lasertag"]
-
-[[language]]
-name = "json"
-roots = ["correctly.config.ts"]
-language-servers = ["correctly"]
-```
-
-Also append `lasertag` to your existing `tsx` and `astro` language-server lists.
-Apply the JSON stanza's roots and server selection to `jsonc`, `yaml`, and `toml`
-as well. Keep any other language servers you use alongside these; the root marker
-keeps Correctly's workspace boundary at our shared configuration.
-
 #### VS Code
 
 Install the bundled VSIX clients, which launch the same language servers. Use

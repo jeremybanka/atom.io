@@ -174,6 +174,9 @@ importers:
       '@changesets/config':
         specifier: 4.0.1
         version: 4.0.1
+      '@correctlyjs/schemars':
+        specifier: 0.0.1
+        version: 0.0.1(correctly@0.1.0(arktype@2.2.7)(zod@4.6.5))
       '@dotenvx/dotenvx':
         specifier: 2.32.4
         version: 2.32.4
@@ -202,8 +205,8 @@ importers:
         specifier: 3.2.0
         version: 3.2.0(supports-color@10.2.2)
       correctly:
-        specifier: 0.0.0
-        version: 0.0.0
+        specifier: 0.1.0
+        version: 0.1.0(arktype@2.2.7)(zod@4.6.5)
       dprint:
         specifier: 0.60.1
         version: 0.60.1
@@ -1304,6 +1307,12 @@ packages:
     engines: {node: '>=16'}
     cpu: [x64]
     os: [win32]
+
+  '@correctlyjs/schemars@0.0.1':
+    resolution: {integrity: sha512-0b+CGnNJV2lvRV4kyxSPuSrryVHQFXyvtwubQ+79qvCUUVeM3bHL19chJJHf5PsGGYvfkITx4RAvb//SAa15FQ==}
+    engines: {node: '>=22.18.0'}
+    peerDependencies:
+      correctly: ^0.1.0
 
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
@@ -4461,8 +4470,8 @@ packages:
     resolution: {integrity: sha512-yuToqVvRrj6pfDXREyQAAv8SkAEk/8GS3jQRTiUMm66TVtBYmqQeoEjL2Lmq8Rpo6271vH76InTChTitEAm65w==}
     engines: {node: '>=22'}
 
-  correctly@0.0.0:
-    resolution: {integrity: sha512-bCJFGsYPEG7etvK+kTKbFzr80xNUmqma/WIrybDJvyHgdxxBdz39lurORZj2m7QjqBEKk7198TRJYh8GKXVGew==}
+  correctly@0.1.0:
+    resolution: {integrity: sha512-dgAbBPf4GLeFSqDfzAF3+pupoNMTzUzJFSXaBMDiFAgop8K44bFKHUaXyY2niktniNW06xX9tIFt+Py89f9GVw==}
     engines: {node: '>=22.18.0'}
     hasBin: true
 
@@ -7972,6 +7981,10 @@ snapshots:
   '@cloudflare/workerd-windows-64@1.20261001.1':
     optional: true
 
+  '@correctlyjs/schemars@0.0.1(correctly@0.1.0(arktype@2.2.7)(zod@4.6.5))':
+    dependencies:
+      correctly: 0.1.0(arktype@2.2.7)(zod@4.6.5)
+
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
@@ -10569,16 +10582,20 @@ snapshots:
 
   cookie@2.0.1: {}
 
-  correctly@0.0.0:
+  correctly@0.1.0(arktype@2.2.7)(zod@4.6.5):
     dependencies:
       ajv: 8.20.0
       ajv-formats: 3.0.1
+      comline: 0.9.0(arktype@2.2.7)(zod@4.6.5)
       jsonc-parser: 3.3.1
       picomatch: 4.0.7
       tinyglobby: 0.2.17
       vscode-json-languageservice: 5.7.2
       vscode-languageserver: 10.1.2
       vscode-languageserver-textdocument: 1.0.15
+    transitivePeerDependencies:
+      - arktype
+      - zod
 
   cors@2.8.6:
     dependencies:

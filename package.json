@@ -42,6 +42,7 @@
 	"devDependencies": {
 		"@changesets/cli": "3.0.3",
 		"@changesets/config": "4.0.1",
+		"@correctlyjs/schemars": "0.0.1",
 		"@dotenvx/dotenvx": "2.32.4",
 		"@dprint/json": "0.25.1",
 		"@dprint/markdown": "0.26.0",
@@ -51,7 +52,7 @@
 		"@typescript-eslint/parser": "8.71.0",
 		"@typescript-eslint/utils": "8.71.0",
 		"astro-eslint-parser": "3.2.0",
-		"correctly": "0.0.0",
+		"correctly": "0.1.0",
 		"dprint": "0.60.1",
 		"dprint-plugin-malva": "0.16.0",
 		"dprint-plugin-markup": "0.27.5",

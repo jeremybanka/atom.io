@@ -85,9 +85,10 @@ pnpm --filter create-atom.io build
 ### Editor Tooling
 
 Install the **Lasertag** and **Correctly** VSIX extensions for live CSS Module
-feedback and JSON/JSONC schema diagnostics, completion, and hover. Both tools are
-workspace dependencies; their editor extensions are installed separately, outside
-the VS Code Marketplace. The [editor setup exhibit](./packages/atom.io/docs/source/exhibits/tooling/editor-setup.sh.txt)
+feedback and configuration diagnostics. Correctly also provides completion and
+hover for JSON/JSONC. Both tools are workspace dependencies; their editor
+extensions are installed separately, outside the VS Code Marketplace. The
+[editor setup exhibit](./packages/atom.io/docs/source/exhibits/tooling/editor-setup.sh.txt)
 contains the installation commands.
 
 Lasertag builds and installs its extension from the project's pinned npm package.
@@ -96,6 +97,12 @@ release tag. Use VS Code 1.105 or later, open the atom.io repository root, and t
 the workspace so Correctly can load [correctly.config.ts](./correctly.config.ts)
 and the project's installed validators. Rebuild and reinstall the corresponding
 VSIX after upgrading either tool. Dprint continues to handle formatting.
+
+Correctly checks JSON/JSONC configuration, GitHub workflow and action YAML, pnpm
+workspace YAML, and Mise TOML. Repository and nested Git ignore rules control
+discovery; the generated pnpm lockfile is checked by the frozen install instead.
+Installed package schemas are used where available, with published schemas for
+the remaining tools.
 
 ## AI Agent Docs
 

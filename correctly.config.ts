@@ -1,11 +1,10 @@
 import { schemars } from "@correctlyjs/schemars/ajv"
-import { defineConfig, GITIGNORE, json, jsonc } from "correctly"
+import { defineConfig, GITIGNORE, json, jsonc, toml, yaml } from "correctly"
 import { renovate } from "correctly/extensions/renovate"
 import { ajv } from "correctly/validators/ajv"
 
 export default defineConfig({
-	files: [`**/*.json`, `**/*.jsonc`],
-	exclude: [GITIGNORE],
+	exclude: [GITIGNORE, `pnpm-lock.yaml`],
 	associations: [
 		{
 			name: `Changesets`,
@@ -105,6 +104,36 @@ export default defineConfig({
 			files: [`**/tsconfig*.json`, `**/.vscode/*.json`, `**/.zed/*.json`],
 			parse: jsonc(),
 			validate: null,
+		},
+		{
+			name: `GitHub workflows`,
+			files: [`.github/workflows/*.{yml,yaml}`],
+			parse: yaml(),
+			validate: ajv({
+				schema: `https://www.schemastore.org/github-workflow.json`,
+			}),
+		},
+		{
+			name: `GitHub actions`,
+			files: [`.github/actions/**/action.{yml,yaml}`],
+			parse: yaml(),
+			validate: ajv({
+				schema: `https://www.schemastore.org/github-action.json`,
+			}),
+		},
+		{
+			name: `pnpm workspace`,
+			files: [`pnpm-workspace.yaml`],
+			parse: yaml(),
+			validate: ajv({
+				schema: `https://www.schemastore.org/pnpm-workspace.json`,
+			}),
+		},
+		{
+			name: `Mise`,
+			files: [`**/mise.toml`],
+			parse: toml(),
+			validate: ajv({ schema: `https://mise.jdx.dev/schema/mise.json` }),
 		},
 	],
 })

@@ -82,15 +82,59 @@ pnpm --filter atom.io.fyi dev
 pnpm --filter create-atom.io build
 ```
 
-### Editor Tooling
+### Language Servers and Editors
 
-Install the **Lasertag** and **Correctly** VSIX extensions for live CSS Module
-feedback and configuration diagnostics. Correctly also provides completion and
-hover for JSON/JSONC. Both tools are workspace dependencies; their editor
-extensions are installed separately, outside the VS Code Marketplace.
+After installing workspace dependencies, these language servers are available
+locally and communicate over stdio:
 
-After installing workspace dependencies, run this from the repository root to
-build and install Lasertag's extension from the pinned npm package:
+| Server    | Project executable                | Purpose                                                                                        |
+| --------- | --------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Lasertag  | `node_modules/.bin/lasertag-lsp`  | CSS Module diagnostics, completions, and cleanup actions for CSS, TSX, and Astro.              |
+| Correctly | `node_modules/.bin/correctly-lsp` | Configuration diagnostics for JSON/JSONC, YAML, and TOML; completion and hover for JSON/JSONC. |
+
+Correctly uses [correctly.config.ts](./correctly.config.ts) and the project's
+installed validators, including repository and nested Git ignore rules. It checks
+GitHub workflows and actions, pnpm workspace settings, Mise configuration, and
+our JSON/JSONC tooling files. Dprint handles formatting.
+
+#### Helix
+
+Open Helix from the repository root. Merge these entries into your
+[languages.toml](https://docs.helix-editor.com/languages.html), either in your Helix
+configuration directory or a local, uncommitted .helix directory:
+
+```toml
+[language-server.lasertag]
+command = "pnpm"
+args = ["--workspace-root", "exec", "lasertag-lsp", "--stdio"]
+
+[language-server.correctly]
+command = "pnpm"
+args = ["--workspace-root", "exec", "correctly-lsp", "--stdio"]
+
+[[language]]
+name = "css"
+language-servers = ["vscode-css-language-server", "lasertag"]
+
+[[language]]
+name = "json"
+roots = ["correctly.config.ts"]
+language-servers = ["correctly"]
+```
+
+Also append `lasertag` to your existing `tsx` and `astro` language-server lists.
+Apply the JSON stanza's roots and server selection to `jsonc`, `yaml`, and `toml`
+as well. Keep any other language servers you use alongside these; the root marker
+keeps Correctly's workspace boundary at our shared configuration.
+
+#### VS Code
+
+Install the bundled VSIX clients, which launch the same language servers. Use
+VS Code 1.105 or later, open the repository root, and trust the workspace so
+Correctly can load its TypeScript configuration. The extensions are distributed
+outside the VS Code Marketplace.
+
+Build and install Lasertag's extension from the project's pinned npm package:
 
 ```sh
 pnpm exec lasertag vsix
@@ -107,16 +151,7 @@ pnpm build:vsix
 code --install-extension artifacts/Correctly-0.1.2.vsix
 ```
 
-Use VS Code 1.105 or later, open the atom.io repository root, and trust
-the workspace so Correctly can load [correctly.config.ts](./correctly.config.ts)
-and the project's installed validators. Rebuild and reinstall the corresponding
-VSIX after upgrading either tool. Dprint continues to handle formatting.
-
-Correctly checks JSON/JSONC configuration, GitHub workflow and action YAML, pnpm
-workspace YAML, and Mise TOML. Repository and nested Git ignore rules control
-discovery; the generated pnpm lockfile is checked by the frozen install instead.
-Installed package schemas are used where available, with published schemas for
-the remaining tools.
+Rebuild and reinstall the corresponding VSIX after upgrading either tool.
 
 ## AI Agent Docs
 

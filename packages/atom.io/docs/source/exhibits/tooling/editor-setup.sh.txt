@@ -1,0 +1,11 @@
+# From the atom.io repository root, after installing workspace dependencies:
+pnpm exec lasertag vsix
+
+# Build Correctly's extension in a separate sibling checkout.
+# Match the release tag and VSIX version to atom.io's correctly dependency.
+cd ..
+git clone --branch correctly@0.1.0 --depth 1 https://github.com/jeremybanka/correctly.git correctly-editor
+cd correctly-editor
+pnpm install --frozen-lockfile
+pnpm build:vsix
+code --install-extension artifacts/Correctly-0.1.0.vsix

@@ -91,7 +91,7 @@ the VS Code Marketplace. The [editor setup exhibit](./packages/atom.io/docs/sour
 contains the installation commands.
 
 Lasertag builds and installs its extension from the project's pinned npm package.
-Correctly 0.1.0 builds its extension from a separate checkout of the matching
+Correctly builds its extension from a separate checkout of the matching
 release tag. Use VS Code 1.105 or later, open the atom.io repository root, and trust
 the workspace so Correctly can load [correctly.config.ts](./correctly.config.ts)
 and the project's installed validators. Rebuild and reinstall the corresponding

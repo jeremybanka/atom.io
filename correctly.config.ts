@@ -1,29 +1,11 @@
 import { schemars } from "@correctlyjs/schemars/ajv"
-import { defineConfig, json, jsonc } from "correctly"
+import { defineConfig, GITIGNORE, json, jsonc } from "correctly"
 import { renovate } from "correctly/extensions/renovate"
 import { ajv } from "correctly/validators/ajv"
 
 export default defineConfig({
 	files: [`**/*.json`, `**/*.jsonc`],
-	exclude: [
-		`**/.astro/**`,
-		`**/.cache/**`,
-		`**/.pnpm-store/**`,
-		`**/.turbo/**`,
-		`**/.wrangler/**`,
-		`**/coverage/**`,
-		`**/coverage-public/**`,
-		`**/storybook-static/**`,
-		`**/package-lock.json`,
-		`**/metafile-*.json`,
-		`**/heap.json`,
-		`**/*.tsdoc.json`,
-		`projects/**`,
-		`pkg/**`,
-		`packages/atom.io/__reports__/**`,
-		`packages/atom.io/docs/agent/**`,
-		`apps/atom.io.fyi/agent-docs/**`,
-	],
+	exclude: [GITIGNORE],
 	associations: [
 		{
 			name: `Changesets`,

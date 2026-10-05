@@ -2,4 +2,4 @@
 "atom.io": patch
 ---
 
-Document local Lasertag and Correctly VSIX setup in the contributor README, Git ignore integration, and shared JSON/JSONC, YAML, and TOML configuration validation.
+Document project-local Lasertag and Correctly language servers, Helix stdio configuration, VS Code VSIX installation, Git ignore integration, and shared JSON/JSONC, YAML, and TOML configuration validation in the contributor README.

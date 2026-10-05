@@ -1,5 +1,11 @@
 # atom.io
 
+## 0.53.4
+
+### Patch Changes
+
+- f43798c: Document project-local Lasertag and Correctly language servers, VS Code VSIX installation, Git ignore integration, and shared JSON/JSONC, YAML, and TOML configuration validation in the contributor README.
+
 ## 0.53.3
 
 ### Patch Changes

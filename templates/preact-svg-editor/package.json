@@ -28,7 +28,7 @@
 	"devDependencies": {
 		"@dprint/json": "0.25.2",
 		"@dprint/markdown": "0.26.0",
-		"@dprint/oxc": "0.43.0",
+		"@dprint/oxc": "0.44.0",
 		"@preact/preset-vite": "2.10.6",
 		"@typescript-eslint/eslint-plugin": "8.71.0",
 		"@typescript-eslint/parser": "8.71.0",

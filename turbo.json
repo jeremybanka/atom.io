@@ -98,7 +98,7 @@
 			]
 		},
 		"test:breaks": {
-			"dependsOn": [],
+			"dependsOn": ["^build"],
 			"cache": false,
 			"inputs": [
 				"../../.changeset/**",

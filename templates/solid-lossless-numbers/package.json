@@ -27,7 +27,7 @@
 	"devDependencies": {
 		"@dprint/json": "0.25.2",
 		"@dprint/markdown": "0.26.0",
-		"@dprint/oxc": "0.43.0",
+		"@dprint/oxc": "0.44.0",
 		"@types/node": "26.6.4",
 		"dprint": "0.60.1",
 		"dprint-plugin-malva": "0.16.0",

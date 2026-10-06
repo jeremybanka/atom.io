@@ -187,8 +187,8 @@ importers:
         specifier: 0.26.0
         version: 0.26.0
       '@dprint/oxc':
-        specifier: 0.43.0
-        version: 0.43.0
+        specifier: 0.44.0
+        version: 0.44.0
       '@dprint/toml':
         specifier: 0.9.0
         version: 0.9.0
@@ -546,8 +546,8 @@ importers:
         specifier: 0.26.0
         version: 0.26.0
       '@dprint/oxc':
-        specifier: 0.43.0
-        version: 0.43.0
+        specifier: 0.44.0
+        version: 0.44.0
       '@preact/preset-vite':
         specifier: 2.10.6
         version: 2.10.6(@babel/core@7.29.7(supports-color@10.2.2))(preact@11.0.0)(supports-color@10.2.2)(vite@8.3.2(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
@@ -607,8 +607,8 @@ importers:
         specifier: 0.26.0
         version: 0.26.0
       '@dprint/oxc':
-        specifier: 0.43.0
-        version: 0.43.0
+        specifier: 0.44.0
+        version: 0.44.0
       '@eslint-react/eslint-plugin':
         specifier: 5.24.4
         version: 5.24.4(eslint@10.12.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@7.0.2)
@@ -692,8 +692,8 @@ importers:
         specifier: 0.26.0
         version: 0.26.0
       '@dprint/oxc':
-        specifier: 0.43.0
-        version: 0.43.0
+        specifier: 0.44.0
+        version: 0.44.0
       '@testing-library/dom':
         specifier: 10.4.2
         version: 10.4.2
@@ -768,8 +768,8 @@ importers:
         specifier: 0.26.0
         version: 0.26.0
       '@dprint/oxc':
-        specifier: 0.43.0
-        version: 0.43.0
+        specifier: 0.44.0
+        version: 0.44.0
       '@types/node':
         specifier: 26.6.4
         version: 26.6.4
@@ -1411,8 +1411,8 @@ packages:
   '@dprint/markdown@0.26.0':
     resolution: {integrity: sha512-6BZ6DYia7E0O6TyEvbw7uuENbhxD364LXfmWE1jiL1b7uFuhDJPiBIK++2qSz00gpSs8ydArkorWlfHquTtgvQ==}
 
-  '@dprint/oxc@0.43.0':
-    resolution: {integrity: sha512-eSkBZvddbv9I0dHjgSm9YERu4LijfJmJoNXdXVAE6Jc3SM8fH7DQbfQxI/CnhHW/8v4UWADrbh+EtaeX2UeFCQ==}
+  '@dprint/oxc@0.44.0':
+    resolution: {integrity: sha512-yMuRzPaKdE5xfA2AfY6/L9dPvNJORMiyROxf6DTvBYOaQG/PUfOLx0FawNt0mt1qprKM6+DfFb7ntp9bdw21Wg==}
 
   '@dprint/toml@0.9.0':
     resolution: {integrity: sha512-LPALX1gUtRFKugemsGa7iNNC4ZSvTTBKSWySw3iAH4nphjsa2OaCaPmNZIi15wyOVag+pYESyBsvyELgYYNTtQ==}
@@ -8177,7 +8177,7 @@ snapshots:
 
   '@dprint/markdown@0.26.0': {}
 
-  '@dprint/oxc@0.43.0': {}
+  '@dprint/oxc@0.44.0': {}
 
   '@dprint/toml@0.9.0': {}
 

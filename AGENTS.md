@@ -8,3 +8,9 @@ Repo notes:
   the docs.
 - For workspace packages below version 1.0.0, only breaking changes receive a
   minor release.
+
+## Release compatibility
+
+- Run released public contracts against source with break-check; do not build the package or run the current suite as a compatibility preflight.
+- Run current tests, builds, and type checks independently in parallel CI jobs. Public-test commands run tests only.
+- Disable compatibility-task caching and preserve the repository's intentional-break certification policy.

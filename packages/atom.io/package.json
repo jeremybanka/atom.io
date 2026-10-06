@@ -151,7 +151,7 @@
 		"lint:types:docs": "tsc -p tsconfig.exhibits.json",
 		"test": "vitest",
 		"test:once": "vitest run --config vitest.dist.config.ts",
-		"test:once:public": "vitest run --config vitest.public-dist.config.ts",
+		"test:once:public": "vitest run --config vitest.public.config.ts",
 		"test:react-types-peer": "node ./__scripts__/test-react-types-peer.node.ts",
 		"test:stress:realtime-ipc": "ATOM_IO_TEST_ROOM_STARTUP_DELAY_MS=1250 vitest run --config vitest.dist.config.ts __tests__/private/experiments/realtime-ipc/game-servers.test.tsx",
 		"test:breaks": "break-check break-check.config.json --verbose",

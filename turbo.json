@@ -98,7 +98,8 @@
 			]
 		},
 		"test:breaks": {
-			"dependsOn": ["^build"],
+			"dependsOn": [],
+			"cache": false,
 			"inputs": [
 				"../../.changeset/**",
 				"package.json",

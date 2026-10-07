@@ -395,8 +395,8 @@ importers:
         specifier: 2.2.7
         version: 2.2.7
       break-check:
-        specifier: 0.8.1
-        version: 0.8.1(supports-color@10.2.2)(zod@4.6.5)
+        specifier: 0.8.2
+        version: 0.8.2(supports-color@10.2.2)(zod@4.6.5)
       concurrently:
         specifier: 10.0.5
         version: 10.0.5
@@ -4417,8 +4417,8 @@ packages:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
     engines: {node: '>=8'}
 
-  break-check@0.8.1:
-    resolution: {integrity: sha512-YEHOJLMsyvoDp/AI2fLdmCoFBJOEx7ibCaXNOpD8QLXLUQ7az6C6rhP24LXcGOY/ywiwlBrEvpjI8FF4vcp2Sg==}
+  break-check@0.8.2:
+    resolution: {integrity: sha512-Ff4qfyry4IX4ZwRdk9M+IbF+ZFDbb5D3RCWHC5FlMM5fRiyZnLnzoGCAmHStLrsSKJGmHt9zu0MGdqzg0OFLPQ==}
     hasBin: true
 
   browserslist@4.28.9:
@@ -10612,7 +10612,7 @@ snapshots:
     dependencies:
       fill-range: 7.1.1
 
-  break-check@0.8.1(supports-color@10.2.2)(zod@4.6.5):
+  break-check@0.8.2(supports-color@10.2.2)(zod@4.6.5):
     dependencies:
       arktype: 2.2.7
       comline: 0.9.0(arktype@2.2.7)(zod@4.6.5)

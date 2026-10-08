@@ -2,8 +2,12 @@ import type { Setter, WritableFamilyToken, WritableToken } from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
 import { parseJson } from "atom.io/foundations/json"
 
-import { getFamilyOfToken } from "../families/get-family-of-token.ts"
-import { seekInStore } from "../families/index.ts"
+import {
+	encodeFamilyKey,
+	getFamilyOfToken,
+	prepareFamilyKey,
+	seekEncodedInStore,
+} from "../families/index.ts"
 import { mintInStore, MUST_CREATE } from "../families/mint-in-store.ts"
 import type { OpenOperation } from "../operation.ts"
 import { closeOperation, openOperation } from "../operation.ts"
@@ -44,10 +48,14 @@ export function operateOnStore<T, TT extends T, K extends Canonical, E>(
 		value = params[1]
 		if (`family` in token) {
 			family = getFamilyOfToken(store, token)
-			key = parseJson(token.family.subKey)
-			existingToken = seekInStore(store, family, key)
+			const encoded = encodeFamilyKey<K>(family.key, token.family.subKey)
+			existingToken = seekEncodedInStore(store, family, encoded)
 			if (!existingToken) {
-				token = brandNewToken = mintInStore(MUST_CREATE, store, family, key)
+				key = parseJson(token.family.subKey)
+				token = brandNewToken = mintInStore(MUST_CREATE, store, family, key, {
+					...encoded,
+					key,
+				})
 			} else {
 				token = existingToken
 			}
@@ -56,9 +64,16 @@ export function operateOnStore<T, TT extends T, K extends Canonical, E>(
 		family = withdraw(store, params[0])
 		key = params[1]
 		value = params[2]
-		existingToken = seekInStore(store, family, key)
+		const prepared = prepareFamilyKey(family.key, key)
+		existingToken = seekEncodedInStore(store, family, prepared)
 		if (!existingToken) {
-			token = brandNewToken = mintInStore(MUST_CREATE, store, family, key)
+			token = brandNewToken = mintInStore(
+				MUST_CREATE,
+				store,
+				family,
+				key,
+				prepared,
+			)
 		} else {
 			token = existingToken
 		}

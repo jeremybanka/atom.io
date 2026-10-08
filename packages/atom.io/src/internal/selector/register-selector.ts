@@ -47,8 +47,14 @@ export function registerSelector(
 			const target = newest(store)
 			const { token, family, subKey } = ensureState(store, ...params)
 			let dependencyValue: unknown
-			if (`counterfeit` in token && family && subKey) {
-				dependencyValue = getFallback(store, token, family, subKey)
+			if (`counterfeit` in token && family && subKey && token.family) {
+				dependencyValue = getFallback(
+					store,
+					token,
+					family,
+					subKey,
+					token.family.subKey,
+				)
 			} else {
 				const dependency = withdraw(store, token)
 				dependencyValue = readOrComputeValue(store, dependency)

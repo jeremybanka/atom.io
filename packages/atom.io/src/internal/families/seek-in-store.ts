@@ -17,12 +17,13 @@ import type {
 	WritableToken,
 } from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
-import { stringifyJson } from "atom.io/foundations/json"
 
 import { newest } from "../lineage.ts"
 import type { Transceiver } from "../mutable/index.ts"
 import type { ReadableState } from "../state-types.ts"
 import { deposit, type Store } from "../store/index.ts"
+import type { EncodedFamilyKey } from "./prepare-family-key.ts"
+import { prepareFamilyKey } from "./prepare-family-key.ts"
 
 export function seekInStore<
 	T extends Transceiver<any, any, any>,
@@ -81,22 +82,38 @@ export function seekInStore(
 	token: ReadableFamilyToken<any, any, any>,
 	key: Canonical,
 ): ReadableToken<any, any, any> | undefined {
-	const subKey = stringifyJson(key)
-	const fullKey = `${token.key}(${subKey})`
+	return seekEncodedInStore(store, token, prepareFamilyKey(token.key, key))
+}
+
+export function seekEncodedInStore<T, K extends Canonical, E>(
+	store: Store,
+	token: WritableFamilyToken<T, K, E>,
+	encoded: EncodedFamilyKey<K>,
+): WritableToken<T, K, E> | undefined
+export function seekEncodedInStore<T, K extends Canonical, E>(
+	store: Store,
+	token: ReadableFamilyToken<T, K, E>,
+	encoded: EncodedFamilyKey<K>,
+): ReadableToken<T, K, E> | undefined
+export function seekEncodedInStore(
+	store: Store,
+	token: ReadableFamilyToken<any, any, any>,
+	encoded: EncodedFamilyKey<any>,
+): ReadableToken<any, any, any> | undefined {
 	const target = newest(store)
 	let state: ReadableState<any, any> | undefined
 	switch (token.type) {
 		case `atom_family`:
 		case `mutable_atom_family`:
-			state = target.atoms.get(fullKey)
+			state = target.atoms.get(encoded.fullKey)
 			break
 		case `writable_held_selector_family`:
 		case `writable_pure_selector_family`:
-			state = target.writableSelectors.get(fullKey)
+			state = target.writableSelectors.get(encoded.fullKey)
 			break
 		case `readonly_held_selector_family`:
 		case `readonly_pure_selector_family`:
-			state = target.readonlySelectors.get(fullKey)
+			state = target.readonlySelectors.get(encoded.fullKey)
 			break
 	}
 	if (state) {

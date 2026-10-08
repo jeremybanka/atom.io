@@ -8,10 +8,13 @@ import type {
 } from "atom.io"
 import { PRETTY_ENTITY_NAMES } from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
-import { stringifyJson } from "atom.io/foundations/json"
 import { Subject } from "atom.io/foundations/subject"
 
 import { createWritablePureSelectorFamily } from "../families/index.ts"
+import {
+	type PreparedFamilyKey,
+	prepareFamilyKey,
+} from "../families/prepare-family-key.ts"
 import { newest } from "../lineage.ts"
 import { createMutableAtom } from "../mutable/index.ts"
 import type { MutableAtomFamily } from "../state-types.ts"
@@ -45,10 +48,12 @@ export function createMutableAtomFamily<
 
 	const subject = new Subject<AtomLifecycleEvent<MutableAtomToken<T, K>>>()
 
-	const create = (key: K): MutableAtomToken<T> => {
-		const subKey = stringifyJson(key)
+	const create = (
+		key: K,
+		prepared?: PreparedFamilyKey<K>,
+	): MutableAtomToken<T> => {
+		const { subKey, fullKey } = prepared ?? prepareFamilyKey(options.key, key)
 		const family: FamilyMetadata = { key: options.key, subKey }
-		const fullKey = `${options.key}(${subKey})`
 		const target = newest(store)
 
 		const individualOptions: MutableAtomOptions<T> = {

@@ -6,7 +6,6 @@ import type {
 } from "atom.io"
 import { PRETTY_ENTITY_NAMES } from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
-import { stringifyJson } from "atom.io/foundations/json"
 import { Subject } from "atom.io/foundations/subject"
 
 import { newest } from "../lineage.ts"
@@ -14,6 +13,10 @@ import { createWritableHeldSelector } from "../selector/index.ts"
 import type { WritableHeldSelectorFamily } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
 import type { RootStore } from "../transaction/index.ts"
+import {
+	type PreparedFamilyKey,
+	prepareFamilyKey,
+} from "./prepare-family-key.ts"
 
 export function createWritableHeldSelectorFamily<
 	T extends object,
@@ -41,10 +44,12 @@ export function createWritableHeldSelectorFamily<
 		)
 	}
 
-	const create = (key: K): WritableHeldSelectorToken<T> => {
-		const subKey = stringifyJson(key)
+	const create = (
+		key: K,
+		prepared?: PreparedFamilyKey<K>,
+	): WritableHeldSelectorToken<T> => {
+		const { subKey, fullKey } = prepared ?? prepareFamilyKey(familyKey, key)
 		const family: FamilyMetadata = { key: familyKey, subKey }
-		const fullKey = `${familyKey}(${subKey})`
 		const target = newest(store)
 
 		return createWritableHeldSelector(

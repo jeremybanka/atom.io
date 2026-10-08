@@ -1,0 +1,244 @@
+<a class="skip-link" href="#overview">Skip to dashboard</a>
+<aside class="sidebar">
+	<a class="brand" href="#overview"><span class="brand-mark" aria-hidden="true"
+		>c.</span> control room<span class="brand-dot">®</span></a>
+	<div class="workspace">
+		<span class="workspace-icon" aria-hidden="true">S</span><span>Studio
+			workspace<small>Customer operations</small></span>
+	</div>
+	<p class="nav-label">WORKSPACE</p>
+	<nav aria-label="Main navigation">
+		<a href="#overview"><span aria-hidden="true">◫</span> Overview</a>
+		<a class="current" href="#customers"><span aria-hidden="true">♧</span>
+			Customers <span id="nav-count" class="nav-count"></span></a>
+		<a href="#revenue"><span aria-hidden="true">↗</span> Revenue by plan</a>
+	</nav>
+	<div class="sidebar-bottom">
+		<span class="demo-dot"></span> Demo workspace<p>
+			Make yourself at home.<br />Your changes reset on reload.
+		</p><a href="https://atom.io.fyi" target="_blank" rel="noreferrer">Built with
+			atom.io <span aria-hidden="true">↗</span></a>
+	</div>
+	<div class="profile">
+		<span class="avatar">JD</span><span>Jamie Davis<small>Workspace admin ·
+				Demo</small></span>
+	</div>
+</aside>
+<div class="page">
+	<header class="topbar">
+		<span>Workspace <span class="breadcrumb-slash">/</span> <strong
+			>Overview</strong></span><span class="environment"><span
+				class="demo-dot"
+			></span> Local demo</span>
+	</header>
+	<main>
+		<section id="overview" aria-labelledby="page-title" tabindex="-1">
+			<div class="page-heading">
+				<div>
+					<p class="eyebrow">YOUR WORKSPACE, AT A GLANCE</p>
+					<h1 id="page-title">A little clarity. A lot of control.</h1>
+					<p>Keep your customers close and your operations moving.</p>
+				</div>
+				<button type="button" class="primary" id="add-customer">
+					<span aria-hidden="true"><svg
+							class="button-icon"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.8"
+						>
+							<path d="M12 5v14M5 12h14" />
+						</svg></span> Add customer
+				</button>
+			</div>
+			<div class="metrics">
+				<article class="metric">
+					<span>Total customers</span><strong id="metric-total"></strong><small
+					>Across your workspace</small>
+				</article>
+				<article class="metric">
+					<span>Active customers <i class="status-dot active"></i></span><strong
+						id="metric-active"
+					></strong><small>Currently on a paid plan</small>
+				</article>
+				<article class="metric">
+					<span>On trial <i class="status-dot trial"></i></span><strong
+						id="metric-trial"
+					></strong><small>The start of something good</small>
+				</article>
+				<article class="metric featured">
+					<span>Monthly recurring revenue</span><strong
+						id="metric-mrr"
+					></strong><small>From active subscriptions · USD</small>
+				</article>
+			</div>
+		</section>
+		<section id="revenue" class="revenue-panel" aria-labelledby="revenue-title">
+			<div>
+				<p class="eyebrow">THE REVENUE MIX</p>
+				<h2 id="revenue-title">Every plan has a part to play.</h2>
+				<p>Monthly revenue from active customers.</p>
+			</div>
+			<div id="plan-revenue" class="plan-revenue"></div>
+		</section>
+		<section id="customers" class="directory" aria-labelledby="directory-title">
+			<div class="directory-heading">
+				<div>
+					<h2 id="directory-title">
+						Customers <span id="customer-count" class="count-badge"></span>
+					</h2>
+					<p>A good relationship starts with the details.</p>
+				</div>
+				<div class="history-controls" aria-label="Edit history">
+					<button type="button" id="undo" disabled>
+						<span aria-hidden="true">↶</span> Undo
+					</button>
+					<button type="button" id="redo" disabled>
+						<span aria-hidden="true">↷</span> Redo
+					</button>
+				</div>
+			</div>
+			<div class="table-toolbar">
+				<div class="filters" role="group" aria-label="Customer status">
+					<button type="button" data-filter="all" aria-pressed="true">
+						All customers
+					</button>
+					<button type="button" data-filter="active" aria-pressed="false">
+						Active
+					</button>
+					<button type="button" data-filter="trial" aria-pressed="false">
+						Trial
+					</button>
+					<button type="button" data-filter="paused" aria-pressed="false">
+						Paused
+					</button>
+				</div>
+				<div class="table-inputs">
+					<label class="search"><span aria-hidden="true"><svg
+								class="search-icon"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="1.8"
+							>
+								<circle cx="10.5" cy="10.5" r="6.5" />
+								<path d="m16 16 4 4" />
+							</svg></span><input
+							id="search"
+							type="search"
+							aria-label="Search customers"
+							placeholder="Search customers…"
+						/></label><label class="sort-label"><span class="sr-only"
+						>Sort customers</span><select id="sort">
+							<option value="name">Name A–Z</option>
+							<option value="company">Company A–Z</option>
+							<option value="revenue">Revenue: high to low</option>
+						</select></label>
+				</div>
+			</div>
+			<div class="bulk-actions" id="bulk-actions" hidden>
+				<strong id="selection-count"></strong><span>Set status:</span><button
+					type="button"
+					data-bulk-status="active"
+				>
+					Active
+				</button>
+				<button type="button" data-bulk-status="trial">Trial</button>
+				<button type="button" data-bulk-status="paused">Paused</button>
+				<button type="button" id="clear-selection">Clear selection</button>
+			</div>
+			<div class="table-scroll">
+				<table>
+					<caption class="sr-only">
+						Customer directory. Select customers to update their status together.
+					</caption>
+					<thead>
+						<tr>
+							<th class="checkbox-cell">
+								<input
+									type="checkbox"
+									id="select-all"
+									aria-label="Select all visible customers"
+								/>
+							</th>
+							<th scope="col">Customer</th>
+							<th scope="col">Company</th>
+							<th scope="col">Plan</th>
+							<th scope="col">Status</th>
+							<th scope="col" class="numeric">Monthly revenue</th>
+						</tr>
+					</thead>
+					<tbody id="customer-rows"></tbody>
+				</table>
+				<div class="empty-state" id="empty-state" hidden>
+					<strong>No customers found</strong><p>
+						Try a different name, email, or company.
+					</p>
+					<button type="button" id="clear-filters">Clear filters</button>
+				</div>
+			</div>
+			<footer class="table-footer">
+				<span id="results-count" role="status"></span><span>Small details. Better
+					decisions.</span>
+			</footer>
+		</section>
+		<footer class="page-footer">
+			<span>Control room <span aria-hidden="true">/</span> A place for the
+				day-to-day.</span><span>Sample data · Changes stay in this
+				session</span>
+		</footer>
+		<p
+			id="announcement"
+			hidden
+			class="announcement"
+			role="status"
+			aria-live="polite"
+		>
+		</p>
+	</main>
+</div>
+<dialog id="customer-dialog" aria-labelledby="dialog-title">
+	<form id="customer-form">
+		<div class="dialog-heading">
+			<div>
+				<p class="eyebrow">GROW YOUR WORKSPACE</p>
+				<h2 id="dialog-title">Add a customer</h2>
+			</div>
+			<button type="button" id="close-dialog" aria-label="Close dialog">
+				×
+			</button>
+		</div>
+		<p>Add a customer to this demo workspace.</p><label>Full name<input
+				name="name"
+				required
+				maxlength="80"
+				autocomplete="name"
+			/></label><label>Email address<input
+				name="email"
+				type="email"
+				required
+				maxlength="160"
+				autocomplete="email"
+			/></label><label>Company<input
+				name="company"
+				required
+				maxlength="80"
+				autocomplete="organization"
+			/></label><div class="form-row">
+			<label>Plan<select name="plan">
+					<option>Starter</option>
+					<option selected>Growth</option>
+					<option>Scale</option>
+				</select></label><label>Status<select name="status">
+					<option value="trial">Trial</option>
+					<option value="active">Active</option>
+					<option value="paused">Paused</option>
+				</select></label>
+		</div>
+		<p id="form-error" class="form-error" role="alert"></p>
+		<div class="dialog-actions">
+			<button type="button" id="cancel-customer">Cancel</button>
+			<button type="submit" class="primary">Create customer</button>
+		</div>
+	</form>
+</dialog>

@@ -1,0 +1,65 @@
+{
+	"name": "@atom.io/template-jquery-admin-dashboard",
+	"version": "0.0.0",
+	"description": "A customer admin dashboard built with atom.io, jQuery 4, and Vite.",
+	"license": "Apache-2.0",
+	"publishConfig": {
+		"access": "public"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/jeremybanka/atom.io.git",
+		"directory": "templates/jquery-admin-dashboard"
+	},
+	"type": "module",
+	"engines": {
+		"node": ">=24.12.0"
+	},
+	"files": [
+		"src",
+		"tests",
+		"index.html",
+		"*.config.ts",
+		"tsconfig.json",
+		"dprint.json",
+		"_gitignore",
+		"mise.toml"
+	],
+	"scripts": {
+		"dev": "vite",
+		"build": "tsc -b && vite build",
+		"preview": "vite preview",
+		"fmt": "dprint fmt .",
+		"fmt:check": "dprint check .",
+		"lint": "npm run lint:eslint && npm run lint:oxlint && npm run lint:types",
+		"lint:eslint": "eslint --max-warnings 0 .",
+		"lint:oxlint": "oxlint --deny-warnings .",
+		"lint:types": "tsc -b",
+		"test": "vitest run",
+		"test:once": "vitest run"
+	},
+	"dependencies": {
+		"atom.io": "workspace:*",
+		"jquery": "4.0.0"
+	},
+	"devDependencies": {
+		"@dprint/json": "0.23.0",
+		"@dprint/markdown": "0.24.0",
+		"@dprint/oxc": "0.40.0",
+		"@types/jquery": "4.0.1",
+		"@types/node": "26.5.1",
+		"@typescript-eslint/parser": "8.70.0",
+		"@typescript-eslint/utils": "8.70.0",
+		"dprint": "0.57.4",
+		"dprint-plugin-malva": "0.16.0",
+		"dprint-plugin-markup": "0.27.3",
+		"eslint": "10.10.0",
+		"happy-dom": "20.14.5",
+		"jiti": "2.7.0",
+		"oxlint": "1.83.0",
+		"oxlint-tsgolint": "7.0.2001",
+		"typescript": "6.0.3",
+		"vite": "8.3.0",
+		"vitest": "5.0.0"
+	}
+}

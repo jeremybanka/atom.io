@@ -22,7 +22,7 @@
 		"@astrojs/markdown-remark": "7.3.2",
 		"@astrojs/mdx": "8.0.3",
 		"@astrojs/preact": "6.0.6",
-		"astro": "7.3.6",
+		"astro": "7.3.7",
 		"atom.io": "workspace:*",
 		"preact": "11.0.0",
 		"react": "npm:@preact/compat@18.3.2",

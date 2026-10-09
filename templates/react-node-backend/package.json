@@ -35,7 +35,7 @@
 		"@types/react-dom": "19.3.0",
 		"@vitejs/plugin-react": "6.1.2",
 		"babel-plugin-react-compiler": "1.0.0",
-		"concurrently": "10.0.5",
+		"concurrently": "10.0.6",
 		"dprint": "0.61.1",
 		"dprint-plugin-malva": "0.16.0",
 		"eslint": "10.12.0",

@@ -289,8 +289,8 @@ importers:
         specifier: npm:@preact/compat@18.3.2
         version: '@preact/compat@18.3.2(preact@11.0.1)'
       react-syntax-highlighter:
-        specifier: 16.1.1
-        version: 16.1.1(@preact/compat@18.3.2(preact@11.0.1))
+        specifier: 16.1.2
+        version: 16.1.2(@preact/compat@18.3.2(preact@11.0.1))
       three:
         specifier: 0.186.1
         version: 0.186.1
@@ -6425,8 +6425,8 @@ packages:
   react-is@17.0.2:
     resolution: {integrity: sha512-w2GsyukL62IJnlaff/nRegPQR94C/XXamvMWmSHRJ4y7Ts/4ocGRmTHvOs8PSE6pB3dWOrD/nueuU5sduBsQ4w==}
 
-  react-syntax-highlighter@16.1.1:
-    resolution: {integrity: sha512-PjVawBGy80C6YbC5DDZJeUjBmC7skaoEUdvfFQediQHgCL7aKyVHe57SaJGfQsloGDac+gCpTfRdtxzWWKmCXA==}
+  react-syntax-highlighter@16.1.2:
+    resolution: {integrity: sha512-4dM0+mYtfnhgwYWAvFx56fgyjIYk2yFopfiICFvMDhRfeSGRNd+ngFALdPD9q7llyGAmiE6pzOSOwI8Lf9ca1w==}
     engines: {node: '>= 16.20.2'}
     peerDependencies:
       react: '>= 0.14.0'
@@ -13095,7 +13095,7 @@ snapshots:
 
   react-is@17.0.2: {}
 
-  react-syntax-highlighter@16.1.1(@preact/compat@18.3.2(preact@11.0.1)):
+  react-syntax-highlighter@16.1.2(@preact/compat@18.3.2(preact@11.0.1)):
     dependencies:
       '@babel/runtime': 7.29.7
       highlight.js: 10.7.3

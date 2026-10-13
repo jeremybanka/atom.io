@@ -1,5 +1,5 @@
 {
-  "lockVersion": 1,
+  "lockVersion": 2,
   "schemas": {
     "https://docs.renovatebot.com/renovate-schema.json": {
       "digest": "919114c7505308fb10c4a1e58ee44f09d69ff8274119aaa0ecf56903c0c4ca4d",

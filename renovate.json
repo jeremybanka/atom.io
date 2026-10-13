@@ -13,7 +13,7 @@
 			"pnpm tonnage"
 		],
 		"executionMode": "branch",
-		"fileFilters": ["packages/*/README.md", ".correctly/**"],
+		"fileFilters": ["packages/*/README.md", "correctly.lock", ".correctly/**"],
 		"installTools": {
 			"node": {},
 			"pnpm": {}

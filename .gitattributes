@@ -1,1 +1,3 @@
 *.json  linguist-language=JSON-with-Comments
+correctly.lock linguist-language=JSON
+.correctly/schemas/** linguist-generated=true

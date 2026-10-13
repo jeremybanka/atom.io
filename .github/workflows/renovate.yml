@@ -40,7 +40,7 @@ jobs:
       - uses: renovatebot/github-action@230ce922b08968d0a4f6f70f295601daff09ef1d # v46.3.7
         env:
           LOG_LEVEL: debug
-          RENOVATE_ALLOWED_COMMANDS: '["^pnpm install --frozen-lockfile$", "^pnpm tonnage$"]'
+          RENOVATE_ALLOWED_COMMANDS: '["^pnpm install --frozen-lockfile$", "^pnpm exec correctly schemas pull$", "^pnpm tonnage$"]'
           RENOVATE_ALLOW_PLUGINS: true
           RENOVATE_ALLOW_SCRIPTS: true
           RENOVATE_REPOSITORIES: jeremybanka/atom.io

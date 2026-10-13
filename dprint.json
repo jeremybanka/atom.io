@@ -6,6 +6,7 @@
 		"**/*.{ts,tsx,js,jsx,mjs,cjs,json,jsonc,md,mdx,css,astro,toml,yml,yaml}"
 	],
 	"excludes": [
+		"**/.correctly/**",
 		"**/*.gen.ts",
 		"**/*.gen.tsx",
 		"**/pnpm-lock.yaml",

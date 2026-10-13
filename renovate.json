@@ -9,10 +9,11 @@
 	"postUpgradeTasks": {
 		"commands": [
 			"pnpm install --frozen-lockfile",
+			"pnpm exec correctly schemas pull",
 			"pnpm tonnage"
 		],
 		"executionMode": "branch",
-		"fileFilters": ["packages/*/README.md"],
+		"fileFilters": ["packages/*/README.md", ".correctly/**"],
 		"installTools": {
 			"node": {},
 			"pnpm": {}

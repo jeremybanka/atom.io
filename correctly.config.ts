@@ -23,6 +23,16 @@ export default defineConfig({
 		{
 			name: `Dprint`,
 			files: [`**/dprint.json`],
+			packages: [
+				`dprint`,
+				`@dprint/oxc`,
+				`@dprint/json`,
+				`@dprint/markdown`,
+				`@dprint/toml`,
+				`dprint-plugin-malva`,
+				`dprint-plugin-markup`,
+				`dprint-plugin-yaml`,
+			],
 			parse: json(),
 			// Dprint's installed npm packages do not ship a JSON Schema.
 			validate: ajv({ schema: `https://dprint.dev/schemas/v0.json` }),
@@ -42,6 +52,9 @@ export default defineConfig({
 			parse: json(),
 			validate: ajv({
 				// Renovate runs in CI; it is not an installed workspace dependency.
+				// The initial locked snapshot comes from renovate@44.148.4 to avoid
+				// the upstream installTools regression. Pulls refresh this live URL.
+				// https://unpkg.com/renovate@44.148.4/renovate-schema.json
 				schema: `https://docs.renovatebot.com/renovate-schema.json`,
 				extensions: [renovate()],
 			}),

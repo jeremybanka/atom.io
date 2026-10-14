@@ -53,7 +53,7 @@
 		"@typescript-eslint/utils": "8.71.2",
 		"astro-eslint-parser": "3.2.0",
 		"correctly": "0.3.0",
-		"dprint": "0.62.0",
+		"dprint": "0.63.0",
 		"dprint-plugin-malva": "0.16.0",
 		"dprint-plugin-markup": "0.27.5",
 		"dprint-plugin-yaml": "0.6.0",

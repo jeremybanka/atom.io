@@ -53,7 +53,7 @@ export default defineConfig({
 			validate: ajv({
 				// Renovate runs in CI; it is not an installed workspace dependency.
 				// The initial locked snapshot comes from renovate@44.148.4 to avoid
-				// the upstream installTools regression. Pulls refresh this live URL.
+				// the upstream installTools regression. Select Renovate to refresh it.
 				// https://unpkg.com/renovate@44.148.4/renovate-schema.json
 				schema: `https://docs.renovatebot.com/renovate-schema.json`,
 				extensions: [renovate()],

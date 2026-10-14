@@ -9,11 +9,10 @@
 	"postUpgradeTasks": {
 		"commands": [
 			"pnpm install --frozen-lockfile",
-			"pnpm exec correctly schemas pull",
 			"pnpm tonnage"
 		],
 		"executionMode": "branch",
-		"fileFilters": ["packages/*/README.md", "correctly.lock", ".correctly/**"],
+		"fileFilters": ["packages/*/README.md"],
 		"installTools": {
 			"node": {},
 			"pnpm": {}
@@ -48,6 +47,32 @@
 	],
 	"packageRules": [
 		{
+			"matchPackageNames": ["dprint", "@dprint/*", "/^dprint-plugin-/"],
+			"postUpgradeTasks": {
+				"commands": [
+					"pnpm install --frozen-lockfile",
+					"pnpm exec correctly schemas pull --association 'Dprint'",
+					"pnpm tonnage"
+				],
+				"executionMode": "branch",
+				"fileFilters": ["packages/*/README.md", ".correctly/**"],
+				"installTools": { "node": {}, "pnpm": {} }
+			}
+		},
+		{
+			"matchPackageNames": ["pnpm"],
+			"postUpgradeTasks": {
+				"commands": [
+					"pnpm install --frozen-lockfile",
+					"pnpm exec correctly schemas pull --association 'pnpm workspace'",
+					"pnpm tonnage"
+				],
+				"executionMode": "branch",
+				"fileFilters": ["packages/*/README.md", ".correctly/**"],
+				"installTools": { "node": {}, "pnpm": {} }
+			}
+		},
+		{
 			"matchPackageNames": [
 				"@correctlyjs/schemars",
 				"break-check",
@@ -69,7 +94,17 @@
 		},
 		{
 			"matchDepNames": ["jdx/mise"],
-			"dependencyDashboardApproval": true
+			"dependencyDashboardApproval": true,
+			"postUpgradeTasks": {
+				"commands": [
+					"pnpm install --frozen-lockfile",
+					"pnpm exec correctly schemas pull --association 'Mise'",
+					"pnpm tonnage"
+				],
+				"executionMode": "branch",
+				"fileFilters": ["packages/*/README.md", ".correctly/**"],
+				"installTools": { "node": {}, "pnpm": {} }
+			}
 		},
 		{
 			"matchPackageNames": ["tsdown", "@tsdown/css"],
@@ -90,7 +125,17 @@
 			],
 			"dependencyDashboardApproval": true,
 			"groupName": "renovate",
-			"minimumReleaseAge": null
+			"minimumReleaseAge": null,
+			"postUpgradeTasks": {
+				"commands": [
+					"pnpm install --frozen-lockfile",
+					"pnpm exec correctly schemas pull --association 'Renovate'",
+					"pnpm tonnage"
+				],
+				"executionMode": "branch",
+				"fileFilters": ["packages/*/README.md", ".correctly/**"],
+				"installTools": { "node": {}, "pnpm": {} }
+			}
 		},
 		{
 			"matchPackageNames": [

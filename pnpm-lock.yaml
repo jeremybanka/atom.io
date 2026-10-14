@@ -175,8 +175,8 @@ importers:
         specifier: 4.0.1
         version: 4.0.1
       '@correctlyjs/schemars':
-        specifier: 0.0.4
-        version: 0.0.4(correctly@0.2.0(arktype@2.2.7))
+        specifier: 0.0.5
+        version: 0.0.5(correctly@0.3.0(arktype@2.2.7))
       '@dotenvx/dotenvx':
         specifier: 2.34.2
         version: 2.34.2
@@ -205,8 +205,8 @@ importers:
         specifier: 3.2.0
         version: 3.2.0(supports-color@10.2.2)
       correctly:
-        specifier: 0.2.0
-        version: 0.2.0(arktype@2.2.7)
+        specifier: 0.3.0
+        version: 0.3.0(arktype@2.2.7)
       dprint:
         specifier: 0.62.0
         version: 0.62.0
@@ -1314,11 +1314,11 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@correctlyjs/schemars@0.0.4':
-    resolution: {integrity: sha512-IxMw3FMCrJsDtxwPKe8N2lfRmHWpwPnQGie7N7UqQ3s39xnxpMCQL18GvBXfNV3/XU2Xi+njlX0NKwUKef+YCw==}
+  '@correctlyjs/schemars@0.0.5':
+    resolution: {integrity: sha512-NwcuVHf6WopzynOkxRSaMzVK7ekvT2I6l1imMorzRmEfhlvqpXmRByAsag/+Car7E9wBsnhBE/Dh91D/I8fPOw==}
     engines: {node: '>=22.18.0'}
     peerDependencies:
-      correctly: ^0.2.0
+      correctly: ^0.3.0
 
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
@@ -4636,8 +4636,8 @@ packages:
     resolution: {integrity: sha512-yuToqVvRrj6pfDXREyQAAv8SkAEk/8GS3jQRTiUMm66TVtBYmqQeoEjL2Lmq8Rpo6271vH76InTChTitEAm65w==}
     engines: {node: '>=22'}
 
-  correctly@0.2.0:
-    resolution: {integrity: sha512-0F5CCsp9PTiMhTeKvsswXWDL2GfJoXw+nWs+igMVZo8lueVSvembRP486gXbX61nYBfVhCamUztTEkytl/X13g==}
+  correctly@0.3.0:
+    resolution: {integrity: sha512-68xhzAVTQSr0xYvXPqkpijSL2A9CPzcSU4/FM/LhgqueBuXurmWzPyhWn2V13FWmgiEo2y2haFCZ785gr6KLXw==}
     engines: {node: '>=22.18.0'}
     hasBin: true
 
@@ -8128,9 +8128,9 @@ snapshots:
   '@cloudflare/workerd-windows-64@1.20261006.1':
     optional: true
 
-  '@correctlyjs/schemars@0.0.4(correctly@0.2.0(arktype@2.2.7))':
+  '@correctlyjs/schemars@0.0.5(correctly@0.3.0(arktype@2.2.7))':
     dependencies:
-      correctly: 0.2.0(arktype@2.2.7)
+      correctly: 0.3.0(arktype@2.2.7)
 
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
@@ -10873,7 +10873,7 @@ snapshots:
 
   cookie@2.0.1: {}
 
-  correctly@0.2.0(arktype@2.2.7):
+  correctly@0.3.0(arktype@2.2.7):
     dependencies:
       ajv: 8.20.0
       ajv-formats: 3.0.1

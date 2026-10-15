@@ -35,3 +35,6 @@ apps/atom.io.fyi/public/llms-full.txt
 
 .lasertag-vsix/
 Lasertag.vsix
+
+# Release snapshots are refreshed by the uncached Breakage prelude.
+.breakage/

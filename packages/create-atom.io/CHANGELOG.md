@@ -1,5 +1,14 @@
 # create-atom.io
 
+## 0.1.58
+
+### Patch Changes
+
+- @atom.io/template-preact-svg-editor@0.1.1
+  - @atom.io/template-react-node-backend@0.0.98
+  - @atom.io/template-react-realtime-text-editor@0.0.12
+  - @atom.io/template-solid-lossless-numbers@0.0.48
+
 ## 0.1.57
 
 ### Patch Changes

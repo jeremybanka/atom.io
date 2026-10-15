@@ -1,5 +1,11 @@
 # atom.io
 
+## 0.53.4
+
+### Patch Changes
+
+- 6eac0bb: Update the published documentation to name Breakage as the tool that checks Atom.io’s released compatibility contracts.
+
 ## 0.53.3
 
 ### Patch Changes

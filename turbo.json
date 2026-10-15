@@ -97,10 +97,17 @@
 				"__scripts__/**"
 			]
 		},
+		"test:breaks:prelude": {
+			"cache": false
+		},
 		"test:breaks": {
-			"dependsOn": ["^build"],
-			"cache": false,
+			"dependsOn": [
+				"test:breaks:prelude",
+				"^build"
+			],
+			"cache": true,
 			"inputs": [
+				"$TURBO_DEFAULT$",
 				"../../.changeset/**",
 				"package.json",
 				"tsconfig.json",
@@ -109,8 +116,19 @@
 				"src/**",
 				"docs/source/**",
 				"__tests__/public/**",
-				"__scripts__/**"
-			]
+				"__scripts__/**",
+				"../../mise.toml",
+				"../../tsconfig.json",
+				"../../.github/workflows/test.yml",
+				"../../.github/actions/setup/action.yml",
+				{
+					"mode": "jit",
+					"globs": [
+						".breakage/baseline.json"
+					]
+				}
+			],
+			"outputs": []
 		},
 		"lint:eslint": {
 			"dependsOn": ["^build", "atom.io#build"],

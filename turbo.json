@@ -97,12 +97,12 @@
 				"__scripts__/**"
 			]
 		},
-		"test:breaks:prelude": {
+		"test:breakage:prelude": {
 			"cache": false
 		},
-		"test:breaks": {
+		"test:breakage": {
 			"dependsOn": [
-				"test:breaks:prelude",
+				"test:breakage:prelude",
 				"^build"
 			],
 			"cache": true,

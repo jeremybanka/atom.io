@@ -74,4 +74,4 @@ jobs:
         with:
           postgres-version: "18"
           port: "59432"
-      - run: pnpm test:breaks
+      - run: pnpm test:breakage

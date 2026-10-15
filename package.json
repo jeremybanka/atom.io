@@ -34,7 +34,7 @@
 		"changes:publish": "bun run build && changeset publish",
 		"changes:version": "pnpm --config.verifyDepsBeforeRun=false exec changeset version",
 		"test": "CI=true dotenvx run -- turbo run test:once --concurrency=2",
-		"test:breaks": "CI=true dotenvx run -- turbo run test:breaks",
+		"test:breakage": "CI=true dotenvx run -- turbo run test:breakage",
 		"test:stress:realtime-ipc": "dotenvx run -- turbo run test:stress:realtime-ipc --filter=atom.io",
 		"vigilance": "bun scripts/vigilance-bot.bun.ts",
 		"workflows": "bun scripts/update-workflows.bun.ts"

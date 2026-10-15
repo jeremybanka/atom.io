@@ -4,6 +4,7 @@ minimumReleaseAgeExclude:
   - "@correctlyjs/schemars"
   - atom.io
   - break-check
+  - breakage
   - bun-types
   - comline
   - correctly

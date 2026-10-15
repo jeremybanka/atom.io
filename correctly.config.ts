@@ -13,11 +13,11 @@ export default defineConfig({
 			validate: ajv({ schema: `node_modules/@changesets/config/schema.json` }),
 		},
 		{
-			name: `Break Check`,
-			files: [`**/break-check.config.json`],
+			name: `Breakage`,
+			files: [`**/breakage.config.json`],
 			parse: json(),
 			validate: ajv({
-				schema: `packages/atom.io/node_modules/break-check/dist/break-check.main.schema.json`,
+				schema: `packages/atom.io/node_modules/breakage/dist/breakage.main.schema.json`,
 			}),
 		},
 		{

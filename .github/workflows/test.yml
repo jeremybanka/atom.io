@@ -61,8 +61,8 @@ jobs:
           packages: bun node pnpm
       - run: pnpm run manifest:test
 
-  BreakCheck:
-    name: Break Check
+  Breakage:
+    name: Breakage
     runs-on: ubuntu-latest
     timeout-minutes: 9
     steps:

@@ -104,7 +104,7 @@
 				"../../.changeset/**",
 				"package.json",
 				"tsconfig.json",
-				"break-check.config.json",
+				"breakage.config.json",
 				"*.config.ts",
 				"src/**",
 				"docs/source/**",

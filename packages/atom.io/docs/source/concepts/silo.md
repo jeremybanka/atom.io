@@ -4,7 +4,7 @@ title: Silo
 summary: An isolated atom.io store with bound state utilities.
 packages:
   - atom.io
-  - atom.io/react
+  - "@atom.io/react"
   - atom.io/testing
 related:
   - store

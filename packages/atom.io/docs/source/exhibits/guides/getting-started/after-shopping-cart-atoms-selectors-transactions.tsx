@@ -1,5 +1,5 @@
+import { useI, useO } from "@atom.io/react"
 import { atom, atomFamily, runTransaction, selector, transaction } from "atom.io"
-import { useI, useO } from "atom.io/react"
 import type { JSX } from "react/jsx-runtime"
 
 type CartProduct = {

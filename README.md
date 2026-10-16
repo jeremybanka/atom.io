@@ -27,7 +27,7 @@ State stays small, derived data stays lazy, and React reads exactly what it need
 
 ```tsx
 import { atom, selector, setState } from "atom.io"
-import { useO } from "atom.io/react"
+import { useO } from "@atom.io/react"
 
 const todosAtom = atom<string[]>({
 	key: `todos`,

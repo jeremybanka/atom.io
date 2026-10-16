@@ -1,5 +1,5 @@
+import { useI, useJSON } from "@atom.io/react"
 import { mutableAtom } from "atom.io"
-import { useI, useJSON } from "atom.io/react"
 import { UList } from "atom.io/transceivers/u-list"
 
 const selectedTagKeysAtom = mutableAtom<UList<string>>({

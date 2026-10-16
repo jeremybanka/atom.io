@@ -1,5 +1,5 @@
+import * as ReactIO from "@atom.io/react"
 import type * as AtomIO from "atom.io"
-import * as ReactIO from "atom.io/react"
 import * as React from "react"
 
 export type ObserverProps = {

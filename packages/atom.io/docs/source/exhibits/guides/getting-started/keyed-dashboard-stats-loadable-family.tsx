@@ -1,5 +1,5 @@
+import { useLoadable } from "@atom.io/react"
 import { atomFamily, type Loadable } from "atom.io"
-import { useLoadable } from "atom.io/react"
 
 type DashboardId = `dashboard::${string}`
 

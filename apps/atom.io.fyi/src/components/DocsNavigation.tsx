@@ -1,5 +1,5 @@
+import { useI, useO } from "@atom.io/react"
 import { atom } from "atom.io"
-import { useI, useO } from "atom.io/react"
 import type { VNode } from "preact"
 import * as React from "react"
 
@@ -344,12 +344,6 @@ function SiteDirectory(): VNode {
 						</section>
 						<section>
 							<scope-placeholder aria-hidden="true">@</scope-placeholder>
-							<a id="-docs-react-link" href={`/docs/react`}>
-								<low-emphasis>atom.io</low-emphasis>/react
-							</a>
-						</section>
-						<section>
-							<scope-placeholder aria-hidden="true">@</scope-placeholder>
 							<a id="-docs-web-link" href={`/docs/web`}>
 								<low-emphasis>atom.io</low-emphasis>/web
 							</a>
@@ -360,17 +354,21 @@ function SiteDirectory(): VNode {
 								<low-emphasis>atom.io</low-emphasis>/transceivers
 							</a>
 						</section>
+						<section>
+							<a id="-docs-react-link" href={`/docs/react`}>
+								<low-emphasis>@atom.io</low-emphasis>/react
+							</a>
+						</section>
+						<section>
+							<a id="-docs-solid-link" href={`/docs/solid`}>
+								<low-emphasis>@atom.io</low-emphasis>/solid
+							</a>
+						</section>
 					</main>
 				</section>
 				<section>
 					<header>Tooling</header>
 					<main>
-						<section>
-							<scope-placeholder aria-hidden="true">@</scope-placeholder>
-							<a id="-docs-react-devtools-link" href={`/docs/react-devtools`}>
-								<low-emphasis>atom.io</low-emphasis>/react-devtools
-							</a>
-						</section>
 						<section>
 							<scope-placeholder aria-hidden="true">@</scope-placeholder>
 							<a id="-docs-testing-link" href={`/docs/testing`}>
@@ -380,6 +378,11 @@ function SiteDirectory(): VNode {
 						<section>
 							<a id="-docs-eslint-plugin-link" href={`/docs/eslint-plugin`}>
 								<low-emphasis>@atom.io</low-emphasis>/eslint-plugin
+							</a>
+						</section>
+						<section>
+							<a id="-docs-react-devtools-link" href={`/docs/react-devtools`}>
+								<low-emphasis>@atom.io</low-emphasis>/react-devtools
 							</a>
 						</section>
 					</main>

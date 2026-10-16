@@ -1,7 +1,7 @@
+import { StoreProvider, useSingleEffect } from "@atom.io/react"
 import { cleanup, render } from "@testing-library/react"
 import * as AtomIO from "atom.io"
 import { IMPLICIT } from "atom.io/internal"
-import { StoreProvider, useSingleEffect } from "atom.io/react"
 import { mySocketKeyAtom } from "atom.io/realtime-client"
 import {
 	RealtimeContext,

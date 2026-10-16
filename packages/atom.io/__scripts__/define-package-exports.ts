@@ -32,7 +32,6 @@ export default function main(mode: string): void {
 		`dist`,
 		`src`,
 		`oxlint.json`,
-		`css.d.ts`,
 		`AGENTS.md`,
 		`docs/agent`,
 	]
@@ -48,12 +47,6 @@ export default function main(mode: string): void {
 				acc[`./${folder}`] = {
 					import: `./dist/${folder}/index.js`,
 					types: `./dist/${folder}/index.d.ts`,
-				}
-				if (folder === `react-devtools`) {
-					acc[`./react-devtools/css`] = {
-						import: `./dist/${folder}/index.css`,
-						types: `./css.d.ts`,
-					}
 				}
 				return acc
 			},

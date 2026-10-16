@@ -1,4 +1,4 @@
-import { castToJson } from "atom.io/react-devtools"
+import { castToJson } from "@atom.io/react-devtools"
 
 describe(`castToJson`, () => {
 	it(`should cast data to various json`, () => {

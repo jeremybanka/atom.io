@@ -27,9 +27,6 @@ const sharedConfig = {
 	deps: {
 		neverBundle: NEVER_BUNDLE,
 	},
-	css: {
-		splitting: true,
-	},
 
 	dts: { sourcemap: true },
 	fixedExtension: false,

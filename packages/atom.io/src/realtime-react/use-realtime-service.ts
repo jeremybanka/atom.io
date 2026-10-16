@@ -1,4 +1,4 @@
-import { useSingleEffect } from "atom.io/react"
+import { useSingleEffect } from "@atom.io/react"
 import * as React from "react"
 import type { Socket } from "socket.io-client"
 

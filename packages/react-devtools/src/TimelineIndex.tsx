@@ -1,3 +1,4 @@
+import { useI, useO } from "@atom.io/react"
 import type {
 	ReadonlyPureSelectorToken,
 	RegularAtomToken,
@@ -5,7 +6,6 @@ import type {
 } from "atom.io"
 import { redo, undo } from "atom.io"
 import { findInStore, type Timeline } from "atom.io/internal"
-import { useI, useO } from "atom.io/react"
 import { type FC, Fragment, useContext } from "react"
 
 import { button } from "./Button.tsx"

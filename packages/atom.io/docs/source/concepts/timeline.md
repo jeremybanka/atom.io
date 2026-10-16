@@ -4,7 +4,7 @@ title: Timeline
 summary: A history tracker for undoing and redoing state changes.
 packages:
   - atom.io
-  - atom.io/react
+  - "@atom.io/react"
 related:
   - transaction
   - mutable-atom

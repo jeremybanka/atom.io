@@ -1,5 +1,6 @@
-import "atom.io/react-devtools/css"
+import "@atom.io/react-devtools/css"
 
+import { AtomIODevtools } from "@atom.io/react-devtools"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import type { Loadable } from "atom.io"
 import {
@@ -11,7 +12,6 @@ import {
 	transaction,
 } from "atom.io"
 import { IMPLICIT } from "atom.io/internal"
-import { AtomIODevtools } from "atom.io/react-devtools"
 
 // More on how to set up stories at: https://storybook.js.org/docs/writing-stories#default-export
 const meta: Meta<typeof AtomIODevtools> = {

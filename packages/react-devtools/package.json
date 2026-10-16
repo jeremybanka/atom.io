@@ -1,0 +1,71 @@
+{
+	"name": "@atom.io/react-devtools",
+	"version": "0.0.0",
+	"description": "React developer tools for atom.io stores.",
+	"homepage": "https://atom.io.fyi/docs/react-devtools",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/jeremybanka/atom.io.git",
+		"directory": "packages/react-devtools"
+	},
+	"license": "MPL-2.0",
+	"author": "Jeremy Banka",
+	"sideEffects": [
+		"**/*.css"
+	],
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./package.json": "./package.json",
+		"./css": {
+			"types": "./css.d.ts",
+			"import": "./dist/style.css"
+		}
+	},
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"files": [
+		"dist",
+		"src",
+		"css.d.ts"
+	],
+	"scripts": {
+		"build": "tsdown",
+		"lint:eslint": "eslint",
+		"lint:oxlint": "oxlint",
+		"lint:types": "tsc"
+	},
+	"dependencies": {
+		"motion": "14.3.0"
+	},
+	"devDependencies": {
+		"@atom.io/react": "workspace:*",
+		"@tsdown/css": "0.23.1",
+		"@types/node": "26.6.5",
+		"@types/react": "19.3.0",
+		"atom.io": "workspace:*",
+		"eslint": "10.12.0",
+		"react": "19.3.1",
+		"react-dom": "19.3.1",
+		"tsdown": "0.23.1",
+		"typescript": "7.0.2"
+	},
+	"peerDependencies": {
+		"@atom.io/react": "workspace:^",
+		"@types/react": "^18.0.0 || ^19.0.0",
+		"atom.io": "workspace:^",
+		"react": "^18.0.0 || ^19.0.0",
+		"react-dom": "^18.0.0 || ^19.0.0"
+	},
+	"peerDependenciesMeta": {
+		"@types/react": {
+			"optional": true
+		}
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}

@@ -1,0 +1,49 @@
+{
+	"name": "@atom.io/solid",
+	"version": "0.0.0",
+	"description": "Solid bindings for atom.io.",
+	"homepage": "https://atom.io.fyi/docs/solid",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/jeremybanka/atom.io.git",
+		"directory": "packages/solid"
+	},
+	"license": "MPL-2.0",
+	"author": "Jeremy Banka",
+	"sideEffects": false,
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"files": [
+		"dist",
+		"src"
+	],
+	"scripts": {
+		"build": "tsdown",
+		"lint:eslint": "eslint",
+		"lint:oxlint": "oxlint",
+		"lint:types": "tsc"
+	},
+	"devDependencies": {
+		"@types/node": "26.6.5",
+		"atom.io": "workspace:*",
+		"eslint": "10.12.0",
+		"solid-js": "1.9.17",
+		"tsdown": "0.23.1",
+		"typescript": "7.0.2"
+	},
+	"peerDependencies": {
+		"atom.io": "workspace:^",
+		"solid-js": "^1.9.0"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}

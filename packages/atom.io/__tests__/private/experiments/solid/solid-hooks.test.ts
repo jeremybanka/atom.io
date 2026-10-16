@@ -85,7 +85,7 @@ const createButton = (
 
 const loadSolidIntegration = async () => {
 	const Solid = await import(`solid-js`)
-	const AS = await import(`atom.io/solid`)
+	const AS = await import(`@atom.io/solid`)
 	return { AS, Solid }
 }
 

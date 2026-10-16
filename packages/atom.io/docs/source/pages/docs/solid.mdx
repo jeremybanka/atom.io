@@ -1,0 +1,19 @@
+import Exhibit from "c/Exhibit.astro";
+
+# <low-emphasis>@atom.io</low-emphasis>/solid
+
+`@atom.io/solid` provides Solid bindings for atom.io stores: `StoreProvider`, `StoreContext`, `useO`, `useI`, `useJSON`, `useLoadable`, and `useTL`.
+
+## install
+
+Install the bindings alongside the SDK and Solid 1.9:
+
+<Exhibit src="solid/install.sh" />
+
+Replace imports from `atom.io/solid` with `@atom.io/solid`. The exports and behavior are unchanged.
+
+## timeline families
+
+Read a timeline family with `useTL` and call its controls to undo or redo changes:
+
+<Exhibit src="solid/use-timeline-family.tsx" />

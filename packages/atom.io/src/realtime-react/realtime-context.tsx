@@ -1,4 +1,4 @@
-import { useI } from "atom.io/react"
+import { useI } from "@atom.io/react"
 import * as RTC from "atom.io/realtime-client"
 import * as React from "react"
 import type { Socket } from "socket.io-client"

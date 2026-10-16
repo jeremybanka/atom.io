@@ -1,3 +1,4 @@
+import { StoreProvider, useI, useO, useTL } from "@atom.io/react"
 import { act, fireEvent, render } from "@testing-library/react"
 import {
 	atom,
@@ -7,7 +8,6 @@ import {
 	selectorFamily,
 	Silo,
 } from "atom.io"
-import { StoreProvider, useI, useO, useTL } from "atom.io/react"
 import { takeSnapshot } from "atom.io/testing"
 import { UList } from "atom.io/transceivers/u-list"
 import { useLayoutEffect } from "react"

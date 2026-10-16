@@ -1,5 +1,5 @@
+import { useI, useO } from "@atom.io/react"
 import { atom } from "atom.io"
-import { useI, useO } from "atom.io/react"
 
 const toggleAtom = atom<boolean>({
 	key: `toggle`,

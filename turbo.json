@@ -77,7 +77,7 @@
 			"dependsOn": ["build", "atom.io#build"]
 		},
 		"test:stress:realtime-ipc": {
-			"dependsOn": ["build"],
+			"dependsOn": ["build", "@atom.io/react#build"],
 			"cache": false,
 			"inputs": [
 				"package.json",

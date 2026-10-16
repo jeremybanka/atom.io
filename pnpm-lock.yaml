@@ -536,10 +536,10 @@ importers:
         version: 10.12.0(jiti@2.7.0)(supports-color@10.2.2)
       tsdown:
         specifier: 0.23.1
-        version: 0.23.1(@tsdown/css@0.23.1)(oxc-resolver@11.21.2)(tsx@4.23.13)(typescript@6.0.3)
+        version: 0.23.1(@tsdown/css@0.23.1)(oxc-resolver@11.21.2)(tsx@4.23.13)(typescript@7.0.2)
       typescript:
-        specifier: 6.0.3
-        version: 6.0.3
+        specifier: 7.0.2
+        version: 7.0.2
       vitest:
         specifier: 5.0.5
         version: 5.0.5(@types/node@26.6.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(happy-dom@21.0.1)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
@@ -12949,20 +12949,6 @@ snapshots:
 
   reusify@1.1.0: {}
 
-  rolldown-plugin-dts@0.28.7(oxc-resolver@11.21.2)(rolldown@1.2.13)(typescript@6.0.3):
-    dependencies:
-      dts-resolver: 3.0.0(oxc-resolver@11.21.2)
-      get-tsconfig: 5.0.0-beta.6
-      obug: 3.0.0
-      rolldown: 1.2.13
-      yuku-ast: 0.18.1
-      yuku-codegen: 0.18.1
-      yuku-parser: 0.18.1
-    optionalDependencies:
-      typescript: 6.0.3
-    transitivePeerDependencies:
-      - oxc-resolver
-
   rolldown-plugin-dts@0.28.7(oxc-resolver@11.21.2)(rolldown@1.2.13)(typescript@7.0.2):
     dependencies:
       dts-resolver: 3.0.0(oxc-resolver@11.21.2)
@@ -13409,33 +13395,6 @@ snapshots:
     dependencies:
       '@microsoft/tsdoc': 0.16.0
       react: '@preact/compat@18.3.2(preact@11.0.1)'
-
-  tsdown@0.23.1(@tsdown/css@0.23.1)(oxc-resolver@11.21.2)(tsx@4.23.13)(typescript@6.0.3):
-    dependencies:
-      cac: 7.0.1
-      defu: 6.1.7
-      empathic: 2.1.0
-      hookable: 6.1.2
-      import-without-cache: 0.4.1
-      obug: 3.0.0
-      picomatch: 4.0.7
-      rolldown: 1.2.13
-      rolldown-plugin-dts: 0.28.7(oxc-resolver@11.21.2)(rolldown@1.2.13)(typescript@6.0.3)
-      tinyexec: 1.3.1
-      tinyglobby: 0.2.17
-      tree-kill: 1.2.2
-      unconfig-core: 7.5.0
-      verkit: 0.5.0
-    optionalDependencies:
-      '@tsdown/css': 0.23.1(jiti@2.7.0)(postcss@8.5.29)(tsdown@0.23.1)(tsx@4.23.13)(yaml@2.9.1)
-      tsx: 4.23.13
-      typescript: 6.0.3
-    transitivePeerDependencies:
-      - '@typescript/native-preview'
-      - '@volar/typescript'
-      - '@vue/language-core'
-      - oxc-resolver
-      - vue-tsc
 
   tsdown@0.23.1(@tsdown/css@0.23.1)(oxc-resolver@11.21.2)(tsx@4.23.13)(typescript@7.0.2):
     dependencies:

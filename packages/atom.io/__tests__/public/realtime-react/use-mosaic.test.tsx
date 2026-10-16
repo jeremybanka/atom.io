@@ -1,6 +1,6 @@
+import { StoreProvider, useO } from "@atom.io/react"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import { mutableAtom, selector, Silo } from "atom.io"
-import { StoreProvider, useO } from "atom.io/react"
 import {
 	MOSAIC_EVENTS,
 	MOSAIC_PROTOCOL_VERSION,

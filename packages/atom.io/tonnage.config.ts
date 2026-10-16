@@ -1,9 +1,6 @@
 import { defineConfig, type TonnageConfig } from "tonnage"
 
 const config: TonnageConfig = defineConfig({
-	exports: {
-		exclude: [`./react-devtools/css`],
-	},
 	marker: `atom.io`,
 	recipes: [
 		{

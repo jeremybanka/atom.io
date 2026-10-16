@@ -1,5 +1,5 @@
 /** @jsxImportSource solid-js */
-import { useTL } from "atom.io/solid"
+import { useTL } from "@atom.io/solid"
 import type { JSX } from "solid-js"
 
 import { glyphTimelines } from "../core/timeline/create-a-timeline-family.ts"

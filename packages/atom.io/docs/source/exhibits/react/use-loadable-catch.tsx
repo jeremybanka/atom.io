@@ -1,5 +1,5 @@
+import { useLoadable } from "@atom.io/react"
 import { atom, type Loadable } from "atom.io"
-import { useLoadable } from "atom.io/react"
 
 class RequestError extends Error {
 	public readonly status: number

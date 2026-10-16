@@ -6,8 +6,10 @@ import type {
 } from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
 import { findInStore, type ReadableState, withdraw } from "atom.io/internal"
-import { StoreContext, useO } from "atom.io/react"
 import { useContext, useRef } from "react"
+
+import { StoreContext } from "./store-context.tsx"
+import { useO } from "./use-o.ts"
 
 export function useLoadable<T, E>(
 	token: ReadableToken<Loadable<T>, any, E>,

@@ -1,6 +1,6 @@
+import { StoreContext, useO } from "@atom.io/react"
 import type * as AtomIO from "atom.io"
 import type { Transceiver } from "atom.io/internal"
-import { StoreContext, useO } from "atom.io/react"
 import * as RTC from "atom.io/realtime-client"
 import * as React from "react"
 

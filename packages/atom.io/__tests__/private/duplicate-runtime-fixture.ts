@@ -1,14 +1,14 @@
 import assert from "node:assert/strict"
-import { cp, mkdtemp, rm, symlink } from "node:fs/promises"
+import { cp, mkdir, mkdtemp, rm, symlink } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 
+import type * as ReactAdapter from "@atom.io/react"
+import type * as SolidAdapter from "@atom.io/solid"
 import type * as Core from "atom.io"
 import type * as Internal from "atom.io/internal"
-import type * as ReactAdapter from "atom.io/react"
 import type * as RealtimeReact from "atom.io/realtime-react"
-import type * as SolidAdapter from "atom.io/solid"
 import { Window } from "happy-dom"
 import * as React from "react"
 import type * as ReactDOMClient from "react-dom/client"
@@ -57,6 +57,25 @@ try {
 			join(packageRoot, `package.json`),
 			join(destination, `package.json`),
 		)
+		await mkdir(join(destination, `node_modules/@atom.io`), { recursive: true })
+		await symlink(destination, join(destination, `node_modules/atom.io`), `dir`)
+		for (const adapter of [`react`, `solid`]) {
+			const adapterRoot = join(destination, `adapters`, adapter)
+			await cp(
+				join(packageRoot, `..`, adapter, `dist`),
+				join(adapterRoot, `dist`),
+				{ recursive: true },
+			)
+			await cp(
+				join(packageRoot, `..`, adapter, `package.json`),
+				join(adapterRoot, `package.json`),
+			)
+			await symlink(
+				adapterRoot,
+				join(destination, `node_modules/@atom.io`, adapter),
+				`dir`,
+			)
+		}
 	}
 	// A second pair of atom.io copies resolves separate physical React and Solid runtimes.
 	const isolatedDependencies = join(fixtureRoot, `isolated/node_modules`)
@@ -71,7 +90,11 @@ try {
 		entry: Entry,
 	): Promise<FixtureModules[Entry]> =>
 		import(
-			pathToFileURL(join(fixtureRoot, copy, `dist`, entry, `index.js`)).href
+			pathToFileURL(
+				entry === `react` || entry === `solid`
+					? join(fixtureRoot, copy, `adapters`, entry, `dist/index.js`)
+					: join(fixtureRoot, copy, `dist`, entry, `index.js`),
+			).href
 		) as Promise<FixtureModules[Entry]>
 	const coreA = await load(`a`, `main`)
 	const coreB = await load(`b`, `main`)

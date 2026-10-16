@@ -13,7 +13,12 @@ export type OurVitestConfigOptions = {
 	test?: Partial<TestUserConfig>
 }
 
-export const PATHS_COMPLETE_SOURCE = [`**/src/**/*.{ts,tsx}`] as const
+export const PATHS_COMPLETE_SOURCE = [
+	`src/**/*.{ts,tsx}`,
+	`../react/src/**/*.{ts,tsx}`,
+	`../solid/src/**/*.{ts,tsx}`,
+	`../react-devtools/src/**/*.{ts,tsx}`,
+] as const
 
 export const PATHS_PUBLIC_TESTS = [
 	`__tests__/public/**/*.test.{ts,tsx}`,
@@ -22,18 +27,23 @@ export const PATHS_PUBLIC_TESTS = [
 export const PATHS_PUBLIC_SOURCE = [
 	`src/main/**/*.{ts,tsx}`,
 	`src/foundations/**/*.{ts,tsx}`,
-	`src/react/**/*.{ts,tsx}`,
+	`../react/src/**/*.{ts,tsx}`,
 	`src/transceivers/**/*.{ts,tsx}`,
 	`src/web/**/*.{ts,tsx}`,
 ] as const
 
 const COVERAGE_CONFIG_BASE = {
+	allowExternal: true,
 	reporter: [`text`, `lcov`, `html`, `json`],
 	include: [...PATHS_COMPLETE_SOURCE],
 	exclude: [`__unstable__`],
 } as const satisfies CoverageOptions
 
 const SOURCE_ALIASES = [
+	...([`react`, `solid`, `react-devtools`] as const).map((name) => ({
+		find: new RegExp(`^@atom\\.io/${name}$`),
+		replacement: resolve(__dirname, `../../${name}/src`),
+	})),
 	{
 		find: /^atom\.io$/,
 		replacement: resolve(__dirname, `../src/main`),

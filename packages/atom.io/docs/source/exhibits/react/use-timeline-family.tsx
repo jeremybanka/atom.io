@@ -1,4 +1,4 @@
-import { useTL } from "atom.io/react"
+import { useTL } from "@atom.io/react"
 
 import { glyphTimelines } from "../core/timeline/create-a-timeline-family.ts"
 

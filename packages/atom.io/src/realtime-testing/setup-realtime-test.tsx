@@ -1,7 +1,7 @@
+import * as AR from "@atom.io/react"
 import type { RenderResult } from "@testing-library/react"
 import { prettyDOM, render } from "@testing-library/react"
 import { toEntries } from "atom.io/foundations/entries"
-import * as AR from "atom.io/react"
 import * as RTR from "atom.io/realtime-react"
 import type {
 	HeadlessRealtimeTestClient,

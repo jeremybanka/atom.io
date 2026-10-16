@@ -54,6 +54,34 @@
 				"__scripts__/**"
 			]
 		},
+		"atom.io#cov": {
+			"dependsOn": [
+				"build",
+				"@atom.io/react#build",
+				"@atom.io/solid#build",
+				"@atom.io/react-devtools#build"
+			]
+		},
+		"atom.io#cov:public": {
+			"dependsOn": ["build", "@atom.io/react#build"]
+		},
+		"atom.io#tonnage": {
+			"dependsOn": ["build", "@atom.io/react#build"]
+		},
+		"atom.io#tonnage:check": {
+			"dependsOn": ["build", "@atom.io/react#build"]
+		},
+		"atom.io#test:breakage": {
+			"dependsOn": ["test:breakage:prelude", "build", "@atom.io/react#build"]
+		},
+		"atom.io#test:once": {
+			"dependsOn": [
+				"build",
+				"@atom.io/react#build",
+				"@atom.io/solid#build",
+				"@atom.io/react-devtools#build"
+			]
+		},
 		"@atom.io/eslint-plugin#test:once": {
 			"dependsOn": ["build", "atom.io#build"]
 		},

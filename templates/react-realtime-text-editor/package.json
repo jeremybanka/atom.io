@@ -24,6 +24,7 @@
 		"test:once": "vitest run"
 	},
 	"dependencies": {
+		"@atom.io/react": "workspace:*",
 		"atom.io": "workspace:*",
 		"react": "19.3.1",
 		"react-dom": "19.3.1",

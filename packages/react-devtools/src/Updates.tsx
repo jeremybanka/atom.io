@@ -8,7 +8,6 @@ import type {
 import { stringifyJson } from "atom.io/foundations/json"
 import { discoverType, prettyJson } from "atom.io/introspection"
 import * as React from "react"
-
 /* eslint-disable no-console */
 
 const AtomUpdateFC: React.FC<{

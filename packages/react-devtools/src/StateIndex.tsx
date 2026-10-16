@@ -1,3 +1,4 @@
+import { useI, useO } from "@atom.io/react"
 import type {
 	AtomToken,
 	Loadable,
@@ -14,14 +15,12 @@ import {
 } from "atom.io/internal"
 import type { FamilyNode, WritableTokenIndex } from "atom.io/introspection"
 import { primitiveRefinery } from "atom.io/introspection"
-import { useI, useO } from "atom.io/react"
 import { type FC, useContext } from "react"
 
 import { button } from "./Button.tsx"
 import { DEFAULT_JSON_EDITOR_COMPONENTS } from "./json-editor/index.ts"
 import { StoreEditor } from "./StateEditor.tsx"
 import { DevtoolsContext } from "./store.ts"
-
 /* eslint-disable no-console */
 
 export const StateIndexLeafNode: FC<{

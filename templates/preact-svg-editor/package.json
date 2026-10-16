@@ -26,6 +26,7 @@
 		"react-dom": "npm:@preact/compat@18.3.2"
 	},
 	"devDependencies": {
+		"@atom.io/eslint-plugin": "workspace:*",
 		"@dprint/json": "0.25.2",
 		"@dprint/markdown": "0.26.0",
 		"@dprint/oxc": "0.46.0",
@@ -39,7 +40,7 @@
 		"eslint-plugin-simple-import-sort": "14.0.0",
 		"oxlint": "1.88.0",
 		"oxlint-tsgolint": "7.0.2004",
-		"typescript": "7.0.2",
+		"typescript": "6.0.3",
 		"vite": "8.3.4"
 	},
 	"publishConfig": {

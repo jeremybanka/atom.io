@@ -1,29 +1,31 @@
 import Exhibit from "c/Exhibit.astro";
-import { CodeBlock } from "c/CodeBlock";
 
-# <low-emphasis>atom.io</low-emphasis>/eslint-plugin
+# <low-emphasis>@atom.io</low-emphasis>/eslint-plugin
 
-`atom.io/eslint-plugin` provides rules that keep atom.io state and transaction
+`@atom.io/eslint-plugin` provides rules that keep atom.io state and transaction
 declarations explicit, consistent, and safe around typed errors.
 
 ## install
 
-If your project already depends on `atom.io`, the plugin is already available from that
-package. For a minimal TypeScript flat config, you also need ESLint and
-`typescript-eslint`:
+Install the plugin separately as a development dependency, alongside ESLint and
+`typescript-eslint`. The plugin supports ESLint 9 and 10 and TypeScript 4.8.4 through
+6.0.x.
 
-<CodeBlock
-filepath="sample.sh"
-label="install eslint"
-code={`pnpm add -D eslint typescript-eslint`}
-/>
+<Exhibit src="tooling/eslint-plugin/install.sh" />
+
+## migrating from atom.io/eslint-plugin
+
+Replace imports from `atom.io/eslint-plugin` with `@atom.io/eslint-plugin` and add the
+new package to your development dependencies. The rule names, options, and
+`atom.io` configuration namespace are unchanged. The SDK no longer ships the plugin
+or declares ESLint and its parser as peers.
 
 ## minimal flat config
 
 Here is a small `eslint.config.ts` that starts from `typescript-eslint`'s recommended
 type-checked rules and adds the atom.io rules.
 
-<Exhibit src="tooling/eslint-plugin/eslint.config.ts.txt" />
+<Exhibit src="tooling/eslint-plugin/flat-config.ts" label="eslint.config.ts" />
 
 Why use `recommendedTypeChecked` instead of plain `recommended`?
 

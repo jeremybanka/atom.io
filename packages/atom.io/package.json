@@ -18,10 +18,6 @@
 			"import": "./dist/main/index.js",
 			"types": "./dist/main/index.d.ts"
 		},
-		"./eslint-plugin": {
-			"import": "./dist/eslint-plugin/index.js",
-			"types": "./dist/eslint-plugin/index.d.ts"
-		},
 		"./experiments/realms": {
 			"import": "./dist/experiments/realms/index.js",
 			"types": "./dist/experiments/realms/index.d.ts"
@@ -165,8 +161,8 @@
 		"storybook:build": "storybook build"
 	},
 	"devDependencies": {
+		"@atom.io/eslint-plugin": "workspace:*",
 		"@atom.io/exhibits": "workspace:*",
-		"@eslint/core": "1.2.1",
 		"@orpc/client": "1.15.7",
 		"@orpc/server": "1.15.7",
 		"@storybook/addon-docs": "10.6.2",
@@ -176,13 +172,9 @@
 		"@testing-library/dom": "10.4.2",
 		"@testing-library/react": "16.3.3",
 		"@tsdown/css": "0.23.1",
-		"@types/estree": "1.0.9",
 		"@types/node": "26.6.5",
 		"@types/react": "19.3.0",
 		"@types/react-dom": "19.3.0",
-		"@typescript-eslint/parser": "8.71.2",
-		"@typescript-eslint/rule-tester": "8.71.2",
-		"@typescript-eslint/utils": "8.71.2",
 		"@vitest/coverage-v8": "5.0.4",
 		"@vitest/ui": "5.0.4",
 		"arktype": "2.2.8",
@@ -207,7 +199,7 @@
 		"treetrunks": "0.1.12",
 		"tsdown": "0.23.1",
 		"typescript": "7.0.2",
-		"typescript-eslint-typescript": "npm:typescript@6.0.3",
+		"typescript-eslint": "8.71.2",
 		"vite": "8.3.4",
 		"vitest": "5.0.4",
 		"zod": "4.6.7",
@@ -218,8 +210,6 @@
 		"@floating-ui/react-dom": ">=2.0.0",
 		"@testing-library/react": ">=14.0.0",
 		"@types/react": "^18.0.0 || ^19.0.0",
-		"@typescript-eslint/parser": ">=8.0.0",
-		"eslint": ">=9.0.0",
 		"happy-dom": ">=17.4.4",
 		"motion": ">=11.0.0",
 		"react": "^18.0.0 || ^19.0.0",
@@ -238,12 +228,6 @@
 			"optional": true
 		},
 		"@types/react": {
-			"optional": true
-		},
-		"@typescript-eslint/parser": {
-			"optional": true
-		},
-		"eslint": {
 			"optional": true
 		},
 		"happy-dom": {

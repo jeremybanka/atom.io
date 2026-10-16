@@ -1,13 +1,13 @@
-import atomIO from "atom.io/eslint-plugin"
+import atomIO from "@atom.io/eslint-plugin"
 import tseslint from "typescript-eslint"
 
 export default tseslint.config(
 	{
-		ignores: ["dist/**", "node_modules/**"],
+		ignores: [`dist/**`, `node_modules/**`],
 	},
 	...tseslint.configs.recommendedTypeChecked,
 	{
-		files: ["**/*.{ts,tsx}"],
+		files: [`**/*.{ts,tsx}`],
 		languageOptions: {
 			parserOptions: {
 				projectService: true,
@@ -18,10 +18,10 @@ export default tseslint.config(
 			"atom.io": atomIO,
 		},
 		rules: {
-			"atom.io/exact-catch-types": "error",
-			"atom.io/explicit-state-types": "error",
-			"atom.io/explicit-transaction-types": "error",
-			"atom.io/naming-convention": "error",
+			"atom.io/exact-catch-types": `error`,
+			"atom.io/explicit-state-types": `error`,
+			"atom.io/explicit-transaction-types": `error`,
+			"atom.io/naming-convention": `error`,
 		},
 	},
 )

@@ -42,10 +42,14 @@ afterAll(async () => {
 	if (consumerRoot) await rm(consumerRoot, { recursive: true, force: true })
 })
 
-it.each([`9.38.0`, `10.12.0`])(
-	`packed plugin works with ESLint %s`,
-	async (eslint) => {
-		const appRoot = join(consumerRoot, eslint)
+it.each([
+	[`9.38.0`, `6`],
+	[`10.12.0`, `6`],
+	[`10.12.0`, `7`],
+])(
+	`packed plugin works with ESLint %s and TypeScript %s`,
+	async (eslint, compiler) => {
+		const appRoot = join(consumerRoot, `${eslint}-${compiler}`)
 		await mkdir(appRoot)
 		await writeFile(
 			join(appRoot, `package.json`),
@@ -56,7 +60,12 @@ it.each([`9.38.0`, `10.12.0`])(
 					"@atom.io/eslint-plugin": `file:../plugin.tgz`,
 					"@typescript-eslint/parser": `8.71.2`,
 					eslint,
-					typescript: `6.0.3`,
+					...(compiler === `7`
+						? {
+								"@typescript/native": `npm:typescript@7.0.2`,
+								typescript: `npm:@typescript/typescript6@6.0.2`,
+							}
+						: { typescript: `6.0.3` }),
 				},
 			}),
 		)
@@ -68,11 +77,19 @@ it.each([`9.38.0`, `10.12.0`])(
 		const manifestPath = require.resolve(`@atom.io/eslint-plugin/package.json`)
 		const manifest = JSON.parse(await readFile(manifestPath, `utf8`))
 		const pluginRequire = createRequire(manifestPath)
+		// The build compiler can be native while ESLint keeps the TypeScript 6 API.
+		assert.match(require(`typescript`).version, /^6\./)
+		const compilerVersion = execFileSync(`pnpm`, [`exec`, `tsc`, `--version`], {
+			cwd: appRoot,
+			encoding: `utf8`,
+		})
+		assert(compilerVersion.trim().startsWith(`Version ${compiler}.`))
 		// Utilities belong to the plugin; consumers do not install or hoist them.
 		assert.throws(() => require.resolve(`@typescript-eslint/utils`))
 		assert(pluginRequire.resolve(`@typescript-eslint/utils`))
 		assert.throws(() => pluginRequire.resolve(`atom.io`))
 		pnpm(appRoot, `exec`, `tsc`)
+		if (compiler === `7`) pnpm(appRoot, `exec`, `tsc6`)
 		execFileSync(process.execPath, [`consumer.ts`], {
 			cwd: appRoot,
 			stdio: `inherit`,

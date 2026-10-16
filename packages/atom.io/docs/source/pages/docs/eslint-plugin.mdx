@@ -8,10 +8,19 @@ declarations explicit, consistent, and safe around typed errors.
 ## install
 
 Install the plugin separately as a development dependency, alongside ESLint and
-`typescript-eslint`. The plugin supports ESLint 9 and 10 and TypeScript 4.8.4 through
-6.0.x.
+`typescript-eslint`. The plugin supports ESLint 9 and 10. Its TypeScript peer
+describes the compiler API used by ESLint (4.8.4 through 6.0.x), rather than the
+compiler you use to build your project.
+
+For TypeScript 7 projects, install both compilers using
+[TypeScript's recommended aliases](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6-0).
+The starter templates use this setup:
 
 <Exhibit src="tooling/eslint-plugin/install.sh" />
+
+`@typescript/native` supplies TypeScript 7's `tsc` command for builds and type
+checks. The `typescript` alias supplies the TypeScript 6 API that ESLint imports,
+plus a separate `tsc6` command. Existing `tsc` scripts continue to use TypeScript 7.
 
 ## migrating from atom.io/eslint-plugin
 

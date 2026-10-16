@@ -4,7 +4,6 @@ const config: TonnageConfig = defineConfig({
 	exports: {
 		exclude: [`./react-devtools/css`],
 	},
-	external: [`@eslint/*`, `@typescript-eslint/*`, `eslint-*`],
 	marker: `atom.io`,
 	recipes: [
 		{

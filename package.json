@@ -40,6 +40,7 @@
 		"workflows": "bun scripts/update-workflows.bun.ts"
 	},
 	"devDependencies": {
+		"@atom.io/eslint-plugin": "workspace:*",
 		"@changesets/cli": "3.0.3",
 		"@changesets/config": "4.0.1",
 		"@correctlyjs/schemars": "0.0.5",

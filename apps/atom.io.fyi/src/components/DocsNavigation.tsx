@@ -363,7 +363,7 @@ function SiteDirectory(): VNode {
 					<main>
 						<section>
 							<a id="-docs-eslint-plugin-link" href={`/docs/eslint-plugin`}>
-								<low-emphasis>atom.io</low-emphasis>/eslint-plugin
+								<low-emphasis>@atom.io</low-emphasis>/eslint-plugin
 							</a>
 						</section>
 						<section>

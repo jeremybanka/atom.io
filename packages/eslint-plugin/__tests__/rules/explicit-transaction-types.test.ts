@@ -1,5 +1,5 @@
+import { Rules } from "@atom.io/eslint-plugin"
 import { RuleTester } from "@typescript-eslint/rule-tester"
-import { Rules } from "atom.io/eslint-plugin"
 
 const ruleTester = new RuleTester()
 Object.assign(ruleTester, { describe, it })

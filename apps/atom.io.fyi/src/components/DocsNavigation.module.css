@@ -46,6 +46,15 @@ docs-navigation.class {
 						display: flex;
 						flex-flow: column;
 						align-items: flex-start;
+						&:has(> scope-placeholder) {
+							flex-flow: row;
+							align-items: baseline;
+						}
+						> scope-placeholder {
+							visibility: hidden;
+							user-select: none;
+							flex-shrink: 0;
+						}
 						> a {
 							padding: 0.2em 0.4em 0.25em;
 							user-select: none;

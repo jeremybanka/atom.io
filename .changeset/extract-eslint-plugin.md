@@ -1,6 +1,6 @@
 ---
 "atom.io": minor
-"@atom.io/eslint-plugin": patch
+"@atom.io/eslint-plugin": minor
 "@atom.io/template-preact-svg-editor": patch
 "@atom.io/template-react-node-backend": patch
 "@atom.io/template-react-realtime-text-editor": patch

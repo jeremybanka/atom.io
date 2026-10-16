@@ -1,29 +1,40 @@
 import Exhibit from "c/Exhibit.astro";
-import { CodeBlock } from "c/CodeBlock";
 
-# <low-emphasis>atom.io</low-emphasis>/eslint-plugin
+# <low-emphasis>@atom.io</low-emphasis>/eslint-plugin
 
-`atom.io/eslint-plugin` provides rules that keep atom.io state and transaction
+`@atom.io/eslint-plugin` provides rules that keep atom.io state and transaction
 declarations explicit, consistent, and safe around typed errors.
 
 ## install
 
-If your project already depends on `atom.io`, the plugin is already available from that
-package. For a minimal TypeScript flat config, you also need ESLint and
-`typescript-eslint`:
+Install the plugin separately as a development dependency, alongside ESLint and
+`typescript-eslint`. The plugin supports ESLint 9 and 10. Its TypeScript peer
+describes the compiler API used by ESLint (4.8.4 through 6.0.x), rather than the
+compiler you use to build your project.
 
-<CodeBlock
-filepath="sample.sh"
-label="install eslint"
-code={`pnpm add -D eslint typescript-eslint`}
-/>
+For TypeScript 7 projects, install both compilers using
+[TypeScript's recommended aliases](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6-0).
+The starter templates use this setup:
+
+<Exhibit src="tooling/eslint-plugin/install.sh" />
+
+`@typescript/native` supplies TypeScript 7's `tsc` command for builds and type
+checks. The `typescript` alias supplies the TypeScript 6 API that ESLint imports,
+plus a separate `tsc6` command. Existing `tsc` scripts continue to use TypeScript 7.
+
+## migrating from atom.io/eslint-plugin
+
+Replace imports from `atom.io/eslint-plugin` with `@atom.io/eslint-plugin` and add the
+new package to your development dependencies. The rule names, options, and
+`atom.io` configuration namespace are unchanged. The SDK no longer ships the plugin
+or declares ESLint and its parser as peers.
 
 ## minimal flat config
 
 Here is a small `eslint.config.ts` that starts from `typescript-eslint`'s recommended
 type-checked rules and adds the atom.io rules.
 
-<Exhibit src="tooling/eslint-plugin/eslint.config.ts.txt" />
+<Exhibit src="tooling/eslint-plugin/flat-config.ts" label="eslint.config.ts" />
 
 Why use `recommendedTypeChecked` instead of plain `recommended`?
 

@@ -337,21 +337,25 @@ function SiteDirectory(): VNode {
 					<header>Interface</header>
 					<main>
 						<section>
+							<scope-placeholder aria-hidden="true">@</scope-placeholder>
 							<a id="-docs-atom-io-link" href={`/docs/atom-io`}>
 								atom.io
 							</a>
 						</section>
 						<section>
+							<scope-placeholder aria-hidden="true">@</scope-placeholder>
 							<a id="-docs-react-link" href={`/docs/react`}>
 								<low-emphasis>atom.io</low-emphasis>/react
 							</a>
 						</section>
 						<section>
+							<scope-placeholder aria-hidden="true">@</scope-placeholder>
 							<a id="-docs-web-link" href={`/docs/web`}>
 								<low-emphasis>atom.io</low-emphasis>/web
 							</a>
 						</section>
 						<section>
+							<scope-placeholder aria-hidden="true">@</scope-placeholder>
 							<a id="-docs-transceivers-link" href={`/docs/transceivers`}>
 								<low-emphasis>atom.io</low-emphasis>/transceivers
 							</a>
@@ -362,18 +366,20 @@ function SiteDirectory(): VNode {
 					<header>Tooling</header>
 					<main>
 						<section>
-							<a id="-docs-eslint-plugin-link" href={`/docs/eslint-plugin`}>
-								<low-emphasis>atom.io</low-emphasis>/eslint-plugin
-							</a>
-						</section>
-						<section>
+							<scope-placeholder aria-hidden="true">@</scope-placeholder>
 							<a id="-docs-react-devtools-link" href={`/docs/react-devtools`}>
 								<low-emphasis>atom.io</low-emphasis>/react-devtools
 							</a>
 						</section>
 						<section>
+							<scope-placeholder aria-hidden="true">@</scope-placeholder>
 							<a id="-docs-testing-link" href={`/docs/testing`}>
 								<low-emphasis>atom.io</low-emphasis>/testing
+							</a>
+						</section>
+						<section>
+							<a id="-docs-eslint-plugin-link" href={`/docs/eslint-plugin`}>
+								<low-emphasis>@atom.io</low-emphasis>/eslint-plugin
 							</a>
 						</section>
 					</main>
@@ -382,11 +388,13 @@ function SiteDirectory(): VNode {
 					<header>Foundations</header>
 					<main>
 						<section>
+							<scope-placeholder aria-hidden="true">@</scope-placeholder>
 							<a id="-docs-foundations-link" href={`/docs/foundations`}>
 								<low-emphasis>atom.io</low-emphasis>/foundations
 							</a>
 						</section>
 						<section>
+							<scope-placeholder aria-hidden="true">@</scope-placeholder>
 							<a
 								id="-docs-foundations-json-link"
 								href={`/docs/foundations/json`}
@@ -395,6 +403,7 @@ function SiteDirectory(): VNode {
 							</a>
 						</section>
 						<section>
+							<scope-placeholder aria-hidden="true">@</scope-placeholder>
 							<a
 								id="-docs-foundations-canonical-link"
 								href={`/docs/foundations/canonical`}
@@ -403,6 +412,7 @@ function SiteDirectory(): VNode {
 							</a>
 						</section>
 						<section>
+							<scope-placeholder aria-hidden="true">@</scope-placeholder>
 							<a
 								id="-docs-foundations-entries-link"
 								href={`/docs/foundations/entries`}
@@ -411,6 +421,7 @@ function SiteDirectory(): VNode {
 							</a>
 						</section>
 						<section>
+							<scope-placeholder aria-hidden="true">@</scope-placeholder>
 							<a
 								id="-docs-foundations-enumeration-link"
 								href={`/docs/foundations/enumeration`}
@@ -419,6 +430,7 @@ function SiteDirectory(): VNode {
 							</a>
 						</section>
 						<section>
+							<scope-placeholder aria-hidden="true">@</scope-placeholder>
 							<a
 								id="-docs-foundations-type-utils-link"
 								href={`/docs/foundations/type-utils`}
@@ -427,6 +439,7 @@ function SiteDirectory(): VNode {
 							</a>
 						</section>
 						<section>
+							<scope-placeholder aria-hidden="true">@</scope-placeholder>
 							<a
 								id="-docs-foundations-future-link"
 								href={`/docs/foundations/future`}
@@ -435,6 +448,7 @@ function SiteDirectory(): VNode {
 							</a>
 						</section>
 						<section>
+							<scope-placeholder aria-hidden="true">@</scope-placeholder>
 							<a
 								id="-docs-foundations-subject-link"
 								href={`/docs/foundations/subject`}
@@ -443,6 +457,7 @@ function SiteDirectory(): VNode {
 							</a>
 						</section>
 						<section>
+							<scope-placeholder aria-hidden="true">@</scope-placeholder>
 							<a
 								id="-docs-foundations-overlays-link"
 								href={`/docs/foundations/overlays`}
@@ -451,6 +466,7 @@ function SiteDirectory(): VNode {
 							</a>
 						</section>
 						<section>
+							<scope-placeholder aria-hidden="true">@</scope-placeholder>
 							<a
 								id="-docs-foundations-junction-link"
 								href={`/docs/foundations/junction`}

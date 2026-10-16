@@ -1,0 +1,3 @@
+pnpm add -D @atom.io/eslint-plugin eslint typescript-eslint \
+  typescript@npm:@typescript/typescript6@6.0.2 \
+  @typescript/native@npm:typescript@7.0.2

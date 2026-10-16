@@ -1,12 +1,11 @@
 import type { TSESTree } from "@typescript-eslint/utils"
 import { AST_NODE_TYPES, ESLintUtils } from "@typescript-eslint/utils"
-// TypeScript 7 no longer exposes these classic compiler API types at "typescript".
 import type {
 	InterfaceType,
 	Symbol as TsSymbol,
 	Type,
 	TypeNode,
-} from "typescript-eslint-typescript"
+} from "typescript"
 
 const createRule = ESLintUtils.RuleCreator(
 	(name) => `https://atom.io.fyi/docs/eslint-plugin#${name}`,

@@ -6,5 +6,6 @@ Repo notes:
 - Do not add manual line breaks to patch notes; they render awkwardly for consumers.
 - Docs changes deserve a changeset because the published `atom.io` package ships
   the docs.
+- Changes limited to the `atom.io.fyi` website do not need patch notes or changesets.
 - For workspace packages below version 1.0.0, only breaking changes receive a
   minor release.

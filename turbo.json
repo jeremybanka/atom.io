@@ -54,6 +54,9 @@
 				"__scripts__/**"
 			]
 		},
+		"@atom.io/eslint-plugin#test:once": {
+			"dependsOn": ["build", "atom.io#build"]
+		},
 		"test:stress:realtime-ipc": {
 			"dependsOn": ["build"],
 			"cache": false,
@@ -131,7 +134,7 @@
 			"outputs": []
 		},
 		"lint:eslint": {
-			"dependsOn": ["^build", "atom.io#build"],
+			"dependsOn": ["^build", "@atom.io/eslint-plugin#build"],
 			"inputs": [
 				"../../package.json",
 				"../../eslint.config.ts",

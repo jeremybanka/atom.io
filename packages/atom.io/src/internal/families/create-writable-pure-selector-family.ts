@@ -11,7 +11,6 @@ import type {
 } from "atom.io"
 import { PRETTY_ENTITY_NAMES } from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
-import { stringifyJson } from "atom.io/foundations/json"
 
 import { getFromStore } from "../get-state/index.ts"
 import {
@@ -25,6 +24,10 @@ import type { WritablePureSelectorFamily } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
 import type { RootStore } from "../transaction/index.ts"
 import { findInStore } from "./find-in-store.ts"
+import {
+	type PreparedFamilyKey,
+	prepareFamilyKey,
+} from "./prepare-family-key.ts"
 
 export function createWritablePureSelectorFamily<T, K extends Canonical, E>(
 	store: Store,
@@ -51,10 +54,10 @@ export function createWritablePureSelectorFamily<T, K extends Canonical, E>(
 
 	const create = <Key extends K>(
 		key: Key,
+		prepared?: PreparedFamilyKey<Key>,
 	): WritablePureSelectorToken<T, Key, E> => {
-		const subKey = stringifyJson(key)
+		const { subKey, fullKey } = prepared ?? prepareFamilyKey(familyKey, key)
 		const family: FamilyMetadata<Key> = { key: familyKey, subKey }
-		const fullKey = `${familyKey}(${subKey})`
 		const target = newest(store)
 		const individualOptions: WritablePureSelectorOptions<T, E> = {
 			key: fullKey,

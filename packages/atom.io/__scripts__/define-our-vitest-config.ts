@@ -3,7 +3,7 @@ import { resolve } from "node:path"
 
 import type * as Vite from "vite"
 import type { TestUserConfig } from "vitest/config"
-import { defineConfig } from "vitest/config"
+import { configDefaults, defineConfig } from "vitest/config"
 
 type CoverageOptions = NonNullable<TestUserConfig[`coverage`]>
 
@@ -45,6 +45,7 @@ const SOURCE_ALIASES = [
 ] as const satisfies Vite.Alias[]
 
 const TEST_CONFIG_BASE = {
+	exclude: [...configDefaults.exclude, `__tests__/packaging/**`],
 	pool: `vmThreads`,
 	maxWorkers: 2,
 	globals: true,

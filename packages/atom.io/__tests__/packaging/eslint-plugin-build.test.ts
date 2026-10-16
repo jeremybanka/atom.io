@@ -1,13 +1,13 @@
 import assert from "node:assert/strict"
 import { resolve } from "node:path"
-import { it } from "node:test"
 
 import type { Rolldown, UserConfig } from "tsdown"
 import { build } from "tsdown"
+import { it } from "vitest"
 
-import { eslintPluginHelpers } from "./eslint-plugin-build.ts"
+import { eslintPluginHelpers } from "../../__scripts__/eslint-plugin-build.ts"
 
-const coreRoot = resolve(import.meta.dirname, `..`)
+const coreRoot = resolve(import.meta.dirname, `../..`)
 const pluginSource = resolve(coreRoot, `src/eslint-plugin/index.ts`)
 
 function buildPlugin(options: UserConfig = {}): ReturnType<typeof build> {
@@ -44,18 +44,18 @@ function injectImport(id: string, bundled = false): Rolldown.Plugin {
 	}
 }
 
-await it(`validates a renamed runtime entry`, async () => {
+it(`validates a renamed runtime entry`, async () => {
 	await assert.doesNotReject(buildPlugin())
 })
 
-await it(`rejects a build missing the runtime entry`, async () => {
+it(`rejects a build missing the runtime entry`, async () => {
 	await assert.rejects(
 		buildPlugin({ entry: { other: resolve(coreRoot, `src/main/index.ts`) } }),
 		/Expected one runtime entry for atom.io\/eslint-plugin/,
 	)
 })
 
-await it(`rejects external imports even when the entry is renamed`, async () => {
+it(`rejects external imports even when the entry is renamed`, async () => {
 	await assert.rejects(
 		buildPlugin({
 			plugins: [injectImport(`unexpected-external`), eslintPluginHelpers()],
@@ -64,7 +64,7 @@ await it(`rejects external imports even when the entry is renamed`, async () => 
 	)
 })
 
-await it(`rejects bundled dependencies outside the helper allowlist`, async () => {
+it(`rejects bundled dependencies outside the helper allowlist`, async () => {
 	await assert.rejects(
 		buildPlugin({
 			plugins: [

@@ -49,7 +49,7 @@ export function InboxButton() {
 
 ## Start Here
 
-- Install the library with `npm i atom.io`.
+- Install the library and React bindings with `npm i atom.io @atom.io/react`.
 - Read the package README at [packages/atom.io](./packages/atom.io/README.md).
 - Browse the docs at [atom.io.fyi](https://atom.io.fyi).
 - Generate a starter with `npm create atom.io`.

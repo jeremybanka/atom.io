@@ -19,11 +19,11 @@
 			]
 		},
 		"tonnage": {
-			"dependsOn": ["build", "^build"],
+			"dependsOn": ["build", "^build", "@atom.io/react#build"],
 			"cache": false
 		},
 		"tonnage:check": {
-			"dependsOn": ["build", "^build"],
+			"dependsOn": ["build", "^build", "@atom.io/react#build"],
 			"outputs": [],
 			"inputs": [
 				"package.json",
@@ -54,32 +54,23 @@
 				"__scripts__/**"
 			]
 		},
-		"atom.io#cov": {
-			"dependsOn": [
-				"build",
-				"@atom.io/react#build",
-				"@atom.io/solid#build",
-				"@atom.io/react-devtools#build"
-			]
-		},
-		"atom.io#cov:public": {
-			"dependsOn": ["build", "@atom.io/react#build"]
-		},
-		"atom.io#tonnage": {
-			"dependsOn": ["build", "@atom.io/react#build"]
-		},
-		"atom.io#tonnage:check": {
-			"dependsOn": ["build", "@atom.io/react#build"]
-		},
-		"atom.io#test:breakage": {
-			"dependsOn": ["test:breakage:prelude", "build", "@atom.io/react#build"]
-		},
 		"atom.io#test:once": {
 			"dependsOn": [
 				"build",
 				"@atom.io/react#build",
 				"@atom.io/solid#build",
 				"@atom.io/react-devtools#build"
+			],
+			"inputs": [
+				"package.json",
+				"tsconfig.json",
+				"*.config.ts",
+				"bin/**",
+				"../../mise.toml",
+				"src/**",
+				"docs/source/**",
+				"__tests__/**",
+				"__scripts__/**"
 			]
 		},
 		"@atom.io/eslint-plugin#test:once": {
@@ -98,7 +89,13 @@
 			]
 		},
 		"cov": {
-			"dependsOn": ["^build"],
+			"dependsOn": [
+				"^build",
+				"build",
+				"@atom.io/react#build",
+				"@atom.io/solid#build",
+				"@atom.io/react-devtools#build"
+			],
 			"outputs": ["coverage/**"],
 			"inputs": [
 				"tsconfig.json",
@@ -116,7 +113,7 @@
 			"passThroughEnv": ["RECOVERAGE_CLOUD_TOKEN"]
 		},
 		"cov:public": {
-			"dependsOn": ["^build"],
+			"dependsOn": ["^build", "build", "@atom.io/react#build"],
 			"outputs": ["coverage-public/**"],
 			"inputs": [
 				"tsconfig.json",
@@ -134,7 +131,9 @@
 		"test:breakage": {
 			"dependsOn": [
 				"test:breakage:prelude",
-				"^build"
+				"^build",
+				"build",
+				"@atom.io/react#build"
 			],
 			"cache": true,
 			"inputs": [

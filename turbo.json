@@ -133,6 +133,23 @@
 			],
 			"outputs": []
 		},
+		"@atom.io/eslint-plugin#test:breakage": {
+			"dependsOn": ["test:breakage:prelude", "^build"],
+			"cache": true,
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				"../../.changeset/**",
+				"../../package.json",
+				"../../pnpm-lock.yaml",
+				"../../pnpm-workspace.yaml",
+				"../../tsconfig.json",
+				{
+					"mode": "jit",
+					"globs": [".breakage/baseline.json"]
+				}
+			],
+			"outputs": []
+		},
 		"lint:eslint": {
 			"dependsOn": ["^build", "@atom.io/eslint-plugin#build"],
 			"inputs": [

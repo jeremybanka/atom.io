@@ -1,0 +1,6 @@
+{
+	"tagPattern": "refs/tags/@atom\\.io/eslint-plugin@",
+	"testPattern": "__tests__/rules/**/*.test.ts",
+	"testCommand": "bun run test:once:public",
+	"certifyCommand": "grep -q -F '\"@atom.io/eslint-plugin\": minor' ../../.changeset/*.md"
+}

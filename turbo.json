@@ -143,6 +143,9 @@
 				"../../pnpm-lock.yaml",
 				"../../pnpm-workspace.yaml",
 				"../../tsconfig.json",
+				"../../mise.toml",
+				"../../.github/workflows/test.yml",
+				"../../.github/actions/setup/action.yml",
 				{
 					"mode": "jit",
 					"globs": [".breakage/baseline.json"]

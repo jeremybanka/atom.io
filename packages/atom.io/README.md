@@ -84,7 +84,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 | <code>atom.io/realtime</code>                  |    59,690 B | 17,508 B |
 | <code>atom.io/realtime-client</code>           |    69,031 B | 19,978 B |
 | <code>atom.io/realtime-react</code>            |    72,390 B | 21,072 B |
-| <code>atom.io/realtime-server</code>           |   102,941 B | 30,213 B |
+| <code>atom.io/realtime-server</code>           |   102,948 B | 30,215 B |
 | <code>atom.io/realtime-testing/headless</code> |   119,897 B | 35,539 B |
 | <code>atom.io/realtime-testing/react</code>    |    96,721 B | 28,433 B |
 | <code>atom.io/solid</code>                     |    45,287 B | 13,123 B |

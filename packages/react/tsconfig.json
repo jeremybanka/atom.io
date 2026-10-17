@@ -1,0 +1,33 @@
+{
+	"extends": "../../tsconfig.json",
+	"compilerOptions": {
+		"target": "ES2023",
+		"allowJs": false,
+		"declaration": true,
+		"isolatedDeclarations": true,
+		"lib": [
+			"DOM",
+			"ESNext"
+		],
+		"paths": {
+			"atom.io": [
+				"../atom.io/src/main"
+			],
+			"atom.io/*": [
+				"../atom.io/src/*"
+			],
+			"@atom.io/react": [
+				"../react/src"
+			]
+		},
+		"jsx": "react-jsx",
+		"jsxImportSource": "react",
+		"types": [
+			"node"
+		]
+	},
+	"include": [
+		"src",
+		"*.config.ts"
+	]
+}

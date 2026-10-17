@@ -1,5 +1,5 @@
+import { useLoadable } from "@atom.io/react"
 import { atom, type Loadable } from "atom.io"
-import { useLoadable } from "atom.io/react"
 
 const myApiDataAtom = atom<Loadable<{ name: string }>>({
 	key: `myApiData`,

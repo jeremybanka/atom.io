@@ -4,7 +4,7 @@ title: Catch
 summary: A typed error channel for atoms and selectors.
 packages:
   - atom.io
-  - atom.io/react
+  - "@atom.io/react"
 related:
   - loadable
   - selector

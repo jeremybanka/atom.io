@@ -41,6 +41,9 @@
 	},
 	"devDependencies": {
 		"@atom.io/eslint-plugin": "workspace:*",
+		"@atom.io/react": "workspace:*",
+		"@atom.io/react-devtools": "workspace:*",
+		"@atom.io/solid": "workspace:*",
 		"@changesets/cli": "3.0.3",
 		"@changesets/config": "4.0.1",
 		"@correctlyjs/schemars": "0.0.5",

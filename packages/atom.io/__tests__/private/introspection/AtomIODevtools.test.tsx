@@ -1,8 +1,8 @@
+import * as AR from "@atom.io/react"
+import { AtomIODevtools } from "@atom.io/react-devtools"
 import { act, fireEvent, render, waitFor } from "@testing-library/react"
 import type { Logger } from "atom.io"
 import { scopeFamily, Silo } from "atom.io"
-import * as AR from "atom.io/react"
-import { AtomIODevtools } from "atom.io/react-devtools"
 import { UList } from "atom.io/transceivers/u-list"
 
 import * as Utils from "../../__util__/index.ts"

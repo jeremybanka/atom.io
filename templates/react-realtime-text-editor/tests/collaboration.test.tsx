@@ -1,5 +1,5 @@
+import { useO } from "@atom.io/react"
 import { act, waitFor } from "@testing-library/react"
-import { useO } from "atom.io/react"
 import type { Socket, UserKey } from "atom.io/realtime"
 import { useMosaic } from "atom.io/realtime-react"
 import { createMosaicServer } from "atom.io/realtime-server"
@@ -9,8 +9,8 @@ import { markdownAtomRegistration } from "../node/mosaic-atom.ts"
 import {
 	type Markdown,
 	markdownAtom,
-	markdownWordCountSelector,
 	type MarkdownPresence,
+	markdownWordCountSelector,
 } from "../src/collaboration/mosaic.ts"
 import type { Identity } from "../src/identities.ts"
 import { INITIAL_MARKDOWN } from "../src/initial-markdown.ts"

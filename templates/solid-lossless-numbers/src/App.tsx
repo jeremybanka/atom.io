@@ -1,3 +1,4 @@
+import { useI, useO } from "@atom.io/solid"
 import type { AtomToken } from "atom.io"
 import {
 	atom,
@@ -11,7 +12,6 @@ import {
 	setState,
 	transaction,
 } from "atom.io"
-import { useI, useO } from "atom.io/solid"
 import { OList } from "atom.io/transceivers/o-list"
 import { Rational } from "rationality"
 import type { JSX } from "solid-js"

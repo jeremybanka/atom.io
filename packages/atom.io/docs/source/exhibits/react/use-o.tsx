@@ -1,5 +1,5 @@
+import { useO } from "@atom.io/react"
 import { atom } from "atom.io"
-import { useO } from "atom.io/react"
 
 function discoverUrl() {
 	return new URL(window.location.href)

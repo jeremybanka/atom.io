@@ -1,5 +1,4 @@
 import Exhibit from "c/Exhibit.astro";
-import { CodeBlock } from "c/CodeBlock";
 
 # getting started
 
@@ -15,13 +14,9 @@ without changing the component's behavior.
 
 <h2 id="install">install</h2>
 
-Add `atom.io` to the app you already have:
+Add the SDK and React bindings to the app you already have:
 
-<CodeBlock
-filepath="sample.sh"
-label="install"
-code={`pnpm add atom.io`}
-/>
+<Exhibit src="guides/getting-started/install.sh" />
 
 That's it! `atom.io` delivers its entire SDK in one package. (And it ships all the docs on this website in an easy-to-read format.)
 

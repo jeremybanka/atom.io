@@ -20,7 +20,7 @@ programmatic project-creation API.
 | `preact-svg-editor`          | A Preact + Vite SVG editor that leans on atoms, atom families, selectors, and transactions. |
 | `react-node-backend`         | A React app paired with Node services for backend-shaped examples.                          |
 | `react-realtime-text-editor` | A realtime React text editor with presence and selective per-user undo.                     |
-| `solid-lossless-numbers`     | A Solid + Vite playground for exact rational arithmetic with `atom.io/solid`.               |
+| `solid-lossless-numbers`     | A Solid + Vite playground for exact rational arithmetic with `@atom.io/solid`.              |
 
 ## Usage
 

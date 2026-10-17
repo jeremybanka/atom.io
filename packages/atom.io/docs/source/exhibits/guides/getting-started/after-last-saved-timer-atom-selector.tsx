@@ -1,5 +1,5 @@
+import { useO } from "@atom.io/react"
 import { atom, selector } from "atom.io"
-import { useO } from "atom.io/react"
 import type { JSX } from "react/jsx-runtime"
 
 const LAST_SAVED_AT = Date.now() - 12_000

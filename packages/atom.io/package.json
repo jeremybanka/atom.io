@@ -66,18 +66,6 @@
 			"import": "./dist/introspection/index.js",
 			"types": "./dist/introspection/index.d.ts"
 		},
-		"./react": {
-			"import": "./dist/react/index.js",
-			"types": "./dist/react/index.d.ts"
-		},
-		"./react-devtools": {
-			"import": "./dist/react-devtools/index.js",
-			"types": "./dist/react-devtools/index.d.ts"
-		},
-		"./react-devtools/css": {
-			"import": "./dist/react-devtools/index.css",
-			"types": "./css.d.ts"
-		},
 		"./realtime": {
 			"import": "./dist/realtime/index.js",
 			"types": "./dist/realtime/index.d.ts"
@@ -102,10 +90,6 @@
 			"import": "./dist/realtime-testing/react/index.js",
 			"types": "./dist/realtime-testing/react/index.d.ts"
 		},
-		"./solid": {
-			"import": "./dist/solid/index.js",
-			"types": "./dist/solid/index.d.ts"
-		},
 		"./testing": {
 			"import": "./dist/testing/index.js",
 			"types": "./dist/testing/index.d.ts"
@@ -128,7 +112,6 @@
 		"dist",
 		"src",
 		"oxlint.json",
-		"css.d.ts",
 		"AGENTS.md",
 		"docs/agent"
 	],
@@ -171,7 +154,6 @@
 		"@tanstack/react-query": "5.104.3",
 		"@testing-library/dom": "10.4.2",
 		"@testing-library/react": "16.3.3",
-		"@tsdown/css": "0.23.1",
 		"@types/node": "26.6.5",
 		"@types/react": "19.3.0",
 		"@types/react-dom": "19.3.0",
@@ -206,22 +188,16 @@
 		"zustand": "5.0.15"
 	},
 	"peerDependencies": {
-		"@floating-ui/react": ">=0.25.0",
-		"@floating-ui/react-dom": ">=2.0.0",
+		"@atom.io/react": "workspace:^",
 		"@testing-library/react": ">=14.0.0",
 		"@types/react": "^18.0.0 || ^19.0.0",
 		"happy-dom": ">=17.4.4",
-		"motion": ">=11.0.0",
 		"react": "^18.0.0 || ^19.0.0",
 		"socket.io": ">=4.0.0",
-		"socket.io-client": ">=4.0.0",
-		"solid-js": "^1.9.0"
+		"socket.io-client": ">=4.0.0"
 	},
 	"peerDependenciesMeta": {
-		"@floating-ui/react": {
-			"optional": true
-		},
-		"@floating-ui/react-dom": {
+		"@atom.io/react": {
 			"optional": true
 		},
 		"@testing-library/react": {
@@ -233,9 +209,6 @@
 		"happy-dom": {
 			"optional": true
 		},
-		"motion": {
-			"optional": true
-		},
 		"react": {
 			"optional": true
 		},
@@ -243,9 +216,6 @@
 			"optional": true
 		},
 		"socket.io-client": {
-			"optional": true
-		},
-		"solid-js": {
 			"optional": true
 		}
 	},

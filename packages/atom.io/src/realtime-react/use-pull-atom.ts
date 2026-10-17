@@ -1,6 +1,6 @@
+import { StoreContext, useO } from "@atom.io/react"
 import type * as AtomIO from "atom.io"
 import type { Json } from "atom.io/foundations/json"
-import { StoreContext, useO } from "atom.io/react"
 import * as RTC from "atom.io/realtime-client"
 import * as React from "react"
 

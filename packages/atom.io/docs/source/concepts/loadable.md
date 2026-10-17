@@ -4,7 +4,7 @@ title: Loadable
 summary: A reactive value that may still be waiting on asynchronous work.
 packages:
   - atom.io
-  - atom.io/react
+  - "@atom.io/react"
 related:
   - selector
   - catch

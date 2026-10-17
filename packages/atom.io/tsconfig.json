@@ -5,15 +5,33 @@
 		"jsx": "react-jsx",
 		"jsxImportSource": "react",
 		"allowArbitraryExtensions": true,
-		"types": ["vitest/globals"],
-		"lib": ["DOM", "ESNext"],
+		"types": [
+			"vitest/globals"
+		],
+		"lib": [
+			"DOM",
+			"ESNext"
+		],
 		"noEmit": true,
 		"declaration": true,
 		"allowJs": false,
 		"isolatedDeclarations": true,
 		"paths": {
-			"atom.io": ["./src/main"],
-			"atom.io/*": ["./src/*"]
+			"atom.io": [
+				"./src/main"
+			],
+			"atom.io/*": [
+				"./src/*"
+			],
+			"@atom.io/react": [
+				"../react/src"
+			],
+			"@atom.io/solid": [
+				"../solid/src"
+			],
+			"@atom.io/react-devtools": [
+				"../react-devtools/src"
+			]
 		}
 	},
 	"include": [
@@ -24,7 +42,6 @@
 		"__stories__",
 		"__unstable__",
 		"tonnage-recipes",
-		".storybook/*.ts",
-		"css.d.ts"
+		".storybook/*.ts"
 	]
 }

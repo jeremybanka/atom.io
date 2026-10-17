@@ -1,10 +1,10 @@
+import { useO } from "@atom.io/react"
 import type { MosaicTextSelection } from "atom.io/realtime"
-import { useO } from "atom.io/react"
 import { useMosaic } from "atom.io/realtime-react"
 import {
-	Fragment,
 	createElement,
 	type CSSProperties,
+	Fragment,
 	type ReactElement,
 	type ReactNode,
 	useEffect,
@@ -19,13 +19,13 @@ import {
 	type Markdown,
 	markdownAtom,
 	markdownCharacterCountSelector,
-	markdownWordCountSelector,
 	type MarkdownPresence,
+	markdownWordCountSelector,
 } from "./collaboration/mosaic.ts"
-import { SIMULATED_IDENTITIES } from "./identities.ts"
 import type { Identity } from "./identities.ts"
-import { switchBrowserIdentity } from "./session.ts"
+import { SIMULATED_IDENTITIES } from "./identities.ts"
 import css from "./MarkdownWorkspace.module.css"
+import { switchBrowserIdentity } from "./session.ts"
 
 type MarkdownWorkspaceProps = {
 	clientId: string

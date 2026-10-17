@@ -1,5 +1,5 @@
+import { useLoadable } from "@atom.io/react"
 import { atom, type Loadable, resetState } from "atom.io"
-import { useLoadable } from "atom.io/react"
 import { useEffect } from "react"
 
 type QueryResult = {

@@ -1,19 +1,5 @@
-import { execFile } from "node:child_process"
-import {
-	chmod,
-	copyFile,
-	lstat,
-	readdir,
-	realpath,
-	rename,
-	stat,
-} from "node:fs/promises"
-import { join } from "node:path"
-import { promisify } from "node:util"
+import { execFileSync } from "node:child_process"
 
-const execute = promisify(execFile)
-const store =
-	process.env[`ATOM_IO_PEER_STORE`] ?? `/tmp/atomio-npm25-offline-store`
 const stage = process.argv[2] === `stage`
 const args = stage
 	? [
@@ -21,41 +7,15 @@ const args = stage
 			`--config.autoInstallPeers=false`,
 			`--config.strictPeerDependencies=false`,
 			`install`,
-			`--offline`,
 			`--ignore-scripts`,
 			`--no-lockfile`,
 		]
-	: [`install`, `--offline`, `--ignore-scripts`, `--frozen-lockfile`]
+	: [`install`, `--ignore-scripts`, `--frozen-lockfile`]
 if (process.argv[2] === `initialize`)
 	args[args.indexOf(`--frozen-lockfile`)] = `--no-frozen-lockfile`
-try {
-	await execute(`pnpm`, [...args, `--store-dir`, store], {
-		maxBuffer: 16 * 1024 * 1024,
-	})
-} catch (error) {
-	process.stderr.write(String((error as { stdout?: string }).stdout ?? ``))
-	process.stderr.write(String((error as { stderr?: string }).stderr ?? ``))
-	throw error
-}
 
-// This offline cache reuses immutable files through links. Materialize imported
-// file links so Node resolves modules from their installed package directories.
-async function materialize(directory: string): Promise<void> {
-	for (const name of await readdir(directory)) {
-		if (name === `.bin`) continue
-		const filename = join(directory, name)
-		const entry = await lstat(filename)
-		if (entry.isDirectory()) await materialize(filename)
-		else if (entry.isSymbolicLink()) {
-			const resolved = await realpath(filename)
-			if (!resolved.includes(`/store/v11/files/`)) continue
-			const source = await stat(filename)
-			if (!source.isFile()) continue
-			const temporary = `${filename}.npm25-copy`
-			await copyFile(filename, temporary)
-			await chmod(temporary, source.mode)
-			await rename(temporary, filename)
-		}
-	}
-}
-await materialize(join(process.cwd(), `node_modules/.pnpm`))
+// Optional cache controls; ordinary runs use pnpm's normal store and network.
+if (process.env[`ATOM_IO_PEER_OFFLINE`] === `1`) args.push(`--offline`)
+if (process.env[`ATOM_IO_PEER_STORE`])
+	args.push(`--store-dir`, process.env[`ATOM_IO_PEER_STORE`]!)
+execFileSync(`pnpm`, args, { stdio: `inherit` })

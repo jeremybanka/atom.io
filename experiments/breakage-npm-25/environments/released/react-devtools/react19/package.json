@@ -1,0 +1,21 @@
+{
+	"name": "react-devtools-react19-released-sdk",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@types/react": "19.3.0",
+		"@types/react-dom": "19.3.0",
+		"atom.io": "0.53.3",
+		"react": "19.3.1",
+		"react-dom": "19.3.1"
+	},
+	"devDependencies": {
+		"typescript": "7.0.2"
+	},
+	"breakage": {
+		"candidates": [
+			"@atom.io/react"
+		]
+	}
+}

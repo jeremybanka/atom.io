@@ -188,7 +188,7 @@
 		"zustand": "5.0.15"
 	},
 	"peerDependencies": {
-		"@atom.io/react": "workspace:^",
+		"@atom.io/react": "~0.0.0",
 		"@testing-library/react": ">=14.0.0",
 		"@types/react": "^18.0.0 || ^19.0.0",
 		"happy-dom": ">=17.4.4",

@@ -1,26 +1,38 @@
 {
 	"pullRequest": "https://github.com/jeremybanka/breakage/pull/25",
-	"revision": "0d9b7e5b7f4768629ecbb6b41c670952ffdc85e2",
+	"revision": "44c750aaed47d6d1dfdaecfa801899283e495c70",
 	"command": "pnpm test:breakage:npm:25 /path/to/breakage-checkout",
-	"scope": "Test the three extracted integrations with the PR's npmCheck/npmTest APIs and a local workspace-peer patch. Source is archived from the pinned commit; the supplied checkout is left untouched.",
-	"originalFinding": "The original unpatched probe and results.json reproduce rejection of workspace:^ before any consumer assertions run.",
-	"workspaceHandling": "Resolve workspace:^, workspace:~, workspace:*, and explicit workspace ranges to pnpm's packed declarations. Read historical peer versions from the same Git commit. Preserve optional peers and reject unresolved or unsupported workspace declarations.",
-	"additionalFix": "Replace an installed candidate's version manifest atomically, preserving shared hard-linked cache files and other environments.",
-	"consumerMatrix": "Eight frozen environments: React 18/19 and Solid 1.9 against released atom.io 0.53.3, plus React 18/19, Solid 1.9, and devtools with React 18/19 against Changesets-certified SDK 0.54.0 and integration 0.0.1 candidates.",
-	"checks": "Consumer runtime behavior, strict declaration checks, physical peer identity, devtools CSS, rejection of missing candidate release evidence, and rejection of a deliberately broken packed React hook.",
-	"offlineSetup": "ATOM_IO_PEER_STORE selects an existing pnpm store. This machine's sandbox run reuses immutable cached data through a writable /tmp index and materializes imported file links. No dependency versions or repository supply-chain policies are relaxed.",
+	"defaultCheckout": "~/breakage",
+	"scope": "Exercise the three extracted integrations with the updated PR's unmodified npmCheck/npmTest APIs. Source is archived from the pinned commit; the supplied checkout is left untouched. No local Breakage patch is applied.",
+	"authoredSupport": {
+		"integrationSdkPeer": "^0.53.3 || ^0.54.0",
+		"reactPeerForDevtoolsAndRealtime": "~0.0.0",
+		"policy": "Explicit SDK eras retain released support while admitting the Changesets-planned SDK. The React range admits compatible 0.0.x patches, matching the repository's policy that pre-1.0 breaking changes require a minor release. Workspace dev dependencies remain local."
+	},
+	"releasePlanning": "One full check per integration covers released and coordinated environments together. All declared registered local peers use the real Changesets plan, including SDK 0.54.0 and React 0.0.1; neither phase suppresses the upcoming release obligation.",
+	"artifacts": "Pack unchanged workspace versions and authored peer declarations. Breakage checks those declarations, substitutes only certified installed peer metadata, and reports both archiveVersion and intended version. No source versions are stamped or support ranges generated from the release plan.",
+	"consumerMatrix": "Ten frozen environments: React 18/19 and Solid 1.9 against released SDK 0.53.3 and coordinated SDK 0.54.0; devtools with React 18/19 against both SDK formulations and the coordinated React 0.0.1 candidate.",
+	"installation": "Ordinary pnpm installation uses its normal store and network. Optional ATOM_IO_PEER_STORE and ATOM_IO_PEER_OFFLINE=1 controls allow an existing ordinary offline store. Frozen representative inputs remain committed; candidate installation disables automatic peers and lifecycle scripts.",
+	"removed": "The superseded normalization patch, duplicate upstream regression fixtures, historical failure-only probe, and machine-specific cache materialization are removed. Their original evidence remains in branch history at d49be5d68.",
 	"limitations": [
 		"The firstRelease option isolates this current-consumer experiment; it does not certify the absence of a published release or replace the existing historical test gates.",
-		"Devtools is tested as a coordinated release with the React candidate; no released @atom.io/react environment is claimed.",
-		"The patch is carried here for evaluation and has not been applied to the upstream PR."
+		"Devtools uses the coordinated React candidate with both SDK versions; no registry-published @atom.io/react environment is claimed. npm returned 404 for @atom.io/react@0.0.0 during this revision.",
+		"Solid runtime assertions exercise StoreContext.Provider, not the preexisting StoreProvider wrapper; its public types are checked separately.",
+		"Certified metadata substitution does not rebuild embedded runtime version constants or prove publication. This remains a trial branch, not production CI adoption."
 	],
 	"validation": {
-		"consumerEnvironments": 8,
-		"localRegressionTests": 4,
-		"upstreamNpmRegressionTests": 41,
+		"consumerEnvironments": 10,
+		"fullChecks": 3,
+		"coverageAudits": 3,
+		"negativeControlCount": 11,
 		"negativeControls": [
-			"Missing SDK/React candidate release intent is rejected for all three integrations.",
+			"Missing candidate release intent is rejected for all three integrations.",
+			"Omitting coordinated SDK representatives fails all three coverage audits despite retaining released SDK coverage.",
+			"Excluding planned SDK 0.54.0 from authored support fails all three coverage audits.",
+			"Moving workspace peer shorthand is rejected before consumer assertions.",
 			"A deliberately broken packed React hook fails compatibility."
-		]
+		],
+		"existingPackedConsumerCheck": "Passed SDK-only installation and strict React 18/19 installations, declaration checks, realtime imports, runtime assertions, CSS, and shared SDK identity using current workspace archives.",
+		"scriptChecks": "Strict TypeScript, targeted ESLint, dprint, git diff --check, and a frozen workspace installation pass."
 	}
 }

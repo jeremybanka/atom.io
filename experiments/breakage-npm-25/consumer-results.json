@@ -1,5 +1,5 @@
 {
-	"breakageRevision": "0d9b7e5b7f4768629ecbb6b41c670952ffdc85e2",
+	"breakageRevision": "44c750aaed47d6d1dfdaecfa801899283e495c70",
 	"versions": {
 		"atom.io": "0.54.0",
 		"@atom.io/react": "0.0.1",
@@ -8,15 +8,79 @@
 	},
 	"reports": [
 		{
-			"phase": "released",
 			"package": {
 				"name": "@atom.io/react",
 				"version": "0.0.0"
 			},
 			"exitCode": 0,
+			"support": {
+				"status": "first-release",
+				"changes": []
+			},
+			"errors": [],
 			"representatives": [
 				{
-					"path": "peer-environments/react18",
+					"path": "peer-environments/coordinated-react18",
+					"status": "passed",
+					"peers": {
+						"@types/react": {
+							"version": "18.3.12",
+							"source": "installed"
+						},
+						"atom.io": {
+							"version": "0.54.0",
+							"source": "candidate",
+							"archiveVersion": "0.53.3"
+						},
+						"react": {
+							"version": "18.3.1",
+							"source": "installed"
+						}
+					},
+					"suites": [
+						{
+							"peer": "atom.io",
+							"status": "passed"
+						},
+						{
+							"peer": "react",
+							"status": "passed"
+						}
+					],
+					"warnings": []
+				},
+				{
+					"path": "peer-environments/coordinated-react19",
+					"status": "passed",
+					"peers": {
+						"@types/react": {
+							"version": "19.3.0",
+							"source": "installed"
+						},
+						"atom.io": {
+							"version": "0.54.0",
+							"source": "candidate",
+							"archiveVersion": "0.53.3"
+						},
+						"react": {
+							"version": "19.3.1",
+							"source": "installed"
+						}
+					},
+					"suites": [
+						{
+							"peer": "atom.io",
+							"status": "passed"
+						},
+						{
+							"peer": "react",
+							"status": "passed"
+						}
+					],
+					"warnings": []
+				},
+				{
+					"path": "peer-environments/released-react18",
 					"status": "passed",
 					"peers": {
 						"@types/react": {
@@ -41,10 +105,11 @@
 							"peer": "react",
 							"status": "passed"
 						}
-					]
+					],
+					"warnings": []
 				},
 				{
-					"path": "peer-environments/react19",
+					"path": "peer-environments/released-react19",
 					"status": "passed",
 					"peers": {
 						"@types/react": {
@@ -69,7 +134,8 @@
 							"peer": "react",
 							"status": "passed"
 						}
-					]
+					],
+					"warnings": []
 				}
 			],
 			"coverage": [
@@ -77,36 +143,76 @@
 					"peer": "atom.io",
 					"era": "^0.53.3",
 					"representatives": [
-						"peer-environments/react18",
-						"peer-environments/react19"
+						"peer-environments/released-react18",
+						"peer-environments/released-react19"
+					]
+				},
+				{
+					"peer": "atom.io",
+					"era": "^0.54.0",
+					"representatives": [
+						"peer-environments/coordinated-react18",
+						"peer-environments/coordinated-react19"
 					]
 				},
 				{
 					"peer": "react",
 					"era": "^18.0.0",
 					"representatives": [
-						"peer-environments/react18"
+						"peer-environments/coordinated-react18",
+						"peer-environments/released-react18"
 					]
 				},
 				{
 					"peer": "react",
 					"era": "^19.0.0",
 					"representatives": [
-						"peer-environments/react19"
+						"peer-environments/coordinated-react19",
+						"peer-environments/released-react19"
 					]
 				}
 			]
 		},
 		{
-			"phase": "released",
 			"package": {
 				"name": "@atom.io/solid",
 				"version": "0.0.0"
 			},
 			"exitCode": 0,
+			"support": {
+				"status": "first-release",
+				"changes": []
+			},
+			"errors": [],
 			"representatives": [
 				{
-					"path": "peer-environments/solid19",
+					"path": "peer-environments/coordinated-solid19",
+					"status": "passed",
+					"peers": {
+						"atom.io": {
+							"version": "0.54.0",
+							"source": "candidate",
+							"archiveVersion": "0.53.3"
+						},
+						"solid-js": {
+							"version": "1.9.17",
+							"source": "installed"
+						}
+					},
+					"suites": [
+						{
+							"peer": "atom.io",
+							"status": "passed"
+						},
+						{
+							"peer": "solid-js",
+							"status": "passed"
+						}
+					],
+					"warnings": []
+				},
+				{
+					"path": "peer-environments/released-solid19",
 					"status": "passed",
 					"peers": {
 						"atom.io": {
@@ -127,7 +233,8 @@
 							"peer": "solid-js",
 							"status": "passed"
 						}
-					]
+					],
+					"warnings": []
 				}
 			],
 			"coverage": [
@@ -135,173 +242,46 @@
 					"peer": "atom.io",
 					"era": "^0.53.3",
 					"representatives": [
-						"peer-environments/solid19"
+						"peer-environments/released-solid19"
+					]
+				},
+				{
+					"peer": "atom.io",
+					"era": "^0.54.0",
+					"representatives": [
+						"peer-environments/coordinated-solid19"
 					]
 				},
 				{
 					"peer": "solid-js",
 					"era": "^1.9.0",
 					"representatives": [
-						"peer-environments/solid19"
+						"peer-environments/coordinated-solid19",
+						"peer-environments/released-solid19"
 					]
 				}
 			]
 		},
 		{
-			"phase": "coordinated",
-			"package": {
-				"name": "@atom.io/react",
-				"version": "0.0.1"
-			},
-			"exitCode": 0,
-			"representatives": [
-				{
-					"path": "peer-environments/react18",
-					"status": "passed",
-					"peers": {
-						"@types/react": {
-							"version": "18.3.12",
-							"source": "installed"
-						},
-						"atom.io": {
-							"version": "0.54.0",
-							"source": "candidate"
-						},
-						"react": {
-							"version": "18.3.1",
-							"source": "installed"
-						}
-					},
-					"suites": [
-						{
-							"peer": "atom.io",
-							"status": "passed"
-						},
-						{
-							"peer": "react",
-							"status": "passed"
-						}
-					]
-				},
-				{
-					"path": "peer-environments/react19",
-					"status": "passed",
-					"peers": {
-						"@types/react": {
-							"version": "19.3.0",
-							"source": "installed"
-						},
-						"atom.io": {
-							"version": "0.54.0",
-							"source": "candidate"
-						},
-						"react": {
-							"version": "19.3.1",
-							"source": "installed"
-						}
-					},
-					"suites": [
-						{
-							"peer": "atom.io",
-							"status": "passed"
-						},
-						{
-							"peer": "react",
-							"status": "passed"
-						}
-					]
-				}
-			],
-			"coverage": [
-				{
-					"peer": "atom.io",
-					"era": "^0.54.0",
-					"representatives": [
-						"peer-environments/react18",
-						"peer-environments/react19"
-					]
-				},
-				{
-					"peer": "react",
-					"era": "^18.0.0",
-					"representatives": [
-						"peer-environments/react18"
-					]
-				},
-				{
-					"peer": "react",
-					"era": "^19.0.0",
-					"representatives": [
-						"peer-environments/react19"
-					]
-				}
-			]
-		},
-		{
-			"phase": "coordinated",
-			"package": {
-				"name": "@atom.io/solid",
-				"version": "0.0.1"
-			},
-			"exitCode": 0,
-			"representatives": [
-				{
-					"path": "peer-environments/solid19",
-					"status": "passed",
-					"peers": {
-						"atom.io": {
-							"version": "0.54.0",
-							"source": "candidate"
-						},
-						"solid-js": {
-							"version": "1.9.17",
-							"source": "installed"
-						}
-					},
-					"suites": [
-						{
-							"peer": "atom.io",
-							"status": "passed"
-						},
-						{
-							"peer": "solid-js",
-							"status": "passed"
-						}
-					]
-				}
-			],
-			"coverage": [
-				{
-					"peer": "atom.io",
-					"era": "^0.54.0",
-					"representatives": [
-						"peer-environments/solid19"
-					]
-				},
-				{
-					"peer": "solid-js",
-					"era": "^1.9.0",
-					"representatives": [
-						"peer-environments/solid19"
-					]
-				}
-			]
-		},
-		{
-			"phase": "coordinated",
 			"package": {
 				"name": "@atom.io/react-devtools",
-				"version": "0.0.1"
+				"version": "0.0.0"
 			},
 			"exitCode": 0,
+			"support": {
+				"status": "first-release",
+				"changes": []
+			},
+			"errors": [],
 			"representatives": [
 				{
-					"path": "peer-environments/react18",
+					"path": "peer-environments/coordinated-react18",
 					"status": "passed",
 					"peers": {
 						"@atom.io/react": {
 							"version": "0.0.1",
-							"source": "candidate"
+							"source": "candidate",
+							"archiveVersion": "0.0.0"
 						},
 						"@types/react": {
 							"version": "18.3.12",
@@ -309,7 +289,8 @@
 						},
 						"atom.io": {
 							"version": "0.54.0",
-							"source": "candidate"
+							"source": "candidate",
+							"archiveVersion": "0.53.3"
 						},
 						"react": {
 							"version": "18.3.1",
@@ -337,15 +318,17 @@
 							"peer": "react-dom",
 							"status": "passed"
 						}
-					]
+					],
+					"warnings": []
 				},
 				{
-					"path": "peer-environments/react19",
+					"path": "peer-environments/coordinated-react19",
 					"status": "passed",
 					"peers": {
 						"@atom.io/react": {
 							"version": "0.0.1",
-							"source": "candidate"
+							"source": "candidate",
+							"archiveVersion": "0.0.0"
 						},
 						"@types/react": {
 							"version": "19.3.0",
@@ -353,7 +336,8 @@
 						},
 						"atom.io": {
 							"version": "0.54.0",
-							"source": "candidate"
+							"source": "candidate",
+							"archiveVersion": "0.53.3"
 						},
 						"react": {
 							"version": "19.3.1",
@@ -381,52 +365,294 @@
 							"peer": "react-dom",
 							"status": "passed"
 						}
-					]
+					],
+					"warnings": []
+				},
+				{
+					"path": "peer-environments/released-react18",
+					"status": "passed",
+					"peers": {
+						"@atom.io/react": {
+							"version": "0.0.1",
+							"source": "candidate",
+							"archiveVersion": "0.0.0"
+						},
+						"@types/react": {
+							"version": "18.3.12",
+							"source": "installed"
+						},
+						"atom.io": {
+							"version": "0.53.3",
+							"source": "installed"
+						},
+						"react": {
+							"version": "18.3.1",
+							"source": "installed"
+						},
+						"react-dom": {
+							"version": "18.3.1",
+							"source": "installed"
+						}
+					},
+					"suites": [
+						{
+							"peer": "atom.io",
+							"status": "passed"
+						},
+						{
+							"peer": "@atom.io/react",
+							"status": "passed"
+						},
+						{
+							"peer": "react",
+							"status": "passed"
+						},
+						{
+							"peer": "react-dom",
+							"status": "passed"
+						}
+					],
+					"warnings": []
+				},
+				{
+					"path": "peer-environments/released-react19",
+					"status": "passed",
+					"peers": {
+						"@atom.io/react": {
+							"version": "0.0.1",
+							"source": "candidate",
+							"archiveVersion": "0.0.0"
+						},
+						"@types/react": {
+							"version": "19.3.0",
+							"source": "installed"
+						},
+						"atom.io": {
+							"version": "0.53.3",
+							"source": "installed"
+						},
+						"react": {
+							"version": "19.3.1",
+							"source": "installed"
+						},
+						"react-dom": {
+							"version": "19.3.1",
+							"source": "installed"
+						}
+					},
+					"suites": [
+						{
+							"peer": "atom.io",
+							"status": "passed"
+						},
+						{
+							"peer": "@atom.io/react",
+							"status": "passed"
+						},
+						{
+							"peer": "react",
+							"status": "passed"
+						},
+						{
+							"peer": "react-dom",
+							"status": "passed"
+						}
+					],
+					"warnings": []
 				}
 			],
 			"coverage": [
 				{
 					"peer": "atom.io",
+					"era": "^0.53.3",
+					"representatives": [
+						"peer-environments/released-react18",
+						"peer-environments/released-react19"
+					]
+				},
+				{
+					"peer": "atom.io",
 					"era": "^0.54.0",
 					"representatives": [
-						"peer-environments/react18",
-						"peer-environments/react19"
+						"peer-environments/coordinated-react18",
+						"peer-environments/coordinated-react19"
 					]
 				},
 				{
 					"peer": "@atom.io/react",
-					"era": "^0.0.1",
+					"era": "~0.0.0",
 					"representatives": [
-						"peer-environments/react18",
-						"peer-environments/react19"
+						"peer-environments/coordinated-react18",
+						"peer-environments/coordinated-react19",
+						"peer-environments/released-react18",
+						"peer-environments/released-react19"
 					]
 				},
 				{
 					"peer": "react",
 					"era": "^18.0.0",
 					"representatives": [
-						"peer-environments/react18"
+						"peer-environments/coordinated-react18",
+						"peer-environments/released-react18"
 					]
 				},
 				{
 					"peer": "react",
 					"era": "^19.0.0",
 					"representatives": [
-						"peer-environments/react19"
+						"peer-environments/coordinated-react19",
+						"peer-environments/released-react19"
 					]
 				},
 				{
 					"peer": "react-dom",
 					"era": "^18.0.0",
 					"representatives": [
-						"peer-environments/react18"
+						"peer-environments/coordinated-react18",
+						"peer-environments/released-react18"
 					]
 				},
 				{
 					"peer": "react-dom",
 					"era": "^19.0.0",
 					"representatives": [
-						"peer-environments/react19"
+						"peer-environments/coordinated-react19",
+						"peer-environments/released-react19"
+					]
+				}
+			]
+		}
+	],
+	"audits": [
+		{
+			"package": "@atom.io/react",
+			"exitCode": 0,
+			"mode": "coverage-only",
+			"coverage": [
+				{
+					"peer": "atom.io",
+					"era": "^0.53.3",
+					"representatives": [
+						"peer-environments/released-react18",
+						"peer-environments/released-react19"
+					]
+				},
+				{
+					"peer": "atom.io",
+					"era": "^0.54.0",
+					"representatives": [
+						"peer-environments/coordinated-react18",
+						"peer-environments/coordinated-react19"
+					]
+				},
+				{
+					"peer": "react",
+					"era": "^18.0.0",
+					"representatives": [
+						"peer-environments/coordinated-react18",
+						"peer-environments/released-react18"
+					]
+				},
+				{
+					"peer": "react",
+					"era": "^19.0.0",
+					"representatives": [
+						"peer-environments/coordinated-react19",
+						"peer-environments/released-react19"
+					]
+				}
+			]
+		},
+		{
+			"package": "@atom.io/solid",
+			"exitCode": 0,
+			"mode": "coverage-only",
+			"coverage": [
+				{
+					"peer": "atom.io",
+					"era": "^0.53.3",
+					"representatives": [
+						"peer-environments/released-solid19"
+					]
+				},
+				{
+					"peer": "atom.io",
+					"era": "^0.54.0",
+					"representatives": [
+						"peer-environments/coordinated-solid19"
+					]
+				},
+				{
+					"peer": "solid-js",
+					"era": "^1.9.0",
+					"representatives": [
+						"peer-environments/coordinated-solid19",
+						"peer-environments/released-solid19"
+					]
+				}
+			]
+		},
+		{
+			"package": "@atom.io/react-devtools",
+			"exitCode": 0,
+			"mode": "coverage-only",
+			"coverage": [
+				{
+					"peer": "atom.io",
+					"era": "^0.53.3",
+					"representatives": [
+						"peer-environments/released-react18",
+						"peer-environments/released-react19"
+					]
+				},
+				{
+					"peer": "atom.io",
+					"era": "^0.54.0",
+					"representatives": [
+						"peer-environments/coordinated-react18",
+						"peer-environments/coordinated-react19"
+					]
+				},
+				{
+					"peer": "@atom.io/react",
+					"era": "~0.0.0",
+					"representatives": [
+						"peer-environments/coordinated-react18",
+						"peer-environments/coordinated-react19",
+						"peer-environments/released-react18",
+						"peer-environments/released-react19"
+					]
+				},
+				{
+					"peer": "react",
+					"era": "^18.0.0",
+					"representatives": [
+						"peer-environments/coordinated-react18",
+						"peer-environments/released-react18"
+					]
+				},
+				{
+					"peer": "react",
+					"era": "^19.0.0",
+					"representatives": [
+						"peer-environments/coordinated-react19",
+						"peer-environments/released-react19"
+					]
+				},
+				{
+					"peer": "react-dom",
+					"era": "^18.0.0",
+					"representatives": [
+						"peer-environments/coordinated-react18",
+						"peer-environments/released-react18"
+					]
+				},
+				{
+					"peer": "react-dom",
+					"era": "^19.0.0",
+					"representatives": [
+						"peer-environments/coordinated-react19",
+						"peer-environments/released-react19"
 					]
 				}
 			]
@@ -435,19 +661,58 @@
 	"controls": [
 		{
 			"package": "@atom.io/react",
-			"missingReleaseIntent": "rejected"
+			"check": "missing candidate release intent",
+			"rejected": true
 		},
 		{
 			"package": "@atom.io/react",
-			"brokenPackedHook": "rejected"
+			"check": "missing coordinated SDK representative",
+			"rejected": true
+		},
+		{
+			"package": "@atom.io/react",
+			"check": "excluded planned SDK version",
+			"rejected": true
+		},
+		{
+			"package": "@atom.io/react",
+			"check": "moving workspace peer shorthand",
+			"rejected": true
+		},
+		{
+			"package": "@atom.io/react",
+			"check": "broken packed React hook",
+			"rejected": true
 		},
 		{
 			"package": "@atom.io/solid",
-			"missingReleaseIntent": "rejected"
+			"check": "missing candidate release intent",
+			"rejected": true
+		},
+		{
+			"package": "@atom.io/solid",
+			"check": "missing coordinated SDK representative",
+			"rejected": true
+		},
+		{
+			"package": "@atom.io/solid",
+			"check": "excluded planned SDK version",
+			"rejected": true
 		},
 		{
 			"package": "@atom.io/react-devtools",
-			"missingReleaseIntent": "rejected"
+			"check": "missing candidate release intent",
+			"rejected": true
+		},
+		{
+			"package": "@atom.io/react-devtools",
+			"check": "missing coordinated SDK representative",
+			"rejected": true
+		},
+		{
+			"package": "@atom.io/react-devtools",
+			"check": "excluded planned SDK version",
+			"rejected": true
 		}
 	]
 }

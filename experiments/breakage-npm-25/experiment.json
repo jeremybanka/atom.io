@@ -1,0 +1,18 @@
+{
+	"pullRequest": "https://github.com/jeremybanka/breakage/pull/25",
+	"revision": "0d9b7e5b7f4768629ecbb6b41c670952ffdc85e2",
+	"command": "pnpm test:breakage:npm:25 /path/to/breakage-checkout",
+	"scope": "Test the three extracted integrations with the PR's npmCheck/npmTest APIs and a local workspace-peer patch. Source is archived from the pinned commit; the supplied checkout is left untouched.",
+	"originalFinding": "The original unpatched probe and results.json reproduce rejection of workspace:^ before any consumer assertions run.",
+	"workspaceHandling": "Resolve workspace:^, workspace:~, workspace:*, and explicit workspace ranges to pnpm's packed declarations. Read historical peer versions from the same Git commit. Preserve optional peers and reject unresolved or unsupported workspace declarations.",
+	"additionalFix": "Replace an installed candidate's version manifest atomically, preserving shared hard-linked cache files and other environments.",
+	"consumerMatrix": "Eight frozen environments: React 18/19 and Solid 1.9 against released atom.io 0.53.3, plus React 18/19, Solid 1.9, and devtools with React 18/19 against Changesets-certified SDK 0.54.0 and integration 0.0.1 candidates.",
+	"checks": "Consumer runtime behavior, strict declaration checks, physical peer identity, devtools CSS, rejection of missing candidate release evidence, and rejection of a deliberately broken packed React hook.",
+	"offlineSetup": "ATOM_IO_PEER_STORE selects an existing pnpm store. This machine's sandbox run reuses immutable cached data through a writable /tmp index and materializes imported file links. No dependency versions or repository supply-chain policies are relaxed.",
+	"limitations": [
+		"The firstRelease option isolates this current-consumer experiment; it does not certify the absence of a published release or replace the existing historical test gates.",
+		"Devtools is tested as a coordinated release with the React candidate; no released @atom.io/react environment is claimed.",
+		"The patch is carried here for evaluation and has not been applied to the upstream PR.",
+		"The upstream npm test suite was attempted, but this sandbox loses subprocess stdout during its npm-pack fixture setup. The local regression and consumer checks execute separately."
+	]
+}

@@ -1,0 +1,182 @@
+--- a/src/npm/manifest.ts
++++ b/src/npm/manifest.ts
+@@ -78,6 +78,35 @@
+ 	return parseManifest(JSON.parse(await readFile(filename, `utf8`)), filename)
+ }
+ 
++/** Resolve the peer ranges pnpm writes when packing a workspace package. */
++export async function resolveWorkspacePeers(
++	manifest: Manifest,
++	versionOf: (peer: string) => Promise<string>,
++): Promise<Manifest> {
++	if (!manifest.peerDependencies) return manifest
++	const entries = await Promise.all(
++		Object.entries(manifest.peerDependencies).map(async ([peer, range]) => {
++			if (!range.startsWith(`workspace:`)) return [peer, range] as const
++			const requested = range.slice(`workspace:`.length)
++			if ([`*`, `^`, `~`].includes(requested)) {
++				const version = await versionOf(peer)
++				if (!semver.valid(version))
++					throw new Error(`Invalid workspace version for ${peer}: ${version}.`)
++				return [
++					peer,
++					`${requested === `*` ? `` : requested}${version}`,
++				] as const
++			}
++			if (!semver.validRange(requested))
++				throw new Error(
++					`Unsupported workspace peer range for ${peer}: ${range}.`,
++				)
++			return [peer, requested] as const
++		}),
++	)
++	return { ...manifest, peerDependencies: Object.fromEntries(entries) }
++}
++
+ export function eras(range: string): string[] {
+ 	const parts = range.split(`||`).map((part) => part.trim())
+ 	if (parts.some((part) => !part || semver.validRange(part) === null)) {
+--- a/src/npm/release.ts
++++ b/src/npm/release.ts
+@@ -8,7 +8,12 @@
+ import { latestReleaseTag } from "../release-tag.ts"
+ import { validatePeerRanges } from "./config.ts"
+ import type { Manifest } from "./manifest.ts"
+-import { parseManifest, record } from "./manifest.ts"
++import {
++	parseManifest,
++	readManifest,
++	record,
++	resolveWorkspacePeers,
++} from "./manifest.ts"
+ import type {
+ 	NpmConfig,
+ 	ReleaseContext,
+@@ -105,6 +110,34 @@
+ 	})
+ }
+ 
++function workspaceDirectory(
++	config: NpmConfig,
++	directory: string,
++	peer: string,
++): string {
++	const local = config.localPeers?.[peer]
++	if (!local)
++		throw new Error(`Workspace peer ${peer} needs a localPeers directory.`)
++	return path.resolve(directory, local.directory)
++}
++
++export async function currentManifest(
++	config: NpmConfig,
++	directory: string,
++): Promise<Manifest> {
++	return await resolveWorkspacePeers(
++		await readManifest(path.join(directory, `package.json`)),
++		async (peer) => {
++			const local = await readManifest(
++				path.join(workspaceDirectory(config, directory, peer), `package.json`),
++			)
++			if (local.name !== peer)
++				throw new Error(`Workspace peer identity mismatch for ${peer}.`)
++			return local.version
++		},
++	)
++}
++
+ export async function previousManifest(
+ 	config: NpmConfig,
+ 	directory: string,
+@@ -149,8 +182,32 @@
+ 		)
+ 	}
+ 	const prefix = await git.revparse([`--show-prefix`])
+-	return parseManifest(
++	const manifest = parseManifest(
+ 		JSON.parse(await git.show([`${commit}:${prefix}package.json`])),
+ 		`release ${commit}`,
+ 	)
+-}
++	return await resolveWorkspacePeers(manifest, async (peer) => {
++		const root = await git.revparse([`--show-toplevel`])
++		const relative = path.relative(
++			root,
++			workspaceDirectory(config, directory, peer),
++		)
++		if (
++			relative === `..` ||
++			relative.startsWith(`..${path.sep}`) ||
++			path.isAbsolute(relative)
++		)
++			throw new Error(`Workspace peer ${peer} escapes the release repository.`)
++		const filename = path
++			.join(relative, `package.json`)
++			.split(path.sep)
++			.join(`/`)
++		const local = parseManifest(
++			JSON.parse(await git.show([`${commit}:${filename}`])),
++			`release ${commit}:${filename}`,
++		)
++		if (local.name !== peer)
++			throw new Error(`Released workspace peer identity mismatch for ${peer}.`)
++		return local.version
++	})
++}
+--- a/src/npm/check.ts
++++ b/src/npm/check.ts
+@@ -12,8 +12,13 @@
+ 	withStage,
+ } from "./environment.ts"
+ import type { Manifest } from "./manifest.ts"
+-import { eras, matches, readManifest } from "./manifest.ts"
+-import { intent, previousManifest, supportChanges } from "./release.ts"
++import { eras, matches } from "./manifest.ts"
++import {
++	currentManifest,
++	intent,
++	previousManifest,
++	supportChanges,
++} from "./release.ts"
+ import type {
+ 	NpmConfig,
+ 	NpmReport,
+@@ -208,7 +213,7 @@
+ 	try {
+ 		validateConfig(config)
+ 		const base = path.resolve(baseDirectory, config.packageDirectory ?? `.`)
+-		const manifest = await readManifest(path.join(base, `package.json`))
++		const manifest = await currentManifest(config, base)
+ 		report.package = { name: manifest.name, version: manifest.version }
+ 		validatePeerRanges(manifest.peerDependencies ?? {})
+ 		for (const peer of Object.keys(config.suites)) {
+--- a/src/npm/environment.ts
++++ b/src/npm/environment.ts
+@@ -1,3 +1,4 @@
++import { randomUUID } from "node:crypto"
+ import * as fs from "node:fs/promises"
+ import {
+ 	copyFile,
+@@ -5,6 +6,7 @@
+ 	mkdir,
+ 	readFile,
+ 	realpath,
++	rename,
+ 	rm,
+ 	writeFile,
+ } from "node:fs/promises"
+@@ -423,10 +425,13 @@
+ 				string,
+ 				unknown
+ 			>
++			const temporary = path.join(stage, `${randomUUID()}.manifest.json`)
+ 			await writeFile(
+-				filename,
++				temporary,
+ 				JSON.stringify({ ...raw, version: candidate.version }),
+-			)
++				{ flag: `wx` },
++			)
++			await rename(temporary, filename)
+ 		}
+ 	}
+ 	for (const suite of suites) await copySuite(base, stage, suite)

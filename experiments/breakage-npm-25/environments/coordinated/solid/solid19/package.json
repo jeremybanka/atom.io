@@ -1,0 +1,17 @@
+{
+	"name": "solid-solid19",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"solid-js": "1.9.17"
+	},
+	"devDependencies": {
+		"typescript": "7.0.2"
+	},
+	"breakage": {
+		"candidates": [
+			"atom.io"
+		]
+	}
+}

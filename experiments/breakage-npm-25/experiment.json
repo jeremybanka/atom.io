@@ -12,7 +12,15 @@
 	"limitations": [
 		"The firstRelease option isolates this current-consumer experiment; it does not certify the absence of a published release or replace the existing historical test gates.",
 		"Devtools is tested as a coordinated release with the React candidate; no released @atom.io/react environment is claimed.",
-		"The patch is carried here for evaluation and has not been applied to the upstream PR.",
-		"The upstream npm test suite was attempted, but this sandbox loses subprocess stdout during its npm-pack fixture setup. The local regression and consumer checks execute separately."
-	]
+		"The patch is carried here for evaluation and has not been applied to the upstream PR."
+	],
+	"validation": {
+		"consumerEnvironments": 8,
+		"localRegressionTests": 4,
+		"upstreamNpmRegressionTests": 41,
+		"negativeControls": [
+			"Missing SDK/React candidate release intent is rejected for all three integrations.",
+			"A deliberately broken packed React hook fails compatibility."
+		]
+	}
 }

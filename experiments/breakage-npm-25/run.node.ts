@@ -48,7 +48,7 @@ const archive = await execute(
 await writeFile(join(tool, `source.tar`), archive.stdout)
 await run(`tar`, [`-xf`, `source.tar`, `--strip-components=2`], tool)
 await json(join(tool, `package.json`), { type: `module` })
-await rm(join(tool, `node_modules`), { force: true })
+await rm(join(tool, `node_modules`), { recursive: true, force: true })
 await symlink(
 	join(toolRoot, `packages/breakage/node_modules`),
 	join(tool, `node_modules`),

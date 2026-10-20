@@ -3,8 +3,8 @@ import type { NpmConfig } from "breakage"
 import { certifyBreaking, releaseIntent } from "../../scripts/breakage-peers.ts"
 
 const suite = {
-	files: [`contracts/*`],
-	command: `node contracts/consumer.ts && node ../node_modules/typescript/bin/tsc -p contracts/tsconfig.json`,
+	files: [`__tests__/fixtures/consumer.ts`, `__tests__/fixtures/tsconfig.json`],
+	command: `node __tests__/fixtures/consumer.ts && node ../node_modules/typescript/bin/tsc -p __tests__/fixtures/tsconfig.json`,
 }
 const config: { npm: NpmConfig } = {
 	npm: {

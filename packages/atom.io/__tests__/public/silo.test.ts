@@ -7,7 +7,6 @@ import type {
 import { getState, scopeFamily, Silo } from "atom.io"
 import { hasImplicitStoreBeenCreated, stateExistsInStore } from "atom.io/testing"
 import { UList } from "atom.io/transceivers/u-list"
-import { u } from "motion/react-client"
 
 import { createNullLogger } from "../__util__/nullLogger.ts"
 

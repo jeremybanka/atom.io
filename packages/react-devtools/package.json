@@ -36,25 +36,37 @@
 		"build": "tsdown",
 		"lint:eslint": "eslint",
 		"lint:oxlint": "oxlint",
-		"lint:types": "tsc",
+		"lint:types": "tsc && tsc -p __tests__/tsconfig.json",
 		"pack:breakage": "pnpm --reporter=silent pack --out .breakage/package.tgz",
-		"test:breakage:peers": "breakage npm check"
+		"test:breakage:peers": "breakage npm check",
+		"test": "vitest",
+		"test:once": "vitest run --config vitest.dist.config.ts && pnpm test:consumer",
+		"test:once:public": "vitest run --config vitest.public.config.ts",
+		"test:consumer": "node --test __tests__/fixtures/consumer/runtime.ts && tsc -p __tests__/fixtures/consumer/tsconfig.json",
+		"cov": "vitest run --config vitest.total-coverage.config.ts --coverage",
+		"cov:public": "vitest run --config vitest.public-coverage.config.ts --coverage",
+		"test:packaging": "node __tests__/packaging.ts"
 	},
 	"dependencies": {
 		"motion": "14.4.0"
 	},
 	"devDependencies": {
 		"@atom.io/react": "workspace:*",
+		"@testing-library/react": "16.3.3",
 		"@tsdown/css": "0.23.1",
 		"@types/node": "26.6.5",
 		"@types/react": "19.3.0",
+		"@types/react-dom": "19.3.0",
+		"@vitest/coverage-v8": "5.0.5",
 		"atom.io": "workspace:*",
 		"breakage": "0.8.5",
 		"eslint": "10.13.0",
+		"happy-dom": "21.0.3",
 		"react": "19.3.1",
 		"react-dom": "19.3.1",
 		"tsdown": "0.23.1",
-		"typescript": "7.0.2"
+		"typescript": "7.0.2",
+		"vitest": "5.0.5"
 	},
 	"peerDependencies": {
 		"@atom.io/react": "~0.0.0",

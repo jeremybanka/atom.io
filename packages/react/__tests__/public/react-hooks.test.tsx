@@ -30,7 +30,7 @@ import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 import { UList } from "atom.io/transceivers/u-list"
 import { type FC, useEffect, useRef } from "react"
 
-import * as Utils from "../../__util__/index.ts"
+import * as Utils from "../utils/index.ts"
 
 const { restore } = takeSnapshot()
 

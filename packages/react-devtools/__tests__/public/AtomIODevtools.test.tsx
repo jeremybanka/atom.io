@@ -5,7 +5,7 @@ import type { Logger } from "atom.io"
 import { scopeFamily, Silo } from "atom.io"
 import { UList } from "atom.io/transceivers/u-list"
 
-import * as Utils from "../../__util__/index.ts"
+import * as Utils from "../../../../scripts/test-helpers.ts"
 
 /* eslint-disable no-console */
 console.log = () => undefined

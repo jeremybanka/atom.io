@@ -141,7 +141,8 @@
 		"cov:public": "vitest run --config vitest.public-coverage.config.ts --coverage",
 		"cov:dev": "vitest --config vitest.public-coverage.config.ts --coverage",
 		"storybook": "storybook dev -p 6006",
-		"storybook:build": "storybook build"
+		"storybook:build": "storybook build",
+		"pack:breakage": "pnpm --reporter=silent pack --out .breakage/package.tgz"
 	},
 	"devDependencies": {
 		"@atom.io/eslint-plugin": "workspace:*",
@@ -188,7 +189,7 @@
 		"zustand": "5.0.15"
 	},
 	"peerDependencies": {
-		"@atom.io/react": "workspace:^",
+		"@atom.io/react": "~0.0.0",
 		"@testing-library/react": ">=14.0.0",
 		"@types/react": "^18.0.0 || ^19.0.0",
 		"happy-dom": ">=17.4.4",

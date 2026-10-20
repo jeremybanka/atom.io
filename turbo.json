@@ -2,6 +2,16 @@
 	"ui": "tui",
 	"globalDependencies": ["tsconfig.json", ".node-version"],
 	"tasks": {
+		"pack:breakage": {
+			"dependsOn": ["build"],
+			"cache": false,
+			"outputs": [".breakage/package.tgz"]
+		},
+		"test:breakage:peers": {
+			"dependsOn": ["pack:breakage", "^pack:breakage"],
+			"cache": false,
+			"outputs": []
+		},
 		"dev": {
 			"persistent": true,
 			"cache": false

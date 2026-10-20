@@ -35,6 +35,7 @@
 		"changes:version": "pnpm --config.verifyDepsBeforeRun=false exec changeset version",
 		"test": "CI=true dotenvx run -- turbo run test:once --concurrency=2",
 		"test:breakage": "CI=true dotenvx run -- turbo run test:breakage",
+		"test:breakage:peers": "turbo run test:breakage:peers --continue=always --filter=@atom.io/react --filter=@atom.io/solid --filter=@atom.io/react-devtools --filter=@atom.io/eslint-plugin",
 		"test:stress:realtime-ipc": "dotenvx run -- turbo run test:stress:realtime-ipc --filter=atom.io",
 		"vigilance": "bun scripts/vigilance-bot.bun.ts",
 		"workflows": "bun scripts/update-workflows.bun.ts"
@@ -56,6 +57,7 @@
 		"@typescript-eslint/parser": "8.72.0",
 		"@typescript-eslint/utils": "8.72.0",
 		"astro-eslint-parser": "3.2.0",
+		"breakage": "0.8.5",
 		"correctly": "0.3.1",
 		"dprint": "0.64.0",
 		"dprint-plugin-malva": "0.16.0",

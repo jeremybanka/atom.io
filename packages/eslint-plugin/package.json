@@ -34,7 +34,9 @@
 		"test:once": "vitest run",
 		"test:once:public": "vitest run --config vitest.public.config.ts",
 		"test:breakage": "breakage breakage.config.json --verbose --baseline-file .breakage/baseline.json",
-		"test:breakage:prelude": "breakage prelude --out .breakage/baseline.json"
+		"test:breakage:prelude": "breakage prelude breakage.config.json --out .breakage/baseline.json",
+		"pack:breakage": "pnpm --reporter=silent pack --out .breakage/package.tgz",
+		"test:breakage:peers": "breakage npm check"
 	},
 	"dependencies": {
 		"@typescript-eslint/utils": "8.72.0"

@@ -1,0 +1,22 @@
+# Peer compatibility checks
+
+The [root peer-check command](../package.json) runs each package's Breakage npm check through Turbo. The existing SDK and ESLint public-contract checks remain separate required work in the same CI job. Peer checks exercise the current packed API; they do not replace replaying contracts from a previous release.
+
+Turbo builds and packs every participating package before checking it. The [task graph](../turbo.json) includes local peer archives, including both the SDK and React adapter for devtools. Checks are uncached because they inspect release tags, Changesets, package installation, and consumer execution. Package-owned representative manifests and pnpm lockfiles freeze the installed peers; preparation disables automatic peer installation and lifecycle scripts. Breakage's default npm installation installs candidate archives and their runtime dependencies inside each disposable stage, without automatically supplying peers.
+
+| Package        | Representatives                                                                                             |
+| -------------- | ----------------------------------------------------------------------------------------------------------- |
+| React          | React 18 and 19 with released SDK 0.53.3; the same frameworks with the coordinated SDK candidate.           |
+| Solid          | Solid 1.9 with released SDK 0.53.3 and the coordinated SDK candidate.                                       |
+| React devtools | React/React DOM 18 and 19 with the React adapter candidate, paired with both released and coordinated SDKs. |
+| ESLint plugin  | ESLint 9 and 10 with typescript-eslint parser 8 and TypeScript 6.                                           |
+
+Contracts import consumer package names without source aliases. Framework contracts exercise store identity, state reads/writes, public declaration types, and the devtools stylesheet. Solid uses its public context provider; this does not establish the separate StoreProvider wrapper's behavior. ESLint contracts exercise all four rules and require typed public exports without installing authoring utilities into the consumer.
+
+The [shared release policy](../scripts/breakage-peers.ts) reads the actual Changesets plan. A pending version takes precedence over the workspace version. After versioning consumes the changesets, the current manifest is the exact target exercised by a coordinated build. This permits the versioning PR to run the same environments. Candidate results remain conditional on publication: the hook does not claim registry attestation, and metadata substitution does not rebuild embedded version constants. Released representatives continue to test the actual registry SDK independently.
+
+SDK support is authored explicitly in each integration's manifest. Advancing the SDK's local version does not rewrite those ranges. A planned release outside declared support, a missing representative, a stale archive, changed frozen installation inputs, or conflicting physical peers fails the check. Breaking-support certification follows this repository's version policy: a minor or major release before 1.0, and a major release afterward. Certification cannot waive consumer assertion failures or missing planned peer coverage.
+
+The ESLint check uses its existing scoped release tag. The React, Solid, and devtools configurations explicitly declare first publication because those packages were unavailable in the registry when this setup was added. Once published, verify the release commit, push the corresponding scoped tag, and replace each first-publication baseline with its scoped tag pattern before subsequent releases. Add ordinary released-contract replay for those packages once a release containing their contracts exists. Do not substitute a synthetic tag or treat a missing baseline as a passing historical check.
+
+Breakage creates and removes the ignored test directory inside each representative. If a process is killed, inspect that directory and ensure its process has stopped before removing it. Normal failure paths clean their own stages. Never run two checks that select the same representative concurrently.

@@ -1,0 +1,11 @@
+{
+	"name": "eslint-9-consumer",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@typescript-eslint/parser": "8.72.0",
+		"eslint": "9.38.0",
+		"typescript": "6.0.3"
+	}
+}

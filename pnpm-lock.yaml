@@ -216,6 +216,9 @@ importers:
       astro-eslint-parser:
         specifier: 3.2.0
         version: 3.2.0(supports-color@10.2.2)
+      breakage:
+        specifier: 0.8.5
+        version: 0.8.5(supports-color@10.2.2)(zod@4.6.7)
       correctly:
         specifier: 0.3.1
         version: 0.3.1(arktype@2.2.8)(supports-color@10.2.2)
@@ -572,6 +575,9 @@ importers:
       atom.io:
         specifier: workspace:*
         version: link:../atom.io
+      breakage:
+        specifier: 0.8.5
+        version: 0.8.5(supports-color@10.2.2)(zod@4.6.7)
       eslint:
         specifier: 10.13.0
         version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -606,6 +612,9 @@ importers:
       atom.io:
         specifier: workspace:*
         version: link:../atom.io
+      breakage:
+        specifier: 0.8.5
+        version: 0.8.5(supports-color@10.2.2)(zod@4.6.7)
       eslint:
         specifier: 10.13.0
         version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -630,6 +639,9 @@ importers:
       atom.io:
         specifier: workspace:*
         version: link:../atom.io
+      breakage:
+        specifier: 0.8.5
+        version: 0.8.5(supports-color@10.2.2)(zod@4.6.7)
       eslint:
         specifier: 10.13.0
         version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)

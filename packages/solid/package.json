@@ -29,18 +29,21 @@
 		"build": "tsdown",
 		"lint:eslint": "eslint",
 		"lint:oxlint": "oxlint",
-		"lint:types": "tsc"
+		"lint:types": "tsc",
+		"pack:breakage": "pnpm --reporter=silent pack --out .breakage/package.tgz",
+		"test:breakage:peers": "breakage npm check"
 	},
 	"devDependencies": {
 		"@types/node": "26.6.5",
 		"atom.io": "workspace:*",
+		"breakage": "0.8.5",
 		"eslint": "10.13.0",
 		"solid-js": "1.9.17",
 		"tsdown": "0.23.1",
 		"typescript": "7.0.2"
 	},
 	"peerDependencies": {
-		"atom.io": "workspace:^",
+		"atom.io": "^0.53.3 || ^0.54.0",
 		"solid-js": "^1.9.0"
 	},
 	"publishConfig": {

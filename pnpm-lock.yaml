@@ -180,12 +180,21 @@ importers:
       '@atom.io/solid':
         specifier: workspace:*
         version: link:packages/solid
+      '@changesets/assemble-release-plan':
+        specifier: 7.0.0
+        version: 7.0.0
       '@changesets/cli':
         specifier: 3.0.3
         version: 3.0.3
       '@changesets/config':
         specifier: 4.0.1
         version: 4.0.1
+      '@changesets/pre':
+        specifier: 3.0.0
+        version: 3.0.0
+      '@changesets/read':
+        specifier: 1.0.1
+        version: 1.0.1
       '@correctlyjs/schemars':
         specifier: 0.0.5
         version: 0.0.5(correctly@0.3.1(arktype@2.2.8)(supports-color@10.2.2))
@@ -204,6 +213,9 @@ importers:
       '@dprint/toml':
         specifier: 0.9.0
         version: 0.9.0
+      '@manypkg/get-packages':
+        specifier: 3.1.0
+        version: 3.1.0
       '@typescript-eslint/eslint-plugin':
         specifier: 8.72.0
         version: 8.72.0(@typescript-eslint/parser@8.72.0(eslint@10.13.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.13.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)

@@ -1,33 +1,28 @@
-import { execFile } from "node:child_process"
-import { mkdtemp, readFile, rm } from "node:fs/promises"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { promisify } from "node:util"
 
+import { assembleReleasePlan } from "@changesets/assemble-release-plan"
+import { readConfig } from "@changesets/config"
+import { readPreState } from "@changesets/pre"
+import { readChangesets } from "@changesets/read"
+import { getPackages } from "@manypkg/get-packages"
 import type { NpmConfig } from "breakage"
 
-const execute = promisify(execFile)
 const root = fileURLToPath(new URL(`../`, import.meta.url))
 let plan: Promise<Map<string, string>> | undefined
 async function releasePlan(): Promise<Map<string, string>> {
-	const directory = await mkdtemp(join(tmpdir(), `atomio-release-plan-`))
-	const filename = join(directory, `plan.json`)
-	try {
-		await execute(
-			join(root, `node_modules/.bin/changeset`),
-			[`status`, `--output`, filename],
-			{ cwd: root },
-		)
-		const result = JSON.parse(await readFile(filename, `utf8`)) as {
-			releases: { name: string; newVersion: string }[]
-		}
-		return new Map(
-			result.releases.map(({ name, newVersion }) => [name, newVersion]),
-		)
-	} finally {
-		await rm(directory, { recursive: true, force: true })
+	const packages = await getPackages(root)
+	const { config, errors } = await readConfig(root, packages)
+	if (errors) throw new Error(errors.join(`\n`))
+	const [changesets, preState] = await Promise.all([
+		readChangesets(root),
+		readPreState(root),
+	])
+	const result = assembleReleasePlan(changesets, packages, config, preState)
+	const versions = new Map<string, string>()
+	for (const { name, newVersion } of result.releases) {
+		if (newVersion) versions.set(name, newVersion)
 	}
+	return versions
 }
 
 export const releaseIntent: NonNullable<NpmConfig[`releaseIntent`]> = async ({

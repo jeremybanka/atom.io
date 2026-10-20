@@ -40,7 +40,7 @@
 		"workflows": "bun scripts/update-workflows.bun.ts",
 		"test:packaging": "turbo run test:packaging --filter=atom.io --filter=@atom.io/react-devtools",
 		"cov": "dotenvx run -- turbo run cov --filter=./packages/*",
-		"cov:recoverage": "dotenvx run -- turbo run cov:recoverage --continue=always --filter=./packages/*"
+		"cov:recoverage": "pnpm cov && dotenvx run -- turbo run cov:recoverage --concurrency=1 --continue=always --filter=./packages/*"
 	},
 	"devDependencies": {
 		"@atom.io/eslint-plugin": "workspace:*",

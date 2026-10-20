@@ -15,7 +15,7 @@ Turbo builds and packs every participating package before checking it. The [task
 
 Each integration owns its behavior suites under its own tests directory. The package's ordinary and public test commands select those suites; the SDK owns core and realtime cases. Portable consumer programs and declaration checks live in package-owned fixtures and are shared by ordinary package tests, packaging checks, and the peer matrix. ESLint reuses its existing consumer fixture rather than maintaining a second copy.
 
-Each package measures coverage of its own source. The repository merges those reports before submitting the existing combined coverage report, preserving the coverage history across the move. Shared runner configuration and environment helpers live in repository scripts rather than another package's tests. The SDK and React retain their existing 100% public coverage thresholds.
+Each package can measure coverage of its own source. CI checks public coverage, retaining the SDK and React's existing 100% thresholds. Shared runner configuration and environment helpers live in repository scripts rather than another package's tests.
 
 Contracts import consumer package names without source aliases. Framework contracts exercise store identity, state reads/writes, public declaration types, and the devtools stylesheet. Solid uses its public context provider; this does not establish the separate StoreProvider wrapper's behavior. ESLint contracts exercise all four rules and require typed public exports without installing authoring utilities into the consumer.
 

@@ -16,7 +16,6 @@
 		"tonnage": "dotenvx run -- turbo run tonnage --filter=atom.io",
 		"tonnage:check": "dotenvx run -- turbo run tonnage:check --filter=atom.io",
 		"cov:public": "dotenvx run -- turbo run cov:public --filter=./packages/*",
-		"cov:recoverage": "pnpm cov && node scripts/merge-coverage.ts && dotenvx run -- recoverage",
 		"dev": "dotenvx run -- turbo run dev",
 		"fmt": "dprint fmt .",
 		"fmt:check": "dprint check .",
@@ -39,7 +38,6 @@
 		"test:stress:realtime-ipc": "dotenvx run -- turbo run test:stress:realtime-ipc --filter=atom.io",
 		"vigilance": "bun scripts/vigilance-bot.bun.ts",
 		"workflows": "bun scripts/update-workflows.bun.ts",
-		"cov": "dotenvx run -- turbo run cov --filter=./packages/*",
 		"test:packaging": "turbo run test:packaging --filter=atom.io --filter=@atom.io/react-devtools"
 	},
 	"devDependencies": {
@@ -81,7 +79,6 @@
 		"oxlint": "1.89.0",
 		"oxlint-tsgolint": "7.0.2004",
 		"pin-dependencies-checker": "2.7.1",
-		"recoverage": "0.1.19",
 		"turbo": "2.11.9",
 		"typescript": "7.0.2",
 		"vitest": "5.0.5"

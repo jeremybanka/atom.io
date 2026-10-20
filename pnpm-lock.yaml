@@ -448,6 +448,9 @@ importers:
       react-dom:
         specifier: 19.3.1
         version: 19.3.1(react@19.3.1)
+      recoverage:
+        specifier: 0.1.19
+        version: 0.1.19(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7)
       socket.io:
         specifier: 4.8.4
         version: 4.8.4(supports-color@10.2.2)
@@ -558,12 +561,18 @@ importers:
       '@typescript-eslint/rule-tester':
         specifier: 8.72.0
         version: 8.72.0(eslint@10.13.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
+      '@vitest/coverage-v8':
+        specifier: 5.0.5
+        version: 5.0.5(vitest@5.0.5)
       breakage:
         specifier: 0.8.5
         version: 0.8.5(supports-color@10.2.2)(zod@4.6.7)
       eslint:
         specifier: 10.13.0
         version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
+      recoverage:
+        specifier: 0.1.19
+        version: 0.1.19(supports-color@10.2.2)(typescript@6.0.3)(zod@4.6.7)
       tsdown:
         specifier: 0.23.1
         version: 0.23.1(@tsdown/css@0.23.1)(oxc-resolver@11.21.2)(tsx@4.23.13)(typescript@6.0.3)
@@ -611,6 +620,9 @@ importers:
       react-dom:
         specifier: 19.3.1
         version: 19.3.1(react@19.3.1)
+      recoverage:
+        specifier: 0.1.19
+        version: 0.1.19(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7)
       tsdown:
         specifier: 0.23.1
         version: 0.23.1(@tsdown/css@0.23.1)(oxc-resolver@11.21.2)(tsx@4.23.13)(typescript@7.0.2)
@@ -666,6 +678,9 @@ importers:
       react-dom:
         specifier: 19.3.1
         version: 19.3.1(react@19.3.1)
+      recoverage:
+        specifier: 0.1.19
+        version: 0.1.19(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7)
       tsdown:
         specifier: 0.23.1
         version: 0.23.1(@tsdown/css@0.23.1)(oxc-resolver@11.21.2)(tsx@4.23.13)(typescript@7.0.2)
@@ -696,6 +711,9 @@ importers:
       happy-dom:
         specifier: 21.0.3
         version: 21.0.3
+      recoverage:
+        specifier: 0.1.19
+        version: 0.1.19(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7)
       solid-js:
         specifier: 1.9.17
         version: 1.9.17
@@ -1027,8 +1045,14 @@ packages:
   '@adobe/css-tools@4.5.0':
     resolution: {integrity: sha512-6OzddxPio9UiWTCemp4N8cYLV2ZN1ncRnV1cVGtve7dhPOtRkleRyx32GQCYSwDYgaHU3USMm84tNsvKzRCa1Q==}
 
+  '@ark/schema@0.56.4':
+    resolution: {integrity: sha512-nd4OqaWdKZJeGF5zNmZysDQO7NyyJ1ycl4S7i16Hj1VxqL+x72Z66lOn7ErpsoMUZtCtslAMHMjqJhuQSxciyw==}
+
   '@ark/schema@0.56.7':
     resolution: {integrity: sha512-jmoOJlYIc4k1uv8oYBDNOFnAsKk2a2D9t/D6npF2JUfW4ecPB0v6ce6lruKg7lkBxIBA8Z7UtxfmvephYbhUGQ==}
+
+  '@ark/util@0.56.4':
+    resolution: {integrity: sha512-KKqwGSia44cvuuDY70jGfbiUdG2E8F2cM4npdqvJ22S5a0LknlwG6nIrfQG1nF8fzxpzP30098wp0a8ASs0prQ==}
 
   '@ark/util@0.56.7':
     resolution: {integrity: sha512-z8pVnrPk/x9GC18yOp5wCe8rR2+Z6us4CTSg7dvxdsDLuA2xXYq+QETD1fO6f3fMuXe+PCjpvtCnhTW9RHLgEw==}
@@ -3579,6 +3603,23 @@ packages:
       typescript:
         optional: true
 
+  '@t3-oss/env-core@0.13.11':
+    resolution: {integrity: sha512-sM7GYY+KL7H/Hl0BE0inWfk3nRHZOLhmVn7sHGxaZt9FAR6KqREXAE+6TqKfiavfXmpRxO/OZ2QgKRd+oiBYRQ==}
+    peerDependencies:
+      arktype: ^2.1.0
+      typescript: '>=5.0.0'
+      valibot: ^1.0.0-beta.7 || ^1.0.0
+      zod: ^3.24.0 || ^4.0.0
+    peerDependenciesMeta:
+      arktype:
+        optional: true
+      typescript:
+        optional: true
+      valibot:
+        optional: true
+      zod:
+        optional: true
+
   '@tanstack/query-core@5.104.5':
     resolution: {integrity: sha512-Q94gI8Opd+CbdVNOdj8ZCyV8WqLYitrDq1t96Xc8WZT6lY0r5iRnJLXYDxMex7EEf2v+mXvn4FcjaBKSxXZQ9A==}
 
@@ -4341,8 +4382,14 @@ packages:
     resolution: {integrity: sha512-COROpnaoap1E2F000S62r6A60uHZnmlvomhfyT2DlTcrY1OrBKn2UhH7qn5wTC9zMvD0AY7csdPSNwKP+7WiQw==}
     engines: {node: '>= 0.4'}
 
+  arkregex@0.0.10:
+    resolution: {integrity: sha512-+iDWBYBjH8w7wqEv8VY4loBwRldFxX84KNwKbobH3FJPay/18XI9sTesmXYpKyIrgbC5z/s16+vSJYHCC9FEvQ==}
+
   arkregex@0.0.13:
     resolution: {integrity: sha512-c17sqCqiiZauxyoU1KZ2zbzCgeghGmc8dR2CrdQnlEtpq3bLhRLoLrxTL52M/8yQD8e/i1/IBRpRCNAuqJa7xQ==}
+
+  arktype@2.2.5:
+    resolution: {integrity: sha512-c9oqY1eBab2LceqvpWX50xae2HB8P/nJPxRhuhPVf5lEDi3WQpf7WQflJFMsyCiA3NGh6zENOlse30gWBzlwDg==}
 
   arktype@2.2.8:
     resolution: {integrity: sha512-tZyLza7kO2vN8BXBKcj4t43IVMe8/ZyqlITH0chZv7FfEw+edLovpY922tqcK4mCjTpf4oNo2xV6np7tquP1ww==}
@@ -5419,6 +5466,10 @@ packages:
     resolution: {integrity: sha512-PesNgu5BnIEmAwzKGewB3K1ORFeznFZJ4JrRz89ea1wkHnxskdpzX9sN/+zb4KO6k8oSMhyJSj/cwXAFrYBBNA==}
     engines: {node: '>=20.0.0'}
 
+  has-flag@4.0.0:
+    resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
+    engines: {node: '>=8'}
+
   has-symbols@1.1.0:
     resolution: {integrity: sha512-1cDNdwJ2Jaohmb3sg4OmKaMBwuC48sYni5HUw2DvsC8LjGTLK9h+eb1X6RyuOHe4hT0ULCW68iomhjUoKUqlPQ==}
     engines: {node: '>= 0.4'}
@@ -5492,6 +5543,9 @@ packages:
 
   html-entities@2.3.3:
     resolution: {integrity: sha512-DV5Ln36z34NNTDgnz0EWGBLZENelNAtkiFA4kyNOG2tDI6Mz1uSWiq1wAKdyjnJwyDiDO7Fa2SO1CTxPXL8VxA==}
+
+  html-escaper@2.0.2:
+    resolution: {integrity: sha512-H2iMtd0I4Mt5eYiapRdIDjp+XzelXQ0tFE4JS7YFwFevXXMmOp9myNrUvCg0D6ws8iqkRPBfKHgbwig1SmlLfg==}
 
   html-escaper@3.0.3:
     resolution: {integrity: sha512-RuMffC89BOWQoY0WKGpIhn5gX3iI54O6nRA0yC124NYVtzjmFWBIiFd8M0x+ZdX0P9R4lADg1mgP8C7PxGOWuQ==}
@@ -5600,6 +5654,18 @@ packages:
 
   isexe@2.0.0:
     resolution: {integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==}
+
+  istanbul-lib-coverage@3.2.2:
+    resolution: {integrity: sha512-O8dpsF+r0WV/8MNRKfnmrtCWhuKjxrq2w+jpzBL5UZKTi2LeVWnWOmWRxFlesJONmc+wLAGvKQZEOanko0LFTg==}
+    engines: {node: '>=8'}
+
+  istanbul-lib-report@3.0.1:
+    resolution: {integrity: sha512-GCfE1mtsHGOELCU8e/Z7YWzpmybrx/+dSTfLrvY8qRmaY6zXTKWn6WQIjaAFw069icm6GVMNkgu0NzI4iPZUNw==}
+    engines: {node: '>=10'}
+
+  istanbul-reports@3.2.0:
+    resolution: {integrity: sha512-HGYWWS/ehqTV3xN10i23tkPkpH46MLCIMFNCaaKNavAXTF1RkqxawEPtnjnGZ6XKSInBKkiOA5BKS+aZiY3AvA==}
+    engines: {node: '>=8'}
 
   istextorbinary@9.5.0:
     resolution: {integrity: sha512-5mbUj3SiZXCuRf9fT3ibzbSSEWiy63gFfksmGfdOzujPjW3k+z8WvIBxcJHBoQNlaZaiyB25deviif2+osLmLw==}
@@ -5838,6 +5904,10 @@ packages:
 
   magicast@0.5.5:
     resolution: {integrity: sha512-UicdXN8zQ3JHlxVq+28afMXPr1z7WNY6+7EJnzTdQWkTAlMLF5fNCCKxJHBQwGaNGR11581EiQmQzx73+MvszA==}
+
+  make-dir@4.0.0:
+    resolution: {integrity: sha512-hXdUTZYIVOt1Ex//jAQi+wTZZpUpwBj/0QsOzqegb3rGMMeJiSEu5xLHnYfBrRV4RH2+OCSOO95Is/7x1WJ4bw==}
+    engines: {node: '>=10'}
 
   markdown-extensions@2.0.0:
     resolution: {integrity: sha512-o5vL7aDWatOTX8LzaS1WMoaoxIiLRQJuIKKe2wAw6IeULDHaqbiqiggmx+pKvZDb1Sj+pE46Sn1T7lCqfFtg1Q==}
@@ -6443,6 +6513,10 @@ packages:
   recma-stringify@1.0.0:
     resolution: {integrity: sha512-cjwII1MdIIVloKvC9ErQ+OgAtwHBmcZ0Bg4ciz78FtbT8In39aAYbaA7zvxQ61xVMSPE8WxhLwLbhif4Js2C+g==}
 
+  recoverage@0.1.19:
+    resolution: {integrity: sha512-HGNdxZKrCFt9cfT2kFDgSVNtR2kRn5lZ1JvgWwf6vfUAZusncn2oice0dBvWDesxgQglL2nYa09DS0evKrZsTA==}
+    hasBin: true
+
   redent@3.0.0:
     resolution: {integrity: sha512-6tDA8g98We0zd0GvVeMT9arEOnTw9qM03L9cJXaCjrip1OO764RDBLBfrB4cwzNGDj5OA5ioymC9GkizgWJDUg==}
     engines: {node: '>=8'}
@@ -6764,6 +6838,10 @@ packages:
   supports-color@10.2.2:
     resolution: {integrity: sha512-SS+jx45GF1QjgEXQx4NJZV9ImqmO2NPz5FNsIHrsDjh2YsHnawpan7SNQ1o8NuhrbHZy9AZhIoCUiCeaW/C80g==}
     engines: {node: '>=18'}
+
+  supports-color@7.2.0:
+    resolution: {integrity: sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==}
+    engines: {node: '>=8'}
 
   supports-preserve-symlinks-flag@1.0.0:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
@@ -7471,9 +7549,15 @@ snapshots:
 
   '@adobe/css-tools@4.5.0': {}
 
+  '@ark/schema@0.56.4':
+    dependencies:
+      '@ark/util': 0.56.4
+
   '@ark/schema@0.56.7':
     dependencies:
       '@ark/util': 0.56.7
+
+  '@ark/util@0.56.4': {}
 
   '@ark/util@0.56.7': {}
 
@@ -9622,6 +9706,18 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@t3-oss/env-core@0.13.11(arktype@2.2.5)(typescript@6.0.3)(zod@4.6.7)':
+    optionalDependencies:
+      arktype: 2.2.5
+      typescript: 6.0.3
+      zod: 4.6.7
+
+  '@t3-oss/env-core@0.13.11(arktype@2.2.5)(typescript@7.0.2)(zod@4.6.7)':
+    optionalDependencies:
+      arktype: 2.2.5
+      typescript: 7.0.2
+      zod: 4.6.7
+
   '@tanstack/query-core@5.104.5': {}
 
   '@tanstack/react-query@5.104.5(@types/react@19.3.0)(react@19.3.1)':
@@ -10327,9 +10423,19 @@ snapshots:
 
   aria-query@5.3.2: {}
 
+  arkregex@0.0.10:
+    dependencies:
+      '@ark/util': 0.56.4
+
   arkregex@0.0.13:
     dependencies:
       '@ark/util': 0.56.7
+
+  arktype@2.2.5:
+    dependencies:
+      '@ark/schema': 0.56.4
+      '@ark/util': 0.56.4
+      arkregex: 0.0.10
 
   arktype@2.2.8:
     dependencies:
@@ -10645,6 +10751,14 @@ snapshots:
       treetrunks: 0.1.11
     optionalDependencies:
       arktype: 2.2.8
+      zod: 4.6.7
+
+  comline@0.9.0(arktype@2.2.5)(zod@4.6.7):
+    dependencies:
+      '@standard-schema/spec': 1.1.0
+      treetrunks: 0.1.12
+    optionalDependencies:
+      arktype: 2.2.5
       zod: 4.6.7
 
   comline@0.9.0(arktype@2.2.8)(zod@4.6.5):
@@ -11489,6 +11603,8 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
+  has-flag@4.0.0: {}
+
   has-symbols@1.1.0: {}
 
   hashery@1.5.1:
@@ -11645,6 +11761,8 @@ snapshots:
 
   html-entities@2.3.3: {}
 
+  html-escaper@2.0.2: {}
+
   html-escaper@3.0.3: {}
 
   html-void-elements@3.0.0: {}
@@ -11723,6 +11841,19 @@ snapshots:
       is-inside-container: 1.0.0
 
   isexe@2.0.0: {}
+
+  istanbul-lib-coverage@3.2.2: {}
+
+  istanbul-lib-report@3.0.1:
+    dependencies:
+      istanbul-lib-coverage: 3.2.2
+      make-dir: 4.0.0
+      supports-color: 7.2.0
+
+  istanbul-reports@3.2.0:
+    dependencies:
+      html-escaper: 2.0.2
+      istanbul-lib-report: 3.0.1
 
   istextorbinary@9.5.0:
     dependencies:
@@ -11973,6 +12104,10 @@ snapshots:
       '@babel/parser': 7.29.8
       '@babel/types': 7.29.8
       source-map-js: 1.2.2
+
+  make-dir@4.0.0:
+    dependencies:
+      semver: 7.8.5
 
   markdown-extensions@2.0.0: {}
 
@@ -12951,6 +13086,40 @@ snapshots:
       unified: 11.0.5
       vfile: 6.0.3
 
+  recoverage@0.1.19(supports-color@10.2.2)(typescript@6.0.3)(zod@4.6.7):
+    dependencies:
+      '@t3-oss/env-core': 0.13.11(arktype@2.2.5)(typescript@6.0.3)(zod@4.6.7)
+      arktype: 2.2.5
+      comline: 0.9.0(arktype@2.2.5)(zod@4.6.7)
+      diff: 9.0.0
+      istanbul-lib-coverage: 3.2.2
+      istanbul-lib-report: 3.0.1
+      istanbul-reports: 3.2.0
+      simple-git: 4.0.2(supports-color@10.2.2)
+      takua: 0.2.3
+    transitivePeerDependencies:
+      - supports-color
+      - typescript
+      - valibot
+      - zod
+
+  recoverage@0.1.19(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7):
+    dependencies:
+      '@t3-oss/env-core': 0.13.11(arktype@2.2.5)(typescript@7.0.2)(zod@4.6.7)
+      arktype: 2.2.5
+      comline: 0.9.0(arktype@2.2.5)(zod@4.6.7)
+      diff: 9.0.0
+      istanbul-lib-coverage: 3.2.2
+      istanbul-lib-report: 3.0.1
+      istanbul-reports: 3.2.0
+      simple-git: 4.0.2(supports-color@10.2.2)
+      takua: 0.2.3
+    transitivePeerDependencies:
+      - supports-color
+      - typescript
+      - valibot
+      - zod
+
   redent@3.0.0:
     dependencies:
       indent-string: 4.0.0
@@ -13437,6 +13606,10 @@ snapshots:
       inline-style-parser: 0.2.7
 
   supports-color@10.2.2: {}
+
+  supports-color@7.2.0:
+    dependencies:
+      has-flag: 4.0.0
 
   supports-preserve-symlinks-flag@1.0.0: {}
 

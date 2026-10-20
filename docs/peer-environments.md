@@ -15,7 +15,9 @@ Turbo builds and packs every participating package before checking it. The [task
 
 Each integration owns its behavior suites under its own tests directory. The package's ordinary and public test commands select those suites; the SDK owns core and realtime cases. Portable consumer programs and declaration checks live in package-owned fixtures and are shared by ordinary package tests, packaging checks, and the peer matrix. ESLint reuses its existing consumer fixture rather than maintaining a second copy.
 
-Each package can measure coverage of its own source. CI checks public coverage, retaining the SDK and React's existing 100% thresholds. Shared runner configuration and environment helpers live in repository scripts rather than another package's tests.
+Each integration and the SDK owns its coverage commands and reports. Turbo runs each package's coverage collection before its uncached Recoverage comparison, so packages maintain independent histories. Every package that defines a public coverage command enforces 100% statements, branches, functions, and lines. Devtools and ESLint are temporarily exempt from public coverage; Recoverage guards their existing coverage. Shared runner configuration and environment helpers live in repository scripts rather than another package's tests.
+
+The Coverage workflow runs public thresholds and per-package Recoverage checks separately. Recoverage captures each package's baseline on main and compares pull requests against that package's saved report. New package reports need an initial baseline, and the SDK's former combined report needs replacement after the test-ownership migration. Missing baselines fail the check; they do not waive regression protection.
 
 Contracts import consumer package names without source aliases. Framework contracts exercise store identity, state reads/writes, public declaration types, and the devtools stylesheet. Solid uses its public context provider; this does not establish the separate StoreProvider wrapper's behavior. ESLint contracts exercise all four rules and require typed public exports without installing authoring utilities into the consumer.
 

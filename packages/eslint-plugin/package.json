@@ -36,7 +36,9 @@
 		"test:breakage": "breakage breakage.config.json --verbose --baseline-file .breakage/baseline.json",
 		"test:breakage:prelude": "breakage prelude breakage.config.json --out .breakage/baseline.json",
 		"pack:breakage": "pnpm --reporter=silent pack --out .breakage/package.tgz",
-		"test:breakage:peers": "breakage npm check"
+		"test:breakage:peers": "breakage npm check",
+		"cov:recoverage": "recoverage",
+		"cov": "vitest run --config vitest.total-coverage.config.ts --coverage"
 	},
 	"dependencies": {
 		"@typescript-eslint/utils": "8.72.0"
@@ -46,8 +48,10 @@
 		"@types/node": "26.6.5",
 		"@typescript-eslint/parser": "8.72.0",
 		"@typescript-eslint/rule-tester": "8.72.0",
+		"@vitest/coverage-v8": "5.0.5",
 		"breakage": "0.8.5",
 		"eslint": "10.13.0",
+		"recoverage": "0.1.19",
 		"tsdown": "0.23.1",
 		"typescript": "6.0.3",
 		"vitest": "5.0.5"

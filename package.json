@@ -38,7 +38,9 @@
 		"test:stress:realtime-ipc": "dotenvx run -- turbo run test:stress:realtime-ipc --filter=atom.io",
 		"vigilance": "bun scripts/vigilance-bot.bun.ts",
 		"workflows": "bun scripts/update-workflows.bun.ts",
-		"test:packaging": "turbo run test:packaging --filter=atom.io --filter=@atom.io/react-devtools"
+		"test:packaging": "turbo run test:packaging --filter=atom.io --filter=@atom.io/react-devtools",
+		"cov": "dotenvx run -- turbo run cov --filter=./packages/*",
+		"cov:recoverage": "dotenvx run -- turbo run cov:recoverage --continue=always --filter=./packages/*"
 	},
 	"devDependencies": {
 		"@atom.io/eslint-plugin": "workspace:*",

@@ -10,6 +10,7 @@ const config: ViteUserConfig = defineOurVitestConfig({
 		coverage: {
 			reportsDirectory: `coverage-public`,
 			include: [`src/**/*.{ts,tsx}`],
+			thresholds: { 100: true },
 		},
 	},
 })

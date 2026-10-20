@@ -44,8 +44,8 @@
 		"test:once:public": "vitest run --config vitest.public.config.ts",
 		"test:consumer": "node --test __tests__/fixtures/consumer/runtime.ts && tsc -p __tests__/fixtures/consumer/tsconfig.json",
 		"cov": "vitest run --config vitest.total-coverage.config.ts --coverage",
-		"cov:public": "vitest run --config vitest.public-coverage.config.ts --coverage",
-		"test:packaging": "node __tests__/packaging.ts"
+		"test:packaging": "node __tests__/packaging.ts",
+		"cov:recoverage": "recoverage"
 	},
 	"dependencies": {
 		"motion": "14.4.0"
@@ -64,6 +64,7 @@
 		"happy-dom": "21.0.3",
 		"react": "19.3.1",
 		"react-dom": "19.3.1",
+		"recoverage": "0.1.19",
 		"tsdown": "0.23.1",
 		"typescript": "7.0.2",
 		"vitest": "5.0.5"

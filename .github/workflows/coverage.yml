@@ -24,6 +24,24 @@ defaults:
     shell: bash
 
 jobs:
+  Internal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    env:
+      ATOM_IO_TEST_POSTGRES_SKIP_MISE: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+        with:
+          packages: bun node pnpm
+      - uses: ikalnytskyi/action-setup-postgres@c4dda34aae1c821e3a771b68b73b13af3198a7ee # v8
+        with:
+          postgres-version: "18"
+          port: "59432"
+      - run: pnpm cov:recoverage
+        env:
+          RECOVERAGE_CLOUD_TOKEN: ${{ secrets.RECOVERAGE_CLOUD_TOKEN }}
+
   Public:
     runs-on: ubuntu-latest
     timeout-minutes: 9

@@ -115,6 +115,11 @@
 				"../../scripts/test-helpers.ts"
 			]
 		},
+		"cov:recoverage": {
+			"dependsOn": ["cov"],
+			"cache": false,
+			"passThroughEnv": ["RECOVERAGE_CLOUD_TOKEN", "RECOVERAGE_CLOUD_URL"]
+		},
 		"cov:public": {
 			"dependsOn": ["build", "^build"],
 			"outputs": ["coverage-public/**"],

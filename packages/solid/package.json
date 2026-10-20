@@ -37,7 +37,8 @@
 		"test:once:public": "vitest run --config vitest.public.config.ts",
 		"test:consumer": "node --test --conditions=browser __tests__/fixtures/consumer/runtime.ts && tsc -p __tests__/fixtures/consumer/tsconfig.json",
 		"cov": "vitest run --config vitest.total-coverage.config.ts --coverage",
-		"cov:public": "vitest run --config vitest.public-coverage.config.ts --coverage"
+		"cov:public": "vitest run --config vitest.public-coverage.config.ts --coverage",
+		"cov:recoverage": "recoverage"
 	},
 	"devDependencies": {
 		"@types/node": "26.6.5",
@@ -46,6 +47,7 @@
 		"breakage": "0.8.5",
 		"eslint": "10.13.0",
 		"happy-dom": "21.0.3",
+		"recoverage": "0.1.19",
 		"solid-js": "1.9.17",
 		"tsdown": "0.23.1",
 		"typescript": "7.0.2",

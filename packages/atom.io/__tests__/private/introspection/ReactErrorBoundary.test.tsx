@@ -1,5 +1,5 @@
+import { ErrorBoundary } from "@atom.io/react-devtools"
 import { render } from "@testing-library/react"
-import { ErrorBoundary } from "atom.io/react-devtools"
 import type { FunctionComponent } from "react"
 
 beforeEach(() => {

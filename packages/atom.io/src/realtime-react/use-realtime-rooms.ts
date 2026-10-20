@@ -1,6 +1,6 @@
+import { StoreContext, useO } from "@atom.io/react"
 import type { MutableAtomToken } from "atom.io"
 import { findInStore, getInternalRelationsFromStore } from "atom.io/internal"
-import { StoreContext, useO } from "atom.io/react"
 import type { RoomKey, RoomSocketInterface, UserKey } from "atom.io/realtime"
 import { ownersOfRooms, roomKeysAtom, usersInRooms } from "atom.io/realtime"
 import { myUserKeyAtom } from "atom.io/realtime-client"

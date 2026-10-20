@@ -1,7 +1,7 @@
 # Solid Lossless Numbers
 
 A Solid + Vite starter for exploring exact rational arithmetic with
-`atom.io/solid` and the `rationality` package.
+`@atom.io/solid` and the `rationality` package.
 
 ## What It Shows
 

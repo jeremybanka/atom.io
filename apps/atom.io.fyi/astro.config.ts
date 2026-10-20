@@ -112,6 +112,7 @@ export default defineConfig({
 		allowedHosts: [`eris.local`, `atom-io`],
 	},
 	vite: {
+		resolve: { dedupe: [`preact`] },
 		plugins: [exhibitTextPlugin()],
 		build: {
 			// Dz2Orbital's isolated Three.js entry is ~512 KiB minified.

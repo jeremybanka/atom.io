@@ -1,5 +1,5 @@
+import { useO } from "@atom.io/react"
 import { atomFamily, getState } from "atom.io"
-import { useO } from "atom.io/react"
 import * as React from "react"
 
 type PointXY = { x: number; y: number }

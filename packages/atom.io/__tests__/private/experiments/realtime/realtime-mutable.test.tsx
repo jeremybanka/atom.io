@@ -1,6 +1,6 @@
+import * as AR from "@atom.io/react"
 import { waitFor } from "@testing-library/react"
 import * as AtomIO from "atom.io"
-import * as AR from "atom.io/react"
 import * as RTR from "atom.io/realtime-react"
 import * as RTS from "atom.io/realtime-server"
 import * as RTTest from "atom.io/realtime-testing/react"
@@ -12,6 +12,7 @@ console.info = () => undefined
 console.warn = () => undefined
 console.error = () => undefined
 /* eslint-enable no-console */
+
 let LOGGING: boolean
 beforeEach(() => (LOGGING = true))
 

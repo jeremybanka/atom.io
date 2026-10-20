@@ -1,3 +1,4 @@
+import { useAtomicRef, useO } from "@atom.io/react"
 import type { Loadable } from "atom.io"
 import {
 	atom,
@@ -9,7 +10,6 @@ import {
 	setState,
 	transaction,
 } from "atom.io"
-import { useAtomicRef, useO } from "atom.io/react"
 import type { PointerEventHandler, TargetedPointerEvent, VNode } from "preact"
 import { useCallback, useEffect, useRef } from "preact/hooks"
 

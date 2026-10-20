@@ -1,6 +1,6 @@
+import { StoreContext, useO } from "@atom.io/react"
 import type { MutableAtomToken } from "atom.io"
 import type { Json } from "atom.io/foundations/json"
-import { StoreContext, useO } from "atom.io/react"
 import type {
 	AnyMosaicTransceiver,
 	MosaicPresenceEnvelope,

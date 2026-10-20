@@ -1,5 +1,5 @@
+import { useI, useO } from "@atom.io/react"
 import { atom } from "atom.io"
-import { useI, useO } from "atom.io/react"
 import { storageSync } from "atom.io/web"
 import type { JSX } from "react/jsx-runtime"
 

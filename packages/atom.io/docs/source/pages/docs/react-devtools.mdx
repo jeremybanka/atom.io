@@ -1,19 +1,22 @@
 import Exhibit from "c/Exhibit.astro";
 
-# <low-emphasis>atom.io</low-emphasis>/react-devtools
+# <low-emphasis>@atom.io</low-emphasis>/react-devtools
 
-`atom.io/react-devtools` gives you a draggable inspector for your atom.io store.
+`@atom.io/react-devtools` gives you a draggable inspector for your atom.io store.
 It can browse atoms, selectors, transactions, and timelines, and it can edit JSON-shaped
 state directly from the panel.
 
 ## install
 
-If your project already depends on `atom.io`, the devtools package is already available.
-To render with the intended styles, import both the component and its CSS:
+Install the standalone devtools alongside the SDK and React bindings. React 18 or 19 and React DOM must be provided by your app:
+
+<Exhibit src="tooling/react-devtools/install.sh" />
+
+Replace imports from `atom.io/react-devtools` and `atom.io/react-devtools/css` with `@atom.io/react-devtools` and `@atom.io/react-devtools/css`. To render with the intended styles, import both the component and its CSS:
 
 <Exhibit src="tooling/react-devtools/basic-setup.tsx.txt" />
 
-Render the devtools somewhere inside the same React tree as your `atom.io/react`
+Render the devtools somewhere inside the same React tree as your `@atom.io/react`
 provider. `AtomIODevtools` reads the current store from `StoreContext`, so it attaches to
 whichever store your app is already using.
 
@@ -71,5 +74,5 @@ This site embeds the devtools in its base layout:
 
 - `apps/atom.io.fyi/src/layouts/Layout.astro`
 
-That setup imports `atom.io/react-devtools/css` once and mounts
+That setup imports `@atom.io/react-devtools/css` once and mounts
 `<AtomIODevtools hideByDefault={true} client:only />` at the end of the shell.

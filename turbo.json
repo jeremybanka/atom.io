@@ -19,11 +19,11 @@
 			]
 		},
 		"tonnage": {
-			"dependsOn": ["build", "^build"],
+			"dependsOn": ["build", "^build", "@atom.io/react#build"],
 			"cache": false
 		},
 		"tonnage:check": {
-			"dependsOn": ["build", "^build"],
+			"dependsOn": ["build", "^build", "@atom.io/react#build"],
 			"outputs": [],
 			"inputs": [
 				"package.json",
@@ -54,11 +54,30 @@
 				"__scripts__/**"
 			]
 		},
+		"atom.io#test:once": {
+			"dependsOn": [
+				"build",
+				"@atom.io/react#build",
+				"@atom.io/solid#build",
+				"@atom.io/react-devtools#build"
+			],
+			"inputs": [
+				"package.json",
+				"tsconfig.json",
+				"*.config.ts",
+				"bin/**",
+				"../../mise.toml",
+				"src/**",
+				"docs/source/**",
+				"__tests__/**",
+				"__scripts__/**"
+			]
+		},
 		"@atom.io/eslint-plugin#test:once": {
 			"dependsOn": ["build", "atom.io#build"]
 		},
 		"test:stress:realtime-ipc": {
-			"dependsOn": ["build"],
+			"dependsOn": ["build", "@atom.io/react#build"],
 			"cache": false,
 			"inputs": [
 				"package.json",
@@ -70,7 +89,13 @@
 			]
 		},
 		"cov": {
-			"dependsOn": ["^build"],
+			"dependsOn": [
+				"^build",
+				"build",
+				"@atom.io/react#build",
+				"@atom.io/solid#build",
+				"@atom.io/react-devtools#build"
+			],
 			"outputs": ["coverage/**"],
 			"inputs": [
 				"tsconfig.json",
@@ -88,7 +113,7 @@
 			"passThroughEnv": ["RECOVERAGE_CLOUD_TOKEN"]
 		},
 		"cov:public": {
-			"dependsOn": ["^build"],
+			"dependsOn": ["^build", "build", "@atom.io/react#build"],
 			"outputs": ["coverage-public/**"],
 			"inputs": [
 				"tsconfig.json",
@@ -106,7 +131,9 @@
 		"test:breakage": {
 			"dependsOn": [
 				"test:breakage:prelude",
-				"^build"
+				"^build",
+				"build",
+				"@atom.io/react#build"
 			],
 			"cache": true,
 			"inputs": [

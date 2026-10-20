@@ -95,8 +95,14 @@ const DOC_PAGES: DocPage[] = [
 	{
 		output: `atom.io-react.md`,
 		source: `docs/source/pages/docs/react.mdx`,
-		title: `atom.io/react`,
+		title: `@atom.io/react`,
 		url: `/docs/react`,
+	},
+	{
+		output: `atom.io-solid.md`,
+		source: `docs/source/pages/docs/solid.mdx`,
+		title: `@atom.io/solid`,
+		url: `/docs/solid`,
 	},
 	{
 		output: `atom.io-foundations.md`,
@@ -179,7 +185,7 @@ const DOC_PAGES: DocPage[] = [
 	{
 		output: `atom.io-react-devtools.md`,
 		source: `docs/source/pages/docs/react-devtools.mdx`,
-		title: `atom.io/react-devtools`,
+		title: `@atom.io/react-devtools`,
 		url: `/docs/react-devtools`,
 	},
 	{

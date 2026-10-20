@@ -1,5 +1,5 @@
+import { StoreProvider, useI, useO } from "@atom.io/react"
 import { Silo } from "atom.io"
-import { StoreProvider, useI, useO } from "atom.io/react"
 import type { JSX } from "react/jsx-runtime"
 
 function createDocumentState(name: string) {

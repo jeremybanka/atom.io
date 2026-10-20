@@ -1,3 +1,4 @@
+import { useI, useLoadable, useO } from "@atom.io/react"
 import type { Loadable } from "atom.io"
 import {
 	atom,
@@ -8,7 +9,6 @@ import {
 	selector,
 	setState,
 } from "atom.io"
-import { useI, useLoadable, useO } from "atom.io/react"
 import z from "zod"
 
 const SERVER_URL = `http://localhost:3000`
@@ -26,7 +26,7 @@ type Todo = z.infer<typeof todoSchema>
  *
  * `Loadable` means that the value of this atom may be a `Promise` sometimes.
  *
- * `useLoadable` from `"atom.io/react"` makes this easy to use in components.
+ * `useLoadable` from `"@atom.io/react"` makes this easy to use in components.
  */
 const todoKeysAtom = atom<Loadable<number[]>, Error>({
 	key: `todoKeys`,

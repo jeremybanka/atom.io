@@ -62,7 +62,7 @@ jobs:
       - run: pnpm run manifest:test
 
   BreakageHistory:
-    name: Release contracts
+    name: Breakage Public
     runs-on: ubuntu-latest
     timeout-minutes: 9
     steps:

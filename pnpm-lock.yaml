@@ -573,8 +573,8 @@ importers:
         specifier: workspace:*
         version: link:../atom.io
       eslint:
-        specifier: 10.12.0
-        version: 10.12.0(jiti@2.7.0)(supports-color@10.2.2)
+        specifier: 10.13.0
+        version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
       react:
         specifier: 19.3.1
         version: 19.3.1
@@ -588,8 +588,8 @@ importers:
   packages/react-devtools:
     dependencies:
       motion:
-        specifier: 14.3.0
-        version: 14.3.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+        specifier: 14.4.0
+        version: 14.4.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
       '@atom.io/react':
         specifier: workspace:*
@@ -607,8 +607,8 @@ importers:
         specifier: workspace:*
         version: link:../atom.io
       eslint:
-        specifier: 10.12.0
-        version: 10.12.0(jiti@2.7.0)(supports-color@10.2.2)
+        specifier: 10.13.0
+        version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
       react:
         specifier: 19.3.1
         version: 19.3.1
@@ -631,8 +631,8 @@ importers:
         specifier: workspace:*
         version: link:../atom.io
       eslint:
-        specifier: 10.12.0
-        version: 10.12.0(jiti@2.7.0)(supports-color@10.2.2)
+        specifier: 10.13.0
+        version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
       solid-js:
         specifier: 1.9.17
         version: 1.9.17

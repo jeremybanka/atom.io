@@ -39,7 +39,7 @@
 		"lint:types": "tsc"
 	},
 	"dependencies": {
-		"motion": "14.3.0"
+		"motion": "14.4.0"
 	},
 	"devDependencies": {
 		"@atom.io/react": "workspace:*",
@@ -47,7 +47,7 @@
 		"@types/node": "26.6.5",
 		"@types/react": "19.3.0",
 		"atom.io": "workspace:*",
-		"eslint": "10.12.0",
+		"eslint": "10.13.0",
 		"react": "19.3.1",
 		"react-dom": "19.3.1",
 		"tsdown": "0.23.1",

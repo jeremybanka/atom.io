@@ -170,7 +170,24 @@ async function prologue(): Promise<void> {
 	if (output)
 		await appendFile(
 			output,
-			`matrix=${JSON.stringify({ include: plan.environments.map(({ id, label }) => ({ id, label })) })}\n`,
+			`matrix=${JSON.stringify({
+				include: plan.environments.map(
+					({ id, label, packageName, representative }) => {
+						const audit = audits.find(
+							(report) => report.package.name === packageName,
+						)!
+						const sdk = audit.representatives.find(
+							(result) => result.path === representative,
+						)!.peers[`atom.io`]
+						return {
+							id,
+							label: sdk
+								? label.replace(`SDK next`, `SDK ${sdk.version}`)
+								: label,
+						}
+					},
+				),
+			})}\n`,
 		)
 	console.log(
 		`Audited ${plan.environments.length} environments; prepared ${archives.size} candidate archives.`,
@@ -231,7 +248,7 @@ async function epilogue(): Promise<void> {
 		string,
 		{ result: string }
 	>
-	for (const name of [`PeerPrologue`, `PeerEnvironment`, `BreakageHistory`])
+	for (const name of [`PeerCoverage`, `PeerEnvironment`])
 		assert.equal(needs[name]?.result, `success`, `${name} did not succeed.`)
 	const plan = await readPlan()
 	const receipts = await Promise.all(

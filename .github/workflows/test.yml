@@ -77,7 +77,7 @@ jobs:
       - run: pnpm test:breakage
 
   PeerPrologue:
-    name: Peer coverage
+    name: Breakage Peers
     runs-on: ubuntu-latest
     timeout-minutes: 9
     outputs:

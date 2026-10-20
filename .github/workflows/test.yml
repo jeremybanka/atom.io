@@ -62,7 +62,7 @@ jobs:
       - run: pnpm run manifest:test
 
   BreakageHistory:
-    name: Breakage history
+    name: Release contracts
     runs-on: ubuntu-latest
     timeout-minutes: 9
     steps:
@@ -77,7 +77,7 @@ jobs:
       - run: pnpm test:breakage
 
   PeerPrologue:
-    name: Breakage peer coverage
+    name: Peer coverage
     runs-on: ubuntu-latest
     timeout-minutes: 9
     outputs:
@@ -99,7 +99,7 @@ jobs:
           overwrite: true
 
   PeerEnvironment:
-    name: Peer / ${{ matrix.packageName }} / ${{ matrix.representative }}
+    name: ${{ matrix.label }}
     needs: PeerPrologue
     runs-on: ubuntu-latest
     timeout-minutes: 9

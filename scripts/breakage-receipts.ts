@@ -4,6 +4,7 @@ import type { NpmReport } from "breakage"
 
 export type PeerEnvironment = {
 	id: string
+	label: string
 	directory: string
 	packageName: string
 	representative: string

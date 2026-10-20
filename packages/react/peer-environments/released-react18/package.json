@@ -2,6 +2,7 @@
 	"name": "react-react18",
 	"version": "0.0.0",
 	"private": true,
+	"description": "React 18 \u00b7 SDK 0.53.3",
 	"type": "module",
 	"dependencies": {
 		"@types/react": "18.3.12",

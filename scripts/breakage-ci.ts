@@ -75,16 +75,31 @@ async function discover(): Promise<
 			representatives.size > 0,
 			`No environments configured for ${pkg.packageJson.name}.`,
 		)
-		const environments = [...representatives].sort().map((representative) => ({
-			id: createHash(`sha256`)
-				.update(`${directory}/${representative}`)
-				.digest(`hex`)
-				.slice(0, 16),
-			directory,
-			packageName: pkg.packageJson.name,
-			representative,
-			suites: Object.keys(config.suites).sort(),
-		}))
+		const environments = await Promise.all(
+			[...representatives].sort().map(async (representative) => {
+				const { description } = JSON.parse(
+					await readFile(
+						path.join(base, representative, `package.json`),
+						`utf8`,
+					),
+				) as { description?: string }
+				assert(
+					typeof description === `string` && description.length > 0,
+					`Missing environment description: ${directory}/${representative}.`,
+				)
+				return {
+					label: description,
+					id: createHash(`sha256`)
+						.update(`${directory}/${representative}`)
+						.digest(`hex`)
+						.slice(0, 16),
+					directory,
+					packageName: pkg.packageJson.name,
+					representative,
+					suites: Object.keys(config.suites).sort(),
+				}
+			}),
+		)
 		found.push({ directory, config, environments })
 	}
 	return found.sort((a, b) => a.directory.localeCompare(b.directory))
@@ -155,7 +170,7 @@ async function prologue(): Promise<void> {
 	if (output)
 		await appendFile(
 			output,
-			`matrix=${JSON.stringify({ include: plan.environments.map(({ id, packageName, representative }) => ({ id, packageName, representative })) })}\n`,
+			`matrix=${JSON.stringify({ include: plan.environments.map(({ id, label }) => ({ id, label })) })}\n`,
 		)
 	console.log(
 		`Audited ${plan.environments.length} environments; prepared ${archives.size} candidate archives.`,

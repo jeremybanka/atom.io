@@ -7,6 +7,7 @@ import { verifyAudits, verifyReceipts } from "./breakage-receipts.ts"
 function fixture(): { plan: PeerPlan; receipts: PeerReceipt[] } {
 	const environments = [`react18`, `react19`].map((name) => ({
 		id: name,
+		label: name,
 		directory: `packages/react`,
 		packageName: `@atom.io/react`,
 		representative: `peer-environments/${name}`,

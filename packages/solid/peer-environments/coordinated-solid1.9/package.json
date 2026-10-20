@@ -1,7 +1,8 @@
 {
-	"name": "solid-solid19",
+	"name": "solid-1.9-candidate-sdk",
 	"version": "0.0.0",
 	"private": true,
+	"description": "Solid 1.9 \u00b7 SDK next",
 	"type": "module",
 	"dependencies": {
 		"solid-js": "1.9.17"

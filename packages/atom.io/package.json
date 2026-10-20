@@ -199,7 +199,7 @@
 		"treetrunks": "0.1.12",
 		"tsdown": "0.23.1",
 		"typescript": "7.0.2",
-		"typescript-eslint": "8.71.2",
+		"typescript-eslint": "8.72.0",
 		"vite": "8.3.4",
 		"vitest": "5.0.5",
 		"zod": "4.6.7",

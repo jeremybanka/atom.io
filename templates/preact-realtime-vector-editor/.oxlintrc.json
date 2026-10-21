@@ -1,0 +1,12 @@
+{
+	"$schema": "./node_modules/oxlint/configuration_schema.json",
+	"extends": ["./node_modules/atom.io/oxlint.json"],
+	"plugins": ["typescript", "react"],
+	"rules": {
+		"react/jsx-key": "error",
+		"react/jsx-no-duplicate-props": "error",
+		"react/no-children-prop": "error",
+		"react/no-danger-with-children": "error",
+		"react/rules-of-hooks": "error"
+	}
+}

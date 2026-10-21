@@ -66,7 +66,7 @@ function testClient(
 					lifespan: `ephemeral`,
 					name: `plane-test-client:${sessionId}`,
 				}),
-			[sessionId],
+			[],
 		)
 		const [runtime, setRuntime] = useState<VectorCollaborationClient | null>(
 			null,

@@ -18,17 +18,17 @@ import {
 	compactSvgRegisterHistory,
 	readSvgRegister,
 	reduceSvgRegister,
-	svgRegisterModelOperationSchema,
-	svgRegisterStateSchema,
 	type SvgRegisterModelOperation,
+	svgRegisterModelOperationSchema,
 	type SvgRegisterState,
+	svgRegisterStateSchema,
 } from "./svg-convergence.ts"
 import {
 	createSvgGestureClock,
-	svgHistoryPolicy,
-	svgOperationId,
 	type PointXY,
 	type SvgGesture,
+	svgHistoryPolicy,
+	svgOperationId,
 } from "./svg-editor-state.ts"
 
 const keySchema = z.string().min(1)
@@ -165,32 +165,32 @@ const contourDragPresenceSchema: z.ZodType<SvgContourDragPresence> = z
 
 export const contourAtom = atom<SvgContourState>({
 	default: DEFAULT_SVG_CONTOUR_STATE,
-	key: `svgClosedContour`,
+	key: `contour`,
 })
 export const contourActiveDragAtom = atom<SvgContourActiveDrag | null>({
 	default: null,
-	key: `svgContourActiveDrag`,
+	key: `contourActiveDrag`,
 })
 export const contourPointerCaptureAtom = atom<{
 	readonly element: Element
 	readonly pointerId: number
-} | null>({ default: null, key: `svgContourPointerCapture` })
+} | null>({ default: null, key: `contourPointerCapture` })
 export const contourWorkspaceAtom = atom<SvgContourWorkspace>({
 	default: { selectedNodeId: null },
-	key: `svgContourWorkspace`,
+	key: `contourWorkspace`,
 })
 export const contourViewportAtom = atom<SvgContourViewport>({
 	default: { pan: { x: 0, y: 0 }, zoom: 1 },
-	key: `svgContourViewport`,
+	key: `contourViewport`,
 })
 export const contourPresenceAtoms = atomFamily<
 	SvgContourPresence | null,
 	string
->({ default: null, key: `svgContourPresence` })
+>({ default: null, key: `contourPresence` })
 export const contourDragPresenceAtoms = atomFamily<
 	SvgContourDragPresence | null,
 	string
->({ default: null, key: `svgContourDragPresence` })
+>({ default: null, key: `contourDragPresence` })
 
 export function svgContourPresenceKey(
 	identity: Pick<SvgContourPresence, `actor` | `session`>,
@@ -217,12 +217,12 @@ export const projectedContourSelector = selector<SvgContour>({
 			),
 		}
 	},
-	key: `svgProjectedClosedContour`,
+	key: `projectedContour`,
 })
 
 export const contourPathSelector = selector<string>({
 	get: ({ get }) => svgContourPath(get(projectedContourSelector)),
-	key: `svgClosedContourPath`,
+	key: `contourPath`,
 })
 
 type SvgContourReceiptState = {
@@ -238,19 +238,19 @@ type AuthoredSvgContourOperation = {
 }
 
 const contourModel: MosaicDomainValueModel<
-	SvgContourState & Json.Serializable,
-	SvgContourOperation & Json.Serializable
+	Json.Serializable & SvgContourState,
+	Json.Serializable & SvgContourOperation
 > = {
 	history: svgHistoryPolicy<SvgContourState>(
 		compactSvgRegisterHistory,
 	) as MosaicDomainMemberHistoryPolicy<
-		SvgContourState & Json.Serializable,
-		SvgContourOperation & Json.Serializable
+		Json.Serializable & SvgContourState,
+		Json.Serializable & SvgContourOperation
 	>,
 	identity: { key: `svg/closed-contour-register`, version: 1 },
 	kind: `value`,
 	operationSchema: svgContourOperationSchema as z.ZodType<
-		SvgContourOperation & Json.Serializable
+		Json.Serializable & SvgContourOperation
 	>,
 	reduce(value, operation, context) {
 		const current = value as SvgContourReceiptState
@@ -269,8 +269,8 @@ const contourModel: MosaicDomainValueModel<
 				}
 			}
 		}
-		return reduceSvgContour(value, operation) as SvgContourState &
-			Json.Serializable
+		return reduceSvgContour(value, operation) as Json.Serializable &
+			SvgContourState
 	},
 }
 
@@ -553,7 +553,7 @@ export function createSvgContourEditor(options: {
 			)
 		},
 		async redo(gesture) {
-			void gesture
+			gesture
 			if (options.history === undefined) return false
 			const result = await options.history.redo()
 			if (result.status === `rejected`) throw new Error(result.reason)
@@ -563,7 +563,7 @@ export function createSvgContourEditor(options: {
 			await submit(input.gesture, svgContourSchema.parse(input.contour))
 		},
 		async undo(gesture) {
-			void gesture
+			gesture
 			if (options.history === undefined) return false
 			const result = await options.history.undo()
 			if (result.status === `rejected`) throw new Error(result.reason)

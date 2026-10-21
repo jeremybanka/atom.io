@@ -4,9 +4,9 @@ import {
 	DEFAULT_SVG_CONTOUR_STATE,
 	readSvgContour,
 	reduceSvgContour,
+	type SvgContour,
 	svgContourPath,
 	svgContourSchema,
-	type SvgContour,
 } from "./svg-contour.ts"
 
 const triangle = (offset = 0): SvgContour => ({

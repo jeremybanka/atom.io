@@ -1,4 +1,4 @@
-import type { MosaicTextRelativePosition } from "atom.io/realtime"
+import type { MosaicTextRelativePosition } from "@atom.io/realtime"
 
 export type MarkdownSourceBlock = {
 	readonly anchor: MosaicTextRelativePosition

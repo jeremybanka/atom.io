@@ -1,3 +1,7 @@
+import type {
+	MosaicDomainHistoryCompactionContext,
+	MosaicDomainHistoryOperationClassification,
+} from "@atom.io/realtime"
 import type { TransactionToken } from "atom.io"
 import {
 	atom,
@@ -9,10 +13,6 @@ import {
 	setState,
 	transaction,
 } from "atom.io"
-import type {
-	MosaicDomainHistoryCompactionContext,
-	MosaicDomainHistoryOperationClassification,
-} from "atom.io/realtime"
 import { z } from "zod"
 
 import {

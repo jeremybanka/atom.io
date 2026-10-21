@@ -1,16 +1,17 @@
 import {
 	multiClient,
 	type RealtimeTestClient,
-} from "atom.io/realtime-testing/react"
+} from "@atom.io/realtime/testing/react"
 import { act, waitFor } from "@testing-library/react"
 import { Silo } from "atom.io"
-import { RealtimeContext } from "atom.io/realtime-react"
+import { RealtimeContext } from "@atom.io/realtime/react"
 import {
 	InMemoryMosaicDomainCheckpointStorage,
 	type MosaicDomainBatchAuthorizationContext,
-} from "atom.io/realtime-server"
-import { createRestartableServerFixture } from "atom.io/realtime-testing/headless"
+} from "@atom.io/realtime/server"
+import { createRestartableServerFixture } from "@atom.io/realtime/testing/headless"
 import { createElement, useContext, useEffect, useMemo, useState } from "react"
+import { Socket } from "socket.io-client"
 
 import { createVectorCollaborationService } from "../node/service.ts"
 import {
@@ -74,6 +75,8 @@ function testClient(
 		const [creationProblem, setCreationProblem] = useState<string | null>(null)
 		useEffect(() => {
 			if (socket === null) return
+			if (!(socket instanceof Socket))
+				throw new Error(`This template requires the Socket.IO test transport.`)
 			let active = true
 			let created: VectorCollaborationClient | null = null
 			void createVectorCollaborationClient({

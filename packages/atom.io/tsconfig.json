@@ -31,6 +31,12 @@
 			],
 			"@atom.io/react-devtools": [
 				"../react-devtools/src"
+			],
+			"@atom.io/realtime": [
+				"../realtime/src/core"
+			],
+			"@atom.io/realtime/*": [
+				"../realtime/src/*"
 			]
 		}
 	},

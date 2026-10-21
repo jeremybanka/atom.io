@@ -3,7 +3,7 @@ import type { Json } from "atom.io/foundations/json"
 import type {
 	MosaicDomainBatchProposal,
 	MosaicDomainResidencyTransport,
-} from "atom.io/realtime"
+} from "@atom.io/realtime"
 import {
 	bindMosaicDomainHistoryServerSocket,
 	bindMosaicDomainPresenceServerSocket,
@@ -18,7 +18,7 @@ import {
 	type MosaicDomainCheckpointCoordinator,
 	type MosaicDomainCheckpointStorageAdapter,
 	type MosaicDomainHistoryCoordinator,
-} from "atom.io/realtime-server"
+} from "@atom.io/realtime/server"
 import type { Socket as ServerSocket } from "socket.io"
 
 import {

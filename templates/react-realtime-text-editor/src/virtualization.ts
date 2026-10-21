@@ -1,4 +1,4 @@
-import type { MosaicTextIndexRange } from "atom.io/realtime"
+import type { MosaicTextIndexRange } from "@atom.io/realtime"
 
 export type MarkdownVirtualMetrics = {
 	readonly averageUtf16UnitsPerRow: number

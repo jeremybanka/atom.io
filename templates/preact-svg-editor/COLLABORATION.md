@@ -123,7 +123,7 @@ recreated client cannot briefly display a cursor or preview from its predecessor
 
 The local suite covers every structural planner, settled invariants, independent
 and contended geometry, malicious foreign compensation, whole-batch rejection,
-offline replay, and selective undo. The `atom.io/realtime-testing` suite drives
+offline replay, and selective undo. The `@atom.io/realtime/testing` suite drives
 real Socket.IO clients through the public Domain, server, client, batch, and
 presence seams. It covers duplicate delivery, final-member rejection, offline
 replay, same-node contention, and disconnect during drag.

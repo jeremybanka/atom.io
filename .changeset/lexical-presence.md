@@ -1,5 +1,5 @@
 ---
-"atom.io": patch
+"@atom.io/realtime": patch
 "@atom.io/template-react-realtime-text-editor": patch
 ---
 

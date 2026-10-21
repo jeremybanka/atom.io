@@ -1,10 +1,10 @@
 import type { ReadonlyPureSelectorToken, RegularAtomToken, Silo } from "atom.io"
-import type { MosaicTextSelection } from "atom.io/realtime"
+import type { MosaicTextSelection } from "@atom.io/realtime"
 import {
 	createMosaicTextRangeController,
 	type MosaicTextRangeController,
 	type MosaicTextRangeView,
-} from "atom.io/realtime-client"
+} from "@atom.io/realtime/client"
 
 import type {
 	MarkdownClientStatus,

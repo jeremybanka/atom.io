@@ -52,17 +52,18 @@ commands use pnpm's workspace filters to focus on one project.
 
 ## Workspace Layout
 
-| Path                                                                   | Purpose                                                                  |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| [packages/atom.io](./packages/atom.io)                                 | SDK, realtime integrations, testing utilities, and documentation source. |
-| [packages/react](./packages/react), [packages/solid](./packages/solid) | Framework bindings.                                                      |
-| [packages/react-devtools](./packages/react-devtools)                   | React devtools and their styles.                                         |
-| [packages/eslint-plugin](./packages/eslint-plugin)                     | ESLint plugin.                                                           |
-| [packages/create-atom.io](./packages/create-atom.io)                   | Project scaffolder.                                                      |
-| [packages/exhibits](./packages/exhibits)                               | Shared documentation exhibit utilities.                                  |
-| [apps/atom.io.fyi](./apps/atom.io.fyi)                                 | Documentation site.                                                      |
-| [templates](./templates)                                               | React, Preact, and Solid starter projects.                               |
-| [scripts](./scripts)                                                   | Repository maintenance scripts.                                          |
+| Path                                                                   | Purpose                                                     |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------- |
+| [packages/atom.io](./packages/atom.io)                                 | Core SDK, testing utilities, and documentation source.      |
+| [packages/realtime](./packages/realtime)                               | Realtime collaboration, adapters, tests, and documentation. |
+| [packages/react](./packages/react), [packages/solid](./packages/solid) | Framework bindings.                                         |
+| [packages/react-devtools](./packages/react-devtools)                   | React devtools and their styles.                            |
+| [packages/eslint-plugin](./packages/eslint-plugin)                     | ESLint plugin.                                              |
+| [packages/create-atom.io](./packages/create-atom.io)                   | Project scaffolder.                                         |
+| [packages/exhibits](./packages/exhibits)                               | Shared documentation exhibit utilities.                     |
+| [apps/atom.io.fyi](./apps/atom.io.fyi)                                 | Documentation site.                                         |
+| [templates](./templates)                                               | React, Preact, and Solid starter projects.                  |
+| [scripts](./scripts)                                                   | Repository maintenance scripts.                             |
 
 Repository conventions are in [AGENTS.md](./AGENTS.md). The SDK's
 [agent documentation guide](./packages/atom.io/AGENTS.md) points to the generated

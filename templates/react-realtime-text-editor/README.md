@@ -60,11 +60,11 @@ the Unicode adversarial corpus.
   application commands. Core owns residency transport, reconnect
   synchronization, accepted-revision settlement, presence renewal, and
   selective history sequencing.
-- `atom.io/realtime-client` owns the Store-backed range controller, preserving
+- `@atom.io/realtime/client` owns the Store-backed range controller, preserving
   the last complete projection while replacement residency is acquired.
-- `atom.io/realtime-react` owns optimistic draft settlement and maps local and
+- `@atom.io/realtime/react` owns optimistic draft settlement and maps local and
   remote selections across complete, revision-tagged projection cuts.
-- `atom.io/realtime-react-lexical` owns projection replacement, native input
+- `@atom.io/realtime/react/lexical` owns projection replacement, native input
   boundaries, DOM selection restoration, collaborator geometry, and semantic
   structure without visual styling. The local `src/LexicalMarkdownEditor.tsx`
   opts into Lasertag's validated render-story adoption for Atom.io's owned root.

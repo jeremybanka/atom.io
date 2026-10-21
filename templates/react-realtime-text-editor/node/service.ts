@@ -6,7 +6,7 @@ import type {
 	MosaicTextIndexSummary,
 	MosaicTextRelativePosition,
 	MosaicTextSnapshot,
-} from "atom.io/realtime"
+} from "@atom.io/realtime"
 import {
 	bindMosaicDomainHistoryServerSocket,
 	bindMosaicDomainPresenceServerSocket,
@@ -21,7 +21,7 @@ import {
 	type MosaicDomainHistoryConnection,
 	type MosaicTextDocumentInstrumentation,
 	type MosaicTextDocumentRangeInspection,
-} from "atom.io/realtime-server"
+} from "@atom.io/realtime/server"
 import type { Socket } from "socket.io"
 import { z } from "zod"
 

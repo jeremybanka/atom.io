@@ -5,11 +5,11 @@ import {
 	maintainMosaicTextIndex,
 	MOSAIC_DOMAIN_BATCH_PROTOCOL_VERSION,
 	mosaicTextIndexSource,
-} from "../packages/atom.io/src/realtime/index.ts"
+} from "../packages/realtime/src/core/index.ts"
 import {
 	createMosaicDomainCheckpointCoordinator,
 	InMemoryMosaicDomainCheckpointStorage,
-} from "../packages/atom.io/src/realtime-server/index.ts"
+} from "../packages/realtime/src/server/index.ts"
 import { MarkdownText } from "../templates/react-realtime-text-editor/src/document-domain.ts"
 
 export const MOSAIC_TEXT_SCALE_FAULTS = Object.freeze([

@@ -2,7 +2,7 @@ import type { Silo } from "atom.io"
 import type {
 	MosaicTextIndexLookup,
 	MosaicTextSelection,
-} from "atom.io/realtime"
+} from "@atom.io/realtime"
 import {
 	createMosaicDomainHistoryClient,
 	createMosaicDomainHistorySocketTransport,
@@ -18,7 +18,7 @@ import {
 	type MosaicDomainSessionClientState,
 	type MosaicTextProjectionClient,
 	type MosaicTextLogicalEdit,
-} from "atom.io/realtime-client"
+} from "@atom.io/realtime/client"
 import type { Socket } from "socket.io-client"
 
 import {

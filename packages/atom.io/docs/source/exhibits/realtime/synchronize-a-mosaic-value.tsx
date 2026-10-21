@@ -1,5 +1,5 @@
+import { useO } from "@atom.io/react"
 import { mutableAtom } from "atom.io"
-import { useO } from "atom.io/react"
 import { mosaicText } from "atom.io/realtime"
 import { useMosaic } from "atom.io/realtime-react"
 import type { ReactElement } from "react"

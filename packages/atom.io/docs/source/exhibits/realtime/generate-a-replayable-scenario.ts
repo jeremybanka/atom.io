@@ -1,7 +1,7 @@
 import {
 	generateModelScenario,
 	runModelScenario,
-} from "atom.io/realtime-testing"
+} from "atom.io/realtime-testing/headless"
 
 type Action = { amount: number; type: `increment` }
 type Fault = `disconnect` | `duplicate-next` | `reorder-next-two`

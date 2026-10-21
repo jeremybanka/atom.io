@@ -4,18 +4,20 @@ import Exhibit from "c/Exhibit.astro";
 
 Realtime correctness is a property of several clients, an authoritative server,
 storage, clocks, failures, and restart—not of one component in isolation.
-`atom.io/realtime-testing` provides deterministic pieces for assembling and
+The realtime testing entry points provide deterministic pieces for assembling and
 replaying that system.
 
 ## package contents
 
-Every public export from `atom.io/realtime-testing` is listed below. The main
-entrypoint contains the complete surface. The
-`atom.io/realtime-testing/headless` subpath is a strict subset containing the
-headless topology, deterministic transport and adapters, execution realms,
-model scenarios, the reference-sequence oracle, and virtual time. Import the
-main entrypoint for rendered clients, journals, work tracking, restart fixtures,
-replication topology, and conformance suites.
+The testing API has two entry points. Use `atom.io/realtime-testing/headless`
+for headless topology, deterministic transport, execution realms, model scenarios,
+virtual time, journals, work tracking, restart fixtures, and conformance suites.
+Use `atom.io/realtime-testing/react` for `singleClient`, `multiClient`,
+`setupRealtimeTestClient`, and their rendered-client types. The headless entry
+point does not require a React renderer.
+
+The table below covers both entry points; only the rendered topology row belongs
+to `/react`.
 
 <table-wrapper>
 	<table>
@@ -273,7 +275,7 @@ a restart test.
 
 ## conformance suites
 
-`atom.io/realtime-testing` exports reusable conformance for:
+`atom.io/realtime-testing/headless` exports reusable conformance for:
 
 - `MosaicDomainBatchStorageAdapter`;
 - `MosaicDomainCheckpointStorageAdapter`; and

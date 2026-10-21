@@ -77,7 +77,7 @@
 		"eslint-plugin-storybook": "10.6.3",
 		"happy-dom": "21.0.3",
 		"jiti": "2.7.0",
-		"lasertag": "0.8.7",
+		"lasertag": "0.8.8",
 		"oxlint": "1.89.0",
 		"oxlint-tsgolint": "7.0.2004",
 		"pin-dependencies-checker": "2.7.1",

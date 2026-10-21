@@ -62,6 +62,13 @@ Every public export from `@atom.io/realtime/react` is listed below.
 				<td><code>RealtimeRoomsTools</code></td>
 			</tr>
 			<tr>
+				<td>Domain submission status</td>
+				<td>
+					<code>useRealtimeSubmission</code>, <code>useMosaicDomainBatchClientState</code>
+				</td>
+				<td>Caller-owned receipt outcomes and aggregate batch client state.</td>
+			</tr>
+			<tr>
 				<td>Atomic Mosaic</td>
 				<td><code>useMosaic</code></td>
 				<td><code>UseMosaicOptions</code>, <code>UseMosaicResult</code></td>
@@ -198,3 +205,14 @@ text template demonstrates the complete composition and stylesheet.
 The provider, socket, service keys, and surrounding Store/Silo define ownership.
 Do not open sockets or construct controllers during render. Late asynchronous
 responses after disposal must not update the replacement service or Store.
+
+## Domain submission status
+
+`useRealtimeSubmission` observes one caller-owned receipt, while
+`useMosaicDomainBatchClientState` observes aggregate connection/recovery status,
+pending IDs, revision, and errors. Neither hook owns or disposes the client.
+Keep the receipt from the specific edit whose outcome the UI displays. Call
+`client.flush()` to recover and replay pending edits; a rejected edit requires
+an explicit new submission according to its recovery guidance.
+
+<Exhibit src="realtime/observe-domain-submission.tsx" />

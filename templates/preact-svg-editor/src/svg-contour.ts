@@ -405,7 +405,7 @@ export function createSvgContourEditor(options: {
 			id: svgOperationId(gesture, 0),
 			value: contour,
 		})
-		await options.batch.submit(
+		const submission = await options.batch.submit(
 			[
 				{
 					address: options.domain.address(`contour`),
@@ -415,10 +415,12 @@ export function createSvgContourEditor(options: {
 			] as readonly MosaicDomainBatchClientOperation[],
 			gesture.id,
 		)
-		if (options.batch.state.status === `rejected`) {
+		if (submission.state.status === `rejected`) {
+			throw new Error(submission.state.rejection.reason)
+		}
+		if (submission.state.status === `interrupted`) {
 			throw new Error(
-				options.batch.state.problem?.reason ??
-					`The SVG contour batch was rejected.`,
+				`The SVG contour batch outcome is unknown; resynchronize before repeating this edit.`,
 			)
 		}
 	}

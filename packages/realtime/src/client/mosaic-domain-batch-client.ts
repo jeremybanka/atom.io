@@ -15,9 +15,13 @@ import {
 	mosaicDomainMemberModelIdentity,
 	preflightMosaicDomainBatch,
 	type PreparedMosaicDomainBatch,
+	type RealtimeRequestIdentity,
+	type RealtimeSubmission,
 	reprojectMosaicDomainBatches,
 } from "@atom.io/realtime"
 import type { Json } from "atom.io/foundations/json"
+
+import { createRealtimeSubmission } from "./realtime-submission.ts"
 
 export type MosaicDomainBatchClientTransport = {
 	recover(afterRevision?: number): Promise<{
@@ -59,7 +63,26 @@ export type MosaicDomainBatchClientIdContext = {
 	readonly session: string
 }
 
+export type MosaicDomainBatchSubmissionIdentity =
+	RealtimeRequestIdentity<MosaicDomainIdentity> & {
+		readonly actor: string
+	}
+export type MosaicDomainBatchSubmission = RealtimeSubmission<
+	MosaicDomainBatchSubmissionIdentity,
+	{ readonly revision: number },
+	MosaicDomainBatchRejection
+>
+type SubmissionController = ReturnType<
+	typeof createRealtimeSubmission<
+		MosaicDomainBatchSubmissionIdentity,
+		{ readonly revision: number },
+		MosaicDomainBatchRejection
+	>
+>
+
 export type MosaicDomainBatchClientOptions = {
+	/** Called after local commit, before delivery. Exceptions are logged, not propagated. */
+	readonly onSubmission?: (submission: MosaicDomainBatchSubmission) => void
 	readonly actor: string
 	readonly domain: MosaicDomainInstance<any, any, any>
 	readonly idSource?: (context: MosaicDomainBatchClientIdContext) => string
@@ -76,11 +99,12 @@ export type MosaicDomainBatchClient = Disposable & {
 			| MosaicDomainBatchClientOperation
 			| readonly MosaicDomainBatchClientOperation[],
 		group?: string | null,
-	): Promise<void>
+	): Promise<MosaicDomainBatchSubmission>
 	subscribe(listener: (state: MosaicDomainBatchClientState) => void): () => void
 }
 
 type Pending = {
+	submission: SubmissionController
 	prepared: PreparedMosaicDomainBatch
 	proposal: MosaicDomainBatchProposal
 }
@@ -91,7 +115,8 @@ const committedBatchAdopters = new WeakMap<
 		prepare: (
 			context: MosaicDomainBatchClientAdoptionContext,
 		) => Promise<PreparedMosaicDomainBatch>,
-	) => Promise<void>
+		onSubmission?: (submission: MosaicDomainBatchSubmission) => void,
+	) => Promise<MosaicDomainBatchSubmission>
 >()
 
 /** @internal Identity and ordering allocated by the owning batch client. */
@@ -110,12 +135,13 @@ export function adoptCommittedMosaicDomainBatchClientOptimism(
 	prepare: (
 		context: MosaicDomainBatchClientAdoptionContext,
 	) => Promise<PreparedMosaicDomainBatch>,
-): Promise<void> {
+	onSubmission?: (submission: MosaicDomainBatchSubmission) => void,
+): Promise<MosaicDomainBatchSubmission> {
 	const adopt = committedBatchAdopters.get(client)
 	if (adopt === undefined) {
 		throw new Error(`A Mosaic Domain batch client adoption cannot be forged.`)
 	}
-	return adopt(prepare)
+	return adopt(prepare, onSubmission)
 }
 
 const defaultIdSource = ({
@@ -178,6 +204,37 @@ export function createMosaicDomainBatchClient(
 	const idSource = options.idSource ?? defaultIdSource
 	const listeners = new Set<(state: MosaicDomainBatchClientState) => void>()
 	const pending: Pending[] = []
+	const logListenerError = (error: unknown): void => {
+		options.domain.store.logger.error(
+			`🐞`,
+			`transaction`,
+			`mosaic-domain-batch-client`,
+			`A submission listener threw.`,
+			error,
+		)
+	}
+	const createSubmission = (
+		proposal: MosaicDomainBatchProposal,
+	): SubmissionController =>
+		createRealtimeSubmission(
+			Object.freeze({
+				actor: options.actor,
+				requestId: proposal.id,
+				session: options.session,
+				resource: Object.freeze({
+					...options.domain.identity,
+					definition: Object.freeze({ ...options.domain.identity.definition }),
+				}),
+			}),
+			logListenerError,
+		)
+	const announce = (item: Pending, listener = options.onSubmission): void => {
+		try {
+			listener?.(item.submission.receipt)
+		} catch (error) {
+			logListenerError(error)
+		}
+	}
 	let sequence = 0
 	let batchSequence = 0
 	let durableBatchSequence = 0
@@ -186,6 +243,7 @@ export function createMosaicDomainBatchClient(
 	let headBatchMeaningKey: string | null = null
 	let problem: MosaicDomainBatchRejection | null = null
 	let status: MosaicDomainBatchClientState[`status`] = `connecting`
+	const deliveryWaiters = new Set<() => void>()
 	let disposed = false
 	let started = false
 	let queue = Promise.resolve()
@@ -200,15 +258,17 @@ export function createMosaicDomainBatchClient(
 		return result
 	}
 
+	let cachedState: MosaicDomainBatchClientState | undefined
 	const snapshot = (): MosaicDomainBatchClientState =>
-		Object.freeze({
+		(cachedState ??= Object.freeze({
 			pendingBatchIds: Object.freeze(pending.map(({ proposal }) => proposal.id)),
 			problem,
 			revision,
 			status,
-		})
+		}))
 
 	const notify = (): void => {
+		cachedState = undefined
 		const state = snapshot()
 		for (const listener of listeners) {
 			try {
@@ -239,6 +299,12 @@ export function createMosaicDomainBatchClient(
 				pending.map(({ prepared }) => prepared),
 				[],
 			)
+			for (const item of pending)
+				item.submission.update({
+					status: `interrupted`,
+					reason: `invalid-response`,
+					recovery: `resnapshot`,
+				})
 			pending.splice(0, pending.length)
 		}
 		problem = rejection
@@ -250,13 +316,17 @@ export function createMosaicDomainBatchClient(
 		error: unknown,
 		batchId: string | null,
 	): Promise<void> => {
+		options.domain.store.logger.error(
+			`🐞`,
+			`transaction`,
+			`mosaic-domain-batch-client`,
+			`Invalid authoritative response.`,
+			error,
+		)
 		await rejectPending({
 			batchId,
 			code: `invalid-payload`,
-			reason:
-				error instanceof Error
-					? error.message
-					: `The Mosaic Domain transport returned an invalid response.`,
+			reason: `The Mosaic Domain transport returned an invalid response.`,
 			recovery: `resnapshot`,
 		})
 	}
@@ -343,6 +413,7 @@ export function createMosaicDomainBatchClient(
 				return
 			}
 		}
+		const ownSubmission = pending[ownIndex]?.submission
 		// Accepted reduction has an authoritative revision and may not equal its
 		// provisional projection. Compute the confirmed-plus-pending replacement
 		// off-Store, then reveal it with one ordinary Store transaction.
@@ -370,6 +441,11 @@ export function createMosaicDomainBatchClient(
 		}
 		problem = null
 		status = `live`
+		cachedState = undefined
+		ownSubmission?.update({
+			status: `accepted`,
+			value: Object.freeze({ revision: accepted.revision }),
+		})
 		notify()
 	}
 
@@ -390,6 +466,10 @@ export function createMosaicDomainBatchClient(
 			let recoveredHeadBatchMeaningKey = headBatchMeaningKey
 			let recoveredDurableBatchSequence = durableBatchSequence
 			const recovered: MosaicDomainBatchProjection[] = []
+			const settlements: {
+				submission: SubmissionController
+				revision: number
+			}[] = []
 			let nextPending = [...pending]
 			for (const accepted of recovery.tail) {
 				if (accepted.revision !== recoveredRevision + 1) {
@@ -414,6 +494,10 @@ export function createMosaicDomainBatchClient(
 						})
 						return
 					}
+					settlements.push({
+						submission: nextPending[ownIndex].submission,
+						revision: accepted.revision,
+					})
 					nextPending.splice(ownIndex, 1)
 				}
 				recovered.push({
@@ -448,6 +532,12 @@ export function createMosaicDomainBatchClient(
 			batchSequence = Math.max(batchSequence, durableBatchSequence)
 			status = `live`
 			problem = null
+			cachedState = undefined
+			for (const result of settlements)
+				result.submission.update({
+					status: `accepted`,
+					value: Object.freeze({ revision: result.revision }),
+				})
 			notify()
 		} catch (error) {
 			await rejectProtocol(error, null)
@@ -463,6 +553,7 @@ export function createMosaicDomainBatchClient(
 			({ proposal }) => proposal.id === rejected.id,
 		)
 		if (index < 0) return
+		const submission = pending[index].submission
 		const nextPending = pending.filter((_item, itemIndex) => itemIndex !== index)
 		let nextSequence = durableBatchSequence
 		for (
@@ -490,16 +581,29 @@ export function createMosaicDomainBatchClient(
 		await replaceProjection([], nextPending)
 		problem = rejection
 		status = `rejected`
+		cachedState = undefined
+		submission.update({
+			status: `rejected`,
+			rejection: Object.freeze({ ...rejection }),
+			retryable: rejection.recovery === `retry`,
+		})
 		notify()
 	}
 
 	const send = async (item: Pending): Promise<void> => {
+		if (disposed) return
+		item.submission.update({ status: `sending` })
 		let result: Awaited<ReturnType<typeof options.transport.propose>>
 		try {
 			result = await options.transport.propose(item.proposal)
 		} catch {
 			await enqueue(() => {
-				if (!pending.includes(item)) return Promise.resolve()
+				if (
+					disposed ||
+					!pending.some(({ proposal }) => proposal.id === item.proposal.id)
+				)
+					return Promise.resolve()
+				item.submission.update({ status: `offline` })
 				status = `offline`
 				notify()
 				return Promise.resolve()
@@ -507,11 +611,16 @@ export function createMosaicDomainBatchClient(
 			return
 		}
 		await enqueue(async () => {
+			if (disposed) return
 			try {
 				if (result.status === `accepted`) {
+					if (result.accepted.batch.id !== item.proposal.id)
+						throw new Error(`An acceptance must identify its submitted batch.`)
 					await applyAccepted(result.accepted)
 				} else {
 					assertRejection(result.rejection)
+					if (result.rejection.batchId !== item.proposal.id)
+						throw new Error(`A rejection must identify its submitted batch.`)
 					await handleRejection(item.proposal, result.rejection)
 				}
 			} catch (error) {
@@ -520,8 +629,23 @@ export function createMosaicDomainBatchClient(
 		})
 	}
 
+	// Retain cancellation waiters only while a delivery is outstanding.
+	const deliver = async (item: Pending): Promise<void> => {
+		let release!: () => void
+		const stopped = new Promise<void>((resolve) => {
+			release = resolve
+		})
+		deliveryWaiters.add(release)
+		try {
+			await Promise.race([send(item), stopped])
+		} finally {
+			deliveryWaiters.delete(release)
+		}
+	}
+
 	const unsubscribe = options.transport.subscribe((accepted) => {
 		void enqueue(async () => {
+			if (disposed) return
 			try {
 				await applyAccepted(accepted)
 			} catch (error) {
@@ -542,7 +666,7 @@ export function createMosaicDomainBatchClient(
 				const item = pending.find(({ proposal }) => queued.has(proposal.id))
 				if (item === undefined) break
 				queued.delete(item.proposal.id)
-				await send(item)
+				await deliver(item)
 			}
 		},
 		async start() {
@@ -559,7 +683,13 @@ export function createMosaicDomainBatchClient(
 			const work = submitTail.then(async () => {
 				if (disposed)
 					throw new Error(`This Mosaic Domain batch client is disposed.`)
-				if (!started) await this.start()
+				if (!started) {
+					try {
+						await this.start()
+					} catch (error) {
+						if (status !== `offline`) throw error
+					}
+				}
 				let item: Pending | undefined
 				let sendImmediately = false
 				await enqueue(async () => {
@@ -632,20 +762,28 @@ export function createMosaicDomainBatchClient(
 						options.domain,
 						envelope,
 					)
+					if (disposed)
+						throw new Error(`This Mosaic Domain batch client is disposed.`)
 					batchSequence = nextBatchSequence
 					applyMosaicDomainBatch(prepared)
-					item = { prepared, proposal: proposed }
+					item = {
+						prepared,
+						proposal: proposed,
+						submission: createSubmission(proposed),
+					}
 					pending.push(item)
+					cachedState = undefined
+					announce(item)
 					sendImmediately = status === `live`
 					if (sendImmediately) problem = null
+					else if (status === `offline`)
+						item.submission.update({ status: `offline` })
 					notify()
 				})
-				if (sendImmediately) {
-					if (item === undefined) {
-						throw new Error(`A Mosaic Domain batch was not prepared.`)
-					}
-					await send(item)
-				}
+				if (item === undefined)
+					throw new Error(`A Mosaic Domain batch was not prepared.`)
+				if (sendImmediately) await deliver(item)
+				return item.submission.receipt
 			})
 			submitTail = work.then(
 				() => undefined,
@@ -661,15 +799,29 @@ export function createMosaicDomainBatchClient(
 		[Symbol.dispose]() {
 			if (disposed) return
 			disposed = true
+			for (const release of deliveryWaiters) release()
+			deliveryWaiters.clear()
+			for (const item of pending)
+				item.submission.update({
+					status: `interrupted`,
+					reason: `disposed`,
+					recovery: `resnapshot`,
+				})
 			unsubscribe()
 			listeners.clear()
 		},
 	}
-	committedBatchAdopters.set(client, async (prepare) => {
+	committedBatchAdopters.set(client, async (prepare, onSubmission) => {
 		const work = submitTail.then(async () => {
 			if (disposed)
 				throw new Error(`This Mosaic Domain batch client is disposed.`)
-			if (!started) await client.start()
+			if (!started) {
+				try {
+					await client.start()
+				} catch (error) {
+					if (status !== `offline`) throw error
+				}
+			}
 			let item: Pending | undefined
 			let sendImmediately = false
 			await enqueue(async () => {
@@ -697,6 +849,8 @@ export function createMosaicDomainBatchClient(
 					sequence: nextBatchSequence,
 					session: options.session,
 				})
+				if (disposed)
+					throw new Error(`This Mosaic Domain batch client is disposed.`)
 				batchSequence = nextBatchSequence
 				if (
 					prepared.batch.actor !== options.actor ||
@@ -712,18 +866,21 @@ export function createMosaicDomainBatchClient(
 					)
 				}
 				const { actor: _actor, ...proposal } = prepared.batch
-				item = { prepared, proposal }
+				item = { prepared, proposal, submission: createSubmission(proposal) }
 				pending.push(item)
+				cachedState = undefined
+				announce(item)
+				if (onSubmission !== undefined) announce(item, onSubmission)
 				sendImmediately = status === `live`
 				if (sendImmediately) problem = null
+				else if (status === `offline`)
+					item.submission.update({ status: `offline` })
 				notify()
 			})
-			if (sendImmediately) {
-				if (item === undefined) {
-					throw new Error(`Committed Mosaic Domain optimism was not adopted.`)
-				}
-				await send(item)
-			}
+			if (item === undefined)
+				throw new Error(`Committed Mosaic Domain optimism was not adopted.`)
+			if (sendImmediately) await deliver(item)
+			return item.submission.receipt
 		})
 		submitTail = work.then(
 			() => undefined,

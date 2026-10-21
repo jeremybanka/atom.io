@@ -638,7 +638,7 @@ describe(`Mosaic Domain actor-selective history`, () => {
 				await expect(request).rejects.toThrow(`no operation model`)
 			} else {
 				expect(await request).toMatchObject({
-					reason: expect.stringContaining(`participates in history`),
+					reason: `The Domain history compensation contract failed.`,
 					status: `rejected`,
 				})
 			}
@@ -1822,7 +1822,7 @@ describe(`Mosaic Domain actor-selective history`, () => {
 					session: `non-conforming`,
 				}),
 			).toMatchObject({
-				reason: expect.stringContaining(`non-conforming history compensation`),
+				reason: `The Domain history compensation contract failed.`,
 				status: `rejected`,
 			})
 		} finally {
@@ -1866,7 +1866,7 @@ describe(`Mosaic Domain actor-selective history`, () => {
 					session: `incomplete`,
 				}),
 			).toMatchObject({
-				reason: expect.stringContaining(`stale history compensation`),
+				reason: `The Domain history compensation contract failed.`,
 				status: `rejected`,
 			})
 		} finally {

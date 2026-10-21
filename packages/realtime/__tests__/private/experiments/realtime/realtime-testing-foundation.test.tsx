@@ -673,7 +673,7 @@ describe(`realtime testing foundations`, () => {
 
 	test(`legacy builders can own more than one live instance`, async () => {
 		const scenario = singleClient({
-			client: () => null,
+			client: () => <p>Client mounted</p>,
 			server: () => {},
 		})
 		const first = scenario.client.init()
@@ -689,9 +689,15 @@ describe(`realtime testing foundations`, () => {
 			log.mockRestore()
 			await first.dispose()
 			await first.dispose()
+			expect(first.socket.connected).toBe(false)
+			expect(first.renderResult.container.textContent).toBe(``)
+			expect(second.renderResult.container.textContent).toBe(`Client mounted`)
 			expect(second.socket.connected).toBe(true)
 		} finally {
 			await scenario.teardown()
 		}
+		expect(first.socket.connected).toBe(false)
+		expect(second.socket.connected).toBe(false)
+		expect(second.renderResult.container.textContent).toBe(``)
 	})
 })

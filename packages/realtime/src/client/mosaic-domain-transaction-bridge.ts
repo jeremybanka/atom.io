@@ -23,9 +23,15 @@ import {
 	adoptCommittedMosaicDomainBatchClientOptimism,
 	type MosaicDomainBatchClient,
 	type MosaicDomainBatchClientAdoptionContext,
+	type MosaicDomainBatchSubmission,
 } from "./mosaic-domain-batch-client.ts"
 
 export type MosaicDomainTransactionBridgeOptions = {
+	/** Correlate an ordinary outer transaction with its independently settling batch. */
+	readonly onSubmission?: (
+		commit: TransactionCommitEvent,
+		submission: MosaicDomainBatchSubmission,
+	) => void
 	readonly client: MosaicDomainBatchClient
 	readonly domain: MosaicDomainInstance<any, any, any>
 	/** Outermost application transactions whose commits become Domain batches. */
@@ -291,6 +297,7 @@ export function createMosaicDomainTransactionBridge(
 						options.client,
 						(context) =>
 							prepareCommit(options.domain, commit, context, candidates),
+						(submission) => options.onSubmission?.(commit, submission),
 					)
 					retained.shift()
 				} catch (error) {

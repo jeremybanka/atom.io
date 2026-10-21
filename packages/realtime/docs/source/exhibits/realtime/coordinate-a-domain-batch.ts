@@ -55,7 +55,7 @@ const collaboration = createMosaicDomainBatchClient({
 })
 
 await collaboration.start()
-await collaboration.submit(
+const submission = await collaboration.submit(
 	[
 		{
 			address: domain.address(`pathOrder`),
@@ -68,3 +68,13 @@ await collaboration.submit(
 	],
 	`create-path`,
 )
+
+// This identifies this edit even after another batch changes the client status.
+const result = await submission.settled
+if (result.status === `accepted`) {
+	const acceptedRevision = result.value.revision
+	void acceptedRevision
+} else if (result.status === `rejected`) {
+	const { code, reason, recovery } = result.rejection
+	void [code, reason, recovery]
+}

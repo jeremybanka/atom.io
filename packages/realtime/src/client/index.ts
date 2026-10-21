@@ -7,6 +7,8 @@ export type {
 	MosaicDomainBatchClientOptions,
 	MosaicDomainBatchClientState,
 	MosaicDomainBatchClientTransport,
+	MosaicDomainBatchSubmission,
+	MosaicDomainBatchSubmissionIdentity,
 } from "./mosaic-domain-batch-client.ts"
 export { createMosaicDomainBatchClient } from "./mosaic-domain-batch-client.ts"
 export * from "./mosaic-domain-history-client.ts"

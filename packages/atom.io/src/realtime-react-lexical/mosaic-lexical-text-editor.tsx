@@ -33,6 +33,7 @@ import {
 	useState,
 } from "react"
 
+import type {} from "./intrinsic-elements.d.ts"
 import {
 	$getRootRelativeSelectionOffsets,
 	$insertTextAtBlankLineBoundary,

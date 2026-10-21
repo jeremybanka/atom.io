@@ -24,6 +24,10 @@ import {
 } from "lexical"
 
 describe(`Lexical Markdown editor`, () => {
+	afterEach(() => {
+		vi.restoreAllMocks()
+	})
+
 	test(`renders measured collaborator selections and line-boundary carets`, async () => {
 		const rangeRect = new DOMRect(30, 40, 48, 18)
 		const getClientRects = vi

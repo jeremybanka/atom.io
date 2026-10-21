@@ -20,12 +20,12 @@ import {
 import type { Socket } from "socket.io-client"
 
 import {
-	activateSvgDesignDomain,
-	createSvgDomainEditor,
-	svgCollaborationPresenceKey,
-	type SvgCollaborationPresence,
-	type SvgDesignDomain,
-	type SvgDomainEditor,
+	activateSvgContourDomain,
+	createSvgContourEditor,
+	svgContourPresenceKey,
+	type SvgContourDomain,
+	type SvgContourEditor,
+	type SvgContourPresence,
 } from "./design-model.ts"
 import type { Identity } from "./identities.ts"
 import {
@@ -47,12 +47,12 @@ export type VectorClientStore = Pick<
 
 export type VectorCollaborationClient = Disposable & {
 	readonly batch: MosaicDomainBatchClient
-	readonly domain: SvgDesignDomain
-	readonly editor: SvgDomainEditor
+	readonly domain: SvgContourDomain
+	readonly editor: SvgContourEditor
 	readonly identity: Identity
 	readonly history: MosaicDomainHistoryClient
 	readonly presence: MosaicDomainPresenceClient
-	readonly residency: MosaicDomainResidencyClient<SvgDesignDomain[`identity`]>
+	readonly residency: MosaicDomainResidencyClient<SvgContourDomain[`identity`]>
 	readonly sessionId: string
 	readonly silo: VectorClientStore
 	readonly socket: Socket
@@ -97,7 +97,7 @@ function batchTransport(socket: Socket): MosaicDomainBatchClientTransport {
 
 function residencyTransport(
 	socket: Socket,
-): MosaicDomainResidencyTransport<SvgDesignDomain[`identity`]> {
+): MosaicDomainResidencyTransport<SvgContourDomain[`identity`]> {
 	let subscriptionSequence = 0
 	const request = <Value>(
 		event: string,
@@ -145,7 +145,7 @@ export async function createVectorCollaborationClient(options: {
 	readonly silo: VectorClientStore
 	readonly socket: Socket
 }): Promise<VectorCollaborationClient> {
-	const domain = await activateSvgDesignDomain({
+	const domain = await activateSvgContourDomain({
 		instance: `shared-drawing`,
 		silo: options.silo,
 	})
@@ -190,7 +190,7 @@ export async function createVectorCollaborationClient(options: {
 		session: options.sessionId,
 		transport: historyTransport,
 	})
-	const editor = createSvgDomainEditor({
+	const editor = createSvgContourEditor({
 		batch,
 		domain,
 		history,
@@ -307,15 +307,15 @@ export async function createVectorCollaborationClient(options: {
 
 export function publishCollaboratorPresence(
 	client: VectorCollaborationClient,
-	value: Omit<SvgCollaborationPresence, `actor` | `session`>,
+	value: Omit<SvgContourPresence, `actor` | `session`>,
 ): Promise<void> {
-	const presence: SvgCollaborationPresence = {
+	const presence: SvgContourPresence = {
 		...value,
 		actor: client.identity.id,
 		session: client.sessionId,
 	}
 	return client.presence.publish(
-		client.domain.address(`collaborator`, svgCollaborationPresenceKey(presence)),
+		client.domain.address(`collaborator`, svgContourPresenceKey(presence)),
 		presence,
 	)
 }

@@ -132,7 +132,7 @@ function createMiseToml(packageManager: PackageManager): string {
 		case `npm`:
 			return [`[tools]`, `node = "@latest"`, `npm = "@latest"`, ``].join(`\n`)
 		case `pnpm`:
-			return [`[tools]`, `node = "@latest"`, `pnpm = "@latest"`, ``].join(`\n`)
+			return [`[tools]`, `node = "@latest"`, `pnpm = "12.15.0"`, ``].join(`\n`)
 		case `yarn`:
 			return [`[tools]`, `node = "@latest"`, `yarn = "@latest"`, ``].join(`\n`)
 	}

@@ -92,7 +92,10 @@ const { dir, templateName, useMise } = await prompts.group(
 						message: `Template:`,
 						initialValue: `preact-svg-editor`,
 						options: [
-							{ label: `Preact Realtime Vector Editor`, value: `preact-realtime-vector-editor` },
+							{
+								label: `Preact Realtime Vector Editor`,
+								value: `preact-realtime-vector-editor`,
+							},
 							{
 								label: `Preact SVG Editor`,
 								value: `preact-svg-editor`,

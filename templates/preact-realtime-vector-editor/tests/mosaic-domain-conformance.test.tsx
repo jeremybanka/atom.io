@@ -1,6 +1,6 @@
 import { selector } from "atom.io"
 import type { Json } from "atom.io/foundations/json"
-import { testMosaicDomainConformance } from "atom.io/realtime-testing"
+import { testMosaicDomainConformance } from "atom.io/realtime-testing/headless"
 import type { MosaicDomainMemberAddress } from "atom.io/realtime"
 
 import {

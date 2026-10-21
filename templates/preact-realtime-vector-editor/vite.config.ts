@@ -10,6 +10,7 @@ const proxyBackend = () => ({
 
 export default defineConfig({
 	plugins: [preact()],
+	resolve: { dedupe: [`preact`] },
 	preview: { proxy: proxyBackend() },
 	server: { proxy: proxyBackend() },
 })

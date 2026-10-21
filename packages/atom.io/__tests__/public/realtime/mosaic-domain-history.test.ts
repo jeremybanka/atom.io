@@ -28,7 +28,7 @@ import {
 import {
 	generateModelScenario,
 	runModelScenario,
-} from "atom.io/realtime-testing"
+} from "atom.io/realtime-testing/headless"
 import { z } from "zod"
 
 type CounterOperation =

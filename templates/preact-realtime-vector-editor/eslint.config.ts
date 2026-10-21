@@ -1,5 +1,5 @@
 import * as tsParser from "@typescript-eslint/parser"
-import AtomIOPlugin from "atom.io/eslint-plugin"
+import AtomIOPlugin from "@atom.io/eslint-plugin"
 import type { Linter } from "eslint"
 import LasertagPlugin from "lasertag/eslint-plugin"
 

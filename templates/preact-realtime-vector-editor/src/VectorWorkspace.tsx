@@ -1,4 +1,4 @@
-import { useO } from "atom.io/react"
+import { useO } from "@atom.io/react"
 import type { CSSProperties, TargetedPointerEvent, VNode } from "preact"
 import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks"
 

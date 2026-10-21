@@ -30,7 +30,7 @@ import {
 import {
 	testMosaicDomainBatchStorageAdapter,
 	testMosaicDomainCheckpointStorageAdapter,
-} from "atom.io/realtime-testing"
+} from "atom.io/realtime-testing/headless"
 import { vitest } from "vitest"
 import { z } from "zod"
 

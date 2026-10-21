@@ -18,7 +18,7 @@ import {
 import {
 	headless,
 	type HeadlessRealtimeTestClient,
-} from "atom.io/realtime-testing"
+} from "atom.io/realtime-testing/headless"
 import { afterEach, describe, expect, test } from "vitest"
 
 import { readSvgRegister } from "./svg-convergence.ts"

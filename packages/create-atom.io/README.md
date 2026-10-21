@@ -15,13 +15,13 @@ programmatic project-creation API.
 
 ## Templates
 
-| Template                     | What you get                                                                                |
-| :--------------------------- | :------------------------------------------------------------------------------------------ |
+| Template                        | What you get                                                                                    |
+| :------------------------------ | :---------------------------------------------------------------------------------------------- |
 | `preact-realtime-vector-editor` | A Preact vector editor with Mosaic Domain batching, presence, recovery, and actor-safe history. |
-| `preact-svg-editor`          | A Preact + Vite SVG editor that leans on atoms, atom families, selectors, and transactions. |
-| `react-node-backend`         | A React app paired with Node services for backend-shaped examples.                          |
-| `react-realtime-text-editor` | A realtime React text editor with presence and selective per-user undo.                     |
-| `solid-lossless-numbers`     | A Solid + Vite playground for exact rational arithmetic with `@atom.io/solid`.              |
+| `preact-svg-editor`             | A Preact + Vite SVG editor that leans on atoms, atom families, selectors, and transactions.     |
+| `react-node-backend`            | A React app paired with Node services for backend-shaped examples.                              |
+| `react-realtime-text-editor`    | A realtime React text editor with presence and selective per-user undo.                         |
+| `solid-lossless-numbers`        | A Solid + Vite playground for exact rational arithmetic with `@atom.io/solid`.                  |
 
 ## Usage
 
@@ -38,12 +38,12 @@ Pass options when you already know what you want:
 npm create atom.io@latest my-app -- --templateName=preact-svg-editor --packageManager=pnpm --useMise=true
 ```
 
-| Option             | Aliases                               | Values                                                                                            |
-| :----------------- | :------------------------------------ | :------------------------------------------------------------------------------------------------ |
+| Option             | Aliases                               | Values                                                                                                                             |
+| :----------------- | :------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------- |
 | `--templateName`   | `--template`, `--template-name`, `-t` | `preact-realtime-vector-editor`, `preact-svg-editor`, `react-node-backend`, `react-realtime-text-editor`, `solid-lossless-numbers` |
-| `--packageManager` | `--package-manager`, `-m`             | `bun`, `npm`, `pnpm`, `yarn`                                                                      |
-| `--useMise`        | `--use-mise`                          | `true`, `false`                                                                                   |
-| `--skipHints`      | `--skip-hints`, `-k`                  | `true`, `false`                                                                                   |
+| `--packageManager` | `--package-manager`, `-m`             | `bun`, `npm`, `pnpm`, `yarn`                                                                                                       |
+| `--useMise`        | `--use-mise`                          | `true`, `false`                                                                                                                    |
+| `--skipHints`      | `--skip-hints`, `-k`                  | `true`, `false`                                                                                                                    |
 
 Unknown or malformed options produce warnings on stderr before the initializer
 starts. They remain ignored; invalid values for recognized options fail validation.

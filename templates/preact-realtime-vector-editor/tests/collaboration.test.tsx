@@ -1,3 +1,7 @@
+import {
+	multiClient,
+	type RealtimeTestClient,
+} from "atom.io/realtime-testing/react"
 import { act, waitFor } from "@testing-library/react"
 import { Silo } from "atom.io"
 import { RealtimeContext } from "atom.io/realtime-react"
@@ -5,11 +9,7 @@ import {
 	InMemoryMosaicDomainCheckpointStorage,
 	type MosaicDomainBatchAuthorizationContext,
 } from "atom.io/realtime-server"
-import {
-	createRestartableServerFixture,
-	multiClient,
-	type RealtimeTestClient,
-} from "atom.io/realtime-testing"
+import { createRestartableServerFixture } from "atom.io/realtime-testing/headless"
 import { createElement, useContext, useEffect, useMemo, useState } from "react"
 
 import { createVectorCollaborationService } from "../node/service.ts"

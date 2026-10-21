@@ -1,7 +1,7 @@
 import "./globals.css"
 
 import { Silo } from "atom.io"
-import { StoreProvider } from "atom.io/react"
+import { StoreProvider } from "@atom.io/react"
 import { render } from "preact"
 import { io } from "socket.io-client"
 

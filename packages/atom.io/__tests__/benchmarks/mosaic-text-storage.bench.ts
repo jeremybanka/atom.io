@@ -1,5 +1,5 @@
 import { mosaicText } from "atom.io/realtime"
-import { bench, describe } from "vitest"
+import { describe, test } from "vitest"
 
 const GRAPHEME_COUNT = 50_000
 const Text = mosaicText()
@@ -49,11 +49,11 @@ if (durableRunObjects * 100 >= GRAPHEME_COUNT) {
 }
 
 describe(`Mosaic text checkpoint serialization`, () => {
-	bench(`run-oriented checkpoint`, () => {
-		JSON.stringify(runCheckpoint)
+	test(`run-oriented checkpoint`, async ({ bench }) => {
+		await bench(`serialize`, () => JSON.stringify(runCheckpoint)).run()
 	})
 
-	bench(`grapheme-node reference`, () => {
-		JSON.stringify(graphemeNodeReference)
+	test(`grapheme-node reference`, async ({ bench }) => {
+		await bench(`serialize`, () => JSON.stringify(graphemeNodeReference)).run()
 	})
 })

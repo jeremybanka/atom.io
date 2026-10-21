@@ -12,7 +12,7 @@ import {
 	type MosaicTextEditorView,
 	useMosaicTextEditor,
 } from "atom.io/realtime-react"
-import { SeededScenarioRandom } from "atom.io/realtime-testing"
+import { SeededScenarioRandom } from "atom.io/realtime-testing/headless"
 import type { ReactElement } from "react"
 
 type Peer = { readonly name: string }

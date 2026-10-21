@@ -44,7 +44,7 @@ import {
 	type MosaicDomainConformanceHistoryEvidence,
 	type MosaicDomainConformancePresenceEvidence,
 	type MosaicDomainConformanceResidencyEvidence,
-} from "atom.io/realtime-testing"
+} from "atom.io/realtime-testing/headless"
 
 type AnyDomain = MosaicDomainInstance<MosaicDomainIdentity, any, any>
 

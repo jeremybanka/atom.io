@@ -1,10 +1,8 @@
+import { multiClient } from "atom.io/realtime-testing/react"
 import { waitFor } from "@testing-library/react"
 import { Silo } from "atom.io"
 import { RealtimeContext } from "atom.io/realtime-react"
-import {
-	createRestartableServerFixture,
-	multiClient,
-} from "atom.io/realtime-testing"
+import { createRestartableServerFixture } from "atom.io/realtime-testing/headless"
 import { createElement, useContext, useEffect, useMemo } from "react"
 
 import { createVectorCollaborationService } from "../node/service.ts"

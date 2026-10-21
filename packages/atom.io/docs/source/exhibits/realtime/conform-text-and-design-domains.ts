@@ -1,7 +1,7 @@
 import {
 	type MosaicDomainConformanceAdapter,
 	testMosaicDomainConformance,
-} from "atom.io/realtime-testing"
+} from "atom.io/realtime-testing/headless"
 
 declare const longFormText: MosaicDomainConformanceAdapter
 declare const vectorDesign: MosaicDomainConformanceAdapter

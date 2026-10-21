@@ -5,7 +5,7 @@ import {
 	type BrowserContext,
 	type Page,
 } from "@playwright/test"
-import { SeededScenarioRandom } from "atom.io/realtime-testing"
+import { SeededScenarioRandom } from "atom.io/realtime-testing/headless"
 
 import {
 	createMarkdownCollaborationHttpServer,

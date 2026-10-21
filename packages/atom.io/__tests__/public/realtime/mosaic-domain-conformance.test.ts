@@ -7,7 +7,7 @@ import {
 	type MosaicDomainConformanceAdapter,
 	type MosaicDomainConformanceFault,
 	testMosaicDomainConformance,
-} from "atom.io/realtime-testing"
+} from "atom.io/realtime-testing/headless"
 
 const identity: MosaicDomainIdentity = {
 	definition: { key: `conformance`, version: 1 },

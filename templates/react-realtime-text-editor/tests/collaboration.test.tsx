@@ -1,7 +1,10 @@
 import { act, waitFor } from "@testing-library/react"
 import { Silo } from "atom.io"
 import { RealtimeContext } from "atom.io/realtime-react"
-import { multiClient, type RealtimeTestClient } from "atom.io/realtime-testing/react"
+import {
+	multiClient,
+	type RealtimeTestClient,
+} from "atom.io/realtime-testing/react"
 import { createElement, useContext, useEffect, useMemo, useState } from "react"
 
 import { createMarkdownDocumentService } from "../node/service.ts"

@@ -5,11 +5,11 @@
 	"description": "React 18 \u00b7 SDK 0.53.3",
 	"type": "module",
 	"dependencies": {
-		"@types/react": "18.3.31",
-		"@types/react-dom": "18.3.7",
+		"@types/react": "19.3.0",
+		"@types/react-dom": "19.3.0",
 		"atom.io": "0.53.3",
-		"react": "18.3.1",
-		"react-dom": "18.3.1"
+		"react": "19.3.1",
+		"react-dom": "19.3.1"
 	},
 	"devDependencies": {
 		"@types/node": "26.6.5",

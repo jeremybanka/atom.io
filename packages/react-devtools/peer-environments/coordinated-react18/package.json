@@ -5,10 +5,10 @@
 	"description": "Devtools \u00b7 React 18 \u00b7 SDK next",
 	"type": "module",
 	"dependencies": {
-		"@types/react": "18.3.31",
-		"@types/react-dom": "18.3.7",
-		"react": "18.3.1",
-		"react-dom": "18.3.1"
+		"@types/react": "19.3.0",
+		"@types/react-dom": "19.3.0",
+		"react": "19.3.1",
+		"react-dom": "19.3.1"
 	},
 	"devDependencies": {
 		"@types/node": "26.6.5",

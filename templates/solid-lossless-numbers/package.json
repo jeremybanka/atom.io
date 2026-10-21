@@ -29,7 +29,7 @@
 		"@atom.io/eslint-plugin": "workspace:*",
 		"@dprint/json": "0.25.2",
 		"@dprint/markdown": "0.26.0",
-		"@dprint/oxc": "0.46.0",
+		"@dprint/oxc": "0.47.0",
 		"@types/node": "26.6.5",
 		"@typescript/native": "npm:typescript@7.0.2",
 		"dprint": "0.64.0",

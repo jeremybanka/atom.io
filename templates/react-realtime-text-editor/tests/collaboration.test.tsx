@@ -2,7 +2,7 @@ import { waitFor } from "@testing-library/react"
 import {
 	headless,
 	type HeadlessRealtimeTestClient,
-} from "atom.io/realtime-testing"
+} from "atom.io/realtime-testing/headless"
 
 import { createMarkdownDocumentService } from "../node/service.ts"
 import {

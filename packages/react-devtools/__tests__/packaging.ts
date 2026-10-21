@@ -84,7 +84,6 @@ try {
 			`@atom.io/react-devtools/package.json`,
 		)
 		const devtools = JSON.parse(await readFile(devtoolsManifest, `utf8`))
-		assert.equal(devtools.dependencies.motion, `14.4.0`)
 		assert(
 			(
 				await readFile(

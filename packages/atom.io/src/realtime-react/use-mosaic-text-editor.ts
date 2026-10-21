@@ -49,10 +49,14 @@ export type UseMosaicTextEditorOptions<Value> = {
 	readonly documentLength: number
 	readonly onDocumentLength?: (length: number) => void
 	readonly onError?: (error: unknown) => void
+	readonly onLocalDraftChange?: (hasLocalDraft: boolean) => void
 	readonly peers: readonly MosaicTextEditorPeer<Value>[]
 	readonly projection: MosaicTextRangeProjection | null
 	readonly publishSelection: (
 		selection: MosaicTextSelection,
+	) => Promise<void> | void
+	readonly publishViewport?: (
+		viewport: MosaicTextSelection,
 	) => Promise<void> | void
 	readonly replace: (input: {
 		readonly selection: MosaicTextSelection
@@ -211,8 +215,12 @@ export function useMosaicTextEditor<Value>(
 	onDocumentLengthRef.current = options.onDocumentLength
 	const onErrorRef = useRef(options.onError)
 	onErrorRef.current = options.onError
+	const onLocalDraftChangeRef = useRef(options.onLocalDraftChange)
+	onLocalDraftChangeRef.current = options.onLocalDraftChange
 	const publishSelectionRef = useRef(options.publishSelection)
 	publishSelectionRef.current = options.publishSelection
+	const publishViewportRef = useRef(options.publishViewport)
+	publishViewportRef.current = options.publishViewport
 	const replaceRef = useRef(options.replace)
 	replaceRef.current = options.replace
 	const [draft, setDraft] = useState<string | null>(null)
@@ -622,6 +630,34 @@ export function useMosaicTextEditor<Value>(
 		if (pendingSelection.current !== null) publishPendingSelection()
 	}, [draft, projection, publishPendingSelection])
 
+	const hasLocalDraft = localDirty || draft !== null
+	useEffect(() => {
+		onLocalDraftChangeRef.current?.(hasLocalDraft)
+	}, [hasLocalDraft])
+
+	useEffect(() => {
+		if (
+			projection === null ||
+			hasLocalDraft ||
+			hasLocalSelection ||
+			publishViewportRef.current === undefined
+		) {
+			return
+		}
+		let active = true
+		void Promise.all([
+			options.client.positionAtOffset(projection.range.start),
+			options.client.positionAtOffset(projection.range.end),
+		])
+			.then(([anchor, head]) => {
+				if (active) return publishViewportRef.current?.({ anchor, head })
+			})
+			.catch(reportError)
+		return () => {
+			active = false
+		}
+	}, [hasLocalDraft, hasLocalSelection, options.client, projection, reportError])
+
 	useEffect(() => {
 		if (projection === null) {
 			setResolvedRemoteSelections(null)
@@ -759,7 +795,7 @@ export function useMosaicTextEditor<Value>(
 	)
 
 	return {
-		hasLocalDraft: localDirty || draft !== null,
+		hasLocalDraft,
 		hasLocalSelection,
 		onDirty() {
 			localSelectionPending.current = true

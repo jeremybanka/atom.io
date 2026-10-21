@@ -10,12 +10,9 @@ import {
 	markdownIndexRootAtom,
 	markdownSourceAtom,
 } from "../../react-realtime-text-editor/src/document-domain.ts"
-import {
-	activateSvgDesignDomain,
-	edgeAtoms,
-	nodeAtoms,
-	readSvgRegister,
-} from "../src/design-model.ts"
+import { readSvgRegister } from "@atom.io/template-preact-svg-editor/convergence"
+import { activateSvgDesignDomain } from "@atom.io/template-preact-svg-editor/domain"
+import { edgeAtoms, nodeAtoms } from "@atom.io/template-preact-svg-editor/model"
 import {
 	createMosaicDomainVerticalConformanceAdapter,
 	type MosaicDomainVerticalConformanceConfig,
@@ -335,7 +332,7 @@ describe(`cross-vertical Mosaic Domain conformance`, () => {
 				expect(report.counters.deliveredPayloads).toBeGreaterThan(0)
 				expect(report.counters.retainedHistory).toBeGreaterThan(0)
 			} finally {
-				await adapter[Symbol.dispose]()
+				adapter[Symbol.dispose]()
 			}
 		},
 	)

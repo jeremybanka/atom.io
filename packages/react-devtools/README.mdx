@@ -1,0 +1,21 @@
+import { PackageHeader } from "../../scripts/readme/package-header.tsx"
+import Install from "../atom.io/docs/source/exhibits/tooling/react-devtools/install.sh" with { type: "code", lang: "sh" }
+import Example from "../atom.io/docs/source/exhibits/tooling/react-devtools/basic-setup.tsx.txt" with { type: "code", lang: "tsx" }
+import { Tonnage } from "tonnage/galley"
+import config from "./tonnage.config.ts"
+
+<PackageHeader tagline="React developer tools for atom.io stores." docsPath="react-devtools" coverageSlug="react-devtools" />
+
+Install this package alongside `atom.io`, `@atom.io/react`, and React/React DOM 18 or 19. Motion is included as a regular dependency. Import the stylesheet from `@atom.io/react-devtools/css`. Replace imports from `atom.io/react-devtools` with `@atom.io/react-devtools`; the exports and behavior are unchanged.
+
+## Install
+
+<Install />
+
+## Setup
+
+<Example />
+
+<Tonnage config={config} />
+
+The report measures JavaScript only; the required stylesheet is excluded.

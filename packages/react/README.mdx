@@ -1,0 +1,19 @@
+import { PackageHeader } from "../../scripts/readme/package-header.tsx"
+import Install from "../atom.io/docs/source/exhibits/react/install.sh" with { type: "code", lang: "sh" }
+import Example from "../atom.io/docs/source/exhibits/react/readme-counter.tsx" with { type: "code", lang: "tsx" }
+import { Tonnage } from "tonnage/galley"
+import config from "./tonnage.config.ts"
+
+<PackageHeader tagline="React bindings for atom.io." docsPath="react" coverageSlug="react" />
+
+Install this package alongside `atom.io` and React 18 or 19. Replace imports from `atom.io/react` with `@atom.io/react`; the exports and behavior are unchanged.
+
+## Install
+
+<Install />
+
+## Usage
+
+<Example />
+
+<Tonnage config={config} />

@@ -78,6 +78,10 @@
 			"import": "./dist/realtime-react/index.js",
 			"types": "./dist/realtime-react/index.d.ts"
 		},
+		"./realtime-react-lexical": {
+			"import": "./dist/realtime-react-lexical/index.js",
+			"types": "./dist/realtime-react-lexical/index.d.ts"
+		},
 		"./realtime-server": {
 			"import": "./dist/realtime-server/index.js",
 			"types": "./dist/realtime-server/index.d.ts"
@@ -119,8 +123,8 @@
 		"build": "pnpm build:docs && tsdown && pnpm build:check",
 		"build:docs": "node ./__scripts__/agent-docs.node.ts",
 		"build:check": "node ./__scripts__/validate-dist.node.ts",
-		"tonnage": "tonnage write",
-		"tonnage:check": "tonnage check",
+		"tonnage": "pnpm readme:write",
+		"tonnage:check": "pnpm readme:check",
 		"manifest": "./__scripts__/manifest-build.node.ts",
 		"manifest:test": "./__scripts__/manifest-test.node.ts",
 		"postversion": "dprint fmt package.json",
@@ -142,16 +146,20 @@
 		"storybook:build": "storybook build",
 		"pack:breakage": "pnpm --reporter=silent pack --out .breakage/package.tgz",
 		"test:packaging": "node ./__scripts__/test-react-types-peer.node.ts",
-		"cov:recoverage": "recoverage"
+		"cov:recoverage": "recoverage",
+		"readme:write": "galley write README.mdx",
+		"readme:check": "galley check README.mdx"
 	},
 	"devDependencies": {
 		"@atom.io/eslint-plugin": "workspace:*",
 		"@atom.io/exhibits": "workspace:*",
+		"@lexical/react": "0.49.0",
+		"@lexical/selection": "0.49.0",
 		"@orpc/client": "1.15.7",
 		"@orpc/server": "1.15.7",
-		"@storybook/addon-docs": "10.6.2",
-		"@storybook/addon-onboarding": "10.6.2",
-		"@storybook/react-vite": "10.6.2",
+		"@storybook/addon-docs": "10.6.3",
+		"@storybook/addon-onboarding": "10.6.3",
+		"@storybook/react-vite": "10.6.3",
 		"@tanstack/react-query": "5.104.5",
 		"@testing-library/dom": "10.4.2",
 		"@testing-library/react": "16.3.3",
@@ -160,24 +168,24 @@
 		"@types/react-dom": "19.3.0",
 		"@vitest/coverage-v8": "5.0.5",
 		"@vitest/ui": "5.0.5",
-		"arktype": "2.2.8",
+		"arktype": "2.2.9",
 		"breakage": "0.8.5",
 		"concurrently": "10.0.6",
 		"drizzle-kit": "1.0.0-rc.4",
 		"drizzle-orm": "1.0.0-rc.4",
 		"eslint": "10.13.0",
-		"happy-dom": "21.0.3",
+		"happy-dom": "21.0.4",
+		"lexical": "0.49.0",
 		"postgres": "3.4.9",
 		"preact": "11.0.1",
 		"react": "19.3.1",
 		"react-dom": "19.3.1",
-		"recoverage": "0.1.19",
+		"recoverage": "0.1.20",
 		"socket.io": "4.8.4",
 		"socket.io-client": "4.8.4",
 		"solid-js": "1.9.17",
-		"storybook": "10.6.2",
+		"storybook": "10.6.3",
 		"takua": "0.2.3",
-		"tonnage": "0.1.3",
 		"treetrunks": "0.1.12",
 		"tsdown": "0.23.1",
 		"typescript": "7.0.2",
@@ -189,15 +197,24 @@
 	},
 	"peerDependencies": {
 		"@atom.io/react": "~0.0.0",
+		"@lexical/react": ">=0.49.0",
+		"@lexical/selection": ">=0.49.0",
 		"@testing-library/react": ">=14.0.0",
 		"@types/react": "^18.0.0 || ^19.0.0",
 		"happy-dom": ">=17.4.4",
+		"lexical": ">=0.49.0",
 		"react": "^18.0.0 || ^19.0.0",
 		"socket.io": ">=4.0.0",
 		"socket.io-client": ">=4.0.0"
 	},
 	"peerDependenciesMeta": {
 		"@atom.io/react": {
+			"optional": true
+		},
+		"@lexical/react": {
+			"optional": true
+		},
+		"@lexical/selection": {
 			"optional": true
 		},
 		"@testing-library/react": {
@@ -207,6 +224,9 @@
 			"optional": true
 		},
 		"happy-dom": {
+			"optional": true
+		},
+		"lexical": {
 			"optional": true
 		},
 		"react": {

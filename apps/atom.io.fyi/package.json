@@ -18,13 +18,13 @@
 		"lint:types": "tsc"
 	},
 	"dependencies": {
-		"@astrojs/cloudflare": "14.4.1",
-		"@astrojs/markdown-remark": "7.3.3",
-		"@astrojs/mdx": "8.1.0",
-		"@astrojs/preact": "6.1.0",
+		"@astrojs/cloudflare": "14.4.2",
+		"@astrojs/markdown-remark": "7.3.4",
+		"@astrojs/mdx": "8.1.1",
+		"@astrojs/preact": "6.1.1",
 		"@atom.io/react": "workspace:*",
 		"@atom.io/react-devtools": "workspace:*",
-		"astro": "7.4.1",
+		"astro": "7.4.2",
 		"atom.io": "workspace:*",
 		"preact": "11.0.1",
 		"react": "npm:@preact/compat@18.3.2",
@@ -35,17 +35,17 @@
 	},
 	"devDependencies": {
 		"@atom.io/exhibits": "workspace:*",
-		"@types/bun": "npm:bun-types@1.4.3",
+		"@types/bun": "npm:bun-types@1.4.4",
 		"@types/react": "19.3.0",
 		"@types/react-syntax-highlighter": "15.5.13",
 		"@types/three": "0.186.0",
 		"concurrently": "10.0.6",
 		"eslint": "10.13.0",
-		"lasertag": "0.8.7",
+		"lasertag": "0.8.8",
 		"typescript": "7.0.2",
-		"wrangler": "4.151.2"
+		"wrangler": "4.151.3"
 	},
 	"engines": {
-		"node": "26.12.0"
+		"node": "26.12.1"
 	}
 }

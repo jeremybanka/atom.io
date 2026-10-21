@@ -30,19 +30,60 @@
 				"__scripts__/**"
 			]
 		},
-		"tonnage": {
-			"dependsOn": ["build", "^build", "@atom.io/react#build"],
-			"cache": false
-		},
-		"tonnage:check": {
-			"dependsOn": ["build", "^build", "@atom.io/react#build"],
+		"readme:write": {
+			"dependsOn": [
+				"build",
+				"^build"
+			],
 			"outputs": [],
 			"inputs": [
-				"package.json",
-				"tonnage.config.ts",
-				"tonnage-recipes/**",
-				"README.md",
-				"dist/**"
+				"$TURBO_DEFAULT$",
+				"../../scripts/readme/**",
+				"../../packages/atom.io/docs/source/exhibits/**",
+				"../../packages/create-atom.io/src/create-atom-options.ts"
+			],
+			"cache": false
+		},
+		"atom.io#readme:write": {
+			"dependsOn": [
+				"build",
+				"^build",
+				"@atom.io/react#build"
+			],
+			"outputs": [],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				"../../scripts/readme/**",
+				"../../packages/atom.io/docs/source/exhibits/**",
+				"../../packages/create-atom.io/src/create-atom-options.ts"
+			],
+			"cache": false
+		},
+		"readme:check": {
+			"dependsOn": [
+				"build",
+				"^build"
+			],
+			"outputs": [],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				"../../scripts/readme/**",
+				"../../packages/atom.io/docs/source/exhibits/**",
+				"../../packages/create-atom.io/src/create-atom-options.ts"
+			]
+		},
+		"atom.io#readme:check": {
+			"dependsOn": [
+				"build",
+				"^build",
+				"@atom.io/react#build"
+			],
+			"outputs": [],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				"../../scripts/readme/**",
+				"../../packages/atom.io/docs/source/exhibits/**",
+				"../../packages/create-atom.io/src/create-atom-options.ts"
 			]
 		},
 		"manifest:test": {

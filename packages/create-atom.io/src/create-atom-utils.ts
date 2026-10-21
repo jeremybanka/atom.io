@@ -6,28 +6,18 @@ import * as prompts from "@clack/prompts"
 import { getPackageInfo } from "local-pkg"
 import { x } from "tinyexec"
 
+import type { CreateAtomOptions, PackageManager } from "./create-atom-options.ts"
+
 export const color = (
 	format: Parameters<typeof styleText>[0],
 	text: string,
 ): string => styleText(format, text, { validateStream: false })
 
-type PackageManager = `bun` | `npm` | `pnpm` | `yarn`
-export type TemplateName =
-	| `preact-realtime-vector-editor`
-	| `preact-svg-editor`
-	| `react-node-backend`
-	| `react-realtime-text-editor`
-	| `solid-lossless-numbers`
-
-export type CreateAtomOptions = {
-	packageManager: PackageManager
-	templateName: TemplateName
-	useMise: boolean
-}
-
-export type CreateAtomOptionsPreloaded = {
-	[K in keyof CreateAtomOptions]?: CreateAtomOptions[K] | undefined
-} & { skipHints?: boolean | undefined }
+export type {
+	CreateAtomOptions,
+	CreateAtomOptionsPreloaded,
+	TemplateName,
+} from "./create-atom-options.ts"
 
 export async function useSpinner(
 	startMessage: string,
@@ -133,7 +123,7 @@ function createMiseToml(packageManager: PackageManager): string {
 		case `npm`:
 			return [`[tools]`, `node = "@latest"`, `npm = "@latest"`, ``].join(`\n`)
 		case `pnpm`:
-			return [`[tools]`, `node = "@latest"`, `pnpm = "@latest"`, ``].join(`\n`)
+			return [`[tools]`, `node = "@latest"`, `pnpm = "12.15.0"`, ``].join(`\n`)
 		case `yarn`:
 			return [`[tools]`, `node = "@latest"`, `yarn = "@latest"`, ``].join(`\n`)
 	}

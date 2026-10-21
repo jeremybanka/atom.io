@@ -11,12 +11,12 @@ import {
 	type MosaicDomainHistoryClient,
 	type MosaicDomainPresenceClient,
 	type MosaicDomainResidencyClient,
-} from "atom.io/realtime-client"
+} from "@atom.io/realtime/client"
 import type {
 	MosaicDomainIdentity,
 	MosaicDomainInstance,
 	MosaicDomainMemberAddress,
-} from "atom.io/realtime"
+} from "@atom.io/realtime"
 import {
 	createMosaicDomainBatchServer,
 	createMosaicDomainCheckpointCoordinator,
@@ -32,7 +32,7 @@ import {
 	type MosaicDomainPresenceConnection,
 	type MosaicDomainPresenceServer,
 	type MosaicDomainResidencyServer,
-} from "atom.io/realtime-server"
+} from "@atom.io/realtime/server"
 import {
 	createRestartableServerFixture,
 	type MosaicDomainConformanceAdapter,
@@ -44,7 +44,7 @@ import {
 	type MosaicDomainConformanceHistoryEvidence,
 	type MosaicDomainConformancePresenceEvidence,
 	type MosaicDomainConformanceResidencyEvidence,
-} from "atom.io/realtime-testing/headless"
+} from "@atom.io/realtime/testing/headless"
 
 type AnyDomain = MosaicDomainInstance<MosaicDomainIdentity, any, any>
 

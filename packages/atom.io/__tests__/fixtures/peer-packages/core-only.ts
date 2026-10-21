@@ -10,6 +10,18 @@ const require = createRequire(import.meta.url)
 for (const peer of [`react`, `solid-js`, `motion`, `@atom.io/react`]) {
 	assert.throws(() => require.resolve(peer))
 }
-for (const entry of [`react`, `solid`, `react-devtools`, `react-devtools/css`]) {
+for (const entry of [
+	`react`,
+	`solid`,
+	`react-devtools`,
+	`react-devtools/css`,
+	`realtime`,
+	`realtime-client`,
+	`realtime-server`,
+	`realtime-react`,
+	`realtime-react-lexical`,
+	`realtime-testing/headless`,
+	`realtime-testing/react`,
+]) {
 	assert.throws(() => require.resolve(`atom.io/${entry}`))
 }

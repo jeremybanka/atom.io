@@ -1,7 +1,7 @@
 import type {
 	MosaicTextIndexRange,
 	MosaicTextRelativePosition,
-} from "atom.io/realtime"
+} from "@atom.io/realtime"
 
 export const MARKDOWN_EVENTS = {
 	command: `markdown-domain:command`,

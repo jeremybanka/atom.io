@@ -45,6 +45,13 @@ const SITE_AGENT_DOCS_ROOT = path.join(ATOM_IO_FYI_ROOT, `agent-docs`)
 const PUBLIC_ROOT = path.join(ATOM_IO_FYI_ROOT, `public`)
 const CONCEPTS_ROOT = path.join(DOCS_SOURCE_ROOT, `concepts`)
 const EXHIBITS_ROOT = path.join(DOCS_SOURCE_ROOT, `exhibits`)
+const REALTIME_EXHIBITS_ROOT = path.join(
+	WORKSPACE_ROOT,
+	`packages/realtime/docs/source/exhibits`,
+)
+function exhibitRoot(source: string): string {
+	return source.startsWith(`realtime/`) ? REALTIME_EXHIBITS_ROOT : EXHIBITS_ROOT
+}
 const BACKTICK = `\``
 const FENCE = BACKTICK.repeat(3)
 const SHOULD_WRITE_SITE_OUTPUT = process.argv.includes(`--site`)
@@ -70,67 +77,67 @@ const DOC_PAGES: DocPage[] = [
 	},
 	{
 		output: `realtime.md`,
-		source: `docs/source/pages/docs/realtime/index.mdx`,
+		source: `../realtime/docs/source/pages/docs/realtime/index.mdx`,
 		title: `realtime`,
 		url: `/docs/realtime`,
 	},
 	{
 		output: `realtime-rigid.md`,
-		source: `docs/source/pages/docs/realtime/rigid.mdx`,
+		source: `../realtime/docs/source/pages/docs/realtime/rigid.mdx`,
 		title: `rigid realtime`,
 		url: `/docs/realtime/rigid`,
 	},
 	{
 		output: `realtime-mosaic.md`,
-		source: `docs/source/pages/docs/realtime/mosaic.mdx`,
+		source: `../realtime/docs/source/pages/docs/realtime/mosaic.mdx`,
 		title: `Atomic Mosaic`,
 		url: `/docs/realtime/mosaic`,
 	},
 	{
 		output: `realtime-domains.md`,
-		source: `docs/source/pages/docs/realtime/domains.mdx`,
+		source: `../realtime/docs/source/pages/docs/realtime/domains.mdx`,
 		title: `Mosaic Domains`,
 		url: `/docs/realtime/domains`,
 	},
 	{
 		output: `realtime-text.md`,
-		source: `docs/source/pages/docs/realtime/text.mdx`,
+		source: `../realtime/docs/source/pages/docs/realtime/text.mdx`,
 		title: `Mosaic Text`,
 		url: `/docs/realtime/text`,
 	},
 	{
 		output: `realtime-client.md`,
-		source: `docs/source/pages/docs/realtime/clients.mdx`,
-		title: `atom.io/realtime-client`,
+		source: `../realtime/docs/source/pages/docs/realtime/clients.mdx`,
+		title: `@atom.io/realtime/client`,
 		url: `/docs/realtime-client`,
 	},
 	{
 		output: `realtime-react.md`,
-		source: `docs/source/pages/docs/realtime/react.mdx`,
-		title: `atom.io/realtime-react`,
+		source: `../realtime/docs/source/pages/docs/realtime/react.mdx`,
+		title: `@atom.io/realtime/react`,
 		url: `/docs/realtime-react`,
 	},
 	{
 		output: `realtime-server.md`,
-		source: `docs/source/pages/docs/realtime/servers.mdx`,
-		title: `atom.io/realtime-server`,
+		source: `../realtime/docs/source/pages/docs/realtime/servers.mdx`,
+		title: `@atom.io/realtime/server`,
 		url: `/docs/realtime-server`,
 	},
 	{
 		output: `realtime-testing.md`,
-		source: `docs/source/pages/docs/realtime/testing.mdx`,
-		title: `atom.io/realtime-testing`,
+		source: `../realtime/docs/source/pages/docs/realtime/testing.mdx`,
+		title: `@atom.io/realtime/testing`,
 		url: `/docs/realtime-testing`,
 	},
 	{
 		output: `realtime-operations.md`,
-		source: `docs/source/pages/docs/realtime/operations.mdx`,
+		source: `../realtime/docs/source/pages/docs/realtime/operations.mdx`,
 		title: `realtime operations and security`,
 		url: `/docs/realtime/operations`,
 	},
 	{
 		output: `realtime-reference.md`,
-		source: `docs/source/pages/docs/realtime/reference.mdx`,
+		source: `../realtime/docs/source/pages/docs/realtime/reference.mdx`,
 		title: `realtime component reference`,
 		url: `/docs/realtime/reference`,
 	},
@@ -594,7 +601,9 @@ async function resolveExhibitSource(
 		`.tsx.txt`,
 		`.js.txt`,
 		`.jsx.txt`,
-	].map((extension) => path.join(EXHIBITS_ROOT, `${relativeImport}${extension}`))
+	].map((extension) =>
+		path.join(exhibitRoot(relativeImport), `${relativeImport}${extension}`),
+	)
 
 	for (const candidate of candidates) {
 		try {
@@ -605,7 +614,10 @@ async function resolveExhibitSource(
 		}
 	}
 
-	const directory = path.join(EXHIBITS_ROOT, path.dirname(relativeImport))
+	const directory = path.join(
+		exhibitRoot(relativeImport),
+		path.dirname(relativeImport),
+	)
 	try {
 		const entries = await fs.readdir(directory, { withFileTypes: true })
 		const basename = path.basename(relativeImport)
@@ -633,7 +645,7 @@ async function resolveExhibitSourcePath(src: string): Promise<{
 } | null> {
 	const reference = parseExhibitReference(src)
 	const normalized = reference.source
-	const exactSourcePath = path.join(EXHIBITS_ROOT, normalized)
+	const exactSourcePath = path.join(exhibitRoot(normalized), normalized)
 	try {
 		const stat = await fs.stat(exactSourcePath)
 		if (stat.isFile()) {
@@ -849,7 +861,7 @@ async function renderExampleDoc(sourcePath: string): Promise<{
 	const code = await fs.readFile(sourcePath, `utf8`)
 	const source = path.relative(ATOM_IO_ROOT, sourcePath)
 	const output = source
-		.replace(/^docs\/source\/exhibits\//, ``)
+		.replace(/^(?:\.\.\/realtime\/)?docs\/source\/exhibits\//, ``)
 		.replace(/\.txt$/, ``)
 		.replace(/\.[^.]+$/, `.md`)
 	const title = slugToTitle(output)
@@ -951,9 +963,14 @@ async function main(): Promise<void> {
 		})
 	}
 
-	const exampleFiles = (await listFiles(EXHIBITS_ROOT)).filter((file) =>
-		/\.(?:[cm]?[jt]sx?|txt)$/.test(file),
+	const exampleFiles = (
+		await Promise.all([
+			listFiles(EXHIBITS_ROOT),
+			listFiles(REALTIME_EXHIBITS_ROOT),
+		])
 	)
+		.flat()
+		.filter((file) => /\.(?:[cm]?[jt]sx?|txt)$/.test(file))
 	const exampleEntries: ExampleDoc[] = []
 	for (const exampleFile of exampleFiles) {
 		const { doc, entry } = await renderExampleDoc(exampleFile)

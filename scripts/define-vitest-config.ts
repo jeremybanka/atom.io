@@ -32,6 +32,14 @@ const COVERAGE_CONFIG_BASE = {
 } as const satisfies CoverageOptions
 
 const SOURCE_ALIASES = [
+	{
+		find: /^@atom\.io\/realtime$/,
+		replacement: resolve(import.meta.dirname, `../packages/realtime/src/core`),
+	},
+	{
+		find: /^@atom\.io\/realtime\/(.*)$/,
+		replacement: resolve(import.meta.dirname, `../packages/realtime/src/$1`),
+	},
 	...([`react`, `solid`, `react-devtools`] as const).map((name) => ({
 		find: new RegExp(`^@atom\\.io/${name}$`),
 		replacement: resolve(import.meta.dirname, `../packages/${name}/src`),

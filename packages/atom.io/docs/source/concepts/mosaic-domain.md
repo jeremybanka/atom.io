@@ -4,7 +4,7 @@ title: Mosaic Domain
 summary: A Store-owned coordination boundary over ordinary atom.io state.
 packages:
   - atom.io
-  - atom.io/realtime
+  - "@atom.io/realtime"
 related:
   - atom
   - atom-family

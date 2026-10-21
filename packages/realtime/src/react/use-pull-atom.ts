@@ -1,0 +1,17 @@
+import { StoreContext, useO } from "@atom.io/react"
+import * as RTC from "@atom.io/realtime/client"
+import type * as AtomIO from "atom.io"
+import type { Json } from "atom.io/foundations/json"
+import * as React from "react"
+
+import { useRealtimeService } from "./use-realtime-service.ts"
+
+export function usePullAtom<J extends Json.Serializable>(
+	token: AtomIO.RegularAtomToken<J>,
+): AtomIO.ViewOf<J> {
+	const store = React.useContext(StoreContext)
+	useRealtimeService(`pull:${token.key}`, (socket) =>
+		RTC.pullAtom(store, socket, token),
+	)
+	return useO(token)
+}

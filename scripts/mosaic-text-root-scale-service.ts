@@ -13,7 +13,7 @@ import {
 	type MosaicTextRootCounters,
 	stageMosaicTextRootImportStream,
 	stageMosaicTextRootReplace,
-} from "../packages/atom.io/src/realtime/index.ts"
+} from "../packages/realtime/src/core/index.ts"
 import {
 	createMosaicDomainCheckpointCoordinator,
 	createMosaicTextRootCheckpointReader,
@@ -22,7 +22,7 @@ import {
 	type MosaicDomainCheckpointCoordinator,
 	mosaicDomainCheckpointObjectKey,
 	type MosaicDomainExternalCheckpointReader,
-} from "../packages/atom.io/src/realtime-server/index.ts"
+} from "../packages/realtime/src/server/index.ts"
 
 export type MosaicTextRootPublication = {
 	readonly externalRoot: MosaicDomainCheckpointObjectKey

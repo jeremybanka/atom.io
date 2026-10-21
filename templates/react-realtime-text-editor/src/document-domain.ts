@@ -7,7 +7,7 @@ import {
 	type MosaicTextIndexMember,
 	type MosaicTextIndexRoot,
 	type MosaicTextSelection,
-} from "atom.io/realtime"
+} from "@atom.io/realtime"
 import { z } from "zod"
 
 export const MARKDOWN_INDEX_OPTIONS = {

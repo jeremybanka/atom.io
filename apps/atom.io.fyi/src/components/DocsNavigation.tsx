@@ -417,22 +417,22 @@ function SiteDirectory(): VNode {
 						</section>
 						<section>
 							<a id="-docs-realtime-client-link" href="/docs/realtime-client">
-								<low-emphasis>atom.io</low-emphasis>/realtime-client
+								<low-emphasis>@atom.io</low-emphasis>/realtime/client
 							</a>
 						</section>
 						<section>
 							<a id="-docs-realtime-react-link" href="/docs/realtime-react">
-								<low-emphasis>atom.io</low-emphasis>/realtime-react
+								<low-emphasis>@atom.io</low-emphasis>/realtime/react
 							</a>
 						</section>
 						<section>
 							<a id="-docs-realtime-server-link" href="/docs/realtime-server">
-								<low-emphasis>atom.io</low-emphasis>/realtime-server
+								<low-emphasis>@atom.io</low-emphasis>/realtime/server
 							</a>
 						</section>
 						<section>
 							<a id="-docs-realtime-testing-link" href="/docs/realtime-testing">
-								<low-emphasis>atom.io</low-emphasis>/realtime-testing
+								<low-emphasis>@atom.io</low-emphasis>/realtime/testing
 							</a>
 						</section>
 						<section>

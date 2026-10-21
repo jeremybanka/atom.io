@@ -86,8 +86,16 @@ export async function withRuntimeCopies<Modules extends object>(
 		const load: RuntimeCopies<Modules>[`load`] = (copy, entry) =>
 			import(
 				pathToFileURL(
-					adapters.includes(String(entry))
-						? join(fixtureRoot, copy, `adapters`, String(entry), `dist/index.js`)
+					adapters.includes(String(entry).split(`/`)[0]!)
+						? join(
+								fixtureRoot,
+								copy,
+								`adapters`,
+								String(entry).split(`/`)[0]!,
+								`dist`,
+								...String(entry).split(`/`).slice(1),
+								`index.js`,
+							)
 						: join(fixtureRoot, copy, `dist`, String(entry), `index.js`),
 				).href
 			)

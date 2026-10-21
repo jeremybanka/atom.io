@@ -1,13 +1,13 @@
-import { Silo } from "atom.io"
 import {
 	createMosaicDomainBatchClient,
 	type MosaicDomainBatchClientTransport,
-} from "atom.io/realtime-client"
+} from "@atom.io/realtime/client"
 import {
 	createMosaicDomainBatchServer,
 	createMosaicDomainHistoryCoordinator,
 	type MosaicDomainHistoryConnection,
-} from "atom.io/realtime-server"
+} from "@atom.io/realtime/server"
+import { Silo } from "atom.io"
 import { afterEach, describe, expect, test, vi } from "vitest"
 
 import { materializeSvgOrder, readSvgRegister } from "./svg-convergence.ts"

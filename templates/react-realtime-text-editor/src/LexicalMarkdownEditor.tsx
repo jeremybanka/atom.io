@@ -2,13 +2,13 @@ import {
 	MosaicLexicalTextEditor,
 	type MosaicLexicalTextEditorClassNames,
 	type MosaicLexicalTextEditorProps,
-} from "atom.io/realtime-react-lexical"
+} from "@atom.io/realtime/react/lexical"
 import type { ReactElement } from "react"
 
 import "./LexicalMarkdownEditor.css"
 import css from "./LexicalMarkdownEditor.module.css"
 
-export type { RenderedCollaboratorSelection } from "atom.io/realtime-react-lexical"
+export type { RenderedCollaboratorSelection } from "@atom.io/realtime/react/lexical"
 
 const classNames = {
 	caret: `LexicalMarkdownEditor_caret`,

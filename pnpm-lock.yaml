@@ -449,8 +449,8 @@ importers:
         specifier: 19.3.1
         version: 19.3.1(react@19.3.1)
       recoverage:
-        specifier: 0.1.19
-        version: 0.1.19(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7)
+        specifier: 0.1.20
+        version: 0.1.20(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7)
       socket.io:
         specifier: 4.8.4
         version: 4.8.4(supports-color@10.2.2)
@@ -571,8 +571,8 @@ importers:
         specifier: 10.13.0
         version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
       recoverage:
-        specifier: 0.1.19
-        version: 0.1.19(supports-color@10.2.2)(typescript@6.0.3)(zod@4.6.7)
+        specifier: 0.1.20
+        version: 0.1.20(supports-color@10.2.2)(typescript@6.0.3)(zod@4.6.7)
       tsdown:
         specifier: 0.23.1
         version: 0.23.1(@tsdown/css@0.23.1)(oxc-resolver@11.21.2)(tsx@4.23.13)(typescript@6.0.3)
@@ -621,8 +621,8 @@ importers:
         specifier: 19.3.1
         version: 19.3.1(react@19.3.1)
       recoverage:
-        specifier: 0.1.19
-        version: 0.1.19(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7)
+        specifier: 0.1.20
+        version: 0.1.20(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7)
       tsdown:
         specifier: 0.23.1
         version: 0.23.1(@tsdown/css@0.23.1)(oxc-resolver@11.21.2)(tsx@4.23.13)(typescript@7.0.2)
@@ -679,8 +679,8 @@ importers:
         specifier: 19.3.1
         version: 19.3.1(react@19.3.1)
       recoverage:
-        specifier: 0.1.19
-        version: 0.1.19(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7)
+        specifier: 0.1.20
+        version: 0.1.20(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7)
       tsdown:
         specifier: 0.23.1
         version: 0.23.1(@tsdown/css@0.23.1)(oxc-resolver@11.21.2)(tsx@4.23.13)(typescript@7.0.2)
@@ -712,8 +712,8 @@ importers:
         specifier: 21.0.3
         version: 21.0.3
       recoverage:
-        specifier: 0.1.19
-        version: 0.1.19(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7)
+        specifier: 0.1.20
+        version: 0.1.20(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7)
       solid-js:
         specifier: 1.9.17
         version: 1.9.17
@@ -1045,14 +1045,8 @@ packages:
   '@adobe/css-tools@4.5.0':
     resolution: {integrity: sha512-6OzddxPio9UiWTCemp4N8cYLV2ZN1ncRnV1cVGtve7dhPOtRkleRyx32GQCYSwDYgaHU3USMm84tNsvKzRCa1Q==}
 
-  '@ark/schema@0.56.4':
-    resolution: {integrity: sha512-nd4OqaWdKZJeGF5zNmZysDQO7NyyJ1ycl4S7i16Hj1VxqL+x72Z66lOn7ErpsoMUZtCtslAMHMjqJhuQSxciyw==}
-
   '@ark/schema@0.56.7':
     resolution: {integrity: sha512-jmoOJlYIc4k1uv8oYBDNOFnAsKk2a2D9t/D6npF2JUfW4ecPB0v6ce6lruKg7lkBxIBA8Z7UtxfmvephYbhUGQ==}
-
-  '@ark/util@0.56.4':
-    resolution: {integrity: sha512-KKqwGSia44cvuuDY70jGfbiUdG2E8F2cM4npdqvJ22S5a0LknlwG6nIrfQG1nF8fzxpzP30098wp0a8ASs0prQ==}
 
   '@ark/util@0.56.7':
     resolution: {integrity: sha512-z8pVnrPk/x9GC18yOp5wCe8rR2+Z6us4CTSg7dvxdsDLuA2xXYq+QETD1fO6f3fMuXe+PCjpvtCnhTW9RHLgEw==}
@@ -4382,14 +4376,8 @@ packages:
     resolution: {integrity: sha512-COROpnaoap1E2F000S62r6A60uHZnmlvomhfyT2DlTcrY1OrBKn2UhH7qn5wTC9zMvD0AY7csdPSNwKP+7WiQw==}
     engines: {node: '>= 0.4'}
 
-  arkregex@0.0.10:
-    resolution: {integrity: sha512-+iDWBYBjH8w7wqEv8VY4loBwRldFxX84KNwKbobH3FJPay/18XI9sTesmXYpKyIrgbC5z/s16+vSJYHCC9FEvQ==}
-
   arkregex@0.0.13:
     resolution: {integrity: sha512-c17sqCqiiZauxyoU1KZ2zbzCgeghGmc8dR2CrdQnlEtpq3bLhRLoLrxTL52M/8yQD8e/i1/IBRpRCNAuqJa7xQ==}
-
-  arktype@2.2.5:
-    resolution: {integrity: sha512-c9oqY1eBab2LceqvpWX50xae2HB8P/nJPxRhuhPVf5lEDi3WQpf7WQflJFMsyCiA3NGh6zENOlse30gWBzlwDg==}
 
   arktype@2.2.8:
     resolution: {integrity: sha512-tZyLza7kO2vN8BXBKcj4t43IVMe8/ZyqlITH0chZv7FfEw+edLovpY922tqcK4mCjTpf4oNo2xV6np7tquP1ww==}
@@ -6513,8 +6501,8 @@ packages:
   recma-stringify@1.0.0:
     resolution: {integrity: sha512-cjwII1MdIIVloKvC9ErQ+OgAtwHBmcZ0Bg4ciz78FtbT8In39aAYbaA7zvxQ61xVMSPE8WxhLwLbhif4Js2C+g==}
 
-  recoverage@0.1.19:
-    resolution: {integrity: sha512-HGNdxZKrCFt9cfT2kFDgSVNtR2kRn5lZ1JvgWwf6vfUAZusncn2oice0dBvWDesxgQglL2nYa09DS0evKrZsTA==}
+  recoverage@0.1.20:
+    resolution: {integrity: sha512-uFrSnrvH2mU3DWRKkBxWhlDX3Mhn5vVxHmE4vyBmRYy2MPua16gBaNSXlD7bwDv75R9L294xdJksyaiM/cyj9w==}
     hasBin: true
 
   redent@3.0.0:
@@ -7549,15 +7537,9 @@ snapshots:
 
   '@adobe/css-tools@4.5.0': {}
 
-  '@ark/schema@0.56.4':
-    dependencies:
-      '@ark/util': 0.56.4
-
   '@ark/schema@0.56.7':
     dependencies:
       '@ark/util': 0.56.7
-
-  '@ark/util@0.56.4': {}
 
   '@ark/util@0.56.7': {}
 
@@ -9706,15 +9688,15 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@t3-oss/env-core@0.13.11(arktype@2.2.5)(typescript@6.0.3)(zod@4.6.7)':
+  '@t3-oss/env-core@0.13.11(arktype@2.2.8)(typescript@6.0.3)(zod@4.6.7)':
     optionalDependencies:
-      arktype: 2.2.5
+      arktype: 2.2.8
       typescript: 6.0.3
       zod: 4.6.7
 
-  '@t3-oss/env-core@0.13.11(arktype@2.2.5)(typescript@7.0.2)(zod@4.6.7)':
+  '@t3-oss/env-core@0.13.11(arktype@2.2.8)(typescript@7.0.2)(zod@4.6.7)':
     optionalDependencies:
-      arktype: 2.2.5
+      arktype: 2.2.8
       typescript: 7.0.2
       zod: 4.6.7
 
@@ -10423,19 +10405,9 @@ snapshots:
 
   aria-query@5.3.2: {}
 
-  arkregex@0.0.10:
-    dependencies:
-      '@ark/util': 0.56.4
-
   arkregex@0.0.13:
     dependencies:
       '@ark/util': 0.56.7
-
-  arktype@2.2.5:
-    dependencies:
-      '@ark/schema': 0.56.4
-      '@ark/util': 0.56.4
-      arkregex: 0.0.10
 
   arktype@2.2.8:
     dependencies:
@@ -10751,14 +10723,6 @@ snapshots:
       treetrunks: 0.1.11
     optionalDependencies:
       arktype: 2.2.8
-      zod: 4.6.7
-
-  comline@0.9.0(arktype@2.2.5)(zod@4.6.7):
-    dependencies:
-      '@standard-schema/spec': 1.1.0
-      treetrunks: 0.1.12
-    optionalDependencies:
-      arktype: 2.2.5
       zod: 4.6.7
 
   comline@0.9.0(arktype@2.2.8)(zod@4.6.5):
@@ -13086,11 +13050,11 @@ snapshots:
       unified: 11.0.5
       vfile: 6.0.3
 
-  recoverage@0.1.19(supports-color@10.2.2)(typescript@6.0.3)(zod@4.6.7):
+  recoverage@0.1.20(supports-color@10.2.2)(typescript@6.0.3)(zod@4.6.7):
     dependencies:
-      '@t3-oss/env-core': 0.13.11(arktype@2.2.5)(typescript@6.0.3)(zod@4.6.7)
-      arktype: 2.2.5
-      comline: 0.9.0(arktype@2.2.5)(zod@4.6.7)
+      '@t3-oss/env-core': 0.13.11(arktype@2.2.8)(typescript@6.0.3)(zod@4.6.7)
+      arktype: 2.2.8
+      comline: 0.9.0(arktype@2.2.8)(zod@4.6.7)
       diff: 9.0.0
       istanbul-lib-coverage: 3.2.2
       istanbul-lib-report: 3.0.1
@@ -13103,11 +13067,11 @@ snapshots:
       - valibot
       - zod
 
-  recoverage@0.1.19(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7):
+  recoverage@0.1.20(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7):
     dependencies:
-      '@t3-oss/env-core': 0.13.11(arktype@2.2.5)(typescript@7.0.2)(zod@4.6.7)
-      arktype: 2.2.5
-      comline: 0.9.0(arktype@2.2.5)(zod@4.6.7)
+      '@t3-oss/env-core': 0.13.11(arktype@2.2.8)(typescript@7.0.2)(zod@4.6.7)
+      arktype: 2.2.8
+      comline: 0.9.0(arktype@2.2.8)(zod@4.6.7)
       diff: 9.0.0
       istanbul-lib-coverage: 3.2.2
       istanbul-lib-report: 3.0.1

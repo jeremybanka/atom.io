@@ -58,7 +58,7 @@
 		"@changesets/pre": "3.0.0",
 		"@changesets/read": "1.0.1",
 		"@correctlyjs/schemars": "0.0.5",
-		"@dotenvx/dotenvx": "2.38.0",
+		"@dotenvx/dotenvx": "2.38.1",
 		"@dprint/json": "0.25.2",
 		"@dprint/markdown": "0.26.0",
 		"@dprint/oxc": "0.46.0",

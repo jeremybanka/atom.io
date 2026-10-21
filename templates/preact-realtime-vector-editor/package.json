@@ -25,6 +25,7 @@
 	},
 	"dependencies": {
 		"@atom.io/react": "workspace:*",
+		"@atom.io/realtime": "workspace:*",
 		"@atom.io/template-preact-svg-editor": "workspace:*",
 		"atom.io": "workspace:*",
 		"preact": "11.0.1",

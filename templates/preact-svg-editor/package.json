@@ -29,6 +29,7 @@
 	},
 	"dependencies": {
 		"@atom.io/react": "workspace:*",
+		"@atom.io/realtime": "workspace:*",
 		"atom.io": "workspace:*",
 		"preact": "11.0.1",
 		"react": "npm:@preact/compat@18.3.2",

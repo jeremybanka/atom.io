@@ -1,5 +1,5 @@
 import { useO } from "@atom.io/react"
-import { useMosaicTextEditor } from "atom.io/realtime-react"
+import { useMosaicTextEditor } from "@atom.io/realtime/react"
 import {
 	createElement,
 	type CSSProperties,

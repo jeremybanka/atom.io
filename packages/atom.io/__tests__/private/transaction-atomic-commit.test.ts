@@ -22,7 +22,6 @@ import {
 	undo,
 } from "atom.io"
 import * as Internal from "atom.io/internal"
-import { mosaicText } from "atom.io/realtime"
 import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 import { UList } from "atom.io/transceivers/u-list"
 import { vitest } from "vitest"
@@ -219,29 +218,18 @@ describe(`atomic transaction commits`, () => {
 	})
 
 	it(`commits a mutable JSON snapshot with ordinary atom writes`, () => {
-		const Text = mosaicText({ initialText: `old` })
-		const textAtom = mutableAtom<InstanceType<typeof Text>>({
-			class: Text,
+		const textAtom = mutableAtom<UList<string>>({
+			class: UList,
 			key: `text`,
 		})
+		setState(textAtom, new UList([`old`]))
 		const countAtom = atom<number>({ default: 0, key: `count` })
 		const summarySelector = selector<string>({
-			get: ({ get }) => `${get(textAtom).text}:${get(countAtom)}`,
+			get: ({ get }) =>
+				`${Array.from(get(textAtom)).join(``)}:${get(countAtom)}`,
 			key: `summary`,
 		})
-		const replacement = new Text()
-		replacement.change(
-			{ text: `new`, type: `replace-text` },
-			{
-				actor: `test`,
-				dependencies: [],
-				group: `replace`,
-				id: `replace`,
-				now: 0,
-				revision: null,
-				session: `test`,
-			},
-		)
+		const replacement = new UList([`new`])
 		const replaceTransaction = transaction<() => void>({
 			do: ({ json, set }) => {
 				set(json(textAtom), replacement.toJSON())
@@ -272,7 +260,7 @@ describe(`atomic transaction commits`, () => {
 
 		const abortTransaction = transaction<() => void>({
 			do: ({ json, set }) => {
-				set(json(textAtom), new Text().toJSON())
+				set(json(textAtom), new UList<string>().toJSON())
 				set(countAtom, 2)
 				throw new Error(`abort snapshot`)
 			},

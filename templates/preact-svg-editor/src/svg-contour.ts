@@ -1,17 +1,17 @@
-import type { Silo } from "atom.io"
-import { atom, atomFamily, getState, selector, setState } from "atom.io"
-import type { Json } from "atom.io/foundations/json"
 import {
 	mosaicDomain,
 	type MosaicDomainHistoryRequestResult,
 	type MosaicDomainMemberHistoryPolicy,
 	type MosaicDomainValueModel,
-} from "atom.io/realtime"
+} from "@atom.io/realtime"
 import type {
 	MosaicDomainBatchClient,
 	MosaicDomainBatchClientOperation,
 	MosaicDomainPresenceClient,
-} from "atom.io/realtime-client"
+} from "@atom.io/realtime/client"
+import type { Silo } from "atom.io"
+import { atom, atomFamily, getState, selector, setState } from "atom.io"
+import type { Json } from "atom.io/foundations/json"
 import { z } from "zod"
 
 import {

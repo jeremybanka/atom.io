@@ -1,24 +1,24 @@
-import type { Silo } from "atom.io"
 import type {
 	MosaicAcceptedDomainBatchEnvelope,
 	MosaicDomainBatchProposal,
-} from "atom.io/realtime"
+} from "@atom.io/realtime"
 import {
 	createMosaicDomainBatchClient,
 	createMosaicDomainPresenceClient,
 	createMosaicDomainPresenceSocketTransport,
 	type MosaicDomainBatchClientTransport,
-} from "atom.io/realtime-client"
+} from "@atom.io/realtime/client"
 import {
 	bindMosaicDomainPresenceServerSocket,
 	createMosaicDomainBatchServer,
 	createMosaicDomainPresenceServer,
 	type MosaicDomainBatchConnection,
-} from "atom.io/realtime-server"
+} from "@atom.io/realtime/server"
 import {
 	headless,
 	type HeadlessRealtimeTestClient,
-} from "atom.io/realtime-testing/headless"
+} from "@atom.io/realtime/testing/headless"
+import type { Silo } from "atom.io"
 import { afterEach, describe, expect, test } from "vitest"
 
 import { readSvgRegister } from "./svg-convergence.ts"

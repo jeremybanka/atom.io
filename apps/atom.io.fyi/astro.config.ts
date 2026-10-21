@@ -15,6 +15,10 @@ const EXHIBITS_ROOT = path.resolve(
 	CONFIG_ROOT,
 	`../../packages/atom.io/docs/source/exhibits`,
 )
+const EXHIBIT_ROOTS = [
+	EXHIBITS_ROOT,
+	path.resolve(CONFIG_ROOT, `../../packages/realtime/docs/source/exhibits`),
+]
 const VIRTUAL_EXHIBITS_MODULE_ID = `virtual:atom-io-exhibits`
 const RESOLVED_VIRTUAL_EXHIBITS_MODULE_ID = `\0${VIRTUAL_EXHIBITS_MODULE_ID}`
 
@@ -66,20 +70,30 @@ function exhibitTextPlugin() {
 			if (id !== RESOLVED_VIRTUAL_EXHIBITS_MODULE_ID) {
 				return
 			}
-			const files = await listFiles(EXHIBITS_ROOT)
+			const files = (
+				await Promise.all(
+					EXHIBIT_ROOTS.map(async (root) =>
+						(await listFiles(root)).map((file) => ({ root, file })),
+					),
+				)
+			).flat()
 			const exhibits: Record<string, string> = {}
-			for (const file of files) {
-				const key = toPosixPath(path.relative(EXHIBITS_ROOT, file))
+			for (const { root, file } of files) {
+				const key = toPosixPath(path.relative(root, file))
 				exhibits[key] = await fs.readFile(file, `utf8`)
 			}
 			return `export const exhibits = ${JSON.stringify(exhibits)};`
 		},
 		configureServer(server: ViteDevServer) {
-			server.watcher.add(EXHIBITS_ROOT)
+			for (const root of EXHIBIT_ROOTS) server.watcher.add(root)
 		},
 		handleHotUpdate(context: HmrContext) {
-			const relativePath = path.relative(EXHIBITS_ROOT, context.file)
-			if (relativePath.startsWith(`..`) || path.isAbsolute(relativePath)) {
+			if (
+				!EXHIBIT_ROOTS.some((root) => {
+					const relative = path.relative(root, context.file)
+					return !relative.startsWith(`..`) && !path.isAbsolute(relative)
+				})
+			) {
 				return
 			}
 			const exhibitModule = context.server.moduleGraph.getModuleById(

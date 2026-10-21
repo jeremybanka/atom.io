@@ -3,7 +3,7 @@ import type {
 	MosaicAcceptedDomainBatchEnvelope,
 	MosaicDomainBatchProposal,
 	MosaicDomainResidencyTransport,
-} from "atom.io/realtime"
+} from "@atom.io/realtime"
 import {
 	createMosaicDomainBatchClient,
 	createMosaicDomainHistoryClient,
@@ -16,7 +16,7 @@ import {
 	type MosaicDomainHistoryClient,
 	type MosaicDomainPresenceClient,
 	type MosaicDomainResidencyClient,
-} from "atom.io/realtime-client"
+} from "@atom.io/realtime/client"
 import type { Socket } from "socket.io-client"
 
 import {

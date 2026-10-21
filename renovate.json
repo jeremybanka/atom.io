@@ -55,6 +55,68 @@
 			"allowedVersions": "^9.0.0"
 		},
 		{
+			"description": "Keep the ESLint 10 peer environment current within its supported major.",
+			"matchFileNames": [
+				"packages/eslint-plugin/peer-environments/eslint10/package.json"
+			],
+			"matchPackageNames": ["eslint"],
+			"allowedVersions": "^10.0.0"
+		},
+		{
+			"description": "Keep ESLint peer environments on the supported parser major.",
+			"matchFileNames": [
+				"packages/eslint-plugin/peer-environments/*/package.json"
+			],
+			"matchPackageNames": ["@typescript-eslint/parser"],
+			"allowedVersions": "^8.0.0"
+		},
+		{
+			"description": "Keep ESLint peer environments on TypeScript 6.0 within declared support (<6.1).",
+			"matchFileNames": [
+				"packages/eslint-plugin/peer-environments/*/package.json"
+			],
+			"matchPackageNames": ["typescript"],
+			"allowedVersions": "~6.0.0"
+		},
+		{
+			"description": "Keep React 18 runtimes and types current within their supported major.",
+			"matchFileNames": [
+				"packages/{react,react-devtools}/peer-environments/*-react18/package.json"
+			],
+			"matchPackageNames": [
+				"react",
+				"react-dom",
+				"@types/react",
+				"@types/react-dom"
+			],
+			"allowedVersions": "^18.0.0"
+		},
+		{
+			"description": "Keep React 19 runtimes and types current within their supported major.",
+			"matchFileNames": [
+				"packages/{react,react-devtools}/peer-environments/*-react19/package.json"
+			],
+			"matchPackageNames": [
+				"react",
+				"react-dom",
+				"@types/react",
+				"@types/react-dom"
+			],
+			"allowedVersions": "^19.0.0"
+		},
+		{
+			"description": "Keep Solid peer environments current within the supported 1.x range.",
+			"matchFileNames": ["packages/solid/peer-environments/*/package.json"],
+			"matchPackageNames": ["solid-js"],
+			"allowedVersions": "^1.9.0"
+		},
+		{
+			"description": "Keep released SDK representatives on the 0.53 compatibility era.",
+			"matchFileNames": ["packages/*/peer-environments/released-*/package.json"],
+			"matchPackageNames": ["atom.io"],
+			"allowedVersions": "^0.53.3"
+		},
+		{
 			"matchPackageNames": ["dprint", "@dprint/*", "/^dprint-plugin-/"],
 			"postUpgradeTasks": {
 				"commands": [

@@ -1,7 +1,6 @@
 import { defineConfig, type TonnageConfig } from "tonnage"
 
 const config: TonnageConfig = defineConfig({
-	marker: `atom.io`,
 	recipes: [
 		{
 			entry: `tonnage-recipes/core.ts`,

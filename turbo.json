@@ -39,6 +39,8 @@
 				"package.json",
 				"tonnage.config.ts",
 				"tonnage-recipes/**",
+				"README.mdx",
+				"docs/source/exhibits/readme/**",
 				"README.md",
 				"dist/**"
 			]

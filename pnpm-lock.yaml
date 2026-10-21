@@ -433,6 +433,9 @@ importers:
       eslint:
         specifier: 10.13.0
         version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
+      galley.md:
+        specifier: 0.1.1
+        version: 0.1.1(arktype@2.2.9)(supports-color@10.2.2)(zod@4.6.7)
       happy-dom:
         specifier: 21.0.4
         version: 21.0.4
@@ -467,8 +470,8 @@ importers:
         specifier: 0.2.3
         version: 0.2.3
       tonnage:
-        specifier: 0.1.3
-        version: 0.1.3(arktype@2.2.9)(zod@4.6.7)
+        specifier: 0.2.0
+        version: 0.2.0(arktype@2.2.9)(supports-color@10.2.2)(zod@4.6.7)
       treetrunks:
         specifier: 0.1.12
         version: 0.1.12
@@ -3786,6 +3789,12 @@ packages:
     cpu: [arm64]
     os: [darwin]
 
+  '@typescript/typescript-darwin-arm64@7.1.0-dev.20261019.1':
+    resolution: {integrity: sha512-695uRLXrkj4Y3EjJICoXP7jss1aWu3cXd+qgdnjOv6QY2MlAUR18aPwo+d6S+jxlSicqD34J/tRR/nEqFetZ7Q==}
+    engines: {node: '>=16.20.0'}
+    cpu: [arm64]
+    os: [darwin]
+
   '@typescript/typescript-darwin-arm64@7.1.0-dev.20261020.3':
     resolution: {integrity: sha512-3HPj6wcNK53jhzkyAecoMAYS/miYUiBYRe53lhaoAvA8Rv+9767IOJpgK97iqmNDB3zfccqL+kzmJMVdQqb6Uw==}
     engines: {node: '>=16.20.0'}
@@ -3794,6 +3803,12 @@ packages:
 
   '@typescript/typescript-darwin-x64@7.0.2':
     resolution: {integrity: sha512-SZ9xZInqApNlNGc9s0W1VSsktYSOe9cFqNOIqmN1Gs8SmkjKZYFt017G4VwPxASInODuAdbTW7sXiFUf893RgA==}
+    engines: {node: '>=16.20.0'}
+    cpu: [x64]
+    os: [darwin]
+
+  '@typescript/typescript-darwin-x64@7.1.0-dev.20261019.1':
+    resolution: {integrity: sha512-BY1HsVaEQcUdogvy73czfzKaT1cssOWFZD5jSptevlbQoJyjQ9O/uoe9o8MgAktXa1sFF/NDkM12Y1mG9hARUQ==}
     engines: {node: '>=16.20.0'}
     cpu: [x64]
     os: [darwin]
@@ -3822,6 +3837,12 @@ packages:
     cpu: [arm64]
     os: [linux]
 
+  '@typescript/typescript-linux-arm64@7.1.0-dev.20261019.1':
+    resolution: {integrity: sha512-ivbpMEZe20Xy0QRsC7lbUKepdP4otdGEOZlt6aZVCrmrbjV+FwjUSCPY38wc9xANIIxq41qEm8rvLqQCSzwwLg==}
+    engines: {node: '>=16.20.0'}
+    cpu: [arm64]
+    os: [linux]
+
   '@typescript/typescript-linux-arm64@7.1.0-dev.20261020.3':
     resolution: {integrity: sha512-9rqnULxiHqtqXYlI4EOyVzuTw96jDToN5AgkCfckFdamPOd9s8O5iiDOFgFxEjT7G+elzl1tQWX47204B+W7cg==}
     engines: {node: '>=16.20.0'}
@@ -3830,6 +3851,12 @@ packages:
 
   '@typescript/typescript-linux-arm@7.0.2':
     resolution: {integrity: sha512-gffT3xPz9sR7j/YJExkyPntrI0P2EP9XbOyWzth2/Gs0RstK+90RBcO0ncXoXy/beYll1SXw846Nf2zdnEz0QQ==}
+    engines: {node: '>=16.20.0'}
+    cpu: [arm]
+    os: [linux]
+
+  '@typescript/typescript-linux-arm@7.1.0-dev.20261019.1':
+    resolution: {integrity: sha512-XSAfRPBwGwsooMd5/whfgF15TEMNMqGSOF36gGTHG7UYXiJbw3hVmNcdyHhf3shaoLR96pRyybjKyCyI0FvbXg==}
     engines: {node: '>=16.20.0'}
     cpu: [arm]
     os: [linux]
@@ -3876,6 +3903,12 @@ packages:
     cpu: [x64]
     os: [linux]
 
+  '@typescript/typescript-linux-x64@7.1.0-dev.20261019.1':
+    resolution: {integrity: sha512-RVviHxVSIRjTHj5oUkypqo6SDbiT2mQrVFg9bQFj0EemnZfMXR85PQPvlOuaC/n/X/+FUkkm9PmqXCik4L0OHw==}
+    engines: {node: '>=16.20.0'}
+    cpu: [x64]
+    os: [linux]
+
   '@typescript/typescript-linux-x64@7.1.0-dev.20261020.3':
     resolution: {integrity: sha512-or8rNGx7euCMXKf/2pFI3xfU/BCq9+J07jp9wJ7S55y+v26wW64hzagJOoHnPM6VLWJDxPVaO0jj3FuAsVLz5Q==}
     engines: {node: '>=16.20.0'}
@@ -3918,6 +3951,12 @@ packages:
     cpu: [arm64]
     os: [win32]
 
+  '@typescript/typescript-win32-arm64@7.1.0-dev.20261019.1':
+    resolution: {integrity: sha512-K4HGqC99kvKybzruCSCdtig84A8bCWooIEhZEWhpehF6yGuKNsf5dwSyWNh7f2rUOndeSTltmi9c8vrsHcChaA==}
+    engines: {node: '>=16.20.0'}
+    cpu: [arm64]
+    os: [win32]
+
   '@typescript/typescript-win32-arm64@7.1.0-dev.20261020.3':
     resolution: {integrity: sha512-VuCfpb0xxVuiL/O3iz5NcXHNQk7axTkxJ5wSahGhCkjnB0lOBUIGDYixMDhevxhhtyLhmvNlhYkd9tYBa699jw==}
     engines: {node: '>=16.20.0'}
@@ -3926,6 +3965,12 @@ packages:
 
   '@typescript/typescript-win32-x64@7.0.2':
     resolution: {integrity: sha512-0BQ3HkAHHlKLSp1qRvf3SUhGpGsDuhB/jgFw75guyqbxJqEaS0Cw/VFO8i2nHglJUzQCRtMMR/IBAKE3ETMC4g==}
+    engines: {node: '>=16.20.0'}
+    cpu: [x64]
+    os: [win32]
+
+  '@typescript/typescript-win32-x64@7.1.0-dev.20261019.1':
+    resolution: {integrity: sha512-YAAyyG2/eIYz82TGHwc+X9T/FB+rXQo/UQO4BuwDvQDK5TSc5AgYVU4vBR35W+ox/N6EGTLyCNxyvDGBJfN65Q==}
     engines: {node: '>=16.20.0'}
     cpu: [x64]
     os: [win32]
@@ -4274,6 +4319,10 @@ packages:
     peerDependencies:
       acorn: ^6.0.0 || ^7.0.0 || ^8.0.0
 
+  acorn-loose@8.5.2:
+    resolution: {integrity: sha512-PPvV6g8UGMGgjrMu+n/f9E/tCSkNQ2Y97eFvuVdJfG11+xdIeDcLyNdC8SHcrHbRqkfwLASdplyR6B6sKM1U4A==}
+    engines: {node: '>=0.4.0'}
+
   acorn@8.19.0:
     resolution: {integrity: sha512-oJlA3XiRm7Cyk6qFD2Jn8ak9B7jSy0qy00ADO3+8dpT0LSjFihQYv4C02LFCSYJV3Q37xYwwRy5m+IpIiUzqWw==}
     engines: {node: '>=0.4.0'}
@@ -4575,17 +4624,6 @@ packages:
 
   collapse-white-space@2.1.0:
     resolution: {integrity: sha512-loKTxY1zCOuG4j9f6EPnuyyYkf58RnhhWTvRoZEokgB+WbdXehfjFviyOVYkqzEWz1Q5kRiZdBYS5SwxbQYwzw==}
-
-  comline@0.7.0:
-    resolution: {integrity: sha512-xKBcV5Aus84akxLWXUQZtalExNTXg/njodI5qMAS2/SdAHO7AOIg0+tZQEJjDOZCN7Ph8pJLs8N1/DSC8e4LIQ==}
-    peerDependencies:
-      arktype: ^2.1.28
-      zod: ^4.2.0
-    peerDependenciesMeta:
-      arktype:
-        optional: true
-      zod:
-        optional: true
 
   comline@0.9.0:
     resolution: {integrity: sha512-PB6CjpeJqSzKL4XZ6kjlGE3G5bcBDZjRQcDoPwKsQT1VloTOQ9Q4EhkJFi0Ng39bFDB7I928qfOZ9LrDYaDc5A==}
@@ -5289,6 +5327,9 @@ packages:
   fault@1.0.4:
     resolution: {integrity: sha512-CJ0HCB5tL5fYTEA7ToAq5+kTwd++Borf1/bifxd9iT70QcXr4MRrO3Llf8Ifs70q+SJcGHFtnIE/Nw6giCtECA==}
 
+  fault@2.0.1:
+    resolution: {integrity: sha512-WtySTkS4OKev5JtpHXnib4Gxiurzh5NCGvWrFaZ34m6JehfTUhKZvn9njTfw48t6JumVQOmrKqpmGcdwxnhqBQ==}
+
   fdir@6.5.0:
     resolution: {integrity: sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg==}
     engines: {node: '>=12.0.0'}
@@ -5354,6 +5395,11 @@ packages:
 
   function-bind@1.1.2:
     resolution: {integrity: sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA==}
+
+  galley.md@0.1.1:
+    resolution: {integrity: sha512-RM6cYvSyA+NNcyljERDtUXATqggeFl90Cl1OYUmOoFx39ygBBoHsDOa3F2CUdQuZq0HNXTw7pU+Z+qRwky9osA==}
+    engines: {node: '>=22.18.0', pnpm: 12.14.0}
+    hasBin: true
 
   gensync@1.0.0-beta.2:
     resolution: {integrity: sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg==}
@@ -5931,6 +5977,9 @@ packages:
   mdn-data@2.27.1:
     resolution: {integrity: sha512-9Yubnt3e8A0OKwxYSXyhLymGW4sCufcLG6VdiDdUGVkPhpqLxlvP5vl1983gQjJl3tqbrM731mjaZaP68AgosQ==}
 
+  mdx-content-mapper@0.0.2:
+    resolution: {integrity: sha512-LLLzL5de13WYvKmZn9TgptxaTz8tHyaLo7qgeLgr5kVIPISONLa2UiBPXq8ceOq+hBbl8HU/1yH8OA2X/BdfBg==}
+
   merge-anything@5.1.7:
     resolution: {integrity: sha512-eRtbOb1N5iyH0tkQDAoQ4Ipsp/5qSR79Dzrz8hEPxRX10RWWR/iQXdoKmBSRCThY1Fh5EhISDtpSc93fpxUniQ==}
     engines: {node: '>=12.13'}
@@ -5944,6 +5993,9 @@ packages:
 
   micromark-core-commonmark@2.0.3:
     resolution: {integrity: sha512-RDBrHEMSxVFLg6xvnXmb1Ayr2WzLAWjeSATAoxwKYJV94TeNavgoIdA0a9ytzDSVzBy2YKFK+emCPOEibLeCrg==}
+
+  micromark-extension-frontmatter@2.0.0:
+    resolution: {integrity: sha512-C4AkuM3dA58cgZha7zVnuVxBhDsbttIMiytjgsM2XbHAB2faRVaHRle40558FBN+DJcrLNCoqG5mlrpdU4cRtg==}
 
   micromark-extension-gfm-autolink-literal@2.1.0:
     resolution: {integrity: sha512-oOg7knzhicgQ3t4QCjCWgTmfNhvQbDDnJeVu9v81r7NltNCVmhPy1fJRX27pISafdjL+SVc4d3l48Gb6pbRypw==}
@@ -6859,8 +6911,12 @@ packages:
     resolution: {integrity: sha512-A5F0cM6+mDleacLIEUkmfpkBbnHJFV1d2rprHU2MXNk7mlxHq2zGojA+SRvQD1RoMo9gqjZPWEaKG4v1BQ48lw==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
 
-  tonnage@0.1.3:
-    resolution: {integrity: sha512-/1B5r3FvYr1R7D2Oy77wZRPGBPwcBM3+jdV2O6fH19ayJ25K1OFu7/2OFkLh5WPzhNv97q+B4s8Cwr348XqmQA==}
+  toml@5.0.1:
+    resolution: {integrity: sha512-EqYNA/YvUNndrA2B3O2ojzLQoTQrBxeZ9UIjQwk8t10oe6n7dwclBwd9IdZQTOKwe6vWX+AXtl6IntXRbepdxQ==}
+    engines: {node: '>=20'}
+
+  tonnage@0.2.0:
+    resolution: {integrity: sha512-uf7J1sQY5IZ5JrlJLijW0F9U/ra8t1A0FNoG5iKGtZEoD6CCpR6f7l3MzTGZsAHdBs7QZyuE83RwPuKLxXZPxw==}
     engines: {node: '>=22.18.0'}
     hasBin: true
 
@@ -6871,9 +6927,6 @@ packages:
   tree-kill@1.2.2:
     resolution: {integrity: sha512-L0Orpi8qGpRG//Nd+H90vFB+3iHnue1zSSGmNOOCh1GLJ7rUKVwV2HvijphGQS2UmhUZewS9VgvxYIdgr+fG1A==}
     hasBin: true
-
-  treetrunks@0.1.11:
-    resolution: {integrity: sha512-3L5O5w3AGZd47pGpTNEQAfp68pSIQCeundsUZnPLPtg4TYL87qmcSJsvoqLeRUXtmL8W7JycaD3gd+i2SCYQrQ==}
 
   treetrunks@0.1.12:
     resolution: {integrity: sha512-x9XbZAus9Y4y7WRke6DwOrxmAxrwXNVv/wSmO9aNEfO92gu4Jau/4lmfXE1untxNle1WygPX2wriCtf+oYKMmg==}
@@ -6980,6 +7033,11 @@ packages:
 
   typescript@7.0.2:
     resolution: {integrity: sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA==}
+    engines: {node: '>=16.20.0'}
+    hasBin: true
+
+  typescript@7.1.0-dev.20261019.1:
+    resolution: {integrity: sha512-/2vZZAbzfTtBHESo60frvN/NF0h3+fcNZSXdYzuugLwZ6F2s5I+QRFmSTrs64IM5bJY7RrhApDc7jJeAR3gGow==}
     engines: {node: '>=16.20.0'}
     hasBin: true
 
@@ -9929,10 +9987,16 @@ snapshots:
   '@typescript/typescript-darwin-arm64@7.0.2':
     optional: true
 
+  '@typescript/typescript-darwin-arm64@7.1.0-dev.20261019.1':
+    optional: true
+
   '@typescript/typescript-darwin-arm64@7.1.0-dev.20261020.3':
     optional: true
 
   '@typescript/typescript-darwin-x64@7.0.2':
+    optional: true
+
+  '@typescript/typescript-darwin-x64@7.1.0-dev.20261019.1':
     optional: true
 
   '@typescript/typescript-darwin-x64@7.1.0-dev.20261020.3':
@@ -9947,10 +10011,16 @@ snapshots:
   '@typescript/typescript-linux-arm64@7.0.2':
     optional: true
 
+  '@typescript/typescript-linux-arm64@7.1.0-dev.20261019.1':
+    optional: true
+
   '@typescript/typescript-linux-arm64@7.1.0-dev.20261020.3':
     optional: true
 
   '@typescript/typescript-linux-arm@7.0.2':
+    optional: true
+
+  '@typescript/typescript-linux-arm@7.1.0-dev.20261019.1':
     optional: true
 
   '@typescript/typescript-linux-arm@7.1.0-dev.20261020.3':
@@ -9974,6 +10044,9 @@ snapshots:
   '@typescript/typescript-linux-x64@7.0.2':
     optional: true
 
+  '@typescript/typescript-linux-x64@7.1.0-dev.20261019.1':
+    optional: true
+
   '@typescript/typescript-linux-x64@7.1.0-dev.20261020.3':
     optional: true
 
@@ -9995,10 +10068,16 @@ snapshots:
   '@typescript/typescript-win32-arm64@7.0.2':
     optional: true
 
+  '@typescript/typescript-win32-arm64@7.1.0-dev.20261019.1':
+    optional: true
+
   '@typescript/typescript-win32-arm64@7.1.0-dev.20261020.3':
     optional: true
 
   '@typescript/typescript-win32-x64@7.0.2':
+    optional: true
+
+  '@typescript/typescript-win32-x64@7.1.0-dev.20261019.1':
     optional: true
 
   '@typescript/typescript-win32-x64@7.1.0-dev.20261020.3':
@@ -10293,6 +10372,10 @@ snapshots:
       negotiator: 0.6.3
 
   acorn-jsx@5.3.2(acorn@8.19.0):
+    dependencies:
+      acorn: 8.19.0
+
+  acorn-loose@8.5.2:
     dependencies:
       acorn: 8.19.0
 
@@ -10664,14 +10747,6 @@ snapshots:
   cockatiel@3.2.1: {}
 
   collapse-white-space@2.1.0: {}
-
-  comline@0.7.0(arktype@2.2.9)(zod@4.6.7):
-    dependencies:
-      '@standard-schema/spec': 1.1.0
-      treetrunks: 0.1.11
-    optionalDependencies:
-      arktype: 2.2.9
-      zod: 4.6.7
 
   comline@0.9.0(arktype@2.2.8)(zod@4.6.7):
     dependencies:
@@ -11371,6 +11446,10 @@ snapshots:
     dependencies:
       format: 0.2.2
 
+  fault@2.0.1:
+    dependencies:
+      format: 0.2.2
+
   fdir@6.5.0(picomatch@4.0.7):
     optionalDependencies:
       picomatch: 4.0.7
@@ -11435,6 +11514,29 @@ snapshots:
     optional: true
 
   function-bind@1.1.2: {}
+
+  galley.md@0.1.1(arktype@2.2.9)(supports-color@10.2.2)(zod@4.6.7):
+    dependencies:
+      '@mdx-js/mdx': 3.1.1(supports-color@10.2.2)
+      '@types/mdast': 4.0.4
+      '@vscode/vsce': 4.0.0(supports-color@10.2.2)
+      comline: 0.9.0(arktype@2.2.9)(zod@4.6.7)
+      esbuild: 0.28.2
+      mdx-content-mapper: 0.0.2(supports-color@10.2.2)
+      remark-gfm: 4.0.1(supports-color@10.2.2)
+      remark-mdx: 3.1.1(supports-color@10.2.2)
+      remark-parse: 11.0.0(supports-color@10.2.2)
+      remark-stringify: 11.0.0
+      typescript: 7.1.0-dev.20261019.1
+      unified: 11.0.5
+      vscode-jsonrpc: 9.0.3
+      vscode-languageclient: 10.1.2
+      vscode-languageserver: 10.1.2
+      vscode-languageserver-textdocument: 1.0.15
+    transitivePeerDependencies:
+      - arktype
+      - supports-color
+      - zod
 
   gensync@1.0.0-beta.2: {}
 
@@ -12202,6 +12304,34 @@ snapshots:
 
   mdn-data@2.27.1: {}
 
+  mdx-content-mapper@0.0.2(supports-color@10.2.2):
+    dependencies:
+      acorn: 8.19.0
+      acorn-jsx: 5.3.2(acorn@8.19.0)
+      acorn-loose: 8.5.2
+      estree-util-scope: 1.0.1
+      estree-walker: 3.0.3
+      import-meta-resolve: 4.2.0
+      markdown-extensions: 2.0.0
+      micromark: 4.0.2(supports-color@10.2.2)
+      micromark-extension-frontmatter: 2.0.0
+      micromark-extension-gfm-autolink-literal: 2.1.0
+      micromark-extension-gfm-footnote: 2.1.0
+      micromark-extension-gfm-strikethrough: 2.1.0
+      micromark-extension-gfm-table: 2.1.2
+      micromark-extension-gfm-task-list-item: 2.1.0
+      micromark-extension-mdx-expression: 3.0.1
+      micromark-extension-mdx-jsx: 3.0.2
+      micromark-extension-mdx-md: 2.0.0
+      micromark-extension-mdxjs-esm: 3.0.0
+      toml: 5.0.1
+      unified: 11.0.5
+      vfile-message: 4.0.3
+      vscode-jsonrpc: 9.0.3
+      yaml: 2.9.1
+    transitivePeerDependencies:
+      - supports-color
+
   merge-anything@5.1.7:
     dependencies:
       is-what: 4.1.16
@@ -12226,6 +12356,13 @@ snapshots:
       micromark-util-normalize-identifier: 2.0.1
       micromark-util-resolve-all: 2.0.1
       micromark-util-subtokenize: 2.1.0
+      micromark-util-symbol: 2.0.1
+      micromark-util-types: 2.0.2
+
+  micromark-extension-frontmatter@2.0.0:
+    dependencies:
+      fault: 2.0.1
+      micromark-util-character: 2.1.1
       micromark-util-symbol: 2.0.1
       micromark-util-types: 2.0.2
 
@@ -13559,19 +13696,21 @@ snapshots:
     dependencies:
       eslint-visitor-keys: 5.0.1
 
-  tonnage@0.1.3(arktype@2.2.9)(zod@4.6.7):
+  toml@5.0.1: {}
+
+  tonnage@0.2.0(arktype@2.2.9)(supports-color@10.2.2)(zod@4.6.7):
     dependencies:
-      comline: 0.7.0(arktype@2.2.9)(zod@4.6.7)
+      comline: 0.9.0(arktype@2.2.9)(zod@4.6.7)
       esbuild: 0.28.2
+      galley.md: 0.1.1(arktype@2.2.9)(supports-color@10.2.2)(zod@4.6.7)
     transitivePeerDependencies:
       - arktype
+      - supports-color
       - zod
 
   totalist@3.0.1: {}
 
   tree-kill@1.2.2: {}
-
-  treetrunks@0.1.11: {}
 
   treetrunks@0.1.12: {}
 
@@ -13725,6 +13864,16 @@ snapshots:
       '@typescript/typescript-sunos-x64': 7.0.2
       '@typescript/typescript-win32-arm64': 7.0.2
       '@typescript/typescript-win32-x64': 7.0.2
+
+  typescript@7.1.0-dev.20261019.1:
+    optionalDependencies:
+      '@typescript/typescript-darwin-arm64': 7.1.0-dev.20261019.1
+      '@typescript/typescript-darwin-x64': 7.1.0-dev.20261019.1
+      '@typescript/typescript-linux-arm': 7.1.0-dev.20261019.1
+      '@typescript/typescript-linux-arm64': 7.1.0-dev.20261019.1
+      '@typescript/typescript-linux-x64': 7.1.0-dev.20261019.1
+      '@typescript/typescript-win32-arm64': 7.1.0-dev.20261019.1
+      '@typescript/typescript-win32-x64': 7.1.0-dev.20261019.1
 
   typescript@7.1.0-dev.20261020.3:
     optionalDependencies:

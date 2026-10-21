@@ -160,7 +160,7 @@
 		"@types/react-dom": "19.3.0",
 		"@vitest/coverage-v8": "5.0.5",
 		"@vitest/ui": "5.0.5",
-		"arktype": "2.2.8",
+		"arktype": "2.2.9",
 		"breakage": "0.8.5",
 		"concurrently": "10.0.6",
 		"drizzle-kit": "1.0.0-rc.4",

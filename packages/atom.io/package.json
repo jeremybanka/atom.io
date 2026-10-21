@@ -166,7 +166,7 @@
 		"drizzle-kit": "1.0.0-rc.4",
 		"drizzle-orm": "1.0.0-rc.4",
 		"eslint": "10.13.0",
-		"happy-dom": "21.0.3",
+		"happy-dom": "21.0.4",
 		"postgres": "3.4.9",
 		"preact": "11.0.1",
 		"react": "19.3.1",

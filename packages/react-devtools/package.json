@@ -61,7 +61,7 @@
 		"atom.io": "workspace:*",
 		"breakage": "0.8.5",
 		"eslint": "10.13.0",
-		"happy-dom": "21.0.3",
+		"happy-dom": "21.0.4",
 		"react": "19.3.1",
 		"react-dom": "19.3.1",
 		"recoverage": "0.1.20",

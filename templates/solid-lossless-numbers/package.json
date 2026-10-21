@@ -28,18 +28,18 @@
 	"devDependencies": {
 		"@atom.io/eslint-plugin": "workspace:*",
 		"@dprint/json": "0.25.2",
-		"@dprint/markdown": "0.26.0",
-		"@dprint/oxc": "0.46.0",
+		"@dprint/markdown": "0.27.1",
+		"@dprint/oxc": "0.47.0",
 		"@types/node": "26.6.5",
 		"@typescript/native": "npm:typescript@7.0.2",
-		"dprint": "0.64.0",
+		"dprint": "0.64.1",
 		"dprint-plugin-malva": "0.16.0",
 		"eslint": "10.13.0",
-		"lasertag": "0.8.7",
+		"lasertag": "0.8.8",
 		"oxlint": "1.89.0",
 		"oxlint-tsgolint": "7.0.2004",
 		"typescript": "npm:@typescript/typescript6@6.0.2",
-		"vite": "8.3.4",
+		"vite": "8.3.5",
 		"vite-plugin-solid": "2.11.14"
 	},
 	"publishConfig": {

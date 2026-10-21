@@ -6,6 +6,12 @@
 		"**/*.{ts,tsx,js,jsx,mjs,cjs,json,jsonc,md,mdx,css,astro,toml,yml,yaml}"
 	],
 	"excludes": [
+		"packages/atom.io/README.md",
+		"packages/react/README.md",
+		"packages/solid/README.md",
+		"packages/react-devtools/README.md",
+		"packages/eslint-plugin/README.md",
+		"packages/create-atom.io/README.md",
 		"**/.correctly/**",
 		"**/*.gen.ts",
 		"**/*.gen.tsx",

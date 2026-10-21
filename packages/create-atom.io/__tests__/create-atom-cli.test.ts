@@ -88,7 +88,7 @@ describe(`one-shot CLI`, () => {
 				`node_modules\n`,
 			)
 			expect(await readFile(join(project, `mise.toml`), `utf8`)).toContain(
-				`${manager === `npm` ? `node` : manager} = "@latest"`,
+				`${manager === `npm` ? `node` : manager} = "${manager === `pnpm` ? `12.15.0` : `@latest`}"`,
 			)
 			expect(await installations(fixture)).toEqual([
 				{

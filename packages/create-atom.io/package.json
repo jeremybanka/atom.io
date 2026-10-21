@@ -24,7 +24,9 @@
 		"lint:eslint": "eslint",
 		"lint:oxlint": "oxlint",
 		"lint:types": "tsc",
-		"test:once": "pnpm run build && vitest run"
+		"test:once": "pnpm run build && vitest run",
+		"readme:write": "galley write README.mdx",
+		"readme:check": "galley check README.mdx"
 	},
 	"dependencies": {
 		"@atom.io/template-preact-realtime-vector-editor": "workspace:*",
@@ -33,13 +35,13 @@
 		"@atom.io/template-react-realtime-text-editor": "workspace:*",
 		"@atom.io/template-solid-lossless-numbers": "workspace:*",
 		"@clack/prompts": "1.8.1",
-		"arktype": "2.2.8",
+		"arktype": "2.2.9",
 		"comline": "0.9.0",
 		"local-pkg": "1.2.1",
 		"tinyexec": "1.3.1"
 	},
 	"devDependencies": {
-		"@types/bun": "npm:bun-types@1.4.3",
+		"@types/bun": "npm:bun-types@1.4.4",
 		"@types/node": "26.6.5",
 		"concurrently": "10.0.6",
 		"eslint": "10.13.0",

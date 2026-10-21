@@ -2,63 +2,21 @@ import { existsSync } from "node:fs"
 import { resolve } from "node:path"
 
 import * as prompts from "@clack/prompts"
-import { type } from "arktype"
-import type { OptionsGroup } from "comline"
-import { cli, logWarnings, optional, options, parseBooleanOption } from "comline"
+import { cli, logWarnings, optional } from "comline"
 
-import type {
-	CreateAtomOptions,
-	CreateAtomOptionsPreloaded,
-	TemplateName,
-} from "./create-atom-utils"
+import {
+	CREATE_ATOM_OPTIONS,
+	TEMPLATE_NAMES,
+	TEMPLATES,
+} from "./create-atom-options.ts"
+import type { CreateAtomOptions, TemplateName } from "./create-atom-utils.ts"
 import {
 	color,
 	getPkgManager,
 	installDeps,
 	scaffold,
 	useSpinner,
-} from "./create-atom-utils"
-
-const CREATE_ATOM_OPTIONS = options(
-	`Create a new project with atom.io.`,
-	type({
-		"packageManager?": `"bun" | "npm" | "pnpm" | "yarn"`,
-		"templateName?": `"preact-realtime-vector-editor" | "preact-svg-editor" | "react-node-backend" | "react-realtime-text-editor" | "solid-lossless-numbers"`,
-		"skipHints?": `boolean`,
-		"useMise?": `boolean`,
-	}),
-	{
-		packageManager: {
-			flag: `m`,
-			aliases: [`package-manager`],
-			required: false,
-			description: `The package manager to use.`,
-			example: `--packageManager="npm"`,
-		},
-		templateName: {
-			flag: `t`,
-			aliases: [`template`, `template-name`],
-			required: false,
-			description: `The template to use.`,
-			example: `--templateName="preact-svg-editor"`,
-		},
-		skipHints: {
-			flag: `k`,
-			aliases: [`skip-hints`],
-			required: false,
-			description: `Silences the 'Getting Started' info, mainly for use in other initializers that may wrap this one but provide their own scripts/instructions.`,
-			example: `--skipHints`,
-			parse: parseBooleanOption,
-		},
-		useMise: {
-			aliases: [`use-mise`],
-			required: false,
-			description: `Include mise.toml for managing the project environment.`,
-			example: `--useMise=true`,
-			parse: parseBooleanOption,
-		},
-	},
-) satisfies OptionsGroup<CreateAtomOptionsPreloaded>
+} from "./create-atom-utils.ts"
 
 const definition = {
 	cliName: `create-atom.io`,
@@ -91,28 +49,10 @@ const { dir, templateName, useMise } = await prompts.group(
 				? prompts.select<TemplateName>({
 						message: `Template:`,
 						initialValue: `preact-svg-editor`,
-						options: [
-							{
-								label: `Preact Realtime Vector Editor`,
-								value: `preact-realtime-vector-editor`,
-							},
-							{
-								label: `Preact SVG Editor`,
-								value: `preact-svg-editor`,
-							},
-							{
-								label: `React Node Backend`,
-								value: `react-node-backend`,
-							},
-							{
-								label: `React Realtime Text Editor`,
-								value: `react-realtime-text-editor`,
-							},
-							{
-								label: `Solid Lossless Numbers`,
-								value: `solid-lossless-numbers`,
-							},
-						],
+						options: TEMPLATE_NAMES.map((value) => ({
+							label: TEMPLATES[value].label,
+							value,
+						})),
 					})
 				: Promise.resolve(preloaded.templateName),
 		dir: () =>

@@ -179,6 +179,20 @@ selection offsets against the returned text. Lexical, a textarea overlay, or a
 custom canvas editor may provide that final geometry. Do not rebuild optimistic
 draft reconciliation or reinterpret old numeric offsets in the renderer.
 
+## Lexical adapter
+
+`atom.io/realtime-react-lexical` provides `MosaicLexicalTextEditor`, the supported
+plain-text renderer for the editor view above. It handles native input,
+composition, projection replacement, selection offsets, and collaborator
+geometry. Install its declared Lexical peers when using this entry point.
+
+<Exhibit src="realtime/render-a-mosaic-lexical-editor.tsx" />
+
+Pass session-owned undo and redo commands and an application error handler.
+The adapter supplies semantic structure; consumers supply visual styling through
+`className` and the typed `MosaicLexicalTextEditorClassNames` parts. The realtime
+text template demonstrates the complete composition and stylesheet.
+
 ## lifecycle rule
 
 The provider, socket, service keys, and surrounding Store/Silo define ownership.

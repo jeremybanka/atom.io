@@ -260,6 +260,12 @@ disposer.
 				</td>
 			</tr>
 			<tr>
+				<td><code>createMosaicTextRangeController</code></td>
+				<td>
+					Own viewport acquisition and recovery in Store atoms, retaining the last complete projection.
+				</td>
+			</tr>
+			<tr>
 				<td>Mosaic Text projection helpers</td>
 				<td>
 					Resolve logical positions, map projection offsets, derive contiguous edits, and transform selections through visible drafts.
@@ -428,6 +434,15 @@ disposer.
 		</tbody>
 	</table>
 </table-wrapper>
+
+## <low-emphasis>atom.io</low-emphasis>/realtime-react-lexical
+
+`MosaicLexicalTextEditor` renders the editor view through Lexical, including
+native editing, composition, logical selection offsets, and collaborator
+geometry. Its public contracts are `MosaicLexicalTextEditorProps`,
+`MosaicLexicalTextEditorClassNames`, and `RenderedCollaboratorSelection`.
+Consumers provide undo/redo commands, error handling, and styling. The
+[React guide](/docs/realtime-react#lexical-adapter) shows the composition.
 
 ## <low-emphasis>atom.io</low-emphasis>/realtime-testing
 

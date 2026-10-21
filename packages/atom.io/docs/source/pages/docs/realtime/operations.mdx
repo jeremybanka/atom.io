@@ -199,11 +199,19 @@ Migrate one resource boundary at a time. Give new Mosaic models and Domains new
 wire versions, run old/new data fixtures through explicit migration, and use a
 server rollout that can reject unsupported clients clearly.
 
+The realtime vector template now replicates one validated closed contour of
+three to sixty-four points. The older multi-member path/subpath graph and its
+Create-* compatibility fixture are no longer the template's data model. Existing
+graph checkpoints need an explicit application conversion into the contour model;
+do not replay them as contour checkpoints. The separate local Bezier tutorial
+continues to provide its richer graph model.
+
 ## release gate
 
 Before production, require:
 
-- public and total coverage non-regression;
+- 100% coverage for each package's defined public coverage scope, with
+  Recoverage guarding its internal coverage baseline;
 - model permutation and independent-oracle tests;
 - multi-client duplicate/delay/reorder/reject/disconnect/resnapshot tests;
 - checkpoint and storage conformance on the production adapter;

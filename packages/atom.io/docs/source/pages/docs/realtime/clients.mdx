@@ -131,6 +131,13 @@ TypeScript surface.
 					<code>MosaicTextLogicalEdit</code>, <code>MosaicTextProjectedBlock</code>, <code>MosaicTextProjectedSegment</code>, <code>MosaicTextProjectionClient</code>, <code>MosaicTextProjectionClientOptions</code>, <code>MosaicTextProjectionClientState</code>, <code>MosaicTextProjectionEditContext</code>, <code>MosaicTextProjectionEditPlan</code>, <code>MosaicTextRangeAcquisitionOptions</code>, <code>MosaicTextRangeLease</code>, <code>MosaicTextRangeObserver</code>, <code>MosaicTextRangeProjection</code>
 				</td>
 			</tr>
+			<tr>
+				<td>Store-owned text viewport</td>
+				<td><code>createMosaicTextRangeController</code></td>
+				<td>
+					<code>MosaicTextRangeController</code>, <code>MosaicTextRangeControllerOptions</code>, <code>MosaicTextRangeView</code>
+				</td>
+			</tr>
 		</tbody>
 	</table>
 </table-wrapper>
@@ -200,6 +207,13 @@ aggregate errors rather than abandon later resources.
 ordinary selectors and logical edit anchors. Overlapping consumers share
 canonical range records. The React package's `useMosaicTextRange` acquires a
 viewport plus overscan and releases it on change or unmount.
+
+`createMosaicTextRangeController` owns that acquisition in a Store-backed service.
+It exposes ordinary range and view atoms, retains the last complete projection
+while a replacement settles, and reacquires after residency reconnects. Use its
+deferred start option when session startup owns the ordering, then dispose it
+with the service. React, Solid, and headless consumers can observe the same view
+without constructing another range observer.
 
 The controller can temporarily acquire unloaded members to route one edit or
 history request, then clean them up. An accepted edit must not be reported as a

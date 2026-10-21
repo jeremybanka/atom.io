@@ -77,6 +77,10 @@ after residency returns, and ignores incomplete cuts. Parsing, layout, syntax
 highlighting, and rendering should consume that bounded projection rather than
 materializing the full document.
 
+For service-owned lifecycle, `createMosaicTextRangeController` exposes range and
+view atoms in the session's Silo. The canonical text template uses this controller
+so viewport acquisition and recovery belong to the session service.
+
 ## editor lifecycle
 
 <Exhibit src="realtime/edit-a-mosaic-text-projection.tsx" />
@@ -99,6 +103,11 @@ policy, and the calls that publish presence or submit a replacement. It should
 not implement another draft queue, cursor transform, or projection fallback.
 This boundary is more important than minimizing the number of template lines;
 a short template should be the consequence of using the core contracts.
+
+The supported `MosaicLexicalTextEditor` adapter implements native input and
+geometry for Lexical. See the [React guide](/docs/realtime-react#lexical-adapter)
+for a typechecked composition with the editor view. Styling remains with the
+application.
 
 ## content-addressed text roots
 

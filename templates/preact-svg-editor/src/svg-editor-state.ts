@@ -9,7 +9,10 @@ import {
 	setState,
 	transaction,
 } from "atom.io"
-import type { MosaicDomainHistoryCompactionContext } from "atom.io/realtime"
+import type {
+	MosaicDomainHistoryCompactionContext,
+	MosaicDomainHistoryOperationClassification,
+} from "atom.io/realtime"
 import { z } from "zod"
 
 import {
@@ -998,12 +1001,25 @@ export function finishSvgDrag(options: { readonly commit: boolean }): void {
  * Explicit integration seam: schemas/reducers are public application modules,
  * while ownership, batching, transport, and history remain MOS-11 concerns.
  */
-const svgHistoryPolicy = <State>(
+export const svgHistoryPolicy = <State>(
 	compact: (
 		state: State,
 		context: MosaicDomainHistoryCompactionContext,
 	) => State,
-) => ({
+): {
+	classify: (operation: {
+		readonly mode?: `redo` | `undo`
+		readonly targetOperationIds?: readonly string[]
+		readonly type?: string
+	}) => MosaicDomainHistoryOperationClassification
+	compact: typeof compact
+	compensate: (context: {
+		readonly actor: string
+		readonly mode: `redo` | `undo`
+		readonly requestId: string
+		readonly targets: readonly { readonly id: string }[]
+	}) => SvgHistoryOperation
+} => ({
 	classify(operation: {
 		readonly mode?: `redo` | `undo`
 		readonly targetOperationIds?: readonly string[]

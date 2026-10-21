@@ -322,6 +322,16 @@ describe(`Plane realtime closed-contour collaboration`, () => {
 
 			room.denyContour()
 			const before = contour(peers.maya)
+			const submit = peers.maya.batch.submit.bind(peers.maya.batch)
+			const recoveryBeforeReturn = vi
+				.spyOn(peers.maya.batch, `submit`)
+				.mockImplementationOnce(async (operations, group) => {
+					const receipt = await submit(operations, group)
+					// A subsequent recovery clears aggregate status before this edit's caller resumes.
+					await peers.maya.batch.flush()
+					expect(peers.maya.batch.state.problem).toBeNull()
+					return receipt
+				})
 			await expect(
 				peers.maya.editor.addNode({
 					gesture: mayaClock.begin(),
@@ -329,6 +339,7 @@ describe(`Plane realtime closed-contour collaboration`, () => {
 					node: { id: `denied`, x: 120, y: 120 },
 				}),
 			).rejects.toThrow(`not authorized`)
+			recoveryBeforeReturn.mockRestore()
 			expect(contour(peers.maya)).toEqual(before)
 			room.allowContour()
 			await peers.maya.batch.flush()

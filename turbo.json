@@ -1,24 +1,14 @@
 {
 	"ui": "tui",
-	"globalDependencies": [
-		"tsconfig.json",
-		".node-version"
-	],
+	"globalDependencies": ["tsconfig.json", ".node-version"],
 	"tasks": {
 		"pack:breakage": {
-			"dependsOn": [
-				"build"
-			],
+			"dependsOn": ["build"],
 			"cache": false,
-			"outputs": [
-				".breakage/package.tgz"
-			]
+			"outputs": [".breakage/package.tgz"]
 		},
 		"test:breakage:peers": {
-			"dependsOn": [
-				"pack:breakage",
-				"^pack:breakage"
-			],
+			"dependsOn": ["pack:breakage", "^pack:breakage"],
 			"cache": false,
 			"outputs": []
 		},
@@ -27,14 +17,8 @@
 			"cache": false
 		},
 		"build": {
-			"dependsOn": [
-				"^build"
-			],
-			"outputs": [
-				"dist/**",
-				"docs/agent/**",
-				"agent-docs/**"
-			],
+			"dependsOn": ["^build"],
+			"outputs": ["dist/**", "docs/agent/**", "agent-docs/**"],
 			"inputs": [
 				"package.json",
 				"tsconfig.json",
@@ -47,19 +31,11 @@
 			]
 		},
 		"tonnage": {
-			"dependsOn": [
-				"build",
-				"^build",
-				"@atom.io/react#build"
-			],
+			"dependsOn": ["build", "^build", "@atom.io/react#build"],
 			"cache": false
 		},
 		"tonnage:check": {
-			"dependsOn": [
-				"build",
-				"^build",
-				"@atom.io/react#build"
-			],
+			"dependsOn": ["build", "^build", "@atom.io/react#build"],
 			"outputs": [],
 			"inputs": [
 				"package.json",
@@ -77,10 +53,7 @@
 			]
 		},
 		"test:once": {
-			"dependsOn": [
-				"build",
-				"^build"
-			],
+			"dependsOn": ["build", "^build"],
 			"inputs": [
 				"package.json",
 				"tsconfig.json",
@@ -99,10 +72,7 @@
 			]
 		},
 		"atom.io#test:once": {
-			"dependsOn": [
-				"build",
-				"@atom.io/react#build"
-			],
+			"dependsOn": ["build", "@atom.io/react#build"],
 			"inputs": [
 				"package.json",
 				"tsconfig.json",
@@ -119,16 +89,10 @@
 			]
 		},
 		"@atom.io/eslint-plugin#test:once": {
-			"dependsOn": [
-				"build",
-				"atom.io#build"
-			]
+			"dependsOn": ["build", "atom.io#build"]
 		},
 		"test:stress:realtime-ipc": {
-			"dependsOn": [
-				"build",
-				"@atom.io/react#build"
-			],
+			"dependsOn": ["build", "@atom.io/react#build"],
 			"cache": false,
 			"inputs": [
 				"package.json",
@@ -140,13 +104,8 @@
 			]
 		},
 		"cov": {
-			"dependsOn": [
-				"build",
-				"^build"
-			],
-			"outputs": [
-				"coverage/**"
-			],
+			"dependsOn": ["build", "^build"],
+			"outputs": ["coverage/**"],
 			"inputs": [
 				"tsconfig.json",
 				"package.json",
@@ -161,23 +120,13 @@
 			]
 		},
 		"cov:recoverage": {
-			"dependsOn": [
-				"cov"
-			],
+			"dependsOn": ["cov"],
 			"cache": false,
-			"passThroughEnv": [
-				"RECOVERAGE_CLOUD_TOKEN",
-				"RECOVERAGE_CLOUD_URL"
-			]
+			"passThroughEnv": ["RECOVERAGE_CLOUD_TOKEN", "RECOVERAGE_CLOUD_URL"]
 		},
 		"cov:public": {
-			"dependsOn": [
-				"build",
-				"^build"
-			],
-			"outputs": [
-				"coverage-public/**"
-			],
+			"dependsOn": ["build", "^build"],
+			"outputs": ["coverage-public/**"],
 			"inputs": [
 				"tsconfig.json",
 				"package.json",
@@ -231,10 +180,7 @@
 			"outputs": []
 		},
 		"@atom.io/eslint-plugin#test:breakage": {
-			"dependsOn": [
-				"test:breakage:prelude",
-				"^build"
-			],
+			"dependsOn": ["test:breakage:prelude", "^build"],
 			"cache": true,
 			"inputs": [
 				"$TURBO_DEFAULT$",
@@ -260,10 +206,7 @@
 			"outputs": []
 		},
 		"lint:eslint": {
-			"dependsOn": [
-				"^build",
-				"@atom.io/eslint-plugin#build"
-			],
+			"dependsOn": ["^build", "@atom.io/eslint-plugin#build"],
 			"inputs": [
 				"../../package.json",
 				"../../eslint.config.ts",
@@ -281,9 +224,7 @@
 			]
 		},
 		"lint:oxlint": {
-			"dependsOn": [
-				"^build"
-			],
+			"dependsOn": ["^build"],
 			"inputs": [
 				"../../package.json",
 				"../../oxlint.config.ts",
@@ -302,9 +243,7 @@
 			]
 		},
 		"lint:types": {
-			"dependsOn": [
-				"^build"
-			],
+			"dependsOn": ["^build"],
 			"inputs": [
 				"../../package.json",
 				"package.json",
@@ -323,20 +262,11 @@
 			]
 		},
 		"lint": {
-			"dependsOn": [
-				"lint:eslint",
-				"lint:oxlint",
-				"lint:types"
-			]
+			"dependsOn": ["lint:eslint", "lint:oxlint", "lint:types"]
 		},
 		"atom.io#cov": {
-			"dependsOn": [
-				"build",
-				"@atom.io/react#build"
-			],
-			"outputs": [
-				"coverage/**"
-			],
+			"dependsOn": ["build", "@atom.io/react#build"],
+			"outputs": ["coverage/**"],
 			"inputs": [
 				"tsconfig.json",
 				"package.json",
@@ -351,13 +281,8 @@
 			]
 		},
 		"atom.io#cov:public": {
-			"dependsOn": [
-				"build",
-				"@atom.io/react#build"
-			],
-			"outputs": [
-				"coverage-public/**"
-			],
+			"dependsOn": ["build", "@atom.io/react#build"],
+			"outputs": ["coverage-public/**"],
 			"inputs": [
 				"tsconfig.json",
 				"package.json",
@@ -372,10 +297,7 @@
 			]
 		},
 		"test:packaging": {
-			"dependsOn": [
-				"build",
-				"^build"
-			],
+			"dependsOn": ["build", "^build"],
 			"cache": false
 		}
 	}

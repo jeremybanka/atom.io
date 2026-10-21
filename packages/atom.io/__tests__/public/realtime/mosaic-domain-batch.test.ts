@@ -2090,6 +2090,61 @@ describe(`Mosaic Domain atomic batches`, () => {
 		)
 	})
 
+	test(`retains replay protection after evicting bounded receipts`, async () => {
+		const state = await designFixture(`storage-receipt-retirement`)
+		const storage = new InMemoryMosaicDomainBatchStorage({
+			maxRecentReceipts: 1,
+			maxSessionWatermarks: 1,
+		})
+		const first: MosaicDomainBatchEnvelope = {
+			...proposal(state.domain),
+			actor: `alice`,
+		}
+		const next = (sequence: number): MosaicDomainBatchEnvelope => ({
+			...first,
+			id: `batch-${sequence}`,
+			operations: first.operations.map((operation) => ({
+				...operation,
+				id: `${operation.id}-${sequence}`,
+			})),
+			sequence,
+		})
+		const append = (batch: MosaicDomainBatchEnvelope, revision: number) =>
+			storage.appendBatch({
+				accepted: { batch, revision },
+				expectedRevision: revision - 1,
+				fingerprint: batch.id,
+			})
+
+		expect(append(first, 1).status).toBe(`accepted`)
+		expect(append(next(2), 2).status).toBe(`accepted`)
+		expect(storage.receipt(state.domain.identity, first.id)).toBeNull()
+		expect(storage.stats(state.domain.identity)).toEqual({
+			operationReceiptCount: 2,
+			receiptCount: 1,
+			sessionWatermarkCount: 1,
+			tailBatchCount: 2,
+		})
+		expect(append(first, 3)).toEqual({
+			actualSequence: 2,
+			status: `retired`,
+		})
+		expect(append(next(4), 3)).toEqual({
+			actualSequence: 2,
+			status: `sequence-gap`,
+		})
+		expect(
+			append({ ...next(3), session: `new-session`, sequence: 1 }, 3),
+		).toEqual({ status: `session-capacity` })
+		expect(storage.recover(state.domain.identity).headRevision).toBe(2)
+		expect(append(next(3), 3).status).toBe(`accepted`)
+		expect(
+			storage
+				.recover(state.domain.identity)
+				.tail.map(({ revision }) => revision),
+		).toEqual([1, 2, 3])
+	})
+
 	test(`publishes a reusable storage-adapter conformance fixture`, async () => {
 		await testMosaicDomainBatchStorageAdapter(
 			() => new InMemoryMosaicDomainBatchStorage(),

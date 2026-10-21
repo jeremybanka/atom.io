@@ -38,3 +38,6 @@ Lasertag.vsix
 
 # Release snapshots are refreshed by the uncached Breakage prelude.
 .breakage/
+
+# Breakage owns and cleans only these disposable consumer stages.
+packages/*/peer-environments/*/test/

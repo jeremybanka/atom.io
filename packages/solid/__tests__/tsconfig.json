@@ -1,0 +1,17 @@
+{
+	"extends": "../tsconfig.json",
+	"compilerOptions": {
+		"isolatedDeclarations": false,
+		"types": [
+			"node",
+			"vitest/globals"
+		]
+	},
+	"include": [
+		"**/*.ts",
+		"**/*.tsx"
+	],
+	"exclude": [
+		"fixtures/consumer"
+	]
+}

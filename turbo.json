@@ -2,6 +2,16 @@
 	"ui": "tui",
 	"globalDependencies": ["tsconfig.json", ".node-version"],
 	"tasks": {
+		"pack:breakage": {
+			"dependsOn": ["build"],
+			"cache": false,
+			"outputs": [".breakage/package.tgz"]
+		},
+		"test:breakage:peers": {
+			"dependsOn": ["pack:breakage", "^pack:breakage"],
+			"cache": false,
+			"outputs": []
+		},
 		"dev": {
 			"persistent": true,
 			"cache": false
@@ -41,7 +51,7 @@
 			]
 		},
 		"test:once": {
-			"dependsOn": ["build"],
+			"dependsOn": ["build", "^build"],
 			"inputs": [
 				"package.json",
 				"tsconfig.json",
@@ -51,16 +61,14 @@
 				"src/**",
 				"docs/source/**",
 				"__tests__/**",
-				"__scripts__/**"
+				"__scripts__/**",
+				"../../scripts/define-vitest-config.ts",
+				"../../scripts/runtime-copies.ts",
+				"../../scripts/test-helpers.ts"
 			]
 		},
 		"atom.io#test:once": {
-			"dependsOn": [
-				"build",
-				"@atom.io/react#build",
-				"@atom.io/solid#build",
-				"@atom.io/react-devtools#build"
-			],
+			"dependsOn": ["build", "@atom.io/react#build"],
 			"inputs": [
 				"package.json",
 				"tsconfig.json",
@@ -70,7 +78,10 @@
 				"src/**",
 				"docs/source/**",
 				"__tests__/**",
-				"__scripts__/**"
+				"__scripts__/**",
+				"../../scripts/define-vitest-config.ts",
+				"../../scripts/runtime-copies.ts",
+				"../../scripts/test-helpers.ts"
 			]
 		},
 		"@atom.io/eslint-plugin#test:once": {
@@ -89,13 +100,7 @@
 			]
 		},
 		"cov": {
-			"dependsOn": [
-				"^build",
-				"build",
-				"@atom.io/react#build",
-				"@atom.io/solid#build",
-				"@atom.io/react-devtools#build"
-			],
+			"dependsOn": ["build", "^build"],
 			"outputs": ["coverage/**"],
 			"inputs": [
 				"tsconfig.json",
@@ -104,16 +109,19 @@
 				"src/**",
 				"docs/source/**",
 				"__tests__/**",
-				"__scripts__/**"
+				"__scripts__/**",
+				"../../scripts/define-vitest-config.ts",
+				"../../scripts/runtime-copies.ts",
+				"../../scripts/test-helpers.ts"
 			]
 		},
 		"cov:recoverage": {
 			"dependsOn": ["cov"],
 			"cache": false,
-			"passThroughEnv": ["RECOVERAGE_CLOUD_TOKEN"]
+			"passThroughEnv": ["RECOVERAGE_CLOUD_TOKEN", "RECOVERAGE_CLOUD_URL"]
 		},
 		"cov:public": {
-			"dependsOn": ["^build", "build", "@atom.io/react#build"],
+			"dependsOn": ["build", "^build"],
 			"outputs": ["coverage-public/**"],
 			"inputs": [
 				"tsconfig.json",
@@ -122,7 +130,10 @@
 				"src/**",
 				"docs/source/**",
 				"__tests__/**",
-				"__scripts__/**"
+				"__scripts__/**",
+				"../../scripts/define-vitest-config.ts",
+				"../../scripts/runtime-copies.ts",
+				"../../scripts/test-helpers.ts"
 			]
 		},
 		"test:breakage:prelude": {
@@ -156,7 +167,11 @@
 					"globs": [
 						".breakage/baseline.json"
 					]
-				}
+				},
+				"../../.github/workflows/breakage.yml",
+				"../../scripts/define-vitest-config.ts",
+				"../../scripts/runtime-copies.ts",
+				"../../scripts/test-helpers.ts"
 			],
 			"outputs": []
 		},
@@ -175,8 +190,14 @@
 				"../../.github/actions/setup/action.yml",
 				{
 					"mode": "jit",
-					"globs": [".breakage/baseline.json"]
-				}
+					"globs": [
+						".breakage/baseline.json"
+					]
+				},
+				"../../.github/workflows/breakage.yml",
+				"../../scripts/define-vitest-config.ts",
+				"../../scripts/runtime-copies.ts",
+				"../../scripts/test-helpers.ts"
 			],
 			"outputs": []
 		},
@@ -190,7 +211,10 @@
 				"src/**",
 				"docs/source/**",
 				"__tests__/**",
-				"__scripts__/**"
+				"__scripts__/**",
+				"../../scripts/define-vitest-config.ts",
+				"../../scripts/runtime-copies.ts",
+				"../../scripts/test-helpers.ts"
 			]
 		},
 		"lint:oxlint": {
@@ -204,7 +228,10 @@
 				"docs/source/**",
 				"__tests__/**",
 				"__scripts__/**",
-				"**/*.d.ts"
+				"**/*.d.ts",
+				"../../scripts/define-vitest-config.ts",
+				"../../scripts/runtime-copies.ts",
+				"../../scripts/test-helpers.ts"
 			]
 		},
 		"lint:types": {
@@ -218,11 +245,50 @@
 				"docs/source/**",
 				"__tests__/**",
 				"__scripts__/**",
-				"**/*.d.ts"
+				"**/*.d.ts",
+				"../../scripts/define-vitest-config.ts",
+				"../../scripts/runtime-copies.ts",
+				"../../scripts/test-helpers.ts"
 			]
 		},
 		"lint": {
 			"dependsOn": ["lint:eslint", "lint:oxlint", "lint:types"]
+		},
+		"atom.io#cov": {
+			"dependsOn": ["build", "@atom.io/react#build"],
+			"outputs": ["coverage/**"],
+			"inputs": [
+				"tsconfig.json",
+				"package.json",
+				"*.config.ts",
+				"src/**",
+				"docs/source/**",
+				"__tests__/**",
+				"__scripts__/**",
+				"../../scripts/define-vitest-config.ts",
+				"../../scripts/runtime-copies.ts",
+				"../../scripts/test-helpers.ts"
+			]
+		},
+		"atom.io#cov:public": {
+			"dependsOn": ["build", "@atom.io/react#build"],
+			"outputs": ["coverage-public/**"],
+			"inputs": [
+				"tsconfig.json",
+				"package.json",
+				"*.config.ts",
+				"src/**",
+				"docs/source/**",
+				"__tests__/**",
+				"__scripts__/**",
+				"../../scripts/define-vitest-config.ts",
+				"../../scripts/runtime-copies.ts",
+				"../../scripts/test-helpers.ts"
+			]
+		},
+		"test:packaging": {
+			"dependsOn": ["build", "^build"],
+			"cache": false
 		}
 	}
 }

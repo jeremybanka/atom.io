@@ -180,12 +180,21 @@ importers:
       '@atom.io/solid':
         specifier: workspace:*
         version: link:packages/solid
+      '@changesets/assemble-release-plan':
+        specifier: 7.0.0
+        version: 7.0.0
       '@changesets/cli':
         specifier: 3.0.3
         version: 3.0.3
       '@changesets/config':
         specifier: 4.0.1
         version: 4.0.1
+      '@changesets/pre':
+        specifier: 3.0.0
+        version: 3.0.0
+      '@changesets/read':
+        specifier: 1.0.1
+        version: 1.0.1
       '@correctlyjs/schemars':
         specifier: 0.0.5
         version: 0.0.5(correctly@0.3.1(arktype@2.2.8)(supports-color@10.2.2))
@@ -204,6 +213,9 @@ importers:
       '@dprint/toml':
         specifier: 0.9.0
         version: 0.9.0
+      '@manypkg/get-packages':
+        specifier: 3.1.0
+        version: 3.1.0
       '@typescript-eslint/eslint-plugin':
         specifier: 8.72.0
         version: 8.72.0(@typescript-eslint/parser@8.72.0(eslint@10.13.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.13.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
@@ -216,6 +228,12 @@ importers:
       astro-eslint-parser:
         specifier: 3.2.0
         version: 3.2.0(supports-color@10.2.2)
+      atom.io:
+        specifier: workspace:*
+        version: link:packages/atom.io
+      breakage:
+        specifier: 0.8.5
+        version: 0.8.5(supports-color@10.2.2)(zod@4.6.7)
       correctly:
         specifier: 0.3.1
         version: 0.3.1(arktype@2.2.8)(supports-color@10.2.2)
@@ -246,6 +264,9 @@ importers:
       eslint-plugin-storybook:
         specifier: 10.6.2
         version: 10.6.2(eslint@10.13.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
+      happy-dom:
+        specifier: 21.0.3
+        version: 21.0.3
       jiti:
         specifier: 2.7.0
         version: 2.7.0
@@ -415,9 +436,6 @@ importers:
       happy-dom:
         specifier: 21.0.3
         version: 21.0.3
-      motion:
-        specifier: 14.4.0
-        version: 14.4.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       postgres:
         specifier: 3.4.9
         version: 3.4.9
@@ -543,12 +561,18 @@ importers:
       '@typescript-eslint/rule-tester':
         specifier: 8.72.0
         version: 8.72.0(eslint@10.13.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
+      '@vitest/coverage-v8':
+        specifier: 5.0.5
+        version: 5.0.5(vitest@5.0.5)
       breakage:
         specifier: 0.8.5
         version: 0.8.5(supports-color@10.2.2)(zod@4.6.7)
       eslint:
         specifier: 10.13.0
         version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
+      recoverage:
+        specifier: 0.1.19
+        version: 0.1.19(supports-color@10.2.2)(typescript@6.0.3)(zod@4.6.7)
       tsdown:
         specifier: 0.23.1
         version: 0.23.1(@tsdown/css@0.23.1)(oxc-resolver@11.21.2)(tsx@4.23.13)(typescript@6.0.3)
@@ -563,27 +587,51 @@ importers:
 
   packages/react:
     devDependencies:
+      '@testing-library/react':
+        specifier: 16.3.3
+        version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@types/node':
         specifier: 26.6.5
         version: 26.6.5
       '@types/react':
         specifier: 19.3.0
         version: 19.3.0
+      '@types/react-dom':
+        specifier: 19.3.0
+        version: 19.3.0(@types/react@19.3.0)
+      '@vitest/coverage-v8':
+        specifier: 5.0.5
+        version: 5.0.5(vitest@5.0.5)
       atom.io:
         specifier: workspace:*
         version: link:../atom.io
+      breakage:
+        specifier: 0.8.5
+        version: 0.8.5(supports-color@10.2.2)(zod@4.6.7)
       eslint:
         specifier: 10.13.0
         version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
+      happy-dom:
+        specifier: 21.0.3
+        version: 21.0.3
       react:
         specifier: 19.3.1
         version: 19.3.1
+      react-dom:
+        specifier: 19.3.1
+        version: 19.3.1(react@19.3.1)
+      recoverage:
+        specifier: 0.1.19
+        version: 0.1.19(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7)
       tsdown:
         specifier: 0.23.1
         version: 0.23.1(@tsdown/css@0.23.1)(oxc-resolver@11.21.2)(tsx@4.23.13)(typescript@7.0.2)
       typescript:
         specifier: 7.0.2
         version: 7.0.2
+      vitest:
+        specifier: 5.0.5
+        version: 5.0.5(@types/node@26.6.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/react-devtools:
     dependencies:
@@ -594,6 +642,9 @@ importers:
       '@atom.io/react':
         specifier: workspace:*
         version: link:../react
+      '@testing-library/react':
+        specifier: 16.3.3
+        version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@tsdown/css':
         specifier: 0.23.1
         version: 0.23.1(jiti@2.7.0)(postcss@8.5.29)(tsdown@0.23.1)(tsx@4.23.13)(yaml@2.9.1)
@@ -603,36 +654,66 @@ importers:
       '@types/react':
         specifier: 19.3.0
         version: 19.3.0
+      '@types/react-dom':
+        specifier: 19.3.0
+        version: 19.3.0(@types/react@19.3.0)
+      '@vitest/coverage-v8':
+        specifier: 5.0.5
+        version: 5.0.5(vitest@5.0.5)
       atom.io:
         specifier: workspace:*
         version: link:../atom.io
+      breakage:
+        specifier: 0.8.5
+        version: 0.8.5(supports-color@10.2.2)(zod@4.6.7)
       eslint:
         specifier: 10.13.0
         version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
+      happy-dom:
+        specifier: 21.0.3
+        version: 21.0.3
       react:
         specifier: 19.3.1
         version: 19.3.1
       react-dom:
         specifier: 19.3.1
         version: 19.3.1(react@19.3.1)
+      recoverage:
+        specifier: 0.1.19
+        version: 0.1.19(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7)
       tsdown:
         specifier: 0.23.1
         version: 0.23.1(@tsdown/css@0.23.1)(oxc-resolver@11.21.2)(tsx@4.23.13)(typescript@7.0.2)
       typescript:
         specifier: 7.0.2
         version: 7.0.2
+      vitest:
+        specifier: 5.0.5
+        version: 5.0.5(@types/node@26.6.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
 
   packages/solid:
     devDependencies:
       '@types/node':
         specifier: 26.6.5
         version: 26.6.5
+      '@vitest/coverage-v8':
+        specifier: 5.0.5
+        version: 5.0.5(vitest@5.0.5)
       atom.io:
         specifier: workspace:*
         version: link:../atom.io
+      breakage:
+        specifier: 0.8.5
+        version: 0.8.5(supports-color@10.2.2)(zod@4.6.7)
       eslint:
         specifier: 10.13.0
         version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
+      happy-dom:
+        specifier: 21.0.3
+        version: 21.0.3
+      recoverage:
+        specifier: 0.1.19
+        version: 0.1.19(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7)
       solid-js:
         specifier: 1.9.17
         version: 1.9.17
@@ -642,6 +723,9 @@ importers:
       typescript:
         specifier: 7.0.2
         version: 7.0.2
+      vitest:
+        specifier: 5.0.5
+        version: 5.0.5(@types/node@26.6.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
 
   templates/preact-svg-editor:
     dependencies:
@@ -9622,6 +9706,12 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@t3-oss/env-core@0.13.11(arktype@2.2.5)(typescript@6.0.3)(zod@4.6.7)':
+    optionalDependencies:
+      arktype: 2.2.5
+      typescript: 6.0.3
+      zod: 4.6.7
+
   '@t3-oss/env-core@0.13.11(arktype@2.2.5)(typescript@7.0.2)(zod@4.6.7)':
     optionalDependencies:
       arktype: 2.2.5
@@ -12995,6 +13085,23 @@ snapshots:
       estree-util-to-js: 2.0.0
       unified: 11.0.5
       vfile: 6.0.3
+
+  recoverage@0.1.19(supports-color@10.2.2)(typescript@6.0.3)(zod@4.6.7):
+    dependencies:
+      '@t3-oss/env-core': 0.13.11(arktype@2.2.5)(typescript@6.0.3)(zod@4.6.7)
+      arktype: 2.2.5
+      comline: 0.9.0(arktype@2.2.5)(zod@4.6.7)
+      diff: 9.0.0
+      istanbul-lib-coverage: 3.2.2
+      istanbul-lib-report: 3.0.1
+      istanbul-reports: 3.2.0
+      simple-git: 4.0.2(supports-color@10.2.2)
+      takua: 0.2.3
+    transitivePeerDependencies:
+      - supports-color
+      - typescript
+      - valibot
+      - zod
 
   recoverage@0.1.19(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7):
     dependencies:

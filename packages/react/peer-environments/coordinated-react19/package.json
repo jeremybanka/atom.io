@@ -1,0 +1,22 @@
+{
+	"name": "react-react19",
+	"version": "0.0.0",
+	"private": true,
+	"description": "React 19 \u00b7 SDK next",
+	"type": "module",
+	"dependencies": {
+		"@types/react": "19.3.0",
+		"@types/react-dom": "19.3.0",
+		"react": "19.3.1",
+		"react-dom": "19.3.1"
+	},
+	"devDependencies": {
+		"@types/node": "26.6.5",
+		"typescript": "7.0.2"
+	},
+	"breakage": {
+		"candidates": [
+			"atom.io"
+		]
+	}
+}

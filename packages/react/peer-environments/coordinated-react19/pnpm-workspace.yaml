@@ -1,0 +1,4 @@
+packages: []
+autoInstallPeers: false
+strictPeerDependencies: true
+hoist: false

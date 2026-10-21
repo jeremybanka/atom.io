@@ -31,7 +31,7 @@ npm i atom.io
 	<a aria-label="Coverage" href="https://recoverage.cloud/">
 		<img
 			alt="Coverage"
-			src="https://img.shields.io/endpoint?url=https%3A%2F%2Frecoverage.cloud%2Fshields%2FS1ikz1yFmk93qbAI7lLnu%2Fatom.io"
+			src="https://img.shields.io/endpoint?url=https%3A%2F%2Frecoverage.cloud%2Fshields%2F665Gbgm4N5b47w7qpruIa%2Fatom.io"
 		>
 	</a>
 	<a aria-label="Types" href="https://www.npmjs.com/package/atom.io">

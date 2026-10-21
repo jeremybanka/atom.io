@@ -1,0 +1,18 @@
+{
+	"name": "solid-1.9-released-sdk",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Solid 1.9 \u00b7 SDK 0.53.3",
+	"type": "module",
+	"dependencies": {
+		"atom.io": "0.53.3",
+		"solid-js": "1.9.17"
+	},
+	"devDependencies": {
+		"@types/node": "26.6.5",
+		"typescript": "7.0.2"
+	},
+	"breakage": {
+		"candidates": []
+	}
+}

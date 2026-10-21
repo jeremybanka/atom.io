@@ -136,12 +136,13 @@
 		"test:breakage": "breakage breakage.config.json --verbose --baseline-file .breakage/baseline.json",
 		"test:breakage:prelude": "breakage prelude --out .breakage/baseline.json",
 		"cov": "vitest run --config vitest.total-coverage.config.ts --coverage",
-		"cov:recoverage": "recoverage",
-		"cov:up": "pnpm cov && recoverage",
 		"cov:public": "vitest run --config vitest.public-coverage.config.ts --coverage",
 		"cov:dev": "vitest --config vitest.public-coverage.config.ts --coverage",
 		"storybook": "storybook dev -p 6006",
-		"storybook:build": "storybook build"
+		"storybook:build": "storybook build",
+		"pack:breakage": "pnpm --reporter=silent pack --out .breakage/package.tgz",
+		"test:packaging": "node ./__scripts__/test-react-types-peer.node.ts",
+		"cov:recoverage": "recoverage"
 	},
 	"devDependencies": {
 		"@atom.io/eslint-plugin": "workspace:*",
@@ -166,7 +167,6 @@
 		"drizzle-orm": "1.0.0-rc.4",
 		"eslint": "10.13.0",
 		"happy-dom": "21.0.3",
-		"motion": "14.4.0",
 		"postgres": "3.4.9",
 		"preact": "11.0.1",
 		"react": "19.3.1",
@@ -188,7 +188,7 @@
 		"zustand": "5.0.15"
 	},
 	"peerDependencies": {
-		"@atom.io/react": "workspace:^",
+		"@atom.io/react": "~0.0.0",
 		"@testing-library/react": ">=14.0.0",
 		"@types/react": "^18.0.0 || ^19.0.0",
 		"happy-dom": ">=17.4.4",

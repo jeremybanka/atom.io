@@ -47,6 +47,14 @@
 	],
 	"packageRules": [
 		{
+			"description": "Keep the ESLint 9 peer environment current within its supported major.",
+			"matchFileNames": [
+				"packages/eslint-plugin/peer-environments/eslint9/package.json"
+			],
+			"matchPackageNames": ["eslint"],
+			"allowedVersions": "^9.0.0"
+		},
+		{
 			"matchPackageNames": ["dprint", "@dprint/*", "/^dprint-plugin-/"],
 			"postUpgradeTasks": {
 				"commands": [

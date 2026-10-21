@@ -11,3 +11,7 @@ The canvas supports node dragging, node insertion and deletion, private zoom, ad
 The separate `preact-svg-editor` application remains the richer local Bezier tutorial. Plane imports its constrained contour module instead of putting that richer topology into a collaborative Domain.
 
 Read `INNOVATIONS.md` before adapting the example. It explains why the integrity boundary is one durable aggregate, what selective history can expose, and the deliberate concurrency tradeoff of this spartan model.
+
+## Quality Checks
+
+Run `npm run lint` before committing. It enforces ESLint, type-aware Oxlint, React hook call-order correctness, TypeScript, and CSS-module reachability with zero warnings. Run `npm run fmt:check` in CI and `npm run fmt` to apply the pinned dprint configuration locally.

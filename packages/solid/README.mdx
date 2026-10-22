@@ -1,0 +1,19 @@
+import { PackageHeader } from "../../scripts/readme/package-header.tsx"
+import Install from "../atom.io/docs/source/exhibits/solid/install.sh" with { type: "code", lang: "sh" }
+import Example from "../atom.io/docs/source/exhibits/solid/readme-counter.tsx" with { type: "code", lang: "tsx" }
+import { Tonnage } from "tonnage/galley"
+import config from "./tonnage.config.ts"
+
+<PackageHeader tagline="Solid bindings for atom.io." docsPath="solid" coverageSlug="solid" />
+
+Install this package alongside `atom.io` and `solid-js` 1.9. Replace imports from `atom.io/solid` with `@atom.io/solid`; the exports and behavior are unchanged.
+
+## Install
+
+<Install />
+
+## Usage
+
+<Example />
+
+<Tonnage config={config} />

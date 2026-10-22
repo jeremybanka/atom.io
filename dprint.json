@@ -7,6 +7,11 @@
 	],
 	"excludes": [
 		"packages/atom.io/README.md",
+		"packages/react/README.md",
+		"packages/solid/README.md",
+		"packages/react-devtools/README.md",
+		"packages/eslint-plugin/README.md",
+		"packages/create-atom.io/README.md",
 		"**/.correctly/**",
 		"**/*.gen.ts",
 		"**/*.gen.tsx",

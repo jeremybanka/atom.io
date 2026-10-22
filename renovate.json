@@ -9,7 +9,7 @@
 	"postUpgradeTasks": {
 		"commands": [
 			"pnpm install --frozen-lockfile",
-			"pnpm tonnage"
+			"pnpm readme:write"
 		],
 		"executionMode": "branch",
 		"fileFilters": ["packages/*/README.md"],
@@ -122,7 +122,7 @@
 				"commands": [
 					"pnpm install --frozen-lockfile",
 					"pnpm exec correctly schemas pull --association 'Dprint'",
-					"pnpm tonnage"
+					"pnpm readme:write"
 				],
 				"executionMode": "branch",
 				"fileFilters": ["packages/*/README.md", ".correctly/**"],
@@ -135,7 +135,7 @@
 				"commands": [
 					"pnpm install --frozen-lockfile",
 					"pnpm exec correctly schemas pull --association 'pnpm workspace'",
-					"pnpm tonnage"
+					"pnpm readme:write"
 				],
 				"executionMode": "branch",
 				"fileFilters": ["packages/*/README.md", ".correctly/**"],
@@ -170,7 +170,7 @@
 				"commands": [
 					"pnpm install --frozen-lockfile",
 					"pnpm exec correctly schemas pull --association 'Mise'",
-					"pnpm tonnage"
+					"pnpm readme:write"
 				],
 				"executionMode": "branch",
 				"fileFilters": ["packages/*/README.md", ".correctly/**"],
@@ -201,7 +201,7 @@
 				"commands": [
 					"pnpm install --frozen-lockfile",
 					"pnpm exec correctly schemas pull --association 'Renovate'",
-					"pnpm tonnage"
+					"pnpm readme:write"
 				],
 				"executionMode": "branch",
 				"fileFilters": ["packages/*/README.md", ".correctly/**"],

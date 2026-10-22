@@ -43,7 +43,7 @@ jobs:
           RENOVATE_ALLOWED_COMMANDS: >-
             ["^pnpm install --frozen-lockfile$",
             "^pnpm exec correctly schemas pull --association '(?:Dprint|Renovate|Mise|pnpm workspace)'$",
-            "^pnpm tonnage$"]
+            "^pnpm readme:write$"]
           RENOVATE_ALLOW_PLUGINS: true
           RENOVATE_ALLOW_SCRIPTS: true
           RENOVATE_REPOSITORIES: jeremybanka/atom.io

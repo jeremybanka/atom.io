@@ -2292,6 +2292,7 @@ describe(`Mosaic Domain actor-selective history`, () => {
 		expect(setup.history.stats.actorCount).toBe(2)
 	})
 
+	// Coverage instrumentation can push this stress case beyond the default timeout.
 	test(`100,001 accepted batches leave bounded receipts after a checkpoint cut`, async () => {
 		const storage = new InMemoryMosaicDomainCheckpointStorage({
 			maxRecentReceipts: 64,
@@ -2407,5 +2408,5 @@ describe(`Mosaic Domain actor-selective history`, () => {
 			fingerprint: `new-session`,
 		})
 		expect(capacity).toEqual({ status: `session-capacity` })
-	})
+	}, 30_000)
 })

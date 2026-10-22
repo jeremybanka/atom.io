@@ -24,6 +24,8 @@
 				"tsconfig.json",
 				"*.config.ts",
 				"src/**",
+				"node/**",
+				"tests/**",
 				"docs/source/**",
 				"__scripts__/**"
 			]
@@ -46,7 +48,8 @@
 			"dependsOn": [
 				"build",
 				"^build",
-				"@atom.io/react#build"
+				"@atom.io/react#build",
+				"@atom.io/realtime#build"
 			],
 			"outputs": [],
 			"inputs": [
@@ -74,7 +77,8 @@
 			"dependsOn": [
 				"build",
 				"^build",
-				"@atom.io/react#build"
+				"@atom.io/react#build",
+				"@atom.io/realtime#build"
 			],
 			"outputs": [],
 			"inputs": [
@@ -100,12 +104,16 @@
 				"bin/**",
 				"../../mise.toml",
 				"src/**",
+				"node/**",
+				"tests/**",
 				"docs/source/**",
 				"__tests__/**",
 				"__scripts__/**",
 				"../../scripts/define-vitest-config.ts",
 				"../../scripts/runtime-copies.ts",
-				"../../scripts/test-helpers.ts"
+				"../../scripts/test-helpers.ts",
+				"../../scripts/react-test-helpers.ts",
+				"../../scripts/test-postgres.ts"
 			]
 		},
 		"atom.io#test:once": {
@@ -122,7 +130,9 @@
 				"__scripts__/**",
 				"../../scripts/define-vitest-config.ts",
 				"../../scripts/runtime-copies.ts",
-				"../../scripts/test-helpers.ts"
+				"../../scripts/test-helpers.ts",
+				"../../scripts/react-test-helpers.ts",
+				"../../scripts/test-postgres.ts"
 			]
 		},
 		"@atom.io/eslint-plugin#test:once": {
@@ -153,7 +163,9 @@
 				"__scripts__/**",
 				"../../scripts/define-vitest-config.ts",
 				"../../scripts/runtime-copies.ts",
-				"../../scripts/test-helpers.ts"
+				"../../scripts/test-helpers.ts",
+				"../../scripts/react-test-helpers.ts",
+				"../../scripts/test-postgres.ts"
 			]
 		},
 		"cov:recoverage": {
@@ -174,7 +186,9 @@
 				"__scripts__/**",
 				"../../scripts/define-vitest-config.ts",
 				"../../scripts/runtime-copies.ts",
-				"../../scripts/test-helpers.ts"
+				"../../scripts/test-helpers.ts",
+				"../../scripts/react-test-helpers.ts",
+				"../../scripts/test-postgres.ts"
 			]
 		},
 		"test:breakage:prelude": {
@@ -212,7 +226,9 @@
 				"../../.github/workflows/breakage.yml",
 				"../../scripts/define-vitest-config.ts",
 				"../../scripts/runtime-copies.ts",
-				"../../scripts/test-helpers.ts"
+				"../../scripts/test-helpers.ts",
+				"../../scripts/react-test-helpers.ts",
+				"../../scripts/test-postgres.ts"
 			],
 			"outputs": []
 		},
@@ -238,7 +254,9 @@
 				"../../.github/workflows/breakage.yml",
 				"../../scripts/define-vitest-config.ts",
 				"../../scripts/runtime-copies.ts",
-				"../../scripts/test-helpers.ts"
+				"../../scripts/test-helpers.ts",
+				"../../scripts/react-test-helpers.ts",
+				"../../scripts/test-postgres.ts"
 			],
 			"outputs": []
 		},
@@ -250,12 +268,16 @@
 				"**/package.json",
 				"tsconfig.json",
 				"src/**",
+				"node/**",
+				"tests/**",
 				"docs/source/**",
 				"__tests__/**",
 				"__scripts__/**",
 				"../../scripts/define-vitest-config.ts",
 				"../../scripts/runtime-copies.ts",
-				"../../scripts/test-helpers.ts"
+				"../../scripts/test-helpers.ts",
+				"../../scripts/react-test-helpers.ts",
+				"../../scripts/test-postgres.ts"
 			]
 		},
 		"lint:oxlint": {
@@ -266,13 +288,17 @@
 				"package.json",
 				"tsconfig.json",
 				"src/**",
+				"node/**",
+				"tests/**",
 				"docs/source/**",
 				"__tests__/**",
 				"__scripts__/**",
 				"**/*.d.ts",
 				"../../scripts/define-vitest-config.ts",
 				"../../scripts/runtime-copies.ts",
-				"../../scripts/test-helpers.ts"
+				"../../scripts/test-helpers.ts",
+				"../../scripts/react-test-helpers.ts",
+				"../../scripts/test-postgres.ts"
 			]
 		},
 		"lint:types": {
@@ -283,13 +309,17 @@
 				"tsconfig.json",
 				"tsconfig.*.json",
 				"src/**",
+				"node/**",
+				"tests/**",
 				"docs/source/**",
 				"__tests__/**",
 				"__scripts__/**",
 				"**/*.d.ts",
 				"../../scripts/define-vitest-config.ts",
 				"../../scripts/runtime-copies.ts",
-				"../../scripts/test-helpers.ts"
+				"../../scripts/test-helpers.ts",
+				"../../scripts/react-test-helpers.ts",
+				"../../scripts/test-postgres.ts"
 			]
 		},
 		"lint": {
@@ -308,7 +338,9 @@
 				"__scripts__/**",
 				"../../scripts/define-vitest-config.ts",
 				"../../scripts/runtime-copies.ts",
-				"../../scripts/test-helpers.ts"
+				"../../scripts/test-helpers.ts",
+				"../../scripts/react-test-helpers.ts",
+				"../../scripts/test-postgres.ts"
 			]
 		},
 		"atom.io#cov:public": {
@@ -324,12 +356,31 @@
 				"__scripts__/**",
 				"../../scripts/define-vitest-config.ts",
 				"../../scripts/runtime-copies.ts",
-				"../../scripts/test-helpers.ts"
+				"../../scripts/test-helpers.ts",
+				"../../scripts/react-test-helpers.ts",
+				"../../scripts/test-postgres.ts"
 			]
 		},
 		"test:packaging": {
 			"dependsOn": ["build", "^build"],
 			"cache": false
+		},
+		"atom.io#lint:types": {
+			"dependsOn": [
+				"@atom.io/realtime#build",
+				"@atom.io/react#build"
+			]
+		},
+		"atom.io#build": {
+			"dependsOn": ["^build"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				"../realtime/docs/source/**"
+			],
+			"outputs": [
+				"dist/**",
+				"docs/agent/**"
+			]
 		}
 	}
 }

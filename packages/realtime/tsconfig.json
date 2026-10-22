@@ -1,0 +1,43 @@
+{
+	"extends": "../../tsconfig.json",
+	"compilerOptions": {
+		"target": "ES2023",
+		"jsx": "react-jsx",
+		"jsxImportSource": "react",
+		"allowArbitraryExtensions": true,
+		"types": [
+			"vitest/globals"
+		],
+		"lib": [
+			"DOM",
+			"ESNext"
+		],
+		"noEmit": true,
+		"declaration": true,
+		"allowJs": false,
+		"isolatedDeclarations": true,
+		"paths": {
+			"atom.io": [
+				"../atom.io/src/main"
+			],
+			"atom.io/*": [
+				"../atom.io/src/*"
+			],
+			"@atom.io/react": [
+				"../react/src"
+			],
+			"@atom.io/realtime": [
+				"./src/core"
+			],
+			"@atom.io/realtime/*": [
+				"./src/*"
+			]
+		}
+	},
+	"include": [
+		"src",
+		"__tests__",
+		"*.config.ts",
+		"__scripts__"
+	]
+}

@@ -15,6 +15,7 @@ import {
 	ingestMoleculeDisposalEvent,
 	ingestMoleculeTransferEvent,
 } from "./ingest-creation-disposal.ts"
+import { ingestMutableAtomSnapshotEvent } from "./ingest-mutable-atom-snapshot.ts"
 
 export function ingestTransactionOutcomeEvent<T extends TransactionToken<any>>(
 	store: Store,
@@ -45,6 +46,9 @@ function ingestTransactionSubEvents(
 		switch (subEvent.type) {
 			case `atom_update`:
 				ingestAtomUpdateEvent(store, subEvent, applying)
+				break
+			case `mutable_atom_snapshot`:
+				ingestMutableAtomSnapshotEvent(store, subEvent, applying)
 				break
 			case `atom_creation`:
 				ingestCreationEvent(store, subEvent, applying)

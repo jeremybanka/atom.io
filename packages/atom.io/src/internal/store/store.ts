@@ -5,6 +5,7 @@ import type {
 	MoleculeDisposalEvent,
 	SelectorToken,
 	TimelineToken,
+	TransactionCommitEvent,
 	TransactionToken,
 } from "atom.io"
 import { AtomIOLogger } from "atom.io"
@@ -165,6 +166,7 @@ export class Store implements Lineage {
 		timelineCreation: new Subject(),
 		timelineDisposal: new Subject(),
 		transactionCreation: new Subject(),
+		transactionCommit: new Subject(),
 		transactionApplying: new StatefulSubject(null),
 		operationClose: new Subject(),
 		moleculeCreation: new Subject(),
@@ -256,6 +258,7 @@ export type StoreEventCarrier = {
 	timelineCreation: Subject<TimelineToken<unknown>>
 	timelineDisposal: Subject<TimelineToken<unknown>>
 	transactionCreation: Subject<TransactionToken<Fn>>
+	transactionCommit: Subject<TransactionCommitEvent>
 	transactionApplying: StatefulSubject<TransactionProgress<Fn> | null>
 	operationClose: Subject<OperationProgress>
 	moleculeCreation: Subject<MoleculeCreationEvent>

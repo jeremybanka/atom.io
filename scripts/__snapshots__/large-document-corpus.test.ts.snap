@@ -1,0 +1,10 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`large-document corpus tooling applies byte-stable transforms to a small offline fixture 1`] = `
+"# Unicode and grapheme adversaries
+## Row 0000
+é | é | 👩‍💻 | 🏳️‍🌈 | ⁦left-to-right isolate⁩ | ⁧مرحبا⁩ | क्‍ष | 中文 | Z̧̢̡̻̮̜̝̦̤̱͑̇͒͛ͮ̾̓ͥͨͣ̐ͯͦ͊ͫ͋̚͠ͅ
+## Row 0001
+é | é | 👩‍💻 | 🏳️‍🌈 | ⁦left-to-right isolate⁩ | ⁧مرحبا⁩ | क्‍ष | 中文 | Z̧̢̡̻̮̜̝̦̤̱͑̇͒͛ͮ̾̓ͥͨͣ̐ͯͦ͊ͫ͋̚͠ͅ
+"
+`;

@@ -29,6 +29,7 @@
 		"readme:check": "galley check README.mdx"
 	},
 	"dependencies": {
+		"@atom.io/template-preact-realtime-vector-editor": "workspace:*",
 		"@atom.io/template-preact-svg-editor": "workspace:*",
 		"@atom.io/template-react-node-backend": "workspace:*",
 		"@atom.io/template-react-realtime-text-editor": "workspace:*",

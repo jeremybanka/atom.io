@@ -1,0 +1,19 @@
+import { PackageHeader } from "../../scripts/readme/package-header.tsx"
+
+<PackageHeader tagline="Realtime collaboration for atom.io." docsPath="realtime" coverageSlug="realtime" />
+
+Install alongside `atom.io` 0.54 or later in the 0.54 release line. Framework, renderer, transport, and test-environment peers are optional and depend on the entry points you use.
+
+| Entry point                          | Purpose                                         | Additional peers                                                                  |
+| ------------------------------------ | ----------------------------------------------- | --------------------------------------------------------------------------------- |
+| `@atom.io/realtime`                  | Shared protocol, Mosaic models, and Domains     | None                                                                              |
+| `@atom.io/realtime/client`           | Framework-neutral synchronization               | None                                                                              |
+| `@atom.io/realtime/server`           | Node servers, storage, and process-backed rooms | Socket.IO for the Socket.IO server API                                            |
+| `@atom.io/realtime/react`            | React lifecycle bindings                        | `@atom.io/react`, React 18 or 19; matching React types for TypeScript             |
+| `@atom.io/realtime/react/lexical`    | Lexical editor adapter                          | React, ReactDOM, Lexical, `@lexical/react`, `@lexical/selection`                  |
+| `@atom.io/realtime/testing/headless` | Renderer-free scenarios                         | Socket.IO and `socket.io-client`                                                  |
+| `@atom.io/realtime/testing/react`    | Rendered scenarios                              | Headless peers plus `@atom.io/react`, React, ReactDOM, Testing Library, Happy DOM |
+
+The guides and typechecked exhibits live in this package's `docs/source` directory. The React and client APIs consume the shared transport contract; a Cloudflare server adapter remains future work.
+
+Migration: replace `atom.io/realtime` with `@atom.io/realtime`, and replace the old `realtime-client`, `realtime-server`, `realtime-react`, `realtime-react-lexical`, and `realtime-testing/*` subpaths with the corresponding entries above. The core SDK no longer exports realtime. No compatibility re-export introduces a dependency from `atom.io` back to this package.

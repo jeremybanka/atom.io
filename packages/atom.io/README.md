@@ -19,40 +19,34 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 ### Package exports
 
-| Import                              | Minified JS |  Gzip JS |
-| ----------------------------------- | ----------: | -------: |
-| `atom.io`                           |    75,958 B | 20,749 B |
-| `atom.io/experiments/realms`        |    65,852 B | 18,204 B |
-| `atom.io/foundations/canonical`     |       500 B |    302 B |
-| `atom.io/foundations/entries`       |       243 B |    177 B |
-| `atom.io/foundations/enumeration`   |       214 B |    183 B |
-| `atom.io/foundations/future`        |       583 B |    332 B |
-| `atom.io/foundations/json`          |       602 B |    377 B |
-| `atom.io/foundations/junction`      |     9,349 B |  2,531 B |
-| `atom.io/foundations/overlays`      |     3,991 B |  1,033 B |
-| `atom.io/foundations/subject`       |       481 B |    284 B |
-| `atom.io/foundations/type-utils`    |       604 B |    371 B |
-| `atom.io/internal`                  |    76,189 B | 21,085 B |
-| `atom.io/introspection`             |    57,202 B | 15,833 B |
-| `atom.io/realtime`                  |    59,690 B | 17,508 B |
-| `atom.io/realtime-client`           |    69,031 B | 19,978 B |
-| `atom.io/realtime-react`            |    71,308 B | 20,700 B |
-| `atom.io/realtime-server`           |   102,948 B | 30,215 B |
-| `atom.io/realtime-testing/headless` |   119,897 B | 35,539 B |
-| `atom.io/realtime-testing/react`    |    96,289 B | 28,308 B |
-| `atom.io/testing`                   |    17,319 B |  4,956 B |
-| `atom.io/transceivers/o-list`       |     7,225 B |  2,089 B |
-| `atom.io/transceivers/u-list`       |     2,032 B |    869 B |
-| `atom.io/web`                       |       757 B |    418 B |
+| Import                            | Minified JS |  Gzip JS |
+| --------------------------------- | ----------: | -------: |
+| `atom.io`                         |    79,638 B | 21,895 B |
+| `atom.io/experiments/realms`      |    69,503 B | 19,353 B |
+| `atom.io/foundations/canonical`   |       500 B |    302 B |
+| `atom.io/foundations/entries`     |       243 B |    177 B |
+| `atom.io/foundations/enumeration` |       214 B |    183 B |
+| `atom.io/foundations/future`      |       583 B |    332 B |
+| `atom.io/foundations/json`        |       602 B |    377 B |
+| `atom.io/foundations/junction`    |     9,349 B |  2,531 B |
+| `atom.io/foundations/overlays`    |     3,991 B |  1,033 B |
+| `atom.io/foundations/subject`     |       481 B |    284 B |
+| `atom.io/foundations/type-utils`  |       604 B |    371 B |
+| `atom.io/internal`                |    80,199 B | 22,325 B |
+| `atom.io/introspection`           |    57,923 B | 16,030 B |
+| `atom.io/testing`                 |    17,343 B |  4,962 B |
+| `atom.io/transceivers/o-list`     |     7,225 B |  2,089 B |
+| `atom.io/transceivers/u-list`     |     2,032 B |    869 B |
+| `atom.io/web`                     |       757 B |    418 B |
 
 ### Usage examples
 
 | Recipe                     | Entry                                      | Minified JS |  Gzip JS |
 | -------------------------- | ------------------------------------------ | ----------: | -------: |
-| Core (for example, an LSP) | `tonnage-recipes/core.ts`                  |    45,715 B | 12,909 B |
-| React app                  | `tonnage-recipes/react-app.ts`             |    45,771 B | 12,955 B |
-| Realtime React client      | `tonnage-recipes/realtime-react-client.ts` |    75,847 B | 22,169 B |
-| Realtime server            | `tonnage-recipes/realtime-server.ts`       |    98,653 B | 27,878 B |
+| Core (for example, an LSP) | `tonnage-recipes/core.ts`                  |    46,436 B | 13,109 B |
+| React app                  | `tonnage-recipes/react-app.ts`             |    57,477 B | 16,918 B |
+| Realtime React client      | `tonnage-recipes/realtime-react-client.ts` |   103,157 B | 30,541 B |
+| Realtime server            | `tonnage-recipes/realtime-server.ts`       |   100,384 B | 28,348 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

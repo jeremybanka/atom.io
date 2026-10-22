@@ -1,4 +1,5 @@
 export * from "./ingest-atom-update.ts"
 export * from "./ingest-creation-disposal.ts"
+export * from "./ingest-mutable-atom-snapshot.ts"
 export * from "./ingest-selector-update.ts"
 export * from "./ingest-transaction-update.ts"

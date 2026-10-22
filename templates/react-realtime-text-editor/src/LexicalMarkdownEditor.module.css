@@ -1,0 +1,8 @@
+lexical-markdown-editor.class {
+	display: block;
+	min-height: 32rem;
+
+	> mosaic-lexical-text-editor {
+		display: contents;
+	}
+}

@@ -8,7 +8,7 @@ import {
 
 import { getSyntaxTreatments, type SyntaxTreatment } from "./highlight-syntax.ts"
 
-// Keep lexer scopes until the compatibility pass has run. The returned tokens
+// Keep lexer scopes until the syntax pass has run. The returned tokens
 // use the site's existing CSS variables, so both themes share the same rules.
 const theme: Theme = {
 	name: `atom.io`,
@@ -22,30 +22,15 @@ const scopeColors: Record<string, string> = {
 	operator: `operator`,
 	punctuation: `punctuation`,
 	type: `type`,
-	constructor: `type`,
-	constant: `type`,
+	constructor: `function`,
 	function: `function`,
 	tag: `function`,
-	"tag-component-jsx": `type`,
+	"tag-component-jsx": `function`,
 	boolean: `boolean`,
 	number: `number`,
 	string: `string`,
 	"text-jsx": `string`,
 }
-
-const typeBuiltins = new Set([
-	`Array`,
-	`Function`,
-	`Promise`,
-	`any`,
-	`boolean`,
-	`console`,
-	`never`,
-	`number`,
-	`string`,
-	`symbol`,
-	`unknown`,
-])
 
 function getLanguage(filepath?: string): Lang {
 	switch (filepath?.split(`.`).pop()) {
@@ -78,7 +63,6 @@ function getColor(scope: string): string {
 
 function styleToken(
 	token: ThemedToken,
-	lang: Lang,
 	treatments: SyntaxTreatment[],
 ): ThemedToken {
 	const scope = token.color?.slice(`var(--hls-`.length, -1) ?? ``
@@ -89,39 +73,22 @@ function styleToken(
 	const isWord = isCode && /^[\p{ID_Start}_$][\p{ID_Continue}$]*$/u.test(word)
 	if (token.type === 1 || scope.endsWith(`jsdoc`))
 		color = `var(--code-comment-color)`
-	if (
-		isWord &&
-		!scope.startsWith(`function`) &&
-		(lang === `ts` || lang === `tsx`) &&
-		typeBuiltins.has(word)
-	)
-		color = `var(--code-type-color)`
-	if (scope === `constant-builtin`) {
-		color =
-			word === `NaN` || word === `Infinity`
-				? `var(--code-number-color)`
-				: word === `null` && (lang === `javascript` || lang === `jsx`)
-					? `var(--code-null-color)`
-					: `var(--code-keyword-color)`
-	}
-	if (isWord && word === `void`) color = `var(--code-keyword-color)`
-	// Prism treated colons as operators, including object keys and annotations.
-	if (isCode && word === `:`) color = `var(--code-operator-color)`
-	if (
-		(lang === `tsx` || lang === `jsx`) &&
-		isWord &&
-		/^[A-Z]/.test(word) &&
-		scope === `property`
-	)
-		color = `var(--code-type-color)`
+	if (scope === `constant-builtin`) color = `var(--code-null-color)`
+	const isLiteral =
+		token.type === 2 ||
+		scope === `number` ||
+		scope === `boolean` ||
+		scope === `constant-builtin`
 
-	if (isWord) {
+	// Apply exact syntax ranges to tokens, including literal types. Never treat
+	// comments or JSX text as code, and keep string metadata for import links.
+	if (isWord || isLiteral) {
 		const start = token.offset + token.content.indexOf(word)
 		const range = treatments.find(
 			(candidate) =>
 				candidate.start <= start &&
 				candidate.end >= start + word.length &&
-				!(candidate.color === `var(--code-color)` && typeBuiltins.has(word)),
+				(!candidate.literalOnly || isLiteral),
 		)
 		color = range?.color ?? color
 	}
@@ -137,7 +104,7 @@ export function highlightCode(code: string, filepath?: string): TokensResult {
 		fg: `var(--code-color)`,
 		bg: undefined,
 		tokens: result.tokens.map((line) =>
-			line.map((token) => styleToken(token, lang, treatments)),
+			line.map((token) => styleToken(token, treatments)),
 		),
 	}
 }

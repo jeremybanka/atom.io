@@ -623,6 +623,87 @@ describe(`Mosaic text editing`, () => {
 		rendered.unmount()
 	})
 
+	test(`commits the newest queued draft after an in-flight commit fails`, async () => {
+		vi.useFakeTimers({ toFake: [`setTimeout`, `clearTimeout`] })
+		let view: MosaicTextEditorView<Peer> | null = null
+		let projection = projected(`alpha`, 0)
+		const failure = new Error(`transport unavailable`)
+		const errors: unknown[] = []
+		const replacements: string[] = []
+		const first = deferred()
+		const peers: readonly [] = []
+		const client = {
+			positionAtOffset: (offset: number) =>
+				Promise.resolve({ affinity: `left` as const, offset, runId: `base` }),
+			readLength: () => Promise.resolve(7),
+			resolvePosition: () => Promise.resolve(0),
+		} satisfies Pick<
+			MosaicTextProjectionClient,
+			`positionAtOffset` | `readLength` | `resolvePosition`
+		>
+		const Probe = (): ReactElement => {
+			view = useMosaicTextEditor({
+				client,
+				commitDelayMs: 25,
+				connected: true,
+				documentLength: projection.text.length,
+				onError: (error) => errors.push(error),
+				peers,
+				projection,
+				publishSelection: () => undefined,
+				replace: async ({ text }) => {
+					replacements.push(text)
+					if (replacements.length === 1) {
+						await first.promise
+						throw failure
+					}
+				},
+			})
+			return <output>{view.text}</output>
+		}
+		const rendered = render(<Probe />)
+		try {
+			act(() => view?.onValueChange(`alpha!`, false))
+			await act(() => vi.advanceTimersByTimeAsync(25))
+			expect(replacements).toEqual([`!`])
+
+			act(() => view?.onValueChange(`alpha!?`, false))
+			// Expire the debounce while the first commit still owns the transport.
+			await act(() => vi.advanceTimersByTimeAsync(25))
+			expect(replacements).toEqual([`!`])
+			await act(async () => {
+				first.resolve()
+			})
+			expect(errors).toEqual([failure])
+			expect((view as unknown as MosaicTextEditorView<Peer>).text).toBe(
+				`alpha!?`,
+			)
+
+			// The commit's follow-up timer must send the newest draft on its own.
+			await act(() => vi.advanceTimersByTimeAsync(24))
+			expect(replacements).toEqual([`!`])
+			await act(() => vi.advanceTimersByTimeAsync(1))
+			expect(replacements).toEqual([`!`, `!?`])
+			expect((view as unknown as MosaicTextEditorView<Peer>).hasLocalDraft).toBe(
+				true,
+			)
+
+			projection = projected(`alpha!?`, 1)
+			await act(async () => rendered.rerender(<Probe />))
+			expect((view as unknown as MosaicTextEditorView<Peer>).text).toBe(
+				`alpha!?`,
+			)
+			expect((view as unknown as MosaicTextEditorView<Peer>).hasLocalDraft).toBe(
+				false,
+			)
+			await act(() => vi.advanceTimersByTimeAsync(100))
+			expect(replacements).toEqual([`!`, `!?`])
+		} finally {
+			rendered.unmount()
+			vi.useRealTimers()
+		}
+	})
+
 	test(`reprojects a local logical selection through resident and resolved cuts`, async () => {
 		let projection = projected(`abcdef`, 0)
 		let view: MosaicTextEditorView<Peer> | null = null

@@ -62,7 +62,7 @@ minimumReleaseAgeExclude:
   - bun-types
   - comline
   - correctly
-  - galley.md@0.1.3
+  - galley.md
   - lasertag
   - recoverage
   - takua

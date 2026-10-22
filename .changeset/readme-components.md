@@ -6,4 +6,4 @@
 "create-atom.io": patch
 ---
 
-Generate package READMEs from MDX with shared branding and source-backed examples. Add JavaScript bundle reports for the framework bindings and developer tools, generate the ESLint rule list from plugin metadata, and keep the initializer's template and option tables aligned with its CLI definitions.
+Generate package READMEs from MDX with shared branding, source-backed examples, and generated-file notices using Galley’s Comment component. Add JavaScript bundle reports for the framework bindings and developer tools, generate the ESLint rule list from plugin metadata, and keep the initializer's template and option tables aligned with its CLI definitions.

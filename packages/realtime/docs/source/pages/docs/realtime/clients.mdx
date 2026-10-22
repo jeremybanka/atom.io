@@ -78,7 +78,7 @@ TypeScript surface.
 				<td>Domain batches</td>
 				<td><code>createMosaicDomainBatchClient</code></td>
 				<td>
-					<code>MosaicDomainBatchClient</code>, <code>MosaicDomainBatchClientIdContext</code>, <code>MosaicDomainBatchClientOperation</code>, <code>MosaicDomainBatchClientOptions</code>, <code>MosaicDomainBatchClientState</code>, <code>MosaicDomainBatchClientTransport</code>
+					<code>MosaicDomainBatchClient</code>, <code>MosaicDomainBatchClientIdContext</code>, <code>MosaicDomainBatchClientOperation</code>, <code>MosaicDomainBatchClientOptions</code>, <code>MosaicDomainBatchClientState</code>, <code>MosaicDomainBatchClientTransport</code>, <code>MosaicDomainBatchSubmission</code>, <code>MosaicDomainBatchSubmissionIdentity</code>
 				</td>
 			</tr>
 			<tr>
@@ -173,13 +173,59 @@ problem. A protocol collision or malformed authoritative response fails closed;
 an ordinary authorization rejection removes only the rejected proposal and
 resequences surviving offline work.
 
+## submission receipts
+
+`await client.submit(...)` now returns a `MosaicDomainBatchSubmission`. It still
+waits for local preparation and the initial delivery attempt when connected; it
+does not wait indefinitely for an offline edit to become accepted. Existing
+callers that discard the returned value can continue awaiting it. Explicit
+`Promise<void>` wrappers must await the call without returning its value, or
+adopt the receipt return type.
+
+<Exhibit src="realtime/coordinate-a-domain-batch.ts" />
+
+Each receipt exposes immutable request, authenticated actor/session, and Domain
+identity; a stable `state`; `subscribe`; and a `settled` promise. Client
+`onSubmission` receives it immediately after local commit, before delivery, so
+applications can display queued or sending work without waiting for the request
+attempt. Subscribers receive the current state immediately. Observer failures
+are logged and do not change delivery or settlement.
+
+- `queued` means local optimism has committed but delivery has not started.
+- `sending` means an attempt is in flight.
+- `offline` means delivery or initial recovery failed; acceptance remains unknown.
+- `accepted` carries the authoritative revision, including acceptance discovered
+  during recovery after a lost acknowledgement.
+- `rejected` retains the structured code, reason, and recovery guidance. Its
+  `retryable` flag reflects `recovery: retry`; retrying rejected intent requires a
+  new submission and does not rewrite the old receipt.
+- `interrupted` means disposal or an invalid response prevented a trustworthy
+  result. It is not proof of server rejection; resnapshot before repeating intent.
+
+`client.flush()` recovers and replays pending work. Terminal receipts never
+change after reconnects, unrelated broadcasts, or later submissions. The client
+retains unresolved work, not an unbounded receipt history; callers own the
+receipts they keep. `settled` resolves with a tagged outcome and never rejects.
+Local preparation failures still reject `submit` without creating a receipt.
+
+The shared `RealtimeRequestResult` contract also defines `superseded`, carrying
+the replacement request ID for protocols that replace requests. Mosaic batch
+clients do not silently supersede durable edits. These shared types do not
+change the Rigid, history, presence, or command wire protocols.
+
+Client protocol errors and server validation exceptions expose safe public
+reasons; their detailed exceptions remain in local client/server logs. Custom
+transports must provide safe structured rejection reasons themselves.
+
 ## transaction bridge
 
 <Exhibit src="realtime/bridge-a-domain-transaction.ts" />
 
 The bridge is opt-in per transaction token and per model encoder. It captures
 only successful outermost commits and adopts already-committed optimism without
-double application. Retain and monitor its pending committed work: silently
+double application. Its `onSubmission(commit, submission)` callback correlates the
+outer transaction ID with the same receipt contract, before transport delivery.
+Retain and monitor its pending committed work: silently
 dropping a committed operation to enforce an arbitrary local cap would break
 convergence.
 

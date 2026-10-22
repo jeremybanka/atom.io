@@ -2018,7 +2018,9 @@ describe(`Mosaic Domain atomic batches`, () => {
 				address: clientState.domain.address(`paths`),
 				operation: { path: `committed`, type: `append` },
 			}),
-		).resolves.toBeUndefined()
+		).resolves.toMatchObject({
+			state: { status: `accepted`, value: { revision: 1 } },
+		})
 
 		expect(server.revision).toBe(1)
 		expect(client.state).toMatchObject({
@@ -2319,7 +2321,7 @@ describe(`Mosaic Domain atomic batches`, () => {
 		).resolves.toMatchObject({
 			rejection: {
 				code: `invalid-model-operation`,
-				reason: `classification unavailable`,
+				reason: `The Domain history classification failed.`,
 			},
 			status: `rejected`,
 		})

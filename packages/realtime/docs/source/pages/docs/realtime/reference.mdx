@@ -535,3 +535,12 @@ not.
 
 When an API returns a function or exposes `dispose`, treat cleanup as part of
 the correctness contract, not optional housekeeping.
+
+## request outcomes
+
+The root exports `RealtimeRequestIdentity`, `RealtimeRequestResult`,
+`RealtimeSubmissionState`, and `RealtimeSubmission`: transport-neutral result
+and observation types. Domain batch receipts specialize them as
+`MosaicDomainBatchSubmission` and `MosaicDomainBatchSubmissionIdentity` in the
+client entry point. Read the [receipt contract](/docs/realtime-client#submission-receipts)
+for pending, retry, acceptance, rejection, and interruption semantics.

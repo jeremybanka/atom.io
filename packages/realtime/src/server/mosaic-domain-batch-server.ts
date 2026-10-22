@@ -177,6 +177,16 @@ export function createMosaicDomainBatchServer(
 
 	const ready = synchronize()
 
+	const logRejection = (error: unknown, batchId: string | null): void => {
+		options.domain.store.logger.error(
+			`🐞`,
+			`transaction`,
+			`mosaic-domain-batch-server`,
+			`Proposal validation failed.`,
+			{ batchId, domain: options.domain.identity, error },
+		)
+	}
+
 	const processProposal = async (
 		proposal: MosaicDomainBatchProposal,
 		actor: string,
@@ -218,13 +228,14 @@ export function createMosaicDomainBatchServer(
 			assertMosaicDomainBatchEnvelope(batch, limits)
 			batch = structuredClone(batch)
 		} catch (error) {
+			logRejection(error, proposedBatchId(proposal))
 			return rejection(
 				String(error).includes(`protocol version`)
 					? `incompatible-version`
 					: String(error).includes(`exceed`)
 						? `capacity-exceeded`
 						: `invalid-payload`,
-				error instanceof Error ? error.message : String(error),
+				`The Mosaic Domain proposal failed validation.`,
 				proposal.id ?? null,
 				String(error).includes(`protocol version`) ? `upgrade` : `discard-batch`,
 			)
@@ -261,9 +272,10 @@ export function createMosaicDomainBatchServer(
 			})
 			batch = prepared.batch
 		} catch (error) {
+			logRejection(error, proposedBatchId(proposal))
 			return rejection(
 				`invalid-model-operation`,
-				error instanceof Error ? error.message : String(error),
+				`The Mosaic Domain proposal failed validation.`,
 				batch.id,
 				`discard-batch`,
 			)
@@ -294,11 +306,10 @@ export function createMosaicDomainBatchServer(
 					}
 				}
 			} catch (error) {
+				logRejection(error, proposedBatchId(proposal))
 				return rejection(
 					`invalid-model-operation`,
-					error instanceof Error
-						? error.message
-						: `The Domain history classification failed.`,
+					`The Domain history classification failed.`,
 					batch.id,
 					`discard-batch`,
 				)
@@ -307,11 +318,10 @@ export function createMosaicDomainBatchServer(
 			try {
 				await historyValidation(batch, revision + 1)
 			} catch (error) {
+				logRejection(error, proposedBatchId(proposal))
 				return rejection(
 					`invalid-payload`,
-					error instanceof Error
-						? error.message
-						: `The Domain history compensation contract failed.`,
+					`The Domain history compensation contract failed.`,
 					batch.id,
 					`discard-batch`,
 				)
@@ -322,7 +332,8 @@ export function createMosaicDomainBatchServer(
 			authorized =
 				options.authorize === undefined ||
 				(await options.authorize({ actor, batch, session }))
-		} catch {
+		} catch (error) {
+			logRejection(error, batch.id)
 			authorized = false
 		}
 		if (!authorized) {
@@ -356,9 +367,10 @@ export function createMosaicDomainBatchServer(
 				})
 				batch = prepared.batch
 			} catch (error) {
+				logRejection(error, proposedBatchId(proposal))
 				return rejection(
 					`gap`,
-					error instanceof Error ? error.message : String(error),
+					`The Mosaic Domain proposal failed validation.`,
 					batch.id,
 					`resnapshot`,
 				)
@@ -461,11 +473,10 @@ export function createMosaicDomainBatchServer(
 					try {
 						received = structuredClone(proposal)
 					} catch (error) {
+						logRejection(error, proposedBatchId(proposal))
 						return rejection(
 							`invalid-payload`,
-							error instanceof Error
-								? error.message
-								: `A Mosaic Domain proposal could not be cloned.`,
+							`A Mosaic Domain proposal could not be cloned.`,
 							proposedBatchId(proposal),
 							`discard-batch`,
 						)

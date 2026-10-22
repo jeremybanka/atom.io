@@ -2,6 +2,7 @@ import { mosaicDomain, type MosaicDomainValueModel } from "@atom.io/realtime"
 import {
 	createMosaicDomainBatchClient,
 	createMosaicDomainTransactionBridge,
+	type MosaicDomainBatchSubmission,
 } from "@atom.io/realtime/client"
 import type { MosaicDomainBatchConnection } from "@atom.io/realtime/server"
 import { Silo } from "atom.io"
@@ -72,7 +73,15 @@ const collaboration = createMosaicDomainBatchClient({
 })
 await collaboration.start()
 
+declare function trackSubmission(
+	transactionId: string,
+	submission: MosaicDomainBatchSubmission,
+): void
+
 const bridge = createMosaicDomainTransactionBridge({
+	onSubmission: (commit, submission) => {
+		trackSubmission(commit.outcome.id, submission)
+	},
 	client: collaboration,
 	domain,
 	transactions: [moveSelectionTransaction],

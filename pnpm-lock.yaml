@@ -246,6 +246,9 @@ importers:
       correctly:
         specifier: 0.3.1
         version: 0.3.1(arktype@2.2.8)(supports-color@10.2.2)
+      create-atom.io:
+        specifier: workspace:*
+        version: link:packages/create-atom.io
       dprint:
         specifier: 0.64.1
         version: 0.64.1

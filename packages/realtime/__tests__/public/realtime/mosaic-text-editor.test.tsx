@@ -673,6 +673,7 @@ describe(`Mosaic text editing`, () => {
 			expect(replacements).toEqual([`!`])
 			await act(async () => {
 				first.resolve()
+				await first.promise
 			})
 			expect(errors).toEqual([failure])
 			expect((view as unknown as MosaicTextEditorView<Peer>).text).toBe(
@@ -689,7 +690,10 @@ describe(`Mosaic text editing`, () => {
 			)
 
 			projection = projected(`alpha!?`, 1)
-			await act(async () => rendered.rerender(<Probe />))
+			await act(() => {
+				rendered.rerender(<Probe />)
+				return Promise.resolve()
+			})
 			expect((view as unknown as MosaicTextEditorView<Peer>).text).toBe(
 				`alpha!?`,
 			)

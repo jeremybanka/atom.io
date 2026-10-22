@@ -41,7 +41,9 @@ function getLinkedCodeBlockId(labelOrHref: string): string {
 }
 
 function linkCodeBlockImports(): void {
-	for (const element of document.querySelectorAll(`code-block .token.string`)) {
+	for (const element of document.querySelectorAll(
+		`code-block [data-code-string]`,
+	)) {
 		if (!(element instanceof HTMLElement)) {
 			continue
 		}

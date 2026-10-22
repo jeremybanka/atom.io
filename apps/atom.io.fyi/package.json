@@ -15,7 +15,8 @@
 		"astro": "astro",
 		"lint:eslint": "eslint",
 		"lint:oxlint": "oxlint",
-		"lint:types": "tsc"
+		"lint:types": "tsc",
+		"test:once": "node --test src/components/highlight-code.test.ts"
 	},
 	"dependencies": {
 		"@astrojs/cloudflare": "14.4.2",
@@ -24,12 +25,14 @@
 		"@astrojs/preact": "6.1.1",
 		"@atom.io/react": "workspace:*",
 		"@atom.io/react-devtools": "workspace:*",
+		"@babel/parser": "7.29.8",
+		"@babel/types": "7.29.8",
+		"@pierre/highlights": "0.2.0",
 		"astro": "7.4.2",
 		"atom.io": "workspace:*",
 		"preact": "11.0.1",
 		"react": "npm:@preact/compat@18.3.2",
 		"react-dom": "npm:@preact/compat@18.3.2",
-		"react-syntax-highlighter": "16.1.2",
 		"three": "0.186.1",
 		"tsdoc.json": "0.6.11"
 	},
@@ -38,7 +41,6 @@
 		"@atom.io/realtime": "workspace:*",
 		"@types/bun": "npm:bun-types@1.4.4",
 		"@types/react": "19.3.0",
-		"@types/react-syntax-highlighter": "15.5.13",
 		"@types/three": "0.186.0",
 		"concurrently": "10.0.6",
 		"eslint": "10.13.0",

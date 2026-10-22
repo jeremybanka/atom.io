@@ -1,9 +1,7 @@
 import { type ComponentChildren, toChildArray, type VNode } from "preact"
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
 
 import css from "./CodeBlock.module.css"
-
-const pre = { SyntaxHighlighter }
+import { highlightCode } from "./highlight-code"
 
 type CodeBlockProps = {
 	filepath?: string
@@ -11,29 +9,6 @@ type CodeBlockProps = {
 	code?: string
 	soft?: boolean
 	children?: ComponentChildren
-}
-
-function getLanguage(filepath?: string): string {
-	if (!filepath) {
-		return `tsx`
-	}
-	const extension = filepath.split(`.`).pop()
-	switch (extension) {
-		case `sh`:
-			return `bash`
-		case `ts`:
-			return `ts`
-		case `tsx`:
-			return `tsx`
-		case `js`:
-			return `javascript`
-		case `jsx`:
-			return `jsx`
-		case undefined:
-			return `tsx`
-		default:
-			return `tsx`
-	}
 }
 
 function getCodeBlockId(labelOrHref: string): string {
@@ -71,6 +46,7 @@ export function CodeBlock({
 }: CodeBlockProps): VNode {
 	const displayLabel = label ?? filepath ?? `code`
 	const code = codeProp ?? flattenChildrenToString(children)
+	const { tokens } = highlightCode(code, filepath)
 
 	return (
 		<code-block id={getCodeBlockId(displayLabel)} class={css.class}>
@@ -91,12 +67,22 @@ export function CodeBlock({
 					</svg>
 				</button>
 			</file-name>
-			<pre.SyntaxHighlighter
-				language={getLanguage(filepath)}
-				useInlineStyles={false}
-			>
-				{code}
-			</pre.SyntaxHighlighter>
+			<pre>
+				<code>
+					{tokens.map((line, lineIndex) => [
+						lineIndex > 0 ? `\n` : ``,
+						line.map((token) => (
+							<span
+								key={token.offset}
+								style={{ color: token.color }}
+								data-code-string={token.type === 2 ? `` : undefined}
+							>
+								{token.content}
+							</span>
+						)),
+					])}
+				</code>
+			</pre>
 		</code-block>
 	)
 }

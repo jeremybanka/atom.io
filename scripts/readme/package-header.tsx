@@ -2,7 +2,7 @@
 import { readFile } from "node:fs/promises"
 import path from "node:path"
 
-import { type Component, type Content, Html, Markdown } from "galley.md"
+import { Comment, type Component, type Content, Html } from "galley.md"
 
 type PackageManifest = {
 	name: string
@@ -10,7 +10,7 @@ type PackageManifest = {
 }
 
 export const GeneratedNotice: Component = () => (
-	<Markdown children="<!-- Generated from README.mdx. Run pnpm readme:write to update. -->" />
+	<Comment>Generated from README.mdx. Run pnpm readme:write to update.</Comment>
 )
 
 export const PackageHeader: Component<{

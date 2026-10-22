@@ -25,6 +25,7 @@ export const popularityEnum: PgEnum<[`unknown`, `known`, `popular`]> = pgEnum(
 export const countries: PgTableWithColumns<{
 	name: `countries`
 	schema: undefined
+	isAlias: false
 	columns: PgBuildColumns<
 		`countries`,
 		{
@@ -45,6 +46,7 @@ export const countries: PgTableWithColumns<{
 export const cities: PgTableWithColumns<{
 	name: `cities`
 	schema: undefined
+	isAlias: false
 	columns: PgBuildColumns<
 		`cities`,
 		{

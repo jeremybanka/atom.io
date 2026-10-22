@@ -1,6 +1,7 @@
 import { waitFor } from "@testing-library/react"
 import {
 	headless,
+	SeededScenarioRandom,
 	type HeadlessRealtimeTestClient,
 } from "@atom.io/realtime/testing/headless"
 
@@ -10,6 +11,7 @@ import {
 	type MarkdownCollaborationClient,
 } from "../src/collaboration-client.ts"
 import type { Identity } from "../src/identities.ts"
+import { INITIAL_MARKDOWN } from "../src/initial-markdown.ts"
 import { createMarkdownWorkspaceState } from "../src/workspace-state.ts"
 
 const ADA = { color: `#7057ff`, id: `ada`, name: `Ada` } satisfies Identity
@@ -26,12 +28,13 @@ const INITIAL = `# Bounded notes\n\n${Array.from(
 
 async function scenario(
 	options: {
+		readonly initialText?: string
 		readonly presenceRenewalMs?: number
 		readonly presenceTtlMs?: number
 	} = {},
 ) {
 	const service = await createMarkdownDocumentService({
-		initialText: INITIAL,
+		initialText: options.initialText ?? INITIAL,
 		presenceTtlMs: options.presenceTtlMs,
 	})
 	const runtimes: RuntimeRegistry = new Map()
@@ -117,6 +120,53 @@ async function live(room: Awaited<ReturnType<typeof scenario>>) {
 }
 
 describe(`incremental realtime Markdown Domain`, () => {
+	test.each([0x51_0c_10, 0xc0_ff_ee, 0x12_34_56])(
+		`seed %i: single-writer replacements converge to a plain-text oracle`,
+		async (seed) => {
+			const setup = await scenario({ initialText: INITIAL_MARKDOWN })
+			try {
+				await initialize(setup)
+				const clients = await live(setup)
+				const random = new SeededScenarioRandom(seed)
+				const alphabet = [`x`, `y`, ` `, `!`, `😀`] as const
+				const segmenter = new Intl.Segmenter(undefined, {
+					granularity: `grapheme`,
+				})
+				let oracle = INITIAL_MARKDOWN
+
+				// Exercise the real client/server protocol without keyboard travel or
+				// wall-clock sleeps. Native editing and painting stay in Playwright.
+				for (let step = 0; step < 100; step++) {
+					const boundaries = [0]
+					for (const { index, segment } of segmenter.segment(oracle)) {
+						boundaries.push(index + segment.length)
+					}
+					const startIndex = random.integer(boundaries.length)
+					const removable = Math.min(3, boundaries.length - 1 - startIndex)
+					const removed = removable === 0 ? 0 : random.integer(removable + 1)
+					const start = boundaries[startIndex]
+					const end = boundaries[startIndex + removed]
+					let inserted: string = random.pick(alphabet)
+					// Submit actual edits; the command protocol rejects no-op replacements.
+					if (oracle.slice(start, end) === inserted) inserted += `x`
+					const writer = clients.ada
+					const anchor = await writer.projection.positionAtOffset(start)
+					const head = await writer.projection.positionAtOffset(end)
+					const context = `seed ${seed.toString(16)} step ${step}: replace ${start}..${end} with ${JSON.stringify(inserted)}`
+					await writer.replace({ selection: { anchor, head }, text: inserted })
+					oracle = `${oracle.slice(0, start)}${inserted}${oracle.slice(end)}`
+					await setup.room.waitForIdle()
+					expect(setup.service.materialize(), context).toBe(oracle)
+					for (const client of [clients.ada, clients.lin]) {
+						expect(await client.projection.materialize(), context).toBe(oracle)
+					}
+				}
+			} finally {
+				await setup.teardown()
+			}
+		},
+	)
+
 	test(`the store-owned workspace hydrates its initial viewport`, async () => {
 		const setup = await scenario()
 		try {

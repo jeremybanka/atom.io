@@ -117,8 +117,7 @@
 			]
 		},
 		"atom.io#test:once": {
-			"dependsOn": ["build", "@atom.io/react#build",
-				"@atom.io/realtime#build"],
+			"dependsOn": ["build", "@atom.io/react#build"],
 			"inputs": [
 				"package.json",
 				"tsconfig.json",
@@ -140,8 +139,7 @@
 			"dependsOn": ["build", "atom.io#build"]
 		},
 		"test:stress:realtime-ipc": {
-			"dependsOn": ["build", "@atom.io/react#build",
-				"@atom.io/realtime#build"],
+			"dependsOn": ["build", "@atom.io/react#build"],
 			"cache": false,
 			"inputs": [
 				"package.json",
@@ -201,8 +199,7 @@
 				"test:breakage:prelude",
 				"^build",
 				"build",
-				"@atom.io/react#build",
-				"@atom.io/realtime#build"
+				"@atom.io/react#build"
 			],
 			"cache": true,
 			"inputs": [
@@ -329,8 +326,7 @@
 			"dependsOn": ["lint:eslint", "lint:oxlint", "lint:types"]
 		},
 		"atom.io#cov": {
-			"dependsOn": ["build", "@atom.io/react#build",
-				"@atom.io/realtime#build"],
+			"dependsOn": ["build", "@atom.io/react#build"],
 			"outputs": ["coverage/**"],
 			"inputs": [
 				"tsconfig.json",
@@ -348,8 +344,7 @@
 			]
 		},
 		"atom.io#cov:public": {
-			"dependsOn": ["build", "@atom.io/react#build",
-				"@atom.io/realtime#build"],
+			"dependsOn": ["build", "@atom.io/react#build"],
 			"outputs": ["coverage-public/**"],
 			"inputs": [
 				"tsconfig.json",
@@ -373,8 +368,7 @@
 		"atom.io#lint:types": {
 			"dependsOn": [
 				"@atom.io/realtime#build",
-				"@atom.io/react#build",
-				"@atom.io/realtime#build"
+				"@atom.io/react#build"
 			]
 		},
 		"atom.io#build": {

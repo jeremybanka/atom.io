@@ -8,6 +8,7 @@
 	"excludes": [
 		"packages/atom.io/README.md",
 		"packages/react/README.md",
+		"packages/realtime/README.md",
 		"packages/solid/README.md",
 		"packages/react-devtools/README.md",
 		"packages/eslint-plugin/README.md",

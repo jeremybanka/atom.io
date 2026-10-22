@@ -1,4 +1,5 @@
 ---
+"@atom.io/realtime": patch
 "@atom.io/react": patch
 "@atom.io/solid": patch
 "@atom.io/react-devtools": patch

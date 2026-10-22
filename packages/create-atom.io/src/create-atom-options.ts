@@ -3,6 +3,10 @@ import type { OptionsGroup } from "comline"
 import { options, parseBooleanOption } from "comline"
 
 export const TEMPLATES = {
+	"preact-realtime-vector-editor": {
+		label: `Preact Realtime Vector Editor`,
+		description: `A Preact vector editor with Mosaic Domain batching, presence, recovery, and actor-safe history.`,
+	},
 	"preact-svg-editor": {
 		label: `Preact SVG Editor`,
 		description: `A Preact + Vite SVG editor that leans on atoms, atom families, selectors, and transactions.`,

@@ -63,7 +63,9 @@
 		"cov": "vitest run --config vitest.total-coverage.config.ts --coverage",
 		"cov:recoverage": "recoverage",
 		"test:stress:realtime-ipc": "ATOM_IO_TEST_ROOM_STARTUP_DELAY_MS=1250 vitest run --config vitest.dist.config.ts __tests__/private/experiments/realtime-ipc/game-servers.test.tsx",
-		"test:packaging": "node __scripts__/test-packaging.ts"
+		"test:packaging": "node __scripts__/test-packaging.ts",
+		"readme:write": "galley write README.mdx",
+		"readme:check": "galley check README.mdx"
 	},
 	"devDependencies": {
 		"@atom.io/react": "workspace:*",

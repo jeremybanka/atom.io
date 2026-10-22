@@ -4,7 +4,7 @@ import Exhibit from "c/Exhibit.astro";
 
 Atom.io realtime keeps collaborative state in ordinary atom.io Stores. Your
 atoms, mutable atoms, families, selectors, transactions, Silos, and React hooks
-remain the application model; the realtime packages add transport,
+remain the application model; `@atom.io/realtime` adds transport,
 authorization, convergence, recovery, and presence around them.
 
 This section starts with a choice. Atom.io deliberately offers three realtime
@@ -64,13 +64,13 @@ server-owned status flag does not need an operation algebra. A collaborative
 paragraph should not use last-writer-wins. A design gesture that changes a path,
 its order, and its index must not be split into separately observable commits.
 
-## five packages, one Store
+## one SDK, shared Store
 
 <table-wrapper>
 	<table>
 		<thead>
 			<tr>
-				<th>Package</th>
+				<th>Entry point</th>
 				<th>Responsibility</th>
 			</tr>
 		</thead>
@@ -105,7 +105,7 @@ its order, and its index must not be split into separately observable commits.
 					<a href="/docs/realtime-react"><code>@atom.io/realtime/react</code></a>
 				</td>
 				<td>
-					A shared Socket.IO provider plus lifecycle hooks over the headless
+					A shared transport provider plus lifecycle hooks over the headless
 					clients. React renders ordinary Store state; it does not own replicas.
 				</td>
 			</tr>
@@ -125,7 +125,8 @@ its order, and its index must not be split into separately observable commits.
 
 ## connect React once
 
-Install Socket.IO alongside atom.io, create one client socket, and put a
+Install Socket.IO alongside `atom.io`, `@atom.io/react`, and
+`@atom.io/realtime`, create one client socket, and put a
 `RealtimeProvider` inside the same atom.io Store or Silo provider as the UI.
 The realtime hooks coalesce repeated consumers and release their service when
 the final consumer unmounts. Supply a short-lived product credential through

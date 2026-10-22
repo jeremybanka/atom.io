@@ -30,6 +30,11 @@ React's socket surface now uses the shared transport contract. Code needing
 Socket.IO-specific facilities should retain its concrete socket separately.
 The server entry point targets Node; a Cloudflare adapter remains follow-up work.
 
+The core `TransactionSubEvent` union also gains `mutable_atom_snapshot`. Update
+exhaustive subevent switches to handle it: mutable-atom snapshot writes inside
+transactions now participate in replay and timelines. The outermost transaction
+commit record exposed through `Store.on.transactionCommit` is additive.
+
 ## identity and authorization
 
 - Authenticate the socket before creating user/Domain state.

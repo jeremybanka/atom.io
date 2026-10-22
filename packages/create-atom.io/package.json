@@ -24,7 +24,9 @@
 		"lint:eslint": "eslint",
 		"lint:oxlint": "oxlint",
 		"lint:types": "tsc",
-		"test:once": "pnpm run build && vitest run"
+		"test:once": "pnpm run build && vitest run",
+		"readme:write": "galley write README.mdx",
+		"readme:check": "galley check README.mdx"
 	},
 	"dependencies": {
 		"@atom.io/template-preact-svg-editor": "workspace:*",

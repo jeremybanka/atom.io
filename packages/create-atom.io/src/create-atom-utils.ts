@@ -6,27 +6,18 @@ import * as prompts from "@clack/prompts"
 import { getPackageInfo } from "local-pkg"
 import { x } from "tinyexec"
 
+import type { CreateAtomOptions, PackageManager } from "./create-atom-options.ts"
+
 export const color = (
 	format: Parameters<typeof styleText>[0],
 	text: string,
 ): string => styleText(format, text, { validateStream: false })
 
-type PackageManager = `bun` | `npm` | `pnpm` | `yarn`
-export type TemplateName =
-	| `preact-svg-editor`
-	| `react-node-backend`
-	| `react-realtime-text-editor`
-	| `solid-lossless-numbers`
-
-export type CreateAtomOptions = {
-	packageManager: PackageManager
-	templateName: TemplateName
-	useMise: boolean
-}
-
-export type CreateAtomOptionsPreloaded = {
-	[K in keyof CreateAtomOptions]?: CreateAtomOptions[K] | undefined
-} & { skipHints?: boolean | undefined }
+export type {
+	CreateAtomOptions,
+	CreateAtomOptionsPreloaded,
+	TemplateName,
+} from "./create-atom-options.ts"
 
 export async function useSpinner(
 	startMessage: string,

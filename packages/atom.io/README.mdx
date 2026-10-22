@@ -1,0 +1,16 @@
+import { PackageHeader } from "../../scripts/readme/package-header.tsx"
+import { Tonnage } from "tonnage/galley"
+import Install from "./docs/source/exhibits/readme/install.sh" with { type: "code", lang: "shell" }
+import config from "./tonnage.config.ts"
+
+<PackageHeader tagline="Versatile state engine for TypeScript applications." coverageSlug="atom.io" diskDocs>
+  <Install />
+</PackageHeader>
+
+<Tonnage config={config} />
+
+🤖 Are you a robot? Great news! `atom.io` ships easy-to-grep documentation right
+alongside its SDK. After installing, start with `node_modules/atom.io/AGENTS.md`.
+It points to official sources in `node_modules/atom.io/docs/agent/` containing
+concepts, setup guides, and best-practices, backed up by source-linked examples.
+It's the exact same content on atom.io.fyi, just without the angle-brackets.

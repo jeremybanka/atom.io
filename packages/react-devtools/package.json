@@ -45,7 +45,9 @@
 		"test:consumer": "node --test __tests__/fixtures/consumer/runtime.ts && tsc -p __tests__/fixtures/consumer/tsconfig.json",
 		"cov": "vitest run --config vitest.total-coverage.config.ts --coverage",
 		"test:packaging": "node __tests__/packaging.ts",
-		"cov:recoverage": "recoverage"
+		"cov:recoverage": "recoverage",
+		"readme:write": "galley write README.mdx",
+		"readme:check": "galley check README.mdx"
 	},
 	"dependencies": {
 		"motion": "14.4.0"

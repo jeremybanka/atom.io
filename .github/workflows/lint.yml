@@ -85,7 +85,7 @@ jobs:
           packages: bun node pnpm
       - run: pnpm lint:oxlint
 
-  Tonnage:
+  READMEs:
     runs-on: ubuntu-latest
     timeout-minutes: 9
     steps:
@@ -93,7 +93,8 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           packages: bun node pnpm
-      - run: pnpm run tonnage:check
+      - run: pnpm readme:check
+      - run: pnpm readme:types
 
   Types:
     runs-on: ubuntu-latest

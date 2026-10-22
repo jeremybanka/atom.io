@@ -5,7 +5,6 @@ import {
 	type BrowserContext,
 	type Page,
 } from "@playwright/test"
-import { SeededScenarioRandom } from "@atom.io/realtime/testing/headless"
 
 import {
 	createMarkdownCollaborationHttpServer,
@@ -184,15 +183,20 @@ async function observeWriterOrder(
 	return { ...input, ...browser }
 }
 
-function graphemeBoundaries(value: string): readonly number[] {
-	const boundaries = [0]
-	for (const { index, segment } of new Intl.Segmenter(undefined, {
-		granularity: `grapheme`,
-	}).segment(value)) {
-		const end = index + segment.length
-		if (end > boundaries.at(-1)!) boundaries.push(end)
-	}
-	return boundaries
+// Cursor geometry tests need a semantic starting point, not hundreds of
+// ArrowRight round trips. The actual edits and subsequent arrow keys stay native.
+async function moveCaretToText(page: Page, text: string): Promise<void> {
+	await page.locator(EDITOR).evaluate((root, target) => {
+		const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+		for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+			const offset = node.textContent?.indexOf(target) ?? -1
+			if (offset < 0) continue
+			;(root as HTMLElement).focus()
+			window.getSelection()!.setBaseAndExtent(node, offset, node, offset)
+			return
+		}
+		throw new Error(`Caret target not found: ${target}`)
+	}, text)
 }
 
 async function selectGraphemeRange(
@@ -503,42 +507,38 @@ test.describe(`Mosaic text editor browser conformance`, () => {
 		}
 	})
 
-	test(`seeded rapid replacements preserve a plain-text oracle`, async ({
+	test(`native grapheme selection and replacement preserve exact text`, async ({
 		browser,
 	}) => {
-		test.setTimeout(180_000)
-		test.info().annotations.push({
-			description: `0x510c10`,
-			type: `seed`,
-		})
 		const clients = await openClients(browser)
 		try {
-			let oracle = await sourceText(clients.maya)
-			const random = new SeededScenarioRandom(0x51_0c_10)
-			const alphabet = [`x`, `y`, ` `, `!`, `😀`] as const
-
-			for (let step = 0; step < 40; step++) {
-				const boundaries = graphemeBoundaries(oracle)
-				const startIndex = random.integer(boundaries.length)
-				const removable = Math.min(3, boundaries.length - 1 - startIndex)
-				const removed = removable === 0 ? 0 : random.integer(removable + 1)
-				const inserted = random.pick(alphabet)
-				const endIndex = startIndex + removed
-				const start = boundaries[startIndex]
-				const end = boundaries[endIndex]
-				await selectGraphemeRange(clients.maya, startIndex, endIndex)
-				await clients.maya.keyboard.insertText(inserted)
-				oracle = `${oracle.slice(0, start)}${inserted}${oracle.slice(end)}`
-				expect(
-					await sourceText(clients.maya),
-					`seed 0x510c10 step ${step}: replace ${start}..${end} with ${JSON.stringify(inserted)}`,
-				).toBe(oracle)
-				await clients.maya.waitForTimeout(random.pick([20, 45, 90, 180]))
-			}
-
+			await clients.maya.locator(EDITOR).click()
+			await clients.maya.keyboard.press(`ControlOrMeta+A`)
+			await clients.maya.keyboard.press(`Backspace`)
+			await waitForText(clients.maya, ``)
 			await waitForSaved(clients.maya)
-			await waitForText(clients.theo, oracle)
-			expect(await sourceText(clients.maya)).toBe(oracle)
+			await clients.maya.keyboard.insertText(`a😀bc`)
+			await waitForText(clients.maya, `a😀bc`)
+			await waitForSaved(clients.maya)
+
+			// Keep native keyboard selection across a surrogate pair in the browser;
+			// the larger seeded oracle lives in collaboration.test.tsx.
+			const replacements = [
+				{ start: 1, end: 2, text: `x`, expected: `axbc` },
+				{ start: 2, end: 2, text: `😀`, expected: `ax😀bc` },
+				{ start: 1, end: 4, text: `!`, expected: `a!c` },
+			] as const
+			for (const replacement of replacements) {
+				await selectGraphemeRange(
+					clients.maya,
+					replacement.start,
+					replacement.end,
+				)
+				await clients.maya.keyboard.insertText(replacement.text)
+				expect(await sourceText(clients.maya)).toBe(replacement.expected)
+			}
+			await waitForSaved(clients.maya)
+			await waitForText(clients.theo, `a!c`)
 		} finally {
 			await closeClients(clients)
 		}
@@ -614,7 +614,7 @@ test.describe(`Mosaic text editor browser conformance`, () => {
 		try {
 			const fixture = await sourceText(clients.maya)
 			const kind = fixture.lastIndexOf(`kind`)
-			await moveCaret(clients.theo, kind)
+			await moveCaretToText(clients.theo, `kind`)
 			await clients.theo.keyboard.press(`ArrowRight`)
 			await clients.theo.keyboard.press(`ArrowLeft`)
 			const presence = clients.maya.locator(
@@ -664,7 +664,7 @@ test.describe(`Mosaic text editor browser conformance`, () => {
 			const fixture = await sourceText(clients.maya)
 			const rollout = fixture.lastIndexOf(`rollout`)
 			expect(rollout).toBeGreaterThan(0)
-			await moveCaret(clients.theo, rollout)
+			await moveCaretToText(clients.theo, `rollout`)
 			await clients.theo.keyboard.press(`ArrowRight`)
 			await clients.theo.keyboard.press(`ArrowLeft`)
 
@@ -745,7 +745,7 @@ test.describe(`Mosaic text editor browser conformance`, () => {
 			const fixture = await sourceText(clients.maya)
 			const rollout = fixture.lastIndexOf(`rollout`)
 			expect(rollout).toBeGreaterThan(0)
-			await moveCaret(clients.theo, rollout)
+			await moveCaretToText(clients.theo, `rollout`)
 			await clients.theo.keyboard.press(`ArrowRight`)
 			await clients.theo.keyboard.press(`ArrowLeft`)
 			const presence = clients.maya.locator(

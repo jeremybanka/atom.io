@@ -25,7 +25,7 @@
 		"@astrojs/preact": "6.1.1",
 		"@atom.io/react": "workspace:*",
 		"@atom.io/react-devtools": "workspace:*",
-		"@babel/parser": "7.29.8",
+		"@babel/parser": "7.29.9",
 		"@babel/types": "7.29.8",
 		"@pierre/highlights": "0.2.0",
 		"astro": "7.4.2",

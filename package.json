@@ -77,7 +77,7 @@
 		"astro-eslint-parser": "3.2.0",
 		"atom.io": "workspace:*",
 		"breakage": "0.8.5",
-		"correctly": "0.3.1",
+		"correctly": "0.3.2",
 		"dprint": "0.64.1",
 		"dprint-plugin-malva": "0.16.0",
 		"dprint-plugin-markup": "0.27.6",

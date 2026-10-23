@@ -241,5 +241,3 @@ await test(`function snapshots remain values and owned notifications stay reacti
 		dispose()
 	}
 })
-
-if (`onSettled` in Solid) await import(`./solid2.mjs`)

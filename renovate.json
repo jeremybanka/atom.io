@@ -43,6 +43,18 @@
 			"depNameTemplate": "ghcr.io/renovatebot/renovate",
 			"datasourceTemplate": "docker",
 			"versioningTemplate": "semver-coerced"
+		},
+		{
+			"customType": "regex",
+			"managerFilePatterns": [
+				"/^packages\\/solid\\/package\\.json$/"
+			],
+			"matchStrings": [
+				"\"solid-js\": \"\\^1\\.9\\.0 \\|\\| (?<currentValue>2\\.0\\.0-rc\\.\\d+)\""
+			],
+			"depNameTemplate": "solid-js",
+			"datasourceTemplate": "npm",
+			"depTypeTemplate": "solid2Peer"
 		}
 	],
 	"packageRules": [
@@ -106,9 +118,45 @@
 		},
 		{
 			"description": "Keep Solid peer environments current within the supported 1.x range.",
-			"matchFileNames": ["packages/solid/peer-environments/*/package.json"],
+			"matchFileNames": [
+				"packages/solid/peer-environments/*-solid1.9/package.json"
+			],
 			"matchPackageNames": ["solid-js"],
 			"allowedVersions": "^1.9.0"
+		},
+		{
+			"description": "The Solid 2 regex manager updates only the exact RC arm of the peer range, preserving Solid 1 support.",
+			"matchManagers": [
+				"npm"
+			],
+			"matchFileNames": [
+				"packages/solid/package.json"
+			],
+			"matchPackageNames": [
+				"solid-js"
+			],
+			"matchDepTypes": [
+				"peerDependencies"
+			],
+			"enabled": false
+		},
+		{
+			"description": "Keep Solid 2 peer environments on release candidates with the normal one-day maturity delay.",
+			"matchFileNames": [
+				"packages/solid/peer-environments/*-solid2/package.json",
+				"packages/solid/package.json"
+			],
+			"matchPackageNames": [
+				"solid-js"
+			],
+			"allowedVersions": "/^2\\.0\\.0-rc\\.\\d+$/",
+			"ignoreUnstable": false,
+			"respectLatest": false,
+			"groupName": "Solid 2 peer environments",
+			"matchDepTypes": [
+				"dependencies",
+				"solid2Peer"
+			]
 		},
 		{
 			"description": "Keep released SDK representatives on the 0.53 compatibility era.",

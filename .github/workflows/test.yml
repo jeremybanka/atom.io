@@ -53,7 +53,7 @@ jobs:
 
   BrowserConformance:
     name: Browser Conformance
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 9
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -61,7 +61,35 @@ jobs:
         with:
           packages: bun node pnpm
       - run: pnpm exec turbo run build --filter=@atom.io/realtime...
-      - run: pnpm --filter @atom.io/template-react-realtime-text-editor exec playwright install --with-deps chromium
+      - name: Resolve Playwright version
+        id: playwright
+        working-directory: templates/react-realtime-text-editor
+        run: node -p '"version=" + require("@playwright/test/package.json").version' >> "$GITHUB_OUTPUT"
+      - name: Restore Playwright browsers
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ runner.arch }}-ubuntu-24.04-headless-${{ steps.playwright.outputs.version }}
+      # Keep the install on cache hits to verify the required browser and FFmpeg
+      # are present. Headless tests do not need the full Chromium download.
+      - name: Install Chromium headless shell
+        run: pnpm --filter @atom.io/template-react-realtime-text-editor exec playwright install --only-shell chromium
+      - name: Verify Chromium system dependencies
+        working-directory: templates/react-realtime-text-editor
+        run: |
+          check_browser() {
+            node --input-type=module -e '
+              import { chromium } from "@playwright/test"
+              const browser = await chromium.launch()
+              await browser.close()
+            '
+          }
+          # Hosted runners already provide Chromium libraries. Probe every run:
+          # restoring browser files does not restore system packages.
+          if ! check_browser; then
+            pnpm exec playwright install-deps chromium
+            check_browser
+          fi
       - run: pnpm --filter @atom.io/template-react-realtime-text-editor test:browser
 
   Manifest:

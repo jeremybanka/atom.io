@@ -530,8 +530,8 @@ importers:
         specifier: 2.2.9
         version: 2.2.9
       comline:
-        specifier: 0.9.0
-        version: 0.9.0(arktype@2.2.9)(zod@4.6.7)
+        specifier: 0.9.1
+        version: 0.9.1(arktype@2.2.9)(zod@4.6.7)
       local-pkg:
         specifier: 1.2.1
         version: 1.2.1
@@ -4878,6 +4878,17 @@ packages:
       zod:
         optional: true
 
+  comline@0.9.1:
+    resolution: {integrity: sha512-RbB0sJLMiTHe02VpHLK3RmXUk9Y/Jw5H35yx9X8rVWM7SQKDaSJ6AgIY1TbjhbduXhPrJEeiBbInvuYep5I9jw==}
+    peerDependencies:
+      arktype: ^2.1.28
+      zod: ^4.2.0
+    peerDependenciesMeta:
+      arktype:
+        optional: true
+      zod:
+        optional: true
+
   comma-separated-tokens@2.0.3:
     resolution: {integrity: sha512-Fu4hJdvzeylCfQPp9SGWidpzrMs7tTrlu6Vb8XGaRGck8QSNZJJp538Wrb60Lax4fPwR64ViY468OIUTbRlGZg==}
 
@@ -7186,6 +7197,9 @@ packages:
 
   treetrunks@0.1.12:
     resolution: {integrity: sha512-x9XbZAus9Y4y7WRke6DwOrxmAxrwXNVv/wSmO9aNEfO92gu4Jau/4lmfXE1untxNle1WygPX2wriCtf+oYKMmg==}
+
+  treetrunks@0.1.13:
+    resolution: {integrity: sha512-mnGpuYAWH+EMci3E+4B9nd9K57mR4zSNmTrkzyJwTEmnN75TllJGgVb632unrp2AOfZ/ksgvombhwGH1bERhzw==}
 
   trim-lines@3.0.1:
     resolution: {integrity: sha512-kRj8B+YHZCc9kQYdWfJB2/oUl9rA99qbowYYBtr4ui4mZyAQ2JpvVBd/6U2YloATfqBhBTSMhTpgBHtU0Mf3Rg==}
@@ -11406,6 +11420,14 @@ snapshots:
       arktype: 2.2.9
       zod: 4.6.7
 
+  comline@0.9.1(arktype@2.2.9)(zod@4.6.7):
+    dependencies:
+      '@standard-schema/spec': 1.1.0
+      treetrunks: 0.1.13
+    optionalDependencies:
+      arktype: 2.2.9
+      zod: 4.6.7
+
   comma-separated-tokens@2.0.3: {}
 
   commander@11.1.0: {}
@@ -14365,6 +14387,8 @@ snapshots:
   tree-kill@1.2.2: {}
 
   treetrunks@0.1.12: {}
+
+  treetrunks@0.1.13: {}
 
   trim-lines@3.0.1: {}
 

@@ -1,6 +1,6 @@
 {
 	"name": "@atom.io/eslint-plugin",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "ESLint rules for atom.io state and transaction declarations.",
 	"homepage": "https://atom.io.fyi/docs/eslint-plugin",
 	"repository": {

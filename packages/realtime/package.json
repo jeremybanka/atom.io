@@ -1,6 +1,6 @@
 {
 	"name": "@atom.io/realtime",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "Realtime collaboration, clients, servers, and testing for atom.io.",
 	"homepage": "https://atom.io.fyi/docs/realtime",
 	"repository": {

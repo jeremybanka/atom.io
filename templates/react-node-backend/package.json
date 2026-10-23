@@ -1,6 +1,6 @@
 {
 	"name": "@atom.io/template-react-node-backend",
-	"version": "0.0.97",
+	"version": "0.0.98",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/jeremybanka/atom.io.git",

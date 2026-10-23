@@ -1,0 +1,6 @@
+{
+	"name": "breakage-release-fixture",
+	"private": true,
+	"type": "module",
+	"workspaces": ["packages/*"]
+}

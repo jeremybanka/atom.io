@@ -203,6 +203,11 @@
 			],
 			"cache": true,
 			"inputs": [
+				"../../scripts/breakage-certify.ts",
+				"../../scripts/breakage-release.ts",
+				"../../packages/*/package.json",
+				"../../apps/*/package.json",
+				"../../templates/*/package.json",
 				"$TURBO_DEFAULT$",
 				"../../.changeset/**",
 				"package.json",
@@ -236,6 +241,11 @@
 			"dependsOn": ["test:breakage:prelude", "^build"],
 			"cache": true,
 			"inputs": [
+				"../../scripts/breakage-certify.ts",
+				"../../scripts/breakage-release.ts",
+				"../../packages/*/package.json",
+				"../../apps/*/package.json",
+				"../../templates/*/package.json",
 				"$TURBO_DEFAULT$",
 				"../../.changeset/**",
 				"../../package.json",

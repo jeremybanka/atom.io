@@ -112,4 +112,5 @@ jobs:
         with:
           postgres-version: "18"
           port: "59432"
+      - run: node --test scripts/breakage-release.test.ts
       - run: pnpm test:breakage

@@ -225,6 +225,9 @@ importers:
       '@types/node':
         specifier: 26.6.5
         version: 26.6.5
+      '@types/semver':
+        specifier: 7.8.0
+        version: 7.8.0
       '@typescript-eslint/eslint-plugin':
         specifier: 8.72.0
         version: 8.72.0(@typescript-eslint/parser@8.72.0(eslint@10.13.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.13.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
@@ -294,6 +297,9 @@ importers:
       pin-dependencies-checker:
         specifier: 2.7.1
         version: 2.7.1
+      semver:
+        specifier: 7.8.5
+        version: 7.8.5
       tonnage:
         specifier: 0.4.0
         version: 0.4.0(galley.md@0.1.4(arktype@2.2.8)(supports-color@10.2.2)(zod@4.6.7))
@@ -3998,6 +4004,9 @@ packages:
 
   '@types/resolve@1.20.6':
     resolution: {integrity: sha512-A4STmOXPhMUtHH+S6ymgE2GiBSMqf4oTvcQZMcHzokuTLVYzXTB8ttjcgxOVaAp2lGwEdzZ0J+cRbbeevQj1UQ==}
+
+  '@types/semver@7.8.0':
+    resolution: {integrity: sha512-1mAINjtQCXXeLkJ9ehXkwOcBpqtLxiVtKhpUf83DdRNdQKV0iXZpaHYqRr7nj+wvxuJzoAmAwXI+sCNMv1CzLQ==}
 
   '@types/stats.js@0.17.4':
     resolution: {integrity: sha512-jIBvWWShCvlBqBNIZt0KAshWpvSjhkwkEu4ZUcASoAvhmrgAUI2t1dXrjSL4xXVLB4FznPrIsX3nKXFl/Dt4vA==}
@@ -10552,6 +10561,8 @@ snapshots:
       csstype: 3.2.3
 
   '@types/resolve@1.20.6': {}
+
+  '@types/semver@7.8.0': {}
 
   '@types/stats.js@0.17.4': {}
 

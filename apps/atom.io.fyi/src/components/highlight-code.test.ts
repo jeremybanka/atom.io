@@ -213,6 +213,43 @@ transaction<(payload: string) => Promise<void>>({})`
 	}
 })
 
+await test(`heritage clauses color qualified type names without coloring their keywords`, () => {
+	const code = `interface Child<T> extends api.Parent<T> {}
+class Implementation<T> implements api.Contract<T> {}`
+	for (const filepath of [`example.ts`, `example.tsx`]) {
+		for (const word of [
+			`Child`,
+			`T>`,
+			`api.Parent`,
+			`Parent`,
+			`Implementation`,
+			`api.Contract`,
+			`Contract`,
+		])
+			assert.equal(colorAt(code, word, filepath), `var(--code-type-color)`, word)
+		for (const word of [`interface`, `extends`, `class`, `implements`])
+			assert.equal(
+				colorAt(code, word, filepath),
+				`var(--code-keyword-color)`,
+				word,
+			)
+	}
+})
+
+await test(`mapped type keys retain type colors while mapping operators stay keywords`, () => {
+	const code = `type Copy<T> = { [Key in keyof T]: T[Key] }`
+	for (const filepath of [`example.ts`, `example.tsx`]) {
+		for (const word of [`Key in`, `Key]`])
+			assert.equal(colorAt(code, word, filepath), `var(--code-type-color)`, word)
+		for (const word of [`in`, `keyof`])
+			assert.equal(
+				colorAt(code, word, filepath),
+				`var(--code-keyword-color)`,
+				word,
+			)
+	}
+})
+
 await test(`function syntax and call targets stay purple with or without annotations`, () => {
 	const code = `const plain = () => {}; const typed: (payload: string) => void = () => {}; api.call(); api.optional?.(); new Factory(); function declared() {}; const object = { method() {}, callback: () => {} }; z.string()`
 	for (const filepath of [`example.ts`, `example.tsx`]) {

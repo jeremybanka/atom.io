@@ -88,20 +88,17 @@ export function getSyntaxTreatments(
 		// or spelled like globals (console, Promise, undefined, etc.).
 		if (t.isIdentifier(node)) add(node, `plain`, 0)
 		if (t.isTSTypeReference(node)) typeName(node.typeName)
-		if (t.isTSExpressionWithTypeArguments(node)) typeName(node.expression)
+		if (t.isTSClassImplements(node) || t.isTSInterfaceHeritage(node))
+			typeName(node.expression)
 		if (t.isTSImportType(node) && node.qualifier) typeName(node.qualifier)
-		if (t.isTSTypeParameter(node) && node.start != null) {
-			// Constraints/defaults are separate nodes; `extends` stays a keyword.
-			const nameStart = code.indexOf(node.name, node.start)
-			add(
-				{ ...node, start: nameStart, end: nameStart + node.name.length },
-				`type`,
-			)
-		}
+		// Constraints/defaults are separate nodes; `extends` stays a keyword.
+		if (t.isTSTypeParameter(node)) add(node.name, `type`)
+		if (t.isTSMappedType(node)) add(node.key, `type`)
 		if (/^TS\w+Keyword$/.test(node.type)) add(node, `type`)
 		// Template literal types contain other syntax inside ${...}; only their
 		// literal pieces inherit the type color from this enclosing node.
-		if (t.isTSLiteralType(node)) add(node, `type`, 2, true)
+		if (t.isTSLiteralType(node) || t.isTSTemplateLiteralType(node))
+			add(node, `type`, 2, true)
 		if (
 			t.isTSTypeAliasDeclaration(node) ||
 			t.isTSInterfaceDeclaration(node) ||

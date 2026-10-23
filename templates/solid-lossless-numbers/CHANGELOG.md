@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.0.48
+
+### Patch Changes
+
+- bb1d8de: Use `@atom.io/solid` for Solid bindings and `@atom.io/eslint-plugin` for lint rules instead of the former core SDK subpaths. Update the template documentation for the standalone bindings. Build with TypeScript 7 while providing TypeScript 6 for ESLint's compiler API.
+
+  Pin dprint 0.64.1 to distrust the compromised eMudhra certificates when downloading formatter plugins.
+- Updated dependencies [bb1d8de]
+- Updated dependencies [bb1d8de]
+  - atom.io@0.54.0
+  - @atom.io/solid@0.1.0
+
 ## 0.0.47
 
 ### Patch Changes

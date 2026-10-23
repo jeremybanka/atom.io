@@ -1,5 +1,17 @@
 # @atom.io/template-react-node-backend
 
+## 0.0.98
+
+### Patch Changes
+
+- bb1d8de: Use `@atom.io/react` for React bindings and `@atom.io/eslint-plugin` for lint rules instead of the former core SDK subpaths. Build with TypeScript 7 while providing TypeScript 6 for ESLint's compiler API.
+
+  Pin dprint 0.64.1 to distrust the compromised eMudhra certificates when downloading formatter plugins.
+- Updated dependencies [bb1d8de]
+- Updated dependencies [bb1d8de]
+  - atom.io@0.54.0
+  - @atom.io/react@0.1.0
+
 ## 0.0.97
 
 ### Patch Changes

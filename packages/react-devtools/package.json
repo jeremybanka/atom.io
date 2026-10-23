@@ -1,6 +1,6 @@
 {
 	"name": "@atom.io/react-devtools",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "React developer tools for atom.io stores.",
 	"homepage": "https://atom.io.fyi/docs/react-devtools",
 	"repository": {

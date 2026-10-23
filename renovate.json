@@ -47,28 +47,6 @@
 	],
 	"packageRules": [
 		{
-			"description": "Temporary Bun 1.4.4 release-age exception; remove after 2026-10-23 10:20 UTC. Keep aligned with pnpm-workspace.yaml.",
-			"matchPackageNames": [
-				"bun",
-				"oven-sh/bun",
-				"@oven/bun-*",
-				"bun-types"
-			],
-			"matchJsonata": ["version = '1.4.4' or newVersion = '1.4.4'"],
-			"minimumReleaseAge": null
-		},
-		{
-			"description": "Temporary exception for the current @types/bun release; remove with the Bun 1.4.4 exception.",
-			"matchDatasources": [
-				"npm"
-			],
-			"matchPackageNames": [
-				"@types/bun"
-			],
-			"matchJsonata": ["version = '1.4.3' or newVersion = '1.4.3'"],
-			"minimumReleaseAge": null
-		},
-		{
 			"description": "Keep the ESLint 9 peer environment current within its supported major.",
 			"matchFileNames": [
 				"packages/eslint-plugin/peer-environments/eslint9/package.json"
@@ -167,20 +145,24 @@
 		{
 			"matchPackageNames": [
 				"@correctlyjs/schemars",
-				"break-check",
+				"atom.io",
 				"breakage",
-				"bun",
-				"bun-types",
 				"comline",
 				"correctly",
 				"galley.md",
 				"lasertag",
+				"rationality",
 				"recoverage",
 				"takua",
 				"tonnage",
-				"treetrunks"
+				"treetrunks",
+				"tsdoc.json"
 			],
-			"minimumReleaseAge": null
+			"minimumReleaseAge": null,
+			"matchDatasources": [
+				"npm"
+			],
+			"description": "Exempt consumed jeremybanka packages at every version; keep aligned with pnpm-workspace.yaml"
 		},
 		{
 			"matchManagers": ["github-actions"],
@@ -219,7 +201,6 @@
 			],
 			"dependencyDashboardApproval": true,
 			"groupName": "renovate",
-			"minimumReleaseAge": null,
 			"postUpgradeTasks": {
 				"commands": [
 					"pnpm install --frozen-lockfile",
@@ -227,8 +208,14 @@
 					"pnpm readme:write"
 				],
 				"executionMode": "branch",
-				"fileFilters": ["packages/*/README.md", ".correctly/**"],
-				"installTools": { "node": {}, "pnpm": {} }
+				"fileFilters": [
+					"packages/*/README.md",
+					".correctly/**"
+				],
+				"installTools": {
+					"node": {},
+					"pnpm": {}
+				}
 			}
 		},
 		{

@@ -18,7 +18,7 @@ const fixtures = join(packageRoot, `__tests__/fixtures/consumer`)
 const fixtureRoot = await mkdtemp(join(tmpdir(), `atom-io-peer-packages-`))
 
 function pnpm(cwd: string, ...args: string[]): void {
-	execFileSync(`pnpm`, [`--reporter=silent`, ...args], {
+	execFileSync(`pnpm`, [`--reporter=append-only`, ...args], {
 		cwd,
 		stdio: `inherit`,
 		timeout: 180_000,

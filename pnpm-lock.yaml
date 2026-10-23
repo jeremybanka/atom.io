@@ -295,8 +295,8 @@ importers:
         specifier: 2.7.1
         version: 2.7.1
       tonnage:
-        specifier: 0.3.0
-        version: 0.3.0(arktype@2.2.8)(galley.md@0.1.4(arktype@2.2.8)(supports-color@10.2.2)(zod@4.6.7))(zod@4.6.7)
+        specifier: 0.4.0
+        version: 0.4.0(galley.md@0.1.4(arktype@2.2.8)(supports-color@10.2.2)(zod@4.6.7))
       turbo:
         specifier: 2.11.10
         version: 2.11.10
@@ -7197,10 +7197,9 @@ packages:
     resolution: {integrity: sha512-EqYNA/YvUNndrA2B3O2ojzLQoTQrBxeZ9UIjQwk8t10oe6n7dwclBwd9IdZQTOKwe6vWX+AXtl6IntXRbepdxQ==}
     engines: {node: '>=20'}
 
-  tonnage@0.3.0:
-    resolution: {integrity: sha512-MFm5A5qjSwboMUTAZ6RUtSsZCpdXskOTGLODnR3ML3orpSuHvAuOWyh46EZ4l4aArSpu/hWmyJRhC7NPoeal0w==}
+  tonnage@0.4.0:
+    resolution: {integrity: sha512-VcFq3wXNJmAx0yjHDixjse2xBMQeqJMs0hE1pnrVpjcPOt+D3GtUX3MhLGZTLaBSuZkGChnt/F1rEQ+GW3MQ5A==}
     engines: {node: '>=22.18.0'}
-    hasBin: true
     peerDependencies:
       galley.md: ^0.1.1
 
@@ -14403,14 +14402,10 @@ snapshots:
 
   toml@5.0.1: {}
 
-  tonnage@0.3.0(arktype@2.2.8)(galley.md@0.1.4(arktype@2.2.8)(supports-color@10.2.2)(zod@4.6.7))(zod@4.6.7):
+  tonnage@0.4.0(galley.md@0.1.4(arktype@2.2.8)(supports-color@10.2.2)(zod@4.6.7)):
     dependencies:
-      comline: 0.9.0(arktype@2.2.8)(zod@4.6.7)
       esbuild: 0.28.2
       galley.md: 0.1.4(arktype@2.2.8)(supports-color@10.2.2)(zod@4.6.7)
-    transitivePeerDependencies:
-      - arktype
-      - zod
 
   totalist@3.0.1: {}
 

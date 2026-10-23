@@ -17,7 +17,7 @@ The released SDK's optional Solid peer still describes its former bundled Solid 
 
 ## External state opportunities
 
-The executable [Solid 2 experiments](../packages/solid/__tests__/fixtures/consumer/solid2.mjs) are consumer fixtures, not new public APIs.
+The executable [Solid 2 experiments](../packages/solid/__tests__/fixtures/consumer/solid2.ts) are consumer fixtures, not new public APIs. The peer suite typechecks these fixtures against Solid 2 in both RC environments before running them in browser production and development modes. Solid 1 environments typecheck and run the shared contracts separately.
 
 **Native async computation.** The rc.17 experiment passes the accessor returned by `useO` into a memo. The dependent effect waits on the atom.io promise and then receives its resolved value. This could support a separate accessor that participates in Solid's `Loading`, `Errored`, and pending UI, while preserving the existing `useLoadable` contract for explicit loading/error values. Boundary rendering, retries, caught atom.io errors, superseded promises, streaming hydration, and optimistic transactions still require their own tests before such an API is published.
 

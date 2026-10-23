@@ -35,7 +35,7 @@
 		"test": "pnpm test:prepare:solid2 && vitest",
 		"test:once": "pnpm test:prepare:solid2 && vitest run --config vitest.dist.config.ts && pnpm test:consumer",
 		"test:once:public": "pnpm test:prepare:solid2 && vitest run --config vitest.public.config.ts",
-		"test:consumer": "node --test --conditions=browser __tests__/fixtures/consumer/runtime.ts && tsc -p __tests__/fixtures/consumer/tsconfig.json",
+		"test:consumer": "node __tests__/fixtures/consumer/check.ts",
 		"cov": "pnpm test:prepare:solid2 && vitest run --config vitest.total-coverage.config.ts --coverage",
 		"cov:public": "pnpm test:prepare:solid2 && vitest run --config vitest.public-coverage.config.ts --coverage",
 		"cov:recoverage": "recoverage",

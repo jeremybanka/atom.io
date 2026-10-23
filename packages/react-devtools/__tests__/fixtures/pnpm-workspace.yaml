@@ -1,4 +1,6 @@
 autoInstallPeers: false
-strictPeerDependencies: true
+# Packaging checks artifact contents and resolution using current workspace versions.
+# Breakage's peer environments validate compatibility with planned release versions.
+strictPeerDependencies: false
 hoist: false
 packages: []

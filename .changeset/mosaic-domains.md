@@ -2,7 +2,7 @@
 "@atom.io/realtime": minor
 ---
 
-Release realtime collaboration as `@atom.io/realtime` 0.1.0, with shared protocol and models at the package root and `/client`, `/server`, `/react`, `/react/lexical`, `/testing/headless`, and `/testing/react` entry points. Replace the old `atom.io/realtime*` imports with the corresponding entries. Require `atom.io` ^0.54.0 and declare optional peers for renderer, transport, and test integrations, including `@atom.io/react` ^0.0 || ^0.1. React APIs expose the shared socket contract instead of Socket.IO-specific types; retain a concrete socket separately when using transport-specific facilities. The server entry point targets Node; Cloudflare support remains follow-up work.
+Release realtime collaboration as `@atom.io/realtime` 0.1.0, with shared protocol and models at the package root and `/client`, `/server`, `/react`, `/react/lexical`, `/testing/headless`, and `/testing/react` entry points. Replace the old `atom.io/realtime*` imports with the corresponding entries. Require `atom.io` ^0.54.0 and declare optional peers for renderer, transport, and test integrations, including `@atom.io/react` ^0.1. React APIs expose the shared socket contract instead of Socket.IO-specific types; retain a concrete socket separately when using transport-specific facilities. The server entry point targets Node; Cloudflare support remains follow-up work.
 
 Add Mosaic Domains for atomic replication of heterogeneous transactions, bounded partial residency, renewable presence, incremental checkpoint recovery, and actor-scoped undo and redo. Provide authenticated client and server adapters, atomic text/index document services, and reusable deterministic multi-client conformance testing.
 

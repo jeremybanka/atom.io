@@ -158,7 +158,7 @@
 		"vite": "8.3.5",
 		"vitest": "5.0.5",
 		"zod": "4.6.7",
-		"zustand": "5.0.15"
+		"zustand": "5.0.16"
 	},
 	"peerDependencies": {
 		"happy-dom": ">=17.4.4"

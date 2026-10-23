@@ -1,11 +1,9 @@
 ---
-"atom.io": minor
 "@atom.io/eslint-plugin": minor
-"@atom.io/template-preact-svg-editor": patch
-"@atom.io/template-react-node-backend": patch
-"@atom.io/template-react-realtime-text-editor": patch
-"@atom.io/template-solid-lossless-numbers": patch
-"create-atom.io": patch
 ---
 
-Move the ESLint plugin to `@atom.io/eslint-plugin`, where its runtime utilities are ordinary dependencies. Install the new package as a development dependency and replace imports from `atom.io/eslint-plugin` with `@atom.io/eslint-plugin`; rule names, options, and the named `Rules` export are unchanged. Remove the old SDK export and its optional ESLint/parser peers while keeping `atom.io` free of regular dependencies. Update the documentation and starter templates to use the standalone package, and use TypeScript 7 for template builds while providing the TypeScript 6 compiler API for ESLint.
+Release the standalone ESLint plugin at 0.1.0. Install it as a development dependency and replace imports from `atom.io/eslint-plugin` with `@atom.io/eslint-plugin`; the default plugin export, named `Rules` export, rule names, and options are unchanged. Runtime utilities are ordinary dependencies of this package.
+
+Support ESLint 9 or 10, `@typescript-eslint/parser` 8, and the TypeScript compiler API from 4.8.4 through 6.0.x. The TypeScript peer is for ESLint's compiler API and does not prevent applications from using a separate TypeScript 7 compiler for builds.
+
+Generate the package README from MDX with shared branding, package badges, source-backed installation and configuration examples, and a rule table derived from plugin metadata. Own rule tests and coverage reporting in this package, with an independent Recoverage history and frozen ESLint 9 and 10 compatibility environments.

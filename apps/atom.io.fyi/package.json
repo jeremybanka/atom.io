@@ -34,7 +34,7 @@
 		"react": "npm:@preact/compat@18.3.2",
 		"react-dom": "npm:@preact/compat@18.3.2",
 		"three": "0.186.1",
-		"tsdoc.json": "0.6.11"
+		"tsdoc.json": "0.6.12"
 	},
 	"devDependencies": {
 		"@atom.io/exhibits": "workspace:*",

@@ -482,8 +482,8 @@ importers:
         specifier: 0.2.3
         version: 0.2.3
       treetrunks:
-        specifier: 0.1.12
-        version: 0.1.12
+        specifier: 0.1.13
+        version: 0.1.13
       tsdown:
         specifier: 0.23.1
         version: 0.23.1(@tsdown/css@0.23.1)(oxc-resolver@11.21.2)(tsx@4.23.13)(typescript@7.0.2)

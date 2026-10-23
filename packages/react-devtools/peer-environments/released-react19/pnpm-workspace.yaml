@@ -2,3 +2,7 @@ packages: []
 autoInstallPeers: false
 strictPeerDependencies: true
 hoist: false
+
+minimumReleaseAgeExclude:
+  # Consumed jeremybanka packages are exempt at every version.
+  - atom.io

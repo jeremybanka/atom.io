@@ -1,73 +1,22 @@
 blockExoticSubdeps: true
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
-  # Temporary Bun exceptions; remove after 2026-10-23 10:20 UTC.
-  # Keep aligned with the temporary rules in renovate.json.
-  - bun@1.4.4
-  - "@oven/bun-darwin-aarch64@1.4.4"
-  - "@oven/bun-darwin-x64@1.4.4"
-  - "@oven/bun-freebsd-aarch64@1.4.4"
-  - "@oven/bun-freebsd-x64@1.4.4"
-  - "@oven/bun-linux-aarch64@1.4.4"
-  - "@oven/bun-linux-aarch64-android@1.4.4"
-  - "@oven/bun-linux-aarch64-musl@1.4.4"
-  - "@oven/bun-linux-x64@1.4.4"
-  - "@oven/bun-linux-x64-android@1.4.4"
-  - "@oven/bun-linux-x64-musl@1.4.4"
-  - "@oven/bun-windows-aarch64@1.4.4"
-  - "@oven/bun-windows-x64@1.4.4"
-  - bun-types@1.4.4
-  - "@types/bun@1.4.3"
-  # Temporary pnpm 12.15.0 exception for Renovate; remove after 2026-10-22 11:17 UTC.
-  - pnpm@12.15.0
-  - "@pnpm/exe.android-arm64@12.15.0"
-  - "@pnpm/exe.android-x64@12.15.0"
-  - "@pnpm/exe.darwin-arm64@12.15.0"
-  - "@pnpm/exe.darwin-x64@12.15.0"
-  - "@pnpm/exe.freebsd-x64@12.15.0"
-  - "@pnpm/exe.linux-arm64-musl@12.15.0"
-  - "@pnpm/exe.linux-arm64@12.15.0"
-  - "@pnpm/exe.linux-ppc64@12.15.0"
-  - "@pnpm/exe.linux-riscv64@12.15.0"
-  - "@pnpm/exe.linux-s390x@12.15.0"
-  - "@pnpm/exe.linux-x64-musl@12.15.0"
-  - "@pnpm/exe.linux-x64@12.15.0"
-  - "@pnpm/exe.win32-arm64@12.15.0"
-  - "@pnpm/exe.win32-x64@12.15.0"
-  # Permit the verified eMudhra security patch before the usual release-age delay.
-  - dprint@0.64.1
-  - "@dprint/android-arm64@0.64.1"
-  - "@dprint/android-x64@0.64.1"
-  - "@dprint/darwin-arm64@0.64.1"
-  - "@dprint/darwin-x64@0.64.1"
-  - "@dprint/freebsd-arm64@0.64.1"
-  - "@dprint/freebsd-x64@0.64.1"
-  - "@dprint/linux-arm64-glibc@0.64.1"
-  - "@dprint/linux-arm64-musl@0.64.1"
-  - "@dprint/linux-loong64-glibc@0.64.1"
-  - "@dprint/linux-loong64-musl@0.64.1"
-  - "@dprint/linux-ppc64-glibc@0.64.1"
-  - "@dprint/linux-ppc64-musl@0.64.1"
-  - "@dprint/linux-riscv64-glibc@0.64.1"
-  - "@dprint/linux-riscv64-musl@0.64.1"
-  - "@dprint/linux-s390x-glibc@0.64.1"
-  - "@dprint/linux-x64-glibc@0.64.1"
-  - "@dprint/linux-x64-musl@0.64.1"
-  - "@dprint/win32-arm64@0.64.1"
-  - "@dprint/win32-x64@0.64.1"
+  # Consumed jeremybanka packages are exempt at every version.
+  # Keep aligned with the npm rule in renovate.json.
   - "@correctlyjs/schemars"
   - atom.io
-  - break-check
   - breakage
-  - bun-types
   - comline
   - correctly
   - galley.md
   - lasertag
+  - rationality
   - recoverage
   - takua
   - tonnage
   - treetrunks
+  - tsdoc.json
+
 autoInstallPeers: false
 verifyDepsBeforeRun: error
 

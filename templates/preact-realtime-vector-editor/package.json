@@ -52,7 +52,7 @@
 		"happy-dom": "21.0.4",
 		"lasertag": "0.8.9",
 		"oxlint": "1.89.0",
-		"oxlint-tsgolint": "7.0.2004",
+		"oxlint-tsgolint": "7.0.2005",
 		"react": "19.3.1",
 		"react-dom": "19.3.1",
 		"typescript": "npm:@typescript/typescript6@6.0.2",

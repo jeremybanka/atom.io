@@ -1,0 +1,19 @@
+{
+	"extends": [
+		"//"
+	],
+	"tasks": {
+		"test:once": {
+			"dependsOn": [
+				"build",
+				"atom.io#build"
+			]
+		},
+		"test:breakage": {
+			"dependsOn": [
+				"test:breakage:prelude",
+				"^build"
+			]
+		}
+	}
+}

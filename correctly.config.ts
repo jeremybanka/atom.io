@@ -39,7 +39,7 @@ export default defineConfig({
 		},
 		{
 			name: `Turbo`,
-			files: [`turbo.json`],
+			files: [`**/turbo.json`],
 			parse: json(),
 			validate: ajv({
 				schema: `node_modules/turbo/schema.json`,

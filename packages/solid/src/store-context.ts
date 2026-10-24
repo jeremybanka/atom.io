@@ -1,6 +1,6 @@
 import type { RootStore } from "atom.io/internal"
 import { IMPLICIT } from "atom.io/internal"
-import type { Context, FlowProps, JSX } from "solid-js"
+import type { Context, FlowComponent, FlowProps } from "solid-js"
 import { createContext } from "solid-js"
 
 declare global {
@@ -15,11 +15,16 @@ export const StoreContext: Context<RootStore> =
 	storeContexts.get(createContext) ?? createContext(IMPLICIT.STORE)
 storeContexts.set(createContext, StoreContext)
 
-export function StoreProvider({
-	children,
-	store = IMPLICIT.STORE,
-}: FlowProps<{
-	store?: RootStore
-}>): JSX.Element {
-	return StoreContext.Provider({ value: store, children })
+export function StoreProvider(
+	props: FlowProps<{ store?: RootStore }>,
+): ReturnType<FlowComponent> {
+	// Solid 2 contexts are themselves provider components.
+	const provide: FlowComponent<{ value: RootStore }> =
+		typeof StoreContext === `function` ? StoreContext : StoreContext.Provider
+	return provide({
+		value: props.store ?? IMPLICIT.STORE,
+		get children() {
+			return props.children
+		},
+	})
 }

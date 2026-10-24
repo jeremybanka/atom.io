@@ -4,7 +4,7 @@ import { certifyBreaking, releaseIntent } from "../../scripts/breakage-peers.ts"
 
 const suite = {
 	files: [`__tests__/fixtures/consumer/*`],
-	command: `node --test --conditions=browser __tests__/fixtures/consumer/runtime.ts && node ../node_modules/typescript/bin/tsc -p __tests__/fixtures/consumer/tsconfig.json`,
+	command: `node __tests__/fixtures/consumer/check.ts`,
 }
 const config: { npm: NpmConfig } = {
 	npm: {

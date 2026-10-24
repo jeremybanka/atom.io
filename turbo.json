@@ -113,7 +113,10 @@
 				"../../scripts/runtime-copies.ts",
 				"../../scripts/test-helpers.ts",
 				"../../scripts/react-test-helpers.ts",
-				"../../scripts/test-postgres.ts"
+				"../../scripts/test-postgres.ts",
+				"peer-environments/coordinated-solid2/package.json",
+				"peer-environments/coordinated-solid2/pnpm-lock.yaml",
+				"peer-environments/coordinated-solid2/pnpm-workspace.yaml"
 			]
 		},
 		"atom.io#test:once": {
@@ -165,7 +168,10 @@
 				"../../scripts/runtime-copies.ts",
 				"../../scripts/test-helpers.ts",
 				"../../scripts/react-test-helpers.ts",
-				"../../scripts/test-postgres.ts"
+				"../../scripts/test-postgres.ts",
+				"peer-environments/coordinated-solid2/package.json",
+				"peer-environments/coordinated-solid2/pnpm-lock.yaml",
+				"peer-environments/coordinated-solid2/pnpm-workspace.yaml"
 			]
 		},
 		"cov:recoverage": {
@@ -188,7 +194,10 @@
 				"../../scripts/runtime-copies.ts",
 				"../../scripts/test-helpers.ts",
 				"../../scripts/react-test-helpers.ts",
-				"../../scripts/test-postgres.ts"
+				"../../scripts/test-postgres.ts",
+				"peer-environments/coordinated-solid2/package.json",
+				"peer-environments/coordinated-solid2/pnpm-lock.yaml",
+				"peer-environments/coordinated-solid2/pnpm-workspace.yaml"
 			]
 		},
 		"test:breakage:prelude": {

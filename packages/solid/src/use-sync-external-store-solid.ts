@@ -14,14 +14,15 @@ export function useSyncExternalStore<Snapshot>(
 	subscribe: (onStoreChange: () => void) => () => void,
 	getSnapshot: () => Snapshot,
 ): () => Snapshot {
+	// Initialize lazy external state before subscribing, without tracking this read.
 	Solid.untrack(getSnapshot)
 	// Track invalidation, not the snapshot: Solid 2 interprets function values
 	// as derivations, and atom.io also supports promises and mutable values.
 	const options = { equals: false, ownedWrite: true } as const
-	const [state, setState] = createSignal(undefined, options)
+	const [trackInvalidation, invalidate] = createSignal(undefined, options)
 	const setup = () => {
 		const update = () => {
-			setState(undefined)
+			invalidate(undefined)
 		}
 		const unsubscribe = subscribe(update)
 		update()
@@ -39,7 +40,7 @@ export function useSyncExternalStore<Snapshot>(
 	}
 
 	return () => {
-		state()
+		trackInvalidation()
 		return getSnapshot()
 	}
 }

@@ -144,7 +144,7 @@
 		"eslint": "10.13.0",
 		"happy-dom": "21.0.4",
 		"postgres": "3.4.9",
-		"preact": "11.0.1",
+		"preact": "11.0.2",
 		"react": "19.3.1",
 		"react-dom": "19.3.1",
 		"recoverage": "0.1.20",

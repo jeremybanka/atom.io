@@ -30,7 +30,7 @@
 		"@pierre/highlights": "0.2.0",
 		"astro": "7.4.2",
 		"atom.io": "workspace:*",
-		"preact": "11.0.1",
+		"preact": "11.0.2",
 		"react": "npm:@preact/compat@18.3.2",
 		"react-dom": "npm:@preact/compat@18.3.2",
 		"three": "0.186.1",

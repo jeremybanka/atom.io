@@ -21,7 +21,8 @@ import type { Canonical } from "atom.io/foundations/canonical"
 import type { Transceiver } from "../mutable/index.ts"
 import { type Store, withdraw } from "../store/index.ts"
 import { DO_NOT_CREATE, mintInStore } from "./mint-in-store.ts"
-import { seekInStore } from "./seek-in-store.ts"
+import { prepareFamilyKey } from "./prepare-family-key.ts"
+import { seekEncodedInStore } from "./seek-in-store.ts"
 
 // seek [token 🟧] [inits ⬛]
 // find [token ✅] [inits ⬛]
@@ -86,10 +87,11 @@ export function findInStore(
 	key: Canonical,
 ): ReadableToken<any, any, any> {
 	const family = withdraw(store, familyToken)
-	const existingStateToken = seekInStore(store, familyToken, key)
+	const prepared = prepareFamilyKey(familyToken.key, key)
+	const existingStateToken = seekEncodedInStore(store, familyToken, prepared)
 	if (existingStateToken) {
 		return existingStateToken
 	}
-	const newStateToken = mintInStore(DO_NOT_CREATE, store, family, key)
+	const newStateToken = mintInStore(DO_NOT_CREATE, store, family, key, prepared)
 	return newStateToken
 }

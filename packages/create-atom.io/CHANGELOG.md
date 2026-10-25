@@ -1,5 +1,11 @@
 # create-atom.io
 
+## 0.1.59
+
+### Patch Changes
+
+- @atom.io/template-solid-lossless-numbers@0.0.49
+
 ## 0.1.58
 
 ### Patch Changes

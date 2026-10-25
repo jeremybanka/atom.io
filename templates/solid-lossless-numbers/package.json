@@ -35,7 +35,7 @@
 		"dprint": "0.64.3",
 		"dprint-plugin-malva": "0.16.0",
 		"eslint": "10.13.0",
-		"lasertag": "0.8.9",
+		"lasertag": "0.8.10",
 		"oxlint": "1.89.0",
 		"oxlint-tsgolint": "7.0.2005",
 		"typescript": "npm:@typescript/typescript6@6.0.2",

@@ -47,6 +47,6 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Import           | Minified JS | Gzip JS |
 | ---------------- | ----------: | ------: |
-| `@atom.io/solid` |     2,784 B | 1,255 B |
+| `@atom.io/solid` |     2,936 B | 1,332 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).

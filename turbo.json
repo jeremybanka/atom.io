@@ -113,7 +113,10 @@
 				"../../scripts/runtime-copies.ts",
 				"../../scripts/test-helpers.ts",
 				"../../scripts/react-test-helpers.ts",
-				"../../scripts/test-postgres.ts"
+				"../../scripts/test-postgres.ts",
+				"peer-environments/**",
+				"!peer-environments/**/node_modules/**",
+				"!peer-environments/*/test/**"
 			]
 		},
 		"atom.io#test:once": {
@@ -165,7 +168,10 @@
 				"../../scripts/runtime-copies.ts",
 				"../../scripts/test-helpers.ts",
 				"../../scripts/react-test-helpers.ts",
-				"../../scripts/test-postgres.ts"
+				"../../scripts/test-postgres.ts",
+				"peer-environments/**",
+				"!peer-environments/**/node_modules/**",
+				"!peer-environments/*/test/**"
 			]
 		},
 		"cov:recoverage": {
@@ -188,7 +194,10 @@
 				"../../scripts/runtime-copies.ts",
 				"../../scripts/test-helpers.ts",
 				"../../scripts/react-test-helpers.ts",
-				"../../scripts/test-postgres.ts"
+				"../../scripts/test-postgres.ts",
+				"peer-environments/**",
+				"!peer-environments/**/node_modules/**",
+				"!peer-environments/*/test/**"
 			]
 		},
 		"test:breakage:prelude": {

@@ -9,7 +9,7 @@ Turbo builds and packs every participating package before checking it. The [task
 | Package        | Representatives                                                                                             |
 | -------------- | ----------------------------------------------------------------------------------------------------------- |
 | React          | React 18 and 19 with released SDK 0.53.3; the same frameworks with the coordinated SDK candidate.           |
-| Solid          | Solid 1.9 with released SDK 0.53.3 and the coordinated SDK candidate.                                       |
+| Solid          | Solid 1.9 and Solid 2.0.0-rc.17 with released SDK 0.53.3 and the coordinated SDK candidate.                 |
 | React devtools | React/React DOM 18 and 19 with the React adapter candidate, paired with both released and coordinated SDKs. |
 | ESLint plugin  | ESLint 9 and 10 with typescript-eslint parser 8 and TypeScript 6.                                           |
 
@@ -19,7 +19,7 @@ Each integration and the SDK owns its coverage commands and reports. Turbo colle
 
 The Coverage workflow runs public thresholds and per-package Recoverage checks separately. Recoverage captures each package's baseline on main and compares pull requests against that package's saved report. New package reports need an initial baseline, and the SDK's former combined report needs replacement after the test-ownership migration. Missing baselines fail the check; they do not waive regression protection.
 
-Contracts import consumer package names without source aliases. Framework contracts exercise store identity, state reads/writes, public declaration types, and the devtools stylesheet. Solid uses its public context provider; this does not establish the separate StoreProvider wrapper's behavior. ESLint contracts exercise all four rules and require typed public exports without installing authoring utilities into the consumer.
+Contracts import consumer package names without source aliases. Framework contracts exercise store identity, state reads/writes, public declaration types, and the devtools stylesheet. Solid exercises its StoreProvider wrapper, reactive notifications, disposal, mutable snapshots, timelines, loadables, server reads, and development builds. Its [Solid 2 experiment](./solid2-experiment.md) documents the exact prerelease support and external-source prototypes. ESLint contracts exercise all four rules and require typed public exports without installing authoring utilities into the consumer.
 
 The [shared release policy](../scripts/breakage-peers.ts) assembles the actual release plan using Changesets’ published APIs, without the status command’s separate Git-diff audit. A pending version takes precedence over the workspace version. After versioning consumes the changesets, the current manifest is the exact target exercised by a coordinated build. This permits the versioning PR to run the same environments. Candidate results remain conditional on publication: the hook does not claim registry attestation, and metadata substitution does not rebuild embedded version constants. Released representatives continue to test the actual registry SDK independently.
 

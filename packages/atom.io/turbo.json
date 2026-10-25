@@ -1,0 +1,55 @@
+{
+	"extends": [
+		"//"
+	],
+	"tasks": {
+		"readme:write": {
+			"dependsOn": [
+				"$TURBO_EXTENDS$",
+				"@atom.io/react#build",
+				"@atom.io/realtime#build"
+			]
+		},
+		"readme:check": {
+			"dependsOn": [
+				"$TURBO_EXTENDS$",
+				"@atom.io/react#build",
+				"@atom.io/realtime#build"
+			]
+		},
+		"test:once": {
+			"dependsOn": [
+				"build",
+				"@atom.io/react#build"
+			]
+		},
+		"cov": {
+			"dependsOn": [
+				"build",
+				"@atom.io/react#build"
+			]
+		},
+		"cov:public": {
+			"dependsOn": [
+				"build",
+				"@atom.io/react#build"
+			]
+		},
+		"lint:types": {
+			"dependsOn": [
+				"@atom.io/realtime#build",
+				"@atom.io/react#build"
+			]
+		},
+		"build": {
+			"inputs": [
+				"$TURBO_EXTENDS$",
+				"$TURBO_ROOT$/packages/realtime/docs/source/**"
+			],
+			"outputs": [
+				"dist/**",
+				"docs/agent/**"
+			]
+		}
+	}
+}

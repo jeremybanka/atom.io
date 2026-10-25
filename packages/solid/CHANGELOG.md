@@ -1,5 +1,11 @@
 # @atom.io/solid
 
+## 0.1.1
+
+### Patch Changes
+
+- 5f8d7ae: Support Solid 2.0.0-rc.17 alongside Solid 1.9 with compatible context providers, renderer-neutral declarations, and subscription lifecycle handling. Add peer environments and runtime contracts for both SDK eras, including development builds and external-source integration experiments.
+
 ## 0.1.0
 
 ### Minor Changes

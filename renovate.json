@@ -43,18 +43,6 @@
 			"depNameTemplate": "ghcr.io/renovatebot/renovate",
 			"datasourceTemplate": "docker",
 			"versioningTemplate": "semver-coerced"
-		},
-		{
-			"customType": "regex",
-			"managerFilePatterns": [
-				"/^packages\\/solid\\/package\\.json$/"
-			],
-			"matchStrings": [
-				"\"solid-js\": \"\\^1\\.9\\.0 \\|\\| (?<currentValue>2\\.0\\.0-rc\\.\\d+)\""
-			],
-			"depNameTemplate": "solid-js",
-			"datasourceTemplate": "npm",
-			"depTypeTemplate": "solid2Peer"
 		}
 	],
 	"packageRules": [
@@ -125,38 +113,41 @@
 			"allowedVersions": "^1.9.0"
 		},
 		{
-			"description": "The Solid 2 regex manager updates only the exact RC arm of the peer range, preserving Solid 1 support.",
+			"description": "New Solid RC support needs an additive peer declaration, retained compatibility environments, and a changeset.",
 			"matchManagers": [
 				"npm"
 			],
 			"matchFileNames": [
 				"packages/solid/package.json"
 			],
-			"matchPackageNames": [
-				"solid-js"
-			],
+			"matchPackageNames": ["solid-js"],
 			"matchDepTypes": [
 				"peerDependencies"
 			],
 			"enabled": false
 		},
 		{
-			"description": "Keep Solid 2 peer environments on release candidates with the normal one-day maturity delay.",
+			"description": "Keep retained Solid RC representatives pinned to the exact versions whose support they certify.",
 			"matchFileNames": [
-				"packages/solid/peer-environments/*-solid2/package.json",
-				"packages/solid/package.json"
+				"packages/solid/peer-environments/*-solid2-rc*/package.json"
 			],
-			"matchPackageNames": [
-				"solid-js"
+			"matchPackageNames": ["solid-js"],
+			"enabled": false
+		},
+		{
+			"description": "Propose the next Solid RC after the one-day delay; new support must be explicitly added while retaining older RC environments.",
+			"matchFileNames": [
+				"packages/solid/peer-environments/*-solid2/package.json"
 			],
+			"matchPackageNames": ["solid-js"],
 			"allowedVersions": "/^2\\.0\\.0-rc\\.\\d+$/",
 			"ignoreUnstable": false,
 			"respectLatest": false,
 			"groupName": "Solid 2 peer environments",
 			"matchDepTypes": [
-				"dependencies",
-				"solid2Peer"
-			]
+				"dependencies"
+			],
+			"automerge": false
 		},
 		{
 			"description": "Keep released SDK representatives on the 0.53 compatibility era.",
@@ -257,10 +248,7 @@
 					"pnpm readme:write"
 				],
 				"executionMode": "branch",
-				"fileFilters": [
-					"packages/*/README.md",
-					".correctly/**"
-				],
+				"fileFilters": ["packages/*/README.md", ".correctly/**"],
 				"installTools": {
 					"node": {},
 					"pnpm": {}

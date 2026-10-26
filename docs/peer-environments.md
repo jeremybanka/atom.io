@@ -6,12 +6,12 @@ Each matrix job exercises one environment and uploads a structured Breakage rece
 
 Turbo builds and packs every participating package before checking it. The [task graph](../turbo.json) includes local peer archives, including both the SDK and React adapter for devtools. Checks are uncached because they inspect release tags, Changesets, package installation, and consumer execution. Package-owned representative manifests and pnpm lockfiles freeze the installed peers; preparation disables automatic peer installation and lifecycle scripts. Breakage's default npm installation installs candidate archives and their runtime dependencies inside each disposable stage, without automatically supplying peers.
 
-| Package        | Representatives                                                                                             |
-| -------------- | ----------------------------------------------------------------------------------------------------------- |
-| React          | React 18 and 19 with released SDK 0.53.3; the same frameworks with the coordinated SDK candidate.           |
-| Solid          | Solid 1.9 and Solid 2.0.0-rc.17 with released SDK 0.53.3 and the coordinated SDK candidate.                 |
-| React devtools | React/React DOM 18 and 19 with the React adapter candidate, paired with both released and coordinated SDKs. |
-| ESLint plugin  | ESLint 9 and 10 with typescript-eslint parser 8 and TypeScript 6.                                           |
+| Package        | Representatives                                                                                                 |
+| -------------- | --------------------------------------------------------------------------------------------------------------- |
+| React          | React 18 and 19 with released SDK 0.53.3; the same frameworks with the coordinated SDK candidate.               |
+| Solid          | Solid 1.9, Solid 2.0.0-rc.17, and Solid 2.0.0-rc.18 with released SDK 0.53.3 and the coordinated SDK candidate. |
+| React devtools | React/React DOM 18 and 19 with the React adapter candidate, paired with both released and coordinated SDKs.     |
+| ESLint plugin  | ESLint 9 and 10 with typescript-eslint parser 8 and TypeScript 6.                                               |
 
 Each integration owns its behavior suites under its own tests directory. The package's ordinary and public test commands select those suites; the SDK owns core and realtime cases. Portable consumer programs and declaration checks live in package-owned fixtures and are shared by ordinary package tests, packaging checks, and the peer matrix. ESLint reuses its existing consumer fixture rather than maintaining a second copy.
 

@@ -14,10 +14,9 @@ import path from "node:path"
 import { test, type TestContext } from "node:test"
 import { fileURLToPath } from "node:url"
 
-import { breakage, breakagePrelude } from "breakage"
-import { diff } from "semver"
+import { breakage, breakagePrelude, resolveReleaseDelta } from "breakage"
 
-import { certifyBreaking, createReleaseIntent } from "./breakage-release.ts"
+import { release } from "./breakage-release.ts"
 
 const root = fileURLToPath(new URL(`../`, import.meta.url))
 const fixture = path.join(root, `scripts/fixtures/breakage-release`)
@@ -37,15 +36,10 @@ async function prepare(
 		`dir`,
 	)
 	await mkdir(path.join(directory, `scripts`))
-	for (const script of [
-		`breakage-certify.ts`,
-		`breakage-release.ts`,
-		`breakage-peers.ts`,
-	])
-		await cp(
-			path.join(root, `scripts`, script),
-			path.join(directory, `scripts`, script),
-		)
+	await cp(
+		path.join(root, `scripts/breakage-release.ts`),
+		path.join(directory, `scripts/breakage-release.ts`),
+	)
 	const packageDirectory = path.join(directory, `packages/example`)
 	const manifest = path.join(packageDirectory, `package.json`)
 	await writeFile(
@@ -77,15 +71,37 @@ async function prepare(
 		out: `.breakage/baseline.json`,
 	})
 	if (bump) await writeFile(changeset, pending)
-	const certify = () =>
+	await writeFile(
+		path.join(packageDirectory, `breakage.config.ts`),
+		`import { defineConfig } from "breakage"
+import { release } from "../../scripts/breakage-release.ts"
+export default defineConfig({
+  tagPattern: "refs/tags/fixture-core@",
+  testPattern: "tests/*.test.ts",
+  test: "node tests/public.test.ts",
+  release,
+})
+`,
+	)
+	const check = () =>
 		spawnSync(
 			process.execPath,
-			[path.join(directory, `scripts/breakage-certify.ts`)],
-			{
-				cwd: packageDirectory,
-				encoding: `utf8`,
-			},
+			[
+				path.join(root, `node_modules/breakage/dist/breakage.x.js`),
+				`--baseline-file`,
+				`.breakage/baseline.json`,
+			],
+			{ cwd: packageDirectory, encoding: `utf8` },
 		)
+	await writeFile(
+		path.join(packageDirectory, `value.json`),
+		JSON.stringify({ value: `changed` }),
+	)
+	const commit = (message: string) => {
+		git(`add`, `.`)
+		git(`commit`, `--allow-empty`, `-m`, message)
+	}
+	commit(`Propose breaking change`)
 	const versionPackages = () =>
 		execFileSync(process.execPath, [changesets, `version`], {
 			cwd: directory,
@@ -97,7 +113,8 @@ async function prepare(
 		manifest,
 		changeset,
 		git,
-		certify,
+		check,
+		commit,
 		versionPackages,
 	}
 }
@@ -144,52 +161,38 @@ for (const scenario of [
 				manifest.version,
 				phase === `pending` ? scenario.version : scenario.target,
 			)
-			const release = await createReleaseIntent(project.directory)({
+			const transition = await resolveReleaseDelta(release, {
 				packageName: manifest.name,
 				currentVersion: manifest.version,
 				packageDirectory: project.packageDirectory,
+				baseline: { version: scenario.version },
 			})
-			assert.deepEqual(release, { status: `release`, version: scenario.target })
-			assert.equal(
-				await certifyBreaking({
-					previousVersion: scenario.version,
-					release: {
-						version: scenario.target,
-						delta: diff(scenario.version, scenario.target)!,
-					},
-					changes: [],
-				}),
-				scenario.certified,
-			)
-			await writeFile(
-				path.join(project.packageDirectory, `value.json`),
-				JSON.stringify({ value: `changed` }),
-			)
-			project.git(`add`, `.`)
-			project.git(`commit`, `--allow-empty`, `-m`, phase)
+			assert.deepEqual(transition, {
+				previousVersion: scenario.version,
+				version: scenario.target,
+				delta: scenario.bump,
+			})
+			project.commit(phase)
 			const outcome = await breakage({
 				baseDirname: project.packageDirectory,
 				baselineFile: `.breakage/baseline.json`,
 				tagPattern: `refs/tags/fixture-core@`,
 				testPattern: `tests/*.test.ts`,
 				testCommand: `node tests/public.test.ts`,
-				certifyCommand: `node ../../scripts/breakage-certify.ts`,
+				release,
 			})
-			assert(`breakingChangesCertified` in outcome, outcome.summary)
+			assert(`breakingChangesFound` in outcome, outcome.summary)
+			assert.equal(outcome.breakingChangesFound, true, outcome.summary)
 			assert.equal(
-				outcome.breakingChangesCertified,
+				outcome.release?.breaking,
 				scenario.certified,
 				outcome.summary,
 			)
-			const result = project.certify()
+			const result = project.check()
 			assert.equal(
 				result.status,
 				scenario.certified ? 0 : 1,
 				result.stdout + result.stderr,
-			)
-			assert.match(
-				result.stdout,
-				new RegExp(`${scenario.version} -> ${scenario.target}`),
 			)
 		}
 	})
@@ -197,12 +200,13 @@ for (const scenario of [
 
 await test(`unchanged and downgraded versions do not certify breaking changes`, async (t) => {
 	const project = await prepare(t, `0.53.3`, null)
-	assert.equal(project.certify().status, 1)
+	assert.equal(project.check().status, 1)
 	await writeFile(
 		project.manifest,
 		JSON.stringify({ name: `fixture-core`, version: `0.52.0` }),
 	)
-	assert.equal(project.certify().status, 1)
+	project.commit(`Downgrade package`)
+	assert.equal(project.check().status, 1)
 })
 
 await test(`certification uses the pinned baseline even when a newer tag appears`, async (t) => {
@@ -211,13 +215,13 @@ await test(`certification uses the pinned baseline even when a newer tag appears
 	project.git(`add`, `.`)
 	project.git(`commit`, `-m`, `Version Packages`)
 	project.git(`tag`, `fixture-core@0.54.0`)
-	assert.equal(project.certify().status, 0)
+	assert.equal(project.check().status, 0)
 	await breakagePrelude({
 		baseDirname: project.packageDirectory,
 		tagPattern: `refs/tags/fixture-core@`,
 		out: `.breakage/baseline.json`,
 	})
-	assert.equal(project.certify().status, 1)
+	assert.equal(project.check().status, 1)
 })
 
 await test(`a missing or mismatched baseline cannot certify breaking changes`, async (t) => {
@@ -228,7 +232,7 @@ await test(`a missing or mismatched baseline cannot certify breaking changes`, a
 		filename,
 		JSON.stringify({ ...baseline, packageDirectory: `packages/other/` }),
 	)
-	assert.notEqual(project.certify().status, 0)
+	assert.notEqual(project.check().status, 0)
 	await rm(filename)
-	assert.notEqual(project.certify().status, 0)
+	assert.notEqual(project.check().status, 0)
 })

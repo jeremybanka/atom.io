@@ -49,7 +49,9 @@ export function verifyAudits(plan: PeerPlan): void {
 		)
 		assert.deepEqual(audit.errors, [])
 		assert(
-			[`unchanged`, `certified`, `first-release`].includes(audit.support.status),
+			[`unchanged`, `breaking-release`, `first-release`].includes(
+				audit.support.status,
+			),
 			`Support audit did not pass for ${audit.package.name}.`,
 		)
 		assert(audit.coverage.length > 0)

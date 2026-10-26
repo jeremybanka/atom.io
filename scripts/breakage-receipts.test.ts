@@ -224,3 +224,18 @@ await test(`coverage audit rejects an unapproved support change`, () => {
 		verifyAudits(plan)
 	})
 })
+
+await test(`coverage audit accepts a breaking release approved by policy`, () => {
+	const { plan, receipts } = fixture()
+	plan.audits[0].support = {
+		status: `breaking-release`,
+		changes: [],
+		release: {
+			previousVersion: `0.1.0`,
+			version: `0.2.0`,
+			delta: `minor`,
+			breaking: true,
+		},
+	}
+	verifyReceipts(plan, receipts)
+})

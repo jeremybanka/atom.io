@@ -1,12 +1,14 @@
-import type { NpmConfig } from "breakage"
+import type { BreakageConfig } from "breakage"
+import { defineConfig } from "breakage"
 
-import { certifyBreaking, releaseIntent } from "../../scripts/breakage-peers.ts"
+import { release } from "../../scripts/breakage-release.ts"
 
 const suite = {
 	files: [`__tests__/fixtures/consumer/*`],
 	command: `node --test __tests__/fixtures/consumer/runtime.ts && node ../node_modules/typescript/bin/tsc -p __tests__/fixtures/consumer/tsconfig.json`,
 }
-const config: { npm: NpmConfig } = {
+const config: BreakageConfig = defineConfig({
+	release,
 	npm: {
 		artifact: `.breakage/package.tgz`,
 		representatives: `peer-environments/*`,
@@ -30,9 +32,7 @@ const config: { npm: NpmConfig } = {
 		},
 		// No version of this package has been published. Replace after publication.
 		baseline: { firstRelease: true },
-		releaseIntent,
-		certifyBreaking,
-	} satisfies NpmConfig,
-}
+	},
+})
 
 export default config

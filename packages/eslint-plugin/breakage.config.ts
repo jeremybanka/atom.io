@@ -1,12 +1,17 @@
-import type { NpmConfig } from "breakage"
+import type { BreakageConfig } from "breakage"
+import { defineConfig } from "breakage"
 
-import { certifyBreaking, releaseIntent } from "../../scripts/breakage-peers.ts"
+import { release } from "../../scripts/breakage-release.ts"
 
 const suite = {
 	files: [`__tests__/fixtures/consumer.ts`, `__tests__/fixtures/tsconfig.json`],
 	command: `node __tests__/fixtures/consumer.ts && node ../node_modules/typescript/bin/tsc -p __tests__/fixtures/tsconfig.json`,
 }
-const config: { npm: NpmConfig } = {
+const config: BreakageConfig = defineConfig({
+	release,
+	tagPattern: `refs/tags/@atom\\.io/eslint-plugin@`,
+	testPattern: `__tests__/rules/**/*.test.ts`,
+	testCommand: `bun run test:once:public`,
 	npm: {
 		artifact: `.breakage/package.tgz`,
 		representatives: `peer-environments/*`,
@@ -18,9 +23,7 @@ const config: { npm: NpmConfig } = {
 			typescript: suite,
 		},
 		baseline: { tagPattern: `refs/tags/@atom\\.io/eslint-plugin@` },
-		releaseIntent,
-		certifyBreaking,
-	} satisfies NpmConfig,
-}
+	},
+})
 
 export default config

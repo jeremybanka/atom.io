@@ -39,15 +39,11 @@ async function discover(): Promise<
 	const { packages } = await getPackages(root)
 	const found = []
 	for (const pkg of packages) {
-		const filename = [`breakage.config.ts`, `breakage.config.json`]
-			.map((name) => path.join(pkg.dir, name))
-			.find(existsSync)
-		if (!filename) continue
-		const loaded = (
-			filename.endsWith(`.json`)
-				? JSON.parse(await readFile(filename, `utf8`))
-				: (await import(pathToFileURL(filename).href)).default
-		) as { npm?: NpmConfig }
+		const filename = path.join(pkg.dir, `breakage.config.ts`)
+		if (!existsSync(filename)) continue
+		const loaded = (await import(pathToFileURL(filename).href)).default as {
+			npm?: NpmConfig
+		}
 		if (!loaded.npm) continue
 		const config = loaded.npm
 		const directory = path.relative(root, pkg.dir)

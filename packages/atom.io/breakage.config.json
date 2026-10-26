@@ -1,6 +1,0 @@
-{
-	"tagPattern": "refs/tags/atom.io",
-	"testPattern": "__tests__/public/**/*.test.{ts,tsx}",
-	"testCommand": "bun run test:once:public",
-	"certifyCommand": "node ../../scripts/breakage-certify.ts"
-}

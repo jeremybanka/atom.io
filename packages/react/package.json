@@ -43,13 +43,14 @@
 		"readme:check": "galley check README.mdx"
 	},
 	"devDependencies": {
+		"@breakage/changesets": "0.1.0",
 		"@testing-library/react": "16.3.3",
 		"@types/node": "26.6.5",
 		"@types/react": "19.3.0",
 		"@types/react-dom": "19.3.0",
 		"@vitest/coverage-v8": "5.0.5",
 		"atom.io": "workspace:*",
-		"breakage": "0.8.5",
+		"breakage": "0.10.0",
 		"eslint": "10.13.0",
 		"happy-dom": "21.0.4",
 		"react": "19.3.1",

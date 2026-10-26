@@ -44,10 +44,11 @@
 		"test:prepare:solid2": "pnpm --dir peer-environments/coordinated-solid2 install --frozen-lockfile --ignore-scripts"
 	},
 	"devDependencies": {
+		"@breakage/changesets": "0.1.0",
 		"@types/node": "26.6.5",
 		"@vitest/coverage-v8": "5.0.5",
 		"atom.io": "workspace:*",
-		"breakage": "0.8.5",
+		"breakage": "0.10.0",
 		"eslint": "10.13.0",
 		"happy-dom": "21.0.4",
 		"recoverage": "0.1.20",

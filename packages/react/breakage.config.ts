@@ -1,12 +1,16 @@
-import type { NpmConfig } from "breakage"
-
-import { certifyBreaking, releaseIntent } from "../../scripts/breakage-peers.ts"
+import { changesetsReleaseDelta } from "@breakage/changesets"
+import type { BreakageConfig } from "breakage"
+import { defineConfig, semverPolicy } from "breakage"
 
 const suite = {
 	files: [`__tests__/fixtures/consumer/*`],
 	command: `node --test __tests__/fixtures/consumer/runtime.ts && node ../node_modules/typescript/bin/tsc -p __tests__/fixtures/consumer/tsconfig.json`,
 }
-const config: { npm: NpmConfig } = {
+const config: BreakageConfig = defineConfig({
+	release: {
+		resolveDelta: changesetsReleaseDelta(),
+		policy: semverPolicy({ beforeV1: `minor` }),
+	},
 	npm: {
 		artifact: `.breakage/package.tgz`,
 		representatives: `peer-environments/*`,
@@ -19,11 +23,8 @@ const config: { npm: NpmConfig } = {
 				artifact: `../atom.io/.breakage/package.tgz`,
 			},
 		},
-		// No version of this package has been published. Replace after publication.
-		baseline: { firstRelease: true },
-		releaseIntent,
-		certifyBreaking,
-	} satisfies NpmConfig,
-}
+		baseline: { tagPattern: `refs/tags/@atom\\.io/react@` },
+	},
+})
 
 export default config

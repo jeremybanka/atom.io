@@ -183,21 +183,12 @@ importers:
       '@atom.io/solid':
         specifier: workspace:*
         version: link:packages/solid
-      '@changesets/assemble-release-plan':
-        specifier: 7.0.0
-        version: 7.0.0
       '@changesets/cli':
         specifier: 3.0.3
         version: 3.0.3
       '@changesets/config':
         specifier: 4.0.1
         version: 4.0.1
-      '@changesets/pre':
-        specifier: 3.0.0
-        version: 3.0.0
-      '@changesets/read':
-        specifier: 1.0.1
-        version: 1.0.1
       '@correctlyjs/schemars':
         specifier: 0.0.5
         version: 0.0.5(correctly@0.3.2(arktype@2.2.8)(supports-color@10.2.2))
@@ -216,9 +207,6 @@ importers:
       '@dprint/toml':
         specifier: 0.9.0
         version: 0.9.0
-      '@manypkg/get-packages':
-        specifier: 3.1.0
-        version: 3.1.0
       '@testing-library/react':
         specifier: 16.3.3
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -243,9 +231,6 @@ importers:
       atom.io:
         specifier: workspace:*
         version: link:packages/atom.io
-      breakage:
-        specifier: 0.8.5
-        version: 0.8.5(supports-color@10.2.2)(zod@4.6.7)
       correctly:
         specifier: 0.3.2
         version: 0.3.2(arktype@2.2.8)(supports-color@10.2.2)
@@ -403,6 +388,9 @@ importers:
       '@atom.io/exhibits':
         specifier: workspace:*
         version: link:../exhibits
+      '@breakage/changesets':
+        specifier: 0.1.0
+        version: 0.1.0(breakage@0.10.0(supports-color@10.2.2)(zod@4.6.7))
       '@orpc/client':
         specifier: 1.16.1
         version: 1.16.1
@@ -446,8 +434,8 @@ importers:
         specifier: 2.2.9
         version: 2.2.9
       breakage:
-        specifier: 0.8.5
-        version: 0.8.5(supports-color@10.2.2)(zod@4.6.7)
+        specifier: 0.10.0
+        version: 0.10.0(supports-color@10.2.2)(zod@4.6.7)
       concurrently:
         specifier: 10.0.6
         version: 10.0.6
@@ -570,6 +558,9 @@ importers:
         specifier: 8.72.0
         version: 8.72.0(eslint@10.13.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
     devDependencies:
+      '@breakage/changesets':
+        specifier: 0.1.0
+        version: 0.1.0(breakage@0.10.0(supports-color@10.2.2)(zod@4.6.7))
       '@types/estree':
         specifier: 1.0.9
         version: 1.0.9
@@ -586,8 +577,8 @@ importers:
         specifier: 5.0.5
         version: 5.0.5(vitest@5.0.5)
       breakage:
-        specifier: 0.8.5
-        version: 0.8.5(supports-color@10.2.2)(zod@4.6.7)
+        specifier: 0.10.0
+        version: 0.10.0(supports-color@10.2.2)(zod@4.6.7)
       eslint:
         specifier: 10.13.0
         version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -608,6 +599,9 @@ importers:
 
   packages/react:
     devDependencies:
+      '@breakage/changesets':
+        specifier: 0.1.0
+        version: 0.1.0(breakage@0.10.0(supports-color@10.2.2)(zod@4.6.7))
       '@testing-library/react':
         specifier: 16.3.3
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -627,8 +621,8 @@ importers:
         specifier: workspace:*
         version: link:../atom.io
       breakage:
-        specifier: 0.8.5
-        version: 0.8.5(supports-color@10.2.2)(zod@4.6.7)
+        specifier: 0.10.0
+        version: 0.10.0(supports-color@10.2.2)(zod@4.6.7)
       eslint:
         specifier: 10.13.0
         version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -666,6 +660,9 @@ importers:
       '@atom.io/react':
         specifier: workspace:*
         version: link:../react
+      '@breakage/changesets':
+        specifier: 0.1.0
+        version: 0.1.0(breakage@0.10.0(supports-color@10.2.2)(zod@4.6.7))
       '@testing-library/react':
         specifier: 16.3.3
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -688,8 +685,8 @@ importers:
         specifier: workspace:*
         version: link:../atom.io
       breakage:
-        specifier: 0.8.5
-        version: 0.8.5(supports-color@10.2.2)(zod@4.6.7)
+        specifier: 0.10.0
+        version: 0.10.0(supports-color@10.2.2)(zod@4.6.7)
       eslint:
         specifier: 10.13.0
         version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -804,6 +801,9 @@ importers:
 
   packages/solid:
     devDependencies:
+      '@breakage/changesets':
+        specifier: 0.1.0
+        version: 0.1.0(breakage@0.10.0(supports-color@10.2.2)(zod@4.6.7))
       '@types/node':
         specifier: 26.6.5
         version: 26.6.5
@@ -814,8 +814,8 @@ importers:
         specifier: workspace:*
         version: link:../atom.io
       breakage:
-        specifier: 0.8.5
-        version: 0.8.5(supports-color@10.2.2)(zod@4.6.7)
+        specifier: 0.10.0
+        version: 0.10.0(supports-color@10.2.2)(zod@4.6.7)
       eslint:
         specifier: 10.13.0
         version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -1585,6 +1585,11 @@ packages:
   '@bcoe/v8-coverage@1.0.2':
     resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
     engines: {node: '>=18'}
+
+  '@breakage/changesets@0.1.0':
+    resolution: {integrity: sha512-6PS6IdZlP8l64Bor33G/xWkFshJdNDJu3AdjWVshwVPbLmIr1XsjuGmK6hEPxEjrnFxDH3E4XjWckjSOYKVR+g==}
+    peerDependencies:
+      breakage: ^0.10.0
 
   '@bruits/satteri-darwin-arm64@0.10.5':
     resolution: {integrity: sha512-27KTVl4TJkVahMy/ohyA7qd4938G5UNneFUz/PsScYfpIhj0IVAS23mpcJXdPF44sa6nva198lmV/cKIb2YPyA==}
@@ -4804,8 +4809,8 @@ packages:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
     engines: {node: '>=8'}
 
-  breakage@0.8.5:
-    resolution: {integrity: sha512-nW5vhnvZfz3E1sQJKHubXjg9rXL1E5CBiH1Y5IrU4CNPZr8VFzyUeAeKv1xRomX8Ea0l3F1F0Bq8dFvzq30jZA==}
+  breakage@0.10.0:
+    resolution: {integrity: sha512-NdrlShsiuiOadVTkD1EPscKxOgnX0/3vBMHww1Jm2YNATYXCpF+vySY/W3vZ/G020brOd3ZPbySt9tEcjJS9/A==}
     hasBin: true
 
   browserslist@4.28.9:
@@ -8290,6 +8295,15 @@ snapshots:
 
   '@bcoe/v8-coverage@1.0.2': {}
 
+  '@breakage/changesets@0.1.0(breakage@0.10.0(supports-color@10.2.2)(zod@4.6.7))':
+    dependencies:
+      '@changesets/assemble-release-plan': 7.0.0
+      '@changesets/config': 4.0.1
+      '@changesets/pre': 3.0.0
+      '@changesets/read': 1.0.1
+      '@manypkg/get-packages': 3.1.0
+      breakage: 0.10.0(supports-color@10.2.2)(zod@4.6.7)
+
   '@bruits/satteri-darwin-arm64@0.10.5':
     optional: true
 
@@ -11348,10 +11362,10 @@ snapshots:
     dependencies:
       fill-range: 7.1.1
 
-  breakage@0.8.5(supports-color@10.2.2)(zod@4.6.7):
+  breakage@0.10.0(supports-color@10.2.2)(zod@4.6.7):
     dependencies:
-      arktype: 2.2.8
-      comline: 0.9.0(arktype@2.2.8)(zod@4.6.7)
+      arktype: 2.2.9
+      comline: 0.9.3(arktype@2.2.9)(zod@4.6.7)
       minimatch: 10.2.6
       semver: 7.8.5
       simple-git: 4.0.2(supports-color@10.2.2)

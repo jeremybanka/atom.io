@@ -1,6 +1,6 @@
+import { changesetsReleaseDelta } from "@breakage/changesets"
 import type { BreakageConfig } from "breakage"
 import { defineConfig, semverPolicy } from "breakage"
-import { changesetsReleaseDelta } from "breakage/changesets"
 
 const suite = {
 	files: [`__tests__/fixtures/consumer/*`],
@@ -32,8 +32,7 @@ const config: BreakageConfig = defineConfig({
 				artifact: `../react/.breakage/package.tgz`,
 			},
 		},
-		// No version of this package has been published. Replace after publication.
-		baseline: { firstRelease: true },
+		baseline: { tagPattern: `refs/tags/@atom\\.io/react-devtools@` },
 	},
 })
 

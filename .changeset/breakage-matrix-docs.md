@@ -2,4 +2,4 @@
 "atom.io": patch
 ---
 
-Update peer compatibility documentation for Breakage’s built-in matrix planning, execution receipts, and package-owned release configuration.
+Document package-owned Breakage configuration, the Changesets adapter, automatic first-release detection, and built-in matrix planning and receipt verification.

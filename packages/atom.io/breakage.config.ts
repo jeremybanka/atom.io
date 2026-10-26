@@ -1,6 +1,6 @@
+import { changesetsReleaseDelta } from "@breakage/changesets"
 import type { BreakageConfig } from "breakage"
 import { defineConfig, semverPolicy } from "breakage"
-import { changesetsReleaseDelta } from "breakage/changesets"
 
 const config: BreakageConfig = defineConfig({
 	release: {

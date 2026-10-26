@@ -192,6 +192,7 @@
 		},
 		{
 			"matchPackageNames": [
+				"@breakage/changesets",
 				"@correctlyjs/schemars",
 				"atom.io",
 				"breakage",

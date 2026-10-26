@@ -31,7 +31,7 @@ async function prepare(
 	t.after(() => rm(directory, { recursive: true, force: true }))
 	await cp(fixture, directory, { recursive: true })
 	await symlink(
-		path.join(root, `node_modules`),
+		path.join(root, `scripts/node_modules`),
 		path.join(directory, `node_modules`),
 		`dir`,
 	)
@@ -87,7 +87,7 @@ export default defineConfig({
 		spawnSync(
 			process.execPath,
 			[
-				path.join(root, `node_modules/breakage/dist/breakage.x.js`),
+				fileURLToPath(import.meta.resolve(`breakage/dist/breakage.x.js`)),
 				`--baseline-file`,
 				`.breakage/baseline.json`,
 			],

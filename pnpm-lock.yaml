@@ -183,21 +183,12 @@ importers:
       '@atom.io/solid':
         specifier: workspace:*
         version: link:packages/solid
-      '@changesets/assemble-release-plan':
-        specifier: 7.0.0
-        version: 7.0.0
       '@changesets/cli':
         specifier: 3.0.3
         version: 3.0.3
       '@changesets/config':
         specifier: 4.0.1
         version: 4.0.1
-      '@changesets/pre':
-        specifier: 3.0.0
-        version: 3.0.0
-      '@changesets/read':
-        specifier: 1.0.1
-        version: 1.0.1
       '@correctlyjs/schemars':
         specifier: 0.0.5
         version: 0.0.5(correctly@0.3.2(arktype@2.2.8)(supports-color@10.2.2))
@@ -216,9 +207,6 @@ importers:
       '@dprint/toml':
         specifier: 0.9.0
         version: 0.9.0
-      '@manypkg/get-packages':
-        specifier: 3.1.0
-        version: 3.1.0
       '@testing-library/react':
         specifier: 16.3.3
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -243,9 +231,6 @@ importers:
       atom.io:
         specifier: workspace:*
         version: link:packages/atom.io
-      breakage:
-        specifier: 0.9.0
-        version: 0.9.0(@changesets/assemble-release-plan@7.0.0)(@changesets/config@4.0.1)(@changesets/pre@3.0.0)(@changesets/read@1.0.1)(@manypkg/get-packages@3.1.0)(supports-color@10.2.2)(zod@4.6.7)
       correctly:
         specifier: 0.3.2
         version: 0.3.2(arktype@2.2.8)(supports-color@10.2.2)
@@ -840,6 +825,27 @@ importers:
       zod:
         specifier: 4.6.7
         version: 4.6.7
+
+  scripts:
+    devDependencies:
+      '@changesets/assemble-release-plan':
+        specifier: 7.0.0
+        version: 7.0.0
+      '@changesets/config':
+        specifier: 4.0.1
+        version: 4.0.1
+      '@changesets/pre':
+        specifier: 3.0.0
+        version: 3.0.0
+      '@changesets/read':
+        specifier: 1.0.1
+        version: 1.0.1
+      '@manypkg/get-packages':
+        specifier: 3.1.0
+        version: 3.1.0
+      breakage:
+        specifier: 0.9.0
+        version: 0.9.0(@changesets/assemble-release-plan@7.0.0)(@changesets/config@4.0.1)(@changesets/pre@3.0.0)(@changesets/read@1.0.1)(@manypkg/get-packages@3.1.0)(supports-color@10.2.2)(zod@4.6.7)
 
   templates/preact-realtime-vector-editor:
     dependencies:

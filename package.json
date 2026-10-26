@@ -9,7 +9,8 @@
 	"workspaces": [
 		"apps/*",
 		"packages/*",
-		"templates/*"
+		"templates/*",
+		"scripts"
 	],
 	"scripts": {
 		"build": "dotenvx run -- turbo run build",
@@ -56,18 +57,14 @@
 		"@atom.io/react-devtools": "workspace:*",
 		"@atom.io/realtime": "workspace:*",
 		"@atom.io/solid": "workspace:*",
-		"@changesets/assemble-release-plan": "7.0.0",
 		"@changesets/cli": "3.0.3",
 		"@changesets/config": "4.0.1",
-		"@changesets/pre": "3.0.0",
-		"@changesets/read": "1.0.1",
 		"@correctlyjs/schemars": "0.0.5",
 		"@dotenvx/dotenvx": "2.38.2",
 		"@dprint/json": "0.25.2",
 		"@dprint/markdown": "0.28.0",
 		"@dprint/oxc": "0.47.0",
 		"@dprint/toml": "0.9.0",
-		"@manypkg/get-packages": "3.1.0",
 		"@testing-library/react": "16.3.3",
 		"@types/node": "26.6.5",
 		"@types/semver": "7.8.0",
@@ -76,7 +73,6 @@
 		"@typescript-eslint/utils": "8.72.0",
 		"astro-eslint-parser": "3.2.0",
 		"atom.io": "workspace:*",
-		"breakage": "0.9.0",
 		"correctly": "0.3.2",
 		"dprint": "0.64.3",
 		"dprint-plugin-malva": "0.16.0",

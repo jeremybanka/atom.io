@@ -9,8 +9,7 @@
 	"workspaces": [
 		"apps/*",
 		"packages/*",
-		"templates/*",
-		"scripts"
+		"templates/*"
 	],
 	"scripts": {
 		"build": "dotenvx run -- turbo run build",

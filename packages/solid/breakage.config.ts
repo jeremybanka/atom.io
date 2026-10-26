@@ -1,14 +1,16 @@
 import type { BreakageConfig } from "breakage"
-import { defineConfig } from "breakage"
-
-import { release } from "../../scripts/breakage-release.ts"
+import { defineConfig, semverPolicy } from "breakage"
+import { changesetsReleaseDelta } from "breakage/changesets"
 
 const suite = {
 	files: [`__tests__/fixtures/consumer/*`],
 	command: `node __tests__/fixtures/consumer/check.ts`,
 }
 const config: BreakageConfig = defineConfig({
-	release,
+	release: {
+		resolveDelta: changesetsReleaseDelta(),
+		policy: semverPolicy({ beforeV1: `minor` }),
+	},
 	npm: {
 		artifact: `.breakage/package.tgz`,
 		representatives: `peer-environments/*`,

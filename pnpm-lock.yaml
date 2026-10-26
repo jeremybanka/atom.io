@@ -388,6 +388,21 @@ importers:
       '@atom.io/exhibits':
         specifier: workspace:*
         version: link:../exhibits
+      '@changesets/assemble-release-plan':
+        specifier: 7.0.0
+        version: 7.0.0
+      '@changesets/config':
+        specifier: 4.0.1
+        version: 4.0.1
+      '@changesets/pre':
+        specifier: 3.0.0
+        version: 3.0.0
+      '@changesets/read':
+        specifier: 1.0.1
+        version: 1.0.1
+      '@manypkg/get-packages':
+        specifier: 3.1.0
+        version: 3.1.0
       '@orpc/client':
         specifier: 1.16.1
         version: 1.16.1
@@ -431,8 +446,8 @@ importers:
         specifier: 2.2.9
         version: 2.2.9
       breakage:
-        specifier: 0.9.0
-        version: 0.9.0(@changesets/assemble-release-plan@7.0.0)(@changesets/config@4.0.1)(@changesets/pre@3.0.0)(@changesets/read@1.0.1)(@manypkg/get-packages@3.1.0)(supports-color@10.2.2)(zod@4.6.7)
+        specifier: 0.9.1
+        version: 0.9.1(@changesets/assemble-release-plan@7.0.0)(@changesets/config@4.0.1)(@changesets/pre@3.0.0)(@changesets/read@1.0.1)(@manypkg/get-packages@3.1.0)(supports-color@10.2.2)(zod@4.6.7)
       concurrently:
         specifier: 10.0.6
         version: 10.0.6
@@ -555,6 +570,21 @@ importers:
         specifier: 8.72.0
         version: 8.72.0(eslint@10.13.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
     devDependencies:
+      '@changesets/assemble-release-plan':
+        specifier: 7.0.0
+        version: 7.0.0
+      '@changesets/config':
+        specifier: 4.0.1
+        version: 4.0.1
+      '@changesets/pre':
+        specifier: 3.0.0
+        version: 3.0.0
+      '@changesets/read':
+        specifier: 1.0.1
+        version: 1.0.1
+      '@manypkg/get-packages':
+        specifier: 3.1.0
+        version: 3.1.0
       '@types/estree':
         specifier: 1.0.9
         version: 1.0.9
@@ -571,8 +601,8 @@ importers:
         specifier: 5.0.5
         version: 5.0.5(vitest@5.0.5)
       breakage:
-        specifier: 0.9.0
-        version: 0.9.0(@changesets/assemble-release-plan@7.0.0)(@changesets/config@4.0.1)(@changesets/pre@3.0.0)(@changesets/read@1.0.1)(@manypkg/get-packages@3.1.0)(supports-color@10.2.2)(zod@4.6.7)
+        specifier: 0.9.1
+        version: 0.9.1(@changesets/assemble-release-plan@7.0.0)(@changesets/config@4.0.1)(@changesets/pre@3.0.0)(@changesets/read@1.0.1)(@manypkg/get-packages@3.1.0)(supports-color@10.2.2)(zod@4.6.7)
       eslint:
         specifier: 10.13.0
         version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -593,6 +623,21 @@ importers:
 
   packages/react:
     devDependencies:
+      '@changesets/assemble-release-plan':
+        specifier: 7.0.0
+        version: 7.0.0
+      '@changesets/config':
+        specifier: 4.0.1
+        version: 4.0.1
+      '@changesets/pre':
+        specifier: 3.0.0
+        version: 3.0.0
+      '@changesets/read':
+        specifier: 1.0.1
+        version: 1.0.1
+      '@manypkg/get-packages':
+        specifier: 3.1.0
+        version: 3.1.0
       '@testing-library/react':
         specifier: 16.3.3
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -612,8 +657,8 @@ importers:
         specifier: workspace:*
         version: link:../atom.io
       breakage:
-        specifier: 0.9.0
-        version: 0.9.0(@changesets/assemble-release-plan@7.0.0)(@changesets/config@4.0.1)(@changesets/pre@3.0.0)(@changesets/read@1.0.1)(@manypkg/get-packages@3.1.0)(supports-color@10.2.2)(zod@4.6.7)
+        specifier: 0.9.1
+        version: 0.9.1(@changesets/assemble-release-plan@7.0.0)(@changesets/config@4.0.1)(@changesets/pre@3.0.0)(@changesets/read@1.0.1)(@manypkg/get-packages@3.1.0)(supports-color@10.2.2)(zod@4.6.7)
       eslint:
         specifier: 10.13.0
         version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -651,6 +696,21 @@ importers:
       '@atom.io/react':
         specifier: workspace:*
         version: link:../react
+      '@changesets/assemble-release-plan':
+        specifier: 7.0.0
+        version: 7.0.0
+      '@changesets/config':
+        specifier: 4.0.1
+        version: 4.0.1
+      '@changesets/pre':
+        specifier: 3.0.0
+        version: 3.0.0
+      '@changesets/read':
+        specifier: 1.0.1
+        version: 1.0.1
+      '@manypkg/get-packages':
+        specifier: 3.1.0
+        version: 3.1.0
       '@testing-library/react':
         specifier: 16.3.3
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -673,8 +733,8 @@ importers:
         specifier: workspace:*
         version: link:../atom.io
       breakage:
-        specifier: 0.9.0
-        version: 0.9.0(@changesets/assemble-release-plan@7.0.0)(@changesets/config@4.0.1)(@changesets/pre@3.0.0)(@changesets/read@1.0.1)(@manypkg/get-packages@3.1.0)(supports-color@10.2.2)(zod@4.6.7)
+        specifier: 0.9.1
+        version: 0.9.1(@changesets/assemble-release-plan@7.0.0)(@changesets/config@4.0.1)(@changesets/pre@3.0.0)(@changesets/read@1.0.1)(@manypkg/get-packages@3.1.0)(supports-color@10.2.2)(zod@4.6.7)
       eslint:
         specifier: 10.13.0
         version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -789,6 +849,21 @@ importers:
 
   packages/solid:
     devDependencies:
+      '@changesets/assemble-release-plan':
+        specifier: 7.0.0
+        version: 7.0.0
+      '@changesets/config':
+        specifier: 4.0.1
+        version: 4.0.1
+      '@changesets/pre':
+        specifier: 3.0.0
+        version: 3.0.0
+      '@changesets/read':
+        specifier: 1.0.1
+        version: 1.0.1
+      '@manypkg/get-packages':
+        specifier: 3.1.0
+        version: 3.1.0
       '@types/node':
         specifier: 26.6.5
         version: 26.6.5
@@ -799,8 +874,8 @@ importers:
         specifier: workspace:*
         version: link:../atom.io
       breakage:
-        specifier: 0.9.0
-        version: 0.9.0(@changesets/assemble-release-plan@7.0.0)(@changesets/config@4.0.1)(@changesets/pre@3.0.0)(@changesets/read@1.0.1)(@manypkg/get-packages@3.1.0)(supports-color@10.2.2)(zod@4.6.7)
+        specifier: 0.9.1
+        version: 0.9.1(@changesets/assemble-release-plan@7.0.0)(@changesets/config@4.0.1)(@changesets/pre@3.0.0)(@changesets/read@1.0.1)(@manypkg/get-packages@3.1.0)(supports-color@10.2.2)(zod@4.6.7)
       eslint:
         specifier: 10.13.0
         version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -825,27 +900,6 @@ importers:
       zod:
         specifier: 4.6.7
         version: 4.6.7
-
-  scripts:
-    devDependencies:
-      '@changesets/assemble-release-plan':
-        specifier: 7.0.0
-        version: 7.0.0
-      '@changesets/config':
-        specifier: 4.0.1
-        version: 4.0.1
-      '@changesets/pre':
-        specifier: 3.0.0
-        version: 3.0.0
-      '@changesets/read':
-        specifier: 1.0.1
-        version: 1.0.1
-      '@manypkg/get-packages':
-        specifier: 3.1.0
-        version: 3.1.0
-      breakage:
-        specifier: 0.9.0
-        version: 0.9.0(@changesets/assemble-release-plan@7.0.0)(@changesets/config@4.0.1)(@changesets/pre@3.0.0)(@changesets/read@1.0.1)(@manypkg/get-packages@3.1.0)(supports-color@10.2.2)(zod@4.6.7)
 
   templates/preact-realtime-vector-editor:
     dependencies:
@@ -4810,8 +4864,8 @@ packages:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
     engines: {node: '>=8'}
 
-  breakage@0.9.0:
-    resolution: {integrity: sha512-XtYI3NBP6Jvlxr63ZzXWOcF4ZJiIPFww4vWlYliJc624R/yLiKOQUj4eTJtNeexUShrnoO65bFGp/khO1QP/Kg==}
+  breakage@0.9.1:
+    resolution: {integrity: sha512-vACLtyImFKdh6EpcKhhcJ5oeHwnxM9L7Ro18hjzgdI0NOQ9PnNkm58VRAQdqCnPovhxSLaas8k6IzamjUov8Iw==}
     hasBin: true
     peerDependencies:
       '@changesets/assemble-release-plan': ^7.0.0
@@ -11371,7 +11425,7 @@ snapshots:
     dependencies:
       fill-range: 7.1.1
 
-  breakage@0.9.0(@changesets/assemble-release-plan@7.0.0)(@changesets/config@4.0.1)(@changesets/pre@3.0.0)(@changesets/read@1.0.1)(@manypkg/get-packages@3.1.0)(supports-color@10.2.2)(zod@4.6.7):
+  breakage@0.9.1(@changesets/assemble-release-plan@7.0.0)(@changesets/config@4.0.1)(@changesets/pre@3.0.0)(@changesets/read@1.0.1)(@manypkg/get-packages@3.1.0)(supports-color@10.2.2)(zod@4.6.7):
     dependencies:
       arktype: 2.2.9
       comline: 0.9.3(arktype@2.2.9)(zod@4.6.7)

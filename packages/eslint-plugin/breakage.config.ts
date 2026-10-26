@@ -1,14 +1,16 @@
 import type { BreakageConfig } from "breakage"
-import { defineConfig } from "breakage"
-
-import { release } from "../../scripts/breakage-release.ts"
+import { defineConfig, semverPolicy } from "breakage"
+import { changesetsReleaseDelta } from "breakage/changesets"
 
 const suite = {
 	files: [`__tests__/fixtures/consumer.ts`, `__tests__/fixtures/tsconfig.json`],
 	command: `node __tests__/fixtures/consumer.ts && node ../node_modules/typescript/bin/tsc -p __tests__/fixtures/tsconfig.json`,
 }
 const config: BreakageConfig = defineConfig({
-	release,
+	release: {
+		resolveDelta: changesetsReleaseDelta(),
+		policy: semverPolicy({ beforeV1: `minor` }),
+	},
 	tagPattern: `refs/tags/@atom\\.io/eslint-plugin@`,
 	testPattern: `__tests__/rules/**/*.test.ts`,
 	testCommand: `bun run test:once:public`,

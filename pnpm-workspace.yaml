@@ -24,7 +24,6 @@ packages:
   - "apps/*"
   - "packages/*"
   - "templates/*"
-  - "scripts"
 
 allowBuilds:
   "@vscode/vsce-sign": true

@@ -31,12 +31,15 @@ jobs:
       matrix: ${{ steps.prepare.outputs.matrix }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: ./.github/actions/setup
         with:
           packages: bun node pnpm
-      - run: node --test scripts/breakage-receipts.test.ts
       - id: prepare
-        run: node scripts/breakage-ci.ts prologue
+        run: |
+          matrix=$(pnpm --filter atom.io exec breakage npm plan --root ../.. --config packages/atom.io/breakage.config.ts --out .breakage/peer-bundle)
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: breakage-peer-plan
@@ -55,6 +58,8 @@ jobs:
       matrix: ${{ fromJSON(needs.PeerCoverage.outputs.matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: ./.github/actions/setup
         with:
           packages: bun node pnpm
@@ -62,7 +67,7 @@ jobs:
         with:
           name: breakage-peer-plan
           path: .breakage/peer-bundle
-      - run: node scripts/breakage-ci.ts test "$PEER_ENVIRONMENT_ID"
+      - run: pnpm --filter atom.io exec breakage npm execute "$PEER_ENVIRONMENT_ID" --root ../.. --plan .breakage/peer-bundle/plan.json --receipt ".breakage/peer-receipts/$PEER_ENVIRONMENT_ID.json"
         env:
           PEER_ENVIRONMENT_ID: ${{ matrix.id }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -81,7 +86,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 9
     steps:
+      - run: test "$COVERAGE_RESULT" = success && test "$ENVIRONMENT_RESULT" = success
+        env:
+          COVERAGE_RESULT: ${{ needs.PeerCoverage.result }}
+          ENVIRONMENT_RESULT: ${{ needs.PeerEnvironment.result }}
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: ./.github/actions/setup
         with:
           packages: node pnpm
@@ -93,10 +104,7 @@ jobs:
         with:
           pattern: breakage-peer-receipt-*
           path: .breakage/peer-receipts
-      - run: node scripts/breakage-ci.ts epilogue
-        if: ${{ always() }}
-        env:
-          BREAKAGE_NEEDS: ${{ toJSON(needs) }}
+      - run: pnpm --filter atom.io exec breakage npm verify --root ../.. --plan .breakage/peer-bundle/plan.json --receipts '.breakage/peer-receipts/**/*.json'
 
   Public:
     name: Public
@@ -104,6 +112,8 @@ jobs:
     timeout-minutes: 9
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: ./.github/actions/setup
         with:
           packages: bun node pnpm
@@ -111,5 +121,4 @@ jobs:
         with:
           postgres-version: "18"
           port: "59432"
-      - run: node --test scripts/breakage-release.test.ts
       - run: pnpm test:breakage

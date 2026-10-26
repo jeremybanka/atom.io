@@ -244,8 +244,8 @@ importers:
         specifier: workspace:*
         version: link:packages/atom.io
       breakage:
-        specifier: 0.8.5
-        version: 0.8.5(supports-color@10.2.2)(zod@4.6.7)
+        specifier: 0.9.0
+        version: 0.9.0(@changesets/assemble-release-plan@7.0.0)(@changesets/config@4.0.1)(@changesets/pre@3.0.0)(@changesets/read@1.0.1)(@manypkg/get-packages@3.1.0)(supports-color@10.2.2)(zod@4.6.7)
       correctly:
         specifier: 0.3.2
         version: 0.3.2(arktype@2.2.8)(supports-color@10.2.2)
@@ -446,8 +446,8 @@ importers:
         specifier: 2.2.9
         version: 2.2.9
       breakage:
-        specifier: 0.8.5
-        version: 0.8.5(supports-color@10.2.2)(zod@4.6.7)
+        specifier: 0.9.0
+        version: 0.9.0(@changesets/assemble-release-plan@7.0.0)(@changesets/config@4.0.1)(@changesets/pre@3.0.0)(@changesets/read@1.0.1)(@manypkg/get-packages@3.1.0)(supports-color@10.2.2)(zod@4.6.7)
       concurrently:
         specifier: 10.0.6
         version: 10.0.6
@@ -586,8 +586,8 @@ importers:
         specifier: 5.0.5
         version: 5.0.5(vitest@5.0.5)
       breakage:
-        specifier: 0.8.5
-        version: 0.8.5(supports-color@10.2.2)(zod@4.6.7)
+        specifier: 0.9.0
+        version: 0.9.0(@changesets/assemble-release-plan@7.0.0)(@changesets/config@4.0.1)(@changesets/pre@3.0.0)(@changesets/read@1.0.1)(@manypkg/get-packages@3.1.0)(supports-color@10.2.2)(zod@4.6.7)
       eslint:
         specifier: 10.13.0
         version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -627,8 +627,8 @@ importers:
         specifier: workspace:*
         version: link:../atom.io
       breakage:
-        specifier: 0.8.5
-        version: 0.8.5(supports-color@10.2.2)(zod@4.6.7)
+        specifier: 0.9.0
+        version: 0.9.0(@changesets/assemble-release-plan@7.0.0)(@changesets/config@4.0.1)(@changesets/pre@3.0.0)(@changesets/read@1.0.1)(@manypkg/get-packages@3.1.0)(supports-color@10.2.2)(zod@4.6.7)
       eslint:
         specifier: 10.13.0
         version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -688,8 +688,8 @@ importers:
         specifier: workspace:*
         version: link:../atom.io
       breakage:
-        specifier: 0.8.5
-        version: 0.8.5(supports-color@10.2.2)(zod@4.6.7)
+        specifier: 0.9.0
+        version: 0.9.0(@changesets/assemble-release-plan@7.0.0)(@changesets/config@4.0.1)(@changesets/pre@3.0.0)(@changesets/read@1.0.1)(@manypkg/get-packages@3.1.0)(supports-color@10.2.2)(zod@4.6.7)
       eslint:
         specifier: 10.13.0
         version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -814,8 +814,8 @@ importers:
         specifier: workspace:*
         version: link:../atom.io
       breakage:
-        specifier: 0.8.5
-        version: 0.8.5(supports-color@10.2.2)(zod@4.6.7)
+        specifier: 0.9.0
+        version: 0.9.0(@changesets/assemble-release-plan@7.0.0)(@changesets/config@4.0.1)(@changesets/pre@3.0.0)(@changesets/read@1.0.1)(@manypkg/get-packages@3.1.0)(supports-color@10.2.2)(zod@4.6.7)
       eslint:
         specifier: 10.13.0
         version: 10.13.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -4804,9 +4804,26 @@ packages:
     resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
     engines: {node: '>=8'}
 
-  breakage@0.8.5:
-    resolution: {integrity: sha512-nW5vhnvZfz3E1sQJKHubXjg9rXL1E5CBiH1Y5IrU4CNPZr8VFzyUeAeKv1xRomX8Ea0l3F1F0Bq8dFvzq30jZA==}
+  breakage@0.9.0:
+    resolution: {integrity: sha512-XtYI3NBP6Jvlxr63ZzXWOcF4ZJiIPFww4vWlYliJc624R/yLiKOQUj4eTJtNeexUShrnoO65bFGp/khO1QP/Kg==}
     hasBin: true
+    peerDependencies:
+      '@changesets/assemble-release-plan': ^7.0.0
+      '@changesets/config': ^4.0.1
+      '@changesets/pre': ^3.0.0
+      '@changesets/read': ^1.0.1
+      '@manypkg/get-packages': ^3.1.0
+    peerDependenciesMeta:
+      '@changesets/assemble-release-plan':
+        optional: true
+      '@changesets/config':
+        optional: true
+      '@changesets/pre':
+        optional: true
+      '@changesets/read':
+        optional: true
+      '@manypkg/get-packages':
+        optional: true
 
   browserslist@4.28.9:
     resolution: {integrity: sha512-EWazOblFYUvlGZcfGhPUPmYh3nikUxBVb+y9MJun5f3hBi812X+8MSQTujLBtgK3cf51fJWbWfOjyeO954d+Eg==}
@@ -11348,14 +11365,20 @@ snapshots:
     dependencies:
       fill-range: 7.1.1
 
-  breakage@0.8.5(supports-color@10.2.2)(zod@4.6.7):
+  breakage@0.9.0(@changesets/assemble-release-plan@7.0.0)(@changesets/config@4.0.1)(@changesets/pre@3.0.0)(@changesets/read@1.0.1)(@manypkg/get-packages@3.1.0)(supports-color@10.2.2)(zod@4.6.7):
     dependencies:
-      arktype: 2.2.8
-      comline: 0.9.0(arktype@2.2.8)(zod@4.6.7)
+      arktype: 2.2.9
+      comline: 0.9.3(arktype@2.2.9)(zod@4.6.7)
       minimatch: 10.2.6
       semver: 7.8.5
       simple-git: 4.0.2(supports-color@10.2.2)
       takua: 0.2.3
+    optionalDependencies:
+      '@changesets/assemble-release-plan': 7.0.0
+      '@changesets/config': 4.0.1
+      '@changesets/pre': 3.0.0
+      '@changesets/read': 1.0.1
+      '@manypkg/get-packages': 3.1.0
     transitivePeerDependencies:
       - supports-color
       - zod

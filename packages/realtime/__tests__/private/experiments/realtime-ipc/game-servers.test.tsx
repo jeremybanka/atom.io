@@ -4,7 +4,6 @@ import { waitFor } from "@testing-library/react"
 
 import { actWithFakeTimers } from "../../../../../../scripts/react-test-helpers.ts"
 import { BrowserGame } from "./BrowserGame.tsx"
-import { DatabaseManager } from "./database.node.ts"
 import { SystemServer } from "./system-server.node.ts"
 
 /* eslint-disable no-console */
@@ -13,20 +12,11 @@ console.log = () => undefined
 console.info = () => undefined
 console.warn = () => undefined
 console.error = () => undefined
-const dbManager = new DatabaseManager()
 const roomStartupTimeout = 3000
 let teardownScenario: (() => Promise<void>) | undefined
 
-beforeAll(async () => {
-	await dbManager.createDatabase()
-})
-
-beforeEach(async () => {
+beforeEach(() => {
 	roomMeta.count = 0
-	console.log(`Creating sample tables`)
-	await dbManager.createSampleTables()
-	await dbManager.insertSampleData()
-	await dbManager.setupTriggersAndNotifications()
 })
 
 afterEach(async () => {
@@ -39,13 +29,7 @@ afterEach(async () => {
 			console.log(`KILLING ROOM ${roomId}`)
 			room.proc.kill()
 		}
-
-		await dbManager.dropSampleTables()
 	}
-})
-
-afterAll(async () => {
-	await dbManager.dropDatabase()
 })
 
 describe(`multi-process realtime server`, () => {

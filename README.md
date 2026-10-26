@@ -30,7 +30,7 @@ your shell:
 3. Run `pnpm hooks:install` to enable formatting hooks.
 4. Run `pnpm build` to build the workspace packages and documentation site.
 
-Realtime tests start and stop their own local PostgreSQL instances using the
+Core database integration tests start and stop their own PostgreSQL instances using the
 installed binaries.
 
 Run these commands from the repository root:

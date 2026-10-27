@@ -190,8 +190,8 @@ importers:
         specifier: 4.0.1
         version: 4.0.1
       '@correctlyjs/schemars':
-        specifier: 0.0.5
-        version: 0.0.5(correctly@0.3.2(arktype@2.2.8)(supports-color@10.2.2))
+        specifier: 0.0.6
+        version: 0.0.6(correctly@0.3.2(arktype@2.2.8)(supports-color@10.2.2))
       '@dotenvx/dotenvx':
         specifier: 2.38.2
         version: 2.38.2
@@ -1790,8 +1790,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@correctlyjs/schemars@0.0.5':
-    resolution: {integrity: sha512-NwcuVHf6WopzynOkxRSaMzVK7ekvT2I6l1imMorzRmEfhlvqpXmRByAsag/+Car7E9wBsnhBE/Dh91D/I8fPOw==}
+  '@correctlyjs/schemars@0.0.6':
+    resolution: {integrity: sha512-0tS+3JjGaoPf2Z95+fBi+xORfY5lAwe0MRDngmq4kVM8WwHDf7NvoJcpliqHOcBCgRwZdwOHByl1aki4isaUrQ==}
     engines: {node: '>=22.18.0'}
     peerDependencies:
       correctly: ^0.3.0
@@ -8516,7 +8516,7 @@ snapshots:
   '@cloudflare/workerd-windows-64@1.20261019.1':
     optional: true
 
-  '@correctlyjs/schemars@0.0.5(correctly@0.3.2(arktype@2.2.8)(supports-color@10.2.2))':
+  '@correctlyjs/schemars@0.0.6(correctly@0.3.2(arktype@2.2.8)(supports-color@10.2.2))':
     dependencies:
       correctly: 0.3.2(arktype@2.2.8)(supports-color@10.2.2)
 

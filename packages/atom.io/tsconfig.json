@@ -49,5 +49,18 @@
 		"__unstable__",
 		"tonnage-recipes",
 		".storybook/*.ts"
+	],
+	"contentMappers": [
+		{
+			"package": "reylo",
+			"extensions": [
+				".sql",
+				".reylo.yaml",
+				".reylo.yml"
+			]
+		}
+	],
+	"exclude": [
+		"__tests__/private/experiments/stateless/notify_update.sql"
 	]
 }

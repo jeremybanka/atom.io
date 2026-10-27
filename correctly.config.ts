@@ -23,6 +23,7 @@ export default defineConfig({
 				`@dprint/toml`,
 				`dprint-plugin-malva`,
 				`dprint-plugin-markup`,
+				`dprint-plugin-mdx`,
 				`dprint-plugin-yaml`,
 			],
 			parse: json(),

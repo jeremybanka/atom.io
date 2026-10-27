@@ -36,7 +36,10 @@
 		"associations": ["**/*.{json,jsonc}"]
 	},
 	"markdown": {
-		"associations": ["**/*.{md,mdx}"]
+		"associations": ["**/*.md"]
+	},
+	"mdx": {
+		"associations": ["**/*.mdx"]
 	},
 	"malva": {
 		"associations": ["**/*.css"]
@@ -58,6 +61,7 @@
 		"./node_modules/@dprint/oxc/plugin.wasm",
 		"./node_modules/@dprint/json/plugin.wasm",
 		"./node_modules/@dprint/markdown/plugin.wasm",
+		"./node_modules/dprint-plugin-mdx/plugin.wasm",
 		"./node_modules/dprint-plugin-malva/plugin.wasm",
 		"./node_modules/dprint-plugin-markup/plugin.wasm",
 		"./node_modules/@dprint/toml/plugin.wasm",

@@ -76,6 +76,7 @@
 		"dprint": "0.64.3",
 		"dprint-plugin-malva": "0.16.0",
 		"dprint-plugin-markup": "0.27.6",
+		"dprint-plugin-mdx": "0.1.0",
 		"dprint-plugin-yaml": "0.6.0",
 		"eslint": "10.13.0",
 		"eslint-plugin-astro": "3.2.1",

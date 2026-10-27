@@ -146,6 +146,7 @@
 		},
 		"lint:types": {
 			"dependsOn": ["^build"],
+			"passThroughEnv": ["ATOM_IO_TEST_POSTGRES_SKIP_MISE"],
 			"inputs": [
 				"$TURBO_DEFAULT$",
 				"$TURBO_ROOT$/scripts/**"

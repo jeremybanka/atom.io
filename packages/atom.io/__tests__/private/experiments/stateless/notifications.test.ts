@@ -2,13 +2,27 @@ import type { Loadable } from "atom.io"
 import { atom, getState, resetState, subscribe } from "atom.io"
 import { clearStore, IMPLICIT } from "atom.io/internal"
 import postgres from "postgres"
-import { vitest } from "vitest"
+import { expectTypeOf, vitest } from "vitest"
 
 import { DatabaseManager } from "./database.node.ts"
-import type { Country, CountryDirectory } from "./reactive-countries.node.ts"
+import backendPid from "./queries/backend-pid.sql"
+import deleteCountry from "./queries/delete-country.sql"
+import getCountry from "./queries/get-country.sql"
+import insertCountry from "./queries/insert-country.sql"
+import updateCountry from "./queries/update-country.sql"
+import type {
+	CountryDirectory,
+	CountryLookup,
+} from "./reactive-countries.node.ts"
 import { connectCountryDirectory } from "./reactive-countries.node.ts"
 
 const dbManager = new DatabaseManager()
+
+// Check Reylo's schema-derived row shape, nullability, and key cardinality.
+expectTypeOf(getCountry.run).returns.resolves.toEqualTypeOf<{
+	id: number
+	name: string | null
+} | null>()
 
 beforeAll(async () => {
 	await dbManager.createDatabase()
@@ -46,17 +60,14 @@ it(`refreshes an atom from a committed notification on another connection`, asyn
 	let unsubscribe: (() => void) | undefined
 
 	try {
-		const writerPid = await writer`SELECT pg_backend_pid() AS pid`
-		const readerPid = await reader`SELECT pg_backend_pid() AS pid`
-		expect(writerPid[0]?.[`pid`]).not.toBe(readerPid[0]?.[`pid`])
+		const writerPid = await backendPid.run(writer)
+		const readerPid = await backendPid.run(reader)
+		expect(writerPid.pid).not.toBe(readerPid.pid)
 
-		const countryNameAtom = atom<Loadable<string>>({
+		const countryNameAtom = atom<Loadable<string | null>>({
 			key: `countryName`,
 			default: async () => {
-				const rows = await reader<{ name: string }[]>`
-					SELECT name FROM countries WHERE id = 1
-				`
-				const row = rows[0]
+				const row = await getCountry.run(reader, { id: 1 })
 				if (!row) throw new Error(`Country 1 is missing`)
 				return row.name
 			},
@@ -79,17 +90,18 @@ it(`refreshes an atom from a committed notification on another connection`, asyn
 		const rollback = new Error(`Roll back the first change`)
 		await expect(
 			writer.begin(async (transaction) => {
-				await transaction`UPDATE countries SET name = 'Rolled back' WHERE id = 1`
+				await updateCountry.run(transaction, { id: 1, name: `Rolled back` })
 				throw rollback
 			}),
 		).rejects.toBe(rollback)
 
 		await writer.begin(async (transaction) => {
-			await transaction`UPDATE countries SET name = 'United States' WHERE id = 1`
+			await updateCountry.run(transaction, { id: 1, name: `United States` })
 			// A second connection still sees the old row until COMMIT.
-			expect(await reader`SELECT name FROM countries WHERE id = 1`).toEqual([
-				{ name: `USA` },
-			])
+			expect(await getCountry.run(reader, { id: 1 })).toEqual({
+				id: 1,
+				name: `USA`,
+			})
 			expect(await getState(countryNameAtom)).toBe(`USA`)
 			expect(notifications).toEqual([])
 			expect(observedNames).toEqual([])
@@ -136,8 +148,8 @@ it(`keeps two independent country directories reactive to SQL inserts, updates, 
 				// A cached miss becomes a real row when another connection inserts it.
 				expect(await silo.getState(countryAtoms, 4)).toBeNull()
 				const names: string[] = []
-				const usa: (Country | null)[] = []
-				const brazil: (Country | null)[] = []
+				const usa: CountryLookup[] = []
+				const brazil: CountryLookup[] = []
 				const canadaUpdates = vitest.fn()
 				unsubscribers.push(
 					silo.subscribe(countryNamesSelector, ({ newValue }) => {
@@ -157,7 +169,7 @@ it(`keeps two independent country directories reactive to SQL inserts, updates, 
 
 		// These writes know nothing about atom.io. Assertions only observe the
 		// subscribers: no application polling, manual reset, or setState calls.
-		await writer`INSERT INTO countries (name) VALUES ('Brazil')`
+		await insertCountry.run(writer, { name: `Brazil` })
 		await vitest.waitFor(
 			() => {
 				for (const observer of observers) {
@@ -168,7 +180,7 @@ it(`keeps two independent country directories reactive to SQL inserts, updates, 
 			{ timeout: 3000 },
 		)
 
-		await writer`UPDATE countries SET name = 'United States' WHERE id = 1`
+		await updateCountry.run(writer, { id: 1, name: `United States` })
 		await vitest.waitFor(
 			() => {
 				for (const observer of observers) {
@@ -181,7 +193,7 @@ it(`keeps two independent country directories reactive to SQL inserts, updates, 
 			{ timeout: 3000 },
 		)
 
-		await writer`DELETE FROM countries WHERE id = 4`
+		await deleteCountry.run(writer, { id: 4 })
 		await vitest.waitFor(
 			() => {
 				for (const observer of observers) {
@@ -224,7 +236,7 @@ it(`stops refreshing a closed directory and reads a fresh snapshot when reopened
 		await directory.close()
 		directories.pop()
 
-		await writer`UPDATE countries SET name = 'United States' WHERE id = 1`
+		await updateCountry.run(writer, { id: 1, name: `United States` })
 		const reopened = await connectCountryDirectory(reader, `reopened-directory`)
 		directories.push(reopened)
 		expect(await reopened.silo.getState(reopened.countryNamesSelector)).toBe(
@@ -236,7 +248,7 @@ it(`stops refreshing a closed directory and reads a fresh snapshot when reopened
 				if (typeof newValue === `string`) reopenedNames.push(newValue)
 			}),
 		)
-		await writer`INSERT INTO countries (name) VALUES ('Brazil')`
+		await insertCountry.run(writer, { name: `Brazil` })
 		await vitest.waitFor(
 			() => {
 				expect(reopenedNames).toEqual([`United States, Canada, Mexico, Brazil`])

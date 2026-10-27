@@ -96,11 +96,14 @@ jobs:
       - run: pnpm readme:types
 
   Types:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
+    env:
+      ATOM_IO_TEST_POSTGRES_SKIP_MISE: "true"
     timeout-minutes: 9
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
         with:
           packages: bun node pnpm
+      - uses: ./.github/actions/setup-postgres
       - run: pnpm lint:types

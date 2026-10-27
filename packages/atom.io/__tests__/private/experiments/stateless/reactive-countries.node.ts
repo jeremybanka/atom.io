@@ -7,11 +7,15 @@ import type {
 import { Silo } from "atom.io"
 import type postgres from "postgres"
 
-export type Country = { id: number; name: string | null }
+import getCountry from "./queries/get-country.sql"
+import listCountries from "./queries/list-countries.sql"
+
+export type CountryLookup = Awaited<ReturnType<typeof getCountry.run>>
+type Countries = Awaited<ReturnType<typeof listCountries.run>>
 export type CountryDirectory = {
 	silo: Silo
-	countryAtoms: RegularAtomFamilyToken<Loadable<Country | null>, number>
-	countriesAtom: RegularAtomToken<Loadable<Country[]>>
+	countryAtoms: RegularAtomFamilyToken<Loadable<CountryLookup>, number>
+	countriesAtom: RegularAtomToken<Loadable<Countries>>
 	countryNamesSelector: ReadonlySelectorToken<Loadable<string>>
 	close: () => Promise<void>
 }
@@ -24,14 +28,9 @@ export async function connectCountryDirectory(
 ): Promise<CountryDirectory> {
 	const silo = new Silo({ name, lifespan: `ephemeral`, isProduction: false })
 	const refreshRows = new Map<number, () => void>()
-	const countryAtoms = silo.atomFamily<Loadable<Country | null>, number>({
+	const countryAtoms = silo.atomFamily<Loadable<CountryLookup>, number>({
 		key: `country`,
-		default: async (id) => {
-			const rows = await reader<Country[]>`
-				SELECT id, name FROM countries WHERE id = ${id}
-			`
-			return rows[0] ?? null
-		},
+		default: (id) => getCountry.run(reader, { id }),
 		effects: (id) => [
 			({ resetSelf }) => {
 				refreshRows.set(id, resetSelf)
@@ -41,14 +40,9 @@ export async function connectCountryDirectory(
 			},
 		],
 	})
-	const countriesAtom = silo.atom<Loadable<Country[]>>({
+	const countriesAtom = silo.atom<Loadable<Countries>>({
 		key: `countries`,
-		default: async () => {
-			const rows = await reader<Country[]>`
-				SELECT id, name FROM countries ORDER BY id
-			`
-			return [...rows]
-		},
+		default: () => listCountries.run(reader),
 	})
 	const countryNamesSelector = silo.selector<Loadable<string>>({
 		key: `countryNames`,

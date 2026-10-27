@@ -1,5 +1,5 @@
 /** @jsxImportSource galley.md */
-import type { Component } from "galley.md"
+import { type Component, Markdown } from "galley.md"
 
 import {
 	CREATE_ATOM_OPTIONS,
@@ -9,7 +9,7 @@ import {
 import { InlineCode } from "./inline-code.ts"
 
 export const TemplateTable: Component = () => (
-	<table>
+	<Markdown.Table>
 		<thead>
 			<tr>
 				<th>Template</th>
@@ -26,11 +26,11 @@ export const TemplateTable: Component = () => (
 				</tr>
 			))}
 		</tbody>
-	</table>
+	</Markdown.Table>
 )
 
 export const OptionsTable: Component = () => (
-	<table>
+	<Markdown.Table>
 		<thead>
 			<tr>
 				<th>Option</th>
@@ -69,5 +69,5 @@ export const OptionsTable: Component = () => (
 				)
 			})}
 		</tbody>
-	</table>
+	</Markdown.Table>
 )

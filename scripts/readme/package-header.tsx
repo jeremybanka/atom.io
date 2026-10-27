@@ -2,7 +2,7 @@
 import { readFile } from "node:fs/promises"
 import path from "node:path"
 
-import { Comment, type Component, type Content, Html } from "galley.md"
+import { Comment, type Component, type Content } from "galley.md"
 
 type PackageManifest = {
 	name: string
@@ -34,59 +34,55 @@ export const PackageHeader: Component<{
 	return (
 		<>
 			<GeneratedNotice />
-			<Html>
-				<div align="center">
-					<img
-						alt="atom.io logo"
-						src="https://raw.githubusercontent.com/jeremybanka/atom.io/main/apps/atom.io.fyi/public/favicon.png"
-						width={160}
-						height={160}
-					/>
-				</div>
-				<h1 align="center">
-					<code>{manifest.name}</code>
-				</h1>
-			</Html>
+			<div align="center">
+				<img
+					alt="atom.io logo"
+					src="https://raw.githubusercontent.com/jeremybanka/atom.io/main/apps/atom.io.fyi/public/favicon.png"
+					width={160}
+					height={160}
+				/>
+			</div>
+			<h1 align="center">
+				<code>{manifest.name}</code>
+			</h1>
 			{children}
-			<Html>
-				<p align="center">
-					<a aria-label="NPM version" href={npm}>
-						<img
-							alt="NPM Version"
-							src={`${shields}/npm/v/${manifest.name}?${badgeStyle}`}
-						/>
-					</a>
-					<a aria-label={`Dependencies ${dependencyCount}`} href={npm}>
-						<img
-							alt={`Dependencies ${dependencyCount}`}
-							src={`${shields}/badge/dependencies-${dependencyCount}-0?${badgeStyle}`}
-						/>
-					</a>
-					<a aria-label="Coverage" href="https://recoverage.cloud/">
-						<img
-							alt="Coverage"
-							src={`${shields}/endpoint?url=${encodeURIComponent(coverage)}`}
-						/>
-					</a>
-					<a aria-label="Types" href={npm}>
-						<img
-							alt="Types"
-							src={`${shields}/npm/types/${manifest.name}?${badgeStyle}`}
-						/>
-					</a>
-				</p>
-				<h3 align="center">{tagline}</h3>
-				<h3 align="center">
-					<a href={`https://atom.io.fyi${docsPath ? `/docs/${docsPath}` : ``}`}>
-						📖 Read the docs at atom.io.fyi
-					</a>
-				</h3>
-				{diskDocs ? (
-					<h4 align="center">
-						<i>Or read them right from your hard drive.</i>
-					</h4>
-				) : null}
-			</Html>
+			<p align="center">
+				<a aria-label="NPM version" href={npm}>
+					<img
+						alt="NPM Version"
+						src={`${shields}/npm/v/${manifest.name}?${badgeStyle}`}
+					/>
+				</a>
+				<a aria-label={`Dependencies ${dependencyCount}`} href={npm}>
+					<img
+						alt={`Dependencies ${dependencyCount}`}
+						src={`${shields}/badge/dependencies-${dependencyCount}-0?${badgeStyle}`}
+					/>
+				</a>
+				<a aria-label="Coverage" href="https://recoverage.cloud/">
+					<img
+						alt="Coverage"
+						src={`${shields}/endpoint?url=${encodeURIComponent(coverage)}`}
+					/>
+				</a>
+				<a aria-label="Types" href={npm}>
+					<img
+						alt="Types"
+						src={`${shields}/npm/types/${manifest.name}?${badgeStyle}`}
+					/>
+				</a>
+			</p>
+			<h3 align="center">{tagline}</h3>
+			<h3 align="center">
+				<a href={`https://atom.io.fyi${docsPath ? `/docs/${docsPath}` : ``}`}>
+					📖 Read the docs at atom.io.fyi
+				</a>
+			</h3>
+			{diskDocs ? (
+				<h4 align="center">
+					<i>Or read them right from your hard drive.</i>
+				</h4>
+			) : null}
 		</>
 	)
 }

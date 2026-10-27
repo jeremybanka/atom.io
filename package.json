@@ -72,7 +72,7 @@
 		"@typescript-eslint/utils": "8.72.0",
 		"astro-eslint-parser": "3.2.0",
 		"atom.io": "workspace:*",
-		"correctly": "0.3.2",
+		"correctly": "0.3.3",
 		"dprint": "0.64.3",
 		"dprint-plugin-malva": "0.16.0",
 		"dprint-plugin-markup": "0.27.6",

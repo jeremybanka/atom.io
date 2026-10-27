@@ -199,8 +199,8 @@ importers:
         specifier: 0.25.2
         version: 0.25.2
       '@dprint/markdown':
-        specifier: 0.28.1
-        version: 0.28.1
+        specifier: 0.28.2
+        version: 0.28.2
       '@dprint/oxc':
         specifier: 0.47.0
         version: 0.47.0
@@ -863,8 +863,8 @@ importers:
         specifier: 0.25.2
         version: 0.25.2
       '@dprint/markdown':
-        specifier: 0.28.1
-        version: 0.28.1
+        specifier: 0.28.2
+        version: 0.28.2
       '@dprint/oxc':
         specifier: 0.47.0
         version: 0.47.0
@@ -963,8 +963,8 @@ importers:
         specifier: 0.25.2
         version: 0.25.2
       '@dprint/markdown':
-        specifier: 0.28.1
-        version: 0.28.1
+        specifier: 0.28.2
+        version: 0.28.2
       '@dprint/oxc':
         specifier: 0.47.0
         version: 0.47.0
@@ -1036,8 +1036,8 @@ importers:
         specifier: 0.25.2
         version: 0.25.2
       '@dprint/markdown':
-        specifier: 0.28.1
-        version: 0.28.1
+        specifier: 0.28.2
+        version: 0.28.2
       '@dprint/oxc':
         specifier: 0.47.0
         version: 0.47.0
@@ -1142,8 +1142,8 @@ importers:
         specifier: 0.25.2
         version: 0.25.2
       '@dprint/markdown':
-        specifier: 0.28.1
-        version: 0.28.1
+        specifier: 0.28.2
+        version: 0.28.2
       '@dprint/oxc':
         specifier: 0.47.0
         version: 0.47.0
@@ -1230,8 +1230,8 @@ importers:
         specifier: 0.25.2
         version: 0.25.2
       '@dprint/markdown':
-        specifier: 0.28.1
-        version: 0.28.1
+        specifier: 0.28.2
+        version: 0.28.2
       '@dprint/oxc':
         specifier: 0.47.0
         version: 0.47.0
@@ -1921,8 +1921,8 @@ packages:
   '@dprint/markdown@0.28.0':
     resolution: {integrity: sha512-JK8RPPd1ie+iTgO10faxk1kbzmulhkQxgf9tZjOiyngLA/6PZWmV+HAgruLL3f+P12P3MPkMRIqIr3/jL9+l/g==}
 
-  '@dprint/markdown@0.28.1':
-    resolution: {integrity: sha512-H8E+0Rb9ERq7697iMQpVsa0KXj5I2Ta5Zo6QwvBNSksUKljXUj2TnAV/oCowtB9QFH/IMx93DYWwdvCDVZdKvA==}
+  '@dprint/markdown@0.28.2':
+    resolution: {integrity: sha512-F1kIIh1WtRTWMjKv9M9xOkpqiAjdQWP6ROkQfHIHVyyZF3NLKhb/9SRsd2GzISMMTfwRcq/0Arz0Q7+X26RC7w==}
 
   '@dprint/oxc@0.47.0':
     resolution: {integrity: sha512-Bl3Ag2bK557YtuqY2ZV2rUU0I4VPo4nZ/3UmCv/Qhi+lR8ey3jo1EECdid3WJLOiro1rP7HNuWBO+WSlncUNAQ==}
@@ -8611,7 +8611,7 @@ snapshots:
 
   '@dprint/markdown@0.28.0': {}
 
-  '@dprint/markdown@0.28.1': {}
+  '@dprint/markdown@0.28.2': {}
 
   '@dprint/oxc@0.47.0': {}
 

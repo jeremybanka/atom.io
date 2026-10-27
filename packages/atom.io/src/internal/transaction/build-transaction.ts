@@ -23,10 +23,8 @@ import {
 import { newest } from "../lineage.ts"
 import { getJsonTokenFromStore } from "../mutable/index.ts"
 import { resetInStore, setIntoStore } from "../set-state/index.ts"
-import type { Fn } from "../utility-types.ts"
 import { actUponStore } from "./act-upon-store.ts"
 import type { ChildStore, RootStore } from "./is-root-store.ts"
-import type { TransactionProgress } from "./transaction-meta-progress.ts"
 
 export function buildTransaction(
 	store: RootStore,
@@ -35,7 +33,7 @@ export function buildTransaction(
 	id: string,
 ): ChildStore {
 	const parent = newest(store)
-	const childBase: Omit<ChildStore, `transactionMeta`> = {
+	const child: ChildStore = {
 		parent,
 		child: null,
 		on: parent.on,
@@ -64,51 +62,48 @@ export function buildTransaction(
 		moleculeData: parent.moleculeData.overlay(),
 		keyRefsInJoins: parent.keyRefsInJoins.overlay(),
 		miscResources: new MapOverlay(parent.miscResources),
-	}
-	const transactionMeta: TransactionProgress<Fn> = {
-		phase: `building`,
-		update: {
-			type: `transaction_outcome`,
-			token,
-			id,
-			timestamp: Date.now(),
-			subEvents: [],
-			params,
-			output: undefined,
-		},
-		toolkit: {
-			get: ((...ps: Parameters<typeof getState>) =>
-				getFromStore(child, ...ps)) as typeof getState,
-			set: ((...ps: Parameters<typeof setState>) => {
-				setIntoStore(child, ...ps)
-			}) as typeof setState,
-			reset: ((...ps: Parameters<typeof resetState>) => {
-				resetInStore(child, ...ps)
-			}) as typeof resetState,
-			run: (t, identifier = arbitrary()) => actUponStore(child, t, identifier),
-			find: ((...ps: Parameters<typeof findState>) =>
-				findInStore(store, ...ps)) as typeof findState,
-			json: (t) => getJsonTokenFromStore(child, t),
-			dispose: ((...ps: Parameters<typeof disposeState>) => {
-				disposeFromStore(child, ...ps)
-			}) as typeof disposeState,
-			env: () => getEnvironmentData(child),
-			relations: {
-				edit: ((...ps: Parameters<typeof editRelations>) => {
-					editRelationsInStore(child, ...ps)
-				}) as typeof editRelations,
-				find: ((...ps: Parameters<typeof findRelations>) => {
-					return findRelationsInStore(child, ...ps)
-				}) as typeof findRelations,
-				internal: ((...ps: Parameters<typeof getInternalRelations>) => {
-					return getInternalRelationsFromStore(child, ...ps)
-				}) as typeof getInternalRelations,
+		transactionMeta: {
+			phase: `building`,
+			update: {
+				type: `transaction_outcome`,
+				token,
+				id,
+				timestamp: Date.now(),
+				subEvents: [],
+				params,
+				output: undefined,
+			},
+			toolkit: {
+				get: ((...ps: Parameters<typeof getState>) =>
+					getFromStore(child, ...ps)) as typeof getState,
+				set: ((...ps: Parameters<typeof setState>) => {
+					setIntoStore(child, ...ps)
+				}) as typeof setState,
+				reset: ((...ps: Parameters<typeof resetState>) => {
+					resetInStore(child, ...ps)
+				}) as typeof resetState,
+				run: (t, identifier = arbitrary()) => actUponStore(child, t, identifier),
+				find: ((...ps: Parameters<typeof findState>) =>
+					findInStore(store, ...ps)) as typeof findState,
+				json: (t) => getJsonTokenFromStore(child, t),
+				dispose: ((...ps: Parameters<typeof disposeState>) => {
+					disposeFromStore(child, ...ps)
+				}) as typeof disposeState,
+				env: () => getEnvironmentData(child),
+				relations: {
+					edit: ((...ps: Parameters<typeof editRelations>) => {
+						editRelationsInStore(child, ...ps)
+					}) as typeof editRelations,
+					find: ((...ps: Parameters<typeof findRelations>) => {
+						return findRelationsInStore(child, ...ps)
+					}) as typeof findRelations,
+					internal: ((...ps: Parameters<typeof getInternalRelations>) => {
+						return getInternalRelationsFromStore(child, ...ps)
+					}) as typeof getInternalRelations,
+				},
 			},
 		},
 	}
-	const child: ChildStore = Object.assign(childBase, {
-		transactionMeta,
-	})
 	parent.child = child
 	store.logger.info(
 		`🛫`,

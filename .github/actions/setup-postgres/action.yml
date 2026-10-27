@@ -1,0 +1,19 @@
+name: Setup PostgreSQL binaries
+description: Use PostgreSQL 18 preinstalled on the Ubuntu 26.04 runner.
+runs:
+  using: composite
+  steps:
+    - name: Verify and expose PostgreSQL 18
+      shell: bash
+      run: |
+        # Tests initialize and stop their own clusters; no system service is needed.
+        pg_bin=/usr/lib/postgresql/18/bin
+        for command in initdb postgres; do
+          version=$("$pg_bin/$command" --version)
+          echo "$version"
+          if [[ ! "$version" =~ ^$command\ \(PostgreSQL\)\ 18\. ]]; then
+            echo "::error::Expected PostgreSQL 18 $command in $pg_bin"
+            exit 1
+          fi
+        done
+        echo "$pg_bin" >> "$GITHUB_PATH"

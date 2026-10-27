@@ -58,6 +58,7 @@
 		},
 		"test:once": {
 			"dependsOn": ["build", "^build"],
+			"passThroughEnv": ["ATOM_IO_TEST_POSTGRES_SKIP_MISE"],
 			"inputs": [
 				"$TURBO_DEFAULT$",
 				"$TURBO_ROOT$/scripts/**"
@@ -73,6 +74,7 @@
 		},
 		"cov": {
 			"dependsOn": ["build", "^build"],
+			"passThroughEnv": ["ATOM_IO_TEST_POSTGRES_SKIP_MISE"],
 			"outputs": ["coverage/**"],
 			"inputs": [
 				"$TURBO_DEFAULT$",

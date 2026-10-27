@@ -1,11 +1,11 @@
 /** @jsxImportSource galley.md */
 import plugin from "@atom.io/eslint-plugin"
-import type { Component } from "galley.md"
+import { type Component, Markdown } from "galley.md"
 
 import { InlineCode } from "./inline-code.ts"
 
 export const RuleTable: Component = () => (
-	<table>
+	<Markdown.Table>
 		<thead>
 			<tr>
 				<th>Rule</th>
@@ -26,5 +26,5 @@ export const RuleTable: Component = () => (
 				</tr>
 			))}
 		</tbody>
-	</table>
+	</Markdown.Table>
 )

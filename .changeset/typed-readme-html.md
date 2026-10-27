@@ -7,4 +7,4 @@
 "@atom.io/solid": patch
 ---
 
-Update shared README headers for Galley 0.2's explicit HTML component API while preserving the generated documentation.
+Migrate README generation to Galley 0.3 with native HTML headers and explicit Markdown tables.

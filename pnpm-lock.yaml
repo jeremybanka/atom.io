@@ -262,8 +262,8 @@ importers:
         specifier: 10.6.4
         version: 10.6.4(eslint@10.13.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
       galley.md:
-        specifier: 0.2.0
-        version: 0.2.0(arktype@2.2.8)(supports-color@10.2.2)(zod@4.6.7)
+        specifier: 0.3.0
+        version: 0.3.0(arktype@2.2.8)(supports-color@10.2.2)(zod@4.6.7)
       happy-dom:
         specifier: 21.0.4
         version: 21.0.4
@@ -286,8 +286,8 @@ importers:
         specifier: 7.8.5
         version: 7.8.5
       tonnage:
-        specifier: 0.4.0
-        version: 0.4.0(galley.md@0.2.0(arktype@2.2.8)(supports-color@10.2.2)(zod@4.6.7))
+        specifier: 0.5.0
+        version: 0.5.0(galley.md@0.3.0(arktype@2.2.8)(supports-color@10.2.2)(zod@4.6.7))
       turbo:
         specifier: 2.11.10
         version: 2.11.10
@@ -1917,9 +1917,6 @@ packages:
     cpu: [x64]
     os: [linux]
     libc: [musl]
-
-  '@dprint/markdown@0.28.1':
-    resolution: {integrity: sha512-H8E+0Rb9ERq7697iMQpVsa0KXj5I2Ta5Zo6QwvBNSksUKljXUj2TnAV/oCowtB9QFH/IMx93DYWwdvCDVZdKvA==}
 
   '@dprint/markdown@0.28.2':
     resolution: {integrity: sha512-F1kIIh1WtRTWMjKv9M9xOkpqiAjdQWP6ROkQfHIHVyyZF3NLKhb/9SRsd2GzISMMTfwRcq/0Arz0Q7+X26RC7w==}
@@ -5699,8 +5696,8 @@ packages:
   function-bind@1.1.2:
     resolution: {integrity: sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA==}
 
-  galley.md@0.2.0:
-    resolution: {integrity: sha512-wV9QalzkAs3vcMi296tVBYkHLW2MRuBpJJHzmBeH2BWkuvzSCNVrKDIpD6ZoNjbpcNF5+yd2T8QkjNoDiqDrTA==}
+  galley.md@0.3.0:
+    resolution: {integrity: sha512-kTGmc87rNaAudikK4tBqNiUA1yUDsPyocpizzvOw7ewoNa4wTgifx2Yhkx62p9Xa3nXTuO1P7gHkzQH6x6wDJQ==}
     engines: {node: '>=22.18.0', pnpm: 12.15.0}
     hasBin: true
 
@@ -5780,17 +5777,29 @@ packages:
     resolution: {integrity: sha512-T2UbfbBEF32wiepXIsMlTW9+dDYC6wMh/t/vYA4tuOMKqWz/n3vr1NFSxQiyP+zk2mXsoMA/i/7qV6LKut1t1A==}
     engines: {node: '>= 0.4'}
 
+  hast-util-embedded@3.0.0:
+    resolution: {integrity: sha512-naH8sld4Pe2ep03qqULEtvYr7EjrLK2QHY8KJR6RJkTUjPGObe1vnx585uzem2hGra+s1q08DZZpfgDVYRbaXA==}
+
   hast-util-from-html@2.0.3:
     resolution: {integrity: sha512-CUSRHXyKjzHov8yKsQjGOElXy/3EKpyX56ELnkHH34vDVw1N1XSQ1ZcAvTyAPtGqLTuKP/uxM+aLkSPqF/EtMw==}
 
   hast-util-from-parse5@8.0.3:
     resolution: {integrity: sha512-3kxEVkEKt0zvcZ3hCRYI8rqrgwtlIOFMWkbclACvjlDw8Li9S2hk/d51OI0nr/gIpdMHNepwgOKqZ/sy0Clpyg==}
 
+  hast-util-has-property@3.0.0:
+    resolution: {integrity: sha512-MNilsvEKLFpV604hwfhVStK0usFY/QmM5zX16bo7EjnAEGofr5YyI37kzopBlZJkHD4t887i+q/C8/tr5Q94cA==}
+
+  hast-util-is-body-ok-link@3.0.1:
+    resolution: {integrity: sha512-0qpnzOBLztXHbHQenVB8uNuxTnm/QBFUOmdOSsEn7GnBtyY07+ENTWVFBAnXd/zEgd9/SUG3lRY7hSIBWRgGpQ==}
+
   hast-util-is-element@3.0.0:
     resolution: {integrity: sha512-Val9mnv2IWpLbNPqc/pUem+a7Ipj2aHacCwgNfTiK0vJKl0LF+4Ba4+v1oPHFpf3bLYmreq0/l3Gud9S5OH42g==}
 
   hast-util-parse-selector@4.0.0:
     resolution: {integrity: sha512-wkQCkSYoOGCRKERFWcxMVMOcYE2K1AaNLU8DXS9arxnLOUEWbOXKXiJUNzEpqZ3JOKpnha3jkFrumEjVliDe7A==}
+
+  hast-util-phrasing@3.0.1:
+    resolution: {integrity: sha512-6h60VfI3uBQUxHqTyMymMZnEbNl1XmEGtOxxKYL7stY2o601COo62AWAYBQR9lZbYXYSBoxag8UpPRXK+9fqSQ==}
 
   hast-util-raw@9.1.0:
     resolution: {integrity: sha512-Y8/SBAHkZGoNkpzqqfCldijcuUKh7/su31kEBp67cFY09Wy0mTRgtsLYsiIxMJxlu0f6AA5SUTbDR8K0rxnbUw==}
@@ -7214,11 +7223,11 @@ packages:
     resolution: {integrity: sha512-A5F0cM6+mDleacLIEUkmfpkBbnHJFV1d2rprHU2MXNk7mlxHq2zGojA+SRvQD1RoMo9gqjZPWEaKG4v1BQ48lw==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
 
-  tonnage@0.4.0:
-    resolution: {integrity: sha512-VcFq3wXNJmAx0yjHDixjse2xBMQeqJMs0hE1pnrVpjcPOt+D3GtUX3MhLGZTLaBSuZkGChnt/F1rEQ+GW3MQ5A==}
+  tonnage@0.5.0:
+    resolution: {integrity: sha512-fMtS1ys7kq3yPA/3uaevO4ySE+OevZAPpb1pI/TJS057xJRQfydWtDyHbn4pqCI/OzAJ+AmrHBO7xLPRbVJStg==}
     engines: {node: '>=22.18.0'}
     peerDependencies:
-      galley.md: ^0.1.1
+      galley.md: ^0.3.0
 
   totalist@3.0.1:
     resolution: {integrity: sha512-sf4i37nQ2LBx4m3wB74y+ubopq6W/dIzXg0FDGjsYnZHVa1Da8FH853wlL2gtUhg+xJXjfk3kUZS3BRoQeoQBQ==}
@@ -8593,8 +8602,6 @@ snapshots:
 
   '@dprint/linux-x64-musl@0.64.3':
     optional: true
-
-  '@dprint/markdown@0.28.1': {}
 
   '@dprint/markdown@0.28.2': {}
 
@@ -12193,16 +12200,18 @@ snapshots:
 
   function-bind@1.1.2: {}
 
-  galley.md@0.2.0(arktype@2.2.8)(supports-color@10.2.2)(zod@4.6.7):
+  galley.md@0.3.0(arktype@2.2.8)(supports-color@10.2.2)(zod@4.6.7):
     dependencies:
       '@babel/parser': 8.0.8
       '@dprint/formatter': 0.6.0
-      '@dprint/markdown': 0.28.1
+      '@dprint/markdown': 0.28.2
       '@mdx-js/mdx': 3.1.1(supports-color@10.2.2)
       '@types/mdast': 4.0.4
+      '@types/react': 19.3.0
       '@vscode/vsce': 4.0.0(supports-color@10.2.2)
       comline: 0.9.3(arktype@2.2.8)(zod@4.6.7)
       esbuild: 0.28.2
+      hast-util-phrasing: 3.0.1
       hast-util-to-html: 9.0.5
       mdast-util-to-hast: 13.2.1
       remark-frontmatter: 5.0.0(supports-color@10.2.2)
@@ -12313,6 +12322,11 @@ snapshots:
     dependencies:
       function-bind: 1.1.2
 
+  hast-util-embedded@3.0.0:
+    dependencies:
+      '@types/hast': 3.0.5
+      hast-util-is-element: 3.0.0
+
   hast-util-from-html@2.0.3:
     dependencies:
       '@types/hast': 3.0.5
@@ -12333,6 +12347,14 @@ snapshots:
       vfile-location: 5.0.3
       web-namespaces: 2.0.1
 
+  hast-util-has-property@3.0.0:
+    dependencies:
+      '@types/hast': 3.0.5
+
+  hast-util-is-body-ok-link@3.0.1:
+    dependencies:
+      '@types/hast': 3.0.5
+
   hast-util-is-element@3.0.0:
     dependencies:
       '@types/hast': 3.0.5
@@ -12340,6 +12362,14 @@ snapshots:
   hast-util-parse-selector@4.0.0:
     dependencies:
       '@types/hast': 3.0.5
+
+  hast-util-phrasing@3.0.1:
+    dependencies:
+      '@types/hast': 3.0.5
+      hast-util-embedded: 3.0.0
+      hast-util-has-property: 3.0.0
+      hast-util-is-body-ok-link: 3.0.1
+      hast-util-is-element: 3.0.0
 
   hast-util-raw@9.1.0:
     dependencies:
@@ -14339,10 +14369,10 @@ snapshots:
     dependencies:
       eslint-visitor-keys: 5.0.1
 
-  tonnage@0.4.0(galley.md@0.2.0(arktype@2.2.8)(supports-color@10.2.2)(zod@4.6.7)):
+  tonnage@0.5.0(galley.md@0.3.0(arktype@2.2.8)(supports-color@10.2.2)(zod@4.6.7)):
     dependencies:
       esbuild: 0.28.2
-      galley.md: 0.2.0(arktype@2.2.8)(supports-color@10.2.2)(zod@4.6.7)
+      galley.md: 0.3.0(arktype@2.2.8)(supports-color@10.2.2)(zod@4.6.7)
 
   totalist@3.0.1: {}
 

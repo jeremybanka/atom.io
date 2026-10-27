@@ -35,56 +35,93 @@ export const PackageHeader: Component<{
 		<>
 			<GeneratedNotice />
 			<Html>
-				<div align="center">
-					<img
-						alt="atom.io logo"
-						src="https://raw.githubusercontent.com/jeremybanka/atom.io/main/apps/atom.io.fyi/public/favicon.png"
-						width={160}
-						height={160}
+				<Html.Element tag="div" attributes={{ align: `center` }}>
+					<Html.Element
+						tag="img"
+						attributes={{
+							alt: `atom.io logo`,
+							src: `https://raw.githubusercontent.com/jeremybanka/atom.io/main/apps/atom.io.fyi/public/favicon.png`,
+							width: 160,
+							height: 160,
+						}}
 					/>
-				</div>
-				<h1 align="center">
-					<code>{manifest.name}</code>
-				</h1>
+				</Html.Element>
+				<Html.Element tag="h1" attributes={{ align: `center` }}>
+					<Html.Element tag="code">{manifest.name}</Html.Element>
+				</Html.Element>
 			</Html>
 			{children}
 			<Html>
-				<p align="center">
-					<a aria-label="NPM version" href={npm}>
-						<img
-							alt="NPM Version"
-							src={`${shields}/npm/v/${manifest.name}?${badgeStyle}`}
+				<Html.Element tag="p" attributes={{ align: `center` }}>
+					<Html.Element
+						tag="a"
+						attributes={{ "aria-label": `NPM version`, href: npm }}
+					>
+						<Html.Element
+							tag="img"
+							attributes={{
+								alt: `NPM Version`,
+								src: `${shields}/npm/v/${manifest.name}?${badgeStyle}`,
+							}}
 						/>
-					</a>
-					<a aria-label={`Dependencies ${dependencyCount}`} href={npm}>
-						<img
-							alt={`Dependencies ${dependencyCount}`}
-							src={`${shields}/badge/dependencies-${dependencyCount}-0?${badgeStyle}`}
+					</Html.Element>
+					<Html.Element
+						tag="a"
+						attributes={{
+							"aria-label": `Dependencies ${dependencyCount}`,
+							href: npm,
+						}}
+					>
+						<Html.Element
+							tag="img"
+							attributes={{
+								alt: `Dependencies ${dependencyCount}`,
+								src: `${shields}/badge/dependencies-${dependencyCount}-0?${badgeStyle}`,
+							}}
 						/>
-					</a>
-					<a aria-label="Coverage" href="https://recoverage.cloud/">
-						<img
-							alt="Coverage"
-							src={`${shields}/endpoint?url=${encodeURIComponent(coverage)}`}
+					</Html.Element>
+					<Html.Element
+						tag="a"
+						attributes={{
+							"aria-label": `Coverage`,
+							href: `https://recoverage.cloud/`,
+						}}
+					>
+						<Html.Element
+							tag="img"
+							attributes={{
+								alt: `Coverage`,
+								src: `${shields}/endpoint?url=${encodeURIComponent(coverage)}`,
+							}}
 						/>
-					</a>
-					<a aria-label="Types" href={npm}>
-						<img
-							alt="Types"
-							src={`${shields}/npm/types/${manifest.name}?${badgeStyle}`}
+					</Html.Element>
+					<Html.Element
+						tag="a"
+						attributes={{ "aria-label": `Types`, href: npm }}
+					>
+						<Html.Element
+							tag="img"
+							attributes={{
+								alt: `Types`,
+								src: `${shields}/npm/types/${manifest.name}?${badgeStyle}`,
+							}}
 						/>
-					</a>
-				</p>
-				<h3 align="center">{tagline}</h3>
-				<h3 align="center">
+					</Html.Element>
+				</Html.Element>
+				<Html.Element tag="h3" attributes={{ align: `center` }}>
+					{tagline}
+				</Html.Element>
+				<Html.Element tag="h3" attributes={{ align: `center` }}>
 					<a href={`https://atom.io.fyi${docsPath ? `/docs/${docsPath}` : ``}`}>
 						📖 Read the docs at atom.io.fyi
 					</a>
-				</h3>
+				</Html.Element>
 				{diskDocs ? (
-					<h4 align="center">
-						<i>Or read them right from your hard drive.</i>
-					</h4>
+					<Html.Element tag="h4" attributes={{ align: `center` }}>
+						<Html.Element tag="i">
+							Or read them right from your hard drive.
+						</Html.Element>
+					</Html.Element>
 				) : null}
 			</Html>
 		</>

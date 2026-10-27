@@ -39,7 +39,7 @@
 	"devDependencies": {
 		"@atom.io/eslint-plugin": "workspace:*",
 		"@dprint/json": "0.25.2",
-		"@dprint/markdown": "0.28.0",
+		"@dprint/markdown": "0.28.1",
 		"@dprint/oxc": "0.47.0",
 		"@preact/preset-vite": "2.10.6",
 		"@typescript-eslint/eslint-plugin": "8.72.0",

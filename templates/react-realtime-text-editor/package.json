@@ -40,7 +40,7 @@
 	"devDependencies": {
 		"@atom.io/eslint-plugin": "workspace:*",
 		"@dprint/json": "0.25.2",
-		"@dprint/markdown": "0.28.0",
+		"@dprint/markdown": "0.28.1",
 		"@dprint/oxc": "0.47.0",
 		"@playwright/test": "1.64.1",
 		"@testing-library/dom": "10.4.2",

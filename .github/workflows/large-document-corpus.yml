@@ -28,7 +28,7 @@ defaults:
 jobs:
   VerifyAndDerive:
     name: Verify and derive
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     env:
       CORPUS_CACHE_KEY: pg100-2026-08-13-3cf4b3d44ee14cff4e14e78e2ad3318eff76f3f7f2afc3cee6bb925879110a37

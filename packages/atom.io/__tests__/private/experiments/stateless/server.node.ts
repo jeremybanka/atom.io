@@ -24,17 +24,13 @@ if (DB_NAME === undefined) {
 	throw new Error(`DB_NAME environment variable is not set`)
 }
 
-const main = async () => {
+const main = () => {
 	const sql = postgres({
 		host: DB_HOST,
 		database: DB_NAME,
 		password: DB_PASSWORD,
 		port: DB_PORT,
 		user: DB_USER,
-	})
-
-	await sql.listen(`table_update`, (message) => {
-		if (LOGGING) console.log(`Received notification: ${message}`)
 	})
 
 	const db = drizzle({ client: sql })
@@ -154,4 +150,4 @@ const main = async () => {
 		})
 }
 
-void main()
+main()

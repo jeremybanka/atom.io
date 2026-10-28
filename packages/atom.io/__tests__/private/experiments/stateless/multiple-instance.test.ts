@@ -118,7 +118,6 @@ beforeEach(async () => {
 	console.log(`Creating sample tables`)
 	await dbManager.createSampleTables()
 	await dbManager.insertSampleData()
-	await dbManager.setupTriggersAndNotifications()
 })
 
 afterEach(async () => {

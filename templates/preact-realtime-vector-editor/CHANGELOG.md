@@ -1,5 +1,15 @@
 # @atom.io/template-preact-realtime-vector-editor
 
+## 0.1.1
+
+### Patch Changes
+
+- Updated dependencies [2bbaa59]
+  - atom.io@0.54.1
+  - @atom.io/react@0.1.0
+  - @atom.io/realtime@0.1.0
+  - @atom.io/template-preact-svg-editor@0.1.2
+
 ## 0.1.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # atom.io
 
+## 0.54.1
+
+### Patch Changes
+
+- 2bbaa59: Use explicit object construction for transaction stores and direct property assignment for mutable-state tracker callbacks to improve performance, and refresh the generated bundle-size report.
+
 ## 0.54.0
 
 ### Minor Changes

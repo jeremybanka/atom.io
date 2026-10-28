@@ -2,4 +2,4 @@
 "atom.io": patch
 ---
 
-Replace generic object assignment in transaction construction, mutable-state tracking, store clearing, and snapshot restoration with explicit construction and field assignment to improve performance while preserving store identity.
+Use explicit object construction for transaction stores and direct property assignment for mutable-state tracker callbacks to improve performance.

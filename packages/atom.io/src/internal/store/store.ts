@@ -41,7 +41,6 @@ import type {
 import { isRootStore } from "../transaction/index.ts"
 import type { Fn } from "../utility-types.ts"
 import { CircularBuffer } from "./circular-buffer.ts"
-import { copyStoreFields } from "./copy-store-fields.ts"
 
 export type StoreConfig = {
 	name: string
@@ -286,6 +285,6 @@ export function clearStore(store: Store): void {
 	for (const disposable of store.miscResources.values()) {
 		disposable[Symbol.dispose]()
 	}
-	copyStoreFields(store, new Store(config))
+	Object.assign(store, new Store(config))
 	store.config = config
 }

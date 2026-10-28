@@ -1,4 +1,5 @@
 export * from "./circular-buffer.ts"
+export * from "./copy-store-fields.ts"
 export * from "./deposit.ts"
 export * from "./store.ts"
 export * from "./withdraw.ts"

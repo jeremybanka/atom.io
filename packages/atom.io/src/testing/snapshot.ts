@@ -1,5 +1,5 @@
 import type { RootStore } from "atom.io/internal"
-import { IMPLICIT, Store } from "atom.io/internal"
+import { copyStoreFields, IMPLICIT, Store } from "atom.io/internal"
 
 /**
  * A snapshot of the store state that can be restored.
@@ -22,7 +22,7 @@ export function takeSnapshot(store: RootStore = IMPLICIT.STORE): Snapshot {
 			for (const disposable of store.miscResources.values()) {
 				disposable[Symbol.dispose]()
 			}
-			Object.assign(store, new Store(baseConfig, template))
+			copyStoreFields(store, new Store(baseConfig, template))
 			if (isImplicitStore) {
 				globalThis.ATOM_IO_IMPLICIT_STORE = store
 			}

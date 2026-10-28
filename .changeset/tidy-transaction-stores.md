@@ -2,4 +2,4 @@
 "atom.io": patch
 ---
 
-Construct transaction stores in one object literal to improve compatibility with ahead-of-time compiler optimizations.
+Replace generic object assignment in transaction construction, mutable-state tracking, store clearing, and snapshot restoration with explicit construction and field assignment to improve performance while preserving store identity.

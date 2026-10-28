@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       solid-js:
-        specifier: 2.0.0-rc.18
-        version: 2.0.0-rc.18
+        specifier: 2.0.0-rc.19
+        version: 2.0.0-rc.19
     devDependencies:
       '@types/node':
         specifier: 26.6.5
@@ -21,8 +21,8 @@ importers:
 
 packages:
 
-  '@solidjs/signals@2.0.0-rc.18':
-    resolution: {integrity: sha512-pzYahnM93EpDN4xZF1EefdjPE6Buuu/90/kiaLOjUFhPd3H0W6J9R8lIF+kkD1Z78LW1OTHciRY5MCqpYj5iSQ==}
+  '@solidjs/signals@2.0.0-rc.19':
+    resolution: {integrity: sha512-Epg4lyelYZnwG152q1U7lXAXp/2/jaQdaRbzh60rcOelSwmCMf/WN6FQuUEUwbn1p/QNyoJzdGSKPajkVe3zOg==}
     engines: {node: '>=22.12.0'}
 
   '@types/node@26.6.5':
@@ -161,8 +161,8 @@ packages:
     resolution: {integrity: sha512-FU+LUkmDzWNsJ6oubZFN3dGPKny53DRhPJG6nftEaXDL8MIn19+kEE1Gvc+63Go+qPOwVUlKIdKhsu2HN6tksw==}
     engines: {node: '>=20'}
 
-  solid-js@2.0.0-rc.18:
-    resolution: {integrity: sha512-g4KjUQUjfqvqHYnBddN5nVAF7DFcDjtuH+NeDu/26vx6SlSDiqBJS8jsNag6VpdKAnfK8oLfphogEhXtM4UOyw==}
+  solid-js@2.0.0-rc.19:
+    resolution: {integrity: sha512-tlA+rZT1n3XkuxW0sMIoRf/QpOa0H9N9ZDrZLQFueUkZp+hElG+EXWBojBYYi4lVBKV8l03RTNgv+lfVCYkp9w==}
     engines: {node: '>=22.12.0'}
 
   typescript@7.0.2:
@@ -175,7 +175,7 @@ packages:
 
 snapshots:
 
-  '@solidjs/signals@2.0.0-rc.18': {}
+  '@solidjs/signals@2.0.0-rc.19': {}
 
   '@types/node@26.6.5':
     dependencies:
@@ -249,9 +249,9 @@ snapshots:
 
   seroval@1.7.0: {}
 
-  solid-js@2.0.0-rc.18:
+  solid-js@2.0.0-rc.19:
     dependencies:
-      '@solidjs/signals': 2.0.0-rc.18
+      '@solidjs/signals': 2.0.0-rc.19
       csstype: 3.2.3
       seroval: 1.7.0
       seroval-plugins: 1.7.0(seroval@1.7.0)

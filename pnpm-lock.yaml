@@ -202,8 +202,8 @@ importers:
         specifier: 0.28.2
         version: 0.28.2
       '@dprint/oxc':
-        specifier: 0.47.0
-        version: 0.47.0
+        specifier: 0.48.0
+        version: 0.48.0
       '@dprint/toml':
         specifier: 0.9.0
         version: 0.9.0
@@ -869,8 +869,8 @@ importers:
         specifier: 0.28.2
         version: 0.28.2
       '@dprint/oxc':
-        specifier: 0.47.0
-        version: 0.47.0
+        specifier: 0.48.0
+        version: 0.48.0
       '@preact/preset-vite':
         specifier: 2.10.6
         version: 2.10.6(@babel/core@7.29.7(supports-color@10.2.2))(preact@11.1.0)(supports-color@10.2.2)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
@@ -969,8 +969,8 @@ importers:
         specifier: 0.28.2
         version: 0.28.2
       '@dprint/oxc':
-        specifier: 0.47.0
-        version: 0.47.0
+        specifier: 0.48.0
+        version: 0.48.0
       '@preact/preset-vite':
         specifier: 2.10.6
         version: 2.10.6(@babel/core@7.29.7(supports-color@10.2.2))(preact@11.1.0)(supports-color@10.2.2)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
@@ -1042,8 +1042,8 @@ importers:
         specifier: 0.28.2
         version: 0.28.2
       '@dprint/oxc':
-        specifier: 0.47.0
-        version: 0.47.0
+        specifier: 0.48.0
+        version: 0.48.0
       '@eslint-react/eslint-plugin':
         specifier: 5.28.8
         version: 5.28.8(@typescript/typescript6@6.0.2)(eslint@10.13.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
@@ -1148,8 +1148,8 @@ importers:
         specifier: 0.28.2
         version: 0.28.2
       '@dprint/oxc':
-        specifier: 0.47.0
-        version: 0.47.0
+        specifier: 0.48.0
+        version: 0.48.0
       '@playwright/test':
         specifier: 1.64.1
         version: 1.64.1
@@ -1236,8 +1236,8 @@ importers:
         specifier: 0.28.2
         version: 0.28.2
       '@dprint/oxc':
-        specifier: 0.47.0
-        version: 0.47.0
+        specifier: 0.48.0
+        version: 0.48.0
       '@types/node':
         specifier: 26.6.5
         version: 26.6.5
@@ -1924,8 +1924,8 @@ packages:
   '@dprint/markdown@0.28.2':
     resolution: {integrity: sha512-F1kIIh1WtRTWMjKv9M9xOkpqiAjdQWP6ROkQfHIHVyyZF3NLKhb/9SRsd2GzISMMTfwRcq/0Arz0Q7+X26RC7w==}
 
-  '@dprint/oxc@0.47.0':
-    resolution: {integrity: sha512-Bl3Ag2bK557YtuqY2ZV2rUU0I4VPo4nZ/3UmCv/Qhi+lR8ey3jo1EECdid3WJLOiro1rP7HNuWBO+WSlncUNAQ==}
+  '@dprint/oxc@0.48.0':
+    resolution: {integrity: sha512-2xYsyfI9TJWQGeUAHekkM7GwY7a7svU5+OUm4QpH8Qee00FqbsSH5hcWhmGx6XNunOuScLcBnlVvDMq1rp2Z7A==}
 
   '@dprint/toml@0.9.0':
     resolution: {integrity: sha512-LPALX1gUtRFKugemsGa7iNNC4ZSvTTBKSWySw3iAH4nphjsa2OaCaPmNZIi15wyOVag+pYESyBsvyELgYYNTtQ==}
@@ -8611,7 +8611,7 @@ snapshots:
 
   '@dprint/markdown@0.28.2': {}
 
-  '@dprint/oxc@0.47.0': {}
+  '@dprint/oxc@0.48.0': {}
 
   '@dprint/toml@0.9.0': {}
 

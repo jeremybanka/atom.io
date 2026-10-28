@@ -8,4 +8,4 @@
 "create-atom.io": patch
 ---
 
-Format package documentation with the MDX-aware dprint plugin and repair malformed SVG markup in the Storybook setup guide.
+Format package documentation with the MDX-aware dprint plugin and repair malformed SVG markup in the Storybook setup guide. Include the React Devtools exhibits in TypeScript checking and infer code-import languages from file extensions.

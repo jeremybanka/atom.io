@@ -22,8 +22,9 @@ pnpm add atom.io @atom.io/react @atom.io/react-devtools react react-dom
 ## Setup
 
 ```tsx
-import { AtomIODevtools } from "@atom.io/react-devtools"
 import "@atom.io/react-devtools/css"
+
+import { AtomIODevtools } from "@atom.io/react-devtools"
 
 export function App() {
 	return (

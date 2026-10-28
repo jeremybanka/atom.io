@@ -14,7 +14,7 @@ Install the standalone devtools alongside the SDK and React bindings. React 18 o
 
 Replace imports from `atom.io/react-devtools` and `atom.io/react-devtools/css` with `@atom.io/react-devtools` and `@atom.io/react-devtools/css`. To render with the intended styles, import both the component and its CSS:
 
-<Exhibit src="tooling/react-devtools/basic-setup.tsx.txt" />
+<Exhibit src="tooling/react-devtools/basic-setup.tsx" />
 
 Render the devtools somewhere inside the same React tree as your `@atom.io/react`
 provider. `AtomIODevtools` reads the current store from `StoreContext`, so it attaches to
@@ -28,7 +28,7 @@ If you have created a siloed store, you can mount the devtools inside that store
 If you want the devtools available without showing them immediately, pass
 `hideByDefault={true}`:
 
-<Exhibit src="tooling/react-devtools/hide-by-default.tsx.txt" />
+<Exhibit src="tooling/react-devtools/hide-by-default.tsx" />
 
 When hidden, the panel can be toggled with `ctrl` + `shift` + `a`.
 See [try it here](#try-it-here) for the full show/hide flow on this site.

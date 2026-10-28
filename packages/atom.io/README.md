@@ -4,7 +4,7 @@
 
 <h1 align="center"><code>atom.io</code></h1>
 
-```shell
+```sh
 npm i atom.io
 
 ```

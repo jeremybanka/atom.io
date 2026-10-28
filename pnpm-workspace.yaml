@@ -9,6 +9,7 @@ minimumReleaseAgeExclude:
   - breakage
   - comline
   - correctly
+  - dprint-plugin-mdx
   - galley.md
   - lasertag
   - rationality

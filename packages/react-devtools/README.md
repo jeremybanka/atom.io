@@ -22,10 +22,12 @@ pnpm add atom.io @atom.io/react @atom.io/react-devtools react react-dom
 ## Setup
 
 ```tsx
-import { AtomIODevtools } from "@atom.io/react-devtools"
 import "@atom.io/react-devtools/css"
 
-export function App() {
+import { AtomIODevtools } from "@atom.io/react-devtools"
+import type { JSX } from "react"
+
+export function App(): JSX.Element {
 	return (
 		<>
 			<main>{/* your app */}</main>

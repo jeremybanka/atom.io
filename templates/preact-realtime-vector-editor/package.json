@@ -1,6 +1,6 @@
 {
 	"name": "@atom.io/template-preact-realtime-vector-editor",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "A realtime collaborative vector editor built with Atom.io Mosaic Domains and Preact.",
 	"repository": {
 		"type": "git",

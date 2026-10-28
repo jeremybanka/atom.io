@@ -1,5 +1,14 @@
 # atom.io.fyi
 
+## 0.2.96
+
+### Patch Changes
+
+- Updated dependencies [2bbaa59]
+  - atom.io@0.54.1
+  - @atom.io/react@0.1.0
+  - @atom.io/react-devtools@0.1.0
+
 ## 0.2.95
 
 ### Patch Changes

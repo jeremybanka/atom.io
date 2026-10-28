@@ -25,7 +25,7 @@ defaults:
 jobs:
   PeerCoverage:
     name: All Peer Eras Represented
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 9
     outputs:
       matrix: ${{ steps.prepare.outputs.matrix }}
@@ -51,7 +51,7 @@ jobs:
   PeerEnvironment:
     name: ${{ matrix.label }}
     needs: PeerCoverage
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 9
     strategy:
       fail-fast: false
@@ -83,7 +83,7 @@ jobs:
     name: Peers
     if: ${{ always() }}
     needs: [PeerCoverage, PeerEnvironment]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 9
     steps:
       - run: test "$COVERAGE_RESULT" = success && test "$ENVIRONMENT_RESULT" = success
@@ -108,7 +108,7 @@ jobs:
 
   Public:
     name: Public
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 9
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

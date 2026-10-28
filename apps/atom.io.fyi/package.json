@@ -27,7 +27,7 @@
 		"@atom.io/react-devtools": "workspace:*",
 		"@babel/parser": "8.0.8",
 		"@babel/types": "8.0.8",
-		"@pierre/highlights": "0.2.0",
+		"@pierre/highlights": "0.3.0",
 		"astro": "7.4.2",
 		"atom.io": "workspace:*",
 		"preact": "11.0.2",

@@ -136,7 +136,7 @@
 			]
 		},
 		"lint:oxlint": {
-			"dependsOn": ["^build"],
+			"dependsOn": ["build", "^build"],
 			"inputs": [
 				"$TURBO_DEFAULT$",
 				"$TURBO_ROOT$/scripts/**",
@@ -145,7 +145,7 @@
 			]
 		},
 		"lint:types": {
-			"dependsOn": ["^build"],
+			"dependsOn": ["build", "^build"],
 			"inputs": [
 				"$TURBO_DEFAULT$",
 				"$TURBO_ROOT$/scripts/**"

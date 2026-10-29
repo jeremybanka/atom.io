@@ -30,7 +30,7 @@
 		"@dprint/json": "0.25.2",
 		"@dprint/markdown": "0.28.2",
 		"@dprint/oxc": "0.48.0",
-		"@types/node": "26.6.5",
+		"@types/node": "26.6.6",
 		"@typescript/native": "npm:typescript@7.0.2",
 		"dprint": "0.64.3",
 		"dprint-plugin-malva": "0.16.0",

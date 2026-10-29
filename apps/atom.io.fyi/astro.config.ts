@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url"
 import cloudflare from "@astrojs/cloudflare"
 import { unified } from "@astrojs/markdown-remark"
 import mdx from "@astrojs/mdx"
-import preact from "@astrojs/preact"
+import water from "@atom.io/water/astro"
 import { defineConfig, sessionDrivers } from "astro/config"
 
 import { preserveCodeBlockCodeProps } from "./scripts/remark-codeblock-code-props.ts"
@@ -110,7 +110,7 @@ function exhibitTextPlugin() {
 
 // https://astro.build/config
 export default defineConfig({
-	integrations: [preact({ compat: true }), mdx()],
+	integrations: [water({ include: /\.[jt]sx$/ }), mdx()],
 	markdown: {
 		processor: unified({ remarkPlugins: [preserveCodeBlockCodeProps] }),
 	},
@@ -126,7 +126,7 @@ export default defineConfig({
 		allowedHosts: [`eris.local`, `atom-io`],
 	},
 	vite: {
-		resolve: { dedupe: [`preact`] },
+		resolve: { dedupe: [`atom.io`, `@atom.io/water`] },
 		plugins: [exhibitTextPlugin()],
 		build: {
 			// Dz2Orbital's isolated Three.js entry is ~512 KiB minified.

@@ -37,7 +37,8 @@ function stringify(
 			`<!--{-->` +
 			values
 				.map((child, index) => {
-					const key = (child as VNode | null)?.props?.[`key`] ?? index
+					const explicit = (child as VNode | null)?.props?.[`key`]
+					const key = explicit == null ? index : String(explicit)
 					if (keys.has(key)) throw new Error(`water: duplicate key`)
 					keys.add(key)
 					return `<!--[-->${within(owner, () => stringify(child, createScope(owner), namespace, selectValue))}<!--]-->`
@@ -70,7 +71,7 @@ function stringify(
 	}
 	if (!/^[A-Za-z][\w.:-]*$/.test(type)) throw new Error(`water: invalid tag`)
 	if (type === `astro-slot`)
-		return `<astro-slot>${props[`innerHTML`] ?? ``}</astro-slot>`
+		return `<astro-slot${props[`name`] ? ` name="${escape(props[`name`])}"` : ``}>${props[`innerHTML`] ?? ``}</astro-slot>`
 	const ns = type === `svg` ? `svg` : namespace
 	let attrs = ``
 	let textValue: string | number | undefined

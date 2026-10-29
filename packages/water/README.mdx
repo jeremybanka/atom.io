@@ -46,7 +46,7 @@ The development plugin uses full page reloads. Components and render computation
 
 Call setup helpers synchronously during component setup or owned mount callbacks. Capture their results for event handlers. Tokens are fixed for an instance; use an application key in a reactive child expression to replace a component when its token changes. Component props stay live when read through the props object; destructuring during setup takes a snapshot.
 
-Arrays support keyed components and elements. Reordering preserves instances and nodes; removed ranges release subscriptions, events, refs, and cleanup callbacks. Application keys must be unique among siblings. Unkeyed arrays use positions. A key identifies a row in a reactive child collection; it is not an independent reactive binding.
+Arrays support keyed components and elements. Reordering preserves instances and nodes; removed ranges release subscriptions, events, refs, and cleanup callbacks. Application keys must be unique among siblings. Explicit keys are compared as strings; unkeyed positions occupy a separate namespace. Unkeyed arrays use positions. A key identifies a row in a reactive child collection; it is not an independent reactive binding.
 
 HTML and SVG use native DOM properties and attributes, plus className/htmlFor aliases. Events use onClick/onInput-style names, with Capture suffixes and onDoubleClick support. Styles are CSS strings. Mutable atom values still invalidate their consumers; project primitive fields for precise DOM writes. Refs attach once per element instance.
 
@@ -70,13 +70,15 @@ Each island gets an independent store copied from registered atom.io definitions
 
 Astro client:load, client:idle, client:visible, client:media, and client:only use Astro's scheduling. The integration hydrates server markup or mounts client-only content and releases the root on astro:unmount. Default slot content arrives as children and named content through slots. Reserved astro-slot wrappers contain Astro's already-rendered HTML; never use their innerHTML escape hatch for untrusted strings.
 
+Persisted islands receive live prop and slot updates without rerunning component setup or recreating their store. The store factory runs only when an island is first mounted; put changing values in props rather than relying on the factory to run again.
+
 The checked Astro fixture demonstrates default/named slots and multiple independently initialized islands, including client:only.
 
 ## Size and verification
 
 The build audits every browser export, including the JSX runtime, from the built JavaScript. Atom.io is an external peer in the incremental measurement. Compiler, server, and integration code have separate entrypoints. The report also includes the complete client plus atom.io, the Astro client entrypoint, and the installed Preact version under the same bundling/minification settings. These are full exported surfaces, not equivalent application benchmarks.
 
-The hard budget is under 3,000 bytes for dist/client.min.js.gz, an actual precompressed gzip artifact. The build bundles with esbuild, minifies with Oxc, and compresses with Zopfli (50 iterations), then verifies decompression. Ordinary Node gzip at level 9 and Brotli are reported separately. At the initial implementation, optimized gzip is 2,993 bytes and ordinary gzip is 3,040 bytes; an ordinary gzip server does **not** meet the 3,000-byte limit. Serving the emitted precompressed artifact or applying equivalent precompression is necessary for that figure. Actual application bundles add atom.io and compiler-generated application code.
+The hard budget is under 3,000 bytes for dist/client.min.js.gz, an actual precompressed gzip artifact. The build bundles with esbuild, minifies with Oxc, and compresses with Zopfli (50 iterations), then verifies decompression. Ordinary Node gzip at level 9 and Brotli are reported separately. After the site migration, optimized gzip is 2,986 bytes and ordinary gzip is 3,035 bytes; an ordinary gzip server does **not** meet the 3,000-byte limit. Serving the emitted precompressed artifact or applying equivalent precompression is necessary for that figure. Actual application bundles add atom.io and compiler-generated application code.
 
 Build output includes the minified audit entrypoint, gzip/Brotli artifacts, and machine-readable dist/size.json. These audit files are a bundled measurement; use the package exports in applications so the bundler preserves one runtime instance across entrypoints. Source tests exercise development behavior; the production test executes the audited minified artifact. Chromium checks exercise the actual Astro build, island isolation, hydration, keyed identity, focus/selection, SVG namespaces, and teardown.
 

@@ -142,6 +142,24 @@ describe(`integration contracts`, () => {
 		expect(host.querySelector(`textarea`)!.value).toBe(`\nfirst line`)
 		root.dispose()
 	})
+	it(`releases island state when hydration fails before component setup`, async () => {
+		const silo = new Silo({
+			name: `invalid-island`,
+			lifespan: `ephemeral`,
+			isProduction: true,
+		})
+		const App: Island = () => <p>hello</p>
+		App.createStore = () => silo.store
+		const host = document.createElement(`section`)
+		await expect(
+			astroClient(host)(App, {}, {}, { client: `load` }),
+		).rejects.toThrow()
+		expect(
+			[...silo.store.atoms.keys()].some((key) =>
+				key.startsWith(`🔍 water islands`),
+			),
+		).toBe(false)
+	})
 	it(`renders Astro slots, hydrates isolated stores, and disposes on astro:unmount`, async () => {
 		const silo = new Silo({
 			name: `astro-test`,
@@ -158,17 +176,24 @@ describe(`integration contracts`, () => {
 			return (
 				<article>
 					{props.children}
-					<output>{count()}</output>
+					<output>
+						{count()}
+						{props.label}
+					</output>
 					{props.slots.heading}
 				</article>
 			)
 		}
 		App.water = true
-		App.createStore = () =>
-			new Silo(
+		const stores: Silo[] = []
+		App.createStore = () => {
+			const instance = new Silo(
 				{ name: `island`, lifespan: `ephemeral`, isProduction: true },
 				silo.store,
-			).store
+			)
+			stores.push(instance)
+			return instance.store
+		}
 		const props = {}
 		const slots = { default: `<p>from Astro</p>`, heading: `<h2>Named</h2>` }
 		expect(await astroServer.check.call({} as any, App, props, slots)).toBe(true)
@@ -179,15 +204,41 @@ describe(`integration contracts`, () => {
 			slots,
 		)
 		const host = document.createElement(`section`)
-		host.innerHTML = rendered.html
+		host.innerHTML = rendered.html + `<!--astro:end-->`
+		expect(host.querySelector(`astro-slot[name="heading"]`)?.innerHTML).toBe(
+			slots.heading,
+		)
 		const paragraph = host.querySelector(`p`)
 		await astroClient(host)(App, props, slots, { client: `load` })
 		expect(host.querySelector(`p`)).toBe(paragraph)
 		expect(host.textContent).toBe(`from Astro0Named`)
 		expect(setup).toHaveBeenCalledTimes(2)
+		const output = host.querySelector(`output`)
+		await astroClient(host)(App, { label: ` updated` }, slots, {
+			client: `load`,
+		})
+		expect(host.querySelector(`p`)).toBe(paragraph)
+		expect(host.querySelector(`output`)).toBe(output)
+		expect(host.textContent).toBe(`from Astro0 updatedNamed`)
+		await astroClient(host)(
+			App,
+			{ label: ` updated` },
+			{ ...slots, default: `<p>new slot</p>` },
+			{ client: `load` },
+		)
+		expect(host.querySelector(`p`)).not.toBe(paragraph)
+		expect(host.querySelector(`output`)).toBe(output)
+		expect(host.textContent).toBe(`new slot0 updatedNamed`)
+		expect(setup).toHaveBeenCalledTimes(2)
 		host.dispatchEvent(new Event(`astro:unmount`))
 		expect(cleanup).toHaveBeenCalledTimes(2)
 		expect(host.childNodes.length).toBe(0)
+		expect(stores.length).toBe(2)
+		expect(
+			[...stores[1].store.atoms.keys()].some((key) =>
+				key.startsWith(`🔍 water islands`),
+			),
+		).toBe(false)
 		host.innerHTML = `<p>fallback</p>`
 		await astroClient(host)(App, props, slots, { client: `only` })
 		expect(host.textContent).toBe(`from Astro0Named`)

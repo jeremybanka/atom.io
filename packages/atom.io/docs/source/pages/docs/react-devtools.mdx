@@ -35,12 +35,12 @@ See [try it here](#try-it-here) for the full show/hide flow on this site.
 
 ## try it here
 
-This site mounts the devtools with `hideByDefault={true}`.
+This site now mounts an experimental water-rendered port of the debugger. It uses the same atom.io introspection engine and starts hidden. The React package described above remains the debugger for React applications.
 
 To show them on `atom.io.fyi`:
 
 - press `ctrl` + `shift` + `a`
-- click the magnifying glass in the lower right corner
+- if the panel is minimized, click its magnifying glass
 
 You can also force the hidden state through browser storage:
 
@@ -74,5 +74,4 @@ This site embeds the devtools in its base layout:
 
 - `apps/atom.io.fyi/src/layouts/Layout.astro`
 
-That setup imports `@atom.io/react-devtools/css` once and mounts
-`<AtomIODevtools hideByDefault={true} client:only />` at the end of the shell.
+That setup imports `@atom.io/water-devtools/css` once and mounts the water debugger as a client-only island at the end of the shell. The experimental water packages are private workspace packages and are not published.

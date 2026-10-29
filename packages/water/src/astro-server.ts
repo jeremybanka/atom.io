@@ -12,7 +12,7 @@ const renderer: NamedSSRLoadedRendererValue = {
 	},
 	async renderToStaticMarkup(component: Island, props, slots) {
 		return {
-			html: renderToString(() => island(component, props, slots), {
+			html: renderToString(() => () => island(component, props, slots), {
 				store: islandStore(component, props),
 				idPrefix: crypto.randomUUID(),
 			}),

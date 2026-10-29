@@ -11,6 +11,7 @@
 		"packages/realtime/README.md",
 		"packages/solid/README.md",
 		"packages/water/README.md",
+		"packages/water-devtools/README.md",
 		"packages/react-devtools/README.md",
 		"packages/eslint-plugin/README.md",
 		"packages/create-atom.io/README.md",

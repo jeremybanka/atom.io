@@ -1,5 +1,5 @@
-import type { VNode } from "preact"
-import * as React from "react"
+import type { VNode } from "@atom.io/water"
+import { onCleanup, onMount } from "@atom.io/water"
 import * as THREE from "three"
 
 import {
@@ -41,11 +41,14 @@ export type Dz2OrbitalProps = {
 }
 
 export function Dz2Orbital({ variant = `splash` }: Dz2OrbitalProps): VNode {
-	const hostRef = React.useRef<HTMLElement | null>(null)
+	let host: HTMLElement | null = null
+	const attach = (element: HTMLElement | null) => {
+		host = element
+	}
 
-	React.useEffect(() => {
-		const host = hostRef.current
-		if (!host) return
+	onMount(() => {
+		const container = host
+		if (!container) return
 		const isMark = variant === `mark`
 
 		const renderer = new THREE.WebGLRenderer({
@@ -54,7 +57,7 @@ export function Dz2Orbital({ variant = `splash` }: Dz2OrbitalProps): VNode {
 			powerPreference: isMark ? `low-power` : `high-performance`,
 		})
 		renderer.setClearColor(0x000000, 0)
-		host.append(renderer.domElement)
+		container.append(renderer.domElement)
 
 		const scene = new THREE.Scene()
 		const camera = createDz2OrbitalCamera()
@@ -63,8 +66,8 @@ export function Dz2Orbital({ variant = `splash` }: Dz2OrbitalProps): VNode {
 		addDz2OrbitalLights(scene)
 
 		const resize = () => {
-			const width = Math.max(host.clientWidth, 1)
-			const height = Math.max(host.clientHeight, 1)
+			const width = Math.max(container.clientWidth, 1)
+			const height = Math.max(container.clientHeight, 1)
 			renderer.setPixelRatio(getDz2OrbitalPixelRatio(isMark, width, height))
 			renderer.setSize(width, height, false)
 			camera.aspect = width / height
@@ -96,11 +99,11 @@ export function Dz2Orbital({ variant = `splash` }: Dz2OrbitalProps): VNode {
 
 		resize()
 		const resizeObserver = new ResizeObserver(resize)
-		resizeObserver.observe(host)
+		resizeObserver.observe(container)
 		addEventListener(`resize`, resize)
 		animate()
 
-		return () => {
+		onCleanup(() => {
 			cancelAnimationFrame(frameId)
 			resizeObserver.disconnect()
 			removeEventListener(`resize`, resize)
@@ -108,12 +111,12 @@ export function Dz2Orbital({ variant = `splash` }: Dz2OrbitalProps): VNode {
 			timer.dispose()
 			renderer.dispose()
 			renderer.domElement.remove()
-		}
-	}, [variant])
+		})
+	})
 
 	return (
 		<dz2-orbital
-			ref={hostRef}
+			ref={attach}
 			class={css.class}
 			data-variant={variant}
 			aria-hidden="true"

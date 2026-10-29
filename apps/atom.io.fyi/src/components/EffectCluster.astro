@@ -1,0 +1,13 @@
+---
+import css from "./EffectCluster.module.css"
+
+type Props = {
+	verdict: "harmful" | "react-only" | "best-practice"
+}
+
+const { verdict } = Astro.props
+---
+
+<effect-cluster class={css.class} data-verdict={verdict}>
+	<slot />
+</effect-cluster>

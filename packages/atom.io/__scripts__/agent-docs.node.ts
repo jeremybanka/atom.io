@@ -172,6 +172,12 @@ const DOC_PAGES: DocPage[] = [
 		url: `/docs/react`,
 	},
 	{
+		output: `against-use-effect.md`,
+		source: `docs/source/pages/docs/against-use-effect.mdx`,
+		title: `against useEffect`,
+		url: `/docs/against-use-effect`,
+	},
+	{
 		output: `atom.io-solid.md`,
 		source: `docs/source/pages/docs/solid.mdx`,
 		title: `@atom.io/solid`,
@@ -414,6 +420,7 @@ function extractImportMap(contents: string): Map<string, string> {
 function stripMdxBoilerplate(contents: string): string {
 	return contents
 		.replaceAll(/^import\s+.+$/gm, ``)
+		.replaceAll(/<\/?EffectCluster\b[^>]*>/g, ``)
 		.replaceAll(/<\/?Layout>/g, ``)
 		.replaceAll(/<span[^>]*>([\s\S]*?)<\/span>/g, `$1`)
 		.replaceAll(/\{\/\*[\s\S]*?\*\/\}/g, ``)
@@ -1017,6 +1024,7 @@ async function main(): Promise<void> {
 			`- concepts/join.md for relations across atom families`,
 			`- packages/atom.io.md for the main package docs`,
 			`- packages/atom.io-react.md for React bindings`,
+			`- packages/against-use-effect.md for twenty React effect patterns and their atom.io alternatives`,
 			`- packages/remote-data.md for fetched, queried, and RPC-backed state`,
 			`- packages/typesafe-router.md for typesafe router guidance with TreeTrunks`,
 			`- examples/ for original exhibit source files`,
@@ -1058,6 +1066,7 @@ async function main(): Promise<void> {
 				`- Remote/RPC data guide: /docs/remote-data`,
 				`- typesafe router guide: /docs/typesafe-router`,
 				`- React bindings: /docs/react`,
+				`- Against useEffect: /docs/against-use-effect`,
 				`- Foundations and transceivers: /docs/foundations and /transceivers`,
 				``,
 				`The generated corpus is owned by atom.io, shipped in the atom.io package at docs/agent, and mirrored on atom.io.fyi for web access.`,

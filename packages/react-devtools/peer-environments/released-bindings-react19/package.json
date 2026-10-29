@@ -1,0 +1,19 @@
+{
+	"name": "react-devtools-react19-released-bindings",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Devtools \u00b7 React 19 \u00b7 bindings 0.1 \u00b7 SDK 0.53.3",
+	"type": "module",
+	"dependencies": {
+		"@atom.io/react": "0.1.0",
+		"@types/react": "19.3.0",
+		"@types/react-dom": "19.3.0",
+		"atom.io": "0.53.3",
+		"react": "19.3.1",
+		"react-dom": "19.3.1"
+	},
+	"devDependencies": {
+		"@types/node": "26.6.5",
+		"typescript": "7.0.2"
+	}
+}

@@ -3,6 +3,15 @@ import { RuleTester } from "@typescript-eslint/rule-tester"
 
 // Compile against the packed public exports without assertions or source imports.
 const tester = new RuleTester()
+tester.run(`ban-use-effect`, Rules.banUseEffect, {
+	valid: [`import { useLayoutEffect } from "react"`],
+	invalid: [
+		{
+			code: `import { useEffect as effect } from "react"`,
+			errors: [{ messageId: `bannedUseEffect` }],
+		},
+	],
+})
 tester.run(`explicit-state-types`, Rules.explicitStateTypes, {
 	valid: [],
 	invalid: [

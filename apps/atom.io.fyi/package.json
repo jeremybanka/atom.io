@@ -16,7 +16,7 @@
 		"lint:eslint": "eslint",
 		"lint:oxlint": "oxlint",
 		"lint:types": "tsc",
-		"test:once": "node --test src/components/highlight-code.test.ts"
+		"test:once": "node --test src/components/*.test.ts"
 	},
 	"dependencies": {
 		"@astrojs/cloudflare": "14.4.2",

@@ -16,6 +16,8 @@ The TypeScript peer describes the compiler API used by ESLint. You can build wit
 
 The `exact-catch-types` rule requires a TypeScript parser configured with type information. Configure the parser in your ESLint configuration.
 
+The opt-in `ban-use-effect` rule bans React `useEffect` in application code while allowing `useLayoutEffect`. Its diagnostics link to [against useEffect](https://atom.io.fyi/docs/against-use-effect) and `node_modules/atom.io/docs/agent/packages/against-use-effect.md` for replacement guidance. See [configuration and supported forms](https://atom.io.fyi/docs/eslint-plugin#ban-use-effect).
+
 See the [installation guide, configuration exhibit, and rule documentation](https://atom.io.fyi/docs/eslint-plugin). When migrating from `atom.io/eslint-plugin`, change the import to `@atom.io/eslint-plugin`; the default plugin export, named `Rules` export, rule names, and options are unchanged.
 
 ## Install
@@ -64,6 +66,7 @@ export default tseslint.config(
 
 | Rule                                 | Description                                                                                                                             |
 | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `atom.io/ban-use-effect`             | Ban React useEffect in atom.io application code                                                                                         |
 | `atom.io/naming-convention`          | The variable names given to atom.io resources should match their key properties and follow a consistent format                          |
 | `atom.io/exact-catch-types`          | Ensures that when an error type (E) is provided to an atom, the 'catch' property is set and all constructors in it are assignable to E. |
 | `atom.io/explicit-state-types`       | State declarations must have generic type arguments directly passed to them                                                             |

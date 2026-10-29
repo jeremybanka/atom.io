@@ -20,4 +20,10 @@ Install this package alongside `atom.io` and React 18 or 19. Replace imports fro
 
 <Example />
 
+## Effects
+
+Explore [twenty before-and-after effect examples](https://atom.io.fyi/docs/against-use-effect), including React judgments and the atom.io ownership model. Move state synchronization into atoms, selectors, transactions, and Loadable states. Keep `useLayoutEffect` for work that requires committed layout before paint.
+
+`useAtomicRef` publishes host changes after commit and clears the previous atom to `null` on unmount or retargeting. It skips cleanup writes to already-disposed members. Consumers must handle detachment; development StrictMode can detach and reattach a resource. Unchanged hosts are not republished, and the hook does not dispose atoms automatically.
+
 <Tonnage config={config} />

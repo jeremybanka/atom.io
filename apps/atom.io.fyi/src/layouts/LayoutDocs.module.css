@@ -89,6 +89,31 @@ docs-layout.class {
 			}
 		}
 
+		span[data-effect-verdict] {
+			display: inline-block;
+			margin: 0 0.35em 0 -5px;
+			padding: 0.15em 0.65em;
+			border-radius: 0 999px 999px 999px;
+			font-size: 1em;
+			font-weight: 600;
+			line-height: 1.5;
+			vertical-align: baseline;
+			white-space: nowrap;
+
+			&[data-effect-verdict="harmful"] {
+				background: var(--brand-color);
+				color: #fff;
+			}
+			&[data-effect-verdict="react-only"] {
+				background: var(--code-string-color);
+				color: #000;
+			}
+			&[data-effect-verdict="best-practice"] {
+				background: #006622;
+				color: #fff;
+			}
+		}
+
 		table-wrapper {
 			overflow-x: scroll;
 			mix-blend-mode: var(--fill-soft-blend-mode);

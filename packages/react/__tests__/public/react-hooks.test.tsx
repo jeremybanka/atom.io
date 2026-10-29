@@ -1239,6 +1239,25 @@ describe(`useLoadable`, () => {
 })
 
 describe(`useAtomicRef`, () => {
+	it(`clears the previous family member when its key changes`, () => {
+		const nodeAtoms = atomFamily<HTMLDivElement | null, string>({
+			key: `node`,
+			default: null,
+		})
+		function View({ id }: { id: string }) {
+			const ref = useAtomicRef(nodeAtoms, id, useRef)
+			return <div ref={ref} />
+		}
+		const view = render(<View id="first" />)
+		const node = view.container.firstChild
+		expect(getState(nodeAtoms, `first`)).toBe(node)
+		view.rerender(<View id="second" />)
+		expect(getState(nodeAtoms, `first`)).toBeNull()
+		expect(getState(nodeAtoms, `second`)).toBe(node)
+		view.unmount()
+		expect(getState(nodeAtoms, `second`)).toBeNull()
+	})
+
 	it(`makes an element available to use wherever`, () => {
 		const buttonAtom = atom<HTMLButtonElement | null>({
 			key: `button`,
@@ -1258,11 +1277,13 @@ describe(`useAtomicRef`, () => {
 				</button>
 			)
 		}
-		render(<MyButton />)
+		const view = render(<MyButton />)
 
 		getState(buttonAtom)?.click()
 
 		expect(Utils.stdout).toHaveBeenCalledWith(`hi`)
+		view.unmount()
+		expect(getState(buttonAtom)).toBeNull()
 	})
 	it(`makes an element available to use wherever (family overload)`, () => {
 		const buttonAtoms = atomFamily<HTMLButtonElement | null, string>({
@@ -1283,10 +1304,12 @@ describe(`useAtomicRef`, () => {
 				</button>
 			)
 		}
-		render(<MyButton />)
+		const view = render(<MyButton />)
 
 		getState(buttonAtoms, `myCoolButton`)?.click()
 
 		expect(Utils.stdout).toHaveBeenCalledWith(`hi`)
+		view.unmount()
+		expect(getState(buttonAtoms, `myCoolButton`)).toBeNull()
 	})
 })

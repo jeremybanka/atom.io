@@ -289,8 +289,8 @@ importers:
         specifier: 7.8.5
         version: 7.8.5
       tonnage:
-        specifier: 0.5.0
-        version: 0.5.0(galley.md@0.3.1(arktype@2.2.8)(supports-color@10.2.2)(zod@4.6.7))
+        specifier: 0.5.1
+        version: 0.5.1(galley.md@0.3.1(arktype@2.2.8)(supports-color@10.2.2)(zod@4.6.7))
       turbo:
         specifier: 2.11.10
         version: 2.11.10
@@ -7239,8 +7239,8 @@ packages:
     resolution: {integrity: sha512-A5F0cM6+mDleacLIEUkmfpkBbnHJFV1d2rprHU2MXNk7mlxHq2zGojA+SRvQD1RoMo9gqjZPWEaKG4v1BQ48lw==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
 
-  tonnage@0.5.0:
-    resolution: {integrity: sha512-fMtS1ys7kq3yPA/3uaevO4ySE+OevZAPpb1pI/TJS057xJRQfydWtDyHbn4pqCI/OzAJ+AmrHBO7xLPRbVJStg==}
+  tonnage@0.5.1:
+    resolution: {integrity: sha512-w2rMWFLL3JyiWJRP+Uiuk+wnaed9ydsLeX2dls/YJOkuc8mvbuSs5p1cHAiqs+xnSzrhWBEsox9o33/EnguETA==}
     engines: {node: '>=22.18.0'}
     peerDependencies:
       galley.md: ^0.3.0
@@ -14395,7 +14395,7 @@ snapshots:
     dependencies:
       eslint-visitor-keys: 5.0.1
 
-  tonnage@0.5.0(galley.md@0.3.1(arktype@2.2.8)(supports-color@10.2.2)(zod@4.6.7)):
+  tonnage@0.5.1(galley.md@0.3.1(arktype@2.2.8)(supports-color@10.2.2)(zod@4.6.7)):
     dependencies:
       esbuild: 0.28.2
       galley.md: 0.3.1(arktype@2.2.8)(supports-color@10.2.2)(zod@4.6.7)

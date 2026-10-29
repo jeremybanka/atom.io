@@ -36,6 +36,7 @@
 		"tonnage:check": "pnpm readme:check"
 	},
 	"devDependencies": {
+		"@atom.io/hydrogen": "workspace:*",
 		"@breakage/changesets": "0.1.0",
 		"@types/node": "26.6.5",
 		"@vitest/coverage-v8": "5.0.5",
@@ -43,13 +44,12 @@
 		"breakage": "0.10.1",
 		"esbuild": "0.28.2",
 		"happy-dom": "21.0.4",
-		"hydrogen": "workspace:*",
 		"typescript": "7.0.2",
 		"vitest": "5.0.5"
 	},
 	"peerDependencies": {
-		"atom.io": "^0.54.1",
-		"hydrogen": "0.0.x"
+		"@atom.io/hydrogen": "0.0.x",
+		"atom.io": "^0.54.1"
 	},
 	"publishConfig": {
 		"access": "public"

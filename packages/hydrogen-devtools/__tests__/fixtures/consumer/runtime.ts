@@ -2,11 +2,11 @@ import assert from "node:assert/strict"
 import { readFileSync } from "node:fs"
 import { test } from "node:test"
 
+import { render } from "@atom.io/hydrogen"
+import { jsx } from "@atom.io/hydrogen/jsx-runtime"
 import { AtomIODevtools } from "@atom.io/hydrogen-devtools"
 import { Silo } from "atom.io"
 import { Window } from "happy-dom"
-import { render } from "hydrogen"
-import { jsx } from "hydrogen/jsx-runtime"
 
 await test(`packed debugger edits its inspected store and cleans up owned state`, async () => {
 	const window = new Window()

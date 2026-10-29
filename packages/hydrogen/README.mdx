@@ -19,7 +19,7 @@ import Verify from "./exhibits/verify.sh" with { type: "code" };
 
 An experimental JSX framework whose state engine is atom.io. Components run once per mounted instance. Calls to accessors inside compiled JSX subscribe the affected DOM computations; atom.io updates those computations without rerunning component setup.
 
-The npm package is named hydrogen. Its browser runtime, Vite compiler, server renderer, and Astro integration are implemented here. It has no independent state primitive, effect API, React hook dispatcher, or compatibility layer.
+The npm package is named @atom.io/hydrogen. Its browser runtime, Vite compiler, server renderer, and Astro integration are implemented here. It has no independent state primitive, effect API, React hook dispatcher, or compatibility layer.
 
 ## A point, not two signals
 
@@ -29,7 +29,7 @@ The point accessor returns the current object. Each JSX attribute reads its coor
 
 ## Vite
 
-Add hydrogen and atom.io to the application's dependencies. The hydrogen plugin is required: the ordinary TypeScript JSX transform cannot preserve live expressions. It compiles expressions into lazy child computations and property getters; it also preserves spread precedence and live component props.
+Add @atom.io/hydrogen and atom.io to the application's dependencies. The hydrogen plugin is required: the ordinary TypeScript JSX transform cannot preserve live expressions. It compiles expressions into lazy child computations and property getters; it also preserves spread precedence and live component props.
 
 <ViteConfig />
 

@@ -1,5 +1,5 @@
+import { render } from "@atom.io/hydrogen"
 import { Silo } from "atom.io"
-import { render } from "hydrogen"
 import { afterEach, expect, it, vi } from "vitest"
 
 import { useExpanded, useSaved, useTools } from "../src/store.ts"

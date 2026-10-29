@@ -7,7 +7,7 @@
 			"DOM"
 		],
 		"jsx": "react-jsx",
-		"jsxImportSource": "hydrogen"
+		"jsxImportSource": "@atom.io/hydrogen"
 	},
 	"include": [
 		"src",

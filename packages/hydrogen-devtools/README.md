@@ -7,9 +7,9 @@ Use hydrogen's Vite or Astro integration to compile application JSX. Import the 
 ```tsx
 import "@atom.io/hydrogen-devtools/css"
 
+import type { VNode } from "@atom.io/hydrogen"
 import { AtomIODevtools } from "@atom.io/hydrogen-devtools"
 import type { RootStore } from "atom.io/internal"
-import type { VNode } from "hydrogen"
 
 export function Debugger(props: { store: RootStore }): VNode {
 	return <AtomIODevtools store={props.store} hideByDefault />
@@ -41,7 +41,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                        | Entry                         | Minified JS |  Gzip JS |
 | ----------------------------- | ----------------------------- | ----------: | -------: |
-| Interactive app with debugger | `tonnage-recipes/debugger.ts` |    85,146 B | 24,722 B |
+| Interactive app with debugger | `tonnage-recipes/debugger.ts` |    85,146 B | 24,681 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

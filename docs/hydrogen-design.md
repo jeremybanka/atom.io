@@ -1,6 +1,6 @@
 # Hydrogen architecture
 
-Hydrogen is the JSX framework in [packages/hydrogen](../packages/hydrogen/README.md). It implements the atom.io-native, Solid-inspired model explored here: components establish an instance once, atom.io owns application state, and hydrogen owns DOM computations and their lifetimes. Its npm package name is hydrogen.
+Hydrogen is the JSX framework in [packages/hydrogen](../packages/hydrogen/README.md). It implements the atom.io-native, Solid-inspired model explored here: components establish an instance once, atom.io owns application state, and hydrogen owns DOM computations and their lifetimes. Its npm package name is @atom.io/hydrogen.
 
 ## Setup and rendering
 

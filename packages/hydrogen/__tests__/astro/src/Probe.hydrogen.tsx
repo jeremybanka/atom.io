@@ -1,6 +1,6 @@
+import type { VNode } from "@atom.io/hydrogen"
+import { onCleanup, onMount, useSetter, useValue } from "@atom.io/hydrogen"
 import { atom } from "atom.io"
-import type { VNode } from "hydrogen"
-import { onCleanup, onMount, useSetter, useValue } from "hydrogen"
 
 const orderAtom = atom<string[]>({ key: `order`, default: [`a`, `b`] })
 let setups = 0

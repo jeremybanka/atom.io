@@ -4,14 +4,14 @@
 
 An experimental JSX framework whose state engine is atom.io. Components run once per mounted instance. Calls to accessors inside compiled JSX subscribe the affected DOM computations; atom.io updates those computations without rerunning component setup.
 
-The npm package is named hydrogen. Its browser runtime, Vite compiler, server renderer, and Astro integration are implemented here. It has no independent state primitive, effect API, React hook dispatcher, or compatibility layer.
+The npm package is named @atom.io/hydrogen. Its browser runtime, Vite compiler, server renderer, and Astro integration are implemented here. It has no independent state primitive, effect API, React hook dispatcher, or compatibility layer.
 
 ## A point, not two signals
 
 ```tsx
+import type { VNode } from "@atom.io/hydrogen"
+import { useId, useRef, useSetter, useValue } from "@atom.io/hydrogen"
 import { atom } from "atom.io"
-import type { VNode } from "hydrogen"
-import { useId, useRef, useSetter, useValue } from "hydrogen"
 
 const pointAtom = atom<{ x: number; y: number }>({
 	key: `point`,
@@ -53,10 +53,10 @@ The point accessor returns the current object. Each JSX attribute reads its coor
 
 ## Vite
 
-Add hydrogen and atom.io to the application's dependencies. The hydrogen plugin is required: the ordinary TypeScript JSX transform cannot preserve live expressions. It compiles expressions into lazy child computations and property getters; it also preserves spread precedence and live component props.
+Add @atom.io/hydrogen and atom.io to the application's dependencies. The hydrogen plugin is required: the ordinary TypeScript JSX transform cannot preserve live expressions. It compiles expressions into lazy child computations and property getters; it also preserves spread precedence and live component props.
 
 ```ts
-import hydrogen from "hydrogen/vite"
+import hydrogen from "@atom.io/hydrogen/vite"
 import { defineConfig } from "vite"
 
 export default defineConfig({ plugins: [hydrogen()] })
@@ -70,7 +70,7 @@ export default defineConfig({ plugins: [hydrogen()] })
 		"moduleResolution": "bundler",
 		"target": "ES2022",
 		"jsx": "preserve",
-		"jsxImportSource": "hydrogen",
+		"jsxImportSource": "@atom.io/hydrogen",
 		"strict": true
 	}
 }
@@ -78,7 +78,7 @@ export default defineConfig({ plugins: [hydrogen()] })
 ```
 
 ```tsx
-import { render } from "hydrogen"
+import { render } from "@atom.io/hydrogen"
 
 import { PointEditor } from "./point.tsx"
 
@@ -118,10 +118,10 @@ HTML and SVG tags have element-specific attribute, event, and ref types. Event h
 useStore returns the current root's atom.io RootStore directly. It is the same object supplied to render or hydrate, the selected Astro island store, or the implicit atom.io store when no store was supplied. Server rendering exposes the store selected for that render.
 
 ```tsx
+import type { VNode } from "@atom.io/hydrogen"
+import { useStore } from "@atom.io/hydrogen"
 import { atom } from "atom.io"
 import { getFromStore } from "atom.io/internal"
-import type { VNode } from "hydrogen"
-import { useStore } from "hydrogen"
 
 const countAtom = atom<number>({ key: `count`, default: 0 })
 
@@ -147,9 +147,9 @@ Capture the store during component setup or an owned onMount callback, then pass
 useValue, useSetter, useRef, and useTimeline accept a family token followed by its key. useLoadable accepts a family, key, and optional fallback. Keys retain their declared types, including tuples, numbers, booleans, and null. Members resolve in the component's store, so isolated roots can use the same family tokens independently.
 
 ```tsx
+import type { VNode } from "@atom.io/hydrogen"
+import { useRef, useSetter, useTimeline, useValue } from "@atom.io/hydrogen"
 import { atomFamily, scopeFamily, timelineFamily } from "atom.io"
-import type { VNode } from "hydrogen"
-import { useRef, useSetter, useTimeline, useValue } from "hydrogen"
 
 const countAtoms = atomFamily<number, string>({ key: `count`, default: 0 })
 const buttonAtoms = atomFamily<HTMLButtonElement | null, string>({
@@ -195,10 +195,10 @@ The family and key are captured during setup and stay fixed for that component i
 ## Async state
 
 ```tsx
+import type { VNode } from "@atom.io/hydrogen"
+import { useLoadable, useSetter } from "@atom.io/hydrogen"
 import type { Loadable } from "atom.io"
 import { atom } from "atom.io"
-import type { VNode } from "hydrogen"
-import { useLoadable, useSetter } from "hydrogen"
 
 const greetingAtom = atom<Loadable<string>, Error>({
 	key: `greeting`,
@@ -245,8 +245,8 @@ The production build omits development diagnostics and invalid-input checks; the
 The integration transforms .hydrogen.tsx and .hydrogen.jsx files by default, so another JSX renderer can coexist. Configure include to change this filter. Top-level functions containing JSX are branded by the compiler for renderer detection.
 
 ```ts
+import hydrogen from "@atom.io/hydrogen/astro"
 import { defineConfig } from "astro/config"
-import hydrogen from "hydrogen/astro"
 
 export default defineConfig({ integrations: [hydrogen()] })
 
@@ -255,10 +255,10 @@ export default defineConfig({ integrations: [hydrogen()] })
 Each island gets an independent store copied from registered atom.io definitions. A component's optional createStore(props) factory initializes server and browser stores from the same serialized props. This is the state transport boundary; hydrogen does not serialize a whole store. Keep store factories deterministic and include only client-safe props. Custom factories can explicitly share a browser store when required.
 
 ```tsx
+import type { Child, VNode } from "@atom.io/hydrogen"
+import { onCleanup, useId, useSetter, useValue } from "@atom.io/hydrogen"
 import { atom, Silo } from "atom.io"
 import { IMPLICIT } from "atom.io/internal"
-import type { Child, VNode } from "hydrogen"
-import { onCleanup, useId, useSetter, useValue } from "hydrogen"
 
 const countAtom = atom<number>({ key: `count`, default: 0 })
 export default function Counter(props: {
@@ -315,15 +315,15 @@ The hard budget is under 3,300 bytes of ordinary level-9 gzip for the complete c
 Build output includes the minified audit entrypoint and machine-readable dist/size.json. These audit files are a bundled measurement; use the package exports in applications so the bundler preserves one runtime instance across entrypoints. Source tests exercise development behavior; the production test executes the audited minified artifact. Chromium checks exercise the actual Astro build, island isolation, hydration, keyed identity, focus/selection, SVG namespaces, and teardown. A fresh-cache Astro development check also covers mount hooks, shared state, and ClientRouter navigation.
 
 ```sh
-pnpm --filter hydrogen build
-pnpm --filter hydrogen cov
+pnpm --filter @atom.io/hydrogen build
+pnpm --filter @atom.io/hydrogen cov
 pnpm --filter @atom.io/hydrogen-devtools cov
-pnpm exec turbo run test:breakage:peers --filter=hydrogen --filter=@atom.io/hydrogen-devtools
-pnpm --filter hydrogen test:production
-pnpm --filter hydrogen exec playwright install chromium
-pnpm --filter hydrogen test:browser
-pnpm --filter hydrogen size
-pnpm --filter hydrogen readme:check
+pnpm exec turbo run test:breakage:peers --filter=@atom.io/hydrogen --filter=@atom.io/hydrogen-devtools
+pnpm --filter @atom.io/hydrogen test:production
+pnpm --filter @atom.io/hydrogen exec playwright install chromium
+pnpm --filter @atom.io/hydrogen test:browser
+pnpm --filter @atom.io/hydrogen size
+pnpm --filter @atom.io/hydrogen readme:check
 
 ```
 
@@ -341,11 +341,11 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                           | Entry                             | Minified JS |  Gzip JS |
 | -------------------------------- | --------------------------------- | ----------: | -------: |
-| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    60,967 B | 18,085 B |
-| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    39,377 B | 12,269 B |
-| Interactive client app           | `tonnage-recipes/client-app.ts`   |    39,048 B | 12,124 B |
-| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    39,049 B | 12,123 B |
-| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    42,876 B | 13,281 B |
+| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    60,967 B | 18,066 B |
+| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    39,382 B | 12,260 B |
+| Interactive client app           | `tonnage-recipes/client-app.ts`   |    39,053 B | 12,110 B |
+| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    39,054 B | 12,110 B |
+| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    42,876 B | 13,272 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

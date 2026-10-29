@@ -1,5 +1,5 @@
 {
-	"name": "hydrogen",
+	"name": "@atom.io/hydrogen",
 	"version": "0.0.0",
 	"description": "An atom.io-driven JSX renderer.",
 	"license": "MPL-2.0",

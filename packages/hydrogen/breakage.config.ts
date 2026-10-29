@@ -23,7 +23,7 @@ const config: BreakageConfig = defineConfig({
 				artifact: `../atom.io/.breakage/package.tgz`,
 			},
 		},
-		baseline: { tagPattern: `refs/tags/hydrogen@` },
+		baseline: { tagPattern: `refs/tags/@atom\\.io/hydrogen@` },
 	},
 })
 export default config

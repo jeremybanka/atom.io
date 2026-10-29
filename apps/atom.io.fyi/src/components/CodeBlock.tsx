@@ -1,4 +1,4 @@
-import type { Child, VNode } from "hydrogen"
+import type { Child, VNode } from "@atom.io/hydrogen"
 
 import css from "./CodeBlock.module.css"
 import { highlightCode } from "./highlight-code"

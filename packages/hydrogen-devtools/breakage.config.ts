@@ -16,13 +16,13 @@ const config: BreakageConfig = defineConfig({
 		representatives: `peer-environments/*`,
 		lockfile: `pnpm-lock.yaml`,
 		prepareCommand: `pnpm install --frozen-lockfile --ignore-scripts`,
-		suites: { "atom.io": suite, hydrogen: suite },
+		suites: { "atom.io": suite, "@atom.io/hydrogen": suite },
 		localPeers: {
 			"atom.io": {
 				directory: `../atom.io`,
 				artifact: `../atom.io/.breakage/package.tgz`,
 			},
-			hydrogen: {
+			"@atom.io/hydrogen": {
 				directory: `../hydrogen`,
 				artifact: `../hydrogen/.breakage/package.tgz`,
 			},

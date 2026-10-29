@@ -12,8 +12,8 @@ export default function integration(
 			"astro:config:setup"({ addRenderer, updateConfig }) {
 				addRenderer({
 					name: `hydrogen`,
-					clientEntrypoint: `hydrogen/astro-client`,
-					serverEntrypoint: `hydrogen/astro-server`,
+					clientEntrypoint: `@atom.io/hydrogen/astro-client`,
+					serverEntrypoint: `@atom.io/hydrogen/astro-server`,
 				})
 				updateConfig({
 					vite: {

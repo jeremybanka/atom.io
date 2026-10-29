@@ -17,7 +17,7 @@ Install Hydrogen alongside its state-engine peer, atom.io:
 
 <Exhibit src="hydrogen/exhibits/install.sh" />
 
-Hydrogen's npm package name is simply `hydrogen`. Your application supplies atom.io; all of its views can share the same store.
+Hydrogen's npm package name is `@atom.io/hydrogen`. Your application supplies atom.io; all of its views can share the same store.
 
 ## package contents
 
@@ -25,11 +25,11 @@ Hydrogen's npm package name is simply `hydrogen`. Your application supplies atom
 
 | Import | Contents |
 | ------ | -------- |
-| hydrogen | [render](#render), [hydrate](#hydrate), [Fragment](#fragment), and the [component helpers](#component-api). |
-| hydrogen/server | [renderToString](#rendertostring) for server-rendered HTML. |
-| hydrogen/vite | The required [JSX compiler plugin](#vite-setup). |
-| hydrogen/astro | The [Astro integration](#astro-setup), including its compiler and island renderer. |
-| hydrogen/jsx-runtime and hydrogen/jsx-dev-runtime | JSX entrypoints selected by the compiler; application components use JSX syntax. |
+| @atom.io/hydrogen | [render](#render), [hydrate](#hydrate), [Fragment](#fragment), and the [component helpers](#component-api). |
+| @atom.io/hydrogen/server | [renderToString](#rendertostring) for server-rendered HTML. |
+| @atom.io/hydrogen/vite | The required [JSX compiler plugin](#vite-setup). |
+| @atom.io/hydrogen/astro | The [Astro integration](#astro-setup), including its compiler and island renderer. |
+| @atom.io/hydrogen/jsx-runtime and @atom.io/hydrogen/jsx-dev-runtime | JSX entrypoints selected by the compiler; application components use JSX syntax. |
 
 </table-wrapper>
 
@@ -97,7 +97,7 @@ Use hydrate to attach a Hydrogen view to existing server-rendered markup. It acc
 
 ### renderToString
 
-Import renderToString from hydrogen/server to produce HTML without retaining subscriptions. Supply a request-specific store and use matching state and ID prefixes when hydrating in the browser. Server rendering is synchronous and does not wait for promises or run onMount callbacks.
+Import renderToString from @atom.io/hydrogen/server to produce HTML without retaining subscriptions. Supply a request-specific store and use matching state and ID prefixes when hydrating in the browser. Server rendering is synchronous and does not wait for promises or run onMount callbacks.
 
 ### Fragment
 

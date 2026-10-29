@@ -37,7 +37,7 @@ it(`compiles JSX syntax while keeping getters and spread precedence live`, () =>
 	]
 	for (const source of sources) {
 		const result = compile(source, `syntax.tsx`)
-		expect(result.code).toContain(`hydrogen/jsx-runtime`)
+		expect(result.code).toContain(`@atom.io/hydrogen/jsx-runtime`)
 		expect(result.map.sources).toEqual([`syntax.tsx`])
 		expect(result.code).not.toMatch(/<\/?(?:div|Custom|UI)/)
 	}
@@ -52,17 +52,17 @@ it(`compiles JSX syntax while keeping getters and spread precedence live`, () =>
 it(`filters Vite inputs, resets global regexes, and reloads matching documents`, () => {
 	for (const plugin of [hydrogen(), hydrogen({ include: /\.tsx$/g })]) {
 		const config = (plugin.config as Function)()
-		expect(config.resolve.dedupe).toEqual([`hydrogen`, `atom.io`])
-		expect(config.optimizeDeps.exclude).toEqual([`hydrogen`, `atom.io`])
+		expect(config.resolve.dedupe).toEqual([`@atom.io/hydrogen`, `atom.io`])
+		expect(config.optimizeDeps.exclude).toEqual([`@atom.io/hydrogen`, `atom.io`])
 		const environment = {
 			optimizeDeps: {
 				include: [
-					`hydrogen/astro-client`,
-					`hydrogen/astro-server`,
-					`hydrogen`,
+					`@atom.io/hydrogen/astro-client`,
+					`@atom.io/hydrogen/astro-server`,
+					`@atom.io/hydrogen`,
 					`atom.io/internal`,
 					`other-package`,
-					`hydrogen-other`,
+					`@atom.io/hydrogen-devtools`,
 				],
 			},
 		}
@@ -70,7 +70,7 @@ it(`filters Vite inputs, resets global regexes, and reloads matching documents`,
 		hook.handler(`client`, environment)
 		expect(environment.optimizeDeps.include).toEqual([
 			`other-package`,
-			`hydrogen-other`,
+			`@atom.io/hydrogen-devtools`,
 		])
 		hook.handler(`ssr`, {})
 		hook.handler(`ssr`, { optimizeDeps: {} })
@@ -98,7 +98,7 @@ it(`filters Vite inputs, resets global regexes, and reloads matching documents`,
 			updateConfig,
 		})
 		expect(addRenderer.mock.calls[0][0].serverEntrypoint).toBe(
-			`hydrogen/astro-server`,
+			`@atom.io/hydrogen/astro-server`,
 		)
 		expect(updateConfig.mock.calls[0][0].vite.plugins[0].name).toBe(`hydrogen`)
 	}

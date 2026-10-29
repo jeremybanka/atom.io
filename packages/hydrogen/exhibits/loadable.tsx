@@ -1,7 +1,7 @@
+import type { VNode } from "@atom.io/hydrogen"
+import { useLoadable, useSetter } from "@atom.io/hydrogen"
 import type { Loadable } from "atom.io"
 import { atom } from "atom.io"
-import type { VNode } from "hydrogen"
-import { useLoadable, useSetter } from "hydrogen"
 
 const greetingAtom = atom<Loadable<string>, Error>({
 	key: `greeting`,

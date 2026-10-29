@@ -6,7 +6,7 @@
 		"strict": true,
 		"exactOptionalPropertyTypes": true,
 		"jsx": "react-jsx",
-		"jsxImportSource": "hydrogen",
+		"jsxImportSource": "@atom.io/hydrogen",
 		"skipLibCheck": false,
 		"noEmit": true,
 		"types": [

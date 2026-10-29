@@ -1,7 +1,7 @@
+import type { VNode } from "@atom.io/hydrogen"
+import { useStore } from "@atom.io/hydrogen"
 import { atom } from "atom.io"
 import { getFromStore } from "atom.io/internal"
-import type { VNode } from "hydrogen"
-import { useStore } from "hydrogen"
 
 const countAtom = atom<number>({ key: `count`, default: 0 })
 

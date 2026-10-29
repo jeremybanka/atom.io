@@ -1,4 +1,4 @@
-import { render } from "hydrogen"
+import { render } from "@atom.io/hydrogen"
 
 import { PointEditor } from "./point.tsx"
 

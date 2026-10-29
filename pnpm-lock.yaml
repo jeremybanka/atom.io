@@ -312,6 +312,9 @@ importers:
       '@astrojs/mdx':
         specifier: 8.1.2
         version: 8.1.2(@astrojs/markdown-remark@7.3.5(supports-color@10.2.2))(astro@7.4.3(@astrojs/markdown-remark@7.3.5(supports-color@10.2.2))(@azure/identity@4.13.2(supports-color@10.2.2))(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+      '@atom.io/hydrogen':
+        specifier: workspace:*
+        version: link:../../packages/hydrogen
       '@atom.io/hydrogen-devtools':
         specifier: workspace:*
         version: link:../../packages/hydrogen-devtools
@@ -330,9 +333,6 @@ importers:
       atom.io:
         specifier: workspace:*
         version: link:../../packages/atom.io
-      hydrogen:
-        specifier: workspace:*
-        version: link:../../packages/hydrogen
       three:
         specifier: 0.186.1
         version: 0.186.1
@@ -642,6 +642,9 @@ importers:
 
   packages/hydrogen-devtools:
     devDependencies:
+      '@atom.io/hydrogen':
+        specifier: workspace:*
+        version: link:../hydrogen
       '@breakage/changesets':
         specifier: 0.1.0
         version: 0.1.0(breakage@0.10.1(supports-color@10.2.2)(zod@4.6.7))
@@ -663,9 +666,6 @@ importers:
       happy-dom:
         specifier: 21.0.4
         version: 21.0.4
-      hydrogen:
-        specifier: workspace:*
-        version: link:../hydrogen
       typescript:
         specifier: 7.0.2
         version: 7.0.2

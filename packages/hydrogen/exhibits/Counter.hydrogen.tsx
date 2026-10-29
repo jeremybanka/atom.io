@@ -1,7 +1,7 @@
+import type { Child, VNode } from "@atom.io/hydrogen"
+import { onCleanup, useId, useSetter, useValue } from "@atom.io/hydrogen"
 import { atom, Silo } from "atom.io"
 import { IMPLICIT } from "atom.io/internal"
-import type { Child, VNode } from "hydrogen"
-import { onCleanup, useId, useSetter, useValue } from "hydrogen"
 
 const countAtom = atom<number>({ key: `count`, default: 0 })
 export default function Counter(props: {

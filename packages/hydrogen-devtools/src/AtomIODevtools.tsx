@@ -1,7 +1,7 @@
+import type { VNode } from "@atom.io/hydrogen"
+import { onCleanup, onMount, render, useValue } from "@atom.io/hydrogen"
 import type { RootStore } from "atom.io/internal"
 import { IMPLICIT } from "atom.io/internal"
-import type { VNode } from "hydrogen"
-import { onCleanup, onMount, render, useValue } from "hydrogen"
 
 import { StateIndex, TimelineIndex, TransactionIndex } from "./Indexes.tsx"
 import { useLocal, useSaved, useTools } from "./store.ts"

@@ -1,1 +1,1 @@
-pnpm add hydrogen atom.io
+pnpm add @atom.io/hydrogen atom.io

@@ -13,7 +13,7 @@
 	"breakage": {
 		"candidates": [
 			"atom.io",
-			"hydrogen"
+			"@atom.io/hydrogen"
 		]
 	}
 }

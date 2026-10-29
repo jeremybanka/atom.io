@@ -1,5 +1,5 @@
+import { render } from "@atom.io/hydrogen"
 import { Silo } from "atom.io"
-import { render } from "hydrogen"
 import { expect, it } from "vitest"
 
 import { EventView } from "../src/Indexes.tsx"

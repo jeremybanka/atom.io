@@ -1,6 +1,6 @@
+import type { VNode } from "@atom.io/hydrogen"
+import { useId, useRef, useSetter, useValue } from "@atom.io/hydrogen"
 import { atom } from "atom.io"
-import type { VNode } from "hydrogen"
-import { useId, useRef, useSetter, useValue } from "hydrogen"
 
 const pointAtom = atom<{ x: number; y: number }>({
 	key: `point`,

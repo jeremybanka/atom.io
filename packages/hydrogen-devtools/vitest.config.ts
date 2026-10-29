@@ -18,11 +18,11 @@ config.root = import.meta.dirname
 config.plugins = [hydrogen()]
 config.resolve!.alias = [
 	{
-		find: /^hydrogen\/jsx(?:-dev)?-runtime$/,
+		find: /^@atom\.io\/hydrogen\/jsx(?:-dev)?-runtime$/,
 		replacement: resolve(import.meta.dirname, `../hydrogen/src/jsx-runtime.ts`),
 	},
 	{
-		find: /^hydrogen$/,
+		find: /^@atom\.io\/hydrogen$/,
 		replacement: resolve(import.meta.dirname, `../hydrogen/src/index.ts`),
 	},
 	...(config.resolve!.alias as any[]),

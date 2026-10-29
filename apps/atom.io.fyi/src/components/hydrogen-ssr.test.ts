@@ -1,9 +1,9 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import type { VNode } from "hydrogen"
-import renderer from "hydrogen/astro-server"
-import { jsx } from "hydrogen/jsx-runtime"
+import type { VNode } from "@atom.io/hydrogen"
+import renderer from "@atom.io/hydrogen/astro-server"
+import { jsx } from "@atom.io/hydrogen/jsx-runtime"
 
 // Exercise the renderer Astro actually resolves, including hydration markers.
 async function markup(Component: () => VNode): Promise<string> {

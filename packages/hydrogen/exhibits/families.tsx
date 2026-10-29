@@ -1,6 +1,6 @@
+import type { VNode } from "@atom.io/hydrogen"
+import { useRef, useSetter, useTimeline, useValue } from "@atom.io/hydrogen"
 import { atomFamily, scopeFamily, timelineFamily } from "atom.io"
-import type { VNode } from "hydrogen"
-import { useRef, useSetter, useTimeline, useValue } from "hydrogen"
 
 const countAtoms = atomFamily<number, string>({ key: `count`, default: 0 })
 const buttonAtoms = atomFamily<HTMLButtonElement | null, string>({

@@ -7,12 +7,12 @@
 			"DOM"
 		],
 		"jsx": "react-jsx",
-		"jsxImportSource": "hydrogen",
+		"jsxImportSource": "@atom.io/hydrogen",
 		"paths": {
-			"hydrogen": [
+			"@atom.io/hydrogen": [
 				"./src/index.ts"
 			],
-			"hydrogen/*": [
+			"@atom.io/hydrogen/*": [
 				"./src/*"
 			],
 			"atom.io": [

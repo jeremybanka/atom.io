@@ -16,8 +16,8 @@ export default function hydrogen(options: HydrogenPluginOptions = {}): Plugin {
 		enforce: `pre`,
 		config() {
 			return {
-				resolve: { dedupe: [`hydrogen`, `atom.io`] },
-				optimizeDeps: { exclude: [`hydrogen`, `atom.io`] },
+				resolve: { dedupe: [`@atom.io/hydrogen`, `atom.io`] },
+				optimizeDeps: { exclude: [`@atom.io/hydrogen`, `atom.io`] },
 			}
 		},
 		configEnvironment: {
@@ -28,7 +28,7 @@ export default function hydrogen(options: HydrogenPluginOptions = {}): Plugin {
 				// Keep the renderer, hooks, and store in one unbundled module graph.
 				if (config.optimizeDeps?.include) {
 					config.optimizeDeps.include = config.optimizeDeps.include.filter(
-						(id) => !/^(hydrogen|atom\.io)(\/|$)/.test(id),
+						(id) => !/^(@atom\.io\/hydrogen|atom\.io)(\/|$)/.test(id),
 					)
 				}
 			},

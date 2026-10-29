@@ -5,8 +5,8 @@ import { fileURLToPath } from "node:url"
 import cloudflare from "@astrojs/cloudflare"
 import { unified } from "@astrojs/markdown-remark"
 import mdx from "@astrojs/mdx"
+import hydrogen from "@atom.io/hydrogen/astro"
 import { defineConfig, sessionDrivers } from "astro/config"
-import hydrogen from "hydrogen/astro"
 
 import { preserveCodeBlockCodeProps } from "./scripts/remark-codeblock-code-props.ts"
 
@@ -140,7 +140,7 @@ export default defineConfig({
 		allowedHosts: [`eris.local`, `atom-io`],
 	},
 	vite: {
-		resolve: { dedupe: [`atom.io`, `hydrogen`] },
+		resolve: { dedupe: [`atom.io`, `@atom.io/hydrogen`] },
 		plugins: [exhibitTextPlugin()],
 		build: {
 			// Dz2Orbital's isolated Three.js entry is ~512 KiB minified.

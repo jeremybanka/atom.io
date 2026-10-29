@@ -1,5 +1,3 @@
-import type { RegularAtomToken, TimelineToken, TransactionToken } from "atom.io"
-import type { RootStore } from "atom.io/internal"
 import type {
 	Accessor,
 	Child,
@@ -7,8 +5,8 @@ import type {
 	HydrogenRoot,
 	RootOptions,
 	TimelineValue,
-} from "hydrogen"
-import * as Hydrogen from "hydrogen"
+} from "@atom.io/hydrogen"
+import * as Hydrogen from "@atom.io/hydrogen"
 import {
 	onCleanup,
 	onMount,
@@ -19,8 +17,10 @@ import {
 	useTimeline,
 	useTransaction,
 	useValue,
-} from "hydrogen"
-import type { JSX } from "hydrogen/jsx-runtime"
+} from "@atom.io/hydrogen"
+import type { JSX } from "@atom.io/hydrogen/jsx-runtime"
+import type { RegularAtomToken, TimelineToken, TransactionToken } from "atom.io"
+import type { RootStore } from "atom.io/internal"
 
 export const component: Component<{
 	count: RegularAtomToken<number>

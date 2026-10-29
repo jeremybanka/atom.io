@@ -1,10 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import type { Loadable } from "atom.io"
-import { scopeFamily, Silo } from "atom.io"
-import { Window } from "happy-dom"
-import * as Hydrogen from "hydrogen"
+import * as Hydrogen from "@atom.io/hydrogen"
 import {
 	hydrate,
 	onCleanup,
@@ -16,13 +13,16 @@ import {
 	useStore,
 	useTimeline,
 	useValue,
-} from "hydrogen"
-import astro from "hydrogen/astro"
-import astroClient from "hydrogen/astro-client"
-import astroServer from "hydrogen/astro-server"
-import { jsx, jsxDEV } from "hydrogen/jsx-dev-runtime"
-import { renderToString } from "hydrogen/server"
-import hydrogen from "hydrogen/vite"
+} from "@atom.io/hydrogen"
+import astro from "@atom.io/hydrogen/astro"
+import astroClient from "@atom.io/hydrogen/astro-client"
+import astroServer from "@atom.io/hydrogen/astro-server"
+import { jsx, jsxDEV } from "@atom.io/hydrogen/jsx-dev-runtime"
+import { renderToString } from "@atom.io/hydrogen/server"
+import hydrogen from "@atom.io/hydrogen/vite"
+import type { Loadable } from "atom.io"
+import { scopeFamily, Silo } from "atom.io"
+import { Window } from "happy-dom"
 
 await test(`public API exposes the current store without exporting untrack`, () => {
 	assert.equal(typeof Hydrogen.useStore, `function`)

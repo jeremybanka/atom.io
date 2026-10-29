@@ -4,7 +4,7 @@
 		"moduleResolution": "bundler",
 		"target": "ES2022",
 		"jsx": "preserve",
-		"jsxImportSource": "hydrogen",
+		"jsxImportSource": "@atom.io/hydrogen",
 		"strict": true
 	}
 }

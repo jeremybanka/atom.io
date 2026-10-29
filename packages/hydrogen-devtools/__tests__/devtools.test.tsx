@@ -1,6 +1,6 @@
+import type { HydrogenRoot } from "@atom.io/hydrogen"
+import { render } from "@atom.io/hydrogen"
 import { scopeFamily, Silo } from "atom.io"
-import type { HydrogenRoot } from "hydrogen"
-import { render } from "hydrogen"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 import { AtomIODevtools } from "../src/index.ts"

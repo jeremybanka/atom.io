@@ -1,4 +1,4 @@
-import type { Child, VNode } from "hydrogen"
+import type { Child, VNode } from "@atom.io/hydrogen"
 
 import type { Path, Tools } from "./store.ts"
 import { useExpanded } from "./store.ts"

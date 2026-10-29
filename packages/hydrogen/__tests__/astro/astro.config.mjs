@@ -1,5 +1,5 @@
 import { defineConfig } from "astro/config"
-import hydrogen from "hydrogen/astro"
+import hydrogen from "@atom.io/hydrogen/astro"
 export default defineConfig({
 	integrations: [hydrogen()],
 	outDir: "./dist",

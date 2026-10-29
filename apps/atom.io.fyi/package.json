@@ -33,7 +33,7 @@
 		"three": "0.186.1",
 		"tsdoc.json": "0.6.12",
 		"@atom.io/hydrogen-devtools": "workspace:*",
-		"hydrogen": "workspace:*"
+		"@atom.io/hydrogen": "workspace:*"
 	},
 	"devDependencies": {
 		"@atom.io/exhibits": "workspace:*",

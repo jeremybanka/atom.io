@@ -1,6 +1,6 @@
+import type { Accessor, LoadableValue } from "@atom.io/hydrogen"
+import { useLoadable } from "@atom.io/hydrogen"
 import type { Loadable, ReadableFamilyToken, ReadableToken } from "atom.io"
-import type { Accessor, LoadableValue } from "hydrogen"
-import { useLoadable } from "hydrogen"
 
 type Equal<A, B> =
 	(<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2

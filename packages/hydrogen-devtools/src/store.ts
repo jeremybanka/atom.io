@@ -1,3 +1,5 @@
+import type { Accessor } from "@atom.io/hydrogen"
+import { onCleanup, useId, useSetter, useValue } from "@atom.io/hydrogen"
 import type { RegularAtomFamilyToken, RegularAtomToken, Setter } from "atom.io"
 import type { RootStore } from "atom.io/internal"
 import {
@@ -8,8 +10,6 @@ import {
 } from "atom.io/internal"
 import type { IntrospectionStates } from "atom.io/introspection"
 import { attachIntrospectionStates } from "atom.io/introspection"
-import type { Accessor } from "hydrogen"
-import { onCleanup, useId, useSetter, useValue } from "hydrogen"
 
 const locals = new WeakMap<RootStore, RegularAtomFamilyToken<unknown, string>>()
 const introspection = new WeakMap<RootStore, IntrospectionStates>()

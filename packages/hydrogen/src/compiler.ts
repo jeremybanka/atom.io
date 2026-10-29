@@ -68,7 +68,7 @@ export function compile(
 									t.importSpecifier(create, t.identifier(`jsx`)),
 									t.importSpecifier(merge, t.identifier(`merge`)),
 								],
-								t.stringLiteral(`hydrogen/jsx-runtime`),
+								t.stringLiteral(`@atom.io/hydrogen/jsx-runtime`),
 							),
 						)
 						for (const component of components)

@@ -1,5 +1,5 @@
-import type { VNode } from "hydrogen"
-import { onCleanup, onMount } from "hydrogen"
+import type { VNode } from "@atom.io/hydrogen"
+import { onCleanup, onMount } from "@atom.io/hydrogen"
 import * as THREE from "three"
 
 import { createHydrogenCloud } from "./hydrogen-orbital-three"

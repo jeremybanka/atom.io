@@ -1,6 +1,6 @@
 ---
 "atom.io": patch
-"hydrogen": patch
+"@atom.io/hydrogen": patch
 "@atom.io/hydrogen-devtools": patch
 ---
 

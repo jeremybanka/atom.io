@@ -1,6 +1,6 @@
+import { useRef } from "@atom.io/hydrogen"
+import type { JSX, TargetedEvent } from "@atom.io/hydrogen/jsx-runtime"
 import type { RegularAtomToken } from "atom.io"
-import { useRef } from "hydrogen"
-import type { JSX, TargetedEvent } from "hydrogen/jsx-runtime"
 
 type Equal<A, B> =
 	(<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2

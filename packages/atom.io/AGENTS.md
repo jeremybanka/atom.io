@@ -8,6 +8,7 @@ Start with:
 - `docs/agent/AGENTS.md` for the generated corpus overview
 - `docs/agent/packages/atom.io.md` for the core API
 - `docs/agent/packages/atom.io-react.md` for the React bindings
+- `docs/agent/packages/against-use-effect.md` for twenty React effect patterns and their atom.io alternatives
 - `docs/agent/packages/remote-data.md` for query data, fetched state, RPC (remote procedure call) contracts, loading flows, and suspense-like async reads
 - `docs/agent/packages/typesafe-router.md` for typesafe router guidance with TreeTrunks
 - `docs/agent/examples/` for source-linked exhibits

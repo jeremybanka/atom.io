@@ -44,6 +44,10 @@ export function Counter(): ReactNode {
 
 ```
 
+## Effects
+
+Explore [twenty before-and-after effect examples](https://atom.io.fyi/docs/against-use-effect), including React judgments and the atom.io ownership model. Move state synchronization into atoms, selectors, transactions, and Loadable states. Keep `useLayoutEffect` for work that requires committed layout before paint.
+
 ## Bundle size
 
 Package export sizes include complete runtime export surfaces.

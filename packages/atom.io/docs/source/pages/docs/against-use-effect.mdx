@@ -1,0 +1,533 @@
+import Exhibit from "c/Exhibit.astro";
+import EffectCluster from "c/EffectCluster.astro";
+
+# against useEffect
+
+Components observe state and express intent. Put derivation in selectors, commands
+in event handlers or transactions, asynchronous reads in `Loadable` states, and
+ongoing synchronization in atom effects. This motivates our proposed
+`ban-use-effect` policy.
+
+`useLayoutEffect` remains appropriate for measuring or changing committed layout
+before paint. It is not an escape hatch for ordinary synchronization.
+
+These twenty comparisons distinguish harmful React patterns, valid React effects
+that belong elsewhere in atom.io, and recommended alternatives.
+
+Exhibits use the implicit store; your controller supplies exported inputs. With an
+explicit Silo, use that Silo’s operations: module-level state operations do not
+follow `StoreProvider`.
+
+Atom-effect cleanup runs on atom disposal, not component unmount. Resource
+examples use explicit ownership or `useAtomicRef`, which publishes the host node
+and clears it on cleanup. Their hosts stay mounted for the component’s lifetime.
+Use one presentation owner per key; readers can share state without owning its
+resources. Dispose unused family members when their owning model ends, not when
+one reader unmounts.
+
+Keep DOM handles out of persistence, server snapshots, and undo history. The
+shared [services](https://github.com/jeremybanka/atom.io/blob/main/packages/atom.io/docs/source/exhibits/react/effects/services.ts),
+[helpers](https://github.com/jeremybanka/atom.io/blob/main/packages/atom.io/docs/source/exhibits/react/effects/helpers.ts),
+and [views](https://github.com/jeremybanka/atom.io/blob/main/packages/atom.io/docs/source/exhibits/react/effects/views.tsx)
+are application code, not atom.io APIs; their implementations ship with the
+exhibits.
+
+## derived results
+
+A product search needs the matching products whenever its collection or query changes.
+
+<EffectCluster verdict="harmful">
+
+<Exhibit src="react/effects/01-derived-before-manually-synchronize-disjointed-states.tsx" soft />
+
+<span data-effect-verdict="harmful">Harmful</span> Manually synchronize disjointed states
+
+The effect stores a value that can be calculated from existing inputs. It also renders once with stale matches before correcting them. Ordinary React can calculate the matches during render, with memoization if warranted.
+
+</EffectCluster>
+
+<EffectCluster verdict="best-practice">
+
+<Exhibit src="react/effects/01-derived-after-derive-what-you-need-with-selector.tsx" />
+
+<span data-effect-verdict="best-practice">Best practice</span> Derive what you need with `selector`
+
+Store independent inputs in atoms and derive matches with a selector. The result participates in the state graph without a second writer or a render-triggered synchronization step. A small calculation used only by one component can also stay local.
+
+</EffectCluster>
+
+## resetting identity-bound state
+
+An editor must keep one document’s draft from appearing under another document’s identity.
+
+<EffectCluster verdict="harmful">
+
+<Exhibit src="react/effects/02-identity-before-reset-identity-after-rendering.tsx" soft />
+
+<span data-effect-verdict="harmful">Harmful</span> Reset identity after rendering
+
+Resetting after render briefly exposes the old draft under the new identity. In ordinary React, key the editor by document ID when switching documents should reset all its local state.
+
+</EffectCluster>
+
+<EffectCluster verdict="best-practice">
+
+<Exhibit src="react/effects/02-identity-after-give-each-document-its-own-state.tsx" />
+
+<span data-effect-verdict="best-practice">Best practice</span> Give each document its own state
+
+Key draft state by document identity. This example intentionally retains drafts when switching away and back. Call `closeDocument` from the document controller when closing should discard the draft; to match the before example’s discard-on-switch policy, close the old document during the switch action. Identity and retention are explicit decisions, rather than consequences of rendering.
+
+</EffectCluster>
+
+## reporting state upward
+
+A toggle and its parent both need to know whether a feature is enabled.
+
+<EffectCluster verdict="harmful">
+
+<Exhibit src="react/effects/03-reporting-before-echo-local-state-up-to-the-parent.tsx" soft />
+
+<span data-effect-verdict="harmful">Harmful</span> Echo local state up to the parent
+
+Mirroring local state through an effect adds another update and also calls the parent on mount. In ordinary React, use a controlled toggle or notify the parent in the interaction handler.
+
+</EffectCluster>
+
+<EffectCluster verdict="best-practice">
+
+<Exhibit src="react/effects/03-reporting-after-read-shared-state-from-one-atom.tsx" />
+
+<span data-effect-verdict="best-practice">Best practice</span> Read shared state from one atom
+
+Let the toggle and parent observe the same atom. The toggle updates it directly. If the parent needs an interaction notification rather than the current value, keep that as an explicit event callback; observing state is not an event log.
+
+</EffectCluster>
+
+## cascading state transitions
+
+A game awards points, advances every three points, and finishes after three rounds.
+
+<EffectCluster verdict="harmful">
+
+<Exhibit src="react/effects/04-transitions-before-chain-effects-to-complete-one-action.tsx" soft />
+
+<span data-effect-verdict="harmful">Harmful</span> Chain effects to complete one action
+
+Chaining effects spreads one game action across renders and creates intermediate states. A reducer or one event handler can calculate the transition in ordinary React.
+
+</EffectCluster>
+
+<EffectCluster verdict="best-practice">
+
+<Exhibit src="react/effects/04-transitions-after-commit-one-action-with-a-transaction.tsx" />
+
+<span data-effect-verdict="best-practice">Best practice</span> Commit one action with a `transaction`
+
+A transaction updates the independent score and round values together. Whether the game is finished is derived by a selector. This preserves one coherent transition and avoids turning every consequence into an effect.
+
+</EffectCluster>
+
+## submitting a command
+
+Clicking Send should send the text associated with that click and report success or failure.
+
+<EffectCluster verdict="harmful">
+
+<Exhibit src="react/effects/05-command-before-turn-a-click-into-a-reactive-flag.tsx" soft />
+
+<span data-effect-verdict="harmful">Harmful</span> Turn a click into a reactive flag
+
+A request flag detours through rendering to recover an event that already happened. It can also resend if the text changes while the flag remains set. Send from the handler in ordinary React.
+
+</EffectCluster>
+
+<EffectCluster verdict="best-practice">
+
+<Exhibit src="react/effects/05-command-after-send-the-command-from-its-event-handler.tsx" />
+
+<span data-effect-verdict="best-practice">Best practice</span> Send the command from its event handler
+
+Keep the command in the handler and its observable status in an atom. Sharing state does not require making the command reactive. A `Loadable` may describe a command’s result, but reading a result must not become permission to repeat the command.
+
+</EffectCluster>
+
+## maintaining an autosaved draft
+
+A draft should save after 400 milliseconds without an edit, including edits originating outside the editor.
+
+<EffectCluster verdict="react-only">
+
+<Exhibit src="react/effects/06-autosave-before-tie-autosaving-to-component-lifetime.tsx" soft />
+
+<span data-effect-verdict="react-only">With React.useEffect</span> Tie autosaving to component lifetime
+
+This is ongoing synchronization with storage. `createAutosaver` debounces edits for 400 milliseconds, serializes writes, and ignores obsolete completion messages. The component owns that helper and cancels unsent work when its scope ends. The initial `null` text means no edit has occurred, so mounting alone does not save an empty draft.
+
+</EffectCluster>
+
+<EffectCluster verdict="best-practice">
+
+<Exhibit src="react/effects/06-autosave-after-let-the-draft-own-its-saves.tsx" />
+
+<span data-effect-verdict="best-practice">Best practice</span> Let the draft own its saves
+
+Create the same autosaver in the draft’s atom effect, schedule it on text changes, and ignore its own status updates. Writes are serialized per draft instance so a slower earlier write cannot finish after a newer one. The draft now owns the process: unmounting the editor does not discard a pending save. `discardDraft` cancels pending work and suppresses completion updates; it cannot undo a request already sent. A production multi-client editor also needs server-side conflict/version handling. A failed save is displayed; an explicit retry policy can be added at the same state boundary.
+
+</EffectCluster>
+
+## fetching by identity
+
+An account name must load for the current account ID, with loading and failure states.
+
+<EffectCluster verdict="react-only">
+
+<Exhibit src="react/effects/07-fetch-before-fetch-each-account-from-a-component-effect.tsx" soft />
+
+<span data-effect-verdict="react-only">With React.useEffect</span> Fetch each account from a component effect
+
+Fetching synchronizes with a remote system. The effect must prevent a response for the previous account from updating the current display. React recommends data abstractions when available.
+
+</EffectCluster>
+
+<EffectCluster verdict="best-practice">
+
+<Exhibit src="react/effects/07-fetch-after-load-each-account-by-its-key.tsx" />
+
+<span data-effect-verdict="best-practice">Best practice</span> Load each account by its key
+
+The family key supplies request identity, its async default supplies the read, and `useLoadable` observes the result. Reads of the same member share its retained load. The keyed result component also prevents the hook’s previous display value from crossing account identities. Reset after an explicit refresh, retry, or relevant mutation; do not reset on mount. Cache policy and actual network cancellation remain separate choices.
+
+</EffectCluster>
+
+## debounced search
+
+Typing should update the input immediately while postponing a search until the query settles.
+
+<EffectCluster verdict="react-only">
+
+<Exhibit src="react/effects/08-debounce-before-debounce-requests-inside-the-search-component.tsx" soft />
+
+<span data-effect-verdict="react-only">With React.useEffect</span> Debounce requests inside the search component
+
+The delay is real temporal behavior. The effect replaces its timer and suppresses results from obsolete queries.
+
+</EffectCluster>
+
+<EffectCluster verdict="best-practice">
+
+<Exhibit src="react/effects/08-debounce-after-let-query-state-own-the-debounce.tsx" />
+
+<span data-effect-verdict="best-practice">Best practice</span> Let query state own the debounce
+
+Separate live input, settled query, and query-keyed results. An atom effect owns the delay and Loadable family members own requests. This example loads the initial empty query immediately; subsequent query changes wait 300 milliseconds. Results remain available while a newer request loads. Once started, a request may finish into its own cache entry even if the user moves on. The search session, rather than an individual input component, owns the timer.
+
+</EffectCluster>
+
+## polling a remote job
+
+A job’s progress should refresh once a second until completion, without overlapping requests, while its presentation owner is attached.
+
+<EffectCluster verdict="react-only">
+
+<Exhibit src="react/effects/09-polling-before-run-the-polling-loop-inside-the-view.tsx" soft />
+
+<span data-effect-verdict="react-only">With React.useEffect</span> Run the polling loop inside the view
+
+Polling synchronizes with a remote process. `pollJob` waits for each request before scheduling another and stops on completion or failure. It returns cleanup that stops the timer, aborts the current read, and suppresses late outcomes. The component effect owns that cleanup here.
+
+</EffectCluster>
+
+<EffectCluster verdict="best-practice">
+
+<Exhibit src="react/effects/09-polling-after-give-each-job-an-explicit-polling-owner.tsx" />
+
+<span data-effect-verdict="best-practice">Best practice</span> Give each job an explicit polling owner
+
+A host-node family member owns each polling session and a Loadable family member owns its result. `useAtomicRef` publishes the output node and clears it on cleanup. The effect starts on attachment, aborts on detachment, and schedules only after a request finishes. For polling that should outlive the view, use explicit controller-owned activation state instead. This exhibit assumes one presentation owner per job ID; additional progress displays should only observe the result.
+
+</EffectCluster>
+
+## persisting a preference
+
+A sidebar preference should initialize from browser storage and persist edits.
+
+<EffectCluster verdict="react-only">
+
+<Exhibit src="react/effects/10-storage-before-persist-preferences-from-the-render-tree.tsx" soft />
+
+<span data-effect-verdict="react-only">With React.useEffect</span> Persist preferences from the render tree
+
+Browser storage is external state, so synchronization is justified. This version is client-only; reading browser storage during server rendering is a separate problem.
+
+</EffectCluster>
+
+<EffectCluster verdict="best-practice">
+
+<Exhibit src="react/effects/10-storage-after-persist-preferences-with-storagesync.tsx" />
+
+<span data-effect-verdict="best-practice">Best practice</span> Persist preferences with `storageSync`
+
+Attach `storageSync` to the atom. Components only read and update the preference. The string codec preserves the before example’s storage format. This helper hydrates and writes the value; it does not by itself subscribe to cross-tab storage events. See [revealing client-only content](#revealing-client-only-content) for a hydration boundary before rendering client-only preferences.
+
+</EffectCluster>
+
+## mirroring an existing store
+
+A component needs to display state held outside React.
+
+<EffectCluster verdict="harmful">
+
+<Exhibit src="react/effects/11-store-before-copy-an-external-store-into-local-state.tsx" soft />
+
+<span data-effect-verdict="harmful">Harmful</span> Copy an external store into local state
+
+Reading a snapshot into local state and later subscribing can miss changes between those steps. For an existing external store, React provides `useSyncExternalStore` and its server-snapshot protocol.
+
+</EffectCluster>
+
+<EffectCluster verdict="best-practice">
+
+<Exhibit src="react/effects/11-store-after-observe-the-source-of-truth-with-useo.tsx" />
+
+<span data-effect-verdict="best-practice">Best practice</span> Observe the source of truth with `useO`
+
+When the state belongs to your application, make an atom its source of truth and observe it with `useO`. The after example replaces the application-owned counter store; it does not silently migrate an arbitrary third-party store. If another system must remain authoritative, retain its supported binding or adapt its snapshot and subscription at a state boundary. Do not create another component-local mirror.
+
+</EffectCluster>
+
+## owning a live connection
+
+A presented chat room should connect, receive messages, and disconnect when its presentation owner detaches or changes rooms.
+
+<EffectCluster verdict="react-only">
+
+<Exhibit src="react/effects/12-connection-before-let-the-component-own-the-connection.tsx" soft />
+
+<span data-effect-verdict="react-only">With React.useEffect</span> Let the component own the connection
+
+Opening and closing a connection is a resource lifecycle. Receiving a message is distinct from sending one in response to an interaction.
+
+</EffectCluster>
+
+<EffectCluster verdict="best-practice">
+
+<Exhibit src="react/effects/12-connection-after-let-connection-state-own-the-socket.tsx" />
+
+<span data-effect-verdict="best-practice">Best practice</span> Let connection state own the socket
+
+Keep the host node and received messages in separate keyed atoms. `useAtomicRef` publishes attachment; the host’s atom effect opens and closes the socket. Message updates do not reconnect because the connection depends only on the host node. Detachment closes the socket even though the family member remains cached. This is a minimal connection example; reconnect, transport-error, and shared-owner policies belong alongside the same state. It models attachment, not viewport intersection or arbitrary CSS visibility.
+
+</EffectCluster>
+
+## keeping time
+
+A saved-time label should age once per second. Both implementations use the same cancellable interval helper:
+
+<Exhibit src="react/effects/every.ts" />
+
+<EffectCluster verdict="react-only">
+
+<Exhibit src="react/effects/13-clock-before-start-a-clock-for-every-label.tsx" soft />
+
+<span data-effect-verdict="react-only">With React.useEffect</span> Start a clock for every label
+
+Time supplies new information. An interval is an external resource and its cleanup clears that interval.
+
+</EffectCluster>
+
+<EffectCluster verdict="best-practice">
+
+<Exhibit src="react/effects/13-clock-after-share-a-clock-and-derive-elapsed-time.tsx" />
+
+<span data-effect-verdict="best-practice">Best practice</span> Share a clock and derive elapsed time
+
+Share one application clock across labels and derive each age with a selector. The clock runs for the store’s lifetime, rather than starting an interval for every label. Its atom effect returns the cleanup from `every`; unmounting a label does not stop the shared clock. The helper skips intervals on the server; server-rendered timestamps still need a consistent hydration snapshot.
+
+</EffectCluster>
+
+## controlling an imperative widget
+
+A map widget needs a host element, a zoom setting, and a destroy call when detached.
+
+<EffectCluster verdict="react-only">
+
+<Exhibit src="react/effects/14-widget-before-manage-widget-lifetime-in-component-effects.tsx" soft />
+
+<span data-effect-verdict="react-only">With React.useEffect</span> Manage widget lifetime in component effects
+
+React must synchronize with the widget’s imperative API. The before example separates widget creation from setting its zoom.
+
+</EffectCluster>
+
+<EffectCluster verdict="best-practice">
+
+<Exhibit src="react/effects/14-widget-after-let-attachment-state-own-the-widget.tsx" />
+
+<span data-effect-verdict="best-practice">Best practice</span> Let attachment state own the widget
+
+Store the host and zoom in separate view-keyed atoms. `useAtomicRef` publishes the host and clears it on cleanup. The host’s atom effect creates the widget and subscribes to zoom changes, then unsubscribes and destroys the widget on detachment. Use a distinct view ID for each mounted map. If a real widget must measure layout before paint, keep that layout operation in `useLayoutEffect`; ordinary widget configuration is not a reason to move all its work there.
+
+</EffectCluster>
+
+## measuring layout before paint
+
+A tooltip needs its rendered height to position itself above its anchor without a visible correction.
+
+<EffectCluster verdict="best-practice">
+
+<Exhibit src="react/effects/15-layout-before-measure-committed-layout-with-uselayouteffect.tsx" soft />
+
+<span data-effect-verdict="best-practice">Best practice</span> Measure committed layout with `useLayoutEffect`
+
+The measurement depends on committed DOM and must update placement before paint. This is explicitly outside the proposed `useEffect` ban.
+
+</EffectCluster>
+
+<EffectCluster verdict="best-practice">
+
+<Exhibit src="react/effects/15-layout-after-publish-layout-measurements-into-atom-state.tsx" />
+
+<span data-effect-verdict="best-practice">Best practice</span> Publish layout measurements into atom state
+
+`atom.io` can own the measured height, but React still owns when measurement is valid. Keep `useLayoutEffect` and publish its measurement into state. The soft before styling denotes the comparison baseline, not disapproval of this hook. If only this tooltip needs the height, keeping local state is also reasonable. These exhibits remeasure when text changes; changing fonts or container sizes needs an additional resize policy.
+
+</EffectCluster>
+
+## scrolling after content arrives
+
+A conversation should follow new messages only while the reader remains near the bottom.
+
+<EffectCluster verdict="react-only">
+
+<Exhibit src="react/effects/16-scroll-before-correct-scrolling-in-a-passive-effect.tsx" soft />
+
+<span data-effect-verdict="react-only">With React.useEffect</span> Correct scrolling in a passive effect
+
+The scroll must occur after the new messages exist in the DOM. A passive effect can make the correction visible; doing it before paint is a layout concern.
+
+</EffectCluster>
+
+<EffectCluster verdict="best-practice">
+
+<Exhibit src="react/effects/16-scroll-after-scroll-after-commit-with-uselayouteffect.tsx" />
+
+<span data-effect-verdict="best-practice">Best practice</span> Scroll after commit with `useLayoutEffect`
+
+Keep messages and following intent in keyed atoms. Retain the actual measurement and scroll write in the allowed `useLayoutEffect`, after React commits those messages. Updating message state is not proof that the corresponding DOM is ready. Each independent scroll viewport needs its own following state, even when several viewports share the same messages.
+
+</EffectCluster>
+
+## observing viewport visibility
+
+A card needs to know whether it intersects the viewport.
+
+<EffectCluster verdict="react-only">
+
+<Exhibit src="react/effects/17-visibility-before-own-viewport-observers-inside-components.tsx" soft />
+
+<span data-effect-verdict="react-only">With React.useEffect</span> Own viewport observers inside components
+
+Intersection information comes from the browser, and the observer must be disconnected when its target is no longer owned.
+
+</EffectCluster>
+
+<EffectCluster verdict="best-practice">
+
+<Exhibit src="react/effects/17-visibility-after-let-node-state-own-the-observer.tsx" />
+
+<span data-effect-verdict="best-practice">Best practice</span> Let node state own the observer
+
+`useAtomicRef` publishes the card’s node. Its atom effect owns the observer and publishes visibility into a separate atom. It reconnects only when the node changes, so reporting visibility does not create an observer loop. The `observeVisibility` helper ignores callbacks after disconnection. Viewport intersection is a different signal from attachment and is not proof that an element is unobscured.
+
+</EffectCluster>
+
+## recording a screen visit
+
+Analytics should record a screen’s committed presentation rather than a speculative data read or prefetch.
+
+<EffectCluster verdict="react-only">
+
+<Exhibit src="react/effects/18-analytics-before-report-visits-from-a-component-effect.tsx" soft />
+
+<span data-effect-verdict="react-only">With React.useEffect</span> Report visits from a component effect
+
+A presentation event is caused by the view appearing, rather than a particular click. It should not be inferred from the request used to load the screen.
+
+</EffectCluster>
+
+<EffectCluster verdict="best-practice">
+
+<Exhibit src="react/effects/18-analytics-after-record-explicit-presentation-transitions.tsx" />
+
+<span data-effect-verdict="best-practice">Best practice</span> Record explicit presentation transitions
+
+Publish the screen’s host node with `useAtomicRef` and let the atom effect report its transition from absent to present. Here presentation means host attachment, not proof that the browser painted the screen or that it entered the viewport. For actual viewport impressions, use the [viewport visibility observer](#observing-viewport-visibility). Development effect replay, remounts, and re-presentation can produce another event; neither version promises exactly-once analytics. Define deduplication and development filtering at the analytics boundary. A router commit can supply the signal instead when visits are route-defined.
+
+</EffectCluster>
+
+## revealing client-only content
+
+The initial server and hydration output must match before revealing a browser-stored display name.
+
+<EffectCluster verdict="react-only">
+
+<Exhibit src="react/effects/19-hydration-before-track-hydration-with-a-mount-effect.tsx" soft />
+
+<span data-effect-verdict="react-only">With React.useEffect</span> Track hydration with a mount effect
+
+A mount effect is a documented way to switch to client-only content, although the extra rendering phase should be used sparingly.
+
+</EffectCluster>
+
+<EffectCluster verdict="best-practice">
+
+<Exhibit src="react/effects/19-hydration-after-match-hydration-through-server-and-client-snapshots.tsx" />
+
+<span data-effect-verdict="best-practice">Best practice</span> Match hydration through server and client snapshots
+
+Put the browser-backed value in an atom and use React’s external-store snapshot protocol to distinguish hydration from ordinary client rendering. The server snapshot stays false during hydration; the client snapshot then exposes the client-only child. There is no application `useEffect`. The no-op subscription is sufficient because this signal is a fixed client/server distinction, not a changing store. Do not replace it with one global “mounted” atom: independently hydrating roots need their own boundary. This example reads the stored name once; ongoing persistence is a separate atom effect.
+
+</EffectCluster>
+
+## initializing the application
+
+The application should initialize its session once per store and share the result across consumers.
+
+<EffectCluster verdict="harmful">
+
+<Exhibit src="react/effects/20-initialization-before-mistake-mounting-for-application-startup.tsx" soft />
+
+<span data-effect-verdict="harmful">Harmful</span> Mistake mounting for application startup
+
+An empty dependency list describes a component effect, not application-wide uniqueness. Remounts and development replay can repeat initialization.
+
+</EffectCluster>
+
+<EffectCluster verdict="best-practice">
+
+<Exhibit src="react/effects/20-initialization-after-initialize-once-per-store-with-a-loadable.tsx" />
+
+<span data-effect-verdict="best-practice">Best practice</span> Initialize once per store with a `Loadable`
+
+Make the async default the shared initialization work. The client entry point can read it before rendering, and `useLoadable` observes the same pending or retained result. This is once per initialized atom state in a store, not once across processes or all stores. Reset is intentional reinitialization. Keep unrelated startup commands in an explicit bootstrap function and keep request-specific server state in an isolated store.
+
+</EffectCluster>
+
+## judging a replacement
+
+A replacement should identify what starts work, what stops it, and what must
+already have committed. React can preserve state while disconnecting effects in a
+hidden `Activity` boundary. Attachment-based ownership, viewport-based ownership,
+and application-owned resources are different policies; choose the signal that
+matches the intended behavior instead of assuming atom lifetime is view lifetime.
+
+These judgments build on React’s guidance on
+[unnecessary effects](https://react.dev/learn/you-might-not-need-an-effect),
+[events and effects](https://react.dev/learn/separating-events-from-effects),
+[synchronization and cleanup](https://react.dev/learn/synchronizing-with-effects),
+[fetching and hydration](https://react.dev/reference/react/useEffect),
+[external stores](https://react.dev/reference/react/useSyncExternalStore),
+[DOM refs](https://react.dev/learn/manipulating-the-dom-with-refs),
+[layout effects](https://react.dev/reference/react/useLayoutEffect), and
+[Activity](https://react.dev/reference/react/Activity).

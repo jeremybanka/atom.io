@@ -52,6 +52,9 @@ export function useAtomicRef<
 	const ref = useRef(null)
 	useEffect(() => {
 		setIntoStore(store, token, ref.current)
-	}, [token])
+		return () => {
+			setIntoStore(store, token, null)
+		}
+	}, [store, token.key])
 	return ref
 }

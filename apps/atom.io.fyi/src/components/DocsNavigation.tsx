@@ -354,15 +354,36 @@ function SiteDirectory(): VNode {
 								<low-emphasis>atom.io</low-emphasis>/transceivers
 							</a>
 						</section>
+					</main>
+				</section>
+				<section>
+					<header>React</header>
+					<main>
 						<section>
-							<a id="-docs-react-link" href={`/docs/react`}>
+							<a id="-docs-react-link" href="/docs/react">
 								<low-emphasis>@atom.io</low-emphasis>/react
 							</a>
 						</section>
 						<section>
-							<a id="-docs-solid-link" href={`/docs/solid`}>
+							<a
+								id="-docs-against-use-effect-link"
+								href="/docs/against-use-effect"
+							>
+								against useEffect
+							</a>
+						</section>
+					</main>
+				</section>
+				<section>
+					<header>Other Integrations</header>
+					<main>
+						<section>
+							<a id="-docs-solid-link" href="/docs/solid">
 								<low-emphasis>@atom.io</low-emphasis>/solid
 							</a>
+						</section>
+						<section>
+							<span aria-disabled="true">???</span>
 						</section>
 					</main>
 				</section>

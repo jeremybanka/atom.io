@@ -14,6 +14,7 @@ import {
 	useLoadable,
 	useRef,
 	useSetter,
+	useStore,
 	useTimeline,
 	useValue,
 } from "../dist/client.min.js"
@@ -30,6 +31,7 @@ const countAtom = silo.atom<number>({ key: `count`, default: 0 })
 let setups = 0
 let cleanups = 0
 function Counter() {
+	assert.equal(useStore(), silo.store)
 	setups++
 	const count = useValue(countAtom)
 	const setCount = useSetter(countAtom)
@@ -131,5 +133,5 @@ familyRoot.dispose()
 assert.equal(silo.getState(buttonAtoms, false), null)
 
 console.log(
-	`Audited production artifact: state, events, ownership, IDs, loadable state, families, cleanup and hydration passed.`,
+	`Audited production artifact: state, events, ownership, store context, IDs, loadable state, families, cleanup and hydration passed.`,
 )

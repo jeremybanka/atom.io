@@ -25,9 +25,9 @@ The [PointEditor exhibit](../packages/hydrogen/exhibits/point.tsx) demonstrates 
 | onCleanup      | Register synchronous owner teardown.                                                                 |
 | useTransaction | Bind an atom.io transaction while preserving its arguments and result.                               |
 | onMount        | Run once after attachment and ref publication, including branches added by later updates.            |
-| untrack        | Temporarily disable dependency collection while retaining the current owner.                         |
+| useStore       | Expose the current root's atom.io store directly, without subscribing or creating another store.     |
 
-The core helpers capture the component store and ownership. Transaction commands preserve store scoping, onMount gives work involving several refs a reliable attachment point, and untrack makes intentional snapshots within reactive expressions explicit. useLoadable adapts atom.io promise state without adding a separate subscription or promise lifecycle; the [async state exhibit](../packages/hydrogen/exhibits/loadable.tsx) demonstrates its tracked accessor.
+The core helpers capture the component store and ownership. Transaction commands preserve store scoping, onMount gives work involving several refs a reliable attachment point, and useStore exposes the selected store for integrations and direct atom.io operations. Dependency suppression stays internal to the renderer. useLoadable adapts atom.io promise state without adding a separate subscription or promise lifecycle; the [async state exhibit](../packages/hydrogen/exhibits/loadable.tsx) demonstrates its tracked accessor.
 
 The state hooks useValue, useSetter, useRef, and useLoadable support streamlined family/key arguments resolved in the component's store. useTimeline supports timeline families in the same way. Both token and key stay fixed for the instance. The [family exhibit](../packages/hydrogen/exhibits/families.tsx) demonstrates reads, writes, refs, and timeline controls.
 

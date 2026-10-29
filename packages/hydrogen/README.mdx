@@ -1,5 +1,6 @@
 import { Tonnage } from "tonnage";
 import config from "./tonnage.config.ts";
+import StoreExample from "./exhibits/store.tsx" with { type: "code" };
 import Families from "./exhibits/families.tsx" with { type: "code" };
 import LoadableExample from "./exhibits/loadable.tsx" with { type: "code" };
 import Point from "./exhibits/point.tsx" with { type: "code" };
@@ -51,7 +52,7 @@ The development plugin keeps Hydrogen and atom.io outside dependency prebundling
 | useId()                       | Allocate an instance-stable ID using the root's prefix.                                                                  |
 | onCleanup(callback)           | Register synchronous teardown with the current owner.                                                                    |
 | onMount(callback)             | Run once after attachment and ref publication; omitted during server rendering.                                          |
-| untrack(callback)             | Read current state without adding dependencies to the surrounding computation.                                           |
+| useStore()                    | Return the current root's atom.io store without creating a store or subscribing.                                         |
 
 Call setup helpers synchronously during component setup or owned mount callbacks. Capture their results for event handlers. Tokens are fixed for an instance; use an application key in a reactive child expression to replace a component when its token changes. Component props stay live when read through the props object; destructuring during setup takes a snapshot.
 
@@ -60,6 +61,14 @@ Arrays support keyed components and elements. Reordering preserves instances and
 HTML and SVG use native DOM properties and attributes, plus className/htmlFor aliases. Events use onClick/onInput-style names, with Capture suffixes and onDoubleClick support. Styles are CSS strings. Mutable atom values still invalidate their consumers; project primitive fields for precise DOM writes. Refs attach once per element instance.
 
 HTML and SVG tags have element-specific attribute, event, and ref types. Event handlers receive native events with currentTarget typed as the attached element; target remains EventTarget because events can bubble from descendants. Ref callbacks receive the element on attachment and null on cleanup. Hyphenated custom tags use generic HTML attributes and HTMLElement refs and event targets. SVG presentation attributes use their literal markup spellings. Shared HTML/SVG tag names use HTML types because JSX cannot infer a namespace from parent elements.
+
+## Store access
+
+useStore returns the current root's atom.io RootStore directly. It is the same object supplied to render or hydrate, the selected Astro island store, or the implicit atom.io store when no store was supplied. Server rendering exposes the store selected for that render.
+
+<StoreExample />
+
+Capture the store during component setup or an owned onMount callback, then pass it to store-aware atom.io operations or integrations. Getting the store creates no subscription. Direct reads such as getFromStore do not participate in Hydrogen's dependency tracking; useValue and useLoadable provide tracked reads. The returned object is a store, not a Silo or a new wrapper.
 
 ## Families
 
@@ -107,7 +116,7 @@ The checked Astro fixture demonstrates default/named slots and multiple independ
 
 The build audits every browser export, including the JSX runtime, from the built JavaScript. Atom.io is an external peer in the incremental measurement. Compiler, server, and integration code have separate entrypoints. The report also includes the complete client plus atom.io, the Astro client entrypoint, and the installed Preact version under the same bundling/minification settings. These are full exported surfaces, not equivalent application benchmarks.
 
-The hard budget is under 3,300 bytes of ordinary level-9 gzip for the complete client export surface. The build bundles with esbuild and minifies with Oxc, then measures compression using Node's gzip and Brotli implementations. The hydrogen client measures 3,277 bytes with gzip. Actual application bundles add atom.io and compiler-generated application code.
+The hard budget is under 3,300 bytes of ordinary level-9 gzip for the complete client export surface. The build bundles with esbuild and minifies with Oxc, then measures compression using Node's gzip and Brotli implementations. The hydrogen client measures 3,291 bytes with gzip. Actual application bundles add atom.io and compiler-generated application code.
 
 Build output includes the minified audit entrypoint and machine-readable dist/size.json. These audit files are a bundled measurement; use the package exports in applications so the bundler preserves one runtime instance across entrypoints. Source tests exercise development behavior; the production test executes the audited minified artifact. Chromium checks exercise the actual Astro build, island isolation, hydration, keyed identity, focus/selection, SVG namespaces, and teardown. A fresh-cache Astro development check also covers mount hooks, shared state, and ClientRouter navigation.
 

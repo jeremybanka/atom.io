@@ -1,4 +1,5 @@
 import { Silo } from "atom.io"
+import { getFromStore, IMPLICIT } from "atom.io/internal"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import type { HydrogenRoot } from "../src/index.ts"
@@ -7,10 +8,10 @@ import {
 	onCleanup,
 	onMount,
 	render,
-	untrack,
 	useId,
 	useRef,
 	useSetter,
+	useStore,
 	useTimeline,
 	useTransaction,
 	useValue,
@@ -182,17 +183,63 @@ describe(`hydrogen compiled DOM`, () => {
 		}
 	})
 
+	it(`exposes each root store during setup and mounting and restores the outer context`, () => {
+		const first = fixture()
+		const second = fixture()
+		const mounted = vi.fn()
+		function Probe(props: { expected: Silo[`store`] }) {
+			const store = useStore()
+			expect(store).toBe(props.expected)
+			onMount(() => {
+				expect(useStore()).toBe(store)
+				mounted(store)
+			})
+			return <span />
+		}
+		first.mount(() => {
+			expect(useStore()).toBe(first.silo.store)
+			second.mount(() => <Probe expected={second.silo.store} />)
+			expect(useStore()).toBe(first.silo.store)
+			return <Probe expected={first.silo.store} />
+		})
+		expect(mounted.mock.calls).toEqual([[second.silo.store], [first.silo.store]])
+	})
+	it(`exposes the default store and request-specific server stores without subscribing`, () => {
+		const { silo, countAtom, host } = fixture()
+		const root = render(() => {
+			expect(useStore()).toBe(IMPLICIT.STORE)
+			return null
+		}, host)
+		roots.push(root)
+		renderToString(() => {
+			expect(useStore()).toBe(IMPLICIT.STORE)
+			return null
+		})
+		const html = renderToString(
+			() => {
+				const store = useStore()
+				expect(store).toBe(silo.store)
+				return <output>{getFromStore(store, countAtom)}</output>
+			},
+			{ store: silo.store },
+		)
+		host.innerHTML = html
+		expect(host.textContent).toBe(`0`)
+		expect(silo.store.atoms.get(countAtom.key)!.subject.subscribers.size).toBe(0)
+	})
+
 	it(`reconciles conditional dependencies and permits untracked reads`, () => {
 		const { silo, countAtom, host, mount } = fixture()
 		const toggleAtom = silo.atom<boolean>({ key: `toggle`, default: true })
 		const otherAtom = silo.atom<number>({ key: `other`, default: 9 })
 		function Choice() {
+			const store = useStore()
 			const toggle = useValue(toggleAtom)
 			const count = useValue(countAtom)
 			const other = useValue(otherAtom)
 			return (
 				<output>
-					{toggle() ? count() : other()}:{untrack(count)}
+					{toggle() ? count() : other()}:{getFromStore(store, countAtom)}
 				</output>
 			)
 		}

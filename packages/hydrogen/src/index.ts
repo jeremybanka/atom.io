@@ -9,10 +9,10 @@ export type {
 export {
 	onCleanup,
 	onMount,
-	untrack,
 	useId,
 	useRef,
 	useSetter,
+	useStore,
 	useTimeline,
 	useTransaction,
 	useValue,

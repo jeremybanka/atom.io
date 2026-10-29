@@ -180,6 +180,10 @@ export function createRoot(options: RootOptions = {}, server = false): Root {
 	}
 	return root
 }
+/** Return the atom.io store selected by the current root. */
+export function useStore(): RootStore {
+	return owner!._root._store
+}
 export function onCleanup(cleanup: Cleanup): void {
 	owner!._cleanups.add(cleanup)
 }

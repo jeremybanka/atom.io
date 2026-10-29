@@ -1,4 +1,5 @@
 import type { RegularAtomToken, TimelineToken, TransactionToken } from "atom.io"
+import type { RootStore } from "atom.io/internal"
 import type {
 	Accessor,
 	Child,
@@ -7,13 +8,14 @@ import type {
 	RootOptions,
 	TimelineValue,
 } from "hydrogen"
+import * as Hydrogen from "hydrogen"
 import {
 	onCleanup,
 	onMount,
-	untrack,
 	useId,
 	useRef,
 	useSetter,
+	useStore,
 	useTimeline,
 	useTransaction,
 	useValue,
@@ -26,6 +28,8 @@ export const component: Component<{
 	history: TimelineToken<any>
 	action: TransactionToken<(n: number) => string>
 }> = (props) => {
+	const store: RootStore = useStore()
+	void store
 	const value: Accessor<number> = useValue(props.count)
 	useSetter(props.count)((n) => n + 1)
 	const history: TimelineValue = useTimeline(props.history)()
@@ -35,7 +39,7 @@ export const component: Component<{
 		ref(null)
 	})
 	onCleanup(history.clear)
-	return [useId(), untrack(value), result] satisfies Child
+	return [useId(), value(), result] satisfies Child
 }
 export const options: RootOptions = { idPrefix: `consumer` }
 export type Root = HydrogenRoot
@@ -45,3 +49,6 @@ export const input: JSX.IntrinsicElements[`input`] = {
 	},
 	value: 1,
 }
+
+// @ts-expect-error Dependency suppression is internal to the renderer.
+Hydrogen.untrack

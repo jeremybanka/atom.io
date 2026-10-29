@@ -118,7 +118,7 @@ Fragment groups children without adding a DOM element. The JSX fragment syntax u
 | [useId](#useid) | Allocate a stable ID for the component instance, shared by SSR and hydration. |
 | [onMount](#onmount) | Run once after DOM attachment and ref publication; does not run during SSR. |
 | [onCleanup](#oncleanup) | Release owned resources when the component or root is disposed. |
-| [untrack](#untrack) | Read state without adding dependencies to the current DOM computation. |
+| [useStore](#usestore) | Return the current root's atom.io store without creating a store or subscribing. |
 
 </table-wrapper>
 
@@ -160,9 +160,13 @@ Register work to run once after DOM attachment and ref publication. This is the 
 
 Register teardown for the current owner. Hydrogen runs it when that owner is disposed, including when a keyed component is removed or its root is disposed. Use it to release event listeners, observers, timers, and other resources created during setup or mounting.
 
-### untrack
+### useStore
 
-Run a synchronous callback without adding its reads to the current DOM computation's subscriptions. This changes dependency tracking, not the atom.io values being read. It does not create an effect or a new component lifetime.
+Return the current root's atom.io RootStore directly. This is the same object supplied to render or hydrate, the selected Astro island store, or the implicit atom.io store when no store was supplied. Server rendering exposes the store selected for that render. No new store, Silo, or subscription is created.
+
+<Exhibit src="hydrogen/exhibits/store.tsx" />
+
+Call useStore during component setup or an owned onMount callback, then capture the result for store-aware atom.io operations or integrations. Direct reads such as getFromStore do not subscribe the surrounding JSX computation; useValue and useLoadable provide tracked reads.
 
 ### keyed views and DOM props
 

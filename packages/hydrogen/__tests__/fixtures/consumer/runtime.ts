@@ -4,6 +4,7 @@ import { test } from "node:test"
 import type { Loadable } from "atom.io"
 import { scopeFamily, Silo } from "atom.io"
 import { Window } from "happy-dom"
+import * as Hydrogen from "hydrogen"
 import {
 	hydrate,
 	onCleanup,
@@ -12,6 +13,7 @@ import {
 	useLoadable,
 	useRef,
 	useSetter,
+	useStore,
 	useTimeline,
 	useValue,
 } from "hydrogen"
@@ -21,6 +23,11 @@ import astroServer from "hydrogen/astro-server"
 import { jsx, jsxDEV } from "hydrogen/jsx-dev-runtime"
 import { renderToString } from "hydrogen/server"
 import hydrogen from "hydrogen/vite"
+
+await test(`public API exposes the current store without exporting untrack`, () => {
+	assert.equal(typeof Hydrogen.useStore, `function`)
+	assert.equal(`untrack` in Hydrogen, false)
+})
 
 await test(`packed runtime shares ownership across public entries, hydrates, updates, and disposes`, () => {
 	const window = new Window()
@@ -34,6 +41,7 @@ await test(`packed runtime shares ownership across public entries, hydrates, upd
 	let setups = 0,
 		cleanups = 0
 	const App = () => {
+		assert.equal(useStore(), silo.store)
 		setups++
 		onCleanup(() => {
 			cleanups++

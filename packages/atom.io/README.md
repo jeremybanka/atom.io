@@ -52,9 +52,9 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 | Recipe                     | Entry                                      | Minified JS |  Gzip JS |
 | -------------------------- | ------------------------------------------ | ----------: | -------: |
 | Core (for example, an LSP) | `tonnage-recipes/core.ts`                  |    46,424 B | 13,101 B |
-| React app                  | `tonnage-recipes/react-app.ts`             |    57,465 B | 16,911 B |
-| Realtime React client      | `tonnage-recipes/realtime-react-client.ts` |   103,145 B | 30,534 B |
-| Realtime server            | `tonnage-recipes/realtime-server.ts`       |   100,351 B | 28,327 B |
+| React app                  | `tonnage-recipes/react-app.ts`             |    57,412 B | 16,887 B |
+| Realtime React client      | `tonnage-recipes/realtime-react-client.ts` |   105,307 B | 31,220 B |
+| Realtime server            | `tonnage-recipes/realtime-server.ts`       |   103,706 B | 29,503 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

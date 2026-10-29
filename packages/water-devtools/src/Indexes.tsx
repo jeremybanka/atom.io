@@ -86,23 +86,23 @@ function StateLeaf(props: { tools: Tools; token: Token }): VNode {
 	}
 	return (
 		<section class="state-leaf" data-testid={`state-value-${props.token.key}`}>
-			<header>
-				<h3>{props.token.family?.subKey ?? props.token.key}</h3>
-				{props.token.family ? (
-					<button
-						type="button"
-						aria-label={`Dispose ${props.token.key}`}
-						onClick={() => {
-							props.tools.attempt(() => {
-								disposeFromStore(props.tools.store, props.token)
-							})
-						}}
-					>
-						×
-					</button>
-				) : null}
-			</header>
 			<JsonEditor
+				label={<h3>{props.token.family?.subKey ?? props.token.key}</h3>}
+				actions={
+					props.token.family ? (
+						<button
+							type="button"
+							aria-label={`Dispose ${props.token.key}`}
+							onClick={() => {
+								props.tools.attempt(() => {
+									disposeFromStore(props.tools.store, props.token)
+								})
+							}}
+						>
+							×
+						</button>
+					) : null
+				}
 				tools={props.tools}
 				value={value()}
 				change={set}

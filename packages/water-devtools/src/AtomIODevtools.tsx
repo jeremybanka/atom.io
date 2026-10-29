@@ -77,6 +77,7 @@ function Panel(props: { store: RootStore; hideByDefault: boolean }): VNode {
 			data-css="water-devtools"
 			data-testid="atom-io-devtools"
 			hidden={hidden()}
+			data-open={open()}
 			style={`transform:translate(${position().x}px,${position().y}px)`}
 		>
 			<header class="toolbar">
@@ -135,8 +136,23 @@ function Panel(props: { store: RootStore; hideByDefault: boolean }): VNode {
 				>
 					⠿
 				</button>
-				<strong>atom.io</strong>
-				<small>water</small>
+				<h1>atom.io</h1>
+				{open() ? (
+					<nav aria-label="Debugger views">
+						{VIEWS.map((name) => (
+							<button
+								type="button"
+								aria-pressed={view() === name}
+								data-testid={`view-${name}`}
+								onClick={() => {
+									setSelection(name)
+								}}
+							>
+								{name}
+							</button>
+						))}
+					</nav>
+				) : null}
 				<button
 					type="button"
 					aria-label={open() ? `Minimize debugger` : `Open debugger`}
@@ -159,20 +175,6 @@ function Panel(props: { store: RootStore; hideByDefault: boolean }): VNode {
 			</header>
 			{open() ? (
 				<>
-					<nav aria-label="Debugger views">
-						{VIEWS.map((name) => (
-							<button
-								type="button"
-								aria-pressed={view() === name}
-								data-testid={`view-${name}`}
-								onClick={() => {
-									setSelection(name)
-								}}
-							>
-								{name}
-							</button>
-						))}
-					</nav>
 					{error() ? <p role="alert">{error()}</p> : null}
 					{view() === `atoms` || view() === `selectors` ? (
 						<StateIndex

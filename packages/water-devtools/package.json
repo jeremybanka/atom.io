@@ -13,7 +13,10 @@
 			"types": "./dist/index.d.ts",
 			"import": "./dist/index.js"
 		},
-		"./css": "./dist/devtools.css"
+		"./css": {
+			"types": "./dist/css.d.ts",
+			"default": "./dist/devtools.css"
+		}
 	},
 	"scripts": {
 		"build": "node scripts/build.ts && tsc -p tsconfig.build.json",

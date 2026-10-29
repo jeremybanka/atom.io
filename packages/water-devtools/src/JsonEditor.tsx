@@ -1,4 +1,4 @@
-import type { VNode } from "@atom.io/water"
+import type { Child, VNode } from "@atom.io/water"
 
 import type { Path, Tools } from "./store.ts"
 import { useExpanded } from "./store.ts"
@@ -11,6 +11,8 @@ interface EditorProps {
 	change?: Change | undefined
 	path: Path
 	ancestors?: readonly unknown[]
+	label?: Child
+	actions?: Child
 }
 const TYPES: JsonKind[] = [
 	`string`,
@@ -43,7 +45,10 @@ export function JsonEditor(props: EditorProps): VNode {
 					>
 						{expanded() ? `▾` : `▸`}
 					</button>
-				) : null}
+				) : (
+					<span class="carat-spacer" />
+				)}
+				<span class="field-name">{props.label}</span>
 				{props.change ? (
 					<select
 						aria-label={`Type of ${props.path.at(-1)}`}
@@ -78,6 +83,7 @@ export function JsonEditor(props: EditorProps): VNode {
 						label={props.path.at(-1) ?? `value`}
 					/>
 				)}
+				{props.actions}
 			</header>
 			{container() && expanded() ? (
 				<section class="properties">
@@ -190,56 +196,61 @@ function Property(props: { name: string; editor: EditorProps }): VNode {
 	}
 	return (
 		<section class="property">
-			<header>
-				{parent.change && !Array.isArray(parent.value) ? (
-					<input
-						aria-label={`Rename ${props.name}`}
-						value={props.name}
-						onChange={(event) => {
-							const input = event.currentTarget as HTMLInputElement
-							const name = input.value
-							parent.tools.attempt(() => {
-								parent.change?.((previous) => {
-									const object = previous as Record<string, unknown>
-									if (name !== props.name && Object.hasOwn(object, name))
-										throw new Error(`Property "${name}" already exists`)
-									return Object.fromEntries(
-										Object.entries(object).map(([key, value]) => [
-											key === props.name ? name : key,
-											value,
-										]),
+			<JsonEditor
+				label={
+					parent.change && !Array.isArray(parent.value) ? (
+						<input
+							aria-label={`Rename ${props.name}`}
+							style={`width:calc(${Math.max(1, props.name.length)}ch + 6px)`}
+							value={props.name}
+							onChange={(event) => {
+								const input = event.currentTarget as HTMLInputElement
+								const name = input.value
+								parent.tools.attempt(() => {
+									parent.change?.((previous) => {
+										const object = previous as Record<string, unknown>
+										if (name !== props.name && Object.hasOwn(object, name))
+											throw new Error(`Property "${name}" already exists`)
+										return Object.fromEntries(
+											Object.entries(object).map(([key, value]) => [
+												key === props.name ? name : key,
+												value,
+											]),
+										)
+									})
+								})
+								input.value = props.name
+							}}
+						/>
+					) : (
+						<strong>{props.name}</strong>
+					)
+				}
+				actions={
+					parent.change ? (
+						<button
+							type="button"
+							aria-label={`Delete ${props.name}`}
+							onClick={() => {
+								parent.tools.attempt(() => {
+									parent.change?.((previous) =>
+										Array.isArray(previous)
+											? previous.filter(
+													(_, index) => index !== Number(props.name),
+												)
+											: Object.fromEntries(
+													Object.entries(previous as object).filter(
+														([key]) => key !== props.name,
+													),
+												),
 									)
 								})
-							})
-							input.value = props.name
-						}}
-					/>
-				) : (
-					<strong>{props.name}</strong>
-				)}
-				{parent.change ? (
-					<button
-						type="button"
-						aria-label={`Delete ${props.name}`}
-						onClick={() => {
-							parent.tools.attempt(() => {
-								parent.change?.((previous) =>
-									Array.isArray(previous)
-										? previous.filter((_, index) => index !== Number(props.name))
-										: Object.fromEntries(
-												Object.entries(previous as object).filter(
-													([key]) => key !== props.name,
-												),
-											),
-								)
-							})
-						}}
-					>
-						×
-					</button>
-				) : null}
-			</header>
-			<JsonEditor
+							}}
+						>
+							×
+						</button>
+					) : null
+				}
 				tools={parent.tools}
 				path={[...parent.path, props.name]}
 				value={read()}

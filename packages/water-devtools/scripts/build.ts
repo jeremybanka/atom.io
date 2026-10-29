@@ -34,3 +34,5 @@ await copyFile(
 	resolve(root, `src/devtools.css`),
 	resolve(root, `dist/devtools.css`),
 )
+
+await copyFile(resolve(root, `src/css.d.ts`), resolve(root, `dist/css.d.ts`))

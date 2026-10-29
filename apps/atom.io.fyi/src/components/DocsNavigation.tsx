@@ -376,7 +376,7 @@ function SiteDirectory(): VNode {
 						</section>
 						<section>
 							<a id="-docs-hydrogen-link" href="/docs/hydrogen">
-								hydrogen
+								<low-emphasis>@atom.io</low-emphasis>/hydrogen
 							</a>
 						</section>
 					</main>

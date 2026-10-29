@@ -1,0 +1,103 @@
+import Exhibit from "c/Exhibit.astro";
+
+# hydrogen
+
+Hydrogen is a JSX framework built around atom.io. Components run once per mounted instance; atom.io owns state, selectors, transactions, and timelines. Hydrogen connects that state to DOM updates and manages the lifetime of the view.
+
+Its reactivity model is inspired by Solid: component setup stays stable, while expressions in JSX update when the state they read changes. It includes a Vite compiler, server rendering, hydration, and an Astro integration. This is an experimental framework with its own lifecycle API.
+
+## install
+
+Install Hydrogen alongside its state-engine peer, atom.io:
+
+<Exhibit src="hydrogen/exhibits/install.sh" />
+
+Hydrogen's npm package name is simply `hydrogen`. Your application supplies atom.io; all of its views can share the same store.
+
+## Vite setup
+
+Add the Hydrogen plugin to your Vite configuration. The plugin is required: a standard JSX transform alone does not preserve reactive expressions.
+
+<Exhibit src="hydrogen/exhibits/vite.config.ts" />
+
+Keep JSX intact for the plugin and use Hydrogen's JSX types:
+
+<Exhibit src="hydrogen/exhibits/tsconfig.json" />
+
+## a reactive view
+
+Capture accessors and writers during component setup. Call an accessor inside JSX to make that DOM expression reactive:
+
+<Exhibit src="hydrogen/exhibits/point.tsx" />
+
+The point is one atom containing an object. Each coordinate expression reads the same point accessor; an atom update reevaluates both expressions, and unchanged primitive results skip DOM writes. There is no separate subscription to each object field. Reusable or multi-atom derivations belong in atom.io selectors.
+
+The component body runs once. A read during setup captures a snapshot; a read inside JSX participates in dependency tracking. Event handlers read the current value without subscribing. Helper functions called from JSX can read accessors too: their reads belong to the current DOM computation.
+
+Props remain live through getters. Destructuring them during setup captures their current values. Hook token arguments are fixed for a mounted instance; use a new keyed component instance when its token must change.
+
+Mount the view into your application's host element:
+
+<Exhibit src="hydrogen/exhibits/main.tsx" />
+
+The root's dispose method removes its DOM and releases its subscriptions and cleanup callbacks. Atom.io store state outlives the view. Updates coalesce in a microtask after synchronous atom.io work; flush applies pending DOM work immediately when needed.
+
+## Astro setup
+
+Register Hydrogen's Astro integration:
+
+<Exhibit src="hydrogen/exhibits/astro.config.ts" />
+
+The integration compiles `.hydrogen.tsx` and `.hydrogen.jsx` files by default, so other JSX renderers can coexist. Its include option can select a different filename pattern.
+
+This counter initializes a separate store for each island:
+
+<Exhibit src="hydrogen/exhibits/Counter.hydrogen.tsx" />
+
+Astro calls createStore with the same serialized props on the server and in the browser. Keep that factory deterministic so the initial markup and state match. Without a factory, each island gets its own store copied from registered atom.io definitions. Sharing state across islands requires explicitly choosing a shared browser store; Hydrogen does not serialize an entire store implicitly.
+
+Use Astro's client directives to choose when an island hydrates. Components that put browser work in onMount can render their host markup on the server and hydrate with client:load. Default and named slots are supported, and astro:unmount releases the island's resources.
+
+<Exhibit src="hydrogen/exhibits/counter-page.astro" />
+
+Outside Astro, the server entrypoint provides renderToString and the browser entrypoint provides hydrate. Use a request-specific store on the server and matching initial state and ID prefixes when hydrating. Hydration reuses existing DOM and reports structural mismatches.
+
+## component API
+
+| API            | Purpose                                                                                |
+| -------------- | -------------------------------------------------------------------------------------- |
+| useValue       | Capture a readable token and return its tracked accessor.                              |
+| useSetter      | Capture a writable token and return a store-bound writer.                              |
+| useTimeline    | Read timeline metadata and access undo, redo, clear, and transaction-group controls.   |
+| useTransaction | Bind an atom.io transaction while preserving its arguments and result.                 |
+| useRef         | Publish an attached element into a nullable atom and release the reference on unmount. |
+| useId          | Allocate a stable ID for the component instance, shared by SSR and hydration.          |
+| onMount        | Run once after DOM attachment and ref publication; does not run during SSR.            |
+| onCleanup      | Release owned resources when the component or root is disposed.                        |
+| untrack        | Read state without adding dependencies to the current DOM computation.                 |
+
+Call setup helpers synchronously during component setup or owned mount callbacks, then capture their results for event handlers. DOM computations should only read state. Use event handlers and atom.io transactions for writes.
+
+Arrays support keyed components and elements. Stable, unique keys retain component instances and DOM ranges when items move; removing an item disposes its resources. A key identifies a view instance, not a new state primitive.
+
+Hydrogen uses native DOM events, including onInput for input changes and onChange for browser change semantics. Styles are CSS strings. Ordinary callback refs are supported alongside useRef, which stores its attached element in atom.io.
+
+Standard HTML and SVG tags have element-specific attributes, callback refs, and event currentTarget types. Ref callbacks receive null on cleanup. Hyphenated custom tags use generic HTML attributes and HTMLElement types. Event target remains EventTarget because events can bubble from descendants. SVG presentation attributes use literal markup spellings, and tag names shared with HTML use HTML types.
+
+## debugger
+
+The optional debugger uses the same atom.io introspection engine as the React devtools:
+
+<Exhibit src="hydrogen-devtools/exhibits/install.sh" />
+
+Import its stylesheet once and mount it inside a Hydrogen component:
+
+<Exhibit src="hydrogen-devtools/exhibits/setup.hydrogen.tsx" />
+
+The store prop selects the inspected store; without it, the debugger uses atom.io's implicit store. Ctrl+Shift+A shows or hides the panel. It supports JSON editing, atom and selector families, transaction logs, and timeline controls. The debugger and its stylesheet add to your application's size separately from Hydrogen.
+
+## boundaries
+
+Hydrogen does not provide React compatibility, an independent signals graph, or React-style state and effect hooks. Async components, promise children, suspense, portals, style objects, and error boundaries are outside the current feature set. Model asynchronous work in atom.io and render its state through synchronous JSX.
+
+Development uses full page reloads rather than preserving component state across edits. The runtime targets modern browsers with ES2022 and DOM Range support.

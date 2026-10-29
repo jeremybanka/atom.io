@@ -50,6 +50,12 @@ const REALTIME_EXHIBITS_ROOT = path.join(
 	`packages/realtime/docs/source/exhibits`,
 )
 function exhibitRoot(source: string): string {
+	if (
+		source.startsWith(`hydrogen/exhibits/`) ||
+		source.startsWith(`hydrogen-devtools/exhibits/`)
+	) {
+		return path.join(WORKSPACE_ROOT, `packages`)
+	}
 	return source.startsWith(`realtime/`) ? REALTIME_EXHIBITS_ROOT : EXHIBITS_ROOT
 }
 const BACKTICK = `\``
@@ -176,6 +182,12 @@ const DOC_PAGES: DocPage[] = [
 		source: `docs/source/pages/docs/against-use-effect.mdx`,
 		title: `against useEffect`,
 		url: `/docs/against-use-effect`,
+	},
+	{
+		output: `hydrogen.md`,
+		source: `docs/source/pages/docs/hydrogen.mdx`,
+		title: `hydrogen`,
+		url: `/docs/hydrogen`,
 	},
 	{
 		output: `atom.io-solid.md`,

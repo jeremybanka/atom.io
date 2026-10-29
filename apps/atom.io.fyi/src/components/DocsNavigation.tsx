@@ -375,7 +375,9 @@ function SiteDirectory(): VNode {
 							</a>
 						</section>
 						<section>
-							<span aria-disabled="true">???</span>
+							<a id="-docs-hydrogen-link" href="/docs/hydrogen">
+								hydrogen
+							</a>
 						</section>
 					</main>
 				</section>

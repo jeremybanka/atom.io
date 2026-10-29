@@ -1,5 +1,13 @@
 # @atom.io/realtime
 
+## 0.1.1
+
+### Patch Changes
+
+- Updated dependencies [a51693d]
+- Updated dependencies [a51693d]
+  - @atom.io/react@0.2.0
+
 ## 0.1.0
 
 ### Minor Changes

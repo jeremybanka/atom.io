@@ -1,6 +1,6 @@
 {
 	"name": "@atom.io/realtime",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Realtime collaboration, clients, servers, and testing for atom.io.",
 	"homepage": "https://atom.io.fyi/docs/realtime",
 	"repository": {
@@ -95,7 +95,7 @@
 		"zod": "4.6.7"
 	},
 	"peerDependencies": {
-		"@atom.io/react": "^0.1",
+		"@atom.io/react": "^0.2.0",
 		"@lexical/react": ">=0.49.0",
 		"@lexical/selection": ">=0.49.0",
 		"@testing-library/react": ">=14.0.0",

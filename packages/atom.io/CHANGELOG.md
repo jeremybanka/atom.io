@@ -1,5 +1,12 @@
 # atom.io
 
+## 0.54.2
+
+### Patch Changes
+
+- a51693d: Add the opt-in `atom.io/ban-use-effect` rule to reject React `useEffect` imports and references while allowing `useLayoutEffect`. Diagnostics link to the “against useEffect” web guide and its local copy in `node_modules/atom.io/docs/agent/packages/against-use-effect.md`.
+- a51693d: Add the standalone “against useEffect” guide with twenty paired React and atom.io exhibits, React judgments, and state ownership guidance, explicitly preserving `useLayoutEffect` for layout work. Link the guide from the React package docs and include it in the agent documentation corpus.
+
 ## 0.54.1
 
 ### Patch Changes

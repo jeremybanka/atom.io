@@ -1,5 +1,11 @@
 # @atom.io/solid
 
+## 0.1.3
+
+### Patch Changes
+
+- 6a2f2e9: Add support for Solid 2.0.0-rc.19 while retaining compatibility with rc.17 and rc.18.
+
 ## 0.1.2
 
 ### Patch Changes

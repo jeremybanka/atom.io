@@ -1,0 +1,16 @@
+{
+	"extends": "../../tsconfig.json",
+	"compilerOptions": {
+		"target": "ES2022",
+		"lib": ["ESNext", "DOM"],
+		"jsx": "react-jsx",
+		"jsxImportSource": "@atom.io/water",
+		"paths": {
+			"@atom.io/water": ["./src/index.ts"],
+			"@atom.io/water/*": ["./src/*"],
+			"atom.io": ["../atom.io/src/main/index.ts"],
+			"atom.io/*": ["../atom.io/src/*"]
+		}
+	},
+	"include": ["src", "__tests__", "scripts", "exhibits", "*.config.ts"]
+}

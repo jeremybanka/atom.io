@@ -1,0 +1,16 @@
+---
+import Counter from "../../../../exhibits/Counter.water.tsx"
+import Probe from "../Probe.water.tsx"
+---
+<html lang="en">
+	<head><title>Water smoke test</title></head>
+	<body>
+		<Counter initial={2} client:load><p>Default slot</p><strong slot="heading"
+			>Named slot</strong></Counter>
+		<Counter initial={10} client:load />
+		<Counter initial={20} client:only="@atom.io/water"><p slot="fallback">
+				Loading
+			</p></Counter>
+		<Probe client:load />
+	</body>
+</html>

@@ -2,6 +2,9 @@
 export async function check(page, baseURL = `http://127.0.0.1:4381`) {
 	const errors = []
 	page.on(`pageerror`, (error) => errors.push(error.message))
+	page.on(`console`, (message) => {
+		if (message.type() === `error`) errors.push(message.text())
+	})
 	await page.goto(baseURL)
 	await page.waitForFunction(
 		() => document.querySelectorAll(`astro-island:not([ssr])`).length === 4,

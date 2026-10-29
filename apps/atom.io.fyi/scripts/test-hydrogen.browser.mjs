@@ -1,7 +1,9 @@
 import assert from "node:assert/strict"
-import { readFile } from "node:fs/promises"
+import { mkdtemp, readFile, rm } from "node:fs/promises"
+import { tmpdir } from "node:os"
 import { createServer } from "node:http"
-import { extname, resolve } from "node:path"
+import { extname, join, resolve } from "node:path"
+import { dev } from "astro"
 import { chromium } from "playwright"
 
 const directory = resolve(import.meta.dirname, `../dist/client`)
@@ -32,12 +34,28 @@ const server = createServer(async (request, response) => {
 		response.writeHead(404).end()
 	}
 })
-await new Promise((ready) => server.listen(0, `127.0.0.1`, ready))
-let browser
+let browser, devServer, cacheDir
 try {
+	if (process.argv.includes(`--dev`)) {
+		cacheDir = await mkdtemp(join(tmpdir(), `hydrogen-site-dev-`))
+		devServer = await dev({
+			root: resolve(import.meta.dirname, `..`),
+			server: { host: `127.0.0.1`, port: 0 },
+			vite: { cacheDir },
+			logLevel: `error`,
+		})
+	} else {
+		await new Promise((ready) => server.listen(0, `127.0.0.1`, ready))
+	}
 	browser = await chromium.launch({ args: [`--enable-unsafe-swiftshader`] })
 	const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
 	const errors = []
+	const iframeRequests = []
+	page.on(`request`, (request) => {
+		if (request.isNavigationRequest() && request.frame().parentFrame()) {
+			iframeRequests.push(request.url())
+		}
+	})
 	page.on(`pageerror`, (error) => {
 		errors.push(error.message)
 		console.error(error)
@@ -48,7 +66,7 @@ try {
 			console.error(message.text())
 		}
 	})
-	const base = `http://127.0.0.1:${server.address().port}`
+	const base = `http://127.0.0.1:${devServer?.address.port ?? server.address().port}`
 	await page.context().grantPermissions([`clipboard-read`, `clipboard-write`])
 	await page.goto(`${base}/docs/getting-started`)
 	await page.waitForFunction(
@@ -230,10 +248,17 @@ try {
 		() => document.querySelectorAll(`astro-island:not([ssr])`).length === 3,
 	)
 	assert.deepEqual(errors, [])
+	assert.deepEqual(
+		iframeRequests,
+		[],
+		`Navigation must not mount hidden copies of the page`,
+	)
 	console.log(
 		`Site browser checks passed: compact rows and themes, hydration, code copying, shared-store editing, pointer dragging, persisted navigation, mobile menu, Three.js lifecycle, fresh navigation, reload.`,
 	)
 } finally {
 	await browser?.close()
-	await new Promise((done) => server.close(done))
+	if (devServer) await devServer.stop()
+	if (server.listening) await new Promise((done) => server.close(done))
+	if (cacheDir) await rm(cacheDir, { recursive: true, force: true })
 }

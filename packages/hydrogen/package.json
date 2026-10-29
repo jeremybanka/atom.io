@@ -61,13 +61,14 @@
 		"size": "node scripts/size.ts",
 		"readme:write": "galley write README.mdx",
 		"readme:check": "galley check README.mdx",
-		"test:browser": "astro build --root __tests__/astro && node scripts/browser-test.mjs",
+		"test:browser": "astro build --root __tests__/astro && node scripts/browser-test.mjs && node scripts/dev-browser-test.mjs",
 		"test:production": "node scripts/production-test.ts",
 		"cov": "vitest run --config vitest.config.ts --coverage",
 		"pack:breakage": "pnpm --reporter=silent pack --out .breakage/package.tgz",
 		"test:breakage:peers": "breakage npm check",
 		"tonnage": "pnpm readme:write",
-		"tonnage:check": "pnpm readme:check"
+		"tonnage:check": "pnpm readme:check",
+		"test:browser:dev": "node scripts/dev-browser-test.mjs"
 	},
 	"dependencies": {
 		"@babel/core": "7.29.7"

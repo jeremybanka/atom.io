@@ -1,6 +1,6 @@
-import type { VNode } from "hydrogen"
-import { onCleanup, useSetter, useValue } from "hydrogen"
 import { atom } from "atom.io"
+import type { VNode } from "hydrogen"
+import { onCleanup, onMount, useSetter, useValue } from "hydrogen"
 
 const orderAtom = atom<string[]>({ key: `order`, default: [`a`, `b`] })
 let setups = 0
@@ -13,6 +13,9 @@ function Row(props: { name: string }) {
 	return <input data-row={props.name} value={props.name} />
 }
 export default function Probe(): VNode {
+	onMount(() => {
+		document.getElementById(`probe`)!.dataset[`mounted`] = `true`
+	})
 	const order = useValue(orderAtom)
 	const setOrder = useSetter(orderAtom)
 	return (

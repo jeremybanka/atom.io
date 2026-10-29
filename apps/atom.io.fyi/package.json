@@ -17,7 +17,8 @@
 		"lint:oxlint": "oxlint",
 		"lint:types": "tsc",
 		"test:once": "node --test src/components/*.test.ts",
-		"test:browser": "node scripts/test-hydrogen.browser.mjs"
+		"test:browser": "node scripts/test-hydrogen.browser.mjs",
+		"test:browser:dev": "node scripts/test-hydrogen.browser.mjs --dev"
 	},
 	"dependencies": {
 		"@astrojs/cloudflare": "14.4.3",

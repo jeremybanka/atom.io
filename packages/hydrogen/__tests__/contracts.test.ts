@@ -51,6 +51,29 @@ it(`compiles JSX syntax while keeping getters and spread precedence live`, () =>
 })
 it(`filters Vite inputs, resets global regexes, and reloads matching documents`, () => {
 	for (const plugin of [hydrogen(), hydrogen({ include: /\.tsx$/g })]) {
+		const config = (plugin.config as Function)()
+		expect(config.resolve.dedupe).toEqual([`hydrogen`, `atom.io`])
+		expect(config.optimizeDeps.exclude).toEqual([`hydrogen`, `atom.io`])
+		const environment = {
+			optimizeDeps: {
+				include: [
+					`hydrogen/astro-client`,
+					`hydrogen/astro-server`,
+					`hydrogen`,
+					`atom.io/internal`,
+					`other-package`,
+					`hydrogen-other`,
+				],
+			},
+		}
+		const hook = plugin.configEnvironment as { handler: Function }
+		hook.handler(`client`, environment)
+		expect(environment.optimizeDeps.include).toEqual([
+			`other-package`,
+			`hydrogen-other`,
+		])
+		hook.handler(`ssr`, {})
+		hook.handler(`ssr`, { optimizeDeps: {} })
 		const transform = plugin.transform as Function
 		expect(transform(`<p/>`, `/src/a.tsx?query`).code).toContain(`_hydrogen`)
 		expect(transform(`<p/>`, `/src/a.tsx`).code).toContain(`_hydrogen`)

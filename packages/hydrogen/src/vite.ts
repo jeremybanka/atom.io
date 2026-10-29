@@ -14,6 +14,25 @@ export default function hydrogen(options: HydrogenPluginOptions = {}): Plugin {
 	return {
 		name: `hydrogen`,
 		enforce: `pre`,
+		config() {
+			return {
+				resolve: { dedupe: [`hydrogen`, `atom.io`] },
+				optimizeDeps: { exclude: [`hydrogen`, `atom.io`] },
+			}
+		},
+		configEnvironment: {
+			order: `post`,
+			handler(_name, config) {
+				// Astro and its adapters force renderer entries into the optimizer.
+				// Vite processes explicit includes even when their package is excluded.
+				// Keep the renderer, hooks, and store in one unbundled module graph.
+				if (config.optimizeDeps?.include) {
+					config.optimizeDeps.include = config.optimizeDeps.include.filter(
+						(id) => !/^(hydrogen|atom\.io)(\/|$)/.test(id),
+					)
+				}
+			},
+		},
 		transform(code, id) {
 			if (!matches(id)) return
 			return compile(code, id)

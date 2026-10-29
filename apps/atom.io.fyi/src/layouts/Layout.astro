@@ -37,7 +37,7 @@ import css from "./Layout.module.css"
 						<a href="/">
 							<Dz2Orbital
 								variant="mark"
-								client:only="hydrogen"
+								client:load
 								transition:persist="orbital-mark"
 							/>
 							<brand-name>atom.io</brand-name>.fyi
@@ -75,7 +75,7 @@ import css from "./Layout.module.css"
 			</footer>
 		</app-shell>
 
-		<SiteDevtools hideByDefault={true} client:only="hydrogen" />
+		<SiteDevtools hideByDefault={true} client:load />
 		<GlobalEffects />
 	</body>
 </html>

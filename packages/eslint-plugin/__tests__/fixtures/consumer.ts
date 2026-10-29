@@ -14,7 +14,8 @@ const defaultOptions: [{ permitAnnotation?: boolean }] | undefined =
 	Rules.explicitStateTypes.defaultOptions
 const message: string = Rules.explicitStateTypes.meta.messages.noTypeArgument
 const docsUrl: string = Rules.namingConvention.meta.docs.url
-void [defaultOptions, message, docsUrl]
+const effectMessage: string = Rules.banUseEffect.meta.messages.bannedUseEffect
+void [defaultOptions, message, docsUrl, effectMessage]
 // @ts-expect-error Named rules retain their specific message IDs.
 Rules.explicitStateTypes.meta.messages.nonexistentMessage
 type StateOptions = NonNullable<typeof Rules.explicitStateTypes.defaultOptions>
@@ -72,5 +73,24 @@ for (const name of Object.keys(plugins)) {
 		!messages.some((reported) => reported.fix?.text === `"count"`)
 	) {
 		throw new Error(JSON.stringify(messages))
+	}
+	const effectMessages = linter.verify(
+		`import React from "react"; React.useEffect(() => {}); React.useLayoutEffect(() => {})`,
+		{
+			plugins,
+			rules: { [`${name}/ban-use-effect`]: `error` },
+		},
+	)
+	if (
+		effectMessages.length !== 1 ||
+		effectMessages[0]?.messageId !== `bannedUseEffect` ||
+		!effectMessages[0].message.includes(
+			`https://atom.io.fyi/docs/against-use-effect`,
+		) ||
+		!effectMessages[0].message.includes(
+			`node_modules/atom.io/docs/agent/packages/against-use-effect.md`,
+		)
+	) {
+		throw new Error(JSON.stringify(effectMessages))
 	}
 }

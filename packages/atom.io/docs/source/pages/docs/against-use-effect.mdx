@@ -5,8 +5,9 @@ import EffectCluster from "c/EffectCluster.astro";
 
 Components observe state and express intent. Put derivation in selectors, commands
 in event handlers or transactions, asynchronous reads in `Loadable` states, and
-ongoing synchronization in atom effects. This motivates our proposed
-`ban-use-effect` policy.
+ongoing synchronization in atom effects. Enable
+[`atom.io/ban-use-effect`](/docs/eslint-plugin#ban-use-effect) to enforce this
+boundary in application code.
 
 `useLayoutEffect` remains appropriate for measuring or changing committed layout
 before paint. It is not an escape hatch for ordinary synchronization.

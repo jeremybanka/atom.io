@@ -1,0 +1,596 @@
+---
+const studies = [
+	{
+		id: `points`,
+		name: `The red center`,
+		technique: `01 / ORIGINAL`,
+		description: `The chosen cloud with a softly shaded red proton. Foreground points shimmer across its surface; points behind it disappear.`,
+		note: `Smooth shading · opaque proton · ¼ cloud radius`,
+	},
+	{
+		id: `negative`,
+		name: `A little nothing`,
+		technique: `02 / SELECTED`,
+		description: `The chosen mark: a clean circular opening through the whole field. The center stays completely transparent as the surrounding cloud shimmers.`,
+		note: `Complete cutout · ¼ cloud radius`,
+	},
+	{
+		id: `toon`,
+		name: `In the family`,
+		technique: `03 / ATOM.IO SHADING`,
+		description: `The same red proton, using atom.io’s toon material and lighting. Bold bands of shade replace the soft specular highlight.`,
+		note: `Atom.io toon shading · opaque proton · ¼ cloud radius`,
+	},
+]
+---
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="robots" content="noindex" />
+		<meta name="theme-color" content="#090b10" />
+		<title>hydrogen / orbital studies</title>
+		<link
+			rel="icon"
+			type="image/png"
+			sizes="16x16"
+			href="/hydrogen/icon-16.png"
+		/>
+		<link
+			rel="icon"
+			type="image/png"
+			sizes="32x32"
+			href="/hydrogen/icon-32.png"
+		/>
+		<link
+			rel="icon"
+			type="image/png"
+			sizes="48x48"
+			href="/hydrogen/icon-48.png"
+		/>
+	</head>
+	<body>
+		<canvas id="orbital-canvas" aria-hidden="true"></canvas>
+		<hydrogen-lab data-theme="dark">
+			<header>
+				<a href="/docs/hydrogen" class="wordmark">hydrogen<span>
+						/ orbital studies</span></a>
+				<span class="edition">FORM EXPLORATION &nbsp; / &nbsp; 002</span>
+			</header>
+			<main>
+				<section class="intro" aria-labelledby="title">
+					<intro-copy>
+						<p class="eyebrow">ONE PROTON. ONE ELECTRON. NO ORBITS.</p>
+						<h1 id="title">The shape of<br /><em>almost nothing.</em></h1>
+						<p class="lede">
+							A thousand maybes, three ways. The same 64,000-point shimmering
+							cloud, with three treatments of its center: smooth red, negative
+							space, and atom.io’s sculptural shading.
+						</p>
+					</intro-copy>
+					<figure class="ancestor">
+						<orbital-view
+							data-study="reference"
+							role="img"
+							aria-label="The existing pink and blue atom.io d z squared orbital"
+						></orbital-view>
+						<figcaption>
+							<span class="eyebrow">THE FAMILY RESEMBLANCE</span><strong>atom.io
+								→ hydrogen</strong><span>From the d<sub>z²</sub> orbital to the
+								1s cloud.</span>
+						</figcaption>
+					</figure>
+				</section>
+				<form
+					class="controls"
+					aria-label="Study controls"
+					onsubmit="return false"
+				>
+					<label>Palette<select id="palette">
+							<option value="blue">Orbital blue</option>
+							<option value="pink">Atom pink</option>
+							<option value="mono">Monochrome</option>
+						</select></label>
+					<label class="density">Density<input
+							id="density"
+							type="range"
+							min="0.5"
+							max="1.8"
+							step="0.05"
+							value="1"
+						/><output id="density-value" for="density">1.00×</output></label>
+					<label>Canvas<select id="theme">
+							<option value="dark">Midnight</option>
+							<option value="light">Paper</option>
+						</select></label>
+					<label>PNG size<select id="export-size">
+							<option value="16">16px</option>
+							<option value="32">32px</option>
+							<option value="48">48px</option>
+							<option value="512">512px</option>
+							<option value="1024" selected>1024px</option>
+						</select></label>
+					<button id="motion" type="button" aria-pressed="false">
+						Pause motion
+					</button>
+				</form>
+				<p id="lab-status" role="status">Preparing the electron clouds…</p>
+				<section
+					class="studies"
+					aria-label="Three variants of the chosen hydrogen logo"
+				>
+					{studies.map((study) => (
+						<article data-card={study.id}>
+							<p class="technique">{study.technique}</p>
+							<orbital-view
+								data-study={study.id}
+								role="img"
+								aria-label={study.description}
+							></orbital-view>
+							<section class="study-copy">
+								<h2>{study.name}</h2>
+								<p>{study.description}</p>
+								<small>{study.note}</small>
+							</section>
+							<study-actions class="study-footer">
+								<mark-sizes aria-label="Small size previews">
+									<orbital-view
+										data-study={study.id}
+										class="mark-16"
+										aria-hidden="true"
+									></orbital-view>
+									<orbital-view
+										data-study={study.id}
+										class="mark-32"
+										aria-hidden="true"
+									></orbital-view>
+									<orbital-view
+										data-study={study.id}
+										class="mark-48"
+										aria-hidden="true"
+									></orbital-view>
+									<span>16 / 32 / 48</span>
+								</mark-sizes>
+								<button
+									type="button"
+									data-export={study.id}
+									aria-label={`Export ${study.name} as a transparent PNG`}
+								>
+									PNG ↗
+								</button>
+							</study-actions>
+						</article>
+					))}
+				</section>
+				<figure class="static-capture">
+					<img
+						src="/hydrogen/logo.png"
+						alt="Hydrogen’s static blue electron cloud with a clear circular center"
+						width="192"
+						height="192"
+					/>
+					<figcaption>
+						<h2>The static mark</h2>
+						<p>
+							The chosen cloud, captured in a single frame. All sizes have a
+							transparent background and a completely clear center.
+						</p>
+						<p>
+							<a href="/hydrogen/logo.png" download>Download 1024px PNG ↗</a> ·
+							<a href="/hydrogen/icon-512.png" download>512px ↗</a>
+						</p>
+						<static-icons>
+							{[16, 32, 48].map((size) => (
+								<a
+									href={`/hydrogen/icon-${size}.png`}
+									download
+									aria-label={`Download ${size}px icon`}
+								><img
+										src={`/hydrogen/icon-${size}.png`}
+										alt=""
+										width={size}
+										height={size}
+									/><span>{size}px</span></a>
+							))}
+						</static-icons>
+					</figcaption>
+				</figure>
+				<aside class="notes">
+					<h2>A cloud, not a little solar system.</h2>
+					<p>
+						The 1s probability density falls exponentially with distance: |ψ|² ∝
+						exp(−2r/a₀). It has no lobes or radial nodes. Color, exposure, the
+						cloud boundary, the enlarged proton, and the opening are design
+						choices; the cloud is not a photograph. Motion changes the view,
+						lighting, or sample opacity, not an electron’s path.
+					</p>
+					<p>
+						Small marks add a faint, steady cloud beneath the twinkling points.
+						PNG exports keep a transparent background at each selected size. The
+						point field shows possible measurements of <em>one</em> electron.
+					</p>
+				</aside>
+			</main>
+			<footer class="page-footer">
+				<span>hydrogen / an atom.io project</span><a href="/docs/hydrogen"
+				>Back to the documentation ↗</a>
+			</footer>
+		</hydrogen-lab>
+		<script>
+		import { mountHydrogenStudies } from "../components/hydrogen-studies"
+const dispose = mountHydrogenStudies()
+if (import.meta.hot) import.meta.hot.dispose(dispose)
+		</script>
+	</body>
+</html>
+<style>
+:global(*) {
+	box-sizing: border-box;
+}
+:global(body) {
+	margin: 0;
+	background: #090b10;
+}
+hydrogen-lab {
+	--bg: #090b10;
+	--fg: #e7edf5;
+	--muted: #8995a7;
+	--line: #252d3c;
+	--accent: #81bdff;
+	display: block;
+	min-height: 100vh;
+	background: var(--bg);
+	color: var(--fg);
+	font-family: ui-sans-serif, system-ui, sans-serif;
+}
+hydrogen-lab[data-theme="light"] {
+	--bg: #f2f0ea;
+	--fg: #182433;
+	--muted: #556372;
+	--line: #cccfcf;
+	--accent: #125ca4;
+}
+#orbital-canvas {
+	position: fixed;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+	z-index: 1;
+}
+header, main, .page-footer {
+	max-width: 1440px;
+	margin: auto;
+	padding-inline: 56px;
+}
+header {
+	height: 90px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	border-bottom: 1px solid var(--line);
+}
+a {
+	color: inherit;
+	text-decoration: none;
+}
+a:hover {
+	color: var(--accent);
+}
+.wordmark {
+	font-size: 23px;
+	font-weight: 650;
+	letter-spacing: -1px;
+}
+.wordmark span {
+	font-size: 14px;
+	font-weight: 400;
+	letter-spacing: 0;
+	color: var(--muted);
+	margin-left: 10px;
+}
+.edition, .eyebrow, .technique {
+	font: 10px/1.5 ui-monospace, monospace;
+	letter-spacing: 1.5px;
+	color: var(--muted);
+}
+.intro {
+	display: grid;
+	grid-template-columns: 1fr 300px;
+	align-items: center;
+	gap: 60px;
+	padding-block: 64px 48px;
+}
+intro-copy {
+	display: block;
+}
+h1 {
+	font-size: clamp(44px, 5vw, 72px);
+	line-height: 1.03;
+	letter-spacing: -3.4px;
+	font-weight: 480;
+	margin: 22px 0;
+}
+h1 em {
+	font-family: Georgia, serif;
+	font-weight: 400;
+	color: var(--accent);
+}
+.lede {
+	max-width: 540px;
+	color: var(--muted);
+	font-size: 15px;
+	line-height: 1.75;
+}
+.ancestor {
+	margin: 0;
+	text-align: center;
+}
+.ancestor orbital-view {
+	height: 185px;
+}
+figcaption {
+	display: grid;
+	gap: 8px;
+	font-size: 12px;
+	color: var(--muted);
+}
+figcaption strong {
+	color: var(--fg);
+	font-size: 15px;
+	font-weight: 500;
+}
+.controls {
+	position: relative;
+	z-index: 2;
+	display: flex;
+	align-items: center;
+	gap: 28px;
+	border-block: 1px solid var(--line);
+	padding: 20px 0;
+}
+label {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	color: var(--muted);
+	font-size: 12px;
+}
+select, button {
+	color: var(--fg);
+	background: var(--bg);
+	border: 1px solid var(--line);
+	border-radius: 5px;
+	font: inherit;
+	padding: 8px 10px;
+	cursor: pointer;
+}
+button:hover, select:hover {
+	border-color: var(--accent);
+}
+:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 4px;
+}
+input {
+	width: 105px;
+	accent-color: var(--accent);
+}
+output {
+	font: 11px ui-monospace, monospace;
+	width: 40px;
+}
+#motion {
+	margin-left: auto;
+	font-size: 12px;
+}
+#lab-status {
+	color: var(--muted);
+	font: 11px/1.5 ui-monospace, monospace;
+	margin: 16px 0 24px;
+}
+.studies {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 20px;
+}
+article {
+	border: 1px solid var(--line);
+	border-radius: 10px;
+	overflow: hidden;
+}
+.technique {
+	margin: 20px 24px 0;
+}
+orbital-view {
+	display: block;
+	height: 260px;
+}
+.study-copy {
+	padding: 0 24px 24px;
+}
+h2 {
+	font-size: 19px;
+	letter-spacing: -0.5px;
+	font-weight: 500;
+	margin: 0 0 12px;
+}
+.study-copy p {
+	font-size: 13px;
+	line-height: 1.7;
+	color: var(--muted);
+	min-height: 67px;
+	margin: 0 0 18px;
+}
+small {
+	font: 10px/1.6 ui-monospace, monospace;
+	color: var(--muted);
+}
+.study-footer {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 12px 18px;
+	border-top: 1px solid var(--line);
+	gap: 8px;
+}
+.study-footer button {
+	position: relative;
+	z-index: 2;
+	font: 10px ui-monospace, monospace;
+}
+mark-sizes {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+mark-sizes span {
+	font: 9px ui-monospace, monospace;
+	color: var(--muted);
+}
+.mark-16 {
+	width: 16px;
+	height: 16px;
+}
+.mark-32 {
+	width: 32px;
+	height: 32px;
+}
+.mark-48 {
+	width: 48px;
+	height: 48px;
+}
+.static-capture {
+	display: flex;
+	align-items: center;
+	gap: 32px;
+	margin: 32px 0 0;
+	padding-block: 24px;
+	border-top: 1px solid var(--line);
+	flex-wrap: wrap;
+}
+.static-capture figcaption {
+	flex: 1;
+	min-width: 220px;
+	max-width: 560px;
+}
+.static-capture p {
+	margin: 0;
+	line-height: 1.7;
+}
+.static-capture a {
+	color: var(--accent);
+}
+static-icons {
+	display: flex;
+	gap: 24px;
+	align-items: end;
+	margin-top: 12px;
+}
+static-icons a {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+.notes {
+	display: grid;
+	grid-template-columns: 1fr 1.4fr 1fr;
+	gap: 40px;
+	border-top: 1px solid var(--line);
+	margin-top: 48px;
+	padding-block: 32px;
+}
+.notes h2 {
+	font-size: 22px;
+	line-height: 1.4;
+	max-width: 210px;
+}
+.notes p {
+	margin: 0;
+	font-size: 12px;
+	line-height: 1.8;
+	color: var(--muted);
+}
+.page-footer {
+	display: flex;
+	justify-content: space-between;
+	padding-block: 26px;
+	border-top: 1px solid var(--line);
+	font: 10px ui-monospace, monospace;
+	color: var(--muted);
+}
+@media (max-width: 1100px) {
+	header, main, .page-footer {
+		padding-inline: 28px;
+	}
+	.studies {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+	.controls {
+		gap: 16px;
+		flex-wrap: wrap;
+	}
+	.intro {
+		gap: 24px;
+	}
+}
+@media (max-width: 640px) {
+	header, main, .page-footer {
+		padding-inline: 20px;
+	}
+	header {
+		height: 70px;
+	}
+	.edition {
+		display: none;
+	}
+	.wordmark span {
+		font-size: 11px;
+	}
+	.intro {
+		grid-template-columns: 1fr;
+		gap: 20px;
+		padding-block: 38px 28px;
+	}
+	h1 {
+		letter-spacing: -2px;
+	}
+	.ancestor {
+		display: flex;
+		align-items: center;
+		text-align: left;
+	}
+	.ancestor orbital-view {
+		width: 125px;
+		height: 130px;
+		flex-shrink: 0;
+	}
+	.controls {
+		justify-content: space-between;
+		gap: 18px 12px;
+	}
+	.controls label {
+		font-size: 11px;
+		gap: 8px;
+	}
+	#motion {
+		margin-left: 0;
+	}
+	input {
+		width: 80px;
+	}
+	.studies, .notes {
+		grid-template-columns: 1fr;
+	}
+	.study-copy p {
+		min-height: 0;
+	}
+	.notes {
+		gap: 20px;
+	}
+	.page-footer {
+		gap: 20px;
+		line-height: 1.6;
+	}
+}
+</style>

@@ -56,7 +56,12 @@ export function HydrogenLogo({ variant = `mark` }: HydrogenLogoProps): VNode {
 				renderer.setSize(width, height, false)
 			}
 			model.uniforms.uLight.value = light.matches ? 1 : 0
-			model.update(width, height, ratio, elapsed)
+			model.update(
+				width,
+				height,
+				ratio,
+				variant === `background` ? elapsed / 3 : elapsed,
+			)
 			renderer.render(model.scene, model.camera)
 			container.dataset.ready = `true`
 		}

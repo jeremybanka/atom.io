@@ -15,11 +15,11 @@ hydrogen-logo.class {
 		transform: translateX(-50%);
 		z-index: -1;
 		mix-blend-mode: screen;
-		opacity: 0.15;
+		opacity: 0.1;
 
 		@media (prefers-color-scheme: light) {
 			mix-blend-mode: multiply;
-			opacity: 0.25;
+			opacity: 0.15;
 		}
 	}
 

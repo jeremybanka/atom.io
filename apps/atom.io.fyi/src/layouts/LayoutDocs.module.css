@@ -41,6 +41,9 @@ docs-layout.class {
 		> * {
 			width: 100%;
 		}
+		&:has(hydrogen-logo[data-variant="background"]) > h1 {
+			margin-bottom: 1em;
+		}
 		h1 {
 			font-size: 48px;
 			line-height: 54px;

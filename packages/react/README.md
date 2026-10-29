@@ -48,6 +48,8 @@ export function Counter(): ReactNode {
 
 Explore [twenty before-and-after effect examples](https://atom.io.fyi/docs/against-use-effect), including React judgments and the atom.io ownership model. Move state synchronization into atoms, selectors, transactions, and Loadable states. Keep `useLayoutEffect` for work that requires committed layout before paint.
 
+`useAtomicRef` publishes host changes after commit and clears the previous atom to `null` on unmount or retargeting. It skips cleanup writes to already-disposed members. Consumers must handle detachment; development StrictMode can detach and reattach a resource. Unchanged hosts are not republished, and the hook does not dispose atoms automatically.
+
 ## Bundle size
 
 Package export sizes include complete runtime export surfaces.
@@ -56,6 +58,6 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Import           | Minified JS | Gzip JS |
 | ---------------- | ----------: | ------: |
-| `@atom.io/react` |     3,855 B | 1,707 B |
+| `@atom.io/react` |     3,928 B | 1,740 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).

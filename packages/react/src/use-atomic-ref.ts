@@ -4,7 +4,12 @@ import type {
 	RegularAtomToken,
 } from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
-import { findInStore, setIntoStore } from "atom.io/internal"
+import {
+	findInStore,
+	getFromStore,
+	newest,
+	setIntoStore,
+} from "atom.io/internal"
 import { useContext, useEffect } from "react"
 
 import { StoreContext } from "./store-context.tsx"
@@ -51,10 +56,18 @@ export function useAtomicRef<
 	}
 	const ref = useRef(null)
 	useEffect(() => {
-		setIntoStore(store, token, ref.current)
 		return () => {
-			setIntoStore(store, token, null)
+			// A controller may have disposed the member before removing its view.
+			if (newest(store).atoms.has(token.key)) {
+				setIntoStore(store, token, null)
+			}
 		}
 	}, [store, token.key])
+	useEffect(() => {
+		// Read after every commit: a stable ref object can acquire a different host.
+		if (!Object.is(getFromStore(store, token), ref.current)) {
+			setIntoStore(store, token, ref.current)
+		}
+	})
 	return ref
 }

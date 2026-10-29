@@ -21,7 +21,9 @@ follow `StoreProvider`.
 
 Atom-effect cleanup runs on atom disposal, not component unmount. Resource
 examples use explicit ownership or `useAtomicRef`, which publishes the host node
-and clears it on cleanup. Their hosts stay mounted for the component’s lifetime.
+after commit and clears it on detachment or cleanup. This moves resource policy
+into state; React still supplies the attachment lifecycle, including development
+effect replay. It does not make view-owned resources independent of the view.
 Use one presentation owner per key; readers can share state without owning its
 resources. Dispose unused family members when their owning model ends, not when
 one reader unmounts.
@@ -149,7 +151,7 @@ A request flag detours through rendering to recover an event that already happen
 
 <span data-effect-verdict="best-practice">Best practice</span> Send the command from its event handler
 
-Keep the command in the handler and its observable status in an atom. Sharing state does not require making the command reactive. A `Loadable` may describe a command’s result, but reading a result must not become permission to repeat the command.
+Keep the command in the handler and its status local to this button. Avoiding `useEffect` does not require globalizing local state. If other consumers need the status, use an atom keyed by the command or composer’s identity, with an explicit reset policy. A `Loadable` may describe a command’s result, but reading a result must not become permission to repeat the command.
 
 </EffectCluster>
 
@@ -415,7 +417,7 @@ The scroll must occur after the new messages exist in the DOM. A passive effect 
 
 <span data-effect-verdict="best-practice">Best practice</span> Scroll after commit with `useLayoutEffect`
 
-Keep messages and following intent in keyed atoms. Retain the actual measurement and scroll write in the allowed `useLayoutEffect`, after React commits those messages. Updating message state is not proof that the corresponding DOM is ready. Each independent scroll viewport needs its own following state, even when several viewports share the same messages.
+Share messages through the room-keyed atom and keep following intent local to each viewport. Each new viewport starts following, and scrolling one does not change another’s intent. Retain the actual measurement and scroll write in the allowed `useLayoutEffect`, after React commits those messages. Updating message state is not proof that the corresponding DOM is ready. If following intent needs external consumers, key it by viewport identity rather than room identity.
 
 </EffectCluster>
 

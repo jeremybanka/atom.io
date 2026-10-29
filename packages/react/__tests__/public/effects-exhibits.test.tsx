@@ -1,9 +1,10 @@
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
-import { disposeState } from "atom.io"
+import { disposeState, setState } from "atom.io"
 import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 import { hydrateRoot } from "react-dom/client"
 import { renderToString } from "react-dom/server"
 
+import { SendButton } from "../../../atom.io/docs/source/exhibits/react/effects/05-command-after-send-the-command-from-its-event-handler.tsx"
 import {
 	draftAtoms,
 	DraftEditor,
@@ -13,6 +14,10 @@ import { AccountName } from "../../../atom.io/docs/source/exhibits/react/effects
 import { JobProgress } from "../../../atom.io/docs/source/exhibits/react/effects/09-polling-after-give-each-job-an-explicit-polling-owner.tsx"
 import { ChatRoom } from "../../../atom.io/docs/source/exhibits/react/effects/12-connection-after-let-connection-state-own-the-socket.tsx"
 import { MapView } from "../../../atom.io/docs/source/exhibits/react/effects/14-widget-after-let-attachment-state-own-the-widget.tsx"
+import {
+	Conversation,
+	messageAtoms,
+} from "../../../atom.io/docs/source/exhibits/react/effects/16-scroll-after-scroll-after-commit-with-uselayouteffect.tsx"
 import { Card } from "../../../atom.io/docs/source/exhibits/react/effects/17-visibility-after-let-node-state-own-the-observer.tsx"
 import { Greeting } from "../../../atom.io/docs/source/exhibits/react/effects/19-hydration-after-match-hydration-through-server-and-client-snapshots.tsx"
 import * as services from "../../../atom.io/docs/source/exhibits/react/effects/services.ts"
@@ -33,6 +38,63 @@ afterEach(() => {
 	vi.useRealTimers()
 	vi.restoreAllMocks()
 	vi.unstubAllGlobals()
+})
+
+it(`keeps send status independent for each button and fresh on remount`, async () => {
+	let finish!: () => void
+	const send = vi.spyOn(services, `sendMessage`).mockImplementation(
+		() =>
+			new Promise<void>((resolve) => {
+				finish = resolve
+			}),
+	)
+	const view = render(
+		<>
+			<SendButton text="first" />
+			<SendButton text="second" />
+		</>,
+	)
+	const [first, second] = view.getAllByRole(`button`)
+	fireEvent.click(first)
+	expect(send).toHaveBeenCalledExactlyOnceWith(`first`)
+	expect(first.hasAttribute(`disabled`)).toBe(true)
+	expect(second.hasAttribute(`disabled`)).toBe(false)
+	expect(second.textContent).toBe(`Ready`)
+	await act(async () => {
+		finish()
+		await Promise.resolve()
+	})
+	expect(first.textContent).toBe(`Sent`)
+	expect(second.textContent).toBe(`Ready`)
+	view.unmount()
+	const reopened = render(<SendButton text="third" />)
+	expect(reopened.getByRole(`button`).textContent).toBe(`Ready`)
+})
+
+it(`keeps following intent per viewport and starts following again on remount`, () => {
+	vi.spyOn(HTMLElement.prototype, `scrollHeight`, `get`).mockReturnValue(500)
+	vi.spyOn(HTMLElement.prototype, `clientHeight`, `get`).mockReturnValue(200)
+	const view = render(
+		<>
+			<Conversation roomId="room" />
+			<Conversation roomId="room" />
+		</>,
+	)
+	const [first, second] = Array.from(view.container.children) as HTMLDivElement[]
+	first.scrollTop = 0
+	fireEvent.scroll(first)
+	second.scrollTop = 300
+	fireEvent.scroll(second)
+	act(() => {
+		setState(messageAtoms, `room`, [`Hello`])
+	})
+	expect(first.scrollTop).toBe(0)
+	expect(second.scrollTop).toBe(500)
+	second.scrollTop = 0
+	fireEvent.scroll(second)
+	view.unmount()
+	const reopened = render(<Conversation roomId="room" />)
+	expect((reopened.container.firstChild as HTMLDivElement).scrollTop).toBe(500)
 })
 
 it(`the component autosaver skips initial data and cancels pending edits on unmount`, async () => {

@@ -1,0 +1,14 @@
+{
+	"extends": "../../tsconfig.json",
+	"compilerOptions": {
+		"lib": ["ESNext", "DOM"],
+		"jsx": "react-jsx",
+		"jsxImportSource": "@atom.io/jsx-experiment",
+		"paths": {
+			"@atom.io/jsx-experiment/jsx-runtime": ["./jsx-runtime.ts"],
+			"atom.io": ["../../packages/atom.io/src/main/index.ts"],
+			"atom.io/*": ["../../packages/atom.io/src/*"]
+		}
+	},
+	"include": ["*.ts", "*.tsx"]
+}

@@ -5,9 +5,9 @@ import type {
 	ViewOf,
 } from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
-import { findInStore, withdraw } from "atom.io/internal"
+import { withdraw } from "atom.io/internal"
 
-import { type Accessor, owner, useValue } from "./core.ts"
+import { type Accessor, owner, resolveStateToken, useValue } from "./core.ts"
 
 export type LoadableValue<T> = { loading: boolean; value: T }
 
@@ -37,13 +37,7 @@ export function useLoadable(
 	const store = owner!._root._store
 	const [token] = params
 	const family = token.type.endsWith(`_family`)
-	const selected = family
-		? findInStore(
-				store,
-				token as ReadableFamilyToken<any, Canonical, any>,
-				params[1] as Canonical,
-			)
-		: (token as ReadableToken<any, any, any>)
+	const selected = resolveStateToken(token, params[1] as Canonical)
 	const read = useValue(selected)
 	const fallbackIndex = family ? 2 : 1
 	const fallback = params[fallbackIndex]

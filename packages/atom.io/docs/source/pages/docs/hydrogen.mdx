@@ -85,6 +85,14 @@ Hydrogen uses native DOM events, including onInput for input changes and onChang
 
 Standard HTML and SVG tags have element-specific attributes, callback refs, and event currentTarget types. Ref callbacks receive null on cleanup. Hyphenated custom tags use generic HTML attributes and HTMLElement types. Event target remains EventTarget because events can bubble from descendants. SVG presentation attributes use literal markup spellings, and tag names shared with HTML use HTML types.
 
+## families
+
+useValue, useSetter, useRef, and useTimeline also accept a family token and its key. useLoadable accepts a family, key, and optional fallback. All five resolve members in the component's store and preserve the declared key type.
+
+<Exhibit src="hydrogen/exhibits/families.tsx" />
+
+Keys are captured during component setup. To select another member, replace the instance in a reactive child collection using a new application key. The previous instance releases its subscriptions and refs. useTransaction takes a transaction token; atom.io has no transaction-family token.
+
 ## async state
 
 <Exhibit src="hydrogen/exhibits/loadable.tsx" />

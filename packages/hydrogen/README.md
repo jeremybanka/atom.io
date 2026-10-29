@@ -111,6 +111,56 @@ HTML and SVG use native DOM properties and attributes, plus className/htmlFor al
 
 HTML and SVG tags have element-specific attribute, event, and ref types. Event handlers receive native events with currentTarget typed as the attached element; target remains EventTarget because events can bubble from descendants. Ref callbacks receive the element on attachment and null on cleanup. Hyphenated custom tags use generic HTML attributes and HTMLElement refs and event targets. SVG presentation attributes use their literal markup spellings. Shared HTML/SVG tag names use HTML types because JSX cannot infer a namespace from parent elements.
 
+## Families
+
+useValue, useSetter, useRef, and useTimeline accept a family token followed by its key. useLoadable accepts a family, key, and optional fallback. Keys retain their declared types, including tuples, numbers, booleans, and null. Members resolve in the component's store, so isolated roots can use the same family tokens independently.
+
+```tsx
+import { atomFamily, scopeFamily, timelineFamily } from "atom.io"
+import type { VNode } from "hydrogen"
+import { useRef, useSetter, useTimeline, useValue } from "hydrogen"
+
+const countAtoms = atomFamily<number, string>({ key: `count`, default: 0 })
+const buttonAtoms = atomFamily<HTMLButtonElement | null, string>({
+	key: `button`,
+	default: null,
+})
+const historyTimelines = timelineFamily<string>({
+	key: `history`,
+	scope: [scopeFamily(countAtoms, { timelineKey: (id) => id })],
+})
+
+export function FamilyCounter(props: { id: string }): VNode {
+	const count = useValue(countAtoms, props.id)
+	const setCount = useSetter(countAtoms, props.id)
+	const ref = useRef(buttonAtoms, props.id)
+	const history = useTimeline(historyTimelines, props.id)
+	return (
+		<section>
+			<button
+				ref={ref}
+				onClick={() => {
+					setCount((value) => value + 1)
+				}}
+			>
+				{count()}
+			</button>
+			<button
+				disabled={history().at === 0}
+				onClick={() => {
+					history().undo()
+				}}
+			>
+				Undo
+			</button>
+		</section>
+	)
+}
+
+```
+
+The family and key are captured during setup and stay fixed for that component instance. To switch members, replace the component in a reactive child collection with a new application key. Ref ownership and subscription cleanup follow the member just as they do for individual tokens. useTransaction takes a transaction token; atom.io has no transaction-family token.
+
 ## Async state
 
 ```tsx
@@ -229,7 +279,7 @@ The checked Astro fixture demonstrates default/named slots and multiple independ
 
 The build audits every browser export, including the JSX runtime, from the built JavaScript. Atom.io is an external peer in the incremental measurement. Compiler, server, and integration code have separate entrypoints. The report also includes the complete client plus atom.io, the Astro client entrypoint, and the installed Preact version under the same bundling/minification settings. These are full exported surfaces, not equivalent application benchmarks.
 
-The hard budget is under 3,300 bytes of ordinary level-9 gzip for the complete client export surface. The build bundles with esbuild and minifies with Oxc, then measures compression using Node's gzip and Brotli implementations. The hydrogen client measures 3,245 bytes with gzip. Actual application bundles add atom.io and compiler-generated application code.
+The hard budget is under 3,300 bytes of ordinary level-9 gzip for the complete client export surface. The build bundles with esbuild and minifies with Oxc, then measures compression using Node's gzip and Brotli implementations. The hydrogen client measures 3,277 bytes with gzip. Actual application bundles add atom.io and compiler-generated application code.
 
 Build output includes the minified audit entrypoint and machine-readable dist/size.json. These audit files are a bundled measurement; use the package exports in applications so the bundler preserves one runtime instance across entrypoints. Source tests exercise development behavior; the production test executes the audited minified artifact. Chromium checks exercise the actual Astro build, island isolation, hydration, keyed identity, focus/selection, SVG namespaces, and teardown. A fresh-cache Astro development check also covers mount hooks, shared state, and ClientRouter navigation.
 
@@ -250,7 +300,7 @@ pnpm --filter hydrogen readme:check
 
 Breakage exercises the packed package in isolated, locked peer environments, including the coordinated atom.io workspace candidate. Until the first published release, Breakage reports a first-release baseline; these checks establish compatibility with the declared peers rather than a previous hydrogen release. Coverage gates require 100% of statements, branches, functions, and lines across the package source.
 
-Tonnage measures combined browser bundles containing Hydrogen and atom.io, with shared modules counted once and unused exports removed. The synchronous recipes include atom creation, useValue, useSetter, and JSX; the client recipe adds render, the hydration recipe adds hydrate, and the Astro recipe adds the browser island adapter. The async recipe uses useLoadable with render and useSetter. Hydrogen declares atom.io as a peer dependency; these consumer-app measurements include it in every total. Application components, Astro scheduling code, CSS, declarations, and source maps are excluded. The full-client gzip budget above remains a separate, Hydrogen-only audit.
+Tonnage measures combined browser bundles containing Hydrogen and atom.io, with shared modules counted once and unused exports removed. The synchronous recipes include atom creation, useValue, useSetter, and JSX; the client recipe adds render, the hydration recipe adds hydrate, and the Astro recipe adds the browser island adapter. The async recipe uses useLoadable with render and useSetter. The family recipe includes keyed state, refs, and timeline controls, plus atomFamily, timelineFamily, and scopeFamily. Hydrogen declares atom.io as a peer dependency; these consumer-app measurements include it in every total. Application components, Astro scheduling code, CSS, declarations, and source maps are excluded. The full-client gzip budget above remains a separate, Hydrogen-only audit.
 
 ## Browser serving sizes including atom.io
 
@@ -258,12 +308,13 @@ Usage example sizes bundle their entry files and tree-shake unused exports.
 
 Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, source maps, CSS, and other assets are excluded. Imported peer dependencies are bundled unless explicitly external, and shared modules are counted once per bundle.
 
-| Recipe                       | Entry                             | Minified JS |  Gzip JS |
-| ---------------------------- | --------------------------------- | ----------: | -------: |
-| Async interactive client app | `tonnage-recipes/async-app.ts`    |    39,284 B | 12,253 B |
-| Interactive client app       | `tonnage-recipes/client-app.ts`   |    38,949 B | 12,095 B |
-| Hydrated interactive app     | `tonnage-recipes/hydrated-app.ts` |    38,950 B | 12,094 B |
-| Interactive Astro island     | `tonnage-recipes/astro-island.ts` |    42,778 B | 13,259 B |
+| Recipe                           | Entry                             | Minified JS |  Gzip JS |
+| -------------------------------- | --------------------------------- | ----------: | -------: |
+| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    60,967 B | 18,086 B |
+| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    39,377 B | 12,267 B |
+| Interactive client app           | `tonnage-recipes/client-app.ts`   |    39,048 B | 12,122 B |
+| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    39,049 B | 12,121 B |
+| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    42,876 B | 13,282 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

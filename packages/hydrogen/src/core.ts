@@ -1,17 +1,24 @@
 import type {
+	ReadableFamilyToken,
 	ReadableToken,
+	RegularAtomFamilyToken,
 	RegularAtomToken,
 	Setter,
+	TimelineFamilyToken,
 	TimelineManageable,
 	TimelineToken,
 	TransactionToken,
 	ViewOf,
+	WritableFamilyToken,
 	WritableToken,
 } from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical"
 import type { RootStore } from "atom.io/internal"
 import {
 	actUponStore,
 	clearTimelineInStore,
+	findInStore,
+	findTimelineInStore,
 	getFromStore,
 	getTimelineTransactionAtHead,
 	IMPLICIT,
@@ -233,10 +240,22 @@ export function observe<T>(
 	run()
 }
 
+/** Resolve a fixed family key in the current owner's store. */
+export function resolveStateToken(token: any, key?: Canonical): any {
+	const store = owner!._root._store
+	return token.type.endsWith(`_family`) ? findInStore(store, token, key!) : token
+}
+
 /** Capture a token for this instance. Change the component key to change its token. */
 export function useValue<T, E = never>(
 	token: ReadableToken<T, any, E>,
-): Accessor<ViewOf<T | E>> {
+): Accessor<ViewOf<T | E>>
+export function useValue<T, K extends Canonical, E = never>(
+	family: ReadableFamilyToken<T, K, E>,
+	key: NoInfer<K>,
+): Accessor<ViewOf<T | E>>
+export function useValue(token: any, key?: Canonical): Accessor<any> {
+	token = resolveStateToken(token, key)
 	const store = owner!._root._store
 	const subscribe: Subscribe = (notify) =>
 		subscribeToState(store, token, `hydrogen:${serial++}`, notify)
@@ -248,7 +267,13 @@ export function useValue<T, E = never>(
 }
 export function useSetter<T>(
 	token: WritableToken<T, any, any>,
-): (value: T | Setter<T>) => void {
+): (value: T | Setter<T>) => void
+export function useSetter<T, K extends Canonical>(
+	family: WritableFamilyToken<T, K, any>,
+	key: NoInfer<K>,
+): (value: T | Setter<T>) => void
+export function useSetter(token: any, key?: Canonical): (value: any) => void {
+	token = resolveStateToken(token, key)
 	const store = owner!._root._store
 	return (value) => {
 		setIntoStore(store, token, value)
@@ -263,7 +288,16 @@ export function useTransaction<F extends (...args: any[]) => any>(
 const refs = new WeakMap<RootStore, Map<string, object>>()
 export function useRef<E extends Element>(
 	token: RegularAtomToken<E | null>,
+): (element: E | null) => void
+export function useRef<E extends Element, K extends Canonical>(
+	family: RegularAtomFamilyToken<E | null, K>,
+	key: NoInfer<K>,
+): (element: E | null) => void
+export function useRef<E extends Element>(
+	token: any,
+	key?: Canonical,
 ): (element: E | null) => void {
+	token = resolveStateToken(token, key)
 	const store = owner!._root._store
 	const owners = refs.get(store) ?? new Map<string, object>()
 	refs.set(store, owners)
@@ -292,8 +326,18 @@ export interface TimelineValue {
 }
 export function useTimeline<M extends TimelineManageable>(
 	token: TimelineToken<M>,
+): Accessor<TimelineValue>
+export function useTimeline<K extends Canonical, M extends TimelineManageable>(
+	family: TimelineFamilyToken<K, M>,
+	key: NoInfer<K>,
+): Accessor<TimelineValue>
+export function useTimeline(
+	token: any,
+	key?: Canonical,
 ): Accessor<TimelineValue> {
 	const store = owner!._root._store
+	if (token.type === `timeline_family`)
+		token = findTimelineInStore(store, token, key!)
 	const subscribe: Subscribe = (notify) =>
 		subscribeToTimeline(store, token, `hydrogen:${serial++}`, notify)
 	const controls = {

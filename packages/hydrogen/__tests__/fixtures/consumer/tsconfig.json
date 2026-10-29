@@ -20,6 +20,7 @@
 	"include": [
 		"types.ts",
 		"loadable-types.ts",
+		"family-types.ts",
 		"jsx-types.tsx"
 	]
 }

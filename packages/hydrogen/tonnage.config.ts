@@ -7,6 +7,10 @@ const config: TonnageConfig = defineConfig({
 	exports: false,
 	recipes: [
 		{
+			name: `Family app with refs and history`,
+			entry: `tonnage-recipes/family-app.ts`,
+		},
+		{
 			name: `Async interactive client app`,
 			entry: `tonnage-recipes/async-app.ts`,
 		},

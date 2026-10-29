@@ -2,7 +2,7 @@
 import assert from "node:assert/strict"
 
 import type { Loadable } from "atom.io"
-import { Silo } from "atom.io"
+import { scopeFamily, Silo } from "atom.io"
 import { Window } from "happy-dom"
 
 import {
@@ -12,7 +12,9 @@ import {
 	render,
 	useId,
 	useLoadable,
+	useRef,
 	useSetter,
+	useTimeline,
 	useValue,
 } from "../dist/client.min.js"
 import { jsx as serverJsx } from "../dist/jsx-runtime.js"
@@ -89,6 +91,45 @@ assert.equal(host.textContent, `ready`)
 asyncRoot.dispose()
 assert.equal(silo.store.atoms.get(loadableAtom.key)!.subject.subscribers.size, 0)
 
+const rowAtoms = silo.atomFamily<number, boolean>({ key: `row`, default: 0 })
+const buttonAtoms = silo.atomFamily<HTMLButtonElement | null, boolean>({
+	key: `button`,
+	default: null,
+})
+const rowHistoryTimelines = silo.timelineFamily<boolean>({
+	key: `rowHistory`,
+	scope: [scopeFamily(rowAtoms, { timelineKey: (key) => key })],
+})
+const familyRoot = render(
+	() => {
+		const count = useValue(rowAtoms, false)
+		const setCount = useSetter(rowAtoms, false)
+		const ref = useRef(buttonAtoms, false)
+		const history = useTimeline(rowHistoryTimelines, false)
+		return jsx(`button`, {
+			ref,
+			onClick: () => {
+				setCount((value) => value + 1)
+			},
+			children: () => `${count()}:${history().at}`,
+		})
+	},
+	host as unknown as Element,
+	{ store: silo.store },
+)
+silo.clearTimeline(rowHistoryTimelines, false)
+familyRoot.flush()
+const familyButton = host.querySelector(`button`)!
+assert.equal(silo.getState(buttonAtoms, false), familyButton)
+familyButton.click()
+familyRoot.flush()
+assert.equal(host.textContent, `1:1`)
+silo.undo(rowHistoryTimelines, false)
+familyRoot.flush()
+assert.equal(host.textContent, `0:0`)
+familyRoot.dispose()
+assert.equal(silo.getState(buttonAtoms, false), null)
+
 console.log(
-	`Audited production artifact: state, events, ownership, IDs, loadable state, cleanup and hydration passed.`,
+	`Audited production artifact: state, events, ownership, IDs, loadable state, families, cleanup and hydration passed.`,
 )

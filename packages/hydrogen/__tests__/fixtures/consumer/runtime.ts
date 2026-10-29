@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { test } from "node:test"
 
 import type { Loadable } from "atom.io"
-import { Silo } from "atom.io"
+import { scopeFamily, Silo } from "atom.io"
 import { Window } from "happy-dom"
 import {
 	hydrate,
@@ -10,6 +10,9 @@ import {
 	render,
 	useId,
 	useLoadable,
+	useRef,
+	useSetter,
+	useTimeline,
 	useValue,
 } from "hydrogen"
 import astro from "hydrogen/astro"
@@ -108,6 +111,66 @@ await test(`packed loadable accessor resolves async state in its root store`, as
 	}
 	assert.equal(
 		silo.store.atoms.get(loadableAtom.key)!.subject.subscribers.size,
+		0,
+	)
+})
+
+await test(`packed family hooks bind keyed state, refs, and history`, () => {
+	const host = new Window().document.createElement(
+		`section`,
+	) as unknown as HTMLElement
+	const silo = new Silo({
+		name: `family-consumer`,
+		lifespan: `ephemeral`,
+		isProduction: true,
+	})
+	const countAtoms = silo.atomFamily<number, number>({
+		key: `count`,
+		default: 0,
+	})
+	const elementAtoms = silo.atomFamily<HTMLButtonElement | null, number>({
+		key: `element`,
+		default: null,
+	})
+	const historyTimelines = silo.timelineFamily<number>({
+		key: `history`,
+		scope: [scopeFamily(countAtoms, { timelineKey: (key) => key })],
+	})
+	const root = render(
+		() => {
+			const count = useValue(countAtoms, 0)
+			const setCount = useSetter(countAtoms, 0)
+			const ref = useRef(elementAtoms, 0)
+			const history = useTimeline(historyTimelines, 0)
+			return jsx(`button`, {
+				ref,
+				onClick: () => {
+					setCount((value) => value + 1)
+				},
+				children: () => `${count()}:${history().at}`,
+			})
+		},
+		host,
+		{ store: silo.store },
+	)
+	try {
+		silo.clearTimeline(historyTimelines, 0)
+		root.flush()
+		const button = host.querySelector(`button`)!
+		assert.equal(silo.getState(elementAtoms, 0), button)
+		button.click()
+		root.flush()
+		assert.equal(host.textContent, `1:1`)
+		silo.undo(historyTimelines, 0)
+		root.flush()
+		assert.equal(host.textContent, `0:0`)
+	} finally {
+		root.dispose()
+	}
+	assert.equal(silo.getState(elementAtoms, 0), null)
+	const history = silo.findTimeline(historyTimelines, 0)
+	assert.equal(
+		silo.store.timelines.get(history.key)!.subject.subscribers.size,
 		0,
 	)
 })

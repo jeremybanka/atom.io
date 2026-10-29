@@ -1,8 +1,0 @@
-{
-	"extends": ["//"],
-	"tasks": {
-		"lint:types": {
-			"dependsOn": ["$TURBO_EXTENDS$", "build"]
-		}
-	}
-}

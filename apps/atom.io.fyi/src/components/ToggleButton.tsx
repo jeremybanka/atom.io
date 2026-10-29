@@ -1,4 +1,4 @@
-import type { VNode } from "@atom.io/water"
+import type { VNode } from "hydrogen"
 
 import type { ToggleProps } from "./Toggle.tsx"
 import css from "./ToggleButton.module.css"

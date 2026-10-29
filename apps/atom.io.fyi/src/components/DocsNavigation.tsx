@@ -1,5 +1,5 @@
-import type { VNode } from "@atom.io/water"
-import { onCleanup, onMount, useSetter, useValue } from "@atom.io/water"
+import type { VNode } from "hydrogen"
+import { onCleanup, onMount, useSetter, useValue } from "hydrogen"
 
 import {
 	type HeadingDescriptor,

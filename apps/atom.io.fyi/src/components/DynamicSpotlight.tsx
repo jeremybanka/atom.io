@@ -1,5 +1,5 @@
-import type { VNode } from "@atom.io/water"
-import { onCleanup, onMount } from "@atom.io/water"
+import type { VNode } from "hydrogen"
+import { onCleanup, onMount } from "hydrogen"
 
 import css from "./DynamicSpotlight.module.css"
 

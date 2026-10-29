@@ -17,21 +17,21 @@
 		"lint:oxlint": "oxlint",
 		"lint:types": "tsc",
 		"test:once": "node --test src/components/*.test.ts",
-		"test:browser": "node scripts/test-water.browser.mjs"
+		"test:browser": "node scripts/test-hydrogen.browser.mjs"
 	},
 	"dependencies": {
 		"@astrojs/cloudflare": "14.4.3",
 		"@astrojs/markdown-remark": "7.3.5",
 		"@astrojs/mdx": "8.1.2",
-		"@atom.io/water": "workspace:*",
-		"@atom.io/water-devtools": "workspace:*",
 		"@babel/parser": "8.0.10",
 		"@babel/types": "8.0.10",
 		"@pierre/highlights": "0.3.0",
 		"astro": "7.4.4",
 		"atom.io": "workspace:*",
 		"three": "0.186.1",
-		"tsdoc.json": "0.6.12"
+		"tsdoc.json": "0.6.12",
+		"@atom.io/hydrogen-devtools": "workspace:*",
+		"hydrogen": "workspace:*"
 	},
 	"devDependencies": {
 		"@atom.io/exhibits": "workspace:*",

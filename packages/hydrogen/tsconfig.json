@@ -1,0 +1,34 @@
+{
+	"extends": "../../tsconfig.json",
+	"compilerOptions": {
+		"target": "ES2022",
+		"lib": [
+			"ESNext",
+			"DOM"
+		],
+		"jsx": "react-jsx",
+		"jsxImportSource": "hydrogen",
+		"paths": {
+			"hydrogen": [
+				"./src/index.ts"
+			],
+			"hydrogen/*": [
+				"./src/*"
+			],
+			"atom.io": [
+				"../atom.io/src/main/index.ts"
+			],
+			"atom.io/*": [
+				"../atom.io/src/*"
+			]
+		}
+	},
+	"include": [
+		"src",
+		"__tests__",
+		"scripts",
+		"exhibits",
+		"*.config.ts",
+		"tonnage-recipes"
+	]
+}

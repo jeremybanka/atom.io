@@ -35,7 +35,7 @@ See [try it here](#try-it-here) for the full show/hide flow on this site.
 
 ## try it here
 
-This site now mounts an experimental water-rendered port of the debugger. It uses the same atom.io introspection engine and starts hidden. The React package described above remains the debugger for React applications.
+This site now mounts an experimental hydrogen-rendered port of the debugger. It uses the same atom.io introspection engine and starts hidden. The React package described above remains the debugger for React applications.
 
 To show them on `atom.io.fyi`:
 
@@ -74,4 +74,4 @@ This site embeds the devtools in its base layout:
 
 - `apps/atom.io.fyi/src/layouts/Layout.astro`
 
-That setup imports `@atom.io/water-devtools/css` once and mounts the water debugger as a client-only island at the end of the shell. The experimental water packages are private workspace packages and are not published.
+That setup imports `@atom.io/hydrogen-devtools/css` once and mounts the hydrogen debugger as a client-only island at the end of the shell. The package names are hydrogen and @atom.io/hydrogen-devtools.

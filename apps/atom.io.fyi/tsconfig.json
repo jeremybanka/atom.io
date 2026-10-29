@@ -10,7 +10,7 @@
 	"compilerOptions": {
 		"allowImportingTsExtensions": true,
 		"jsx": "react-jsx",
-		"jsxImportSource": "@atom.io/water",
+		"jsxImportSource": "hydrogen",
 		"paths": {
 			"c/*": [
 				"./src/components/*"

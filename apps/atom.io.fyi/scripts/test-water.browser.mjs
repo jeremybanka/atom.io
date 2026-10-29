@@ -49,6 +49,7 @@ try {
 		}
 	})
 	const base = `http://127.0.0.1:${server.address().port}`
+	await page.context().grantPermissions([`clipboard-read`, `clipboard-write`])
 	await page.goto(`${base}/docs/getting-started`)
 	await page.waitForFunction(
 		() => document.querySelectorAll(`astro-island:not([ssr])`).length === 3,
@@ -68,6 +69,15 @@ try {
 			.then((value) => value.length > 0),
 		true,
 	)
+	const copiedCode = await page
+		.locator(`code-block pre code`)
+		.first()
+		.textContent()
+	await page.locator(`code-block > file-name > button`).first().click()
+	await page.waitForFunction(
+		async (expected) => (await navigator.clipboard.readText()) === expected,
+		copiedCode,
+	)
 	await page.evaluate(() => {
 		window.testNavigation = document.querySelector(`docs-navigation`)
 		window.testLogo = document.querySelector(`dz2-orbital canvas`)
@@ -84,6 +94,32 @@ try {
 				.querySelector(`site-directory`)
 				?.getAttribute(`data-user-has-toggled`) === `true`,
 	)
+	const handle = page.locator(`button[aria-label="Move debugger"]`)
+	const bounds = await handle.boundingBox()
+	await page.mouse.move(
+		bounds.x + bounds.width / 2,
+		bounds.y + bounds.height / 2,
+	)
+	await page.mouse.down()
+	await page.mouse.move(
+		bounds.x + bounds.width / 2 - 40,
+		bounds.y + bounds.height / 2 - 30,
+		{ steps: 4 },
+	)
+	await page.mouse.up()
+	await page.waitForFunction(
+		() =>
+			document.querySelector(`[data-testid="atom-io-devtools"]`).style
+				.transform === `translate(-40px, -30px)`,
+	)
+	await handle.focus()
+	await page.keyboard.press(`ArrowLeft`)
+	await page.waitForFunction(
+		() =>
+			document.querySelector(`[data-testid="atom-io-devtools"]`).style
+				.transform === `translate(-50px, -30px)`,
+	)
+
 	await page.screenshot({ path: `/tmp/water-site-desktop.png`, fullPage: false })
 	await page.keyboard.press(`Control+Shift+A`)
 	await page.locator(`site-directory a[href="/docs/concepts"]`).click()
@@ -152,7 +188,7 @@ try {
 	)
 	assert.deepEqual(errors, [])
 	console.log(
-		`Site browser checks passed: hydration, shared-store editing, persisted navigation, mobile menu, Three.js lifecycle, fresh navigation, reload.`,
+		`Site browser checks passed: hydration, code copying, shared-store editing, pointer dragging, persisted navigation, mobile menu, Three.js lifecycle, fresh navigation, reload.`,
 	)
 } finally {
 	await browser?.close()

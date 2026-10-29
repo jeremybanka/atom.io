@@ -4,6 +4,9 @@
 		"moduleResolution": "Bundler",
 		"target": "ES2024",
 		"strict": true,
+		"exactOptionalPropertyTypes": true,
+		"jsx": "react-jsx",
+		"jsxImportSource": "hydrogen",
 		"skipLibCheck": false,
 		"noEmit": true,
 		"types": [
@@ -15,6 +18,7 @@
 		]
 	},
 	"include": [
-		"types.ts"
+		"types.ts",
+		"jsx-types.tsx"
 	]
 }

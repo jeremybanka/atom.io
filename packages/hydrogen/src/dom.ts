@@ -77,7 +77,7 @@ function property(
 	)
 		throw new Error(import.meta.env.DEV ? `hydrogen: owned content` : undefined)
 	if (key.startsWith(`on`)) {
-		const capture = key.endsWith(`Capture`)
+		const capture = /(?<!Pointer)Capture$/.test(key)
 		const event = key
 			.slice(2, capture ? -7 : undefined)
 			.toLowerCase()

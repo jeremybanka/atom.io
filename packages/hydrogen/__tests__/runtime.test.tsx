@@ -110,6 +110,46 @@ describe(`hydrogen compiled DOM`, () => {
 		expect(setup).toHaveBeenCalledOnce()
 		expect(silo.getState(countAtom)).toBe(2)
 	})
+	it(`distinguishes pointer capture events from capture-phase handlers`, () => {
+		const { host, mount } = fixture()
+		const phases: string[] = []
+		const root = mount(() => (
+			<section
+				onGotPointerCapture={() => phases.push(`got bubble`)}
+				onGotPointerCaptureCapture={() => phases.push(`got capture`)}
+				onLostPointerCapture={() => phases.push(`lost bubble`)}
+				onLostPointerCaptureCapture={() => phases.push(`lost capture`)}
+			>
+				<button
+					onGotPointerCapture={() => phases.push(`got target`)}
+					onLostPointerCapture={() => phases.push(`lost target`)}
+				/>
+			</section>
+		))
+		const button = host.querySelector(`button`)!
+		const dispatch = () => {
+			button.dispatchEvent(
+				new PointerEvent(`gotpointercapture`, { bubbles: true }),
+			)
+			button.dispatchEvent(
+				new PointerEvent(`lostpointercapture`, { bubbles: true }),
+			)
+		}
+		dispatch()
+		expect(phases).toEqual([
+			`got capture`,
+			`got target`,
+			`got bubble`,
+			`lost capture`,
+			`lost target`,
+			`lost bubble`,
+		])
+		root.dispose()
+		phases.length = 0
+		dispatch()
+		expect(phases).toEqual([])
+	})
+
 	it(`keeps inline event closures attached while unrelated attributes update`, () => {
 		const { silo, countAtom, host, mount } = fixture()
 		const add = vi.spyOn(HTMLButtonElement.prototype, `addEventListener`)
@@ -387,6 +427,7 @@ describe(`hydrogen compiled DOM`, () => {
 		const add = vi.spyOn(HTMLButtonElement.prototype, `addEventListener`)
 		try {
 			expect(() =>
+				// @ts-expect-error Exercise runtime rejection for untyped callers.
 				mount(() => <button onClick={clicked} innerHTML="invalid" />),
 			).toThrow()
 			const button = add.mock.contexts[0] as HTMLButtonElement
@@ -467,7 +508,7 @@ describe(`server rendering and hydration`, () => {
 			const count = useValue(countAtom)
 			return (
 				<svg viewBox="0 0 10 10">
-					<text title={`"<script>`}>
+					<text aria-label={`"<script>`}>
 						{`<&`}
 						{count()}HTML
 					</text>

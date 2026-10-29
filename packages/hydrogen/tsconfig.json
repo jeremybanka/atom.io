@@ -23,6 +23,7 @@
 			]
 		}
 	},
+	"exclude": ["__tests__/fixtures/consumer/jsx-types.tsx"],
 	"include": [
 		"src",
 		"__tests__",

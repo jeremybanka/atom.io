@@ -55,7 +55,7 @@
 	"scripts": {
 		"build": "node scripts/build.ts && tsc -p tsconfig.build.json && node scripts/size.ts",
 		"test:once": "vitest run --config vitest.config.ts",
-		"lint:types": "tsc -p tsconfig.json",
+		"lint:types": "tsc -p tsconfig.json && tsc -p __tests__/fixtures/consumer/tsconfig.json",
 		"lint:eslint": "eslint src __tests__ scripts exhibits",
 		"lint:oxlint": "oxlint src __tests__ scripts exhibits",
 		"size": "node scripts/size.ts",

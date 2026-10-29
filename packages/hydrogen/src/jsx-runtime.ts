@@ -1,4 +1,16 @@
 import type { Child, Component, VNode } from "./core.ts"
+import type { HTMLAttributes, NativeElements } from "./jsx-types.d.ts"
+
+export type {
+	AriaAttributes,
+	DOMAttributes,
+	EventAttributes,
+	EventHandler,
+	HTMLAttributes,
+	Ref,
+	SVGAttributes,
+	TargetedEvent,
+} from "./jsx-types.d.ts"
 
 export const Fragment = (props: { children?: Child }): Child => props.children
 export function jsx(
@@ -44,22 +56,8 @@ export namespace JSX {
 	export interface IntrinsicAttributes {
 		key?: string | number
 	}
-	type Events = {
-		[K in keyof GlobalEventHandlersEventMap as `on${Capitalize<K>}`]?: (
-			event: GlobalEventHandlersEventMap[K],
-		) => void
+	/** Augment this interface to declare attributes for registered custom elements. */
+	export interface IntrinsicElements extends NativeElements {
+		[tag: `${string}-${string}`]: HTMLAttributes<HTMLElement>
 	}
-	type Props = Events & {
-		children?: Child
-		key?: string | number
-		ref?: (element: any) => void
-		class?: string
-		className?: string
-		style?: string
-		onDoubleClick?: (event: MouseEvent) => void
-		[name: string]: unknown
-	}
-	export type IntrinsicElements = {
-		[Tag in keyof HTMLElementTagNameMap | keyof SVGElementTagNameMap]: Props
-	} & { [tag: `${string}-${string}`]: Props }
 }

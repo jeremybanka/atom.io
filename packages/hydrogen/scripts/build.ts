@@ -1,4 +1,4 @@
-import { rm } from "node:fs/promises"
+import { copyFile, rm } from "node:fs/promises"
 import { resolve } from "node:path"
 
 import { build } from "esbuild"
@@ -30,3 +30,8 @@ for (const development of [false, true]) {
 		define: { "import.meta.env.DEV": String(development) },
 	})
 }
+
+await copyFile(
+	resolve(root, `src/jsx-types.d.ts`),
+	resolve(root, `dist/jsx-types.d.ts`),
+)

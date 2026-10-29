@@ -54,8 +54,7 @@ export function JsonEditor(props: EditorProps): VNode {
 						aria-label={`Type of ${props.path.at(-1)}`}
 						value={kind(props.value)}
 						onChange={(event) => {
-							const type = (event.currentTarget as HTMLSelectElement)
-								.value as JsonKind
+							const type = event.currentTarget.value as JsonKind
 							props.tools.attempt(() => {
 								props.change?.((previous) => convert(previous, type))
 							})
@@ -153,7 +152,7 @@ function Primitive(props: {
 					checked={Boolean(props.value)}
 					disabled={!props.change}
 					onChange={(event) => {
-						set((event.currentTarget as HTMLInputElement).checked)
+						set(event.currentTarget.checked)
 					}}
 				/>
 			) : kind(props.value) === `string` || kind(props.value) === `number` ? (
@@ -164,15 +163,13 @@ function Primitive(props: {
 					value={String(props.value)}
 					readOnly={!props.change}
 					onInput={(event) => {
-						const text = (event.currentTarget as HTMLInputElement).value
+						const text = event.currentTarget.value
 						if (kind(props.value) === `string`) set(text)
 						else if (text.trim() && Number.isFinite(Number(text)))
 							set(Number(text))
 					}}
 					onBlur={(event) => {
-						;(event.currentTarget as HTMLInputElement).value = String(
-							props.value,
-						)
+						event.currentTarget.value = String(props.value)
 					}}
 				/>
 			) : (
@@ -204,7 +201,7 @@ function Property(props: { name: string; editor: EditorProps }): VNode {
 							style={`width:calc(${Math.max(1, props.name.length)}ch + 6px)`}
 							value={props.name}
 							onChange={(event) => {
-								const input = event.currentTarget as HTMLInputElement
+								const input = event.currentTarget
 								const name = input.value
 								parent.tools.attempt(() => {
 									parent.change?.((previous) => {

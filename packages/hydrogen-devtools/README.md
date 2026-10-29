@@ -1,15 +1,15 @@
 # Hydrogen devtools
 
-An experimental atom.io debugger rendered with hydrogen. This private workspace package powers the debugger on atom.io.fyi. It is separate from hydrogen's renderer and size budget; it has no React, Preact, or Motion dependency.
+An experimental atom.io debugger rendered with hydrogen. The @atom.io/hydrogen-devtools package powers the debugger on atom.io.fyi. It is separate from hydrogen's renderer and size budget; it has no React, Preact, or Motion dependency.
 
 Use hydrogen's Vite or Astro integration to compile application JSX. Import the stylesheet once, then mount the debugger in a hydrogen component:
 
 ```tsx
 import "@atom.io/hydrogen-devtools/css"
 
-import type { VNode } from "hydrogen"
 import { AtomIODevtools } from "@atom.io/hydrogen-devtools"
 import type { RootStore } from "atom.io/internal"
+import type { VNode } from "hydrogen"
 
 export function Debugger(props: { store: RootStore }): VNode {
 	return <AtomIODevtools store={props.store} hideByDefault />
@@ -31,16 +31,20 @@ This port shares atom.io's introspection engine with the React debugger. It does
 
 Breakage exercises the packed package in isolated, locked peer environments, including the coordinated atom.io workspace candidate. Until the first published release, Breakage reports a first-release baseline; these checks establish compatibility with the declared peers rather than a previous hydrogen release. Coverage gates require 100% of statements, branches, functions, and lines across the package source.
 
-Tonnage measures built public entrypoints with declared peers external. Its gzip figures use ordinary gzip; the optimized precompressed client budget is audited separately. CSS, declarations, and source maps are not included in JavaScript measurements.
+The serving recipe measures an interactive Hydrogen app with the debugger: atom creation, render, useValue, useSetter, JSX, and AtomIODevtools. The combined browser bundle includes atom.io, Hydrogen, and the debugger, with shared modules counted once and unused exports removed. Hydrogen and atom.io remain peer dependencies of the debugger package; these consumer-app measurements include both. The required debugger stylesheet is imported but its bytes are excluded from the JavaScript total, as are application components, declarations, and source maps.
 
-## Bundle size
+## Browser serving size including Hydrogen and atom.io
 
-Package export sizes include complete runtime export surfaces.
+Usage example sizes bundle their entry files and tree-shake unused exports.
 
-Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, source maps, CSS, and other assets are excluded. Peer dependencies stay external, and shared modules are counted once per bundle.
+Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, source maps, CSS, and other assets are excluded. Imported peer dependencies are bundled unless explicitly external, and shared modules are counted once per bundle.
 
-| Import                    | Minified JS | Gzip JS |
-| ------------------------- | ----------: | ------: |
-| `@atom.io/hydrogen-devtools` |    15,324 B | 4,944 B |
+| Recipe                        | Entry                         | Minified JS |  Gzip JS |
+| ----------------------------- | ----------------------------- | ----------: | -------: |
+| Interactive app with debugger | `tonnage-recipes/debugger.ts` |    84,957 B | 24,649 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
+
+## License
+
+MPL-2.0 or later. See [LICENSE](./LICENSE).

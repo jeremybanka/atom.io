@@ -4,7 +4,7 @@ import Setup from "./exhibits/setup.hydrogen.tsx" with { type: "code" };
 
 # Hydrogen devtools
 
-An experimental atom.io debugger rendered with hydrogen. This private workspace package powers the debugger on atom.io.fyi. It is separate from hydrogen's renderer and size budget; it has no React, Preact, or Motion dependency.
+An experimental atom.io debugger rendered with hydrogen. The @atom.io/hydrogen-devtools package powers the debugger on atom.io.fyi. It is separate from hydrogen's renderer and size budget; it has no React, Preact, or Motion dependency.
 
 Use hydrogen's Vite or Astro integration to compile application JSX. Import the stylesheet once, then mount the debugger in a hydrogen component:
 
@@ -24,6 +24,10 @@ This port shares atom.io's introspection engine with the React debugger. It does
 
 Breakage exercises the packed package in isolated, locked peer environments, including the coordinated atom.io workspace candidate. Until the first published release, Breakage reports a first-release baseline; these checks establish compatibility with the declared peers rather than a previous hydrogen release. Coverage gates require 100% of statements, branches, functions, and lines across the package source.
 
-Tonnage measures built public entrypoints with declared peers external. Its gzip figures use ordinary gzip; the optimized precompressed client budget is audited separately. CSS, declarations, and source maps are not included in JavaScript measurements.
+The serving recipe measures an interactive Hydrogen app with the debugger: atom creation, render, useValue, useSetter, JSX, and AtomIODevtools. The combined browser bundle includes atom.io, Hydrogen, and the debugger, with shared modules counted once and unused exports removed. Hydrogen and atom.io remain peer dependencies of the debugger package; these consumer-app measurements include both. The required debugger stylesheet is imported but its bytes are excluded from the JavaScript total, as are application components, declarations, and source maps.
 
 <Tonnage config={config} />
+
+## License
+
+MPL-2.0 or later. See [LICENSE](./LICENSE).

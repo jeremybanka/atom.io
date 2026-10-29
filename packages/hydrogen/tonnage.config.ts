@@ -1,37 +1,22 @@
 import { defineConfig, type TonnageConfig } from "tonnage"
 
 const config: TonnageConfig = defineConfig({
+	heading: `Browser serving sizes including atom.io`,
 	platform: `browser`,
-	// Babel probes this optional preset via require.resolve; no preset code is imported.
-	external: [`@babel/preset-typescript/package.json`],
-	exports: {
-		include: [`.`, `./jsx-runtime`, `./jsx-dev-runtime`, `./astro-client`],
-	},
+	includePeers: true,
+	exports: false,
 	recipes: [
 		{
-			name: `Complete client + JSX`,
-			entry: `tonnage-recipes/client.ts`,
-			platform: `browser`,
+			name: `Interactive client app`,
+			entry: `tonnage-recipes/client-app.ts`,
 		},
 		{
-			name: `Server renderer`,
-			entry: `tonnage-recipes/server.ts`,
-			platform: `node`,
+			name: `Hydrated interactive app`,
+			entry: `tonnage-recipes/hydrated-app.ts`,
 		},
 		{
-			name: `Vite compiler`,
-			entry: `tonnage-recipes/vite.ts`,
-			platform: `node`,
-		},
-		{
-			name: `Astro integration`,
-			entry: `tonnage-recipes/astro.ts`,
-			platform: `node`,
-		},
-		{
-			name: `Astro server renderer`,
-			entry: `tonnage-recipes/astro-server.ts`,
-			platform: `node`,
+			name: `Interactive Astro island`,
+			entry: `tonnage-recipes/astro-island.ts`,
 		},
 	],
 })

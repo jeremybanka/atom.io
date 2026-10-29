@@ -1,6 +1,6 @@
 # Hydrogen architecture
 
-Hydrogen is the codename for the JSX framework in [packages/hydrogen](../packages/hydrogen/README.md). It implements the atom.io-native, Solid-inspired model explored here: components establish an instance once, atom.io owns application state, and hydrogen owns DOM computations and their lifetimes. The package is a private workspace experiment.
+Hydrogen is the JSX framework in [packages/hydrogen](../packages/hydrogen/README.md). It implements the atom.io-native, Solid-inspired model explored here: components establish an instance once, atom.io owns application state, and hydrogen owns DOM computations and their lifetimes. Its npm package name is hydrogen.
 
 ## Setup and rendering
 
@@ -44,7 +44,7 @@ The client exports render and hydrate; the separate server entrypoint exports re
 
 The Astro integration detects compiler-branded components, renders default and named slots, hydrates independent islands, replaces client-only fallbacks, and disposes on astro:unmount. Each island has an independent store by default. A deterministic createStore(props) factory supplies matching initial state on the server and browser; hydrogen does not serialize an entire store implicitly. Random server root prefixes travel in hydration markers to keep IDs distinct across islands. The [Counter exhibit](../packages/hydrogen/exhibits/Counter.hydrogen.tsx) implements that boundary.
 
-Vite transforms JSX before its ordinary TypeScript transform and uses full page reloads during development. Astro defaults to .hydrogen.tsx and .hydrogen.jsx files to coexist with other JSX renderers. The package keeps compiler, server, and integration entrypoints separate from the browser runtime.
+Vite transforms JSX before its ordinary TypeScript transform and uses full page reloads during development. The plugin deduplicates Hydrogen and atom.io and excludes their entries from dependency prebundling in each Vite environment, including entries inserted by Astro adapters, so renderers, hooks, and stores share one runtime. Astro defaults to .hydrogen.tsx and .hydrogen.jsx files to coexist with other JSX renderers. The package keeps compiler, server, and integration entrypoints separate from the browser runtime.
 
 ## Budget and validation
 
@@ -62,4 +62,4 @@ atom.io.fyi uses hydrogen for its navigation, spotlight geometry, code blocks, T
 
 Persisted Astro islands update through an adapter-owned atom family member. Their component setup, store, and DOM identity survive prop changes; changed slot HTML replaces only the affected slot. Unmount releases the adapter state. The adapter removes Astro's trailing streaming sentinel before strict hydration during ClientRouter navigation.
 
-The separate private hydrogen-devtools package contains the inspector UI. It renders into the inspected store, uses disposable atom family members for its own state, and delegates logs and indexes to atom.io/introspection. It preserves JSON editing, readonly selectors, state and timeline families, transaction logs, undo/redo, expansion controls, dragging, and saved panel settings. It does not contribute to the renderer's size audit. React applications can continue using react-devtools.
+The separate @atom.io/hydrogen-devtools package contains the inspector UI. It renders into the inspected store, uses disposable atom family members for its own state, and delegates logs and indexes to atom.io/introspection. It preserves JSON editing, readonly selectors, state and timeline families, transaction logs, undo/redo, expansion controls, dragging, and saved panel settings. It does not contribute to the renderer's size audit. React applications can continue using react-devtools.

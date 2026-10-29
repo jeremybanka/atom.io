@@ -1,7 +1,15 @@
 import { defineConfig, type TonnageConfig } from "tonnage"
 
 const config: TonnageConfig = defineConfig({
-	exports: { include: [`.`] },
+	heading: `Browser serving size including Hydrogen and atom.io`,
 	platform: `browser`,
+	includePeers: true,
+	exports: false,
+	recipes: [
+		{
+			name: `Interactive app with debugger`,
+			entry: `tonnage-recipes/debugger.ts`,
+		},
+	],
 })
 export default config

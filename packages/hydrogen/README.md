@@ -2,14 +2,14 @@
 
 An experimental JSX framework whose state engine is atom.io. Components run once per mounted instance. Calls to accessors inside compiled JSX subscribe the affected DOM computations; atom.io updates those computations without rerunning component setup.
 
-This private workspace package is not published. Its browser runtime, Vite compiler, server renderer, and Astro integration are implemented here. It has no independent state primitive, effect API, React hook dispatcher, or compatibility layer.
+The npm package is named hydrogen. Its browser runtime, Vite compiler, server renderer, and Astro integration are implemented here. It has no independent state primitive, effect API, React hook dispatcher, or compatibility layer.
 
 ## A point, not two signals
 
 ```tsx
+import { atom } from "atom.io"
 import type { VNode } from "hydrogen"
 import { useId, useRef, useSetter, useValue } from "hydrogen"
-import { atom } from "atom.io"
 
 const pointAtom = atom<{ x: number; y: number }>({
 	key: `point`,
@@ -51,7 +51,7 @@ The point accessor returns the current object. Each JSX attribute reads its coor
 
 ## Vite
 
-Add the workspace package and atom.io to the application's dependencies. The hydrogen plugin is required: the ordinary TypeScript JSX transform cannot preserve live expressions. It compiles expressions into lazy child computations and property getters; it also preserves spread precedence and live component props.
+Add hydrogen and atom.io to the application's dependencies. The hydrogen plugin is required: the ordinary TypeScript JSX transform cannot preserve live expressions. It compiles expressions into lazy child computations and property getters; it also preserves spread precedence and live component props.
 
 ```ts
 import hydrogen from "hydrogen/vite"
@@ -86,7 +86,7 @@ import.meta.hot?.dispose(root.dispose)
 
 ```
 
-The development plugin uses full page reloads. Components and render computations are synchronous. Modern browsers with ES2022 and DOM Range support are the target.
+The development plugin keeps Hydrogen and atom.io outside dependency prebundling so renderer entrypoints, component hooks, and stores share one runtime, including Astro adapter environments. It uses full page reloads. Components and render computations are synchronous. Modern browsers with ES2022 and DOM Range support are the target.
 
 ## Component API
 
@@ -108,6 +108,8 @@ Arrays support keyed components and elements. Reordering preserves instances and
 
 HTML and SVG use native DOM properties and attributes, plus className/htmlFor aliases. Events use onClick/onInput-style names, with Capture suffixes and onDoubleClick support. Styles are CSS strings. Mutable atom values still invalidate their consumers; project primitive fields for precise DOM writes. Refs attach once per element instance.
 
+HTML and SVG tags have element-specific attribute, event, and ref types. Event handlers receive native events with currentTarget typed as the attached element; target remains EventTarget because events can bubble from descendants. Ref callbacks receive the element on attachment and null on cleanup. Hyphenated custom tags use generic HTML attributes and HTMLElement refs and event targets. SVG presentation attributes use their literal markup spellings. Shared HTML/SVG tag names use HTML types because JSX cannot infer a namespace from parent elements.
+
 ## Rendering and ownership
 
 The client exports render and hydrate. Both accept a setup callback, a host Element, and optional store, idPrefix, and onError options, and return dispose and flush methods. Updates coalesce in a microtask; flush drains them synchronously. Dispose is idempotent and removes only owned nodes. Cleanup continues after individual cleanup failures and aggregates errors. A failed computation disposes its root; asynchronous update failures reach onError, while explicit flush failures throw.
@@ -121,8 +123,8 @@ The production build omits development diagnostics and invalid-input checks; the
 The integration transforms .hydrogen.tsx and .hydrogen.jsx files by default, so another JSX renderer can coexist. Configure include to change this filter. Top-level functions containing JSX are branded by the compiler for renderer detection.
 
 ```ts
-import hydrogen from "hydrogen/astro"
 import { defineConfig } from "astro/config"
+import hydrogen from "hydrogen/astro"
 
 export default defineConfig({ integrations: [hydrogen()] })
 
@@ -131,10 +133,10 @@ export default defineConfig({ integrations: [hydrogen()] })
 Each island gets an independent store copied from registered atom.io definitions. A component's optional createStore(props) factory initializes server and browser stores from the same serialized props. This is the state transport boundary; hydrogen does not serialize a whole store. Keep store factories deterministic and include only client-safe props. Custom factories can explicitly share a browser store when required.
 
 ```tsx
-import type { Child, VNode } from "hydrogen"
-import { onCleanup, useId, useSetter, useValue } from "hydrogen"
 import { atom, Silo } from "atom.io"
 import { IMPLICIT } from "atom.io/internal"
+import type { Child, VNode } from "hydrogen"
+import { onCleanup, useId, useSetter, useValue } from "hydrogen"
 
 const countAtom = atom<number>({ key: `count`, default: 0 })
 export default function Counter(props: {
@@ -186,9 +188,9 @@ The checked Astro fixture demonstrates default/named slots and multiple independ
 
 The build audits every browser export, including the JSX runtime, from the built JavaScript. Atom.io is an external peer in the incremental measurement. Compiler, server, and integration code have separate entrypoints. The report also includes the complete client plus atom.io, the Astro client entrypoint, and the installed Preact version under the same bundling/minification settings. These are full exported surfaces, not equivalent application benchmarks.
 
-The hard budget is under 3,000 bytes for dist/client.min.js.gz, an actual precompressed gzip artifact. The build bundles with esbuild, minifies with Oxc, and compresses with Zopfli (50 iterations), then verifies decompression. Ordinary Node gzip at level 9 and Brotli are reported separately. After the site migration, optimized gzip is 2,986 bytes and ordinary gzip is 3,035 bytes; an ordinary gzip server does **not** meet the 3,000-byte limit. Serving the emitted precompressed artifact or applying equivalent precompression is necessary for that figure. Actual application bundles add atom.io and compiler-generated application code.
+The hard budget is under 3,000 bytes for dist/client.min.js.gz, an actual precompressed gzip artifact. The build bundles with esbuild, minifies with Oxc, and compresses with Zopfli (50 iterations), then verifies decompression. Ordinary Node gzip at level 9 and Brotli are reported separately. The hydrogen client measures 2,996 bytes with optimized gzip and 3,042 bytes with ordinary gzip; an ordinary gzip server does **not** meet the 3,000-byte limit. Serving the emitted precompressed artifact or applying equivalent precompression is necessary for that figure. Actual application bundles add atom.io and compiler-generated application code.
 
-Build output includes the minified audit entrypoint, gzip/Brotli artifacts, and machine-readable dist/size.json. These audit files are a bundled measurement; use the package exports in applications so the bundler preserves one runtime instance across entrypoints. Source tests exercise development behavior; the production test executes the audited minified artifact. Chromium checks exercise the actual Astro build, island isolation, hydration, keyed identity, focus/selection, SVG namespaces, and teardown.
+Build output includes the minified audit entrypoint, gzip/Brotli artifacts, and machine-readable dist/size.json. These audit files are a bundled measurement; use the package exports in applications so the bundler preserves one runtime instance across entrypoints. Source tests exercise development behavior; the production test executes the audited minified artifact. Chromium checks exercise the actual Astro build, island isolation, hydration, keyed identity, focus/selection, SVG namespaces, and teardown. A fresh-cache Astro development check also covers mount hooks, shared state, and ClientRouter navigation.
 
 ```sh
 pnpm --filter hydrogen build
@@ -207,33 +209,22 @@ pnpm --filter hydrogen readme:check
 
 Breakage exercises the packed package in isolated, locked peer environments, including the coordinated atom.io workspace candidate. Until the first published release, Breakage reports a first-release baseline; these checks establish compatibility with the declared peers rather than a previous hydrogen release. Coverage gates require 100% of statements, branches, functions, and lines across the package source.
 
-Tonnage measures built public entrypoints with declared peers external. Its gzip figures use ordinary gzip; the optimized precompressed client budget is audited separately. CSS, declarations, and source maps are not included in JavaScript measurements.
+Tonnage measures combined browser bundles containing Hydrogen and atom.io, with shared modules counted once and unused exports removed. Each recipe includes atom creation, useValue, useSetter, and JSX; the client recipe adds render, the hydration recipe adds hydrate, and the Astro recipe adds the browser island adapter. Hydrogen declares atom.io as a peer dependency; these consumer-app measurements include it in every total. Application components, Astro scheduling code, CSS, declarations, and source maps are excluded. The full-client optimized-gzip budget above remains a separate, Hydrogen-only audit.
 
-## Bundle size
-
-Package export sizes include complete runtime export surfaces.
+## Browser serving sizes including atom.io
 
 Usage example sizes bundle their entry files and tree-shake unused exports.
 
-Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, source maps, CSS, and other assets are excluded. Peer dependencies stay external, and shared modules are counted once per bundle.
+Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, source maps, CSS, and other assets are excluded. Imported peer dependencies are bundled unless explicitly external, and shared modules are counted once per bundle.
 
-### Package exports
-
-| Import                           | Minified JS | Gzip JS |
-| -------------------------------- | ----------: | ------: |
-| `hydrogen`                 |     6,892 B | 3,136 B |
-| `hydrogen/jsx-runtime`     |       558 B |   381 B |
-| `hydrogen/jsx-dev-runtime` |       558 B |   381 B |
-| `hydrogen/astro-client`    |     7,348 B | 3,368 B |
-
-### Usage examples
-
-| Recipe                | Entry                             | Minified JS |   Gzip JS |
-| --------------------- | --------------------------------- | ----------: | --------: |
-| Complete client + JSX | `tonnage-recipes/client.ts`       |     6,886 B |   3,126 B |
-| Server renderer       | `tonnage-recipes/server.ts`       |     3,927 B |   1,942 B |
-| Vite compiler         | `tonnage-recipes/vite.ts`         | 1,307,570 B | 343,207 B |
-| Astro integration     | `tonnage-recipes/astro.ts`        | 1,307,863 B | 343,318 B |
-| Astro server renderer | `tonnage-recipes/astro-server.ts` |     4,803 B |   2,339 B |
+| Recipe                   | Entry                             | Minified JS |  Gzip JS |
+| ------------------------ | --------------------------------- | ----------: | -------: |
+| Interactive client app   | `tonnage-recipes/client-app.ts`   |    38,949 B | 12,095 B |
+| Hydrated interactive app | `tonnage-recipes/hydrated-app.ts` |    38,950 B | 12,094 B |
+| Interactive Astro island | `tonnage-recipes/astro-island.ts` |    42,778 B | 13,260 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
+
+## License
+
+MPL-2.0 or later. See [LICENSE](./LICENSE).

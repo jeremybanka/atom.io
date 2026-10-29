@@ -1,127 +1,97 @@
-import type { VNode } from "preact"
-import * as React from "react"
+import type { VNode } from "@atom.io/water"
+import { onCleanup, onMount } from "@atom.io/water"
 
 import css from "./DynamicSpotlight.module.css"
 
-export type ElementPosition = Pick<DOMRect, `height` | `left` | `top` | `width`>
 export type SpotlightProps = {
 	elementId?: null | string
 	elementIds?: readonly string[]
-	startingPosition?: ElementPosition
 	padding?: number
-	updateSignals?: unknown[]
-	parentRef?: React.RefObject<HTMLElement | null>
+	parent: () => HTMLElement | null
 	variant?: `surface` | `target`
 	hiddenAtViewportWidth?: 960 | 1280
 }
-export function DynamicSpotlight({
-	elementId = null,
-	elementIds,
-	startingPosition = {
-		top: 0,
-		left: 0,
-		width: 0,
-		height: 0,
-	},
-	padding = 0,
-	updateSignals = [],
-	parentRef,
-	variant = `target`,
-	hiddenAtViewportWidth,
-}: SpotlightProps): VNode {
-	const hasElementIds = elementIds !== undefined
-	const elementIdsKey = (elementIds ?? []).join(`\u0000`)
-	const targetElementIds = React.useMemo(
-		() =>
-			elementIds !== undefined ? [...elementIds] : elementId ? [elementId] : [],
-		[elementId, elementIdsKey, hasElementIds],
-	)
-	const [position, setPosition] = React.useState(startingPosition)
-	React.useEffect(() => {
-		if (targetElementIds.length === 0) {
-			setPosition(startingPosition)
-			return
-		}
-
-		const elements = targetElementIds.flatMap((id) => {
-			const element = document.getElementById(id)
-			return element ? [element] : []
-		})
-		if (elements.length === 0) {
-			setPosition(startingPosition)
-			return
-		}
-
-		const updatePosition = () => {
-			const parentRect = parentRef?.current?.getBoundingClientRect()
-			const targetRect = elements.reduce(
-				(rect, element) => {
-					const boundingRect = element.getBoundingClientRect()
-					return {
-						top: Math.min(rect.top, boundingRect.top),
-						left: Math.min(rect.left, boundingRect.left),
-						right: Math.max(rect.right, boundingRect.right),
-						bottom: Math.max(rect.bottom, boundingRect.bottom),
-					}
-				},
-				{
-					top: Number.POSITIVE_INFINITY,
-					left: Number.POSITIVE_INFINITY,
-					right: Number.NEGATIVE_INFINITY,
-					bottom: Number.NEGATIVE_INFINITY,
-				},
-			)
-			setPosition({
-				top: targetRect.top - (parentRect?.top ?? 0),
-				left: targetRect.left - (parentRect?.left ?? 0),
-				width: targetRect.right - targetRect.left,
-				height: targetRect.bottom - targetRect.top,
-			})
-		}
-
-		const resizeObserver =
-			typeof ResizeObserver === `undefined`
-				? null
-				: new ResizeObserver(updatePosition)
-		for (const element of elements) {
-			resizeObserver?.observe(element)
-		}
-		if (parentRef?.current) {
-			resizeObserver?.observe(parentRef.current)
-		}
-
-		updatePosition()
-		addEventListener(`resize`, updatePosition)
-		addEventListener(`scroll`, updatePosition)
-		return () => {
-			removeEventListener(`resize`, updatePosition)
-			removeEventListener(`scroll`, updatePosition)
-			resizeObserver?.disconnect()
-		}
-	}, [targetElementIds, parentRef, ...updateSignals])
-
-	if (position.width === 0 || position.height === 0) {
-		return (
-			<dynamic-spotlight
-				class={css.class}
-				data-hidden-at-viewport-width={hiddenAtViewportWidth}
-				data-spotlight-kind={variant}
-				style={{ display: `none` }}
-			/>
-		)
+export function DynamicSpotlight(props: SpotlightProps): VNode {
+	let spotlight: HTMLElement | null = null
+	const attach = (node: HTMLElement | null) => {
+		spotlight = node
 	}
-
+	onMount(() => {
+		let frame: number | undefined
+		let observed: Element[] = []
+		const schedule = () => {
+			frame ??= requestAnimationFrame(update)
+		}
+		const resize = new ResizeObserver(schedule)
+		const update = () => {
+			frame = undefined
+			if (!spotlight) return
+			const parent = props.parent()
+			const ids = props.elementIds ?? (props.elementId ? [props.elementId] : [])
+			const elements = ids.flatMap((id) => {
+				const element = document.getElementById(id)
+				return element ? [element] : []
+			})
+			const nextObserved = parent ? [...elements, parent] : elements
+			if (
+				nextObserved.length !== observed.length ||
+				nextObserved.some((element, i) => element !== observed[i])
+			) {
+				resize.disconnect()
+				nextObserved.forEach((element) => {
+					resize.observe(element)
+				})
+				observed = nextObserved
+			}
+			if (!elements.length) {
+				spotlight.style.cssText = `display:none`
+				return
+			}
+			const rects = elements.map((element) => element.getBoundingClientRect())
+			const top = Math.min(...rects.map((rect) => rect.top))
+			const left = Math.min(...rects.map((rect) => rect.left))
+			const width = Math.max(...rects.map((rect) => rect.right)) - left
+			const height = Math.max(...rects.map((rect) => rect.bottom)) - top
+			const parentRect = parent?.getBoundingClientRect()
+			const padding = props.padding ?? 0
+			spotlight.style.cssText =
+				width && height
+					? `top:${top - (parentRect?.top ?? 0) - padding}px;left:${left - (parentRect?.left ?? 0) - padding}px;width:${width + padding * 2}px;height:${height + padding * 2}px`
+					: `display:none`
+		}
+		const mutations = new MutationObserver(schedule)
+		const container = props.parent()?.closest(`docs-navigation`)
+		if (container)
+			mutations.observe(container, {
+				childList: true,
+				subtree: true,
+				attributes: true,
+				attributeFilter: [
+					`data-section-visible`,
+					`data-user-has-toggled`,
+					`data-pathname`,
+				],
+			})
+		addEventListener(`resize`, schedule)
+		addEventListener(`scroll`, schedule, { passive: true })
+		document.addEventListener(`astro:page-load`, schedule)
+		schedule()
+		onCleanup(() => {
+			resize.disconnect()
+			mutations.disconnect()
+			removeEventListener(`resize`, schedule)
+			removeEventListener(`scroll`, schedule)
+			document.removeEventListener(`astro:page-load`, schedule)
+			if (frame !== undefined) cancelAnimationFrame(frame)
+		})
+	})
 	return (
 		<dynamic-spotlight
+			ref={attach}
 			class={css.class}
-			data-hidden-at-viewport-width={hiddenAtViewportWidth}
-			data-spotlight-kind={variant}
-			style={{
-				top: position.top - padding,
-				left: position.left - padding,
-				width: position.width + padding * 2,
-				height: position.height + padding * 2,
-			}}
+			data-hidden-at-viewport-width={props.hiddenAtViewportWidth}
+			data-spotlight-kind={props.variant ?? `target`}
+			style="display:none"
 		/>
 	)
 }

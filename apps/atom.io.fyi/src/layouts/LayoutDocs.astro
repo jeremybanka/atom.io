@@ -6,7 +6,11 @@ import css from "./LayoutDocs.module.css"
 
 <Layout>
 	<docs-layout class={css.class}>
-		<DocsNavigation client:load transition:persist />
+		<DocsNavigation
+			pathname={Astro.url.pathname}
+			client:load
+			transition:persist="docs-navigation"
+		/>
 		<article>
 			<slot />
 		</article>

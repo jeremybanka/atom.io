@@ -42,7 +42,9 @@ function take(
 		node = found
 		cursor.node = found.nextSibling
 	} else parent.insertBefore(node, cursor ? cursor.node : before)
-	owner._cleanups.add(() => node.parentNode?.removeChild(node))
+	owner._cleanups.add(() => {
+		;(node as ChildNode).remove()
+	})
 	return node
 }
 function comment(
@@ -139,7 +141,8 @@ function mount(
 				for (let index = 0; index < values.length; index++) {
 					const child = values[index]
 					const vnode = child as VNode | null
-					const key = vnode?.props?.[`key`] ?? index
+					const explicit = vnode?.props?.[`key`]
+					const key = explicit == null ? index : String(explicit)
 					if (import.meta.env.DEV && kept.has(key))
 						throw new Error(
 							import.meta.env.DEV ? `water: duplicate key` : undefined,

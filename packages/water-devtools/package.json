@@ -1,0 +1,40 @@
+{
+	"name": "@atom.io/water-devtools",
+	"version": "0.0.0",
+	"private": true,
+	"description": "Atom.io's debugger, rendered with water.",
+	"license": "MPL-2.0",
+	"sideEffects": [
+		"**/*.css"
+	],
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./css": "./dist/devtools.css"
+	},
+	"scripts": {
+		"build": "node scripts/build.ts && tsc -p tsconfig.build.json",
+		"lint:types": "tsc",
+		"lint:eslint": "eslint src scripts __tests__",
+		"lint:oxlint": "oxlint src scripts __tests__",
+		"test:once": "vitest run --config vitest.config.ts",
+		"readme:write": "galley write README.mdx",
+		"readme:check": "galley check README.mdx"
+	},
+	"devDependencies": {
+		"@atom.io/water": "workspace:*",
+		"@types/node": "26.6.5",
+		"atom.io": "workspace:*",
+		"esbuild": "0.28.2",
+		"happy-dom": "21.0.4",
+		"typescript": "7.0.2",
+		"vitest": "5.0.5"
+	},
+	"peerDependencies": {
+		"@atom.io/water": "workspace:*",
+		"atom.io": "^0.54.1"
+	}
+}

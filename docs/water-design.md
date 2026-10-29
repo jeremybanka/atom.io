@@ -55,3 +55,11 @@ Tests cover setup counts, tracked helpers, conditional dependencies, keyed owner
 The first version deliberately omits React compatibility, style objects, portals, suspense, error boundaries, asynchronous rendering, automatic token-as-child bindings, and state-preserving HMR. Runtime and compiler improvements must preserve the existing ownership contract and keep the size report explicit about dependencies and compression.
 
 The [original experiment](jsx-experiment.md) remains a separate baseline with direct token bindings and explicit projections. Its declaration-only API exhibits document the earlier proposal; the executable water package is now the implementation reference.
+
+## The site and debugger
+
+atom.io.fyi uses water for its navigation, spotlight geometry, code blocks, Three.js islands, and debugger. The navigation's createStore factory creates isolated SSR stores and explicitly shares the browser's implicit store, making those atoms available to the debugger. Heading discovery and browser listeners use onMount/onCleanup. Geometry and Three.js resources use local callback refs without introducing a second state engine.
+
+Persisted Astro islands update through an adapter-owned atom family member. Their component setup, store, and DOM identity survive prop changes; changed slot HTML replaces only the affected slot. Unmount releases the adapter state. The adapter removes Astro's trailing streaming sentinel before strict hydration during ClientRouter navigation.
+
+The separate private water-devtools package contains the inspector UI. It renders into the inspected store, uses disposable atom family members for its own state, and delegates logs and indexes to atom.io/introspection. It preserves JSON editing, readonly selectors, state and timeline families, transaction logs, undo/redo, expansion controls, dragging, and saved panel settings. It does not contribute to the renderer's size audit. React applications can continue using react-devtools.

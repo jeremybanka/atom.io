@@ -1,16 +1,20 @@
-import { useI, useO } from "@atom.io/react"
-import { atom } from "atom.io"
-import type { VNode } from "preact"
-import * as React from "react"
+import type { VNode } from "@atom.io/water"
+import { onCleanup, onMount, useSetter, useValue } from "@atom.io/water"
 
+import {
+	type HeadingDescriptor,
+	headingsAtom,
+	menuToggleAtom,
+	pathnameAtom,
+	visibleHeadingIdsAtom,
+} from "../navigation-state.ts"
+import { createSiteStore } from "../site-store.ts"
 import css from "./DocsNavigation.module.css"
 import { DynamicSpotlight } from "./DynamicSpotlight.tsx"
 import { Toggle } from "./Toggle.tsx"
 
 const INCLUDE_LIST = [`H2`, `H3`, `H4`, `H5`, `H6`]
 const SECTION_VISIBILITY_EPSILON = 1
-
-type HeadingDescriptor = { id: string; content: string | null; level: number }
 
 const getHeadingLevel = (element: Element): number =>
 	Number.parseInt(element.tagName.slice(1), 10)
@@ -70,37 +74,31 @@ const getVisibleHeadingIds = (
 	})
 }
 
-const menuToggleAtom = atom<boolean>({
-	key: `menuToggle`,
-	default: false,
-})
-
-const pathnameAtom = atom<string>({
-	key: `pathname`,
-	default: globalThis.location?.pathname ?? ``,
-	effects: [
-		({ setSelf }) => {
-			globalThis.document?.addEventListener(`astro:page-load`, () => {
-				setSelf(window.location.pathname)
-			})
-		},
-	],
-})
-
-export function DocsNavigation(): VNode {
-	useO(pathnameAtom) // weirdly important
-	const userHasToggled = useO(menuToggleAtom)
-	const setUserHasToggled = useI(menuToggleAtom)
+export function DocsNavigation(_props: { pathname: string }): VNode {
+	const setPathname = useSetter(pathnameAtom)
+	const pathname = useValue(pathnameAtom)
+	onMount(() => {
+		const update = () => {
+			setPathname(window.location.pathname)
+		}
+		document.addEventListener(`astro:page-load`, update)
+		onCleanup(() => {
+			document.removeEventListener(`astro:page-load`, update)
+		})
+		update()
+	})
+	const userHasToggled = useValue(menuToggleAtom)
+	const setUserHasToggled = useSetter(menuToggleAtom)
 
 	return (
-		<docs-navigation class={css.class}>
+		<docs-navigation class={css.class} data-pathname={pathname()}>
 			<SiteDirectory />
 			<OnThisPage />
 			<menu-toggle>
 				<Toggle.Button
 					ariaControls="site-directory on-this-page"
 					ariaLabel="Documentation menu"
-					checked={userHasToggled}
+					checked={userHasToggled()}
 					onClick={() => {
 						setUserHasToggled((v) => !v)
 					}}
@@ -113,42 +111,35 @@ export function DocsNavigation(): VNode {
 }
 
 function OnThisPage(): VNode {
-	const elementRef = React.useRef<HTMLElement>(null)
-	const userHasToggled = useO(menuToggleAtom)
+	let element: HTMLElement | null = null
+	const attach = (node: HTMLElement | null) => {
+		element = node
+	}
+	const userHasToggled = useValue(menuToggleAtom)
 
-	const [headings, setHeadings] = React.useState<HeadingDescriptor[]>([])
-	const [visibleHeadingIds, setVisibleHeadingIds] = React.useState<string[]>([])
-	const pathname = useO(pathnameAtom)
-	const visibleHeadingIdSet = React.useMemo(
-		() => new Set(visibleHeadingIds),
-		[visibleHeadingIds],
-	)
-	const spotlightHeadingLinkIds = React.useMemo(() => {
-		let firstVisibleIndex = -1
-		let lastVisibleIndex = -1
-		for (let index = 0; index < headings.length; index++) {
-			if (visibleHeadingIdSet.has(headings[index].id)) {
-				if (firstVisibleIndex === -1) {
-					firstVisibleIndex = index
-				}
-				lastVisibleIndex = index
-			}
-		}
-		return firstVisibleIndex === -1
+	const headings = useValue(headingsAtom)
+	const setHeadings = useSetter(headingsAtom)
+	const visibleHeadingIds = useValue(visibleHeadingIdsAtom)
+	const setVisibleHeadingIds = useSetter(visibleHeadingIdsAtom)
+	const visibleHeadingIdSet = () => new Set(visibleHeadingIds())
+	const spotlightHeadingLinkIds = () => {
+		const list = headings()
+		const visible = visibleHeadingIdSet()
+		const first = list.findIndex((heading) => visible.has(heading.id))
+		let last = first
+		list.forEach((heading, index) => {
+			if (visible.has(heading.id)) last = index
+		})
+		return first === -1
 			? []
-			: headings
-					.slice(firstVisibleIndex, lastVisibleIndex + 1)
-					.map((heading) => `${heading.id}-link`)
-	}, [headings, visibleHeadingIdSet])
-	const rootHeadingLevel = React.useMemo(
-		() =>
-			headings.length === 0
-				? 2
-				: Math.min(...headings.map((heading) => heading.level)),
-		[headings],
-	)
+			: list.slice(first, last + 1).map((heading) => `${heading.id}-link`)
+	}
+	const rootHeadingLevel = () =>
+		headings().length
+			? Math.min(...headings().map((heading) => heading.level))
+			: 2
 
-	React.useEffect(() => {
+	onMount(() => {
 		let animationFrame: number | null = null
 
 		const setVisibleHeadings = (headingElements: readonly HTMLElement[]) => {
@@ -176,29 +167,34 @@ function OnThisPage(): VNode {
 
 		const gatherHeadings = () => {
 			const headingElements = getHeadingElements()
-			const headingDescriptors = headingElements.map((element) => ({
-				id: element.id,
-				content: element.textContent,
-				level: getHeadingLevel(element),
+			const headingDescriptors = headingElements.map((headingElement) => ({
+				id: headingElement.id,
+				content: headingElement.textContent,
+				level: getHeadingLevel(headingElement),
 			}))
 			setHeadings(headingDescriptors)
 			setVisibleHeadings(headingElements)
 		}
 
+		document.addEventListener(`astro:page-load`, gatherHeadings)
 		gatherHeadings()
 
 		addEventListener(`resize`, scheduleVisibleHeadingUpdate)
 		addEventListener(`scroll`, scheduleVisibleHeadingUpdate, { passive: true })
-		return () => {
+		onCleanup(() => {
+			document.removeEventListener(`astro:page-load`, gatherHeadings)
 			removeEventListener(`resize`, scheduleVisibleHeadingUpdate)
 			removeEventListener(`scroll`, scheduleVisibleHeadingUpdate)
 			if (animationFrame !== null) {
 				cancelAnimationFrame(animationFrame)
 			}
-		}
-	}, [pathname])
+		})
+	})
 
-	const renderHeadings = (list: HeadingDescriptor[], level: number): VNode[] => {
+	const renderHeadings = (
+		list: readonly HeadingDescriptor[],
+		level: number,
+	): VNode[] => {
 		const output: VNode[] = []
 		let currentIndex = 0
 
@@ -214,7 +210,7 @@ function OnThisPage(): VNode {
 				output.push(
 					<section key={heading.id}>
 						<a
-							data-section-visible={visibleHeadingIdSet.has(heading.id)}
+							data-section-visible={visibleHeadingIdSet().has(heading.id)}
 							href={`#${heading.id}`}
 							id={`${heading.id}-link`}
 						>
@@ -236,24 +232,22 @@ function OnThisPage(): VNode {
 	}
 
 	return (
-		<on-this-page data-user-has-toggled={userHasToggled}>
-			<nav id="on-this-page" ref={elementRef}>
+		<on-this-page data-user-has-toggled={userHasToggled()}>
+			<nav id="on-this-page" ref={attach}>
 				<DynamicSpotlight
 					elementId="on-this-page"
 					padding={0}
-					updateSignals={[userHasToggled, pathname, headings]}
-					parentRef={elementRef}
+					parent={() => element}
 					variant="surface"
 					hiddenAtViewportWidth={1280}
 				/>
 				<DynamicSpotlight
-					elementIds={spotlightHeadingLinkIds}
-					updateSignals={[userHasToggled, pathname, headings]}
-					parentRef={elementRef}
+					elementIds={spotlightHeadingLinkIds()}
+					parent={() => element}
 				/>
 				<section>
 					<header>On this page</header>
-					<main>{renderHeadings(headings, rootHeadingLevel)}</main>
+					<main>{renderHeadings(headings(), rootHeadingLevel())}</main>
 				</section>
 			</nav>
 		</on-this-page>
@@ -261,30 +255,28 @@ function OnThisPage(): VNode {
 }
 
 function SiteDirectory(): VNode {
-	const elementRef = React.useRef<HTMLElement>(null)
-	const userHasToggled = useO(menuToggleAtom)
-	const pathname = useO(pathnameAtom)
-	const pathnameId =
-		(pathname.endsWith(`/`) ? pathname.slice(0, -1) : pathname).replaceAll(
+	let element: HTMLElement | null = null
+	const attach = (node: HTMLElement | null) => {
+		element = node
+	}
+	const userHasToggled = useValue(menuToggleAtom)
+	const pathname = useValue(pathnameAtom)
+	const pathnameId = () =>
+		(pathname().endsWith(`/`) ? pathname().slice(0, -1) : pathname()).replaceAll(
 			`/`,
 			`-`,
 		) + `-link`
 	return (
-		<site-directory data-user-has-toggled={userHasToggled}>
-			<nav id="site-directory" ref={elementRef}>
+		<site-directory data-user-has-toggled={userHasToggled()}>
+			<nav id="site-directory" ref={attach}>
 				<DynamicSpotlight
 					elementId="site-directory"
 					padding={0}
-					updateSignals={[userHasToggled, pathname]}
-					parentRef={elementRef}
+					parent={() => element}
 					variant="surface"
 					hiddenAtViewportWidth={960}
 				/>
-				<DynamicSpotlight
-					elementId={pathnameId}
-					updateSignals={[userHasToggled, pathname]}
-					parentRef={elementRef}
-				/>
+				<DynamicSpotlight elementId={pathnameId()} parent={() => element} />
 				<section>
 					<header>Guide</header>
 					<main>
@@ -570,3 +562,5 @@ function SiteDirectory(): VNode {
 		</site-directory>
 	)
 }
+
+DocsNavigation.createStore = createSiteStore

@@ -1,4 +1,4 @@
-import { type ComponentChildren, toChildArray, type VNode } from "preact"
+import type { Child, VNode } from "@atom.io/water"
 
 import css from "./CodeBlock.module.css"
 import { highlightCode } from "./highlight-code"
@@ -8,7 +8,7 @@ type CodeBlockProps = {
 	label?: string
 	code?: string
 	soft?: boolean
-	children?: ComponentChildren
+	children?: Child
 }
 
 function getCodeBlockId(labelOrHref: string): string {
@@ -23,18 +23,13 @@ function getCodeBlockId(labelOrHref: string): string {
 		.replace(/^-+|-+$/g, ``)
 }
 
-function flattenChildrenToString(children: ComponentChildren): string {
-	return toChildArray(children)
-		.map((child) => {
-			if (typeof child === `string` || typeof child === `number`) {
-				return String(child)
-			}
-			if (Array.isArray(child)) {
-				return flattenChildrenToString(child)
-			}
-			return ``
-		})
-		.join(``)
+function flattenChildrenToString(children: Child): string {
+	if (typeof children === `function`) return flattenChildrenToString(children())
+	if (Array.isArray(children))
+		return children.map(flattenChildrenToString).join(``)
+	return typeof children === `string` || typeof children === `number`
+		? String(children)
+		: ``
 }
 
 export function CodeBlock({
@@ -74,7 +69,7 @@ export function CodeBlock({
 						line.map((token) => (
 							<span
 								key={token.offset}
-								style={{ color: token.color }}
+								style={`color:${token.color}`}
 								data-code-string={token.type === 2 ? `` : undefined}
 							>
 								{token.content}

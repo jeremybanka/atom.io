@@ -28,7 +28,11 @@ export function island(
 	const children = Object.fromEntries(
 		Object.entries(slots).map(([name, html]) => [
 			name,
-			jsx(`astro-slot`, { innerHTML: html }),
+			jsx(`astro-slot`, {
+				key: html,
+				name: name === `default` ? undefined : name,
+				innerHTML: html,
+			}),
 		]),
 	)
 	return jsx(component, {

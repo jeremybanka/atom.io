@@ -1,38 +1,24 @@
-import type { VNode } from "preact"
-import * as React from "react"
+import type { VNode } from "@atom.io/water"
 
 import type { ToggleProps } from "./Toggle.tsx"
 import css from "./ToggleButton.module.css"
 
-const setCssVars = (
-	vars: Record<`--${string}`, number | string>,
-): Partial<React.CSSProperties> => vars
-
-export function ToggleButton({
-	ariaControls,
-	ariaLabel,
-	children,
-	checked,
-	onClick,
-	size = { height: 40, width: 40 },
-}: ToggleProps): VNode {
+export function ToggleButton(props: ToggleProps): VNode {
+	const size = () => props.size ?? { height: 40, width: 40 }
 	return (
 		<toggle-button
 			class={css.class}
-			style={setCssVars({
-				"--width": `${size.width}px`,
-				"--height": `${size.height}px`,
-			})}
+			style={`--width:${size().width}px;--height:${size().height}px`}
 		>
 			<button
-				aria-controls={ariaControls}
-				aria-expanded={checked}
-				aria-label={ariaLabel}
-				onClick={onClick}
+				aria-controls={props.ariaControls}
+				aria-expanded={props.checked}
+				aria-label={props.ariaLabel}
+				onClick={props.onClick}
 				type="button"
 			>
 				<back-fill aria-hidden="true" />
-				<span aria-hidden="true">{children}</span>
+				<span aria-hidden="true">{props.children}</span>
 			</button>
 		</toggle-button>
 	)

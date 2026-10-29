@@ -1,17 +1,23 @@
 {
 	"extends": "astro/tsconfigs/strict",
-	"include": [".astro/types.d.ts", "**/*"],
-	"exclude": ["dist"],
+	"include": [
+		".astro/types.d.ts",
+		"**/*"
+	],
+	"exclude": [
+		"dist"
+	],
 	"compilerOptions": {
 		"allowImportingTsExtensions": true,
 		"jsx": "react-jsx",
-		"jsxImportSource": "preact",
+		"jsxImportSource": "@atom.io/water",
 		"paths": {
-			"c/*": ["./src/components/*"]
+			"c/*": [
+				"./src/components/*"
+			]
 		},
 		"types": [
-			"lasertag/css-modules",
-			"lasertag/preact-jsx"
+			"lasertag/css-modules"
 		]
 	}
 }

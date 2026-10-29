@@ -39,6 +39,19 @@ function fixture() {
 	return { silo, countAtom, host, mount }
 }
 describe(`water compiled DOM`, () => {
+	it(`keeps explicit numeric keys distinct from unkeyed positions`, () => {
+		const host = document.createElement(`section`)
+		const setup = () => (
+			<article>
+				{[null, <span key={0}>zero</span>, `text`, <span key={2}>two</span>]}
+			</article>
+		)
+		host.innerHTML = renderToString(setup)
+		const root = hydrate(setup, host)
+		roots.push(root)
+		expect(host.textContent).toBe(`zerotexttwo`)
+	})
+
 	it(`runs setup once and tracks JSX calls, including helper functions`, async () => {
 		const { silo, countAtom, host, mount } = fixture()
 		const setup = vi.fn()

@@ -1,0 +1,155 @@
+main[data-css="water-devtools"] {
+	position: fixed;
+	z-index: 10000;
+	right: 12px;
+	bottom: 12px;
+	width: min(500px, calc(100vw - 24px));
+	max-height: calc(100dvh - 24px);
+	color: #e6e6e6;
+	background: #18191c;
+	border: 1px solid #56585f;
+	border-radius: 8px;
+	box-shadow: 0 8px 36px #0008;
+	font: 13px/1.4 ui-monospace, monospace;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	text-align: left;
+	color-scheme: dark;
+	&[hidden] {
+		display: none;
+	}
+	&, * {
+		box-sizing: border-box;
+	}
+	* {
+		color: inherit;
+		font: inherit;
+		margin: 0;
+		padding: 0;
+	}
+	h2, h3, p {
+		margin: 0;
+		font-size: inherit;
+	}
+	h2, h3, strong {
+		overflow-wrap: anywhere;
+	}
+	button, input, select {
+		font: inherit;
+		color: inherit;
+		background: #25272b;
+		border: 1px solid #56585f;
+		border-radius: 3px;
+		padding: 3px 6px;
+		min-width: 0;
+	}
+	button {
+		cursor: pointer;
+	}
+	button:disabled {
+		cursor: default;
+		opacity: 0.4;
+	}
+	button[aria-pressed="true"] {
+		background: #30506a;
+	}
+	input[type="text"], input:not([type]) {
+		width: 100%;
+	}
+	input[readonly] {
+		border-color: transparent;
+	}
+	input[type="checkbox"] {
+		accent-color: #64c9e5;
+	}
+	button:focus-visible, input:focus-visible, select:focus-visible {
+		outline: 2px solid #64c9e5;
+		outline-offset: 1px;
+	}
+	header, nav, footer {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+	header > h2, header > h3 {
+		flex: 1;
+	}
+	.toolbar, nav {
+		padding: 8px;
+		border-bottom: 1px solid #56585f;
+	}
+	.toolbar > strong {
+		flex: 1;
+	}
+	.drag-handle {
+		touch-action: none;
+		cursor: move;
+	}
+	nav button {
+		flex: 1;
+	}
+	small {
+		color: #adb3be;
+	}
+	.index {
+		overflow: auto;
+		padding: 8px;
+		min-height: 0;
+	}
+	.node, .state-leaf, .event {
+		padding: 6px;
+		border: 1px solid #3c3f45;
+		border-radius: 3px;
+		margin-block: 4px;
+	}
+	.json-editor {
+		padding-top: 4px;
+		min-width: 0;
+	}
+	.json-editor > header {
+		align-items: start;
+	}
+	.json-editor > header > code {
+		white-space: nowrap;
+		text-overflow: ellipsis;
+		overflow: hidden;
+		max-width: 100%;
+	}
+	.primitive {
+		flex: 1;
+		min-width: 0;
+	}
+	.properties, .impact {
+		margin-left: 8px;
+		padding-left: 8px;
+		border-left: 1px solid #56585f;
+	}
+	.property {
+		padding-block: 6px;
+	}
+	.property > header > input {
+		width: auto;
+		flex: 1;
+	}
+	.event code, .event p {
+		overflow-wrap: anywhere;
+	}
+	.event {
+		font-size: 12px;
+	}
+	ins {
+		color: #8fce9a;
+	}
+	del {
+		color: #ee9c9c;
+	}
+	.you-are-here {
+		color: #64c9e5;
+		padding: 5px;
+	}
+	[role="alert"] {
+		color: #ffb4a9;
+		padding: 8px;
+	}
+}

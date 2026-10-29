@@ -864,7 +864,7 @@ importers:
         version: 1.64.1
       preact:
         specifier: 11.1.0
-        version: 11.1.0(preact-render-to-string@6.8.1)
+        version: 11.1.0(preact-render-to-string@6.8.2)
       rolldown:
         specifier: 1.2.15
         version: 1.2.15
@@ -13763,7 +13763,7 @@ snapshots:
 
   preact-render-to-string@6.8.2(preact@11.1.0):
     dependencies:
-      preact: 11.1.0(preact-render-to-string@6.8.1)
+      preact: 11.1.0(preact-render-to-string@6.8.2)
     optional: true
 
   preact@11.1.0(preact-render-to-string@6.8.2):

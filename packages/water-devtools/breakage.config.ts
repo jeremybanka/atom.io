@@ -15,7 +15,7 @@ const config: BreakageConfig = defineConfig({
 		artifact: `.breakage/package.tgz`,
 		representatives: `peer-environments/*`,
 		lockfile: `pnpm-lock.yaml`,
-		prepareCommand: `pnpm install --ignore-workspace --frozen-lockfile --ignore-scripts`,
+		prepareCommand: `pnpm install --frozen-lockfile --ignore-scripts`,
 		suites: { "atom.io": suite, "@atom.io/water": suite },
 		localPeers: {
 			"atom.io": {

@@ -94,6 +94,43 @@ try {
 				.querySelector(`site-directory`)
 				?.getAttribute(`data-user-has-toggled`) === `true`,
 	)
+	const panel = page.locator(`[data-testid="atom-io-devtools"]`)
+	await page.locator(`button[aria-label="Expand headings"]`).click()
+	await page.locator(`button[aria-label="Expand 0"]`).click()
+	const rowHeights = await panel
+		.locator(`.state-leaf > .json-editor > header`)
+		.evaluateAll((rows) => rows.map((row) => row.getBoundingClientRect().height))
+	assert.ok(rowHeights.length >= 4)
+	assert.ok(
+		rowHeights.every((height) => height === 22),
+		`State rows must retain the original 22px density: ${rowHeights.join(`, `)}`,
+	)
+	const nestedHeights = await panel
+		.locator(`.property > .json-editor > header`)
+		.evaluateAll((rows) => rows.map((row) => row.getBoundingClientRect().height))
+	assert.ok(nestedHeights.length > 20)
+	assert.ok(
+		nestedHeights.every((height) => height === 21),
+		`Nested JSON rows must be 21px: ${nestedHeights.join(`, `)}`,
+	)
+	assert.equal(
+		await panel
+			.locator(`.toolbar`)
+			.evaluate((element) => element.getBoundingClientRect().height),
+		28,
+	)
+	await page.emulateMedia({ colorScheme: `dark` })
+	assert.equal(
+		await panel.evaluate((element) => getComputedStyle(element).backgroundColor),
+		`rgb(17, 17, 17)`,
+	)
+	await panel.screenshot({ path: `/tmp/water-devtools-dense-dark.png` })
+	await page.emulateMedia({ colorScheme: `light` })
+	assert.equal(
+		await panel.evaluate((element) => getComputedStyle(element).backgroundColor),
+		`rgb(221, 221, 221)`,
+	)
+	await panel.screenshot({ path: `/tmp/water-devtools-dense-light.png` })
 	const handle = page.locator(`button[aria-label="Move debugger"]`)
 	const bounds = await handle.boundingBox()
 	await page.mouse.move(
@@ -188,7 +225,7 @@ try {
 	)
 	assert.deepEqual(errors, [])
 	console.log(
-		`Site browser checks passed: hydration, code copying, shared-store editing, pointer dragging, persisted navigation, mobile menu, Three.js lifecycle, fresh navigation, reload.`,
+		`Site browser checks passed: compact rows and themes, hydration, code copying, shared-store editing, pointer dragging, persisted navigation, mobile menu, Three.js lifecycle, fresh navigation, reload.`,
 	)
 } finally {
 	await browser?.close()

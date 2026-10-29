@@ -1,9 +1,17 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
+import type { Loadable } from "atom.io"
 import { Silo } from "atom.io"
 import { Window } from "happy-dom"
-import { hydrate, onCleanup, render, useId, useValue } from "hydrogen"
+import {
+	hydrate,
+	onCleanup,
+	render,
+	useId,
+	useLoadable,
+	useValue,
+} from "hydrogen"
 import astro from "hydrogen/astro"
 import astroClient from "hydrogen/astro-client"
 import astroServer from "hydrogen/astro-server"
@@ -64,5 +72,42 @@ await test(`packed compiler and Astro adapters expose working entrypoints`, asyn
 			Object.assign(() => null, { hydrogen: true }),
 		),
 		true,
+	)
+})
+
+await test(`packed loadable accessor resolves async state in its root store`, async () => {
+	const host = new Window().document.createElement(
+		`section`,
+	) as unknown as HTMLElement
+	const silo = new Silo({
+		name: `loadable-consumer`,
+		lifespan: `ephemeral`,
+		isProduction: true,
+	})
+	const deferred = Promise.withResolvers<string>()
+	const loadableAtom = silo.atom<Loadable<string>>({
+		key: `loadable`,
+		default: () => deferred.promise,
+	})
+	const root = render(
+		() => {
+			const value = useLoadable(loadableAtom, `pending`)
+			return jsx(`output`, { children: () => value().value })
+		},
+		host,
+		{ store: silo.store },
+	)
+	try {
+		assert.equal(host.textContent, `pending`)
+		deferred.resolve(`ready`)
+		await new Promise<void>((resolve) => setTimeout(resolve, 0))
+		root.flush()
+		assert.equal(host.textContent, `ready`)
+	} finally {
+		root.dispose()
+	}
+	assert.equal(
+		silo.store.atoms.get(loadableAtom.key)!.subject.subscribers.size,
+		0,
 	)
 })

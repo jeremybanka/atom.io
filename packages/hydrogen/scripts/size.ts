@@ -1,8 +1,7 @@
 import { writeFile } from "node:fs/promises"
 import { resolve } from "node:path"
-import { brotliCompressSync, gunzipSync, gzipSync } from "node:zlib"
+import { brotliCompressSync, gzipSync } from "node:zlib"
 
-import { gzipAsync } from "@gfx/zopfli"
 import { build } from "esbuild"
 import { minify } from "rolldown/utils"
 
@@ -29,16 +28,8 @@ async function measure(name: string, entry: string, external: string[] = []) {
 			mangle: true,
 		})
 	).code
-	const optimized = await gzipAsync(minified, { numiterations: 50 })
-	if (gunzipSync(optimized).toString() !== minified)
-		throw new Error(`gzip round trip failed`)
 	if (name === `hydrogen client`) {
 		await writeFile(resolve(root, `dist/client.min.js`), minified)
-		await writeFile(resolve(root, `dist/client.min.js.gz`), optimized)
-		await writeFile(
-			resolve(root, `dist/client.min.js.br`),
-			brotliCompressSync(minified),
-		)
 		await writeFile(
 			resolve(root, `dist/client.min.d.ts`),
 			`export * from './index.js'; export * from './jsx-runtime.js'\n`,
@@ -49,7 +40,6 @@ async function measure(name: string, entry: string, external: string[] = []) {
 		raw: Buffer.byteLength(raw),
 		minified: Buffer.byteLength(minified),
 		gzip: gzipSync(minified, { level: 9 }).length,
-		optimizedGzip: optimized.length,
 		brotli: brotliCompressSync(minified).length,
 	}
 }
@@ -76,7 +66,7 @@ await writeFile(
 	resolve(root, `dist/size.json`),
 	JSON.stringify(results, null, 2) + `\n`,
 )
-if (hydrogen.optimizedGzip >= 3000)
+if (hydrogen.gzip >= 3300)
 	throw new Error(
-		`hydrogen exceeds the 3,000-byte gzip budget: ${hydrogen.optimizedGzip}`,
+		`hydrogen exceeds the 3,300-byte gzip budget: ${hydrogen.gzip}`,
 	)

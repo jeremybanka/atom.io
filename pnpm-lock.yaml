@@ -597,9 +597,6 @@ importers:
       '@breakage/changesets':
         specifier: 0.1.0
         version: 0.1.0(breakage@0.10.1(supports-color@10.2.2)(zod@4.6.7))
-      '@gfx/zopfli':
-        specifier: 1.0.15
-        version: 1.0.15
       '@types/babel__core':
         specifier: 7.20.5
         version: 7.20.5
@@ -2336,10 +2333,6 @@ packages:
 
   '@floating-ui/utils@0.2.12':
     resolution: {integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==}
-
-  '@gfx/zopfli@1.0.15':
-    resolution: {integrity: sha512-7mBgpi7UD82fsff5ThQKet0uBTl4BYerQuc+/qA1ELTwWEiIedRTcD3JgiUu9wwZ2kytW8JOb165rSdAt8PfcQ==}
-    engines: {node: '>= 8'}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -4868,9 +4861,6 @@ packages:
   balanced-match@4.0.4:
     resolution: {integrity: sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA==}
     engines: {node: 18 || 20 || >=22}
-
-  base64-js@1.5.1:
-    resolution: {integrity: sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==}
 
   baseline-browser-mapping@2.11.23:
     resolution: {integrity: sha512-le521dGVfxM7yRX0EikCoSz+rOK+hHzdDt/E7mG1jOJB/6WAAUuwVroLwaB7ApaUsz5Q0kFlDXLSA9MheUIfRQ==}
@@ -9010,10 +9000,6 @@ snapshots:
 
   '@floating-ui/utils@0.2.12': {}
 
-  '@gfx/zopfli@1.0.15':
-    dependencies:
-      base64-js: 1.5.1
-
   '@humanfs/core@0.19.2':
     dependencies:
       '@humanfs/types': 0.15.0
@@ -11532,8 +11518,6 @@ snapshots:
   bail@2.0.2: {}
 
   balanced-match@4.0.4: {}
-
-  base64-js@1.5.1: {}
 
   baseline-browser-mapping@2.11.23: {}
 

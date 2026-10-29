@@ -64,17 +64,18 @@ Outside Astro, the server entrypoint provides renderToString and the browser ent
 
 ## component API
 
-| API            | Purpose                                                                                |
-| -------------- | -------------------------------------------------------------------------------------- |
-| useValue       | Capture a readable token and return its tracked accessor.                              |
-| useSetter      | Capture a writable token and return a store-bound writer.                              |
-| useTimeline    | Read timeline metadata and access undo, redo, clear, and transaction-group controls.   |
-| useTransaction | Bind an atom.io transaction while preserving its arguments and result.                 |
-| useRef         | Publish an attached element into a nullable atom and release the reference on unmount. |
-| useId          | Allocate a stable ID for the component instance, shared by SSR and hydration.          |
-| onMount        | Run once after DOM attachment and ref publication; does not run during SSR.            |
-| onCleanup      | Release owned resources when the component or root is disposed.                        |
-| untrack        | Read state without adding dependencies to the current DOM computation.                 |
+| API            | Purpose                                                                                              |
+| -------------- | ---------------------------------------------------------------------------------------------------- |
+| useLoadable    | Read loading state, retain the last observed value during refresh, and optionally supply a fallback. |
+| useValue       | Capture a readable token and return its tracked accessor.                                            |
+| useSetter      | Capture a writable token and return a store-bound writer.                                            |
+| useTimeline    | Read timeline metadata and access undo, redo, clear, and transaction-group controls.                 |
+| useTransaction | Bind an atom.io transaction while preserving its arguments and result.                               |
+| useRef         | Publish an attached element into a nullable atom and release the reference on unmount.               |
+| useId          | Allocate a stable ID for the component instance, shared by SSR and hydration.                        |
+| onMount        | Run once after DOM attachment and ref publication; does not run during SSR.                          |
+| onCleanup      | Release owned resources when the component or root is disposed.                                      |
+| untrack        | Read state without adding dependencies to the current DOM computation.                               |
 
 Call setup helpers synchronously during component setup or owned mount callbacks, then capture their results for event handlers. DOM computations should only read state. Use event handlers and atom.io transactions for writes.
 
@@ -83,6 +84,14 @@ Arrays support keyed components and elements. Stable, unique keys retain compone
 Hydrogen uses native DOM events, including onInput for input changes and onChange for browser change semantics. Styles are CSS strings. Ordinary callback refs are supported alongside useRef, which stores its attached element in atom.io.
 
 Standard HTML and SVG tags have element-specific attributes, callback refs, and event currentTarget types. Ref callbacks receive null on cleanup. Hyphenated custom tags use generic HTML attributes and HTMLElement types. Event target remains EventTarget because events can bubble from descendants. SVG presentation attributes use literal markup spellings, and tag names shared with HTML use HTML types.
+
+## async state
+
+<Exhibit src="hydrogen/exhibits/loadable.tsx" />
+
+Call useLoadable during setup, then call its accessor inside JSX. Without a fallback, it returns LOADING until it observes a settled value; afterward it returns loading and value, retaining the last observed value during refreshes. With a fallback, it always returns an object and exposes errors declared in the token's catch option through a separate error property. The fallback and error remain visible during retries. Without a fallback, handled errors appear in value. Explicit null and undefined fallbacks are supported when permitted by the token's type.
+
+Readable families take a fixed key as the second argument and an optional fallback as the third. Atom.io owns promise settlement; Hydrogen does not fetch, retry, cancel, or suspend rendering. Server rendering returns the current view immediately without awaiting promises.
 
 ## debugger
 

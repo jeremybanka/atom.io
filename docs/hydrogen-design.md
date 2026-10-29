@@ -17,6 +17,7 @@ The [PointEditor exhibit](../packages/hydrogen/exhibits/point.tsx) demonstrates 
 | API            | Responsibility                                                                                       |
 | -------------- | ---------------------------------------------------------------------------------------------------- |
 | useValue       | Capture a readable token and store; return a tracked accessor.                                       |
+| useLoadable    | Observe loadable state through a tracked accessor, with optional fallback and last-observed values.  |
 | useSetter      | Capture a writable token and store; return a writer.                                                 |
 | useTimeline    | Read timeline metadata and undo/redo/clear controls, including available transaction-group controls. |
 | useRef         | Publish an attached element into a nullable atom and release only the attachment this instance owns. |
@@ -26,7 +27,7 @@ The [PointEditor exhibit](../packages/hydrogen/exhibits/point.tsx) demonstrates 
 | onMount        | Run once after attachment and ref publication, including branches added by later updates.            |
 | untrack        | Temporarily disable dependency collection while retaining the current owner.                         |
 
-The first six names are the agreed core. The implementation also includes the three previously discussed candidates: transaction commands preserve store scoping, onMount gives work involving several refs a reliable attachment point, and untrack makes intentional snapshots within reactive expressions explicit.
+The core helpers capture the component store and ownership. Transaction commands preserve store scoping, onMount gives work involving several refs a reliable attachment point, and untrack makes intentional snapshots within reactive expressions explicit. useLoadable adapts atom.io promise state without adding a separate subscription or promise lifecycle; the [async state exhibit](../packages/hydrogen/exhibits/loadable.tsx) demonstrates its tracked accessor.
 
 ## Atom.io controls the view
 
@@ -48,7 +49,7 @@ Vite transforms JSX before its ordinary TypeScript transform and uses full page 
 
 ## Budget and validation
 
-The hard build check targets an emitted, precompressed client artifact under 3,000 bytes, including every public client export and the JSX runtime, with atom.io external as a peer. The [audit](../packages/hydrogen/scripts/size.ts) reports raw, minified, ordinary gzip, optimized gzip, and Brotli sizes, and also reports atom.io-inclusive and Astro client bundles and the installed Preact core under identical settings. The optimized gzip artifact uses Zopfli and is verified by decompression. Ordinary server gzip can be larger than the 3,000-byte target; the README records both figures. Application code and the atom.io peer remain additional costs. This is a size budget, not a feature-equivalence or performance claim about Preact or Solid.
+The hard build check targets ordinary level-9 gzip under 3,300 bytes, including every public client export and the JSX runtime, with atom.io external as a peer. The [audit](../packages/hydrogen/scripts/size.ts) reports raw, minified, gzip, and Brotli sizes using Node's compression implementations, and also reports atom.io-inclusive and Astro client bundles and the installed Preact core under identical settings. Application code and the atom.io peer remain additional costs. This is a size budget, not a feature-equivalence or performance claim about Preact or Solid.
 
 Tests cover setup counts, tracked helpers, conditional dependencies, keyed ownership and focus, refs, stores, transactions, timelines, errors, cleanup, compiler branding, SSR, hydration, raw text, and slots. A production test executes the audited minified JavaScript. A real Chromium test exercises the built Astro site, including multiple initialized islands, client-only mounting, SVG foreignObject hydration, keyed input selection, and unmount cleanup.
 

@@ -20,3 +20,5 @@ export {
 export type { HydrogenRoot } from "./dom.ts"
 export { hydrate, render } from "./dom.ts"
 export { Fragment } from "./jsx-runtime.ts"
+export type { LoadableValue } from "./use-loadable.ts"
+export { useLoadable } from "./use-loadable.ts"

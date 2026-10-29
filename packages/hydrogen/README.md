@@ -90,17 +90,18 @@ The development plugin keeps Hydrogen and atom.io outside dependency prebundling
 
 ## Component API
 
-| API                   | Contract                                                                                                                 |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| useValue(token)       | Return a live accessor for an atom or selector, bound to this instance's store.                                          |
-| useSetter(token)      | Return a stable atom.io writer.                                                                                          |
-| useTimeline(token)    | Return an accessor for at, length, undo, redo, clear, and available grouped transaction controls.                        |
-| useTransaction(token) | Bind an atom.io transaction, preserving its arguments and result.                                                        |
-| useRef(token)         | Return an attachment callback for a nullable element atom. Clear it only while this attachment still owns the reference. |
-| useId()               | Allocate an instance-stable ID using the root's prefix.                                                                  |
-| onCleanup(callback)   | Register synchronous teardown with the current owner.                                                                    |
-| onMount(callback)     | Run once after attachment and ref publication; omitted during server rendering.                                          |
-| untrack(callback)     | Read current state without adding dependencies to the surrounding computation.                                           |
+| API                           | Contract                                                                                                                 |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| useLoadable(token, fallback?) | Return a tracked accessor for loading, last-observed values, and handled errors.                                         |
+| useValue(token)               | Return a live accessor for an atom or selector, bound to this instance's store.                                          |
+| useSetter(token)              | Return a stable atom.io writer.                                                                                          |
+| useTimeline(token)            | Return an accessor for at, length, undo, redo, clear, and available grouped transaction controls.                        |
+| useTransaction(token)         | Bind an atom.io transaction, preserving its arguments and result.                                                        |
+| useRef(token)                 | Return an attachment callback for a nullable element atom. Clear it only while this attachment still owns the reference. |
+| useId()                       | Allocate an instance-stable ID using the root's prefix.                                                                  |
+| onCleanup(callback)           | Register synchronous teardown with the current owner.                                                                    |
+| onMount(callback)             | Run once after attachment and ref publication; omitted during server rendering.                                          |
+| untrack(callback)             | Read current state without adding dependencies to the surrounding computation.                                           |
 
 Call setup helpers synchronously during component setup or owned mount callbacks. Capture their results for event handlers. Tokens are fixed for an instance; use an application key in a reactive child expression to replace a component when its token changes. Component props stay live when read through the props object; destructuring during setup takes a snapshot.
 
@@ -109,6 +110,46 @@ Arrays support keyed components and elements. Reordering preserves instances and
 HTML and SVG use native DOM properties and attributes, plus className/htmlFor aliases. Events use onClick/onInput-style names, with Capture suffixes and onDoubleClick support. Styles are CSS strings. Mutable atom values still invalidate their consumers; project primitive fields for precise DOM writes. Refs attach once per element instance.
 
 HTML and SVG tags have element-specific attribute, event, and ref types. Event handlers receive native events with currentTarget typed as the attached element; target remains EventTarget because events can bubble from descendants. Ref callbacks receive the element on attachment and null on cleanup. Hyphenated custom tags use generic HTML attributes and HTMLElement refs and event targets. SVG presentation attributes use their literal markup spellings. Shared HTML/SVG tag names use HTML types because JSX cannot infer a namespace from parent elements.
+
+## Async state
+
+```tsx
+import type { Loadable } from "atom.io"
+import { atom } from "atom.io"
+import type { VNode } from "hydrogen"
+import { useLoadable, useSetter } from "hydrogen"
+
+const greetingAtom = atom<Loadable<string>, Error>({
+	key: `greeting`,
+	default: () => Promise.resolve(`Hello`),
+	catch: [Error],
+})
+
+export function Greeting(): VNode {
+	const greeting = useLoadable(greetingAtom, `Loading…`)
+	const setGreeting = useSetter(greetingAtom)
+	return (
+		<section aria-busy={greeting().loading}>
+			<p>{greeting().value}</p>
+			{greeting().error && <p role="alert">{greeting().error?.message}</p>}
+			<button
+				onClick={() => {
+					setGreeting(Promise.resolve(`Hello again`))
+				}}
+			>
+				Refresh
+			</button>
+		</section>
+	)
+}
+
+```
+
+Call useLoadable during setup and read its accessor inside JSX. It also accepts a readable family and fixed key, with an optional third fallback argument. Without a fallback, the accessor returns LOADING until it observes a settled value, then an object containing loading and value. Refreshes retain the last observed value while loading. Null, undefined, and the literal string LOADING are valid settled values.
+
+With a fallback, the accessor always returns an object. The fallback is used for initial loading and for errors declared in the token's catch option; handled errors appear separately in error. During a retry after an error, the fallback and error remain visible until a new value settles. An explicitly supplied null or undefined counts as a fallback when the token's value type permits it. Without a fallback, handled errors appear in value. Unexpected errors follow atom.io's normal error handling.
+
+Atom.io owns promise settlement and subscriptions. Hydrogen adds no fetching, retries, cancellation, or suspense. Reads during setup are snapshots; calls inside JSX track state. Family keys are fixed for a component instance. Server rendering returns the current loading or settled view immediately and does not await promises.
 
 ## Rendering and ownership
 
@@ -188,9 +229,9 @@ The checked Astro fixture demonstrates default/named slots and multiple independ
 
 The build audits every browser export, including the JSX runtime, from the built JavaScript. Atom.io is an external peer in the incremental measurement. Compiler, server, and integration code have separate entrypoints. The report also includes the complete client plus atom.io, the Astro client entrypoint, and the installed Preact version under the same bundling/minification settings. These are full exported surfaces, not equivalent application benchmarks.
 
-The hard budget is under 3,000 bytes for dist/client.min.js.gz, an actual precompressed gzip artifact. The build bundles with esbuild, minifies with Oxc, and compresses with Zopfli (50 iterations), then verifies decompression. Ordinary Node gzip at level 9 and Brotli are reported separately. The hydrogen client measures 2,996 bytes with optimized gzip and 3,042 bytes with ordinary gzip; an ordinary gzip server does **not** meet the 3,000-byte limit. Serving the emitted precompressed artifact or applying equivalent precompression is necessary for that figure. Actual application bundles add atom.io and compiler-generated application code.
+The hard budget is under 3,300 bytes of ordinary level-9 gzip for the complete client export surface. The build bundles with esbuild and minifies with Oxc, then measures compression using Node's gzip and Brotli implementations. The hydrogen client measures 3,245 bytes with gzip. Actual application bundles add atom.io and compiler-generated application code.
 
-Build output includes the minified audit entrypoint, gzip/Brotli artifacts, and machine-readable dist/size.json. These audit files are a bundled measurement; use the package exports in applications so the bundler preserves one runtime instance across entrypoints. Source tests exercise development behavior; the production test executes the audited minified artifact. Chromium checks exercise the actual Astro build, island isolation, hydration, keyed identity, focus/selection, SVG namespaces, and teardown. A fresh-cache Astro development check also covers mount hooks, shared state, and ClientRouter navigation.
+Build output includes the minified audit entrypoint and machine-readable dist/size.json. These audit files are a bundled measurement; use the package exports in applications so the bundler preserves one runtime instance across entrypoints. Source tests exercise development behavior; the production test executes the audited minified artifact. Chromium checks exercise the actual Astro build, island isolation, hydration, keyed identity, focus/selection, SVG namespaces, and teardown. A fresh-cache Astro development check also covers mount hooks, shared state, and ClientRouter navigation.
 
 ```sh
 pnpm --filter hydrogen build
@@ -209,7 +250,7 @@ pnpm --filter hydrogen readme:check
 
 Breakage exercises the packed package in isolated, locked peer environments, including the coordinated atom.io workspace candidate. Until the first published release, Breakage reports a first-release baseline; these checks establish compatibility with the declared peers rather than a previous hydrogen release. Coverage gates require 100% of statements, branches, functions, and lines across the package source.
 
-Tonnage measures combined browser bundles containing Hydrogen and atom.io, with shared modules counted once and unused exports removed. Each recipe includes atom creation, useValue, useSetter, and JSX; the client recipe adds render, the hydration recipe adds hydrate, and the Astro recipe adds the browser island adapter. Hydrogen declares atom.io as a peer dependency; these consumer-app measurements include it in every total. Application components, Astro scheduling code, CSS, declarations, and source maps are excluded. The full-client optimized-gzip budget above remains a separate, Hydrogen-only audit.
+Tonnage measures combined browser bundles containing Hydrogen and atom.io, with shared modules counted once and unused exports removed. The synchronous recipes include atom creation, useValue, useSetter, and JSX; the client recipe adds render, the hydration recipe adds hydrate, and the Astro recipe adds the browser island adapter. The async recipe uses useLoadable with render and useSetter. Hydrogen declares atom.io as a peer dependency; these consumer-app measurements include it in every total. Application components, Astro scheduling code, CSS, declarations, and source maps are excluded. The full-client gzip budget above remains a separate, Hydrogen-only audit.
 
 ## Browser serving sizes including atom.io
 
@@ -217,11 +258,12 @@ Usage example sizes bundle their entry files and tree-shake unused exports.
 
 Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, source maps, CSS, and other assets are excluded. Imported peer dependencies are bundled unless explicitly external, and shared modules are counted once per bundle.
 
-| Recipe                   | Entry                             | Minified JS |  Gzip JS |
-| ------------------------ | --------------------------------- | ----------: | -------: |
-| Interactive client app   | `tonnage-recipes/client-app.ts`   |    38,949 B | 12,095 B |
-| Hydrated interactive app | `tonnage-recipes/hydrated-app.ts` |    38,950 B | 12,094 B |
-| Interactive Astro island | `tonnage-recipes/astro-island.ts` |    42,778 B | 13,260 B |
+| Recipe                       | Entry                             | Minified JS |  Gzip JS |
+| ---------------------------- | --------------------------------- | ----------: | -------: |
+| Async interactive client app | `tonnage-recipes/async-app.ts`    |    39,284 B | 12,253 B |
+| Interactive client app       | `tonnage-recipes/client-app.ts`   |    38,949 B | 12,095 B |
+| Hydrated interactive app     | `tonnage-recipes/hydrated-app.ts` |    38,950 B | 12,094 B |
+| Interactive Astro island     | `tonnage-recipes/astro-island.ts` |    42,778 B | 13,259 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

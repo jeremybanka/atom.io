@@ -1,6 +1,7 @@
 /* eslint-disable import/extensions -- This test executes built ESM directly in Node, which requires extensions. */
 import assert from "node:assert/strict"
 
+import type { Loadable } from "atom.io"
 import { Silo } from "atom.io"
 import { Window } from "happy-dom"
 
@@ -10,6 +11,7 @@ import {
 	onCleanup,
 	render,
 	useId,
+	useLoadable,
 	useSetter,
 	useValue,
 } from "../dist/client.min.js"
@@ -66,6 +68,27 @@ const hydrated = hydrate(
 assert.equal(host.querySelector(`p`), paragraph)
 hydrated.dispose()
 assert.equal(host.childNodes.length, 0)
+const deferred = Promise.withResolvers<string>()
+const loadableAtom = silo.atom<Loadable<string>>({
+	key: `loadable`,
+	default: () => deferred.promise,
+})
+const asyncRoot = render(
+	() => {
+		const value = useLoadable(loadableAtom, `pending`)
+		return jsx(`output`, { children: () => value().value })
+	},
+	host as unknown as Element,
+	{ store: silo.store },
+)
+assert.equal(host.textContent, `pending`)
+deferred.resolve(`ready`)
+await new Promise<void>((resolve) => setTimeout(resolve, 0))
+asyncRoot.flush()
+assert.equal(host.textContent, `ready`)
+asyncRoot.dispose()
+assert.equal(silo.store.atoms.get(loadableAtom.key)!.subject.subscribers.size, 0)
+
 console.log(
-	`Audited production artifact: state, events, ownership, IDs, cleanup and hydration passed.`,
+	`Audited production artifact: state, events, ownership, IDs, loadable state, cleanup and hydration passed.`,
 )

@@ -60,6 +60,7 @@ export function HydrogenLogo({ variant = `mark` }: HydrogenLogoProps): VNode {
 				width,
 				height,
 				ratio,
+				elapsed,
 				variant === `background` ? elapsed / 3 : elapsed,
 			)
 			renderer.render(model.scene, model.camera)

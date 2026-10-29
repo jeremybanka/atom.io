@@ -153,7 +153,13 @@ export function createHydrogenCloud() {
 		scene,
 		camera,
 		uniforms,
-		update(width: number, height: number, pixelRatio: number, elapsed: number) {
+		update(
+			width: number,
+			height: number,
+			pixelRatio: number,
+			elapsed: number,
+			rotationElapsed = elapsed,
+		) {
 			uniforms.uResolution.value.set(width, height)
 			uniforms.uTime.value = elapsed
 			uniforms.uPixelRatio.value = pixelRatio
@@ -161,7 +167,7 @@ export function createHydrogenCloud() {
 			camera.left = (-2.7 * width) / height
 			camera.right = (2.7 * width) / height
 			camera.updateProjectionMatrix()
-			points.rotation.y = elapsed * 0.36
+			points.rotation.y = rotationElapsed * 0.36
 			uniforms.uSize.value = height < 60 ? 0.85 : (1.6 * height) / 260
 			pointGeometry.setDrawRange(
 				0,

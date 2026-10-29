@@ -1,6 +1,7 @@
 import { useI, useO } from "@atom.io/react"
 import { atom } from "atom.io"
 import { storageSync } from "atom.io/web"
+import type { ReactNode } from "react"
 
 import { PreferenceToggle } from "./views.tsx"
 
@@ -19,7 +20,7 @@ const collapsedAtom = atom<boolean>({
 		),
 	],
 })
-export function SidebarPreference() {
+export function SidebarPreference(): ReactNode {
 	const collapsed = useO(collapsedAtom)
 	const setCollapsed = useI(collapsedAtom)
 	return <PreferenceToggle checked={collapsed} onChange={setCollapsed} />

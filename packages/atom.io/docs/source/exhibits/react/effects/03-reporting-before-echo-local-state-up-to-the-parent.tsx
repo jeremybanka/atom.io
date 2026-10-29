@@ -1,12 +1,22 @@
+import type { ReactNode } from "react"
 import { useEffect, useState } from "react"
 
-export function Toggle({ onChange }: { onChange: (enabled: boolean) => void }) {
+export function Toggle({
+	onChange,
+}: {
+	onChange: (enabled: boolean) => void
+}): ReactNode {
 	const [enabled, setEnabled] = useState(false)
 	useEffect(() => {
 		onChange(enabled)
 	}, [enabled, onChange])
 	return (
-		<button type="button" onClick={() => setEnabled(!enabled)}>
+		<button
+			type="button"
+			onClick={() => {
+				setEnabled(!enabled)
+			}}
+		>
 			{String(enabled)}
 		</button>
 	)

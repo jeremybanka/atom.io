@@ -1,5 +1,6 @@
 import { useI, useLoadable, useO } from "@atom.io/react"
 import { atom, atomFamily, type Loadable, setState } from "atom.io"
+import type { ReactNode } from "react"
 
 import { debounce } from "./helpers.ts"
 import { type Product, searchProducts } from "./services.ts"
@@ -14,11 +15,12 @@ const queryAtom = atom<string>({
 	default: ``,
 	effects: [
 		({ onSet }) => {
-			const settle = debounce(
-				(query: string) => setState(settledQueryAtom, query),
-				300,
-			)
-			onSet(({ newValue }) => settle(newValue))
+			const settle = debounce((query: string) => {
+				setState(settledQueryAtom, query)
+			}, 300)
+			onSet(({ newValue }) => {
+				settle(newValue)
+			})
 			return settle.cancel
 		},
 	],
@@ -28,7 +30,7 @@ const resultAtoms = atomFamily<Loadable<Product[]>, string, Error>({
 	default: searchProducts,
 	catch: [Error],
 })
-export function Search() {
+export function Search(): ReactNode {
 	const query = useO(queryAtom)
 	const settledQuery = useO(settledQueryAtom)
 	const setQuery = useI(queryAtom)

@@ -1,6 +1,7 @@
+import type { ReactNode } from "react"
 import { useEffect, useState } from "react"
 
-export function Greeting() {
+export function Greeting(): ReactNode {
 	const [didMount, setDidMount] = useState(false)
 	useEffect(() => {
 		setDidMount(true)

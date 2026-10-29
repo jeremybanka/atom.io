@@ -1,5 +1,6 @@
 import { useI, useO } from "@atom.io/react"
 import { atomFamily } from "atom.io"
+import type { ReactNode } from "react"
 import { useLayoutEffect, useRef } from "react"
 
 import { MessageList } from "./views.tsx"
@@ -12,7 +13,7 @@ const followingAtoms = atomFamily<boolean, string>({
 	key: `following`,
 	default: true,
 })
-export function Conversation({ roomId }: { roomId: string }) {
+export function Conversation({ roomId }: { roomId: string }): ReactNode {
 	const messages = useO(messageAtoms, roomId)
 	const following = useO(followingAtoms, roomId)
 	const setFollowing = useI(followingAtoms, roomId)

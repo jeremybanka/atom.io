@@ -1,8 +1,9 @@
+import type { ReactNode } from "react"
 import { useEffect, useRef, useState } from "react"
 
 import { MessageList } from "./views.tsx"
 
-export function Conversation({ messages }: { messages: string[] }) {
+export function Conversation({ messages }: { messages: string[] }): ReactNode {
 	const list = useRef<HTMLDivElement>(null)
 	const [following, setFollowing] = useState(true)
 	useEffect(() => {

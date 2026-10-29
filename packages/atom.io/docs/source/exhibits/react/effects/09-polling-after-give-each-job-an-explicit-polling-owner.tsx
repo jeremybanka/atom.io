@@ -1,5 +1,6 @@
 import { useAtomicRef, useLoadable } from "@atom.io/react"
 import { atomFamily, type Loadable, setState } from "atom.io"
+import type { ReactNode } from "react"
 import { useRef } from "react"
 
 import { pollJob } from "./helpers.ts"
@@ -21,11 +22,15 @@ const pollingAtoms = atomFamily<HTMLOutputElement | null, string>({
 				stop()
 				stop = newValue
 					? pollJob(jobId, {
-							onRequest: (request) => setState(jobAtoms, jobId, request),
+							onRequest: (request) => {
+								setState(jobAtoms, jobId, request)
+							},
 						})
 					: () => {}
 			})
-			return () => stop()
+			return () => {
+				stop()
+			}
 		},
 	],
 })
@@ -38,6 +43,6 @@ function JobProgressView({ jobId }: { jobId: string }) {
 		</output>
 	)
 }
-export function JobProgress({ jobId }: { jobId: string }) {
+export function JobProgress({ jobId }: { jobId: string }): ReactNode {
 	return <JobProgressView key={jobId} jobId={jobId} />
 }

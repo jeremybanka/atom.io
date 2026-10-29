@@ -1,8 +1,9 @@
+import type { ReactNode } from "react"
 import { useEffect, useRef, useState } from "react"
 
 import { createMap } from "./services.ts"
 
-export function MapView() {
+export function MapView(): ReactNode {
 	const node = useRef<HTMLDivElement>(null)
 	const map = useRef<ReturnType<typeof createMap> | null>(null)
 	const [zoom, setZoom] = useState(1)
@@ -20,7 +21,12 @@ export function MapView() {
 	return (
 		<>
 			<div ref={node} />
-			<button type="button" onClick={() => setZoom(zoom + 1)}>
+			<button
+				type="button"
+				onClick={() => {
+					setZoom(zoom + 1)
+				}}
+			>
 				Zoom in
 			</button>
 		</>

@@ -1,5 +1,6 @@
 import { useO } from "@atom.io/react"
 import { atom, runTransaction, selector, transaction } from "atom.io"
+import type { ReactNode } from "react"
 
 const scoreAtom = atom<number>({ key: `score`, default: 0 })
 const roundAtom = atom<number>({ key: `round`, default: 1 })
@@ -17,12 +18,18 @@ const scorePointTransaction = transaction<() => void>({
 	},
 })
 const scorePoint = runTransaction(scorePointTransaction)
-export function Game() {
+export function Game(): ReactNode {
 	const score = useO(scoreAtom)
 	const round = useO(roundAtom)
 	const finished = useO(finishedSelector)
 	return (
-		<button type="button" disabled={finished} onClick={() => scorePoint()}>
+		<button
+			type="button"
+			disabled={finished}
+			onClick={() => {
+				scorePoint()
+			}}
+		>
 			Round {round}: {score}
 		</button>
 	)

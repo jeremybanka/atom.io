@@ -1,12 +1,18 @@
 import { useO } from "@atom.io/react"
 import { atom, selectorFamily } from "atom.io"
+import type { ReactNode } from "react"
 
 import { every } from "./every.ts"
 
 const clockAtom = atom<number>({
 	key: `clock`,
 	default: () => Date.now(),
-	effects: [({ setSelf }) => every(1000, () => setSelf(Date.now()))],
+	effects: [
+		({ setSelf }) =>
+			every(1000, () => {
+				setSelf(Date.now())
+			}),
+	],
 })
 const ageSelectors = selectorFamily<number, number>({
 	key: `age`,
@@ -15,7 +21,7 @@ const ageSelectors = selectorFamily<number, number>({
 		({ get }) =>
 			Math.floor((get(clockAtom) - savedAt) / 1000),
 })
-export function SavedLabel({ savedAt }: { savedAt: number }) {
+export function SavedLabel({ savedAt }: { savedAt: number }): ReactNode {
 	const seconds = useO(ageSelectors, savedAt)
 	return <output>Saved {seconds} seconds ago</output>
 }

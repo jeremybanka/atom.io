@@ -1,5 +1,5 @@
 // Plain views shared by both sides; all state and lifecycle decisions stay in the exhibits.
-import type { RefObject } from "react"
+import type { ReactNode, RefObject } from "react"
 
 import type { Product } from "./services.ts"
 
@@ -13,13 +13,15 @@ export function DraftForm({
 	onChange: (text: string) => void
 	status?: string
 	label?: string
-}) {
+}): ReactNode {
 	return (
 		<>
 			<textarea
 				aria-label={label}
 				value={text}
-				onChange={(event) => onChange(event.currentTarget.value)}
+				onChange={(event) => {
+					onChange(event.currentTarget.value)
+				}}
 			/>
 			{status && <output>{status}</output>}
 		</>
@@ -36,12 +38,14 @@ export function SearchForm({
 	onChange: (query: string) => void
 	results: readonly Product[]
 	failed?: boolean
-}) {
+}): ReactNode {
 	return (
 		<>
 			<input
 				value={query}
-				onChange={(event) => onChange(event.currentTarget.value)}
+				onChange={(event) => {
+					onChange(event.currentTarget.value)
+				}}
 			/>
 			<output>
 				{failed ? `Failed` : results.map((product) => product.name).join(`, `)}
@@ -56,12 +60,14 @@ export function PreferenceToggle({
 }: {
 	checked: boolean
 	onChange: (checked: boolean) => void
-}) {
+}): ReactNode {
 	return (
 		<input
 			type="checkbox"
 			checked={checked}
-			onChange={(event) => onChange(event.currentTarget.checked)}
+			onChange={(event) => {
+				onChange(event.currentTarget.checked)
+			}}
 		/>
 	)
 }
@@ -74,7 +80,7 @@ export function MessageList({
 	listRef: RefObject<HTMLDivElement | null>
 	messages: readonly string[]
 	onFollowChange: (following: boolean) => void
-}) {
+}): ReactNode {
 	return (
 		<div
 			ref={listRef}

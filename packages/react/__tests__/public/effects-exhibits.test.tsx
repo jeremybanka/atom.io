@@ -1,10 +1,11 @@
 import { act, cleanup, fireEvent, render } from "@testing-library/react"
+import { disposeState } from "atom.io"
 import { setTestLogLevel, takeSnapshot } from "atom.io/testing"
 import { hydrateRoot } from "react-dom/client"
 import { renderToString } from "react-dom/server"
 
 import {
-	discardDraft,
+	draftAtoms,
 	DraftEditor,
 } from "../../../atom.io/docs/source/exhibits/react/effects/06-autosave-after-let-the-draft-own-its-saves.tsx"
 import { DraftEditor as ComponentDraftEditor } from "../../../atom.io/docs/source/exhibits/react/effects/06-autosave-before-tie-autosaving-to-component-lifetime.tsx"
@@ -71,6 +72,7 @@ it(`autosaves in order, keeps pending work after unmount, and cancels it on disc
 	expect(save).toHaveBeenCalledTimes(1)
 	await act(async () => {
 		finishFirst()
+		await Promise.resolve()
 	})
 	expect(save).toHaveBeenLastCalledWith(`draft`, `second`)
 	fireEvent.change(view.getByRole(`textbox`), { target: { value: `third` } })
@@ -82,7 +84,7 @@ it(`autosaves in order, keeps pending work after unmount, and cancels it on disc
 		target: { value: `discarded` },
 	})
 	reopened.unmount()
-	discardDraft(`draft`)
+	disposeState(draftAtoms, `draft`)
 	await vi.advanceTimersByTimeAsync(400)
 	expect(save).toHaveBeenCalledTimes(3)
 })
@@ -107,10 +109,12 @@ it(`shares account loads without displaying an obsolete account after switching 
 	expect(load).toHaveBeenCalledExactlyOnceWith(`first`)
 	await act(async () => {
 		view.rerender(<AccountName accountId="second" />)
+		await Promise.resolve()
 	})
 	expect(view.getByText(`Second`)).toBeDefined()
 	await act(async () => {
 		finishFirst({ name: `First` })
+		await Promise.resolve()
 	})
 	expect(view.queryByText(`First`)).toBeNull()
 	expect(load).toHaveBeenCalledTimes(2)
@@ -125,6 +129,7 @@ it(`polls without overlap and aborts the active request when its host detaches`,
 	let view!: ReturnType<typeof render>
 	await act(async () => {
 		view = render(<JobProgress jobId="job" />)
+		await Promise.resolve()
 	})
 	expect(read).toHaveBeenCalledTimes(1)
 	await act(async () => {
@@ -159,8 +164,8 @@ it(`updates an imperative widget without recreating it and destroys it on detach
 it(`receives room messages without reconnecting and closes its socket on detach`, () => {
 	const socket = vi.fn(
 		class {
-			onmessage: ((event: MessageEvent) => void) | null = null
-			close = vi.fn()
+			public onmessage: ((event: MessageEvent) => void) | null = null
+			public close = vi.fn()
 		},
 	)
 	vi.stubGlobal(`WebSocket`, socket)
@@ -183,9 +188,9 @@ it(`does not reconnect an observer when visibility changes and disconnects on de
 	let report!: IntersectionObserverCallback
 	const observer = vi.fn(
 		class {
-			observe = observe
-			disconnect = disconnect
-			constructor(callback: IntersectionObserverCallback) {
+			public observe = observe
+			public disconnect = disconnect
+			public constructor(callback: IntersectionObserverCallback) {
 				report = callback
 			}
 		},
@@ -215,6 +220,7 @@ it(`preserves the server snapshot during hydration before reading client-only at
 	let root!: ReturnType<typeof hydrateRoot>
 	await act(async () => {
 		root = hydrateRoot(container, <Greeting />, { onRecoverableError })
+		await Promise.resolve()
 	})
 	expect(container.textContent).toBe(`Welcome, Ada`)
 	expect(onRecoverableError).not.toHaveBeenCalled()

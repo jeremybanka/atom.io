@@ -1,9 +1,10 @@
+import type { ReactNode } from "react"
 import { useEffect, useMemo, useState } from "react"
 
 import { createAutosaver } from "./helpers.ts"
 import { DraftForm } from "./views.tsx"
 
-export function DraftEditor({ draftId }: { draftId: string }) {
+export function DraftEditor({ draftId }: { draftId: string }): ReactNode {
 	const [text, setText] = useState<string | null>(null)
 	const [status, setStatus] = useState(`Ready`)
 	const autosave = useMemo(() => createAutosaver(draftId, setStatus), [draftId])

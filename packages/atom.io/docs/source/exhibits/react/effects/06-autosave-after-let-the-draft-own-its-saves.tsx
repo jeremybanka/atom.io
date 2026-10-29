@@ -1,11 +1,12 @@
 import { useI, useO } from "@atom.io/react"
-import { atomFamily, disposeState } from "atom.io"
+import { atomFamily } from "atom.io"
+import type { ReactNode } from "react"
 
 import { createAutosaver } from "./helpers.ts"
 import { DraftForm } from "./views.tsx"
 
 type Draft = { text: string; status: string }
-const draftAtoms = atomFamily<Draft, string>({
+export const draftAtoms = atomFamily<Draft, string>({
 	key: `draft`,
 	default: { text: ``, status: `Ready` },
 	effects: (draftId) => [
@@ -20,12 +21,12 @@ const draftAtoms = atomFamily<Draft, string>({
 		},
 	],
 })
-export function DraftEditor({ draftId }: { draftId: string }) {
+
+export function DraftEditor({ draftId }: { draftId: string }): ReactNode {
 	const draft = useO(draftAtoms, draftId)
 	const setDraft = useI(draftAtoms, draftId)
-	const edit = (text: string) => setDraft((current) => ({ ...current, text }))
+	const edit = (text: string) => {
+		setDraft((current) => ({ ...current, text }))
+	}
 	return <DraftForm {...draft} onChange={edit} />
-}
-export function discardDraft(draftId: string): void {
-	disposeState(draftAtoms, draftId)
 }

@@ -1,6 +1,7 @@
+import type { ReactNode } from "react"
 import { useLayoutEffect, useRef, useState } from "react"
 
-export function Tooltip({ text }: { text: string }) {
+export function Tooltip({ text }: { text: string }): ReactNode {
 	const node = useRef<HTMLDivElement>(null)
 	const [height, setHeight] = useState(0)
 	useLayoutEffect(() => {

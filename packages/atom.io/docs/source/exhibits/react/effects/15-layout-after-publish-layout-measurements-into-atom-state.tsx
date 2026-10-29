@@ -1,12 +1,19 @@
 import { useI, useO } from "@atom.io/react"
 import { atomFamily } from "atom.io"
+import type { ReactNode } from "react"
 import { useLayoutEffect, useRef } from "react"
 
 const heightAtoms = atomFamily<number, string>({
 	key: `height`,
 	default: 0,
 })
-export function Tooltip({ viewId, text }: { viewId: string; text: string }) {
+export function Tooltip({
+	viewId,
+	text,
+}: {
+	viewId: string
+	text: string
+}): ReactNode {
 	const node = useRef<HTMLDivElement>(null)
 	const height = useO(heightAtoms, viewId)
 	const setHeight = useI(heightAtoms, viewId)

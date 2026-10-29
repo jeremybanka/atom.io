@@ -1,5 +1,6 @@
 import { useI, useO } from "@atom.io/react"
 import { atomFamily, disposeState } from "atom.io"
+import type { ReactNode } from "react"
 
 import { DraftForm } from "./views.tsx"
 
@@ -7,7 +8,7 @@ const draftAtoms = atomFamily<string, string>({
 	key: `draft`,
 	default: ``,
 })
-export function Editor({ documentId }: { documentId: string }) {
+export function Editor({ documentId }: { documentId: string }): ReactNode {
 	const draft = useO(draftAtoms, documentId)
 	const setDraft = useI(draftAtoms, documentId)
 	return <DraftForm text={draft} onChange={setDraft} label={documentId} />

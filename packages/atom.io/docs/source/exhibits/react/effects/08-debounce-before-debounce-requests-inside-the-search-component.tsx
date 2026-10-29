@@ -1,9 +1,10 @@
+import type { ReactNode } from "react"
 import { useEffect, useState } from "react"
 
 import { type Product, searchProducts } from "./services.ts"
 import { SearchForm } from "./views.tsx"
 
-export function Search() {
+export function Search(): ReactNode {
 	const [query, setQuery] = useState(``)
 	const [results, setResults] = useState<Product[]>([])
 	const [failed, setFailed] = useState(false)

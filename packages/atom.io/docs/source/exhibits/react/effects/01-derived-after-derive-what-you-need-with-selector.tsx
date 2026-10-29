@@ -1,5 +1,6 @@
 import { useI, useO } from "@atom.io/react"
 import { atom, selector } from "atom.io"
+import type { ReactNode } from "react"
 
 import type { Product } from "./services.ts"
 import { SearchForm } from "./views.tsx"
@@ -14,7 +15,7 @@ const matchesSelector = selector<Product[]>({
 	get: ({ get }) =>
 		get(productsAtom).filter((product) => product.name.includes(get(queryAtom))),
 })
-export function ProductSearch() {
+export function ProductSearch(): ReactNode {
 	const query = useO(queryAtom)
 	const setQuery = useI(queryAtom)
 	const matches = useO(matchesSelector)

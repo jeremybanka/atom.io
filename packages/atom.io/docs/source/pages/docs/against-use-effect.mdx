@@ -172,7 +172,7 @@ This is ongoing synchronization with storage. `createAutosaver` debounces edits 
 
 <span data-effect-verdict="best-practice">Best practice</span> Let the draft own its saves
 
-Create the same autosaver in the draft’s atom effect, schedule it on text changes, and ignore its own status updates. Writes are serialized per draft instance so a slower earlier write cannot finish after a newer one. The draft now owns the process: unmounting the editor does not discard a pending save. `discardDraft` cancels pending work and suppresses completion updates; it cannot undo a request already sent. A production multi-client editor also needs server-side conflict/version handling. A failed save is displayed; an explicit retry policy can be added at the same state boundary.
+Create the same autosaver in the draft’s atom effect, schedule it on text changes, and ignore its own status updates. Writes are serialized per draft instance so a slower earlier write cannot finish after a newer one. The draft now owns the process: unmounting the editor does not discard a pending save. Disposing a member of `draftAtoms` cancels pending work and suppresses completion updates; it cannot undo a request already sent. A production multi-client editor also needs server-side conflict/version handling. A failed save is displayed; an explicit retry policy can be added at the same state boundary.
 
 </EffectCluster>
 

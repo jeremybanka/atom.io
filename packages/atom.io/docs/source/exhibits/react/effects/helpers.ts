@@ -2,7 +2,10 @@
 // They own mechanics; the exhibits decide when to create, update, and stop them.
 import { type Job, readJob, saveDraft } from "./services.ts"
 
-export function debounce<T>(callback: (value: T) => void, delay: number) {
+export function debounce<T>(
+	callback: (value: T) => void,
+	delay: number,
+): ((value: T) => void) & { cancel: () => void } {
 	let timer: ReturnType<typeof setTimeout> | undefined
 	const cancel = () => {
 		clearTimeout(timer)
@@ -10,7 +13,9 @@ export function debounce<T>(callback: (value: T) => void, delay: number) {
 	return Object.assign(
 		(value: T) => {
 			cancel()
-			timer = setTimeout(() => callback(value), delay)
+			timer = setTimeout(() => {
+				callback(value)
+			}, delay)
 		},
 		{ cancel },
 	)
@@ -21,7 +26,7 @@ export function debounce<T>(callback: (value: T) => void, delay: number) {
 export function createAutosaver(
 	draftId: string,
 	report: (status: string) => void,
-) {
+): { schedule: (text: string) => void; cancel: () => void } {
 	let revision = 0
 	let queue = Promise.resolve()
 	const save = debounce(
@@ -40,12 +45,12 @@ export function createAutosaver(
 		400,
 	)
 	return {
-		schedule(text: string) {
+		schedule(text: string): void {
 			const version = ++revision
 			report(`Waiting`)
 			save({ text, version })
 		},
-		cancel() {
+		cancel(): void {
 			++revision
 			save.cancel()
 		},

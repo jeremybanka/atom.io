@@ -52,6 +52,13 @@ explicitly for your application files; it requires no TypeScript type informatio
 
 <Exhibit src="tooling/eslint-plugin/ban-use-effect.config.ts" label="eslint.config.ts" />
 
+Use ESLint’s `files` globs to select where the ban applies and `ignores` to exclude
+files from that configuration block. This exhibit enables the rule only in
+`src/features` and `src/components`, excluding legacy features and test files.
+Other files remain unaffected by this block, and excluded files can still receive
+other lint rules. Add globs as more of your application adopts atom.io; keep this
+rule out of broader configuration blocks if you want it limited to those paths.
+
 The rule reports named imports (including aliases), reads through default or
 namespace imports, destructuring, and value re-exports. It also tracks CommonJS
 `require` when that global is configured in ESLint. It follows React bindings

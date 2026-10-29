@@ -4,7 +4,8 @@ import type { Linter } from "eslint"
 
 const config: Linter.Config[] = [
 	{
-		files: [`src/**/*.{js,jsx,ts,tsx}`],
+		files: [`src/features/**/*.{ts,tsx}`, `src/components/**/*.{ts,tsx}`],
+		ignores: [`src/features/legacy/**`, `**/*.test.{ts,tsx}`],
 		languageOptions: {
 			parser,
 			parserOptions: { ecmaFeatures: { jsx: true } },

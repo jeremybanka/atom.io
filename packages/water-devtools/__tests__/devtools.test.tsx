@@ -245,3 +245,140 @@ describe(`water debugger`, () => {
 		expect(host.querySelectorAll(`input[aria-label="value"]`).length).toBe(2)
 	})
 })
+it(`moves the panel with pointer capture and keyboard, then resets on resize`, async () => {
+	const { host, mount, click } = fixture()
+	localStorage.setItem(`🔍 Devtools View`, `"invalid"`)
+	const root = mount()
+	const handle = host.querySelector<HTMLElement>(`[aria-label="Move debugger"]`)!
+	const panel = host.querySelector<HTMLElement>(`main`)!
+	handle.setPointerCapture = () => {}
+	const pointer = (type: string, options: PointerEventInit = {}) =>
+		handle.dispatchEvent(
+			new PointerEvent(type, { bubbles: true, pointerId: 1, ...options }),
+		)
+	pointer(`pointermove`)
+	pointer(`pointerdown`, { button: 2 })
+	pointer(`pointerdown`, { button: 0, clientX: 10, clientY: 10 })
+	pointer(`pointermove`, { pointerId: 2, clientX: 20 })
+	pointer(`pointermove`, { clientX: 30, clientY: 40 })
+	await tick()
+	expect(panel.style.transform).toBe(`translate(20px,30px)`)
+	pointer(`pointerup`)
+	pointer(`pointermove`, { clientX: 100 })
+	pointer(`pointerdown`, { button: 0 })
+	pointer(`pointercancel`)
+	for (const key of [`ArrowLeft`, `ArrowUp`, `ArrowRight`, `ArrowDown`, `Enter`])
+		handle.dispatchEvent(new KeyboardEvent(`keydown`, { key, bubbles: true }))
+	await tick()
+	expect(panel.style.transform).toBe(`translate(20px,30px)`)
+	window.dispatchEvent(new Event(`resize`))
+	await tick()
+	expect(panel.style.transform).toBe(`translate(0px,0px)`)
+	await click(`[aria-label="Hide debugger (Ctrl+Shift+A)"]`)
+	expect(panel.hidden).toBe(true)
+	root.dispose()
+})
+it(`renders without explicit options and handles empty indexes`, async () => {
+	const host = document.createElement(`div`)
+	roots.push(render(() => <AtomIODevtools />, host))
+	expect(host.querySelector(`main`)).not.toBeNull()
+	const fixtureValue = fixture()
+	fixtureValue.mount()
+	await fixtureValue.click(`[data-testid="view-transactions"]`)
+	expect(fixtureValue.host.textContent).toContain(`(no transactions)`)
+	await fixtureValue.click(`[data-testid="view-timelines"]`)
+	expect(fixtureValue.host.textContent).toContain(`(no timelines)`)
+})
+it(`rejects rename collisions, edits booleans and array members, and restores invalid numbers`, async () => {
+	const { silo, host, mount, click, input } = fixture()
+	const recordAtom = silo.atom<any>({
+		key: `record`,
+		default: { a: 1, b: 2, new: null, flag: false, list: [`z`, `a`, 3] },
+	})
+	mount()
+	await click(`[aria-label="Expand record"]`)
+	await input(`[aria-label="Rename a"]`, `b`, `change`)
+	expect(host.querySelector(`[role="alert"]`)!.textContent).toContain(
+		`already exists`,
+	)
+	await input(`[aria-label="Rename a"]`, `a`, `change`)
+	expect(host.querySelector(`[role="alert"]`)).toBeNull()
+	await input(`[aria-label="a"]`, `not a number`)
+	expect(silo.getState(recordAtom).a).toBe(1)
+	await input(`[aria-label="a"]`, ``)
+	host.querySelector(`[aria-label="a"]`)!.dispatchEvent(new Event(`blur`))
+	expect(
+		(host.querySelector(`[aria-label="a"]`) as HTMLInputElement).value,
+	).toBe(`1`)
+	const flag = host.querySelector<HTMLInputElement>(`[aria-label="flag"]`)!
+	flag.checked = true
+	flag.dispatchEvent(new Event(`change`))
+	await tick()
+	expect(silo.getState(recordAtom).flag).toBe(true)
+	const textButton = async (text: string) => {
+		;[...host.querySelectorAll(`button`)]
+			.find((button) => button.textContent === text)!
+			.click()
+		await tick()
+	}
+	await textButton(`add property`)
+	expect(silo.getState(recordAtom).new_).toBe(null)
+	await click(`[aria-label="Delete new_"]`)
+	expect(silo.getState(recordAtom)).not.toHaveProperty(`new_`)
+	await click(`[aria-label="Expand list"]`)
+	await input(`[aria-label="0"]`, `b`)
+	expect(silo.getState(recordAtom).list).toEqual([`b`, `a`, 3])
+	await textButton(`sort`)
+	expect(silo.getState(recordAtom).list).toEqual([`a`, `b`, 3])
+	await textButton(`add item`)
+	expect(silo.getState(recordAtom).list).toEqual([`a`, `b`, 3, null])
+})
+it(`expands readonly containers and circular children without exposing editing controls`, async () => {
+	const { silo, host, mount, click } = fixture()
+	const cycle: any = {}
+	cycle.self = cycle
+	silo.selector<any>({
+		key: `readonly`,
+		get: () => ({ flag: true, nested: { value: `x` } }),
+	})
+	silo.atom<any>({ key: `cycle`, default: cycle })
+	mount()
+	await click(`[aria-label="Expand cycle"]`)
+	expect(host.querySelectorAll(`code`).length).toBeGreaterThan(1)
+	await click(`[data-testid="view-selectors"]`)
+	await click(`[aria-label="Expand readonly"]`)
+	expect(
+		host.querySelector<HTMLInputElement>(`[aria-label="flag"]`)!.disabled,
+	).toBe(true)
+	expect(host.querySelector(`[aria-label="Rename flag"]`)).toBeNull()
+})
+it(`displays thrown reads and collapsible transaction events while filtering internal timelines`, async () => {
+	const { silo, host, mount, click } = fixture()
+	silo.selector<number>({
+		key: `throws`,
+		get: () => {
+			throw new Error(`read failed`)
+		},
+	})
+	const countAtom = silo.atom<number>({ key: `count`, default: 0 })
+	silo.timeline({ key: `👁‍🗨 internal`, scope: [countAtom] })
+	silo.timeline({ key: `first`, scope: [countAtom] })
+	silo.timeline({ key: `second`, scope: [countAtom] })
+	const changeTransaction = silo.transaction<() => void>({
+		key: `change`,
+		do: ({ set }) => {
+			set(countAtom, 1)
+		},
+	})
+	mount()
+	await click(`[data-testid="view-selectors"]`)
+	expect(host.textContent).toContain(`read failed`)
+	await click(`[data-testid="view-transactions"]`)
+	silo.runTransaction(changeTransaction)()
+	await tick()
+	await click(`[data-testid="open-close-transaction-change"]`)
+	await click(`.event button`)
+	expect(host.textContent).not.toContain(`params:`)
+	await click(`[data-testid="view-timelines"]`)
+	expect(host.querySelector(`[data-testid="timeline-👁‍🗨 internal"]`)).toBeNull()
+})

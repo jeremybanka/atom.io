@@ -114,15 +114,18 @@ export function compile(
 										: t.isJSXExpressionContainer(attribute.value)
 											? attribute.value.expression
 											: attribute.value
-								if (t.isJSXEmptyExpression(value)) continue
+								// The parser rejects empty attribute expressions.
+								const expression = value as t.Expression
 								properties.push(
-									key === `key` || literal(value) || t.isFunction(value)
-										? t.objectProperty(t.stringLiteral(key), value)
+									key === `key` ||
+										literal(expression) ||
+										t.isFunction(expression)
+										? t.objectProperty(t.stringLiteral(key), expression)
 										: t.objectMethod(
 												`get`,
 												t.stringLiteral(key),
 												[],
-												t.blockStatement([t.returnStatement(value)]),
+												t.blockStatement([t.returnStatement(expression)]),
 											),
 								)
 							}
@@ -153,7 +156,7 @@ export function compile(
 						let fn = path.findParent((parent: any) => parent.isFunction())
 						while (fn?.findParent((parent: any) => parent.isFunction()))
 							fn = fn.findParent((parent: any) => parent.isFunction())
-						if (fn && !fn.findParent((parent: any) => parent.isFunction())) {
+						if (fn) {
 							if (fn.node.id) components.add(fn.node.id.name)
 							else if (
 								fn.parentPath.isVariableDeclarator() &&

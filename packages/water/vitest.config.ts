@@ -6,7 +6,13 @@ import water from "./src/vite.ts"
 const config = defineOurVitestConfig({
 	name: `water`,
 	target: `src`,
-	test: { include: [`__tests__/**/*.test.{ts,tsx}`] },
+	test: {
+		include: [`__tests__/**/*.test.{ts,tsx}`],
+		coverage: {
+			thresholds: { 100: true },
+			reporter: [`text`, `lcov`, `html`, `json`, `json-summary`],
+		},
+	},
 })
 config.root = import.meta.dirname
 config.plugins = [water()]

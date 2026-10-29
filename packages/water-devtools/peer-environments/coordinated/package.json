@@ -1,0 +1,19 @@
+{
+	"name": "water-devtools-coordinated",
+	"version": "0.0.0",
+	"private": true,
+	"description": "water-devtools \u00b7 coordinated",
+	"type": "module",
+	"dependencies": {},
+	"devDependencies": {
+		"@types/node": "26.6.5",
+		"happy-dom": "21.0.4",
+		"typescript": "7.0.2"
+	},
+	"breakage": {
+		"candidates": [
+			"atom.io",
+			"@atom.io/water"
+		]
+	}
+}

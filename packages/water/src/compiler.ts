@@ -28,8 +28,14 @@ export function compile(
 				? t.stringLiteral(node.name)
 				: t.identifier(node.name)
 		}
+		function literal(node: t.Node): boolean {
+			return (
+				t.isLiteral(node) &&
+				(!t.isTemplateLiteral(node) || node.expressions.length === 0)
+			)
+		}
 		function child(node: t.Expression): t.Expression {
-			return generated.has(node) || t.isLiteral(node) || t.isFunction(node)
+			return generated.has(node) || literal(node) || t.isFunction(node)
 				? node
 				: t.arrowFunctionExpression([], node)
 		}
@@ -110,7 +116,7 @@ export function compile(
 											: attribute.value
 								if (t.isJSXEmptyExpression(value)) continue
 								properties.push(
-									key === `key` || t.isLiteral(value) || t.isFunction(value)
+									key === `key` || literal(value) || t.isFunction(value)
 										? t.objectProperty(t.stringLiteral(key), value)
 										: t.objectMethod(
 												`get`,

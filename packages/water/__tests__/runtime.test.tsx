@@ -39,6 +39,33 @@ function fixture() {
 	return { silo, countAtom, host, mount }
 }
 describe(`water compiled DOM`, () => {
+	it(`tracks interpolated templates in text, attributes, and live component props`, () => {
+		const { silo, countAtom, host, mount } = fixture()
+		const setups = vi.fn()
+		function Label(props: { text: string }) {
+			return <span>{props.text}</span>
+		}
+		function Counter() {
+			setups()
+			const count = useValue(countAtom)
+			return (
+				<article style={`opacity:${count() / 10}`} title={`count ${count()}`}>
+					{`value ${count()}`}
+					<Label text={`label ${count()}`} />
+				</article>
+			)
+		}
+		const root = mount(() => <Counter />)
+		const article = host.querySelector(`article`)!
+		expect(article.style.opacity).toBe(`0`)
+		silo.setState(countAtom, 5)
+		root.flush()
+		expect(article.style.opacity).toBe(`0.5`)
+		expect(article.title).toBe(`count 5`)
+		expect(article.textContent).toBe(`value 5label 5`)
+		expect(setups).toHaveBeenCalledTimes(1)
+	})
+
 	it(`keeps explicit numeric keys distinct from unkeyed positions`, () => {
 		const host = document.createElement(`section`)
 		const setup = () => (

@@ -1,3 +1,5 @@
+<p align="center"><img src="https://raw.githubusercontent.com/jeremybanka/atom.io/main/apps/atom.io.fyi/public/hydrogen/icon-512.png" alt="Hydrogen logo" width="160" height="160"></p>
+
 # Hydrogen
 
 An experimental JSX framework whose state engine is atom.io. Components run once per mounted instance. Calls to accessors inside compiled JSX subscribe the affected DOM computations; atom.io updates those computations without rerunning component setup.

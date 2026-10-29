@@ -1,10 +1,15 @@
 import Exhibit from "c/Exhibit.astro";
+import { HydrogenLogo } from "c/HydrogenLogo";
+
+<HydrogenLogo client:load />
 
 # hydrogen
 
 Hydrogen is a JSX framework built around atom.io. Components run once per mounted instance; atom.io owns state, selectors, transactions, and timelines. Hydrogen connects that state to DOM updates and manages the lifetime of the view.
 
 Its reactivity model is inspired by Solid: component setup stays stable, while expressions in JSX update when the state they read changes. It includes a Vite compiler, server rendering, hydration, and an Astro integration. This is an experimental framework with its own lifecycle API.
+
+Start with [Vite setup](#vite-setup) or [Astro setup](#astro-setup). For an API lookup, use the [package contents](#package-contents), [rendering API](#rendering), or [component API](#component-api).
 
 ## install
 
@@ -14,7 +19,27 @@ Install Hydrogen alongside its state-engine peer, atom.io:
 
 Hydrogen's npm package name is simply `hydrogen`. Your application supplies atom.io; all of its views can share the same store.
 
-## Vite setup
+## package contents
+
+<table-wrapper>
+
+| Import | Contents |
+| ------ | -------- |
+| hydrogen | [render](#render), [hydrate](#hydrate), [Fragment](#fragment), and the [component helpers](#component-api). |
+| hydrogen/server | [renderToString](#rendertostring) for server-rendered HTML. |
+| hydrogen/vite | The required [JSX compiler plugin](#vite-setup). |
+| hydrogen/astro | The [Astro integration](#astro-setup), including its compiler and island renderer. |
+| hydrogen/jsx-runtime and hydrogen/jsx-dev-runtime | JSX entrypoints selected by the compiler; application components use JSX syntax. |
+
+</table-wrapper>
+
+Rendering types include Accessor, Child, Component, VNode, RootOptions, and HydrogenRoot. TimelineValue and LoadableValue describe the results of useTimeline and useLoadable.
+
+## frameworks
+
+Choose the integration for your application. Both use Hydrogen’s JSX compiler and the same atom.io-backed runtime.
+
+### Vite setup
 
 Add the Hydrogen plugin to your Vite configuration. The plugin is required: a standard JSX transform alone does not preserve reactive expressions.
 
@@ -24,25 +49,7 @@ Keep JSX intact for the plugin and use Hydrogen's JSX types:
 
 <Exhibit src="hydrogen/exhibits/tsconfig.json" />
 
-## a reactive view
-
-Capture accessors and writers during component setup. Call an accessor inside JSX to make that DOM expression reactive:
-
-<Exhibit src="hydrogen/exhibits/point.tsx" />
-
-The point is one atom containing an object. Each coordinate expression reads the same point accessor; an atom update reevaluates both expressions, and unchanged primitive results skip DOM writes. There is no separate subscription to each object field. Reusable or multi-atom derivations belong in atom.io selectors.
-
-The component body runs once. A read during setup captures a snapshot; a read inside JSX participates in dependency tracking. Event handlers read the current value without subscribing. Helper functions called from JSX can read accessors too: their reads belong to the current DOM computation.
-
-Props remain live through getters. Destructuring them during setup captures their current values. Hook token arguments are fixed for a mounted instance; use a new keyed component instance when its token must change.
-
-Mount the view into your application's host element:
-
-<Exhibit src="hydrogen/exhibits/main.tsx" />
-
-The root's dispose method removes its DOM and releases its subscriptions and cleanup callbacks. Atom.io store state outlives the view. Updates coalesce in a microtask after synchronous atom.io work; flush applies pending DOM work immediately when needed.
-
-## Astro setup
+### Astro setup
 
 Register Hydrogen's Astro integration:
 
@@ -60,24 +67,104 @@ Use Astro's client directives to choose when an island hydrates. Components that
 
 <Exhibit src="hydrogen/exhibits/counter-page.astro" />
 
-Outside Astro, the server entrypoint provides renderToString and the browser entrypoint provides hydrate. Use a request-specific store on the server and matching initial state and ID prefixes when hydrating. Hydration reuses existing DOM and reports structural mismatches.
+Outside Astro, use [renderToString](#rendertostring) and [hydrate](#hydrate) directly. Astro manages these renderer entrypoints for its islands.
+
+## a reactive view
+
+Capture accessors and writers during component setup. Call an accessor inside JSX to make that DOM expression reactive:
+
+<Exhibit src="hydrogen/exhibits/point.tsx" />
+
+The point is one atom containing an object. Each coordinate expression reads the same point accessor; an atom update reevaluates both expressions, and unchanged primitive results skip DOM writes. There is no separate subscription to each object field. Reusable or multi-atom derivations belong in atom.io selectors.
+
+The component body runs once. A read during setup captures a snapshot; a read inside JSX participates in dependency tracking. Event handlers read the current value without subscribing. Helper functions called from JSX can read accessors too: their reads belong to the current DOM computation.
+
+Props remain live through getters. Destructuring them during setup captures their current values. Hook token arguments are fixed for a mounted instance; use a new keyed component instance when its token must change.
+
+## rendering
+
+### render
+
+Mount the view into your application's host element:
+
+<Exhibit src="hydrogen/exhibits/main.tsx" />
+
+The root's dispose method removes its DOM and releases its subscriptions and cleanup callbacks. Atom.io store state outlives the view. Updates coalesce in a microtask after synchronous atom.io work; flush applies pending DOM work immediately when needed.
+
+### hydrate
+
+Use hydrate to attach a Hydrogen view to existing server-rendered markup. It accepts the same setup callback, host, and root options as render, and returns the same dispose and flush methods. The initial state, component structure, and generated IDs must agree between server and browser; mismatches are reported rather than silently remounted.
+
+### renderToString
+
+Import renderToString from hydrogen/server to produce HTML without retaining subscriptions. Supply a request-specific store and use matching state and ID prefixes when hydrating in the browser. Server rendering is synchronous and does not wait for promises or run onMount callbacks.
+
+### Fragment
+
+Fragment groups children without adding a DOM element. The JSX fragment syntax uses this export automatically. A Fragment does not introduce a separate store or component lifetime.
 
 ## component API
 
-| API            | Purpose                                                                                              |
+<table-wrapper>
+
+| API | Purpose |
 | -------------- | ---------------------------------------------------------------------------------------------------- |
-| useLoadable    | Read loading state, retain the last observed value during refresh, and optionally supply a fallback. |
-| useValue       | Capture a readable token and return its tracked accessor.                                            |
-| useSetter      | Capture a writable token and return a store-bound writer.                                            |
-| useTimeline    | Read timeline metadata and access undo, redo, clear, and transaction-group controls.                 |
-| useTransaction | Bind an atom.io transaction while preserving its arguments and result.                               |
-| useRef         | Publish an attached element into a nullable atom and release the reference on unmount.               |
-| useId          | Allocate a stable ID for the component instance, shared by SSR and hydration.                        |
-| onMount        | Run once after DOM attachment and ref publication; does not run during SSR.                          |
-| onCleanup      | Release owned resources when the component or root is disposed.                                      |
-| untrack        | Read state without adding dependencies to the current DOM computation.                               |
+| [useLoadable](#useloadable) | Read loading state, retain the last observed value during refresh, and optionally supply a fallback. |
+| [useValue](#usevalue) | Capture a readable token and return its tracked accessor. |
+| [useSetter](#usesetter) | Capture a writable token and return a store-bound writer. |
+| [useTimeline](#usetimeline) | Read timeline metadata and access undo, redo, clear, and transaction-group controls. |
+| [useTransaction](#usetransaction) | Bind an atom.io transaction while preserving its arguments and result. |
+| [useRef](#useref) | Publish an attached element into a nullable atom and release the reference on unmount. |
+| [useId](#useid) | Allocate a stable ID for the component instance, shared by SSR and hydration. |
+| [onMount](#onmount) | Run once after DOM attachment and ref publication; does not run during SSR. |
+| [onCleanup](#oncleanup) | Release owned resources when the component or root is disposed. |
+| [untrack](#untrack) | Read state without adding dependencies to the current DOM computation. |
+
+</table-wrapper>
 
 Call setup helpers synchronously during component setup or owned mount callbacks, then capture their results for event handlers. DOM computations should only read state. Use event handlers and atom.io transactions for writes.
+
+### useValue
+
+Capture a tracked accessor for an atom or selector. Calling it inside compiled JSX subscribes that DOM computation; calling it during setup reads a snapshot. Calls from event handlers read the current value without subscribing. The [point example](#a-reactive-view) reads two coordinates from one atom.
+
+### useSetter
+
+Capture a writer bound to the component's store. Call it from event handlers to replace a value or update it from its previous value. The writer stays stable for the lifetime of the component; it does not subscribe to state.
+
+### useLoadable
+
+Read an asynchronous atom or selector through a tracked accessor that exposes loading state and retains the last observed value during refreshes. Supply a fallback to handle the initial loading state and errors declared by the token. See [async state](#async-state) for the complete example and result shapes.
+
+### useTimeline
+
+Read timeline metadata and access undo, redo, clear, and transaction-group controls. The accessor tracks timeline reads in JSX. The [families example](#families) pairs each keyed point with its own history.
+
+### useTransaction
+
+Bind an atom.io transaction to the component's store while preserving its arguments and return value. Capture the callback during setup and invoke it from event handlers. This helper accepts a transaction token, not a transaction family.
+
+### useRef
+
+Create a ref callback for a nullable element atom. Attaching the ref publishes the element into that atom; cleanup clears it only if the reference still belongs to this attachment. It also accepts a family token and key. See the [point example](#a-reactive-view) and [family example](#families).
+
+### useId
+
+Allocate a stable ID for this component instance. Use it to connect labels, inputs, and descriptions. Server rendering and hydration must use the same root ID prefix and component structure so those IDs agree.
+
+### onMount
+
+Register work to run once after DOM attachment and ref publication. This is the place for browser APIs and other setup that requires attached elements. It does not run during server rendering; register teardown with onCleanup.
+
+### onCleanup
+
+Register teardown for the current owner. Hydrogen runs it when that owner is disposed, including when a keyed component is removed or its root is disposed. Use it to release event listeners, observers, timers, and other resources created during setup or mounting.
+
+### untrack
+
+Run a synchronous callback without adding its reads to the current DOM computation's subscriptions. This changes dependency tracking, not the atom.io values being read. It does not create an effect or a new component lifetime.
+
+### keyed views and DOM props
 
 Arrays support keyed components and elements. Stable, unique keys retain component instances and DOM ranges when items move; removing an item disposes its resources. A key identifies a view instance, not a new state primitive.
 

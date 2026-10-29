@@ -50,7 +50,7 @@ export default (element: HTMLElement): Hydrator =>
 		if (!family) {
 			family = createRegularAtomFamily<State, number, never>(store, {
 				key: `🔍 water islands`,
-				default: () => ({ props: {}, slots: {} }),
+				default: { props: {}, slots: {} },
 			})
 			states.set(store, family)
 		}

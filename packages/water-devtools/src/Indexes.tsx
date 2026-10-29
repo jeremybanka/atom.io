@@ -105,7 +105,15 @@ function StateLeaf(props: { tools: Tools; token: Token }): VNode {
 				}
 				tools={props.tools}
 				value={value()}
-				change={set}
+				change={
+					set
+						? (update) => {
+								// Validate edits before opening an atom.io write operation.
+								const next = update(read())
+								set(() => next)
+							}
+						: undefined
+				}
 				path={
 					props.token.family
 						? [props.token.family.key, props.token.family.subKey]
@@ -171,7 +179,11 @@ function TransactionLog(props: {
 	)
 }
 // Events are recursive discriminated records, including user-defined transaction outputs.
-function EventView(props: { tools: Tools; event: any; index: number }): VNode {
+export function EventView(props: {
+	tools: Tools
+	event: any
+	index: number
+}): VNode {
 	const [open, toggle] = useExpanded(
 		props.tools,
 		[`event`, props.event.token?.key ?? ``, String(props.index)],

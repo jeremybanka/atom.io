@@ -1,3 +1,5 @@
+import { Tonnage } from "tonnage";
+import config from "./tonnage.config.ts";
 import Point from "./exhibits/point.tsx" with { type: "code" };
 import ViteConfig from "./exhibits/vite.config.ts" with { type: "code" };
 import Main from "./exhibits/main.tsx" with { type: "code" };
@@ -83,3 +85,11 @@ The hard budget is under 3,000 bytes for dist/client.min.js.gz, an actual precom
 Build output includes the minified audit entrypoint, gzip/Brotli artifacts, and machine-readable dist/size.json. These audit files are a bundled measurement; use the package exports in applications so the bundler preserves one runtime instance across entrypoints. Source tests exercise development behavior; the production test executes the audited minified artifact. Chromium checks exercise the actual Astro build, island isolation, hydration, keyed identity, focus/selection, SVG namespaces, and teardown.
 
 <Verify />
+
+## Package checks
+
+Breakage exercises the packed package in isolated, locked peer environments, including the coordinated atom.io workspace candidate. Until the first published release, Breakage reports a first-release baseline; these checks establish compatibility with the declared peers rather than a previous water release. Coverage gates require 100% of statements, branches, functions, and lines across the package source.
+
+Tonnage measures built public entrypoints with declared peers external. Its gzip figures use ordinary gzip; the optimized precompressed client budget is audited separately. CSS, declarations, and source maps are not included in JavaScript measurements.
+
+<Tonnage config={config} />

@@ -192,7 +192,9 @@ Build output includes the minified audit entrypoint, gzip/Brotli artifacts, and 
 
 ```sh
 pnpm --filter @atom.io/water build
-pnpm --filter @atom.io/water test:once
+pnpm --filter @atom.io/water cov
+pnpm --filter @atom.io/water-devtools cov
+pnpm exec turbo run test:breakage:peers --filter=@atom.io/water --filter=@atom.io/water-devtools
 pnpm --filter @atom.io/water test:production
 pnpm --filter @atom.io/water exec playwright install chromium
 pnpm --filter @atom.io/water test:browser
@@ -200,3 +202,38 @@ pnpm --filter @atom.io/water size
 pnpm --filter @atom.io/water readme:check
 
 ```
+
+## Package checks
+
+Breakage exercises the packed package in isolated, locked peer environments, including the coordinated atom.io workspace candidate. Until the first published release, Breakage reports a first-release baseline; these checks establish compatibility with the declared peers rather than a previous water release. Coverage gates require 100% of statements, branches, functions, and lines across the package source.
+
+Tonnage measures built public entrypoints with declared peers external. Its gzip figures use ordinary gzip; the optimized precompressed client budget is audited separately. CSS, declarations, and source maps are not included in JavaScript measurements.
+
+## Bundle size
+
+Package export sizes include complete runtime export surfaces.
+
+Usage example sizes bundle their entry files and tree-shake unused exports.
+
+Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, source maps, CSS, and other assets are excluded. Peer dependencies stay external, and shared modules are counted once per bundle.
+
+### Package exports
+
+| Import                           | Minified JS | Gzip JS |
+| -------------------------------- | ----------: | ------: |
+| `@atom.io/water`                 |     6,892 B | 3,136 B |
+| `@atom.io/water/jsx-runtime`     |       558 B |   381 B |
+| `@atom.io/water/jsx-dev-runtime` |       558 B |   381 B |
+| `@atom.io/water/astro-client`    |     7,348 B | 3,368 B |
+
+### Usage examples
+
+| Recipe                | Entry                             | Minified JS |   Gzip JS |
+| --------------------- | --------------------------------- | ----------: | --------: |
+| Complete client + JSX | `tonnage-recipes/client.ts`       |     6,886 B |   3,126 B |
+| Server renderer       | `tonnage-recipes/server.ts`       |     3,927 B |   1,942 B |
+| Vite compiler         | `tonnage-recipes/vite.ts`         | 1,307,570 B | 343,207 B |
+| Astro integration     | `tonnage-recipes/astro.ts`        | 1,307,863 B | 343,318 B |
+| Astro server renderer | `tonnage-recipes/astro-server.ts` |     4,803 B |   2,339 B |
+
+Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).

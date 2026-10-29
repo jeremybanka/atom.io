@@ -26,3 +26,21 @@ Transaction logs show parameters, output, and nested events. Timeline views grou
 Ctrl+Shift+A shows or hides the debugger. The header supports pointer dragging, arrow-key nudging, minimization, and hiding. Visibility, minimization, selected view, and expanded editors persist in localStorage when available. Shift-click an expansion button to expand or collapse siblings. UI-owned state uses disposable atom family members; unmounting releases those members, DOM subscriptions, and keyboard/resize listeners.
 
 This port shares atom.io's introspection engine with the React debugger. It does not expose React component customization contracts. The React package remains available for React applications.
+
+## Package checks
+
+Breakage exercises the packed package in isolated, locked peer environments, including the coordinated atom.io workspace candidate. Until the first published release, Breakage reports a first-release baseline; these checks establish compatibility with the declared peers rather than a previous water release. Coverage gates require 100% of statements, branches, functions, and lines across the package source.
+
+Tonnage measures built public entrypoints with declared peers external. Its gzip figures use ordinary gzip; the optimized precompressed client budget is audited separately. CSS, declarations, and source maps are not included in JavaScript measurements.
+
+## Bundle size
+
+Package export sizes include complete runtime export surfaces.
+
+Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, source maps, CSS, and other assets are excluded. Peer dependencies stay external, and shared modules are counted once per bundle.
+
+| Import                    | Minified JS | Gzip JS |
+| ------------------------- | ----------: | ------: |
+| `@atom.io/water-devtools` |    15,324 B | 4,944 B |
+
+Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).

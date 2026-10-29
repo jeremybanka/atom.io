@@ -85,7 +85,7 @@ function property(
 		if (previous) element.removeEventListener(event, previous, capture)
 		if (value != null) {
 			if (import.meta.env.DEV && typeof value !== `function`)
-				throw new Error(import.meta.env.DEV ? `water: event handler` : undefined)
+				throw new Error(`water: event handler`)
 			element.addEventListener(event, value, capture)
 		}
 		return
@@ -98,9 +98,7 @@ function property(
 		value != null &&
 		typeof value !== `string`
 	)
-		throw new Error(
-			import.meta.env.DEV ? `water: CSS string required` : undefined,
-		)
+		throw new Error(`water: CSS string required`)
 	if (
 		element.namespaceURI === HTML &&
 		key in element &&
@@ -144,9 +142,7 @@ function mount(
 					const explicit = vnode?.props?.[`key`]
 					const key = explicit == null ? index : String(explicit)
 					if (import.meta.env.DEV && kept.has(key))
-						throw new Error(
-							import.meta.env.DEV ? `water: duplicate key` : undefined,
-						)
+						throw new Error(`water: duplicate key`)
 					let record = records.get(key)
 					if (
 						record &&
@@ -235,7 +231,7 @@ function mount(
 		return
 	}
 	if (import.meta.env.DEV && (!(`type` in value) || !(`props` in value)))
-		throw new Error(import.meta.env.DEV ? `water: invalid child` : undefined)
+		throw new Error(`water: invalid child`)
 	const vnode = value as VNode
 	const props = merge(() => (source() as VNode).props)
 	if (!vnode.type || vnode.type === Fragment) {

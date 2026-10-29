@@ -5,7 +5,11 @@ import * as THREE from "three"
 import { createHydrogenCloud } from "./hydrogen-orbital-three"
 import css from "./HydrogenLogo.module.css"
 
-export function HydrogenLogo(): VNode {
+export type HydrogenLogoProps = {
+	variant?: `mark` | `background`
+}
+
+export function HydrogenLogo({ variant = `mark` }: HydrogenLogoProps): VNode {
 	let host: HTMLElement | null = null
 	onMount(() => {
 		const container = host
@@ -119,6 +123,8 @@ export function HydrogenLogo(): VNode {
 	return (
 		<hydrogen-logo
 			class={css.class}
+			data-variant={variant}
+			aria-hidden={variant === `background` ? true : undefined}
 			ref={(element: HTMLElement | null) => {
 				host = element
 			}}
@@ -126,7 +132,11 @@ export function HydrogenLogo(): VNode {
 			aria-label="Hydrogen logo"
 		>
 			<img
-				src="/hydrogen/icon-512.png"
+				src={
+					variant === `background`
+						? `/hydrogen/logo.png`
+						: `/hydrogen/icon-512.png`
+				}
 				alt=""
 				width="160"
 				height="160"

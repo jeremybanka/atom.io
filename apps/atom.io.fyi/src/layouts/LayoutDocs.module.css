@@ -27,6 +27,7 @@ docs-layout.class {
 		max-width: 720px;
 		min-height: 100%;
 		position: relative;
+		isolation: isolate;
 		width: 100svw;
 
 		@media screen and (min-width: 960px) {

@@ -36,7 +36,7 @@ Invalidations coalesce in a microtask after synchronous atom.io work settles. Ro
 
 Owner cleanup never disposes shared atoms. Ref ownership is guarded by an attachment identity, so an older view cannot clear a newer attachment to the same ref atom. Reordering retains component scopes and DOM ranges; browser checks cover focus and text selection. A ref is published after insertion, and all newly attached refs are available to their mount callbacks.
 
-The renderer currently uses lightweight JSX descriptors plus lazy expressions. It does not rerender the component tree on atom changes, and it does not yet compile static templates directly into DOM creation instructions. The earlier [DOM target protocol exhibit](../experiments/atom-jsx/water-targets.proposal.exhibit.ts) remains a design sketch, not the emitted compiler protocol.
+The renderer currently uses lightweight JSX descriptors plus lazy expressions. It does not rerender the component tree on atom changes, and it does not yet compile static templates directly into DOM creation instructions. The [JSX compiler](../packages/water/src/compiler.ts) and [DOM renderer](../packages/water/src/dom.ts) define the implemented protocol. Earlier target-protocol sketches are preserved in the [prototype archive](jsx-experiment.md).
 
 ## Server rendering and Astro
 
@@ -54,7 +54,7 @@ Tests cover setup counts, tracked helpers, conditional dependencies, keyed owner
 
 The first version deliberately omits React compatibility, style objects, portals, suspense, error boundaries, asynchronous rendering, automatic token-as-child bindings, and state-preserving HMR. Runtime and compiler improvements must preserve the existing ownership contract and keep the size report explicit about dependencies and compression.
 
-The [original experiment](jsx-experiment.md) remains a separate baseline with direct token bindings and explicit projections. Its declaration-only API exhibits document the earlier proposal; the executable water package is now the implementation reference.
+The [original experiment](jsx-experiment.md), which explored direct token bindings and explicit projections, is archived on a separate remote branch. The executable water package is the implementation reference.
 
 ## The site and debugger
 

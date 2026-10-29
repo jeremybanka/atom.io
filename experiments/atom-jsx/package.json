@@ -1,9 +1,0 @@
-{
-	"name": "@atom.io/jsx-experiment",
-	"private": true,
-	"type": "module",
-	"scripts": {
-		"test": "vitest run --config vitest.config.ts",
-		"lint:types": "tsc -p tsconfig.json"
-	}
-}

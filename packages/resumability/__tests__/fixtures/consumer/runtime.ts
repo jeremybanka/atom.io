@@ -21,6 +21,17 @@ assert.deepEqual(
 	scope.run(() => client(options)),
 	{ value: 8 },
 )
+scope.add(payload)
+assert.deepEqual(
+	scope.run(() => client(options)),
+	{ value: 8 },
+)
+const fresh = createResumption(payload)
+assert.deepEqual(
+	fresh.run(() => client(options), { resume: false }),
+	{ value: 8 },
+)
+fresh.dispose()
 scope.dispose()
 assert.throws(() => client(options, scope))
 assert.equal(integration().name, `resumability`)

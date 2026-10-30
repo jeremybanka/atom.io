@@ -4,9 +4,11 @@ import {
 	createRegularAtomFamily,
 	disposeFromStore,
 	findInStore,
+	IMPLICIT,
 	setIntoStore,
 } from "atom.io/internal"
 
+import { browserApplication } from "./astro-application.ts"
 import { failPreparation, storeContext } from "./astro-context.ts"
 import type { Island } from "./astro-shared.ts"
 import { island, islandStore } from "./astro-shared.ts"
@@ -42,12 +44,19 @@ export default (element: HTMLElement): Hydrator =>
 			return previous.ready
 		}
 		previous?.dispose()
-		const lifetime = storeContext(element)
+		const shared = !component.createStore && !component.isolate
+		const application = shared
+			? browserApplication(element.ownerDocument)
+			: undefined
+		if (application && client === `only`) application.canResume = false
+		const lifetime = storeContext(element, application)
 		const initial = { props, slots }
 		let current = initial
 		let update: ((value: State) => void) | undefined
+		let disposed = false
 		const dispose = () => {
-			if (lifetime.context.signal.aborted) return
+			if (disposed) return
+			disposed = true
 			element.removeEventListener(`astro:unmount`, dispose)
 			roots.delete(element)
 			lifetime.dispose()
@@ -59,12 +68,20 @@ export default (element: HTMLElement): Hydrator =>
 			let mounting = false
 			try {
 				const store = await Promise.race([
-					islandStore(component, props, lifetime.context),
+					islandStore(
+						component,
+						props,
+						lifetime.context,
+						shared ? IMPLICIT.STORE : undefined,
+					),
 					lifetime.cancelled,
 				])
 				if (lifetime.context.signal.aborted) return
 				mounting = true
-				const replace = client === `only` || previous !== undefined
+				const replace =
+					client === `only` ||
+					previous !== undefined ||
+					application?.canResume === false
 				// Astro leaves this sentinel on islands inserted by ClientRouter.
 				const sentinel = element.lastChild
 				if (sentinel?.nodeType === 8 && sentinel.nodeValue === `astro:end`)
@@ -114,5 +131,6 @@ export default (element: HTMLElement): Hydrator =>
 			dispose,
 		})
 		element.addEventListener(`astro:unmount`, dispose, { once: true })
+		lifetime.context.onCleanup(dispose)
 		return ready
 	}

@@ -28,4 +28,5 @@ const prepare: AstroStorePreparation<{ message: string }> = async (
 	setIntoStore(store, greetingAtom, Promise.resolve(props.message))
 	await getFromStore(store, greetingAtom)
 }
+Greeting.isolate = true
 Greeting.prepareStore = prepare

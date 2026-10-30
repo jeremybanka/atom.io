@@ -2,6 +2,7 @@ import { Silo } from "atom.io"
 import { afterEach, expect, it, vi } from "vitest"
 
 import integration from "../src/astro.ts"
+import { browserApplication } from "../src/astro-application.ts"
 import astroClient from "../src/astro-client.ts"
 import { storeContext } from "../src/astro-context.ts"
 import astroServer from "../src/astro-server.ts"
@@ -96,6 +97,8 @@ it(`filters Vite inputs, resets global regexes, and reloads matching documents`,
 			updateConfig = vi.fn()
 		;(adapter.hooks[`astro:config:setup`] as Function)({
 			addRenderer,
+			addMiddleware: vi.fn(),
+			injectScript: vi.fn(),
 			updateConfig,
 		})
 		expect(addRenderer.mock.calls[0][0].serverEntrypoint).toBe(
@@ -396,4 +399,8 @@ it(`resets removed boolean properties and skips refs whose owners were removed b
 	)
 	expect(ref).not.toHaveBeenCalled()
 	second.dispose()
+})
+
+afterEach(() => {
+	browserApplication(document).dispose()
 })

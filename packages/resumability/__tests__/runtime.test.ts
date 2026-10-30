@@ -322,3 +322,93 @@ describe(`browser initialization scopes`, () => {
 		expect(signal.aborted).toBe(true)
 	})
 })
+
+describe(`application resumption`, () => {
+	it(`merges new keys without reseeding consumed defaults or replacing read-only values`, () => {
+		const scope = createResumption({
+			version: 1,
+			values: [
+				[`value`, [1, 1]],
+				[`readonly`, [1, 2]],
+			],
+		})
+		const options = { ...serverValue(0), client: () => 9 }
+		expect(scope.run(() => client(options))).toBe(1)
+		expect(scope.run(() => client({ ...serverValue(0), key: `readonly` }))).toBe(
+			2,
+		)
+		scope.add({
+			version: 1,
+			values: [
+				[`value`, [1, 3]],
+				[`readonly`, [1, 4]],
+				[`new`, [1, 5]],
+			],
+		})
+		expect(scope.run(() => client(options))).toBe(9)
+		expect(scope.run(() => client({ ...serverValue(0), key: `readonly` }))).toBe(
+			2,
+		)
+		expect(scope.run(() => client({ ...serverValue(0), key: `new` }))).toBe(5)
+	})
+	it(`uses fresh client defaults after an app changes, even for a previously unread seed`, () => {
+		const scope = createResumption({
+			version: 1,
+			values: [
+				[`value`, [1, 1]],
+				[`readonly`, [1, 2]],
+			],
+		})
+		const next = vi.fn(() => 3)
+		expect(
+			scope.run(
+				() => {
+					expect(
+						scope.run(() => client({ ...serverValue(0), key: `readonly` }), {
+							resume: true,
+						}),
+					).toBe(2)
+					expect(() =>
+						scope.run(() => {
+							throw new Error(`nested`)
+						}),
+					).toThrow(`nested`)
+					return client({ ...serverValue(0), client: next })
+				},
+				{ resume: false },
+			),
+		).toBe(3)
+		expect(next).toHaveBeenCalledOnce()
+		scope.add({ version: 1, values: [[`value`, [1, 10]]] })
+		expect(scope.run(() => client({ ...serverValue(0), client: next }))).toBe(3)
+		expect(
+			scope.run(() => client({ ...serverValue(0), key: `readonly` }), {
+				resume: false,
+			}),
+		).toBe(2)
+	})
+	it(`validates additions atomically, permits missing-value recovery, and rejects additions after disposal`, () => {
+		const scope = createResumption()
+		expect(() => scope.run(() => client(serverValue(0)))).toThrow(
+			`no server value`,
+		)
+		expect(() => {
+			scope.add({
+				version: 1,
+				values: [
+					[`value`, [1, 1]],
+					[`bad`, [2]],
+				],
+			} as unknown as Payload)
+		}).toThrow(`invalid payload entry`)
+		expect(() => scope.run(() => client(serverValue(0)))).toThrow(
+			`no server value`,
+		)
+		scope.add({ version: 1, values: [[`value`, [1, 2]]] })
+		expect(scope.run(() => client(serverValue(0)))).toBe(2)
+		scope.dispose()
+		expect(() => {
+			scope.add({ version: 1, values: [] })
+		}).toThrow()
+	})
+})

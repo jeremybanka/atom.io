@@ -1,6 +1,7 @@
 import { Silo } from "atom.io"
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
+import { browserApplication } from "../src/astro-application.ts"
 import astroClient from "../src/astro-client.ts"
 import astroServer from "../src/astro-server.ts"
 import type { Island } from "../src/astro-shared.ts"
@@ -244,4 +245,8 @@ describe(`integration contracts`, () => {
 		expect(host.textContent).toBe(`from Astro0Named`)
 		host.dispatchEvent(new Event(`astro:unmount`))
 	})
+})
+
+afterEach(() => {
+	browserApplication(document).dispose()
 })

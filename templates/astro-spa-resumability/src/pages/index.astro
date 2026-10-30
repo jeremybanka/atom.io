@@ -4,21 +4,25 @@ import Drafts from "../Drafts.spa.tsx"
 import Page from "../layouts/Page.astro"
 ---
 <Page title="Your drafts">
-	<header class="intro">
-		<p class="eyebrow">A server head start</p>
-		<h1>Pick up where the server left off.</h1>
-		<p>
-			These notes arrive from SQLite. Edit one, or refresh it from the database.
-			Each workspace keeps its own state.
-		</p>
-	</header>
-	<section class="workspace" aria-labelledby="work-heading">
-		<h2 id="work-heading">Work notes <small>Workspace one</small></h2><Resumption
-		>{() => <Drafts id="work" client:load />}</Resumption>
-	</section>
-	<section class="workspace" aria-labelledby="personal-heading">
-		<h2 id="personal-heading">
-			Personal notes <small>Workspace two · same document keys</small>
-		</h2><Resumption>{() => <Drafts id="personal" client:visible />}</Resumption>
-	</section>
+	<Resumption>{() => (
+		<>
+			<header class="intro">
+				<p class="eyebrow">A server head start</p>
+				<h1>Pick up where the server left off.</h1>
+				<p>
+					These notes arrive from SQLite. Edit one, or refresh it from the
+					database. Both views share the same atom.io state.
+				</p>
+			</header>
+			<section class="workspace" aria-labelledby="work-heading">
+				<h2 id="work-heading">Your editor <small>Loads immediately</small></h2>
+				<Drafts id="work" client:load />
+			</section>
+			<section class="workspace" aria-labelledby="personal-heading">
+				<h2 id="personal-heading">
+					Another view <small>Same shared documents · loads when visible</small>
+				</h2><Drafts id="personal" client:visible />
+			</section>
+		</>
+	)}</Resumption>
 </Page>

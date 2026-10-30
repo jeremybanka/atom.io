@@ -1,4 +1,5 @@
 import type {
+	AstroApplicationContext,
 	AstroStoreContext,
 	AstroStoreFactory,
 	AstroStorePreparation,
@@ -41,10 +42,24 @@ const prepare: AstroStorePreparation<{ message: string }> = async (
 ) => {
 	await Promise.resolve(props.message)
 	context.onCleanup(() => {})
+	const application: AstroApplicationContext = context.application
+	const resource: Promise<string> = application.get(prepare, () =>
+		Promise.resolve(props.message),
+	)
+	await resource
+	application.onCleanup(() => {})
+	application.signal.throwIfAborted()
+	const canResume: boolean = application.canResume
+	void canResume
+	// @ts-expect-error The adapter owns hydration eligibility.
+	application.canResume = true
 	const key: string = store.config.name
 	void key
 }
 App.prepareStore = prepare
+App.isolate = true
+// @ts-expect-error Isolation is a boolean flag.
+App.isolate = `yes`
 const invalidResult = Promise.resolve(
 	new Silo({ name: `invalid`, lifespan: `ephemeral`, isProduction: true }).store,
 )

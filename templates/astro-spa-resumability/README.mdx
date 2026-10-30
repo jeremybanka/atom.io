@@ -26,9 +26,9 @@ This is an on-demand Node server application. The Astro Node adapter serves both
 
 ## Try it
 
-Each workspace uses the same two document keys in a separate store and resumption scope. The initial notes come directly from SQLite during SSR. Hydration consumes the sidecar without making an RPC request. Typing updates the local atom and its preview. Refresh from database resets the atom; its client closure calls tRPC for the latest row. The returned revision identifies that read. Other drafts and workspaces retain their local values.
+Both views use the same two module-scoped document tokens in one browser store and resumption scope. The initial notes come directly from SQLite during SSR. The first island hydrates its existing DOM without making an RPC request. Type into a draft before scrolling to the second view: that delayed island mounts fresh and immediately shows the edit. Typing or refreshing a document updates both views; other documents retain their values. Refresh from database resets the atom, whose client closure calls tRPC for the latest row. The returned revision identifies that read.
 
-Visit How it works and return. Astro's ClientRouter removes the old islands; SPA runs their cleanup callbacks and disposes the resumption scopes. Returning creates new stores from fresh server reads. The client request receives the scope's AbortSignal so navigation can cancel pending network work. A reset does not cancel earlier requests by itself.
+Visit How it works and return. Astro's ClientRouter removes the old DOM and SPA releases the island subscriptions, while the application store and resumption scope stay alive. Returning islands render fresh from those live values, so an incoming server response cannot overwrite your edits. Refresh explicitly to fetch new server data. A full page load starts a new application from SSR again. Shared client requests receive the application scope's AbortSignal; navigation keeps that scope alive, while a full page exit aborts it. Resetting does not cancel earlier requests by itself.
 
 ## Integrations
 
@@ -52,25 +52,25 @@ Reylo infers the row type from SQL and the database schema. The return type flow
 
 <Model />
 
-The family key supplies the query input and resumability key. Atom definitions live on the module graph; independent stores own the values. First browser reads consume the seed. Subsequent defaults use tRPC, with errors available through useLoadable for retry.
+The family key supplies the query input and resumability key. Atom definitions live on the module graph. All browser views share values; each SSR request has its own store. First browser reads consume the seed. Subsequent defaults use tRPC, with errors available through useLoadable for retry.
 
 ## Normal Astro islands
 
 <Islands />
 
-The first workspace uses client:load; the second uses client:visible. Both render their initial data on the server. Deferred child functions keep Astro's eager framework-slot evaluation inside Resumption's async collection scope. Each independently owned store has its own Resumption wrapper.
+The first workspace uses client:load; the second uses client:visible. Both render their initial data on the server. Deferred child functions keep Astro's eager framework-slot evaluation inside Resumption's async collection scope. One Resumption wrapper covers both views and collects each document once. Its sidecar precedes all the islands, so either can activate first. Keep the wrapper around page content inside the HTML body, not around the document itself.
 
 Drafts.prepareStore initializes the store already selected by SPA:
 
 <Prepare />
 
-On the server, Resumption's async collection supplies the scope. In the browser, store.runDefault activates the captured scope whenever a default executes, including lazy family members and transactional resets. The callback awaits the initial reads before rendering or hydration and registers cleanup for the atoms and scope. There are no model factories, model props, or store-to-model registries.
+On the server, Resumption's async collection supplies the scope. In the browser, application.get creates one resumption scope and registers its cleanup once. Each preparation adds the surrounding sidecar; consumed keys cannot be reseeded. Store.runDefault activates that scope whenever a default executes, including lazy family members and transactional resets. Application.canResume controls whether unread seeds may initialize client-capable defaults: after an edit or navigation, those defaults use the client path. The callback awaits the initial reads before rendering or hydration. There are no model factories, model props, or store-to-model registries.
 
-SPA owns cancellation and cleanup after SSR, failed initialization, and island removal. Resumability stays independent of SPA, atom.io, Reylo, and tRPC. Treat all sidecar data as public browser-visible data.
+SPA owns the request lifetime through the end of streaming and the browser application lifetime across navigation. Individual islands own only their DOM and subscriptions. Shared preparation resources survive an individual island failing or unmounting. Resumability stays independent of SPA, atom.io, Reylo, and tRPC. Treat all sidecar data as public browser-visible data.
 
 ## Validation
 
-The browser check runs against both the production Node server and the Astro dev server. It inspects real SSR content, verifies that hydration preserves textarea nodes and IDs, and asserts zero RPC requests during hydration. It changes SQLite after SSR and checks that repeated resets fetch the changed rows through tRPC. It also checks family and island isolation, client:load and client:visible scheduling, navigation cleanup, and removal of server modules from browser scripts. Browser exceptions fail the check. Type tests reject invalid RPC input and verify the inferred response fields.
+The browser check runs against both the production Node server and the Astro dev server. It inspects real SSR content, verifies that initial hydration preserves textarea nodes and IDs while a delayed island replaces stale DOM, and asserts zero RPC requests during hydration. It changes SQLite after SSR and checks that repeated resets fetch the changed rows through tRPC. It also checks shared document state, client:load and client:visible scheduling, fresh mounts and preserved edits after navigation, and removal of server modules from browser scripts. Browser exceptions fail the check. Type tests reject invalid RPC input and verify the inferred response fields.
 
 ## License
 

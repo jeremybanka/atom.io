@@ -61,7 +61,11 @@ This counter initializes a separate store for each island:
 
 <Exhibit src="spa/exhibits/Counter.spa.tsx" />
 
-Astro calls createStore with the same serialized props on the server and in the browser. Keep that factory deterministic so the initial markup and state match. Without a factory, each island gets its own store copied from registered atom.io definitions. Sharing state across islands requires explicitly choosing a shared browser store; SPA does not serialize an entire store implicitly.
+Astro calls createStore with the same serialized props on the server and in the browser. Keep that factory deterministic so the initial markup and state match. Without a factory, islands share the normal implicit atom.io store in the browser and a separate store per SSR request. Module-scoped tokens address the same browser values from SPA hooks and ordinary getState/setState calls. Server operations must use the selected request store through SPA hooks or store-aware atom.io functions; free getState/setState still target the process-global store. Set isolate to true on a component when it needs a private store. SPA does not serialize an entire store implicitly.
+
+Untouched initial islands hydrate matching server DOM. After application state changes, delayed islands render fresh against the live store. Newly introduced islands after ClientRouter navigation also render fresh, preserving edits instead of applying an incoming server snapshot. Persisted roots retain their DOM and subscriptions. Normal Astro client directives work without per-island navigation configuration.
+
+An optional prepareStore callback can asynchronously initialize the selected store before rendering. Its context owns island cleanup; context.application supplies shared resources, cancellation, and canResume. Shared browser resources survive island removal and navigation, while request resources end after streaming. The astro-spa-resumability template demonstrates this with module-scoped atom defaults, one shared JSON sidecar, and SQLite/tRPC data.
 
 Use Astro's client directives to choose when an island hydrates. Components that put browser work in onMount can render their host markup on the server and hydrate with client:load. Default and named slots are supported, and astro:unmount releases the island's resources.
 

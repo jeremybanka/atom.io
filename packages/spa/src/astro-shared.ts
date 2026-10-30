@@ -4,7 +4,17 @@ import { IMPLICIT, Store } from "atom.io/internal"
 import type { Component, VNode } from "./core.ts"
 import { jsx } from "./jsx-runtime.ts"
 
+export interface AstroApplicationContext {
+	/** Whether the application still represents its initial server snapshot. */
+	readonly canResume: boolean
+	readonly signal: AbortSignal
+	onCleanup(cleanup: () => void): void
+	/** Initialize a resource once for this application lifetime. */
+	get<T>(key: unknown, initialize: () => T): T
+}
 export interface AstroStoreContext {
+	/** Shared across default islands; private for explicitly isolated islands. */
+	application: AstroApplicationContext
 	/** The browser island host; undefined during server rendering. */
 	element: HTMLElement | undefined
 	/** Aborted when preparation is cancelled or the island is released. */
@@ -23,6 +33,8 @@ export type AstroStorePreparation<P = Record<string, any>> = (
 ) => void | Promise<void>
 export type Island<P = any> = Component<P> & {
 	spa?: boolean
+	/** Opt into a private island store instead of the shared application store. */
+	isolate?: boolean
 	createStore?: AstroStoreFactory<P>
 	prepareStore?: AstroStorePreparation<P>
 }
@@ -30,8 +42,10 @@ export async function islandStore(
 	component: Island,
 	props: Record<string, any>,
 	context: AstroStoreContext,
+	shared?: RootStore,
 ): Promise<RootStore> {
 	const store = await (component.createStore?.(props, context) ??
+		shared ??
 		(new Store(
 			{ name: `spa-island`, lifespan: `ephemeral`, isProduction: true },
 			IMPLICIT.STORE,

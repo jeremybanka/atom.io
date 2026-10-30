@@ -94,7 +94,7 @@ Work that needs the collector must run inside the wrapper's slot, not in the par
 | Browser has a seed and no client closure | Reuse the seed on every call, cloning its data before decoding.     |
 | Browser has no seed                      | Execute the client closure, or throw if none was provided.          |
 
-Consumption belongs to a key within one browser scope, not to a function identity. Capture one scope per owner and retain it across resets; recreating a scope from the DOM would harvest stale server values again. Different wrappers and scopes remain independent, including when keys match. Dispose the scope when its owner is removed to clear remaining values and abort its signal. In an Astro client-router app, tie setup and disposal to that owner's navigation lifecycle.
+Consumption belongs to a key within one browser scope, not to a function identity. Capture one scope per owner and retain it across resets; recreating a scope from the DOM would harvest stale server values again. Different scopes remain independent, including when keys match. Scope.add(elementOrPayload) imports additional sidecars into an existing scope without reseeding keys already read. One application can retain its scope across navigation and add payloads for new keys. Dispose the scope when its owner ends to clear remaining values and abort its signal; for a shared application, removing a single island does not end that lifetime.
 
 Keys are strings, finite numbers, booleans, null, or nested arrays of those values. They must be stable across server and browser and unique for a logical value within a scope. Reusing a key with different producers or codecs is a programming error. Object keys, undefined, sparse arrays, negative zero, and non-finite numbers are rejected.
 
@@ -143,13 +143,13 @@ export function resumeDefaults(store: RootStore, wrapper: Element): () => void {
 
 ```
 
-The store activates that scope for initial reads, lazy family members, and resets, including resets inside transactions. The first browser read consumes the server value; subsequent resets run the client producer. Independent stores share definitions but never a resumption scope. The astro-spa-resumability template uses SPA's prepareStore callback to install this bridge, await initial reads, and register cleanup. Resumability itself has no atom.io or SPA dependency.
+The store activates that scope for initial reads, lazy family members, and resets, including resets inside transactions. The first browser read consumes the server value; subsequent resets run the client producer. Independent stores share definitions but never a resumption scope. The astro-spa-resumability template uses SPA's prepareStore callback and application resource context to install this bridge once, await initial reads, and register cleanup. Sibling islands share one deferred Resumption collection so every initial reader can find the complete sidecar, regardless of activation order. Resumability itself has no atom.io or SPA dependency.
 
 ## API and transport
 
 The root export provides resumable(options, scope?). Options contain key, an inline server closure, an optional inline client closure, and an optional codec with encode and decode functions. Both producers receive an AbortSignal through their context. The server path returns a promise; a browser seed is returned synchronously. Client producers may return either. The browser uses an explicit scope when supplied, otherwise the currently active scope.run callback. SSR obtains its scope from the active collection.
 
-The client entrypoint exports createResumption(elementOrPayload?) and resumable. Pass the wrapper element to read its direct sidecar, a parsed Payload for a custom transport, or no argument for a client-only scope. The returned scope has read, run, and dispose methods. Scope.run(callback) activates its scope synchronously, restoring the previous scope even when the callback throws. It returns the callback result unchanged; it does not keep an ambient scope across await. Call resumable before awaiting, or pass an explicit scope for later asynchronous calls. Producers receive their scope signal when invoked. Disposing a scope aborts that signal; another reset does not cancel an earlier request.
+The client entrypoint exports createResumption(elementOrPayload?) and resumable. Pass the wrapper element to read its direct sidecar, a parsed Payload for a custom transport, or no argument for a client-only scope. The returned scope has read, run, add, and dispose methods. Add validates the entire payload before merging it. Keys already read keep their consumption state; reusable server-only values keep their original seed. Unread keys can receive newer seeds. Scope.run(callback) activates its scope synchronously, restoring the previous scope even when the callback throws. It returns the callback result unchanged; it does not keep an ambient scope across await. Call resumable before awaiting, or pass an explicit scope for later asynchronous calls. Passing a second argument to scope.run with resume set to false bypasses unread seeds when a client producer is available. This supports fresh mounts after browser state changes: even a default reset before its first read must not resurrect stale server data. Server-only values remain usable because they have no client initializer. The option is scoped to that synchronous callback and restored after nested calls or errors. Producers receive their scope signal when invoked. Disposing a scope aborts that signal; another reset does not cancel an earlier request.
 
 The server entrypoint exports collect and serialize, as well as resumable. Collect accepts a callback and an optional cancellation signal, and returns the callback's value and a versioned payload, awaiting all registered work, including work registered by other producers after an await. Rejections fail collection; cancellation aborts it. Producers must finish or honor cancellation, and must not depend cyclically on one another. Detached work registered after collection closes is rejected. Server collection requires a Node-compatible runtime with AsyncLocalStorage; static Astro builds work too.
 
@@ -173,8 +173,8 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                                 | Entry                         | Minified JS |  Gzip JS |
 | -------------------------------------- | ----------------------------- | ----------: | -------: |
-| Resumable browser defaults             | `tonnage-recipes/defaults.ts` |     1,311 B |    687 B |
-| Atom family defaults including atom.io | `tonnage-recipes/atoms.ts`    |    35,312 B | 10,510 B |
+| Resumable browser defaults             | `tonnage-recipes/defaults.ts` |     1,500 B |    766 B |
+| Atom family defaults including atom.io | `tonnage-recipes/atoms.ts`    |    35,501 B | 10,586 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

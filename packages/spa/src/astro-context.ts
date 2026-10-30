@@ -1,13 +1,18 @@
-import type { AstroStoreContext } from "./astro-shared.ts"
+import type {
+	AstroApplicationContext,
+	AstroStoreContext,
+} from "./astro-shared.ts"
 
-/** A preparation lifetime exists before there is a component owner. */
-export function storeContext(element?: HTMLElement): {
-	context: AstroStoreContext
+type Lifetime = {
+	signal: AbortSignal
+	onCleanup(cleanup: () => void): () => void
 	dispose(): void
 	cancelled: Promise<undefined>
-} {
+}
+
+function lifetime(): Lifetime {
 	const controller = new AbortController()
-	const cleanups: (() => void)[] = []
+	const cleanups = new Set<() => void>()
 	let cancel!: () => void
 	const cancelled = new Promise<undefined>((resolve) => {
 		cancel = () => {
@@ -15,13 +20,13 @@ export function storeContext(element?: HTMLElement): {
 		}
 	})
 	return {
-		context: {
-			element,
-			signal: controller.signal,
-			onCleanup(cleanup) {
-				if (controller.signal.aborted) cleanup()
-				else cleanups.push(cleanup)
-			},
+		signal: controller.signal,
+		onCleanup(cleanup) {
+			if (controller.signal.aborted) cleanup()
+			else cleanups.add(cleanup)
+			return () => {
+				cleanups.delete(cleanup)
+			}
 		},
 		cancelled,
 		dispose() {
@@ -29,17 +34,61 @@ export function storeContext(element?: HTMLElement): {
 			controller.abort()
 			cancel()
 			const errors: unknown[] = []
-			for (const cleanup of cleanups.reverse()) {
+			for (const cleanup of [...cleanups].reverse()) {
 				try {
 					cleanup()
 				} catch (error) {
 					errors.push(error)
 				}
 			}
-			cleanups.length = 0
+			cleanups.clear()
 			if (errors.length)
 				throw new AggregateError(errors, `spa: Astro store cleanup failed`)
 		},
+	}
+}
+
+export type Application = Lifetime &
+	AstroApplicationContext & { canResume: boolean }
+export function applicationContext(): Application {
+	const life = lifetime()
+	const resources = new Map<unknown, unknown>()
+	life.onCleanup(() => {
+		resources.clear()
+	})
+	return {
+		...life,
+		canResume: true,
+		get<T>(key: unknown, initialize: () => T): T {
+			life.signal.throwIfAborted()
+			if (!resources.has(key)) resources.set(key, initialize())
+			return resources.get(key) as T
+		},
+	}
+}
+
+/** Island resources and shared application resources have distinct owners. */
+export function storeContext(
+	element?: HTMLElement,
+	shared?: ReturnType<typeof applicationContext>,
+): {
+	context: AstroStoreContext
+	dispose(): void
+	cancelled: Promise<undefined>
+} {
+	const life = lifetime()
+	const application = shared ?? applicationContext()
+	if (shared) life.onCleanup(shared.onCleanup(life.dispose))
+	else life.onCleanup(application.dispose)
+	return {
+		context: {
+			element,
+			signal: life.signal,
+			onCleanup: life.onCleanup,
+			application,
+		},
+		dispose: life.dispose,
+		cancelled: life.cancelled,
 	}
 }
 

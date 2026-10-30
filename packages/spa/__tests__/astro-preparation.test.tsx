@@ -1,6 +1,7 @@
 import { atom, Silo } from "atom.io"
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 
+import { browserApplication } from "../src/astro-application.ts"
 import astroClient from "../src/astro-client.ts"
 import { storeContext } from "../src/astro-context.ts"
 import astroServer from "../src/astro-server.ts"
@@ -387,4 +388,8 @@ it(`preserves factory stores and reports preparation failures with cleanup`, asy
 	}
 	await expect(ssr(App)).rejects.toThrow(`prepare failed`)
 	expect(cleaned).toHaveBeenCalledOnce()
+})
+
+afterEach(() => {
+	browserApplication(document).dispose()
 })

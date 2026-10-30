@@ -16,6 +16,8 @@ for (const development of [false, true]) {
 			`src/astro.ts`,
 			`src/astro-client.ts`,
 			`src/astro-server.ts`,
+			`src/astro-application.ts`,
+			`src/astro-middleware.ts`,
 		],
 		outdir: development ? `dist/development` : `dist`,
 		bundle: true,

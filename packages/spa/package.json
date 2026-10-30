@@ -46,7 +46,17 @@
 			"development": "./dist/development/astro-server.js",
 			"import": "./dist/astro-server.js"
 		},
-		"./package.json": "./package.json"
+		"./package.json": "./package.json",
+		"./astro-middleware": {
+			"types": "./dist/astro-middleware.d.ts",
+			"development": "./dist/development/astro-middleware.js",
+			"import": "./dist/astro-middleware.js"
+		},
+		"./astro-application": {
+			"types": "./dist/astro-application.d.ts",
+			"development": "./dist/development/astro-application.js",
+			"import": "./dist/astro-application.js"
+		}
 	},
 	"files": [
 		"dist",

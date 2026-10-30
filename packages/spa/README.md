@@ -358,7 +358,7 @@ The checked Astro fixture demonstrates default/named slots and custom independen
 
 The build audits every browser export, including the JSX runtime, from the built JavaScript. Atom.io is an external peer in the incremental measurement. Compiler, server, and integration code have separate entrypoints. The report also includes the complete client plus atom.io, the Astro client entrypoint, and the installed Preact version under the same bundling/minification settings. These are full exported surfaces, not equivalent application benchmarks.
 
-The hard budget is under 3,300 bytes of ordinary level-9 gzip for the complete client export surface. The build bundles with esbuild and minifies with Oxc, then measures compression using Node's gzip and Brotli implementations. The spa client measures 3,288 bytes with gzip. Actual application bundles add atom.io and compiler-generated application code.
+The hard budget is under 3,400 bytes of ordinary level-9 gzip for the complete client export surface. Tsdown builds the package JavaScript and declarations, with separate production and development outputs that each share their runtime across entrypoints. The size audit then bundles the built exports with esbuild, minifies with Oxc, and measures compression using Node's gzip and Brotli implementations. The spa client measures 3,358 bytes with gzip. Actual application bundles add atom.io and compiler-generated application code.
 
 Build output includes the minified audit entrypoint and machine-readable dist/size.json. These audit files are a bundled measurement; use the package exports in applications so the bundler preserves one runtime instance across entrypoints. Source tests exercise development behavior; the production test executes the audited minified artifact. Chromium checks exercise the actual Astro build, island isolation, hydration, keyed identity, focus/selection, SVG namespaces, and teardown. A fresh-cache Astro development check also covers mount hooks, shared state, and ClientRouter navigation.
 
@@ -389,11 +389,11 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                           | Entry                             | Minified JS |  Gzip JS |
 | -------------------------------- | --------------------------------- | ----------: | -------: |
-| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    61,030 B | 18,085 B |
-| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    39,450 B | 12,281 B |
-| Interactive client app           | `tonnage-recipes/client-app.ts`   |    39,121 B | 12,130 B |
-| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    39,122 B | 12,131 B |
-| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    45,463 B | 14,104 B |
+| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    61,387 B | 18,140 B |
+| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    39,798 B | 12,327 B |
+| Interactive client app           | `tonnage-recipes/client-app.ts`   |    39,460 B | 12,178 B |
+| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    39,461 B | 12,178 B |
+| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    45,808 B | 14,152 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

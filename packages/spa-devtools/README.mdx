@@ -22,6 +22,8 @@ This port shares atom.io's introspection engine with the React debugger. It does
 
 ## Package checks
 
+Tsdown builds the package JavaScript and declarations. SPA's compiler transforms the debugger JSX before bundling, preserving reactive bindings. The build copies the stylesheet and its declaration alongside the JavaScript; SPA and atom.io stay external peers.
+
 Breakage exercises the packed package in isolated, locked peer environments, including the coordinated atom.io workspace candidate. Until the first published release, Breakage reports a first-release baseline; these checks establish compatibility with the declared peers rather than a previous spa release. Coverage gates require 100% of statements, branches, functions, and lines across the package source.
 
 The serving recipe measures an interactive SPA app with the debugger: atom creation, render, useValue, useSetter, JSX, and AtomIODevtools. The combined browser bundle includes atom.io, SPA, and the debugger, with shared modules counted once and unused exports removed. SPA and atom.io remain peer dependencies of the debugger package; these consumer-app measurements include both. The required debugger stylesheet is imported but its bytes are excluded from the JavaScript total, as are application components, declarations, and source maps.

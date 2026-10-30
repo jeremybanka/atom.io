@@ -75,7 +75,7 @@ The Astro integration installs the Vite transform for development and production
 
 ## Size and checks
 
-The build audits the complete browser runtime with ordinary level-9 gzip and enforces a 1,000-byte budget. Tonnage below measures browser exports and a serving suggestion that includes atom.io's family creation, reads, and resets; shared modules are counted once. Astro's compiler and server libraries do not contribute to these browser bundles. Application markup, handlers, Astro's own browser scripts, and payload data are additional.
+Tsdown builds the package JavaScript and declarations and copies the Astro wrapper into the published output. A separate size audit measures the complete browser runtime with ordinary level-9 gzip and enforces a 1,000-byte budget. Tonnage below measures browser exports and a serving suggestion that includes atom.io's family creation, reads, and resets; shared modules are counted once. Astro's compiler and server libraries do not contribute to these browser bundles. Application markup, handlers, Astro's own browser scripts, and payload data are additional.
 
 <Tonnage config={config} />
 

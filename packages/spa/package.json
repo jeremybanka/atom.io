@@ -63,11 +63,11 @@
 		"src"
 	],
 	"scripts": {
-		"build": "node scripts/build.ts && tsc -p tsconfig.build.json && node scripts/size.ts",
+		"build": "tsdown && node scripts/size.ts",
 		"test:once": "vitest run --config vitest.config.ts",
 		"lint:types": "tsc -p tsconfig.json && tsc -p __tests__/fixtures/consumer/tsconfig.json",
-		"lint:eslint": "eslint src __tests__ scripts exhibits",
-		"lint:oxlint": "oxlint src __tests__ scripts exhibits",
+		"lint:eslint": "eslint src __tests__ scripts exhibits tsdown.config.ts",
+		"lint:oxlint": "oxlint src __tests__ scripts exhibits tsdown.config.ts",
 		"size": "node scripts/size.ts",
 		"readme:write": "galley write README.mdx",
 		"readme:check": "galley check README.mdx",
@@ -96,6 +96,7 @@
 		"playwright": "1.64.1",
 		"preact": "11.1.0",
 		"rolldown": "1.2.15",
+		"tsdown": "0.23.3",
 		"typescript": "7.0.2",
 		"vite": "8.3.5",
 		"vitest": "5.0.5"

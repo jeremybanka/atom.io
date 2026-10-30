@@ -12,6 +12,16 @@ const config: BreakageConfig = defineConfig({
 		policy: semverPolicy({ beforeV1: `minor` }),
 	},
 	npm: {
+		// This RC-only support replacement is intentionally a patch. Keep the
+		// exception limited to this release; other releases retain the policy above.
+		release: {
+			resolveDelta: changesetsReleaseDelta(),
+			policy: (delta) =>
+				(delta.previousVersion === `0.1.3` &&
+					delta.version === `0.1.4` &&
+					delta.delta === `patch`) ||
+				semverPolicy({ beforeV1: `minor` })(delta),
+		},
 		artifact: `.breakage/package.tgz`,
 		representatives: `peer-environments/*`,
 		lockfile: `pnpm-lock.yaml`,

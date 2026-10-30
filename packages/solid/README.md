@@ -10,7 +10,7 @@
 
 <h3 align="center"><a href="https://atom.io.fyi/docs/solid">📖 Read the docs at atom.io.fyi</a></h3>
 
-Install this package alongside `atom.io` and `solid-js` 1.9. Replace imports from `atom.io/solid` with `@atom.io/solid`; the exports and behavior are unchanged.
+Install this package alongside `atom.io` and `solid-js` 1.9 or 2.0.0-rc.20. Replace imports from `atom.io/solid` with `@atom.io/solid`; the exports and behavior are unchanged.
 
 ## Install
 

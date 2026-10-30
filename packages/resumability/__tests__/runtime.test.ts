@@ -277,3 +277,48 @@ describe(`wire format`, () => {
 		).toBe(5)
 	})
 })
+
+describe(`browser initialization scopes`, () => {
+	it(`restores nested scopes after returns and errors, including detached runners`, () => {
+		const a = createResumption({ version: 1, values: [[`value`, [1, 1]]] })
+		const b = createResumption({ version: 1, values: [[`value`, [1, 2]]] })
+		const options = serverValue(0)
+		const run = a.run
+		expect(
+			run(() => {
+				expect(client(options)).toBe(1)
+				expect(b.run(() => client(options))).toBe(2)
+				expect(client(options, b)).toBe(2)
+				expect(() =>
+					b.run(() => {
+						throw new Error(`nested`)
+					}),
+				).toThrow(`nested`)
+				return client(options)
+			}),
+		).toBe(1)
+		expect(() => client(options)).toThrow(`capture`)
+		a.dispose()
+		expect(() => run(() => 0)).toThrow()
+	})
+	it(`consumes once, captures producer cancellation, and never keeps an ambient scope across awaits`, async () => {
+		const a = createResumption({ version: 1, values: [[`value`, [1, 1]]] })
+		let signal!: AbortSignal
+		const options = {
+			...serverValue(0),
+			client: async (context: { signal: AbortSignal }) => {
+				signal = context.signal
+				await Promise.resolve()
+				expect(() => client(serverValue(0))).toThrow(`capture`)
+				return 2
+			},
+		}
+		expect(a.run(() => client(options))).toBe(1)
+		const pending = a.run(() => client(options))
+		expect(() => client(options)).toThrow(`capture`)
+		expect(signal.aborted).toBe(false)
+		await expect(pending).resolves.toBe(2)
+		a.dispose()
+		expect(signal.aborted).toBe(true)
+	})
+})

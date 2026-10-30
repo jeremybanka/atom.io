@@ -16,11 +16,15 @@ export type {
 	ResumableOptions,
 	Resumption,
 } from "./types.ts"
+let active: Resumption | undefined
+
 export interface ClientResumption extends Resumption {
+	/** Activate this scope for synchronous calls; async producers capture their signal at invocation. */
+	run<T>(compute: () => T): T
 	dispose(): void
 }
 
-/** Capture once per browser owner; pass this scope to defaults and reset handlers. */
+/** Capture once per browser owner, then activate it when evaluating defaults. */
 export function createResumption(
 	source: Element | Payload = { version: 1, values: [] },
 ): ClientResumption {
@@ -48,7 +52,17 @@ export function createResumption(
 		values.set(id, value)
 	}
 	const controller = new AbortController()
-	return {
+	const scope: ClientResumption = {
+		run<T>(compute: () => T): T {
+			controller.signal.throwIfAborted()
+			const previous = active
+			active = scope
+			try {
+				return compute()
+			} finally {
+				active = previous
+			}
+		},
 		read<T, Wire extends Json>(
 			options: ResumableOptions<T, Wire>,
 		): T | Promise<T> {
@@ -71,14 +85,16 @@ export function createResumption(
 			controller.abort()
 		},
 	}
+	return scope
 }
 export function resumable<T, Wire extends Json = Json>(
 	options: ResumableOptions<T, Wire>,
 	scope?: Resumption,
 ): T | Promise<T> {
+	scope ??= active
 	if (!scope)
 		throw new Error(
-			`resumable: capture createResumption(element) and pass its scope`,
+			`resumable: capture createResumption(element), then use scope.run() or pass its scope`,
 		)
 	return scope.read(options)
 }

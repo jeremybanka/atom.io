@@ -13,8 +13,14 @@ const options = {
 }
 const { payload } = await collect(() => resumable(options))
 const scope = createResumption(JSON.parse(serialize(payload)))
-assert.deepEqual(client(options, scope), { value: 7 })
-assert.deepEqual(client(options, scope), { value: 8 })
+assert.deepEqual(
+	scope.run(() => client(options)),
+	{ value: 7 },
+)
+assert.deepEqual(
+	scope.run(() => client(options)),
+	{ value: 8 },
+)
 scope.dispose()
 assert.throws(() => client(options, scope))
 assert.equal(integration().name, `resumability`)

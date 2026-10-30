@@ -6,6 +6,7 @@ import spa from "./vite.ts"
 export type {
 	AstroStoreContext,
 	AstroStoreFactory,
+	AstroStorePreparation,
 	Island,
 } from "./astro-shared.ts"
 

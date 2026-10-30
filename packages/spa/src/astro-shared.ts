@@ -16,22 +16,30 @@ export type AstroStoreFactory<P = Record<string, any>> = (
 	props: P,
 	context: AstroStoreContext,
 ) => RootStore | Promise<RootStore>
+export type AstroStorePreparation<P = Record<string, any>> = (
+	store: RootStore,
+	props: P,
+	context: AstroStoreContext,
+) => void | Promise<void>
 export type Island<P = any> = Component<P> & {
 	spa?: boolean
 	createStore?: AstroStoreFactory<P>
+	prepareStore?: AstroStorePreparation<P>
 }
-export function islandStore(
+export async function islandStore(
 	component: Island,
 	props: Record<string, any>,
 	context: AstroStoreContext,
-): RootStore | Promise<RootStore> {
-	return (
-		component.createStore?.(props, context) ??
+): Promise<RootStore> {
+	const store = await (component.createStore?.(props, context) ??
 		(new Store(
 			{ name: `spa-island`, lifespan: `ephemeral`, isProduction: true },
 			IMPLICIT.STORE,
-		) as RootStore)
-	)
+		) as RootStore))
+	context.signal.throwIfAborted()
+	await component.prepareStore?.(store, props, context)
+	context.signal.throwIfAborted()
+	return store
 }
 export function island(
 	component: Island,

@@ -252,18 +252,17 @@ export default defineConfig({ integrations: [spa()] })
 
 ```
 
-Each island gets an independent store copied from registered atom.io definitions. A component's optional createStore(props, context) factory can return a RootStore or a promise of one. Astro awaits it before server rendering and before browser hydration or mounting. Existing one-argument synchronous factories still work. Server and browser must observe the same initial state; use serialized props or a separate data transport such as resumability. SPA does not serialize whole stores or depend on a transport library. Custom factories may explicitly share a store.
+Each island gets an independent store copied from registered atom.io definitions. Keep atom definitions at module scope. An optional prepareStore(store, props, context) callback initializes the selected store and may return a promise; SPA awaits it before component setup on both server and browser. A component's optional createStore(props, context) factory can return a RootStore or a promise of one. Astro awaits it before server rendering and before browser hydration or mounting. Existing one-argument synchronous factories still work. Server and browser must observe the same initial state; use serialized props or a separate data transport such as resumability. SPA does not serialize whole stores or depend on a transport library. Custom factories may explicitly share a store.
 
 The context provides element (the browser astro-island host, undefined on the server), signal, and onCleanup. Register resource cleanup as resources are acquired, before awaiting work that might fail. Cleanup runs after SSR, on preparation or render failure, and when the browser island is removed or replaced. The signal is aborted when that lifetime ends. Cleanup callbacks run in reverse order, and all run even if one throws; callbacks registered after cancellation run immediately. Cancellation stops waiting and prevents stale work from mounting, but producers must honor the signal to stop their own I/O.
 
 ```tsx
 import type { VNode } from "@atom.io/spa"
 import { useLoadable } from "@atom.io/spa"
-import type { AstroStoreContext } from "@atom.io/spa/astro"
+import type { AstroStorePreparation } from "@atom.io/spa/astro"
 import type { Loadable } from "atom.io"
-import { atom, Silo } from "atom.io"
-import type { RootStore } from "atom.io/internal"
-import { IMPLICIT } from "atom.io/internal"
+import { atom } from "atom.io"
+import { disposeFromStore, getFromStore, setIntoStore } from "atom.io/internal"
 
 const greetingAtom = atom<Loadable<string>>({
 	key: `greeting`,
@@ -275,28 +274,24 @@ export default function Greeting(): VNode {
 	return <p>{greeting().value}</p>
 }
 
-Greeting.createStore = async (
-	props: { message: string },
-	context: AstroStoreContext,
-): Promise<RootStore> => {
-	const silo = new Silo(
-		{ name: `greeting`, lifespan: `ephemeral`, isProduction: true },
-		IMPLICIT.STORE,
-	)
+const prepare: AstroStorePreparation<{ message: string }> = async (
+	store,
+	props,
+	context,
+) => {
 	context.onCleanup(() => {
-		silo.disposeState(greetingAtom)
+		disposeFromStore(store, greetingAtom)
 	})
 	// Use your asynchronous data preparation here. SSR and the browser must
 	// observe the same initial value; context.element can provide a DOM sidecar.
-	silo.setState(greetingAtom, Promise.resolve(props.message))
-	await silo.getState(greetingAtom)
-	context.signal.throwIfAborted()
-	return silo.store
+	setIntoStore(store, greetingAtom, Promise.resolve(props.message))
+	await getFromStore(store, greetingAtom)
 }
+Greeting.prepareStore = prepare
 
 ```
 
-AstroStoreContext, AstroStoreFactory, and Island types are exported from @atom.io/spa/astro. Preparation runs before component setup, so use the context's cleanup registrar there; use SPA's onCleanup inside components. Preparation failures reject the Astro render or hydration operation, retaining cleanup errors alongside the original failure. The server factory is awaited per render; component setup and the standalone renderToString API remain synchronous.
+AstroStoreContext, AstroStoreFactory, AstroStorePreparation, and Island types are exported from @atom.io/spa/astro. Preparation runs before component setup, so use the context's cleanup registrar there; use SPA's onCleanup inside components. Preparation failures reject the Astro render or hydration operation, retaining cleanup errors alongside the original failure. The factory and preparation callback are awaited per render; component setup and the standalone renderToString API remain synchronous.
 
 ```tsx
 import type { Child, VNode } from "@atom.io/spa"
@@ -346,7 +341,7 @@ Counter.createStore = (props: { initial: number }) => {
 
 Astro client:load, client:idle, client:visible, client:media, and client:only use Astro's scheduling. The integration hydrates server markup or mounts client-only content and releases the root on astro:unmount. Default slot content arrives as children and named content through slots. Reserved astro-slot wrappers contain Astro's already-rendered HTML; never use their innerHTML escape hatch for untrusted strings.
 
-Persisted islands receive live prop and slot updates without rerunning component setup or recreating their store. Repeated hydration calls during preparation share one factory invocation. New client mounts use the latest props and slots; hydration attaches to the original server tree first, then applies any changes received while preparing. The factory receives the initial props and runs only when an island is first mounted; put changing values in props rather than relying on the factory to run again.
+Persisted islands receive live prop and slot updates without rerunning component setup or recreating their store. Repeated hydration calls during preparation share one factory and preparation invocation. New client mounts use the latest props and slots; hydration attaches to the original server tree first, then applies any changes received while preparing. The factory receives the initial props and runs only when an island is first mounted; put changing values in props rather than relying on the factory to run again.
 
 The checked Astro fixture demonstrates default/named slots and multiple independently initialized islands, including client:only.
 
@@ -385,11 +380,11 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                           | Entry                             | Minified JS |  Gzip JS |
 | -------------------------------- | --------------------------------- | ----------: | -------: |
-| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    60,957 B | 18,062 B |
-| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    39,377 B | 12,256 B |
-| Interactive client app           | `tonnage-recipes/client-app.ts`   |    39,048 B | 12,107 B |
-| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    39,049 B | 12,106 B |
-| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    43,676 B | 13,575 B |
+| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    61,030 B | 18,085 B |
+| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    39,450 B | 12,281 B |
+| Interactive client app           | `tonnage-recipes/client-app.ts`   |    39,121 B | 12,130 B |
+| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    39,122 B | 12,131 B |
+| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    43,852 B | 13,635 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

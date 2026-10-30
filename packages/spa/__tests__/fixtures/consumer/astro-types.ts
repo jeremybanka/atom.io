@@ -1,6 +1,7 @@
 import type {
 	AstroStoreContext,
 	AstroStoreFactory,
+	AstroStorePreparation,
 	Island,
 } from "@atom.io/spa/astro"
 import { jsx } from "@atom.io/spa/jsx-runtime"
@@ -32,3 +33,20 @@ export function contextContract(context: AstroStoreContext): void {
 	// @ts-expect-error Cleanup registration requires a callback.
 	context.onCleanup(null)
 }
+
+const prepare: AstroStorePreparation<{ message: string }> = async (
+	store,
+	props,
+	context,
+) => {
+	await Promise.resolve(props.message)
+	context.onCleanup(() => {})
+	const key: string = store.config.name
+	void key
+}
+App.prepareStore = prepare
+const invalidResult = Promise.resolve(
+	new Silo({ name: `invalid`, lifespan: `ephemeral`, isProduction: true }).store,
+)
+// @ts-expect-error Asynchronous preparation does not replace the selected store.
+export const invalidPreparation: AstroStorePreparation = () => invalidResult

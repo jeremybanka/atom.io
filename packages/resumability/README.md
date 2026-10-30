@@ -100,56 +100,56 @@ Keys are strings, finite numbers, booleans, null, or nested arrays of those valu
 
 ## Atom defaults are one consumer
 
-The family default already receives its key, so it can close over that key in both producers. Capture the resumption scope when constructing the store:
+Atom family defaults already receive their family key. Keep the definitions at module scope:
 
 ```ts
-import type { AtomFamilyToken, Loadable } from "atom.io"
-import { Silo } from "atom.io"
-import type { Resumption } from "resumability"
+import { atomFamily, type Loadable } from "atom.io"
 import { resumable } from "resumability"
 
-export function createModel(scope?: Resumption): {
-	silo: Silo
-	draftAtoms: AtomFamilyToken<Loadable<string>, string>
-} {
-	const silo = new Silo({
-		name: `drafts`,
-		lifespan: `ephemeral`,
-		isProduction: true,
-	})
-	const draftAtoms = silo.atomFamily<Loadable<string>, string>({
-		key: `draft`,
-		default: (documentId) =>
-			resumable(
-				{
-					key: [`draft`, documentId],
-					server: async () => {
-						const { readFile } = await import(`node:fs/promises`)
-						return readFile(
-							new URL(
-								`./drafts/${encodeURIComponent(documentId)}.txt`,
-								import.meta.url,
-							),
-							`utf8`,
-						)
-					},
-					client: () => ``,
-				},
-				scope,
-			),
-	})
-	return { silo, draftAtoms }
+export const draftAtoms = atomFamily<Loadable<string>, string>({
+	key: `draft`,
+	default: (documentId) =>
+		resumable({
+			key: [`draft`, documentId],
+			server: async () => {
+				const { readFile } = await import(`node:fs/promises`)
+				return readFile(
+					new URL(
+						`./drafts/${encodeURIComponent(documentId)}.txt`,
+						import.meta.url,
+					),
+					`utf8`,
+				)
+			},
+			client: () => ``,
+		}),
+})
+
+```
+
+During SSR, read these tokens in a request-local store inside the collection and await the initial values. In the browser, associate a resumption scope with the store's default-evaluation boundary before reading state:
+
+```ts
+import type { RootStore } from "atom.io/internal"
+import { createResumption } from "resumability/client"
+
+// Run once when initializing a browser store; register the returned cleanup
+// with its owner. Definitions remain shared, while each store has its own scope.
+export function resumeDefaults(store: RootStore, wrapper: Element): () => void {
+	const scope = createResumption(wrapper)
+	store.runDefault = scope.run
+	return scope.dispose
 }
 
 ```
 
-During SSR, construct a request-local model inside the collection and await its initial reads. In the browser, construct the model with createResumption's scope before reading atoms. The first read receives the server value; resetState evaluates the default again and gets the client value. No new atom effect or atom.io API is needed. Other state libraries and plain functions can use the same utility.
+The store activates that scope for initial reads, lazy family members, and resets, including resets inside transactions. The first browser read consumes the server value; subsequent resets run the client producer. Independent stores share definitions but never a resumption scope. The astro-spa-resumability template uses SPA's prepareStore callback to install this bridge, await initial reads, and register cleanup. Resumability itself has no atom.io or SPA dependency.
 
 ## API and transport
 
-The root export provides resumable(options, scope?). Options contain key, an inline server closure, an optional inline client closure, and an optional codec with encode and decode functions. Both producers receive an AbortSignal through their context. The server path returns a promise; a browser seed is returned synchronously. Client producers may return either. The browser requires an explicit scope; SSR obtains its scope from the active collection.
+The root export provides resumable(options, scope?). Options contain key, an inline server closure, an optional inline client closure, and an optional codec with encode and decode functions. Both producers receive an AbortSignal through their context. The server path returns a promise; a browser seed is returned synchronously. Client producers may return either. The browser uses an explicit scope when supplied, otherwise the currently active scope.run callback. SSR obtains its scope from the active collection.
 
-The client entrypoint exports createResumption(elementOrPayload?) and resumable. Pass the wrapper element to read its direct sidecar, a parsed Payload for a custom transport, or no argument for a client-only scope. The returned scope has read and dispose methods.
+The client entrypoint exports createResumption(elementOrPayload?) and resumable. Pass the wrapper element to read its direct sidecar, a parsed Payload for a custom transport, or no argument for a client-only scope. The returned scope has read, run, and dispose methods. Scope.run(callback) activates its scope synchronously, restoring the previous scope even when the callback throws. It returns the callback result unchanged; it does not keep an ambient scope across await. Call resumable before awaiting, or pass an explicit scope for later asynchronous calls. Producers receive their scope signal when invoked. Disposing a scope aborts that signal; another reset does not cancel an earlier request.
 
 The server entrypoint exports collect and serialize, as well as resumable. Collect accepts a callback and an optional cancellation signal, and returns the callback's value and a versioned payload, awaiting all registered work, including work registered by other producers after an await. Rejections fail collection; cancellation aborts it. Producers must finish or honor cancellation, and must not depend cyclically on one another. Detached work registered after collection closes is rejected. Server collection requires a Node-compatible runtime with AsyncLocalStorage; static Astro builds work too.
 
@@ -173,8 +173,8 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                                 | Entry                         | Minified JS |  Gzip JS |
 | -------------------------------------- | ----------------------------- | ----------: | -------: |
-| Resumable browser defaults             | `tonnage-recipes/defaults.ts` |     1,199 B |    636 B |
-| Atom family defaults including atom.io | `tonnage-recipes/atoms.ts`    |    35,124 B | 10,424 B |
+| Resumable browser defaults             | `tonnage-recipes/defaults.ts` |     1,311 B |    687 B |
+| Atom family defaults including atom.io | `tonnage-recipes/atoms.ts`    |    35,312 B | 10,510 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

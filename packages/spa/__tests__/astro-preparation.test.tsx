@@ -1,4 +1,4 @@
-import { Silo } from "atom.io"
+import { atom, Silo } from "atom.io"
 import { describe, expect, it, vi } from "vitest"
 
 import astroClient from "../src/astro-client.ts"
@@ -217,6 +217,7 @@ describe(`Astro store preparation`, () => {
 		const ready = astroClient(host)(App, {}, {}, { client: `only` })
 		await Promise.resolve()
 		pending.reject(new Error(`cancelled`))
+		await Promise.resolve()
 		host.dispatchEvent(new Event(`astro:unmount`))
 		await expect(ready).resolves.toBeUndefined()
 	})
@@ -311,4 +312,79 @@ describe(`Astro store preparation`, () => {
 		expect(cleanup).toHaveBeenCalledOnce()
 		expect(context.signal.aborted).toBe(true)
 	})
+})
+
+it(`prepares module definitions in separate default stores before SSR and hydration`, async () => {
+	const valueAtom = atom<string>({
+		key: `value`,
+		default: () => `unprepared`,
+	})
+	const stores = new Set()
+	const cleaned = vi.fn()
+	const App: Island<{ message: string }> = () => {
+		const value = useValue(valueAtom)
+		return <p>{value()}</p>
+	}
+	App.prepareStore = async (store, props, context) => {
+		stores.add(store)
+		context.onCleanup(cleaned)
+		await Promise.resolve()
+		store.runDefault = () => props.message as any
+	}
+	const markup = await astroServer.renderToStaticMarkup.call(
+		{} as any,
+		App,
+		{ message: `prepared` },
+		{},
+	)
+	expect(markup.html).toContain(`prepared`)
+	expect(cleaned).toHaveBeenCalledTimes(1)
+	const host = document.createElement(`div`)
+	host.innerHTML = markup.html
+	const paragraph = host.querySelector(`p`)
+	await astroClient(host)(App, { message: `prepared` }, {}, { client: `load` })
+	expect(host.querySelector(`p`)).toBe(paragraph)
+	expect(host.textContent).toBe(`prepared`)
+	expect(stores.size).toBe(2)
+	host.dispatchEvent(new Event(`astro:unmount`))
+	expect(cleaned).toHaveBeenCalledTimes(2)
+})
+
+it(`cancels async preparation and releases its late resources`, async () => {
+	const pending = Promise.withResolvers<void>()
+	const cleaned = vi.fn()
+	const mounted = vi.fn()
+	const started = Promise.withResolvers<void>()
+	const App: Island = () => {
+		mounted()
+		return null
+	}
+	App.prepareStore = async (_, __, context) => {
+		started.resolve()
+		await pending.promise
+		context.onCleanup(cleaned)
+	}
+	const host = document.createElement(`div`)
+	const hydration = astroClient(host)(App, {}, {}, { client: `only` })
+	await started.promise
+	host.dispatchEvent(new Event(`astro:unmount`))
+	await hydration
+	pending.resolve()
+	await Promise.resolve()
+	expect(cleaned).toHaveBeenCalledOnce()
+	expect(mounted).not.toHaveBeenCalled()
+})
+
+it(`preserves factory stores and reports preparation failures with cleanup`, async () => {
+	const model = silo()
+	const cleaned = vi.fn()
+	const App: Island = () => null
+	App.createStore = () => model.store
+	App.prepareStore = (store, _, context) => {
+		expect(store).toBe(model.store)
+		context.onCleanup(cleaned)
+		throw new Error(`prepare failed`)
+	}
+	await expect(ssr(App)).rejects.toThrow(`prepare failed`)
+	expect(cleaned).toHaveBeenCalledOnce()
 })

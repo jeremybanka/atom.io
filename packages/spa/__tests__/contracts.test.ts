@@ -121,8 +121,8 @@ it(`creates isolated default island stores and replaces component identity`, asy
 	const A = Object.assign(() => jsx(`p`, { children: `A` }), { spa: true })
 	const B = Object.assign(() => jsx(`b`, { children: `B` }), { spa: true })
 	const lifetime = storeContext()
-	expect(islandStore(A, {}, lifetime.context)).not.toBe(
-		islandStore(A, {}, lifetime.context),
+	expect(await islandStore(A, {}, lifetime.context)).not.toBe(
+		await islandStore(A, {}, lifetime.context),
 	)
 	lifetime.dispose()
 	expect(await (astroServer.check as Function)(null)).toBe(false)

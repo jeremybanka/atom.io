@@ -12,6 +12,7 @@
 		"packages/solid/README.md",
 		"packages/spa/README.md",
 		"packages/resumability/README.md",
+		"templates/astro-spa-resumability/README.md",
 		"packages/spa-devtools/README.md",
 		"packages/react-devtools/README.md",
 		"packages/eslint-plugin/README.md",

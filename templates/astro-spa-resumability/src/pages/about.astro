@@ -1,0 +1,25 @@
+---
+import Page from "../layouts/Page.astro"
+---
+<Page title="How it works">
+	<section class="intro">
+		<p class="eyebrow">One value, two beginnings</p>
+		<h1>Server first. Browser from then on.</h1>
+		<p>
+			Astro waits for the atom defaults, renders the draft cards with SPA, and
+			places the results in a JSON sidecar. The browser consumes those values
+			before hydrating the existing cards.
+		</p>
+		<p>
+			A reset calls the default again. Its server value has already been
+			consumed, so the client closure makes a fresh draft. Editing or resetting
+			one workspace leaves the other alone.
+		</p>
+		<p>
+			Navigation disposes each workspace. Returning starts new stores from the
+			page's server values. This starter builds static pages; SQLite runs at
+			build time in production and on page requests during development.
+		</p>
+		<a class="back" href="/">Back to drafts →</a>
+	</section>
+</Page>

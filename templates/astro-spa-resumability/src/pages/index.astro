@@ -1,0 +1,24 @@
+---
+import Resumption from "resumability/Resumption.astro"
+import DraftIsland from "../components/DraftIsland.astro"
+import Page from "../layouts/Page.astro"
+---
+<Page title="Your drafts">
+	<header class="intro">
+		<p class="eyebrow">A server head start</p>
+		<h1>Pick up where the server left off.</h1>
+		<p>
+			These notes arrive from SQLite. Edit one, or reset it to a fresh browser
+			default. Each workspace keeps its own state.
+		</p>
+	</header>
+	<section class="workspace" aria-labelledby="work-heading">
+		<h2 id="work-heading">Work notes <small>Workspace one</small></h2><Resumption
+		><DraftIsland id="work" /></Resumption>
+	</section>
+	<section class="workspace" aria-labelledby="personal-heading">
+		<h2 id="personal-heading">
+			Personal notes <small>Workspace two · same document keys</small>
+		</h2><Resumption><DraftIsland id="personal" /></Resumption>
+	</section>
+</Page>

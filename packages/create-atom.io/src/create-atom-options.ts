@@ -3,6 +3,10 @@ import type { OptionsGroup } from "comline"
 import { options, parseBooleanOption } from "comline"
 
 export const TEMPLATES = {
+	"astro-spa-resumability": {
+		label: `Astro SPA Resumability`,
+		description: `An Astro app with SPA, SQLite-backed atom defaults, and fresh browser values on reset.`,
+	},
 	"preact-realtime-vector-editor": {
 		label: `Preact Realtime Vector Editor`,
 		description: `A Preact vector editor with Mosaic Domain batching, presence, recovery, and actor-safe history.`,

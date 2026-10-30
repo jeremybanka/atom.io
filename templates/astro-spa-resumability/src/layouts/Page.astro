@@ -1,0 +1,24 @@
+---
+import { ClientRouter } from "astro:transitions"
+import "../style.css"
+interface Props {
+	title: string
+}
+---
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width" />
+		<title>{Astro.props.title} · Resumable drafts</title>
+		<ClientRouter />
+	</head>
+	<body>
+		<nav>
+			<a href="/" class="brand">Resumable drafts</a><a href="/about"
+			>How it works</a>
+		</nav>
+		<main><slot /></main>
+		<footer class="page-footer">Astro + atom.io + SPA + resumability</footer>
+	</body>
+</html>

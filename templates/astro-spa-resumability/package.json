@@ -1,0 +1,49 @@
+{
+	"name": "@atom.io/template-astro-spa-resumability",
+	"version": "0.0.0",
+	"description": "Astro, SPA, and resumable atom defaults with SQLite server data.",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/jeremybanka/atom.io.git",
+		"directory": "templates/astro-spa-resumability"
+	},
+	"license": "MPL-2.0",
+	"type": "module",
+	"files": [
+		"src",
+		"tests",
+		"exhibits",
+		"astro.config.ts",
+		"tsconfig.json",
+		"README.mdx",
+		"_gitignore"
+	],
+	"scripts": {
+		"dev": "astro dev",
+		"build": "tsc --noEmit && astro build",
+		"preview": "astro preview",
+		"lint:types": "tsc --noEmit",
+		"lint:oxlint": "oxlint src tests astro.config.ts",
+		"test": "npm run test:browser",
+		"test:browser": "astro build && node tests/browser.mjs && node tests/browser.mjs --dev",
+		"readme:write": "galley write README.mdx",
+		"readme:check": "galley check README.mdx"
+	},
+	"dependencies": {
+		"@atom.io/spa": "workspace:*",
+		"astro": "7.4.2",
+		"atom.io": "workspace:*",
+		"resumability": "workspace:*"
+	},
+	"devDependencies": {
+		"@types/node": "26.6.5",
+		"galley.md": "0.3.1",
+		"oxlint": "1.90.0",
+		"oxlint-tsgolint": "7.0.2005",
+		"playwright": "1.64.1",
+		"typescript": "7.0.2",
+		"vite": "8.3.5"
+	},
+	"engines": { "node": ">=24.12.0" },
+	"publishConfig": { "access": "public" }
+}

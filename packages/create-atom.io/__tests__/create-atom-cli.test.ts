@@ -39,6 +39,11 @@ const suppliedOptions = [
 describe(`one-shot CLI`, () => {
 	it.each([
 		{
+			template: `astro-spa-resumability`,
+			manager: `pnpm`,
+			flags: [`--template`, `--package-manager`, `--skip-hints`, `--use-mise`],
+		},
+		{
 			template: `preact-svg-editor`,
 			manager: `npm`,
 			flags: [`--templateName`, `--packageManager`, `--skipHints`, `--useMise`],

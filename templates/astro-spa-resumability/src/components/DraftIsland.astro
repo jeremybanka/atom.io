@@ -1,0 +1,27 @@
+---
+import { jsx } from "@atom.io/spa/jsx-runtime"
+import { renderToString } from "@atom.io/spa/server"
+import Drafts from "../Drafts.spa.tsx"
+import { createModel } from "../model.ts"
+
+interface Props {
+	id: string
+}
+const model = createModel()
+let html: string
+try {
+	await model.prepare()
+	html = renderToString(() => jsx(Drafts, { model }), {
+		store: model.silo.store,
+		idPrefix: Astro.props.id,
+	})
+} finally {
+	model.dispose()
+}
+---
+<resumable-drafts data-island={Astro.props.id}>
+	<div data-root set:html={html} />
+</resumable-drafts>
+<script>
+import "../island.ts"
+</script>

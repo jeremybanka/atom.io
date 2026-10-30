@@ -493,6 +493,9 @@ importers:
 
   packages/create-atom.io:
     dependencies:
+      '@atom.io/template-astro-spa-resumability':
+        specifier: workspace:*
+        version: link:../../templates/astro-spa-resumability
       '@atom.io/template-preact-realtime-vector-editor':
         specifier: workspace:*
         version: link:../../templates/preact-realtime-vector-editor
@@ -953,6 +956,43 @@ importers:
       vitest:
         specifier: 5.0.5
         version: 5.0.5(@types/node@26.6.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(happy-dom@21.0.4)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+
+  templates/astro-spa-resumability:
+    dependencies:
+      '@atom.io/spa':
+        specifier: workspace:*
+        version: link:../../packages/spa
+      astro:
+        specifier: 7.4.2
+        version: 7.4.2(@astrojs/markdown-remark@7.3.5(supports-color@10.2.2))(@azure/identity@4.13.2(supports-color@10.2.2))(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
+      atom.io:
+        specifier: workspace:*
+        version: link:../../packages/atom.io
+      resumability:
+        specifier: workspace:*
+        version: link:../../packages/resumability
+    devDependencies:
+      '@types/node':
+        specifier: 26.6.5
+        version: 26.6.5
+      galley.md:
+        specifier: 0.3.1
+        version: 0.3.1(arktype@2.2.9)(supports-color@10.2.2)(zod@4.6.7)
+      oxlint:
+        specifier: 1.90.0
+        version: 1.90.0(oxlint-tsgolint@7.0.2005)
+      oxlint-tsgolint:
+        specifier: 7.0.2005
+        version: 7.0.2005
+      playwright:
+        specifier: 1.64.1
+        version: 1.64.1
+      typescript:
+        specifier: 7.0.2
+        version: 7.0.2
+      vite:
+        specifier: 8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
 
   templates/preact-realtime-vector-editor:
     dependencies:
@@ -12442,6 +12482,38 @@ snapshots:
       '@types/react': 19.3.0
       '@vscode/vsce': 4.0.0(supports-color@10.2.2)
       comline: 0.9.3(arktype@2.2.8)(zod@4.6.7)
+      diff: 9.0.0
+      esbuild: 0.28.2
+      hast-util-phrasing: 3.0.1
+      hast-util-to-html: 9.0.5
+      mdast-util-to-hast: 13.2.1
+      remark-frontmatter: 5.0.0(supports-color@10.2.2)
+      remark-gfm: 4.0.1(supports-color@10.2.2)
+      remark-mdx: 3.1.1(supports-color@10.2.2)
+      remark-parse: 11.0.0(supports-color@10.2.2)
+      remark-stringify: 11.0.0
+      typescript: 7.1.0-dev.20261027.1
+      unified: 11.0.5
+      vscode-jsonrpc: 10.0.0
+      vscode-languageclient: 11.0.0
+      vscode-languageserver: 11.0.0
+      vscode-languageserver-textdocument: 1.0.16
+      yaml: 2.9.1
+    transitivePeerDependencies:
+      - arktype
+      - supports-color
+      - zod
+
+  galley.md@0.3.1(arktype@2.2.9)(supports-color@10.2.2)(zod@4.6.7):
+    dependencies:
+      '@babel/parser': 8.0.8
+      '@dprint/formatter': 0.6.0
+      '@dprint/markdown': 0.28.2
+      '@mdx-js/mdx': 3.1.1(supports-color@10.2.2)
+      '@types/mdast': 4.0.4
+      '@types/react': 19.3.0
+      '@vscode/vsce': 4.0.0(supports-color@10.2.2)
+      comline: 0.9.3(arktype@2.2.9)(zod@4.6.7)
       diff: 9.0.0
       esbuild: 0.28.2
       hast-util-phrasing: 3.0.1

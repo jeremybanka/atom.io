@@ -150,6 +150,14 @@
 			"automerge": false
 		},
 		{
+			"description": "Keep released React bindings representatives on the 0.1 compatibility era.",
+			"matchFileNames": [
+				"packages/react-devtools/peer-environments/released-bindings-react{18,19}/package.json"
+			],
+			"matchPackageNames": ["@atom.io/react"],
+			"allowedVersions": "^0.1"
+		},
+		{
 			"description": "Keep released SDK representatives on the 0.53 compatibility era.",
 			"matchFileNames": ["packages/*/peer-environments/released-*/package.json"],
 			"matchPackageNames": ["atom.io"],

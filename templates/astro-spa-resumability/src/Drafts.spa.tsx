@@ -1,8 +1,13 @@
 import type { VNode } from "@atom.io/spa"
-import { useId, useLoadable, useSetter } from "@atom.io/spa"
+import { useId, useLoadable, useSetter, useStore } from "@atom.io/spa"
+import type { AstroStoreContext } from "@atom.io/spa/astro"
+import type { RootStore } from "atom.io/internal"
+import { createResumption } from "resumability/client"
 
 import type { Draft, Model } from "./model.ts"
-import { documentIds } from "./model.ts"
+import { createModel, documentIds } from "./model.ts"
+
+const models = new WeakMap<RootStore, Model>()
 
 function DraftCard(props: { model: Model; id: number }): VNode {
 	const { silo, draftAtoms } = props.model
@@ -48,12 +53,34 @@ function DraftCard(props: { model: Model; id: number }): VNode {
 	)
 }
 
-export default function Drafts(props: { model: Model }): VNode {
+export default function Drafts(props: { id: string }): VNode {
+	const model = models.get(useStore())!
 	return (
-		<div class="draft-grid">
+		<div class="draft-grid" data-island={props.id}>
 			{documentIds.map((id) => (
-				<DraftCard key={id} model={props.model} id={id} />
+				<DraftCard key={id} model={model} id={id} />
 			))}
 		</div>
 	)
+}
+
+Drafts.createStore = async (
+	_props: { id: string },
+	context: AstroStoreContext,
+): Promise<RootStore> => {
+	const scope = context.element
+		? createResumption(context.element.closest(`astro-resumption`)!)
+		: undefined
+	if (scope)
+		context.onCleanup(() => {
+			scope.dispose()
+		})
+	const model = createModel(scope)
+	models.set(model.silo.store, model)
+	context.onCleanup(() => {
+		models.delete(model.silo.store)
+		model.dispose()
+	})
+	await model.prepare()
+	return model.silo.store
 }

@@ -4,6 +4,7 @@
 		"skipLibCheck": true
 	},
 	"include": [
+		"astro-types.ts",
 		"runtime.ts",
 		"check.ts"
 	]

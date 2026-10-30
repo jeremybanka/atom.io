@@ -252,7 +252,51 @@ export default defineConfig({ integrations: [spa()] })
 
 ```
 
-Each island gets an independent store copied from registered atom.io definitions. A component's optional createStore(props) factory initializes server and browser stores from the same serialized props. This is the state transport boundary; spa does not serialize a whole store. Keep store factories deterministic and include only client-safe props. Custom factories can explicitly share a browser store when required.
+Each island gets an independent store copied from registered atom.io definitions. A component's optional createStore(props, context) factory can return a RootStore or a promise of one. Astro awaits it before server rendering and before browser hydration or mounting. Existing one-argument synchronous factories still work. Server and browser must observe the same initial state; use serialized props or a separate data transport such as resumability. SPA does not serialize whole stores or depend on a transport library. Custom factories may explicitly share a store.
+
+The context provides element (the browser astro-island host, undefined on the server), signal, and onCleanup. Register resource cleanup as resources are acquired, before awaiting work that might fail. Cleanup runs after SSR, on preparation or render failure, and when the browser island is removed or replaced. The signal is aborted when that lifetime ends. Cleanup callbacks run in reverse order, and all run even if one throws; callbacks registered after cancellation run immediately. Cancellation stops waiting and prevents stale work from mounting, but producers must honor the signal to stop their own I/O.
+
+```tsx
+import type { VNode } from "@atom.io/spa"
+import { useLoadable } from "@atom.io/spa"
+import type { AstroStoreContext } from "@atom.io/spa/astro"
+import type { Loadable } from "atom.io"
+import { atom, Silo } from "atom.io"
+import type { RootStore } from "atom.io/internal"
+import { IMPLICIT } from "atom.io/internal"
+
+const greetingAtom = atom<Loadable<string>>({
+	key: `greeting`,
+	default: ``,
+})
+
+export default function Greeting(): VNode {
+	const greeting = useLoadable(greetingAtom, ``)
+	return <p>{greeting().value}</p>
+}
+
+Greeting.createStore = async (
+	props: { message: string },
+	context: AstroStoreContext,
+): Promise<RootStore> => {
+	const silo = new Silo(
+		{ name: `greeting`, lifespan: `ephemeral`, isProduction: true },
+		IMPLICIT.STORE,
+	)
+	context.onCleanup(() => {
+		silo.disposeState(greetingAtom)
+	})
+	// Use your asynchronous data preparation here. SSR and the browser must
+	// observe the same initial value; context.element can provide a DOM sidecar.
+	silo.setState(greetingAtom, Promise.resolve(props.message))
+	await silo.getState(greetingAtom)
+	context.signal.throwIfAborted()
+	return silo.store
+}
+
+```
+
+AstroStoreContext, AstroStoreFactory, and Island types are exported from @atom.io/spa/astro. Preparation runs before component setup, so use the context's cleanup registrar there; use SPA's onCleanup inside components. Preparation failures reject the Astro render or hydration operation, retaining cleanup errors alongside the original failure. The server factory is awaited per render; component setup and the standalone renderToString API remain synchronous.
 
 ```tsx
 import type { Child, VNode } from "@atom.io/spa"
@@ -302,7 +346,7 @@ Counter.createStore = (props: { initial: number }) => {
 
 Astro client:load, client:idle, client:visible, client:media, and client:only use Astro's scheduling. The integration hydrates server markup or mounts client-only content and releases the root on astro:unmount. Default slot content arrives as children and named content through slots. Reserved astro-slot wrappers contain Astro's already-rendered HTML; never use their innerHTML escape hatch for untrusted strings.
 
-Persisted islands receive live prop and slot updates without rerunning component setup or recreating their store. The store factory runs only when an island is first mounted; put changing values in props rather than relying on the factory to run again.
+Persisted islands receive live prop and slot updates without rerunning component setup or recreating their store. Repeated hydration calls during preparation share one factory invocation. New client mounts use the latest props and slots; hydration attaches to the original server tree first, then applies any changes received while preparing. The factory receives the initial props and runs only when an island is first mounted; put changing values in props rather than relying on the factory to run again.
 
 The checked Astro fixture demonstrates default/named slots and multiple independently initialized islands, including client:only.
 
@@ -310,7 +354,7 @@ The checked Astro fixture demonstrates default/named slots and multiple independ
 
 The build audits every browser export, including the JSX runtime, from the built JavaScript. Atom.io is an external peer in the incremental measurement. Compiler, server, and integration code have separate entrypoints. The report also includes the complete client plus atom.io, the Astro client entrypoint, and the installed Preact version under the same bundling/minification settings. These are full exported surfaces, not equivalent application benchmarks.
 
-The hard budget is under 3,300 bytes of ordinary level-9 gzip for the complete client export surface. The build bundles with esbuild and minifies with Oxc, then measures compression using Node's gzip and Brotli implementations. The spa client measures 3,291 bytes with gzip. Actual application bundles add atom.io and compiler-generated application code.
+The hard budget is under 3,300 bytes of ordinary level-9 gzip for the complete client export surface. The build bundles with esbuild and minifies with Oxc, then measures compression using Node's gzip and Brotli implementations. The spa client measures 3,288 bytes with gzip. Actual application bundles add atom.io and compiler-generated application code.
 
 Build output includes the minified audit entrypoint and machine-readable dist/size.json. These audit files are a bundled measurement; use the package exports in applications so the bundler preserves one runtime instance across entrypoints. Source tests exercise development behavior; the production test executes the audited minified artifact. Chromium checks exercise the actual Astro build, island isolation, hydration, keyed identity, focus/selection, SVG namespaces, and teardown. A fresh-cache Astro development check also covers mount hooks, shared state, and ClientRouter navigation.
 
@@ -345,7 +389,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 | Async interactive client app     | `tonnage-recipes/async-app.ts`    |    39,377 B | 12,256 B |
 | Interactive client app           | `tonnage-recipes/client-app.ts`   |    39,048 B | 12,107 B |
 | Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    39,049 B | 12,106 B |
-| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    42,861 B | 13,268 B |
+| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    43,676 B | 13,575 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

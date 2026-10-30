@@ -1,6 +1,6 @@
 ---
 import Resumption from "resumability/Resumption.astro"
-import DraftIsland from "../components/DraftIsland.astro"
+import Drafts from "../Drafts.spa.tsx"
 import Page from "../layouts/Page.astro"
 ---
 <Page title="Your drafts">
@@ -14,11 +14,11 @@ import Page from "../layouts/Page.astro"
 	</header>
 	<section class="workspace" aria-labelledby="work-heading">
 		<h2 id="work-heading">Work notes <small>Workspace one</small></h2><Resumption
-		><DraftIsland id="work" /></Resumption>
+		>{() => <Drafts id="work" client:load />}</Resumption>
 	</section>
 	<section class="workspace" aria-labelledby="personal-heading">
 		<h2 id="personal-heading">
 			Personal notes <small>Workspace two · same document keys</small>
-		</h2><Resumption><DraftIsland id="personal" /></Resumption>
+		</h2><Resumption>{() => <Drafts id="personal" client:visible />}</Resumption>
 	</section>
 </Page>

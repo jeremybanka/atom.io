@@ -24,11 +24,11 @@ Render the initial value in a child Astro component, Value.astro:
 
 <Value />
 
-Wrap that component in Resumption. The wrapper collects values while rendering its slot, waits for registered producers, and appends an inert JSON sidecar. Capture a browser scope once and pass it to subsequent calls:
+Wrap that component in Resumption. The wrapper collects values while rendering its slot, waits for registered producers, and emits an inert JSON sidecar before the slot HTML. Capture a browser scope once and pass it to subsequent calls:
 
 <Page />
 
-Work that needs the collector must run inside the wrapper's slot, not in the parent page's frontmatter. Await values before generating markup that uses them. Waiting for the sidecar alone cannot update HTML a renderer has already generated. Framework islands need their own adapter or preparation step to feed the resolved values into SSR and pass the browser scope into their state; this package does not modify framework renderers.
+Work that needs the collector must run inside the wrapper's slot, not in the parent page's frontmatter. Astro eagerly evaluates framework-component slots: wrap a framework island in a deferred child function so its SSR starts inside collection. The astro-spa-resumability template demonstrates this with normal Astro hydration directives. Plain Astro child frontmatter remains deferred until the slot renders. Await values before generating markup that uses them. Waiting for the sidecar alone cannot update HTML a renderer has already generated. Framework islands need their own adapter or preparation step to feed the resolved values into SSR and pass the browser scope into their state; this package does not modify framework renderers. Sidecars precede the slot markup so they are available even when an island hydrates while HTML is still arriving.
 
 ## Defaults and resets
 

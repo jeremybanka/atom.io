@@ -1,6 +1,7 @@
 import Workspace from "./exhibits/workspace.sh" with { type: "code" };
 import Run from "./exhibits/run.sh" with { type: "code" };
 import Config from "./astro.config.ts" with { type: "code" };
+import Islands from "./src/pages/index.astro" with { type: "code" };
 import Model from "./src/model.ts" with { type: "code" };
 
 # Astro + SPA + resumability
@@ -21,7 +22,7 @@ The workspace uses local unpublished packages; a packed release replaces workspa
 
 Each workspace contains the same two document keys in a separate store and resumption scope. The initial notes come from SQLite. Typing updates an atom and its preview without rerunning component setup. Resetting a draft replaces it with a fresh value from the client closure; repeated resets increment that document's local revision. Other drafts and workspaces stay untouched.
 
-Visit How it works and return. Astro's ClientRouter removes the old hosts, which dispose their SPA roots, atom members, and resumption scopes. Returning creates new stores and harvests the newly inserted page's sidecars.
+Visit How it works and return. Astro's ClientRouter removes the old islands; SPA disposes their roots and runs the store factory's cleanup callbacks to release atom members and resumption scopes. Returning creates new stores and harvests the newly inserted page's sidecars.
 
 This template uses Astro's default static output. SQLite runs at build time for production and on page requests in development. Production resets run in the browser; they do not issue database queries. An on-demand deployment needs an Astro adapter with a Node-compatible server runtime.
 
@@ -37,21 +38,21 @@ The SPA integration compiles the .spa.tsx components. The resumability integrati
 
 The atom family passes its key into the default closure. Each resumable key combines the family name and document ID. The first browser read consumes the server value; the next default evaluation runs the client closure. Family reset counters belong to the model, so they remain independent between islands.
 
-## The template's adapter
+## Normal Astro islands
 
-The current SPA Astro renderer creates its store synchronously. This example supplies an explicit preparation and hydration adapter in the template rather than changing either library:
+<Islands />
 
-- Resumption wraps each DraftIsland and collects server values in its async scope.
-- DraftIsland.astro constructs a request-local model, awaits its initial atom reads, then calls SPA's renderToString with that prepared store.
-- Resumption appends the versioned JSON sidecar after the rendered slot.
-- island.ts captures one browser resumption scope, constructs the model, and calls SPA's hydrate against the existing DOM. It retains that model and scope for resets.
-- The custom element's disconnect callback disposes subscriptions and clears the scope when Astro removes it.
+The first workspace uses client:load; the second uses client:visible and hydrates when it enters the viewport. Both render their initial data on the server. A deferred child function keeps Astro's eager framework-slot evaluation inside Resumption's async collection scope.
 
-This adapter hydrates eagerly and does not use Astro's client:load or client:visible directives. Treat it as a small application adapter for this example, not a general SPA island renderer. Keep one Resumption wrapper per independently owned store. Put richer server values through an explicit codec, and treat all sidecar data as public browser-visible data.
+Drafts.createStore receives SPA's Astro initialization context. It creates a request-local model on the server, or captures the browser island's surrounding sidecar before constructing its model. It awaits the initial atom reads and returns the prepared store. SPA then renders or hydrates the component and owns its lifetime. The component retrieves its model using useStore; only the workspace ID travels through Astro props.
+
+The factory registers cleanup for both the model and the browser resumption scope. SPA runs that cleanup after SSR, if preparation or hydration fails, or when navigation removes the island. Resumption emits the JSON sidecar before island markup, making it available to eager hydration. There is no custom element or application hydration adapter.
+
+Keep one Resumption wrapper per independently owned store. Put richer server values through an explicit codec, and treat all sidecar data as public browser-visible data. SPA's preparation API is generic; resumability has no SPA dependency.
 
 ## Validation
 
-The browser check runs against both the production build and the Astro dev server. It holds JavaScript loading to inspect real SSR content, then verifies that hydration preserves the same textarea nodes and IDs. It checks reactive edits, repeated resets, isolation between family members and islands, ClientRouter cleanup and re-entry, and the absence of server modules in browser scripts. Browser exceptions fail the check.
+The browser check runs against both the production build and the Astro dev server. It holds JavaScript loading to inspect real SSR content, then verifies that hydration preserves the same textarea nodes and IDs. It checks client:load and client:visible scheduling, reactive edits, repeated resets, isolation between family members and islands, ClientRouter cleanup and re-entry, and the absence of server modules in browser scripts. Browser exceptions fail the check.
 
 ## License
 

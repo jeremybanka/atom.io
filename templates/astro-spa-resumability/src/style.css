@@ -63,7 +63,7 @@ h2 small {
 	color: #65776b;
 	margin-left: 12px;
 }
-astro-resumption, resumable-drafts {
+astro-resumption {
 	display: contents;
 }
 .draft-grid {

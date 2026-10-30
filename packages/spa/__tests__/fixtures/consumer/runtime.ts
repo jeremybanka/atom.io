@@ -14,6 +14,7 @@ import {
 	useTimeline,
 	useValue,
 } from "@atom.io/spa"
+import type { AstroStoreContext } from "@atom.io/spa/astro"
 import astro from "@atom.io/spa/astro"
 import astroClient from "@atom.io/spa/astro-client"
 import astroServer from "@atom.io/spa/astro-server"
@@ -23,6 +24,45 @@ import spa from "@atom.io/spa/vite"
 import type { Loadable } from "atom.io"
 import { scopeFamily, Silo } from "atom.io"
 import { Window } from "happy-dom"
+
+await test(`Astro prepares async stores with host context and disposes their resources`, async () => {
+	const contexts: AstroStoreContext[] = []
+	let cleanups = 0
+	const App = Object.assign(() => jsx(`p`, { children: `prepared` }), {
+		async createStore(_props: object, context: AstroStoreContext) {
+			contexts.push(context)
+			context.onCleanup(() => {
+				cleanups++
+			})
+			await Promise.resolve()
+			return new Silo({
+				name: `prepared`,
+				lifespan: `ephemeral`,
+				isProduction: true,
+			}).store
+		},
+	})
+	const result = await astroServer.renderToStaticMarkup.call(
+		{} as any,
+		App,
+		{},
+		{},
+	)
+	assert.equal(contexts[0].element, undefined)
+	assert.equal(contexts[0].signal.aborted, true)
+	assert.equal(cleanups, 1)
+	const window = new Window()
+	const host = window.document.createElement(`div`) as unknown as HTMLElement
+	host.innerHTML = result.html
+	const paragraph = host.querySelector(`p`)
+	await astroClient(host)(App, {}, {}, { client: `load` })
+	assert.equal(contexts[1].element, host)
+	assert.equal(contexts[1].signal.aborted, false)
+	assert.equal(host.querySelector(`p`), paragraph)
+	host.dispatchEvent(new window.Event(`astro:unmount`) as unknown as Event)
+	assert.equal(contexts[1].signal.aborted, true)
+	assert.equal(cleanups, 2)
+})
 
 await test(`public API exposes the current store without exporting untrack`, () => {
 	assert.equal(typeof Spa.useStore, `function`)

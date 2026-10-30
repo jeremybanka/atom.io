@@ -3,6 +3,7 @@ import { afterEach, expect, it, vi } from "vitest"
 
 import integration from "../src/astro.ts"
 import astroClient from "../src/astro-client.ts"
+import { storeContext } from "../src/astro-context.ts"
 import astroServer from "../src/astro-server.ts"
 import { islandStore } from "../src/astro-shared.ts"
 import { compile } from "../src/compiler.ts"
@@ -119,7 +120,11 @@ it(`supports automatic JSX runtime keys and lazy missing spreads`, () => {
 it(`creates isolated default island stores and replaces component identity`, async () => {
 	const A = Object.assign(() => jsx(`p`, { children: `A` }), { spa: true })
 	const B = Object.assign(() => jsx(`b`, { children: `B` }), { spa: true })
-	expect(islandStore(A, {})).not.toBe(islandStore(A, {}))
+	const lifetime = storeContext()
+	expect(islandStore(A, {}, lifetime.context)).not.toBe(
+		islandStore(A, {}, lifetime.context),
+	)
+	lifetime.dispose()
 	expect(await (astroServer.check as Function)(null)).toBe(false)
 	expect(await (astroServer.check as Function)(() => null)).toBe(false)
 	const host = document.createElement(`div`)

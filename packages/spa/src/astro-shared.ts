@@ -4,16 +4,29 @@ import { IMPLICIT, Store } from "atom.io/internal"
 import type { Component, VNode } from "./core.ts"
 import { jsx } from "./jsx-runtime.ts"
 
-export type Island = Component & {
+export interface AstroStoreContext {
+	/** The browser island host; undefined during server rendering. */
+	element: HTMLElement | undefined
+	/** Aborted when preparation is cancelled or the island is released. */
+	signal: AbortSignal
+	/** Release resources even if preparation or rendering fails. */
+	onCleanup(cleanup: () => void): void
+}
+export type AstroStoreFactory<P = Record<string, any>> = (
+	props: P,
+	context: AstroStoreContext,
+) => RootStore | Promise<RootStore>
+export type Island<P = any> = Component<P> & {
 	spa?: boolean
-	createStore?: (props: Record<string, any>) => RootStore
+	createStore?: AstroStoreFactory<P>
 }
 export function islandStore(
 	component: Island,
 	props: Record<string, any>,
-): RootStore {
+	context: AstroStoreContext,
+): RootStore | Promise<RootStore> {
 	return (
-		component.createStore?.(props) ??
+		component.createStore?.(props, context) ??
 		(new Store(
 			{ name: `spa-island`, lifespan: `ephemeral`, isProduction: true },
 			IMPLICIT.STORE,

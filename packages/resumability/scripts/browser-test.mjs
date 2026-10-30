@@ -52,6 +52,7 @@ try {
 	const initial = await fetch(origin)
 	const html = await initial.text()
 	assert.equal(initial.status, 200, html.slice(0, 2000))
+	assert.ok(html.indexOf(`data-resumable`) < html.indexOf(`<section`))
 	assert.equal(
 		(html.match(/<output\b[^>]*>SERVER_ONLY_SQLITE_SENTINEL:1<\/output>/g) ?? [])
 			.length,

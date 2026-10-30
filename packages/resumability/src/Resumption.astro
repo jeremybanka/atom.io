@@ -6,11 +6,11 @@ const { value, payload } = await collect(() => Astro.slots.render("default"), {
 })
 ---
 <astro-resumption>
-	<Fragment set:html={value} />
 	<script
 		is:inline
 		type="application/json"
 		data-resumable
 		set:html={serialize(payload)}
 	/>
+	<Fragment set:html={value} />
 </astro-resumption>

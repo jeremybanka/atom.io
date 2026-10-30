@@ -56,6 +56,7 @@ try {
 	assert.equal(response.status, 200)
 	const html = await response.text()
 	assert.ok(html.includes(`A note from SQLite for document 1.`))
+	assert.ok(html.indexOf(`data-resumable`) < html.indexOf(`<astro-island`))
 	assert.equal((html.match(/data-resumable/g) ?? []).length, 2)
 	assert.equal((html.match(/aria-busy="true"/g) ?? []).length, 0)
 	browser = await chromium.launch()
@@ -63,6 +64,9 @@ try {
 	const errors = []
 	const scripts = []
 	page.on(`pageerror`, (error) => errors.push(error.message))
+	page.on(`console`, (message) => {
+		if (message.type() === `error`) errors.push(message.text())
+	})
 	page.on(`response`, (result) => {
 		if (result.request().resourceType() === `script`)
 			scripts.push(result.text().then((code) => ({ code, url: result.url() })))
@@ -84,12 +88,19 @@ try {
 	)
 	await page.evaluate(() => {
 		window.__draftNodes = [...document.querySelectorAll(`textarea`)]
-		window.__draftHost = document.querySelector(`resumable-drafts`)
+		window.__draftHost = document.querySelector(`astro-island`)
 	})
 	gate.resolve()
-	await page.waitForFunction(
-		() => document.querySelectorAll(`resumable-drafts[data-ready]`).length === 2,
+	await page.waitForSelector(`astro-island[client="load"]:not([ssr])`)
+	assert.equal(
+		await page.locator(`astro-island[client="visible"][ssr]`).count(),
+		1,
 	)
+	await page
+		.locator(`astro-island[client="visible"] .draft`)
+		.first()
+		.scrollIntoViewIfNeeded()
+	await page.waitForSelector(`astro-island[client="visible"]:not([ssr])`)
 	assert.equal(
 		await page.evaluate(() =>
 			[...document.querySelectorAll(`textarea`)].every(
@@ -149,14 +160,18 @@ try {
 		})
 	await page.getByRole(`link`, { name: `How it works` }).click()
 	await page.waitForURL(`**/about`)
-	await page.waitForFunction(
-		() =>
-			window.__draftHost.querySelector(`[data-root]`).childNodes.length === 0,
-	)
+	await page.waitForFunction(() => window.__draftHost.childNodes.length === 0)
 	await page.getByRole(`link`, { name: `Back to drafts` }).click()
-	await page.waitForFunction(
-		() => document.querySelectorAll(`resumable-drafts[data-ready]`).length === 2,
+	await page.waitForSelector(`astro-island[client="load"]:not([ssr])`)
+	assert.equal(
+		await page.locator(`astro-island[client="visible"][ssr]`).count(),
+		1,
 	)
+	await page
+		.locator(`astro-island[client="visible"] .draft`)
+		.first()
+		.scrollIntoViewIfNeeded()
+	await page.waitForSelector(`astro-island[client="visible"]:not([ssr])`)
 	assert.deepEqual(
 		await page.locator(`[data-source]`).allTextContents(),
 		Array(4).fill(`server`),
@@ -176,7 +191,7 @@ try {
 		)
 	}
 	console.log(
-		`${development ? `Development` : `Production`}: server data, DOM-preserving SPA hydration, edits, fresh resets, family/island isolation, navigation cleanup, and server-code removal passed.`,
+		`${development ? `Development` : `Production`}: server data, client:load and client:visible, DOM-preserving SPA hydration, edits, fresh resets, family/island isolation, navigation cleanup, and server-code removal passed.`,
 	)
 } finally {
 	await browser?.close()

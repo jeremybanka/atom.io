@@ -3,6 +3,12 @@ import type { AstroIntegration } from "astro"
 import type { SpaPluginOptions } from "./vite.ts"
 import spa from "./vite.ts"
 
+export type {
+	AstroStoreContext,
+	AstroStoreFactory,
+	Island,
+} from "./astro-shared.ts"
+
 export default function integration(
 	options: SpaPluginOptions = {},
 ): AstroIntegration {

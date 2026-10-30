@@ -52,6 +52,14 @@ export class Store implements Lineage {
 	public parent: ChildStore | RootStore | null = null
 	public child: ChildStore | null = null
 
+	/** Run a default in its store's synchronous initialization scope.
+	 * Transaction stores delegate to their parent; independent stores start unscoped.
+	 * Integrations may replace this method on a root store before reading state.
+	 */
+	public runDefault<T>(compute: () => T): T {
+		return compute()
+	}
+
 	public valueMap: Map<string, any> = new Map()
 	public defaults: Map<string, any> = new Map()
 

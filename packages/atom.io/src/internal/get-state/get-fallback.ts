@@ -39,7 +39,7 @@ export function getFallback<T, K extends Canonical, E>(
 				return store.defaults.get(family.key)
 			}
 			const def = family.default as (key: K) => T
-			const defaultValue = def(subKey)
+			const defaultValue = store.runDefault(() => def(subKey))
 			store.defaults.set(family.key, defaultValue)
 			return defaultValue as ViewOf<T>
 		}
@@ -50,7 +50,7 @@ export function getFallback<T, K extends Canonical, E>(
 			if (store.defaults.has(family.key)) {
 				return store.defaults.get(family.key)
 			}
-			const defaultValue = family.default(subKey)
+			const defaultValue = store.runDefault(() => family.default(subKey))
 			store.defaults.set(family.key, defaultValue)
 			return defaultValue as ViewOf<T>
 		}

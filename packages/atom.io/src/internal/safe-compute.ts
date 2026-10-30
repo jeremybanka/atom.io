@@ -46,7 +46,7 @@ export function safeCompute<T, E>(
 			let def: E | T
 			if (isFn(state.default)) {
 				try {
-					def = state.default()
+					def = target.runDefault(state.default)
 					if (def instanceof Promise) {
 						def = (def as Promise<T> & T).catch<E | T>((thrown) => {
 							target.logger.error(`💥`, type, key, `rejected:`, thrown)

@@ -1,0 +1,10 @@
+---
+import { createModel } from "../model"
+const { id } = Astro.props
+const { silo, productAtoms } = createModel()
+const value = await silo.getState(productAtoms, id)
+---
+<section data-product={id}>
+	<output>{value}</output>
+	<button>Reset</button>
+</section>

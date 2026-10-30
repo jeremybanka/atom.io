@@ -11,6 +11,7 @@
 		"packages/realtime/README.md",
 		"packages/solid/README.md",
 		"packages/spa/README.md",
+		"packages/resumable/README.md",
 		"packages/spa-devtools/README.md",
 		"packages/react-devtools/README.md",
 		"packages/eslint-plugin/README.md",

@@ -1,0 +1,29 @@
+---
+import Resumption from "resumability/Resumption.astro"
+import Product from "../components/Product.astro"
+---
+<html lang="en">
+	<head><title>Independent resumption</title></head>
+	<body>
+		<Resumption><Product id={1} /></Resumption>
+		<Resumption><Product id={1} /></Resumption>
+		<script>
+		import { createResumption } from "resumability/client"
+import { createModel } from "../model"
+for (const element of document.querySelectorAll(`astro-resumption`)) {
+	const scope = createResumption(element)
+	const { silo, productAtoms } = createModel(scope)
+	const output = element.querySelector(`output`)!
+	const id = Number(
+		element.querySelector<HTMLElement>(`[data-product]`)!.dataset[`product`],
+	)
+	output.textContent = String(silo.getState(productAtoms, id))
+	element.querySelector(`button`)!.addEventListener(`click`, () => {
+		silo.resetState(productAtoms, id)
+		output.textContent = String(silo.getState(productAtoms, id))
+	})
+	element.setAttribute(`data-ready`, ``)
+}
+		</script>
+	</body>
+</html>

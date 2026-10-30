@@ -781,7 +781,7 @@ importers:
         specifier: 4.6.7
         version: 4.6.7
 
-  packages/resumable:
+  packages/resumability:
     dependencies:
       '@babel/core':
         specifier: 7.29.7

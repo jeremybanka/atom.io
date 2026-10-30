@@ -1,8 +1,8 @@
 import { defineConfig } from "astro/config"
-import integration, { resumablePlugin } from "resumability/astro"
+import resumability, { resumablePlugin } from "resumability/astro"
 
 export const config = defineConfig({
-	integrations: [integration()],
+	integrations: [resumability()],
 	vite: { plugins: [resumablePlugin()] },
 })
 // @ts-expect-error Plugin declarations must retain their types in an Astro-only consumer.

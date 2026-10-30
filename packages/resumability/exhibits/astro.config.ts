@@ -1,4 +1,4 @@
 import { defineConfig } from "astro/config"
-import resumable from "resumability/astro"
+import resumability from "resumability/astro"
 
-export default defineConfig({ integrations: [resumable()] })
+export default defineConfig({ integrations: [resumability()] })

@@ -2,7 +2,7 @@ import assert from "node:assert/strict"
 import { readFile } from "node:fs/promises"
 
 import { resumable } from "resumability"
-import integration, { resumablePlugin } from "resumability/astro"
+import resumability, { resumablePlugin } from "resumability/astro"
 import { createResumption, resumable as client } from "resumability/client"
 import { collect, serialize } from "resumability/server"
 
@@ -34,7 +34,7 @@ assert.deepEqual(
 fresh.dispose()
 scope.dispose()
 assert.throws(() => client(options, scope))
-assert.equal(integration().name, `resumability`)
+assert.equal(resumability().name, `resumability`)
 assert.equal(resumablePlugin().enforce, `pre`)
 const wrapper = await readFile(
 	new URL(import.meta.resolve(`resumability/Resumption.astro`)),

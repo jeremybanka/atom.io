@@ -24,7 +24,7 @@ export function resumablePlugin(): Plugin {
 		},
 	}
 }
-export default function resumableIntegration(): AstroIntegration {
+export default function resumability(): AstroIntegration {
 	return {
 		name: `resumability`,
 		hooks: {

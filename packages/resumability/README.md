@@ -4,13 +4,13 @@ Server-produced values that become browser defaults. A small Astro utility with 
 
 ## Astro setup
 
-Install resumability alongside Astro. Add its integration to astro.config.ts:
+Install resumability alongside Astro. Import the default Astro integration as resumability and add it to astro.config.ts:
 
 ```ts
 import { defineConfig } from "astro/config"
-import resumable from "resumability/astro"
+import resumability from "resumability/astro"
 
-export default defineConfig({ integrations: [resumable()] })
+export default defineConfig({ integrations: [resumability()] })
 
 ```
 

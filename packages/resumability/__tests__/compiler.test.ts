@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import integration, { resumablePlugin } from "../src/astro.ts"
+import resumability, { resumablePlugin } from "../src/astro.ts"
 import { compile } from "../src/compiler.ts"
 
 const prelude = `import { resumable } from 'resumability';`
@@ -76,7 +76,7 @@ describe(`server closure boundary`, () => {
 	})
 	it(`installs just the compiler and package resolution configuration`, () => {
 		let config: any
-		const setup = integration().hooks[`astro:config:setup`] as Function
+		const setup = resumability().hooks[`astro:config:setup`] as Function
 		setup({
 			updateConfig: (next: any) => {
 				config = next

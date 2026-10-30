@@ -8,4 +8,4 @@ minimumReleaseAgeStrict: true
 # This experiment exercises @atom.io/solid against its framework-neutral core.
 peerDependencyRules:
   allowedVersions:
-    "atom.io@0.53.3>solid-js": ">=2.0.0-rc.17 <2.0.0"
+    "atom.io@0.53.3>solid-js": "2.0.0-rc.20"

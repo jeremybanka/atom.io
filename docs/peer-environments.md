@@ -6,12 +6,12 @@ Each matrix job exercises one environment and uploads a structured Breakage rece
 
 Turbo builds and packs every participating package before checking it. The [task graph](../turbo.json) includes local peer archives, including both the SDK and React adapter for devtools. Checks are uncached because they inspect release tags, Changesets, package installation, and consumer execution. Package-owned representative manifests and pnpm lockfiles freeze the installed peers; preparation disables automatic peer installation and lifecycle scripts. Breakage's default npm installation installs candidate archives and their runtime dependencies inside each disposable stage, without automatically supplying peers.
 
-| Package        | Representatives                                                                                                 |
-| -------------- | --------------------------------------------------------------------------------------------------------------- |
-| React          | React 18 and 19 with released SDK 0.53.3; the same frameworks with the coordinated SDK candidate.               |
-| Solid          | Solid 1.9, Solid 2.0.0-rc.17, and Solid 2.0.0-rc.18 with released SDK 0.53.3 and the coordinated SDK candidate. |
-| React devtools | React/React DOM 18 and 19 with the React adapter candidate, paired with both released and coordinated SDKs.     |
-| ESLint plugin  | ESLint 9 and 10 with typescript-eslint parser 8 and TypeScript 6.                                               |
+| Package        | Representatives                                                                                             |
+| -------------- | ----------------------------------------------------------------------------------------------------------- |
+| React          | React 18 and 19 with released SDK 0.53.3; the same frameworks with the coordinated SDK candidate.           |
+| Solid          | Solid 1.9 and Solid 2.0.0-rc.20 with released SDK 0.53.3 and the coordinated SDK candidate.                 |
+| React devtools | React/React DOM 18 and 19 with the React adapter candidate, paired with both released and coordinated SDKs. |
+| ESLint plugin  | ESLint 9 and 10 with typescript-eslint parser 8 and TypeScript 6.                                           |
 
 Each integration owns its behavior suites under its own tests directory. The package's ordinary and public test commands select those suites; the SDK owns core and realtime cases. Portable consumer programs and declaration checks live in package-owned fixtures and are shared by ordinary package tests, packaging checks, and the peer matrix. ESLint reuses its existing consumer fixture rather than maintaining a second copy.
 
@@ -23,7 +23,7 @@ Contracts import consumer package names without source aliases. Framework contra
 
 Each [package configuration](../packages/react/breakage.config.ts) uses Breakage’s Changesets resolver and semantic-version policy directly. The package declares Breakage and its separate Changesets adapter as development dependencies; the adapter owns its Changesets and workspace-discovery dependencies. The resolver assembles the actual release plan using Changesets’ published APIs, without the status command’s separate Git-diff audit. A pending version takes precedence over the workspace version. After versioning consumes the changesets, the current manifest is the exact target exercised by a coordinated build. This permits the versioning PR to run the same environments. Candidate results remain conditional on publication: the hook does not claim registry attestation, and metadata substitution does not rebuild embedded version constants. Released representatives continue to test the actual registry SDK independently.
 
-SDK support is authored explicitly in each integration's manifest. Advancing the SDK's local version does not rewrite those ranges. A planned release outside declared support, a missing representative, a stale archive, changed frozen installation inputs, or conflicting physical peers fails the check. Breaking-support certification follows this repository's version policy: a minor or major release before 1.0, and a major release afterward. Certification cannot waive consumer assertion failures or missing planned peer coverage.
+SDK support is authored explicitly in each integration's manifest. Advancing the SDK's local version does not rewrite those ranges. A planned release outside declared support, a missing representative, a stale archive, changed frozen installation inputs, or conflicting physical peers fails the check. Breaking-support certification follows this repository's version policy: a minor or major release before 1.0, and a major release afterward. Breakage compares stable peer support for this certification; prerelease support, such as superseded Solid 2 release candidates, may be dropped in a patch. Certification cannot waive consumer assertion failures or missing planned peer coverage.
 
 Every integration configures its own scoped release-tag pattern. A successful lookup on origin with no matching semantic-version release tags reports first publication; later runs automatically compare support against the newest matching tag. Publish the corresponding scoped tag to origin with each package release. Authentication, network, fetch, and manifest errors remain setup failures. Add ordinary released-contract replay for those packages once a release containing their contracts exists. Do not substitute a synthetic tag or treat a missing baseline as a passing historical check.
 

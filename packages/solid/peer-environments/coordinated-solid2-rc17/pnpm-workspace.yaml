@@ -1,6 +1,0 @@
-packages: []
-autoInstallPeers: false
-strictPeerDependencies: true
-hoist: false
-minimumReleaseAge: 1440
-minimumReleaseAgeStrict: true

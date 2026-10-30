@@ -113,7 +113,7 @@
 			"allowedVersions": "^1.9.0"
 		},
 		{
-			"description": "New Solid RC support needs an additive peer declaration, retained compatibility environments, and a changeset.",
+			"description": "New Solid RC support needs an explicit peer declaration, tested peer environments, and a changeset.",
 			"matchManagers": [
 				"npm"
 			],
@@ -127,15 +127,7 @@
 			"enabled": false
 		},
 		{
-			"description": "Keep retained Solid RC representatives pinned to the exact versions whose support they certify.",
-			"matchFileNames": [
-				"packages/solid/peer-environments/*-solid2-rc*/package.json"
-			],
-			"matchPackageNames": ["solid-js"],
-			"enabled": false
-		},
-		{
-			"description": "Propose the next Solid RC after the one-day delay; new support must be explicitly added while retaining older RC environments.",
+			"description": "Propose the next Solid RC after the one-day delay; replacing earlier RC support requires an explicit peer declaration and a changeset.",
 			"matchFileNames": [
 				"packages/solid/peer-environments/*-solid2/package.json"
 			],

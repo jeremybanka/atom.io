@@ -1,6 +1,6 @@
 # Astro + SPA + resumability
 
-A starter showing server-loaded atom family defaults, SPA hydration, and fresh browser defaults on reset. It uses Astro, atom.io, @atom.io/spa, and resumability/astro. Requires Node 24.12 or newer for the SQLite example.
+A starter with module-scoped atom definitions, server-rendered Astro islands, and typed database refreshes. It uses atom.io, @atom.io/spa, resumability/astro, Reylo over node:sqlite, and tRPC. Requires Node 24.12 or newer and TypeScript 7.1's content mappers (currently beta).
 
 ## Run
 
@@ -26,98 +26,114 @@ pnpm --filter @atom.io/template-astro-spa-resumability dev
 
 ```
 
-The workspace uses local unpublished packages; a packed release replaces workspace dependency ranges with published versions.
+The workspace uses local unpublished packages; a packed release replaces workspace dependency ranges with published versions. Development, build, and typecheck commands initialize drafts.sqlite from schema.sql and insert missing example rows without overwriting edits. Reylo checks queries against that schema using .reylo.yaml. The generated database is ignored by Git and excluded from the package.
+
+This is an on-demand Node server application. The Astro Node adapter serves both pages and the tRPC endpoint. Start production from the template directory so it can find drafts.sqlite; supply persistent storage for that file when deploying. Initialize the database before starting a new deployment.
 
 ## Try it
 
-Each workspace contains the same two document keys in a separate store and resumption scope. The initial notes come from SQLite. Typing updates an atom and its preview without rerunning component setup. Resetting a draft replaces it with a fresh value from the client closure; repeated resets increment that document's local revision. Other drafts and workspaces stay untouched.
+Each workspace uses the same two document keys in a separate store and resumption scope. The initial notes come directly from SQLite during SSR. Hydration consumes the sidecar without making an RPC request. Typing updates the local atom and its preview. Refresh from database resets the atom; its client closure calls tRPC for the latest row. The returned revision identifies that read. Other drafts and workspaces retain their local values.
 
-Visit How it works and return. Astro's ClientRouter removes the old islands; SPA disposes their roots and runs the store factory's cleanup callbacks to release atom members and resumption scopes. Returning creates new stores and harvests the newly inserted page's sidecars.
-
-This template uses Astro's default static output. SQLite runs at build time for production and on page requests in development. Production resets run in the browser; they do not issue database queries. An on-demand deployment needs an Astro adapter with a Node-compatible server runtime.
+Visit How it works and return. Astro's ClientRouter removes the old islands; SPA runs their cleanup callbacks and disposes the resumption scopes. Returning creates new stores from fresh server reads. The client request receives the scope's AbortSignal so navigation can cancel pending network work. A reset does not cancel earlier requests by itself.
 
 ## Integrations
 
 ```ts
+import node from "@astrojs/node"
 import spa from "@atom.io/spa/astro"
 import { defineConfig } from "astro/config"
 import resumability from "resumability/astro"
+import reylo from "reylo/vite"
 
-export default defineConfig({ integrations: [resumability(), spa()] })
+export default defineConfig({
+	output: `server`,
+	adapter: node({ mode: `standalone` }),
+	integrations: [resumability(), spa()],
+	vite: { plugins: [reylo()] },
+})
 
 ```
 
-The SPA integration compiles the .spa.tsx components. The resumability integration removes inline server closures before browser import analysis, including their dynamic imports. No database module or SQLite query reaches the executable browser bundle.
+SPA compiles the .spa.tsx components. Resumability removes inline server closures before browser import analysis, including their dynamic imports. Reylo compiles SQL imports on the server. The browser imports the tRPC router only as a type: no database module, query, or router implementation reaches executable browser code.
 
-## Atom defaults
+## One query, two entry points
+
+```sql
+SELECT id, title, body FROM drafts WHERE id = :id;
+
+```
 
 ```ts
-import type { AtomFamilyToken, Loadable } from "atom.io"
-import { Silo } from "atom.io"
-import type { Resumption } from "resumability"
-import { resumable } from "resumability"
+import { randomUUID } from "node:crypto"
+import { DatabaseSync } from "node:sqlite"
 
-export interface Draft {
-	title: string
-	body: string
-	source: `server` | `client`
-	revision: string
-}
-export const documentIds = [1, 2] as const
-export interface Model {
-	silo: Silo
-	draftAtoms: AtomFamilyToken<Loadable<Draft>, number>
-	prepare(): Promise<void>
-	dispose(): void
-}
+import readDraftQuery from "./read-draft.sql"
 
-export function createModel(scope?: Resumption): Model {
-	const silo = new Silo({
-		name: `drafts`,
-		lifespan: `ephemeral`,
-		isProduction: true,
-	})
-	const resets = new Map<number, number>()
-	const draftAtoms = silo.atomFamily<Loadable<Draft>, number>({
-		key: `draft`,
-		default: (id) =>
-			resumable(
-				{
-					key: [`draft`, id],
-					server: async ({ signal }) => {
-						const { readDraft } = await import(`./database.server.ts`)
-						signal.throwIfAborted()
-						return readDraft(id)
-					},
-					client: () => {
-						const count = (resets.get(id) ?? 0) + 1
-						resets.set(id, count)
-						return {
-							title: `Draft ${id}`,
-							body: `Fresh browser draft ${id}, reset ${count}.`,
-							source: `client`,
-							revision: `client:${id}:${count}`,
-						}
-					},
-				},
-				scope,
-			),
-	})
-	return {
-		silo,
-		draftAtoms,
-		async prepare() {
-			await Promise.all(documentIds.map((id) => silo.getState(draftAtoms, id)))
-		},
-		dispose() {
-			for (const id of documentIds) silo.disposeState(draftAtoms, id)
-		},
+/** Both SSR and tRPC use this function and its inferred query result. */
+// oxlint-disable-next-line typescript/explicit-module-boundary-types -- Infer the response from Reylo's content-mapped SQL type; tsc verifies the full RPC contract.
+export function readDraft(id: number) {
+	const database = new DatabaseSync(`drafts.sqlite`, { readOnly: true })
+	try {
+		const draft = readDraftQuery.runSync(database, { id })
+		if (!draft) throw new Error(`Draft ${id} does not exist`)
+		return { ...draft, revision: randomUUID() }
+	} finally {
+		database.close()
 	}
 }
 
 ```
 
-The atom family passes its key into the default closure. Each resumable key combines the family name and document ID. The first browser read consumes the server value; the next default evaluation runs the client closure. Family reset counters belong to the model, so they remain independent between islands.
+SSR calls readDraft directly. The tRPC procedure validates its input and calls the same function:
+
+```ts
+import { initTRPC } from "@trpc/server"
+import { z } from "zod"
+
+import { readDraft } from "./drafts.ts"
+
+const t = initTRPC.create()
+export const appRouter = t.router({
+	drafts: t.router({
+		get: t.procedure
+			.input(z.object({ id: z.number().int().positive() }))
+			.query(({ input }) => readDraft(input.id)),
+	}),
+})
+export type AppRouter = typeof appRouter
+
+```
+
+Reylo infers the row type from SQL and the database schema. The return type flows through the router into the client and atom, without a handwritten response DTO. The type check uses TypeScript's runExternalCode flag to run Reylo's content mapper.
+
+## Module-scoped atom defaults
+
+```ts
+import { atomFamily, type Loadable } from "atom.io"
+import { resumable } from "resumability"
+
+import { api, type Draft } from "./api.ts"
+
+export const documentIds = [1, 2] as const
+
+export const draftAtoms = atomFamily<Loadable<Draft>, number, Error>({
+	key: `draft`,
+	default: (id) =>
+		resumable({
+			key: [`draft`, id],
+			server: async ({ signal }) => {
+				const { readDraft } = await import(`./server/drafts.ts`)
+				signal.throwIfAborted()
+				return readDraft(id)
+			},
+			client: ({ signal }) => api.drafts.get.query({ id }, { signal }),
+		}),
+	catch: [Error],
+})
+
+```
+
+The family key supplies the query input and resumability key. Atom definitions live on the module graph; independent stores own the values. First browser reads consume the seed. Subsequent defaults use tRPC, with errors available through useLoadable for retry.
 
 ## Normal Astro islands
 
@@ -132,8 +148,8 @@ import Page from "../layouts/Page.astro"
 		<p class="eyebrow">A server head start</p>
 		<h1>Pick up where the server left off.</h1>
 		<p>
-			These notes arrive from SQLite. Edit one, or reset it to a fresh browser
-			default. Each workspace keeps its own state.
+			These notes arrive from SQLite. Edit one, or refresh it from the database.
+			Each workspace keeps its own state.
 		</p>
 	</header>
 	<section class="workspace" aria-labelledby="work-heading">
@@ -149,17 +165,43 @@ import Page from "../layouts/Page.astro"
 
 ```
 
-The first workspace uses client:load; the second uses client:visible and hydrates when it enters the viewport. Both render their initial data on the server. A deferred child function keeps Astro's eager framework-slot evaluation inside Resumption's async collection scope.
+The first workspace uses client:load; the second uses client:visible. Both render their initial data on the server. Deferred child functions keep Astro's eager framework-slot evaluation inside Resumption's async collection scope. Each independently owned store has its own Resumption wrapper.
 
-Drafts.createStore receives SPA's Astro initialization context. It creates a request-local model on the server, or captures the browser island's surrounding sidecar before constructing its model. It awaits the initial atom reads and returns the prepared store. SPA then renders or hydrates the component and owns its lifetime. The component retrieves its model using useStore; only the workspace ID travels through Astro props.
+Drafts.prepareStore initializes the store already selected by SPA:
 
-The factory registers cleanup for both the model and the browser resumption scope. SPA runs that cleanup after SSR, if preparation or hydration fails, or when navigation removes the island. Resumption emits the JSON sidecar before island markup, making it available to eager hydration. There is no custom element or application hydration adapter.
+```ts
+import type { AstroStorePreparation } from "@atom.io/spa/astro"
+import { disposeFromStore, getFromStore } from "atom.io/internal"
+import { createResumption } from "resumability/client"
 
-Keep one Resumption wrapper per independently owned store. Put richer server values through an explicit codec, and treat all sidecar data as public browser-visible data. SPA's preparation API is generic; resumability has no SPA dependency.
+import { documentIds, draftAtoms } from "./model.ts"
+
+/** Bind the island's initialization scope, then read its initial data. */
+export const prepareDrafts: AstroStorePreparation = async (
+	store,
+	_props,
+	context,
+) => {
+	if (context.element) {
+		const scope = createResumption(context.element.closest(`astro-resumption`)!)
+		store.runDefault = scope.run
+		context.onCleanup(scope.dispose)
+	}
+	context.onCleanup(() => {
+		for (const id of documentIds) disposeFromStore(store, draftAtoms, id)
+	})
+	await Promise.all(documentIds.map((id) => getFromStore(store, draftAtoms, id)))
+}
+
+```
+
+On the server, Resumption's async collection supplies the scope. In the browser, store.runDefault activates the captured scope whenever a default executes, including lazy family members and transactional resets. The callback awaits the initial reads before rendering or hydration and registers cleanup for the atoms and scope. There are no model factories, model props, or store-to-model registries.
+
+SPA owns cancellation and cleanup after SSR, failed initialization, and island removal. Resumability stays independent of SPA, atom.io, Reylo, and tRPC. Treat all sidecar data as public browser-visible data.
 
 ## Validation
 
-The browser check runs against both the production build and the Astro dev server. It holds JavaScript loading to inspect real SSR content, then verifies that hydration preserves the same textarea nodes and IDs. It checks client:load and client:visible scheduling, reactive edits, repeated resets, isolation between family members and islands, ClientRouter cleanup and re-entry, and the absence of server modules in browser scripts. Browser exceptions fail the check.
+The browser check runs against both the production Node server and the Astro dev server. It inspects real SSR content, verifies that hydration preserves textarea nodes and IDs, and asserts zero RPC requests during hydration. It changes SQLite after SSR and checks that repeated resets fetch the changed rows through tRPC. It also checks family and island isolation, client:load and client:visible scheduling, navigation cleanup, and removal of server modules from browser scripts. Browser exceptions fail the check. Type tests reject invalid RPC input and verify the inferred response fields.
 
 ## License
 

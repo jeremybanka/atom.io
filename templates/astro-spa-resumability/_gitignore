@@ -3,3 +3,4 @@ dist/
 .astro/
 .env
 test-results/
+drafts.sqlite*

@@ -1,54 +1,22 @@
 import assert from "node:assert/strict"
-import { readFile } from "node:fs/promises"
-import { createServer } from "node:http"
-import { extname, resolve } from "node:path"
-
-import { dev } from "astro"
+import { resolve } from "node:path"
+import { DatabaseSync } from "node:sqlite"
+import { dev, preview } from "astro"
 import { chromium } from "playwright"
 
-const directory = resolve(import.meta.dirname, `../dist`)
+const root = resolve(import.meta.dirname, `..`)
+process.chdir(root)
 const development = process.argv.includes(`--dev`)
-let stop
-let port
-if (development) {
-	const server = await dev({
-		root: resolve(import.meta.dirname, `..`),
-		server: { host: `127.0.0.1`, port: 0 },
-		logLevel: `error`,
-	})
-	port = server.address.port
-	stop = () => server.stop()
-} else {
-	const server = createServer(async (request, response) => {
-		const pathname = decodeURIComponent(
-			new URL(request.url, `http://localhost`).pathname,
-		)
-		const file = resolve(
-			directory,
-			`.${extname(pathname) ? pathname : `${pathname.replace(/\/$/, ``)}/index.html`}`,
-		)
-		if (!file.startsWith(`${directory}/`)) {
-			response.writeHead(403).end()
-			return
-		}
-		try {
-			response.setHeader(
-				`content-type`,
-				{
-					".js": `application/javascript`,
-					".css": `text/css`,
-					".html": `text/html`,
-				}[extname(file)] ?? `application/octet-stream`,
-			)
-			response.end(await readFile(file))
-		} catch {
-			response.writeHead(404).end()
-		}
-	})
-	await new Promise((ready) => server.listen(0, `127.0.0.1`, ready))
-	port = server.address().port
-	stop = () => new Promise((done) => server.close(done))
-}
+const server = await (development ? dev : preview)({
+	root,
+	server: { host: `127.0.0.1`, port: 0 },
+	logLevel: `error`,
+})
+const port = development ? server.address.port : server.server.address().port
+const stop = () => server.stop()
+const database = new DatabaseSync(`drafts.sqlite`)
+const initialBody = `A note from SQLite for document 1.`
+database.prepare(`UPDATE drafts SET body = ? WHERE id = 1`).run(initialBody)
 let browser
 try {
 	const origin = `http://127.0.0.1:${port}`
@@ -63,6 +31,10 @@ try {
 	const page = await browser.newPage()
 	const errors = []
 	const scripts = []
+	const rpcRequests = []
+	page.on(`request`, (request) => {
+		if (request.url().includes(`/api/trpc/`)) rpcRequests.push(request.url())
+	})
 	page.on(`pageerror`, (error) => errors.push(error.message))
 	page.on(`console`, (message) => {
 		if (message.type() === `error`) errors.push(message.text())
@@ -82,10 +54,6 @@ try {
 	assert.equal(await page.locator(`textarea`).count(), 4)
 	const seeds = await page.locator(`[data-revision]`).allTextContents()
 	assert.equal(new Set(seeds).size, 4)
-	assert.deepEqual(
-		await page.locator(`[data-source]`).allTextContents(),
-		Array(4).fill(`server`),
-	)
 	await page.evaluate(() => {
 		window.__draftNodes = [...document.querySelectorAll(`textarea`)]
 		window.__draftHost = document.querySelector(`astro-island`)
@@ -131,27 +99,38 @@ try {
 		await cards.nth(2).locator(`textarea`).inputValue(),
 		`A note from SQLite for document 1.`,
 	)
-	await cards.nth(0).locator(`button`).click()
-	await page.waitForFunction(
-		() => document.querySelector(`[data-revision]`).textContent === `client:1:1`,
-	)
 	assert.equal(
-		await cards.nth(0).locator(`textarea`).inputValue(),
-		`Fresh browser draft 1, reset 1.`,
+		rpcRequests.length,
+		0,
+		`Hydration must consume the sidecar without RPC`,
 	)
-	await cards.nth(0).locator(`button`).click()
-	await page.waitForFunction(
-		() => document.querySelector(`[data-revision]`).textContent === `client:1:2`,
-	)
+	const refresh = async (index, body) => {
+		database.prepare(`UPDATE drafts SET body = ? WHERE id = 1`).run(body)
+		const before = await cards
+			.nth(index)
+			.locator(`[data-revision]`)
+			.textContent()
+		await cards.nth(index).locator(`button`).click()
+		await page.waitForFunction(
+			(previous) =>
+				document.querySelectorAll(`[data-revision]`)[previous.index]
+					.textContent !== previous.before,
+			{ index, before },
+		)
+		assert.equal(await cards.nth(index).locator(`textarea`).inputValue(), body)
+	}
+	await refresh(0, `Updated in SQLite after SSR`)
+	await refresh(0, `Updated in SQLite again`)
+	assert.equal(rpcRequests.length, 2)
 	assert.deepEqual(
 		(await page.locator(`[data-revision]`).allTextContents()).slice(1),
 		seeds.slice(1),
 	)
-	await cards.nth(2).locator(`button`).click()
-	await page.waitForFunction(
-		() =>
-			document.querySelectorAll(`[data-revision]`)[2].textContent ===
-			`client:1:1`,
+	await refresh(2, `Another database revision`)
+	assert.equal(rpcRequests.length, 3)
+	assert.equal(
+		await cards.nth(0).locator(`textarea`).inputValue(),
+		`Updated in SQLite again`,
 	)
 	if (process.env.TEMPLATE_SCREENSHOT)
 		await page.screenshot({
@@ -172,22 +151,17 @@ try {
 		.first()
 		.scrollIntoViewIfNeeded()
 	await page.waitForSelector(`astro-island[client="visible"]:not([ssr])`)
-	assert.deepEqual(
-		await page.locator(`[data-source]`).allTextContents(),
-		Array(4).fill(`server`),
-	)
-	await page.locator(`.draft`).first().locator(`button`).click()
-	await page.waitForFunction(
-		() => document.querySelector(`[data-revision]`).textContent === `client:1:1`,
-	)
+	assert.equal(rpcRequests.length, 3, `Navigation hydration must also avoid RPC`)
+	await refresh(0, `Refreshed after returning`)
+	assert.equal(rpcRequests.length, 4)
 	assert.deepEqual(errors, [])
 	const executable = await Promise.all(scripts)
 	assert.ok(executable.length > 0)
 	for (const { code, url } of executable) {
-		assert.doesNotMatch(url, /database\.server/)
+		assert.doesNotMatch(url, /server\/(drafts|router)|read-draft\.sql/)
 		assert.doesNotMatch(
 			code,
-			/node:sqlite|database\.server|SELECT \? AS title|A note from SQLite/,
+			/node:sqlite|read-draft\.sql|SELECT id, title|A note from SQLite/,
 		)
 	}
 	console.log(
@@ -196,4 +170,6 @@ try {
 } finally {
 	await browser?.close()
 	await stop()
+	database.prepare(`UPDATE drafts SET body = ? WHERE id = 1`).run(initialBody)
+	database.close()
 }

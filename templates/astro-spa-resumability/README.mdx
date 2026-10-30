@@ -3,10 +3,14 @@ import Run from "./exhibits/run.sh" with { type: "code" };
 import Config from "./astro.config.ts" with { type: "code" };
 import Islands from "./src/pages/index.astro" with { type: "code" };
 import Model from "./src/model.ts" with { type: "code" };
+import Prepare from "./src/prepare-drafts.ts" with { type: "code" };
+import Query from "./src/server/read-draft.sql" with { type: "code" };
+import ReadDraft from "./src/server/drafts.ts" with { type: "code" };
+import Router from "./src/server/router.ts" with { type: "code" };
 
 # Astro + SPA + resumability
 
-A starter showing server-loaded atom family defaults, SPA hydration, and fresh browser defaults on reset. It uses Astro, atom.io, @atom.io/spa, and resumability/astro. Requires Node 24.12 or newer for the SQLite example.
+A starter with module-scoped atom definitions, server-rendered Astro islands, and typed database refreshes. It uses atom.io, @atom.io/spa, resumability/astro, Reylo over node:sqlite, and tRPC. Requires Node 24.12 or newer and TypeScript 7.1's content mappers (currently beta).
 
 ## Run
 
@@ -16,43 +20,57 @@ Inside the atom.io workspace:
 
 <Workspace />
 
-The workspace uses local unpublished packages; a packed release replaces workspace dependency ranges with published versions.
+The workspace uses local unpublished packages; a packed release replaces workspace dependency ranges with published versions. Development, build, and typecheck commands initialize drafts.sqlite from schema.sql and insert missing example rows without overwriting edits. Reylo checks queries against that schema using .reylo.yaml. The generated database is ignored by Git and excluded from the package.
+
+This is an on-demand Node server application. The Astro Node adapter serves both pages and the tRPC endpoint. Start production from the template directory so it can find drafts.sqlite; supply persistent storage for that file when deploying. Initialize the database before starting a new deployment.
 
 ## Try it
 
-Each workspace contains the same two document keys in a separate store and resumption scope. The initial notes come from SQLite. Typing updates an atom and its preview without rerunning component setup. Resetting a draft replaces it with a fresh value from the client closure; repeated resets increment that document's local revision. Other drafts and workspaces stay untouched.
+Each workspace uses the same two document keys in a separate store and resumption scope. The initial notes come directly from SQLite during SSR. Hydration consumes the sidecar without making an RPC request. Typing updates the local atom and its preview. Refresh from database resets the atom; its client closure calls tRPC for the latest row. The returned revision identifies that read. Other drafts and workspaces retain their local values.
 
-Visit How it works and return. Astro's ClientRouter removes the old islands; SPA disposes their roots and runs the store factory's cleanup callbacks to release atom members and resumption scopes. Returning creates new stores and harvests the newly inserted page's sidecars.
-
-This template uses Astro's default static output. SQLite runs at build time for production and on page requests in development. Production resets run in the browser; they do not issue database queries. An on-demand deployment needs an Astro adapter with a Node-compatible server runtime.
+Visit How it works and return. Astro's ClientRouter removes the old islands; SPA runs their cleanup callbacks and disposes the resumption scopes. Returning creates new stores from fresh server reads. The client request receives the scope's AbortSignal so navigation can cancel pending network work. A reset does not cancel earlier requests by itself.
 
 ## Integrations
 
 <Config />
 
-The SPA integration compiles the .spa.tsx components. The resumability integration removes inline server closures before browser import analysis, including their dynamic imports. No database module or SQLite query reaches the executable browser bundle.
+SPA compiles the .spa.tsx components. Resumability removes inline server closures before browser import analysis, including their dynamic imports. Reylo compiles SQL imports on the server. The browser imports the tRPC router only as a type: no database module, query, or router implementation reaches executable browser code.
 
-## Atom defaults
+## One query, two entry points
+
+<Query />
+
+<ReadDraft />
+
+SSR calls readDraft directly. The tRPC procedure validates its input and calls the same function:
+
+<Router />
+
+Reylo infers the row type from SQL and the database schema. The return type flows through the router into the client and atom, without a handwritten response DTO. The type check uses TypeScript's runExternalCode flag to run Reylo's content mapper.
+
+## Module-scoped atom defaults
 
 <Model />
 
-The atom family passes its key into the default closure. Each resumable key combines the family name and document ID. The first browser read consumes the server value; the next default evaluation runs the client closure. Family reset counters belong to the model, so they remain independent between islands.
+The family key supplies the query input and resumability key. Atom definitions live on the module graph; independent stores own the values. First browser reads consume the seed. Subsequent defaults use tRPC, with errors available through useLoadable for retry.
 
 ## Normal Astro islands
 
 <Islands />
 
-The first workspace uses client:load; the second uses client:visible and hydrates when it enters the viewport. Both render their initial data on the server. A deferred child function keeps Astro's eager framework-slot evaluation inside Resumption's async collection scope.
+The first workspace uses client:load; the second uses client:visible. Both render their initial data on the server. Deferred child functions keep Astro's eager framework-slot evaluation inside Resumption's async collection scope. Each independently owned store has its own Resumption wrapper.
 
-Drafts.createStore receives SPA's Astro initialization context. It creates a request-local model on the server, or captures the browser island's surrounding sidecar before constructing its model. It awaits the initial atom reads and returns the prepared store. SPA then renders or hydrates the component and owns its lifetime. The component retrieves its model using useStore; only the workspace ID travels through Astro props.
+Drafts.prepareStore initializes the store already selected by SPA:
 
-The factory registers cleanup for both the model and the browser resumption scope. SPA runs that cleanup after SSR, if preparation or hydration fails, or when navigation removes the island. Resumption emits the JSON sidecar before island markup, making it available to eager hydration. There is no custom element or application hydration adapter.
+<Prepare />
 
-Keep one Resumption wrapper per independently owned store. Put richer server values through an explicit codec, and treat all sidecar data as public browser-visible data. SPA's preparation API is generic; resumability has no SPA dependency.
+On the server, Resumption's async collection supplies the scope. In the browser, store.runDefault activates the captured scope whenever a default executes, including lazy family members and transactional resets. The callback awaits the initial reads before rendering or hydration and registers cleanup for the atoms and scope. There are no model factories, model props, or store-to-model registries.
+
+SPA owns cancellation and cleanup after SSR, failed initialization, and island removal. Resumability stays independent of SPA, atom.io, Reylo, and tRPC. Treat all sidecar data as public browser-visible data.
 
 ## Validation
 
-The browser check runs against both the production build and the Astro dev server. It holds JavaScript loading to inspect real SSR content, then verifies that hydration preserves the same textarea nodes and IDs. It checks client:load and client:visible scheduling, reactive edits, repeated resets, isolation between family members and islands, ClientRouter cleanup and re-entry, and the absence of server modules in browser scripts. Browser exceptions fail the check.
+The browser check runs against both the production Node server and the Astro dev server. It inspects real SSR content, verifies that hydration preserves textarea nodes and IDs, and asserts zero RPC requests during hydration. It changes SQLite after SSR and checks that repeated resets fetch the changed rows through tRPC. It also checks family and island isolation, client:load and client:visible scheduling, navigation cleanup, and removal of server modules from browser scripts. Browser exceptions fail the check. Type tests reject invalid RPC input and verify the inferred response fields.
 
 ## License
 

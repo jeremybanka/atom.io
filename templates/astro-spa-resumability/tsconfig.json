@@ -2,17 +2,42 @@
 	"extends": "astro/tsconfigs/strict",
 	"compilerOptions": {
 		"target": "ES2022",
-		"lib": ["DOM", "ESNext"],
+		"lib": [
+			"DOM",
+			"ESNext"
+		],
 		"module": "Preserve",
 		"moduleResolution": "Bundler",
 		"jsx": "preserve",
 		"jsxImportSource": "@atom.io/spa",
-		"types": ["astro/client", "vite/client", "node"],
+		"types": [
+			"astro/client",
+			"vite/client",
+			"node"
+		],
 		"allowImportingTsExtensions": true,
 		"exactOptionalPropertyTypes": true,
 		"noEmit": true,
 		"paths": {}
 	},
-	"include": ["src", "astro.config.ts"],
-	"exclude": ["dist", "node_modules"]
+	"include": [
+		"src",
+		"astro.config.ts",
+		"scripts",
+		"tests/types.ts"
+	],
+	"exclude": [
+		"dist",
+		"node_modules"
+	],
+	"contentMappers": [
+		{
+			"package": "reylo",
+			"extensions": [
+				".sql",
+				".reylo.yaml",
+				".reylo.yml"
+			]
+		}
+	]
 }

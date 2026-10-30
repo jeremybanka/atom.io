@@ -95,10 +95,6 @@ h3 {
 	background: #e6eee1;
 	color: #3d643c;
 }
-.source[data-source="client"] {
-	background: #e2ecff;
-	color: #355b88;
-}
 label {
 	display: block;
 	font-size: 0.78rem;

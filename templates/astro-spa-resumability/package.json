@@ -16,34 +16,48 @@
 		"astro.config.ts",
 		"tsconfig.json",
 		"README.mdx",
-		"_gitignore"
+		"_gitignore",
+		"scripts",
+		"schema.sql",
+		".reylo.yaml"
 	],
 	"scripts": {
-		"dev": "astro dev",
-		"build": "tsc --noEmit && astro build",
+		"dev": "npm run db:seed && astro dev",
+		"build": "npm run db:seed && tsc --noEmit --runExternalCode && astro build",
 		"preview": "astro preview",
-		"lint:types": "tsc --noEmit",
+		"lint:types": "npm run db:seed && tsc --noEmit --runExternalCode",
 		"lint:oxlint": "oxlint src tests astro.config.ts",
 		"test": "npm run test:browser",
-		"test:browser": "astro build && node tests/browser.mjs && node tests/browser.mjs --dev",
+		"test:browser": "npm run build && node tests/browser.mjs && node tests/browser.mjs --dev",
 		"readme:write": "galley write README.mdx",
-		"readme:check": "galley check README.mdx"
+		"readme:check": "galley check README.mdx",
+		"db:seed": "node scripts/seed.ts"
 	},
 	"dependencies": {
+		"@astrojs/node": "11.1.9",
 		"@atom.io/spa": "workspace:*",
+		"@trpc/client": "11.22.1",
+		"@trpc/server": "11.22.1",
 		"astro": "7.4.2",
 		"atom.io": "workspace:*",
-		"resumability": "workspace:*"
+		"resumability": "workspace:*",
+		"reylo": "0.6.0",
+		"zod": "4.6.7"
 	},
 	"devDependencies": {
+		"@reylosql/sqlite": "0.6.0",
 		"@types/node": "26.6.5",
 		"galley.md": "0.3.1",
 		"oxlint": "1.90.0",
 		"oxlint-tsgolint": "7.0.2005",
 		"playwright": "1.64.1",
-		"typescript": "7.0.2",
+		"typescript": "7.1.0-beta",
 		"vite": "8.3.5"
 	},
-	"engines": { "node": ">=24.12.0" },
-	"publishConfig": { "access": "public" }
+	"engines": {
+		"node": ">=24.12.0"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
 }

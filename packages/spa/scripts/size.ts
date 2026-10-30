@@ -1,0 +1,70 @@
+import { writeFile } from "node:fs/promises"
+import { resolve } from "node:path"
+import { brotliCompressSync, gzipSync } from "node:zlib"
+
+import { build } from "esbuild"
+import { minify } from "rolldown/utils"
+
+const root = resolve(import.meta.dirname, `..`)
+async function measure(name: string, entry: string, external: string[] = []) {
+	const result = await build({
+		absWorkingDir: root,
+		stdin: { contents: entry, resolveDir: root, loader: `js` },
+		bundle: true,
+		write: false,
+		format: `esm`,
+		platform: `browser`,
+		target: `es2022`,
+		tsconfigRaw: {},
+		external,
+		logLevel: `silent`,
+		minify: false,
+	})
+	const raw = result.outputFiles[0].text
+	const minified = (
+		await minify(`${name}.js`, raw, {
+			module: true,
+			compress: { target: `es2022` },
+			mangle: true,
+		})
+	).code
+	if (name === `spa client`) {
+		await writeFile(resolve(root, `dist/client.min.js`), minified)
+		await writeFile(
+			resolve(root, `dist/client.min.d.ts`),
+			`export * from './index.js'; export * from './jsx-runtime.js'\n`,
+		)
+	}
+	return {
+		name,
+		raw: Buffer.byteLength(raw),
+		minified: Buffer.byteLength(minified),
+		gzip: gzipSync(minified, { level: 9 }).length,
+		brotli: brotliCompressSync(minified).length,
+	}
+}
+const spa = await measure(
+	`spa client`,
+	`export * from './dist/index.js'; export * from './dist/jsx-runtime.js'`,
+	[`atom.io`, `atom.io/*`],
+)
+const results = [
+	spa,
+	await measure(
+		`spa + atom.io`,
+		`export * from './dist/index.js'; export * from './dist/jsx-runtime.js'`,
+	),
+	await measure(
+		`spa Astro client`,
+		`export {default} from './dist/astro-client.js'`,
+		[`atom.io`, `atom.io/*`],
+	),
+	await measure(`Preact`, `export * from 'preact'`),
+]
+console.table(results)
+await writeFile(
+	resolve(root, `dist/size.json`),
+	JSON.stringify(results, null, 2) + `\n`,
+)
+if (spa.gzip >= 3300)
+	throw new Error(`spa exceeds the 3,300-byte gzip budget: ${spa.gzip}`)

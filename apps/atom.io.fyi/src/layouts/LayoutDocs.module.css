@@ -41,7 +41,7 @@ docs-layout.class {
 		> * {
 			width: 100%;
 		}
-		&:has(hydrogen-logo[data-variant="background"]) > h1 {
+		&:has(spa-logo[data-variant="background"]) > h1 {
 			margin-bottom: 1em;
 		}
 		h1 {

@@ -51,8 +51,8 @@ const REALTIME_EXHIBITS_ROOT = path.join(
 )
 function exhibitRoot(source: string): string {
 	if (
-		source.startsWith(`hydrogen/exhibits/`) ||
-		source.startsWith(`hydrogen-devtools/exhibits/`)
+		source.startsWith(`spa/exhibits/`) ||
+		source.startsWith(`spa-devtools/exhibits/`)
 	) {
 		return path.join(WORKSPACE_ROOT, `packages`)
 	}
@@ -184,10 +184,10 @@ const DOC_PAGES: DocPage[] = [
 		url: `/docs/against-use-effect`,
 	},
 	{
-		output: `hydrogen.md`,
-		source: `docs/source/pages/docs/hydrogen.mdx`,
-		title: `hydrogen`,
-		url: `/docs/hydrogen`,
+		output: `spa.md`,
+		source: `docs/source/pages/docs/spa.mdx`,
+		title: `spa`,
+		url: `/docs/spa`,
 	},
 	{
 		output: `atom.io-solid.md`,

@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url"
 import cloudflare from "@astrojs/cloudflare"
 import { unified } from "@astrojs/markdown-remark"
 import mdx from "@astrojs/mdx"
-import hydrogen from "@atom.io/hydrogen/astro"
+import spa from "@atom.io/spa/astro"
 import { defineConfig, sessionDrivers } from "astro/config"
 
 import { preserveCodeBlockCodeProps } from "./scripts/remark-codeblock-code-props.ts"
@@ -25,12 +25,12 @@ const EXHIBIT_ROOTS = [
 		prefix: ``,
 	},
 	{
-		root: path.resolve(CONFIG_ROOT, `../../packages/hydrogen/exhibits`),
-		prefix: `hydrogen/exhibits/`,
+		root: path.resolve(CONFIG_ROOT, `../../packages/spa/exhibits`),
+		prefix: `spa/exhibits/`,
 	},
 	{
-		root: path.resolve(CONFIG_ROOT, `../../packages/hydrogen-devtools/exhibits`),
-		prefix: `hydrogen-devtools/exhibits/`,
+		root: path.resolve(CONFIG_ROOT, `../../packages/spa-devtools/exhibits`),
+		prefix: `spa-devtools/exhibits/`,
 	},
 ]
 const VIRTUAL_EXHIBITS_MODULE_ID = `virtual:atom-io-exhibits`
@@ -124,7 +124,11 @@ function exhibitTextPlugin() {
 
 // https://astro.build/config
 export default defineConfig({
-	integrations: [hydrogen({ include: /\.[jt]sx$/ }), mdx()],
+	redirects: {
+		"/docs/hydrogen": `/docs/spa`,
+		"/hydrogen-lab": `/spa-lab`,
+	},
+	integrations: [spa({ include: /\.[jt]sx$/ }), mdx()],
 	markdown: {
 		processor: unified({ remarkPlugins: [preserveCodeBlockCodeProps] }),
 	},
@@ -140,7 +144,7 @@ export default defineConfig({
 		allowedHosts: [`eris.local`, `atom-io`],
 	},
 	vite: {
-		resolve: { dedupe: [`atom.io`, `@atom.io/hydrogen`] },
+		resolve: { dedupe: [`atom.io`, `@atom.io/spa`] },
 		plugins: [exhibitTextPlugin()],
 		build: {
 			// Dz2Orbital's isolated Three.js entry is ~512 KiB minified.

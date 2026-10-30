@@ -1,0 +1,26 @@
+{
+	"compilerOptions": {
+		"module": "Preserve",
+		"moduleResolution": "Bundler",
+		"target": "ES2024",
+		"strict": true,
+		"exactOptionalPropertyTypes": true,
+		"jsx": "react-jsx",
+		"jsxImportSource": "@atom.io/spa",
+		"skipLibCheck": false,
+		"noEmit": true,
+		"types": [
+			"node"
+		],
+		"lib": [
+			"DOM",
+			"ESNext"
+		]
+	},
+	"include": [
+		"types.ts",
+		"loadable-types.ts",
+		"family-types.ts",
+		"jsx-types.tsx"
+	]
+}

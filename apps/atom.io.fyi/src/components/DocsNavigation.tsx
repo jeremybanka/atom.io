@@ -1,5 +1,5 @@
-import type { VNode } from "@atom.io/hydrogen"
-import { onCleanup, onMount, useSetter, useValue } from "@atom.io/hydrogen"
+import type { VNode } from "@atom.io/spa"
+import { onCleanup, onMount, useSetter, useValue } from "@atom.io/spa"
 
 import {
 	type HeadingDescriptor,
@@ -375,8 +375,8 @@ function SiteDirectory(): VNode {
 							</a>
 						</section>
 						<section>
-							<a id="-docs-hydrogen-link" href="/docs/hydrogen">
-								<low-emphasis>@atom.io</low-emphasis>/hydrogen
+							<a id="-docs-spa-link" href="/docs/spa">
+								<low-emphasis>@atom.io</low-emphasis>/spa
 							</a>
 						</section>
 					</main>

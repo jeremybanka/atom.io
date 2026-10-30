@@ -1,7 +1,7 @@
 ---
 "atom.io": patch
-"@atom.io/hydrogen": patch
-"@atom.io/hydrogen-devtools": patch
+"@atom.io/spa": patch
+"@atom.io/spa-devtools": patch
 ---
 
-Publish Hydrogen as @atom.io/hydrogen and update compiler imports, integrations, debugger peer dependencies, and documentation to use the scoped package name.
+Publish SPA as @atom.io/spa and update compiler imports, integrations, debugger peer dependencies, and documentation to use the scoped package name.

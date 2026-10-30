@@ -39,7 +39,7 @@
 		"corpus:large:verify": "bun scripts/large-document-corpus.bun.ts verify",
 		"corpus:large:derive": "bun scripts/large-document-corpus.bun.ts derive",
 		"test:breakage": "CI=true dotenvx run -- turbo run test:breakage",
-		"test:breakage:peers": "turbo run test:breakage:peers --continue=always --filter=@atom.io/react --filter=@atom.io/solid --filter=@atom.io/react-devtools --filter=@atom.io/eslint-plugin --filter=@atom.io/hydrogen --filter=@atom.io/hydrogen-devtools",
+		"test:breakage:peers": "turbo run test:breakage:peers --continue=always --filter=@atom.io/react --filter=@atom.io/solid --filter=@atom.io/react-devtools --filter=@atom.io/eslint-plugin --filter=@atom.io/spa --filter=@atom.io/spa-devtools",
 		"test:stress:realtime-ipc": "dotenvx run -- turbo run test:stress:realtime-ipc --filter=@atom.io/realtime",
 		"vigilance": "bun scripts/vigilance-bot.bun.ts",
 		"workflows": "node scripts/update-workflows.node.ts",

@@ -170,8 +170,8 @@
 			"inputs": [
 				"$TURBO_DEFAULT$",
 				"$TURBO_ROOT$/scripts/**",
-				"$TURBO_ROOT$/packages/hydrogen/exhibits/**",
-				"$TURBO_ROOT$/packages/hydrogen-devtools/exhibits/**"
+				"$TURBO_ROOT$/packages/spa/exhibits/**",
+				"$TURBO_ROOT$/packages/spa-devtools/exhibits/**"
 			]
 		}
 	}

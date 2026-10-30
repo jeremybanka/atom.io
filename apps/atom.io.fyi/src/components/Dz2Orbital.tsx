@@ -1,5 +1,5 @@
-import type { VNode } from "@atom.io/hydrogen"
-import { onCleanup, onMount } from "@atom.io/hydrogen"
+import type { VNode } from "@atom.io/spa"
+import { onCleanup, onMount } from "@atom.io/spa"
 import * as THREE from "three"
 
 import {

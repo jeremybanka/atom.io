@@ -28,7 +28,7 @@
 		"@babel/parser": "8.0.8",
 		"@babel/types": "8.0.8",
 		"@pierre/highlights": "0.3.0",
-		"astro": "7.4.3",
+		"astro": "7.4.4",
 		"atom.io": "workspace:*",
 		"preact": "11.1.0",
 		"react": "npm:@preact/compat@18.3.2",

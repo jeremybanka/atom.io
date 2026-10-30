@@ -10,10 +10,10 @@ importers:
     dependencies:
       atom.io:
         specifier: 0.53.3
-        version: 0.53.3(solid-js@2.0.0-rc.19)
+        version: 0.53.3(solid-js@2.0.0-rc.20)
       solid-js:
-        specifier: 2.0.0-rc.19
-        version: 2.0.0-rc.19
+        specifier: 2.0.0-rc.20
+        version: 2.0.0-rc.20
     devDependencies:
       '@types/node':
         specifier: 26.6.6
@@ -24,8 +24,8 @@ importers:
 
 packages:
 
-  '@solidjs/signals@2.0.0-rc.19':
-    resolution: {integrity: sha512-Epg4lyelYZnwG152q1U7lXAXp/2/jaQdaRbzh60rcOelSwmCMf/WN6FQuUEUwbn1p/QNyoJzdGSKPajkVe3zOg==}
+  '@solidjs/signals@2.0.0-rc.20':
+    resolution: {integrity: sha512-BIL5dKm0dAtPGsCEuLSNw60spDbmYG5QFK+aHUxPIgPLweA8IeJKd62DiqqqU/jqX0x39ty31GoP1n+ZINkrcg==}
     engines: {node: '>=22.12.0'}
 
   '@types/node@26.6.6':
@@ -205,8 +205,8 @@ packages:
     resolution: {integrity: sha512-FU+LUkmDzWNsJ6oubZFN3dGPKny53DRhPJG6nftEaXDL8MIn19+kEE1Gvc+63Go+qPOwVUlKIdKhsu2HN6tksw==}
     engines: {node: '>=20'}
 
-  solid-js@2.0.0-rc.19:
-    resolution: {integrity: sha512-tlA+rZT1n3XkuxW0sMIoRf/QpOa0H9N9ZDrZLQFueUkZp+hElG+EXWBojBYYi4lVBKV8l03RTNgv+lfVCYkp9w==}
+  solid-js@2.0.0-rc.20:
+    resolution: {integrity: sha512-FxaEI7LHupehFoR9j2CfJAGCoRgiKgeNlzii4szUS6lnD8RkpdtvX1k6WFG71vl5bskXRRsmEQVAXsbIemQOuw==}
     engines: {node: '>=22.12.0'}
 
   typescript@7.0.2:
@@ -219,7 +219,7 @@ packages:
 
 snapshots:
 
-  '@solidjs/signals@2.0.0-rc.19': {}
+  '@solidjs/signals@2.0.0-rc.20': {}
 
   '@types/node@26.6.6':
     dependencies:
@@ -285,9 +285,9 @@ snapshots:
   '@typescript/typescript-win32-x64@7.0.2':
     optional: true
 
-  atom.io@0.53.3(solid-js@2.0.0-rc.19):
+  atom.io@0.53.3(solid-js@2.0.0-rc.20):
     optionalDependencies:
-      solid-js: 2.0.0-rc.19
+      solid-js: 2.0.0-rc.20
 
   csstype@3.2.3: {}
 
@@ -297,9 +297,9 @@ snapshots:
 
   seroval@1.7.0: {}
 
-  solid-js@2.0.0-rc.19:
+  solid-js@2.0.0-rc.20:
     dependencies:
-      '@solidjs/signals': 2.0.0-rc.19
+      '@solidjs/signals': 2.0.0-rc.20
       csstype: 3.2.3
       seroval: 1.7.0
       seroval-plugins: 1.7.0(seroval@1.7.0)

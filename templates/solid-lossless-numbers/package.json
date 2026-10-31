@@ -34,7 +34,7 @@
 		"@typescript/native": "npm:typescript@7.0.2",
 		"dprint": "0.64.3",
 		"dprint-plugin-malva": "0.16.0",
-		"eslint": "10.13.0",
+		"eslint": "10.14.0",
 		"lasertag": "0.8.10",
 		"oxlint": "1.90.0",
 		"oxlint-tsgolint": "7.0.2005",

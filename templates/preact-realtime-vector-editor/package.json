@@ -48,7 +48,7 @@
 		"concurrently": "10.0.6",
 		"dprint": "0.64.3",
 		"dprint-plugin-malva": "0.16.0",
-		"eslint": "10.13.0",
+		"eslint": "10.14.0",
 		"happy-dom": "21.0.4",
 		"lasertag": "0.8.10",
 		"oxlint": "1.90.0",

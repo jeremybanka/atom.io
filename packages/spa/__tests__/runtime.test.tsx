@@ -16,6 +16,7 @@ import {
 	useTransaction,
 	useValue,
 } from "../src/index.ts"
+import type { JSX } from "../src/jsx-runtime.ts"
 import { renderToString } from "../src/server.ts"
 
 const roots: SpaRoot[] = []
@@ -373,6 +374,109 @@ describe(`spa compiled DOM`, () => {
 		root.dispose()
 		button.click()
 		expect(second).toHaveBeenCalledOnce()
+	})
+	it.each([
+		[`element`, `render`],
+		[`element`, `hydrate`],
+		[`component`, `render`],
+		[`component`, `hydrate`],
+	] as const)(
+		`preserves a lone spread on a self-closing %s during %s`,
+		(kind, mode) => {
+			const { silo, host, mount } = fixture()
+			const first = vi.fn()
+			const second = vi.fn()
+			const ref = vi.fn<(element: HTMLInputElement | null) => void>()
+			const setups = vi.fn()
+			const propsAtom = silo.atom<Omit<JSX.IntrinsicElements[`input`], `key`>>({
+				key: `props`,
+				default: { title: `first`, value: `initial`, onInput: first, ref },
+			})
+			function Input(props: Omit<JSX.IntrinsicElements[`input`], `key`>) {
+				setups()
+				return <input {...props} />
+			}
+			function App() {
+				const props = useValue(propsAtom)
+				return kind === `element` ? (
+					<input {...props()} />
+				) : (
+					<Input {...props()} />
+				)
+			}
+			let root: SpaRoot
+			if (mode === `hydrate`) {
+				host.innerHTML = renderToString(() => <App />, { store: silo.store })
+				const serverInput = host.querySelector(`input`)!
+				expect(serverInput.getAttribute(`title`)).toBe(`first`)
+				expect(serverInput.getAttribute(`value`)).toBe(`initial`)
+				expect(ref).not.toHaveBeenCalled()
+				setups.mockClear()
+				root = hydrate(() => <App />, host, { store: silo.store })
+				roots.push(root)
+				expect(host.querySelector(`input`)).toBe(serverInput)
+			} else root = mount(() => <App />)
+			const input = host.querySelector(`input`)!
+			expect(input.title).toBe(`first`)
+			expect(input.value).toBe(`initial`)
+			expect(ref).toHaveBeenCalledExactlyOnceWith(input)
+			input.dispatchEvent(new Event(`input`))
+			expect(first).toHaveBeenCalledOnce()
+			silo.setState(propsAtom, {
+				value: `updated`,
+				disabled: true,
+				"data-next": `yes`,
+				onInput: second,
+				ref,
+			})
+			root.flush()
+			expect(host.querySelector(`input`)).toBe(input)
+			expect(input.title).toBe(``)
+			expect(input.value).toBe(`updated`)
+			expect(input.disabled).toBe(true)
+			expect(input.dataset[`next`]).toBe(`yes`)
+			input.dispatchEvent(new Event(`input`))
+			expect(first).toHaveBeenCalledOnce()
+			expect(second).toHaveBeenCalledOnce()
+			expect(setups).toHaveBeenCalledTimes(kind === `component` ? 1 : 0)
+			root.dispose()
+			expect(ref).toHaveBeenCalledTimes(2)
+			expect(ref).toHaveBeenLastCalledWith(null)
+			input.dispatchEvent(new Event(`input`))
+			expect(second).toHaveBeenCalledOnce()
+		},
+	)
+	it(`preserves component identity when keys come from a lone spread`, () => {
+		const { silo, host, mount } = fixture()
+		const orderAtom = silo.atom<string[]>({
+			key: `order`,
+			default: [`a`, `b`],
+		})
+		const setups = vi.fn()
+		function Row(props: { id: string }) {
+			setups(props.id)
+			return <input {...{ value: props.id }} />
+		}
+		function List() {
+			const order = useValue(orderAtom)
+			return (
+				<section>
+					{order().map((id) => (
+						<Row {...{ key: id, id }} />
+					))}
+				</section>
+			)
+		}
+		const root = mount(() => <List />)
+		const original = [...host.querySelectorAll(`input`)]
+		expect(original.map((input) => input.value)).toEqual([`a`, `b`])
+		silo.setState(orderAtom, [`b`, `a`])
+		root.flush()
+		expect([...host.querySelectorAll(`input`)]).toEqual([
+			original[1],
+			original[0],
+		])
+		expect(setups).toHaveBeenCalledTimes(2)
 	})
 	it(`publishes refs after attachment, runs mount once, and guards competing owners`, () => {
 		const { silo, host, mount } = fixture()

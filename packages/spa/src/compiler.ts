@@ -143,7 +143,7 @@ export function compile(
 							)
 						flush()
 						const props =
-							chunks.length > 1
+							chunks.length > 1 || t.isArrowFunctionExpression(chunks[0])
 								? t.callExpression(merge, chunks)
 								: (chunks[0] ?? t.objectExpression([]))
 						const result = t.callExpression(create, [

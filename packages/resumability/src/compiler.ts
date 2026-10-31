@@ -1,4 +1,4 @@
-import type { PluginObj } from "@babel/core"
+import type { PluginObject } from "@babel/core"
 import { transformSync, types as t } from "@babel/core"
 
 /** Remove server closures before Vite discovers their dynamic imports. */
@@ -13,7 +13,7 @@ export function compile(
 		sourceMaps: true,
 		parserOpts: { sourceType: `module`, plugins: [`typescript`, `jsx`] },
 		plugins: [
-			(): PluginObj => ({
+			(): PluginObject => ({
 				visitor: {
 					Program: {
 						exit(path) {

@@ -1,4 +1,4 @@
-import type { PluginObj } from "@babel/core"
+import type { PluginObject } from "@babel/core"
 import { transformSync, types as t } from "@babel/core"
 
 /** Remove server closures before Vite discovers their dynamic imports. */
@@ -13,7 +13,7 @@ export function compile(
 		sourceMaps: true,
 		parserOpts: { sourceType: `module`, plugins: [`typescript`, `jsx`] },
 		plugins: [
-			(): PluginObj => ({
+			(): PluginObject => ({
 				visitor: {
 					Program: {
 						exit(path) {
@@ -47,7 +47,7 @@ export function compile(
 										specifier.local.name,
 									)!.referencePaths) {
 										if (
-											!reference.parentPath!.isCallExpression() ||
+											!reference.parentPath.isCallExpression() ||
 											reference.parentPath.node.callee !== reference.node
 										)
 											throw reference.buildCodeFrameError(
@@ -70,7 +70,7 @@ export function compile(
 							)
 						)
 							return
-						const declaration = binding.parent as t.ImportDeclaration
+						const declaration = binding.parent
 						if (
 							![`resumability`, `resumability/client`].includes(
 								declaration.source.value,

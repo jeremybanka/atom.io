@@ -1,11 +1,11 @@
-import type { PluginObj } from "@babel/core"
+import type { PluginObject } from "@babel/core"
 import { transformSync, types as t } from "@babel/core"
 
 export function compile(
 	code: string,
 	filename: string,
 ): { code: string; map: any } {
-	const plugin = (): PluginObj => {
+	const plugin = (): PluginObject => {
 		let create: t.Identifier
 		let merge: t.Identifier
 		const generated = new WeakSet<object>()

@@ -47,7 +47,7 @@ export function compile(
 										specifier.local.name,
 									)!.referencePaths) {
 										if (
-											!reference.parentPath!.isCallExpression() ||
+											!reference.parentPath.isCallExpression() ||
 											reference.parentPath.node.callee !== reference.node
 										)
 											throw reference.buildCodeFrameError(
@@ -70,7 +70,7 @@ export function compile(
 							)
 						)
 							return
-						const declaration = binding.parent as t.ImportDeclaration
+						const declaration = binding.parent
 						if (
 							![`resumability`, `resumability/client`].includes(
 								declaration.source.value,

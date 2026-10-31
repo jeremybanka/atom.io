@@ -39,7 +39,7 @@
 		"@atom.io/exhibits": "workspace:*",
 		"@atom.io/realtime": "workspace:*",
 		"@types/bun": "npm:bun-types@1.4.4",
-		"@types/three": "0.186.0",
+		"@types/three": "0.187.0",
 		"concurrently": "10.0.6",
 		"eslint": "10.13.0",
 		"lasertag": "0.8.10",

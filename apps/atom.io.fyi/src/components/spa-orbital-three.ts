@@ -114,6 +114,7 @@ function createPointGeometry(): THREE.BufferGeometry {
 		.setAttribute(`shimmer`, new THREE.BufferAttribute(shimmer, 3))
 }
 
+// oxlint-disable-next-line typescript/explicit-module-boundary-types -- Infer the shader uniform types from their Three.js values.
 export function createSpaCloud() {
 	const uniforms = {
 		uColor: { value: new THREE.Color(`#0099ff`) },
@@ -159,7 +160,7 @@ export function createSpaCloud() {
 			pixelRatio: number,
 			elapsed: number,
 			rotationElapsed = elapsed,
-		) {
+		): void {
 			uniforms.uResolution.value.set(width, height)
 			uniforms.uTime.value = elapsed
 			uniforms.uPixelRatio.value = pixelRatio
@@ -176,7 +177,7 @@ export function createSpaCloud() {
 					: POINT_COUNT,
 			)
 		},
-		dispose() {
+		dispose(): void {
 			cloudGeometry.dispose()
 			cloudMaterial.dispose()
 			pointGeometry.dispose()

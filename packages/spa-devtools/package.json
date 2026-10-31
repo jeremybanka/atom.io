@@ -42,7 +42,6 @@
 		"test:once": "vitest run --config vitest.config.ts && pnpm test:consumer",
 		"test:consumer": "node __tests__/fixtures/consumer/check.ts",
 		"cov": "vitest run --config vitest.config.ts --coverage",
-		"cov:recoverage": "recoverage",
 		"readme:write": "galley write README.mdx",
 		"readme:check": "galley check README.mdx",
 		"tonnage": "pnpm readme:write",
@@ -57,7 +56,6 @@
 		"breakage": "0.10.1",
 		"eslint": "10.13.0",
 		"happy-dom": "21.0.4",
-		"recoverage": "0.1.20",
 		"tsdown": "0.23.3",
 		"typescript": "7.0.2",
 		"vitest": "5.0.5"

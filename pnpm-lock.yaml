@@ -493,9 +493,6 @@ importers:
 
   packages/create-atom.io:
     dependencies:
-      '@atom.io/template-astro-spa-resumability':
-        specifier: workspace:*
-        version: link:../../templates/astro-spa-resumability
       '@atom.io/template-preact-realtime-vector-editor':
         specifier: workspace:*
         version: link:../../templates/preact-realtime-vector-editor
@@ -511,6 +508,9 @@ importers:
       '@atom.io/template-solid-lossless-numbers':
         specifier: workspace:*
         version: link:../../templates/solid-lossless-numbers
+      '@atom.io/template-spa-astro-ssr':
+        specifier: workspace:*
+        version: link:../../templates/spa-astro-ssr
       '@clack/prompts':
         specifier: 1.8.1
         version: 1.8.1
@@ -823,9 +823,6 @@ importers:
       playwright:
         specifier: 1.64.1
         version: 1.64.1
-      recoverage:
-        specifier: 0.1.20
-        version: 0.1.20(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7)
       tsdown:
         specifier: 0.23.3
         version: 0.23.3(@tsdown/css@0.23.3)(oxc-resolver@11.21.2)(tsx@4.23.13)(typescript@7.0.2)
@@ -920,9 +917,6 @@ importers:
       preact:
         specifier: 11.1.0
         version: 11.1.0(preact-render-to-string@6.8.2)
-      recoverage:
-        specifier: 0.1.20
-        version: 0.1.20(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7)
       rolldown:
         specifier: 1.2.15
         version: 1.2.15
@@ -965,9 +959,6 @@ importers:
       happy-dom:
         specifier: 21.0.4
         version: 21.0.4
-      recoverage:
-        specifier: 0.1.20
-        version: 0.1.20(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7)
       tsdown:
         specifier: 0.23.3
         version: 0.23.3(@tsdown/css@0.23.3)(oxc-resolver@11.21.2)(tsx@4.23.13)(typescript@7.0.2)
@@ -977,61 +968,6 @@ importers:
       vitest:
         specifier: 5.0.5
         version: 5.0.5(@types/node@26.6.5)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(happy-dom@21.0.4)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
-
-  templates/astro-spa-resumability:
-    dependencies:
-      '@astrojs/node':
-        specifier: 11.1.9
-        version: 11.1.9(astro@7.4.2(@astrojs/markdown-remark@7.3.5(supports-color@10.2.2))(@azure/identity@4.13.2(supports-color@10.2.2))(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))(supports-color@10.2.2)
-      '@atom.io/spa':
-        specifier: workspace:*
-        version: link:../../packages/spa
-      '@trpc/client':
-        specifier: 11.22.1
-        version: 11.22.1(@trpc/server@11.22.1(typescript@7.1.0-beta))(typescript@7.1.0-beta)
-      '@trpc/server':
-        specifier: 11.22.1
-        version: 11.22.1(typescript@7.1.0-beta)
-      astro:
-        specifier: 7.4.2
-        version: 7.4.2(@astrojs/markdown-remark@7.3.5(supports-color@10.2.2))(@azure/identity@4.13.2(supports-color@10.2.2))(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
-      atom.io:
-        specifier: workspace:*
-        version: link:../../packages/atom.io
-      resumability:
-        specifier: workspace:*
-        version: link:../../packages/resumability
-      reylo:
-        specifier: 0.6.0
-        version: 0.6.0(@reylosql/sqlite@0.6.0)
-      zod:
-        specifier: 4.6.7
-        version: 4.6.7
-    devDependencies:
-      '@reylosql/sqlite':
-        specifier: 0.6.0
-        version: 0.6.0
-      '@types/node':
-        specifier: 26.6.5
-        version: 26.6.5
-      galley.md:
-        specifier: 0.3.1
-        version: 0.3.1(arktype@2.2.9)(supports-color@10.2.2)(zod@4.6.7)
-      oxlint:
-        specifier: 1.90.0
-        version: 1.90.0(oxlint-tsgolint@7.0.2005)
-      oxlint-tsgolint:
-        specifier: 7.0.2005
-        version: 7.0.2005
-      playwright:
-        specifier: 1.64.1
-        version: 1.64.1
-      typescript:
-        specifier: 7.1.0-beta
-        version: 7.1.0-beta
-      vite:
-        specifier: 8.3.5
-        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
 
   templates/preact-realtime-vector-editor:
     dependencies:
@@ -1469,6 +1405,61 @@ importers:
       vite-plugin-solid:
         specifier: 2.11.14
         version: 2.11.14(@testing-library/jest-dom@6.9.1)(solid-js@1.9.17)(supports-color@10.2.2)(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+
+  templates/spa-astro-ssr:
+    dependencies:
+      '@astrojs/node':
+        specifier: 11.1.9
+        version: 11.1.9(astro@7.4.2(@astrojs/markdown-remark@7.3.5(supports-color@10.2.2))(@azure/identity@4.13.2(supports-color@10.2.2))(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))(supports-color@10.2.2)
+      '@atom.io/spa':
+        specifier: workspace:*
+        version: link:../../packages/spa
+      '@trpc/client':
+        specifier: 11.22.1
+        version: 11.22.1(@trpc/server@11.22.1(typescript@7.1.0-beta))(typescript@7.1.0-beta)
+      '@trpc/server':
+        specifier: 11.22.1
+        version: 11.22.1(typescript@7.1.0-beta)
+      astro:
+        specifier: 7.4.2
+        version: 7.4.2(@astrojs/markdown-remark@7.3.5(supports-color@10.2.2))(@azure/identity@4.13.2(supports-color@10.2.2))(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
+      atom.io:
+        specifier: workspace:*
+        version: link:../../packages/atom.io
+      resumability:
+        specifier: workspace:*
+        version: link:../../packages/resumability
+      reylo:
+        specifier: 0.6.0
+        version: 0.6.0(@reylosql/sqlite@0.6.0)
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@reylosql/sqlite':
+        specifier: 0.6.0
+        version: 0.6.0
+      '@types/node':
+        specifier: 26.6.5
+        version: 26.6.5
+      galley.md:
+        specifier: 0.3.1
+        version: 0.3.1(arktype@2.2.9)(supports-color@10.2.2)(zod@4.6.7)
+      oxlint:
+        specifier: 1.90.0
+        version: 1.90.0(oxlint-tsgolint@7.0.2005)
+      oxlint-tsgolint:
+        specifier: 7.0.2005
+        version: 7.0.2005
+      playwright:
+        specifier: 1.64.1
+        version: 1.64.1
+      typescript:
+        specifier: 7.1.0-beta
+        version: 7.1.0-beta
+      vite:
+        specifier: 8.3.5
+        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
 
 packages:
 

@@ -6,7 +6,7 @@ import { delimiter, dirname, join, resolve } from "node:path"
 import { stripVTControlCharacters } from "node:util"
 
 const templates = [
-	`astro-spa-resumability`,
+	`spa-astro-ssr`,
 	`preact-svg-editor`,
 	`react-node-backend`,
 	`react-realtime-text-editor`,

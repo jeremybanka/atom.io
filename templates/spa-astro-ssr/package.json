@@ -1,11 +1,11 @@
 {
-	"name": "@atom.io/template-astro-spa-resumability",
+	"name": "@atom.io/template-spa-astro-ssr",
 	"version": "0.0.0",
 	"description": "Astro, SPA, and resumable atom defaults with SQLite server data.",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/jeremybanka/atom.io.git",
-		"directory": "templates/astro-spa-resumability"
+		"directory": "templates/spa-astro-ssr"
 	},
 	"license": "MPL-2.0",
 	"type": "module",

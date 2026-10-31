@@ -125,7 +125,7 @@ Astro client:load, client:idle, client:visible, client:media, and client:only us
 
 Persisted islands receive live prop and slot updates without rerunning component setup or recreating their store. Repeated hydration calls during preparation share one factory and preparation invocation. New client mounts use the latest props and slots; hydration attaches to the original server tree first, then applies any changes received while preparing. The factory receives the initial props and runs only when an island is first mounted; put changing values in props rather than relying on the factory to run again.
 
-The checked Astro fixture demonstrates default/named slots and custom independently initialized islands, including client:only. The astro-spa-resumability template demonstrates shared state, server-data resumption, delayed islands, and navigation without losing edits.
+The checked Astro fixture demonstrates default/named slots and custom independently initialized islands, including client:only. The spa-astro-ssr template demonstrates shared state, server-data resumption, delayed islands, and navigation without losing edits.
 
 ## Size and verification
 

@@ -1,6 +1,6 @@
 ---
 "@atom.io/spa": minor
-"@atom.io/template-astro-spa-resumability": minor
+"@atom.io/template-spa-astro-ssr": minor
 "resumability": patch
 "atom.io": patch
 ---

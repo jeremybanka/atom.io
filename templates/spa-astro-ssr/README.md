@@ -1,4 +1,4 @@
-# Astro + SPA + resumability
+# SPA + Astro SSR
 
 A starter with module-scoped atom definitions, server-rendered Astro islands, and typed database refreshes. It uses atom.io, @atom.io/spa, resumability/astro, Reylo over node:sqlite, and tRPC. Requires Node 24.12 or newer and TypeScript 7.1's content mappers (currently beta).
 
@@ -21,14 +21,24 @@ npm test
 Inside the atom.io workspace:
 
 ```sh
-pnpm exec turbo run build --filter=@atom.io/template-astro-spa-resumability...
-pnpm --filter @atom.io/template-astro-spa-resumability dev
+pnpm exec turbo run build --filter=@atom.io/template-spa-astro-ssr...
+pnpm --filter @atom.io/template-spa-astro-ssr dev
 
 ```
 
 The workspace uses local unpublished packages; a packed release replaces workspace dependency ranges with published versions. Development, build, and typecheck commands initialize drafts.sqlite from schema.sql and insert missing example rows without overwriting edits. Reylo checks queries against that schema using .reylo.yaml. The generated database is ignored by Git and excluded from the package.
 
 This is an on-demand Node server application. The Astro Node adapter serves both pages and the tRPC endpoint. Start production from the template directory so it can find drafts.sqlite; supply persistent storage for that file when deploying. Initialize the database before starting a new deployment.
+
+## Rendering and caching
+
+The starter currently uses on-demand SSR for every route, including the tRPC endpoint. It does not configure a route-cache provider, cache headers, or prerendered pages. Each draft-page render reads SQLite in a request-owned store, and each new browser application resumes the snapshot included in that response.
+
+For public data, the recommended deployment model is cached SSR: cache the complete HTML response together with its resumption sidecar. The markup and initial values must come from the same render. Choose a freshness window and invalidation policy that match the data; do not cache a live atom.io store or reuse it across requests. Cache only responses whose data can be shared by everyone using the cache entry. Personalized snapshots need private caching or a correctly scoped cache key.
+
+The initial browser load consumes that snapshot without immediately refetching it. Expiring or invalidating the server cache affects future page loads, not an already running browser store. Keep the explicit reset/tRPC path fresh so Refresh from database can fetch the current row. ClientRouter navigation continues to preserve live browser state rather than replacing edits with another server snapshot.
+
+SSG is also compatible with resumption: the sidecar is produced during the build and remains that snapshot until the next deployment. Use it for routes whose freshness can follow deployments, while retaining on-demand API routes for resets. Astro's [on-demand rendering](https://docs.astro.build/en/guides/on-demand-rendering/) and [route caching](https://docs.astro.build/en/guides/caching/) documentation describe the route-level controls and cache providers. Cache configuration is deliberately not enabled by this starter yet.
 
 ## Try it
 

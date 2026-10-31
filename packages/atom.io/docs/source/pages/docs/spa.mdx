@@ -65,7 +65,7 @@ Astro calls createStore with the same serialized props on the server and in the 
 
 Untouched initial islands hydrate matching server DOM. After application state changes, delayed islands render fresh against the live store. Newly introduced islands after ClientRouter navigation also render fresh, preserving edits instead of applying an incoming server snapshot. Persisted roots retain their DOM and subscriptions. Normal Astro client directives work without per-island navigation configuration.
 
-An optional prepareStore callback can asynchronously initialize the selected store before rendering. Its context owns island cleanup; context.application supplies shared resources, cancellation, and canResume. Shared browser resources survive island removal and navigation, while request resources end after streaming. The astro-spa-resumability template demonstrates this with module-scoped atom defaults, one shared JSON sidecar, and SQLite/tRPC data.
+An optional prepareStore callback can asynchronously initialize the selected store before rendering. Its context owns island cleanup; context.application supplies shared resources, cancellation, and canResume. Shared browser resources survive island removal and navigation, while request resources end after streaming. The spa-astro-ssr template demonstrates this with module-scoped atom defaults, one shared JSON sidecar, and SQLite/tRPC data.
 
 Use Astro's client directives to choose when an island hydrates. Components that put browser work in onMount can render their host markup on the server and hydrate with client:load. Default and named slots are supported, and astro:unmount releases the island's resources.
 

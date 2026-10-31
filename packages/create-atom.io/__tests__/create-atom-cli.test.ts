@@ -39,7 +39,7 @@ const suppliedOptions = [
 describe(`one-shot CLI`, () => {
 	it.each([
 		{
-			template: `astro-spa-resumability`,
+			template: `spa-astro-ssr`,
 			manager: `pnpm`,
 			flags: [`--template`, `--package-manager`, `--skip-hints`, `--use-mise`],
 		},

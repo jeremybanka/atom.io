@@ -3,8 +3,8 @@ import type { OptionsGroup } from "comline"
 import { options, parseBooleanOption } from "comline"
 
 export const TEMPLATES = {
-	"astro-spa-resumability": {
-		label: `Astro SPA Resumability`,
+	"spa-astro-ssr": {
+		label: `SPA Astro SSR`,
 		description: `An Astro app with SPA, SQLite-backed atom defaults, and fresh browser values on reset.`,
 	},
 	"preact-realtime-vector-editor": {

@@ -5,7 +5,7 @@
 	"description": "spa \u00b7 released-sdk",
 	"type": "module",
 	"dependencies": {
-		"astro": "7.4.2",
+		"astro": "7.4.4",
 		"atom.io": "0.54.1",
 		"vite": "8.3.5"
 	},

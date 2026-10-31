@@ -80,7 +80,7 @@
 		"@vitest/coverage-v8": "5.0.5",
 		"arktype": "2.2.9",
 		"atom.io": "workspace:*",
-		"eslint": "10.13.0",
+		"eslint": "10.14.0",
 		"happy-dom": "21.0.4",
 		"lexical": "0.53.0",
 		"react": "19.3.1",

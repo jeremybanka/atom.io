@@ -71,7 +71,7 @@
 		"atom.io": "workspace:*",
 		"breakage": "0.10.1",
 		"esbuild": "0.28.2",
-		"eslint": "10.13.0",
+		"eslint": "10.14.0",
 		"happy-dom": "21.0.4",
 		"playwright": "1.64.1",
 		"tsdown": "0.23.4",

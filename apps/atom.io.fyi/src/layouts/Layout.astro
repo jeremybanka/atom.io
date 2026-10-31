@@ -1,7 +1,7 @@
 ---
 import { ClientRouter } from "astro:transitions"
-import { AtomIODevtools } from "@atom.io/react-devtools"
-import "@atom.io/react-devtools/css"
+import { SiteDevtools } from "../components/SiteDevtools.tsx"
+import "@atom.io/spa-devtools/css"
 import packageJson from "atom.io/package.json"
 import { Dz2Orbital } from "../components/Dz2Orbital"
 import GlobalEffects from "../components/GlobalEffects.astro"
@@ -35,7 +35,11 @@ import css from "./Layout.module.css"
 				<nav>
 					<left-side>
 						<a href="/">
-							<Dz2Orbital variant="mark" client:only transition:persist />
+							<Dz2Orbital
+								variant="mark"
+								client:load
+								transition:persist="orbital-mark"
+							/>
 							<brand-name>atom.io</brand-name>.fyi
 						</a>
 					</left-side>
@@ -71,7 +75,7 @@ import css from "./Layout.module.css"
 			</footer>
 		</app-shell>
 
-		<AtomIODevtools hideByDefault={true} client:only />
+		<SiteDevtools hideByDefault={true} client:load />
 		<GlobalEffects />
 	</body>
 </html>

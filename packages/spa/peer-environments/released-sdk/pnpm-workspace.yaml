@@ -1,0 +1,6 @@
+packages: []
+minimumReleaseAge: 1440
+minimumReleaseAgeStrict: true
+minimumReleaseAgeExclude:
+  # Match the repository policy for packages maintained here.
+  - atom.io

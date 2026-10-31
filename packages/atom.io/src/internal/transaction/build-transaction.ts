@@ -36,6 +36,7 @@ export function buildTransaction(
 	const child: ChildStore = {
 		parent,
 		child: null,
+		runDefault: (compute) => parent.runDefault(compute),
 		on: parent.on,
 		loggers: parent.loggers,
 		logger: parent.logger,

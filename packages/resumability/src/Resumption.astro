@@ -1,0 +1,16 @@
+---
+import { collect, serialize } from "./server.js"
+
+const { value, payload } = await collect(() => Astro.slots.render("default"), {
+	signal: Astro.request.signal,
+})
+---
+<astro-resumption>
+	<script
+		is:inline
+		type="application/json"
+		data-resumable
+		set:html={serialize(payload)}
+	/>
+	<Fragment set:html={value} />
+</astro-resumption>

@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url"
 import cloudflare from "@astrojs/cloudflare"
 import { unified } from "@astrojs/markdown-remark"
 import mdx from "@astrojs/mdx"
-import preact from "@astrojs/preact"
+import spa from "@atom.io/spa/astro"
 import { defineConfig, sessionDrivers } from "astro/config"
 
 import { preserveCodeBlockCodeProps } from "./scripts/remark-codeblock-code-props.ts"
@@ -16,8 +16,22 @@ const EXHIBITS_ROOT = path.resolve(
 	`../../packages/atom.io/docs/source/exhibits`,
 )
 const EXHIBIT_ROOTS = [
-	EXHIBITS_ROOT,
-	path.resolve(CONFIG_ROOT, `../../packages/realtime/docs/source/exhibits`),
+	{ root: EXHIBITS_ROOT, prefix: `` },
+	{
+		root: path.resolve(
+			CONFIG_ROOT,
+			`../../packages/realtime/docs/source/exhibits`,
+		),
+		prefix: ``,
+	},
+	{
+		root: path.resolve(CONFIG_ROOT, `../../packages/spa/exhibits`),
+		prefix: `spa/exhibits/`,
+	},
+	{
+		root: path.resolve(CONFIG_ROOT, `../../packages/spa-devtools/exhibits`),
+		prefix: `spa-devtools/exhibits/`,
+	},
 ]
 const VIRTUAL_EXHIBITS_MODULE_ID = `virtual:atom-io-exhibits`
 const RESOLVED_VIRTUAL_EXHIBITS_MODULE_ID = `\0${VIRTUAL_EXHIBITS_MODULE_ID}`
@@ -72,24 +86,24 @@ function exhibitTextPlugin() {
 			}
 			const files = (
 				await Promise.all(
-					EXHIBIT_ROOTS.map(async (root) =>
-						(await listFiles(root)).map((file) => ({ root, file })),
+					EXHIBIT_ROOTS.map(async ({ root, prefix }) =>
+						(await listFiles(root)).map((file) => ({ root, prefix, file })),
 					),
 				)
 			).flat()
 			const exhibits: Record<string, string> = {}
-			for (const { root, file } of files) {
-				const key = toPosixPath(path.relative(root, file))
+			for (const { root, prefix, file } of files) {
+				const key = prefix + toPosixPath(path.relative(root, file))
 				exhibits[key] = await fs.readFile(file, `utf8`)
 			}
 			return `export const exhibits = ${JSON.stringify(exhibits)};`
 		},
 		configureServer(server: ViteDevServer) {
-			for (const root of EXHIBIT_ROOTS) server.watcher.add(root)
+			for (const { root } of EXHIBIT_ROOTS) server.watcher.add(root)
 		},
 		handleHotUpdate(context: HmrContext) {
 			if (
-				!EXHIBIT_ROOTS.some((root) => {
+				!EXHIBIT_ROOTS.some(({ root }) => {
 					const relative = path.relative(root, context.file)
 					return !relative.startsWith(`..`) && !path.isAbsolute(relative)
 				})
@@ -110,7 +124,11 @@ function exhibitTextPlugin() {
 
 // https://astro.build/config
 export default defineConfig({
-	integrations: [preact({ compat: true }), mdx()],
+	redirects: {
+		"/docs/hydrogen": `/docs/spa`,
+		"/hydrogen-lab": `/spa-lab`,
+	},
+	integrations: [spa({ include: /\.[jt]sx$/ }), mdx()],
 	markdown: {
 		processor: unified({ remarkPlugins: [preserveCodeBlockCodeProps] }),
 	},
@@ -126,7 +144,7 @@ export default defineConfig({
 		allowedHosts: [`eris.local`, `atom-io`],
 	},
 	vite: {
-		resolve: { dedupe: [`preact`] },
+		resolve: { dedupe: [`atom.io`, `@atom.io/spa`] },
 		plugins: [exhibitTextPlugin()],
 		build: {
 			// Dz2Orbital's isolated Three.js entry is ~512 KiB minified.

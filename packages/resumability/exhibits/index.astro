@@ -1,0 +1,19 @@
+---
+import Resumption from "resumability/Resumption.astro"
+import Value from "./Value.astro"
+---
+<Resumption><Value /></Resumption>
+<script>
+import { createResumption } from "resumability/client"
+import { greeting } from "./greeting"
+
+for (const element of document.querySelectorAll(`astro-resumption`)) {
+	const scope = createResumption(element)
+	const output = element.querySelector(`output`)!
+	output.textContent = await greeting(scope) // Harvest the server value once.
+	element.querySelector(`button`)!.addEventListener(`click`, async () => {
+		output.textContent = await greeting(scope) // Run the client closure.
+	})
+	window.addEventListener(`pagehide`, () => scope.dispose(), { once: true })
+}
+</script>

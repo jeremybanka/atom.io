@@ -35,12 +35,12 @@ See [try it here](#try-it-here) for the full show/hide flow on this site.
 
 ## try it here
 
-This site mounts the devtools with `hideByDefault={true}`.
+This site now mounts an experimental spa-rendered port of the debugger. It uses the same atom.io introspection engine and starts hidden. The React package described above remains the debugger for React applications.
 
 To show them on `atom.io.fyi`:
 
 - press `ctrl` + `shift` + `a`
-- click the magnifying glass in the lower right corner
+- if the panel is minimized, click its magnifying glass
 
 You can also force the hidden state through browser storage:
 
@@ -74,5 +74,4 @@ This site embeds the devtools in its base layout:
 
 - `apps/atom.io.fyi/src/layouts/Layout.astro`
 
-That setup imports `@atom.io/react-devtools/css` once and mounts
-`<AtomIODevtools hideByDefault={true} client:only />` at the end of the shell.
+That setup imports `@atom.io/spa-devtools/css` once and hydrates the spa debugger with client:load at the end of the shell. Its host renders on the server, and the interactive panel mounts in the browser. The package names are @atom.io/spa and @atom.io/spa-devtools.

@@ -56,7 +56,7 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           packages: bun node pnpm
-      - run: pnpm exec turbo run build --filter=@atom.io/realtime...
+      - run: pnpm exec turbo run build --filter=@atom.io/realtime... --filter=@atom.io/spa... --filter=resumability... --filter=@atom.io/template-spa-astro-ssr...
       - name: Resolve Playwright version
         id: playwright
         working-directory: templates/react-realtime-text-editor
@@ -87,6 +87,9 @@ jobs:
             check_browser
           fi
       - run: pnpm --filter @atom.io/template-react-realtime-text-editor test:browser
+      - run: pnpm --filter @atom.io/spa test:browser
+      - run: pnpm --filter resumability test:browser
+      - run: pnpm --filter @atom.io/template-spa-astro-ssr test:browser
 
   Manifest:
     runs-on: ubuntu-26.04

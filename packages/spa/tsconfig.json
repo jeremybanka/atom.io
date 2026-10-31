@@ -1,0 +1,35 @@
+{
+	"extends": "../../tsconfig.json",
+	"compilerOptions": {
+		"target": "ES2022",
+		"lib": [
+			"ESNext",
+			"DOM"
+		],
+		"jsx": "react-jsx",
+		"jsxImportSource": "@atom.io/spa",
+		"paths": {
+			"@atom.io/spa": [
+				"./src/index.ts"
+			],
+			"@atom.io/spa/*": [
+				"./src/*"
+			],
+			"atom.io": [
+				"../atom.io/src/main/index.ts"
+			],
+			"atom.io/*": [
+				"../atom.io/src/*"
+			]
+		}
+	},
+	"exclude": ["__tests__/fixtures/consumer/jsx-types.tsx"],
+	"include": [
+		"src",
+		"__tests__",
+		"scripts",
+		"exhibits",
+		"*.config.ts",
+		"tonnage-recipes"
+	]
+}

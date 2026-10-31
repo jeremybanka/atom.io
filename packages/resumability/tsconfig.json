@@ -1,0 +1,21 @@
+{
+	"extends": "../../tsconfig.json",
+	"compilerOptions": {
+		"target": "ES2022",
+		"lib": [
+			"ESNext",
+			"DOM"
+		],
+		"strict": true,
+		"paths": {},
+		"strictFunctionTypes": true
+	},
+	"include": [
+		"src",
+		"scripts",
+		"__tests__",
+		"exhibits",
+		"*.config.ts",
+		"tonnage-recipes"
+	]
+}

@@ -20,6 +20,7 @@ programmatic project-creation API.
 
 | Template                        | What you get                                                                                    |
 | ------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `spa-astro-ssr`                 | An Astro app with SPA, SQLite-backed atom defaults, and fresh browser values on reset.          |
 | `preact-realtime-vector-editor` | A Preact vector editor with Mosaic Domain batching, presence, recovery, and actor-safe history. |
 | `preact-svg-editor`             | A Preact + Vite SVG editor that leans on atoms, atom families, selectors, and transactions.     |
 | `react-node-backend`            | A React app paired with Node services for backend-shaped examples.                              |
@@ -43,12 +44,12 @@ npm create atom.io@latest my-app -- --templateName=preact-svg-editor --packageMa
 
 ```
 
-| Option             | Aliases                               | Values                                                                                                                             |
-| ------------------ | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `--packageManager` | `--package-manager`, `-m`             | `bun`, `npm`, `pnpm`, `yarn`                                                                                                       |
-| `--templateName`   | `--template`, `--template-name`, `-t` | `preact-realtime-vector-editor`, `preact-svg-editor`, `react-node-backend`, `react-realtime-text-editor`, `solid-lossless-numbers` |
-| `--skipHints`      | `--skip-hints`, `-k`                  | `true`, `false`                                                                                                                    |
-| `--useMise`        | `--use-mise`                          | `true`, `false`                                                                                                                    |
+| Option             | Aliases                               | Values                                                                                                                                              |
+| ------------------ | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--packageManager` | `--package-manager`, `-m`             | `bun`, `npm`, `pnpm`, `yarn`                                                                                                                        |
+| `--templateName`   | `--template`, `--template-name`, `-t` | `spa-astro-ssr`, `preact-realtime-vector-editor`, `preact-svg-editor`, `react-node-backend`, `react-realtime-text-editor`, `solid-lossless-numbers` |
+| `--skipHints`      | `--skip-hints`, `-k`                  | `true`, `false`                                                                                                                                     |
+| `--useMise`        | `--use-mise`                          | `true`, `false`                                                                                                                                     |
 
 Unknown or malformed options produce warnings on stderr before the initializer
 starts. They remain ignored; invalid values for recognized options fail validation.

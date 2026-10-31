@@ -9,7 +9,9 @@ const config: BreakageConfig = defineConfig({
 	},
 	npmMatrix: {
 		configs: [`packages/*/breakage.config.ts`],
-		prepare: `pnpm exec turbo run pack:breakage`,
+		// Only package builds belong in the archive preparation graph. The site
+		// build regenerates core docs and can remove files while they are packed.
+		prepare: `pnpm exec turbo run pack:breakage --filter=./packages/*`,
 		label: ({ packageName, description, representative, peers }) => {
 			const label = description ?? `${packageName}: ${representative}`
 			const sdk = peers[`atom.io`]

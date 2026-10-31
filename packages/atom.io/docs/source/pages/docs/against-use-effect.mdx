@@ -41,11 +41,11 @@ A product search needs the matching products whenever its collection or query ch
 
 <EffectCluster verdict="harmful">
 
-<Exhibit src="react/effects/01-derived-before-manually-synchronize-disjointed-states.tsx" soft />
+  <Exhibit src="react/effects/01-derived-before-manually-synchronize-disjointed-states.tsx" soft />
 
-<span data-effect-verdict="harmful">Harmful</span> Manually synchronize disjointed states
+  <span data-effect-verdict="harmful">Harmful</span> Manually synchronize disjointed states
 
-The effect stores a value that can be calculated from existing inputs. It also renders once with stale matches before correcting them. Ordinary React can calculate the matches during render, with memoization if warranted.
+  The effect stores a value that can be calculated from existing inputs. It also renders once with stale matches before correcting them. Ordinary React can calculate the matches during render, with memoization if warranted.
 
 </EffectCluster>
 

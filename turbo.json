@@ -136,7 +136,7 @@
 			]
 		},
 		"lint:oxlint": {
-			"dependsOn": ["^build"],
+			"dependsOn": ["build", "^build"],
 			"inputs": [
 				"$TURBO_DEFAULT$",
 				"$TURBO_ROOT$/scripts/**",
@@ -145,7 +145,7 @@
 			]
 		},
 		"lint:types": {
-			"dependsOn": ["^build"],
+			"dependsOn": ["build", "^build"],
 			"inputs": [
 				"$TURBO_DEFAULT$",
 				"$TURBO_ROOT$/scripts/**"
@@ -157,6 +157,22 @@
 		"test:packaging": {
 			"dependsOn": ["build", "^build"],
 			"cache": false
+		},
+		"atom.io#build": {
+			"dependsOn": [
+				"^build"
+			],
+			"outputs": [
+				"dist/**",
+				"docs/agent/**",
+				"agent-docs/**"
+			],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				"$TURBO_ROOT$/scripts/**",
+				"$TURBO_ROOT$/packages/spa/exhibits/**",
+				"$TURBO_ROOT$/packages/spa-devtools/exhibits/**"
+			]
 		}
 	}
 }

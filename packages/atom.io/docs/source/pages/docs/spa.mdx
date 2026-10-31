@@ -1,0 +1,215 @@
+import Exhibit from "c/Exhibit.astro";
+import { SpaLogo } from "c/SpaLogo";
+
+<SpaLogo variant="background" client:load />
+
+# <low-emphasis>@atom.io</low-emphasis><wbr />/spa
+
+SPA is a JSX framework built around atom.io. Components run once per mounted instance; atom.io owns state, selectors, transactions, and timelines. SPA connects that state to DOM updates and manages the lifetime of the view.
+
+Its reactivity model is inspired by Solid: component setup stays stable, while expressions in JSX update when the state they read changes. It includes a Vite compiler, server rendering, hydration, and an Astro integration. This is an experimental framework with its own lifecycle API.
+
+Start with [Vite setup](#vite-setup) or [Astro setup](#astro-setup). For an API lookup, use the [package contents](#package-contents), [rendering API](#rendering), or [component API](#component-api).
+
+## install
+
+Install SPA alongside its state-engine peer, atom.io:
+
+<Exhibit src="spa/exhibits/install.sh" />
+
+SPA's npm package name is `@atom.io/spa`. Your application supplies atom.io; all of its views can share the same store.
+
+## package contents
+
+<table-wrapper>
+
+| Import | Contents |
+| ------ | -------- |
+| @atom.io/spa | [render](#render), [hydrate](#hydrate), [Fragment](#fragment), and the [component helpers](#component-api). |
+| @atom.io/spa/server | [renderToString](#rendertostring) for server-rendered HTML. |
+| @atom.io/spa/vite | The required [JSX compiler plugin](#vite-setup). |
+| @atom.io/spa/astro | The [Astro integration](#astro-setup), including its compiler and island renderer. |
+| @atom.io/spa/jsx-runtime and @atom.io/spa/jsx-dev-runtime | JSX entrypoints selected by the compiler; application components use JSX syntax. |
+
+</table-wrapper>
+
+Rendering types include Accessor, Child, Component, VNode, RootOptions, and SpaRoot. TimelineValue and LoadableValue describe the results of useTimeline and useLoadable.
+
+## frameworks
+
+Choose the integration for your application. Both use SPA’s JSX compiler and the same atom.io-backed runtime.
+
+### Vite setup
+
+Add the SPA plugin to your Vite configuration. The plugin is required: a standard JSX transform alone does not preserve reactive expressions.
+
+<Exhibit src="spa/exhibits/vite.config.ts" />
+
+Keep JSX intact for the plugin and use SPA's JSX types:
+
+<Exhibit src="spa/exhibits/tsconfig.json" />
+
+### Astro setup
+
+Register SPA's Astro integration:
+
+<Exhibit src="spa/exhibits/astro.config.ts" />
+
+The integration compiles `.spa.tsx` and `.spa.jsx` files by default, so other JSX renderers can coexist. Its include option can select a different filename pattern.
+
+This counter initializes a separate store for each island:
+
+<Exhibit src="spa/exhibits/Counter.spa.tsx" />
+
+Astro calls createStore with the same serialized props on the server and in the browser. Keep that factory deterministic so the initial markup and state match. Without a factory, islands share the normal implicit atom.io store in the browser and a separate store per SSR request. Module-scoped tokens address the same browser values from SPA hooks and ordinary getState/setState calls. Server operations must use the selected request store through SPA hooks or store-aware atom.io functions; free getState/setState still target the process-global store. Set isolate to true on a component when it needs a private store. SPA does not serialize an entire store implicitly.
+
+Untouched initial islands hydrate matching server DOM. After application state changes, delayed islands render fresh against the live store. Newly introduced islands after ClientRouter navigation also render fresh, preserving edits instead of applying an incoming server snapshot. Persisted roots retain their DOM and subscriptions. Normal Astro client directives work without per-island navigation configuration.
+
+An optional prepareStore callback can asynchronously initialize the selected store before rendering. Its context owns island cleanup; context.application supplies shared resources, cancellation, and canResume. Shared browser resources survive island removal and navigation, while request resources end after streaming. The spa-astro-ssr template demonstrates this with module-scoped atom defaults, one shared JSON sidecar, and SQLite/tRPC data.
+
+Use Astro's client directives to choose when an island hydrates. Components that put browser work in onMount can render their host markup on the server and hydrate with client:load. Default and named slots are supported, and astro:unmount releases the island's resources.
+
+<Exhibit src="spa/exhibits/counter-page.astro" />
+
+Outside Astro, use [renderToString](#rendertostring) and [hydrate](#hydrate) directly. Astro manages these renderer entrypoints for its islands.
+
+## a reactive view
+
+Capture accessors and writers during component setup. Call an accessor inside JSX to make that DOM expression reactive:
+
+<Exhibit src="spa/exhibits/point.tsx" />
+
+The point is one atom containing an object. Each coordinate expression reads the same point accessor; an atom update reevaluates both expressions, and unchanged primitive results skip DOM writes. There is no separate subscription to each object field. Reusable or multi-atom derivations belong in atom.io selectors.
+
+The component body runs once. A read during setup captures a snapshot; a read inside JSX participates in dependency tracking. Event handlers read the current value without subscribing. Helper functions called from JSX can read accessors too: their reads belong to the current DOM computation.
+
+Props remain live through getters. Destructuring them during setup captures their current values. Hook token arguments are fixed for a mounted instance; use a new keyed component instance when its token must change.
+
+## rendering
+
+### render
+
+Mount the view into your application's host element:
+
+<Exhibit src="spa/exhibits/main.tsx" />
+
+The root's dispose method removes its DOM and releases its subscriptions and cleanup callbacks. Atom.io store state outlives the view. Updates coalesce in a microtask after synchronous atom.io work; flush applies pending DOM work immediately when needed.
+
+### hydrate
+
+Use hydrate to attach a SPA view to existing server-rendered markup. It accepts the same setup callback, host, and root options as render, and returns the same dispose and flush methods. The initial state, component structure, and generated IDs must agree between server and browser; mismatches are reported rather than silently remounted.
+
+### renderToString
+
+Import renderToString from @atom.io/spa/server to produce HTML without retaining subscriptions. Supply a request-specific store and use matching state and ID prefixes when hydrating in the browser. Server rendering is synchronous and does not wait for promises or run onMount callbacks.
+
+### Fragment
+
+Fragment groups children without adding a DOM element. The JSX fragment syntax uses this export automatically. A Fragment does not introduce a separate store or component lifetime.
+
+## component API
+
+<table-wrapper>
+
+| API | Purpose |
+| -------------- | ---------------------------------------------------------------------------------------------------- |
+| [useLoadable](#useloadable) | Read loading state, retain the last observed value during refresh, and optionally supply a fallback. |
+| [useValue](#usevalue) | Capture a readable token and return its tracked accessor. |
+| [useSetter](#usesetter) | Capture a writable token and return a store-bound writer. |
+| [useTimeline](#usetimeline) | Read timeline metadata and access undo, redo, clear, and transaction-group controls. |
+| [useTransaction](#usetransaction) | Bind an atom.io transaction while preserving its arguments and result. |
+| [useRef](#useref) | Publish an attached element into a nullable atom and release the reference on unmount. |
+| [useId](#useid) | Allocate a stable ID for the component instance, shared by SSR and hydration. |
+| [onMount](#onmount) | Run once after DOM attachment and ref publication; does not run during SSR. |
+| [onCleanup](#oncleanup) | Release owned resources when the component or root is disposed. |
+| [useStore](#usestore) | Return the current root's atom.io store without creating a store or subscribing. |
+
+</table-wrapper>
+
+Call setup helpers synchronously during component setup or owned mount callbacks, then capture their results for event handlers. DOM computations should only read state. Use event handlers and atom.io transactions for writes.
+
+### useValue
+
+Capture a tracked accessor for an atom or selector. Calling it inside compiled JSX subscribes that DOM computation; calling it during setup reads a snapshot. Calls from event handlers read the current value without subscribing. The [point example](#a-reactive-view) reads two coordinates from one atom.
+
+### useSetter
+
+Capture a writer bound to the component's store. Call it from event handlers to replace a value or update it from its previous value. The writer stays stable for the lifetime of the component; it does not subscribe to state.
+
+### useLoadable
+
+Read an asynchronous atom or selector through a tracked accessor that exposes loading state and retains the last observed value during refreshes. Supply a fallback to handle the initial loading state and errors declared by the token. See [async state](#async-state) for the complete example and result shapes.
+
+### useTimeline
+
+Read timeline metadata and access undo, redo, clear, and transaction-group controls. The accessor tracks timeline reads in JSX. The [families example](#families) pairs each keyed point with its own history.
+
+### useTransaction
+
+Bind an atom.io transaction to the component's store while preserving its arguments and return value. Capture the callback during setup and invoke it from event handlers. This helper accepts a transaction token, not a transaction family.
+
+### useRef
+
+Create a ref callback for a nullable element atom. Attaching the ref publishes the element into that atom; cleanup clears it only if the reference still belongs to this attachment. It also accepts a family token and key. See the [point example](#a-reactive-view) and [family example](#families).
+
+### useId
+
+Allocate a stable ID for this component instance. Use it to connect labels, inputs, and descriptions. Server rendering and hydration must use the same root ID prefix and component structure so those IDs agree.
+
+### onMount
+
+Register work to run once after DOM attachment and ref publication. This is the place for browser APIs and other setup that requires attached elements. It does not run during server rendering; register teardown with onCleanup.
+
+### onCleanup
+
+Register teardown for the current owner. SPA runs it when that owner is disposed, including when a keyed component is removed or its root is disposed. Use it to release event listeners, observers, timers, and other resources created during setup or mounting.
+
+### useStore
+
+Return the current root's atom.io RootStore directly. This is the same object supplied to render or hydrate, the selected Astro island store, or the implicit atom.io store when no store was supplied. Server rendering exposes the store selected for that render. No new store, Silo, or subscription is created.
+
+<Exhibit src="spa/exhibits/store.tsx" />
+
+Call useStore during component setup or an owned onMount callback, then capture the result for store-aware atom.io operations or integrations. Direct reads such as getFromStore do not subscribe the surrounding JSX computation; useValue and useLoadable provide tracked reads.
+
+### keyed views and DOM props
+
+Arrays support keyed components and elements. Stable, unique keys retain component instances and DOM ranges when items move; removing an item disposes its resources. A key identifies a view instance, not a new state primitive.
+
+SPA uses native DOM events, including onInput for input changes and onChange for browser change semantics. Styles are CSS strings. Ordinary callback refs are supported alongside useRef, which stores its attached element in atom.io.
+
+Standard HTML and SVG tags have element-specific attributes, callback refs, and event currentTarget types. Ref callbacks receive null on cleanup. Hyphenated custom tags use generic HTML attributes and HTMLElement types. Event target remains EventTarget because events can bubble from descendants. SVG presentation attributes use literal markup spellings, and tag names shared with HTML use HTML types.
+
+## families
+
+useValue, useSetter, useRef, and useTimeline also accept a family token and its key. useLoadable accepts a family, key, and optional fallback. All five resolve members in the component's store and preserve the declared key type.
+
+<Exhibit src="spa/exhibits/families.tsx" />
+
+Keys are captured during component setup. To select another member, replace the instance in a reactive child collection using a new application key. The previous instance releases its subscriptions and refs. useTransaction takes a transaction token; atom.io has no transaction-family token.
+
+## async state
+
+<Exhibit src="spa/exhibits/loadable.tsx" />
+
+Call useLoadable during setup, then call its accessor inside JSX. Without a fallback, it returns LOADING until it observes a settled value; afterward it returns loading and value, retaining the last observed value during refreshes. With a fallback, it always returns an object and exposes errors declared in the token's catch option through a separate error property. The fallback and error remain visible during retries. Without a fallback, handled errors appear in value. Explicit null and undefined fallbacks are supported when permitted by the token's type.
+
+Readable families take a fixed key as the second argument and an optional fallback as the third. Atom.io owns promise settlement; SPA does not fetch, retry, cancel, or suspend rendering. Server rendering returns the current view immediately without awaiting promises.
+
+## debugger
+
+The optional debugger uses the same atom.io introspection engine as the React devtools:
+
+<Exhibit src="spa-devtools/exhibits/install.sh" />
+
+Import its stylesheet once and mount it inside a SPA component:
+
+<Exhibit src="spa-devtools/exhibits/setup.spa.tsx" />
+
+The store prop selects the inspected store; without it, the debugger uses atom.io's implicit store. Ctrl+Shift+A shows or hides the panel. It supports JSON editing, atom and selector families, transaction logs, and timeline controls. The debugger and its stylesheet add to your application's size separately from SPA.
+
+## boundaries
+
+SPA does not provide React compatibility, an independent signals graph, or React-style state and effect hooks. Async components, promise children, suspense, portals, style objects, and error boundaries are outside the current feature set. Model asynchronous work in atom.io and render its state through synchronous JSX.
+
+Development uses full page reloads rather than preserving component state across edits. The runtime targets modern browsers with ES2022 and DOM Range support.

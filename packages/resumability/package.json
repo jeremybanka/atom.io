@@ -1,6 +1,6 @@
 {
 	"name": "resumability",
-	"version": "0.0.0",
+	"version": "0.0.1",
 	"description": "Server-produced values with one-time browser resumption for Astro.",
 	"homepage": "https://github.com/jeremybanka/atom.io/tree/main/packages/resumability#readme",
 	"repository": {

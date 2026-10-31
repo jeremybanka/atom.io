@@ -1,5 +1,12 @@
 # atom.io
 
+## 0.54.3
+
+### Patch Changes
+
+- 138c640: Allow integrations to evaluate atom defaults in their owning store's synchronous initialization scope through Store.runDefault. Apply the scope to ordinary defaults and lazy family defaults, and preserve it through transaction resets. This lets module-scoped atom definitions consume request or browser resumption data without redefining the state graph for each island. Unconfigured stores retain their existing behavior.
+- 138c640: Add the shipped SPA guide with executable examples for Vite and Astro setup, tracked JSX accessors, object-valued state, family helpers, loadable values, lifecycle ownership, store access, and debugger installation. Explain shared browser state, request-scoped SSR, asynchronous store preparation, and fresh island mounts after edits or navigation. Link the SPA Astro SSR starter, align the architecture notes with the implementation, and normalize the derived-state example in the effects guide. Refresh the generated bundle-size tables for the updated core.
+
 ## 0.54.2
 
 ### Patch Changes

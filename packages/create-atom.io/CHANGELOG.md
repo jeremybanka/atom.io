@@ -1,5 +1,18 @@
 # create-atom.io
 
+## 0.1.63
+
+### Patch Changes
+
+- 138c640: Add the spa-astro-ssr template option, backed by @atom.io/template-spa-astro-ssr. Scaffold an Astro app with SPA islands, resumable atom defaults, cached server-rendered pages, and typed tRPC refreshes backed by SQLite.
+- Updated dependencies [138c640]
+  - @atom.io/template-spa-astro-ssr@0.0.1
+  - @atom.io/template-preact-realtime-vector-editor@0.1.3
+  - @atom.io/template-preact-svg-editor@0.1.4
+  - @atom.io/template-react-node-backend@0.0.101
+  - @atom.io/template-react-realtime-text-editor@0.0.15
+  - @atom.io/template-solid-lossless-numbers@0.0.53
+
 ## 0.1.62
 
 ### Patch Changes

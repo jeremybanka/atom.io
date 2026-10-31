@@ -1,6 +1,6 @@
 {
 	"name": "@atom.io/spa-devtools",
-	"version": "0.0.0",
+	"version": "0.0.1",
 	"description": "Atom.io's debugger, rendered with spa.",
 	"homepage": "https://github.com/jeremybanka/atom.io/tree/main/packages/spa-devtools#readme",
 	"repository": {

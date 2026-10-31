@@ -157,7 +157,8 @@ export function compile(
 						while (fn?.findParent((parent: any) => parent.isFunction()))
 							fn = fn.findParent((parent: any) => parent.isFunction())
 						if (fn) {
-							if (fn.node.id) components.add(fn.node.id.name)
+							if (fn.isFunctionDeclaration() && fn.node.id)
+								components.add(fn.node.id.name)
 							else if (
 								fn.parentPath.isVariableDeclarator() &&
 								t.isIdentifier(fn.parentPath.node.id)

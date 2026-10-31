@@ -5,10 +5,53 @@ export async function check(page, baseURL = `http://127.0.0.1:4381`) {
 	page.on(`console`, (message) => {
 		if (message.type() === `error`) errors.push(message.text())
 	})
-	await page.goto(baseURL)
+	// Inspect actual browser-parsed SSR before any island code can run.
+	const gate = Promise.withResolvers()
+	const holdScripts = async (route) => {
+		if (route.request().resourceType() === `script`) await gate.promise
+		await route.continue()
+	}
+	await page.route(`**/*`, holdScripts)
+	await page.goto(baseURL, { waitUntil: `commit` })
+	await page.waitForSelector(`[data-defaults]`)
+	const checkForm = () => {
+		const form = document.querySelector(`[data-defaults]`)
+		const fields = [...form.elements]
+		const attributes = document.querySelector(`[data-enumerated]`)
+		if (
+			fields[0].value !== 'hello <&"' ||
+			!fields[1].checked ||
+			fields[2].value !== `\nhello <&`
+		)
+			throw new Error(`form defaults differ from SSR`)
+		if (
+			!attributes.draggable ||
+			attributes.spellcheck ||
+			attributes.getAttribute(`draggable`) !== `true` ||
+			attributes.getAttribute(`spellcheck`) !== `false`
+		)
+			throw new Error(`enumerated boolean attributes differ from SSR`)
+		if (
+			window.__formFields &&
+			fields.some((field, index) => field !== window.__formFields[index])
+		)
+			throw new Error(`hydration replaced form controls`)
+		window.__formFields = fields
+	}
+	await page.evaluate(checkForm)
+	gate.resolve()
 	await page.waitForFunction(
 		() => document.querySelectorAll(`astro-island:not([ssr])`).length === 4,
 	)
+	await page.evaluate(checkForm)
+	await page.evaluate(() => {
+		const form = document.querySelector(`[data-defaults]`)
+		form.elements[0].value = `edited`
+		form.elements[1].checked = false
+		form.elements[2].value = `edited`
+		form.reset()
+	})
+	await page.evaluate(checkForm)
 	const buttons = page
 		.locator(`astro-island`)
 		.filter({ hasNot: page.locator(`#probe`) })

@@ -25,6 +25,27 @@ import type { Loadable } from "atom.io"
 import { scopeFamily, Silo } from "atom.io"
 import { Window } from "happy-dom"
 
+await test(`compiled named function expressions use their external component bindings`, async () => {
+	for (const source of [
+		`export const App = function View() { return <p>named expression</p> }`,
+		`export default (function View() { return <p>named expression</p> })`,
+		`export default function View() { return <p>named expression</p> }`,
+	]) {
+		const plugin = spa()
+		const output = (plugin.transform as Function)(source, `/src/App.spa.tsx`)
+		const code = output.code.replaceAll(
+			`@atom.io/spa/jsx-runtime`,
+			import.meta.resolve(`@atom.io/spa/jsx-runtime`),
+		)
+		const module = await import(
+			`data:text/javascript;base64,${Buffer.from(code).toString(`base64`)}`
+		)
+		const component = module.App ?? module.default
+		assert.equal(await astroServer.check.call({}, component, {}, {}), true)
+		assert.match(renderToString(component), /named expression/)
+	}
+})
+
 await test(`Astro prepares async stores with host context and disposes their resources`, async () => {
 	const contexts: AstroStoreContext[] = []
 	let cleanups = 0

@@ -119,6 +119,8 @@ describe(`integration contracts`, () => {
 			`export default () => <p>Hello</p>`,
 			`export default function () { return <p>Hello</p> }`,
 			`export function App() { return <p>Hello</p> }`,
+			`export const App = function View() { return <p>Hello</p> }`,
+			`export default (function View() { return <p>Hello</p> })`,
 			`export default function List() { return [1,2].map(n => <p>{n}</p>) }`,
 		]) {
 			const output = compile(source, `App.spa.tsx`)

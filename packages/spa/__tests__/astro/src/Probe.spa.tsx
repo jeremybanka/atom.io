@@ -21,6 +21,12 @@ export default function Probe(): VNode {
 	return (
 		<section id="probe">
 			<textarea data-lines>{`\nfirst line`}</textarea>
+			<div data-enumerated draggable spellcheck={false} />
+			<form data-defaults>
+				<input defaultValue={'hello <&"'} />
+				<input type="checkbox" defaultChecked />
+				<textarea defaultValue={"\nhello <&"} />
+			</form>
 			<svg>
 				<foreignObject>
 					<p data-namespace="html">HTML in SVG</p>

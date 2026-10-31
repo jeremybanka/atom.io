@@ -20,7 +20,7 @@ const escape = (value: unknown): string =>
 const voidTags =
 	/^(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)$/
 const booleans = new Set(
-	`allowfullscreen async autofocus autoplay checked controls default defer disabled formnovalidate hidden inert ismap itemscope loop multiple muted nomodule novalidate open playsinline readonly required reversed selected`.split(
+	`allowfullscreen async autofocus autoplay checked controls credentialless default defer disabled disablepictureinpicture disableremoteplayback formnovalidate inert ismap itemscope loop multiple muted nomodule novalidate open playsinline readonly required reversed selected shadowrootclonable shadowrootdelegatesfocus shadowrootserializable`.split(
 		` `,
 	),
 )
@@ -90,26 +90,31 @@ function stringify(
 		)
 			throw new Error(`spa: owned content`)
 		let attribute = props[key]
+		if (ns === `html`) {
+			if (key === `defaultValue` && (type === `input` || type === `textarea`)) {
+				if (props[`value`] != null) continue
+				key = `value`
+			} else if (key === `defaultChecked` && type === `input`) {
+				if (props[`checked`] != null) continue
+				key = `checked`
+			}
+		}
 		if (key === `className`) key = `class`
 		if (key === `htmlFor`) key = `for`
 		if (!/^[^\s"'<>/=]+$/.test(key)) throw new Error(`spa: invalid attribute`)
 		if (key === `value` && (type === `select` || type === `textarea`)) {
-			textValue = attribute
+			textValue = attribute ?? textValue
 			continue
 		}
 		if (key === `style` && attribute != null && typeof attribute !== `string`)
 			throw new TypeError(`spa: CSS string required`)
-		const boolean = ns === `html` && booleans.has(key.toLowerCase())
-		if (
-			attribute == null ||
-			(boolean && !attribute) ||
-			(attribute === false && !/^(aria-|data-)/.test(key))
-		)
-			continue
-		attrs +=
-			boolean || (attribute === true && !/^(aria-|data-)/.test(key))
-				? ` ${key}=""`
-				: ` ${key}="${escape(attribute)}"`
+		const boolean =
+			ns === `html` &&
+			(booleans.has(key.toLowerCase()) ||
+				(/^(capture|download|hidden)$/.test(key) &&
+					typeof attribute === `boolean`))
+		if (attribute == null || (boolean && !attribute)) continue
+		attrs += boolean ? ` ${key}=""` : ` ${key}="${escape(attribute)}"`
 	}
 	if (
 		type === `option` &&

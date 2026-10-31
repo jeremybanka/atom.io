@@ -287,7 +287,7 @@ it(`validates text, duplicate keys, and owned content on the server`, () => {
 		jsx(`script`, { children: `const n = 1` }),
 	])
 	expect(output).toContain(`class="c" for="x"`)
-	expect(output).toContain(`data-off="false" custom=""`)
+	expect(output).toContain(`data-off="false" custom="true"`)
 	expect(output).toContain(`<astro-slot></astro-slot>`)
 	expect(output).not.toContain(`hidden=`)
 })

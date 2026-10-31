@@ -3,7 +3,7 @@
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
-	"dependencies": { "astro": "7.4.2" },
+	"dependencies": { "astro": "7.4.4" },
 	"devDependencies": { "@types/node": "26.6.6", "typescript": "7.0.2" },
 	"breakage": { "candidates": [] }
 }

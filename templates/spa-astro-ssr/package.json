@@ -46,7 +46,7 @@
 	},
 	"devDependencies": {
 		"@reylosql/sqlite": "0.6.0",
-		"@types/node": "26.6.5",
+		"@types/node": "26.6.6",
 		"galley.md": "0.3.1",
 		"oxlint": "1.90.0",
 		"oxlint-tsgolint": "7.0.2005",

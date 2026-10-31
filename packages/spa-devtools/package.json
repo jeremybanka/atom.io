@@ -50,7 +50,7 @@
 	"devDependencies": {
 		"@atom.io/spa": "workspace:*",
 		"@breakage/changesets": "0.1.0",
-		"@types/node": "26.6.5",
+		"@types/node": "26.6.6",
 		"@vitest/coverage-v8": "5.0.5",
 		"atom.io": "workspace:*",
 		"breakage": "0.10.1",

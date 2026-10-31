@@ -92,7 +92,7 @@
 		"tonnage:check": "pnpm readme:check"
 	},
 	"dependencies": {
-		"@babel/core": "7.29.7"
+		"@babel/core": "8.0.10"
 	},
 	"devDependencies": {
 		"@breakage/changesets": "0.1.0",

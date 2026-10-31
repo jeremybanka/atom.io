@@ -23,7 +23,7 @@
 		"@atom.io/solid": "workspace:*",
 		"atom.io": "workspace:*",
 		"rationality": "0.1.1",
-		"solid-js": "1.9.17"
+		"solid-js": "1.9.18"
 	},
 	"devDependencies": {
 		"@atom.io/eslint-plugin": "workspace:*",

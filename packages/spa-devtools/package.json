@@ -2,7 +2,14 @@
 	"name": "@atom.io/spa-devtools",
 	"version": "0.0.0",
 	"description": "Atom.io's debugger, rendered with spa.",
+	"homepage": "https://github.com/jeremybanka/atom.io/tree/main/packages/spa-devtools#readme",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/jeremybanka/atom.io.git",
+		"directory": "packages/spa-devtools"
+	},
 	"license": "MPL-2.0",
+	"author": "Jeremy Banka",
 	"sideEffects": [
 		"**/*.css"
 	],
@@ -15,23 +22,29 @@
 		"./css": {
 			"types": "./dist/css.d.ts",
 			"default": "./dist/devtools.css"
-		}
+		},
+		"./package.json": "./package.json"
 	},
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
 	"files": [
 		"dist",
 		"src"
 	],
 	"scripts": {
 		"build": "tsdown",
+		"lint:eslint": "eslint",
+		"lint:oxlint": "oxlint",
 		"lint:types": "tsc",
-		"lint:eslint": "eslint src __tests__ tsdown.config.ts",
-		"lint:oxlint": "oxlint src __tests__ tsdown.config.ts",
-		"test:once": "vitest run --config vitest.config.ts",
-		"readme:write": "galley write README.mdx",
-		"readme:check": "galley check README.mdx",
-		"cov": "vitest run --config vitest.config.ts --coverage",
 		"pack:breakage": "pnpm --reporter=silent pack --out .breakage/package.tgz",
 		"test:breakage:peers": "breakage npm check",
+		"test": "vitest",
+		"test:once": "vitest run --config vitest.config.ts && pnpm test:consumer",
+		"test:consumer": "node __tests__/fixtures/consumer/check.ts",
+		"cov": "vitest run --config vitest.config.ts --coverage",
+		"cov:recoverage": "recoverage",
+		"readme:write": "galley write README.mdx",
+		"readme:check": "galley check README.mdx",
 		"tonnage": "pnpm readme:write",
 		"tonnage:check": "pnpm readme:check"
 	},
@@ -42,7 +55,9 @@
 		"@vitest/coverage-v8": "5.0.5",
 		"atom.io": "workspace:*",
 		"breakage": "0.10.1",
+		"eslint": "10.13.0",
 		"happy-dom": "21.0.4",
+		"recoverage": "0.1.20",
 		"tsdown": "0.23.3",
 		"typescript": "7.0.2",
 		"vitest": "5.0.5"

@@ -174,7 +174,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 | Recipe                                 | Entry                         | Minified JS |  Gzip JS |
 | -------------------------------------- | ----------------------------- | ----------: | -------: |
 | Resumable browser defaults             | `tonnage-recipes/defaults.ts` |     1,500 B |    766 B |
-| Atom family defaults including atom.io | `tonnage-recipes/atoms.ts`    |    35,501 B | 10,586 B |
+| Atom family defaults including atom.io | `tonnage-recipes/atoms.ts`    |    35,501 B | 10,554 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

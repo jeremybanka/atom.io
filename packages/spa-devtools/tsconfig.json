@@ -12,7 +12,6 @@
 	"include": [
 		"src",
 		"__tests__",
-		"scripts",
 		"*.config.ts",
 		"exhibits",
 		"tonnage-recipes"

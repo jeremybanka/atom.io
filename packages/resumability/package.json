@@ -2,7 +2,14 @@
 	"name": "resumability",
 	"version": "0.0.0",
 	"description": "Server-produced values with one-time browser resumption for Astro.",
+	"homepage": "https://github.com/jeremybanka/atom.io/tree/main/packages/resumability#readme",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/jeremybanka/atom.io.git",
+		"directory": "packages/resumability"
+	},
 	"license": "MPL-2.0",
+	"author": "Jeremy Banka",
 	"sideEffects": false,
 	"type": "module",
 	"exports": {
@@ -26,25 +33,32 @@
 		"./Resumption.astro": "./dist/Resumption.astro",
 		"./package.json": "./package.json"
 	},
+	"main": "./dist/index.js",
+	"browser": "./dist/client.js",
+	"types": "./dist/index.d.ts",
 	"files": [
 		"dist",
 		"src"
 	],
 	"scripts": {
 		"build": "tsdown && node scripts/size.ts",
+		"lint:eslint": "eslint",
+		"lint:oxlint": "oxlint",
 		"lint:types": "tsc -p tsconfig.json",
-		"lint:eslint": "eslint src __tests__ scripts exhibits tsdown.config.ts",
-		"lint:oxlint": "oxlint src __tests__ scripts exhibits tsdown.config.ts",
-		"test:once": "vitest run",
-		"cov": "vitest run --coverage",
+		"size": "node scripts/size.ts",
+		"pack:breakage": "pnpm --reporter=silent pack --out .breakage/package.tgz",
+		"test:breakage:peers": "breakage npm check",
+		"test": "vitest",
+		"test:once": "vitest run && pnpm test:consumer",
+		"test:consumer": "node __tests__/fixtures/consumer/check.ts",
 		"test:browser": "astro build --root __tests__/astro && node scripts/browser-test.mjs && node scripts/browser-test.mjs --dev",
+		"test:browser:dev": "node scripts/browser-test.mjs --dev",
+		"cov": "vitest run --coverage",
+		"cov:recoverage": "recoverage",
 		"readme:write": "galley write README.mdx",
 		"readme:check": "galley check README.mdx",
 		"tonnage": "pnpm readme:write",
-		"tonnage:check": "pnpm readme:check",
-		"test:browser:dev": "node scripts/browser-test.mjs --dev",
-		"pack:breakage": "pnpm --reporter=silent pack --out .breakage/package.tgz",
-		"test:breakage:peers": "breakage npm check"
+		"tonnage:check": "pnpm readme:check"
 	},
 	"dependencies": {
 		"@babel/core": "7.29.7"
@@ -58,11 +72,12 @@
 		"atom.io": "workspace:*",
 		"breakage": "0.10.1",
 		"esbuild": "0.28.2",
+		"eslint": "10.13.0",
 		"happy-dom": "21.0.4",
 		"playwright": "1.64.1",
+		"recoverage": "0.1.20",
 		"tsdown": "0.23.3",
 		"typescript": "7.0.2",
-		"vite": "8.3.5",
 		"vitest": "5.0.5"
 	},
 	"peerDependencies": {

@@ -2,7 +2,14 @@
 	"name": "@atom.io/spa",
 	"version": "0.0.0",
 	"description": "An atom.io-driven JSX renderer.",
+	"homepage": "https://atom.io.fyi/docs/spa",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/jeremybanka/atom.io.git",
+		"directory": "packages/spa"
+	},
 	"license": "MPL-2.0",
+	"author": "Jeremy Banka",
 	"sideEffects": false,
 	"type": "module",
 	"exports": {
@@ -58,27 +65,32 @@
 			"import": "./dist/astro-application.js"
 		}
 	},
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
 	"files": [
 		"dist",
 		"src"
 	],
 	"scripts": {
 		"build": "tsdown && node scripts/size.ts",
-		"test:once": "vitest run --config vitest.config.ts",
+		"lint:eslint": "eslint",
+		"lint:oxlint": "oxlint",
 		"lint:types": "tsc -p tsconfig.json && tsc -p __tests__/fixtures/consumer/tsconfig.json",
-		"lint:eslint": "eslint src __tests__ scripts exhibits tsdown.config.ts",
-		"lint:oxlint": "oxlint src __tests__ scripts exhibits tsdown.config.ts",
 		"size": "node scripts/size.ts",
-		"readme:write": "galley write README.mdx",
-		"readme:check": "galley check README.mdx",
-		"test:browser": "astro build --root __tests__/astro && node scripts/browser-test.mjs && node scripts/dev-browser-test.mjs",
-		"test:production": "node scripts/production-test.ts",
-		"cov": "vitest run --config vitest.config.ts --coverage",
 		"pack:breakage": "pnpm --reporter=silent pack --out .breakage/package.tgz",
 		"test:breakage:peers": "breakage npm check",
+		"test": "vitest",
+		"test:once": "vitest run --config vitest.config.ts && pnpm test:consumer",
+		"test:consumer": "node __tests__/fixtures/consumer/check.ts",
+		"test:production": "node scripts/production-test.ts",
+		"test:browser": "astro build --root __tests__/astro && node scripts/browser-test.mjs && node scripts/dev-browser-test.mjs",
+		"test:browser:dev": "node scripts/dev-browser-test.mjs",
+		"cov": "vitest run --config vitest.config.ts --coverage",
+		"cov:recoverage": "recoverage",
+		"readme:write": "galley write README.mdx",
+		"readme:check": "galley check README.mdx",
 		"tonnage": "pnpm readme:write",
-		"tonnage:check": "pnpm readme:check",
-		"test:browser:dev": "node scripts/dev-browser-test.mjs"
+		"tonnage:check": "pnpm readme:check"
 	},
 	"dependencies": {
 		"@babel/core": "7.29.7"
@@ -92,9 +104,11 @@
 		"atom.io": "workspace:*",
 		"breakage": "0.10.1",
 		"esbuild": "0.28.2",
+		"eslint": "10.13.0",
 		"happy-dom": "21.0.4",
 		"playwright": "1.64.1",
 		"preact": "11.1.0",
+		"recoverage": "0.1.20",
 		"rolldown": "1.2.15",
 		"tsdown": "0.23.3",
 		"typescript": "7.0.2",

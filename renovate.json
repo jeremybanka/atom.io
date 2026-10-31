@@ -47,6 +47,11 @@
 	],
 	"packageRules": [
 		{
+			"description": "Respect closed TypeScript upgrade PRs, including immortal mixed-version updates.",
+			"matchPackageNames": ["typescript"],
+			"recreateWhen": "never"
+		},
+		{
 			"description": "Keep the ESLint 9 peer environment current within its supported major.",
 			"matchFileNames": [
 				"packages/eslint-plugin/peer-environments/eslint9/package.json"
@@ -71,12 +76,20 @@
 			"allowedVersions": "^8.0.0"
 		},
 		{
-			"description": "Keep ESLint peer environments on TypeScript 6.0 within declared support (<6.1).",
+			"description": "Keep the ESLint plugin and its peer environments on the supported TypeScript 6.0 compiler API (<6.1).",
 			"matchFileNames": [
+				"packages/eslint-plugin/package.json",
 				"packages/eslint-plugin/peer-environments/*/package.json"
 			],
 			"matchPackageNames": ["typescript"],
 			"allowedVersions": "~6.0.0"
+		},
+		{
+			"description": "Expanding TypeScript compiler API support requires explicit peer declarations, compatibility checks, and a changeset.",
+			"matchFileNames": ["packages/eslint-plugin/package.json"],
+			"matchPackageNames": ["typescript"],
+			"matchDepTypes": ["peerDependencies"],
+			"enabled": false
 		},
 		{
 			"description": "Keep React 18 runtimes and types current within their supported major.",

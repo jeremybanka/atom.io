@@ -1,6 +1,6 @@
 {
 	"name": "create-atom.io",
-	"version": "0.1.62",
+	"version": "0.1.63",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/jeremybanka/atom.io.git",

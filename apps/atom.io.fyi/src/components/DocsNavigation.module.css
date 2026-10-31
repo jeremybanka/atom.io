@@ -62,10 +62,6 @@ docs-navigation.class {
 								color: var(--fg-soft-3);
 							}
 						}
-						> span[aria-disabled="true"] {
-							padding: 0.2em 0.4em 0.25em;
-							color: var(--fg-soft-3);
-						}
 					}
 				}
 			}

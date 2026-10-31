@@ -68,11 +68,11 @@ describe(`server attribute and form semantics`, () => {
 	it(`renders effective form defaults before hydration and preserves them afterward`, () => {
 		const setup = () => (
 			<form>
-				<input defaultValue={'hello <&"'} />
+				<input defaultValue={`hello <&"`} />
 				<input defaultValue={0} />
 				<input type="checkbox" defaultChecked />
 				<input type="checkbox" defaultChecked={false} />
-				<textarea defaultValue={"hello <&"} />
+				<textarea defaultValue={`hello <&`} />
 			</form>
 		)
 		const host = document.createElement(`section`)
@@ -81,7 +81,7 @@ describe(`server attribute and form semantics`, () => {
 		const inputs = [...host.querySelectorAll(`input`)]
 		const textarea = host.querySelector(`textarea`)!
 		const check = () => {
-			expect(inputs[0].value).toBe('hello <&"')
+			expect(inputs[0].value).toBe(`hello <&"`)
 			expect(inputs[1].value).toBe(`0`)
 			expect(inputs[2].checked).toBe(true)
 			expect(inputs[3].checked).toBe(false)

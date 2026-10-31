@@ -23,9 +23,9 @@ export default function Probe(): VNode {
 			<textarea data-lines>{`\nfirst line`}</textarea>
 			<div data-enumerated draggable spellcheck={false} />
 			<form data-defaults>
-				<input defaultValue={'hello <&"'} />
+				<input defaultValue={`hello <&"`} />
 				<input type="checkbox" defaultChecked />
-				<textarea defaultValue={"\nhello <&"} />
+				<textarea defaultValue={`\nhello <&`} />
 			</form>
 			<svg>
 				<foreignObject>

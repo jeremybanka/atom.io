@@ -54,7 +54,7 @@
 		"@vitest/coverage-v8": "5.0.5",
 		"atom.io": "workspace:*",
 		"breakage": "0.10.1",
-		"eslint": "10.13.0",
+		"eslint": "10.14.0",
 		"happy-dom": "21.0.4",
 		"tsdown": "0.23.4",
 		"typescript": "7.0.2",

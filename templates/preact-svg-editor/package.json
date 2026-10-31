@@ -47,7 +47,7 @@
 		"@typescript/native": "npm:typescript@7.0.2",
 		"dprint": "0.64.3",
 		"dprint-plugin-malva": "0.16.0",
-		"eslint": "10.13.0",
+		"eslint": "10.14.0",
 		"eslint-plugin-import-x": "4.17.1",
 		"eslint-plugin-simple-import-sort": "14.0.0",
 		"oxlint": "1.90.0",

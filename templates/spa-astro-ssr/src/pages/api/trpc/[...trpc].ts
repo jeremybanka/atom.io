@@ -9,4 +9,5 @@ export const ALL: APIRoute = ({ request }) =>
 		req: request,
 		router: appRouter,
 		createContext: () => ({}),
+		responseMeta: () => ({ headers: { "Cache-Control": `no-store` } }),
 	})

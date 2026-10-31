@@ -32,13 +32,15 @@ This is an on-demand Node server application. The Astro Node adapter serves both
 
 ## Rendering and caching
 
-The starter currently uses on-demand SSR for every route, including the tRPC endpoint. It does not configure a route-cache provider, cache headers, or prerendered pages. Each draft-page render reads SQLite in a request-owned store, and each new browser application resumes the snapshot included in that response.
+The starter uses on-demand SSR with Astro’s built-in memoryCache provider. The public drafts page has a 60-second TTL and no stale-while-revalidate window. A cache miss reads SQLite in a request-owned store and caches the complete HTML response, including its resumption sidecar. Hits reuse that snapshot; the first request after expiry renders a new one. There are no prerendered pages. The tRPC endpoint is outside the cached route rule and returns Cache-Control: no-store, so resets always read the database.
 
-For public data, the recommended deployment model is cached SSR: cache the complete HTML response together with its resumption sidecar. The markup and initial values must come from the same render. Choose a freshness window and invalidation policy that match the data; do not cache a live atom.io store or reuse it across requests. Cache only responses whose data can be shared by everyone using the cache entry. Personalized snapshots need private caching or a correctly scoped cache key.
+The cache belongs to one server process: it is lost on restart and is not shared across replicas. This is a small, self-contained deployment default; choose an infrastructure-backed provider when multiple instances need shared caching or invalidation. Astro disables caching in development. Build and preview the template to exercise the production cache.
+
+This template’s example data is public. When adapting it, cache the complete HTML response together with its resumption sidecar. The markup and initial values must come from the same render. Choose a freshness window and invalidation policy that match the data; do not cache a live atom.io store or reuse it across requests. Cache only responses whose data can be shared by everyone using the cache entry. Personalized snapshots need private caching or a correctly scoped cache key.
 
 The initial browser load consumes that snapshot without immediately refetching it. Expiring or invalidating the server cache affects future page loads, not an already running browser store. Keep the explicit reset/tRPC path fresh so Refresh from database can fetch the current row. ClientRouter navigation continues to preserve live browser state rather than replacing edits with another server snapshot.
 
-SSG is also compatible with resumption: the sidecar is produced during the build and remains that snapshot until the next deployment. Use it for routes whose freshness can follow deployments, while retaining on-demand API routes for resets. Astro's [on-demand rendering](https://docs.astro.build/en/guides/on-demand-rendering/) and [route caching](https://docs.astro.build/en/guides/caching/) documentation describe the route-level controls and cache providers. Cache configuration is deliberately not enabled by this starter yet.
+SSG is also compatible with resumption: the sidecar is produced during the build and remains that snapshot until the next deployment. Use it for routes whose freshness can follow deployments, while retaining on-demand API routes for resets. Astro's [on-demand rendering](https://docs.astro.build/en/guides/on-demand-rendering/) and [route caching](https://docs.astro.build/en/guides/caching/) documentation describe the route-level controls and cache providers.
 
 ## Try it
 
@@ -51,13 +53,18 @@ Visit How it works and return. Astro's ClientRouter removes the old DOM and SPA 
 ```ts
 import node from "@astrojs/node"
 import spa from "@atom.io/spa/astro"
-import { defineConfig } from "astro/config"
+import { defineConfig, memoryCache } from "astro/config"
 import resumability from "resumability/astro"
 import reylo from "reylo/vite"
 
 export default defineConfig({
 	output: `server`,
 	adapter: node({ mode: `standalone` }),
+	cache: { provider: memoryCache() },
+	routeRules: {
+		// Cache the public HTML and its resumption sidecar as one snapshot.
+		[`/`]: { maxAge: 60 },
+	},
 	integrations: [resumability(), spa()],
 	vite: { plugins: [reylo()] },
 })
@@ -215,7 +222,7 @@ SPA owns the request lifetime through the end of streaming and the browser appli
 
 ## Validation
 
-The browser check runs against both the production Node server and the Astro dev server. It inspects real SSR content, verifies that initial hydration preserves textarea nodes and IDs while a delayed island replaces stale DOM, and asserts zero RPC requests during hydration. It changes SQLite after SSR and checks that repeated resets fetch the changed rows through tRPC. It also checks shared document state, client:load and client:visible scheduling, fresh mounts and preserved edits after navigation, and removal of server modules from browser scripts. Browser exceptions fail the check. Type tests reject invalid RPC input and verify the inferred response fields.
+The browser check runs against both the production Node server and the Astro dev server. It inspects real SSR content, verifies that initial hydration preserves textarea nodes and IDs while a delayed island replaces stale DOM, and asserts zero RPC requests during hydration. In production, it verifies byte-identical cached HTML and sidecars after SQLite changes, waits for the real 60-second TTL to expire, and checks that a new snapshot is rendered and cached. Development checks verify fresh SSR instead. Repeated resets fetch changed rows through tRPC with no-store headers, including after resuming an older cached snapshot; resets do not rewrite the page cache. It also checks shared document state, client:load and client:visible scheduling, fresh mounts and preserved edits after navigation, and removal of server modules from browser scripts. Browser exceptions fail the check. Type tests reject invalid RPC input and verify the inferred response fields.
 
 ## License
 

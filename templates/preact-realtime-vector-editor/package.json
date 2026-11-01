@@ -28,7 +28,7 @@
 		"@atom.io/realtime": "workspace:*",
 		"@atom.io/template-preact-svg-editor": "workspace:*",
 		"atom.io": "workspace:*",
-		"preact": "11.1.0",
+		"preact": "11.1.1",
 		"socket.io": "4.8.4",
 		"socket.io-client": "4.8.4"
 	},

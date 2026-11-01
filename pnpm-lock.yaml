@@ -275,7 +275,7 @@ importers:
         version: 2.7.0
       lasertag:
         specifier: 0.8.10
-        version: 0.8.10(@types/react@19.3.0)(arktype@2.2.8)(eslint@10.14.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.1.0)(solid-js@1.9.18)(supports-color@10.2.2)
+        version: 0.8.10(@types/react@19.3.0)(arktype@2.2.8)(eslint@10.14.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.1.1)(solid-js@1.9.18)(supports-color@10.2.2)
       oxlint:
         specifier: 1.90.0
         version: 1.90.0(oxlint-tsgolint@7.0.2005)
@@ -360,7 +360,7 @@ importers:
         version: 10.14.0(jiti@2.7.0)(supports-color@10.2.2)
       lasertag:
         specifier: 0.8.10
-        version: 0.8.10(@types/react@19.3.0)(arktype@2.2.8)(eslint@10.14.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.1.0)(solid-js@1.9.18)(supports-color@10.2.2)
+        version: 0.8.10(@types/react@19.3.0)(arktype@2.2.8)(eslint@10.14.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.1.1)(solid-js@1.9.18)(supports-color@10.2.2)
       playwright:
         specifier: 1.64.1
         version: 1.64.1
@@ -446,8 +446,8 @@ importers:
         specifier: 4.0.0
         version: 4.0.0
       preact:
-        specifier: 11.1.0
-        version: 11.1.0(preact-render-to-string@6.8.2)
+        specifier: 11.1.1
+        version: 11.1.1(preact-render-to-string@6.8.2)
       react:
         specifier: 19.3.1
         version: 19.3.1
@@ -915,8 +915,8 @@ importers:
         specifier: 1.64.1
         version: 1.64.1
       preact:
-        specifier: 11.1.0
-        version: 11.1.0(preact-render-to-string@6.8.2)
+        specifier: 11.1.1
+        version: 11.1.1(preact-render-to-string@6.8.2)
       rolldown:
         specifier: 1.2.16
         version: 1.2.16
@@ -984,8 +984,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/atom.io
       preact:
-        specifier: 11.1.0
-        version: 11.1.0(preact-render-to-string@6.8.2)
+        specifier: 11.1.1
+        version: 11.1.1(preact-render-to-string@6.8.2)
       socket.io:
         specifier: 4.8.4
         version: 4.8.4(supports-color@10.2.2)
@@ -1007,7 +1007,7 @@ importers:
         version: 0.48.0
       '@preact/preset-vite':
         specifier: 2.10.6
-        version: 2.10.6(@babel/core@7.29.7(supports-color@10.2.2))(preact@11.1.0)(supports-color@10.2.2)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+        version: 2.10.6(@babel/core@7.29.7(supports-color@10.2.2))(preact@11.1.1)(supports-color@10.2.2)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
       '@testing-library/dom':
         specifier: 10.4.2
         version: 10.4.2
@@ -1046,7 +1046,7 @@ importers:
         version: 21.0.4
       lasertag:
         specifier: 0.8.10
-        version: 0.8.10(@types/react@19.3.0)(arktype@2.2.9)(eslint@10.14.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.1.0)(solid-js@1.9.18)(supports-color@10.2.2)
+        version: 0.8.10(@types/react@19.3.0)(arktype@2.2.9)(eslint@10.14.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.1.1)(solid-js@1.9.18)(supports-color@10.2.2)
       oxlint:
         specifier: 1.90.0
         version: 1.90.0(oxlint-tsgolint@7.0.2005)
@@ -1081,14 +1081,14 @@ importers:
         specifier: workspace:*
         version: link:../../packages/atom.io
       preact:
-        specifier: 11.1.0
-        version: 11.1.0(preact-render-to-string@6.8.2)
+        specifier: 11.1.1
+        version: 11.1.1(preact-render-to-string@6.8.2)
       react:
         specifier: npm:@preact/compat@18.3.2
-        version: '@preact/compat@18.3.2(preact@11.1.0)'
+        version: '@preact/compat@18.3.2(preact@11.1.1)'
       react-dom:
         specifier: npm:@preact/compat@18.3.2
-        version: '@preact/compat@18.3.2(preact@11.1.0)'
+        version: '@preact/compat@18.3.2(preact@11.1.1)'
       zod:
         specifier: 4.6.7
         version: 4.6.7
@@ -1107,7 +1107,7 @@ importers:
         version: 0.48.0
       '@preact/preset-vite':
         specifier: 2.10.6
-        version: 2.10.6(@babel/core@7.29.7(supports-color@10.2.2))(preact@11.1.0)(supports-color@10.2.2)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+        version: 2.10.6(@babel/core@7.29.7(supports-color@10.2.2))(preact@11.1.1)(supports-color@10.2.2)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
       '@typescript-eslint/eslint-plugin':
         specifier: 8.72.1
         version: 8.72.1(@typescript-eslint/parser@8.72.1(eslint@10.14.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2))(eslint@10.14.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)
@@ -1328,7 +1328,7 @@ importers:
         version: 21.0.4
       lasertag:
         specifier: 0.8.10
-        version: 0.8.10(@types/react@19.3.0)(arktype@2.2.8)(eslint@10.14.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.1.0)(solid-js@1.9.18)(supports-color@10.2.2)
+        version: 0.8.10(@types/react@19.3.0)(arktype@2.2.8)(eslint@10.14.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.1.1)(solid-js@1.9.18)(supports-color@10.2.2)
       oxlint:
         specifier: 1.90.0
         version: 1.90.0(oxlint-tsgolint@7.0.2005)
@@ -1389,7 +1389,7 @@ importers:
         version: 10.14.0(jiti@2.7.0)(supports-color@10.2.2)
       lasertag:
         specifier: 0.8.10
-        version: 0.8.10(@types/react@19.3.0)(arktype@2.2.8)(eslint@10.14.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.1.0)(solid-js@1.9.18)(supports-color@10.2.2)
+        version: 0.8.10(@types/react@19.3.0)(arktype@2.2.8)(eslint@10.14.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.1.1)(solid-js@1.9.18)(supports-color@10.2.2)
       oxlint:
         specifier: 1.90.0
         version: 1.90.0(oxlint-tsgolint@7.0.2005)
@@ -7260,8 +7260,8 @@ packages:
     peerDependencies:
       preact: '>=10 || >= 11.0.0-0'
 
-  preact@11.1.0:
-    resolution: {integrity: sha512-hz1VsjWx5pSYPDVEzb9w+XyOmQpP1qW/ZEaMiYm+C8ykJr8KP+TKGZIbCW0QmZ/Yr/jg3XkZoziEWn9iWHZ9Mw==}
+  preact@11.1.1:
+    resolution: {integrity: sha512-vpFVfai437pbuLri7XVeslCPfrEZX6Z1S2gV+MOFrA/kji+NKUXvH7y01EnVjA1guLigfkVp77Sqipd4SIllCg==}
     peerDependencies:
       preact-render-to-string: '>=6.7.0'
     peerDependenciesMeta:
@@ -10805,16 +10805,16 @@ snapshots:
 
   '@poppinss/exception@1.2.3': {}
 
-  '@preact/compat@18.3.2(preact@11.1.0)':
+  '@preact/compat@18.3.2(preact@11.1.1)':
     dependencies:
-      preact: 11.1.0(preact-render-to-string@6.8.2)
+      preact: 11.1.1(preact-render-to-string@6.8.2)
 
-  '@preact/preset-vite@2.10.6(@babel/core@7.29.7(supports-color@10.2.2))(preact@11.1.0)(supports-color@10.2.2)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))':
+  '@preact/preset-vite@2.10.6(@babel/core@7.29.7(supports-color@10.2.2))(preact@11.1.1)(supports-color@10.2.2)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))':
     dependencies:
       '@babel/core': 7.29.7(supports-color@10.2.2)
       '@babel/plugin-transform-react-jsx': 7.29.7(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2)
       '@babel/plugin-transform-react-jsx-development': 7.29.7(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2)
-      '@prefresh/vite': 2.4.12(preact@11.1.0)(supports-color@10.2.2)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+      '@prefresh/vite': 2.4.12(preact@11.1.1)(supports-color@10.2.2)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
       '@rollup/pluginutils': 5.4.0
       babel-plugin-transform-hook-names: 1.0.2(@babel/core@7.29.7(supports-color@10.2.2))
       debug: 4.4.3(supports-color@10.2.2)
@@ -10834,20 +10834,20 @@ snapshots:
     dependencies:
       '@babel/core': 7.29.7(supports-color@10.2.2)
 
-  '@prefresh/core@1.5.11(preact@11.1.0)':
+  '@prefresh/core@1.5.11(preact@11.1.1)':
     dependencies:
-      preact: 11.1.0(preact-render-to-string@6.8.2)
+      preact: 11.1.1(preact-render-to-string@6.8.2)
 
   '@prefresh/utils@1.2.1': {}
 
-  '@prefresh/vite@2.4.12(preact@11.1.0)(supports-color@10.2.2)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))':
+  '@prefresh/vite@2.4.12(preact@11.1.1)(supports-color@10.2.2)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))':
     dependencies:
       '@babel/core': 7.29.7(supports-color@10.2.2)
       '@prefresh/babel-plugin': 0.5.4(@babel/core@7.29.7(supports-color@10.2.2))
-      '@prefresh/core': 1.5.11(preact@11.1.0)
+      '@prefresh/core': 1.5.11(preact@11.1.1)
       '@prefresh/utils': 1.2.1
       '@rollup/pluginutils': 4.2.1
-      preact: 11.1.0(preact-render-to-string@6.8.2)
+      preact: 11.1.1(preact-render-to-string@6.8.2)
       vite: 8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
     transitivePeerDependencies:
       - supports-color
@@ -13484,7 +13484,7 @@ snapshots:
 
   kolorist@1.8.0: {}
 
-  lasertag@0.8.10(@types/react@19.3.0)(arktype@2.2.8)(eslint@10.14.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.1.0)(solid-js@1.9.18)(supports-color@10.2.2):
+  lasertag@0.8.10(@types/react@19.3.0)(arktype@2.2.8)(eslint@10.14.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.1.1)(solid-js@1.9.18)(supports-color@10.2.2):
     dependencies:
       '@astrojs/compiler': 4.0.0
       '@vscode/vsce': 4.0.0(supports-color@10.2.2)
@@ -13501,14 +13501,14 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.3.0
       eslint: 10.14.0(jiti@2.7.0)(supports-color@10.2.2)
-      preact: 11.1.0(preact-render-to-string@6.8.2)
+      preact: 11.1.1(preact-render-to-string@6.8.2)
       solid-js: 1.9.18
     transitivePeerDependencies:
       - arktype
       - happy-dom
       - supports-color
 
-  lasertag@0.8.10(@types/react@19.3.0)(arktype@2.2.9)(eslint@10.14.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.1.0)(solid-js@1.9.18)(supports-color@10.2.2):
+  lasertag@0.8.10(@types/react@19.3.0)(arktype@2.2.9)(eslint@10.14.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.1.1)(solid-js@1.9.18)(supports-color@10.2.2):
     dependencies:
       '@astrojs/compiler': 4.0.0
       '@vscode/vsce': 4.0.0(supports-color@10.2.2)
@@ -13525,7 +13525,7 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.3.0
       eslint: 10.14.0(jiti@2.7.0)(supports-color@10.2.2)
-      preact: 11.1.0(preact-render-to-string@6.8.2)
+      preact: 11.1.1(preact-render-to-string@6.8.2)
       solid-js: 1.9.18
     transitivePeerDependencies:
       - arktype
@@ -14540,14 +14540,14 @@ snapshots:
 
   postgres@4.0.0: {}
 
-  preact-render-to-string@6.8.2(preact@11.1.0):
+  preact-render-to-string@6.8.2(preact@11.1.1):
     dependencies:
-      preact: 11.1.0(preact-render-to-string@6.8.2)
+      preact: 11.1.1(preact-render-to-string@6.8.2)
     optional: true
 
-  preact@11.1.0(preact-render-to-string@6.8.2):
+  preact@11.1.1(preact-render-to-string@6.8.2):
     optionalDependencies:
-      preact-render-to-string: 6.8.2(preact@11.1.0)
+      preact-render-to-string: 6.8.2(preact@11.1.1)
 
   prelude-ls@1.2.1: {}
 

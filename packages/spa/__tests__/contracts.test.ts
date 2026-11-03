@@ -48,7 +48,7 @@ it(`compiles JSX syntax while keeping getters and spread precedence live`, () =>
 		`live.tsx`,
 	)
 	expect(result.code).toContain(`get "title"()`)
-	expect(result.code).toContain(`() => value`)
+	expect(result.code).toContain(`() => (value)`)
 	expect(() => compile(`<div value={}/>`, `invalid.tsx`)).toThrow()
 })
 it(`filters Vite inputs, resets global regexes, and reloads matching documents`, () => {

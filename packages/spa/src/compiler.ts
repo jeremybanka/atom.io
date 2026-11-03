@@ -1,190 +1,244 @@
-import type { PluginObject } from "@babel/core"
-import { transformSync, types as t } from "@babel/core"
+import { decode } from "html-entities"
+import MagicString from "magic-string"
+import type {
+	Expression,
+	JSXElement,
+	JSXElementName,
+	JSXFragment,
+	Node,
+} from "oxc-parser"
+import { parseSync, visitorKeys } from "oxc-parser"
 
-export function compile(
-	code: string,
-	filename: string,
-): { code: string; map: any } {
-	const plugin = (): PluginObject => {
-		let create: t.Identifier
-		let merge: t.Identifier
-		const generated = new WeakSet<object>()
-		const components = new Set<string>()
-		function name(
-			node: t.JSXIdentifier | t.JSXMemberExpression | t.JSXNamespacedName,
-		): t.Expression {
-			if (t.isJSXMemberExpression(node))
-				return t.memberExpression(
-					t.isJSXIdentifier(node.object)
-						? node.object.name === `this`
-							? t.thisExpression()
-							: t.identifier(node.object.name)
-						: name(node.object),
-					t.identifier(node.property.name),
-				)
-			if (t.isJSXNamespacedName(node))
-				return t.stringLiteral(`${node.namespace.name}:${node.name.name}`)
-			return /^[a-z]/.test(node.name) || node.name.includes(`-`)
-				? t.stringLiteral(node.name)
-				: t.identifier(node.name)
+type Part = string | Node
+
+const decodeJsx = (value: string): string =>
+	decode(value, { level: `html4`, scope: `strict` })
+
+/** Match JSX's multiline whitespace rules without reprinting JavaScript. */
+function text(value: string): string {
+	const lines = value.split(/\r\n|\n|\r/)
+	let last = 0
+	for (let i = 0; i < lines.length; i++) if (/[^ \t]/.test(lines[i])) last = i
+	return lines
+		.map((line, i) => {
+			line = line.replace(/\t/g, ` `)
+			if (i > 0) line = line.replace(/^ +/, ``)
+			if (i < lines.length - 1) line = line.replace(/ +$/, ``)
+			return line && i < last ? `${line} ` : line
+		})
+		.join(``)
+}
+
+function eager(node: Node, allowJsx = false): boolean {
+	if (node.type === `ParenthesizedExpression`)
+		return eager(node.expression, allowJsx)
+	return (
+		node.type === `Literal` ||
+		node.type === `FunctionExpression` ||
+		node.type === `ArrowFunctionExpression` ||
+		(allowJsx && (node.type === `JSXElement` || node.type === `JSXFragment`)) ||
+		(node.type === `TemplateLiteral` && node.expressions.length === 0)
+	)
+}
+
+export function compile(code: string, filename: string) {
+	const parsed = parseSync(filename, code, {
+		lang: `tsx`,
+		preserveParens: true,
+	})
+	if (parsed.errors.length) {
+		const error = parsed.errors[0]
+		throw new SyntaxError(`${filename}: ${error.codeframe ?? error.message}`)
+	}
+	const output = new MagicString(code)
+	const parents = new WeakMap<Node, Node>()
+	const identifiers = new Set<string>()
+	const elements: (JSXElement | JSXFragment)[] = []
+	const functions = new Set<Node>()
+	function walk(node: Node, parent?: Node, outerFunction?: Node): void {
+		if (parent) parents.set(node, parent)
+		output.addSourcemapLocation(node.start)
+		output.addSourcemapLocation(node.end)
+		if (node.type === `Identifier` || node.type === `JSXIdentifier`)
+			identifiers.add(node.name)
+		if (
+			!outerFunction &&
+			(node.type === `FunctionDeclaration` ||
+				node.type === `FunctionExpression` ||
+				node.type === `ArrowFunctionExpression`)
+		)
+			outerFunction = node
+		if (node.type === `JSXElement` || node.type === `JSXFragment`) {
+			elements.push(node)
+			if (outerFunction) functions.add(outerFunction)
 		}
-		function literal(node: t.Node): boolean {
-			return (
-				t.isLiteral(node) &&
-				(!t.isTemplateLiteral(node) || node.expressions.length === 0)
-			)
-		}
-		function child(node: t.Expression): t.Expression {
-			return generated.has(node) || literal(node) || t.isFunction(node)
-				? node
-				: t.arrowFunctionExpression([], node)
-		}
-		return {
-			visitor: {
-				ExportDefaultDeclaration(path) {
-					if (
-						t.isArrowFunctionExpression(path.node.declaration) ||
-						t.isFunctionExpression(path.node.declaration)
-					) {
-						const id = path.scope.generateUidIdentifier(`Component`)
-						path.replaceWithMultiple([
-							t.variableDeclaration(`const`, [
-								t.variableDeclarator(id, path.node.declaration),
-							]),
-							t.exportDefaultDeclaration(id),
-						])
-					}
-				},
-				Program: {
-					enter(path) {
-						create = path.scope.generateUidIdentifier(`spa`)
-						merge = path.scope.generateUidIdentifier(`props`)
-					},
-					exit(path) {
-						path.unshiftContainer(
-							`body`,
-							t.importDeclaration(
-								[
-									t.importSpecifier(create, t.identifier(`jsx`)),
-									t.importSpecifier(merge, t.identifier(`merge`)),
-								],
-								t.stringLiteral(`@atom.io/spa/jsx-runtime`),
-							),
-						)
-						for (const component of components)
-							path.pushContainer(
-								`body`,
-								t.expressionStatement(
-									t.assignmentExpression(
-										`=`,
-										t.memberExpression(
-											t.identifier(component),
-											t.identifier(`spa`),
-										),
-										t.booleanLiteral(true),
-									),
-								),
-							)
-					},
-				},
-				"JSXElement|JSXFragment": {
-					exit(path: any) {
-						const node = path.node as t.JSXElement | t.JSXFragment
-						const chunks: t.Expression[] = []
-						let properties: (t.ObjectProperty | t.ObjectMethod)[] = []
-						const flush = () => {
-							if (properties.length) {
-								chunks.push(t.objectExpression(properties))
-								properties = []
-							}
-						}
-						if (t.isJSXElement(node))
-							for (const attribute of node.openingElement.attributes) {
-								if (t.isJSXSpreadAttribute(attribute)) {
-									flush()
-									chunks.push(t.arrowFunctionExpression([], attribute.argument))
-									continue
-								}
-								const key = t.isJSXNamespacedName(attribute.name)
-									? `${attribute.name.namespace.name}:${attribute.name.name.name}`
-									: attribute.name.name
-								const value =
-									attribute.value == null
-										? t.booleanLiteral(true)
-										: t.isJSXExpressionContainer(attribute.value)
-											? attribute.value.expression
-											: attribute.value
-								// The parser rejects empty attribute expressions.
-								const expression = value as t.Expression
-								properties.push(
-									key === `key` ||
-										literal(expression) ||
-										t.isFunction(expression)
-										? t.objectProperty(t.stringLiteral(key), expression)
-										: t.objectMethod(
-												`get`,
-												t.stringLiteral(key),
-												[],
-												t.blockStatement([t.returnStatement(expression)]),
-											),
-								)
-							}
-						const children = t.react
-							.buildChildren(node)
-							.map((value) => child(value as t.Expression))
-						if (children.length)
-							properties.push(
-								t.objectProperty(
-									t.identifier(`children`),
-									children.length === 1
-										? children[0]
-										: t.arrayExpression(children),
-								),
-							)
-						flush()
-						const props =
-							chunks.length > 1 || t.isArrowFunctionExpression(chunks[0])
-								? t.callExpression(merge, chunks)
-								: (chunks[0] ?? t.objectExpression([]))
-						const result = t.callExpression(create, [
-							t.isJSXElement(node)
-								? name(node.openingElement.name)
-								: t.nullLiteral(),
-							props,
-						])
-						generated.add(result)
-						let fn = path.findParent((parent: any) => parent.isFunction())
-						while (fn?.findParent((parent: any) => parent.isFunction()))
-							fn = fn.findParent((parent: any) => parent.isFunction())
-						if (fn) {
-							if (fn.isFunctionDeclaration() && fn.node.id)
-								components.add(fn.node.id.name)
-							else if (
-								fn.parentPath.isVariableDeclarator() &&
-								t.isIdentifier(fn.parentPath.node.id)
-							)
-								components.add(fn.parentPath.node.id.name)
-							else if (
-								fn.parentPath.isExportDefaultDeclaration() &&
-								t.isFunctionDeclaration(fn.node)
-							) {
-								fn.node.id = path.scope.generateUidIdentifier(`Component`)
-								components.add(fn.node.id.name)
-							}
-						}
-						path.replaceWith(result)
-					},
-				},
-			},
+		for (const key of visitorKeys[node.type] ?? []) {
+			const value = (node as unknown as Record<string, unknown>)[key]
+			if (Array.isArray(value)) {
+				for (const child of value) if (child) walk(child, node, outerFunction)
+			} else if (value) walk(value as Node, node, outerFunction)
 		}
 	}
-	const result = transformSync(code, {
-		filename,
-		babelrc: false,
-		configFile: false,
-		sourceMaps: true,
-		parserOpts: { plugins: [`jsx`, `typescript`] },
-		plugins: [plugin],
-	})!
-	return { code: result.code!, map: result.map }
+	walk(parsed.program)
+	function uid(base: string): string {
+		let name = `_${base}`
+		let suffix = 1
+		while (identifiers.has(name)) name = `_${base}${++suffix}`
+		identifiers.add(name)
+		return name
+	}
+	const create = uid(`spa`)
+	const merge = uid(`props`)
+	const join = (parts: Part[][], separator: string): Part[] =>
+		parts.flatMap((part, i) => (i ? [separator, ...part] : part))
+	const expression = (node: Expression): Part[] =>
+		eager(node, true) ? [`(`, node, `)`] : [`() => (`, node, `)`]
+	function tag(node: JSXElementName): string {
+		if (node.type === `JSXNamespacedName`)
+			return JSON.stringify(`${node.namespace.name}:${node.name.name}`)
+		if (node.type === `JSXMemberExpression`)
+			return code.slice(node.start, node.end)
+		return /^[a-z]/.test(node.name) || node.name.includes(`-`)
+			? JSON.stringify(node.name)
+			: node.name
+	}
+	/** Rewrite syntax around untouched expression spans, including nested JSX. */
+	function rewrite(node: Node, parts: Part[]): void {
+		let cursor = node.start
+		let replacement = ``
+		for (const part of [...parts, { start: node.end, end: node.end }]) {
+			if (typeof part === `string`) {
+				replacement += part
+				continue
+			}
+			if (cursor < part.start) output.update(cursor, part.start, replacement)
+			else if (replacement) output.appendLeft(cursor, replacement)
+			cursor = part.end
+			replacement = ``
+		}
+	}
+	for (const node of elements) {
+		const chunks: Part[][] = []
+		let properties: Part[][] = []
+		const flush = () => {
+			if (properties.length) chunks.push([`{`, ...join(properties, `, `), `}`])
+			properties = []
+		}
+		if (node.type === `JSXElement`) {
+			for (const attribute of node.openingElement.attributes) {
+				if (attribute.type === `JSXSpreadAttribute`) {
+					flush()
+					chunks.push([`() => (`, attribute.argument, `)`])
+					continue
+				}
+				const key = JSON.stringify(
+					attribute.name.type === `JSXNamespacedName`
+						? `${attribute.name.namespace.name}:${attribute.name.name.name}`
+						: attribute.name.name,
+				)
+				const value = attribute.value
+				if (!value) properties.push([`${key}: true`])
+				else if (value.type === `Literal`)
+					properties.push([`${key}: ${JSON.stringify(decodeJsx(value.value))}`])
+				else {
+					const expr =
+						value.type === `JSXExpressionContainer` ? value.expression : value
+					if (expr.type === `JSXEmptyExpression`)
+						throw new SyntaxError(`${filename}: Empty JSX attribute expression`)
+					properties.push(
+						key === `"key"` || eager(expr)
+							? [`${key}: (`, expr, `)`]
+							: [`get ${key}(){ return (`, expr, `); }`],
+					)
+				}
+			}
+		}
+		const children: Part[][] = []
+		for (const child of node.children) {
+			if (child.type === `JSXText`) {
+				const value = text(decodeJsx(child.value))
+				if (value) children.push([JSON.stringify(value)])
+			} else if (child.type === `JSXElement` || child.type === `JSXFragment`)
+				children.push([child])
+			else if (child.type === `JSXExpressionContainer`) {
+				if (child.expression.type !== `JSXEmptyExpression`)
+					children.push(expression(child.expression))
+			} else
+				throw new SyntaxError(`${filename}: JSX spread children are unsupported`)
+		}
+		if (children.length)
+			properties.push([
+				`children: `,
+				...(children.length === 1
+					? children[0]
+					: [`[`, ...join(children, `, `), `]`]),
+			])
+		flush()
+		const spreads =
+			node.type === `JSXElement` &&
+			node.openingElement.attributes.some(
+				(attr) => attr.type === `JSXSpreadAttribute`,
+			)
+		const props = spreads
+			? [`${merge}(`, ...join(chunks, `, `), `)`]
+			: (chunks[0] ?? [`{}`])
+		rewrite(node, [
+			`${create}(${node.type === `JSXElement` ? tag(node.openingElement.name) : `null`}, `,
+			...props,
+			`)`,
+		])
+	}
+	const components = new Set<string>()
+	for (const fn of functions) {
+		let node = fn
+		let parent = parents.get(node)
+		while (parent?.type === `ParenthesizedExpression`) {
+			node = parent
+			parent = parents.get(node)
+		}
+		if (fn.type === `FunctionDeclaration` && fn.id) components.add(fn.id.name)
+		else if (
+			parent?.type === `VariableDeclarator` &&
+			parent.id.type === `Identifier`
+		)
+			components.add(parent.id.name)
+		else if (parent?.type === `ExportDefaultDeclaration`) {
+			const name = uid(`Component`)
+			if (fn.type === `FunctionDeclaration`) {
+				// Keep anonymous default function declarations hoisted.
+				const token = [
+					...code
+						.slice(fn.start, fn.body!.start)
+						.matchAll(/\/\*[\s\S]*?\*\/|\/\/[^\r\n]*|\bfunction\b|\*/g),
+				].find((match) => match[0] === (fn.generator ? `*` : `function`))!
+				output.appendLeft(fn.start + token.index + token[0].length, ` ${name}`)
+			} else {
+				output.update(parent.start, node.start, `const ${name} = `)
+				output.appendLeft(parent.end, `;\nexport default ${name};`)
+			}
+			components.add(name)
+		}
+	}
+	if (elements.length) {
+		// Keep hashbangs and directive prologues ahead of generated imports.
+		let position = parsed.program.hashbang?.end ?? 0
+		for (const statement of parsed.program.body) {
+			if (statement.type !== `ExpressionStatement` || !statement.directive) break
+			position = statement.end
+		}
+		output.appendLeft(
+			position,
+			`\nimport { jsx as ${create}, merge as ${merge} } from "@atom.io/spa/jsx-runtime";\n`,
+		)
+		for (const component of components)
+			output.append(`\n;${component}.spa = true;`)
+	}
+	return {
+		code: output.toString(),
+		map: output.generateMap({
+			source: filename,
+			includeContent: true,
+			hires: true,
+		}),
+	}
 }

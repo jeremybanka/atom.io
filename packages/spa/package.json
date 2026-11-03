@@ -111,14 +111,17 @@
 		"tonnage": "pnpm readme:write",
 		"tonnage:check": "pnpm readme:check",
 		"test:browser:graphics": "node scripts/graphics-browser-test.mjs",
-		"test:optional-peers": "node scripts/optional-peers-check.mjs && node __tests__/fixtures/graphics-consumer/check.ts"
+		"test:optional-peers": "node scripts/optional-peers-check.mjs && node __tests__/fixtures/graphics-consumer/check.ts",
+		"bench:compiler": "node scripts/compiler-benchmark.ts"
 	},
 	"dependencies": {
-		"@babel/core": "8.1.0"
+		"html-entities": "2.6.0",
+		"magic-string": "1.4.3",
+		"oxc-parser": "0.156.0"
 	},
 	"devDependencies": {
 		"@breakage/changesets": "0.1.0",
-		"@types/babel__core": "7.20.5",
+		"@jridgewell/trace-mapping": "0.3.31",
 		"@types/node": "26.6.6",
 		"@types/three": "0.187.0",
 		"@vitest/coverage-v8": "5.1.0",

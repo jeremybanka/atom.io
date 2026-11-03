@@ -5,6 +5,10 @@ const config: UserConfig[] = defineConfig(
 	[false, true].map((development): UserConfig => ({
 		entry: [
 			`src/index.ts`,
+			`src/renderer.ts`,
+			`src/konva.ts`,
+			`src/three.ts`,
+			`src/motion.ts`,
 			`src/jsx-runtime.ts`,
 			`src/server.ts`,
 			`src/vite.ts`,
@@ -25,6 +29,9 @@ const config: UserConfig[] = defineConfig(
 				/^@babel\//,
 				/^astro(?:\/|$)/,
 				/^vite(?:\/|$)/,
+				/^konva(?:\/|$)/,
+				/^three(?:\/|$)/,
+				/^motion(?:\/|$)/,
 			],
 		},
 		fixedExtension: false,

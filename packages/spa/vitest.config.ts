@@ -17,6 +17,14 @@ const config = defineOurVitestConfig({
 config.root = import.meta.dirname
 config.plugins = [spa()]
 config.resolve!.alias = [
+	...[`motion`, `three`, `konva`].map((name) => ({
+		find: `@atom.io/spa/${name}`,
+		replacement: resolve(import.meta.dirname, `src/${name}.ts`),
+	})),
+	{
+		find: /^@atom\.io\/spa\/renderer$/,
+		replacement: resolve(import.meta.dirname, `src/renderer.ts`),
+	},
 	{
 		find: /^@atom\.io\/spa\/jsx(?:-dev)?-runtime$/,
 		replacement: resolve(import.meta.dirname, `src/jsx-runtime.ts`),

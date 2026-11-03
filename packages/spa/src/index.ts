@@ -1,4 +1,9 @@
 export type {
+	Capability,
+	CapabilityBinding,
+	CapabilityTarget,
+} from "./capabilities.ts"
+export type {
 	Accessor,
 	Child,
 	Component,

@@ -30,6 +30,8 @@ import {
 	timeTravelTransactionGroupInStore,
 } from "atom.io/internal"
 
+import type { Capability } from "./capabilities.ts"
+
 export type Cleanup = () => void
 // A callable interface permits the recursive Child union. A type alias does not.
 /* oxlint-disable typescript/prefer-function-type -- A callable interface is required for recursive Child. */
@@ -53,6 +55,7 @@ export type Child =
 	| readonly Child[]
 	| Accessor<Child>
 export interface RootOptions {
+	capabilities?: readonly Capability[]
 	store?: RootStore
 	idPrefix?: string
 	onError?: (error: unknown) => void
@@ -65,6 +68,7 @@ export interface Scope {
 	_dead: boolean
 }
 export interface Root extends Scope {
+	_capabilities: Map<string, Capability>
 	_store: RootStore
 	_prefix: string
 	_id: number
@@ -151,7 +155,14 @@ function enqueue(scope: Scope, run: Cleanup): void {
 	root._queue.add(run)
 }
 export function createRoot(options: RootOptions = {}, server = false): Root {
+	const capabilities = new Map<string, Capability>()
+	for (const capability of options.capabilities ?? []) {
+		if (capabilities.has(capability.namespace))
+			throw new Error(`spa: duplicate capability ${capability.namespace}`)
+		capabilities.set(capability.namespace, capability)
+	}
 	const root = {
+		_capabilities: capabilities,
 		_store: options.store ?? IMPLICIT.STORE,
 		_prefix: options.idPrefix ?? `w${serial++}`,
 		_id: 0,

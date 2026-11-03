@@ -92,6 +92,19 @@ describe(`Oxc JSX compiler`, () => {
 		expect(node.props.slot.props.key).toBe(2)
 	})
 
+	it(`supports JSX-valued attributes without an expression container`, () => {
+		const { App } = evaluate(`export const App = () => <div slot=<span/> />`)
+		expect(App().props.slot.type).toBe(`span`)
+	})
+
+	it(`preserves holes in lazy array expressions`, () => {
+		const { App } = evaluate(`export const App = () => <div>{[,,1]}</div>`)
+		const children = App().props.children()
+		expect(children).toHaveLength(3)
+		expect(0 in children).toBe(false)
+		expect(children[2]).toBe(1)
+	})
+
 	it(`decodes JSX entities and normalizes multiline text without changing expression strings`, () => {
 		const { App } = evaluate(`
 			export const App = () => <div title="&quot; &#x1f600; &nbsp; &amp; &unknown;">
@@ -118,6 +131,22 @@ describe(`Oxc JSX compiler`, () => {
 	])(`brands default exports: %s`, (component) => {
 		const module = evaluate(`export default ${component}`)
 		expect(module[`default`].spa).toBe(true)
+	})
+
+	it.each([
+		`export /* export default */ default /* @__PURE__ */ (() => <p/>)`,
+		`export // export comment\n default // annotation\n (() => <p/>)`,
+	])(`preserves default-export comments: %s`, (source) => {
+		const original = parseSync(`comments.tsx`, source).comments
+		const result = compile(source, `comments.tsx`)
+		const rewritten = parseSync(`comments.tsx`, result.code)
+		expect(rewritten.errors).toEqual([])
+		expect(rewritten.comments.map((comment) => comment.value)).toEqual(
+			original.map((comment) => comment.value),
+		)
+		const module = evaluate(source)
+		expect(module[`default`].spa).toBe(true)
+		expect(module[`default`]().type).toBe(`p`)
 	})
 
 	it(`keeps anonymous default function declarations hoisted`, () => {

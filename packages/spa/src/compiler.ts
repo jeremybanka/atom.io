@@ -48,7 +48,11 @@ export function compile(code: string, filename: string) {
 	})
 	if (parsed.errors.length) {
 		const error = parsed.errors[0]
-		throw new SyntaxError(`${filename}: ${error.codeframe ?? error.message}`)
+		throw new SyntaxError(
+			[`${filename}: ${error.message}`, error.codeframe]
+				.filter(Boolean)
+				.join(`\n`),
+		)
 	}
 	const output = new MagicString(code)
 	const parents = new WeakMap<Node, Node>()
@@ -72,7 +76,7 @@ export function compile(code: string, filename: string) {
 			elements.push(node)
 			if (outerFunction) functions.add(outerFunction)
 		}
-		for (const key of visitorKeys[node.type] ?? []) {
+		for (const key of visitorKeys[node.type]!) {
 			const value = (node as unknown as Record<string, unknown>)[key]
 			if (Array.isArray(value)) {
 				for (const child of value) if (child) walk(child, node, outerFunction)
@@ -103,19 +107,21 @@ export function compile(code: string, filename: string) {
 			: node.name
 	}
 	/** Rewrite syntax around untouched expression spans, including nested JSX. */
-	function rewrite(node: Node, parts: Part[]): void {
+	function rewrite(node: JSXElement | JSXFragment, parts: Part[]): void {
 		let cursor = node.start
 		let replacement = ``
-		for (const part of [...parts, { start: node.end, end: node.end }]) {
+		for (const part of parts) {
 			if (typeof part === `string`) {
 				replacement += part
 				continue
 			}
 			if (cursor < part.start) output.update(cursor, part.start, replacement)
-			else if (replacement) output.appendLeft(cursor, replacement)
+			else output.appendLeft(cursor, replacement)
 			cursor = part.end
 			replacement = ``
 		}
+		// Every JSX node ends with closing syntax after its last expression span.
+		output.update(cursor, node.end, replacement)
 	}
 	for (const node of elements) {
 		const chunks: Part[][] = []
@@ -143,8 +149,6 @@ export function compile(code: string, filename: string) {
 				else {
 					const expr =
 						value.type === `JSXExpressionContainer` ? value.expression : value
-					if (expr.type === `JSXEmptyExpression`)
-						throw new SyntaxError(`${filename}: Empty JSX attribute expression`)
 					properties.push(
 						key === `"key"` || eager(expr)
 							? [`${key}: (`, expr, `)`]
@@ -213,7 +217,18 @@ export function compile(code: string, filename: string) {
 				].find((match) => match[0] === (fn.generator ? `*` : `function`))!
 				output.appendLeft(fn.start + token.index + token[0].length, ` ${name}`)
 			} else {
-				output.update(parent.start, node.start, `const ${name} = `)
+				// Replace only keywords so intervening comments and annotations survive.
+				const prefix = code.slice(parent.start, node.start)
+				for (const token of prefix.matchAll(
+					/\/\*[\s\S]*?\*\/|\/\/[^\r\n]*|\b(?:export|default)\b/g,
+				)) {
+					if (token[0] !== `export` && token[0] !== `default`) continue
+					output.update(
+						parent.start + token.index,
+						parent.start + token.index + token[0].length,
+						token[0] === `export` ? `const ${name} =` : ``,
+					)
+				}
 				output.appendLeft(parent.end, `;\nexport default ${name};`)
 			}
 			components.add(name)

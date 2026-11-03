@@ -250,7 +250,10 @@ function attach(
 		let added = false
 		for (const key of keys) {
 			const sample =
-				goals[key] ?? (initial && initial[key]) ?? hoverTo[key] ?? tapTo[key]
+				goals[key] ??
+				(initial === false ? undefined : initial[key]) ??
+				hoverTo[key] ??
+				tapTo[key]
 			if (sample === undefined) continue
 			const had = properties.has(key)
 			ensure(key, sample, started ? {} : initial)
@@ -261,7 +264,10 @@ function attach(
 			type: `spring`,
 		}) as ValueAnimationTransition
 		for (const [key, property] of properties) {
-			const goal = goals[key] ?? (initial && initial[key]) ?? property.rest
+			const goal =
+				goals[key] ??
+				(initial === false ? undefined : initial[key]) ??
+				property.rest
 			if (equal(property.target, goal)) continue
 			property.target = Array.isArray(goal) ? [...goal] : goal
 			const next = Array.isArray(goal) ? goal : [goal]

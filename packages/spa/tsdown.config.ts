@@ -26,7 +26,7 @@ const config: UserConfig[] = defineConfig(
 			neverBundle: [
 				/^node:/,
 				/^atom\.io(?:\/|$)/,
-				/^@babel\//,
+				/^oxc-parser$/,
 				/^astro(?:\/|$)/,
 				/^vite(?:\/|$)/,
 				/^konva(?:\/|$)/,

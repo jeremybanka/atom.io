@@ -68,6 +68,48 @@ it(`supports initial:false and scalar scale with tuple-valued native transforms`
 	f.binding.dispose()
 	expect(f.values[`scale`]).toEqual([1, 1, 1])
 })
+it(`uses native rest values for inactive scalar gestures with initial:false`, () => {
+	const f = scene((key) => (key === `scale` || key === `opacity` ? 1 : 0))
+	const props = {
+		initial: false,
+		animate: { x: 100 },
+		whileHover: { scale: 1.1 },
+		whileTap: { opacity: 0.8 },
+	}
+	try {
+		f.binding.update(props)
+		expect(f.values).toMatchObject({ x: 100, scale: 1, opacity: 1 })
+		f.listeners.get(`pointerenter`)!()
+		expect(f.values[`scale`]).toBe(1.1)
+		f.listeners.get(`pointerdown`)!()
+		expect(f.values[`opacity`]).toBe(0.8)
+		f.listeners.get(`pointerup`)!()
+		expect(f.values[`opacity`]).toBe(1)
+		f.listeners.get(`pointerleave`)!()
+		expect(f.values[`scale`]).toBe(1)
+		f.binding.update({ ...props, animate: { x: 200 } })
+		expect(f.values).toMatchObject({ x: 200, scale: 1, opacity: 1 })
+	} finally {
+		f.binding.dispose()
+	}
+})
+it(`keeps tuple gestures numeric and restores them with initial:false`, () => {
+	const f = scene()
+	try {
+		f.binding.update({
+			initial: false,
+			animate: { x: 100 },
+			whileHover: { position: [1, 2, 3] },
+		})
+		expect(f.values[`position`]).toEqual([0, 0, 0])
+		f.listeners.get(`pointerenter`)!()
+		expect(f.values[`position`]).toEqual([1, 2, 3])
+		f.listeners.get(`pointerleave`)!()
+		expect(f.values[`position`]).toEqual([0, 0, 0])
+	} finally {
+		f.binding.dispose()
+	}
+})
 it(`uses sensible defaults for absent scene properties and validates changing target dimensions`, () => {
 	const f = scene(() => undefined)
 	f.binding.update({

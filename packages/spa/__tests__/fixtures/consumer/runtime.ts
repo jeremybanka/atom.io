@@ -135,7 +135,7 @@ await test(`packed compiler and Astro adapters expose working entrypoints`, asyn
 		`export default () => <p>{read()}</p>`,
 		`App.spa.tsx`,
 	)
-	assert.match(result.code, /\(\) => read\(\)/)
+	assert.match(result.code, /\(\) => \(read\(\)\)/)
 	assert.match(result.code, /spa = true/)
 	assert.equal(astro().name, `spa`)
 	assert.equal(typeof astroClient, `function`)

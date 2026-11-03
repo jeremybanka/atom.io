@@ -51,13 +51,13 @@
 		"@types/node": "26.6.6",
 		"@typescript-eslint/parser": "8.72.1",
 		"@typescript-eslint/rule-tester": "8.72.1",
-		"@vitest/coverage-v8": "5.0.5",
+		"@vitest/coverage-v8": "5.1.0",
 		"breakage": "0.10.1",
 		"eslint": "10.14.0",
 		"recoverage": "0.1.20",
 		"tsdown": "0.23.4",
 		"typescript": "6.0.3",
-		"vitest": "5.0.5"
+		"vitest": "5.1.0"
 	},
 	"peerDependencies": {
 		"@typescript-eslint/parser": "^8.0.0",

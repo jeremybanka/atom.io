@@ -148,3 +148,9 @@ Tonnage measures combined browser bundles containing SPA and atom.io, with share
 ## License
 
 MPL-2.0 or later. See [LICENSE](./LICENSE).
+
+## Graphics renderers
+
+The experimental @atom.io/spa-konva and @atom.io/spa-three packages render Konva and Three.js scene subtrees using SPA's existing JSX compiler, state accessors, and component lifetimes. Their Stage and Canvas components are DOM boundaries; scene children use the same root store and release owned graphics resources when removed. See each package's README for examples and supported features.
+
+The renderer entrypoint exposes createSceneRenderer, sceneComponent, and bindScene for imperative scene adapters. A host supplies node creation, property updates, ordered child attachment, and destruction. The shared renderer supplies reactive bindings, keyed component identity, refs, and owner cleanup. Use mount inside an owned component or mount callback to inherit its store and lifetime, or render with an explicit parent and optional root store to create a standalone scene root. Scene targets must be dedicated to their renderer's children. Scene subtrees do not support text nodes or hydration; their DOM boundaries defer graphics creation until browser mount.

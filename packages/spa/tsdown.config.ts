@@ -5,6 +5,7 @@ const config: UserConfig[] = defineConfig(
 	[false, true].map((development): UserConfig => ({
 		entry: [
 			`src/index.ts`,
+			`src/renderer.ts`,
 			`src/jsx-runtime.ts`,
 			`src/server.ts`,
 			`src/vite.ts`,

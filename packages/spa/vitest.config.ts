@@ -18,6 +18,10 @@ config.root = import.meta.dirname
 config.plugins = [spa()]
 config.resolve!.alias = [
 	{
+		find: /^@atom\.io\/spa\/renderer$/,
+		replacement: resolve(import.meta.dirname, `src/renderer.ts`),
+	},
+	{
 		find: /^@atom\.io\/spa\/jsx(?:-dev)?-runtime$/,
 		replacement: resolve(import.meta.dirname, `src/jsx-runtime.ts`),
 	},

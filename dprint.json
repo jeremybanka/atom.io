@@ -11,6 +11,8 @@
 		"packages/realtime/README.md",
 		"packages/solid/README.md",
 		"packages/spa/README.md",
+		"packages/spa-konva/README.md",
+		"packages/spa-three/README.md",
 		"packages/resumability/README.md",
 		"templates/spa-astro-ssr/README.md",
 		"packages/spa-devtools/README.md",

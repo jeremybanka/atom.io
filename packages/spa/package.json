@@ -63,6 +63,11 @@
 			"types": "./dist/astro-application.d.ts",
 			"development": "./dist/development/astro-application.js",
 			"import": "./dist/astro-application.js"
+		},
+		"./renderer": {
+			"types": "./dist/renderer.d.ts",
+			"development": "./dist/development/renderer.js",
+			"import": "./dist/renderer.js"
 		}
 	},
 	"main": "./dist/index.js",
@@ -89,7 +94,8 @@
 		"readme:write": "galley write README.mdx",
 		"readme:check": "galley check README.mdx",
 		"tonnage": "pnpm readme:write",
-		"tonnage:check": "pnpm readme:check"
+		"tonnage:check": "pnpm readme:check",
+		"test:browser:graphics": "node scripts/graphics-browser-test.mjs"
 	},
 	"dependencies": {
 		"@babel/core": "8.1.0"

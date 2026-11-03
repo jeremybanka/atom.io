@@ -72,7 +72,7 @@ const renderer = createSceneRenderer<Konva.Node>({
 		if (children.length && !(parent instanceof Konva.Container))
 			throw new Error(`spa/konva: shapes cannot contain children`)
 		if (parent instanceof Konva.Container) {
-			for (const child of parent.getChildren())
+			for (const child of [...parent.getChildren()])
 				if (!children.includes(child)) child.remove()
 			children.forEach((child, index) => {
 				if (child.getParent() !== parent) parent.add(child as any)

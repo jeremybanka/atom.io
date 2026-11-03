@@ -101,3 +101,39 @@ it(`inherits island capabilities through Astro SSR and hydration`, async () => {
 	host.dispatchEvent(new Event(`astro:unmount`))
 	expect(cleanup).toHaveBeenCalledTimes(1)
 })
+
+it(`preserves XML attribute namespaces and aggregates independent capability cleanup failures`, () => {
+	const host = document.createElement(`div`)
+	const one = vi.fn(() => {
+		throw new Error(`one`)
+	})
+	const two = vi.fn(() => {
+		throw new Error(`two`)
+	})
+	const capabilities = [
+		{ namespace: `one`, attach: () => ({ update() {}, dispose: one }) },
+		{ namespace: `two`, attach: () => ({ update() {}, dispose: two }) },
+	]
+	const root = render(
+		() => (
+			<svg>
+				<use xlink:href="#shape" {...{ "one:value": 1, "two:value": 2 }} />
+			</svg>
+		),
+		host,
+		{ capabilities },
+	)
+	expect(host.querySelector(`use`)!.getAttribute(`xlink:href`)).toBe(`#shape`)
+	expect(() => {
+		root.dispose()
+	}).toThrow(AggregateError)
+	expect(one).toHaveBeenCalledOnce()
+	expect(two).toHaveBeenCalledOnce()
+	expect(
+		renderToString(() => (
+			<svg>
+				<use xlink:href="#shape" />
+			</svg>
+		)),
+	).toContain(`xlink:href="#shape"`)
+})

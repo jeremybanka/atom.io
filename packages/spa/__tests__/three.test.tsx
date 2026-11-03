@@ -110,3 +110,78 @@ it(`replaces keyed resources and rejects constructor changes without a new key`,
 	}).toThrow(`change the component key`)
 	expect(scene.children).toHaveLength(0)
 })
+
+it(`routes raycast events through JSX handlers and motion gestures, including reactive replacement`, async () => {
+	const { createThreeEvents } = await import(`../src/three.ts`)
+	const { motionCapability } = await import(`../src/motion.ts`)
+	const silo = new Silo({
+		name: `three-input`,
+		lifespan: `ephemeral`,
+		isProduction: true,
+	})
+	const phaseAtom = silo.atom<number>({ key: `phase`, default: 0 })
+	const first = vi.fn()
+	const second = vi.fn()
+	const ref = vi.fn()
+	function App() {
+		const phase = useValue(phaseAtom)
+		return (
+			<Mesh
+				ref={ref}
+				motion:animate={{ scale: 1 }}
+				motion:whileHover={{ scale: 1.2 }}
+				motion:whileTap={{ scale: 0.8 }}
+				{...(phase() === 2
+					? {}
+					: { onPointerDown: phase() === 0 ? first : second })}
+			>
+				<BoxGeometry />
+				<MeshStandardMaterial />
+			</Mesh>
+		)
+	}
+	const scene = new THREE.Scene()
+	const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100)
+	camera.position.z = 5
+	const canvas = document.createElement(`canvas`)
+	vi.spyOn(canvas, `getBoundingClientRect`).mockReturnValue({
+		left: 0,
+		right: 100,
+		top: 0,
+		bottom: 100,
+		width: 100,
+		height: 100,
+	} as DOMRect)
+	const root = threeRenderer.render(() => <App />, scene, {
+		store: silo.store,
+		capabilities: [motionCapability({ reducedMotion: `always` })],
+	})
+	const events = createThreeEvents(canvas, scene, () => camera)
+	try {
+		const mesh = ref.mock.calls[0][0] as THREE.Mesh
+		const send = (type: string) =>
+			canvas.dispatchEvent(
+				new PointerEvent(type, { clientX: 50, clientY: 50, pointerId: 1 }),
+			)
+		send(`pointermove`)
+		expect(mesh.scale.x).toBe(1.2)
+		send(`pointerdown`)
+		expect(mesh.scale.x).toBe(0.8)
+		expect(first).toHaveBeenCalledOnce()
+		send(`pointerup`)
+		expect(mesh.scale.x).toBe(1.2)
+		silo.setState(phaseAtom, 1)
+		root.flush()
+		send(`pointerdown`)
+		expect(second).toHaveBeenCalledOnce()
+		silo.setState(phaseAtom, 2)
+		root.flush()
+		send(`pointerdown`)
+		expect(second).toHaveBeenCalledOnce()
+		send(`pointercancel`)
+		expect(mesh.scale.x).toBe(1)
+	} finally {
+		root.dispose()
+		events.dispose()
+	}
+})

@@ -8,6 +8,10 @@ const sizeAtom = atom<number>({ key: `size`, default: 100 })
 let rect: any
 let mesh: any
 let frames = 0
+let camera: any
+let downs = 0
+let ups = 0
+let moves = 0
 function App() {
 	const read = useValue(sizeAtom)
 	return (
@@ -40,12 +44,25 @@ function App() {
 			<Canvas
 				width={read()}
 				height={100}
-				onFrame={() => {
+				onFrame={(state) => {
+					camera = state.camera
 					frames++
 				}}
 			>
 				<Mesh
-					motion:animate={{ position: [read() / 100 - 1, 0, 0] }}
+					motion:animate={{ position: [read() / 100 - 1, 0, 0], scale: 1 }}
+					motion:whileHover={{ scale: 1.2 }}
+					motion:whileTap={{ scale: 0.8 }}
+					onPointerDown={(event) => {
+						downs++
+						event.setPointerCapture()
+					}}
+					onPointerUp={() => {
+						ups++
+					}}
+					onPointerMove={() => {
+						moves++
+					}}
 					ref={(node) => {
 						mesh = node
 					}}
@@ -62,6 +79,10 @@ const root = render(() => <App />, document.body, {
 })
 Object.assign(window, {
 	graphics: {
+		point() {
+			const point = mesh.getWorldPosition(mesh.position.clone()).project(camera)
+			return { x: (point.x + 1) / 2, y: (1 - point.y) / 2 }
+		},
 		update() {
 			setState(sizeAtom, 200)
 			root.flush()
@@ -69,6 +90,10 @@ Object.assign(window, {
 		inspect() {
 			return {
 				frames,
+				downs,
+				ups,
+				moves,
+				scale: mesh?.scale.x,
 				x: mesh?.position.x,
 				rectWidth: rect?.width(),
 				rectX: rect?.x(),

@@ -103,6 +103,32 @@ try {
 	)
 	assert.ok(state.canvases.length >= 2)
 	assert.ok(state.canvases.every((width) => width === 200))
+	const canvas = page.locator(`canvas`).last()
+	const bounds = await canvas.boundingBox()
+	const point = await page.evaluate(() => window.graphics.point())
+	await page.mouse.move(
+		bounds.x + bounds.width * point.x,
+		bounds.y + bounds.height * point.y,
+	)
+	await page.waitForFunction(
+		() => Math.abs(window.graphics.inspect().scale - 1.2) < 0.001,
+	)
+	await page.mouse.down()
+	await page.waitForFunction(
+		() => Math.abs(window.graphics.inspect().scale - 0.8) < 0.001,
+	)
+	await page.mouse.move(
+		bounds.x + bounds.width + 50,
+		bounds.y + bounds.height + 50,
+	)
+	await page.mouse.up()
+	await page.waitForFunction(
+		() => Math.abs(window.graphics.inspect().scale - 1) < 0.001,
+	)
+	const input = await page.evaluate(() => window.graphics.inspect())
+	assert.equal(input.downs, 1)
+	assert.equal(input.ups, 1)
+	assert.ok(input.moves >= 1)
 	await page.evaluate(() => window.graphics.dispose())
 	assert.equal(await page.locator(`canvas`).count(), 0)
 	const frames = await page.evaluate(() => window.graphics.inspect().frames)

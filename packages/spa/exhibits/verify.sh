@@ -6,6 +6,5 @@ pnpm --filter @atom.io/spa test:production
 pnpm --filter @atom.io/spa test:optional-peers
 pnpm --filter @atom.io/spa exec playwright install chromium
 pnpm --filter @atom.io/spa test:browser
-pnpm --filter @atom.io/spa test:browser:graphics
 pnpm --filter @atom.io/spa size
 pnpm --filter @atom.io/spa readme:check

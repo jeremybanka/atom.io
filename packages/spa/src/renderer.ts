@@ -72,7 +72,7 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 					return entry
 				}
 				const childScope = createScope(scope)
-				const created: Entry<N> = { scope: childScope, value, nodes: () => [] }
+				const created: Entry<N> = { scope: childScope, value, nodes: null! }
 				created.nodes = build(() => created.value, childScope, changed)
 				return created
 			})
@@ -99,7 +99,6 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 		const value = untrack(source)
 		if (typeof value === `function`)
 			return mount(() => (source() as () => Child)(), scope, changed)
-		if (Array.isArray(value)) return mount(source, scope, changed)
 		if (value == null || typeof value === `boolean`) return () => []
 		if (typeof value !== `object`)
 			throw new Error(`spa: scene children must be nodes`)

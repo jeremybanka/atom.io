@@ -23,7 +23,7 @@ const root = threeRenderer.render(
 	scene,
 	{ capabilities },
 )
-assert.deepEqual(scene.children[0]!.position.toArray(), [1, 2, 3])
+assert.deepEqual(scene.children[0].position.toArray(), [1, 2, 3])
 root.dispose()
 assert.equal(scene.children.length, 0)
 const group = new Konva.Group()
@@ -32,6 +32,6 @@ const drawing = konvaRenderer.render(
 	group,
 	{ capabilities },
 )
-assert.equal(group.children[0]!.x(), 20)
+assert.equal(group.children[0].x(), 20)
 drawing.dispose()
 assert.equal(group.children.length, 0)

@@ -161,7 +161,7 @@ function attach(
 		styles?.()
 		if (element)
 			styles = styleEffect(
-				element,
+				[element],
 				Object.fromEntries(
 					[...properties].map(([key, property]) => [key, property.values[0]]),
 				) as any,
@@ -281,7 +281,7 @@ function attach(
 		if (element) {
 			if (props[`whileHover`])
 				gestures.push(
-					hover(element, () => {
+					hover([element], () => {
 						hovered = true
 						refresh()
 						return () => {
@@ -292,7 +292,7 @@ function attach(
 				)
 			if (props[`whileTap`])
 				gestures.push(
-					press(element, () => {
+					press([element], () => {
 						tapped = true
 						refresh()
 						return () => {
@@ -346,6 +346,7 @@ function attach(
 	preference?.addEventListener(`change`, preferenceChanged)
 	return {
 		update(next) {
+			if (dead) return
 			for (const key of Object.keys(next))
 				if (!allowed.has(key))
 					throw new Error(`spa/motion: unknown property motion:${key}`)

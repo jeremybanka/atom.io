@@ -1,3 +1,14 @@
+import { fail, owner } from "./core.ts"
+import type { ThreeEventAttributes, ThreeEventHandler } from "./three-events.ts"
+import { createThreeEvents, forgetThree, listenThree } from "./three-events.ts"
+
+export type {
+	ThreeEventAttributes,
+	ThreeEventHandler,
+	ThreeEventManager,
+	ThreePointerEvent,
+} from "./three-events.ts"
+export { createThreeEvents } from "./three-events.ts"
 import * as THREE from "three"
 
 import type { Child, VNode } from "./index.ts"
@@ -13,9 +24,8 @@ import {
 
 type Resource = THREE.Object3D | THREE.BufferGeometry | THREE.Material
 type Vector3 = readonly [number, number, number]
-export interface ObjectProps<
-	N extends THREE.Object3D = THREE.Object3D,
-> extends CapabilityAttributes<`three`> {
+export interface ObjectProps<N extends THREE.Object3D = THREE.Object3D>
+	extends CapabilityAttributes<`three`>, ThreeEventAttributes<N> {
 	children?: Child
 	position?: Vector3
 	rotation?: Vector3
@@ -42,6 +52,7 @@ const meshDefaults = new WeakMap<
 	{ geometry: THREE.BufferGeometry; material: THREE.Material }
 >()
 const constructorArgs = new WeakMap<Resource, unknown[]>()
+const eventHandlers = new WeakMap<Resource, Map<string, () => void>>()
 const defaults = new WeakMap<Resource, Map<string, any>>()
 function writeProperty(node: Resource, key: string, value: any): void {
 	const target = node as any
@@ -61,6 +72,12 @@ const renderer = createSceneRenderer<Resource>({
 		return {
 			kind: `three`,
 			node,
+			...(node instanceof THREE.Object3D
+				? {
+						listen: (type: string, listener: () => void) =>
+							listenThree(node, type, listener),
+					}
+				: {}),
 			read(key) {
 				const value = (node as any)[key]
 				return value?.isColor
@@ -86,6 +103,7 @@ const renderer = createSceneRenderer<Resource>({
 			})
 		constructorArgs.set(node, [...(props[`args`] ?? [])])
 		defaults.set(node, new Map())
+		eventHandlers.set(node, new Map())
 		return node
 	},
 	update(node, props, previous) {
@@ -104,6 +122,28 @@ const renderer = createSceneRenderer<Resource>({
 				Object.is(props[key], previous[key])
 			)
 				continue
+			if (key.startsWith(`on`)) {
+				if (
+					!(node instanceof THREE.Object3D) ||
+					!/^on(Pointer(Down|Up|Move|Enter|Leave|Over|Out|Cancel)|Click)$/.test(
+						key,
+					)
+				)
+					throw new Error(`spa/three: unknown event ${key}`)
+				const handlers = eventHandlers.get(node)!
+				handlers.get(key)?.()
+				handlers.delete(key)
+				if (props[key])
+					handlers.set(
+						key,
+						listenThree(
+							node,
+							key.slice(2).toLowerCase(),
+							props[key] as ThreeEventHandler,
+						),
+					)
+				continue
+			}
 			if (!(key in target)) throw new Error(`spa/three: unknown property ${key}`)
 			const current = target[key]
 			if (!saved.has(key))
@@ -147,12 +187,17 @@ const renderer = createSceneRenderer<Resource>({
 		}
 	},
 	destroy(node) {
+		eventHandlers.get(node)!.clear()
 		if (node instanceof THREE.Object3D) {
-			node.removeFromParent()
-			if (node instanceof THREE.Mesh) {
-				const owned = meshDefaults.get(node)!
-				owned.geometry.dispose()
-				owned.material.dispose()
+			try {
+				forgetThree(node)
+			} finally {
+				node.removeFromParent()
+				if (node instanceof THREE.Mesh) {
+					const owned = meshDefaults.get(node)!
+					owned.geometry.dispose()
+					owned.material.dispose()
+				}
 			}
 		} else node.dispose()
 	},
@@ -197,6 +242,22 @@ export function Canvas(props: CanvasProps): VNode {
 			},
 		)
 		renderer.mount(() => props.children, scene)
+		const root = owner!._root
+		const events = createThreeEvents(
+			canvas!,
+			scene,
+			() => props.camera ?? camera,
+			(error) => {
+				try {
+					fail(root, error)
+				} catch (failure) {
+					root.error(failure)
+				}
+			},
+		)
+		onCleanup(() => {
+			events.dispose()
+		})
 		let last: number | undefined
 		onSceneFrame((time) => {
 			const active = props.camera ?? camera
@@ -209,6 +270,7 @@ export function Canvas(props: CanvasProps): VNode {
 				delta,
 				time: time / 1000,
 			})
+			events.update()
 			webgl.render(scene, active)
 		})
 	})

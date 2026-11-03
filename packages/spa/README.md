@@ -371,7 +371,6 @@ pnpm --filter @atom.io/spa test:production
 pnpm --filter @atom.io/spa test:optional-peers
 pnpm --filter @atom.io/spa exec playwright install chromium
 pnpm --filter @atom.io/spa test:browser
-pnpm --filter @atom.io/spa test:browser:graphics
 pnpm --filter @atom.io/spa size
 pnpm --filter @atom.io/spa readme:check
 
@@ -412,6 +411,7 @@ SPA includes Konva, Three.js, and Motion integrations behind separate entrypoint
 Import Stage, Layer, Group, Rect, Circle, Ellipse, Line, Text, Image, Path, Star, and Transformer from @atom.io/spa/konva. Stage renders a DOM container and creates its native stage after browser mounting. Compiled atom reads update native attributes; keyed children preserve node identity. Native configuration attributes and onClick, onPointerDown, onDragMove, and onDragEnd handlers are supported. Refs receive native nodes and null on cleanup. Removal destroys owned nodes and listeners.
 
 ```tsx
+import type { VNode } from "@atom.io/spa"
 import { useSetter, useValue } from "@atom.io/spa"
 import { Circle, Layer, Stage } from "@atom.io/spa/konva"
 import { atom } from "atom.io"
@@ -420,7 +420,7 @@ const pointAtom = atom<{ x: number; y: number }>({
 	key: `point`,
 	default: { x: 100, y: 100 },
 })
-export function Editor() {
+export function Editor(): VNode {
 	const point = useValue(pointAtom)
 	const setPoint = useSetter(pointAtom)
 	return (
@@ -432,9 +432,9 @@ export function Editor() {
 					radius={25}
 					fill="coral"
 					draggable
-					onDragEnd={(event) =>
+					onDragEnd={(event) => {
 						setPoint({ x: event.target.x(), y: event.target.y() })
-					}
+					}}
 				/>
 			</Layer>
 		</Stage>
@@ -450,6 +450,7 @@ Konva owns hit testing, dragging, and draw batching. Write drag results back int
 Import Canvas, Group, Mesh, PerspectiveCamera, AmbientLight, DirectionalLight, BoxGeometry, SphereGeometry, PlaneGeometry, MeshStandardMaterial, MeshBasicMaterial, and MeshNormalMaterial from @atom.io/spa/three. Canvas creates a WebGL renderer after browser mounting. Geometry and material children attach to their Mesh, with one of each supported. Position and rotation accept three-number tuples; scale also accepts a scalar.
 
 ```tsx
+import type { VNode } from "@atom.io/spa"
 import { useValue } from "@atom.io/spa"
 import {
 	AmbientLight,
@@ -462,7 +463,7 @@ import {
 import { atom } from "atom.io"
 
 const colorAtom = atom<string>({ key: `color`, default: `coral` })
-export function Scene() {
+export function Scene(): VNode {
 	const color = useValue(colorAtom)
 	return (
 		<Canvas width={800} height={600}>
@@ -480,7 +481,17 @@ export function Scene() {
 
 Constructor args are fixed for an instance. To change them, replace the resource with a new key in a reactive child collection. Refs expose native objects. Owned geometries and materials are disposed on removal; textures passed through material properties remain borrowed. Canvas stops drawing and disposes its renderer on removal. The exported threeRenderer renders into a borrowed parent dedicated to its children without creating a WebGL renderer.
 
-Canvas defaults to a perspective camera at z = 5. Its optional camera prop borrows an external camera; a PerspectiveCamera child does not automatically become active. Width and height update the renderer and default camera. Canvas renders continuously and accepts an onFrame callback with scene, camera, renderer, delta seconds, and timestamp seconds. Pointer raycasting, controls, asset loading, and drawing on demand are outside this initial API.
+Canvas defaults to a perspective camera at z = 5. Its optional camera prop borrows an external camera; a PerspectiveCamera child does not automatically become active. Width and height update the renderer and default camera. Canvas renders continuously and accepts an onFrame callback with scene, camera, renderer, delta seconds, and timestamp seconds. Controls, asset loading, and drawing on demand are outside this initial API.
+
+### Three.js pointer events
+
+Mesh and group components accept onPointerDown, onPointerUp, onPointerMove, onPointerEnter, onPointerLeave, onPointerOver, onPointerOut, onPointerCancel, and onClick handlers. Canvas converts CSS pointer coordinates into a ray through the current camera, updates world matrices, and picks the nearest visible object on the camera's layers. That object occludes objects behind it even when it has no handlers. Three.js material sidedness controls which surfaces can be picked.
+
+Events bubble from the picked object through its scene ancestors; stopPropagation stops ancestor delivery. Enter and leave notifications describe each ancestor's hover boundary without repeating when moving between its children. Hover is tracked per pointer and re-evaluated each frame, so moving objects and cameras update hover even when the pointer stays still. Hidden ancestry and hidden materials are excluded.
+
+A ThreePointerEvent exposes nativeEvent, target (the receiving leaf or captured object), currentTarget (the handler's object), intersection, ray, pointerId, button, buttons, clientX, clientY, preventDefault, stopPropagation, and setPointerCapture/releasePointerCapture/hasPointerCapture methods scoped to that handler's object. Capturing on a group retargets subsequent events to that group. Off-object captured events retain the capture's last intersection; use the current ray for drag-plane calculations. A primary-button click is emitted only when press and release pick the same leaf.
+
+Canvas retains native pointer delivery during a press. Releasing outside a pressed object cancels it unless a scene object explicitly captured the pointer; captured objects still receive the release outside the canvas. Pointer cancellation, browser capture loss, subtree removal, and Canvas disposal clear interaction state and release native capture. Cleanup continues if removal callbacks fail. Borrowed scenes can use createThreeEvents directly, call update after changing the scene, remove to release a subtree's interaction state, and dispose when the surface is released.
 
 ### Declarative motion capabilities
 
@@ -501,16 +512,21 @@ render(() => <MotionPanel />, document.getElementById(`app`)!, {
 Use motion:initial, motion:animate, motion:transition, motion:whileHover, and motion:whileTap directly on native elements or custom tags. These are framework properties, separate from native attributes: they never become HTML attributes. An unregistered namespace or unsupported motion property produces an error. Standard XML, XMLNS, and XLink attribute namespaces retain their normal behavior.
 
 ```tsx
+import type { VNode } from "@atom.io/spa"
 import { useSetter, useValue } from "@atom.io/spa"
 import { atom } from "atom.io"
 
 const targetXAtom = atom<number>({ key: `targetX`, default: 0 })
-export function MotionPanel() {
+export function MotionPanel(): VNode {
 	const x = useValue(targetXAtom)
 	const setX = useSetter(targetXAtom)
 	return (
 		<section>
-			<button onClick={() => setX((value) => (value === 0 ? 200 : 0))}>
+			<button
+				onClick={() => {
+					setX((value) => (value === 0 ? 200 : 0))
+				}}
+			>
 				Move
 			</button>
 			<sliding-panel
@@ -533,9 +549,10 @@ Motion targets update reactively without rerunning component setup. The target s
 
 Motion respects the user's reduced-motion preference by default, including changes while mounted. The capability's reducedMotion option can be user, always, or never. Owner cleanup stops animations and releases effects, gesture handlers, and media-query listeners. Removing the capability properties releases that node's binding. Avoid assigning the same property through both native attributes/styles and motion targets: motion owns the properties it animates.
 
-The same attributes animate numeric Konva properties and colors, or Three.js position, rotation, scale, light/material color, opacity, and intensity. Three.js rotation uses Euler components, not quaternion interpolation. DOM hover and tap use Motion's gesture handling; Konva gestures use native pointer events. Three.js gesture targets fail explicitly until a raycasting event adapter exists.
+The same attributes animate numeric Konva properties and colors, or Three.js position, rotation, scale, light/material color, opacity, and intensity. Three.js rotation uses Euler components, not quaternion interpolation. DOM hover and tap use Motion's gesture handling; Konva gestures use native pointer events. Three.js gestures use the same raycast event layer as ordinary scene pointer handlers.
 
 ```tsx
+import type { VNode } from "@atom.io/spa"
 import { useValue } from "@atom.io/spa"
 import {
 	BoxGeometry,
@@ -550,7 +567,7 @@ const targetXAtom = atom<number>({
 	default: 1,
 })
 // Mount under a root with capabilities: [motionCapability()].
-export function SpringCube() {
+export function SpringCube(): VNode {
 	const x = useValue(targetXAtom)
 	return (
 		<Canvas>
@@ -558,6 +575,11 @@ export function SpringCube() {
 				motion:initial={{ position: [-1, 0, 0], scale: 0 }}
 				motion:animate={{ position: [x(), 0, 0], scale: 1 }}
 				motion:transition={{ type: `spring`, stiffness: 180, damping: 22 }}
+				motion:whileHover={{ scale: 1.2 }}
+				motion:whileTap={{ scale: 0.8 }}
+				onPointerDown={(event) => {
+					event.setPointerCapture()
+				}}
 			>
 				<BoxGeometry />
 				<MeshNormalMaterial />

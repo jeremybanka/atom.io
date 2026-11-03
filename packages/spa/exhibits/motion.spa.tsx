@@ -1,13 +1,18 @@
+import type { VNode } from "@atom.io/spa"
 import { useSetter, useValue } from "@atom.io/spa"
 import { atom } from "atom.io"
 
 const targetXAtom = atom<number>({ key: `targetX`, default: 0 })
-export function MotionPanel() {
+export function MotionPanel(): VNode {
 	const x = useValue(targetXAtom)
 	const setX = useSetter(targetXAtom)
 	return (
 		<section>
-			<button onClick={() => setX((value) => (value === 0 ? 200 : 0))}>
+			<button
+				onClick={() => {
+					setX((value) => (value === 0 ? 200 : 0))
+				}}
+			>
 				Move
 			</button>
 			<sliding-panel

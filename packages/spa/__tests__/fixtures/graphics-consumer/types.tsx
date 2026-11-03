@@ -44,3 +44,20 @@ const badDOM = <sliding-panel motion:animate={{ x: [1, 2, 3] }} />
 // @ts-expect-error: Motion transition options are checked against the installed peer.
 const badTransition = <sliding-panel motion:transition={{ stiffness: `fast` }} />
 void [scene, drawing, badVector, badDOM, badTransition]
+
+const input = (
+	<Mesh
+		onPointerDown={(event) => {
+			event.currentTarget.geometry.computeBoundingBox()
+			event.stopPropagation()
+			event.preventDefault()
+			event.setPointerCapture()
+			event.releasePointerCapture()
+			const native: PointerEvent = event.nativeEvent
+			void native
+			// @ts-expect-error: A mesh currentTarget is not a DOM element.
+			event.currentTarget.style
+		}}
+	/>
+)
+void input

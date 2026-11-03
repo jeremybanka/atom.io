@@ -1,3 +1,4 @@
+import type { VNode } from "@atom.io/spa"
 import { useValue } from "@atom.io/spa"
 import {
 	BoxGeometry,
@@ -12,7 +13,7 @@ const targetXAtom = atom<number>({
 	default: 1,
 })
 // Mount under a root with capabilities: [motionCapability()].
-export function SpringCube() {
+export function SpringCube(): VNode {
 	const x = useValue(targetXAtom)
 	return (
 		<Canvas>
@@ -20,6 +21,11 @@ export function SpringCube() {
 				motion:initial={{ position: [-1, 0, 0], scale: 0 }}
 				motion:animate={{ position: [x(), 0, 0], scale: 1 }}
 				motion:transition={{ type: `spring`, stiffness: 180, damping: 22 }}
+				motion:whileHover={{ scale: 1.2 }}
+				motion:whileTap={{ scale: 0.8 }}
+				onPointerDown={(event) => {
+					event.setPointerCapture()
+				}}
 			>
 				<BoxGeometry />
 				<MeshNormalMaterial />

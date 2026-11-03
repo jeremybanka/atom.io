@@ -160,3 +160,157 @@ it(`uses the root's frame clock and disposes it when drawing fails`, async () =>
 	expect(draw).toHaveBeenCalledTimes(1)
 	root.dispose()
 })
+
+it(`handles invalid children, keyed type replacement, array components, and owned mounts`, async () => {
+	const { render } = await import(`../src/index.ts`)
+	const renderer = createSceneRenderer<Node>({
+		create: (name) => ({ name, props: {}, children: [] }),
+		update() {},
+		children(parent, children) {
+			parent.children = children
+		},
+		destroy() {},
+	})
+	const parent: Node = { name: `parent`, props: {}, children: [] }
+	for (const value of [`text`, {} as any, { type: `shape` } as any])
+		expect(() => renderer.render(() => value, parent)).toThrow()
+	const silo = new Silo({
+		name: `replacement`,
+		lifespan: `ephemeral`,
+		isProduction: true,
+	})
+	const activeAtom = silo.atom<boolean>({ key: `active`, default: false })
+	const A = sceneComponent<{}>(`a`)
+	const B = sceneComponent<{}>(`b`)
+	function ArrayComponent() {
+		return [<A />, <B />]
+	}
+	function App() {
+		const active = useValue(activeAtom)
+		return (
+			<>
+				{active() ? <A key="same" /> : <B key="same" />}
+				<ArrayComponent />
+			</>
+		)
+	}
+	const root = renderer.render(() => <App />, parent, { store: silo.store })
+	expect(parent.children.map((node) => node.name)).toEqual([`b`, `a`, `b`])
+	silo.setState(activeAtom, true)
+	root.flush()
+	expect(parent.children.map((node) => node.name)).toEqual([`a`, `a`, `b`])
+	root.dispose()
+	const host = document.createElement(`div`)
+	const mounted = render(() => {
+		onMount(() => {
+			renderer.mount(() => <A />, parent)
+		})
+		return <div />
+	}, host)
+	expect(parent.children[0].name).toBe(`a`)
+	mounted.dispose()
+	expect(parent.children).toHaveLength(0)
+	expect(() =>
+		render(() => {
+			onMount(() => {
+				renderer.mount(() => `bad`, parent)
+			})
+			return <div />
+		}, host),
+	).toThrow(`must be nodes`)
+})
+it(`cancels browser frame subscriptions and ignores stale callbacks after removal`, async () => {
+	const { onSceneFrame } = await import(`../src/renderer.ts`)
+	const { render } = await import(`../src/index.ts`)
+	let callback!: FrameRequestCallback
+	const request = vi
+		.spyOn(globalThis, `requestAnimationFrame`)
+		.mockImplementation((run) => {
+			callback = run
+			return 7
+		})
+	const cancel = vi
+		.spyOn(globalThis, `cancelAnimationFrame`)
+		.mockImplementation(() => {})
+	const host = document.createElement(`div`)
+	const draw = vi.fn()
+	try {
+		const root = render(() => {
+			onMount(() => {
+				onSceneFrame(draw)
+			})
+			return <div />
+		}, host)
+		callback(100)
+		expect(draw).toHaveBeenCalledOnce()
+		expect(request).toHaveBeenCalledTimes(2)
+		root.dispose()
+		expect(cancel).toHaveBeenCalledWith(7)
+		callback(200)
+		expect(draw).toHaveBeenCalledOnce()
+		const cap = (namespace: string) => ({
+			namespace,
+			attach: () => ({ update() {}, dispose() {} }),
+			scheduleFrame: () => () => {},
+		})
+		expect(() =>
+			render(
+				() => {
+					onMount(() => {
+						onSceneFrame(draw)
+					})
+					return null
+				},
+				host,
+				{ capabilities: [cap(`a`), cap(`b`)] },
+			),
+		).toThrow(`multiple frame clock`)
+		let root2: ReturnType<typeof render>
+		root2 = render(() => {
+			onMount(() => {
+				onSceneFrame(() => {
+					root2.dispose()
+				})
+			})
+			return null
+		}, host)
+		callback(300)
+	} finally {
+		request.mockRestore()
+		cancel.mockRestore()
+	}
+})
+it(`does not publish stale scene refs after a sibling removes their scope`, async () => {
+	const core = await import(`../src/core.ts`)
+	let victimScope!: NonNullable<typeof core.owner>
+	const ref = vi.fn()
+	const renderer = createSceneRenderer<Node>({
+		create: (name) => ({ name, props: {}, children: [] }),
+		update() {},
+		children(parent, children) {
+			parent.children = children
+		},
+		destroy() {},
+	})
+	const Shape = sceneComponent<{ ref: (node: Node | null) => void }>(`shape`)
+	function Victim() {
+		victimScope = core.owner!
+		return <Shape ref={ref} />
+	}
+	const parent: Node = { name: `parent`, props: {}, children: [] }
+	const root = renderer.render(
+		() => (
+			<>
+				<Victim />
+				<Shape
+					ref={(node) => {
+						if (node) core.dispose(victimScope)
+					}}
+				/>
+			</>
+		),
+		parent,
+	)
+	expect(ref).not.toHaveBeenCalled()
+	root.dispose()
+})

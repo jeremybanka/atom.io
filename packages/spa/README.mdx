@@ -174,7 +174,17 @@ Import Canvas, Group, Mesh, PerspectiveCamera, AmbientLight, DirectionalLight, B
 
 Constructor args are fixed for an instance. To change them, replace the resource with a new key in a reactive child collection. Refs expose native objects. Owned geometries and materials are disposed on removal; textures passed through material properties remain borrowed. Canvas stops drawing and disposes its renderer on removal. The exported threeRenderer renders into a borrowed parent dedicated to its children without creating a WebGL renderer.
 
-Canvas defaults to a perspective camera at z = 5. Its optional camera prop borrows an external camera; a PerspectiveCamera child does not automatically become active. Width and height update the renderer and default camera. Canvas renders continuously and accepts an onFrame callback with scene, camera, renderer, delta seconds, and timestamp seconds. Pointer raycasting, controls, asset loading, and drawing on demand are outside this initial API.
+Canvas defaults to a perspective camera at z = 5. Its optional camera prop borrows an external camera; a PerspectiveCamera child does not automatically become active. Width and height update the renderer and default camera. Canvas renders continuously and accepts an onFrame callback with scene, camera, renderer, delta seconds, and timestamp seconds. Controls, asset loading, and drawing on demand are outside this initial API.
+
+### Three.js pointer events
+
+Mesh and group components accept onPointerDown, onPointerUp, onPointerMove, onPointerEnter, onPointerLeave, onPointerOver, onPointerOut, onPointerCancel, and onClick handlers. Canvas converts CSS pointer coordinates into a ray through the current camera, updates world matrices, and picks the nearest visible object on the camera's layers. That object occludes objects behind it even when it has no handlers. Three.js material sidedness controls which surfaces can be picked.
+
+Events bubble from the picked object through its scene ancestors; stopPropagation stops ancestor delivery. Enter and leave notifications describe each ancestor's hover boundary without repeating when moving between its children. Hover is tracked per pointer and re-evaluated each frame, so moving objects and cameras update hover even when the pointer stays still. Hidden ancestry and hidden materials are excluded.
+
+A ThreePointerEvent exposes nativeEvent, target (the receiving leaf or captured object), currentTarget (the handler's object), intersection, ray, pointerId, button, buttons, clientX, clientY, preventDefault, stopPropagation, and setPointerCapture/releasePointerCapture/hasPointerCapture methods scoped to that handler's object. Capturing on a group retargets subsequent events to that group. Off-object captured events retain the capture's last intersection; use the current ray for drag-plane calculations. A primary-button click is emitted only when press and release pick the same leaf.
+
+Canvas retains native pointer delivery during a press. Releasing outside a pressed object cancels it unless a scene object explicitly captured the pointer; captured objects still receive the release outside the canvas. Pointer cancellation, browser capture loss, subtree removal, and Canvas disposal clear interaction state and release native capture. Cleanup continues if removal callbacks fail. Borrowed scenes can use createThreeEvents directly, call update after changing the scene, remove to release a subtree's interaction state, and dispose when the surface is released.
 
 ### Declarative motion capabilities
 
@@ -190,7 +200,7 @@ Motion targets update reactively without rerunning component setup. The target s
 
 Motion respects the user's reduced-motion preference by default, including changes while mounted. The capability's reducedMotion option can be user, always, or never. Owner cleanup stops animations and releases effects, gesture handlers, and media-query listeners. Removing the capability properties releases that node's binding. Avoid assigning the same property through both native attributes/styles and motion targets: motion owns the properties it animates.
 
-The same attributes animate numeric Konva properties and colors, or Three.js position, rotation, scale, light/material color, opacity, and intensity. Three.js rotation uses Euler components, not quaternion interpolation. DOM hover and tap use Motion's gesture handling; Konva gestures use native pointer events. Three.js gesture targets fail explicitly until a raycasting event adapter exists.
+The same attributes animate numeric Konva properties and colors, or Three.js position, rotation, scale, light/material color, opacity, and intensity. Three.js rotation uses Euler components, not quaternion interpolation. DOM hover and tap use Motion's gesture handling; Konva gestures use native pointer events. Three.js gestures use the same raycast event layer as ordinary scene pointer handlers.
 
 <MotionThree />
 

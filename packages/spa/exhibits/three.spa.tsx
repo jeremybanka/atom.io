@@ -6,7 +6,7 @@ import {
 	DirectionalLight,
 	Mesh,
 	MeshStandardMaterial,
-} from "@atom.io/spa-three"
+} from "@atom.io/spa/three"
 import { atom } from "atom.io"
 
 const colorAtom = atom<string>({ key: `color`, default: `coral` })

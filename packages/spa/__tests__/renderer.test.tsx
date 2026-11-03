@@ -122,3 +122,41 @@ it(`publishes scene refs before mount hooks and releases acquired nodes on failu
 		renderer.mount(() => null, host)
 	}).toThrow(`requires an owner`)
 })
+
+it(`uses the root's frame clock and disposes it when drawing fails`, async () => {
+	const { onSceneFrame } = await import(`../src/renderer.ts`)
+	const { render } = await import(`../src/index.ts`)
+	let tick = (_time: number) => {}
+	const stop = vi.fn()
+	const error = vi.fn()
+	const capability = {
+		namespace: `clock`,
+		attach: () => ({ update() {}, dispose() {} }),
+		scheduleFrame(run: (time: number) => void) {
+			tick = run
+			return stop
+		},
+	}
+	const host = document.createElement(`div`)
+	const draw = vi.fn(() => {
+		throw new Error(`drawing failed`)
+	})
+	const root = render(
+		() => {
+			onMount(() => {
+				onSceneFrame(draw)
+			})
+			return <div />
+		},
+		host,
+		{ capabilities: [capability], onError: error },
+	)
+	tick(100)
+	expect(error).toHaveBeenCalledWith(
+		expect.objectContaining({ message: `drawing failed` }),
+	)
+	expect(stop).toHaveBeenCalledTimes(1)
+	tick(200)
+	expect(draw).toHaveBeenCalledTimes(1)
+	root.dispose()
+})

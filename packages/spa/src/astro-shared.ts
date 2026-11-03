@@ -1,6 +1,7 @@
 import type { RootStore } from "atom.io/internal"
 import { IMPLICIT, Store } from "atom.io/internal"
 
+import type { Capability } from "./capabilities.ts"
 import type { Component, VNode } from "./core.ts"
 import { jsx } from "./jsx-runtime.ts"
 
@@ -33,6 +34,8 @@ export type AstroStorePreparation<P = Record<string, any>> = (
 ) => void | Promise<void>
 export type Island<P = any> = Component<P> & {
 	spa?: boolean
+	/** Capabilities are scoped to this island root on the server and client. */
+	capabilities?: readonly Capability[]
 	/** Opt into a private island store instead of the shared application store. */
 	isolate?: boolean
 	createStore?: AstroStoreFactory<P>

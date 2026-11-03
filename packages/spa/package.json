@@ -68,6 +68,21 @@
 			"types": "./dist/renderer.d.ts",
 			"development": "./dist/development/renderer.js",
 			"import": "./dist/renderer.js"
+		},
+		"./konva": {
+			"types": "./dist/konva.d.ts",
+			"development": "./dist/development/konva.js",
+			"import": "./dist/konva.js"
+		},
+		"./three": {
+			"types": "./dist/three.d.ts",
+			"development": "./dist/development/three.js",
+			"import": "./dist/three.js"
+		},
+		"./motion": {
+			"types": "./dist/motion.d.ts",
+			"development": "./dist/development/motion.js",
+			"import": "./dist/motion.js"
 		}
 	},
 	"main": "./dist/index.js",
@@ -85,7 +100,7 @@
 		"pack:breakage": "pnpm --reporter=silent pack --out .breakage/package.tgz",
 		"test:breakage:peers": "breakage npm check",
 		"test": "vitest",
-		"test:once": "vitest run --config vitest.config.ts && pnpm test:consumer",
+		"test:once": "vitest run --config vitest.config.ts && pnpm test:consumer && pnpm test:optional-peers",
 		"test:consumer": "node __tests__/fixtures/consumer/check.ts",
 		"test:production": "node scripts/production-test.ts",
 		"test:browser": "astro build --root __tests__/astro && node scripts/browser-test.mjs && node scripts/dev-browser-test.mjs",
@@ -95,7 +110,8 @@
 		"readme:check": "galley check README.mdx",
 		"tonnage": "pnpm readme:write",
 		"tonnage:check": "pnpm readme:check",
-		"test:browser:graphics": "node scripts/graphics-browser-test.mjs"
+		"test:browser:graphics": "node scripts/graphics-browser-test.mjs",
+		"test:optional-peers": "node scripts/optional-peers-check.mjs && node __tests__/fixtures/graphics-consumer/check.ts"
 	},
 	"dependencies": {
 		"@babel/core": "8.1.0"
@@ -104,6 +120,7 @@
 		"@breakage/changesets": "0.1.0",
 		"@types/babel__core": "7.20.5",
 		"@types/node": "26.6.6",
+		"@types/three": "0.187.0",
 		"@vitest/coverage-v8": "5.1.0",
 		"astro": "7.4.5",
 		"atom.io": "workspace:*",
@@ -111,21 +128,40 @@
 		"esbuild": "0.28.2",
 		"eslint": "10.14.0",
 		"happy-dom": "21.0.4",
+		"konva": "10.9.1",
+		"motion": "14.9.0",
 		"playwright": "1.64.1",
 		"preact": "11.1.1",
 		"rolldown": "1.2.16",
+		"three": "0.187.0",
 		"tsdown": "0.23.4",
 		"typescript": "7.0.2",
 		"vite": "8.3.5",
 		"vitest": "5.1.0"
 	},
 	"peerDependencies": {
+		"@types/three": "^0.187.0",
 		"astro": "^7.4.2",
 		"atom.io": "^0.54.1",
+		"konva": "^10.9.1",
+		"motion": "^14.9.0",
+		"three": "^0.187.0",
 		"vite": "^8.3.5"
 	},
 	"peerDependenciesMeta": {
+		"@types/three": {
+			"optional": true
+		},
 		"astro": {
+			"optional": true
+		},
+		"konva": {
+			"optional": true
+		},
+		"motion": {
+			"optional": true
+		},
+		"three": {
 			"optional": true
 		},
 		"vite": {

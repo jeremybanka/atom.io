@@ -107,6 +107,7 @@ export default (element: HTMLElement): Hydrator =>
 				if (replace) element.replaceChildren()
 				const root = (replace ? render : hydrate)(mount, element, {
 					store: store!,
+					capabilities: component.capabilities ?? [],
 				})
 				lifetime.context.onCleanup(root.dispose)
 				update = (next) => {

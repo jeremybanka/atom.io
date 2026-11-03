@@ -11,6 +11,11 @@ import AstroConfig from "./exhibits/astro.config.ts" with { type: "code" };
 import AsyncAstro from "./exhibits/async-astro.spa.tsx" with { type: "code" };
 import Counter from "./exhibits/Counter.spa.tsx" with { type: "code" };
 import Verify from "./exhibits/verify.sh" with { type: "code" };
+import KonvaExample from "./exhibits/konva.spa.tsx" with { type: "code" };
+import ThreeExample from "./exhibits/three.spa.tsx" with { type: "code" };
+import MotionPanel from "./exhibits/motion.spa.tsx" with { type: "code" };
+import MotionMain from "./exhibits/motion-main.tsx" with { type: "code" };
+import MotionThree from "./exhibits/motion-three.spa.tsx" with { type: "code" };
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/jeremybanka/atom.io/main/apps/atom.io.fyi/public/spa/icon-512.png" alt="SPA logo" width="160" height="160" />
@@ -131,7 +136,7 @@ The checked Astro fixture demonstrates default/named slots and custom independen
 
 The build audits every browser export, including the JSX runtime, from the built JavaScript. Atom.io is an external peer in the incremental measurement. Compiler, server, and integration code have separate entrypoints. The report also includes the complete client plus atom.io, the Astro client entrypoint, and the installed Preact version under the same bundling/minification settings. These are full exported surfaces, not equivalent application benchmarks.
 
-The hard budget is under 3,400 bytes of ordinary level-9 gzip for the complete client export surface. Tsdown builds the package JavaScript and declarations, with separate production and development outputs that each share their runtime across entrypoints. The size audit then bundles the built exports with esbuild, minifies with Oxc, and measures compression using Node's gzip and Brotli implementations. The spa client measures 3,358 bytes with gzip. Actual application bundles add atom.io and compiler-generated application code.
+The hard budget is under 3,800 bytes of ordinary level-9 gzip for the complete client export surface. Tsdown builds the package JavaScript and declarations, with separate production and development outputs that each share their runtime across entrypoints. The size audit then bundles the built exports with esbuild, minifies with Oxc, and measures compression using Node's gzip and Brotli implementations. The complete client export surface measures approximately 3.7 kB with gzip; dist/size.json records the exact build measurements. Actual application bundles add atom.io and compiler-generated application code.
 
 Build output includes the minified audit entrypoint and machine-readable dist/size.json. These audit files are a bundled measurement; use the package exports in applications so the bundler preserves one runtime instance across entrypoints. Source tests exercise development behavior; the production test executes the audited minified artifact. Chromium checks exercise the actual Astro build, island isolation, hydration, keyed identity, focus/selection, SVG namespaces, and teardown. A fresh-cache Astro development check also covers mount hooks, shared state, and ClientRouter navigation.
 
@@ -149,8 +154,48 @@ Tonnage measures combined browser bundles containing SPA and atom.io, with share
 
 MPL-2.0 or later. See [LICENSE](./LICENSE).
 
-## Graphics renderers
+## Optional graphics and motion
 
-The experimental @atom.io/spa-konva and @atom.io/spa-three packages render Konva and Three.js scene subtrees using SPA's existing JSX compiler, state accessors, and component lifetimes. Their Stage and Canvas components are DOM boundaries; scene children use the same root store and release owned graphics resources when removed. See each package's README for examples and supported features.
+SPA includes Konva, Three.js, and Motion integrations behind separate entrypoints. Install only the engines you use. Konva, three, @types/three, and motion are optional peers; the main runtime and JSX declarations work without them installed. Importing the base entrypoint does not load any animation or graphics engine, and each integration's bundle excludes the other engines. These boundaries are verified with isolated consumer and bundle checks.
 
-The renderer entrypoint exposes createSceneRenderer, sceneComponent, and bindScene for imperative scene adapters. A host supplies node creation, property updates, ordered child attachment, and destruction. The shared renderer supplies reactive bindings, keyed component identity, refs, and owner cleanup. Use mount inside an owned component or mount callback to inherit its store and lifetime, or render with an explicit parent and optional root store to create a standalone scene root. Scene targets must be dedicated to their renderer's children. Scene subtrees do not support text nodes or hydration; their DOM boundaries defer graphics creation until browser mount.
+### Konva
+
+Import Stage, Layer, Group, Rect, Circle, Ellipse, Line, Text, Image, Path, Star, and Transformer from @atom.io/spa/konva. Stage renders a DOM container and creates its native stage after browser mounting. Compiled atom reads update native attributes; keyed children preserve node identity. Native configuration attributes and onClick, onPointerDown, onDragMove, and onDragEnd handlers are supported. Refs receive native nodes and null on cleanup. Removal destroys owned nodes and listeners.
+
+<KonvaExample />
+
+Konva owns hit testing, dragging, and draw batching. Write drag results back into atoms to keep document state synchronized. The exported konvaRenderer can also render into a borrowed container dedicated to its scene children.
+
+### Three.js
+
+Import Canvas, Group, Mesh, PerspectiveCamera, AmbientLight, DirectionalLight, BoxGeometry, SphereGeometry, PlaneGeometry, MeshStandardMaterial, MeshBasicMaterial, and MeshNormalMaterial from @atom.io/spa/three. Canvas creates a WebGL renderer after browser mounting. Geometry and material children attach to their Mesh, with one of each supported. Position and rotation accept three-number tuples; scale also accepts a scalar.
+
+<ThreeExample />
+
+Constructor args are fixed for an instance. To change them, replace the resource with a new key in a reactive child collection. Refs expose native objects. Owned geometries and materials are disposed on removal; textures passed through material properties remain borrowed. Canvas stops drawing and disposes its renderer on removal. The exported threeRenderer renders into a borrowed parent dedicated to its children without creating a WebGL renderer.
+
+Canvas defaults to a perspective camera at z = 5. Its optional camera prop borrows an external camera; a PerspectiveCamera child does not automatically become active. Width and height update the renderer and default camera. Canvas renders continuously and accepts an onFrame callback with scene, camera, renderer, delta seconds, and timestamp seconds. Pointer raycasting, controls, asset loading, and drawing on demand are outside this initial API.
+
+### Declarative motion capabilities
+
+Import motionCapability from @atom.io/spa/motion and register it explicitly in render or hydrate options. Importing that entrypoint also supplies JSX type augmentation. Registration belongs to one root, is inherited by its scene subtrees, and never modifies a global registry. Astro islands can set their component's capabilities property to the same array; the integration supplies it to both server rendering and browser hydration.
+
+<MotionMain />
+
+Use motion:initial, motion:animate, motion:transition, motion:whileHover, and motion:whileTap directly on native elements or custom tags. These are framework properties, separate from native attributes: they never become HTML attributes. An unregistered namespace or unsupported motion property produces an error. Standard XML, XMLNS, and XLink attribute namespaces retain their normal behavior.
+
+<MotionPanel />
+
+Motion targets update reactively without rerunning component setup. The target stays in atom.io; intermediate values and velocity remain in Motion. Spring transitions preserve motion-value continuity when retargeted. Duration-based tween transitions are also supported. Set initial to false to begin at the first animate target. DOM targets accept scalar CSS values and independent transforms, including custom CSS properties. Keyframe sequences, layout animation, exit/presence retention, and variant propagation are outside this initial API.
+
+Motion respects the user's reduced-motion preference by default, including changes while mounted. The capability's reducedMotion option can be user, always, or never. Owner cleanup stops animations and releases effects, gesture handlers, and media-query listeners. Removing the capability properties releases that node's binding. Avoid assigning the same property through both native attributes/styles and motion targets: motion owns the properties it animates.
+
+The same attributes animate numeric Konva properties and colors, or Three.js position, rotation, scale, light/material color, opacity, and intensity. Three.js rotation uses Euler components, not quaternion interpolation. DOM hover and tap use Motion's gesture handling; Konva gestures use native pointer events. Three.js gesture targets fail explicitly until a raycasting event adapter exists.
+
+<MotionThree />
+
+When the motion capability is installed, Canvas draws in Motion's render phase after animated scene values update. Without it, Canvas uses requestAnimationFrame. Both drawing subscriptions and animations end with their owners. The base runtime imports no motion engine; its capability dispatch adds approximately 350 bytes of gzip to the previous complete client surface.
+
+### Renderer extensions
+
+The renderer entrypoint exposes createSceneRenderer, sceneComponent, bindScene, and onSceneFrame for imperative scene adapters. A host supplies creation, property updates, ordered child attachment, and destruction. An optional target adapter exposes native property access and events to capabilities. The shared renderer supplies reactive bindings, keyed identity, refs, and cleanup. Use mount inside an owned component or mount callback to inherit its store, capabilities, and lifetime, or render with an explicit parent and optional root options to create a standalone scene root. Scene targets must be dedicated to their renderer's children. Scene subtrees do not support text nodes or hydration; their DOM boundaries defer graphics creation until browser mount. Server rendering validates and omits capability attributes without starting animations.

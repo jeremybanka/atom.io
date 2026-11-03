@@ -1,13 +1,8 @@
 import { render, useValue } from "@atom.io/spa"
+import { Layer, Rect, Stage } from "@atom.io/spa/konva"
+import { motionCapability } from "@atom.io/spa/motion"
+import { BoxGeometry, Canvas, Mesh, MeshBasicMaterial } from "@atom.io/spa/three"
 import { atom, setState } from "atom.io"
-
-import { Layer, Rect, Stage } from "../../spa-konva/src/index.ts"
-import {
-	BoxGeometry,
-	Canvas,
-	Mesh,
-	MeshBasicMaterial,
-} from "../../spa-three/src/index.ts"
 
 const sizeAtom = atom<number>({ key: `size`, default: 100 })
 let rect: any
@@ -17,9 +12,22 @@ function App() {
 	const read = useValue(sizeAtom)
 	return (
 		<>
+			<sliding-panel
+				id="motion-panel"
+				style="display: block; width: 100px; height: 40px"
+				motion:initial={{ x: 0 }}
+				motion:animate={{ x: read() }}
+				motion:transition={{ type: `spring`, stiffness: 180, damping: 22 }}
+				motion:whileHover={{ scale: 1.1 }}
+				motion:whileTap={{ scale: 0.9 }}
+			>
+				Motion panel
+			</sliding-panel>
 			<Stage width={read()} height={100}>
 				<Layer>
 					<Rect
+						motion:initial={{ x: 0 }}
+						motion:animate={{ x: read() / 10 }}
 						width={50}
 						height={50}
 						fill="red"
@@ -37,7 +45,7 @@ function App() {
 				}}
 			>
 				<Mesh
-					position={[read() / 100 - 1, 0, 0]}
+					motion:animate={{ position: [read() / 100 - 1, 0, 0] }}
 					ref={(node) => {
 						mesh = node
 					}}
@@ -49,7 +57,9 @@ function App() {
 		</>
 	)
 }
-const root = render(() => <App />, document.body)
+const root = render(() => <App />, document.body, {
+	capabilities: [motionCapability({ reducedMotion: `never` })],
+})
 Object.assign(window, {
 	graphics: {
 		update() {
@@ -61,6 +71,7 @@ Object.assign(window, {
 				frames,
 				x: mesh?.position.x,
 				rectWidth: rect?.width(),
+				rectX: rect?.x(),
 				canvases: [...document.querySelectorAll(`canvas`)].map(
 					(canvas) => canvas.width,
 				),

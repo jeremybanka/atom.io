@@ -1,3 +1,4 @@
+import { capabilityNamespace, validateCapabilities } from "./capabilities.ts"
 import type { Child, RootOptions, Scope, VNode } from "./core.ts"
 import {
 	createRoot,
@@ -73,10 +74,12 @@ function stringify(
 	if (type === `astro-slot`)
 		return `<astro-slot${props[`name`] ? ` name="${escape(props[`name`])}"` : ``}>${props[`innerHTML`] ?? ``}</astro-slot>`
 	const ns = type === `svg` ? `svg` : namespace
+	validateCapabilities(owner, props)
 	let attrs = ``
 	let textValue: string | number | undefined
 	for (let key of Object.keys(props)) {
 		if (
+			capabilityNamespace(key) !== undefined ||
 			key === `children` ||
 			key === `ref` ||
 			key === `key` ||

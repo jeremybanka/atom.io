@@ -1,21 +1,22 @@
-import type { Child, VNode } from "@atom.io/spa"
-import { onCleanup, onMount } from "@atom.io/spa"
-import { jsx } from "@atom.io/spa/jsx-runtime"
-import {
-	bindScene,
-	createSceneRenderer,
-	sceneComponent,
-} from "@atom.io/spa/renderer"
 import Konva from "konva"
 
-type Props<C, N> = C & {
-	children?: Child
-	ref?: (node: N | null) => void
-	onClick?: (event: Konva.KonvaEventObject<MouseEvent>) => void
-	onPointerDown?: (event: Konva.KonvaEventObject<PointerEvent>) => void
-	onDragMove?: (event: Konva.KonvaEventObject<DragEvent>) => void
-	onDragEnd?: (event: Konva.KonvaEventObject<DragEvent>) => void
-}
+import { capabilityProps } from "./capabilities.ts"
+import { owner } from "./core.ts"
+import type { Child, VNode } from "./index.ts"
+import { onCleanup, onMount } from "./index.ts"
+import type { CapabilityAttributes } from "./jsx-runtime.ts"
+import { jsx } from "./jsx-runtime.ts"
+import { bindScene, createSceneRenderer, sceneComponent } from "./renderer.ts"
+
+type Props<C, N> = C &
+	CapabilityAttributes<`konva`> & {
+		children?: Child
+		ref?: (node: N | null) => void
+		onClick?: (event: Konva.KonvaEventObject<MouseEvent>) => void
+		onPointerDown?: (event: Konva.KonvaEventObject<PointerEvent>) => void
+		onDragMove?: (event: Konva.KonvaEventObject<DragEvent>) => void
+		onDragEnd?: (event: Konva.KonvaEventObject<DragEvent>) => void
+	}
 const constructors = {
 	Layer: Konva.Layer,
 	Group: Konva.Group,
@@ -45,15 +46,31 @@ function updateNode(
 	}
 }
 const renderer = createSceneRenderer<Konva.Node>({
+	target(node) {
+		return {
+			kind: `konva`,
+			node,
+			read: (key) => node.getAttr(key),
+			write: (key, value) => {
+				node.setAttr(key, value)
+			},
+			listen(event, listener) {
+				node.on(event, listener)
+				return () => {
+					node.off(event, listener)
+				}
+			},
+		}
+	},
 	create(type) {
 		const Constructor = constructors[type as keyof typeof constructors]
-		if (!Constructor) throw new Error(`spa-konva: unknown node ${type}`)
+		if (!Constructor) throw new Error(`spa/konva: unknown node ${type}`)
 		return new Constructor({} as any)
 	},
 	update: updateNode,
 	children(parent, children) {
 		if (children.length && !(parent instanceof Konva.Container))
-			throw new Error(`spa-konva: shapes cannot contain children`)
+			throw new Error(`spa/konva: shapes cannot contain children`)
 		if (parent instanceof Konva.Container) {
 			for (const child of parent.getChildren())
 				if (!children.includes(child)) child.remove()
@@ -87,10 +104,25 @@ export function Stage(
 			stage.off()
 			stage.destroy()
 		})
+		const nativeProps = capabilityProps(owner!, {
+			kind: `konva`,
+			node: stage,
+			listen(event, listener) {
+				stage.on(event, listener)
+				return () => {
+					stage.off(event, listener)
+				}
+			},
+			read: (key) => stage.getAttr(key),
+			write: (key, value) => {
+				stage.setAttr(key, value)
+			},
+		})
 		let previous: Record<string, any> = {}
 		bindScene(
 			() => ({ ...props }),
-			(next) => {
+			(all) => {
+				const next = nativeProps(all)
 				updateNode(stage, next, previous)
 				previous = next
 			},

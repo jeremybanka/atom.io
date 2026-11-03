@@ -12,6 +12,9 @@ export type {
 	TargetedEvent,
 } from "./jsx-types.d.ts"
 
+/** Optional integrations augment attributes without changing element identity. */
+export interface CapabilityAttributes<Kind extends string = string> {}
+
 export const Fragment = (props: { children?: Child }): Child => props.children
 export function jsx(
 	type: VNode[`type`],

@@ -1,5 +1,5 @@
 import { useSetter, useValue } from "@atom.io/spa"
-import { Circle, Layer, Stage } from "@atom.io/spa-konva"
+import { Circle, Layer, Stage } from "@atom.io/spa/konva"
 import { atom } from "atom.io"
 
 const pointAtom = atom<{ x: number; y: number }>({

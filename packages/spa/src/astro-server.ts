@@ -31,6 +31,7 @@ const renderer: NamedSSRLoadedRendererValue = {
 				html: renderToString(() => () => island(component, props, slots), {
 					store,
 					idPrefix: crypto.randomUUID(),
+					capabilities: component.capabilities ?? [],
 				}),
 			}
 		} catch (error) {

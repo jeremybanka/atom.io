@@ -3,7 +3,7 @@ import { Silo } from "atom.io"
 import Konva from "konva"
 import { expect, it, vi } from "vitest"
 
-import { Group, konvaRenderer, Rect } from "../src/index.ts"
+import { Group, konvaRenderer, Rect } from "../src/konva.ts"
 
 it(`updates native attrs and event handlers and removes owned nodes`, () => {
 	vi.spyOn(Konva.Util, `isCanvasFarblingActive`).mockReturnValue(false)

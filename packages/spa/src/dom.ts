@@ -1,3 +1,4 @@
+import { capabilityProps } from "./capabilities.ts"
 import type { Accessor, Child, RootOptions, Scope, VNode } from "./core.ts"
 import {
 	createRoot,
@@ -290,6 +291,7 @@ function mount(
 				import.meta.env.DEV ? `spa: hydration mismatch` : undefined,
 			)
 	}
+	const nativeProps = capabilityProps(owner, { kind: `dom`, node: element })
 	let previous: Record<string, any> = {}
 	owner._cleanups.add(() => {
 		for (const key in previous)
@@ -298,7 +300,8 @@ function mount(
 	observe(
 		owner,
 		() => ({ ...props }),
-		(next) => {
+		(all) => {
+			const next = nativeProps(all)
 			for (const key in { ...previous, ...next })
 				if (
 					!Object.is(previous[key], next[key]) ||

@@ -1,3 +1,5 @@
+import type { CapabilityTarget } from "./capabilities.ts"
+import { capabilityProps } from "./capabilities.ts"
 import type { Child, Component, RootOptions, Scope, VNode } from "./core.ts"
 import {
 	createRoot,
@@ -13,6 +15,7 @@ import {
 import { Fragment, merge } from "./jsx-runtime.ts"
 
 export interface SceneHost<N> {
+	target?(node: N): CapabilityTarget
 	create(type: string, props: Record<string, any>): N
 	update(
 		node: N,
@@ -119,11 +122,16 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 		scope._cleanups.add(() => {
 			host.destroy(node)
 		})
+		const nativeProps = capabilityProps(
+			scope,
+			host.target?.(node) ?? { kind: `scene`, node },
+		)
 		let previous: Record<string, any> = {}
 		observe(
 			scope,
 			() => ({ ...props }),
-			(next) => {
+			(all) => {
+				const next = nativeProps(all)
 				host.update(node, next, previous)
 				previous = next
 			},
@@ -194,4 +202,41 @@ export function sceneComponent<P>(type: string): (props: P) => VNode {
 /** Bind imperative scene work to the current owner and its reactive dependencies. */
 export function bindScene<T>(read: () => T, apply: (value: T) => void): void {
 	observe(owner!, read, apply)
+}
+
+/** Scene drawing follows an installed capability clock, or the browser clock. */
+export function onSceneFrame(callback: (time: number) => void): void {
+	const scope = owner!
+	const clocks = [...scope._root._capabilities.values()].filter(
+		(capability) => capability.scheduleFrame,
+	)
+	if (clocks.length > 1)
+		throw new Error(`spa: multiple frame clock capabilities`)
+	const draw = (time: number) => {
+		if (scope._dead) return
+		try {
+			callback(time)
+		} catch (error) {
+			try {
+				fail(scope._root, error)
+			} catch (failure) {
+				scope._root.error(failure)
+			}
+		}
+	}
+	let stop: () => void
+	if (clocks[0]) stop = clocks[0].scheduleFrame!(draw)
+	else {
+		let frame = 0
+		const tick = (time: number) => {
+			if (scope._dead) return
+			draw(time)
+			if (!scope._dead) frame = requestAnimationFrame(tick)
+		}
+		frame = requestAnimationFrame(tick)
+		stop = () => {
+			cancelAnimationFrame(frame)
+		}
+	}
+	scope._cleanups.add(stop)
 }

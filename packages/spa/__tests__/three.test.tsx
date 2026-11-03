@@ -8,7 +8,7 @@ import {
 	Mesh,
 	MeshStandardMaterial,
 	threeRenderer,
-} from "../src/index.ts"
+} from "../src/three.ts"
 
 it(`updates transforms and colors, attaches resources, and disposes owned resources`, () => {
 	const silo = new Silo({
@@ -86,12 +86,12 @@ it(`replaces keyed resources and rejects constructor changes without a new key`,
 		)
 	}
 	const root = threeRenderer.render(() => <App />, scene, { store: silo.store })
-	const dispose = vi.spyOn(geometries[0]!, `dispose`)
+	const dispose = vi.spyOn(geometries[0], `dispose`)
 	silo.setState(sizeAtom, 2)
 	root.flush()
 	expect(dispose).toHaveBeenCalledTimes(1)
 	expect(geometries).toHaveLength(2)
-	expect(geometries[1]!.parameters.width).toBe(2)
+	expect(geometries[1].parameters.width).toBe(2)
 	root.dispose()
 	function Fixed() {
 		const size = useValue(sizeAtom)
@@ -105,6 +105,8 @@ it(`replaces keyed resources and rejects constructor changes without a new key`,
 		store: silo.store,
 	})
 	silo.setState(sizeAtom, 3)
-	expect(() => fixed.flush()).toThrow(`change the component key`)
+	expect(() => {
+		fixed.flush()
+	}).toThrow(`change the component key`)
 	expect(scene.children).toHaveLength(0)
 })

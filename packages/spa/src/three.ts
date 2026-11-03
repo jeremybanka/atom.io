@@ -1,16 +1,21 @@
-import type { Child, VNode } from "@atom.io/spa"
-import { onCleanup, onMount } from "@atom.io/spa"
-import { jsx } from "@atom.io/spa/jsx-runtime"
+import * as THREE from "three"
+
+import type { Child, VNode } from "./index.ts"
+import { onCleanup, onMount } from "./index.ts"
+import type { CapabilityAttributes } from "./jsx-runtime.ts"
+import { jsx } from "./jsx-runtime.ts"
 import {
 	bindScene,
 	createSceneRenderer,
+	onSceneFrame,
 	sceneComponent,
-} from "@atom.io/spa/renderer"
-import * as THREE from "three"
+} from "./renderer.ts"
 
 type Resource = THREE.Object3D | THREE.BufferGeometry | THREE.Material
 type Vector3 = readonly [number, number, number]
-export interface ObjectProps<N extends THREE.Object3D = THREE.Object3D> {
+export interface ObjectProps<
+	N extends THREE.Object3D = THREE.Object3D,
+> extends CapabilityAttributes<`three`> {
 	children?: Child
 	position?: Vector3
 	rotation?: Vector3
@@ -38,10 +43,40 @@ const meshDefaults = new WeakMap<
 >()
 const constructorArgs = new WeakMap<Resource, unknown[]>()
 const defaults = new WeakMap<Resource, Map<string, any>>()
+function writeProperty(node: Resource, key: string, value: any): void {
+	const target = node as any
+	if (!(key in target)) throw new Error(`spa/three: unknown property ${key}`)
+	const current = target[key]
+	if (current?.isColor) current.set(value)
+	else if (Array.isArray(value) && typeof current?.set === `function`)
+		current.set(...value)
+	else if (key === `scale` && typeof value === `number`) current.setScalar(value)
+	else if (current?.copy && value?.constructor === current.constructor)
+		current.copy(value)
+	else target[key] = value
+	if (node instanceof THREE.PerspectiveCamera) node.updateProjectionMatrix()
+}
 const renderer = createSceneRenderer<Resource>({
+	target(node) {
+		return {
+			kind: `three`,
+			node,
+			read(key) {
+				const value = (node as any)[key]
+				return value?.isColor
+					? value.getStyle()
+					: value?.isVector3 || value?.isEuler
+						? [value.x, value.y, value.z]
+						: value
+			},
+			write(key, value) {
+				writeProperty(node, key, value)
+			},
+		}
+	},
 	create(type, props) {
 		const Constructor = constructors[type as keyof typeof constructors]
-		if (!Constructor) throw new Error(`spa-three: unknown node ${type}`)
+		if (!Constructor) throw new Error(`spa/three: unknown node ${type}`)
 		const node = new (Constructor as any)(...(props[`args`] ?? [])) as Resource
 		// Mesh's implicit resources are replaced by owned JSX resources below.
 		if (node instanceof THREE.Mesh)
@@ -56,7 +91,7 @@ const renderer = createSceneRenderer<Resource>({
 	update(node, props, previous) {
 		if (!equalArgs(constructorArgs.get(node)!, props[`args`]))
 			throw new Error(
-				`spa-three: change the component key to replace constructor args`,
+				`spa/three: change the component key to replace constructor args`,
 			)
 		const target = node as any
 		const saved = defaults.get(node)!
@@ -69,26 +104,19 @@ const renderer = createSceneRenderer<Resource>({
 				Object.is(props[key], previous[key])
 			)
 				continue
-			if (!(key in target)) throw new Error(`spa-three: unknown property ${key}`)
+			if (!(key in target)) throw new Error(`spa/three: unknown property ${key}`)
 			const current = target[key]
 			if (!saved.has(key))
 				saved.set(key, current?.clone ? current.clone() : current)
 			const value = props[key] === undefined ? saved.get(key) : props[key]
-			if (current?.isColor) current.set(value)
-			else if (Array.isArray(value) && typeof current?.set === `function`)
-				current.set(...value)
-			else if (key === `scale` && typeof value === `number`)
-				current.setScalar(value)
-			else if (current?.copy && value?.constructor === current.constructor)
-				current.copy(value)
-			else target[key] = value
+			writeProperty(node, key, value)
 		}
 		if (node instanceof THREE.PerspectiveCamera) node.updateProjectionMatrix()
 	},
 	children(parent, children) {
 		if (!(parent instanceof THREE.Object3D)) {
 			if (children.length)
-				throw new Error(`spa-three: resources cannot contain children`)
+				throw new Error(`spa/three: resources cannot contain children`)
 			return
 		}
 		const objects = children.filter(
@@ -102,7 +130,7 @@ const renderer = createSceneRenderer<Resource>({
 			(child) => !(child instanceof THREE.Object3D),
 		)
 		if (resources.length && !(parent instanceof THREE.Mesh))
-			throw new Error(`spa-three: geometry and material require a Mesh parent`)
+			throw new Error(`spa/three: geometry and material require a Mesh parent`)
 		if (parent instanceof THREE.Mesh) {
 			const geometries = resources.filter(
 				(child) => child instanceof THREE.BufferGeometry,
@@ -112,7 +140,7 @@ const renderer = createSceneRenderer<Resource>({
 			)
 			if (geometries.length > 1 || materials.length > 1)
 				throw new Error(
-					`spa-three: each Mesh accepts one geometry and one material`,
+					`spa/three: each Mesh accepts one geometry and one material`,
 				)
 			parent.geometry = geometries[0] ?? meshDefaults.get(parent)!.geometry
 			parent.material = materials[0] ?? meshDefaults.get(parent)!.material
@@ -170,7 +198,7 @@ export function Canvas(props: CanvasProps): VNode {
 		)
 		renderer.mount(() => props.children, scene)
 		let last: number | undefined
-		webgl.setAnimationLoop((time) => {
+		onSceneFrame((time) => {
 			const active = props.camera ?? camera
 			const delta = last === undefined ? 0 : (time - last) / 1000
 			last = time
@@ -182,9 +210,6 @@ export function Canvas(props: CanvasProps): VNode {
 				time: time / 1000,
 			})
 			webgl.render(scene, active)
-		})
-		onCleanup(() => {
-			webgl.setAnimationLoop(null)
 		})
 	})
 	return jsx(`canvas`, {
@@ -229,18 +254,21 @@ export const PlaneGeometry = sceneComponent<{
 	ref?: (node: THREE.PlaneGeometry | null) => void
 }>(`PlaneGeometry`)
 export const MeshStandardMaterial = sceneComponent<
-	THREE.MeshStandardMaterialParameters & {
-		ref?: (node: THREE.MeshStandardMaterial | null) => void
-	}
+	THREE.MeshStandardMaterialParameters &
+		CapabilityAttributes<`three`> & {
+			ref?: (node: THREE.MeshStandardMaterial | null) => void
+		}
 >(`MeshStandardMaterial`)
 export const MeshBasicMaterial = sceneComponent<
-	THREE.MeshBasicMaterialParameters & {
-		ref?: (node: THREE.MeshBasicMaterial | null) => void
-	}
+	THREE.MeshBasicMaterialParameters &
+		CapabilityAttributes<`three`> & {
+			ref?: (node: THREE.MeshBasicMaterial | null) => void
+		}
 >(`MeshBasicMaterial`)
 export const MeshNormalMaterial = sceneComponent<
-	THREE.MeshNormalMaterialParameters & {
-		ref?: (node: THREE.MeshNormalMaterial | null) => void
-	}
+	THREE.MeshNormalMaterialParameters &
+		CapabilityAttributes<`three`> & {
+			ref?: (node: THREE.MeshNormalMaterial | null) => void
+		}
 >(`MeshNormalMaterial`)
 export { renderer as threeRenderer }

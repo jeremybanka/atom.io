@@ -890,6 +890,9 @@ importers:
       '@types/node':
         specifier: 26.6.6
         version: 26.6.6
+      '@types/three':
+        specifier: 0.187.0
+        version: 0.187.0
       '@vitest/coverage-v8':
         specifier: 5.1.0
         version: 5.1.0(vitest@5.1.0)
@@ -911,6 +914,12 @@ importers:
       happy-dom:
         specifier: 21.0.4
         version: 21.0.4
+      konva:
+        specifier: 10.9.1
+        version: 10.9.1
+      motion:
+        specifier: 14.9.0
+        version: 14.9.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       playwright:
         specifier: 1.64.1
         version: 1.64.1
@@ -920,6 +929,9 @@ importers:
       rolldown:
         specifier: 1.2.16
         version: 1.2.16
+      three:
+        specifier: 0.187.0
+        version: 0.187.0
       tsdown:
         specifier: 0.23.4
         version: 0.23.4(@tsdown/css@0.23.4)(oxc-resolver@11.21.2)(tsx@4.23.13)(typescript@7.0.2)
@@ -968,51 +980,6 @@ importers:
       vitest:
         specifier: 5.1.0
         version: 5.1.0(@types/node@26.6.6)(@vitest/coverage-v8@5.1.0)(@vitest/ui@5.1.0)(happy-dom@21.0.4)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
-
-  packages/spa-konva:
-    devDependencies:
-      '@atom.io/spa':
-        specifier: workspace:*
-        version: link:../spa
-      atom.io:
-        specifier: workspace:*
-        version: link:../atom.io
-      konva:
-        specifier: 10.9.1
-        version: 10.9.1
-      tsdown:
-        specifier: 0.23.4
-        version: 0.23.4(@tsdown/css@0.23.4)(oxc-resolver@11.21.2)(tsx@4.23.13)(typescript@7.0.2)
-      typescript:
-        specifier: 7.0.2
-        version: 7.0.2
-      vitest:
-        specifier: 5.0.5
-        version: 5.0.5(@types/node@26.6.6)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(happy-dom@21.0.4)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
-
-  packages/spa-three:
-    devDependencies:
-      '@atom.io/spa':
-        specifier: workspace:*
-        version: link:../spa
-      '@types/three':
-        specifier: 0.187.0
-        version: 0.187.0
-      atom.io:
-        specifier: workspace:*
-        version: link:../atom.io
-      three:
-        specifier: 0.187.0
-        version: 0.187.0
-      tsdown:
-        specifier: 0.23.4
-        version: 0.23.4(@tsdown/css@0.23.4)(oxc-resolver@11.21.2)(tsx@4.23.13)(typescript@7.0.2)
-      typescript:
-        specifier: 7.0.2
-        version: 7.0.2
-      vitest:
-        specifier: 5.0.5
-        version: 5.0.5(@types/node@26.6.6)(@vitest/coverage-v8@5.0.5)(@vitest/ui@5.0.5)(happy-dom@21.0.4)(vite@8.3.5(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
 
   templates/preact-realtime-vector-editor:
     dependencies:

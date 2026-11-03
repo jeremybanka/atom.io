@@ -1,7 +1,5 @@
 ---
 "@atom.io/spa": patch
-"@atom.io/spa-konva": patch
-"@atom.io/spa-three": patch
 ---
 
-Add experimental Konva and Three.js JSX adapters with shared SPA scene ownership, reactive properties, keyed children, native refs, and resource cleanup.
+Add optional Konva, Three.js, and Motion entrypoints to SPA, with root-scoped motion:* attributes for spring and tween animations, hover and tap states, shared scene ownership, and resource cleanup. Graphics and animation engines remain optional peers and are excluded from base application bundles.

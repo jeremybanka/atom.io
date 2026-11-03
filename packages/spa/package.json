@@ -116,7 +116,7 @@
 	},
 	"dependencies": {
 		"html-entities": "2.6.0",
-		"magic-string": "1.4.3",
+		"magic-string": "1.4.5",
 		"oxc-parser": "0.156.0"
 	},
 	"devDependencies": {

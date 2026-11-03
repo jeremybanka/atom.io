@@ -99,6 +99,7 @@ type TargetValues = Record<string, MotionScalar | readonly number[]>
 interface AnimatedProperty {
 	values: MotionValue<MotionScalar>[]
 	base: MotionScalar | readonly number[]
+	rest: MotionScalar | readonly number[]
 	target: MotionScalar | readonly number[]
 	release(): void
 }
@@ -178,9 +179,9 @@ function attach(
 				throw new Error(`spa/motion: cannot change the shape of ${key}`)
 			return existing
 		}
-		let base = read(key, goal) as MotionScalar | readonly number[]
-		if (!Array.isArray(goal) && Array.isArray(base)) base = base[0]!
-		let start = initial === false ? goal : (initial[key] ?? base)
+		const base = read(key, goal) as MotionScalar | readonly number[]
+		const rest = !Array.isArray(goal) && Array.isArray(base) ? base[0]! : base
+		let start = initial === false ? goal : (initial[key] ?? rest)
 		if (!Array.isArray(goal) && Array.isArray(start)) start = start[0]!
 		if (
 			Array.isArray(goal) &&
@@ -219,6 +220,7 @@ function attach(
 		const property: AnimatedProperty = {
 			values,
 			base,
+			rest,
 			target: start,
 			release() {
 				for (const release of unsubscribers) release()
@@ -259,7 +261,7 @@ function attach(
 			type: `spring`,
 		}) as ValueAnimationTransition
 		for (const [key, property] of properties) {
-			const goal = goals[key] ?? (initial && initial[key]) ?? property.base
+			const goal = goals[key] ?? (initial && initial[key]) ?? property.rest
 			if (equal(property.target, goal)) continue
 			property.target = Array.isArray(goal) ? [...goal] : goal
 			const next = Array.isArray(goal) ? goal : [goal]

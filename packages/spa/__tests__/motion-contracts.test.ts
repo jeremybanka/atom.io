@@ -66,7 +66,7 @@ it(`supports initial:false and scalar scale with tuple-valued native transforms`
 	f.binding.update({ animate: { scale: 3 } })
 	expect(f.values[`scale`]).toBe(3)
 	f.binding.dispose()
-	expect(f.values[`scale`]).toBe(1)
+	expect(f.values[`scale`]).toEqual([1, 1, 1])
 })
 it(`uses sensible defaults for absent scene properties and validates changing target dimensions`, () => {
 	const f = scene(() => undefined)

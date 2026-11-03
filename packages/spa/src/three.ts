@@ -51,6 +51,13 @@ const meshDefaults = new WeakMap<
 	THREE.Mesh,
 	{ geometry: THREE.BufferGeometry; material: THREE.Material }
 >()
+const borrowedMeshDefaults = new WeakMap<
+	THREE.Mesh,
+	{
+		geometry: THREE.BufferGeometry
+		material: THREE.Material | THREE.Material[]
+	}
+>()
 const constructorArgs = new WeakMap<Resource, unknown[]>()
 const eventHandlers = new WeakMap<Resource, Map<string, () => void>>()
 const defaults = new WeakMap<Resource, Map<string, any>>()
@@ -182,8 +189,15 @@ const renderer = createSceneRenderer<Resource>({
 				throw new Error(
 					`spa/three: each Mesh accepts one geometry and one material`,
 				)
-			parent.geometry = geometries[0] ?? meshDefaults.get(parent)!.geometry
-			parent.material = materials[0] ?? meshDefaults.get(parent)!.material
+			const owned = meshDefaults.get(parent)
+			let baseline = owned ?? borrowedMeshDefaults.get(parent)
+			if (!baseline) {
+				baseline = { geometry: parent.geometry, material: parent.material }
+				borrowedMeshDefaults.set(parent, baseline)
+			}
+			parent.geometry = geometries[0] ?? baseline.geometry
+			parent.material = materials[0] ?? baseline.material
+			if (!owned && children.length === 0) borrowedMeshDefaults.delete(parent)
 		}
 	},
 	destroy(node) {

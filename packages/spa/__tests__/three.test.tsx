@@ -185,3 +185,97 @@ it(`routes raycast events through JSX handlers and motion gestures, including re
 		events.dispose()
 	}
 })
+
+it(`preserves borrowed Mesh resources across scene attachment, overrides, disposal, and reuse`, () => {
+	const geometry = new THREE.BoxGeometry()
+	const material = new THREE.MeshBasicMaterial()
+	const parent = new THREE.Mesh<
+		THREE.BufferGeometry,
+		THREE.Material | THREE.Material[]
+	>(geometry, [material])
+	const geometryDispose = vi.spyOn(geometry, `dispose`)
+	const materialDispose = vi.spyOn(material, `dispose`)
+	const originalMaterials = parent.material
+	const group = threeRenderer.render(() => <Mesh />, parent)
+	expect(parent.geometry).toBe(geometry)
+	expect(parent.material).toBe(originalMaterials)
+	group.dispose()
+	expect(parent.geometry).toBe(geometry)
+	expect(parent.material).toBe(originalMaterials)
+	const overridden = threeRenderer.render(
+		() => (
+			<>
+				<BoxGeometry />
+				<MeshStandardMaterial />
+			</>
+		),
+		parent,
+	)
+	const ownedGeometry = parent.geometry
+	const ownedMaterial = parent.material as THREE.Material
+	const ownedGeometryDispose = vi.spyOn(ownedGeometry, `dispose`)
+	const ownedMaterialDispose = vi.spyOn(ownedMaterial, `dispose`)
+	expect(ownedGeometry).not.toBe(geometry)
+	expect(ownedMaterial).not.toBe(originalMaterials)
+	overridden.dispose()
+	expect(parent.geometry).toBe(geometry)
+	expect(parent.material).toBe(originalMaterials)
+	expect(ownedGeometryDispose).toHaveBeenCalledOnce()
+	expect(ownedMaterialDispose).toHaveBeenCalledOnce()
+	expect(geometryDispose).not.toHaveBeenCalled()
+	expect(materialDispose).not.toHaveBeenCalled()
+	const nextGeometry = new THREE.BoxGeometry(2, 2, 2)
+	const nextMaterial = new THREE.MeshBasicMaterial()
+	parent.geometry = nextGeometry
+	parent.material = nextMaterial
+	const reused = threeRenderer.render(() => <BoxGeometry />, parent)
+	expect(parent.material).toBe(nextMaterial)
+	reused.dispose()
+	expect(parent.geometry).toBe(nextGeometry)
+	expect(parent.material).toBe(nextMaterial)
+	const empty = threeRenderer.render(() => null, parent)
+	empty.dispose()
+	geometry.dispose()
+	material.dispose()
+	nextGeometry.dispose()
+	nextMaterial.dispose()
+})
+
+it(`restores all three scale axes when a scalar motion binding is removed or disposed`, async () => {
+	const { motionCapability } = await import(`../src/motion.ts`)
+	const silo = new Silo({
+		name: `scale-baseline`,
+		lifespan: `ephemeral`,
+		isProduction: true,
+	})
+	const enabledAtom = silo.atom<boolean>({ key: `enabled`, default: false })
+	const initialScale: readonly [number, number, number] = [2, 3, 4]
+	const ref = vi.fn()
+	function App() {
+		const enabled = useValue(enabledAtom)
+		return (
+			<Mesh
+				ref={ref}
+				scale={initialScale}
+				{...(enabled() ? { "motion:animate": { scale: 1 } } : {})}
+			/>
+		)
+	}
+	const parent = new THREE.Scene()
+	const root = threeRenderer.render(() => <App />, parent, {
+		store: silo.store,
+		capabilities: [motionCapability({ reducedMotion: `always` })],
+	})
+	const mesh = ref.mock.calls[0][0] as THREE.Mesh
+	expect(mesh.scale.toArray()).toEqual([2, 3, 4])
+	silo.setState(enabledAtom, true)
+	root.flush()
+	expect(mesh.scale.toArray()).toEqual([1, 1, 1])
+	silo.setState(enabledAtom, false)
+	root.flush()
+	expect(mesh.scale.toArray()).toEqual([2, 3, 4])
+	silo.setState(enabledAtom, true)
+	root.flush()
+	root.dispose()
+	expect(mesh.scale.toArray()).toEqual([2, 3, 4])
+})

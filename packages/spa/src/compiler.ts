@@ -1,4 +1,5 @@
 import { decode } from "html-entities"
+import type { SourceMap } from "magic-string"
 import MagicString from "magic-string"
 import type {
 	Expression,
@@ -41,7 +42,10 @@ function eager(node: Node, allowJsx = false): boolean {
 	)
 }
 
-export function compile(code: string, filename: string) {
+export function compile(
+	code: string,
+	filename: string,
+): { code: string; map: SourceMap } {
 	const parsed = parseSync(filename, code, {
 		lang: `tsx`,
 		preserveParens: true,
@@ -76,7 +80,7 @@ export function compile(code: string, filename: string) {
 			elements.push(node)
 			if (outerFunction) functions.add(outerFunction)
 		}
-		for (const key of visitorKeys[node.type]!) {
+		for (const key of visitorKeys[node.type]) {
 			const value = (node as unknown as Record<string, unknown>)[key]
 			if (Array.isArray(value)) {
 				for (const child of value) if (child) walk(child, node, outerFunction)

@@ -1,5 +1,7 @@
 // @vitest-environment node
 
+import { runInNewContext } from "node:vm"
+
 import { originalPositionFor, TraceMap } from "@jridgewell/trace-mapping"
 import { transformSync } from "esbuild"
 import { parseSync } from "oxc-parser"
@@ -13,13 +15,17 @@ function evaluate(source: string): Record<string, any> {
 	expect(parseSync(`fixture.tsx`, compiled.code).errors).toEqual([])
 	const { code } = transformSync(compiled.code, { loader: `tsx`, format: `cjs` })
 	const module = { exports: {} }
-	new Function(`require`, `module`, `exports`, code.replace(/^#![^\n]*\n/, ``))(
-		(name: string) => {
-			expect(name).toBe(`@atom.io/spa/jsx-runtime`)
-			return { jsx, merge }
+	runInNewContext(
+		code.replace(/^#![^\n]*\n/, ``),
+		{
+			require: (name: string) => {
+				expect(name).toBe(`@atom.io/spa/jsx-runtime`)
+				return { jsx, merge }
+			},
+			module,
+			exports: module.exports,
 		},
-		module,
-		module.exports,
+		{ filename: `fixture.cjs` },
 	)
 	return module.exports
 }

@@ -1,6 +1,6 @@
 {
 	"name": "atom.io.fyi",
-	"version": "0.2.99",
+	"version": "0.2.100",
 	"private": true,
 	"license": "Apache-2.0",
 	"type": "module",

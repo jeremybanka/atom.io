@@ -1,5 +1,15 @@
 # atom.io.fyi
 
+## 0.2.100
+
+### Patch Changes
+
+- Updated dependencies [b1aa735]
+- Updated dependencies [b7becbd]
+  - @atom.io/spa@0.0.3
+  - @atom.io/spa-devtools@0.0.3
+  - atom.io@0.54.4
+
 ## 0.2.99
 
 ### Patch Changes

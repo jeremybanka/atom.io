@@ -224,11 +224,11 @@ export function captureMotion(
 		}
 		scrub.max = String(Math.max(0, capture.samples.length - 1))
 		if (!reviewing) scrub.value = scrub.max
-		root.dataset.frames = String(capture.samples.length)
-		root.dataset.reviewing = String(reviewing)
-		root.dataset.phase = phase
+		root.dataset[`frames`] = String(capture.samples.length)
+		root.dataset[`reviewing`] = String(reviewing)
+		root.dataset[`phase`] = phase
 		// Kept for layout checks in the browser sandbox test.
-		surface.dataset.width = String(width)
+		surface.dataset[`width`] = String(width)
 	}
 	const read = () => {
 		if (dead) return
@@ -301,7 +301,7 @@ export function captureMotion(
 			time < 150
 		) {
 			capture.samples.push(at)
-			root.dataset.frames = String(capture.samples.length)
+			root.dataset[`frames`] = String(capture.samples.length)
 			previous = at
 			if (capture.samples.length > 3600) {
 				capture.samples.shift()

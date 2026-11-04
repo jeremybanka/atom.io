@@ -19,8 +19,7 @@
 		"lint:types": "tsc",
 		"test:once": "node --test src/components/*.test.ts",
 		"test:browser": "node scripts/test-spa.browser.mjs",
-		"test:browser:dev": "node scripts/test-spa.browser.mjs --dev",
-		"test:browser:motion": "node scripts/test-motion.browser.mjs"
+		"test:browser:dev": "node scripts/test-spa.browser.mjs --dev"
 	},
 	"dependencies": {
 		"@astrojs/cloudflare": "14.4.4",

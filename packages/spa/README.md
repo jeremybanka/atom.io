@@ -631,6 +631,8 @@ export function DismissiblePanel(): VNode {
 
 ```
 
+In the repository, the runnable source lives in [examples/motion](https://github.com/jeremybanka/atom.io/tree/main/packages/spa/examples/motion), including its standalone Vite entrypoint and visual recorder. Run the package’s example:motion script to start it locally.
+
 Try the [motion sandbox](https://atom.io.fyi/spa-motion-lab) to interrupt a 2s tween at adjustable speeds, inspect rendered positions and velocities, scrub the captured sequence, or export PNG and JSON evidence.
 
 SPA retains the entire removed subtree until all its exit targets finish, including independently exiting descendants adopted by an exiting ancestor. Native nodes, scene attachments, refs, subscriptions, renderers, geometries, and materials remain owned until final disposal. Siblings keep their instances; retained ranges keep their previous position. A target without an exit is removed immediately unless another exit retains its enclosing subtree.

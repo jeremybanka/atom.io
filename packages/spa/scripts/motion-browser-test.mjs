@@ -2,19 +2,22 @@ import assert from "node:assert/strict"
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
-import { dev } from "astro"
+import { createServer } from "vite"
 import { chromium } from "playwright"
 
 let browser, server, page
 const cacheDir = await mkdtemp(join(tmpdir(), `spa-motion-sandbox-`))
 try {
-	server = await dev({
-		root: resolve(import.meta.dirname, `..`),
+	server = await createServer({
+		configFile: resolve(
+			import.meta.dirname,
+			`../examples/motion/vite.config.ts`,
+		),
 		server: { host: `127.0.0.1`, port: 0 },
-		vite: { cacheDir },
+		cacheDir,
 		logLevel: `error`,
-		devToolbar: { enabled: false },
 	})
+	await server.listen()
 	browser = await chromium.launch({
 		executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
 		args: [`--enable-unsafe-swiftshader`],
@@ -31,7 +34,7 @@ try {
 		errors.push(error.message)
 		console.error(error.stack)
 	})
-	await page.goto(`http://127.0.0.1:${server.address.port}/spa-motion-lab`)
+	await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/`)
 	await page.screenshot({ path: `/tmp/spa-motion-initial.png`, fullPage: true })
 	await writeFile(`/tmp/spa-motion-page.html`, await page.content())
 	await page.waitForFunction(
@@ -295,6 +298,6 @@ try {
 	throw error
 } finally {
 	await browser?.close()
-	await server?.stop()
+	await server?.close()
 	await rm(cacheDir, { recursive: true, force: true })
 }

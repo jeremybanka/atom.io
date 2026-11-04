@@ -1,34 +1,34 @@
-.motion-lab {
+.motion-lab-page {
 	margin: 0;
 	background: #11191d;
 	color: #edf5ef;
 	font-family: ui-sans-serif, system-ui, sans-serif;
 }
-.motion-lab * {
+.motion-lab-page * {
 	box-sizing: border-box;
 }
-.motion-lab motion-lab-layout {
+.motion-lab-page motion-lab {
 	display: block;
 	max-width: 1120px;
 	margin: auto;
 	padding: 0 36px;
 }
-.motion-lab header {
+.motion-lab-page header {
 	height: 86px;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	border-bottom: 1px solid #344047;
 }
-.motion-lab a {
+.motion-lab-page a {
 	color: inherit;
 	text-decoration: none;
 }
-.motion-lab header a {
+.motion-lab-page header a {
 	font-size: 24px;
 	letter-spacing: -1px;
 }
-.motion-lab header span {
+.motion-lab-page header span {
 	font-size: 12px;
 	letter-spacing: 0;
 	color: #a2b3b8;
@@ -261,7 +261,7 @@ sandbox-notes strong {
 	color: #edf5ef;
 	font-weight: 500;
 }
-.motion-lab footer {
+.motion-lab-page footer {
 	display: flex;
 	justify-content: space-between;
 	gap: 16px;
@@ -271,7 +271,7 @@ sandbox-notes strong {
 	color: #a2b3b8;
 }
 @media (max-width: 720px) {
-	.motion-lab motion-lab-layout {
+	.motion-lab-page motion-lab {
 		display: block;
 		padding: 0 18px;
 	}
@@ -404,7 +404,7 @@ toast-sandbox[data-reviewing="true"] motion-card {
 	}
 }
 
-.motion-lab .example-link {
+.motion-lab-page .example-link {
 	display: inline-block;
 	color: #94e4c6;
 	font-size: 13px;
@@ -412,4 +412,8 @@ toast-sandbox[data-reviewing="true"] motion-card {
 }
 #toast-dismissal {
 	scroll-margin-top: 24px;
+}
+
+motion-lab-root {
+	display: block;
 }

@@ -23,12 +23,15 @@
 			]
 		}
 	},
-	"exclude": ["__tests__/fixtures/consumer/jsx-types.tsx"],
+	"exclude": [
+		"__tests__/fixtures/consumer/jsx-types.tsx"
+	],
 	"include": [
 		"src",
 		"__tests__",
 		"scripts",
 		"exhibits",
+		"examples",
 		"*.config.ts",
 		"tonnage-recipes"
 	]

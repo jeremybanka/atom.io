@@ -1,7 +1,6 @@
 ---
-import { ToastSandbox } from "../components/ToastSandbox.tsx"
-import { MotionSandbox } from "../components/MotionSandbox.tsx"
-import "../components/motion-sandbox.css"
+import { MotionLab } from "../../../../packages/spa/examples/motion/MotionLab.tsx"
+import "../../../../packages/spa/examples/motion/motion-sandbox.css"
 ---
 <html lang="en">
 	<head>
@@ -11,35 +10,5 @@ import "../components/motion-sandbox.css"
 		<title>SPA / motion lab</title>
 		<link rel="icon" href="/spa/icon-32.png" />
 	</head>
-	<body class="motion-lab">
-		<motion-lab-layout>
-			<header>
-				<a href="/docs/spa">spa <span>/ motion lab</span></a><span
-					class="edition"
-				>01 / INTERRUPTION STUDY</span>
-			</header>
-			<main>
-				<section class="intro">
-					<p class="eyebrow">CHANGE OF PLANS. SAME MOMENTUM.</p>
-					<h1>A little <em>U-turn.</em></h1>
-					<p>
-						A card starts to leave. You change your mind. It carries its
-						momentum, slows to a stop, and comes back. Try it slowly; every frame
-						leaves a trace.
-					</p>
-					<a class="example-link" href="#toast-dismissal"
-					>Try the toast dismissal ↓</a>
-				</section>
-				<MotionSandbox client:only="spa" />
-				<section id="toast-dismissal" aria-label="Toast dismissal example">
-					<ToastSandbox client:only="spa" />
-				</section>
-			</main>
-			<footer>
-				<a href="https://github.com/jeremybanka/atom.io/pull/1421"
-				>Presence lifecycle / #1405 ↗</a><a href="/docs/spa"
-				>SPA documentation ↗</a>
-			</footer>
-		</motion-lab-layout>
-	</body>
+	<body class="motion-lab-page"><MotionLab client:only="spa" /></body>
 </html>

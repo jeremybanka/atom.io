@@ -358,7 +358,7 @@ The checked Astro fixture demonstrates default/named slots and custom independen
 
 The build audits every browser export, including the JSX runtime, from the built JavaScript. Atom.io is an external peer in the incremental measurement. Compiler, server, and integration code have separate entrypoints. The report also includes the complete client plus atom.io, the Astro client entrypoint, and the installed Preact version under the same bundling/minification settings. These are full exported surfaces, not equivalent application benchmarks.
 
-The hard budget is under 3,800 bytes of ordinary level-9 gzip for the complete client export surface. Tsdown builds the package JavaScript and declarations, with separate production and development outputs that each share their runtime across entrypoints. The size audit then bundles the built exports with esbuild, minifies with Oxc, and measures compression using Node's gzip and Brotli implementations. The complete client export surface measures approximately 3.7 kB with gzip; dist/size.json records the exact build measurements. Actual application bundles add atom.io and compiler-generated application code.
+The hard budget is under 4,100 bytes of ordinary level-9 gzip for the complete client export surface. Tsdown builds the package JavaScript and declarations, with separate production and development outputs that each share their runtime across entrypoints. The size audit then bundles the built exports with esbuild, minifies with Oxc, and measures compression using Node's gzip and Brotli implementations. The complete client export surface measures approximately 4.0 kB with gzip; dist/size.json records the exact build measurements. Actual application bundles add atom.io and compiler-generated application code.
 
 Build output includes the minified audit entrypoint and machine-readable dist/size.json. These audit files are a bundled measurement; use the package exports in applications so the bundler preserves one runtime instance across entrypoints. Source tests exercise development behavior; the production test executes the audited minified artifact. Chromium checks exercise the actual Astro build, island isolation, hydration, keyed identity, focus/selection, SVG namespaces, and teardown. A fresh-cache Astro development check also covers mount hooks, shared state, and ClientRouter navigation.
 
@@ -390,11 +390,11 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                           | Entry                             | Minified JS |  Gzip JS |
 | -------------------------------- | --------------------------------- | ----------: | -------: |
-| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    62,395 B | 18,504 B |
-| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    40,808 B | 12,714 B |
-| Interactive client app           | `tonnage-recipes/client-app.ts`   |    40,470 B | 12,559 B |
-| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    40,471 B | 12,560 B |
-| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    46,849 B | 14,513 B |
+| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    63,224 B | 18,818 B |
+| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    41,626 B | 13,031 B |
+| Interactive client app           | `tonnage-recipes/client-app.ts`   |    41,288 B | 12,876 B |
+| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    41,289 B | 12,876 B |
+| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    47,672 B | 14,844 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 
@@ -509,7 +509,7 @@ render(() => <MotionPanel />, document.getElementById(`app`)!, {
 
 ```
 
-Use motion:initial, motion:animate, motion:transition, motion:whileHover, and motion:whileTap directly on native elements or custom tags. These are framework properties, separate from native attributes: they never become HTML attributes. An unregistered namespace or unsupported motion property produces an error. Standard XML, XMLNS, and XLink attribute namespaces retain their normal behavior.
+Use motion:initial, motion:animate, motion:exit, motion:transition, motion:whileHover, and motion:whileTap directly on native elements or custom tags. These are framework properties, separate from native attributes: they never become HTML attributes. An unregistered namespace or unsupported motion property produces an error. Standard XML, XMLNS, and XLink attribute namespaces retain their normal behavior.
 
 ```tsx
 import type { VNode } from "@atom.io/spa"
@@ -545,7 +545,7 @@ export function MotionPanel(): VNode {
 
 ```
 
-Motion targets update reactively without rerunning component setup. The target stays in atom.io; intermediate values and velocity remain in Motion. Spring transitions preserve motion-value continuity when retargeted. Duration-based tween transitions are also supported. Set initial to false to begin at the first animate target. DOM targets accept scalar CSS values and independent transforms, including custom CSS properties. Keyframe sequences, layout animation, exit/presence retention, and variant propagation are outside this initial API.
+Motion targets update reactively without rerunning component setup. The target stays in atom.io; intermediate values and velocity remain in Motion. Spring transitions preserve motion-value continuity when retargeted. Duration-based tween transitions are also supported. Set initial to false to begin at the first animate target. DOM targets accept scalar CSS values and independent transforms, including custom CSS properties. Keyframe sequences, layout animation, and variant propagation are outside this initial API.
 
 Motion respects the user's reduced-motion preference by default, including changes while mounted. The capability's reducedMotion option can be user, always, or never. Owner cleanup stops animations and releases effects, gesture handlers, and media-query listeners. Removing the capability properties releases that node's binding. Avoid assigning the same property through both native attributes/styles and motion targets: motion owns the properties it animates.
 
@@ -590,7 +590,56 @@ export function SpringCube(): VNode {
 
 ```
 
-When the motion capability is installed, Canvas draws in Motion's render phase after animated scene values update. Without it, Canvas uses requestAnimationFrame. Both drawing subscriptions and animations end with their owners. The base runtime imports no motion engine; its capability dispatch adds approximately 350 bytes of gzip to the previous complete client surface.
+When the motion capability is installed, Canvas draws in Motion's render phase after animated scene values update. Without it, Canvas uses requestAnimationFrame. Both drawing subscriptions and animations end with their owners. The base runtime imports no motion engine or retention coordinator. Presence hooks add approximately 300 bytes of gzip to the released 3.7 kB client surface; the optional Motion entrypoint owns the retention machinery. The full client budget is 4,100 bytes.
+
+### Exit animations and re-entry
+
+Declare motion:exit on an element, custom tag, Konva node, or Three.js scene node. Conditional or keyed removal starts that target from its current Motion values. No presence wrapper is required. Register motionCapability as above.
+
+```tsx
+import type { VNode } from "@atom.io/spa"
+import { useSetter, useValue } from "@atom.io/spa"
+import { atom } from "atom.io"
+
+const visibleAtom = atom<boolean>({ key: `visible`, default: true })
+export function DismissiblePanel(): VNode {
+	const visible = useValue(visibleAtom)
+	const setVisible = useSetter(visibleAtom)
+	return (
+		<section>
+			<button
+				onClick={() => {
+					setVisible((value) => !value)
+				}}
+			>
+				Toggle panel
+			</button>
+			{visible() && (
+				<sliding-panel
+					key="panel"
+					motion:initial={{ opacity: 0, y: 12 }}
+					motion:animate={{ opacity: 1, y: 0 }}
+					motion:exit={{ opacity: 0, y: -12 }}
+					motion:transition={{ type: `spring`, stiffness: 180, damping: 22 }}
+				>
+					The same instance returns if toggled before its exit completes.
+				</sliding-panel>
+			)}
+		</section>
+	)
+}
+
+```
+
+SPA retains the entire removed subtree until all its exit targets finish, including independently exiting descendants adopted by an exiting ancestor. Native nodes, scene attachments, refs, subscriptions, renderers, geometries, and materials remain owned until final disposal. Siblings keep their instances; retained ranges keep their previous position. A target without an exit is removed immediately unless another exit retains its enclosing subtree.
+
+Returning the same key and component or element type before disposal cancels the exit and resumes the original instance against the latest props and state. Setup, mount callbacks, and refs do not run again. Motion keeps the current animated values and spring velocity. Reusing a key with an incompatible type creates a separate instance; the old generation finishes independently. Keys have meaning within their original child collection. Reordering or reparenting into another collection does not transfer ownership.
+
+During exit, reactive attributes, child reconciliation, user events, gestures, and user onSceneFrame/onFrame callbacks pause. Renderer frame infrastructure continues drawing animated scenes. DOM nodes become inert, aria-hidden, and unavailable to pointer input; owned focus is blurred and is not automatically restored on return. Konva nodes stop listening, and Three.js objects leave picking and release active pointer interaction state. Re-entry restores their prior interaction settings and handlers.
+
+Exit props and transition settings are read at logical removal; later state changes do not retarget an exiting subtree. Exits use the same transition as animate, defaulting to a spring. Explicit durations, visualDuration, and delays must be finite and nonnegative; velocity must be finite, bounce must be in the range \[0, 1), and stiffness, damping, mass, restDelta, and restSpeed must be finite and positive so exits can settle. Reduced motion skips retention; enabling it during an exit completes that exit. Server rendering omits capability attributes and never starts exits; hydration attaches them for later removals.
+
+Root disposal and fatal errors bypass exits, stop active work, and release resources immediately. Stale animation completions cannot dispose a revived instance. This API covers exit retention and cancellation; layout/pop-layout animation, variants, presence wrappers, and automatic reparenting remain outside its scope.
 
 ### Renderer extensions
 

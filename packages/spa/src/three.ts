@@ -1,6 +1,11 @@
-import { fail, owner } from "./core.ts"
+import { fail, isPresent, owner } from "./core.ts"
 import type { ThreeEventAttributes, ThreeEventHandler } from "./three-events.ts"
-import { createThreeEvents, forgetThree, listenThree } from "./three-events.ts"
+import {
+	createThreeEvents,
+	forgetThree,
+	listenThree,
+	suspendThree,
+} from "./three-events.ts"
 
 export type {
 	ThreeEventAttributes,
@@ -81,6 +86,7 @@ const renderer = createSceneRenderer<Resource>({
 			node,
 			...(node instanceof THREE.Object3D
 				? {
+						suspend: () => suspendThree(node),
 						listen: (type: string, listener: () => void) =>
 							listenThree(node, type, listener),
 					}
@@ -256,7 +262,8 @@ export function Canvas(props: CanvasProps): VNode {
 			},
 		)
 		renderer.mount(() => props.children, scene)
-		const root = owner!._root
+		const scope = owner!
+		const root = scope._root
 		const events = createThreeEvents(
 			canvas!,
 			scene,
@@ -277,16 +284,17 @@ export function Canvas(props: CanvasProps): VNode {
 			const active = props.camera ?? camera
 			const delta = last === undefined ? 0 : (time - last) / 1000
 			last = time
-			props.onFrame?.({
-				scene,
-				camera: active,
-				renderer: webgl,
-				delta,
-				time: time / 1000,
-			})
+			if (isPresent(scope))
+				props.onFrame?.({
+					scene,
+					camera: active,
+					renderer: webgl,
+					delta,
+					time: time / 1000,
+				})
 			events.update()
 			webgl.render(scene, active)
-		})
+		}, true)
 	})
 	return jsx(`canvas`, {
 		ref: (element: HTMLCanvasElement | null) => {

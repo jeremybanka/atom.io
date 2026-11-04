@@ -129,6 +129,21 @@ function mount(
 		comment(`{`, parent, before, owner, cursor)
 		let end: Node | null = null
 		let records = new Map<unknown, RecordNode>()
+		const presence = owner._root._presence?.collection<RecordNode, Child>(
+			(record) => record._scope,
+			(record, child) =>
+				typeof record._value === typeof child &&
+				(record._value as VNode | null)?.type === (child as VNode | null)?.type,
+		)
+		const retire = (
+			record: RecordNode,
+			key: unknown,
+			eligible: boolean,
+			index: number,
+		) => {
+			if (presence) presence.remove(record, key, eligible, index, () => {})
+			else dispose(record._scope)
+		}
 		let initial = cursor
 		observe(
 			owner,
@@ -150,9 +165,15 @@ function mount(
 						(typeof record._value !== typeof child ||
 							(record._value as VNode | null)?.type !== vnode?.type)
 					) {
-						dispose(record._scope)
+						retire(
+							record,
+							key,
+							child == null || typeof child === `boolean`,
+							[...records.keys()].indexOf(key),
+						)
 						record = undefined
 					}
+					record ??= presence?.take(key, child)
 					if (!record) {
 						const childOwner = createScope(owner)
 						record = {
@@ -180,15 +201,20 @@ function mount(
 						)
 					} else {
 						record._value = child
+						owner._root._presence?.resume(record._scope)
 						invalidate(record._scope)
 					}
 					kept.set(key, record)
 				}
 				for (const [key, record] of records)
-					if (!kept.has(key)) dispose(record._scope)
+					if (!kept.has(key))
+						retire(record, key, true, [...records.keys()].indexOf(key))
 				if (!initial) {
 					let at = end ?? before
-					for (const record of [...kept.values()].reverse()) {
+					const rendered = presence?.merge([...kept.values()]) ?? [
+						...kept.values(),
+					]
+					for (const record of rendered.reverse()) {
 						if (record._end.nextSibling !== at) {
 							const range = parent.ownerDocument!.createRange()
 							range.setStartBefore(record._start)
@@ -199,6 +225,7 @@ function mount(
 					}
 					if (
 						focus?.isConnected &&
+						!focus.closest(`[inert]`) &&
 						focus !== parent.ownerDocument!.activeElement
 					)
 						focus.focus({ preventScroll: true })
@@ -291,7 +318,11 @@ function mount(
 				import.meta.env.DEV ? `spa: hydration mismatch` : undefined,
 			)
 	}
-	const nativeProps = capabilityProps(owner, { kind: `dom`, node: element })
+	const nativeProps = capabilityProps(
+		owner,
+		{ kind: `dom`, node: element },
+		() => ({ ...props }),
+	)
 	let previous: Record<string, any> = {}
 	owner._cleanups.add(() => {
 		for (const key in previous)

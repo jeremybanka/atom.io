@@ -107,3 +107,118 @@ Object.assign(window, {
 		},
 	},
 })
+
+const presentAtom = atom<boolean>({ key: `present`, default: true })
+let presenceRoot: ReturnType<typeof render>
+let presenceMesh: any, presenceRect: any, presenceStage: any
+let userFrames = 0,
+	draws = 0,
+	disposed = 0,
+	clicks = 0
+let originalPanel: Element | null, originalMesh: any, originalRect: any
+function PresenceApp() {
+	const present = useValue(presentAtom)
+	return (
+		<>
+			{present() && (
+				<section
+					id="presence-panel"
+					key="panel"
+					motion:exit={{ opacity: 0 }}
+					motion:transition={{ duration: 0.4 }}
+				>
+					<button
+						id="presence-button"
+						onClick={() => {
+							clicks++
+						}}
+					>
+						active
+					</button>
+					<Stage
+						width={100}
+						height={100}
+						ref={(node) => {
+							presenceStage = node
+						}}
+					>
+						<Layer>
+							<Rect
+								width={40}
+								height={40}
+								fill="blue"
+								motion:exit={{ x: 80 }}
+								motion:transition={{ duration: 0.4 }}
+								ref={(node) => {
+									presenceRect = node
+								}}
+							/>
+						</Layer>
+					</Stage>
+					<Canvas
+						width={100}
+						height={100}
+						onFrame={({ renderer }) => {
+							userFrames++
+							if (!draws) {
+								const draw = renderer.render.bind(renderer)
+								renderer.render = (...args) => {
+									draws++
+									draw(...args)
+								}
+							}
+						}}
+					>
+						<Mesh
+							motion:exit={{ position: [1, 0, 0] }}
+							motion:transition={{ duration: 0.4 }}
+							ref={(node) => {
+								if (node) {
+									presenceMesh = node
+									node.geometry.addEventListener(`dispose`, () => {
+										disposed++
+									})
+								}
+							}}
+						>
+							<BoxGeometry />
+							<MeshBasicMaterial color="blue" />
+						</Mesh>
+					</Canvas>
+				</section>
+			)}
+		</>
+	)
+}
+Object.assign(window, {
+	presence: {
+		start() {
+			presenceRoot = render(() => <PresenceApp />, document.body, {
+				capabilities: [motionCapability({ reducedMotion: `never` })],
+			})
+			originalPanel = document.querySelector(`#presence-panel`)
+			originalMesh = presenceMesh
+			originalRect = presenceRect
+		},
+		show(value: boolean) {
+			setState(presentAtom, value)
+			presenceRoot.flush()
+		},
+		inspect() {
+			return {
+				userFrames,
+				draws,
+				disposed,
+				clicks,
+				stageListening: presenceStage?.listening(),
+				rectListening: presenceRect?.listening(),
+				samePanel: document.querySelector(`#presence-panel`) === originalPanel,
+				sameMesh: presenceMesh === originalMesh,
+				sameRect: presenceRect === originalRect,
+			}
+		},
+		dispose() {
+			presenceRoot.dispose()
+		},
+	},
+})

@@ -37,6 +37,7 @@ vi.mock(`konva`, async (original) => {
 	class NativeStage extends actual.default.Group {
 		public constructor(props: Record<string, any>) {
 			super(props)
+			props[`container`].replaceChildren()
 			spies.stage(this)
 		}
 	}
@@ -427,4 +428,61 @@ it(`animates native Three.js transforms, colors, scalar properties, and camera p
 		new PointerEvent(`pointermove`, { clientX: 50, clientY: 50 }),
 	)
 	canvasRoot.dispose()
+})
+
+it(`retains Stage and Canvas infrastructure during a parent exit and pauses user frames`, async () => {
+	const { motionCapability } = await import(`../src/motion.ts`)
+	const silo = new Silo({
+		name: `canvas-presence`,
+		lifespan: `ephemeral`,
+		isProduction: true,
+	})
+	const presentAtom = silo.atom<boolean>({ key: `present`, default: true })
+	const frame = clock(),
+		user = vi.fn(),
+		ref = vi.fn()
+	function App() {
+		const present = useValue(presentAtom)
+		return (
+			<>
+				{present() && (
+					<section
+						motion:exit={{ opacity: 0 }}
+						motion:transition={{ duration: 10 }}
+					>
+						<Stage
+							ref={ref}
+							motion:exit={{ x: 20 }}
+							motion:transition={{ duration: 10 }}
+						/>
+						<Canvas onFrame={user} />
+					</section>
+				)}
+			</>
+		)
+	}
+	const root = render(() => <App />, document.createElement(`div`), {
+		store: silo.store,
+		capabilities: [
+			{
+				...motionCapability({ reducedMotion: `never` }),
+				scheduleFrame: frame.capability.scheduleFrame,
+			},
+		],
+	})
+	const stage = ref.mock.calls[0][0] as Konva.Stage
+	const renderCount = spies.render.mock.calls.length
+	frame.tick(0)
+	silo.setState(presentAtom, false)
+	root.flush()
+	frame.tick(20)
+	expect(user).toHaveBeenCalledOnce()
+	expect(spies.render.mock.calls.length).toBe(renderCount + 2)
+	expect(stage.listening()).toBe(false)
+	silo.setState(presentAtom, true)
+	root.flush()
+	expect(stage.listening()).toBe(true)
+	frame.tick(40)
+	expect(user).toHaveBeenCalledTimes(2)
+	root.dispose()
 })

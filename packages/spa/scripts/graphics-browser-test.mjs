@@ -137,9 +137,52 @@ try {
 		await page.evaluate(() => window.graphics.inspect().frames),
 		frames,
 	)
+	await page.evaluate(() => window.presence.start())
+	await page.waitForFunction(() => window.presence.inspect().draws > 2)
+	const button = page.locator(`#presence-button`)
+	await button.focus()
+	await button.click()
+	assert.equal(await page.evaluate(() => window.presence.inspect().clicks), 1)
+	await page.evaluate(() => window.presence.show(false))
+	assert.equal(
+		await page.locator(`#presence-panel[inert][aria-hidden=true]`).count(),
+		1,
+	)
+	assert.equal(
+		await button.evaluate((node) => document.activeElement === node),
+		false,
+	)
+	const exiting = await page.evaluate(() => window.presence.inspect())
+	assert.equal(exiting.stageListening, false)
+	assert.equal(exiting.rectListening, false)
+	assert.equal(exiting.disposed, 0)
+	await button.evaluate((node) => node.click())
+	await page.waitForFunction(
+		(before) => window.presence.inspect().draws > before + 2,
+		exiting.draws,
+	)
+	assert.equal(
+		await page.evaluate(() => window.presence.inspect().userFrames),
+		exiting.userFrames,
+	)
+	assert.equal(await page.evaluate(() => window.presence.inspect().clicks), 1)
+	await page.evaluate(() => window.presence.show(true))
+	const revived = await page.evaluate(() => window.presence.inspect())
+	assert.ok(revived.samePanel && revived.sameMesh && revived.sameRect)
+	assert.equal(revived.stageListening, true)
+	assert.equal(revived.rectListening, true)
+	assert.equal(await page.locator(`#presence-panel[inert]`).count(), 0)
+	await button.click()
+	assert.equal(await page.evaluate(() => window.presence.inspect().clicks), 2)
+	await page.evaluate(() => window.presence.show(false))
+	await page.waitForFunction(() => !document.querySelector(`#presence-panel`))
+	assert.equal(await page.evaluate(() => window.presence.inspect().disposed), 1)
+	await page.evaluate(() => window.presence.dispose())
+	assert.equal(await page.locator(`canvas`).count(), 0)
+
 	assert.deepEqual(errors, [])
 	console.log(
-		`Motion springs, DOM gestures, Konva/Three.js reactive updates, shared frame loop, and disposal passed.`,
+		`Motion springs, DOM gestures, Konva/Three.js reactive updates, shared frame loop, exit retention/re-entry, and disposal passed.`,
 	)
 } finally {
 	await browser?.close()

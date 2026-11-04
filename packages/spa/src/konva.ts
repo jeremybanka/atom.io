@@ -50,6 +50,13 @@ const renderer = createSceneRenderer<Konva.Node>({
 		return {
 			kind: `konva`,
 			node,
+			suspend() {
+				const listening = node.listening()
+				node.listening(false)
+				return () => {
+					node.listening(listening)
+				}
+			},
 			read: (key) => node.getAttr(key),
 			write: (key, value) => {
 				node.setAttr(key, value)
@@ -95,8 +102,14 @@ export function Stage(
 ): VNode {
 	let container: HTMLDivElement | null = null
 	onMount(() => {
+		// Konva clears its container; preserve SPA's markers in the outer element.
+		const surface = container!.ownerDocument.createElement(`div`)
+		container!.append(surface)
+		onCleanup(() => {
+			surface.remove()
+		})
 		const stage = new Konva.Stage({
-			container: container!,
+			container: surface,
 			width: props.width ?? 300,
 			height: props.height ?? 150,
 		})
@@ -104,20 +117,31 @@ export function Stage(
 			stage.off()
 			stage.destroy()
 		})
-		const nativeProps = capabilityProps(owner!, {
-			kind: `konva`,
-			node: stage,
-			listen(event, listener) {
-				stage.on(event, listener)
-				return () => {
-					stage.off(event, listener)
-				}
+		const nativeProps = capabilityProps(
+			owner!,
+			{
+				kind: `konva`,
+				node: stage,
+				suspend() {
+					const listening = stage.listening()
+					stage.listening(false)
+					return () => {
+						stage.listening(listening)
+					}
+				},
+				listen(event, listener) {
+					stage.on(event, listener)
+					return () => {
+						stage.off(event, listener)
+					}
+				},
+				read: (key) => stage.getAttr(key),
+				write: (key, value) => {
+					stage.setAttr(key, value)
+				},
 			},
-			read: (key) => stage.getAttr(key),
-			write: (key, value) => {
-				stage.setAttr(key, value)
-			},
-		})
+			() => ({ ...props }),
+		)
 		let previous: Record<string, any> = {}
 		bindScene(
 			() => ({ ...props }),

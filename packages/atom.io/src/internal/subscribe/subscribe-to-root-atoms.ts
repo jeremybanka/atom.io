@@ -1,9 +1,10 @@
+import { arbitrary } from "../arbitrary.ts"
 import { readOrComputeValue } from "../get-state/read-or-compute-value.ts"
 import type { Atom, Selector } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
 import {
 	deferTransactionSelectorNotification,
-	notifyTransactionSubject,
+	notifyStateUpdate,
 } from "../transaction/transaction-notification-batch.ts"
 import { recallState } from "./recall-state.ts"
 
@@ -13,7 +14,7 @@ export function subscribeToRootDependency(
 	atom: Atom<any, any>,
 ): () => void {
 	return atom.subject.subscribe(
-		`${selector.type}:${selector.key}`,
+		`${selector.type}:${selector.key}:${arbitrary()}`,
 		(atomChange) => {
 			if (
 				deferTransactionSelectorNotification(target, selector.key, () => {
@@ -55,5 +56,5 @@ function notifySelectorUpdate(
 		`->`,
 		newValue,
 	)
-	notifyTransactionSubject(target, selector.subject, { newValue, oldValue })
+	notifyStateUpdate(target, selector, { newValue, oldValue })
 }

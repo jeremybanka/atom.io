@@ -55,8 +55,12 @@ export type Atom<T, E> =
 	| RegularAtom<T, E>
 	| (T extends Transceiver<any, any, any> ? MutableAtom<T> : never)
 
+type SelectorState = AtomIOState & {
+	rootSubscriptions?: Map<string, () => void> | undefined
+}
+
 export type WritableHeldSelector<T> = Flat<
-	AtomIOState & {
+	SelectorState & {
 		type: `writable_held_selector`
 		const: T
 		getFrom: (target: Store) => T
@@ -65,7 +69,7 @@ export type WritableHeldSelector<T> = Flat<
 	}
 >
 export type ReadonlyHeldSelector<T> = Flat<
-	AtomIOState & {
+	SelectorState & {
 		type: `readonly_held_selector`
 		const: T
 		getFrom: (target: Store) => T
@@ -73,7 +77,7 @@ export type ReadonlyHeldSelector<T> = Flat<
 	}
 >
 export type WritablePureSelector<T, E> = Flat<
-	AtomIOState & {
+	SelectorState & {
 		type: `writable_pure_selector`
 		getFrom: (target: Store) => E | T
 		setSelf: (newValue: T) => void
@@ -83,7 +87,7 @@ export type WritablePureSelector<T, E> = Flat<
 	}
 >
 export type ReadonlyPureSelector<T, E> = Flat<
-	AtomIOState & {
+	SelectorState & {
 		type: `readonly_pure_selector`
 		getFrom: (target: Store) => E | T
 		catch?: readonly Ctor<E>[]

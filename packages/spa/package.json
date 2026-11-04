@@ -147,7 +147,7 @@
 	"peerDependencies": {
 		"@types/three": "^0.187.0",
 		"astro": "^7.4.2",
-		"atom.io": "^0.54.1",
+		"atom.io": "^0.54.4",
 		"konva": "^10.9.1",
 		"motion": "^14.9.0",
 		"three": "^0.187.0",

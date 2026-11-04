@@ -1,10 +1,12 @@
 import type { StateUpdate } from "atom.io"
 import type { Subject } from "atom.io/foundations/subject"
 
+import { updateRootSubscriptions } from "../selector/update-root-subscriptions.ts"
+import type { ReadableState } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
 
 type DeferredStateNotification = {
-	readonly subject: Subject<StateUpdate<any>>
+	readonly state: ReadableState<any, any>
 	update: StateUpdate<any>
 }
 
@@ -62,14 +64,13 @@ export function beginTransactionNotificationBatch(store: Store): boolean {
 
 export function deferTransactionStateNotification(
 	store: Store,
-	stateKey: string,
-	subject: Subject<StateUpdate<any>>,
+	state: ReadableState<any, any>,
 	update: StateUpdate<any>,
 ): boolean {
 	const batch = transactionNotificationBatches.get(store)
 	if (batch?.phase !== `collecting`) return false
 
-	const previous = batch.stateNotifications.get(stateKey)
+	const previous = batch.stateNotifications.get(state.key)
 	if (previous && `oldValue` in previous.update) {
 		previous.update = {
 			oldValue: previous.update.oldValue,
@@ -78,7 +79,7 @@ export function deferTransactionStateNotification(
 	} else if (previous) {
 		previous.update = { newValue: update.newValue }
 	} else {
-		batch.stateNotifications.set(stateKey, { subject, update })
+		batch.stateNotifications.set(state.key, { state, update })
 	}
 	return true
 }
@@ -128,17 +129,25 @@ export function recallTransactionPreviousValue(
 		: { found: false, value: undefined }
 }
 
-export function notifyTransactionSubject<T>(
+export function notifyStateUpdate(
 	store: Store,
-	subject: Subject<T>,
-	value: T,
+	state: ReadableState<any, any>,
+	value: StateUpdate<any>,
 ): void {
 	const errors = transactionNotificationErrors.get(store)
 	if (!errors) {
-		subject.next(value)
+		if (state.type !== `atom` && state.type !== `mutable_atom`)
+			updateRootSubscriptions(store, state)
+		state.subject.next(value)
 		return
 	}
-	notifySubjectAndCollectErrors(subject, value, errors)
+	try {
+		if (state.type !== `atom` && state.type !== `mutable_atom`)
+			updateRootSubscriptions(store, state)
+	} catch (error) {
+		errors.push(error)
+	}
+	notifySubjectAndCollectErrors(state.subject, value, errors)
 }
 
 export function notifySubjectAndCollectErrors<T>(
@@ -181,8 +190,8 @@ export function flushTransactionNotificationBatch(store: Store): unknown[] {
 			}
 		}
 		batch.phase = `state`
-		for (const { subject, update } of batch.stateNotifications.values()) {
-			notifyTransactionSubject(store, subject, update)
+		for (const { state, update } of batch.stateNotifications.values()) {
+			notifyStateUpdate(store, state, update)
 		}
 
 		batch.phase = `selector`

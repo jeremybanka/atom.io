@@ -1,5 +1,5 @@
 import type { ReadableToken } from "atom.io"
-import { IMPLICIT, withdraw } from "atom.io/internal"
+import { IMPLICIT, subscribeToStateSubject, withdraw } from "atom.io/internal"
 
 import { applicationContext } from "./astro-context.ts"
 
@@ -31,7 +31,7 @@ export function browserApplication(
 		const state = withdraw(store, token)
 		subscriptions.set(
 			token.key,
-			state.subject.subscribe(`spa:bootstrap`, changed),
+			subscribeToStateSubject(state, `spa:bootstrap`, changed),
 		)
 	}
 	for (const state of [

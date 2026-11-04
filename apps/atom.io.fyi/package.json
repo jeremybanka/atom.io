@@ -19,7 +19,8 @@
 		"lint:types": "tsc",
 		"test:once": "node --test src/components/*.test.ts",
 		"test:browser": "node scripts/test-spa.browser.mjs",
-		"test:browser:dev": "node scripts/test-spa.browser.mjs --dev"
+		"test:browser:dev": "node scripts/test-spa.browser.mjs --dev",
+		"test:browser:motion": "node scripts/test-motion.browser.mjs"
 	},
 	"dependencies": {
 		"@astrojs/cloudflare": "14.4.4",
@@ -32,6 +33,7 @@
 		"@pierre/highlights": "0.4.0",
 		"astro": "7.4.5",
 		"atom.io": "workspace:*",
+		"motion": "14.9.0",
 		"three": "0.187.0",
 		"tsdoc.json": "0.6.12"
 	},

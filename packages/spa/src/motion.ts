@@ -1,6 +1,5 @@
-import type { MotionValue, ValueAnimationTransition } from "motion"
+import type { animate, MotionValue, ValueAnimationTransition } from "motion"
 import {
-	animate,
 	cancelFrame,
 	frame,
 	hover,
@@ -15,6 +14,7 @@ import type {
 	CapabilityBinding,
 	CapabilityTarget,
 } from "./capabilities.ts"
+import { animateTween } from "./motion-tween.ts"
 import type { ExitHandle } from "./presence.ts"
 import { createPresence } from "./presence.ts"
 
@@ -281,7 +281,13 @@ function attach(
 				throw new Error(`spa/motion: cannot change the shape of ${key}`)
 			property.values.forEach((value, index) => {
 				if (reduced() || (!started && initial === false)) value.jump(next[index])
-				else animate(value, next[index], transition)
+				else
+					animateTween(
+						value,
+						next[index],
+						transition,
+						force || value.isAnimating(),
+					)
 			})
 		}
 		started = true
@@ -371,8 +377,12 @@ function attach(
 			exiting = true
 			hovered = tapped = false
 			clearGestures()
+			const moving = new Set<MotionValue<MotionScalar>>()
 			for (const property of properties.values())
-				for (const value of property.values) value.stop()
+				for (const value of property.values) {
+					if (value.isAnimating()) moving.add(value)
+					value.stop()
+				}
 			if (!goals || !Object.keys(goals).length || reduced()) return undefined
 			const transition = (next[`transition`] ?? {
 				type: `spring`,
@@ -424,10 +434,11 @@ function attach(
 				const values = Array.isArray(goal) ? goal : [goal]
 				property.values.forEach((value, index) =>
 					controls.push(
-						animate(
+						animateTween(
 							value,
 							values[index],
 							transition as ValueAnimationTransition,
+							moving.has(value),
 						),
 					),
 				)

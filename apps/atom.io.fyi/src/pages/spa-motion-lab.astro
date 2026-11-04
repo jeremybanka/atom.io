@@ -1,0 +1,39 @@
+---
+import { MotionSandbox } from "../components/MotionSandbox.tsx"
+import "../components/motion-sandbox.css"
+---
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="theme-color" content="#11191d" />
+		<title>SPA / motion lab</title>
+		<link rel="icon" href="/spa/icon-32.png" />
+	</head>
+	<body class="motion-lab">
+		<motion-lab-layout>
+			<header>
+				<a href="/docs/spa">spa <span>/ motion lab</span></a><span
+					class="edition"
+				>01 / INTERRUPTION STUDY</span>
+			</header>
+			<main>
+				<section class="intro">
+					<p class="eyebrow">CHANGE OF PLANS. SAME MOMENTUM.</p>
+					<h1>A little <em>U-turn.</em></h1>
+					<p>
+						A card starts to leave. You change your mind. It carries its
+						momentum, slows to a stop, and comes back. Try it slowly; every frame
+						leaves a trace.
+					</p>
+				</section>
+				<MotionSandbox client:only="spa" />
+			</main>
+			<footer>
+				<a href="https://github.com/jeremybanka/atom.io/pull/1421"
+				>Presence lifecycle / #1405 ↗</a><a href="/docs/spa"
+				>SPA documentation ↗</a>
+			</footer>
+		</motion-lab-layout>
+	</body>
+</html>

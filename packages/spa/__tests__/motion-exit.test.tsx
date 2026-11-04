@@ -389,3 +389,134 @@ it(`resumes toward a target shared by animate and exit after an interrupted exit
 	expect(x).toBeCloseTo(10)
 	binding.dispose()
 })
+
+it(`keeps a returning native instance and its momentum through repeated presence interruptions`, async () => {
+	const silo = new Silo({
+		name: `tween-u-turn`,
+		lifespan: `ephemeral`,
+		isProduction: true,
+	})
+	const presentAtom = silo.atom<boolean>({ key: `present`, default: true })
+	const parent = new Konva.Group(),
+		ref = vi.fn()
+	function App() {
+		const present = useValue(presentAtom)
+		return (
+			<>
+				{present() && (
+					<Group
+						key="same"
+						ref={ref}
+						motion:initial={false}
+						motion:animate={{ x: 0 }}
+						motion:exit={{ x: 100 }}
+						motion:transition={{ type: `tween`, duration: 0.3, ease: `linear` }}
+					/>
+				)}
+			</>
+		)
+	}
+	const root = konvaRenderer.render(() => <App />, parent, {
+		store: silo.store,
+		capabilities: [motionCapability({ reducedMotion: `never` })],
+	})
+	const node = parent.children[0] as Konva.Group
+	silo.setState(presentAtom, false)
+	root.flush()
+	await wait(80)
+	silo.setState(presentAtom, true)
+	root.flush()
+	const leaving = node.x()
+	await wait(25)
+	expect(node.x()).toBeGreaterThan(leaving)
+	expect(parent.children[0]).toBe(node)
+	expect(ref).toHaveBeenCalledOnce()
+	silo.setState(presentAtom, false)
+	root.flush()
+	await wait(15)
+	silo.setState(presentAtom, true)
+	root.flush()
+	await wait(400)
+	expect(parent.children[0]).toBe(node)
+	expect(node.x()).toBeCloseTo(0)
+	expect(ref).toHaveBeenCalledOnce()
+	root.dispose()
+	expect(ref).toHaveBeenLastCalledWith(null)
+})
+
+it(`cancels same-frame tween exits and active return bridges without leaving stale work`, async () => {
+	let preferenceChanged = () => {}
+	const preference = {
+		matches: false,
+		addEventListener(_event: string, callback: () => void) {
+			preferenceChanged = callback
+		},
+		removeEventListener() {},
+	}
+	vi.stubGlobal(`matchMedia`, () => preference)
+	try {
+		const silo = new Silo({
+			name: `tween-cancellation`,
+			lifespan: `ephemeral`,
+			isProduction: true,
+		})
+		const presentAtom = silo.atom<boolean>({ key: `present`, default: true })
+		const parent = new Konva.Group(),
+			ref = vi.fn()
+		function App() {
+			const present = useValue(presentAtom)
+			return (
+				<>
+					{present() && (
+						<Group
+							key="same"
+							ref={ref}
+							motion:initial={false}
+							motion:animate={{ x: 0 }}
+							motion:exit={{ x: 100 }}
+							motion:transition={{ type: `tween`, duration: 0.3 }}
+						/>
+					)}
+				</>
+			)
+		}
+		const root = konvaRenderer.render(() => <App />, parent, {
+			store: silo.store,
+			capabilities: [motionCapability()],
+		})
+		const node = parent.children[0] as Konva.Group
+		for (const state of [false, true, false, true]) {
+			silo.setState(presentAtom, state)
+			root.flush()
+		}
+		await wait(40)
+		expect(node.x()).toBe(0)
+		expect(parent.children[0]).toBe(node)
+		expect(ref).toHaveBeenCalledOnce()
+		silo.setState(presentAtom, false)
+		root.flush()
+		await wait(60)
+		silo.setState(presentAtom, true)
+		root.flush()
+		preference.matches = true
+		preferenceChanged()
+		expect(node.x()).toBe(0)
+		await wait(60)
+		expect(node.x()).toBe(0)
+		preference.matches = false
+		preferenceChanged()
+		silo.setState(presentAtom, false)
+		root.flush()
+		await wait(60)
+		silo.setState(presentAtom, true)
+		root.flush()
+		root.dispose()
+		const disposed = node.x()
+		await wait(80)
+		expect(parent.children).toHaveLength(0)
+		expect(node.x()).toBe(disposed)
+		expect(ref).toHaveBeenLastCalledWith(null)
+	} finally {
+		vi.unstubAllGlobals()
+	}
+})

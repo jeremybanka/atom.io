@@ -78,7 +78,7 @@ it(`supports destructured readers and commands with current, store-bound values`
 	expect(subscribers()).toBe(0)
 })
 
-it(`resolves transaction groups when stable commands are invoked`, () => {
+it(`captures transaction groups when readers are called and preserves diverged timelines`, () => {
 	const { silo, countAtom, historyTimeline, mount, subscribers } = fixture()
 	const otherAtom = silo.atom<number>({ key: `other`, default: 0 })
 	const otherTimeline = silo.timeline({ key: `other`, scope: [otherAtom] })
@@ -96,43 +96,56 @@ it(`resolves transaction groups when stable commands are invoked`, () => {
 		history = useTimeline(historyTimeline)
 		return null
 	})
-	const {
-		canUndoTransaction,
-		canRedoTransaction,
-		undoTransaction,
-		redoTransaction,
-	} = history
-	expect(canUndoTransaction()).toBe(false)
-	expect(canRedoTransaction()).toBe(false)
-	undoTransaction()
-	redoTransaction()
+	const { undo, redo } = history
+	const { getTransaction: getUndoTransaction } = undo
+	const { getTransaction: getRedoTransaction } = redo
+	expect(getUndoTransaction()).toBeUndefined()
+	expect(getRedoTransaction()).toBeUndefined()
+	undo.getTransaction()?.()
+	redo.getTransaction()?.()
 	expect(silo.getState(countAtom)).toBe(0)
 	const change = silo.runTransaction(changeBothTransaction)
 	change(1)
+	const undoFirst = getUndoTransaction()
 	change(2)
-	expect(canUndoTransaction()).toBe(true)
-	undoTransaction()
-	expect(silo.getState(countAtom)).toBe(1)
-	expect(silo.getState(otherAtom)).toBe(1)
-	undoTransaction()
-	expect(silo.getState(countAtom)).toBe(0)
-	expect(silo.getState(otherAtom)).toBe(0)
-	expect(canUndoTransaction()).toBe(false)
-	expect(canRedoTransaction()).toBe(true)
-	redoTransaction()
-	expect(silo.getState(countAtom)).toBe(1)
-	expect(silo.getState(otherAtom)).toBe(1)
-	redoTransaction()
+	undoFirst?.()
 	expect(silo.getState(countAtom)).toBe(2)
 	expect(silo.getState(otherAtom)).toBe(2)
-	expect(canRedoTransaction()).toBe(false)
+	const undoSecond = getUndoTransaction()
+	expect(undoSecond).toBeTypeOf(`function`)
+	undoSecond?.()
+	expect(silo.getState(countAtom)).toBe(1)
+	expect(silo.getState(otherAtom)).toBe(1)
+	undoSecond?.()
+	expect(silo.getState(countAtom)).toBe(1)
+	expect(silo.getState(otherAtom)).toBe(1)
+	undo.getTransaction()?.()
+	expect(silo.getState(countAtom)).toBe(0)
+	expect(silo.getState(otherAtom)).toBe(0)
+	expect(getUndoTransaction()).toBeUndefined()
+	const redoFirst = getRedoTransaction()
+	expect(redoFirst).toBeTypeOf(`function`)
+	redoFirst?.()
+	expect(silo.getState(countAtom)).toBe(1)
+	expect(silo.getState(otherAtom)).toBe(1)
+	redoFirst?.()
+	expect(silo.getState(countAtom)).toBe(1)
+	expect(silo.getState(otherAtom)).toBe(1)
+	redo.getTransaction()?.()
+	expect(silo.getState(countAtom)).toBe(2)
+	expect(silo.getState(otherAtom)).toBe(2)
+	expect(getRedoTransaction()).toBeUndefined()
+	const undoSecondAgain = getUndoTransaction()
 	silo.setState(countAtom, 7)
-	expect(canUndoTransaction()).toBe(false)
-	undoTransaction()
+	expect(getUndoTransaction()).toBeUndefined()
+	undo.getTransaction()?.()
 	expect(silo.getState(countAtom)).toBe(7)
 	expect(silo.getState(otherAtom)).toBe(2)
+	undoSecondAgain?.()
+	expect(silo.getState(countAtom)).toBe(7)
+	expect(silo.getState(otherAtom)).toBe(1)
 	history.undo()
-	expect(canUndoTransaction()).toBe(true)
+	expect(getUndoTransaction()).toBeTypeOf(`function`)
 	expect(subscribers()).toBe(0)
 })
 
@@ -150,11 +163,11 @@ it(`tracks transaction availability and releases conditional dependencies`, () =
 	const root = mount(() => {
 		const visible = useGetter(visibleAtom)
 		history = useTimeline(historyTimeline)
-		const { canUndoTransaction, canRedoTransaction } = history
+		const { undo, redo } = history
 		return (
 			<output>
 				{visible()
-					? `${canUndoTransaction()}/${canRedoTransaction()}`
+					? `${undo.getTransaction() !== undefined}/${redo.getTransaction() !== undefined}`
 					: `hidden`}
 			</output>
 		)
@@ -164,10 +177,10 @@ it(`tracks transaction availability and releases conditional dependencies`, () =
 	silo.runTransaction(changeTransaction)()
 	root.flush()
 	expect(host.textContent).toBe(`true/false`)
-	history.undoTransaction()
+	history.undo.getTransaction()?.()
 	root.flush()
 	expect(host.textContent).toBe(`false/true`)
-	history.redoTransaction()
+	history.redo.getTransaction()?.()
 	root.flush()
 	expect(host.textContent).toBe(`true/false`)
 	silo.setState(visibleAtom, false)

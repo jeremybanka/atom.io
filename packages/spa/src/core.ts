@@ -352,13 +352,9 @@ export function useRef<E extends Element>(
 export interface TimelineControls {
 	getCursor(): number
 	getLength(): number
-	undo(): void
-	redo(): void
+	undo: Cleanup & { getTransaction(): Cleanup | undefined }
+	redo: Cleanup & { getTransaction(): Cleanup | undefined }
 	clear(): void
-	canUndoTransaction(): boolean
-	canRedoTransaction(): boolean
-	undoTransaction(): void
-	redoTransaction(): void
 }
 export function useTimeline<M extends TimelineManageable>(
 	token: TimelineToken<M>,
@@ -380,34 +376,29 @@ export function useTimeline(token: any, key?: Canonical): TimelineControls {
 		tracking?.(subscribe)
 		return timeline
 	}
-	const travelTransaction = (direction: `undo` | `redo`) => {
-		const group = getTimelineTransactionAtHead(
-			withdraw(store, selected),
-			direction,
+	const travel = (direction: `undo` | `redo`) =>
+		Object.assign(
+			() => {
+				timeTravel(store, direction, selected)
+			},
+			{
+				getTransaction: () => {
+					const group = getTimelineTransactionAtHead(read(), direction)
+					return group
+						? () => {
+								timeTravelTransactionGroupInStore(store, direction, group)
+							}
+						: undefined
+				},
+			},
 		)
-		if (group) timeTravelTransactionGroupInStore(store, direction, group)
-	}
 	return {
 		getCursor: () => read().at,
 		getLength: () => read().history.length,
-		undo: () => {
-			timeTravel(store, `undo`, selected)
-		},
-		redo: () => {
-			timeTravel(store, `redo`, selected)
-		},
+		undo: travel(`undo`),
+		redo: travel(`redo`),
 		clear: () => {
 			clearTimelineInStore(store, selected)
-		},
-		canUndoTransaction: () =>
-			getTimelineTransactionAtHead(read(), `undo`) !== undefined,
-		canRedoTransaction: () =>
-			getTimelineTransactionAtHead(read(), `redo`) !== undefined,
-		undoTransaction: () => {
-			travelTransaction(`undo`)
-		},
-		redoTransaction: () => {
-			travelTransaction(`redo`)
 		},
 	}
 }

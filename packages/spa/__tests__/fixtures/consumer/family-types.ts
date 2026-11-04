@@ -29,13 +29,30 @@ export function familyTypes(
 		Expect<Equal<typeof write, (value: number | Setter<number>) => void>>,
 		Expect<Equal<typeof ref, (element: HTMLInputElement | null) => void>>,
 		Expect<Equal<typeof history, TimelineControls>>,
-	] = [true, true, true, true]
+		Expect<
+			Equal<
+				ReturnType<typeof history.undo.getTransaction>,
+				(() => void) | undefined
+			>
+		>,
+		Expect<
+			Equal<
+				ReturnType<typeof history.redo.getTransaction>,
+				(() => void) | undefined
+			>
+		>,
+	] = [true, true, true, true, true, true]
 	void checks
-	const { getCursor, getLength, canUndoTransaction } = history
+	const { getCursor, getLength, undo, redo } = history
 	const cursor: number = getCursor()
 	const length: number = getLength()
-	const canUndo: boolean = canUndoTransaction()
-	void [cursor, length, canUndo]
+	const undoTransaction = undo.getTransaction()
+	const redoTransaction = redo.getTransaction()
+	if (undoTransaction) undoTransaction()
+	if (redoTransaction) redoTransaction()
+	undo.getTransaction()?.()
+	redo.getTransaction()?.()
+	void [cursor, length]
 	write((previous) => previous + 1)
 	ref(document.createElement(`input`))
 	ref(null)

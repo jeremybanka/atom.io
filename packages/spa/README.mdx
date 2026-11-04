@@ -2,6 +2,7 @@ import { Tonnage } from "tonnage";
 import config from "./tonnage.config.ts";
 import StoreExample from "./exhibits/store.tsx" with { type: "code" };
 import Families from "./exhibits/families.tsx" with { type: "code" };
+import TimelineExample from "./exhibits/timeline.tsx" with { type: "code" };
 import LoadableExample from "./exhibits/loadable.tsx" with { type: "code" };
 import Point from "./exhibits/point.tsx" with { type: "code" };
 import ViteConfig from "./exhibits/vite.config.ts" with { type: "code" };
@@ -63,7 +64,9 @@ The development plugin keeps SPA and atom.io outside dependency prebundling so r
 
 Call setup helpers synchronously during component setup or owned mount callbacks. Capture their results for event handlers. Tokens are fixed for an instance; use an application key in a reactive child expression to replace a component when its token changes. Component props stay live when read through the props object; destructuring during setup takes a snapshot.
 
-useTimeline returns a TimelineControls object whose methods can be destructured during setup. getCursor and getLength read the current cursor position and recorded checkpoint count; calls inside JSX subscribe the computation, while calls during setup or in event handlers are untracked. undo, redo, and clear are stable commands. canUndoTransaction and canRedoTransaction are tracked availability checks; undoTransaction and redoTransaction select the transaction group at the current cursor when invoked and do nothing when no group is available.
+useTimeline returns a TimelineControls object whose methods can be destructured during setup. getCursor and getLength read the current cursor position and recorded checkpoint count; calls inside JSX subscribe the computation, while calls during setup or in event handlers are untracked. undo, redo, and clear are stable commands. undo.getTransaction() and redo.getTransaction() are tracked readers that return a callback for the adjacent transaction group, or undefined when none is available. Calling a returned callback travels that captured group across participating timelines where it remains at the relevant history head, leaving diverged timelines unchanged. Use undo.getTransaction()?.() or redo.getTransaction()?.() to retrieve and invoke the current action together.
+
+<TimelineExample />
 
 Arrays support keyed components and elements. Reordering preserves instances and nodes; removed ranges release subscriptions, events, refs, and cleanup callbacks. Application keys must be unique among siblings. Explicit keys are compared as strings; unkeyed positions occupy a separate namespace. Unkeyed arrays use positions. A key identifies a row in a reactive child collection; it is not an independent reactive binding.
 

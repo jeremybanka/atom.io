@@ -144,7 +144,9 @@ Read an asynchronous atom or selector through a tracked accessor that exposes lo
 
 Return a stable TimelineControls object with getCursor and getLength readers and directly callable undo, redo, and clear commands. getCursor returns the current cursor position; getLength returns the number of recorded checkpoints. The readers subscribe when called inside JSX and read current values without subscribing during setup or in event handlers. Methods can be destructured during setup without losing their store binding or reactive behavior.
 
-canUndoTransaction and canRedoTransaction provide tracked availability checks for grouped transaction travel. undoTransaction and redoTransaction select the transaction group at the current cursor when invoked; they do nothing when no group is available. The [families example](#families) pairs each keyed point with its own history.
+undo.getTransaction() and redo.getTransaction() are tracked readers that return a callback capturing the adjacent transaction group, or undefined when no group is available. Capture and narrow the returned callback to retain that target, or use undo.getTransaction()?.() and redo.getTransaction()?.() to retrieve and invoke the current action together. A returned callback travels the captured group across participating timelines where it remains at the relevant history head; diverged timelines are left unchanged. Reading the action does not perform undo or redo. The [families example](#families) pairs each keyed point with its own history.
+
+<Exhibit src="spa/exhibits/timeline.tsx" />
 
 ### useTransaction
 

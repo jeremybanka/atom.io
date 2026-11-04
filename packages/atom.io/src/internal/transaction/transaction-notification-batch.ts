@@ -146,6 +146,17 @@ export function notifySubjectAndCollectErrors<T>(
 	value: T,
 	errors: unknown[],
 ): void {
+	// Selector subjects may come from another compatible copy of atom.io.
+	if (
+		`updateRootSubscriptions` in subject &&
+		typeof subject.updateRootSubscriptions === `function`
+	) {
+		try {
+			subject.updateRootSubscriptions()
+		} catch (error) {
+			errors.push(error)
+		}
+	}
 	for (const subscriber of subject.subscribers.values()) {
 		try {
 			subscriber(value)

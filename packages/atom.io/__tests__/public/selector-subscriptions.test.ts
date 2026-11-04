@@ -1,4 +1,4 @@
-import type { ReadonlyHeldSelectorOptions } from "atom.io"
+import type { Loadable, ReadonlyHeldSelectorOptions } from "atom.io"
 import { Silo } from "atom.io"
 import { describe, expect, it, vi } from "vitest"
 
@@ -75,6 +75,90 @@ describe(`selector subscriptions`, () => {
 			newValue: 2,
 		})
 		stopRecreated()
+	})
+
+	it(`uses the current subscriber map when a subscription key is replaced or reused`, () => {
+		const { silo, countAtom } = fixture()
+		const doubledSelector = silo.selector<number>({
+			key: `doubled`,
+			get: ({ get }) => get(countAtom) * 2,
+		})
+		const first = vi.fn()
+		const current = vi.fn()
+		const stopFirst = silo.subscribe(doubledSelector, first, `view`)
+		const stopCurrent = silo.subscribe(doubledSelector, current, `view`)
+		stopFirst()
+		silo.setState(countAtom, 1)
+		expect(first).not.toHaveBeenCalled()
+		expect(current).toHaveBeenCalledExactlyOnceWith({ oldValue: 0, newValue: 2 })
+		stopCurrent()
+		const stopNext = silo.subscribe(doubledSelector, current, `view`)
+		stopCurrent()
+		silo.setState(countAtom, 2)
+		expect(current).toHaveBeenCalledTimes(2)
+		expect(current).toHaveBeenLastCalledWith({ oldValue: 2, newValue: 4 })
+		stopNext()
+	})
+
+	it(`tracks roots first read after an async selector resumes`, async () => {
+		const { silo, countAtom } = fixture()
+		const ready = Promise.withResolvers<void>()
+		const doubledSelector = silo.selector<Loadable<number>>({
+			key: `doubled`,
+			get: async ({ get }) => {
+				await ready.promise
+				return get(countAtom) * 2
+			},
+		})
+		const consume = vi.fn()
+		const stop = silo.subscribe(doubledSelector, consume)
+		ready.resolve()
+		await silo.getState(doubledSelector)
+		expect(consume).toHaveBeenLastCalledWith({
+			oldValue: expect.any(Promise),
+			newValue: 0,
+		})
+		silo.setState(countAtom, 2)
+		await silo.getState(doubledSelector)
+		expect(consume).toHaveBeenLastCalledWith({
+			oldValue: expect.any(Promise),
+			newValue: 4,
+		})
+		stop()
+	})
+
+	it(`reconciles conditional roots when a transaction notifies shared consumers`, () => {
+		const { silo, countAtom } = fixture()
+		const fallbackAtom = silo.atom<number>({ key: `fallback`, default: 10 })
+		const useFallbackAtom = silo.atom<boolean>({
+			key: `useFallback`,
+			default: false,
+		})
+		const selectedSelector = silo.selector<number>({
+			key: `selected`,
+			get: ({ get }) =>
+				get(useFallbackAtom) ? get(fallbackAtom) : get(countAtom),
+		})
+		const switchTransaction = silo.transaction<() => void>({
+			key: `switch`,
+			do: ({ set }) => {
+				set(useFallbackAtom, true)
+				set(fallbackAtom, 20)
+			},
+		})
+		const first = vi.fn()
+		const second = vi.fn()
+		const stopFirst = silo.subscribe(selectedSelector, first)
+		const stopSecond = silo.subscribe(selectedSelector, second)
+		silo.runTransaction(switchTransaction)()
+		expect(first).toHaveBeenCalledTimes(1)
+		expect(second).toHaveBeenCalledExactlyOnceWith({ oldValue: 0, newValue: 20 })
+		stopFirst()
+		silo.setState(countAtom, 1)
+		silo.setState(fallbackAtom, 30)
+		expect(second).toHaveBeenCalledTimes(2)
+		expect(second).toHaveBeenLastCalledWith({ oldValue: 20, newValue: 30 })
+		stopSecond()
 	})
 
 	it(`reconciles shared conditional roots before and after a consumer leaves`, () => {

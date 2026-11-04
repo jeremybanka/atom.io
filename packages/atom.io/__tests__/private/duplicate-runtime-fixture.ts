@@ -37,5 +37,35 @@ await withRuntimeCopies<FixtureModules>(
 		globalThis.ATOM_IO_IMPLICIT_STORE = existingStore
 		assert.equal(internalA.IMPLICIT.STORE, existingStore)
 		assert.equal(internalB.IMPLICIT.STORE, existingStore)
+
+		const firstCountAtom = coreA.atom<number>({ key: `firstCount`, default: 1 })
+		const secondCountAtom = coreA.atom<number>({
+			key: `secondCount`,
+			default: 10,
+		})
+		const useSecondAtom = coreA.atom<boolean>({
+			key: `useSecond`,
+			default: false,
+		})
+		const selectedSelector = coreA.selector<number>({
+			key: `selected`,
+			get: ({ get }) =>
+				get(useSecondAtom) ? get(secondCountAtom) : get(firstCountAtom),
+		})
+		const values: number[] = []
+		const stop = coreB.subscribe(selectedSelector, ({ newValue }) => {
+			values.push(newValue)
+		})
+		const switchTransaction = coreB.transaction<() => void>({
+			key: `switch`,
+			do: ({ set }) => {
+				set(useSecondAtom, true)
+			},
+		})
+		coreB.runTransaction(switchTransaction)()
+		coreB.setState(secondCountAtom, 11)
+		coreA.setState(firstCountAtom, 2)
+		assert.deepEqual(values, [10, 11])
+		stop()
 	},
 )

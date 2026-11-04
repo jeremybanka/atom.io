@@ -7,6 +7,7 @@ import {
 	selector,
 	selectorFamily,
 	setState,
+	subscribe,
 	transaction,
 } from "atom.io"
 import {
@@ -15,6 +16,7 @@ import {
 	IMPLICIT,
 	setIntoStore,
 	Store,
+	withdraw,
 } from "atom.io/internal"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 
@@ -54,6 +56,24 @@ const nextResponse = (
 	onRequest({ request } as any, () =>
 		Promise.resolve(next()),
 	) as Promise<Response>
+
+it(`keeps bootstrap selector observers lazy and releases roots when the application closes`, () => {
+	const countAtom = atom<number>({ key: `count`, default: 0 })
+	const compute = vi.fn((count: number) => count * 2)
+	const doubledSelector = selector<number>({
+		key: `doubled`,
+		get: ({ get }) => compute(get(countAtom)),
+	})
+	const application = browserApplication(document)
+	expect(compute).not.toHaveBeenCalled()
+	const stop = subscribe(doubledSelector, vi.fn())
+	expect(compute).toHaveBeenCalledTimes(1)
+	stop()
+	application.dispose()
+	expect(withdraw(IMPLICIT.STORE, countAtom).subject.subscribers.size).toBe(0)
+	setState(countAtom, 1)
+	expect(compute).toHaveBeenCalledTimes(1)
+})
 
 it(`shares the normal atom.io graph, hydrates an initial root, and freshly mounts a delayed root after an edit`, async () => {
 	const countAtom = atom<number>({ key: `count`, default: 0 })

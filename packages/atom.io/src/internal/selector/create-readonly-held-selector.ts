@@ -3,7 +3,6 @@ import type {
 	ReadonlyHeldSelectorOptions,
 	ReadonlyHeldSelectorToken,
 } from "atom.io"
-import { Subject } from "atom.io/foundations/subject"
 
 import { writeToCache } from "../caching.ts"
 import { newest } from "../lineage.ts"
@@ -11,6 +10,7 @@ import type { ReadonlyHeldSelector } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
 import type { RootStore } from "../transaction/index.ts"
 import { registerSelector } from "./register-selector.ts"
+import { SelectorSubject } from "./selector-subject.ts"
 
 export function createReadonlyHeldSelector<T extends object>(
 	store: Store,
@@ -18,7 +18,7 @@ export function createReadonlyHeldSelector<T extends object>(
 	family: FamilyMetadata | undefined,
 ): ReadonlyHeldSelectorToken<T> {
 	const target = newest(store)
-	const subject = new Subject<{ newValue: T; oldValue: T }>()
+	const subject = new SelectorSubject<{ newValue: T; oldValue: T }>()
 	const covered = new Set<string>()
 	const { key, const: constant } = options
 	const type = `readonly_held_selector` as const

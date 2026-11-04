@@ -34,31 +34,27 @@ export function subscribeToState<T, E>(
 		state.type === `readonly_pure_selector` ||
 		state.type === `writable_held_selector` ||
 		state.type === `readonly_held_selector`
-	const rootSubs = new Map<string, () => void>()
-	let updateHandler: UpdateHandler<E | T> = safelyHandleUpdate
 	if (isSelector) {
 		readOrComputeValue(store, state)
-		for (const [atomKey, atom] of traceRootSelectorAtoms(store, state.key)) {
-			rootSubs.set(atomKey, subscribeToRootDependency(store, state, atom))
-		}
-		updateHandler = function updateRootsBeforeHandlingUpdate(update) {
-			const dependencies = traceRootSelectorAtoms(store, state.key)
-			for (const [previousRootKey, unsub] of rootSubs) {
-				const currentRoot = dependencies.get(previousRootKey)
-				if (currentRoot) {
-					dependencies.delete(previousRootKey)
-				} else {
-					unsub()
-					rootSubs.delete(previousRootKey)
+		if (!state.subject.rootSubscriptions) {
+			const roots = new Map<string, () => void>()
+			state.subject.rootSubscriptions = roots
+			state.subject.updateRootSubscriptions = () => {
+				const dependencies = traceRootSelectorAtoms(store, state.key)
+				for (const [atomKey, unsubscribe] of roots) {
+					if (dependencies.has(atomKey)) dependencies.delete(atomKey)
+					else {
+						unsubscribe()
+						roots.delete(atomKey)
+					}
 				}
+				for (const [atomKey, atom] of dependencies)
+					roots.set(atomKey, subscribeToRootDependency(store, state, atom))
 			}
-			for (const [atomKey, atom] of dependencies) {
-				rootSubs.set(atomKey, subscribeToRootDependency(store, state, atom))
-			}
-			safelyHandleUpdate(update)
 		}
+		state.subject.updateRootSubscriptions!()
 	}
-	const mainUnsubFunction = state.subject.subscribe(key, updateHandler)
+	const mainUnsubFunction = state.subject.subscribe(key, safelyHandleUpdate)
 	const unsubscribe = () => {
 		store.logger.info(
 			`🙈`,
@@ -67,9 +63,6 @@ export function subscribeToState<T, E>(
 			`Removing subscription "${key}"`,
 		)
 		mainUnsubFunction()
-		for (const unsubFromDependency of rootSubs.values()) {
-			unsubFromDependency()
-		}
 	}
 
 	return unsubscribe

@@ -10,13 +10,13 @@ import * as Spa from "@atom.io/spa"
 import {
 	onCleanup,
 	onMount,
+	useGetter,
 	useId,
 	useRef,
 	useSetter,
 	useStore,
 	useTimeline,
 	useTransaction,
-	useValue,
 } from "@atom.io/spa"
 import type { JSX } from "@atom.io/spa/jsx-runtime"
 import type { RegularAtomToken, TimelineToken, TransactionToken } from "atom.io"
@@ -30,7 +30,7 @@ export const component: Component<{
 }> = (props) => {
 	const store: RootStore = useStore()
 	void store
-	const value: Accessor<number> = useValue(props.count)
+	const value: Accessor<number> = useGetter(props.count)
 	useSetter(props.count)((n) => n + 1)
 	const history: TimelineValue = useTimeline(props.history)()
 	const result: string = useTransaction(props.action)(1)

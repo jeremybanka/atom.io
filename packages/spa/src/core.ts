@@ -281,14 +281,14 @@ export function resolveStateToken(token: any, key?: Canonical): any {
 }
 
 /** Capture a token for this instance. Change the component key to change its token. */
-export function useValue<T, E = never>(
+export function useGetter<T, E = never>(
 	token: ReadableToken<T, any, E>,
 ): Accessor<ViewOf<T | E>>
-export function useValue<T, K extends Canonical, E = never>(
+export function useGetter<T, K extends Canonical, E = never>(
 	family: ReadableFamilyToken<T, K, E>,
 	key: NoInfer<K>,
 ): Accessor<ViewOf<T | E>>
-export function useValue(token: any, key?: Canonical): Accessor<any> {
+export function useGetter(token: any, key?: Canonical): Accessor<any> {
 	token = resolveStateToken(token, key)
 	const store = owner!._root._store
 	const subscribe: Subscribe = (notify) =>

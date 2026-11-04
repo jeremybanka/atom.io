@@ -26,7 +26,7 @@ import { onRequest } from "../src/astro-middleware.ts"
 import { requestApplication } from "../src/astro-request.ts"
 import astroServer from "../src/astro-server.ts"
 import type { AstroStoreContext, Island } from "../src/astro-shared.ts"
-import { useValue } from "../src/core.ts"
+import { useGetter } from "../src/core.ts"
 
 const originalStore = IMPLICIT.STORE
 beforeEach(() => {
@@ -78,7 +78,7 @@ it(`keeps bootstrap selector observers lazy and releases roots when the applicat
 it(`shares the normal atom.io graph, hydrates an initial root, and freshly mounts a delayed root after an edit`, async () => {
 	const countAtom = atom<number>({ key: `count`, default: 0 })
 	const App: Island = () => {
-		const count = useValue(countAtom)
+		const count = useGetter(countAtom)
 		return <p>{count()}</p>
 	}
 	const request = new Request(`http://test`)
@@ -107,7 +107,7 @@ it(`shares the normal atom.io graph, hydrates an initial root, and freshly mount
 it(`hydrates two untouched initial roots and preserves a mounted root across navigation`, async () => {
 	const countAtom = atom<number>({ key: `count`, default: 0 })
 	const App: Island = () => {
-		const count = useValue(countAtom)
+		const count = useGetter(countAtom)
 		return <p>{count()}</p>
 	}
 	const req = new Request(`http://test`)
@@ -136,7 +136,7 @@ it(`hydrates two untouched initial roots and preserves a mounted root across nav
 it(`notices edits during async preparation and mutations before bootstrap`, async () => {
 	const valueAtom = atom<number>({ key: `value`, default: 0 })
 	const App: Island = () => {
-		const value = useValue(valueAtom)
+		const value = useGetter(valueAtom)
 		return <p>{value()}</p>
 	}
 	const req = new Request(`http://test`)
@@ -230,7 +230,7 @@ it(`keeps the app alive in bfcache and releases app resources on a real page exi
 it(`explicit isolation retains separate stores`, async () => {
 	const countAtom = atom<number>({ key: `count`, default: 0 })
 	const App: Island = () => {
-		const value = useValue(countAtom)
+		const value = useGetter(countAtom)
 		return <p>{value()}</p>
 	}
 	App.isolate = true
@@ -250,7 +250,7 @@ it(`explicit isolation retains separate stores`, async () => {
 it(`shares SSR state within a request and isolates overlapping requests and later imported definitions`, async () => {
 	const valueAtom = atom<number>({ key: `value`, default: 0 })
 	const App: Island = () => {
-		const value = useValue(valueAtom)
+		const value = useGetter(valueAtom)
 		return <p>{value()}</p>
 	}
 	const a = new Request(`http://test/a`),
@@ -438,7 +438,7 @@ it(`treats shared client-only initialization as live state before another island
 	let initial = 0
 	const valueAtom = atom<number>({ key: `value`, default: () => initial })
 	const App: Island = () => {
-		const value = useValue(valueAtom)
+		const value = useGetter(valueAtom)
 		return <p>{value()}</p>
 	}
 	const request = new Request(`http://test/client-only`)

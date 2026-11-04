@@ -1,5 +1,5 @@
 import type { Accessor, TimelineValue } from "@atom.io/spa"
-import { useRef, useSetter, useTimeline, useValue } from "@atom.io/spa"
+import { useGetter, useRef, useSetter, useTimeline } from "@atom.io/spa"
 import type {
 	ReadableFamilyToken,
 	RegularAtomFamilyToken,
@@ -20,7 +20,7 @@ export function familyTypes(
 	elements: RegularAtomFamilyToken<HTMLInputElement | null, boolean>,
 	timelines: TimelineFamilyToken<null>,
 ): void {
-	const read = useValue(readable, 1)
+	const read = useGetter(readable, 1)
 	const write = useSetter(writable, [`row`, 1])
 	const ref = useRef(elements, false)
 	const history = useTimeline(timelines, null)
@@ -36,11 +36,11 @@ export function familyTypes(
 	ref(null)
 	history().undo()
 	// @ts-expect-error A family requires a key.
-	useValue(readable)
+	useGetter(readable)
 	// @ts-expect-error Keys cannot widen the family's declared key type.
-	useValue(readable, 3)
+	useGetter(readable, 3)
 	// @ts-expect-error A member token does not accept a family key.
-	useValue({ type: `atom`, key: `member` }, 1)
+	useGetter({ type: `atom`, key: `member` }, 1)
 	// @ts-expect-error A writable family requires a key.
 	useSetter(writable)
 	// @ts-expect-error Tuple keys retain their element types.

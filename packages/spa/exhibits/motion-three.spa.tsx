@@ -1,5 +1,5 @@
 import type { VNode } from "@atom.io/spa"
-import { useValue } from "@atom.io/spa"
+import { useGetter } from "@atom.io/spa"
 import {
 	BoxGeometry,
 	Canvas,
@@ -14,7 +14,7 @@ const targetXAtom = atom<number>({
 })
 // Mount under a root with capabilities: [motionCapability()].
 export function SpringCube(): VNode {
-	const x = useValue(targetXAtom)
+	const x = useGetter(targetXAtom)
 	return (
 		<Canvas>
 			<Mesh

@@ -4,7 +4,7 @@ import type * as Three from "three"
 import * as THREE from "three"
 import { expect, it, vi } from "vitest"
 
-import { render, useValue } from "../src/index.ts"
+import { render, useGetter } from "../src/index.ts"
 import { jsx } from "../src/jsx-runtime.ts"
 import { konvaRenderer, Layer, Rect, Stage } from "../src/konva.ts"
 import {
@@ -78,7 +78,7 @@ it(`owns canvas resources, resizes the default camera, and routes frame and even
 	const onFrame = vi.fn()
 	const host = document.createElement(`div`)
 	function App() {
-		const size = useValue(sizeAtom)
+		const size = useGetter(sizeAtom)
 		return (
 			<Canvas width={size()} height={50} onFrame={onFrame}>
 				<Mesh>
@@ -158,7 +158,7 @@ it(`owns a Stage, applies reactive attributes/events, and publishes native refs`
 	const ref = vi.fn()
 	const host = document.createElement(`div`)
 	function App() {
-		const width = useValue(widthAtom)
+		const width = useGetter(widthAtom)
 		return (
 			<Stage width={width()} height={50} onClick={click} ref={ref}>
 				<Layer>
@@ -223,7 +223,7 @@ it(`validates scene structure and native properties while restoring removed prop
 	const activeAtom = silo.atom<boolean>({ key: `active`, default: true })
 	let mesh!: THREE.Mesh
 	function App() {
-		const active = useValue(activeAtom)
+		const active = useGetter(activeAtom)
 		return jsx(Mesh, {
 			get position() {
 				return active() ? new THREE.Vector3(1, 2, 3) : undefined
@@ -315,7 +315,7 @@ it(`supports motion and gestures on Konva nodes and stages and replaces native h
 	const first = vi.fn()
 	const second = vi.fn()
 	function App() {
-		const phase = useValue(phaseAtom)
+		const phase = useGetter(phaseAtom)
 		return (
 			<>
 				{[...(phase() === 1 ? [`b`, `a`] : [`a`, `b`])].map((id) =>
@@ -392,7 +392,7 @@ it(`animates native Three.js transforms, colors, scalar properties, and camera p
 	})
 	const reverseAtom = silo.atom<boolean>({ key: `reverse`, default: false })
 	function App() {
-		const reverse = useValue(reverseAtom)
+		const reverse = useGetter(reverseAtom)
 		return (
 			<>
 				{(reverse() ? [`b`, `a`] : [`a`, `b`]).map((id) =>
@@ -442,7 +442,7 @@ it(`retains Stage and Canvas infrastructure during a parent exit and pauses user
 		user = vi.fn(),
 		ref = vi.fn()
 	function App() {
-		const present = useValue(presentAtom)
+		const present = useGetter(presentAtom)
 		return (
 			<>
 				{present() && (

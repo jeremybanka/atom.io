@@ -11,8 +11,8 @@ import {
 	onCleanup,
 	onMount,
 	render,
+	useGetter,
 	useRef,
-	useValue,
 } from "../src/index.ts"
 import { renderToString } from "../src/server.ts"
 
@@ -37,7 +37,7 @@ describe(`integration contracts`, () => {
 			return <input ref={ref} />
 		}
 		function App() {
-			const visible = useValue(visibleAtom)
+			const visible = useGetter(visibleAtom)
 			return <>{visible() && <Branch />}</>
 		}
 		const host = document.createElement(`section`)
@@ -59,7 +59,7 @@ describe(`integration contracts`, () => {
 		})
 		const textAtom = silo.atom<string>({ key: `text`, default: `<&` })
 		function App() {
-			const text = useValue(textAtom)
+			const text = useGetter(textAtom)
 			return (
 				<>
 					<textarea value={text()} />
@@ -96,7 +96,7 @@ describe(`integration contracts`, () => {
 		const onError = vi.fn()
 		const cleanup = vi.fn()
 		function App() {
-			const count = useValue(countAtom)
+			const count = useGetter(countAtom)
 			onCleanup(cleanup)
 			const read = () => {
 				if (count() > 0) throw new Error(`failed read`)
@@ -173,7 +173,7 @@ describe(`integration contracts`, () => {
 		const setup = vi.fn()
 		const cleanup = vi.fn()
 		const App: Island = (props) => {
-			const count = useValue(countAtom)
+			const count = useGetter(countAtom)
 			onCleanup(cleanup)
 			setup()
 			return (

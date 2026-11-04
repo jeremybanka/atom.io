@@ -1,5 +1,5 @@
 import type { Accessor } from "@atom.io/spa"
-import { onCleanup, useId, useSetter, useValue } from "@atom.io/spa"
+import { onCleanup, useGetter, useId, useSetter } from "@atom.io/spa"
 import type { RegularAtomFamilyToken, RegularAtomToken, Setter } from "atom.io"
 import type { RootStore } from "atom.io/internal"
 import {
@@ -42,7 +42,7 @@ export function useLocal<T>(
 	initial: T,
 ): [Accessor<T>, (next: T | Setter<T>) => void] {
 	const token = ownedAtom(store, initial)
-	return [useValue(token) as Accessor<T>, useSetter(token)]
+	return [useGetter(token) as Accessor<T>, useSetter(token)]
 }
 export function useSaved<T>(
 	store: RootStore,
@@ -112,7 +112,7 @@ export function useExpanded(
 	path: Path,
 	initial = false,
 ): [Accessor<boolean>, (event: MouseEvent) => void] {
-	const value = useValue(tools.expanded)
+	const value = useGetter(tools.expanded)
 	const set = useSetter(tools.expanded)
 	const key = JSON.stringify(path)
 	const group = `all:${JSON.stringify(path.slice(0, -1))}`

@@ -7,7 +7,7 @@ import type {
 import type { Canonical } from "atom.io/foundations/canonical"
 import { withdraw } from "atom.io/internal"
 
-import { type Accessor, owner, resolveStateToken, useValue } from "./core.ts"
+import { type Accessor, owner, resolveStateToken, useGetter } from "./core.ts"
 
 export type LoadableValue<T> = { loading: boolean; value: T }
 
@@ -38,7 +38,7 @@ export function useLoadable(
 	const [token] = params
 	const family = token.type.endsWith(`_family`)
 	const selected = resolveStateToken(token, params[1] as Canonical)
-	const read = useValue(selected)
+	const read = useGetter(selected)
 	const fallbackIndex = family ? 2 : 1
 	const fallback = params[fallbackIndex]
 	const hasFallback = params.length > fallbackIndex

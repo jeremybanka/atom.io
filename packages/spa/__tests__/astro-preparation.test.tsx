@@ -6,7 +6,7 @@ import astroClient from "../src/astro-client.ts"
 import { storeContext } from "../src/astro-context.ts"
 import astroServer from "../src/astro-server.ts"
 import type { AstroStoreContext, Island } from "../src/astro-shared.ts"
-import { onCleanup, useValue } from "../src/core.ts"
+import { onCleanup, useGetter } from "../src/core.ts"
 
 const silo = (): Silo =>
 	new Silo({
@@ -27,7 +27,7 @@ describe(`Astro store preparation`, () => {
 		const setup = vi.fn()
 		const App: Island = () => {
 			setup()
-			const value = useValue(valueAtom)
+			const value = useGetter(valueAtom)
 			return <p>{value()}</p>
 		}
 		App.createStore = async (_, next) => {
@@ -284,7 +284,7 @@ describe(`Astro store preparation`, () => {
 		const cleanup = vi.fn()
 		let context!: AstroStoreContext
 		const App: Island = () => {
-			const fail = useValue(failAtom)
+			const fail = useGetter(failAtom)
 			onCleanup(() => {
 				expect(cleanup).not.toHaveBeenCalled()
 			})
@@ -323,7 +323,7 @@ it(`prepares module definitions in separate default stores before SSR and hydrat
 	const stores = new Set()
 	const cleaned = vi.fn()
 	const App: Island<{ message: string }> = () => {
-		const value = useValue(valueAtom)
+		const value = useGetter(valueAtom)
 		return <p>{value()}</p>
 	}
 	App.prepareStore = async (store, props, context) => {

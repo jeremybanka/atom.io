@@ -16,7 +16,7 @@ The [PointEditor exhibit](../packages/spa/exhibits/point.tsx) demonstrates the o
 
 | API            | Responsibility                                                                                       |
 | -------------- | ---------------------------------------------------------------------------------------------------- |
-| useValue       | Capture a readable token and store; return a tracked accessor.                                       |
+| useGetter      | Capture a readable token and store; return a tracked accessor.                                       |
 | useLoadable    | Observe loadable state through a tracked accessor, with optional fallback and last-observed values.  |
 | useSetter      | Capture a writable token and store; return a writer.                                                 |
 | useTimeline    | Read timeline metadata and undo/redo/clear controls, including available transaction-group controls. |
@@ -29,7 +29,7 @@ The [PointEditor exhibit](../packages/spa/exhibits/point.tsx) demonstrates the o
 
 The core helpers capture the component store and ownership. Transaction commands preserve store scoping, onMount gives work involving several refs a reliable attachment point, and useStore exposes the selected store for integrations and direct atom.io operations. Dependency suppression stays internal to the renderer. useLoadable adapts atom.io promise state without adding a separate subscription or promise lifecycle; the [async state exhibit](../packages/spa/exhibits/loadable.tsx) demonstrates its tracked accessor.
 
-The state hooks useValue, useSetter, useRef, and useLoadable support streamlined family/key arguments resolved in the component's store. useTimeline supports timeline families in the same way. Both token and key stay fixed for the instance. The [family exhibit](../packages/spa/exhibits/families.tsx) demonstrates reads, writes, refs, and timeline controls.
+The state hooks useGetter, useSetter, useRef, and useLoadable support streamlined family/key arguments resolved in the component's store. useTimeline supports timeline families in the same way. Both token and key stay fixed for the instance. The [family exhibit](../packages/spa/exhibits/families.tsx) demonstrates reads, writes, refs, and timeline controls.
 
 ## Atom.io controls the view
 

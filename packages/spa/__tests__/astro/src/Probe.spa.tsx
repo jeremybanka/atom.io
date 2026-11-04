@@ -1,5 +1,5 @@
 import type { VNode } from "@atom.io/spa"
-import { onCleanup, onMount, useSetter, useValue } from "@atom.io/spa"
+import { onCleanup, onMount, useGetter, useSetter } from "@atom.io/spa"
 import { atom } from "atom.io"
 
 const orderAtom = atom<string[]>({ key: `order`, default: [`a`, `b`] })
@@ -16,7 +16,7 @@ export default function Probe(): VNode {
 	onMount(() => {
 		document.getElementById(`probe`)!.dataset[`mounted`] = `true`
 	})
-	const order = useValue(orderAtom)
+	const order = useGetter(orderAtom)
 	const setOrder = useSetter(orderAtom)
 	return (
 		<section id="probe">

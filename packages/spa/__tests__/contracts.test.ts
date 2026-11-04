@@ -8,7 +8,7 @@ import { storeContext } from "../src/astro-context.ts"
 import astroServer from "../src/astro-server.ts"
 import { islandStore } from "../src/astro-shared.ts"
 import { compile } from "../src/compiler.ts"
-import { owner, type Scope, useValue } from "../src/core.ts"
+import { owner, type Scope, useGetter } from "../src/core.ts"
 import {
 	createRoot,
 	createScope,
@@ -370,7 +370,7 @@ it(`resets removed boolean properties and skips refs whose owners were removed b
 	let read!: () => Record<string, unknown>
 	const root = render(
 		() => {
-			read = useValue(propsAtom)
+			read = useGetter(propsAtom)
 			return jsx(`button`, merge(read))
 		},
 		host,

@@ -114,7 +114,7 @@ Fragment groups children without adding a DOM element. The JSX fragment syntax u
 | API | Purpose |
 | -------------- | ---------------------------------------------------------------------------------------------------- |
 | [useLoadable](#useloadable) | Read loading state, retain the last observed value during refresh, and optionally supply a fallback. |
-| [useValue](#usevalue) | Capture a readable token and return its tracked accessor. |
+| [useGetter](#usegetter) | Capture a readable token and return its tracked accessor. |
 | [useSetter](#usesetter) | Capture a writable token and return a store-bound writer. |
 | [useTimeline](#usetimeline) | Read timeline metadata and access undo, redo, clear, and transaction-group controls. |
 | [useTransaction](#usetransaction) | Bind an atom.io transaction while preserving its arguments and result. |
@@ -128,7 +128,7 @@ Fragment groups children without adding a DOM element. The JSX fragment syntax u
 
 Call setup helpers synchronously during component setup or owned mount callbacks, then capture their results for event handlers. DOM computations should only read state. Use event handlers and atom.io transactions for writes.
 
-### useValue
+### useGetter
 
 Capture a tracked accessor for an atom or selector. Calling it inside compiled JSX subscribes that DOM computation; calling it during setup reads a snapshot. Calls from event handlers read the current value without subscribing. The [point example](#a-reactive-view) reads two coordinates from one atom.
 
@@ -170,7 +170,7 @@ Return the current root's atom.io RootStore directly. This is the same object su
 
 <Exhibit src="spa/exhibits/store.tsx" />
 
-Call useStore during component setup or an owned onMount callback, then capture the result for store-aware atom.io operations or integrations. Direct reads such as getFromStore do not subscribe the surrounding JSX computation; useValue and useLoadable provide tracked reads.
+Call useStore during component setup or an owned onMount callback, then capture the result for store-aware atom.io operations or integrations. Direct reads such as getFromStore do not subscribe the surrounding JSX computation; useGetter and useLoadable provide tracked reads.
 
 ### keyed views and DOM props
 
@@ -182,7 +182,7 @@ Standard HTML and SVG tags have element-specific attributes, callback refs, and 
 
 ## families
 
-useValue, useSetter, useRef, and useTimeline also accept a family token and its key. useLoadable accepts a family, key, and optional fallback. All five resolve members in the component's store and preserve the declared key type.
+useGetter, useSetter, useRef, and useTimeline also accept a family token and its key. useLoadable accepts a family, key, and optional fallback. All five resolve members in the component's store and preserve the declared key type.
 
 <Exhibit src="spa/exhibits/families.tsx" />
 

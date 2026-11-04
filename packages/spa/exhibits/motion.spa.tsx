@@ -1,10 +1,10 @@
 import type { VNode } from "@atom.io/spa"
-import { useSetter, useValue } from "@atom.io/spa"
+import { useGetter, useSetter } from "@atom.io/spa"
 import { atom } from "atom.io"
 
 const targetXAtom = atom<number>({ key: `targetX`, default: 0 })
 export function MotionPanel(): VNode {
-	const x = useValue(targetXAtom)
+	const x = useGetter(targetXAtom)
 	const setX = useSetter(targetXAtom)
 	return (
 		<section>

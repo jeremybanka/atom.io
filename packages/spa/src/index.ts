@@ -14,13 +14,13 @@ export type {
 export {
 	onCleanup,
 	onMount,
+	useGetter,
 	useId,
 	useRef,
 	useSetter,
 	useStore,
 	useTimeline,
 	useTransaction,
-	useValue,
 } from "./core.ts"
 export type { SpaRoot } from "./dom.ts"
 export { hydrate, render } from "./dom.ts"

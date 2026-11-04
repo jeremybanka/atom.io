@@ -1,7 +1,7 @@
 import { Silo } from "atom.io"
 import { expect, it, vi } from "vitest"
 
-import { render, useValue } from "../src/index.ts"
+import { render, useGetter } from "../src/index.ts"
 import type { MotionAttributes } from "../src/motion.ts"
 import { motionCapability } from "../src/motion.ts"
 import { createSceneRenderer, sceneComponent } from "../src/renderer.ts"
@@ -36,7 +36,7 @@ it(`animates native scene properties, respects reduced motion, and restores borr
 	})
 	const Shape = sceneComponent<MotionAttributes<`konva`>>(`shape`)
 	function App() {
-		const x = useValue(positionAtom)
+		const x = useGetter(positionAtom)
 		return <Shape motion:initial={{ x: -1 }} motion:animate={{ x: x() }} />
 	}
 	const host = { x: 0, children: [] }

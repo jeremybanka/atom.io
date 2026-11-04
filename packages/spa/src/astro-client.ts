@@ -12,7 +12,7 @@ import { browserApplication } from "./astro-application.ts"
 import { failPreparation, storeContext } from "./astro-context.ts"
 import type { Island } from "./astro-shared.ts"
 import { island, islandStore } from "./astro-shared.ts"
-import { onCleanup, useValue } from "./core.ts"
+import { onCleanup, useGetter } from "./core.ts"
 import { hydrate, render } from "./dom.ts"
 
 type Props = Record<string, any>
@@ -101,7 +101,7 @@ export default (element: HTMLElement): Hydrator =>
 				})
 				const mount = () => {
 					onCleanup(dispose)
-					const value = useValue(state)
+					const value = useGetter(state)
 					return () => island(component, value().props, value().slots)
 				}
 				if (replace) element.replaceChildren()

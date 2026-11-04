@@ -6,10 +6,10 @@ import type { Accessor, SpaRoot, TimelineValue } from "../src/index.ts"
 import {
 	onCleanup,
 	render,
+	useGetter,
 	useRef,
 	useSetter,
 	useTimeline,
-	useValue,
 } from "../src/index.ts"
 import { renderToString } from "../src/server.ts"
 
@@ -56,7 +56,7 @@ describe(`streamlined families`, () => {
 			const setup = vi.fn()
 			const root = mount(() => {
 				setup()
-				const value = useValue(countAtoms, key)
+				const value = useGetter(countAtoms, key)
 				const setValue = useSetter(countAtoms, key)
 				const ref = useRef(elementAtoms, key)
 				history = useTimeline(historyTimelines, key)
@@ -109,7 +109,7 @@ describe(`streamlined families`, () => {
 				},
 		})
 		const root = mount(() => {
-			const value = useValue(doubledSelectors, 1)
+			const value = useGetter(doubledSelectors, 1)
 			const setValue = useSetter(doubledSelectors, 1)
 			return (
 				<button
@@ -132,7 +132,7 @@ describe(`streamlined families`, () => {
 		const first = fixture(1)
 		const second = fixture(10)
 		const App = () => {
-			const value = useValue(first.countAtoms, 0)
+			const value = useGetter(first.countAtoms, 0)
 			const setValue = useSetter(first.countAtoms, 0)
 			const ref = useRef(first.elementAtoms, 0)
 			const history = useTimeline(first.historyTimelines, 0)
@@ -175,7 +175,7 @@ describe(`streamlined families`, () => {
 		const disposed = vi.fn()
 		function Row(props: { id: number }) {
 			const id = props.id
-			const value = useValue(countAtoms, id)
+			const value = useGetter(countAtoms, id)
 			const setValue = useSetter(countAtoms, id)
 			const ref = useRef(elementAtoms, id)
 			const history = useTimeline(historyTimelines, id)
@@ -194,7 +194,7 @@ describe(`streamlined families`, () => {
 			)
 		}
 		const root = mount(() => {
-			const selected = useValue(selectedAtom)
+			const selected = useGetter(selectedAtom)
 			return <>{[<Row key={selected()} id={selected()} />]}</>
 		})
 		const firstButton = host.querySelector(`button`)!
@@ -238,7 +238,7 @@ describe(`streamlined families`, () => {
 		const { silo, countAtoms, elementAtoms, historyTimelines, host } = fixture(7)
 		const html = renderToString(
 			() => {
-				const value = useValue(countAtoms, 1)
+				const value = useGetter(countAtoms, 1)
 				const history = useTimeline(historyTimelines, 1)
 				const ref = useRef(elementAtoms, 1)
 				return (

@@ -51,7 +51,7 @@ The development plugin keeps SPA and atom.io outside dependency prebundling so r
 | API                           | Contract                                                                                                                 |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | useLoadable(token, fallback?) | Return a tracked accessor for loading, last-observed values, and handled errors.                                         |
-| useValue(token)               | Return a live accessor for an atom or selector, bound to this instance's store.                                          |
+| useGetter(token)              | Return a live accessor for an atom or selector, bound to this instance's store.                                          |
 | useSetter(token)              | Return a stable atom.io writer.                                                                                          |
 | useTimeline(token)            | Return an accessor for at, length, undo, redo, clear, and available grouped transaction controls.                        |
 | useTransaction(token)         | Bind an atom.io transaction, preserving its arguments and result.                                                        |
@@ -75,11 +75,11 @@ useStore returns the current root's atom.io RootStore directly. It is the same o
 
 <StoreExample />
 
-Capture the store during component setup or an owned onMount callback, then pass it to store-aware atom.io operations or integrations. Getting the store creates no subscription. Direct reads such as getFromStore do not participate in SPA's dependency tracking; useValue and useLoadable provide tracked reads. The returned object is a store, not a Silo or a new wrapper.
+Capture the store during component setup or an owned onMount callback, then pass it to store-aware atom.io operations or integrations. Getting the store creates no subscription. Direct reads such as getFromStore do not participate in SPA's dependency tracking; useGetter and useLoadable provide tracked reads. The returned object is a store, not a Silo or a new wrapper.
 
 ## Families
 
-useValue, useSetter, useRef, and useTimeline accept a family token followed by its key. useLoadable accepts a family, key, and optional fallback. Keys retain their declared types, including tuples, numbers, booleans, and null. Members resolve in the component's store, so isolated roots can use the same family tokens independently.
+useGetter, useSetter, useRef, and useTimeline accept a family token followed by its key. useLoadable accepts a family, key, and optional fallback. Keys retain their declared types, including tuples, numbers, booleans, and null. Members resolve in the component's store, so isolated roots can use the same family tokens independently.
 
 <Families />
 
@@ -147,7 +147,7 @@ Build output includes the minified audit entrypoint and machine-readable dist/si
 
 Breakage exercises the packed package in isolated, locked peer environments, including the coordinated atom.io workspace candidate. Until the first published release, Breakage reports a first-release baseline; these checks establish compatibility with the declared peers rather than a previous spa release. Coverage gates require 100% of statements, branches, functions, and lines across the package source.
 
-Tonnage measures combined browser bundles containing SPA and atom.io, with shared modules counted once and unused exports removed. The synchronous recipes include atom creation, useValue, useSetter, and JSX; the client recipe adds render, the hydration recipe adds hydrate, and the Astro recipe adds the browser island adapter. The async recipe uses useLoadable with render and useSetter. The family recipe includes keyed state, refs, and timeline controls, plus atomFamily, timelineFamily, and scopeFamily. SPA declares atom.io as a peer dependency; these consumer-app measurements include it in every total. Application components, Astro scheduling code, CSS, declarations, and source maps are excluded. The full-client gzip budget above remains a separate, SPA-only audit.
+Tonnage measures combined browser bundles containing SPA and atom.io, with shared modules counted once and unused exports removed. The synchronous recipes include atom creation, useGetter, useSetter, and JSX; the client recipe adds render, the hydration recipe adds hydrate, and the Astro recipe adds the browser island adapter. The async recipe uses useLoadable with render and useSetter. The family recipe includes keyed state, refs, and timeline controls, plus atomFamily, timelineFamily, and scopeFamily. SPA declares atom.io as a peer dependency; these consumer-app measurements include it in every total. Application components, Astro scheduling code, CSS, declarations, and source maps are excluded. The full-client gzip budget above remains a separate, SPA-only audit.
 
 <Tonnage config={config} />
 

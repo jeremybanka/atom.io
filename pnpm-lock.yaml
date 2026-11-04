@@ -1437,10 +1437,10 @@ importers:
         version: link:../../packages/spa
       '@trpc/client':
         specifier: 11.23.0
-        version: 11.23.0(@trpc/server@11.23.0(@types/ws@8.18.1)(typescript@7.1.0-dev.20261103.1))(typescript@7.1.0-dev.20261103.1)
+        version: 11.23.0(@trpc/server@11.24.0(@types/ws@8.18.1)(typescript@7.1.0-dev.20261103.1))(typescript@7.1.0-dev.20261103.1)
       '@trpc/server':
-        specifier: 11.23.0
-        version: 11.23.0(@types/ws@8.18.1)(typescript@7.1.0-dev.20261103.1)
+        specifier: 11.24.0
+        version: 11.24.0(@types/ws@8.18.1)(typescript@7.1.0-dev.20261103.1)
       astro:
         specifier: 7.4.5
         version: 7.4.5(@astrojs/markdown-remark@7.3.5(supports-color@10.2.2))(@azure/identity@4.13.2(supports-color@10.2.2))(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
@@ -4410,8 +4410,8 @@ packages:
       '@trpc/server': 11.23.0
       typescript: '>=5.7.2'
 
-  '@trpc/server@11.23.0':
-    resolution: {integrity: sha512-kHQY+MvRYm/NaerM6zM755NA4elBrA+PVve4RoJQf1P+hBzqQUuIBsmg+y7DWDsrWtg4wPASWbcYInP2xCBIFQ==}
+  '@trpc/server@11.24.0':
+    resolution: {integrity: sha512-CxpaiIY58ItaLpGxwYTxHHYx5evRAJ4B2Eq94axvg28nwihDgjQIUiLG8T49DZ/t4R2tPHHdeLkF6t0kyjD5YQ==}
     peerDependencies:
       '@types/aws-lambda': '*'
       '@types/express': '*'
@@ -11336,12 +11336,12 @@ snapshots:
     dependencies:
       '@testing-library/dom': 10.4.2
 
-  '@trpc/client@11.23.0(@trpc/server@11.23.0(@types/ws@8.18.1)(typescript@7.1.0-dev.20261103.1))(typescript@7.1.0-dev.20261103.1)':
+  '@trpc/client@11.23.0(@trpc/server@11.24.0(@types/ws@8.18.1)(typescript@7.1.0-dev.20261103.1))(typescript@7.1.0-dev.20261103.1)':
     dependencies:
-      '@trpc/server': 11.23.0(@types/ws@8.18.1)(typescript@7.1.0-dev.20261103.1)
+      '@trpc/server': 11.24.0(@types/ws@8.18.1)(typescript@7.1.0-dev.20261103.1)
       typescript: 7.1.0-dev.20261103.1
 
-  '@trpc/server@11.23.0(@types/ws@8.18.1)(typescript@7.1.0-dev.20261103.1)':
+  '@trpc/server@11.24.0(@types/ws@8.18.1)(typescript@7.1.0-dev.20261103.1)':
     dependencies:
       typescript: 7.1.0-dev.20261103.1
     optionalDependencies:

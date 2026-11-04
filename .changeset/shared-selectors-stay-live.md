@@ -1,6 +1,6 @@
 ---
 "atom.io": patch
-"@atom.io/spa": minor
+"@atom.io/spa": patch
 "@atom.io/spa-devtools": patch
 "resumability": patch
 ---

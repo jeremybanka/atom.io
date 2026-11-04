@@ -15,7 +15,6 @@
 		"scripts",
 		"__tests__",
 		"exhibits",
-		"*.config.ts",
-		"tonnage-recipes"
+		"*.config.ts"
 	]
 }

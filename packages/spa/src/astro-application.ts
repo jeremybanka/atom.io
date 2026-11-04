@@ -1,7 +1,12 @@
 import type { ReadableToken } from "atom.io"
-import { IMPLICIT, subscribeToStateSubject, withdraw } from "atom.io/internal"
+import * as Core from "atom.io/internal"
 
 import { applicationContext } from "./astro-context.ts"
+
+// Released SDKs can observe subjects without the newer state cleanup helper.
+const subscribeToStateSubject =
+	Core.subscribeToStateSubject ??
+	((state, key, handleUpdate) => state.subject.subscribe(key, handleUpdate))
 
 const applications = new WeakMap<
 	Document,
@@ -16,7 +21,7 @@ export function browserApplication(
 	if (application) return application
 	application = applicationContext()
 	const app = application
-	const store = IMPLICIT.STORE
+	const store = Core.IMPLICIT.STORE
 	const originalDefault = store.runDefault
 	applications.set(document, app)
 	const changed = () => {
@@ -28,7 +33,7 @@ export function browserApplication(
 		if (internal(token.key)) return
 		if (store.valueMap.has(token.key)) changed()
 		subscriptions.get(token.key)?.()
-		const state = withdraw(store, token)
+		const state = Core.withdraw(store, token)
 		subscriptions.set(
 			token.key,
 			subscribeToStateSubject(state, `spa:bootstrap`, changed),

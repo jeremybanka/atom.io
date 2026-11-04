@@ -170,6 +170,15 @@ try {
 	const toastCapture = await page.evaluate(() =>
 		document.querySelector(`toast-sandbox`).capture(),
 	)
+	assert.equal(
+		toastCapture.markers.find((mark) => mark.label === `exit`).settings.type,
+		`tween`,
+	)
+	assert.equal(
+		toastCapture.markers.find((mark) => mark.label === `re-entry`).settings.type,
+		`spring`,
+	)
+
 	assert.ok(
 		toastCapture.samples.some((at) => at.scale < 0.98 && at.opacity < 0.8),
 		`Dismissal must shrink and fade the toast`,

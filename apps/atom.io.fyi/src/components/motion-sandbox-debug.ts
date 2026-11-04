@@ -316,8 +316,8 @@ export function captureMotion(
 		reviewing = false
 		present = next
 		phase = next ? `returning` : `exiting`
-		marker(next ? `re-entry` : `exit`)
 		toggle(next)
+		marker(next ? `re-entry` : `exit`)
 		draw()
 	}
 	return {

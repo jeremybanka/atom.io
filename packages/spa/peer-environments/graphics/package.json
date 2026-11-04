@@ -5,7 +5,6 @@
 	"type": "module",
 	"dependencies": {
 		"@types/three": "0.187.0",
-		"atom.io": "0.54.3",
 		"konva": "10.9.1",
 		"motion": "14.9.0",
 		"three": "0.187.0"
@@ -15,6 +14,6 @@
 		"typescript": "7.0.2"
 	},
 	"breakage": {
-		"candidates": []
+		"candidates": ["atom.io"]
 	}
 }

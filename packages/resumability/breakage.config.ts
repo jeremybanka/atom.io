@@ -5,7 +5,7 @@ import { defineConfig, semverPolicy } from "breakage"
 const config: BreakageConfig = defineConfig({
 	release: {
 		resolveDelta: changesetsReleaseDelta(),
-		policy: semverPolicy({ beforeV1: `minor` }),
+		policy: semverPolicy({ beforeV1: `minor`, beforeV0_1: `patch` }),
 	},
 	npm: {
 		artifact: `.breakage/package.tgz`,

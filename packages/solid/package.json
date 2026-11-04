@@ -48,7 +48,7 @@
 		"@types/node": "26.6.6",
 		"@vitest/coverage-v8": "5.1.0",
 		"atom.io": "workspace:*",
-		"breakage": "0.10.1",
+		"breakage": "0.10.2",
 		"eslint": "10.14.0",
 		"happy-dom": "21.0.4",
 		"recoverage": "0.1.20",

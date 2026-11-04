@@ -3,10 +3,10 @@ import type { ReadableToken, StateUpdate, UpdateHandler } from "atom.io"
 import { hasRole } from "../atom/index.ts"
 import { ensureState } from "../get-state/ensure-state.ts"
 import { readOrComputeValue } from "../get-state/index.ts"
-import { traceRootSelectorAtoms } from "../selector/index.ts"
+import { updateRootSubscriptions } from "../selector/update-root-subscriptions.ts"
+import type { ReadableState } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
 import { withdraw } from "../store/index.ts"
-import { subscribeToRootDependency } from "./subscribe-to-root-atoms.ts"
 
 export function subscribeToState<T, E>(
 	store: Store,
@@ -36,25 +36,14 @@ export function subscribeToState<T, E>(
 		state.type === `readonly_held_selector`
 	if (isSelector) {
 		readOrComputeValue(store, state)
-		if (!state.subject.rootSubscriptions) {
-			const roots = new Map<string, () => void>()
-			state.subject.rootSubscriptions = roots
-			state.subject.updateRootSubscriptions = () => {
-				const dependencies = traceRootSelectorAtoms(store, state.key)
-				for (const [atomKey, unsubscribe] of roots) {
-					if (dependencies.has(atomKey)) dependencies.delete(atomKey)
-					else {
-						unsubscribe()
-						roots.delete(atomKey)
-					}
-				}
-				for (const [atomKey, atom] of dependencies)
-					roots.set(atomKey, subscribeToRootDependency(store, state, atom))
-			}
-		}
-		state.subject.updateRootSubscriptions!()
+		state.rootSubscriptions ??= new Map()
+		updateRootSubscriptions(store, state)
 	}
-	const mainUnsubFunction = state.subject.subscribe(key, safelyHandleUpdate)
+	const mainUnsubFunction = subscribeToStateSubject(
+		state,
+		key,
+		safelyHandleUpdate,
+	)
 	const unsubscribe = () => {
 		store.logger.info(
 			`🙈`,
@@ -66,4 +55,29 @@ export function subscribeToState<T, E>(
 	}
 
 	return unsubscribe
+}
+
+/** Observe state notifications without computing the state or installing roots. */
+export function subscribeToStateSubject<T, E>(
+	state: ReadableState<T, E>,
+	key: string,
+	handleUpdate: UpdateHandler<E | T>,
+): () => void {
+	const subscriber: UpdateHandler<E | T> = (update) => {
+		handleUpdate(update)
+	}
+	const unsubscribe = state.subject.subscribe(key, subscriber)
+	return () => {
+		if (state.subject.subscribers.get(key) !== subscriber) return
+		unsubscribe()
+		if (
+			state.type !== `atom` &&
+			state.type !== `mutable_atom` &&
+			state.subject.subscribers.size === 0
+		) {
+			const roots = state.rootSubscriptions
+			state.rootSubscriptions = undefined
+			if (roots) for (const stop of roots.values()) stop()
+		}
+	}
 }

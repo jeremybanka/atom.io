@@ -29,7 +29,7 @@ import { isChildStore, isRootStore } from "../transaction/index.ts"
 import {
 	deferTransactionStateNotification,
 	isApplyingMutableSnapshot,
-	notifyTransactionSubject,
+	notifyStateUpdate,
 } from "../transaction/transaction-notification-batch.ts"
 import { evictDownstreamFromAtom } from "./evict-downstream.ts"
 import type { ProtoUpdate } from "./operate-on-store.ts"
@@ -67,7 +67,7 @@ export function dispatchOrDeferStateUpdate<T, E>(
 	const hasOldValue = `oldValue` in proto
 	const token = deposit(state)
 	if (stateIsNewlyCreated && family) {
-		state.subject.next({ newValue })
+		notifyStateUpdate(target, state, { newValue })
 
 		const innerTarget = newest(target)
 		if (token.family) {
@@ -150,9 +150,9 @@ export function dispatchOrDeferStateUpdate<T, E>(
 			(type !== `atom` || !hasRole(state, `tracker:signal`))
 		if (
 			!notificationCanSettle ||
-			!deferTransactionStateNotification(target, key, subject, update)
+			!deferTransactionStateNotification(target, state, update)
 		) {
-			notifyTransactionSubject(target, subject, update)
+			notifyStateUpdate(target, state, update)
 		}
 	}
 

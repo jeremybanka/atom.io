@@ -5,13 +5,13 @@ import type {
 	StateUpdate,
 } from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
+import { Subject } from "atom.io/foundations/subject"
 
 import { newest } from "../lineage.ts"
 import type { ReadonlyPureSelector } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
 import type { RootStore } from "../transaction/index.ts"
 import { registerSelector } from "./register-selector.ts"
-import { SelectorSubject } from "./selector-subject.ts"
 
 export function createReadonlyPureSelector<T, K extends Canonical, E>(
 	store: Store,
@@ -19,7 +19,7 @@ export function createReadonlyPureSelector<T, K extends Canonical, E>(
 	family: FamilyMetadata<K> | undefined,
 ): ReadonlyPureSelectorToken<T, K, E> {
 	const target = newest(store)
-	const subject = new SelectorSubject<StateUpdate<E | T>>()
+	const subject = new Subject<StateUpdate<E | T>>()
 	const covered = new Set<string>()
 	const key = options.key
 	const type = `readonly_pure_selector` as const

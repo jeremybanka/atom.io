@@ -12,6 +12,7 @@ import type { Store } from "./store/index.ts"
 import { isChildStore } from "./transaction/index.ts"
 import {
 	deferTransactionFutureRecomputation,
+	notifyStateUpdate,
 	retainTransactionPreviousValue,
 } from "./transaction/transaction-notification-batch.ts"
 
@@ -30,7 +31,7 @@ export function writeToCache<T, E>(
 	state: ReadableState<T, E>,
 	value: E | T,
 ): E | Future<E | T> | T {
-	const { key, subject, type } = state
+	const { key, type } = state
 	const currentValue = target.valueMap.get(key)
 	if (currentValue instanceof Future && !currentValue.done) {
 		const future = currentValue
@@ -62,7 +63,10 @@ export function writeToCache<T, E>(
 						// held selectors, by definition, don't become promises
 					}
 					closeOperation(target)
-					subject.next({ newValue: resolved, oldValue: future })
+					notifyStateUpdate(target, state, {
+						newValue: resolved,
+						oldValue: future,
+					})
 				}
 			})
 			.catch((thrown) => {

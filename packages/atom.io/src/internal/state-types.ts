@@ -21,7 +21,6 @@ import type { Flat } from "atom.io/foundations/type-utils"
 
 import type { InternalRole } from "./atom/index.ts"
 import type { ConstructorOf, Transceiver } from "./mutable/index.ts"
-import type { SelectorSubject } from "./selector/selector-subject.ts"
 import type { Store } from "./store/index.ts"
 import type { Timeline, TimelineFamily } from "./timeline/index.ts"
 import type { RootStore, Transaction } from "./transaction/index.ts"
@@ -57,7 +56,7 @@ export type Atom<T, E> =
 	| (T extends Transceiver<any, any, any> ? MutableAtom<T> : never)
 
 type SelectorState = AtomIOState & {
-	subject: SelectorSubject<StateUpdate<any>>
+	rootSubscriptions?: Map<string, () => void> | undefined
 }
 
 export type WritableHeldSelector<T> = Flat<

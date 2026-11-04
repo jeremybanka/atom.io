@@ -4,7 +4,7 @@ import type { Atom, Selector } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
 import {
 	deferTransactionSelectorNotification,
-	notifyTransactionSubject,
+	notifyStateUpdate,
 } from "../transaction/transaction-notification-batch.ts"
 import { recallState } from "./recall-state.ts"
 
@@ -56,5 +56,5 @@ function notifySelectorUpdate(
 		`->`,
 		newValue,
 	)
-	notifyTransactionSubject(target, selector.subject, { newValue, oldValue })
+	notifyStateUpdate(target, selector, { newValue, oldValue })
 }

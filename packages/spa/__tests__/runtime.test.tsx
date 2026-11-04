@@ -545,7 +545,7 @@ describe(`spa compiled DOM`, () => {
 			return (
 				<>
 					<output>
-						{count()}:{history().at}/{history().length}
+						{count()}:{history.getCursor()}/{history.getLength()}
 					</output>
 					<button
 						onClick={() => {
@@ -556,7 +556,7 @@ describe(`spa compiled DOM`, () => {
 					</button>
 					<button
 						onClick={() => {
-							history().undo()
+							history.undo()
 						}}
 					>
 						Undo

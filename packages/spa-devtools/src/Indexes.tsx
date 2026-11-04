@@ -290,22 +290,22 @@ function TimelineLog(props: { tools: Tools; token: TimelineToken<any> }): VNode 
 				</button>
 				<h2>{props.token.family?.subKey ?? props.token.key}</h2>
 				<small>
-					({controls().at}/{controls().length})
+					({controls.getCursor()}/{controls.getLength()})
 				</small>
 				<button
 					type="button"
-					disabled={controls().at === 0}
+					disabled={controls.getCursor() === 0}
 					onClick={() => {
-						props.tools.attempt(controls().undo)
+						props.tools.attempt(controls.undo)
 					}}
 				>
 					undo
 				</button>
 				<button
 					type="button"
-					disabled={controls().at === controls().length}
+					disabled={controls.getCursor() === controls.getLength()}
 					onClick={() => {
-						props.tools.attempt(controls().redo)
+						props.tools.attempt(controls.redo)
 					}}
 				>
 					redo

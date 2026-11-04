@@ -113,7 +113,7 @@ const familyRoot = render(
 			onClick: () => {
 				setCount((value) => value + 1)
 			},
-			children: () => `${count()}:${history().at}`,
+			children: () => `${count()}:${history.getCursor()}`,
 		})
 	},
 	host as unknown as Element,

@@ -8,7 +8,7 @@ export type {
 	Child,
 	Component,
 	RootOptions,
-	TimelineValue,
+	TimelineControls,
 	VNode,
 } from "./core.ts"
 export {

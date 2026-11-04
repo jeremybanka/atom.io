@@ -2,7 +2,7 @@ import { scopeFamily, Silo } from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import type { Accessor, SpaRoot, TimelineValue } from "../src/index.ts"
+import type { SpaRoot, TimelineControls } from "../src/index.ts"
 import {
 	onCleanup,
 	render,
@@ -52,7 +52,7 @@ describe(`streamlined families`, () => {
 		(key) => {
 			const { silo, countAtoms, elementAtoms, historyTimelines, host, mount } =
 				fixture()
-			let history!: Accessor<TimelineValue>
+			let history!: TimelineControls
 			const setup = vi.fn()
 			const root = mount(() => {
 				setup()
@@ -67,21 +67,21 @@ describe(`streamlined families`, () => {
 							setValue((previous) => previous + 1)
 						}}
 					>
-						{value()}:{history().at}/{history().length}
+						{value()}:{history.getCursor()}/{history.getLength()}
 					</button>
 				)
 			})
-			history().clear()
+			history.clear()
 			root.flush()
 			const button = host.querySelector(`button`)!
 			expect(silo.getState(elementAtoms, key)).toBe(button)
 			button.click()
 			root.flush()
 			expect(host.textContent).toBe(`1:1/1`)
-			history().undo()
+			history.undo()
 			root.flush()
 			expect(host.textContent).toBe(`0:0/1`)
-			history().redo()
+			history.redo()
 			root.flush()
 			expect(host.textContent).toBe(`1:1/1`)
 			expect(setup).toHaveBeenCalledOnce()
@@ -143,7 +143,7 @@ describe(`streamlined families`, () => {
 						setValue((previous) => previous + 1)
 					}}
 				>
-					{value()}:{history().at}
+					{value()}:{history.getCursor()}
 				</button>
 			)
 		}
@@ -189,7 +189,7 @@ describe(`streamlined families`, () => {
 						setValue(5)
 					}}
 				>
-					{value()}:{history().at}
+					{value()}:{history.getCursor()}
 				</button>
 			)
 		}
@@ -243,7 +243,7 @@ describe(`streamlined families`, () => {
 				const ref = useRef(elementAtoms, 1)
 				return (
 					<button ref={ref}>
-						{value()}:{history().at}
+						{value()}:{history.getCursor()}
 					</button>
 				)
 			},

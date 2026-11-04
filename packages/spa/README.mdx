@@ -53,7 +53,7 @@ The development plugin keeps SPA and atom.io outside dependency prebundling so r
 | useLoadable(token, fallback?) | Return a tracked accessor for loading, last-observed values, and handled errors.                                         |
 | useGetter(token)              | Return a live accessor for an atom or selector, bound to this instance's store.                                          |
 | useSetter(token)              | Return a stable atom.io writer.                                                                                          |
-| useTimeline(token)            | Return an accessor for at, length, undo, redo, clear, and available grouped transaction controls.                        |
+| useTimeline(token)            | Return a stable object with getCursor/getLength readers, undo/redo/clear commands, and transaction-group controls.       |
 | useTransaction(token)         | Bind an atom.io transaction, preserving its arguments and result.                                                        |
 | useRef(token)                 | Return an attachment callback for a nullable element atom. Clear it only while this attachment still owns the reference. |
 | useId()                       | Allocate an instance-stable ID using the root's prefix.                                                                  |
@@ -62,6 +62,8 @@ The development plugin keeps SPA and atom.io outside dependency prebundling so r
 | useStore()                    | Return the current root's atom.io store without creating a store or subscribing.                                         |
 
 Call setup helpers synchronously during component setup or owned mount callbacks. Capture their results for event handlers. Tokens are fixed for an instance; use an application key in a reactive child expression to replace a component when its token changes. Component props stay live when read through the props object; destructuring during setup takes a snapshot.
+
+useTimeline returns a TimelineControls object whose methods can be destructured during setup. getCursor and getLength read the current cursor position and recorded checkpoint count; calls inside JSX subscribe the computation, while calls during setup or in event handlers are untracked. undo, redo, and clear are stable commands. canUndoTransaction and canRedoTransaction are tracked availability checks; undoTransaction and redoTransaction select the transaction group at the current cursor when invoked and do nothing when no group is available.
 
 Arrays support keyed components and elements. Reordering preserves instances and nodes; removed ranges release subscriptions, events, refs, and cleanup callbacks. Application keys must be unique among siblings. Explicit keys are compared as strings; unkeyed positions occupy a separate namespace. Unkeyed arrays use positions. A key identifies a row in a reactive child collection; it is not an independent reactive binding.
 

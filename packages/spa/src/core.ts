@@ -22,12 +22,12 @@ import {
 	getFromStore,
 	getTimelineTransactionAtHead,
 	IMPLICIT,
-	inspectTimelineInStore,
 	setIntoStore,
 	subscribeToState,
 	subscribeToTimeline,
 	timeTravel,
 	timeTravelTransactionGroupInStore,
+	withdraw,
 } from "atom.io/internal"
 
 import type { Capability } from "./capabilities.ts"
@@ -349,58 +349,66 @@ export function useRef<E extends Element>(
 		}
 	}
 }
-export interface TimelineValue {
-	at: number
-	length: number
+export interface TimelineControls {
+	getCursor(): number
+	getLength(): number
 	undo(): void
 	redo(): void
 	clear(): void
-	undoTransaction?: Cleanup
-	redoTransaction?: Cleanup
+	canUndoTransaction(): boolean
+	canRedoTransaction(): boolean
+	undoTransaction(): void
+	redoTransaction(): void
 }
 export function useTimeline<M extends TimelineManageable>(
 	token: TimelineToken<M>,
-): Accessor<TimelineValue>
+): TimelineControls
 export function useTimeline<K extends Canonical, M extends TimelineManageable>(
 	family: TimelineFamilyToken<K, M>,
 	key: NoInfer<K>,
-): Accessor<TimelineValue>
-export function useTimeline(
-	token: any,
-	key?: Canonical,
-): Accessor<TimelineValue> {
+): TimelineControls
+export function useTimeline(token: any, key?: Canonical): TimelineControls {
 	const store = owner!._root._store
-	if (token.type === `timeline_family`)
-		token = findTimelineInStore(store, token, key!)
+	const selected: TimelineToken<any> =
+		token.type === `timeline_family`
+			? findTimelineInStore(store, token, key!)
+			: token
 	const subscribe: Subscribe = (notify) =>
-		subscribeToTimeline(store, token, `spa:${serial++}`, notify)
-	const controls = {
+		subscribeToTimeline(store, selected, `spa:${serial++}`, notify)
+	const read = () => {
+		const timeline = withdraw(store, selected)
+		tracking?.(subscribe)
+		return timeline
+	}
+	const travelTransaction = (direction: `undo` | `redo`) => {
+		const group = getTimelineTransactionAtHead(
+			withdraw(store, selected),
+			direction,
+		)
+		if (group) timeTravelTransactionGroupInStore(store, direction, group)
+	}
+	return {
+		getCursor: () => read().at,
+		getLength: () => read().history.length,
 		undo: () => {
-			timeTravel(store, `undo`, token)
+			timeTravel(store, `undo`, selected)
 		},
 		redo: () => {
-			timeTravel(store, `redo`, token)
+			timeTravel(store, `redo`, selected)
 		},
 		clear: () => {
-			clearTimelineInStore(store, token)
+			clearTimelineInStore(store, selected)
 		},
-	}
-	return () => {
-		const value: TimelineValue = {
-			...inspectTimelineInStore(store, token),
-			...controls,
-		}
-		tracking?.(subscribe)
-		for (const direction of [`undo`, `redo`] as const) {
-			const group = getTimelineTransactionAtHead(
-				store.timelines.get(token.key)!,
-				direction,
-			)
-			if (group)
-				value[`${direction}Transaction`] = () =>
-					timeTravelTransactionGroupInStore(store, direction, group)
-		}
-		return value
+		canUndoTransaction: () =>
+			getTimelineTransactionAtHead(read(), `undo`) !== undefined,
+		canRedoTransaction: () =>
+			getTimelineTransactionAtHead(read(), `redo`) !== undefined,
+		undoTransaction: () => {
+			travelTransaction(`undo`)
+		},
+		redoTransaction: () => {
+			travelTransaction(`redo`)
+		},
 	}
 }
 

@@ -27,12 +27,7 @@ export function FamilyCounter(props: { id: string }): VNode {
 			>
 				{count()}
 			</button>
-			<button
-				disabled={history().at === 0}
-				onClick={() => {
-					history().undo()
-				}}
-			>
+			<button disabled={history.getCursor() === 0} onClick={history.undo}>
 				Undo
 			</button>
 		</section>

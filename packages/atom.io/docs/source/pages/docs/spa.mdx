@@ -33,7 +33,7 @@ SPA's npm package name is `@atom.io/spa`. Your application supplies atom.io; all
 
 </table-wrapper>
 
-Rendering types include Accessor, Child, Component, VNode, RootOptions, and SpaRoot. TimelineValue and LoadableValue describe the results of useTimeline and useLoadable.
+Rendering types include Accessor, Child, Component, VNode, RootOptions, and SpaRoot. TimelineControls describes the object returned by useTimeline, and LoadableValue describes the values read through useLoadable.
 
 ## frameworks
 
@@ -142,7 +142,9 @@ Read an asynchronous atom or selector through a tracked accessor that exposes lo
 
 ### useTimeline
 
-Read timeline metadata and access undo, redo, clear, and transaction-group controls. The accessor tracks timeline reads in JSX. The [families example](#families) pairs each keyed point with its own history.
+Return a stable TimelineControls object with getCursor and getLength readers and directly callable undo, redo, and clear commands. getCursor returns the current cursor position; getLength returns the number of recorded checkpoints. The readers subscribe when called inside JSX and read current values without subscribing during setup or in event handlers. Methods can be destructured during setup without losing their store binding or reactive behavior.
+
+canUndoTransaction and canRedoTransaction provide tracked availability checks for grouped transaction travel. undoTransaction and redoTransaction select the transaction group at the current cursor when invoked; they do nothing when no group is available. The [families example](#families) pairs each keyed point with its own history.
 
 ### useTransaction
 

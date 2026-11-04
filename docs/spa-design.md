@@ -19,7 +19,7 @@ The [PointEditor exhibit](../packages/spa/exhibits/point.tsx) demonstrates the o
 | useGetter      | Capture a readable token and store; return a tracked accessor.                                       |
 | useLoadable    | Observe loadable state through a tracked accessor, with optional fallback and last-observed values.  |
 | useSetter      | Capture a writable token and store; return a writer.                                                 |
-| useTimeline    | Read timeline metadata and undo/redo/clear controls, including available transaction-group controls. |
+| useTimeline    | Return a stable object with tracked cursor/length readers, commands, and transaction-group controls. |
 | useRef         | Publish an attached element into a nullable atom and release only the attachment this instance owns. |
 | useId          | Allocate a stable ID with a root prefix shared by SSR and hydration.                                 |
 | onCleanup      | Register synchronous owner teardown.                                                                 |

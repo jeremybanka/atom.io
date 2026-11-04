@@ -1,4 +1,4 @@
-import type { Accessor, TimelineValue } from "@atom.io/spa"
+import type { Accessor, TimelineControls } from "@atom.io/spa"
 import { useGetter, useRef, useSetter, useTimeline } from "@atom.io/spa"
 import type {
 	ReadableFamilyToken,
@@ -28,13 +28,18 @@ export function familyTypes(
 		Expect<Equal<typeof read, Accessor<number | RangeError>>>,
 		Expect<Equal<typeof write, (value: number | Setter<number>) => void>>,
 		Expect<Equal<typeof ref, (element: HTMLInputElement | null) => void>>,
-		Expect<Equal<typeof history, Accessor<TimelineValue>>>,
+		Expect<Equal<typeof history, TimelineControls>>,
 	] = [true, true, true, true]
 	void checks
+	const { getCursor, getLength, canUndoTransaction } = history
+	const cursor: number = getCursor()
+	const length: number = getLength()
+	const canUndo: boolean = canUndoTransaction()
+	void [cursor, length, canUndo]
 	write((previous) => previous + 1)
 	ref(document.createElement(`input`))
 	ref(null)
-	history().undo()
+	history.undo()
 	// @ts-expect-error A family requires a key.
 	useGetter(readable)
 	// @ts-expect-error Keys cannot widen the family's declared key type.

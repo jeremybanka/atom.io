@@ -4,7 +4,7 @@ import type {
 	Component,
 	RootOptions,
 	SpaRoot,
-	TimelineValue,
+	TimelineControls,
 } from "@atom.io/spa"
 import * as Spa from "@atom.io/spa"
 import {
@@ -32,7 +32,7 @@ export const component: Component<{
 	void store
 	const value: Accessor<number> = useGetter(props.count)
 	useSetter(props.count)((n) => n + 1)
-	const history: TimelineValue = useTimeline(props.history)()
+	const history: TimelineControls = useTimeline(props.history)
 	const result: string = useTransaction(props.action)(1)
 	const ref: (element: Element | null) => void = useRef(props.element)
 	onMount(() => {

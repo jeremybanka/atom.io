@@ -216,7 +216,7 @@ await test(`packed family hooks bind keyed state, refs, and history`, () => {
 				onClick: () => {
 					setCount((value) => value + 1)
 				},
-				children: () => `${count()}:${history().at}`,
+				children: () => `${count()}:${history.getCursor()}`,
 			})
 		},
 		host,

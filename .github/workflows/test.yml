@@ -96,7 +96,7 @@ jobs:
           name: spa-motion-capture
           path: |
             /tmp/spa-motion-*.png
-            /tmp/spa-motion-capture.json
+            /tmp/spa-motion-*.json
           retention-days: 7
       - run: pnpm --filter resumability test:browser
       - run: pnpm --filter @atom.io/template-spa-astro-ssr test:browser

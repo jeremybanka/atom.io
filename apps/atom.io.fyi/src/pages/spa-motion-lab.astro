@@ -1,4 +1,5 @@
 ---
+import { ToastSandbox } from "../components/ToastSandbox.tsx"
 import { MotionSandbox } from "../components/MotionSandbox.tsx"
 import "../components/motion-sandbox.css"
 ---
@@ -26,8 +27,13 @@ import "../components/motion-sandbox.css"
 						momentum, slows to a stop, and comes back. Try it slowly; every frame
 						leaves a trace.
 					</p>
+					<a class="example-link" href="#toast-dismissal"
+					>Try the toast dismissal ↓</a>
 				</section>
 				<MotionSandbox client:only="spa" />
+				<section id="toast-dismissal" aria-label="Toast dismissal example">
+					<ToastSandbox client:only="spa" />
+				</section>
 			</main>
 			<footer>
 				<a href="https://github.com/jeremybanka/atom.io/pull/1421"

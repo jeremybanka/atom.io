@@ -3,6 +3,8 @@ import { cancelFrame, frame } from "motion"
 export interface MotionSample {
 	time: number
 	x: number
+	scale: number
+	opacity: number
 	velocity: number
 	present: boolean
 	phase: string
@@ -18,6 +20,7 @@ interface Settings {
 	duration: number
 	type: `tween` | `spring`
 	ease: string
+	example?: `toast`
 }
 export interface MotionCapture {
 	settings: Settings
@@ -48,12 +51,21 @@ export function captureMotion(
 	const scrub = root.querySelector<HTMLInputElement>(`[data-scrub]`)!
 	const events = root.querySelector<HTMLOListElement>(`[data-events]`)!
 	const surface = root.querySelector<HTMLElement>(`motion-stage`)!
+	const toast = settings().example === `toast`
+	const metric = (at: MotionSample) => (toast ? at.scale : at.x)
+	const resting = toast ? 1 : 0
+	const metricLabel = toast ? `scale` : `x`
+	const unit = toast ? `` : `px`
+	const velocityEpsilon = toast ? 0.001 : 0.5
+	let cardWidth = toast ? 340 : 96,
+		cardHeight = 84
 	let capture: MotionCapture = { settings: settings(), samples: [], markers: [] }
 	let start = performance.now(),
 		present = true,
 		instance = 0,
 		element: HTMLElement | null = null
 	let previous: MotionSample | undefined
+	let settledSince: number | undefined
 	let direction = 0
 	let phase = `visible`,
 		reviewing = false,
@@ -107,7 +119,23 @@ export function captureMotion(
 			ctx.strokeStyle = color(at)
 			ctx.globalAlpha = i === limit && reviewing ? 0.95 : 0.2
 			ctx.setLineDash([3, 4])
-			ctx.strokeRect(24 + at.x, height / 2 - 42, 96, 84)
+			const scaledWidth = cardWidth * at.scale,
+				scaledHeight = cardHeight * at.scale
+			ctx.strokeRect(
+				toast ? (width - scaledWidth) / 2 : 24 + at.x,
+				(height - scaledHeight) / 2,
+				scaledWidth,
+				scaledHeight,
+			)
+			if (toast && i === limit && reviewing) {
+				ctx.fillStyle = color(at)
+				ctx.font = `11px ui-monospace, monospace`
+				ctx.fillText(
+					`${(at.scale * 100).toFixed(1)}% · opacity ${at.opacity.toFixed(2)}`,
+					(width - scaledWidth) / 2,
+					(height - scaledHeight) / 2 - 10,
+				)
+			}
 		}
 		ctx.globalAlpha = 1
 		ctx.setLineDash([])
@@ -115,15 +143,24 @@ export function captureMotion(
 			if (sample && mark.time > sample.time) continue
 			ctx.fillStyle = mark.label === `turn` ? `#ffe598` : `#b9b5f9`
 			ctx.beginPath()
-			ctx.arc(72 + mark.x, height / 2 + 58, 3, 0, Math.PI * 2)
+			ctx.arc(
+				toast ? width / 2 : 72 + mark.x,
+				height / 2 + 58,
+				3,
+				0,
+				Math.PI * 2,
+			)
 			ctx.fill()
 		}
 		const graph = canvas(plot),
 			pad = 30
 		const maxTime = Math.max(1000, capture.samples.at(-1)?.time ?? 0)
-		const maxX = Math.max(1, ...capture.samples.map((at) => Math.abs(at.x)))
+		const maxX = Math.max(
+			toast ? 0.15 : 1,
+			...capture.samples.map((at) => Math.abs(metric(at) - resting)),
+		)
 		const maxV = Math.max(
-			1,
+			toast ? 0.1 : 1,
 			...capture.samples.map((at) => Math.abs(at.velocity)),
 		)
 		graph.ctx.strokeStyle = `#30383f`
@@ -147,9 +184,16 @@ export function captureMotion(
 			graph.ctx.stroke()
 		}
 		line(
-			(at) => graph.height * 0.38 - (at.x / maxX) * graph.height * 0.28,
+			(at) =>
+				graph.height * 0.38 -
+				((metric(at) - resting) / maxX) * graph.height * 0.28,
 			`#94e4c6`,
 		)
+		if (toast)
+			line(
+				(at) => graph.height * 0.38 + (1 - at.opacity) * graph.height * 0.28,
+				`#b9b5f9`,
+			)
 		line(
 			(at) => graph.height * 0.76 - (at.velocity / maxV) * graph.height * 0.16,
 			`#ffb29c`,
@@ -176,7 +220,7 @@ export function captureMotion(
 			graph.ctx.moveTo(x, 0)
 			graph.ctx.lineTo(x, graph.height)
 			graph.ctx.stroke()
-			stats.textContent = `${(sample.time / 1000).toFixed(2)}s  /  x ${sample.x.toFixed(1)}px  /  v ${sample.velocity.toFixed(1)}px/s  /  ${sample.phase}  /  instance ${sample.instance}`
+			stats.textContent = `${(sample.time / 1000).toFixed(2)}s  /  ${metricLabel} ${metric(sample).toFixed(toast ? 3 : 1)}${unit}${toast ? ` / opacity ${sample.opacity.toFixed(2)}` : ``}  /  v ${sample.velocity.toFixed(toast ? 3 : 1)}${unit}/s  /  ${sample.phase}  /  instance ${sample.instance}`
 		}
 		scrub.max = String(Math.max(0, capture.samples.length - 1))
 		if (!reviewing) scrub.value = scrub.max
@@ -194,16 +238,25 @@ export function captureMotion(
 			instance++
 			marker(`mount #${instance}`)
 		}
-		const x = node
-			? new DOMMatrixReadOnly(getComputedStyle(node).transform).m41
-			: (previous?.x ?? 0)
+		const style = node ? getComputedStyle(node) : undefined
+		const matrix = style ? new DOMMatrixReadOnly(style.transform) : undefined
+		const x = matrix?.m41 ?? previous?.x ?? 0
+		const scale = matrix
+			? Math.hypot(matrix.a, matrix.b)
+			: (previous?.scale ?? 1)
+		const opacity = style ? Number(style.opacity) : 0
+		if (node) {
+			cardWidth = node.offsetWidth
+			cardHeight = node.offsetHeight
+		}
+		const value = toast ? scale : x
 		const time = performance.now() - start
 		const velocity =
 			previous &&
 			node &&
 			previous.instance === instance &&
 			previous.phase !== `disposed`
-				? ((x - previous.x) / Math.max(1, time - previous.time)) * 1000
+				? ((value - metric(previous)) / Math.max(1, time - previous.time)) * 1000
 				: 0
 		if (!node && previous?.phase !== `disposed`) {
 			phase = `disposed`
@@ -211,24 +264,40 @@ export function captureMotion(
 		}
 		if (
 			direction &&
-			direction * velocity < -0.5 &&
+			direction * velocity < -velocityEpsilon &&
 			(phase === `returning` || phase === `exiting`)
 		)
 			marker(`turn`)
-		if (Math.abs(velocity) > 0.5) direction = Math.sign(velocity)
+		if (Math.abs(velocity) > velocityEpsilon) direction = Math.sign(velocity)
 
-		if (present && node && Math.abs(x) < 0.05 && Math.abs(velocity) < 0.5) {
-			phase = `visible`
-			direction = 0
+		if (
+			present &&
+			node &&
+			Math.abs(value - resting) < (toast ? 0.0001 : 0.05) &&
+			Math.abs(opacity - 1) < (toast ? 0.00001 : 0.001) &&
+			Math.abs(velocity) < (toast ? 0.001 : 0.5)
+		) {
+			settledSince ??= time
+			if (
+				!toast ||
+				time - settledSince >= Math.max(120, settings().duration * 600)
+			) {
+				phase = `visible`
+				direction = 0
+			}
+		} else {
+			settledSince = undefined
+			if (present && node && phase === `visible`) phase = `returning`
 		}
 		if (!node) direction = 0
-		const at = { time, x, velocity, present, phase, instance }
+		const at = { time, x, scale, opacity, velocity, present, phase, instance }
 		// Stop growing a settled capture, but keep the subscription ready for a toggle.
 		if (
 			!previous ||
 			phase !== previous.phase ||
 			(phase !== `visible` && phase !== `disposed`) ||
-			Math.abs(previous.x - x) > 0.01 ||
+			Math.abs(metric(previous) - value) > (toast ? 0.00001 : 0.01) ||
+			Math.abs(previous.opacity - opacity) > 0.001 ||
 			time < 150
 		) {
 			capture.samples.push(at)
@@ -242,6 +311,7 @@ export function captureMotion(
 	}
 	frame.postRender(read, true)
 	const show = (next: boolean) => {
+		settledSince = undefined
 		clearTimeout(timer)
 		reviewing = false
 		present = next
@@ -259,6 +329,7 @@ export function captureMotion(
 			present = true
 			start = performance.now()
 			previous = undefined
+			settledSince = undefined
 			direction = 0
 			phase = `visible`
 			capture = { settings: settings(), samples: [], markers: [] }
@@ -278,7 +349,7 @@ export function captureMotion(
 		},
 		live() {
 			reviewing = false
-			if (!reviewing) draw()
+			draw()
 		},
 		inspect: () => structuredClone(capture),
 		exportJSON() {
@@ -300,7 +371,7 @@ export function captureMotion(
 			ctx.fillStyle = `#edf5ef`
 			ctx.font = `24px ui-monospace, monospace`
 			ctx.fillText(
-				`SPA / ${capture.settings.type} U-turn / ${capture.settings.duration}s`,
+				`SPA / ${toast ? `toast dismissal` : `${capture.settings.type} U-turn`} / ${capture.settings.duration}s`,
 				28,
 				42,
 			)
@@ -319,15 +390,22 @@ export function captureMotion(
 				ctx.strokeStyle = `#34454c`
 				ctx.strokeRect(x + 20, y, 560, 125)
 				ctx.fillStyle = at.phase === `exiting` ? `#ffb29c` : `#94e4c6`
+				ctx.globalAlpha = toast ? Math.max(0.08, at.opacity) : 1
+				const w = toast ? 170 * at.scale : 55,
+					h = toast ? 48 * at.scale : 42
 				ctx.fillRect(
-					x + 40 + (at.x / Math.max(1, surface.clientWidth)) * 440,
-					y + 35,
-					55,
-					42,
+					toast
+						? x + 300 - w / 2
+						: x + 40 + (at.x / Math.max(1, surface.clientWidth)) * 440,
+					y + 55 - h / 2,
+					w,
+					h,
 				)
+				ctx.globalAlpha = 1
+
 				ctx.font = `13px ui-monospace, monospace`
 				ctx.fillText(
-					`${(at.time / 1000).toFixed(2)}s  x=${at.x.toFixed(1)}  v=${at.velocity.toFixed(1)}  ${at.phase}`,
+					`${(at.time / 1000).toFixed(2)}s  ${metricLabel}=${metric(at).toFixed(toast ? 3 : 1)}${toast ? ` α=${at.opacity.toFixed(2)}` : ``}  v=${at.velocity.toFixed(toast ? 3 : 1)}  ${at.phase}`,
 					x + 35,
 					y + 107,
 				)

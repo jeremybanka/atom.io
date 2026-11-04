@@ -31,7 +31,9 @@ export function subscribeToState<T, E>(
 	store.logger.info(`👀`, state.type, state.key, `Adding subscription "${key}"`)
 	const isSelector =
 		state.type === `writable_pure_selector` ||
-		state.type === `readonly_pure_selector`
+		state.type === `readonly_pure_selector` ||
+		state.type === `writable_held_selector` ||
+		state.type === `readonly_held_selector`
 	const rootSubs = new Map<string, () => void>()
 	let updateHandler: UpdateHandler<E | T> = safelyHandleUpdate
 	if (isSelector) {

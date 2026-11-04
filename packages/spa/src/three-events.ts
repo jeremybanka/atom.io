@@ -36,6 +36,14 @@ export interface ThreeEventAttributes<
 }
 type Hit = { node: THREE.Object3D; intersection: THREE.Intersection }
 type Handler = ThreeEventHandler
+const suspended = new WeakSet<THREE.Object3D>()
+export function suspendThree(node: THREE.Object3D): () => void {
+	suspended.add(node)
+	for (const manager of managers) manager.remove(node)
+	return () => {
+		suspended.delete(node)
+	}
+}
 const listeners = new WeakMap<THREE.Object3D, Map<string, Set<Handler>>>()
 const managers = new Set<{ remove(node: THREE.Object3D): void }>()
 
@@ -105,7 +113,11 @@ export function createThreeEvents(
 	}
 	const eligible = (intersection: THREE.Intersection) => {
 		const nodes = path(intersection.object)
-		if (!nodes.length || nodes.some((node) => !node.visible)) return false
+		if (
+			!nodes.length ||
+			nodes.some((node) => !node.visible || suspended.has(node))
+		)
+			return false
 		const material = (intersection.object as THREE.Mesh).material
 		return (
 			!material ||

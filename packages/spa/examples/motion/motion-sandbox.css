@@ -1,0 +1,419 @@
+.motion-lab-page {
+	margin: 0;
+	background: #11191d;
+	color: #edf5ef;
+	font-family: ui-sans-serif, system-ui, sans-serif;
+}
+.motion-lab-page * {
+	box-sizing: border-box;
+}
+.motion-lab-page motion-lab {
+	display: block;
+	max-width: 1120px;
+	margin: auto;
+	padding: 0 36px;
+}
+.motion-lab-page header {
+	height: 86px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	border-bottom: 1px solid #344047;
+}
+.motion-lab-page a {
+	color: inherit;
+	text-decoration: none;
+}
+.motion-lab-page header a {
+	font-size: 24px;
+	letter-spacing: -1px;
+}
+.motion-lab-page header span {
+	font-size: 12px;
+	letter-spacing: 0;
+	color: #a2b3b8;
+}
+.intro {
+	padding: 44px 0 32px;
+}
+.eyebrow, .edition {
+	font: 11px ui-monospace, monospace;
+	letter-spacing: 1.8px;
+	color: #94e4c6;
+}
+.intro h1 {
+	font-size: clamp(46px, 6vw, 72px);
+	font-weight: 450;
+	letter-spacing: -3px;
+	margin: 18px 0;
+}
+.intro em {
+	color: #94e4c6;
+	font-family: Georgia, serif;
+	font-weight: normal;
+}
+.intro > p:not(.eyebrow) {
+	color: #a2b3b8;
+	line-height: 1.7;
+	max-width: 580px;
+	font-size: 15px;
+}
+motion-sandbox, motion-stage, motion-debug, sandbox-notes {
+	display: block;
+}
+motion-controls {
+	display: flex;
+	align-items: end;
+	gap: 20px;
+	flex-wrap: wrap;
+	padding: 20px 0;
+	border-top: 1px solid #344047;
+}
+motion-controls label {
+	display: grid;
+	gap: 10px;
+	font-size: 12px;
+	color: #a2b3b8;
+}
+motion-controls label:first-child {
+	min-width: 220px;
+	grid-template-columns: 1fr auto;
+}
+motion-controls label:first-child input {
+	grid-column: 1 / -1;
+	width: 100%;
+	margin: 4px 0 8px;
+}
+motion-controls output {
+	color: #edf5ef;
+	font-family: ui-monospace, monospace;
+}
+:is(motion-sandbox, toast-sandbox) button,
+:is(motion-sandbox, toast-sandbox) select {
+	font: inherit;
+	font-size: 12px;
+	border: 1px solid #43545c;
+	background: #182329;
+	color: #edf5ef;
+	padding: 11px 15px;
+	border-radius: 6px;
+	cursor: pointer;
+}
+:is(motion-sandbox, toast-sandbox) button:hover,
+:is(motion-sandbox, toast-sandbox) select:hover {
+	border-color: #94e4c6;
+}
+:is(motion-sandbox, toast-sandbox) :focus-visible {
+	outline: 2px solid #94e4c6;
+	outline-offset: 4px;
+}
+:is(motion-sandbox, toast-sandbox) input {
+	accent-color: #94e4c6;
+}
+#motion-replay {
+	margin-left: auto;
+	background: #94e4c6;
+	color: #152c24;
+	border-color: #94e4c6;
+	font-weight: 600;
+}
+#motion-replay span {
+	margin-left: 12px;
+}
+motion-stage {
+	position: relative;
+	height: 242px;
+	overflow: hidden;
+	border: 1px solid #344047;
+	border-radius: 10px;
+	background:
+		radial-gradient(#344047 1px, transparent 1px) 0 0 / 20px 20px,
+		#152025;
+}
+stage-label {
+	position: absolute;
+	top: 22px;
+	font: 10px ui-monospace, monospace;
+	color: #a2b3b8;
+	letter-spacing: 1px;
+}
+stage-label.start {
+	left: 24px;
+}
+stage-label.end {
+	right: 24px;
+}
+motion-card {
+	position: absolute;
+	top: calc(50% - 42px);
+	left: 24px;
+	width: 96px;
+	height: 84px;
+	border-radius: 9px;
+	background: #94e4c6;
+	color: #143226;
+	display: grid;
+	place-content: center;
+	gap: 3px;
+	box-shadow: 0 6px 24px #0004;
+	will-change: transform;
+	text-align: center;
+}
+motion-card span {
+	font-size: 10px;
+}
+motion-card .card-symbol {
+	font-size: 20px;
+}
+motion-card strong {
+	font-size: 13px;
+}
+canvas[data-trail] {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+}
+motion-debug {
+	margin-top: 26px;
+	padding: 24px;
+	border: 1px solid #344047;
+	border-radius: 10px;
+}
+debug-heading {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 18px;
+}
+debug-heading h2 {
+	font-size: 18px;
+	font-weight: 500;
+	margin: 0;
+	letter-spacing: -0.4px;
+}
+.legend {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	font-size: 11px;
+	color: #a2b3b8;
+}
+.legend i {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: #94e4c6;
+}
+.legend .velocity {
+	background: #ffb29c;
+	margin-left: 12px;
+}
+canvas[data-plot] {
+	display: block;
+	width: 100%;
+	height: 190px;
+	margin-top: 16px;
+}
+output[data-stats] {
+	display: block;
+	font: 11px/1.7 ui-monospace, monospace;
+	color: #a2b3b8;
+	min-height: 38px;
+}
+.scrubber {
+	display: flex;
+	align-items: center;
+	gap: 20px;
+	font-size: 11px;
+	color: #a2b3b8;
+	margin: 10px 0 18px;
+}
+.scrubber input {
+	flex: 1;
+	min-width: 0;
+}
+debug-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+ol[data-events] {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px 18px;
+	padding: 20px 0 0;
+	margin: 0;
+	list-style: none;
+	font: 10px ui-monospace, monospace;
+	color: #b9b5f9;
+}
+sandbox-notes {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 34px;
+	margin: 26px 0;
+	font-size: 12px;
+	line-height: 1.8;
+	color: #a2b3b8;
+}
+sandbox-notes strong {
+	color: #edf5ef;
+	font-weight: 500;
+}
+.motion-lab-page footer {
+	display: flex;
+	justify-content: space-between;
+	gap: 16px;
+	border-top: 1px solid #344047;
+	padding: 24px 0;
+	font: 11px ui-monospace, monospace;
+	color: #a2b3b8;
+}
+@media (max-width: 720px) {
+	.motion-lab-page motion-lab {
+		display: block;
+		padding: 0 18px;
+	}
+	.edition {
+		display: none;
+	}
+	.intro {
+		padding: 28px 0 20px;
+	}
+	motion-controls {
+		gap: 16px;
+	}
+	motion-controls label:first-child {
+		flex: 1;
+		min-width: 100%;
+	}
+	#motion-replay {
+		margin-left: 0;
+	}
+	motion-debug {
+		padding: 16px;
+	}
+	debug-heading {
+		align-items: start;
+		flex-direction: column;
+	}
+	sandbox-notes {
+		grid-template-columns: 1fr;
+		gap: 0;
+	}
+}
+
+motion-sandbox[data-reviewing="true"] motion-card {
+	visibility: hidden;
+}
+
+toast-sandbox, toast-heading {
+	display: block;
+}
+toast-sandbox {
+	padding-top: 30px;
+	margin-top: 38px;
+	border-top: 1px solid #344047;
+}
+toast-heading h2 {
+	font-size: clamp(28px, 4vw, 42px);
+	font-weight: 450;
+	letter-spacing: -1.5px;
+	margin: 16px 0;
+}
+toast-heading > p:last-child {
+	font-size: 14px;
+	line-height: 1.7;
+	color: #a2b3b8;
+	max-width: 600px;
+	margin-bottom: 28px;
+}
+#toast-replay {
+	margin-left: auto;
+	background: #94e4c6;
+	color: #152c24;
+	border-color: #94e4c6;
+	font-weight: 600;
+}
+#toast-replay span {
+	margin-left: 12px;
+}
+motion-card.toast {
+	left: calc(50% - 170px);
+	width: 340px;
+	height: 84px;
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	padding: 18px;
+	text-align: left;
+	background: #eaf5ef;
+	color: #183c2f;
+	transform-origin: center;
+}
+toast-icon {
+	display: grid;
+	place-items: center;
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	background: #c9e8d9;
+	font-size: 17px;
+	flex-shrink: 0;
+}
+toast-copy {
+	display: grid;
+	gap: 5px;
+	flex: 1;
+}
+motion-card.toast strong {
+	font-size: 13px;
+}
+motion-card.toast span {
+	font-size: 11px;
+	color: #4f7062;
+}
+toast-sandbox motion-card.toast button {
+	border: none;
+	background: transparent;
+	color: #4f7062;
+	font-size: 22px;
+	line-height: 1;
+	padding: 4px;
+}
+.legend .opacity {
+	background: #b9b5f9;
+	margin-left: 12px;
+}
+toast-sandbox[data-reviewing="true"] motion-card {
+	visibility: hidden;
+}
+@media (max-width: 720px) {
+	#toast-replay {
+		margin-left: 0;
+	}
+	toast-sandbox .end {
+		display: none;
+	}
+	motion-card.toast {
+		left: 16px;
+		width: calc(100% - 32px);
+		padding: 14px;
+		gap: 10px;
+	}
+}
+
+.motion-lab-page .example-link {
+	display: inline-block;
+	color: #94e4c6;
+	font-size: 13px;
+	margin-top: 8px;
+}
+#toast-dismissal {
+	scroll-margin-top: 24px;
+}
+
+motion-lab-root {
+	display: block;
+}

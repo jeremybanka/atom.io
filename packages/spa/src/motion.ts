@@ -1,6 +1,5 @@
-import type { MotionValue, ValueAnimationTransition } from "motion"
+import type { animate, MotionValue, ValueAnimationTransition } from "motion"
 import {
-	animate,
 	cancelFrame,
 	frame,
 	hover,
@@ -15,6 +14,9 @@ import type {
 	CapabilityBinding,
 	CapabilityTarget,
 } from "./capabilities.ts"
+import { animateTween } from "./motion-tween.ts"
+import type { ExitHandle } from "./presence.ts"
+import { createPresence } from "./presence.ts"
 
 export type MotionScalar = number | string
 export type MotionDOMTarget = Partial<
@@ -78,6 +80,7 @@ export interface MotionTransition {
 export interface MotionAttributes<Kind extends string = `dom`> {
 	[`motion:initial`]?: MotionTarget<Kind> | false
 	[`motion:animate`]?: MotionTarget<Kind>
+	[`motion:exit`]?: MotionTarget<Kind>
 	[`motion:transition`]?: MotionTransition
 	[`motion:whileHover`]?: MotionTarget<Kind>
 	[`motion:whileTap`]?: MotionTarget<Kind>
@@ -108,6 +111,7 @@ const transform =
 const allowed = new Set([
 	`initial`,
 	`animate`,
+	`exit`,
 	`transition`,
 	`whileHover`,
 	`whileTap`,
@@ -140,6 +144,8 @@ function attach(
 	let tapped = false
 	let started = false
 	let dead = false
+	let exiting = false
+	let exitHandle: ExitHandle | undefined
 	let gestures: (() => void)[] = []
 	const preference =
 		options.reducedMotion !== `never` && typeof matchMedia === `function`
@@ -230,8 +236,8 @@ function attach(
 		properties.set(key, property)
 		return property
 	}
-	const refresh = () => {
-		if (dead) return
+	const refresh = (force = false) => {
+		if (dead || exiting) return
 		const initial = (props[`initial`] ?? {}) as TargetValues | false
 		const animateTo = (props[`animate`] ?? {}) as TargetValues
 		const hoverTo = (props[`whileHover`] ?? {}) as TargetValues
@@ -268,14 +274,20 @@ function attach(
 				goals[key] ??
 				(initial === false ? undefined : initial[key]) ??
 				property.rest
-			if (equal(property.target, goal)) continue
+			if (!force && equal(property.target, goal)) continue
 			property.target = Array.isArray(goal) ? [...goal] : goal
 			const next = Array.isArray(goal) ? goal : [goal]
 			if (next.length !== property.values.length)
 				throw new Error(`spa/motion: cannot change the shape of ${key}`)
 			property.values.forEach((value, index) => {
 				if (reduced() || (!started && initial === false)) value.jump(next[index])
-				else animate(value, next[index], transition)
+				else
+					animateTween(
+						value,
+						next[index],
+						transition,
+						force || value.isAnimating(),
+					)
 			})
 		}
 		started = true
@@ -351,8 +363,107 @@ function attach(
 			}
 		}
 	}
-	preference?.addEventListener(`change`, preferenceChanged)
+	const finishExit = () => {
+		exitHandle?.cancel()
+	}
+	const mediaChanged = () => {
+		preferenceChanged()
+		if (reduced() && exiting) finishExit()
+	}
+	preference?.addEventListener(`change`, mediaChanged)
 	return {
+		exit(next) {
+			const goals = next[`exit`] as TargetValues | undefined
+			exiting = true
+			hovered = tapped = false
+			clearGestures()
+			const moving = new Set<MotionValue<MotionScalar>>()
+			for (const property of properties.values())
+				for (const value of property.values) {
+					if (value.isAnimating()) moving.add(value)
+					value.stop()
+				}
+			if (!goals || !Object.keys(goals).length || reduced()) return undefined
+			const transition = (next[`transition`] ?? {
+				type: `spring`,
+			}) as MotionTransition
+			for (const key of [
+				`duration`,
+				`delay`,
+				`visualDuration`,
+				`velocity`,
+				`bounce`,
+				`stiffness`,
+				`damping`,
+				`mass`,
+				`restDelta`,
+				`restSpeed`,
+			] as const) {
+				const value = transition[key]
+				if (
+					value !== undefined &&
+					(!Number.isFinite(value) ||
+						(key !== `velocity` && value < 0) ||
+						(key === `bounce` && value >= 1) ||
+						([`stiffness`, `damping`, `mass`, `restDelta`, `restSpeed`].includes(
+							key,
+						) &&
+							value === 0))
+				)
+					throw new Error(
+						`spa/motion: exit requires a finite settling transition`,
+					)
+			}
+			let added = false
+			for (const [key, goal] of Object.entries(goals)) {
+				const had = properties.has(key)
+				ensure(key, goal, {})
+				if (!had) added = true
+			}
+			if (added) bindStyles()
+			let settle!: () => void
+			let reject!: (error: unknown) => void
+			const finished = new Promise<void>((resolve, fail) => {
+				settle = resolve
+				reject = fail
+			})
+			const controls: ReturnType<typeof animate>[] = []
+			for (const [key, goal] of Object.entries(goals)) {
+				const property = properties.get(key)!
+				property.target = Array.isArray(goal) ? [...goal] : goal
+				const values = Array.isArray(goal) ? goal : [goal]
+				property.values.forEach((value, index) =>
+					controls.push(
+						animateTween(
+							value,
+							values[index],
+							transition as ValueAnimationTransition,
+							moving.has(value),
+						),
+					),
+				)
+			}
+			void Promise.all(controls.map((control) => Promise.resolve(control))).then(
+				settle,
+				reject,
+			)
+			exitHandle = {
+				finished,
+				cancel() {
+					for (const control of controls) control.stop()
+					settle()
+				},
+			}
+			return exitHandle
+		},
+		resume() {
+			if (dead) return
+			exitHandle?.cancel()
+			exitHandle = undefined
+			exiting = false
+			installGestures()
+			refresh(true)
+		},
 		update(next) {
 			if (dead) return
 			for (const key of Object.keys(next))
@@ -363,14 +474,15 @@ function attach(
 				Boolean(next[`whileHover`]) !== Boolean(props[`whileHover`]) ||
 				Boolean(next[`whileTap`]) !== Boolean(props[`whileTap`])
 			props = next
-			if (gestureChange) installGestures()
+			if (gestureChange && !exiting) installGestures()
 			refresh()
 		},
 		dispose() {
 			if (dead) return
 			dead = true
 			clearGestures()
-			preference?.removeEventListener(`change`, preferenceChanged)
+			exitHandle?.cancel()
+			preference?.removeEventListener(`change`, mediaChanged)
 			styles?.()
 			for (const [key, property] of properties) {
 				property.release()
@@ -392,6 +504,7 @@ export function motionCapability(
 ): Capability {
 	return {
 		namespace: `motion`,
+		presence: createPresence,
 		attach: (target) => attach(target, options),
 		scheduleFrame(callback) {
 			const run = ({ timestamp }: { timestamp: number }) => {

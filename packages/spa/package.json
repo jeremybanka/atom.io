@@ -112,7 +112,9 @@
 		"tonnage:check": "pnpm readme:check",
 		"test:browser:graphics": "node scripts/graphics-browser-test.mjs",
 		"test:optional-peers": "node scripts/optional-peers-check.mjs && node __tests__/fixtures/graphics-consumer/check.ts",
-		"bench:compiler": "node scripts/compiler-benchmark.ts"
+		"bench:compiler": "node scripts/compiler-benchmark.ts",
+		"example:motion": "vite --config examples/motion/vite.config.ts",
+		"test:browser:motion": "node scripts/motion-browser-test.mjs"
 	},
 	"dependencies": {
 		"html-entities": "2.6.0",

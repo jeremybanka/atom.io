@@ -31,6 +31,11 @@ import {
 } from "atom.io/internal"
 
 import type { Capability } from "./capabilities.ts"
+import type {
+	ExitParticipant,
+	PresenceCoordinator,
+	PresenceTarget,
+} from "./presence.ts"
 
 export type Cleanup = () => void
 // A callable interface permits the recursive Child union. A type alias does not.
@@ -61,6 +66,9 @@ export interface RootOptions {
 	onError?: (error: unknown) => void
 }
 export interface Scope {
+	_exiting?: boolean
+	_exits?: Set<ExitParticipant>
+	_targets?: Set<PresenceTarget>
 	_root: Root
 	_parent?: Scope | undefined
 	_cleanups: Set<Cleanup | Scope>
@@ -68,6 +76,7 @@ export interface Scope {
 	_dead: boolean
 }
 export interface Root extends Scope {
+	_presence?: PresenceCoordinator
 	_capabilities: Map<string, Capability>
 	_store: RootStore
 	_prefix: string
@@ -124,6 +133,11 @@ export function dispose(scope: Scope): void {
 	if (scope._dead) return
 	scope._dead = true
 	const errors: unknown[] = []
+	try {
+		scope._root._presence?.forget(scope)
+	} catch (error) {
+		errors.push(error)
+	}
 	for (const cleanup of [...scope._cleanups].reverse()) {
 		try {
 			typeof cleanup === `function` ? cleanup() : dispose(cleanup)
@@ -142,7 +156,7 @@ export function invalidate(scope: Scope): void {
 		if (typeof child !== `function`) invalidate(child)
 }
 function enqueue(scope: Scope, run: Cleanup): void {
-	if (scope._dead) return
+	if (!isPresent(scope)) return
 	const root = scope._root
 	if (!root._queue.size)
 		queueMicrotask(() => {
@@ -176,6 +190,11 @@ export function createRoot(options: RootOptions = {}, server = false): Root {
 		((error) => {
 			throw error
 		})
+	for (const capability of capabilities.values())
+		if (capability.presence) {
+			if (root._presence) throw new Error(`spa: multiple presence coordinators`)
+			root._presence = capability.presence(root)
+		}
 	root.flush = () => {
 		try {
 			let passes = 0
@@ -219,7 +238,7 @@ export function observe<T>(
 ): void {
 	const subscriptions = new Map<Subscribe, Cleanup>()
 	const run = () => {
-		if (scope._dead) return
+		if (!isPresent(scope)) return
 		const used = new Set<Subscribe>()
 		const previous = tracking
 		tracking = (subscribe) => {
@@ -393,4 +412,10 @@ export function plain(value: Child): string {
 		throw new Error(`spa: text required`)
 	// oxlint-disable-next-line typescript/no-base-to-string -- Valid text children are primitives here; development rejects malformed object children.
 	return String(value)
+}
+
+export function isPresent(scope: Scope): boolean {
+	for (let at: Scope | undefined = scope; at; at = at._parent)
+		if (at._dead || at._exiting) return false
+	return true
 }

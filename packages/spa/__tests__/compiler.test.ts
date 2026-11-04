@@ -62,6 +62,21 @@ describe(`Oxc JSX compiler`, () => {
 		expect(node.props.children[0]()).toBe(2)
 	})
 
+	it(`keeps motion exit props and conditional keyed children live`, () => {
+		const { App, update } = evaluate(`
+   let visible = true, distance = 10, spread = { 'motion:exit': { x: -1 } };
+   export const update = () => { visible = false; distance = 20; spread = { 'motion:exit': { x: -2 } }; };
+   export const App = () => <>{visible && <custom-panel key="panel" {...spread} motion:exit={{ x: -distance }} />}</>;
+  `)
+		const parent = App(),
+			child = parent.props.children()
+		expect(child.props.key).toBe(`panel`)
+		expect(child.props[`motion:exit`]).toEqual({ x: -10 })
+		update()
+		expect(parent.props.children()).toBe(false)
+		expect(child.props[`motion:exit`]).toEqual({ x: -20 })
+	})
+
 	it(`handles nested JSX, generic components, fragments, and member tags`, () => {
 		const { App, UI } = evaluate(`
 			export const UI = { Item: (props: unknown) => props };

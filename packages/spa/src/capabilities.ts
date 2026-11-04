@@ -1,19 +1,24 @@
-import type { Cleanup, Scope } from "./core.ts"
+import type { Cleanup, Root, Scope } from "./core.ts"
+import type { ExitHandle, PresenceCoordinator } from "./presence.ts"
 
 /** Native renderers expose property access without importing capability engines. */
 export interface CapabilityTarget {
 	kind: string
 	node: unknown
+	suspend?(): Cleanup
 	read?(key: string): unknown
 	write?(key: string, value: unknown): void
 	listen?(event: string, listener: () => void): Cleanup
 }
 export interface CapabilityBinding {
+	exit?(props: Record<string, unknown>): ExitHandle | undefined
+	resume?(): void
 	update(props: Record<string, unknown>): void
 	dispose(): void
 }
 export interface Capability {
 	namespace: string
+	presence?(root: Root): PresenceCoordinator
 	scheduleFrame?(callback: (time: number) => void): Cleanup
 	attach(target: CapabilityTarget): CapabilityBinding
 }
@@ -41,8 +46,11 @@ export function validateCapabilities(
 export function capabilityProps(
 	scope: Scope,
 	target: CapabilityTarget,
+	read?: () => Record<string, any>,
 ): (props: Record<string, any>) => Record<string, any> {
 	const bindings = new Map<string, CapabilityBinding>()
+
+	scope._root._presence?.target(scope, target)
 	const cleanup: Cleanup = () => {
 		const errors: unknown[] = []
 		for (const binding of [...bindings.values()].reverse()) {
@@ -63,7 +71,11 @@ export function capabilityProps(
 		for (const key of Object.keys(props)) {
 			const namespace = capabilityNamespace(key)
 			if (!namespace) {
-				native[key] = props[key]
+				const value = props[key]
+				native[key] =
+					key.startsWith(`on`) && typeof value === `function`
+						? (scope._root._presence?.event(scope, value) ?? value)
+						: value
 				continue
 			}
 			const group = groups.get(namespace) ?? {}
@@ -75,12 +87,19 @@ export function capabilityProps(
 			if (!binding) {
 				binding = scope._root._capabilities.get(namespace)!.attach(target)
 				bindings.set(namespace, binding)
+				scope._root._presence?.bind(
+					scope,
+					binding,
+					read ?? (() => props),
+					namespace,
+				)
 			}
 			binding.update(values)
 		}
 		for (const [namespace, binding] of bindings)
 			if (!groups.has(namespace)) {
 				bindings.delete(namespace)
+				scope._root._presence?.unbind(binding)
 				binding.dispose()
 			}
 		return native

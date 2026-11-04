@@ -279,3 +279,101 @@ it(`restores all three scale axes when a scalar motion binding is removed or dis
 	root.dispose()
 	expect(mesh.scale.toArray()).toEqual([2, 3, 4])
 })
+
+it.each([`direct`, `fragment`, `bundle`])(
+	`retains outgoing Mesh resources without occupying active slots (%s)`,
+	async (variant) => {
+		const bundle = variant === `bundle`
+		const { motionCapability } = await import(`../src/motion.ts`)
+		const silo = new Silo({
+			name: `resource-presence`,
+			lifespan: `ephemeral`,
+			isProduction: true,
+		})
+		const keyAtom = silo.atom<number | null>({ key: `key`, default: 1 })
+		const materials: THREE.MeshStandardMaterial[] = []
+		const geometries: THREE.BoxGeometry[] = []
+		const material = (key = 0) => (
+			<MeshStandardMaterial
+				key={key}
+				transparent
+				opacity={1}
+				motion:exit={{ opacity: 0 }}
+				motion:transition={{ duration: 0.12 }}
+				ref={(node) => {
+					if (node) materials.push(node)
+				}}
+			/>
+		)
+		function Resources() {
+			return (
+				<>
+					{bundle && (
+						<BoxGeometry
+							ref={(node) => {
+								if (node) geometries.push(node)
+							}}
+						/>
+					)}
+					{material()}
+				</>
+			)
+		}
+		function App() {
+			const key = useValue(keyAtom)
+			return (
+				<>
+					{key() !== null &&
+						(variant === `direct` ? (
+							material(key()!)
+						) : (
+							<Resources key={key()!} />
+						))}
+				</>
+			)
+		}
+		const baselineGeometry = new THREE.BoxGeometry()
+		const baselineMaterials = [new THREE.MeshBasicMaterial()]
+		const mesh = new THREE.Mesh<
+			THREE.BufferGeometry,
+			THREE.Material | THREE.Material[]
+		>(baselineGeometry, baselineMaterials)
+		const root = threeRenderer.render(() => <App />, mesh, {
+			store: silo.store,
+			capabilities: [motionCapability({ reducedMotion: `never` })],
+		})
+		try {
+			const first = materials[0]
+			const disposeFirst = vi.spyOn(first, `dispose`)
+			const disposeGeometry = bundle
+				? vi.spyOn(geometries[0], `dispose`)
+				: undefined
+			silo.setState(keyAtom, 2)
+			root.flush()
+			expect(mesh.material).toBe(materials[1])
+			expect(disposeFirst).not.toHaveBeenCalled()
+			if (bundle) expect(mesh.geometry).toBe(geometries[1])
+			// Reviving a retained key restores its attachment and cancels disposal.
+			silo.setState(keyAtom, 1)
+			root.flush()
+			expect(mesh.material).toBe(first)
+			expect(materials).toHaveLength(2)
+			await new Promise((resolve) => setTimeout(resolve, 250))
+			expect(disposeFirst).not.toHaveBeenCalled()
+			if (bundle) expect(disposeGeometry).not.toHaveBeenCalled()
+			// With no incoming resource, the current resource stays attached to fade.
+			silo.setState(keyAtom, null)
+			root.flush()
+			expect(mesh.material).toBe(first)
+			await new Promise((resolve) => setTimeout(resolve, 250))
+			expect(disposeFirst).toHaveBeenCalledOnce()
+			if (bundle) expect(disposeGeometry).toHaveBeenCalledOnce()
+			expect(mesh.geometry).toBe(baselineGeometry)
+			expect(mesh.material).toBe(baselineMaterials)
+		} finally {
+			root.dispose()
+			baselineGeometry.dispose()
+			baselineMaterials[0].dispose()
+		}
+	},
+)

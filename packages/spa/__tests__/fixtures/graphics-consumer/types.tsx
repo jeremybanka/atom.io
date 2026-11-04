@@ -14,6 +14,7 @@ render(
 		<sliding-panel
 			motion:initial={{ opacity: 0 }}
 			motion:animate={{ x: 100, opacity: 1 }}
+			motion:exit={{ x: -20, opacity: 0 }}
 			motion:transition={{ type: `spring`, stiffness: 180 }}
 			motion:whileHover={{ scale: 1.1 }}
 			motion:whileTap={{ scale: 0.9 }}
@@ -24,7 +25,10 @@ render(
 )
 const scene = (
 	<Canvas>
-		<Mesh motion:animate={{ position: [1, 0, 0], scale: 2 }}>
+		<Mesh
+			motion:animate={{ position: [1, 0, 0], scale: 2 }}
+			motion:exit={{ position: [0, 0, -2], scale: 0 }}
+		>
 			<BoxGeometry />
 			<MeshNormalMaterial />
 		</Mesh>
@@ -33,7 +37,7 @@ const scene = (
 const drawing = (
 	<Stage>
 		<Layer>
-			<Circle radius={20} motion:animate={{ x: 100 }} />
+			<Circle radius={20} motion:animate={{ x: 100 }} motion:exit={{ x: 0 }} />
 		</Layer>
 	</Stage>
 )
@@ -61,3 +65,9 @@ const input = (
 	/>
 )
 void input
+
+// @ts-expect-error: Exit targets have the same native tuple constraints as animate targets.
+const badExit = <Mesh motion:exit={{ position: [1, 2] }} />
+// @ts-expect-error: DOM exits accept scalar properties.
+const badDOMExit = <sliding-panel motion:exit={{ x: [1, 2, 3] }} />
+void [badExit, badDOMExit]

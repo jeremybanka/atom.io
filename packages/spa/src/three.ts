@@ -1,6 +1,11 @@
-import { fail, owner } from "./core.ts"
+import { fail, isPresent, owner } from "./core.ts"
 import type { ThreeEventAttributes, ThreeEventHandler } from "./three-events.ts"
-import { createThreeEvents, forgetThree, listenThree } from "./three-events.ts"
+import {
+	createThreeEvents,
+	forgetThree,
+	listenThree,
+	suspendThree,
+} from "./three-events.ts"
 
 export type {
 	ThreeEventAttributes,
@@ -81,6 +86,7 @@ const renderer = createSceneRenderer<Resource>({
 			node,
 			...(node instanceof THREE.Object3D
 				? {
+						suspend: () => suspendThree(node),
 						listen: (type: string, listener: () => void) =>
 							listenThree(node, type, listener),
 					}
@@ -160,7 +166,7 @@ const renderer = createSceneRenderer<Resource>({
 		}
 		if (node instanceof THREE.PerspectiveCamera) node.updateProjectionMatrix()
 	},
-	children(parent, children) {
+	children(parent, children, activeChildren) {
 		if (!(parent instanceof THREE.Object3D)) {
 			if (children.length)
 				throw new Error(`spa/three: resources cannot contain children`)
@@ -185,7 +191,13 @@ const renderer = createSceneRenderer<Resource>({
 			const materials = resources.filter(
 				(child) => child instanceof THREE.Material,
 			)
-			if (geometries.length > 1 || materials.length > 1)
+			const activeGeometries = activeChildren.filter(
+				(child) => child instanceof THREE.BufferGeometry,
+			)
+			const activeMaterials = activeChildren.filter(
+				(child) => child instanceof THREE.Material,
+			)
+			if (activeGeometries.length > 1 || activeMaterials.length > 1)
 				throw new Error(
 					`spa/three: each Mesh accepts one geometry and one material`,
 				)
@@ -195,8 +207,17 @@ const renderer = createSceneRenderer<Resource>({
 				baseline = { geometry: parent.geometry, material: parent.material }
 				borrowedMeshDefaults.set(parent, baseline)
 			}
-			parent.geometry = geometries[0] ?? baseline.geometry
-			parent.material = materials[0] ?? baseline.material
+			// Retention owns outgoing resources without occupying incoming attachment slots.
+			parent.geometry =
+				activeGeometries[0] ??
+				geometries.find((geometry) => geometry === parent.geometry) ??
+				geometries.at(-1) ??
+				baseline.geometry
+			parent.material =
+				activeMaterials[0] ??
+				materials.find((material) => material === parent.material) ??
+				materials.at(-1) ??
+				baseline.material
 			if (!owned && children.length === 0) borrowedMeshDefaults.delete(parent)
 		}
 	},
@@ -256,7 +277,8 @@ export function Canvas(props: CanvasProps): VNode {
 			},
 		)
 		renderer.mount(() => props.children, scene)
-		const root = owner!._root
+		const scope = owner!
+		const root = scope._root
 		const events = createThreeEvents(
 			canvas!,
 			scene,
@@ -277,16 +299,17 @@ export function Canvas(props: CanvasProps): VNode {
 			const active = props.camera ?? camera
 			const delta = last === undefined ? 0 : (time - last) / 1000
 			last = time
-			props.onFrame?.({
-				scene,
-				camera: active,
-				renderer: webgl,
-				delta,
-				time: time / 1000,
-			})
+			if (isPresent(scope))
+				props.onFrame?.({
+					scene,
+					camera: active,
+					renderer: webgl,
+					delta,
+					time: time / 1000,
+				})
 			events.update()
 			webgl.render(scene, active)
-		})
+		}, true)
 	})
 	return jsx(`canvas`, {
 		ref: (element: HTMLCanvasElement | null) => {

@@ -7,6 +7,7 @@ import {
 	dispose,
 	fail,
 	invalidate,
+	isPresent,
 	observe,
 	owner,
 	untrack,
@@ -22,13 +23,15 @@ export interface SceneHost<N> {
 		props: Record<string, any>,
 		previous: Record<string, any>,
 	): void
-	children(parent: N, children: N[]): void
+	children(parent: N, children: N[], activeChildren: N[]): void
 	destroy(node: N): void
 }
+type SceneNodes<N> = (activeOnly?: boolean) => N[]
+
 interface Entry<N> {
 	scope: Scope
 	value: Child
-	nodes: () => N[]
+	nodes: SceneNodes<N>
 }
 
 export interface SceneRenderer<N> {
@@ -46,12 +49,29 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 		source: () => Child,
 		scope: Scope,
 		changed: () => void,
-	): () => N[] {
+	): SceneNodes<N> {
 		let entries: Entry<N>[] = []
+		const presence = scope._root._presence?.collection<Entry<N>, Child>(
+			(entry) => entry.scope,
+			(entry, value) => same(entry.value, value),
+		)
+		const retire = (
+			entry: Entry<N>,
+			id: string,
+			eligible: boolean,
+			index: number,
+		) => {
+			if (presence)
+				presence.remove(entry, id, eligible, index, () => {
+					if (!scope._dead) changed()
+				})
+			else dispose(entry.scope)
+		}
 		observe(scope, source, (next) => {
 			const values = (
 				Array.isArray(next) ? next.flat(Infinity) : [next]
 			) as Child[]
+			const previous = entries
 			const old = new Map(
 				entries.map((entry, i) => [key(entry.value, i), entry]),
 			)
@@ -63,11 +83,18 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 				let entry = old.get(id)
 				old.delete(id)
 				if (entry && !same(entry.value, value)) {
-					dispose(entry.scope)
+					retire(
+						entry,
+						id,
+						value == null || typeof value === `boolean`,
+						previous.indexOf(entry),
+					)
 					entry = undefined
 				}
+				entry ??= presence?.take(id, value)
 				if (entry) {
 					entry.value = value
+					scope._root._presence?.resume(entry.scope)
 					invalidate(entry.scope)
 					return entry
 				}
@@ -76,10 +103,16 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 				created.nodes = build(() => created.value, childScope, changed)
 				return created
 			})
-			for (const entry of old.values()) dispose(entry.scope)
+			for (const [id, entry] of old)
+				retire(entry, id, true, previous.indexOf(entry))
 			changed()
 		})
-		return () => entries.flatMap((entry) => entry.nodes())
+		return (activeOnly = false) => {
+			const rendered = activeOnly
+				? entries
+				: (presence?.merge(entries) ?? entries)
+			return rendered.flatMap((entry) => entry.nodes(activeOnly))
+		}
 	}
 	function key(value: Child, i: number): string {
 		const explicit = (value as VNode | null)?.props?.[`key`]
@@ -95,7 +128,7 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 		source: () => Child,
 		scope: Scope,
 		changed: () => void,
-	): () => N[] {
+	): SceneNodes<N> {
 		const value = untrack(source)
 		if (typeof value === `function`)
 			return mount(() => (source() as () => Child)(), scope, changed)
@@ -124,6 +157,7 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 		const nativeProps = capabilityProps(
 			scope,
 			host.target?.(node) ?? { kind: `scene`, node },
+			() => ({ ...props }),
 		)
 		let previous: Record<string, any> = {}
 		observe(
@@ -135,9 +169,9 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 				previous = next
 			},
 		)
-		let children: () => N[] = () => []
+		let children: SceneNodes<N> = () => []
 		const sync = () => {
-			host.children(node, children())
+			host.children(node, children(), children(true))
 		}
 		children = mount(() => props[`children`], scope, sync)
 		sync()
@@ -152,14 +186,14 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 		return () => [node]
 	}
 	function attach(setup: () => Child, parent: N, scope: Scope) {
-		let nodes: () => N[] = () => []
+		let nodes: SceneNodes<N> = () => []
 		const sync = () => {
-			host.children(parent, nodes())
+			host.children(parent, nodes(), nodes(true))
 		}
 		nodes = mount(() => untrack(setup), scope, sync)
 		sync()
 		scope._cleanups.add(() => {
-			host.children(parent, [])
+			host.children(parent, [], [])
 		})
 	}
 	return {
@@ -204,7 +238,10 @@ export function bindScene<T>(read: () => T, apply: (value: T) => void): void {
 }
 
 /** Scene drawing follows an installed capability clock, or the browser clock. */
-export function onSceneFrame(callback: (time: number) => void): void {
+export function onSceneFrame(
+	callback: (time: number) => void,
+	infrastructure = false,
+): void {
 	const scope = owner!
 	const clocks = [...scope._root._capabilities.values()].filter(
 		(capability) => capability.scheduleFrame,
@@ -212,7 +249,7 @@ export function onSceneFrame(callback: (time: number) => void): void {
 	if (clocks.length > 1)
 		throw new Error(`spa: multiple frame clock capabilities`)
 	const draw = (time: number) => {
-		if (scope._dead) return
+		if (scope._dead || (!infrastructure && !isPresent(scope))) return
 		try {
 			callback(time)
 		} catch (error) {

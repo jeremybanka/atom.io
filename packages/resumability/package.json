@@ -55,9 +55,7 @@
 		"test:browser:dev": "node scripts/browser-test.mjs --dev",
 		"cov": "vitest run --coverage",
 		"readme:write": "galley write README.mdx",
-		"readme:check": "galley check README.mdx",
-		"tonnage": "pnpm readme:write",
-		"tonnage:check": "pnpm readme:check"
+		"readme:check": "galley check README.mdx"
 	},
 	"dependencies": {
 		"@babel/core": "8.1.0"

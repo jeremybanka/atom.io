@@ -163,20 +163,7 @@ The Astro integration installs the Vite transform for development and production
 
 ## Size and checks
 
-Tsdown builds the package JavaScript and declarations and copies the Astro wrapper into the published output. A separate size audit measures the complete browser runtime with ordinary level-9 gzip and enforces a 1,000-byte budget. Tonnage below measures browser exports and a serving suggestion that includes atom.io's family creation, reads, and resets; shared modules are counted once. Astro's compiler and server libraries do not contribute to these browser bundles. Application markup, handlers, Astro's own browser scripts, and payload data are additional.
-
-## Browser serving sizes
-
-Usage example sizes bundle their entry files and tree-shake unused exports.
-
-Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, source maps, CSS, and other assets are excluded. Imported peer dependencies are bundled unless explicitly external, and shared modules are counted once per bundle.
-
-| Recipe                                 | Entry                         | Minified JS |  Gzip JS |
-| -------------------------------------- | ----------------------------- | ----------: | -------: |
-| Resumable browser defaults             | `tonnage-recipes/defaults.ts` |     1,500 B |    766 B |
-| Atom family defaults including atom.io | `tonnage-recipes/atoms.ts`    |    35,994 B | 10,661 B |
-
-Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
+Tsdown builds the package JavaScript and declarations and copies the Astro wrapper into the published output. A separate size audit measures the complete browser runtime with ordinary level-9 gzip and enforces a 1,000-byte budget. Astro's compiler and server libraries do not contribute to the browser runtime. Application markup, handlers, Astro's own browser scripts, and payload data are additional.
 
 Runtime and compiler coverage is gated at 100%. The plain Astro fixture uses node:sqlite during SSR, then checks independent atom family defaults and repeated resets in Chromium against both development and production. It verifies that executable browser code contains neither SQLite imports nor SPA. Packed-package checks validate exports, declarations, and transport without a renderer or atom.io.
 

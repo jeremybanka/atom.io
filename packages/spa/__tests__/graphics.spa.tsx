@@ -1,5 +1,5 @@
 import { render, useValue } from "@atom.io/spa"
-import { Layer, Rect, Stage } from "@atom.io/spa/konva"
+import { Group, Layer, Rect, Stage } from "@atom.io/spa/konva"
 import { motionCapability } from "@atom.io/spa/motion"
 import { BoxGeometry, Canvas, Mesh, MeshBasicMaterial } from "@atom.io/spa/three"
 import { atom, setState } from "atom.io"
@@ -220,5 +220,100 @@ Object.assign(window, {
 		dispose() {
 			presenceRoot.dispose()
 		},
+	},
+})
+
+// Real native drags must end on logical removal, before retained nodes detach.
+Object.assign(window, {
+	konvaDrag(mode: `rect` | `group` | `stage`, initiallyDraggable = true) {
+		const shownAtom = atom<boolean>({ key: `shown`, default: true })
+		let stage: any, dragRect: any
+		let dragMoves = 0,
+			ends = 0
+		function Drawing() {
+			return (
+				<Rect
+					width={40}
+					height={40}
+					fill="blue"
+					draggable={initiallyDraggable}
+					motion:exit={{ opacity: 0 }}
+					motion:transition={{ duration: 2 }}
+					onDragMove={() => {
+						dragMoves++
+					}}
+					onDragEnd={() => {
+						ends++
+					}}
+					ref={(node) => {
+						dragRect = node
+					}}
+				/>
+			)
+		}
+		function DragApp() {
+			const visible = useValue(shownAtom)
+			const layer = () => (
+				<Layer>
+					{mode === `rect` ? (
+						visible() && <Drawing key="dragRect" />
+					) : mode === `group` ? (
+						visible() && (
+							<Group key="group">
+								<Drawing />
+							</Group>
+						)
+					) : (
+						<Drawing />
+					)}
+				</Layer>
+			)
+			return (
+				<>
+					{(mode !== `stage` || visible()) && (
+						<Stage
+							key="stage"
+							width={200}
+							height={200}
+							draggable={mode === `stage`}
+							ref={(node) => {
+								stage = node
+							}}
+						>
+							{layer()}
+						</Stage>
+					)}
+				</>
+			)
+		}
+		const dragRoot = render(() => <DragApp />, document.body, {
+			capabilities: [motionCapability({ reducedMotion: `never` })],
+		})
+		const original = dragRect
+		return {
+			show(value: boolean) {
+				setState(shownAtom, value)
+				dragRoot.flush()
+			},
+			startRect() {
+				dragRect.startDrag()
+			},
+			inspect() {
+				return {
+					x: dragRect.x(),
+					stageX: stage.x(),
+					dragging: dragRect.isDragging(),
+					stageDragging: stage.isDragging(),
+					draggable: dragRect.draggable(),
+					stageDraggable: stage.draggable(),
+					sameRect: dragRect === original,
+					moves: dragMoves,
+					ends,
+				}
+			},
+			dispose() {
+				dragRoot.dispose()
+			},
+		}
 	},
 })

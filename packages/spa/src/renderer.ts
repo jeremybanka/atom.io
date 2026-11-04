@@ -23,13 +23,15 @@ export interface SceneHost<N> {
 		props: Record<string, any>,
 		previous: Record<string, any>,
 	): void
-	children(parent: N, children: N[]): void
+	children(parent: N, children: N[], activeChildren: N[]): void
 	destroy(node: N): void
 }
+type SceneNodes<N> = (activeOnly?: boolean) => N[]
+
 interface Entry<N> {
 	scope: Scope
 	value: Child
-	nodes: () => N[]
+	nodes: SceneNodes<N>
 }
 
 export interface SceneRenderer<N> {
@@ -47,7 +49,7 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 		source: () => Child,
 		scope: Scope,
 		changed: () => void,
-	): () => N[] {
+	): SceneNodes<N> {
 		let entries: Entry<N>[] = []
 		const presence = scope._root._presence?.collection<Entry<N>, Child>(
 			(entry) => entry.scope,
@@ -105,9 +107,11 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 				retire(entry, id, true, previous.indexOf(entry))
 			changed()
 		})
-		return () => {
-			const rendered = presence?.merge(entries) ?? entries
-			return rendered.flatMap((entry) => entry.nodes())
+		return (activeOnly = false) => {
+			const rendered = activeOnly
+				? entries
+				: (presence?.merge(entries) ?? entries)
+			return rendered.flatMap((entry) => entry.nodes(activeOnly))
 		}
 	}
 	function key(value: Child, i: number): string {
@@ -124,7 +128,7 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 		source: () => Child,
 		scope: Scope,
 		changed: () => void,
-	): () => N[] {
+	): SceneNodes<N> {
 		const value = untrack(source)
 		if (typeof value === `function`)
 			return mount(() => (source() as () => Child)(), scope, changed)
@@ -165,9 +169,9 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 				previous = next
 			},
 		)
-		let children: () => N[] = () => []
+		let children: SceneNodes<N> = () => []
 		const sync = () => {
-			host.children(node, children())
+			host.children(node, children(), children(true))
 		}
 		children = mount(() => props[`children`], scope, sync)
 		sync()
@@ -182,14 +186,14 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 		return () => [node]
 	}
 	function attach(setup: () => Child, parent: N, scope: Scope) {
-		let nodes: () => N[] = () => []
+		let nodes: SceneNodes<N> = () => []
 		const sync = () => {
-			host.children(parent, nodes())
+			host.children(parent, nodes(), nodes(true))
 		}
 		nodes = mount(() => untrack(setup), scope, sync)
 		sync()
 		scope._cleanups.add(() => {
-			host.children(parent, [])
+			host.children(parent, [], [])
 		})
 	}
 	return {

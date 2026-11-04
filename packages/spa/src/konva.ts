@@ -30,6 +30,17 @@ const constructors = {
 	Star: Konva.Star,
 	Transformer: Konva.Transformer,
 }
+function suspendNode(node: Konva.Node): () => void {
+	const listening = node.listening()
+	const draggable = node.draggable()
+	node.listening(false)
+	// The public setter clears both pending and active native drag records.
+	node.draggable(false)
+	return () => {
+		node.listening(listening)
+		node.draggable(draggable)
+	}
+}
 function updateNode(
 	node: Konva.Node,
 	props: Record<string, any>,
@@ -51,11 +62,7 @@ const renderer = createSceneRenderer<Konva.Node>({
 			kind: `konva`,
 			node,
 			suspend() {
-				const listening = node.listening()
-				node.listening(false)
-				return () => {
-					node.listening(listening)
-				}
+				return suspendNode(node)
 			},
 			read: (key) => node.getAttr(key),
 			write: (key, value) => {
@@ -123,11 +130,7 @@ export function Stage(
 				kind: `konva`,
 				node: stage,
 				suspend() {
-					const listening = stage.listening()
-					stage.listening(false)
-					return () => {
-						stage.listening(listening)
-					}
+					return suspendNode(stage)
 				},
 				listen(event, listener) {
 					stage.on(event, listener)

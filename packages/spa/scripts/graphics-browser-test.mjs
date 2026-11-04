@@ -180,6 +180,84 @@ try {
 	await page.evaluate(() => window.presence.dispose())
 	assert.equal(await page.locator(`canvas`).count(), 0)
 
+	for (const mode of [`rect`, `group`, `stage`]) {
+		for (const active of [false, true]) {
+			await page.evaluate((kind) => {
+				window.drag = window.konvaDrag(kind)
+			}, mode)
+			const surface = page.locator(`.konvajs-content`)
+			const box = await surface.boundingBox()
+			const startX = mode === `stage` ? 100 : 10
+			await page.mouse.move(box.x + startX, box.y + 10)
+			await page.mouse.down()
+			if (active) await page.mouse.move(box.x + startX + 20, box.y + 10)
+			const before = await page.evaluate(() => window.drag.inspect())
+			assert.equal(
+				mode === `stage` ? before.stageDragging : before.dragging,
+				active,
+			)
+			await page.evaluate(() => window.drag.show(false))
+			const exitingDrag = await page.evaluate(() => window.drag.inspect())
+			assert.equal(exitingDrag.dragging, false)
+			assert.equal(exitingDrag.draggable, false)
+			if (mode === `stage`) {
+				assert.equal(exitingDrag.stageDragging, false)
+				assert.equal(exitingDrag.stageDraggable, false)
+			}
+			await page.mouse.move(box.x + 60, box.y + 10)
+			assert.equal(
+				(await page.evaluate(() => window.drag.inspect())).x,
+				exitingDrag.x,
+			)
+			await page.evaluate(() => window.drag.show(true))
+			const returned = await page.evaluate(() => window.drag.inspect())
+			assert.ok(returned.sameRect)
+			assert.equal(returned.draggable, true)
+			if (mode === `stage`) assert.equal(returned.stageDraggable, true)
+			await page.mouse.move(box.x + 80, box.y + 10)
+			const continued = await page.evaluate(() => window.drag.inspect())
+			assert.equal(continued.x, returned.x)
+			assert.equal(continued.stageX, returned.stageX)
+			assert.equal(continued.moves, before.moves)
+			assert.equal(continued.ends, 0)
+			await page.mouse.up()
+			// A new press starts a new drag normally after revival.
+			await page.mouse.move(
+				box.x + returned.stageX + returned.x + 10,
+				box.y + 10,
+			)
+			await page.mouse.down()
+			await page.mouse.move(
+				box.x + returned.stageX + returned.x + 30,
+				box.y + 10,
+			)
+			assert.equal(
+				(await page.evaluate(() => window.drag.inspect())).dragging,
+				true,
+			)
+			await page.mouse.up()
+			await page.evaluate(() => window.drag.dispose())
+		}
+	}
+	// Programmatic drags can exist even with draggable=false.
+	await page.evaluate(() => {
+		window.drag = window.konvaDrag(`rect`, false)
+		window.drag.startRect()
+		window.drag.show(false)
+	})
+	assert.equal(
+		(await page.evaluate(() => window.drag.inspect())).dragging,
+		false,
+	)
+	await page.evaluate(() => {
+		window.drag.show(true)
+	})
+	assert.equal(
+		(await page.evaluate(() => window.drag.inspect())).draggable,
+		false,
+	)
+	await page.evaluate(() => window.drag.dispose())
+
 	assert.deepEqual(errors, [])
 	console.log(
 		`Motion springs, DOM gestures, Konva/Three.js reactive updates, shared frame loop, exit retention/re-entry, and disposal passed.`,

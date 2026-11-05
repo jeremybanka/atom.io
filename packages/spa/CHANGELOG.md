@@ -1,5 +1,12 @@
 # @atom.io/spa
 
+## 0.0.4
+
+### Patch Changes
+
+- 00d0f4d: Rename `useValue` to `useGetter`. `useTimeline` now returns a stable `TimelineControls` object instead of an accessor returning `TimelineValue`: read metadata with `history.getCursor()` and `history.getLength()`, call `history.undo()`, `history.redo()`, and `history.clear()` directly, and retrieve captured transaction-group actions through `history.getTransaction().undo?.()` and `history.getTransaction().redo?.()`. These breaking API changes ship as a patch under the 0.0.x release policy.
+- 72d951d: Update the SPA guide and executable examples for `useGetter`, direct timeline controls, and matching getter/setter bindings named after their atoms, such as `getPoint` and `setPoint` for `pointAtom`.
+
 ## 0.0.3
 
 ### Patch Changes

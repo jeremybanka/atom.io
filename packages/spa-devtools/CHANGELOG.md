@@ -1,5 +1,11 @@
 # @atom.io/spa-devtools
 
+## 0.0.4
+
+### Patch Changes
+
+- 72d951d: Adapt the debugger to SPA's `useGetter` and direct timeline controls, with atom-based getter/setter binding names. Require `@atom.io/spa >=0.0.4 <0.2.0`; earlier releases lack these hook APIs.
+
 ## 0.0.3
 
 ### Patch Changes

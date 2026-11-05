@@ -352,9 +352,10 @@ export function useRef<E extends Element>(
 export interface TimelineControls {
 	getCursor(): number
 	getLength(): number
-	undo: Cleanup & { getTransaction(): Cleanup | undefined }
-	redo: Cleanup & { getTransaction(): Cleanup | undefined }
+	undo(): void
+	redo(): void
 	clear(): void
+	getTransaction(): { undo?: Cleanup; redo?: Cleanup }
 }
 export function useTimeline<M extends TimelineManageable>(
 	token: TimelineToken<M>,
@@ -376,29 +377,29 @@ export function useTimeline(token: any, key?: Canonical): TimelineControls {
 		tracking?.(subscribe)
 		return timeline
 	}
-	const travel = (direction: `undo` | `redo`) =>
-		Object.assign(
-			() => {
-				timeTravel(store, direction, selected)
-			},
-			{
-				getTransaction: () => {
-					const group = getTimelineTransactionAtHead(read(), direction)
-					return group
-						? () => {
-								timeTravelTransactionGroupInStore(store, direction, group)
-							}
-						: undefined
-				},
-			},
-		)
 	return {
 		getCursor: () => read().at,
 		getLength: () => read().history.length,
-		undo: travel(`undo`),
-		redo: travel(`redo`),
+		undo: () => {
+			timeTravel(store, `undo`, selected)
+		},
+		redo: () => {
+			timeTravel(store, `redo`, selected)
+		},
 		clear: () => {
 			clearTimelineInStore(store, selected)
+		},
+		getTransaction: () => {
+			const timeline = read()
+			const controls: ReturnType<TimelineControls[`getTransaction`]> = {}
+			for (const direction of [`undo`, `redo`] as const) {
+				const group = getTimelineTransactionAtHead(timeline, direction)
+				if (group)
+					controls[direction] = () => {
+						timeTravelTransactionGroupInStore(store, direction, group)
+					}
+			}
+			return controls
 		},
 	}
 }

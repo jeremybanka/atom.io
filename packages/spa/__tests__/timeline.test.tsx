@@ -96,34 +96,39 @@ it(`captures transaction groups when readers are called and preserves diverged t
 		history = useTimeline(historyTimeline)
 		return null
 	})
-	const { undo, redo } = history
-	const { getTransaction: getUndoTransaction } = undo
-	const { getTransaction: getRedoTransaction } = redo
-	expect(getUndoTransaction()).toBeUndefined()
-	expect(getRedoTransaction()).toBeUndefined()
-	undo.getTransaction()?.()
-	redo.getTransaction()?.()
+	const { getTransaction } = history
+	expect(getTransaction()).toEqual({})
+	getTransaction().undo?.()
+	getTransaction().redo?.()
 	expect(silo.getState(countAtom)).toBe(0)
 	const change = silo.runTransaction(changeBothTransaction)
 	change(1)
-	const undoFirst = getUndoTransaction()
+	const firstSnapshot = getTransaction()
+	const undoFirst = firstSnapshot.undo
 	change(2)
 	undoFirst?.()
 	expect(silo.getState(countAtom)).toBe(2)
 	expect(silo.getState(otherAtom)).toBe(2)
-	const undoSecond = getUndoTransaction()
+	const undoSecond = getTransaction().undo
 	expect(undoSecond).toBeTypeOf(`function`)
 	undoSecond?.()
 	expect(silo.getState(countAtom)).toBe(1)
 	expect(silo.getState(otherAtom)).toBe(1)
+	const middleSnapshot = getTransaction()
+	expect(middleSnapshot.undo).toBeTypeOf(`function`)
+	expect(middleSnapshot.redo).toBeTypeOf(`function`)
 	undoSecond?.()
 	expect(silo.getState(countAtom)).toBe(1)
 	expect(silo.getState(otherAtom)).toBe(1)
-	undo.getTransaction()?.()
+	middleSnapshot.undo?.()
 	expect(silo.getState(countAtom)).toBe(0)
 	expect(silo.getState(otherAtom)).toBe(0)
-	expect(getUndoTransaction()).toBeUndefined()
-	const redoFirst = getRedoTransaction()
+	middleSnapshot.redo?.()
+	expect(silo.getState(countAtom)).toBe(0)
+	expect(silo.getState(otherAtom)).toBe(0)
+	expect(getTransaction().undo).toBeUndefined()
+	expect(firstSnapshot.redo).toBeUndefined()
+	const redoFirst = getTransaction().redo
 	expect(redoFirst).toBeTypeOf(`function`)
 	redoFirst?.()
 	expect(silo.getState(countAtom)).toBe(1)
@@ -131,21 +136,21 @@ it(`captures transaction groups when readers are called and preserves diverged t
 	redoFirst?.()
 	expect(silo.getState(countAtom)).toBe(1)
 	expect(silo.getState(otherAtom)).toBe(1)
-	redo.getTransaction()?.()
+	getTransaction().redo?.()
 	expect(silo.getState(countAtom)).toBe(2)
 	expect(silo.getState(otherAtom)).toBe(2)
-	expect(getRedoTransaction()).toBeUndefined()
-	const undoSecondAgain = getUndoTransaction()
+	expect(getTransaction().redo).toBeUndefined()
+	const undoSecondAgain = getTransaction().undo
 	silo.setState(countAtom, 7)
-	expect(getUndoTransaction()).toBeUndefined()
-	undo.getTransaction()?.()
+	expect(getTransaction()).toEqual({})
+	getTransaction().undo?.()
 	expect(silo.getState(countAtom)).toBe(7)
 	expect(silo.getState(otherAtom)).toBe(2)
 	undoSecondAgain?.()
 	expect(silo.getState(countAtom)).toBe(7)
 	expect(silo.getState(otherAtom)).toBe(1)
 	history.undo()
-	expect(getUndoTransaction()).toBeTypeOf(`function`)
+	expect(getTransaction().undo).toBeTypeOf(`function`)
 	expect(subscribers()).toBe(0)
 })
 
@@ -163,11 +168,11 @@ it(`tracks transaction availability and releases conditional dependencies`, () =
 	const root = mount(() => {
 		const visible = useGetter(visibleAtom)
 		history = useTimeline(historyTimeline)
-		const { undo, redo } = history
+		const { getTransaction } = history
 		return (
 			<output>
 				{visible()
-					? `${undo.getTransaction() !== undefined}/${redo.getTransaction() !== undefined}`
+					? `${getTransaction().undo !== undefined}/${getTransaction().redo !== undefined}`
 					: `hidden`}
 			</output>
 		)
@@ -177,10 +182,10 @@ it(`tracks transaction availability and releases conditional dependencies`, () =
 	silo.runTransaction(changeTransaction)()
 	root.flush()
 	expect(host.textContent).toBe(`true/false`)
-	history.undo.getTransaction()?.()
+	history.getTransaction().undo?.()
 	root.flush()
 	expect(host.textContent).toBe(`false/true`)
-	history.redo.getTransaction()?.()
+	history.getTransaction().redo?.()
 	root.flush()
 	expect(host.textContent).toBe(`true/false`)
 	silo.setState(visibleAtom, false)

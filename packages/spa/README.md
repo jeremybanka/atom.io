@@ -107,7 +107,7 @@ The development plugin keeps SPA and atom.io outside dependency prebundling so r
 
 Call setup helpers synchronously during component setup or owned mount callbacks. Capture their results for event handlers. Tokens are fixed for an instance; use an application key in a reactive child expression to replace a component when its token changes. Component props stay live when read through the props object; destructuring during setup takes a snapshot.
 
-useTimeline returns a TimelineControls object whose methods can be destructured during setup. getCursor and getLength read the current cursor position and recorded checkpoint count; calls inside JSX subscribe the computation, while calls during setup or in event handlers are untracked. undo, redo, and clear are stable commands. undo.getTransaction() and redo.getTransaction() are tracked readers that return a callback for the adjacent transaction group, or undefined when none is available. Calling a returned callback travels that captured group across participating timelines where it remains at the relevant history head, leaving diverged timelines unchanged. Use undo.getTransaction()?.() or redo.getTransaction()?.() to retrieve and invoke the current action together.
+useTimeline returns a TimelineControls object whose methods can be destructured during setup. getCursor and getLength read the current cursor position and recorded checkpoint count; calls inside JSX subscribe the computation, while calls during setup or in event handlers are untracked. undo, redo, and clear are stable commands. history.getTransaction() is a tracked reader that returns an object with optional undo and redo callbacks for the adjacent transaction groups. At a cursor between transactions, both callbacks may be present and target different groups. A missing callback means no transaction group is available in that direction; the reader returns an empty object when neither is available. Calling a returned callback travels its captured group across participating timelines where it remains at the relevant history head, leaving diverged timelines unchanged. Use history.getTransaction().undo?.() or history.getTransaction().redo?.() to retrieve and invoke the current action together.
 
 ```tsx
 import type { VNode } from "@atom.io/spa"
@@ -126,25 +126,25 @@ const incrementTransaction = transaction<() => void>({
 export function TimelineExample(): VNode {
 	const count = useGetter(countAtom)
 	const increment = useTransaction(incrementTransaction)
-	const { getCursor, getLength, undo, redo } = useTimeline(historyTimeline)
+	const history = useTimeline(historyTimeline)
 	return (
 		<section>
 			<output>
-				Count: {count()} (history: {getCursor()}/{getLength()})
+				Count: {count()} (history: {history.getCursor()}/{history.getLength()})
 			</output>
 			<button onClick={increment}>Increment</button>
 			<button
-				disabled={undo.getTransaction() === undefined}
+				disabled={history.getTransaction().undo === undefined}
 				onClick={() => {
-					undo.getTransaction()?.()
+					history.getTransaction().undo?.()
 				}}
 			>
 				Undo transaction
 			</button>
 			<button
-				disabled={redo.getTransaction() === undefined}
+				disabled={history.getTransaction().redo === undefined}
 				onClick={() => {
-					redo.getTransaction()?.()
+					history.getTransaction().redo?.()
 				}}
 			>
 				Redo transaction
@@ -433,7 +433,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                           | Entry                             | Minified JS |  Gzip JS |
 | -------------------------------- | --------------------------------- | ----------: | -------: |
-| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    63,667 B | 18,879 B |
+| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    63,696 B | 18,887 B |
 | Async interactive client app     | `tonnage-recipes/async-app.ts`    |    42,121 B | 13,142 B |
 | Interactive client app           | `tonnage-recipes/client-app.ts`   |    41,784 B | 12,981 B |
 | Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    41,785 B | 12,981 B |

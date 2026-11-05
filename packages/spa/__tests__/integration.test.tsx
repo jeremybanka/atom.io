@@ -37,8 +37,8 @@ describe(`integration contracts`, () => {
 			return <input ref={ref} />
 		}
 		function App() {
-			const visible = useGetter(visibleAtom)
-			return <>{visible() && <Branch />}</>
+			const getVisible = useGetter(visibleAtom)
+			return <>{getVisible() && <Branch />}</>
 		}
 		const host = document.createElement(`section`)
 		const root = render(() => <App />, host, { store: silo.store })
@@ -59,15 +59,15 @@ describe(`integration contracts`, () => {
 		})
 		const textAtom = silo.atom<string>({ key: `text`, default: `<&` })
 		function App() {
-			const text = useGetter(textAtom)
+			const getText = useGetter(textAtom)
 			return (
 				<>
-					<textarea value={text()} />
+					<textarea value={getText()} />
 					<select value="b">
 						<option value="a">A</option>
 						<option value="b">B</option>
 					</select>
-					<title>{text()} title</title>
+					<title>{getText()} title</title>
 					<style>{`p { color: red }`}</style>
 				</>
 			)
@@ -96,11 +96,11 @@ describe(`integration contracts`, () => {
 		const onError = vi.fn()
 		const cleanup = vi.fn()
 		function App() {
-			const count = useGetter(countAtom)
+			const getCount = useGetter(countAtom)
 			onCleanup(cleanup)
 			const read = () => {
-				if (count() > 0) throw new Error(`failed read`)
-				return count()
+				if (getCount() > 0) throw new Error(`failed read`)
+				return getCount()
 			}
 			return <output>{read()}</output>
 		}
@@ -173,14 +173,14 @@ describe(`integration contracts`, () => {
 		const setup = vi.fn()
 		const cleanup = vi.fn()
 		const App: Island = (props) => {
-			const count = useGetter(countAtom)
+			const getCount = useGetter(countAtom)
 			onCleanup(cleanup)
 			setup()
 			return (
 				<article>
 					{props.children}
 					<output>
-						{count()}
+						{getCount()}
 						{props.label}
 					</output>
 					{props.slots.heading}

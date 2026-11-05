@@ -4,7 +4,7 @@ import { atom } from "atom.io"
 
 const visibleAtom = atom<boolean>({ key: `visible`, default: true })
 export function DismissiblePanel(): VNode {
-	const visible = useGetter(visibleAtom)
+	const getVisible = useGetter(visibleAtom)
 	const setVisible = useSetter(visibleAtom)
 	return (
 		<section>
@@ -15,7 +15,7 @@ export function DismissiblePanel(): VNode {
 			>
 				Toggle panel
 			</button>
-			{visible() && (
+			{getVisible() && (
 				<sliding-panel
 					key="panel"
 					motion:initial={{ opacity: 0, y: 12 }}

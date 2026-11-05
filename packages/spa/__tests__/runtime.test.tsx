@@ -49,11 +49,14 @@ describe(`spa compiled DOM`, () => {
 		}
 		function Counter() {
 			setups()
-			const count = useGetter(countAtom)
+			const getCount = useGetter(countAtom)
 			return (
-				<article style={`opacity:${count() / 10}`} title={`count ${count()}`}>
-					{`value ${count()}`}
-					<Label text={`label ${count()}`} />
+				<article
+					style={`opacity:${getCount() / 10}`}
+					title={`count ${getCount()}`}
+				>
+					{`value ${getCount()}`}
+					<Label text={`label ${getCount()}`} />
 				</article>
 			)
 		}
@@ -86,12 +89,12 @@ describe(`spa compiled DOM`, () => {
 		const setup = vi.fn()
 		function Counter() {
 			setup()
-			const count = useGetter(countAtom)
+			const getCount = useGetter(countAtom)
 			const setCount = useSetter(countAtom)
-			const label = () => `Count ${count()}`
+			const label = () => `Count ${getCount()}`
 			return (
 				<button
-					disabled={count() >= 2}
+					disabled={getCount() >= 2}
 					onClick={() => {
 						setCount((n) => n + 1)
 					}}
@@ -157,11 +160,11 @@ describe(`spa compiled DOM`, () => {
 		const add = vi.spyOn(HTMLButtonElement.prototype, `addEventListener`)
 		try {
 			function Button() {
-				const count = useGetter(countAtom)
+				const getCount = useGetter(countAtom)
 				const setCount = useSetter(countAtom)
 				return (
 					<button
-						title={String(count())}
+						title={String(getCount())}
 						onClick={() => {
 							setCount((n) => n + 1)
 						}}
@@ -235,12 +238,13 @@ describe(`spa compiled DOM`, () => {
 		const otherAtom = silo.atom<number>({ key: `other`, default: 9 })
 		function Choice() {
 			const store = useStore()
-			const toggle = useGetter(toggleAtom)
-			const count = useGetter(countAtom)
-			const other = useGetter(otherAtom)
+			const getToggle = useGetter(toggleAtom)
+			const getCount = useGetter(countAtom)
+			const getOther = useGetter(otherAtom)
 			return (
 				<output>
-					{toggle() ? count() : other()}:{getFromStore(store, countAtom)}
+					{getToggle() ? getCount() : getOther()}:
+					{getFromStore(store, countAtom)}
 				</output>
 			)
 		}
@@ -275,10 +279,10 @@ describe(`spa compiled DOM`, () => {
 			return <input id={id} data-key={props.item.id} value={props.item.label} />
 		}
 		function List() {
-			const rows = useGetter(rowsAtom)
+			const getRows = useGetter(rowsAtom)
 			return (
 				<section>
-					{rows().map((item) => (
+					{getRows().map((item) => (
 						<Row key={item.id} item={item} />
 					))}
 				</section>
@@ -311,14 +315,14 @@ describe(`spa compiled DOM`, () => {
 		const otherAtom = silo.atom<number>({ key: `other`, default: 20 })
 		const toggleAtom = silo.atom<boolean>({ key: `toggle`, default: true })
 		function Child(props: { token: typeof countAtom }) {
-			const value = useGetter(props.token)
-			return <output>{value()}</output>
+			const getValue = useGetter(props.token)
+			return <output>{getValue()}</output>
 		}
 		function Parent() {
-			const toggle = useGetter(toggleAtom)
+			const getToggle = useGetter(toggleAtom)
 			return (
 				<>
-					{toggle() ? (
+					{getToggle() ? (
 						<Child key="count" token={countAtom} />
 					) : (
 						<Child key="other" token={otherAtom} />
@@ -349,8 +353,8 @@ describe(`spa compiled DOM`, () => {
 			},
 		})
 		function Button() {
-			const props = useGetter(propsAtom)
-			return <button {...props()}>Press</button>
+			const getProps = useGetter(propsAtom)
+			return <button {...getProps()}>Press</button>
 		}
 		const root = mount(() => <Button />)
 		const button = host.querySelector(`button`)!
@@ -397,11 +401,11 @@ describe(`spa compiled DOM`, () => {
 				return <input {...props} />
 			}
 			function App() {
-				const props = useGetter(propsAtom)
+				const getProps = useGetter(propsAtom)
 				return kind === `element` ? (
-					<input {...props()} />
+					<input {...getProps()} />
 				) : (
-					<Input {...props()} />
+					<Input {...getProps()} />
 				)
 			}
 			let root: SpaRoot
@@ -458,10 +462,10 @@ describe(`spa compiled DOM`, () => {
 			return <input {...{ value: props.id }} />
 		}
 		function List() {
-			const order = useGetter(orderAtom)
+			const getOrder = useGetter(orderAtom)
 			return (
 				<section>
-					{order().map((id) => (
+					{getOrder().map((id) => (
 						<Row {...{ key: id, id }} />
 					))}
 				</section>
@@ -507,17 +511,17 @@ describe(`spa compiled DOM`, () => {
 		const cleanup = vi.fn()
 		const computed = vi.fn()
 		function Detail() {
-			const value = useGetter(countAtom)
+			const getCount = useGetter(countAtom)
 			onCleanup(cleanup)
 			const read = () => {
 				computed()
-				return value()
+				return getCount()
 			}
 			return <span>{read()}</span>
 		}
 		function App() {
-			const visible = useGetter(visibleAtom)
-			return <>{visible() ? <Detail /> : `hidden`}</>
+			const getVisible = useGetter(visibleAtom)
+			return <>{getVisible() ? <Detail /> : `hidden`}</>
 		}
 		const root = mount(() => <App />)
 		silo.setState(visibleAtom, false)
@@ -539,13 +543,13 @@ describe(`spa compiled DOM`, () => {
 			},
 		})
 		function Controls() {
-			const count = useGetter(countAtom)
+			const getCount = useGetter(countAtom)
 			const history = useTimeline(historyTimeline)
 			const increment = useTransaction(incrementTransaction)
 			return (
 				<>
 					<output>
-						{count()}:{history.getCursor()}/{history.getLength()}
+						{getCount()}:{history.getCursor()}/{history.getLength()}
 					</output>
 					<button
 						onClick={() => {
@@ -592,13 +596,13 @@ describe(`spa compiled DOM`, () => {
 	it(`cleans failed setup, invalid children, and throwing cleanup`, () => {
 		const { silo, countAtom, host, mount } = fixture()
 		function Broken() {
-			const value = useGetter(countAtom)
+			const getCount = useGetter(countAtom)
 			onCleanup(() => {
 				throw new Error(`cleanup`)
 			})
 			return (
 				<>
-					{value()}
+					{getCount()}
 					{Promise.resolve(1) as any}
 				</>
 			)
@@ -616,19 +620,19 @@ describe(`server rendering and hydration`, () => {
 		const cleanup = vi.fn()
 		function App() {
 			const id = useId()
-			const count = useGetter(countAtom)
+			const getCount = useGetter(countAtom)
 			const setCount = useSetter(countAtom)
 			onCleanup(cleanup)
 			return (
 				<>
 					<label htmlFor={id}>Count</label>
-					<input id={id} value={count()} />
+					<input id={id} value={getCount()} />
 					<button
 						onClick={() => {
 							setCount((n) => n + 1)
 						}}
 					>
-						{count()}
+						{getCount()}
 					</button>
 				</>
 			)
@@ -656,12 +660,12 @@ describe(`server rendering and hydration`, () => {
 	it(`escapes content, handles SVG and reports mismatches without leaving subscriptions`, () => {
 		const { silo, countAtom, host } = fixture()
 		function App() {
-			const count = useGetter(countAtom)
+			const getCount = useGetter(countAtom)
 			return (
 				<svg viewBox="0 0 10 10">
 					<text aria-label={`"<script>`}>
 						{`<&`}
-						{count()}HTML
+						{getCount()}HTML
 					</text>
 				</svg>
 			)

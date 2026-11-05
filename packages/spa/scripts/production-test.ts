@@ -33,7 +33,7 @@ let cleanups = 0
 function Counter() {
 	assert.equal(useStore(), silo.store)
 	setups++
-	const count = useGetter(countAtom)
+	const getCount = useGetter(countAtom)
 	const setCount = useSetter(countAtom)
 	const id = useId()
 	onCleanup(() => {
@@ -44,7 +44,7 @@ function Counter() {
 		onClick: () => {
 			setCount((value) => value + 1)
 		},
-		children: () => count(),
+		children: () => getCount(),
 	})
 }
 const host = document.createElement(`section`)
@@ -104,16 +104,16 @@ const rowHistoryTimelines = silo.timelineFamily<boolean>({
 })
 const familyRoot = render(
 	() => {
-		const count = useGetter(rowAtoms, false)
-		const setCount = useSetter(rowAtoms, false)
+		const getRow = useGetter(rowAtoms, false)
+		const setRow = useSetter(rowAtoms, false)
 		const ref = useRef(buttonAtoms, false)
 		const history = useTimeline(rowHistoryTimelines, false)
 		return jsx(`button`, {
 			ref,
 			onClick: () => {
-				setCount((value) => value + 1)
+				setRow((value) => value + 1)
 			},
-			children: () => `${count()}:${history.getCursor()}`,
+			children: () => `${getRow()}:${history.getCursor()}`,
 		})
 	},
 	host as unknown as Element,

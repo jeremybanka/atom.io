@@ -16,11 +16,11 @@ it(`updates native attrs and event handlers and removes owned nodes`, () => {
 	const click = vi.fn()
 	let rect!: Konva.Rect
 	function App() {
-		const read = useGetter(xAtom)
+		const getX = useGetter(xAtom)
 		return (
 			<Group>
 				<Rect
-					x={read()}
+					x={getX()}
 					width={20}
 					height={30}
 					onClick={click}

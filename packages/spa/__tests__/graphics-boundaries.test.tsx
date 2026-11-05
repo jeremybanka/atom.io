@@ -78,9 +78,9 @@ it(`owns canvas resources, resizes the default camera, and routes frame and even
 	const onFrame = vi.fn()
 	const host = document.createElement(`div`)
 	function App() {
-		const size = useGetter(sizeAtom)
+		const getSize = useGetter(sizeAtom)
 		return (
-			<Canvas width={size()} height={50} onFrame={onFrame}>
+			<Canvas width={getSize()} height={50} onFrame={onFrame}>
 				<Mesh>
 					<BoxGeometry />
 					<MeshNormalMaterial />
@@ -158,9 +158,9 @@ it(`owns a Stage, applies reactive attributes/events, and publishes native refs`
 	const ref = vi.fn()
 	const host = document.createElement(`div`)
 	function App() {
-		const width = useGetter(widthAtom)
+		const getWidth = useGetter(widthAtom)
 		return (
-			<Stage width={width()} height={50} onClick={click} ref={ref}>
+			<Stage width={getWidth()} height={50} onClick={click} ref={ref}>
 				<Layer>
 					<Rect width={20} height={20} />
 				</Layer>
@@ -223,16 +223,16 @@ it(`validates scene structure and native properties while restoring removed prop
 	const activeAtom = silo.atom<boolean>({ key: `active`, default: true })
 	let mesh!: THREE.Mesh
 	function App() {
-		const active = useGetter(activeAtom)
+		const getActive = useGetter(activeAtom)
 		return jsx(Mesh, {
 			get position() {
-				return active() ? new THREE.Vector3(1, 2, 3) : undefined
+				return getActive() ? new THREE.Vector3(1, 2, 3) : undefined
 			},
 			get scale() {
-				return active() ? 2 : undefined
+				return getActive() ? 2 : undefined
 			},
 			get name() {
-				return active() ? `box` : undefined
+				return getActive() ? `box` : undefined
 			},
 			ref: (value: THREE.Mesh | null) => {
 				if (value) mesh = value
@@ -315,15 +315,15 @@ it(`supports motion and gestures on Konva nodes and stages and replaces native h
 	const first = vi.fn()
 	const second = vi.fn()
 	function App() {
-		const phase = useGetter(phaseAtom)
+		const getPhase = useGetter(phaseAtom)
 		return (
 			<>
-				{[...(phase() === 1 ? [`b`, `a`] : [`a`, `b`])].map((id) =>
+				{[...(getPhase() === 1 ? [`b`, `a`] : [`a`, `b`])].map((id) =>
 					jsx(`Group`, {
 						key: id,
-						...(phase() === 2
+						...(getPhase() === 2
 							? {}
-							: { onClick: phase() === 0 ? first : second }),
+							: { onClick: getPhase() === 0 ? first : second }),
 					}),
 				)}
 			</>
@@ -392,10 +392,10 @@ it(`animates native Three.js transforms, colors, scalar properties, and camera p
 	})
 	const reverseAtom = silo.atom<boolean>({ key: `reverse`, default: false })
 	function App() {
-		const reverse = useGetter(reverseAtom)
+		const getReverse = useGetter(reverseAtom)
 		return (
 			<>
-				{(reverse() ? [`b`, `a`] : [`a`, `b`]).map((id) =>
+				{(getReverse() ? [`b`, `a`] : [`a`, `b`]).map((id) =>
 					jsx(`Group`, { key: id, name: id }),
 				)}
 			</>
@@ -442,10 +442,10 @@ it(`retains Stage and Canvas infrastructure during a parent exit and pauses user
 		user = vi.fn(),
 		ref = vi.fn()
 	function App() {
-		const present = useGetter(presentAtom)
+		const getPresent = useGetter(presentAtom)
 		return (
 			<>
-				{present() && (
+				{getPresent() && (
 					<section
 						motion:exit={{ opacity: 0 }}
 						motion:transition={{ duration: 10 }}

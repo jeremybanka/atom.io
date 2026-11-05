@@ -23,15 +23,15 @@ export function StateIndex(props: {
 	tools: Tools
 	type: `atoms` | `selectors`
 }): VNode {
-	const index = useGetter<Map<string, Token | FamilyNode<Token>>>(
+	const getStateIndex = useGetter<Map<string, Token | FamilyNode<Token>>>(
 		props.type === `atoms` ? props.tools.atomIndex : props.tools.selectorIndex,
 	)
 	return (
 		<article class="index" data-testid="state-index">
-			{index().size === 0 ? (
+			{getStateIndex().size === 0 ? (
 				<p>(no {props.type})</p>
 			) : (
-				[...index().values()].map((node) => (
+				[...getStateIndex().values()].map((node) => (
 					<StateNode key={node.key} tools={props.tools} node={node} />
 				))
 			)}
@@ -42,7 +42,7 @@ function StateNode(props: {
 	tools: Tools
 	node: Token | FamilyNode<Token>
 }): VNode {
-	const [open, toggle] = useExpanded(props.tools, [props.node.key])
+	const [getOpen, toggle] = useExpanded(props.tools, [props.node.key])
 	return (
 		<section class="node" data-testid={`state-${props.node.key}`}>
 			{`familyMembers` in props.node ? (
@@ -50,16 +50,16 @@ function StateNode(props: {
 					<header>
 						<button
 							type="button"
-							aria-expanded={open()}
+							aria-expanded={getOpen()}
 							data-testid={`open-close-state-family-${props.node.key}`}
 							onClick={toggle}
 						>
-							{open() ? `▾` : `▸`}
+							{getOpen() ? `▾` : `▸`}
 						</button>
 						<h2>{props.node.key}</h2>
 						<small>family</small>
 					</header>
-					{open()
+					{getOpen()
 						? [...props.node.familyMembers.values()].map((token) => (
 								<StateLeaf key={token.key} tools={props.tools} token={token} />
 							))
@@ -72,14 +72,14 @@ function StateNode(props: {
 	)
 }
 function StateLeaf(props: { tools: Tools; token: Token }): VNode {
-	const read = useGetter(props.token)
+	const getValue = useGetter(props.token)
 	const writable = !props.token.type.startsWith(`readonly`)
-	const set = writable
+	const setValue = writable
 		? useSetter(props.token as WritableToken<unknown, any, any>)
 		: undefined
 	const value = () => {
 		try {
-			return read()
+			return getValue()
 		} catch (error) {
 			return error
 		}
@@ -106,11 +106,11 @@ function StateLeaf(props: { tools: Tools; token: Token }): VNode {
 				tools={props.tools}
 				value={value()}
 				change={
-					set
+					setValue
 						? (update) => {
 								// Validate edits before opening an atom.io write operation.
-								const next = update(read())
-								set(() => next)
+								const next = update(getValue())
+								setValue(() => next)
 							}
 						: undefined
 				}
@@ -124,9 +124,11 @@ function StateLeaf(props: { tools: Tools; token: Token }): VNode {
 	)
 }
 export function TransactionIndex(props: { tools: Tools }): VNode {
-	const index = useGetter(props.tools.transactionIndex)
+	const getTransactionIndex = useGetter(props.tools.transactionIndex)
 	const visible = () =>
-		index().filter((token) => !isReservedIntrospectionKey(token.key))
+		getTransactionIndex().filter(
+			(token) => !isReservedIntrospectionKey(token.key),
+		)
 	return (
 		<article class="index" data-testid="transaction-index">
 			{visible().length === 0 ? (
@@ -143,30 +145,30 @@ function TransactionLog(props: {
 	tools: Tools
 	token: TransactionToken<any>
 }): VNode {
-	const log = useGetter(
+	const getTransactionLog = useGetter(
 		findInStore(
 			props.tools.store,
 			props.tools.transactionLogSelectors,
 			props.token.key,
 		),
 	)
-	const [open, toggle] = useExpanded(props.tools, [props.token.key])
+	const [getOpen, toggle] = useExpanded(props.tools, [props.token.key])
 	return (
 		<section class="node" data-testid={`transaction-${props.token.key}`}>
 			<header>
 				<button
 					type="button"
-					aria-expanded={open()}
+					aria-expanded={getOpen()}
 					data-testid={`open-close-transaction-${props.token.key}`}
 					onClick={toggle}
 				>
-					{open() ? `▾` : `▸`}
+					{getOpen() ? `▾` : `▸`}
 				</button>
 				<h2>{props.token.key}</h2>
-				<small>({log().length})</small>
+				<small>({getTransactionLog().length})</small>
 			</header>
-			{open()
-				? log().map((event, index) => (
+			{getOpen()
+				? getTransactionLog().map((event, index) => (
 						<EventView
 							key={index}
 							tools={props.tools}
@@ -184,7 +186,7 @@ export function EventView(props: {
 	event: any
 	index: number
 }): VNode {
-	const [open, toggle] = useExpanded(
+	const [getOpen, toggle] = useExpanded(
 		props.tools,
 		[`event`, props.event.token?.key ?? ``, String(props.index)],
 		true,
@@ -195,13 +197,13 @@ export function EventView(props: {
 			data-testid={`${props.event.type === `transaction_outcome` ? `transaction` : `timeline`}-update-${props.event.token?.key}-${props.index}`}
 		>
 			<header>
-				<button type="button" aria-expanded={open()} onClick={toggle}>
-					{open() ? `▾` : `▸`}
+				<button type="button" aria-expanded={getOpen()} onClick={toggle}>
+					{getOpen() ? `▾` : `▸`}
 				</button>
 				<strong>{props.event.token?.key}</strong>
 				<small>{props.event.type}</small>
 			</header>
-			{open() ? (
+			{getOpen() ? (
 				props.event.type === `transaction_outcome` ? (
 					<>
 						<p>
@@ -234,10 +236,10 @@ export function EventView(props: {
 	)
 }
 export function TimelineIndex(props: { tools: Tools }): VNode {
-	const index = useGetter(props.tools.timelineIndex)
+	const getTimelineIndex = useGetter(props.tools.timelineIndex)
 	const groups = () => {
 		const result = new Map<string, TimelineToken<any>[]>()
-		for (const token of index()) {
+		for (const token of getTimelineIndex()) {
 			if (isReservedIntrospectionKey(token.key) || token.key.startsWith(`👁‍🗨`))
 				continue
 			const key = token.family?.key ?? ``
@@ -269,24 +271,24 @@ export function TimelineIndex(props: { tools: Tools }): VNode {
 }
 function TimelineLog(props: { tools: Tools; token: TimelineToken<any> }): VNode {
 	const controls = useTimeline(props.token)
-	const log = useGetter(
+	const getTimeline = useGetter(
 		findInStore(
 			props.tools.store,
 			props.tools.timelineSelectors,
 			props.token.key,
 		),
 	)
-	const [open, toggle] = useExpanded(props.tools, [props.token.key])
+	const [getOpen, toggle] = useExpanded(props.tools, [props.token.key])
 	return (
 		<section class="node" data-testid={`timeline-${props.token.key}`}>
 			<header>
 				<button
 					type="button"
-					aria-expanded={open()}
+					aria-expanded={getOpen()}
 					data-testid={`open-close-timeline-${props.token.key}`}
 					onClick={toggle}
 				>
-					{open() ? `▾` : `▸`}
+					{getOpen() ? `▾` : `▸`}
 				</button>
 				<h2>{props.token.family?.subKey ?? props.token.key}</h2>
 				<small>
@@ -311,17 +313,17 @@ function TimelineLog(props: { tools: Tools; token: TimelineToken<any> }): VNode 
 					redo
 				</button>
 			</header>
-			{open() ? (
+			{getOpen() ? (
 				<section>
-					{log().history.map((event, index) => (
+					{getTimeline().history.map((event, index) => (
 						<section key={index}>
-							{index === log().at ? (
+							{index === getTimeline().at ? (
 								<p class="you-are-here">you are here</p>
 							) : null}
 							<EventView tools={props.tools} event={event} index={index} />
 						</section>
 					))}
-					{log().at === log().history.length ? (
+					{getTimeline().at === getTimeline().history.length ? (
 						<p class="you-are-here">you are here</p>
 					) : null}
 				</section>

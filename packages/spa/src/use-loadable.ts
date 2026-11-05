@@ -38,7 +38,7 @@ export function useLoadable(
 	const [token] = params
 	const family = token.type.endsWith(`_family`)
 	const selected = resolveStateToken(token, params[1] as Canonical)
-	const read = useGetter(selected)
+	const getValue = useGetter(selected)
 	const fallbackIndex = family ? 2 : 1
 	const fallback = params[fallbackIndex]
 	const hasFallback = params.length > fallbackIndex
@@ -46,7 +46,7 @@ export function useLoadable(
 	let previous = fallback
 	let error: unknown
 	return () => {
-		const value = read()
+		const value = getValue()
 		const loading = value instanceof Promise
 		if (!loading) {
 			previous = value

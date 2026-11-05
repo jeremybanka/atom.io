@@ -13,25 +13,25 @@ let downs = 0
 let ups = 0
 let moves = 0
 function App() {
-	const read = useGetter(sizeAtom)
+	const getSize = useGetter(sizeAtom)
 	return (
 		<>
 			<sliding-panel
 				id="motion-panel"
 				style="display: block; width: 100px; height: 40px"
 				motion:initial={{ x: 0 }}
-				motion:animate={{ x: read() }}
+				motion:animate={{ x: getSize() }}
 				motion:transition={{ type: `spring`, stiffness: 180, damping: 22 }}
 				motion:whileHover={{ scale: 1.1 }}
 				motion:whileTap={{ scale: 0.9 }}
 			>
 				Motion panel
 			</sliding-panel>
-			<Stage width={read()} height={100}>
+			<Stage width={getSize()} height={100}>
 				<Layer>
 					<Rect
 						motion:initial={{ x: 0 }}
-						motion:animate={{ x: read() / 10 }}
+						motion:animate={{ x: getSize() / 10 }}
 						width={50}
 						height={50}
 						fill="red"
@@ -42,7 +42,7 @@ function App() {
 				</Layer>
 			</Stage>
 			<Canvas
-				width={read()}
+				width={getSize()}
 				height={100}
 				onFrame={(state) => {
 					camera = state.camera
@@ -50,7 +50,7 @@ function App() {
 				}}
 			>
 				<Mesh
-					motion:animate={{ position: [read() / 100 - 1, 0, 0], scale: 1 }}
+					motion:animate={{ position: [getSize() / 100 - 1, 0, 0], scale: 1 }}
 					motion:whileHover={{ scale: 1.2 }}
 					motion:whileTap={{ scale: 0.8 }}
 					onPointerDown={(event) => {
@@ -117,10 +117,10 @@ let userFrames = 0,
 	clicks = 0
 let originalPanel: Element | null, originalMesh: any, originalRect: any
 function PresenceApp() {
-	const present = useGetter(presentAtom)
+	const getPresent = useGetter(presentAtom)
 	return (
 		<>
-			{present() && (
+			{getPresent() && (
 				<section
 					id="presence-panel"
 					key="panel"
@@ -252,13 +252,13 @@ Object.assign(window, {
 			)
 		}
 		function DragApp() {
-			const visible = useGetter(shownAtom)
+			const getShown = useGetter(shownAtom)
 			const layer = () => (
 				<Layer>
 					{mode === `rect` ? (
-						visible() && <Drawing key="dragRect" />
+						getShown() && <Drawing key="dragRect" />
 					) : mode === `group` ? (
-						visible() && (
+						getShown() && (
 							<Group key="group">
 								<Drawing />
 							</Group>
@@ -270,7 +270,7 @@ Object.assign(window, {
 			)
 			return (
 				<>
-					{(mode !== `stage` || visible()) && (
+					{(mode !== `stage` || getShown()) && (
 						<Stage
 							key="stage"
 							width={200}

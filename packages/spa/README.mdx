@@ -33,7 +33,7 @@ The npm package is named @atom.io/spa. Its browser runtime, Vite compiler, serve
 
 <Point />
 
-The point accessor returns the current object. Each JSX attribute reads its coordinate when evaluated. Both bindings depend on the point atom, and unchanged primitive results skip DOM writes. Reads during setup are snapshots; reads in event handlers are current and untracked. Shared derived state belongs in atom.io selectors.
+Name the getter and setter after the atom: pointAtom uses getPoint and setPoint. The getPoint getter returns the current object. Each JSX attribute reads its coordinate when evaluated. Both bindings depend on the point atom, and unchanged primitive results skip DOM writes. Reads during setup are snapshots; reads in event handlers are current and untracked. Shared derived state belongs in atom.io selectors.
 
 ## Vite
 

@@ -13,7 +13,7 @@ const historyTimelines = timelineFamily<string>({
 })
 
 export function FamilyCounter(props: { id: string }): VNode {
-	const count = useGetter(countAtoms, props.id)
+	const getCount = useGetter(countAtoms, props.id)
 	const setCount = useSetter(countAtoms, props.id)
 	const ref = useRef(buttonAtoms, props.id)
 	const history = useTimeline(historyTimelines, props.id)
@@ -25,7 +25,7 @@ export function FamilyCounter(props: { id: string }): VNode {
 					setCount((value) => value + 1)
 				}}
 			>
-				{count()}
+				{getCount()}
 			</button>
 			<button disabled={history.getCursor() === 0} onClick={history.undo}>
 				Undo

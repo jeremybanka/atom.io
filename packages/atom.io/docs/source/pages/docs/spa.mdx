@@ -75,7 +75,7 @@ Outside Astro, use [renderToString](#rendertostring) and [hydrate](#hydrate) dir
 
 ## a reactive view
 
-Capture accessors and writers during component setup. Call an accessor inside JSX to make that DOM expression reactive:
+Capture getters and setters during component setup, naming each after its atom: pointAtom uses getPoint and setPoint. Call the getter inside JSX to make that DOM expression reactive:
 
 <Exhibit src="spa/exhibits/point.tsx" />
 
@@ -130,7 +130,7 @@ Call setup helpers synchronously during component setup or owned mount callbacks
 
 ### useGetter
 
-Capture a tracked accessor for an atom or selector. Calling it inside compiled JSX subscribes that DOM computation; calling it during setup reads a snapshot. Calls from event handlers read the current value without subscribing. The [point example](#a-reactive-view) reads two coordinates from one atom.
+Capture a tracked getter for an atom or selector. Name it after the token, such as getPoint for pointAtom, and use the matching setPoint name for its setter. Calling the getter inside compiled JSX subscribes that DOM computation; calling it during setup reads a snapshot. Calls from event handlers read the current value without subscribing. The [point example](#a-reactive-view) reads two coordinates from one atom.
 
 ### useSetter
 

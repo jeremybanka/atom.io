@@ -23,7 +23,7 @@ const TYPES: JsonKind[] = [
 	`object`,
 ]
 export function JsonEditor(props: EditorProps): VNode {
-	const [expanded, toggle] = useExpanded(props.tools, props.path)
+	const [getExpanded, toggle] = useExpanded(props.tools, props.path)
 	const circular = () =>
 		(props.ancestors?.includes(props.value) ?? false) || props.path.length > 50
 	const container = () =>
@@ -40,10 +40,10 @@ export function JsonEditor(props: EditorProps): VNode {
 					<button
 						type="button"
 						aria-label={`Expand ${props.path.at(-1)}`}
-						aria-expanded={expanded()}
+						aria-expanded={getExpanded()}
 						onClick={toggle}
 					>
-						{expanded() ? `▾` : `▸`}
+						{getExpanded() ? `▾` : `▸`}
 					</button>
 				) : (
 					<span class="carat-spacer" />
@@ -84,7 +84,7 @@ export function JsonEditor(props: EditorProps): VNode {
 				)}
 				{props.actions}
 			</header>
-			{container() && expanded() ? (
+			{container() && getExpanded() ? (
 				<section class="properties">
 					{entries().map(([key]) => (
 						<Property key={key} name={key} editor={props} />

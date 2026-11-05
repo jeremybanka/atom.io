@@ -368,11 +368,11 @@ it(`resets removed boolean properties and skips refs whose owners were removed b
 		key: `props`,
 		default: { disabled: true },
 	})
-	let read!: () => Record<string, unknown>
+	let getProps!: () => Record<string, unknown>
 	const root = render(
 		() => {
-			read = useGetter(propsAtom)
-			return jsx(`button`, merge(read))
+			getProps = useGetter(propsAtom)
+			return jsx(`button`, merge(getProps))
 		},
 		host,
 		{ store: silo.store },

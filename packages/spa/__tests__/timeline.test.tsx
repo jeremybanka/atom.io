@@ -166,12 +166,12 @@ it(`tracks transaction availability and releases conditional dependencies`, () =
 	})
 	let history!: TimelineControls
 	const root = mount(() => {
-		const visible = useGetter(visibleAtom)
+		const getVisible = useGetter(visibleAtom)
 		history = useTimeline(historyTimeline)
 		const { getTransaction } = history
 		return (
 			<output>
-				{visible()
+				{getVisible()
 					? `${getTransaction().undo !== undefined}/${getTransaction().redo !== undefined}`
 					: `hidden`}
 			</output>

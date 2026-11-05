@@ -12,7 +12,7 @@ const circleAtom = atom<SVGCircleElement | null>({
 })
 
 export function PointEditor(): VNode {
-	const point = useGetter(pointAtom)
+	const getPoint = useGetter(pointAtom)
 	const setPoint = useSetter(pointAtom)
 	const circle = useRef(circleAtom)
 	const id = useId()
@@ -20,10 +20,10 @@ export function PointEditor(): VNode {
 		<section aria-labelledby={id}>
 			<h2 id={id}>Point</h2>
 			<svg viewBox="0 0 100 100">
-				<circle ref={circle} cx={point().x} cy={point().y} r="3" />
+				<circle ref={circle} cx={getPoint().x} cy={getPoint().y} r="3" />
 			</svg>
 			<output>
-				{point().x}, {point().y}
+				{getPoint().x}, {getPoint().y}
 			</output>
 			<button
 				onClick={() => {

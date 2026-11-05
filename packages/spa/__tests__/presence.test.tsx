@@ -68,20 +68,20 @@ it(`retains DOM ranges, freezes observers and input, and revives the same keyed 
 		mount = vi.fn(),
 		click = vi.fn()
 	function Row(props: { id: string }) {
-		const label = useGetter(f.labelAtom)
+		const getLabel = useGetter(f.labelAtom)
 		onMount(mount)
 		onCleanup(cleanup)
 		return (
 			<button data-id={props.id} test:exit={true} onClick={click}>
-				{label()}
+				{getLabel()}
 			</button>
 		)
 	}
 	function App() {
-		const items = useGetter(f.itemsAtom)
+		const getItems = useGetter(f.itemsAtom)
 		return (
 			<>
-				{items().map((id) => (
+				{getItems().map((id) => (
 					<Row key={id} id={id} />
 				))}
 			</>
@@ -136,12 +136,14 @@ it(`coordinates nested exits and lets re-entry preserve independently absent des
 		return <i test:exit={true}>child</i>
 	}
 	function Parent() {
-		const child = useGetter(childAtom)
-		return <section test:exit={true}>{child() && <Child key="child" />}</section>
+		const getChild = useGetter(childAtom)
+		return (
+			<section test:exit={true}>{getChild() && <Child key="child" />}</section>
+		)
 	}
 	function App() {
-		const parent = useGetter(parentAtom)
-		return <>{parent() && <Parent key="parent" />}</>
+		const getParent = useGetter(parentAtom)
+		return <>{getParent() && <Parent key="parent" />}</>
 	}
 	const root = render(() => <App />, host, {
 		store: f.silo.store,
@@ -176,8 +178,8 @@ it(`keeps incompatible replacements separate and forces immediate root disposal`
 		return <b test:exit={true}>B</b>
 	}
 	function App() {
-		const type = useGetter(typeAtom)
-		return <>{type() === 0 ? <A key="same" /> : <B key="same" />}</>
+		const getType = useGetter(typeAtom)
+		return <>{getType() === 0 ? <A key="same" /> : <B key="same" />}</>
 	}
 	const root = render(() => <App />, host, {
 		store: f.silo.store,
@@ -231,10 +233,10 @@ it(`retains scene nodes and resources until completion and resumes native identi
 		[key: string]: any
 	}>(`shape`)
 	function App() {
-		const items = useGetter(f.itemsAtom)
+		const getItems = useGetter(f.itemsAtom)
 		return (
 			<>
-				{items().map((id) => (
+				{getItems().map((id) => (
 					<Shape key={id} test:exit={true} />
 				))}
 			</>
@@ -271,10 +273,10 @@ it(`waits for every nested participant, preserves properties, and removes non-ex
 	const visibleAtom = f.silo.atom<boolean>({ key: `visible`, default: true })
 	const host = document.createElement(`div`)
 	function App() {
-		const visible = useGetter(visibleAtom)
+		const getVisible = useGetter(visibleAtom)
 		return (
 			<>
-				{visible() && (
+				{getVisible() && (
 					<section
 						test:exit={true}
 						aria-hidden="false"
@@ -315,9 +317,9 @@ it(`captures the latest exit props at removal`, () => {
 	const enabledAtom = f.silo.atom<boolean>({ key: `enabled`, default: false })
 	const host = document.createElement(`div`)
 	function App() {
-		const visible = useGetter(visibleAtom)
-		const enabled = useGetter(enabledAtom)
-		return <>{visible() && <span key="a" test:exit={enabled()} />}</>
+		const getVisible = useGetter(visibleAtom)
+		const getEnabled = useGetter(enabledAtom)
+		return <>{getVisible() && <span key="a" test:exit={getEnabled()} />}</>
 	}
 	const root = render(() => <App />, host, {
 		store: f.silo.store,
@@ -353,8 +355,8 @@ it(`guards public frame callbacks while infrastructure drawing continues`, async
 		return <span test:exit={true} />
 	}
 	function App() {
-		const show = useGetter(showAtom)
-		return <>{show() && <Row key="row" />}</>
+		const getShow = useGetter(showAtom)
+		return <>{getShow() && <Row key="row" />}</>
 	}
 	const root = render(() => <App />, document.createElement(`div`), {
 		store: f.silo.store,
@@ -379,16 +381,16 @@ it(`allows a logically returning nested key to revive before releasing an adopte
 	const childAtom = f.silo.atom<boolean>({ key: `child`, default: true })
 	const host = document.createElement(`div`)
 	function Parent() {
-		const child = useGetter(childAtom)
+		const getChild = useGetter(childAtom)
 		return (
 			<section test:exit={true}>
-				{child() && <i key="child" test:exit={true} />}
+				{getChild() && <i key="child" test:exit={true} />}
 			</section>
 		)
 	}
 	function App() {
-		const parent = useGetter(parentAtom)
-		return <>{parent() && <Parent key="parent" />}</>
+		const getParent = useGetter(parentAtom)
+		return <>{getParent() && <Parent key="parent" />}</>
 	}
 	const root = render(() => <App />, host, {
 		store: f.silo.store,
@@ -414,12 +416,12 @@ it(`keeps an incompatible returning key separate from its exiting generation`, (
 	const stateAtom = f.silo.atom<number>({ key: `state`, default: 0 })
 	const host = document.createElement(`div`)
 	function App() {
-		const read = useGetter(stateAtom)
+		const getState = useGetter(stateAtom)
 		return (
 			<>
-				{read() === 0 ? (
+				{getState() === 0 ? (
 					<i key="same" test:exit={true} />
-				) : read() === 1 ? null : (
+				) : getState() === 1 ? null : (
 					<b key="same" test:exit={true} />
 				)}
 			</>
@@ -539,10 +541,10 @@ it(`preserves several pending ranges and revives keys independently`, () => {
 	const f = fixture()
 	const host = document.createElement(`div`)
 	function App() {
-		const items = useGetter(f.itemsAtom)
+		const getItems = useGetter(f.itemsAtom)
 		return (
 			<>
-				{items().map((id) => (
+				{getItems().map((id) => (
 					<i key={id} data-id={id} test:exit={true} />
 				))}
 			</>
@@ -593,10 +595,10 @@ it(`does not reattach a scene whose cleanup disposes the root`, async () => {
 		return <Shape test:exit={true} />
 	}
 	function App() {
-		const items = useGetter(f.itemsAtom)
+		const getItems = useGetter(f.itemsAtom)
 		return (
 			<>
-				{items().map((id) => (
+				{getItems().map((id) => (
 					<Row key={id} />
 				))}
 			</>
@@ -618,10 +620,10 @@ it(`keeps sibling order when exits start and finish in different updates`, async
 	f.silo.setState(f.itemsAtom, [`a`, `b`, `c`])
 	const host = document.createElement(`div`)
 	function App() {
-		const items = useGetter(f.itemsAtom)
+		const getItems = useGetter(f.itemsAtom)
 		return (
 			<>
-				{items().map((id) => (
+				{getItems().map((id) => (
 					<i key={id} test:exit={true}>
 						{id}
 					</i>

@@ -107,9 +107,9 @@ await test(`packed runtime shares ownership across public entries, hydrates, upd
 		onCleanup(() => {
 			cleanups++
 		})
-		const read = useGetter(countAtom),
+		const getCount = useGetter(countAtom),
 			id = useId()
-		return jsx(`output`, { id, children: read })
+		return jsx(`output`, { id, children: getCount })
 	}
 	host.innerHTML = renderToString(() => jsx(App, {}), {
 		store: silo.store,
@@ -207,7 +207,7 @@ await test(`packed family hooks bind keyed state, refs, and history`, () => {
 	})
 	const root = render(
 		() => {
-			const count = useGetter(countAtoms, 0)
+			const getCount = useGetter(countAtoms, 0)
 			const setCount = useSetter(countAtoms, 0)
 			const ref = useRef(elementAtoms, 0)
 			const history = useTimeline(historyTimelines, 0)
@@ -216,7 +216,7 @@ await test(`packed family hooks bind keyed state, refs, and history`, () => {
 				onClick: () => {
 					setCount((value) => value + 1)
 				},
-				children: () => `${count()}:${history.getCursor()}`,
+				children: () => `${getCount()}:${history.getCursor()}`,
 			})
 		},
 		host,

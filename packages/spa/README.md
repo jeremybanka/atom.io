@@ -23,7 +23,7 @@ const circleAtom = atom<SVGCircleElement | null>({
 })
 
 export function PointEditor(): VNode {
-	const point = useGetter(pointAtom)
+	const getPoint = useGetter(pointAtom)
 	const setPoint = useSetter(pointAtom)
 	const circle = useRef(circleAtom)
 	const id = useId()
@@ -31,10 +31,10 @@ export function PointEditor(): VNode {
 		<section aria-labelledby={id}>
 			<h2 id={id}>Point</h2>
 			<svg viewBox="0 0 100 100">
-				<circle ref={circle} cx={point().x} cy={point().y} r="3" />
+				<circle ref={circle} cx={getPoint().x} cy={getPoint().y} r="3" />
 			</svg>
 			<output>
-				{point().x}, {point().y}
+				{getPoint().x}, {getPoint().y}
 			</output>
 			<button
 				onClick={() => {
@@ -49,7 +49,7 @@ export function PointEditor(): VNode {
 
 ```
 
-The point accessor returns the current object. Each JSX attribute reads its coordinate when evaluated. Both bindings depend on the point atom, and unchanged primitive results skip DOM writes. Reads during setup are snapshots; reads in event handlers are current and untracked. Shared derived state belongs in atom.io selectors.
+Name the getter and setter after the atom: pointAtom uses getPoint and setPoint. The getPoint getter returns the current object. Each JSX attribute reads its coordinate when evaluated. Both bindings depend on the point atom, and unchanged primitive results skip DOM writes. Reads during setup are snapshots; reads in event handlers are current and untracked. Shared derived state belongs in atom.io selectors.
 
 ## Vite
 
@@ -124,13 +124,14 @@ const incrementTransaction = transaction<() => void>({
 })
 
 export function TimelineExample(): VNode {
-	const count = useGetter(countAtom)
+	const getCount = useGetter(countAtom)
 	const increment = useTransaction(incrementTransaction)
 	const history = useTimeline(historyTimeline)
 	return (
 		<section>
 			<output>
-				Count: {count()} (history: {history.getCursor()}/{history.getLength()})
+				Count: {getCount()} (history: {history.getCursor()}/{history.getLength()}
+				)
 			</output>
 			<button onClick={increment}>Increment</button>
 			<button
@@ -210,7 +211,7 @@ const historyTimelines = timelineFamily<string>({
 })
 
 export function FamilyCounter(props: { id: string }): VNode {
-	const count = useGetter(countAtoms, props.id)
+	const getCount = useGetter(countAtoms, props.id)
 	const setCount = useSetter(countAtoms, props.id)
 	const ref = useRef(buttonAtoms, props.id)
 	const history = useTimeline(historyTimelines, props.id)
@@ -222,7 +223,7 @@ export function FamilyCounter(props: { id: string }): VNode {
 					setCount((value) => value + 1)
 				}}
 			>
-				{count()}
+				{getCount()}
 			</button>
 			<button disabled={history.getCursor() === 0} onClick={history.undo}>
 				Undo
@@ -357,7 +358,7 @@ export default function Counter(props: {
 	children?: Child
 	slots?: Record<string, Child>
 }): VNode {
-	const count = useGetter(countAtom)
+	const getCount = useGetter(countAtom)
 	const setCount = useSetter(countAtom)
 	const id = useId()
 	onCleanup(() => {
@@ -373,7 +374,7 @@ export default function Counter(props: {
 					setCount((value) => value + 1)
 				}}
 			>
-				{count()}
+				{getCount()}
 			</button>
 		</section>
 	)
@@ -464,14 +465,14 @@ const pointAtom = atom<{ x: number; y: number }>({
 	default: { x: 100, y: 100 },
 })
 export function Editor(): VNode {
-	const point = useGetter(pointAtom)
+	const getPoint = useGetter(pointAtom)
 	const setPoint = useSetter(pointAtom)
 	return (
 		<Stage width={800} height={600}>
 			<Layer>
 				<Circle
-					x={point().x}
-					y={point().y}
+					x={getPoint().x}
+					y={getPoint().y}
 					radius={25}
 					fill="coral"
 					draggable
@@ -507,14 +508,14 @@ import { atom } from "atom.io"
 
 const colorAtom = atom<string>({ key: `color`, default: `coral` })
 export function Scene(): VNode {
-	const color = useGetter(colorAtom)
+	const getColor = useGetter(colorAtom)
 	return (
 		<Canvas width={800} height={600}>
 			<AmbientLight intensity={0.5} />
 			<DirectionalLight position={[3, 3, 3]} />
 			<Mesh rotation={[0.3, 0.5, 0]}>
 				<BoxGeometry args={[1, 1, 1]} />
-				<MeshStandardMaterial color={color()} />
+				<MeshStandardMaterial color={getColor()} />
 			</Mesh>
 		</Canvas>
 	)
@@ -561,13 +562,13 @@ import { atom } from "atom.io"
 
 const targetXAtom = atom<number>({ key: `targetX`, default: 0 })
 export function MotionPanel(): VNode {
-	const x = useGetter(targetXAtom)
-	const setX = useSetter(targetXAtom)
+	const getTargetX = useGetter(targetXAtom)
+	const setTargetX = useSetter(targetXAtom)
 	return (
 		<section>
 			<button
 				onClick={() => {
-					setX((value) => (value === 0 ? 200 : 0))
+					setTargetX((value) => (value === 0 ? 200 : 0))
 				}}
 			>
 				Move
@@ -575,7 +576,7 @@ export function MotionPanel(): VNode {
 			<sliding-panel
 				style="display: block; width: 120px; padding: 16px; background: coral"
 				motion:initial={{ opacity: 0, x: -100 }}
-				motion:animate={{ opacity: 1, x: x() }}
+				motion:animate={{ opacity: 1, x: getTargetX() }}
 				motion:transition={{ type: `spring`, stiffness: 180, damping: 22 }}
 				motion:whileHover={{ scale: 1.05 }}
 				motion:whileTap={{ scale: 0.95 }}
@@ -611,12 +612,12 @@ const targetXAtom = atom<number>({
 })
 // Mount under a root with capabilities: [motionCapability()].
 export function SpringCube(): VNode {
-	const x = useGetter(targetXAtom)
+	const getTargetX = useGetter(targetXAtom)
 	return (
 		<Canvas>
 			<Mesh
 				motion:initial={{ position: [-1, 0, 0], scale: 0 }}
-				motion:animate={{ position: [x(), 0, 0], scale: 1 }}
+				motion:animate={{ position: [getTargetX(), 0, 0], scale: 1 }}
 				motion:transition={{ type: `spring`, stiffness: 180, damping: 22 }}
 				motion:whileHover={{ scale: 1.2 }}
 				motion:whileTap={{ scale: 0.8 }}
@@ -646,7 +647,7 @@ import { atom } from "atom.io"
 
 const visibleAtom = atom<boolean>({ key: `visible`, default: true })
 export function DismissiblePanel(): VNode {
-	const visible = useGetter(visibleAtom)
+	const getVisible = useGetter(visibleAtom)
 	const setVisible = useSetter(visibleAtom)
 	return (
 		<section>
@@ -657,7 +658,7 @@ export function DismissiblePanel(): VNode {
 			>
 				Toggle panel
 			</button>
-			{visible() && (
+			{getVisible() && (
 				<sliding-panel
 					key="panel"
 					motion:initial={{ opacity: 0, y: 12 }}

@@ -20,13 +20,13 @@ export function familyTypes(
 	elements: RegularAtomFamilyToken<HTMLInputElement | null, boolean>,
 	timelines: TimelineFamilyToken<null>,
 ): void {
-	const read = useGetter(readable, 1)
-	const write = useSetter(writable, [`row`, 1])
+	const getValue = useGetter(readable, 1)
+	const setValue = useSetter(writable, [`row`, 1])
 	const ref = useRef(elements, false)
 	const history = useTimeline(timelines, null)
 	const checks: [
-		Expect<Equal<typeof read, Accessor<number | RangeError>>>,
-		Expect<Equal<typeof write, (value: number | Setter<number>) => void>>,
+		Expect<Equal<typeof getValue, Accessor<number | RangeError>>>,
+		Expect<Equal<typeof setValue, (value: number | Setter<number>) => void>>,
 		Expect<Equal<typeof ref, (element: HTMLInputElement | null) => void>>,
 		Expect<Equal<typeof history, TimelineControls>>,
 		Expect<
@@ -46,7 +46,7 @@ export function familyTypes(
 	getTransaction().undo?.()
 	getTransaction().redo?.()
 	void [cursor, length]
-	write((previous) => previous + 1)
+	setValue((previous) => previous + 1)
 	ref(document.createElement(`input`))
 	ref(null)
 	history.undo()
@@ -63,9 +63,9 @@ export function familyTypes(
 	// @ts-expect-error Read-only selector families cannot be written.
 	useSetter(readable, 1)
 	// @ts-expect-error Values retain their family type.
-	write(`wrong`)
+	setValue(`wrong`)
 	// @ts-expect-error Updaters must return the family's value type.
-	write(() => `wrong`)
+	setValue(() => `wrong`)
 	// @ts-expect-error A ref family requires a key.
 	useRef(elements)
 	// @ts-expect-error Ref keys retain their type, including false.

@@ -32,21 +32,21 @@ const VIEWS = [`atoms`, `selectors`, `transactions`, `timelines`] as const
 type View = (typeof VIEWS)[number]
 function Panel(props: { store: RootStore; hideByDefault: boolean }): VNode {
 	const tools = useTools(props.store)
-	const [hidden, setHidden] = useSaved(
+	const [getHidden, setHidden] = useSaved(
 		props.store,
 		`🔍 Devtools Are Hidden`,
 		props.hideByDefault,
 	)
-	const [open, setOpen] = useSaved(props.store, `🔍 Devtools Are Open`, true)
-	const [selection, setSelection] = useSaved<string>(
+	const [getOpen, setOpen] = useSaved(props.store, `🔍 Devtools Are Open`, true)
+	const [getSelection, setSelection] = useSaved<string>(
 		props.store,
 		`🔍 Devtools View`,
 		`atoms`,
 	)
 	const view = () =>
-		VIEWS.includes(selection() as View) ? (selection() as View) : `atoms`
-	const [position, setPosition] = useLocal(props.store, { x: 0, y: 0 })
-	const error = useGetter(tools.error)
+		VIEWS.includes(getSelection() as View) ? (getSelection() as View) : `atoms`
+	const [getPosition, setPosition] = useLocal(props.store, { x: 0, y: 0 })
+	const getError = useGetter(tools.error)
 	let panel: HTMLElement | null = null
 	const attach = (element: HTMLElement | null) => {
 		panel = element
@@ -76,9 +76,9 @@ function Panel(props: { store: RootStore; hideByDefault: boolean }): VNode {
 			ref={attach}
 			data-css="spa-devtools"
 			data-testid="atom-io-devtools"
-			hidden={hidden()}
-			data-open={open()}
-			style={`transform:translate(${position().x}px,${position().y}px)`}
+			hidden={getHidden()}
+			data-open={getOpen()}
+			style={`transform:translate(${getPosition().x}px,${getPosition().y}px)`}
 		>
 			<header class="toolbar">
 				<button
@@ -92,7 +92,7 @@ function Panel(props: { store: RootStore; hideByDefault: boolean }): VNode {
 							id: event.pointerId,
 							startX: event.clientX,
 							startY: event.clientY,
-							...position(),
+							...getPosition(),
 						}
 						;(event.currentTarget as HTMLElement).setPointerCapture(
 							event.pointerId,
@@ -106,12 +106,15 @@ function Panel(props: { store: RootStore; hideByDefault: boolean }): VNode {
 							y: drag.y + event.clientY - drag.startY,
 						}
 						next.x = Math.max(
-							position().x - rect.left,
-							Math.min(next.x, position().x + window.innerWidth - rect.right),
+							getPosition().x - rect.left,
+							Math.min(next.x, getPosition().x + window.innerWidth - rect.right),
 						)
 						next.y = Math.max(
-							position().y - rect.top,
-							Math.min(next.y, position().y + window.innerHeight - rect.bottom),
+							getPosition().y - rect.top,
+							Math.min(
+								next.y,
+								getPosition().y + window.innerHeight - rect.bottom,
+							),
 						)
 						setPosition(next)
 					}}
@@ -137,7 +140,7 @@ function Panel(props: { store: RootStore; hideByDefault: boolean }): VNode {
 					⠿
 				</button>
 				<h1>atom.io</h1>
-				{open() ? (
+				{getOpen() ? (
 					<nav aria-label="Debugger views">
 						{VIEWS.map((name) => (
 							<button
@@ -155,13 +158,13 @@ function Panel(props: { store: RootStore; hideByDefault: boolean }): VNode {
 				) : null}
 				<button
 					type="button"
-					aria-label={open() ? `Minimize debugger` : `Open debugger`}
+					aria-label={getOpen() ? `Minimize debugger` : `Open debugger`}
 					data-testid="open-close-devtools"
 					onClick={() => {
 						setOpen((value) => !value)
 					}}
 				>
-					{open() ? `−` : `🔍`}
+					{getOpen() ? `−` : `🔍`}
 				</button>
 				<button
 					type="button"
@@ -173,9 +176,9 @@ function Panel(props: { store: RootStore; hideByDefault: boolean }): VNode {
 					×
 				</button>
 			</header>
-			{open() ? (
+			{getOpen() ? (
 				<>
-					{error() ? <p role="alert">{error()}</p> : null}
+					{getError() ? <p role="alert">{getError()}</p> : null}
 					{view() === `atoms` || view() === `selectors` ? (
 						<StateIndex
 							key={view()}

@@ -56,18 +56,18 @@ describe(`streamlined families`, () => {
 			const setup = vi.fn()
 			const root = mount(() => {
 				setup()
-				const value = useGetter(countAtoms, key)
-				const setValue = useSetter(countAtoms, key)
+				const getCount = useGetter(countAtoms, key)
+				const setCount = useSetter(countAtoms, key)
 				const ref = useRef(elementAtoms, key)
 				history = useTimeline(historyTimelines, key)
 				return (
 					<button
 						ref={ref}
 						onClick={() => {
-							setValue((previous) => previous + 1)
+							setCount((previous) => previous + 1)
 						}}
 					>
-						{value()}:{history.getCursor()}/{history.getLength()}
+						{getCount()}:{history.getCursor()}/{history.getLength()}
 					</button>
 				)
 			})
@@ -109,15 +109,15 @@ describe(`streamlined families`, () => {
 				},
 		})
 		const root = mount(() => {
-			const value = useGetter(doubledSelectors, 1)
-			const setValue = useSetter(doubledSelectors, 1)
+			const getDoubled = useGetter(doubledSelectors, 1)
+			const setDoubled = useSetter(doubledSelectors, 1)
 			return (
 				<button
 					onClick={() => {
-						setValue((previous) => previous + 4)
+						setDoubled((previous) => previous + 4)
 					}}
 				>
-					{value()}
+					{getDoubled()}
 				</button>
 			)
 		})
@@ -132,18 +132,18 @@ describe(`streamlined families`, () => {
 		const first = fixture(1)
 		const second = fixture(10)
 		const App = () => {
-			const value = useGetter(first.countAtoms, 0)
-			const setValue = useSetter(first.countAtoms, 0)
+			const getCount = useGetter(first.countAtoms, 0)
+			const setCount = useSetter(first.countAtoms, 0)
 			const ref = useRef(first.elementAtoms, 0)
 			const history = useTimeline(first.historyTimelines, 0)
 			return (
 				<button
 					ref={ref}
 					onClick={() => {
-						setValue((previous) => previous + 1)
+						setCount((previous) => previous + 1)
 					}}
 				>
-					{value()}:{history.getCursor()}
+					{getCount()}:{history.getCursor()}
 				</button>
 			)
 		}
@@ -175,8 +175,8 @@ describe(`streamlined families`, () => {
 		const disposed = vi.fn()
 		function Row(props: { id: number }) {
 			const id = props.id
-			const value = useGetter(countAtoms, id)
-			const setValue = useSetter(countAtoms, id)
+			const getCount = useGetter(countAtoms, id)
+			const setCount = useSetter(countAtoms, id)
 			const ref = useRef(elementAtoms, id)
 			const history = useTimeline(historyTimelines, id)
 			onCleanup(() => {
@@ -186,16 +186,16 @@ describe(`streamlined families`, () => {
 				<button
 					ref={ref}
 					onClick={() => {
-						setValue(5)
+						setCount(5)
 					}}
 				>
-					{value()}:{history.getCursor()}
+					{getCount()}:{history.getCursor()}
 				</button>
 			)
 		}
 		const root = mount(() => {
-			const selected = useGetter(selectedAtom)
-			return <>{[<Row key={selected()} id={selected()} />]}</>
+			const getSelected = useGetter(selectedAtom)
+			return <>{[<Row key={getSelected()} id={getSelected()} />]}</>
 		})
 		const firstButton = host.querySelector(`button`)!
 		firstButton.click()
@@ -238,12 +238,12 @@ describe(`streamlined families`, () => {
 		const { silo, countAtoms, elementAtoms, historyTimelines, host } = fixture(7)
 		const html = renderToString(
 			() => {
-				const value = useGetter(countAtoms, 1)
+				const getCount = useGetter(countAtoms, 1)
 				const history = useTimeline(historyTimelines, 1)
 				const ref = useRef(elementAtoms, 1)
 				return (
 					<button ref={ref}>
-						{value()}:{history.getCursor()}
+						{getCount()}:{history.getCursor()}
 					</button>
 				)
 			},

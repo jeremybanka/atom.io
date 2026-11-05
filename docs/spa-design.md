@@ -6,6 +6,8 @@ SPA is the JSX framework in [packages/spa](../packages/spa/README.md). It implem
 
 The component body establishes accessors, commands, IDs, refs, and cleanup. Ordinary local variables and callbacks retain identity for that instance. There is no component rerender protocol, positional hook array, independent signals graph, useState, useEffect, useCallback, or useSyncExternalStore compatibility layer.
 
+Getter and setter bindings use their atom's name: countAtom pairs getCount from useGetter with setCount from useSetter. Keep the two setup bindings adjacent, then call the getter where the current value is needed.
+
 The Vite compiler preserves JSX child expressions as functions and attribute expressions as getters. Reading a spa accessor while evaluating one of those expressions registers a dependency. Reads in ordinary setup code are snapshots; reads in event handlers are current and untracked. Helper functions called by a render expression participate in its tracking. Direct atom.io getState calls do not acquire tracking merely by appearing in JSX.
 
 Component props remain live through getters. Setup destructuring captures a snapshot. Hook token arguments are fixed for an instance; a changing token needs a new keyed instance. Arrays in reactive child expressions use application keys to retain instances and DOM ranges across reordering. Unkeyed arrays use positions. Keys are collection identity, not a second reactive primitive.

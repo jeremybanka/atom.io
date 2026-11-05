@@ -21,7 +21,7 @@ it(`updates transforms and colors, attaches resources, and disposes owned resour
 	let geometry!: THREE.BoxGeometry
 	let material!: THREE.MeshStandardMaterial
 	function App() {
-		const read = useGetter(colorAtom)
+		const getColor = useGetter(colorAtom)
 		return (
 			<Mesh
 				position={[1, 2, 3]}
@@ -36,7 +36,7 @@ it(`updates transforms and colors, attaches resources, and disposes owned resour
 					}}
 				/>
 				<MeshStandardMaterial
-					color={read()}
+					color={getColor()}
 					ref={(node) => {
 						if (node) material = node
 					}}
@@ -70,10 +70,10 @@ it(`replaces keyed resources and rejects constructor changes without a new key`,
 	const scene = new THREE.Scene()
 	const geometries: THREE.BoxGeometry[] = []
 	function App() {
-		const size = useGetter(sizeAtom)
+		const getSize = useGetter(sizeAtom)
 		return (
 			<Mesh>
-				{[size()].map((width) => (
+				{[getSize()].map((width) => (
 					<BoxGeometry
 						key={width}
 						args={[width, 1, 1]}
@@ -94,10 +94,10 @@ it(`replaces keyed resources and rejects constructor changes without a new key`,
 	expect(geometries[1].parameters.width).toBe(2)
 	root.dispose()
 	function Fixed() {
-		const size = useGetter(sizeAtom)
+		const getSize = useGetter(sizeAtom)
 		return (
 			<Mesh>
-				<BoxGeometry args={[size(), 1, 1]} />
+				<BoxGeometry args={[getSize(), 1, 1]} />
 			</Mesh>
 		)
 	}
@@ -124,16 +124,16 @@ it(`routes raycast events through JSX handlers and motion gestures, including re
 	const second = vi.fn()
 	const ref = vi.fn()
 	function App() {
-		const phase = useGetter(phaseAtom)
+		const getPhase = useGetter(phaseAtom)
 		return (
 			<Mesh
 				ref={ref}
 				motion:animate={{ scale: 1 }}
 				motion:whileHover={{ scale: 1.2 }}
 				motion:whileTap={{ scale: 0.8 }}
-				{...(phase() === 2
+				{...(getPhase() === 2
 					? {}
-					: { onPointerDown: phase() === 0 ? first : second })}
+					: { onPointerDown: getPhase() === 0 ? first : second })}
 			>
 				<BoxGeometry />
 				<MeshStandardMaterial />
@@ -252,12 +252,12 @@ it(`restores all three scale axes when a scalar motion binding is removed or dis
 	const initialScale: readonly [number, number, number] = [2, 3, 4]
 	const ref = vi.fn()
 	function App() {
-		const enabled = useGetter(enabledAtom)
+		const getEnabled = useGetter(enabledAtom)
 		return (
 			<Mesh
 				ref={ref}
 				scale={initialScale}
-				{...(enabled() ? { "motion:animate": { scale: 1 } } : {})}
+				{...(getEnabled() ? { "motion:animate": { scale: 1 } } : {})}
 			/>
 		)
 	}
@@ -320,14 +320,14 @@ it.each([`direct`, `fragment`, `bundle`])(
 			)
 		}
 		function App() {
-			const key = useGetter(keyAtom)
+			const getKey = useGetter(keyAtom)
 			return (
 				<>
-					{key() !== null &&
+					{getKey() !== null &&
 						(variant === `direct` ? (
-							material(key()!)
+							material(getKey()!)
 						) : (
-							<Resources key={key()!} />
+							<Resources key={getKey()!} />
 						))}
 				</>
 			)

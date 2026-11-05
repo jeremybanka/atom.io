@@ -30,8 +30,9 @@ export const component: Component<{
 }> = (props) => {
 	const store: RootStore = useStore()
 	void store
-	const value: Accessor<number> = useGetter(props.count)
-	useSetter(props.count)((n) => n + 1)
+	const getCount: Accessor<number> = useGetter(props.count)
+	const setCount = useSetter(props.count)
+	setCount((n) => n + 1)
 	const history: TimelineControls = useTimeline(props.history)
 	const result: string = useTransaction(props.action)(1)
 	const ref: (element: Element | null) => void = useRef(props.element)
@@ -39,7 +40,7 @@ export const component: Component<{
 		ref(null)
 	})
 	onCleanup(history.clear)
-	return [useId(), value(), result] satisfies Child
+	return [useId(), getCount(), result] satisfies Child
 }
 export const options: RootOptions = { idPrefix: `consumer` }
 export type Root = SpaRoot

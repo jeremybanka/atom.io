@@ -36,8 +36,10 @@ it(`animates native scene properties, respects reduced motion, and restores borr
 	})
 	const Shape = sceneComponent<MotionAttributes<`konva`>>(`shape`)
 	function App() {
-		const x = useGetter(positionAtom)
-		return <Shape motion:initial={{ x: -1 }} motion:animate={{ x: x() }} />
+		const getPosition = useGetter(positionAtom)
+		return (
+			<Shape motion:initial={{ x: -1 }} motion:animate={{ x: getPosition() }} />
+		)
 	}
 	const host = { x: 0, children: [] }
 	const root = renderer.render(() => <App />, host, {

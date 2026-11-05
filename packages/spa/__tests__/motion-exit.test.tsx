@@ -30,16 +30,16 @@ it(`animates compiled DOM exits from current values, retains refs, and resumes a
 	const host = document.createElement(`div`)
 	const ref = vi.fn()
 	function App() {
-		const visible = useGetter(visibleAtom)
-		const x = useGetter(xAtom)
+		const getVisible = useGetter(visibleAtom)
+		const getX = useGetter(xAtom)
 		return (
 			<>
-				{visible() && (
+				{getVisible() && (
 					<custom-panel
 						key="panel"
 						ref={ref}
 						motion:initial={false}
-						motion:animate={{ x: x(), opacity: 1 }}
+						motion:animate={{ x: getX(), opacity: 1 }}
 						motion:exit={{ x: 100, opacity: 0 }}
 						motion:transition={{ type: `tween`, duration: 0.1 }}
 					/>
@@ -77,10 +77,10 @@ it(`supports exit-only properties and immediate removal for reduced motion or no
 	const visibleAtom = silo.atom<boolean>({ key: `visible`, default: true })
 	const host = document.createElement(`div`)
 	function App() {
-		const visible = useGetter(visibleAtom)
+		const getVisible = useGetter(visibleAtom)
 		return (
 			<>
-				{visible() && (
+				{getVisible() && (
 					<i
 						motion:exit={{ opacity: 0 }}
 						motion:transition={{ duration: 0.01 }}
@@ -128,10 +128,10 @@ it(`finishes an active exit when reduced motion changes and cancels promptly on 
 		const visibleAtom = silo.atom<boolean>({ key: `visible`, default: true })
 		const host = document.createElement(`div`)
 		function App() {
-			const visible = useGetter(visibleAtom)
+			const getVisible = useGetter(visibleAtom)
 			return (
 				<>
-					{visible() && (
+					{getVisible() && (
 						<b
 							motion:exit={{ opacity: 0 }}
 							motion:transition={{ duration: 10 }}
@@ -183,10 +183,10 @@ it(`rejects non-settling exits through the root error path`, () => {
 		})
 		const visibleAtom = silo.atom<boolean>({ key: `visible`, default: true })
 		function App() {
-			const visible = useGetter(visibleAtom)
+			const getVisible = useGetter(visibleAtom)
 			return (
 				<>
-					{visible() && (
+					{getVisible() && (
 						<i motion:exit={{ opacity: 0 }} motion:transition={transition} />
 					)}
 				</>
@@ -213,10 +213,10 @@ it(`hydrates exit declarations without serializing or starting them, then retain
 	const visibleAtom = silo.atom<boolean>({ key: `visible`, default: true })
 	const capabilities = [motionCapability({ reducedMotion: `never` })]
 	function App() {
-		const visible = useGetter(visibleAtom)
+		const getVisible = useGetter(visibleAtom)
 		return (
 			<>
-				{visible() && (
+				{getVisible() && (
 					<custom-panel
 						key="panel"
 						motion:exit={{ opacity: 0 }}
@@ -255,10 +255,10 @@ it(`retains native Konva/Three objects, excludes exiting meshes from picking, an
 	let mesh!: THREE.Mesh
 	const down = vi.fn()
 	function App() {
-		const visible = useGetter(visibleAtom)
+		const getVisible = useGetter(visibleAtom)
 		return (
 			<>
-				{visible() && (
+				{getVisible() && (
 					<Mesh
 						ref={(node) => {
 							if (node) mesh = node
@@ -313,10 +313,10 @@ it(`retains native Konva/Three objects, excludes exiting meshes from picking, an
 	const parent = new Konva.Group()
 	let group!: Konva.Group
 	function Drawing() {
-		const visible = useGetter(visibleAtom)
+		const getVisible = useGetter(visibleAtom)
 		return (
 			<>
-				{visible() && (
+				{getVisible() && (
 					<Group
 						ref={(node) => {
 							if (node) group = node
@@ -400,10 +400,10 @@ it(`keeps a returning native instance and its momentum through repeated presence
 	const parent = new Konva.Group(),
 		ref = vi.fn()
 	function App() {
-		const present = useGetter(presentAtom)
+		const getPresent = useGetter(presentAtom)
 		return (
 			<>
-				{present() && (
+				{getPresent() && (
 					<Group
 						key="same"
 						ref={ref}
@@ -464,10 +464,10 @@ it(`cancels same-frame tween exits and active return bridges without leaving sta
 		const parent = new Konva.Group(),
 			ref = vi.fn()
 		function App() {
-			const present = useGetter(presentAtom)
+			const getPresent = useGetter(presentAtom)
 			return (
 				<>
-					{present() && (
+					{getPresent() && (
 						<Group
 							key="same"
 							ref={ref}

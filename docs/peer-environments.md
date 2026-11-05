@@ -9,7 +9,7 @@ Turbo builds and packs every participating package before checking it. The [task
 | Package        | Representatives                                                                                             |
 | -------------- | ----------------------------------------------------------------------------------------------------------- |
 | React          | React 18 and 19 with released SDK 0.53.3; the same frameworks with the coordinated SDK candidate.           |
-| Solid          | Solid 1.9 and Solid 2.0.0-rc.20 with released SDK 0.53.3 and the coordinated SDK candidate.                 |
+| Solid          | Solid 1.9 and Solid 2.0.0-rc.21 with released SDK 0.53.3 and the coordinated SDK candidate.                 |
 | React devtools | React/React DOM 18 and 19 with the React adapter candidate, paired with both released and coordinated SDKs. |
 | ESLint plugin  | ESLint 9 and 10 with typescript-eslint parser 8 and TypeScript 6.                                           |
 

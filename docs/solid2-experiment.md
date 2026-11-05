@@ -1,8 +1,8 @@
 # Solid 2 release candidate experiment
 
-Initially tested with `solid-js@2.0.0-rc.17` on October 23, 2026. Current compatibility targets exactly `solid-js@2.0.0-rc.20`, alongside Solid 1.9. The rc.20 upgrade drops rc.17–19 support and ships as a patch because these are prerelease peers. Both supported Solid versions are tested with released `atom.io@0.53.3` and the coordinated SDK candidate. All RC environments enforce a 1,440-minute minimum release age with strict rejection and no age exceptions.
+Initially tested with `solid-js@2.0.0-rc.17` on October 23, 2026. Current compatibility targets exactly `solid-js@2.0.0-rc.21`, alongside Solid 1.9. The rc.21 upgrade drops rc.20 support and ships as a patch because these are prerelease peers. Both supported Solid versions are tested with released `atom.io@0.53.3` and the coordinated SDK candidate. All RC environments enforce a 1,440-minute minimum release age with strict rejection and no age exceptions.
 
-The `*-solid2` environments test rc.20 and remain the rolling candidates for Renovate proposals after the normal one-day delay. Those proposals do not automatically rewrite the adapter's peer declaration or automerge. Supporting another RC requires updating the exact version in the peer declaration, testing both SDK environments, and including a changeset; superseded RCs do not need retained compatibility environments. Breakage checks the declared support against the published baseline and requires representative coverage before the upgrade can pass. Breakage permits prerelease peer support to be dropped without a breaking release, so the rc.17–19 removal uses the normal patch changeset and needs no release-policy exception.
+The `*-solid2` environments test rc.21 and remain the rolling candidates for Renovate proposals after the normal one-day delay. Those proposals do not automatically rewrite the adapter's peer declaration or automerge. Supporting another RC requires updating the exact version in the peer declaration, testing both SDK environments, and including a changeset; superseded RCs do not need retained compatibility environments. Breakage checks the declared support against the published baseline and requires representative coverage before the upgrade can pass. Breakage permits prerelease peer support to be dropped without a breaking release, so the rc.20 removal uses the normal patch changeset and needs no release-policy exception.
 
 ## What breaks without changes
 
@@ -15,7 +15,7 @@ The original packed adapter fails at runtime and in consumer declaration checkin
 
 The expanded [consumer contracts](../packages/solid/__tests__/fixtures/consumer/runtime.ts) cover store isolation, writes before subscriptions settle, subsequent reactive notifications, actual unsubscribe, mutable and function snapshots, JSON, timelines, and loadable promises. Both production and development browser conditions run in the peer matrix, followed by server reads and declaration checking with library checking enabled. The ordinary Solid test and coverage commands prepare and reuse the same isolated RC environment, so the compatibility branches are covered without replacing the workspace Solid 1 dependency. Provider children are consumed by a render effect: merely reading a lazy Solid 2 provider outside an observer does not activate its descendant effects.
 
-The released SDK's optional Solid peer still describes its former bundled Solid 1 adapter. The released-SDK experiment contains a package-scoped pnpm allowance for exactly Solid 2 rc.20 on `atom.io@0.53.3>solid-js`; it tests the new standalone adapter against the old SDK core. This does **not** establish that the old SDK's bundled `atom.io/solid` entry supports Solid 2. The coordinated SDK environment needs no such allowance.
+The released SDK's optional Solid peer still describes its former bundled Solid 1 adapter. The released-SDK experiment contains a package-scoped pnpm allowance for exactly Solid 2 rc.21 on `atom.io@0.53.3>solid-js`; it tests the new standalone adapter against the old SDK core. This does **not** establish that the old SDK's bundled `atom.io/solid` entry supports Solid 2. The coordinated SDK environment needs no such allowance.
 
 ## External state opportunities
 
@@ -38,6 +38,6 @@ Keep the compatibility path small and preserve `useO` / `useLoadable` behavior. 
 ## Upstream references
 
 - [Solid 2 migration guide](https://github.com/solidjs/solid/blob/solid-js%402.0.0-rc.17/documentation/solid-2.0/MIGRATION.md): context, effect, JSX, batching, and async changes.
-- [Published Solid RC package metadata](https://www.npmjs.com/package/solid-js/v/2.0.0-rc.20): exact tested version.
+- [Published Solid RC package metadata](https://www.npmjs.com/package/solid-js/v/2.0.0-rc.21): exact tested version.
 - [Solid 2 subscription conversion](https://github.com/solidjs/solid/blob/solid-js%402.0.0-rc.18/packages/solid/src/from.ts): rc.18 live-source branding and hydration intent; absent in rc.17.
 - [Solid signals external bridge](https://github.com/solidjs/solid/blob/solid-js%402.0.0-rc.17/packages/signals/src/core/external.ts): computation wrapping and registration.

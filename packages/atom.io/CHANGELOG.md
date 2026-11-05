@@ -1,5 +1,11 @@
 # atom.io
 
+## 0.54.5
+
+### Patch Changes
+
+- 72d951d: Update the SPA guide and executable examples for `useGetter`, direct timeline controls, and matching getter/setter bindings named after their atoms, such as `getPoint` and `setPoint` for `pointAtom`.
+
 ## 0.54.4
 
 ### Patch Changes

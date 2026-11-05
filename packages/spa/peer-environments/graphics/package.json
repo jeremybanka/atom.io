@@ -6,7 +6,7 @@
 	"dependencies": {
 		"@types/three": "0.187.0",
 		"konva": "10.9.1",
-		"motion": "14.9.0",
+		"motion": "14.9.1",
 		"three": "0.187.0"
 	},
 	"devDependencies": {

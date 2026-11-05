@@ -199,7 +199,7 @@ Fetching synchronizes with a remote system. The effect must prevent a response f
 
 <span data-effect-verdict="best-practice">Best practice</span> Load each account by its key
 
-The family key supplies request identity, its async default supplies the read, and `useLoadable` observes the result. Reads of the same member share its retained load. The keyed result component also prevents the hook’s previous display value from crossing account identities. Reset after an explicit refresh, retry, or relevant mutation; do not reset on mount. Cache policy and actual network cancellation remain separate choices.
+The family key supplies request identity, its async default supplies the read, and `useLoadable` observes the result. Reads of the same member share its retained load. The hook retains display values per member, so switching accounts does not display another account's value while loading. Reset after an explicit refresh, retry, or relevant mutation; do not reset on mount. Cache policy and actual network cancellation remain separate choices.
 
 </EffectCluster>
 

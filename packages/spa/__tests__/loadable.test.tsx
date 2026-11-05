@@ -3,7 +3,7 @@ import { Silo } from "atom.io"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
 import type { Accessor, SpaRoot } from "../src/index.ts"
-import { render, useLoadable } from "../src/index.ts"
+import { render, useGetter, useLoadable } from "../src/index.ts"
 import { renderToString } from "../src/server.ts"
 
 const roots: SpaRoot[] = []
@@ -32,6 +32,76 @@ async function settle(root: SpaRoot): Promise<void> {
 }
 
 describe(`useLoadable`, () => {
+	it.each([false, true])(
+		`keeps retained family values separate when selecting accessors (fallback: %s)`,
+		async (withFallback) => {
+			const { silo, host, mount } = fixture()
+			const loads = new Map<
+				number,
+				ReturnType<typeof Promise.withResolvers<string>>
+			>()
+			const pageAtoms = silo.atomFamily<Loadable<string>, number>({
+				key: `page`,
+				default: (page) => {
+					const load = Promise.withResolvers<string>()
+					loads.set(page, load)
+					return load.promise
+				},
+			})
+			const pageViewSelectors = silo.selectorFamily<Loadable<string>, number>({
+				key: `pageView`,
+				get:
+					(page) =>
+					({ get }) =>
+						get(pageAtoms, page),
+			})
+			const selectedPageAtom = silo.atom<number>({
+				key: `selectedPage`,
+				default: 1,
+			})
+			const root = mount(() => {
+				const selected = useGetter(selectedPageAtom)
+				const a = withFallback
+					? useLoadable(pageViewSelectors, 1, `fallback`)
+					: useLoadable(pageViewSelectors, 1)
+				const b = withFallback
+					? useLoadable(pageViewSelectors, 2, `fallback`)
+					: useLoadable(pageViewSelectors, 2)
+				return <output>{JSON.stringify(selected() === 1 ? a() : b())}</output>
+			})
+			loads.get(1)!.resolve(`A`)
+			await settle(root)
+			expect(host.textContent).toBe(
+				JSON.stringify({ loading: false, value: `A` }),
+			)
+
+			silo.setState(selectedPageAtom, 2)
+			root.flush()
+			expect(host.textContent).toBe(
+				JSON.stringify(
+					withFallback ? { loading: true, value: `fallback` } : `LOADING`,
+				),
+			)
+			loads.get(2)!.resolve(`B`)
+			await settle(root)
+			expect(host.textContent).toBe(
+				JSON.stringify({ loading: false, value: `B` }),
+			)
+
+			silo.resetState(pageAtoms, 1)
+			silo.setState(selectedPageAtom, 1)
+			root.flush()
+			expect(host.textContent).toBe(
+				JSON.stringify({ loading: true, value: `A` }),
+			)
+			loads.get(1)!.resolve(`A refreshed`)
+			await settle(root)
+			expect(host.textContent).toBe(
+				JSON.stringify({ loading: false, value: `A refreshed` }),
+			)
+		},
+	)
+
 	it(`tracks initial loading, fulfillment and refresh without rerunning setup`, async () => {
 		const { silo, host, mount } = fixture()
 		const first = Promise.withResolvers<string>()

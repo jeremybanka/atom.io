@@ -12,6 +12,15 @@ Install the bindings alongside the SDK and Solid 1.9:
 
 Replace imports from `atom.io/solid` with `@atom.io/solid`. The exports and behavior are unchanged.
 
+## loadable families
+
+Call `useLoadable` during setup, then call its returned accessor to read loading
+state. The family token, key, and store are captured when the accessor is created.
+Each accessor retains its own member's last observed settled value during refresh;
+selecting a different member's accessor does not transfer retained data between them.
+Creating a new accessor starts fresh retention, using its fallback or `"LOADING"`
+if the member is pending.
+
 ## timeline families
 
 Read a timeline family with `useTL` and call its controls to undo or redo changes:

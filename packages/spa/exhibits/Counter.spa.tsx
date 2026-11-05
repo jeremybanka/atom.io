@@ -9,7 +9,7 @@ export default function Counter(props: {
 	children?: Child
 	slots?: Record<string, Child>
 }): VNode {
-	const count = useGetter(countAtom)
+	const getCount = useGetter(countAtom)
 	const setCount = useSetter(countAtom)
 	const id = useId()
 	onCleanup(() => {
@@ -25,7 +25,7 @@ export default function Counter(props: {
 					setCount((value) => value + 1)
 				}}
 			>
-				{count()}
+				{getCount()}
 			</button>
 		</section>
 	)

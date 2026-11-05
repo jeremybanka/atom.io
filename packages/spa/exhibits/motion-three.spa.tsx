@@ -14,12 +14,12 @@ const targetXAtom = atom<number>({
 })
 // Mount under a root with capabilities: [motionCapability()].
 export function SpringCube(): VNode {
-	const x = useGetter(targetXAtom)
+	const getTargetX = useGetter(targetXAtom)
 	return (
 		<Canvas>
 			<Mesh
 				motion:initial={{ position: [-1, 0, 0], scale: 0 }}
-				motion:animate={{ position: [x(), 0, 0], scale: 1 }}
+				motion:animate={{ position: [getTargetX(), 0, 0], scale: 1 }}
 				motion:transition={{ type: `spring`, stiffness: 180, damping: 22 }}
 				motion:whileHover={{ scale: 1.2 }}
 				motion:whileTap={{ scale: 0.8 }}

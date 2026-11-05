@@ -27,8 +27,8 @@ describe(`Astro store preparation`, () => {
 		const setup = vi.fn()
 		const App: Island = () => {
 			setup()
-			const value = useGetter(valueAtom)
-			return <p>{value()}</p>
+			const getValue = useGetter(valueAtom)
+			return <p>{getValue()}</p>
 		}
 		App.createStore = async (_, next) => {
 			context = next
@@ -284,13 +284,13 @@ describe(`Astro store preparation`, () => {
 		const cleanup = vi.fn()
 		let context!: AstroStoreContext
 		const App: Island = () => {
-			const fail = useGetter(failAtom)
+			const getFail = useGetter(failAtom)
 			onCleanup(() => {
 				expect(cleanup).not.toHaveBeenCalled()
 			})
 			return (
 				<p>
-					{fail()
+					{getFail()
 						? (() => {
 								throw new Error(`update`)
 							})()
@@ -323,8 +323,8 @@ it(`prepares module definitions in separate default stores before SSR and hydrat
 	const stores = new Set()
 	const cleaned = vi.fn()
 	const App: Island<{ message: string }> = () => {
-		const value = useGetter(valueAtom)
-		return <p>{value()}</p>
+		const getValue = useGetter(valueAtom)
+		return <p>{getValue()}</p>
 	}
 	App.prepareStore = async (store, props, context) => {
 		stores.add(store)

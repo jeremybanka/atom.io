@@ -40,7 +40,7 @@ const getScrollPaddingTop = (): number => {
 	return Number.isFinite(scrollPaddingTop) ? scrollPaddingTop : 0
 }
 
-const getVisibleHeadingIds = (
+const findVisibleHeadingIds = (
 	headingElements: readonly HTMLElement[],
 ): string[] => {
 	const viewportTop = getScrollPaddingTop()
@@ -75,8 +75,8 @@ const getVisibleHeadingIds = (
 }
 
 export function DocsNavigation(_props: { pathname: string }): VNode {
+	const getPathname = useGetter(pathnameAtom)
 	const setPathname = useSetter(pathnameAtom)
-	const pathname = useGetter(pathnameAtom)
 	onMount(() => {
 		const update = () => {
 			setPathname(window.location.pathname)
@@ -87,20 +87,20 @@ export function DocsNavigation(_props: { pathname: string }): VNode {
 		})
 		update()
 	})
-	const userHasToggled = useGetter(menuToggleAtom)
-	const setUserHasToggled = useSetter(menuToggleAtom)
+	const getMenuToggle = useGetter(menuToggleAtom)
+	const setMenuToggle = useSetter(menuToggleAtom)
 
 	return (
-		<docs-navigation class={css.class} data-pathname={pathname()}>
+		<docs-navigation class={css.class} data-pathname={getPathname()}>
 			<SiteDirectory />
 			<OnThisPage />
 			<menu-toggle>
 				<Toggle.Button
 					ariaControls="site-directory on-this-page"
 					ariaLabel="Documentation menu"
-					checked={userHasToggled()}
+					checked={getMenuToggle()}
 					onClick={() => {
-						setUserHasToggled((v) => !v)
+						setMenuToggle((v) => !v)
 					}}
 				>
 					☰
@@ -115,15 +115,15 @@ function OnThisPage(): VNode {
 	const attach = (node: HTMLElement | null) => {
 		element = node
 	}
-	const userHasToggled = useGetter(menuToggleAtom)
+	const getMenuToggle = useGetter(menuToggleAtom)
 
-	const headings = useGetter(headingsAtom)
+	const getHeadings = useGetter(headingsAtom)
 	const setHeadings = useSetter(headingsAtom)
-	const visibleHeadingIds = useGetter(visibleHeadingIdsAtom)
+	const getVisibleHeadingIds = useGetter(visibleHeadingIdsAtom)
 	const setVisibleHeadingIds = useSetter(visibleHeadingIdsAtom)
-	const visibleHeadingIdSet = () => new Set(visibleHeadingIds())
+	const visibleHeadingIdSet = () => new Set(getVisibleHeadingIds())
 	const spotlightHeadingLinkIds = () => {
-		const list = headings()
+		const list = getHeadings()
 		const visible = visibleHeadingIdSet()
 		const first = list.findIndex((heading) => visible.has(heading.id))
 		let last = first
@@ -135,15 +135,15 @@ function OnThisPage(): VNode {
 			: list.slice(first, last + 1).map((heading) => `${heading.id}-link`)
 	}
 	const rootHeadingLevel = () =>
-		headings().length
-			? Math.min(...headings().map((heading) => heading.level))
+		getHeadings().length
+			? Math.min(...getHeadings().map((heading) => heading.level))
 			: 2
 
 	onMount(() => {
 		let animationFrame: number | null = null
 
 		const setVisibleHeadings = (headingElements: readonly HTMLElement[]) => {
-			const nextVisibleHeadingIds = getVisibleHeadingIds(headingElements)
+			const nextVisibleHeadingIds = findVisibleHeadingIds(headingElements)
 			setVisibleHeadingIds((previous) =>
 				areListsEqual(previous, nextVisibleHeadingIds)
 					? previous
@@ -232,7 +232,7 @@ function OnThisPage(): VNode {
 	}
 
 	return (
-		<on-this-page data-user-has-toggled={userHasToggled()}>
+		<on-this-page data-user-has-toggled={getMenuToggle()}>
 			<nav id="on-this-page" ref={attach}>
 				<DynamicSpotlight
 					elementId="on-this-page"
@@ -247,7 +247,7 @@ function OnThisPage(): VNode {
 				/>
 				<section>
 					<header>On this page</header>
-					<main>{renderHeadings(headings(), rootHeadingLevel())}</main>
+					<main>{renderHeadings(getHeadings(), rootHeadingLevel())}</main>
 				</section>
 			</nav>
 		</on-this-page>
@@ -259,15 +259,15 @@ function SiteDirectory(): VNode {
 	const attach = (node: HTMLElement | null) => {
 		element = node
 	}
-	const userHasToggled = useGetter(menuToggleAtom)
-	const pathname = useGetter(pathnameAtom)
+	const getMenuToggle = useGetter(menuToggleAtom)
+	const getPathname = useGetter(pathnameAtom)
 	const pathnameId = () =>
-		(pathname().endsWith(`/`) ? pathname().slice(0, -1) : pathname()).replaceAll(
-			`/`,
-			`-`,
-		) + `-link`
+		(getPathname().endsWith(`/`)
+			? getPathname().slice(0, -1)
+			: getPathname()
+		).replaceAll(`/`, `-`) + `-link`
 	return (
-		<site-directory data-user-has-toggled={userHasToggled()}>
+		<site-directory data-user-has-toggled={getMenuToggle()}>
 			<nav id="site-directory" ref={attach}>
 				<DynamicSpotlight
 					elementId="site-directory"

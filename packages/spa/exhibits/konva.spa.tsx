@@ -8,14 +8,14 @@ const pointAtom = atom<{ x: number; y: number }>({
 	default: { x: 100, y: 100 },
 })
 export function Editor(): VNode {
-	const point = useGetter(pointAtom)
+	const getPoint = useGetter(pointAtom)
 	const setPoint = useSetter(pointAtom)
 	return (
 		<Stage width={800} height={600}>
 			<Layer>
 				<Circle
-					x={point().x}
-					y={point().y}
+					x={getPoint().x}
+					y={getPoint().y}
 					radius={25}
 					fill="coral"
 					draggable

@@ -101,8 +101,8 @@ export default (element: HTMLElement): Hydrator =>
 				})
 				const mount = () => {
 					onCleanup(dispose)
-					const value = useGetter(state)
-					return () => island(component, value().props, value().slots)
+					const getState = useGetter(state)
+					return () => island(component, getState().props, getState().slots)
 				}
 				if (replace) element.replaceChildren()
 				const root = (replace ? render : hydrate)(mount, element, {

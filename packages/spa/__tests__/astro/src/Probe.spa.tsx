@@ -16,7 +16,7 @@ export default function Probe(): VNode {
 	onMount(() => {
 		document.getElementById(`probe`)!.dataset[`mounted`] = `true`
 	})
-	const order = useGetter(orderAtom)
+	const getOrder = useGetter(orderAtom)
 	const setOrder = useSetter(orderAtom)
 	return (
 		<section id="probe">
@@ -33,7 +33,7 @@ export default function Probe(): VNode {
 				</foreignObject>
 				<circle cx="1" cy="2" r="1" />
 			</svg>
-			{order().map((name) => (
+			{getOrder().map((name) => (
 				<Row key={name} name={name} />
 			))}
 			<button

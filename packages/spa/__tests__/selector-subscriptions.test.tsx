@@ -34,8 +34,8 @@ it(`keeps a shared selector reactive when another root unmounts`, () => {
 		get: ({ get }) => get(countAtom) * 2,
 	})
 	function Counter() {
-		const count = useGetter(doubledSelector)
-		return <span>{count()}</span>
+		const getDoubled = useGetter(doubledSelector)
+		return <span>{getDoubled()}</span>
 	}
 	const first = mount(() => <Counter />)
 	const second = mount(() => <Counter />)
@@ -58,8 +58,10 @@ it(`updates projections of held selectors without replacing their object`, () =>
 		},
 	})
 	function Counter() {
-		const count = useGetter(doubledSelector)
-		return <span title={String(count().doubled)}>{count().doubled}</span>
+		const getDoubled = useGetter(doubledSelector)
+		return (
+			<span title={String(getDoubled().doubled)}>{getDoubled().doubled}</span>
+		)
 	}
 	const { root, host } = mount(() => <Counter />)
 	silo.setState(countAtom, 2)

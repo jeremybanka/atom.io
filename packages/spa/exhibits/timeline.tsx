@@ -12,13 +12,14 @@ const incrementTransaction = transaction<() => void>({
 })
 
 export function TimelineExample(): VNode {
-	const count = useGetter(countAtom)
+	const getCount = useGetter(countAtom)
 	const increment = useTransaction(incrementTransaction)
 	const history = useTimeline(historyTimeline)
 	return (
 		<section>
 			<output>
-				Count: {count()} (history: {history.getCursor()}/{history.getLength()})
+				Count: {getCount()} (history: {history.getCursor()}/{history.getLength()}
+				)
 			</output>
 			<button onClick={increment}>Increment</button>
 			<button

@@ -43,10 +43,10 @@ it(`preserves keyed scene instances, live props, refs, and owner cleanup`, () =>
 		return <Shape x={props.x} ref={ref} />
 	}
 	function App() {
-		const read = useGetter(rowsAtom)
+		const getRows = useGetter(rowsAtom)
 		return (
 			<>
-				{read().map((row) => (
+				{getRows().map((row) => (
 					<Row key={row.id} x={row.x} />
 				))}
 			</>
@@ -186,10 +186,10 @@ it(`handles invalid children, keyed type replacement, array components, and owne
 		return [<A />, <B />]
 	}
 	function App() {
-		const active = useGetter(activeAtom)
+		const getActive = useGetter(activeAtom)
 		return (
 			<>
-				{active() ? <A key="same" /> : <B key="same" />}
+				{getActive() ? <A key="same" /> : <B key="same" />}
 				<ArrayComponent />
 			</>
 		)

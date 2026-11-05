@@ -9,22 +9,22 @@ const toastDurationAtom = atom<number>({ key: `toastDuration`, default: 0.24 })
 const toastPresentAtom = atom<boolean>({ key: `toastPresent`, default: true })
 
 export function ToastSandbox(): VNode {
-	const duration = useGetter(toastDurationAtom),
-		setDuration = useSetter(toastDurationAtom)
-	const present = useGetter(toastPresentAtom),
-		setPresent = useSetter(toastPresentAtom)
+	const getToastDuration = useGetter(toastDurationAtom)
+	const setToastDuration = useSetter(toastDurationAtom)
+	const getToastPresent = useGetter(toastPresentAtom)
+	const setToastPresent = useSetter(toastPresentAtom)
 	let root!: HTMLElement
 	let debug!: ReturnType<typeof captureMotion>
 	onMount(() => {
 		debug = captureMotion(
 			root,
 			() => ({
-				duration: duration(),
-				type: present() ? `spring` : `tween`,
+				duration: getToastDuration(),
+				type: getToastPresent() ? `spring` : `tween`,
 				ease: `easeOut`,
 				example: `toast`,
 			}),
-			setPresent,
+			setToastPresent,
 		)
 		Object.assign(root, { capture: debug.inspect })
 		onCleanup(() => {
@@ -48,16 +48,16 @@ export function ToastSandbox(): VNode {
 			<motion-controls aria-label="Toast controls">
 				<label for="toast-duration">
 					Dismiss duration{` `}
-					<output for="toast-duration">{duration().toFixed(2)}s</output>
+					<output for="toast-duration">{getToastDuration().toFixed(2)}s</output>
 					<input
 						id="toast-duration"
 						type="range"
 						min="0.12"
 						max="2"
 						step="0.02"
-						value={duration()}
+						value={getToastDuration()}
 						onInput={(event) => {
-							setDuration(Number(event.currentTarget.value))
+							setToastDuration(Number(event.currentTarget.value))
 						}}
 					/>
 				</label>
@@ -72,10 +72,10 @@ export function ToastSandbox(): VNode {
 				<button
 					id="toast-toggle"
 					onClick={() => {
-						debug.show(!present())
+						debug.show(!getToastPresent())
 					}}
 				>
-					{present() ? `Dismiss` : `Undo dismissal`}
+					{getToastPresent() ? `Dismiss` : `Undo dismissal`}
 				</button>
 			</motion-controls>
 			<motion-stage aria-label="Toast dismissal shrinking to 85% and fading out">
@@ -84,7 +84,7 @@ export function ToastSandbox(): VNode {
 				</stage-label>
 				<stage-label className="end">TWEEN OUT · SPRING BACK</stage-label>
 				<canvas data-trail aria-hidden="true" />
-				{present() && (
+				{getToastPresent() && (
 					<motion-card
 						key="same-toast"
 						className="toast"
@@ -93,13 +93,17 @@ export function ToastSandbox(): VNode {
 						motion:animate={{ scale: 1, opacity: 1 }}
 						motion:exit={{ scale: 0.85, opacity: 0 }}
 						motion:transition={
-							present()
+							getToastPresent()
 								? {
 										type: `spring`,
-										stiffness: 500 * Math.pow(0.24 / duration(), 2),
-										damping: (26 * 0.24) / duration(),
+										stiffness: 500 * Math.pow(0.24 / getToastDuration(), 2),
+										damping: (26 * 0.24) / getToastDuration(),
 									}
-								: { type: `tween`, duration: duration(), ease: `easeOut` }
+								: {
+										type: `tween`,
+										duration: getToastDuration(),
+										ease: `easeOut`,
+									}
 						}
 					>
 						<toast-icon aria-hidden="true">✓</toast-icon>

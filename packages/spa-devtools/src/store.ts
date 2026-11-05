@@ -56,13 +56,13 @@ export function useSaved<T>(
 	} catch {
 		/* Storage may be unavailable. */
 	}
-	const [value, set] = useLocal(store, initial)
+	const [getValue, setValue] = useLocal(store, initial)
 	return [
-		value,
+		getValue,
 		(next) => {
-			set(next)
+			setValue(next)
 			try {
-				localStorage.setItem(key, JSON.stringify(value()))
+				localStorage.setItem(key, JSON.stringify(getValue()))
 			} catch {
 				/* Keep in-memory state when storage is unavailable. */
 			}
@@ -112,16 +112,16 @@ export function useExpanded(
 	path: Path,
 	initial = false,
 ): [Accessor<boolean>, (event: MouseEvent) => void] {
-	const value = useGetter(tools.expanded)
-	const set = useSetter(tools.expanded)
+	const getExpanded = useGetter(tools.expanded)
+	const setExpanded = useSetter(tools.expanded)
 	const key = JSON.stringify(path)
 	const group = `all:${JSON.stringify(path.slice(0, -1))}`
-	const read = () => value()[key] ?? value()[group] ?? initial
+	const read = () => getExpanded()[key] ?? getExpanded()[group] ?? initial
 	return [
 		read,
 		(event) => {
 			const next = !read()
-			set((previous) => {
+			setExpanded((previous) => {
 				const result = { ...previous }
 				if (event.shiftKey) {
 					const parent = JSON.stringify(path.slice(0, -1))

@@ -15,16 +15,16 @@ const easeAtom = atom<`linear` | `easeInOut` | `easeOut`>({
 })
 
 export function MotionSandbox(): VNode {
-	const duration = useGetter(durationAtom),
-		setDuration = useSetter(durationAtom)
-	const present = useGetter(presentAtom),
-		setPresent = useSetter(presentAtom)
-	const distance = useGetter(distanceAtom),
-		setDistance = useSetter(distanceAtom)
-	const type = useGetter(typeAtom),
-		setType = useSetter(typeAtom)
-	const ease = useGetter(easeAtom),
-		setEase = useSetter(easeAtom)
+	const getDuration = useGetter(durationAtom)
+	const setDuration = useSetter(durationAtom)
+	const getPresent = useGetter(presentAtom)
+	const setPresent = useSetter(presentAtom)
+	const getDistance = useGetter(distanceAtom)
+	const setDistance = useSetter(distanceAtom)
+	const getType = useGetter(typeAtom)
+	const setType = useSetter(typeAtom)
+	const getEase = useGetter(easeAtom)
+	const setEase = useSetter(easeAtom)
 	let root!: HTMLElement
 	let debug!: ReturnType<typeof captureMotion>
 	onMount(() => {
@@ -35,7 +35,7 @@ export function MotionSandbox(): VNode {
 		resize.observe(stage)
 		debug = captureMotion(
 			root,
-			() => ({ duration: duration(), type: type(), ease: ease() }),
+			() => ({ duration: getDuration(), type: getType(), ease: getEase() }),
 			setPresent,
 		)
 		// Read-only capture access also lets the browser check the actual trajectory.
@@ -54,14 +54,14 @@ export function MotionSandbox(): VNode {
 			<motion-controls aria-label="Motion controls">
 				<label for="motion-duration">
 					Transition{` `}
-					<output for="motion-duration">{duration().toFixed(2)}s</output>
+					<output for="motion-duration">{getDuration().toFixed(2)}s</output>
 					<input
 						id="motion-duration"
 						type="range"
 						min="0.25"
 						max="5"
 						step="0.05"
-						value={duration()}
+						value={getDuration()}
 						onInput={(event) => {
 							setDuration(Number(event.currentTarget.value))
 						}}
@@ -71,7 +71,7 @@ export function MotionSandbox(): VNode {
 					Animation
 					<select
 						id="motion-type"
-						value={type()}
+						value={getType()}
 						onChange={(event) => {
 							setType(event.currentTarget.value as `tween` | `spring`)
 						}}
@@ -84,8 +84,8 @@ export function MotionSandbox(): VNode {
 					Easing
 					<select
 						id="motion-ease"
-						value={ease()}
-						disabled={type() === `spring`}
+						value={getEase()}
+						disabled={getType() === `spring`}
 						onChange={(event) => {
 							setEase(
 								event.currentTarget.value as `linear` | `easeInOut` | `easeOut`,
@@ -108,29 +108,29 @@ export function MotionSandbox(): VNode {
 				<button
 					id="motion-toggle"
 					onClick={() => {
-						debug.show(!present())
+						debug.show(!getPresent())
 					}}
 				>
-					{present() ? `Exit` : `Bring back`}
+					{getPresent() ? `Exit` : `Bring back`}
 				</button>
 			</motion-controls>
 			<motion-stage aria-label="Live animation with a recorded ghost trail">
 				<stage-label className="start">VISIBLE / x = 0</stage-label>
 				<stage-label className="end">EXIT →</stage-label>
 				<canvas data-trail aria-hidden="true" />
-				{present() && (
+				{getPresent() && (
 					<motion-card
 						key="same-card"
 						motion:initial={false}
 						motion:animate={{ x: 0 }}
-						motion:exit={{ x: distance() }}
+						motion:exit={{ x: getDistance() }}
 						motion:transition={
-							type() === `tween`
-								? { type: `tween`, duration: duration(), ease: ease() }
+							getType() === `tween`
+								? { type: `tween`, duration: getDuration(), ease: getEase() }
 								: {
 										type: `spring`,
-										stiffness: Math.pow(8 / duration(), 2),
-										damping: 16 / duration(),
+										stiffness: Math.pow(8 / getDuration(), 2),
+										damping: 16 / getDuration(),
 									}
 						}
 					>

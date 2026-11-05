@@ -1,5 +1,5 @@
 import type { VNode } from "@atom.io/spa"
-import { useSetter, useTimeline, useValue } from "@atom.io/spa"
+import { useGetter, useSetter, useTimeline } from "@atom.io/spa"
 import type {
 	ReadableToken,
 	TimelineToken,
@@ -23,7 +23,7 @@ export function StateIndex(props: {
 	tools: Tools
 	type: `atoms` | `selectors`
 }): VNode {
-	const index = useValue<Map<string, Token | FamilyNode<Token>>>(
+	const index = useGetter<Map<string, Token | FamilyNode<Token>>>(
 		props.type === `atoms` ? props.tools.atomIndex : props.tools.selectorIndex,
 	)
 	return (
@@ -72,7 +72,7 @@ function StateNode(props: {
 	)
 }
 function StateLeaf(props: { tools: Tools; token: Token }): VNode {
-	const read = useValue(props.token)
+	const read = useGetter(props.token)
 	const writable = !props.token.type.startsWith(`readonly`)
 	const set = writable
 		? useSetter(props.token as WritableToken<unknown, any, any>)
@@ -124,7 +124,7 @@ function StateLeaf(props: { tools: Tools; token: Token }): VNode {
 	)
 }
 export function TransactionIndex(props: { tools: Tools }): VNode {
-	const index = useValue(props.tools.transactionIndex)
+	const index = useGetter(props.tools.transactionIndex)
 	const visible = () =>
 		index().filter((token) => !isReservedIntrospectionKey(token.key))
 	return (
@@ -143,7 +143,7 @@ function TransactionLog(props: {
 	tools: Tools
 	token: TransactionToken<any>
 }): VNode {
-	const log = useValue(
+	const log = useGetter(
 		findInStore(
 			props.tools.store,
 			props.tools.transactionLogSelectors,
@@ -234,7 +234,7 @@ export function EventView(props: {
 	)
 }
 export function TimelineIndex(props: { tools: Tools }): VNode {
-	const index = useValue(props.tools.timelineIndex)
+	const index = useGetter(props.tools.timelineIndex)
 	const groups = () => {
 		const result = new Map<string, TimelineToken<any>[]>()
 		for (const token of index()) {
@@ -269,7 +269,7 @@ export function TimelineIndex(props: { tools: Tools }): VNode {
 }
 function TimelineLog(props: { tools: Tools; token: TimelineToken<any> }): VNode {
 	const controls = useTimeline(props.token)
-	const log = useValue(
+	const log = useGetter(
 		findInStore(
 			props.tools.store,
 			props.tools.timelineSelectors,
@@ -290,22 +290,22 @@ function TimelineLog(props: { tools: Tools; token: TimelineToken<any> }): VNode 
 				</button>
 				<h2>{props.token.family?.subKey ?? props.token.key}</h2>
 				<small>
-					({controls().at}/{controls().length})
+					({controls.getCursor()}/{controls.getLength()})
 				</small>
 				<button
 					type="button"
-					disabled={controls().at === 0}
+					disabled={controls.getCursor() === 0}
 					onClick={() => {
-						props.tools.attempt(controls().undo)
+						props.tools.attempt(controls.undo)
 					}}
 				>
 					undo
 				</button>
 				<button
 					type="button"
-					disabled={controls().at === controls().length}
+					disabled={controls.getCursor() === controls.getLength()}
 					onClick={() => {
-						props.tools.attempt(controls().redo)
+						props.tools.attempt(controls.redo)
 					}}
 				>
 					redo

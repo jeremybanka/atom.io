@@ -2,7 +2,7 @@ import { Silo } from "atom.io"
 import { expect, it, vi } from "vitest"
 
 import type { Capability } from "../src/index.ts"
-import { hydrate, render, useValue } from "../src/index.ts"
+import { hydrate, render, useGetter } from "../src/index.ts"
 import { renderToString } from "../src/server.ts"
 
 it(`keeps capabilities root-scoped, updates them reactively, and never emits their attributes`, () => {
@@ -19,7 +19,7 @@ it(`keeps capabilities root-scoped, updates them reactively, and never emits the
 		attach: () => ({ update, dispose: cleanup }),
 	}
 	function App() {
-		const value = useValue(valueAtom)
+		const value = useGetter(valueAtom)
 		return <custom-panel {...{ "demo:value": value() }} data-value={value()} />
 	}
 	const options = { store: silo.store, capabilities: [capability] }
@@ -62,7 +62,7 @@ it(`releases a capability binding when its attributes disappear`, () => {
 		attach: () => ({ update() {}, dispose: cleanup }),
 	}
 	function App() {
-		const enabled = useValue(enabledAtom)
+		const enabled = useGetter(enabledAtom)
 		return <custom-panel {...(enabled() ? { "demo:value": 1 } : {})} />
 	}
 	const host = document.createElement(`div`)

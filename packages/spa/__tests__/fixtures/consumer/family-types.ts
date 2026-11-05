@@ -1,5 +1,5 @@
-import type { Accessor, TimelineValue } from "@atom.io/spa"
-import { useRef, useSetter, useTimeline, useValue } from "@atom.io/spa"
+import type { Accessor, TimelineControls } from "@atom.io/spa"
+import { useGetter, useRef, useSetter, useTimeline } from "@atom.io/spa"
 import type {
 	ReadableFamilyToken,
 	RegularAtomFamilyToken,
@@ -20,7 +20,7 @@ export function familyTypes(
 	elements: RegularAtomFamilyToken<HTMLInputElement | null, boolean>,
 	timelines: TimelineFamilyToken<null>,
 ): void {
-	const read = useValue(readable, 1)
+	const read = useGetter(readable, 1)
 	const write = useSetter(writable, [`row`, 1])
 	const ref = useRef(elements, false)
 	const history = useTimeline(timelines, null)
@@ -28,19 +28,34 @@ export function familyTypes(
 		Expect<Equal<typeof read, Accessor<number | RangeError>>>,
 		Expect<Equal<typeof write, (value: number | Setter<number>) => void>>,
 		Expect<Equal<typeof ref, (element: HTMLInputElement | null) => void>>,
-		Expect<Equal<typeof history, Accessor<TimelineValue>>>,
-	] = [true, true, true, true]
+		Expect<Equal<typeof history, TimelineControls>>,
+		Expect<
+			Equal<
+				ReturnType<typeof history.getTransaction>,
+				{ undo?: () => void; redo?: () => void }
+			>
+		>,
+	] = [true, true, true, true, true]
 	void checks
+	const { getCursor, getLength, getTransaction } = history
+	const cursor: number = getCursor()
+	const length: number = getLength()
+	const transaction = getTransaction()
+	if (transaction.undo) transaction.undo()
+	if (transaction.redo) transaction.redo()
+	getTransaction().undo?.()
+	getTransaction().redo?.()
+	void [cursor, length]
 	write((previous) => previous + 1)
 	ref(document.createElement(`input`))
 	ref(null)
-	history().undo()
+	history.undo()
 	// @ts-expect-error A family requires a key.
-	useValue(readable)
+	useGetter(readable)
 	// @ts-expect-error Keys cannot widen the family's declared key type.
-	useValue(readable, 3)
+	useGetter(readable, 3)
 	// @ts-expect-error A member token does not accept a family key.
-	useValue({ type: `atom`, key: `member` }, 1)
+	useGetter({ type: `atom`, key: `member` }, 1)
 	// @ts-expect-error A writable family requires a key.
 	useSetter(writable)
 	// @ts-expect-error Tuple keys retain their element types.

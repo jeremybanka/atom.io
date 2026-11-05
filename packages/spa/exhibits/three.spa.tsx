@@ -1,5 +1,5 @@
 import type { VNode } from "@atom.io/spa"
-import { useValue } from "@atom.io/spa"
+import { useGetter } from "@atom.io/spa"
 import {
 	AmbientLight,
 	BoxGeometry,
@@ -12,7 +12,7 @@ import { atom } from "atom.io"
 
 const colorAtom = atom<string>({ key: `color`, default: `coral` })
 export function Scene(): VNode {
-	const color = useValue(colorAtom)
+	const color = useGetter(colorAtom)
 	return (
 		<Canvas width={800} height={600}>
 			<AmbientLight intensity={0.5} />

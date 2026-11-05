@@ -1,5 +1,5 @@
 import type { VNode } from "@atom.io/spa"
-import { onCleanup, onMount, render, useValue } from "@atom.io/spa"
+import { onCleanup, onMount, render, useGetter } from "@atom.io/spa"
 import type { RootStore } from "atom.io/internal"
 import { IMPLICIT } from "atom.io/internal"
 
@@ -46,7 +46,7 @@ function Panel(props: { store: RootStore; hideByDefault: boolean }): VNode {
 	const view = () =>
 		VIEWS.includes(selection() as View) ? (selection() as View) : `atoms`
 	const [position, setPosition] = useLocal(props.store, { x: 0, y: 0 })
-	const error = useValue(tools.error)
+	const error = useGetter(tools.error)
 	let panel: HTMLElement | null = null
 	const attach = (element: HTMLElement | null) => {
 		panel = element

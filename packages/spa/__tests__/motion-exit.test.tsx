@@ -3,7 +3,7 @@ import Konva from "konva"
 import * as THREE from "three"
 import { expect, it, vi } from "vitest"
 
-import { hydrate, render, useValue } from "../src/index.ts"
+import { hydrate, render, useGetter } from "../src/index.ts"
 import { Group, konvaRenderer } from "../src/konva.ts"
 import { motionCapability } from "../src/motion.ts"
 import { renderToString } from "../src/server.ts"
@@ -30,8 +30,8 @@ it(`animates compiled DOM exits from current values, retains refs, and resumes a
 	const host = document.createElement(`div`)
 	const ref = vi.fn()
 	function App() {
-		const visible = useValue(visibleAtom)
-		const x = useValue(xAtom)
+		const visible = useGetter(visibleAtom)
+		const x = useGetter(xAtom)
 		return (
 			<>
 				{visible() && (
@@ -77,7 +77,7 @@ it(`supports exit-only properties and immediate removal for reduced motion or no
 	const visibleAtom = silo.atom<boolean>({ key: `visible`, default: true })
 	const host = document.createElement(`div`)
 	function App() {
-		const visible = useValue(visibleAtom)
+		const visible = useGetter(visibleAtom)
 		return (
 			<>
 				{visible() && (
@@ -128,7 +128,7 @@ it(`finishes an active exit when reduced motion changes and cancels promptly on 
 		const visibleAtom = silo.atom<boolean>({ key: `visible`, default: true })
 		const host = document.createElement(`div`)
 		function App() {
-			const visible = useValue(visibleAtom)
+			const visible = useGetter(visibleAtom)
 			return (
 				<>
 					{visible() && (
@@ -183,7 +183,7 @@ it(`rejects non-settling exits through the root error path`, () => {
 		})
 		const visibleAtom = silo.atom<boolean>({ key: `visible`, default: true })
 		function App() {
-			const visible = useValue(visibleAtom)
+			const visible = useGetter(visibleAtom)
 			return (
 				<>
 					{visible() && (
@@ -213,7 +213,7 @@ it(`hydrates exit declarations without serializing or starting them, then retain
 	const visibleAtom = silo.atom<boolean>({ key: `visible`, default: true })
 	const capabilities = [motionCapability({ reducedMotion: `never` })]
 	function App() {
-		const visible = useValue(visibleAtom)
+		const visible = useGetter(visibleAtom)
 		return (
 			<>
 				{visible() && (
@@ -255,7 +255,7 @@ it(`retains native Konva/Three objects, excludes exiting meshes from picking, an
 	let mesh!: THREE.Mesh
 	const down = vi.fn()
 	function App() {
-		const visible = useValue(visibleAtom)
+		const visible = useGetter(visibleAtom)
 		return (
 			<>
 				{visible() && (
@@ -313,7 +313,7 @@ it(`retains native Konva/Three objects, excludes exiting meshes from picking, an
 	const parent = new Konva.Group()
 	let group!: Konva.Group
 	function Drawing() {
-		const visible = useValue(visibleAtom)
+		const visible = useGetter(visibleAtom)
 		return (
 			<>
 				{visible() && (
@@ -400,7 +400,7 @@ it(`keeps a returning native instance and its momentum through repeated presence
 	const parent = new Konva.Group(),
 		ref = vi.fn()
 	function App() {
-		const present = useValue(presentAtom)
+		const present = useGetter(presentAtom)
 		return (
 			<>
 				{present() && (
@@ -464,7 +464,7 @@ it(`cancels same-frame tween exits and active return bridges without leaving sta
 		const parent = new Konva.Group(),
 			ref = vi.fn()
 		function App() {
-			const present = useValue(presentAtom)
+			const present = useGetter(presentAtom)
 			return (
 				<>
 					{present() && (

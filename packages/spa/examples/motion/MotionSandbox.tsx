@@ -1,5 +1,5 @@
 import type { VNode } from "@atom.io/spa"
-import { onCleanup, onMount, useSetter, useValue } from "@atom.io/spa"
+import { onCleanup, onMount, useGetter, useSetter } from "@atom.io/spa"
 import { motionCapability } from "@atom.io/spa/motion"
 import { atom } from "atom.io"
 
@@ -15,15 +15,15 @@ const easeAtom = atom<`linear` | `easeInOut` | `easeOut`>({
 })
 
 export function MotionSandbox(): VNode {
-	const duration = useValue(durationAtom),
+	const duration = useGetter(durationAtom),
 		setDuration = useSetter(durationAtom)
-	const present = useValue(presentAtom),
+	const present = useGetter(presentAtom),
 		setPresent = useSetter(presentAtom)
-	const distance = useValue(distanceAtom),
+	const distance = useGetter(distanceAtom),
 		setDistance = useSetter(distanceAtom)
-	const type = useValue(typeAtom),
+	const type = useGetter(typeAtom),
 		setType = useSetter(typeAtom)
-	const ease = useValue(easeAtom),
+	const ease = useGetter(easeAtom),
 		setEase = useSetter(easeAtom)
 	let root!: HTMLElement
 	let debug!: ReturnType<typeof captureMotion>

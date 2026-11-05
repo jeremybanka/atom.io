@@ -1,10 +1,10 @@
 import type { VNode } from "@atom.io/spa"
-import { useSetter, useValue } from "@atom.io/spa"
+import { useGetter, useSetter } from "@atom.io/spa"
 import { atom } from "atom.io"
 
 const visibleAtom = atom<boolean>({ key: `visible`, default: true })
 export function DismissiblePanel(): VNode {
-	const visible = useValue(visibleAtom)
+	const visible = useGetter(visibleAtom)
 	const setVisible = useSetter(visibleAtom)
 	return (
 		<section>

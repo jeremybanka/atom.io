@@ -8,7 +8,7 @@ import { storeContext } from "../src/astro-context.ts"
 import astroServer from "../src/astro-server.ts"
 import { islandStore } from "../src/astro-shared.ts"
 import { compile } from "../src/compiler.ts"
-import { owner, type Scope, useValue } from "../src/core.ts"
+import { owner, type Scope, useGetter } from "../src/core.ts"
 import {
 	createRoot,
 	createScope,
@@ -234,16 +234,17 @@ it(`controls complete transaction groups, redo, and clearing timelines`, () => {
 			[useTimeline(historyTimeline), useTransaction(twoTransaction)] as const,
 	)
 	run()
-	expect(history().undoTransaction).toBeTypeOf(`function`)
-	history().undoTransaction!()
+	expect(history.getTransaction().undo).toBeTypeOf(`function`)
+	history.getTransaction().undo?.()
 	expect(silo.getState(countAtom)).toBe(0)
-	history().redoTransaction!()
+	expect(history.getTransaction().redo).toBeTypeOf(`function`)
+	history.getTransaction().redo?.()
 	expect(silo.getState(countAtom)).toBe(2)
-	history().undo()
-	history().redo()
+	history.undo()
+	history.redo()
 	expect(silo.getState(countAtom)).toBe(2)
-	history().clear()
-	expect(history().length).toBe(0)
+	history.clear()
+	expect(history.getLength()).toBe(0)
 	dispose(root)
 })
 it(`validates text, duplicate keys, and owned content on the server`, () => {
@@ -370,7 +371,7 @@ it(`resets removed boolean properties and skips refs whose owners were removed b
 	let read!: () => Record<string, unknown>
 	const root = render(
 		() => {
-			read = useValue(propsAtom)
+			read = useGetter(propsAtom)
 			return jsx(`button`, merge(read))
 		},
 		host,

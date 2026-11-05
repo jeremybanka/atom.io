@@ -1,5 +1,5 @@
 import type { VNode } from "@atom.io/spa"
-import { onCleanup, onMount, useSetter, useValue } from "@atom.io/spa"
+import { onCleanup, onMount, useGetter, useSetter } from "@atom.io/spa"
 
 import {
 	type HeadingDescriptor,
@@ -76,7 +76,7 @@ const getVisibleHeadingIds = (
 
 export function DocsNavigation(_props: { pathname: string }): VNode {
 	const setPathname = useSetter(pathnameAtom)
-	const pathname = useValue(pathnameAtom)
+	const pathname = useGetter(pathnameAtom)
 	onMount(() => {
 		const update = () => {
 			setPathname(window.location.pathname)
@@ -87,7 +87,7 @@ export function DocsNavigation(_props: { pathname: string }): VNode {
 		})
 		update()
 	})
-	const userHasToggled = useValue(menuToggleAtom)
+	const userHasToggled = useGetter(menuToggleAtom)
 	const setUserHasToggled = useSetter(menuToggleAtom)
 
 	return (
@@ -115,11 +115,11 @@ function OnThisPage(): VNode {
 	const attach = (node: HTMLElement | null) => {
 		element = node
 	}
-	const userHasToggled = useValue(menuToggleAtom)
+	const userHasToggled = useGetter(menuToggleAtom)
 
-	const headings = useValue(headingsAtom)
+	const headings = useGetter(headingsAtom)
 	const setHeadings = useSetter(headingsAtom)
-	const visibleHeadingIds = useValue(visibleHeadingIdsAtom)
+	const visibleHeadingIds = useGetter(visibleHeadingIdsAtom)
 	const setVisibleHeadingIds = useSetter(visibleHeadingIdsAtom)
 	const visibleHeadingIdSet = () => new Set(visibleHeadingIds())
 	const spotlightHeadingLinkIds = () => {
@@ -259,8 +259,8 @@ function SiteDirectory(): VNode {
 	const attach = (node: HTMLElement | null) => {
 		element = node
 	}
-	const userHasToggled = useValue(menuToggleAtom)
-	const pathname = useValue(pathnameAtom)
+	const userHasToggled = useGetter(menuToggleAtom)
+	const pathname = useGetter(pathnameAtom)
 	const pathnameId = () =>
 		(pathname().endsWith(`/`) ? pathname().slice(0, -1) : pathname()).replaceAll(
 			`/`,

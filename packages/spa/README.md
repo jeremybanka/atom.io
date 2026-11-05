@@ -10,7 +10,7 @@ The npm package is named @atom.io/spa. Its browser runtime, Vite compiler, serve
 
 ```tsx
 import type { VNode } from "@atom.io/spa"
-import { useId, useRef, useSetter, useValue } from "@atom.io/spa"
+import { useGetter, useId, useRef, useSetter } from "@atom.io/spa"
 import { atom } from "atom.io"
 
 const pointAtom = atom<{ x: number; y: number }>({
@@ -23,7 +23,7 @@ const circleAtom = atom<SVGCircleElement | null>({
 })
 
 export function PointEditor(): VNode {
-	const point = useValue(pointAtom)
+	const point = useGetter(pointAtom)
 	const setPoint = useSetter(pointAtom)
 	const circle = useRef(circleAtom)
 	const id = useId()
@@ -95,9 +95,9 @@ The development plugin keeps SPA and atom.io outside dependency prebundling so r
 | API                           | Contract                                                                                                                 |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | useLoadable(token, fallback?) | Return a tracked accessor for loading, last-observed values, and handled errors.                                         |
-| useValue(token)               | Return a live accessor for an atom or selector, bound to this instance's store.                                          |
+| useGetter(token)              | Return a live accessor for an atom or selector, bound to this instance's store.                                          |
 | useSetter(token)              | Return a stable atom.io writer.                                                                                          |
-| useTimeline(token)            | Return an accessor for at, length, undo, redo, clear, and available grouped transaction controls.                        |
+| useTimeline(token)            | Return a stable object with getCursor/getLength readers, undo/redo/clear commands, and transaction-group controls.       |
 | useTransaction(token)         | Bind an atom.io transaction, preserving its arguments and result.                                                        |
 | useRef(token)                 | Return an attachment callback for a nullable element atom. Clear it only while this attachment still owns the reference. |
 | useId()                       | Allocate an instance-stable ID using the root's prefix.                                                                  |
@@ -106,6 +106,54 @@ The development plugin keeps SPA and atom.io outside dependency prebundling so r
 | useStore()                    | Return the current root's atom.io store without creating a store or subscribing.                                         |
 
 Call setup helpers synchronously during component setup or owned mount callbacks. Capture their results for event handlers. Tokens are fixed for an instance; use an application key in a reactive child expression to replace a component when its token changes. Component props stay live when read through the props object; destructuring during setup takes a snapshot.
+
+useTimeline returns a TimelineControls object whose methods can be destructured during setup. getCursor and getLength read the current cursor position and recorded checkpoint count; calls inside JSX subscribe the computation, while calls during setup or in event handlers are untracked. undo, redo, and clear are stable commands. history.getTransaction() is a tracked reader that returns an object with optional undo and redo callbacks for the adjacent transaction groups. At a cursor between transactions, both callbacks may be present and target different groups. A missing callback means no transaction group is available in that direction; the reader returns an empty object when neither is available. Calling a returned callback travels its captured group across participating timelines where it remains at the relevant history head, leaving diverged timelines unchanged. Use history.getTransaction().undo?.() or history.getTransaction().redo?.() to retrieve and invoke the current action together.
+
+```tsx
+import type { VNode } from "@atom.io/spa"
+import { useGetter, useTimeline, useTransaction } from "@atom.io/spa"
+import { atom, timeline, transaction } from "atom.io"
+
+const countAtom = atom<number>({ key: `count`, default: 0 })
+const historyTimeline = timeline({ key: `history`, scope: [countAtom] })
+const incrementTransaction = transaction<() => void>({
+	key: `increment`,
+	do: ({ get, set }) => {
+		set(countAtom, get(countAtom) + 1)
+	},
+})
+
+export function TimelineExample(): VNode {
+	const count = useGetter(countAtom)
+	const increment = useTransaction(incrementTransaction)
+	const history = useTimeline(historyTimeline)
+	return (
+		<section>
+			<output>
+				Count: {count()} (history: {history.getCursor()}/{history.getLength()})
+			</output>
+			<button onClick={increment}>Increment</button>
+			<button
+				disabled={history.getTransaction().undo === undefined}
+				onClick={() => {
+					history.getTransaction().undo?.()
+				}}
+			>
+				Undo transaction
+			</button>
+			<button
+				disabled={history.getTransaction().redo === undefined}
+				onClick={() => {
+					history.getTransaction().redo?.()
+				}}
+			>
+				Redo transaction
+			</button>
+		</section>
+	)
+}
+
+```
 
 Arrays support keyed components and elements. Reordering preserves instances and nodes; removed ranges release subscriptions, events, refs, and cleanup callbacks. Application keys must be unique among siblings. Explicit keys are compared as strings; unkeyed positions occupy a separate namespace. Unkeyed arrays use positions. A key identifies a row in a reactive child collection; it is not an independent reactive binding.
 
@@ -140,15 +188,15 @@ export function InspectCount(): VNode {
 
 ```
 
-Capture the store during component setup or an owned onMount callback, then pass it to store-aware atom.io operations or integrations. Getting the store creates no subscription. Direct reads such as getFromStore do not participate in SPA's dependency tracking; useValue and useLoadable provide tracked reads. The returned object is a store, not a Silo or a new wrapper.
+Capture the store during component setup or an owned onMount callback, then pass it to store-aware atom.io operations or integrations. Getting the store creates no subscription. Direct reads such as getFromStore do not participate in SPA's dependency tracking; useGetter and useLoadable provide tracked reads. The returned object is a store, not a Silo or a new wrapper.
 
 ## Families
 
-useValue, useSetter, useRef, and useTimeline accept a family token followed by its key. useLoadable accepts a family, key, and optional fallback. Keys retain their declared types, including tuples, numbers, booleans, and null. Members resolve in the component's store, so isolated roots can use the same family tokens independently.
+useGetter, useSetter, useRef, and useTimeline accept a family token followed by its key. useLoadable accepts a family, key, and optional fallback. Keys retain their declared types, including tuples, numbers, booleans, and null. Members resolve in the component's store, so isolated roots can use the same family tokens independently.
 
 ```tsx
 import type { VNode } from "@atom.io/spa"
-import { useRef, useSetter, useTimeline, useValue } from "@atom.io/spa"
+import { useGetter, useRef, useSetter, useTimeline } from "@atom.io/spa"
 import { atomFamily, scopeFamily, timelineFamily } from "atom.io"
 
 const countAtoms = atomFamily<number, string>({ key: `count`, default: 0 })
@@ -162,7 +210,7 @@ const historyTimelines = timelineFamily<string>({
 })
 
 export function FamilyCounter(props: { id: string }): VNode {
-	const count = useValue(countAtoms, props.id)
+	const count = useGetter(countAtoms, props.id)
 	const setCount = useSetter(countAtoms, props.id)
 	const ref = useRef(buttonAtoms, props.id)
 	const history = useTimeline(historyTimelines, props.id)
@@ -176,12 +224,7 @@ export function FamilyCounter(props: { id: string }): VNode {
 			>
 				{count()}
 			</button>
-			<button
-				disabled={history().at === 0}
-				onClick={() => {
-					history().undo()
-				}}
-			>
+			<button disabled={history.getCursor() === 0} onClick={history.undo}>
 				Undo
 			</button>
 		</section>
@@ -304,7 +347,7 @@ AstroApplicationContext, AstroStoreContext, AstroStoreFactory, AstroStorePrepara
 
 ```tsx
 import type { Child, VNode } from "@atom.io/spa"
-import { onCleanup, useId, useSetter, useValue } from "@atom.io/spa"
+import { onCleanup, useGetter, useId, useSetter } from "@atom.io/spa"
 import { atom, Silo } from "atom.io"
 import { IMPLICIT } from "atom.io/internal"
 
@@ -314,7 +357,7 @@ export default function Counter(props: {
 	children?: Child
 	slots?: Record<string, Child>
 }): VNode {
-	const count = useValue(countAtom)
+	const count = useGetter(countAtom)
 	const setCount = useSetter(countAtom)
 	const id = useId()
 	onCleanup(() => {
@@ -380,7 +423,7 @@ pnpm --filter @atom.io/spa readme:check
 
 Breakage exercises the packed package in isolated, locked peer environments, including the coordinated atom.io workspace candidate. Until the first published release, Breakage reports a first-release baseline; these checks establish compatibility with the declared peers rather than a previous spa release. Coverage gates require 100% of statements, branches, functions, and lines across the package source.
 
-Tonnage measures combined browser bundles containing SPA and atom.io, with shared modules counted once and unused exports removed. The synchronous recipes include atom creation, useValue, useSetter, and JSX; the client recipe adds render, the hydration recipe adds hydrate, and the Astro recipe adds the browser island adapter. The async recipe uses useLoadable with render and useSetter. The family recipe includes keyed state, refs, and timeline controls, plus atomFamily, timelineFamily, and scopeFamily. SPA declares atom.io as a peer dependency; these consumer-app measurements include it in every total. Application components, Astro scheduling code, CSS, declarations, and source maps are excluded. The full-client gzip budget above remains a separate, SPA-only audit.
+Tonnage measures combined browser bundles containing SPA and atom.io, with shared modules counted once and unused exports removed. The synchronous recipes include atom creation, useGetter, useSetter, and JSX; the client recipe adds render, the hydration recipe adds hydrate, and the Astro recipe adds the browser island adapter. The async recipe uses useLoadable with render and useSetter. The family recipe includes keyed state, refs, and timeline controls, plus atomFamily, timelineFamily, and scopeFamily. SPA declares atom.io as a peer dependency; these consumer-app measurements include it in every total. Application components, Astro scheduling code, CSS, declarations, and source maps are excluded. The full-client gzip budget above remains a separate, SPA-only audit.
 
 ## Browser serving sizes including atom.io
 
@@ -390,11 +433,11 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                           | Entry                             | Minified JS |  Gzip JS |
 | -------------------------------- | --------------------------------- | ----------: | -------: |
-| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    63,717 B | 18,894 B |
-| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    42,121 B | 13,134 B |
-| Interactive client app           | `tonnage-recipes/client-app.ts`   |    41,783 B | 12,981 B |
-| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    41,784 B | 12,981 B |
-| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    48,152 B | 14,973 B |
+| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    63,696 B | 18,887 B |
+| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    42,121 B | 13,142 B |
+| Interactive client app           | `tonnage-recipes/client-app.ts`   |    41,784 B | 12,981 B |
+| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    41,785 B | 12,981 B |
+| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    48,153 B | 14,977 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 
@@ -412,7 +455,7 @@ Import Stage, Layer, Group, Rect, Circle, Ellipse, Line, Text, Image, Path, Star
 
 ```tsx
 import type { VNode } from "@atom.io/spa"
-import { useSetter, useValue } from "@atom.io/spa"
+import { useGetter, useSetter } from "@atom.io/spa"
 import { Circle, Layer, Stage } from "@atom.io/spa/konva"
 import { atom } from "atom.io"
 
@@ -421,7 +464,7 @@ const pointAtom = atom<{ x: number; y: number }>({
 	default: { x: 100, y: 100 },
 })
 export function Editor(): VNode {
-	const point = useValue(pointAtom)
+	const point = useGetter(pointAtom)
 	const setPoint = useSetter(pointAtom)
 	return (
 		<Stage width={800} height={600}>
@@ -451,7 +494,7 @@ Import Canvas, Group, Mesh, PerspectiveCamera, AmbientLight, DirectionalLight, B
 
 ```tsx
 import type { VNode } from "@atom.io/spa"
-import { useValue } from "@atom.io/spa"
+import { useGetter } from "@atom.io/spa"
 import {
 	AmbientLight,
 	BoxGeometry,
@@ -464,7 +507,7 @@ import { atom } from "atom.io"
 
 const colorAtom = atom<string>({ key: `color`, default: `coral` })
 export function Scene(): VNode {
-	const color = useValue(colorAtom)
+	const color = useGetter(colorAtom)
 	return (
 		<Canvas width={800} height={600}>
 			<AmbientLight intensity={0.5} />
@@ -513,12 +556,12 @@ Use motion:initial, motion:animate, motion:exit, motion:transition, motion:while
 
 ```tsx
 import type { VNode } from "@atom.io/spa"
-import { useSetter, useValue } from "@atom.io/spa"
+import { useGetter, useSetter } from "@atom.io/spa"
 import { atom } from "atom.io"
 
 const targetXAtom = atom<number>({ key: `targetX`, default: 0 })
 export function MotionPanel(): VNode {
-	const x = useValue(targetXAtom)
+	const x = useGetter(targetXAtom)
 	const setX = useSetter(targetXAtom)
 	return (
 		<section>
@@ -553,7 +596,7 @@ The same attributes animate numeric Konva properties and colors, or Three.js pos
 
 ```tsx
 import type { VNode } from "@atom.io/spa"
-import { useValue } from "@atom.io/spa"
+import { useGetter } from "@atom.io/spa"
 import {
 	BoxGeometry,
 	Canvas,
@@ -568,7 +611,7 @@ const targetXAtom = atom<number>({
 })
 // Mount under a root with capabilities: [motionCapability()].
 export function SpringCube(): VNode {
-	const x = useValue(targetXAtom)
+	const x = useGetter(targetXAtom)
 	return (
 		<Canvas>
 			<Mesh
@@ -598,12 +641,12 @@ Declare motion:exit on an element, custom tag, Konva node, or Three.js scene nod
 
 ```tsx
 import type { VNode } from "@atom.io/spa"
-import { useSetter, useValue } from "@atom.io/spa"
+import { useGetter, useSetter } from "@atom.io/spa"
 import { atom } from "atom.io"
 
 const visibleAtom = atom<boolean>({ key: `visible`, default: true })
 export function DismissiblePanel(): VNode {
-	const visible = useValue(visibleAtom)
+	const visible = useGetter(visibleAtom)
 	const setVisible = useSetter(visibleAtom)
 	return (
 		<section>

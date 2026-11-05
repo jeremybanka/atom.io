@@ -1,4 +1,4 @@
-import { useValue } from "@atom.io/spa"
+import { useGetter } from "@atom.io/spa"
 import { Silo } from "atom.io"
 import * as THREE from "three"
 import { expect, it, vi } from "vitest"
@@ -21,7 +21,7 @@ it(`updates transforms and colors, attaches resources, and disposes owned resour
 	let geometry!: THREE.BoxGeometry
 	let material!: THREE.MeshStandardMaterial
 	function App() {
-		const read = useValue(colorAtom)
+		const read = useGetter(colorAtom)
 		return (
 			<Mesh
 				position={[1, 2, 3]}
@@ -70,7 +70,7 @@ it(`replaces keyed resources and rejects constructor changes without a new key`,
 	const scene = new THREE.Scene()
 	const geometries: THREE.BoxGeometry[] = []
 	function App() {
-		const size = useValue(sizeAtom)
+		const size = useGetter(sizeAtom)
 		return (
 			<Mesh>
 				{[size()].map((width) => (
@@ -94,7 +94,7 @@ it(`replaces keyed resources and rejects constructor changes without a new key`,
 	expect(geometries[1].parameters.width).toBe(2)
 	root.dispose()
 	function Fixed() {
-		const size = useValue(sizeAtom)
+		const size = useGetter(sizeAtom)
 		return (
 			<Mesh>
 				<BoxGeometry args={[size(), 1, 1]} />
@@ -124,7 +124,7 @@ it(`routes raycast events through JSX handlers and motion gestures, including re
 	const second = vi.fn()
 	const ref = vi.fn()
 	function App() {
-		const phase = useValue(phaseAtom)
+		const phase = useGetter(phaseAtom)
 		return (
 			<Mesh
 				ref={ref}
@@ -252,7 +252,7 @@ it(`restores all three scale axes when a scalar motion binding is removed or dis
 	const initialScale: readonly [number, number, number] = [2, 3, 4]
 	const ref = vi.fn()
 	function App() {
-		const enabled = useValue(enabledAtom)
+		const enabled = useGetter(enabledAtom)
 		return (
 			<Mesh
 				ref={ref}
@@ -320,7 +320,7 @@ it.each([`direct`, `fragment`, `bundle`])(
 			)
 		}
 		function App() {
-			const key = useValue(keyAtom)
+			const key = useGetter(keyAtom)
 			return (
 				<>
 					{key() !== null &&

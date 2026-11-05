@@ -10,13 +10,13 @@ import {
 	jsx,
 	onCleanup,
 	render,
+	useGetter,
 	useId,
 	useLoadable,
 	useRef,
 	useSetter,
 	useStore,
 	useTimeline,
-	useValue,
 } from "../dist/client.min.js"
 import { jsx as serverJsx } from "../dist/jsx-runtime.js"
 import { renderToString } from "../dist/server.js"
@@ -33,7 +33,7 @@ let cleanups = 0
 function Counter() {
 	assert.equal(useStore(), silo.store)
 	setups++
-	const count = useValue(countAtom)
+	const count = useGetter(countAtom)
 	const setCount = useSetter(countAtom)
 	const id = useId()
 	onCleanup(() => {
@@ -104,7 +104,7 @@ const rowHistoryTimelines = silo.timelineFamily<boolean>({
 })
 const familyRoot = render(
 	() => {
-		const count = useValue(rowAtoms, false)
+		const count = useGetter(rowAtoms, false)
 		const setCount = useSetter(rowAtoms, false)
 		const ref = useRef(buttonAtoms, false)
 		const history = useTimeline(rowHistoryTimelines, false)
@@ -113,7 +113,7 @@ const familyRoot = render(
 			onClick: () => {
 				setCount((value) => value + 1)
 			},
-			children: () => `${count()}:${history().at}`,
+			children: () => `${count()}:${history.getCursor()}`,
 		})
 	},
 	host as unknown as Element,

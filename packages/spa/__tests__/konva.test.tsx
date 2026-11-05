@@ -1,4 +1,4 @@
-import { useValue } from "@atom.io/spa"
+import { useGetter } from "@atom.io/spa"
 import { Silo } from "atom.io"
 import Konva from "konva"
 import { expect, it, vi } from "vitest"
@@ -16,7 +16,7 @@ it(`updates native attrs and event handlers and removes owned nodes`, () => {
 	const click = vi.fn()
 	let rect!: Konva.Rect
 	function App() {
-		const read = useValue(xAtom)
+		const read = useGetter(xAtom)
 		return (
 			<Group>
 				<Rect

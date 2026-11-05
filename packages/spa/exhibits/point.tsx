@@ -1,5 +1,5 @@
 import type { VNode } from "@atom.io/spa"
-import { useId, useRef, useSetter, useValue } from "@atom.io/spa"
+import { useGetter, useId, useRef, useSetter } from "@atom.io/spa"
 import { atom } from "atom.io"
 
 const pointAtom = atom<{ x: number; y: number }>({
@@ -12,7 +12,7 @@ const circleAtom = atom<SVGCircleElement | null>({
 })
 
 export function PointEditor(): VNode {
-	const point = useValue(pointAtom)
+	const point = useGetter(pointAtom)
 	const setPoint = useSetter(pointAtom)
 	const circle = useRef(circleAtom)
 	const id = useId()

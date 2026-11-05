@@ -1,5 +1,5 @@
 import type { VNode } from "@atom.io/spa"
-import { onCleanup, onMount, useSetter, useValue } from "@atom.io/spa"
+import { onCleanup, onMount, useGetter, useSetter } from "@atom.io/spa"
 import { motionCapability } from "@atom.io/spa/motion"
 import { atom } from "atom.io"
 
@@ -9,9 +9,9 @@ const toastDurationAtom = atom<number>({ key: `toastDuration`, default: 0.24 })
 const toastPresentAtom = atom<boolean>({ key: `toastPresent`, default: true })
 
 export function ToastSandbox(): VNode {
-	const duration = useValue(toastDurationAtom),
+	const duration = useGetter(toastDurationAtom),
 		setDuration = useSetter(toastDurationAtom)
-	const present = useValue(toastPresentAtom),
+	const present = useGetter(toastPresentAtom),
 		setPresent = useSetter(toastPresentAtom)
 	let root!: HTMLElement
 	let debug!: ReturnType<typeof captureMotion>

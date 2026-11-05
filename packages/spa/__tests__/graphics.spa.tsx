@@ -1,4 +1,4 @@
-import { render, useValue } from "@atom.io/spa"
+import { render, useGetter } from "@atom.io/spa"
 import { Group, Layer, Rect, Stage } from "@atom.io/spa/konva"
 import { motionCapability } from "@atom.io/spa/motion"
 import { BoxGeometry, Canvas, Mesh, MeshBasicMaterial } from "@atom.io/spa/three"
@@ -13,7 +13,7 @@ let downs = 0
 let ups = 0
 let moves = 0
 function App() {
-	const read = useValue(sizeAtom)
+	const read = useGetter(sizeAtom)
 	return (
 		<>
 			<sliding-panel
@@ -117,7 +117,7 @@ let userFrames = 0,
 	clicks = 0
 let originalPanel: Element | null, originalMesh: any, originalRect: any
 function PresenceApp() {
-	const present = useValue(presentAtom)
+	const present = useGetter(presentAtom)
 	return (
 		<>
 			{present() && (
@@ -252,7 +252,7 @@ Object.assign(window, {
 			)
 		}
 		function DragApp() {
-			const visible = useValue(shownAtom)
+			const visible = useGetter(shownAtom)
 			const layer = () => (
 				<Layer>
 					{mode === `rect` ? (

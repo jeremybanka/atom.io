@@ -6,13 +6,13 @@ import {
 	hydrate,
 	onCleanup,
 	render,
+	useGetter,
 	useId,
 	useLoadable,
 	useRef,
 	useSetter,
 	useStore,
 	useTimeline,
-	useValue,
 } from "@atom.io/spa"
 import type { AstroStoreContext } from "@atom.io/spa/astro"
 import astro from "@atom.io/spa/astro"
@@ -107,7 +107,7 @@ await test(`packed runtime shares ownership across public entries, hydrates, upd
 		onCleanup(() => {
 			cleanups++
 		})
-		const read = useValue(countAtom),
+		const read = useGetter(countAtom),
 			id = useId()
 		return jsx(`output`, { id, children: read })
 	}
@@ -207,7 +207,7 @@ await test(`packed family hooks bind keyed state, refs, and history`, () => {
 	})
 	const root = render(
 		() => {
-			const count = useValue(countAtoms, 0)
+			const count = useGetter(countAtoms, 0)
 			const setCount = useSetter(countAtoms, 0)
 			const ref = useRef(elementAtoms, 0)
 			const history = useTimeline(historyTimelines, 0)
@@ -216,7 +216,7 @@ await test(`packed family hooks bind keyed state, refs, and history`, () => {
 				onClick: () => {
 					setCount((value) => value + 1)
 				},
-				children: () => `${count()}:${history().at}`,
+				children: () => `${count()}:${history.getCursor()}`,
 			})
 		},
 		host,

@@ -1,7 +1,7 @@
 import { Silo } from "atom.io"
 import { expect, it, vi } from "vitest"
 
-import { onCleanup, onMount, useValue } from "../src/index.ts"
+import { onCleanup, onMount, useGetter } from "../src/index.ts"
 import { createSceneRenderer, sceneComponent } from "../src/renderer.ts"
 
 type Node = { name: string; props: Record<string, any>; children: Node[] }
@@ -43,7 +43,7 @@ it(`preserves keyed scene instances, live props, refs, and owner cleanup`, () =>
 		return <Shape x={props.x} ref={ref} />
 	}
 	function App() {
-		const read = useValue(rowsAtom)
+		const read = useGetter(rowsAtom)
 		return (
 			<>
 				{read().map((row) => (
@@ -186,7 +186,7 @@ it(`handles invalid children, keyed type replacement, array components, and owne
 		return [<A />, <B />]
 	}
 	function App() {
-		const active = useValue(activeAtom)
+		const active = useGetter(activeAtom)
 		return (
 			<>
 				{active() ? <A key="same" /> : <B key="same" />}

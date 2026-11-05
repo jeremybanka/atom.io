@@ -2,7 +2,7 @@ import { Silo } from "atom.io"
 import { afterEach, expect, it } from "vitest"
 
 import type { SpaRoot } from "../src/index.ts"
-import { render, useValue } from "../src/index.ts"
+import { render, useGetter } from "../src/index.ts"
 
 const roots: SpaRoot[] = []
 afterEach(() => {
@@ -34,7 +34,7 @@ it(`keeps a shared selector reactive when another root unmounts`, () => {
 		get: ({ get }) => get(countAtom) * 2,
 	})
 	function Counter() {
-		const count = useValue(doubledSelector)
+		const count = useGetter(doubledSelector)
 		return <span>{count()}</span>
 	}
 	const first = mount(() => <Counter />)
@@ -58,7 +58,7 @@ it(`updates projections of held selectors without replacing their object`, () =>
 		},
 	})
 	function Counter() {
-		const count = useValue(doubledSelector)
+		const count = useGetter(doubledSelector)
 		return <span title={String(count().doubled)}>{count().doubled}</span>
 	}
 	const { root, host } = mount(() => <Counter />)

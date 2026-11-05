@@ -1,6 +1,6 @@
 {
 	"name": "@atom.io/template-spa-astro-ssr",
-	"version": "0.0.2",
+	"version": "0.0.3",
 	"description": "Astro, SPA, and resumable atom defaults with SQLite server data.",
 	"repository": {
 		"type": "git",

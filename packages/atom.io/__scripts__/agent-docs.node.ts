@@ -180,7 +180,7 @@ const DOC_PAGES: DocPage[] = [
 	{
 		output: `against-use-effect.md`,
 		source: `docs/source/pages/docs/against-use-effect.mdx`,
-		title: `against useEffect`,
+		title: `you don't need useEffect`,
 		url: `/docs/against-use-effect`,
 	},
 	{
@@ -1079,7 +1079,7 @@ async function main(): Promise<void> {
 				`- Remote/RPC data guide: /docs/remote-data`,
 				`- typesafe router guide: /docs/typesafe-router`,
 				`- React bindings: /docs/react`,
-				`- Against useEffect: /docs/against-use-effect`,
+				`- You don't need useEffect: /docs/against-use-effect`,
 				`- Foundations and transceivers: /docs/foundations and /transceivers`,
 				``,
 				`The generated corpus is owned by atom.io, shipped in the atom.io package at docs/agent, and mirrored on atom.io.fyi for web access.`,

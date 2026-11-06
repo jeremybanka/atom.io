@@ -1,7 +1,5 @@
 import { render } from "@atom.io/spa"
 
-import { PointEditor } from "./point.tsx"
+import Counter from "./Counter.tsx"
 
-const root = render(() => <PointEditor />, document.getElementById(`app`)!)
-// Call root.dispose() when the application shell removes this root.
-import.meta.hot?.dispose(root.dispose)
+render(() => <Counter />, document.getElementById(`app`)!)

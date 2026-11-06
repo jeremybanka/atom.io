@@ -32,7 +32,7 @@ await test(`compiled named function expressions use their external component bin
 		`export default function View() { return <p>named expression</p> }`,
 	]) {
 		const plugin = spa()
-		const output = (plugin.transform as Function)(source, `/src/App.spa.tsx`)
+		const output = (plugin.transform as Function)(source, `/src/App.tsx`)
 		const code = output.code.replaceAll(
 			`@atom.io/spa/jsx-runtime`,
 			import.meta.resolve(`@atom.io/spa/jsx-runtime`),
@@ -133,7 +133,7 @@ await test(`packed compiler and Astro adapters expose working entrypoints`, asyn
 	const plugin = spa()
 	const result = (plugin.transform as Function)(
 		`export default () => <p>{read()}</p>`,
-		`App.spa.tsx`,
+		`App.tsx`,
 	)
 	assert.match(result.code, /\(\) => \(read\(\)\)/)
 	assert.match(result.code, /spa = true/)

@@ -7,7 +7,7 @@ import { chromium } from "playwright"
 import { compile } from "../src/compiler.ts"
 
 const bundle = await build({
-	entryPoints: [resolve(import.meta.dirname, `../__tests__/graphics.spa.tsx`)],
+	entryPoints: [resolve(import.meta.dirname, `../__tests__/graphics.tsx`)],
 	tsconfigRaw: {},
 	bundle: true,
 	write: false,

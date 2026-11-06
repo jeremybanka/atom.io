@@ -123,10 +123,10 @@ describe(`integration contracts`, () => {
 			`export default (function View() { return <p>Hello</p> })`,
 			`export default function List() { return [1,2].map(n => <p>{n}</p>) }`,
 		]) {
-			const output = compile(source, `App.spa.tsx`)
+			const output = compile(source, `App.tsx`)
 			expect(output.code).toMatch(/\.spa = true/)
 			expect(output.code).not.toContain(`<p>`)
-			expect(output.map.sources).toContain(`App.spa.tsx`)
+			expect(output.map.sources).toContain(`App.tsx`)
 		}
 	})
 	it(`resolves lowercase JSX namespaces as JavaScript bindings`, () => {

@@ -71,7 +71,7 @@ export default defineConfig({
 
 ```
 
-SPA compiles the .spa.tsx components. Resumability removes inline server closures before browser import analysis, including their dynamic imports. Reylo compiles SQL imports on the server. The browser imports the tRPC router only as a type: no database module, query, or router implementation reaches executable browser code.
+SPA compiles the .tsx components. Resumability removes inline server closures before browser import analysis, including their dynamic imports. Reylo compiles SQL imports on the server. The browser imports the tRPC router only as a type: no database module, query, or router implementation reaches executable browser code.
 
 ## One query, two entry points
 
@@ -157,7 +157,7 @@ The family key supplies the query input and resumability key. Atom definitions l
 ```astro
 ---
 import Resumption from "resumability/Resumption.astro"
-import Drafts from "../Drafts.spa.tsx"
+import Drafts from "../Drafts.tsx"
 import Page from "../layouts/Page.astro"
 ---
 <Page title="Your drafts">

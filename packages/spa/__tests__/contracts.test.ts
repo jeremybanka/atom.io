@@ -89,9 +89,23 @@ it(`filters Vite inputs, resets global regexes, and reloads matching documents`,
 		expect(update({ server: { ws: { send } }, file: `/src/a.tsx` })).toEqual([])
 		expect(send).toHaveBeenCalledExactlyOnceWith({ type: `full-reload` })
 	}
-	for (const adapter of [
-		integration(),
-		integration({ include: /custom.tsx$/ }),
+	for (const { adapter, included, excluded } of [
+		{
+			adapter: integration(),
+			included: [
+				`/src/App.tsx`,
+				`/src/App.jsx`,
+				`/src/App.tsx?astro`,
+				`/src/App.spa.tsx`,
+				`/src/App.spa.jsx`,
+			],
+			excluded: [`/src/App.ts`, `/src/App.astro`, `/node_modules/App.tsx`],
+		},
+		{
+			adapter: integration({ include: /\/spa\/.*\.[jt]sx$/ }),
+			included: [`/src/spa/App.tsx`, `/src/spa/App.jsx`],
+			excluded: [`/src/react/App.tsx`, `/src/react/App.jsx`],
+		},
 	]) {
 		const addRenderer = vi.fn(),
 			updateConfig = vi.fn()
@@ -105,6 +119,16 @@ it(`filters Vite inputs, resets global regexes, and reloads matching documents`,
 			`@atom.io/spa/astro-server`,
 		)
 		expect(updateConfig.mock.calls[0][0].vite.plugins[0].name).toBe(`spa`)
+		const transform = updateConfig.mock.calls[0][0].vite.plugins[0]
+			.transform as Function
+		for (const id of included) {
+			expect(
+				transform(`export function App() { return <p/> }`, id).code,
+			).toContain(`App.spa = true`)
+		}
+		for (const id of excluded) {
+			expect(transform(`bad syntax`, id)).toBeUndefined()
+		}
 	}
 })
 it(`supports automatic JSX runtime keys and lazy missing spreads`, () => {

@@ -10,28 +10,21 @@ The npm package is named @atom.io/spa. Its browser runtime, Vite compiler, serve
 
 ```tsx
 import type { VNode } from "@atom.io/spa"
-import { useGetter, useId, useRef, useSetter } from "@atom.io/spa"
+import { useGetter, useSetter } from "@atom.io/spa"
 import { atom } from "atom.io"
 
 const pointAtom = atom<{ x: number; y: number }>({
 	key: `point`,
 	default: { x: 20, y: 20 },
 })
-const circleAtom = atom<SVGCircleElement | null>({
-	key: `circle`,
-	default: null,
-})
-
 export function PointEditor(): VNode {
 	const getPoint = useGetter(pointAtom)
 	const setPoint = useSetter(pointAtom)
-	const circle = useRef(circleAtom)
-	const id = useId()
 	return (
-		<section aria-labelledby={id}>
-			<h2 id={id}>Point</h2>
+		<section>
+			<h2>Point</h2>
 			<svg viewBox="0 0 100 100">
-				<circle ref={circle} cx={getPoint().x} cy={getPoint().y} r="3" />
+				<circle cx={getPoint().x} cy={getPoint().y} r="3" />
 			</svg>
 			<output>
 				{getPoint().x}, {getPoint().y}
@@ -50,6 +43,58 @@ export function PointEditor(): VNode {
 ```
 
 Name the getter and setter after the atom: pointAtom uses getPoint and setPoint. The getPoint getter returns the current object. Each JSX attribute reads its coordinate when evaluated. Both bindings depend on the point atom, and unchanged primitive results skip DOM writes. Reads during setup are snapshots; reads in event handlers are current and untracked. Shared derived state belongs in atom.io selectors.
+
+## Astro
+
+Register the Astro integration, which compiles .tsx and .jsx components by default:
+
+```ts
+import spa from "@atom.io/spa/astro"
+import { defineConfig } from "astro/config"
+
+export default defineConfig({ integrations: [spa()] })
+
+```
+
+Create a counter component:
+
+```tsx
+import type { VNode } from "@atom.io/spa"
+import { useGetter, useSetter } from "@atom.io/spa"
+import { atom } from "atom.io"
+
+const countAtom = atom<number>({ key: `count`, default: 0 })
+
+export default function Counter(): VNode {
+	const getCount = useGetter(countAtom)
+	const setCount = useSetter(countAtom)
+	return (
+		<button
+			onClick={() => {
+				setCount((count) => count + 1)
+			}}
+		>
+			Count: {getCount()}
+		</button>
+	)
+}
+
+```
+
+Import it into an Astro page and use client:load to make it interactive. Astro handles server rendering and browser hydration:
+
+```astro
+---
+import Counter from "./Counter.tsx"
+---
+<html lang="en">
+	<head><title>SPA counter</title></head>
+	<body>
+		<Counter client:load />
+	</body>
+</html>
+
+```
 
 ## Vite
 
@@ -77,14 +122,26 @@ export default defineConfig({ plugins: [spa()] })
 
 ```
 
+Add a host element in index.html, then mount the same counter from main.tsx:
+
+```html
+<!doctype html>
+<html lang="en">
+	<head><title>SPA counter</title></head>
+	<body>
+		<div id="app"></div>
+		<script type="module" src="/main.tsx"></script>
+	</body>
+</html>
+
+```
+
 ```tsx
 import { render } from "@atom.io/spa"
 
-import { PointEditor } from "./point.tsx"
+import Counter from "./Counter.tsx"
 
-const root = render(() => <PointEditor />, document.getElementById(`app`)!)
-// Call root.dispose() when the application shell removes this root.
-import.meta.hot?.dispose(root.dispose)
+render(() => <Counter />, document.getElementById(`app`)!)
 
 ```
 
@@ -284,17 +341,9 @@ The separate server entrypoint exports renderToString with the same setup callba
 
 The production build omits development diagnostics and invalid-input checks; the development export condition enables them. Pure render computations must not write state. Promise children, async components, portals, suspense, error boundaries, style objects, and automatic token-as-child bindings are outside this first implementation. Applications handle asynchronous data through atom.io state and synchronous conditional JSX.
 
-## Astro
+## Astro store preparation
 
-The integration transforms .spa.tsx and .spa.jsx files by default, so another JSX renderer can coexist. Configure include to change this filter. Top-level functions containing JSX are branded by the compiler for renderer detection.
-
-```ts
-import spa from "@atom.io/spa/astro"
-import { defineConfig } from "astro/config"
-
-export default defineConfig({ integrations: [spa()] })
-
-```
+The integration compiles .tsx and .jsx files by default. Use the include option to limit compilation to SPA component directories when another JSX renderer is present. Top-level functions containing JSX are branded by the compiler for renderer detection.
 
 Default islands share the normal implicit atom.io store in the browser. Module-scoped tokens, SPA hooks, and ordinary getState/setState calls all address the same graph. SSR shares a separate store within each request; concurrent requests never share values. Definitions imported after an earlier island started are installed into that request's store before the next island prepares. Server reads and writes must use the selected store (through SPA hooks or store-aware atom.io operations); free getState/setState calls still target the process-global implicit store.
 
@@ -345,52 +394,6 @@ Greeting.prepareStore = prepare
 ```
 
 AstroApplicationContext, AstroStoreContext, AstroStoreFactory, AstroStorePreparation, and Island types are exported from @atom.io/spa/astro. Preparation runs before component setup, so use the context's cleanup registrar there; use SPA's onCleanup inside components. Preparation failures reject the Astro render or hydration operation, retaining cleanup errors alongside the original failure. The factory and preparation callback are awaited per render; component setup and the standalone renderToString API remain synchronous.
-
-```tsx
-import type { Child, VNode } from "@atom.io/spa"
-import { onCleanup, useGetter, useId, useSetter } from "@atom.io/spa"
-import { atom, Silo } from "atom.io"
-import { IMPLICIT } from "atom.io/internal"
-
-const countAtom = atom<number>({ key: `count`, default: 0 })
-export default function Counter(props: {
-	initial: number
-	children?: Child
-	slots?: Record<string, Child>
-}): VNode {
-	const getCount = useGetter(countAtom)
-	const setCount = useSetter(countAtom)
-	const id = useId()
-	onCleanup(() => {
-		/* Release imperative resources owned by this instance here. */
-	})
-	return (
-		<section aria-labelledby={id}>
-			<h2 id={id}>Counter</h2>
-			{props.slots?.[`heading`]}
-			{props.children}
-			<button
-				onClick={() => {
-					setCount((value) => value + 1)
-				}}
-			>
-				{getCount()}
-			</button>
-		</section>
-	)
-}
-
-// Astro calls this on the server and in the browser with the same serialized props.
-Counter.createStore = (props: { initial: number }) => {
-	const silo = new Silo(
-		{ name: `counter-island`, lifespan: `ephemeral`, isProduction: true },
-		IMPLICIT.STORE,
-	)
-	silo.setState(countAtom, props.initial)
-	return silo.store
-}
-
-```
 
 Astro client:load, client:idle, client:visible, client:media, and client:only use Astro's scheduling. The integration hydrates eligible initial server markup or renders fresh content and releases the root on astro:unmount. Default slot content arrives as children and named content through slots. Reserved astro-slot wrappers contain Astro's already-rendered HTML; never use their innerHTML escape hatch for untrusted strings.
 
@@ -545,7 +548,7 @@ Import motionCapability from @atom.io/spa/motion and register it explicitly in r
 import { render } from "@atom.io/spa"
 import { motionCapability } from "@atom.io/spa/motion"
 
-import { MotionPanel } from "./motion.spa.tsx"
+import { MotionPanel } from "./motion.tsx"
 
 render(() => <MotionPanel />, document.getElementById(`app`)!, {
 	capabilities: [motionCapability()],

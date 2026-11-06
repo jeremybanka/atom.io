@@ -9,7 +9,7 @@ SPA is a JSX framework built around atom.io. Components run once per mounted ins
 
 Its reactivity model is inspired by Solid: component setup stays stable, while expressions in JSX update when the state they read changes. It includes a Vite compiler, server rendering, hydration, and an Astro integration. This is an experimental framework with its own lifecycle API.
 
-Start with [Vite setup](#vite-setup) or [Astro setup](#astro-setup). For an API lookup, use the [package contents](#package-contents), [rendering API](#rendering), or [component API](#component-api).
+Start with [Astro setup](#astro-setup) or [Vite setup](#vite-setup). For an API lookup, use the [package contents](#package-contents), [rendering API](#rendering), or [component API](#component-api).
 
 ## install
 
@@ -39,9 +39,25 @@ Rendering types include Accessor, Child, Component, VNode, RootOptions, and SpaR
 
 Choose the integration for your application. Both use SPA’s JSX compiler and the same atom.io-backed runtime.
 
+### Astro setup
+
+Register SPA's Astro integration:
+
+<Exhibit src="spa/exhibits/astro.config.ts" />
+
+Create a component in `Counter.tsx`. The integration compiles `.tsx` and `.jsx` files by default.
+
+<Exhibit src="spa/exhibits/Counter.tsx" />
+
+Import the component into an Astro page and add `client:load` to make it interactive:
+
+<Exhibit src="spa/exhibits/counter-page.astro" />
+
+Astro renders the counter's HTML on the server, then hydrates it in the browser. No manual render or hydrate call is needed. Astro's other client directives also work.
+
 ### Vite setup
 
-Add the SPA plugin to your Vite configuration. The plugin is required: a standard JSX transform alone does not preserve reactive expressions.
+For a standalone Vite application, register SPA's JSX compiler plugin:
 
 <Exhibit src="spa/exhibits/vite.config.ts" />
 
@@ -49,29 +65,13 @@ Keep JSX intact for the plugin and use SPA's JSX types:
 
 <Exhibit src="spa/exhibits/tsconfig.json" />
 
-### Astro setup
+Add a host element and load your entrypoint from `index.html`:
 
-Register SPA's Astro integration:
+<Exhibit src="spa/exhibits/index.html" />
 
-<Exhibit src="spa/exhibits/astro.config.ts" />
+Reuse the counter above and mount it from `main.tsx`. Vite applications call render directly:
 
-The integration compiles `.spa.tsx` and `.spa.jsx` files by default, so other JSX renderers can coexist. Its include option can select a different filename pattern.
-
-This counter initializes a separate store for each island:
-
-<Exhibit src="spa/exhibits/Counter.spa.tsx" />
-
-Astro calls createStore with the same serialized props on the server and in the browser. Keep that factory deterministic so the initial markup and state match. Without a factory, islands share the normal implicit atom.io store in the browser and a separate store per SSR request. Module-scoped tokens address the same browser values from SPA hooks and ordinary getState/setState calls. Server operations must use the selected request store through SPA hooks or store-aware atom.io functions; free getState/setState still target the process-global store. Set isolate to true on a component when it needs a private store. SPA does not serialize an entire store implicitly.
-
-Untouched initial islands hydrate matching server DOM. After application state changes, delayed islands render fresh against the live store. Newly introduced islands after ClientRouter navigation also render fresh, preserving edits instead of applying an incoming server snapshot. Persisted roots retain their DOM and subscriptions. Normal Astro client directives work without per-island navigation configuration.
-
-An optional prepareStore callback can asynchronously initialize the selected store before rendering. Its context owns island cleanup; context.application supplies shared resources, cancellation, and canResume. Shared browser resources survive island removal and navigation, while request resources end after streaming. The spa-astro-ssr template demonstrates this with module-scoped atom defaults, one shared JSON sidecar, and SQLite/tRPC data.
-
-Use Astro's client directives to choose when an island hydrates. Components that put browser work in onMount can render their host markup on the server and hydrate with client:load. Default and named slots are supported, and astro:unmount releases the island's resources.
-
-<Exhibit src="spa/exhibits/counter-page.astro" />
-
-Outside Astro, use [renderToString](#rendertostring) and [hydrate](#hydrate) directly. Astro manages these renderer entrypoints for its islands.
+<Exhibit src="spa/exhibits/main.tsx" />
 
 ## a reactive view
 
@@ -154,7 +154,7 @@ Bind an atom.io transaction to the component's store while preserving its argume
 
 ### useRef
 
-Create a ref callback for a nullable element atom. Attaching the ref publishes the element into that atom; cleanup clears it only if the reference still belongs to this attachment. It also accepts a family token and key. See the [point example](#a-reactive-view) and [family example](#families).
+Create a ref callback for a nullable element atom. Attaching the ref publishes the element into that atom; cleanup clears it only if the reference still belongs to this attachment. It also accepts a family token and key. See the [family example](#families).
 
 ### useId
 
@@ -208,7 +208,7 @@ The optional debugger uses the same atom.io introspection engine as the React de
 
 Import its stylesheet once and mount it inside a SPA component:
 
-<Exhibit src="spa-devtools/exhibits/setup.spa.tsx" />
+<Exhibit src="spa-devtools/exhibits/setup.tsx" />
 
 The store prop selects the inspected store; without it, the debugger uses atom.io's implicit store. Ctrl+Shift+A shows or hides the panel. It supports JSON editing, atom and selector families, transaction logs, and timeline controls. The debugger and its stylesheet add to your application's size separately from SPA.
 

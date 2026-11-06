@@ -128,7 +128,7 @@ export default defineConfig({
 		"/docs/hydrogen": `/docs/spa`,
 		"/hydrogen-lab": `/spa-lab`,
 	},
-	integrations: [spa({ include: /\.[jt]sx$/ }), mdx()],
+	integrations: [spa(), mdx()],
 	markdown: {
 		processor: unified({ remarkPlugins: [preserveCodeBlockCodeProps] }),
 	},

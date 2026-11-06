@@ -9,15 +9,17 @@ import ViteConfig from "./exhibits/vite.config.ts" with { type: "code" };
 import Main from "./exhibits/main.tsx" with { type: "code" };
 import Types from "./exhibits/tsconfig.json" with { type: "code" };
 import AstroConfig from "./exhibits/astro.config.ts" with { type: "code" };
-import AsyncAstro from "./exhibits/async-astro.spa.tsx" with { type: "code" };
-import Counter from "./exhibits/Counter.spa.tsx" with { type: "code" };
+import AsyncAstro from "./exhibits/async-astro.tsx" with { type: "code" };
+import Counter from "./exhibits/Counter.tsx" with { type: "code" };
+import CounterPage from "./exhibits/counter-page.astro" with { type: "code" };
+import VitePage from "./exhibits/index.html" with { type: "code" };
 import Verify from "./exhibits/verify.sh" with { type: "code" };
-import KonvaExample from "./exhibits/konva.spa.tsx" with { type: "code" };
-import ThreeExample from "./exhibits/three.spa.tsx" with { type: "code" };
-import MotionPanel from "./exhibits/motion.spa.tsx" with { type: "code" };
+import KonvaExample from "./exhibits/konva.tsx" with { type: "code" };
+import ThreeExample from "./exhibits/three.tsx" with { type: "code" };
+import MotionPanel from "./exhibits/motion.tsx" with { type: "code" };
 import MotionMain from "./exhibits/motion-main.tsx" with { type: "code" };
-import MotionExit from "./exhibits/motion-exit.spa.tsx" with { type: "code" };
-import MotionThree from "./exhibits/motion-three.spa.tsx" with { type: "code" };
+import MotionExit from "./exhibits/motion-exit.tsx" with { type: "code" };
+import MotionThree from "./exhibits/motion-three.tsx" with { type: "code" };
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/jeremybanka/atom.io/main/apps/atom.io.fyi/public/spa/icon-512.png" alt="SPA logo" width="160" height="160" />
@@ -35,6 +37,20 @@ The npm package is named @atom.io/spa. Its browser runtime, Vite compiler, serve
 
 Name the getter and setter after the atom: pointAtom uses getPoint and setPoint. The getPoint getter returns the current object. Each JSX attribute reads its coordinate when evaluated. Both bindings depend on the point atom, and unchanged primitive results skip DOM writes. Reads during setup are snapshots; reads in event handlers are current and untracked. Shared derived state belongs in atom.io selectors.
 
+## Astro
+
+Register the Astro integration, which compiles .tsx and .jsx components by default:
+
+<AstroConfig />
+
+Create a counter component:
+
+<Counter />
+
+Import it into an Astro page and use client:load to make it interactive. Astro handles server rendering and browser hydration:
+
+<CounterPage />
+
 ## Vite
 
 Add @atom.io/spa and atom.io to the application's dependencies. The spa plugin is required: the ordinary TypeScript JSX transform cannot preserve live expressions. It compiles expressions into lazy child computations and property getters; it also preserves spread precedence and live component props.
@@ -42,6 +58,10 @@ Add @atom.io/spa and atom.io to the application's dependencies. The spa plugin i
 <ViteConfig />
 
 <Types />
+
+Add a host element in index.html, then mount the same counter from main.tsx:
+
+<VitePage />
 
 <Main />
 
@@ -108,11 +128,9 @@ The separate server entrypoint exports renderToString with the same setup callba
 
 The production build omits development diagnostics and invalid-input checks; the development export condition enables them. Pure render computations must not write state. Promise children, async components, portals, suspense, error boundaries, style objects, and automatic token-as-child bindings are outside this first implementation. Applications handle asynchronous data through atom.io state and synchronous conditional JSX.
 
-## Astro
+## Astro store preparation
 
-The integration transforms .spa.tsx and .spa.jsx files by default, so another JSX renderer can coexist. Configure include to change this filter. Top-level functions containing JSX are branded by the compiler for renderer detection.
-
-<AstroConfig />
+The integration compiles .tsx and .jsx files by default. Use the include option to limit compilation to SPA component directories when another JSX renderer is present. Top-level functions containing JSX are branded by the compiler for renderer detection.
 
 Default islands share the normal implicit atom.io store in the browser. Module-scoped tokens, SPA hooks, and ordinary getState/setState calls all address the same graph. SSR shares a separate store within each request; concurrent requests never share values. Definitions imported after an earlier island started are installed into that request's store before the next island prepares. Server reads and writes must use the selected store (through SPA hooks or store-aware atom.io operations); free getState/setState calls still target the process-global implicit store.
 
@@ -129,8 +147,6 @@ Register cleanup as resources are acquired, before awaiting work that might fail
 <AsyncAstro />
 
 AstroApplicationContext, AstroStoreContext, AstroStoreFactory, AstroStorePreparation, and Island types are exported from @atom.io/spa/astro. Preparation runs before component setup, so use the context's cleanup registrar there; use SPA's onCleanup inside components. Preparation failures reject the Astro render or hydration operation, retaining cleanup errors alongside the original failure. The factory and preparation callback are awaited per render; component setup and the standalone renderToString API remain synchronous.
-
-<Counter />
 
 Astro client:load, client:idle, client:visible, client:media, and client:only use Astro's scheduling. The integration hydrates eligible initial server markup or renders fresh content and releases the root on astro:unmount. Default slot content arrives as children and named content through slots. Reserved astro-slot wrappers contain Astro's already-rendered HTML; never use their innerHTML escape hatch for untrusted strings.
 

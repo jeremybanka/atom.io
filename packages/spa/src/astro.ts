@@ -38,7 +38,7 @@ export default function integration(
 				})
 				updateConfig({
 					vite: {
-						plugins: [spa({ include: /\.spa\.[jt]sx$/, ...options })],
+						plugins: [spa(options)],
 					},
 				})
 			},

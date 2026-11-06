@@ -65,7 +65,7 @@
 		"@types/babel__core": "7.20.5",
 		"@types/node": "26.6.6",
 		"@vitest/coverage-v8": "5.1.0",
-		"astro": "7.4.5",
+		"astro": "7.4.6",
 		"atom.io": "workspace:*",
 		"breakage": "0.10.2",
 		"esbuild": "0.28.2",

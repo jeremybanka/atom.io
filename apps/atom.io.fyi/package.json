@@ -22,7 +22,7 @@
 		"test:browser:dev": "node scripts/test-spa.browser.mjs --dev"
 	},
 	"dependencies": {
-		"@astrojs/cloudflare": "14.4.4",
+		"@astrojs/cloudflare": "14.4.5",
 		"@astrojs/markdown-remark": "7.3.5",
 		"@astrojs/mdx": "8.1.2",
 		"@atom.io/spa": "workspace:*",
@@ -30,7 +30,7 @@
 		"@babel/parser": "8.1.0",
 		"@babel/types": "8.1.0",
 		"@pierre/highlights": "0.4.0",
-		"astro": "7.4.5",
+		"astro": "7.4.6",
 		"atom.io": "workspace:*",
 		"motion": "14.9.1",
 		"three": "0.187.0",

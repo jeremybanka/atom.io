@@ -1,0 +1,4 @@
+{
+	"extends": "../tsconfig.exhibits.json",
+	"include": ["source/exhibits", "__tests__"]
+}

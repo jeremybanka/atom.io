@@ -14,6 +14,7 @@ export type Row = {
 	title: string
 	status: RowStatus
 	updatedAt: string
+	revision: number
 }
 
 export type RowListView = {
@@ -35,18 +36,21 @@ let rowData: Row[] = [
 		title: `Repair optimistic row hydration`,
 		status: `open`,
 		updatedAt: `2026-06-09T18:00:00.000Z`,
+		revision: 1,
 	},
 	{
 		id: `row_02`,
 		title: `Ship remote-data docs`,
 		status: `closed`,
 		updatedAt: `2026-06-08T15:30:00.000Z`,
+		revision: 1,
 	},
 	{
 		id: `row_03`,
 		title: `Add ORPC-backed example`,
 		status: `open`,
 		updatedAt: `2026-06-07T12:45:00.000Z`,
+		revision: 1,
 	},
 ]
 
@@ -90,6 +94,7 @@ export const server = {
 					...row,
 					status: input.status,
 					updatedAt: new Date().toISOString(),
+					revision: row.revision + 1,
 				}
 			})
 			return {

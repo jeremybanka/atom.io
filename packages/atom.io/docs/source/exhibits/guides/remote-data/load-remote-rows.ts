@@ -1,39 +1,54 @@
-import { atom, atomFamily, type Loadable, setState } from "atom.io"
+import {
+	atom,
+	atomFamily,
+	type Loadable,
+	runTransaction,
+	selector,
+	transaction,
+} from "atom.io"
 
 import { client, type Row } from "./client.ts"
 
 type RowKey = `row::${string}`
 
-export const rowKeysAtom = atom<Loadable<readonly RowKey[]>, Error>({
-	key: `rowKeys`,
-	default: async () => {
-		const rows = await client.rows.list()
-		return loadRows(rows)
-	},
+export const rowAtoms = atomFamily<Loadable<Row>, RowKey, Error>({
+	key: `row`,
+	default: (key) => client.rows.get({ id: key.slice(`row::`.length) }),
 	catch: [Error],
 })
 
-export const rowAtoms = atomFamily<Loadable<Row>, RowKey, Error>({
-	key: `row`,
-	default: async (key) => {
-		const id = key.slice(`row::`.length)
-		const row = await client.rows.get({ id })
-		loadRow(row)
-		return row
+const loadRowsTransaction = transaction<(rows: readonly Row[]) => void>({
+	key: `loadRows`,
+	do: ({ set }, rows) => {
+		for (const row of rows) set(rowAtoms, rowKey(row.id), row)
+	},
+})
+
+export const rowListAtom = atom<Loadable<readonly Row[]>, Error>({
+	key: `rowList`,
+	default: () => client.rows.list(),
+	catch: [Error],
+	effects: [
+		({ onSet }) => {
+			onSet(({ newValue }) => {
+				if (newValue instanceof Promise || newValue instanceof Error) return
+				// Only accepted responses hydrate shared state. Keep this synchronous.
+				runTransaction(loadRowsTransaction)(newValue)
+			})
+		},
+	],
+})
+
+export const rowKeysSelector = selector<Loadable<readonly RowKey[]>, Error>({
+	key: `rowKeys`,
+	get: async ({ get }) => {
+		const rows = await get(rowListAtom)
+		if (rows instanceof Error) throw rows
+		return rows.map((row) => rowKey(row.id))
 	},
 	catch: [Error],
 })
 
 function rowKey(id: string): RowKey {
 	return `row::${id}`
-}
-
-function loadRows(rows: readonly Row[]): readonly RowKey[] {
-	return rows.map(loadRow)
-}
-
-function loadRow(row: Row): RowKey {
-	const key = rowKey(row.id)
-	setState(rowAtoms, key, row)
-	return key
 }

@@ -26,5 +26,6 @@ Loadable reminder for generated code and review:
 - `atomFamily` keyed by route params or query input makes cache identity explicit.
 - `resetState(...)` in a mount effect is suspicious because it usually causes duplicate async work.
 - `resetState(...)` after a mutation, retry, explicit refresh, or test setup is intentional invalidation.
+- Remote defaults fetch full responses; normalize accepted records in a synchronous atom `onSet` effect that skips pending promises and caught errors. Derive keys with selectors and reset the response loadable to refresh.
 
 Short version: Read is hydration. Key is identity. Reset is invalidation.

@@ -3,13 +3,15 @@ import {
 	atomFamily,
 	getState,
 	type Loadable,
+	runTransaction,
 	selectorFamily,
-	setState,
+	transaction,
 } from "atom.io"
 
 import { client, type Row, type RowListView } from "./client.ts"
 
 type RowKey = `row::${string}`
+type RowPage = Awaited<ReturnType<typeof client.rows.listPage>>
 
 type RowIndexView = readonly [
 	pageNumber: RowListView[`offset`],
@@ -25,47 +27,92 @@ export const acquiredRowKeysAtom = atom<readonly RowKey[]>({
 	default: [],
 })
 
-export const rowAtoms = atomFamily<Loadable<Row>, RowKey, Error>({
+// Local entity reads never fetch. The revision stays beside its server snapshot.
+export const rowAtoms = atomFamily<Row | null, RowKey>({
 	key: `row`,
-	default: async (key) => {
-		const id = key.slice(`row::`.length)
-		const row = await client.rows.get({ id })
-		loadRow(row)
-		return row
-	},
-	catch: [Error],
+	default: null,
 })
 
-export const rowIndexViewAtom = atom<RowIndexView>({
-	key: `rowIndexView`,
-	default: () => {
-		void getState(rowKeysForViewAtoms, DEFAULT_ROW_INDEX_VIEW)
-		return DEFAULT_ROW_INDEX_VIEW
+const loadRowsTransaction = transaction<(rows: readonly Row[]) => void>({
+	key: `loadRows`,
+	do: ({ get, set }, rows) => {
+		const acquired = new Set(get(acquiredRowKeysAtom))
+		for (const row of rows) {
+			const key = rowKey(row.id)
+			const current = get(rowAtoms, key)
+			// Different query keys can both be current. The server revision orders
+			// their shared records independently of request or response order.
+			if (current === null || row.revision > current.revision) {
+				set(rowAtoms, key, row)
+			}
+			acquired.add(key)
+		}
+		set(acquiredRowKeysAtom, [...acquired])
 	},
-	effects: [
+})
+
+export const rowResponseAtoms = atomFamily<Loadable<Row>, RowKey, Error>({
+	key: `rowResponse`,
+	default: (key) => client.rows.get({ id: key.slice(`row::`.length) }),
+	catch: [Error],
+	effects: () => [
 		({ onSet }) => {
 			onSet(({ newValue }) => {
-				void getState(rowKeysForViewAtoms, newValue)
+				if (newValue instanceof Promise || newValue instanceof Error) return
+				runTransaction(loadRowsTransaction)([newValue])
 			})
 		},
 	],
 })
 
-export const rowKeysForViewAtoms = atomFamily<
+export const rowPageAtoms = atomFamily<Loadable<RowPage>, RowIndexView, Error>({
+	key: `rowPage`,
+	default: ([pageNumber, pageSize, search, status]) =>
+		client.rows.listPage({
+			offset: pageNumber * pageSize,
+			limit: pageSize,
+			search,
+			status,
+		}),
+	catch: [Error],
+	effects: () => [
+		({ onSet }) => {
+			onSet(({ newValue }) => {
+				if (newValue instanceof Promise || newValue instanceof Error) return
+				runTransaction(loadRowsTransaction)(newValue.rows)
+			})
+		},
+	],
+})
+
+export const rowIndexViewAtom = atom<RowIndexView>({
+	key: `rowIndexView`,
+	default: () => {
+		void getState(rowPageAtoms, DEFAULT_ROW_INDEX_VIEW)
+		return DEFAULT_ROW_INDEX_VIEW
+	},
+	effects: [
+		({ onSet }) => {
+			onSet(({ newValue }) => {
+				void getState(rowPageAtoms, newValue)
+			})
+		},
+	],
+})
+
+export const rowKeysForViewSelectors = selectorFamily<
 	Loadable<readonly RowKey[]>,
 	RowIndexView,
 	Error
 >({
 	key: `rowKeysForView`,
-	default: async ([pageNumber, pageSize, search, status]) => {
-		const result = await client.rows.listPage({
-			offset: pageNumber * pageSize,
-			limit: pageSize,
-			search,
-			status,
-		})
-		return loadRows(result.rows)
-	},
+	get:
+		(view) =>
+		async ({ get }) => {
+			const page = await get(rowPageAtoms, view)
+			if (page instanceof Error) throw page
+			return page.rows.map((row) => rowKey(row.id))
+		},
 	catch: [Error],
 })
 
@@ -77,65 +124,33 @@ export const visibleRowKeysSelectors = selectorFamily<
 	key: `visibleRowKeys`,
 	get:
 		(view) =>
-		({ get }) => {
+		async ({ get }) => {
+			const keysForView = await get(rowKeysForViewSelectors, view)
+			if (keysForView instanceof Error) throw keysForView
 			const [pageNumber, pageSize, search, status] = view
 			const normalizedSearch = search.trim().toLowerCase()
 
-			const deriveVisibleKeys = () =>
-				get(acquiredRowKeysAtom)
-					.filter((key) => {
-						const row = get(rowAtoms, key)
-						if (row instanceof Promise || row instanceof Error) return false
-						if (status !== null && row.status !== status) return false
-						return (
-							normalizedSearch === `` ||
-							row.title.toLowerCase().includes(normalizedSearch)
-						)
-					})
-					.toSorted((a, b) => {
-						const rowA = get(rowAtoms, a)
-						const rowB = get(rowAtoms, b)
-						if (
-							rowA instanceof Promise ||
-							rowB instanceof Promise ||
-							rowA instanceof Error ||
-							rowB instanceof Error
-						) {
-							return 0
-						}
-						return rowB.updatedAt.localeCompare(rowA.updatedAt)
-					})
-					.slice(pageNumber * pageSize, (pageNumber + 1) * pageSize)
-
-			const keysForView = get(rowKeysForViewAtoms, view)
-			return keysForView instanceof Promise
-				? keysForView.then(deriveVisibleKeys)
-				: deriveVisibleKeys()
+			return get(acquiredRowKeysAtom)
+				.filter((key) => {
+					const row = get(rowAtoms, key)
+					if (row === null) return false
+					if (status !== null && row.status !== status) return false
+					return (
+						normalizedSearch === `` ||
+						row.title.toLowerCase().includes(normalizedSearch)
+					)
+				})
+				.toSorted((a, b) => {
+					const rowA = get(rowAtoms, a)
+					const rowB = get(rowAtoms, b)
+					if (rowA === null || rowB === null) return 0
+					return rowB.updatedAt.localeCompare(rowA.updatedAt)
+				})
+				.slice(pageNumber * pageSize, (pageNumber + 1) * pageSize)
 		},
 	catch: [Error],
 })
 
 function rowKey(id: string): RowKey {
 	return `row::${id}`
-}
-
-function loadRows(rows: readonly Row[]): readonly RowKey[] {
-	const keys = rows.map(loadRow)
-	setState(acquiredRowKeysAtom, (previousKeys) => {
-		const seen = new Set(previousKeys)
-		const merged = [...previousKeys]
-		for (const key of keys) {
-			if (seen.has(key)) continue
-			seen.add(key)
-			merged.push(key)
-		}
-		return merged
-	})
-	return keys
-}
-
-function loadRow(row: Row): RowKey {
-	const key = rowKey(row.id)
-	setState(rowAtoms, key, row)
-	return key
 }

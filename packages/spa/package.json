@@ -127,7 +127,7 @@
 		"@types/node": "26.6.6",
 		"@types/three": "0.187.0",
 		"@vitest/coverage-v8": "5.1.0",
-		"astro": "7.4.5",
+		"astro": "7.4.6",
 		"atom.io": "workspace:*",
 		"breakage": "0.10.2",
 		"esbuild": "0.28.2",

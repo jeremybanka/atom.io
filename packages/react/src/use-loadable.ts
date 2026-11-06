@@ -77,11 +77,16 @@ export function useLoadable(
 		value: unknown
 		error?: unknown
 	}>({ loading: false, value: null })
-	const lastLoadedRef = useRef(
-		fallback ?? (value instanceof Promise ? `LOADING` : value),
-	)
+	// State identity includes the store and canonical family member.
+	const lastLoadedRef = useRef(new WeakMap<ReadableState<any, any>, unknown>())
 
-	const { current: lastLoaded } = lastLoadedRef
+	const lastLoaded = lastLoadedRef.current.has(state)
+		? lastLoadedRef.current.get(state)
+		: hasFallback
+			? fallback
+			: value instanceof Promise
+				? `LOADING`
+				: value
 	let { current: wrapper } = wrapperRef
 
 	const wasErr =
@@ -101,7 +106,7 @@ export function useLoadable(
 			wrapper = wrapperRef.current = { loading: true, value: lastLoaded }
 		}
 	} else {
-		lastLoadedRef.current = value
+		lastLoadedRef.current.set(state, value)
 		if (wrapper.loading === true) {
 			if (isErr && hasFallback) {
 				wrapper = wrapperRef.current = {

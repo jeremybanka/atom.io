@@ -169,6 +169,14 @@ The fallback form always returns an object. You do not have to handle the bare
 `"LOADING"` sentinel, because `value` is backed by your fallback until real data arrives.
 The object still includes `loading`, and it can include `error` when a caught load fails.
 
+Retained values belong to the selected state in its store, for the lifetime of the
+hook. Refreshing that state retains its last observed settled value. With a family,
+switching back to a previously observed member retains that member's value while it
+refreshes. Switching keys, family tokens, or stores never borrows another state's
+value. A member with no observed settled value uses the current fallback while
+loading, or returns `"LOADING"` when the fallback is omitted or `undefined`. A `null`
+fallback is supported when permitted by the loaded type.
+
 ### loadable ownership
 
 A component should observe a `Loadable`, not start or reset it on mount.
@@ -203,6 +211,11 @@ fallback form gives you a typed `error?: E` property alongside the fallback-back
 In this example, `value` stays usable as `{ name: string }`, while `error` is available as
 `RequestError | undefined`. That lets your component keep rendering with fallback data
 while still reacting to the handled failure case.
+
+Caught errors are retained for the selected state during retries. With a fallback,
+the hook returns the current fallback in `value` and the caught error in `error`;
+without a fallback, it returns the caught error in `value`. A successful load clears
+the retained error. Switching to another member does not carry that error across.
 
 See [/docs/atom-io#catching](/docs/atom-io#catching-errors) for how to declare that error channel on atoms and selectors.
 

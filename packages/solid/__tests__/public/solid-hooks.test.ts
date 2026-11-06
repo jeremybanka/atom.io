@@ -11,6 +11,7 @@ import {
 	resetState,
 	scopeFamily,
 	selector,
+	selectorFamily,
 	setState,
 	Silo,
 	timeline,
@@ -706,6 +707,82 @@ describe(`timeline (dynamic)`, () => {
 })
 
 describe(`useLoadable`, () => {
+	test.each([false, true])(
+		`keeps retained family values separate when selecting accessors (fallback: %s)`,
+		async (withFallback) => {
+			const loads = new Map<
+				number,
+				ReturnType<typeof Promise.withResolvers<string>>
+			>()
+			const pageAtoms = atomFamily<Loadable<string>, number>({
+				key: `page`,
+				default: (page) => {
+					const load = Promise.withResolvers<string>()
+					loads.set(page, load)
+					return load.promise
+				},
+			})
+			const pageViewSelectors = selectorFamily<Loadable<string>, number>({
+				key: `pageView`,
+				get:
+					(page) =>
+					({ get }) =>
+						get(pageAtoms, page),
+			})
+			let selectPage!: (page: number) => void
+			const { host, dispose } = await mountWithProvider(
+				({ AS, Solid, host }) => {
+					const [selected, select] = Solid.createSignal(1)
+					selectPage = select
+					const a = withFallback
+						? AS.useLoadable(pageViewSelectors, 1, `fallback`)
+						: AS.useLoadable(pageViewSelectors, 1)
+					const b = withFallback
+						? AS.useLoadable(pageViewSelectors, 2, `fallback`)
+						: AS.useLoadable(pageViewSelectors, 2)
+					Solid.createEffect(() => {
+						host.textContent = JSON.stringify(selected() === 1 ? a() : b())
+					})
+				},
+			)
+			try {
+				loads.get(1)!.resolve(`A`)
+				await waitForAsyncState()
+				expect(host.textContent).toBe(
+					JSON.stringify({ loading: false, value: `A` }),
+				)
+
+				selectPage(2)
+				await flush()
+				expect(host.textContent).toBe(
+					JSON.stringify(
+						withFallback ? { loading: true, value: `fallback` } : `LOADING`,
+					),
+				)
+				loads.get(2)!.resolve(`B`)
+				await waitForAsyncState()
+				expect(host.textContent).toBe(
+					JSON.stringify({ loading: false, value: `B` }),
+				)
+
+				resetState(pageAtoms, 1)
+				selectPage(1)
+				await flush()
+				expect(host.textContent).toBe(
+					JSON.stringify({ loading: true, value: `A` }),
+				)
+				loads.get(1)!.resolve(`A refreshed`)
+				await waitForAsyncState()
+				expect(host.textContent).toBe(
+					JSON.stringify({ loading: false, value: `A refreshed` }),
+				)
+			} finally {
+				dispose()
+				host.remove()
+			}
+		},
+	)
+
 	test(`standalone, immediately available without a fallback`, async () => {
 		const letterAtom = atom<Loadable<string>>({
 			key: `letter`,

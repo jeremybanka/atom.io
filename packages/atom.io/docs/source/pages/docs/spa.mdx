@@ -198,7 +198,7 @@ Keys are captured during component setup. To select another member, replace the 
 
 Call useLoadable during setup, then call its accessor inside JSX. Without a fallback, it returns LOADING until it observes a settled value; afterward it returns loading and value, retaining the last observed value during refreshes. With a fallback, it always returns an object and exposes errors declared in the token's catch option through a separate error property. The fallback and error remain visible during retries. Without a fallback, handled errors appear in value. Explicit null and undefined fallbacks are supported when permitted by the token's type.
 
-Readable families take a fixed key as the second argument and an optional fallback as the third. Atom.io owns promise settlement; SPA does not fetch, retry, cancel, or suspend rendering. Server rendering returns the current view immediately without awaiting promises.
+Readable families take a fixed key as the second argument and an optional fallback as the third. Each accessor retains only its own member's last observed settled value. Replacing a keyed component creates a new accessor, which starts with its fallback or LOADING if that member is pending. Atom.io owns promise settlement; SPA does not fetch, retry, cancel, or suspend rendering. Server rendering returns the current view immediately without awaiting promises.
 
 ## debugger
 

@@ -106,24 +106,19 @@ function effectFixture(useVersions = true) {
 		promise: Promise<RemoteDocument[]>
 	}[] = []
 	const hydratedQueries: string[] = []
-	const hydrateDocumentsTransaction = silo.transaction<
-		(documents: readonly RemoteDocument[]) => void
-	>({
-		key: `hydrateDocuments`,
-		do: ({ get, set }, documents) => {
-			for (const document of documents) {
-				const current = get(documentAtoms, document.id)
-				if (
-					useVersions &&
-					current !== null &&
-					document.version <= current.version
-				) {
-					continue
-				}
-				set(documentAtoms, document.id, document)
+	function hydrateDocuments(documents: readonly RemoteDocument[]): void {
+		for (const document of documents) {
+			const current = silo.getState(documentAtoms, document.id)
+			if (
+				useVersions &&
+				current !== null &&
+				document.version <= current.version
+			) {
+				continue
 			}
-		},
-	})
+			silo.setState(documentAtoms, document.id, document)
+		}
+	}
 	const documentResponseAtoms = silo.atomFamily<
 		Loadable<RemoteDocument[]>,
 		string,
@@ -142,7 +137,7 @@ function effectFixture(useVersions = true) {
 					// Observe accepted, resolved state synchronously. Awaiting pending
 					// values here would create additional async continuations to guard.
 					if (newValue instanceof Promise || newValue instanceof Error) return
-					silo.runTransaction(hydrateDocumentsTransaction)(newValue)
+					hydrateDocuments(newValue)
 					hydratedQueries.push(query)
 				})
 			},
@@ -485,33 +480,27 @@ describe(`normalized hydration`, () => {
 					key: `documentVersion`,
 					default: null,
 				})
-				const hydrateFetchableDocumentsTransaction = silo.transaction<
-					(documents: readonly RemoteDocument[]) => void
-				>({
-					key: `hydrateFetchableDocuments`,
-					do: ({ get, set }, documents) => {
-						for (const document of documents) {
-							let currentVersion: number | null
-							if (versionSource === `entity`) {
-								// A comparison read starts the entity's fetch on a cache miss.
-								const current = get(fetchableDocumentAtoms, document.id)
-								currentVersion =
-									current instanceof Promise ? null : current.version
-							} else {
-								currentVersion = get(documentVersionAtoms, document.id)
-							}
-							if (
-								currentVersion !== null &&
-								document.version <= currentVersion
-							) {
-								continue
-							}
-							// Direct writes populate entity atoms without running defaults.
-							set(fetchableDocumentAtoms, document.id, document)
-							set(documentVersionAtoms, document.id, document.version)
+				function hydrateFetchableDocuments(
+					documents: readonly RemoteDocument[],
+				): void {
+					for (const document of documents) {
+						let currentVersion: number | null
+						if (versionSource === `entity`) {
+							// A comparison read starts the entity's fetch on a cache miss.
+							const current = silo.getState(fetchableDocumentAtoms, document.id)
+							currentVersion =
+								current instanceof Promise ? null : current.version
+						} else {
+							currentVersion = silo.getState(documentVersionAtoms, document.id)
 						}
-					},
-				})
+						if (currentVersion !== null && document.version <= currentVersion) {
+							continue
+						}
+						// Direct writes populate entity atoms without running defaults.
+						silo.setState(fetchableDocumentAtoms, document.id, document)
+						silo.setState(documentVersionAtoms, document.id, document.version)
+					}
+				}
 				const documentResponseAtom = silo.atom<Loadable<RemoteDocument[]>>({
 					key: `documentResponse`,
 					default: () => {
@@ -519,9 +508,7 @@ describe(`normalized hydration`, () => {
 						listRequests.push(response)
 						return phase === `loader`
 							? response.promise.then((documents) => {
-									silo.runTransaction(hydrateFetchableDocumentsTransaction)(
-										documents,
-									)
+									hydrateFetchableDocuments(documents)
 									return documents
 								})
 							: response.promise
@@ -530,9 +517,7 @@ describe(`normalized hydration`, () => {
 						({ onSet }) => {
 							onSet(({ newValue }) => {
 								if (phase !== `effect` || newValue instanceof Promise) return
-								silo.runTransaction(hydrateFetchableDocumentsTransaction)(
-									newValue,
-								)
+								hydrateFetchableDocuments(newValue)
 							})
 						},
 					],

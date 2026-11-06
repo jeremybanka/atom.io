@@ -1,11 +1,4 @@
-import {
-	atom,
-	atomFamily,
-	type Loadable,
-	runTransaction,
-	selector,
-	transaction,
-} from "atom.io"
+import { atom, atomFamily, type Loadable, selector, setState } from "atom.io"
 
 import { client, type Row } from "./client.ts"
 
@@ -17,13 +10,6 @@ export const rowAtoms = atomFamily<Loadable<Row>, RowKey, Error>({
 	catch: [Error],
 })
 
-const loadRowsTransaction = transaction<(rows: readonly Row[]) => void>({
-	key: `loadRows`,
-	do: ({ set }, rows) => {
-		for (const row of rows) set(rowAtoms, rowKey(row.id), row)
-	},
-})
-
 export const rowListAtom = atom<Loadable<readonly Row[]>, Error>({
 	key: `rowList`,
 	default: () => client.rows.list(),
@@ -33,7 +19,7 @@ export const rowListAtom = atom<Loadable<readonly Row[]>, Error>({
 			onSet(({ newValue }) => {
 				if (newValue instanceof Promise || newValue instanceof Error) return
 				// Only accepted responses hydrate shared state. Keep this synchronous.
-				runTransaction(loadRowsTransaction)(newValue)
+				for (const row of newValue) setState(rowAtoms, rowKey(row.id), row)
 			})
 		},
 	],

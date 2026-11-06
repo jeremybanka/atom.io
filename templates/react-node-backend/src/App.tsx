@@ -6,10 +6,8 @@ import {
 	disposeState,
 	getState,
 	resetState,
-	runTransaction,
 	selector,
 	setState,
-	transaction,
 } from "atom.io"
 import z from "zod"
 
@@ -46,7 +44,11 @@ const todoListAtom = atom<Loadable<Todo[]>, Error>({
 				if (newValue instanceof Promise || Error.isError(newValue)) return
 				// Synchronous hydration reuses the list records without per-todo GETs.
 				// Superseded responses never reach this resolved-value callback.
-				runTransaction(loadTodosTransaction)(newValue)
+				for (const todo of newValue) setState(todoAtoms, todo.id, todo)
+				setState(
+					todoKeysAtom,
+					newValue.map((todo) => todo.id),
+				)
 			})
 		},
 	],
@@ -71,17 +73,6 @@ const todoAtoms = atomFamily<Loadable<Todo>, number, Error>({
 		return todo
 	},
 	catch: [Error],
-})
-
-const loadTodosTransaction = transaction<(todos: readonly Todo[]) => void>({
-	key: `loadTodos`,
-	do: ({ set }, todos) => {
-		for (const todo of todos) set(todoAtoms, todo.id, todo)
-		set(
-			todoKeysAtom,
-			todos.map((todo) => todo.id),
-		)
-	},
 })
 
 /** This selector computes the total number of todos and the number of done todos. */

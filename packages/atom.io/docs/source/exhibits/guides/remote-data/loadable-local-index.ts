@@ -3,9 +3,8 @@ import {
 	atomFamily,
 	getState,
 	type Loadable,
-	runTransaction,
 	selectorFamily,
-	transaction,
+	setState,
 } from "atom.io"
 
 import { client, type Row, type RowListView } from "./client.ts"
@@ -33,23 +32,20 @@ export const rowAtoms = atomFamily<Row | null, RowKey>({
 	default: null,
 })
 
-const loadRowsTransaction = transaction<(rows: readonly Row[]) => void>({
-	key: `loadRows`,
-	do: ({ get, set }, rows) => {
-		const acquired = new Set(get(acquiredRowKeysAtom))
-		for (const row of rows) {
-			const key = rowKey(row.id)
-			const current = get(rowAtoms, key)
-			// Different query keys can both be current. The server revision orders
-			// their shared records independently of request or response order.
-			if (current === null || row.revision > current.revision) {
-				set(rowAtoms, key, row)
-			}
-			acquired.add(key)
+function loadRows(rows: readonly Row[]): void {
+	const acquired = new Set(getState(acquiredRowKeysAtom))
+	for (const row of rows) {
+		const key = rowKey(row.id)
+		const current = getState(rowAtoms, key)
+		// Different query keys can both be current. The server revision orders
+		// their shared records independently of request or response order.
+		if (current === null || row.revision > current.revision) {
+			setState(rowAtoms, key, row)
 		}
-		set(acquiredRowKeysAtom, [...acquired])
-	},
-})
+		acquired.add(key)
+	}
+	setState(acquiredRowKeysAtom, [...acquired])
+}
 
 export const rowResponseAtoms = atomFamily<Loadable<Row>, RowKey, Error>({
 	key: `rowResponse`,
@@ -59,7 +55,7 @@ export const rowResponseAtoms = atomFamily<Loadable<Row>, RowKey, Error>({
 		({ onSet }) => {
 			onSet(({ newValue }) => {
 				if (newValue instanceof Promise || newValue instanceof Error) return
-				runTransaction(loadRowsTransaction)([newValue])
+				loadRows([newValue])
 			})
 		},
 	],
@@ -79,7 +75,7 @@ export const rowPageAtoms = atomFamily<Loadable<RowPage>, RowIndexView, Error>({
 		({ onSet }) => {
 			onSet(({ newValue }) => {
 				if (newValue instanceof Promise || newValue instanceof Error) return
-				runTransaction(loadRowsTransaction)(newValue.rows)
+				loadRows(newValue.rows)
 			})
 		},
 	],

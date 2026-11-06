@@ -45,8 +45,8 @@ writes those atoms belongs in an **atom effect**.
 Give each part one job:
 
 - The response atom's default fetches and returns the complete server response.
-- A synchronous `onSet` callback handles accepted, resolved responses and runs a
-  hydration transaction that populates the entity atoms.
+- A synchronous `onSet` callback handles accepted, resolved responses and
+  populates the entity atoms with `setState`.
 - A selector derives the acquired keys from the response atom.
 
 <Exhibit src="guides/remote-data/load-remote-rows.ts" />
@@ -67,12 +67,10 @@ loadable accepts it. A superseded response does not produce that resolved
 notification. The effect also receives pending promises and caught errors on
 updates; skip both rather than awaiting a pending value in the callback.
 
-Keep normalization synchronous, including the hydration transaction. In this
-pattern it finishes before consumers of the derived key selector receive the
-resolved keys, so those entity atoms are already populated. Adding an `await`
-inside the effect creates another async continuation whose writes need their
-own validity guard. The response update and hydration transaction are separate
-operations; the transaction batches the entity writes.
+Keep normalization synchronous. In this pattern it finishes before consumers of
+the derived key selector receive the resolved keys, so those entity atoms are
+already populated. Adding an `await` inside the effect creates another async
+continuation whose writes need their own validity guard.
 
 The first read starts the response load, and its accepted result runs the
 effect. Refresh by resetting the response atom:
@@ -148,7 +146,7 @@ mutation. Shared normalization is optional.
 When the application needs one shared entity cache that never replaces a newer
 server snapshot with an older one, define a reconciliation policy. This example
 uses an ordered, server-assigned `revision`. Both list and individual-record
-response effects call the same hydration transaction, which accepts only a newer
+response effects call the same loader function, which accepts only a newer
 revision for each known row. Each query still retains its own response,
 membership, and count even when an older copy of a shared row is skipped.
 
@@ -164,14 +162,14 @@ the application's responsibility.
 <Exhibit src="guides/remote-data/loadable-local-index.ts" />
 
 `rowPageAtoms` caches each full page, including its count. Its effect populates
-`rowAtoms` and updates `acquiredRowKeysAtom` in one transaction.
+`rowAtoms` before updating `acquiredRowKeysAtom` with direct, synchronous writes.
 `rowKeysForViewSelectors` derives membership, while `visibleRowKeysSelectors`
 derives richer views from the acquired local rows.
 
 Local `rowAtoms` have synchronous defaults. The server revision stays beside the
 record, so comparing it adds neither requests nor a separate metadata map. Read
 `rowResponseAtoms` when an individual row must be fetched. Both response families
-share the same reconciliation transaction. The sample server increments a row's
+share the same loader function. The sample server increments a row's
 revision on each saved change; its timestamp is used only for sorting.
 
 ### principles
@@ -183,7 +181,7 @@ revision on each saved change; its timestamp is used only for sorting.
 - Derive visible rows from local atoms when the screen needs local edits,
   optimistic behavior, or instant reuse of acquired records.
 - Keep unsaved drafts separate from server snapshots, or define an explicit
-  edit-conflict policy in the hydration transaction. Record freshness and
+  edit-conflict policy in the loader function. Record freshness and
   protection of unsaved edits are different decisions.
 - Reset the page to `0` when filters or search change. Preserve the current page
   only for changes that do not alter the result set.

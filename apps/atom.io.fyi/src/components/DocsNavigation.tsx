@@ -314,6 +314,14 @@ function SiteDirectory(): VNode {
 					<header>Patterns</header>
 					<main>
 						<section>
+							<a
+								id="-docs-against-use-effect-link"
+								href="/docs/against-use-effect"
+							>
+								you don't need useEffect
+							</a>
+						</section>
+						<section>
 							<a id="-docs-remote-data-link" href="/docs/remote-data">
 								remote data
 							</a>
@@ -349,26 +357,13 @@ function SiteDirectory(): VNode {
 					</main>
 				</section>
 				<section>
-					<header>React</header>
+					<header>Integrations</header>
 					<main>
 						<section>
 							<a id="-docs-react-link" href="/docs/react">
 								<low-emphasis>@atom.io</low-emphasis>/react
 							</a>
 						</section>
-						<section>
-							<a
-								id="-docs-against-use-effect-link"
-								href="/docs/against-use-effect"
-							>
-								against useEffect
-							</a>
-						</section>
-					</main>
-				</section>
-				<section>
-					<header>Other Integrations</header>
-					<main>
 						<section>
 							<a id="-docs-solid-link" href="/docs/solid">
 								<low-emphasis>@atom.io</low-emphasis>/solid

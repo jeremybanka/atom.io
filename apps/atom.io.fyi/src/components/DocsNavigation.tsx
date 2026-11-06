@@ -374,6 +374,21 @@ function SiteDirectory(): VNode {
 								<low-emphasis>@atom.io</low-emphasis>/spa
 							</a>
 						</section>
+						<section>
+							<a id="-docs-spa-motion-link" href="/docs/spa/motion">
+								<low-emphasis>@atom.io/spa</low-emphasis>/motion
+							</a>
+						</section>
+						<section>
+							<a id="-docs-spa-three-link" href="/docs/spa/three">
+								<low-emphasis>@atom.io/spa</low-emphasis>/three
+							</a>
+						</section>
+						<section>
+							<a id="-docs-spa-konva-link" href="/docs/spa/konva">
+								<low-emphasis>@atom.io/spa</low-emphasis>/konva
+							</a>
+						</section>
 					</main>
 				</section>
 				<section>

@@ -1,0 +1,64 @@
+import Exhibit from "c/Exhibit.astro";
+
+# <low-emphasis>@atom.io/spa</low-emphasis><wbr />/motion
+
+Animate SPA elements with Motion. Atom.io holds each animation's destination; Motion manages the intermediate values. A new destination updates the animation without rerunning component setup.
+
+## setup
+
+Complete [SPA setup](/docs/spa#frameworks), then install the optional Motion peer:
+
+<Exhibit src="spa/exhibits/install-motion.sh" />
+
+Register motionCapability on the root that will use animation. The same options work with hydrate:
+
+<Exhibit src="spa/exhibits/motion-basic-main.tsx" />
+
+Registration belongs to this root and its descendants. Importing the entrypoint supplies JSX types; the capability must also be registered at runtime.
+
+## animate a destination
+
+Read an atom's value inside motion:animate. Clicking this button changes the destination between 0 and 200 pixels:
+
+<Exhibit src="spa/exhibits/motion-basic.tsx" />
+
+The default transition is a spring. Retargeting a spring preserves its current value and velocity. Use motion:transition to choose spring settings or a duration-based tween. Let Motion own the styles it animates; avoid writing the same properties through style or native attributes.
+
+## animation properties
+
+<table-wrapper>
+
+| Property | Purpose |
+| -------- | ------- |
+| motion:animate | The current destination values. |
+| motion:initial | Starting values; false starts at the first animate destination. |
+| motion:transition | Spring or tween settings shared by the targets. |
+| motion:whileHover | Temporary destinations while the pointer is over the element. |
+| motion:whileTap | Temporary destinations while the element is pressed. |
+| motion:exit | Destinations to finish before a removed view is disposed. |
+
+</table-wrapper>
+
+DOM targets accept scalar CSS values, custom CSS properties, and independent transforms such as x, rotate, and scale. These framework properties never become HTML attributes. Keyframe sequences, layout animation, and variants are outside this API.
+
+## exit animations
+
+Add motion:exit to a conditionally rendered or keyed view. SPA keeps the removed subtree alive until its exit animations finish; no presence wrapper is required:
+
+<Exhibit src="spa/exhibits/motion-exit.tsx" />
+
+Mount this component under a root with motionCapability registered, as in setup. Returning the same key and component type before disposal cancels the exit and resumes the existing instance from its current animated values. During exit, user interaction and reactive updates pause. Disposing the root releases its resources immediately.
+
+## Astro islands
+
+For an Astro island, register the capability on its exported component. Astro supplies it to both server rendering and browser hydration:
+
+<Exhibit src="spa/exhibits/motion-astro.tsx" />
+
+Import this component into an Astro page and use client:load, as in [Astro setup](/docs/spa#astro-setup). Server rendering omits motion properties and does not start animations.
+
+## reduced motion and cleanup
+
+motionCapability respects the user's reduced-motion preference by default, including changes while mounted. Its reducedMotion option accepts user, always, or never. Reduced motion skips exit retention. SPA stops animations and releases gesture handlers and media-query listeners when their owner is disposed.
+
+The same capability can animate numeric properties and colors in [Konva](/docs/spa/konva), or transforms and material properties in [Three.js](/docs/spa/three). Those engines remain optional. Try the [motion sandbox](/spa-motion-lab) to inspect interrupted animations.

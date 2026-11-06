@@ -190,6 +190,24 @@ const DOC_PAGES: DocPage[] = [
 		url: `/docs/spa`,
 	},
 	{
+		output: `spa-motion.md`,
+		source: `docs/source/pages/docs/spa/motion.mdx`,
+		title: `@atom.io/spa/motion`,
+		url: `/docs/spa/motion`,
+	},
+	{
+		output: `spa-three.md`,
+		source: `docs/source/pages/docs/spa/three.mdx`,
+		title: `@atom.io/spa/three`,
+		url: `/docs/spa/three`,
+	},
+	{
+		output: `spa-konva.md`,
+		source: `docs/source/pages/docs/spa/konva.mdx`,
+		title: `@atom.io/spa/konva`,
+		url: `/docs/spa/konva`,
+	},
+	{
 		output: `atom.io-solid.md`,
 		source: `docs/source/pages/docs/solid.mdx`,
 		title: `@atom.io/solid`,

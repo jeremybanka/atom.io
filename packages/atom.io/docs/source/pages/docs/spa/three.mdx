@@ -1,0 +1,58 @@
+import Exhibit from "c/Exhibit.astro";
+
+# <low-emphasis>@atom.io/spa</low-emphasis><wbr />/three
+
+Build a Three.js scene with SPA components. Atom reads in JSX update the existing scene objects; SPA owns their lifetime.
+
+## setup
+
+Complete [SPA setup](/docs/spa#frameworks), then install Three.js and its TypeScript declarations:
+
+<Exhibit src="spa/exhibits/install-three.sh" />
+
+<Exhibit src="spa/exhibits/install-three-types.sh" />
+
+Import scene components from @atom.io/spa/three. The base SPA entrypoint does not load Three.js.
+
+## a scene
+
+Canvas creates a WebGL renderer after browser mounting. A Mesh combines one geometry child with one material child:
+
+<Exhibit src="spa/exhibits/three.tsx" />
+
+Mount Scene with SPA's [render](/docs/spa#render), or export it as an [Astro island](/docs/spa#astro-setup). With Astro, client:load renders the host container on the server and creates the graphics after browser mounting.
+
+Changing colorAtom updates the existing material. Position and rotation accept three-number tuples; scale accepts a tuple or a single number. Constructor args are fixed for the lifetime of an instance. To use different constructor arguments, replace that resource with a new key.
+
+## scene components
+
+<table-wrapper>
+
+| Components | Purpose |
+| ---------- | ------- |
+| Canvas | Own the DOM surface, scene, renderer, and draw loop. |
+| Group, Mesh | Group scene objects or attach geometry and material. |
+| PerspectiveCamera | Create a camera object in the scene. |
+| AmbientLight, DirectionalLight | Light materials such as MeshStandardMaterial. |
+| BoxGeometry, SphereGeometry, PlaneGeometry | Create an owned geometry. |
+| MeshStandardMaterial, MeshBasicMaterial, MeshNormalMaterial | Create an owned material. |
+
+</table-wrapper>
+
+Canvas uses a perspective camera at z = 5 by default. Its camera prop can borrow an external camera; a PerspectiveCamera child does not automatically become the active camera. Width and height update the renderer and default camera.
+
+Canvas draws continuously. Its onFrame callback receives scene, camera, renderer, delta in seconds, and timestamp in seconds. Controls, asset loading, and drawing on demand are outside this integration.
+
+## pointer events
+
+Meshes and groups accept onClick and pointer down, up, move, enter, leave, over, out, and cancel handlers. Canvas raycasts through the active camera to find the nearest visible object. That object blocks objects behind it, including when it has no handlers.
+
+Events bubble through scene ancestors. Each event exposes nativeEvent, target, currentTarget, intersection, ray, and pointer coordinates. Use stopPropagation to stop ancestor delivery. The event's setPointerCapture, releasePointerCapture, and hasPointerCapture methods manage capture for the handler's object.
+
+Hover is checked each frame, so moving objects and cameras update it even under a stationary pointer. Removing a subtree clears its hover and capture state. The exported createThreeEvents helper supplies the same event layer for borrowed scenes.
+
+## ownership
+
+Refs receive native Three.js objects and null on cleanup. Removing a view disposes its owned geometries and materials. Textures supplied through material properties and external cameras remain borrowed. Removing Canvas stops its draw loop and disposes its renderer.
+
+The exported threeRenderer can render into a borrowed parent dedicated to its children. For declarative animation, register [motionCapability](/docs/spa/motion); it can animate position, rotation, scale, color, opacity, and light intensity. Rotation uses Euler components.

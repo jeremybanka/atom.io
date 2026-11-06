@@ -1,0 +1,45 @@
+import Exhibit from "c/Exhibit.astro";
+
+# <low-emphasis>@atom.io/spa</low-emphasis><wbr />/konva
+
+Build a 2D canvas scene with SPA components and Konva. Atom.io stores the document state, Konva handles drawing and dragging, and SPA connects reactive properties to native nodes.
+
+## setup
+
+Complete [SPA setup](/docs/spa#frameworks), then install the optional Konva peer:
+
+<Exhibit src="spa/exhibits/install-konva.sh" />
+
+Import scene components from @atom.io/spa/konva. The base SPA entrypoint does not load Konva.
+
+## a draggable circle
+
+Stage creates a canvas surface after browser mounting. Put shapes in a Layer and write the final drag position back into an atom:
+
+<Exhibit src="spa/exhibits/konva.tsx" />
+
+Mount Editor with SPA's [render](/docs/spa#render), or export it as an [Astro island](/docs/spa#astro-setup). With Astro, client:load renders the host container on the server and creates the graphics after browser mounting.
+
+The x and y expressions read the same point atom. Updates change the existing circle's native attributes. Konva owns hit testing, dragging, and draw batching; onDragEnd records the resulting position so the application state agrees with the scene.
+
+## scene components
+
+<table-wrapper>
+
+| Components | Purpose |
+| ---------- | ------- |
+| Stage | Own the DOM container and native Konva stage. |
+| Layer, Group | Organize drawing layers and related nodes. |
+| Rect, Circle, Ellipse, Line | Draw basic shapes. |
+| Text, Image, Path, Star | Draw text, images, paths, and stars. |
+| Transformer | Attach Konva's native transform controls. |
+
+</table-wrapper>
+
+Components accept native Konva configuration properties. Handlers include onClick, onPointerDown, onDragMove, and onDragEnd, with native Konva events. Use stable keys for reactive collections to retain each node when its position in the collection changes.
+
+## ownership
+
+Refs receive native Konva nodes and null on cleanup. SPA destroys owned nodes and removes their listeners when the view is removed. Removing Stage releases the stage and its scene subtree.
+
+The exported konvaRenderer can also render into a borrowed container dedicated to its scene children. For declarative animation of numeric attributes and colors, register [motionCapability](/docs/spa/motion) on the SPA root.

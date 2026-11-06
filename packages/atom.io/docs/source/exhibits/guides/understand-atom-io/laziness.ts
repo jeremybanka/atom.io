@@ -1,10 +1,4 @@
-import { atom, selector, Silo } from "atom.io"
-
-const store = new Silo({
-	name: `guide-laziness`,
-	lifespan: `ephemeral`,
-	isProduction: false,
-})
+import { atom, getState, selector, setState } from "atom.io"
 
 const countAtom = atom<number>({
 	key: `count`,
@@ -19,8 +13,8 @@ const doubledSelector = selector<number>({
 	},
 })
 
-store.setState(countAtom, 2)
+setState(countAtom, 2)
 // Still nothing logged. No one has asked for doubledSelector yet.
 
-store.getState(doubledSelector)
+getState(doubledSelector)
 // Logs once and returns 4.

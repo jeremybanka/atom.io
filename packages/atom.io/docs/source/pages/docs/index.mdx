@@ -496,11 +496,18 @@ For query data, fetched data, and RPC (remote procedure call) state that needs
 clearer cache identity or more deliberate normalization, see the
 [remote data guide](/docs/remote-data). It covers compact query atoms, loading
 and suspense-like async patterns, loadable families keyed by input, and
-local-index patterns for filtered or optimistic list screens.
+local-index patterns for filtered or optimistic list screens. Normalize accepted
+responses in synchronous atom effects so superseded loads cannot hydrate shared
+state from inside an obsolete async default or getter.
 
 <Exhibit src="core/advanced/async/avoid-race-between-promises.ts" />
 
 If we update an async state more quickly than its promises resolve, only the last resolved value will be set into the state. All previous results will be discarded.
+
+This protection covers the loadable's published value. An obsolete async
+function can still continue and perform explicit writes to other atoms. For
+normalizing remote records, return the full response from a loadable atom and
+hydrate entity atoms in its synchronous `onSet` effect after acceptance.
 
 ### catching errors
 

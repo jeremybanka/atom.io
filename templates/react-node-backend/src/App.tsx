@@ -21,32 +21,37 @@ const todoSchema = z.object({
 })
 type Todo = z.infer<typeof todoSchema>
 
-/**
- * This atom tells us what todos exist.
- *
- * `Loadable` means that the value of this atom may be a `Promise` sometimes.
- *
- * `useLoadable` from `"@atom.io/react"` makes this easy to use in components.
- */
-const todoKeysAtom = atom<Loadable<number[]>, Error>({
+/** Local membership also supports optimistic additions and deletions. */
+const todoKeysAtom = atom<number[]>({
 	key: `todoKeys`,
+	default: [],
+})
+
+/** Fetch a full response; normalize only after this loadable accepts it. */
+const todoListAtom = atom<Loadable<Todo[]>, Error>({
+	key: `todoList`,
 	default: async () => {
 		const url = new URL(`/todos`, SERVER_URL)
 		const response = await fetch(url, { credentials: `include` })
 		if (!response.ok) throw new Error(response.status.toString())
 		const json = await response.json()
-		const todos = todoSchema.array().parse(json)
-
-		/*
-			🚀	Performance hack!
-					We can make our client less chatty by pre-populating our todo atoms.
-					Comment out this line and watch the network tab to see the difference.
-		*/
-		for (const todo of todos) setState(todoAtoms, todo.id, todo)
-
-		return todos.map((todo) => todo.id)
+		return todoSchema.array().parse(json)
 	},
 	catch: [Error],
+	effects: [
+		({ onSet }) => {
+			onSet(({ newValue }) => {
+				if (newValue instanceof Promise || Error.isError(newValue)) return
+				// Synchronous hydration reuses the list records without per-todo GETs.
+				// Superseded responses never reach this resolved-value callback.
+				for (const todo of newValue) setState(todoAtoms, todo.id, todo)
+				setState(
+					todoKeysAtom,
+					newValue.map((todo) => todo.id),
+				)
+			})
+		},
+	],
 })
 
 /**
@@ -79,8 +84,9 @@ const todosStatsSelector = selector<
 >({
 	key: `todosStats`,
 	get: async ({ get }) => {
-		const todoKeys = await get(todoKeysAtom)
-		if (Error.isError(todoKeys)) return { total: 0, done: 0 }
+		const response = await get(todoListAtom)
+		if (Error.isError(response)) return { total: 0, done: 0 }
+		const todoKeys = get(todoKeysAtom)
 		const total = todoKeys.length
 		const todos = await Promise.all(todoKeys.map((id) => get(todoAtoms, id)))
 		const done = todos.filter((todo) => !Error.isError(todo) && todo.done).length
@@ -94,11 +100,7 @@ async function addTodo() {
 	const url = new URL(`todos`, SERVER_URL)
 	const tempId = Math.random()
 	setState(todoAtoms, tempId, { id: tempId, text, done: 0 })
-	setState(todoKeysAtom, async (loadable) => {
-		const prev = await loadable
-		if (Error.isError(prev)) return prev
-		return [...prev, tempId]
-	})
+	setState(todoKeysAtom, (prev) => [...prev, tempId])
 	const res = await fetch(url, {
 		method: `POST`,
 		credentials: `include`,
@@ -108,23 +110,16 @@ async function addTodo() {
 	const todo = await res.json()
 	const realId = todo.id
 	setState(todoAtoms, realId, todo)
-	setState(todoKeysAtom, async (loadable) => {
-		const prev = await loadable
-		if (Error.isError(prev)) return prev
-		return prev.map((id) => (id === tempId ? realId : id))
-	})
+	setState(todoKeysAtom, (prev) =>
+		prev.map((id) => (id === tempId ? realId : id)),
+	)
 }
 
 async function deleteTodo(todoKey: number) {
-	const todoKeys = await getState(todoKeysAtom)
-	if (Error.isError(todoKeys)) return
+	const todoKeys = getState(todoKeysAtom)
 	const todoToDelete = todoKeys.find((key) => key === todoKey)
 	if (todoToDelete === undefined) return
-	setState(todoKeysAtom, async (loadable) => {
-		const prev = await loadable
-		if (Error.isError(prev)) return prev
-		return prev.filter((id) => id !== todoToDelete)
-	})
+	setState(todoKeysAtom, (prev) => prev.filter((id) => id !== todoToDelete))
 	disposeState(todoAtoms, todoToDelete)
 	const url = new URL(`/todos`, SERVER_URL)
 	url.searchParams.set(`id`, todoToDelete.toString())
@@ -155,11 +150,14 @@ const SKELETON_KEYS = Array.from({ length: 5 }).map(Math.random)
 for (const KEY of SKELETON_KEYS) setState(todoAtoms, KEY, TODO_FALLBACK)
 
 export function App(): React.JSX.Element {
-	const todoKeys = useLoadable(todoKeysAtom, SKELETON_KEYS)
+	const todoList = useLoadable(todoListAtom, [])
+	const todoKeys = useO(todoKeysAtom)
+	const visibleKeys =
+		todoList.loading && todoKeys.length === 0 ? SKELETON_KEYS : todoKeys
 	const stats = useLoadable(todosStatsSelector, { total: 0, done: 0 })
 	return (
 		<>
-			{todoKeys.error ? (
+			{todoList.error ? (
 				<article className="takeover">
 					<main className="card">
 						<h1>Signed Out</h1>
@@ -177,9 +175,9 @@ export function App(): React.JSX.Element {
 			<header>
 				<LongLoadTimes />
 				<span className="spacer" />
-				{todoKeys.error ? (
+				{todoList.error ? (
 					<div className="pfp signed-out" />
-				) : todoKeys.loading ? (
+				) : todoList.loading ? (
 					<div className="pfp loading" />
 				) : (
 					<>
@@ -198,12 +196,20 @@ export function App(): React.JSX.Element {
 			<main>
 				<header>
 					<h1>todo list</h1>
+					<button
+						type="button"
+						onClick={() => {
+							resetState(todoListAtom)
+						}}
+					>
+						Refresh
+					</button>
 					<span>
 						{stats.value.done}/{stats.value.total} items done
 					</span>
 				</header>
 				<main>
-					{todoKeys.value.map((todoKey) => (
+					{visibleKeys.map((todoKey) => (
 						<Todo key={todoKey} todoKey={todoKey} />
 					))}
 					<NewTodo />

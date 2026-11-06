@@ -39,20 +39,62 @@ Guidance:
 ## loader functions
 
 When a query returns a broad aggregate but the app renders or edits narrow
-pieces independently, normalize the response into smaller atoms.
+pieces independently, normalize the response into smaller atoms. The loader that
+writes those atoms belongs in an **atom effect**.
 
-Use a loader function to:
+Give each part one job:
 
-- derive stable entity keys from server ids
-- pre-populate loadable record atom family members
-- write editable or frequently read fields into narrower atoms when useful
-- return only the acquired keys for the key-list atom's own value
+- The response atom's default fetches and returns the complete server response.
+- A synchronous `onSet` callback handles accepted, resolved responses and
+  populates the entity atoms with `setState`.
+- A selector derives the acquired keys from the response atom.
 
 <Exhibit src="guides/remote-data/load-remote-rows.ts" />
 
 Keep aggregate server records close to the server contract. Mirror fields into
 narrower atoms only when the app benefits from independent observation or
 updates.
+
+### why hydration belongs in an effect
+
+Stale-result protection applies to the value published by a loadable. Replacing
+its pending promise does not stop the superseded async function from continuing.
+Explicit writes inside an async default or selector getter can therefore run
+before the library discards that function's obsolete return value.
+
+The response atom's `onSet` callback receives the resolved value after the
+loadable accepts it. A superseded response does not produce that resolved
+notification. The effect also receives pending promises and caught errors on
+updates; skip both rather than awaiting a pending value in the callback.
+
+Keep normalization synchronous. In this pattern it finishes before consumers of
+the derived key selector receive the resolved keys, so those entity atoms are
+already populated. Adding an `await` inside the effect creates another async
+continuation whose writes need their own validity guard.
+
+The first read starts the response load, and its accepted result runs the
+effect. Refresh by resetting the response atom:
+
+<Exhibit src="guides/remote-data/refresh-remote-rows.ts" />
+
+Calling refresh repeatedly while earlier requests are pending starts replacement
+requests. Only the accepted response hydrates entities, regardless of whether
+the superseded requests finish before or after it. No new load-scoped commit API
+or application request counter is needed for this pattern.
+
+### request counts
+
+The effect reuses the records from the list response. Directly setting each
+entity supplies its value without running its default, so the example makes one
+list request per load or refresh and no per-record requests for those records.
+Reading the response or derived keys from multiple consumers reuses that cache
+entry.
+
+Be careful with comparison reads: reading an uninitialized entity whose default
+fetches starts a per-record request. A version or dirty-state check that reads
+every entity before hydration can turn one list request into one list request
+plus a request for each new entity. The local-index example below keeps local
+entities in synchronous atoms, so comparison reads never fetch.
 
 ## local indices
 
@@ -69,16 +111,17 @@ participating in the reactive graph after hydration.
 Recommended pieces:
 
 - one typed view atom containing page, page size, sort, search, and filters
-- one `Loadable` key-list atom or atom family keyed by the whole view
-- loader functions that hydrate local row atom families before returning keys
+- one response `Loadable` atom family keyed by the whole view
+- synchronous atom effects that hydrate local row atom families and indices
+- selector families that derive the response's keys
 - an explicit acquired-key index when selectors need to derive from local rows
 - selector families that derive visible rows from local atoms
 - count or page metadata atoms keyed by the same filters as the row query
 
-The loadable key-list state is the hydration trigger. It does not have to be the
-only list source of truth.
+The response loadable is the hydration trigger. Its acquired keys can participate
+in a richer local index after loading.
 
-In the example below, `rowIndexViewAtom` reads the key-list family member for its
+In the example below, `rowIndexViewAtom` reads the response family member for its
 default view, then reads the matching family member again whenever the view changes.
 Those reads are deliberate: reading a `Loadable` family member starts the load and gives
 the rest of the graph a stable cache entry to observe.
@@ -89,22 +132,57 @@ search, and status tuple finds the same family member. Plain objects are intenti
 not canonical keys: property order and extra runtime properties can make object-shaped
 cache keys ambiguous.
 
+### overlapping queries and shared entities
+
+Effects prevent hydration from superseded loads of the same response atom. Two
+different query keys, or a list query and an individual-record query, can both
+have accepted responses containing the same entity. Acceptance alone does not
+establish which copy of that record is newer.
+
+If each screen can own its query snapshot, keep the full responses in separate
+loadables and derive views directly. Invalidate the affected queries after a
+mutation. Shared normalization is optional.
+
+When the application needs one shared entity cache that never replaces a newer
+server snapshot with an older one, define a reconciliation policy. This example
+uses an ordered, server-assigned `revision`. Both list and individual-record
+response effects call the same loader function, which accepts only a newer
+revision for each known row. Each query still retains its own response,
+membership, and count even when an older copy of a shared row is skipped.
+
+Request start order, response arrival order, and a client-side counter cannot
+establish server record freshness. An ordered server revision is useful for
+independent writers; ordinary repeated refresh of one response atom needs only
+the accepted-result effect. Without revisions, choose an explicit authority
+rule for shared entities or keep query snapshots separate. This policy remains
+the application's responsibility.
+
 ### example
 
 <Exhibit src="guides/remote-data/loadable-local-index.ts" />
 
-The loadable family returns only the keys for that view. The loader pre-populates
-`rowAtoms` and updates `acquiredRowKeysAtom` so selectors can derive richer local
-views without re-fetching each row.
+`rowPageAtoms` caches each full page, including its count. Its effect populates
+`rowAtoms` before updating `acquiredRowKeysAtom` with direct, synchronous writes.
+`rowKeysForViewSelectors` derives membership, while `visibleRowKeysSelectors`
+derives richer views from the acquired local rows.
+
+Local `rowAtoms` have synchronous defaults. The server revision stays beside the
+record, so comparing it adds neither requests nor a separate metadata map. Read
+`rowResponseAtoms` when an individual row must be fetched. Both response families
+share the same loader function. The sample server increments a row's
+revision on each saved change; its timestamp is used only for sorting.
 
 ### principles
 
-- Key the key-list family by the whole view so every filtered page has a stable
+- Key the response family by the whole view so every filtered page has a stable
   loadable cache entry.
 - Let the UI update the view atom. The UI should not know which row atoms reload
   or how the local index is maintained.
 - Derive visible rows from local atoms when the screen needs local edits,
   optimistic behavior, or instant reuse of acquired records.
+- Keep unsaved drafts separate from server snapshots, or define an explicit
+  edit-conflict policy in the loader function. Record freshness and
+  protection of unsaved edits are different decisions.
 - Reset the page to `0` when filters or search change. Preserve the current page
   only for changes that do not alter the result set.
 - Counts and pagination metadata must use the same filters as the row query.
@@ -112,7 +190,7 @@ views without re-fetching each row.
 - After a mutation succeeds, deliberately update optimistic local state, then
   reset the smallest affected loadable when the remote owns part of the truth,
   such as ids, timestamps, counts, or normalized row shapes. For a one-row field
-  update, reset that row atom. Reset key indexes or query family members only
+  update, reset that row's response atom. Reset query family members only
   when membership, ordering, filters, or counts may have changed.
 
 ### refresh and invalidation
@@ -145,6 +223,11 @@ Optimistic writes can keep the interface responsive, but resetting the affected
 row asks the remote for its canonical result.
 
 <Exhibit src="guides/remote-data/reset-after-mutation.ts" />
+
+That compact example uses a row atom with a fetching default. In the local-index
+example, reset `rowResponseAtoms` for the row instead: resetting the synchronous
+local `rowAtoms` would only clear the local value. Reset `rowPageAtoms` for an
+affected view when membership, ordering, or counts need to be refreshed.
 
 ## example contract
 

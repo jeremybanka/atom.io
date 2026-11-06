@@ -50,6 +50,9 @@ const REALTIME_EXHIBITS_ROOT = path.join(
 	`packages/realtime/docs/source/exhibits`,
 )
 function exhibitRoot(source: string): string {
+	if (source.startsWith(`spa-astro-ssr/`)) {
+		return path.join(WORKSPACE_ROOT, `templates`)
+	}
 	if (
 		source.startsWith(`spa/exhibits/`) ||
 		source.startsWith(`spa-devtools/exhibits/`)
@@ -188,6 +191,18 @@ const DOC_PAGES: DocPage[] = [
 		source: `docs/source/pages/docs/spa.mdx`,
 		title: `spa`,
 		url: `/docs/spa`,
+	},
+	{
+		output: `spa-astro.md`,
+		source: `docs/source/pages/docs/spa/astro.mdx`,
+		title: `@atom.io/spa/astro`,
+		url: `/docs/spa/astro`,
+	},
+	{
+		output: `spa-vite.md`,
+		source: `docs/source/pages/docs/spa/vite.mdx`,
+		title: `@atom.io/spa/vite`,
+		url: `/docs/spa/vite`,
 	},
 	{
 		output: `spa-motion.md`,

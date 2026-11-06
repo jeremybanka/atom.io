@@ -375,6 +375,16 @@ function SiteDirectory(): VNode {
 							</a>
 						</section>
 						<section>
+							<a id="-docs-spa-astro-link" href="/docs/spa/astro">
+								<low-emphasis>@atom.io/spa</low-emphasis>/astro
+							</a>
+						</section>
+						<section>
+							<a id="-docs-spa-vite-link" href="/docs/spa/vite">
+								<low-emphasis>@atom.io/spa</low-emphasis>/vite
+							</a>
+						</section>
+						<section>
 							<a id="-docs-spa-motion-link" href="/docs/spa/motion">
 								<low-emphasis>@atom.io/spa</low-emphasis>/motion
 							</a>

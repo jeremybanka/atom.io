@@ -171,7 +171,9 @@
 				"$TURBO_DEFAULT$",
 				"$TURBO_ROOT$/scripts/**",
 				"$TURBO_ROOT$/packages/spa/exhibits/**",
-				"$TURBO_ROOT$/packages/spa-devtools/exhibits/**"
+				"$TURBO_ROOT$/packages/spa-devtools/exhibits/**",
+				"$TURBO_ROOT$/templates/spa-astro-ssr/src/**",
+				"$TURBO_ROOT$/templates/spa-astro-ssr/exhibits/**"
 			]
 		}
 	}

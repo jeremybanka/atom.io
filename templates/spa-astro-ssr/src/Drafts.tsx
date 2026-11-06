@@ -59,4 +59,6 @@ export default function Drafts(props: { id: string }): VNode {
 	)
 }
 
+// @exhibit-region start preparation
 Drafts.prepareStore = prepareDrafts
+// @exhibit-region end preparation

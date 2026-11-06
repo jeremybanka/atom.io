@@ -1,0 +1,73 @@
+import Exhibit from "c/Exhibit.astro";
+
+# <low-emphasis>@atom.io/spa</low-emphasis><wbr />/astro
+
+Use SPA components as Astro islands. This integration installs the [JSX compiler](/docs/spa/vite), renders island HTML on the server, hydrates scheduled islands in the browser, and releases their resources on unmount.
+
+## setup
+
+The [SPA + Astro SSR template](https://github.com/jeremybanka/atom.io/tree/main/templates/spa-astro-ssr) includes the integration and a working [resumability](#resumability) setup:
+
+<Exhibit src="spa/exhibits/create-astro-template.sh" />
+
+For a project built from scratch, install [SPA and atom.io](/docs/spa#build-from-scratch) alongside Astro:
+
+<Exhibit src="spa/exhibits/install-astro.sh" />
+
+Register the integration in astro.config.ts:
+
+<Exhibit src="spa/exhibits/astro.config.ts" />
+
+Use Astro's TypeScript configuration with SPA's JSX types:
+
+<Exhibit src="spa/exhibits/astro.tsconfig.json" label="tsconfig.json" />
+
+The integration compiles ordinary .tsx and .jsx components by default. The optional include RegExp can restrict compilation to SPA directories when an application uses another JSX renderer too.
+
+## an interactive island
+
+Create Counter.tsx:
+
+<Exhibit src="spa/exhibits/Counter.tsx" />
+
+Import it into an Astro page and add client:load:
+
+<Exhibit src="spa/exhibits/counter-page.astro" />
+
+Astro renders the initial HTML, then hydrates the counter in the browser. It handles SPA's render and hydrate entrypoints for you. Other client directives, including client:idle, client:visible, and client:only, use Astro's scheduling. Put browser-only work in [onMount](/docs/spa#onmount).
+
+## state and navigation
+
+Keep atom and selector definitions at module scope. Default islands share atom.io's implicit store in the browser, while each server request receives a separate store. Server work must use the selected request store through SPA hooks or store-aware atom.io operations.
+
+Untouched initial islands hydrate matching server HTML. After browser state changes, delayed islands mount against the live store. New islands introduced by ClientRouter navigation also use live values, preserving existing edits. Persisted islands retain their DOM and subscriptions.
+
+The integration does not serialize an entire store. Initial values must agree between server and browser; use serialized props or resumability for server-produced data. A component's isolate flag opts into a private store, and createStore can supply a custom store. prepareStore can initialize the selected store asynchronously before the component renders.
+
+## resumability
+
+Hydration attaches a view to server-rendered HTML. Resumability supplies the data used to produce that HTML, so initial browser reads can reuse it without repeating server work. SPA still hydrates the view and attaches its event handlers.
+
+The recommended template already registers resumability/astro before SPA. The following excerpts come directly from that starter.
+
+Define resumable values inside module-scoped atom defaults. The template reads drafts from SQLite on the server and uses tRPC for later browser refreshes:
+
+<Exhibit src="spa-astro-ssr/src/model.ts" />
+
+resumability removes the inline server closure and its dynamic imports from the browser build. Stable keys associate each browser default with the server's result.
+
+Render islands inside a deferred Resumption child so server rendering starts within its data collection. The wrapper emits a JSON sidecar before the island HTML:
+
+<Exhibit src="spa-astro-ssr/exhibits/resumption-page.astro" />
+
+Before rendering, the template prepares the island's selected store and awaits its initial reads. In the browser, the application resource context shares one resumption scope across islands and activates it whenever the store evaluates an atom default:
+
+<Exhibit src="spa-astro-ssr/src/prepare-drafts.ts" />
+
+Register that preparation function on the island component:
+
+<Exhibit src="spa-astro-ssr/src/Drafts.tsx#preparation" />
+
+The first browser read consumes the server value. Explicit refreshes run the client producer. The application keeps its resumption scope across ClientRouter navigation and adds incoming sidecars without reseeding values already consumed. application.canResume prevents fresh mounts after edits or navigation from restoring stale initial data.
+
+Preparation uses the request lifetime on the server and the application lifetime in the browser. Removing an island releases its view; shared resources end with the application. The sidecar is public JSON in the page. See the [starter README](https://github.com/jeremybanka/atom.io/tree/main/templates/spa-astro-ssr#readme) for the complete app, caching behavior, and production commands.

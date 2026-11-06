@@ -1,0 +1,6 @@
+---
+import Resumption from "resumability/Resumption.astro"
+import Drafts from "../src/Drafts.tsx"
+---
+
+<Resumption>{() => <Drafts id="editor" client:load />}</Resumption>

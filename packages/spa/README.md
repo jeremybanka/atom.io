@@ -6,6 +6,19 @@ An experimental JSX framework whose state engine is atom.io. Components run once
 
 The npm package is named @atom.io/spa. Its browser runtime, Vite compiler, server renderer, and Astro integration are implemented here. It has no independent state primitive, effect API, React hook dispatcher, or compatibility layer.
 
+## Start with the Astro template
+
+Use the [SPA + Astro SSR template](https://github.com/jeremybanka/atom.io/tree/main/templates/spa-astro-ssr) for a ready-to-run application with Astro islands, resumable initial data, SQLite, and tRPC:
+
+```sh
+npm create atom.io@latest my-spa -- --templateName=spa-astro-ssr --packageManager=npm
+cd my-spa
+npm run dev
+
+```
+
+For manual setup, see the [Astro](https://atom.io.fyi/docs/spa/astro) and [Vite](https://atom.io.fyi/docs/spa/vite) integration guides on atom.io.fyi.
+
 ## A point, not two signals
 
 ```tsx
@@ -147,7 +160,7 @@ render(() => <Counter />, document.getElementById(`app`)!)
 
 The development plugin keeps SPA and atom.io outside dependency prebundling so renderer entrypoints, component hooks, and stores share one runtime, including Astro adapter environments. It uses full page reloads. Components and render computations are synchronous. Modern browsers with ES2022 and DOM Range support are the target.
 
-## Component API
+## Hooks
 
 | API                           | Contract                                                                                                                 |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------ |

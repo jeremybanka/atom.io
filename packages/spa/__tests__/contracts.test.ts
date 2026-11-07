@@ -111,6 +111,7 @@ it(`filters Vite inputs, resets global regexes, and reloads matching documents`,
 			updateConfig = vi.fn()
 		;(adapter.hooks[`astro:config:setup`] as Function)({
 			addRenderer,
+			config: { integrations: [] },
 			addMiddleware: vi.fn(),
 			injectScript: vi.fn(),
 			updateConfig,

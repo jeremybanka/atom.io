@@ -314,14 +314,6 @@ function SiteDirectory(): VNode {
 					<header>Patterns</header>
 					<main>
 						<section>
-							<a
-								id="-docs-against-use-effect-link"
-								href="/docs/against-use-effect"
-							>
-								you don't need useEffect
-							</a>
-						</section>
-						<section>
 							<a id="-docs-remote-data-link" href="/docs/remote-data">
 								remote data
 							</a>
@@ -329,6 +321,14 @@ function SiteDirectory(): VNode {
 						<section>
 							<a id="-docs-typesafe-router-link" href="/docs/typesafe-router">
 								typesafe router
+							</a>
+						</section>
+						<section>
+							<a
+								id="-docs-against-use-effect-link"
+								href="/docs/against-use-effect"
+							>
+								you don't need useEffect
 							</a>
 						</section>
 					</main>

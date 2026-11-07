@@ -1,6 +1,6 @@
 ---
 import Resumption from "resumability/Resumption.astro"
-import Drafts from "../src/Drafts.tsx"
+import Inventory from "../src/Inventory.tsx"
 ---
 
-<Resumption>{() => <Drafts id="editor" client:load />}</Resumption>
+<Resumption>{() => <Inventory id="stock-count" client:load />}</Resumption>

@@ -10,7 +10,7 @@ import {
 
 import { browserApplication } from "./astro-application.ts"
 import { failPreparation, storeContext } from "./astro-context.ts"
-import type { Island } from "./astro-shared.ts"
+import type { AstroStorePreparation, Island } from "./astro-shared.ts"
 import { island, islandStore } from "./astro-shared.ts"
 import { onCleanup, useGetter } from "./core.ts"
 import { hydrate, render } from "./dom.ts"
@@ -36,7 +36,9 @@ type State = { props: Props; slots: Slots }
 const states = new WeakMap<RootStore, RegularAtomFamilyToken<State, number>>()
 let serial = 0
 
-export default (element: HTMLElement): Hydrator =>
+export const createHydrator =
+	(prepare?: AstroStorePreparation) =>
+	(element: HTMLElement): Hydrator =>
 	async (component, props, slots, { client }) => {
 		const previous = roots.get(element)
 		if (previous?.component === component) {
@@ -73,6 +75,7 @@ export default (element: HTMLElement): Hydrator =>
 						props,
 						lifetime.context,
 						shared ? IMPLICIT.STORE : undefined,
+						prepare,
 					),
 					lifetime.cancelled,
 				])
@@ -135,3 +138,5 @@ export default (element: HTMLElement): Hydrator =>
 		lifetime.context.onCleanup(dispose)
 		return ready
 	}
+
+export default createHydrator()

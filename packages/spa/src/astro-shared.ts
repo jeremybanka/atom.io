@@ -46,6 +46,7 @@ export async function islandStore(
 	props: Record<string, any>,
 	context: AstroStoreContext,
 	shared?: RootStore,
+	prepare?: AstroStorePreparation,
 ): Promise<RootStore> {
 	const store = await (component.createStore?.(props, context) ??
 		shared ??
@@ -53,6 +54,8 @@ export async function islandStore(
 			{ name: `spa-island`, lifespan: `ephemeral`, isProduction: true },
 			IMPLICIT.STORE,
 		) as RootStore))
+	context.signal.throwIfAborted()
+	await prepare?.(store, props, context)
 	context.signal.throwIfAborted()
 	await component.prepareStore?.(store, props, context)
 	context.signal.throwIfAborted()

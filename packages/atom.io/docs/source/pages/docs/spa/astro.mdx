@@ -48,26 +48,32 @@ The integration does not serialize an entire store. Initial values must agree be
 
 Hydration attaches a view to server-rendered HTML. Resumability supplies the data used to produce that HTML, so initial browser reads can reuse it without repeating server work. SPA still hydrates the view and attaches its event handlers.
 
-The recommended template already registers resumability/astro before SPA. The following excerpts come directly from that starter.
+### define the state
 
-Define resumable values inside module-scoped atom defaults. The template reads drafts from SQLite on the server and uses tRPC for later browser refreshes:
+The recommended template is a stock-counting workspace. Products arrive from SQLite, staff edit quantities in shared views, and a save action persists each count. Its module-scoped atoms live in state.ts:
 
-<Exhibit src="spa-astro-ssr/src/model.ts" />
+<Exhibit src="spa-astro-ssr/src/state.ts" />
 
-resumability removes the inline server closure and its dynamic imports from the browser build. Stable keys associate each browser default with the server's result.
+Each default has a server producer and a browser producer. resumability removes the inline server closure and its dynamic imports from the browser build. Stable keys associate browser defaults with the server's results; the browser uses tRPC for later reads.
 
-Render islands inside a deferred Resumption child so server rendering starts within its data collection. The wrapper emits a JSON sidecar before the island HTML:
+### render the island
+
+Register both resumability/astro and SPA, as the template already does. SPA automatically connects atom defaults to the resumption scope and waits for async state read during server rendering. Components need no preparation function or list of values to preload.
+
+Render the island inside a deferred Resumption child so its server rendering starts within the data collection scope:
 
 <Exhibit src="spa-astro-ssr/exhibits/resumption-page.astro" />
 
-Before rendering, the template prepares the island's selected store and awaits its initial reads. In the browser, the application resource context shares one resumption scope across islands and activates it whenever the store evaluates an atom default:
+The wrapper emits a JSON sidecar before the island HTML. The first browser read consumes the corresponding server value, letting the view hydrate without another database request. Keep the sidecar and HTML together when caching the response. Sidecar data is public browser-visible JSON.
 
-<Exhibit src="spa-astro-ssr/src/prepare-drafts.ts" />
+### refresh and save
 
-Register that preparation function on the island component:
+Resetting a product atom evaluates its default again. Its initial value has already been consumed, so the client producer fetches the current row through tRPC. Saving sends the edited quantity and its database revision; a competing save produces a conflict so one count cannot silently overwrite another.
 
-<Exhibit src="spa-astro-ssr/src/Drafts.tsx#preparation" />
+The [template's Inventory component](https://github.com/jeremybanka/atom.io/blob/main/templates/spa-astro-ssr/src/Inventory.tsx) includes both actions. Both views immediately reflect edits, reloads, and successful saves through the shared atom.io store.
 
-The first browser read consumes the server value. Explicit refreshes run the client producer. The application keeps its resumption scope across ClientRouter navigation and adds incoming sidecars without reseeding values already consumed. application.canResume prevents fresh mounts after edits or navigation from restoring stale initial data.
+### navigate with live state
 
-Preparation uses the request lifetime on the server and the application lifetime in the browser. Removing an island releases its view; shared resources end with the application. The sidecar is public JSON in the page. See the [starter README](https://github.com/jeremybanka/atom.io/tree/main/templates/spa-astro-ssr#readme) for the complete app, caching behavior, and production commands.
+SPA keeps the browser store and resumption scope across ClientRouter navigation. Incoming sidecars cannot reseed values already consumed. After edits or navigation, fresh islands render live values instead of restoring the initial server snapshot. A full page load starts a new application.
+
+Each server request owns its store until its response finishes streaming. Removing a browser island releases its view; shared resources end with the application. See the [starter README](https://github.com/jeremybanka/atom.io/tree/main/templates/spa-astro-ssr#readme) for the complete app, caching behavior, and production commands.

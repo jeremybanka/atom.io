@@ -18,6 +18,7 @@ export default function integration(
 		name: `spa`,
 		hooks: {
 			"astro:config:setup"({
+				config,
 				addRenderer,
 				addMiddleware,
 				injectScript,
@@ -31,10 +32,17 @@ export default function integration(
 					`page`,
 					`import { browserApplication } from '@atom.io/spa/astro-application'; browserApplication(document);`,
 				)
+				const resumable = config.integrations.some(
+					({ name }) => name === `resumability`,
+				)
 				addRenderer({
 					name: `spa`,
-					clientEntrypoint: `@atom.io/spa/astro-client`,
-					serverEntrypoint: `@atom.io/spa/astro-server`,
+					clientEntrypoint: resumable
+						? `@atom.io/spa/astro-resumability-client`
+						: `@atom.io/spa/astro-client`,
+					serverEntrypoint: resumable
+						? `@atom.io/spa/astro-resumability-server`
+						: `@atom.io/spa/astro-server`,
 				})
 				updateConfig({
 					vite: {

@@ -89,7 +89,7 @@
 		"socket.io": "4.8.4",
 		"socket.io-client": "4.8.4",
 		"solid-js": "1.9.18",
-		"tsdown": "0.23.5",
+		"tsdown": "0.23.7",
 		"typescript": "7.0.2",
 		"vitest": "5.1.0",
 		"zod": "4.6.7"

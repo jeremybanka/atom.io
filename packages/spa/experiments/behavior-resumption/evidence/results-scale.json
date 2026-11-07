@@ -1,0 +1,4139 @@
+[
+	{
+		"variant": "spa-eager",
+		"scenario": "store-12",
+		"profile": "slow4g",
+		"rep": 0,
+		"startup": {
+			"fcp": 268,
+			"load": 508.5,
+			"dcl": 508.39999999990687,
+			"ready": 507.10000000009313,
+			"setups": 13,
+			"resumed": null,
+			"hydrate": 54.5,
+			"htmlEncoded": 919,
+			"resources": [
+				{
+					"url": "spa/client.js",
+					"bytes": 14120,
+					"transfer": 14420,
+					"duration": 229.5
+				}
+			],
+			"longtasks": [
+				{
+					"start": 451,
+					"duration": 59
+				}
+			],
+			"now": 976.2999999998137,
+			"metrics": {
+				"Timestamp": 3401.781967,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 14,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 1334,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 5,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 1,
+				"RecalcStyleCount": 2,
+				"LayoutDuration": 0.01338,
+				"RecalcStyleDuration": 0.007766,
+				"DevToolsCommandDuration": 0.019376,
+				"ScriptDuration": 0.057917,
+				"V8CompileDuration": 0,
+				"TaskDuration": 0.165177,
+				"TaskOtherDuration": 0.066738,
+				"ThreadTime": 0.716861,
+				"ProcessTime": 1.05,
+				"JSHeapUsedSize": 1837428,
+				"JSHeapTotalSize": 4718592,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3401.301689,
+				"NavigationStart": 3400.794531
+			}
+		},
+		"activation": null,
+		"first": {
+			"fcp": 268,
+			"load": 508.5,
+			"dcl": 508.39999999990687,
+			"ready": 507.10000000009313,
+			"setups": 13,
+			"resumed": null,
+			"hydrate": 54.5,
+			"htmlEncoded": 919,
+			"resources": [
+				{
+					"url": "spa/client.js",
+					"bytes": 14120,
+					"transfer": 14420,
+					"duration": 229.5
+				}
+			],
+			"longtasks": [
+				{
+					"start": 451,
+					"duration": 59
+				}
+			],
+			"now": 1313.3999999999069,
+			"metrics": {
+				"Timestamp": 3402.110631,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 40,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 1335,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 8,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 2,
+				"RecalcStyleCount": 5,
+				"LayoutDuration": 0.015069,
+				"RecalcStyleDuration": 0.009481,
+				"DevToolsCommandDuration": 0.187585,
+				"ScriptDuration": 0.06811,
+				"V8CompileDuration": 0,
+				"TaskDuration": 0.454475,
+				"TaskOtherDuration": 0.17423,
+				"ThreadTime": 1.025169,
+				"ProcessTime": 1.55,
+				"JSHeapUsedSize": 3470596,
+				"JSHeapTotalSize": 5906432,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3401.301689,
+				"NavigationStart": 3400.794531
+			},
+			"click": {
+				"dom": 6.300000000279397,
+				"paint": 14.700000000186265
+			}
+		},
+		"warm": [
+			{
+				"dom": 1.6999999997206032,
+				"paint": 23.299999999813735
+			},
+			{
+				"dom": 0.19999999972060323,
+				"paint": 19.299999999813735
+			},
+			{
+				"dom": 2.3999999999068677,
+				"paint": 20.100000000093132
+			},
+			{
+				"dom": 2.3000000002793968,
+				"paint": 23
+			},
+			{
+				"dom": 1.400000000372529,
+				"paint": 21.700000000186265
+			}
+		],
+		"denseMs": 45.700000000186265,
+		"end": {
+			"fcp": 268,
+			"load": 508.5,
+			"dcl": 508.39999999990687,
+			"ready": 507.10000000009313,
+			"setups": 13,
+			"resumed": null,
+			"hydrate": 54.5,
+			"htmlEncoded": 919,
+			"resources": [
+				{
+					"url": "spa/client.js",
+					"bytes": 14120,
+					"transfer": 14420,
+					"duration": 229.5
+				}
+			],
+			"longtasks": [
+				{
+					"start": 451,
+					"duration": 59
+				}
+			],
+			"now": 1691.1000000000931,
+			"metrics": {
+				"Timestamp": 3402.488067,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 40,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 1335,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 13,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 8,
+				"RecalcStyleCount": 15,
+				"LayoutDuration": 0.026712,
+				"RecalcStyleDuration": 0.014751,
+				"DevToolsCommandDuration": 0.260692,
+				"ScriptDuration": 0.084427,
+				"V8CompileDuration": 0,
+				"TaskDuration": 0.614447,
+				"TaskOtherDuration": 0.227865,
+				"ThreadTime": 1.375857,
+				"ProcessTime": 1.96,
+				"JSHeapUsedSize": 3982604,
+				"JSHeapTotalSize": 6430720,
+				"FirstMeaningfulPaint": 3401.061373,
+				"DomContentLoaded": 3401.301689,
+				"NavigationStart": 3400.794531
+			},
+			"allQuantitiesCorrect": true,
+			"cart": "18",
+			"quantity0": "7"
+		},
+		"errors": [],
+		"browser": "153.0.8010.0"
+	},
+	{
+		"variant": "resume-cold",
+		"scenario": "store-12",
+		"profile": "slow4g",
+		"rep": 0,
+		"startup": {
+			"fcp": 268,
+			"load": 225.79999999981374,
+			"dcl": 222.59999999962747,
+			"setups": 0,
+			"resumed": null,
+			"hydrate": null,
+			"htmlEncoded": 1525,
+			"resources": [],
+			"longtasks": [],
+			"now": 756.8999999999069,
+			"metrics": {
+				"Timestamp": 3403.344647,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 3,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 731,
+				"Resources": 0,
+				"ContextLifecycleStateObservers": 5,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 1,
+				"RecalcStyleCount": 2,
+				"LayoutDuration": 0.012287,
+				"RecalcStyleDuration": 0.00344,
+				"DevToolsCommandDuration": 0.026701,
+				"ScriptDuration": 0.000034,
+				"V8CompileDuration": 0.000133,
+				"TaskDuration": 0.103864,
+				"TaskOtherDuration": 0.061269,
+				"ThreadTime": 0.519579,
+				"ProcessTime": 0.84,
+				"JSHeapUsedSize": 1627376,
+				"JSHeapTotalSize": 2621440,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3402.802803,
+				"NavigationStart": 3402.580138
+			}
+		},
+		"activation": null,
+		"first": {
+			"fcp": 268,
+			"load": 225.79999999981374,
+			"dcl": 222.59999999962747,
+			"setups": 0,
+			"resumed": {
+				"stores": 1,
+				"cells": 2,
+				"bindings": 2,
+				"handlerCalls": 1,
+				"domWrites": 2
+			},
+			"hydrate": null,
+			"htmlEncoded": 1525,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 214
+				}
+			],
+			"longtasks": [],
+			"now": 1170,
+			"metrics": {
+				"Timestamp": 3403.753089,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 29,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 735,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 8,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 2,
+				"RecalcStyleCount": 5,
+				"LayoutDuration": 0.012511,
+				"RecalcStyleDuration": 0.004099,
+				"DevToolsCommandDuration": 0.156553,
+				"ScriptDuration": 0.010647,
+				"V8CompileDuration": 0.000133,
+				"TaskDuration": 0.316661,
+				"TaskOtherDuration": 0.132718,
+				"ThreadTime": 0.894828,
+				"ProcessTime": 1.26,
+				"JSHeapUsedSize": 2992984,
+				"JSHeapTotalSize": 5644288,
+				"FirstMeaningfulPaint": 3402.846316,
+				"DomContentLoaded": 3402.802803,
+				"NavigationStart": 3402.580138
+			},
+			"click": {
+				"dom": 234.39999999990687,
+				"paint": 246.89999999990687
+			}
+		},
+		"warm": [
+			{
+				"dom": 1.3999999999068677,
+				"paint": 22.199999999720603
+			},
+			{
+				"dom": 1.3999999999068677,
+				"paint": 24
+			},
+			{
+				"dom": 1.599999999627471,
+				"paint": 22.59999999962747
+			},
+			{
+				"dom": 1.7999999998137355,
+				"paint": 23.199999999720603
+			},
+			{
+				"dom": 2,
+				"paint": 23
+			}
+		],
+		"denseMs": 47.10000000009313,
+		"end": {
+			"fcp": 268,
+			"load": 225.79999999981374,
+			"dcl": 222.59999999962747,
+			"setups": 0,
+			"resumed": {
+				"stores": 1,
+				"cells": 13,
+				"bindings": 13,
+				"handlerCalls": 18,
+				"domWrites": 36
+			},
+			"hydrate": null,
+			"htmlEncoded": 1525,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 214
+				}
+			],
+			"longtasks": [],
+			"now": 1638,
+			"metrics": {
+				"Timestamp": 3404.221545,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 29,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 735,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 13,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 8,
+				"RecalcStyleCount": 15,
+				"LayoutDuration": 0.024169,
+				"RecalcStyleDuration": 0.010036,
+				"DevToolsCommandDuration": 0.222036,
+				"ScriptDuration": 0.020279,
+				"V8CompileDuration": 0.000133,
+				"TaskDuration": 0.539412,
+				"TaskOtherDuration": 0.262759,
+				"ThreadTime": 1.301053,
+				"ProcessTime": 1.88,
+				"JSHeapUsedSize": 3351796,
+				"JSHeapTotalSize": 5906432,
+				"FirstMeaningfulPaint": 3402.846316,
+				"DomContentLoaded": 3402.802803,
+				"NavigationStart": 3402.580138
+			},
+			"allQuantitiesCorrect": true,
+			"cart": "18",
+			"quantity0": "7"
+		},
+		"errors": [],
+		"browser": "153.0.8010.0"
+	},
+	{
+		"variant": "resume-preload",
+		"scenario": "store-12",
+		"profile": "slow4g",
+		"rep": 0,
+		"startup": {
+			"fcp": 264,
+			"load": 219.70000000018626,
+			"dcl": 216.8000000002794,
+			"setups": 0,
+			"resumed": null,
+			"hydrate": null,
+			"htmlEncoded": 1550,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 215.5
+				}
+			],
+			"longtasks": [],
+			"now": 922.3999999999069,
+			"metrics": {
+				"Timestamp": 3405.238778,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 3,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 732,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 5,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 1,
+				"RecalcStyleCount": 2,
+				"LayoutDuration": 0.012599,
+				"RecalcStyleDuration": 0.003084,
+				"DevToolsCommandDuration": 0.017966,
+				"ScriptDuration": 0.000022,
+				"V8CompileDuration": 0.001195,
+				"TaskDuration": 0.098798,
+				"TaskOtherDuration": 0.063932,
+				"ThreadTime": 0.660708,
+				"ProcessTime": 0.99,
+				"JSHeapUsedSize": 1216152,
+				"JSHeapTotalSize": 3407872,
+				"FirstMeaningfulPaint": 3404.567122,
+				"DomContentLoaded": 3404.523196,
+				"NavigationStart": 3404.306837
+			}
+		},
+		"activation": null,
+		"first": {
+			"fcp": 264,
+			"load": 219.70000000018626,
+			"dcl": 216.8000000002794,
+			"setups": 0,
+			"resumed": {
+				"stores": 1,
+				"cells": 2,
+				"bindings": 2,
+				"handlerCalls": 1,
+				"domWrites": 2
+			},
+			"hydrate": null,
+			"htmlEncoded": 1550,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 215.5
+				}
+			],
+			"longtasks": [],
+			"now": 1128.7000000001863,
+			"metrics": {
+				"Timestamp": 3405.437548,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 29,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 736,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 8,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 2,
+				"RecalcStyleCount": 5,
+				"LayoutDuration": 0.014622,
+				"RecalcStyleDuration": 0.00459,
+				"DevToolsCommandDuration": 0.142199,
+				"ScriptDuration": 0.005422,
+				"V8CompileDuration": 0.001195,
+				"TaskDuration": 0.269571,
+				"TaskOtherDuration": 0.101543,
+				"ThreadTime": 0.856544,
+				"ProcessTime": 1.22,
+				"JSHeapUsedSize": 2820188,
+				"JSHeapTotalSize": 6168576,
+				"FirstMeaningfulPaint": 3404.567122,
+				"DomContentLoaded": 3404.523196,
+				"NavigationStart": 3404.306837
+			},
+			"click": {
+				"dom": 17.90000000037253,
+				"paint": 29.700000000186265
+			}
+		},
+		"warm": [
+			{
+				"dom": 2.2000000001862645,
+				"paint": 91.89999999990687
+			},
+			{
+				"dom": 1.599999999627471,
+				"paint": 26.299999999813735
+			},
+			{
+				"dom": 2.1000000000931323,
+				"paint": 21.600000000093132
+			},
+			{
+				"dom": 1.6000000000931323,
+				"paint": 19.399999999906868
+			},
+			{
+				"dom": 1.1999999997206032,
+				"paint": 22.5
+			}
+		],
+		"denseMs": 31.899999999906868,
+		"end": {
+			"fcp": 264,
+			"load": 219.70000000018626,
+			"dcl": 216.8000000002794,
+			"setups": 0,
+			"resumed": {
+				"stores": 1,
+				"cells": 13,
+				"bindings": 13,
+				"handlerCalls": 18,
+				"domWrites": 36
+			},
+			"hydrate": null,
+			"htmlEncoded": 1550,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 215.5
+				}
+			],
+			"longtasks": [],
+			"now": 1561.8000000002794,
+			"metrics": {
+				"Timestamp": 3405.87163,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 29,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 736,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 13,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 8,
+				"RecalcStyleCount": 15,
+				"LayoutDuration": 0.026074,
+				"RecalcStyleDuration": 0.006357,
+				"DevToolsCommandDuration": 0.204413,
+				"ScriptDuration": 0.015049,
+				"V8CompileDuration": 0.001195,
+				"TaskDuration": 0.492571,
+				"TaskOtherDuration": 0.239483,
+				"ThreadTime": 1.244838,
+				"ProcessTime": 1.83,
+				"JSHeapUsedSize": 3402680,
+				"JSHeapTotalSize": 6168576,
+				"FirstMeaningfulPaint": 3404.567122,
+				"DomContentLoaded": 3404.523196,
+				"NavigationStart": 3404.306837
+			},
+			"allQuantitiesCorrect": true,
+			"cart": "18",
+			"quantity0": "7"
+		},
+		"errors": [],
+		"browser": "153.0.8010.0"
+	},
+	{
+		"variant": "spa-eager",
+		"scenario": "store-1000",
+		"profile": "slow4g",
+		"rep": 0,
+		"startup": {
+			"fcp": 400,
+			"load": 1743.9000000003725,
+			"dcl": 1742.1000000000931,
+			"ready": 1741,
+			"setups": 1001,
+			"resumed": null,
+			"hydrate": 745.3999999999069,
+			"htmlEncoded": 13024,
+			"resources": [
+				{
+					"url": "spa/client.js",
+					"bytes": 14120,
+					"transfer": 14420,
+					"duration": 230
+				}
+			],
+			"longtasks": [
+				{
+					"start": 213.90000000037253,
+					"duration": 160
+				},
+				{
+					"start": 994.6000000000931,
+					"duration": 777
+				}
+			],
+			"now": 1876.9000000003725,
+			"metrics": {
+				"Timestamp": 3407.855991,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 1002,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 98158,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 5,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 7,
+				"RecalcStyleCount": 8,
+				"LayoutDuration": 0.271575,
+				"RecalcStyleDuration": 0.072343,
+				"DevToolsCommandDuration": 0.015795,
+				"ScriptDuration": 0.748344,
+				"V8CompileDuration": 0,
+				"TaskDuration": 1.4843,
+				"TaskOtherDuration": 0.376243,
+				"ThreadTime": 1.661735,
+				"ProcessTime": 2.33,
+				"JSHeapUsedSize": 20659488,
+				"JSHeapTotalSize": 40370176,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3407.711397,
+				"NavigationStart": 3405.970338
+			}
+		},
+		"activation": null,
+		"first": {
+			"fcp": 400,
+			"load": 1743.9000000003725,
+			"dcl": 1742.1000000000931,
+			"ready": 1741,
+			"setups": 1001,
+			"resumed": null,
+			"hydrate": 745.3999999999069,
+			"htmlEncoded": 13024,
+			"resources": [
+				{
+					"url": "spa/client.js",
+					"bytes": 14120,
+					"transfer": 14420,
+					"duration": 230
+				}
+			],
+			"longtasks": [
+				{
+					"start": 213.90000000037253,
+					"duration": 160
+				},
+				{
+					"start": 994.6000000000931,
+					"duration": 777
+				}
+			],
+			"now": 2147.2000000001863,
+			"metrics": {
+				"Timestamp": 3408.119024,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 1028,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 98159,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 8,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 8,
+				"RecalcStyleCount": 11,
+				"LayoutDuration": 0.283342,
+				"RecalcStyleDuration": 0.073614,
+				"DevToolsCommandDuration": 0.170235,
+				"ScriptDuration": 0.758875,
+				"V8CompileDuration": 0,
+				"TaskDuration": 1.717332,
+				"TaskOtherDuration": 0.431266,
+				"ThreadTime": 1.920136,
+				"ProcessTime": 2.63,
+				"JSHeapUsedSize": 22473672,
+				"JSHeapTotalSize": 41033728,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3407.711397,
+				"NavigationStart": 3405.970338
+			},
+			"click": {
+				"dom": 7,
+				"paint": 41.10000000009313
+			}
+		},
+		"warm": [
+			{
+				"dom": 5.2999999998137355,
+				"paint": 33.700000000186265
+			},
+			{
+				"dom": 3,
+				"paint": 29.600000000093132
+			},
+			{
+				"dom": 0.5,
+				"paint": 29.700000000186265
+			},
+			{
+				"dom": 2.1000000000931323,
+				"paint": 25.899999999906868
+			},
+			{
+				"dom": 1.7000000001862645,
+				"paint": 27.399999999906868
+			}
+		],
+		"denseMs": 370.29999999981374,
+		"end": {
+			"fcp": 400,
+			"load": 1743.9000000003725,
+			"dcl": 1742.1000000000931,
+			"ready": 1741,
+			"setups": 1001,
+			"resumed": null,
+			"hydrate": 745.3999999999069,
+			"htmlEncoded": 13024,
+			"resources": [
+				{
+					"url": "spa/client.js",
+					"bytes": 14120,
+					"transfer": 14420,
+					"duration": 230
+				}
+			],
+			"longtasks": [
+				{
+					"start": 213.90000000037253,
+					"duration": 160
+				},
+				{
+					"start": 994.6000000000931,
+					"duration": 777
+				},
+				{
+					"start": 2660.4000000003725,
+					"duration": 176
+				}
+			],
+			"now": 3033.8000000002794,
+			"metrics": {
+				"Timestamp": 3409.005423,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 1028,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 98159,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 13,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 14,
+				"RecalcStyleCount": 21,
+				"LayoutDuration": 0.453916,
+				"RecalcStyleDuration": 0.07885,
+				"DevToolsCommandDuration": 0.366878,
+				"ScriptDuration": 0.925134,
+				"V8CompileDuration": 0,
+				"TaskDuration": 2.432354,
+				"TaskOtherDuration": 0.607576,
+				"ThreadTime": 2.78345,
+				"ProcessTime": 3.68,
+				"JSHeapUsedSize": 27443364,
+				"JSHeapTotalSize": 46276608,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3407.711397,
+				"NavigationStart": 3405.970338
+			},
+			"allQuantitiesCorrect": true,
+			"cart": "1006",
+			"quantity0": "7"
+		},
+		"errors": [],
+		"browser": "153.0.8010.0"
+	},
+	{
+		"variant": "resume-cold",
+		"scenario": "store-1000",
+		"profile": "slow4g",
+		"rep": 0,
+		"startup": {
+			"fcp": 324,
+			"load": 840.6000000000931,
+			"dcl": 833.3999999999069,
+			"setups": 0,
+			"resumed": null,
+			"hydrate": null,
+			"htmlEncoded": 26079,
+			"resources": [],
+			"longtasks": [
+				{
+					"start": 224.10000000009313,
+					"duration": 78
+				}
+			],
+			"now": 893.8000000002794,
+			"metrics": {
+				"Timestamp": 3410.06016,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 3,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 53095,
+				"Resources": 0,
+				"ContextLifecycleStateObservers": 5,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 9,
+				"RecalcStyleCount": 10,
+				"LayoutDuration": 0.250289,
+				"RecalcStyleDuration": 0.084427,
+				"DevToolsCommandDuration": 0.014072,
+				"ScriptDuration": 0.000639,
+				"V8CompileDuration": 0.000093,
+				"TaskDuration": 0.733832,
+				"TaskOtherDuration": 0.384312,
+				"ThreadTime": 0.739394,
+				"ProcessTime": 1.06,
+				"JSHeapUsedSize": 1207108,
+				"JSHeapTotalSize": 3145728,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3409.986449,
+				"NavigationStart": 3409.153945
+			}
+		},
+		"activation": null,
+		"first": {
+			"fcp": 324,
+			"load": 840.6000000000931,
+			"dcl": 833.3999999999069,
+			"setups": 0,
+			"resumed": {
+				"stores": 1,
+				"cells": 2,
+				"bindings": 2,
+				"handlerCalls": 1,
+				"domWrites": 2
+			},
+			"hydrate": null,
+			"htmlEncoded": 26079,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 217.20000000018626
+				}
+			],
+			"longtasks": [
+				{
+					"start": 224.10000000009313,
+					"duration": 78
+				}
+			],
+			"now": 1380,
+			"metrics": {
+				"Timestamp": 3410.536687,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 29,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 53099,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 8,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 10,
+				"RecalcStyleCount": 13,
+				"LayoutDuration": 0.259945,
+				"RecalcStyleDuration": 0.084556,
+				"DevToolsCommandDuration": 0.205422,
+				"ScriptDuration": 0.014157,
+				"V8CompileDuration": 0.000093,
+				"TaskDuration": 1.135862,
+				"TaskOtherDuration": 0.571689,
+				"ThreadTime": 1.188531,
+				"ProcessTime": 1.83,
+				"JSHeapUsedSize": 2937040,
+				"JSHeapTotalSize": 5906432,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3409.986449,
+				"NavigationStart": 3409.153945
+			},
+			"click": {
+				"dom": 241.5,
+				"paint": 274.8000000002794
+			}
+		},
+		"warm": [
+			{
+				"dom": 1.8999999999068677,
+				"paint": 32
+			},
+			{
+				"dom": 1.6999999997206032,
+				"paint": 31
+			},
+			{
+				"dom": 1.3999999999068677,
+				"paint": 28.800000000279397
+			},
+			{
+				"dom": 3,
+				"paint": 30.200000000186265
+			},
+			{
+				"dom": 1,
+				"paint": 25.100000000093132
+			}
+		],
+		"denseMs": 403.40000000037253,
+		"end": {
+			"fcp": 324,
+			"load": 840.6000000000931,
+			"dcl": 833.3999999999069,
+			"setups": 0,
+			"resumed": {
+				"stores": 1,
+				"cells": 1001,
+				"bindings": 1001,
+				"handlerCalls": 1006,
+				"domWrites": 2012
+			},
+			"hydrate": null,
+			"htmlEncoded": 26079,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 217.20000000018626
+				}
+			],
+			"longtasks": [
+				{
+					"start": 224.10000000009313,
+					"duration": 78
+				},
+				{
+					"start": 1890.8000000002794,
+					"duration": 196
+				}
+			],
+			"now": 2297.600000000093,
+			"metrics": {
+				"Timestamp": 3411.45531,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 29,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 53099,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 13,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 16,
+				"RecalcStyleCount": 23,
+				"LayoutDuration": 0.44655,
+				"RecalcStyleDuration": 0.088681,
+				"DevToolsCommandDuration": 0.547032,
+				"ScriptDuration": 0.040808,
+				"V8CompileDuration": 0.000093,
+				"TaskDuration": 1.86431,
+				"TaskOtherDuration": 0.741146,
+				"ThreadTime": 2.081691,
+				"ProcessTime": 2.85,
+				"JSHeapUsedSize": 4383144,
+				"JSHeapTotalSize": 9314304,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3409.986449,
+				"NavigationStart": 3409.153945
+			},
+			"allQuantitiesCorrect": true,
+			"cart": "1006",
+			"quantity0": "7"
+		},
+		"errors": [],
+		"browser": "153.0.8010.0"
+	},
+	{
+		"variant": "resume-preload",
+		"scenario": "store-1000",
+		"profile": "slow4g",
+		"rep": 0,
+		"startup": {
+			"fcp": 324,
+			"load": 848.5,
+			"dcl": 839.7000000001863,
+			"setups": 0,
+			"resumed": null,
+			"hydrate": null,
+			"htmlEncoded": 26119,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 212.5
+				}
+			],
+			"longtasks": [
+				{
+					"start": 230.20000000018626,
+					"duration": 69
+				}
+			],
+			"now": 963.8999999999069,
+			"metrics": {
+				"Timestamp": 3412.563344,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 3,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 53096,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 5,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 12,
+				"RecalcStyleCount": 13,
+				"LayoutDuration": 0.254814,
+				"RecalcStyleDuration": 0.079223,
+				"DevToolsCommandDuration": 0.013539,
+				"ScriptDuration": 0.003108,
+				"V8CompileDuration": 0.000092,
+				"TaskDuration": 0.738752,
+				"TaskOtherDuration": 0.387976,
+				"ThreadTime": 0.799189,
+				"ProcessTime": 1.14,
+				"JSHeapUsedSize": 1232716,
+				"JSHeapTotalSize": 3407872,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3412.429485,
+				"NavigationStart": 3411.58988
+			}
+		},
+		"activation": null,
+		"first": {
+			"fcp": 324,
+			"load": 848.5,
+			"dcl": 839.7000000001863,
+			"setups": 0,
+			"resumed": {
+				"stores": 1,
+				"cells": 2,
+				"bindings": 2,
+				"handlerCalls": 1,
+				"domWrites": 2
+			},
+			"hydrate": null,
+			"htmlEncoded": 26119,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 212.5
+				}
+			],
+			"longtasks": [
+				{
+					"start": 230.20000000018626,
+					"duration": 69
+				}
+			],
+			"now": 1362.6000000000931,
+			"metrics": {
+				"Timestamp": 3412.955664,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 29,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 53100,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 8,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 13,
+				"RecalcStyleCount": 16,
+				"LayoutDuration": 0.265104,
+				"RecalcStyleDuration": 0.079342,
+				"DevToolsCommandDuration": 0.173494,
+				"ScriptDuration": 0.011846,
+				"V8CompileDuration": 0.000092,
+				"TaskDuration": 1.099843,
+				"TaskOtherDuration": 0.569965,
+				"ThreadTime": 1.159773,
+				"ProcessTime": 1.81,
+				"JSHeapUsedSize": 2941592,
+				"JSHeapTotalSize": 5644288,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3412.429485,
+				"NavigationStart": 3411.58988
+			},
+			"click": {
+				"dom": 23.5,
+				"paint": 160.6999999997206
+			}
+		},
+		"warm": [
+			{
+				"dom": 1.7000000001862645,
+				"paint": 27.399999999906868
+			},
+			{
+				"dom": 1.099999999627471,
+				"paint": 29.199999999720603
+			},
+			{
+				"dom": 1.6000000000931323,
+				"paint": 28.200000000186265
+			},
+			{
+				"dom": 2,
+				"paint": 36.1999999997206
+			},
+			{
+				"dom": 0.6999999997206032,
+				"paint": 30.199999999720603
+			}
+		],
+		"denseMs": 440.39999999990687,
+		"end": {
+			"fcp": 324,
+			"load": 848.5,
+			"dcl": 839.7000000001863,
+			"setups": 0,
+			"resumed": {
+				"stores": 1,
+				"cells": 1001,
+				"bindings": 1001,
+				"handlerCalls": 1006,
+				"domWrites": 2012
+			},
+			"hydrate": null,
+			"htmlEncoded": 26119,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 212.5
+				}
+			],
+			"longtasks": [
+				{
+					"start": 230.20000000018626,
+					"duration": 69
+				},
+				{
+					"start": 1883.7000000001863,
+					"duration": 225
+				}
+			],
+			"now": 2326.5,
+			"metrics": {
+				"Timestamp": 3413.918732,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 29,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 53100,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 13,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 19,
+				"RecalcStyleCount": 26,
+				"LayoutDuration": 0.450872,
+				"RecalcStyleDuration": 0.084257,
+				"DevToolsCommandDuration": 0.549684,
+				"ScriptDuration": 0.042396,
+				"V8CompileDuration": 0.000092,
+				"TaskDuration": 1.869424,
+				"TaskOtherDuration": 0.742123,
+				"ThreadTime": 2.096805,
+				"ProcessTime": 2.87,
+				"JSHeapUsedSize": 4355284,
+				"JSHeapTotalSize": 9576448,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3412.429485,
+				"NavigationStart": 3411.58988
+			},
+			"allQuantitiesCorrect": true,
+			"cart": "1006",
+			"quantity0": "7"
+		},
+		"errors": [],
+		"browser": "153.0.8010.0"
+	},
+	{
+		"variant": "resume-preload",
+		"scenario": "store-12",
+		"profile": "slow4g",
+		"rep": 1,
+		"startup": {
+			"fcp": 256,
+			"load": 211.60000000009313,
+			"dcl": 209,
+			"setups": 0,
+			"resumed": null,
+			"hydrate": null,
+			"htmlEncoded": 1550,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 210.10000000009313
+				}
+			],
+			"longtasks": [],
+			"now": 911.3999999999069,
+			"metrics": {
+				"Timestamp": 3414.978231,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 3,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 732,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 5,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 1,
+				"RecalcStyleCount": 2,
+				"LayoutDuration": 0.012733,
+				"RecalcStyleDuration": 0.002551,
+				"DevToolsCommandDuration": 0.014068,
+				"ScriptDuration": 0.000026,
+				"V8CompileDuration": 0.00009,
+				"TaskDuration": 0.091086,
+				"TaskOtherDuration": 0.061618,
+				"ThreadTime": 0.647643,
+				"ProcessTime": 0.96,
+				"JSHeapUsedSize": 1229960,
+				"JSHeapTotalSize": 3407872,
+				"FirstMeaningfulPaint": 3414.310109,
+				"DomContentLoaded": 3414.266505,
+				"NavigationStart": 3414.057427
+			}
+		},
+		"activation": null,
+		"first": {
+			"fcp": 256,
+			"load": 211.60000000009313,
+			"dcl": 209,
+			"setups": 0,
+			"resumed": {
+				"stores": 1,
+				"cells": 2,
+				"bindings": 2,
+				"handlerCalls": 1,
+				"domWrites": 2
+			},
+			"hydrate": null,
+			"htmlEncoded": 1550,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 210.10000000009313
+				}
+			],
+			"longtasks": [],
+			"now": 1115.7000000001863,
+			"metrics": {
+				"Timestamp": 3415.177475,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 29,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 736,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 8,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 2,
+				"RecalcStyleCount": 5,
+				"LayoutDuration": 0.01448,
+				"RecalcStyleDuration": 0.003043,
+				"DevToolsCommandDuration": 0.137511,
+				"ScriptDuration": 0.006838,
+				"V8CompileDuration": 0.00009,
+				"TaskDuration": 0.261712,
+				"TaskOtherDuration": 0.09975,
+				"ThreadTime": 0.843094,
+				"ProcessTime": 1.18,
+				"JSHeapUsedSize": 2843468,
+				"JSHeapTotalSize": 6168576,
+				"FirstMeaningfulPaint": 3414.310109,
+				"DomContentLoaded": 3414.266505,
+				"NavigationStart": 3414.057427
+			},
+			"click": {
+				"dom": 20.800000000279397,
+				"paint": 32
+			}
+		},
+		"warm": [
+			{
+				"dom": 1.7000000001862645,
+				"paint": 99
+			},
+			{
+				"dom": 1.3999999999068677,
+				"paint": 25.799999999813735
+			},
+			{
+				"dom": 1.2999999998137355,
+				"paint": 24.199999999720603
+			},
+			{
+				"dom": 1.8000000002793968,
+				"paint": 25
+			},
+			{
+				"dom": 1.1000000000931323,
+				"paint": 25.799999999813735
+			}
+		],
+		"denseMs": 49.200000000186265,
+		"end": {
+			"fcp": 256,
+			"load": 211.60000000009313,
+			"dcl": 209,
+			"setups": 0,
+			"resumed": {
+				"stores": 1,
+				"cells": 13,
+				"bindings": 13,
+				"handlerCalls": 18,
+				"domWrites": 36
+			},
+			"hydrate": null,
+			"htmlEncoded": 1550,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 210.10000000009313
+				}
+			],
+			"longtasks": [],
+			"now": 1561.5,
+			"metrics": {
+				"Timestamp": 3415.62083,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 29,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 736,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 13,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 8,
+				"RecalcStyleCount": 15,
+				"LayoutDuration": 0.02414,
+				"RecalcStyleDuration": 0.005391,
+				"DevToolsCommandDuration": 0.190424,
+				"ScriptDuration": 0.017494,
+				"V8CompileDuration": 0.00009,
+				"TaskDuration": 0.457524,
+				"TaskOtherDuration": 0.219985,
+				"ThreadTime": 1.239331,
+				"ProcessTime": 1.8,
+				"JSHeapUsedSize": 3426080,
+				"JSHeapTotalSize": 6168576,
+				"FirstMeaningfulPaint": 3414.310109,
+				"DomContentLoaded": 3414.266505,
+				"NavigationStart": 3414.057427
+			},
+			"allQuantitiesCorrect": true,
+			"cart": "18",
+			"quantity0": "7"
+		},
+		"errors": [],
+		"browser": "153.0.8010.0"
+	},
+	{
+		"variant": "resume-cold",
+		"scenario": "store-12",
+		"profile": "slow4g",
+		"rep": 1,
+		"startup": {
+			"fcp": 252,
+			"load": 210.60000000009313,
+			"dcl": 207.60000000009313,
+			"setups": 0,
+			"resumed": null,
+			"hydrate": null,
+			"htmlEncoded": 1525,
+			"resources": [],
+			"longtasks": [],
+			"now": 733,
+			"metrics": {
+				"Timestamp": 3416.447456,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 3,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 731,
+				"Resources": 0,
+				"ContextLifecycleStateObservers": 5,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 1,
+				"RecalcStyleCount": 2,
+				"LayoutDuration": 0.011336,
+				"RecalcStyleDuration": 0.00298,
+				"DevToolsCommandDuration": 0.01875,
+				"ScriptDuration": 0.000022,
+				"V8CompileDuration": 0.001006,
+				"TaskDuration": 0.089335,
+				"TaskOtherDuration": 0.055241,
+				"ThreadTime": 0.498146,
+				"ProcessTime": 0.79,
+				"JSHeapUsedSize": 1627100,
+				"JSHeapTotalSize": 2621440,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3415.917442,
+				"NavigationStart": 3415.709957
+			}
+		},
+		"activation": null,
+		"first": {
+			"fcp": 252,
+			"load": 210.60000000009313,
+			"dcl": 207.60000000009313,
+			"setups": 0,
+			"resumed": {
+				"stores": 1,
+				"cells": 2,
+				"bindings": 2,
+				"handlerCalls": 1,
+				"domWrites": 2
+			},
+			"hydrate": null,
+			"htmlEncoded": 1525,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 213.6999999997206
+				}
+			],
+			"longtasks": [],
+			"now": 1124.5,
+			"metrics": {
+				"Timestamp": 3416.836596,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 29,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 735,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 8,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 2,
+				"RecalcStyleCount": 5,
+				"LayoutDuration": 0.012679,
+				"RecalcStyleDuration": 0.00325,
+				"DevToolsCommandDuration": 0.16485,
+				"ScriptDuration": 0.015865,
+				"V8CompileDuration": 0.001006,
+				"TaskDuration": 0.298159,
+				"TaskOtherDuration": 0.100509,
+				"ThreadTime": 0.860822,
+				"ProcessTime": 1.21,
+				"JSHeapUsedSize": 2977144,
+				"JSHeapTotalSize": 5644288,
+				"FirstMeaningfulPaint": 3415.959859,
+				"DomContentLoaded": 3415.917442,
+				"NavigationStart": 3415.709957
+			},
+			"click": {
+				"dom": 237.3000000002794,
+				"paint": 244.3000000002794
+			}
+		},
+		"warm": [
+			{
+				"dom": 1.6999999997206032,
+				"paint": 91.1999999997206
+			},
+			{
+				"dom": 2.2000000001862645,
+				"paint": 20.90000000037253
+			},
+			{
+				"dom": 2.3000000002793968,
+				"paint": 23.100000000093132
+			},
+			{
+				"dom": 2.2000000001862645,
+				"paint": 27
+			},
+			{
+				"dom": 0.10000000009313226,
+				"paint": 20.100000000093132
+			}
+		],
+		"denseMs": 47.700000000186265,
+		"end": {
+			"fcp": 252,
+			"load": 210.60000000009313,
+			"dcl": 207.60000000009313,
+			"setups": 0,
+			"resumed": {
+				"stores": 1,
+				"cells": 13,
+				"bindings": 13,
+				"handlerCalls": 18,
+				"domWrites": 36
+			},
+			"hydrate": null,
+			"htmlEncoded": 1525,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 213.6999999997206
+				}
+			],
+			"longtasks": [],
+			"now": 1576.8999999999069,
+			"metrics": {
+				"Timestamp": 3417.288582,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 29,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 735,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 13,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 8,
+				"RecalcStyleCount": 15,
+				"LayoutDuration": 0.023235,
+				"RecalcStyleDuration": 0.006761,
+				"DevToolsCommandDuration": 0.226675,
+				"ScriptDuration": 0.026487,
+				"V8CompileDuration": 0.001006,
+				"TaskDuration": 0.53196,
+				"TaskOtherDuration": 0.247796,
+				"ThreadTime": 1.266287,
+				"ProcessTime": 1.85,
+				"JSHeapUsedSize": 3372756,
+				"JSHeapTotalSize": 5906432,
+				"FirstMeaningfulPaint": 3415.959859,
+				"DomContentLoaded": 3415.917442,
+				"NavigationStart": 3415.709957
+			},
+			"allQuantitiesCorrect": true,
+			"cart": "18",
+			"quantity0": "7"
+		},
+		"errors": [],
+		"browser": "153.0.8010.0"
+	},
+	{
+		"variant": "spa-eager",
+		"scenario": "store-12",
+		"profile": "slow4g",
+		"rep": 1,
+		"startup": {
+			"fcp": 260,
+			"load": 501.39999999990687,
+			"dcl": 501.39999999990687,
+			"ready": 500.29999999981374,
+			"setups": 13,
+			"resumed": null,
+			"hydrate": 60.299999999813735,
+			"htmlEncoded": 919,
+			"resources": [
+				{
+					"url": "spa/client.js",
+					"bytes": 14120,
+					"transfer": 14420,
+					"duration": 226.29999999981374
+				}
+			],
+			"longtasks": [
+				{
+					"start": 438.29999999981374,
+					"duration": 64
+				}
+			],
+			"now": 959.5,
+			"metrics": {
+				"Timestamp": 3418.383085,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 14,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 1334,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 5,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 1,
+				"RecalcStyleCount": 2,
+				"LayoutDuration": 0.015357,
+				"RecalcStyleDuration": 0.003056,
+				"DevToolsCommandDuration": 0.022951,
+				"ScriptDuration": 0.063539,
+				"V8CompileDuration": 0,
+				"TaskDuration": 0.178775,
+				"TaskOtherDuration": 0.073872,
+				"ThreadTime": 0.693066,
+				"ProcessTime": 1.01,
+				"JSHeapUsedSize": 1807384,
+				"JSHeapTotalSize": 4980736,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3417.909784,
+				"NavigationStart": 3417.408527
+			}
+		},
+		"activation": null,
+		"first": {
+			"fcp": 260,
+			"load": 501.39999999990687,
+			"dcl": 501.39999999990687,
+			"ready": 500.29999999981374,
+			"setups": 13,
+			"resumed": null,
+			"hydrate": 60.299999999813735,
+			"htmlEncoded": 919,
+			"resources": [
+				{
+					"url": "spa/client.js",
+					"bytes": 14120,
+					"transfer": 14420,
+					"duration": 226.29999999981374
+				}
+			],
+			"longtasks": [
+				{
+					"start": 438.29999999981374,
+					"duration": 64
+				}
+			],
+			"now": 1261.2999999998137,
+			"metrics": {
+				"Timestamp": 3418.673161,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 40,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 1335,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 8,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 2,
+				"RecalcStyleCount": 5,
+				"LayoutDuration": 0.016566,
+				"RecalcStyleDuration": 0.004574,
+				"DevToolsCommandDuration": 0.149467,
+				"ScriptDuration": 0.072088,
+				"V8CompileDuration": 0,
+				"TaskDuration": 0.420582,
+				"TaskOtherDuration": 0.177887,
+				"ThreadTime": 0.953868,
+				"ProcessTime": 1.47,
+				"JSHeapUsedSize": 3440516,
+				"JSHeapTotalSize": 5906432,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3417.909784,
+				"NavigationStart": 3417.408527
+			},
+			"click": {
+				"dom": 5.900000000372529,
+				"paint": 13
+			}
+		},
+		"warm": [
+			{
+				"dom": 1.6000000000931323,
+				"paint": 22.100000000093132
+			},
+			{
+				"dom": 2.400000000372529,
+				"paint": 18.800000000279397
+			},
+			{
+				"dom": 1.1000000000931323,
+				"paint": 21.899999999906868
+			},
+			{
+				"dom": 2.5,
+				"paint": 24.300000000279397
+			},
+			{
+				"dom": 2.3999999999068677,
+				"paint": 23.5
+			}
+		],
+		"denseMs": 30.59999999962747,
+		"end": {
+			"fcp": 260,
+			"load": 501.39999999990687,
+			"dcl": 501.39999999990687,
+			"ready": 500.29999999981374,
+			"setups": 13,
+			"resumed": null,
+			"hydrate": 60.299999999813735,
+			"htmlEncoded": 919,
+			"resources": [
+				{
+					"url": "spa/client.js",
+					"bytes": 14120,
+					"transfer": 14420,
+					"duration": 226.29999999981374
+				}
+			],
+			"longtasks": [
+				{
+					"start": 438.29999999981374,
+					"duration": 64
+				}
+			],
+			"now": 1627.2000000001863,
+			"metrics": {
+				"Timestamp": 3419.03744,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 40,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 1335,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 13,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 8,
+				"RecalcStyleCount": 15,
+				"LayoutDuration": 0.026843,
+				"RecalcStyleDuration": 0.007834,
+				"DevToolsCommandDuration": 0.211932,
+				"ScriptDuration": 0.091263,
+				"V8CompileDuration": 0,
+				"TaskDuration": 0.564026,
+				"TaskOtherDuration": 0.226154,
+				"ThreadTime": 1.288537,
+				"ProcessTime": 1.86,
+				"JSHeapUsedSize": 3952516,
+				"JSHeapTotalSize": 5906432,
+				"FirstMeaningfulPaint": 3417.667236,
+				"DomContentLoaded": 3417.909784,
+				"NavigationStart": 3417.408527
+			},
+			"allQuantitiesCorrect": true,
+			"cart": "18",
+			"quantity0": "7"
+		},
+		"errors": [],
+		"browser": "153.0.8010.0"
+	},
+	{
+		"variant": "resume-preload",
+		"scenario": "store-1000",
+		"profile": "slow4g",
+		"rep": 1,
+		"startup": {
+			"fcp": 332,
+			"load": 903.3999999999069,
+			"dcl": 893.1000000000931,
+			"setups": 0,
+			"resumed": null,
+			"hydrate": null,
+			"htmlEncoded": 26119,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 211.70000000018626
+				}
+			],
+			"longtasks": [
+				{
+					"start": 240.60000000009313,
+					"duration": 67
+				}
+			],
+			"now": 997.7999999998137,
+			"metrics": {
+				"Timestamp": 3420.18554,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 3,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 53096,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 5,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 10,
+				"RecalcStyleCount": 11,
+				"LayoutDuration": 0.272838,
+				"RecalcStyleDuration": 0.100592,
+				"DevToolsCommandDuration": 0.015184,
+				"ScriptDuration": 0.000166,
+				"V8CompileDuration": 0.000726,
+				"TaskDuration": 0.796394,
+				"TaskOtherDuration": 0.406888,
+				"ThreadTime": 0.834822,
+				"ProcessTime": 1.22,
+				"JSHeapUsedSize": 1241600,
+				"JSHeapTotalSize": 3407872,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3420.071175,
+				"NavigationStart": 3419.178165
+			}
+		},
+		"activation": null,
+		"first": {
+			"fcp": 332,
+			"load": 903.3999999999069,
+			"dcl": 893.1000000000931,
+			"setups": 0,
+			"resumed": {
+				"stores": 1,
+				"cells": 2,
+				"bindings": 2,
+				"handlerCalls": 1,
+				"domWrites": 2
+			},
+			"hydrate": null,
+			"htmlEncoded": 26119,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 211.70000000018626
+				}
+			],
+			"longtasks": [
+				{
+					"start": 240.60000000009313,
+					"duration": 67
+				}
+			],
+			"now": 1395.1999999997206,
+			"metrics": {
+				"Timestamp": 3420.577101,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 29,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 53100,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 8,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 11,
+				"RecalcStyleCount": 14,
+				"LayoutDuration": 0.281946,
+				"RecalcStyleDuration": 0.100719,
+				"DevToolsCommandDuration": 0.179212,
+				"ScriptDuration": 0.008831,
+				"V8CompileDuration": 0.000726,
+				"TaskDuration": 1.160696,
+				"TaskOtherDuration": 0.589262,
+				"ThreadTime": 1.204966,
+				"ProcessTime": 1.88,
+				"JSHeapUsedSize": 2951588,
+				"JSHeapTotalSize": 5644288,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3420.071175,
+				"NavigationStart": 3419.178165
+			},
+			"click": {
+				"dom": 23.799999999813735,
+				"paint": 161.60000000009313
+			}
+		},
+		"warm": [
+			{
+				"dom": 1.6000000000931323,
+				"paint": 33.1999999997206
+			},
+			{
+				"dom": 2.099999999627471,
+				"paint": 26.799999999813735
+			},
+			{
+				"dom": 2.2999999998137355,
+				"paint": 28.299999999813735
+			},
+			{
+				"dom": 3.400000000372529,
+				"paint": 29.600000000093132
+			},
+			{
+				"dom": 0.19999999972060323,
+				"paint": 26.199999999720603
+			}
+		],
+		"denseMs": 424.10000000009313,
+		"end": {
+			"fcp": 332,
+			"load": 903.3999999999069,
+			"dcl": 893.1000000000931,
+			"setups": 0,
+			"resumed": {
+				"stores": 1,
+				"cells": 1001,
+				"bindings": 1001,
+				"handlerCalls": 1006,
+				"domWrites": 2012
+			},
+			"hydrate": null,
+			"htmlEncoded": 26119,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 211.70000000018626
+				}
+			],
+			"longtasks": [
+				{
+					"start": 240.60000000009313,
+					"duration": 67
+				},
+				{
+					"start": 1880.1000000000931,
+					"duration": 210
+				}
+			],
+			"now": 2307.899999999907,
+			"metrics": {
+				"Timestamp": 3421.488106,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 29,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 53100,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 13,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 17,
+				"RecalcStyleCount": 24,
+				"LayoutDuration": 0.45987,
+				"RecalcStyleDuration": 0.103466,
+				"DevToolsCommandDuration": 0.529996,
+				"ScriptDuration": 0.035299,
+				"V8CompileDuration": 0.000726,
+				"TaskDuration": 1.88851,
+				"TaskOtherDuration": 0.759153,
+				"ThreadTime": 2.085878,
+				"ProcessTime": 2.86,
+				"JSHeapUsedSize": 4485904,
+				"JSHeapTotalSize": 9314304,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3420.071175,
+				"NavigationStart": 3419.178165
+			},
+			"allQuantitiesCorrect": true,
+			"cart": "1006",
+			"quantity0": "7"
+		},
+		"errors": [],
+		"browser": "153.0.8010.0"
+	},
+	{
+		"variant": "resume-cold",
+		"scenario": "store-1000",
+		"profile": "slow4g",
+		"rep": 1,
+		"startup": {
+			"fcp": 364,
+			"load": 919,
+			"dcl": 908,
+			"setups": 0,
+			"resumed": null,
+			"hydrate": null,
+			"htmlEncoded": 26079,
+			"resources": [],
+			"longtasks": [
+				{
+					"start": 241,
+					"duration": 93
+				}
+			],
+			"now": 984.3999999999069,
+			"metrics": {
+				"Timestamp": 3422.617785,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 3,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 53095,
+				"Resources": 0,
+				"ContextLifecycleStateObservers": 5,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 11,
+				"RecalcStyleCount": 12,
+				"LayoutDuration": 0.28049,
+				"RecalcStyleDuration": 0.087975,
+				"DevToolsCommandDuration": 0.01533,
+				"ScriptDuration": 0.001108,
+				"V8CompileDuration": 0.001017,
+				"TaskDuration": 0.813989,
+				"TaskOtherDuration": 0.428069,
+				"ThreadTime": 0.825798,
+				"ProcessTime": 1.16,
+				"JSHeapUsedSize": 1632396,
+				"JSHeapTotalSize": 2621440,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3422.534722,
+				"NavigationStart": 3421.627743
+			}
+		},
+		"activation": null,
+		"first": {
+			"fcp": 364,
+			"load": 919,
+			"dcl": 908,
+			"setups": 0,
+			"resumed": {
+				"stores": 1,
+				"cells": 2,
+				"bindings": 2,
+				"handlerCalls": 1,
+				"domWrites": 2
+			},
+			"hydrate": null,
+			"htmlEncoded": 26079,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 212.60000000009313
+				}
+			],
+			"longtasks": [
+				{
+					"start": 241,
+					"duration": 93
+				}
+			],
+			"now": 1589.6999999997206,
+			"metrics": {
+				"Timestamp": 3423.219896,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 29,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 53099,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 8,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 12,
+				"RecalcStyleCount": 15,
+				"LayoutDuration": 0.293337,
+				"RecalcStyleDuration": 0.088616,
+				"DevToolsCommandDuration": 0.196437,
+				"ScriptDuration": 0.013614,
+				"V8CompileDuration": 0.001017,
+				"TaskDuration": 1.232606,
+				"TaskOtherDuration": 0.639585,
+				"ThreadTime": 1.382499,
+				"ProcessTime": 2.03,
+				"JSHeapUsedSize": 2933528,
+				"JSHeapTotalSize": 5906432,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3422.534722,
+				"NavigationStart": 3421.627743
+			},
+			"click": {
+				"dom": 239.10000000009313,
+				"paint": 276.89999999990687
+			}
+		},
+		"warm": [
+			{
+				"dom": 1.2000000001862645,
+				"paint": 27.700000000186265
+			},
+			{
+				"dom": 1.400000000372529,
+				"paint": 32.60000000009313
+			},
+			{
+				"dom": 1.7000000001862645,
+				"paint": 27.800000000279397
+			},
+			{
+				"dom": 1.6000000000931323,
+				"paint": 30
+			},
+			{
+				"dom": 0.7999999998137355,
+				"paint": 32.5
+			}
+		],
+		"denseMs": 426,
+		"end": {
+			"fcp": 364,
+			"load": 919,
+			"dcl": 908,
+			"setups": 0,
+			"resumed": {
+				"stores": 1,
+				"cells": 1001,
+				"bindings": 1001,
+				"handlerCalls": 1006,
+				"domWrites": 2012
+			},
+			"hydrate": null,
+			"htmlEncoded": 26079,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 212.60000000009313
+				}
+			],
+			"longtasks": [
+				{
+					"start": 241,
+					"duration": 93
+				},
+				{
+					"start": 2112.1999999997206,
+					"duration": 192
+				}
+			],
+			"now": 2541.899999999907,
+			"metrics": {
+				"Timestamp": 3424.172357,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 29,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 53099,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 13,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 18,
+				"RecalcStyleCount": 25,
+				"LayoutDuration": 0.49422,
+				"RecalcStyleDuration": 0.090928,
+				"DevToolsCommandDuration": 0.556097,
+				"ScriptDuration": 0.045312,
+				"V8CompileDuration": 0.001017,
+				"TaskDuration": 2.00297,
+				"TaskOtherDuration": 0.815396,
+				"ThreadTime": 2.312096,
+				"ProcessTime": 3.1,
+				"JSHeapUsedSize": 4237396,
+				"JSHeapTotalSize": 9314304,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3422.534722,
+				"NavigationStart": 3421.627743
+			},
+			"allQuantitiesCorrect": true,
+			"cart": "1006",
+			"quantity0": "7"
+		},
+		"errors": [],
+		"browser": "153.0.8010.0"
+	},
+	{
+		"variant": "spa-eager",
+		"scenario": "store-1000",
+		"profile": "slow4g",
+		"rep": 1,
+		"startup": {
+			"fcp": 332,
+			"load": 1781.3999999999069,
+			"dcl": 1779.8999999999069,
+			"ready": 1779.7999999998137,
+			"setups": 1001,
+			"resumed": null,
+			"hydrate": 755.0999999996275,
+			"htmlEncoded": 13024,
+			"resources": [
+				{
+					"url": "spa/client.js",
+					"bytes": 14120,
+					"transfer": 14420,
+					"duration": 225.59999999962747
+				}
+			],
+			"longtasks": [
+				{
+					"start": 224.60000000009313,
+					"duration": 80
+				},
+				{
+					"start": 1022.3999999999069,
+					"duration": 774
+				}
+			],
+			"now": 1916.2999999998137,
+			"metrics": {
+				"Timestamp": 3426.261669,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 1002,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 98158,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 5,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 6,
+				"RecalcStyleCount": 7,
+				"LayoutDuration": 0.250141,
+				"RecalcStyleDuration": 0.075134,
+				"DevToolsCommandDuration": 0.018361,
+				"ScriptDuration": 0.75921,
+				"V8CompileDuration": 0,
+				"TaskDuration": 1.531524,
+				"TaskOtherDuration": 0.428678,
+				"ThreadTime": 1.700674,
+				"ProcessTime": 2.41,
+				"JSHeapUsedSize": 20728076,
+				"JSHeapTotalSize": 40632320,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3426.11939,
+				"NavigationStart": 3424.339499
+			}
+		},
+		"activation": null,
+		"first": {
+			"fcp": 332,
+			"load": 1781.3999999999069,
+			"dcl": 1779.8999999999069,
+			"ready": 1779.7999999998137,
+			"setups": 1001,
+			"resumed": null,
+			"hydrate": 755.0999999996275,
+			"htmlEncoded": 13024,
+			"resources": [
+				{
+					"url": "spa/client.js",
+					"bytes": 14120,
+					"transfer": 14420,
+					"duration": 225.59999999962747
+				}
+			],
+			"longtasks": [
+				{
+					"start": 224.60000000009313,
+					"duration": 80
+				},
+				{
+					"start": 1022.3999999999069,
+					"duration": 774
+				}
+			],
+			"now": 2171.899999999907,
+			"metrics": {
+				"Timestamp": 3426.51409,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 1028,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 98159,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 8,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 7,
+				"RecalcStyleCount": 10,
+				"LayoutDuration": 0.257274,
+				"RecalcStyleDuration": 0.075258,
+				"DevToolsCommandDuration": 0.168892,
+				"ScriptDuration": 0.772015,
+				"V8CompileDuration": 0,
+				"TaskDuration": 1.752205,
+				"TaskOtherDuration": 0.478766,
+				"ThreadTime": 1.948836,
+				"ProcessTime": 2.69,
+				"JSHeapUsedSize": 22542224,
+				"JSHeapTotalSize": 41295872,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3426.11939,
+				"NavigationStart": 3424.339499
+			},
+			"click": {
+				"dom": 5.899999999906868,
+				"paint": 35.89999999990687
+			}
+		},
+		"warm": [
+			{
+				"dom": 0.5,
+				"paint": 30.799999999813735
+			},
+			{
+				"dom": 1.2000000001862645,
+				"paint": 26.90000000037253
+			},
+			{
+				"dom": 1.5,
+				"paint": 27.5
+			},
+			{
+				"dom": 1.2999999998137355,
+				"paint": 30.09999999962747
+			},
+			{
+				"dom": 1.1000000000931323,
+				"paint": 28.899999999906868
+			}
+		],
+		"denseMs": 421.39999999990687,
+		"end": {
+			"fcp": 332,
+			"load": 1781.3999999999069,
+			"dcl": 1779.8999999999069,
+			"ready": 1779.7999999998137,
+			"setups": 1001,
+			"resumed": null,
+			"hydrate": 755.0999999996275,
+			"htmlEncoded": 13024,
+			"resources": [
+				{
+					"url": "spa/client.js",
+					"bytes": 14120,
+					"transfer": 14420,
+					"duration": 225.59999999962747
+				}
+			],
+			"longtasks": [
+				{
+					"start": 224.60000000009313,
+					"duration": 80
+				},
+				{
+					"start": 1022.3999999999069,
+					"duration": 774
+				},
+				{
+					"start": 2657.399999999907,
+					"duration": 163
+				}
+			],
+			"now": 3085.7000000001863,
+			"metrics": {
+				"Timestamp": 3427.426382,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 1028,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 96548,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 12,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 13,
+				"RecalcStyleCount": 20,
+				"LayoutDuration": 0.451081,
+				"RecalcStyleDuration": 0.077694,
+				"DevToolsCommandDuration": 0.357435,
+				"ScriptDuration": 0.906331,
+				"V8CompileDuration": 0,
+				"TaskDuration": 2.496794,
+				"TaskOtherDuration": 0.704253,
+				"ThreadTime": 2.837777,
+				"ProcessTime": 3.78,
+				"JSHeapUsedSize": 21380000,
+				"JSHeapTotalSize": 46014464,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3426.11939,
+				"NavigationStart": 3424.339499
+			},
+			"allQuantitiesCorrect": true,
+			"cart": "1006",
+			"quantity0": "7"
+		},
+		"errors": [],
+		"browser": "153.0.8010.0"
+	},
+	{
+		"variant": "spa-eager",
+		"scenario": "store-12",
+		"profile": "slow4g",
+		"rep": 2,
+		"startup": {
+			"fcp": 252,
+			"load": 493.70000000018626,
+			"dcl": 492.8000000002794,
+			"ready": 492.5,
+			"setups": 13,
+			"resumed": null,
+			"hydrate": 45.5,
+			"htmlEncoded": 919,
+			"resources": [
+				{
+					"url": "spa/client.js",
+					"bytes": 14120,
+					"transfer": 14420,
+					"duration": 229.89999999990687
+				}
+			],
+			"longtasks": [],
+			"now": 971.8999999999069,
+			"metrics": {
+				"Timestamp": 3428.616364,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 14,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 1334,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 5,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 1,
+				"RecalcStyleCount": 2,
+				"LayoutDuration": 0.011992,
+				"RecalcStyleDuration": 0.00319,
+				"DevToolsCommandDuration": 0.012672,
+				"ScriptDuration": 0.049369,
+				"V8CompileDuration": 0,
+				"TaskDuration": 0.150764,
+				"TaskOtherDuration": 0.073541,
+				"ThreadTime": 0.709521,
+				"ProcessTime": 1.02,
+				"JSHeapUsedSize": 1830364,
+				"JSHeapTotalSize": 4980736,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3428.132053,
+				"NavigationStart": 3427.63937
+			}
+		},
+		"activation": null,
+		"first": {
+			"fcp": 252,
+			"load": 493.70000000018626,
+			"dcl": 492.8000000002794,
+			"ready": 492.5,
+			"setups": 13,
+			"resumed": null,
+			"hydrate": 45.5,
+			"htmlEncoded": 919,
+			"resources": [
+				{
+					"url": "spa/client.js",
+					"bytes": 14120,
+					"transfer": 14420,
+					"duration": 229.89999999990687
+				}
+			],
+			"longtasks": [],
+			"now": 1282.6000000000931,
+			"metrics": {
+				"Timestamp": 3428.924314,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 40,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 1335,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 8,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 2,
+				"RecalcStyleCount": 5,
+				"LayoutDuration": 0.013636,
+				"RecalcStyleDuration": 0.004495,
+				"DevToolsCommandDuration": 0.150297,
+				"ScriptDuration": 0.0601,
+				"V8CompileDuration": 0,
+				"TaskDuration": 0.413791,
+				"TaskOtherDuration": 0.185263,
+				"ThreadTime": 0.996616,
+				"ProcessTime": 1.54,
+				"JSHeapUsedSize": 3453912,
+				"JSHeapTotalSize": 5644288,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3428.132053,
+				"NavigationStart": 3427.63937
+			},
+			"click": {
+				"dom": 6.7000000001862645,
+				"paint": 12.800000000279397
+			}
+		},
+		"warm": [
+			{
+				"dom": 1.1999999997206032,
+				"paint": 21.899999999906868
+			},
+			{
+				"dom": 0.5,
+				"paint": 19.899999999906868
+			},
+			{
+				"dom": 0.7000000001862645,
+				"paint": 23.90000000037253
+			},
+			{
+				"dom": 3.1000000000931323,
+				"paint": 22.700000000186265
+			},
+			{
+				"dom": 2.2000000001862645,
+				"paint": 23.200000000186265
+			}
+		],
+		"denseMs": 40.10000000009313,
+		"end": {
+			"fcp": 252,
+			"load": 493.70000000018626,
+			"dcl": 492.8000000002794,
+			"ready": 492.5,
+			"setups": 13,
+			"resumed": null,
+			"hydrate": 45.5,
+			"htmlEncoded": 919,
+			"resources": [
+				{
+					"url": "spa/client.js",
+					"bytes": 14120,
+					"transfer": 14420,
+					"duration": 229.89999999990687
+				}
+			],
+			"longtasks": [],
+			"now": 1660.7000000001863,
+			"metrics": {
+				"Timestamp": 3429.304424,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 40,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 1335,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 13,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 8,
+				"RecalcStyleCount": 15,
+				"LayoutDuration": 0.026163,
+				"RecalcStyleDuration": 0.008298,
+				"DevToolsCommandDuration": 0.223501,
+				"ScriptDuration": 0.07731,
+				"V8CompileDuration": 0,
+				"TaskDuration": 0.573357,
+				"TaskOtherDuration": 0.238085,
+				"ThreadTime": 1.347933,
+				"ProcessTime": 1.96,
+				"JSHeapUsedSize": 3969552,
+				"JSHeapTotalSize": 5906432,
+				"FirstMeaningfulPaint": 3427.890994,
+				"DomContentLoaded": 3428.132053,
+				"NavigationStart": 3427.63937
+			},
+			"allQuantitiesCorrect": true,
+			"cart": "18",
+			"quantity0": "7"
+		},
+		"errors": [],
+		"browser": "153.0.8010.0"
+	},
+	{
+		"variant": "resume-cold",
+		"scenario": "store-12",
+		"profile": "slow4g",
+		"rep": 2,
+		"startup": {
+			"fcp": 256,
+			"load": 212.70000000018626,
+			"dcl": 209.3000000002794,
+			"setups": 0,
+			"resumed": null,
+			"hydrate": null,
+			"htmlEncoded": 1525,
+			"resources": [],
+			"longtasks": [],
+			"now": 734.9000000003725,
+			"metrics": {
+				"Timestamp": 3430.151692,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 3,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 731,
+				"Resources": 0,
+				"ContextLifecycleStateObservers": 5,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 1,
+				"RecalcStyleCount": 2,
+				"LayoutDuration": 0.012385,
+				"RecalcStyleDuration": 0.003424,
+				"DevToolsCommandDuration": 0.015344,
+				"ScriptDuration": 0.000057,
+				"V8CompileDuration": 0.001262,
+				"TaskDuration": 0.088737,
+				"TaskOtherDuration": 0.056265,
+				"ThreadTime": 0.49964,
+				"ProcessTime": 0.82,
+				"JSHeapUsedSize": 1627376,
+				"JSHeapTotalSize": 2621440,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3429.619718,
+				"NavigationStart": 3429.411279
+			}
+		},
+		"activation": null,
+		"first": {
+			"fcp": 256,
+			"load": 212.70000000018626,
+			"dcl": 209.3000000002794,
+			"setups": 0,
+			"resumed": {
+				"stores": 1,
+				"cells": 2,
+				"bindings": 2,
+				"handlerCalls": 1,
+				"domWrites": 2
+			},
+			"hydrate": null,
+			"htmlEncoded": 1525,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 211.70000000018626
+				}
+			],
+			"longtasks": [],
+			"now": 1121.9000000003725,
+			"metrics": {
+				"Timestamp": 3430.535456,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 29,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 735,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 8,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 2,
+				"RecalcStyleCount": 5,
+				"LayoutDuration": 0.01355,
+				"RecalcStyleDuration": 0.004947,
+				"DevToolsCommandDuration": 0.155093,
+				"ScriptDuration": 0.015534,
+				"V8CompileDuration": 0.001262,
+				"TaskDuration": 0.298796,
+				"TaskOtherDuration": 0.10841,
+				"ThreadTime": 0.857508,
+				"ProcessTime": 1.22,
+				"JSHeapUsedSize": 2980960,
+				"JSHeapTotalSize": 5644288,
+				"FirstMeaningfulPaint": 3429.667103,
+				"DomContentLoaded": 3429.619718,
+				"NavigationStart": 3429.411279
+			},
+			"click": {
+				"dom": 238.5,
+				"paint": 246.1999999997206
+			}
+		},
+		"warm": [
+			{
+				"dom": 2.099999999627471,
+				"paint": 86.6999999997206
+			},
+			{
+				"dom": 1.2000000001862645,
+				"paint": 25.700000000186265
+			},
+			{
+				"dom": 1.1000000000931323,
+				"paint": 24
+			},
+			{
+				"dom": 1.3000000002793968,
+				"paint": 24.399999999906868
+			},
+			{
+				"dom": 1.1999999997206032,
+				"paint": 23.299999999813735
+			}
+		],
+		"denseMs": 31.100000000093132,
+		"end": {
+			"fcp": 256,
+			"load": 212.70000000018626,
+			"dcl": 209.3000000002794,
+			"setups": 0,
+			"resumed": {
+				"stores": 1,
+				"cells": 13,
+				"bindings": 13,
+				"handlerCalls": 18,
+				"domWrites": 36
+			},
+			"hydrate": null,
+			"htmlEncoded": 1525,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 211.70000000018626
+				}
+			],
+			"longtasks": [],
+			"now": 1539.6000000000931,
+			"metrics": {
+				"Timestamp": 3430.953395,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 29,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 735,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 13,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 8,
+				"RecalcStyleCount": 15,
+				"LayoutDuration": 0.024396,
+				"RecalcStyleDuration": 0.00529,
+				"DevToolsCommandDuration": 0.206381,
+				"ScriptDuration": 0.027609,
+				"V8CompileDuration": 0.001262,
+				"TaskDuration": 0.499869,
+				"TaskOtherDuration": 0.234931,
+				"ThreadTime": 1.233419,
+				"ProcessTime": 1.81,
+				"JSHeapUsedSize": 3346192,
+				"JSHeapTotalSize": 6168576,
+				"FirstMeaningfulPaint": 3429.667103,
+				"DomContentLoaded": 3429.619718,
+				"NavigationStart": 3429.411279
+			},
+			"allQuantitiesCorrect": true,
+			"cart": "18",
+			"quantity0": "7"
+		},
+		"errors": [],
+		"browser": "153.0.8010.0"
+	},
+	{
+		"variant": "resume-preload",
+		"scenario": "store-12",
+		"profile": "slow4g",
+		"rep": 2,
+		"startup": {
+			"fcp": 260,
+			"load": 215.70000000018626,
+			"dcl": 213.39999999990687,
+			"setups": 0,
+			"resumed": null,
+			"hydrate": null,
+			"htmlEncoded": 1550,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 208.09999999962747
+				}
+			],
+			"longtasks": [],
+			"now": 915.8999999999069,
+			"metrics": {
+				"Timestamp": 3431.977096,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 3,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 732,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 5,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 1,
+				"RecalcStyleCount": 2,
+				"LayoutDuration": 0.012974,
+				"RecalcStyleDuration": 0.002407,
+				"DevToolsCommandDuration": 0.016052,
+				"ScriptDuration": 0.000031,
+				"V8CompileDuration": 0.000809,
+				"TaskDuration": 0.095348,
+				"TaskOtherDuration": 0.063075,
+				"ThreadTime": 0.651389,
+				"ProcessTime": 0.97,
+				"JSHeapUsedSize": 1180488,
+				"JSHeapTotalSize": 3407872,
+				"FirstMeaningfulPaint": 3431.31106,
+				"DomContentLoaded": 3431.267694,
+				"NavigationStart": 3431.054405
+			}
+		},
+		"activation": null,
+		"first": {
+			"fcp": 260,
+			"load": 215.70000000018626,
+			"dcl": 213.39999999990687,
+			"setups": 0,
+			"resumed": {
+				"stores": 1,
+				"cells": 2,
+				"bindings": 2,
+				"handlerCalls": 1,
+				"domWrites": 2
+			},
+			"hydrate": null,
+			"htmlEncoded": 1550,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 208.09999999962747
+				}
+			],
+			"longtasks": [],
+			"now": 1274.8000000002794,
+			"metrics": {
+				"Timestamp": 3432.332447,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 29,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 736,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 8,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 2,
+				"RecalcStyleCount": 5,
+				"LayoutDuration": 0.014479,
+				"RecalcStyleDuration": 0.003831,
+				"DevToolsCommandDuration": 0.160475,
+				"ScriptDuration": 0.009556,
+				"V8CompileDuration": 0.000809,
+				"TaskDuration": 0.398879,
+				"TaskOtherDuration": 0.209729,
+				"ThreadTime": 0.983963,
+				"ProcessTime": 1.52,
+				"JSHeapUsedSize": 3007836,
+				"JSHeapTotalSize": 5382144,
+				"FirstMeaningfulPaint": 3431.31106,
+				"DomContentLoaded": 3431.267694,
+				"NavigationStart": 3431.054405
+			},
+			"click": {
+				"dom": 25.800000000279397,
+				"paint": 35.40000000037253
+			}
+		},
+		"warm": [
+			{
+				"dom": 2.7999999998137355,
+				"paint": 22.199999999720603
+			},
+			{
+				"dom": 3.1000000000931323,
+				"paint": 16.100000000093132
+			},
+			{
+				"dom": 2.6000000000931323,
+				"paint": 22
+			},
+			{
+				"dom": 1.5,
+				"paint": 21.600000000093132
+			},
+			{
+				"dom": 1.3999999999068677,
+				"paint": 21
+			}
+		],
+		"denseMs": 43.39999999990687,
+		"end": {
+			"fcp": 260,
+			"load": 215.70000000018626,
+			"dcl": 213.39999999990687,
+			"setups": 0,
+			"resumed": {
+				"stores": 1,
+				"cells": 13,
+				"bindings": 13,
+				"handlerCalls": 18,
+				"domWrites": 36
+			},
+			"hydrate": null,
+			"htmlEncoded": 1550,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 208.09999999962747
+				}
+			],
+			"longtasks": [],
+			"now": 1662.8000000002794,
+			"metrics": {
+				"Timestamp": 3432.725304,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 29,
+				"LayoutObjects": 140,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 736,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 13,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 8,
+				"RecalcStyleCount": 15,
+				"LayoutDuration": 0.025123,
+				"RecalcStyleDuration": 0.00537,
+				"DevToolsCommandDuration": 0.24362,
+				"ScriptDuration": 0.028054,
+				"V8CompileDuration": 0.000809,
+				"TaskDuration": 0.574703,
+				"TaskOtherDuration": 0.271727,
+				"ThreadTime": 1.34916,
+				"ProcessTime": 1.96,
+				"JSHeapUsedSize": 3360500,
+				"JSHeapTotalSize": 6168576,
+				"FirstMeaningfulPaint": 3431.31106,
+				"DomContentLoaded": 3431.267694,
+				"NavigationStart": 3431.054405
+			},
+			"allQuantitiesCorrect": true,
+			"cart": "18",
+			"quantity0": "7"
+		},
+		"errors": [],
+		"browser": "153.0.8010.0"
+	},
+	{
+		"variant": "spa-eager",
+		"scenario": "store-1000",
+		"profile": "slow4g",
+		"rep": 2,
+		"startup": {
+			"fcp": 380,
+			"load": 1908.2000000001863,
+			"dcl": 1907.8999999999069,
+			"ready": 1906.6000000000931,
+			"setups": 1001,
+			"resumed": null,
+			"hydrate": 861.2000000001863,
+			"htmlEncoded": 13024,
+			"resources": [
+				{
+					"url": "spa/client.js",
+					"bytes": 14120,
+					"transfer": 14420,
+					"duration": 226.10000000009313
+				}
+			],
+			"longtasks": [
+				{
+					"start": 248.70000000018626,
+					"duration": 93
+				},
+				{
+					"start": 1043.8000000002794,
+					"duration": 879
+				}
+			],
+			"now": 2040.8000000002794,
+			"metrics": {
+				"Timestamp": 3434.872666,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 1002,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 98158,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 5,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 6,
+				"RecalcStyleCount": 7,
+				"LayoutDuration": 0.259216,
+				"RecalcStyleDuration": 0.075747,
+				"DevToolsCommandDuration": 0.018085,
+				"ScriptDuration": 0.864841,
+				"V8CompileDuration": 0,
+				"TaskDuration": 1.65348,
+				"TaskOtherDuration": 0.435591,
+				"ThreadTime": 1.814972,
+				"ProcessTime": 2.6,
+				"JSHeapUsedSize": 20714676,
+				"JSHeapTotalSize": 40632320,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3434.732556,
+				"NavigationStart": 3432.825856
+			}
+		},
+		"activation": null,
+		"first": {
+			"fcp": 380,
+			"load": 1908.2000000001863,
+			"dcl": 1907.8999999999069,
+			"ready": 1906.6000000000931,
+			"setups": 1001,
+			"resumed": null,
+			"hydrate": 861.2000000001863,
+			"htmlEncoded": 13024,
+			"resources": [
+				{
+					"url": "spa/client.js",
+					"bytes": 14120,
+					"transfer": 14420,
+					"duration": 226.10000000009313
+				}
+			],
+			"longtasks": [
+				{
+					"start": 248.70000000018626,
+					"duration": 93
+				},
+				{
+					"start": 1043.8000000002794,
+					"duration": 879
+				}
+			],
+			"now": 2317.399999999907,
+			"metrics": {
+				"Timestamp": 3435.145071,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 1028,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 98159,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 8,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 7,
+				"RecalcStyleCount": 10,
+				"LayoutDuration": 0.268371,
+				"RecalcStyleDuration": 0.077036,
+				"DevToolsCommandDuration": 0.180482,
+				"ScriptDuration": 0.879306,
+				"V8CompileDuration": 0,
+				"TaskDuration": 1.893426,
+				"TaskOtherDuration": 0.488231,
+				"ThreadTime": 2.081696,
+				"ProcessTime": 2.9,
+				"JSHeapUsedSize": 22526540,
+				"JSHeapTotalSize": 41295872,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3434.732556,
+				"NavigationStart": 3432.825856
+			},
+			"click": {
+				"dom": 8.699999999720603,
+				"paint": 40.39999999990687
+			}
+		},
+		"warm": [
+			{
+				"dom": 1.1999999997206032,
+				"paint": 33.10000000009313
+			},
+			{
+				"dom": 0.7999999998137355,
+				"paint": 24.399999999906868
+			},
+			{
+				"dom": 1.3999999999068677,
+				"paint": 28.200000000186265
+			},
+			{
+				"dom": 2.6000000000931323,
+				"paint": 29.799999999813735
+			},
+			{
+				"dom": 1.3000000002793968,
+				"paint": 31.200000000186265
+			}
+		],
+		"denseMs": 367,
+		"end": {
+			"fcp": 380,
+			"load": 1908.2000000001863,
+			"dcl": 1907.8999999999069,
+			"ready": 1906.6000000000931,
+			"setups": 1001,
+			"resumed": null,
+			"hydrate": 861.2000000001863,
+			"htmlEncoded": 13024,
+			"resources": [
+				{
+					"url": "spa/client.js",
+					"bytes": 14120,
+					"transfer": 14420,
+					"duration": 226.10000000009313
+				}
+			],
+			"longtasks": [
+				{
+					"start": 248.70000000018626,
+					"duration": 93
+				},
+				{
+					"start": 1043.8000000002794,
+					"duration": 879
+				},
+				{
+					"start": 2823.7000000001863,
+					"duration": 170
+				}
+			],
+			"now": 3197.899999999907,
+			"metrics": {
+				"Timestamp": 3436.03193,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 1028,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 67550,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 13,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 13,
+				"RecalcStyleCount": 20,
+				"LayoutDuration": 0.433443,
+				"RecalcStyleDuration": 0.078292,
+				"DevToolsCommandDuration": 0.38563,
+				"ScriptDuration": 1.015637,
+				"V8CompileDuration": 0,
+				"TaskDuration": 2.60222,
+				"TaskOtherDuration": 0.689218,
+				"ThreadTime": 2.94309,
+				"ProcessTime": 3.98,
+				"JSHeapUsedSize": 21382760,
+				"JSHeapTotalSize": 46014464,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3434.732556,
+				"NavigationStart": 3432.825856
+			},
+			"allQuantitiesCorrect": true,
+			"cart": "1006",
+			"quantity0": "7"
+		},
+		"errors": [],
+		"browser": "153.0.8010.0"
+	},
+	{
+		"variant": "resume-cold",
+		"scenario": "store-1000",
+		"profile": "slow4g",
+		"rep": 2,
+		"startup": {
+			"fcp": 332,
+			"load": 896.7000000001863,
+			"dcl": 891,
+			"setups": 0,
+			"resumed": null,
+			"hydrate": null,
+			"htmlEncoded": 26079,
+			"resources": [],
+			"longtasks": [
+				{
+					"start": 229.89999999990687,
+					"duration": 79
+				}
+			],
+			"now": 943.7000000001863,
+			"metrics": {
+				"Timestamp": 3437.124619,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 3,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 53095,
+				"Resources": 0,
+				"ContextLifecycleStateObservers": 5,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 12,
+				"RecalcStyleCount": 13,
+				"LayoutDuration": 0.276468,
+				"RecalcStyleDuration": 0.085933,
+				"DevToolsCommandDuration": 0.01439,
+				"ScriptDuration": 0.002868,
+				"V8CompileDuration": 0.002246,
+				"TaskDuration": 0.779486,
+				"TaskOtherDuration": 0.397581,
+				"ThreadTime": 0.786941,
+				"ProcessTime": 1.12,
+				"JSHeapUsedSize": 1214656,
+				"JSHeapTotalSize": 3145728,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3437.064382,
+				"NavigationStart": 3436.173386
+			}
+		},
+		"activation": null,
+		"first": {
+			"fcp": 332,
+			"load": 896.7000000001863,
+			"dcl": 891,
+			"setups": 0,
+			"resumed": {
+				"stores": 1,
+				"cells": 2,
+				"bindings": 2,
+				"handlerCalls": 1,
+				"domWrites": 2
+			},
+			"hydrate": null,
+			"htmlEncoded": 26079,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 209.1999999997206
+				}
+			],
+			"longtasks": [
+				{
+					"start": 229.89999999990687,
+					"duration": 79
+				}
+			],
+			"now": 1395,
+			"metrics": {
+				"Timestamp": 3437.569837,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 29,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 53099,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 8,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 13,
+				"RecalcStyleCount": 16,
+				"LayoutDuration": 0.286501,
+				"RecalcStyleDuration": 0.087264,
+				"DevToolsCommandDuration": 0.173712,
+				"ScriptDuration": 0.014452,
+				"V8CompileDuration": 0.002246,
+				"TaskDuration": 1.139531,
+				"TaskOtherDuration": 0.575356,
+				"ThreadTime": 1.202959,
+				"ProcessTime": 1.85,
+				"JSHeapUsedSize": 2954944,
+				"JSHeapTotalSize": 5906432,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3437.064382,
+				"NavigationStart": 3436.173386
+			},
+			"click": {
+				"dom": 230.1999999997206,
+				"paint": 257
+			}
+		},
+		"warm": [
+			{
+				"dom": 1.3999999999068677,
+				"paint": 28.899999999906868
+			},
+			{
+				"dom": 0.20000000018626451,
+				"paint": 28.600000000093132
+			},
+			{
+				"dom": 2.8999999999068677,
+				"paint": 43
+			},
+			{
+				"dom": 1.7999999998137355,
+				"paint": 30.09999999962747
+			},
+			{
+				"dom": 1.6999999997206032,
+				"paint": 27.5
+			}
+		],
+		"denseMs": 435,
+		"end": {
+			"fcp": 332,
+			"load": 896.7000000001863,
+			"dcl": 891,
+			"setups": 0,
+			"resumed": {
+				"stores": 1,
+				"cells": 1001,
+				"bindings": 1001,
+				"handlerCalls": 1006,
+				"domWrites": 2012
+			},
+			"hydrate": null,
+			"htmlEncoded": 26079,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 209.1999999997206
+				}
+			],
+			"longtasks": [
+				{
+					"start": 229.89999999990687,
+					"duration": 79
+				},
+				{
+					"start": 1923.8999999999069,
+					"duration": 210
+				}
+			],
+			"now": 2360.8000000002794,
+			"metrics": {
+				"Timestamp": 3438.53567,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 29,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 53099,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 13,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 19,
+				"RecalcStyleCount": 26,
+				"LayoutDuration": 0.470088,
+				"RecalcStyleDuration": 0.092914,
+				"DevToolsCommandDuration": 0.520222,
+				"ScriptDuration": 0.044355,
+				"V8CompileDuration": 0.002246,
+				"TaskDuration": 1.882393,
+				"TaskOtherDuration": 0.752568,
+				"ThreadTime": 2.139633,
+				"ProcessTime": 2.9,
+				"JSHeapUsedSize": 4328820,
+				"JSHeapTotalSize": 9314304,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3437.064382,
+				"NavigationStart": 3436.173386
+			},
+			"allQuantitiesCorrect": true,
+			"cart": "1006",
+			"quantity0": "7"
+		},
+		"errors": [],
+		"browser": "153.0.8010.0"
+	},
+	{
+		"variant": "resume-preload",
+		"scenario": "store-1000",
+		"profile": "slow4g",
+		"rep": 2,
+		"startup": {
+			"fcp": 336,
+			"load": 958,
+			"dcl": 953,
+			"setups": 0,
+			"resumed": null,
+			"hydrate": null,
+			"htmlEncoded": 26119,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 210
+				}
+			],
+			"longtasks": [
+				{
+					"start": 244.89999999990687,
+					"duration": 66
+				}
+			],
+			"now": 1008.6999999997206,
+			"metrics": {
+				"Timestamp": 3439.77137,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 3,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 53096,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 5,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 12,
+				"RecalcStyleCount": 13,
+				"LayoutDuration": 0.296877,
+				"RecalcStyleDuration": 0.100221,
+				"DevToolsCommandDuration": 0.016174,
+				"ScriptDuration": 0.000796,
+				"V8CompileDuration": 0.000095,
+				"TaskDuration": 0.834994,
+				"TaskOtherDuration": 0.420831,
+				"ThreadTime": 0.842301,
+				"ProcessTime": 1.21,
+				"JSHeapUsedSize": 1671244,
+				"JSHeapTotalSize": 2883584,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3439.711103,
+				"NavigationStart": 3438.758163
+			}
+		},
+		"activation": null,
+		"first": {
+			"fcp": 336,
+			"load": 958,
+			"dcl": 953,
+			"setups": 0,
+			"resumed": {
+				"stores": 1,
+				"cells": 2,
+				"bindings": 2,
+				"handlerCalls": 1,
+				"domWrites": 2
+			},
+			"hydrate": null,
+			"htmlEncoded": 26119,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 210
+				}
+			],
+			"longtasks": [
+				{
+					"start": 244.89999999990687,
+					"duration": 66
+				}
+			],
+			"now": 1402,
+			"metrics": {
+				"Timestamp": 3440.163061,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 29,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 53100,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 8,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 13,
+				"RecalcStyleCount": 16,
+				"LayoutDuration": 0.310333,
+				"RecalcStyleDuration": 0.102115,
+				"DevToolsCommandDuration": 0.177066,
+				"ScriptDuration": 0.011085,
+				"V8CompileDuration": 0.000095,
+				"TaskDuration": 1.204212,
+				"TaskOtherDuration": 0.603518,
+				"ThreadTime": 1.212518,
+				"ProcessTime": 1.87,
+				"JSHeapUsedSize": 2950588,
+				"JSHeapTotalSize": 5644288,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3439.711103,
+				"NavigationStart": 3438.758163
+			},
+			"click": {
+				"dom": 25.5,
+				"paint": 163.20000000018626
+			}
+		},
+		"warm": [
+			{
+				"dom": 1.7000000001862645,
+				"paint": 27.5
+			},
+			{
+				"dom": 1.1999999997206032,
+				"paint": 29
+			},
+			{
+				"dom": 2.6000000000931323,
+				"paint": 30.300000000279397
+			},
+			{
+				"dom": 2.7000000001862645,
+				"paint": 31.40000000037253
+			},
+			{
+				"dom": 1.3000000002793968,
+				"paint": 33.8000000002794
+			}
+		],
+		"denseMs": 412.5,
+		"end": {
+			"fcp": 336,
+			"load": 958,
+			"dcl": 953,
+			"setups": 0,
+			"resumed": {
+				"stores": 1,
+				"cells": 1001,
+				"bindings": 1001,
+				"handlerCalls": 1006,
+				"domWrites": 2012
+			},
+			"hydrate": null,
+			"htmlEncoded": 26119,
+			"resources": [
+				{
+					"url": "resume/cart.js",
+					"bytes": 10512,
+					"transfer": 10812,
+					"duration": 210
+				}
+			],
+			"longtasks": [
+				{
+					"start": 244.89999999990687,
+					"duration": 66
+				},
+				{
+					"start": 1910.3999999999069,
+					"duration": 200
+				}
+			],
+			"now": 2325.6999999997206,
+			"metrics": {
+				"Timestamp": 3441.086055,
+				"AudioHandlers": 0,
+				"AudioWorkletProcessors": 0,
+				"Documents": 4,
+				"Frames": 4,
+				"JSEventListeners": 29,
+				"LayoutObjects": 10020,
+				"MediaKeySessions": 0,
+				"MediaKeys": 0,
+				"Nodes": 53100,
+				"Resources": 1,
+				"ContextLifecycleStateObservers": 13,
+				"V8PerContextDatas": 4,
+				"WorkerGlobalScopes": 0,
+				"UACSSResources": 0,
+				"RTCPeerConnections": 0,
+				"ResourceFetchers": 4,
+				"AdSubframes": 0,
+				"DetachedScriptStates": 2,
+				"ArrayBufferContents": 0,
+				"LayoutCount": 19,
+				"RecalcStyleCount": 26,
+				"LayoutDuration": 0.48933,
+				"RecalcStyleDuration": 0.106194,
+				"DevToolsCommandDuration": 0.538978,
+				"ScriptDuration": 0.041029,
+				"V8CompileDuration": 0.000095,
+				"TaskDuration": 1.951016,
+				"TaskOtherDuration": 0.77539,
+				"ThreadTime": 2.108102,
+				"ProcessTime": 2.88,
+				"JSHeapUsedSize": 4365696,
+				"JSHeapTotalSize": 9314304,
+				"FirstMeaningfulPaint": 0,
+				"DomContentLoaded": 3439.711103,
+				"NavigationStart": 3438.758163
+			},
+			"allQuantitiesCorrect": true,
+			"cart": "1006",
+			"quantity0": "7"
+		},
+		"errors": [],
+		"browser": "153.0.8010.0"
+	}
+]

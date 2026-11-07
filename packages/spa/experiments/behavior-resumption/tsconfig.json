@@ -1,0 +1,41 @@
+{
+	"extends": "../../../../tsconfig.json",
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"lib": [
+			"ESNext",
+			"DOM",
+			"DOM.Iterable"
+		],
+		"noUnusedParameters": false,
+		"noEmit": true,
+		"allowImportingTsExtensions": true,
+		"skipLibCheck": true,
+		"jsx": "preserve",
+		"jsxImportSource": "@atom.io/spa",
+		"paths": {
+			"atom.io": [
+				"../../../../packages/atom.io/src/main/index.ts"
+			],
+			"atom.io/*": [
+				"../../../../packages/atom.io/src/*"
+			],
+			"@atom.io/spa": [
+				"../../../../packages/spa/src/index.ts"
+			],
+			"@atom.io/spa/*": [
+				"../../../../packages/spa/src/*"
+			]
+		}
+	},
+	"include": [
+		"spike/**/*.ts",
+		"spike/**/*.tsx",
+		"../../src/env.d.ts",
+		"spa/**/*.tsx",
+		"spa-islands/**/*.tsx",
+		"common.ts"
+	]
+}

@@ -64,9 +64,27 @@ Render an ordinary Astro island:
 
 <Exhibit src="spa-astro-ssr/exhibits/inventory-page.astro" />
 
-Resumability collects completed values from Astro frontmatter and renderer work. Its renderer adapter attaches seed data to each island so islands sharing a store can activate in either order, even when a later server render reuses cached state. Ordinary browser defaults use the host scope without a store bridge; private stores bind a separate scope so pending work ends when their island unmounts. The first browser read consumes its server value, letting the view hydrate without another database request. Cache the complete HTML and its sidecars together. Seed data is public browser-visible JSON.
+Resumability collects completed values from Astro frontmatter and renderer work. Its renderer adapter attaches seed data to each island so islands sharing a store can activate in either order, even when a later server render reuses cached state. The first browser read consumes its server value, letting the view hydrate without another database request. Cache the complete HTML and its sidecars together. Seed data is public browser-visible JSON.
 
 The same host supports plain Astro readers and reusable server-only constants without atom.io. See the [resumability guide](https://github.com/jeremybanka/atom.io/tree/main/packages/resumability#a-resumable-constant). Explicit Resumption scopes remain available when a subtree needs independent collection and browser ownership.
+
+### a siloized island
+
+Default islands share the browser store and Astro's page resumption scope. For an independent stock-counting view, wrap the starter's Inventory component and set isolate to true:
+
+<Exhibit src="spa-astro-ssr/exhibits/PrivateInventory.tsx" />
+
+Render it with an ordinary hydration directive:
+
+<Exhibit src="spa-astro-ssr/exhibits/private-inventory-page.astro" />
+
+Each PrivateInventory island has its own store, server seeds, and seed-consumption history. Its unsaved quantity edits stay in that view. A createStore factory also selects a private island lifetime.
+
+When resumability is installed, SPA binds that private scope whenever the store evaluates a default. This includes lazy family members and later resets, even outside component rendering. The binding is automatic; shared-store islands and plain Astro readers use the page scope directly.
+
+The private resumption scope ends when its island unmounts, including when ClientRouter navigation removes it. Disposal clears the scope's seeds and aborts the signal given to its client producers; those producers must honor the signal to stop I/O. An island retained with transition:persist keeps its scope until it actually unmounts. Shared page scopes survive individual island removal and ClientRouter navigation and end on full page exit, while back/forward-cache suspension preserves them.
+
+SPA owns this binding because it chooses the island's store and lifetime. Resumability supplies the scope and transport independently of atom.io. An isolated island without resumability needs no resumption binding.
 
 ### refresh and save
 

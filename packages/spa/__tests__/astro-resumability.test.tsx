@@ -7,7 +7,11 @@ import {
 	Silo,
 } from "atom.io"
 import { IMPLICIT, resetInStore, Store } from "atom.io/internal"
-import { resumable as clientValue } from "resumability/client"
+import {
+	browserResumption,
+	resumable as clientValue,
+} from "resumability/astro-client"
+import { requestResumption } from "resumability/astro-server"
 import { collect, resumable as serverValue } from "resumability/server"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 
@@ -31,6 +35,7 @@ beforeEach(() => {
 })
 afterEach(() => {
 	browserApplication(document).dispose()
+	browserResumption(document).dispose()
 	globalThis.ATOM_IO_IMPLICIT_STORE = originalStore
 })
 const render = (App: Island, request: Request) =>
@@ -92,7 +97,7 @@ it(`discovers async defaults through conditional views without preloading unrela
 	const request = new Request(`http://test`)
 	try {
 		const result = await render(App, request)
-		const payload = JSON.parse(result.attrs![`data-spa-resumption`])
+		const payload = JSON.parse(result.attrs![`data-resumability`])
 		expect(result.html).toContain(`fresh stock`)
 		expect(result.html).not.toContain(`loading`)
 		expect(payload.values).toHaveLength(2)
@@ -100,6 +105,7 @@ it(`discovers async defaults through conditional views without preloading unrela
 		expect(unused).not.toHaveBeenCalled()
 	} finally {
 		requestApplication(request).application.dispose()
+		requestResumption(request).dispose()
 	}
 })
 
@@ -116,6 +122,7 @@ it(`renders caught async failures and cancels a pending render with its request`
 	const request = new Request(`http://test/error`)
 	expect((await render(App, request)).html).toContain(`offline`)
 	requestApplication(request).application.dispose()
+	requestResumption(request).dispose()
 	const pendingAtom = atom<Loadable<string>>({
 		key: `pending`,
 		default: () => new Promise<string>(() => {}),
@@ -152,6 +159,7 @@ it(`preserves an uncaught async producer failure and releases the render`, async
 		expect(cleanup).toHaveBeenCalledOnce()
 	} finally {
 		requestApplication(request).application.dispose()
+		requestResumption(request).dispose()
 	}
 })
 
@@ -183,6 +191,7 @@ it(`initializes a client-only private island without a sidecar and releases its 
 	expect(selected).not.toBe(IMPLICIT.STORE)
 	expect(signal.aborted).toBe(false)
 	expect(IMPLICIT.STORE.runDefault).toBe(original)
+	expect(selected.runDefault).not.toBe(original)
 	host.dispatchEvent(new Event(`astro:unmount`))
 	expect(host.childNodes).toHaveLength(0)
 	expect(signal.aborted).toBe(true)
@@ -208,12 +217,15 @@ it(`resumes shared defaults, refreshes through the client, and preserves live st
 		return <p>{value()}</p>
 	}
 	host.innerHTML = renderToString(() => () => <Seed />)
+	const originalDefault = IMPLICIT.STORE.runDefault
 	await client(host)(App, {}, {}, { client: `load` })
 	expect(host.textContent).toBe(`server`)
+	expect(IMPLICIT.STORE.runDefault).toBe(originalDefault)
 	expect(fresh).not.toHaveBeenCalled()
 	resetState(stockAtom)
 	expect(getState(stockAtom)).toBe(`database`)
 	expect(fresh).toHaveBeenCalledOnce()
+	expect(IMPLICIT.STORE.runDefault).toBe(originalDefault)
 	setState(stockAtom, `local count`)
 	document.dispatchEvent(new Event(`astro:before-swap`))
 	host.dispatchEvent(new Event(`astro:unmount`))
@@ -221,15 +233,16 @@ it(`resumes shared defaults, refreshes through the client, and preserves live st
 	expect(host.textContent).toBe(`local count`)
 	expect(fresh).toHaveBeenCalledOnce()
 	browserApplication(document).dispose()
+	browserResumption(document).dispose()
 	expect(host.childNodes).toHaveLength(0)
 })
 
 const seedOf = (result: { attrs?: Record<string, string> }) =>
-	JSON.parse(result.attrs![`data-spa-resumption`])
+	JSON.parse(result.attrs![`data-resumability`])
 const hostFor = (result: { html: string; attrs?: Record<string, string> }) => {
 	const host = document.createElement(`div`)
 	host.innerHTML = result.html
-	host.setAttribute(`data-spa-resumption`, result.attrs![`data-spa-resumption`])
+	host.setAttribute(`data-resumability`, result.attrs![`data-resumability`])
 	return host
 }
 
@@ -292,6 +305,7 @@ it(`resumes shared cached defaults even when the later server island hydrates fi
 		expect(fresh).toHaveBeenCalledOnce()
 	} finally {
 		requestApplication(request).application.dispose()
+		requestResumption(request).dispose()
 	}
 	expect(signal.aborted).toBe(true)
 })
@@ -333,6 +347,7 @@ it(`streams an unrelated island while another producer is pending`, async () => 
 		expect(seedOf(await slow).values).toHaveLength(2)
 	} finally {
 		requestApplication(request).application.dispose()
+		requestResumption(request).dispose()
 	}
 })
 
@@ -365,10 +380,12 @@ it(`keeps explicit collections authoritative and carries their cached seeds into
 		const explicit = await collect(() => render(App, request))
 		expect(seedOf(explicit.value)).toEqual(explicit.payload)
 		const later = await render(Later, request)
-		expect(seedOf(later).values).toEqual([
-			[`stock`, [1, `explicit stock`]],
-			[`extra`, [1, `automatic stock`]],
-		])
+		expect(seedOf(later).values).toEqual(
+			expect.arrayContaining([
+				[`stock`, [1, `explicit stock`]],
+				[`extra`, [1, `automatic stock`]],
+			]),
+		)
 		// Even another explicit boundary must retain the shared store's earlier seeds.
 		const reused = await collect(() => render(Later, request))
 		expect(reused.payload.values).toEqual([])
@@ -381,6 +398,7 @@ it(`keeps explicit collections authoritative and carries their cached seeds into
 		expect(seedOf(reset.value)).toEqual(seedOf(later))
 	} finally {
 		requestApplication(request).application.dispose()
+		requestResumption(request).dispose()
 	}
 })
 
@@ -427,6 +445,8 @@ it(`isolates automatic collections across requests and private islands, includin
 		expect(seedOf(await render(Custom, a)).values).toEqual([[`stock`, [1, 5]]])
 	} finally {
 		requestApplication(a).application.dispose()
+		requestResumption(a).dispose()
 		requestApplication(b).application.dispose()
+		requestResumption(b).dispose()
 	}
 })

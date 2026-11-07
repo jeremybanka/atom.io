@@ -1,0 +1,16 @@
+---
+import { title } from "../data.ts"
+import Constant from "../Constant.tsx"
+const value = await title()
+---
+<html lang="en">
+	<head><title>SPA consumes a plain constant</title></head>
+	<body>
+		<Constant title={value} client:load />
+		<script>
+		import { title } from "../data.ts"
+const value = await title()
+document.documentElement.setAttribute(`data-resumed-title`, value)
+		</script>
+	</body>
+</html>

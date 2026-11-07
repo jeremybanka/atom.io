@@ -228,11 +228,11 @@ import Page from "../layouts/Page.astro"
 
 ```
 
-The first workspace uses client:load; the second uses client:visible. Both render their initial data on the server. SPA owns the request collection and attaches completed values to each island's HTML. A later island can hydrate first even when it reused the earlier island's cached state on the server. No wrapper or deferred child function is needed.
+The first workspace uses client:load; the second uses client:visible. Both render their initial data on the server. Resumability owns the request collection and supplies SPA's renderer with completed values to attach to each island's HTML. A later island can hydrate first even when it reused the earlier island's cached state on the server. No wrapper or deferred child function is needed.
 
-With both integrations installed, SPA automatically waits for async state read by the island on the server and connects browser defaults to one application-owned resumption scope. No component preparation callback or preload list is needed. Each island imports its own seed attributes, and consumed keys cannot be reseeded. After an edit or navigation, unread client-capable defaults use the client producer instead of stale initial data.
+With both integrations installed, SPA automatically waits for async state read by the island on the server. Browser defaults use resumability's host scope without changing the shared store's default evaluator. No component preparation callback or preload list is needed. Each island imports its own seed attributes, and consumed keys cannot be reseeded. After an edit or navigation, unread client-capable defaults use the client producer instead of stale initial data.
 
-SPA owns the request lifetime through the end of streaming and the browser application lifetime across navigation. Individual islands own only their DOM and subscriptions. Shared data resources survive an individual island failing or unmounting. Resumability stays independent of SPA, atom.io, Reylo, and tRPC. Treat all seed data as public browser-visible data.
+Resumability owns its collection through the end of streaming and the browser resumption scope across navigation. SPA owns request-local stores and the browser application; individual shared islands own only their DOM and subscriptions. Shared data resources survive an individual island failing or unmounting. Private stores bind a private resumption scope so their pending work ends with the island. Resumability stays independent of SPA, atom.io, Reylo, and tRPC, and also supports plain Astro database constants without a state library. Treat all seed data as public browser-visible data.
 
 ## Validation
 

@@ -5,6 +5,7 @@ import { transformSync, types as t } from "@babel/core"
 export function compile(
 	code: string,
 	filename: string,
+	settings: { clientModule?: string } = {},
 ): { code: string; map: unknown } {
 	const result = transformSync(code, {
 		filename,
@@ -26,6 +27,14 @@ export function compile(
 									)
 								)
 									continue
+								const redirects = statement.node.specifiers.some(
+									(specifier) =>
+										t.isImportSpecifier(specifier) &&
+										(t.isIdentifier(specifier.imported, { name: `resumable` }) ||
+											t.isStringLiteral(specifier.imported, {
+												value: `resumable`,
+											})),
+								)
 								for (const specifier of statement.node.specifiers) {
 									if (t.isImportNamespaceSpecifier(specifier))
 										throw statement.buildCodeFrameError(
@@ -55,6 +64,8 @@ export function compile(
 											)
 									}
 								}
+								if (redirects && settings.clientModule)
+									statement.node.source.value = settings.clientModule
 							}
 						},
 					},

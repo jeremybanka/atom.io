@@ -58,13 +58,15 @@ Each default has a server producer and a browser producer. resumability removes 
 
 ### render the island
 
-Register both resumability/astro and SPA, as the template already does. SPA automatically connects atom defaults to the resumption scope and waits for async state read during server rendering. Components need no preparation function, preload list, or wrapper.
+Register both resumability/astro and SPA, as the template already does. Resumability owns Astro's request collection and browser scope; SPA waits for async state read during JSX rendering. Components need no preparation function, preload list, or wrapper.
 
 Render an ordinary Astro island:
 
 <Exhibit src="spa-astro-ssr/exhibits/inventory-page.astro" />
 
-SPA collects resumable defaults in the request and attaches the seed data to each island. Islands sharing a store can activate in either order, even when a later server render reuses cached state. The first browser read consumes its server value, letting the view hydrate without another database request. Cache the complete island HTML and its seed attributes together. Seed data is public browser-visible JSON.
+Resumability collects completed values from Astro frontmatter and renderer work. Its renderer adapter attaches seed data to each island so islands sharing a store can activate in either order, even when a later server render reuses cached state. Ordinary browser defaults use the host scope without a store bridge; private stores bind a separate scope so pending work ends when their island unmounts. The first browser read consumes its server value, letting the view hydrate without another database request. Cache the complete HTML and its sidecars together. Seed data is public browser-visible JSON.
+
+The same host supports plain Astro readers and reusable server-only constants without atom.io. See the [resumability guide](https://github.com/jeremybanka/atom.io/tree/main/packages/resumability#a-resumable-constant). Explicit Resumption scopes remain available when a subtree needs independent collection and browser ownership.
 
 ### refresh and save
 
@@ -74,6 +76,6 @@ The [template's Inventory component](https://github.com/jeremybanka/atom.io/blob
 
 ### navigate with live state
 
-SPA keeps the browser store and resumption scope across ClientRouter navigation. Incoming seeds cannot reseed values already consumed. After edits or navigation, fresh islands render live values instead of restoring the initial server snapshot. A full page load starts a new application.
+SPA keeps the browser store and resumability keeps its host scope across ClientRouter navigation. Incoming seeds cannot reseed values already consumed. After edits or navigation, fresh islands render live values instead of restoring the initial server snapshot. A full page load starts a new application.
 
 Each server request owns its store until its response finishes streaming. Removing a browser island releases its view; shared resources end with the application. See the [starter README](https://github.com/jeremybanka/atom.io/tree/main/templates/spa-astro-ssr#readme) for the complete app, caching behavior, and production commands.

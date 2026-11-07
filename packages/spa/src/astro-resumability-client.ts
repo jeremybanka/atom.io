@@ -1,5 +1,10 @@
-import { createResumption } from "resumability/client"
+import {
+	browserResumption,
+	captureElement,
+	createResumption,
+} from "resumability/astro-client"
 
+import { browserApplication } from "./astro-application.ts"
 import { createHydrator } from "./astro-client.ts"
 
 export default createHydrator((store, _props, { element, application }) => {
@@ -9,22 +14,27 @@ export default createHydrator((store, _props, { element, application }) => {
 	)
 	let scope = scopes.get(store)
 	if (!scope) {
-		scope = createResumption()
-		scopes.set(store, scope)
-		const original = store.runDefault
-		const current = scope
-		store.runDefault = <T>(run: () => T): T =>
-			current.run(() => original.call(store, run) as T, {
-				resume: application.canResume,
+		const shared = application === browserApplication(element!.ownerDocument)
+		if (shared) {
+			const host = browserResumption(element!.ownerDocument)
+			application.onCleanup(host.resumeWhen(() => application.canResume))
+			scope = host
+		} else {
+			// Lazy defaults can run after component setup. Bind their private owner so
+			// refreshes and pending work end with this island instead of the page.
+			const original = store.runDefault
+			const local = createResumption()
+			store.runDefault = <T>(run: () => T): T =>
+				local.run(() => original.call(store, run) as T, {
+					resume: application.canResume,
+				})
+			application.onCleanup(() => {
+				local.dispose()
+				store.runDefault = original
 			})
-		application.onCleanup(() => {
-			current.dispose()
-			store.runDefault = original
-		})
+			scope = local
+		}
+		scopes.set(store, scope)
 	}
-	// This callback is only invoked by the browser hydrator, which supplies a host.
-	const source = element!.closest(`astro-resumption`)
-	if (source) scope.add(source)
-	const payload = element!.getAttribute(`data-spa-resumption`)
-	if (payload !== null) scope.add(JSON.parse(payload))
+	captureElement(scope, element!)
 })

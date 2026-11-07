@@ -40,7 +40,7 @@ try {
 	assert.ok(html.includes(`House blend`))
 	assert.ok(html.includes(`value="24"`))
 	assert.doesNotMatch(html, /<astro-resumption|<script[^>]*data-resumable/)
-	assert.equal((html.match(/data-spa-resumption=/g) ?? []).length, 2)
+	assert.equal((html.match(/data-resumability=/g) ?? []).length, 2)
 	assert.equal((html.match(/aria-busy="true"/g) ?? []).length, 0)
 	const changedStock = 27
 	database
@@ -99,7 +99,7 @@ try {
 		.locator(`astro-island`)
 		.evaluateAll((islands) =>
 			islands.map((island) =>
-				JSON.parse(island.getAttribute(`data-spa-resumption`)),
+				JSON.parse(island.getAttribute(`data-resumability`)),
 			),
 		)
 	assert.equal(payloads.length, 2)

@@ -3,6 +3,12 @@ import { readFile } from "node:fs/promises"
 
 import { resumable } from "resumability"
 import resumability, { resumablePlugin } from "resumability/astro"
+import {
+	currentResumption,
+	resumable as astroClient,
+} from "resumability/astro-client"
+import { onRequest } from "resumability/astro-middleware"
+import { requestResumption, resumableRenderer } from "resumability/astro-server"
 import { createResumption, resumable as client } from "resumability/client"
 import {
 	collect,
@@ -39,6 +45,23 @@ assert.deepEqual(
 fresh.dispose()
 scope.dispose()
 assert.throws(() => client(options, scope))
+const explicit = createResumption(payload)
+assert.deepEqual(
+	explicit.run(() => astroClient(options)),
+	{ value: 7 },
+)
+assert.equal(currentResumption(), undefined)
+explicit.dispose()
+const request = new Request(`https://example.test`)
+const response = await onRequest({ request } as any, async () => {
+	await resumable(options)
+	return new Response(`<body></body>`, {
+		headers: { "content-type": `text/html` },
+	})
+})
+assert.match(await (response as Response).text(), /data-resumability-page/)
+assert.equal(requestResumption(request).collection.signal.aborted, true)
+assert.equal(typeof resumableRenderer, `function`)
 assert.equal(resumability().name, `resumability`)
 assert.equal(resumablePlugin().enforce, `pre`)
 const wrapper = await readFile(
@@ -53,7 +76,10 @@ const manifest = JSON.parse(
 	),
 )
 assert.deepEqual(Object.keys(manifest.peerDependencies), [`astro`])
-assert.deepEqual(Object.keys(manifest.dependencies), [`@babel/core`])
+assert.deepEqual(Object.keys(manifest.dependencies), [
+	`@babel/core`,
+	`parse5-sax-parser`,
+])
 
 const owner = createCollection()
 assert.equal(currentCollection(), undefined)

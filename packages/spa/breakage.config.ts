@@ -24,12 +24,17 @@ const config: BreakageConfig = defineConfig({
 			"atom.io": suite,
 			vite: suite,
 			astro: suite,
+			resumability: suite,
 			motion: graphicsSuite,
 			three: graphicsSuite,
 			konva: graphicsSuite,
 			"@types/three": graphicsSuite,
 		},
 		localPeers: {
+			resumability: {
+				directory: `../resumability`,
+				artifact: `../resumability/.breakage/package.tgz`,
+			},
 			"atom.io": {
 				directory: `../atom.io`,
 				artifact: `../atom.io/.breakage/package.tgz`,

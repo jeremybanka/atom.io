@@ -48,7 +48,7 @@
 		"@reylosql/sqlite": "0.6.0",
 		"@types/node": "26.6.6",
 		"galley.md": "0.3.1",
-		"oxlint": "1.91.0",
+		"oxlint": "1.92.0",
 		"oxlint-tsgolint": "7.0.2006",
 		"playwright": "1.65.0",
 		"typescript": "7.1.0-dev.20261106.1",

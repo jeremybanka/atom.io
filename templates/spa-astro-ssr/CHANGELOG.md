@@ -1,5 +1,20 @@
 # @atom.io/template-spa-astro-ssr
 
+## 0.0.5
+
+### Patch Changes
+
+- ffbb22d: Simplify the SPA setup examples to a single counter, present Astro before Vite, and show only the setup each framework requires. Remove unrelated lifecycle helpers, slots, initial props, and custom stores from the Astro counter, and keep the point example focused on reactive state. Use ordinary .tsx component filenames throughout the SPA exhibits, debugger setup, and Astro starter. The Astro integration now compiles .tsx and .jsx files by default; applications using multiple JSX renderers must use include to select their SPA component directories.
+- Updated dependencies [4b4c19a]
+- Updated dependencies [b166670]
+- Updated dependencies [ffbb22d]
+- Updated dependencies [06c8a0c]
+- Updated dependencies [4349006]
+- Updated dependencies [ccefaca]
+  - atom.io@0.54.6
+  - @atom.io/spa@0.1.0
+  - resumability@0.0.1
+
 ## 0.0.4
 
 ### Patch Changes

@@ -1,0 +1,9 @@
+---
+import { warehouseName } from "./constant"
+const name = await warehouseName()
+---
+<h1>{name}</h1>
+<script>
+import { warehouseName } from "./constant"
+document.title = await warehouseName()
+</script>

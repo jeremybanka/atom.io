@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 
 import resumability, { resumablePlugin } from "../src/astro.ts"
 import { compile } from "../src/compiler.ts"
@@ -74,10 +74,14 @@ describe(`server closure boundary`, () => {
 			)
 		}
 	})
-	it(`installs just the compiler and package resolution configuration`, () => {
+	it(`installs the host, compiler, and package resolution configuration`, () => {
 		let config: any
+		const addMiddleware = vi.fn(),
+			injectScript = vi.fn()
 		const setup = resumability().hooks[`astro:config:setup`] as Function
 		setup({
+			addMiddleware,
+			injectScript,
 			updateConfig: (next: any) => {
 				config = next
 			},
@@ -85,5 +89,29 @@ describe(`server closure boundary`, () => {
 		expect(config.vite.plugins[0].name).toBe(`resumability`)
 		expect(config.vite.optimizeDeps.exclude).toContain(`resumability`)
 		expect(config.vite.ssr.noExternal).toEqual([`resumability`])
+		expect(addMiddleware).toHaveBeenCalledWith({
+			entrypoint: `resumability/astro-middleware`,
+			order: `pre`,
+		})
+		expect(injectScript).toHaveBeenCalledWith(
+			`page`,
+			expect.stringContaining(`browserResumption(document)`),
+		)
+	})
+	it(`redirects named browser imports to the host while retaining other runtime exports`, () => {
+		const result = compile(
+			`import {resumable as read, currentResumption} from 'resumability/client'; read({key:'x', server:()=>1}); currentResumption();`,
+			`x.ts`,
+			{ clientModule: `resumability/astro-client` },
+		)
+		expect(result.code).toContain(`resumability/astro-client`)
+		expect(result.code).toContain(`currentResumption`)
+		expect(
+			compile(
+				`import {createResumption} from 'resumability/client'; createResumption();`,
+				`x.ts`,
+				{ clientModule: `resumability/astro-client` },
+			).code,
+		).not.toContain(`resumability/astro-client`)
 	})
 })

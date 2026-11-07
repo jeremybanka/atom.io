@@ -23,7 +23,7 @@ export function resumable<T, Wire extends Json = Json>(
 ): T | Promise<T> {
 	const context = scope ?? active.getStore()
 	if (!context)
-		throw new Error(`resumable: use collect() or the Astro Resumption wrapper`)
+		throw new Error(`resumable: use the Astro integration or collect()`)
 	return context.read(options)
 }
 

@@ -36,7 +36,6 @@ export const createRenderer = (
 			}
 			// Retry only after reads made by this view settle. Each discarded render
 			// releases its scopes; conditional branches can discover more async state.
-			const settled = new Set<Promise<unknown>>()
 			for (;;) {
 				lifetime.context.signal.throwIfAborted()
 				const pending = new Set<Promise<unknown>>()
@@ -50,10 +49,9 @@ export const createRenderer = (
 						: undefined,
 				)
 				if (!pending.size) return { html }
-				if ([...pending].some((value) => settled.has(value)))
-					throw new Error(`spa: server state did not settle`)
-				for (const value of pending) settled.add(value)
-				await Promise.race([Promise.allSettled(pending), lifetime.cancelled])
+				// Caught producer errors resolve as state values. An uncaught failure
+				// must reject this render with its original error.
+				await Promise.race([Promise.all(pending), lifetime.cancelled])
 			}
 		} catch (error) {
 			failPreparation(error, lifetime.dispose)

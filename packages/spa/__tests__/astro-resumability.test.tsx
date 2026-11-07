@@ -10,7 +10,7 @@ import { requestApplication } from "../src/astro-request.ts"
 import client from "../src/astro-resumability-client.ts"
 import server from "../src/astro-resumability-server.ts"
 import type { Island } from "../src/astro-shared.ts"
-import { onCleanup } from "../src/core.ts"
+import { onCleanup, useStore } from "../src/core.ts"
 import { renderToString } from "../src/server.ts"
 import { useLoadable } from "../src/use-loadable.ts"
 
@@ -124,6 +124,61 @@ it(`renders caught async failures and cancels a pending render with its request`
 	await started.promise
 	controller.abort()
 	await expect(rendering).rejects.toThrow()
+})
+
+it(`preserves an uncaught async producer failure and releases the render`, async () => {
+	const failure = new Error(`inventory database unavailable`)
+	const failedAtom = atom<Loadable<string>>({
+		key: `failed`,
+		default: () => Promise.reject(failure),
+	})
+	const cleanup = vi.fn()
+	const App: Island = () => {
+		onCleanup(cleanup)
+		const value = useLoadable(failedAtom, ``)
+		return <p>{value().value}</p>
+	}
+	const request = new Request(`http://test/uncaught`)
+	try {
+		await expect(render(App, request)).rejects.toBe(failure)
+		expect(cleanup).toHaveBeenCalledOnce()
+	} finally {
+		requestApplication(request).application.dispose()
+	}
+})
+
+it(`initializes a client-only private island without a sidecar and releases its scope on unmount`, async () => {
+	let signal!: AbortSignal
+	const valueAtom = atom<Loadable<string>>({
+		key: `value`,
+		default: () =>
+			clientValue({
+				key: `client-only`,
+				server: () => `server`,
+				client: (context) => {
+					signal = context.signal
+					return `fresh browser value`
+				},
+			}),
+	})
+	let selected!: ReturnType<typeof useStore>
+	const App: Island = () => {
+		selected = useStore()
+		const value = useLoadable(valueAtom, ``)
+		return <p>{value().value}</p>
+	}
+	App.isolate = true
+	const host = document.createElement(`div`)
+	const original = IMPLICIT.STORE.runDefault
+	await client(host)(App, {}, {}, { client: `only` })
+	expect(host.textContent).toBe(`fresh browser value`)
+	expect(selected).not.toBe(IMPLICIT.STORE)
+	expect(signal.aborted).toBe(false)
+	expect(IMPLICIT.STORE.runDefault).toBe(original)
+	host.dispatchEvent(new Event(`astro:unmount`))
+	expect(host.childNodes).toHaveLength(0)
+	expect(signal.aborted).toBe(true)
+	expect(selected.runDefault).toBe(original)
 })
 
 it(`resumes shared defaults, refreshes through the client, and preserves live state on navigation`, async () => {

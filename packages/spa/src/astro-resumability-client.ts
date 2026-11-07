@@ -3,7 +3,6 @@ import { createResumption } from "resumability/client"
 import { createHydrator } from "./astro-client.ts"
 
 export default createHydrator((store, _props, { element, application }) => {
-	if (!element) return
 	const scopes = application.get(
 		createResumption,
 		() => new WeakMap<object, ReturnType<typeof createResumption>>(),
@@ -23,6 +22,7 @@ export default createHydrator((store, _props, { element, application }) => {
 			store.runDefault = original
 		})
 	}
-	const source = element.closest(`astro-resumption`)
+	// This callback is only invoked by the browser hydrator, which supplies a host.
+	const source = element!.closest(`astro-resumption`)
 	if (source) scope.add(source)
 })

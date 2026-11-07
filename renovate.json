@@ -169,6 +169,7 @@
 			"allowedVersions": "^0.53.3"
 		},
 		{
+			"groupName": "dprint",
 			"matchPackageNames": ["dprint", "@dprint/*", "/^dprint-plugin-/"],
 			"postUpgradeTasks": {
 				"commands": [

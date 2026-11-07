@@ -1,0 +1,24 @@
+{
+	"name": "spa-behavior-resumption-spike",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "node build.mjs && cd qwik && ../node_modules/.bin/vite build && ../node_modules/.bin/vite build --ssr && cd .. && node generate.mjs",
+		"typecheck": "tsc -p tsconfig.json && tsc -p qwik/tsconfig.json --noEmit",
+		"test": "node --test schema.test.mjs && node validate.mjs",
+		"check": "npm run typecheck && npm run build && npm test"
+	},
+	"dependencies": {
+		"@builder.io/qwik": "1.20.3",
+		"@sparticuz/chromium": "153.0.0",
+		"esbuild": "0.28.2",
+		"html-entities": "2.6.0",
+		"magic-string": "1.4.5",
+		"oxc-parser": "0.157.0",
+		"playwright": "1.65.0",
+		"vite": "7.3.1"
+	},
+	"devDependencies": {
+		"typescript": "7.0.2"
+	}
+}

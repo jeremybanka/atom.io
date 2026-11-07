@@ -1,0 +1,188 @@
+[
+	{
+		"variant": "spa-eager",
+		"case": "store-12",
+		"htmlBytes": 7049,
+		"htmlGzipBytes": 919
+	},
+	{
+		"variant": "spa-preload",
+		"case": "store-12",
+		"htmlBytes": 7097,
+		"htmlGzipBytes": 943
+	},
+	{
+		"variant": "spa-islands",
+		"case": "store-12",
+		"htmlBytes": 7284,
+		"htmlGzipBytes": 992
+	},
+	{
+		"variant": "resume-cold",
+		"case": "store-12",
+		"htmlBytes": 10743,
+		"htmlGzipBytes": 1525,
+		"serverSetups": 13
+	},
+	{
+		"variant": "resume-preload",
+		"case": "store-12",
+		"htmlBytes": 10792,
+		"htmlGzipBytes": 1550,
+		"serverSetups": 13
+	},
+	{
+		"variant": "qwik-default",
+		"case": "store-12",
+		"htmlBytes": 7032,
+		"htmlGzipBytes": 1975
+	},
+	{
+		"variant": "spa-eager",
+		"case": "store-200",
+		"htmlBytes": 97881,
+		"htmlGzipBytes": 3390
+	},
+	{
+		"variant": "spa-preload",
+		"case": "store-200",
+		"htmlBytes": 97929,
+		"htmlGzipBytes": 3430
+	},
+	{
+		"variant": "spa-islands",
+		"case": "store-200",
+		"htmlBytes": 104332,
+		"htmlGzipBytes": 4651
+	},
+	{
+		"variant": "resume-cold",
+		"case": "store-200",
+		"htmlBytes": 150477,
+		"htmlGzipBytes": 6438,
+		"serverSetups": 201
+	},
+	{
+		"variant": "resume-preload",
+		"case": "store-200",
+		"htmlBytes": 150526,
+		"htmlGzipBytes": 6469,
+		"serverSetups": 201
+	},
+	{
+		"variant": "qwik-default",
+		"case": "store-200",
+		"htmlBytes": 88495,
+		"htmlGzipBytes": 12707
+	},
+	{
+		"variant": "spa-eager",
+		"case": "store-1000",
+		"htmlBytes": 485880,
+		"htmlGzipBytes": 13024
+	},
+	{
+		"variant": "spa-preload",
+		"case": "store-1000",
+		"htmlBytes": 485928,
+		"htmlGzipBytes": 13078
+	},
+	{
+		"variant": "spa-islands",
+		"case": "store-1000",
+		"htmlBytes": 519531,
+		"htmlGzipBytes": 19334
+	},
+	{
+		"variant": "resume-cold",
+		"case": "store-1000",
+		"htmlBytes": 748074,
+		"htmlGzipBytes": 26079,
+		"serverSetups": 1001
+	},
+	{
+		"variant": "resume-preload",
+		"case": "store-1000",
+		"htmlBytes": 748123,
+		"htmlGzipBytes": 26119,
+		"serverSetups": 1001
+	},
+	{
+		"variant": "qwik-default",
+		"case": "store-1000",
+		"htmlBytes": 449772,
+		"htmlGzipBytes": 58462
+	},
+	{
+		"variant": "spa-eager",
+		"case": "setup-200",
+		"htmlBytes": 97975,
+		"htmlGzipBytes": 3492
+	},
+	{
+		"variant": "spa-preload",
+		"case": "setup-200",
+		"htmlBytes": 98023,
+		"htmlGzipBytes": 3532
+	},
+	{
+		"variant": "spa-islands",
+		"case": "setup-200",
+		"htmlBytes": 104426,
+		"htmlGzipBytes": 4797
+	},
+	{
+		"variant": "resume-cold",
+		"case": "setup-200",
+		"htmlBytes": 150566,
+		"htmlGzipBytes": 6546,
+		"serverSetups": 201
+	},
+	{
+		"variant": "resume-preload",
+		"case": "setup-200",
+		"htmlBytes": 150615,
+		"htmlGzipBytes": 6577,
+		"serverSetups": 201
+	},
+	{
+		"variant": "qwik-default",
+		"case": "setup-200",
+		"htmlBytes": 88589,
+		"htmlGzipBytes": 12844
+	},
+	{
+		"variant": "resume-cold",
+		"case": "seeded-12",
+		"htmlBytes": 10745,
+		"htmlGzipBytes": 1531,
+		"serverSetups": 13
+	},
+	{
+		"variant": "resume-preload",
+		"case": "seeded-12",
+		"htmlBytes": 10794,
+		"htmlGzipBytes": 1557,
+		"serverSetups": 13
+	},
+	{
+		"file": "resume/cart.js",
+		"bytes": 35625,
+		"gzipBytes": 10512
+	},
+	{
+		"file": "spa/client.js",
+		"bytes": 44595,
+		"gzipBytes": 14120
+	},
+	{
+		"file": "spa-islands/client.js",
+		"bytes": 44850,
+		"gzipBytes": 14219
+	},
+	{
+		"file": "inline-loader",
+		"bytes": 699,
+		"gzipBytes": 473
+	}
+]

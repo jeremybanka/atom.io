@@ -1,31 +1,25 @@
 ---
-import Resumption from "resumability/Resumption.astro"
 import Inventory from "../Inventory.tsx"
 import Page from "../layouts/Page.astro"
 ---
 <Page title="Stock count">
-	<Resumption>{() => (
-		<>
-			<header class="intro">
-				<p class="eyebrow">Stockroom</p>
-				<h1>Count what’s on the shelf.</h1>
-				<p>
-					Update the count after checking a shelf, then save the new inventory.
-					Both views share your counts, including changes you haven’t saved yet.
-				</p>
-			</header>
-			<section class="workspace" aria-labelledby="work-heading">
-				<h2 id="work-heading">
-					Morning stock count <small>Loads immediately</small>
-				</h2>
-				<Inventory id="work" client:load />
-			</section>
-			<section class="workspace" aria-labelledby="personal-heading">
-				<h2 id="personal-heading">
-					Packing station <small>Same shared inventory · loads when
-						visible</small>
-				</h2><Inventory id="personal" client:visible />
-			</section>
-		</>
-	)}</Resumption>
+	<header class="intro">
+		<p class="eyebrow">Stockroom</p>
+		<h1>Count what’s on the shelf.</h1>
+		<p>
+			Update the count after checking a shelf, then save the new inventory. Both
+			views share your counts, including changes you haven’t saved yet.
+		</p>
+	</header>
+	<section class="workspace" aria-labelledby="work-heading">
+		<h2 id="work-heading">
+			Morning stock count <small>Loads immediately</small>
+		</h2>
+		<Inventory id="work" client:load />
+	</section>
+	<section class="workspace" aria-labelledby="personal-heading">
+		<h2 id="personal-heading">
+			Packing station <small>Same shared inventory · loads when visible</small>
+		</h2><Inventory id="personal" client:visible />
+	</section>
 </Page>

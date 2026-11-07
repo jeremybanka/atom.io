@@ -2,7 +2,13 @@ import { describe, expect, it, vi } from "vitest"
 
 import { createResumption, resumable as client } from "../src/client.ts"
 import { keyOf } from "../src/key.ts"
-import { collect, resumable, serialize } from "../src/server.ts"
+import {
+	collect,
+	createCollection,
+	currentCollection,
+	resumable,
+	serialize,
+} from "../src/server.ts"
 import type { Key, Payload, ResumableOptions } from "../src/types.ts"
 import { encode } from "../src/wire.ts"
 
@@ -410,5 +416,66 @@ describe(`application resumption`, () => {
 		expect(() => {
 			scope.add({ version: 1, values: [] })
 		}).toThrow()
+	})
+})
+
+describe(`owner-controlled server collections`, () => {
+	it(`reuses results across renders and retains detached snapshots after disposal`, async () => {
+		const scope = createCollection()
+		const producer = vi.fn(() => `stock`)
+		expect(currentCollection()).toBeUndefined()
+		const read = () => resumable({ key: `product`, server: producer })
+		const first = await scope.collect(async () => {
+			expect(currentCollection()).toBe(scope)
+			await Promise.resolve()
+			expect(currentCollection()).toBe(scope)
+			await collect(() => resumable(serverValue(`nested`, `nested`)))
+			expect(currentCollection()).toBe(scope)
+			return read()
+		})
+		const second = await scope.collect(read)
+		expect(first.value).toBe(`stock`)
+		expect(second).toEqual(first)
+		expect(producer).toHaveBeenCalledOnce()
+		first.payload.values.length = 0
+		expect(scope.snapshot().values).toEqual([[`product`, [1, `stock`]]])
+		scope.dispose()
+		scope.dispose()
+		expect(scope.signal.aborted).toBe(true)
+		expect(scope.snapshot()).toEqual(second.payload)
+		expect(() => scope.run(read)).toThrow(`closed`)
+		expect(() => scope.read(serverValue(0))).toThrow(`closed`)
+		await expect(scope.collect(read)).rejects.toThrow(`closed`)
+		expect(currentCollection()).toBeUndefined()
+	})
+	it(`captures one render without waiting for another render's work and cancels on owner disposal`, async () => {
+		const scope = createCollection()
+		const pending = Promise.withResolvers<number>()
+		const entered = Promise.withResolvers<void>()
+		let signal!: AbortSignal
+		const slow = scope.collect(
+			() =>
+				resumable({
+					key: `slow`,
+					server: (context) => {
+						signal = context.signal
+						entered.resolve()
+						return pending.promise
+					},
+				}),
+			{ drain: false },
+		)
+		await entered.promise
+		const fast = await scope.collect(() => resumable(serverValue(2, `fast`)), {
+			drain: false,
+		})
+		expect(fast.payload.values).toEqual([[`fast`, [1, 2]]])
+		expect(signal.aborted).toBe(false)
+		scope.dispose()
+		await expect(slow).rejects.toThrow()
+		expect(signal.aborted).toBe(true)
+		pending.resolve(1)
+		await Promise.resolve()
+		expect(scope.snapshot()).toEqual(fast.payload)
 	})
 })

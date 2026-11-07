@@ -6,6 +6,19 @@ An experimental JSX framework whose state engine is atom.io. Components run once
 
 The npm package is named @atom.io/spa. Its browser runtime, Vite compiler, server renderer, and Astro integration are implemented here. It has no independent state primitive, effect API, React hook dispatcher, or compatibility layer.
 
+## Start with the Astro template
+
+Use the [SPA + Astro SSR template](https://github.com/jeremybanka/atom.io/tree/main/templates/spa-astro-ssr) for a ready-to-run application with Astro islands, resumable initial data, SQLite, and tRPC:
+
+```sh
+npm create atom.io@latest my-spa -- --templateName=spa-astro-ssr --packageManager=npm
+cd my-spa
+npm run dev
+
+```
+
+For manual setup, see the [Astro](https://atom.io.fyi/docs/spa/astro) and [Vite](https://atom.io.fyi/docs/spa/vite) integration guides on atom.io.fyi.
+
 ## A point, not two signals
 
 ```tsx
@@ -147,7 +160,7 @@ render(() => <Counter />, document.getElementById(`app`)!)
 
 The development plugin keeps SPA and atom.io outside dependency prebundling so renderer entrypoints, component hooks, and stores share one runtime, including Astro adapter environments. It uses full page reloads. Components and render computations are synchronous. Modern browsers with ES2022 and DOM Range support are the target.
 
-## Component API
+## Hooks
 
 | API                           | Contract                                                                                                                 |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
@@ -341,7 +354,7 @@ The separate server entrypoint exports renderToString with the same setup callba
 
 The production build omits development diagnostics and invalid-input checks; the development export condition enables them. Pure render computations must not write state. Promise children, async components, portals, suspense, error boundaries, style objects, and automatic token-as-child bindings are outside this first implementation. Applications handle asynchronous data through atom.io state and synchronous conditional JSX.
 
-## Astro store preparation
+## Astro state and data
 
 The integration compiles .tsx and .jsx files by default. Use the include option to limit compilation to SPA component directories when another JSX renderer is present. Top-level functions containing JSX are branded by the compiler for renderer detection.
 
@@ -349,9 +362,11 @@ Default islands share the normal implicit atom.io store in the browser. Module-s
 
 The integration starts observing browser state before island preparation. Untouched initial islands hydrate their matching server DOM. Once application state changes or a shared client:only island starts, delayed islands mount fresh against the live graph. Astro ClientRouter navigation also makes newly introduced islands mount fresh, preserving existing browser values instead of replaying the incoming server snapshot. Mounted and persisted roots keep their subscriptions and DOM. This decision is conservative across the application: even an unrelated state change disables hydration for later roots. Ordinary defaults must still produce matching initial values; SPA does not serialize stores or repair nondeterministic renders.
 
+With resumability/astro installed alongside SPA, resumability owns Astro's request collection, page sidecars, and browser scope. SPA awaits async state used by JSX and uses the host's renderer adapter to attach seeds to islands. Ordinary atom defaults use the host without changing the store's evaluator; private stores bind a separate scope so lazy work ends with the island. Define resumable defaults at module scope and render ordinary Astro islands. Components need no Resumption wrapper, prepareStore callback, or preload list. The same host supports plain Astro constants without atom.io. See the [resumability guide](https://atom.io.fyi/docs/spa/astro#resumability) and the inventory starter for a complete example. Resumability is an optional peer, loaded only by this adapter.
+
 Set a component's isolate property to true to opt into a private store copied from registered definitions. An optional createStore(props, context) factory supplies a custom RootStore or promise and retains a private preparation lifetime. Custom factories that return the same store are responsible for coordinating their hydration and cleanup. Keep atom definitions at module scope in either mode.
 
-An optional prepareStore(store, props, context) callback initializes the selected store and may return a promise. SPA awaits it before component setup on the server and browser. Existing one-argument synchronous factories still work. Use serialized props or an independent transport such as resumability for server-produced initial data. Shared preparation must be safe to call for multiple islands; use context.application.get(key, initialize) to create an application resource once.
+An optional prepareStore(store, props, context) callback initializes the selected store and may return a promise. SPA awaits it before component setup on the server and browser. Existing one-argument synchronous factories still work. Shared preparation must be safe to call for multiple islands; use context.application.get(key, initialize) to create an application resource once.
 
 The context provides element (the browser astro-island host, undefined on the server), signal, and onCleanup for the individual island. Its application provides get, signal, onCleanup, and canResume for the shared lifetime. Browser application resources survive island removal and ClientRouter navigation; they end on a full page exit, with back/forward-cache suspension preserved. SSR application resources end after the response stream finishes or is cancelled. Private islands' application resources end with the island. Use application cleanup and cancellation for shared fetches or resumption scopes; use the outer context for resources owned by one island.
 
@@ -437,11 +452,11 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                           | Entry                             | Minified JS |  Gzip JS |
 | -------------------------------- | --------------------------------- | ----------: | -------: |
-| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    63,696 B | 18,887 B |
-| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    42,121 B | 13,142 B |
-| Interactive client app           | `tonnage-recipes/client-app.ts`   |    41,784 B | 12,981 B |
-| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    41,785 B | 12,981 B |
-| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    48,153 B | 14,977 B |
+| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    63,715 B | 18,906 B |
+| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    42,140 B | 13,159 B |
+| Interactive client app           | `tonnage-recipes/client-app.ts`   |    41,803 B | 12,997 B |
+| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    41,804 B | 12,997 B |
+| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    48,230 B | 15,012 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

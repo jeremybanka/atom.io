@@ -22,6 +22,7 @@
 	},
 	"include": [
 		"src",
+		"exhibits",
 		"astro.config.ts",
 		"scripts",
 		"tests/types.ts"

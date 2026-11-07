@@ -5,9 +5,11 @@ import { failPreparation, storeContext } from "./astro-context.ts"
 import { requestApplication } from "./astro-request.ts"
 import type { Island } from "./astro-shared.ts"
 import { island, islandStore } from "./astro-shared.ts"
-import { renderToString } from "./server.ts"
+import { renderToStringWithReads } from "./server-renderer.ts"
 
-const renderer: NamedSSRLoadedRendererValue = {
+export const createRenderer = (
+	awaitState = false,
+): NamedSSRLoadedRendererValue => ({
 	name: `spa`,
 	async check(component: Island) {
 		return component?.spa === true
@@ -27,12 +29,29 @@ const renderer: NamedSSRLoadedRendererValue = {
 				lifetime.context,
 				shared?.store,
 			)
-			return {
-				html: renderToString(() => () => island(component, props, slots), {
-					store,
-					idPrefix: crypto.randomUUID(),
-					capabilities: component.capabilities ?? [],
-				}),
+			const options = {
+				store,
+				idPrefix: crypto.randomUUID(),
+				capabilities: component.capabilities ?? [],
+			}
+			// Retry only after reads made by this view settle. Each discarded render
+			// releases its scopes; conditional branches can discover more async state.
+			for (;;) {
+				lifetime.context.signal.throwIfAborted()
+				const pending = new Set<Promise<unknown>>()
+				const html = renderToStringWithReads(
+					() => () => island(component, props, slots),
+					options,
+					awaitState
+						? (value) => {
+								if (value instanceof Promise) pending.add(value)
+							}
+						: undefined,
+				)
+				if (!pending.size) return { html }
+				// Caught producer errors resolve as state values. An uncaught failure
+				// must reject this render with its original error.
+				await Promise.race([Promise.all(pending), lifetime.cancelled])
 			}
 		} catch (error) {
 			failPreparation(error, lifetime.dispose)
@@ -40,5 +59,5 @@ const renderer: NamedSSRLoadedRendererValue = {
 			lifetime.dispose()
 		}
 	},
-}
-export default renderer
+})
+export default createRenderer()

@@ -1,0 +1,45 @@
+import Exhibit from "c/Exhibit.astro";
+
+# <low-emphasis>@atom.io/spa</low-emphasis><wbr />/vite
+
+SPA's Vite plugin compiles JSX into reactive expressions. Register it in standalone Vite applications; the [Astro integration](/docs/spa/astro) installs it for Astro projects.
+
+## setup
+
+Install [SPA and atom.io](/docs/spa#build-from-scratch), then add Vite as a development dependency:
+
+<Exhibit src="spa/exhibits/install-vite.sh" />
+
+Register the plugin in vite.config.ts:
+
+<Exhibit src="spa/exhibits/vite.config.ts" />
+
+Keep JSX intact for the plugin and select SPA's JSX types:
+
+<Exhibit src="spa/exhibits/tsconfig.json" />
+
+## mount your application
+
+Create a component in an ordinary .tsx file:
+
+<Exhibit src="spa/exhibits/Counter.tsx" />
+
+Add a host element and load your entrypoint from index.html:
+
+<Exhibit src="spa/exhibits/index.html" />
+
+Mount the counter from main.tsx:
+
+<Exhibit src="spa/exhibits/main.tsx" />
+
+See [rendering](/docs/spa#rendering) for disposal, server rendering, and hydration. Vite supplies the build and development server; SPA owns the component and its DOM subscriptions.
+
+## compiler options
+
+The plugin compiles .tsx and .jsx files by default, including files referenced with Vite query parameters. Its optional include RegExp selects a narrower set of component files. Files inside node_modules are excluded.
+
+The compiler preserves reactive JSX expressions, live component props, and spread precedence. A standard TypeScript JSX transform alone does not preserve those behaviors, so keep this plugin enabled in development and production.
+
+## development
+
+SPA uses full page reloads when a matching component changes. The plugin deduplicates SPA and atom.io and keeps their runtime entrypoints out of dependency prebundling so renderers, hooks, and stores share one runtime.

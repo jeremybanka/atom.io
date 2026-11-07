@@ -6,7 +6,7 @@ Build a 2D canvas scene with SPA components and Konva. Atom.io stores the docume
 
 ## setup
 
-Complete [SPA setup](/docs/spa#frameworks), then install the optional Konva peer:
+Complete [SPA setup](/docs/spa#build-from-scratch), then install the optional Konva peer:
 
 <Exhibit src="spa/exhibits/install-konva.sh" />
 
@@ -18,7 +18,7 @@ Stage creates a canvas surface after browser mounting. Put shapes in a Layer and
 
 <Exhibit src="spa/exhibits/konva.tsx" />
 
-Mount Editor with SPA's [render](/docs/spa#render), or export it as an [Astro island](/docs/spa#astro-setup). With Astro, client:load renders the host container on the server and creates the graphics after browser mounting.
+Mount Editor with SPA's [render](/docs/spa#render), or export it as an [Astro island](/docs/spa/astro#setup). With Astro, client:load renders the host container on the server and creates the graphics after browser mounting.
 
 The x and y expressions read the same point atom. Updates change the existing circle's native attributes. Konva owns hit testing, dragging, and draw batching; onDragEnd records the resulting position so the application state agrees with the scene.
 

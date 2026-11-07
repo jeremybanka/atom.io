@@ -31,7 +31,19 @@
 			"default": "./dist/astro.js"
 		},
 		"./Resumption.astro": "./dist/Resumption.astro",
-		"./package.json": "./package.json"
+		"./package.json": "./package.json",
+		"./astro-client": {
+			"types": "./dist/astro-client.d.ts",
+			"default": "./dist/astro-client.js"
+		},
+		"./astro-server": {
+			"types": "./dist/astro-server.d.ts",
+			"default": "./dist/astro-server.js"
+		},
+		"./astro-middleware": {
+			"types": "./dist/astro-middleware.d.ts",
+			"default": "./dist/astro-middleware.js"
+		}
 	},
 	"main": "./dist/index.js",
 	"browser": "./dist/client.js",
@@ -58,7 +70,8 @@
 		"readme:check": "galley check README.mdx"
 	},
 	"dependencies": {
-		"@babel/core": "8.1.0"
+		"@babel/core": "8.1.0",
+		"parse5-sax-parser": "8.0.0"
 	},
 	"devDependencies": {
 		"@breakage/changesets": "0.1.0",

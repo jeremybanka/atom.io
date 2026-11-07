@@ -314,14 +314,6 @@ function SiteDirectory(): VNode {
 					<header>Patterns</header>
 					<main>
 						<section>
-							<a
-								id="-docs-against-use-effect-link"
-								href="/docs/against-use-effect"
-							>
-								you don't need useEffect
-							</a>
-						</section>
-						<section>
 							<a id="-docs-remote-data-link" href="/docs/remote-data">
 								remote data
 							</a>
@@ -329,6 +321,14 @@ function SiteDirectory(): VNode {
 						<section>
 							<a id="-docs-typesafe-router-link" href="/docs/typesafe-router">
 								typesafe router
+							</a>
+						</section>
+						<section>
+							<a
+								id="-docs-against-use-effect-link"
+								href="/docs/against-use-effect"
+							>
+								you don't need useEffect
 							</a>
 						</section>
 					</main>
@@ -372,6 +372,16 @@ function SiteDirectory(): VNode {
 						<section>
 							<a id="-docs-spa-link" href="/docs/spa">
 								<low-emphasis>@atom.io</low-emphasis>/spa
+							</a>
+						</section>
+						<section>
+							<a id="-docs-spa-astro-link" href="/docs/spa/astro">
+								<low-emphasis>@atom.io/spa</low-emphasis>/astro
+							</a>
+						</section>
+						<section>
+							<a id="-docs-spa-vite-link" href="/docs/spa/vite">
+								<low-emphasis>@atom.io/spa</low-emphasis>/vite
 							</a>
 						</section>
 						<section>

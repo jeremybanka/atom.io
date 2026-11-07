@@ -6,7 +6,7 @@ Build a Three.js scene with SPA components. Atom reads in JSX update the existin
 
 ## setup
 
-Complete [SPA setup](/docs/spa#frameworks), then install Three.js and its TypeScript declarations:
+Complete [SPA setup](/docs/spa#build-from-scratch), then install Three.js and its TypeScript declarations:
 
 <Exhibit src="spa/exhibits/install-three.sh" />
 
@@ -20,7 +20,7 @@ Canvas creates a WebGL renderer after browser mounting. A Mesh combines one geom
 
 <Exhibit src="spa/exhibits/three.tsx" />
 
-Mount Scene with SPA's [render](/docs/spa#render), or export it as an [Astro island](/docs/spa#astro-setup). With Astro, client:load renders the host container on the server and creates the graphics after browser mounting.
+Mount Scene with SPA's [render](/docs/spa#render), or export it as an [Astro island](/docs/spa/astro#setup). With Astro, client:load renders the host container on the server and creates the graphics after browser mounting.
 
 Changing colorAtom updates the existing material. Position and rotation accept three-number tuples; scale accepts a tuple or a single number. Constructor args are fixed for the lifetime of an instance. To use different constructor arguments, replace that resource with a new key.
 

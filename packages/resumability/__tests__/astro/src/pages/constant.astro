@@ -1,0 +1,25 @@
+---
+import { constant, product } from "../data.ts"
+const settings = await constant()
+const initialProduct = await product()
+---
+<html lang="en">
+	<head><title>Resumable constants without a state library</title></head>
+	<body>
+		<output data-constant>{settings}</output>
+		<output data-product>{initialProduct}</output>
+		<button>Read again</button>
+		<script>
+		import { constant, product } from "../data.ts"
+const settings = await constant()
+const current = await product()
+document.querySelector(`[data-constant]`)!.textContent = settings
+document.querySelector(`[data-product]`)!.textContent = current
+document.querySelector(`button`)!.addEventListener(`click`, async () => {
+	document.querySelector(`[data-constant]`)!.textContent = await constant()
+	document.querySelector(`[data-product]`)!.textContent = await product()
+})
+document.documentElement.setAttribute(`data-ready`, ``)
+		</script>
+	</body>
+</html>

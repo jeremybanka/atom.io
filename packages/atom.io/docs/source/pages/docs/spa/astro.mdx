@@ -1,0 +1,99 @@
+import Exhibit from "c/Exhibit.astro";
+
+# <low-emphasis>@atom.io/spa</low-emphasis><wbr />/astro
+
+Use SPA components as Astro islands. This integration installs the [JSX compiler](/docs/spa/vite), renders island HTML on the server, hydrates scheduled islands in the browser, and releases their resources on unmount.
+
+## setup
+
+The [SPA + Astro SSR template](https://github.com/jeremybanka/atom.io/tree/main/templates/spa-astro-ssr) includes the integration and a working [resumability](#resumability) setup:
+
+<Exhibit src="spa/exhibits/create-astro-template.sh" />
+
+For a project built from scratch, install [SPA and atom.io](/docs/spa#build-from-scratch) alongside Astro:
+
+<Exhibit src="spa/exhibits/install-astro.sh" />
+
+Register the integration in astro.config.ts:
+
+<Exhibit src="spa/exhibits/astro.config.ts" />
+
+Use Astro's TypeScript configuration with SPA's JSX types:
+
+<Exhibit src="spa/exhibits/astro.tsconfig.json" label="tsconfig.json" />
+
+The integration compiles ordinary .tsx and .jsx components by default. The optional include RegExp can restrict compilation to SPA directories when an application uses another JSX renderer too.
+
+## an interactive island
+
+Create Counter.tsx:
+
+<Exhibit src="spa/exhibits/Counter.tsx" />
+
+Import it into an Astro page and add client:load:
+
+<Exhibit src="spa/exhibits/counter-page.astro" />
+
+Astro renders the initial HTML, then hydrates the counter in the browser. It handles SPA's render and hydrate entrypoints for you. Other client directives, including client:idle, client:visible, and client:only, use Astro's scheduling. Put browser-only work in [onMount](/docs/spa#onmount).
+
+## state and navigation
+
+Keep atom and selector definitions at module scope. Default islands share atom.io's implicit store in the browser, while each server request receives a separate store. Server work must use the selected request store through SPA hooks or store-aware atom.io operations.
+
+Untouched initial islands hydrate matching server HTML. After browser state changes, delayed islands mount against the live store. New islands introduced by ClientRouter navigation also use live values, preserving existing edits. Persisted islands retain their DOM and subscriptions.
+
+The integration does not serialize an entire store. Initial values must agree between server and browser; use serialized props or resumability for server-produced data. A component's isolate flag opts into a private store, and createStore can supply a custom store. prepareStore can initialize the selected store asynchronously before the component renders.
+
+## resumability
+
+Hydration attaches a view to server-rendered HTML. Resumability supplies the data used to produce that HTML, so initial browser reads can reuse it without repeating server work. SPA still hydrates the view and attaches its event handlers.
+
+### define the state
+
+The recommended template is a stock-counting workspace. Products arrive from SQLite, staff edit quantities in shared views, and a save action persists each count. Its module-scoped atoms live in state.ts:
+
+<Exhibit src="spa-astro-ssr/src/state.ts" />
+
+Each default has a server producer and a browser producer. resumability removes the inline server closure and its dynamic imports from the browser build. Stable keys associate browser defaults with the server's results; the browser uses tRPC for later reads.
+
+### render the island
+
+Register both resumability/astro and SPA, as the template already does. Resumability owns Astro's request collection and browser scope; SPA waits for async state read during JSX rendering. Components need no preparation function, preload list, or wrapper.
+
+Render an ordinary Astro island:
+
+<Exhibit src="spa-astro-ssr/exhibits/inventory-page.astro" />
+
+Resumability collects completed values from Astro frontmatter and renderer work. Its renderer adapter attaches seed data to each island so islands sharing a store can activate in either order, even when a later server render reuses cached state. The first browser read consumes its server value, letting the view hydrate without another database request. Cache the complete HTML and its sidecars together. Seed data is public browser-visible JSON.
+
+The same host supports plain Astro readers and reusable server-only constants without atom.io. See the [resumability guide](https://github.com/jeremybanka/atom.io/tree/main/packages/resumability#a-resumable-constant). Explicit Resumption scopes remain available when a subtree needs independent collection and browser ownership.
+
+### a siloized island
+
+Default islands share the browser store and Astro's page resumption scope. For an independent stock-counting view, wrap the starter's Inventory component and set isolate to true:
+
+<Exhibit src="spa-astro-ssr/exhibits/PrivateInventory.tsx" />
+
+Render it with an ordinary hydration directive:
+
+<Exhibit src="spa-astro-ssr/exhibits/private-inventory-page.astro" />
+
+Each PrivateInventory island has its own store, server seeds, and seed-consumption history. Its unsaved quantity edits stay in that view. A createStore factory also selects a private island lifetime.
+
+When resumability is installed, SPA binds that private scope whenever the store evaluates a default. This includes lazy family members and later resets, even outside component rendering. The binding is automatic; shared-store islands and plain Astro readers use the page scope directly.
+
+The private resumption scope ends when its island unmounts, including when ClientRouter navigation removes it. Disposal clears the scope's seeds and aborts the signal given to its client producers; those producers must honor the signal to stop I/O. An island retained with transition:persist keeps its scope until it actually unmounts. Shared page scopes survive individual island removal and ClientRouter navigation and end on full page exit, while back/forward-cache suspension preserves them.
+
+SPA owns this binding because it chooses the island's store and lifetime. Resumability supplies the scope and transport independently of atom.io. An isolated island without resumability needs no resumption binding.
+
+### refresh and save
+
+Resetting a product atom evaluates its default again. Its initial value has already been consumed, so the client producer fetches the current row through tRPC. Saving sends the edited quantity and its database revision; a competing save produces a conflict so one count cannot silently overwrite another.
+
+The [template's Inventory component](https://github.com/jeremybanka/atom.io/blob/main/templates/spa-astro-ssr/src/Inventory.tsx) includes both actions. Both views immediately reflect edits, reloads, and successful saves through the shared atom.io store.
+
+### navigate with live state
+
+SPA keeps the browser store and resumability keeps its host scope across ClientRouter navigation. Incoming seeds cannot reseed values already consumed. After edits or navigation, fresh islands render live values instead of restoring the initial server snapshot. A full page load starts a new application.
+
+Each server request owns its store until its response finishes streaming. Removing a browser island releases its view; shared resources end with the application. See the [starter README](https://github.com/jeremybanka/atom.io/tree/main/templates/spa-astro-ssr#readme) for the complete app, caching behavior, and production commands.

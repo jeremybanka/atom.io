@@ -1,5 +1,19 @@
 # @atom.io/template-react-node-backend
 
+## 0.0.104
+
+### Patch Changes
+
+- 4b4c19a: Document and demonstrate synchronous atom effects with direct state writes as the place to normalize accepted remote responses, keeping hydration behind stale-result protection. Update loader, refresh, mutation, and local-index guidance; explain shared-record revisions and how to avoid extra requests. Move the React/Node template's todo hydration into an effect and add an explicit response refresh action.
+- Updated dependencies [4b4c19a]
+- Updated dependencies [b166670]
+- Updated dependencies [ffbb22d]
+- Updated dependencies [06c8a0c]
+- Updated dependencies [4349006]
+- Updated dependencies [ccefaca]
+  - atom.io@0.54.6
+  - @atom.io/react@0.2.1
+
 ## 0.0.103
 
 ### Patch Changes

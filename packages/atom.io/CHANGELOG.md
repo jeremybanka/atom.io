@@ -1,5 +1,16 @@
 # atom.io
 
+## 0.54.6
+
+### Patch Changes
+
+- 4b4c19a: Document and demonstrate synchronous atom effects with direct state writes as the place to normalize accepted remote responses, keeping hydration behind stale-result protection. Update loader, refresh, mutation, and local-index guidance; explain shared-record revisions and how to avoid extra requests. Move the React/Node template's todo hydration into an effect and add an explicit response refresh action.
+- b166670: Fix the laziness example to use getState and setState with its implicit-store atom and selector instead of accessing them through an unrelated Silo.
+- ffbb22d: Simplify the SPA setup examples to a single counter, present Astro before Vite, and show only the setup each framework requires. Remove unrelated lifecycle helpers, slots, initial props, and custom stores from the Astro counter, and keep the point example focused on reactive state. Use ordinary .tsx component filenames throughout the SPA exhibits, debugger setup, and Astro starter. The Astro integration now compiles .tsx and .jsx files by default; applications using multiple JSX renderers must use include to select their SPA component directories.
+- 06c8a0c: Rename the effect guide to "you don't need useEffect", group it under Patterns, and bring React, Solid, and SPA together under Integrations. Update the published documentation and guide labels while preserving existing guide URLs and installed documentation paths.
+- 4349006: Scope React `useLoadable` retention to the selected state in its store. Switching family keys or tokens uses that member's previous settled value during refresh, or the current fallback or `"LOADING"` if it has none. Preserve same-member refresh and caught-error retry behavior, support `null` fallbacks, and document retention and error handling, including the fixed-member accessor behavior in Solid and SPA.
+- ccefaca: Add focused guides for @atom.io/spa/motion, @atom.io/spa/three, and @atom.io/spa/konva, including optional peer installation, examples, and resource ownership. Link the guides immediately after SPA in the sidebar and include them in the packaged agent documentation.
+
 ## 0.54.5
 
 ### Patch Changes

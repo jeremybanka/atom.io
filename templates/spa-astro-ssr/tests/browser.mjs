@@ -20,6 +20,13 @@ const initialStock = 24
 database
 	.prepare(`UPDATE products SET stock = ?, revision = 1 WHERE id = 1`)
 	.run(initialStock)
+const originalProductName = database
+	.prepare(`SELECT name FROM products WHERE id = 2`)
+	.get().name
+const escapedProductName = `Breakfast tea "Ceylon" & <script>globalThis.__seedExecuted = true</script>`
+database
+	.prepare(`UPDATE products SET name = ? WHERE id = 2`)
+	.run(escapedProductName)
 let browser
 try {
 	const origin = `http://127.0.0.1:${port}`
@@ -32,8 +39,8 @@ try {
 	}
 	assert.ok(html.includes(`House blend`))
 	assert.ok(html.includes(`value="24"`))
-	assert.ok(html.indexOf(`data-resumable`) < html.indexOf(`<astro-island`))
-	assert.equal((html.match(/data-resumable/g) ?? []).length, 1)
+	assert.doesNotMatch(html, /<astro-resumption|<script[^>]*data-resumable/)
+	assert.equal((html.match(/data-spa-resumption=/g) ?? []).length, 2)
 	assert.equal((html.match(/aria-busy="true"/g) ?? []).length, 0)
 	const changedStock = 27
 	database
@@ -52,7 +59,7 @@ try {
 		assert.equal(
 			repeatedHtml,
 			html,
-			`Cache hits preserve HTML and sidecar together`,
+			`Cache hits preserve HTML and seed attributes together`,
 		)
 	}
 	browser = await chromium.launch()
@@ -87,6 +94,29 @@ try {
 	assert.equal(
 		await page.locator(`input[type="number"]`).first().inputValue(),
 		String(development ? changedStock : initialStock),
+	)
+	const payloads = await page
+		.locator(`astro-island`)
+		.evaluateAll((islands) =>
+			islands.map((island) =>
+				JSON.parse(island.getAttribute(`data-spa-resumption`)),
+			),
+		)
+	assert.equal(payloads.length, 2)
+	assert.equal(payloads[0].values.length, 2)
+	assert.equal(
+		payloads[0].values.find((entry) => entry[0][1] === 2)[1][1].name,
+		escapedProductName,
+	)
+	assert.equal(
+		await page.locator(`.product h3`).nth(1).textContent(),
+		escapedProductName,
+	)
+	assert.equal(await page.evaluate(() => globalThis.__seedExecuted), undefined)
+	assert.deepEqual(
+		payloads[1],
+		payloads[0],
+		`Cached shared reads still attach the complete seed to each island`,
 	)
 	const seeds = await page.locator(`[data-revision]`).allTextContents()
 	assert.equal(seeds.length, 4)
@@ -146,7 +176,7 @@ try {
 	assert.equal(
 		rpcRequests.length,
 		0,
-		`Hydration must consume the sidecar without RPC`,
+		`Hydration must consume the island seed without RPC`,
 	)
 	const refresh = async (index, stock) => {
 		database
@@ -259,7 +289,23 @@ try {
 			...document.querySelectorAll(`input[type="number"]`),
 		]
 	})
+	// Hold the earlier island off-DOM so the later, cached SSR reader activates first.
+	await page.evaluate(() => {
+		window.__heldIsland = document.querySelector(`astro-island[client="load"]`)
+		window.__heldParent = window.__heldIsland.parentElement
+		window.__heldIsland.remove()
+	})
+	await page
+		.locator(`astro-island[client="visible"] .product`)
+		.first()
+		.scrollIntoViewIfNeeded()
 	freshGate.resolve()
+	await page.waitForSelector(`astro-island[client="visible"]:not([ssr])`)
+	assert.equal(
+		await page.evaluate(() => window.__heldIsland.hasAttribute(`ssr`)),
+		true,
+	)
+	await page.evaluate(() => window.__heldParent.append(window.__heldIsland))
 	await page.waitForSelector(`astro-island[client="load"]:not([ssr])`)
 	await page
 		.locator(`astro-island[client="visible"] .product`)
@@ -360,7 +406,7 @@ try {
 		)
 	}
 	console.log(
-		`${development ? `Development` : `Production`}: ${development ? `uncached SSR` : `cached SSR and 60-second expiry`}, no-store RPC reads and saves, competing-save conflicts, server data, client:load and client:visible, initial DOM hydration, shared state, delayed fresh mounts, RPC resets, navigation without lost edits, and server-code removal passed.`,
+		`${development ? `Development` : `Production`}: ${development ? `uncached SSR` : `cached SSR and 60-second expiry`}, no-store RPC reads and saves, competing-save conflicts, server data, client:load and client:visible, initial DOM hydration, shared state, delayed fresh mounts, RPC resets, navigation without lost edits, wrapper-free seeds, reverse hydration order, and server-code removal passed.`,
 	)
 } finally {
 	await browser?.close()
@@ -368,5 +414,8 @@ try {
 	database
 		.prepare(`UPDATE products SET stock = ?, revision = 1 WHERE id = 1`)
 		.run(initialStock)
+	database
+		.prepare(`UPDATE products SET name = ? WHERE id = 2`)
+		.run(originalProductName)
 	database.close()
 }

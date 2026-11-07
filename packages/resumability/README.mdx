@@ -15,6 +15,10 @@ Install resumability alongside Astro. Import the default Astro integration as re
 
 <AstroConfig />
 
+When paired with @atom.io/spa/astro, the integration collects server values and delivers seeds to SPA islands automatically. Use ordinary hydration directives with module-scoped state definitions; no wrapper or preparation callback is required. See the [SPA resumability guide](https://atom.io.fyi/docs/spa/astro#resumability) and the spa-astro-ssr template.
+
+## Explicit Astro scopes
+
 Define a shared function. The server closure can import Node-only modules; the browser build removes that entire closure before Vite discovers its imports. The client closure supplies fresh values after the initial harvest.
 
 <Greeting />
@@ -23,11 +27,11 @@ Render the initial value in a child Astro component, Value.astro:
 
 <Value />
 
-Wrap that component in Resumption. The wrapper collects values while rendering its slot, waits for registered producers, and emits an inert JSON sidecar before the slot HTML. Capture a browser scope once and pass it to subsequent calls:
+For explicit collection scopes in plain Astro, wrap that component in Resumption. The wrapper collects values while rendering its slot, waits for registered producers, and emits an inert JSON sidecar before the slot HTML. Capture a browser scope once and pass it to subsequent calls:
 
 <Page />
 
-Work that needs the collector must run inside the wrapper's slot, not in the parent page's frontmatter. Astro eagerly evaluates framework-component slots: wrap a framework island in a deferred child function so its SSR starts inside collection. The spa-astro-ssr template demonstrates this with normal Astro hydration directives. Plain Astro child frontmatter remains deferred until the slot renders. Await values before generating markup that uses them. Waiting for the sidecar alone cannot update HTML a renderer has already generated. Framework islands need their own adapter or preparation step to feed the resolved values into SSR and pass the browser scope into their state; this package does not modify framework renderers. Sidecars precede the slot markup so they are available even when an island hydrates while HTML is still arriving.
+Explicit scopes collect work performed while their slot renders. Parent-page frontmatter runs before that scope opens; place scoped reads in a child component. Plain Astro child frontmatter remains deferred until the slot renders. Await values before generating markup that uses them. The wrapper emits its sidecar before the slot markup. Other framework renderers need an adapter to coordinate asynchronous rendering and browser seed delivery; SPA provides that adapter automatically.
 
 ## Defaults and resets
 
@@ -53,7 +57,7 @@ During SSR, read these tokens in a request-local store inside the collection and
 
 <AtomScope />
 
-The store activates that scope for initial reads, lazy family members, and resets, including resets inside transactions. The first browser read consumes the server value; subsequent resets run the client producer. Independent stores share definitions but never a resumption scope. The spa-astro-ssr template uses SPA's prepareStore callback and application resource context to install this bridge once, await initial reads, and register cleanup. Sibling islands share one deferred Resumption collection so every initial reader can find the complete sidecar, regardless of activation order. Resumability itself has no atom.io or SPA dependency.
+The store activates that scope for initial reads, lazy family members, and resets, including resets inside transactions. The first browser read consumes the server value; subsequent resets run the client producer. Independent stores share definitions but never a resumption scope. With both Astro integrations registered, @atom.io/spa installs this bridge automatically, collects defaults in the request, and attaches seed attributes to ordinary Astro islands. The spa-astro-ssr template needs no Resumption wrapper, preparation callback, or preload list. Explicit Resumption scopes remain available for plain Astro and custom collection boundaries. Resumability itself has no atom.io or SPA dependency.
 
 ## API and transport
 
@@ -61,7 +65,7 @@ The root export provides resumable(options, scope?). Options contain key, an inl
 
 The client entrypoint exports createResumption(elementOrPayload?) and resumable. Pass the wrapper element to read its direct sidecar, a parsed Payload for a custom transport, or no argument for a client-only scope. The returned scope has read, run, add, and dispose methods. Add validates the entire payload before merging it. Keys already read keep their consumption state; reusable server-only values keep their original seed. Unread keys can receive newer seeds. Scope.run(callback) activates its scope synchronously, restoring the previous scope even when the callback throws. It returns the callback result unchanged; it does not keep an ambient scope across await. Call resumable before awaiting, or pass an explicit scope for later asynchronous calls. Passing a second argument to scope.run with resume set to false bypasses unread seeds when a client producer is available. This supports fresh mounts after browser state changes: even a default reset before its first read must not resurrect stale server data. Server-only values remain usable because they have no client initializer. The option is scoped to that synchronous callback and restored after nested calls or errors. Producers receive their scope signal when invoked. Disposing a scope aborts that signal; another reset does not cancel an earlier request.
 
-The server entrypoint exports collect and serialize, as well as resumable. Collect accepts a callback and an optional cancellation signal, and returns the callback's value and a versioned payload, awaiting all registered work, including work registered by other producers after an await. Rejections fail collection; cancellation aborts it. Producers must finish or honor cancellation, and must not depend cyclically on one another. Detached work registered after collection closes is rejected. Server collection requires a Node-compatible runtime with AsyncLocalStorage; static Astro builds work too.
+The server entrypoint exports collect and serialize, as well as resumable. Adapters can use createCollection(options?) with an optional signal for an owner-controlled scope and currentCollection() to honor a surrounding explicit scope. The scope provides run, collect, snapshot, dispose, and signal. Collect normally drains registered producers; its drain: false option captures a render without waiting for unrelated work elsewhere in the same request. Snapshot returns detached completed values and remains available after disposal so later islands can transport cached reads. Disposal aborts producers and prevents new reads. Collect accepts a callback and an optional cancellation signal, and returns the callback's value and a versioned payload, awaiting all registered work, including work registered by other producers after an await. Rejections fail collection; cancellation aborts it. Producers must finish or honor cancellation, and must not depend cyclically on one another. Detached work registered after collection closes is rejected. Server collection requires a Node-compatible runtime with AsyncLocalStorage; static Astro builds work too.
 
 The default wire format accepts JSON data and top-level undefined. It rejects values JSON would silently change, including nested undefined, non-finite numbers, Dates, functions, symbols, and cycles. Supply a JSON codec for richer values. Encode runs on the server; decode runs on both sides so SSR and browser observe the same representation. Payloads are inert JSON with HTML terminators escaped, never executable scripts. Treat every transported value as public browser-visible data.
 

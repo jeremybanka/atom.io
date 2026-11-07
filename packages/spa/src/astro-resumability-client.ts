@@ -25,4 +25,6 @@ export default createHydrator((store, _props, { element, application }) => {
 	// This callback is only invoked by the browser hydrator, which supplies a host.
 	const source = element!.closest(`astro-resumption`)
 	if (source) scope.add(source)
+	const payload = element!.getAttribute(`data-spa-resumption`)
+	if (payload !== null) scope.add(JSON.parse(payload))
 })

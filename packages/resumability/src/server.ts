@@ -15,7 +15,7 @@ export type {
 } from "./types.ts"
 export { serialize } from "./wire.ts"
 
-const active = new AsyncLocalStorage<Resumption>()
+const active = new AsyncLocalStorage<ServerCollection>()
 
 export function resumable<T, Wire extends Json = Json>(
 	options: ResumableOptions<T, Wire>,
@@ -27,11 +27,27 @@ export function resumable<T, Wire extends Json = Json>(
 	return context.read(options)
 }
 
-/** Await the callback and every producer it discovers, including nested async work. */
-export async function collect<T>(
-	run: () => T | Promise<T>,
+export interface ServerCollection extends Resumption {
+	readonly signal: AbortSignal
+	run<T>(compute: () => T): T
+	collect<T>(
+		compute: () => T | Promise<T>,
+		options?: { drain?: boolean },
+	): Promise<{ value: T; payload: Payload }>
+	/** A detached snapshot of completed values, also available after disposal. */
+	snapshot(): Payload
+	dispose(): void
+}
+
+/** The surrounding explicit collection takes precedence over an adapter's default. */
+export function currentCollection(): ServerCollection | undefined {
+	return active.getStore()
+}
+
+/** A collector whose owner controls its lifetime, including streamed responses. */
+export function createCollection(
 	options: { signal?: AbortSignal } = {},
-): Promise<{ value: T; payload: Payload }> {
+): ServerCollection {
 	const controller = new AbortController()
 	const signal = options.signal
 		? AbortSignal.any([options.signal, controller.signal])
@@ -39,12 +55,16 @@ export async function collect<T>(
 	const tasks = new Map<string, Promise<unknown>>()
 	const payload: Payload = { version: 1, values: [] }
 	let closed = false
-	const scope: Resumption = {
+	const assertOpen = () => {
+		if (closed) throw new Error(`resumable: collection is closed`)
+		signal.throwIfAborted()
+	}
+	const scope: ServerCollection = {
+		signal,
 		read<Output, Wire extends Json>(
 			settings: ResumableOptions<Output, Wire>,
 		): Promise<Output> {
-			if (closed) throw new Error(`resumable: collection is closed`)
-			signal.throwIfAborted()
+			assertOpen()
 			const key = keyOf(settings.key)
 			let task = tasks.get(key)
 			if (!task) {
@@ -66,32 +86,60 @@ export async function collect<T>(
 			}
 			return task as Promise<Output>
 		},
-	}
-	let abort!: () => void
-	const aborted = new Promise<never>((_, reject) => {
-		abort = () => {
-			reject(signal.reason)
-		}
-		signal.addEventListener(`abort`, abort, { once: true })
-	})
-	try {
-		signal.throwIfAborted()
-		return await Promise.race([
-			aborted,
-			active.run(scope, async () => {
-				const value = await run()
-				let drained = 0
-				while (tasks.size > drained) {
-					const batch = [...tasks.values()].slice(drained)
-					drained = tasks.size
-					await Promise.all(batch)
+		run<T>(compute: () => T): T {
+			assertOpen()
+			return active.run(scope, compute)
+		},
+		async collect<T>(
+			compute: () => T | Promise<T>,
+			captureOptions: { drain?: boolean } = {},
+		): Promise<{ value: T; payload: Payload }> {
+			let abort!: () => void
+			const aborted = new Promise<never>((_, reject) => {
+				abort = () => {
+					reject(signal.reason)
 				}
-				return { value, payload }
-			}),
-		])
+				signal.addEventListener(`abort`, abort, { once: true })
+			})
+			try {
+				return await Promise.race([
+					aborted,
+					scope.run(async () => {
+						const value = await compute()
+						let drained = 0
+						while (captureOptions.drain !== false && tasks.size > drained) {
+							const batch = [...tasks.values()].slice(drained)
+							drained = tasks.size
+							await Promise.all(batch)
+						}
+						return { value, payload: scope.snapshot() }
+					}),
+				])
+			} finally {
+				signal.removeEventListener(`abort`, abort)
+			}
+		},
+		snapshot() {
+			return structuredClone(payload)
+		},
+		dispose() {
+			closed = true
+			controller.abort()
+			tasks.clear()
+		},
+	}
+	return scope
+}
+
+/** Await the callback and every producer it discovers, then close the scope. */
+export async function collect<T>(
+	run: () => T | Promise<T>,
+	options: { signal?: AbortSignal } = {},
+): Promise<{ value: T; payload: Payload }> {
+	const scope = createCollection(options)
+	try {
+		return await scope.collect(run)
 	} finally {
-		closed = true
-		signal.removeEventListener(`abort`, abort)
-		controller.abort()
+		scope.dispose()
 	}
 }

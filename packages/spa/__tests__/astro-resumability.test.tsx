@@ -1,5 +1,12 @@
-import { atom, getState, type Loadable, resetState, setState } from "atom.io"
-import { IMPLICIT, Store } from "atom.io/internal"
+import {
+	atom,
+	getState,
+	type Loadable,
+	resetState,
+	setState,
+	Silo,
+} from "atom.io"
+import { IMPLICIT, resetInStore, Store } from "atom.io/internal"
 import { resumable as clientValue } from "resumability/client"
 import { collect, resumable as serverValue } from "resumability/server"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
@@ -84,7 +91,8 @@ it(`discovers async defaults through conditional views without preloading unrela
 	}
 	const request = new Request(`http://test`)
 	try {
-		const { value: result, payload } = await collect(() => render(App, request))
+		const result = await render(App, request)
+		const payload = JSON.parse(result.attrs![`data-spa-resumption`])
 		expect(result.html).toContain(`fresh stock`)
 		expect(result.html).not.toContain(`loading`)
 		expect(payload.values).toHaveLength(2)
@@ -214,4 +222,211 @@ it(`resumes shared defaults, refreshes through the client, and preserves live st
 	expect(fresh).toHaveBeenCalledOnce()
 	browserApplication(document).dispose()
 	expect(host.childNodes).toHaveLength(0)
+})
+
+const seedOf = (result: { attrs?: Record<string, string> }) =>
+	JSON.parse(result.attrs![`data-spa-resumption`])
+const hostFor = (result: { html: string; attrs?: Record<string, string> }) => {
+	const host = document.createElement(`div`)
+	host.innerHTML = result.html
+	host.setAttribute(`data-spa-resumption`, result.attrs![`data-spa-resumption`])
+	return host
+}
+
+it(`resumes shared cached defaults even when the later server island hydrates first`, async () => {
+	let serverSide = true
+	let signal!: AbortSignal
+	const producer = vi.fn((context: { signal: AbortSignal }) => {
+		signal = context.signal
+		return `server stock`
+	})
+	const fresh = vi.fn(() => `browser stock`)
+	const stockAtom = atom<Loadable<string>>({
+		key: `stock`,
+		default: () =>
+			serverSide
+				? serverValue({ key: `stock`, server: producer })
+				: clientValue({ key: `stock`, server: () => `unused`, client: fresh }),
+	})
+	const App: Island = () => {
+		const value = useLoadable(stockAtom, ``)
+		return <p>{value().value}</p>
+	}
+	const request = new Request(`http://test/shared`)
+	try {
+		const first = await render(App, request)
+		const second = await render(App, request)
+		expect(seedOf(first)).toEqual(seedOf(second))
+		expect(seedOf(second).values).toEqual([[`stock`, [1, `server stock`]]])
+		expect(producer).toHaveBeenCalledOnce()
+		expect(signal.aborted).toBe(false)
+		serverSide = false
+		const a = hostFor(first),
+			b = hostFor(second)
+		const nodes = [a.querySelector(`p`), b.querySelector(`p`)]
+		// Preserve explicit prefetches and prefer the island's seed for its own values.
+		const wrapper = document.createElement(`astro-resumption`)
+		wrapper.innerHTML = `<script data-resumable>${JSON.stringify({
+			version: 1,
+			values: [
+				[`stock`, [1, `older stock`]],
+				[`prefetched`, [1, `extra data`]],
+			],
+		})}</script>`
+		wrapper.append(b)
+		await client(b)(App, {}, {}, { client: `load` })
+		await client(a)(App, {}, {}, { client: `visible` })
+		const prefetchedAtom = atom<Loadable<string>>({
+			key: `prefetched`,
+			default: () => clientValue({ key: `prefetched`, server: () => `unused` }),
+		})
+		expect(getState(prefetchedAtom)).toBe(`extra data`)
+		expect([a.querySelector(`p`), b.querySelector(`p`)]).toEqual(nodes)
+		expect([a.textContent, b.textContent]).toEqual([
+			`server stock`,
+			`server stock`,
+		])
+		expect(fresh).not.toHaveBeenCalled()
+		resetState(stockAtom)
+		expect(getState(stockAtom)).toBe(`browser stock`)
+		expect(fresh).toHaveBeenCalledOnce()
+	} finally {
+		requestApplication(request).application.dispose()
+	}
+	expect(signal.aborted).toBe(true)
+})
+
+it(`streams an unrelated island while another producer is pending`, async () => {
+	const pending = Promise.withResolvers<string>()
+	const started = Promise.withResolvers<void>()
+	const slowAtom = atom<Loadable<string>>({
+		key: `slow`,
+		default: () =>
+			serverValue({
+				key: `slow`,
+				server: () => {
+					started.resolve()
+					return pending.promise
+				},
+			}),
+	})
+	const fastAtom = atom<Loadable<string>>({
+		key: `fast`,
+		default: () => serverValue({ key: `fast`, server: () => `ready` }),
+	})
+	const Slow: Island = () => {
+		const value = useLoadable(slowAtom, ``)
+		return <p>{value().value}</p>
+	}
+	const Fast: Island = () => {
+		const value = useLoadable(fastAtom, ``)
+		return <p>{value().value}</p>
+	}
+	const request = new Request(`http://test/streaming`)
+	try {
+		const slow = render(Slow, request)
+		await started.promise
+		const fast = await render(Fast, request)
+		expect(fast.html).toContain(`ready`)
+		expect(seedOf(fast).values).toEqual([[`fast`, [1, `ready`]]])
+		pending.resolve(`finished`)
+		expect(seedOf(await slow).values).toHaveLength(2)
+	} finally {
+		requestApplication(request).application.dispose()
+	}
+})
+
+it(`keeps explicit collections authoritative and carries their cached seeds into later islands`, async () => {
+	const stockAtom = atom<Loadable<string>>({
+		key: `stock`,
+		default: () => serverValue({ key: `stock`, server: () => `explicit stock` }),
+	})
+	const extraAtom = atom<Loadable<string>>({
+		key: `extra`,
+		default: () =>
+			serverValue({ key: `extra`, server: () => `automatic stock` }),
+	})
+	const App: Island = () => {
+		const value = useLoadable(stockAtom, ``)
+		return <p>{value().value}</p>
+	}
+	const Later: Island = () => {
+		const stock = useLoadable(stockAtom, ``),
+			extra = useLoadable(extraAtom, ``)
+		return (
+			<p>
+				{stock().value}
+				{extra().value}
+			</p>
+		)
+	}
+	const request = new Request(`http://test/explicit`)
+	try {
+		const explicit = await collect(() => render(App, request))
+		expect(seedOf(explicit.value)).toEqual(explicit.payload)
+		const later = await render(Later, request)
+		expect(seedOf(later).values).toEqual([
+			[`stock`, [1, `explicit stock`]],
+			[`extra`, [1, `automatic stock`]],
+		])
+		// Even another explicit boundary must retain the shared store's earlier seeds.
+		const reused = await collect(() => render(Later, request))
+		expect(reused.payload.values).toEqual([])
+		expect(seedOf(reused.value)).toEqual(seedOf(later))
+		App.prepareStore = (store) => {
+			resetInStore(store, stockAtom)
+		}
+		const reset = await collect(() => render(App, request))
+		expect(reset.payload.values).toEqual([[`stock`, [1, `explicit stock`]]])
+		expect(seedOf(reset.value)).toEqual(seedOf(later))
+	} finally {
+		requestApplication(request).application.dispose()
+	}
+})
+
+it(`isolates automatic collections across requests and private islands, including renderer use without an Astro request`, async () => {
+	let next = 0
+	const stockAtom = atom<Loadable<number>>({
+		key: `stock`,
+		default: () => serverValue({ key: `stock`, server: () => ++next }),
+	})
+	const App: Island = () => {
+		const value = useLoadable(stockAtom, 0)
+		return <p>{value().value}</p>
+	}
+	const a = new Request(`http://test/a`),
+		b = new Request(`http://test/b`)
+	try {
+		const first = await render(App, a),
+			other = await render(App, b)
+		expect(seedOf(first).values).toEqual([[`stock`, [1, 1]]])
+		expect(seedOf(other).values).toEqual([[`stock`, [1, 2]]])
+		App.isolate = true
+		expect(seedOf(await render(App, a)).values).toEqual([[`stock`, [1, 3]]])
+		const standalone = await server.renderToStaticMarkup.call(
+			{} as any,
+			App,
+			{},
+			{},
+		)
+		expect(seedOf(standalone).values).toEqual([[`stock`, [1, 4]]])
+		const model = new Silo({
+			name: `custom`,
+			lifespan: `ephemeral`,
+			isProduction: true,
+		})
+		const customAtom = model.atom<Loadable<number>>({
+			key: `custom`,
+			default: () => serverValue({ key: `stock`, server: () => 5 }),
+		})
+		const Custom: Island = () => {
+			const value = useLoadable(customAtom, 0)
+			return <p>{value().value}</p>
+		}
+		Custom.createStore = () => model.store
+		expect(seedOf(await render(Custom, a)).values).toEqual([[`stock`, [1, 5]]])
+	} finally {
+		requestApplication(a).application.dispose()
+		requestApplication(b).application.dispose()
+	}
 })

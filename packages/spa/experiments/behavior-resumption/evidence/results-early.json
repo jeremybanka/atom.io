@@ -1,0 +1,422 @@
+[
+	{
+		"variant": "spa-preload",
+		"scenario": "store-200",
+		"rep": 0,
+		"requestedDelayFromGotoMs": 550,
+		"actualDelayFromGotoMs": 551,
+		"sentFromNavigation": 548.699951171875,
+		"event": {
+			"target": "0",
+			"timestamp": 549.7000000001863,
+			"processing": 620.3000000002794,
+			"dom": 627,
+			"paint": 712.1000000000931
+		},
+		"fcp": 336,
+		"cart": "1",
+		"ready": 611.4000000003725,
+		"resumed": null,
+		"setups": 201,
+		"timeOrigin": 1794019192791.3,
+		"hydrationStart": 411.10000000009313,
+		"hydrationEnd": 611.4000000003725,
+		"latencyMs": 162.39999999990687,
+		"lost": false,
+		"errors": []
+	},
+	{
+		"variant": "resume-cold",
+		"scenario": "store-200",
+		"rep": 0,
+		"requestedDelayFromGotoMs": 550,
+		"actualDelayFromGotoMs": 550,
+		"sentFromNavigation": 548,
+		"event": {
+			"target": "0",
+			"timestamp": 549,
+			"processing": 558.2000000001863,
+			"dom": 792.3999999999069,
+			"paint": 804.6000000000931
+		},
+		"fcp": 332,
+		"cart": "1",
+		"resumed": {
+			"stores": 1,
+			"cells": 2,
+			"bindings": 2,
+			"handlerCalls": 1,
+			"domWrites": 2
+		},
+		"setups": 0,
+		"timeOrigin": 1794019193712,
+		"latencyMs": 255.60000000009313,
+		"lost": false,
+		"errors": []
+	},
+	{
+		"variant": "resume-preload",
+		"scenario": "store-200",
+		"rep": 0,
+		"requestedDelayFromGotoMs": 550,
+		"actualDelayFromGotoMs": 550,
+		"sentFromNavigation": 548.89990234375,
+		"event": {
+			"target": "0",
+			"timestamp": 549.8999999999069,
+			"processing": 559.5,
+			"dom": 582.8999999999069,
+			"paint": 654.3999999999069
+		},
+		"fcp": 344,
+		"cart": "1",
+		"resumed": {
+			"stores": 1,
+			"cells": 2,
+			"bindings": 2,
+			"handlerCalls": 1,
+			"domWrites": 2
+		},
+		"setups": 0,
+		"timeOrigin": 1794019194604.1,
+		"latencyMs": 104.5,
+		"lost": false,
+		"errors": []
+	},
+	{
+		"variant": "resume-preload",
+		"scenario": "store-200",
+		"rep": 1,
+		"requestedDelayFromGotoMs": 550,
+		"actualDelayFromGotoMs": 551,
+		"sentFromNavigation": 549.10009765625,
+		"event": {
+			"target": "0",
+			"timestamp": 550.2000000001863,
+			"processing": 558.5,
+			"dom": 589.6000000000931,
+			"paint": 601.1000000000931
+		},
+		"fcp": 312,
+		"cart": "1",
+		"resumed": {
+			"stores": 1,
+			"cells": 2,
+			"bindings": 2,
+			"handlerCalls": 1,
+			"domWrites": 2
+		},
+		"setups": 0,
+		"timeOrigin": 1794019195479.9,
+		"latencyMs": 50.89999999990687,
+		"lost": false,
+		"errors": []
+	},
+	{
+		"variant": "resume-cold",
+		"scenario": "store-200",
+		"rep": 1,
+		"requestedDelayFromGotoMs": 550,
+		"actualDelayFromGotoMs": 553,
+		"sentFromNavigation": 551.699951171875,
+		"event": {
+			"target": "0",
+			"timestamp": 552.7999999998137,
+			"processing": 561.2999999998137,
+			"dom": 798.8999999999069,
+			"paint": 810.2999999998137
+		},
+		"fcp": 332,
+		"cart": "1",
+		"resumed": {
+			"stores": 1,
+			"cells": 2,
+			"bindings": 2,
+			"handlerCalls": 1,
+			"domWrites": 2
+		},
+		"setups": 0,
+		"timeOrigin": 1794019196341.3,
+		"latencyMs": 257.5,
+		"lost": false,
+		"errors": []
+	},
+	{
+		"variant": "spa-preload",
+		"scenario": "store-200",
+		"rep": 1,
+		"requestedDelayFromGotoMs": 550,
+		"actualDelayFromGotoMs": 551,
+		"sentFromNavigation": 549.10009765625,
+		"event": {
+			"target": "0",
+			"timestamp": 550.1000000000931,
+			"processing": 661,
+			"dom": 668.2000000001863,
+			"paint": 734
+		},
+		"fcp": 352,
+		"cart": "1",
+		"ready": 651.3999999999069,
+		"resumed": null,
+		"setups": 201,
+		"timeOrigin": 1794019197346.9,
+		"hydrationStart": 421.10000000009313,
+		"hydrationEnd": 650.1000000000931,
+		"latencyMs": 183.89999999990687,
+		"lost": false,
+		"errors": []
+	},
+	{
+		"variant": "spa-preload",
+		"scenario": "store-200",
+		"rep": 2,
+		"requestedDelayFromGotoMs": 550,
+		"actualDelayFromGotoMs": 550,
+		"sentFromNavigation": 548.10009765625,
+		"event": {
+			"target": "0",
+			"timestamp": 549.1000000000931,
+			"processing": 617.8999999999069,
+			"dom": 626.3000000002794,
+			"paint": 633.5
+		},
+		"fcp": 364,
+		"cart": "1",
+		"ready": 595.7000000001863,
+		"resumed": null,
+		"setups": 201,
+		"timeOrigin": 1794019198292.9,
+		"hydrationStart": 410.39999999990687,
+		"hydrationEnd": 595.6000000000931,
+		"latencyMs": 84.39999999990687,
+		"lost": false,
+		"errors": []
+	},
+	{
+		"variant": "resume-cold",
+		"scenario": "store-200",
+		"rep": 2,
+		"requestedDelayFromGotoMs": 550,
+		"actualDelayFromGotoMs": 551,
+		"sentFromNavigation": 549.300048828125,
+		"event": {
+			"target": "0",
+			"timestamp": 550.2000000001863,
+			"processing": 562.1000000000931,
+			"dom": 798.9000000003725,
+			"paint": 810.8000000002794
+		},
+		"fcp": 332,
+		"cart": "1",
+		"resumed": {
+			"stores": 1,
+			"cells": 2,
+			"bindings": 2,
+			"handlerCalls": 1,
+			"domWrites": 2
+		},
+		"setups": 0,
+		"timeOrigin": 1794019199068.7,
+		"latencyMs": 260.60000000009313,
+		"lost": false,
+		"errors": []
+	},
+	{
+		"variant": "resume-preload",
+		"scenario": "store-200",
+		"rep": 2,
+		"requestedDelayFromGotoMs": 550,
+		"actualDelayFromGotoMs": 550,
+		"sentFromNavigation": 548.39990234375,
+		"event": {
+			"target": "0",
+			"timestamp": 549.3999999999069,
+			"processing": 558.6999999997206,
+			"dom": 585.1000000000931,
+			"paint": 653.1000000000931
+		},
+		"fcp": 308,
+		"cart": "1",
+		"resumed": {
+			"stores": 1,
+			"cells": 2,
+			"bindings": 2,
+			"handlerCalls": 1,
+			"domWrites": 2
+		},
+		"setups": 0,
+		"timeOrigin": 1794019200056.6,
+		"latencyMs": 103.70000000018626,
+		"lost": false,
+		"errors": []
+	},
+	{
+		"variant": "resume-preload",
+		"scenario": "store-200",
+		"rep": 3,
+		"requestedDelayFromGotoMs": 550,
+		"actualDelayFromGotoMs": 551,
+		"sentFromNavigation": 549,
+		"event": {
+			"target": "0",
+			"timestamp": 550.1000000000931,
+			"processing": 560.8000000002794,
+			"dom": 589.7000000001863,
+			"paint": 673.8000000002794
+		},
+		"fcp": 336,
+		"cart": "1",
+		"resumed": {
+			"stores": 1,
+			"cells": 2,
+			"bindings": 2,
+			"handlerCalls": 1,
+			"domWrites": 2
+		},
+		"setups": 0,
+		"timeOrigin": 1794019200807,
+		"latencyMs": 123.70000000018626,
+		"lost": false,
+		"errors": []
+	},
+	{
+		"variant": "resume-cold",
+		"scenario": "store-200",
+		"rep": 3,
+		"requestedDelayFromGotoMs": 550,
+		"actualDelayFromGotoMs": 550,
+		"sentFromNavigation": 548.300048828125,
+		"event": {
+			"target": "0",
+			"timestamp": 549.2999999998137,
+			"processing": 559.8999999999069,
+			"dom": 800,
+			"paint": 818.3999999999069
+		},
+		"fcp": 360,
+		"cart": "1",
+		"resumed": {
+			"stores": 1,
+			"cells": 2,
+			"bindings": 2,
+			"handlerCalls": 1,
+			"domWrites": 2
+		},
+		"setups": 0,
+		"timeOrigin": 1794019201587.7,
+		"latencyMs": 269.10000000009313,
+		"lost": false,
+		"errors": []
+	},
+	{
+		"variant": "spa-preload",
+		"scenario": "store-200",
+		"rep": 3,
+		"requestedDelayFromGotoMs": 550,
+		"actualDelayFromGotoMs": 550,
+		"sentFromNavigation": 548.800048828125,
+		"event": {
+			"target": "0",
+			"timestamp": 549.8999999999069,
+			"processing": 640.6999999997206,
+			"dom": 649.6999999997206,
+			"paint": 718
+		},
+		"fcp": 364,
+		"cart": "1",
+		"ready": 631.1999999997206,
+		"resumed": null,
+		"setups": 201,
+		"timeOrigin": 1794019202597.2,
+		"hydrationStart": 421.39999999990687,
+		"hydrationEnd": 631.1999999997206,
+		"latencyMs": 168.10000000009313,
+		"lost": false,
+		"errors": []
+	},
+	{
+		"variant": "spa-preload",
+		"scenario": "store-200",
+		"rep": 4,
+		"requestedDelayFromGotoMs": 550,
+		"actualDelayFromGotoMs": 550,
+		"sentFromNavigation": 548.5,
+		"event": {
+			"target": "0",
+			"timestamp": 549.5,
+			"processing": 652.8999999999069,
+			"dom": 657.7999999998137,
+			"paint": 675.3999999999069
+		},
+		"fcp": 368,
+		"cart": "1",
+		"ready": 642.2999999998137,
+		"resumed": null,
+		"setups": 201,
+		"timeOrigin": 1794019203506.5,
+		"hydrationStart": 420.89999999990687,
+		"hydrationEnd": 642.2999999998137,
+		"latencyMs": 125.89999999990687,
+		"lost": false,
+		"errors": []
+	},
+	{
+		"variant": "resume-cold",
+		"scenario": "store-200",
+		"rep": 4,
+		"requestedDelayFromGotoMs": 550,
+		"actualDelayFromGotoMs": 550,
+		"sentFromNavigation": 548.39990234375,
+		"event": {
+			"target": "0",
+			"timestamp": 549.3999999999069,
+			"processing": 558.3999999999069,
+			"dom": 795,
+			"paint": 807.6999999997206
+		},
+		"fcp": 328,
+		"cart": "1",
+		"resumed": {
+			"stores": 1,
+			"cells": 2,
+			"bindings": 2,
+			"handlerCalls": 1,
+			"domWrites": 2
+		},
+		"setups": 0,
+		"timeOrigin": 1794019204438.6,
+		"latencyMs": 258.29999999981374,
+		"lost": false,
+		"errors": []
+	},
+	{
+		"variant": "resume-preload",
+		"scenario": "store-200",
+		"rep": 4,
+		"requestedDelayFromGotoMs": 550,
+		"actualDelayFromGotoMs": 551,
+		"sentFromNavigation": 549.39990234375,
+		"event": {
+			"target": "0",
+			"timestamp": 550.3999999999069,
+			"processing": 558.1000000000931,
+			"dom": 581.8999999999069,
+			"paint": 592.7999999998137
+		},
+		"fcp": 320,
+		"cart": "1",
+		"resumed": {
+			"stores": 1,
+			"cells": 2,
+			"bindings": 2,
+			"handlerCalls": 1,
+			"domWrites": 2
+		},
+		"setups": 0,
+		"timeOrigin": 1794019205358.6,
+		"latencyMs": 42.39999999990687,
+		"lost": false,
+		"errors": []
+	}
+]

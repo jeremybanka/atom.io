@@ -1,0 +1,13 @@
+node_modules/
+build/
+build-qwik/
+dist/
+screenshots/
+/results*.json
+/summary*.json
+/sizes.json
+/validation.json
+*.log
+
+# This isolated benchmark intentionally uses its own frozen npm dependency graph.
+!package-lock.json

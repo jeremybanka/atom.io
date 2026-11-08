@@ -364,6 +364,8 @@ The integration starts observing browser state before island preparation. Untouc
 
 With resumability/astro installed alongside SPA, resumability owns Astro's request collection, page sidecars, and browser scope. SPA awaits async state used by JSX and uses the host's renderer adapter to attach seeds to islands. Ordinary atom defaults use the host without changing the store's evaluator; private stores bind a separate scope so lazy work ends with the island. Define resumable defaults at module scope and render ordinary Astro islands. Components need no Resumption wrapper, prepareStore callback, or preload list. The same host supports plain Astro constants without atom.io. See the [resumability guide](https://atom.io.fyi/docs/spa/astro#resumability) and the inventory starter for a complete example. Resumability is an optional peer, loaded only by this adapter.
 
+Server-rendered views record the state tokens they read so the browser can check readiness before hydration. If an ordinary async default is still pending without a synchronous seed, SPA mounts a fresh view with its loading state; seeded values continue to hydrate existing DOM. This also handles cached server reads and mixed ordinary/resumable state. Private server preparation and rendering are cancelled with their request, releasing cleanup resources even when a producer ignores its abort signal.
+
 Set a component's isolate property to true to opt into a private store copied from registered definitions. An optional createStore(props, context) factory supplies a custom RootStore or promise and retains a private preparation lifetime. Custom factories that return the same store are responsible for coordinating their hydration and cleanup. Keep atom definitions at module scope in either mode.
 
 An optional prepareStore(store, props, context) callback initializes the selected store and may return a promise. SPA awaits it before component setup on the server and browser. Existing one-argument synchronous factories still work. Shared preparation must be safe to call for multiple islands; use context.application.get(key, initialize) to create an application resource once.
@@ -452,11 +454,11 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                           | Entry                             | Minified JS |  Gzip JS |
 | -------------------------------- | --------------------------------- | ----------: | -------: |
-| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    63,715 B | 18,906 B |
-| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    42,140 B | 13,159 B |
-| Interactive client app           | `tonnage-recipes/client-app.ts`   |    41,803 B | 12,997 B |
-| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    41,804 B | 12,997 B |
-| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    48,230 B | 15,012 B |
+| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    63,717 B | 18,907 B |
+| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    42,142 B | 13,160 B |
+| Interactive client app           | `tonnage-recipes/client-app.ts`   |    41,805 B | 12,998 B |
+| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    41,806 B | 12,998 B |
+| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    48,321 B | 15,053 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

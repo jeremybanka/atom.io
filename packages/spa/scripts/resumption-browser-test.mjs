@@ -57,7 +57,7 @@ try {
 	const page = await browser.newPage()
 	const errors = []
 	page.on(`pageerror`, (error) => errors.push(error.message))
-	const gate = Promise.withResolvers()
+	let gate = Promise.withResolvers()
 	await page.route(`**/*`, async (route) => {
 		if (route.request().resourceType() === `script`) await gate.promise
 		await route.continue()
@@ -81,9 +81,39 @@ try {
 		),
 		true,
 	)
+	gate = Promise.withResolvers()
+	const asyncResponse = await page.goto(`${origin}/async/`, {
+		waitUntil: `commit`,
+	})
+	assert.equal(asyncResponse.status(), 200)
+	await page.waitForSelector(`[data-ordinary]`)
+	await page.evaluate(() => {
+		window.__ordinaryOutput = document.querySelector(`[data-ordinary]`)
+	})
+	const asyncHtml = await asyncResponse.text()
+	assert.equal((asyncHtml.match(/Async value/g) ?? []).length, 2)
+	assert.ok(asyncHtml.includes(`data-spa-reads`))
+	gate.resolve()
+	await page.waitForFunction(
+		() =>
+			!document.querySelector(`astro-island[ssr]`) &&
+			document.querySelector(`[data-ordinary]`)?.textContent === `Async value` &&
+			document.querySelector(`[data-mixed]`)?.textContent === `Async value`,
+	)
+	assert.equal(
+		await page.locator(`[data-seeded]`).textContent(),
+		`Database constant`,
+	)
+	assert.equal(
+		await page.evaluate(
+			() =>
+				document.querySelector(`[data-ordinary]`) === window.__ordinaryOutput,
+		),
+		false,
+	)
 	assert.deepEqual(errors, [])
 	console.log(
-		`${development ? `Development` : `Production`}: pure JSX props and an ordinary browser reader resume an Astro database constant without application atoms.`,
+		`${development ? `Development` : `Production`}: constant props hydrate, ordinary async defaults and mixed resumable views mount without mismatches.`,
 	)
 } finally {
 	await browser?.close()

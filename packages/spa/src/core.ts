@@ -76,7 +76,7 @@ export interface Scope {
 	_dead: boolean
 }
 export interface Root extends Scope {
-	_onRead?: ((value: unknown) => void) | undefined
+	_onRead?: ((value: unknown, token: ReadableToken<unknown>) => void) | undefined
 	_presence?: PresenceCoordinator
 	_capabilities: Map<string, Capability>
 	_store: RootStore
@@ -297,7 +297,7 @@ export function useGetter(token: any, key?: Canonical): Accessor<any> {
 		subscribeToState(store, token, `spa:${serial++}`, notify)
 	return () => {
 		const value = getFromStore(store, token)
-		root._onRead?.(value)
+		root._onRead?.(value, token)
 		tracking?.(subscribe)
 		return value
 	}

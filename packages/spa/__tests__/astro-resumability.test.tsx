@@ -20,7 +20,8 @@ import { browserApplication } from "../src/astro-application.ts"
 import { requestApplication } from "../src/astro-request.ts"
 import client from "../src/astro-resumability-client.ts"
 import server from "../src/astro-resumability-server.ts"
-import type { Island } from "../src/astro-shared.ts"
+import { createRenderer } from "../src/astro-server.ts"
+import type { AstroStoreContext, Island } from "../src/astro-shared.ts"
 import { onCleanup, useStore } from "../src/core.ts"
 import { renderToString } from "../src/server.ts"
 import { useLoadable } from "../src/use-loadable.ts"
@@ -242,9 +243,157 @@ const seedOf = (result: { attrs?: Record<string, string> }) =>
 const hostFor = (result: { html: string; attrs?: Record<string, string> }) => {
 	const host = document.createElement(`div`)
 	host.innerHTML = result.html
-	host.setAttribute(`data-resumability`, result.attrs![`data-resumability`])
+	for (const [key, value] of Object.entries(result.attrs!))
+		host.setAttribute(key, value)
 	return host
 }
+
+it.each([false, true])(
+	`mounts pending browser defaults safely alongside resumable state (isolated=%s)`,
+	async (isolated) => {
+		let serverSide = true
+		const pending = Promise.withResolvers<string>()
+		const ordinaryAtom = atom<Loadable<string>>({
+			key: `ordinary`,
+			default: () =>
+				serverSide ? Promise.resolve(`server ordinary`) : pending.promise,
+		})
+		const seededAtom = atom<Loadable<string>>({
+			key: `seeded`,
+			default: () =>
+				serverSide
+					? serverValue({ key: `seeded`, server: () => `server seed` })
+					: clientValue({
+							key: `seeded`,
+							server: () => `unused`,
+							client: () => `fresh seed`,
+						}),
+		})
+		const App: Island = () => {
+			const ordinary = useLoadable(ordinaryAtom, `Loading`)
+			const seeded = useLoadable(seededAtom, ``)
+			return (
+				<p>
+					{ordinary().value} / {seeded().value}
+				</p>
+			)
+		}
+		App.isolate = isolated
+		const request = new Request(`http://test/unseeded`)
+		try {
+			const initial = await render(App, request)
+			// A later island can reuse settled server state but still start pending in
+			// the browser. Its readiness metadata must include these cached reads.
+			const result = isolated ? initial : await render(App, request)
+			expect(result.html).toContain(`server ordinary`)
+			expect(seedOf(result).values).toEqual([[`seeded`, [1, `server seed`]]])
+			serverSide = false
+			const host = hostFor(result)
+			await client(host)(App, {}, {}, { client: `load` })
+			expect(host.textContent).toBe(`Loading / server seed`)
+			pending.resolve(`browser ordinary`)
+			await vi.waitFor(() => {
+				expect(host.textContent).toBe(`browser ordinary / server seed`)
+			})
+			host.dispatchEvent(new Event(`astro:unmount`))
+		} finally {
+			requestApplication(request).application.dispose()
+			requestResumption(request).dispose()
+		}
+	},
+)
+
+it.each([`isolate`, `createStore`] as const)(
+	`cancels private SSR resources when an uncooperative producer ignores abort (%s)`,
+	async (mode) => {
+		let context!: AstroStoreContext
+		const started = Promise.withResolvers<void>()
+		const cleanup = vi.fn()
+		const pendingAtom = atom<Loadable<string>>({
+			key: `pending`,
+			default: () =>
+				serverValue({
+					key: `private-pending`,
+					server: () => {
+						started.resolve()
+						return new Promise<string>(() => {})
+					},
+				}),
+		})
+		const App: Island = () => {
+			const value = useLoadable(pendingAtom, ``)
+			return <p>{value().value}</p>
+		}
+		if (mode === `isolate`) App.isolate = true
+		else
+			App.createStore = () =>
+				new Store(
+					{ name: `private`, lifespan: `ephemeral`, isProduction: true },
+					IMPLICIT.STORE,
+				) as typeof IMPLICIT.STORE
+		App.prepareStore = (_store, _props, selected) => {
+			context = selected
+			context.onCleanup(cleanup)
+		}
+		const controller = new AbortController()
+		const request = new Request(`http://test/private-abort`, {
+			signal: controller.signal,
+		})
+		const rendering = render(App, request)
+		await started.promise
+		controller.abort(new Error(`request disconnected`))
+		await expect(rendering).rejects.toThrow(`request disconnected`)
+		expect(context.signal.aborted).toBe(true)
+		expect(context.application.signal.aborted).toBe(true)
+		expect(cleanup).toHaveBeenCalledOnce()
+	},
+)
+
+it(`stops a private renderer waiting on preparation that ignores cancellation`, async () => {
+	let context!: AstroStoreContext
+	const started = Promise.withResolvers<void>()
+	const cleanup = vi.fn()
+	const factory = vi.fn(
+		() =>
+			new Store(
+				{ name: `private`, lifespan: `ephemeral`, isProduction: true },
+				IMPLICIT.STORE,
+			) as typeof IMPLICIT.STORE,
+	)
+	const App: Island = () => <p>never rendered</p>
+	App.createStore = factory
+	App.prepareStore = (_store, _props, selected) => {
+		context = selected
+		context.onCleanup(cleanup)
+		started.resolve()
+		return new Promise<void>(() => {})
+	}
+	const controller = new AbortController()
+	const request = new Request(`http://test/private-preparation`, {
+		signal: controller.signal,
+	})
+	const renderer = createRenderer()
+	const rendering = renderer.renderToStaticMarkup.call(
+		{ result: { request } } as any,
+		App,
+		{},
+		{},
+	)
+	await started.promise
+	controller.abort()
+	await expect(rendering).rejects.toThrow()
+	expect(context.signal.aborted).toBe(true)
+	expect(cleanup).toHaveBeenCalledOnce()
+	await expect(
+		renderer.renderToStaticMarkup.call(
+			{ result: { request } } as any,
+			App,
+			{},
+			{},
+		),
+	).rejects.toThrow()
+	expect(factory).toHaveBeenCalledOnce()
+})
 
 it(`resumes shared cached defaults even when the later server island hydrates first`, async () => {
 	let serverSide = true

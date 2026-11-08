@@ -1,9 +1,10 @@
-import type { RegularAtomFamilyToken } from "atom.io"
+import type { ReadableToken, RegularAtomFamilyToken } from "atom.io"
 import type { RootStore } from "atom.io/internal"
 import {
 	createRegularAtomFamily,
 	disposeFromStore,
 	findInStore,
+	getFromStore,
 	IMPLICIT,
 	setIntoStore,
 } from "atom.io/internal"
@@ -84,7 +85,14 @@ export const createHydrator =
 				const replace =
 					client === `only` ||
 					previous !== undefined ||
-					application?.canResume === false
+					application?.canResume === false ||
+					// Server-settled state without a synchronous browser seed needs a
+					// fresh view, whose loading state can differ from the SSR markup.
+					(
+						JSON.parse(
+							element.getAttribute(`data-spa-reads`) ?? `[]`,
+						) as ReadableToken<unknown>[]
+					).some((token) => getFromStore(store!, token) instanceof Promise)
 				// Astro leaves this sentinel on islands inserted by ClientRouter.
 				const sentinel = element.lastChild
 				if (sentinel?.nodeType === 8 && sentinel.nodeValue === `astro:end`)

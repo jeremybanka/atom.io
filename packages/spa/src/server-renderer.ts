@@ -1,3 +1,5 @@
+import type { ReadableToken } from "atom.io"
+
 import { capabilityNamespace, validateCapabilities } from "./capabilities.ts"
 import type { Child, RootOptions, Scope, VNode } from "./core.ts"
 import {
@@ -147,7 +149,7 @@ function stringify(
 export function renderToStringWithReads(
 	setup: () => Child,
 	options: RootOptions = {},
-	onRead?: (value: unknown) => void,
+	onRead?: (value: unknown, token: ReadableToken<unknown>) => void,
 ): string {
 	const root = createRoot(options, true)
 	root._onRead = onRead

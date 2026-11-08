@@ -68,6 +68,8 @@ Resumability collects completed values from Astro frontmatter and renderer work.
 
 The same host supports plain Astro readers and reusable server-only constants without atom.io. See the [resumability guide](https://github.com/jeremybanka/atom.io/tree/main/packages/resumability#a-resumable-constant). Explicit Resumption scopes remain available when a subtree needs independent collection and browser ownership.
 
+An ordinary async default can settle on the server while still loading in the browser. If a state read by the server view remains pending during browser preparation, SPA mounts a fresh view with its loading state. Synchronous resumed values still hydrate the existing DOM. This also supports islands mixing ordinary async state with resumable defaults.
+
 ### a siloized island
 
 Default islands share the browser store and Astro's page resumption scope. For an independent stock-counting view, wrap the starter's Inventory component and set isolate to true:

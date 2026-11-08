@@ -1,6 +1,6 @@
 ---
 "atom.io": patch
-"@atom.io/spa": minor
+"@atom.io/spa": patch
 "@atom.io/spa-devtools": patch
 "@atom.io/template-spa-astro-ssr": patch
 ---

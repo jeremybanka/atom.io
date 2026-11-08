@@ -1,5 +1,11 @@
 # atom.io.fyi
 
+## 0.2.104
+
+### Patch Changes
+
+- 3d4ef4d: Remove unused website helpers and dependencies, and keep documentation worker tooling in development dependencies.
+
 ## 0.2.103
 
 ### Patch Changes

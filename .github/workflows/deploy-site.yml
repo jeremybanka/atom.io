@@ -1,0 +1,35 @@
+name: Deploy Site
+run-name: Deploy ${{ github.ref_name }}
+
+on:
+  push:
+    tags:
+      - "atom.io.fyi@*"
+      - "!atom.io.fyi@*-*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: atom.io.fyi
+  cancel-in-progress: false
+
+jobs:
+  Deploy:
+    if: github.event.created
+    runs-on: ubuntu-26.04
+    timeout-minutes: 9
+    environment:
+      name: atom.io.fyi
+      url: https://atom.io.fyi
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+        with:
+          packages: bun node pnpm
+      - run: pnpm exec turbo run build --filter=atom.io.fyi...
+      - name: Deploy to Cloudflare
+        run: pnpm --filter atom.io.fyi run deploy
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

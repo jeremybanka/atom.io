@@ -1,46 +1,35 @@
-# Astro Starter Kit: Basics
+# atom.io.fyi
 
-```sh
-pnpm create astro@latest -- --template basics
-```
+The documentation website is a private workspace package released through
+Changesets and deployed to Cloudflare Workers.
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## Releases
 
-## 🚀 Project Structure
+Include a changeset targeting `atom.io.fyi` for website changes. Changesets updates
+its version and changelog in the usual release PR. Merging that PR lets
+`changeset publish` create the site's version tag while keeping it off npm.
 
-Inside of your Astro project, you'll see the following folders and files:
+The Deploy Site workflow runs when a stable `atom.io.fyi@*` tag is created. It
+builds the tagged commit and its workspace dependencies, then runs the site's
+existing Wrangler deployment script. Branch pushes, other package tags, and
+prerelease tags do not deploy production.
 
-```text
-/
-├── public/
-│   └── favicon.svg
-├── src
-│   ├── assets
-│   │   └── astro.svg
-│   ├── components
-│   │   └── Welcome.astro
-│   ├── layouts
-│   │   └── Layout.astro
-│   └── pages
-│       └── index.astro
-└── package.json
-```
+Changesets uses the existing GitHub App token to push release tags so they can
+trigger Deploy Site. Keep that token: tags pushed with the default `GITHUB_TOKEN`
+do not trigger another workflow.
 
-To learn more about the folder structure of an Astro project, refer to [our guide on project structure](https://docs.astro.build/en/basics/project-structure/).
+## Deployment setup
 
-## 🧞 Commands
+Configure the `atom.io.fyi` GitHub environment with a `CLOUDFLARE_ACCOUNT_ID`
+variable and a `CLOUDFLARE_API_TOKEN` secret. Use a Cloudflare API token with the
+permissions needed to deploy the existing `atom-io-fyi` Worker, scoped to its
+account. Repository-level variables and secrets are also supported.
 
-All commands are run from the root of the project, from a terminal:
+Disconnect the Worker's Git integration under Settings > Builds to stop automatic
+production deployments. To retain preview builds, keep the integration and
+[configure production builds to upload versions without deploying](https://developers.cloudflare.com/workers/ci-cd/builds/#disconnecting-builds).
 
-| Command                | Action                                           |
-| :--------------------- | :----------------------------------------------- |
-| `pnpm install`         | Installs dependencies                            |
-| `pnpm dev`             | Starts local dev server at `localhost:4321`      |
-| `pnpm build`           | Build your production site to `./dist/`          |
-| `pnpm preview`         | Preview your build locally, before deploying     |
-| `pnpm astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `pnpm astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+To retry a failed deployment, re-run the failed Deploy Site job in GitHub Actions.
+It uses the original tagged commit without rerunning npm publication. Deployment
+status is recorded in the `atom.io.fyi` GitHub environment; a release tag identifies
+the version requested for deployment.

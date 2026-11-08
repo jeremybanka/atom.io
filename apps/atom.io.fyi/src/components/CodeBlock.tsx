@@ -1,7 +1,7 @@
 import type { Child, VNode } from "@atom.io/spa"
 
 import css from "./CodeBlock.module.css"
-import { highlightCode } from "./highlight-code"
+import { highlightCode } from "./highlight-code.ts"
 
 type CodeBlockProps = {
 	filepath?: string

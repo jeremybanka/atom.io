@@ -1,7 +1,7 @@
 import { usePullAtom, usePush, usePushStatus } from "@atom.io/realtime/react"
 import type { ReactElement } from "react"
 
-import { sharedCountAtom } from "./declare-rigid-state"
+import { sharedCountAtom } from "./declare-rigid-state.ts"
 
 export function SharedCounter(): ReactElement {
 	const count = usePullAtom(sharedCountAtom)

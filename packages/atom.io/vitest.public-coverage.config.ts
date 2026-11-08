@@ -4,7 +4,7 @@ import {
 	defineOurVitestConfig,
 	PATHS_PUBLIC_SOURCE,
 	PATHS_PUBLIC_TESTS,
-} from "./__scripts__/define-our-vitest-config"
+} from "./__scripts__/define-our-vitest-config.ts"
 
 const publicCoverageConfig: Vite.UserConfig = defineOurVitestConfig({
 	name: `public-coverage`,

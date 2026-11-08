@@ -2,7 +2,7 @@ import type { VNode } from "@atom.io/spa"
 import { onCleanup, onMount } from "@atom.io/spa"
 import * as THREE from "three"
 
-import { createSpaCloud } from "./spa-orbital-three"
+import { createSpaCloud } from "./spa-orbital-three.ts"
 import css from "./SpaLogo.module.css"
 
 export type SpaLogoProps = {

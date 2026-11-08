@@ -5,8 +5,8 @@ import {
 	createDz2OrbitalCamera,
 	createDz2OrbitalModel,
 	disposeDz2OrbitalModel,
-} from "./dz2-orbital-three"
-import { createSpaCloud } from "./spa-orbital-three"
+} from "./dz2-orbital-three.ts"
+import { createSpaCloud } from "./spa-orbital-three.ts"
 
 export function mountSpaStudies(): () => void {
 	const root = document.querySelector<HTMLElement>(`spa-lab`)

@@ -4,7 +4,7 @@ import {
 	realtimeStateReceiver,
 } from "@atom.io/realtime/server"
 
-import { sharedCountAtom, sharedCountSchema } from "./declare-rigid-state"
+import { sharedCountAtom, sharedCountSchema } from "./declare-rigid-state.ts"
 
 declare const connection: ServerConfig
 

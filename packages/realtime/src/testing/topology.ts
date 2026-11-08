@@ -2,7 +2,7 @@ import type {
 	MaybePromise,
 	RestartableServerController,
 	RestartServerOptions,
-} from "./restartable-server"
+} from "./restartable-server.ts"
 
 /** A logical socket session. Reconnecting always creates a new session ID. */
 export type TopologyClientSession = {

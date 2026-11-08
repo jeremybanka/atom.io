@@ -1,11 +1,11 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useStore } from "@atom.io/spa"
 import { atom } from "atom.io"
 import { getFromStore } from "atom.io/internal"
 
 const countAtom = atom<number>({ key: `count`, default: 0 })
 
-export function InspectCount(): VNode {
+export function InspectCount(): SpaElement {
 	const store = useStore()
 	return (
 		<button

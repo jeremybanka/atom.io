@@ -1,3 +1,10 @@
+import type {
+	Accessor,
+	Children,
+	Component,
+	Fragment,
+	SpaElement,
+} from "@atom.io/spa"
 import { useRef } from "@atom.io/spa"
 import type { JSX, TargetedEvent } from "@atom.io/spa/jsx-runtime"
 import type { RegularAtomToken } from "atom.io"
@@ -7,6 +14,25 @@ type Equal<A, B> =
 		? true
 		: false
 type Expect<T extends true> = T
+export type JSXDescriptor = Expect<Equal<JSX.Element, SpaElement>>
+export type ComponentOutput = Expect<Equal<ReturnType<Component>, Children>>
+export type FragmentOutput = Expect<Equal<ReturnType<typeof Fragment>, Children>>
+
+export const descriptor: SpaElement = <span>content</span>
+export const textChildren: Children = `content`
+export const reactiveChildren: Accessor<Children> = () => descriptor
+export const nestedChildren: Children = [
+	descriptor,
+	textChildren,
+	42,
+	1n,
+	true,
+	false,
+	null,
+	undefined,
+	[reactiveChildren, [`nested`]],
+] as const
+
 type Props<Tag extends keyof JSX.IntrinsicElements> = JSX.IntrinsicElements[Tag]
 type RefElement<Tag extends keyof JSX.IntrinsicElements> =
 	Props<Tag> extends { ref?: ((element: infer E) => void) | null | undefined }

@@ -16,7 +16,7 @@ export type {
 export { createThreeEvents } from "./three-events.ts"
 import * as THREE from "three"
 
-import type { Child, VNode } from "./index.ts"
+import type { Children, SpaElement } from "./index.ts"
 import { onCleanup, onMount } from "./index.ts"
 import type { CapabilityAttributes } from "./jsx-runtime.ts"
 import { jsx } from "./jsx-runtime.ts"
@@ -31,7 +31,7 @@ type Resource = THREE.Object3D | THREE.BufferGeometry | THREE.Material
 type Vector3 = readonly [number, number, number]
 export interface ObjectProps<N extends THREE.Object3D = THREE.Object3D>
 	extends CapabilityAttributes<`three`>, ThreeEventAttributes<N> {
-	children?: Child
+	children?: Children
 	position?: Vector3
 	rotation?: Vector3
 	scale?: Vector3 | number
@@ -245,7 +245,7 @@ function equalArgs(a: unknown[], b: unknown[] = []): boolean {
 }
 
 export interface CanvasProps {
-	children?: Child
+	children?: Children
 	width?: number
 	height?: number
 	camera?: THREE.Camera
@@ -258,7 +258,7 @@ export interface CanvasProps {
 	}) => void
 }
 /** Browser-only scene boundary. The camera prop is borrowed and never disposed. */
-export function Canvas(props: CanvasProps): VNode {
+export function Canvas(props: CanvasProps): SpaElement {
 	let canvas: HTMLCanvasElement | null = null
 	onMount(() => {
 		const webgl = new THREE.WebGLRenderer({ canvas: canvas!, antialias: true })

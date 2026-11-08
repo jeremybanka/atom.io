@@ -1,10 +1,10 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useSetter } from "@atom.io/spa"
 import { atom } from "atom.io"
 
 export const searchQueryAtom = atom<string>({ key: `searchQuery`, default: `` })
 
-export function SearchBox(): VNode {
+export function SearchBox(): SpaElement {
 	const setSearchQuery = useSetter(searchQueryAtom)
 	return (
 		<input

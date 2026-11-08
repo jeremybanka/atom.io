@@ -1,4 +1,4 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { onCleanup, onMount, render, useGetter } from "@atom.io/spa"
 import type { RootStore } from "atom.io/internal"
 import { IMPLICIT } from "atom.io/internal"
@@ -12,7 +12,7 @@ export interface AtomIODevtoolsProps {
 	hideByDefault?: boolean
 }
 /** Owns a rendering root in the inspected store, independently of its parent island. */
-export function AtomIODevtools(props: AtomIODevtoolsProps): VNode {
+export function AtomIODevtools(props: AtomIODevtoolsProps): SpaElement {
 	let host: HTMLElement | null = null
 	const attach = (element: HTMLElement | null) => {
 		host = element
@@ -30,7 +30,7 @@ export function AtomIODevtools(props: AtomIODevtoolsProps): VNode {
 }
 const VIEWS = [`atoms`, `selectors`, `transactions`, `timelines`] as const
 type View = (typeof VIEWS)[number]
-function Panel(props: { store: RootStore; hideByDefault: boolean }): VNode {
+function Panel(props: { store: RootStore; hideByDefault: boolean }): SpaElement {
 	const tools = useTools(props.store)
 	const [getHidden, setHidden] = useSaved(
 		props.store,

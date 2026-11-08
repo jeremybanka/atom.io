@@ -1,11 +1,11 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { motionCapability } from "@atom.io/spa/motion"
 
 import { MotionSandbox } from "./MotionSandbox.tsx"
 import { ToastSandbox } from "./ToastSandbox.tsx"
 
 /** Shared by the standalone example and the documentation site's host page. */
-export function MotionLab(): VNode {
+export function MotionLab(): SpaElement {
 	return (
 		<motion-lab>
 			<header>

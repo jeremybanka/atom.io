@@ -1,6 +1,12 @@
 import type { CapabilityTarget } from "./capabilities.ts"
 import { capabilityProps } from "./capabilities.ts"
-import type { Child, Component, RootOptions, Scope, VNode } from "./core.ts"
+import type {
+	Children,
+	Component,
+	RootOptions,
+	Scope,
+	SpaElement,
+} from "./core.ts"
 import {
 	createRoot,
 	createScope,
@@ -30,14 +36,14 @@ type SceneNodes<N> = (activeOnly?: boolean) => N[]
 
 interface Entry<N> {
 	scope: Scope
-	value: Child
+	value: Children
 	nodes: SceneNodes<N>
 }
 
 export interface SceneRenderer<N> {
-	mount(setup: () => Child, parent: N): void
+	mount(setup: () => Children, parent: N): void
 	render(
-		setup: () => Child,
+		setup: () => Children,
 		parent: N,
 		options?: RootOptions,
 	): { flush(): void; dispose(): void }
@@ -46,12 +52,12 @@ export interface SceneRenderer<N> {
 /** A scene renderer shares SPA's owner, store, scheduler, and component lifecycle. */
 export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 	function mount(
-		source: () => Child,
+		source: () => Children,
 		scope: Scope,
 		changed: () => void,
 	): SceneNodes<N> {
 		let entries: Entry<N>[] = []
-		const presence = scope._root._presence?.collection<Entry<N>, Child>(
+		const presence = scope._root._presence?.collection<Entry<N>, Children>(
 			(entry) => entry.scope,
 			(entry, value) => same(entry.value, value),
 		)
@@ -70,7 +76,7 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 		observe(scope, source, (next) => {
 			const values = (
 				Array.isArray(next) ? next.flat(Infinity) : [next]
-			) as Child[]
+			) as Children[]
 			const previous = entries
 			const old = new Map(
 				entries.map((entry, i) => [key(entry.value, i), entry]),
@@ -114,31 +120,31 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 			return rendered.flatMap((entry) => entry.nodes(activeOnly))
 		}
 	}
-	function key(value: Child, i: number): string {
-		const explicit = (value as VNode | null)?.props?.[`key`]
+	function key(value: Children, i: number): string {
+		const explicit = (value as SpaElement | null)?.props?.[`key`]
 		return explicit == null ? `index:${i}` : `key:${explicit}`
 	}
-	function same(a: Child, b: Child): boolean {
+	function same(a: Children, b: Children): boolean {
 		return (
 			typeof a === typeof b &&
-			(a as VNode | null)?.type === (b as VNode | null)?.type
+			(a as SpaElement | null)?.type === (b as SpaElement | null)?.type
 		)
 	}
 	function build(
-		source: () => Child,
+		source: () => Children,
 		scope: Scope,
 		changed: () => void,
 	): SceneNodes<N> {
 		const value = untrack(source)
 		if (typeof value === `function`)
-			return mount(() => (source() as () => Child)(), scope, changed)
+			return mount(() => (source() as () => Children)(), scope, changed)
 		if (value == null || typeof value === `boolean`) return () => []
 		if (typeof value !== `object`)
 			throw new Error(`spa: scene children must be nodes`)
 		if (!(`type` in value) || !(`props` in value))
 			throw new Error(`spa: invalid scene child`)
 		const vnode = value
-		const props = merge(() => (source() as VNode).props)
+		const props = merge(() => (source() as SpaElement).props)
 		if (!vnode.type || vnode.type === Fragment)
 			return mount(() => props[`children`], scope, changed)
 		if (typeof vnode.type === `function`) {
@@ -185,7 +191,7 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 			})
 		return () => [node]
 	}
-	function attach(setup: () => Child, parent: N, scope: Scope) {
+	function attach(setup: () => Children, parent: N, scope: Scope) {
 		let nodes: SceneNodes<N> = () => []
 		const sync = () => {
 			host.children(parent, nodes(), nodes(true))
@@ -198,7 +204,7 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 	}
 	return {
 		/** Attach beneath the current component; disposal follows its lifetime. */
-		mount(setup: () => Child, parent: N): void {
+		mount(setup: () => Children, parent: N): void {
 			if (!owner) throw new Error(`spa: scene mount requires an owner`)
 			const scope = createScope(owner)
 			try {
@@ -207,7 +213,7 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 				fail(scope, error)
 			}
 		},
-		render(setup: () => Child, parent: N, options: RootOptions = {}) {
+		render(setup: () => Children, parent: N, options: RootOptions = {}) {
 			const root = createRoot(options)
 			try {
 				within(root, () => {
@@ -228,7 +234,7 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 }
 
 /** Define a typed scene component without introducing another JSX runtime. */
-export function sceneComponent<P>(type: string): (props: P) => VNode {
+export function sceneComponent<P>(type: string): (props: P) => SpaElement {
 	return (props) => ({ type, props: props as Record<string, any> })
 }
 

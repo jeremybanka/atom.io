@@ -1,6 +1,6 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 
-export function ContactFields(): VNode {
+export function ContactFields(): SpaElement {
 	return (
 		<>
 			<label>

@@ -1,4 +1,4 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useTransaction } from "@atom.io/spa"
 import { atom, transaction } from "atom.io"
 
@@ -12,7 +12,7 @@ const addToCartTransaction = transaction<(sku: string) => void>({
 	},
 })
 
-export function AddToCart(props: { sku: string }): VNode {
+export function AddToCart(props: { sku: string }): SpaElement {
 	const addToCart = useTransaction(addToCartTransaction)
 	return (
 		<button

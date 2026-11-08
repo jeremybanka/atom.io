@@ -1,4 +1,4 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { onCleanup, onMount, useGetter, useSetter } from "@atom.io/spa"
 import { motionCapability } from "@atom.io/spa/motion"
 import { atom } from "atom.io"
@@ -8,7 +8,7 @@ import { captureMotion } from "./motion-sandbox-debug.ts"
 const toastDurationAtom = atom<number>({ key: `toastDuration`, default: 0.24 })
 const toastPresentAtom = atom<boolean>({ key: `toastPresent`, default: true })
 
-export function ToastSandbox(): VNode {
+export function ToastSandbox(): SpaElement {
 	const getToastDuration = useGetter(toastDurationAtom)
 	const setToastDuration = useSetter(toastDurationAtom)
 	const getToastPresent = useGetter(toastPresentAtom)

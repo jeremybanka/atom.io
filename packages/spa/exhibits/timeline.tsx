@@ -1,4 +1,4 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useTimeline, useTransaction } from "@atom.io/spa"
 import { atom, timeline, transaction } from "atom.io"
 
@@ -11,7 +11,7 @@ const incrementTransaction = transaction<() => void>({
 	},
 })
 
-export function TimelineExample(): VNode {
+export function TimelineExample(): SpaElement {
 	const getCount = useGetter(countAtom)
 	const increment = useTransaction(incrementTransaction)
 	const history = useTimeline(historyTimeline)

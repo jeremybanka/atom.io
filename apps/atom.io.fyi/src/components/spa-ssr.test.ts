@@ -1,12 +1,12 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
 
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import renderer from "@atom.io/spa/astro-server"
 import { jsx } from "@atom.io/spa/jsx-runtime"
 
 // Exercise the renderer Astro actually resolves, including hydration markers.
-async function markup(Component: () => VNode): Promise<string> {
+async function markup(Component: () => SpaElement): Promise<string> {
 	const { html } = await renderer.renderToStaticMarkup.call(
 		{} as any,
 		Component,
@@ -17,7 +17,7 @@ async function markup(Component: () => VNode): Promise<string> {
 	return html.replaceAll(/<!--[\s\S]*?-->/g, ``)
 }
 await test(`Astro's renderer preserves spa component HTML for hydration`, async () => {
-	function Navigation(): VNode {
+	function Navigation(): SpaElement {
 		return jsx(`docs-navigation`, {
 			children: jsx(`a`, { href: `#effects`, children: `Effects` }),
 		})

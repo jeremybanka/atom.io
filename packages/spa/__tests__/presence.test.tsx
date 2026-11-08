@@ -1,7 +1,7 @@
 import { Silo } from "atom.io"
 import { expect, it, vi } from "vitest"
 
-import type { Capability, Child } from "../src/index.ts"
+import type { Capability, Children } from "../src/index.ts"
 import { onCleanup, onMount, render, useGetter } from "../src/index.ts"
 import type { ExitHandle } from "../src/presence.ts"
 import { createPresence } from "../src/presence.ts"
@@ -228,7 +228,7 @@ it(`retains scene nodes and resources until completion and resumes native identi
 		},
 	})
 	const Shape = sceneComponent<{
-		children?: Child
+		children?: Children
 		id?: string
 		[key: string]: any
 	}>(`shape`)

@@ -1,7 +1,7 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { onMount } from "@atom.io/spa"
 
-export function SearchDialog(): VNode {
+export function SearchDialog(): SpaElement {
 	let input: HTMLInputElement | null = null
 	onMount(() => input?.focus())
 	return (

@@ -5,11 +5,11 @@ export type {
 } from "./capabilities.ts"
 export type {
 	Accessor,
-	Child,
+	Children,
 	Component,
 	RootOptions,
+	SpaElement,
 	TimelineControls,
-	VNode,
 } from "./core.ts"
 export {
 	onCleanup,

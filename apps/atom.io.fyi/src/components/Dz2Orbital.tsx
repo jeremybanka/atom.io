@@ -1,4 +1,4 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { onCleanup, onMount } from "@atom.io/spa"
 import * as THREE from "three"
 
@@ -40,7 +40,7 @@ export type Dz2OrbitalProps = {
 	variant?: `mark` | `splash`
 }
 
-export function Dz2Orbital({ variant = `splash` }: Dz2OrbitalProps): VNode {
+export function Dz2Orbital({ variant = `splash` }: Dz2OrbitalProps): SpaElement {
 	let host: HTMLElement | null = null
 	const attach = (element: HTMLElement | null) => {
 		host = element

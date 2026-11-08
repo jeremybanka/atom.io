@@ -1,4 +1,4 @@
-import type { Child } from "./core.ts"
+import type { Children } from "./core.ts"
 import type { CapabilityAttributes } from "./jsx-runtime.ts"
 
 /** Native events retain their target; only currentTarget is the attached element. */
@@ -200,7 +200,7 @@ export type DOMAttributes<E extends Element> = CapabilityAttributes<`dom`> &
 	EventAttributes<E> &
 	AriaAttributes &
 	Attributes<{
-		children: Child
+		children: Children
 		key: string | number
 		ref: Ref<E>
 		id: string

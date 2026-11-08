@@ -1,4 +1,4 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useRef, useSetter, useTimeline } from "@atom.io/spa"
 import { atomFamily, scopeFamily, timelineFamily } from "atom.io"
 
@@ -12,7 +12,7 @@ const historyTimelines = timelineFamily<string>({
 	scope: [scopeFamily(countAtoms, { timelineKey: (id) => id })],
 })
 
-export function FamilyCounter(props: { id: string }): VNode {
+export function FamilyCounter(props: { id: string }): SpaElement {
 	const getCount = useGetter(countAtoms, props.id)
 	const setCount = useSetter(countAtoms, props.id)
 	const ref = useRef(buttonAtoms, props.id)

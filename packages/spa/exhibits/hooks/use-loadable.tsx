@@ -1,4 +1,4 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useLoadable } from "@atom.io/spa"
 import { atom, type Loadable } from "atom.io"
 
@@ -12,7 +12,7 @@ const accountNameAtom = atom<Loadable<string>, Error>({
 	catch: [Error],
 })
 
-export function AccountName(): VNode {
+export function AccountName(): SpaElement {
 	const accountName = useLoadable(accountNameAtom, `Loading your account…`)
 	return (
 		<p aria-busy={accountName().loading}>

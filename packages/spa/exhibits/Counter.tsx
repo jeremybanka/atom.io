@@ -1,10 +1,10 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useSetter } from "@atom.io/spa"
 import { atom } from "atom.io"
 
 const countAtom = atom<number>({ key: `count`, default: 0 })
 
-export default function Counter(): VNode {
+export default function Counter(): SpaElement {
 	const getCount = useGetter(countAtom)
 	const setCount = useSetter(countAtom)
 	return (

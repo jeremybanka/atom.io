@@ -1,4 +1,4 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { onCleanup, onMount, useGetter, useSetter } from "@atom.io/spa"
 import { motionCapability } from "@atom.io/spa/motion"
 import { atom } from "atom.io"
@@ -14,7 +14,7 @@ const easeAtom = atom<`linear` | `easeInOut` | `easeOut`>({
 	default: `linear`,
 })
 
-export function MotionSandbox(): VNode {
+export function MotionSandbox(): SpaElement {
 	const getDuration = useGetter(durationAtom)
 	const setDuration = useSetter(durationAtom)
 	const getPresent = useGetter(presentAtom)

@@ -1,4 +1,4 @@
-import type { Child, VNode } from "@atom.io/spa"
+import type { Children, SpaElement } from "@atom.io/spa"
 
 import css from "./CodeBlock.module.css"
 import { highlightCode } from "./highlight-code.ts"
@@ -8,7 +8,7 @@ type CodeBlockProps = {
 	label?: string
 	code?: string
 	soft?: boolean
-	children?: Child
+	children?: Children
 }
 
 function getCodeBlockId(labelOrHref: string): string {
@@ -23,7 +23,7 @@ function getCodeBlockId(labelOrHref: string): string {
 		.replace(/^-+|-+$/g, ``)
 }
 
-function flattenChildrenToString(children: Child): string {
+function flattenChildrenToString(children: Children): string {
 	if (typeof children === `function`) return flattenChildrenToString(children())
 	if (Array.isArray(children))
 		return children.map(flattenChildrenToString).join(``)
@@ -38,7 +38,7 @@ export function CodeBlock({
 	code: codeProp,
 	soft = false,
 	children,
-}: CodeBlockProps): VNode {
+}: CodeBlockProps): SpaElement {
 	const displayLabel = label ?? filepath ?? `code`
 	const code = codeProp ?? flattenChildrenToString(children)
 	const { tokens } = highlightCode(code, filepath)

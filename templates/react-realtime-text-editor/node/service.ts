@@ -42,13 +42,12 @@ import {
 	type MarkdownCommand,
 } from "../src/protocol.ts"
 
-export type MarkdownDocumentInstrumentation =
-	MosaicTextDocumentInstrumentation & {
-		readonly activeFullDocumentModels: 1
-		readonly maximumFullDocumentModels: 1
-	}
+type MarkdownDocumentInstrumentation = MosaicTextDocumentInstrumentation & {
+	readonly activeFullDocumentModels: 1
+	readonly maximumFullDocumentModels: 1
+}
 
-export type MarkdownDocumentRangeInspection = MosaicTextDocumentRangeInspection
+type MarkdownDocumentRangeInspection = MosaicTextDocumentRangeInspection
 
 export type MarkdownDocumentService = Disposable & {
 	bindSocket(options: {

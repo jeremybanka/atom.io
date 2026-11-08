@@ -4,7 +4,7 @@ import type { FC } from "react"
 
 import { JsonEditor } from "./json-editor/index.ts"
 
-export const StateEditor: FC<{
+const StateEditor: FC<{
 	token: WritableToken<unknown, any, unknown>
 }> = ({ token }) => {
 	const set = useI(token)
@@ -22,7 +22,7 @@ export const StateEditor: FC<{
 	)
 }
 
-export const ReadonlySelectorViewer: FC<{
+const ReadonlySelectorViewer: FC<{
 	token: ReadonlySelectorToken<unknown, any, unknown>
 }> = ({ token }) => {
 	const data = useO(token)

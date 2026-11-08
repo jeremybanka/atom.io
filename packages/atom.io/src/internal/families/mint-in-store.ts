@@ -5,7 +5,7 @@ import { stringifyJson } from "atom.io/foundations/json"
 import type { ReadableFamily } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
 
-export const FAMILY_MEMBER_TOKEN_TYPES = {
+const FAMILY_MEMBER_TOKEN_TYPES = {
 	atom_family: `atom`,
 	molecule_family: `molecule`,
 	mutable_atom_family: `mutable_atom`,

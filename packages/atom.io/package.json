@@ -139,8 +139,6 @@
 		"@vitest/ui": "5.1.0",
 		"arktype": "2.2.9",
 		"breakage": "0.10.2",
-		"concurrently": "10.0.6",
-		"drizzle-kit": "1.0.0-rc.5",
 		"drizzle-orm": "1.0.0-rc.5",
 		"eslint": "10.14.0",
 		"happy-dom": "21.0.4",

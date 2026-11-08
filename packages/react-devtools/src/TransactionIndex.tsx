@@ -12,7 +12,7 @@ import { button } from "./Button.tsx"
 import { DevtoolsContext } from "./store.ts"
 import { article } from "./Updates.tsx"
 
-export const TransactionLog: FC<{
+const TransactionLog: FC<{
 	token: TransactionToken<Fn>
 	isOpenState: RegularAtomToken<boolean>
 	logState: ReadonlyPureSelectorToken<

@@ -61,7 +61,7 @@ export function requestApplication(
 	return app
 }
 /** Install definitions imported after an earlier island started this request. */
-export function syncDefinitions(store: RootStore): void {
+function syncDefinitions(store: RootStore): void {
 	const source = IMPLICIT.STORE
 	for (const field of [
 		`families`,

@@ -15,7 +15,7 @@ export interface PresenceTarget {
 	node: unknown
 	suspend?(): Cleanup
 }
-export interface PresenceCollection<T, V> {
+interface PresenceCollection<T, V> {
 	take(key: unknown, value: V): T | undefined
 	remove(
 		record: T,

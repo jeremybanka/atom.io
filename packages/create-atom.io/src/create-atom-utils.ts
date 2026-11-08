@@ -13,11 +13,7 @@ export const color = (
 	text: string,
 ): string => styleText(format, text, { validateStream: false })
 
-export type {
-	CreateAtomOptions,
-	CreateAtomOptionsPreloaded,
-	TemplateName,
-} from "./create-atom-options.ts"
+export type { CreateAtomOptions, TemplateName } from "./create-atom-options.ts"
 
 export async function useSpinner(
 	startMessage: string,
@@ -53,7 +49,7 @@ export async function scaffold(
  * Recursive fs copy, swiped from `create-wmr`:
  * https://github.com/preactjs/wmr/blob/3c5672ecd2f958c8eaf372d33c084dc69228ae3f/packages/create-wmr/src/index.js#L108-L124
  */
-export async function makeTemplateDir(
+async function makeTemplateDir(
 	from: string,
 	to: string,
 	opts: CreateAtomOptions,

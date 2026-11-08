@@ -4,6 +4,7 @@ import url from "node:url"
 const FILEPATH = url.fileURLToPath(import.meta.url)
 const DIRNAME = path.dirname(FILEPATH)
 
+/** @internal Shared with the documentation worker. */
 export const ATOM_IO_ROOT: string = path.resolve(DIRNAME, `..`)
 export const ATOM_IO_SRC: string = path.join(ATOM_IO_ROOT, `src`)
 export const PACKAGE_JSON_PATH: string = path.join(ATOM_IO_ROOT, `package.json`)

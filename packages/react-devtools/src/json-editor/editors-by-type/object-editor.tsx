@@ -20,33 +20,12 @@ import {
 	makePropertySorter,
 } from "./utilities/object-properties.ts"
 
-export type PropertyAdderProps = {
+type PropertyAdderProps = {
 	addProperty: () => void
 	disabled: boolean
 	propertyKey: string
 	Components: JsonEditorComponents
 }
-
-export const PropertyAdder: FC<PropertyAdderProps> = ({
-	addProperty,
-	disabled,
-	propertyKey,
-	Components,
-}) => (
-	<Components.MissingPropertyWrapper>
-		<ElasticInput disabled defaultValue={propertyKey} />
-		{` `}
-		<ElasticInput disabled defaultValue="is missing" />
-		<Components.Button
-			onClick={() => {
-				addProperty()
-			}}
-			disabled={disabled}
-		>
-			+
-		</Components.Button>
-	</Components.MissingPropertyWrapper>
-)
 
 type ObjectPropertyProps = {
 	path: ReadonlyArray<number | string>

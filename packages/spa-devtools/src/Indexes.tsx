@@ -181,6 +181,7 @@ function TransactionLog(props: {
 	)
 }
 // Events are recursive discriminated records, including user-defined transaction outputs.
+/** @internal Used by contributor tools or implementation tests. */
 export function EventView(props: {
 	tools: Tools
 	event: any

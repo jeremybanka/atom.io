@@ -1,6 +1,5 @@
 ---
 "atom.io": patch
-"resumability": patch
 "@atom.io/spa": patch
 "@atom.io/spa-devtools": patch
 "@atom.io/template-spa-astro-ssr": patch

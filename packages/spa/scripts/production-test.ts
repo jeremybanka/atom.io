@@ -72,6 +72,38 @@ const hydrated = hydrate(
 assert.equal(host.querySelector(`p`), paragraph)
 hydrated.dispose()
 assert.equal(host.childNodes.length, 0)
+
+host.innerHTML = renderToString(
+	() => serverJsx(`p`, { children: `outdated server view` }),
+	{ idPrefix: `recover` },
+)
+const warnings: unknown[][] = []
+const originalWarn = console.warn
+console.warn = (...args) => {
+	warnings.push(args)
+}
+try {
+	const recovered = hydrate(() => jsx(Counter, {}), host as unknown as Element, {
+		store: silo.store,
+	})
+	assert.equal(warnings.length, 1)
+	assert.match(
+		String(warnings[0][0]),
+		/hydration mismatch.*Repairing.*unsaved input/,
+	)
+	assert.equal(setups, 2)
+	assert.equal(cleanups, 1)
+	host.querySelector(`button`)!.click()
+	recovered.flush()
+	assert.equal(host.textContent, `2`)
+	assert.equal(silo.getState(countAtom), 2)
+	recovered.dispose()
+	assert.equal(cleanups, 2)
+	assert.equal(silo.store.atoms.get(countAtom.key)!.subject.subscribers.size, 0)
+} finally {
+	console.warn = originalWarn
+}
+
 const deferred = Promise.withResolvers<string>()
 const loadableAtom = silo.atom<Loadable<string>>({
 	key: `loadable`,

@@ -1,0 +1,31 @@
+---
+import { createModel } from "../model.ts"
+const model = createModel()
+const value = await model.silo.getState(model.productAtoms, 1)
+---
+<html lang="en">
+	<head><title>Independent peer libraries</title></head>
+	<body>
+		<output>{value}</output><output>{value}</output><button>Reset atom</button>
+		<script>
+		import { createModel } from "../model.ts"
+const model = createModel()
+const original = model.silo.store.runDefault
+const paint = () => {
+	const value = String(model.silo.getState(model.productAtoms, 1))
+	for (const output of document.querySelectorAll(`output`))
+		output.textContent = value
+	document.documentElement.setAttribute(
+		`data-defaults-unchanged`,
+		String(model.silo.store.runDefault === original),
+	)
+}
+paint()
+document.querySelector(`button`)!.addEventListener(`click`, () => {
+	model.silo.resetState(model.productAtoms, 1)
+	paint()
+})
+document.documentElement.setAttribute(`data-ready`, ``)
+		</script>
+	</body>
+</html>

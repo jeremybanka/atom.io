@@ -15,8 +15,22 @@ import { Fragment, merge } from "./jsx-runtime.ts"
 
 const HTML = `http://www.w3.org/1999/xhtml`
 const SVG = `http://www.w3.org/2000/svg`
-type Cursor = { node: Node | null }
+type Cursor = {
+	node: Node | null
+	report(expected: Node | null, found: Node | null): void
+}
 type RecordNode = { _value: Child; _scope: Scope; _start: Node; _end: Node }
+
+function finish(cursor?: Cursor): void {
+	if (cursor?.node) {
+		cursor.report(null, cursor.node)
+		while (cursor.node) {
+			const node: Node = cursor.node
+			cursor.node = node.nextSibling
+			;(node as ChildNode).remove()
+		}
+	}
+}
 
 function take(
 	node: Node,
@@ -36,12 +50,15 @@ function take(
 			found.nodeName !== node.nodeName ||
 			(found as Element).namespaceURI !== (node as Element).namespaceURI ||
 			(node.nodeType !== 1 && found.nodeValue !== node.nodeValue)
-		)
-			throw new Error(
-				import.meta.env.DEV ? `spa: hydration mismatch` : undefined,
-			)
-		node = found
-		cursor.node = found.nextSibling
+		) {
+			cursor.report(node, found)
+			parent.insertBefore(node, found)
+			cursor.node = found?.nextSibling ?? null
+			;(found as ChildNode | null)?.remove()
+		} else {
+			node = found
+			cursor.node = found.nextSibling
+		}
 	} else parent.insertBefore(node, cursor ? cursor.node : before)
 	owner._cleanups.add(() => {
 		;(node as ChildNode).remove()
@@ -298,7 +315,9 @@ function mount(
 			},
 		)
 	} else {
-		const children = cursor ? { node: element.firstChild } : undefined
+		const children = cursor
+			? { node: element.firstChild, report: cursor.report }
+			: undefined
 		if (
 			!/^(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)$/.test(
 				vnode.type,
@@ -313,10 +332,7 @@ function mount(
 				vnode.type === `foreignObject` ? HTML : ns,
 				children,
 			)
-		if (children?.node)
-			throw new Error(
-				import.meta.env.DEV ? `spa: hydration mismatch` : undefined,
-			)
+		finish(children)
 	}
 	const nativeProps = capabilityProps(
 		owner,
@@ -365,16 +381,30 @@ function start(
 	options: RootOptions,
 	hydrating: boolean,
 ): SpaRoot {
-	const cursor = hydrating ? { node: host.firstChild } : undefined
-	const prefix = cursor?.node?.nodeValue?.slice(2)
-	if (
-		hydrating &&
-		(prefix === undefined ||
-			(options.idPrefix !== undefined && prefix !== options.idPrefix))
-	)
-		throw new Error(import.meta.env.DEV ? `spa: hydration mismatch` : undefined)
+	let reported = false
+	const cursor: Cursor | undefined = hydrating
+		? {
+				node: host.firstChild,
+				report(expected, found) {
+					if (!reported) {
+						reported = true
+						// eslint-disable-next-line no-console -- Recoverable degradation must remain human-readable in production.
+						console.warn(
+							`spa: hydration mismatch. Repairing server HTML to match the browser view; replaced nodes may lose focus or unsaved input.`,
+							{ host, expected, found },
+						)
+					}
+				},
+			}
+		: undefined
+	const marker = cursor?.node
+	const prefix =
+		marker?.nodeType === 8 && marker.nodeValue?.startsWith(`w:`)
+			? marker.nodeValue.slice(2)
+			: undefined
 	const root = createRoot(options)
-	if (prefix !== undefined) root._prefix = prefix
+	if (prefix !== undefined && options.idPrefix === undefined)
+		root._prefix = prefix
 	try {
 		comment(`w:${root._prefix}`, host, null, root, cursor)
 		within(root, () => {
@@ -388,10 +418,7 @@ function start(
 			)
 		})
 		comment(`/w`, host, null, root, cursor)
-		if (cursor?.node)
-			throw new Error(
-				import.meta.env.DEV ? `spa: hydration mismatch` : undefined,
-			)
+		finish(cursor)
 		root.flush()
 	} catch (error) {
 		fail(root, error)

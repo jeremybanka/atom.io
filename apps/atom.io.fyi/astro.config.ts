@@ -32,6 +32,14 @@ const EXHIBIT_ROOTS = [
 		root: path.resolve(CONFIG_ROOT, `../../packages/spa-devtools/exhibits`),
 		prefix: `spa-devtools/exhibits/`,
 	},
+	{
+		root: path.resolve(CONFIG_ROOT, `../../templates/spa-astro-ssr/src`),
+		prefix: `spa-astro-ssr/src/`,
+	},
+	{
+		root: path.resolve(CONFIG_ROOT, `../../templates/spa-astro-ssr/exhibits`),
+		prefix: `spa-astro-ssr/exhibits/`,
+	},
 ]
 const VIRTUAL_EXHIBITS_MODULE_ID = `virtual:atom-io-exhibits`
 const RESOLVED_VIRTUAL_EXHIBITS_MODULE_ID = `\0${VIRTUAL_EXHIBITS_MODULE_ID}`

@@ -18,6 +18,10 @@ export type {
 } from "./types.ts"
 let active: Resumption | undefined
 
+export function currentResumption(): Resumption | undefined {
+	return active
+}
+
 export interface ClientResumption extends Resumption {
 	/** Activate this scope for synchronous calls; async producers capture their signal at invocation. */
 	run<T>(compute: () => T, options?: { resume: boolean }): T

@@ -1,7 +1,13 @@
 import type { Resumption } from "resumability"
 import { resumable } from "resumability"
 import { createResumption } from "resumability/client"
-import { collect, serialize } from "resumability/server"
+import {
+	collect,
+	createCollection,
+	currentCollection,
+	serialize,
+	type ServerCollection,
+} from "resumability/server"
 
 export async function contracts(scope: Resumption): Promise<void> {
 	const number: number | Promise<number> = resumable(
@@ -19,6 +25,14 @@ export async function contracts(scope: Resumption): Promise<void> {
 			},
 		}),
 	)
+	const owned: ServerCollection = createCollection({
+		signal: new AbortController().signal,
+	})
+	const current: ServerCollection | undefined = currentCollection()
+	const rendered = await owned.collect(() => 1, { drain: false })
+	const value: number = rendered.value
+	void [current, value]
+	owned.dispose()
 	const text: string = serialize(payload)
 	void text
 	createResumption(payload).dispose()

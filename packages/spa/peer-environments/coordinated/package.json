@@ -15,7 +15,8 @@
 	},
 	"breakage": {
 		"candidates": [
-			"atom.io"
+			"atom.io",
+			"resumability"
 		]
 	}
 }

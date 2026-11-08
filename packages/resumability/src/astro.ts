@@ -19,7 +19,9 @@ export function resumablePlugin(): Plugin {
 				!(/\.[cm]?[jt]sx?(?:\?|$)/.test(id) || id.includes(`?astro&type=script`))
 			)
 				return null
-			const result = compile(code, id.split(`?`)[0])
+			const result = compile(code, id.split(`?`)[0], {
+				clientModule: `resumability/astro-client`,
+			})
 			return { code: result.code, map: result.map as any }
 		},
 	}
@@ -28,7 +30,15 @@ export default function resumability(): AstroIntegration {
 	return {
 		name: `resumability`,
 		hooks: {
-			"astro:config:setup"({ updateConfig }) {
+			"astro:config:setup"({ updateConfig, addMiddleware, injectScript }) {
+				addMiddleware({
+					entrypoint: `resumability/astro-middleware`,
+					order: `pre`,
+				})
+				injectScript(
+					`page`,
+					`import {browserResumption} from "resumability/astro-client"; browserResumption(document);`,
+				)
 				updateConfig({
 					vite: {
 						plugins: [resumablePlugin()],

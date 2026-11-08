@@ -1,16 +1,17 @@
-import type { RegularAtomFamilyToken } from "atom.io"
+import type { ReadableToken, RegularAtomFamilyToken } from "atom.io"
 import type { RootStore } from "atom.io/internal"
 import {
 	createRegularAtomFamily,
 	disposeFromStore,
 	findInStore,
+	getFromStore,
 	IMPLICIT,
 	setIntoStore,
 } from "atom.io/internal"
 
 import { browserApplication } from "./astro-application.ts"
 import { failPreparation, storeContext } from "./astro-context.ts"
-import type { Island } from "./astro-shared.ts"
+import type { AstroStorePreparation, Island } from "./astro-shared.ts"
 import { island, islandStore } from "./astro-shared.ts"
 import { onCleanup, useGetter } from "./core.ts"
 import { hydrate, render } from "./dom.ts"
@@ -36,7 +37,9 @@ type State = { props: Props; slots: Slots }
 const states = new WeakMap<RootStore, RegularAtomFamilyToken<State, number>>()
 let serial = 0
 
-export default (element: HTMLElement): Hydrator =>
+export const createHydrator =
+	(prepare?: AstroStorePreparation) =>
+	(element: HTMLElement): Hydrator =>
 	async (component, props, slots, { client }) => {
 		const previous = roots.get(element)
 		if (previous?.component === component) {
@@ -73,6 +76,7 @@ export default (element: HTMLElement): Hydrator =>
 						props,
 						lifetime.context,
 						shared ? IMPLICIT.STORE : undefined,
+						prepare,
 					),
 					lifetime.cancelled,
 				])
@@ -81,7 +85,14 @@ export default (element: HTMLElement): Hydrator =>
 				const replace =
 					client === `only` ||
 					previous !== undefined ||
-					application?.canResume === false
+					application?.canResume === false ||
+					// Server-settled state without a synchronous browser seed needs a
+					// fresh view, whose loading state can differ from the SSR markup.
+					(
+						JSON.parse(
+							element.getAttribute(`data-spa-reads`) ?? `[]`,
+						) as ReadableToken<unknown>[]
+					).some((token) => getFromStore(store!, token) instanceof Promise)
 				// Astro leaves this sentinel on islands inserted by ClientRouter.
 				const sentinel = element.lastChild
 				if (sentinel?.nodeType === 8 && sentinel.nodeValue === `astro:end`)
@@ -135,3 +146,5 @@ export default (element: HTMLElement): Hydrator =>
 		lifetime.context.onCleanup(dispose)
 		return ready
 	}
+
+export default createHydrator()

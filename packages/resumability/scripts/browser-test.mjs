@@ -26,7 +26,7 @@ if (development) {
 		)
 		const file = resolve(
 			directory,
-			`.${pathname === `/` ? `/index.html` : pathname}`,
+			`.${extname(pathname) ? pathname : `${pathname.replace(/\/$/, ``)}/index.html`}`,
 		)
 		if (!file.startsWith(`${directory}/`)) {
 			response.writeHead(403).end()
@@ -64,6 +64,7 @@ try {
 	const scripts = []
 	page.on(`pageerror`, (error) => errors.push(error.message))
 	page.on(`response`, (response) => {
+		if (!response.ok()) return
 		if (response.request().resourceType() === `script`) {
 			scripts.push(
 				response.text().then((code) => ({ code, url: response.url() })),
@@ -89,6 +90,58 @@ try {
 		`client:1:2`,
 		`client:1:1`,
 	])
+	const constantStart = scripts.length
+	await page.goto(`${origin}/constant`)
+	await page.waitForSelector(`html[data-ready]`)
+	assert.equal(
+		await page.locator(`[data-constant]`).textContent(),
+		`SERVER_ONLY_SQLITE_SENTINEL:99`,
+	)
+	assert.equal(
+		await page.locator(`[data-product]`).textContent(),
+		`SERVER_ONLY_SQLITE_SENTINEL:2`,
+	)
+	await page.locator(`button`).click()
+	await page.waitForFunction(
+		() => document.querySelector(`[data-product]`).textContent === `browser:1`,
+	)
+	await page.locator(`button`).click()
+	await page.waitForFunction(
+		() => document.querySelector(`[data-product]`).textContent === `browser:2`,
+	)
+	assert.equal(
+		await page.locator(`[data-constant]`).textContent(),
+		`SERVER_ONLY_SQLITE_SENTINEL:99`,
+	)
+	const constantScripts = await Promise.all(scripts.slice(constantStart))
+	for (const { code } of constantScripts)
+		assert.doesNotMatch(
+			code,
+			/ATOM_IO_IMPLICIT_STORE|atom\.io\/internal|node:sqlite|database\.server|SERVER_ONLY_SQLITE_SENTINEL/,
+		)
+	await page.goto(`${origin}/peers`)
+	await page.waitForSelector(`html[data-ready]`)
+	assert.deepEqual(await page.locator(`output`).allTextContents(), [
+		`SERVER_ONLY_SQLITE_SENTINEL:1`,
+		`SERVER_ONLY_SQLITE_SENTINEL:1`,
+	])
+	await page.locator(`button`).click()
+	await page.waitForFunction(
+		() => document.querySelector(`output`).textContent === `client:1:1`,
+	)
+	assert.deepEqual(await page.locator(`output`).allTextContents(), [
+		`client:1:1`,
+		`client:1:1`,
+	])
+	await page.locator(`button`).click()
+	await page.waitForFunction(
+		() => document.querySelector(`output`).textContent === `client:1:2`,
+	)
+	assert.equal(
+		await page.locator(`html`).getAttribute(`data-defaults-unchanged`),
+		`true`,
+	)
+
 	assert.deepEqual(errors, [])
 	const executable = await Promise.all(scripts)
 	assert.ok(executable.length > 0)
@@ -100,7 +153,7 @@ try {
 		)
 	}
 	console.log(
-		`${development ? `Development` : `Production`}: SSR SQLite values, isolated browser seeds, repeated atom resets, and server-code removal passed.`,
+		`${development ? `Development` : `Production`}: plain Astro constants without a state library, ordinary atom defaults without a bridge, explicit scopes, resets, and server-code removal passed.`,
 	)
 } finally {
 	await browser?.close()

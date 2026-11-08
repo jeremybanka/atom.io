@@ -10,7 +10,8 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Let publication finish when another commit lands on main.
+  cancel-in-progress: false
 
 jobs:
   Release:

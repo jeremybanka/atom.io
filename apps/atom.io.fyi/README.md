@@ -1,7 +1,9 @@
 # atom.io.fyi
 
 The documentation website is a private workspace package released through
-Changesets and deployed to Cloudflare Workers.
+Changesets and deployed to Cloudflare Workers. GitHub Actions builds the site and
+its workspace dependencies with the versions pinned in [mise.toml](../../mise.toml),
+then uploads the finished output with Wrangler. Cloudflare Builds is disconnected.
 
 ## Releases
 
@@ -9,8 +11,9 @@ Include a changeset targeting `atom.io.fyi` for website changes. Changesets upda
 its version and changelog in the usual release PR. Merging that PR lets
 `changeset publish` create the site's version tag while keeping it off npm.
 
-The Deploy Site workflow runs when a stable `atom.io.fyi@*` tag is created. It
-builds the tagged commit and its workspace dependencies, then runs the site's
+The production path of the Deploy Site workflow runs when a stable
+`atom.io.fyi@*` tag is created. It builds the tagged commit and its workspace
+dependencies, then runs the site's
 existing Wrangler deployment script. Branch pushes, other package tags, and
 prerelease tags do not deploy production.
 
@@ -20,11 +23,16 @@ do not trigger another workflow.
 
 ## Main preview
 
-Cloudflare Workers Builds continuously builds `main` and runs the site's
+The Deploy Site workflow also runs on pushes to `main`. It builds in GitHub
+Actions using the same pinned tools as releases, then runs the site's
 `deploy:preview` script from [package.json](./package.json). The script uploads a
 Worker version with the fixed alias `main`, whose stable URL follows the latest
 successful main build. Other branches do not trigger preview deployments.
 Production continues to deploy through Changesets release tags.
+
+Both paths use the prepared `atom.io.fyi` GitHub environment. Its deployment
+records link to the relevant production or preview URL. PRs still run the normal
+CI checks, with no Cloudflare build or deployment.
 
 Version preview URLs are enabled in [wrangler.jsonc](./wrangler.jsonc). This keeps
 the existing
@@ -37,10 +45,10 @@ after the first upload.
 ## Agent handoff for production setup
 
 Use an agent authenticated to both GitHub and Cloudflare to configure the release
-credentials, stop automatic production deployments, and configure the main
-preview. Prepare and verify the credentials before changing the existing
-deployment path. The workflow is
-introduced by [PR #1488](https://github.com/jeremybanka/atom.io/pull/1488); setup can
+credentials and move every site build into GitHub Actions. Prepare and verify the
+credentials before disconnecting Cloudflare Builds. The stable main preview
+and production site keep serving their existing versions during setup. The workflow
+is introduced by [PR #1488](https://github.com/jeremybanka/atom.io/pull/1488); setup can
 finish before that PR merges, with live release verification pending afterward.
 
 | Target              | Value                                                      |
@@ -90,8 +98,11 @@ Check its policy and expiry when creating or inspecting it; token verification
 alone does not establish deployment permissions.
 
 Create the `atom.io.fyi` GitHub environment if absent. Preserve existing protection
-rules and ensure its deployment branch/tag policy permits `atom.io.fyi@*` tags;
-a policy permitting only the `main` branch will block this workflow.
+rules and ensure its deployment policy permits the `main` **branch** and
+`atom.io.fyi@*` **tags**. The main branch needs access to the existing upload
+credentials for previews; the tags need it for production releases. Keep branch
+and tag rules distinct and preserve any existing tag allow rule. See GitHub's
+[environment deployment policies](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments).
 
 Set `CLOUDFLARE_ACCOUNT_ID` as an environment **variable** and
 `CLOUDFLARE_API_TOKEN` as an environment **secret**. Prefer this environment scope
@@ -109,72 +120,60 @@ out of tool output, command arguments, files in the checkout, and the handoff re
 Read back the account variable and the secret's name and update timestamp. Resolve
 permission or credential-write failures before proceeding to cutover.
 
-### 3. Configure the continuous main preview
+### 3. Retire the Cloudflare build requirement
 
-Keep this Worker's Git build integration connected to `jeremybanka/atom.io`. Under
-Workers & Pages > `atom-io-fyi` > Settings > Builds, select `main` as the production
-branch and change its **deploy command** to run the site's `deploy:preview` package
-script. Preserve the build command, build root, and pnpm workspace selection.
-Cloudflare calls this the production branch, but its deploy command now updates
-only the fixed `main` version alias. The GitHub release workflow handles production.
+Retire the matching GitHub PR check requirement as part of the migration. Inspect
+all rulesets and classic branch protections applying to `main` for
+`Workers Builds: atom-io-fyi`. With explicit repository-owner approval, remove
+only that obsolete required check, preserving every other check and protection.
+Otherwise future PRs can wait indefinitely for a branch-preview check that no
+longer runs. Read the effective rules back to verify the exact change.
 
-If the package script has not reached `main` yet, keep the existing version-upload
-command and add the `--preview-alias` option with value `main`. This establishes
-the same alias before the PR merges. Switch to the package script once available.
+### 4. Disconnect Cloudflare Builds
 
-Under Branch control, disable **Enable Preview Builds** (or the legacy
-**Builds for non-production branches** setting). This stops pushes to other
-branches from creating or updating previews; the main-branch build remains
-enabled. This control governs automatic branch builds, not routing to the fixed
-`main` version preview URL. See Cloudflare's
-[branch controls](https://developers.cloudflare.com/workers/ci-cd/builds/build-branches/).
+Under Workers & Pages > `atom-io-fyi` > Settings > Builds, disconnect this Worker's
+Git build integration. This stops Cloudflare from building every branch, including
+`main`. GitHub Actions builds the site and uploads its assets and Worker bundle
+directly; no Cloudflare build image or Node installation is involved. Follow
+Cloudflare's
+[disconnect instructions](https://developers.cloudflare.com/workers/ci-cd/builds/#disconnecting-builds).
 
-Run a Cloudflare build of `main` to establish the preview URL. Use a deploy command
-available at that commit; older commits do not contain the new package script.
-Check that the upload completes using the existing build token, and record the
-stable alias URL returned by Wrangler. Keep the existing version-upload model
-when disabling branch builds.
+Keep the Worker, its versions and aliases, hostname routing, bindings, and the
+account-wide Cloudflare GitHub App installation in place. Inspect queued or
+running builds for this Worker and cancel them if present. Read the saved build
+settings back and confirm the Worker no longer has a Git build trigger. Do not run
+a Cloudflare build to verify this migration.
 
-For API-based changes, follow the current
-[Builds API reference](https://developers.cloudflare.com/workers/ci-cd/builds/api-reference/).
-It identifies the Worker by its immutable script tag, obtained from the Workers
-Scripts API, rather than its name. The Builds API requires a user-scoped token
-with Workers Builds Configuration Edit; this is a setup permission, not a CI
-deployment requirement. Read settings first, set `git_repository.branch` to
-`main`, set `production_settings.deploy_command` to run the site's preview script,
-and set `previews_enabled` to `false`. If existing per-branch Preview build records
-still have `auto_build` enabled, disable it on those records too.
-
-After saving, read the settings back and inspect queued or running production
-builds. Cancel builds still using the old production deploy command and queued or
-running non-main preview builds. Confirm that only main pushes can deploy a
-preview and no Git build command can change the production deployment.
-
-### 4. Verify and report the handoff
+### 5. Verify and report the handoff
 
 Confirm the account variable matches the verified Worker account, the deployment
-secret exists, and environment policies admit the workflow's release tags. Read
-Cloudflare settings again to confirm that `main` builds run the preview script and
-non-production branch builds are disabled. Check that the active production
-deployment and hostname routing remain as recorded and that the homepage and a
+secret exists, and environment policies admit both `main` and the site's release
+tags. Read Cloudflare settings again to confirm the Git build integration is
+disconnected. Check that the active production deployment and hostname routing
+remain as recorded and that the homepage and a
 documentation page still respond successfully.
 
-After changing the Cloudflare command, verify the main build succeeds, the
+Once the workflow reaches `main`, verify its GitHub Actions build succeeds, the
 stable main alias serves the built commit, and a homepage and documentation page
 respond there too. Check that later main builds update the same alias and that
-other branches no longer schedule builds. Existing historical preview URLs may
+no branch schedules a Cloudflare build. Existing historical preview URLs may
 remain available; disabling their build triggers does not delete deployments.
+Completed Cloudflare checks and bot comments also remain on existing PRs. Compare
+their completion times with the cutover time when checking for new deployments.
+Confirm GitHub no longer requires the retired Cloudflare branch-preview check.
 
 Preparing the settings does not require creating a test release tag, publishing
-packages, or deploying production. Token checks and Wrangler dry runs do not
-prove a live GitHub-to-Cloudflare production deployment. Report main-preview
-verification separately from production verification, which occurs with the next
-normal Changesets site release. That release should produce a successful Deploy
-Site run and a Cloudflare deployment from the tagged commit.
+packages, or deploying production. The existing preview remains available while
+the workflow awaits merge. Token checks and Wrangler dry runs do not prove a live
+GitHub-to-Cloudflare deployment. Report preview verification from GitHub Actions
+separately from production verification, which occurs with the next normal
+Changesets site release. That release should produce a successful Deploy Site run
+and a Cloudflare deployment from the tagged commit.
 
 Return the GitHub environment link, the variable/secret names and verification
 status, the Cloudflare account and Worker identifiers, the token ID/name and expiry
-when available, the main preview URL and uploaded version ID, the branch-build setting,
+when available, the main preview URL and uploaded version ID, the disconnected
+build-integration state, the retained required checks and environment policies,
 and any builds canceled. Include the active production deployment IDs before and
 after setup, website checks, and whether the main preview and first Changesets
 deployment are verified or still pending. Include remaining blockers and their

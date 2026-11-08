@@ -2,4 +2,4 @@
 "atom.io.fyi": patch
 ---
 
-Release the documentation website through Changesets and deploy its stable version tags to Cloudflare Workers. Continuously deploy one main preview while disabling automatic previews for other branches.
+Build the documentation website in GitHub Actions and upload it to Cloudflare Workers. Publish production through Changesets site releases and continuously update one main preview, with Cloudflare Builds and other branch previews disabled.

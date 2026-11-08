@@ -2,7 +2,7 @@ import Konva from "konva"
 
 import { capabilityProps } from "./capabilities.ts"
 import { owner } from "./core.ts"
-import type { Child, VNode } from "./index.ts"
+import type { Children, SpaElement } from "./index.ts"
 import { onCleanup, onMount } from "./index.ts"
 import type { CapabilityAttributes } from "./jsx-runtime.ts"
 import { jsx } from "./jsx-runtime.ts"
@@ -10,7 +10,7 @@ import { bindScene, createSceneRenderer, sceneComponent } from "./renderer.ts"
 
 type Props<C, N> = C &
 	CapabilityAttributes<`konva`> & {
-		children?: Child
+		children?: Children
 		ref?: (node: N | null) => void
 		onClick?: (event: Konva.KonvaEventObject<MouseEvent>) => void
 		onPointerDown?: (event: Konva.KonvaEventObject<PointerEvent>) => void
@@ -106,7 +106,7 @@ export function Stage(
 		width?: number
 		height?: number
 	},
-): VNode {
+): SpaElement {
 	let container: HTMLDivElement | null = null
 	onMount(() => {
 		// Konva clears its container; preserve SPA's markers in the outer element.

@@ -1,5 +1,5 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 
-export default function Constant(props: { title: string }): VNode {
+export default function Constant(props: { title: string }): SpaElement {
 	return <output>{props.title}</output>
 }

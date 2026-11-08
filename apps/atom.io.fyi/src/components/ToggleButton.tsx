@@ -1,9 +1,9 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 
 import type { ToggleProps } from "./Toggle.tsx"
 import css from "./ToggleButton.module.css"
 
-export function ToggleButton(props: ToggleProps): VNode {
+export function ToggleButton(props: ToggleProps): SpaElement {
 	const size = () => props.size ?? { height: 40, width: 40 }
 	return (
 		<toggle-button

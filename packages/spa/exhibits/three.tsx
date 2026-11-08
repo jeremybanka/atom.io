@@ -1,4 +1,4 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useGetter } from "@atom.io/spa"
 import {
 	AmbientLight,
@@ -11,7 +11,7 @@ import {
 import { atom } from "atom.io"
 
 const colorAtom = atom<string>({ key: `color`, default: `coral` })
-export function Scene(): VNode {
+export function Scene(): SpaElement {
 	const getColor = useGetter(colorAtom)
 	return (
 		<Canvas width={800} height={600}>

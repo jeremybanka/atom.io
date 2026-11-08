@@ -1,11 +1,11 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useId, useLoadable, useSetter, useStore } from "@atom.io/spa"
 import { resetInStore } from "atom.io/internal"
 
 import { api, type Product } from "./api.ts"
 import { productAtoms, productIds, saveStatusAtoms } from "./state.ts"
 
-function StockCard(props: { id: number }): VNode {
+function StockCard(props: { id: number }): SpaElement {
 	const store = useStore()
 	const label = useId()
 	const fallback: Product = {
@@ -96,7 +96,7 @@ function StockCard(props: { id: number }): VNode {
 	)
 }
 
-export default function Inventory(props: { id: string }): VNode {
+export default function Inventory(props: { id: string }): SpaElement {
 	return (
 		<div class="product-grid" data-island={props.id}>
 			{productIds.map((id) => (

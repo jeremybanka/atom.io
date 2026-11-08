@@ -1,4 +1,4 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useGetter } from "@atom.io/spa"
 import {
 	BoxGeometry,
@@ -13,7 +13,7 @@ const targetXAtom = atom<number>({
 	default: 1,
 })
 // Mount under a root with capabilities: [motionCapability()].
-export function SpringCube(): VNode {
+export function SpringCube(): SpaElement {
 	const getTargetX = useGetter(targetXAtom)
 	return (
 		<Canvas>

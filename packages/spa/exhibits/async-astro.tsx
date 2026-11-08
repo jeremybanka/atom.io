@@ -1,4 +1,4 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useLoadable } from "@atom.io/spa"
 import type { AstroStorePreparation } from "@atom.io/spa/astro"
 import type { Loadable } from "atom.io"
@@ -10,7 +10,7 @@ const greetingAtom = atom<Loadable<string>>({
 	default: ``,
 })
 
-export default function Greeting(): VNode {
+export default function Greeting(): SpaElement {
 	const greeting = useLoadable(greetingAtom, ``)
 	return <p>{greeting().value}</p>
 }

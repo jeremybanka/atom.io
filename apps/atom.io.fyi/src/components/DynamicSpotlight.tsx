@@ -1,4 +1,4 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { onCleanup, onMount } from "@atom.io/spa"
 
 import css from "./DynamicSpotlight.module.css"
@@ -11,7 +11,7 @@ export type SpotlightProps = {
 	variant?: `surface` | `target`
 	hiddenAtViewportWidth?: 960 | 1280
 }
-export function DynamicSpotlight(props: SpotlightProps): VNode {
+export function DynamicSpotlight(props: SpotlightProps): SpaElement {
 	let spotlight: HTMLElement | null = null
 	const attach = (node: HTMLElement | null) => {
 		spotlight = node

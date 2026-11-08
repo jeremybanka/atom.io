@@ -1,7 +1,7 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { onCleanup, onMount } from "@atom.io/spa"
 
-export function AccountSettings(): VNode {
+export function AccountSettings(): SpaElement {
 	onMount(() => {
 		const previousTitle = document.title
 		document.title = `Account settings`

@@ -1,4 +1,4 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useSetter } from "@atom.io/spa"
 import { atom } from "atom.io"
 
@@ -6,7 +6,7 @@ const pointAtom = atom<{ x: number; y: number }>({
 	key: `point`,
 	default: { x: 20, y: 20 },
 })
-export function PointEditor(): VNode {
+export function PointEditor(): SpaElement {
 	const getPoint = useGetter(pointAtom)
 	const setPoint = useSetter(pointAtom)
 	return (

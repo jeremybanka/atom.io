@@ -1,4 +1,4 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { onCleanup, onMount, useGetter, useSetter } from "@atom.io/spa"
 import { atom } from "atom.io"
 
@@ -13,7 +13,7 @@ function record(id: string, phase: string): void {
 		)
 	}
 }
-export default function Recovery(props: { id: string }): VNode {
+export default function Recovery(props: { id: string }): SpaElement {
 	record(props.id, `setups`)
 	onCleanup(() => {
 		record(props.id, `cleanups`)

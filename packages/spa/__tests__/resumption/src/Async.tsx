@@ -1,4 +1,4 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useLoadable } from "@atom.io/spa"
 import { atom, type Loadable } from "atom.io"
 
@@ -15,12 +15,12 @@ const ordinaryAtom = atom<Loadable<string>>({
 })
 const titleAtom = atom<Loadable<string>>({ key: `title`, default: title })
 
-export function Ordinary(): VNode {
+export function Ordinary(): SpaElement {
 	const value = useLoadable(ordinaryAtom, `Loading`)
 	return <output data-ordinary>{value().value}</output>
 }
 
-export function Mixed(): VNode {
+export function Mixed(): SpaElement {
 	const value = useLoadable(ordinaryAtom, `Loading`)
 	const heading = useLoadable(titleAtom, ``)
 	return (

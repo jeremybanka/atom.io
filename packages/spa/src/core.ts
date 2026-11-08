@@ -38,27 +38,29 @@ import type {
 } from "./presence.ts"
 
 export type Cleanup = () => void
-// A callable interface permits the recursive Child union. A type alias does not.
-/* oxlint-disable typescript/prefer-function-type -- A callable interface is required for recursive Child. */
+// A callable interface permits the recursive Children union. A type alias does not.
+/* oxlint-disable typescript/prefer-function-type -- A callable interface is required for recursive Children. */
 export interface Accessor<T> {
 	(): T
 }
 /* oxlint-enable typescript/prefer-function-type */
-export type Component<P = any> = (props: P) => Child
-export interface VNode {
+export type Component<P = any> = (props: P) => Children
+/** A JSX descriptor for an intrinsic tag, component, or fragment. */
+export interface SpaElement {
 	type: string | Component | null
 	props: Record<string, any>
 }
-export type Child =
-	| VNode
+/** Renderable content, including nested groups and reactive accessors. */
+export type Children =
+	| SpaElement
 	| string
 	| number
 	| bigint
 	| boolean
 	| null
 	| undefined
-	| readonly Child[]
-	| Accessor<Child>
+	| readonly Children[]
+	| Accessor<Children>
 export interface RootOptions {
 	capabilities?: readonly Capability[]
 	store?: RootStore
@@ -407,7 +409,7 @@ export function useTimeline(token: any, key?: Canonical): TimelineControls {
 	}
 }
 
-export function plain(value: Child): string {
+export function plain(value: Children): string {
 	if (typeof value === `function`) return plain(value())
 	if (Array.isArray(value)) return value.map(plain).join(``)
 	if (value == null || typeof value === `boolean`) return ``

@@ -61,7 +61,7 @@
 		"vitest": "5.1.0"
 	},
 	"peerDependencies": {
-		"@atom.io/spa": ">=0.0.4 <0.2.0",
+		"@atom.io/spa": ">=0.1.0 <0.2.0",
 		"atom.io": "^0.54.1"
 	},
 	"publishConfig": {

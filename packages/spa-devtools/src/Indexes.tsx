@@ -1,4 +1,4 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useSetter, useTimeline } from "@atom.io/spa"
 import type {
 	ReadableToken,
@@ -22,7 +22,7 @@ type Token = ReadableToken<unknown, any, any>
 export function StateIndex(props: {
 	tools: Tools
 	type: `atoms` | `selectors`
-}): VNode {
+}): SpaElement {
 	const getStateIndex = useGetter<Map<string, Token | FamilyNode<Token>>>(
 		props.type === `atoms` ? props.tools.atomIndex : props.tools.selectorIndex,
 	)
@@ -41,7 +41,7 @@ export function StateIndex(props: {
 function StateNode(props: {
 	tools: Tools
 	node: Token | FamilyNode<Token>
-}): VNode {
+}): SpaElement {
 	const [getOpen, toggle] = useExpanded(props.tools, [props.node.key])
 	return (
 		<section class="node" data-testid={`state-${props.node.key}`}>
@@ -71,7 +71,7 @@ function StateNode(props: {
 		</section>
 	)
 }
-function StateLeaf(props: { tools: Tools; token: Token }): VNode {
+function StateLeaf(props: { tools: Tools; token: Token }): SpaElement {
 	const getValue = useGetter(props.token)
 	const writable = !props.token.type.startsWith(`readonly`)
 	const setValue = writable
@@ -123,7 +123,7 @@ function StateLeaf(props: { tools: Tools; token: Token }): VNode {
 		</section>
 	)
 }
-export function TransactionIndex(props: { tools: Tools }): VNode {
+export function TransactionIndex(props: { tools: Tools }): SpaElement {
 	const getTransactionIndex = useGetter(props.tools.transactionIndex)
 	const visible = () =>
 		getTransactionIndex().filter(
@@ -144,7 +144,7 @@ export function TransactionIndex(props: { tools: Tools }): VNode {
 function TransactionLog(props: {
 	tools: Tools
 	token: TransactionToken<any>
-}): VNode {
+}): SpaElement {
 	const getTransactionLog = useGetter(
 		findInStore(
 			props.tools.store,
@@ -185,7 +185,7 @@ export function EventView(props: {
 	tools: Tools
 	event: any
 	index: number
-}): VNode {
+}): SpaElement {
 	const [getOpen, toggle] = useExpanded(
 		props.tools,
 		[`event`, props.event.token?.key ?? ``, String(props.index)],
@@ -235,7 +235,7 @@ export function EventView(props: {
 		</section>
 	)
 }
-export function TimelineIndex(props: { tools: Tools }): VNode {
+export function TimelineIndex(props: { tools: Tools }): SpaElement {
 	const getTimelineIndex = useGetter(props.tools.timelineIndex)
 	const groups = () => {
 		const result = new Map<string, TimelineToken<any>[]>()
@@ -269,7 +269,10 @@ export function TimelineIndex(props: { tools: Tools }): VNode {
 		</article>
 	)
 }
-function TimelineLog(props: { tools: Tools; token: TimelineToken<any> }): VNode {
+function TimelineLog(props: {
+	tools: Tools
+	token: TimelineToken<any>
+}): SpaElement {
 	const controls = useTimeline(props.token)
 	const getTimeline = useGetter(
 		findInStore(

@@ -1,4 +1,4 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { onCleanup, onMount } from "@atom.io/spa"
 import * as THREE from "three"
 
@@ -9,7 +9,7 @@ export type SpaLogoProps = {
 	variant?: `mark` | `background`
 }
 
-export function SpaLogo({ variant = `mark` }: SpaLogoProps): VNode {
+export function SpaLogo({ variant = `mark` }: SpaLogoProps): SpaElement {
 	let host: HTMLElement | null = null
 	onMount(() => {
 		const container = host

@@ -1,4 +1,4 @@
-import type { Child, Component, VNode } from "./core.ts"
+import type { Children, Component, SpaElement } from "./core.ts"
 import type { HTMLAttributes, NativeElements } from "./jsx-types.d.ts"
 
 export type {
@@ -16,12 +16,13 @@ export type {
 // oxlint-disable-next-line typescript/no-empty-interface -- Optional integrations augment this declaration.
 export interface CapabilityAttributes<Kind extends string = string> {}
 
-export const Fragment = (props: { children?: Child }): Child => props.children
+export const Fragment = (props: { children?: Children }): Children =>
+	props.children
 export function jsx(
-	type: VNode[`type`],
-	props: VNode[`props`] | null,
+	type: SpaElement[`type`],
+	props: SpaElement[`props`] | null,
 	key?: unknown,
-): VNode {
+): SpaElement {
 	return {
 		type,
 		props: key === undefined ? (props ?? {}) : merge(props ?? {}, { key }),
@@ -52,7 +53,7 @@ export function merge(
 }
 
 export namespace JSX {
-	export type Element = VNode
+	export type Element = SpaElement
 	export type ElementType = keyof IntrinsicElements | Component
 	export interface ElementChildrenAttribute {
 		children: {}

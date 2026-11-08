@@ -1,5 +1,11 @@
 import { capabilityProps } from "./capabilities.ts"
-import type { Accessor, Child, RootOptions, Scope, VNode } from "./core.ts"
+import type {
+	Accessor,
+	Children,
+	RootOptions,
+	Scope,
+	SpaElement,
+} from "./core.ts"
 import {
 	createRoot,
 	createScope,
@@ -19,7 +25,7 @@ type Cursor = {
 	node: Node | null
 	report(expected: Node | null, found: Node | null): void
 }
-type RecordNode = { _value: Child; _scope: Scope; _start: Node; _end: Node }
+type RecordNode = { _value: Children; _scope: Scope; _start: Node; _end: Node }
 
 function finish(cursor?: Cursor): void {
 	if (cursor?.node) {
@@ -134,7 +140,7 @@ function property(
 }
 
 function mount(
-	value: Child,
+	value: Children,
 	parent: Node,
 	before: Node | null,
 	owner: Scope,
@@ -146,11 +152,12 @@ function mount(
 		comment(`{`, parent, before, owner, cursor)
 		let end: Node | null = null
 		let records = new Map<unknown, RecordNode>()
-		const presence = owner._root._presence?.collection<RecordNode, Child>(
+		const presence = owner._root._presence?.collection<RecordNode, Children>(
 			(record) => record._scope,
 			(record, child) =>
 				typeof record._value === typeof child &&
-				(record._value as VNode | null)?.type === (child as VNode | null)?.type,
+				(record._value as SpaElement | null)?.type ===
+					(child as SpaElement | null)?.type,
 		)
 		const retire = (
 			record: RecordNode,
@@ -164,14 +171,14 @@ function mount(
 		let initial = cursor
 		observe(
 			owner,
-			() => (source() as () => Child)(),
+			() => (source() as () => Children)(),
 			(next) => {
-				const values = ([next] as unknown[]).flat(Infinity) as Child[]
+				const values = ([next] as unknown[]).flat(Infinity) as Children[]
 				const kept = new Map<unknown, RecordNode>()
 				const focus = parent.ownerDocument!.activeElement as HTMLElement | null
 				for (let index = 0; index < values.length; index++) {
 					const child = values[index]
-					const vnode = child as VNode | null
+					const vnode = child as SpaElement | null
 					const explicit = vnode?.props?.[`key`]
 					const key = explicit == null ? index : String(explicit)
 					if (import.meta.env.DEV && kept.has(key))
@@ -180,7 +187,7 @@ function mount(
 					if (
 						record &&
 						(typeof record._value !== typeof child ||
-							(record._value as VNode | null)?.type !== vnode?.type)
+							(record._value as SpaElement | null)?.type !== vnode?.type)
 					) {
 						retire(
 							record,
@@ -277,8 +284,8 @@ function mount(
 	}
 	if (import.meta.env.DEV && (!(`type` in value) || !(`props` in value)))
 		throw new Error(`spa: invalid child`)
-	const vnode = value as VNode
-	const props = merge(() => (source() as VNode).props)
+	const vnode = value as SpaElement
+	const props = merge(() => (source() as SpaElement).props)
 	if (!vnode.type || vnode.type === Fragment) {
 		mount(() => props[`children`], parent, before, owner, namespace, cursor)
 		return
@@ -376,7 +383,7 @@ export interface SpaRoot {
 	flush(): void
 }
 function start(
-	setup: () => Child,
+	setup: () => Children,
 	host: Element,
 	options: RootOptions,
 	hydrating: boolean,
@@ -431,14 +438,14 @@ function start(
 	}
 }
 export function render(
-	setup: () => Child,
+	setup: () => Children,
 	host: Element,
 	options: RootOptions = {},
 ): SpaRoot {
 	return start(setup, host, options, false)
 }
 export function hydrate(
-	setup: () => Child,
+	setup: () => Children,
 	host: Element,
 	options: RootOptions = {},
 ): SpaRoot {

@@ -1,7 +1,7 @@
 import type { ReadableToken } from "atom.io"
 
 import { capabilityNamespace, validateCapabilities } from "./capabilities.ts"
-import type { Child, RootOptions, Scope, VNode } from "./core.ts"
+import type { Children, RootOptions, Scope, SpaElement } from "./core.ts"
 import {
 	createRoot,
 	createScope,
@@ -28,19 +28,19 @@ const booleans = new Set(
 	),
 )
 function stringify(
-	value: Child,
+	value: Children,
 	owner: Scope,
 	namespace = `html`,
 	selectValue?: string | number,
 ): string {
 	if (typeof value === `function`) {
-		const values = ([untrack(value)] as unknown[]).flat(Infinity) as Child[]
+		const values = ([untrack(value)] as unknown[]).flat(Infinity) as Children[]
 		const keys = new Set<unknown>()
 		return (
 			`<!--{-->` +
 			values
 				.map((child, index) => {
-					const explicit = (child as VNode | null)?.props?.[`key`]
+					const explicit = (child as SpaElement | null)?.props?.[`key`]
 					const key = explicit == null ? index : String(explicit)
 					if (keys.has(key)) throw new Error(`spa: duplicate key`)
 					keys.add(key)
@@ -147,7 +147,7 @@ function stringify(
 }
 
 export function renderToStringWithReads(
-	setup: () => Child,
+	setup: () => Children,
 	options: RootOptions = {},
 	onRead?: (value: unknown, token: ReadableToken<unknown>) => void,
 ): string {

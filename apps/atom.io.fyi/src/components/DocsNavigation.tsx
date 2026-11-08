@@ -1,4 +1,4 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { onCleanup, onMount, useGetter, useSetter } from "@atom.io/spa"
 
 import {
@@ -74,7 +74,7 @@ const findVisibleHeadingIds = (
 	})
 }
 
-export function DocsNavigation(_props: { pathname: string }): VNode {
+export function DocsNavigation(_props: { pathname: string }): SpaElement {
 	const getPathname = useGetter(pathnameAtom)
 	const setPathname = useSetter(pathnameAtom)
 	onMount(() => {
@@ -110,7 +110,7 @@ export function DocsNavigation(_props: { pathname: string }): VNode {
 	)
 }
 
-function OnThisPage(): VNode {
+function OnThisPage(): SpaElement {
 	let element: HTMLElement | null = null
 	const attach = (node: HTMLElement | null) => {
 		element = node
@@ -194,8 +194,8 @@ function OnThisPage(): VNode {
 	const renderHeadings = (
 		list: readonly HeadingDescriptor[],
 		level: number,
-	): VNode[] => {
-		const output: VNode[] = []
+	): SpaElement[] => {
+		const output: SpaElement[] = []
 		let currentIndex = 0
 
 		while (currentIndex < list.length) {
@@ -254,7 +254,7 @@ function OnThisPage(): VNode {
 	)
 }
 
-function SiteDirectory(): VNode {
+function SiteDirectory(): SpaElement {
 	let element: HTMLElement | null = null
 	const attach = (node: HTMLElement | null) => {
 		element = node

@@ -1,4 +1,4 @@
-import type { Child, VNode } from "@atom.io/spa"
+import type { Children, SpaElement } from "@atom.io/spa"
 import { onCleanup, useGetter, useId, useSetter } from "@atom.io/spa"
 import { atom, Silo } from "atom.io"
 import { IMPLICIT } from "atom.io/internal"
@@ -6,9 +6,9 @@ import { IMPLICIT } from "atom.io/internal"
 const countAtom = atom<number>({ key: `count`, default: 0 })
 export default function Counter(props: {
 	initial: number
-	children?: Child
-	slots?: Record<string, Child>
-}): VNode {
+	children?: Children
+	slots?: Record<string, Children>
+}): SpaElement {
 	const getCount = useGetter(countAtom)
 	const setCount = useSetter(countAtom)
 	const id = useId()

@@ -1,4 +1,4 @@
-import type { Child, VNode } from "@atom.io/spa"
+import type { Children, SpaElement } from "@atom.io/spa"
 
 import type { Path, Tools } from "./store.ts"
 import { useExpanded } from "./store.ts"
@@ -11,8 +11,8 @@ interface EditorProps {
 	change?: Change | undefined
 	path: Path
 	ancestors?: readonly unknown[]
-	label?: Child
-	actions?: Child
+	label?: Children
+	actions?: Children
 }
 const TYPES: JsonKind[] = [
 	`string`,
@@ -22,7 +22,7 @@ const TYPES: JsonKind[] = [
 	`array`,
 	`object`,
 ]
-export function JsonEditor(props: EditorProps): VNode {
+export function JsonEditor(props: EditorProps): SpaElement {
 	const [getExpanded, toggle] = useExpanded(props.tools, props.path)
 	const circular = () =>
 		(props.ancestors?.includes(props.value) ?? false) || props.path.length > 50
@@ -137,7 +137,7 @@ function Primitive(props: {
 	change?: Change | undefined
 	tools: Tools
 	label: string
-}): VNode {
+}): SpaElement {
 	const set = (value: unknown) => {
 		props.tools.attempt(() => {
 			props.change?.(() => value)
@@ -178,7 +178,7 @@ function Primitive(props: {
 		</span>
 	)
 }
-function Property(props: { name: string; editor: EditorProps }): VNode {
+function Property(props: { name: string; editor: EditorProps }): SpaElement {
 	const parent = props.editor
 	const read = () => (parent.value as Record<string, unknown>)[props.name]
 	const change: Change = (update) => {

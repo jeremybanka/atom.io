@@ -1,7 +1,7 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useId } from "@atom.io/spa"
 
-export function EmailField(): VNode {
+export function EmailField(): SpaElement {
 	const id = useId()
 	return (
 		<>

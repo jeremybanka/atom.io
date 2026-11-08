@@ -19,7 +19,7 @@ import { ContactFields } from "../exhibits/rendering/fragment.tsx"
 import { hydrateEmailField } from "../exhibits/rendering/hydrate.tsx"
 import { mountCounter } from "../exhibits/rendering/render.tsx"
 import { renderEmailField } from "../exhibits/rendering/render-to-string.tsx"
-import type { Child, RootOptions, SpaRoot } from "../src/index.ts"
+import type { Children, RootOptions, SpaRoot } from "../src/index.ts"
 import { render } from "../src/index.ts"
 import { renderToString } from "../src/server.ts"
 
@@ -35,7 +35,7 @@ afterEach(() => {
 	document.title = initialTitle
 })
 
-function mount(setup: () => Child, options: RootOptions = {}) {
+function mount(setup: () => Children, options: RootOptions = {}) {
 	const host = document.createElement(`section`)
 	document.body.append(host)
 	const root = render(setup, host, options)

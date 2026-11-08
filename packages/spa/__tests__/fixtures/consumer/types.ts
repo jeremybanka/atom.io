@@ -1,6 +1,6 @@
 import type {
 	Accessor,
-	Child,
+	Children,
 	Component,
 	RootOptions,
 	SpaRoot,
@@ -40,7 +40,7 @@ export const component: Component<{
 		ref(null)
 	})
 	onCleanup(history.clear)
-	return [useId(), getCount(), result] satisfies Child
+	return [useId(), getCount(), result] satisfies Children
 }
 export const options: RootOptions = { idPrefix: `consumer` }
 export type Root = SpaRoot

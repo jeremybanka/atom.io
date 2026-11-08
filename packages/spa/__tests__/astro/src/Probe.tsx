@@ -1,4 +1,4 @@
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { onCleanup, onMount, useGetter, useSetter } from "@atom.io/spa"
 import { atom } from "atom.io"
 
@@ -12,7 +12,7 @@ function Row(props: { name: string }) {
 	})
 	return <input data-row={props.name} value={props.name} />
 }
-export default function Probe(): VNode {
+export default function Probe(): SpaElement {
 	onMount(() => {
 		document.getElementById(`probe`)!.dataset[`mounted`] = `true`
 	})

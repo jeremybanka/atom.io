@@ -2,7 +2,7 @@ import type { RootStore } from "atom.io/internal"
 import { IMPLICIT, Store } from "atom.io/internal"
 
 import type { Capability } from "./capabilities.ts"
-import type { Component, VNode } from "./core.ts"
+import type { Component, SpaElement } from "./core.ts"
 import { jsx } from "./jsx-runtime.ts"
 
 export interface AstroApplicationContext {
@@ -65,7 +65,7 @@ export function island(
 	component: Island,
 	props: Record<string, any>,
 	slots: Record<string, string>,
-): VNode {
+): SpaElement {
 	const children = Object.fromEntries(
 		Object.entries(slots).map(([name, html]) => [
 			name,

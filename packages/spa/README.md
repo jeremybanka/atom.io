@@ -22,7 +22,7 @@ For manual setup, see the [Astro](https://atom.io.fyi/docs/spa/astro) and [Vite]
 ## A point, not two signals
 
 ```tsx
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useSetter } from "@atom.io/spa"
 import { atom } from "atom.io"
 
@@ -30,7 +30,7 @@ const pointAtom = atom<{ x: number; y: number }>({
 	key: `point`,
 	default: { x: 20, y: 20 },
 })
-export function PointEditor(): VNode {
+export function PointEditor(): SpaElement {
 	const getPoint = useGetter(pointAtom)
 	const setPoint = useSetter(pointAtom)
 	return (
@@ -72,13 +72,13 @@ export default defineConfig({ integrations: [spa()] })
 Create a counter component:
 
 ```tsx
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useSetter } from "@atom.io/spa"
 import { atom } from "atom.io"
 
 const countAtom = atom<number>({ key: `count`, default: 0 })
 
-export default function Counter(): VNode {
+export default function Counter(): SpaElement {
 	const getCount = useGetter(countAtom)
 	const setCount = useSetter(countAtom)
 	return (
@@ -180,7 +180,7 @@ Call setup helpers synchronously during component setup or owned mount callbacks
 useTimeline returns a TimelineControls object whose methods can be destructured during setup. getCursor and getLength read the current cursor position and recorded checkpoint count; calls inside JSX subscribe the computation, while calls during setup or in event handlers are untracked. undo, redo, and clear are stable commands. history.getTransaction() is a tracked reader that returns an object with optional undo and redo callbacks for the adjacent transaction groups. At a cursor between transactions, both callbacks may be present and target different groups. A missing callback means no transaction group is available in that direction; the reader returns an empty object when neither is available. Calling a returned callback travels its captured group across participating timelines where it remains at the relevant history head, leaving diverged timelines unchanged. Use history.getTransaction().undo?.() or history.getTransaction().redo?.() to retrieve and invoke the current action together.
 
 ```tsx
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useTimeline, useTransaction } from "@atom.io/spa"
 import { atom, timeline, transaction } from "atom.io"
 
@@ -193,7 +193,7 @@ const incrementTransaction = transaction<() => void>({
 	},
 })
 
-export function TimelineExample(): VNode {
+export function TimelineExample(): SpaElement {
 	const getCount = useGetter(countAtom)
 	const increment = useTransaction(incrementTransaction)
 	const history = useTimeline(historyTimeline)
@@ -237,14 +237,14 @@ HTML and SVG tags have element-specific attribute, event, and ref types. Event h
 useStore returns the current root's atom.io RootStore directly. It is the same object supplied to render or hydrate, the selected Astro island store, or the implicit atom.io store when no store was supplied. Server rendering exposes the store selected for that render.
 
 ```tsx
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useStore } from "@atom.io/spa"
 import { atom } from "atom.io"
 import { getFromStore } from "atom.io/internal"
 
 const countAtom = atom<number>({ key: `count`, default: 0 })
 
-export function InspectCount(): VNode {
+export function InspectCount(): SpaElement {
 	const store = useStore()
 	return (
 		<button
@@ -266,7 +266,7 @@ Capture the store during component setup or an owned onMount callback, then pass
 useGetter, useSetter, useRef, and useTimeline accept a family token followed by its key. useLoadable accepts a family, key, and optional fallback. Keys retain their declared types, including tuples, numbers, booleans, and null. Members resolve in the component's store, so isolated roots can use the same family tokens independently.
 
 ```tsx
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useRef, useSetter, useTimeline } from "@atom.io/spa"
 import { atomFamily, scopeFamily, timelineFamily } from "atom.io"
 
@@ -280,7 +280,7 @@ const historyTimelines = timelineFamily<string>({
 	scope: [scopeFamily(countAtoms, { timelineKey: (id) => id })],
 })
 
-export function FamilyCounter(props: { id: string }): VNode {
+export function FamilyCounter(props: { id: string }): SpaElement {
 	const getCount = useGetter(countAtoms, props.id)
 	const setCount = useSetter(countAtoms, props.id)
 	const ref = useRef(buttonAtoms, props.id)
@@ -309,7 +309,7 @@ The family and key are captured during setup and stay fixed for that component i
 ## Async state
 
 ```tsx
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useLoadable, useSetter } from "@atom.io/spa"
 import type { Loadable } from "atom.io"
 import { atom } from "atom.io"
@@ -320,7 +320,7 @@ const greetingAtom = atom<Loadable<string>, Error>({
 	catch: [Error],
 })
 
-export function Greeting(): VNode {
+export function Greeting(): SpaElement {
 	const greeting = useLoadable(greetingAtom, `Loading…`)
 	const setGreeting = useSetter(greetingAtom)
 	return (
@@ -375,7 +375,7 @@ The context provides element (the browser astro-island host, undefined on the se
 Register cleanup as resources are acquired, before awaiting work that might fail. Cleanup callbacks run in reverse order and all run even if one throws; callbacks registered after cancellation run immediately. Cancelling an island stops its wait and prevents a stale mount without cancelling shared application work. Producers must honor their owner's signal to stop I/O. The example below explicitly isolates its per-island data preparation:
 
 ```tsx
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useLoadable } from "@atom.io/spa"
 import type { AstroStorePreparation } from "@atom.io/spa/astro"
 import type { Loadable } from "atom.io"
@@ -387,7 +387,7 @@ const greetingAtom = atom<Loadable<string>>({
 	default: ``,
 })
 
-export default function Greeting(): VNode {
+export default function Greeting(): SpaElement {
 	const greeting = useLoadable(greetingAtom, ``)
 	return <p>{greeting().value}</p>
 }
@@ -475,7 +475,7 @@ SPA includes Konva, Three.js, and Motion integrations behind separate entrypoint
 Import Stage, Layer, Group, Rect, Circle, Ellipse, Line, Text, Image, Path, Star, and Transformer from @atom.io/spa/konva. Stage renders a DOM container and creates its native stage after browser mounting. Compiled atom reads update native attributes; keyed children preserve node identity. Native configuration attributes and onClick, onPointerDown, onDragMove, and onDragEnd handlers are supported. Refs receive native nodes and null on cleanup. Removal destroys owned nodes and listeners.
 
 ```tsx
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useSetter } from "@atom.io/spa"
 import { Circle, Layer, Stage } from "@atom.io/spa/konva"
 import { atom } from "atom.io"
@@ -484,7 +484,7 @@ const pointAtom = atom<{ x: number; y: number }>({
 	key: `point`,
 	default: { x: 100, y: 100 },
 })
-export function Editor(): VNode {
+export function Editor(): SpaElement {
 	const getPoint = useGetter(pointAtom)
 	const setPoint = useSetter(pointAtom)
 	return (
@@ -514,7 +514,7 @@ Konva owns hit testing, dragging, and draw batching. Write drag results back int
 Import Canvas, Group, Mesh, PerspectiveCamera, AmbientLight, DirectionalLight, BoxGeometry, SphereGeometry, PlaneGeometry, MeshStandardMaterial, MeshBasicMaterial, and MeshNormalMaterial from @atom.io/spa/three. Canvas creates a WebGL renderer after browser mounting. Geometry and material children attach to their Mesh, with one of each supported. Position and rotation accept three-number tuples; scale also accepts a scalar.
 
 ```tsx
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useGetter } from "@atom.io/spa"
 import {
 	AmbientLight,
@@ -527,7 +527,7 @@ import {
 import { atom } from "atom.io"
 
 const colorAtom = atom<string>({ key: `color`, default: `coral` })
-export function Scene(): VNode {
+export function Scene(): SpaElement {
 	const getColor = useGetter(colorAtom)
 	return (
 		<Canvas width={800} height={600}>
@@ -576,12 +576,12 @@ render(() => <MotionPanel />, document.getElementById(`app`)!, {
 Use motion:initial, motion:animate, motion:exit, motion:transition, motion:whileHover, and motion:whileTap directly on native elements or custom tags. These are framework properties, separate from native attributes: they never become HTML attributes. An unregistered namespace or unsupported motion property produces an error. Standard XML, XMLNS, and XLink attribute namespaces retain their normal behavior.
 
 ```tsx
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useSetter } from "@atom.io/spa"
 import { atom } from "atom.io"
 
 const targetXAtom = atom<number>({ key: `targetX`, default: 0 })
-export function MotionPanel(): VNode {
+export function MotionPanel(): SpaElement {
 	const getTargetX = useGetter(targetXAtom)
 	const setTargetX = useSetter(targetXAtom)
 	return (
@@ -616,7 +616,7 @@ Motion respects the user's reduced-motion preference by default, including chang
 The same attributes animate numeric Konva properties and colors, or Three.js position, rotation, scale, light/material color, opacity, and intensity. Three.js rotation uses Euler components, not quaternion interpolation. DOM hover and tap use Motion's gesture handling; Konva gestures use native pointer events. Three.js gestures use the same raycast event layer as ordinary scene pointer handlers.
 
 ```tsx
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useGetter } from "@atom.io/spa"
 import {
 	BoxGeometry,
@@ -631,7 +631,7 @@ const targetXAtom = atom<number>({
 	default: 1,
 })
 // Mount under a root with capabilities: [motionCapability()].
-export function SpringCube(): VNode {
+export function SpringCube(): SpaElement {
 	const getTargetX = useGetter(targetXAtom)
 	return (
 		<Canvas>
@@ -661,12 +661,12 @@ When the motion capability is installed, Canvas draws in Motion's render phase a
 Declare motion:exit on an element, custom tag, Konva node, or Three.js scene node. Conditional or keyed removal starts that target from its current Motion values. No presence wrapper is required. Register motionCapability as above.
 
 ```tsx
-import type { VNode } from "@atom.io/spa"
+import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useSetter } from "@atom.io/spa"
 import { atom } from "atom.io"
 
 const visibleAtom = atom<boolean>({ key: `visible`, default: true })
-export function DismissiblePanel(): VNode {
+export function DismissiblePanel(): SpaElement {
 	const getVisible = useGetter(visibleAtom)
 	const setVisible = useSetter(visibleAtom)
 	return (

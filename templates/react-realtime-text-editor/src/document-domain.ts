@@ -31,7 +31,7 @@ export const MarkdownText = mosaicText({
 	maximumRunsPerOperation: 65_536,
 })
 
-export const {
+const {
 	emptyIndexRoot: EMPTY_MARKDOWN_INDEX_ROOT,
 	indexMemberModel: markdownIndexMemberModel,
 	indexMemberSchema: markdownIndexMemberSchema,
@@ -43,6 +43,14 @@ export const {
 	index: MARKDOWN_INDEX_OPTIONS,
 	text: MarkdownText,
 })
+
+/** @internal Used by implementation tests. */
+export {
+	EMPTY_MARKDOWN_INDEX_ROOT,
+	markdownIndexMemberModel,
+	markdownIndexRootModel,
+	markdownSourceModel,
+}
 
 const id = z.string().min(1).max(512)
 const emptyIndexMember = (memberId: string): MosaicTextIndexMember => ({
@@ -56,10 +64,12 @@ const emptyIndexMember = (memberId: string): MosaicTextIndexMember => ({
 export const markdownSourceAtom = mutableAtom<InstanceType<typeof MarkdownText>>(
 	{ class: MarkdownText, key: `markdownSource` },
 )
+/** @internal Used by implementation tests. */
 export const markdownIndexRootAtom = atom<MosaicTextIndexRoot>({
 	default: EMPTY_MARKDOWN_INDEX_ROOT,
 	key: `markdownIndexRoot`,
 })
+/** @internal Used by implementation tests. */
 export const markdownIndexMemberAtoms = atomFamily<
 	MosaicTextIndexMember,
 	string
@@ -88,7 +98,7 @@ const relativePosition = z
 	})
 	.strict()
 
-export const markdownPresenceSchema: z.ZodType<MarkdownPresence> = z
+const markdownPresenceSchema: z.ZodType<MarkdownPresence> = z
 	.object({
 		actor: id,
 		color: z.string().min(1).max(64),
@@ -105,14 +115,15 @@ export const markdownPresenceSchema: z.ZodType<MarkdownPresence> = z
 	})
 	.strict()
 
-export const markdownPresenceAtoms = atomFamily<MarkdownPresence | null, string>(
-	{ default: null, key: `markdownPresence` },
-)
+const markdownPresenceAtoms = atomFamily<MarkdownPresence | null, string>({
+	default: null,
+	key: `markdownPresence`,
+})
 export const markdownPresenceKey = (
 	identity: Pick<MarkdownPresence, `actor` | `session`>,
 ): string => `${identity.actor}\u0000${identity.session}`
 
-export const markdownDocumentDomain = mosaicDomain({
+const markdownDocumentDomain = mosaicDomain({
 	configSchema: z.object({}).strict(),
 	key: `markdown-document`,
 	members: {

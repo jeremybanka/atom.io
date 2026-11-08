@@ -33,7 +33,7 @@ export type TemplateName = keyof typeof TEMPLATES
 export const TEMPLATE_NAMES: TemplateName[] = Object.keys(
 	TEMPLATES,
 ) as TemplateName[]
-export const PACKAGE_MANAGERS = [`bun`, `npm`, `pnpm`, `yarn`] as const
+const PACKAGE_MANAGERS = [`bun`, `npm`, `pnpm`, `yarn`] as const
 export type PackageManager = (typeof PACKAGE_MANAGERS)[number]
 export type CreateAtomOptions = {
 	packageManager: PackageManager
@@ -44,6 +44,7 @@ export type CreateAtomOptionsPreloaded = {
 	[K in keyof CreateAtomOptions]?: CreateAtomOptions[K] | undefined
 } & { skipHints?: boolean | undefined }
 
+/** @internal Used by contributor tools or implementation tests. */
 export const OPTION_VALUES: {
 	packageManager: readonly PackageManager[]
 	templateName: readonly TemplateName[]

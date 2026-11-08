@@ -1,7 +1,4 @@
-import type {
-	MosaicTextIndexRange,
-	MosaicTextRelativePosition,
-} from "@atom.io/realtime"
+import type { MosaicTextRelativePosition } from "@atom.io/realtime"
 
 export const MARKDOWN_EVENTS = {
 	command: `markdown-domain:command`,
@@ -14,7 +11,7 @@ export type MarkdownAcknowledgement<Value> =
 	| { readonly ok: true; readonly value: Value }
 	| { readonly ok: false; readonly reason: string }
 
-export type MarkdownEditCommand = {
+type MarkdownEditCommand = {
 	readonly anchor: MosaicTextRelativePosition
 	readonly gestureId: string
 	readonly head: MosaicTextRelativePosition
@@ -23,7 +20,7 @@ export type MarkdownEditCommand = {
 	readonly type: `replace`
 }
 
-export type MarkdownImportCommand = {
+type MarkdownImportCommand = {
 	readonly gestureId: string
 	readonly sequence: number
 	readonly text: string
@@ -31,5 +28,3 @@ export type MarkdownImportCommand = {
 }
 
 export type MarkdownCommand = MarkdownEditCommand | MarkdownImportCommand
-
-export type MarkdownViewport = MosaicTextIndexRange

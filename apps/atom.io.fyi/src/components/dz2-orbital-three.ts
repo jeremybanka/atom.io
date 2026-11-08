@@ -1,12 +1,12 @@
 import * as THREE from "three"
 
 export const DZ2_ORBITAL_FINAL_SPIN_RADIANS = 1.1
-export const DZ2_ORBITAL_SETTLED_ROTATION_X = 1.4
-export const DZ2_ORBITAL_SETTLED_ROTATION_Z = -1.4
+const DZ2_ORBITAL_SETTLED_ROTATION_X = 1.4
+const DZ2_ORBITAL_SETTLED_ROTATION_Z = -1.4
 export const DZ2_ORBITAL_Y_ROTATION_RADIANS_PER_SECOND = Math.PI / 128
-export const DZ2_ORBITAL_LOBE_CENTER_OFFSET = 0.05
+const DZ2_ORBITAL_LOBE_CENTER_OFFSET = 0.05
 
-export const DZ2_ORBITAL_CAMERA = {
+const DZ2_ORBITAL_CAMERA = {
 	fov: 34,
 	near: 0.1,
 	far: 100,
@@ -20,6 +20,7 @@ export const DZ2_ORBITAL_CAMERA = {
 	lookAt: [number, number, number]
 }
 
+/** @internal Used by contributor tools or implementation tests. */
 export const DZ2_ORBITAL_LIGHTS = {
 	core: {
 		color: 0xffffff,
@@ -44,10 +45,7 @@ export const DZ2_ORBITAL_LIGHTS = {
 	}
 }
 
-export type Dz2OrbitalMesh = THREE.Mesh<
-	THREE.BufferGeometry,
-	THREE.MeshToonMaterial
->
+type Dz2OrbitalMesh = THREE.Mesh<THREE.BufferGeometry, THREE.MeshToonMaterial>
 
 export type Dz2OrbitalModel = {
 	orbital: THREE.Group

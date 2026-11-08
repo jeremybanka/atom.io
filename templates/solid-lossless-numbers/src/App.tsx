@@ -157,7 +157,7 @@ export function App(): JSX.Element {
 	)
 }
 
-export function RationalBreakdown(props: { key: RationalKey }): JSX.Element {
+function RationalBreakdown(props: { key: RationalKey }): JSX.Element {
 	const rational = useO(rationalAtoms, props.key)
 	const simplified = useO(simplifiedSelectors, props.key)
 	const float = useO(floatSelectors, props.key)
@@ -235,7 +235,7 @@ export function RationalBreakdown(props: { key: RationalKey }): JSX.Element {
 	)
 }
 
-export function Fraction(props: {
+function Fraction(props: {
 	numerator: bigint
 	denominator: bigint
 }): JSX.Element {
@@ -254,11 +254,7 @@ export function Fraction(props: {
 	)
 }
 
-export function RationalCombineFields({
-	key,
-}: {
-	key: RationalKey
-}): JSX.Element {
+function RationalCombineFields({ key }: { key: RationalKey }): JSX.Element {
 	const numeratorAtom = findState(newNumeratorAtoms, key)
 	const denominatorAtom = findState(newDenominatorAtoms, key)
 	return (
@@ -269,7 +265,7 @@ export function RationalCombineFields({
 	)
 }
 
-export function RationalFields({
+function RationalFields({
 	numeratorAtom,
 	denominatorAtom,
 }: {

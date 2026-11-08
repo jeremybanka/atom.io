@@ -1,6 +1,6 @@
 import { cancelFrame, frame } from "motion"
 
-export interface MotionSample {
+interface MotionSample {
 	time: number
 	x: number
 	scale: number
@@ -10,7 +10,7 @@ export interface MotionSample {
 	phase: string
 	instance: number
 }
-export interface MotionMarker {
+interface MotionMarker {
 	time: number
 	x: number
 	label: string
@@ -22,7 +22,7 @@ interface Settings {
 	ease: string
 	example?: `toast`
 }
-export interface MotionCapture {
+interface MotionCapture {
 	settings: Settings
 	samples: MotionSample[]
 	markers: MotionMarker[]

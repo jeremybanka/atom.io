@@ -104,3 +104,16 @@ jobs:
         with:
           packages: bun node pnpm
       - run: pnpm lint:types
+
+  Knip:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+        with:
+          packages: node pnpm
+      - name: Check unused workspace code
+        run: pnpm run lint:unused
+      - name: Check unused production code
+        run: pnpm run lint:unused:production

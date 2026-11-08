@@ -1,1 +1,1 @@
-export { createNullLogger, nullLog } from "../../../../scripts/test-helpers.ts"
+export { createNullLogger } from "../../../../scripts/test-helpers.ts"

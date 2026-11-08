@@ -23,7 +23,7 @@ import { StoreEditor } from "./StateEditor.tsx"
 import { DevtoolsContext } from "./store.ts"
 /* eslint-disable no-console */
 
-export const StateIndexLeafNode: FC<{
+const StateIndexLeafNode: FC<{
 	node: ReadableToken<unknown, any, unknown>
 	isOpenState: RegularAtomToken<boolean>
 	typeState: ReadonlyPureSelectorToken<Loadable<string>>
@@ -100,7 +100,7 @@ export const StateIndexLeafNode: FC<{
 		</>
 	)
 }
-export const StateIndexTreeNode: FC<{
+const StateIndexTreeNode: FC<{
 	node: FamilyNode<ReadableToken<unknown, any, unknown>>
 	isOpenState: RegularAtomToken<boolean>
 }> = ({ node, isOpenState }) => {
@@ -152,7 +152,7 @@ export const StateIndexTreeNode: FC<{
 	)
 }
 
-export const StateIndexNode: FC<{
+const StateIndexNode: FC<{
 	node:
 		| FamilyNode<ReadableToken<unknown, any, unknown>>
 		| ReadableToken<unknown, any, unknown>

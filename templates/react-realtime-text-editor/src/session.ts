@@ -14,13 +14,6 @@ export function getBrowserSession(): { clientId: string; identity: Identity } {
 	return { clientId, identity }
 }
 
-export function realtimeAuth(
-	identity: Identity,
-	clientId: string,
-): { sessionId: string; userId: string } {
-	return { sessionId: clientId, userId: identity.id }
-}
-
 export function switchBrowserIdentity(identityId: string): void {
 	window.localStorage.setItem(IDENTITY_KEY, identityId)
 	const url = new URL(window.location.href)

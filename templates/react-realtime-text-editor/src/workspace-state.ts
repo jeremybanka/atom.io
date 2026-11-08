@@ -21,12 +21,12 @@ import {
 	type MarkdownVirtualWindow,
 } from "./virtualization.ts"
 
-export type MarkdownScrollViewport = {
+type MarkdownScrollViewport = {
 	readonly height: number
 	readonly scrollTop: number
 }
 
-export type MarkdownWorkspacePeer = {
+type MarkdownWorkspacePeer = {
 	readonly id: string
 	readonly selection: MosaicTextSelection | null
 	readonly value: MarkdownPresence
@@ -56,7 +56,7 @@ export type MarkdownWorkspaceState = Disposable & {
 	setScroll(viewport: MarkdownScrollViewport, defer: boolean): void
 }
 
-export const EMPTY_PARSE_METRICS: MarkdownParseInstrumentation = {
+const EMPTY_PARSE_METRICS: MarkdownParseInstrumentation = {
 	canceled: false,
 	elapsedMs: 0,
 	parsedBlocks: 0,

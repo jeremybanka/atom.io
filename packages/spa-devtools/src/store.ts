@@ -21,7 +21,7 @@ export interface Tools extends IntrospectionStates {
 	attempt(run: () => void): void
 }
 
-export function ownedAtom<T>(store: RootStore, initial: T): RegularAtomToken<T> {
+function ownedAtom<T>(store: RootStore, initial: T): RegularAtomToken<T> {
 	let family = locals.get(store)
 	if (!family) {
 		family = createRegularAtomFamily<unknown, string, never>(store, {

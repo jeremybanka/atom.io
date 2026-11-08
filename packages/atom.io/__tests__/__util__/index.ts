@@ -1,8 +1,6 @@
-export * from "./actWithFakeTimers.ts"
-export * from "./console-inspections.ts"
+import "../../../../scripts/react-test-helpers.ts"
+import "@testing-library/react"
+
 export * from "./handleBytes.ts"
 export * from "./nullLogger.ts"
 export * from "./stdout.ts"
-export * from "./summarize.ts"
-export * from "./time.ts"
-export * from "./waiting.ts"

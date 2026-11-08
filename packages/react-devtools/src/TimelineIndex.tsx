@@ -12,11 +12,11 @@ import { button } from "./Button.tsx"
 import { DevtoolsContext } from "./store.ts"
 import { article } from "./Updates.tsx"
 
-export const YouAreHere: FC = () => {
+const YouAreHere: FC = () => {
 	return <span className="you_are_here">you are here</span>
 }
 
-export const TimelineLog: FC<{
+const TimelineLog: FC<{
 	token: TimelineToken<any>
 	isOpenState: RegularAtomToken<boolean>
 	timelineState: ReadonlyPureSelectorToken<Timeline<any>>

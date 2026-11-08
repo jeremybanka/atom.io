@@ -17,7 +17,3 @@ export function identityById(id: string | null | undefined): Identity {
 		SIMULATED_IDENTITIES[0]
 	)
 }
-
-export function identityFromUserKey(userKey: string): Identity {
-	return identityById(userKey.replace(/^user::/, ``).split(`::`)[0])
-}

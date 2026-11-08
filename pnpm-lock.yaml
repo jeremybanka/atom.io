@@ -177,6 +177,9 @@ importers:
       '@atom.io/react-devtools':
         specifier: workspace:*
         version: link:packages/react-devtools
+      '@atom.io/realtime':
+        specifier: workspace:*
+        version: link:packages/realtime
       '@atom.io/solid':
         specifier: workspace:*
         version: link:packages/solid

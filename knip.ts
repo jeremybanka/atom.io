@@ -1,9 +1,8 @@
 import type { KnipConfig } from "knip"
 
-// Public source entrypoints remain roots, including CLIs, workers, and conditional exports.
-// Formatter plugins and JSON schemas are loaded by configuration paths, not imports.
-// Fixture source is an executable test input and can keep development dependencies live.
-// Generated distributions are checked through their authored source entrypoints.
+// Public source entrypoints preserve package exports. Other entries model executable
+// documentation, fixture code, contributor scripts, and bundle-size measurement recipes.
+// Formatter plugins and schemas are loaded from configuration paths.
 export default {
 	workspaces: {
 		".": {
@@ -79,6 +78,7 @@ export default {
 				"docs/source/pages/**/*.mdx!",
 				"__scripts__/**/*.{ts,tsx,js,mjs,cjs}",
 				"__tests__/fixtures/**/*.{ts,tsx,js,mjs,cjs}",
+				"tonnage-recipes/**/*.{ts,tsx}",
 			],
 			project: [
 				"*.{ts,tsx,js,cjs,mjs}",
@@ -86,6 +86,7 @@ export default {
 				"{tests,__tests__,__scripts__,examples,docs,__exhibits__}/**/*.{ts,tsx,js,cjs,mjs,mdx}",
 				"docs/source/pages/**/*.mdx!",
 				"__scripts__/**/*.{ts,tsx,js,mjs,cjs}",
+				"tonnage-recipes/**/*.{ts,tsx}",
 			],
 			paths: {
 				// The Astro site resolves documentation components through this alias.
@@ -264,15 +265,20 @@ export default {
 				"breakage.config.ts",
 				"vitest.config.ts",
 				"__tests__/fixtures/**/*.{ts,tsx,js,mjs,cjs}",
+				"tonnage-recipes/**/*.{ts,tsx}",
 			],
 			project: [
 				"*.{ts,tsx,js,cjs,mjs}",
 				"{src,bin}/**/*.{ts,tsx,js,cjs,mjs,astro}!",
 				"{tests,__tests__,__scripts__,examples,docs,__exhibits__}/**/*.{ts,tsx,js,cjs,mjs,mdx}",
+				"tonnage-recipes/**/*.{ts,tsx}",
 			],
 		},
 		"packages/spa": {
-			ignoreDependencies: ["preact"],
+			ignoreDependencies: [
+				// scripts/size.ts bundles an inline Preact comparison string.
+				"preact",
+			],
 			entry: [
 				"src/index.ts!",
 				"src/jsx-runtime.ts!",
@@ -298,12 +304,14 @@ export default {
 				"__tests__/graphics.tsx",
 				"scripts/**/*.{ts,tsx,js,mjs,cjs}",
 				"__tests__/fixtures/**/*.{ts,tsx,js,mjs,cjs}",
+				"tonnage-recipes/**/*.{ts,tsx}",
 			],
 			project: [
 				"*.{ts,tsx,js,cjs,mjs}",
 				"{src,bin}/**/*.{ts,tsx,js,cjs,mjs,astro}!",
 				"{tests,__tests__,__scripts__,examples,docs,__exhibits__}/**/*.{ts,tsx,js,cjs,mjs,mdx}",
 				"scripts/**/*.{ts,tsx,js,mjs,cjs}",
+				"tonnage-recipes/**/*.{ts,tsx}",
 			],
 		},
 		"templates/preact-realtime-vector-editor": {

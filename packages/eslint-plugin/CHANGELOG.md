@@ -1,5 +1,11 @@
 # @atom.io/eslint-plugin
 
+## 0.1.2
+
+### Patch Changes
+
+- 06c8a0c: Rename the effect guide to "you don't need useEffect", group it under Patterns, and bring React, Solid, and SPA together under Integrations. Update the published documentation and guide labels while preserving existing guide URLs and installed documentation paths.
+
 ## 0.1.1
 
 ### Patch Changes

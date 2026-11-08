@@ -1,5 +1,11 @@
 # @atom.io/realtime
 
+## 0.1.2
+
+### Patch Changes
+
+- 5f84875: Use explicit TypeScript file extensions in realtime helpers and documentation examples to satisfy the import extension rules.
+
 ## 0.1.1
 
 ### Patch Changes

@@ -13,7 +13,7 @@ import {
 	subscribeToState,
 } from "atom.io/internal"
 
-import type { ServerConfig } from "."
+import type { ServerConfig } from "./index.ts"
 
 const isAvailable = <K extends Canonical>(
 	exposedSubKeys: Iterable<K>,

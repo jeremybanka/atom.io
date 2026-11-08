@@ -7,8 +7,8 @@ import { useContext, useRef } from "react"
 
 import { ElasticInput } from "../../elastic-input/index.ts"
 import { DevtoolsContext } from "../../store.ts"
-import type { SetterOrUpdater } from ".."
 import type { JsonEditorComponents } from "../default-components.tsx"
+import type { SetterOrUpdater } from "../index.ts"
 import type { JsonEditorProps_INTERNAL } from "../json-editor-internal.tsx"
 import { JsonEditor_INTERNAL } from "../json-editor-internal.tsx"
 import {

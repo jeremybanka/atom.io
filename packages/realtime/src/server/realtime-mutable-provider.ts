@@ -10,7 +10,7 @@ import {
 	subscribeToState,
 } from "atom.io/internal"
 
-import type { ServerConfig } from "."
+import type { ServerConfig } from "./index.ts"
 
 export type MutableProvider = ReturnType<typeof realtimeMutableProvider>
 export function realtimeMutableProvider({

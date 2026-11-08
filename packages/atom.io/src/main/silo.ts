@@ -29,6 +29,7 @@ import {
 	timeTravelTransactionInStore,
 } from "atom.io/internal"
 
+import type { atom, atomFamily, mutableAtom, mutableAtomFamily } from "./atom.ts"
 import type {
 	AtomIOToken,
 	clearTimeline,
@@ -43,8 +44,7 @@ import type {
 	timeline,
 	timelineFamily,
 	undo,
-} from "."
-import type { atom, atomFamily, mutableAtom, mutableAtomFamily } from "./atom.ts"
+} from "./index.ts"
 import type { resetState } from "./reset-state.ts"
 import type { selector, selectorFamily } from "./selector.ts"
 import type {

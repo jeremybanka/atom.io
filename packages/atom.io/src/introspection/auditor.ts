@@ -6,11 +6,11 @@ import {
 } from "atom.io"
 import { IMPLICIT, type Store } from "atom.io/internal"
 
-import type { FamilyNode } from "."
 import type { AtomTokenIndex } from "./attach-atom-index.ts"
 import { attachAtomIndex } from "./attach-atom-index.ts"
 import type { SelectorTokenIndex } from "./attach-selector-index.ts"
 import { attachSelectorIndex } from "./attach-selector-index.ts"
+import type { FamilyNode } from "./index.ts"
 
 export type ListResourcesParam = {
 	atomFamilies: boolean

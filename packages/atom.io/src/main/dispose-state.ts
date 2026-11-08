@@ -1,7 +1,7 @@
 import type { Canonical } from "atom.io/foundations/canonical"
 import { disposeFromStore, IMPLICIT } from "atom.io/internal"
 
-import type { ReadableFamilyToken, ReadableToken } from "."
+import type { ReadableFamilyToken, ReadableToken } from "./index.ts"
 
 /**
  * Disposes of a state in the implicit store.

@@ -1,7 +1,7 @@
 import type { FC } from "react"
 import { useId, useRef, useState } from "react"
 
-import { ElasticInput } from "."
+import { ElasticInput } from "./index.ts"
 
 export function clampInto(min: number, max: number) {
 	return (value: number): number =>

@@ -6,7 +6,7 @@ import {
 	isReservedIntrospectionKey,
 } from "atom.io/internal"
 
-import type { WritableTokenIndex } from "."
+import type { WritableTokenIndex } from "./index.ts"
 
 export type AtomTokenIndex = WritableTokenIndex<AtomToken<unknown, any, unknown>>
 

@@ -1,7 +1,7 @@
 import type { Canonical } from "atom.io/foundations/canonical"
 import { IMPLICIT, resetInStore } from "atom.io/internal"
 
-import type { WritableFamilyToken, WritableToken } from "."
+import type { WritableFamilyToken, WritableToken } from "./index.ts"
 
 /**
  * Set the value of a state into the implicit store back to its default value.

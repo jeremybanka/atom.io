@@ -2,7 +2,7 @@ import type { ViewOf } from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
 import { getFromStore, IMPLICIT } from "atom.io/internal"
 
-import type { ReadableFamilyToken, ReadableToken } from "."
+import type { ReadableFamilyToken, ReadableToken } from "./index.ts"
 
 /**
  * Read or compute the current value of a state

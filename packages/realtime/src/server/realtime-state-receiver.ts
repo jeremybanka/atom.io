@@ -13,7 +13,7 @@ import {
 	type Store,
 } from "atom.io/internal"
 
-import type { ServerConfig } from "."
+import type { ServerConfig } from "./index.ts"
 
 export type RealtimeLeaseClock = {
 	clearTimeout: (timer: unknown) => void

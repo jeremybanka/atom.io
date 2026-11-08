@@ -1,8 +1,8 @@
 import type { Socket } from "@atom.io/realtime"
 import type { Json } from "atom.io/foundations/json"
 
-import { structurallyEqual } from "./structural-equality"
-import { VirtualClock } from "./virtual-clock"
+import { structurallyEqual } from "./structural-equality.ts"
+import { VirtualClock } from "./virtual-clock.ts"
 
 export type DeterministicTransportMode = `automatic` | `manual`
 export type TransportEndpointRole = `client` | `peer` | `server`

@@ -1,6 +1,6 @@
 import { type FC, useId } from "react"
 
-import { ElasticInput } from "."
+import { ElasticInput } from "./index.ts"
 
 export type TextInputProps = {
 	value: string

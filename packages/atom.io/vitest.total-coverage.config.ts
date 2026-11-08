@@ -3,7 +3,7 @@ import type * as Vite from "vite"
 import {
 	defineOurVitestConfig,
 	PATHS_COMPLETE_SOURCE,
-} from "./__scripts__/define-our-vitest-config"
+} from "./__scripts__/define-our-vitest-config.ts"
 
 const totalCoverageConfig: Vite.UserConfig = defineOurVitestConfig({
 	name: `total-coverage`,

@@ -6,7 +6,7 @@ import { findInStore } from "atom.io/internal"
 import { type ReactElement, useContext } from "react"
 
 import { DevtoolsContext } from "../../store.ts"
-import type { JsonEditorComponents, SetterOrUpdater } from ".."
+import type { JsonEditorComponents, SetterOrUpdater } from "../index.ts"
 import type { JsonEditorProps_INTERNAL } from "../json-editor-internal.tsx"
 import { JsonEditor_INTERNAL } from "../json-editor-internal.tsx"
 import { makeElementSetters } from "./utilities/array-elements.ts"

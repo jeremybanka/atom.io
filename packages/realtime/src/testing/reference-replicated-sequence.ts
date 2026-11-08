@@ -214,4 +214,4 @@ export class ReferenceSequenceReplica {
 		)
 	}
 }
-import { structurallyEqual } from "./structural-equality"
+import { structurallyEqual } from "./structural-equality.ts"

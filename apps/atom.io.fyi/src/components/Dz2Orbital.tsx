@@ -10,7 +10,7 @@ import {
 	DZ2_ORBITAL_FINAL_SPIN_RADIANS,
 	DZ2_ORBITAL_Y_ROTATION_RADIANS_PER_SECOND,
 	setDz2OrbitalRotation,
-} from "./dz2-orbital-three"
+} from "./dz2-orbital-three.ts"
 import css from "./Dz2Orbital.module.css"
 
 const MAX_MARK_PIXEL_RATIO = 2

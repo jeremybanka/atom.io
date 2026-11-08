@@ -5,8 +5,8 @@ import { Server as SocketIOServer } from "socket.io"
 import type { Socket as SocketIOClientSocket } from "socket.io-client"
 import { io } from "socket.io-client"
 
-import type { DeterministicTransportOptions } from "./deterministic-transport"
-import { DeterministicTransport } from "./deterministic-transport"
+import type { DeterministicTransportOptions } from "./deterministic-transport.ts"
+import { DeterministicTransport } from "./deterministic-transport.ts"
 
 export type TestTransportEndpointOptions = {
 	/** Logical test identifier; transport-generated socket IDs remain unchanged. */

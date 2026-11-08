@@ -18,7 +18,7 @@ import type {
 	TimelineEvent,
 	TimelineFamilyToken,
 	TimelineToken,
-} from "."
+} from "./index.ts"
 
 export type TimelineManageable =
 	| AtomFamilyToken<any, any, any>

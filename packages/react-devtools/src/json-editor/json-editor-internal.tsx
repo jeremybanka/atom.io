@@ -12,10 +12,10 @@ import {
 import { button } from "../Button.tsx"
 import { ElasticInput } from "../elastic-input/index.ts"
 import { DevtoolsContext } from "../store.ts"
-import type { SetterOrUpdater } from "."
-import { SubEditors } from "."
 import type { JsonEditorComponents } from "./default-components.tsx"
 import { NonJsonEditor } from "./editors-by-type/non-json.tsx"
+import type { SetterOrUpdater } from "./index.ts"
+import { SubEditors } from "./index.ts"
 
 export type JsonEditorProps_INTERNAL<T> = {
 	data: T

@@ -3,7 +3,7 @@ import type * as AtomIO from "atom.io"
 import type { Json } from "atom.io/foundations/json"
 import { getFromStore, IMPLICIT, subscribeToState } from "atom.io/internal"
 
-import type { ServerConfig } from "."
+import type { ServerConfig } from "./index.ts"
 
 function isReadableToken(input: unknown): input is AtomIO.ReadableToken<any> {
 	return (

@@ -145,7 +145,7 @@ describe(`integration contracts`, () => {
 		expect(host.querySelector(`textarea`)!.value).toBe(`\nfirst line`)
 		root.dispose()
 	})
-	it(`releases island state when hydration fails before component setup`, async () => {
+	it(`repairs missing island markup before component setup and releases its state on unmount`, async () => {
 		const silo = new Silo({
 			name: `invalid-island`,
 			lifespan: `ephemeral`,
@@ -154,14 +154,17 @@ describe(`integration contracts`, () => {
 		const App: Island = () => <p>hello</p>
 		App.createStore = () => silo.store
 		const host = document.createElement(`section`)
-		await expect(
-			astroClient(host)(App, {}, {}, { client: `load` }),
-		).rejects.toThrow()
+		const warning = vi.spyOn(console, `warn`).mockImplementation(() => {})
+		await astroClient(host)(App, {}, {}, { client: `load` })
+		expect(host.textContent).toBe(`hello`)
+		expect(warning).toHaveBeenCalledOnce()
+		host.dispatchEvent(new Event(`astro:unmount`))
 		expect(
 			[...silo.store.atoms.keys()].some((key) =>
 				key.startsWith(`🔍 spa islands`),
 			),
 		).toBe(false)
+		warning.mockRestore()
 	})
 	it(`renders Astro slots, hydrates isolated stores, and disposes on astro:unmount`, async () => {
 		const silo = new Silo({

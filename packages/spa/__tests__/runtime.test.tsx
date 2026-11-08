@@ -657,7 +657,7 @@ describe(`server rendering and hydration`, () => {
 		root.dispose()
 		expect(cleanup).toHaveBeenCalledTimes(2)
 	})
-	it(`escapes content, handles SVG and reports mismatches without leaving subscriptions`, () => {
+	it(`escapes content, handles SVG and repairs mismatches while preserving subscriptions`, () => {
 		const { silo, countAtom, host } = fixture()
 		function App() {
 			const getCount = useGetter(countAtom)
@@ -681,9 +681,12 @@ describe(`server rendering and hydration`, () => {
 		)
 		root.dispose()
 		host.innerHTML = html.replace(`HTML`, `mismatch`)
-		expect(() => hydrate(setup, host, { store: silo.store })).toThrow(
-			`hydration`,
-		)
+		const warning = vi.spyOn(console, `warn`).mockImplementation(() => {})
+		const repaired = hydrate(setup, host, { store: silo.store })
+		expect(host.textContent).toBe(`<&0HTML`)
+		expect(warning).toHaveBeenCalledOnce()
+		repaired.dispose()
 		expect(silo.store.atoms.get(countAtom.key)!.subject.subscribers.size).toBe(0)
+		warning.mockRestore()
 	})
 })

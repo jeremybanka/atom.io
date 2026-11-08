@@ -7,6 +7,7 @@ import { storeContext } from "../src/astro-context.ts"
 import astroServer from "../src/astro-server.ts"
 import type { AstroStoreContext, Island } from "../src/astro-shared.ts"
 import { onCleanup, useGetter } from "../src/core.ts"
+import { renderToString } from "../src/server.ts"
 
 const silo = (): Silo =>
 	new Silo({
@@ -252,7 +253,8 @@ describe(`Astro store preparation`, () => {
 		async (failure) => {
 			const cleanup = vi.fn()
 			const App: Island = () => {
-				if (failure === `render`) throw new Error(`render`)
+				if (failure === `render` || failure === `hydrate`)
+					throw new Error(failure)
 				return <p>ready</p>
 			}
 			App.createStore = (_, context) => {
@@ -262,6 +264,8 @@ describe(`Astro store preparation`, () => {
 				return silo().store
 			}
 			const host = document.createElement(`div`)
+			if (failure === `hydrate`)
+				host.innerHTML = renderToString(() => () => <p>server</p>)
 			await expect(
 				astroClient(host)(
 					App,

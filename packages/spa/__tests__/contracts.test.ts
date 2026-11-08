@@ -353,7 +353,8 @@ it(`handles DOM attributes, capture events, SVG hosts, and empty text hydration`
 	expect([...host.childNodes].some((node) => node.nodeType === 3)).toBe(true)
 	empty.dispose()
 })
-it(`rejects malformed DOM input and hydration leftovers in development and production`, () => {
+it(`rejects malformed DOM input and repairs hydration leftovers in development and production`, () => {
+	const warning = vi.spyOn(console, `warn`).mockImplementation(() => {})
 	for (const dev of [true, false]) {
 		vi.stubEnv(`DEV`, dev)
 		const host = document.createElement(`div`)
@@ -370,17 +371,25 @@ it(`rejects malformed DOM input and hydration leftovers in development and produ
 				render(() => () => [jsx(`p`, { key: 1 }), jsx(`p`, { key: 1 })], host),
 			).toThrow(`duplicate key`)
 		}
-		expect(() => hydrate(() => null, host)).toThrow()
+		hydrate(() => null, host).dispose()
 		host.innerHTML = renderToString(() => jsx(`p`, {}), { idPrefix: `a` })
-		expect(() => hydrate(() => null, host, { idPrefix: `b` })).toThrow()
+		hydrate(() => null, host, { idPrefix: `b` }).dispose()
 		host.innerHTML = renderToString(() => jsx(`p`, {}))
 		host.querySelector(`p`)!.append(document.createTextNode(`extra`))
-		expect(() => hydrate(() => jsx(`p`, {}), host)).toThrow()
+		const children = hydrate(() => jsx(`p`, {}), host)
+		expect(host.textContent).toBe(``)
+		children.dispose()
 		host.innerHTML = renderToString(() => null) + `extra`
-		expect(() => hydrate(() => null, host)).toThrow()
+		const leftovers = hydrate(() => null, host)
+		expect(host.textContent).toBe(``)
+		leftovers.dispose()
 		host.innerHTML = renderToString(() => jsx(`b`, {}))
-		expect(() => hydrate(() => jsx(`p`, {}), host)).toThrow()
+		const tag = hydrate(() => jsx(`p`, {}), host)
+		expect(host.querySelector(`p`)).not.toBeNull()
+		tag.dispose()
 	}
+	expect(warning).toHaveBeenCalledTimes(10)
+	warning.mockRestore()
 })
 it(`resets removed boolean properties and skips refs whose owners were removed before attachment`, () => {
 	const host = document.createElement(`div`)

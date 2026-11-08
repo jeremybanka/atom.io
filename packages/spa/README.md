@@ -350,9 +350,9 @@ Atom.io owns promise settlement and subscriptions. SPA adds no fetching, retries
 
 The client exports render and hydrate. Both accept a setup callback, a host Element, and optional store, idPrefix, and onError options, and return dispose and flush methods. Updates coalesce in a microtask; flush drains them synchronously. Dispose is idempotent and removes only owned nodes. Cleanup continues after individual cleanup failures and aggregates errors. A failed computation disposes its root; asynchronous update failures reach onError, while explicit flush failures throw.
 
-The separate server entrypoint exports renderToString with the same setup callback and store/ID options. Supply a request-specific store for SSR. Server rendering retains no subscriptions and runs owner cleanup. Hydration reuses matching server nodes and IDs, attaches events, and recreates subscriptions. It requires the same initial state, component structure, and valid HTML on both sides; mismatches throw rather than silently remounting. Use explicit tbody elements in tables. Controlled form properties are applied during hydration.
+The separate server entrypoint exports renderToString with the same setup callback and store/ID options. Supply a request-specific store for SSR. Server rendering retains no subscriptions and runs owner cleanup. Hydration reuses matching server nodes and IDs, attaches events, and recreates subscriptions. Match initial state, component structure, and valid HTML on both sides. A hydration mismatch produces one human-readable console warning per root in development and production, identifying the host and expected/found nodes. SPA repairs mismatched nodes, inserts missing nodes, and removes unexpected leftovers during the same hydration pass. Component setup and mount hooks run once, subscriptions remain active, and matching nodes are reused. Replaced nodes can lose focus, selection, or unsaved browser input; unaffected roots continue running. An explicit client idPrefix takes precedence when repairing mismatched root markers. Use explicit tbody elements in tables. Controlled form properties are applied during hydration.
 
-The production build omits development diagnostics and invalid-input checks; the development export condition enables them. Pure render computations must not write state. Promise children, async components, portals, suspense, error boundaries, style objects, and automatic token-as-child bindings are outside this first implementation. Applications handle asynchronous data through atom.io state and synchronous conditional JSX.
+The production build omits development-only diagnostics and invalid-input checks; the development export condition enables them. Hydration recovery warnings remain available in all builds. Pure render computations must not write state. Promise children, async components, portals, suspense, error boundaries, style objects, and automatic token-as-child bindings are outside this first implementation. Applications handle asynchronous data through atom.io state and synchronous conditional JSX.
 
 ## Astro state and data
 
@@ -360,7 +360,7 @@ The integration compiles .tsx and .jsx files by default. Use the include option 
 
 Default islands share the normal implicit atom.io store in the browser. Module-scoped tokens, SPA hooks, and ordinary getState/setState calls all address the same graph. SSR shares a separate store within each request; concurrent requests never share values. Definitions imported after an earlier island started are installed into that request's store before the next island prepares. Server reads and writes must use the selected store (through SPA hooks or store-aware atom.io operations); free getState/setState calls still target the process-global implicit store.
 
-The integration starts observing browser state before island preparation. Untouched initial islands hydrate their matching server DOM. Once application state changes or a shared client:only island starts, delayed islands mount fresh against the live graph. Astro ClientRouter navigation also makes newly introduced islands mount fresh, preserving existing browser values instead of replaying the incoming server snapshot. Mounted and persisted roots keep their subscriptions and DOM. This decision is conservative across the application: even an unrelated state change disables hydration for later roots. Ordinary defaults must still produce matching initial values; SPA does not serialize stores or repair nondeterministic renders.
+The integration starts observing browser state before island preparation. Untouched initial islands hydrate their matching server DOM. Once application state changes or a shared client:only island starts, delayed islands mount fresh against the live graph. Astro ClientRouter navigation also makes newly introduced islands mount fresh, preserving existing browser values instead of replaying the incoming server snapshot. Mounted and persisted roots keep their subscriptions and DOM. This decision is conservative across the application: even an unrelated state change disables hydration for later roots. Ordinary defaults should still produce matching initial values. DOM mismatch recovery keeps a view interactive; it does not reconstruct missing server data or resolve nondeterministic application logic.
 
 With resumability/astro installed alongside SPA, resumability owns Astro's request collection, page sidecars, and browser scope. SPA awaits async state used by JSX and uses the host's renderer adapter to attach seeds to islands. Ordinary atom defaults use the host without changing the store's evaluator; private stores bind a separate scope so lazy work ends with the island. Define resumable defaults at module scope and render ordinary Astro islands. Components need no Resumption wrapper, prepareStore callback, or preload list. The same host supports plain Astro constants without atom.io. See the [resumability guide](https://atom.io.fyi/docs/spa/astro#resumability) and the inventory starter for a complete example. Resumability is an optional peer, loaded only by this adapter.
 
@@ -422,7 +422,7 @@ The checked Astro fixture demonstrates default/named slots and custom independen
 
 The build audits every browser export, including the JSX runtime, from the built JavaScript. Atom.io is an external peer in the incremental measurement. Compiler, server, and integration code have separate entrypoints. The report also includes the complete client plus atom.io, the Astro client entrypoint, and the installed Preact version under the same bundling/minification settings. These are full exported surfaces, not equivalent application benchmarks.
 
-The hard budget is under 4,100 bytes of ordinary level-9 gzip for the complete client export surface. Tsdown builds the package JavaScript and declarations, with separate production and development outputs that each share their runtime across entrypoints. The size audit then bundles the built exports with esbuild, minifies with Oxc, and measures compression using Node's gzip and Brotli implementations. The complete client export surface measures approximately 4.0 kB with gzip; dist/size.json records the exact build measurements. Actual application bundles add atom.io and compiler-generated application code.
+The hard budget is under 4,300 bytes of ordinary level-9 gzip for the complete client export surface, including hydration recovery and its production diagnostics. Tsdown builds the package JavaScript and declarations, with separate production and development outputs that each share their runtime across entrypoints. The size audit then bundles the built exports with esbuild, minifies with Oxc, and measures compression using Node's gzip and Brotli implementations. The complete client export surface measures approximately 4.2 kB with gzip; dist/size.json records the exact build measurements. Actual application bundles add atom.io and compiler-generated application code.
 
 Build output includes the minified audit entrypoint and machine-readable dist/size.json. These audit files are a bundled measurement; use the package exports in applications so the bundler preserves one runtime instance across entrypoints. Source tests exercise development behavior; the production test executes the audited minified artifact. Chromium checks exercise the actual Astro build, island isolation, hydration, keyed identity, focus/selection, SVG namespaces, and teardown. A fresh-cache Astro development check also covers mount hooks, shared state, and ClientRouter navigation.
 
@@ -454,11 +454,11 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                           | Entry                             | Minified JS |  Gzip JS |
 | -------------------------------- | --------------------------------- | ----------: | -------: |
-| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    63,717 B | 18,907 B |
-| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    42,142 B | 13,160 B |
-| Interactive client app           | `tonnage-recipes/client-app.ts`   |    41,805 B | 12,998 B |
-| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    41,806 B | 12,998 B |
-| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    48,321 B | 15,053 B |
+| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    64,020 B | 19,088 B |
+| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    42,445 B | 13,332 B |
+| Interactive client app           | `tonnage-recipes/client-app.ts`   |    42,108 B | 13,178 B |
+| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    42,109 B | 13,176 B |
+| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    48,624 B | 15,226 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 
@@ -654,7 +654,7 @@ export function SpringCube(): VNode {
 
 ```
 
-When the motion capability is installed, Canvas draws in Motion's render phase after animated scene values update. Without it, Canvas uses requestAnimationFrame. Both drawing subscriptions and animations end with their owners. The base runtime imports no motion engine or retention coordinator. Presence hooks add approximately 300 bytes of gzip to the released 3.7 kB client surface; the optional Motion entrypoint owns the retention machinery. The full client budget is 4,100 bytes.
+When the motion capability is installed, Canvas draws in Motion's render phase after animated scene values update. Without it, Canvas uses requestAnimationFrame. Both drawing subscriptions and animations end with their owners. The base runtime imports no motion engine or retention coordinator. Presence hooks add approximately 300 bytes of gzip to the released 3.7 kB client surface; the optional Motion entrypoint owns the retention machinery. The full client budget is 4,300 bytes.
 
 ### Exit animations and re-entry
 

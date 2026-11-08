@@ -36,6 +36,8 @@ Import it into an Astro page and add client:load:
 
 Astro renders the initial HTML, then hydrates the counter in the browser. It handles SPA's render and hydrate entrypoints for you. Other client directives, including client:idle, client:visible, and client:only, use Astro's scheduling. Put browser-only work in [onMount](/docs/spa#onmount).
 
+If server markup differs from the browser view, SPA logs a human-readable hydration warning and repairs the affected nodes while keeping the island active. Setup and mount hooks run once; matching DOM, subscriptions, and the island's store lifetime are retained. Replaced nodes can lose focus or unsaved input. Other islands continue running. The warning is present in production too and identifies the host and expected/found nodes.
+
 ## state and navigation
 
 Keep atom and selector definitions at module scope. Default islands share atom.io's implicit store in the browser, while each server request receives a separate store. Server work must use the selected request store through SPA hooks or store-aware atom.io operations.

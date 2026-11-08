@@ -72,7 +72,7 @@ Attach a component to matching server-rendered HTML. This form field uses the sa
 
 <Exhibit src="spa/exhibits/rendering/hydrate.tsx" />
 
-hydrate preserves matching elements, attaches events, and restores reactive subscriptions. It accepts the same options as render and returns the same dispose and flush methods. Initial state, component structure, and IDs must agree; mismatches throw.
+hydrate preserves matching elements, attaches events, and restores reactive subscriptions. It accepts the same options as render and returns the same dispose and flush methods. Initial state, component structure, and IDs should agree. If they differ, SPA logs one readable warning per root in development and production and repairs the affected markup while continuing hydration. Component setup runs once and the view stays interactive. Matching DOM is reused; replaced nodes can lose focus or unsaved input.
 
 Hydrating HTML does not transfer an atom.io store from the server. For server-produced data that becomes the browser's initial state, see [resumability with Astro](/docs/spa/astro#resumability).
 

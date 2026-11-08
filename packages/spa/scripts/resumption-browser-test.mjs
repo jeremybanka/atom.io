@@ -56,7 +56,15 @@ try {
 	browser = await chromium.launch()
 	const page = await browser.newPage()
 	const errors = []
+	const warnings = []
 	page.on(`pageerror`, (error) => errors.push(error.message))
+	page.on(`console`, (message) => {
+		if (
+			message.type() === `warning` &&
+			message.text().startsWith(`spa: hydration mismatch`)
+		)
+			warnings.push(message.text())
+	})
 	let gate = Promise.withResolvers()
 	await page.route(`**/*`, async (route) => {
 		if (route.request().resourceType() === `script`) await gate.promise
@@ -111,9 +119,87 @@ try {
 		),
 		false,
 	)
+	assert.deepEqual(warnings, [])
+	gate = Promise.withResolvers()
+	await page.goto(`${origin}/recovery/`, { waitUntil: `commit` })
+	await page.waitForSelector(`[data-recovery="healthy"] button`)
+	await page.evaluate(() => {
+		const broken = document.querySelector(`[data-recovery="broken"]`)
+		window.__keptInput = broken.querySelector(`input`)
+		window.__keptInput.value = `unsaved`
+		window.__keptInput.focus()
+		broken.querySelector(`button`).replaceWith(document.createElement(`span`))
+		window.__healthyButton = document.querySelector(
+			`[data-recovery="healthy"] button`,
+		)
+	})
+	gate.resolve()
+	await page.waitForFunction(
+		() =>
+			!document.querySelector(`astro-island[ssr]`) &&
+			document.documentElement.getAttribute(`data-broken-mounts`) === `1` &&
+			document.documentElement.getAttribute(`data-healthy-mounts`) === `1`,
+	)
+	assert.equal(
+		await page.locator(`html`).getAttribute(`data-broken-setups`),
+		`1`,
+	)
+	assert.equal(
+		await page.locator(`html`).getAttribute(`data-broken-cleanups`),
+		null,
+	)
+	assert.equal(
+		await page.evaluate(
+			() =>
+				document.querySelector(`[data-recovery="broken"] input`) ===
+					window.__keptInput &&
+				document.activeElement === window.__keptInput &&
+				window.__keptInput.value === `unsaved`,
+		),
+		true,
+	)
+	assert.equal(
+		await page.evaluate(
+			() =>
+				document.querySelector(`[data-recovery="healthy"] button`) ===
+				window.__healthyButton,
+		),
+		true,
+	)
+	assert.equal(warnings.length, 1)
+	assert.match(warnings[0], /Repairing.*unsaved input/)
+	await page.locator(`[data-recovery="broken"] button`).click()
+	assert.equal(
+		await page.locator(`[data-recovery="broken"] button`).textContent(),
+		`1`,
+	)
+	assert.equal(
+		await page.locator(`[data-recovery="healthy"] button`).textContent(),
+		`0`,
+	)
+	await page.locator(`[data-recovery="healthy"] button`).click()
+	assert.equal(
+		await page.locator(`[data-recovery="healthy"] button`).textContent(),
+		`1`,
+	)
+	await page.evaluate(() =>
+		document
+			.querySelector(`[data-recovery="broken"]`)
+			.closest(`astro-island`)
+			.dispatchEvent(new Event(`astro:unmount`)),
+	)
+	assert.equal(
+		await page.locator(`html`).getAttribute(`data-broken-cleanups`),
+		`1`,
+	)
+	await page.locator(`[data-recovery="healthy"] button`).click()
+	assert.equal(
+		await page.locator(`[data-recovery="healthy"] button`).textContent(),
+		`2`,
+	)
 	assert.deepEqual(errors, [])
 	console.log(
-		`${development ? `Development` : `Production`}: constant props hydrate, ordinary async defaults and mixed resumable views mount without mismatches.`,
+		`${development ? `Development` : `Production`}: constant props, async readiness, and hydration recovery preserve live islands, input, focus, ownership, and neighboring roots.`,
 	)
 } finally {
 	await browser?.close()

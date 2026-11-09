@@ -20,7 +20,8 @@ export interface Capability {
 	namespace: string
 	presence?(root: Root): PresenceCoordinator
 	scheduleFrame?(callback: (time: number) => void): Cleanup
-	attach(target: CapabilityTarget): CapabilityBinding
+	/** SPA supplies ownership for integrations that measure after mount or report async errors. */
+	attach(target: CapabilityTarget, scope?: Scope): CapabilityBinding
 }
 
 export function capabilityNamespace(key: string): string | undefined {
@@ -85,7 +86,7 @@ export function capabilityProps(
 		for (const [namespace, values] of groups) {
 			let binding = bindings.get(namespace)
 			if (!binding) {
-				binding = scope._root._capabilities.get(namespace)!.attach(target)
+				binding = scope._root._capabilities.get(namespace)!.attach(target, scope)
 				bindings.set(namespace, binding)
 				scope._root._presence?.bind(
 					scope,

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict"
 
+import { floatingCapability } from "@atom.io/spa/floating"
 import { jsx } from "@atom.io/spa/jsx-runtime"
 import { Group, konvaRenderer } from "@atom.io/spa/konva"
 import { motionCapability } from "@atom.io/spa/motion"
@@ -13,6 +14,7 @@ import Konva from "konva"
 import * as THREE from "three"
 
 const capabilities = [motionCapability({ reducedMotion: `always` })]
+assert.equal(floatingCapability().namespace, `floating`)
 const scene = new THREE.Scene()
 const root = threeRenderer.render(
 	() =>

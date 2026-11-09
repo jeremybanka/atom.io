@@ -293,6 +293,7 @@ export default {
 				"src/konva.ts!",
 				"src/three.ts!",
 				"src/motion.ts!",
+				"src/floating.ts!",
 				"src/astro-resumability-client.ts!",
 				"src/astro-resumability-server.ts!",
 				"tsdown.config.ts",

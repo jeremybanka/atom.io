@@ -50,7 +50,7 @@
 		"oxlint": "1.92.0",
 		"oxlint-tsgolint": "7.0.2006",
 		"playwright": "1.65.0",
-		"typescript": "7.1.0-dev.20261107.1",
+		"typescript": "7.1.0-dev.20261108.1",
 		"vite": "8.3.6"
 	},
 	"engines": {

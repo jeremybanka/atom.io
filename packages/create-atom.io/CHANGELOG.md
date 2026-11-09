@@ -1,5 +1,16 @@
 # create-atom.io
 
+## 0.1.69
+
+### Patch Changes
+
+- @atom.io/template-spa-astro-ssr@0.0.7
+  - @atom.io/template-preact-realtime-vector-editor@0.1.7
+  - @atom.io/template-preact-svg-editor@0.1.8
+  - @atom.io/template-react-node-backend@0.0.105
+  - @atom.io/template-react-realtime-text-editor@0.0.19
+  - @atom.io/template-solid-lossless-numbers@0.0.57
+
 ## 0.1.68
 
 ### Patch Changes

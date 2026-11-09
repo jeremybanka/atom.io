@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.0.57
+
+### Patch Changes
+
+- Updated dependencies [3281c91]
+  - atom.io@0.54.7
+  - @atom.io/solid@0.1.5
+
 ## 0.0.56
 
 ### Patch Changes

@@ -17,6 +17,7 @@ const alternateAtom = silo.atom<boolean>({ key: `alternate`, default: false })
 const transformedAtom = silo.atom<boolean>({ key: `transformed`, default: true })
 const enabledAtom = silo.atom<boolean>({ key: `enabled`, default: true })
 const fixedAtom = silo.atom<boolean>({ key: `fixed`, default: true })
+const tintedAtom = silo.atom<boolean>({ key: `tinted`, default: false })
 const anchorAtom = silo.atom<HTMLButtonElement | null>({
 	key: `anchor`,
 	default: null,
@@ -40,6 +41,8 @@ function FloatingLab() {
 	const setEnabled = useSetter(enabledAtom)
 	const getFixed = useGetter(fixedAtom)
 	const setFixed = useSetter(fixedAtom)
+	const getTinted = useGetter(tintedAtom)
+	const setTinted = useSetter(tintedAtom)
 	const getAnchor = useGetter(anchorAtom)
 	const attachAnchor = useRef(anchorAtom)
 	const getCorner = useGetter(cornerAtom)
@@ -100,6 +103,14 @@ function FloatingLab() {
 				>
 					Switch fixed / absolute
 				</button>
+				<button
+					id="color"
+					onClick={() => {
+						setTinted((value) => !value)
+					}}
+				>
+					Toggle text color
+				</button>
 			</nav>
 			<div class="scroller">
 				<div class="stage">
@@ -121,6 +132,7 @@ function FloatingLab() {
 					key="overlay"
 					id="overlay"
 					aria-label="Floating preview"
+					style={getTinted() ? `color: #a7e5da` : undefined}
 					floating:reference={getAlternate() ? getCorner() : getAnchor()}
 					floating:enabled={getEnabled()}
 					floating:placement="bottom-start"

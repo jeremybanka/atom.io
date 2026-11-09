@@ -341,21 +341,13 @@ function mount(
 			)
 		finish(children)
 	}
+	let previous: Record<string, any> = {}
 	const nativeProps = capabilityProps(
 		owner,
 		{ kind: `dom`, node: element },
 		() => ({ ...props }),
-	)
-	let previous: Record<string, any> = {}
-	owner._cleanups.add(() => {
-		for (const key in previous)
-			if (key.startsWith(`on`)) property(element, key, null, previous[key])
-	})
-	observe(
-		owner,
-		() => ({ ...props }),
-		(all) => {
-			const next = nativeProps(all)
+		(next) => {
+			const styleChanged = previous[`style`] !== next[`style`]
 			for (const key in { ...previous, ...next })
 				if (
 					!Object.is(previous[key], next[key]) ||
@@ -365,8 +357,14 @@ function mount(
 					previous[key] = next[key]
 				}
 			previous = next
+			return styleChanged
 		},
 	)
+	owner._cleanups.add(() => {
+		for (const key in previous)
+			if (key.startsWith(`on`)) property(element, key, null, previous[key])
+	})
+	observe(owner, () => ({ ...props }), nativeProps)
 	const ref = untrack(() => props[`ref`])
 	if (ref) {
 		owner._root._mounts!.unshift(() => {

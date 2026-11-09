@@ -804,6 +804,8 @@ The capability waits for mount and ref publication before measuring, hides the o
 
 Give the overlay a fixed width or width: max-content and avoid margins so measurement remains stable. Floating owns position, left, top, and translate while enabled, and temporarily owns visibility until the first measurement. Do not animate translate through Motion or assign those positioning properties through another style writer on the same element. Floating restores original inline values and priorities when disabled, removed, or disposed. Keyboard behavior, focus management, dismissal, and top-layer mounting remain application responsibilities.
 
+Reactive inline style changes preserve the current anchor position and Motion values while new measurements are pending. Temporary hiding uses !important until the first position is available, then restores the original inline visibility value and priority.
+
 Position updates continue during Motion's retained exits, until physical disposal. If the reference itself moves through transforms, enable animationFrame in floating:autoUpdate. Run the package's example:floating script for a scrollable experiment with same-element scaling and rotation, moving anchors, viewport collisions, positioning strategies, and interrupted exits. Its test:browser:floating script checks actual Chromium geometry in both capability registration orders.
 
 ### Renderer extensions

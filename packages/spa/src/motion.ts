@@ -464,7 +464,7 @@ function attach(
 			installGestures()
 			refresh(true)
 		},
-		update(next) {
+		update(next, styleChanged) {
 			if (dead) return
 			for (const key of Object.keys(next))
 				if (!allowed.has(key))
@@ -475,6 +475,7 @@ function attach(
 				Boolean(next[`whileTap`]) !== Boolean(props[`whileTap`])
 			props = next
 			if (gestureChange && !exiting) installGestures()
+			if (styleChanged && started && element) bindStyles()
 			refresh()
 		},
 		dispose() {

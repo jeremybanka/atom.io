@@ -143,6 +143,132 @@ function fixture() {
 	return { silo, anchorAtom, enabledAtom, placementAtom, host, App }
 }
 
+it.each([true, false])(
+	`preserves positioning and settled Motion through reactive style replacement, floating first: %s`,
+	async (floatingFirst) => {
+		const silo = new Silo({
+			name: `floating-styles`,
+			lifespan: `ephemeral`,
+			isProduction: true,
+		})
+		const colorAtom = silo.atom<string>({ key: `color`, default: `red` })
+		const anchor = document.createElement(`button`)
+		const host = document.createElement(`div`)
+		document.body.append(anchor, host)
+		function App() {
+			const getColor = useGetter(colorAtom)
+			const floating = { "floating:reference": anchor }
+			const motion = { "motion:animate": { y: -4, scale: 0.8 } }
+			return (
+				<div
+					style={getColor() ? `width: 120px; color: ${getColor()}` : undefined}
+					{...(floatingFirst
+						? { ...floating, ...motion }
+						: { ...motion, ...floating })}
+				/>
+			)
+		}
+		const root = render(() => <App />, host, {
+			store: silo.store,
+			capabilities: [
+				floatingCapability(),
+				motionCapability({ reducedMotion: `always` }),
+			],
+		})
+		let resolvePosition!: (value: { x: number; y: number }) => void
+		try {
+			const panel = host.querySelector(`div`)!
+			await vi.waitFor(() => {
+				expect(panel.style.transform).toContain(`scale(0.8)`)
+			})
+			const transform = panel.style.transform
+			engine.compute.mockImplementationOnce(
+				() =>
+					new Promise((resolve) => {
+						resolvePosition = resolve
+					}),
+			)
+			silo.setState(colorAtom, `blue`)
+			root.flush()
+			expect(panel.style.color).toBe(`blue`)
+			expect(panel.style.position).toBe(`absolute`)
+			expect(panel.style.left).toBe(`0px`)
+			expect(panel.style.top).toBe(`0px`)
+			expect(panel.style.translate).toBe(`120px 60px`)
+			await vi.waitFor(() => {
+				expect(panel.style.transform).toBe(transform)
+			})
+			expect(engine.observe).toHaveBeenCalledOnce()
+			resolvePosition({ x: 240, y: 80 })
+			await settle()
+			expect(panel.style.translate).toBe(`240px 80px`)
+			expect(panel.style.transform).toBe(transform)
+			silo.setState(colorAtom, ``)
+			root.flush()
+			expect(panel.style.width).toBe(``)
+			expect(panel.style.color).toBe(``)
+			expect(panel.style.position).toBe(`absolute`)
+			expect(panel.style.translate).toBe(`240px 80px`)
+			await vi.waitFor(() => {
+				expect(panel.style.transform).toBe(transform)
+			})
+		} finally {
+			root.dispose()
+		}
+	},
+)
+
+it(`keeps pending positioning hidden with priority through reactive styles and restores the original declaration`, async () => {
+	const pending: ((value: { x: number; y: number }) => void)[] = []
+	engine.compute.mockImplementation(
+		() =>
+			new Promise((resolve) => {
+				pending.push(resolve)
+			}),
+	)
+	const silo = new Silo({
+		name: `pending-styles`,
+		lifespan: `ephemeral`,
+		isProduction: true,
+	})
+	const colorAtom = silo.atom<string>({ key: `color`, default: `red` })
+	const anchor = document.createElement(`button`)
+	const host = document.createElement(`div`)
+	document.body.append(anchor, host)
+	function App() {
+		const getColor = useGetter(colorAtom)
+		return (
+			<div
+				style={`visibility: visible !important; color: ${getColor()}`}
+				floating:reference={anchor}
+			/>
+		)
+	}
+	const root = render(() => <App />, host, {
+		store: silo.store,
+		capabilities: [floatingCapability()],
+	})
+	try {
+		const panel = host.querySelector(`div`)!
+		expect(panel.style.visibility).toBe(`hidden`)
+		expect(panel.style.getPropertyPriority(`visibility`)).toBe(`important`)
+		silo.setState(colorAtom, `blue`)
+		root.flush()
+		expect(panel.style.color).toBe(`blue`)
+		expect(panel.style.visibility).toBe(`hidden`)
+		expect(panel.style.getPropertyPriority(`visibility`)).toBe(`important`)
+		pending[0]({ x: 1, y: 1 })
+		await settle()
+		expect(panel.style.visibility).toBe(`hidden`)
+		pending[1]({ x: 120, y: 60 })
+		await settle()
+		expect(panel.style.visibility).toBe(`visible`)
+		expect(panel.style.getPropertyPriority(`visibility`)).toBe(`important`)
+	} finally {
+		root.dispose()
+	}
+})
+
 it(`waits for refs, positions with translate, and restores only its own inline properties`, async () => {
 	const f = fixture()
 	const root = render(() => <f.App />, f.host, {

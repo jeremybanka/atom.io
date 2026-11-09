@@ -100,14 +100,107 @@ try {
 		assertComposed(initial)
 		assert.ok(Math.abs(initial.scale - 0.8) < 0.001)
 		assert.ok(Math.abs(initial.rotation + 8) < 0.001)
+		// Native inline-style replacement must retain settled Motion values and anchoring.
+		const originalColor = await original.evaluate((node) => node.style.color)
+		await page.locator(`#color`).click()
+		await page.evaluate(() => new Promise(requestAnimationFrame))
+		await waitAnchored()
+		const recolored = await measure()
+		assert.equal(recolored.position, `fixed`)
+		assertComposed(recolored)
+		assert.ok(
+			Math.abs(recolored.scale - initial.scale) < 0.001,
+			JSON.stringify({ initial, recolored }),
+		)
+		assert.ok(
+			Math.abs(recolored.rotation - initial.rotation) < 0.001,
+			JSON.stringify({ initial, recolored }),
+		)
+		assert.notEqual(
+			await original.evaluate((node) => node.style.color),
+			originalColor,
+		)
+		await page.locator(`#color`).click()
+		await page.evaluate(() => new Promise(requestAnimationFrame))
+		await waitAnchored()
+		const withoutInlineStyle = await measure()
+		assert.equal(withoutInlineStyle.position, `fixed`)
+		assertComposed(withoutInlineStyle)
+		assert.ok(Math.abs(withoutInlineStyle.scale - initial.scale) < 0.001)
+		assert.ok(Math.abs(withoutInlineStyle.rotation - initial.rotation) < 0.001)
+		assert.equal(
+			await original.evaluate((node) => node.style.color),
+			originalColor,
+		)
+		if (!query) {
+			const visibility = await page.evaluate(
+				async (moduleUrl) => {
+					const { floatingCapability } = await import(moduleUrl)
+					const sheet = document.createElement(`style`)
+					sheet.textContent = `#pending-overlay { visibility: visible !important }`
+					const node = document.createElement(`div`)
+					node.id = `pending-overlay`
+					node.style.cssText = `width: 100px; height: 30px; visibility: visible !important`
+					document.head.append(sheet)
+					document.body.append(node)
+					let release
+					const pending = new Promise((finish) => {
+						release = finish
+					})
+					const binding = floatingCapability().attach({ kind: `dom`, node })
+					const read = () => ({
+						visibility: getComputedStyle(node).visibility,
+						priority: node.style.getPropertyPriority(`visibility`),
+					})
+					try {
+						binding.update({
+							reference: document.querySelector(`#anchor`),
+							autoUpdate: false,
+							middleware: [
+								{
+									name: `pending`,
+									async fn() {
+										await pending
+										return {}
+									},
+								},
+							],
+						})
+						await new Promise(requestAnimationFrame)
+						const before = read()
+						release()
+						await new Promise(requestAnimationFrame)
+						const positioned = read()
+						binding.dispose()
+						return { before, positioned, disposed: read() }
+					} finally {
+						binding.dispose()
+						node.remove()
+						sheet.remove()
+					}
+				},
+				`/@fs${resolve(import.meta.dirname, `../dist/floating.js`)}`,
+			)
+			assert.deepEqual(visibility, {
+				before: { visibility: `hidden`, priority: `important` },
+				positioned: { visibility: `visible`, priority: `important` },
+				disposed: { visibility: `visible`, priority: `important` },
+			})
+		}
 		// Floating's measurement must use the layout size, even while Motion scales it.
 		await page.locator(`#transform`).click()
 		const samples = []
 		for (let frame = 0; frame < 10; ++frame) {
+			if (frame === 3)
+				await page.locator(`#color`).evaluate((button) => {
+					button.click()
+				})
 			await page.evaluate(() => new Promise(requestAnimationFrame))
 			const sample = await measure()
 			assertComposed(sample)
 			assert.ok(Math.abs(sample.y - initial.y) < 0.5)
+			assert.ok(sample.scale >= initial.scale - 0.001 && sample.scale <= 1.001)
+			if (samples.length) assert.ok(sample.scale >= samples.at(-1).scale - 0.001)
 			samples.push(sample)
 		}
 		assert.ok(new Set(samples.map((sample) => sample.scale.toFixed(3))).size > 2)
@@ -213,7 +306,7 @@ try {
 		await page.close()
 	}
 	console.log(
-		`Floating + Motion passed in both registration orders: same-element scale/rotation, transformed anchors, scroll, fixed/absolute, flip/shift, resize, retained exit/re-entry, disable, and disposal.`,
+		`Floating + Motion passed in both registration orders: same-element scale/rotation, reactive inline styles, pending visibility priority, transformed anchors, scroll, fixed/absolute, flip/shift, resize, retained exit/re-entry, disable, and disposal.`,
 	)
 } finally {
 	await browser?.close()

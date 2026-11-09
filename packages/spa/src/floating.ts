@@ -82,6 +82,7 @@ function attach(target: CapabilityTarget, scope?: Scope): CapabilityBinding {
 	let observing: boolean | AutoUpdateOptions | undefined
 	let original: Map<string, { value: string; priority: string }> | undefined
 	let positioned = false
+	let translation = ``
 
 	const restore = () => {
 		if (!original) return
@@ -92,6 +93,7 @@ function attach(target: CapabilityTarget, scope?: Scope): CapabilityBinding {
 		}
 		original = undefined
 		positioned = false
+		translation = ``
 	}
 	const disconnect = () => {
 		++generation
@@ -129,7 +131,8 @@ function attach(target: CapabilityTarget, scope?: Scope): CapabilityBinding {
 					currentRequest !== request
 				)
 					return
-				element.style.setProperty(`translate`, `${x}px ${y}px`)
+				translation = `${x}px ${y}px`
+				element.style.setProperty(`translate`, translation)
 				if (!positioned) {
 					positioned = true
 					const visibility = original!.get(`visibility`)!
@@ -183,7 +186,8 @@ function attach(target: CapabilityTarget, scope?: Scope): CapabilityBinding {
 		element.style.setProperty(`position`, props.strategy ?? `absolute`)
 		element.style.setProperty(`left`, `0px`)
 		element.style.setProperty(`top`, `0px`)
-		if (!positioned) element.style.setProperty(`visibility`, `hidden`)
+		if (positioned) element.style.setProperty(`translate`, translation)
+		else element.style.setProperty(`visibility`, `hidden`, `important`)
 		reference = nextReference
 		observing =
 			typeof nextObserving === `object` ? { ...nextObserving } : nextObserving

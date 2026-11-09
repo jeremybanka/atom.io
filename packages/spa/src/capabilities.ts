@@ -13,7 +13,8 @@ export interface CapabilityTarget {
 export interface CapabilityBinding {
 	exit?(props: Record<string, unknown>): ExitHandle | undefined
 	resume?(): void
-	update(props: Record<string, unknown>): void
+	/** Reapply owned styles when the DOM renderer replaced its inline style attribute. */
+	update(props: Record<string, unknown>, styleChanged?: boolean): void
 	dispose(): void
 }
 export interface Capability {
@@ -48,6 +49,7 @@ export function capabilityProps(
 	scope: Scope,
 	target: CapabilityTarget,
 	read?: () => Record<string, any>,
+	applyNative?: (props: Record<string, any>) => boolean,
 ): (props: Record<string, any>) => Record<string, any> {
 	const bindings = new Map<string, CapabilityBinding>()
 
@@ -83,6 +85,7 @@ export function capabilityProps(
 			group[key.slice(namespace.length + 1)] = props[key]
 			groups.set(namespace, group)
 		}
+		const styleChanged = applyNative?.(native)
 		for (const [namespace, values] of groups) {
 			let binding = bindings.get(namespace)
 			if (!binding) {
@@ -95,7 +98,8 @@ export function capabilityProps(
 					namespace,
 				)
 			}
-			binding.update(values)
+			if (styleChanged) binding.update(values, true)
+			else binding.update(values)
 		}
 		for (const [namespace, binding] of bindings)
 			if (!groups.has(namespace)) {

@@ -47,7 +47,10 @@ export function merge(
 					.reverse()
 					.find((source) => Object.hasOwn(source, key))?.[key],
 			ownKeys: () => [...new Set(values().flatMap(Object.keys))],
-			getOwnPropertyDescriptor: () => ({ enumerable: true, configurable: true }),
+			getOwnPropertyDescriptor: (_, key) =>
+				values().some((source) => Object.hasOwn(source, key))
+					? { enumerable: true, configurable: true }
+					: undefined,
 		},
 	)
 }

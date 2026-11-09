@@ -339,6 +339,46 @@ describe(`spa compiled DOM`, () => {
 		root.flush()
 		expect(host.textContent).toBe(`21`)
 	})
+	it(`preserves SVG and HTML defaults through reactive component prop forwarding`, () => {
+		const { silo, host, mount } = fixture()
+		type Props = { viewBox?: string | undefined; title?: string | undefined }
+		const propsAtom = silo.atom<Props>({ key: `props`, default: {} })
+		function Logo(props: Props) {
+			return <svg viewBox="0 0 500 101" {...props} />
+		}
+		function Button(props: Props) {
+			return <button title="default" {...props} />
+		}
+		function Wrapper(props: Props) {
+			return (
+				<>
+					<Logo {...props} />
+					<Button {...props} />
+				</>
+			)
+		}
+		function App() {
+			const getProps = useGetter(propsAtom)
+			return <Wrapper {...getProps()} />
+		}
+		const root = mount(() => <App />)
+		const svg = host.querySelector(`svg`)!
+		const button = host.querySelector(`button`)!
+		expect(svg.getAttribute(`viewBox`)).toBe(`0 0 500 101`)
+		expect(button.title).toBe(`default`)
+		silo.setState(propsAtom, { title: `override` })
+		root.flush()
+		expect(svg.getAttribute(`viewBox`)).toBe(`0 0 500 101`)
+		expect(button.title).toBe(`override`)
+		silo.setState(propsAtom, { viewBox: undefined, title: undefined })
+		root.flush()
+		expect(svg.hasAttribute(`viewBox`)).toBe(false)
+		expect(button.title).toBe(``)
+		silo.setState(propsAtom, {})
+		root.flush()
+		expect(svg.getAttribute(`viewBox`)).toBe(`0 0 500 101`)
+		expect(button.title).toBe(`default`)
+	})
 	it(`updates spread keys, styles, boolean attributes and event handlers`, () => {
 		const { silo, host, mount } = fixture()
 		const first = vi.fn()

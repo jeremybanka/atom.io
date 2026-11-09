@@ -268,16 +268,20 @@ export function createThreeEvents(
 			if (event.type === `pointerup`) {
 				const down = pressed.get(event.pointerId)
 				pressed.delete(event.pointerId)
-				if (down && down.node !== delivery?.node)
-					dispatch(`pointercancel`, down, event)
-				if (delivery) dispatch(`pointerup`, delivery, event)
-				if (down && down.node === hit?.node && event.button === 0)
-					dispatch(`click`, hit, event)
-				captures.delete(event.pointerId)
-				nativeCapture(event.pointerId)
-				if (event.pointerType === `touch`) {
-					hover(event)
-					last.delete(event.pointerId)
+				try {
+					// Capture may belong to an ancestor of the original hit.
+					if (down && !capture && down.node !== hit?.node)
+						dispatch(`pointercancel`, down, event)
+					if (delivery) dispatch(`pointerup`, delivery, event)
+					if (down && down.node === hit?.node && event.button === 0)
+						dispatch(`click`, hit, event)
+				} finally {
+					captures.delete(event.pointerId)
+					nativeCapture(event.pointerId)
+					if (event.pointerType === `touch`) {
+						hover(event)
+						last.delete(event.pointerId)
+					}
 				}
 			} else if (delivery) dispatch(event.type, delivery, event)
 		} catch (error) {

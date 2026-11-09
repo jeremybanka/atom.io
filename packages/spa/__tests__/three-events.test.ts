@@ -246,6 +246,87 @@ it(`routes explicit capture off-canvas, exposes capture ownership, and only clic
 	f.send(`pointerup`, { button: 2 })
 	expect(click).toHaveBeenCalledOnce()
 })
+it.each([`mouse`, `touch`])(
+	`releases ancestor %s capture without cancellation`,
+	(pointerType) => {
+		for (const destination of [`original`, `other`, `outside`]) {
+			const f = fixture()
+			const seen: string[] = []
+			let down!: ThreePointerEvent
+			listenThree(f.group, `pointerdown`, (event) => {
+				seen.push(event.type)
+				down = event
+				event.setPointerCapture()
+			})
+			const up = vi.fn((event: ThreePointerEvent) => {
+				expect(event.target).toBe(f.group)
+				expect(event.hasPointerCapture()).toBe(true)
+				seen.push(event.type)
+			})
+			const click = vi.fn()
+			listenThree(f.group, `pointerup`, up)
+			listenThree(f.group, `pointercancel`, (event) => seen.push(event.type))
+			listenThree(f.group, `click`, click)
+			const move = vi.fn()
+			listenThree(f.group, `pointermove`, move)
+			f.send(`pointerdown`, { pointerType })
+			if (destination === `other`) {
+				const other = new THREE.Mesh(f.mesh.geometry, f.mesh.material)
+				f.scene.add(other)
+				f.mesh.position.x = 20
+			}
+			f.send(`pointerup`, {
+				pointerType,
+				buttons: 0,
+				clientX: destination === `outside` ? 400 : 120,
+			})
+			expect(seen).toEqual([`pointerdown`, `pointerup`])
+			expect(up).toHaveBeenCalledOnce()
+			expect(click).toHaveBeenCalledTimes(destination === `original` ? 1 : 0)
+			expect(f.captured.size).toBe(0)
+			expect(down.hasPointerCapture()).toBe(false)
+			f.send(`lostpointercapture`, { pointerType })
+			f.send(`pointermove`, { pointerType, clientX: 400 })
+			expect(move).not.toHaveBeenCalled()
+			expect(seen).toEqual([`pointerdown`, `pointerup`])
+			expect(f.onError).not.toHaveBeenCalled()
+		}
+	},
+)
+it.each([`mouse`, `touch`])(
+	`cleans ancestor %s capture on cancellation, removal, and disposal`,
+	(pointerType) => {
+		for (const end of [
+			`pointercancel`,
+			`lostpointercapture`,
+			`remove`,
+			`dispose`,
+		]) {
+			const f = fixture()
+			let down!: ThreePointerEvent
+			listenThree(f.group, `pointerdown`, (event) => {
+				down = event
+				event.setPointerCapture()
+			})
+			const cancel = vi.fn()
+			const up = vi.fn()
+			listenThree(f.group, `pointercancel`, cancel)
+			listenThree(f.group, `pointerup`, up)
+			f.send(`pointerdown`, { pointerType })
+			if (end === `remove`) f.manager.remove(f.group)
+			else if (end === `dispose`) f.manager.dispose()
+			else f.send(end, { pointerType })
+			expect(cancel).toHaveBeenCalledTimes(end === `dispose` ? 0 : 1)
+			expect(f.captured.size).toBe(0)
+			expect(down.hasPointerCapture()).toBe(false)
+			f.send(`lostpointercapture`, { pointerType })
+			f.send(`pointerup`, { pointerType, buttons: 0, clientX: 400 })
+			expect(cancel).toHaveBeenCalledTimes(end === `dispose` ? 0 : 1)
+			expect(up).not.toHaveBeenCalled()
+			expect(f.onError).not.toHaveBeenCalled()
+		}
+	},
+)
 it(`releases capture explicitly and cancels a press released outside or lost by the browser`, () => {
 	const f = fixture()
 	const cancel = vi.fn()
@@ -420,3 +501,29 @@ it(`releases native capture and all listener state even when removal handlers fa
 	f.send(`pointermove`)
 	expect(f.onError).not.toHaveBeenCalled()
 })
+
+it.each([`pointerup`, `click`])(
+	`releases ancestor capture when a %s handler throws`,
+	(type) => {
+		const f = fixture()
+		let down!: ThreePointerEvent
+		listenThree(f.group, `pointerdown`, (event) => {
+			down = event
+			event.setPointerCapture()
+		})
+		listenThree(f.group, type, () => {
+			throw new Error(type)
+		})
+		const cancel = vi.fn()
+		listenThree(f.group, `pointercancel`, cancel)
+		f.send(`pointerdown`, { pointerType: `touch` })
+		f.send(`pointerup`, { pointerType: `touch`, buttons: 0 })
+		expect(f.onError).toHaveBeenCalledExactlyOnceWith(
+			expect.objectContaining({ message: type }),
+		)
+		expect(f.captured.size).toBe(0)
+		expect(down.hasPointerCapture()).toBe(false)
+		f.send(`lostpointercapture`)
+		expect(cancel).not.toHaveBeenCalled()
+	},
+)

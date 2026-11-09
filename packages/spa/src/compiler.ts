@@ -183,14 +183,23 @@ export function compile(
 			} else
 				throw new SyntaxError(`${filename}: JSX spread children are unsupported`)
 		}
-		if (children.length)
-			properties.push([
-				lazyChildren ? `get children(){ return ` : `children: `,
-				...(children.length === 1
-					? children[0]
-					: [`[`, ...join(children, `, `), `]`]),
-				...(lazyChildren ? [`; }`] : []),
-			])
+		if (children.length) {
+			const value =
+				children.length === 1 ? children[0] : [`[`, ...join(children, `, `), `]`]
+			if (lazyChildren) {
+				// Capture the computation outside the getter's method scope.
+				const read = uid(`children`)
+				properties.push([`get children(){ return ${read}(); }`])
+				chunks.push([
+					`((${read}) => ({`,
+					...join(properties, `, `),
+					`}))(() => (`,
+					...value,
+					`))`,
+				])
+				properties = []
+			} else properties.push([`children: `, ...value])
+		}
 		flush()
 		const spreads =
 			node.type === `JSXElement` &&

@@ -95,6 +95,59 @@ describe(`Oxc JSX compiler`, () => {
 		expect(nodes[4].props.children(`named `)).toBe(`named next`)
 	})
 
+	it.each([``, `{...{ title: 'label' }} key={this.value}`])(
+		`preserves lexical this and lazy reads in component children: %s`,
+		(attributes) => {
+			const { view } = evaluate(`
+			const _children = 'suffix';
+			const Label = (props: { children: string }) => props.children.toUpperCase();
+			export const view = {
+				value: 'first',
+				reads: 0,
+				read() { this.reads++; return this.value; },
+				render() { return <Label ${attributes}>{this.read() + _children}</Label>; },
+			};
+		`)
+			const node = view.render()
+			expect(view.reads).toBe(0)
+			expect(node.type(node.props)).toBe(`FIRSTSUFFIX`)
+			expect(view.reads).toBe(1)
+			expect(node.props.key).toBe(attributes ? `first` : undefined)
+			view.value = `next`
+			expect(node.type(node.props)).toBe(`NEXTSUFFIX`)
+			expect(view.reads).toBe(2)
+			expect(node.props.key).toBe(attributes ? `first` : undefined)
+		},
+	)
+
+	it(`preserves constructor context in mixed component children`, () => {
+		const { View } = evaluate(`
+			const Label = (props: unknown) => props;
+			class Base { label() { return 'base'; } }
+			export class View extends Base {
+				value: string;
+				node: unknown;
+				constructor(value: string) {
+					super();
+					this.value = value;
+					this.node = <Label>{this.value}{arguments[0]}{new.target.name}{super.label()}{() => this.value}{<span>{this.value}</span>}</Label>;
+				}
+			}
+		`)
+		const view = new View(`first`)
+		const children = view.node.props.children
+		expect(children.slice(0, 4)).toEqual([`first`, `first`, `View`, `base`])
+		view.value = `next`
+		expect(children[4]()).toBe(`next`)
+		expect(children[5].props.children()).toBe(`next`)
+		expect(view.node.props.children.slice(0, 4)).toEqual([
+			`next`,
+			`first`,
+			`View`,
+			`base`,
+		])
+	})
+
 	it(`keeps motion exit props and conditional keyed children live`, () => {
 		const { App, update } = evaluate(`
    let visible = true, distance = 10, spread = { 'motion:exit': { x: -1 } };

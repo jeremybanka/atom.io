@@ -54,6 +54,8 @@ The component body runs once. A read during setup captures a snapshot; a read in
 
 Props remain live through getters. Destructuring them during setup captures their current values. Hook token arguments are fixed for a mounted instance; use a new keyed component instance when its token must change.
 
+Component children follow the same getter contract as named props. A component declaring string children reads a string for both literal text and expression children, including an explicit children attribute. Read props.children inside compiled JSX or a tracked binding for reactive updates; setup reads capture a snapshot. Deliberately function-valued children remain functions, including render callbacks.
+
 ## rendering
 
 Astro handles rendering and hydration for its islands. These APIs are for application shells, standalone Vite entrypoints, and custom server rendering.

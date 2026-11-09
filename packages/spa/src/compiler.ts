@@ -161,7 +161,11 @@ export function compile(
 				}
 			}
 		}
+		const component =
+			node.type === `JSXElement` &&
+			!tag(node.openingElement.name).startsWith(`"`)
 		const children: Part[][] = []
+		let lazyChildren = false
 		for (const child of node.children) {
 			if (child.type === `JSXText`) {
 				const value = text(decodeJsx(child.value))
@@ -169,17 +173,23 @@ export function compile(
 			} else if (child.type === `JSXElement` || child.type === `JSXFragment`)
 				children.push([child])
 			else if (child.type === `JSXExpressionContainer`) {
-				if (child.expression.type !== `JSXEmptyExpression`)
-					children.push(expression(child.expression))
+				if (child.expression.type !== `JSXEmptyExpression`) {
+					if (component) {
+						// Component props expose their declared values, including callbacks.
+						children.push([`(`, child.expression, `)`])
+						if (!eager(child.expression, true)) lazyChildren = true
+					} else children.push(expression(child.expression))
+				}
 			} else
 				throw new SyntaxError(`${filename}: JSX spread children are unsupported`)
 		}
 		if (children.length)
 			properties.push([
-				`children: `,
+				lazyChildren ? `get children(){ return ` : `children: `,
 				...(children.length === 1
 					? children[0]
 					: [`[`, ...join(children, `, `), `]`]),
+				...(lazyChildren ? [`; }`] : []),
 			])
 		flush()
 		const spreads =

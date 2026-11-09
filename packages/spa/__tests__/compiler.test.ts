@@ -62,6 +62,39 @@ describe(`Oxc JSX compiler`, () => {
 		expect(node.props.children[0]()).toBe(2)
 	})
 
+	it(`exposes component expression children as values and preserves render callbacks`, () => {
+		const { App, update, reads, callback, UI } = evaluate(`
+			let value = 'first', count = 0;
+			const read = () => { count++; return value; };
+			export const callback = (prefix: string) => prefix + value;
+			export const reads = () => count;
+			export const update = () => { value = 'next'; };
+			export const UI = { Label: (props: { children: string }) => props.children.toUpperCase() };
+			export const App = () => <>
+				<UI.Label>literal</UI.Label>
+				<UI.Label>{read()}</UI.Label>
+				<UI.Label children={read()} />
+				<UI.Label>{read()}{value}</UI.Label>
+				<UI.Label>{callback}</UI.Label>
+				<UI.Label>{(prefix: string) => prefix + value}</UI.Label>
+			</>;
+		`)
+		const nodes = App().props.children
+		expect(reads()).toBe(0)
+		expect(nodes[0].props.children).toBe(`literal`)
+		expect(UI.Label(nodes[1].props)).toBe(`FIRST`)
+		expect(nodes[2].props.children).toBe(`first`)
+		expect(nodes[3].props.children).toEqual([`first`, `first`])
+		expect(nodes[4].props.children).toBe(callback)
+		expect(nodes[5].props.children(`inline `)).toBe(`inline first`)
+		update()
+		expect(UI.Label(nodes[1].props)).toBe(`NEXT`)
+		expect(nodes[2].props.children).toBe(`next`)
+		expect(nodes[3].props.children).toEqual([`next`, `next`])
+		expect(nodes[4].props.children).toBe(callback)
+		expect(nodes[4].props.children(`named `)).toBe(`named next`)
+	})
+
 	it(`keeps motion exit props and conditional keyed children live`, () => {
 		const { App, update } = evaluate(`
    let visible = true, distance = 10, spread = { 'motion:exit': { x: -1 } };

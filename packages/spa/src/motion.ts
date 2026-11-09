@@ -464,7 +464,7 @@ function attach(
 			installGestures()
 			refresh(true)
 		},
-		update(next, styleChanged) {
+		update(next, previousStyle) {
 			if (dead) return
 			for (const key of Object.keys(next))
 				if (!allowed.has(key))
@@ -475,7 +475,16 @@ function attach(
 				Boolean(next[`whileTap`]) !== Boolean(props[`whileTap`])
 			props = next
 			if (gestureChange && !exiting) installGestures()
-			if (styleChanged && started && element) bindStyles()
+			if (previousStyle !== undefined && started && element) {
+				const snapshot = element.ownerDocument.createElement(`div`).style
+				snapshot.cssText = previousStyle
+				for (const key of originalStyles.keys())
+					element.style.setProperty(
+						key,
+						snapshot.getPropertyValue(key),
+						snapshot.getPropertyPriority(key),
+					)
+			}
 			refresh()
 		},
 		dispose() {

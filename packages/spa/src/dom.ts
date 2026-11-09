@@ -347,7 +347,10 @@ function mount(
 		{ kind: `dom`, node: element },
 		() => ({ ...props }),
 		(next) => {
-			const styleChanged = previous[`style`] !== next[`style`]
+			const previousStyle =
+				previous[`style`] !== next[`style`]
+					? (element.getAttribute(`style`) ?? ``)
+					: undefined
 			for (const key in { ...previous, ...next })
 				if (
 					!Object.is(previous[key], next[key]) ||
@@ -357,7 +360,7 @@ function mount(
 					previous[key] = next[key]
 				}
 			previous = next
-			return styleChanged
+			return previousStyle
 		},
 	)
 	owner._cleanups.add(() => {

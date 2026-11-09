@@ -178,6 +178,9 @@ it.each([true, false])(
 		let resolvePosition!: (value: { x: number; y: number }) => void
 		try {
 			const panel = host.querySelector(`div`)!
+			// Replace styles before Motion's first render as well as after it settles.
+			silo.setState(colorAtom, `green`)
+			root.flush()
 			await vi.waitFor(() => {
 				expect(panel.style.transform).toContain(`scale(0.8)`)
 			})
@@ -195,9 +198,7 @@ it.each([true, false])(
 			expect(panel.style.left).toBe(`0px`)
 			expect(panel.style.top).toBe(`0px`)
 			expect(panel.style.translate).toBe(`120px 60px`)
-			await vi.waitFor(() => {
-				expect(panel.style.transform).toBe(transform)
-			})
+			expect(panel.style.transform).toBe(transform)
 			expect(engine.observe).toHaveBeenCalledOnce()
 			resolvePosition({ x: 240, y: 80 })
 			await settle()
@@ -209,9 +210,7 @@ it.each([true, false])(
 			expect(panel.style.color).toBe(``)
 			expect(panel.style.position).toBe(`absolute`)
 			expect(panel.style.translate).toBe(`240px 80px`)
-			await vi.waitFor(() => {
-				expect(panel.style.transform).toBe(transform)
-			})
+			expect(panel.style.transform).toBe(transform)
 		} finally {
 			root.dispose()
 		}

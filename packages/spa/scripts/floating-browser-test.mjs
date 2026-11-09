@@ -102,8 +102,26 @@ try {
 		assert.ok(Math.abs(initial.rotation + 8) < 0.001)
 		// Native inline-style replacement must retain settled Motion values and anchoring.
 		const originalColor = await original.evaluate((node) => node.style.color)
-		await page.locator(`#color`).click()
-		await page.evaluate(() => new Promise(requestAnimationFrame))
+		const beforePaint = await page.locator(`#color`).evaluate(
+			(button) =>
+				new Promise((finish) => {
+					requestAnimationFrame(() => {
+						button.click()
+						queueMicrotask(() => {
+							const style = getComputedStyle(document.querySelector(`#overlay`))
+							const matrix = new DOMMatrixReadOnly(style.transform)
+							finish({
+								position: style.position,
+								scale: Math.hypot(matrix.a, matrix.b),
+								rotation: (Math.atan2(matrix.b, matrix.a) * 180) / Math.PI,
+							})
+						})
+					})
+				}),
+		)
+		assert.equal(beforePaint.position, `fixed`)
+		assert.ok(Math.abs(beforePaint.scale - initial.scale) < 0.001)
+		assert.ok(Math.abs(beforePaint.rotation - initial.rotation) < 0.001)
 		await waitAnchored()
 		const recolored = await measure()
 		assert.equal(recolored.position, `fixed`)

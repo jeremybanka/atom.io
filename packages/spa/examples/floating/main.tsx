@@ -16,7 +16,7 @@ const movedAtom = silo.atom<boolean>({ key: `moved`, default: false })
 const alternateAtom = silo.atom<boolean>({ key: `alternate`, default: false })
 const transformedAtom = silo.atom<boolean>({ key: `transformed`, default: true })
 const enabledAtom = silo.atom<boolean>({ key: `enabled`, default: true })
-const fixedAtom = silo.atom<boolean>({ key: `fixed`, default: true })
+const fixedAtom = silo.atom<boolean>({ key: `fixed`, default: false })
 const tintedAtom = silo.atom<boolean>({ key: `tinted`, default: false })
 const anchorAtom = silo.atom<HTMLButtonElement | null>({
 	key: `anchor`,
@@ -74,7 +74,9 @@ function FloatingLab() {
 				<button
 					id="alternate"
 					onClick={() => {
-						setAlternate((value) => !value)
+						const alternate = !getAlternate()
+						setAlternate(alternate)
+						setFixed(alternate)
 					}}
 				>
 					Switch anchor
@@ -122,40 +124,40 @@ function FloatingLab() {
 					>
 						Scroll around me
 					</button>
+					{getOpen() && (
+						<aside
+							key="overlay"
+							id="overlay"
+							aria-label="Floating preview"
+							style={getTinted() ? `color: #a7e5da` : undefined}
+							floating:reference={getAlternate() ? getCorner() : getAnchor()}
+							floating:enabled={getEnabled()}
+							floating:placement="bottom-start"
+							floating:strategy={getFixed() ? `fixed` : `absolute`}
+							floating:middleware={middleware}
+							floating:autoUpdate={{ animationFrame: true }}
+							motion:initial={{ opacity: 0, y: -8, scale: 0.8, rotate: -8 }}
+							motion:animate={{
+								opacity: 1,
+								y: getTransformed() ? -8 : 0,
+								scale: getTransformed() ? 0.8 : 1,
+								rotate: getTransformed() ? -8 : 0,
+							}}
+							motion:exit={{ opacity: 0, y: -20, scale: 0.6, rotate: -16 }}
+							motion:transition={{ type: `tween`, duration: 0.6 }}
+						>
+							<strong>Anchored and animated</strong>
+							<p>
+								Scroll, move the anchor, or interrupt an exit. This card has no
+								positioning wrapper.
+							</p>
+						</aside>
+					)}
 				</div>
 			</div>
 			<button id="corner" ref={attachCorner}>
 				Corner anchor
 			</button>
-			{getOpen() && (
-				<aside
-					key="overlay"
-					id="overlay"
-					aria-label="Floating preview"
-					style={getTinted() ? `color: #a7e5da` : undefined}
-					floating:reference={getAlternate() ? getCorner() : getAnchor()}
-					floating:enabled={getEnabled()}
-					floating:placement="bottom-start"
-					floating:strategy={getFixed() ? `fixed` : `absolute`}
-					floating:middleware={middleware}
-					floating:autoUpdate={{ animationFrame: true }}
-					motion:initial={{ opacity: 0, y: -8, scale: 0.8, rotate: -8 }}
-					motion:animate={{
-						opacity: 1,
-						y: getTransformed() ? -8 : 0,
-						scale: getTransformed() ? 0.8 : 1,
-						rotate: getTransformed() ? -8 : 0,
-					}}
-					motion:exit={{ opacity: 0, y: -20, scale: 0.6, rotate: -16 }}
-					motion:transition={{ type: `tween`, duration: 0.6 }}
-				>
-					<strong>Anchored and animated</strong>
-					<p>
-						Scroll, move the anchor, or interrupt an exit. This card has no
-						positioning wrapper.
-					</p>
-				</aside>
-			)}
 		</>
 	)
 }

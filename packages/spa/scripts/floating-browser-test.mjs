@@ -43,6 +43,10 @@ try {
 				const [x, y] = style.translate.split(` `).map(parseFloat)
 				const matrix = new DOMMatrixReadOnly(style.transform)
 				const rect = node.getBoundingClientRect()
+				const origin =
+					style.position === `absolute`
+						? node.offsetParent.getBoundingClientRect()
+						: { left: 0, top: 0 }
 				const anchor = document.querySelector(`#anchor`).getBoundingClientRect()
 				const points = [
 					[0, 0],
@@ -59,14 +63,10 @@ try {
 					rotation: (Math.atan2(matrix.b, matrix.a) * 180) / Math.PI,
 					xError:
 						rect.x -
-						(x +
-							Math.min(...points.map((point) => point.x)) -
-							(style.position === `absolute` ? scrollX : 0)),
+						(x + Math.min(...points.map((point) => point.x)) + origin.left),
 					yError:
 						rect.y -
-						(y +
-							Math.min(...points.map((point) => point.y)) -
-							(style.position === `absolute` ? scrollY : 0)),
+						(y + Math.min(...points.map((point) => point.y)) + origin.top),
 					anchorX: anchor.left,
 					anchorY: anchor.bottom + 12,
 					position: style.position,
@@ -82,16 +82,13 @@ try {
 				const style = getComputedStyle(node)
 				const [x, y] = style.translate.split(` `).map(parseFloat)
 				const anchor = document.querySelector(`#anchor`).getBoundingClientRect()
+				const origin =
+					style.position === `absolute`
+						? node.offsetParent.getBoundingClientRect()
+						: { left: 0, top: 0 }
 				return (
-					Math.abs(
-						x - anchor.left - (style.position === `absolute` ? scrollX : 0),
-					) < 0.5 &&
-					Math.abs(
-						y -
-							anchor.bottom -
-							12 -
-							(style.position === `absolute` ? scrollY : 0),
-					) < 0.5
+					Math.abs(x + origin.left - anchor.left) < 0.5 &&
+					Math.abs(y + origin.top - anchor.bottom - 12) < 0.5
 				)
 			})
 		}
@@ -119,12 +116,12 @@ try {
 					})
 				}),
 		)
-		assert.equal(beforePaint.position, `fixed`)
+		assert.equal(beforePaint.position, `absolute`)
 		assert.ok(Math.abs(beforePaint.scale - initial.scale) < 0.001)
 		assert.ok(Math.abs(beforePaint.rotation - initial.rotation) < 0.001)
 		await waitAnchored()
 		const recolored = await measure()
-		assert.equal(recolored.position, `fixed`)
+		assert.equal(recolored.position, `absolute`)
 		assertComposed(recolored)
 		assert.ok(
 			Math.abs(recolored.scale - initial.scale) < 0.001,
@@ -142,7 +139,7 @@ try {
 		await page.evaluate(() => new Promise(requestAnimationFrame))
 		await waitAnchored()
 		const withoutInlineStyle = await measure()
-		assert.equal(withoutInlineStyle.position, `fixed`)
+		assert.equal(withoutInlineStyle.position, `absolute`)
 		assertComposed(withoutInlineStyle)
 		assert.ok(Math.abs(withoutInlineStyle.scale - initial.scale) < 0.001)
 		assert.ok(Math.abs(withoutInlineStyle.rotation - initial.rotation) < 0.001)
@@ -241,9 +238,9 @@ try {
 			scrollTo(0, 80)
 		})
 		await waitAnchored()
-		const absolute = await measure()
-		assert.equal(absolute.position, `absolute`)
-		assertComposed(absolute)
+		const fixed = await measure()
+		assert.equal(fixed.position, `fixed`)
+		assertComposed(fixed)
 		await page.evaluate(() => {
 			scrollTo(0, 0)
 		})

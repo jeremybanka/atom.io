@@ -1,5 +1,16 @@
 # @atom.io/spa
 
+## 0.0.6
+
+### Patch Changes
+
+- dfffe53: Deliver Three.js pointer releases to an ancestor capture owner without cancelling valid drags, preserve hit-based click eligibility, and release capture even if a release handler throws.
+- 934e565: Add an optional Floating UI capability that positions HTML overlays with CSS translate and composes with Motion transforms on the same element, including automatic position updates and cleanup through retained exits. Reactive inline style changes preserve positioning and Motion values, and pending overlays stay hidden against author !important visibility rules until their first position resolves.
+
+  Refresh the debugger's generated serving-size documentation for the updated SPA runtime.
+- 3281c91: Expose expression children to components through live property getters so declared text and array props receive their advertised values, preserve deliberately function-valued children and lexical expression context, and document the children prop contract.
+- 48e8271: Preserve component and element defaults through nested prop spreads by reporting only properties present in a current source, while retaining lazy updates and explicit undefined overrides. Refresh the generated SPA and devtools browser bundle size reports.
+
 ## 0.0.5
 
 ### Patch Changes

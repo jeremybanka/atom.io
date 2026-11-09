@@ -48,6 +48,8 @@ For manual setup, see the [Astro](https://atom.io.fyi/docs/spa/astro) and [Vite]
 
 Name the getter and setter after the atom: pointAtom uses getPoint and setPoint. The getPoint getter returns the current object. Each JSX attribute reads its coordinate when evaluated. Both bindings depend on the point atom, and unchanged primitive results skip DOM writes. Reads during setup are snapshots; reads in event handlers are current and untracked. Shared derived state belongs in atom.io selectors.
 
+Component children follow the same getter contract as named props. A component declaring string children reads a string for both literal text and expression children, including an explicit children attribute. Read props.children inside compiled JSX or a tracked binding for reactive updates; setup reads capture a snapshot. Deliberately function-valued children remain functions, including render callbacks.
+
 ## Astro
 
 Register the Astro integration, which compiles .tsx and .jsx components by default:

@@ -71,6 +71,67 @@ describe(`spa compiled DOM`, () => {
 		expect(setups).toHaveBeenCalledTimes(1)
 	})
 
+	it(`keeps typed text children and render callbacks live through component wrappers`, () => {
+		const { silo, countAtom, host, mount } = fixture()
+		const setups = vi.fn()
+		function Label(props: { children: string }) {
+			setups()
+			expect(typeof props.children).toBe(`string`)
+			return <span>{props.children.toUpperCase()}</span>
+		}
+		function Wrapper(props: { children: string }) {
+			return <Label>{props.children}</Label>
+		}
+		function Pair(props: { children: string[] }) {
+			return <span>{props.children.join(`|`).toUpperCase()}</span>
+		}
+		function Callback(props: { children: (prefix: string) => string }) {
+			return <span>{props.children(`callback `)}</span>
+		}
+		function App() {
+			const getCount = useGetter(countAtom)
+			const callback = (prefix: string) => `${prefix}${getCount()}`
+			return (
+				<>
+					<Label>literal</Label>
+					<Label>{`expression ${getCount()}`}</Label>
+					<Label children={`explicit ${getCount()}`} />
+					<Wrapper>{`wrapped ${getCount()}`}</Wrapper>
+					<Pair>
+						{`pair ${getCount()}`}
+						{`second ${getCount()}`}
+					</Pair>
+					<Callback>{callback}</Callback>
+					<Callback>{(prefix) => `${prefix}${getCount()}`}</Callback>
+				</>
+			)
+		}
+		const root = mount(() => <App />)
+		const texts = () =>
+			[...host.querySelectorAll(`span`)].map((span) => span.textContent)
+		expect(texts()).toEqual([
+			`LITERAL`,
+			`EXPRESSION 0`,
+			`EXPLICIT 0`,
+			`WRAPPED 0`,
+			`PAIR 0|SECOND 0`,
+			`callback 0`,
+			`callback 0`,
+		])
+		silo.setState(countAtom, 1)
+		root.flush()
+		expect(texts()).toEqual([
+			`LITERAL`,
+			`EXPRESSION 1`,
+			`EXPLICIT 1`,
+			`WRAPPED 1`,
+			`PAIR 1|SECOND 1`,
+			`callback 1`,
+			`callback 1`,
+		])
+		expect(setups).toHaveBeenCalledTimes(4)
+	})
+
 	it(`keeps explicit numeric keys distinct from unkeyed positions`, () => {
 		const host = document.createElement(`section`)
 		const setup = () => (

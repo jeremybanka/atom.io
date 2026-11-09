@@ -48,7 +48,7 @@ jobs:
       - run: pnpm test:packaging
 
   BrowserSuites:
-    name: Browser Conformance (${{ matrix.name }})
+    name: Browser Tests (${{ matrix.name }})
     runs-on: ubuntu-26.04
     timeout-minutes: 9
     strategy:
@@ -56,17 +56,17 @@ jobs:
       matrix:
         include:
           - suite: editor
-            name: Realtime editor
+            name: Editor
             build_filters: --filter=@atom.io/realtime...
             directory: templates/react-realtime-text-editor
             playwright_module: "@playwright/test"
           - suite: spa
-            name: SPA and resumability
+            name: SPA
             build_filters: --filter=@atom.io/spa... --filter=resumability...
             directory: packages/spa
             playwright_module: playwright
           - suite: astro
-            name: Astro starter
+            name: Astro Starter
             build_filters: --filter=@atom.io/template-spa-astro-ssr^...
             directory: templates/spa-astro-ssr
             playwright_module: playwright
@@ -128,8 +128,8 @@ jobs:
       - run: pnpm --filter @atom.io/template-spa-astro-ssr test:browser
         if: matrix.suite == 'astro'
 
-  BrowserConformance:
-    name: Browser Conformance
+  BrowserTests:
+    name: Browser Tests
     needs: BrowserSuites
     if: always()
     runs-on: ubuntu-26.04

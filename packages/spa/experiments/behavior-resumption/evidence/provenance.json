@@ -1,0 +1,33 @@
+{
+	"pr": "https://github.com/jeremybanka/atom.io/pull/1465",
+	"head": "d0a655a9ec05982ffe7af26f9920a2d9dbf07182",
+	"sourceClean": true,
+	"node": "v24.22.1",
+	"cpu": "AMD EPYC 9V74 80-Core Processor",
+	"platform": "linux",
+	"arch": "x64",
+	"browser": "153.0.8010.0",
+	"qwik": "1.20.3",
+	"typescript": "7.0.2",
+	"profiles": {
+		"cpu": 6,
+		"latencyMs": 150,
+		"downloadBytesPerSecond": 200000,
+		"uploadBytesPerSecond": 93750
+	},
+	"bodyCompression": "gzip level 6",
+	"networkQuiet": "zero inflight requests, 500ms without request activity, after load",
+	"samples": {
+		"main": 30,
+		"scale": 18,
+		"early": 15,
+		"ssr": 90
+	},
+	"validation": {
+		"schemaTests": 2,
+		"browserAndGraphChecks": 11,
+		"typecheck": "pass with tsconfig.spike.json",
+		"fullMonorepo": "not run"
+	},
+	"timestamp": "2026-11-07T02:41:41.318Z"
+}

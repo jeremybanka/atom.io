@@ -1,0 +1,46 @@
+[
+	{
+		"name": "spa-eager: identical visible output",
+		"pass": true
+	},
+	{
+		"name": "resume-cold: identical visible output",
+		"pass": true
+	},
+	{
+		"name": "resume-preload: identical visible output",
+		"pass": true
+	},
+	{
+		"name": "cold: no code download or component setup before interaction",
+		"pass": true
+	},
+	{
+		"name": "server state restored; shared cart; untouched nodes preserved",
+		"pass": true
+	},
+	{
+		"name": "forty queued clicks during delayed import are retained",
+		"pass": true
+	},
+	{
+		"name": "removed button while import is pending does not update state",
+		"pass": true
+	},
+	{
+		"name": "missing snapshot surfaces an error, does not mutate; another card still works",
+		"pass": true
+	},
+	{
+		"name": "keyboard activation works through the same lazy click entry",
+		"pass": true
+	},
+	{
+		"name": "failed module download is surfaced; Chromium requires reload to recover",
+		"pass": true
+	},
+	{
+		"name": "handler imports atom.io; no SPA hydrate/core/server component in client graph",
+		"pass": true
+	}
+]

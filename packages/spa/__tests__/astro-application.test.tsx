@@ -75,6 +75,15 @@ it(`keeps bootstrap selector observers lazy and releases roots when the applicat
 	expect(compute).toHaveBeenCalledTimes(1)
 })
 
+it(`leaves a later default evaluator to its owner when the application closes`, () => {
+	const application = browserApplication(document)
+	const original = IMPLICIT.STORE.runDefault
+	const replacement: typeof original = (run) => original(run)
+	IMPLICIT.STORE.runDefault = replacement
+	application.dispose()
+	expect(IMPLICIT.STORE.runDefault).toBe(replacement)
+})
+
 it(`shares the normal atom.io graph, hydrates an initial root, and freshly mounts a delayed root after an edit`, async () => {
 	const countAtom = atom<number>({ key: `count`, default: 0 })
 	const App: Island = () => {

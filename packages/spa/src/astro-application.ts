@@ -17,7 +17,6 @@ export function browserApplication(
 	application = applicationContext()
 	const app = application
 	const store = IMPLICIT.STORE
-	const originalDefault = store.runDefault
 	applications.set(document, app)
 	const changed = () => {
 		app.canResume = false
@@ -64,7 +63,6 @@ export function browserApplication(
 		for (const unsubscribe of events) unsubscribe()
 		document.removeEventListener(`astro:before-swap`, changed)
 		document.defaultView?.removeEventListener(`pagehide`, pagehide)
-		store.runDefault = originalDefault
 		applications.delete(document)
 	})
 	return app

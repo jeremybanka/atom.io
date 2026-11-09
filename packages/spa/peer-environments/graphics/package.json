@@ -4,6 +4,7 @@
 	"private": true,
 	"type": "module",
 	"dependencies": {
+		"@floating-ui/dom": "1.8.0",
 		"@types/three": "0.187.0",
 		"konva": "10.9.1",
 		"motion": "14.10.1",
@@ -14,6 +15,8 @@
 		"typescript": "7.0.2"
 	},
 	"breakage": {
-		"candidates": ["atom.io"]
+		"candidates": [
+			"atom.io"
+		]
 	}
 }

@@ -1,4 +1,5 @@
 import { render } from "@atom.io/spa"
+import { floatingCapability } from "@atom.io/spa/floating"
 import { Circle, Layer, Stage } from "@atom.io/spa/konva"
 import { motionCapability } from "@atom.io/spa/motion"
 import {
@@ -71,3 +72,24 @@ const badExit = <Mesh motion:exit={{ position: [1, 2] }} />
 // @ts-expect-error: DOM exits accept scalar properties.
 const badDOMExit = <sliding-panel motion:exit={{ x: [1, 2, 3] }} />
 void [badExit, badDOMExit]
+
+const overlay = (
+	<div
+		floating:reference={document.createElement(`button`)}
+		floating:placement="bottom-start"
+		floating:strategy="fixed"
+		floating:middleware={[]}
+		floating:autoUpdate={{ animationFrame: true }}
+		motion:animate={{ scale: 0.9, y: -4 }}
+	/>
+)
+render(() => overlay, document.body, {
+	capabilities: [floatingCapability(), capability],
+})
+// @ts-expect-error: Placements use Floating UI's placement union.
+const badPlacement = <div floating:placement="somewhere" />
+// @ts-expect-error: The floating overlay must be an HTML element, not a Three.js node.
+const badSceneFloating = <Mesh floating:placement="bottom" />
+// @ts-expect-error: References are DOM or virtual elements.
+const badReference = <div floating:reference="anchor" />
+void [badPlacement, badSceneFloating, badReference]

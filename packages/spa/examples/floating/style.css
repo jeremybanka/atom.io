@@ -1,0 +1,70 @@
+:root {
+	font-family: system-ui, sans-serif;
+	color: #e9eef5;
+	background: #121824;
+}
+body {
+	margin: 32px;
+	min-height: 1300px;
+}
+h1 {
+	margin-bottom: 8px;
+}
+nav {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	margin: 24px 0;
+}
+button {
+	padding: 10px 14px;
+	border: 1px solid #627791;
+	border-radius: 8px;
+	background: #253449;
+	color: inherit;
+	cursor: pointer;
+}
+.scroller {
+	overflow: auto;
+	width: min(800px, 90vw);
+	height: 340px;
+	border: 1px solid #627791;
+	border-radius: 12px;
+}
+.stage {
+	position: relative;
+	width: 1200px;
+	height: 800px;
+	background:
+		repeating-linear-gradient(0deg, transparent 0 39px, #62779120 40px),
+		repeating-linear-gradient(90deg, transparent 0 39px, #62779120 40px);
+}
+#anchor {
+	position: absolute;
+	left: 280px;
+	top: 100px;
+	width: 160px;
+	height: 44px;
+}
+#corner {
+	position: fixed;
+	right: 8px;
+	bottom: 8px;
+}
+#overlay {
+	width: 240px;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 20px;
+	border: 1px solid #a7e5da;
+	border-radius: 12px;
+	background: #254941;
+	box-shadow: 0 12px 30px #0005;
+	transform-origin: top left;
+}
+#overlay p {
+	margin-bottom: 0;
+}
+#dispose {
+	margin-top: 20px;
+}

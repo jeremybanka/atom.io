@@ -26,6 +26,7 @@ const config: BreakageConfig = defineConfig({
 			astro: suite,
 			resumability: suite,
 			motion: graphicsSuite,
+			"@floating-ui/dom": graphicsSuite,
 			three: graphicsSuite,
 			konva: graphicsSuite,
 			"@types/three": graphicsSuite,

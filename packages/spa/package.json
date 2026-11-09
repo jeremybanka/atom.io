@@ -84,6 +84,11 @@
 			"development": "./dist/development/motion.js",
 			"import": "./dist/motion.js"
 		},
+		"./floating": {
+			"types": "./dist/floating.d.ts",
+			"development": "./dist/development/floating.js",
+			"import": "./dist/floating.js"
+		},
 		"./astro-resumability-client": {
 			"types": "./dist/astro-resumability-client.d.ts",
 			"development": "./dist/development/astro-resumability-client.js",
@@ -125,6 +130,8 @@
 		"bench:compiler": "node scripts/compiler-benchmark.ts",
 		"example:motion": "vite --config examples/motion/vite.config.ts",
 		"test:browser:motion": "node scripts/motion-browser-test.mjs",
+		"example:floating": "vite --config examples/floating/vite.config.ts",
+		"test:browser:floating": "node scripts/floating-browser-test.mjs",
 		"test:browser:resumption": "astro build --root __tests__/resumption && node scripts/resumption-browser-test.mjs && node scripts/resumption-browser-test.mjs --dev"
 	},
 	"dependencies": {
@@ -134,6 +141,7 @@
 	},
 	"devDependencies": {
 		"@breakage/changesets": "0.1.0",
+		"@floating-ui/dom": "1.8.0",
 		"@jridgewell/trace-mapping": "0.3.31",
 		"@types/node": "26.6.6",
 		"@types/three": "0.187.0",
@@ -157,6 +165,7 @@
 		"vitest": "5.1.0"
 	},
 	"peerDependencies": {
+		"@floating-ui/dom": "^1.8.0",
 		"@types/three": "^0.187.0",
 		"astro": "^7.4.2",
 		"atom.io": "^0.54.4",
@@ -167,6 +176,9 @@
 		"vite": "^8.3.5"
 	},
 	"peerDependenciesMeta": {
+		"@floating-ui/dom": {
+			"optional": true
+		},
 		"@types/three": {
 			"optional": true
 		},

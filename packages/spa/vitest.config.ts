@@ -17,7 +17,7 @@ const config = defineOurVitestConfig({
 config.root = import.meta.dirname
 config.plugins = [spa()]
 config.resolve!.alias = [
-	...[`motion`, `three`, `konva`].map((name) => ({
+	...[`floating`, `motion`, `three`, `konva`].map((name) => ({
 		find: `@atom.io/spa/${name}`,
 		replacement: resolve(import.meta.dirname, `src/${name}.ts`),
 	})),

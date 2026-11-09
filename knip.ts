@@ -13,6 +13,8 @@ export default {
 				"scripts/readme/*.{ts,tsx}",
 			],
 			project: ["*.{ts,tsx,js,cjs,mjs}", "scripts/**/*.{ts,tsx,js,cjs,mjs}"],
+			// The browser matrix runs this binary in matrix.directory, outside the root workspace.
+			ignoreBinaries: ["playwright"],
 			ignoreDependencies: [
 				"@dprint/json",
 				"@dprint/markdown",
@@ -293,6 +295,7 @@ export default {
 				"src/konva.ts!",
 				"src/three.ts!",
 				"src/motion.ts!",
+				"src/floating.ts!",
 				"src/astro-resumability-client.ts!",
 				"src/astro-resumability-server.ts!",
 				"tsdown.config.ts",

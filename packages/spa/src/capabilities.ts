@@ -13,14 +13,16 @@ export interface CapabilityTarget {
 export interface CapabilityBinding {
 	exit?(props: Record<string, unknown>): ExitHandle | undefined
 	resume?(): void
-	update(props: Record<string, unknown>): void
+	/** Inline CSS before native style replacement, for restoring capability-owned values. */
+	update(props: Record<string, unknown>, previousStyle?: string): void
 	dispose(): void
 }
 export interface Capability {
 	namespace: string
 	presence?(root: Root): PresenceCoordinator
 	scheduleFrame?(callback: (time: number) => void): Cleanup
-	attach(target: CapabilityTarget): CapabilityBinding
+	/** SPA supplies ownership for integrations that measure after mount or report async errors. */
+	attach(target: CapabilityTarget, scope?: Scope): CapabilityBinding
 }
 
 export function capabilityNamespace(key: string): string | undefined {
@@ -47,6 +49,7 @@ export function capabilityProps(
 	scope: Scope,
 	target: CapabilityTarget,
 	read?: () => Record<string, any>,
+	applyNative?: (props: Record<string, any>) => string | undefined,
 ): (props: Record<string, any>) => Record<string, any> {
 	const bindings = new Map<string, CapabilityBinding>()
 
@@ -82,10 +85,11 @@ export function capabilityProps(
 			group[key.slice(namespace.length + 1)] = props[key]
 			groups.set(namespace, group)
 		}
+		const previousStyle = applyNative?.(native)
 		for (const [namespace, values] of groups) {
 			let binding = bindings.get(namespace)
 			if (!binding) {
-				binding = scope._root._capabilities.get(namespace)!.attach(target)
+				binding = scope._root._capabilities.get(namespace)!.attach(target, scope)
 				bindings.set(namespace, binding)
 				scope._root._presence?.bind(
 					scope,
@@ -94,7 +98,8 @@ export function capabilityProps(
 					namespace,
 				)
 			}
-			binding.update(values)
+			if (previousStyle !== undefined) binding.update(values, previousStyle)
+			else binding.update(values)
 		}
 		for (const [namespace, binding] of bindings)
 			if (!groups.has(namespace)) {

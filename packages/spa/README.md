@@ -456,11 +456,11 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                           | Entry                             | Minified JS |  Gzip JS |
 | -------------------------------- | --------------------------------- | ----------: | -------: |
-| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    64,060 B | 19,095 B |
-| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    42,485 B | 13,338 B |
-| Interactive client app           | `tonnage-recipes/client-app.ts`   |    42,148 B | 13,186 B |
-| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    42,149 B | 13,183 B |
-| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    48,664 B | 15,231 B |
+| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    64,161 B | 19,153 B |
+| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    42,586 B | 13,386 B |
+| Interactive client app           | `tonnage-recipes/client-app.ts`   |    42,249 B | 13,236 B |
+| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    42,250 B | 13,234 B |
+| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    48,765 B | 15,286 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 
@@ -710,6 +710,103 @@ During exit, reactive attributes, child reconciliation, user events, gestures, a
 Exit props and transition settings are read at logical removal; later state changes do not retarget an exiting subtree. Exits use the same transition as animate, defaulting to a spring. Explicit durations, visualDuration, and delays must be finite and nonnegative; velocity must be finite, bounce must be in the range \[0, 1), and stiffness, damping, mass, restDelta, and restSpeed must be finite and positive so exits can settle. Reduced motion skips retention; enabling it during an exit completes that exit. Server rendering omits capability attributes and never starts exits; hydration attaches them for later removals.
 
 Root disposal and fatal errors bypass exits, stop active work, and release resources immediately. Stale animation completions cannot dispose a revived instance. This API covers exit retention and cancellation; layout/pop-layout animation, variants, presence wrappers, and automatic reparenting remain outside its scope.
+
+### Floating overlays with Motion
+
+The optional @atom.io/spa/floating entrypoint adapts @floating-ui/dom. Install Floating UI and Motion for this example, then register both capabilities on the root:
+
+```sh
+pnpm add @floating-ui/dom motion
+
+```
+
+```tsx
+import { render } from "@atom.io/spa"
+import { floatingCapability } from "@atom.io/spa/floating"
+import { motionCapability } from "@atom.io/spa/motion"
+
+import { FloatingDetails } from "./floating.tsx"
+
+render(() => <FloatingDetails id="details" />, document.getElementById(`app`)!, {
+	capabilities: [floatingCapability(), motionCapability()],
+})
+
+```
+
+Floating positions an HTML overlay using CSS translate. Motion can animate x, y, scale, rotation, and opacity on that same element through its separate transform property:
+
+```tsx
+import type { SpaElement } from "@atom.io/spa"
+import { useGetter, useId, useRef, useSetter } from "@atom.io/spa"
+import { flip, offset, shift } from "@floating-ui/dom"
+import { atomFamily } from "atom.io"
+
+const floatingOpenAtoms = atomFamily<boolean, string>({
+	key: `floatingOpen`,
+	default: false,
+})
+const floatingTriggerAtoms = atomFamily<HTMLButtonElement | null, string>({
+	key: `floatingTrigger`,
+	default: null,
+})
+const middleware = [offset(8), flip(), shift({ padding: 8 })]
+
+export function FloatingDetails(props: { id: string }): SpaElement {
+	const getOpen = useGetter(floatingOpenAtoms, props.id)
+	const setOpen = useSetter(floatingOpenAtoms, props.id)
+	const getTrigger = useGetter(floatingTriggerAtoms, props.id)
+	const attachTrigger = useRef(floatingTriggerAtoms, props.id)
+	const panelId = useId()
+	return (
+		<>
+			<button
+				ref={attachTrigger}
+				aria-expanded={getOpen()}
+				aria-controls={panelId}
+				onClick={() => {
+					setOpen((value) => !value)
+				}}
+			>
+				Details
+			</button>
+			{getOpen() && (
+				<section
+					key="details"
+					id={panelId}
+					aria-label="Details"
+					style="width: 240px; margin: 0"
+					floating:reference={getTrigger()}
+					floating:placement="bottom-start"
+					floating:middleware={middleware}
+					motion:initial={{ opacity: 0, y: -4, scale: 0.98 }}
+					motion:animate={{ opacity: 1, y: 0, scale: 1 }}
+					motion:exit={{ opacity: 0, y: -4, scale: 0.98 }}
+				>
+					More information about this item.
+				</section>
+			)}
+		</>
+	)
+}
+
+```
+
+| Attribute           | Behavior                                                                                            |
+| ------------------- | --------------------------------------------------------------------------------------------------- |
+| floating:reference  | A DOM or virtual reference; null releases positioning.                                              |
+| floating:placement  | Floating UI placement, defaulting to bottom.                                                        |
+| floating:strategy   | absolute or fixed, defaulting to absolute.                                                          |
+| floating:middleware | Standard Floating UI middleware such as offset, flip, and shift.                                    |
+| floating:enabled    | Defaults to true; set false when a mounted overlay is closed.                                       |
+| floating:autoUpdate | Defaults to true; accepts observer options, or false for positioning only on SPA attribute updates. |
+
+The capability waits for mount and ref publication before measuring, hides the overlay until its first position is available, and reconnects observers when its reference or observer options change. Updates from obsolete calculations are ignored. Server rendering omits floating attributes and starts no observers. Virtual references can supply getBoundingClientRect and an optional contextElement, as documented by Floating UI.
+
+Give the overlay a fixed width or width: max-content and avoid margins so measurement remains stable. Floating owns position, left, top, and translate while enabled, and temporarily owns visibility until the first measurement. Do not animate translate through Motion or assign those positioning properties through another style writer on the same element. Floating restores original inline values and priorities when disabled, removed, or disposed. Keyboard behavior, focus management, dismissal, and top-layer mounting remain application responsibilities.
+
+Reactive inline style changes preserve the current anchor position and Motion values while new measurements are pending. Temporary hiding uses !important until the first position is available, then restores the original inline visibility value and priority.
+
+Position updates continue during Motion's retained exits, until physical disposal. If the reference itself moves through transforms, enable animationFrame in floating:autoUpdate. Run the package's example:floating script for a scrollable experiment with same-element scaling and rotation, moving anchors, viewport collisions, positioning strategies, and interrupted exits. Its test:browser:floating script checks actual Chromium geometry in both capability registration orders.
 
 ### Renderer extensions
 

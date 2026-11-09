@@ -65,7 +65,7 @@ try {
 			`await import('@atom.io/spa'); await import('@atom.io/spa/jsx-runtime'); await import('@atom.io/spa/server');`,
 		])
 
-	for (const entry of [`index`, `konva`, `three`, `motion`]) {
+	for (const entry of [`index`, `konva`, `three`, `motion`, `floating`]) {
 		const output = await build({
 			stdin: {
 				contents: `export * from './dist/${entry}.js'`,
@@ -78,18 +78,25 @@ try {
 			format: `esm`,
 		})
 		const inputs = Object.keys(output.metafile.inputs)
-		const forbidden =
-			entry === `index`
-				? [`motion`, `framer-motion`, `konva`, `three`, `react`, `react-dom`]
-				: entry === `motion`
-					? [`konva`, `three`, `react`, `react-dom`]
-					: [
-							entry === `three` ? `konva` : `three`,
-							`motion`,
-							`framer-motion`,
-							`react`,
-							`react-dom`,
-						]
+		const allowed =
+			entry === `motion`
+				? [`motion`, `framer-motion`]
+				: entry === `floating`
+					? [`@floating-ui/dom`, `@floating-ui/core`, `@floating-ui/utils`]
+					: entry === `index`
+						? []
+						: [entry]
+		const forbidden = [
+			`motion`,
+			`framer-motion`,
+			`konva`,
+			`three`,
+			`@floating-ui/dom`,
+			`@floating-ui/core`,
+			`@floating-ui/utils`,
+			`react`,
+			`react-dom`,
+		].filter((peer) => !allowed.includes(peer))
 		for (const peer of forbidden)
 			assert.ok(
 				!inputs.some((input) => input.includes(`/node_modules/${peer}/`)),

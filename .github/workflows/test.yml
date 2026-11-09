@@ -4,7 +4,7 @@ on:
   push:
     branches: ["main"]
   pull_request:
-    types: [edited, opened, reopened, synchronize]
+    types: [opened, reopened, synchronize]
 
 permissions:
   contents: read
@@ -47,20 +47,39 @@ jobs:
       - run: pnpm run build
       - run: pnpm test:packaging
 
-  BrowserConformance:
-    name: Browser Conformance
+  BrowserSuites:
+    name: Browser Conformance (${{ matrix.name }})
     runs-on: ubuntu-26.04
     timeout-minutes: 9
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - suite: editor
+            name: Realtime editor
+            build_filters: --filter=@atom.io/realtime...
+            directory: templates/react-realtime-text-editor
+            playwright_module: "@playwright/test"
+          - suite: spa
+            name: SPA and resumability
+            build_filters: --filter=@atom.io/spa... --filter=resumability...
+            directory: packages/spa
+            playwright_module: playwright
+          - suite: astro
+            name: Astro starter
+            build_filters: --filter=@atom.io/template-spa-astro-ssr^...
+            directory: templates/spa-astro-ssr
+            playwright_module: playwright
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
         with:
           packages: bun node pnpm
-      - run: pnpm exec turbo run build --filter=@atom.io/realtime... --filter=@atom.io/spa... --filter=resumability... --filter=@atom.io/template-spa-astro-ssr...
+      - run: pnpm exec turbo run build ${{ matrix.build_filters }}
       - name: Resolve Playwright version
         id: playwright
-        working-directory: templates/react-realtime-text-editor
-        run: node -p '"version=" + require("@playwright/test/package.json").version' >> "$GITHUB_OUTPUT"
+        working-directory: ${{ matrix.directory }}
+        run: node -p '"version=" + require("${{ matrix.playwright_module }}/package.json").version' >> "$GITHUB_OUTPUT"
       - name: Restore Playwright browsers
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -69,13 +88,14 @@ jobs:
       # Keep the install on cache hits to verify the required browser and FFmpeg
       # are present. Headless tests do not need the full Chromium download.
       - name: Install Chromium headless shell
-        run: pnpm --filter @atom.io/template-react-realtime-text-editor exec playwright install --only-shell chromium
+        working-directory: ${{ matrix.directory }}
+        run: pnpm exec playwright install --only-shell chromium
       - name: Verify Chromium system dependencies
-        working-directory: templates/react-realtime-text-editor
+        working-directory: ${{ matrix.directory }}
         run: |
           check_browser() {
             node --input-type=module -e '
-              import { chromium } from "@playwright/test"
+              import { chromium } from "${{ matrix.playwright_module }}"
               const browser = await chromium.launch()
               await browser.close()
             '
@@ -87,11 +107,15 @@ jobs:
             check_browser
           fi
       - run: pnpm --filter @atom.io/template-react-realtime-text-editor test:browser
+        if: matrix.suite == 'editor'
       - run: pnpm --filter @atom.io/spa test:browser
+        if: matrix.suite == 'spa'
       - run: pnpm --filter @atom.io/spa test:browser:motion
+        if: matrix.suite == 'spa'
       - run: pnpm --filter @atom.io/spa test:browser:floating
+        if: matrix.suite == 'spa'
       - name: Upload motion capture
-        if: always()
+        if: always() && matrix.suite == 'spa'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: spa-motion-capture
@@ -100,7 +124,21 @@ jobs:
             /tmp/spa-motion-*.json
           retention-days: 7
       - run: pnpm --filter resumability test:browser
+        if: matrix.suite == 'spa'
       - run: pnpm --filter @atom.io/template-spa-astro-ssr test:browser
+        if: matrix.suite == 'astro'
+
+  BrowserConformance:
+    name: Browser Conformance
+    needs: BrowserSuites
+    if: always()
+    runs-on: ubuntu-26.04
+    timeout-minutes: 1
+    steps:
+      - name: Require all browser suites to pass
+        env:
+          RESULT: ${{ needs.BrowserSuites.result }}
+        run: test "$RESULT" = success
 
   Manifest:
     runs-on: ubuntu-26.04

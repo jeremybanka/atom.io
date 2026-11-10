@@ -15,15 +15,25 @@ const returnToTarget = (progress: number) =>
 /** Retarget a moving tween without changing its position or velocity at the join. */
 export function animateTween(
 	value: MotionValue<MotionScalar>,
-	goal: MotionScalar,
+	goal: MotionScalar | readonly (MotionScalar | null)[],
 	transition: ValueAnimationTransition,
 	interrupted: boolean,
 ): ReturnType<typeof animate> {
+	if (Array.isArray(goal)) {
+		value.stop()
+		trajectories.delete(value)
+		return animate(
+			value,
+			goal.map((frame) => frame ?? value.get()),
+			{ ...transition, isSync: true },
+		)
+	}
 	if (interrupted) value.stop()
 	const current = value.get()
 	const from =
 		typeof current === `number` ? [``, current, ``] : scalar.exec(current)
-	const to = typeof goal === `number` ? [``, goal, ``] : scalar.exec(goal)
+	const to =
+		typeof goal === `number` ? [``, goal, ``] : scalar.exec(goal as string)
 	const previous = trajectories.get(value)?.()
 	const velocity =
 		previous && from && Math.abs(previous.position - Number(from[1])) < 0.001

@@ -55,6 +55,12 @@ try {
 		await page.evaluate(() => window.graphics.inspect().rectWidth),
 		50,
 	)
+	await page.waitForFunction(() => {
+		const panel = document.querySelector(`#motion-panel`)
+		const x = new DOMMatrix(getComputedStyle(panel).transform).m41
+		return x > 0 && x < 100 && getComputedStyle(panel).width === `100px`
+	})
+	await page.screenshot({ path: `/tmp/spa-keyframe-banner.png` })
 	await page.evaluate(() => window.graphics.update())
 	const state = await page.evaluate(() => window.graphics.inspect())
 	await page.waitForFunction(

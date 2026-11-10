@@ -20,8 +20,20 @@ function App() {
 				id="motion-panel"
 				style="display: block; width: 100px; height: 40px"
 				motion:initial={{ x: 0 }}
-				motion:animate={{ x: getSize() }}
-				motion:transition={{ type: `spring`, stiffness: 180, damping: 22 }}
+				motion:animate={{
+					x: [null, getSize() * 0.2, getSize() * 0.7, getSize()],
+					width: [`20px`, `90px`, `90px`, `100px`],
+				}}
+				motion:transition={{
+					type: `tween`,
+					duration: 0.6,
+					times: [0, 0.1, 0.77, 1],
+					ease: [`circOut`, `linear`, `easeIn`],
+					properties: {
+						width: { duration: 0.15, ease: `linear` },
+						scale: { duration: 0.1, times: [0, 1], ease: `linear` },
+					},
+				}}
 				motion:whileHover={{ scale: 1.1 }}
 				motion:whileTap={{ scale: 0.9 }}
 			>

@@ -1,4 +1,4 @@
-import type { animate, MotionValue, ValueAnimationTransition } from "motion"
+import type { animate, MotionValue } from "motion"
 import {
 	cancelFrame,
 	frame,
@@ -14,9 +14,48 @@ import type {
 	CapabilityBinding,
 	CapabilityTarget,
 } from "./capabilities.ts"
+import { finalFrame, propertyTransition } from "./motion-transition.ts"
 import { animateTween } from "./motion-tween.ts"
 import type { ExitHandle } from "./presence.ts"
 import { createPresence } from "./presence.ts"
+
+export type MotionKeyframes = readonly [
+	MotionScalar | null,
+	MotionScalar,
+	...MotionScalar[],
+]
+export type MotionEasing =
+	| `linear`
+	| `easeIn`
+	| `easeOut`
+	| `easeInOut`
+	| `circIn`
+	| `circOut`
+	| `circInOut`
+	| `backIn`
+	| `backOut`
+	| `backInOut`
+	| readonly [number, number, number, number]
+/** Public options remain independent of optional Motion peer declarations. */
+export interface MotionValueTransition {
+	type?: `spring` | `tween`
+	stiffness?: number
+	damping?: number
+	mass?: number
+	velocity?: number
+	restSpeed?: number
+	restDelta?: number
+	bounce?: number
+	visualDuration?: number
+	duration?: number
+	delay?: number
+	times?: readonly number[]
+	ease?: MotionEasing | readonly MotionEasing[]
+}
+export interface MotionTransition extends MotionValueTransition {
+	default?: MotionValueTransition
+	properties?: Readonly<Record<string, MotionValueTransition>>
+}
 
 export type MotionScalar = number | string
 export type MotionDOMTarget = Partial<
@@ -35,7 +74,7 @@ export type MotionDOMTarget = Partial<
 		| `skewX`
 		| `skewY`
 		| `--${string}`,
-		MotionScalar
+		MotionScalar | MotionKeyframes
 	>
 >
 export interface MotionThreeTarget {
@@ -51,34 +90,12 @@ export type MotionTarget<Kind extends string> = Kind extends `dom`
 	: Kind extends `three`
 		? MotionThreeTarget
 		: Record<string, MotionScalar>
-/** Supported transition options; keep public declarations independent of optional peer types. */
-export interface MotionTransition {
-	type?: `spring` | `tween`
-	stiffness?: number
-	damping?: number
-	mass?: number
-	velocity?: number
-	restSpeed?: number
-	restDelta?: number
-	bounce?: number
-	visualDuration?: number
-	duration?: number
-	delay?: number
-	ease?:
-		| `linear`
-		| `easeIn`
-		| `easeOut`
-		| `easeInOut`
-		| `circIn`
-		| `circOut`
-		| `circInOut`
-		| `backIn`
-		| `backOut`
-		| `backInOut`
-		| readonly [number, number, number, number]
-}
 export interface MotionAttributes<Kind extends string = `dom`> {
-	[`motion:initial`]?: MotionTarget<Kind> | false
+	[`motion:initial`]?:
+		| (Kind extends `dom`
+				? Partial<Record<keyof MotionDOMTarget, MotionScalar>>
+				: MotionTarget<Kind>)
+		| false
 	[`motion:animate`]?: MotionTarget<Kind>
 	[`motion:exit`]?: MotionTarget<Kind>
 	[`motion:transition`]?: MotionTransition
@@ -98,12 +115,13 @@ export interface MotionCapabilityOptions {
 	/** Respect the user's reduced-motion preference by default. */
 	reducedMotion?: `user` | `always` | `never`
 }
-type TargetValues = Record<string, MotionScalar | readonly number[]>
+type TargetValue = MotionScalar | readonly (MotionScalar | null)[]
+type TargetValues = Record<string, TargetValue>
 interface AnimatedProperty {
 	values: MotionValue<MotionScalar>[]
-	base: MotionScalar | readonly number[]
-	rest: MotionScalar | readonly number[]
-	target: MotionScalar | readonly number[]
+	base: TargetValue
+	rest: TargetValue
+	target: TargetValue
 	release(): void
 }
 const transform =
@@ -176,33 +194,28 @@ function attach(
 	}
 	const ensure = (
 		key: string,
-		goal: MotionScalar | readonly number[],
+		goal: TargetValue,
 		initial: TargetValues | false,
 	): AnimatedProperty => {
+		const vector = !element && Array.isArray(goal)
+		const sample = element ? finalFrame(goal) : goal
 		const existing = properties.get(key)
 		if (existing) {
-			if (existing.values.length !== (Array.isArray(goal) ? goal.length : 1))
+			if (existing.values.length !== (vector ? goal.length : 1))
 				throw new Error(`spa/motion: cannot change the shape of ${key}`)
 			return existing
 		}
-		const base = read(key, goal) as MotionScalar | readonly number[]
-		const rest = !Array.isArray(goal) && Array.isArray(base) ? base[0]! : base
-		let start = initial === false ? goal : (initial[key] ?? rest)
-		if (!Array.isArray(goal) && Array.isArray(start)) start = start[0]!
-		if (
-			Array.isArray(goal) &&
-			(!Array.isArray(start) || start.length !== goal.length)
-		)
+		const base = read(key, sample) as TargetValue
+		const rest = !vector && Array.isArray(base) ? base[0]! : base
+		let start = initial === false ? sample : (initial[key] ?? rest)
+		if (!vector && Array.isArray(start)) start = start[0]!
+		if (vector && (!Array.isArray(start) || start.length !== goal.length))
 			throw new Error(`spa/motion: ${key} requires matching numeric tuples`)
 		const values = (Array.isArray(start) ? start : [start]).map((value) =>
 			motionValue(value),
 		) as MotionValue<MotionScalar>[]
 		const unsubscribers: (() => void)[] = []
 		if (element) {
-			if (Array.isArray(goal))
-				throw new Error(
-					`spa/motion: DOM targets must be scalar styles or transforms`,
-				)
 			const cssKey = transform.test(key)
 				? `transform`
 				: key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)
@@ -266,9 +279,6 @@ function attach(
 			if (!had) added = true
 		}
 		if (added) bindStyles()
-		const transition = (props[`transition`] ?? {
-			type: `spring`,
-		}) as ValueAnimationTransition
 		for (const [key, property] of properties) {
 			const goal =
 				goals[key] ??
@@ -276,11 +286,17 @@ function attach(
 				property.rest
 			if (!force && equal(property.target, goal)) continue
 			property.target = Array.isArray(goal) ? [...goal] : goal
-			const next = Array.isArray(goal) ? goal : [goal]
+			const next = !element && Array.isArray(goal) ? goal : [goal]
+			const transition = propertyTransition(
+				props[`transition`] as MotionTransition | undefined,
+				key,
+				element ? goal : undefined,
+			)
 			if (next.length !== property.values.length)
 				throw new Error(`spa/motion: cannot change the shape of ${key}`)
 			property.values.forEach((value, index) => {
-				if (reduced() || (!started && initial === false)) value.jump(next[index])
+				if (reduced() || (!started && initial === false))
+					value.jump(finalFrame(next[index]))
 				else
 					animateTween(
 						value,
@@ -354,11 +370,12 @@ function attach(
 	const preferenceChanged = () => {
 		if (reduced()) {
 			for (const property of properties.values()) {
-				const goal = Array.isArray(property.target)
-					? property.target
-					: [property.target]
+				const goal =
+					!element && Array.isArray(property.target)
+						? property.target
+						: [property.target]
 				property.values.forEach((value, i) => {
-					value.jump(goal[i])
+					value.jump(finalFrame(goal[i]))
 				})
 			}
 		}
@@ -431,15 +448,15 @@ function attach(
 			for (const [key, goal] of Object.entries(goals)) {
 				const property = properties.get(key)!
 				property.target = Array.isArray(goal) ? [...goal] : goal
-				const values = Array.isArray(goal) ? goal : [goal]
+				const values = !element && Array.isArray(goal) ? goal : [goal]
+				const resolved = propertyTransition(
+					next[`transition`] as MotionTransition | undefined,
+					key,
+					element ? goal : undefined,
+				)
 				property.values.forEach((value, index) =>
 					controls.push(
-						animateTween(
-							value,
-							values[index],
-							transition as ValueAnimationTransition,
-							moving.has(value),
-						),
+						animateTween(value, values[index], resolved, moving.has(value)),
 					),
 				)
 			}

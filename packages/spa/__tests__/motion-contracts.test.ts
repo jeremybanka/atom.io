@@ -219,15 +219,15 @@ it(`animates DOM styles and transforms, restores inline priorities, and cleans u
 		element.remove()
 	}
 })
-it(`rejects DOM tuple targets and preserves numeric/string default style values`, () => {
+it(`rejects invalid DOM keyframes and preserves numeric/string default style values`, () => {
 	const element = document.createElement(`div`)
 	const binding = motionCapability({ reducedMotion: `always` }).attach({
 		kind: `dom`,
 		node: element,
 	})
 	expect(() => {
-		binding.update({ initial: false, animate: { x: [1, 2] } })
-	}).toThrow(`DOM targets must be scalar`)
+		binding.update({ initial: false, animate: { x: [1, false] } })
+	}).toThrow(`keyframes require at least two scalar`)
 	binding.dispose()
 	const f = scene(() => ``)
 	f.binding.update({ animate: { color: `red` } })

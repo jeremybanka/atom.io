@@ -160,7 +160,44 @@ render(() => <Counter />, document.getElementById(`app`)!)
 
 ```
 
-The development plugin keeps SPA and atom.io outside dependency prebundling so renderer entrypoints, component hooks, and stores share one runtime, including Astro adapter environments. It uses full page reloads. Components and render computations are synchronous. Modern browsers with ES2022 and DOM Range support are the target.
+The development plugin keeps SPA and atom.io outside dependency prebundling so renderer entrypoints, component hooks, and stores share one runtime, including Astro adapter environments. Component-only JSX modules refresh affected roots against their existing atom.io stores; production builds omit hot registration. Components and render computations are synchronous. Modern browsers with ES2022 and DOM Range support are the target.
+
+Hot updates rerun affected roots, including scene roots and independent Astro islands, with the same store and props source. Old scopes release subscriptions, listeners, refs, and onCleanup callbacks before replacement. Atoms, persistent family members, and timeline history remain; DOM-local values and component-owned family members disposed by cleanup reset. A failed hot setup displays an error while keeping its store available for the next edit.
+
+Keep state definitions and Astro store factories in separate modules from component-only views. State declarations, mixed runtime exports, re-exports, changed export boundaries, and top-level side effects use full reloads. Type-only exports are allowed. The first implementation refreshes complete roots rather than replacing individual component instances.
+
+Define persistent tokens in their own state module:
+
+```ts
+import { atom } from "atom.io"
+
+export const editCountAtom = atom<number>({ key: `editCount`, default: 0 })
+
+```
+
+Import the token from a component-only view. Editing this view's JSX or handler preserves the counter value:
+
+```tsx
+import type { SpaElement } from "@atom.io/spa"
+import { useGetter, useSetter } from "@atom.io/spa"
+
+import { editCountAtom } from "./hmr-state.ts"
+
+export function HotCounter(): SpaElement {
+	const getEditCount = useGetter(editCountAtom)
+	const setEditCount = useSetter(editCountAtom)
+	return (
+		<button
+			onClick={() => {
+				setEditCount((value) => value + 1)
+			}}
+		>
+			{getEditCount()}
+		</button>
+	)
+}
+
+```
 
 ## Hooks
 
@@ -578,11 +615,11 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                           | Entry                             | Minified JS |  Gzip JS |
 | -------------------------------- | --------------------------------- | ----------: | -------: |
-| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    64,316 B | 19,222 B |
-| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    42,760 B | 13,462 B |
-| Interactive client app           | `tonnage-recipes/client-app.ts`   |    42,423 B | 13,313 B |
-| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    42,424 B | 13,311 B |
-| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    48,939 B | 15,362 B |
+| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    64,314 B | 19,222 B |
+| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    42,758 B | 13,464 B |
+| Interactive client app           | `tonnage-recipes/client-app.ts`   |    42,421 B | 13,316 B |
+| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    42,422 B | 13,314 B |
+| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    48,958 B | 15,361 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

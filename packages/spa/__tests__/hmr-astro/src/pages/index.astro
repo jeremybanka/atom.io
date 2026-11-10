@@ -1,0 +1,13 @@
+---
+import Counter from "../Counter.tsx"
+---
+<html lang="en">
+	<head><title>Island HMR</title></head>
+	<body>
+		<Counter initial={2} client:load><span data-hmr-slot
+			>first slot</span></Counter><Counter
+			initial={10}
+			client:load
+		/><Counter initial={20} client:only="spa" />
+	</body>
+</html>

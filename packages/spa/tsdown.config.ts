@@ -13,6 +13,7 @@ const config: UserConfig[] = defineConfig(
 			`src/jsx-runtime.ts`,
 			`src/server.ts`,
 			`src/vite.ts`,
+			`src/hot.ts`,
 			`src/astro.ts`,
 			`src/astro-client.ts`,
 			`src/astro-server.ts`,

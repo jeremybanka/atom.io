@@ -13,8 +13,9 @@ import { browserApplication } from "./astro-application.ts"
 import { failPreparation, storeContext } from "./astro-context.ts"
 import type { AstroStorePreparation, Island } from "./astro-shared.ts"
 import { island, islandStore } from "./astro-shared.ts"
-import { onCleanup, useGetter } from "./core.ts"
+import { useGetter } from "./core.ts"
 import { hydrate, render } from "./dom.ts"
+import { onRootDispose } from "./hot.ts"
 
 type Props = Record<string, any>
 type Slots = Record<string, string>
@@ -111,7 +112,7 @@ export const createHydrator =
 					disposeFromStore(store!, state)
 				})
 				const mount = () => {
-					onCleanup(dispose)
+					onRootDispose(dispose)
 					const getState = useGetter(state)
 					return () => island(component, getState().props, getState().slots)
 				}

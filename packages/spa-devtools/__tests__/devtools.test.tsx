@@ -91,7 +91,23 @@ describe(`spa debugger`, () => {
 		})
 		mount()
 		await click(`button[aria-label="Expand record"]`)
-		await input(`input[aria-label="Rename name"]`, `label`, `change`)
+		await input(`input[aria-label="Rename name"]`, `label`)
+		expect(silo.getState(recordAtom).name).toBe(`before`)
+		expect(
+			host.querySelector<HTMLInputElement>(`input[aria-label="Rename name"]`)!
+				.value,
+		).toBe(`label`)
+		const rename = host.querySelector<HTMLInputElement>(
+			`input[aria-label="Rename name"]`,
+		)!
+		rename.focus()
+		rename.dispatchEvent(
+			new KeyboardEvent(`keydown`, { key: `ArrowLeft`, bubbles: true }),
+		)
+		rename.dispatchEvent(
+			new KeyboardEvent(`keydown`, { key: `Enter`, bubbles: true }),
+		)
+		await tick()
 		await input(`input[aria-label="label"]`, `after`)
 		expect(silo.getState(recordAtom)).toEqual({ label: `after`, items: [3, 1] })
 		await click(`button[aria-label="Expand items"]`)
@@ -297,16 +313,18 @@ it(`rejects rename collisions, edits booleans and array members, and restores in
 	})
 	mount()
 	await click(`[aria-label="Expand record"]`)
-	await input(`[aria-label="Rename a"]`, `b`, `change`)
+	await input(`[aria-label="Rename a"]`, `b`, `focusout`)
 	expect(host.querySelector(`[role="alert"]`)!.textContent).toContain(
 		`already exists`,
 	)
-	await input(`[aria-label="Rename a"]`, `a`, `change`)
+	await input(`[aria-label="Rename a"]`, `a`, `focusout`)
 	expect(host.querySelector(`[role="alert"]`)).toBeNull()
 	await input(`[aria-label="a"]`, `not a number`)
 	expect(silo.getState(recordAtom).a).toBe(1)
 	await input(`[aria-label="a"]`, ``)
-	host.querySelector(`[aria-label="a"]`)!.dispatchEvent(new Event(`blur`))
+	host
+		.querySelector(`[aria-label="a"]`)!
+		.dispatchEvent(new FocusEvent(`focusout`))
 	expect(
 		(host.querySelector(`[aria-label="a"]`) as HTMLInputElement).value,
 	).toBe(`1`)

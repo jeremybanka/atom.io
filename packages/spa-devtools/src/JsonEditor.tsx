@@ -199,8 +199,11 @@ function Property(props: { name: string; editor: EditorProps }): SpaElement {
 						<input
 							aria-label={`Rename ${props.name}`}
 							style={`width:calc(${Math.max(1, props.name.length)}ch + 6px)`}
-							value={props.name}
-							onChange={(event) => {
+							defaultValue={props.name}
+							onKeyDown={(event) => {
+								if (event.key === `Enter`) event.currentTarget.blur()
+							}}
+							onBlur={(event) => {
 								const input = event.currentTarget
 								const name = input.value
 								parent.tools.attempt(() => {

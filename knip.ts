@@ -286,6 +286,7 @@ export default {
 				"src/jsx-runtime.ts!",
 				"src/server.ts!",
 				"src/vite.ts!",
+				"src/hot.ts!",
 				"src/astro.ts!",
 				"src/astro-client.ts!",
 				"src/astro-server.ts!",
@@ -302,7 +303,7 @@ export default {
 				"tonnage.config.ts",
 				"breakage.config.ts",
 				"vitest.config.ts",
-				"__tests__/{astro,resumption}/**/*.{ts,tsx,mjs}",
+				"__tests__/{astro,resumption,hmr,hmr-astro}/**/*.{ts,tsx,mjs}",
 				"__tests__/types.ts",
 				"__tests__/graphics.tsx",
 				// The layout browser harness bundles this fixture through esbuild entryPoints.

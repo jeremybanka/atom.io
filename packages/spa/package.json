@@ -161,7 +161,7 @@
 		"eslint": "10.14.0",
 		"happy-dom": "21.0.4",
 		"konva": "10.9.1",
-		"motion": "14.10.1",
+		"motion": "14.11.1",
 		"playwright": "1.65.0",
 		"preact": "11.2.0",
 		"resumability": "workspace:*",

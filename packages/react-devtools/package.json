@@ -50,7 +50,7 @@
 		"readme:check": "galley check README.mdx"
 	},
 	"dependencies": {
-		"motion": "14.10.1"
+		"motion": "14.11.1"
 	},
 	"devDependencies": {
 		"@atom.io/react": "workspace:*",

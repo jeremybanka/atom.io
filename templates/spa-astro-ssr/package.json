@@ -38,7 +38,7 @@
 		"@atom.io/spa": "workspace:*",
 		"@trpc/client": "11.25.2",
 		"@trpc/server": "11.25.2",
-		"astro": "7.4.7",
+		"astro": "7.4.8",
 		"atom.io": "workspace:*",
 		"resumability": "workspace:*",
 		"reylo": "0.7.0",

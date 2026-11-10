@@ -134,6 +134,27 @@ try {
 		document.querySelector(`[data-hmr]`)?.textContent.startsWith(`view-v3`),
 	)
 	assert.equal((await page.evaluate(() => window.hmrTest.stats())).first, 4)
+	const reordered = version2
+		.replace(`view-v2`, `view-v4`)
+		.replace(
+			`export { App }\nexport default App`,
+			`export default App\nexport { App }`,
+		)
+	await edit(appFile, reordered)
+	await page.waitForFunction(() =>
+		document.querySelector(`[data-hmr]`)?.textContent.startsWith(`view-v4`),
+	)
+	assert.equal(await page.evaluate(() => window.hmrSentinel), 1)
+	assert.equal((await page.evaluate(() => window.hmrTest.stats())).first, 4)
+	await edit(appFile, reordered.replace(`view-v4`, `view-v5`))
+	await page.waitForFunction(() =>
+		document.querySelector(`[data-hmr]`)?.textContent.startsWith(`view-v5`),
+	)
+	assert.equal(await page.evaluate(() => window.hmrSentinel), 1)
+	assert.deepEqual(
+		(await page.evaluate(() => window.hmrTest.stats())).subscribers,
+		before.subscribers,
+	)
 	await edit(appFile, `${version2}\nexport const helper = 1\n`)
 	await page.waitForFunction(
 		() => window.hmrSentinel === undefined && Boolean(window.hmrTest),

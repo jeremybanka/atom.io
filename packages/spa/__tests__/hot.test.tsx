@@ -1,8 +1,16 @@
 import { atom, atomFamily, Silo, timeline } from "atom.io"
 import { expect, it, vi } from "vitest"
 
+import astroClient from "../src/astro-client.ts"
+import type { AstroStoreContext, Island } from "../src/astro-shared.ts"
+import { island } from "../src/astro-shared.ts"
 import { createRoot, dispose, within } from "../src/core.ts"
-import { refresh, registerComponent, trackRoot } from "../src/hot.ts"
+import {
+	onRootDispose,
+	refresh,
+	registerComponent,
+	trackRoot,
+} from "../src/hot.ts"
 import {
 	hydrate,
 	onCleanup,
@@ -17,6 +25,125 @@ import {
 import { jsx } from "../src/jsx-runtime.ts"
 import { createSceneRenderer } from "../src/renderer.ts"
 import { renderToString } from "../src/server.ts"
+
+it.each([`load`, `only`])(
+	`preserves Astro %s island props, slots and resources through repeated hot updates`,
+	async (client) => {
+		const silo = new Silo({
+			name: `hot-astro-${client}`,
+			lifespan: `ephemeral`,
+			isProduction: true,
+		})
+		const countAtom = silo.atom<number>({ key: `count`, default: 7 })
+		const preparedCleanup = vi.fn(),
+			viewCleanup = vi.fn()
+		let context!: AstroStoreContext
+		const implementation = (version: string) => (props: any) => {
+			const getCount = useGetter(countAtom)
+			onCleanup(viewCleanup)
+			return (
+				<p>
+					{version}:{props.label}:{getCount()}:{props.children}
+				</p>
+			)
+		}
+		const id = `astro-${client}`
+		const App: Island = registerComponent(id, `default`, implementation(`v1`))
+		App.createStore = vi.fn((_, next) => {
+			context = next
+			next.onCleanup(preparedCleanup)
+			return silo.store
+		})
+		const host = document.createElement(`main`)
+		const props = { label: `initial` },
+			slots = { default: `<b>slot</b>` }
+		if (client === `load`) {
+			host.innerHTML = renderToString(() => () => island(App, props, slots), {
+				store: silo.store,
+			})
+			viewCleanup.mockClear()
+		}
+		const hydrateIsland = astroClient(host)
+		await hydrateIsland(App, props, slots, { client })
+		const subscribers = silo.store.atoms.get(countAtom.key)!.subject.subscribers
+			.size
+		try {
+			registerComponent(id, `default`, implementation(`v2`))
+			refresh(id)
+			expect(host.textContent).toBe(`v2:initial:7:slot`)
+			expect(context.signal.aborted).toBe(false)
+			expect(preparedCleanup).not.toHaveBeenCalled()
+			await hydrateIsland(
+				App,
+				{ label: `updated` },
+				{ default: `<i>new slot</i>` },
+				{ client },
+			)
+			silo.setState(countAtom, 9)
+			registerComponent(id, `default`, implementation(`v3`))
+			refresh(id)
+			expect(host.textContent).toBe(`v3:updated:9:new slot`)
+			expect(App.createStore).toHaveBeenCalledOnce()
+			expect(viewCleanup).toHaveBeenCalledTimes(2)
+			expect(preparedCleanup).not.toHaveBeenCalled()
+			expect(silo.store.atoms.get(countAtom.key)!.subject.subscribers.size).toBe(
+				subscribers,
+			)
+		} finally {
+			host.dispatchEvent(new Event(`astro:unmount`))
+		}
+		expect(context.signal.aborted).toBe(true)
+		expect(preparedCleanup).toHaveBeenCalledOnce()
+		expect(viewCleanup).toHaveBeenCalledTimes(3)
+		expect(host.childNodes).toHaveLength(0)
+		expect(silo.store.atoms.get(countAtom.key)!.subject.subscribers.size).toBe(0)
+		expect(
+			[...silo.store.atoms.keys()].some((key) =>
+				key.startsWith(`🔍 spa islands`),
+			),
+		).toBe(false)
+		refresh(id)
+		expect(host.childNodes).toHaveLength(0)
+	},
+)
+
+it(`retains Astro preparation through a failed hot setup and releases it after recovery`, async () => {
+	const silo = new Silo({
+		name: `hot-astro-recovery`,
+		lifespan: `ephemeral`,
+		isProduction: true,
+	})
+	const cleaned = vi.fn()
+	let context!: AstroStoreContext
+	const App: Island = registerComponent(`astro-recovery`, `default`, () => (
+		<p>ready</p>
+	))
+	App.createStore = (_, next) => {
+		context = next
+		next.onCleanup(cleaned)
+		return silo.store
+	}
+	const host = document.createElement(`main`)
+	await astroClient(host)(App, {}, {}, { client: `only` })
+	try {
+		registerComponent(`astro-recovery`, `default`, () => {
+			throw new Error(`broken island edit`)
+		})
+		refresh(`astro-recovery`)
+		expect(host.querySelector(`[data-spa-hot-error]`)!.textContent).toContain(
+			`broken island edit`,
+		)
+		expect(context.signal.aborted).toBe(false)
+		expect(cleaned).not.toHaveBeenCalled()
+		registerComponent(`astro-recovery`, `default`, () => <p>recovered</p>)
+		refresh(`astro-recovery`)
+		expect(host.textContent).toBe(`recovered`)
+	} finally {
+		host.dispatchEvent(new Event(`astro:unmount`))
+	}
+	expect(cleaned).toHaveBeenCalledOnce()
+	expect(host.childNodes).toHaveLength(0)
+})
 
 it(`refreshes separate roots against their original stores, preserving families, history, IDs and subscriber counts`, () => {
 	const first = new Silo({
@@ -331,8 +458,13 @@ it(`keeps ordinary component calls usable outside a managed root and unregisters
 	expect(App().type).toBe(`p`)
 	const root = createRoot()
 	trackRoot(root)
+	const cleanup = vi.fn()
+	within(root, () => {
+		onRootDispose(cleanup)
+	})
 	expect(within(root, App).type).toBe(`p`)
 	dispose(root)
+	expect(cleanup).toHaveBeenCalledOnce()
 	const failed = registerComponent(`initial-failure`, `default`, () => {
 		throw new Error(`initial`)
 	})
@@ -390,6 +522,14 @@ it(`leaves the production hot entry inert`, async () => {
 		)
 		production.refresh(`prod`)
 		production.trackRoot({} as ReturnType<typeof createRoot>)
+		const core = await import(`../src/core.ts`)
+		const root = core.createRoot()
+		const cleanup = vi.fn()
+		core.within(root, () => {
+			production.onRootDispose(cleanup)
+		})
+		core.dispose(root)
+		expect(cleanup).toHaveBeenCalledOnce()
 		const handle = { dispose() {}, flush() {} }
 		const factory = vi.fn(() => handle)
 		expect(production.hotRoot(factory, {})).toBe(handle)

@@ -272,7 +272,7 @@ export function hotModule(
 	output.append(`\nif (import.meta.hot) {\n`)
 	for (const [name, aliases] of exports)
 		output.append(
-			`${name} = ${register}(${JSON.stringify(filename)}, ${JSON.stringify(aliases[0])}, ${name});\n`,
+			`${name} = ${register}(${JSON.stringify(filename)}, ${JSON.stringify(aliases.sort()[0])}, ${name});\n`,
 		)
 	output.append(
 		`import.meta.hot.accept(() => ${refresh}(${JSON.stringify(filename)}));\n}\n`,

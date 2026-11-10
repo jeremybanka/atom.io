@@ -13,7 +13,7 @@ import type { RegularAtomToken, TimelineToken } from "atom.io"
 import { Scene } from "./Scene.tsx"
 import { cleanups, parents, refs } from "./state.ts"
 
-export default function App(props: {
+function App(props: {
 	name: string
 	token: RegularAtomToken<number>
 	history: TimelineToken<RegularAtomToken<number>>
@@ -47,3 +47,6 @@ export default function App(props: {
 		</button>
 	)
 }
+
+export { App }
+export default App

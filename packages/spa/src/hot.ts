@@ -1,7 +1,7 @@
 import { IMPLICIT } from "atom.io/internal"
 
 import type { Component, Root, RootOptions } from "./core.ts"
-import { owner } from "./core.ts"
+import { onCleanup, owner } from "./core.ts"
 
 interface Handle {
 	dispose(): void
@@ -11,6 +11,7 @@ type Factory = (options: RootOptions, before: Node | null) => Handle
 interface View {
 	modules: Set<string>
 	options: RootOptions
+	refreshing: boolean
 	refresh(): void
 	report(error: unknown): void
 }
@@ -25,6 +26,12 @@ function createHotRuntime() {
 			roots.set(root, mounting)
 			mounting.options.idPrefix ??= root._prefix
 		}
+	}
+	function onDispose(cleanup: () => void): void {
+		const view = roots.get(owner!._root)
+		onCleanup(() => {
+			if (!view?.refreshing) cleanup()
+		})
 	}
 	function register<T extends Component>(
 		id: string,
@@ -94,11 +101,17 @@ function createHotRuntime() {
 		const view: View = {
 			modules: new Set(),
 			options: settings,
+			refreshing: false,
 			refresh() {
-				placeAnchor()
-				current.dispose()
-				errorNode?.remove()
-				boot()
+				view.refreshing = true
+				try {
+					placeAnchor()
+					current.dispose()
+					errorNode?.remove()
+					boot()
+				} finally {
+					view.refreshing = false
+				}
 			},
 			report(error) {
 				const target =
@@ -144,7 +157,7 @@ function createHotRuntime() {
 			}
 		}
 	}
-	return { register, root: manage, refresh: refreshViews, track }
+	return { register, root: manage, refresh: refreshViews, track, onDispose }
 }
 
 const runtime = import.meta.env.DEV ? createHotRuntime() : undefined
@@ -162,6 +175,11 @@ export function refresh(id: string): void {
 }
 export function trackRoot(root: Root): void {
 	runtime?.track(root)
+}
+/** Release root lifetime resources, retaining them through development remounts. */
+export function onRootDispose(cleanup: () => void): void {
+	if (runtime) runtime.onDispose(cleanup)
+	else onCleanup(cleanup)
 }
 export function hotRoot(
 	factory: Factory,

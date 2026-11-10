@@ -92,7 +92,7 @@ describe(`spa debugger`, () => {
 		mount()
 		await click(`button[aria-label="Expand record"]`)
 		await input(`input[aria-label="Rename name"]`, `label`)
-		expect(silo.getState(recordAtom).name).toBe(`before`)
+		expect(silo.getState(recordAtom)[`name`]).toBe(`before`)
 		expect(
 			host.querySelector<HTMLInputElement>(`input[aria-label="Rename name"]`)!
 				.value,

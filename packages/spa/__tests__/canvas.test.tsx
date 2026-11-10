@@ -42,6 +42,7 @@ function fixture() {
 	const widthAtom = silo.atom<number>({ key: `width`, default: 200 })
 	let tick!: (time: number) => void
 	const stop = vi.fn()
+	const onError = vi.fn()
 	const clock = {
 		namespace: `clock`,
 		scheduleFrame: vi.fn((run) => {
@@ -54,6 +55,7 @@ function fixture() {
 		const root = render(setup, document.body, {
 			store: silo.store,
 			capabilities: [clock],
+			onError,
 		})
 		cleanups.push(root.dispose)
 		return root
@@ -63,6 +65,7 @@ function fixture() {
 		widthAtom,
 		clock,
 		stop,
+		onError,
 		mount,
 		tick: (time = 16) => {
 			tick(time)
@@ -183,3 +186,30 @@ it.each([`setup`, `element`, `dimensions`])(
 		expect(f.clock.scheduleFrame).not.toHaveBeenCalled()
 	},
 )
+
+it(`reports native resize failures and releases all work, with a safe device ratio fallback`, () => {
+	const f = fixture()
+	let failing = false
+	f.mount(() => (
+		<Canvas
+			onResize={() => {
+				if (failing) throw new Error(`resize failed`)
+			}}
+		/>
+	))
+	Object.defineProperty(window, `devicePixelRatio`, {
+		value: 0,
+		configurable: true,
+	})
+	window.dispatchEvent(new Event(`resize`))
+	expect(renderers[0].setPixelRatio).toHaveBeenLastCalledWith(1)
+	failing = true
+	window.dispatchEvent(new Event(`resize`))
+	expect(f.onError).toHaveBeenCalledExactlyOnceWith(
+		expect.objectContaining({ message: `resize failed` }),
+	)
+	expect(renderers[0].dispose).toHaveBeenCalledOnce()
+	expect(f.stop).toHaveBeenCalledOnce()
+	window.dispatchEvent(new Event(`resize`))
+	expect(f.onError).toHaveBeenCalledOnce()
+})

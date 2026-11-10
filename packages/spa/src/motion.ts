@@ -2,11 +2,13 @@ import type { animate, MotionValue } from "motion"
 import {
 	cancelFrame,
 	frame,
+	handOffElementState,
 	hover,
 	motionValue,
 	press,
 	readStyleValue,
 	styleEffect,
+	visualElementStore,
 } from "motion"
 
 import type {
@@ -184,13 +186,17 @@ function attach(
 	}
 	const bindStyles = () => {
 		styles?.()
-		if (element)
+		if (element) {
 			styles = styleEffect(
 				[element],
 				Object.fromEntries(
 					[...properties].map(([key, property]) => [key, property.values[0]]),
 				) as any,
 			)
+			// Layout projection and late-added/gesture values must render together.
+			const visual = visualElementStore.get(element)
+			if (visual) handOffElementState(element, visual)
+		}
 	}
 	const ensure = (
 		key: string,

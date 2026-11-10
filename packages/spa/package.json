@@ -98,6 +98,11 @@
 			"types": "./dist/astro-resumability-server.d.ts",
 			"development": "./dist/development/astro-resumability-server.js",
 			"import": "./dist/astro-resumability-server.js"
+		},
+		"./layout": {
+			"types": "./dist/layout.d.ts",
+			"development": "./dist/development/layout.js",
+			"import": "./dist/layout.js"
 		}
 	},
 	"main": "./dist/index.js",
@@ -118,21 +123,22 @@
 		"test:once": "vitest run --config vitest.config.ts && pnpm test:consumer && pnpm test:optional-peers",
 		"test:consumer": "node __tests__/fixtures/consumer/check.ts",
 		"test:production": "node scripts/production-test.ts",
-		"test:browser": "astro build --root __tests__/astro && node scripts/browser-test.mjs && node scripts/dev-browser-test.mjs && node scripts/graphics-browser-test.mjs && pnpm test:browser:resumption",
+		"test:browser": "astro build --root __tests__/astro && node scripts/browser-test.mjs && node scripts/dev-browser-test.mjs && node scripts/graphics-browser-test.mjs && node scripts/layout-browser-test.mjs && pnpm test:browser:resumption",
 		"test:browser:dev": "node scripts/dev-browser-test.mjs",
 		"cov": "vitest run --config vitest.config.ts --coverage",
 		"readme:write": "galley write README.mdx",
 		"readme:check": "galley check README.mdx",
 		"tonnage": "pnpm readme:write",
 		"tonnage:check": "pnpm readme:check",
-		"test:browser:graphics": "node scripts/graphics-browser-test.mjs",
+		"test:browser:graphics": "node scripts/graphics-browser-test.mjs && node scripts/layout-browser-test.mjs",
 		"test:optional-peers": "node scripts/optional-peers-check.mjs && node __tests__/fixtures/graphics-consumer/check.ts",
 		"bench:compiler": "node scripts/compiler-benchmark.ts",
 		"example:motion": "vite --config examples/motion/vite.config.ts",
 		"test:browser:motion": "node scripts/motion-browser-test.mjs",
 		"example:floating": "vite --config examples/floating/vite.config.ts",
 		"test:browser:floating": "node scripts/floating-browser-test.mjs",
-		"test:browser:resumption": "astro build --root __tests__/resumption && node scripts/resumption-browser-test.mjs && node scripts/resumption-browser-test.mjs --dev"
+		"test:browser:resumption": "astro build --root __tests__/resumption && node scripts/resumption-browser-test.mjs && node scripts/resumption-browser-test.mjs --dev",
+		"test:browser:layout": "node scripts/layout-browser-test.mjs"
 	},
 	"dependencies": {
 		"html-entities": "2.6.0",

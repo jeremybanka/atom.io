@@ -1,0 +1,17 @@
+import Exhibit from "c/Exhibit.astro";
+
+# <low-emphasis>@atom.io/spa</low-emphasis><wbr />/layout
+
+Import layoutCapability from @atom.io/spa/layout to animate HTML position and size changes. This separate optional entrypoint uses the Motion peer; it adds no engine import to the base runtime. Register motionCapability alongside it when using motion:* targets or retained exits:
+
+<Exhibit src="spa/exhibits/layout-main.tsx" />
+
+<Exhibit src="spa/exhibits/layout.tsx" />
+
+layout:animate enables position and size projection; position or size restricts the animated dimensions. layout:id carries a visual identity between outgoing/incoming nodes, while reconciliation keys continue to own component instances. Shared identities are isolated by root and by an explicit layout:group on each shared node; group is not inherited. Use distinct group values for separate boards in one root. Reusing an ID within a group coordinates a shared transition, with the latest mounted member leading.
+
+SPA snapshots registered targets before each synchronous update batch and projects after the DOM commits. Per-target ResizeObserver subscriptions also handle external size changes; no document-wide mutation observer or consumer measurement loop is needed. Mark scrolling layout ancestors with layout:scroll. Nested projections preserve authored transforms and transform origins; Floating UI retains its independent translate positioning. Avoid multiple layout/projection owners or direct writes to a projected element's transform while the capability is active.
+
+The default transition is a 0.3-second tween; root options set defaults and layout:transition replaces them for a target. Use finite duration/delay values or settling spring parameters. Retargeting uses the current projection. Outgoing nodes remain available for shared handoff until replacements mount in the same batch. With Motion exits, layout follows the retained node's lifetime; keyed re-entry resumes the existing instance. Shared identity transfers appearance, not component state or DOM ownership, and nodes are not automatically reparented.
+
+Reduced motion follows the user's preference by default; always and never options override it. Enabling reduced motion finishes projections immediately. Removal, fatal errors, and root disposal cancel projection work, disconnect observers/listeners, and restore owned attributes/styles. Server rendering emits no layout attributes or animation work. Layout is limited to owned HTML nodes; scene objects, SVG projection, pop-layout positioning, and cross-document handoff are outside this entrypoint.

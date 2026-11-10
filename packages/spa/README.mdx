@@ -35,6 +35,8 @@ import MotionThree from "./exhibits/motion-three.tsx" with { type: "code" };
 import InstallFloating from "./exhibits/install-floating.sh" with {
   type: "code",
 };
+import LayoutExample from "./exhibits/layout.tsx" with { type: "code" };
+import LayoutMain from "./exhibits/layout-main.tsx" with { type: "code" };
 import FloatingMain from "./exhibits/floating-main.tsx" with { type: "code" };
 import FloatingExample from "./exhibits/floating.tsx" with { type: "code" };
 
@@ -206,7 +208,7 @@ The checked Astro fixture demonstrates default/named slots and custom independen
 
 The build audits every browser export, including the JSX runtime, from the built JavaScript. Atom.io is an external peer in the incremental measurement. Compiler, server, and integration code have separate entrypoints. The report also includes the complete client plus atom.io, the Astro client entrypoint, and the installed Preact version under the same bundling/minification settings. These are full exported surfaces, not equivalent application benchmarks.
 
-The hard budget is under 4,300 bytes of ordinary level-9 gzip for the complete client export surface, including hydration recovery and its production diagnostics. Tsdown builds the package JavaScript and declarations, with separate production and development outputs that each share their runtime across entrypoints. The size audit then bundles the built exports with esbuild, minifies with Oxc, and measures compression using Node's gzip and Brotli implementations. The complete client export surface measures approximately 4.2 kB with gzip; dist/size.json records the exact build measurements. Actual application bundles add atom.io and compiler-generated application code.
+The hard budget is under 4,400 bytes of ordinary level-9 gzip for the complete client export surface, including hydration recovery and its production diagnostics. Tsdown builds the package JavaScript and declarations, with separate production and development outputs that each share their runtime across entrypoints. The size audit then bundles the built exports with esbuild, minifies with Oxc, and measures compression using Node's gzip and Brotli implementations. The complete client export surface measures approximately 4.3 kB with gzip; dist/size.json records the exact build measurements. Actual application bundles add atom.io and compiler-generated application code.
 
 Build output includes the minified audit entrypoint and machine-readable dist/size.json. These audit files are a bundled measurement; use the package exports in applications so the bundler preserves one runtime instance across entrypoints. Source tests exercise development behavior; the production test executes the audited minified artifact. Chromium checks exercise the actual Astro build, island isolation, hydration, keyed identity, focus/selection, SVG namespaces, and teardown. A fresh-cache Astro development check also covers mount hooks, shared state, and ClientRouter navigation.
 
@@ -282,7 +284,7 @@ The same attributes animate numeric Konva properties and colors, or Three.js pos
 
 <MotionThree />
 
-When the motion capability is installed, Canvas draws in Motion's render phase after animated scene values update. Without it, Canvas uses requestAnimationFrame. Both drawing subscriptions and animations end with their owners. The base runtime imports no motion engine or retention coordinator. Presence hooks add approximately 300 bytes of gzip to the released 3.7 kB client surface; the optional Motion entrypoint owns the retention machinery. The full client budget is 4,300 bytes.
+When the motion capability is installed, Canvas draws in Motion's render phase after animated scene values update. Without it, Canvas uses requestAnimationFrame. Both drawing subscriptions and animations end with their owners. The base runtime imports no motion engine or retention coordinator. Presence hooks add approximately 300 bytes of gzip to the released 3.7 kB client surface; the optional Motion entrypoint owns the retention machinery. The full client budget is 4,400 bytes.
 
 ### Exit animations and re-entry
 
@@ -303,6 +305,22 @@ During exit, reactive attributes, child reconciliation, user events, gestures, a
 Exit props and transition settings are read at logical removal; later state changes do not retarget an exiting subtree. Exits use the same transition as animate, defaulting to a spring. Explicit durations, visualDuration, and delays must be finite and nonnegative; velocity must be finite, bounce must be in the range [0, 1), and stiffness, damping, mass, restDelta, and restSpeed must be finite and positive so exits can settle. Reduced motion skips retention; enabling it during an exit completes that exit. Server rendering omits capability attributes and never starts exits; hydration attaches them for later removals.
 
 Root disposal and fatal errors bypass exits, stop active work, and release resources immediately. Stale animation completions cannot dispose a revived instance. This API covers exit retention and cancellation; layout/pop-layout animation, variants, presence wrappers, and automatic reparenting remain outside its scope.
+
+### Layout and shared identity
+
+Import layoutCapability from @atom.io/spa/layout to animate HTML position and size changes. This separate optional entrypoint uses the Motion peer; it adds no engine import to the base runtime. Register motionCapability alongside it when using motion:* targets or retained exits:
+
+<LayoutMain />
+
+<LayoutExample />
+
+layout:animate enables position and size projection; position or size restricts the animated dimensions. layout:id carries a visual identity between outgoing/incoming nodes, while reconciliation keys continue to own component instances. Shared identities are isolated by root and by an explicit layout:group on each shared node; group is not inherited. Use distinct group values for separate boards in one root. Reusing an ID within a group coordinates a shared transition, with the latest mounted member leading.
+
+SPA snapshots registered targets before each synchronous update batch and projects after the DOM commits. Per-target ResizeObserver subscriptions also handle external size changes; no document-wide mutation observer or consumer measurement loop is needed. Mark scrolling layout ancestors with layout:scroll. Nested projections preserve authored transforms and transform origins; Floating UI retains its independent translate positioning. Avoid multiple layout/projection owners or direct writes to a projected element's transform while the capability is active.
+
+The default transition is a 0.3-second tween; root options set defaults and layout:transition replaces them for a target. Use finite duration/delay values or settling spring parameters. Retargeting uses the current projection. Outgoing nodes remain available for shared handoff until replacements mount in the same batch. With Motion exits, layout follows the retained node's lifetime; keyed re-entry resumes the existing instance. Shared identity transfers appearance, not component state or DOM ownership, and nodes are not automatically reparented.
+
+Reduced motion follows the user's preference by default; always and never options override it. Enabling reduced motion finishes projections immediately. Removal, fatal errors, and root disposal cancel projection work, disconnect observers/listeners, and restore owned attributes/styles. Server rendering emits no layout attributes or animation work. Layout is limited to owned HTML nodes; scene objects, SVG projection, pop-layout positioning, and cross-document handoff are outside this entrypoint.
 
 ### Floating overlays with Motion
 

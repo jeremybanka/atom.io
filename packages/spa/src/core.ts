@@ -201,13 +201,21 @@ export function createRoot(options: RootOptions = {}, server = false): Root {
 			root._presence = capability.presence(root)
 		}
 	root.flush = () => {
+		if (!root._queue.size && !root._mounts!.length) return
 		try {
-			let passes = 0
-			while (root._queue.size || root._mounts!.length) {
-				if (import.meta.env.DEV && ++passes > 100)
-					throw new Error(`spa: update loop`)
-				for (const run of [...root._queue]) if (root._queue.delete(run)) run()
-				for (const run of root._mounts!.splice(0)) run()
+			const commits = [...capabilities.values()].map((capability) =>
+				capability.beforeUpdate?.(root),
+			)
+			try {
+				let passes = 0
+				while (root._queue.size || root._mounts!.length) {
+					if (import.meta.env.DEV && ++passes > 100)
+						throw new Error(`spa: update loop`)
+					for (const run of [...root._queue]) if (root._queue.delete(run)) run()
+					for (const run of root._mounts!.splice(0)) run()
+				}
+			} finally {
+				for (const commit of commits) commit?.()
 			}
 		} catch (error) {
 			fail(root, error)

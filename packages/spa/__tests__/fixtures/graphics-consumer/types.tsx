@@ -1,6 +1,7 @@
 import { render } from "@atom.io/spa"
 import { floatingCapability } from "@atom.io/spa/floating"
 import { Circle, Layer, Stage } from "@atom.io/spa/konva"
+import { layoutCapability } from "@atom.io/spa/layout"
 import { motionCapability } from "@atom.io/spa/motion"
 import {
 	BoxGeometry,
@@ -158,3 +159,21 @@ const badCanvasElement = <Canvas rendererOptions={{ canvas: undefined }} />
 // @ts-expect-error: DPR accepts a number or a pair of clamp bounds.
 const badDpr = <Canvas dpr={[1, 2, 3]} />
 void [configuredCanvas, badCanvasElement, badDpr]
+
+const projected = (
+	<section
+		layout:animate="position"
+		layout:id="player"
+		layout:group="match"
+		layout:scroll
+		layout:transition={{ type: `spring`, stiffness: 180, damping: 22 }}
+	/>
+)
+render(() => projected, document.body, { capabilities: [layoutCapability()] })
+// @ts-expect-error: Layout animation modes are position, size, or boolean.
+const badLayoutMode = <section layout:animate="everything" />
+// @ts-expect-error: Layout projection requires HTML nodes, not scene objects.
+const badSceneLayout = <Mesh layout:animate />
+// @ts-expect-error: Shared layout identities are strings or numbers.
+const badLayoutId = <section layout:id={{ id: 1 }} />
+void [badLayoutMode, badSceneLayout, badLayoutId]

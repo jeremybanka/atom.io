@@ -9,6 +9,7 @@ const config: UserConfig[] = defineConfig(
 			`src/konva.ts`,
 			`src/three.ts`,
 			`src/motion.ts`,
+			`src/layout.ts`,
 			`src/floating.ts`,
 			`src/jsx-runtime.ts`,
 			`src/server.ts`,

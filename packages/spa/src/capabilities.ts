@@ -19,6 +19,8 @@ export interface CapabilityBinding {
 }
 export interface Capability {
 	namespace: string
+	/** Prepare a synchronous update batch and return its commit callback. */
+	beforeUpdate?(root: Root): Cleanup
 	presence?(root: Root): PresenceCoordinator
 	scheduleFrame?(callback: (time: number) => void): Cleanup
 	/** SPA supplies ownership for integrations that measure after mount or report async errors. */

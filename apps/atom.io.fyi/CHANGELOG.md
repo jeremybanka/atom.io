@@ -1,5 +1,21 @@
 # atom.io.fyi
 
+## 0.2.106
+
+### Patch Changes
+
+- 5bde2f5: Extend the optional Motion capability with motion:layout and motion:layoutId for HTML position/size projection and root- and group-scoped shared identities, with observed resizing, reduced motion, and deterministic cleanup. Use one motionCapability registration for animated properties, exits, and layout; layoutId enables projection implicitly. Coordinate measurement through generic capability update boundaries, document readiness-marker handoff and ownership, and refresh the base-runtime size budget and generated reports.
+- Updated dependencies [15e1af8]
+- Updated dependencies [82996ba]
+- Updated dependencies [9a1493a]
+- Updated dependencies [5bde2f5]
+- Updated dependencies [5bde2f5]
+- Updated dependencies [5bde2f5]
+- Updated dependencies [c8e41b3]
+  - @atom.io/spa@0.0.7
+  - atom.io@0.54.8
+  - @atom.io/spa-devtools@0.0.7
+
 ## 0.2.105
 
 ### Patch Changes

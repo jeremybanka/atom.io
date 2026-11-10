@@ -1,5 +1,16 @@
 # atom.io
 
+## 0.54.8
+
+### Patch Changes
+
+- 15e1af8: Add owned Canvas renderer options and factories, pre-draw setup and resize callbacks, and reactive fixed or clamped device pixel ratios with documented camera projection and cleanup behavior.
+- 82996ba: Support declarative DOM Motion keyframes, normalized times, segment easing, and property-specific transition overrides while preserving native scene tuples, reduced motion, interruption, and presence cleanup. Normalize compatible numeric and CSS-unit keyframes and preserve finite negative delays for ordinary animations.
+- 9a1493a: Add useDisposal() to bind atom.io state disposal to the current SPA root store. Document ambient UI state with executable menu and popover visibility examples, explicit family ownership, keyed removal, and isolation across toolbars and stores.
+- 5bde2f5: Remove the decorative SPA logo from the documentation header.
+- 5bde2f5: Extend the optional Motion capability with motion:layout and motion:layoutId for HTML position/size projection and root- and group-scoped shared identities, with observed resizing, reduced motion, and deterministic cleanup. Use one motionCapability registration for animated properties, exits, and layout; layoutId enables projection implicitly. Coordinate measurement through generic capability update boundaries, document readiness-marker handoff and ownership, and refresh the base-runtime size budget and generated reports.
+- c8e41b3: Type Mesh constructor arguments for custom geometry and materials, retain application ownership of constructor-supplied resources, and document fixed constructor identity and disposal.
+
 ## 0.54.7
 
 ### Patch Changes

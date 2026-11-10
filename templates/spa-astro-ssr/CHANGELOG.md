@@ -1,5 +1,12 @@
 # @atom.io/template-spa-astro-ssr
 
+## 0.0.9
+
+### Patch Changes
+
+- Updated dependencies [ca99ce3]
+  - @atom.io/spa@0.0.8
+
 ## 0.0.8
 
 ### Patch Changes

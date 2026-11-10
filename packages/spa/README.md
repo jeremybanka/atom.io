@@ -348,6 +348,108 @@ With a fallback, the accessor always returns an object. The fallback is used for
 
 Atom.io owns promise settlement and subscriptions. SPA adds no fetching, retries, cancellation, or suspense. Reads during setup are snapshots; calls inside JSX track state. Family keys are fixed for a component instance. Server rendering returns the current loading or settled view immediately and does not await promises.
 
+### Transient instance state and persistent session state
+
+Define atoms and families at module scope. Use an explicit application identity for transient family members; SPA does not need another component-local state primitive. This exhibit mounts two isolated drafts. Replacing the left reconciliation key creates a fresh instance and disposes its previous draft, while the right draft and shared session edit count survive:
+
+```tsx
+import type { SpaElement } from "@atom.io/spa"
+import { onCleanup, useGetter, useSetter } from "@atom.io/spa"
+import { atom, atomFamily, disposeState } from "atom.io"
+
+export const draftTextAtoms = atomFamily<string, string>({
+	key: `draftText`,
+	default: ``,
+})
+export const sessionEditsAtoms = atomFamily<number, string>({
+	key: `sessionEdits`,
+	default: 0,
+})
+export const draftGenerationAtom = atom<number>({
+	key: `draftGeneration`,
+	default: 0,
+})
+
+function DraftEditor(props: {
+	identity: string
+	session: string
+	disposeDraft: (identity: string) => void
+}): SpaElement {
+	// Capture fixed family bindings once, using the same identity for cleanup.
+	const identity = props.identity
+	const disposeDraft = props.disposeDraft
+	const getDraftText = useGetter(draftTextAtoms, identity)
+	const setDraftText = useSetter(draftTextAtoms, identity)
+	const setSessionEdits = useSetter(sessionEditsAtoms, props.session)
+	onCleanup(() => {
+		disposeDraft(identity)
+	})
+	return (
+		<label>
+			{identity}
+			<input
+				data-draft={identity}
+				value={getDraftText()}
+				onInput={(event) => {
+					setDraftText(event.currentTarget.value)
+					setSessionEdits((count) => count + 1)
+				}}
+			/>
+		</label>
+	)
+}
+
+export function DraftWorkspace(props: {
+	session: string
+	// For a custom root store, pass its public Silo.disposeState binding here.
+	disposeDraft?: (identity: string) => void
+}): SpaElement {
+	const session = props.session
+	const disposeDraft =
+		props.disposeDraft ??
+		((identity: string) => {
+			disposeState(draftTextAtoms, identity)
+		})
+	const getDraftGeneration = useGetter(draftGenerationAtom)
+	const setDraftGeneration = useSetter(draftGenerationAtom)
+	const getSessionEdits = useGetter(sessionEditsAtoms, session)
+	return (
+		<section>
+			{[`${session}/left/${getDraftGeneration()}`, `${session}/right`].map(
+				(identity) => (
+					<DraftEditor
+						key={identity}
+						identity={identity}
+						session={session}
+						disposeDraft={disposeDraft}
+					/>
+				),
+			)}
+			<button
+				onClick={() => {
+					setDraftGeneration((generation) => generation + 1)
+				}}
+			>
+				Replace left draft
+			</button>
+			<output>Session edits: {getSessionEdits()}</output>
+		</section>
+	)
+}
+
+// The session owner calls this only after every consumer has unmounted.
+export function finishDraftSession(session: string): void {
+	disposeState(sessionEditsAtoms, session)
+}
+
+```
+
+The parent supplies both the reconciliation key and an ordinary identity prop. The reconciliation key is consumed by the renderer and is unique among siblings; pass the identity as an ordinary prop instead of relying on props.key. The family key belongs to application state and must be unique across all owners of that family in the same store. Namespace it by session, workspace, or another application identity when multiple parents may coexist.
+
+Capture the identity during setup and use it for getter, setter, and cleanup. Only the exclusive owner of a transient member disposes it on unmount. When several consumers share a member, their common session/application owner decides when all consumers have finished; one consumer unmounting must not dispose everyone else's state. The session edit count intentionally survives component removal, and finishDraftSession explicitly disposes it after the final consumer unmounts. Standalone global atoms persist for their store's lifetime; disposeState disposes family members, not standalone atoms.
+
+Family bindings resolve in the root's selected store. Public disposeState targets the implicit store, so the default exhibit uses that store. With render/hydrate options.store or an isolated Astro store, install the module-scope definitions into that store through Silo.install, supply disposeDraft bound to the same public Silo.disposeState method as the root store and use that Silo to end the session. Identical family keys in separate stores are independent. Replacing a key changes a component's fixed binding; changing an identity prop on an existing key does not rebind it.
+
 ## Rendering and ownership
 
 The client exports render and hydrate. Both accept a setup callback, a host Element, and optional store, idPrefix, and onError options, and return dispose and flush methods. Updates coalesce in a microtask; flush drains them synchronously. Dispose is idempotent and removes only owned nodes. Cleanup continues after individual cleanup failures and aggregates errors. A failed computation disposes its root; asynchronous update failures reach onError, while explicit flush failures throw.

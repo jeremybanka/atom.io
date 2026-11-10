@@ -19,6 +19,13 @@ import { ContactFields } from "../exhibits/rendering/fragment.tsx"
 import { hydrateEmailField } from "../exhibits/rendering/hydrate.tsx"
 import { mountCounter } from "../exhibits/rendering/render.tsx"
 import { renderEmailField } from "../exhibits/rendering/render-to-string.tsx"
+import {
+	draftGenerationAtom,
+	draftTextAtoms,
+	DraftWorkspace,
+	finishDraftSession,
+	sessionEditsAtoms,
+} from "../exhibits/state-lifetimes.tsx"
 import type { Children, RootOptions, SpaRoot } from "../src/index.ts"
 import { render } from "../src/index.ts"
 import { renderToString } from "../src/server.ts"
@@ -198,4 +205,77 @@ it(`the store exhibit copies from its selected store instead of the implicit one
 	const { host } = mount(() => <CopyDraft />, { store: silo.store })
 	host.querySelector(`button`)!.click()
 	expect(writeText).toHaveBeenCalledExactlyOnceWith(`Private draft`)
+})
+
+it(`the transient family exhibit isolates drafts, replaces keys, and preserves session state until its owner disposes it`, () => {
+	const { host, root } = mount(() => <DraftWorkspace session="example" />)
+	const edit = (input: HTMLInputElement, text: string) => {
+		input.value = text
+		input.dispatchEvent(new Event(`input`))
+		root.flush()
+	}
+	const [left, right] = [...host.querySelectorAll(`input`)]
+	edit(left, `first`)
+	edit(right, `second`)
+	expect(getState(draftTextAtoms, `example/left/0`)).toBe(`first`)
+	expect(getState(draftTextAtoms, `example/right`)).toBe(`second`)
+	host.querySelector(`button`)!.click()
+	root.flush()
+	expect(host.querySelector(`input`)!.value).toBe(``)
+	expect(host.querySelectorAll(`input`)[1]).toBe(right)
+	expect(right.value).toBe(`second`)
+	expect(getState(draftTextAtoms, `example/left/0`)).toBe(``)
+	root.dispose()
+	expect(getState(draftTextAtoms, `example/right`)).toBe(``)
+	expect(getState(sessionEditsAtoms, `example`)).toBe(2)
+	finishDraftSession(`example`)
+	expect(getState(sessionEditsAtoms, `example`)).toBe(0)
+})
+
+it(`the transient family exhibit disposes members only in the root's selected store`, () => {
+	const first = new Silo({
+		name: `first-drafts`,
+		lifespan: `ephemeral`,
+		isProduction: true,
+	})
+	const second = new Silo({
+		name: `second-drafts`,
+		lifespan: `ephemeral`,
+		isProduction: true,
+	})
+	first.install([draftTextAtoms, sessionEditsAtoms, draftGenerationAtom])
+	second.install([draftTextAtoms, sessionEditsAtoms, draftGenerationAtom])
+	const a = mount(
+		() => (
+			<DraftWorkspace
+				session="shared-key"
+				disposeDraft={(id) => {
+					first.disposeState(draftTextAtoms, id)
+				}}
+			/>
+		),
+		{ store: first.store },
+	)
+	const b = mount(
+		() => (
+			<DraftWorkspace
+				session="shared-key"
+				disposeDraft={(id) => {
+					second.disposeState(draftTextAtoms, id)
+				}}
+			/>
+		),
+		{ store: second.store },
+	)
+	const input = b.host.querySelector(`input`)!
+	input.value = `second store`
+	input.dispatchEvent(new Event(`input`))
+	b.root.flush()
+	a.root.dispose()
+	expect(second.getState(draftTextAtoms, `shared-key/left/0`)).toBe(
+		`second store`,
+	)
+	expect(input.value).toBe(`second store`)
+	b.root.dispose()
+	expect(second.getState(draftTextAtoms, `shared-key/left/0`)).toBe(``)
 })

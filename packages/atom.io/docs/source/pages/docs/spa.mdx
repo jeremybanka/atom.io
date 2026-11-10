@@ -191,7 +191,7 @@ Release work when its owning view goes away. This page restores the previous doc
 
 <Exhibit src="spa/exhibits/hooks/on-cleanup.tsx" />
 
-The mount callback owns browser-only setup, and onCleanup registers its teardown with that owner. Cleanup also runs when a keyed component is removed or its root is disposed. Use the same pattern for listeners, observers, and timers.
+The mount callback owns browser-only setup, and onCleanup registers its teardown with that owner. Cleanup also runs when a keyed component is removed or its root is disposed. For family members owned exclusively by an instance, see [transient instance state](#transient-instance-state-and-persistent-session-state). Use the same pattern for listeners, observers, and timers.
 
 ### useStore
 
@@ -208,6 +208,18 @@ useGetter, useSetter, useRef, and useTimeline also accept a family token and its
 <Exhibit src="spa/exhibits/families.tsx" />
 
 Keys are captured during component setup. To select another member, replace the instance in a reactive child collection using a new application key. The previous instance releases its subscriptions and refs. useTransaction takes a transaction token; atom.io has no transaction-family token.
+
+### Transient instance state and persistent session state
+
+Define atoms and families at module scope. Use an explicit application identity for transient family members; SPA does not need another component-local state primitive. This exhibit mounts two isolated drafts. Replacing the left reconciliation key creates a fresh instance and disposes its previous draft, while the right draft and shared session edit count survive:
+
+<Exhibit src="spa/exhibits/state-lifetimes.tsx" />
+
+The parent supplies both the reconciliation key and an ordinary identity prop. The reconciliation key is consumed by the renderer and is unique among siblings; pass the identity as an ordinary prop instead of relying on props.key. The family key belongs to application state and must be unique across all owners of that family in the same store. Namespace it by session, workspace, or another application identity when multiple parents may coexist.
+
+Capture the identity during setup and use it for getter, setter, and cleanup. Only the exclusive owner of a transient member disposes it on unmount. When several consumers share a member, their common session/application owner decides when all consumers have finished; one consumer unmounting must not dispose everyone else's state. The session edit count intentionally survives component removal, and finishDraftSession explicitly disposes it after the final consumer unmounts. Standalone global atoms persist for their store's lifetime; disposeState disposes family members, not standalone atoms.
+
+Family bindings resolve in the root's selected store. Public disposeState targets the implicit store, so the default exhibit uses that store. With render/hydrate options.store or an isolated Astro store, install the module-scope definitions into that store through Silo.install, supply disposeDraft bound to the same public Silo.disposeState method as the root store and use that Silo to end the session. Identical family keys in separate stores are independent. Replacing a key changes a component's fixed binding; changing an identity prop on an existing key does not rebind it.
 
 ## async state
 

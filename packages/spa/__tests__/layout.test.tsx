@@ -4,8 +4,7 @@ import { afterEach, expect, it, vi } from "vitest"
 import { dispose } from "../src/core.ts"
 import type { Capability, CapabilityBinding } from "../src/index.ts"
 import { render, useGetter } from "../src/index.ts"
-import type { LayoutCapabilityOptions } from "../src/layout.ts"
-import { layoutCapability } from "../src/layout.ts"
+import type { MotionCapabilityOptions } from "../src/motion.ts"
 import { motionCapability } from "../src/motion.ts"
 import { renderToString } from "../src/server.ts"
 
@@ -39,6 +38,7 @@ vi.mock(`motion`, async (actual) => ({
 				visual.props = props
 			}),
 			unmount: vi.fn(),
+			scheduleRender: vi.fn(),
 		}
 		const node: any = {
 			latestValues,
@@ -80,10 +80,10 @@ afterEach(() => {
 	document.body.replaceChildren()
 })
 function fixture(
-	options: LayoutCapabilityOptions = {},
+	options: MotionCapabilityOptions = {},
 	initial: Record<string, any> = {
-		"layout:animate": true,
-		"layout:id": `marker`,
+		"motion:layout": true,
+		"motion:layoutId": `marker`,
 		style: `width:10px;height:10px;transform:rotate(8deg);transform-origin:0 0`,
 	},
 	extra: Capability[] = [],
@@ -98,7 +98,7 @@ function fixture(
 		default: initial,
 	})
 	const bindings: CapabilityBinding[] = []
-	const base = layoutCapability(options)
+	const base = motionCapability(options)
 	const cap: Capability = {
 		...base,
 		attach(target, scope) {
@@ -183,10 +183,10 @@ it(`coordinates measurement around native writes, restores author styles, and re
 	probe.events.length = 0
 	current.node.isLead.mockReturnValue(false)
 	f.update({
-		"layout:animate": `position`,
-		"layout:id": `marker`,
-		"layout:group": `ready`,
-		"layout:scroll": true,
+		"motion:layout": `position`,
+		"motion:layoutId": `marker`,
+		"motion:layoutGroup": `ready`,
+		"motion:layoutScroll": true,
 		style: `width:20px;height:10px`,
 	})
 	expect(probe.events[0]).toEqual([`before`, `10px`])
@@ -195,6 +195,7 @@ it(`coordinates measurement around native writes, restores author styles, and re
 		animationType: `position`,
 		layoutScroll: true,
 	})
+	expect(current.visual.scheduleRender).toHaveBeenCalled()
 	f.bindings[0].exit?.({})
 	expect(probe.nodes.at(-1).node.isPresent).toBe(false)
 	f.bindings[0].resume?.()
@@ -210,8 +211,8 @@ it(`initializes nodes in document order, isolates groups and roots, and supports
 	const f = fixture(
 		{},
 		{
-			"layout:animate": false,
-			"layout:scroll": true,
+			"motion:layout": false,
+			"motion:layoutScroll": true,
 			"data-layout": `original`,
 			"data-layout-id": `original-id`,
 		},
@@ -222,14 +223,18 @@ it(`initializes nodes in document order, isolates groups and roots, and supports
 	expect(probe.nodes[0].element.getAttribute(`data-layout-id`)).toBe(
 		`original-id`,
 	)
-	const cap = layoutCapability()
+	const cap = motionCapability()
 	const host = document.createElement(`main`)
 	document.body.append(host)
 	const root = render(
 		() => (
-			<article layout:animate>
-				<i layout:animate="size" layout:id="same" layout:group="one" />
-				<i layout:id="same" layout:group="two" />
+			<article motion:layout>
+				<i
+					motion:layout="size"
+					motion:layoutId="same"
+					motion:layoutGroup="one"
+				/>
+				<i motion:layoutId="same" motion:layoutGroup="two" />
 			</article>
 		),
 		host,
@@ -241,7 +246,10 @@ it(`initializes nodes in document order, isolates groups and roots, and supports
 	expect(nodes[1].element.getAttribute(`data-layout-id`)).not.toBe(
 		nodes[2].element.getAttribute(`data-layout-id`),
 	)
-	const other = fixture({}, { "layout:id": `same`, "layout:group": `one` })
+	const other = fixture(
+		{},
+		{ "motion:layoutId": `same`, "motion:layoutGroup": `one` },
+	)
 	expect(probe.nodes.at(-1).element.getAttribute(`data-layout-id`)).not.toBe(
 		nodes[1].element.getAttribute(`data-layout-id`),
 	)
@@ -291,20 +299,24 @@ it(`finishes projections on reduced-motion changes and reports resize/media fail
 	expect(m.preference.removeEventListener).toHaveBeenCalled()
 	probe.failMeasure = false
 	const g = fixture({ reducedMotion: `always` })
-	g.bindings[0].update({ transition: { duration: -1 } })
+	g.bindings[0].update({ layoutTransition: { duration: -1 } })
 	m.changed()
 	expect(g.onError).toHaveBeenCalledWith(
 		expect.objectContaining({ message: expect.stringContaining(`finite`) }),
 	)
 })
 it(`rejects invalid hosts, properties, and non-settling transitions and cleans every projection after errors`, () => {
-	expect(() => layoutCapability().attach({ kind: `three`, node: {} })).toThrow(
-		`owned HTML`,
-	)
-	expect(() => layoutCapability().attach({ kind: `dom`, node: null })).toThrow(
-		`owned HTML`,
-	)
-	expect(() => fixture({}, { "layout:unknown": true })).toThrow(
+	expect(() => {
+		motionCapability()
+			.attach({ kind: `three`, node: {}, read: () => 0, write() {} })
+			.update({ layout: true })
+	}).toThrow(`owned HTML`)
+	expect(() => {
+		motionCapability()
+			.attach({ kind: `dom`, node: null })
+			.update({ layout: true })
+	}).toThrow(`owned HTML`)
+	expect(() => fixture({}, { "motion:unknown": true })).toThrow(
 		`unknown property`,
 	)
 	for (const transition of [
@@ -313,7 +325,7 @@ it(`rejects invalid hosts, properties, and non-settling transitions and cleans e
 		{ damping: -1 },
 		{ mass: 0 },
 	])
-		expect(() => fixture({ transition })).toThrow(`finite`)
+		expect(() => fixture({ layoutTransition: transition })).toThrow(`finite`)
 	const f = fixture()
 	probe.failDetach = true
 	expect(() => {
@@ -322,9 +334,9 @@ it(`rejects invalid hosts, properties, and non-settling transitions and cleans e
 	expect(probe.nodes.at(-1).visual.unmount).toHaveBeenCalled()
 })
 it(`skips disconnected targets and completes pending commits safely when a root is disposed mid-update`, () => {
-	const f = fixture({}, { "layout:animate": true, style: `width:10px` })
+	const f = fixture({}, { "motion:layout": true, style: `width:10px` })
 	f.host.remove()
-	f.update({ "layout:animate": true, style: `width:20px` })
+	f.update({ "motion:layout": true, style: `width:20px` })
 	let mounted = false
 	const stop: Capability = {
 		namespace: `stop`,
@@ -335,18 +347,18 @@ it(`skips disconnected targets and completes pending commits safely when a root 
 			return () => {}
 		},
 	}
-	const g = fixture({}, { "layout:animate": true }, [stop])
-	g.update({ "layout:animate": true, style: `width:40px` })
+	const g = fixture({}, { "motion:layout": true }, [stop])
+	g.update({ "motion:layout": true, style: `width:40px` })
 	expect(() => {
 		g.root.flush()
 	}).not.toThrow()
 })
 it(`keeps layout attributes and engine work out of server markup`, () => {
 	const html = renderToString(
-		() => <section layout:animate layout:id="server" />,
-		{ capabilities: [layoutCapability()] },
+		() => <section motion:layout motion:layoutId="server" />,
+		{ capabilities: [motionCapability()] },
 	)
-	expect(html).not.toContain(`layout:`)
+	expect(html).not.toContain(`motion:`)
 	expect(probe.nodes).toHaveLength(0)
 })
 
@@ -364,7 +376,7 @@ it(`defers pre-mount media/observer work and supports environments without Resiz
 			return () => {}
 		},
 	}
-	fixture({}, { "layout:animate": true }, [early])
+	fixture({}, { "motion:layout": true }, [early])
 	expect(probe.nodes).toHaveLength(0)
 	vi.stubGlobal(`ResizeObserver`, undefined)
 	fixture({ reducedMotion: `never` })
@@ -372,10 +384,11 @@ it(`defers pre-mount media/observer work and supports environments without Resiz
 })
 
 it(`adopts reactive Motion properties into an existing projection renderer`, () => {
-	const f = fixture({}, { "layout:animate": true, "motion:animate": { x: 0 } }, [
-		motionCapability({ reducedMotion: `always` }),
-	])
-	f.update({ "layout:animate": true, "motion:animate": { x: 50, y: 20 } })
+	const f = fixture(
+		{ reducedMotion: `always` },
+		{ "motion:layout": true, "motion:animate": { x: 0 } },
+	)
+	f.update({ "motion:layout": true, "motion:animate": { x: 50, y: 20 } })
 	expect(probe.adopted).toBeGreaterThan(0)
 })
 
@@ -388,7 +401,7 @@ it(`preserves authored projection styles and resolves fixed origins against upda
 	vi.spyOn(HTMLElement.prototype, `offsetHeight`, `get`).mockReturnValue(80)
 	probe.values = { opacity: 0.4, originX: 0.5, originY: 0.5 }
 	const props = {
-		"layout:id": `authored`,
+		"motion:layoutId": `authored`,
 		style: `width:100px;opacity:.15;visibility:hidden;pointer-events:none;transform-origin:25px 10px`,
 	}
 	const f = fixture({}, props)
@@ -430,7 +443,7 @@ it(`preserves authored projection styles and resolves fixed origins against upda
 })
 
 it(`returns to authored transform rendering after Motion transform values are removed`, () => {
-	const props = { "layout:animate": true, style: `transform:rotate(5deg)` }
+	const props = { "motion:layout": true, style: `transform:rotate(5deg)` }
 	const f = fixture({}, props)
 	const { node, visual } = probe.nodes[0]
 	expect(visual.props.transformTemplate({}, `none`)).toContain(`rotate(5deg)`)
@@ -449,7 +462,7 @@ it(`keeps a fixed-pixel origin fixed when an existing projection target is resiz
 		},
 	)
 	const props = {
-		"layout:animate": true,
+		"motion:layout": true,
 		style: `width:100px;transform-origin:25px 0`,
 	}
 	const f = fixture({}, props)
@@ -457,4 +470,44 @@ it(`keeps a fixed-pixel origin fixed when an existing projection target is resiz
 	expect(node.latestValues.originX).toBe(0.25)
 	f.update({ ...props, style: props.style.replace(`100px`, `200px`) })
 	expect(node.latestValues.originX).toBe(0.125)
+})
+
+it(`activates layout lazily with a shared ID and releases it while animated properties remain`, () => {
+	const watched = observers()
+	const f = fixture({ reducedMotion: `always` }, { "motion:animate": { x: 10 } })
+	expect(watched).toHaveLength(0)
+	expect(probe.nodes).toHaveLength(0)
+	f.update({ "motion:animate": { x: 20 }, "motion:layoutId": `marker` })
+	expect(watched).toHaveLength(1)
+	expect(probe.nodes).toHaveLength(1)
+	expect(probe.nodes[0].element.getAttribute(`data-layout`)).toBe(`true`)
+	expect(probe.nodes[0].element.getAttribute(`data-layout-id`)).toContain(
+		`marker`,
+	)
+	f.update({ "motion:animate": { x: 30 } })
+	expect(probe.nodes[0].detach).toHaveBeenCalledOnce()
+	f.update({ "motion:animate": { x: 40 }, "motion:layout": `position` })
+	expect(probe.nodes).toHaveLength(2)
+	expect(probe.nodes[1].node.options.animationType).toBe(`position`)
+})
+
+it(`accepts exit and resume before a layout target's first measurement`, () => {
+	const host = document.createElement(`main`)
+	document.body.append(host)
+	const base = motionCapability()
+	const cap: Capability = {
+		...base,
+		attach(target, scope) {
+			const binding = base.attach(target, scope)
+			binding.update({ layout: true })
+			binding.exit?.({})
+			binding.resume?.()
+			return binding
+		},
+	}
+	const root = render(() => <div motion:layoutId="marker" />, host, {
+		capabilities: [cap],
+	})
+	cleanups.push(root.dispose)
+	expect(probe.nodes).toHaveLength(1)
 })

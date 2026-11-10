@@ -98,11 +98,6 @@
 			"types": "./dist/astro-resumability-server.d.ts",
 			"development": "./dist/development/astro-resumability-server.js",
 			"import": "./dist/astro-resumability-server.js"
-		},
-		"./layout": {
-			"types": "./dist/layout.d.ts",
-			"development": "./dist/development/layout.js",
-			"import": "./dist/layout.js"
 		}
 	},
 	"main": "./dist/index.js",

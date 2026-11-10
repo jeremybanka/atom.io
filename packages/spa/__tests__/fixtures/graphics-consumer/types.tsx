@@ -1,7 +1,6 @@
 import { render } from "@atom.io/spa"
 import { floatingCapability } from "@atom.io/spa/floating"
 import { Circle, Layer, Stage } from "@atom.io/spa/konva"
-import { layoutCapability } from "@atom.io/spa/layout"
 import { motionCapability } from "@atom.io/spa/motion"
 import {
 	BoxGeometry,
@@ -162,18 +161,18 @@ void [configuredCanvas, badCanvasElement, badDpr]
 
 const projected = (
 	<section
-		layout:animate="position"
-		layout:id="player"
-		layout:group="match"
-		layout:scroll
-		layout:transition={{ type: `spring`, stiffness: 180, damping: 22 }}
+		motion:layout="position"
+		motion:layoutId="player"
+		motion:layoutGroup="match"
+		motion:layoutScroll
+		motion:layoutTransition={{ type: `spring`, stiffness: 180, damping: 22 }}
 	/>
 )
-render(() => projected, document.body, { capabilities: [layoutCapability()] })
+render(() => projected, document.body, { capabilities: [motionCapability()] })
 // @ts-expect-error: Layout animation modes are position, size, or boolean.
-const badLayoutMode = <section layout:animate="everything" />
+const badLayoutMode = <section motion:layout="everything" />
 // @ts-expect-error: Layout projection requires HTML nodes, not scene objects.
-const badSceneLayout = <Mesh layout:animate />
+const badSceneLayout = <Mesh motion:layout />
 // @ts-expect-error: Shared layout identities are strings or numbers.
-const badLayoutId = <section layout:id={{ id: 1 }} />
+const badLayoutId = <section motion:layoutId={{ id: 1 }} />
 void [badLayoutMode, badSceneLayout, badLayoutId]

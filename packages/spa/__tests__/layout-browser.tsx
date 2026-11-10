@@ -2,7 +2,6 @@ import { atom, setState } from "atom.io"
 
 import { floatingCapability } from "../src/floating.ts"
 import { render, useGetter } from "../src/index.ts"
-import { layoutCapability } from "../src/layout.ts"
 import { motionCapability } from "../src/motion.ts"
 import { layoutRegressions } from "./layout-regressions-browser.tsx"
 
@@ -14,17 +13,17 @@ anchor.style.cssText = `position:absolute;left:400px;top:400px;width:40px;height
 document.body.append(anchor)
 const host = document.createElement(`main`)
 document.body.append(host)
-const capability = layoutCapability({
-	transition: { duration: 0.35, ease: `linear` },
+const capability = motionCapability({
+	layoutTransition: { duration: 0.35, ease: `linear` },
 })
 let kept: HTMLElement | null = null
 function Marker() {
 	return (
 		<i
 			id="marker"
-			layout:animate="position"
-			layout:id="player"
-			layout:group="ready"
+			motion:layout="position"
+			motion:layoutId="player"
+			motion:layoutGroup="ready"
 			style="display:block;width:40px;height:40px;background:orange;border-radius:50%"
 		/>
 	)
@@ -37,8 +36,8 @@ function App() {
 		<>
 			<section
 				id="panel"
-				layout:animate
-				layout:transition={{
+				motion:layout
+				motion:layoutTransition={{
 					duration: getBadLayout() ? -1 : 0.35,
 					ease: `linear`,
 				}}
@@ -53,18 +52,18 @@ function App() {
 			</section>
 			<div
 				id="nested-parent"
-				layout:animate
+				motion:layout
 				style={`margin-top:40px;width:${getPhase() % 2 ? 240 : 120}px;height:80px;transform:scale(1.2);transform-origin:0 0;background:#aaa`}
 			>
 				<span
 					id="nested"
-					layout:animate="position"
+					motion:layout="position"
 					style={`display:block;margin-left:${getPhase() % 2 ? 100 : 0}px;width:30px;height:30px;background:blue;transform:rotate(8deg)`}
 				/>
 			</div>
 			<div
 				id="animated-layout"
-				layout:animate
+				motion:layout
 				style={`position:absolute;left:8px;top:300px;width:${getPhase() % 2 ? 80 : 40}px;height:40px;background:cyan`}
 				motion:animate={getPhase() % 2 ? { x: 50, y: 20 } : { x: 0 }}
 				motion:transition={{ duration: 0.2 }}
@@ -73,14 +72,14 @@ function App() {
 
 			<i
 				id="unrelated"
-				layout:animate
-				layout:id="player"
-				layout:group="other"
+				motion:layout
+				motion:layoutId="player"
+				motion:layoutGroup="other"
 				style="position:absolute;left:600px;top:10px;width:40px;height:40px;background:green"
 			/>
 			<aside
 				id="floating-layout"
-				layout:animate
+				motion:layout
 				floating:reference={anchor}
 				floating:placement="bottom"
 				floating:strategy="fixed"
@@ -90,8 +89,8 @@ function App() {
 				<section
 					id="retained"
 					key="retained"
-					layout:animate
-					layout:id="retained"
+					motion:layout
+					motion:layoutId="retained"
 					motion:exit={{ opacity: 0 }}
 					motion:transition={{ duration: 0.25 }}
 					style="width:40px;height:40px;background:purple"
@@ -101,11 +100,7 @@ function App() {
 	)
 }
 const root = render(() => <App />, host, {
-	capabilities: [
-		capability,
-		motionCapability({ reducedMotion: `never` }),
-		floatingCapability(),
-	],
+	capabilities: [capability, floatingCapability()],
 })
 const otherHost = document.createElement(`section`)
 otherHost.style.cssText = `position:absolute;top:600px;left:20px`
@@ -114,9 +109,9 @@ const otherRoot = render(
 	() => (
 		<i
 			id="other-root"
-			layout:animate
-			layout:id="player"
-			layout:group="ready"
+			motion:layout
+			motion:layoutId="player"
+			motion:layoutGroup="ready"
 			style="display:block;width:40px;height:40px;background:purple"
 		/>
 	),

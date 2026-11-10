@@ -22,6 +22,8 @@ it(`unregisters handed-off Motion values without removing another owner's values
 		expect(visual.values.has(`x`)).toBe(true)
 		expect(element.style.opacity).toBe(`0.2`)
 		binding.dispose()
+		expect(binding.exit?.({ exit: { x: 100 } })).toBeUndefined()
+		binding.resume?.()
 		visual.render()
 		expect(visual.values.has(`x`)).toBe(false)
 		expect(visual.latestValues[`x`]).toBeUndefined()

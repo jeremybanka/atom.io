@@ -1,52 +1,25 @@
 import type { IProjectionNode, ValueTransition } from "motion"
 import { acquireProjectionNode, visualElementStore } from "motion"
 
-import type {
-	Capability,
-	CapabilityBinding,
-	CapabilityTarget,
-} from "./capabilities.ts"
+import type { CapabilityBinding } from "./capabilities.ts"
 import type { Cleanup, Root, Scope } from "./core.ts"
 import { fail, onMount, within } from "./core.ts"
+import type {
+	MotionCapabilityOptions,
+	MotionLayoutTransition,
+} from "./motion.ts"
 
-export interface LayoutTransition {
-	type?: `spring` | `tween`
-	duration?: number
-	delay?: number
-	ease?:
-		| `linear`
-		| `easeIn`
-		| `easeOut`
-		| `easeInOut`
-		| readonly [number, number, number, number]
-	stiffness?: number
-	damping?: number
-	mass?: number
-}
-export interface LayoutAttributes<Kind extends string = `dom`> {
-	[`layout:animate`]?: Kind extends `dom` ? boolean | `position` | `size` : never
-	[`layout:id`]?: Kind extends `dom` ? string | number : never
-	[`layout:group`]?: Kind extends `dom` ? string | number : never
-	[`layout:scroll`]?: Kind extends `dom` ? boolean : never
-	[`layout:transition`]?: Kind extends `dom` ? LayoutTransition : never
-}
-// eslint-disable-next-line quotes -- Declaration merging requires a string literal.
-declare module "@atom.io/spa/jsx-runtime" {
-	// oxlint-disable-next-line typescript/no-empty-interface -- Optional layout attributes augment native props.
-	interface CapabilityAttributes<
-		Kind extends string,
-	> extends LayoutAttributes<Kind> {}
-}
-export interface LayoutCapabilityOptions {
-	reducedMotion?: `user` | `always` | `never`
-	transition?: LayoutTransition
-}
 interface Props {
 	animate?: boolean | `position` | `size`
 	id?: string | number
 	group?: string | number
 	scroll?: boolean
-	transition?: LayoutTransition
+	transition?: MotionLayoutTransition
+}
+interface LayoutController {
+	commit(): void
+	beforeUpdate(): Cleanup
+	attach(element: HTMLElement, scope: Scope): CapabilityBinding
 }
 interface Entry {
 	element: HTMLElement
@@ -61,10 +34,12 @@ interface Entry {
 	identity?: string
 	size?: string
 }
-const allowed = new Set([`animate`, `id`, `group`, `scroll`, `transition`])
 let serial = 0
 
-function controller(root: Root, options: LayoutCapabilityOptions) {
+export function createLayoutController(
+	root: Root,
+	options: MotionCapabilityOptions,
+): LayoutController {
 	const prefix = serial++
 	const entries = new Set<Entry>()
 	let dead = false
@@ -103,7 +78,7 @@ function controller(root: Root, options: LayoutCapabilityOptions) {
 	}
 	const configure = (entry: Entry) => {
 		const transition = entry.props.transition ??
-			options.transition ?? { duration: 0.3 }
+			options.layoutTransition ?? { duration: 0.3 }
 		for (const name of [
 			`duration`,
 			`delay`,
@@ -118,7 +93,7 @@ function controller(root: Root, options: LayoutCapabilityOptions) {
 					value < 0 ||
 					([`stiffness`, `damping`, `mass`].includes(name) && value === 0))
 			)
-				throw new Error(`spa/layout: transitions must settle in finite time`)
+				throw new Error(`spa/motion: transitions must settle in finite time`)
 		}
 		entry.node!.setOptions({
 			layoutScroll: entry.props.scroll ?? false,
@@ -247,7 +222,9 @@ function controller(root: Root, options: LayoutCapabilityOptions) {
 								Reflect.deleteProperty(node.latestValues, key)
 							else node.latestValues[key] = originalValues[key]
 						}
-					if (root._dead || entry.scope._dead || !visual.values.size) {
+					const retained =
+						!root._dead && !entry.scope._dead && visual.values.size > 0
+					if (!retained) {
 						visual.unmount()
 						visualElementStore.delete(element)
 					} else visual.update(originalProps, null)
@@ -256,6 +233,7 @@ function controller(root: Root, options: LayoutCapabilityOptions) {
 						else element.setAttribute(name, value)
 					}
 					for (const name of styleNames) restore(name)
+					if (retained) visual.scheduleRender()
 				}
 			}
 			observer?.observe(element)
@@ -333,7 +311,8 @@ function controller(root: Root, options: LayoutCapabilityOptions) {
 		if (errors.length) throw new AggregateError(errors)
 	})
 	return {
-		beforeUpdate() {
+		commit,
+		beforeUpdate(): Cleanup {
 			updating = true
 			for (const entry of ordered()) {
 				prepare(entry)
@@ -357,9 +336,6 @@ function controller(root: Root, options: LayoutCapabilityOptions) {
 			})
 			return {
 				update(props, previousStyle) {
-					for (const key of Object.keys(props))
-						if (!allowed.has(key))
-							throw new Error(`spa/layout: unknown property layout:${key}`)
 					entry.props = props
 					if (previousStyle !== undefined) entry.captureStyles?.()
 				},
@@ -382,35 +358,6 @@ function controller(root: Root, options: LayoutCapabilityOptions) {
 					}
 				},
 			}
-		},
-	}
-}
-
-/** Optional DOM layout projection, with shared identities isolated by root and explicit group. */
-export function layoutCapability(
-	options: LayoutCapabilityOptions = {},
-): Capability {
-	const roots = new WeakMap<Root, ReturnType<typeof controller>>()
-	const state = (root: Root) => {
-		let current = roots.get(root)
-		if (!current) {
-			current = controller(root, options)
-			roots.set(root, current)
-		}
-		return current
-	}
-	return {
-		namespace: `layout`,
-		beforeUpdate: (root) => state(root).beforeUpdate(),
-		attach(target: CapabilityTarget, scope?: Scope) {
-			const element = target.node as HTMLElement
-			if (
-				target.kind !== `dom` ||
-				element?.namespaceURI !== `http://www.w3.org/1999/xhtml` ||
-				!scope
-			)
-				throw new Error(`spa/layout: layout requires an owned HTML element`)
-			return state(scope._root).attach(element, scope)
 		},
 	}
 }

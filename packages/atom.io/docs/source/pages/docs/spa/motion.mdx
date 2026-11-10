@@ -36,10 +36,15 @@ The default transition is a spring. Retargeting a spring preserves its current v
 | motion:whileHover | Temporary destinations while the pointer is over the element. |
 | motion:whileTap | Temporary destinations while the element is pressed. |
 | motion:exit | Destinations to finish before a removed view is disposed. |
+| motion:layout | Animate position and size changes; position or size restricts the animated dimensions. |
+| motion:layoutId | Shared visual identity; enables layout animation without motion:layout. |
+| motion:layoutGroup | Scope shared identities to a group within the root. |
+| motion:layoutScroll | Include this scrolling ancestor in layout measurements. |
+| motion:layoutTransition | Override the layout transition for this target. |
 
 </table-wrapper>
 
-DOM targets accept scalar CSS values, custom CSS properties, and independent transforms such as x, rotate, and scale. These framework properties never become HTML attributes. DOM keyframe sequences and property-specific timing are described below. Layout animation and variants remain separate capabilities.
+DOM targets accept scalar CSS values, custom CSS properties, and independent transforms such as x, rotate, and scale. These framework properties never become HTML attributes. DOM keyframe sequences and property-specific timing are described below. Use motion:layout for layout changes and motion:layoutId for shared element transitions.
 
 ## exit animations
 
@@ -70,3 +75,19 @@ DOM motion targets accept scalar values or keyframe sequences of at least two va
 Transition times are normalized, ordered values from 0 to 1 and must match the keyframe count. ease accepts a single named easing/cubic-bezier tuple or one easing for each interval. Top-level options are overridden by default options, then by properties[propertyName], with missing fields inherited in that order. This allows independent timing per property and per element. Times and easing lengths must match the effective sequence, including exit targets; invalid combinations report a spa/motion diagnostic. Sequences share the existing interruption, gesture, keyed exit/re-entry, and disposal ownership.
 
 <Exhibit src="spa/exhibits/motion-keyframes.tsx" />
+
+## layout and shared identity
+
+Register motionCapability from @atom.io/spa/motion once to enable animated properties, exits, HTML layout changes, and shared element transitions. All use the optional Motion peer; the base SPA runtime stays independent of Motion:
+
+<Exhibit src="spa/exhibits/layout-main.tsx" />
+
+<Exhibit src="spa/exhibits/layout.tsx" />
+
+motion:layout enables position and size projection; position or size restricts the animated dimensions. motion:layoutId enables layout animation implicitly and carries a visual identity between outgoing/incoming nodes, while reconciliation keys continue to own component instances. Shared identities are isolated by root and by an explicit motion:layoutGroup on each shared node; group is not inherited. Use distinct group values for separate boards in one root. Reusing an ID within a group coordinates a shared transition, with the latest mounted member leading.
+
+SPA snapshots registered targets before each synchronous update batch and projects after the DOM commits. Per-target ResizeObserver subscriptions also handle external size changes; no document-wide mutation observer or consumer measurement loop is needed. Mark scrolling layout ancestors with motion:layoutScroll. Nested projections preserve authored transforms and transform origins; Floating UI retains its independent translate positioning. Avoid multiple layout/projection owners or direct writes to a projected element's transform while the capability is active.
+
+The default transition is a 0.3-second tween; the capability option layoutTransition sets defaults and motion:layoutTransition replaces them for a target. Use finite duration/delay values or settling spring parameters. Retargeting uses the current projection. Outgoing nodes remain available for shared handoff until replacements mount in the same batch. With Motion exits, layout follows the retained node's lifetime; keyed re-entry resumes the existing instance. Shared identity transfers appearance, not component state or DOM ownership, and nodes are not automatically reparented.
+
+Reduced motion follows the user's preference by default; always and never options override it. Enabling reduced motion finishes projections immediately. Removal, fatal errors, and root disposal cancel projection work, disconnect observers/listeners, and restore owned attributes/styles. Server rendering emits no layout attributes or animation work. Layout is limited to owned HTML nodes; scene objects, SVG projection, pop-layout positioning, and cross-document handoff are unsupported.

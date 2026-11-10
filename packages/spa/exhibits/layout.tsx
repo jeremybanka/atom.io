@@ -1,6 +1,5 @@
 import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useSetter } from "@atom.io/spa"
-import type {} from "@atom.io/spa/layout"
 import type {} from "@atom.io/spa/motion"
 import { atom } from "atom.io"
 
@@ -12,7 +11,7 @@ function ReadinessGroup(props: { ready: boolean; match: string }): SpaElement {
 	const setReadyPlayers = useSetter(readyPlayersAtom)
 	return (
 		<section
-			layout:animate
+			motion:layout
 			style={`width:${getReadyPlayers().length ? 260 : 180}px;min-height:80px`}
 		>
 			<h2>{props.ready ? `Ready` : `Waiting`}</h2>
@@ -21,9 +20,9 @@ function ReadinessGroup(props: { ready: boolean; match: string }): SpaElement {
 				.map((player) => (
 					<button
 						key={player}
-						layout:animate="position"
-						layout:id={player}
-						layout:group={props.match}
+						motion:layout="position"
+						motion:layoutId={player}
+						motion:layoutGroup={props.match}
 						motion:exit={{ opacity: 0 }}
 						motion:transition={{ duration: 0.2 }}
 						onClick={() => {

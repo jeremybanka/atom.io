@@ -390,11 +390,6 @@ function SiteDirectory(): SpaElement {
 							</a>
 						</section>
 						<section>
-							<a id="-docs-spa-layout-link" href="/docs/spa/layout">
-								<low-emphasis>@atom.io/spa</low-emphasis>/layout
-							</a>
-						</section>
-						<section>
 							<a id="-docs-spa-three-link" href="/docs/spa/three">
 								<low-emphasis>@atom.io/spa</low-emphasis>/three
 							</a>

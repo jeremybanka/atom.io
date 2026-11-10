@@ -230,6 +230,20 @@ try {
 		}),
 		`Removing motion must restore authored transforms through later layout renders`,
 	)
+	await page.evaluate(() => window.layoutRegression.removeLayout())
+	await page.waitForTimeout(80)
+	await page.evaluate(() => window.layoutRegression.resize(250))
+	await page.waitForTimeout(300)
+	assert.ok(
+		await page.locator(`#persistent-motion`).evaluate((node) => {
+			const computed = getComputedStyle(node)
+			return (
+				Math.abs(new DOMMatrix(computed.transform).e - 30) < 0.01 &&
+				computed.opacity === `0.7`
+			)
+		}),
+		`Removing layout props must preserve remaining animated properties`,
+	)
 	await page.evaluate(() => window.layoutRegression.dispose())
 	await page.reload()
 	await page.waitForTimeout(100)

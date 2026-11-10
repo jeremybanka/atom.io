@@ -65,14 +65,7 @@ try {
 			`await import('@atom.io/spa'); await import('@atom.io/spa/jsx-runtime'); await import('@atom.io/spa/server');`,
 		])
 
-	for (const entry of [
-		`index`,
-		`konva`,
-		`three`,
-		`motion`,
-		`layout`,
-		`floating`,
-	]) {
+	for (const entry of [`index`, `konva`, `three`, `motion`, `floating`]) {
 		const output = await build({
 			stdin: {
 				contents: `export * from './dist/${entry}.js'`,
@@ -86,7 +79,7 @@ try {
 		})
 		const inputs = Object.keys(output.metafile.inputs)
 		const allowed =
-			entry === `motion` || entry === `layout`
+			entry === `motion`
 				? [`motion`, `framer-motion`]
 				: entry === `floating`
 					? [`@floating-ui/dom`, `@floating-ui/core`, `@floating-ui/utils`]

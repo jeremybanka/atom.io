@@ -158,3 +158,21 @@ const badCanvasElement = <Canvas rendererOptions={{ canvas: undefined }} />
 // @ts-expect-error: DPR accepts a number or a pair of clamp bounds.
 const badDpr = <Canvas dpr={[1, 2, 3]} />
 void [configuredCanvas, badCanvasElement, badDpr]
+
+const projected = (
+	<section
+		motion:layout="position"
+		motion:layoutId="player"
+		motion:layoutGroup="match"
+		motion:layoutScroll
+		motion:layoutTransition={{ type: `spring`, stiffness: 180, damping: 22 }}
+	/>
+)
+render(() => projected, document.body, { capabilities: [motionCapability()] })
+// @ts-expect-error: Layout animation modes are position, size, or boolean.
+const badLayoutMode = <section motion:layout="everything" />
+// @ts-expect-error: Layout projection requires HTML nodes, not scene objects.
+const badSceneLayout = <Mesh motion:layout />
+// @ts-expect-error: Shared layout identities are strings or numbers.
+const badLayoutId = <section motion:layoutId={{ id: 1 }} />
+void [badLayoutMode, badSceneLayout, badLayoutId]

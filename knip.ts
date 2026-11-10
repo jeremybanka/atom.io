@@ -305,6 +305,8 @@ export default {
 				"__tests__/{astro,resumption}/**/*.{ts,tsx,mjs}",
 				"__tests__/types.ts",
 				"__tests__/graphics.tsx",
+				// The layout browser harness bundles this fixture through esbuild entryPoints.
+				"__tests__/layout-browser.tsx",
 				"scripts/**/*.{ts,tsx,js,mjs,cjs}",
 				"__tests__/fixtures/**/*.{ts,tsx,js,mjs,cjs}",
 				"tonnage-recipes/**/*.{ts,tsx}",

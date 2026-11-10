@@ -2,11 +2,13 @@ import type { animate, MotionValue } from "motion"
 import {
 	cancelFrame,
 	frame,
+	handOffElementState,
 	hover,
 	motionValue,
 	press,
 	readStyleValue,
 	styleEffect,
+	visualElementStore,
 } from "motion"
 
 import type {
@@ -14,6 +16,8 @@ import type {
 	CapabilityBinding,
 	CapabilityTarget,
 } from "./capabilities.ts"
+import type { Root } from "./core.ts"
+import { createLayoutController } from "./motion-layout.ts"
 import { finalFrame, propertyTransition } from "./motion-transition.ts"
 import { animateTween } from "./motion-tween.ts"
 import type { ExitHandle } from "./presence.ts"
@@ -56,6 +60,20 @@ export interface MotionTransition extends MotionValueTransition {
 	default?: MotionValueTransition
 	properties?: Readonly<Record<string, MotionValueTransition>>
 }
+export interface MotionLayoutTransition {
+	type?: `spring` | `tween`
+	duration?: number
+	delay?: number
+	ease?:
+		| `linear`
+		| `easeIn`
+		| `easeOut`
+		| `easeInOut`
+		| readonly [number, number, number, number]
+	stiffness?: number
+	damping?: number
+	mass?: number
+}
 
 export type MotionScalar = number | string
 export type MotionDOMTarget = Partial<
@@ -91,6 +109,13 @@ export type MotionTarget<Kind extends string> = Kind extends `dom`
 		? MotionThreeTarget
 		: Record<string, MotionScalar>
 export interface MotionAttributes<Kind extends string = `dom`> {
+	[`motion:layout`]?: Kind extends `dom` ? boolean | `position` | `size` : never
+	[`motion:layoutId`]?: Kind extends `dom` ? string | number : never
+	[`motion:layoutGroup`]?: Kind extends `dom` ? string | number : never
+	[`motion:layoutScroll`]?: Kind extends `dom` ? boolean : never
+	[`motion:layoutTransition`]?: Kind extends `dom`
+		? MotionLayoutTransition
+		: never
 	[`motion:initial`]?:
 		| (Kind extends `dom`
 				? Partial<Record<keyof MotionDOMTarget, MotionScalar>>
@@ -114,6 +139,8 @@ declare module "@atom.io/spa/jsx-runtime" {
 export interface MotionCapabilityOptions {
 	/** Respect the user's reduced-motion preference by default. */
 	reducedMotion?: `user` | `always` | `never`
+	/** Default transition for layout projection; animated properties use motion:transition. */
+	layoutTransition?: MotionLayoutTransition
 }
 type TargetValue = MotionScalar | readonly (MotionScalar | null)[]
 type TargetValues = Record<string, TargetValue>
@@ -134,6 +161,13 @@ const allowed = new Set([
 	`whileHover`,
 	`whileTap`,
 ])
+const layoutKeys = {
+	layout: `animate`,
+	layoutId: `id`,
+	layoutGroup: `group`,
+	layoutScroll: `scroll`,
+	layoutTransition: `transition`,
+} as const
 function equal(a: unknown, b: unknown): boolean {
 	return (
 		Object.is(a, b) ||
@@ -144,14 +178,10 @@ function equal(a: unknown, b: unknown): boolean {
 	)
 }
 
-function attach(
+function attachValues(
 	target: CapabilityTarget,
 	options: MotionCapabilityOptions,
 ): CapabilityBinding {
-	if (target.kind !== `dom` && (!target.read || !target.write))
-		throw new Error(
-			`spa/motion: renderer ${target.kind} does not support motion`,
-		)
 	const element =
 		target.kind === `dom` ? (target.node as HTMLElement | SVGElement) : undefined
 	const properties = new Map<string, AnimatedProperty>()
@@ -184,13 +214,17 @@ function attach(
 	}
 	const bindStyles = () => {
 		styles?.()
-		if (element)
+		if (element) {
 			styles = styleEffect(
 				[element],
 				Object.fromEntries(
 					[...properties].map(([key, property]) => [key, property.values[0]]),
 				) as any,
 			)
+			// Layout projection and late-added/gesture values must render together.
+			const visual = visualElementStore.get(element)
+			if (visual) handOffElementState(element, visual)
+		}
 	}
 	const ensure = (
 		key: string,
@@ -474,7 +508,6 @@ function attach(
 			return exitHandle
 		},
 		resume() {
-			if (dead) return
 			exitHandle?.cancel()
 			exitHandle = undefined
 			exiting = false
@@ -482,10 +515,6 @@ function attach(
 			refresh(true)
 		},
 		update(next, previousStyle) {
-			if (dead) return
-			for (const key of Object.keys(next))
-				if (!allowed.has(key))
-					throw new Error(`spa/motion: unknown property motion:${key}`)
 			const gestureChange =
 				!started ||
 				Boolean(next[`whileHover`]) !== Boolean(props[`whileHover`]) ||
@@ -505,13 +534,16 @@ function attach(
 			refresh()
 		},
 		dispose() {
-			if (dead) return
 			dead = true
 			clearGestures()
 			exitHandle?.cancel()
 			preference?.removeEventListener(`change`, mediaChanged)
 			styles?.()
+			const visual = element && visualElementStore.get(element)
 			for (const [key, property] of properties) {
+				// Projection can retain this renderer after the binding is gone.
+				if (visual?.values.get(key) === property.values[0])
+					visual.removeValue(key)
 				property.release()
 				if (!element) target.write!(key, property.base)
 			}
@@ -529,10 +561,89 @@ function attach(
 export function motionCapability(
 	options: MotionCapabilityOptions = {},
 ): Capability {
+	const layouts = new WeakMap<Root, ReturnType<typeof createLayoutController>>()
 	return {
 		namespace: `motion`,
 		presence: createPresence,
-		attach: (target) => attach(target, options),
+		beforeUpdate(root) {
+			const layout = layouts.get(root)
+			// A layout binding can first appear during the upcoming DOM writes.
+			return layout ? layout.beforeUpdate() : () => layouts.get(root)?.commit()
+		},
+		attach(target, scope) {
+			if (target.kind !== `dom` && (!target.read || !target.write))
+				throw new Error(
+					`spa/motion: renderer ${target.kind} does not support motion`,
+				)
+			let values: CapabilityBinding | undefined
+			let layout: CapabilityBinding | undefined
+			let dead = false
+			return {
+				update(next, previousStyle) {
+					if (dead) return
+					const animated: Record<string, unknown> = {}
+					const projected: Record<string, unknown> = {}
+					for (const [key, value] of Object.entries(next)) {
+						if (Object.hasOwn(layoutKeys, key))
+							projected[layoutKeys[key as keyof typeof layoutKeys]] = value
+						else if (allowed.has(key)) animated[key] = value
+						else throw new Error(`spa/motion: unknown property motion:${key}`)
+					}
+					if (Object.keys(projected).length) {
+						if (!layout) {
+							const element = target.node as HTMLElement
+							if (
+								target.kind !== `dom` ||
+								element?.namespaceURI !== `http://www.w3.org/1999/xhtml` ||
+								!scope
+							)
+								throw new Error(
+									`spa/motion: layout requires an owned HTML element`,
+								)
+							let controller = layouts.get(scope._root)
+							if (!controller) {
+								controller = createLayoutController(scope._root, options)
+								layouts.set(scope._root, controller)
+							}
+							layout = controller.attach(element, scope)
+						}
+						layout.update(projected, previousStyle)
+					} else {
+						layout?.dispose()
+						layout = undefined
+					}
+					if (
+						Object.keys(animated).length ||
+						(values && !Object.keys(projected).length)
+					) {
+						values ??= attachValues(target, options)
+						values.update(animated, previousStyle)
+					} else {
+						values?.dispose()
+						values = undefined
+					}
+				},
+				exit(next) {
+					if (dead) return undefined
+					layout?.exit?.(next)
+					return values?.exit?.(next)
+				},
+				resume() {
+					if (dead) return
+					layout?.resume?.()
+					values?.resume?.()
+				},
+				dispose() {
+					if (dead) return
+					dead = true
+					try {
+						values?.dispose()
+					} finally {
+						layout?.dispose()
+					}
+				},
+			}
+		},
 		scheduleFrame(callback) {
 			const run = ({ timestamp }: { timestamp: number }) => {
 				callback(timestamp)

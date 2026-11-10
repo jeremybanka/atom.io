@@ -546,7 +546,7 @@ The checked Astro fixture demonstrates default/named slots and custom independen
 
 The build audits every browser export, including the JSX runtime, from the built JavaScript. Atom.io is an external peer in the incremental measurement. Compiler, server, and integration code have separate entrypoints. The report also includes the complete client plus atom.io, the Astro client entrypoint, and the installed Preact version under the same bundling/minification settings. These are full exported surfaces, not equivalent application benchmarks.
 
-The hard budget is under 4,300 bytes of ordinary level-9 gzip for the complete client export surface, including hydration recovery and its production diagnostics. Tsdown builds the package JavaScript and declarations, with separate production and development outputs that each share their runtime across entrypoints. The size audit then bundles the built exports with esbuild, minifies with Oxc, and measures compression using Node's gzip and Brotli implementations. The complete client export surface measures approximately 4.2 kB with gzip; dist/size.json records the exact build measurements. Actual application bundles add atom.io and compiler-generated application code.
+The hard budget is under 4,400 bytes of ordinary level-9 gzip for the complete client export surface, including hydration recovery and its production diagnostics. Tsdown builds the package JavaScript and declarations, with separate production and development outputs that each share their runtime across entrypoints. The size audit then bundles the built exports with esbuild, minifies with Oxc, and measures compression using Node's gzip and Brotli implementations. The complete client export surface measures approximately 4.3 kB with gzip; dist/size.json records the exact build measurements. Actual application bundles add atom.io and compiler-generated application code.
 
 Build output includes the minified audit entrypoint and machine-readable dist/size.json. These audit files are a bundled measurement; use the package exports in applications so the bundler preserves one runtime instance across entrypoints. Source tests exercise development behavior; the production test executes the audited minified artifact. Chromium checks exercise the actual Astro build, island isolation, hydration, keyed identity, focus/selection, SVG namespaces, and teardown. A fresh-cache Astro development check also covers mount hooks, shared state, and ClientRouter navigation.
 
@@ -578,11 +578,11 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                           | Entry                             | Minified JS |  Gzip JS |
 | -------------------------------- | --------------------------------- | ----------: | -------: |
-| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    64,155 B | 19,160 B |
-| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    42,598 B | 13,397 B |
-| Interactive client app           | `tonnage-recipes/client-app.ts`   |    42,261 B | 13,251 B |
-| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    42,262 B | 13,249 B |
-| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    48,777 B | 15,288 B |
+| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    64,279 B | 19,205 B |
+| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    42,722 B | 13,443 B |
+| Interactive client app           | `tonnage-recipes/client-app.ts`   |    42,385 B | 13,297 B |
+| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    42,386 B | 13,295 B |
+| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    48,901 B | 15,328 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 
@@ -767,7 +767,7 @@ export function MotionPanel(): SpaElement {
 
 ```
 
-Motion targets update reactively without rerunning component setup. The target stays in atom.io; intermediate values and velocity remain in Motion. Spring transitions preserve motion-value continuity when retargeted. Duration-based tween transitions are also supported. Set initial to false to start at the animate target’s final value. DOM targets accept scalar CSS values and independent transforms, including custom CSS properties. DOM keyframe sequences and property-specific timing are supported as described below. Layout animation and variant propagation remain separate capabilities.
+Motion targets update reactively without rerunning component setup. The target stays in atom.io; intermediate values and velocity remain in Motion. Spring transitions preserve motion-value continuity when retargeted. Duration-based tween transitions are also supported. Set initial to false to start at the animate target’s final value. DOM targets accept scalar CSS values and independent transforms, including custom CSS properties. DOM keyframe sequences and property-specific timing are supported as described below. Use motion:layout for layout changes and motion:layoutId for shared element transitions.
 
 Motion respects the user's reduced-motion preference by default, including changes while mounted. The capability's reducedMotion option can be user, always, or never. Owner cleanup stops animations and releases effects, gesture handlers, and media-query listeners. Removing the capability properties releases that node's binding. Avoid assigning the same property through both native attributes/styles and motion targets: motion owns the properties it animates.
 
@@ -812,7 +812,7 @@ export function SpringCube(): SpaElement {
 
 ```
 
-When the motion capability is installed, Canvas draws in Motion's render phase after animated scene values update. Without it, Canvas uses requestAnimationFrame. Both drawing subscriptions and animations end with their owners. The base runtime imports no motion engine or retention coordinator. Presence hooks add approximately 300 bytes of gzip to the released 3.7 kB client surface; the optional Motion entrypoint owns the retention machinery. The full client budget is 4,300 bytes.
+When the motion capability is installed, Canvas draws in Motion's render phase after animated scene values update. Without it, Canvas uses requestAnimationFrame. Both drawing subscriptions and animations end with their owners. The base runtime imports no motion engine or retention coordinator. Presence hooks add approximately 300 bytes of gzip to the released 3.7 kB client surface; the optional Motion entrypoint owns the retention machinery. The full client budget is 4,400 bytes.
 
 ### Exit animations and re-entry
 
@@ -865,7 +865,90 @@ During exit, reactive attributes, child reconciliation, user events, gestures, a
 
 Exit props and transition settings are read at logical removal; later state changes do not retarget an exiting subtree. Exits use the same transition as animate, defaulting to a spring. Explicit durations, visualDuration, and delays must be finite and nonnegative; velocity must be finite, bounce must be in the range \[0, 1), and stiffness, damping, mass, restDelta, and restSpeed must be finite and positive so exits can settle. Reduced motion skips retention; enabling it during an exit completes that exit. Server rendering omits capability attributes and never starts exits; hydration attaches them for later removals.
 
-Root disposal and fatal errors bypass exits, stop active work, and release resources immediately. Stale animation completions cannot dispose a revived instance. This API covers exit retention and cancellation; layout/pop-layout animation, variants, presence wrappers, and automatic reparenting remain outside its scope.
+Root disposal and fatal errors bypass exits, stop active work, and release resources immediately. Stale animation completions cannot dispose a revived instance. This API covers exit retention and cancellation; pop-layout positioning, variants, presence wrappers, and automatic reparenting remain outside its scope.
+
+### Layout and shared identity
+
+Register motionCapability from @atom.io/spa/motion once to enable animated properties, exits, HTML layout changes, and shared element transitions. All use the optional Motion peer; the base SPA runtime stays independent of Motion:
+
+```tsx
+import { render } from "@atom.io/spa"
+import { motionCapability } from "@atom.io/spa/motion"
+
+import { ReadinessBoard } from "./layout.tsx"
+
+const host = document.querySelector(`#app`)!
+const root = render(() => <ReadinessBoard />, host, {
+	capabilities: [
+		motionCapability({ layoutTransition: { duration: 0.3, ease: `easeInOut` } }),
+	],
+})
+
+export const disposeBoard = root.dispose
+
+```
+
+```tsx
+import type { SpaElement } from "@atom.io/spa"
+import { useGetter, useSetter } from "@atom.io/spa"
+import type {} from "@atom.io/spa/motion"
+import { atom } from "atom.io"
+
+const players = [`Ada`, `Grace`] as const
+const readyPlayersAtom = atom<string[]>({ key: `readyPlayers`, default: [] })
+
+function ReadinessGroup(props: { ready: boolean; match: string }): SpaElement {
+	const getReadyPlayers = useGetter(readyPlayersAtom)
+	const setReadyPlayers = useSetter(readyPlayersAtom)
+	return (
+		<section
+			motion:layout
+			style={`width:${getReadyPlayers().length ? 260 : 180}px;min-height:80px`}
+		>
+			<h2>{props.ready ? `Ready` : `Waiting`}</h2>
+			{players
+				.filter((player) => getReadyPlayers().includes(player) === props.ready)
+				.map((player) => (
+					<button
+						key={player}
+						motion:layout="position"
+						motion:layoutId={player}
+						motion:layoutGroup={props.match}
+						motion:exit={{ opacity: 0 }}
+						motion:transition={{ duration: 0.2 }}
+						onClick={() => {
+							setReadyPlayers((ready) =>
+								ready.includes(player)
+									? ready.filter((name) => name !== player)
+									: [...ready, player],
+							)
+						}}
+					>
+						{player}
+					</button>
+				))}
+		</section>
+	)
+}
+
+export function ReadinessBoard(): SpaElement {
+	return (
+		<>
+			<ReadinessGroup ready={false} match="match-1" />
+			<ReadinessGroup ready={true} match="match-1" />
+		</>
+	)
+}
+
+```
+
+motion:layout enables position and size projection; position or size restricts the animated dimensions. motion:layoutId enables layout animation implicitly and carries a visual identity between outgoing/incoming nodes, while reconciliation keys continue to own component instances. Shared identities are isolated by root and by an explicit motion:layoutGroup on each shared node; group is not inherited. Use distinct group values for separate boards in one root. Reusing an ID within a group coordinates a shared transition, with the latest mounted member leading.
+
+SPA snapshots registered targets before each synchronous update batch and projects after the DOM commits. Per-target ResizeObserver subscriptions also handle external size changes; no document-wide mutation observer or consumer measurement loop is needed. Mark scrolling layout ancestors with motion:layoutScroll. Nested projections preserve authored transforms and transform origins; Floating UI retains its independent translate positioning. Avoid multiple layout/projection owners or direct writes to a projected element's transform while the capability is active.
+
+The default transition is a 0.3-second tween; the capability option layoutTransition sets defaults and motion:layoutTransition replaces them for a target. Use finite duration/delay values or settling spring parameters. Retargeting uses the current projection. Outgoing nodes remain available for shared handoff until replacements mount in the same batch. With Motion exits, layout follows the retained node's lifetime; keyed re-entry resumes the existing instance. Shared identity transfers appearance, not component state or DOM ownership, and nodes are not automatically reparented.
+
+Reduced motion follows the user's preference by default; always and never options override it. Enabling reduced motion finishes projections immediately. Removal, fatal errors, and root disposal cancel projection work, disconnect observers/listeners, and restore owned attributes/styles. Server rendering emits no layout attributes or animation work. Layout is limited to owned HTML nodes; scene objects, SVG projection, pop-layout positioning, and cross-document handoff are unsupported.
 
 ### Floating overlays with Motion
 

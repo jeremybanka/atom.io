@@ -39,7 +39,7 @@ The default transition is a spring. Retargeting a spring preserves its current v
 
 </table-wrapper>
 
-DOM targets accept scalar CSS values, custom CSS properties, and independent transforms such as x, rotate, and scale. These framework properties never become HTML attributes. Keyframe sequences, layout animation, and variants are outside this API.
+DOM targets accept scalar CSS values, custom CSS properties, and independent transforms such as x, rotate, and scale. These framework properties never become HTML attributes. DOM keyframe sequences and property-specific timing are described below. Layout animation and variants remain separate capabilities.
 
 ## exit animations
 
@@ -62,3 +62,11 @@ Import this component into an Astro page and use client:load, as in [Astro setup
 motionCapability respects the user's reduced-motion preference by default, including changes while mounted. Its reducedMotion option accepts user, always, or never. Reduced motion skips exit retention. SPA stops animations and releases gesture handlers and media-query listeners when their owner is disposed.
 
 The same capability can animate numeric properties and colors in [Konva](/docs/spa/konva), or transforms and material properties in [Three.js](/docs/spa/three). Those engines remain optional. Try the [motion sandbox](/spa-motion-lab) to inspect interrupted animations.
+
+## Keyframes and property transitions
+
+DOM motion targets accept scalar values or keyframe sequences of at least two values. A null first frame starts from the current animated value, which is useful when retargeting an interrupted sequence. Initial DOM targets remain scalar. Three position, rotation, and scale tuples retain their vector meaning; Konva and other scene targets remain scalar. Keyframe sequences use tweens by default; explicit springs support at most two frames. Reduced motion and initial:false resolve to the final frame.
+
+Transition times are normalized, ordered values from 0 to 1 and must match the keyframe count. ease accepts a single named easing/cubic-bezier tuple or one easing for each interval. Top-level options are overridden by default options, then by properties[propertyName], with missing fields inherited in that order. This allows independent timing per property and per element. Times and easing lengths must match the effective sequence, including exit targets; invalid combinations report a spa/motion diagnostic. Sequences share the existing interruption, gesture, keyed exit/re-entry, and disposal ownership.
+
+<Exhibit src="spa/exhibits/motion-keyframes.tsx" />

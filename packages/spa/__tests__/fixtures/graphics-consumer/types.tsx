@@ -45,8 +45,8 @@ const drawing = (
 )
 // @ts-expect-error: Three.js motion targets preserve tuple dimensions.
 const badVector = <Mesh motion:animate={{ position: [1, 2] }} />
-// @ts-expect-error: DOM motion targets are scalar CSS values, not scene tuples.
-const badDOM = <sliding-panel motion:animate={{ x: [1, 2, 3] }} />
+// @ts-expect-error: DOM keyframes contain scalar values.
+const badDOM = <sliding-panel motion:animate={{ x: [1, false, 3] }} />
 // @ts-expect-error: Motion transition options are checked against the installed peer.
 const badTransition = <sliding-panel motion:transition={{ stiffness: `fast` }} />
 void [scene, drawing, badVector, badDOM, badTransition]
@@ -70,8 +70,8 @@ void input
 
 // @ts-expect-error: Exit targets have the same native tuple constraints as animate targets.
 const badExit = <Mesh motion:exit={{ position: [1, 2] }} />
-// @ts-expect-error: DOM exits accept scalar properties.
-const badDOMExit = <sliding-panel motion:exit={{ x: [1, 2, 3] }} />
+// @ts-expect-error: DOM exits require at least two keyframes.
+const badDOMExit = <sliding-panel motion:exit={{ x: [1] }} />
 void [badExit, badDOMExit]
 
 const overlay = (
@@ -116,3 +116,27 @@ void [
 	badGeometry,
 	badMaterial,
 ]
+
+const sequence = (
+	<sliding-panel
+		motion:animate={{
+			x: [`-1500%`, `2%`, `4%`, `1500%`],
+			opacity: [null, 1, 0],
+		}}
+		motion:transition={{
+			duration: 3,
+			default: { ease: `linear` },
+			properties: {
+				x: { times: [0, 0.1, 0.77, 1], ease: [`circOut`, `linear`, `easeIn`] },
+				opacity: { duration: 1 },
+			},
+		}}
+	/>
+)
+// @ts-expect-error: Keyframe timing values are numeric.
+const badTimes = <sliding-panel motion:transition={{ times: [`slow`] }} />
+// @ts-expect-error: Each segment easing is a known easing or cubic-bezier tuple.
+const badEase = <sliding-panel motion:transition={{ ease: [`linear`, `wat`] }} />
+// @ts-expect-error: Initial DOM targets are scalar values.
+const badInitial = <sliding-panel motion:initial={{ x: [0, 1] }} />
+void [sequence, badTimes, badEase, badInitial]

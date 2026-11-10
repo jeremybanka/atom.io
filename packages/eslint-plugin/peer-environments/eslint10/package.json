@@ -5,7 +5,7 @@
 	"description": "ESLint 10",
 	"type": "module",
 	"dependencies": {
-		"@typescript-eslint/parser": "8.72.1",
+		"@typescript-eslint/parser": "8.72.2",
 		"eslint": "10.14.0",
 		"typescript": "6.0.3"
 	}

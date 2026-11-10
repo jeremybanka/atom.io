@@ -93,6 +93,10 @@ Return related fields without adding a wrapper inside the surrounding form:
 
 The fragment syntax uses the Fragment export automatically. A Fragment groups its children without introducing a DOM element, a store, or a separate component lifetime.
 
+### form controls and events
+
+Non-null value and checked props control form state: rejected edits are restored after native handlers run, and select values are reapplied after option updates. Use defaultValue/defaultChecked for uncontrolled fields. onChange follows native input events for text, number, range inputs and textareas; selects, checkboxes, radios, and file inputs use native change events. Handlers still receive native events. onFocus/onBlur bubble through focusin/focusout, including Capture variants; explicit onFocusIn/onFocusOut names remain available. autoFocus focuses newly mounted elements. Null or undefined reflected attributes are removed.
+
 ## hooks
 
 <table-wrapper>

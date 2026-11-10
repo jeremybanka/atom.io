@@ -88,6 +88,8 @@ export interface Root extends Scope {
 	_id: number
 	_queue: Set<Cleanup>
 	_mounts: Cleanup[] | undefined
+	_forms?: Set<Cleanup>
+	_host?: Element
 	flush: Cleanup
 	error: (error: unknown) => void
 }
@@ -160,7 +162,7 @@ export function invalidate(scope: Scope): void {
 	for (const child of scope._cleanups)
 		if (typeof child !== `function`) invalidate(child)
 }
-function enqueue(scope: Scope, run: Cleanup): void {
+export function enqueue(scope: Scope, run: Cleanup): void {
 	if (!isPresent(scope)) return
 	const root = scope._root
 	if (!root._queue.size)
@@ -201,7 +203,7 @@ export function createRoot(options: RootOptions = {}, server = false): Root {
 			root._presence = capability.presence(root)
 		}
 	root.flush = () => {
-		if (!root._queue.size && !root._mounts!.length) return
+		if (!root._queue.size && !root._mounts!.length && !root._forms?.size) return
 		try {
 			const commits = [...capabilities.values()].map((capability) =>
 				capability.beforeUpdate?.(root),
@@ -214,6 +216,7 @@ export function createRoot(options: RootOptions = {}, server = false): Root {
 					for (const run of [...root._queue]) if (root._queue.delete(run)) run()
 					for (const run of root._mounts!.splice(0)) run()
 				}
+				for (const restore of root._forms ?? []) untrack(restore)
 			} finally {
 				for (const commit of commits) commit?.()
 			}

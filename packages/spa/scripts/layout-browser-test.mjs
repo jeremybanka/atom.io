@@ -304,6 +304,71 @@ try {
 		`Disposing the root from a frame callback must stop all scene callbacks`,
 	)
 	await page.evaluate(() => window.sceneClock.dispose())
+	await page.evaluate(() => {
+		window.forms = window.layoutTest.forms()
+	})
+	const rejected = page.locator(`#form-reject`)
+	await rejected.focus()
+	await rejected.press(`End`)
+	await rejected.pressSequentially(`d`)
+	assert.equal(await rejected.inputValue(), `abc`)
+	let form = await page.evaluate(() => window.forms.inspect())
+	assert.ok(form.edits.includes(`input:abcd`))
+	assert.ok(form.edits.includes(`parent:abcd`))
+	await page.locator(`#form-accept`).fill(`accepted`)
+	assert.equal(
+		(await page.evaluate(() => window.forms.inspect())).text,
+		`accepted`,
+	)
+	assert.equal(await rejected.inputValue(), `accepted`)
+	await page.locator(`#form-area`).fill(`area`)
+	assert.equal((await page.evaluate(() => window.forms.inspect())).text, `area`)
+	const number = page.locator(`#form-number`)
+	await number.focus()
+	await number.press(`End`)
+	await number.pressSequentially(`1`)
+	assert.equal(await number.inputValue(), `01`)
+	assert.equal((await page.evaluate(() => window.forms.inspect())).number, 1)
+	await page.locator(`#form-checked`).click()
+	assert.equal(await page.locator(`#form-checked`).isChecked(), false)
+	assert.ok(
+		(await page.evaluate(() => window.forms.inspect())).edits.includes(
+			`checked:true`,
+		),
+	)
+	await page.locator(`#form-radio-b`).click()
+	await page.waitForFunction(
+		() => document.querySelector(`#form-radio-a`).checked,
+	)
+	assert.equal(await page.locator(`#form-radio-b`).isChecked(), false)
+	assert.ok(
+		(await page.evaluate(() => window.forms.inspect())).edits.includes(
+			`radio:true`,
+		),
+	)
+	await page.locator(`#form-stopped`).fill(`rejected`)
+	await page.waitForFunction(
+		() => document.querySelector(`#form-stopped`).value === `fixed`,
+	)
+	assert.ok(
+		(await page.evaluate(() => window.forms.inspect())).edits.includes(
+			`stopped:rejected`,
+		),
+	)
+	await page.evaluate(() => window.forms.options())
+	assert.equal(await page.locator(`#form-select`).inputValue(), `b`)
+	await page.locator(`#form-default`).fill(`edited`)
+	await page.evaluate(() => window.forms.clearAttributes())
+	assert.equal(
+		await page.locator(`#form-attributes`).getAttribute(`title`),
+		null,
+	)
+	assert.equal(await page.locator(`#form-default`).inputValue(), `edited`)
+	await page.evaluate(() => window.forms.autofocus())
+	assert.equal(await page.evaluate(() => document.activeElement.id), `form-auto`)
+	form = await page.evaluate(() => window.forms.inspect())
+	assert.ok(form.edits.includes(`focus`) && form.edits.includes(`blur`))
+	await page.evaluate(() => window.forms.dispose())
 	await page.reload()
 	await page.waitForTimeout(100)
 	assert.ok(

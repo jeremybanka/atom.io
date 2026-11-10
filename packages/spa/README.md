@@ -272,6 +272,8 @@ HTML and SVG use native DOM properties and attributes, plus className/htmlFor al
 
 HTML and SVG tags have element-specific attribute, event, and ref types. Event handlers receive native events with currentTarget typed as the attached element; target remains EventTarget because events can bubble from descendants. Ref callbacks receive the element on attachment and null on cleanup. Hyphenated custom tags use generic HTML attributes and HTMLElement refs and event targets. SVG presentation attributes use their literal markup spellings. Shared HTML/SVG tag names use HTML types because JSX cannot infer a namespace from parent elements.
 
+Non-null value and checked props control form state: rejected edits are restored after native handlers run, and select values are reapplied after option updates. Use defaultValue/defaultChecked for uncontrolled fields. onChange follows native input events for text, number, range inputs and textareas; selects, checkboxes, radios, and file inputs use native change events. Handlers still receive native events. onFocus/onBlur bubble through focusin/focusout, including Capture variants; explicit onFocusIn/onFocusOut names remain available. autoFocus focuses newly mounted elements. Null or undefined reflected attributes are removed.
+
 ## Store access
 
 useStore returns the current root's atom.io RootStore directly. It is the same object supplied to render or hydrate, the selected Astro island store, or the implicit atom.io store when no store was supplied. Server rendering exposes the store selected for that render.
@@ -583,7 +585,7 @@ The checked Astro fixture demonstrates default/named slots and custom independen
 
 The build audits every browser export, including the JSX runtime, from the built JavaScript. Atom.io is an external peer in the incremental measurement. Compiler, server, and integration code have separate entrypoints. The report also includes the complete client plus atom.io, the Astro client entrypoint, and the installed Preact version under the same bundling/minification settings. These are full exported surfaces, not equivalent application benchmarks.
 
-The hard budget is under 4,400 bytes of ordinary level-9 gzip for the complete client export surface, including hydration recovery and its production diagnostics. Tsdown builds the package JavaScript and declarations, with separate production and development outputs that each share their runtime across entrypoints. The size audit then bundles the built exports with esbuild, minifies with Oxc, and measures compression using Node's gzip and Brotli implementations. The complete client export surface measures approximately 4.3 kB with gzip; dist/size.json records the exact build measurements. Actual application bundles add atom.io and compiler-generated application code.
+The hard budget is under 5,100 bytes of ordinary level-9 gzip for the complete client export surface, including hydration recovery and its production diagnostics. Tsdown builds the package JavaScript and declarations, with separate production and development outputs that each share their runtime across entrypoints. The size audit then bundles the built exports with esbuild, minifies with Oxc, and measures compression using Node's gzip and Brotli implementations. The complete client export surface measures approximately 5.0 kB with gzip; dist/size.json records the exact build measurements. Actual application bundles add atom.io and compiler-generated application code.
 
 Build output includes the minified audit entrypoint and machine-readable dist/size.json. These audit files are a bundled measurement; use the package exports in applications so the bundler preserves one runtime instance across entrypoints. Source tests exercise development behavior; the production test executes the audited minified artifact. Chromium checks exercise the actual Astro build, island isolation, hydration, keyed identity, focus/selection, SVG namespaces, and teardown. A fresh-cache Astro development check also covers mount hooks, shared state, and ClientRouter navigation.
 
@@ -615,11 +617,11 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                           | Entry                             | Minified JS |  Gzip JS |
 | -------------------------------- | --------------------------------- | ----------: | -------: |
-| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    64,387 B | 19,245 B |
-| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    42,831 B | 13,491 B |
-| Interactive client app           | `tonnage-recipes/client-app.ts`   |    42,494 B | 13,340 B |
-| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    42,495 B | 13,338 B |
-| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    49,031 B | 15,385 B |
+| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    66,441 B | 19,949 B |
+| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    44,884 B | 14,173 B |
+| Interactive client app           | `tonnage-recipes/client-app.ts`   |    44,547 B | 14,020 B |
+| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    44,548 B | 14,017 B |
+| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    51,085 B | 16,080 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 
@@ -849,7 +851,7 @@ export function SpringCube(): SpaElement {
 
 ```
 
-When the motion capability is installed, Canvas draws in Motion's render phase after animated scene values update. Without it, Canvas uses requestAnimationFrame. Both drawing subscriptions and animations end with their owners. The base runtime imports no motion engine or retention coordinator. Presence hooks add approximately 300 bytes of gzip to the released 3.7 kB client surface; the optional Motion entrypoint owns the retention machinery. The full client budget is 4,400 bytes.
+When the motion capability is installed, Canvas draws in Motion's post-render phase after animated scene values update. Without it, Canvas uses requestAnimationFrame. Both drawing subscriptions and animations end with their owners. The base runtime imports no motion engine or retention coordinator. The optional Motion entrypoint owns the retention machinery. The client budget includes controlled form restoration and native event normalization. The full client budget is 5,100 bytes.
 
 ### Exit animations and re-entry
 

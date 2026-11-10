@@ -83,6 +83,39 @@ describe(`spa debugger`, () => {
 		).toBe(false)
 		expect(host.querySelector(`spa-devtools`)).toBeNull()
 	})
+	it(`keeps incomplete decimal edits in numeric fields`, async () => {
+		const { silo, host, mount, input } = fixture()
+		const amountAtom = silo.atom<number>({ key: `amount`, default: 1 })
+		mount()
+		const selector = `input[aria-label="amount"]`
+		const field = host.querySelector<HTMLInputElement>(selector)!
+		field.focus()
+		await input(selector, `${field.value}.`)
+		expect(field.value).toBe(`1.`)
+		expect(silo.getState(amountAtom)).toBe(1)
+		await input(selector, `${field.value}5`)
+		expect(silo.getState(amountAtom)).toBe(1.5)
+
+		await input(selector, ``)
+		expect(field.value).toBe(``)
+		await input(selector, `-`)
+		expect(field.value).toBe(`-`)
+		expect(silo.getState(amountAtom)).toBe(1.5)
+		await input(selector, `${field.value}2.50`)
+		expect(silo.getState(amountAtom)).toBe(-2.5)
+		expect(field.value).toBe(`-2.50`)
+		field.blur()
+		expect(field.value).toBe(`-2.5`)
+
+		field.focus()
+		await input(selector, `-2.500`)
+		silo.setState(amountAtom, 3)
+		await tick()
+		expect(field.value).toBe(`3`)
+		silo.setState(amountAtom, -2.5)
+		await tick()
+		expect(field.value).toBe(`-2.5`)
+	})
 	it(`renames, deletes, adds, sorts and recasts JSON without losing later updates`, async () => {
 		const { silo, host, mount, click, input } = fixture()
 		const recordAtom = silo.atom<Record<string, unknown>>({
@@ -91,7 +124,23 @@ describe(`spa debugger`, () => {
 		})
 		mount()
 		await click(`button[aria-label="Expand record"]`)
-		await input(`input[aria-label="Rename name"]`, `label`, `change`)
+		await input(`input[aria-label="Rename name"]`, `label`)
+		expect(silo.getState(recordAtom)[`name`]).toBe(`before`)
+		expect(
+			host.querySelector<HTMLInputElement>(`input[aria-label="Rename name"]`)!
+				.value,
+		).toBe(`label`)
+		const rename = host.querySelector<HTMLInputElement>(
+			`input[aria-label="Rename name"]`,
+		)!
+		rename.focus()
+		rename.dispatchEvent(
+			new KeyboardEvent(`keydown`, { key: `ArrowLeft`, bubbles: true }),
+		)
+		rename.dispatchEvent(
+			new KeyboardEvent(`keydown`, { key: `Enter`, bubbles: true }),
+		)
+		await tick()
 		await input(`input[aria-label="label"]`, `after`)
 		expect(silo.getState(recordAtom)).toEqual({ label: `after`, items: [3, 1] })
 		await click(`button[aria-label="Expand items"]`)
@@ -297,16 +346,18 @@ it(`rejects rename collisions, edits booleans and array members, and restores in
 	})
 	mount()
 	await click(`[aria-label="Expand record"]`)
-	await input(`[aria-label="Rename a"]`, `b`, `change`)
+	await input(`[aria-label="Rename a"]`, `b`, `focusout`)
 	expect(host.querySelector(`[role="alert"]`)!.textContent).toContain(
 		`already exists`,
 	)
-	await input(`[aria-label="Rename a"]`, `a`, `change`)
+	await input(`[aria-label="Rename a"]`, `a`, `focusout`)
 	expect(host.querySelector(`[role="alert"]`)).toBeNull()
 	await input(`[aria-label="a"]`, `not a number`)
 	expect(silo.getState(recordAtom).a).toBe(1)
 	await input(`[aria-label="a"]`, ``)
-	host.querySelector(`[aria-label="a"]`)!.dispatchEvent(new Event(`blur`))
+	host
+		.querySelector(`[aria-label="a"]`)!
+		.dispatchEvent(new FocusEvent(`focusout`))
 	expect(
 		(host.querySelector(`[aria-label="a"]`) as HTMLInputElement).value,
 	).toBe(`1`)

@@ -3,6 +3,7 @@ import { atom, setState } from "atom.io"
 import { floatingCapability } from "../src/floating.ts"
 import { render, useGetter } from "../src/index.ts"
 import { motionCapability } from "../src/motion.ts"
+import { formBehavior } from "./form-browser.tsx"
 import { layoutRegressions } from "./layout-regressions-browser.tsx"
 import { sceneClockRegression } from "./scene-clock-browser.tsx"
 
@@ -134,6 +135,7 @@ const bounds = (id: string) => {
 }
 Object.assign(window, {
 	layoutTest: {
+		forms: formBehavior,
 		regressions: layoutRegressions,
 		sceneClock: sceneClockRegression,
 		update(phase: number) {

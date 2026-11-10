@@ -1,11 +1,13 @@
 import type { Children } from "./core.ts"
 import type { CapabilityAttributes } from "./jsx-runtime.ts"
 
-/** Native events retain their target; only currentTarget is the attached element. */
+/** Native targets are preserved; currentTarget identifies the attached element. */
 export type TargetedEvent<E extends Element, T extends Event = Event> = Omit<
 	T,
 	`currentTarget`
-> & { readonly currentTarget: E }
+> & { readonly currentTarget: E } & (T extends FocusEvent | MouseEvent
+		? { readonly relatedTarget: (EventTarget & Element) | null }
+		: {})
 export type EventHandler<E extends Element, T extends Event = Event> = (
 	event: TargetedEvent<E, T>,
 ) => void
@@ -585,6 +587,7 @@ export type HTMLIntrinsicElements = {
 /** SVG uses literal attribute names: e.g. stroke-width, not strokeWidth. */
 export type SVGAttributes<E extends SVGElement = SVGElement> = DOMAttributes<E> &
 	Attributes<{
+		focusable: Booleanish | `auto`
 		lang: string
 		[`xml:lang`]: string
 		[`xml:space`]: `default` | `preserve`

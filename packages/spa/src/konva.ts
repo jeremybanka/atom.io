@@ -8,14 +8,57 @@ import type { CapabilityAttributes } from "./jsx-runtime.ts"
 import { jsx } from "./jsx-runtime.ts"
 import { bindScene, createSceneRenderer, sceneComponent } from "./renderer.ts"
 
-type Props<C, N> = C &
-	CapabilityAttributes<`konva`> & {
+type InteractionEvent = MouseEvent | TouchEvent | PointerEvent
+interface Events {
+	onClick: MouseEvent
+	onDblClick: MouseEvent
+	onMouseDown: MouseEvent
+	onMouseUp: MouseEvent
+	onMouseMove: MouseEvent
+	onMouseEnter: MouseEvent
+	onMouseLeave: MouseEvent
+	onMouseOver: MouseEvent
+	onMouseOut: MouseEvent
+	onContextMenu: PointerEvent
+	onWheel: WheelEvent
+	onPointerDown: PointerEvent
+	onPointerUp: PointerEvent
+	onPointerMove: PointerEvent
+	onPointerEnter: PointerEvent
+	onPointerLeave: PointerEvent
+	onPointerOver: PointerEvent
+	onPointerOut: PointerEvent
+	onPointerCancel: PointerEvent
+	onPointerClick: PointerEvent
+	onPointerDblClick: PointerEvent
+	onLostPointerCapture: PointerEvent
+	onTouchStart: TouchEvent
+	onTouchMove: TouchEvent
+	onTouchEnd: TouchEvent
+	onTouchCancel: TouchEvent
+	onTap: TouchEvent
+	onDblTap: TouchEvent
+	onDragStart: InteractionEvent
+	onDragMove: InteractionEvent
+	onDragEnd: InteractionEvent
+	onTransformStart: InteractionEvent
+	onTransform: InteractionEvent
+	onTransformEnd: InteractionEvent
+}
+type Config<C> = {
+	[K in keyof C as string extends K ? never : number extends K ? never : K]: C[K]
+}
+type Props<C, N extends Konva.Node> = Config<C> & {
+	[K in keyof Events]?:
+		| ((
+				event: Omit<Konva.KonvaEventObject<Events[K]>, `currentTarget`> & {
+					readonly currentTarget: N
+				},
+		  ) => void)
+		| undefined
+} & CapabilityAttributes<`konva`> & {
 		children?: Children
 		ref?: (node: N | null) => void
-		onClick?: (event: Konva.KonvaEventObject<MouseEvent>) => void
-		onPointerDown?: (event: Konva.KonvaEventObject<PointerEvent>) => void
-		onDragMove?: (event: Konva.KonvaEventObject<DragEvent>) => void
-		onDragEnd?: (event: Konva.KonvaEventObject<DragEvent>) => void
 	}
 const constructors = {
 	Layer: Konva.Layer,
@@ -114,7 +157,7 @@ const renderer = createSceneRenderer<Konva.Node>({
 
 /** A DOM boundary owning a Konva stage and its scene subtree. */
 export function Stage(
-	props: Props<Omit<Konva.StageConfig, `container`>, Konva.Stage> & {
+	props: Props<Omit<Config<Konva.StageConfig>, `container`>, Konva.Stage> & {
 		width?: number
 		height?: number
 	},

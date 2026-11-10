@@ -1,6 +1,6 @@
 import { render } from "@atom.io/spa"
 import { floatingCapability } from "@atom.io/spa/floating"
-import { Circle, Layer, Stage } from "@atom.io/spa/konva"
+import { Circle, Layer, Rect, Stage } from "@atom.io/spa/konva"
 import { motionCapability } from "@atom.io/spa/motion"
 import {
 	BoxGeometry,
@@ -43,6 +43,48 @@ const drawing = (
 		</Layer>
 	</Stage>
 )
+const konvaEvents = (
+	<Rect
+		onPointerMove={(event) => {
+			event.currentTarget.width(event.evt.clientX)
+		}}
+		onPointerUp={(event) => {
+			void event.evt.pointerId
+		}}
+		onMouseEnter={(event) => {
+			void event.evt.clientX
+		}}
+		onMouseLeave={(event) => {
+			void event.evt.relatedTarget
+		}}
+		onWheel={(event) => {
+			void event.evt.deltaY
+		}}
+		onDragStart={(event) => {
+			void event.evt.type
+		}}
+		onDblClick={(event) => {
+			void event.evt.button
+		}}
+		onTap={(event) => {
+			void event.evt.touches
+		}}
+		onContextMenu={(event) => {
+			void event.evt.clientX
+		}}
+		onTransformEnd={(event) => {
+			event.currentTarget.width()
+		}}
+	/>
+)
+// @ts-expect-error A misspelled Konva handler is not an arbitrary config property.
+const misspelledKonvaEvent = <Rect onPointerMoev={() => {}} />
+const keyboardOnly = (event: { evt: KeyboardEvent }): void => {
+	void event.evt.key
+}
+// @ts-expect-error Pointer events are not keyboard events.
+const wrongKonvaEvent = <Rect onPointerMove={keyboardOnly} />
+void [konvaEvents, misspelledKonvaEvent, wrongKonvaEvent]
 // @ts-expect-error: Three.js motion targets preserve tuple dimensions.
 const badVector = <Mesh motion:animate={{ position: [1, 2] }} />
 // @ts-expect-error: DOM keyframes contain scalar values.

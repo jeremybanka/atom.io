@@ -245,6 +245,65 @@ try {
 		`Removing layout props must preserve remaining animated properties`,
 	)
 	await page.evaluate(() => window.layoutRegression.dispose())
+	await page.evaluate(() => {
+		window.sceneClock = window.layoutTest.sceneClock()
+	})
+	await page.waitForTimeout(250)
+	const clock = await page.evaluate(() => window.sceneClock.inspect())
+	for (const [name, samples] of Object.entries(clock.samples)) {
+		assert.ok(
+			samples.length > 1 && samples.length < 100,
+			`${name}: ${samples.length} callbacks in ${new Set(samples.map(({ frame }) => frame)).size} browser frames`,
+		)
+		assert.equal(
+			new Set(samples.map(({ frame }) => frame)).size,
+			samples.length,
+			`${name} must run at most once per browser frame`,
+		)
+		for (let index = 1; index < samples.length; index++) {
+			assert.ok(samples[index].time > samples[index - 1].time, name)
+			if (name === `canvas`) {
+				assert.ok(
+					Math.abs(
+						samples[index].delta -
+							(samples[index].time - samples[index - 1].time) / 1000,
+					) < 0.000001,
+					`Canvas delta must track the scene clock in seconds`,
+				)
+			}
+		}
+	}
+	assert.equal(clock.samples.canvas[0].delta, 0)
+	for (const sample of clock.samples.direct) {
+		for (const name of [`scene`, `canvas`]) {
+			const other = clock.samples[name].find(
+				({ frame }) => frame === sample.frame,
+			)
+			assert.ok(other && Math.abs(other.time - sample.time) < 0.000001)
+		}
+	}
+	assert.equal(
+		clock.tick,
+		Object.values(clock.samples).reduce(
+			(total, samples) => total + samples.length,
+			0,
+		),
+	)
+	await page.locator(`#scene-clock-input`).click({ force: true })
+	assert.equal(
+		(await page.evaluate(() => window.sceneClock.inspect())).clicks,
+		1,
+	)
+	await page.evaluate(() => window.sceneClock.disposeOnNextFrame())
+	await page.waitForFunction(() => window.sceneClock.inspect().cleanups === 1)
+	const stopped = await page.evaluate(() => window.sceneClock.inspect().samples)
+	await page.waitForTimeout(80)
+	assert.deepEqual(
+		await page.evaluate(() => window.sceneClock.inspect().samples),
+		stopped,
+		`Disposing the root from a frame callback must stop all scene callbacks`,
+	)
+	await page.evaluate(() => window.sceneClock.dispose())
 	await page.reload()
 	await page.waitForTimeout(100)
 	assert.ok(
@@ -254,7 +313,7 @@ try {
 	await page.waitForTimeout(400)
 	assert.deepEqual(errors, [])
 	console.log(
-		`DOM layout projection, shared identity, nested transforms, independent Floating UI translate, interruption, reduced motion, and teardown passed.`,
+		`DOM layout projection, shared identity, nested transforms, independent Floating UI translate, interruption, reduced motion, scene clock cadence/timing, and teardown passed.`,
 	)
 } finally {
 	await browser?.close()

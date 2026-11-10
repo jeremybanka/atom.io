@@ -1,3 +1,6 @@
+import StateLifetimes from "./exhibits/state-lifetimes.tsx" with {
+  type: "code",
+};
 import MotionKeyframes from "./exhibits/motion-keyframes.tsx" with {
   type: "code",
 };
@@ -94,6 +97,7 @@ The development plugin keeps SPA and atom.io outside dependency prebundling so r
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | useLoadable(token, fallback?) | Return a tracked accessor for loading, last-observed values, and handled errors.                                         |
 | useGetter(token)              | Return a live accessor for an atom or selector, bound to this instance's store.                                          |
+| useDisposal()                 | Return atom.io state disposal bound to the current root's store.                                                         |
 | useSetter(token)              | Return a stable atom.io writer.                                                                                          |
 | useTimeline(token)            | Return a stable object with getCursor/getLength readers, undo/redo/clear commands, and transaction-group controls.       |
 | useTransaction(token)         | Bind an atom.io transaction, preserving its arguments and result.                                                        |
@@ -121,7 +125,7 @@ useStore returns the current root's atom.io RootStore directly. It is the same o
 
 <StoreExample />
 
-Capture the store during component setup or an owned onMount callback, then pass it to store-aware atom.io operations or integrations. Getting the store creates no subscription. Direct reads such as getFromStore do not participate in SPA's dependency tracking; useGetter and useLoadable provide tracked reads. The returned object is a store, not a Silo or a new wrapper.
+For family-member disposal, useDisposal() captures this store and returns a bound disposal command; see [ambient UI state](#ambient-ui-state-and-ownership). Capture the store during component setup or an owned onMount callback, then pass it to other store-aware atom.io operations or integrations. Getting the store creates no subscription. Direct reads such as getFromStore do not participate in SPA's dependency tracking; useGetter and useLoadable provide tracked reads. The returned object is a store, not a Silo or a new wrapper.
 
 ## Families
 
@@ -130,6 +134,22 @@ useGetter, useSetter, useRef, and useTimeline accept a family token followed by 
 <Families />
 
 The family and key are captured during setup and stay fixed for that component instance. To switch members, replace the component in a reactive child collection with a new application key. Ref ownership and subscription cleanup follow the member just as they do for individual tokens. useTransaction takes a transaction token; atom.io has no transaction-family token.
+
+### Ambient UI state and ownership
+
+Ambient state is useful for ephemeral UI flags that several components need to read or change, such as whether a popover is open. Define the family at module scope and give each popover an application identity. Its trigger and panel can bind to the same boolean without passing the value and setter through their parent.
+
+This exhibit gives each toolbar its own formatting and keyboard-shortcut help popovers. Hiding formatting help removes its keyed instance and disposes its visibility state. Showing it again starts closed; the shortcuts popover and other toolbars keep their state:
+
+<StateLifetimes />
+
+The reconciliation key identifies a component among siblings. The family key identifies application state across the whole store: the tuple includes both the toolbar ID and help topic so separate toolbars do not share visibility by accident. The toolbar ID must be unique within that store. The renderer consumes key; pass the state identity as an ordinary prop.
+
+Call useDisposal() without arguments during setup. It captures the current root's store and returns atom.io disposal, accepting either a family and key or an existing member token. Invoke it from an event handler or register it with onCleanup. It works with the implicit store, render/hydrate options.store, and isolated Astro stores without passing a disposal callback through props. Custom stores still need the module-scope definitions installed through Silo.install.
+
+HelpPopover owns the visibility member shared by its trigger and panel, so it disposes that member after both consumers are removed. A single consumer must not dispose state that other live consumers still need. Shared session or application state belongs to the owner that knows when every consumer has finished. Standalone atoms persist for their store's lifetime; disposal removes family members, not standalone atoms.
+
+Getter and setter bindings capture their family key during setup. Replacing a keyed instance changes its binding; changing an identity prop on an existing instance does not rebind it. Disposing a family member removes its stored value and resources; a later read recreates it from its default. Keep user-authored content in state whose owner matches its intended persistence, rather than treating it like a popover's transient visibility.
 
 ## Async state
 

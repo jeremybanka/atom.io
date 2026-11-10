@@ -14,6 +14,7 @@ export type {
 export {
 	onCleanup,
 	onMount,
+	useDisposal,
 	useGetter,
 	useId,
 	useRef,

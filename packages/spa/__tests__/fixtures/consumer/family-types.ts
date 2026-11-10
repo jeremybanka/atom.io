@@ -1,5 +1,11 @@
 import type { Accessor, TimelineControls } from "@atom.io/spa"
-import { useGetter, useRef, useSetter, useTimeline } from "@atom.io/spa"
+import {
+	useDisposal,
+	useGetter,
+	useRef,
+	useSetter,
+	useTimeline,
+} from "@atom.io/spa"
 import type {
 	ReadableFamilyToken,
 	RegularAtomFamilyToken,
@@ -20,6 +26,14 @@ export function familyTypes(
 	elements: RegularAtomFamilyToken<HTMLInputElement | null, boolean>,
 	timelines: TimelineFamilyToken<null>,
 ): void {
+	const dispose = useDisposal()
+	dispose(readable, 1)
+	dispose(writable, [`row`, 1])
+	dispose(elements, false)
+	// @ts-expect-error Family disposal requires its key.
+	dispose(readable)
+	// @ts-expect-error Disposal preserves tuple key element types.
+	dispose(writable, [1, `row`])
 	const getValue = useGetter(readable, 1)
 	const setValue = useSetter(writable, [`row`, 1])
 	const ref = useRef(elements, false)

@@ -1,4 +1,5 @@
 import type {
+	disposeState,
 	ReadableFamilyToken,
 	ReadableToken,
 	RegularAtomFamilyToken,
@@ -17,6 +18,7 @@ import type { RootStore } from "atom.io/internal"
 import {
 	actUponStore,
 	clearTimelineInStore,
+	disposeFromStore,
 	findInStore,
 	findTimelineInStore,
 	getFromStore,
@@ -217,6 +219,10 @@ export function createRoot(options: RootOptions = {}, server = false): Root {
 export function useStore(): RootStore {
 	return owner!._root._store
 }
+/** Return atom.io disposal bound to the current root's store. */
+export function useDisposal(): typeof disposeState {
+	return disposeFromStore.bind(null, useStore()) as typeof disposeState
+}
 export function onCleanup(cleanup: Cleanup): void {
 	owner!._cleanups.add(cleanup)
 }
@@ -279,7 +285,7 @@ export function observe<T>(
 
 /** Resolve a fixed family key in the current owner's store. */
 export function resolveStateToken(token: any, key?: Canonical): any {
-	const store = owner!._root._store
+	const store = useStore()
 	return token.type.endsWith(`_family`) ? findInStore(store, token, key!) : token
 }
 
@@ -294,7 +300,7 @@ export function useGetter<T, K extends Canonical, E = never>(
 export function useGetter(token: any, key?: Canonical): Accessor<any> {
 	token = resolveStateToken(token, key)
 	const root = owner!._root
-	const store = root._store
+	const store = useStore()
 	const subscribe: Subscribe = (notify) =>
 		subscribeToState(store, token, `spa:${serial++}`, notify)
 	return () => {
@@ -313,7 +319,7 @@ export function useSetter<T, K extends Canonical>(
 ): (value: T | Setter<T>) => void
 export function useSetter(token: any, key?: Canonical): (value: any) => void {
 	token = resolveStateToken(token, key)
-	const store = owner!._root._store
+	const store = useStore()
 	return (value) => {
 		setIntoStore(store, token, value)
 	}
@@ -321,7 +327,7 @@ export function useSetter(token: any, key?: Canonical): (value: any) => void {
 export function useTransaction<F extends (...args: any[]) => any>(
 	token: TransactionToken<F>,
 ): (...args: Parameters<F>) => ReturnType<F> {
-	return actUponStore(owner!._root._store, token, `spa:${serial++}`)
+	return actUponStore(useStore(), token, `spa:${serial++}`)
 }
 
 const refs = new WeakMap<RootStore, Map<string, object>>()
@@ -337,7 +343,7 @@ export function useRef<E extends Element>(
 	key?: Canonical,
 ): (element: E | null) => void {
 	token = resolveStateToken(token, key)
-	const store = owner!._root._store
+	const store = useStore()
 	const owners = refs.get(store) ?? new Map<string, object>()
 	refs.set(store, owners)
 	const identity = {}
@@ -370,7 +376,7 @@ export function useTimeline<K extends Canonical, M extends TimelineManageable>(
 	key: NoInfer<K>,
 ): TimelineControls
 export function useTimeline(token: any, key?: Canonical): TimelineControls {
-	const store = owner!._root._store
+	const store = useStore()
 	const selected: TimelineToken<any> =
 		token.type === `timeline_family`
 			? findTimelineInStore(store, token, key!)

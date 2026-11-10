@@ -10,6 +10,7 @@ import * as Spa from "@atom.io/spa"
 import {
 	onCleanup,
 	onMount,
+	useDisposal,
 	useGetter,
 	useId,
 	useRef,
@@ -19,7 +20,12 @@ import {
 	useTransaction,
 } from "@atom.io/spa"
 import type { JSX } from "@atom.io/spa/jsx-runtime"
-import type { RegularAtomToken, TimelineToken, TransactionToken } from "atom.io"
+import type {
+	disposeState,
+	RegularAtomToken,
+	TimelineToken,
+	TransactionToken,
+} from "atom.io"
 import type { RootStore } from "atom.io/internal"
 
 export const component: Component<{
@@ -30,6 +36,10 @@ export const component: Component<{
 }> = (props) => {
 	const store: RootStore = useStore()
 	void store
+	const dispose: typeof disposeState = useDisposal()
+	void dispose
+	// @ts-expect-error The hook gets its store from context and takes no arguments.
+	useDisposal(props.count)
 	const getCount: Accessor<number> = useGetter(props.count)
 	const setCount = useSetter(props.count)
 	setCount((n) => n + 1)

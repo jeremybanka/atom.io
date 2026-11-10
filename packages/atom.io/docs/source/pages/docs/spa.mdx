@@ -83,7 +83,7 @@ Produce the HTML that your server inserts into the form's host element:
 
 EmailField uses [useId](#useid) to connect its label and input. The signup prefix keeps those IDs consistent with the hydration example. Give separate roots distinct prefixes.
 
-renderToString runs synchronously, retains no subscriptions, and omits onMount callbacks. When a component reads state, supply its prepared, request-specific store in the options and restore matching values before browser hydration. It does not await promises or serialize state implicitly.
+renderToString runs synchronously, retains no subscriptions, and omits onMount and onCommit work. When a component reads state, supply its prepared, request-specific store in the options and restore matching values before browser hydration. It does not await promises or serialize state implicitly.
 
 ### Fragment
 
@@ -121,6 +121,7 @@ Non-null value and checked props control form state: rejected edits are restored
 | [useRef](#useref) | Publish an attached element into a nullable atom and release the reference on unmount. |
 | [useId](#useid) | Allocate a stable ID for the component instance, shared by SSR and hydration. |
 | [onMount](#onmount) | Run once after DOM attachment and ref publication; does not run during SSR. |
+| [onCommit](#oncommit) | Track a value and apply changes after renderer writes, within the same flush. |
 | [onCleanup](#oncleanup) | Release owned resources when the component or root is disposed. |
 | [useStore](#usestore) | Return the current root's atom.io store without creating a store or subscribing. |
 
@@ -203,6 +204,16 @@ Wait until elements are attached before using a browser API. This search field r
 <Exhibit src="spa/exhibits/hooks/on-mount.tsx" />
 
 onMount runs once for the mounted instance and does not run during server rendering. Register teardown with onCleanup when the work acquires a resource.
+
+### onCommit
+
+Measure a caption after its new text is in the DOM, then publish its height before the flush returns.
+
+<Exhibit src="spa/exhibits/hooks/on-commit.tsx" />
+
+Register onCommit during setup. The read callback tracks dependencies. The untracked apply callback runs on mount and when the value differs from the last applied value according to Object.is. It receives the new value and the previous value, which is undefined on mount.
+
+SPA runs apply after ref publication, mount callbacks, renderer writes, controlled form restoration, and capability commits. A flush inside a controlled form handler defers apply until restoration can finish. Children run before parents, and siblings run in setup order. State writes from apply drain in another round of the same flush. A returned cleanup runs before the next apply and on disposal. Server rendering skips this work. Retained exit scopes resume commit work only when they reenter.
 
 ### onCleanup
 

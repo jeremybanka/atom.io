@@ -13,6 +13,7 @@ export type {
 } from "./core.ts"
 export {
 	onCleanup,
+	onCommit,
 	onMount,
 	RootBoundary as Root,
 	useDisposal,

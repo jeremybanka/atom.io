@@ -70,13 +70,16 @@ export function bindForm(
 	let active: Event | undefined
 	let timer: ReturnType<typeof setTimeout> | undefined
 	const restore = () => {
-		if (!isPresent(scope) || active?.eventPhase) return
-		if (props[`value`] != null) controlValue(control, props[`value`])
-		if (control.localName === `input` && props[`checked`] != null) {
+		if (!isPresent(scope)) return true
+		const value = props[`value`]
+		const checked = control.localName === `input` ? props[`checked`] : undefined
+		if (active?.eventPhase) return value == null && checked == null
+		if (value != null) controlValue(control, value)
+		if (checked != null) {
 			const input = control as HTMLInputElement
-			if (input.checked !== Boolean(props[`checked`]))
-				input.checked = Boolean(props[`checked`])
+			if (input.checked !== Boolean(checked)) input.checked = Boolean(checked)
 		}
+		return true
 	}
 	const finish = () => {
 		active = undefined

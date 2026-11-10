@@ -66,5 +66,5 @@ await writeFile(
 	resolve(root, `dist/size.json`),
 	JSON.stringify(results, null, 2) + `\n`,
 )
-if (spa.gzip >= 5500)
-	throw new Error(`spa exceeds the 5,500-byte gzip budget: ${spa.gzip}`)
+if (spa.gzip >= 6000)
+	throw new Error(`spa exceeds the 6,000-byte gzip budget: ${spa.gzip}`)

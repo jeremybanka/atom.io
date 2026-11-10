@@ -400,6 +400,55 @@ describe(`spa compiled DOM`, () => {
 		root.flush()
 		expect(host.textContent).toBe(`21`)
 	})
+	it.each([
+		[`render`, false],
+		[`render`, true],
+		[`hydrate`, false],
+		[`hydrate`, true],
+	] as const)(
+		`%s preserves SVG focusable=%s through updates`,
+		(mode, initial) => {
+			const { silo, host, mount } = fixture()
+			type Focusable = boolean | `true` | `false` | `auto` | null | undefined
+			const focusableAtom = silo.atom<Focusable>({
+				key: `focusable`,
+				default: initial,
+			})
+			function App() {
+				const getFocusable = useGetter(focusableAtom)
+				return <svg focusable={getFocusable()} />
+			}
+			let serverNode: SVGSVGElement | null = null
+			if (mode === `hydrate`) {
+				host.innerHTML = renderToString(() => <App />, { store: silo.store })
+				serverNode = host.querySelector(`svg`)!
+				expect(serverNode.getAttribute(`focusable`)).toBe(String(initial))
+			}
+			const root =
+				mode === `render`
+					? mount(() => <App />)
+					: hydrate(() => <App />, host, { store: silo.store })
+			if (mode === `hydrate`) roots.push(root)
+			const svg = host.querySelector(`svg`)!
+			if (serverNode) expect(svg).toBe(serverNode)
+			for (const value of [
+				initial,
+				true,
+				false,
+				`true`,
+				`false`,
+				`auto`,
+				null,
+				undefined,
+			] as const) {
+				silo.setState(focusableAtom, value)
+				root.flush()
+				expect(svg.getAttribute(`focusable`)).toBe(
+					value == null ? null : String(value),
+				)
+			}
+		},
+	)
 	it(`preserves SVG and HTML defaults through reactive component prop forwarding`, () => {
 		const { silo, host, mount } = fixture()
 		type Props = { viewBox?: string | undefined; title?: string | undefined }

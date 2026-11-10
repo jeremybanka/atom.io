@@ -19,6 +19,29 @@ export type ComponentOutput = Expect<Equal<ReturnType<Component>, Children>>
 export type FragmentOutput = Expect<Equal<ReturnType<typeof Fragment>, Children>>
 
 export const descriptor: SpaElement = <span>content</span>
+export const decorativeIcon = <svg focusable="false" aria-hidden="true" />
+export const autoFocusableIcon = <svg focusable="auto" />
+export const booleanFocusableIcons = (
+	<>
+		<svg focusable />
+		<svg focusable={false} />
+	</>
+)
+export const focusBoundary = (
+	<div
+		onFocusOut={(event) => {
+			void event.currentTarget.contains(event.relatedTarget)
+		}}
+		onBlur={(event) => {
+			void event.currentTarget.contains(event.relatedTarget)
+		}}
+		onMouseLeave={(event) => {
+			void event.currentTarget.contains(event.relatedTarget)
+		}}
+	/>
+)
+// @ts-expect-error SVG focusable accepts booleans, boolean strings, or auto.
+export const badFocusableIcon = <svg focusable="sometimes" />
 export const textChildren: Children = `content`
 export const reactiveChildren: Accessor<Children> = () => descriptor
 export const nestedChildren: Children = [

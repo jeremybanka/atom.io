@@ -131,6 +131,12 @@ function property(
 	)
 		throw new Error(`spa: CSS string required`)
 	if (
+		element.namespaceURI === SVG &&
+		key === `focusable` &&
+		typeof value === `boolean`
+	)
+		value = String(value)
+	if (
 		element.namespaceURI === HTML &&
 		key in element &&
 		!/^(style|form|list)$/.test(key)

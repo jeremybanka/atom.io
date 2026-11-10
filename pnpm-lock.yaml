@@ -859,6 +859,9 @@ importers:
 
   packages/spa:
     dependencies:
+      '@jridgewell/remapping':
+        specifier: 2.3.5
+        version: 2.3.5
       html-entities:
         specifier: 2.6.0
         version: 2.6.0

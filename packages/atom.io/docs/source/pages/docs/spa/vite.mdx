@@ -42,4 +42,16 @@ The compiler preserves reactive JSX expressions, live component props, and sprea
 
 ## development
 
-SPA uses full page reloads when a matching component changes. The plugin deduplicates SPA and atom.io and keeps their runtime entrypoints out of dependency prebundling so renderers, hooks, and stores share one runtime.
+Component-only JSX modules use hot replacement. An edit reruns affected DOM and scene roots against their original stores, including separate hydrated and client-only Astro islands. Atom values, persistent family members, and timeline history survive. Old scopes release subscriptions, refs, listeners, and onCleanup callbacks exactly once; DOM-local values and family members disposed by component cleanup reset. A hot setup failure shows an error and retains the store for the next edit. Production builds contain no hot registration.
+
+Keep state definitions and store factories in separate modules from component-only views. State-definition edits, mixed runtime exports, re-exports, changed export boundaries, and top-level side effects fall back to full reloads. Type-only exports are allowed. This first implementation refreshes the whole affected root.
+
+Define persistent tokens in their own state module:
+
+<Exhibit src="spa/exhibits/hmr-state.ts" />
+
+Import them from a component-only view. JSX and handler edits preserve the counter value:
+
+<Exhibit src="spa/exhibits/hmr-view.tsx" />
+
+The plugin deduplicates SPA and atom.io and keeps their runtime entrypoints out of dependency prebundling so renderers, hooks, and stores share one runtime.

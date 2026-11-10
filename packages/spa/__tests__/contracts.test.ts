@@ -51,7 +51,7 @@ it(`compiles JSX syntax while keeping getters and spread precedence live`, () =>
 	expect(result.code).toContain(`() => (value)`)
 	expect(() => compile(`<div value={}/>`, `invalid.tsx`)).toThrow()
 })
-it(`filters Vite inputs, resets global regexes, and reloads matching documents`, () => {
+it(`filters Vite inputs, resets global regexes, and reloads matching documents`, async () => {
 	for (const plugin of [spa(), spa({ include: /\.tsx$/g })]) {
 		const config = (plugin.config as Function)()
 		expect(config.resolve.dedupe).toEqual([`@atom.io/spa`, `atom.io`])
@@ -84,9 +84,19 @@ it(`filters Vite inputs, resets global regexes, and reloads matching documents`,
 		const send = vi.fn()
 		const update = plugin.handleHotUpdate as Function
 		expect(
-			update({ server: { ws: { send } }, file: `/src/a.ts` }),
+			await update({
+				server: { ws: { send } },
+				file: `/src/a.ts`,
+				read: () => `const n = 1`,
+			}),
 		).toBeUndefined()
-		expect(update({ server: { ws: { send } }, file: `/src/a.tsx` })).toEqual([])
+		expect(
+			await update({
+				server: { ws: { send } },
+				file: `/src/a.tsx`,
+				read: () => `<p/>`,
+			}),
+		).toEqual([])
 		expect(send).toHaveBeenCalledExactlyOnceWith({ type: `full-reload` })
 	}
 	for (const { adapter, included, excluded } of [

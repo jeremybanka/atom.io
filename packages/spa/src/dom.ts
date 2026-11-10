@@ -17,6 +17,7 @@ import {
 	untrack,
 	within,
 } from "./core.ts"
+import { hotRoot, trackRoot } from "./hot.ts"
 import { Fragment, merge } from "./jsx-runtime.ts"
 
 const HTML = `http://www.w3.org/1999/xhtml`
@@ -392,6 +393,7 @@ function start(
 	host: Element,
 	options: RootOptions,
 	hydrating: boolean,
+	before: Node | null = null,
 ): SpaRoot {
 	let reported = false
 	const cursor: Cursor | undefined = hydrating
@@ -417,19 +419,20 @@ function start(
 	const root = createRoot(options)
 	if (prefix !== undefined && options.idPrefix === undefined)
 		root._prefix = prefix
+	if (import.meta.env.DEV) trackRoot(root)
 	try {
-		comment(`w:${root._prefix}`, host, null, root, cursor)
+		comment(`w:${root._prefix}`, host, before, root, cursor)
 		within(root, () => {
 			mount(
 				untrack(setup),
 				host,
-				null,
+				before,
 				root,
 				host.namespaceURI === SVG ? SVG : HTML,
 				cursor,
 			)
 		})
-		comment(`/w`, host, null, root, cursor)
+		comment(`/w`, host, before, root, cursor)
 		finish(cursor)
 		root.flush()
 	} catch (error) {
@@ -447,6 +450,12 @@ export function render(
 	host: Element,
 	options: RootOptions = {},
 ): SpaRoot {
+	if (import.meta.env.DEV)
+		return hotRoot(
+			(next, before) => start(setup, host, next, false, before),
+			options,
+			host,
+		)
 	return start(setup, host, options, false)
 }
 export function hydrate(
@@ -454,5 +463,17 @@ export function hydrate(
 	host: Element,
 	options: RootOptions = {},
 ): SpaRoot {
+	if (import.meta.env.DEV) {
+		let initial = true
+		return hotRoot(
+			(next, before) => {
+				const current = start(setup, host, next, initial, before)
+				initial = false
+				return current
+			},
+			options,
+			host,
+		)
+	}
 	return start(setup, host, options, true)
 }

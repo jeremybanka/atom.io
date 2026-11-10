@@ -11,6 +11,8 @@ import { Tonnage } from "tonnage";
 import config from "./tonnage.config.ts";
 import StoreExample from "./exhibits/store.tsx" with { type: "code" };
 import Families from "./exhibits/families.tsx" with { type: "code" };
+import HotState from "./exhibits/hmr-state.ts" with { type: "code" };
+import HotView from "./exhibits/hmr-view.tsx" with { type: "code" };
 import TimelineExample from "./exhibits/timeline.tsx" with { type: "code" };
 import LoadableExample from "./exhibits/loadable.tsx" with { type: "code" };
 import Point from "./exhibits/point.tsx" with { type: "code" };
@@ -94,7 +96,19 @@ Add a host element in index.html, then mount the same counter from main.tsx:
 
 <Main />
 
-The development plugin keeps SPA and atom.io outside dependency prebundling so renderer entrypoints, component hooks, and stores share one runtime, including Astro adapter environments. It uses full page reloads. Components and render computations are synchronous. Modern browsers with ES2022 and DOM Range support are the target.
+The development plugin keeps SPA and atom.io outside dependency prebundling so renderer entrypoints, component hooks, and stores share one runtime, including Astro adapter environments. Component-only JSX modules refresh affected roots against their existing atom.io stores; production builds omit hot registration. Components and render computations are synchronous. Modern browsers with ES2022 and DOM Range support are the target.
+
+Hot updates rerun affected roots, including scene roots and independent Astro islands, with the same store and props source. Old scopes release subscriptions, listeners, refs, and onCleanup callbacks before replacement. Atoms, persistent family members, and timeline history remain; DOM-local values and component-owned family members disposed by cleanup reset. A failed hot setup displays an error while keeping its store available for the next edit.
+
+Keep state definitions and Astro store factories in separate modules from component-only views. State declarations, mixed runtime exports, re-exports, changed export boundaries, and top-level side effects use full reloads. Type-only exports are allowed. The first implementation refreshes complete roots rather than replacing individual component instances.
+
+Define persistent tokens in their own state module:
+
+<HotState />
+
+Import the token from a component-only view. Editing this view's JSX or handler preserves the counter value:
+
+<HotView />
 
 ## Hooks
 

@@ -19,6 +19,7 @@ import {
 	untrack,
 	within,
 } from "./core.ts"
+import { hotRoot, trackRoot } from "./hot.ts"
 import { Fragment, merge } from "./jsx-runtime.ts"
 
 export interface SceneHost<N> {
@@ -224,21 +225,27 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 			}
 		},
 		render(setup: () => Children, parent: N, options: RootOptions = {}) {
-			const root = createRoot(options)
-			try {
-				within(root, () => {
-					attach(setup, parent, root)
-				})
-				root.flush()
-			} catch (error) {
-				fail(root, error)
+			const mountRoot = (next: RootOptions) => {
+				const root = createRoot(next)
+				if (import.meta.env.DEV) trackRoot(root)
+				try {
+					within(root, () => {
+						attach(setup, parent, root)
+					})
+					root.flush()
+				} catch (error) {
+					fail(root, error)
+				}
+				return {
+					flush: root.flush,
+					dispose: () => {
+						dispose(root)
+					},
+				}
 			}
-			return {
-				flush: root.flush,
-				dispose: () => {
-					dispose(root)
-				},
-			}
+			return import.meta.env.DEV
+				? hotRoot(mountRoot, options)
+				: mountRoot(options)
 		},
 	}
 }

@@ -26,6 +26,12 @@ export function formBehavior(): {
 	const host = document.createElement(`main`)
 	host.style.cssText = `position:absolute;left:0;top:0;width:400px;background:white`
 	document.body.append(host)
+	const peerHost = document.createElement(`div`)
+	host.append(peerHost)
+	const peerRoot = render(
+		() => <input id="form-radio-a" type="radio" name="browser-group" checked />,
+		peerHost,
+	)
 	function App() {
 		const getText = useGetter(textAtom),
 			setText = useSetter(textAtom)
@@ -86,12 +92,15 @@ export function formBehavior(): {
 						edits.push(`checked:${event.currentTarget.checked}`)
 					}}
 				/>
-				<input id="form-radio-a" type="radio" name="browser-group" checked />
 				<input
 					id="form-radio-b"
 					type="radio"
 					name="browser-group"
 					checked={false}
+					onChange={(event) => {
+						event.stopPropagation()
+						edits.push(`radio:${event.currentTarget.checked}`)
+					}}
 				/>
 				<textarea
 					id="form-area"
@@ -135,6 +144,7 @@ export function formBehavior(): {
 		},
 		dispose(): void {
 			root.dispose()
+			peerRoot.dispose()
 			host.remove()
 		},
 	}

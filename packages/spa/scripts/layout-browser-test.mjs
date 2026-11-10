@@ -337,8 +337,15 @@ try {
 		),
 	)
 	await page.locator(`#form-radio-b`).click()
-	assert.equal(await page.locator(`#form-radio-a`).isChecked(), true)
+	await page.waitForFunction(
+		() => document.querySelector(`#form-radio-a`).checked,
+	)
 	assert.equal(await page.locator(`#form-radio-b`).isChecked(), false)
+	assert.ok(
+		(await page.evaluate(() => window.forms.inspect())).edits.includes(
+			`radio:true`,
+		),
+	)
 	await page.locator(`#form-stopped`).fill(`rejected`)
 	await page.waitForFunction(
 		() => document.querySelector(`#form-stopped`).value === `fixed`,

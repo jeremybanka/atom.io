@@ -138,6 +138,13 @@ function Primitive(props: {
 	tools: Tools
 	label: string
 }): SpaElement {
+	let draft: { text: string; value: number } | undefined
+	const displayValue = () => {
+		const value = props.value
+		if (draft && Object.is(draft.value, value)) return draft.text
+		draft = undefined
+		return String(value)
+	}
 	const set = (value: unknown) => {
 		props.tools.attempt(() => {
 			props.change?.(() => value)
@@ -160,15 +167,20 @@ function Primitive(props: {
 					aria-label={props.label}
 					type="text"
 					inputmode={kind(props.value) === `number` ? `decimal` : `text`}
-					value={String(props.value)}
+					value={displayValue()}
 					readOnly={!props.change}
 					onInput={(event) => {
 						const text = event.currentTarget.value
-						if (kind(props.value) === `string`) set(text)
-						else if (text.trim() && Number.isFinite(Number(text)))
-							set(Number(text))
+						const value = props.value
+						if (typeof value === `number`) {
+							const number = Number(text)
+							const valid = text.trim() !== `` && Number.isFinite(number)
+							draft = { text, value: valid ? number : value }
+							if (valid) set(number)
+						} else set(text)
 					}}
 					onBlur={(event) => {
+						draft = undefined
 						event.currentTarget.value = String(props.value)
 					}}
 				/>

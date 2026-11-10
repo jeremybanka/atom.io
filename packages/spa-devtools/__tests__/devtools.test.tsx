@@ -83,6 +83,39 @@ describe(`spa debugger`, () => {
 		).toBe(false)
 		expect(host.querySelector(`spa-devtools`)).toBeNull()
 	})
+	it(`keeps incomplete decimal edits in numeric fields`, async () => {
+		const { silo, host, mount, input } = fixture()
+		const amountAtom = silo.atom<number>({ key: `amount`, default: 1 })
+		mount()
+		const selector = `input[aria-label="amount"]`
+		const field = host.querySelector<HTMLInputElement>(selector)!
+		field.focus()
+		await input(selector, `${field.value}.`)
+		expect(field.value).toBe(`1.`)
+		expect(silo.getState(amountAtom)).toBe(1)
+		await input(selector, `${field.value}5`)
+		expect(silo.getState(amountAtom)).toBe(1.5)
+
+		await input(selector, ``)
+		expect(field.value).toBe(``)
+		await input(selector, `-`)
+		expect(field.value).toBe(`-`)
+		expect(silo.getState(amountAtom)).toBe(1.5)
+		await input(selector, `${field.value}2.50`)
+		expect(silo.getState(amountAtom)).toBe(-2.5)
+		expect(field.value).toBe(`-2.50`)
+		field.blur()
+		expect(field.value).toBe(`-2.5`)
+
+		field.focus()
+		await input(selector, `-2.500`)
+		silo.setState(amountAtom, 3)
+		await tick()
+		expect(field.value).toBe(`3`)
+		silo.setState(amountAtom, -2.5)
+		await tick()
+		expect(field.value).toBe(`-2.5`)
+	})
 	it(`renames, deletes, adds, sorts and recasts JSON without losing later updates`, async () => {
 		const { silo, host, mount, click, input } = fixture()
 		const recordAtom = silo.atom<Record<string, unknown>>({

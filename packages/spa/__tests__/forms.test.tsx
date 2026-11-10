@@ -178,6 +178,38 @@ it(`restores radio peers in separate roots and keeps separate names and forms in
 	}
 })
 
+it(`restores radio peers across roots when change is stopped`, async () => {
+	const host = document.createElement(`main`)
+	const a = document.createElement(`section`)
+	const b = document.createElement(`section`)
+	host.append(a, b)
+	document.body.append(host)
+	const first = render(() => <input type="radio" name="shared" checked />, a)
+	const change = vi.fn((event: Event) => {
+		event.stopPropagation()
+	})
+	const second = render(
+		() => <input type="radio" name="shared" checked={false} onChange={change} />,
+		b,
+	)
+	const peer = a.querySelector(`input`)!
+	const clicked = b.querySelector(`input`)!
+	try {
+		clicked.click()
+		expect(change).toHaveBeenCalledOnce()
+		expect(peer.checked).toBe(false)
+		expect(clicked.checked).toBe(true)
+		await vi.waitFor(() => {
+			expect(peer.checked).toBe(true)
+			expect(clicked.checked).toBe(false)
+		})
+	} finally {
+		second.dispose()
+		first.dispose()
+		host.remove()
+	}
+})
+
 it(`reapplies select values after nested option insertion, replacement, and removal`, () => {
 	const silo = new Silo({
 		name: `select`,

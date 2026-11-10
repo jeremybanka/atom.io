@@ -44,6 +44,23 @@ export function controlValue(control: Control, value: string | number): void {
 	}
 }
 
+function requestRestore(control: Control): void {
+	requests.get(control)?.()
+	if (control.localName !== `input` || control.type !== `radio`) return
+	const input = control as HTMLInputElement
+	for (const peer of (
+		input.getRootNode() as ParentNode
+	).querySelectorAll<HTMLInputElement>(`input`)) {
+		if (
+			peer !== input &&
+			peer.type === `radio` &&
+			peer.name === input.name &&
+			peer.form === input.form
+		)
+			requests.get(peer)?.()
+	}
+}
+
 /** Restore controlled fields after event handlers and all queued option/prop updates. */
 export function bindForm(
 	control: Control,
@@ -72,7 +89,9 @@ export function bindForm(
 		active = event
 		clearTimeout(timer)
 		// A stopped native event never reaches the root's bubble listener.
-		timer = setTimeout(finish, 0)
+		timer = setTimeout(() => {
+			requestRestore(control)
+		}, 0)
 	}
 	const root = scope._root
 	if (!root._forms) {
@@ -85,20 +104,7 @@ export function bindForm(
 				(event.type === `input` && /^(checkbox|radio)$/.test(target.type))
 			)
 				return
-			requests.get(target)?.()
-			if (target.localName === `input` && target.type === `radio`) {
-				const input = target as HTMLInputElement
-				for (const peer of (
-					input.getRootNode() as ParentNode
-				).querySelectorAll<HTMLInputElement>(`input`)) {
-					if (
-						peer.type === `radio` &&
-						peer.name === input.name &&
-						peer.form === input.form
-					)
-						requests.get(peer)?.()
-				}
-			}
+			requestRestore(target)
 		}
 		for (const event of events) root._host!.addEventListener(event, end)
 		root._cleanups.add(() => {

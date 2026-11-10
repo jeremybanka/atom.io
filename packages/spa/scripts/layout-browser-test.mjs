@@ -135,7 +135,9 @@ try {
 			(await page.evaluate(() => window.layoutTest.inspect())).marker.y + 82,
 		) < 1,
 	)
-	await page.evaluate(() => window.scrollTo(0, 0))
+	await page.evaluate(() => {
+		window.scrollTo(0, 0)
+	})
 	await page.evaluate(() => window.layoutTest.update(0))
 	await page.waitForTimeout(70)
 	await page.evaluate(() => window.layoutTest.update(1))
@@ -176,9 +178,11 @@ try {
 	}
 	const origins = async () => {
 		for (const origin of [`fixed`, `percent`, `stylesheet`]) {
-			const geometry = await page.evaluate((origin) => {
+			const geometry = await page.evaluate((originKind) => {
 				return [false, true].map((projected) => {
-					const node = document.getElementById(`origin-${origin}-${projected}`)
+					const node = document.getElementById(
+						`origin-${originKind}-${projected}`,
+					)
 					const rect = node.getBoundingClientRect()
 					return [rect.x, rect.y, rect.width, rect.height]
 				})
@@ -186,7 +190,7 @@ try {
 			geometry[0].forEach((value, index) => {
 				assert.ok(
 					Math.abs(value - geometry[1][index]) < 0.5,
-					`${origin}: ${geometry}`,
+					`${origin}: ${JSON.stringify(geometry)}`,
 				)
 			})
 		}

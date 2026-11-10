@@ -295,6 +295,7 @@ export default {
 				"src/konva.ts!",
 				"src/three.ts!",
 				"src/motion.ts!",
+				"src/layout.ts!",
 				"src/floating.ts!",
 				"src/astro-resumability-client.ts!",
 				"src/astro-resumability-server.ts!",
@@ -305,6 +306,8 @@ export default {
 				"__tests__/{astro,resumption}/**/*.{ts,tsx,mjs}",
 				"__tests__/types.ts",
 				"__tests__/graphics.tsx",
+				// The layout browser harness bundles this fixture through esbuild entryPoints.
+				"__tests__/layout-browser.tsx",
 				"scripts/**/*.{ts,tsx,js,mjs,cjs}",
 				"__tests__/fixtures/**/*.{ts,tsx,js,mjs,cjs}",
 				"tonnage-recipes/**/*.{ts,tsx}",

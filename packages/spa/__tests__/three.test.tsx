@@ -377,3 +377,47 @@ it.each([`direct`, `fragment`, `bundle`])(
 		}
 	},
 )
+
+it(`borrows custom Mesh constructor resources and restores them after owned JSX attachments`, () => {
+	const geometry = new THREE.ExtrudeGeometry(new THREE.Shape(), {
+		depth: 0.3,
+		bevelEnabled: false,
+	})
+	const material = new THREE.MeshStandardMaterial()
+	const disposeGeometry = vi.spyOn(geometry, `dispose`)
+	const disposeMaterial = vi.spyOn(material, `dispose`)
+	for (const materials of [material, [material]]) {
+		const scene = new THREE.Scene()
+		const root = threeRenderer.render(
+			() => <Mesh args={[geometry, materials]} />,
+			scene,
+		)
+		const mesh = scene.children[0] as THREE.Mesh
+		expect(mesh.geometry).toBe(geometry)
+		expect(mesh.material).toBe(materials)
+		root.dispose()
+		expect(scene.children).toHaveLength(0)
+		expect(disposeGeometry).not.toHaveBeenCalled()
+		expect(disposeMaterial).not.toHaveBeenCalled()
+	}
+	const scene = new THREE.Scene()
+	const root = threeRenderer.render(
+		() => (
+			<Mesh args={[geometry, [material]]}>
+				<BoxGeometry />
+				<MeshStandardMaterial />
+			</Mesh>
+		),
+		scene,
+	)
+	const mesh = scene.children[0] as THREE.Mesh
+	const ownedGeometry = vi.spyOn(mesh.geometry, `dispose`)
+	const ownedMaterial = vi.spyOn(mesh.material as THREE.Material, `dispose`)
+	root.dispose()
+	expect(ownedGeometry).toHaveBeenCalledOnce()
+	expect(ownedMaterial).toHaveBeenCalledOnce()
+	expect(disposeGeometry).not.toHaveBeenCalled()
+	expect(disposeMaterial).not.toHaveBeenCalled()
+	geometry.dispose()
+	material.dispose()
+})

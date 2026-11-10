@@ -216,6 +216,8 @@ Import Canvas, Group, Mesh, PerspectiveCamera, AmbientLight, DirectionalLight, B
 
 <ThreeExample />
 
+Mesh accepts optional constructor args typed from Three.js, including custom BufferGeometry and a Material or material array. Resources supplied in args are borrowed: their application owner disposes them after all consumers finish. JSX geometry/material children and implicit Mesh defaults remain renderer-owned. Constructor args are fixed for the mounted instance; use a new reconciliation key to replace them.
+
 Constructor args are fixed for an instance. To change them, replace the resource with a new key in a reactive child collection. Refs expose native objects. Owned geometries and materials are disposed on removal; textures passed through material properties remain borrowed. Canvas stops drawing and disposes its renderer on removal. The exported threeRenderer renders into a borrowed parent dedicated to its children without creating a WebGL renderer.
 
 Canvas defaults to a perspective camera at z = 5. Its optional camera prop borrows an external camera; a PerspectiveCamera child does not automatically become active. Width and height update the renderer and default camera. Canvas renders continuously and accepts an onFrame callback with scene, camera, renderer, delta seconds, and timestamp seconds. Controls, asset loading, and drawing on demand are outside this initial API.

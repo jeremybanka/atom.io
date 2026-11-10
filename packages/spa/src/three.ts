@@ -54,7 +54,12 @@ const constructors = {
 }
 const meshDefaults = new WeakMap<
 	THREE.Mesh,
-	{ geometry: THREE.BufferGeometry; material: THREE.Material }
+	{
+		geometry: THREE.BufferGeometry
+		material: THREE.Material | THREE.Material[]
+		ownsGeometry: boolean
+		ownsMaterial: boolean
+	}
 >()
 const borrowedMeshDefaults = new WeakMap<
 	THREE.Mesh,
@@ -112,7 +117,9 @@ const renderer = createSceneRenderer<Resource>({
 		if (node instanceof THREE.Mesh)
 			meshDefaults.set(node, {
 				geometry: node.geometry,
-				material: node.material as THREE.Material,
+				material: node.material,
+				ownsGeometry: props[`args`]?.[0] === undefined,
+				ownsMaterial: props[`args`]?.[1] === undefined,
 			})
 		constructorArgs.set(node, [...(props[`args`] ?? [])])
 		defaults.set(node, new Map())
@@ -230,8 +237,8 @@ const renderer = createSceneRenderer<Resource>({
 				node.removeFromParent()
 				if (node instanceof THREE.Mesh) {
 					const owned = meshDefaults.get(node)!
-					owned.geometry.dispose()
-					owned.material.dispose()
+					if (owned.ownsGeometry) owned.geometry.dispose()
+					if (owned.ownsMaterial) (owned.material as THREE.Material).dispose()
 				}
 			}
 		} else node.dispose()
@@ -240,7 +247,13 @@ const renderer = createSceneRenderer<Resource>({
 function equalArgs(a: unknown[], b: unknown[] = []): boolean {
 	return (
 		a.length === b.length &&
-		a.every((value, index) => Object.is(value, b[index]))
+		a.every(
+			(value, index) =>
+				Object.is(value, b[index]) ||
+				(Array.isArray(value) &&
+					Array.isArray(b[index]) &&
+					equalArgs(value, b[index])),
+		)
 	)
 }
 
@@ -318,7 +331,11 @@ export function Canvas(props: CanvasProps): SpaElement {
 	})
 }
 export const Group = sceneComponent<ObjectProps>(`Group`)
-export const Mesh = sceneComponent<ObjectProps<THREE.Mesh>>(`Mesh`)
+export const Mesh = sceneComponent<
+	ObjectProps<THREE.Mesh> & {
+		args?: ConstructorParameters<typeof THREE.Mesh>
+	}
+>(`Mesh`)
 export const PerspectiveCamera = sceneComponent<
 	ObjectProps<THREE.PerspectiveCamera> & {
 		args?: ConstructorParameters<typeof THREE.PerspectiveCamera>

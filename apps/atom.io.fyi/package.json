@@ -30,7 +30,7 @@
 		"@atom.io/spa-devtools": "workspace:*",
 		"@babel/parser": "8.1.0",
 		"@babel/types": "8.1.0",
-		"@pierre/highlights": "0.4.0",
+		"@pierre/highlights": "0.5.0",
 		"astro": "7.4.7",
 		"atom.io": "workspace:*",
 		"motion": "14.10.1",

@@ -168,6 +168,7 @@ The development plugin keeps SPA and atom.io outside dependency prebundling so r
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | useLoadable(token, fallback?) | Return a tracked accessor for loading, last-observed values, and handled errors.                                         |
 | useGetter(token)              | Return a live accessor for an atom or selector, bound to this instance's store.                                          |
+| useDisposal()                 | Return atom.io state disposal bound to the current root's store.                                                         |
 | useSetter(token)              | Return a stable atom.io writer.                                                                                          |
 | useTimeline(token)            | Return a stable object with getCursor/getLength readers, undo/redo/clear commands, and transaction-group controls.       |
 | useTransaction(token)         | Bind an atom.io transaction, preserving its arguments and result.                                                        |
@@ -261,7 +262,7 @@ export function InspectCount(): SpaElement {
 
 ```
 
-Capture the store during component setup or an owned onMount callback, then pass it to store-aware atom.io operations or integrations. Getting the store creates no subscription. Direct reads such as getFromStore do not participate in SPA's dependency tracking; useGetter and useLoadable provide tracked reads. The returned object is a store, not a Silo or a new wrapper.
+For family-member disposal, useDisposal() captures this store and returns a bound disposal command; see [ambient UI state](#ambient-ui-state-and-ownership). Capture the store during component setup or an owned onMount callback, then pass it to other store-aware atom.io operations or integrations. Getting the store creates no subscription. Direct reads such as getFromStore do not participate in SPA's dependency tracking; useGetter and useLoadable provide tracked reads. The returned object is a store, not a Silo or a new wrapper.
 
 ## Families
 
@@ -308,6 +309,127 @@ export function FamilyCounter(props: { id: string }): SpaElement {
 
 The family and key are captured during setup and stay fixed for that component instance. To switch members, replace the component in a reactive child collection with a new application key. Ref ownership and subscription cleanup follow the member just as they do for individual tokens. useTransaction takes a transaction token; atom.io has no transaction-family token.
 
+### Ambient UI state and ownership
+
+Ambient state is useful for ephemeral UI flags that several components need to read or change, such as whether a popover is open. Define the family at module scope and give each popover an application identity. Its trigger and panel can bind to the same boolean without passing the value and setter through their parent.
+
+This exhibit gives each toolbar its own formatting and keyboard-shortcut help popovers. Hiding formatting help removes its keyed instance and disposes its visibility state. Showing it again starts closed; the shortcuts popover and other toolbars keep their state:
+
+```tsx
+import type { SpaElement } from "@atom.io/spa"
+import {
+	onCleanup,
+	useDisposal,
+	useGetter,
+	useId,
+	useSetter,
+} from "@atom.io/spa"
+import { atomFamily } from "atom.io"
+
+type HelpTopic = `formatting` | `shortcuts`
+type PopoverIdentity = readonly [toolbar: string, topic: HelpTopic]
+
+export const popoverOpenAtoms = atomFamily<boolean, PopoverIdentity>({
+	key: `popoverOpen`,
+	default: false,
+})
+export const formattingHelpVisibleAtoms = atomFamily<boolean, string>({
+	key: `formattingHelpVisible`,
+	default: true,
+})
+
+function HelpTrigger(props: {
+	identity: PopoverIdentity
+	panelId: string
+}): SpaElement {
+	const getOpen = useGetter(popoverOpenAtoms, props.identity)
+	const setOpen = useSetter(popoverOpenAtoms, props.identity)
+	return (
+		<button
+			aria-controls={props.panelId}
+			aria-expanded={getOpen()}
+			aria-haspopup="dialog"
+			onClick={() => {
+				setOpen((open) => !open)
+			}}
+		>
+			{props.identity[1]} help
+		</button>
+	)
+}
+
+function HelpPanel(props: {
+	identity: PopoverIdentity
+	panelId: string
+}): SpaElement {
+	const getOpen = useGetter(popoverOpenAtoms, props.identity)
+	return (
+		<div
+			id={props.panelId}
+			role="dialog"
+			aria-label={`${props.identity[1]} help`}
+			hidden={!getOpen()}
+		>
+			{props.identity[1] === `formatting`
+				? `Select text, then choose bold or italic from the toolbar.`
+				: `Use Ctrl+Z to undo and Ctrl+Shift+Z to redo.`}
+		</div>
+	)
+}
+
+function HelpPopover(props: { identity: PopoverIdentity }): SpaElement {
+	const identity = props.identity
+	const panelId = useId()
+	const dispose = useDisposal()
+	// This owner outlives both consumers of the ambient visibility state.
+	onCleanup(() => {
+		dispose(popoverOpenAtoms, identity)
+	})
+	return (
+		<section data-help={`${identity[0]}/${identity[1]}`}>
+			<HelpTrigger identity={identity} panelId={panelId} />
+			<HelpPanel identity={identity} panelId={panelId} />
+		</section>
+	)
+}
+
+export function HelpToolbar(props: { id: string }): SpaElement {
+	const toolbar = props.id
+	const getFormattingHelpVisible = useGetter(formattingHelpVisibleAtoms, toolbar)
+	const setFormattingHelpVisible = useSetter(formattingHelpVisibleAtoms, toolbar)
+	const dispose = useDisposal()
+	onCleanup(() => {
+		dispose(formattingHelpVisibleAtoms, toolbar)
+	})
+	return (
+		<nav aria-label={`${toolbar} help`}>
+			{(getFormattingHelpVisible()
+				? ([`formatting`, `shortcuts`] as const)
+				: ([`shortcuts`] as const)
+			).map((topic) => (
+				<HelpPopover key={topic} identity={[toolbar, topic]} />
+			))}
+			<button
+				onClick={() => {
+					setFormattingHelpVisible((visible) => !visible)
+				}}
+			>
+				{getFormattingHelpVisible() ? `Hide` : `Show`} formatting help
+			</button>
+		</nav>
+	)
+}
+
+```
+
+The reconciliation key identifies a component among siblings. The family key identifies application state across the whole store: the tuple includes both the toolbar ID and help topic so separate toolbars do not share visibility by accident. The toolbar ID must be unique within that store. The renderer consumes key; pass the state identity as an ordinary prop.
+
+Call useDisposal() without arguments during setup. It captures the current root's store and returns atom.io disposal, accepting either a family and key or an existing member token. Invoke it from an event handler or register it with onCleanup. It works with the implicit store, render/hydrate options.store, and isolated Astro stores without passing a disposal callback through props. Custom stores still need the module-scope definitions installed through Silo.install.
+
+HelpPopover owns the visibility member shared by its trigger and panel, so it disposes that member after both consumers are removed. A single consumer must not dispose state that other live consumers still need. Shared session or application state belongs to the owner that knows when every consumer has finished. Standalone atoms persist for their store's lifetime; disposal removes family members, not standalone atoms.
+
+Getter and setter bindings capture their family key during setup. Replacing a keyed instance changes its binding; changing an identity prop on an existing instance does not rebind it. Disposing a family member removes its stored value and resources; a later read recreates it from its default. Keep user-authored content in state whose owner matches its intended persistence, rather than treating it like a popover's transient visibility.
+
 ## Async state
 
 ```tsx
@@ -347,108 +469,6 @@ Call useLoadable during setup and read its accessor inside JSX. It also accepts 
 With a fallback, the accessor always returns an object. The fallback is used for initial loading and for errors declared in the token's catch option; handled errors appear separately in error. During a retry after an error, the fallback and error remain visible until a new value settles. An explicitly supplied null or undefined counts as a fallback when the token's value type permits it. Without a fallback, handled errors appear in value. Unexpected errors follow atom.io's normal error handling.
 
 Atom.io owns promise settlement and subscriptions. SPA adds no fetching, retries, cancellation, or suspense. Reads during setup are snapshots; calls inside JSX track state. Family keys are fixed for a component instance. Server rendering returns the current loading or settled view immediately and does not await promises.
-
-### Transient instance state and persistent session state
-
-Define atoms and families at module scope. Use an explicit application identity for transient family members; SPA does not need another component-local state primitive. This exhibit mounts two isolated drafts. Replacing the left reconciliation key creates a fresh instance and disposes its previous draft, while the right draft and shared session edit count survive:
-
-```tsx
-import type { SpaElement } from "@atom.io/spa"
-import { onCleanup, useGetter, useSetter } from "@atom.io/spa"
-import { atom, atomFamily, disposeState } from "atom.io"
-
-export const draftTextAtoms = atomFamily<string, string>({
-	key: `draftText`,
-	default: ``,
-})
-export const sessionEditsAtoms = atomFamily<number, string>({
-	key: `sessionEdits`,
-	default: 0,
-})
-export const draftGenerationAtom = atom<number>({
-	key: `draftGeneration`,
-	default: 0,
-})
-
-function DraftEditor(props: {
-	identity: string
-	session: string
-	disposeDraft: (identity: string) => void
-}): SpaElement {
-	// Capture fixed family bindings once, using the same identity for cleanup.
-	const identity = props.identity
-	const disposeDraft = props.disposeDraft
-	const getDraftText = useGetter(draftTextAtoms, identity)
-	const setDraftText = useSetter(draftTextAtoms, identity)
-	const setSessionEdits = useSetter(sessionEditsAtoms, props.session)
-	onCleanup(() => {
-		disposeDraft(identity)
-	})
-	return (
-		<label>
-			{identity}
-			<input
-				data-draft={identity}
-				value={getDraftText()}
-				onInput={(event) => {
-					setDraftText(event.currentTarget.value)
-					setSessionEdits((count) => count + 1)
-				}}
-			/>
-		</label>
-	)
-}
-
-export function DraftWorkspace(props: {
-	session: string
-	// For a custom root store, pass its public Silo.disposeState binding here.
-	disposeDraft?: (identity: string) => void
-}): SpaElement {
-	const session = props.session
-	const disposeDraft =
-		props.disposeDraft ??
-		((identity: string) => {
-			disposeState(draftTextAtoms, identity)
-		})
-	const getDraftGeneration = useGetter(draftGenerationAtom)
-	const setDraftGeneration = useSetter(draftGenerationAtom)
-	const getSessionEdits = useGetter(sessionEditsAtoms, session)
-	return (
-		<section>
-			{[`${session}/left/${getDraftGeneration()}`, `${session}/right`].map(
-				(identity) => (
-					<DraftEditor
-						key={identity}
-						identity={identity}
-						session={session}
-						disposeDraft={disposeDraft}
-					/>
-				),
-			)}
-			<button
-				onClick={() => {
-					setDraftGeneration((generation) => generation + 1)
-				}}
-			>
-				Replace left draft
-			</button>
-			<output>Session edits: {getSessionEdits()}</output>
-		</section>
-	)
-}
-
-// The session owner calls this only after every consumer has unmounted.
-export function finishDraftSession(session: string): void {
-	disposeState(sessionEditsAtoms, session)
-}
-
-```
-
-The parent supplies both the reconciliation key and an ordinary identity prop. The reconciliation key is consumed by the renderer and is unique among siblings; pass the identity as an ordinary prop instead of relying on props.key. The family key belongs to application state and must be unique across all owners of that family in the same store. Namespace it by session, workspace, or another application identity when multiple parents may coexist.
-
-Capture the identity during setup and use it for getter, setter, and cleanup. Only the exclusive owner of a transient member disposes it on unmount. When several consumers share a member, their common session/application owner decides when all consumers have finished; one consumer unmounting must not dispose everyone else's state. The session edit count intentionally survives component removal, and finishDraftSession explicitly disposes it after the final consumer unmounts. Standalone global atoms persist for their store's lifetime; disposeState disposes family members, not standalone atoms.
-
-Family bindings resolve in the root's selected store. Public disposeState targets the implicit store, so the default exhibit uses that store. With render/hydrate options.store or an isolated Astro store, install the module-scope definitions into that store through Silo.install, supply disposeDraft bound to the same public Silo.disposeState method as the root store and use that Silo to end the session. Identical family keys in separate stores are independent. Replacing a key changes a component's fixed binding; changing an identity prop on an existing key does not rebind it.
 
 ## Rendering and ownership
 
@@ -558,11 +578,11 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                           | Entry                             | Minified JS |  Gzip JS |
 | -------------------------------- | --------------------------------- | ----------: | -------: |
-| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    64,161 B | 19,153 B |
-| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    42,586 B | 13,386 B |
-| Interactive client app           | `tonnage-recipes/client-app.ts`   |    42,249 B | 13,236 B |
-| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    42,250 B | 13,234 B |
-| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    48,765 B | 15,286 B |
+| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    64,155 B | 19,160 B |
+| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    42,598 B | 13,397 B |
+| Interactive client app           | `tonnage-recipes/client-app.ts`   |    42,261 B | 13,251 B |
+| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    42,262 B | 13,249 B |
+| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    48,777 B | 15,288 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

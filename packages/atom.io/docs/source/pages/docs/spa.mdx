@@ -161,6 +161,14 @@ Bind a transaction while preserving its arguments and return value. This command
 
 Capture the command during setup and invoke it from an event handler. useTransaction accepts a transaction token, not a transaction family.
 
+### useDisposal
+
+Call useDisposal() without arguments during component setup to capture the current root's store. The returned disposer accepts a family and key or an existing family-member token, just like atom.io's disposeState. Capture it for event handlers or onCleanup; it remains bound to that store when called later.
+
+<Exhibit src="spa/exhibits/hooks/use-disposal.tsx" />
+
+This toggle owns its menu visibility member. Its ID must be unique among owners of that family in the same store. If the menu panel is a separate consumer, keep both under a common owner and register disposal there, as in [ambient UI state](#ambient-ui-state-and-ownership). Disposing one consumer must not remove state still used by another. Only family members can be disposed; standalone atoms remain in their store.
+
 ### useRef
 
 Publish an attached element into a nullable atom, so other state-aware commands can access the same element:
@@ -191,7 +199,7 @@ Release work when its owning view goes away. This page restores the previous doc
 
 <Exhibit src="spa/exhibits/hooks/on-cleanup.tsx" />
 
-The mount callback owns browser-only setup, and onCleanup registers its teardown with that owner. Cleanup also runs when a keyed component is removed or its root is disposed. For family members owned exclusively by an instance, see [transient instance state](#transient-instance-state-and-persistent-session-state). Use the same pattern for listeners, observers, and timers.
+The mount callback owns browser-only setup, and onCleanup registers its teardown with that owner. Cleanup also runs when a keyed component is removed or its root is disposed. For family members owned exclusively by an instance, see [ambient UI state](#ambient-ui-state-and-ownership). Use the same pattern for listeners, observers, and timers.
 
 ### useStore
 
@@ -209,17 +217,21 @@ useGetter, useSetter, useRef, and useTimeline also accept a family token and its
 
 Keys are captured during component setup. To select another member, replace the instance in a reactive child collection using a new application key. The previous instance releases its subscriptions and refs. useTransaction takes a transaction token; atom.io has no transaction-family token.
 
-### Transient instance state and persistent session state
+### Ambient UI state and ownership
 
-Define atoms and families at module scope. Use an explicit application identity for transient family members; SPA does not need another component-local state primitive. This exhibit mounts two isolated drafts. Replacing the left reconciliation key creates a fresh instance and disposes its previous draft, while the right draft and shared session edit count survive:
+Ambient state is useful for ephemeral UI flags that several components need to read or change, such as whether a popover is open. Define the family at module scope and give each popover an application identity. Its trigger and panel can bind to the same boolean without passing the value and setter through their parent.
+
+This exhibit gives each toolbar its own formatting and keyboard-shortcut help popovers. Hiding formatting help removes its keyed instance and disposes its visibility state. Showing it again starts closed; the shortcuts popover and other toolbars keep their state:
 
 <Exhibit src="spa/exhibits/state-lifetimes.tsx" />
 
-The parent supplies both the reconciliation key and an ordinary identity prop. The reconciliation key is consumed by the renderer and is unique among siblings; pass the identity as an ordinary prop instead of relying on props.key. The family key belongs to application state and must be unique across all owners of that family in the same store. Namespace it by session, workspace, or another application identity when multiple parents may coexist.
+The reconciliation key identifies a component among siblings. The family key identifies application state across the whole store: the tuple includes both the toolbar ID and help topic so separate toolbars do not share visibility by accident. The toolbar ID must be unique within that store. The renderer consumes key; pass the state identity as an ordinary prop.
 
-Capture the identity during setup and use it for getter, setter, and cleanup. Only the exclusive owner of a transient member disposes it on unmount. When several consumers share a member, their common session/application owner decides when all consumers have finished; one consumer unmounting must not dispose everyone else's state. The session edit count intentionally survives component removal, and finishDraftSession explicitly disposes it after the final consumer unmounts. Standalone global atoms persist for their store's lifetime; disposeState disposes family members, not standalone atoms.
+Call useDisposal() without arguments during setup. It captures the current root's store and returns atom.io disposal, accepting either a family and key or an existing member token. Invoke it from an event handler or register it with onCleanup. It works with the implicit store, render/hydrate options.store, and isolated Astro stores without passing a disposal callback through props. Custom stores still need the module-scope definitions installed through Silo.install.
 
-Family bindings resolve in the root's selected store. Public disposeState targets the implicit store, so the default exhibit uses that store. With render/hydrate options.store or an isolated Astro store, install the module-scope definitions into that store through Silo.install, supply disposeDraft bound to the same public Silo.disposeState method as the root store and use that Silo to end the session. Identical family keys in separate stores are independent. Replacing a key changes a component's fixed binding; changing an identity prop on an existing key does not rebind it.
+HelpPopover owns the visibility member shared by its trigger and panel, so it disposes that member after both consumers are removed. A single consumer must not dispose state that other live consumers still need. Shared session or application state belongs to the owner that knows when every consumer has finished. Standalone atoms persist for their store's lifetime; disposal removes family members, not standalone atoms.
+
+Getter and setter bindings capture their family key during setup. Replacing a keyed instance changes its binding; changing an identity prop on an existing instance does not rebind it. Disposing a family member removes its stored value and resources; a later read recreates it from its default. Keep user-authored content in state whose owner matches its intended persistence, rather than treating it like a popover's transient visibility.
 
 ## async state
 

@@ -4,6 +4,7 @@ import { afterEach, expect, it, vi } from "vitest"
 
 import { AccountSettings } from "../exhibits/hooks/on-cleanup.tsx"
 import { SearchDialog } from "../exhibits/hooks/on-mount.tsx"
+import { menuOpenAtoms, MenuToggle } from "../exhibits/hooks/use-disposal.tsx"
 import { CartCount, cartCountAtom } from "../exhibits/hooks/use-getter.tsx"
 import { AccountName } from "../exhibits/hooks/use-loadable.tsx"
 import { SearchField, searchFieldAtom } from "../exhibits/hooks/use-ref.tsx"
@@ -20,11 +21,9 @@ import { hydrateEmailField } from "../exhibits/rendering/hydrate.tsx"
 import { mountCounter } from "../exhibits/rendering/render.tsx"
 import { renderEmailField } from "../exhibits/rendering/render-to-string.tsx"
 import {
-	draftGenerationAtom,
-	draftTextAtoms,
-	DraftWorkspace,
-	finishDraftSession,
-	sessionEditsAtoms,
+	formattingHelpVisibleAtoms,
+	HelpToolbar,
+	popoverOpenAtoms,
 } from "../exhibits/state-lifetimes.tsx"
 import type { Children, RootOptions, SpaRoot } from "../src/index.ts"
 import { render } from "../src/index.ts"
@@ -207,75 +206,108 @@ it(`the store exhibit copies from its selected store instead of the implicit one
 	expect(writeText).toHaveBeenCalledExactlyOnceWith(`Private draft`)
 })
 
-it(`the transient family exhibit isolates drafts, replaces keys, and preserves session state until its owner disposes it`, () => {
-	const { host, root } = mount(() => <DraftWorkspace session="example" />)
-	const edit = (input: HTMLInputElement, text: string) => {
-		input.value = text
-		input.dispatchEvent(new Event(`input`))
-		root.flush()
-	}
-	const [left, right] = [...host.querySelectorAll(`input`)]
-	edit(left, `first`)
-	edit(right, `second`)
-	expect(getState(draftTextAtoms, `example/left/0`)).toBe(`first`)
-	expect(getState(draftTextAtoms, `example/right`)).toBe(`second`)
-	host.querySelector(`button`)!.click()
+it(`the disposal exhibit toggles a menu and releases its visibility on removal`, () => {
+	const { host, root } = mount(() => <MenuToggle id="navigation" />)
+	const button = host.querySelector(`button`)!
+	button.click()
 	root.flush()
-	expect(host.querySelector(`input`)!.value).toBe(``)
-	expect(host.querySelectorAll(`input`)[1]).toBe(right)
-	expect(right.value).toBe(`second`)
-	expect(getState(draftTextAtoms, `example/left/0`)).toBe(``)
+	expect(button.textContent).toBe(`Close menu`)
+	expect(button.getAttribute(`aria-expanded`)).toBe(`true`)
+	expect(getState(menuOpenAtoms, `navigation`)).toBe(true)
 	root.dispose()
-	expect(getState(draftTextAtoms, `example/right`)).toBe(``)
-	expect(getState(sessionEditsAtoms, `example`)).toBe(2)
-	finishDraftSession(`example`)
-	expect(getState(sessionEditsAtoms, `example`)).toBe(0)
+	expect(getState(menuOpenAtoms, `navigation`)).toBe(false)
 })
 
-it(`the transient family exhibit disposes members only in the root's selected store`, () => {
+it(`the ambient UI exhibit removes a keyed popover and remounts it closed`, () => {
+	const { host, root } = mount(() => <HelpToolbar id="primary" />)
+	const formatting = host.querySelector(`[data-help="primary/formatting"]`)!
+	const shortcuts = host.querySelector(`[data-help="primary/shortcuts"]`)!
+	formatting.querySelector(`button`)!.click()
+	shortcuts.querySelector(`button`)!.click()
+	root.flush()
+	expect(
+		formatting.querySelector(`[role="dialog"]`)!.hasAttribute(`hidden`),
+	).toBe(false)
+	expect(getState(popoverOpenAtoms, [`primary`, `shortcuts`])).toBe(true)
+	const toggle = host.querySelector<HTMLButtonElement>(`nav > button`)!
+	toggle.click()
+	root.flush()
+	expect(host.querySelector(`[data-help="primary/formatting"]`)).toBe(null)
+	expect(host.querySelector(`[data-help="primary/shortcuts"]`)).toBe(shortcuts)
+	expect(getState(popoverOpenAtoms, [`primary`, `formatting`])).toBe(false)
+	expect(shortcuts.querySelector(`button`)!.getAttribute(`aria-expanded`)).toBe(
+		`true`,
+	)
+	toggle.click()
+	root.flush()
+	const remounted = host.querySelector(`[data-help="primary/formatting"]`)!
+	expect(remounted).not.toBe(formatting)
+	expect(remounted.querySelector(`button`)!.getAttribute(`aria-expanded`)).toBe(
+		`false`,
+	)
+	root.dispose()
+	expect(getState(popoverOpenAtoms, [`primary`, `shortcuts`])).toBe(false)
+})
+
+it(`the ambient UI exhibit isolates toolbars sharing one store`, () => {
+	const { host, root } = mount(() => (
+		<>
+			<HelpToolbar id="first" />
+			<HelpToolbar id="second" />
+		</>
+	))
+	const first = host.querySelector(`[aria-label="first help"]`)!
+	const second = host.querySelector(`[aria-label="second help"]`)!
+	const secondPopover = second.querySelector(`[data-help="second/formatting"]`)!
+	first.querySelector(`button`)!.click()
+	secondPopover.querySelector(`button`)!.click()
+	root.flush()
+	first.querySelector<HTMLButtonElement>(`:scope > button`)!.click()
+	root.flush()
+	expect(first.querySelector(`[data-help="first/formatting"]`)).toBe(null)
+	expect(second.querySelector(`[data-help="second/formatting"]`)).toBe(
+		secondPopover,
+	)
+	expect(
+		secondPopover.querySelector(`button`)!.getAttribute(`aria-expanded`),
+	).toBe(`true`)
+	expect(getState(popoverOpenAtoms, [`second`, `formatting`])).toBe(true)
+	expect(getState(formattingHelpVisibleAtoms, `second`)).toBe(true)
+})
+
+it(`the ambient UI exhibit disposes members only in the root's selected store`, () => {
 	const first = new Silo({
-		name: `first-drafts`,
+		name: `first-popovers`,
 		lifespan: `ephemeral`,
 		isProduction: true,
 	})
 	const second = new Silo({
-		name: `second-drafts`,
+		name: `second-popovers`,
 		lifespan: `ephemeral`,
 		isProduction: true,
 	})
-	first.install([draftTextAtoms, sessionEditsAtoms, draftGenerationAtom])
-	second.install([draftTextAtoms, sessionEditsAtoms, draftGenerationAtom])
-	const a = mount(
-		() => (
-			<DraftWorkspace
-				session="shared-key"
-				disposeDraft={(id) => {
-					first.disposeState(draftTextAtoms, id)
-				}}
-			/>
-		),
-		{ store: first.store },
-	)
-	const b = mount(
-		() => (
-			<DraftWorkspace
-				session="shared-key"
-				disposeDraft={(id) => {
-					second.disposeState(draftTextAtoms, id)
-				}}
-			/>
-		),
-		{ store: second.store },
-	)
-	const input = b.host.querySelector(`input`)!
-	input.value = `second store`
-	input.dispatchEvent(new Event(`input`))
+	first.install([popoverOpenAtoms, formattingHelpVisibleAtoms])
+	second.install([popoverOpenAtoms, formattingHelpVisibleAtoms])
+	setState(popoverOpenAtoms, [`shared-key`, `formatting`], true)
+	const a = mount(() => <HelpToolbar id="shared-key" />, { store: first.store })
+	const b = mount(() => <HelpToolbar id="shared-key" />, { store: second.store })
+	a.host.querySelector(`button`)!.click()
+	b.host.querySelector(`button`)!.click()
+	a.root.flush()
 	b.root.flush()
 	a.root.dispose()
-	expect(second.getState(draftTextAtoms, `shared-key/left/0`)).toBe(
-		`second store`,
+	expect(first.getState(popoverOpenAtoms, [`shared-key`, `formatting`])).toBe(
+		false,
 	)
-	expect(input.value).toBe(`second store`)
+	expect(second.getState(popoverOpenAtoms, [`shared-key`, `formatting`])).toBe(
+		true,
+	)
+	expect(getState(popoverOpenAtoms, [`shared-key`, `formatting`])).toBe(true)
+	expect(b.host.querySelector(`button`)!.getAttribute(`aria-expanded`)).toBe(
+		`true`,
+	)
 	b.root.dispose()
-	expect(second.getState(draftTextAtoms, `shared-key/left/0`)).toBe(``)
+	expect(second.getState(popoverOpenAtoms, [`shared-key`, `formatting`])).toBe(
+		false,
+	)
 })

@@ -3,4 +3,4 @@
 "atom.io": patch
 ---
 
-Document transient keyed-family state and persistent session state with an executable exhibit covering explicit disposal, shared ownership, fixed bindings, and root store scope.
+Add useDisposal() to bind atom.io state disposal to the current SPA root store. Document ambient UI state with executable menu and popover visibility examples, explicit family ownership, keyed removal, and isolation across toolbars and stores.

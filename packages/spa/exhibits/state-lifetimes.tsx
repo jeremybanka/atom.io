@@ -1,88 +1,103 @@
 import type { SpaElement } from "@atom.io/spa"
-import { onCleanup, useGetter, useSetter } from "@atom.io/spa"
-import { atom, atomFamily, disposeState } from "atom.io"
+import {
+	onCleanup,
+	useDisposal,
+	useGetter,
+	useId,
+	useSetter,
+} from "@atom.io/spa"
+import { atomFamily } from "atom.io"
 
-export const draftTextAtoms = atomFamily<string, string>({
-	key: `draftText`,
-	default: ``,
+type HelpTopic = `formatting` | `shortcuts`
+type PopoverIdentity = readonly [toolbar: string, topic: HelpTopic]
+
+export const popoverOpenAtoms = atomFamily<boolean, PopoverIdentity>({
+	key: `popoverOpen`,
+	default: false,
 })
-export const sessionEditsAtoms = atomFamily<number, string>({
-	key: `sessionEdits`,
-	default: 0,
-})
-export const draftGenerationAtom = atom<number>({
-	key: `draftGeneration`,
-	default: 0,
+export const formattingHelpVisibleAtoms = atomFamily<boolean, string>({
+	key: `formattingHelpVisible`,
+	default: true,
 })
 
-function DraftEditor(props: {
-	identity: string
-	session: string
-	disposeDraft: (identity: string) => void
+function HelpTrigger(props: {
+	identity: PopoverIdentity
+	panelId: string
 }): SpaElement {
-	// Capture fixed family bindings once, using the same identity for cleanup.
-	const identity = props.identity
-	const disposeDraft = props.disposeDraft
-	const getDraftText = useGetter(draftTextAtoms, identity)
-	const setDraftText = useSetter(draftTextAtoms, identity)
-	const setSessionEdits = useSetter(sessionEditsAtoms, props.session)
-	onCleanup(() => {
-		disposeDraft(identity)
-	})
+	const getOpen = useGetter(popoverOpenAtoms, props.identity)
+	const setOpen = useSetter(popoverOpenAtoms, props.identity)
 	return (
-		<label>
-			{identity}
-			<input
-				data-draft={identity}
-				value={getDraftText()}
-				onInput={(event) => {
-					setDraftText(event.currentTarget.value)
-					setSessionEdits((count) => count + 1)
-				}}
-			/>
-		</label>
+		<button
+			aria-controls={props.panelId}
+			aria-expanded={getOpen()}
+			aria-haspopup="dialog"
+			onClick={() => {
+				setOpen((open) => !open)
+			}}
+		>
+			{props.identity[1]} help
+		</button>
 	)
 }
 
-export function DraftWorkspace(props: {
-	session: string
-	// For a custom root store, pass its public Silo.disposeState binding here.
-	disposeDraft?: (identity: string) => void
+function HelpPanel(props: {
+	identity: PopoverIdentity
+	panelId: string
 }): SpaElement {
-	const session = props.session
-	const disposeDraft =
-		props.disposeDraft ??
-		((identity: string) => {
-			disposeState(draftTextAtoms, identity)
-		})
-	const getDraftGeneration = useGetter(draftGenerationAtom)
-	const setDraftGeneration = useSetter(draftGenerationAtom)
-	const getSessionEdits = useGetter(sessionEditsAtoms, session)
+	const getOpen = useGetter(popoverOpenAtoms, props.identity)
 	return (
-		<section>
-			{[`${session}/left/${getDraftGeneration()}`, `${session}/right`].map(
-				(identity) => (
-					<DraftEditor
-						key={identity}
-						identity={identity}
-						session={session}
-						disposeDraft={disposeDraft}
-					/>
-				),
-			)}
-			<button
-				onClick={() => {
-					setDraftGeneration((generation) => generation + 1)
-				}}
-			>
-				Replace left draft
-			</button>
-			<output>Session edits: {getSessionEdits()}</output>
+		<div
+			id={props.panelId}
+			role="dialog"
+			aria-label={`${props.identity[1]} help`}
+			hidden={!getOpen()}
+		>
+			{props.identity[1] === `formatting`
+				? `Select text, then choose bold or italic from the toolbar.`
+				: `Use Ctrl+Z to undo and Ctrl+Shift+Z to redo.`}
+		</div>
+	)
+}
+
+function HelpPopover(props: { identity: PopoverIdentity }): SpaElement {
+	const identity = props.identity
+	const panelId = useId()
+	const dispose = useDisposal()
+	// This owner outlives both consumers of the ambient visibility state.
+	onCleanup(() => {
+		dispose(popoverOpenAtoms, identity)
+	})
+	return (
+		<section data-help={`${identity[0]}/${identity[1]}`}>
+			<HelpTrigger identity={identity} panelId={panelId} />
+			<HelpPanel identity={identity} panelId={panelId} />
 		</section>
 	)
 }
 
-// The session owner calls this only after every consumer has unmounted.
-export function finishDraftSession(session: string): void {
-	disposeState(sessionEditsAtoms, session)
+export function HelpToolbar(props: { id: string }): SpaElement {
+	const toolbar = props.id
+	const getFormattingHelpVisible = useGetter(formattingHelpVisibleAtoms, toolbar)
+	const setFormattingHelpVisible = useSetter(formattingHelpVisibleAtoms, toolbar)
+	const dispose = useDisposal()
+	onCleanup(() => {
+		dispose(formattingHelpVisibleAtoms, toolbar)
+	})
+	return (
+		<nav aria-label={`${toolbar} help`}>
+			{(getFormattingHelpVisible()
+				? ([`formatting`, `shortcuts`] as const)
+				: ([`shortcuts`] as const)
+			).map((topic) => (
+				<HelpPopover key={topic} identity={[toolbar, topic]} />
+			))}
+			<button
+				onClick={() => {
+					setFormattingHelpVisible((visible) => !visible)
+				}}
+			>
+				{getFormattingHelpVisible() ? `Hide` : `Show`} formatting help
+			</button>
+		</nav>
+	)
 }

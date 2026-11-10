@@ -51,7 +51,7 @@
 		"oxlint-tsgolint": "7.0.2006",
 		"playwright": "1.65.0",
 		"typescript": "7.1.0-dev.20261109.1",
-		"vite": "8.3.6"
+		"vite": "8.3.7"
 	},
 	"engines": {
 		"node": ">=24.12.0"

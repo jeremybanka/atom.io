@@ -25,7 +25,13 @@ type Cursor = {
 	node: Node | null
 	report(expected: Node | null, found: Node | null): void
 }
-type RecordNode = { _value: Children; _scope: Scope; _start: Node; _end: Node }
+type RecordNode = {
+	_value: Children
+	_scope: Scope
+	_start: Node
+	_end: Node
+	_index: number
+}
 
 function finish(cursor?: Cursor): void {
 	if (cursor?.node) {
@@ -149,7 +155,7 @@ function mount(
 	source = () => value,
 ): void {
 	if (typeof value === `function`) {
-		comment(`{`, parent, before, owner, cursor)
+		const begin = comment(`{`, parent, before, owner, cursor)
 		let end: Node | null = null
 		let records = new Map<unknown, RecordNode>()
 		const presence = owner._root._presence?.collection<RecordNode, Children>(
@@ -175,6 +181,7 @@ function mount(
 			(next) => {
 				const values = ([next] as unknown[]).flat(Infinity) as Children[]
 				const kept = new Map<unknown, RecordNode>()
+				let previous: RecordNode | undefined
 				const focus = parent.ownerDocument!.activeElement as HTMLElement | null
 				for (let index = 0; index < values.length; index++) {
 					const child = values[index]
@@ -193,46 +200,43 @@ function mount(
 							record,
 							key,
 							child == null || typeof child === `boolean`,
-							[...records.keys()].indexOf(key),
+							record._index,
 						)
 						record = undefined
 					}
 					record ??= presence?.take(key, child)
 					if (!record) {
+						const at = previous ? previous._end.nextSibling : begin.nextSibling
 						const childOwner = createScope(owner)
 						record = {
+							_index: index,
 							_value: child,
 							_scope: childOwner,
-							_start: comment(`[`, parent, end ?? before, childOwner, initial),
+							_start: comment(`[`, parent, at, childOwner, initial),
 							_end: null!,
 						}
 						const held = record
 						mount(
 							child,
 							parent,
-							end ?? before,
+							at,
 							childOwner,
 							namespace,
 							initial,
 							() => held._value,
 						)
-						record._end = comment(
-							`]`,
-							parent,
-							end ?? before,
-							childOwner,
-							initial,
-						)
+						record._end = comment(`]`, parent, at, childOwner, initial)
 					} else {
 						record._value = child
 						owner._root._presence?.resume(record._scope)
 						invalidate(record._scope)
 					}
+					record._index = index
+					previous = record
 					kept.set(key, record)
 				}
 				for (const [key, record] of records)
-					if (!kept.has(key))
-						retire(record, key, true, [...records.keys()].indexOf(key))
+					if (!kept.has(key)) retire(record, key, true, record._index)
 				if (!initial) {
 					let at = end ?? before
 					const rendered = presence?.merge([...kept.values()]) ?? [

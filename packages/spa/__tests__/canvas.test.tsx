@@ -1,4 +1,4 @@
-import { render, useGetter } from "@atom.io/spa"
+import { onMount, render, useGetter } from "@atom.io/spa"
 import { Silo } from "atom.io"
 import * as THREE from "three"
 import { afterEach, expect, it, vi } from "vitest"
@@ -133,6 +133,49 @@ it(`configures construction, DPR, scene, and camera before a single owned drawin
 	const sizes = native.setSize.mock.calls.length
 	window.dispatchEvent(new Event(`resize`))
 	expect(native.setSize).toHaveBeenCalledTimes(sizes)
+})
+
+it(`runs Canvas setup after scene refs and mount hooks, before scheduling the first draw`, () => {
+	const f = fixture()
+	const order: string[] = []
+	let mesh: THREE.Mesh | null = null
+	function Content() {
+		onMount(() => {
+			mesh!.position.y = 2
+			order.push(`mount`)
+		})
+		return (
+			<Mesh
+				ref={(node) => {
+					mesh = node
+					if (node) order.push(`ref`)
+				}}
+			/>
+		)
+	}
+	const ready = vi.fn(({ scene, renderer }) => {
+		expect(mesh).toBe(scene.children[0])
+		expect(mesh!.position.y).toBe(2)
+		expect(renderer.render).not.toHaveBeenCalled()
+		expect(f.clock.scheduleFrame).not.toHaveBeenCalled()
+		mesh!.position.x = 1
+		order.push(`created`)
+	})
+	const root = f.mount(() => (
+		<Canvas onCreated={ready} onFrame={() => order.push(`frame`)}>
+			<Content />
+		</Canvas>
+	))
+	const native = renderers[0]
+	native.render.mockImplementation((scene: THREE.Scene) => {
+		expect(scene.children[0].position.toArray()).toEqual([1, 2, 0])
+		order.push(`draw`)
+	})
+	expect(order).toEqual([`ref`, `mount`, `created`])
+	f.tick()
+	expect(order).toEqual([`ref`, `mount`, `created`, `frame`, `draw`])
+	root.flush()
+	expect(ready).toHaveBeenCalledOnce()
 })
 
 it(`supports an owned renderer factory and leaves a borrowed camera projection to the application`, () => {

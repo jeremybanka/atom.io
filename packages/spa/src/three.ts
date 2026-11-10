@@ -376,28 +376,31 @@ export function Canvas(props: CanvasProps): SpaElement {
 		onCleanup(() => {
 			events.dispose()
 		})
-		const cleanup = props.onCreated?.({
-			scene,
-			camera: props.camera ?? camera,
-			renderer: webgl,
+		// Scene mounting queues child refs and mount hooks; setup must follow them.
+		onMount(() => {
+			const cleanup = props.onCreated?.({
+				scene,
+				camera: props.camera ?? camera,
+				renderer: webgl,
+			})
+			if (cleanup) onCleanup(cleanup)
+			let last: number | undefined
+			onSceneFrame((time) => {
+				const active = props.camera ?? camera
+				const delta = last === undefined ? 0 : (time - last) / 1000
+				last = time
+				if (isPresent(scope))
+					props.onFrame?.({
+						scene,
+						camera: active,
+						renderer: webgl,
+						delta,
+						time: time / 1000,
+					})
+				events.update()
+				webgl.render(scene, active)
+			}, true)
 		})
-		if (cleanup) onCleanup(cleanup)
-		let last: number | undefined
-		onSceneFrame((time) => {
-			const active = props.camera ?? camera
-			const delta = last === undefined ? 0 : (time - last) / 1000
-			last = time
-			if (isPresent(scope))
-				props.onFrame?.({
-					scene,
-					camera: active,
-					renderer: webgl,
-					delta,
-					time: time / 1000,
-				})
-			events.update()
-			webgl.render(scene, active)
-		}, true)
 	})
 	return jsx(`canvas`, {
 		ref: (element: HTMLCanvasElement | null) => {

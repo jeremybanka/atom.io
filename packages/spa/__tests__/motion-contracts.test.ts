@@ -1,4 +1,9 @@
-import { acquireProjectionNode, motionValue, visualElementStore } from "motion"
+import {
+	acquireProjectionNode,
+	frameSteps,
+	motionValue,
+	visualElementStore,
+} from "motion"
 import { expect, it, vi } from "vitest"
 
 import { motionCapability } from "../src/motion.ts"
@@ -301,6 +306,39 @@ it(`runs real tweens without reduced motion and schedules renderer drawing on Mo
 	} finally {
 		stop()
 		binding.dispose()
+	}
+})
+
+it(`advances the scene clock after rendering, without advancing during projection flushes`, () => {
+	const draw = vi.fn()
+	const stop = motionCapability().scheduleFrame!(draw)
+	const data = { delta: 16, timestamp: performance.now(), isProcessing: true }
+	const project = () => {
+		// Projection supplies fresh timestamps while synchronously flushing these steps.
+		data.timestamp += 0.1
+		frameSteps.update.process(data)
+		frameSteps.preRender.process(data)
+		frameSteps.render.process(data)
+	}
+	try {
+		project()
+		project()
+		expect(draw).not.toHaveBeenCalled()
+		frameSteps.postRender.process(data)
+		expect(draw).toHaveBeenCalledExactlyOnceWith(data.timestamp)
+		project()
+		project()
+		expect(draw).toHaveBeenCalledTimes(1)
+		data.timestamp += 16
+		frameSteps.postRender.process(data)
+		expect(draw).toHaveBeenLastCalledWith(data.timestamp)
+		expect(draw).toHaveBeenCalledTimes(2)
+		stop()
+		project()
+		frameSteps.postRender.process(data)
+		expect(draw).toHaveBeenCalledTimes(2)
+	} finally {
+		stop()
 	}
 })
 

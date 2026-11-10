@@ -648,7 +648,9 @@ export function motionCapability(
 			const run = ({ timestamp }: { timestamp: number }) => {
 				callback(timestamp)
 			}
-			frame.render(run, true)
+			// Layout measurement flushes update/preRender/render outside animation frames.
+			// Run application scene work after rendering, only in the full frame batch.
+			frame.postRender(run, true)
 			return () => {
 				cancelFrame(run)
 			}

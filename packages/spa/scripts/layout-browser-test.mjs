@@ -14,6 +14,12 @@ const bundle = await build({
 	format: `esm`,
 	platform: `browser`,
 	define: { "import.meta.env.DEV": `false` },
+	alias: {
+		"@atom.io/spa/jsx-runtime": resolve(
+			import.meta.dirname,
+			`../src/jsx-runtime.ts`,
+		),
+	},
 	plugins: [
 		{
 			name: `spa`,
@@ -154,6 +160,73 @@ try {
 		disposed,
 	)
 	assert.ok(disposed.includes(`rotate(8deg)`))
+	await page.evaluate(() => {
+		window.layoutRegression = window.layoutTest.regressions()
+	})
+	const authoredStyles = async () => {
+		for (const source of [`inline`, `stylesheet`]) {
+			const style = await page
+				.locator(`#authored-${source}`)
+				.evaluate((node) => {
+					const computed = getComputedStyle(node)
+					return [computed.opacity, computed.pointerEvents, computed.visibility]
+				})
+			assert.deepEqual(style, [`0.15`, `none`, `hidden`], source)
+		}
+	}
+	const origins = async () => {
+		for (const origin of [`fixed`, `percent`, `stylesheet`]) {
+			const geometry = await page.evaluate((origin) => {
+				return [false, true].map((projected) => {
+					const node = document.getElementById(`origin-${origin}-${projected}`)
+					const rect = node.getBoundingClientRect()
+					return [rect.x, rect.y, rect.width, rect.height]
+				})
+			}, origin)
+			geometry[0].forEach((value, index) => {
+				assert.ok(
+					Math.abs(value - geometry[1][index]) < 0.5,
+					`${origin}: ${geometry}`,
+				)
+			})
+		}
+	}
+	await page.waitForTimeout(80)
+	await authoredStyles()
+	await origins()
+	await page.evaluate(() => window.layoutRegression.resize(200))
+	await page.waitForTimeout(50)
+	await authoredStyles()
+	await page.waitForTimeout(250)
+	await authoredStyles()
+	await origins()
+	await page.evaluate(() => window.layoutRegression.resize(300, true))
+	await page.waitForTimeout(300)
+	await origins()
+	const motion = page.locator(`#removable-motion`)
+	assert.equal(
+		await motion.evaluate((node) => getComputedStyle(node).opacity),
+		`0.2`,
+	)
+	await page.evaluate(() => window.layoutRegression.removeMotion())
+	await page.waitForTimeout(300)
+	await page.evaluate(() => window.layoutRegression.resize(150))
+	await page.waitForTimeout(300)
+	assert.equal(
+		await motion.evaluate((node) => getComputedStyle(node).opacity),
+		`0.6`,
+	)
+	assert.ok(
+		await motion.evaluate((node) => {
+			const matrix = new DOMMatrix(getComputedStyle(node).transform)
+			return (
+				Math.abs(matrix.e) < 0.01 &&
+				Math.abs(matrix.a - Math.cos((5 * Math.PI) / 180)) < 0.001
+			)
+		}),
+		`Removing motion must restore authored transforms through later layout renders`,
+	)
+	await page.evaluate(() => window.layoutRegression.dispose())
 	await page.reload()
 	await page.waitForTimeout(100)
 	assert.ok(

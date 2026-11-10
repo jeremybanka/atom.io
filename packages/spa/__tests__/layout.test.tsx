@@ -42,6 +42,7 @@ vi.mock(`motion`, async (actual) => ({
 		}
 		const node: any = {
 			latestValues,
+			applyProjectionStyles: vi.fn(),
 			options: { visualElement: visual },
 			layout: { source: 1 },
 			setOptions: vi.fn((options) => Object.assign(node.options, options)),
@@ -376,4 +377,84 @@ it(`adopts reactive Motion properties into an existing projection renderer`, () 
 	])
 	f.update({ "layout:animate": true, "motion:animate": { x: 50, y: 20 } })
 	expect(probe.adopted).toBeGreaterThan(0)
+})
+
+it(`preserves authored projection styles and resolves fixed origins against updated dimensions`, () => {
+	vi.spyOn(HTMLElement.prototype, `offsetWidth`, `get`).mockImplementation(
+		function (this: HTMLElement) {
+			return parseFloat(this.style.width)
+		},
+	)
+	vi.spyOn(HTMLElement.prototype, `offsetHeight`, `get`).mockReturnValue(80)
+	probe.values = { opacity: 0.4, originX: 0.5, originY: 0.5 }
+	const props = {
+		"layout:id": `authored`,
+		style: `width:100px;opacity:.15;visibility:hidden;pointer-events:none;transform-origin:25px 10px`,
+	}
+	const f = fixture({}, props)
+	const { node, visual } = probe.nodes[0]
+	expect(node.latestValues).toMatchObject({
+		opacity: 0.15,
+		originX: 0.25,
+		originY: 0.125,
+	})
+	const output = document.createElement(`div`).style
+	node.applyProjectionStyles(output)
+	expect(output.opacity).toBe(`0.15`)
+	expect(output.visibility).toBe(`hidden`)
+	const original = node.applyProjectionStyles
+	// Projection's reset path clears these properties on every render.
+	output.opacity = output.visibility = ``
+	delete node.latestValues.opacity
+	original(output, { pointerEvents: `auto` })
+	expect(Number(output.opacity)).toBe(0.15)
+	output.opacity = `0.3`
+	output.visibility = `visible`
+	original(output)
+	expect(output.opacity).toBe(`0.3`)
+	expect(output.visibility).toBe(`visible`)
+	f.update({ ...props, style: props.style.replace(`100px`, `200px`) })
+	expect(node.latestValues.originX).toBe(0.125)
+	visual.values.set(`opacity`, 1)
+	visual.values.set(`originX`, 1)
+	node.latestValues.opacity = 0.8
+	node.latestValues.originX = 0.8
+	f.update({ ...props, style: props.style.replace(`100px`, `300px`) })
+	expect(node.latestValues).toMatchObject({ opacity: 0.8, originX: 0.8 })
+	f.root.dispose()
+	expect(node.latestValues).toMatchObject({
+		opacity: 0.8,
+		originX: 0.8,
+		originY: 0.5,
+	})
+})
+
+it(`returns to authored transform rendering after Motion transform values are removed`, () => {
+	const props = { "layout:animate": true, style: `transform:rotate(5deg)` }
+	const f = fixture({}, props)
+	const { node, visual } = probe.nodes[0]
+	expect(visual.props.transformTemplate({}, `none`)).toContain(`rotate(5deg)`)
+	node.latestValues.x = 50
+	f.update({ ...props })
+	expect(visual.props.transformTemplate).toBeUndefined()
+	delete node.latestValues.x
+	f.update({ ...props })
+	expect(visual.props.transformTemplate({}, `none`)).toContain(`rotate(5deg)`)
+})
+
+it(`keeps a fixed-pixel origin fixed when an existing projection target is resized`, () => {
+	vi.spyOn(HTMLElement.prototype, `offsetWidth`, `get`).mockImplementation(
+		function (this: HTMLElement) {
+			return parseFloat(this.style.width)
+		},
+	)
+	const props = {
+		"layout:animate": true,
+		style: `width:100px;transform-origin:25px 0`,
+	}
+	const f = fixture({}, props)
+	const { node } = probe.nodes[0]
+	expect(node.latestValues.originX).toBe(0.25)
+	f.update({ ...props, style: props.style.replace(`100px`, `200px`) })
+	expect(node.latestValues.originX).toBe(0.125)
 })

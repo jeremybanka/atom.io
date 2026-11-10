@@ -4,6 +4,7 @@ import { floatingCapability } from "../src/floating.ts"
 import { render, useGetter } from "../src/index.ts"
 import { layoutCapability } from "../src/layout.ts"
 import { motionCapability } from "../src/motion.ts"
+import { layoutRegressions } from "./layout-regressions-browser.tsx"
 
 const retainedAtom = atom<boolean>({ key: `retained`, default: true })
 const badLayoutAtom = atom<boolean>({ key: `badLayout`, default: false })
@@ -137,6 +138,7 @@ const bounds = (id: string) => {
 }
 Object.assign(window, {
 	layoutTest: {
+		regressions: layoutRegressions,
 		update(phase: number) {
 			setState(phaseAtom, phase)
 			root.flush()

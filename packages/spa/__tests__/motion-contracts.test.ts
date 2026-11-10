@@ -1,3 +1,4 @@
+import { acquireProjectionNode, motionValue, visualElementStore } from "motion"
 import { expect, it, vi } from "vitest"
 
 import { motionCapability } from "../src/motion.ts"
@@ -5,6 +6,44 @@ import { motionCapability } from "../src/motion.ts"
 const flush = async () => {
 	await new Promise((resolve) => setTimeout(resolve, 50))
 }
+it(`unregisters handed-off Motion values without removing another owner's values`, async () => {
+	const element = document.createElement(`div`)
+	element.style.cssText = `transform:rotate(5deg);opacity:.6`
+	element.setAttribute(`data-layout`, `true`)
+	document.body.append(element)
+	const cap = motionCapability({ reducedMotion: `always` })
+	const binding = cap.attach({ kind: `dom`, node: element })
+	binding.update({ initial: false, animate: { x: 50, opacity: 0.2 } })
+	const [node, detach] = acquireProjectionNode(element)
+	const visual = node.options.visualElement!
+	try {
+		await flush()
+		visual.render()
+		expect(visual.values.has(`x`)).toBe(true)
+		expect(element.style.opacity).toBe(`0.2`)
+		binding.dispose()
+		visual.render()
+		expect(visual.values.has(`x`)).toBe(false)
+		expect(visual.latestValues[`x`]).toBeUndefined()
+		expect(visual.latestValues[`opacity`]).toBeUndefined()
+		expect(Number(element.style.opacity)).toBe(0.6)
+		const next = cap.attach({ kind: `dom`, node: element })
+		next.update({ initial: false, animate: { x: 20 } })
+		expect(visual.latestValues[`x`]).toBe(20)
+		const borrowed = motionValue(30)
+		visual.addValue(`x`, borrowed)
+		next.dispose()
+		expect(visual.values.get(`x`)).toBe(borrowed)
+		visual.removeValue(`x`)
+		borrowed.destroy()
+	} finally {
+		binding.dispose()
+		detach()
+		visual.unmount()
+		visualElementStore.delete(element)
+		element.remove()
+	}
+})
 function scene(
 	read: (key: string) => unknown = (key) => (key === `position` ? [0, 0, 0] : 0),
 ) {

@@ -517,7 +517,11 @@ function attach(
 			exitHandle?.cancel()
 			preference?.removeEventListener(`change`, mediaChanged)
 			styles?.()
+			const visual = element && visualElementStore.get(element)
 			for (const [key, property] of properties) {
+				// Projection can retain this renderer after the binding is gone.
+				if (visual?.values.get(key) === property.values[0])
+					visual.removeValue(key)
 				property.release()
 				if (!element) target.write!(key, property.base)
 			}

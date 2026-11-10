@@ -56,6 +56,8 @@ interface Entry {
 	dead: boolean
 	node?: IProjectionNode | undefined
 	release?: Cleanup | undefined
+	refreshStyles?: Cleanup | undefined
+	captureStyles?: Cleanup | undefined
 	identity?: string
 	size?: string
 }
@@ -96,6 +98,7 @@ function controller(root: Root, options: LayoutCapabilityOptions) {
 		const detach = entry.release
 		entry.release = undefined
 		entry.node = undefined
+		entry.refreshStyles = entry.captureStyles = undefined
 		detach?.()
 	}
 	const configure = (entry: Entry) => {
@@ -139,22 +142,21 @@ function controller(root: Root, options: LayoutCapabilityOptions) {
 			const attrs = [`data-layout`, `data-layout-id`].map(
 				(name) => [name, element.getAttribute(name)] as const,
 			)
-			const style = [
+			const styleNames = [
 				`transform`,
 				`transform-origin`,
 				`opacity`,
 				`visibility`,
-			].map(
-				(name) =>
-					[
-						name,
-						element.style.getPropertyValue(name),
-						element.style.getPropertyPriority(name),
-					] as const,
-			)
-			const computed = getComputedStyle(element)
-			const transform = computed.transform
-			const origin = computed.transformOrigin.split(` `)
+				`pointer-events`,
+			]
+			const style = element.ownerDocument.createElement(`div`).style
+			style.cssText = element.style.cssText
+			const restore = (name: string) => {
+				const value = style.getPropertyValue(name)
+				if (value)
+					element.style.setProperty(name, value, style.getPropertyPriority(name))
+				else element.style.removeProperty(name)
+			}
 			element.removeAttribute(`data-layout`)
 			element.removeAttribute(`data-layout-id`)
 			if (props.animate !== false)
@@ -169,39 +171,82 @@ function controller(root: Root, options: LayoutCapabilityOptions) {
 				)
 			const [node, detach] = acquireProjectionNode(element)
 			entry.node = node
-			const anchor = {
-				x: parseFloat(origin[0]) / (element.offsetWidth || 1),
-				y: parseFloat(origin[1]) / (element.offsetHeight || 1),
-			}
-			if (Number.isFinite(anchor.x) && Number.isFinite(anchor.y)) {
-				node.latestValues[`originX`] ??= anchor.x
-				node.latestValues[`originY`] ??= anchor.y
-			}
 			entry.identity = identity
 			const visual = node.options.visualElement!
 			const originalProps = visual.getProps()
-			// Preserve authored transforms; Motion-owned transform values already compose in projection.
-			if (
-				transform &&
-				transform !== `none` &&
-				!Object.keys(visual.latestValues).some((key) =>
-					/^(x|y|scale|rotate|skew)/.test(key),
-				)
-			)
-				visual.update(
-					{
-						...originalProps,
-						transformTemplate: (_, projected) =>
-							`${projected === `none` ? `` : projected} ${transform}`.trim(),
-					},
-					null,
-				)
+			const originalValues = { ...node.latestValues }
+			let opacity = `1`
+			let visibility = ``
+			let pointerEvents = ``
+			let transform = ``
+			const transformTemplate = (_: unknown, projected: string) =>
+				`${projected === `none` ? `` : projected} ${transform}`.trim()
+			entry.captureStyles = () => {
+				style.cssText = element.style.cssText
+			}
+			entry.refreshStyles = () => {
+				// Resolve authored CSS against today's dimensions, without reading back
+				// the opacity and percentage origins written by projection itself.
+				const rendered = element.style.cssText
+				for (const name of styleNames) restore(name)
+				try {
+					const authored = getComputedStyle(element)
+					opacity = authored.opacity || `1`
+					visibility = authored.visibility
+					pointerEvents = authored.pointerEvents
+					transform = authored.transform
+					if (!visual.values.has(`opacity`))
+						node.latestValues[`opacity`] = Number(opacity)
+					const origin = authored.transformOrigin.split(` `)
+					for (const [key, value] of [
+						[`originX`, parseFloat(origin[0]) / (element.offsetWidth || 1)],
+						[`originY`, parseFloat(origin[1]) / (element.offsetHeight || 1)],
+					] as const)
+						if (!visual.values.has(key) && Number.isFinite(value))
+							node.latestValues[key] = value
+				} finally {
+					element.style.cssText = rendered
+				}
+				// Motion-owned transforms compose in projection; return to authored
+				// transforms if that Motion binding is subsequently removed.
+				const template =
+					transform &&
+					transform !== `none` &&
+					!Object.keys(visual.latestValues).some((key) =>
+						/^(x|y|scale|rotate|skew)/.test(key),
+					)
+						? transformTemplate
+						: originalProps.transformTemplate
+				if (visual.getProps().transformTemplate !== template) {
+					const next = { ...visual.getProps() }
+					if (template) next.transformTemplate = template
+					else delete next.transformTemplate
+					visual.update(next, null)
+				}
+			}
+			const applyProjectionStyles = node.applyProjectionStyles
+			node.applyProjectionStyles = (targetStyle, styleProp) => {
+				applyProjectionStyles.call(node, targetStyle, {
+					...styleProp,
+					pointerEvents: styleProp?.[`pointerEvents`] ?? pointerEvents,
+				})
+				if (!targetStyle.visibility) targetStyle.visibility = visibility
+				if (!targetStyle.opacity)
+					targetStyle.opacity = String(node.latestValues[`opacity`] ?? opacity)
+			}
 			entry.release = () => {
 				try {
 					if (node.isLead()) node.finishAnimation()
 					detach()
 				} finally {
+					node.applyProjectionStyles = applyProjectionStyles
 					visual.projection = undefined
+					for (const key of [`opacity`, `originX`, `originY`])
+						if (!visual.values.has(key)) {
+							if (originalValues[key] === undefined)
+								Reflect.deleteProperty(node.latestValues, key)
+							else node.latestValues[key] = originalValues[key]
+						}
 					if (root._dead || entry.scope._dead || !visual.values.size) {
 						visual.unmount()
 						visualElementStore.delete(element)
@@ -210,14 +255,12 @@ function controller(root: Root, options: LayoutCapabilityOptions) {
 						if (value === null) element.removeAttribute(name)
 						else element.setAttribute(name, value)
 					}
-					for (const [name, value, priority] of style) {
-						if (value) element.style.setProperty(name, value, priority)
-						else element.style.removeProperty(name)
-					}
+					for (const name of styleNames) restore(name)
 				}
 			}
 			observer?.observe(element)
 		}
+		entry.refreshStyles!()
 		configure(entry)
 		entry.size = `${element.offsetWidth}:${element.offsetHeight}`
 	}
@@ -313,11 +356,12 @@ function controller(root: Root, options: LayoutCapabilityOptions) {
 				})
 			})
 			return {
-				update(props) {
+				update(props, previousStyle) {
 					for (const key of Object.keys(props))
 						if (!allowed.has(key))
 							throw new Error(`spa/layout: unknown property layout:${key}`)
 					entry.props = props
+					if (previousStyle !== undefined) entry.captureStyles?.()
 				},
 				exit() {
 					if (entry.node) entry.node.isPresent = false

@@ -17,6 +17,7 @@ import {
 	untrack,
 	within,
 } from "./core.ts"
+import { bindForm, changeHandler, controlValue } from "./dom-forms.ts"
 import { hotRoot, trackRoot } from "./hot.ts"
 import { Fragment, merge } from "./jsx-runtime.ts"
 
@@ -113,11 +114,26 @@ function property(
 			.slice(2, capture ? -7 : undefined)
 			.toLowerCase()
 			.replace(`doubleclick`, `dblclick`)
-		if (previous) element.removeEventListener(event, previous, capture)
+		const events =
+			event === `change`
+				? [`input`, `change`]
+				: [event === `focus` ? `focusin` : event === `blur` ? `focusout` : event]
+		if (previous)
+			for (const name of events)
+				element.removeEventListener(
+					name,
+					event === `change` ? changeHandler(previous) : previous,
+					capture,
+				)
 		if (value != null) {
 			if (import.meta.env.DEV && typeof value !== `function`)
 				throw new Error(`spa: event handler`)
-			element.addEventListener(event, value, capture)
+			for (const name of events)
+				element.addEventListener(
+					name,
+					event === `change` ? changeHandler(value) : value,
+					capture,
+				)
 		}
 		return
 	}
@@ -142,7 +158,14 @@ function property(
 		!/^(style|form|list)$/.test(key)
 	) {
 		const target = element as any
-		target[key] = value ?? (typeof target[key] === `boolean` ? false : ``)
+		if (
+			key === `value` &&
+			/^(input|textarea|select)$/.test(element.localName) &&
+			value != null
+		)
+			controlValue(target, value)
+		else target[key] = value ?? (typeof target[key] === `boolean` ? false : ``)
+		if (value == null) element.removeAttribute(key)
 	} else if (value == null || (value === false && !/^(aria-|data-)/.test(key)))
 		element.removeAttribute(key)
 	else
@@ -317,6 +340,13 @@ function mount(
 		owner,
 		cursor,
 	) as Element
+	if (ns === HTML && /^(input|textarea|select)$/.test(vnode.type))
+		bindForm(element as HTMLInputElement, props, owner)
+	if (ns === HTML && (props[`autoFocus`] || props[`autofocus`])) {
+		owner._root._mounts!.push(() => {
+			if (!owner._dead) (element as HTMLElement).focus()
+		})
+	}
 	if (vnode.type === `astro-slot`) {
 		if (!cursor) element.innerHTML = props[`innerHTML`] ?? ``
 	} else if (ns === HTML && /^(textarea|title|style|script)$/.test(vnode.type)) {
@@ -423,6 +453,7 @@ function start(
 			? marker.nodeValue.slice(2)
 			: undefined
 	const root = createRoot(options)
+	root._host = host
 	if (prefix !== undefined && options.idPrefix === undefined)
 		root._prefix = prefix
 	if (import.meta.env.DEV) trackRoot(root)

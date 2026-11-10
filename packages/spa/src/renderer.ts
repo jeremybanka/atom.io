@@ -57,6 +57,10 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 		changed: () => void,
 	): SceneNodes<N> {
 		let entries: Entry<N>[] = []
+		let reconciling = false
+		const report = () => {
+			if (!reconciling) changed()
+		}
 		const presence = scope._root._presence?.collection<Entry<N>, Children>(
 			(entry) => entry.scope,
 			(entry, value) => same(entry.value, value),
@@ -74,6 +78,7 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 			else dispose(entry.scope)
 		}
 		observe(scope, source, (next) => {
+			reconciling = true
 			const values = (
 				Array.isArray(next) ? next.flat(Infinity) : [next]
 			) as Children[]
@@ -106,12 +111,17 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 				}
 				const childScope = createScope(scope)
 				const created: Entry<N> = { scope: childScope, value, nodes: null! }
-				created.nodes = build(() => created.value, childScope, changed)
+				created.nodes = build(() => created.value, childScope, report)
 				return created
 			})
 			for (const [id, entry] of old)
 				retire(entry, id, true, previous.indexOf(entry))
-			changed()
+			reconciling = false
+			if (
+				entries.length !== previous.length ||
+				entries.some((entry, i) => entry !== previous[i])
+			)
+				changed()
 		})
 		return (activeOnly = false) => {
 			const rendered = activeOnly

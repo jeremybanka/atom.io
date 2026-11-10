@@ -72,6 +72,35 @@ function clock() {
 		stop,
 	}
 }
+it(`uses native Stage layer ordering when keyed layers move`, () => {
+	const silo = new Silo({
+		name: `layers`,
+		lifespan: `ephemeral`,
+		isProduction: true,
+	})
+	const idsAtom = silo.atom<string[]>({ key: `ids`, default: [`a`, `b`, `c`] })
+	const stage = new Konva.Stage({ container: document.createElement(`div`) })
+	const root = konvaRenderer.render(
+		() => {
+			const getIds = useGetter(idsAtom)
+			return () => getIds().map((id) => <Layer key={id} id={id} />)
+		},
+		stage,
+		{ store: silo.store },
+	)
+	const original = [...stage.children]
+	const zIndex = vi.spyOn(original[2], `zIndex`)
+	try {
+		silo.setState(idsAtom, [`c`, `a`, `b`])
+		root.flush()
+		expect(stage.children).toEqual([original[2], original[0], original[1]])
+		expect(zIndex).toHaveBeenCalledWith(0)
+	} finally {
+		root.dispose()
+		zIndex.mockRestore()
+		stage.destroy()
+	}
+})
 it(`owns canvas resources, resizes the default camera, and routes frame and event failures`, () => {
 	const silo = new Silo({
 		name: `canvas`,

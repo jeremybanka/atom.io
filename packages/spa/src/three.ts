@@ -182,10 +182,16 @@ const renderer = createSceneRenderer<Resource>({
 		const objects = children.filter(
 			(child): child is THREE.Object3D => child instanceof THREE.Object3D,
 		)
-		for (const child of [...parent.children])
-			if (!objects.includes(child)) parent.remove(child)
-		for (const child of objects) if (child.parent !== parent) parent.add(child)
-		parent.children.splice(0, parent.children.length, ...objects)
+		if (
+			parent.children.length !== objects.length ||
+			objects.some((child, index) => child !== parent.children[index])
+		) {
+			const wanted = new Set(objects)
+			for (const child of [...parent.children])
+				if (!wanted.has(child)) parent.remove(child)
+			for (const child of objects) if (child.parent !== parent) parent.add(child)
+			parent.children.splice(0, parent.children.length, ...objects)
+		}
 		const resources = children.filter(
 			(child) => !(child instanceof THREE.Object3D),
 		)

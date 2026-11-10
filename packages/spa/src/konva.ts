@@ -86,12 +86,24 @@ const renderer = createSceneRenderer<Konva.Node>({
 		if (children.length && !(parent instanceof Konva.Container))
 			throw new Error(`spa/konva: shapes cannot contain children`)
 		if (parent instanceof Konva.Container) {
-			for (const child of [...parent.getChildren()])
-				if (!children.includes(child)) child.remove()
+			const current = parent.getChildren()
+			if (
+				current.length === children.length &&
+				children.every((child, index) => child === current[index])
+			)
+				return
+			const wanted = new Set(children)
+			for (const child of [...current]) if (!wanted.has(child)) child.remove()
 			children.forEach((child, index) => {
 				if (child.getParent() !== parent) parent.add(child as any)
-				child.zIndex(index)
+				// Layer zIndex also updates the Stage's canvas order.
+				if (parent instanceof Konva.Stage && child.zIndex() !== index)
+					child.zIndex(index)
 			})
+			if (!(parent instanceof Konva.Stage)) {
+				parent.children = [...children]
+				parent._setChildrenIndices()
+			}
 		}
 	},
 	destroy(node) {

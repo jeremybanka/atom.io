@@ -7,7 +7,7 @@ import type {
 import type { Canonical } from "atom.io/foundations/canonical"
 import { withdraw } from "atom.io/internal"
 
-import { type Accessor, owner, resolveStateToken, useGetter } from "./core.ts"
+import { type Accessor, resolveStateToken, useGetter, useStore } from "./core.ts"
 
 export type LoadableValue<T> = { loading: boolean; value: T }
 
@@ -34,7 +34,7 @@ export function useLoadable(
 		| [ReadableFamilyToken<any, Canonical, any>, Canonical]
 		| [ReadableFamilyToken<any, Canonical, any>, Canonical, unknown]
 ): Accessor<`LOADING` | (LoadableValue<unknown> & { error?: unknown })> {
-	const store = owner!._root._store
+	const store = useStore()
 	const [token] = params
 	const family = token.type.endsWith(`_family`)
 	const selected = resolveStateToken(token, params[1] as Canonical)

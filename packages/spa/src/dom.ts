@@ -188,13 +188,15 @@ function mount(
 		const begin = comment(`{`, parent, before, owner, cursor)
 		let end: Node | null = null
 		let records = new Map<unknown, RecordNode>()
-		const presence = owner._root._presence?.collection<RecordNode, Children>(
-			(record) => record._scope,
-			(record, child) =>
-				typeof record._value === typeof child &&
-				(record._value as SpaElement | null)?.type ===
-					(child as SpaElement | null)?.type,
-		)
+		const collection = () =>
+			owner._root._presence?.collection<RecordNode, Children>(
+				(record) => record._scope,
+				(record, child) =>
+					typeof record._value === typeof child &&
+					(record._value as SpaElement | null)?.type ===
+						(child as SpaElement | null)?.type,
+			)
+		let presence: ReturnType<typeof collection>
 		const retire = (
 			record: RecordNode,
 			key: unknown,
@@ -209,6 +211,7 @@ function mount(
 			owner,
 			() => (source() as () => Children)(),
 			(next) => {
+				presence ??= collection()
 				const values = ([next] as unknown[]).flat(Infinity) as Children[]
 				const kept = new Map<unknown, RecordNode>()
 				let previous: RecordNode | undefined
@@ -414,7 +417,7 @@ function mount(
 		owner._root._mounts!.unshift(() => {
 			if (!owner._dead) {
 				owner._cleanups.add(() => ref(null))
-				ref(element)
+				within(owner, () => ref(element))
 			}
 		})
 	}

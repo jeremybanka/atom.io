@@ -1,4 +1,5 @@
 import type { Cleanup, Root, Scope } from "./core.ts"
+import { scopeCapabilities } from "./core.ts"
 import type { ExitHandle, PresenceCoordinator } from "./presence.ts"
 
 /** Native renderers expose property access without importing capability engines. */
@@ -39,7 +40,7 @@ export function validateCapabilities(
 ): void {
 	for (const key of Object.keys(props)) {
 		const namespace = capabilityNamespace(key)
-		if (namespace && !scope._root._capabilities.has(namespace))
+		if (namespace && !scopeCapabilities(scope).has(namespace))
 			throw new Error(
 				`spa: capability "${namespace}" is not registered for this root`,
 			)
@@ -55,7 +56,8 @@ export function capabilityProps(
 ): (props: Record<string, any>) => Record<string, any> {
 	const bindings = new Map<string, CapabilityBinding>()
 
-	scope._root._presence?.target(scope, target)
+	if (scope._root._presence) scope._root._presence.target(scope, target)
+	else (scope._targets ??= new Set()).add(target)
 	const cleanup: Cleanup = () => {
 		const errors: unknown[] = []
 		for (const binding of [...bindings.values()].reverse()) {
@@ -91,7 +93,7 @@ export function capabilityProps(
 		for (const [namespace, values] of groups) {
 			let binding = bindings.get(namespace)
 			if (!binding) {
-				binding = scope._root._capabilities.get(namespace)!.attach(target, scope)
+				binding = scopeCapabilities(scope).get(namespace)!.attach(target, scope)
 				bindings.set(namespace, binding)
 				scope._root._presence?.bind(
 					scope,

@@ -16,6 +16,8 @@ import {
 	isPresent,
 	observe,
 	owner,
+	reportScopeError,
+	scopeCapabilities,
 	untrack,
 	within,
 } from "./core.ts"
@@ -62,10 +64,12 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 		const report = () => {
 			if (!reconciling) changed()
 		}
-		const presence = scope._root._presence?.collection<Entry<N>, Children>(
-			(entry) => entry.scope,
-			(entry, value) => same(entry.value, value),
-		)
+		const collection = () =>
+			scope._root._presence?.collection<Entry<N>, Children>(
+				(entry) => entry.scope,
+				(entry, value) => same(entry.value, value),
+			)
+		let presence: ReturnType<typeof collection>
 		const retire = (
 			entry: Entry<N>,
 			id: string,
@@ -79,6 +83,7 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 			else dispose(entry.scope)
 		}
 		observe(scope, source, (next) => {
+			presence ??= collection()
 			reconciling = true
 			const values = (
 				Array.isArray(next) ? next.flat(Infinity) : [next]
@@ -197,7 +202,7 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 			scope._root._mounts!.unshift(() => {
 				if (!scope._dead) {
 					scope._cleanups.add(() => ref(null))
-					ref(node)
+					within(scope, () => ref(node))
 				}
 			})
 		return () => [node]
@@ -266,7 +271,7 @@ export function onSceneFrame(
 	infrastructure = false,
 ): void {
 	const scope = owner!
-	const clocks = [...scope._root._capabilities.values()].filter(
+	const clocks = [...scopeCapabilities(scope).values()].filter(
 		(capability) => capability.scheduleFrame,
 	)
 	if (clocks.length > 1)
@@ -276,11 +281,7 @@ export function onSceneFrame(
 		try {
 			callback(time)
 		} catch (error) {
-			try {
-				fail(scope._root, error)
-			} catch (failure) {
-				scope._root.error(failure)
-			}
+			reportScopeError(scope, error)
 		}
 	}
 	let stop: () => void

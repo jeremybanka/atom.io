@@ -1,6 +1,12 @@
 import type { CapabilityBinding } from "./capabilities.ts"
 import type { Cleanup, Root, Scope } from "./core.ts"
-import { dispose, fail, invalidate, isPresent, untrack } from "./core.ts"
+import {
+	dispose,
+	invalidate,
+	isPresent,
+	reportScopeError,
+	untrack,
+} from "./core.ts"
 
 export interface ExitHandle {
 	finished: Promise<void>
@@ -103,14 +109,6 @@ export function createPresence(root: Root): PresenceCoordinator {
 			if (at === parent) return true
 		return false
 	}
-	const report = (error: unknown) => {
-		if (root._dead) return
-		try {
-			fail(root, error)
-		} catch (failure) {
-			root.error(failure)
-		}
-	}
 	const finish = () => {
 		for (const group of [...groups.values()]) {
 			if (group.scope._dead || group.sessions.some((session) => !session.done))
@@ -125,7 +123,7 @@ export function createPresence(root: Root): PresenceCoordinator {
 			try {
 				group.done()
 			} catch (error) {
-				report(error)
+				if (!root._dead) reportScopeError(group.scope, error)
 			}
 		}
 	}
@@ -257,7 +255,8 @@ export function createPresence(root: Root): PresenceCoordinator {
 								finish()
 							},
 							(error) => {
-								if (!held.cancelled) report(error)
+								if (!held.cancelled && !root._dead)
+									reportScopeError(held.scope, error)
 							},
 						)
 					}

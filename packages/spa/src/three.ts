@@ -1,4 +1,4 @@
-import { fail, isPresent, owner } from "./core.ts"
+import { isPresent, owner, reportScopeError } from "./core.ts"
 import type { ThreeEventAttributes, ThreeEventHandler } from "./three-events.ts"
 import {
 	createThreeEvents,
@@ -348,35 +348,25 @@ export function Canvas(props: CanvasProps): SpaElement {
 			})
 		}
 		bindScene(size, resize)
+		const scope = owner!
 		const resized = () => {
 			try {
 				resize(size())
 			} catch (error) {
-				try {
-					fail(ownerRoot, error)
-				} catch (failure) {
-					ownerRoot.error(failure)
-				}
+				reportScopeError(scope, error)
 			}
 		}
-		const ownerRoot = owner!._root
 		view.addEventListener(`resize`, resized)
 		onCleanup(() => {
 			view.removeEventListener(`resize`, resized)
 		})
 		renderer.mount(() => props.children, scene)
-		const scope = owner!
-		const root = scope._root
 		const events = createThreeEvents(
 			canvas,
 			scene,
 			() => props.camera ?? camera,
 			(error) => {
-				try {
-					fail(root, error)
-				} catch (failure) {
-					root.error(failure)
-				}
+				reportScopeError(scope, error)
 			},
 		)
 		onCleanup(() => {

@@ -13,7 +13,7 @@ import type {
 	CapabilityTarget,
 } from "./capabilities.ts"
 import type { Scope } from "./core.ts"
-import { fail, onMount, within } from "./core.ts"
+import { onMount, reportScopeError, within } from "./core.ts"
 
 export interface FloatingAttributes<Kind extends string = `dom`> {
 	[`floating:reference`]?: Kind extends `dom` ? ReferenceElement | null : never
@@ -108,11 +108,7 @@ function attach(target: CapabilityTarget, scope?: Scope): CapabilityBinding {
 			})
 			return
 		}
-		try {
-			fail(scope._root, error)
-		} catch (failure) {
-			scope._root.error(failure)
-		}
+		reportScopeError(scope, error)
 	}
 	const updatePosition = () => {
 		const anchor = reference

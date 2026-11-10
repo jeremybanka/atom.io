@@ -8,6 +8,7 @@ import {
 	Mesh,
 	MeshNormalMaterial,
 } from "@atom.io/spa/three"
+import * as THREE from "three"
 
 const capability = motionCapability()
 render(
@@ -93,3 +94,25 @@ const badSceneFloating = <Mesh floating:placement="bottom" />
 // @ts-expect-error: References are DOM or virtual elements.
 const badReference = <div floating:reference="anchor" />
 void [badPlacement, badSceneFloating, badReference]
+
+const customGeometry = new THREE.ExtrudeGeometry(new THREE.Shape(), {
+	depth: 0.3,
+	bevelEnabled: false,
+})
+const customMaterial = new THREE.MeshStandardMaterial()
+const customMesh = <Mesh args={[customGeometry, customMaterial]} />
+const multiMaterialMesh = <Mesh args={[customGeometry, [customMaterial]]} />
+const defaultGeometryMesh = <Mesh args={[undefined, customMaterial]} />
+const emptyMesh = <Mesh args={[]} />
+// @ts-expect-error: Mesh geometry must be a Three BufferGeometry.
+const badGeometry = <Mesh args={[`geometry`]} />
+// @ts-expect-error: Mesh materials must be Three Material instances.
+const badMaterial = <Mesh args={[customGeometry, [42]]} />
+void [
+	customMesh,
+	multiMaterialMesh,
+	defaultGeometryMesh,
+	emptyMesh,
+	badGeometry,
+	badMaterial,
+]

@@ -43,7 +43,7 @@ try {
 		executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
 		args: [`--use-angle=swiftshader`, `--enable-unsafe-swiftshader`],
 	})
-	const page = await browser.newPage()
+	const page = await browser.newPage({ deviceScaleFactor: 2 })
 	const errors = []
 	page.on(`pageerror`, (error) => {
 		errors.push(error.message)
@@ -107,8 +107,13 @@ try {
 				).m11 - 1,
 			) < 0.001,
 	)
+	assert.equal(state.dpr, 2)
+	assert.equal(state.alpha, true)
+	assert.equal(state.toneMapping, true)
+	assert.equal(state.colorSpace, true)
+	await page.screenshot({ path: `/tmp/spa-canvas-configured.png` })
 	assert.ok(state.canvases.length >= 2)
-	assert.ok(state.canvases.every((width) => width === 200))
+	assert.ok(state.canvases.every((width) => width === 400))
 	const canvas = page.locator(`canvas`).last()
 	const bounds = await canvas.boundingBox()
 	const point = await page.evaluate(() => window.graphics.point())

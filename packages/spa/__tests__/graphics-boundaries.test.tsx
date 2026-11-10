@@ -26,6 +26,11 @@ vi.mock(`three`, async (original) => {
 	return {
 		...actual,
 		WebGLRenderer: class {
+			public domElement: HTMLCanvasElement
+			public constructor(options: { canvas: HTMLCanvasElement }) {
+				this.domElement = options.canvas
+			}
+			public setPixelRatio = vi.fn()
 			public render = spies.render
 			public dispose = spies.dispose
 			public setSize = spies.size

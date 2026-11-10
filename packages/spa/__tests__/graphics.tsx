@@ -3,11 +3,13 @@ import { Group, Layer, Rect, Stage } from "@atom.io/spa/konva"
 import { motionCapability } from "@atom.io/spa/motion"
 import { BoxGeometry, Canvas, Mesh, MeshBasicMaterial } from "@atom.io/spa/three"
 import { atom, setState } from "atom.io"
+import { ACESFilmicToneMapping, SRGBColorSpace } from "three"
 
 const sizeAtom = atom<number>({ key: `size`, default: 100 })
 let rect: any
 let mesh: any
 let frames = 0
+let nativeRenderer: any
 let camera: any
 let downs = 0
 let ups = 0
@@ -54,6 +56,13 @@ function App() {
 				</Layer>
 			</Stage>
 			<Canvas
+				dpr={[1, 2]}
+				rendererOptions={{ alpha: true, powerPreference: `high-performance` }}
+				onCreated={({ renderer }) => {
+					nativeRenderer = renderer
+					renderer.toneMapping = ACESFilmicToneMapping
+					renderer.outputColorSpace = SRGBColorSpace
+				}}
 				width={getSize()}
 				height={100}
 				onFrame={(state) => {
@@ -102,6 +111,10 @@ Object.assign(window, {
 		inspect() {
 			return {
 				frames,
+				dpr: nativeRenderer.getPixelRatio(),
+				alpha: nativeRenderer.getContext().getContextAttributes().alpha,
+				toneMapping: nativeRenderer.toneMapping === ACESFilmicToneMapping,
+				colorSpace: nativeRenderer.outputColorSpace === SRGBColorSpace,
 				downs,
 				ups,
 				moves,

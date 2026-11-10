@@ -58,3 +58,11 @@ Refs receive native Three.js objects and null on cleanup. Removing a view dispos
 The exported threeRenderer can render into a borrowed parent dedicated to its children. For declarative animation, register [motionCapability](/docs/spa/motion); it can animate position, rotation, scale, color, opacity, and light intensity. Rotation uses Euler components.
 
 Mesh accepts optional constructor args typed from Three.js, including custom BufferGeometry and a Material or material array. Resources supplied in args are borrowed: their application owner disposes them after all consumers finish. JSX geometry/material children and implicit Mesh defaults remain renderer-owned. Constructor args are fixed for the mounted instance; use a new reconciliation key to replace them.
+
+## Canvas configuration
+
+Canvas accepts rendererOptions for constructor-time settings such as alpha and powerPreference, or createRenderer to construct the renderer with the supplied canvas. Both paths are exclusively owned by Canvas: it disposes the renderer on removal or setup failure, and the factory must return a renderer using that canvas. Shared/borrowed renderers are not supported by this boundary; use threeRenderer for a separately owned renderer. Options and the factory are captured at mount; replace the keyed Canvas to reconstruct its context.
+
+Use onCreated to configure tone mapping, output color space, scene background, or controls after the scene mounts and sizes, before the first draw. Return a cleanup callback for controls or other acquired resources. Numeric dpr selects a fixed positive ratio; a min/max tuple clamps devicePixelRatio and follows window resize events. The default remains 1. Width and height remain reactive positive CSS-pixel dimensions. Canvas updates its default perspective camera projection; supplied cameras are borrowed and retain their own projection. Use onResize to update an external perspective/orthographic camera explicitly. onFrame and pointer routing always use the current camera prop, with one frame loop using the installed Motion clock or requestAnimationFrame.
+
+<Exhibit src="spa/exhibits/configurable-canvas.tsx" />

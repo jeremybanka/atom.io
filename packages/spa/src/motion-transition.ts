@@ -77,7 +77,7 @@ export function propertyTransition(
 		if (
 			value !== undefined &&
 			(!Number.isFinite(value) ||
-				(option !== `velocity` && value < 0) ||
+				(option !== `velocity` && option !== `delay` && value < 0) ||
 				(option === `bounce` && value >= 1) ||
 				([`stiffness`, `damping`, `mass`, `restDelta`, `restSpeed`].includes(
 					option,

@@ -44,6 +44,88 @@ it(`samples authored keyframe times and segment easing and retargets from the cu
 	next.stop()
 	value.destroy()
 })
+it.each([
+	[0, [null, `100px`], `50px`, `100px`],
+	[0, [0, `100px`, 0], `50px`, `0px`],
+	[`100px`, [null, 0], `50px`, `0px`],
+	[0, [null, `100%`], `50%`, `100%`],
+	[0, [null, `90deg`], `45deg`, `90deg`],
+] as const)(
+	`interpolates compatible numeric and CSS keyframes from %s through %j`,
+	(current, frames, midpoint, final) => {
+		const value = motionValue<number | string>(current)
+		const controls = animateTween(
+			value,
+			frames,
+			{ type: `tween`, duration: 2, ease: `linear` },
+			false,
+		)
+		controls.pause()
+		try {
+			const animation = value.animation as JSAnimation<number | string>
+			animation.sample(frames.length === 3 ? 500 : 1000)
+			expect(value.get()).toBe(midpoint)
+			if (frames.length === 3) {
+				animation.sample(1500)
+				expect(value.get()).toBe(midpoint)
+			}
+			animation.sample(2000)
+			expect(value.get()).toBe(final)
+		} finally {
+			controls.stop()
+			value.destroy()
+		}
+	},
+)
+it.each([
+	{ delay: -0.25 },
+	{ default: { delay: -0.25 } },
+	{ properties: { x: { delay: -0.25 } } },
+])(
+	`starts ordinary animations partway through a negative delay (%j)`,
+	(config) => {
+		const values = { x: 0 }
+		const binding = motionCapability({ reducedMotion: `never` }).attach({
+			kind: `scene`,
+			node: values,
+			read: () => values.x,
+			write(_, value) {
+				values.x = value as number
+			},
+		})
+		try {
+			binding.update({
+				animate: { x: 100 },
+				transition: { type: `tween`, duration: 1, ease: `linear`, ...config },
+			})
+			const value = motionValue<number | string>(0)
+			const controls = animateTween(
+				value,
+				100,
+				propertyTransition(
+					{ type: `tween`, duration: 1, ease: `linear`, ...config },
+					`x`,
+				),
+				false,
+			)
+			controls.pause()
+			try {
+				const animation = value.animation as JSAnimation<number | string>
+				animation.sample(0)
+				expect(value.get()).toBeCloseTo(25)
+				animation.sample(250)
+				expect(value.get()).toBeCloseTo(50)
+				animation.sample(750)
+				expect(value.get()).toBe(100)
+			} finally {
+				controls.stop()
+				value.destroy()
+			}
+		} finally {
+			binding.dispose()
+		}
+	},
+)
 it(`resolves property, default, and root options and diagnoses invalid timing combinations`, () => {
 	expect(
 		propertyTransition(
@@ -66,6 +148,10 @@ it(`resolves property, default, and root options and diagnoses invalid timing co
 		[{ ease: [`linear`] }, [0, 1, 2]],
 		[{ type: `spring` }, [0, 1, 2]],
 		[{ duration: Infinity }, [0, 1]],
+		[{ duration: -1 }, [0, 1]],
+		[{ delay: -Infinity }, [0, 1]],
+		[{ delay: Infinity }, [0, 1]],
+		[{ delay: NaN }, [0, 1]],
 		[{}, [0, null]],
 	] as const)
 		expect(() => propertyTransition(config as any, `x`, frames)).toThrow(

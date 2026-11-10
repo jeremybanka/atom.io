@@ -22,11 +22,18 @@ export function animateTween(
 	if (Array.isArray(goal)) {
 		value.stop()
 		trajectories.delete(value)
-		return animate(
-			value,
-			goal.map((frame) => frame ?? value.get()),
-			{ ...transition, isSync: true },
+		let frames = goal.map((frame) => frame ?? value.get())
+		const units = frames.map((frame) =>
+			typeof frame === `number` ? `` : scalar.exec(frame)?.[2],
 		)
+		const unit = units.find((suffix) => suffix)
+		// Synchronous animation bypasses Motion's DOM unit resolver. Keep compatible
+		// scalar frames in one unit so numeric mixers never receive CSS strings.
+		if (unit && units.every((suffix) => suffix === `` || suffix === unit))
+			frames = frames.map((frame, index) =>
+				units[index] === `` ? `${frame}${unit}` : frame,
+			)
+		return animate(value, frames, { ...transition, isSync: true })
 	}
 	if (interrupted) value.stop()
 	const current = value.get()

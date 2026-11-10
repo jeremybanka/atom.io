@@ -21,6 +21,12 @@ export type FragmentOutput = Expect<Equal<ReturnType<typeof Fragment>, Children>
 export const descriptor: SpaElement = <span>content</span>
 export const decorativeIcon = <svg focusable="false" aria-hidden="true" />
 export const autoFocusableIcon = <svg focusable="auto" />
+export const booleanFocusableIcons = (
+	<>
+		<svg focusable />
+		<svg focusable={false} />
+	</>
+)
 export const focusBoundary = (
 	<div
 		onFocusOut={(event) => {

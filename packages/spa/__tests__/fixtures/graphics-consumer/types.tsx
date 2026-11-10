@@ -51,6 +51,14 @@ const konvaEvents = (
 		onPointerUp={(event) => {
 			void event.evt.pointerId
 		}}
+		onGotPointerCapture={(event) => {
+			const native: PointerEvent = event.evt
+			event.currentTarget.width(native.pointerId)
+		}}
+		onLostPointerCapture={(event) => {
+			const native: PointerEvent = event.evt
+			event.currentTarget.width(native.pointerId)
+		}}
 		onMouseEnter={(event) => {
 			void event.evt.clientX
 		}}
@@ -74,6 +82,11 @@ const konvaEvents = (
 		}}
 		onTransformEnd={(event) => {
 			event.currentTarget.width()
+			const native: MouseEvent | TouchEvent | PointerEvent | undefined =
+				event.evt
+			if (native) void native.type
+			// @ts-expect-error Programmatic stopTransform() has no native event.
+			void event.evt.type
 		}}
 	/>
 )
@@ -84,7 +97,14 @@ const keyboardOnly = (event: { evt: KeyboardEvent }): void => {
 }
 // @ts-expect-error Pointer events are not keyboard events.
 const wrongKonvaEvent = <Rect onPointerMove={keyboardOnly} />
-void [konvaEvents, misspelledKonvaEvent, wrongKonvaEvent]
+const requiresNativeEvent = (event: {
+	evt: MouseEvent | TouchEvent | PointerEvent
+}): void => {
+	void event.evt.type
+}
+// @ts-expect-error Transform completion does not always include a native event.
+const unsafeTransformEnd = <Rect onTransformEnd={requiresNativeEvent} />
+void [konvaEvents, misspelledKonvaEvent, wrongKonvaEvent, unsafeTransformEnd]
 // @ts-expect-error: Three.js motion targets preserve tuple dimensions.
 const badVector = <Mesh motion:animate={{ position: [1, 2] }} />
 // @ts-expect-error: DOM keyframes contain scalar values.

@@ -615,11 +615,11 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                           | Entry                             | Minified JS |  Gzip JS |
 | -------------------------------- | --------------------------------- | ----------: | -------: |
-| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    64,314 B | 19,222 B |
-| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    42,758 B | 13,464 B |
-| Interactive client app           | `tonnage-recipes/client-app.ts`   |    42,421 B | 13,316 B |
-| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    42,422 B | 13,314 B |
-| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    48,958 B | 15,361 B |
+| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    64,387 B | 19,245 B |
+| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    42,831 B | 13,491 B |
+| Interactive client app           | `tonnage-recipes/client-app.ts`   |    42,494 B | 13,340 B |
+| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    42,495 B | 13,338 B |
+| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    49,031 B | 15,385 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 
@@ -633,7 +633,7 @@ SPA includes Konva, Three.js, and Motion integrations behind separate entrypoint
 
 ### Konva
 
-Import Stage, Layer, Group, Rect, Circle, Ellipse, Line, Text, Image, Path, Star, and Transformer from @atom.io/spa/konva. Stage renders a DOM container and creates its native stage after browser mounting. Compiled atom reads update native attributes; keyed children preserve node identity. Native configuration attributes and mouse, pointer, touch, wheel, context-menu, drag, and transform handlers are supported with typed native Konva events and node-specific currentTarget values. Use onDblClick/onDblTap for double clicks/taps. Handler names and configuration fields are checked for misspellings. Refs receive native nodes and null on cleanup. Removal destroys owned nodes and listeners.
+Import Stage, Layer, Group, Rect, Circle, Ellipse, Line, Text, Image, Path, Star, and Transformer from @atom.io/spa/konva. Stage renders a DOM container and creates its native stage after browser mounting. Compiled atom reads update native attributes; keyed children preserve node identity. Native configuration attributes and mouse, pointer, touch, wheel, context-menu, drag, and transform handlers are supported with typed native Konva events and node-specific currentTarget values. Use onDblClick/onDblTap for double clicks/taps. Both onGotPointerCapture and onLostPointerCapture expose PointerEvent values. onTransformEnd may receive an undefined evt when stopTransform() ends a transform programmatically; check evt before reading native event fields. Handler names and configuration fields are checked for misspellings. Refs receive native nodes and null on cleanup. Removal destroys owned nodes and listeners.
 
 ```tsx
 import type { SpaElement } from "@atom.io/spa"

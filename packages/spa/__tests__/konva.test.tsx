@@ -44,3 +44,37 @@ it(`updates native attrs and event handlers and removes owned nodes`, () => {
 	rect.fire(`click`)
 	expect(click).toHaveBeenCalledTimes(1)
 })
+
+it(`routes pointer capture and transform completion with optional native events`, () => {
+	vi.spyOn(Konva.Util, `isCanvasFarblingActive`).mockReturnValue(false)
+	const captured = vi.fn()
+	const ended = vi.fn()
+	const parent = new Konva.Group()
+	const root = konvaRenderer.render(
+		() => (
+			<Rect
+				onGotPointerCapture={(event) => {
+					captured(event.evt.pointerId, event.currentTarget)
+				}}
+				onTransformEnd={(event) => {
+					ended(event.evt?.type, event.currentTarget)
+				}}
+			/>
+		),
+		parent,
+	)
+	const rect = parent.getChildren()[0]
+	try {
+		rect.fire(`gotpointercapture`, {
+			evt: new PointerEvent(`gotpointercapture`, { pointerId: 42 }),
+		})
+		expect(captured).toHaveBeenCalledExactlyOnceWith(42, rect)
+		rect.fire(`transformend`, { evt: new MouseEvent(`mouseup`) })
+		expect(ended).toHaveBeenLastCalledWith(`mouseup`, rect)
+		rect.fire(`transformend`, { evt: undefined })
+		expect(ended).toHaveBeenLastCalledWith(undefined, rect)
+		expect(ended).toHaveBeenCalledTimes(2)
+	} finally {
+		root.dispose()
+	}
+})

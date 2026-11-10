@@ -31,6 +31,7 @@ interface Events {
 	onPointerCancel: PointerEvent
 	onPointerClick: PointerEvent
 	onPointerDblClick: PointerEvent
+	onGotPointerCapture: PointerEvent
 	onLostPointerCapture: PointerEvent
 	onTouchStart: TouchEvent
 	onTouchMove: TouchEvent
@@ -43,7 +44,7 @@ interface Events {
 	onDragEnd: InteractionEvent
 	onTransformStart: InteractionEvent
 	onTransform: InteractionEvent
-	onTransformEnd: InteractionEvent
+	onTransformEnd: InteractionEvent | undefined
 }
 type Config<C> = {
 	[K in keyof C as string extends K ? never : number extends K ? never : K]: C[K]

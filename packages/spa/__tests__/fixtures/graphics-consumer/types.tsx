@@ -140,3 +140,21 @@ const badEase = <sliding-panel motion:transition={{ ease: [`linear`, `wat`] }} /
 // @ts-expect-error: Initial DOM targets are scalar values.
 const badInitial = <sliding-panel motion:initial={{ x: [0, 1] }} />
 void [sequence, badTimes, badEase, badInitial]
+
+const configuredCanvas = (
+	<Canvas
+		rendererOptions={{ alpha: true, powerPreference: `high-performance` }}
+		dpr={[1, 2]}
+		onCreated={({ renderer, scene: nativeScene, camera }) => {
+			renderer.render(nativeScene, camera)
+		}}
+		onResize={({ width, dpr }) => {
+			void [width, dpr]
+		}}
+	/>
+)
+// @ts-expect-error: Canvas supplies its own canvas to the renderer.
+const badCanvasElement = <Canvas rendererOptions={{ canvas: undefined }} />
+// @ts-expect-error: DPR accepts a number or a pair of clamp bounds.
+const badDpr = <Canvas dpr={[1, 2, 3]} />
+void [configuredCanvas, badCanvasElement, badDpr]

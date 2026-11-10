@@ -257,43 +257,112 @@ function equalArgs(a: unknown[], b: unknown[] = []): boolean {
 	)
 }
 
+export interface CanvasState {
+	scene: THREE.Scene
+	camera: THREE.Camera
+	renderer: THREE.WebGLRenderer
+}
+export interface CanvasResizeState extends CanvasState {
+	width: number
+	height: number
+	dpr: number
+}
 export interface CanvasProps {
 	children?: Children
 	width?: number
 	height?: number
 	camera?: THREE.Camera
-	onFrame?: (state: {
-		scene: THREE.Scene
-		camera: THREE.Camera
-		renderer: THREE.WebGLRenderer
-		delta: number
-		time: number
-	}) => void
+	/** Constructor-time options. Canvas always supplies its own DOM canvas. */
+	rendererOptions?: Omit<THREE.WebGLRendererParameters, `canvas`>
+	/** The returned renderer belongs exclusively to Canvas and is disposed with it. */
+	createRenderer?: (
+		options: THREE.WebGLRendererParameters,
+	) => THREE.WebGLRenderer
+	/** A fixed ratio, or a device-pixel-ratio clamp. Defaults to 1. */
+	dpr?: number | readonly [min: number, max: number]
+	/** Runs after sizing and scene mounting, before the first draw. May return cleanup. */
+	onCreated?: (state: CanvasState) => void | (() => void)
+	/** Supplied cameras keep their projection; update it explicitly here if desired. */
+	onResize?: (state: CanvasResizeState) => void
+	onFrame?: (state: CanvasState & { delta: number; time: number }) => void
 }
 /** Browser-only scene boundary. The camera prop is borrowed and never disposed. */
 export function Canvas(props: CanvasProps): SpaElement {
 	let canvas: HTMLCanvasElement | null = null
 	onMount(() => {
-		const webgl = new THREE.WebGLRenderer({ canvas: canvas!, antialias: true })
+		const parameters: THREE.WebGLRendererParameters = {
+			antialias: true,
+			...props.rendererOptions,
+			canvas: canvas!,
+		}
+		const webgl = props.createRenderer
+			? props.createRenderer(parameters)
+			: new THREE.WebGLRenderer(parameters)
 		onCleanup(() => {
 			webgl.dispose()
 		})
+		if (webgl.domElement !== canvas)
+			throw new Error(`spa/three: renderer must use the supplied Canvas element`)
 		const scene = new THREE.Scene()
 		const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000)
 		camera.position.z = 5
-		bindScene(
-			() => [props.width ?? 800, props.height ?? 600] as const,
-			([width, height]) => {
-				webgl.setSize(width, height)
-				camera.aspect = width / height
-				camera.updateProjectionMatrix()
-			},
-		)
+		const view = canvas.ownerDocument.defaultView!
+		const size = () => ({
+			width: props.width ?? 800,
+			height: props.height ?? 600,
+			dpr: props.dpr ?? 1,
+			active: props.camera ?? camera,
+		})
+		const resize = ({ width, height, dpr, active }: ReturnType<typeof size>) => {
+			const range = typeof dpr === `number` ? [dpr, dpr] : dpr
+			if (
+				![width, height, ...range].every(
+					(value) => Number.isFinite(value) && value > 0,
+				) ||
+				range[0] > range[1]
+			)
+				throw new Error(
+					`spa/three: dimensions and DPR must be positive with an ordered DPR range`,
+				)
+			const ratio = Math.max(
+				range[0],
+				Math.min(range[1], view.devicePixelRatio || 1),
+			)
+			webgl.setPixelRatio(ratio)
+			webgl.setSize(width, height)
+			camera.aspect = width / height
+			camera.updateProjectionMatrix()
+			props.onResize?.({
+				scene,
+				camera: active,
+				renderer: webgl,
+				width,
+				height,
+				dpr: ratio,
+			})
+		}
+		bindScene(size, resize)
+		const resized = () => {
+			try {
+				resize(size())
+			} catch (error) {
+				try {
+					fail(ownerRoot, error)
+				} catch (failure) {
+					ownerRoot.error(failure)
+				}
+			}
+		}
+		const ownerRoot = owner!._root
+		view.addEventListener(`resize`, resized)
+		onCleanup(() => {
+			view.removeEventListener(`resize`, resized)
+		})
 		renderer.mount(() => props.children, scene)
 		const scope = owner!
 		const root = scope._root
 		const events = createThreeEvents(
-			canvas!,
+			canvas,
 			scene,
 			() => props.camera ?? camera,
 			(error) => {
@@ -307,6 +376,12 @@ export function Canvas(props: CanvasProps): SpaElement {
 		onCleanup(() => {
 			events.dispose()
 		})
+		const cleanup = props.onCreated?.({
+			scene,
+			camera: props.camera ?? camera,
+			renderer: webgl,
+		})
+		if (cleanup) onCleanup(cleanup)
 		let last: number | undefined
 		onSceneFrame((time) => {
 			const active = props.camera ?? camera

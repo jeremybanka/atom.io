@@ -1,0 +1,185 @@
+import { render, useGetter } from "@atom.io/spa"
+import { Silo } from "atom.io"
+import * as THREE from "three"
+import { afterEach, expect, it, vi } from "vitest"
+
+import { Canvas, Mesh } from "../src/three.ts"
+
+const renderers = vi.hoisted(() => [] as any[])
+vi.mock(`three`, async (actual) => ({
+	...(await actual<typeof THREE>()),
+	WebGLRenderer: vi.fn(function (options) {
+		const native = {
+			domElement: options.canvas,
+			options,
+			setSize: vi.fn(),
+			setPixelRatio: vi.fn(),
+			render: vi.fn(),
+			dispose: vi.fn(),
+		}
+		renderers.push(native)
+		return native
+	}),
+}))
+const initialDpr = window.devicePixelRatio
+const cleanups: (() => void)[] = []
+afterEach(() => {
+	for (const cleanup of cleanups.splice(0).reverse()) cleanup()
+	renderers.length = 0
+	Object.defineProperty(window, `devicePixelRatio`, {
+		value: initialDpr,
+		configurable: true,
+	})
+	vi.unstubAllGlobals()
+	document.body.replaceChildren()
+})
+function fixture() {
+	const silo = new Silo({
+		name: `canvas-test`,
+		lifespan: `ephemeral`,
+		isProduction: true,
+	})
+	const widthAtom = silo.atom<number>({ key: `width`, default: 200 })
+	let tick!: (time: number) => void
+	const stop = vi.fn()
+	const clock = {
+		namespace: `clock`,
+		scheduleFrame: vi.fn((run) => {
+			tick = run
+			return stop
+		}),
+		attach: vi.fn(),
+	}
+	const mount = (setup: Parameters<typeof render>[0]) => {
+		const root = render(setup, document.body, {
+			store: silo.store,
+			capabilities: [clock],
+		})
+		cleanups.push(root.dispose)
+		return root
+	}
+	return {
+		silo,
+		widthAtom,
+		clock,
+		stop,
+		mount,
+		tick: (time = 16) => {
+			tick(time)
+		},
+	}
+}
+
+it(`configures construction, DPR, scene, and camera before a single owned drawing loop`, () => {
+	const f = fixture()
+	const ready = vi.fn(({ renderer, scene, camera }) => {
+		expect(scene.children).toHaveLength(1)
+		expect(camera.aspect).toBe(2)
+		expect(renderer.setPixelRatio).toHaveBeenLastCalledWith(2)
+		expect(renderer.setSize).toHaveBeenLastCalledWith(200, 100)
+		expect(renderer.render).not.toHaveBeenCalled()
+		renderer.toneMapping = THREE.ACESFilmicToneMapping
+		renderer.outputColorSpace = THREE.SRGBColorSpace
+		return disposed
+	})
+	const disposed = vi.fn()
+	Object.defineProperty(window, `devicePixelRatio`, {
+		value: 3,
+		configurable: true,
+	})
+	function App() {
+		const getWidth = useGetter(f.widthAtom)
+		return (
+			<Canvas
+				width={getWidth()}
+				height={100}
+				dpr={[1, 2]}
+				rendererOptions={{ alpha: true, powerPreference: `high-performance` }}
+				onCreated={ready}
+			>
+				<Mesh />
+			</Canvas>
+		)
+	}
+	const root = f.mount(() => <App />)
+	const native = renderers[0]
+	expect(native.options).toMatchObject({
+		alpha: true,
+		antialias: true,
+		powerPreference: `high-performance`,
+		canvas: document.querySelector(`canvas`),
+	})
+	expect(ready).toHaveBeenCalledOnce()
+	expect(f.clock.scheduleFrame).toHaveBeenCalledOnce()
+	f.tick()
+	expect(native.render).toHaveBeenCalledOnce()
+	f.silo.setState(f.widthAtom, 400)
+	root.flush()
+	expect(native.setSize).toHaveBeenLastCalledWith(400, 100)
+	expect(ready.mock.calls[0][0].camera.aspect).toBe(4)
+	Object.defineProperty(window, `devicePixelRatio`, {
+		value: 1.5,
+		configurable: true,
+	})
+	window.dispatchEvent(new Event(`resize`))
+	expect(native.setPixelRatio).toHaveBeenLastCalledWith(1.5)
+	root.dispose()
+	expect(native.dispose).toHaveBeenCalledOnce()
+	expect(disposed).toHaveBeenCalledOnce()
+	expect(f.stop).toHaveBeenCalledOnce()
+	const sizes = native.setSize.mock.calls.length
+	window.dispatchEvent(new Event(`resize`))
+	expect(native.setSize).toHaveBeenCalledTimes(sizes)
+})
+
+it(`supports an owned renderer factory and leaves a borrowed camera projection to the application`, () => {
+	const f = fixture()
+	const camera = new THREE.OrthographicCamera(-3, 3, 2, -2)
+	const projection = camera.projectionMatrix.clone()
+	const factory = vi.fn((options) => new THREE.WebGLRenderer(options))
+	const resized = vi.fn()
+	const root = f.mount(() => (
+		<Canvas camera={camera} createRenderer={factory} onResize={resized} />
+	))
+	expect(factory).toHaveBeenCalledExactlyOnceWith({
+		antialias: true,
+		canvas: document.querySelector(`canvas`),
+	})
+	expect(camera.projectionMatrix.equals(projection)).toBe(true)
+	expect(resized).toHaveBeenLastCalledWith(
+		expect.objectContaining({ camera, width: 800, height: 600, dpr: 1 }),
+	)
+	f.tick()
+	expect(renderers[0].render).toHaveBeenCalledWith(
+		expect.any(THREE.Scene),
+		camera,
+	)
+	root.dispose()
+	expect(renderers[0].dispose).toHaveBeenCalledOnce()
+})
+
+it.each([`setup`, `element`, `dimensions`])(
+	`cleans failed Canvas %s before scheduling drawing`,
+	(failure) => {
+		const f = fixture()
+		expect(() =>
+			f.mount(() => (
+				<Canvas
+					width={failure === `dimensions` ? -1 : 100}
+					createRenderer={(options) =>
+						new THREE.WebGLRenderer(
+							failure === `element`
+								? { canvas: document.createElement(`canvas`) }
+								: options,
+						)
+					}
+					onCreated={() => {
+						if (failure === `setup`) throw new Error(`setup failed`)
+					}}
+				/>
+			)),
+		).toThrow()
+		expect(renderers[0].dispose).toHaveBeenCalledOnce()
+		expect(f.clock.scheduleFrame).not.toHaveBeenCalled()
+	},
+)

@@ -1,3 +1,5 @@
+import type { Canonical } from "atom.io/foundations/canonical"
+
 import { capabilityProps } from "./capabilities.ts"
 import type {
 	Accessor,
@@ -19,8 +21,10 @@ import {
 } from "./core.ts"
 import { bindForm, changeHandler, controlValue } from "./dom-forms.ts"
 import { hotRoot, trackRoot } from "./hot.ts"
-import { Fragment, merge } from "./jsx-runtime.ts"
+import { identifyChildren, trackKeys } from "./identity.ts"
+import { Fragment } from "./jsx-runtime.ts"
 import type { PresenceCollection } from "./presence.ts"
+import { instanceProps } from "./props.ts"
 
 const HTML = `http://www.w3.org/1999/xhtml`
 const SVG = `http://www.w3.org/2000/svg`
@@ -191,11 +195,12 @@ function mount(
 	namespace: string,
 	cursor?: Cursor,
 	source = () => value,
+	initialKey?: Canonical,
 ): void {
 	if (typeof value === `function`) {
 		const begin = comment(`{`, parent, before, owner, cursor)
 		let end: Node | null = null
-		let records = new Map<unknown, RecordNode>()
+		let records = new Map<string | number, RecordNode>()
 		let presence: PresenceCollection<RecordNode, Children> | undefined
 		const retire = (
 			record: RecordNode,
@@ -209,34 +214,28 @@ function mount(
 		let initial = cursor
 		observe(
 			owner,
-			() => (source() as () => Children)(),
-			(next) => {
+			() => identifyChildren((source() as () => Children)()),
+			(values) => {
 				presence ??= owner._root._presence?.collection(
 					(record: RecordNode) => record._scope,
 					compatible,
 				)
-				const values = ([next] as unknown[]).flat(Infinity) as Children[]
-				const kept = new Map<unknown, RecordNode>()
+				const kept = new Map<string | number, RecordNode>()
 				let previous: RecordNode | undefined
 				const focus = parent.ownerDocument!.activeElement as HTMLElement | null
 				for (let index = 0; index < values.length; index++) {
-					const child = values[index]
-					const vnode = child as SpaElement | null
-					const explicit = vnode?.props?.[`key`]
-					const key = explicit == null ? index : String(explicit)
-					if (import.meta.env.DEV && kept.has(key))
-						throw new Error(`spa: duplicate key`)
-					let record = records.get(key)
+					const { value: child, key, id } = values[index]
+					let record = records.get(id)
 					if (record && !compatible(record, child)) {
 						retire(
 							record,
-							key,
+							id,
 							child == null || typeof child === `boolean`,
 							record._index,
 						)
 						record = undefined
 					}
-					record ??= presence?.take(key, child)
+					record ??= presence?.take(id, child)
 					if (!record) {
 						const at = previous ? previous._end.nextSibling : begin.nextSibling
 						const childOwner = createScope(owner)
@@ -256,6 +255,7 @@ function mount(
 							namespace,
 							initial,
 							() => held._value,
+							key,
 						)
 						record._end = comment(`]`, parent, at, childOwner, initial)
 					} else {
@@ -265,7 +265,7 @@ function mount(
 					}
 					record._index = index
 					previous = record
-					kept.set(key, record)
+					kept.set(id, record)
 				}
 				for (const [key, record] of records)
 					if (!kept.has(key)) retire(record, key, true, record._index)
@@ -321,7 +321,7 @@ function mount(
 	if (import.meta.env.DEV && (!(`type` in value) || !(`props` in value)))
 		throw new Error(`spa: invalid child`)
 	const vnode = value as SpaElement
-	const props = merge(() => (source() as SpaElement).props)
+	const props = instanceProps(() => (source() as SpaElement).props, initialKey)
 	if (!vnode.type || vnode.type === Fragment) {
 		mount(() => props[`children`], parent, before, owner, namespace, cursor)
 		return
@@ -331,7 +331,7 @@ function mount(
 		const output = within(childOwner, () =>
 			untrack(() => (vnode.type as Function)(props)),
 		)
-		mount(output, parent, before, childOwner, namespace, cursor)
+		mount(trackKeys(output), parent, before, childOwner, namespace, cursor)
 		return
 	}
 	const ns = vnode.type === `svg` ? SVG : namespace
@@ -463,7 +463,7 @@ function start(
 		comment(`w:${root._prefix}`, host, before, root, cursor)
 		within(root, () => {
 			mount(
-				untrack(setup),
+				trackKeys(untrack(setup)),
 				host,
 				before,
 				root,

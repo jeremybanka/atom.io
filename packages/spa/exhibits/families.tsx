@@ -12,11 +12,11 @@ const historyTimelines = timelineFamily<string>({
 	scope: [scopeFamily(countAtoms, { timelineKey: (id) => id })],
 })
 
-export function FamilyCounter(props: { id: string }): SpaElement {
-	const getCount = useGetter(countAtoms, props.id)
-	const setCount = useSetter(countAtoms, props.id)
-	const ref = useRef(buttonAtoms, props.id)
-	const history = useTimeline(historyTimelines, props.id)
+function FamilyCounter(props: { key: string }): SpaElement {
+	const getCount = useGetter(countAtoms, props.key)
+	const setCount = useSetter(countAtoms, props.key)
+	const ref = useRef(buttonAtoms, props.key)
+	const history = useTimeline(historyTimelines, props.key)
 	return (
 		<section>
 			<button
@@ -30,6 +30,16 @@ export function FamilyCounter(props: { id: string }): SpaElement {
 			<button disabled={history.getCursor() === 0} onClick={history.undo}>
 				Undo
 			</button>
+		</section>
+	)
+}
+
+export function Counters(props: { ids: readonly string[] }): SpaElement {
+	return (
+		<section>
+			{props.ids.map((id) => (
+				<FamilyCounter key={id} />
+			))}
 		</section>
 	)
 }

@@ -5,9 +5,9 @@ import type {
 	Fragment,
 	SpaElement,
 } from "@atom.io/spa"
-import { useRef } from "@atom.io/spa"
+import { useGetter, useRef } from "@atom.io/spa"
 import type { JSX, TargetedEvent } from "@atom.io/spa/jsx-runtime"
-import type { RegularAtomToken } from "atom.io"
+import type { ReadableFamilyToken, RegularAtomToken } from "atom.io"
 
 type Equal<A, B> =
 	(<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
@@ -19,6 +19,46 @@ export type ComponentOutput = Expect<Equal<ReturnType<Component>, Children>>
 export type FragmentOutput = Expect<Equal<ReturnType<typeof Fragment>, Children>>
 
 export const descriptor: SpaElement = <span>content</span>
+
+type PointId = readonly [`point`, number]
+function PointRow(props: {
+	key: PointId
+	points: ReadableFamilyToken<number, PointId>
+}) {
+	const getPoint = useGetter(props.points, props.key)
+	return <span>{getPoint()}</span>
+}
+
+export function keyedComponents(
+	points: ReadableFamilyToken<number, PointId>,
+	other: ReadableFamilyToken<number, string>,
+	maybeId: PointId | undefined,
+): SpaElement[] {
+	function WrongFamily(props: { key: PointId }) {
+		// @ts-expect-error The component key must match the family's key type.
+		return <span>{useGetter(other, props.key)()}</span>
+	}
+	// @ts-expect-error A component can require a key.
+	const missing = <PointRow points={points} />
+	// @ts-expect-error A component can narrow its key.
+	const wrong = <PointRow key="point" points={points} />
+	// @ts-expect-error Object literals are not Canonical keys.
+	const nonCanonical = <span key={{ id: 1 }} />
+	const Plain = () => <span />
+	return [
+		missing,
+		wrong,
+		nonCanonical,
+		<PointRow key={[`point`, 1]} points={points} />,
+		<WrongFamily key={[`point`, 2]} />,
+		<Plain />,
+		<Plain key={maybeId} />,
+		<Plain key={false} />,
+		<span key={undefined} />,
+		<span key={null} />,
+	]
+}
+
 export const decorativeIcon = <svg focusable="false" aria-hidden="true" />
 export const autoFocusableIcon = <svg focusable="auto" />
 export const booleanFocusableIcons = (

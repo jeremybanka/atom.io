@@ -216,7 +216,7 @@ export function HotCounter(): SpaElement {
 | onCommit(read, apply)         | Track a value and apply changes after renderer writes, within the same flush.                                            |
 | useStore()                    | Return the current atom.io store without creating a store or subscribing.                                                |
 
-Call setup helpers synchronously during component setup or owned mount callbacks. Capture their results for event handlers. Tokens are fixed for an instance; use an application key in a reactive child expression to replace a component when its token changes. Component props stay live when read through the props object; destructuring during setup takes a snapshot.
+Call setup helpers synchronously during component setup or owned mount callbacks. Capture their results for event handlers. Tokens are fixed for an instance. Change the component's key when it needs to bind a different token. Read data props through the props object in JSX or a tracked binding to get updates. Destructuring data props during setup takes a snapshot.
 
 ### onCommit
 
@@ -308,13 +308,19 @@ export function TimelineExample(): SpaElement {
 
 ```
 
-Arrays support keyed components and elements. Reordering preserves instances and nodes; removed ranges release subscriptions, events, refs, and cleanup callbacks. Application keys must be unique among siblings. Explicit keys are compared as strings; unkeyed positions occupy a separate namespace. Unkeyed arrays use positions. A key identifies a row in a reactive child collection; it is not an independent reactive binding.
-
 HTML and SVG use native DOM properties and attributes, plus className/htmlFor aliases. Events use onClick/onInput-style names, with Capture suffixes and onDoubleClick support. Styles are CSS strings. Mutable atom values still invalidate their consumers; project primitive fields for precise DOM writes. Refs attach once per element instance.
 
 HTML and SVG tags have element-specific attribute, event, and ref types. Event handlers receive native events with currentTarget typed as the attached element; target remains EventTarget because events can bubble from descendants. Ref callbacks receive the element on attachment and null on cleanup. Hyphenated custom tags use generic HTML attributes and HTMLElement refs and event targets. SVG presentation attributes use their literal markup spellings. Shared HTML/SVG tag names use HTML types because JSX cannot infer a namespace from parent elements.
 
 Non-null value and checked props control form state: rejected edits are restored after native handlers run, and select values are reapplied after option updates. Use defaultValue/defaultChecked for uncontrolled fields. onChange follows native input events for text, number, range inputs and textareas; selects, checkboxes, radios, and file inputs use native change events. Handlers still receive native events. onFocus/onBlur bubble through focusin/focusout, including Capture variants; explicit onFocusIn/onFocusOut names remain available. autoFocus focuses newly mounted elements. Null or undefined reflected attributes are removed.
+
+## Component identity
+
+Keys accept the same Canonical values as atom.io families, including nested tuples, booleans, and null. Sibling keys must be unique by canonical serialization. A fresh tuple with the same contents preserves the instance, and a number and its string representation identify separate instances. Only undefined uses positional identity. Reordering preserves keyed instances and nodes. Changing a key replaces the instance in both DOM and scene trees, including when the element stands alone.
+
+A component can declare a required, narrowed key in its props. The instance receives the original key by reference and can read props.key during setup, rendering, mount, and cleanup. Spreading the props forwards the key to an inner component or element. A spread follows normal JSX precedence, so forwarding the same key to multiple siblings reports a duplicate key.
+
+Direct DOM component and root output opt into key tracking when they first mount. Include the key property initially when a direct spread needs later identity changes. An explicit key attribute or a spread containing key with an initial undefined value enables that tracking. Keyless spreads keep their data props live as the instance updates.
 
 ## Store access
 
@@ -411,11 +417,11 @@ const historyTimelines = timelineFamily<string>({
 	scope: [scopeFamily(countAtoms, { timelineKey: (id) => id })],
 })
 
-export function FamilyCounter(props: { id: string }): SpaElement {
-	const getCount = useGetter(countAtoms, props.id)
-	const setCount = useSetter(countAtoms, props.id)
-	const ref = useRef(buttonAtoms, props.id)
-	const history = useTimeline(historyTimelines, props.id)
+function FamilyCounter(props: { key: string }): SpaElement {
+	const getCount = useGetter(countAtoms, props.key)
+	const setCount = useSetter(countAtoms, props.key)
+	const ref = useRef(buttonAtoms, props.key)
+	const history = useTimeline(historyTimelines, props.key)
 	return (
 		<section>
 			<button
@@ -433,9 +439,19 @@ export function FamilyCounter(props: { id: string }): SpaElement {
 	)
 }
 
+export function Counters(props: { ids: readonly string[] }): SpaElement {
+	return (
+		<section>
+			{props.ids.map((id) => (
+				<FamilyCounter key={id} />
+			))}
+		</section>
+	)
+}
+
 ```
 
-The family and key are captured during setup and stay fixed for that component instance. To switch members, replace the component in a reactive child collection with a new application key. Ref ownership and subscription cleanup follow the member just as they do for individual tokens. useTransaction takes a transaction token; atom.io has no transaction-family token.
+Use props.key as the family key to keep the binding and the component's identity in sync. When the key changes, the new instance binds to the new member during setup. A tuple can include a family key alongside a discriminator when the same member appears more than once among siblings. Ref ownership and subscription cleanup follow the member just as they do for individual tokens. useTransaction takes an individual transaction token.
 
 ### Ambient UI state and ownership
 
@@ -608,7 +624,7 @@ The production build omits development-only diagnostics and invalid-input checks
 
 ## Astro state and data
 
-The integration compiles .tsx and .jsx files by default. Use the include option to limit compilation to SPA component directories when another JSX renderer is present. Top-level functions containing JSX are branded by the compiler for renderer detection.
+The integration compiles .tsx and .jsx files by default. Use the include option to limit compilation to SPA component directories when another JSX renderer is present. Top-level functions containing JSX are branded by the compiler for renderer detection. Lazy JSX attributes preserve this from their enclosing function, including through nested arrows and receiver tags. Nested normal functions and methods retain their own receiver. Direct await and yield expressions in lazy attributes are compile errors naming the attribute; nested async and generator functions remain supported.
 
 Default islands share the normal implicit atom.io store in the browser. Module-scoped tokens, SPA hooks, and ordinary getState/setState calls all address the same graph. SSR shares a separate store within each request; concurrent requests never share values. Definitions imported after an earlier island started are installed into that request's store before the next island prepares. Server reads and writes must use the selected store (through SPA hooks or store-aware atom.io operations); free getState/setState calls still target the process-global implicit store.
 
@@ -674,7 +690,7 @@ The checked Astro fixture demonstrates default/named slots and custom independen
 
 The build audits every browser export, including the JSX runtime, from the built JavaScript. Atom.io is an external peer in the incremental measurement. Compiler, server, and integration code have separate entrypoints. The report also includes the complete client plus atom.io, the Astro client entrypoint, and the installed Preact version under the same bundling/minification settings. These are full exported surfaces, not equivalent application benchmarks.
 
-The hard budget is under 5,500 bytes of ordinary level-9 gzip for the complete client export surface, including hydration recovery and its production diagnostics. Tsdown builds the package JavaScript and declarations, with separate production and development outputs that each share their runtime across entrypoints. The size audit then bundles the built exports with esbuild, minifies with Oxc, and measures compression using Node's gzip and Brotli implementations. The complete client export surface measures approximately 5.4 kB with gzip; dist/size.json records the exact build measurements. Actual application bundles add atom.io and compiler-generated application code.
+The hard budget is under 6,250 bytes of ordinary level-9 gzip for the complete client export surface, including hydration recovery and its production diagnostics. Tsdown builds the package JavaScript and declarations, with separate production and development outputs that each share their runtime across entrypoints. The size audit then bundles the built exports with esbuild, minifies with Oxc, and measures compression using Node's gzip and Brotli implementations. The complete client export surface measures approximately 6.2 kB with gzip. The exact measurements appear in dist/size.json. Actual application bundles add atom.io and compiler-generated application code.
 
 Build output includes the minified audit entrypoint and machine-readable dist/size.json. These audit files are a bundled measurement; use the package exports in applications so the bundler preserves one runtime instance across entrypoints. Source tests exercise development behavior; the production test executes the audited minified artifact. Chromium checks exercise the actual Astro build, island isolation, hydration, keyed identity, focus/selection, SVG namespaces, and teardown. A fresh-cache Astro development check also covers mount hooks, shared state, and ClientRouter navigation.
 
@@ -706,11 +722,11 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                           | Entry                             | Minified JS |  Gzip JS |
 | -------------------------------- | --------------------------------- | ----------: | -------: |
-| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    67,967 B | 20,558 B |
-| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    46,400 B | 14,819 B |
-| Interactive client app           | `tonnage-recipes/client-app.ts`   |    46,073 B | 14,660 B |
-| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    46,074 B | 14,658 B |
-| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    52,611 B | 16,726 B |
+| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    68,795 B | 20,876 B |
+| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    47,231 B | 15,111 B |
+| Interactive client app           | `tonnage-recipes/client-app.ts`   |    46,904 B | 14,961 B |
+| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    46,905 B | 14,959 B |
+| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    53,443 B | 17,026 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 
@@ -797,7 +813,7 @@ export function Scene(): SpaElement {
 
 Mesh accepts optional constructor args typed from Three.js, including custom BufferGeometry and a Material or material array. Resources supplied in args are borrowed: their application owner disposes them after all consumers finish. JSX geometry/material children and implicit Mesh defaults remain renderer-owned. Constructor args are fixed for the mounted instance; use a new reconciliation key to replace them.
 
-Constructor args are fixed for an instance. To change them, replace the resource with a new key in a reactive child collection. Refs expose native objects. Owned geometries and materials are disposed on removal; textures passed through material properties remain borrowed. Canvas stops drawing and disposes its renderer on removal. The exported threeRenderer renders into a borrowed parent dedicated to its children without creating a WebGL renderer.
+Constructor args are fixed for an instance. Change the resource's key to replace it with new constructor args. Refs expose native objects. Owned geometries and materials are disposed on removal; textures passed through material properties remain borrowed. Canvas stops drawing and disposes its renderer on removal. The exported threeRenderer renders into a borrowed parent dedicated to its children without creating a WebGL renderer.
 
 Canvas accepts rendererOptions for constructor-time settings such as alpha and powerPreference, or createRenderer to construct the renderer with the supplied canvas. Both paths are exclusively owned by Canvas: it disposes the renderer on removal or setup failure, and the factory must return a renderer using that canvas. Shared/borrowed renderers are not supported by this boundary; use threeRenderer for a separately owned renderer. Options and the factory are captured at mount; replace the keyed Canvas to reconstruct its context.
 

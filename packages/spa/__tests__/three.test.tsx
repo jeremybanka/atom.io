@@ -327,7 +327,7 @@ it.each([`direct`, `fragment`, `bundle`])(
 						(variant === `direct` ? (
 							material(getKey()!)
 						) : (
-							<Resources key={getKey()!} />
+							<Resources key={getKey()} />
 						))}
 				</>
 			)

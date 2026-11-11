@@ -60,6 +60,17 @@ assert.equal(host.querySelector(`button`), button)
 root.dispose()
 assert.equal(cleanups, 1)
 assert.equal(silo.store.atoms.get(countAtom.key)!.subject.subscribers.size, 0)
+
+assert.throws(
+	() =>
+		render(
+			() => [jsx(`span`, { key: [1, `a`] }), jsx(`span`, { key: [1, `a`] })],
+			host as unknown as Element,
+		),
+	/duplicate key/,
+)
+assert.equal(host.childNodes.length, 0)
+
 // Server and the audited, bundled client share markup, not a module-level owner.
 host.innerHTML = renderToString(() => serverJsx(`p`, { children: `hello` }), {
 	idPrefix: `production`,

@@ -80,7 +80,10 @@ it(`preserves keyed scene instances, live props, refs, and owner cleanup`, () =>
 it(`publishes scene refs before mount hooks and releases acquired nodes on failure`, () => {
 	const destroyed = vi.fn()
 	const renderer = createSceneRenderer<Node>({
-		create: (name) => ({ name, props: {}, children: [] }),
+		create(name) {
+			if (name === `broken`) throw new Error(`creation failed`)
+			return { name, props: {}, children: [] }
+		},
 		update() {},
 		children: (node, children) => {
 			node.children = children
@@ -88,6 +91,7 @@ it(`publishes scene refs before mount hooks and releases acquired nodes on failu
 		destroy: destroyed,
 	})
 	const Shape = sceneComponent<{ ref?: (node: Node | null) => void }>(`shape`)
+	const Broken = sceneComponent<object>(`broken`)
 	const host: Node = { name: `host`, props: {}, children: [] }
 	let ref: Node | null = null
 	function App() {
@@ -110,13 +114,17 @@ it(`publishes scene refs before mount hooks and releases acquired nodes on failu
 		renderer.render(
 			() => (
 				<>
-					<Shape key="same" />
-					<Shape key="same" />
+					<Shape key={[`same`, 1]} />
+					<Shape key={[`same`, 1]} />
 				</>
 			),
 			host,
 		),
 	).toThrow(`duplicate scene key`)
+	expect(destroyed).toHaveBeenCalledTimes(1)
+	expect(() => renderer.render(() => [<Shape />, <Broken />], host)).toThrow(
+		`creation failed`,
+	)
 	expect(destroyed).toHaveBeenCalledTimes(2)
 	expect(() => {
 		renderer.mount(() => null, host)

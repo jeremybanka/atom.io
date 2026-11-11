@@ -27,6 +27,8 @@ try {
 	})
 	const baseURL = `http://127.0.0.1:${server.address.port}`
 	await check(page, baseURL)
+	// Island hydration can finish before the deferred ClientRouter module starts.
+	await page.waitForLoadState(`domcontentloaded`)
 	assert.equal(await page.locator(`#probe`).getAttribute(`data-mounted`), `true`)
 	await page.evaluate(() => {
 		window.__spaNavigation = true

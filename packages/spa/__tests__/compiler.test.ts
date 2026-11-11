@@ -31,37 +31,46 @@ function evaluate(source: string): Record<string, any> {
 }
 
 describe(`Oxc JSX compiler`, () => {
-	it.each([`await read()`, `[this.prefix, await read()]`])(
-		`evaluates suspending async keys in their enclosing function: %s`,
-		async (expression) => {
-			const { make, reads } = evaluate(`
-				let count = 0;
-				const read = () => { count++; return 'id'; };
-				const Row = (props: unknown) => props;
-				export const reads = () => count;
-				export async function make() { return <Row key={${expression}} />; }
-			`)
-			const node = await make.call({ prefix: `row` })
-			const key = node.props.key
-			expect(key).toEqual(expression.startsWith(`[`) ? [`row`, `id`] : `id`)
-			expect(node.props.key).toBe(key)
-			expect(reads()).toBe(1)
+	it.each([
+		{
+			attribute: `key`,
+			markup: `<div key={await read()} />`,
+			kind: `async function`,
 		},
-	)
-
-	it.each([`yield 'pending'`, `yield* load()`])(
-		`evaluates generator keys in their enclosing function: %s`,
-		(expression) => {
-			const { make } = evaluate(`
-				const Row = (props: unknown) => props;
-				function* load() { yield 'pending'; return 'id'; }
-				export function* make() { return <Row key={${expression}} />; }
-			`)
-			const iterator = make()
-			expect(iterator.next()).toEqual({ value: `pending`, done: false })
-			const result = iterator.next(`id`)
-			expect(result.done).toBe(true)
-			expect(result.value.props.key).toBe(`id`)
+		{
+			attribute: `title`,
+			markup: `<div title={[, await read()]} />`,
+			kind: `async function`,
+		},
+		{ attribute: `key`, markup: `<div key={yield 'id'} />`, kind: `function*` },
+		{
+			attribute: `title`,
+			markup: `<div title={yield* read()} />`,
+			kind: `function*`,
+		},
+		{
+			attribute: `motion:exit`,
+			markup: `<div motion:exit={await read()} />`,
+			kind: `async function`,
+		},
+		{
+			attribute: `spread`,
+			markup: `<div {...await read()} />`,
+			kind: `async function`,
+		},
+		{
+			attribute: `children`,
+			markup: `<div>{await read()}</div>`,
+			kind: `async function`,
+		},
+	])(
+		`rejects suspension in $attribute attributes: $markup`,
+		({ attribute, markup, kind }) => {
+			expect(() =>
+				compile(`export ${kind} make() { return ${markup}; }`, `suspending.tsx`),
+			).toThrow(
+				`suspending.tsx: JSX attribute "${attribute}" cannot contain await or yield outside a nested function`,
+			)
 		},
 	)
 
@@ -83,13 +92,9 @@ describe(`Oxc JSX compiler`, () => {
 		expect(reads()).toBe(1)
 	})
 
-	it(`preserves top-level await in module keys`, () => {
+	it(`rejects top-level await in module keys`, () => {
 		const source = `const Row = (props: unknown) => props; export const node = <Row key={await Promise.resolve('id')} />;`
-		const result = compile(source, `module.tsx`)
-		expect(parseSync(`module.tsx`, result.code).errors).toEqual([])
-		expect(() =>
-			transformSync(result.code, { loader: `tsx`, format: `esm` }),
-		).not.toThrow()
+		expect(() => compile(source, `module.tsx`)).toThrow(`JSX attribute "key"`)
 	})
 
 	it.each([
@@ -213,72 +218,166 @@ describe(`Oxc JSX compiler`, () => {
 		},
 	)
 
-	it(`preserves constructor context in mixed component children`, () => {
+	it.each([
+		`export class View { render() { BODY } } export const view = new View();`,
+		`export function render() { BODY } export const view = { render };`,
+	])(
+		`captures the receiver once for lazy keys, data, and nested arrows: %s`,
+		(context) => {
+			const source = context.replace(
+				`BODY`,
+				`
+			return <div key={this.id} title={this.title}
+				callback={() => this.title}
+				deferred={() => <span key={this.id} title={this.title} />} />;
+		`,
+			)
+			const compiled = compile(source, `fixture.tsx`)
+			expect(compiled.code.match(/const _self\$\d* = this/g)).toHaveLength(1)
+			const { view } = evaluate(source)
+			view.id = `row`
+			view.title = `first`
+			const { props } = view.render()
+			for (const name of [`key`, `title`])
+				expect(Object.getOwnPropertyDescriptor(props, name)?.get).toBeTypeOf(
+					`function`,
+				)
+			expect(props.key).toBe(`row`)
+			expect(props.title).toBe(`first`)
+			expect(props.callback()).toBe(`first`)
+			expect(props.deferred().props.title).toBe(`first`)
+			view.id = `next-row`
+			view.title = `next`
+			expect(props.key).toBe(`next-row`)
+			expect(props.title).toBe(`next`)
+			expect(props.callback()).toBe(`next`)
+			expect(props.deferred().props.key).toBe(`next-row`)
+		},
+	)
+
+	it(`captures the receiver after super in a derived constructor`, () => {
 		const { View } = evaluate(`
-			const Label = (props: unknown) => props;
-			class Base { label() { return 'base'; } }
+			class Base {}
 			export class View extends Base {
-				value: string;
-				node: unknown;
-				constructor(value: string) {
+				constructor() {
 					super();
-					this.value = value;
-					this.node = <Label>{this.value}{arguments[0]}{new.target.name}{super.label()}{() => this.value}{<span>{this.value}</span>}</Label>;
+					this.value = 'first';
+					this.node = <div key={this.value} title={this.value}>{() => this.value}</div>;
 				}
 			}
 		`)
-		const view = new View(`first`)
-		const children = view.node.props.children
-		expect(children.slice(0, 4)).toEqual([`first`, `first`, `View`, `base`])
+		const view = new View()
+		expect(view.node.props.key).toBe(`first`)
+		expect(view.node.props.title).toBe(`first`)
 		view.value = `next`
-		expect(children[4]()).toBe(`next`)
-		expect(children[5].props.children()).toBe(`next`)
-		expect(view.node.props.children.slice(0, 4)).toEqual([
-			`next`,
-			`first`,
-			`View`,
-			`base`,
-		])
+		expect(view.node.props.key).toBe(`next`)
+		expect(view.node.props.title).toBe(`next`)
+		expect(view.node.props.children()).toBe(`next`)
+	})
+
+	it(`shares a capture across separate JSX trees in a class method`, () => {
+		const source = `export class View {
+			value = 'row';
+			render(branch) {
+				if (branch) return <div key={this.value} />;
+				return <span title={this.value} />;
+			}
+		}`
+		expect(
+			compile(source, `fixture.tsx`).code.match(/const _self\$\d* = this/g),
+		).toHaveLength(1)
+		const { View } = evaluate(source)
+		const view = new View()
+		expect(view.render(true).props.key).toBe(`row`)
+		expect(view.render(false).props.title).toBe(`row`)
+	})
+
+	it(`leaves nested functions and methods with their own receivers`, () => {
+		const { make } = evaluate(`export function make() {
+			return <div key={this.id}
+				callback={function () { return this.id; }}
+				model={{ id: 'method', read() { return this.id; } }}
+				factory={function () { return <span title={this.id} />; }} />;
+		}`)
+		const { props } = make.call({ id: `outer` })
+		expect(props.key).toBe(`outer`)
+		expect(props.callback.call({ id: `inner` })).toBe(`inner`)
+		expect(props.model.read()).toBe(`method`)
+		expect(props.factory.call({ id: `factory` }).props.title).toBe(`factory`)
 	})
 
 	it.each([
-		{ expression: `this.value`, initial: `first`, updated: `next` },
-		{ expression: `arguments[0]`, initial: `first`, updated: `first` },
-		{ expression: `new.target.name`, initial: `View`, updated: `View` },
-		{ expression: `super.label()`, initial: `base`, updated: `base` },
-		{ expression: `(() => this.value)()`, initial: `first`, updated: `next` },
-		{
-			expression: `[, this.value]`,
-			initial: [, `first`],
-			updated: [, `next`],
-		},
-		{
-			expression: `eval("this.value + arguments[0]")`,
-			initial: `firstfirst`,
-			updated: `nextfirst`,
-		},
-	])(
-		`preserves lexical context in lazy key $expression`,
-		({ expression, initial, updated }) => {
-			const { View } = evaluate(`
-			const Label = (props: unknown) => props;
-			class Base { label() { return 'base'; } }
-			export class View extends Base {
-				value: string;
-				node: unknown;
-				constructor(value: string) {
-					super();
-					this.value = value;
-					this.node = <Label key={${expression}} label="row" />;
-				}
+		`() => <div key={this.id} title={this.title} />`,
+		`() => { return <div key={this.id} title={this.title} />; }`,
+	])(`captures the lexical receiver of an enclosing arrow: %s`, (arrow) => {
+		const { make } = evaluate(`export function make() { return ${arrow}; }`)
+		const view = { id: `row`, title: `first` }
+		const node = make.call(view)()
+		expect(node.props.key).toBe(`row`)
+		view.title = `next`
+		expect(node.props.title).toBe(`next`)
+	})
+
+	it(`resolves receiver tags and nested member tags through the capture`, () => {
+		const { make, Row } = evaluate(`
+			export const Row = (props) => props;
+			export function make() {
+				return <><this.Row key={this.id}>label</this.Row><this.ui.Row title={this.id}/></>;
 			}
 		`)
-			const view = new View(`first`)
-			expect(view.node.props.key).toEqual(initial)
-			view.value = `next`
-			expect(view.node.props.key).toEqual(updated)
-		},
-	)
+		const nodes = make.call({ id: `row`, Row, ui: { Row } }).props.children
+		expect(nodes[0].type).toBe(Row)
+		expect(nodes[0].props.key).toBe(`row`)
+		expect(nodes[0].props.children).toBe(`label`)
+		expect(nodes[1].type).toBe(Row)
+		expect(nodes[1].props.title).toBe(`row`)
+	})
+
+	it(`resolves a bare receiver tag without a data receiver expression`, () => {
+		const { make } = evaluate(`export function make() { return <this/>; }`)
+		const Row = () => null
+		expect(make.call(Row).type).toBe(Row)
+	})
+
+	it(`does not capture receivers outside JSX or inside normal function props`, () => {
+		const source = `export function make() {
+			this.count++;
+			return <div callback={function () { return this.id; }} />;
+		}`
+		expect(compile(source, `fixture.tsx`).code).not.toContain(`_self$`)
+		const { make } = evaluate(source)
+		const view = { count: 0 }
+		const node = make.call(view)
+		expect(view.count).toBe(1)
+		expect(node.props.callback.call({ id: `inner` })).toBe(`inner`)
+	})
+
+	it(`captures module receivers inside the compiled JSX expression`, () => {
+		const { node, receiver } = evaluate(`
+			this.value = 'first';
+			module.exports = { node: <div key={this.value} title={this.value} />, receiver: this };
+		`)
+		expect(node.props.key).toBe(`first`)
+		receiver.value = `next`
+		expect(node.props.key).toBe(`next`)
+		expect(node.props.title).toBe(`next`)
+	})
+
+	it(`captures default-parameter JSX before the function body executes`, () => {
+		const { make } = evaluate(
+			`export function make(node = <div key={this.id}/>) { return node; }`,
+		)
+		expect(make.call({ id: `row` }).props.key).toBe(`row`)
+	})
+
+	it(`preserves function directives and avoids capture identifier collisions`, () => {
+		const { make } = evaluate(`
+			const _self$ = 'suffix';
+			export function make() { 'use strict'; return <div key={this.id + _self$}/>; }
+		`)
+		expect(make.call({ id: `row` }).props.key).toBe(`rowsuffix`)
+		expect(() => make().props.key).toThrow()
+	})
 
 	it(`keeps motion exit props and conditional keyed children live`, () => {
 		const { App, update } = evaluate(`

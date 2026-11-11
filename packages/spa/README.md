@@ -624,7 +624,7 @@ The production build omits development-only diagnostics and invalid-input checks
 
 ## Astro state and data
 
-The integration compiles .tsx and .jsx files by default. Use the include option to limit compilation to SPA component directories when another JSX renderer is present. Top-level functions containing JSX are branded by the compiler for renderer detection.
+The integration compiles .tsx and .jsx files by default. Use the include option to limit compilation to SPA component directories when another JSX renderer is present. Top-level functions containing JSX are branded by the compiler for renderer detection. Lazy JSX attributes preserve this from their enclosing function, including through nested arrows and receiver tags. Nested normal functions and methods retain their own receiver. Direct await and yield expressions in lazy attributes are compile errors naming the attribute; nested async and generator functions remain supported.
 
 Default islands share the normal implicit atom.io store in the browser. Module-scoped tokens, SPA hooks, and ordinary getState/setState calls all address the same graph. SSR shares a separate store within each request; concurrent requests never share values. Definitions imported after an earlier island started are installed into that request's store before the next island prepares. Server reads and writes must use the selected store (through SPA hooks or store-aware atom.io operations); free getState/setState calls still target the process-global implicit store.
 

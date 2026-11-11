@@ -1,5 +1,22 @@
 # atom.io
 
+## 0.54.9
+
+### Patch Changes
+
+- 9bcf94e: Restore controlled input values and checked states after edits, reapply select values after option changes, and preserve numerically equivalent number-input text. Make onChange follow edits for text/range inputs and textareas, bubble onFocus/onBlur through focusin/focusout, remove null reflected attributes, and focus newly mounted autoFocus elements.
+
+  Restore radio groups across roots even when a change handler stops propagation.
+
+  Keep debugger property-name drafts editable until blur before committing a rename, and preserve incomplete numeric edits such as a trailing decimal point.
+- e0e4123: Refresh component-only JSX modules during Vite development by remounting affected DOM and scene roots against their original atom.io stores, preserving persistent atoms, families, and timeline history across edits. Release old subscriptions, listeners, refs, and cleanup callbacks, recover failed hot setups without losing the store, and retain independent Astro island stores. Reload state definitions and unsafe module boundaries, preserve authored source maps, and omit hot registration from production application bundles.
+- 8775063: Add the SPA Root boundary for subtree store, ID prefix, capability, and error handler overrides. DOM and scene children share the enclosing root's scheduler and borrow the selected store. Server rendering and hydration use the same scope rules.
+- a24cc8f: Use atom.io Canonical values as SPA keys in DOM and scene trees. Components can read the original key through props.key and bind family hooks to it during setup. Changing a key replaces the instance in any position, and equal tuple keys preserve it. Null is now a key, undefined remains positional, and numeric keys compare separately from strings. Duplicate sibling keys now also throw in production DOM builds.
+
+  Keep lazy key expressions in the same props object as data attributes. Capture this once per enclosing function across JSX attributes, nested arrows, and receiver tags, preserving the receivers of nested normal functions and methods. Reject direct await and yield expressions in lazy attributes with an error naming the attribute. Direct DOM component and root output track identity when a key property is present at mount, including an initial undefined value. Keyless direct spreads update data props without allocating a reactive child collection.
+- 4ac9b5e: Accept SVG focusable attributes and preserve literal boolean values during rendering and hydration, narrow relatedTarget on DOM focus and mouse handlers, and type Konva mouse, pointer, touch, wheel, drag, transform, and pointer capture handlers with native events and node-specific currentTarget values. Allow transform completion without a native event when stopped programmatically. Reject misspelled Konva configuration and handler names and document the supported event families.
+- f3ea3aa: Add onCommit for tracked measurements and other work that needs the updated DOM or scene. Callbacks run after refs and renderer writes within the same flush, clean up with their owner, and can schedule another round of updates before paint.
+
 ## 0.54.8
 
 ### Patch Changes

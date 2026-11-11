@@ -34,11 +34,11 @@
 		"db:seed": "node scripts/seed.ts"
 	},
 	"dependencies": {
-		"@astrojs/node": "11.1.11",
+		"@astrojs/node": "11.1.12",
 		"@atom.io/spa": "workspace:*",
 		"@trpc/client": "11.26.0",
 		"@trpc/server": "11.26.0",
-		"astro": "7.4.8",
+		"astro": "7.4.10",
 		"atom.io": "workspace:*",
 		"resumability": "workspace:*",
 		"reylo": "0.7.0",

@@ -79,6 +79,7 @@ export interface Scope {
 	_root: Root
 	_parent?: Scope | undefined
 	_options?: BoundaryOptions | undefined
+	_setupOrder: number
 	_cleanups: Set<Cleanup | Scope>
 	_updates: Cleanup[]
 	_dead: boolean
@@ -97,17 +98,33 @@ export interface Root extends Scope {
 	_prefix: string
 	_id: number
 	_queue: Set<Cleanup>
+	_enqueueCount?: number
 	_mounts: Cleanup[] | undefined
-	_forms?: Set<Cleanup>
+	_commits?: Set<CommitJob>
+	_flushing?: boolean
+	_forms?: Set<() => boolean>
 	_host?: Element
 	flush: Cleanup
 	error: (error: unknown) => void
+}
+
+interface CommitJob {
+	scope: Scope
+	order: number
+	run: Cleanup
+	loopError: Error | undefined
+}
+interface CommitGroup {
+	order: number
+	children: CommitGroup[]
+	jobs: CommitJob[]
 }
 
 export let owner: Scope | undefined
 type Subscribe = (notify: Cleanup) => Cleanup
 let tracking: ((subscribe: Subscribe) => void) | undefined
 let serial = 0
+let setupOrder = 0
 
 function scopedErrorHandler(
 	scope: Scope,
@@ -151,6 +168,7 @@ export function createScope(parent?: Scope): Scope {
 		_root: parent?._root as Root,
 		_parent: parent,
 		_options: parent?._options,
+		_setupOrder: setupOrder++,
 		_cleanups: new Set(),
 		_updates: [],
 		_dead: false,
@@ -203,7 +221,7 @@ export function invalidate(scope: Scope): void {
 export function enqueue(scope: Scope, run: Cleanup): void {
 	if (!isPresent(scope)) return
 	const root = scope._root
-	if (!root._queue.size)
+	if (!root._queue.size && !root._flushing)
 		queueMicrotask(() => {
 			try {
 				root.flush()
@@ -213,8 +231,43 @@ export function enqueue(scope: Scope, run: Cleanup): void {
 				report(error)
 			}
 		})
+	// A write can invalidate an observer that is already pending.
+	if (import.meta.env.DEV) root._enqueueCount = (root._enqueueCount ?? 0) + 1
 	root._queue.add(run)
 }
+
+function runCommits(root: Root, pending: Set<CommitJob>): CommitJob | undefined {
+	const top: CommitGroup = { order: root._setupOrder, children: [], jobs: [] }
+	const groups = new Map<Scope, CommitGroup>([[root, top]])
+	// Keep only branches with pending work. Visit siblings in setup order.
+	const groupFor = (scope: Scope): CommitGroup => {
+		let group = groups.get(scope)
+		if (!group) {
+			group = { order: scope._setupOrder, children: [], jobs: [] }
+			groups.set(scope, group)
+			groupFor(scope._parent!).children.push(group)
+		}
+		return group
+	}
+	for (const job of [...pending].sort((a, b) => a.order - b.order))
+		groupFor(job.scope).jobs.push(job)
+	let last: CommitJob | undefined
+	const visit = (group: CommitGroup) => {
+		for (const child of group.children.sort((a, b) => a.order - b.order))
+			visit(child)
+		for (const job of group.jobs) {
+			if (pending.delete(job) && isPresent(job.scope)) {
+				const enqueueCount = import.meta.env.DEV ? root._enqueueCount : undefined
+				job.run()
+				if (import.meta.env.DEV && root._enqueueCount !== enqueueCount)
+					last = job
+			}
+		}
+	}
+	visit(top)
+	return last
+}
+
 function capabilityMap(list: readonly Capability[] | undefined) {
 	const capabilities = new Map<string, Capability>()
 	for (const capability of list ?? []) {
@@ -300,36 +353,70 @@ export function createRoot(options: RootOptions = {}, server = false): Root {
 		})
 	for (const capability of capabilities.values())
 		registerPresence(root, capability)
+	const hasWrites = () => root._queue.size || root._mounts!.length
+	const hasWork = () => hasWrites() || root._commits?.size
+	let flushPendingWrites: Cleanup | undefined
 	root.flush = () => {
-		if (!root._queue.size && !root._mounts!.length && !root._forms?.size) return
-		root._failure = undefined
+		const nested = root._flushing
+		if (!(nested ? hasWrites() : hasWork()) && !root._forms?.size) return
+		root._flushing = true
 		try {
-			const commits = new Map<Capability, Cleanup | undefined>()
-			const prepare = (capability: Capability) => {
-				if (!commits.has(capability))
-					commits.set(capability, capability.beforeUpdate?.(root))
-			}
-			const previous = root._prepareCapability
-			root._prepareCapability = prepare
-			try {
-				for (const capability of capabilities.values()) prepare(capability)
-				for (const capability of root._boundaryCapabilities?.keys() ?? [])
-					prepare(capability)
-				let passes = 0
-				while (root._queue.size || root._mounts!.length) {
-					if (import.meta.env.DEV && ++passes > 100)
-						throw new Error(`spa: update loop`)
-					for (const run of [...root._queue]) if (root._queue.delete(run)) run()
-					for (const run of root._mounts!.splice(0)) run()
-				}
-				for (const restore of root._forms ?? []) untrack(restore)
-			} finally {
-				root._prepareCapability = previous
-				for (const commit of commits.values()) commit?.()
+			if (nested) {
+				// The outer flush owns commit dispatch. Mount callbacks can drain writes.
+				flushPendingWrites?.()
+				return
 			}
 			root._failure = undefined
+			let passes = 0
+			let lastCommit: CommitJob | undefined
+			const checkLoop = () => {
+				if (import.meta.env.DEV && ++passes > 100)
+					throw lastCommit?.loopError ?? new Error(`spa: update loop`)
+			}
+			const runWriteBatch = () => {
+				const commits = new Map<Capability, Cleanup | undefined>()
+				const prepare = (capability: Capability) => {
+					if (!commits.has(capability))
+						commits.set(capability, capability.beforeUpdate?.(root))
+				}
+				const previous = root._prepareCapability
+				root._prepareCapability = prepare
+				let formsReady = true
+				try {
+					for (const capability of capabilities.values()) prepare(capability)
+					for (const capability of root._boundaryCapabilities?.keys() ?? [])
+						prepare(capability)
+					while (hasWrites()) {
+						checkLoop()
+						for (const run of [...root._queue])
+							if (root._queue.delete(run)) run()
+						for (const run of root._mounts!.splice(0)) run()
+					}
+					for (const restore of root._forms ?? [])
+						if (!untrack(restore)) formsReady = false
+				} finally {
+					root._prepareCapability = previous
+					for (const commit of commits.values()) commit?.()
+				}
+				return formsReady
+			}
+			do {
+				flushPendingWrites = runWriteBatch
+				const formsReady = runWriteBatch()
+				flushPendingWrites = undefined
+				if (!hasWrites()) {
+					// Form event completion schedules a flush to restore the controls.
+					if (!formsReady || !root._commits?.size) break
+					checkLoop()
+					lastCommit = runCommits(root, root._commits) ?? lastCommit
+				}
+			} while (hasWork())
+			root._failure = undefined
 		} catch (error) {
+			flushPendingWrites = undefined
 			fail(root, error)
+		} finally {
+			if (!nested) root._flushing = false
 		}
 	}
 	return root
@@ -352,6 +439,55 @@ export function onMount(run: Cleanup): void {
 			within(scope, () => {
 				untrack(run)
 			})
+	})
+}
+/** Observe state during setup and apply changes after the root's writes. */
+export function onCommit<T>(
+	read: Accessor<T>,
+	apply: (value: T, previous: T | undefined) => void | Cleanup,
+): void {
+	const scope = owner!
+	const root = scope._root
+	if (!root._mounts) return
+	const pending = (root._commits ??= new Set())
+	let ran = false
+	let next: T
+	let previous: T | undefined
+	let cleanup: Cleanup | void
+	const clear = () => {
+		const release = cleanup
+		cleanup = undefined
+		if (release) untrack(release)
+	}
+	const job: CommitJob = {
+		scope,
+		order: setupOrder++,
+		// The registration stack identifies the component in a feedback loop.
+		loopError: import.meta.env.DEV
+			? new Error(`spa: onCommit update loop`)
+			: undefined,
+		run() {
+			within(scope, () => {
+				untrack(() => {
+					clear()
+					if (!isPresent(scope)) return
+					const old = previous
+					previous = next
+					ran = true
+					cleanup = apply(next, old)
+					if (scope._dead) clear()
+				})
+			})
+		},
+	}
+	scope._cleanups.add(() => {
+		pending.delete(job)
+		clear()
+	})
+	observe(scope, read, (value) => {
+		next = value
+		if (!ran || !Object.is(value, previous)) pending.add(job)
+		else pending.delete(job)
 	})
 }
 export function useId(): string {

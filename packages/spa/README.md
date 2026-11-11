@@ -4,7 +4,7 @@
 
 An experimental JSX framework whose state engine is atom.io. Components run once per mounted instance. Calls to accessors inside compiled JSX subscribe the affected DOM computations; atom.io updates those computations without rerunning component setup.
 
-The npm package is named @atom.io/spa. Its browser runtime, Vite compiler, server renderer, and Astro integration are implemented here. It has no independent state primitive, effect API, React hook dispatcher, or compatibility layer.
+The npm package is named @atom.io/spa. Its browser runtime, Vite compiler, server renderer, and Astro integration are implemented here. State and general reactions belong to atom.io.
 
 ## Start with the Astro template
 
@@ -213,9 +213,51 @@ export function HotCounter(): SpaElement {
 | useId()                       | Allocate an instance-stable ID using the current prefix and the root's shared sequence.                                  |
 | onCleanup(callback)           | Register synchronous teardown with the current owner.                                                                    |
 | onMount(callback)             | Run once after attachment and ref publication; omitted during server rendering.                                          |
+| onCommit(read, apply)         | Track a value and apply changes after renderer writes, within the same flush.                                            |
 | useStore()                    | Return the current atom.io store without creating a store or subscribing.                                                |
 
 Call setup helpers synchronously during component setup or owned mount callbacks. Capture their results for event handlers. Tokens are fixed for an instance; use an application key in a reactive child expression to replace a component when its token changes. Component props stay live when read through the props object; destructuring during setup takes a snapshot.
+
+### onCommit
+
+Use onCommit to measure a ref after the root finishes its DOM writes.
+
+```tsx
+import type { SpaElement } from "@atom.io/spa"
+import { onCommit, useGetter, useSetter } from "@atom.io/spa"
+import { atom } from "atom.io"
+
+export const captionAtom = atom<string>({ key: `caption`, default: `Hello` })
+export const captionHeightAtom = atom<number>({
+	key: `captionHeight`,
+	default: 0,
+})
+
+export function Caption(): SpaElement {
+	const getCaption = useGetter(captionAtom)
+	const setCaptionHeight = useSetter(captionHeightAtom)
+	let caption: HTMLParagraphElement | null = null
+
+	onCommit(getCaption, () => {
+		setCaptionHeight(caption!.getBoundingClientRect().height)
+	})
+
+	return (
+		<p
+			ref={(element) => {
+				caption = element
+			}}
+		>
+			{getCaption()}
+		</p>
+	)
+}
+
+```
+
+Call onCommit during setup. Its read function tracks state and compares the result with the last applied value using Object.is. The untracked apply callback receives the value and the previous applied value, which is undefined on mount. It runs after ref publication, mount callbacks, controlled form restoration, and capability commits. A flush inside a controlled form handler defers apply until restoration can finish. Children run before parents, with sibling callbacks in setup order.
+
+A cleanup returned by apply runs before the next apply and when the owner is disposed. State writes from apply drain in another round of the same flush. Development detects feedback loops and reports the callback's registration stack. Scene callbacks run after host updates. Server rendering skips both callbacks, and scopes retained for exit skip apply while absent.
 
 useTimeline returns a TimelineControls object whose methods can be destructured during setup. getCursor and getLength read the current cursor position and recorded checkpoint count; calls inside JSX subscribe the computation, while calls during setup or in event handlers are untracked. undo, redo, and clear are stable commands. history.getTransaction() is a tracked reader that returns an object with optional undo and redo callbacks for the adjacent transaction groups. At a cursor between transactions, both callbacks may be present and target different groups. A missing callback means no transaction group is available in that direction; the reader returns an empty object when neither is available. Calling a returned callback travels its captured group across participating timelines where it remains at the relevant history head, leaving diverged timelines unchanged. Use history.getTransaction().undo?.() or history.getTransaction().redo?.() to retrieve and invoke the current action together.
 
@@ -664,11 +706,11 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                           | Entry                             | Minified JS |  Gzip JS |
 | -------------------------------- | --------------------------------- | ----------: | -------: |
-| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    67,238 B | 20,255 B |
-| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    45,671 B | 14,493 B |
-| Interactive client app           | `tonnage-recipes/client-app.ts`   |    45,344 B | 14,337 B |
-| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    45,345 B | 14,335 B |
-| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    51,882 B | 16,408 B |
+| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    67,967 B | 20,558 B |
+| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    46,400 B | 14,819 B |
+| Interactive client app           | `tonnage-recipes/client-app.ts`   |    46,073 B | 14,660 B |
+| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    46,074 B | 14,658 B |
+| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    52,611 B | 16,726 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

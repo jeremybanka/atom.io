@@ -36,8 +36,8 @@
 	"dependencies": {
 		"@astrojs/node": "11.1.11",
 		"@atom.io/spa": "workspace:*",
-		"@trpc/client": "11.25.2",
-		"@trpc/server": "11.25.2",
+		"@trpc/client": "11.26.0",
+		"@trpc/server": "11.26.0",
 		"astro": "7.4.8",
 		"atom.io": "workspace:*",
 		"resumability": "workspace:*",
@@ -47,7 +47,7 @@
 	"devDependencies": {
 		"@types/node": "26.6.6",
 		"galley.md": "0.3.1",
-		"oxlint": "1.92.0",
+		"oxlint": "1.93.0",
 		"oxlint-tsgolint": "7.0.2006",
 		"playwright": "1.65.0",
 		"typescript": "7.1.0-dev.20261109.1",

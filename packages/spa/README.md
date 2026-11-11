@@ -320,6 +320,8 @@ Keys accept the same Canonical values as atom.io families, including nested tupl
 
 A component can declare a required, narrowed key in its props. The instance receives the original key by reference and can read props.key during setup, rendering, mount, and cleanup. Spreading the props forwards the key to an inner component or element. A spread follows normal JSX precedence, so forwarding the same key to multiple siblings reports a duplicate key.
 
+Direct DOM component and root output opt into key tracking when they first mount. Include the key property initially when a direct spread needs later identity changes. An explicit key attribute or a spread containing key with an initial undefined value enables that tracking. Keyless spreads keep their data props live as the instance updates.
+
 ## Store access
 
 useStore returns the nearest Root boundary's atom.io store. When no boundary supplies one, it returns the store supplied to the renderer, the Astro island store, or the implicit atom.io store.
@@ -720,11 +722,11 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                           | Entry                             | Minified JS |  Gzip JS |
 | -------------------------------- | --------------------------------- | ----------: | -------: |
-| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    68,840 B | 20,881 B |
-| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    47,276 B | 15,124 B |
-| Interactive client app           | `tonnage-recipes/client-app.ts`   |    46,949 B | 14,964 B |
-| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    46,950 B | 14,963 B |
-| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    53,488 B | 17,032 B |
+| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    68,764 B | 20,856 B |
+| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    47,200 B | 15,099 B |
+| Interactive client app           | `tonnage-recipes/client-app.ts`   |    46,873 B | 14,946 B |
+| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    46,874 B | 14,945 B |
+| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    53,412 B | 17,011 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

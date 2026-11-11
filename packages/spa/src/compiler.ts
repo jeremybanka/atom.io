@@ -42,6 +42,23 @@ function eager(node: Node, allowJsx = false): boolean {
 	)
 }
 
+function needsLexicalScope(node: Node): boolean {
+	if (
+		node.type === `ThisExpression` ||
+		node.type === `Super` ||
+		node.type === `MetaProperty` ||
+		(node.type === `Identifier` &&
+			(node.name === `arguments` || node.name === `eval`))
+	)
+		return true
+	return visitorKeys[node.type].some((key) => {
+		const value = (node as unknown as Record<string, unknown>)[key]
+		return Array.isArray(value)
+			? value.some((child) => child && needsLexicalScope(child))
+			: Boolean(value && needsLexicalScope(value as Node))
+	})
+}
+
 export function compile(
 	code: string,
 	filename: string,
@@ -154,7 +171,7 @@ export function compile(
 					const expr =
 						value.type === `JSXExpressionContainer` ? value.expression : value
 					if (eager(expr)) properties.push([`${key}: (`, expr, `)`])
-					else if (key === `"key"`) {
+					else if (key === `"key"` && needsLexicalScope(expr)) {
 						// Keep the expression in the caller's lexical scope.
 						flush()
 						const read = uid(`key`)

@@ -137,26 +137,62 @@ it(`reorders canonically keyed DOM siblings without replacing them`, () => {
 	}
 })
 
-it(`tracks a key added by a spread on direct component output`, () => {
-	const silo = new Silo({ name: `spread`, ...storeConfig })
-	const attrsAtom = silo.atom<{ key?: null }>({ key: `attrs`, default: {} })
-	const host = document.createElement(`div`)
-	const cleanup = vi.fn()
-	function Label(props: { key?: null }) {
-		onCleanup(() => cleanup({ ...props }, props.key))
+it.each([false, true])(
+	`opts direct spreads into key tracking at mount (%s)`,
+	(hasKey) => {
+		const silo = new Silo({ name: `spread`, ...storeConfig })
+		const attrsAtom = silo.atom<{ key?: null | undefined; title: string }>({
+			key: `attrs`,
+			default: hasKey ? { key: undefined, title: `first` } : { title: `first` },
+		})
+		const host = document.createElement(`div`)
+		const cleanup = vi.fn()
+		function Label(props: { key?: null | undefined; title: string }) {
+			onCleanup(() => cleanup(props.key))
+			return <span {...props} />
+		}
+		function App() {
+			const getAttrs = useGetter(attrsAtom)
+			return <Label {...getAttrs()} />
+		}
+		const root = render(() => <App />, host, { store: silo.store })
+		try {
+			const first = host.firstElementChild
+			silo.setState(attrsAtom, { key: null, title: `updated` })
+			root.flush()
+			expect(host.firstElementChild?.getAttribute(`title`)).toBe(`updated`)
+			if (hasKey) {
+				expect(host.firstElementChild).not.toBe(first)
+				expect(cleanup).toHaveBeenCalledOnce()
+				expect(cleanup).toHaveBeenCalledWith(undefined)
+			} else {
+				expect(host.firstElementChild).toBe(first)
+				expect(cleanup).not.toHaveBeenCalled()
+			}
+		} finally {
+			root.dispose()
+		}
+	},
+)
+
+it(`renders keyless spread roots with the same markers as explicit props`, () => {
+	function Spread(props: { title: string }) {
 		return <span {...props} />
 	}
-	function App() {
-		const getAttrs = useGetter(attrsAtom)
-		return <Label {...getAttrs()} />
+	function Explicit(props: { title: string }) {
+		return <span title={props.title} />
 	}
-	const root = render(() => <App />, host, { store: silo.store })
+	const options = { idPrefix: `keyless` }
+	const spread = () => <Spread title="row" />
+	expect(renderToString(spread, options)).toBe(
+		renderToString(() => <Explicit title="row" />, options),
+	)
+	const host = document.createElement(`div`)
+	host.innerHTML = renderToString(spread, options)
+	const first = host.firstElementChild
+	const root = hydrate(spread, host, options)
 	try {
-		const first = host.firstElementChild
-		silo.setState(attrsAtom, { key: null })
-		root.flush()
-		expect(host.firstElementChild).not.toBe(first)
-		expect(cleanup).toHaveBeenCalledWith({}, undefined)
+		expect(host.firstElementChild).toBe(first)
 	} finally {
 		root.dispose()
 	}

@@ -2,7 +2,6 @@ import type { Canonical } from "atom.io/foundations/canonical"
 import { packCanonical } from "atom.io/foundations/canonical"
 
 import type { Children, SpaElement } from "./core.ts"
-import { mayHaveKey } from "./props.ts"
 
 type Props = SpaElement[`props`]
 type Key = Canonical | undefined
@@ -12,15 +11,15 @@ function childProps(value: Children): Props | undefined {
 	return (value as SpaElement | null)?.props
 }
 
-function hasPotentialKey(value: Children): boolean {
-	if (Array.isArray(value)) return value.some(hasPotentialKey)
+function hasKey(value: Children): boolean {
+	if (Array.isArray(value)) return value.some(hasKey)
 	const props = childProps(value)
-	return props !== undefined && mayHaveKey(props)
+	return props !== undefined && Object.hasOwn(props, `key`)
 }
 
-/** Give direct JSX output the same key tracking as a reactive child expression. */
+/** Direct output opts into key tracking when it first mounts. */
 export function trackKeys(value: Children): Children {
-	return hasPotentialKey(value) ? () => value : value
+	return hasKey(value) ? () => value : value
 }
 
 export function identifyChildren(

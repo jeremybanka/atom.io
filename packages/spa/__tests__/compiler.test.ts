@@ -31,6 +31,27 @@ function evaluate(source: string): Record<string, any> {
 }
 
 describe(`Oxc JSX compiler`, () => {
+	it(`keeps ordinary keyed row props in one lazy object`, () => {
+		const { App, update } = evaluate(`
+			const row = { id: 1, label: 'first' };
+			const Row = (props: unknown) => props;
+			export const update = () => { row.id = 2; row.label = 'next'; };
+			export const App = () => <Row key={row.id} label={row.label} />;
+		`)
+		const { props } = App()
+		expect(Object.getOwnPropertyDescriptor(props, `key`)?.get).toBeTypeOf(
+			`function`,
+		)
+		expect(Object.getOwnPropertyDescriptor(props, `label`)?.get).toBeTypeOf(
+			`function`,
+		)
+		expect(props.key).toBe(1)
+		expect(props.label).toBe(`first`)
+		update()
+		expect(props.key).toBe(2)
+		expect(props.label).toBe(`next`)
+	})
+
 	it(`keeps expressions and keys lazy, functions intact, and spreads live`, () => {
 		const { App, update, reads, handler } = evaluate(`
 			let value = 1, count = 0;
@@ -148,6 +169,40 @@ describe(`Oxc JSX compiler`, () => {
 			`base`,
 		])
 	})
+
+	it.each([
+		{ expression: `this.value`, initial: `first`, updated: `next` },
+		{ expression: `arguments[0]`, initial: `first`, updated: `first` },
+		{ expression: `new.target.name`, initial: `View`, updated: `View` },
+		{ expression: `super.label()`, initial: `base`, updated: `base` },
+		{ expression: `(() => this.value)()`, initial: `first`, updated: `next` },
+		{
+			expression: `eval("this.value + arguments[0]")`,
+			initial: `firstfirst`,
+			updated: `nextfirst`,
+		},
+	])(
+		`preserves lexical context in lazy key $expression`,
+		({ expression, initial, updated }) => {
+			const { View } = evaluate(`
+			const Label = (props: unknown) => props;
+			class Base { label() { return 'base'; } }
+			export class View extends Base {
+				value: string;
+				node: unknown;
+				constructor(value: string) {
+					super();
+					this.value = value;
+					this.node = <Label key={${expression}} label="row" />;
+				}
+			}
+		`)
+			const view = new View(`first`)
+			expect(view.node.props.key).toBe(initial)
+			view.value = `next`
+			expect(view.node.props.key).toBe(updated)
+		},
+	)
 
 	it(`keeps motion exit props and conditional keyed children live`, () => {
 		const { App, update } = evaluate(`

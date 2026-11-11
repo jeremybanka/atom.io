@@ -159,6 +159,8 @@ Keys accept the same Canonical values as atom.io families, including nested tupl
 
 A component can declare a required, narrowed key in its props. The instance receives the original key by reference and can read props.key during setup, rendering, mount, and cleanup. Spreading the props forwards the key to an inner component or element. A spread follows normal JSX precedence, so forwarding the same key to multiple siblings reports a duplicate key.
 
+Direct DOM component and root output opt into key tracking when they first mount. Include the key property initially when a direct spread needs later identity changes. An explicit key attribute or a spread containing key with an initial undefined value enables that tracking. Keyless spreads keep their data props live as the instance updates.
+
 ## Store access
 
 useStore returns the nearest Root boundary's atom.io store. When no boundary supplies one, it returns the store supplied to the renderer, the Astro island store, or the implicit atom.io store.

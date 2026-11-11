@@ -289,7 +289,7 @@ try {
 			0,
 		),
 	)
-	await page.locator(`#scene-clock-input`).click({ force: true })
+	await page.locator(`#scene-clock-input`).click()
 	assert.equal(
 		(await page.evaluate(() => window.sceneClock.inspect())).clicks,
 		1,

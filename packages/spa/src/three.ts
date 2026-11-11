@@ -158,9 +158,11 @@ const renderer = createSceneRenderer<Resource>({
 					const scope = owner!
 					handlers.set(
 						key,
-						listenThree(node, key.slice(2).toLowerCase(), (event) =>
-							within(scope, () => handler(event)),
-						),
+						listenThree(node, key.slice(2).toLowerCase(), (event) => {
+							within(scope, () => {
+								handler(event)
+							})
+						}),
 					)
 				}
 				continue

@@ -21,7 +21,7 @@ export interface PresenceTarget {
 	node: unknown
 	suspend?(): Cleanup
 }
-interface PresenceCollection<T, V> {
+export interface PresenceCollection<T, V> {
 	take(key: unknown, value: V): T | undefined
 	remove(
 		record: T,
@@ -45,7 +45,6 @@ export interface PresenceCoordinator {
 		namespace: string,
 	): void
 	unbind(binding: CapabilityBinding): void
-	event(scope: Scope, handler: Function): Function
 	remove(scope: Scope, done: Cleanup): boolean
 	resume(scope: Scope): void
 	forget(scope: Scope): void
@@ -66,7 +65,6 @@ interface Group {
 /** Optional coordinator: only imported by integrations that support retention. */
 export function createPresence(root: Root): PresenceCoordinator {
 	const releases = new Map<CapabilityBinding, Cleanup>()
-	const handlers = new WeakMap<Scope, WeakMap<Function, Function>>()
 	// Groups own absent ranges; sessions can be shared when a parent adopts a child exit.
 	const groups = new Map<Scope, Group>()
 	const sessions = new Set<Session>()
@@ -166,15 +164,6 @@ export function createPresence(root: Root): PresenceCoordinator {
 		},
 		unbind(binding) {
 			releases.get(binding)?.()
-		},
-		event(scope, handler) {
-			const cached = handlers.get(scope) ?? new WeakMap<Function, Function>()
-			handlers.set(scope, cached)
-			if (!cached.has(handler))
-				cached.set(handler, function (this: unknown, ...args: unknown[]) {
-					if (isPresent(scope)) return handler.apply(this, args)
-				})
-			return cached.get(handler)!
 		},
 		collection<T, V>(
 			scopeOf: (record: T) => Scope,

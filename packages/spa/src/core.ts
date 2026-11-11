@@ -118,15 +118,21 @@ function scopedErrorHandler(
 		? failure.report
 		: scope._options?.onError
 }
+function throwScopedError(
+	scope: Scope,
+	error: unknown,
+	report = scopedErrorHandler(scope, error),
+): never {
+	if (report) scope._root._failure = { error, report }
+	throw error
+}
 export function within<T>(scope: Scope, run: () => T): T {
 	const previous = owner
 	owner = scope
 	try {
 		return run()
 	} catch (error) {
-		const report = scopedErrorHandler(scope, error)
-		if (report) scope._root._failure = { error, report }
-		throw error
+		throwScopedError(scope, error)
 	} finally {
 		owner = previous
 	}
@@ -157,9 +163,7 @@ export function fail(scope: Scope, error: unknown): never {
 	try {
 		dispose(scope)
 	} catch (cleanup) {
-		const failure = new AggregateError([error, cleanup])
-		scope._root._failure = report ? { error: failure, report } : undefined
-		throw failure
+		throwScopedError(scope, new AggregateError([error, cleanup]), report)
 	}
 	throw error
 }
@@ -189,11 +193,7 @@ export function dispose(scope: Scope): void {
 	scope._cleanups.clear()
 	scope._targets?.clear()
 	scope._updates.length = 0
-	if (errors.length) {
-		const error = new AggregateError(errors)
-		if (report) scope._root._failure = { error, report }
-		throw error
-	}
+	if (errors.length) throwScopedError(scope, new AggregateError(errors), report)
 }
 export function invalidate(scope: Scope): void {
 	for (const run of scope._updates) enqueue(scope, run)
@@ -224,12 +224,17 @@ function capabilityMap(list: readonly Capability[] | undefined) {
 	}
 	return capabilities
 }
-function registerPresence(root: Root, capability: Capability): void {
+function registerPresence(
+	root: Root,
+	capability: Capability,
+	shared = false,
+): void {
 	const create = capability.presence
 	if (!create) return
-	if (root._presenceFactory && root._presenceFactory !== create)
-		throw new Error(`spa: multiple presence coordinators`)
-	if (!root._presence) {
+	if (root._presence) {
+		if (!shared || root._presenceFactory !== create)
+			throw new Error(`spa: multiple presence coordinators`)
+	} else {
 		root._presence = create(root)
 		root._presenceFactory = create
 	}
@@ -262,7 +267,7 @@ export function RootBoundary(
 		const root = scope._root
 		const active = (root._boundaryCapabilities ??= new Map())
 		for (const capability of options._capabilities.values()) {
-			registerPresence(root, capability)
+			registerPresence(root, capability, true)
 			active.set(capability, (active.get(capability) ?? 0) + 1)
 			scope._cleanups.add(() => {
 				const remaining = active.get(capability)! - 1
@@ -293,11 +298,8 @@ export function createRoot(options: RootOptions = {}, server = false): Root {
 		((error) => {
 			throw error
 		})
-	for (const capability of capabilities.values()) {
-		if (capability.presence && root._presence)
-			throw new Error(`spa: multiple presence coordinators`)
+	for (const capability of capabilities.values())
 		registerPresence(root, capability)
-	}
 	root.flush = () => {
 		if (!root._queue.size && !root._mounts!.length && !root._forms?.size) return
 		root._failure = undefined

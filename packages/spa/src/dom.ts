@@ -20,6 +20,7 @@ import {
 import { bindForm, changeHandler, controlValue } from "./dom-forms.ts"
 import { hotRoot, trackRoot } from "./hot.ts"
 import { Fragment, merge } from "./jsx-runtime.ts"
+import type { PresenceCollection } from "./presence.ts"
 
 const HTML = `http://www.w3.org/1999/xhtml`
 const SVG = `http://www.w3.org/2000/svg`
@@ -33,6 +34,13 @@ type RecordNode = {
 	_start: Node
 	_end: Node
 	_index: number
+}
+function compatible(record: RecordNode, child: Children): boolean {
+	return (
+		typeof record._value === typeof child &&
+		(record._value as SpaElement | null)?.type ===
+			(child as SpaElement | null)?.type
+	)
 }
 
 function finish(cursor?: Cursor): void {
@@ -188,15 +196,7 @@ function mount(
 		const begin = comment(`{`, parent, before, owner, cursor)
 		let end: Node | null = null
 		let records = new Map<unknown, RecordNode>()
-		const collection = () =>
-			owner._root._presence?.collection<RecordNode, Children>(
-				(record) => record._scope,
-				(record, child) =>
-					typeof record._value === typeof child &&
-					(record._value as SpaElement | null)?.type ===
-						(child as SpaElement | null)?.type,
-			)
-		let presence: ReturnType<typeof collection>
+		let presence: PresenceCollection<RecordNode, Children> | undefined
 		const retire = (
 			record: RecordNode,
 			key: unknown,
@@ -211,7 +211,10 @@ function mount(
 			owner,
 			() => (source() as () => Children)(),
 			(next) => {
-				presence ??= collection()
+				presence ??= owner._root._presence?.collection(
+					(record: RecordNode) => record._scope,
+					compatible,
+				)
 				const values = ([next] as unknown[]).flat(Infinity) as Children[]
 				const kept = new Map<unknown, RecordNode>()
 				let previous: RecordNode | undefined
@@ -224,11 +227,7 @@ function mount(
 					if (import.meta.env.DEV && kept.has(key))
 						throw new Error(`spa: duplicate key`)
 					let record = records.get(key)
-					if (
-						record &&
-						(typeof record._value !== typeof child ||
-							(record._value as SpaElement | null)?.type !== vnode?.type)
-					) {
+					if (record && !compatible(record, child)) {
 						retire(
 							record,
 							key,

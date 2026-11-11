@@ -1,5 +1,5 @@
 import type { Cleanup, Root, Scope } from "./core.ts"
-import { scopeCapabilities } from "./core.ts"
+import { isPresent, scopeCapabilities } from "./core.ts"
 import type { ExitHandle, PresenceCoordinator } from "./presence.ts"
 
 /** Native renderers expose property access without importing capability engines. */
@@ -27,6 +27,7 @@ export interface Capability {
 	/** SPA supplies ownership for integrations that measure after mount or report async errors. */
 	attach(target: CapabilityTarget, scope?: Scope): CapabilityBinding
 }
+type EventHandler = (this: unknown, ...args: unknown[]) => unknown
 
 export function capabilityNamespace(key: string): string | undefined {
 	const colon = key.indexOf(`:`)
@@ -34,16 +35,25 @@ export function capabilityNamespace(key: string): string | undefined {
 	const namespace = key.slice(0, colon)
 	return /^(xml|xmlns|xlink)$/.test(namespace) ? undefined : namespace
 }
+function requireCapability(
+	capabilities: Map<string, Capability>,
+	namespace: string,
+) {
+	const capability = capabilities.get(namespace)
+	if (!capability)
+		throw new Error(
+			`spa: capability "${namespace}" is not registered for this root`,
+		)
+	return capability
+}
 export function validateCapabilities(
 	scope: Scope,
 	props: Record<string, unknown>,
 ): void {
+	const capabilities = scopeCapabilities(scope)
 	for (const key of Object.keys(props)) {
 		const namespace = capabilityNamespace(key)
-		if (namespace && !scopeCapabilities(scope).has(namespace))
-			throw new Error(
-				`spa: capability "${namespace}" is not registered for this root`,
-			)
+		if (namespace) requireCapability(capabilities, namespace)
 	}
 }
 
@@ -54,24 +64,23 @@ export function capabilityProps(
 	read?: () => Record<string, any>,
 	applyNative?: (props: Record<string, any>) => string | undefined,
 ): (props: Record<string, any>) => Record<string, any> {
-	const bindings = new Map<string, CapabilityBinding>()
-	let handlers: WeakMap<Function, Function> | undefined
-	const event = (handler: Function) => {
+	const root = scope._root
+	const bindings = new Map<Capability, CapabilityBinding>()
+	let handlers: WeakMap<EventHandler, EventHandler> | undefined
+	const event = (handler: EventHandler) => {
 		const cache = (handlers ??= new WeakMap())
 		let wrapped = cache.get(handler)
 		if (!wrapped) {
-			let guarded = scope._root._presence?.event(scope, handler)
 			wrapped = function (this: unknown, ...args: unknown[]) {
-				// A scoped capability can activate presence after this listener mounts.
-				guarded ??= scope._root._presence?.event(scope, handler)
-				return (guarded ?? handler).apply(this, args)
+				// Presence may activate after this listener mounts.
+				if (!root._presence || isPresent(scope)) return handler.apply(this, args)
 			}
 			cache.set(handler, wrapped)
 		}
 		return wrapped
 	}
 
-	if (scope._root._presence) scope._root._presence.target(scope, target)
+	if (root._presence) root._presence.target(scope, target)
 	else (scope._targets ??= new Set()).add(target)
 	const cleanup: Cleanup = () => {
 		const errors: unknown[] = []
@@ -87,9 +96,9 @@ export function capabilityProps(
 	}
 	scope._cleanups.add(cleanup)
 	return (props) => {
-		validateCapabilities(scope, props)
+		const capabilities = scopeCapabilities(scope)
 		const native: Record<string, any> = {}
-		const groups = new Map<string, Record<string, unknown>>()
+		const groups = new Map<Capability, Record<string, unknown>>()
 		for (const key of Object.keys(props)) {
 			const namespace = capabilityNamespace(key)
 			if (!namespace) {
@@ -100,30 +109,31 @@ export function capabilityProps(
 						: value
 				continue
 			}
-			const group = groups.get(namespace) ?? {}
+			const capability = requireCapability(capabilities, namespace)
+			const group = groups.get(capability) ?? {}
 			group[key.slice(namespace.length + 1)] = props[key]
-			groups.set(namespace, group)
+			groups.set(capability, group)
 		}
 		const previousStyle = applyNative?.(native)
-		for (const [namespace, values] of groups) {
-			let binding = bindings.get(namespace)
+		for (const [capability, values] of groups) {
+			let binding = bindings.get(capability)
 			if (!binding) {
-				binding = scopeCapabilities(scope).get(namespace)!.attach(target, scope)
-				bindings.set(namespace, binding)
-				scope._root._presence?.bind(
+				binding = capability.attach(target, scope)
+				bindings.set(capability, binding)
+				root._presence?.bind(
 					scope,
 					binding,
 					read ?? (() => props),
-					namespace,
+					capability.namespace,
 				)
 			}
 			if (previousStyle !== undefined) binding.update(values, previousStyle)
 			else binding.update(values)
 		}
-		for (const [namespace, binding] of bindings)
-			if (!groups.has(namespace)) {
-				bindings.delete(namespace)
-				scope._root._presence?.unbind(binding)
+		for (const [capability, binding] of bindings)
+			if (!groups.has(capability)) {
+				bindings.delete(capability)
+				root._presence?.unbind(binding)
 				binding.dispose()
 			}
 		return native

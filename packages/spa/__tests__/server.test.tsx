@@ -4,6 +4,35 @@ import { hydrate } from "../src/index.ts"
 import { renderToString } from "../src/server.ts"
 
 describe(`server attribute and form semantics`, () => {
+	it.each([
+		{ variant: `value`, expected: `present:a` },
+		{ variant: `undefined`, expected: `present:undefined` },
+		{ variant: `absent`, expected: `missing` },
+	])(
+		`preserves prop membership during SSR and hydration ($variant)`,
+		({ variant, expected }) => {
+			function Row(props: { label?: string | undefined }) {
+				return <p>{`label` in props ? `present:${props.label}` : `missing`}</p>
+			}
+			const setup = () => {
+				if (variant === `value`) return <Row label="a" />
+				if (variant === `undefined`) return <Row label={undefined} />
+				return <Row />
+			}
+			const host = document.createElement(`div`)
+			host.innerHTML = renderToString(setup)
+			expect(host.textContent).toBe(expected)
+			const paragraph = host.firstElementChild
+			const root = hydrate(setup, host)
+			try {
+				expect(host.firstElementChild).toBe(paragraph)
+				expect(host.textContent).toBe(expected)
+			} finally {
+				root.dispose()
+			}
+		},
+	)
+
 	it.each([true, false])(
 		`serializes enumerated boolean values as %s`,
 		(value) => {

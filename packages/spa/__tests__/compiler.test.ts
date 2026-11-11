@@ -31,6 +31,67 @@ function evaluate(source: string): Record<string, any> {
 }
 
 describe(`Oxc JSX compiler`, () => {
+	it.each([`await read()`, `[this.prefix, await read()]`])(
+		`evaluates suspending async keys in their enclosing function: %s`,
+		async (expression) => {
+			const { make, reads } = evaluate(`
+				let count = 0;
+				const read = () => { count++; return 'id'; };
+				const Row = (props: unknown) => props;
+				export const reads = () => count;
+				export async function make() { return <Row key={${expression}} />; }
+			`)
+			const node = await make.call({ prefix: `row` })
+			const key = node.props.key
+			expect(key).toEqual(expression.startsWith(`[`) ? [`row`, `id`] : `id`)
+			expect(node.props.key).toBe(key)
+			expect(reads()).toBe(1)
+		},
+	)
+
+	it.each([`yield 'pending'`, `yield* load()`])(
+		`evaluates generator keys in their enclosing function: %s`,
+		(expression) => {
+			const { make } = evaluate(`
+				const Row = (props: unknown) => props;
+				function* load() { yield 'pending'; return 'id'; }
+				export function* make() { return <Row key={${expression}} />; }
+			`)
+			const iterator = make()
+			expect(iterator.next()).toEqual({ value: `pending`, done: false })
+			const result = iterator.next(`id`)
+			expect(result.done).toBe(true)
+			expect(result.value.props.key).toBe(`id`)
+		},
+	)
+
+	it.each([
+		`(async function nested() { await 1; }).name`,
+		`(function* nested() { yield 1; }).name`,
+		`(async () => { await 1; }).name`,
+	])(`keeps keys lazy across nested function boundaries: %s`, (expression) => {
+		const { make, reads } = evaluate(`
+			let count = 0;
+			const read = () => { count++; return 'id'; };
+			const Row = (props: unknown) => props;
+			export const reads = () => count;
+			export const make = () => <Row key={${expression} + read()} />;
+		`)
+		const node = make()
+		expect(reads()).toBe(0)
+		expect(node.props.key.endsWith(`id`)).toBe(true)
+		expect(reads()).toBe(1)
+	})
+
+	it(`preserves top-level await in module keys`, () => {
+		const source = `const Row = (props: unknown) => props; export const node = <Row key={await Promise.resolve('id')} />;`
+		const result = compile(source, `module.tsx`)
+		expect(parseSync(`module.tsx`, result.code).errors).toEqual([])
+		expect(() =>
+			transformSync(result.code, { loader: `tsx`, format: `esm` }),
+		).not.toThrow()
+	})
+
 	it.each([
 		{ expression: `row.id`, initial: 1, updated: 2 },
 		{

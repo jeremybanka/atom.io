@@ -10,9 +10,12 @@ function liveProps(values: () => Props[], fixedKey?: FixedKey): Props {
 		values()
 			.reverse()
 			.find((props) => Object.hasOwn(props, name))
+	const has = (_: Props, name: PropertyKey): boolean =>
+		fixedKey && name === `key` ? fixedKey.present : source(name) !== undefined
 	return new Proxy(
 		{},
 		{
+			has,
 			get(_, name) {
 				if (fixedKey && name === `key`) return fixedKey.value
 				const props = source(name)
@@ -25,8 +28,7 @@ function liveProps(values: () => Props[], fixedKey?: FixedKey): Props {
 				return [...keys]
 			},
 			getOwnPropertyDescriptor(_, name) {
-				if (fixedKey && name === `key` ? fixedKey.present : source(name))
-					return { enumerable: true, configurable: true }
+				if (has(_, name)) return { enumerable: true, configurable: true }
 			},
 		},
 	)

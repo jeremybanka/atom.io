@@ -59,6 +59,14 @@ function needsLexicalScope(node: Node): boolean {
 	})
 }
 
+function isFunction(node: Node): boolean {
+	return (
+		node.type === `FunctionDeclaration` ||
+		node.type === `FunctionExpression` ||
+		node.type === `ArrowFunctionExpression`
+	)
+}
+
 export function compile(
 	code: string,
 	filename: string,
@@ -77,6 +85,7 @@ export function compile(
 	}
 	const output = new MagicString(code)
 	const parents = new WeakMap<Node, Node>()
+	const suspending = new WeakSet<Node>()
 	const identifiers = new Set<string>()
 	const elements: (JSXElement | JSXFragment)[] = []
 	const functions = new Set<Node>()
@@ -86,13 +95,15 @@ export function compile(
 		output.addSourcemapLocation(node.end)
 		if (node.type === `Identifier` || node.type === `JSXIdentifier`)
 			identifiers.add(node.name)
-		if (
-			!outerFunction &&
-			(node.type === `FunctionDeclaration` ||
-				node.type === `FunctionExpression` ||
-				node.type === `ArrowFunctionExpression`)
-		)
-			outerFunction = node
+		if (!outerFunction && isFunction(node)) outerFunction = node
+		if (node.type === `AwaitExpression` || node.type === `YieldExpression`) {
+			// Suspension belongs to the enclosing function, including inside a key.
+			let enclosing: Node | undefined = node
+			while (enclosing && !isFunction(enclosing)) {
+				suspending.add(enclosing)
+				enclosing = parents.get(enclosing)
+			}
+		}
 		if (node.type === `JSXElement` || node.type === `JSXFragment`) {
 			elements.push(node)
 			if (outerFunction) functions.add(outerFunction)
@@ -170,7 +181,8 @@ export function compile(
 				else {
 					const expr =
 						value.type === `JSXExpressionContainer` ? value.expression : value
-					if (eager(expr)) properties.push([`${key}: (`, expr, `)`])
+					if (eager(expr) || (key === `"key"` && suspending.has(expr)))
+						properties.push([`${key}: (`, expr, `)`])
 					else if (key === `"key"` && needsLexicalScope(expr)) {
 						// Keep the expression in the caller's lexical scope.
 						flush()

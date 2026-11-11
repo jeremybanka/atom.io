@@ -31,26 +31,36 @@ function evaluate(source: string): Record<string, any> {
 }
 
 describe(`Oxc JSX compiler`, () => {
-	it(`keeps ordinary keyed row props in one lazy object`, () => {
-		const { App, update } = evaluate(`
+	it.each([
+		{ expression: `row.id`, initial: 1, updated: 2 },
+		{
+			expression: `[row.id, row.label]`,
+			initial: [1, `first`],
+			updated: [2, `next`],
+		},
+	])(
+		`keeps ordinary key $expression in one lazy props object`,
+		({ expression, initial, updated }) => {
+			const { App, update } = evaluate(`
 			const row = { id: 1, label: 'first' };
 			const Row = (props: unknown) => props;
 			export const update = () => { row.id = 2; row.label = 'next'; };
-			export const App = () => <Row key={row.id} label={row.label} />;
+			export const App = () => <Row key={${expression}} label={row.label} />;
 		`)
-		const { props } = App()
-		expect(Object.getOwnPropertyDescriptor(props, `key`)?.get).toBeTypeOf(
-			`function`,
-		)
-		expect(Object.getOwnPropertyDescriptor(props, `label`)?.get).toBeTypeOf(
-			`function`,
-		)
-		expect(props.key).toBe(1)
-		expect(props.label).toBe(`first`)
-		update()
-		expect(props.key).toBe(2)
-		expect(props.label).toBe(`next`)
-	})
+			const { props } = App()
+			expect(Object.getOwnPropertyDescriptor(props, `key`)?.get).toBeTypeOf(
+				`function`,
+			)
+			expect(Object.getOwnPropertyDescriptor(props, `label`)?.get).toBeTypeOf(
+				`function`,
+			)
+			expect(props.key).toEqual(initial)
+			expect(props.label).toBe(`first`)
+			update()
+			expect(props.key).toEqual(updated)
+			expect(props.label).toBe(`next`)
+		},
+	)
 
 	it(`keeps expressions and keys lazy, functions intact, and spreads live`, () => {
 		const { App, update, reads, handler } = evaluate(`
@@ -177,6 +187,11 @@ describe(`Oxc JSX compiler`, () => {
 		{ expression: `super.label()`, initial: `base`, updated: `base` },
 		{ expression: `(() => this.value)()`, initial: `first`, updated: `next` },
 		{
+			expression: `[, this.value]`,
+			initial: [, `first`],
+			updated: [, `next`],
+		},
+		{
 			expression: `eval("this.value + arguments[0]")`,
 			initial: `firstfirst`,
 			updated: `nextfirst`,
@@ -198,9 +213,9 @@ describe(`Oxc JSX compiler`, () => {
 			}
 		`)
 			const view = new View(`first`)
-			expect(view.node.props.key).toBe(initial)
+			expect(view.node.props.key).toEqual(initial)
 			view.value = `next`
-			expect(view.node.props.key).toBe(updated)
+			expect(view.node.props.key).toEqual(updated)
 		},
 	)
 

@@ -153,11 +153,17 @@ export function compile(
 				else {
 					const expr =
 						value.type === `JSXExpressionContainer` ? value.expression : value
-					properties.push(
-						key === `"key"` || eager(expr)
-							? [`${key}: (`, expr, `)`]
-							: [`get ${key}(){ return (`, expr, `); }`],
-					)
+					if (eager(expr)) properties.push([`${key}: (`, expr, `)`])
+					else if (key === `"key"`) {
+						// Keep the expression in the caller's lexical scope.
+						flush()
+						const read = uid(`key`)
+						chunks.push([
+							`((${read}) => ({ get "key"(){ return ${read}(); } }))(() => (`,
+							expr,
+							`))`,
+						])
+					} else properties.push([`get ${key}(){ return (`, expr, `); }`])
 				}
 			}
 		}
@@ -206,9 +212,10 @@ export function compile(
 			node.openingElement.attributes.some(
 				(attr) => attr.type === `JSXSpreadAttribute`,
 			)
-		const props = spreads
-			? [`${merge}(`, ...join(chunks, `, `), `)`]
-			: (chunks[0] ?? [`{}`])
+		const props =
+			spreads || chunks.length > 1
+				? [`${merge}(`, ...join(chunks, `, `), `)`]
+				: (chunks[0] ?? [`{}`])
 		rewrite(node, [
 			`${create}(${node.type === `JSXElement` ? tag(node.openingElement.name) : `null`}, `,
 			...props,

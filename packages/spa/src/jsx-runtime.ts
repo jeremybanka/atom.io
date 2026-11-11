@@ -1,5 +1,8 @@
+import type { Canonical } from "atom.io/foundations/canonical"
+
 import type { Children, Component, SpaElement } from "./core.ts"
 import type { HTMLAttributes, NativeElements } from "./jsx-types.d.ts"
+import { merge } from "./props.ts"
 
 export type {
 	AriaAttributes,
@@ -11,6 +14,7 @@ export type {
 	SVGAttributes,
 	TargetedEvent,
 } from "./jsx-types.d.ts"
+export { merge } from "./props.ts"
 
 /** Optional integrations augment attributes without changing element identity. */
 // oxlint-disable-next-line typescript/no-empty-interface -- Optional integrations augment this declaration.
@@ -21,7 +25,7 @@ export const Fragment = (props: { children?: Children }): Children =>
 export function jsx(
 	type: SpaElement[`type`],
 	props: SpaElement[`props`] | null,
-	key?: unknown,
+	key?: Canonical,
 ): SpaElement {
 	return {
 		type,
@@ -31,30 +35,6 @@ export function jsx(
 export const jsxs = jsx
 export const jsxDEV = jsx
 
-/** Preserve lazy props and spread precedence, including keys added by later updates. */
-export function merge(
-	...sources: (Record<string, any> | (() => Record<string, any>))[]
-): Record<string, any> {
-	const values = () =>
-		sources.map(
-			(source) => (typeof source === `function` ? source() : source) ?? {},
-		)
-	return new Proxy(
-		{},
-		{
-			get: (_, key) =>
-				values()
-					.reverse()
-					.find((source) => Object.hasOwn(source, key))?.[key],
-			ownKeys: () => [...new Set(values().flatMap(Object.keys))],
-			getOwnPropertyDescriptor: (_, key) =>
-				values().some((source) => Object.hasOwn(source, key))
-					? { enumerable: true, configurable: true }
-					: undefined,
-		},
-	)
-}
-
 export namespace JSX {
 	export type Element = SpaElement
 	export type ElementType = keyof IntrinsicElements | Component
@@ -62,7 +42,7 @@ export namespace JSX {
 		children: {}
 	}
 	export interface IntrinsicAttributes {
-		key?: string | number
+		key?: Canonical | undefined
 	}
 	/** Augment this interface to declare attributes for registered custom elements. */
 	export interface IntrinsicElements extends NativeElements {

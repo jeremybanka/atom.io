@@ -1,8 +1,9 @@
 import type { ReadableToken } from "atom.io"
+import type { Canonical } from "atom.io/foundations/canonical"
 import type { RootStore } from "atom.io/internal"
 
 import { capabilityNamespace, validateCapabilities } from "./capabilities.ts"
-import type { Children, RootOptions, Scope, SpaElement } from "./core.ts"
+import type { Children, RootOptions, Scope } from "./core.ts"
 import {
 	createRoot,
 	createScope,
@@ -11,7 +12,9 @@ import {
 	untrack,
 	within,
 } from "./core.ts"
+import { identifyChildren, trackKeys } from "./identity.ts"
 import { Fragment } from "./jsx-runtime.ts"
+import { instanceProps } from "./props.ts"
 
 const escape = (value: unknown): string =>
 	String(value).replace(
@@ -33,22 +36,17 @@ function stringify(
 	owner: Scope,
 	namespace = `html`,
 	selectValue?: string | number,
+	initialKey?: Canonical,
 ): string {
 	if (typeof value === `function`) {
-		const values = ([within(owner, () => untrack(value))] as unknown[]).flat(
-			Infinity,
-		) as Children[]
-		const keys = new Set<unknown>()
+		const values = within(owner, () => untrack(() => identifyChildren(value())))
 		return (
 			`<!--{-->` +
 			values
-				.map((child, index) => {
-					const explicit = (child as SpaElement | null)?.props?.[`key`]
-					const key = explicit == null ? index : String(explicit)
-					if (keys.has(key)) throw new Error(`spa: duplicate key`)
-					keys.add(key)
-					return `<!--[-->${within(owner, () => stringify(child, createScope(owner), namespace, selectValue))}<!--]-->`
-				})
+				.map(
+					({ value: child, key }) =>
+						`<!--[-->${within(owner, () => stringify(child, createScope(owner), namespace, selectValue, key))}<!--]-->`,
+				)
 				.join(``) +
 			`<!--}-->`
 		)
@@ -68,7 +66,7 @@ function stringify(
 		const childOwner = createScope(owner)
 		return within(childOwner, () =>
 			stringify(
-				untrack(() => type(props)),
+				trackKeys(untrack(() => type(instanceProps(() => props, initialKey)))),
 				childOwner,
 				namespace,
 				selectValue,
@@ -162,7 +160,7 @@ export function renderToStringWithReads(
 	root._onRead = onRead
 	if (/--|[<>]/.test(root._prefix)) throw new Error(`spa: invalid idPrefix`)
 	try {
-		return `<!--w:${root._prefix}-->${within(root, () => stringify(untrack(setup), root))}<!--/w-->`
+		return `<!--w:${root._prefix}-->${within(root, () => stringify(trackKeys(untrack(setup)), root))}<!--/w-->`
 	} finally {
 		dispose(root)
 	}

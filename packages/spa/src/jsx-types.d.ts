@@ -1,3 +1,5 @@
+import type { Canonical } from "atom.io/foundations/canonical"
+
 import type { Children } from "./core.ts"
 import type { CapabilityAttributes } from "./jsx-runtime.ts"
 
@@ -203,7 +205,7 @@ export type DOMAttributes<E extends Element> = CapabilityAttributes<`dom`> &
 	AriaAttributes &
 	Attributes<{
 		children: Children
-		key: string | number
+		key: Canonical
 		ref: Ref<E>
 		id: string
 		class: string

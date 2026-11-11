@@ -31,7 +31,7 @@ function evaluate(source: string): Record<string, any> {
 }
 
 describe(`Oxc JSX compiler`, () => {
-	it(`keeps expressions lazy, functions intact, keys eager, and spreads live`, () => {
+	it(`keeps expressions and keys lazy, functions intact, and spreads live`, () => {
 		const { App, update, reads, handler } = evaluate(`
 			let value = 1, count = 0;
 			let spread = { title: 'first', extra: 1 };
@@ -44,8 +44,9 @@ describe(`Oxc JSX compiler`, () => {
 			</div>;
 		`)
 		const node = App()
-		expect(reads()).toBe(1)
+		expect(reads()).toBe(0)
 		expect(node.props.key).toBe(1)
+		expect(reads()).toBe(1)
 		expect(node.props.onClick).toBe(handler)
 		expect(node.props.title).toBe(`first`)
 		expect(node.props.value).toBe(1)
@@ -54,7 +55,7 @@ describe(`Oxc JSX compiler`, () => {
 		expect(node.props.children[2]).toBe(`fixed`)
 		expect(node.props.children[3].props.children()).toBe(1)
 		update()
-		expect(node.props.key).toBe(1)
+		expect(node.props.key).toBe(2)
 		expect(node.props.value).toBe(2)
 		expect(node.props.title).toBe(`next`)
 		expect({ ...node.props }).toMatchObject({ added: 2 })
@@ -116,7 +117,7 @@ describe(`Oxc JSX compiler`, () => {
 			view.value = `next`
 			expect(node.type(node.props)).toBe(`NEXTSUFFIX`)
 			expect(view.reads).toBe(2)
-			expect(node.props.key).toBe(attributes ? `first` : undefined)
+			expect(node.props.key).toBe(attributes ? `next` : undefined)
 		},
 	)
 

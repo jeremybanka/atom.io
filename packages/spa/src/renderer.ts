@@ -1,3 +1,5 @@
+import type { Canonical } from "atom.io/foundations/canonical"
+
 import type { CapabilityTarget } from "./capabilities.ts"
 import { capabilityProps } from "./capabilities.ts"
 import type {
@@ -22,7 +24,9 @@ import {
 	within,
 } from "./core.ts"
 import { hotRoot, trackRoot } from "./hot.ts"
-import { Fragment, merge } from "./jsx-runtime.ts"
+import { identifyChildren } from "./identity.ts"
+import { Fragment } from "./jsx-runtime.ts"
+import { instanceProps } from "./props.ts"
 
 export interface SceneHost<N> {
 	target?(node: N): CapabilityTarget
@@ -38,6 +42,7 @@ export interface SceneHost<N> {
 type SceneNodes<N> = (activeOnly?: boolean) => N[]
 
 interface Entry<N> {
+	id: string | number
 	scope: Scope
 	value: Children
 	nodes: SceneNodes<N>
@@ -72,7 +77,7 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 		let presence: ReturnType<typeof collection>
 		const retire = (
 			entry: Entry<N>,
-			id: string,
+			id: string | number,
 			eligible: boolean,
 			index: number,
 		) => {
@@ -82,63 +87,59 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 				})
 			else dispose(entry.scope)
 		}
-		observe(scope, source, (next) => {
-			presence ??= collection()
-			reconciling = true
-			const values = (
-				Array.isArray(next) ? next.flat(Infinity) : [next]
-			) as Children[]
-			const previous = entries
-			const old = new Map(
-				entries.map((entry, i) => [key(entry.value, i), entry]),
-			)
-			const seen = new Set<string>()
-			entries = values.map((value, i) => {
-				const id = key(value, i)
-				if (seen.has(id)) throw new Error(`spa: duplicate scene key`)
-				seen.add(id)
-				let entry = old.get(id)
-				old.delete(id)
-				if (entry && !same(entry.value, value)) {
-					retire(
-						entry,
+		observe(
+			scope,
+			() => identifyChildren(source(), `spa: duplicate scene key`),
+			(values) => {
+				presence ??= collection()
+				reconciling = true
+				const previous = entries
+				const old = new Map(entries.map((entry) => [entry.id, entry]))
+				entries = values.map(({ value, key, id }) => {
+					let entry = old.get(id)
+					old.delete(id)
+					if (entry && !same(entry.value, value)) {
+						retire(
+							entry,
+							id,
+							value == null || typeof value === `boolean`,
+							previous.indexOf(entry),
+						)
+						entry = undefined
+					}
+					entry ??= presence?.take(id, value)
+					if (entry) {
+						entry.value = value
+						scope._root._presence?.resume(entry.scope)
+						invalidate(entry.scope)
+						return entry
+					}
+					const childScope = createScope(scope)
+					const created: Entry<N> = {
 						id,
-						value == null || typeof value === `boolean`,
-						previous.indexOf(entry),
-					)
-					entry = undefined
-				}
-				entry ??= presence?.take(id, value)
-				if (entry) {
-					entry.value = value
-					scope._root._presence?.resume(entry.scope)
-					invalidate(entry.scope)
-					return entry
-				}
-				const childScope = createScope(scope)
-				const created: Entry<N> = { scope: childScope, value, nodes: null! }
-				created.nodes = build(() => created.value, childScope, report)
-				return created
-			})
-			for (const [id, entry] of old)
-				retire(entry, id, true, previous.indexOf(entry))
-			reconciling = false
-			if (
-				entries.length !== previous.length ||
-				entries.some((entry, i) => entry !== previous[i])
-			)
-				changed()
-		})
+						scope: childScope,
+						value,
+						nodes: null!,
+					}
+					created.nodes = build(() => created.value, childScope, report, key)
+					return created
+				})
+				for (const [id, entry] of old)
+					retire(entry, id, true, previous.indexOf(entry))
+				reconciling = false
+				if (
+					entries.length !== previous.length ||
+					entries.some((entry, i) => entry !== previous[i])
+				)
+					changed()
+			},
+		)
 		return (activeOnly = false) => {
 			const rendered = activeOnly
 				? entries
 				: (presence?.merge(entries) ?? entries)
 			return rendered.flatMap((entry) => entry.nodes(activeOnly))
 		}
-	}
-	function key(value: Children, i: number): string {
-		const explicit = (value as SpaElement | null)?.props?.[`key`]
-		return explicit == null ? `index:${i}` : `key:${explicit}`
 	}
 	function same(a: Children, b: Children): boolean {
 		return (
@@ -150,6 +151,7 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 		source: () => Children,
 		scope: Scope,
 		changed: () => void,
+		key: Canonical | undefined,
 	): SceneNodes<N> {
 		const value = untrack(source)
 		if (typeof value === `function`)
@@ -160,7 +162,7 @@ export function createSceneRenderer<N>(host: SceneHost<N>): SceneRenderer<N> {
 		if (!(`type` in value) || !(`props` in value))
 			throw new Error(`spa: invalid scene child`)
 		const vnode = value
-		const props = merge(() => (source() as SpaElement).props)
+		const props = instanceProps(() => (source() as SpaElement).props, key)
 		if (!vnode.type || vnode.type === Fragment)
 			return mount(() => props[`children`], scope, changed)
 		if (typeof vnode.type === `function`) {

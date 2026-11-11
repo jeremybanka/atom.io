@@ -9,9 +9,14 @@ type RowKey = readonly [number, string]
 
 const storeConfig = { lifespan: `ephemeral`, isProduction: true } as const
 
-it.each([`render`, `hydrate`] as const)(
-	`pins a direct component's key through %s and replaces it when identity changes`,
-	(mode) => {
+it.each([
+	{ mode: `render`, placement: `root output` },
+	{ mode: `hydrate`, placement: `root output` },
+	{ mode: `render`, placement: `a fixed child` },
+	{ mode: `hydrate`, placement: `a fixed child` },
+] as const)(
+	`pins a component's key in $placement through $mode and replaces it when identity changes`,
+	({ mode, placement }) => {
 		const silo = new Silo({ name: `identity`, ...storeConfig })
 		const original: RowKey = [1, `a`]
 		const selectionAtom = silo.atom<RowKey | null | undefined>({
@@ -42,7 +47,13 @@ it.each([`render`, `hydrate`] as const)(
 		const app = () => {
 			const getSelection = useGetter(selectionAtom)
 			const getLabel = useGetter(labelAtom)
-			return <Row key={getSelection()} title={getLabel()} />
+			return placement === `root output` ? (
+				<Row key={getSelection()} title={getLabel()} />
+			) : (
+				<section>
+					<Row key={getSelection()} title={getLabel()} />
+				</section>
+			)
 		}
 		const host = document.createElement(`div`)
 		const options = { store: silo.store }
@@ -54,10 +65,11 @@ it.each([`render`, `hydrate`] as const)(
 			setup.mockClear()
 			cleanup.mockClear()
 		}
-		const serverNode = host.firstElementChild
+		const serverNode = host.querySelector(`li`)
 		const root = (mode === `hydrate` ? hydrate : render)(app, host, options)
 		try {
-			const first = host.firstElementChild!
+			const first = host.querySelector(`li`)!
+			const parent = first.parentElement
 			if (serverNode) expect(first).toBe(serverNode)
 			expect(first.textContent).toBe(`1:a`)
 			expect(first.hasAttribute(`key`)).toBe(false)
@@ -67,21 +79,22 @@ it.each([`render`, `hydrate`] as const)(
 			silo.setState(selectionAtom, [1, `a`])
 			silo.setState(labelAtom, `updated`)
 			root.flush()
-			expect(host.firstElementChild).toBe(first)
+			expect(host.querySelector(`li`)).toBe(first)
 			expect(first.getAttribute(`data-original`)).toBe(`true`)
 			expect(first.getAttribute(`title`)).toBe(`updated`)
 			expect(setup).toHaveBeenCalledTimes(1)
 
 			silo.setState(selectionAtom, null)
 			root.flush()
-			const second = host.firstElementChild
+			const second = host.querySelector(`li`)
 			expect(second).not.toBe(first)
+			expect(second?.parentElement).toBe(parent)
 			expect(second?.textContent).toBe(`null`)
 			expect(cleanup.mock.calls[0][0]).toBe(original)
 
 			silo.setState(selectionAtom, undefined)
 			root.flush()
-			expect(host.firstElementChild).not.toBe(second)
+			expect(host.querySelector(`li`)).not.toBe(second)
 			expect(host.textContent).toBe(`positional`)
 			expect(cleanup.mock.calls).toEqual([[original], [null]])
 			expect(mounted.mock.calls).toEqual([[original], [null], [undefined]])

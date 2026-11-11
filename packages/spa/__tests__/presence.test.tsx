@@ -2,7 +2,7 @@ import { Silo } from "atom.io"
 import { expect, it, vi } from "vitest"
 
 import type { Capability, Children } from "../src/index.ts"
-import { onCleanup, onMount, render, useGetter } from "../src/index.ts"
+import { onCleanup, onMount, render, Root, useGetter } from "../src/index.ts"
 import type { ExitHandle } from "../src/presence.ts"
 import { createPresence } from "../src/presence.ts"
 import { createSceneRenderer, sceneComponent } from "../src/renderer.ts"
@@ -126,6 +126,51 @@ it(`retains DOM ranges, freezes observers and input, and revives the same keyed 
 	expect(cleanup).toHaveBeenCalledTimes(1)
 	root.dispose()
 	host.remove()
+})
+it(`guards existing listeners during exits enabled by a later boundary`, () => {
+	const f = fixture()
+	const visibleAtom = f.silo.atom<boolean>({ key: `visible`, default: true })
+	const exitAtom = f.silo.atom<boolean>({ key: `exit`, default: false })
+	const click = vi.fn()
+	function Panel() {
+		const getExit = useGetter(exitAtom)
+		return (
+			<section>
+				<button onClick={click}>action</button>
+				{getExit() && (
+					<Root capabilities={[f.capability]}>
+						<i test:exit={true} />
+					</Root>
+				)}
+			</section>
+		)
+	}
+	function App() {
+		const getVisible = useGetter(visibleAtom)
+		return <>{getVisible() && <Panel key="panel" />}</>
+	}
+	const host = document.createElement(`div`)
+	const root = render(() => <App />, host, { store: f.silo.store })
+	try {
+		const button = host.querySelector(`button`)!
+		button.dispatchEvent(new MouseEvent(`click`))
+		expect(click).toHaveBeenCalledOnce()
+		f.silo.setState(exitAtom, true)
+		root.flush()
+		f.silo.setState(visibleAtom, false)
+		root.flush()
+		expect(host.querySelector(`button`)).toBe(button)
+		expect(button.hasAttribute(`inert`)).toBe(true)
+		button.dispatchEvent(new MouseEvent(`click`))
+		expect(click).toHaveBeenCalledOnce()
+		f.silo.setState(visibleAtom, true)
+		root.flush()
+		expect(host.querySelector(`button`)).toBe(button)
+		button.dispatchEvent(new MouseEvent(`click`))
+		expect(click).toHaveBeenCalledTimes(2)
+	} finally {
+		root.dispose()
+	}
 })
 it(`coordinates nested exits and lets re-entry preserve independently absent descendants`, async () => {
 	const f = fixture()

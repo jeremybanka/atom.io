@@ -69,20 +69,30 @@ export interface RootOptions {
 	idPrefix?: string
 	onError?: (error: unknown) => void
 }
+interface BoundaryOptions extends Omit<RootOptions, `capabilities`> {
+	_capabilities?: Map<string, Capability>
+}
 export interface Scope {
 	_exiting?: boolean
 	_exits?: Set<ExitParticipant>
 	_targets?: Set<PresenceTarget>
 	_root: Root
 	_parent?: Scope | undefined
+	_options?: BoundaryOptions | undefined
 	_cleanups: Set<Cleanup | Scope>
 	_updates: Cleanup[]
 	_dead: boolean
 }
 export interface Root extends Scope {
-	_onRead?: ((value: unknown, token: ReadableToken<unknown>) => void) | undefined
+	_onRead?:
+		| ((value: unknown, token: ReadableToken<unknown>, store: RootStore) => void)
+		| undefined
 	_presence?: PresenceCoordinator
+	_presenceFactory?: Capability[`presence`]
 	_capabilities: Map<string, Capability>
+	_boundaryCapabilities?: Map<Capability, number>
+	_prepareCapability?: ((capability: Capability) => void) | undefined
+	_failure?: { error: unknown; report: Root[`error`] } | undefined
 	_store: RootStore
 	_prefix: string
 	_id: number
@@ -99,11 +109,30 @@ type Subscribe = (notify: Cleanup) => Cleanup
 let tracking: ((subscribe: Subscribe) => void) | undefined
 let serial = 0
 
+function scopedErrorHandler(
+	scope: Scope,
+	error: unknown,
+): Root[`error`] | undefined {
+	const failure = scope._root._failure
+	return failure && Object.is(failure.error, error)
+		? failure.report
+		: scope._options?.onError
+}
+function throwScopedError(
+	scope: Scope,
+	error: unknown,
+	report = scopedErrorHandler(scope, error),
+): never {
+	if (report) scope._root._failure = { error, report }
+	throw error
+}
 export function within<T>(scope: Scope, run: () => T): T {
 	const previous = owner
 	owner = scope
 	try {
 		return run()
+	} catch (error) {
+		throwScopedError(scope, error)
 	} finally {
 		owner = previous
 	}
@@ -121,6 +150,7 @@ export function createScope(parent?: Scope): Scope {
 	const child: Scope = {
 		_root: parent?._root as Root,
 		_parent: parent,
+		_options: parent?._options,
 		_cleanups: new Set(),
 		_updates: [],
 		_dead: false,
@@ -129,10 +159,11 @@ export function createScope(parent?: Scope): Scope {
 	return child
 }
 export function fail(scope: Scope, error: unknown): never {
+	const report = scopedErrorHandler(scope, error)
 	try {
 		dispose(scope)
 	} catch (cleanup) {
-		throw new AggregateError([error, cleanup])
+		throwScopedError(scope, new AggregateError([error, cleanup]), report)
 	}
 	throw error
 }
@@ -140,22 +171,29 @@ export function dispose(scope: Scope): void {
 	if (scope._dead) return
 	scope._dead = true
 	const errors: unknown[] = []
+	let report: Root[`error`] | undefined
+	const record = (error: unknown) => {
+		errors.push(error)
+		// Keep the first boundary handler as nested disposal wraps its errors.
+		report ??= scopedErrorHandler(scope, error)
+	}
 	try {
 		scope._root._presence?.forget(scope)
 	} catch (error) {
-		errors.push(error)
+		record(error)
 	}
 	for (const cleanup of [...scope._cleanups].reverse()) {
 		try {
 			typeof cleanup === `function` ? cleanup() : dispose(cleanup)
 		} catch (error) {
-			errors.push(error)
+			record(error)
 		}
 	}
 	scope._parent?._cleanups.delete(scope)
 	scope._cleanups.clear()
+	scope._targets?.clear()
 	scope._updates.length = 0
-	if (errors.length) throw new AggregateError(errors)
+	if (errors.length) throwScopedError(scope, new AggregateError(errors), report)
 }
 export function invalidate(scope: Scope): void {
 	for (const run of scope._updates) enqueue(scope, run)
@@ -170,18 +208,81 @@ export function enqueue(scope: Scope, run: Cleanup): void {
 			try {
 				root.flush()
 			} catch (error) {
-				root.error(error)
+				const report = scopedErrorHandler(root, error) ?? root.error
+				root._failure = undefined
+				report(error)
 			}
 		})
 	root._queue.add(run)
 }
-export function createRoot(options: RootOptions = {}, server = false): Root {
+function capabilityMap(list: readonly Capability[] | undefined) {
 	const capabilities = new Map<string, Capability>()
-	for (const capability of options.capabilities ?? []) {
+	for (const capability of list ?? []) {
 		if (capabilities.has(capability.namespace))
 			throw new Error(`spa: duplicate capability ${capability.namespace}`)
 		capabilities.set(capability.namespace, capability)
 	}
+	return capabilities
+}
+function registerPresence(
+	root: Root,
+	capability: Capability,
+	shared = false,
+): void {
+	const create = capability.presence
+	if (!create) return
+	if (root._presence) {
+		if (!shared || root._presenceFactory !== create)
+			throw new Error(`spa: multiple presence coordinators`)
+	} else {
+		root._presence = create(root)
+		root._presenceFactory = create
+	}
+}
+export function scopeCapabilities(scope: Scope): Map<string, Capability> {
+	return scope._options?._capabilities ?? scope._root._capabilities
+}
+export function reportScopeError(scope: Scope, error: unknown): void {
+	const report = scopedErrorHandler(scope, error) ?? scope._root.error
+	try {
+		fail(scope._root, error)
+	} catch (failure) {
+		scope._root._failure = undefined
+		report(failure)
+	}
+}
+
+/** Override root options for these children while sharing their parent's ownership. */
+export function RootBoundary(
+	props: RootOptions & { children?: Children },
+): Children {
+	const scope = owner!
+	const { store, idPrefix, onError, capabilities } = props
+	const options = { ...scope._options }
+	if (store !== undefined) options.store = store
+	if (idPrefix !== undefined) options.idPrefix = idPrefix
+	if (onError !== undefined) options.onError = onError
+	if (capabilities !== undefined) {
+		options._capabilities = capabilityMap(capabilities)
+		const root = scope._root
+		const active = (root._boundaryCapabilities ??= new Map())
+		for (const capability of options._capabilities.values()) {
+			registerPresence(root, capability, true)
+			active.set(capability, (active.get(capability) ?? 0) + 1)
+			scope._cleanups.add(() => {
+				const remaining = active.get(capability)! - 1
+				if (remaining) active.set(capability, remaining)
+				else active.delete(capability)
+			})
+			root._prepareCapability?.(capability)
+		}
+	}
+	scope._options = options
+	return () => props.children
+}
+
+export function createRoot(options: RootOptions = {}, server = false): Root {
+	const capabilities = capabilityMap(options.capabilities)
 	const root = {
 		_capabilities: capabilities,
 		_store: options.store ?? IMPLICIT.STORE,
@@ -198,17 +299,22 @@ export function createRoot(options: RootOptions = {}, server = false): Root {
 			throw error
 		})
 	for (const capability of capabilities.values())
-		if (capability.presence) {
-			if (root._presence) throw new Error(`spa: multiple presence coordinators`)
-			root._presence = capability.presence(root)
-		}
+		registerPresence(root, capability)
 	root.flush = () => {
 		if (!root._queue.size && !root._mounts!.length && !root._forms?.size) return
+		root._failure = undefined
 		try {
-			const commits = [...capabilities.values()].map((capability) =>
-				capability.beforeUpdate?.(root),
-			)
+			const commits = new Map<Capability, Cleanup | undefined>()
+			const prepare = (capability: Capability) => {
+				if (!commits.has(capability))
+					commits.set(capability, capability.beforeUpdate?.(root))
+			}
+			const previous = root._prepareCapability
+			root._prepareCapability = prepare
 			try {
+				for (const capability of capabilities.values()) prepare(capability)
+				for (const capability of root._boundaryCapabilities?.keys() ?? [])
+					prepare(capability)
 				let passes = 0
 				while (root._queue.size || root._mounts!.length) {
 					if (import.meta.env.DEV && ++passes > 100)
@@ -218,17 +324,19 @@ export function createRoot(options: RootOptions = {}, server = false): Root {
 				}
 				for (const restore of root._forms ?? []) untrack(restore)
 			} finally {
-				for (const commit of commits) commit?.()
+				root._prepareCapability = previous
+				for (const commit of commits.values()) commit?.()
 			}
+			root._failure = undefined
 		} catch (error) {
 			fail(root, error)
 		}
 	}
 	return root
 }
-/** Return the atom.io store selected by the current root. */
+/** Return the atom.io store selected by the current owner. */
 export function useStore(): RootStore {
-	return owner!._root._store
+	return owner!._options?.store ?? owner!._root._store
 }
 /** Return atom.io disposal bound to the current root's store. */
 export function useDisposal(): typeof disposeState {
@@ -248,7 +356,7 @@ export function onMount(run: Cleanup): void {
 }
 export function useId(): string {
 	const root = owner!._root
-	return `${root._prefix}-${root._id++}`
+	return `${owner!._options?.idPrefix ?? root._prefix}-${root._id++}`
 }
 
 export function observe<T>(
@@ -282,8 +390,10 @@ export function observe<T>(
 					subscriptions.delete(subscribe)
 				}
 		}
-		untrack(() => {
-			apply(value)
+		within(scope, () => {
+			untrack(() => {
+				apply(value)
+			})
 		})
 	}
 	scope._updates.push(run)
@@ -316,7 +426,7 @@ export function useGetter(token: any, key?: Canonical): Accessor<any> {
 		subscribeToState(store, token, `spa:${serial++}`, notify)
 	return () => {
 		const value = getFromStore(store, token)
-		root._onRead?.(value, token)
+		root._onRead?.(value, token, store)
 		tracking?.(subscribe)
 		return value
 	}

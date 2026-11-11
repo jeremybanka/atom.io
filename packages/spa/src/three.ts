@@ -1,4 +1,4 @@
-import { fail, isPresent, owner } from "./core.ts"
+import { isPresent, owner, reportScopeError, within } from "./core.ts"
 import type { ThreeEventAttributes, ThreeEventHandler } from "./three-events.ts"
 import {
 	createThreeEvents,
@@ -153,15 +153,18 @@ const renderer = createSceneRenderer<Resource>({
 				const handlers = eventHandlers.get(node)!
 				handlers.get(key)?.()
 				handlers.delete(key)
-				if (props[key])
+				const handler = props[key] as ThreeEventHandler | undefined
+				if (handler) {
+					const scope = owner!
 					handlers.set(
 						key,
-						listenThree(
-							node,
-							key.slice(2).toLowerCase(),
-							props[key] as ThreeEventHandler,
-						),
+						listenThree(node, key.slice(2).toLowerCase(), (event) => {
+							within(scope, () => {
+								handler(event)
+							})
+						}),
 					)
+				}
 				continue
 			}
 			if (!(key in target)) throw new Error(`spa/three: unknown property ${key}`)
@@ -348,35 +351,25 @@ export function Canvas(props: CanvasProps): SpaElement {
 			})
 		}
 		bindScene(size, resize)
+		const scope = owner!
 		const resized = () => {
 			try {
 				resize(size())
 			} catch (error) {
-				try {
-					fail(ownerRoot, error)
-				} catch (failure) {
-					ownerRoot.error(failure)
-				}
+				reportScopeError(scope, error)
 			}
 		}
-		const ownerRoot = owner!._root
 		view.addEventListener(`resize`, resized)
 		onCleanup(() => {
 			view.removeEventListener(`resize`, resized)
 		})
 		renderer.mount(() => props.children, scene)
-		const scope = owner!
-		const root = scope._root
 		const events = createThreeEvents(
 			canvas,
 			scene,
 			() => props.camera ?? camera,
 			(error) => {
-				try {
-					fail(root, error)
-				} catch (failure) {
-					root.error(failure)
-				}
+				reportScopeError(scope, error)
 			},
 		)
 		onCleanup(() => {

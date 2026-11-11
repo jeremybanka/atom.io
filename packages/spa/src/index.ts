@@ -14,6 +14,7 @@ export type {
 export {
 	onCleanup,
 	onMount,
+	RootBoundary as Root,
 	useDisposal,
 	useGetter,
 	useId,

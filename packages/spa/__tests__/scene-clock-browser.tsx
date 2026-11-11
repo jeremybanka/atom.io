@@ -60,8 +60,7 @@ export function sceneClockRegression(): {
 			if (disposeOnFrame) root.dispose()
 		})
 		return (
-			<section motion:layout style={`width:${100 + (getTick() % 2) * 50}px`}>
-				<span id="scene-clock-tick">{getTick()}</span>
+			<>
 				<button
 					id="scene-clock-input"
 					onClick={() => {
@@ -70,25 +69,28 @@ export function sceneClockRegression(): {
 				>
 					Respond to input
 				</button>
-				<Canvas
-					width={40}
-					height={40}
-					onCreated={() => () => {
-						cleanups++
-					}}
-					onFrame={({ time, delta }) => {
-						if (samples.canvas.length >= 100) return
-						samples.canvas.push({
-							frame: browserFrame,
-							time: time * 1000,
-							delta,
-						})
-						setTick((value) => value + 1)
-					}}
-				>
-					<SceneHook />
-				</Canvas>
-			</section>
+				<section motion:layout style={`width:${100 + (getTick() % 2) * 50}px`}>
+					<span id="scene-clock-tick">{getTick()}</span>
+					<Canvas
+						width={40}
+						height={40}
+						onCreated={() => () => {
+							cleanups++
+						}}
+						onFrame={({ time, delta }) => {
+							if (samples.canvas.length >= 100) return
+							samples.canvas.push({
+								frame: browserFrame,
+								time: time * 1000,
+								delta,
+							})
+							setTick((value) => value + 1)
+						}}
+					>
+						<SceneHook />
+					</Canvas>
+				</section>
+			</>
 		)
 	}
 	const root = render(() => <App />, host, {

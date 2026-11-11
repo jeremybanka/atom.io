@@ -26,7 +26,7 @@ For the view APIs, jump to [rendering](#rendering) or [hooks](#hooks).
 
 | Import | Contents |
 | ------ | -------- |
-| @atom.io/spa | [render](#render), [hydrate](#hydrate), [Fragment](#fragment), and the [hooks](#hooks). |
+| @atom.io/spa | [render](#render), [hydrate](#hydrate), [Fragment](#fragment), [Root](#root), and the [hooks](#hooks). |
 | @atom.io/spa/server | [renderToString](#rendertostring) for server-rendered HTML. |
 | @atom.io/spa/vite | The required [JSX compiler plugin](/docs/spa/vite). |
 | @atom.io/spa/astro | The [Astro integration](/docs/spa/astro), including its compiler and island renderer. |
@@ -92,6 +92,16 @@ Return related fields without adding a wrapper inside the surrounding form:
 <Exhibit src="spa/exhibits/rendering/fragment.tsx" />
 
 The fragment syntax uses the Fragment export automatically. A Fragment groups its children without introducing a DOM element, a store, or a separate component lifetime.
+
+### Root
+
+Give each embedded editor a store with its own document state. Install the document token in both stores before mounting.
+
+<Exhibit src="spa/exhibits/root-boundary.tsx" />
+
+Root sets options for its children while sharing the surrounding root's flush, ID sequence, and disposal. It uses normal child markers and adds no DOM element. Child components use the store of the boundary where they mount, including components passed in from outside. Options are captured at setup. Use a new key to replace a boundary's store. The boundary borrows the store and releases its subscriptions when removed.
+
+Omitted options inherit. You can override the ID prefix, replace the capability list for the subtree, and receive the subtree's asynchronous errors through onError. Scene mounts and Astro islands use the same scope rules. Provide matching options and state for server rendering and hydration.
 
 ### form controls and events
 
@@ -204,11 +214,11 @@ The mount callback owns browser-only setup, and onCleanup registers its teardown
 
 ### useStore
 
-Capture the root's store for a store-aware operation. This button copies the draft from the same store the view is using:
+Capture the current store for a store-aware operation. This button copies the draft from the same store the view is using:
 
 <Exhibit src="spa/exhibits/hooks/use-store.tsx" />
 
-useStore returns the supplied render/hydrate store, the selected Astro island store, or the implicit store. It creates no store or subscription. Capture it during setup or an owned onMount callback. Direct getFromStore reads do not subscribe JSX; useGetter and useLoadable provide tracked reads.
+useStore returns the nearest Root boundary's store, the supplied render or hydrate store, the Astro island store, or the implicit store. It creates no store or subscription. Capture it during setup or an owned onMount callback. Direct getFromStore reads do not subscribe JSX; useGetter and useLoadable provide tracked reads.
 
 ## families
 

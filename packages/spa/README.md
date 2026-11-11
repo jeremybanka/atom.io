@@ -205,15 +205,15 @@ export function HotCounter(): SpaElement {
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | useLoadable(token, fallback?) | Return a tracked accessor for loading, last-observed values, and handled errors.                                         |
 | useGetter(token)              | Return a live accessor for an atom or selector, bound to this instance's store.                                          |
-| useDisposal()                 | Return atom.io state disposal bound to the current root's store.                                                         |
+| useDisposal()                 | Return atom.io state disposal bound to the current store.                                                                |
 | useSetter(token)              | Return a stable atom.io writer.                                                                                          |
 | useTimeline(token)            | Return a stable object with getCursor/getLength readers, undo/redo/clear commands, and transaction-group controls.       |
 | useTransaction(token)         | Bind an atom.io transaction, preserving its arguments and result.                                                        |
 | useRef(token)                 | Return an attachment callback for a nullable element atom. Clear it only while this attachment still owns the reference. |
-| useId()                       | Allocate an instance-stable ID using the root's prefix.                                                                  |
+| useId()                       | Allocate an instance-stable ID using the current prefix and the root's shared sequence.                                  |
 | onCleanup(callback)           | Register synchronous teardown with the current owner.                                                                    |
 | onMount(callback)             | Run once after attachment and ref publication; omitted during server rendering.                                          |
-| useStore()                    | Return the current root's atom.io store without creating a store or subscribing.                                         |
+| useStore()                    | Return the current atom.io store without creating a store or subscribing.                                                |
 
 Call setup helpers synchronously during component setup or owned mount callbacks. Capture their results for event handlers. Tokens are fixed for an instance; use an application key in a reactive child expression to replace a component when its token changes. Component props stay live when read through the props object; destructuring during setup takes a snapshot.
 
@@ -276,7 +276,7 @@ Non-null value and checked props control form state: rejected edits are restored
 
 ## Store access
 
-useStore returns the current root's atom.io RootStore directly. It is the same object supplied to render or hydrate, the selected Astro island store, or the implicit atom.io store when no store was supplied. Server rendering exposes the store selected for that render.
+useStore returns the nearest Root boundary's atom.io store. When no boundary supplies one, it returns the store supplied to the renderer, the Astro island store, or the implicit atom.io store.
 
 ```tsx
 import type { SpaElement } from "@atom.io/spa"
@@ -302,6 +302,53 @@ export function InspectCount(): SpaElement {
 ```
 
 For family-member disposal, useDisposal() captures this store and returns a bound disposal command; see [ambient UI state](#ambient-ui-state-and-ownership). Capture the store during component setup or an owned onMount callback, then pass it to other store-aware atom.io operations or integrations. Getting the store creates no subscription. Direct reads such as getFromStore do not participate in SPA's dependency tracking; useGetter and useLoadable provide tracked reads. The returned object is a store, not a Silo or a new wrapper.
+
+### Subtree root options
+
+Render a Root boundary around each editor to give it a separate store with the document token installed in both stores.
+
+```tsx
+import type { SpaElement } from "@atom.io/spa"
+import { Root, useGetter, useSetter } from "@atom.io/spa"
+import { atom } from "atom.io"
+import type { RootStore } from "atom.io/internal"
+
+export const textAtom = atom<string>({ key: `text`, default: `` })
+
+function Editor() {
+	const getText = useGetter(textAtom)
+	const setText = useSetter(textAtom)
+	return (
+		<textarea
+			value={getText()}
+			onInput={(event) => {
+				setText(event.currentTarget.value)
+			}}
+		/>
+	)
+}
+
+export function Documents(props: {
+	left: RootStore
+	right: RootStore
+}): SpaElement {
+	return (
+		<>
+			<Root store={props.left}>
+				<Editor />
+			</Root>
+			<Root store={props.right}>
+				<Editor />
+			</Root>
+		</>
+	)
+}
+
+```
+
+Root shares its parent's scheduler and uses normal child markers and adds no DOM element. Components passed as children bind their hooks to the store where they mount. The boundary captures options at setup, so give it a new key to replace its store. Removing the boundary releases owned subscriptions and refs. The borrowed store remains available.
+
+Omitted options inherit from the parent. An idPrefix override uses the root's shared ID sequence. A capabilities list replaces the inherited list within the subtree and shares the root's update and presence coordination. An onError override receives asynchronous errors from the subtree under the usual root failure policy. Scene mounts inherit these options. For SSR and hydration, supply equivalent boundary options and store state on both sides.
 
 ## Families
 
@@ -585,7 +632,7 @@ The checked Astro fixture demonstrates default/named slots and custom independen
 
 The build audits every browser export, including the JSX runtime, from the built JavaScript. Atom.io is an external peer in the incremental measurement. Compiler, server, and integration code have separate entrypoints. The report also includes the complete client plus atom.io, the Astro client entrypoint, and the installed Preact version under the same bundling/minification settings. These are full exported surfaces, not equivalent application benchmarks.
 
-The hard budget is under 5,100 bytes of ordinary level-9 gzip for the complete client export surface, including hydration recovery and its production diagnostics. Tsdown builds the package JavaScript and declarations, with separate production and development outputs that each share their runtime across entrypoints. The size audit then bundles the built exports with esbuild, minifies with Oxc, and measures compression using Node's gzip and Brotli implementations. The complete client export surface measures approximately 5.0 kB with gzip; dist/size.json records the exact build measurements. Actual application bundles add atom.io and compiler-generated application code.
+The hard budget is under 5,500 bytes of ordinary level-9 gzip for the complete client export surface, including hydration recovery and its production diagnostics. Tsdown builds the package JavaScript and declarations, with separate production and development outputs that each share their runtime across entrypoints. The size audit then bundles the built exports with esbuild, minifies with Oxc, and measures compression using Node's gzip and Brotli implementations. The complete client export surface measures approximately 5.4 kB with gzip; dist/size.json records the exact build measurements. Actual application bundles add atom.io and compiler-generated application code.
 
 Build output includes the minified audit entrypoint and machine-readable dist/size.json. These audit files are a bundled measurement; use the package exports in applications so the bundler preserves one runtime instance across entrypoints. Source tests exercise development behavior; the production test executes the audited minified artifact. Chromium checks exercise the actual Astro build, island isolation, hydration, keyed identity, focus/selection, SVG namespaces, and teardown. A fresh-cache Astro development check also covers mount hooks, shared state, and ClientRouter navigation.
 
@@ -617,11 +664,11 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                           | Entry                             | Minified JS |  Gzip JS |
 | -------------------------------- | --------------------------------- | ----------: | -------: |
-| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    66,441 B | 19,949 B |
-| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    44,884 B | 14,173 B |
-| Interactive client app           | `tonnage-recipes/client-app.ts`   |    44,547 B | 14,020 B |
-| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    44,548 B | 14,017 B |
-| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    51,085 B | 16,080 B |
+| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    67,238 B | 20,255 B |
+| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    45,671 B | 14,493 B |
+| Interactive client app           | `tonnage-recipes/client-app.ts`   |    45,344 B | 14,337 B |
+| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    45,345 B | 14,335 B |
+| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    51,882 B | 16,408 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 
@@ -851,7 +898,7 @@ export function SpringCube(): SpaElement {
 
 ```
 
-When the motion capability is installed, Canvas draws in Motion's post-render phase after animated scene values update. Without it, Canvas uses requestAnimationFrame. Both drawing subscriptions and animations end with their owners. The base runtime imports no motion engine or retention coordinator. The optional Motion entrypoint owns the retention machinery. The client budget includes controlled form restoration and native event normalization. The full client budget is 5,100 bytes.
+When the motion capability is installed, Canvas draws in Motion's post-render phase after animated scene values update. Without it, Canvas uses requestAnimationFrame. Both drawing subscriptions and animations end with their owners. The base runtime imports no motion engine or retention coordinator. The optional Motion entrypoint owns the retention machinery. The client budget includes controlled form restoration and native event normalization. The full client budget is 5,500 bytes.
 
 ### Exit animations and re-entry
 

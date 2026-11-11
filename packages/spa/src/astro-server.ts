@@ -49,8 +49,8 @@ export const createRenderer = (
 					() => () => island(component, props, slots),
 					options,
 					awaitState
-						? (value, token) => {
-								reads.set(token.key, token)
+						? (value, token, readStore) => {
+								if (readStore === store) reads.set(token.key, token)
 								if (value instanceof Promise) {
 									pending.add(value)
 								}

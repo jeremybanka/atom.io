@@ -1,4 +1,5 @@
 import type { ReadableToken } from "atom.io"
+import type { RootStore } from "atom.io/internal"
 
 import { capabilityNamespace, validateCapabilities } from "./capabilities.ts"
 import type { Children, RootOptions, Scope, SpaElement } from "./core.ts"
@@ -34,7 +35,9 @@ function stringify(
 	selectValue?: string | number,
 ): string {
 	if (typeof value === `function`) {
-		const values = ([untrack(value)] as unknown[]).flat(Infinity) as Children[]
+		const values = ([within(owner, () => untrack(value))] as unknown[]).flat(
+			Infinity,
+		) as Children[]
 		const keys = new Set<unknown>()
 		return (
 			`<!--{-->` +
@@ -149,7 +152,11 @@ function stringify(
 export function renderToStringWithReads(
 	setup: () => Children,
 	options: RootOptions = {},
-	onRead?: (value: unknown, token: ReadableToken<unknown>) => void,
+	onRead?: (
+		value: unknown,
+		token: ReadableToken<unknown>,
+		store: RootStore,
+	) => void,
 ): string {
 	const root = createRoot(options, true)
 	root._onRead = onRead

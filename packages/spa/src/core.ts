@@ -91,6 +91,7 @@ export interface Root extends Scope {
 	_presenceFactory?: Capability[`presence`]
 	_capabilities: Map<string, Capability>
 	_boundaryCapabilities?: Map<Capability, number>
+	_prepareCapability?: ((capability: Capability) => void) | undefined
 	_failure?: { error: unknown; report: Root[`error`] } | undefined
 	_store: RootStore
 	_prefix: string
@@ -108,18 +109,23 @@ type Subscribe = (notify: Cleanup) => Cleanup
 let tracking: ((subscribe: Subscribe) => void) | undefined
 let serial = 0
 
+function scopedErrorHandler(
+	scope: Scope,
+	error: unknown,
+): Root[`error`] | undefined {
+	const failure = scope._root._failure
+	return failure && Object.is(failure.error, error)
+		? failure.report
+		: scope._options?.onError
+}
 export function within<T>(scope: Scope, run: () => T): T {
 	const previous = owner
 	owner = scope
 	try {
 		return run()
 	} catch (error) {
-		const report = scope._options?.onError
-		if (
-			report &&
-			(!scope._root._failure || scope._root._failure.error !== error)
-		)
-			scope._root._failure = { error, report }
+		const report = scopedErrorHandler(scope, error)
+		if (report) scope._root._failure = { error, report }
 		throw error
 	} finally {
 		owner = previous
@@ -147,10 +153,13 @@ export function createScope(parent?: Scope): Scope {
 	return child
 }
 export function fail(scope: Scope, error: unknown): never {
+	const report = scopedErrorHandler(scope, error)
 	try {
 		dispose(scope)
 	} catch (cleanup) {
-		throw new AggregateError([error, cleanup])
+		const failure = new AggregateError([error, cleanup])
+		scope._root._failure = report ? { error: failure, report } : undefined
+		throw failure
 	}
 	throw error
 }
@@ -158,23 +167,33 @@ export function dispose(scope: Scope): void {
 	if (scope._dead) return
 	scope._dead = true
 	const errors: unknown[] = []
+	let report: Root[`error`] | undefined
+	const record = (error: unknown) => {
+		errors.push(error)
+		// Keep the first boundary handler as nested disposal wraps its errors.
+		report ??= scopedErrorHandler(scope, error)
+	}
 	try {
 		scope._root._presence?.forget(scope)
 	} catch (error) {
-		errors.push(error)
+		record(error)
 	}
 	for (const cleanup of [...scope._cleanups].reverse()) {
 		try {
 			typeof cleanup === `function` ? cleanup() : dispose(cleanup)
 		} catch (error) {
-			errors.push(error)
+			record(error)
 		}
 	}
 	scope._parent?._cleanups.delete(scope)
 	scope._cleanups.clear()
 	scope._targets?.clear()
 	scope._updates.length = 0
-	if (errors.length) throw new AggregateError(errors)
+	if (errors.length) {
+		const error = new AggregateError(errors)
+		if (report) scope._root._failure = { error, report }
+		throw error
+	}
 }
 export function invalidate(scope: Scope): void {
 	for (const run of scope._updates) enqueue(scope, run)
@@ -189,7 +208,7 @@ export function enqueue(scope: Scope, run: Cleanup): void {
 			try {
 				root.flush()
 			} catch (error) {
-				const report = root._failure?.report ?? root.error
+				const report = scopedErrorHandler(root, error) ?? root.error
 				root._failure = undefined
 				report(error)
 			}
@@ -219,10 +238,12 @@ export function scopeCapabilities(scope: Scope): Map<string, Capability> {
 	return scope._options?._capabilities ?? scope._root._capabilities
 }
 export function reportScopeError(scope: Scope, error: unknown): void {
+	const report = scopedErrorHandler(scope, error) ?? scope._root.error
 	try {
 		fail(scope._root, error)
 	} catch (failure) {
-		;(scope._options?.onError ?? scope._root.error)(failure)
+		scope._root._failure = undefined
+		report(failure)
 	}
 }
 
@@ -248,6 +269,7 @@ export function RootBoundary(
 				if (remaining) active.set(capability, remaining)
 				else active.delete(capability)
 			})
+			root._prepareCapability?.(capability)
 		}
 	}
 	scope._options = options
@@ -280,16 +302,17 @@ export function createRoot(options: RootOptions = {}, server = false): Root {
 		if (!root._queue.size && !root._mounts!.length && !root._forms?.size) return
 		root._failure = undefined
 		try {
-			const active = root._boundaryCapabilities
-				? new Set([
-						...capabilities.values(),
-						...root._boundaryCapabilities.keys(),
-					])
-				: capabilities.values()
-			const commits = Array.from(active, (capability) =>
-				capability.beforeUpdate?.(root),
-			)
+			const commits = new Map<Capability, Cleanup | undefined>()
+			const prepare = (capability: Capability) => {
+				if (!commits.has(capability))
+					commits.set(capability, capability.beforeUpdate?.(root))
+			}
+			const previous = root._prepareCapability
+			root._prepareCapability = prepare
 			try {
+				for (const capability of capabilities.values()) prepare(capability)
+				for (const capability of root._boundaryCapabilities?.keys() ?? [])
+					prepare(capability)
 				let passes = 0
 				while (root._queue.size || root._mounts!.length) {
 					if (import.meta.env.DEV && ++passes > 100)
@@ -299,12 +322,11 @@ export function createRoot(options: RootOptions = {}, server = false): Root {
 				}
 				for (const restore of root._forms ?? []) untrack(restore)
 			} finally {
-				for (const commit of commits) commit?.()
+				root._prepareCapability = previous
+				for (const commit of commits.values()) commit?.()
 			}
 			root._failure = undefined
 		} catch (error) {
-			if ((root._failure as Root[`_failure`])?.error !== error)
-				root._failure = undefined
 			fail(root, error)
 		}
 	}

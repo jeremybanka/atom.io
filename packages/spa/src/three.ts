@@ -1,4 +1,4 @@
-import { isPresent, owner, reportScopeError } from "./core.ts"
+import { isPresent, owner, reportScopeError, within } from "./core.ts"
 import type { ThreeEventAttributes, ThreeEventHandler } from "./three-events.ts"
 import {
 	createThreeEvents,
@@ -153,15 +153,16 @@ const renderer = createSceneRenderer<Resource>({
 				const handlers = eventHandlers.get(node)!
 				handlers.get(key)?.()
 				handlers.delete(key)
-				if (props[key])
+				const handler = props[key] as ThreeEventHandler | undefined
+				if (handler) {
+					const scope = owner!
 					handlers.set(
 						key,
-						listenThree(
-							node,
-							key.slice(2).toLowerCase(),
-							props[key] as ThreeEventHandler,
+						listenThree(node, key.slice(2).toLowerCase(), (event) =>
+							within(scope, () => handler(event)),
 						),
 					)
+				}
 				continue
 			}
 			if (!(key in target)) throw new Error(`spa/three: unknown property ${key}`)

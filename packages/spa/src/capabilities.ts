@@ -55,6 +55,21 @@ export function capabilityProps(
 	applyNative?: (props: Record<string, any>) => string | undefined,
 ): (props: Record<string, any>) => Record<string, any> {
 	const bindings = new Map<string, CapabilityBinding>()
+	let handlers: WeakMap<Function, Function> | undefined
+	const event = (handler: Function) => {
+		const cache = (handlers ??= new WeakMap())
+		let wrapped = cache.get(handler)
+		if (!wrapped) {
+			let guarded = scope._root._presence?.event(scope, handler)
+			wrapped = function (this: unknown, ...args: unknown[]) {
+				// A scoped capability can activate presence after this listener mounts.
+				guarded ??= scope._root._presence?.event(scope, handler)
+				return (guarded ?? handler).apply(this, args)
+			}
+			cache.set(handler, wrapped)
+		}
+		return wrapped
+	}
 
 	if (scope._root._presence) scope._root._presence.target(scope, target)
 	else (scope._targets ??= new Set()).add(target)
@@ -81,7 +96,7 @@ export function capabilityProps(
 				const value = props[key]
 				native[key] =
 					key.startsWith(`on`) && typeof value === `function`
-						? (scope._root._presence?.event(scope, value) ?? value)
+						? event(value)
 						: value
 				continue
 			}

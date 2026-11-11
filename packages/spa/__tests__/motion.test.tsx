@@ -1,10 +1,46 @@
 import { Silo } from "atom.io"
+import { visualElementStore } from "motion"
 import { expect, it, vi } from "vitest"
 
-import { render, useGetter } from "../src/index.ts"
+import { render, Root, useGetter } from "../src/index.ts"
 import type { MotionAttributes } from "../src/motion.ts"
 import { motionCapability } from "../src/motion.ts"
 import { createSceneRenderer, sceneComponent } from "../src/renderer.ts"
+
+it(`initializes layout when the first Motion boundary mounts during a flush`, () => {
+	const silo = new Silo({
+		name: `scoped-motion`,
+		lifespan: `ephemeral`,
+		isProduction: true,
+	})
+	const visibleAtom = silo.atom<boolean>({ key: `visible`, default: false })
+	const motion = motionCapability({ reducedMotion: `always` })
+	function App() {
+		const getVisible = useGetter(visibleAtom)
+		return (
+			<>
+				{getVisible() && (
+					<Root capabilities={[motion]}>
+						<div motion:layout />
+					</Root>
+				)}
+			</>
+		)
+	}
+	const host = document.createElement(`section`)
+	document.body.append(host)
+	const root = render(() => <App />, host, { store: silo.store })
+	try {
+		silo.setState(visibleAtom, true)
+		root.flush()
+		expect(
+			visualElementStore.get(host.querySelector(`div`)!)?.projection,
+		).toBeDefined()
+	} finally {
+		root.dispose()
+		host.remove()
+	}
+})
 
 it(`animates native scene properties, respects reduced motion, and restores borrowed values`, () => {
 	const silo = new Silo({

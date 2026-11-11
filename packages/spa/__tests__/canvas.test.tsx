@@ -1,9 +1,9 @@
-import { onMount, render, useGetter } from "@atom.io/spa"
+import { onMount, render, Root, useGetter } from "@atom.io/spa"
 import { Silo } from "atom.io"
 import * as THREE from "three"
 import { afterEach, expect, it, vi } from "vitest"
 
-import { Canvas, Mesh } from "../src/three.ts"
+import { BoxGeometry, Canvas, Mesh } from "../src/three.ts"
 
 const renderers = vi.hoisted(() => [] as any[])
 vi.mock(`three`, async (actual) => ({
@@ -229,6 +229,36 @@ it.each([`setup`, `element`, `dimensions`])(
 		expect(f.clock.scheduleFrame).not.toHaveBeenCalled()
 	},
 )
+
+it(`reports Three pointer listener failures to the listener's boundary`, () => {
+	const f = fixture()
+	const inside = vi.fn()
+	const error = new Error(`mesh click failed`)
+	f.mount(() => (
+		<Canvas>
+			<Root onError={inside}>
+				<Mesh
+					onClick={() => {
+						throw error
+					}}
+				>
+					<BoxGeometry />
+				</Mesh>
+			</Root>
+		</Canvas>
+	))
+	const canvas = document.querySelector(`canvas`)!
+	vi.spyOn(canvas, `getBoundingClientRect`).mockReturnValue(
+		new DOMRect(0, 0, 100, 100),
+	)
+	for (const type of [`pointerdown`, `pointerup`])
+		canvas.dispatchEvent(
+			new PointerEvent(type, { clientX: 50, clientY: 50, pointerId: 1 }),
+		)
+	expect(inside).toHaveBeenCalledExactlyOnceWith(error)
+	expect(f.onError).not.toHaveBeenCalled()
+	expect(renderers[0].dispose).toHaveBeenCalledOnce()
+})
 
 it(`reports native resize failures and releases all work, with a safe device ratio fallback`, () => {
 	const f = fixture()

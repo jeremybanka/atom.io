@@ -291,6 +291,42 @@ it(`reports scheduled errors to the nearest configured handler`, async () => {
 	expect(host.childNodes).toHaveLength(0)
 })
 
+it(`reports cleanup errors to the boundary being removed by an outer update`, async () => {
+	const silo = makeSilo(`scoped-cleanup-error`)
+	const visibleAtom = silo.atom<boolean>({ key: `visible`, default: true })
+	const outside = vi.fn()
+	const inside = vi.fn()
+	const cleanup = vi.fn()
+	const error = new Error(`cleanup failed`)
+	function Child() {
+		onCleanup(cleanup)
+		onCleanup(() => {
+			throw error
+		})
+		return <div />
+	}
+	function App() {
+		const getVisible = useGetter(visibleAtom)
+		return (
+			<>
+				{getVisible() && (
+					<Root onError={inside}>
+						<Child />
+					</Root>
+				)}
+			</>
+		)
+	}
+	const host = document.createElement(`section`)
+	render(() => <App />, host, { store: silo.store, onError: outside })
+	silo.setState(visibleAtom, false)
+	await Promise.resolve()
+	expect(inside).toHaveBeenCalledExactlyOnceWith(expect.any(AggregateError))
+	expect(outside).not.toHaveBeenCalled()
+	expect(cleanup).toHaveBeenCalledOnce()
+	expect(host.childNodes).toHaveLength(0)
+})
+
 it(`awaits borrowed store reads for SSR without including them in the island's read list`, async () => {
 	const documentStore = makeSilo(`island-document`)
 	const islandTextAtom = documentStore.atom<Loadable<string>>({

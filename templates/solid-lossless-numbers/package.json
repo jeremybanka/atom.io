@@ -40,7 +40,7 @@
 		"oxlint-tsgolint": "7.0.2006",
 		"typescript": "npm:@typescript/typescript6@6.0.2",
 		"vite": "8.3.7",
-		"vite-plugin-solid": "2.11.15"
+		"vite-plugin-solid": "2.11.16"
 	},
 	"publishConfig": {
 		"access": "public"

@@ -390,6 +390,8 @@ export default {
 			ignoreDependencies: [
 				// Astro uses this adapter to produce the standalone server.
 				"@astrojs/node",
+				// SQL imports generate runtime imports from reylo that Knip cannot see.
+				"reylo",
 			],
 		},
 	},

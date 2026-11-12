@@ -423,7 +423,7 @@ importers:
         version: 0.10.2(supports-color@10.2.2)(zod@4.6.7)
       drizzle-orm:
         specifier: 1.0.0-rc.5
-        version: 1.0.0-rc.5(arktype@2.2.9)(bun-types@1.4.4)(postgres@4.1.0)(zod@4.6.7)
+        version: 1.0.0-rc.5(arktype@2.2.9)(bun-types@1.4.4)(postgres@4.1.1)(zod@4.6.7)
       eslint:
         specifier: 10.14.0
         version: 10.14.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -431,8 +431,8 @@ importers:
         specifier: 21.0.4
         version: 21.0.4
       postgres:
-        specifier: 4.1.0
-        version: 4.1.0
+        specifier: 4.1.1
+        version: 4.1.1
       preact:
         specifier: 11.2.0
         version: 11.2.0(preact-render-to-string@6.8.2)
@@ -7667,8 +7667,8 @@ packages:
     resolution: {integrity: sha512-LJlKCCAUFKOuZxipUdYw1NzIITEsPcgyOG9LkvRJvuKj/bRzbuRY0ARXvL0pWGpsZvn8jku+LMep2eU0seHp8g==}
     engines: {node: ^10 || ^12 || >=14}
 
-  postgres@4.1.0:
-    resolution: {integrity: sha512-s+0WH67YAyLdBQUb6XczbziBhY+C9uiQsg9S8R5RHdZhk6sdyK6202E+T2tXpiInSEEjDLRSJ3OpYBe3PN6MsQ==}
+  postgres@4.1.1:
+    resolution: {integrity: sha512-1kJDojqNZC+iTHHXh6eif0J98LUtyLAePe/qkW1GK35eh2JixlsAiIKq3FGI+xqI+SUGTNodzf7TScVeIIyUug==}
     engines: {node: '>=18'}
 
   preact-render-to-string@6.8.2:
@@ -13140,11 +13140,11 @@ snapshots:
       '@dprint/win32-arm64': 0.64.3
       '@dprint/win32-x64': 0.64.3
 
-  drizzle-orm@1.0.0-rc.5(arktype@2.2.9)(bun-types@1.4.4)(postgres@4.1.0)(zod@4.6.7):
+  drizzle-orm@1.0.0-rc.5(arktype@2.2.9)(bun-types@1.4.4)(postgres@4.1.1)(zod@4.6.7):
     optionalDependencies:
       arktype: 2.2.9
       bun-types: 1.4.4
-      postgres: 4.1.0
+      postgres: 4.1.1
       zod: 4.6.7
 
   dset@3.1.4: {}
@@ -15188,7 +15188,7 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.2
 
-  postgres@4.1.0: {}
+  postgres@4.1.1: {}
 
   preact-render-to-string@6.8.2(preact@11.2.0):
     dependencies:

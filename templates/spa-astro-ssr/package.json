@@ -36,8 +36,8 @@
 	"dependencies": {
 		"@astrojs/node": "11.1.12",
 		"@atom.io/spa": "workspace:*",
-		"@trpc/client": "11.26.0",
-		"@trpc/server": "11.26.0",
+		"@trpc/client": "11.28.0",
+		"@trpc/server": "11.28.0",
 		"astro": "7.4.10",
 		"atom.io": "workspace:*",
 		"resumability": "workspace:*",

@@ -46,7 +46,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Import                    | Minified JS |  Gzip JS |
 | ------------------------- | ----------: | -------: |
-| `@atom.io/react-devtools` |   164,188 B | 54,842 B |
+| `@atom.io/react-devtools` |   164,175 B | 54,843 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

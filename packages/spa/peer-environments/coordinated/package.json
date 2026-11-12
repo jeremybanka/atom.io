@@ -6,7 +6,7 @@
 	"type": "module",
 	"dependencies": {
 		"astro": "7.4.10",
-		"vite": "8.3.7"
+		"vite": "8.3.8"
 	},
 	"devDependencies": {
 		"@types/node": "26.6.6",

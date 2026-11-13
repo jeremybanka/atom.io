@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 
 import { createWindowController } from "../src/window-controller.ts"
-import { SNAP_TARGETS } from "../src/window-geometry.ts"
+import { RESIZE_EDGES, SNAP_TARGETS } from "../src/window-geometry.ts"
 
 const cleanups: (() => void)[] = []
 let frames: Map<number, FrameRequestCallback>,
@@ -124,6 +124,142 @@ it(`coalesces movement, preserves focused input nodes and persists only committe
 	expect(f.rect()).toEqual({ ...free, x: 170, y: 200 })
 	expect(storage).toHaveBeenCalledTimes(1)
 	expect(f.palette.hidden).toBe(true)
+})
+it(`preserves snap, free rectangle and persisted bytes on a click or sub-threshold pointer jitter`, () => {
+	const cases = [
+		{ saved: { free, snap: `right-half` }, x: 610, y: 14 },
+		{ saved: { free, snap: `left-third` }, x: 5, y: 14 },
+		{
+			saved: { free: { x: 700, y: 0, width: 500, height: 900 }, snap: null },
+			x: 705,
+			y: 6,
+		},
+	]
+	for (const { saved, x, y } of cases) {
+		for (const selector of [
+			`.drag-handle`,
+			...RESIZE_EDGES.map((edge) => `[data-resize="${edge}"]`),
+		]) {
+			for (const [dx, dy] of [
+				[0, 0],
+				[1, 0],
+				[2, 2],
+				[3, 0],
+			]) {
+				const f = fixture(saved)
+				const target = f.panel.querySelector<HTMLElement>(selector)!
+				const before = f.rect()
+				const persisted = localStorage.getItem(`🔍 Devtools Window`)
+				const storage = vi.spyOn(window.localStorage, `setItem`)
+				f.pointer(`pointerdown`, x, y, target)
+				if (dx || dy) {
+					f.pointer(`pointermove`, x + dx, y + dy, target)
+					f.flush()
+				}
+				f.pointer(`pointerup`, x + dx, y + dy, target)
+				expect(f.rect()).toEqual(before)
+				expect(localStorage.getItem(`🔍 Devtools Window`)).toBe(persisted)
+				expect(storage).not.toHaveBeenCalled()
+				expect(f.preview.hidden).toBe(true)
+				expect(f.palette.hidden).toBe(true)
+				expect(frames.size).toBe(0)
+				storage.mockRestore()
+				// Restore must recover the full saved free rectangle after the click.
+				f.palette.querySelector<HTMLButtonElement>(`button:last-child`)!.click()
+				expect(f.rect()).toEqual(saved.free)
+				f.controller.dispose()
+				f.host.remove()
+			}
+		}
+	}
+})
+it(`does not resize or detach a snapped window when moving along an edge without crossing it`, () => {
+	for (const [edge, dx, dy] of [
+		[`n`, 20, 0],
+		[`s`, 20, 0],
+		[`e`, 0, 20],
+		[`w`, 0, 20],
+	] as const) {
+		const f = fixture({ free, snap: `right-half` })
+		const handle = f.panel.querySelector<HTMLElement>(`[data-resize="${edge}"]`)!
+		const before = f.rect(),
+			persisted = localStorage.getItem(`🔍 Devtools Window`)
+		f.pointer(`pointerdown`, 610, 14, handle)
+		f.pointer(`pointermove`, 610 + dx, 14 + dy, handle)
+		f.pointer(`pointerup`, 610 + dx, 14 + dy, handle)
+		expect(f.rect()).toEqual(before)
+		expect(localStorage.getItem(`🔍 Devtools Window`)).toBe(persisted)
+		expect(frames.size).toBe(0)
+	}
+})
+it(`preserves armed press geometry and storage on every cancellation path`, () => {
+	for (const termination of [
+		`Escape`,
+		`pointercancel`,
+		`lostpointercapture`,
+		`hide`,
+		`minimize`,
+		`dispose`,
+	]) {
+		const f = fixture({ free, snap: `right-half` })
+		const before = f.rect(),
+			persisted = localStorage.getItem(`🔍 Devtools Window`)
+		const storage = vi.spyOn(window.localStorage, `setItem`)
+		f.pointer(`pointerdown`, 610, 14)
+		f.pointer(`pointermove`, 612, 15)
+		if (termination === `Escape`) f.key(`Escape`)
+		else if (termination === `hide`) f.controller.visibility(true, true)
+		else if (termination === `minimize`) {
+			f.controller.visibility(false, false)
+			f.controller.visibility(false, true)
+		} else if (termination === `dispose`) f.controller.dispose()
+		else f.pointer(termination, 612, 15)
+		expect(f.rect()).toEqual(before)
+		expect(localStorage.getItem(`🔍 Devtools Window`)).toBe(persisted)
+		expect(storage).not.toHaveBeenCalled()
+		expect(frames.size).toBe(0)
+		expect(f.toolbar.releasePointerCapture).toHaveBeenCalledExactlyOnceWith(1)
+		storage.mockRestore()
+	}
+})
+it(`latches real movement at the threshold and commits the final release point before a pending frame`, () => {
+	const f = fixture({ free, snap: `right-half` })
+	const persisted = localStorage.getItem(`🔍 Devtools Window`)
+	const storage = vi.spyOn(window.localStorage, `setItem`)
+	f.pointer(`pointerdown`, 610, 14)
+	f.pointer(`pointermove`, 614, 14) // Exactly four pixels begins a drag.
+	expect(f.palette.hidden).toBe(false)
+	f.flush()
+	expect(f.rect().width).toBe(500)
+	f.key(`Escape`)
+	expect(localStorage.getItem(`🔍 Devtools Window`)).toBe(persisted)
+	f.pointer(`pointerdown`, 610, 14)
+	f.pointer(`pointermove`, 630, 34)
+	const staleFrame = [...frames.values()][0]
+	f.pointer(`pointerup`, 640, 44)
+	expect(frames.size).toBe(0)
+	expect(f.rect().x).toBeCloseTo(631.666667)
+	expect(f.rect().y).toBe(30)
+	expect(JSON.parse(localStorage.getItem(`🔍 Devtools Window`)!).snap).toBeNull()
+	expect(storage).toHaveBeenCalledTimes(1)
+	staleFrame(0)
+	expect(storage).toHaveBeenCalledTimes(1)
+	// Crossing the threshold then returning before a frame still reflects a real drag.
+	f.pointer(`pointerdown`, 700, 100)
+	f.pointer(`pointermove`, 720, 100)
+	f.pointer(`pointerup`, 700, 100)
+	expect(storage).toHaveBeenCalledTimes(2)
+})
+it(`uses meaningful release coordinates even when the final pointermove was not delivered`, () => {
+	const f = fixture({ free, snap: `right-half` })
+	const storage = vi.spyOn(window.localStorage, `setItem`)
+	f.pointer(`pointerdown`, 610, 14)
+	f.pointer(`pointerup`, 620, 24)
+	expect(f.rect().width).toBe(500)
+	expect(f.rect().x).toBeCloseTo(611.666667)
+	expect(f.rect().y).toBe(10)
+	expect(storage).toHaveBeenCalledTimes(1)
+	expect(frames.size).toBe(0)
 })
 it(`ignores unrelated buttons, pointers and controls, and cancels on Escape, cancellation or capture loss`, () => {
 	const f = fixture()

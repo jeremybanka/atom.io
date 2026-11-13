@@ -329,24 +329,30 @@ export function createWindowController(
 			ArrowDown: [0, 10],
 		}[event.key]
 		if (!step) return
+		const edge = element.dataset[`resize`] as ResizeEdge | undefined
+		if (
+			edge &&
+			((step[0] && !edge.includes(`e`) && !edge.includes(`w`)) ||
+				(step[1] && !edge.includes(`n`) && !edge.includes(`s`)))
+		)
+			return
 		event.preventDefault()
 		finish(true)
-		const base = geometry.free
-		geometry = {
-			free: element.dataset[`resize`]
-				? resizeRect(
-						base,
-						element.dataset[`resize`] as ResizeEdge,
-						step[0],
-						step[1],
-						viewport(),
-					)
-				: clampRect(
-						{ ...base, x: base.x + step[0], y: base.y + step[1] },
-						viewport(),
-					),
-			snap: null,
-		}
+		const base = current()
+		const next = edge
+			? resizeRect(base, edge, step[0], step[1], viewport())
+			: clampRect(
+					{ ...base, x: base.x + step[0], y: base.y + step[1] },
+					viewport(),
+				)
+		if (
+			next.x === base.x &&
+			next.y === base.y &&
+			next.width === base.width &&
+			next.height === base.height
+		)
+			return
+		geometry = { free: next, snap: null }
 		paint()
 		persist()
 	}

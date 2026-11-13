@@ -147,7 +147,22 @@ try {
 	await page.getByRole(`button`, { name: `Resize debugger left edge` }).focus()
 	await page.keyboard.press(`ArrowRight`)
 	assert.equal((await panel.boundingBox()).width, free.width - 10)
+	const beforeNarrow = await page.evaluate(() =>
+		window.devtoolsWindowTest.resizeRevision(),
+	)
 	await page.setViewportSize({ width: 200, height: 100 })
+	await page.waitForFunction((revision) => {
+		const box = document
+			.querySelector(`main[data-css="spa-devtools"]`)
+			.getBoundingClientRect()
+		return (
+			window.devtoolsWindowTest.resizeRevision() > revision &&
+			box.x === 0 &&
+			box.y === 0 &&
+			box.width === 200 &&
+			box.height === 100
+		)
+	}, beforeNarrow)
 	assert.deepEqual(await panel.boundingBox(), {
 		x: 0,
 		y: 0,
@@ -156,7 +171,14 @@ try {
 	})
 	await page.getByTestId(`open-close-devtools`).click()
 	await page.getByTestId(`open-close-devtools`).click()
+	const beforeWide = await page.evaluate(() =>
+		window.devtoolsWindowTest.resizeRevision(),
+	)
 	await page.setViewportSize({ width: 1440, height: 900 })
+	await page.waitForFunction(
+		(revision) => window.devtoolsWindowTest.resizeRevision() > revision,
+		beforeWide,
+	)
 	await page.evaluate(() => {
 		localStorage.removeItem(`🔍 Devtools Window`)
 		window.devtoolsWindowTest.remount()
@@ -180,71 +202,149 @@ try {
 		assert.equal(await panel.count(), 1)
 		assert.equal(await page.locator(`.snap-palette:visible`).count(), 0)
 	}
-	// A frame-paced synthetic stream in real Chromium; double-rAF is a paint-boundary proxy, not hardware latency.
+	// Each sample dispatches from a fresh task and observes geometry in the first frame after the handler.
+	// A later frame is recorded separately as a clock proxy, never asserted as painted-input latency.
 	handle = await move.boundingBox()
-	await page.mouse.move(handle.x + 7, handle.y + 10)
+	const timingBase = await panel.boundingBox()
+	const pressPoint = { x: handle.x + 7, y: handle.y + 10 }
+	await page.mouse.move(pressPoint.x, pressPoint.y)
 	await page.mouse.down()
-	const metrics = await page.evaluate(async () => {
-		const toolbar = document.querySelector(`.toolbar`)
-		const start = performance.now(),
-			samples = [],
-			frames = [],
-			longTasks = []
-		const observer = new PerformanceObserver((list) => {
-			longTasks.push(...list.getEntries().map((entry) => entry.duration))
-		})
-		observer.observe({ type: `longtask`, buffered: false })
-		for (let index = 0; index < 300; index++) {
-			await new Promise(requestAnimationFrame)
-			const time = performance.now()
-			frames.push(time)
-			toolbar.dispatchEvent(
-				new PointerEvent(`pointermove`, {
-					pointerId: 1,
-					clientX: 700 + (index % 100),
-					clientY: 180 + (index % 40),
-					bubbles: true,
-				}),
-			)
-			requestAnimationFrame(() =>
-				requestAnimationFrame(() => samples.push(performance.now() - time)),
-			)
-		}
-		await new Promise(requestAnimationFrame)
-		await new Promise(requestAnimationFrame)
-		observer.disconnect()
-		samples.sort((a, b) => a - b)
-		return {
-			durationMs: performance.now() - start,
-			frames: frames.length,
-			averageFrameMs: (frames.at(-1) - frames[0]) / 299,
-			p95PaintBoundaryMs: samples[Math.ceil(samples.length * 0.95) - 1],
-			sampleCount: samples.length,
-			longTasksOver50Ms: longTasks.filter((duration) => duration > 50),
-			graphCodePresent: false,
-		}
+	let deadline
+	const metrics = await Promise.race([
+		page.evaluate(
+			async ({ base, startPoint }) => {
+				const baseline = [],
+					controller = [],
+					longTasks = []
+				const observer = new PerformanceObserver((list) => {
+					longTasks.push(
+						...list
+							.getEntries()
+							.map(({ startTime, duration }) => ({ startTime, duration })),
+					)
+				})
+				observer.observe({ type: `longtask`, buffered: false })
+				const baselineStart = performance.now()
+				for (let index = 0; index < 60; index++) {
+					const sample = await window.devtoolsWindowTest.sample(true, 0, 0)
+					if (JSON.stringify(sample.before) !== JSON.stringify(sample.observed))
+						throw new Error(`No-op baseline changed geometry`)
+					baseline.push(sample)
+				}
+				const baselineDurationMs = performance.now() - baselineStart
+				const start = performance.now()
+				for (let index = 0; index < 300; index++) {
+					const x = 700 + (index % 100),
+						y = 180 + (index % 40)
+					const sample = await window.devtoolsWindowTest.sample(false, x, y)
+					const expected = {
+						...base,
+						x: Math.max(
+							0,
+							Math.min(base.x + x - startPoint.x, innerWidth - base.width),
+						),
+						y: Math.max(
+							0,
+							Math.min(base.y + y - startPoint.y, innerHeight - base.height),
+						),
+					}
+					// Checking the latest expected rectangle detects a one-frame-late update, not just any style mutation.
+					const matches = Object.keys(expected).every(
+						(key) => Math.abs(sample.observed[key] - expected[key]) < 0.01,
+					)
+					if (!matches)
+						throw new Error(
+							`Geometry missed its first frame observation: ${JSON.stringify({ expected, observed: sample.observed })}`,
+						)
+					controller.push(sample)
+				}
+				const durationMs = performance.now() - start
+				await new Promise(requestAnimationFrame)
+				await new Promise(requestAnimationFrame)
+				observer.disconnect()
+				return {
+					baselineDurationMs,
+					durationMs,
+					observedSamplesPerSecond: (controller.length * 1000) / durationMs,
+					baseline,
+					controller,
+					longTasksOver50Ms: longTasks.filter(({ duration }) => duration > 50),
+					graphCodePresent: false,
+				}
+			},
+			{ base: timingBase, startPoint: pressPoint },
+		),
+		new Promise((_, reject) => {
+			deadline = setTimeout(() => {
+				reject(new Error(`Timing capture exceeded 30 seconds`))
+			}, 30_000)
+		}),
+	]).finally(() => {
+		clearTimeout(deadline)
 	})
 	await page.keyboard.press(`Escape`)
 	await page.mouse.up()
 	await page.screenshot({ path: resolve(artifacts, `window.png`) })
 	await context.tracing.stop({ path: resolve(artifacts, `trace.zip`) })
 	assert.deepEqual(errors, [])
+	const summarize = (samples) =>
+		Object.fromEntries(
+			[
+				`dispatchMs`,
+				`handlerToFrameMs`,
+				`dispatchToFrameMs`,
+				`nextFrameProxyMs`,
+			].map((key) => {
+				const values = samples
+					.map((sample) => sample[key])
+					.sort((left, right) => left - right)
+				assert.ok(
+					values.every((value) => Number.isFinite(value)),
+					`Incomplete timing samples for ${key}`,
+				)
+				return [
+					key,
+					{
+						p50: values[Math.ceil(values.length * 0.5) - 1],
+						p95: values[Math.ceil(values.length * 0.95) - 1],
+						max: values.at(-1),
+					},
+				]
+			}),
+		)
+	const baselineSummary = summarize(metrics.baseline),
+		controllerSummary = summarize(metrics.controller)
 	const report = {
 		candidate: process.env.SPA_DEVTOOLS_CANDIDATE_SHA ?? `working-tree`,
 		browser: browser.version(),
 		machine: `${platform()}/${arch()} ${cpus()[0]?.model}`,
 		viewport: { width: 1440, height: 900 },
-		method: `300 rAF-paced synthetic pointermoves during real pointer capture; dispatch to double-rAF paint-boundary proxy; all long tasks counted conservatively; graph code absent in S2`,
+		method: `Fresh-task synthetic dispatch during real pointer capture; 60 no-op control samples then 300 controller samples. Separate synchronous dispatch span, handler-to-first-frame scheduling, observed geometry and later-frame clock proxy. No compositor/hardware input-to-paint latency measurement. All long tasks counted conservatively.`,
+		paintLatencyTarget: {
+			proposedMs: 33,
+			verdict: `not measured; requires presentation/trace analysis`,
+		},
+		baselineSummary,
+		controllerSummary,
+		p95FrameObservationDeltaMs:
+			controllerSummary.dispatchToFrameMs.p95 -
+			baselineSummary.dispatchToFrameMs.p95,
 		...metrics,
 	}
 	await writeFile(
 		resolve(artifacts, `metrics.json`),
 		JSON.stringify(report, null, 2),
 	)
-	console.log(JSON.stringify(report, null, 2))
-	assert.ok(
-		metrics.p95PaintBoundaryMs <= 33,
-		`Paint-boundary proxy p95 exceeded proposed 33ms target`,
+	console.log(
+		JSON.stringify(
+			{
+				...report,
+				baseline: `${metrics.baseline.length} raw samples saved in metrics.json`,
+				controller: `${metrics.controller.length} raw samples saved in metrics.json`,
+			},
+			null,
+			2,
+		),
 	)
 	assert.equal(metrics.longTasksOver50Ms.length, 0)
 	await context.close()

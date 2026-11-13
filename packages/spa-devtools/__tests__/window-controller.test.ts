@@ -348,6 +348,62 @@ it(`snaps and restores through keyboard-accessible buttons, moves/resizes with a
 	window.dispatchEvent(new Event(`resize`))
 	expect(f.rect()).toEqual({ x: 0, y: 0, width: 160, height: 90 })
 })
+it(`nudges and resizes snapped windows from their visible bounds`, () => {
+	for (const [selector, key, expected] of [
+		[`.drag-handle`, `ArrowLeft`, { x: 590, y: 0, width: 600, height: 900 }],
+		[
+			`[data-resize="e"]`,
+			`ArrowLeft`,
+			{ x: 600, y: 0, width: 590, height: 900 },
+		],
+		[
+			`[data-resize="w"]`,
+			`ArrowRight`,
+			{ x: 610, y: 0, width: 590, height: 900 },
+		],
+		[
+			`[data-resize="n"]`,
+			`ArrowDown`,
+			{ x: 600, y: 10, width: 600, height: 890 },
+		],
+		[`[data-resize="se"]`, `ArrowUp`, { x: 600, y: 0, width: 600, height: 890 }],
+	] as const) {
+		const f = fixture({ free, snap: `right-half` })
+		f.key(key, f.panel.querySelector<HTMLElement>(selector)!)
+		expect(f.rect()).toEqual(expected)
+		expect(JSON.parse(localStorage.getItem(`🔍 Devtools Window`)!)).toEqual({
+			free: expected,
+			snap: null,
+		})
+	}
+	const top = fixture({ free, snap: `top-half` })
+	top.key(`ArrowDown`, top.panel.querySelector<HTMLElement>(`.drag-handle`)!)
+	expect(top.rect()).toEqual({ x: 0, y: 10, width: 1200, height: 450 })
+})
+it(`keeps snapped geometry and storage for unrelated resize arrows and clamped keyboard actions`, () => {
+	for (const [selector, key] of [
+		[`[data-resize="e"]`, `ArrowUp`],
+		[`[data-resize="e"]`, `ArrowDown`],
+		[`[data-resize="w"]`, `ArrowUp`],
+		[`[data-resize="w"]`, `ArrowDown`],
+		[`[data-resize="n"]`, `ArrowLeft`],
+		[`[data-resize="n"]`, `ArrowRight`],
+		[`[data-resize="s"]`, `ArrowLeft`],
+		[`[data-resize="s"]`, `ArrowRight`],
+		[`.drag-handle`, `ArrowRight`],
+		[`.drag-handle`, `ArrowUp`],
+		[`[data-resize="e"]`, `ArrowRight`],
+	] as const) {
+		const f = fixture({ free, snap: `right-half` })
+		const persisted = localStorage.getItem(`🔍 Devtools Window`)
+		const storage = vi.spyOn(window.localStorage, `setItem`)
+		f.key(key, f.panel.querySelector<HTMLElement>(selector)!)
+		expect(f.rect()).toEqual({ x: 600, y: 0, width: 600, height: 900 })
+		expect(localStorage.getItem(`🔍 Devtools Window`)).toBe(persisted)
+		expect(storage).not.toHaveBeenCalled()
+		storage.mockRestore()
+	}
+})
 it(`resizes corners, cancels scheduled work and preserves free geometry across hide/minimize/disposal`, () => {
 	const f = fixture()
 	const handle = f.panel.querySelector<HTMLElement>(`[data-resize="se"]`)!

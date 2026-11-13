@@ -65,6 +65,11 @@ jobs:
             build_filters: --filter=@atom.io/spa... --filter=resumability...
             directory: packages/spa
             playwright_module: playwright
+          - suite: devtools
+            name: SPA Devtools
+            build_filters: --filter=@atom.io/spa-devtools...
+            directory: packages/spa-devtools
+            playwright_module: playwright
           - suite: astro
             name: Astro Starter
             build_filters: --filter=@atom.io/template-spa-astro-ssr^...
@@ -110,6 +115,15 @@ jobs:
         if: matrix.suite == 'editor'
       - run: pnpm --filter @atom.io/spa test:browser
         if: matrix.suite == 'spa'
+      - run: pnpm --filter @atom.io/spa-devtools test:browser
+        if: matrix.suite == 'devtools'
+      - name: Upload devtools window capture
+        if: always() && matrix.suite == 'devtools'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: spa-devtools-window
+          path: /tmp/spa-devtools-window
+          retention-days: 7
       - run: pnpm --filter @atom.io/spa test:browser:motion
         if: matrix.suite == 'spa'
       - run: pnpm --filter @atom.io/spa test:browser:floating

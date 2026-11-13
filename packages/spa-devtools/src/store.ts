@@ -37,7 +37,7 @@ function ownedAtom<T>(store: RootStore, initial: T): RegularAtomToken<T> {
 	})
 	return token
 }
-export function useLocal<T>(
+function useLocal<T>(
 	store: RootStore,
 	initial: T,
 ): [Accessor<T>, (next: T | Setter<T>) => void] {

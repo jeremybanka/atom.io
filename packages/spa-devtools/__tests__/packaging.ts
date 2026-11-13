@@ -73,16 +73,19 @@ try {
 				sdk,
 			)
 		}
-		assert.throws(() => require.resolve(`motion`))
-		if (!version) {
-			for (const name of [
-				`react`,
-				`react-dom`,
-				`@atom.io/react`,
-				`@types/react`,
-			]) {
-				assert.throws(() => require.resolve(`${name}/package.json`))
-			}
+		// These are negative probes of the isolated consumer, not imports used by this test.
+		// Keep names as data so dependency analysis does not infer a dependency on them.
+		const absentSpecifiers = version
+			? [`motion`]
+			: [
+					`motion`,
+					`react/package.json`,
+					`react-dom/package.json`,
+					`@atom.io/react/package.json`,
+					`@types/react/package.json`,
+				]
+		for (const name of absentSpecifiers) {
+			assert.throws(() => require.resolve(name), { code: `MODULE_NOT_FOUND` })
 		}
 		const css = await readFile(
 			require.resolve(`@atom.io/spa-devtools/css`),

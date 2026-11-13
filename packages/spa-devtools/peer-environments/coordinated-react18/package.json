@@ -1,0 +1,25 @@
+{
+	"name": "spa-devtools-react18",
+	"version": "0.0.0",
+	"private": true,
+	"description": "spa-devtools \u00b7 React 18 \u00b7 coordinated",
+	"type": "module",
+	"dependencies": {
+		"@types/react": "18.3.31",
+		"@types/react-dom": "18.3.7",
+		"react": "18.3.1",
+		"react-dom": "18.3.1"
+	},
+	"devDependencies": {
+		"@types/node": "26.6.6",
+		"happy-dom": "21.0.4",
+		"typescript": "7.0.2"
+	},
+	"breakage": {
+		"candidates": [
+			"atom.io",
+			"@atom.io/spa",
+			"@atom.io/react"
+		]
+	}
+}

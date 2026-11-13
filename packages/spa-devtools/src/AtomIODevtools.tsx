@@ -1,4 +1,4 @@
-import type { SpaElement } from "@atom.io/spa"
+import type { SpaElement, SpaRoot } from "@atom.io/spa"
 import { onCleanup, onMount, render, useGetter } from "@atom.io/spa"
 import type { RootStore } from "atom.io/internal"
 import { IMPLICIT } from "atom.io/internal"
@@ -11,6 +11,43 @@ export interface AtomIODevtoolsProps {
 	store?: RootStore
 	hideByDefault?: boolean
 }
+export interface AtomIODevtoolsHandle {
+	/** Dispose this panel's root, listeners and UI state. Safe to call repeatedly. */
+	dispose(): void
+}
+/** Mount a panel in an owned child, preserving the host's other children. Options are fixed at mount. */
+export function mountAtomIODevtools(
+	host: Element,
+	options: AtomIODevtoolsProps = {},
+): AtomIODevtoolsHandle {
+	const store = options.store ?? IMPLICIT.STORE
+	const hideByDefault = options.hideByDefault ?? false
+	const container = host.ownerDocument.createElement(`spa-devtools`)
+	host.append(container)
+	let root: SpaRoot
+	try {
+		root = render(
+			() => <Panel store={store} hideByDefault={hideByDefault} />,
+			container,
+			{ store },
+		)
+	} catch (error) {
+		container.remove()
+		throw error
+	}
+	let disposed = false
+	return {
+		dispose() {
+			if (disposed) return
+			disposed = true
+			try {
+				root.dispose()
+			} finally {
+				container.remove()
+			}
+		},
+	}
+}
 /** Owns a rendering root in the inspected store, independently of its parent island. */
 export function AtomIODevtools(props: AtomIODevtoolsProps): SpaElement {
 	let host: HTMLElement | null = null
@@ -18,13 +55,7 @@ export function AtomIODevtools(props: AtomIODevtoolsProps): SpaElement {
 		host = element
 	}
 	onMount(() => {
-		const store = props.store ?? IMPLICIT.STORE
-		const root = render(
-			() => <Panel store={store} hideByDefault={props.hideByDefault ?? false} />,
-			host!,
-			{ store },
-		)
-		onCleanup(root.dispose)
+		onCleanup(mountAtomIODevtools(host!, props).dispose)
 	})
 	return <spa-devtools ref={attach} />
 }

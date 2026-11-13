@@ -43,7 +43,7 @@
 		"test:stress:realtime-ipc": "dotenvx run -- turbo run test:stress:realtime-ipc --filter=@atom.io/realtime",
 		"vigilance": "bun scripts/vigilance-bot.bun.ts",
 		"workflows": "node scripts/update-workflows.node.ts",
-		"test:packaging": "turbo run test:packaging --filter=atom.io --filter=@atom.io/react-devtools --filter=@atom.io/realtime",
+		"test:packaging": "turbo run test:packaging --filter=atom.io --filter=@atom.io/react-devtools --filter=@atom.io/spa-devtools --filter=@atom.io/realtime",
 		"cov": "dotenvx run -- turbo run cov --filter=./packages/*",
 		"cov:recoverage": "pnpm cov && dotenvx run -- turbo run cov:recoverage --concurrency=1 --continue=always --filter=./packages/*",
 		"readme:write": "dotenvx run -- turbo run readme:write --filter=./packages/*",

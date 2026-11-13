@@ -1,10 +1,11 @@
 import type { SpaElement, SpaRoot } from "@atom.io/spa"
-import { onCleanup, onMount, render, useGetter } from "@atom.io/spa"
+import { onCleanup, onCommit, onMount, render, useGetter } from "@atom.io/spa"
 import type { RootStore } from "atom.io/internal"
 import { IMPLICIT } from "atom.io/internal"
 
 import { StateIndex, TimelineIndex, TransactionIndex } from "./Indexes.tsx"
-import { useLocal, useSaved, useTools } from "./store.ts"
+import { useSaved, useTools } from "./store.ts"
+import { createWindowController } from "./window-controller.ts"
 
 export interface AtomIODevtoolsProps {
 	/** Inspected store. Fixed for this component instance; change its key to replace it. */
@@ -76,32 +77,25 @@ function Panel(props: { store: RootStore; hideByDefault: boolean }): SpaElement 
 	)
 	const view = () =>
 		VIEWS.includes(getSelection() as View) ? (getSelection() as View) : `atoms`
-	const [getPosition, setPosition] = useLocal(props.store, { x: 0, y: 0 })
 	const getError = useGetter(tools.error)
 	let panel: HTMLElement | null = null
 	const attach = (element: HTMLElement | null) => {
 		panel = element
 	}
-	let drag:
-		| { id: number; startX: number; startY: number; x: number; y: number }
-		| undefined
+	let controller: ReturnType<typeof createWindowController> | undefined
 	onMount(() => {
-		const shortcut = (event: KeyboardEvent) => {
-			if (event.ctrlKey && event.shiftKey && event.code === `KeyA`) {
-				event.preventDefault()
-				setHidden((value) => !value)
-			}
-		}
-		const reset = () => {
-			setPosition({ x: 0, y: 0 })
-		}
-		document.addEventListener(`keydown`, shortcut)
-		window.addEventListener(`resize`, reset)
-		onCleanup(() => {
-			document.removeEventListener(`keydown`, shortcut)
-			window.removeEventListener(`resize`, reset)
+		controller = createWindowController(panel!, () => {
+			setHidden((value) => !value)
 		})
+		controller.visibility(getHidden(), getOpen())
+		onCleanup(controller.dispose)
 	})
+	onCommit(
+		() => `${getHidden()}:${getOpen()}`,
+		() => {
+			controller?.visibility(getHidden(), getOpen())
+		},
+	)
 	return (
 		<main
 			ref={attach}
@@ -109,7 +103,6 @@ function Panel(props: { store: RootStore; hideByDefault: boolean }): SpaElement 
 			data-testid="atom-io-devtools"
 			hidden={getHidden()}
 			data-open={getOpen()}
-			style={`transform:translate(${getPosition().x}px,${getPosition().y}px)`}
 		>
 			<header class="toolbar">
 				<button
@@ -117,56 +110,6 @@ function Panel(props: { store: RootStore; hideByDefault: boolean }): SpaElement 
 					class="drag-handle"
 					aria-label="Move debugger"
 					title="Drag to move; arrow keys to nudge"
-					onPointerdown={(event) => {
-						if (event.button !== 0) return
-						drag = {
-							id: event.pointerId,
-							startX: event.clientX,
-							startY: event.clientY,
-							...getPosition(),
-						}
-						;(event.currentTarget as HTMLElement).setPointerCapture(
-							event.pointerId,
-						)
-					}}
-					onPointermove={(event) => {
-						if (!drag || drag.id !== event.pointerId || !panel) return
-						const rect = panel.getBoundingClientRect()
-						const next = {
-							x: drag.x + event.clientX - drag.startX,
-							y: drag.y + event.clientY - drag.startY,
-						}
-						next.x = Math.max(
-							getPosition().x - rect.left,
-							Math.min(next.x, getPosition().x + window.innerWidth - rect.right),
-						)
-						next.y = Math.max(
-							getPosition().y - rect.top,
-							Math.min(
-								next.y,
-								getPosition().y + window.innerHeight - rect.bottom,
-							),
-						)
-						setPosition(next)
-					}}
-					onPointerup={() => {
-						drag = undefined
-					}}
-					onPointercancel={() => {
-						drag = undefined
-					}}
-					onKeydown={(event) => {
-						const step = {
-							ArrowLeft: [-10, 0],
-							ArrowRight: [10, 0],
-							ArrowUp: [0, -10],
-							ArrowDown: [0, 10],
-						}[event.key]
-						if (step) {
-							event.preventDefault()
-							setPosition(({ x, y }) => ({ x: x + step[0], y: y + step[1] }))
-						}
-					}}
 				>
 					⠿
 				</button>

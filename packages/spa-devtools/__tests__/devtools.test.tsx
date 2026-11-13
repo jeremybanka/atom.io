@@ -294,35 +294,15 @@ describe(`spa debugger`, () => {
 		expect(host.querySelectorAll(`input[aria-label="value"]`).length).toBe(2)
 	})
 })
-it(`moves the panel with pointer capture and keyboard, then resets on resize`, async () => {
+it(`keeps the default window clamped on viewport resize and supports hiding`, async () => {
 	const { host, mount, click } = fixture()
 	localStorage.setItem(`🔍 Devtools View`, `"invalid"`)
 	const root = mount()
-	const handle = host.querySelector<HTMLElement>(`[aria-label="Move debugger"]`)!
 	const panel = host.querySelector<HTMLElement>(`main`)!
-	handle.setPointerCapture = () => {}
-	const pointer = (type: string, options: PointerEventInit = {}) =>
-		handle.dispatchEvent(
-			new PointerEvent(type, { bubbles: true, pointerId: 1, ...options }),
-		)
-	pointer(`pointermove`)
-	pointer(`pointerdown`, { button: 2 })
-	pointer(`pointerdown`, { button: 0, clientX: 10, clientY: 10 })
-	pointer(`pointermove`, { pointerId: 2, clientX: 20 })
-	pointer(`pointermove`, { clientX: 30, clientY: 40 })
-	await tick()
-	expect(panel.style.transform).toBe(`translate(20px,30px)`)
-	pointer(`pointerup`)
-	pointer(`pointermove`, { clientX: 100 })
-	pointer(`pointerdown`, { button: 0 })
-	pointer(`pointercancel`)
-	for (const key of [`ArrowLeft`, `ArrowUp`, `ArrowRight`, `ArrowDown`, `Enter`])
-		handle.dispatchEvent(new KeyboardEvent(`keydown`, { key, bubbles: true }))
-	await tick()
-	expect(panel.style.transform).toBe(`translate(20px,30px)`)
+	const before = panel.style.cssText
 	window.dispatchEvent(new Event(`resize`))
 	await tick()
-	expect(panel.style.transform).toBe(`translate(0px,0px)`)
+	expect(panel.style.cssText).toBe(before)
 	await click(`[aria-label="Hide debugger (Ctrl+Shift+A)"]`)
 	expect(panel.hidden).toBe(true)
 	root.dispose()

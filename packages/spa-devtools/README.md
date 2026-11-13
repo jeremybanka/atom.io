@@ -63,7 +63,7 @@ The four views inspect atoms, selectors, transactions, and timelines. State fami
 
 Transaction logs show parameters, output, and nested events. Timeline views group families, show event history and the current position, and provide store-scoped undo and redo. Logs use atom.io's introspection states: transaction recording starts when its log is first inspected, and introspection definitions live with the store.
 
-Ctrl+Shift+A shows or hides the debugger. The header supports pointer dragging, arrow-key nudging, minimization, and hiding. Visibility, minimization, selected view, and expanded editors persist in localStorage when available. Shift-click an expansion button to expand or collapse siblings. UI-owned state uses disposable atom family members; unmounting releases those members, DOM subscriptions, and keyboard/resize listeners.
+Ctrl+Shift+A shows or hides the debugger. Drag the header to move the window, or drag any edge or corner to resize it. During a drag, hover a layout target to preview its exact viewport bounds before releasing: left/right halves, left/center/right thirds, top/bottom halves, or full viewport. The Layout button offers the same targets by keyboard, plus Restore free position. Focus the move handle or a resize handle and use arrow keys for 10-pixel adjustments. Escape, pointer cancellation, or capture loss restores the pre-gesture geometry; hiding, minimizing, unmounting, or replacing the store cancels active work. The last free position and snap choice persist in localStorage when available, and geometry clamps to the current viewport, including narrow screens. Geometry updates leave focused editor inputs and incomplete numeric text intact. Visibility, minimization, selected view, and expanded editors persist in localStorage when available. Shift-click an expansion button to expand or collapse siblings. UI-owned state uses disposable atom family members; unmounting releases those members, DOM subscriptions, and keyboard/resize listeners.
 
 For a shared debugger UI, React applications can migrate their AtomIODevtools and stylesheet imports to this package's React and CSS entries. The existing @atom.io/react-devtools package remains available, including its JSON editor, elastic input, error boundary and customization contracts; those contracts are not exposed by the shared debugger.
 
@@ -83,7 +83,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                        | Entry                         | Minified JS |  Gzip JS |
 | ----------------------------- | ----------------------------- | ----------: | -------: |
-| Interactive app with debugger | `tonnage-recipes/debugger.ts` |    93,380 B | 27,629 B |
+| Interactive app with debugger | `tonnage-recipes/debugger.ts` |    99,511 B | 29,755 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

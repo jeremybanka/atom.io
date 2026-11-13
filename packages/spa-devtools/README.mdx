@@ -1,10 +1,12 @@
 import { Tonnage } from "tonnage";
 import config from "./tonnage.config.ts";
 import Setup from "./exhibits/setup.tsx" with { type: "code" };
+import Mount from "./exhibits/mount.ts" with { type: "code" };
+import ReactSetup from "./exhibits/react.ts" with { type: "code" };
 
 # SPA devtools
 
-An experimental atom.io debugger rendered with spa. The @atom.io/spa-devtools package powers the debugger on atom.io.fyi. It is separate from spa's renderer and size budget; it has no React, Preact, or Motion dependency.
+An experimental atom.io debugger rendered with spa. The @atom.io/spa-devtools package powers the debugger on atom.io.fyi. It is separate from spa's renderer and size budget. Its root entry requires no React, Preact, or Motion; React integration is available through an optional entry.
 
 Use spa's Vite or Astro integration to compile application JSX. Import the stylesheet once, then mount the debugger in a spa component:
 
@@ -12,13 +14,27 @@ Use spa's Vite or Astro integration to compile application JSX. Import the style
 
 The optional store prop selects the inspected store; it defaults to atom.io's implicit store. The debugger owns a rendering root in that store, so its parent island can use a different store. The store is fixed for an instance; use a different component key to inspect another store. Mounting is client-side, and Astro applications can use client:only with the spa renderer hint.
 
+## Browser hosts
+
+Use mountAtomIODevtools with a host element and optional store and hideByDefault options. The options are captured at mount; dispose and mount again to change them. Each call owns a child of the host and preserves its existing children. Call the returned dispose method when removing the debugger; repeated disposal is safe.
+
+<Mount />
+
+## React
+
+Install the optional @atom.io/react and React 18 or 19 peers, and import AtomIODevtools from @atom.io/spa-devtools/react. It renders the same SPA debugger inside a React-owned host; application JSX needs no SPA compiler. Import @atom.io/spa-devtools/css once.
+
+<ReactSetup />
+
+The adapter reads StoreContext from @atom.io/react. An explicit store prop takes precedence over its provider; without either it uses the implicit store. Changing the selected store or hideByDefault disposes and remounts the panel. Persisted visibility takes precedence over hideByDefault. Effect cleanup supports StrictMode replay. Server import and render create no panel; mounting happens in a client effect.
+
 The four views inspect atoms, selectors, transactions, and timelines. State families group their members and offer member disposal. JSON editors support primitive edits, object property renaming, adding and removing entries, array sorting, and conversion between JSON types. Readonly selectors remain readonly. Circular and non-JSON values receive safe textual representations. Failed edits appear in the panel.
 
 Transaction logs show parameters, output, and nested events. Timeline views group families, show event history and the current position, and provide store-scoped undo and redo. Logs use atom.io's introspection states: transaction recording starts when its log is first inspected, and introspection definitions live with the store.
 
 Ctrl+Shift+A shows or hides the debugger. The header supports pointer dragging, arrow-key nudging, minimization, and hiding. Visibility, minimization, selected view, and expanded editors persist in localStorage when available. Shift-click an expansion button to expand or collapse siblings. UI-owned state uses disposable atom family members; unmounting releases those members, DOM subscriptions, and keyboard/resize listeners.
 
-This port shares atom.io's introspection engine with the React debugger. It does not expose React component customization contracts. The React package remains available for React applications.
+For a shared debugger UI, React applications can migrate their AtomIODevtools and stylesheet imports to this package's React and CSS entries. The existing @atom.io/react-devtools package remains available, including its JSON editor, elastic input, error boundary and customization contracts; those contracts are not exposed by the shared debugger.
 
 ## Package checks
 

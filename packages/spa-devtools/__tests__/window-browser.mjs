@@ -38,6 +38,7 @@ await new Promise((ready) => server.listen(0, `127.0.0.1`, ready))
 let browser
 try {
 	browser = await chromium.launch({
+		chromiumSandbox: true,
 		executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
 	})
 	const context = await browser.newContext({
@@ -101,6 +102,15 @@ try {
 			.click()
 		await page.getByRole(`button`, { name: label, exact: true }).click()
 		assert.deepEqual(await panel.boundingBox(), { x, y, width, height })
+		const stored = await page.evaluate(() =>
+			localStorage.getItem(`🔍 Devtools Window`),
+		)
+		await move.click()
+		assert.deepEqual(await panel.boundingBox(), { x, y, width, height })
+		assert.equal(
+			await page.evaluate(() => localStorage.getItem(`🔍 Devtools Window`)),
+			stored,
+		)
 		await page
 			.getByRole(`button`, { name: `Debugger layout`, exact: true })
 			.click()
@@ -111,6 +121,8 @@ try {
 	handle = await move.boundingBox()
 	await page.mouse.move(handle.x + 7, handle.y + 10)
 	await page.mouse.down()
+	await page.mouse.move(handle.x - 10, handle.y + 10)
+	await page.locator(`.snap-palette`).waitFor({ state: `visible` })
 	const target = await page
 		.getByRole(`button`, { name: `Right third`, exact: true })
 		.boundingBox()

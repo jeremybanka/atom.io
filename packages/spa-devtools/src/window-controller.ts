@@ -76,6 +76,7 @@ export function createWindowController(
 				x: number
 				y: number
 				edge: ResizeEdge | null
+				active: boolean
 				target: SnapTarget | null
 				zones: { target: SnapTarget; rect: DOMRect }[]
 		  }
@@ -140,7 +141,8 @@ export function createWindowController(
 				? rect
 				: clampRect({ ...rect, width: 33, height: 28 }, viewport(), 1, 1),
 		)
-		palette.hidden = hidden || !open || !(menuOpen || (gesture && !gesture.edge))
+		palette.hidden =
+			hidden || !open || !(menuOpen || (gesture?.active && !gesture.edge))
 		layout.setAttribute(`aria-expanded`, String(menuOpen))
 		for (const button of targets)
 			button.setAttribute(
@@ -165,7 +167,7 @@ export function createWindowController(
 	}
 	function update() {
 		frame = 0
-		if (!gesture) return
+		if (!gesture?.active) return
 		const { base, edge, x, y, startX, startY, zones } = gesture
 		geometry = {
 			free: edge
@@ -194,14 +196,15 @@ export function createWindowController(
 		if (frame) win.cancelAnimationFrame(frame)
 		if (!cancel) update()
 		const ending = gesture
+		const committed = !cancel && ending.active
 		gesture = undefined
 		frame = 0
-		geometry = cancel
-			? ending.before
-			: {
+		geometry = committed
+			? {
 					free: ending.target ? ending.before.free : geometry.free,
 					snap: ending.target,
 				}
+			: ending.before
 		preview.hidden = true
 		try {
 			ending.capture.releasePointerCapture(ending.id)
@@ -209,7 +212,7 @@ export function createWindowController(
 			/* capture can already be lost */
 		}
 		paint()
-		if (!cancel) persist()
+		if (committed) persist()
 	}
 	const down = (event: PointerEvent) => {
 		if (
@@ -260,25 +263,45 @@ export function createWindowController(
 			x: event.clientX,
 			y: event.clientY,
 			edge: handle ? (handle.dataset[`resize`] as ResizeEdge) : null,
+			active: false,
 			target: null,
 			zones: [],
 		}
 		paint()
-		gesture.zones = targets.map((button, index) => ({
-			target: SNAP_TARGETS[index],
-			rect: button.getBoundingClientRect(),
-		}))
+	}
+	// Capture tracks a press; only meaningful movement starts a drag/resize.
+	function recordPoint(event: PointerEvent) {
+		const press = gesture!
+		press.x = event.clientX
+		press.y = event.clientY
+		const dx =
+			press.edge && !press.edge.includes(`e`) && !press.edge.includes(`w`)
+				? 0
+				: press.x - press.startX
+		const dy =
+			press.edge && !press.edge.includes(`n`) && !press.edge.includes(`s`)
+				? 0
+				: press.y - press.startY
+		if (!press.active && Math.hypot(dx, dy) >= 4) {
+			press.active = true
+			paint()
+			press.zones = press.edge
+				? []
+				: targets.map((button, index) => ({
+						target: SNAP_TARGETS[index],
+						rect: button.getBoundingClientRect(),
+					}))
+		}
 	}
 	const move = (event: PointerEvent) => {
 		if (!gesture || event.pointerId !== gesture.id) return
-		gesture.x = event.clientX
-		gesture.y = event.clientY
+		recordPoint(event)
+		if (!gesture.active) return
 		if (!frame) frame = win.requestAnimationFrame(update)
 	}
 	const up = (event: PointerEvent) => {
 		if (!gesture || event.pointerId !== gesture.id) return
-		gesture.x = event.clientX
-		gesture.y = event.clientY
+		recordPoint(event)
 		finish(false)
 	}
 	const cancel = (event: PointerEvent) => {

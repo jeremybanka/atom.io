@@ -50,7 +50,8 @@
 		"readme:write": "galley write README.mdx",
 		"readme:check": "galley check README.mdx",
 		"tonnage": "pnpm readme:write",
-		"tonnage:check": "pnpm readme:check"
+		"tonnage:check": "pnpm readme:check",
+		"test:browser": "node __tests__/window-browser.mjs"
 	},
 	"devDependencies": {
 		"@atom.io/react": "workspace:*",
@@ -62,8 +63,10 @@
 		"@vitest/coverage-v8": "5.1.0",
 		"atom.io": "workspace:*",
 		"breakage": "0.10.2",
+		"esbuild": "0.28.2",
 		"eslint": "10.14.0",
 		"happy-dom": "21.0.4",
+		"playwright": "1.65.0",
 		"react": "19.3.1",
 		"react-dom": "19.3.1",
 		"tsdown": "0.23.7",
@@ -78,9 +81,15 @@
 		"react": "^18.0.0 || ^19.0.0"
 	},
 	"peerDependenciesMeta": {
-		"@atom.io/react": { "optional": true },
-		"@types/react": { "optional": true },
-		"react": { "optional": true }
+		"@atom.io/react": {
+			"optional": true
+		},
+		"@types/react": {
+			"optional": true
+		},
+		"react": {
+			"optional": true
+		}
 	},
 	"publishConfig": {
 		"access": "public"

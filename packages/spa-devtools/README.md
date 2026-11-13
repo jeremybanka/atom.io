@@ -1,6 +1,6 @@
 # SPA devtools
 
-An experimental atom.io debugger rendered with spa. The @atom.io/spa-devtools package powers the debugger on atom.io.fyi. It is separate from spa's renderer and size budget; it has no React, Preact, or Motion dependency.
+An experimental atom.io debugger rendered with spa. The @atom.io/spa-devtools package powers the debugger on atom.io.fyi. It is separate from spa's renderer and size budget. Its root entry requires no React, Preact, or Motion; React integration is available through an optional entry.
 
 Use spa's Vite or Astro integration to compile application JSX. Import the stylesheet once, then mount the debugger in a spa component:
 
@@ -19,13 +19,53 @@ export function Debugger(props: { store: RootStore }): SpaElement {
 
 The optional store prop selects the inspected store; it defaults to atom.io's implicit store. The debugger owns a rendering root in that store, so its parent island can use a different store. The store is fixed for an instance; use a different component key to inspect another store. Mounting is client-side, and Astro applications can use client:only with the spa renderer hint.
 
+## Browser hosts
+
+Use mountAtomIODevtools with a host element and optional store and hideByDefault options. The options are captured at mount; dispose and mount again to change them. Each call owns a child of the host and preserves its existing children. Call the returned dispose method when removing the debugger; repeated disposal is safe.
+
+```ts
+import "@atom.io/spa-devtools/css"
+
+import { mountAtomIODevtools } from "@atom.io/spa-devtools"
+
+export function attachDebugger(host: HTMLElement): () => void {
+	const panel = mountAtomIODevtools(host, { hideByDefault: true })
+	return panel.dispose
+}
+
+```
+
+## React
+
+Install the optional @atom.io/react and React 18 or 19 peers, and import AtomIODevtools from @atom.io/spa-devtools/react. It renders the same SPA debugger inside a React-owned host; application JSX needs no SPA compiler. Import @atom.io/spa-devtools/css once.
+
+```ts
+import "@atom.io/spa-devtools/css"
+
+import { StoreProvider } from "@atom.io/react"
+import { AtomIODevtools } from "@atom.io/spa-devtools/react"
+import type { RootStore } from "atom.io/internal"
+import type { ReactElement } from "react"
+import { createElement } from "react"
+
+export function Debugger({ store }: { store: RootStore }): ReactElement {
+	return createElement(StoreProvider, {
+		store,
+		children: createElement(AtomIODevtools),
+	})
+}
+
+```
+
+The adapter reads StoreContext from @atom.io/react. An explicit store prop takes precedence over its provider; without either it uses the implicit store. Changing the selected store or hideByDefault disposes and remounts the panel. Persisted visibility takes precedence over hideByDefault. Effect cleanup supports StrictMode replay. Server import and render create no panel; mounting happens in a client effect.
+
 The four views inspect atoms, selectors, transactions, and timelines. State families group their members and offer member disposal. JSON editors support primitive edits, object property renaming, adding and removing entries, array sorting, and conversion between JSON types. Readonly selectors remain readonly. Circular and non-JSON values receive safe textual representations. Failed edits appear in the panel.
 
 Transaction logs show parameters, output, and nested events. Timeline views group families, show event history and the current position, and provide store-scoped undo and redo. Logs use atom.io's introspection states: transaction recording starts when its log is first inspected, and introspection definitions live with the store.
 
 Ctrl+Shift+A shows or hides the debugger. The header supports pointer dragging, arrow-key nudging, minimization, and hiding. Visibility, minimization, selected view, and expanded editors persist in localStorage when available. Shift-click an expansion button to expand or collapse siblings. UI-owned state uses disposable atom family members; unmounting releases those members, DOM subscriptions, and keyboard/resize listeners.
 
-This port shares atom.io's introspection engine with the React debugger. It does not expose React component customization contracts. The React package remains available for React applications.
+For a shared debugger UI, React applications can migrate their AtomIODevtools and stylesheet imports to this package's React and CSS entries. The existing @atom.io/react-devtools package remains available, including its JSON editor, elastic input, error boundary and customization contracts; those contracts are not exposed by the shared debugger.
 
 ## Package checks
 
@@ -43,7 +83,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                        | Entry                         | Minified JS |  Gzip JS |
 | ----------------------------- | ----------------------------- | ----------: | -------: |
-| Interactive app with debugger | `tonnage-recipes/debugger.ts` |    93,165 B | 27,548 B |
+| Interactive app with debugger | `tonnage-recipes/debugger.ts` |    93,380 B | 27,629 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

@@ -1,0 +1,20 @@
+{
+	"compilerOptions": {
+		"module": "Preserve",
+		"moduleResolution": "Bundler",
+		"target": "ES2024",
+		"strict": true,
+		"skipLibCheck": false,
+		"noEmit": true,
+		"types": [
+			"node"
+		],
+		"lib": [
+			"DOM",
+			"ESNext"
+		]
+	},
+	"include": [
+		"*.ts"
+	]
+}

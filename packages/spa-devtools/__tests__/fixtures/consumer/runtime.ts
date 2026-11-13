@@ -4,7 +4,7 @@ import { test } from "node:test"
 
 import { render } from "@atom.io/spa"
 import { jsx } from "@atom.io/spa/jsx-runtime"
-import { AtomIODevtools } from "@atom.io/spa-devtools"
+import { AtomIODevtools, mountAtomIODevtools } from "@atom.io/spa-devtools"
 import { Silo } from "atom.io"
 import { Window } from "happy-dom"
 
@@ -33,6 +33,13 @@ await test(`packed debugger edits its inspected store and cleans up owned state`
 	assert.equal(silo.getState(countAtom), 7)
 	root.dispose()
 	assert.equal(host.childNodes.length, 0)
+	const sibling = document.createElement(`button`)
+	host.append(sibling)
+	const panel = mountAtomIODevtools(host, { store: silo.store })
+	assert.ok(host.querySelector(`input[aria-label="count"]`))
+	panel.dispose()
+	panel.dispose()
+	assert.deepEqual([...host.childNodes], [sibling])
 	assert.equal(
 		[...silo.store.atoms.keys()].some((key) =>
 			key.startsWith(`🔍 spa devtools`),

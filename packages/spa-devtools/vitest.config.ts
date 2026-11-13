@@ -15,7 +15,7 @@ const config = defineOurVitestConfig({
 	},
 })
 config.root = import.meta.dirname
-config.plugins = [spa()]
+config.plugins = [spa({ include: /\/spa-devtools\/.*\.tsx$/ })]
 config.resolve!.alias = [
 	{
 		find: /^@atom\.io\/spa\/jsx(?:-dev)?-runtime$/,

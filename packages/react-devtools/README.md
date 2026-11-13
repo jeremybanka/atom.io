@@ -12,6 +12,8 @@
 
 Install this package alongside `atom.io`, `@atom.io/react`, and React/React DOM 18 or 19. Motion is included as a regular dependency. Import the stylesheet from `@atom.io/react-devtools/css`. Replace imports from `atom.io/react-devtools` with `@atom.io/react-devtools`; the exports and behavior are unchanged.
 
+React applications can also use the shared SPA debugger through AtomIODevtools from @atom.io/spa-devtools/react with @atom.io/spa-devtools/css. It follows the @atom.io/react store provider and accepts an explicit store override. See the [shared debugger setup](../spa-devtools/README.md#react). This package and its existing JSON editor, elastic input, error boundary and customization exports remain available.
+
 ## Install
 
 ```sh

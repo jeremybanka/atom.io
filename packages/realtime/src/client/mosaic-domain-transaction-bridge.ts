@@ -88,10 +88,9 @@ function ownedMemberForToken(
 	tracker: boolean,
 	allowTransceiverState = false,
 ): OwnedMember | null {
-	for (const [name, candidate] of Object.entries(domain.members) as [
-		string,
-		MosaicDomainMember,
-	][]) {
+	for (const [name, candidate] of Object.entries<MosaicDomainMember>(
+		domain.members,
+	)) {
 		if (
 			candidate.role !== `durable` ||
 			candidate.model === undefined ||

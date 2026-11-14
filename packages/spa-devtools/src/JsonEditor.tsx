@@ -151,7 +151,7 @@ function Primitive(props: {
 		})
 	}
 	return (
-		<span class="primitive">
+		<span class="primitive" data-kind={kind(props.value)}>
 			{kind(props.value) === `boolean` ? (
 				<input
 					aria-label={props.label}
@@ -166,11 +166,14 @@ function Primitive(props: {
 				<input
 					aria-label={props.label}
 					type="text"
+					class="elastic-input"
+					size={Math.max(1, displayValue().length)}
 					inputmode={kind(props.value) === `number` ? `decimal` : `text`}
 					value={displayValue()}
 					readOnly={!props.change}
 					onInput={(event) => {
 						const text = event.currentTarget.value
+						event.currentTarget.size = Math.max(1, text.length)
 						const value = props.value
 						if (typeof value === `number`) {
 							const number = Number(text)
@@ -182,6 +185,10 @@ function Primitive(props: {
 					onBlur={(event) => {
 						draft = undefined
 						event.currentTarget.value = String(props.value)
+						event.currentTarget.size = Math.max(
+							1,
+							event.currentTarget.value.length,
+						)
 					}}
 				/>
 			) : (
@@ -210,7 +217,14 @@ function Property(props: { name: string; editor: EditorProps }): SpaElement {
 					parent.change && !Array.isArray(parent.value) ? (
 						<input
 							aria-label={`Rename ${props.name}`}
-							style={`width:calc(${Math.max(1, props.name.length)}ch + 6px)`}
+							class="elastic-input"
+							size={Math.max(1, props.name.length)}
+							onInput={(event) => {
+								event.currentTarget.size = Math.max(
+									1,
+									event.currentTarget.value.length,
+								)
+							}}
 							defaultValue={props.name}
 							onKeyDown={(event) => {
 								if (event.key === `Enter`) event.currentTarget.blur()
@@ -232,6 +246,7 @@ function Property(props: { name: string; editor: EditorProps }): SpaElement {
 									})
 								})
 								input.value = props.name
+								input.size = Math.max(1, props.name.length)
 							}}
 						/>
 					) : (

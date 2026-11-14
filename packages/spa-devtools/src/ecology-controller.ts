@@ -2,7 +2,7 @@ import type { RootStore } from "atom.io/internal"
 
 import { captureEcologySnapshot, traceEcologyRoots } from "./ecology.ts"
 import type { GraphContext, GraphModel } from "./ecology-graph.ts"
-import { projectEcology, scheduleGraph } from "./ecology-graph.ts"
+import { graphEdgePath, projectEcology, scheduleGraph } from "./ecology-graph.ts"
 
 let nextMarker = 0
 const SVG = `http://www.w3.org/2000/svg`
@@ -15,7 +15,7 @@ export function createEcologyController(
 ): () => void {
 	const document = host.ownerDocument
 	host.className = `ecology`
-	host.innerHTML = `<form class="ecology-tools"><input aria-label="Search ecology" placeholder="Search keys, families, types"><button type="button" data-action="refresh">Refresh</button><button type="button" data-action="clear">Clear selection</button><button type="button" data-action="fit">Fit</button><button type="button" data-action="reset">Reset view</button></form><p class="ecology-counts" role="status"></p><p class="ecology-notice"></p><section class="ecology-body"><section class="ecology-map"><nav aria-label="Graph navigation"><button type="button" data-action="left" aria-label="Pan left">←</button><button type="button" data-action="right" aria-label="Pan right">→</button><button type="button" data-action="up" aria-label="Pan up">↑</button><button type="button" data-action="down" aria-label="Pan down">↓</button><button type="button" data-action="in" aria-label="Zoom in">+</button><button type="button" data-action="out" aria-label="Zoom out">−</button></nav><svg role="group" aria-label="Observed dependency graph"></svg><details><summary>Accessible node list</summary><ul class="ecology-list"></ul></details></section><aside class="ecology-inspector" aria-label="Passive ecology inspector"></aside></section>`
+	host.innerHTML = `<form class="ecology-tools"><input aria-label="Search ecology" placeholder="Search keys, families, types"><button type="button" data-action="refresh">Refresh</button><button type="button" data-action="clear">Clear selection</button><button type="button" data-action="fit">Fit</button><button type="button" data-action="reset">Reset view</button></form><p class="ecology-counts" role="status"></p><p class="ecology-notice"></p><p class="ecology-legend">□ atom · ⬡ selector · dashed group: family · arrows: dependency → dependent · blue: traced path</p><section class="ecology-body"><section class="ecology-map"><nav aria-label="Graph navigation"><button type="button" data-action="left" aria-label="Pan left">←</button><button type="button" data-action="right" aria-label="Pan right">→</button><button type="button" data-action="up" aria-label="Pan up">↑</button><button type="button" data-action="down" aria-label="Pan down">↓</button><button type="button" data-action="in" aria-label="Zoom in">+</button><button type="button" data-action="out" aria-label="Zoom out">−</button></nav><svg role="group" aria-label="Observed dependency graph"></svg><details><summary>Accessible node list</summary><ul class="ecology-list"></ul></details></section><aside class="ecology-inspector" aria-label="Passive ecology inspector"></aside></section>`
 	const input = host.querySelector(`input`)!
 	input.value = context.query
 	const counts = host.querySelector<HTMLElement>(`.ecology-counts`)!
@@ -150,7 +150,8 @@ export function createEcologyController(
 				id: marker,
 				markerWidth: `8`,
 				markerHeight: `8`,
-				refX: `8`,
+				refX: `9`,
+				markerUnits: `userSpaceOnUse`,
 				refY: `4`,
 				orient: `auto`,
 			})
@@ -162,7 +163,7 @@ export function createEcologyController(
 				to = value.all.get(edge.to)!
 			world.append(
 				shape(`path`, {
-					d: `M${from.x + 176} ${from.y + 26} L${to.x} ${to.y + 26}`,
+					d: graphEdgePath(from, to),
 					class: edge.traced ? `ecology-edge traced` : `ecology-edge`,
 					"marker-end": `url(#${marker})`,
 				}),

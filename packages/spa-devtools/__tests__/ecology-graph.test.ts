@@ -3,6 +3,7 @@ import { afterEach, expect, it, vi } from "vitest"
 import type { EcologyNode, EcologySnapshot } from "../src/ecology.ts"
 import {
 	createGraphContext,
+	graphEdgePath,
 	projectEcology,
 	scheduleGraph,
 } from "../src/ecology-graph.ts"
@@ -268,4 +269,31 @@ it(`uses the browser timer scheduler and cancels it on disposal`, async () => {
 	cancel()
 	await vi.runAllTimersAsync()
 	expect(done).toHaveBeenCalledOnce()
+})
+
+it(`routes arrowheads onto facing card boundaries in every direction, including left and below destinations`, () => {
+	const origin = { x: 300, y: 300 }
+	for (const [to, start, end] of [
+		[{ x: 600, y: 300 }, [476, 326], [600, 326]],
+		[{ x: 0, y: 300 }, [300, 326], [176, 326]],
+		[{ x: 300, y: 600 }, [388, 352], [388, 600]],
+		[{ x: 300, y: 0 }, [388, 300], [388, 52]],
+		[{ x: 100, y: 400 }, [300, 326], [276, 426]],
+		[{ x: 300, y: 360 }, [388, 352], [388, 360]],
+		[{ x: 300, y: 240 }, [388, 300], [388, 292]],
+	] as const) {
+		const numbers = graphEdgePath(origin, to)
+			.match(/-?\d+(?:\.\d+)?/g)!
+			.map(Number)
+		expect(numbers.slice(0, 2)).toEqual(start)
+		expect(numbers.slice(-2)).toEqual(end)
+		// The final tangent approaches from outside the destination, never through its interior.
+		const [cx, cy, ex, ey] = numbers.slice(-4)
+		expect(cx <= to.x || cx >= to.x + 176 || cy <= to.y || cy >= to.y + 52).toBe(
+			true,
+		)
+		expect(
+			ex === to.x || ex === to.x + 176 || ey === to.y || ey === to.y + 52,
+		).toBe(true)
+	}
 })

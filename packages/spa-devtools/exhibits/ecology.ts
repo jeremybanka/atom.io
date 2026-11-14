@@ -11,6 +11,7 @@ export function inspectEcology(
 	selectorKey: string,
 ): { snapshot: EcologySnapshot; trace: EcologyRootTrace } {
 	const snapshot = captureEcologySnapshot(store, {
+		// Application-node allowance; reserved debugger records use the bounded inspection headroom.
 		maxNodes: 1_000,
 		maxFamilies: 1_000,
 		maxRelations: 5_000,

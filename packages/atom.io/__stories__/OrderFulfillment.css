@@ -1,0 +1,32 @@
+.order-fulfillment-story {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	gap: 16px;
+	padding: 16px;
+	box-sizing: border-box;
+	width: 100%;
+}
+
+.order-fulfillment-controls {
+	min-width: 0;
+}
+
+.order-fulfillment-debugger {
+	display: block;
+	border: 1px solid #888;
+	box-sizing: border-box;
+	width: 100%;
+	height: min(900px, 100dvh);
+	min-height: 500px;
+}
+
+@media (max-width: 900px) {
+	.order-fulfillment-story {
+		grid-template-columns: minmax(0, 1fr);
+		padding: 8px;
+	}
+
+	.order-fulfillment-debugger {
+		height: 75dvh;
+	}
+}

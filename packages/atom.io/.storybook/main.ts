@@ -57,7 +57,7 @@ const config: StorybookConfig = {
 						),
 					},
 					{
-						find: /^@atom\.io\/spa-devtools\/css$/,
+						find: /^@atom\.io\/spa-devtools\/css(?=\?|$)/,
 						replacement: resolve(
 							STORYBOOK_ROOT,
 							`../../spa-devtools/src/devtools.css`,

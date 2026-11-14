@@ -67,6 +67,43 @@ Ctrl+Shift+A shows or hides the debugger. Drag the header to move the window, or
 
 For a shared debugger UI, React applications can migrate their AtomIODevtools and stylesheet imports to this package's React and CSS entries. The existing @atom.io/react-devtools package remains available, including its JSON editor, elastic input, error boundary and customization contracts; those contracts are not exposed by the shared debugger.
 
+## Ecology snapshots
+
+captureEcologySnapshot provides a data-only foundation for an ecology explorer; it adds no graphical view. It inspects the supplied root store's committed maps without following an active transaction child. Capture never calls state getters, initializes defaults or family members, attaches introspection subscriptions, or awaits promises. It returns detached metadata with store-local keys, token kinds, family keys and serialized subkeys, cached runtime types, and retained directed dependency edges. Values and live tokens are omitted.
+
+```ts
+import {
+	captureEcologySnapshot,
+	type EcologyRootTrace,
+	type EcologySnapshot,
+	traceEcologyRoots,
+} from "@atom.io/spa-devtools"
+import type { Silo } from "atom.io"
+
+export function inspectEcology(
+	store: Silo[`store`],
+	selectorKey: string,
+): { snapshot: EcologySnapshot; trace: EcologyRootTrace } {
+	const snapshot = captureEcologySnapshot(store, {
+		// Application-node allowance; reserved debugger records use the bounded inspection headroom.
+		maxNodes: 1_000,
+		maxFamilies: 1_000,
+		maxRelations: 5_000,
+	})
+	const trace = traceEcologyRoots(snapshot, selectorKey, { maxWork: 50_000 })
+	return { snapshot, trace }
+}
+
+```
+
+A cached value has status cached, including a cached undefined; an absent cache has status unknown. Runtime type inference is deliberately shallow: typeof, null and array, with unknown for an uninspectable revoked proxy. Objects, class instances and asynchronous wrappers remain object; their prototypes, properties and resolved values are not inspected. These are runtime observations, not declared TypeScript types.
+
+Selector dependencies are unknown when neither a cached result nor inbound observations exist. An evaluated constant can have observed dependencies with zero edges. Observed edges describe only the runtime graph's retained observations: they can be partial after a failed or asynchronous evaluation, or belong to a previous branch after invalidation. They are not a static dependency declaration or a promise about the next evaluation. Reserved introspection nodes and families are excluded, but dependency edges to missing or excluded nodes retain their keys so root tracing reports uncertainty. Family member counts cover registered, instantiated members, including empty registered families; a token obtained with findState alone need not instantiate a member.
+
+Capture defaults to returning at most 1,000 application nodes, inspecting 1,000 family records and inspecting 5,000 neighboring graph relations. The node allowance excludes reserved debugger records. Total state inspections remain bounded at the node allowance plus 1,000 records; a zero node allowance performs no state inspections. The extra headroom covers excluded records and a possible omitted-node probe. Bounded tail inspection distinguishes a filtered-only tail from an application node beyond the allowance. The reported work.nodes counts actual inspections, so it can exceed the application-node allowance. Node, family and relation options accept nonnegative integers up to ceilings of 10,000, 10,000 and 50,000 respectively. Family inspections still charge excluded records; relation inspections still charge reverse-direction and excluded neighbors. Results expose actual inspection counts, truncation flags and per-selector dependency truncation; node truncation means an application node was omitted or the finite inspection bound left records unknown. Family counts are lower bounds when state capture truncates. Iteration follows store insertion order, so a truncated snapshot is a bounded prefix rather than a ranked sample. No sorting or recursive value traversal runs during capture.
+
+traceEcologyRoots follows the captured edges iteratively, deduplicates shared roots, and reports unresolved keys and cycle back-edge destinations. Its default 50,000 work units include snapshot indexing and traversal, with a configurable ceiling of 1,000,000. Status observed means the retained graph traversal finished; incomplete means some visited dependency is unknown, missing or truncated; truncated means the trace budget ran out. None of these statuses establishes complete static dependencies. Capture again after application activity to obtain new observations; snapshots are not subscriptions.
+
 ## Package checks
 
 Tsdown builds the package JavaScript and declarations. SPA's compiler transforms the debugger JSX before bundling, preserving reactive bindings. The build copies the stylesheet and its declaration alongside the JavaScript; SPA and atom.io stay external peers.
@@ -83,7 +120,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                        | Entry                         | Minified JS |  Gzip JS |
 | ----------------------------- | ----------------------------- | ----------: | -------: |
-| Interactive app with debugger | `tonnage-recipes/debugger.ts` |    99,935 B | 29,939 B |
+| Interactive app with debugger | `tonnage-recipes/debugger.ts` |    99,935 B | 29,938 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

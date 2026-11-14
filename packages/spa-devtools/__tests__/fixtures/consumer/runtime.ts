@@ -4,9 +4,38 @@ import { test } from "node:test"
 
 import { render } from "@atom.io/spa"
 import { jsx } from "@atom.io/spa/jsx-runtime"
-import { AtomIODevtools, mountAtomIODevtools } from "@atom.io/spa-devtools"
+import {
+	AtomIODevtools,
+	captureEcologySnapshot,
+	mountAtomIODevtools,
+	traceEcologyRoots,
+} from "@atom.io/spa-devtools"
 import { Silo } from "atom.io"
 import { Window } from "happy-dom"
+
+await test(`packed ecology exports remain passive and trace observed selector roots`, () => {
+	const silo = new Silo({
+		name: `ecology-consumer`,
+		lifespan: `ephemeral`,
+		isProduction: true,
+	})
+	const countAtom = silo.atom<number>({ key: `count`, default: 2 })
+	let reads = 0
+	const doubleSelector = silo.selector<number>({
+		key: `double`,
+		get: ({ get }) => {
+			reads++
+			return get(countAtom) * 2
+		},
+	})
+	const unknown = captureEcologySnapshot(silo.store)
+	assert.equal(reads, 0)
+	assert.equal(traceEcologyRoots(unknown, `double`).status, `incomplete`)
+	assert.equal(silo.getState(doubleSelector), 4)
+	const snapshot = captureEcologySnapshot(silo.store)
+	assert.deepEqual(traceEcologyRoots(snapshot, `double`).rootKeys, [`count`])
+	assert.equal(reads, 1)
+})
 
 await test(`packed debugger edits its inspected store and cleans up owned state`, async () => {
 	const window = new Window()

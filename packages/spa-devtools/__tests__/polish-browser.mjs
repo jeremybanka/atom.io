@@ -1,10 +1,15 @@
 import assert from "node:assert/strict"
+import { createHash } from "node:crypto"
 import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { createServer } from "node:http"
 import { dirname, resolve } from "node:path"
 import { createRequire } from "node:module"
 import { build } from "esbuild"
 import { chromium } from "playwright"
+const favicon = await readFile(
+	resolve(import.meta.dirname, `../../../apps/atom.io.fyi/public/favicon.png`),
+)
+const faviconSha256 = createHash(`sha256`).update(favicon).digest(`hex`)
 const baseline = process.argv.includes(`--baseline`)
 const artifacts =
 	process.env.SPA_DEVTOOLS_POLISH_ARTIFACTS ?? `/tmp/spa-devtools-polish`
@@ -53,6 +58,173 @@ const server = createServer((req, res) => {
 			`<style>${css}</style><script type="module" src="/${mode}.js"></script>`,
 	)
 })
+async function checkVisualTreatment(page, theme, name) {
+	const icon = await page
+		.locator(`.brand-mark`)
+		.evaluate((el) => getComputedStyle(el).backgroundImage)
+	const embedded = icon.match(/data:image\/png;base64,([^"')]+)/)
+	assert.ok(embedded, `Use the linked PNG favicon, not another mark`)
+	assert.deepEqual(Buffer.from(embedded[1], `base64`), favicon)
+	const appearance = await page.locator(`main`).evaluate((el) => {
+		const noise = getComputedStyle(el, `::before`),
+			active = el.querySelector(`[role="tab"][aria-selected="true"]`),
+			inactive = el.querySelector(`[role="tab"][aria-selected="false"]`),
+			a = active.getBoundingClientRect(),
+			b = inactive.getBoundingClientRect(),
+			selected = getComputedStyle(active),
+			rest = getComputedStyle(inactive)
+		return {
+			noise: {
+				opacity: noise.opacity,
+				blend: noise.mixBlendMode,
+				size: noise.backgroundSize,
+				repeat: noise.backgroundRepeat,
+				position: noise.backgroundPosition,
+				pointerEvents: noise.pointerEvents,
+			},
+			tabs: {
+				activeTop: a.top,
+				inactiveTop: b.top,
+				activeBottom: a.bottom,
+				inactiveBottom: b.bottom,
+				radius: selected.borderTopLeftRadius,
+				activeFill: selected.backgroundColor,
+				activeBottomEdge: selected.borderBottomColor,
+				panelFill: getComputedStyle(el.querySelector(`.index`)).backgroundColor,
+				inactiveShadow: rest.boxShadow,
+			},
+			textColor: getComputedStyle(el).color,
+		}
+	})
+	assert.equal(appearance.noise.opacity, theme === `dark` ? `1` : `0.5`)
+	assert.equal(
+		appearance.noise.blend,
+		theme === `dark` ? `soft-light` : `multiply`,
+	)
+	assert.equal(appearance.noise.size, `1024px auto`)
+	assert.equal(appearance.noise.repeat, `repeat`)
+	assert.equal(appearance.noise.position, `50% 50%`)
+	assert.equal(appearance.noise.pointerEvents, `none`)
+	assert.ok(appearance.tabs.activeTop <= appearance.tabs.inactiveTop - 3)
+	assert.ok(
+		Math.abs(appearance.tabs.activeBottom - appearance.tabs.inactiveBottom) < 1,
+	)
+	assert.equal(appearance.tabs.activeBottomEdge, appearance.tabs.activeFill)
+	assert.equal(appearance.tabs.activeFill, appearance.tabs.panelFill)
+	assert.ok(parseFloat(appearance.tabs.radius) >= 7)
+	assert.match(appearance.tabs.inactiveShadow, /inset/)
+	const clip = await page.locator(`.index`).evaluate((el) => {
+		const r = el.getBoundingClientRect()
+		return { x: r.left + 16, y: r.bottom - 96, width: 80, height: 80 }
+	})
+	const on = await page.screenshot({
+		clip,
+		path: resolve(artifacts, `${theme}-${name}-noise.png`),
+	})
+	const off = await page.addStyleTag({
+		content: `main[data-css="spa-devtools"]::before {display:none !important}`,
+	})
+	const flat = await page.screenshot({ clip })
+	await off.evaluate((el) => {
+		el.remove()
+	})
+	// Compare the same noise coordinates on the actual background and solid text-color ink.
+	const probe = await page
+		.locator(`main`)
+		.evaluateHandle((panel, sampleRect) => {
+			const node = document.createElement(`div`),
+				r = panel.getBoundingClientRect()
+			Object.assign(node.style, {
+				position: `absolute`,
+				left: `${sampleRect.x - r.left - panel.clientLeft}px`,
+				top: `${sampleRect.y - r.top - panel.clientTop}px`,
+				width: `${sampleRect.width}px`,
+				height: `${sampleRect.height}px`,
+				background: getComputedStyle(panel).color,
+				zIndex: `9`,
+				pointerEvents: `none`,
+			})
+			panel.append(node)
+			return node
+		}, clip)
+	const ink = await page.screenshot({ clip })
+	await probe.evaluate((el) => {
+		el.remove()
+	})
+	await probe.dispose()
+	const pixels = await page.evaluate(
+		async ({ on: noisePng, flat: flatPng, ink: inkPng }) => {
+			const read = async (data) => {
+				const image = new Image()
+				image.src = `data:image/png;base64,${data}`
+				await image.decode()
+				const canvas = document.createElement(`canvas`)
+				canvas.width = image.width
+				canvas.height = image.height
+				const ctx = canvas.getContext(`2d`)
+				ctx.drawImage(image, 0, 0)
+				return ctx.getImageData(0, 0, image.width, image.height).data
+			}
+			const a = await read(noisePng),
+				b = await read(flatPng),
+				foreground = await read(inkPng)
+			const linear = (v) => {
+				const x = v / 255
+				return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4
+			}
+			const luminance = (data, i) =>
+				0.2126 * linear(data[i]) +
+				0.7152 * linear(data[i + 1]) +
+				0.0722 * linear(data[i + 2])
+			let minimumInkContrast = Infinity
+			let delta = 0,
+				sum = 0,
+				squares = 0,
+				min = 255,
+				max = 0
+			for (let i = 0; i < a.length; i += 4) {
+				const luma = 0.2126 * a[i] + 0.7152 * a[i + 1] + 0.0722 * a[i + 2]
+				const bg = luminance(a, i),
+					fg = luminance(foreground, i)
+				minimumInkContrast = Math.min(
+					minimumInkContrast,
+					(Math.max(bg, fg) + 0.05) / (Math.min(bg, fg) + 0.05),
+				)
+				sum += luma
+				squares += luma * luma
+				min = Math.min(min, luma)
+				max = Math.max(max, luma)
+				delta +=
+					(Math.abs(a[i] - b[i]) +
+						Math.abs(a[i + 1] - b[i + 1]) +
+						Math.abs(a[i + 2] - b[i + 2])) /
+					3
+			}
+			const n = a.length / 4
+			return {
+				averageChannelDelta: delta / n,
+				lumaStdDev: Math.sqrt(Math.max(0, squares / n - (sum / n) ** 2)),
+				minLuma: min,
+				maxLuma: max,
+				minimumInkContrast,
+			}
+		},
+		{
+			on: on.toString(`base64`),
+			flat: flat.toString(`base64`),
+			ink: ink.toString(`base64`),
+		},
+	)
+	assert.ok(
+		pixels.averageChannelDelta > 1 && pixels.lumaStdDev > 0.5,
+		`Noise must affect actual rendered pixels: ${JSON.stringify(pixels)}`,
+	)
+	assert.ok(
+		pixels.minimumInkContrast >= 4.5,
+		`Noise must retain text/background contrast in the sampled patch: ${JSON.stringify(pixels)}`,
+	)
+	return { faviconSha256, ...appearance, pixels }
+}
 async function checkLongField(page, theme, name, sizing) {
 	const input = page.locator(`input[aria-label^="a very long key"]`)
 	const original = await input.elementHandle()
@@ -234,6 +406,9 @@ try {
 			}))
 			if (!baseline)
 				assert.ok(long > short + 40, `Input should grow: ${short} -> ${long}`)
+			const visual = baseline
+				? null
+				: await checkVisualTreatment(page, theme, name)
 			const longFields = []
 			if (!baseline)
 				for (const sizing of [`native`, `fallback`])
@@ -357,6 +532,7 @@ try {
 				...measurement,
 				arrows,
 				longFields,
+				visual,
 			})
 			await context.close()
 		}

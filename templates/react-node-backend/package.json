@@ -39,7 +39,7 @@
 		"babel-plugin-react-compiler": "1.0.0",
 		"concurrently": "10.0.7",
 		"dprint": "0.64.3",
-		"dprint-plugin-malva": "0.16.0",
+		"dprint-plugin-malva": "0.16.1",
 		"eslint": "10.14.0",
 		"oxc-transform-react": "0.158.0",
 		"oxlint": "1.93.0",

@@ -235,8 +235,8 @@ importers:
         specifier: 0.64.3
         version: 0.64.3
       dprint-plugin-malva:
-        specifier: 0.16.0
-        version: 0.16.0
+        specifier: 0.16.1
+        version: 0.16.1
       dprint-plugin-markup:
         specifier: 0.27.6
         version: 0.27.6
@@ -1045,8 +1045,8 @@ importers:
         specifier: 0.64.3
         version: 0.64.3
       dprint-plugin-malva:
-        specifier: 0.16.0
-        version: 0.16.0
+        specifier: 0.16.1
+        version: 0.16.1
       eslint:
         specifier: 10.14.0
         version: 10.14.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -1130,8 +1130,8 @@ importers:
         specifier: 0.64.3
         version: 0.64.3
       dprint-plugin-malva:
-        specifier: 0.16.0
-        version: 0.16.0
+        specifier: 0.16.1
+        version: 0.16.1
       eslint:
         specifier: 10.14.0
         version: 10.14.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -1212,8 +1212,8 @@ importers:
         specifier: 0.64.3
         version: 0.64.3
       dprint-plugin-malva:
-        specifier: 0.16.0
-        version: 0.16.0
+        specifier: 0.16.1
+        version: 0.16.1
       eslint:
         specifier: 10.14.0
         version: 10.14.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -1315,8 +1315,8 @@ importers:
         specifier: 0.64.3
         version: 0.64.3
       dprint-plugin-malva:
-        specifier: 0.16.0
-        version: 0.16.0
+        specifier: 0.16.1
+        version: 0.16.1
       eslint:
         specifier: 10.14.0
         version: 10.14.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -1379,8 +1379,8 @@ importers:
         specifier: 0.64.3
         version: 0.64.3
       dprint-plugin-malva:
-        specifier: 0.16.0
-        version: 0.16.0
+        specifier: 0.16.1
+        version: 0.16.1
       eslint:
         specifier: 10.14.0
         version: 10.14.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -6049,8 +6049,8 @@ packages:
   domutils@3.2.2:
     resolution: {integrity: sha512-6kZKyUajlDuqlHKVX1w7gyslj9MPIXzIFiz/rGu35uC1wMi+kMhQwGhl4lt9unC9Vb9INnY9Z3/ZA3+FhASLaw==}
 
-  dprint-plugin-malva@0.16.0:
-    resolution: {integrity: sha512-cHisdhrNcBHfvTG/jgHUkVyL6zeY+C5yLO+E/UyiTbp6wzauB3d25YyPZeMlsd7M/PDT8W4Yre8jKJ/xMwthiw==}
+  dprint-plugin-malva@0.16.1:
+    resolution: {integrity: sha512-127dmuyhx/A19KBLEi6NPIPTHG6XGlmdItPkw1dFdQx+4KeXu9FQ0WYZ7VXTWm1v1AemgsraaTAQYm1j29sTAg==}
 
   dprint-plugin-markup@0.27.6:
     resolution: {integrity: sha512-UpPigVuQjvOO+JUwdPSygWC6ktE3Tm3BrZkahLCX3o20N9iFfHp0XwFVJne43jZmKm8im6uj1xjrCtKvc7varQ==}
@@ -13110,7 +13110,7 @@ snapshots:
       domelementtype: 2.3.0
       domhandler: 5.0.3
 
-  dprint-plugin-malva@0.16.0: {}
+  dprint-plugin-malva@0.16.1: {}
 
   dprint-plugin-markup@0.27.6: {}
 

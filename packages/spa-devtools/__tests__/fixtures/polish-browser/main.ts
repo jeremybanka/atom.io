@@ -145,6 +145,10 @@ window.polish = {
 	},
 	run: () => current.app.runTransaction(current.transaction)(1),
 	value: () => current.app.getState(current.count),
+	longValue: () =>
+		current.app.store.valueMap.get(
+			`a very long key that should remain discoverable without pushing controls out of reach`,
+		),
 	record: () => current.app.getState(current.record),
 	evidence: () => ({
 		reads: current.reads(),
@@ -163,6 +167,7 @@ declare global {
 			swap(): void
 			run(): number
 			value(): number
+			longValue(): unknown
 			record(): unknown
 			evidence(): { reads: number; cache: string[]; graph: string }
 		}

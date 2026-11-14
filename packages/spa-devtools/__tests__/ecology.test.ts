@@ -2,6 +2,7 @@ import { Silo } from "atom.io"
 import { attachIntrospectionStates } from "atom.io/introspection"
 import { expect, it, vi } from "vitest"
 
+import { mountAtomIODevtools } from "../src/AtomIODevtools.tsx"
 import type { EcologySnapshot } from "../src/ecology.ts"
 import { captureEcologySnapshot, traceEcologyRoots } from "../src/ecology.ts"
 
@@ -378,10 +379,10 @@ it(`bounds actual inspections including excluded records, high fanout, family co
 		maxFamilies: 1,
 		maxRelations: 0,
 	})
-	expect(first.work).toEqual({ nodes: 3, families: 1, relations: 0 })
-	expect(first.nodes).toHaveLength(2)
+	expect(first.work).toEqual({ nodes: 5, families: 1, relations: 0 })
+	expect(first.nodes).toHaveLength(3)
 	expect(first.families[0]).toMatchObject({
-		memberCount: 2,
+		memberCount: 3,
 		countComplete: false,
 	})
 	expect(first.truncated).toEqual({
@@ -479,4 +480,180 @@ it(`rejects invalid limits instead of silently starting unbounded work`, () => {
 			}),
 		).toThrow(RangeError)
 	}
+})
+
+it(`captures the named10,000 application instances and30,000 observed edges completely with mounted debugger records`, async () => {
+	const silo = fixture()
+	let reads = 0
+	for (let family = 0; family < 10; family++) {
+		const options = {
+			key: `batch${family}`,
+			default: () => {
+				reads++
+				return 0
+			},
+		}
+		const batchAtoms = silo.atomFamily<number, number>(options)
+		for (let member = 0; member < 500; member++)
+			silo.store.families.get(batchAtoms.key)!.create(member)
+	}
+	const atoms = [...silo.store.atoms.keys()],
+		expectedEdges = new Set<string>()
+	for (let index = 0; index < 5_000; index++) {
+		const key = `derived${index}`
+		silo.selector<number>({
+			key,
+			get: () => {
+				reads++
+				return 0
+			},
+		})
+		for (let dependency = 0; dependency < 6; dependency++) {
+			const source = atoms[(index + dependency * 731) % atoms.length]
+			silo.store.selectorGraph.set(
+				{ upstreamSelectorKey: source, downstreamSelectorKey: key },
+				{ source },
+			)
+			expectedEdges.add(JSON.stringify([source, key]))
+		}
+	}
+	const graphBefore = silo.store.selectorGraph.toJSON()
+	const appDefinitions = [
+		...silo.store.atoms.keys(),
+		...silo.store.readonlySelectors.keys(),
+	]
+	const appFamilies = [...silo.store.families.keys()]
+	const savedView = localStorage.getItem(`🔍 Devtools View`)
+	localStorage.setItem(`🔍 Devtools View`, JSON.stringify(`timelines`))
+	const panel = mountAtomIODevtools(document.createElement(`section`), {
+		store: silo.store,
+	})
+	try {
+		for (let tick = 0; tick < 8; tick++) await Promise.resolve()
+		const rawRecords =
+			silo.store.atoms.size +
+			silo.store.readonlySelectors.size +
+			silo.store.writableSelectors.size
+		expect(rawRecords).toBeGreaterThan(10_000)
+		const result = captureEcologySnapshot(silo.store, {
+			maxNodes: 10_000,
+			maxFamilies: 10_000,
+			maxRelations: 50_000,
+		})
+		expect(result.nodes).toHaveLength(10_000)
+		expect(new Set(result.nodes.map((node) => node.key))).toEqual(
+			new Set(appDefinitions),
+		)
+		expect(result.nodes.filter((node) => node.kind === `atom`)).toHaveLength(
+			5_000,
+		)
+		expect(result.nodes.filter((node) => node.kind === `selector`)).toHaveLength(
+			5_000,
+		)
+		expect(result.edges).toHaveLength(30_000)
+		expect(
+			new Set(
+				result.edges.map(({ dependency, selector }) =>
+					JSON.stringify([dependency, selector]),
+				),
+			),
+		).toEqual(expectedEdges)
+		expect(result.families).toHaveLength(10)
+		expect(new Set(result.families.map((family) => family.key))).toEqual(
+			new Set(appFamilies),
+		)
+		for (const family of result.families)
+			expect(family).toMatchObject({ memberCount: 500, countComplete: true })
+		expect(
+			result.families.reduce((sum, family) => sum + family.memberKeys.length, 0),
+		).toBe(5_000)
+		expect(result.truncated).toEqual({
+			nodes: false,
+			families: false,
+			relations: false,
+		})
+		expect(result.work.nodes).toBe(rawRecords)
+		expect(result.work.nodes).toBeLessThanOrEqual(11_000)
+		expect(result.work.relations).toBe(30_000)
+		expect(
+			result.nodes.every(
+				(node) => node.value.status === `unknown` && !node.dependenciesTruncated,
+			),
+		).toBe(true)
+		expect(
+			result.nodes
+				.filter((node) => node.kind === `selector`)
+				.every((node) => node.dependencies === `observed`),
+		).toBe(true)
+		expect(reads).toBe(0)
+		expect(
+			[...silo.store.valueMap.keys()].filter((key) => !key.startsWith(`🔍 `)),
+		).toEqual([])
+		expect(
+			[
+				...silo.store.atoms.keys(),
+				...silo.store.readonlySelectors.keys(),
+			].filter((key) => !key.startsWith(`🔍 `)),
+		).toEqual(appDefinitions)
+		expect(silo.store.selectorGraph.toJSON()).toEqual(graphBefore)
+		expect(
+			[...silo.store.families.keys()].filter((key) => !key.startsWith(`🔍 `)),
+		).toEqual(appFamilies)
+	} finally {
+		panel.dispose()
+		if (savedView === null) localStorage.removeItem(`🔍 Devtools View`)
+		else localStorage.setItem(`🔍 Devtools View`, savedView)
+	}
+})
+
+it(`does not charge filtered prefixes or tails to application allowance and detects a final excess application record`, () => {
+	const silo = fixture(),
+		lazy = vi.fn(() => 0)
+	silo.atom<number>({ key: `🔍 prefix`, default: lazy })
+	silo.atom<number>({ key: `first`, default: lazy })
+	silo.atom<number>({ key: `🔍 tail`, default: lazy })
+	silo.selector<number>({ key: `🔍 selector`, get: lazy })
+	const complete = captureEcologySnapshot(silo.store, { maxNodes: 1 })
+	expect(complete.nodes.map((node) => node.key)).toEqual([`first`])
+	expect(complete.work.nodes).toBe(4)
+	expect(complete.truncated.nodes).toBe(false)
+	silo.selector<number>({ key: `last`, get: lazy })
+	const omitted = captureEcologySnapshot(silo.store, { maxNodes: 1 })
+	expect(omitted.nodes).toHaveLength(1)
+	expect(omitted.work.nodes).toBe(5) // The omitted last record is actually inspected, not silently lost.
+	expect(omitted.truncated.nodes).toBe(true)
+	expect(lazy).not.toHaveBeenCalled()
+})
+
+it(`bounds actual node inspections even if excluded records hide the application nodes`, () => {
+	const silo = fixture(),
+		lazy = vi.fn(() => 0)
+	for (let index = 0; index < 1_100; index++)
+		silo.atom<number>({ key: `🔍 excluded${index}`, default: lazy })
+	silo.atom<number>({ key: `later`, default: lazy })
+	const iterator = silo.store.atoms.values.bind(silo.store.atoms)
+	let inspections = 0
+	const spy = vi
+		.spyOn(silo.store.atoms, `values`)
+		.mockImplementation(function* (): Generator<
+			NonNullable<ReturnType<typeof silo.store.atoms.get>>,
+			undefined,
+			unknown
+		> {
+			for (const state of iterator()) {
+				inspections++
+				yield state
+			}
+			return undefined
+		})
+	const result = captureEcologySnapshot(silo.store, { maxNodes: 1 })
+	expect(result.nodes).toEqual([])
+	expect(result.work.nodes).toBe(1_001)
+	expect(inspections).toBe(1_001)
+	expect(result.truncated.nodes).toBe(true)
+	const zero = captureEcologySnapshot(silo.store, { maxNodes: 0 })
+	expect(zero.work.nodes).toBe(0)
+	expect(inspections).toBe(1_001)
+	expect(lazy).not.toHaveBeenCalled()
+	spy.mockRestore()
 })

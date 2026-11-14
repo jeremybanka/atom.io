@@ -36,7 +36,10 @@ export interface EcologyFamily {
 	readonly countComplete: boolean
 }
 export interface EcologyLimits {
-	/** Counts inspected state records, including excluded introspection records. Default 1,000; ceiling 10,000. */
+	/** Returned application nodes, excluding reserved introspection records. Default 1,000; ceiling 10,000.
+	 * Total state inspections are capped at maxNodes + 1,000, including excluded records and an omission probe.
+	 * Zero disables state inspection. Exhausting either bound can truncate capture.
+	 */
 	readonly maxNodes?: number
 	/** Counts inspected family records. Default 1,000; ceiling 10,000. */
 	readonly maxFamilies?: number
@@ -58,6 +61,7 @@ export interface EcologySnapshot {
 		readonly relations: boolean
 	}
 	readonly work: {
+		/** Actual inspected state records, including excluded records and any omitted-node probe. */
 		readonly nodes: number
 		readonly families: number
 		readonly relations: number
@@ -94,6 +98,8 @@ export function captureEcologySnapshot(
 	const maxNodes = limit(options.maxNodes, 1_000, 10_000)
 	const maxFamilies = limit(options.maxFamilies, 1_000, 10_000)
 	const maxRelations = limit(options.maxRelations, 5_000, 50_000)
+	const maxNodeInspections = maxNodes === 0 ? 0 : maxNodes + 1_000
+	let omittedNode = false
 	const work = { nodes: 0, families: 0, relations: 0 }
 	const nodes: EcologyNode[] = []
 	const edges: { dependency: string; selector: string }[] = []
@@ -101,12 +107,16 @@ export function captureEcologySnapshot(
 	const maps = [store.atoms, store.readonlySelectors, store.writableSelectors]
 	for (const map of maps) {
 		const states = map.values()
-		while (work.nodes < maxNodes) {
+		while (work.nodes < maxNodeInspections) {
 			const entry = states.next()
 			if (entry.done) break
 			work.nodes++
 			const state = entry.value
 			if (isReservedIntrospectionKey(state.key)) continue
+			if (nodes.length === maxNodes) {
+				omittedNode = true
+				break
+			}
 			const kind =
 				state.type === `atom` || state.type === `mutable_atom`
 					? `atom`
@@ -132,9 +142,11 @@ export function captureEcologySnapshot(
 				keys.push(state.key)
 			}
 		}
+		if (omittedNode) break
 	}
 	const truncated = {
-		nodes: work.nodes < maps.reduce((sum, map) => sum + map.size, 0),
+		nodes:
+			omittedNode || work.nodes < maps.reduce((sum, map) => sum + map.size, 0),
 		families: false,
 		relations: false,
 	}

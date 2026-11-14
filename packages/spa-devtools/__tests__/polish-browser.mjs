@@ -53,6 +53,142 @@ const server = createServer((req, res) => {
 			`<style>${css}</style><script type="module" src="/${mode}.js"></script>`,
 	)
 })
+async function checkLongField(page, theme, name, sizing) {
+	const input = page.locator(`input[aria-label^="a very long key"]`)
+	const original = await input.elementHandle()
+	const forced =
+		sizing === `fallback`
+			? await page.addStyleTag({
+					content: `main .elastic-input {field-sizing:fixed !important}`,
+				})
+			: null
+	const samples = []
+	const check = async (expected) => {
+		const measurement = await input.evaluate((el) => {
+			const bounds = (node) => {
+				const r = node.getBoundingClientRect()
+				return {
+					left: r.left,
+					right: r.right,
+					width: r.width,
+					top: r.top,
+					bottom: r.bottom,
+					height: r.height,
+				}
+			}
+			const wrapper = el.parentElement,
+				row = el.closest(`header`),
+				panel = el.closest(`main`),
+				label = row.querySelector(`.field-name h3`),
+				rect = el.getBoundingClientRect()
+			return {
+				value: el.value,
+				input: bounds(el),
+				wrapper: bounds(wrapper),
+				row: bounds(row),
+				panel: bounds(panel),
+				clientWidth: el.clientWidth,
+				scrollWidth: el.scrollWidth,
+				fieldSizing: getComputedStyle(el).fieldSizing,
+				title: label.title,
+				keyWidth: label.clientWidth,
+				keyScrollWidth: label.scrollWidth,
+				hitLeft:
+					document.elementFromPoint(
+						rect.left + rect.width / 3,
+						rect.top + rect.height / 2,
+					) === el,
+				hitRight:
+					document.elementFromPoint(
+						rect.left + (rect.width * 2) / 3,
+						rect.top + rect.height / 2,
+					) === el,
+				focused: document.activeElement === el,
+			}
+		})
+		samples.push(measurement)
+		const details = JSON.stringify({
+			theme,
+			name,
+			sizing,
+			expected,
+			measurement,
+		})
+		const fits = (inner, outer) =>
+			inner.left >= outer.left - 0.75 &&
+			inner.right <= outer.right + 0.75 &&
+			inner.top >= outer.top - 0.75 &&
+			inner.bottom <= outer.bottom + 0.75
+		if (
+			!(
+				fits(measurement.input, measurement.wrapper) &&
+				fits(measurement.input, measurement.row) &&
+				fits(measurement.input, measurement.panel)
+			)
+		)
+			await page.screenshot({
+				path: resolve(artifacts, `clipped-${theme}-${name}-${sizing}.png`),
+			})
+		assert.equal(measurement.value, expected, details)
+		assert.ok(
+			fits(measurement.input, measurement.wrapper) &&
+				fits(measurement.input, measurement.row) &&
+				fits(measurement.input, measurement.panel),
+			`Entire long-key input must be visible: ${details}`,
+		)
+		assert.ok(
+			measurement.clientWidth >= 14 &&
+				measurement.scrollWidth <= measurement.clientWidth + 1,
+			`Entire numeric text must fit: ${details}`,
+		)
+		assert.ok(
+			measurement.hitLeft && measurement.hitRight && measurement.focused,
+			details,
+		)
+		assert.equal(measurement.row.height, 22, details)
+		assert.equal(
+			measurement.title,
+			await input.getAttribute(`aria-label`),
+			details,
+		)
+		if (name === `narrow`)
+			assert.ok(
+				measurement.keyScrollWidth > measurement.keyWidth,
+				`Key must truncate before the numeric editor: ${details}`,
+			)
+		assert.equal(
+			await original.evaluate(
+				(el) => el.isConnected && el === document.activeElement,
+			),
+			true,
+			details,
+		)
+	}
+	await input.fill(`17`)
+	await check(`17`)
+	await input.press(`End`)
+	await input.press(`.`)
+	await check(`17.`)
+	assert.equal(await page.evaluate(() => window.polish.longValue()), 17)
+	await input.fill(`1234567890123.`)
+	await check(`1234567890123.`)
+	await input.press(`End`)
+	await input.press(`5`)
+	await check(`1234567890123.5`)
+	assert.equal(
+		await page.evaluate(() => window.polish.longValue()),
+		1234567890123.5,
+	)
+	if (name === `narrow`)
+		await page.screenshot({
+			path: resolve(artifacts, `${theme}-${name}-long-number-${sizing}.png`),
+		})
+	await input.fill(`17`)
+	await check(`17`)
+	await forced?.evaluate((el) => el.remove())
+	await original.dispose()
+	return { sizing, samples }
+}
 await new Promise((ready) => server.listen(0, `127.0.0.1`, ready))
 let browser
 try {
@@ -98,6 +234,10 @@ try {
 			}))
 			if (!baseline)
 				assert.ok(long > short + 40, `Input should grow: ${short} -> ${long}`)
+			const longFields = []
+			if (!baseline)
+				for (const sizing of [`native`, `fallback`])
+					longFields.push(await checkLongField(page, theme, name, sizing))
 			if (!baseline) {
 				const labels = await page
 					.locator(`.toolbar > button`)
@@ -216,6 +356,7 @@ try {
 				longWidth: long,
 				...measurement,
 				arrows,
+				longFields,
 			})
 			await context.close()
 		}

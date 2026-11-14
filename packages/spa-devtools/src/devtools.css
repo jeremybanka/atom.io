@@ -509,7 +509,10 @@ main[data-css="spa-devtools"] {
 		min-width: calc(1ch + 6px);
 	}
 	.primitive[data-kind="number"] {
-		flex: 0 1 auto;
+		/* Shrink the key before the value; exceptionally long numbers still fit the row. */
+		flex: 0 0 auto;
+		min-width: min(6ch, 50%);
+		max-width: 50%;
 		margin-left: auto;
 		text-align: right;
 		font-variant-numeric: tabular-nums;

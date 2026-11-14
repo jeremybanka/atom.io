@@ -1,28 +1,31 @@
-main[data-css="spa-devtools"] {
-	--fg-color: #ccc;
+main[data-css="spa-devtools"], div[data-css="spa-devtools-window"] {
+	--fg-color: #ddd;
 	--fg-light: #aaa;
-	--fg-soft: #888;
+	--fg-soft: #aaa;
 	--fg-hint: #4a4a4a;
 	--fg-max: #fff;
 	--bg-color: #111;
 	--bg-accent: #00f;
 	--bg-max: #000;
-	--bg-tint1: #222;
-	--bg-tint2: #333;
+	--bg-tint1: #171717;
+	--bg-tint2: #222;
 	color-scheme: dark;
 	@media (prefers-color-scheme: light) {
 		--fg-color: #444;
-		--fg-light: #777;
-		--fg-soft: #888;
+		--fg-light: #666;
+		--fg-soft: #666;
 		--fg-hint: #ccc;
 		--fg-max: #000;
-		--bg-color: #ddd;
+		--bg-color: #f9f9f9;
 		--bg-accent: #0ff;
 		--bg-max: #fff;
-		--bg-tint1: #e3e3e3;
-		--bg-tint2: #f3f3f3;
+		--bg-tint1: #f6f6f6;
+		--bg-tint2: #eee;
 		color-scheme: light;
 	}
+	--brand-color: #c03;
+}
+main[data-css="spa-devtools"] {
 	position: fixed;
 	z-index: 10000;
 	left: max(0px, calc(100vw - 500px));
@@ -112,29 +115,72 @@ main[data-css="spa-devtools"] {
 		gap: 0;
 	}
 	.toolbar {
-		touch-action: none;
-		flex: 0 0 28px;
+		display: grid;
+		grid-template-columns: 18px minmax(0, 1fr) repeat(3, 24px);
+		flex: 0 0 auto;
 		min-width: 0;
+		align-items: center;
+		padding: 2px 3px 0;
+		background: var(--bg-tint1);
+		border-bottom: 1px solid var(--fg-hint);
 	}
 	.toolbar h1 {
-		font: 24px/1 Charter, serif;
-		margin: 0 4px;
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		font: 18px/26px Charter, serif;
 		white-space: nowrap;
+		overflow: hidden;
+	}
+	.brand-mark {
+		display: inline-block;
+		flex: 0 0 22px;
+		width: 22px;
+		height: 22px;
+		background: var(--brand-mark) center / contain no-repeat;
+	}
+	.toolbar > button {
+		align-self: start;
+		margin-top: 2px;
 	}
 	.toolbar nav {
-		margin-left: auto;
-		align-self: end;
+		grid-column: 1 / -1;
+		grid-row: 2;
+		display: flex;
+		align-self: stretch;
+		min-width: 0;
 		overflow-x: auto;
+		scrollbar-width: thin;
+		gap: 2px;
+		padding-top: 2px;
 	}
 	.toolbar nav button {
-		flex: 0 0 auto;
+		flex: 1 0 auto;
 		white-space: nowrap;
 		height: 24px;
-		padding: 0 5px;
+		padding: 0 7px;
+		border: 1px solid var(--fg-hint);
+		border-bottom: 2px solid transparent;
+		border-radius: 3px 3px 0 0;
+		background: var(--bg-tint2);
+		color: var(--fg-light);
 	}
-	.toolbar nav button[aria-pressed="true"] {
-		background: var(--fg-color);
-		color: var(--bg-color);
+	.toolbar nav button[aria-selected="true"] {
+		color: var(--fg-color);
+		background: var(--bg-color);
+		border-bottom-color: var(--brand-color);
+		font-weight: bold;
+	}
+	.devtools-content {
+		display: flex;
+		flex: 1;
+		min-height: 0;
+		flex-direction: column;
+		overflow: hidden;
+	}
+	.devtools-content:focus-visible {
+		outline: 2px solid var(--fg-light);
+		outline-offset: -2px;
 	}
 	.drag-handle {
 		touch-action: none;
@@ -359,6 +405,10 @@ main[data-css="spa-devtools"] {
 		text-align: left;
 	}
 	@media (max-width: 650px) {
+		.toolbar nav button {
+			font-size: 12px;
+			padding: 0 4px;
+		}
 		.ecology-body {
 			grid-template-columns: minmax(0, 1fr);
 			overflow: auto;
@@ -452,9 +502,47 @@ main[data-css="spa-devtools"] {
 		padding: 0 2px;
 		overflow: hidden;
 	}
-	.primitive input[type="text"] {
-		width: 100%;
+	input.elastic-input {
+		field-sizing: content;
+		width: auto;
+		max-width: 100%;
+		min-width: calc(1ch + 6px);
 	}
+	.primitive[data-kind="number"] {
+		flex: 0 1 auto;
+		margin-left: auto;
+		text-align: right;
+		font-variant-numeric: tabular-nums;
+	}
+	.primitive input {
+		text-align: inherit;
+	}
+	.field-name:has(input) {
+		flex-shrink: 1;
+	}
+	.transaction-outcomes {
+		margin-left: 12px;
+		border-left: 1px solid var(--fg-soft);
+	}
+	.node > header .count {
+		margin-left: auto;
+		margin-right: 6px;
+		font-variant-numeric: tabular-nums;
+	}
+	.event [data-kind="number"] {
+		display: inline-block;
+		min-width: 3ch;
+		text-align: right;
+		font-variant-numeric: tabular-nums;
+	}
+	.ecology-legend {
+		font-size: 11px;
+		line-height: 16px;
+		padding: 3px 6px;
+		color: var(--fg-light);
+		overflow-wrap: anywhere;
+	}
+
 	.primitive code {
 		white-space: nowrap;
 	}
@@ -536,8 +624,8 @@ div[data-css="spa-devtools-window"] {
 		padding: 6px;
 		width: max-content;
 		max-width: calc(100vw - 16px);
-		background: #18202e;
-		border: 1px solid #8ca9c7;
+		background: var(--bg-tint1);
+		border: 1px solid var(--fg-soft);
 		box-shadow: 0 4px 18px #0006;
 	}
 	[hidden] {
@@ -547,17 +635,33 @@ div[data-css="spa-devtools-window"] {
 		pointer-events: auto;
 		font: inherit;
 		padding: 6px;
-		color: #e5f1ff;
-		background: #28394b;
-		border: 1px solid #718ba6;
+		color: var(--fg-color);
+		background: var(--bg-tint2);
+		border: 1px solid var(--fg-hint);
 		cursor: pointer;
 	}
 	button[aria-pressed="true"], button:hover {
-		background: #8dccff;
-		color: #102030;
+		background: var(--fg-color);
+		color: var(--bg-color);
+		border-color: var(--brand-color);
 	}
 	button:focus-visible {
-		outline: 2px solid white;
+		outline: 2px solid var(--fg-max);
 		outline-offset: 1px;
+	}
+}
+
+/* Static site branding, copied from apps/atom.io.fyi/public/favicon.svg and noise.svg.
+   Embedded to keep the published CSS self-contained and require no site request. */
+main[data-css="spa-devtools"] {
+	--brand-mark: url("data:image/svg+xml,%3C%3Fxml%20version%3D%221.0%22%20encoding%3D%22UTF-8%22%3F%3E%3Csvg%20id%3D%22uuid-eb6ff6ea-af53-42c3-b0f9-3c57cdfe4d41%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20xmlns%3Axlink%3D%22http%3A%2F%2Fwww.w3.org%2F1999%2Fxlink%22%20viewBox%3D%220%200%2064%2064%22%3E%3Cdefs%3E%3CclipPath%20id%3D%22uuid-2200b4f5-0e4c-492c-b57d-a5818904a107%22%3E%3Crect%20x%3D%2284%22%20width%3D%2264%22%20height%3D%2264%22%20style%3D%22fill%3Anone%3B%22%2F%3E%3C%2FclipPath%3E%3C%2Fdefs%3E%3Cg%20style%3D%22clip-path%3Aurl%28%23uuid-2200b4f5-0e4c-492c-b57d-a5818904a107%29%3B%22%3E%3Cline%20x1%3D%2257.43%22%20y1%3D%2217.32%22%20x2%3D%22132.57%22%20y2%3D%22-26.06%22%20style%3D%22fill%3Anone%3B%20stroke%3A%23999%3B%20stroke-miterlimit%3A10%3B%22%2F%3E%3C%2Fg%3E%3Cpath%20d%3D%22M7.51%2C56.05c5.33%2C5.33%2C12.98%2C5.42%2C18.21.19s5.52-16.76%2C1.94-20.34-15.11-3.29-20.34%2C1.94-5.13%2C12.88.19%2C18.21Z%22%20style%3D%22fill%3Ared%3B%22%2F%3E%3Cpath%20d%3D%22M7.58%2C55.93c-5.41-5.41-5.5-13.17-.2-18.48s17-5.6%2C20.64-1.97%2C3.34%2C15.33-1.97%2C20.64-13.07%2C5.21-18.48-.2Z%22%20style%3D%22fill%3Ared%3B%22%2F%3E%3Cpath%20d%3D%22M8.08%2C56.68c-5.41-5.41-5.5-13.17-.2-18.48s17-5.6%2C20.64-1.97%2C3.34%2C15.33-1.97%2C20.64-13.07%2C5.21-18.48-.2Z%22%20style%3D%22fill%3Ared%3B%22%2F%3E%3Cpath%20d%3D%22M8.58%2C57.44c-5.41-5.41-5.5-13.17-.2-18.48s17-5.6%2C20.64-1.97%2C3.34%2C15.33-1.97%2C20.64-13.07%2C5.21-18.48-.2Z%22%20style%3D%22fill%3Ared%3B%22%2F%3E%3Cpath%20d%3D%22M11.74%2C36.59c5.69-3.44%2C14.99-2.43%2C17.42%2C1.73%2C2.42%2C4.16-.19%2C12.65-5.89%2C16.09-5.69%2C3.44-12.53%2C2.13-15.84-2.91-3.31-5.04-1.38-11.46%2C4.31-14.9Z%22%20style%3D%22fill%3A%23f33%3B%22%2F%3E%3Cpath%20d%3D%22M15.09%2C34.23c-6.08%2C1.57-10.03%2C6.65-8.82%2C11.33%2C1.21%2C4.68%2C7.12%2C7.21%2C13.21%2C5.63%2C6.08-1.57%2C11.02-6.85%2C9.81-11.53-1.21-4.68-8.12-7-14.2-5.43Z%22%20style%3D%22fill%3A%23f66%3B%22%2F%3E%3Cpath%20d%3D%22M59.41%2C56.09c3.59-7.71-3.95-23.18-16.36-35.59C30.65%2C8.09%2C15.18.55%2C7.46%2C4.14-1.71%2C8.41%2C3.27%2C26.29%2C20.27%2C43.29c17%2C17%2C34.88%2C21.97%2C39.15%2C12.8ZM28.67%2C34.89c-8.43-8.43-12.72-16.94-9.77-18.88%2C2.75-1.82%2C10.9%2C2.84%2C18.36%2C10.3%2C7.46%2C7.46%2C12.12%2C15.61%2C10.3%2C18.36-1.95%2C2.94-10.46-1.35-18.88-9.77Z%22%20style%3D%22fill%3Ablue%3B%22%2F%3E%3Cpath%20d%3D%22M59.41%2C56.09c3.59-7.71-3.95-23.18-16.36-35.59C30.65%2C8.09%2C15.18.55%2C7.46%2C4.14-1.71%2C8.41%2C3.27%2C26.29%2C20.27%2C43.29c17%2C17%2C34.88%2C21.97%2C39.15%2C12.8ZM28.67%2C34.89c-8.43-8.43-12.72-16.94-9.77-18.88%2C2.75-1.82%2C10.9%2C2.84%2C18.36%2C10.3%2C7.46%2C7.46%2C12.12%2C15.61%2C10.3%2C18.36-1.95%2C2.94-10.46-1.35-18.88-9.77Z%22%20style%3D%22fill%3Ablue%3B%22%2F%3E%3Cpath%20d%3D%22M12.88%2C4.13c8.33%2C0%2C20.75%2C6.95%2C31.06%2C17.26%2C12.41%2C12.41%2C19.95%2C27.88%2C16.36%2C35.59-1.42%2C3.05-4.34%2C4.54-8.24%2C4.54-7.82%2C0-19.56-5.99-30.91-17.34C4.15%2C27.18-.82%2C9.29%2C8.35%2C5.03c1.31-.61%2C2.83-.9%2C4.53-.9M46.36%2C46.47c.95%2C0%2C1.66-.3%2C2.08-.93%2C1.82-2.75-2.84-10.9-10.3-18.36-6.37-6.37-13.23-10.69-16.82-10.69-.62%2C0-1.14.13-1.54.39-2.94%2C1.95%2C1.35%2C10.46%2C9.77%2C18.88%2C6.63%2C6.63%2C13.31%2C10.7%2C16.81%2C10.7M12.88%2C3.13c-1.88%2C0-3.54.33-4.95.99-2.66%2C1.24-4.35%2C3.55-4.91%2C6.7-1.52%2C8.59%2C5.32%2C21.96%2C17.42%2C34.07%2C10.87%2C10.87%2C22.99%2C17.63%2C31.62%2C17.63%2C4.43%2C0%2C7.59-1.77%2C9.15-5.11%2C3.71-7.97-3.25-23.41-16.56-36.72C34.15%2C10.18%2C21.39%2C3.13%2C12.88%2C3.13h0ZM46.36%2C45.47c-2.74%2C0-8.95-3.26-16.1-10.41-7.18-7.18-10.67-13.69-10.39-16.4.06-.61.29-.83.46-.94.23-.15.56-.23.99-.23%2C2.84%2C0%2C9.29%2C3.57%2C16.11%2C10.4%2C8.32%2C8.32%2C11.3%2C15.4%2C10.17%2C17.1-.08.12-.32.48-1.24.48h0Z%22%20style%3D%22fill%3Ared%3B%22%2F%3E%3Cpath%20d%3D%22M53.65%2C49.06c4.91-4.76.21-17.36-10.5-28.16-10.71-10.8-23.37-15.7-28.27-10.94-3.01%2C2.92-2.4%2C8.8%2C1%2C15.41%2C2.65%2C3.87%2C6.02%2C7.94%2C9.98%2C11.89%2C4.74%2C4.73%2C9.66%2C8.64%2C14.23%2C11.49%2C5.79%2C2.62%2C10.86%2C2.94%2C13.56.31Z%22%20style%3D%22fill%3Anone%3B%22%2F%3E%3Cpath%20d%3D%22M43.03%2C20.76C30%2C7.75%2C15.6.91%2C10.86%2C5.46c-3.3%2C3.17-1.04%2C11.03%2C5.02%2C19.9-3.4-6.61-4.01-12.49-1-15.41%2C4.91-4.76%2C17.57.14%2C28.27%2C10.94%2C10.71%2C10.8%2C15.41%2C23.41%2C10.5%2C28.16-2.71%2C2.62-7.77%2C2.3-13.56-.31%2C8%2C4.98%2C14.93%2C6.71%2C17.95%2C3.81%2C4.74-4.56-1.98-18.79-15.01-31.8Z%22%20style%3D%22fill%3A%23fff%3B%20opacity%3A.4%3B%22%2F%3E%3Cpath%20d%3D%22M57.07%2C6.49c-5.62-5.62-13.69-5.72-19.21-.2s-5.82%2C17.68-2.04%2C21.46c3.78%2C3.78%2C15.94%2C3.47%2C21.46-2.04%2C5.52-5.52%2C5.42-13.59-.2-19.21Z%22%20style%3D%22fill%3Ared%3B%22%2F%3E%3Cpath%20d%3D%22M56.92%2C6.49c-5.62-5.62-13.69-5.72-19.21-.2s-5.82%2C17.68-2.04%2C21.46%2C15.94%2C3.47%2C21.46-2.04c5.52-5.52%2C5.42-13.59-.2-19.21Z%22%20style%3D%22fill%3Ared%3B%22%2F%3E%3Cpath%20d%3D%22M40.73%2C4.48c5.91-3.63%2C13.1-2.09%2C16.66%2C3.43%2C3.56%2C5.52%2C1.67%2C12.46-4.23%2C16.1-5.91%2C3.63-15.15%2C2.29-17.79-2.31-2.64-4.6-.55-13.59%2C5.36-17.22Z%22%20style%3D%22fill%3A%23f33%3B%22%2F%3E%3Cellipse%20cx%3D%2246.47%22%20cy%3D%2212.5%22%20rx%3D%2211.82%22%20ry%3D%2210.19%22%20transform%3D%22translate%28-1.65%2012.87%29%20rotate%28-15.49%29%22%20style%3D%22fill%3A%23f66%3B%22%2F%3E%3Cpath%20d%3D%22M20.91%2C34.39c3.45%2C0%2C6.58.84%2C8.16%2C2.42%2C3.64%2C3.64%2C3.34%2C15.33-1.97%2C20.64-2.62%2C2.62-5.83%2C3.92-9.07%2C3.92s-6.67-1.38-9.41-4.12c-5.41-5.4-5.5-13.17-.2-18.48%2C2.99-2.99%2C8.01-4.39%2C12.48-4.39M20.91%2C33.39h0c-4.11%2C0-9.73%2C1.23-13.18%2C4.68-5.71%2C5.71-5.62%2C14.07.2%2C19.89%2C2.84%2C2.84%2C6.44%2C4.41%2C10.12%2C4.41s7.06-1.5%2C9.77-4.21c5.68-5.68%2C6.02-17.99%2C1.97-22.05-1.73-1.73-4.96-2.72-8.87-2.72h0Z%22%20style%3D%22fill%3Ablue%3B%22%2F%3E%3Cpath%20d%3D%22M48.19%2C3.54c3.46%2C0%2C6.94%2C1.43%2C9.78%2C4.28%2C5.62%2C5.62%2C5.72%2C13.69.2%2C19.21-3.11%2C3.11-8.33%2C4.56-12.97%2C4.56-3.59%2C0-6.84-.87-8.49-2.52-3.78-3.78-3.47-15.94%2C2.04-21.46%2C2.72-2.72%2C6.06-4.08%2C9.43-4.08M48.19%2C2.54c-3.72%2C0-7.32%2C1.55-10.13%2C4.37-2.71%2C2.71-4.45%2C7.09-4.8%2C12.02-.33%2C4.67.73%2C8.83%2C2.76%2C10.85%2C1.79%2C1.79%2C5.14%2C2.81%2C9.19%2C2.81%2C4.26%2C0%2C10.1-1.28%2C13.68-4.86%2C2.86-2.86%2C4.41-6.51%2C4.37-10.28-.04-3.76-1.67-7.43-4.57-10.34-2.95-2.95-6.67-4.57-10.49-4.57h0Z%22%20style%3D%22fill%3Ablue%3B%22%2F%3E%3Cpath%20d%3D%22M5.53%2C40.76c.49%2C1.77%2C3.69%2C2.43%2C7.16%2C1.47.28-.08.54-.16.8-.25-1.43-1.5-3.07-3.64-4.37-5.51-2.46%2C1.11-3.99%2C2.85-3.59%2C4.29Z%22%20style%3D%22fill%3A%23fff%3B%20opacity%3A.9%3B%22%2F%3E%3Cellipse%20cx%3D%2245.45%22%20cy%3D%227.55%22%20rx%3D%226.17%22%20ry%3D%223.86%22%20transform%3D%22translate%28-.37%2012.41%29%20rotate%28-15.49%29%22%20style%3D%22fill%3A%23fff%3B%20opacity%3A.9%3B%22%2F%3E%3C%2Fsvg%3E");
+	&::before {
+		content: "";
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
+		z-index: 10;
+		opacity: 0.035;
+		background-image: url("data:image/svg+xml,%3Csvg%20viewBox%3D%270%200%202048%202048%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%20%0A%20%20%20%20%20%20%3Cfilter%20id%3D%27noiseFilter%27%3E%0A%20%20%20%20%20%20%20%20%3CfeTurbulence%20%0A%20%20%20%20%20%20%20%20%20%20type%3D%27fractalNoise%27%20%0A%20%20%20%20%20%20%20%20%20%20baseFrequency%3D%270.65%27%20%0A%20%20%20%20%20%20%20%20%20%20numOctaves%3D%273%27%20%0A%20%20%20%20%20%20%20%20%20%20stitchTiles%3D%27stitch%27%2F%3E%0A%20%20%20%20%20%20%3C%2Ffilter%3E%0A%20%20%20%20%20%20%0A%20%20%20%20%20%20%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23noiseFilter%29%27%2F%3E%0A%20%20%20%20%3C%2Fsvg%3E");
 	}
 }

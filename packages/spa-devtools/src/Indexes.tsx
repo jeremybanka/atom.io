@@ -56,7 +56,7 @@ function StateNode(props: {
 						>
 							{getOpen() ? `▾` : `▸`}
 						</button>
-						<h2>{props.node.key}</h2>
+						<h2 title={props.node.key}>{props.node.key}</h2>
 						<small>family</small>
 					</header>
 					{getOpen()
@@ -87,7 +87,11 @@ export function StateLeaf(props: { tools: Tools; token: Token }): SpaElement {
 	return (
 		<section class="state-leaf" data-testid={`state-value-${props.token.key}`}>
 			<JsonEditor
-				label={<h3>{props.token.family?.subKey ?? props.token.key}</h3>}
+				label={
+					<h3 title={props.token.key}>
+						{props.token.family?.subKey ?? props.token.key}
+					</h3>
+				}
 				actions={
 					props.token.family ? (
 						<button
@@ -164,19 +168,22 @@ function TransactionLog(props: {
 				>
 					{getOpen() ? `▾` : `▸`}
 				</button>
-				<h2>{props.token.key}</h2>
-				<small>({getTransactionLog().length})</small>
+				<h2 title={props.token.key}>{props.token.key}</h2>
+				<small>transaction</small>
+				<small class="count">({getTransactionLog().length})</small>
 			</header>
-			{getOpen()
-				? getTransactionLog().map((event, index) => (
+			{getOpen() ? (
+				<section class="transaction-outcomes">
+					{getTransactionLog().map((event, index) => (
 						<EventView
 							key={index}
 							tools={props.tools}
 							event={event}
 							index={index}
 						/>
-					))
-				: null}
+					))}
+				</section>
+			) : null}
 		</section>
 	)
 }
@@ -226,8 +233,13 @@ export function EventView(props: {
 					</>
 				) : props.event.update ? (
 					<p>
-						<del>{describe(props.event.update.oldValue)}</del> →{` `}
-						<ins>{describe(props.event.update.newValue)}</ins>
+						<del data-kind={typeof props.event.update.oldValue}>
+							{describe(props.event.update.oldValue)}
+						</del>
+						{` `}→{` `}
+						<ins data-kind={typeof props.event.update.newValue}>
+							{describe(props.event.update.newValue)}
+						</ins>
 					</p>
 				) : (
 					<code>{describe(props.event)}</code>

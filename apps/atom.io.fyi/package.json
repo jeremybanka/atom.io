@@ -33,7 +33,7 @@
 		"@pierre/highlights": "0.5.1",
 		"astro": "7.4.11",
 		"atom.io": "workspace:*",
-		"motion": "14.13.0",
+		"motion": "14.14.0",
 		"three": "0.187.0"
 	},
 	"devDependencies": {

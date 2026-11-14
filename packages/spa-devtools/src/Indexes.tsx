@@ -1,3 +1,4 @@
+/** @jsxImportSource @atom.io/spa */
 import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useSetter, useTimeline } from "@atom.io/spa"
 import type {

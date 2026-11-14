@@ -1,3 +1,4 @@
+/** @jsxImportSource @atom.io/spa */
 import type { Children, SpaElement } from "@atom.io/spa"
 
 import type { Path, Tools } from "./store.ts"

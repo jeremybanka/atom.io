@@ -1,3 +1,4 @@
+/** @jsxImportSource @atom.io/spa */
 import type { SpaElement, SpaRoot } from "@atom.io/spa"
 import { onCleanup, onCommit, onMount, render, useGetter } from "@atom.io/spa"
 import type { RootStore } from "atom.io/internal"

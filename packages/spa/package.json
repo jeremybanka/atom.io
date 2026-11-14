@@ -158,7 +158,7 @@
 		"atom.io": "workspace:*",
 		"breakage": "0.10.2",
 		"esbuild": "0.28.2",
-		"eslint": "10.14.0",
+		"eslint": "10.15.0",
 		"happy-dom": "21.0.4",
 		"konva": "10.9.1",
 		"motion": "14.14.0",

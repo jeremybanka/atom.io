@@ -70,8 +70,10 @@ const VIEWS = [
 	`ecology`,
 ] as const
 type View = (typeof VIEWS)[number]
+let nextPanelId = 0
 function Panel(props: { store: RootStore; hideByDefault: boolean }): SpaElement {
 	const tools = useTools(props.store)
+	const panelId = `spa-devtools-${nextPanelId++}`
 	const graphContext = createGraphContext()
 	const [getHidden, setHidden] = useSaved(
 		props.store,
@@ -122,13 +124,38 @@ function Panel(props: { store: RootStore; hideByDefault: boolean }): SpaElement 
 				>
 					⠿
 				</button>
-				<h1>atom.io</h1>
+				<h1>
+					<span class="brand-mark" aria-hidden="true" />
+					atom.io
+				</h1>
 				{getOpen() ? (
-					<nav aria-label="Debugger views">
+					<nav role="tablist" aria-label="Debugger views">
 						{VIEWS.map((name) => (
 							<button
 								type="button"
-								aria-pressed={view() === name}
+								role="tab"
+								aria-selected={view() === name}
+								aria-controls={`${panelId}-content`}
+								id={`${panelId}-${name}`}
+								tabIndex={view() === name ? 0 : -1}
+								onKeyDown={(event) => {
+									const index = VIEWS.indexOf(name)
+									let next: number
+									if (event.key === `ArrowRight`)
+										next = (index + 1) % VIEWS.length
+									else if (event.key === `ArrowLeft`)
+										next = (index + VIEWS.length - 1) % VIEWS.length
+									else if (event.key === `Home`) next = 0
+									else if (event.key === `End`) next = VIEWS.length - 1
+									else return
+									event.preventDefault()
+									setSelection(VIEWS[next])
+									event.currentTarget
+										.parentElement!.querySelectorAll<HTMLButtonElement>(
+											`[role="tab"]`,
+										)
+										[next].focus()
+								}}
 								data-testid={`view-${name}`}
 								onClick={() => {
 									setSelection(name)
@@ -160,7 +187,13 @@ function Panel(props: { store: RootStore; hideByDefault: boolean }): SpaElement 
 				</button>
 			</header>
 			{getOpen() ? (
-				<>
+				<section
+					class="devtools-content"
+					role="tabpanel"
+					id={`${panelId}-content`}
+					aria-labelledby={`${panelId}-${view()}`}
+					tabIndex={0}
+				>
 					{getError() ? <p role="alert">{getError()}</p> : null}
 					{view() === `ecology` ? (
 						getHidden() ? null : (
@@ -177,7 +210,7 @@ function Panel(props: { store: RootStore; hideByDefault: boolean }): SpaElement 
 					) : (
 						<TimelineIndex tools={tools} />
 					)}
-				</>
+				</section>
 			) : null}
 		</main>
 	)

@@ -96,12 +96,13 @@ export function createWindowController(
 	const layout = doc.createElement(`button`)
 	layout.type = `button`
 	layout.className = `layout-button`
-	layout.textContent = `Layout`
+	layout.textContent = `□`
+	layout.title = `Debugger layout: halves, thirds, full viewport or restore`
 	layout.setAttribute(`aria-label`, `Debugger layout`)
 	const toolbar = panel.querySelector<HTMLElement>(`.toolbar`)!
 	toolbar.insertBefore(
 		layout,
-		toolbar.querySelector(`[data-testid="open-close-devtools"]`),
+		toolbar.querySelector(`[aria-label="Hide debugger (Ctrl+Shift+A)"]`),
 	)
 	const targets = SNAP_TARGETS.map((target) => {
 		const button = doc.createElement(`button`)

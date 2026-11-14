@@ -150,7 +150,9 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: spa-devtools-window
-          path: /tmp/spa-devtools-window
+          path: |
+            /tmp/spa-devtools-window
+            /tmp/spa-devtools-ecology
           retention-days: 7
       - run: pnpm --filter @atom.io/spa test:browser:motion
         if: matrix.suite == 'spa'

@@ -269,7 +269,9 @@ try {
 					baseline,
 					controller,
 					longTasksOver50Ms: longTasks.filter(({ duration }) => duration > 50),
-					graphCodePresent: false,
+					ecologyViewAvailable: !!document.querySelector(
+						`[data-testid="view-ecology"]`,
+					),
 				}
 			},
 			{ base: timingBase, startPoint: pressPoint },

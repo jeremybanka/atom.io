@@ -127,6 +127,8 @@ main[data-css="spa-devtools"] {
 		overflow-x: auto;
 	}
 	.toolbar nav button {
+		flex: 0 0 auto;
+		white-space: nowrap;
 		height: 24px;
 		padding: 0 5px;
 	}
@@ -210,6 +212,165 @@ main[data-css="spa-devtools"] {
 		border-top: 1px solid var(--fg-color);
 		background: var(--bg-tint1);
 		padding-bottom: 24px;
+	}
+	.ecology {
+		display: flex;
+		flex: 1;
+		min-height: 0;
+		flex-direction: column;
+		border-top: 1px solid var(--fg-soft);
+	}
+	.ecology-tools {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 3px;
+		padding: 5px;
+		background: var(--bg-tint2);
+	}
+	.ecology-tools input {
+		flex: 1;
+		min-width: 120px;
+		height: 21px;
+	}
+	.ecology-counts, .ecology-notice {
+		padding: 4px 6px;
+		font-size: 11px;
+		line-height: 15px;
+		overflow-wrap: anywhere;
+	}
+	.ecology-notice {
+		color: var(--fg-light);
+	}
+	.ecology-body {
+		display: grid;
+		flex: 1;
+		min-height: 0;
+		grid-template-columns: minmax(0, 1fr) 220px;
+	}
+	.ecology-map {
+		display: flex;
+		min-width: 0;
+		min-height: 0;
+		flex-direction: column;
+		background: radial-gradient(var(--fg-hint) 1px, transparent 1px) 0 0 / 16px
+			16px;
+	}
+	.ecology-map > nav {
+		flex-shrink: 0;
+		background: var(--bg-tint2);
+	}
+	.ecology-map > svg {
+		width: 100%;
+		flex: 1;
+		min-height: 150px;
+		overflow: hidden;
+	}
+	.ecology-map details {
+		max-height: 35%;
+		flex-shrink: 0;
+		overflow: auto;
+		border-top: 1px solid var(--fg-hint);
+		background: var(--bg-tint1);
+	}
+	.ecology-map summary {
+		padding: 5px;
+		cursor: pointer;
+	}
+	.ecology-list {
+		list-style: none;
+	}
+	.ecology-list button {
+		width: 100%;
+		text-align: left;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.ecology-list button[aria-pressed="true"] {
+		background: var(--fg-color);
+		color: var(--bg-color);
+	}
+	.ecology-edge {
+		fill: none;
+		stroke: var(--fg-soft);
+		stroke-width: 1.5px;
+	}
+	.ecology-edge.traced {
+		stroke: #4296dd;
+		stroke-width: 3px;
+	}
+	.ecology-node {
+		cursor: pointer;
+		outline: none;
+	}
+	.ecology-node > rect, .ecology-node > path {
+		fill: var(--bg-tint2);
+		stroke: var(--fg-light);
+		stroke-width: 1.5px;
+	}
+	.ecology-node.family > rect {
+		stroke: #9d7bd1;
+		stroke-dasharray: 5 3;
+	}
+	.ecology-node.traced > rect, .ecology-node.traced > path {
+		stroke: #4296dd;
+		stroke-width: 3px;
+	}
+	.ecology-node[aria-pressed="true"] > rect,
+	.ecology-node[aria-pressed="true"] > path,
+	.ecology-node:focus-visible > rect,
+	.ecology-node:focus-visible > path {
+		stroke: var(--fg-max);
+		stroke-width: 3px;
+	}
+	.ecology-node > text {
+		fill: var(--fg-color);
+		font-size: 11px;
+		pointer-events: none;
+	}
+	.ecology-node > text:last-child {
+		fill: var(--fg-light);
+		font-size: 10px;
+	}
+	.ecology-inspector {
+		min-width: 0;
+		padding: 8px;
+		border-left: 1px solid var(--fg-hint);
+		background: var(--bg-tint1);
+		overflow: auto;
+	}
+	.ecology-inspector h2 {
+		margin-bottom: 6px;
+		overflow-wrap: anywhere;
+		font-weight: bold;
+	}
+	.ecology-inspector > p {
+		padding: 5px 0;
+		font-size: 12px;
+		line-height: 17px;
+		overflow-wrap: anywhere;
+	}
+	.ecology-inspector > button {
+		height: auto;
+		min-height: 23px;
+		margin-bottom: 3px;
+		padding: 4px;
+		border: 1px solid var(--fg-hint);
+		text-align: left;
+	}
+	@media (max-width: 650px) {
+		.ecology-body {
+			grid-template-columns: minmax(0, 1fr);
+			overflow: auto;
+		}
+		.ecology-map {
+			min-height: 220px;
+		}
+		.ecology-inspector {
+			border-left: 0;
+			border-top: 1px solid var(--fg-hint);
+			max-height: 220px;
+		}
 	}
 	.index > p {
 		padding: 5px;

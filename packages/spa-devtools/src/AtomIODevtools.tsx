@@ -3,6 +3,8 @@ import { onCleanup, onCommit, onMount, render, useGetter } from "@atom.io/spa"
 import type { RootStore } from "atom.io/internal"
 import { IMPLICIT } from "atom.io/internal"
 
+import { createGraphContext } from "./ecology-graph.ts"
+import { EcologyView } from "./EcologyView.tsx"
 import { StateIndex, TimelineIndex, TransactionIndex } from "./Indexes.tsx"
 import { useSaved, useTools } from "./store.ts"
 import { createWindowController } from "./window-controller.ts"
@@ -60,10 +62,17 @@ export function AtomIODevtools(props: AtomIODevtoolsProps): SpaElement {
 	})
 	return <spa-devtools ref={attach} />
 }
-const VIEWS = [`atoms`, `selectors`, `transactions`, `timelines`] as const
+const VIEWS = [
+	`atoms`,
+	`selectors`,
+	`transactions`,
+	`timelines`,
+	`ecology`,
+] as const
 type View = (typeof VIEWS)[number]
 function Panel(props: { store: RootStore; hideByDefault: boolean }): SpaElement {
 	const tools = useTools(props.store)
+	const graphContext = createGraphContext()
 	const [getHidden, setHidden] = useSaved(
 		props.store,
 		`🔍 Devtools Are Hidden`,
@@ -153,7 +162,11 @@ function Panel(props: { store: RootStore; hideByDefault: boolean }): SpaElement 
 			{getOpen() ? (
 				<>
 					{getError() ? <p role="alert">{getError()}</p> : null}
-					{view() === `atoms` || view() === `selectors` ? (
+					{view() === `ecology` ? (
+						getHidden() ? null : (
+							<EcologyView tools={tools} context={graphContext} />
+						)
+					) : view() === `atoms` || view() === `selectors` ? (
 						<StateIndex
 							key={view()}
 							tools={tools}

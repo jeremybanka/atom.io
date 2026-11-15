@@ -49,7 +49,7 @@
 		"galley.md": "0.3.1",
 		"oxlint": "1.93.0",
 		"oxlint-tsgolint": "7.0.2007",
-		"playwright": "1.65.0",
+		"playwright": "1.65.1",
 		"typescript": "7.1.0-dev.20261113.1",
 		"vite": "8.3.8"
 	},

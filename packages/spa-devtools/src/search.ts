@@ -439,7 +439,8 @@ export function* matchStateSearch(
 		}
 		yield
 	}
-	const mask = new Uint8Array(DOCUMENT_LIMIT)
+	// The budget counts code points; match offsets use up to two UTF-16 units each.
+	const mask = new Uint8Array(DOCUMENT_LIMIT * 2)
 	let segmenter: Intl.Segmenter | undefined
 	const getSegmenter = () =>
 		(segmenter ??= new Intl.Segmenter(`en`, { granularity: `grapheme` }))

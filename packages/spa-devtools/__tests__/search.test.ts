@@ -341,3 +341,38 @@ it(`drops normalized words that cross the document bound after compatibility exp
 	expect(document.fields[0].fold.length).toBe(2048)
 	expect(document.fields[0].words).toEqual([])
 })
+
+it.each([`key`, `cached value`] as const)(
+	`highlights the complete admitted Unicode %s span after astral text and compatibility expansion`,
+	(target) => {
+		const silo = fixture(),
+			text = `😀`.repeat(1000) + `ﬃ`.repeat(24),
+			key = target === `key` ? text : `mixedUnicodeValue`
+		silo.atom<string>({ key, default: `` })
+		if (target === `cached value`) silo.store.valueMap.set(key, text)
+		const hit = finish(matchStateSearch(index(silo), `ffi`)).hits.find(
+			(entry) => entry.document.key === key,
+		)!
+		const field = hit.document.fields.find(
+			(entry) => entry.kind === (target === `key` ? `key` : `value`),
+		)!
+		expect([...field.text]).toHaveLength(1024)
+		expect(field.text.length).toBe(2024)
+		expect([...field.fold]).toHaveLength(1072)
+		expect(field.fold.length).toBe(2072)
+		expect(hit.document.truncated).toBe(false)
+		expect(target === `key` ? hit.ranges : hit.valueRanges).toEqual([
+			[2000, 2024],
+		])
+	},
+)
+
+it(`maps the complete UTF-16 span of a field at the normalized code-point limit`, () => {
+	const silo = fixture(),
+		key = `😀`.repeat(512) + `ﬃ`.repeat(512)
+	silo.atom<number>({ key, default: 0 })
+	const hit = finish(matchStateSearch(index(silo), `ffi`)).hits[0]
+	expect([...hit.document.fields[0].fold]).toHaveLength(2048)
+	expect(hit.document.fields[0].fold.length).toBe(2560)
+	expect(hit.ranges).toEqual([[1024, 1536]])
+})

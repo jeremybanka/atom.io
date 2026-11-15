@@ -9,11 +9,12 @@ const root = resolve(import.meta.dirname, `../../..`)
 const storybook =
 	process.env.SPA_DEVTOOLS_STORYBOOK_DIR ??
 	resolve(root, `.scratch/s6a-storybook`)
+const developmentUrl = process.env.SPA_DEVTOOLS_STORYBOOK_URL
 const artifacts =
 	process.env.SPA_DEVTOOLS_STORY_ARTIFACTS ?? `/tmp/s6a-story-browser`
 await mkdir(artifacts, { recursive: true })
 // Fail clearly if the actual Storybook build has not been produced.
-await readFile(resolve(storybook, `index.json`))
+if (!developmentUrl) await readFile(resolve(storybook, `index.json`))
 const types = {
 	".html": `text/html`,
 	".js": `application/javascript`,
@@ -41,7 +42,8 @@ const server = createServer(async (req, res) => {
 		res.writeHead(404).end()
 	}
 })
-await new Promise((ready) => server.listen(0, `127.0.0.1`, ready))
+if (!developmentUrl)
+	await new Promise((ready) => server.listen(0, `127.0.0.1`, ready))
 let browser, activePage, activeDebug, activeProfile
 const profiles = []
 try {
@@ -67,24 +69,45 @@ try {
 		activePage = page
 		activeProfile = profileArtifacts
 		page.on(`pageerror`, (error) => errors.push(error.message))
-		const url = `http://127.0.0.1:${server.address().port}`
+		const url = developmentUrl ?? `http://127.0.0.1:${server.address().port}`
 		await page.goto(
 			`${url}/iframe.html?id=atomiodevtools--ecology-order-fulfillment&viewMode=story`,
 		)
 		await page.getByTestId(`order-summary`).waitFor()
-		await page
-			.frameLocator(`iframe[name="order-debugger"]`)
-			.getByTestId(`ecology-view`)
-			.waitFor()
-		const debug = page.frame({ name: `order-debugger` })
-		assert.ok(debug)
+		await page.getByTestId(`ecology-view`).waitFor()
+		assert.equal(await page.locator(`iframe[name="order-debugger"]`).count(), 0)
+		const debug = page
+		if (developmentUrl) {
+			const client = await page.request.get(`${url}/@vite/client`)
+			assert.match(await client.text(), /createHotContext/)
+		}
+		const developmentModules = developmentUrl
+			? await page.evaluate(() =>
+					performance
+						.getEntriesByType(`resource`)
+						.map((entry) => entry.name)
+						.filter((name) =>
+							/react|spa\/|OrderFulfillment|devtools-order/.test(name),
+						),
+				)
+			: []
 		activeDebug = debug
 		const preferences = await page.evaluate(() => ({
 			geometry: localStorage.getItem(`🔍 Devtools Window`),
 			view: localStorage.getItem(`🔍 Devtools View`),
 		}))
 		assert.equal(preferences.geometry, null)
+		const drawer = page.locator(`.order-fulfillment-controls`)
+		const setControls = async (open) => {
+			if ((await drawer.evaluate((el) => el.open)) !== open)
+				await drawer.locator(`summary`).click()
+		}
+		const appAction = async (name) => {
+			await setControls(true)
+			await page.getByRole(`button`, { name, exact: true }).click()
+		}
 		const checkControls = async () => {
+			await setControls(true)
 			const measured = []
 			for (const button of await page
 				.locator(`.order-fulfillment-controls button`)
@@ -113,30 +136,25 @@ try {
 			return measured
 		}
 		const controls = await checkControls()
+		await setControls(false)
 		await page.screenshot({
 			path: resolve(profileArtifacts, `story-layout.png`),
 			fullPage: true,
 		})
-		const layout = await page.evaluate(() => {
-			const app = document
-					.querySelector(`.order-fulfillment-controls`)
-					.getBoundingClientRect(),
-				frame = document
-					.querySelector(`.order-fulfillment-debugger`)
-					.getBoundingClientRect()
-			return {
-				overlap:
-					app.left < frame.right &&
-					app.right > frame.left &&
-					app.top < frame.bottom &&
-					app.bottom > frame.top,
-				overflow: document.documentElement.scrollWidth > innerWidth,
-				stacked: frame.top >= app.bottom,
-			}
-		})
-		assert.equal(layout.overlap, false)
+		const layout = await page.evaluate(() => ({
+			canvas: { width: innerWidth, height: innerHeight },
+			debuggerDocument:
+				document.querySelector(`[data-testid="atom-io-devtools"]`)
+					.ownerDocument === document,
+			overflow: document.documentElement.scrollWidth > innerWidth,
+			controls: document
+				.querySelector(`.order-fulfillment-controls`)
+				.getBoundingClientRect()
+				.toJSON(),
+		}))
+		assert.equal(layout.debuggerDocument, true)
 		assert.equal(layout.overflow, false)
-		if (viewport.width <= 900) assert.equal(layout.stacked, true)
+
 		const graph = debug.getByTestId(`ecology-view`),
 			inspector = graph.locator(`.ecology-inspector`)
 		const ready = async () => {
@@ -158,9 +176,7 @@ try {
 			await ready()
 		}
 		const revealDebugger = async () => {
-			await page
-				.locator(`iframe[name="order-debugger"]`)
-				.scrollIntoViewIfNeeded()
+			await setControls(false)
 		}
 		const choose = async (key, family = false) => {
 			await revealDebugger()
@@ -223,7 +239,7 @@ try {
 		await page.screenshot({
 			path: resolve(profileArtifacts, `delivery-roots.png`),
 		})
-		await page.getByRole(`button`, { name: `Use pickup`, exact: true }).click()
+		await appAction(`Use pickup`)
 		await page.waitForFunction(() =>
 			document
 				.querySelector(`[data-testid="order-summary"]`)
@@ -245,9 +261,7 @@ try {
 			await inspector.innerText(),
 			/stockByWarehouseSku\(\["north","tea-green"\]\)/,
 		)
-		await page
-			.getByRole(`button`, { name: `Use south warehouse`, exact: true })
-			.click()
+		await appAction(`Use south warehouse`)
 		await refresh()
 		await trace()
 		assert.match(
@@ -263,15 +277,11 @@ try {
 		await page.screenshot({
 			path: resolve(profileArtifacts, `south-warehouse-roots.png`),
 		})
-		await page
-			.getByRole(`button`, { name: `Add oolong tea`, exact: true })
-			.click()
+		await appAction(`Add oolong tea`)
 		await refresh()
 		await choose(`cartQuantityBySku`, true)
 		assert.match(await inspector.innerText(), /7 instantiated members/)
-		await page
-			.getByRole(`button`, { name: `Remove oolong tea`, exact: true })
-			.click()
+		await appAction(`Remove oolong tea`)
 		await refresh()
 		assert.match(await inspector.innerText(), /6 instantiated members/)
 		await choose(`seasonalPromotion`)
@@ -280,50 +290,55 @@ try {
 		await choose(`lazyAuditDefault("unused")`)
 		await trace()
 		assert.match(await inspector.innerText(), /not cached \/ unknown/)
-		await page
-			.getByRole(`button`, { name: `Two green teas`, exact: true })
-			.click()
+		await appAction(`Two green teas`)
 		await page.waitForFunction(() =>
 			document
 				.querySelector(`[data-testid="order-summary"]`)
 				?.textContent.includes(`40.75`),
 		)
-		await page.getByRole(`button`, { name: `Undo cart`, exact: true }).click()
+		await appAction(`Undo cart`)
 		await page.waitForFunction(() =>
 			document
 				.querySelector(`[data-testid="order-summary"]`)
 				?.textContent.includes(`35.75`),
 		)
-		await page.getByRole(`button`, { name: `Redo cart`, exact: true }).click()
+		await appAction(`Redo cart`)
 		await page.waitForFunction(() =>
 			document
 				.querySelector(`[data-testid="order-summary"]`)
 				?.textContent.includes(`40.75`),
 		)
 		for (const outcome of [`Resolve quote`, `Reject quote`]) {
-			await page
-				.getByRole(`button`, { name: `Request quote`, exact: true })
-				.click()
+			await appAction(`Request quote`)
 			assert.equal(
 				await page.getByLabel(`Carrier quote status`).innerText(),
 				`pending`,
 			)
-			await page.getByRole(`button`, { name: outcome, exact: true }).click()
+			await appAction(outcome)
 			assert.equal(
 				await page.getByLabel(`Carrier quote status`).innerText(),
 				outcome === `Resolve quote` ? `ready` : `error`,
 			)
 		}
+		const resetBindings = []
 		for (let i = 0; i < 3; i++) {
-			await page
-				.getByRole(`button`, { name: `Reset order scenario`, exact: true })
-				.click()
+			await appAction(`Reset order scenario`)
 			await page.waitForFunction(() =>
 				document
 					.querySelector(`[data-testid="order-summary"]`)
 					?.textContent.includes(`40.25`),
 			)
 			assert.equal(await debug.getByTestId(`atom-io-devtools`).count(), 1)
+			await ready()
+			const counts = await graph.locator(`.ecology-counts`).innerText()
+			assert.match(counts, /^95 atoms · 18 selectors/)
+			assert.match(counts, /51 captured edges/)
+			await choose(`fulfillmentFeeCents`)
+			await trace()
+			const roots = await inspector.innerText()
+			assert.match(roots, /deliveryRegion/)
+			assert.doesNotMatch(roots, /pickupStore/)
+			resetBindings.push({ counts, roots })
 		}
 		await choose(`cartQuantityBySku("tea-green")`)
 		await debug
@@ -350,6 +365,36 @@ try {
 			preferences,
 		)
 		await revealDebugger()
+		const panel = debug.getByTestId(`atom-io-devtools`)
+		const beforeGesture = await panel.boundingBox()
+		const corner = await debug.locator(`[data-resize="nw"]`).boundingBox()
+		await page.mouse.move(
+			corner.x + corner.width / 2,
+			corner.y + corner.height / 2,
+		)
+		await page.mouse.down()
+		await page.mouse.move(corner.x + 40, corner.y + 80, { steps: 6 })
+		await page.mouse.up()
+		const resized = await panel.boundingBox()
+		assert.ok(resized.height < beforeGesture.height)
+		const handle = await debug
+			.getByRole(`button`, { name: `Move debugger`, exact: true })
+			.boundingBox()
+		await page.mouse.move(
+			handle.x + handle.width / 2,
+			handle.y + handle.height / 2,
+		)
+		await page.mouse.down()
+		// Release away from the top snap palette so this exercises free movement.
+		await page.mouse.move(80, viewport.height / 2, { steps: 8 })
+		await page.mouse.up()
+		const moved = await panel.boundingBox()
+		assert.ok(moved.x >= 0 && moved.x < viewport.width / 2)
+		assert.ok(moved.y >= 0 && moved.y + moved.height <= viewport.height + 1)
+		await page.screenshot({
+			path: resolve(profileArtifacts, `shared-canvas-gestures.png`),
+		})
+		const gestures = { beforeGesture, resized, moved }
 		await debug
 			.getByRole(`button`, { name: `Debugger layout`, exact: true })
 			.click()
@@ -401,12 +446,15 @@ try {
 			viewport,
 			controls,
 			layout,
+			gestures,
 			delivery,
 			pickup,
 			repeatedResets: 3,
+			resetBindings,
+			developmentModules,
 			preferencesUnchangedByStoryAndApp: true,
-			frameLiveEdit: true,
-			fullSnapWithinFrame: snapped,
+			sharedCanvasLiveEdit: true,
+			fullStoryCanvasSnap: snapped,
 			errors,
 		})
 		await context.close()
@@ -419,6 +467,8 @@ try {
 				browser: browser.version(),
 				chromiumSandbox: true,
 				actualStorybook: true,
+				mode: developmentUrl ? `development` : `static`,
+				developmentUrl,
 				propsDocs: true,
 				profiles,
 			},
@@ -454,5 +504,5 @@ try {
 	throw error
 } finally {
 	await browser?.close()
-	await new Promise((done) => server.close(done))
+	if (server.listening) await new Promise((done) => server.close(done))
 }

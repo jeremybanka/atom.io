@@ -1,10 +1,9 @@
 import "./OrderFulfillment.css"
+import "@atom.io/spa-devtools/css"
 
 import { StoreProvider, useLoadable, useO } from "@atom.io/react"
-import debuggerCss from "@atom.io/spa-devtools/css?inline"
 import { AtomIODevtools } from "@atom.io/spa-devtools/react"
 import { useEffect, useState } from "react"
-import { createPortal } from "react-dom"
 
 import type { OrderFulfillmentScenario } from "./devtools-order-fulfillment.ts"
 import { createOrderFulfillmentScenario } from "./devtools-order-fulfillment.ts"
@@ -133,7 +132,6 @@ export function OrderSummary({
 /** Separate stores per story/reset; no global store or debugger preference mutation. */
 export function OrderFulfillment(): React.JSX.Element {
 	const [scenario, setScenario] = useState(createOrderFulfillmentScenario)
-	const [debuggerBody, setDebuggerBody] = useState<HTMLElement | null>(null)
 	useEffect(
 		() => () => {
 			scenario.dispose()
@@ -143,31 +141,21 @@ export function OrderFulfillment(): React.JSX.Element {
 	return (
 		<StoreProvider store={scenario.app.store}>
 			<div className="order-fulfillment-story">
-				<div className="order-fulfillment-controls">
-					<OrderSummary scenario={scenario} />
-					<button
-						type="button"
-						onClick={() => {
-							setScenario(createOrderFulfillmentScenario())
-						}}
-					>
-						Reset order scenario
-					</button>
-				</div>
-				<iframe
-					title="Order debugger"
-					name="order-debugger"
-					className="order-fulfillment-debugger"
-					srcDoc="<!doctype html><html><head><style>html,body{margin:0;height:100%;overflow:hidden}</style></head><body></body></html>"
-					onLoad={(event) => {
-						const document = event.currentTarget.contentDocument!
-						const style = document.createElement(`style`)
-						style.textContent = debuggerCss
-						document.head.append(style)
-						setDebuggerBody(document.body)
-					}}
-				/>
-				{debuggerBody ? createPortal(<AtomIODevtools />, debuggerBody) : null}
+				<details className="order-fulfillment-controls" open>
+					<summary>Order controls</summary>
+					<div className="order-fulfillment-controls-body">
+						<OrderSummary scenario={scenario} />
+						<button
+							type="button"
+							onClick={() => {
+								setScenario(createOrderFulfillmentScenario())
+							}}
+						>
+							Reset order scenario
+						</button>
+					</div>
+				</details>
+				<AtomIODevtools />
 			</div>
 		</StoreProvider>
 	)

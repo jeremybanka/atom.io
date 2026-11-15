@@ -1,32 +1,41 @@
 .order-fulfillment-story {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-	gap: 16px;
-	padding: 16px;
 	box-sizing: border-box;
 	width: 100%;
+	min-height: 100dvh;
 }
 
+/* A disclosure floats over the shared canvas without constraining the debugger. */
 .order-fulfillment-controls {
-	min-width: 0;
-}
-
-.order-fulfillment-debugger {
-	display: block;
-	border: 1px solid #888;
+	position: fixed;
+	z-index: 11000;
+	left: 8px;
+	bottom: 8px;
+	width: min(700px, calc(100% - 16px));
 	box-sizing: border-box;
-	width: 100%;
-	height: min(900px, 100dvh);
-	min-height: 500px;
+	border: 1px solid GrayText;
+	border-radius: 6px;
+	color: CanvasText;
+	background: Canvas;
+	box-shadow: 0 2px 12px #0003;
 }
 
-@media (max-width: 900px) {
-	.order-fulfillment-story {
-		grid-template-columns: minmax(0, 1fr);
-		padding: 8px;
-	}
+.order-fulfillment-controls > summary {
+	padding: 10px 16px;
+	cursor: pointer;
+	font-weight: 600;
+}
 
-	.order-fulfillment-debugger {
-		height: 75dvh;
-	}
+.order-fulfillment-controls-body {
+	max-height: min(640px, calc(75dvh - 56px));
+	overflow: auto;
+	overscroll-behavior: contain;
+}
+
+.order-fulfillment-controls-body > button {
+	margin: 0 16px 16px;
+}
+
+.order-fulfillment-controls:not([open]) {
+	width: max-content;
+	max-width: calc(100% - 16px);
 }

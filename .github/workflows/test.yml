@@ -146,12 +146,11 @@ jobs:
           pnpm --dir packages/spa-devtools/peer-environments/coordinated-react18 install --frozen-lockfile --ignore-scripts
           pnpm --dir packages/spa-devtools/peer-environments/coordinated-react19 install --frozen-lockfile --ignore-scripts
       - run: pnpm --filter @atom.io/spa-devtools test:browser
-        env:
-          SPA_DEVTOOLS_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         if: matrix.suite == 'devtools'
         env:
           PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: /opt/google/chrome/chrome
           SPA_DEVTOOLS_CANDIDATE_SHA: ${{ github.sha }}
+          SPA_DEVTOOLS_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       - name: Upload devtools window capture
         if: always() && matrix.suite == 'devtools'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

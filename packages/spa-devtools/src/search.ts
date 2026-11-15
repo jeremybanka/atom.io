@@ -272,8 +272,7 @@ function oneEdit(a: string, b: string, spend: () => boolean): boolean {
 
 function literalTier(field: IndexedField, token: string): number {
 	if (field.words.includes(token)) return 1
-	for (let i = 0; i < field.words.length; i++)
-		if (field.words[i].startsWith(token)) return 2
+	for (const word of field.words) if (word.startsWith(token)) return 2
 	return field.fold.includes(token) ? 3 : 9
 }
 /** Mark literal normalized spans, then map only their graphemes back to original text. */
@@ -381,17 +380,17 @@ export function* matchStateSearch(
 				fieldPriority = 9
 			for (let position = 0; position < document.fields.length; position++) {
 				const field = document.fields[position]
-				const score = literalTier(field, token)
-				if (score < 9 && best === 9) {
-					best = score
+				const literal = literalTier(field, token)
+				if (literal < 9 && best === 9) {
+					best = literal
 					fieldPriority = position
 				}
 			}
 			if (best === 9 && token.length >= 4 && token.length <= 64) {
 				for (let position = 0; position < document.fields.length; position++) {
 					const words = document.fields[position].words
-					for (let at = 0; at < words.length; at++) {
-						if (oneEdit(token, words[at], spend)) {
+					for (const word of words) {
+						if (oneEdit(token, word, spend)) {
 							best = 4
 							fieldPriority = position
 							break

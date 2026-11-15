@@ -421,7 +421,7 @@ try {
 				report.scale.cold,
 				...report.scale.warmupSamples,
 				...report.scale.samples,
-			].flatMap((sample) => JSON.parse(sample.matchChunks)),
+			].flatMap((observation) => JSON.parse(observation.matchChunks)),
 		),
 		selectorIndex: summarize(
 			JSON.parse(report.scale.selectors.overview.indexChunks),
@@ -431,7 +431,7 @@ try {
 				report.scale.selectors.cold,
 				...report.scale.selectors.warmupSamples,
 				...report.scale.selectors.samples,
-			].flatMap((sample) => JSON.parse(sample.matchChunks)),
+			].flatMap((observation) => JSON.parse(observation.matchChunks)),
 		),
 	}
 

@@ -58,6 +58,7 @@
 		"@atom.io/react-devtools": "workspace:*",
 		"@atom.io/realtime": "workspace:*",
 		"@atom.io/solid": "workspace:*",
+		"@atom.io/spa-devtools": "workspace:*",
 		"@changesets/cli": "3.0.3",
 		"@changesets/config": "4.0.1",
 		"@correctlyjs/schemars": "0.0.6",

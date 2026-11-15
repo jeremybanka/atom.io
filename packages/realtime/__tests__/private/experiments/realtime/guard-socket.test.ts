@@ -151,3 +151,30 @@ describe(`guardSocket`, () => {
 		})
 	})
 })
+
+test(`guarded socket follows live identity and cancels queued callbacks after removal`, async () => {
+	const socket = new TestSocket()
+	const pending: Array<(result: StandardSchemaV1.Result<[string]>) => void> = []
+	const guarded = guardSocket<TestEvents>(socket, {
+		message: schema(() => new Promise((resolve) => pending.push(resolve))),
+	})
+	const exact = vi.fn()
+	const any = vi.fn()
+	guarded.on(`message`, exact)
+	guarded.onAny(any)
+	socket.emit(`message`, `queued`)
+	await Promise.resolve()
+	guarded.off(`message`, exact)
+	guarded.offAny(any)
+	pending.shift()!({ value: [`queued`] })
+	await vi.waitFor(() => {
+		expect(pending).toHaveLength(1)
+	})
+	pending.shift()!({ value: [`queued`] })
+	await Promise.resolve()
+	await Promise.resolve()
+	expect(exact).not.toHaveBeenCalled()
+	expect(any).not.toHaveBeenCalled()
+	socket.id = `reconnected`
+	expect(guarded.id).toBe(`reconnected`)
+})

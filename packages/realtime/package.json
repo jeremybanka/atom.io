@@ -41,7 +41,11 @@
 			"types": "./dist/testing/react/index.d.ts",
 			"import": "./dist/testing/react/index.js"
 		},
-		"./package.json": "./package.json"
+		"./package.json": "./package.json",
+		"./server/cloudflare": {
+			"types": "./dist/server/cloudflare/index.d.ts",
+			"import": "./dist/server/cloudflare/index.js"
+		}
 	},
 	"main": "./dist/core/index.js",
 	"types": "./dist/core/index.d.ts",
@@ -52,7 +56,7 @@
 		"AGENTS.md"
 	],
 	"scripts": {
-		"build": "tsdown",
+		"build": "tsdown && tsdown --config tsdown.cloudflare.config.ts",
 		"lint:eslint": "eslint",
 		"lint:oxlint": "oxlint",
 		"lint:types": "tsc && tsc -p tsconfig.exhibits.json",
@@ -65,7 +69,11 @@
 		"test:stress:realtime-ipc": "ATOM_IO_TEST_ROOM_STARTUP_DELAY_MS=1250 vitest run --config vitest.dist.config.ts __tests__/private/experiments/realtime-ipc/game-servers.test.tsx",
 		"test:packaging": "node __scripts__/test-packaging.ts",
 		"readme:write": "galley write README.mdx",
-		"readme:check": "galley check README.mdx"
+		"readme:check": "galley check README.mdx",
+		"test:shards:check": "node __scripts__/verify-test-shards.ts",
+		"test:core": "vitest run --config vitest.core.config.ts",
+		"test:socket": "vitest run --config vitest.socket.config.ts",
+		"test:runtime": "vitest run --config vitest.runtime.config.ts"
 	},
 	"devDependencies": {
 		"@atom.io/react": "workspace:*",

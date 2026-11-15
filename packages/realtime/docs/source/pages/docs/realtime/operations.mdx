@@ -28,12 +28,35 @@ models and framework-neutral client need only `atom.io`; React, Lexical,
 Socket.IO, and test-environment peers belong to their respective integrations.
 React's socket surface now uses the shared transport contract. Code needing
 Socket.IO-specific facilities should retain its concrete socket separately.
-The server entry point targets Node; a Cloudflare adapter remains follow-up work.
+The default server entry point targets Node. The separate
+`@atom.io/realtime/server/cloudflare` entry supports standard Workers WebSockets
+and bounded SQLite batch persistence with `nodejs_compat`; hibernation and durable
+checkpoint storage remain follow-up work.
 
 The core `TransactionSubEvent` union also gains `mutable_atom_snapshot`. Update
 exhaustive subevent switches to handle it: mutable-atom snapshot writes inside
 transactions now participate in replay and timelines. The outermost transaction
 commit record exposed through `Store.on.transactionCommit` is additive.
+
+## adopting the newer contracts
+
+Versioned Rigid controllers, schema-validated mutable streams, validated commands,
+protocol admission, and native WebSocket hosting are explicit integration choices.
+Installing a newer package does not automatically negotiate protocol versions or
+upgrade legacy pull/push subscriptions. Roll out matching server and client
+configuration together, and test mixed-version clients before enforcing admission.
+
+The Cloudflare SQLite adapter durably stores a bounded Mosaic batch stream. It is
+not a durable checkpoint-object store, a retention collector, or a hibernation
+adapter. Run the storage conformance suite against the deployed adapter and test
+restart/backup behavior before treating an example as a production deployment.
+
+Shared result types do not make every resource controller expose identical
+semantics. Domain history, residency, presence, legacy Rigid helpers, and custom
+services still need deliberate adoption of negotiation, session retirement,
+correlated results, traffic budgets, and application observability. Preserve these
+boundaries in rollout plans rather than assuming the new helpers change existing
+wire protocols.
 
 ## identity and authorization
 

@@ -6,6 +6,51 @@
 		"mise.toml"
 	],
 	"tasks": {
+		"test:shards:check": {
+			"outputs": []
+		},
+		"test:core": {
+			"dependsOn": [
+				"build",
+				"^build",
+				"test:shards:check"
+			],
+			"passThroughEnv": [
+				"ATOM_IO_TEST_POSTGRES_SKIP_MISE"
+			],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				"$TURBO_ROOT$/scripts/**"
+			]
+		},
+		"test:socket": {
+			"dependsOn": [
+				"build",
+				"^build",
+				"test:shards:check"
+			],
+			"passThroughEnv": [
+				"ATOM_IO_TEST_POSTGRES_SKIP_MISE"
+			],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				"$TURBO_ROOT$/scripts/**"
+			]
+		},
+		"test:runtime": {
+			"dependsOn": [
+				"build",
+				"^build",
+				"test:shards:check"
+			],
+			"passThroughEnv": [
+				"ATOM_IO_TEST_POSTGRES_SKIP_MISE"
+			],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				"$TURBO_ROOT$/scripts/**"
+			]
+		},
 		"pack:breakage": {
 			"dependsOn": ["build"],
 			"cache": false,

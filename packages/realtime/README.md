@@ -12,16 +12,17 @@
 
 Install alongside `atom.io` 0.54 or later in the 0.54 release line. Framework, renderer, transport, and test-environment peers are optional and depend on the entry points you use.
 
-| Entry point                          | Purpose                                         | Additional peers                                                                  |
-| ------------------------------------ | ----------------------------------------------- | --------------------------------------------------------------------------------- |
-| `@atom.io/realtime`                  | Shared protocol, Mosaic models, and Domains     | None                                                                              |
-| `@atom.io/realtime/client`           | Framework-neutral synchronization               | None                                                                              |
-| `@atom.io/realtime/server`           | Node servers, storage, and process-backed rooms | Socket.IO for the Socket.IO server API                                            |
-| `@atom.io/realtime/react`            | React lifecycle bindings                        | `@atom.io/react`, React 18 or 19; matching React types for TypeScript             |
-| `@atom.io/realtime/react/lexical`    | Lexical editor adapter                          | React, ReactDOM, Lexical, `@lexical/react`, `@lexical/selection`                  |
-| `@atom.io/realtime/testing/headless` | Renderer-free scenarios                         | Socket.IO and `socket.io-client`                                                  |
-| `@atom.io/realtime/testing/react`    | Rendered scenarios                              | Headless peers plus `@atom.io/react`, React, ReactDOM, Testing Library, Happy DOM |
+| Entry point                           | Purpose                                             | Additional peers                                                                  |
+| ------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `@atom.io/realtime`                   | Shared protocol, Mosaic models, and Domains         | None                                                                              |
+| `@atom.io/realtime/client`            | Framework-neutral synchronization                   | None                                                                              |
+| `@atom.io/realtime/server`            | Node servers, storage, and process-backed rooms     | Socket.IO for the Socket.IO server API                                            |
+| `@atom.io/realtime/server/cloudflare` | Workers WebSockets and bounded SQLite batch storage | Workers `nodejs_compat`; no Socket.IO peer                                        |
+| `@atom.io/realtime/react`             | React lifecycle bindings                            | `@atom.io/react`, React 18 or 19; matching React types for TypeScript             |
+| `@atom.io/realtime/react/lexical`     | Lexical editor adapter                              | React, ReactDOM, Lexical, `@lexical/react`, `@lexical/selection`                  |
+| `@atom.io/realtime/testing/headless`  | Renderer-free scenarios                             | Socket.IO and `socket.io-client`                                                  |
+| `@atom.io/realtime/testing/react`     | Rendered scenarios                                  | Headless peers plus `@atom.io/react`, React, ReactDOM, Testing Library, Happy DOM |
 
-The guides and typechecked exhibits live in this package's `docs/source` directory. The React and client APIs consume the shared transport contract; a Cloudflare server adapter remains future work.
+The guides and typechecked exhibits live in this package's `docs/source` directory. The React and client APIs consume the shared transport contract, including native WebSockets. The Cloudflare entry supports authenticated standard WebSocket connections and atomic SQLite-backed Mosaic Domain batches with explicit capacity limits. Hosts supply Durable Object routing, upgrade responses, and authentication. WebSocket hibernation and durable checkpoint retention remain follow-up work; this is not a hosted collaboration service.
 
 Migration: replace `atom.io/realtime` with `@atom.io/realtime`, and replace the old `realtime-client`, `realtime-server`, `realtime-react`, `realtime-react-lexical`, and `realtime-testing/*` subpaths with the corresponding entries above. The core SDK no longer exports realtime. No compatibility re-export introduces a dependency from `atom.io` back to this package.

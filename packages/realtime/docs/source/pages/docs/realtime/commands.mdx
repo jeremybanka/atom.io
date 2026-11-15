@@ -1,0 +1,55 @@
+import Exhibit from "c/Exhibit.astro";
+
+# validated commands
+
+Commands express server-owned intent without replicating transaction event trees
+or promising collaborative convergence. Declare an allowlisted name, a Standard
+Schema for parameters, and a Standard Schema for the result. Each server handler
+must explicitly authorize its authenticated actor and session before execution.
+
+<Exhibit src="realtime/execute-validated-command.ts" />
+
+The headless client accepts a request function so the same contract can use an
+HTTP endpoint, a Socket.IO request/reply bridge, or another transport. The host
+must authenticate that transport, derive the server context independently of the
+request body, enforce transport deadlines, and connect disposal to session cleanup.
+The returned receipt has a stable request/session/resource identity, observable
+progress, and an immutable terminal settlement. React can observe it with the
+existing submission hook.
+
+## duplicates and failures
+
+By default the server replays the same result for an identical request ID and
+payload within the same actor/session. Concurrent duplicates execute once.
+Changing the content under an existing ID returns a collision. The optional
+reject policy returns an explicit duplicate rejection instead. Authorization is
+checked again before replaying a retained response.
+
+Receipt retention and pending work have explicit bounds. The server rejects new
+requests when receipt capacity is exhausted; it never silently evicts evidence
+and executes an old request again. Scope servers to bounded connection/session
+lifetimes or provide an application-level durable command service for longer
+lived workloads. Dispose the controller at the end of its ownership boundary.
+
+This implementation provides process-local idempotency. It cannot guarantee
+exactly-once effects across a process crash. Production commands that change a
+database must commit their durable request receipt and business effect together.
+A handler exception or invalid output can follow a committed effect, so these
+results are terminal and require authoritative reconciliation. Clients never
+retry or speculate automatically. A transport failure or disposal interrupts the
+receipt without claiming that the server rolled back.
+
+## protocol admission
+
+Use the explicit protocol session gate to select a common protocol version,
+capabilities, and replicated-model versions before installing any service. All
+advertised models are required. The selection chooses the highest shared version;
+incompatibility produces a safe terminal rejection.
+
+<Exhibit src="realtime/negotiate-protocol.ts" />
+
+The gate runs once per authenticated connection and waits for asynchronous
+service installation during disposal. It does not inject a handshake into legacy
+Rigid or Mosaic APIs: the host must exchange offers, deliver the result, and
+install those APIs only inside the gate. Existing applications require an explicit
+rollout before enforcing negotiation.

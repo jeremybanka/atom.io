@@ -1,4 +1,4 @@
-import { employSocket } from "@atom.io/realtime"
+import { employSocket, isRigidRecord } from "@atom.io/realtime"
 import type * as AtomIO from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
 import type { stringified } from "atom.io/foundations/json"
@@ -7,13 +7,12 @@ import type { Transceiver } from "atom.io/internal"
 import {
 	findInStore,
 	getFromStore,
-	getJsonTokenFromStore,
-	getUpdateToken,
 	IMPLICIT,
 	subscribeToState,
 } from "atom.io/internal"
 
-import type { ServerConfig } from "./index.ts"
+import { provideMutableStream } from "./provide-mutable-stream.ts"
+import type { ServerConfig } from "./server-connection-types.ts"
 
 const isAvailable = <K extends Canonical>(
 	exposedSubKeys: Iterable<K>,
@@ -60,9 +59,12 @@ export function realtimeMutableFamilyProvider({
 		}
 		const requestedFamilyMembers = new Map<
 			stringified<K>,
-			{ key: K; stopWatchingForUnsubscribe: () => void }
+			{ key: K; metadata: unknown; stopWatchingForUnsubscribe: () => void }
 		>()
-		const familyMemberSubscriptions = new Map<stringified<K>, () => void>()
+		const familyMemberSubscriptions = new Map<
+			stringified<K>,
+			ReturnType<typeof provideMutableStream>
+		>()
 		const clearFamilySubscriptions = () => {
 			for (const unsub of familyMemberSubscriptions.values()) unsub()
 			familyMemberSubscriptions.clear()
@@ -85,21 +87,19 @@ export function realtimeMutableFamilyProvider({
 
 		const exposeFamilyMembers = (subKey: K) => {
 			const serializedKey = stringifyJson(subKey)
-			if (familyMemberSubscriptions.has(serializedKey)) return
+			if (familyMemberSubscriptions.has(serializedKey)) {
+				familyMemberSubscriptions.get(serializedKey)?.resnapshot()
+				return
+			}
 			const token = findInStore(store, family, subKey)
 			getFromStore(store, token)
-			const jsonToken = getJsonTokenFromStore(store, token)
-			const updateToken = getUpdateToken(token)
-			socket.emit(`init:${token.key}`, getFromStore(store, jsonToken))
 			familyMemberSubscriptions.set(
 				serializedKey,
-				subscribeToState(
+				provideMutableStream(
 					store,
-					updateToken,
-					`expose-family:${family.key}:${socket.id}`,
-					({ newValue }) => {
-						socket.emit(`next:${token.key}`, newValue)
-					},
+					socket,
+					token,
+					requestedFamilyMembers.get(serializedKey)?.metadata,
 				),
 			)
 		}
@@ -130,7 +130,7 @@ export function realtimeMutableFamilyProvider({
 				`can subscribe to family "${family.key}"`,
 			)
 			coreSubscriptions.add(
-				employSocket(socket, `sub:${family.key}`, (subKey: K) => {
+				employSocket(socket, `sub:${family.key}`, (subKey: K, metadata) => {
 					const serializedKey = stringifyJson(subKey)
 					if (!requestedFamilyMembers.has(serializedKey)) {
 						const token = findInStore(store, family, subKey)
@@ -143,8 +143,21 @@ export function realtimeMutableFamilyProvider({
 						)
 						requestedFamilyMembers.set(serializedKey, {
 							key: subKey,
+							metadata,
 							stopWatchingForUnsubscribe,
 						})
+					}
+					const request = requestedFamilyMembers.get(serializedKey)!
+					const previousNonce = isRigidRecord(request.metadata)
+						? request.metadata[`subscription`]
+						: undefined
+					const nextNonce = isRigidRecord(metadata)
+						? metadata[`subscription`]
+						: undefined
+					if (previousNonce !== nextNonce) {
+						familyMemberSubscriptions.get(serializedKey)?.()
+						familyMemberSubscriptions.delete(serializedKey)
+						request.metadata = metadata
 					}
 					let exposedSubKeys: Iterable<K> | null
 					if (dynamicIndex) {

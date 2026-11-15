@@ -1,7 +1,7 @@
 import type { IncomingHttpHeaders } from "node:http"
 import type { ParsedUrlQuery } from "node:querystring"
 
-import type { RoomKey, Socket, SocketKey, UserKey } from "@atom.io/realtime"
+import type { SocketKey, UserKey } from "@atom.io/realtime"
 import { myUserKeyAtom } from "@atom.io/realtime"
 import type { Loadable } from "atom.io"
 import { Realm } from "atom.io/experiments/realms"
@@ -15,6 +15,7 @@ import {
 import type { Server, Socket as IOSocket } from "socket.io"
 
 import { realtimeStateProvider } from "./realtime-state-provider.ts"
+import type { UserServerConfig } from "./server-connection-types.ts"
 import type { SocketSystemHierarchy } from "./server-socket-state.ts"
 import {
 	onlineUsersAtom,
@@ -23,16 +24,10 @@ import {
 	usersOfSockets,
 } from "./server-socket-state.ts"
 
-export type ServerConfig = {
-	socket: Socket
-	consumer: RoomKey | UserKey
-	store?: RootStore
-}
-export type UserServerConfig = {
-	socket: Socket
-	consumer: UserKey
-	store?: RootStore
-}
+export type {
+	ServerConfig,
+	UserServerConfig,
+} from "./server-connection-types.ts"
 
 /** Socket Handshake details--taken from socket.io */
 export type Handshake = {

@@ -1,80 +1,45 @@
-import { employSocket } from "@atom.io/realtime"
+import { employSocket, isRigidRecord } from "@atom.io/realtime"
 import type * as AtomIO from "atom.io"
 import type { Json } from "atom.io/foundations/json"
-import type { Transceiver } from "atom.io/internal"
-import {
-	getFromStore,
-	getJsonTokenFromStore,
-	getUpdateToken,
-	IMPLICIT,
-	subscribeToState,
-} from "atom.io/internal"
+import { IMPLICIT, type Transceiver } from "atom.io/internal"
 
-import type { ServerConfig } from "./index.ts"
+import { provideMutableStream } from "./provide-mutable-stream.ts"
+import type { ServerConfig } from "./server-connection-types.ts"
 
 export type MutableProvider = ReturnType<typeof realtimeMutableProvider>
 export function realtimeMutableProvider({
 	socket,
-	consumer,
 	store = IMPLICIT.STORE,
 }: ServerConfig) {
 	return function mutableProvider<
 		Core extends Transceiver<any, Json.Serializable, Json.Serializable>,
 	>(token: AtomIO.MutableAtomToken<Core>): () => void {
-		const subscriptions = new Set<() => void>()
-		const clearSubscriptions = () => {
-			for (const unsub of subscriptions) unsub()
-			subscriptions.clear()
+		let stopStream: (() => void) & { resnapshot?: () => void } = () => {}
+		let subscription: string | null = null
+		const stopSub = employSocket(socket, `sub:${token.key}`, (metadata) => {
+			const nextSubscription =
+				isRigidRecord(metadata) &&
+				metadata[`protocol`] === `rigid-mutable-v1` &&
+				typeof metadata[`subscription`] === `string`
+					? metadata[`subscription`]
+					: null
+			if (nextSubscription !== null && nextSubscription === subscription) {
+				stopStream.resnapshot?.()
+				return
+			}
+			subscription = nextSubscription
+			stopStream()
+			stopStream = provideMutableStream(store, socket, token, metadata)
+		})
+		const stopUnsub = employSocket(socket, `unsub:${token.key}`, () => {
+			subscription = null
+			stopStream()
+			stopStream = () => {}
+		})
+		return () => {
+			stopSub()
+			stopUnsub()
+			stopStream()
 		}
-
-		const jsonToken = getJsonTokenFromStore(store, token)
-		const trackerToken = getUpdateToken(token)
-
-		const start = () => {
-			store.logger.info(
-				`👀`,
-				`user`,
-				consumer,
-				`can subscribe to state "${token.key}"`,
-			)
-			subscriptions.add(
-				employSocket(socket, `sub:${token.key}`, () => {
-					store.logger.info(
-						`👀`,
-						`user`,
-						consumer,
-						`subscribes to state "${token.key}"`,
-					)
-					clearSubscriptions()
-					socket.emit(`init:${token.key}`, getFromStore(store, jsonToken))
-					subscriptions.add(
-						subscribeToState(
-							store,
-							trackerToken,
-							`expose-single:${socket.id}`,
-							({ newValue }) => {
-								socket.emit(`next:${token.key}`, newValue)
-							},
-						),
-					)
-					subscriptions.add(
-						employSocket(socket, `unsub:${token.key}`, () => {
-							store.logger.info(
-								`🙈`,
-								`user`,
-								consumer,
-								`unsubscribes from state "${token.key}"`,
-							)
-							clearSubscriptions()
-							start()
-						}),
-					)
-				}),
-			)
-		}
-
-		start()
-
-		return clearSubscriptions
 	}
 }

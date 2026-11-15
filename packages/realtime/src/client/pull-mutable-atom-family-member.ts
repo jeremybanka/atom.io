@@ -1,6 +1,11 @@
-import { employSocket, type Socket } from "@atom.io/realtime"
+import {
+	employSocket,
+	type Socket,
+	type VersionedMutablePullOptions,
+} from "@atom.io/realtime"
 import type * as AtomIO from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
+import { stringifyJson } from "atom.io/foundations/json"
 import type { AsJSON, SignalFrom, Store, Transceiver } from "atom.io/internal"
 import {
 	findInStore,
@@ -9,7 +14,8 @@ import {
 	setIntoStore,
 } from "atom.io/internal"
 
-import { createSubscriber } from "./create-subscriber.ts"
+import { createSubscriber, getSubMap } from "./create-subscriber.ts"
+import { pullVersionedMutable } from "./pull-versioned-mutable.ts"
 
 export function pullMutableAtomFamilyMember<
 	T extends Transceiver<any, any, any>,
@@ -19,8 +25,28 @@ export function pullMutableAtomFamilyMember<
 	socket: Socket,
 	family: AtomIO.MutableAtomFamilyToken<T, K>,
 	key: NoInfer<K>,
+	options?: VersionedMutablePullOptions<AsJSON<T>, SignalFrom<T>>,
 ): () => void {
 	const token = findInStore(store, family, key)
+	if (options)
+		return pullVersionedMutable(
+			store,
+			socket,
+			token,
+			(metadata) => {
+				socket.emit(`sub:${family.key}`, key, metadata)
+			},
+			options,
+			{
+				event: `unavailable:${family.key}`,
+				matches: (unavailable) =>
+					stringifyJson(unavailable) === stringifyJson(key),
+			},
+		)
+	if (getSubMap(socket).has(`versioned-mutable:${token.key}`))
+		throw new Error(
+			`Cannot mix raw and versioned mutable consumers for one socket/token`,
+		)
 	const jsonToken = getJsonTokenFromStore(store, token)
 	const trackerToken = getUpdateToken(token)
 	return createSubscriber(socket, token.key, () => {

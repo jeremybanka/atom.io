@@ -384,3 +384,41 @@ host should define:
 
 Continue with [operations and security](/docs/realtime/operations) for the
 release checklist.
+
+## native WebSocket and Cloudflare Workers
+
+`createWebSocketTransport` adapts browser and Workers standard WebSockets to the
+same named-event socket contract used by pull clients, React, and Domain socket
+binders. Frames carry a transport format version; application protocol and model
+negotiation remain separate. The adapter bounds message bytes, initial connection
+buffering, and native send-buffer growth. It rejects invalid frames and remote
+lifecycle events. The application owns reconnect timing and supplies a new
+connection identity on each replacement.
+
+<Exhibit src="realtime/connect-native-websocket.ts" />
+
+Use `@atom.io/realtime/server/cloudflare` inside a Durable Object. This entry
+excludes Socket.IO hosting, IPC, and process-backed rooms. Enable Workers
+`nodejs_compat` because the shared Mosaic reducers and checkpoint code use
+`node:crypto`. The `acceptCloudflareRealtimeConnection` helper authenticates the
+request before accepting the server WebSocket and disposes installed services on
+disconnect, including disconnects during asynchronous setup. Authentication must
+throw on failure; the host owns origin checks, resource routing, the
+`WebSocketPair`, and the HTTP upgrade response.
+
+<Exhibit src="realtime/accept-worker-websocket.ts" />
+
+`SqliteMosaicDomainBatchStorage` uses SQLite-backed Durable Object storage and
+synchronous transactions to atomically reserve batch/operation identities,
+advance session watermarks, and append revisions. It preserves state across
+object reconstruction and supports bounded stream recovery. The default limits
+are 16 Domains, 1,000 batches per Domain, and 256 KiB per batch. Capacity exhaustion
+rejects further growth; plan resource archival or migration before that limit.
+This adapter does not implement checkpoint retention or garbage collection.
+
+The connection helper uses the standard WebSocket API and keeps the object
+resident while connected. It does not implement Workers WebSocket hibernation;
+applications needing hibernation must restore service state and authentication
+from durable attachments on wake. The SDK's SQLite conformance tests exercise
+real SQLite, but are not a substitute for deployment tests in the Workers runtime.
+See [Cloudflare's WebSocket lifecycle documentation](https://developers.cloudflare.com/durable-objects/best-practices/websockets/).

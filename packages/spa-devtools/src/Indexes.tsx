@@ -1,6 +1,13 @@
 /** @jsxImportSource @atom.io/spa */
 import type { SpaElement } from "@atom.io/spa"
-import { useGetter, useSetter, useTimeline } from "@atom.io/spa"
+import {
+	onCleanup,
+	onMount,
+	render,
+	useGetter,
+	useSetter,
+	useTimeline,
+} from "@atom.io/spa"
 import type {
 	ReadableToken,
 	TimelineToken,
@@ -8,6 +15,7 @@ import type {
 	WritableToken,
 } from "atom.io"
 import {
+	deposit,
 	disposeFromStore,
 	findInStore,
 	isReservedIntrospectionKey,
@@ -15,6 +23,8 @@ import {
 import type { FamilyNode } from "atom.io/introspection"
 
 import { JsonEditor } from "./JsonEditor.tsx"
+import type { SearchContext } from "./search-controller.ts"
+import { createStateSearch } from "./search-controller.ts"
 import type { Tools } from "./store.ts"
 import { useExpanded } from "./store.ts"
 import { describe } from "./value.ts"
@@ -23,20 +33,57 @@ type Token = ReadableToken<unknown, any, any>
 export function StateIndex(props: {
 	tools: Tools
 	type: `atoms` | `selectors`
+	context: SearchContext
 }): SpaElement {
 	const getStateIndex = useGetter<Map<string, Token | FamilyNode<Token>>>(
 		props.type === `atoms` ? props.tools.atomIndex : props.tools.selectorIndex,
 	)
+	let host: HTMLElement | null = null
+	onMount(() => {
+		// Each view entry takes a new committed-root copy; only query text survives a remount.
+		delete props.context.index
+		onCleanup(
+			createStateSearch(
+				host!,
+				props.tools.store,
+				props.type,
+				props.context,
+				(key, target) => {
+					const store = props.tools.store
+					const state =
+						store.atoms.get(key) ??
+						store.readonlySelectors.get(key) ??
+						store.writableSelectors.get(key)
+					if (!state) {
+						target.textContent = `State disposed. Refresh to update the snapshot.`
+						return () => {}
+					}
+					return render(
+						() => <StateLeaf tools={props.tools} token={deposit(state)} />,
+						target,
+						{ store },
+					).dispose
+				},
+			),
+		)
+	})
 	return (
-		<article class="index" data-testid="state-index">
-			{getStateIndex().size === 0 ? (
-				<p>(no {props.type})</p>
-			) : (
-				[...getStateIndex().values()].map((node) => (
-					<StateNode key={node.key} tools={props.tools} node={node} />
-				))
-			)}
-		</article>
+		<section
+			class="state-search"
+			ref={(element) => {
+				host = element
+			}}
+		>
+			<article class="index" data-testid="state-index">
+				{getStateIndex().size === 0 ? (
+					<p>(no {props.type})</p>
+				) : (
+					[...getStateIndex().values()].map((node) => (
+						<StateNode key={node.key} tools={props.tools} node={node} />
+					))
+				)}
+			</article>
+		</section>
 	)
 }
 function StateNode(props: {
@@ -45,7 +92,11 @@ function StateNode(props: {
 }): SpaElement {
 	const [getOpen, toggle] = useExpanded(props.tools, [props.node.key])
 	return (
-		<section class="node" data-testid={`state-${props.node.key}`}>
+		<section
+			class="node"
+			data-state-key={props.node.key}
+			data-testid={`state-${props.node.key}`}
+		>
 			{`familyMembers` in props.node ? (
 				<>
 					<header>
@@ -86,7 +137,11 @@ export function StateLeaf(props: { tools: Tools; token: Token }): SpaElement {
 		}
 	}
 	return (
-		<section class="state-leaf" data-testid={`state-value-${props.token.key}`}>
+		<section
+			class="state-leaf"
+			data-state-key={props.token.key}
+			data-testid={`state-value-${props.token.key}`}
+		>
 			<JsonEditor
 				label={
 					<h3 title={props.token.key}>

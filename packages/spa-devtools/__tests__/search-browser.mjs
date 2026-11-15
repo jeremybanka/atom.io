@@ -5,11 +5,11 @@ import { arch, cpus, platform } from "node:os"
 import { resolve as resolvePath } from "node:path"
 
 import { build } from "esbuild"
-import { chromium } from "playwright"
+import { browserArtifacts, cpuRate, launchBrowser } from "./browser-runtime.mjs"
 
-const artifacts =
-	process.env.SPA_DEVTOOLS_SEARCH_ARTIFACTS ??
-	resolvePath(import.meta.dirname, `../../../.scratch/s6b-search-browser`)
+const artifacts = browserArtifacts(
+	process.env.SPA_DEVTOOLS_SEARCH_ARTIFACTS ?? `/tmp/spa-devtools-search`,
+)
 await mkdir(artifacts, { recursive: true })
 const bundle = await build({
 	entryPoints: [
@@ -40,17 +40,23 @@ const server = createServer((request, response) => {
 await new Promise((ready) => server.listen(0, `127.0.0.1`, ready))
 let browser
 const report = {
-	candidate: process.env.SPA_DEVTOOLS_CANDIDATE_SHA ?? `uncommitted`,
+	cpuRate,
+	candidate:
+		process.env.SPA_DEVTOOLS_CANDIDATE_SHA ??
+		process.env.GITHUB_SHA ??
+		`uncommitted`,
+	ci: {
+		testedRevision: process.env.GITHUB_SHA ?? null,
+		pullRequestHead: process.env.SPA_DEVTOOLS_PR_HEAD_SHA ?? null,
+	},
 	sandbox: true,
 	machine: { platform: platform(), arch: arch(), cpu: cpus()[0]?.model },
+	stage: `functional profiles`,
 	profiles: [],
 	scale: {},
 }
 try {
-	browser = await chromium.launch({
-		chromiumSandbox: true,
-		executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
-	})
+	browser = await launchBrowser()
 	report.browser = browser.version()
 	for (const width of [1440, 390])
 		for (const colorScheme of [`light`, `dark`]) {
@@ -216,6 +222,7 @@ try {
 	}
 	await zoom.close()
 
+	report.stage = `cold atoms capture and index`
 	const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
 	await page.goto(`http://127.0.0.1:${server.address().port}`)
 	await page.evaluate(() => {
@@ -269,7 +276,11 @@ try {
 		`no-such-record`,
 		`cart`,
 	]
-	for (let i = 0; i < 6; i++) await sample(queries[i])
+	report.stage = `atoms cold match, warmups and measured queries`
+	report.scale.cold = await sample(queries[0])
+	report.scale.warmupSamples = []
+	for (let i = 0; i < 6; i++)
+		report.scale.warmupSamples.push(await sample(queries[i]))
 	report.scale.warmup = 6
 	report.scale.samples = []
 	for (let i = 0; i < 30; i++)
@@ -278,7 +289,11 @@ try {
 		.map((item) => item.settledMs)
 		.sort((a, b) => a - b)[28]
 	report.scale.maxChunkMs = Math.max(
-		...report.scale.samples.map((item) => Number(item.maxMatchChunkMs)),
+		...[
+			report.scale.cold,
+			...report.scale.warmupSamples,
+			...report.scale.samples,
+		].map((item) => Number(item.maxMatchChunkMs)),
 		Number(report.scale.overview.maxIndexChunkMs),
 	)
 	report.scale.selection = await page.evaluate(async () => {
@@ -335,6 +350,7 @@ try {
 		await page.evaluate(() => window.searchFixture.evidence().reads),
 		0,
 	)
+	report.stage = `cold selectors capture and index`
 	const selectorStarted = await page.evaluate(() => performance.now())
 	await page.getByRole(`tab`, { name: `selectors`, exact: true }).click()
 	await page.waitForFunction(
@@ -359,7 +375,11 @@ try {
 		`no-such-record`,
 		`order`,
 	]
-	for (let i = 0; i < 6; i++) await sample(selectorQueries[i])
+	report.stage = `selectors cold match, warmups and measured queries`
+	report.scale.selectors.cold = await sample(selectorQueries[0])
+	report.scale.selectors.warmupSamples = []
+	for (let i = 0; i < 6; i++)
+		report.scale.selectors.warmupSamples.push(await sample(selectorQueries[i]))
 	for (let i = 0; i < 30; i++)
 		report.scale.selectors.samples.push(
 			await sample(selectorQueries[i % selectorQueries.length]),
@@ -368,9 +388,11 @@ try {
 		.map((item) => item.settledMs)
 		.sort((a, b) => a - b)[28]
 	report.scale.selectors.maxChunkMs = Math.max(
-		...report.scale.selectors.samples.map((item) =>
-			Number(item.maxMatchChunkMs),
-		),
+		...[
+			report.scale.selectors.cold,
+			...report.scale.selectors.warmupSamples,
+			...report.scale.selectors.samples,
+		].map((item) => Number(item.maxMatchChunkMs)),
 		Number(report.scale.selectors.overview.maxIndexChunkMs),
 	)
 	assert.equal(
@@ -382,10 +404,42 @@ try {
 		10_000,
 	)
 	assert.equal(report.scale.evidence.observedEdges, 30_000)
+	const summarize = (samples) => {
+		const sorted = [...samples].sort((a, b) => a - b)
+		return {
+			count: sorted.length,
+			p50: sorted[Math.floor(sorted.length * 0.5)],
+			p95: sorted[Math.floor(sorted.length * 0.95)],
+			p99: sorted[Math.floor(sorted.length * 0.99)],
+			max: sorted.at(-1),
+		}
+	}
+	report.scale.distributions = {
+		atomIndex: summarize(JSON.parse(report.scale.overview.indexChunks)),
+		atomMatching: summarize(
+			[
+				report.scale.cold,
+				...report.scale.warmupSamples,
+				...report.scale.samples,
+			].flatMap((sample) => JSON.parse(sample.matchChunks)),
+		),
+		selectorIndex: summarize(
+			JSON.parse(report.scale.selectors.overview.indexChunks),
+		),
+		selectorMatching: summarize(
+			[
+				report.scale.selectors.cold,
+				...report.scale.selectors.warmupSamples,
+				...report.scale.selectors.samples,
+			].flatMap((sample) => JSON.parse(sample.matchChunks)),
+		),
+	}
+
 	assert.ok(report.scale.selectors.overview.elapsedMs <= 500)
 	assert.ok(report.scale.selectors.p95Ms <= 100)
 	assert.ok(report.scale.selectors.maxChunkMs <= 8)
 
+	report.stage = `preparation and Refresh lifecycle races`
 	// Exercise real browser task boundaries while normalization is still in flight,
 	// rather than waiting for readiness before every input as the steady-state timings do.
 	const race = await browser.newPage({ viewport: { width: 1440, height: 900 } })
@@ -491,7 +545,30 @@ try {
 		report.scale.maxChunkMs <= 8,
 		`max scheduled slice ${report.scale.maxChunkMs}ms`,
 	)
+} catch (error) {
+	report.failure = {
+		stage: report.stage,
+		name: error.name,
+		message: error.message,
+	}
+	throw error
 } finally {
+	console.log(
+		JSON.stringify({
+			candidate: report.candidate,
+			ci: report.ci,
+			stage: report.stage,
+			failure: report.failure,
+			cpuRate,
+			atomOverview: report.scale.overview,
+			atomP95: report.scale.p95Ms,
+			atomMaxSlice: report.scale.maxChunkMs,
+			selectorOverview: report.scale.selectors?.overview,
+			selectorP95: report.scale.selectors?.p95Ms,
+			selectorMaxSlice: report.scale.selectors?.maxChunkMs,
+			distributions: report.scale.distributions,
+		}),
+	)
 	await writeFile(`${artifacts}/report.json`, JSON.stringify(report, null, 2))
 	await browser?.close()
 	await new Promise((resolve) => server.close(resolve))

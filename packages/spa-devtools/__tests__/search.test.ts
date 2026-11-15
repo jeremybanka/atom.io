@@ -272,3 +272,72 @@ it(`marks family counts as lower bounds when node inspection is truncated`, () =
 	const capture = captureStateSearch(silo.store, `atoms`, { maxNodes: 0 })!
 	expect(capture.documents[0].detail).toContain(`0+ members`)
 })
+
+it(`retains the best 100 with stable order when better names arrive after the cap, while counting every match`, () => {
+	const silo = fixture()
+	silo.atom<string>({ key: `valueOnly`, default: `` })
+	silo.store.valueMap.set(`valueOnly`, `cartQuantity`)
+	for (let i = 0; i < 120; i++)
+		silo.atom<number>({ key: `cartQuantityBySku${i}`, default: 0 })
+	silo.atom<number>({ key: `cartQuantity`, default: 0 })
+	const result = finish(matchStateSearch(index(silo), `cartQuantity`))
+	expect(result.matching).toBe(122)
+	expect(result.hits.map((hit) => hit.document.key)).toEqual([
+		`cartQuantity`,
+		...Array.from({ length: 99 }, (_, i) => `cartQuantityBySku${i}`),
+	])
+})
+
+it(`projects ASCII spans without constructing a cold native segmenter, resetting shared marks between hits`, () => {
+	const silo = fixture()
+	for (const key of [`xxMATCHxxMATCH`, `MATCH`, `nothing`])
+		silo.atom<number>({ key, default: 0 })
+	const snapshot = index(silo)
+	const segmenter = vi.spyOn(Intl, `Segmenter`)
+	try {
+		const result = finish(matchStateSearch(snapshot, `match`))
+		expect(
+			result.hits.find((hit) => hit.document.key === `xxMATCHxxMATCH`)!.ranges,
+		).toEqual([
+			[2, 7],
+			[9, 14],
+		])
+		expect(
+			result.hits.find((hit) => hit.document.key === `MATCH`)!.ranges,
+		).toEqual([[0, 5]])
+		expect(segmenter).not.toHaveBeenCalled()
+	} finally {
+		segmenter.mockRestore()
+	}
+})
+
+it(`constructs one segmenter lazily for Unicode literal spans and shares it within a query`, () => {
+	const silo = fixture()
+	for (const key of [`café`, `café and café`])
+		silo.atom<number>({ key, default: 0 })
+	const snapshot = index(silo)
+	const segmenter = vi.spyOn(Intl, `Segmenter`)
+	try {
+		const result = finish(matchStateSearch(snapshot, `café`))
+		expect(result.hits.map((hit) => hit.ranges)).toEqual([
+			[[0, 4]],
+			[
+				[0, 4],
+				[9, 13],
+			],
+		])
+		expect(segmenter).toHaveBeenCalledTimes(1)
+	} finally {
+		segmenter.mockRestore()
+	}
+})
+
+it(`drops normalized words that cross the document bound after compatibility expansion`, () => {
+	const silo = fixture(),
+		key = `ﬃ`.repeat(1024)
+	silo.atom<number>({ key, default: 0 })
+	const document = index(silo).documents[0]
+	expect(document.truncated).toBe(true)
+	expect(document.fields[0].fold.length).toBe(2048)
+	expect(document.fields[0].words).toEqual([])
+})

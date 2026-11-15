@@ -1,4 +1,5 @@
 import type { EcologyFamily, EcologyNode, EcologySnapshot } from "./ecology.ts"
+import { scheduleTask } from "./task.ts"
 
 interface GraphItem {
 	id: string
@@ -185,30 +186,29 @@ export function* projectEcology(
 export function scheduleGraph<T>(
 	iterator: Generator<void, T>,
 	done: (value: T, chunks: number[]) => void,
-	schedule: (run: () => void) => () => void = (run) => {
-		const timer = setTimeout(run, 0)
-		return () => {
-			clearTimeout(timer)
-		}
-	},
+	schedule: (run: () => void) => () => void = scheduleTask,
 	now: () => number = () => performance.now(),
+	budgetMs = 4,
 ): () => void {
 	let active = true
 	let cancel: () => void
 	const chunks: number[] = []
+	let stepCost = 0
 	const run = () => {
 		if (!active) return
 		const start = now()
 		let step: IteratorResult<void, T>
 		do {
+			const before = now()
 			step = iterator.next()
+			stepCost = Math.max(stepCost * 0.8, now() - before)
 			if (step.done) {
 				chunks.push(now() - start)
 				active = false
 				done(step.value, chunks)
 				return
 			}
-		} while (now() - start < 4)
+		} while (now() - start + stepCost < budgetMs)
 		chunks.push(now() - start)
 		cancel = schedule(run)
 	}

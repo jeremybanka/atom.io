@@ -5,14 +5,15 @@ import { createServer } from "node:http"
 import { dirname, resolve } from "node:path"
 import { createRequire } from "node:module"
 import { build } from "esbuild"
-import { chromium } from "playwright"
+import { browserArtifacts, cpuRate, launchBrowser } from "./browser-runtime.mjs"
 const favicon = await readFile(
 	resolve(import.meta.dirname, `../../../apps/atom.io.fyi/public/favicon.png`),
 )
 const faviconSha256 = createHash(`sha256`).update(favicon).digest(`hex`)
 const baseline = process.argv.includes(`--baseline`)
-const artifacts =
-	process.env.SPA_DEVTOOLS_POLISH_ARTIFACTS ?? `/tmp/spa-devtools-polish`
+const artifacts = browserArtifacts(
+	process.env.SPA_DEVTOOLS_POLISH_ARTIFACTS ?? `/tmp/spa-devtools-polish`,
+)
 await mkdir(artifacts, { recursive: true })
 const entry = resolve(import.meta.dirname, `fixtures/polish-browser/main.ts`)
 const bundles = {}
@@ -364,11 +365,9 @@ async function checkLongField(page, theme, name, sizing) {
 await new Promise((ready) => server.listen(0, `127.0.0.1`, ready))
 let browser
 try {
-	browser = await chromium.launch({
-		chromiumSandbox: true,
-		executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
-	})
+	browser = await launchBrowser()
 	const report = {
+		cpuRate,
 		candidate: process.env.SPA_DEVTOOLS_CANDIDATE_SHA ?? `working-tree`,
 		baseline,
 		browser: browser.version(),

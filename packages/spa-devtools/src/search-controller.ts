@@ -198,7 +198,7 @@ export function createStateSearch(
 			results.append(item)
 		}
 		const snapshot = context.index!
-		status.textContent = `${context.query.trim() ? `${next.matching} matches in captured metadata/cached values; showing ${next.hits.length}. ` : ``}${snapshot.documents.length} captured records · Captured at ${new Date(snapshot.capturedAt).toLocaleTimeString()} · ${snapshot.uncachedValues} not cached · ${snapshot.skippedValues} complex values skipped.${snapshot.partial ? ` Partial capture; more records unsearched.` : ``}${snapshot.truncatedText ? ` ${snapshot.truncatedText} text prefixes truncated.` : ``}${next.approximateLimited ? ` Approximate search limited; refine the query.` : ``}${context.query.trim() && !next.matching ? ` No matches in captured metadata.` : ``}`
+		status.textContent = `${context.query.trim() ? `${next.matching} matches in captured metadata/cached values; showing ${next.hits.length}. ` : ``}${snapshot.documents.length} captured records · Captured at ${`${new Date(snapshot.capturedAt).toISOString().slice(11, 19)} UTC`} · ${snapshot.uncachedValues} not cached · ${snapshot.skippedValues} complex values skipped.${snapshot.partial ? ` Partial capture; more records unsearched.` : ``}${snapshot.truncatedText ? ` ${snapshot.truncatedText} text prefixes truncated.` : ``}${next.approximateLimited ? ` Approximate search limited; refine the query.` : ``}${context.query.trim() && !next.matching ? ` No matches in captured metadata.` : ``}`
 		mask()
 		host.dataset[`commitMs`] = String(performance.now() - started)
 		host.dataset[`ready`] = `true`
@@ -218,10 +218,14 @@ export function createStateSearch(
 				)
 				host.dataset[`matchElapsedMs`] = String(performance.now() - started)
 				host.dataset[`maxMatchChunkMs`] = String(Math.max(...chunks))
+				host.dataset[`matchChunks`] = JSON.stringify(chunks)
 				busy = false
 				results.removeAttribute(`aria-busy`)
 				paint(next)
 			},
+			undefined,
+			undefined,
+			2,
 		)
 	}
 	function query() {
@@ -256,29 +260,36 @@ export function createStateSearch(
 		host.dataset[`documentCount`] = String(copy.documents.length)
 		status.textContent = `Preparing copied metadata and cached values…`
 		host.dataset[`ready`] = `false`
-		cancelIndex = scheduleGraph(indexStateSearch(copy), (indexed, chunks) => {
-			host.dataset[`indexMs`] = String(
-				chunks.reduce((sum, value) => sum + value, 0),
-			)
-			host.dataset[`indexElapsedMs`] = String(
-				performance.now() - started - Number(host.dataset[`captureMs`]),
-			)
-			host.dataset[`maxIndexChunkMs`] = String(Math.max(...chunks))
-			context.index = indexed
-			preparing = false
-			if (
-				liveKey &&
-				!store.atoms.has(liveKey) &&
-				!store.readonlySelectors.has(liveKey) &&
-				!store.writableSelectors.has(liveKey)
-			) {
-				disposeLive?.()
-				disposeLive = undefined
-				liveKey = undefined
-				live.replaceChildren()
-			}
-			matching()
-		})
+		cancelIndex = scheduleGraph(
+			indexStateSearch(copy),
+			(indexed, chunks) => {
+				host.dataset[`indexMs`] = String(
+					chunks.reduce((sum, value) => sum + value, 0),
+				)
+				host.dataset[`indexElapsedMs`] = String(
+					performance.now() - started - Number(host.dataset[`captureMs`]),
+				)
+				host.dataset[`maxIndexChunkMs`] = String(Math.max(...chunks))
+				host.dataset[`indexChunks`] = JSON.stringify(chunks)
+				context.index = indexed
+				preparing = false
+				if (
+					liveKey &&
+					!store.atoms.has(liveKey) &&
+					!store.readonlySelectors.has(liveKey) &&
+					!store.writableSelectors.has(liveKey)
+				) {
+					disposeLive?.()
+					disposeLive = undefined
+					liveKey = undefined
+					live.replaceChildren()
+				}
+				matching()
+			},
+			undefined,
+			undefined,
+			2,
+		)
 	}
 	const inputChange = (event: Event) => {
 		if (!(event as InputEvent).isComposing) query()

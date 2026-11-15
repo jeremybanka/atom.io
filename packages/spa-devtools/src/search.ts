@@ -59,6 +59,7 @@ const FIELD_LIMIT = 1_024
 const DOCUMENT_LIMIT = 2_048
 const WORD_LIMIT = 16
 const WORDS = /\p{Lu}?(?:\p{Ll}|\p{M})+|\p{Lu}+(?!\p{Ll})|\p{N}+/gu
+const ASCII = /^\p{ASCII}*$/u
 const fold = (text: string): string => text.normalize(`NFKC`).toLowerCase()
 
 /** Inspect only the permitted prefix and one omission probe. Never normalize an unbounded string. */
@@ -66,6 +67,8 @@ function prefix(
 	text: string,
 	max: number,
 ): { text: string; omitted: boolean; work: number; length: number } {
+	if (text.length <= max && ASCII.test(text))
+		return { text, omitted: false, work: text.length, length: text.length }
 	const chars: string[] = []
 	let work = 0,
 		omitted = false
@@ -198,25 +201,34 @@ export function* indexStateSearch(
 		let remaining = WORD_LIMIT,
 			normalizedRemaining = DOCUMENT_LIMIT,
 			truncated = document.truncated
-		const fields = document.fields.map((field): IndexedField => {
+		const fields: IndexedField[] = []
+		let checkpoint = performance.now()
+		for (const field of document.fields) {
 			let text = field.text
-			const matches = [...text.matchAll(WORDS)]
-			if (matches.length > remaining) {
-				text = text.slice(0, matches[remaining].index)
-				truncated = true
+			const words: string[] = []
+			WORDS.lastIndex = 0
+			let match: RegExpExecArray | null
+			while ((match = WORDS.exec(text))) {
+				if (words.length === remaining) {
+					text = text.slice(0, match.index)
+					truncated = true
+					break
+				}
+				words.push(fold(match[0]))
 			}
-			const words = matches.slice(0, remaining).map((match) => fold(match[0]))
+			WORDS.lastIndex = 0
 			remaining -= words.length
 			const normalized = prefix(fold(text), normalizedRemaining)
 			normalizedRemaining -= normalized.length
 			truncated ||= normalized.omitted
-			return {
-				kind: field.kind,
-				text,
-				fold: normalized.text,
-				words: words.filter((word) => normalized.text.includes(word)),
+			for (let i = words.length - 1; i >= 0; i--)
+				if (!normalized.text.includes(words[i])) words.splice(i, 1)
+			fields.push({ kind: field.kind, text, fold: normalized.text, words })
+			if (performance.now() - checkpoint >= 1) {
+				yield
+				checkpoint = performance.now()
 			}
-		})
+		}
 		truncatedText += Number(truncated)
 		documents.push({ ...document, label: fields[0].text, fields, truncated })
 		yield
@@ -260,40 +272,66 @@ function oneEdit(a: string, b: string, spend: () => boolean): boolean {
 
 function literalTier(field: IndexedField, token: string): number {
 	if (field.words.includes(token)) return 1
-	if (field.words.some((word) => word.startsWith(token))) return 2
+	for (let i = 0; i < field.words.length; i++)
+		if (field.words[i].startsWith(token)) return 2
 	return field.fold.includes(token) ? 3 : 9
 }
-function ranges(
-	field: IndexedField | undefined,
+/** Mark literal normalized spans, then map only their graphemes back to original text. */
+function* ranges(
+	field: IndexedField,
 	tokens: string[],
-): [number, number][] {
-	if (!field) return []
-	const starts: number[] = [],
-		ends: number[] = []
-	for (const part of new Intl.Segmenter(`en`, {
-		granularity: `grapheme`,
-	}).segment(field.text)) {
-		for (let i = 0; i < fold(part.segment).length; i++) {
-			starts.push(part.index)
-			ends.push(part.index + part.segment.length)
-		}
-	}
-	const found: [number, number][] = []
+	mask: Uint8Array,
+	getSegmenter: () => Intl.Segmenter,
+): Generator<void, [number, number][]> {
+	mask.fill(0, 0, field.fold.length)
+	let end = 0
 	for (const token of tokens) {
 		let at = field.fold.indexOf(token)
 		while (at !== -1) {
-			found.push([starts[at], ends[at + token.length - 1]])
+			mask.fill(1, at, at + token.length)
+			end = Math.max(end, at + token.length)
+			yield
 			at = field.fold.indexOf(token, at + 1)
 		}
 	}
-	found.sort((a, b) => a[0] - b[0])
+	if (!end) return []
 	const merged: [number, number][] = []
-	for (const range of found) {
-		const prior = merged.at(-1)
-		if (prior && range[0] <= prior[1]) prior[1] = Math.max(prior[1], range[1])
-		else merged.push([...range])
+	if (ASCII.test(field.text)) {
+		for (let at = 0; at < end;) {
+			if (!mask[at]) {
+				at++
+				continue
+			}
+			const start = at++
+			while (at < end && mask[at]) at++
+			merged.push([start, at])
+			yield
+		}
+		return merged
+	}
+	let offset = 0
+	for (const part of getSegmenter().segment(field.text)) {
+		const next = offset + fold(part.segment).length
+		let marked = false
+		for (let at = offset; at < next; at++) marked ||= mask[at] === 1
+		if (marked) {
+			const prior = merged.at(-1)
+			if (prior && prior[1] === part.index)
+				prior[1] = part.index + part.segment.length
+			else merged.push([part.index, part.index + part.segment.length])
+		}
+		offset = next
+		yield
+		if (offset >= end) break
 	}
 	return merged
+}
+function compareScore(a: readonly number[], b: readonly number[]): number {
+	for (let i = 0; i < a.length - 1; i++) {
+		const difference = a[i] - b[i]
+		if (difference) return difference
+	}
+	return a[4] - b[4]
 }
 
 /** Pure, cancellable work over copied text only. Exact matching always completes despite a fuzzy cutoff. */
@@ -327,6 +365,8 @@ export function* matchStateSearch(
 		return true
 	}
 	const hits: SearchHit[] = []
+	let matching = 0
+	const score = [0, 0, 0, 0, 0]
 	if (!query)
 		return { hits, matching: 0, comparisons, approximateLimited, validation: `` }
 	for (const document of index.documents) {
@@ -339,7 +379,8 @@ export function* matchStateSearch(
 		for (const token of tokens) {
 			let best = 9,
 				fieldPriority = 9
-			for (const [position, field] of document.fields.entries()) {
+			for (let position = 0; position < document.fields.length; position++) {
+				const field = document.fields[position]
 				const score = literalTier(field, token)
 				if (score < 9 && best === 9) {
 					best = score
@@ -347,12 +388,16 @@ export function* matchStateSearch(
 				}
 			}
 			if (best === 9 && token.length >= 4 && token.length <= 64) {
-				for (const [position, field] of document.fields.entries()) {
-					if (field.words.some((word) => oneEdit(token, word, spend))) {
-						best = 4
-						fieldPriority = position
-						break
+				for (let position = 0; position < document.fields.length; position++) {
+					const words = document.fields[position].words
+					for (let at = 0; at < words.length; at++) {
+						if (oneEdit(token, words[at], spend)) {
+							best = 4
+							fieldPriority = position
+							break
+						}
 					}
+					if (best === 4) break
 				}
 			}
 			if (best === 9) {
@@ -368,42 +413,56 @@ export function* matchStateSearch(
 		}
 		if (matches) {
 			if (document.fields[0].fold === query) tier = 0
-			hits.push({
-				document,
-				valueMatch,
-				approximate: edits > 0,
-				ranges: [],
-				valueRanges: [],
-				score: [
-					named ? 0 : valueMatch ? 2 : 1,
-					tier,
-					edits,
-					priority,
-					hits.length,
-				],
-			})
+			// Retain only the best 100 in stable order. A full-result sort cannot be interrupted.
+			score[0] = named ? 0 : valueMatch ? 2 : 1
+			score[1] = tier
+			score[2] = edits
+			score[3] = priority
+			score[4] = matching++
+			let low = 0,
+				high = hits.length
+			while (low < high) {
+				const middle = (low + high) >>> 1
+				if (compareScore(score, hits[middle].score) < 0) high = middle
+				else low = middle + 1
+			}
+			if (low < 100) {
+				hits.splice(low, 0, {
+					document,
+					valueMatch,
+					approximate: edits > 0,
+					ranges: [],
+					valueRanges: [],
+					score: [...score],
+				})
+				if (hits.length > 100) hits.pop()
+			}
 		}
 		yield
 	}
-	hits.sort((a, b) => {
-		for (let i = 0; i < a.score.length - 1; i++) {
-			const difference = a.score[i] - b.score[i]
-			if (difference) return difference
-		}
-		return a.score[4] - b.score[4]
-	})
-	const selected = hits.slice(0, 100)
-	for (const hit of selected) {
-		hit.ranges = ranges(hit.document.fields[0], tokens)
-		hit.valueRanges = ranges(
-			hit.document.fields.find((field) => field.kind === `value`),
+	const mask = new Uint8Array(DOCUMENT_LIMIT)
+	let segmenter: Intl.Segmenter | undefined
+	const getSegmenter = () =>
+		(segmenter ??= new Intl.Segmenter(`en`, { granularity: `grapheme` }))
+	for (const hit of hits) {
+		hit.ranges = yield* ranges(
+			hit.document.fields[0],
 			tokens,
+			mask,
+			getSegmenter,
 		)
+		if (hit.valueMatch)
+			hit.valueRanges = yield* ranges(
+				hit.document.fields.find((field) => field.kind === `value`)!,
+				tokens,
+				mask,
+				getSegmenter,
+			)
 		yield
 	}
 	return {
-		hits: selected,
-		matching: hits.length,
+		hits,
+		matching,
 		comparisons,
 		approximateLimited,
 		validation: ``,

@@ -58,6 +58,9 @@ function mount(large = false) {
 					{ source },
 				)
 			}
+		update = () => {
+			app.store.valueMap.set(atoms[0], `refreshed`)
+		}
 	} else {
 		const countAtom = app.atom<number>({ key: `count`, default: 2 })
 		app.atom<unknown>({ key: `record`, default: { a: 1, b: 2 } })

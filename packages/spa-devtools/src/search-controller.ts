@@ -75,7 +75,9 @@ export function createStateSearch(
 	let disposeLive: (() => void) | undefined
 	let liveKey: string | undefined
 	let result: SearchResults | undefined
-	let cancel = () => {}
+	let cancelIndex = () => {}
+	let cancelMatch = () => {}
+	let preparing = false
 	let wait = () => {}
 	let disposed = false,
 		busy = false
@@ -202,12 +204,13 @@ export function createStateSearch(
 		host.dataset[`ready`] = `true`
 	}
 	function matching() {
-		if (!context.index || !visible()) return
+		cancelMatch()
+		if (preparing || !context.index || !visible()) return
 		busy = true
 		results.setAttribute(`aria-busy`, `true`)
 		host.dataset[`ready`] = `false`
 		const started = performance.now()
-		cancel = scheduleGraph(
+		cancelMatch = scheduleGraph(
 			matchStateSearch(context.index, context.query),
 			(next, chunks) => {
 				host.dataset[`matchMs`] = String(
@@ -222,16 +225,19 @@ export function createStateSearch(
 		)
 	}
 	function query() {
-		cancel()
 		context.query = input.value
 		matching()
 	}
 	function capture() {
-		cancel()
+		cancelIndex()
+		cancelMatch()
 		wait()
 		wait = () => {}
 		if (!visible()) return
+		// A query may replace matching, but must never discard this admitted copy.
+		preparing = true
 		busy = true
+		host.dataset[`ready`] = `false`
 		results.setAttribute(`aria-busy`, `true`)
 		const started = performance.now()
 		const copy = captureStateSearch(store, view)
@@ -250,7 +256,7 @@ export function createStateSearch(
 		host.dataset[`documentCount`] = String(copy.documents.length)
 		status.textContent = `Preparing copied metadata and cached values…`
 		host.dataset[`ready`] = `false`
-		cancel = scheduleGraph(indexStateSearch(copy), (indexed, chunks) => {
+		cancelIndex = scheduleGraph(indexStateSearch(copy), (indexed, chunks) => {
 			host.dataset[`indexMs`] = String(
 				chunks.reduce((sum, value) => sum + value, 0),
 			)
@@ -259,6 +265,7 @@ export function createStateSearch(
 			)
 			host.dataset[`maxIndexChunkMs`] = String(Math.max(...chunks))
 			context.index = indexed
+			preparing = false
 			if (
 				liveKey &&
 				!store.atoms.has(liveKey) &&
@@ -346,12 +353,13 @@ export function createStateSearch(
 	const mutation = new win.MutationObserver(mask)
 	mutation.observe(index, { childList: true, subtree: true })
 	const visibility = new win.MutationObserver(() => {
-		cancel()
+		cancelIndex()
+		cancelMatch()
 		wait()
 		wait = () => {}
 		if (visible()) {
-			if (context.index) matching()
-			else capture()
+			if (preparing || !context.index) capture()
+			else matching()
 		}
 	})
 	visibility.observe(panel, {
@@ -362,7 +370,8 @@ export function createStateSearch(
 	else capture()
 	return () => {
 		disposed = true
-		cancel()
+		cancelIndex()
+		cancelMatch()
 		wait()
 		session.dispose()
 		disposeLive?.()

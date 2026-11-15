@@ -386,6 +386,102 @@ try {
 	assert.ok(report.scale.selectors.p95Ms <= 100)
 	assert.ok(report.scale.selectors.maxChunkMs <= 8)
 
+	// Exercise real browser task boundaries while normalization is still in flight,
+	// rather than waiting for readiness before every input as the steady-state timings do.
+	const race = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+	race.setDefaultTimeout(5_000)
+	await race.goto(`http://127.0.0.1:${server.address().port}`)
+	report.races = {
+		method: `Ordinary DOM InputEvents across real scheduled task boundaries during preparation; no synthetic clock or scheduler replacement.`,
+	}
+	report.races.initial = await race.evaluate(async () => {
+		window.searchFixture.mount(true)
+		const host = document.querySelector(`.state-search`),
+			input = host.querySelector(`input`),
+			observations = []
+		for (const text of [`cart`, `discarded`, `cartQuantity0`]) {
+			await new Promise((resolve) => setTimeout(resolve, 0))
+			observations.push({
+				preparing: host
+					.querySelector(`.search-status`)
+					.textContent.startsWith(`Preparing`),
+				ready: host.dataset.ready,
+				busy: host.querySelector(`ol`).getAttribute(`aria-busy`),
+				text,
+			})
+			input.value = text
+			input.dispatchEvent(
+				new InputEvent(`input`, {
+					data: text,
+					inputType: `insertText`,
+					bubbles: true,
+				}),
+			)
+		}
+		return observations
+	})
+	assert.ok(
+		report.races.initial.every(
+			(entry) =>
+				entry.preparing && entry.ready === `false` && entry.busy === `true`,
+		),
+	)
+	await race.waitForFunction(
+		() => document.querySelector(`.state-search`)?.dataset.ready === `true`,
+	)
+	assert.match(
+		await race.locator(`.search-results`).innerText(),
+		/cartQuantity0/,
+	)
+	report.races.refresh = await race.evaluate(async () => {
+		window.searchFixture.update()
+		const host = document.querySelector(`.state-search`),
+			input = host.querySelector(`input`),
+			observations = []
+		;[...host.querySelectorAll(`button`)]
+			.find((button) => button.textContent === `Refresh`)
+			.click()
+		for (const text of [`SKU`, `discarded`, `refreshed`]) {
+			await new Promise((resolve) => setTimeout(resolve, 0))
+			observations.push({
+				preparing: host
+					.querySelector(`.search-status`)
+					.textContent.startsWith(`Preparing`),
+				ready: host.dataset.ready,
+				busy: host.querySelector(`ol`).getAttribute(`aria-busy`),
+				text,
+			})
+			input.value = text
+			input.dispatchEvent(
+				new InputEvent(`input`, {
+					data: text,
+					inputType: `insertText`,
+					bubbles: true,
+				}),
+			)
+		}
+		return observations
+	})
+	assert.ok(
+		report.races.refresh.every(
+			(entry) =>
+				entry.preparing && entry.ready === `false` && entry.busy === `true`,
+		),
+	)
+	await race.waitForFunction(
+		() => document.querySelector(`.state-search`)?.dataset.ready === `true`,
+	)
+	assert.match(
+		await race.locator(`.search-results`).innerText(),
+		/cached value: refreshed/,
+	)
+	assert.equal(await race.locator(`.search-results li`).count(), 1)
+	assert.equal(
+		await race.evaluate(() => window.searchFixture.evidence().reads),
+		0,
+	)
+	await race.close()
+
 	assert.ok(
 		report.scale.overview.elapsedMs <= 500,
 		`overview ${report.scale.overview.elapsedMs}ms`,

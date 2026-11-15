@@ -1,6 +1,6 @@
-import "@atom.io/react-devtools/css"
+import "@atom.io/spa-devtools/css"
 
-import { AtomIODevtools } from "@atom.io/react-devtools"
+import { AtomIODevtools } from "@atom.io/spa-devtools/react"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import type { Loadable } from "atom.io"
 import {

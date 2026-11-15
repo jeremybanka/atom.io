@@ -441,9 +441,86 @@ try {
 		)
 		await page.getByRole(`button`, { name: `run`, exact: true }).waitFor()
 		assert.equal(await page.getByTestId(`order-summary`).count(), 0)
+		const primaryGraph = page.getByTestId(`ecology-view`)
+		await page.waitForFunction(
+			() =>
+				document.querySelector(`[data-testid="ecology-view"]`)?.dataset.ready ===
+				`true`,
+		)
+		const primaryCounts = await primaryGraph
+			.locator(`.ecology-counts`)
+			.innerText()
+		assert.match(primaryCounts, /^11 atoms · 2 selectors/)
+		assert.match(primaryCounts, /0 captured edges/)
+		assert.equal(await page.getByTestId(`atom-io-devtools`).count(), 1)
+		// Exercise the actual manager's same-document transition, not a fresh iframe.
+		const manager = await context.newPage()
+		activePage = manager
+		manager.on(`pageerror`, (error) => errors.push(error.message))
+		await manager.goto(`${url}/?path=/story/atomiodevtools--primary`)
+		const frame = await (
+			await manager.locator(`#storybook-preview-iframe`).elementHandle()
+		).contentFrame()
+		await frame.getByTestId(`ecology-view`).waitFor()
+		await frame.evaluate(() => {
+			window.__orderStoryDocument = true
+		})
+		const navigation = manager.getByRole(`button`, {
+			name: `Open navigation menu`,
+			exact: true,
+		})
+		if (await navigation.isVisible()) await navigation.click()
+		await manager
+			.locator(`a[href*="/story/atomiodevtools--ecology-order-fulfillment"]`)
+			.first()
+			.click()
+		await frame.getByTestId(`order-summary`).waitFor()
+		const transitionCounts = []
+		for (let reset = 0; reset < 3; reset++) {
+			// Storybook's own development announcement can cover the mobile iframe.
+			for (const dismiss of await manager
+				.getByRole(`button`, { name: `Dismiss notification`, exact: true })
+				.all()) {
+				if (await dismiss.isVisible()) await dismiss.click()
+			}
+			if (reset)
+				await frame
+					.getByRole(`button`, { name: `Reset order scenario`, exact: true })
+					.click()
+			await frame.waitForFunction(
+				() =>
+					document.querySelector(`[data-testid="ecology-view"]`)?.dataset
+						.ready === `true`,
+			)
+			const transitionGraph = frame.getByTestId(`ecology-view`)
+			const jobs = await transitionGraph.getAttribute(`data-jobs`)
+			await transitionGraph
+				.getByRole(`button`, { name: `Refresh`, exact: true })
+				.click()
+			await frame.waitForFunction(
+				(previous) =>
+					document.querySelector(`[data-testid="ecology-view"]`)?.dataset
+						.jobs !== previous,
+				jobs,
+			)
+			const counts = await transitionGraph.locator(`.ecology-counts`).innerText()
+			assert.match(counts, /^95 atoms · 18 selectors/)
+			assert.match(counts, /51 captured edges/)
+			assert.equal(await frame.getByTestId(`atom-io-devtools`).count(), 1)
+			transitionCounts.push(counts)
+		}
+		assert.equal(await frame.evaluate(() => window.__orderStoryDocument), true)
+		await manager.screenshot({
+			path: resolve(profileArtifacts, `primary-to-order.png`),
+		})
+		await manager.close()
+		activePage = page
 		assert.deepEqual(errors, [])
 		profiles.push({
 			viewport,
+			primaryCounts,
+			transitionCounts,
+			sameDocumentPrimaryToOrder: true,
 			controls,
 			layout,
 			gestures,

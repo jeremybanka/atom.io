@@ -435,6 +435,7 @@ try {
 		),
 	}
 
+	report.stage = `acceptance of initial selectors capture/index and query samples`
 	assert.ok(report.scale.selectors.overview.elapsedMs <= 500)
 	assert.ok(report.scale.selectors.p95Ms <= 100)
 	assert.ok(report.scale.selectors.maxChunkMs <= 8)
@@ -536,6 +537,7 @@ try {
 	)
 	await race.close()
 
+	report.stage = `acceptance of initial atoms capture/index and query samples`
 	assert.ok(
 		report.scale.overview.elapsedMs <= 500,
 		`overview ${report.scale.overview.elapsedMs}ms`,

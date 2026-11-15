@@ -60,6 +60,7 @@ const DOCUMENT_LIMIT = 2_048
 const WORD_LIMIT = 16
 const WORDS = /\p{Lu}?(?:\p{Ll}|\p{M})+|\p{Lu}+(?!\p{Ll})|\p{N}+/gu
 const ASCII = /^\p{ASCII}*$/u
+const ASTRAL = /[\u{10000}-\u{10ffff}]/u
 const fold = (text: string): string => text.normalize(`NFKC`).toLowerCase()
 
 /** Inspect only the permitted prefix and one omission probe. Never normalize an unbounded string. */
@@ -67,7 +68,7 @@ function prefix(
 	text: string,
 	max: number,
 ): { text: string; omitted: boolean; work: number; length: number } {
-	if (text.length <= max && ASCII.test(text))
+	if (text.length <= max && !ASTRAL.test(text))
 		return { text, omitted: false, work: text.length, length: text.length }
 	const chars: string[] = []
 	let work = 0,
@@ -196,6 +197,8 @@ export function* indexStateSearch(
 	capture: SearchCapture,
 ): Generator<void, SearchIndex> {
 	const documents: IndexedDocument[] = []
+	// This cursor survives yields and must not share state with another index job.
+	const wordsPattern = new RegExp(WORDS)
 	let truncatedText = 0
 	for (const document of capture.documents) {
 		let remaining = WORD_LIMIT,
@@ -206,17 +209,21 @@ export function* indexStateSearch(
 		for (const field of document.fields) {
 			let text = field.text
 			const words: string[] = []
-			WORDS.lastIndex = 0
+			wordsPattern.lastIndex = 0
 			let match: RegExpExecArray | null
-			while ((match = WORDS.exec(text))) {
+			while ((match = wordsPattern.exec(text))) {
 				if (words.length === remaining) {
 					text = text.slice(0, match.index)
 					truncated = true
 					break
 				}
 				words.push(fold(match[0]))
+				if (performance.now() - checkpoint >= 1) {
+					yield
+					checkpoint = performance.now()
+				}
 			}
-			WORDS.lastIndex = 0
+			wordsPattern.lastIndex = 0
 			remaining -= words.length
 			const normalized = prefix(fold(text), normalizedRemaining)
 			normalizedRemaining -= normalized.length

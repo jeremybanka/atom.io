@@ -123,6 +123,7 @@
 	"devDependencies": {
 		"@atom.io/eslint-plugin": "workspace:*",
 		"@atom.io/exhibits": "workspace:*",
+		"@atom.io/spa-devtools": "workspace:*",
 		"@breakage/changesets": "0.1.0",
 		"@orpc/client": "1.16.2",
 		"@orpc/server": "1.16.2",

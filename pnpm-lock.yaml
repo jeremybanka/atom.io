@@ -382,6 +382,9 @@ importers:
       '@atom.io/exhibits':
         specifier: workspace:*
         version: link:../exhibits
+      '@atom.io/spa-devtools':
+        specifier: workspace:*
+        version: link:../spa-devtools
       '@breakage/changesets':
         specifier: 0.1.0
         version: 0.1.0(breakage@0.10.2(supports-color@10.2.2)(zod@4.6.7))

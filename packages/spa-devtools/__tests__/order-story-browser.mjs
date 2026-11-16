@@ -241,7 +241,7 @@ try {
 		await frame
 			.getByRole(`button`, { name: `Reset order scenario`, exact: true })
 			.click()
-		await frame.waitForFunction((panel) => !panel.isConnected, previousPanel)
+		await frame.waitForFunction((element) => !element.isConnected, previousPanel)
 		await frame.waitForFunction(
 			() =>
 				document.querySelector(`[data-testid="ecology-view"]`)?.dataset.ready ===

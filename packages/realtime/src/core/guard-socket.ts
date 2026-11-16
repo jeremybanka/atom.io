@@ -59,11 +59,14 @@ export function guardSocket<ListenEvents extends EventsMap>(
 	}
 
 	const guardedSocket: Socket = {
-		id: socket.id,
+		get id() {
+			return socket.id
+		},
 		on: (event, listener) => {
 			const wrapper: Listener = (...args) => {
 				enqueueValidation(event, args, (validated) => {
-					listener(...validated)
+					if (listenerWrappers.get(event)?.get(listener) === wrapper)
+						listener(...validated)
 				})
 			}
 			let wrappers = listenerWrappers.get(event)
@@ -79,7 +82,8 @@ export function guardSocket<ListenEvents extends EventsMap>(
 		onAny: (listener) => {
 			const wrapper: AnyListener = (event, ...args) => {
 				enqueueValidation(event, args, (validated) => {
-					listener(event, ...validated)
+					if (anyListenerWrappers.get(listener) === wrapper)
+						listener(event, ...validated)
 				})
 			}
 			const formerWrapper = anyListenerWrappers.get(listener)

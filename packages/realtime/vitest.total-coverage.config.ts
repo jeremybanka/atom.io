@@ -6,6 +6,8 @@ const config: ViteUserConfig = defineOurVitestConfig({
 	name: `realtime-total-coverage`,
 	target: `src`,
 	test: {
+		maxWorkers: 1,
+		fileParallelism: false,
 		include: [`__tests__/{public,private}/**/*.test.{ts,tsx}`],
 		coverage: { include: [`src/**/*.{ts,tsx}`] },
 	},

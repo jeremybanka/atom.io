@@ -138,3 +138,69 @@ Rigid realtime is the wrong fit when:
 Those are model requirements, not transport tuning problems. Move one
 convergent value to [Atomic Mosaic](/docs/realtime/mosaic), or move an
 application graph to [Mosaic Domains](/docs/realtime/domains).
+
+## versioned state controllers
+
+Use `createRigidStateServer` and `createRigidStateClient` for regular JSON
+values that need version conflicts, explicit write outcomes, and inspectable
+connection state. Create one server authority per resource and share one client
+controller per Store/socket/resource. A regular family member is an ordinary
+writable token and can use the same controllers. The `resource` option allows a
+server token and its client projection to have different keys.
+
+<Exhibit src="realtime/versioned-rigid-state.ts" />
+
+The server publishes complete snapshots with an authority epoch and revision.
+A new server instance creates a new epoch. The client opens a fresh subscription
+on reconnect and rejects old-subscription traffic. Delivery sequence numbers
+prevent delayed snapshots from overwriting later state; complete snapshots may
+skip revisions because they contain the entire value.
+
+Writes carry the observed epoch/revision, lease generation, and publication
+sequence. The server serializes validation and rechecks the lease, permission,
+and expected version immediately before committing. A rejected write never
+changes the client projection. Conflicts deliver current state so applications
+can read it and explicitly retry. A lost acknowledgement, transport failure, or
+disposal produces an interrupted result whose acceptance is unknown; the client
+does not automatically replay potentially committed writes.
+
+`client.state` distinguishes disconnected, hydrating, readonly, waiting,
+writable, revoked, and failed, and includes the snapshot, lease, pending count,
+and last rejection. `useRigidState(client)` observes this same controller from
+React using the external-store subscription contract. The application owns its
+lifecycle. Use `client.write` for remote changes; directly setting the projection
+atom is only a local edit and does not publish it.
+
+Authentication stays in the host. Pass a trusted identity to `authority.connect`
+and provide the required read/write authorization callback. Permission is
+checked at delivery and acceptance. Call `authority.revalidate()` immediately
+when product permissions change to revoke idle subscriptions and leases too.
+The client stops considering itself writable when a renewal reply is missing.
+
+These controllers are additive. The earlier pull/push helpers keep their existing
+wire format, and mutable streams opt in separately with runtime schemas as described below. Do not mix both protocols on the same projection.
+The controller authority is process-local: multi-process deployments must route
+a resource to one live owner and provide their own durable storage and failover
+coordination. A lease here does not fence writes in an external database.
+
+## versioned mutable streams
+
+Pass `snapshotSchema` and `signalSchema` to `pullMutableAtom` or
+`pullMutableAtomFamilyMember` to request versioned initialization and deltas.
+The React equivalents accept the same options. Existing server mutable providers
+negotiate the envelope from each subscription request; consumers without options
+continue to receive raw values.
+
+<Exhibit src="realtime/versioned-mutable-stream.ts" />
+
+Each subscription has a fresh nonce and stream epoch. Deltas must advance the
+revision by exactly one. Duplicate deltas are ignored; a gap or unexpected epoch
+requests a fresh complete snapshot and discards traffic from the old subscription.
+Runtime schemas validate snapshots and signals in delivery order. Invalid or
+oversized frames fail closed with an observable failed status. Family permission
+revocation invalidates in-flight work, while later grants hydrate current state.
+
+Compatible consumers share one stream and all receive status notifications. They
+must share the same Store, schema objects, clock, and limits. Mixing raw and
+versioned consumers for the same socket/token throws rather than applying an
+envelope as application data. Dispose every consumer during teardown.

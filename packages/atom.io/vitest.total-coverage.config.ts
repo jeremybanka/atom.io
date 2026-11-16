@@ -9,6 +9,8 @@ const totalCoverageConfig: Vite.UserConfig = defineOurVitestConfig({
 	name: `total-coverage`,
 	target: `src`,
 	test: {
+		maxWorkers: 1,
+		fileParallelism: false,
 		coverage: {
 			include: [...PATHS_COMPLETE_SOURCE],
 		},

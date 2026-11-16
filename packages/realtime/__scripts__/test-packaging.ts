@@ -25,7 +25,14 @@ try {
 			join(staging, `${name}.tgz`),
 		)
 	}
-	for (const mode of [`minimal`, `server`, `react18`, `react19`, `lexical`]) {
+	for (const mode of [
+		`minimal`,
+		`server`,
+		`cloudflare`,
+		`react18`,
+		`react19`,
+		`lexical`,
+	]) {
 		const app = join(staging, mode)
 		await mkdir(app)
 		const deps: Record<string, string> = {

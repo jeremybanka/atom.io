@@ -23,7 +23,7 @@ defaults:
     shell: bash
 
 jobs:
-  Vitest:
+  Workspace:
     runs-on: ubuntu-26.04
     timeout-minutes: 9
     env:
@@ -34,7 +34,62 @@ jobs:
         with:
           packages: bun node pnpm
       - uses: ./.github/actions/setup-postgres
-      - run: pnpm run test
+      - run: pnpm run test:corpus-tooling
+      - run: CI=true pnpm exec turbo run test:once --concurrency=2 --filter='!@atom.io/realtime'
+
+  Vitest:
+    needs: [Workspace, RealtimeCore, RealtimeSocket, RealtimeRuntime]
+    if: always()
+    runs-on: ubuntu-26.04
+    timeout-minutes: 1
+    steps:
+      - name: Require workspace and all realtime shards to pass
+        env:
+          WORKSPACE: ${{ needs.Workspace.result }}
+          CORE: ${{ needs.RealtimeCore.result }}
+          SOCKET: ${{ needs.RealtimeSocket.result }}
+          RUNTIME: ${{ needs.RealtimeRuntime.result }}
+        run: |
+          test "$WORKSPACE" = success
+          test "$CORE" = success
+          test "$SOCKET" = success
+          test "$RUNTIME" = success
+
+  RealtimeCore:
+    name: Core
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+        with:
+          packages: bun node pnpm
+      - run: pnpm exec turbo run test:core --filter=@atom.io/realtime
+
+  RealtimeSocket:
+    name: Realtime Socket
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+        with:
+          packages: bun node pnpm
+      - run: pnpm exec turbo run test:socket --filter=@atom.io/realtime
+
+  RealtimeRuntime:
+    name: Realtime Runtime
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env:
+      ATOM_IO_TEST_POSTGRES_SKIP_MISE: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+        with:
+          packages: bun node pnpm
+      - uses: ./.github/actions/setup-postgres
+      - run: pnpm exec turbo run test:runtime --filter=@atom.io/realtime
 
   Build:
     runs-on: ubuntu-26.04

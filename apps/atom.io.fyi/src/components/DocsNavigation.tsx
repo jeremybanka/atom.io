@@ -479,6 +479,14 @@ function SiteDirectory(): SpaElement {
 							</section>
 							<section>
 								<a
+									id="-docs-realtime-commands-link"
+									href="/docs/realtime/commands"
+								>
+									validated commands
+								</a>
+							</section>
+							<section>
+								<a
 									id="-docs-realtime-operations-link"
 									href="/docs/realtime/operations"
 								>

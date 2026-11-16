@@ -10,7 +10,7 @@ import {
 	subscribeToState,
 } from "atom.io/internal"
 
-import type { ServerConfig } from "./index.ts"
+import type { ServerConfig } from "./server-connection-types.ts"
 
 export type FamilyProvider = ReturnType<typeof realtimeAtomFamilyProvider>
 export function realtimeAtomFamilyProvider({

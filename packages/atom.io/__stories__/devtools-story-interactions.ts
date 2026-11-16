@@ -232,7 +232,9 @@ export const playOrderEditingAndReset: Play = async (context) => {
 		`Repeated resets rebind one debugger to the fresh order store`,
 		async () => {
 			for (let reset = 0; reset < 3; reset++) {
+				const previousPanel = canvas.getByTestId(`atom-io-devtools`)
 				await tools.action(`Reset order scenario`)
+				await waitFor(() => expect(previousPanel).not.toBeInTheDocument())
 				await tools.controls(false)
 				await waitFor(() =>
 					expect(tools.summary()).toHaveTextContent(

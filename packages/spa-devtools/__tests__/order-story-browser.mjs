@@ -235,9 +235,13 @@ try {
 		const managerDrawer = frame.locator(`.order-fulfillment-controls`)
 		if (!(await managerDrawer.evaluate((element) => element.open)))
 			await managerDrawer.locator(`summary`).click()
+		const previousPanel = await frame
+			.getByTestId(`atom-io-devtools`)
+			.elementHandle()
 		await frame
 			.getByRole(`button`, { name: `Reset order scenario`, exact: true })
 			.click()
+		await frame.waitForFunction((panel) => !panel.isConnected, previousPanel)
 		await frame.waitForFunction(
 			() =>
 				document.querySelector(`[data-testid="ecology-view"]`)?.dataset.ready ===

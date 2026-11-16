@@ -239,7 +239,9 @@ jobs:
         with:
           name: storybook-tests
           include-hidden-files: true
-          path: .scratch/storybook-tests
+          path: |
+            .scratch/storybook-tests
+            packages/atom.io/.vitest/attachments
           retention-days: 7
 
   BrowserTests:

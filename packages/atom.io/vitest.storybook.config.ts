@@ -12,6 +12,13 @@ const config: ViteUserConfig = defineConfig({
 	],
 	test: {
 		name: `storybook`,
+		reporters: [`default`, `json`],
+		outputFile: {
+			json: resolve(
+				import.meta.dirname,
+				`../../.scratch/storybook-tests/results.json`,
+			),
+		},
 		// The addon disables API writes by default; traces/screenshots need them.
 		api: { host: `127.0.0.1`, allowWrite: true },
 		setupFiles: [`.storybook/vitest.setup.ts`],

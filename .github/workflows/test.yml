@@ -194,45 +194,7 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           packages: bun node pnpm
-      - name: Build Storybook workspace dependencies
-        run: pnpm exec turbo run build --filter=@atom.io/spa-devtools... --filter=@atom.io/react-devtools...
-      - name: Verify sandboxed runner Chrome and record provenance
-        working-directory: packages/atom.io
-        run: |
-          node --input-type=module -e '
-            import { chromium } from "playwright"
-            import { mkdir, writeFile } from "node:fs/promises"
-            const browser = await chromium.launch({
-              chromiumSandbox: true,
-              executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
-            })
-            try {
-              const report = {
-                testedRevision: process.env.GITHUB_SHA,
-                pullRequestHead: process.env.SPA_DEVTOOLS_PR_HEAD_SHA,
-                browser: browser.version(),
-                chromiumSandbox: true,
-                modes: ["vitest-stories", "static-storybook-integration"],
-                developmentServer: false,
-                hmr: false,
-              }
-              await mkdir("../../.scratch/storybook-tests", { recursive: true })
-              await writeFile("../../.scratch/storybook-tests/provenance.json", JSON.stringify(report, null, 2))
-              console.log(JSON.stringify(report))
-            } finally {
-              await browser.close()
-            }
-          '
-      - name: Run story play functions with the Vitest addon
-        run: pnpm --filter atom.io test:story --reporter=default --reporter=json --outputFile=../../.scratch/storybook-tests/results.json
-      - name: Build static Storybook
-        run: |
-          set -o pipefail
-          pnpm --filter atom.io storybook:build --output-dir ../../.scratch/s6a-storybook 2>&1 | tee .scratch/storybook-tests/build.log
-      - name: Test built Storybook integration
-        run: pnpm --filter @atom.io/spa-devtools test:story:integration
-        env:
-          SPA_DEVTOOLS_STORY_ARTIFACTS: ${{ github.workspace }}/.scratch/storybook-tests/integration
+      - run: pnpm test:storybook
       - name: Upload Storybook evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -242,6 +204,7 @@ jobs:
           path: |
             .scratch/storybook-tests
             packages/atom.io/.vitest/attachments
+            packages/atom.io/.turbo/turbo-storybook*.log
           retention-days: 7
 
   BrowserTests:

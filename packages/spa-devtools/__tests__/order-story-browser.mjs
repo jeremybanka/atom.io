@@ -8,14 +8,15 @@ import { launchBrowser } from "./browser-runtime.mjs"
 const root = resolve(import.meta.dirname, `../../..`)
 const storybook =
 	process.env.SPA_DEVTOOLS_STORYBOOK_DIR ??
-	resolve(root, `.scratch/s6a-storybook`)
+	resolve(root, `packages/atom.io/storybook-static`)
 assert.equal(
 	process.env.SPA_DEVTOOLS_STORYBOOK_URL,
 	undefined,
 	`This suite tests built Storybook. Use the Vitest story project for interaction tests.`,
 )
 const artifacts =
-	process.env.SPA_DEVTOOLS_STORY_ARTIFACTS ?? `/tmp/s6a-story-browser`
+	process.env.SPA_DEVTOOLS_STORY_ARTIFACTS ??
+	resolve(root, `.scratch/storybook-tests/integration`)
 await mkdir(artifacts, { recursive: true })
 // Fail clearly if the actual Storybook build has not been produced.
 await readFile(resolve(storybook, `index.json`))

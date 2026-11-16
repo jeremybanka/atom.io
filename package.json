@@ -33,6 +33,7 @@
 		"changes:publish": "pnpm run build && changeset publish",
 		"changes:version": "pnpm --config.verifyDepsBeforeRun=false exec changeset version",
 		"test": "bun run test:corpus-tooling && CI=true dotenvx run -- turbo run test:once --concurrency=2",
+		"test:storybook": "turbo run test:story:integration --filter=@atom.io/spa-devtools",
 		"test:corpus-tooling": "turbo run build --filter=@atom.io/realtime... && bun test scripts/large-document-corpus.test.ts",
 		"test:large-document": "turbo run build --filter=@atom.io/realtime... && bun scripts/large-document-corpus.bun.ts test",
 		"corpus:large:prepare": "bun scripts/large-document-corpus.bun.ts prepare",

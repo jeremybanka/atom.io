@@ -2,6 +2,8 @@
 
 Repo notes:
 
+- Keep repository-wide tools in the root package. Declare package-specific
+  development dependencies in the package that uses them.
 - Use TypeScript for all checked-in code, including scripts, tests, configuration,
   and CLI entrypoints. Do not check in `.js`, `.jsx`, `.mjs`, or `.cjs` files.
   Node runs TypeScript directly; generated JavaScript belongs in ignored build

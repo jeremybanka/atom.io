@@ -1,8 +1,11 @@
 import assert from "node:assert/strict"
-import { cp, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises"
+import { cp, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises"
+import type { AddressInfo } from "node:net"
 import { resolve } from "node:path"
-import { chromium } from "playwright"
+
+import { type Browser, chromium } from "playwright"
 import { build, createServer } from "vite"
+
 import spa from "../src/vite.ts"
 
 const packageRoot = resolve(import.meta.dirname, `..`)
@@ -15,11 +18,12 @@ const app = await readFile(appFile, `utf8`),
 	scene = await readFile(sceneFile, `utf8`),
 	state = await readFile(stateFile, `utf8`)
 // Separate completed HMR scenarios beyond the file watcher's write coalescing window.
-const edit = async (file, code) => {
+const edit = async (file: string, code: string) => {
 	await new Promise((ready) => setTimeout(ready, 100))
 	await writeFile(file, code)
 }
-let server, browser
+let server: Awaited<ReturnType<typeof createServer>> | undefined
+let browser: Browser | undefined
 try {
 	server = await createServer({
 		root: directory,
@@ -30,19 +34,23 @@ try {
 	})
 	await server.listen()
 	browser = await chromium.launch({
-		executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
+		...(process.env[`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`]
+			? { executablePath: process.env[`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`] }
+			: {}),
 		args: [`--enable-unsafe-swiftshader`],
 	})
 	const page = await browser.newPage()
 	page.setDefaultTimeout(15000)
-	const errors = []
+	const errors: string[] = []
 	page.on(`pageerror`, (error) => {
 		errors.push(error.message)
 	})
 	page.on(`console`, (message) => {
 		if (message.type() === `error`) console.error(message.text())
 	})
-	await page.goto(`http://127.0.0.1:${server.httpServer.address().port}`)
+	await page.goto(
+		`http://127.0.0.1:${(server.httpServer!.address() as AddressInfo).port}`,
+	)
 	await page.waitForFunction(() => Boolean(window.hmrTest))
 	await page.locator(`[data-hmr="first"]`).click()
 	await page.locator(`[data-hmr="first"]`).click()
@@ -62,7 +70,7 @@ try {
 	await edit(appFile, version2)
 	await page.waitForFunction(() =>
 		document
-			.querySelector(`[data-hmr="first"]`)
+			.querySelector<HTMLElement>(`[data-hmr="first"]`)
 			?.textContent.startsWith(`view-v2`),
 	)
 	let current = await page.evaluate(() => window.hmrTest.stats())
@@ -85,7 +93,7 @@ try {
 		() =>
 			window.hmrTest
 				.stats()
-				.positions.find(([name]) => name === `standalone`)[1] === 8,
+				.positions.find(([name]) => name === `standalone`)![1] === 8,
 	)
 	current = await page.evaluate(() => window.hmrTest.stats())
 	assert.deepEqual(current.positions, [
@@ -108,15 +116,15 @@ try {
 	await edit(appFile, version2)
 	try {
 		await page.waitForFunction(
-			() => document.querySelectorAll(`[data-hmr]`).length === 2,
+			() => document.querySelectorAll<HTMLElement>(`[data-hmr]`).length === 2,
 		)
 	} catch (error) {
 		console.error(
 			await page.evaluate(() => ({
 				stats: window.hmrTest?.stats(),
-				errors: [...document.querySelectorAll(`[data-spa-hot-error]`)].map(
-					(node) => node.textContent,
-				),
+				errors: [
+					...document.querySelectorAll<HTMLElement>(`[data-spa-hot-error]`),
+				].map((node) => node.textContent),
 				body: document.body.innerHTML.slice(0, 2500),
 			})),
 		)
@@ -131,7 +139,9 @@ try {
 	assert.equal(await page.evaluate(() => window.hmrSentinel), 1)
 	await edit(appFile, version2.replace(`view-v2`, `view-v3`))
 	await page.waitForFunction(() =>
-		document.querySelector(`[data-hmr]`)?.textContent.startsWith(`view-v3`),
+		document
+			.querySelector<HTMLElement>(`[data-hmr]`)
+			?.textContent.startsWith(`view-v3`),
 	)
 	assert.equal((await page.evaluate(() => window.hmrTest.stats())).first, 4)
 	const reordered = version2
@@ -142,13 +152,17 @@ try {
 		)
 	await edit(appFile, reordered)
 	await page.waitForFunction(() =>
-		document.querySelector(`[data-hmr]`)?.textContent.startsWith(`view-v4`),
+		document
+			.querySelector<HTMLElement>(`[data-hmr]`)
+			?.textContent.startsWith(`view-v4`),
 	)
 	assert.equal(await page.evaluate(() => window.hmrSentinel), 1)
 	assert.equal((await page.evaluate(() => window.hmrTest.stats())).first, 4)
 	await edit(appFile, reordered.replace(`view-v4`, `view-v5`))
 	await page.waitForFunction(() =>
-		document.querySelector(`[data-hmr]`)?.textContent.startsWith(`view-v5`),
+		document
+			.querySelector<HTMLElement>(`[data-hmr]`)
+			?.textContent.startsWith(`view-v5`),
 	)
 	assert.equal(await page.evaluate(() => window.hmrSentinel), 1)
 	assert.deepEqual(
@@ -168,14 +182,16 @@ try {
 		() =>
 			window.hmrSentinel === undefined && window.hmrTest?.stats().first === 7,
 	)
-	await page.evaluate(() => window.hmrTest.dispose())
+	await page.evaluate(() => {
+		window.hmrTest.dispose()
+	})
 	const disposed = await page.evaluate(() => window.hmrTest.stats())
 	assert.deepEqual(disposed.subscribers, disposed.persistentSubscribers)
 	assert.deepEqual(errors, [])
 	await server.close()
 	server = undefined
 	// createServer sets NODE_ENV; switch it before resolving production conditions.
-	process.env.NODE_ENV = `production`
+	process.env[`NODE_ENV`] = `production`
 	await build({
 		root: directory,
 		configFile: false,

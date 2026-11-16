@@ -28,7 +28,7 @@
 		"lint:types": "npm run db:seed && tsc --noEmit --runExternalCode",
 		"lint:oxlint": "oxlint src tests astro.config.ts",
 		"test": "npm run test:browser",
-		"test:browser": "npm run build && node tests/browser.mjs && node tests/browser.mjs --dev",
+		"test:browser": "npm run build && node tests/browser.ts && node tests/browser.ts --dev",
 		"readme:write": "galley write README.mdx",
 		"readme:check": "galley check README.mdx",
 		"db:seed": "node scripts/seed.ts"

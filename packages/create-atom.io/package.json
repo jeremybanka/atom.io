@@ -12,7 +12,7 @@
 		"email": "hello@jeremybanka.com"
 	},
 	"type": "module",
-	"bin": "./bin/create-atom.bin.js",
+	"bin": "./dist/create-atom.bin.js",
 	"files": [
 		"bin",
 		"dist",

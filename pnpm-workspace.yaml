@@ -37,3 +37,22 @@ allowBuilds:
   simple-git-hooks: false
   "unrs-resolver": true
   "workerd": true
+
+# TypeScript ESLint v8 uses compiler internals removed in TypeScript 7.
+# Keep its compiler dependency isolated until the v8 stack supports TypeScript 7.
+overrides:
+  "typescript-eslint@8>typescript:peer": "-"
+  "@typescript-eslint/*@8>typescript:peer": "-"
+
+packageExtensions:
+  "typescript-eslint@8": &eslint-typescript6
+    dependencies:
+      typescript: 6.0.3
+  "@typescript-eslint/eslint-plugin@8": *eslint-typescript6
+  "@typescript-eslint/parser@8": *eslint-typescript6
+  "@typescript-eslint/project-service@8": *eslint-typescript6
+  "@typescript-eslint/rule-tester@8": *eslint-typescript6
+  "@typescript-eslint/tsconfig-utils@8": *eslint-typescript6
+  "@typescript-eslint/type-utils@8": *eslint-typescript6
+  "@typescript-eslint/typescript-estree@8": *eslint-typescript6
+  "@typescript-eslint/utils@8": *eslint-typescript6

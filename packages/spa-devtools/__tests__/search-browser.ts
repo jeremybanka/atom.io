@@ -1,14 +1,93 @@
 import assert from "node:assert/strict"
 import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { createServer } from "node:http"
+import type { AddressInfo } from "node:net"
 import { arch, cpus, platform } from "node:os"
 import { resolve as resolvePath } from "node:path"
 
 import { build } from "esbuild"
+import type { Browser } from "playwright"
+
 import { browserArtifacts, cpuRate, launchBrowser } from "./browser-runtime.ts"
 
+interface SearchSample {
+	query: string
+	settledMs: number
+	firstFrameProxyMs: number
+	maxMatchChunkMs?: string
+	matchChunks?: string
+}
+interface SearchOverview {
+	elapsedMs: number
+	maxIndexChunkMs?: string
+	indexChunks?: string
+}
+interface SearchScale {
+	overview: SearchOverview
+	evidence: {
+		reads: number
+		cache: number
+		atoms: number
+		setupMs: number
+		selectors: number
+		observedEdges: number
+	}
+	cold: SearchSample
+	warmupSamples: SearchSample[]
+	warmup: number
+	samples: SearchSample[]
+	p95Ms: number
+	maxChunkMs: number
+	selection: {
+		warmup: number
+		samples: { commitMs: number; firstFrameProxyMs: number }[]
+		p95Ms: number
+	}
+	frameBaseline: { intervals: number[]; medianMs: number; claim: string }
+	selectors: Partial<SearchScale> & Pick<SearchScale, `overview` | `samples`>
+	distributions: Record<
+		string,
+		{
+			count: number
+			p50: number
+			p95: number
+			p99: number
+			max: number | undefined
+		}
+	>
+}
+interface RaceObservation {
+	preparing: boolean
+	ready: string | undefined
+	busy: string | null
+	text: string
+}
+interface SearchReport {
+	cpuRate: number
+	candidate: string
+	ci: { testedRevision: string | null; pullRequestHead: string | null }
+	sandbox: boolean
+	machine: { platform: string; arch: string; cpu: string | undefined }
+	stage: string
+	profiles: unknown[]
+	scale: Partial<SearchScale>
+	browser?: string
+	zoom?: {
+		physicalViewport: string
+		cssViewport: string
+		emulation: string
+		reachable: boolean
+	}
+	races?: {
+		method: string
+		initial?: RaceObservation[]
+		refresh?: RaceObservation[]
+	}
+	failure?: { stage: string; name: string; message: string }
+}
+
 const artifacts = browserArtifacts(
-	process.env.SPA_DEVTOOLS_SEARCH_ARTIFACTS ?? `/tmp/spa-devtools-search`,
+	process.env[`SPA_DEVTOOLS_SEARCH_ARTIFACTS`] ?? `/tmp/spa-devtools-search`,
 )
 await mkdir(artifacts, { recursive: true })
 const bundle = await build({
@@ -37,17 +116,17 @@ const server = createServer((request, response) => {
 			: `<style>${css}</style><script type="module" src="/app.js"></script>`,
 	)
 })
-await new Promise((ready) => server.listen(0, `127.0.0.1`, ready))
-let browser
-const report = {
+await new Promise<void>((ready) => server.listen(0, `127.0.0.1`, ready))
+let browser: Browser | undefined
+const report: SearchReport = {
 	cpuRate,
 	candidate:
-		process.env.SPA_DEVTOOLS_CANDIDATE_SHA ??
-		process.env.GITHUB_SHA ??
+		process.env[`SPA_DEVTOOLS_CANDIDATE_SHA`] ??
+		process.env[`GITHUB_SHA`] ??
 		`uncommitted`,
 	ci: {
-		testedRevision: process.env.GITHUB_SHA ?? null,
-		pullRequestHead: process.env.SPA_DEVTOOLS_PR_HEAD_SHA ?? null,
+		testedRevision: process.env[`GITHUB_SHA`] ?? null,
+		pullRequestHead: process.env[`SPA_DEVTOOLS_PR_HEAD_SHA`] ?? null,
 	},
 	sandbox: true,
 	machine: { platform: platform(), arch: arch(), cpu: cpus()[0]?.model },
@@ -59,26 +138,32 @@ try {
 	browser = await launchBrowser()
 	report.browser = browser.version()
 	for (const width of [1440, 390])
-		for (const colorScheme of [`light`, `dark`]) {
+		for (const colorScheme of [`light`, `dark`] as const) {
 			const page = await browser.newPage({
 				viewport: { width, height: 900 },
 				colorScheme,
 			})
 			page.setDefaultTimeout(5_000)
 
-			const errors = []
+			const errors: string[] = []
 			page.on(`pageerror`, (error) => errors.push(error.message))
-			await page.goto(`http://127.0.0.1:${server.address().port}`)
+			await page.goto(
+				`http://127.0.0.1:${(server.address() as AddressInfo).port}`,
+			)
 			const ready = () =>
 				page.waitForFunction(
 					() =>
-						document.querySelector(`.state-search`)?.dataset.ready === `true`,
+						document.querySelector<HTMLElement>(`.state-search`)?.dataset[
+							`ready`
+						] === `true`,
 				)
 			await ready()
 			const search = page.getByRole(`searchbox`, { name: `Search atoms` })
 			const editor = page.locator(`[data-testid="state-value-count"] input`)
 			await editor.fill(`1e`)
-			await editor.evaluate((input) => input.setSelectionRange(1, 2))
+			await editor.evaluate((input: HTMLInputElement) => {
+				input.setSelectionRange(1, 2)
+			})
 			await search.fill(`not-found`)
 			await ready()
 			assert.equal(await editor.inputValue(), `1e`)
@@ -91,7 +176,7 @@ try {
 			await search.press(`Escape`)
 			assert.equal(
 				await editor.evaluate(
-					(input) =>
+					(input: HTMLInputElement) =>
 						input === document.activeElement &&
 						input.selectionStart === 1 &&
 						input.selectionEnd === 2,
@@ -113,7 +198,9 @@ try {
 			await ready()
 			await search.press(`Escape`)
 			assert.equal(
-				await rename.evaluate((input) => document.activeElement === input),
+				await rename.evaluate(
+					(input: HTMLElement) => document.activeElement === input,
+				),
 				true,
 			)
 			await rename.press(`Enter`)
@@ -137,7 +224,9 @@ try {
 			await page.keyboard.press(`Enter`)
 			await page.keyboard.press(`Escape`)
 			assert.equal(
-				await search.evaluate((input) => input === document.activeElement),
+				await search.evaluate(
+					(input: HTMLElement) => input === document.activeElement,
+				),
 				true,
 			)
 			await search.fill(`fulfilled`)
@@ -150,6 +239,7 @@ try {
 			const handle = await page
 				.getByRole(`button`, { name: `Move debugger`, exact: true })
 				.boundingBox()
+			if (!handle) throw new Error(`Missing handle`)
 			await page.mouse.move(
 				handle.x + handle.width / 2,
 				handle.y + handle.height / 2,
@@ -189,13 +279,17 @@ try {
 			await page.close()
 		}
 	const zoom = await browser.newPage({ viewport: { width: 195, height: 450 } })
-	await zoom.goto(`http://127.0.0.1:${server.address().port}`)
+	await zoom.goto(`http://127.0.0.1:${(server.address() as AddressInfo).port}`)
 	await zoom.waitForFunction(
-		() => document.querySelector(`.state-search`)?.dataset.ready === `true`,
+		() =>
+			document.querySelector<HTMLElement>(`.state-search`)?.dataset[`ready`] ===
+			`true`,
 	)
 	await zoom.getByRole(`searchbox`, { name: `Search atoms` }).fill(`count`)
 	await zoom.waitForFunction(
-		() => document.querySelector(`.state-search`)?.dataset.ready === `true`,
+		() =>
+			document.querySelector<HTMLElement>(`.state-search`)?.dataset[`ready`] ===
+			`true`,
 	)
 	for (const target of [
 		zoom.getByRole(`searchbox`, { name: `Search atoms` }),
@@ -224,16 +318,18 @@ try {
 
 	report.stage = `cold atoms capture and index`
 	const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
-	await page.goto(`http://127.0.0.1:${server.address().port}`)
+	await page.goto(`http://127.0.0.1:${(server.address() as AddressInfo).port}`)
 	await page.evaluate(() => {
 		window.searchFixture.mount(true)
 	})
 	await page.waitForFunction(
-		() => document.querySelector(`.state-search`)?.dataset.ready === `true`,
+		() =>
+			document.querySelector<HTMLElement>(`.state-search`)?.dataset[`ready`] ===
+			`true`,
 	)
 	report.scale.overview = await page.evaluate(() => ({
 		elapsedMs: performance.now() - window.searchFixture.evidence().mountStarted,
-		...document.querySelector(`.state-search`).dataset,
+		...document.querySelector<HTMLElement>(`.state-search`)!.dataset,
 	}))
 	report.scale.evidence = await page.evaluate(() => {
 		const e = window.searchFixture.evidence()
@@ -246,17 +342,17 @@ try {
 			observedEdges: e.observedEdges,
 		}
 	})
-	const sample = async (query) =>
+	const sample = async (query: string) =>
 		page.evaluate(async (text) => {
-			const host = document.querySelector(`.state-search`),
-				input = host.querySelector(`input`),
+			const host = document.querySelector<HTMLElement>(`.state-search`)!,
+				input = host.querySelector<HTMLInputElement>(`input`)!,
 				start = performance.now()
 			input.value = text
 			input.dispatchEvent(new Event(`input`, { bubbles: true }))
-			while (host.dataset.ready !== `true`)
+			while (host.dataset[`ready`] !== `true`)
 				await new Promise((resolve) => setTimeout(resolve, 0))
 			const settledMs = performance.now() - start
-			const frame = await new Promise((resolve) =>
+			const frame = await new Promise<number>((resolve) =>
 				requestAnimationFrame(() => {
 					resolve(performance.now())
 				}),
@@ -297,13 +393,15 @@ try {
 		Number(report.scale.overview.maxIndexChunkMs),
 	)
 	report.scale.selection = await page.evaluate(async () => {
-		const button = document.querySelector(`.search-results button`),
+		const button = document.querySelector<HTMLElement>(
+				`.search-results button`,
+			)!,
 			samples = []
 		for (let i = 0; i < 33; i++) {
 			const start = performance.now()
 			button.click()
 			const commitMs = performance.now() - start
-			const frame = await new Promise((resolve) =>
+			const frame = await new Promise<number>((resolve) =>
 				requestAnimationFrame(() => {
 					resolve(performance.now())
 				}),
@@ -318,9 +416,13 @@ try {
 	})
 	report.scale.frameBaseline = await page.evaluate(async () => {
 		const intervals = []
-		let prior = await new Promise((resolve) => requestAnimationFrame(resolve))
+		let prior = await new Promise<number>((resolve) =>
+			requestAnimationFrame(resolve),
+		)
 		for (let i = 0; i < 30; i++) {
-			const next = await new Promise((resolve) => requestAnimationFrame(resolve))
+			const next = await new Promise<number>((resolve) =>
+				requestAnimationFrame(resolve),
+			)
 			intervals.push(next - prior)
 			prior = next
 		}
@@ -333,14 +435,16 @@ try {
 	assert.ok(report.scale.selection.p95Ms <= 100)
 
 	await page.evaluate(() => {
-		const input = document.querySelector(`.search-row input`)
+		const input = document.querySelector<HTMLInputElement>(`.search-row input`)!
 		for (const text of [`old`, `discarded`, `cartQuantity0`]) {
 			input.value = text
 			input.dispatchEvent(new Event(`input`, { bubbles: true }))
 		}
 	})
 	await page.waitForFunction(
-		() => document.querySelector(`.state-search`)?.dataset.ready === `true`,
+		() =>
+			document.querySelector<HTMLElement>(`.state-search`)?.dataset[`ready`] ===
+			`true`,
 	)
 	assert.match(
 		await page.locator(`.search-results`).innerText(),
@@ -354,13 +458,15 @@ try {
 	const selectorStarted = await page.evaluate(() => performance.now())
 	await page.getByRole(`tab`, { name: `selectors`, exact: true }).click()
 	await page.waitForFunction(
-		() => document.querySelector(`.state-search`)?.dataset.ready === `true`,
+		() =>
+			document.querySelector<HTMLElement>(`.state-search`)?.dataset[`ready`] ===
+			`true`,
 	)
 	report.scale.selectors = {
 		overview: await page.evaluate(
 			(started) => ({
 				elapsedMs: performance.now() - started,
-				...document.querySelector(`.state-search`).dataset,
+				...document.querySelector<HTMLElement>(`.state-search`)!.dataset,
 			}),
 			selectorStarted,
 		),
@@ -404,7 +510,7 @@ try {
 		10_000,
 	)
 	assert.equal(report.scale.evidence.observedEdges, 30_000)
-	const summarize = (samples) => {
+	const summarize = (samples: number[]) => {
 		const sorted = [...samples].sort((a, b) => a - b)
 		return {
 			count: sorted.length,
@@ -415,23 +521,23 @@ try {
 		}
 	}
 	report.scale.distributions = {
-		atomIndex: summarize(JSON.parse(report.scale.overview.indexChunks)),
+		atomIndex: summarize(JSON.parse(report.scale.overview.indexChunks!)),
 		atomMatching: summarize(
 			[
 				report.scale.cold,
 				...report.scale.warmupSamples,
 				...report.scale.samples,
-			].flatMap((observation) => JSON.parse(observation.matchChunks)),
+			].flatMap((observation) => JSON.parse(observation.matchChunks!)),
 		),
 		selectorIndex: summarize(
-			JSON.parse(report.scale.selectors.overview.indexChunks),
+			JSON.parse(report.scale.selectors.overview.indexChunks!),
 		),
 		selectorMatching: summarize(
 			[
 				report.scale.selectors.cold,
 				...report.scale.selectors.warmupSamples,
 				...report.scale.selectors.samples,
-			].flatMap((observation) => JSON.parse(observation.matchChunks)),
+			].flatMap((observation) => JSON.parse(observation.matchChunks!)),
 		),
 	}
 
@@ -445,23 +551,23 @@ try {
 	// rather than waiting for readiness before every input as the steady-state timings do.
 	const race = await browser.newPage({ viewport: { width: 1440, height: 900 } })
 	race.setDefaultTimeout(5_000)
-	await race.goto(`http://127.0.0.1:${server.address().port}`)
+	await race.goto(`http://127.0.0.1:${(server.address() as AddressInfo).port}`)
 	report.races = {
 		method: `Ordinary DOM InputEvents across real scheduled task boundaries during preparation; no synthetic clock or scheduler replacement.`,
 	}
 	report.races.initial = await race.evaluate(async () => {
 		window.searchFixture.mount(true)
-		const host = document.querySelector(`.state-search`),
-			input = host.querySelector(`input`),
+		const host = document.querySelector<HTMLElement>(`.state-search`)!,
+			input = host.querySelector<HTMLInputElement>(`input`)!,
 			observations = []
 		for (const text of [`cart`, `discarded`, `cartQuantity0`]) {
 			await new Promise((resolve) => setTimeout(resolve, 0))
 			observations.push({
 				preparing: host
-					.querySelector(`.search-status`)
+					.querySelector<HTMLElement>(`.search-status`)!
 					.textContent.startsWith(`Preparing`),
-				ready: host.dataset.ready,
-				busy: host.querySelector(`ol`).getAttribute(`aria-busy`),
+				ready: host.dataset[`ready`],
+				busy: host.querySelector<HTMLElement>(`ol`)!.getAttribute(`aria-busy`),
 				text,
 			})
 			input.value = text
@@ -482,7 +588,9 @@ try {
 		),
 	)
 	await race.waitForFunction(
-		() => document.querySelector(`.state-search`)?.dataset.ready === `true`,
+		() =>
+			document.querySelector<HTMLElement>(`.state-search`)?.dataset[`ready`] ===
+			`true`,
 	)
 	assert.match(
 		await race.locator(`.search-results`).innerText(),
@@ -490,20 +598,20 @@ try {
 	)
 	report.races.refresh = await race.evaluate(async () => {
 		window.searchFixture.update()
-		const host = document.querySelector(`.state-search`),
-			input = host.querySelector(`input`),
+		const host = document.querySelector<HTMLElement>(`.state-search`)!,
+			input = host.querySelector<HTMLInputElement>(`input`)!,
 			observations = []
-		;[...host.querySelectorAll(`button`)]
-			.find((button) => button.textContent === `Refresh`)
+		;[...host.querySelectorAll<HTMLElement>(`button`)]
+			.find((button) => button.textContent === `Refresh`)!
 			.click()
 		for (const text of [`SKU`, `discarded`, `refreshed`]) {
 			await new Promise((resolve) => setTimeout(resolve, 0))
 			observations.push({
 				preparing: host
-					.querySelector(`.search-status`)
+					.querySelector<HTMLElement>(`.search-status`)!
 					.textContent.startsWith(`Preparing`),
-				ready: host.dataset.ready,
-				busy: host.querySelector(`ol`).getAttribute(`aria-busy`),
+				ready: host.dataset[`ready`],
+				busy: host.querySelector<HTMLElement>(`ol`)!.getAttribute(`aria-busy`),
 				text,
 			})
 			input.value = text
@@ -524,7 +632,9 @@ try {
 		),
 	)
 	await race.waitForFunction(
-		() => document.querySelector(`.state-search`)?.dataset.ready === `true`,
+		() =>
+			document.querySelector<HTMLElement>(`.state-search`)?.dataset[`ready`] ===
+			`true`,
 	)
 	assert.match(
 		await race.locator(`.search-results`).innerText(),
@@ -550,12 +660,12 @@ try {
 } catch (error) {
 	report.failure = {
 		stage: report.stage,
-		name: error.name,
-		message: error.message,
+		name: error instanceof Error ? error.name : `Error`,
+		message: error instanceof Error ? error.message : String(error),
 	}
 	throw error
 } finally {
-	console.log(
+	process.stdout.write(
 		JSON.stringify({
 			candidate: report.candidate,
 			ci: report.ci,
@@ -569,9 +679,13 @@ try {
 			selectorP95: report.scale.selectors?.p95Ms,
 			selectorMaxSlice: report.scale.selectors?.maxChunkMs,
 			distributions: report.scale.distributions,
-		}),
+		}) + `\n`,
 	)
 	await writeFile(`${artifacts}/report.json`, JSON.stringify(report, null, 2))
 	await browser?.close()
-	await new Promise((resolve) => server.close(resolve))
+	await new Promise<void>((resolve) =>
+		server.close(() => {
+			resolve()
+		}),
+	)
 }

@@ -5,7 +5,7 @@ import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
 import { dev } from "astro"
-import { chromium } from "playwright"
+import { type Browser, chromium } from "playwright"
 
 // Capture the actual WebGL shaders, not a separate approximation. The fixed
 // geometry seed, reduced motion (t = 0), blue palette, and 1× density define
@@ -19,8 +19,9 @@ const assets = [
 	[48, `icon-48.png`],
 	[32, `icon-32.png`],
 	[16, `icon-16.png`],
-]
-let server, browser
+] as const
+let server: Awaited<ReturnType<typeof dev>> | undefined
+let browser: Browser | undefined
 try {
 	server = await dev({
 		root,
@@ -36,7 +37,7 @@ try {
 		deviceScaleFactor: 1,
 		reducedMotion: `reduce`,
 	})
-	const errors = []
+	const errors: string[] = []
 	page.on(`pageerror`, (error) => errors.push(error.message))
 	page.on(`console`, (message) => {
 		if (message.type() === `error`) errors.push(message.text())
@@ -62,6 +63,7 @@ try {
 				const canvas = document.createElement(`canvas`)
 				canvas.width = canvas.height = image.width
 				const context = canvas.getContext(`2d`)
+				if (!context) throw new Error(`Missing context`)
 				context.drawImage(image, 0, 0)
 				const pixels = context.getImageData(0, 0, image.width, image.height).data
 				let ink = 0,

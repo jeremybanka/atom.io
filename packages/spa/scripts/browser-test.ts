@@ -1,13 +1,16 @@
 import { readFile } from "node:fs/promises"
 import { createServer } from "node:http"
+import type { AddressInfo } from "node:net"
 import { extname, resolve } from "node:path"
-import { chromium } from "playwright"
-import { check } from "../__tests__/browser.check.mjs"
+
+import { type Browser, chromium } from "playwright"
+
+import { check } from "../__tests__/browser.check.ts"
 
 const directory = resolve(import.meta.dirname, `../__tests__/astro/dist`)
 const server = createServer(async (request, response) => {
 	const pathname = decodeURIComponent(
-		new URL(request.url, `http://localhost`).pathname,
+		new URL(request.url ?? `/`, `http://localhost`).pathname,
 	)
 	const file = resolve(
 		directory,
@@ -32,13 +35,22 @@ const server = createServer(async (request, response) => {
 		response.writeHead(404).end()
 	}
 })
-await new Promise((ready) => server.listen(0, `127.0.0.1`, ready))
-let browser
+await new Promise<void>((ready) => server.listen(0, `127.0.0.1`, ready))
+let browser: Browser | undefined
 try {
 	browser = await chromium.launch()
 	const page = await browser.newPage()
-	console.log(await check(page, `http://127.0.0.1:${server.address().port}`))
+	console.log(
+		await check(
+			page,
+			`http://127.0.0.1:${(server.address() as AddressInfo).port}`,
+		),
+	)
 } finally {
 	await browser?.close()
-	await new Promise((done) => server.close(done))
+	await new Promise<void>((done) =>
+		server.close(() => {
+			done()
+		}),
+	)
 }

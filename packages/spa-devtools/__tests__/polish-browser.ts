@@ -2,22 +2,27 @@ import assert from "node:assert/strict"
 import { createHash } from "node:crypto"
 import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { createServer } from "node:http"
-import { dirname, resolve } from "node:path"
 import { createRequire } from "node:module"
+import type { AddressInfo } from "node:net"
+import { dirname, resolve } from "node:path"
+
 import { build } from "esbuild"
+import type { Browser, BrowserContext, Page } from "playwright"
+
 import { browserArtifacts, cpuRate, launchBrowser } from "./browser-runtime.ts"
+
 const favicon = await readFile(
 	resolve(import.meta.dirname, `../../../apps/atom.io.fyi/public/favicon.png`),
 )
 const faviconSha256 = createHash(`sha256`).update(favicon).digest(`hex`)
 const baseline = process.argv.includes(`--baseline`)
 const artifacts = browserArtifacts(
-	process.env.SPA_DEVTOOLS_POLISH_ARTIFACTS ?? `/tmp/spa-devtools-polish`,
+	process.env[`SPA_DEVTOOLS_POLISH_ARTIFACTS`] ?? `/tmp/spa-devtools-polish`,
 )
 await mkdir(artifacts, { recursive: true })
 const entry = resolve(import.meta.dirname, `fixtures/polish-browser/main.ts`)
-const bundles = {}
-const reactVersions = {}
+const bundles: Record<string, string> = {}
+const reactVersions: Record<string, string> = {}
 for (const version of [`18`, `19`]) {
 	const require = createRequire(
 		resolve(
@@ -48,7 +53,7 @@ const css = await readFile(
 	`utf8`,
 )
 const server = createServer((req, res) => {
-	const url = new URL(req.url, `http://localhost`),
+	const url = new URL(req.url ?? `/`, `http://localhost`),
 		mode = url.searchParams.get(`mode`) ?? `spa`
 	res.setHeader(
 		`content-type`,
@@ -59,17 +64,25 @@ const server = createServer((req, res) => {
 			`<style>${css}</style><script type="module" src="/${mode}.js"></script>`,
 	)
 })
-async function checkVisualTreatment(page, theme, name) {
+async function checkVisualTreatment(
+	page: Page,
+	theme: `light` | `dark`,
+	name: string,
+) {
 	const icon = await page
 		.locator(`.brand-mark`)
-		.evaluate((el) => getComputedStyle(el).backgroundImage)
+		.evaluate((el: HTMLElement) => getComputedStyle(el).backgroundImage)
 	const embedded = icon.match(/data:image\/png;base64,([^"')]+)/)
 	assert.ok(embedded, `Use the linked PNG favicon, not another mark`)
 	assert.deepEqual(Buffer.from(embedded[1], `base64`), favicon)
-	const appearance = await page.locator(`main`).evaluate((el) => {
+	const appearance = await page.locator(`main`).evaluate((el: HTMLElement) => {
 		const noise = getComputedStyle(el, `::before`),
-			active = el.querySelector(`[role="tab"][aria-selected="true"]`),
-			inactive = el.querySelector(`[role="tab"][aria-selected="false"]`),
+			active = el.querySelector<HTMLElement>(
+				`[role="tab"][aria-selected="true"]`,
+			)!,
+			inactive = el.querySelector<HTMLElement>(
+				`[role="tab"][aria-selected="false"]`,
+			)!,
 			a = active.getBoundingClientRect(),
 			b = inactive.getBoundingClientRect(),
 			selected = getComputedStyle(active),
@@ -91,7 +104,8 @@ async function checkVisualTreatment(page, theme, name) {
 				radius: selected.borderTopLeftRadius,
 				activeFill: selected.backgroundColor,
 				activeBottomEdge: selected.borderBottomColor,
-				panelFill: getComputedStyle(el.querySelector(`.index`)).backgroundColor,
+				panelFill: getComputedStyle(el.querySelector<HTMLElement>(`.index`)!)
+					.backgroundColor,
 				inactiveShadow: rest.boxShadow,
 			},
 			textColor: getComputedStyle(el).color,
@@ -114,7 +128,7 @@ async function checkVisualTreatment(page, theme, name) {
 	assert.equal(appearance.tabs.activeFill, appearance.tabs.panelFill)
 	assert.ok(parseFloat(appearance.tabs.radius) >= 7)
 	assert.match(appearance.tabs.inactiveShadow, /inset/)
-	const clip = await page.locator(`.index`).evaluate((el) => {
+	const clip = await page.locator(`.index`).evaluate((el: HTMLElement) => {
 		const r = el.getBoundingClientRect()
 		return { x: r.left + 16, y: r.bottom - 96, width: 80, height: 80 }
 	})
@@ -126,7 +140,7 @@ async function checkVisualTreatment(page, theme, name) {
 		content: `main[data-css="spa-devtools"]::before {display:none !important}`,
 	})
 	const flat = await page.screenshot({ clip })
-	await off.evaluate((el) => {
+	await off.evaluate((el: HTMLElement) => {
 		el.remove()
 	})
 	// Compare the same noise coordinates on the actual background and solid text-color ink.
@@ -149,13 +163,13 @@ async function checkVisualTreatment(page, theme, name) {
 			return node
 		}, clip)
 	const ink = await page.screenshot({ clip })
-	await probe.evaluate((el) => {
+	await probe.evaluate((el: HTMLElement) => {
 		el.remove()
 	})
 	await probe.dispose()
 	const pixels = await page.evaluate(
 		async ({ on: noisePng, flat: flatPng, ink: inkPng }) => {
-			const read = async (data) => {
+			const read = async (data: string) => {
 				const image = new Image()
 				image.src = `data:image/png;base64,${data}`
 				await image.decode()
@@ -163,17 +177,18 @@ async function checkVisualTreatment(page, theme, name) {
 				canvas.width = image.width
 				canvas.height = image.height
 				const ctx = canvas.getContext(`2d`)
+				if (!ctx) throw new Error(`Missing ctx`)
 				ctx.drawImage(image, 0, 0)
 				return ctx.getImageData(0, 0, image.width, image.height).data
 			}
 			const a = await read(noisePng),
 				b = await read(flatPng),
 				foreground = await read(inkPng)
-			const linear = (v) => {
+			const linear = (v: number) => {
 				const x = v / 255
 				return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4
 			}
-			const luminance = (data, i) =>
+			const luminance = (data: Uint8ClampedArray, i: number) =>
 				0.2126 * linear(data[i]) +
 				0.7152 * linear(data[i + 1]) +
 				0.0722 * linear(data[i + 2])
@@ -226,7 +241,12 @@ async function checkVisualTreatment(page, theme, name) {
 	)
 	return { faviconSha256, ...appearance, pixels }
 }
-async function checkLongField(page, theme, name, sizing) {
+async function checkLongField(
+	page: Page,
+	theme: `light` | `dark`,
+	name: string,
+	sizing: string,
+) {
 	const input = page.locator(`input[aria-label^="a very long key"]`)
 	const original = await input.elementHandle()
 	const forced =
@@ -235,10 +255,10 @@ async function checkLongField(page, theme, name, sizing) {
 					content: `main .elastic-input {field-sizing:fixed !important}`,
 				})
 			: null
-	const samples = []
-	const check = async (expected) => {
-		const measurement = await input.evaluate((el) => {
-			const bounds = (node) => {
+	const samples: unknown[] = []
+	const check = async (expected: string) => {
+		const measurement = await input.evaluate((el: HTMLInputElement) => {
+			const bounds = (node: Element) => {
 				const r = node.getBoundingClientRect()
 				return {
 					left: r.left,
@@ -249,10 +269,10 @@ async function checkLongField(page, theme, name, sizing) {
 					height: r.height,
 				}
 			}
-			const wrapper = el.parentElement,
-				row = el.closest(`header`),
-				panel = el.closest(`main`),
-				label = row.querySelector(`.field-name h3`),
+			const wrapper = el.parentElement!,
+				row = el.closest(`header`)!,
+				panel = el.closest(`main`)!,
+				label = row.querySelector<HTMLElement>(`.field-name h3`)!,
 				rect = el.getBoundingClientRect()
 			return {
 				value: el.value,
@@ -287,7 +307,10 @@ async function checkLongField(page, theme, name, sizing) {
 			expected,
 			measurement,
 		})
-		const fits = (inner, outer) =>
+		const fits = (
+			inner: Pick<DOMRect, `left` | `right` | `top` | `bottom`>,
+			outer: Pick<DOMRect, `left` | `right` | `top` | `bottom`>,
+		) =>
 			inner.left >= outer.left - 0.75 &&
 			inner.right <= outer.right + 0.75 &&
 			inner.top >= outer.top - 0.75 &&
@@ -331,7 +354,7 @@ async function checkLongField(page, theme, name, sizing) {
 			)
 		assert.equal(
 			await original.evaluate(
-				(el) => el.isConnected && el === document.activeElement,
+				(el: HTMLElement) => el.isConnected && el === document.activeElement,
 			),
 			true,
 			details,
@@ -358,48 +381,52 @@ async function checkLongField(page, theme, name, sizing) {
 		})
 	await input.fill(`17`)
 	await check(`17`)
-	await forced?.evaluate((el) => el.remove())
+	await forced?.evaluate((el: HTMLElement) => {
+		el.remove()
+	})
 	await original.dispose()
 	return { sizing, samples }
 }
-await new Promise((ready) => server.listen(0, `127.0.0.1`, ready))
-let browser
+await new Promise<void>((ready) => server.listen(0, `127.0.0.1`, ready))
+let browser: Browser | undefined
 try {
 	browser = await launchBrowser()
 	const report = {
 		cpuRate,
-		candidate: process.env.SPA_DEVTOOLS_CANDIDATE_SHA ?? `working-tree`,
+		candidate: process.env[`SPA_DEVTOOLS_CANDIDATE_SHA`] ?? `working-tree`,
 		baseline,
 		browser: browser.version(),
 		reactVersions,
-		matrix: [],
-		flows: [],
+		matrix: [] as unknown[],
+		flows: [] as unknown[],
 		notes: [
 			`200% desktop zoom is emulated with a 720x450 CSS viewport and deviceScaleFactor2 for 1440x900 physical pixels; browser chrome zoom is not automated.`,
 		],
 	}
-	for (const theme of [`light`, `dark`])
+	for (const theme of [`light`, `dark`] as const)
 		for (const [name, width, height, scale] of [
 			[`desktop`, 1440, 900, 1],
 			[`tablet`, 1024, 768, 1],
 			[`narrow`, 390, 844, 1],
 			[`zoom200`, 720, 450, 2],
-		]) {
-			const context = await browser.newContext({
+		] as const) {
+			const context: BrowserContext = await browser.newContext({
 				viewport: { width, height },
 				deviceScaleFactor: scale,
 				colorScheme: theme,
 			})
-			const page = await context.newPage()
-			const errors = []
+			const page: Page = await context.newPage()
+			const errors: string[] = []
 			page.on(`pageerror`, (e) => errors.push(e.message))
-			await page.goto(`http://127.0.0.1:${server.address().port}`)
+			await page.goto(
+				`http://127.0.0.1:${(server.address() as AddressInfo).port}`,
+			)
 			await page.getByRole(`textbox`, { name: `count`, exact: true }).waitFor()
 			const input = page.getByRole(`textbox`, { name: `message`, exact: true })
-			const short = (await input.boundingBox()).width
+			const short = (await input.boundingBox())!.width
 			await input.fill(`a longer elastic string`)
-			const long = (await input.boundingBox()).width
-			const measurement = await input.evaluate((el) => ({
+			const long = (await input.boundingBox())!.width
+			const measurement = await input.evaluate((el: HTMLElement) => ({
 				width: el.getBoundingClientRect().width,
 				fieldSizing: getComputedStyle(el).fieldSizing,
 			}))
@@ -426,7 +453,7 @@ try {
 				assert.equal(
 					await page
 						.locator(`.brand-mark`)
-						.evaluate((el) => el.getAnimations().length),
+						.evaluate((el: HTMLElement) => el.getAnimations().length),
 					0,
 				)
 			}
@@ -441,10 +468,12 @@ try {
 			if (!baseline) {
 				const hierarchy = await page
 					.getByTestId(`transaction-my`)
-					.evaluate((el) => ({
-						label: el.querySelector(`:scope > header`).textContent,
+					.evaluate((el: HTMLElement) => ({
+						label: el.querySelector<HTMLElement>(`:scope > header`)!.textContent,
 						parent: el.getBoundingClientRect().x,
-						child: el.querySelector(`.event`).getBoundingClientRect().x,
+						child: el
+							.querySelector<HTMLElement>(`.event`)!
+							.getBoundingClientRect().x,
 					}))
 				assert.match(hierarchy.label, /transaction/)
 				assert.ok(hierarchy.child > hierarchy.parent + 5)
@@ -454,21 +483,23 @@ try {
 			})
 			await page.getByTestId(`view-ecology`).click()
 			await page.waitForFunction(
-				() => document.querySelector(`.ecology`)?.dataset.ready === `true`,
+				() =>
+					document.querySelector<HTMLElement>(`.ecology`)?.dataset[`ready`] ===
+					`true`,
 			)
 			const arrows = await page
 				.locator(`path.ecology-edge`)
-				.evaluateAll((paths) =>
+				.evaluateAll((paths: SVGPathElement[]) =>
 					paths.map((path) => {
 						const length = path.getTotalLength(),
 							end = path.getPointAtLength(length),
 							near = path.getPointAtLength(length - 3)
-						const cards = [...document.querySelectorAll(`g[data-graph-id]`)].map(
-							(card) => {
-								const t = card.transform.baseVal[0].matrix
-								return { x: t.e, y: t.f }
-							},
-						)
+						const cards = [
+							...document.querySelectorAll<SVGGElement>(`g[data-graph-id]`),
+						].map((card) => {
+							const t = card.transform.baseVal[0].matrix
+							return { x: t.e, y: t.f }
+						})
 						const target = cards.find(
 							(c) =>
 								((Math.abs(end.x - c.x) < 0.1 ||
@@ -513,6 +544,7 @@ try {
 			if (!baseline)
 				for (const button of await page.locator(`.snap-palette button`).all()) {
 					const box = await button.boundingBox()
+					if (!box) throw new Error(`Missing box`)
 					assert.ok(
 						box.x >= 0 &&
 							box.y >= 0 &&
@@ -537,16 +569,18 @@ try {
 		}
 	if (!baseline)
 		for (const mode of [`spa`, `react18`, `react19`]) {
-			const context = await browser.newContext({
+			const context: BrowserContext = await browser.newContext({
 				viewport: { width: 1024, height: 768 },
 			})
-			const page = await context.newPage()
-			const errors = []
+			const page: Page = await context.newPage()
+			const errors: string[] = []
 			page.on(`pageerror`, (e) => errors.push(e.message))
-			await page.goto(`http://127.0.0.1:${server.address().port}/?mode=${mode}`)
+			await page.goto(
+				`http://127.0.0.1:${(server.address() as AddressInfo).port}/?mode=${mode}`,
+			)
 			const input = page.getByRole(`textbox`, { name: `count`, exact: true })
 			await input.fill(`2.`)
-			await input.evaluate((el) => {
+			await input.evaluate((el: HTMLElement) => {
 				window.retainedInput = el
 			})
 			assert.equal(await page.evaluate(() => window.polish.value()), 2)
@@ -554,7 +588,9 @@ try {
 			assert.equal(await input.inputValue(), `2.5`)
 			assert.equal(await page.evaluate(() => window.polish.value()), 2.5)
 			assert.equal(
-				await input.evaluate((el) => getComputedStyle(el).textAlign),
+				await input.evaluate(
+					(el: HTMLElement) => getComputedStyle(el).textAlign,
+				),
 				`right`,
 			)
 			const rows = await page
@@ -569,9 +605,9 @@ try {
 				content: `main .elastic-input {field-sizing:fixed !important}`,
 			})
 			await message.fill(`x`)
-			const smallFallback = (await message.boundingBox()).width
+			const smallFallback = (await message.boundingBox())!.width
 			await message.fill(`a much longer fallback string`)
-			assert.ok((await message.boundingBox()).width > smallFallback + 80)
+			assert.ok((await message.boundingBox())!.width > smallFallback + 80)
 			await page
 				.getByRole(`button`, { name: `Expand record`, exact: true })
 				.click()
@@ -646,12 +682,16 @@ try {
 			await tabs.first().focus()
 			await page.keyboard.press(`End`)
 			await page.waitForFunction(
-				() => document.querySelector(`.ecology`)?.dataset.ready === `true`,
+				() =>
+					document.querySelector<HTMLElement>(`.ecology`)?.dataset[`ready`] ===
+					`true`,
 			)
 			const before = await page.evaluate(() => window.polish.evidence())
 			await page.getByRole(`textbox`, { name: `Search ecology` }).fill(`left`)
 			await page.waitForFunction(
-				() => document.querySelector(`.ecology`)?.dataset.ready === `true`,
+				() =>
+					document.querySelector<HTMLElement>(`.ecology`)?.dataset[`ready`] ===
+					`true`,
 			)
 			await page.getByText(`Accessible node list`, { exact: true }).click()
 			await page.locator(`.ecology-list button`).first().focus()
@@ -661,7 +701,9 @@ try {
 				.focus()
 			await page.keyboard.press(`Enter`)
 			await page.waitForFunction(
-				() => document.querySelector(`.ecology`)?.dataset.ready === `true`,
+				() =>
+					document.querySelector<HTMLElement>(`.ecology`)?.dataset[`ready`] ===
+					`true`,
 			)
 			assert.deepEqual(
 				await page.evaluate(() => window.polish.evidence()),
@@ -683,7 +725,7 @@ try {
 			await page.keyboard.press(`Enter`)
 			await page.getByRole(`button`, { name: `Left half`, exact: true }).focus()
 			await page.keyboard.press(`Enter`)
-			assert.equal((await page.locator(`main`).boundingBox()).width, 512)
+			assert.equal((await page.locator(`main`).boundingBox())!.width, 512)
 			await page.getByRole(`tab`).first().focus()
 			await page.keyboard.press(`Home`)
 			await page.getByRole(`textbox`, { name: `count`, exact: true }).waitFor()
@@ -700,14 +742,18 @@ try {
 			})
 			await input.waitFor()
 			await page.waitForFunction(
-				() => document.querySelector(`[aria-label="count"]`)?.value === `2`,
+				() =>
+					document.querySelector<HTMLInputElement>(`[aria-label="count"]`)
+						?.value === `2`,
 			)
 			if (mode !== `spa`) {
 				await page.evaluate(() => {
 					window.polish.show(true)
 				})
 				await page.waitForFunction(
-					() => document.querySelector(`[aria-label="count"]`)?.value === `3.5`,
+					() =>
+						document.querySelector<HTMLInputElement>(`[aria-label="count"]`)
+							?.value === `3.5`,
 				)
 			}
 			assert.deepEqual(errors, [])
@@ -718,8 +764,12 @@ try {
 		resolve(artifacts, `report.json`),
 		JSON.stringify(report, null, 2),
 	)
-	console.log(JSON.stringify(report, null, 2))
+	process.stdout.write(JSON.stringify(report, null, 2) + `\n`)
 } finally {
 	await browser?.close()
-	await new Promise((done) => server.close(done))
+	await new Promise<void>((done) =>
+		server.close(() => {
+			done()
+		}),
+	)
 }

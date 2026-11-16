@@ -1,10 +1,23 @@
 import assert from "node:assert/strict"
+import { Server } from "node:http"
 import { resolve } from "node:path"
 import { DatabaseSync } from "node:sqlite"
 import { setTimeout } from "node:timers/promises"
-import { dev, preview } from "astro"
-import { chromium } from "playwright"
 
+import { dev, preview } from "astro"
+import { type Browser, chromium } from "playwright"
+
+declare global {
+	interface Window {
+		__seedExecuted?: boolean
+		__stockNodes: HTMLInputElement[]
+		__incomingNodes: HTMLInputElement[]
+		__pristineNodes: HTMLInputElement[]
+		__stockHost: HTMLElement
+		__heldIsland: HTMLElement
+		__heldParent: HTMLElement
+	}
+}
 const root = resolve(import.meta.dirname, `..`)
 process.chdir(root)
 const development = process.argv.includes(`--dev`)
@@ -13,7 +26,15 @@ const server = await (development ? dev : preview)({
 	server: { host: `127.0.0.1`, port: 0 },
 	logLevel: `error`,
 })
-const port = development ? server.address.port : server.server.address().port
+let port: number
+if (`address` in server) {
+	port = server.address.port
+} else {
+	assert.ok(`server` in server && server.server instanceof Server)
+	const address = server.server.address()
+	assert.ok(address && typeof address !== `string`)
+	port = address.port
+}
 const stop = () => server.stop()
 const database = new DatabaseSync(`inventory.sqlite`)
 const initialStock = 24
@@ -22,12 +43,12 @@ database
 	.run(initialStock)
 const originalProductName = database
 	.prepare(`SELECT name FROM products WHERE id = 2`)
-	.get().name
+	.get()![`name`]
 const escapedProductName = `Breakfast tea "Ceylon" & <script>globalThis.__seedExecuted = true</script>`
 database
 	.prepare(`UPDATE products SET name = ? WHERE id = 2`)
 	.run(escapedProductName)
-let browser
+let browser: Browser | undefined
 try {
 	const origin = `http://127.0.0.1:${port}`
 	const response = await fetch(origin)
@@ -64,10 +85,10 @@ try {
 	}
 	browser = await chromium.launch()
 	const page = await browser.newPage()
-	const errors = []
-	const scripts = []
-	const rpcRequests = []
-	const rpcResponses = []
+	const errors: string[] = []
+	const scripts: Promise<{ code: string; url: string }>[] = []
+	const rpcRequests: string[] = []
+	const rpcResponses: Promise<Record<string, string>>[] = []
 	page.on(`request`, (request) => {
 		if (request.url().includes(`/api/trpc/`)) rpcRequests.push(request.url())
 	})
@@ -83,7 +104,7 @@ try {
 			scripts.push(result.text().then((code) => ({ code, url: result.url() })))
 	})
 	// Hold JavaScript until we can inspect and retain the actual server DOM.
-	const gate = Promise.withResolvers()
+	const gate = Promise.withResolvers<void>()
 	await page.route(`**/*`, async (route) => {
 		if (route.request().resourceType() === `script`) await gate.promise
 		await route.continue()
@@ -95,24 +116,25 @@ try {
 		await page.locator(`input[type="number"]`).first().inputValue(),
 		String(development ? changedStock : initialStock),
 	)
-	const payloads = await page
-		.locator(`astro-island`)
-		.evaluateAll((islands) =>
-			islands.map((island) =>
-				JSON.parse(island.getAttribute(`data-resumability`)),
-			),
-		)
+	const payloads = await page.locator(`astro-island`).evaluateAll((islands) =>
+		islands.map((island) => {
+			const seed = island.getAttribute(`data-resumability`)
+			if (!seed) throw new Error(`Missing resumability seed`)
+			return JSON.parse(seed) as { values: [unknown[], unknown[]][] }
+		}),
+	)
 	assert.equal(payloads.length, 2)
 	assert.equal(payloads[0].values.length, 2)
-	assert.equal(
-		payloads[0].values.find((entry) => entry[0][1] === 2)[1][1].name,
-		escapedProductName,
-	)
+	const productEntry = payloads[0].values.find((entry) => entry[0][1] === 2)
+	assert.ok(productEntry)
+	const product = productEntry[1][1]
+	assert.ok(product && typeof product === `object` && `name` in product)
+	assert.equal(product.name, escapedProductName)
 	assert.equal(
 		await page.locator(`.product h3`).nth(1).textContent(),
 		escapedProductName,
 	)
-	assert.equal(await page.evaluate(() => globalThis.__seedExecuted), undefined)
+	assert.equal(await page.evaluate(() => window.__seedExecuted), undefined)
 	assert.deepEqual(
 		payloads[1],
 		payloads[0],
@@ -123,8 +145,10 @@ try {
 	assert.equal(seeds[0], seeds[2])
 	assert.equal(seeds[1], seeds[3])
 	await page.evaluate(() => {
-		window.__stockNodes = [...document.querySelectorAll(`input[type="number"]`)]
-		window.__stockHost = document.querySelector(`astro-island`)
+		window.__stockNodes = [
+			...document.querySelectorAll<HTMLInputElement>(`input[type="number"]`),
+		]
+		window.__stockHost = document.querySelector<HTMLElement>(`astro-island`)!
 	})
 	gate.resolve()
 	await page.waitForSelector(`astro-island[client="load"]:not([ssr])`)
@@ -142,11 +166,12 @@ try {
 	await page.waitForSelector(`astro-island[client="visible"]:not([ssr])`)
 	assert.equal(
 		await page.evaluate(() =>
-			[...document.querySelectorAll(`input[type="number"]`)].every(
-				(element, index) =>
-					index < 2
-						? element === window.__stockNodes[index]
-						: element !== window.__stockNodes[index],
+			[
+				...document.querySelectorAll<HTMLInputElement>(`input[type="number"]`),
+			].every((element, index) =>
+				index < 2
+					? element === window.__stockNodes[index]
+					: element !== window.__stockNodes[index],
 			),
 		),
 		true,
@@ -166,7 +191,7 @@ try {
 	await cards.nth(0).locator(`input[type="number"]`).fill(`31`)
 	await page.waitForFunction(
 		() =>
-			document.querySelector(`[data-preview]`).textContent ===
+			document.querySelector<HTMLElement>(`[data-preview]`)!.textContent ===
 			`31 units available`,
 	)
 	assert.equal(
@@ -178,7 +203,7 @@ try {
 		0,
 		`Hydration must consume the island seed without RPC`,
 	)
-	const refresh = async (index, stock) => {
+	const refresh = async (index: number, stock: number) => {
 		database
 			.prepare(
 				`UPDATE products SET stock = ?, revision = revision + 1 WHERE id = 1`,
@@ -194,7 +219,7 @@ try {
 			.click()
 		await page.waitForFunction(
 			(previous) =>
-				document.querySelectorAll(`[data-revision]`)[previous.index]
+				document.querySelectorAll<HTMLElement>(`[data-revision]`)[previous.index]
 					.textContent !== previous.before,
 			{ index, before },
 		)
@@ -218,9 +243,9 @@ try {
 		await cards.nth(0).locator(`input[type="number"]`).inputValue(),
 		`35`,
 	)
-	if (process.env.TEMPLATE_SCREENSHOT)
+	if (process.env[`TEMPLATE_SCREENSHOT`])
 		await page.screenshot({
-			path: process.env.TEMPLATE_SCREENSHOT,
+			path: process.env[`TEMPLATE_SCREENSHOT`],
 			fullPage: true,
 		})
 	await cards.nth(0).locator(`input[type="number"]`).fill(`41`)
@@ -233,7 +258,7 @@ try {
 	await page.evaluate(() => {
 		document.addEventListener(`astro:after-swap`, () => {
 			window.__incomingNodes = [
-				...document.querySelectorAll(`input[type="number"]`),
+				...document.querySelectorAll<HTMLInputElement>(`input[type="number"]`),
 			]
 		})
 	})
@@ -266,33 +291,36 @@ try {
 	)
 	assert.ok(
 		await page.evaluate(() =>
-			[...document.querySelectorAll(`input[type="number"]`)].every(
-				(node, index) => node !== window.__incomingNodes[index],
-			),
+			[
+				...document.querySelectorAll<HTMLInputElement>(`input[type="number"]`),
+			].every((node, index) => node !== window.__incomingNodes[index]),
 		),
 	)
 
 	await refresh(0, 45)
 	assert.equal(rpcRequests.length, 4)
 	// A full load starts a new application; with no edits, both initial roots hydrate.
-	const freshGate = Promise.withResolvers()
+	const freshGate = Promise.withResolvers<void>()
 	await page.unroute(`**/*`)
 	await page.route(`**/*`, async (route) => {
 		if (route.request().resourceType() === `script`) await freshGate.promise
 		await route.continue()
 	})
 	const fullLoad = await page.goto(origin, { waitUntil: `commit` })
+	assert.ok(fullLoad)
 	if (!development) assert.equal(fullLoad.headers()[`x-astro-cache`], `HIT`)
 	await page.waitForSelector(`input[type="number"]`)
 	await page.evaluate(() => {
 		window.__pristineNodes = [
-			...document.querySelectorAll(`input[type="number"]`),
+			...document.querySelectorAll<HTMLInputElement>(`input[type="number"]`),
 		]
 	})
 	// Hold the earlier island off-DOM so the later, cached SSR reader activates first.
 	await page.evaluate(() => {
-		window.__heldIsland = document.querySelector(`astro-island[client="load"]`)
-		window.__heldParent = window.__heldIsland.parentElement
+		window.__heldIsland = document.querySelector<HTMLElement>(
+			`astro-island[client="load"]`,
+		)!
+		window.__heldParent = window.__heldIsland.parentElement!
 		window.__heldIsland.remove()
 	})
 	await page
@@ -305,7 +333,9 @@ try {
 		await page.evaluate(() => window.__heldIsland.hasAttribute(`ssr`)),
 		true,
 	)
-	await page.evaluate(() => window.__heldParent.append(window.__heldIsland))
+	await page.evaluate(() => {
+		window.__heldParent.append(window.__heldIsland)
+	})
 	await page.waitForSelector(`astro-island[client="load"]:not([ssr])`)
 	await page
 		.locator(`astro-island[client="visible"] .product`)
@@ -318,9 +348,9 @@ try {
 	)
 	assert.ok(
 		await page.evaluate(() =>
-			[...document.querySelectorAll(`input[type="number"]`)].every(
-				(node, index) => node === window.__pristineNodes[index],
-			),
+			[
+				...document.querySelectorAll<HTMLInputElement>(`input[type="number"]`),
+			].every((node, index) => node === window.__pristineNodes[index]),
 		),
 	)
 	assert.equal(rpcRequests.length, 4)
@@ -333,10 +363,11 @@ try {
 	await cards.nth(0).getByRole(`button`, { name: `Save stock` }).click()
 	await page.waitForFunction(
 		() =>
-			document.querySelector(`[role="status"]`).textContent === `Stock saved`,
+			document.querySelector<HTMLElement>(`[role="status"]`)!.textContent ===
+			`Stock saved`,
 	)
 	assert.equal(
-		database.prepare(`SELECT stock FROM products WHERE id = 1`).get().stock,
+		database.prepare(`SELECT stock FROM products WHERE id = 1`).get()![`stock`],
 		32,
 	)
 	assert.equal(
@@ -353,11 +384,11 @@ try {
 	await cards.nth(0).getByRole(`button`, { name: `Save stock` }).click()
 	await page.waitForFunction(() =>
 		document
-			.querySelector(`[role="status"]`)
+			.querySelector<HTMLElement>(`[role="status"]`)!
 			.textContent.includes(`Reload before saving`),
 	)
 	assert.equal(
-		database.prepare(`SELECT stock FROM products WHERE id = 1`).get().stock,
+		database.prepare(`SELECT stock FROM products WHERE id = 1`).get()![`stock`],
 		37,
 	)
 	await cards
@@ -365,7 +396,9 @@ try {
 		.getByRole(`button`, { name: `Reload from database` })
 		.click()
 	await page.waitForFunction(
-		() => document.querySelector(`input[type="number"]`).value === `37`,
+		() =>
+			document.querySelector<HTMLInputElement>(`input[type="number"]`)!.value ===
+			`37`,
 	)
 	assert.equal(rpcRequests.length, 8)
 	const rpcHeaders = await Promise.all(rpcResponses)

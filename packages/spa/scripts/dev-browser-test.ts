@@ -5,12 +5,13 @@ import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { dev } from "astro"
-import { chromium } from "playwright"
+import { type Browser, chromium } from "playwright"
 
-import { check } from "../__tests__/browser.check.mjs"
+import { check } from "../__tests__/browser.check.ts"
 
 const cacheDir = await mkdtemp(join(tmpdir(), `spa-dev-test-`))
-let server, browser
+let server: Awaited<ReturnType<typeof dev>> | undefined
+let browser: Browser | undefined
 try {
 	server = await dev({
 		root: fileURLToPath(new URL(`../__tests__/astro/`, import.meta.url)),
@@ -20,7 +21,7 @@ try {
 	})
 	browser = await chromium.launch()
 	const page = await browser.newPage()
-	const errors = []
+	const errors: string[] = []
 	page.on(`pageerror`, (error) => errors.push(error.message))
 	page.on(`console`, (message) => {
 		if (message.type() === `error`) errors.push(message.text())
@@ -37,15 +38,18 @@ try {
 	await page.waitForURL(`${baseURL}/next`)
 	await page.waitForFunction(
 		() =>
-			document.querySelectorAll(`astro-island:not([ssr])`).length === 4 &&
-			document.querySelector(`#probe`)?.getAttribute(`data-mounted`) === `true`,
+			document.querySelectorAll<HTMLElement>(`astro-island:not([ssr])`)
+				.length === 4 &&
+			document
+				.querySelector<HTMLElement>(`#probe`)
+				?.getAttribute(`data-mounted`) === `true`,
 	)
 	assert.equal(await page.evaluate(() => window.__spaNavigation), true)
 	const counter = page.locator(`astro-island`).first().locator(`button`)
 	assert.equal(await counter.textContent(), `2`)
 	await counter.click()
 	await page.waitForFunction(
-		() => document.querySelector(`button`)?.textContent === `3`,
+		() => document.querySelector<HTMLElement>(`button`)?.textContent === `3`,
 	)
 	assert.deepEqual(errors, [])
 	console.log(

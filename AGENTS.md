@@ -2,6 +2,16 @@
 
 Repo notes:
 
+- Use TypeScript for all checked-in code, including scripts, tests, configuration,
+  and CLI entrypoints. Do not check in `.js`, `.jsx`, `.mjs`, or `.cjs` files.
+  Node runs TypeScript directly; generated JavaScript belongs in ignored build
+  output directories.
+- Keep CI declarative and concise: invoke short commands defined in
+  `package.json`, and declare build/test prerequisites in Turbo. Do not inline
+  application or test code in workflow YAML, or manually sequence build steps
+  outside the orchestrator. Put reporting and runtime setup in the appropriate
+  tool configuration or typed script. Prefer removing redundant machinery over
+  adding wrappers.
 - Package READMEs are generated from `README.mdx`. Edit the MDX or its imported
   exhibits and shared components in `scripts/readme`, then run `pnpm readme:write`.
   Use `pnpm readme:check` to check for drift.

@@ -1,14 +1,18 @@
 import assert from "node:assert/strict"
 import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { createServer } from "node:http"
-import { cpus, platform, arch } from "node:os"
+import type { AddressInfo } from "node:net"
+import { arch, cpus, platform } from "node:os"
 import { resolve } from "node:path"
 
 import { build } from "esbuild"
+import type { Browser } from "playwright"
+
 import { browserArtifacts, cpuRate, launchBrowser } from "./browser-runtime.ts"
+import type { FrameSample } from "./fixtures/window-browser/timing.ts"
 
 const artifacts = browserArtifacts(
-	process.env.SPA_DEVTOOLS_BROWSER_ARTIFACTS ?? `/tmp/spa-devtools-window`,
+	process.env[`SPA_DEVTOOLS_BROWSER_ARTIFACTS`] ?? `/tmp/spa-devtools-window`,
 )
 await mkdir(artifacts, { recursive: true })
 const bundle = await build({
@@ -35,8 +39,8 @@ const server = createServer((req, res) => {
 			: `<style>${css}</style><script type="module" src="/app.js"></script>`,
 	)
 })
-await new Promise((ready) => server.listen(0, `127.0.0.1`, ready))
-let browser
+await new Promise<void>((ready) => server.listen(0, `127.0.0.1`, ready))
+let browser: Browser | undefined
 try {
 	browser = await launchBrowser()
 	const context = await browser.newContext({
@@ -44,20 +48,22 @@ try {
 	})
 	await context.tracing.start({ screenshots: true, snapshots: true })
 	const page = await context.newPage()
-	const errors = []
+	const errors: string[] = []
 	page.on(`pageerror`, (error) => errors.push(error.message))
-	await page.goto(`http://127.0.0.1:${server.address().port}`)
+	await page.goto(`http://127.0.0.1:${(server.address() as AddressInfo).port}`)
 	const panel = page.locator(`main[data-css="spa-devtools"]`)
 	const move = page.getByRole(`button`, { name: `Move debugger`, exact: true })
 	const input = page.getByRole(`textbox`, { name: `count`, exact: true })
 	await input.fill(`2.`)
-	await input.evaluate((node) => {
+	await input.evaluate((node: HTMLElement) => {
 		window.retainedInput = node
 	})
 	assert.equal(await page.evaluate(() => window.devtoolsWindowTest.value()), 2)
 	const free = await panel.boundingBox()
+	if (!free) throw new Error(`Missing free`)
 	// Real captured pointer drag, then Escape: original rectangle and input identity survive.
 	let handle = await move.boundingBox()
+	assert.ok(handle)
 	await page.mouse.move(
 		handle.x + handle.width / 2,
 		handle.y + handle.height / 2,
@@ -69,13 +75,15 @@ try {
 	assert.deepEqual(await panel.boundingBox(), free)
 	assert.equal(
 		await input.evaluate(
-			(node) => node === window.retainedInput && node.value === `2.`,
+			(node: HTMLInputElement) =>
+				node === window.retainedInput && node.value === `2.`,
 		),
 		true,
 	)
 	// Physical edge/corner resizing, each followed by cancellation.
 	for (const edge of [`n`, `s`, `e`, `w`, `ne`, `nw`, `se`, `sw`]) {
 		const box = await page.locator(`[data-resize="${edge}"]`).boundingBox()
+		if (!box) throw new Error(`Missing box`)
 		await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
 		await page.mouse.down()
 		await page.mouse.move(box.x - 35, box.y + 30, { steps: 3 })
@@ -93,7 +101,7 @@ try {
 		[`Top half`, 0, 0, 1440, 450],
 		[`Bottom half`, 0, 450, 1440, 450],
 		[`Full viewport`, 0, 0, 1440, 900],
-	]
+	] as const
 	for (const [label, x, y, width, height] of targets) {
 		await page
 			.getByRole(`button`, { name: `Debugger layout`, exact: true })
@@ -117,6 +125,7 @@ try {
 	}
 	// Drag through the palette: the painted preview and final physical bounds agree.
 	handle = await move.boundingBox()
+	assert.ok(handle)
 	await page.mouse.move(handle.x + 7, handle.y + 10)
 	await page.mouse.down()
 	await page.mouse.move(handle.x - 10, handle.y + 10)
@@ -124,6 +133,7 @@ try {
 	const target = await page
 		.getByRole(`button`, { name: `Right third`, exact: true })
 		.boundingBox()
+	if (!target) throw new Error(`Missing target`)
 	await page.mouse.move(
 		target.x + target.width / 2,
 		target.y + target.height / 2,
@@ -141,18 +151,19 @@ try {
 	// Keyboard controls and viewport contraction never strand the window.
 	await move.focus()
 	await page.keyboard.press(`ArrowLeft`)
-	assert.equal((await panel.boundingBox()).x, free.x - 10)
+	assert.equal((await panel.boundingBox())!.x, free.x - 10)
 	await page.getByRole(`button`, { name: `Resize debugger left edge` }).focus()
 	await page.keyboard.press(`ArrowRight`)
-	assert.equal((await panel.boundingBox()).width, free.width - 10)
+	assert.equal((await panel.boundingBox())!.width, free.width - 10)
 	const beforeNarrow = await page.evaluate(() =>
 		window.devtoolsWindowTest.resizeRevision(),
 	)
 	await page.setViewportSize({ width: 200, height: 100 })
 	await page.waitForFunction((revision) => {
 		const box = document
-			.querySelector(`main[data-css="spa-devtools"]`)
+			.querySelector<HTMLElement>(`main[data-css="spa-devtools"]`)!
 			.getBoundingClientRect()
+		if (!box) throw new Error(`Missing box`)
 		return (
 			window.devtoolsWindowTest.resizeRevision() > revision &&
 			box.x === 0 &&
@@ -184,11 +195,12 @@ try {
 	// Repeated real capture, pointer cancellation and remount flows.
 	for (let cycle = 0; cycle < 5; cycle++) {
 		handle = await move.boundingBox()
+		assert.ok(handle)
 		await page.mouse.move(handle.x + 7, handle.y + 10)
 		await page.mouse.down()
 		await page.mouse.move(handle.x - 50, handle.y + 40)
 		await page.evaluate(() => {
-			const toolbar = document.querySelector(`.toolbar`)
+			const toolbar = document.querySelector<HTMLElement>(`.toolbar`)!
 			toolbar.dispatchEvent(
 				new PointerEvent(`pointercancel`, { pointerId: 1, bubbles: true }),
 			)
@@ -203,17 +215,19 @@ try {
 	// Each sample dispatches from a fresh task and observes geometry in the first frame after the handler.
 	// A later frame is recorded separately as a clock proxy, never asserted as painted-input latency.
 	handle = await move.boundingBox()
+	assert.ok(handle)
 	const timingBase = await panel.boundingBox()
+	assert.ok(timingBase)
 	const pressPoint = { x: handle.x + 7, y: handle.y + 10 }
 	await page.mouse.move(pressPoint.x, pressPoint.y)
 	await page.mouse.down()
-	let deadline
+	let deadline: ReturnType<typeof setTimeout> | undefined
 	const metrics = await Promise.race([
 		page.evaluate(
 			async ({ base, startPoint }) => {
 				const baseline = [],
 					controller = [],
-					longTasks = []
+					longTasks: { startTime: number; duration: number }[] = []
 				const observer = new PerformanceObserver((list) => {
 					longTasks.push(
 						...list
@@ -247,7 +261,7 @@ try {
 						),
 					}
 					// Checking the latest expected rectangle detects a one-frame-late update, not just any style mutation.
-					const matches = Object.keys(expected).every(
+					const matches = ([`x`, `y`, `width`, `height`] as const).every(
 						(key) => Math.abs(sample.observed[key] - expected[key]) < 0.01,
 					)
 					if (!matches)
@@ -267,14 +281,14 @@ try {
 					baseline,
 					controller,
 					longTasksOver50Ms: longTasks.filter(({ duration }) => duration > 50),
-					ecologyViewAvailable: !!document.querySelector(
+					ecologyViewAvailable: !!document.querySelector<HTMLElement>(
 						`[data-testid="view-ecology"]`,
-					),
+					)!,
 				}
 			},
 			{ base: timingBase, startPoint: pressPoint },
 		),
-		new Promise((_, reject) => {
+		new Promise<never>((_, reject) => {
 			deadline = setTimeout(() => {
 				reject(new Error(`Timing capture exceeded 30 seconds`))
 			}, 30_000)
@@ -287,16 +301,25 @@ try {
 	await page.screenshot({ path: resolve(artifacts, `window.png`) })
 	await context.tracing.stop({ path: resolve(artifacts, `trace.zip`) })
 	assert.deepEqual(errors, [])
-	const summarize = (samples) =>
+	const summarize = (samples: FrameSample[]) =>
 		Object.fromEntries(
-			[
-				`dispatchMs`,
-				`handlerToFrameMs`,
-				`dispatchToFrameMs`,
-				`nextFrameProxyMs`,
-			].map((key) => {
+			(
+				[
+					`dispatchMs`,
+					`handlerToFrameMs`,
+					`dispatchToFrameMs`,
+					`nextFrameProxyMs`,
+				] as const
+			).map((key) => {
 				const values = samples
-					.map((sample) => sample[key])
+					.map((sample) => {
+						const value = sample[key]
+						assert.ok(
+							typeof value === `number` && Number.isFinite(value),
+							`Incomplete timing samples for ${key}`,
+						)
+						return value
+					})
 					.sort((left, right) => left - right)
 				assert.ok(
 					values.every((value) => Number.isFinite(value)),
@@ -316,7 +339,7 @@ try {
 		controllerSummary = summarize(metrics.controller)
 	const report = {
 		cpuRate,
-		candidate: process.env.SPA_DEVTOOLS_CANDIDATE_SHA ?? `working-tree`,
+		candidate: process.env[`SPA_DEVTOOLS_CANDIDATE_SHA`] ?? `working-tree`,
 		browser: browser.version(),
 		machine: `${platform()}/${arch()} ${cpus()[0]?.model}`,
 		viewport: { width: 1440, height: 900 },
@@ -328,15 +351,15 @@ try {
 		baselineSummary,
 		controllerSummary,
 		p95FrameObservationDeltaMs:
-			controllerSummary.dispatchToFrameMs.p95 -
-			baselineSummary.dispatchToFrameMs.p95,
+			controllerSummary[`dispatchToFrameMs`].p95 -
+			baselineSummary[`dispatchToFrameMs`].p95,
 		...metrics,
 	}
 	await writeFile(
 		resolve(artifacts, `metrics.json`),
 		JSON.stringify(report, null, 2),
 	)
-	console.log(
+	process.stdout.write(
 		JSON.stringify(
 			{
 				...report,
@@ -345,11 +368,15 @@ try {
 			},
 			null,
 			2,
-		),
+		) + `\n`,
 	)
 	assert.equal(metrics.longTasksOver50Ms.length, 0)
 	await context.close()
 } finally {
 	await browser?.close()
-	await new Promise((done) => server.close(done))
+	await new Promise<void>((done) =>
+		server.close(() => {
+			done()
+		}),
+	)
 }

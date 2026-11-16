@@ -1,11 +1,24 @@
+import type { MotionDebug } from "../examples/motion/motion-sandbox-debug.ts"
+
+type MotionElement = HTMLElement & { capture: MotionDebug[`inspect`] }
+declare global {
+	interface Window {
+		motionCard: HTMLElement
+		toastCard: HTMLElement
+	}
+}
 import assert from "node:assert/strict"
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
+import type { AddressInfo } from "node:net"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
-import { createServer } from "vite"
-import { chromium } from "playwright"
 
-let browser, server, page
+import { type Browser, chromium, type Page } from "playwright"
+import { createServer } from "vite"
+
+let browser: Browser | undefined
+let server: Awaited<ReturnType<typeof createServer>> | undefined
+let activePage: Page | undefined
 const cacheDir = await mkdtemp(join(tmpdir(), `spa-motion-sandbox-`))
 try {
 	server = await createServer({
@@ -19,14 +32,16 @@ try {
 	})
 	await server.listen()
 	browser = await chromium.launch({
-		executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
+		...(process.env[`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`]
+			? { executablePath: process.env[`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`] }
+			: {}),
 		args: [`--enable-unsafe-swiftshader`],
 	})
-	page = await browser.newPage({
+	const page: Page = (activePage = await browser.newPage({
 		viewport: { width: 1240, height: 1120 },
 		acceptDownloads: true,
-	})
-	const errors = []
+	}))
+	const errors: string[] = []
 	page.on(`console`, (msg) => {
 		if ([`error`, `warn`].includes(msg.type())) console.error(msg.text())
 	})
@@ -34,30 +49,42 @@ try {
 		errors.push(error.message)
 		console.error(error.stack)
 	})
-	await page.goto(`http://127.0.0.1:${server.httpServer.address().port}/`)
+	await page.goto(
+		`http://127.0.0.1:${(server.httpServer!.address() as AddressInfo).port}/`,
+	)
 	await page.screenshot({ path: `/tmp/spa-motion-initial.png`, fullPage: true })
 	await writeFile(`/tmp/spa-motion-page.html`, await page.content())
 	await page.waitForFunction(
-		() => document.querySelector(`motion-sandbox`)?.dataset.frames > 1,
+		() =>
+			Number(
+				document.querySelector<MotionElement>(`motion-sandbox`)?.dataset[
+					`frames`
+				],
+			) > 1,
 	)
 	assert.equal(await page.inputValue(`#motion-duration`), `2`)
 	await page.evaluate(() => {
-		window.motionCard = document.querySelector(`motion-sandbox motion-card`)
+		window.motionCard = document.querySelector<HTMLElement>(
+			`motion-sandbox motion-card`,
+		)!
 	})
 	await page.locator(`#motion-replay`).click()
 	await page.waitForFunction(() => {
-		const trace = document.querySelector(`motion-sandbox`).capture()
+		const trace = document
+			.querySelector<MotionElement>(`motion-sandbox`)!
+			.capture()
 		return (
 			trace.markers.some((mark) => mark.label === `turn`) &&
 			trace.samples.at(-1)?.phase === `visible`
 		)
 	})
 	const capture = await page.evaluate(() =>
-		document.querySelector(`motion-sandbox`).capture(),
+		document.querySelector<MotionElement>(`motion-sandbox`)!.capture(),
 	)
 	const reentry = capture.markers.find((mark) => mark.label === `re-entry`)
-	assert.ok(reentry)
+	if (!reentry) throw new Error(`Missing reentry`)
 	const before = capture.samples.filter((at) => at.time <= reentry.time).at(-1)
+	if (!before) throw new Error(`Missing before`)
 	const returning = capture.samples.filter(
 		(at) => at.time > reentry.time && at.phase === `returning`,
 	)
@@ -74,12 +101,12 @@ try {
 	assert.equal(
 		await page.evaluate(
 			() =>
-				document.querySelector(`motion-sandbox motion-card`) ===
+				document.querySelector<HTMLElement>(`motion-sandbox motion-card`) ===
 				window.motionCard,
 		),
 		true,
 	)
-	assert.ok(Math.abs(capture.samples.at(-1).x) < 0.05)
+	assert.ok(Math.abs(capture.samples.at(-1)!.x) < 0.05)
 	await writeFile(
 		`/tmp/spa-motion-capture.json`,
 		JSON.stringify(capture, null, 2),
@@ -87,8 +114,8 @@ try {
 	// Scrubbing reviews recorded frames without changing the live node's transform.
 	const transform = await page
 		.locator(`motion-sandbox motion-card`)
-		.evaluate((node) => node.style.transform)
-	await page.locator(`#motion-scrub`).evaluate((input) => {
+		.evaluate((node: HTMLElement) => node.style.transform)
+	await page.locator(`#motion-scrub`).evaluate((input: HTMLInputElement) => {
 		input.value = String(Math.floor(Number(input.max) / 2))
 		input.dispatchEvent(new Event(`input`, { bubbles: true }))
 	})
@@ -99,7 +126,7 @@ try {
 	assert.equal(
 		await page
 			.locator(`motion-sandbox motion-card`)
-			.evaluate((node) => node.style.transform),
+			.evaluate((node: HTMLElement) => node.style.transform),
 		transform,
 	)
 	await page.screenshot({ path: `/tmp/spa-motion-sandbox.png`, fullPage: true })
@@ -117,13 +144,15 @@ try {
 	const jsonPath = await json.path()
 	assert.deepEqual(JSON.parse(await readFile(jsonPath, `utf8`)), capture)
 	await page.locator(`#motion-live`).click()
-	await page.locator(`#motion-duration`).evaluate((input) => {
+	await page.locator(`#motion-duration`).evaluate((input: HTMLInputElement) => {
 		input.value = `0.5`
 		input.dispatchEvent(new Event(`input`, { bubbles: true }))
 	})
 	await page.locator(`#motion-replay`).click()
 	await page.waitForFunction(() => {
-		const trace = document.querySelector(`motion-sandbox`).capture()
+		const trace = document
+			.querySelector<MotionElement>(`motion-sandbox`)!
+			.capture()
 		return (
 			trace.settings.duration === 0.5 &&
 			trace.markers.some((mark) => mark.label === `turn`) &&
@@ -134,24 +163,29 @@ try {
 	await page.locator(`#motion-toggle`).click()
 	await page.waitForFunction(
 		() =>
-			document.querySelector(`motion-sandbox`).capture().samples.at(-1)?.x > 20,
+			document
+				.querySelector<MotionElement>(`motion-sandbox`)!
+				.capture()
+				.samples.at(-1)!.x > 20,
 	)
 	await page.locator(`#motion-toggle`).click()
 	await page.waitForTimeout(40)
 	await page.locator(`#motion-toggle`).click()
 	await page.waitForFunction(
-		() => !document.querySelector(`motion-sandbox motion-card`),
+		() => !document.querySelector<HTMLElement>(`motion-sandbox motion-card`)!,
 	)
 	await page.locator(`#motion-toggle`).click()
 	await page.waitForFunction(
 		() =>
-			document.querySelector(`motion-sandbox`).capture().samples.at(-1)
-				?.instance === 2,
+			document
+				.querySelector<MotionElement>(`motion-sandbox`)!
+				.capture()
+				.samples.at(-1)?.instance === 2,
 	)
 	assert.equal(
 		await page.evaluate(
 			() =>
-				document.querySelector(`motion-sandbox motion-card`) ===
+				document.querySelector<HTMLElement>(`motion-sandbox motion-card`) ===
 				window.motionCard,
 		),
 		false,
@@ -160,25 +194,30 @@ try {
 	// on the same instance when its dismissal is interrupted.
 	assert.equal(await page.inputValue(`#toast-duration`), `0.24`)
 	await page.evaluate(() => {
-		window.toastCard = document.querySelector(`toast-sandbox motion-card`)
+		window.toastCard = document.querySelector<HTMLElement>(
+			`toast-sandbox motion-card`,
+		)!
 	})
 	await page.locator(`#toast-replay`).click()
 	await page.waitForFunction(() => {
-		const trace = document.querySelector(`toast-sandbox`).capture()
+		const trace = document
+			.querySelector<MotionElement>(`toast-sandbox`)!
+			.capture()
 		return (
 			trace.markers.some((mark) => mark.label === `turn`) &&
 			trace.samples.at(-1)?.phase === `visible`
 		)
 	})
 	const toastCapture = await page.evaluate(() =>
-		document.querySelector(`toast-sandbox`).capture(),
+		document.querySelector<MotionElement>(`toast-sandbox`)!.capture(),
 	)
 	assert.equal(
-		toastCapture.markers.find((mark) => mark.label === `exit`).settings.type,
+		toastCapture.markers.find((mark) => mark.label === `exit`)!.settings.type,
 		`tween`,
 	)
 	assert.equal(
-		toastCapture.markers.find((mark) => mark.label === `re-entry`).settings.type,
+		toastCapture.markers.find((mark) => mark.label === `re-entry`)!.settings
+			.type,
 		`spring`,
 	)
 
@@ -205,11 +244,13 @@ try {
 	assert.equal(
 		await page.evaluate(
 			() =>
-				document.querySelector(`toast-sandbox motion-card`) === window.toastCard,
+				document.querySelector<HTMLElement>(`toast-sandbox motion-card`) ===
+				window.toastCard,
 		),
 		true,
 	)
 	const restoredToast = toastCapture.samples.at(-1)
+	if (!restoredToast) throw new Error(`Missing restoredToast`)
 	assert.ok(Math.abs(restoredToast.scale - 1) < 0.0001)
 	assert.ok(Math.abs(restoredToast.opacity - 1) < 0.00001)
 	await writeFile(
@@ -219,7 +260,7 @@ try {
 	await page
 		.locator(`toast-sandbox`)
 		.screenshot({ path: `/tmp/spa-motion-toast-live.png` })
-	await page.locator(`#toast-scrub`).evaluate((input) => {
+	await page.locator(`#toast-scrub`).evaluate((input: HTMLInputElement) => {
 		input.value = String(Math.floor(Number(input.max) * 0.25))
 		input.dispatchEvent(new Event(`input`, { bubbles: true }))
 	})
@@ -232,10 +273,10 @@ try {
 	await page.locator(`#toast-live`).click()
 	await page.locator(`#toast-toggle`).click()
 	await page.waitForFunction(
-		() => !document.querySelector(`toast-sandbox motion-card`),
+		() => !document.querySelector<HTMLElement>(`toast-sandbox motion-card`)!,
 	)
 	const dismissedToast = await page.evaluate(() =>
-		document.querySelector(`toast-sandbox`).capture(),
+		document.querySelector<MotionElement>(`toast-sandbox`)!.capture(),
 	)
 	assert.ok(
 		dismissedToast.samples.some((at) => at.scale <= 0.86 && at.opacity < 0.02),
@@ -244,17 +285,21 @@ try {
 	await page.locator(`#toast-toggle`).click()
 	await page.waitForFunction(
 		() =>
-			document.querySelector(`toast-sandbox`).capture().samples.at(-1)
-				?.instance === 2,
+			document
+				.querySelector<MotionElement>(`toast-sandbox`)!
+				.capture()
+				.samples.at(-1)?.instance === 2,
 	)
 	// Slow motion uses the same targets and keeps the original instance on return.
-	await page.locator(`#toast-duration`).evaluate((input) => {
+	await page.locator(`#toast-duration`).evaluate((input: HTMLInputElement) => {
 		input.value = `1`
 		input.dispatchEvent(new Event(`input`, { bubbles: true }))
 	})
 	await page.locator(`#toast-replay`).click()
 	await page.waitForFunction(() => {
-		const trace = document.querySelector(`toast-sandbox`).capture()
+		const trace = document
+			.querySelector<MotionElement>(`toast-sandbox`)!
+			.capture()
 		return (
 			trace.settings.duration === 1 &&
 			trace.markers.some((mark) => mark.label === `turn`) &&
@@ -266,7 +311,7 @@ try {
 			() =>
 				new Set(
 					document
-						.querySelector(`toast-sandbox`)
+						.querySelector<MotionElement>(`toast-sandbox`)!
 						.capture()
 						.samples.map((at) => at.instance),
 				).size,
@@ -291,8 +336,8 @@ try {
 		`Motion sandbox passed: 2s default, adjustable speed, velocity-preserving U-turn, repeated interruption, retained identity, trace/scrub, PNG/JSON capture, disposal, interrupted toast shrink/fade/spring return, and mobile layout.`,
 	)
 } catch (error) {
-	if (page)
-		await page
+	if (activePage)
+		await activePage
 			.screenshot({ path: `/tmp/spa-motion-failure.png`, fullPage: true })
 			.catch(() => {})
 	throw error

@@ -38,7 +38,7 @@ const scene = threeRenderer.render(
 	parents.get(`standalone`)!,
 	{ store: firstStore.store },
 )
-Object.assign(window, {
+const browserFixture0 = {
 	hmrTest: {
 		stats() {
 			return {
@@ -68,4 +68,10 @@ Object.assign(window, {
 			scene.dispose()
 		},
 	},
-})
+}
+Object.assign(window, browserFixture0)
+declare global {
+	interface Window {
+		hmrTest: typeof browserFixture0.hmrTest
+	}
+}

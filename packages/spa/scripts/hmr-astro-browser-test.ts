@@ -1,8 +1,15 @@
+declare global {
+	interface Window {
+		astroHotSentinel: boolean
+		spaIslandCleanups: number
+	}
+}
 import assert from "node:assert/strict"
 import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { resolve } from "node:path"
+
 import { dev } from "astro"
-import { chromium } from "playwright"
+import { type Browser, chromium } from "playwright"
 
 const packageRoot = resolve(import.meta.dirname, `..`)
 const directory = await mkdtemp(resolve(packageRoot, `__tests__/.hmr-astro-`))
@@ -13,11 +20,12 @@ const componentFile = resolve(directory, `src/View.tsx`),
 	stateFile = resolve(directory, `src/state.ts`)
 const component = await readFile(componentFile, `utf8`),
 	state = await readFile(stateFile, `utf8`)
-const edit = async (file, code) => {
+const edit = async (file: string, code: string) => {
 	await new Promise((ready) => setTimeout(ready, 100))
 	await writeFile(file, code)
 }
-let server, browser
+let server: Awaited<ReturnType<typeof dev>> | undefined
+let browser: Browser | undefined
 try {
 	server = await dev({
 		root: directory,
@@ -25,18 +33,21 @@ try {
 		server: { host: `127.0.0.1`, port: 0 },
 	})
 	browser = await chromium.launch({
-		executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
+		...(process.env[`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`]
+			? { executablePath: process.env[`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`] }
+			: {}),
 		args: [`--enable-unsafe-swiftshader`],
 	})
 	const page = await browser.newPage()
-	const errors = []
+	const errors: string[] = []
 	page.on(`pageerror`, (error) => {
 		errors.push(error.message)
 	})
 	await page.goto(`http://127.0.0.1:${server.address.port}`)
 	await page.waitForFunction(
 		() =>
-			document.querySelectorAll(`astro-island:not([ssr]) button`).length === 3,
+			document.querySelectorAll<HTMLElement>(`astro-island:not([ssr]) button`)
+				.length === 3,
 	)
 	const buttons = page.locator(`astro-island button`)
 	await buttons.first().click()
@@ -55,7 +66,9 @@ try {
 		component.replace(`astro-v1`, `astro-v2`).replace(`value + 1`, `value + 2`),
 	)
 	await page.waitForFunction(() => {
-		const nodes = [...document.querySelectorAll(`astro-island button`)]
+		const nodes = [
+			...document.querySelectorAll<HTMLElement>(`astro-island button`),
+		]
 		return (
 			nodes.length === 3 &&
 			nodes.every((node) => node.textContent.startsWith(`astro-v2`))
@@ -83,7 +96,9 @@ try {
 		component.replace(`astro-v1`, `astro-v3`).replace(`value + 1`, `value + 3`),
 	)
 	await page.waitForFunction(() => {
-		const nodes = [...document.querySelectorAll(`astro-island button`)]
+		const nodes = [
+			...document.querySelectorAll<HTMLElement>(`astro-island button`),
+		]
 		return (
 			nodes.length === 3 &&
 			nodes.every((node) => node.textContent.startsWith(`astro-v3`))
@@ -110,7 +125,7 @@ try {
 	await buttons.first().click()
 	assert.equal(await buttons.first().textContent(), `astro-v3:9`)
 	await page.evaluate(() => {
-		for (const island of document.querySelectorAll(`astro-island`))
+		for (const island of document.querySelectorAll<HTMLElement>(`astro-island`))
 			island.dispatchEvent(new Event(`astro:unmount`))
 	})
 	assert.equal(await buttons.count(), 0)
@@ -120,7 +135,8 @@ try {
 	await page.waitForFunction(
 		() =>
 			window.astroHotSentinel === undefined &&
-			document.querySelectorAll(`astro-island:not([ssr]) button`).length === 3,
+			document.querySelectorAll<HTMLElement>(`astro-island:not([ssr]) button`)
+				.length === 3,
 	)
 	assert.deepEqual(await buttons.allTextContents(), [
 		`astro-v3:2`,

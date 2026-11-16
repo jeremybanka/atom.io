@@ -171,7 +171,11 @@ settings:
   autoInstallPeers: false
   excludeLinksFromLockfile: false
 
-pnpmfileChecksum: sha256-MiMchsRGfTHvb7kYDb08pwhOsrD77BIDUOen590cJe4=
+overrides:
+  typescript-eslint@8>typescript:peer: '-'
+  '@typescript-eslint/*@8>typescript:peer': '-'
+
+packageExtensionsChecksum: sha256-Ne5mG7xKL5cRGDkyiKtHL7s82Q4ZnFV1wgb4nuKd5WU=
 
 importers:
 

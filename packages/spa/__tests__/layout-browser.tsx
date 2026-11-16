@@ -133,7 +133,7 @@ const bounds = (id: string) => {
 		opacity: getComputedStyle(element).opacity,
 	}
 }
-Object.assign(window, {
+const browserFixture0 = {
 	layoutTest: {
 		forms: formBehavior,
 		regressions: layoutRegressions,
@@ -181,4 +181,10 @@ Object.assign(window, {
 			return kept?.style.cssText
 		},
 	},
-})
+}
+Object.assign(window, browserFixture0)
+declare global {
+	interface Window {
+		layoutTest: typeof browserFixture0.layoutTest
+	}
+}

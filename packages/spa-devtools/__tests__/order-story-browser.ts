@@ -3,24 +3,35 @@ import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { createServer } from "node:http"
 import { extname, resolve, sep } from "node:path"
 
-import { launchBrowser } from "./browser-runtime.mjs"
+import type { Browser, BrowserContext, Frame, Page } from "playwright"
+
+import { launchBrowser } from "./browser-runtime.ts"
+
+declare global {
+	interface Window {
+		__STORYBOOK_PREVIEW__?: {
+			storyRenders?: { id: string; phase: string }[]
+		}
+		__orderStoryDocument?: boolean
+	}
+}
 
 const root = resolve(import.meta.dirname, `../../..`)
 const storybook =
-	process.env.SPA_DEVTOOLS_STORYBOOK_DIR ??
+	process.env[`SPA_DEVTOOLS_STORYBOOK_DIR`] ??
 	resolve(root, `packages/atom.io/storybook-static`)
 assert.equal(
-	process.env.SPA_DEVTOOLS_STORYBOOK_URL,
+	process.env[`SPA_DEVTOOLS_STORYBOOK_URL`],
 	undefined,
 	`This suite tests built Storybook. Use the Vitest story project for interaction tests.`,
 )
 const artifacts =
-	process.env.SPA_DEVTOOLS_STORY_ARTIFACTS ??
+	process.env[`SPA_DEVTOOLS_STORY_ARTIFACTS`] ??
 	resolve(root, `.scratch/storybook-tests/integration`)
 await mkdir(artifacts, { recursive: true })
 // Fail clearly if the actual Storybook build has not been produced.
 await readFile(resolve(storybook, `index.json`))
-const types = {
+const types: Record<string, string> = {
 	".html": `text/html`,
 	".js": `application/javascript`,
 	".css": `text/css`,
@@ -29,9 +40,10 @@ const types = {
 	".png": `image/png`,
 }
 const server = createServer(async (req, res) => {
+	const pathname = new URL(req.url ?? `/`, `http://localhost`).pathname
 	const path = resolve(
 		storybook,
-		`.${decodeURIComponent(new URL(req.url, `http://localhost`).pathname === `/` ? `/index.html` : new URL(req.url, `http://localhost`).pathname)}`,
+		`.${decodeURIComponent(pathname === `/` ? `/index.html` : pathname)}`,
 	)
 	if (!path.startsWith(storybook + sep)) {
 		res.writeHead(403).end()
@@ -47,20 +59,23 @@ const server = createServer(async (req, res) => {
 		res.writeHead(404).end()
 	}
 })
-await new Promise((ready) => server.listen(0, `127.0.0.1`, ready))
-let browser, activePage, activeContext, activeProfile
+await new Promise<void>((ready) => server.listen(0, `127.0.0.1`, ready))
+let browser: Browser | undefined
+let activePage: Page | undefined
+let activeContext: BrowserContext | undefined
+let activeProfile: string | undefined
 const profiles = []
 const provenance = {
-	candidate: process.env.SPA_DEVTOOLS_CANDIDATE_SHA ?? `working-tree`,
-	pullRequestHead: process.env.SPA_DEVTOOLS_PR_HEAD_SHA ?? null,
-	testedRevision: process.env.GITHUB_SHA ?? null,
+	candidate: process.env[`SPA_DEVTOOLS_CANDIDATE_SHA`] ?? `working-tree`,
+	pullRequestHead: process.env[`SPA_DEVTOOLS_PR_HEAD_SHA`] ?? null,
+	testedRevision: process.env[`GITHUB_SHA`] ?? null,
 	mode: `static`,
 	developmentServer: false,
 	hmr: false,
 	storybook,
 }
 // Wait for Storybook's render lifecycle so the suite does not race the story's play function.
-const finished = async (frame, id) => {
+const finished = async (frame: Frame | Page, id: string) => {
 	await frame.waitForFunction(
 		(storyId) =>
 			window.__STORYBOOK_PREVIEW__?.storyRenders?.some(
@@ -78,7 +93,9 @@ const finished = async (frame, id) => {
 }
 try {
 	browser = await launchBrowser()
-	const url = `http://127.0.0.1:${server.address().port}`
+	const address = server.address()
+	assert.ok(address && typeof address !== `string`)
+	const url = `http://127.0.0.1:${address.port}`
 	for (const viewport of [
 		{ width: 1440, height: 900 },
 		{ width: 390, height: 844 },
@@ -90,9 +107,9 @@ try {
 		const context = await browser.newContext({ viewport })
 		activeContext = context
 		await context.tracing.start({ screenshots: true, snapshots: true })
-		const page = await context.newPage(),
-			errors = [],
-			assetFailures = []
+		const page = await context.newPage()
+		const errors: string[] = []
+		const assetFailures: { url: string; status: number }[] = []
 		activePage = page
 		page.on(`pageerror`, (error) => errors.push(error.message))
 		page.on(`response`, (response) => {
@@ -109,14 +126,18 @@ try {
 		const layout = await page.evaluate(() => ({
 			debuggerDocument:
 				document.querySelector(`[data-testid="atom-io-devtools"]`)
-					.ownerDocument === document,
+					?.ownerDocument === document,
 			overflow: document.documentElement.scrollWidth > innerWidth,
 		}))
 		assert.equal(layout.debuggerDocument, true)
 		assert.equal(layout.overflow, false)
 		const drawer = page.locator(`.order-fulfillment-controls`)
-		const controls = async (open) => {
-			if ((await drawer.evaluate((element) => element.open)) !== open)
+		const controls = async (open: boolean) => {
+			if (
+				(await drawer.evaluate(
+					(element: HTMLDetailsElement) => element.open,
+				)) !== open
+			)
 				await drawer.locator(`summary`).click()
 		}
 		const checkControls = async () => {
@@ -147,6 +168,7 @@ try {
 		const panel = page.getByTestId(`atom-io-devtools`)
 		const beforeGesture = await panel.boundingBox()
 		const corner = await page.locator(`[data-resize="nw"]`).boundingBox()
+		assert.ok(beforeGesture && corner)
 		await page.mouse.move(
 			corner.x + corner.width / 2,
 			corner.y + corner.height / 2,
@@ -155,10 +177,12 @@ try {
 		await page.mouse.move(corner.x + 40, corner.y + 80, { steps: 6 })
 		await page.mouse.up()
 		const resized = await panel.boundingBox()
+		assert.ok(resized)
 		assert.ok(resized.height < beforeGesture.height)
 		const handle = await page
 			.getByRole(`button`, { name: `Move debugger`, exact: true })
 			.boundingBox()
+		assert.ok(handle)
 		await page.mouse.move(
 			handle.x + handle.width / 2,
 			handle.y + handle.height / 2,
@@ -167,6 +191,7 @@ try {
 		await page.mouse.move(80, viewport.height / 2, { steps: 8 })
 		await page.mouse.up()
 		const moved = await panel.boundingBox()
+		assert.ok(moved)
 		assert.ok(moved.x >= 0 && moved.x < viewport.width / 2)
 		assert.ok(moved.y >= 0 && moved.y + moved.height <= viewport.height + 1)
 		await page
@@ -205,9 +230,12 @@ try {
 
 		// Navigate the real manager without replacing its preview document.
 		await page.goto(`${url}/?path=/story/atomiodevtools--primary`)
-		const frame = await (
-			await page.locator(`#storybook-preview-iframe`).elementHandle()
-		).contentFrame()
+		const preview = await page
+			.locator(`#storybook-preview-iframe`)
+			.elementHandle()
+		assert.ok(preview)
+		const frame = await preview.contentFrame()
+		assert.ok(frame)
 		await finished(frame, `atomiodevtools--primary`)
 		assert.match(
 			await frame.locator(`.ecology-counts`).innerText(),
@@ -234,19 +262,24 @@ try {
 			.all())
 			if (await dismiss.isVisible()) await dismiss.click()
 		const managerDrawer = frame.locator(`.order-fulfillment-controls`)
-		if (!(await managerDrawer.evaluate((element) => element.open)))
+		if (
+			!(await managerDrawer.evaluate(
+				(element: HTMLDetailsElement) => element.open,
+			))
+		)
 			await managerDrawer.locator(`summary`).click()
 		const previousPanel = await frame
 			.getByTestId(`atom-io-devtools`)
 			.elementHandle()
+		assert.ok(previousPanel)
 		await frame
 			.getByRole(`button`, { name: `Reset order scenario`, exact: true })
 			.click()
 		await frame.waitForFunction((element) => !element.isConnected, previousPanel)
 		await frame.waitForFunction(
 			() =>
-				document.querySelector(`[data-testid="ecology-view"]`)?.dataset.ready ===
-				`true`,
+				document.querySelector<HTMLElement>(`[data-testid="ecology-view"]`)
+					?.dataset[`ready`] === `true`,
 		)
 		assert.equal(await frame.getByTestId(`atom-io-devtools`).count(), 1)
 		assert.match(
@@ -303,5 +336,9 @@ try {
 	throw error
 } finally {
 	await browser?.close()
-	await new Promise((done) => server.close(done))
+	await new Promise<void>((done) =>
+		server.close(() => {
+			done()
+		}),
+	)
 }

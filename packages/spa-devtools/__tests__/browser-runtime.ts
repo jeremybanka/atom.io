@@ -1,25 +1,27 @@
 import assert from "node:assert/strict"
 
-import { chromium } from "playwright"
+import { type Browser, chromium, type Page } from "playwright"
 
 export const cpuRate = Number(
 	process.argv.find((arg) => arg.startsWith(`--cpu-throttle=`))?.split(`=`)[1] ??
-		process.env.SPA_DEVTOOLS_CPU_THROTTLE ??
+		process.env[`SPA_DEVTOOLS_CPU_THROTTLE`] ??
 		1,
 )
 assert.ok(Number.isFinite(cpuRate) && cpuRate >= 1 && cpuRate <= 6)
-export function browserArtifacts(path) {
+export function browserArtifacts(path: string): string {
 	return cpuRate === 1 ? path : `${path}-cpu${cpuRate}`
 }
 /** Keep the browser sandbox enabled in both ordinary and CPU-throttled regressions. */
-export async function launchBrowser() {
+export async function launchBrowser(): Promise<Browser> {
 	const browser = await chromium.launch({
 		chromiumSandbox: true,
-		executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
+		...(process.env[`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`]
+			? { executablePath: process.env[`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`] }
+			: {}),
 	})
 	if (cpuRate === 1) return browser
-	const applied = new WeakSet()
-	const throttle = async (page) => {
+	const applied = new WeakSet<Page>()
+	const throttle = async (page: Page) => {
 		if (!applied.has(page)) {
 			applied.add(page)
 			const session = await page.context().newCDPSession(page)

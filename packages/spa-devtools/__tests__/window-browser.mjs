@@ -5,7 +5,7 @@ import { cpus, platform, arch } from "node:os"
 import { resolve } from "node:path"
 
 import { build } from "esbuild"
-import { browserArtifacts, cpuRate, launchBrowser } from "./browser-runtime.mjs"
+import { browserArtifacts, cpuRate, launchBrowser } from "./browser-runtime.ts"
 
 const artifacts = browserArtifacts(
 	process.env.SPA_DEVTOOLS_BROWSER_ARTIFACTS ?? `/tmp/spa-devtools-window`,

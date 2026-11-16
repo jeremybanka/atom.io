@@ -5,7 +5,7 @@ import { createServer } from "node:http"
 import { dirname, resolve } from "node:path"
 import { createRequire } from "node:module"
 import { build } from "esbuild"
-import { browserArtifacts, cpuRate, launchBrowser } from "./browser-runtime.mjs"
+import { browserArtifacts, cpuRate, launchBrowser } from "./browser-runtime.ts"
 const favicon = await readFile(
 	resolve(import.meta.dirname, `../../../apps/atom.io.fyi/public/favicon.png`),
 )

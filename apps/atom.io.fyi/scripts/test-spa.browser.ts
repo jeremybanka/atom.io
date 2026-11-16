@@ -150,7 +150,8 @@ try {
 			.evaluate(
 				(element: HTMLElement) => element.getBoundingClientRect().height,
 			),
-		28,
+		60,
+		`The title row and physical tab row occupy 60px together`,
 	)
 	await page.emulateMedia({ colorScheme: `dark` })
 	assert.equal(
@@ -165,9 +166,21 @@ try {
 		await panel.evaluate(
 			(element: HTMLElement) => getComputedStyle(element).backgroundColor,
 		),
-		`rgb(221, 221, 221)`,
+		`rgb(249, 249, 249)`,
 	)
 	await panel.screenshot({ path: `/tmp/spa-devtools-dense-light.png` })
+	const initialPanel = await panel.boundingBox()
+	assert.ok(initialPanel)
+	const waitForOffset = (dx: number, dy: number) =>
+		page.waitForFunction(
+			([x, y]) => {
+				const rect = document
+					.querySelector<HTMLElement>(`[data-testid="atom-io-devtools"]`)!
+					.getBoundingClientRect()
+				return Math.abs(rect.x - x) < 1 && Math.abs(rect.y - y) < 1
+			},
+			[initialPanel.x + dx, initialPanel.y + dy],
+		)
 	const handle = page.locator(`button[aria-label="Move debugger"]`)
 	const bounds = await handle.boundingBox()
 	if (!bounds) throw new Error(`Missing bounds`)
@@ -182,18 +195,10 @@ try {
 		{ steps: 4 },
 	)
 	await page.mouse.up()
-	await page.waitForFunction(
-		() =>
-			document.querySelector<HTMLElement>(`[data-testid="atom-io-devtools"]`)!
-				.style.transform === `translate(-40px, -30px)`,
-	)
+	await waitForOffset(-40, -30)
 	await handle.focus()
 	await page.keyboard.press(`ArrowLeft`)
-	await page.waitForFunction(
-		() =>
-			document.querySelector<HTMLElement>(`[data-testid="atom-io-devtools"]`)!
-				.style.transform === `translate(-50px, -30px)`,
-	)
+	await waitForOffset(-50, -30)
 
 	await page.screenshot({
 		path: `/tmp/spa-site-desktop.png`,

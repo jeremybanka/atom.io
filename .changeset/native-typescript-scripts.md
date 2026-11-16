@@ -1,6 +1,7 @@
 ---
 "create-atom.io": patch
 "@atom.io/template-spa-astro-ssr": patch
+"atom.io.fyi": patch
 ---
 
-Keep CLI entrypoint sources and browser checks in TypeScript, compile the published CLI executable into dist, and run template browser checks directly with Node.
+Keep CLI entrypoint sources and browser checks in TypeScript, compile the published CLI executable into dist, and run template and site browser checks directly with Node. Align site checks with the shared debugger's two-row toolbar and light palette.

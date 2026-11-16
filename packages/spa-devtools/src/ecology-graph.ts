@@ -73,7 +73,12 @@ export function* projectEcology(
 	const add = (item: Omit<GraphItem, `x` | `y`>, matches: boolean): void => {
 		const previous = context.positions.get(item.id)
 		const positioned: GraphItem = {
-			...item,
+			id: item.id,
+			key: item.key,
+			kind: item.kind,
+			label: item.label,
+			detail: item.detail,
+			source: item.source,
 			x: previous?.x ?? 0,
 			y: previous?.y ?? 0,
 		}
@@ -198,17 +203,19 @@ export function scheduleGraph<T>(
 		if (!active) return
 		const start = now()
 		let step: IteratorResult<void, T>
+		let observed = start
 		do {
-			const before = now()
+			const before = observed
 			step = iterator.next()
-			stepCost = Math.max(stepCost * 0.8, now() - before)
+			observed = now()
+			stepCost = Math.max(stepCost * 0.8, observed - before)
 			if (step.done) {
 				chunks.push(now() - start)
 				active = false
 				done(step.value, chunks)
 				return
 			}
-		} while (now() - start + stepCost < budgetMs)
+		} while (observed - start + stepCost < budgetMs)
 		chunks.push(now() - start)
 		cancel = schedule(run)
 	}

@@ -435,36 +435,55 @@ try {
 	)
 	await page.screenshot({ path: resolvePath(artifacts, `narrow.png`) })
 	await page.getByRole(`button`, { name: `Graph`, exact: true }).click()
-	const touch = await context.newCDPSession(page),
-		box = (await scene.boundingBox())!
-	const touchPose = await camera()
+	const touch = await context.newCDPSession(page)
+	// Start gestures on actual background, since cards move with layout and camera changes.
+	const background = () =>
+		scene.evaluate((node) => {
+			const bounds = node.getBoundingClientRect(),
+				points: { x: number; y: number }[] = []
+			for (let y = bounds.y + 24; y < bounds.bottom - 60; y += 24)
+				for (let x = bounds.x + 24; x < bounds.right - 60; x += 24)
+					if (document.elementFromPoint(x, y) === node) points.push({ x, y })
+			return points
+		})
 	await cylinderFits()
+	await page.evaluate(() => new Promise(requestAnimationFrame))
+	const [start] = await background()
+	assert.ok(start, `Graph must expose background for orbit controls`)
+	const touchPose = await camera()
 	await touch.send(`Input.dispatchTouchEvent`, {
 		type: `touchStart`,
-		touchPoints: [{ x: box.x + 20, y: box.y + 30 }],
+		touchPoints: [start],
 	})
 	await touch.send(`Input.dispatchTouchEvent`, {
 		type: `touchMove`,
-		touchPoints: [{ x: box.x + 75, y: box.y + 60 }],
+		touchPoints: [{ x: start.x + 40, y: start.y + 30 }],
 	})
 	await touch.send(`Input.dispatchTouchEvent`, {
 		type: `touchEnd`,
 		touchPoints: [],
 	})
 	assert.notEqual(await camera(), touchPose, `One finger must orbit`)
+	await page.evaluate(() => new Promise(requestAnimationFrame))
+	const clear = await background(),
+		first = clear[0],
+		second = clear.find(
+			(point) => Math.hypot(point.x - first.x, point.y - first.y) >= 100,
+		)
+	assert.ok(second, `Graph must expose two background points for pinch controls`)
 	const pinchPose = await camera()
 	await touch.send(`Input.dispatchTouchEvent`, {
 		type: `touchStart`,
 		touchPoints: [
-			{ x: box.x + 70, y: box.y + 100, id: 1 },
-			{ x: box.x + 200, y: box.y + 100, id: 2 },
+			{ ...first, id: 1 },
+			{ ...second, id: 2 },
 		],
 	})
 	await touch.send(`Input.dispatchTouchEvent`, {
 		type: `touchMove`,
 		touchPoints: [
-			{ x: box.x + 40, y: box.y + 130, id: 1 },
-			{ x: box.x + 250, y: box.y + 130, id: 2 },
+			{ x: first.x - 16, y: first.y + 24, id: 1 },
+			{ x: second.x + 40, y: second.y + 24, id: 2 },
 		],
 	})
 	await touch.send(`Input.dispatchTouchEvent`, {

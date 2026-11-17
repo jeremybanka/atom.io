@@ -99,7 +99,9 @@ function helixPosition(
 	selector: boolean,
 	height: number,
 ): GraphPosition {
-	const angle = (slot * Math.PI) / 4 + (selector ? Math.PI : 0)
+	// Both paths have the same winding at a given height, although selectors are added bottom-up.
+	const depth = selector ? height / 2 - slot : slot
+	const angle = (depth * Math.PI) / 4 + (selector ? Math.PI : 0)
 	return {
 		x: 8 * Math.cos(angle),
 		y: selector ? -height / 2 + slot * 2 : height / 2 - slot * 2,

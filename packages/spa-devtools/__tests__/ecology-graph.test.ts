@@ -398,7 +398,7 @@ it(`uses the browser timer scheduler and cancels it on disposal`, async () => {
 	expect(done).toHaveBeenCalledOnce()
 })
 
-it(`uses equal helical steps with opposite starts and vertical directions, and expands on the tangent`, () => {
+it(`keeps parallel helices opposite at every shared height, with equal steps and tangent expansion`, () => {
 	const families = Array.from({ length: 31 }, (_, i) => ({
 		key: `group${i}`,
 		type: `atom_family`,
@@ -421,8 +421,14 @@ it(`uses equal helical steps with opposite starts and vertical directions, and e
 	const atom = position(0, false),
 		selector = position(0, true)
 	expect([atom.x, atom.y, atom.z]).toEqual([8, 30, 0])
-	expect(selector.x).toBeCloseTo(-8)
 	expect(selector.y).toBe(-30)
+	for (let slot = 0; slot < 31; slot++) {
+		const a = position(30 - slot, false),
+			b = position(slot, true)
+		expect(a.y).toBe(b.y)
+		expect(a.x).toBeCloseTo(-b.x)
+		expect(a.z).toBeCloseTo(-b.z)
+	}
 	for (const lane of [false, true]) {
 		let distance = 0
 		for (let slot = 0; slot < 30; slot++) {
@@ -430,7 +436,8 @@ it(`uses equal helical steps with opposite starts and vertical directions, and e
 				b = position(slot + 1, lane)
 			expect(Math.hypot(a.x, a.z)).toBeCloseTo(8)
 			expect(b.y - a.y).toBe(lane ? 2 : -2)
-			expect(a.x * b.z - a.z * b.x).toBeGreaterThan(0)
+			// Bottom-up insertion reverses the angular step, keeping the spatial winding parallel.
+			expect((a.x * b.z - a.z * b.x) * (lane ? -1 : 1)).toBeGreaterThan(0)
 			const next = Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z)
 			if (slot) expect(next).toBeCloseTo(distance)
 			distance = next
@@ -443,6 +450,38 @@ it(`uses equal helical steps with opposite starts and vertical directions, and e
 		}
 	}
 })
+
+it.each([
+	[3, 3],
+	[5, 7],
+	[12, 9],
+	[17, 6],
+])(
+	`keeps opposing paths separate with %i atom and %i selector anchors`,
+	(atoms, selectors) => {
+		const data = snapshot([
+			...Array.from({ length: atoms }, (_, index) => node(`a${index}`)),
+			...Array.from({ length: selectors }, (_, index) =>
+				node(`s${index}`, `selector`),
+			),
+		])
+		const model = drain(projectEcology(data, createGraphContext()))
+		let compared = 0
+		for (const selector of model.items.filter(
+			(item) => item.kind === `selector`,
+		)) {
+			const atom = model.items.find(
+				(item) => item.kind === `atom` && item.y === selector.y,
+			)
+			if (atom) {
+				expect(atom.x).toBeCloseTo(-selector.x)
+				expect(atom.z).toBeCloseTo(-selector.z)
+				compared++
+			}
+		}
+		expect(compared).toBeGreaterThan(0)
+	},
+)
 
 it(`retains incoming arrows when a selector family is collapsed`, () => {
 	const data: EcologySnapshot = {

@@ -34,7 +34,7 @@ function orderTools({ canvas, canvasElement, userEvent }: Context) {
 	}
 	const ecology = async () => {
 		await debuggerVisible(true)
-		const tab = canvas.getByRole(`tab`, { name: `ecology` })
+		const tab = await canvas.findByRole(`tab`, { name: `ecology` })
 		if (tab.getAttribute(`aria-selected`) !== `true`) await userEvent.click(tab)
 		await ready()
 	}
@@ -50,12 +50,33 @@ function orderTools({ canvas, canvasElement, userEvent }: Context) {
 		project(() =>
 			userEvent.click(canvas.getByRole(`button`, { name: `Refresh` })),
 		)
+	const search = async () => {
+		const graph = canvas.getByTestId(`ecology-view`)
+		const input = graph.querySelector<HTMLInputElement>(`input[type="search"]`)!
+		if (!input.checkVisibility())
+			await userEvent.click(
+				graph.querySelector<HTMLButtonElement>(`[data-action="search"]`)!,
+			)
+		await waitFor(() => expect(input).toBeVisible())
+		await userEvent.click(input)
+		await waitFor(async () => {
+			input.focus()
+			await new Promise<void>((resolve) =>
+				requestAnimationFrame(() => {
+					resolve()
+				}),
+			)
+			await expect(input).toHaveFocus()
+		})
+		return input
+	}
 	const choose = async (key: string, family = false) => {
 		await debuggerVisible(true)
-		const input = canvas.getByRole(`searchbox`, { name: `Search ecology` })
+		const input = await search()
 		await project(async () => {
 			await userEvent.clear(input)
-			await userEvent.type(input, key)
+			await userEvent.type(input, key, { skipClick: true })
+			await expect(input).toHaveValue(key)
 		})
 		const graph = canvas.getByTestId(`ecology-view`)
 		const id = `${family ? `family` : `state`}:${key}`
@@ -65,7 +86,9 @@ function orderTools({ canvas, canvasElement, userEvent }: Context) {
 		)
 		await expect(result).not.toBeNull()
 		await project(() => userEvent.click(result!))
-		const switcher = within(graph).getByRole(`button`, { name: `Node list` })
+		const switcher = graph.querySelector<HTMLButtonElement>(
+			`[data-action="view-list"]`,
+		)!
 		if (switcher.checkVisibility()) await userEvent.click(switcher)
 		const details =
 			graph.querySelector<HTMLDetailsElement>(`ecology-map details`)!
@@ -80,7 +103,9 @@ function orderTools({ canvas, canvasElement, userEvent }: Context) {
 	const inspector = () => canvas.getByLabelText(`Passive ecology inspector`)
 	const trace = () =>
 		project(async () => {
-			const selection = canvas.getByRole(`button`, { name: `Selection` })
+			const selection = canvasElement.querySelector<HTMLButtonElement>(
+				`ecology-view [data-action="view-selection"]`,
+			)!
 			if (selection.checkVisibility()) await userEvent.click(selection)
 			await userEvent.click(
 				within(inspector()).getByRole(`button`, {
@@ -97,6 +122,7 @@ function orderTools({ canvas, canvasElement, userEvent }: Context) {
 		ready,
 		refresh,
 		choose,
+		search,
 		inspector,
 		trace,
 	}
@@ -104,7 +130,7 @@ function orderTools({ canvas, canvasElement, userEvent }: Context) {
 
 export const playPrimary: Play = async ({ canvas, userEvent, step }) => {
 	await step(`The primary debugger uses its own store`, async () => {
-		const tab = canvas.getByRole(`tab`, { name: `ecology` })
+		const tab = await canvas.findByRole(`tab`, { name: `ecology` })
 		if (tab.getAttribute(`aria-selected`) !== `true`) await userEvent.click(tab)
 		await waitFor(() =>
 			expect(canvas.getByTestId(`ecology-view`)).toHaveAttribute(
@@ -112,16 +138,12 @@ export const playPrimary: Play = async ({ canvas, userEvent, step }) => {
 				`true`,
 			),
 		)
-		await expect(
-			canvas
-				.getByTestId(`ecology-view`)
-				.querySelector(`ecology-view [data-counts]`),
-		).toHaveTextContent(/^11 atoms · 2 selectors/)
-		await expect(
-			canvas
-				.getByTestId(`ecology-view`)
-				.querySelector(`ecology-view [data-counts]`),
-		).toHaveTextContent(`0 captured edges`)
+		await expect(canvas.getByTestId(`ecology-view`).dataset[`counts`]).toContain(
+			`11 atoms · 2 selectors`,
+		)
+		await expect(canvas.getByTestId(`ecology-view`).dataset[`counts`]).toContain(
+			`0 captured edges`,
+		)
 		await userEvent.click(canvas.getByRole(`button`, { name: `run` }))
 		await expect(canvas.getAllByTestId(`atom-io-devtools`)).toHaveLength(1)
 	})
@@ -339,7 +361,9 @@ export const playEcologySearch: Play = async (context) => {
 	await tools.ecology()
 	await tools.choose(`checkoutTotalCents`)
 	await tools.trace()
-	const input = canvas.getByRole(`searchbox`, { name: `Search ecology` })
+	const input = canvasElement.querySelector<HTMLInputElement>(
+		`ecology-view input[type="search"]`,
+	)!
 	const ready = () =>
 		waitFor(() =>
 			expect(canvas.getByTestId(`ecology-view`)).toHaveAttribute(
@@ -350,8 +374,9 @@ export const playEcologySearch: Play = async (context) => {
 	await step(
 		`Rank normalized captured metadata and preserve the same node's trace`,
 		async () => {
+			await tools.search()
 			await userEvent.clear(input)
-			await userEvent.type(input, `CHECKOUT total`)
+			await userEvent.type(input, `CHECKOUT total`, { skipClick: true })
 			await ready()
 			const result = canvasElement.querySelector<HTMLElement>(
 				`ecology-view [data-results] button[data-result-id="state:checkoutTotalCents"]`,
@@ -383,9 +408,10 @@ export const playEcologySearch: Play = async (context) => {
 			await userEvent.clear(editor)
 			await userEvent.type(editor, `2e`)
 			const summary = tools.summary().textContent
+			await tools.search()
 			await userEvent.click(input)
 			await userEvent.clear(input)
-			await userEvent.type(input, `availability`)
+			await userEvent.type(input, `availability`, { skipClick: true })
 			await ready()
 			await expect(editor).toHaveValue(`2e`)
 			await expect(
@@ -395,12 +421,16 @@ export const playEcologySearch: Play = async (context) => {
 			await userEvent.keyboard(`{ArrowDown}{Enter}`)
 			await ready()
 			await expect(editor).toHaveValue(`2e`)
+			await tools.search()
 			await userEvent.click(input)
+			const modalSearch = input.closest(`dialog`)!.matches(`:modal`)
 			await userEvent.keyboard(`{Escape}`)
-			await ready()
-			await userEvent.keyboard(`{Escape}`)
-			await ready()
-			await userEvent.keyboard(`{Escape}`)
+			if (!modalSearch) {
+				await ready()
+				await userEvent.keyboard(`{Escape}`)
+				await ready()
+				await userEvent.keyboard(`{Escape}`)
+			}
 			await expect(editor).toHaveFocus()
 		},
 	)

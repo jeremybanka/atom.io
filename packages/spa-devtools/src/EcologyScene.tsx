@@ -1,5 +1,5 @@
 /** @jsxImportSource @atom.io/spa */
-import { onCleanup, onMount, type SpaElement, useId } from "@atom.io/spa"
+import { onCleanup, onMount, type SpaElement } from "@atom.io/spa"
 import { bindScene } from "@atom.io/spa/renderer"
 import { Canvas, LineSegments } from "@atom.io/spa/three"
 import * as THREE from "three"
@@ -41,7 +41,6 @@ export function EcologyScene(props: {
 	focused?: ReadonlySet<string> | undefined
 	command: CameraCommand
 }): SpaElement {
-	const id = `ecology-controls-${useId()}`
 	const [size, setSize] = useLocal(props.tools.store, {
 		width: 640,
 		height: 400,
@@ -261,7 +260,6 @@ export function EcologyScene(props: {
 			tabIndex={0}
 			role="group"
 			aria-label="Observed dependency graph"
-			aria-describedby={id}
 			data-unavailable={failed()}
 			data-cylinder={`${cylinder().diameter},${cylinder().height}`}
 		>
@@ -344,11 +342,12 @@ export function EcologyScene(props: {
 					/>
 				))}
 			</ecology-labels>
-			<p id={id}>
-				{failed()
-					? `3D view unavailable. Use the accessible node list below to inspect and search captured state.`
-					: `Drag to orbit · right-drag to pan · scroll to zoom · touch: one finger orbit, two fingers pan / pinch zoom`}
-			</p>
+			{failed() && (
+				<p role="status">
+					3D view unavailable. Use the accessible node list below to inspect and
+					search captured state.
+				</p>
+			)}
 		</ecology-scene>
 	)
 }

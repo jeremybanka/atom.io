@@ -46,7 +46,7 @@ async function setup() {
 	dispose = mountAtomIODevtools(host, { store: app.store }).dispose
 	await settle()
 	const input = () =>
-		host.querySelector<HTMLInputElement>(`[aria-label="Search ecology"]`)!
+		host.querySelector<HTMLInputElement>(`input[aria-label="Search ecology"]`)!
 	const button = (name: string) =>
 		[...host.querySelectorAll<HTMLButtonElement>(`button`)].find(
 			(node) =>
@@ -121,7 +121,7 @@ it(`switches compact graph, list and selection without replacing the live draft 
 	)
 	expect(editor.value).toBe(`2e`)
 	await f.key(document.activeElement!, `Escape`)
-	expect(document.activeElement).toBe(f.input())
+	expect(document.activeElement).toBe(f.button(`Search ecology (filter active)`))
 	expect(f.app.getState(f.countAtom)).toBe(2)
 	expect(graph.dataset[`snapshotMs`]).toBe(captured)
 	f.button(`Graph`).click()
@@ -152,10 +152,7 @@ it(`switches compact graph, list and selection without replacing the live draft 
 
 it(`navigates ranked matches inside collapsed families while preserving pan, expansion and same-node tracing`, async () => {
 	const f = await setup()
-	f.button(`Pan right`).click()
-	await settle()
-	f.button(`Zoom in`).click()
-	await settle()
+	await f.key(f.host.querySelector(`ecology-scene`)!, `+`)
 	const world = () =>
 		f.host.querySelector(`ecology-scene`)!.getAttribute(`data-camera`)
 	const before = world(),
@@ -566,4 +563,179 @@ it(`bounds retained cards when successive filters visit disjoint parts of a larg
 			)!
 			.getAttribute(`aria-pressed`),
 	).toBe(`true`)
+})
+
+it(`shares one search surface across panel sizes, retains applied filters and dismisses modals without changing selection`, async () => {
+	const observers = new Map<Element, ResizeObserverCallback>()
+	const disconnected = vi.fn()
+	vi.spyOn(window, `ResizeObserver`).mockImplementation(
+		class {
+			private callback: ResizeObserverCallback
+			public constructor(callback: ResizeObserverCallback) {
+				this.callback = callback
+			}
+			public observe(target: Element) {
+				observers.set(target, this.callback)
+			}
+			public unobserve() {}
+			public disconnect = disconnected
+		},
+	)
+	const f = await setup()
+	const panel = f.host.querySelector<HTMLElement>(`debugger-panel`)!
+	const width = vi.spyOn(panel, `clientWidth`, `get`).mockReturnValue(900)
+	const resized = () => {
+		observers.get(panel)!([], {} as ResizeObserver)
+	}
+	const search = f.host.querySelector<HTMLDialogElement>(`[data-search-modal]`)!
+	const guide = f.host.querySelector<HTMLDialogElement>(`[data-guide-modal]`)!
+	const trigger = f.host.querySelector<HTMLButtonElement>(
+		`[data-action="search"]`,
+	)!
+	const info = f.button(`Ecology guide`)
+	const input = f.input()
+	expect(search.open).toBe(true)
+	expect(f.host.querySelector(`ecology-search ecology-body`)).toBeNull()
+	expect(
+		f.host.querySelector(
+			`ecology-map > nav, ecology-scene > p, ecology-view p[data-counts]`,
+		),
+	).toBeNull()
+	await f.select(`state:count`)
+	await f.query(`count`)
+	expect(trigger.dataset[`filtered`]).toBe(`true`)
+	width.mockReturnValue(500)
+	resized()
+	await settle()
+	expect(search.open).toBe(false)
+	expect(document.activeElement).toBe(trigger)
+	trigger.click()
+	await settle()
+	expect(search.open).toBe(true)
+	expect(search.getAttribute(`aria-modal`)).toBe(`true`)
+	expect(document.activeElement).toBe(input)
+	trigger.click() // Reopening an active dialog is harmless.
+	await f.key(input, `Escape`)
+	expect(search.open).toBe(false)
+	expect(input.value).toBe(`count`)
+	expect(document.activeElement).toBe(trigger)
+	expect(f.host.querySelector(`ecology-body > aside h2`)!.textContent).toBe(
+		`count`,
+	)
+	trigger.focus()
+	trigger.click()
+	await settle()
+	await f.query(`x`.repeat(257))
+	expect(trigger.dataset[`filtered`]).toBe(`true`)
+	f.button(`Clear search`).click()
+	await settle()
+	expect(trigger.dataset[`filtered`]).toBe(`false`)
+	width.mockReturnValue(900)
+	resized()
+	await settle()
+	expect(search.open).toBe(true)
+	expect(search.hasAttribute(`aria-modal`)).toBe(false)
+	expect(f.input()).toBe(input)
+	expect(document.activeElement).toBe(input)
+	info.focus()
+	info.click()
+	await settle()
+	expect(guide.open).toBe(true)
+	expect(guide.textContent).toContain(`Capture details & legend`)
+	await f.key(f.button(`Close guide`), `/`)
+	expect(search.hasAttribute(`aria-modal`)).toBe(false)
+	f.button(`Close guide`).click()
+	await settle()
+	expect(guide.open).toBe(false)
+	expect(document.activeElement).toBe(info)
+	const temporaryInvoker = document.createElement(`button`)
+	f.host.append(temporaryInvoker)
+	temporaryInvoker.focus()
+	info.click()
+	await settle()
+	temporaryInvoker.remove()
+	const cancelEvent = new Event(`cancel`, { cancelable: true })
+	guide.dispatchEvent(cancelEvent)
+	await settle()
+	expect(cancelEvent.defaultPrevented).toBe(true)
+	expect(guide.open).toBe(false)
+	// A stale native cancel cannot close an unrelated dialog.
+	search.dispatchEvent(new Event(`cancel`, { cancelable: true }))
+	info.click()
+	await settle()
+	vi.spyOn(guide, `getBoundingClientRect`).mockReturnValue({
+		left: 10,
+		right: 200,
+		top: 10,
+		bottom: 200,
+	} as DOMRect)
+	guide.dispatchEvent(
+		new MouseEvent(`click`, { bubbles: true, clientX: 20, clientY: 20 }),
+	)
+	expect(guide.open).toBe(true)
+	guide.dispatchEvent(
+		new MouseEvent(`click`, { bubbles: true, clientX: 0, clientY: 0 }),
+	)
+	await settle()
+	expect(guide.open).toBe(false)
+	width.mockReturnValue(500)
+	resized()
+	expect(search.open).toBe(false)
+	// Resizing with the modal open must not close it.
+	trigger.focus()
+	trigger.click()
+	resized()
+	await settle()
+	expect(search.open).toBe(true)
+	f.button(`Ecology guide`).click()
+	await settle()
+	expect(search.open).toBe(false)
+	f.button(`Close guide`).click()
+	await settle()
+	await f.key(trigger, `f`, { ctrlKey: true, shiftKey: true })
+	expect(search.open).toBe(true)
+	await f.query(`green tea`)
+	f.host.querySelector<HTMLButtonElement>(`[data-results] button`)!.click()
+	await settle()
+	expect(search.open).toBe(false)
+	expect(document.activeElement).toBe(
+		f.host.querySelector(`ecology-body > aside h2`),
+	)
+	info.click()
+	await settle()
+	panel.hidden = true
+	await settle()
+	expect(guide.open).toBe(false)
+	panel.hidden = false
+	await settle()
+	// Non-modal search remains inline when switching from its active input to the guide.
+	width.mockReturnValue(900)
+	resized()
+	input.focus()
+	info.click()
+	await settle()
+	dispose()
+	expect(guide.open).toBe(false)
+	expect(disconnected).toHaveBeenCalled()
+})
+
+it(`returns from compact search to the same unfinished editor and caret`, async () => {
+	const f = await setup()
+	const panel = f.host.querySelector<HTMLElement>(`debugger-panel`)!
+	vi.spyOn(panel, `clientWidth`, `get`).mockReturnValue(500)
+	await f.select(`state:count`)
+	f.button(`Open live editor (may read/evaluate)`).click()
+	await settle()
+	const editor = f.host.querySelector<HTMLInputElement>(`ecology-live input`)!
+	editor.focus()
+	editor.value = `2e`
+	editor.dispatchEvent(new Event(`input`, { bubbles: true }))
+	editor.setSelectionRange(1, 2)
+	await f.key(editor, `f`, { ctrlKey: true, shiftKey: true })
+	await f.query(`items`)
+	await f.key(f.input(), `Escape`)
+	expect(document.activeElement).toBe(editor)
+	expect(editor.value).toBe(`2e`)
+	expect([editor.selectionStart, editor.selectionEnd]).toEqual([1, 2])
+	expect(f.app.getState(f.countAtom)).toBe(2)
 })

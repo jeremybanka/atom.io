@@ -6,10 +6,11 @@ import { deposit } from "atom.io/internal"
 import { createEcologyController } from "./ecology-controller.ts"
 import type { GraphContext, GraphModel } from "./ecology-graph.ts"
 import type { EcologyLine } from "./ecology-lines.ts"
+import { EcologyGuide } from "./EcologyGuide.tsx"
 import type { CameraCommand } from "./EcologyScene.tsx"
+import { EcologyToolbar } from "./EcologyToolbar.tsx"
 import css from "./EcologyView.module.css"
 import { EcologyViewport } from "./EcologyViewport.tsx"
-import { HighlightedText } from "./HighlightedText.tsx"
 import type { SearchHit } from "./search.ts"
 import { StateLeaf } from "./StateLeaf.tsx"
 import { type Tools, usePresentation, useSlotPages } from "./store.ts"
@@ -22,10 +23,11 @@ export interface EcologyPresentation {
 	edges: EcologyLine[]
 	selected?: GraphModel[`items`][number] | undefined
 	selectionOutside: boolean
-	counts: string
+	query: string
+	filtered: boolean
+	dialog: `search` | `guide` | null
 	notice: string
 	status: string
-	truncated: boolean
 	hits: SearchHit[]
 	busy: boolean
 	workspace: string
@@ -55,10 +57,11 @@ export function EcologyView(props: {
 		edges: [],
 		selected: undefined,
 		liveKey: undefined,
-		counts: ``,
+		query: props.context.query,
+		filtered: false,
+		dialog: null,
 		notice: ``,
 		status: ``,
-		truncated: false,
 		hits: [],
 		busy: false,
 		workspace: `graph`,
@@ -125,201 +128,115 @@ export function EcologyView(props: {
 			data-testid="ecology-view"
 			data-workspace={state().workspace}
 		>
-			<ecology-search>
-				<form>
-					<input
-						type="search"
-						aria-label="Search ecology"
-						placeholder="Search keys, families, types"
-					/>
-					<button type="button" data-action="clear-query">
-						Clear search
-					</button>
-					<button type="button" data-action="refresh">
-						Refresh
-					</button>
-					<button type="button" data-action="clear">
-						Clear selection
-					</button>
-					<button type="button" data-action="fit">
-						Fit
-					</button>
-					<button type="button" data-action="reset">
-						Reset view
-					</button>
-				</form>
-				<p data-counts role="status">
-					{state().counts}
-				</p>
-				<details data-capture>
-					<summary>
-						Capture details &amp; legend
-						{state().truncated ? ` · truncated capture` : ``}
-					</summary>
-					<p data-notice>{state().notice}</p>
-					<p data-legend>
-						Atom / selector cards · dashed group: family · arrows: dependency →
-						dependent · blue: selected upstream/downstream paths · faded:
-						unrelated
-					</p>
-				</details>
-				<p data-search-status role="status">
-					{state().status}
-				</p>
-				<ol
-					data-results
-					aria-label="ecology search results"
-					aria-busy={state().busy ? `true` : undefined}
-				>
-					{state().hits.map((hit) => (
-						<li key={hit.document.id}>
-							<button
-								type="button"
-								data-action="result"
-								data-result-id={hit.document.id}
-								aria-label={hit.document.key}
-							>
-								{
-									<HighlightedText
-										text={hit.document.label}
-										ranges={hit.ranges}
-									/>
-								}
-							</button>
-							<small>
-								{hit.document.detail}
-								{hit.approximate ? ` · approximate match` : ``}
-							</small>
-						</li>
-					))}
-				</ol>
-				<nav data-workspace aria-label="Ecology workspace">
-					{[`graph`, `list`, `selection`].map((view, index) => (
-						<button
-							key={view}
-							type="button"
-							data-action={`view-${view}`}
-							aria-pressed={state().workspace === view}
-							aria-controls={
-								view === `selection` ? `${marker}-selection` : `${marker}-map`
-							}
-						>
-							{[`Graph`, `Node list`, `Selection`][index]}
-						</button>
-					))}
-				</nav>
-				<ecology-body>
-					<ecology-map id={`${marker}-map`}>
-						<nav aria-label="Graph navigation">
-							{[
-								[`left`, `Pan left`, `←`],
-								[`right`, `Pan right`, `→`],
-								[`up`, `Pan up`, `↑`],
-								[`down`, `Pan down`, `↓`],
-								[`in`, `Zoom in`, `+`],
-								[`out`, `Zoom out`, `−`],
-							].map(([action, label, text]) => (
-								<button
-									key={action}
-									type="button"
-									data-action={action}
-									aria-label={label}
-								>
-									{text}
-								</button>
-							))}
-						</nav>
-						<p data-empty role="status" hidden={!state().empty}>
-							{state().emptyText}
-						</p>
-						<EcologyViewport
-							tools={props.tools}
-							context={props.context}
-							cylinderHeight={state().cylinderHeight}
-							slots={state().cardSlots}
-							generation={state().generation}
-							card={cards.value}
-							visible={cards.visible}
-							items={state().cards.slice(0, state().visibleCards)}
-							edges={state().edges}
-							selected={selected()?.id}
-							traced={state().traced}
-							focused={state().focused}
-							workspace={state().workspace}
-							command={state().cameraCommand}
-						/>
-						<details>
-							<summary>Accessible node list</summary>
-							<ul>
-								{Array.from({ length: state().cardSlots }, (_, index) => {
-									const item = () => cards.value(index)
-									return (
-										<li
-											key={`${state().generation}:${index}`}
-											hidden={!cards.visible(index)}
-										>
-											<button
-												type="button"
-												data-action="select"
-												data-graph-id={
-													cards.visible(index) ? item().id : undefined
-												}
-												aria-pressed={selected()?.id === item().id}
-											>{`${item().kind === `selector` ? `◇` : item().kind === `family` ? `▸` : `□`} ${item().label} · ${item().detail}`}</button>
-										</li>
-									)
-								})}
-							</ul>
-						</details>
-					</ecology-map>
-					<aside
-						id={`${marker}-selection`}
-						aria-label="Passive ecology inspector"
-						tabIndex={-1}
+			<EcologyToolbar marker={marker} state={state()} />
+			<nav data-workspace aria-label="Ecology workspace">
+				{[`graph`, `list`, `selection`].map((view, index) => (
+					<button
+						key={view}
+						type="button"
+						data-action={`view-${view}`}
+						aria-pressed={state().workspace === view}
+						aria-controls={
+							view === `selection` ? `${marker}-selection` : `${marker}-map`
+						}
 					>
-						{selected() ? (
-							<>
-								<h2 tabIndex={-1}>{selected()?.key}</h2>
-								<p>{selected()?.detail}</p>
-								{state().selectionOutside ? (
-									<p data-selection-context>
-										Retained selection · outside the current view.
-									</p>
-								) : null}
-								{family() ? (
-									<>
-										<p>{`${family()?.memberCount}${family()?.countComplete ? `` : `+`} instantiated members`}</p>
-										<button type="button" data-action="expand">
-											{state().expanded.has(selected()!.key)
-												? `Collapse family`
-												: `Expand family`}
-										</button>
-									</>
-								) : (
-									<>
-										<p>{`${node()?.type.startsWith(`readonly`) ? `Readonly` : `Writable`} ${node()?.kind}`}</p>
-										<p>{`Dependencies: ${node()?.dependencies}${node()?.dependenciesTruncated ? ` (truncated)` : ``}`}</p>
-										<button type="button" data-action="trace">
-											Trace observed roots
-										</button>
-										<button type="button" data-action="live">
-											Open live editor (may read/evaluate)
-										</button>
-									</>
-								)}
-								<p>{state().traceStatus}</p>
-								<p>{`Observed snapshot ${state().capturedAt}. Retained edges can be stale or partial; other dependencies may be unknown.`}</p>
-							</>
-						) : (
-							<p>
-								{props.context.selected
-									? `Selection outside this captured snapshot`
-									: `Select a node to inspect metadata without reading its value.`}
-							</p>
-						)}
-					</aside>
-				</ecology-body>
-			</ecology-search>
+						{[`Graph`, `Node list`, `Selection`][index]}
+					</button>
+				))}
+			</nav>
+			<ecology-body>
+				<ecology-map id={`${marker}-map`}>
+					<p data-empty role="status" hidden={!state().empty}>
+						{state().emptyText}
+					</p>
+					<EcologyViewport
+						tools={props.tools}
+						context={props.context}
+						cylinderHeight={state().cylinderHeight}
+						slots={state().cardSlots}
+						generation={state().generation}
+						card={cards.value}
+						visible={cards.visible}
+						items={state().cards.slice(0, state().visibleCards)}
+						edges={state().edges}
+						selected={selected()?.id}
+						traced={state().traced}
+						focused={state().focused}
+						workspace={state().workspace}
+						command={state().cameraCommand}
+					/>
+					<details>
+						<summary>Accessible node list</summary>
+						<ul>
+							{Array.from({ length: state().cardSlots }, (_, index) => {
+								const item = () => cards.value(index)
+								return (
+									<li
+										key={`${state().generation}:${index}`}
+										hidden={!cards.visible(index)}
+									>
+										<button
+											type="button"
+											data-action="select"
+											data-graph-id={
+												cards.visible(index) ? item().id : undefined
+											}
+											aria-pressed={selected()?.id === item().id}
+										>{`${item().kind === `selector` ? `◇` : item().kind === `family` ? `▸` : `□`} ${item().label} · ${item().detail}`}</button>
+									</li>
+								)
+							})}
+						</ul>
+					</details>
+				</ecology-map>
+				<aside
+					id={`${marker}-selection`}
+					aria-label="Passive ecology inspector"
+					tabIndex={-1}
+				>
+					{selected() ? (
+						<>
+							<h2 tabIndex={-1}>{selected()?.key}</h2>
+							<p>{selected()?.detail}</p>
+							{state().selectionOutside ? (
+								<p data-selection-context>
+									Retained selection · outside the current view.
+								</p>
+							) : null}
+							{family() ? (
+								<>
+									<p>{`${family()?.memberCount}${family()?.countComplete ? `` : `+`} instantiated members`}</p>
+									<button type="button" data-action="expand">
+										{state().expanded.has(selected()!.key)
+											? `Collapse family`
+											: `Expand family`}
+									</button>
+								</>
+							) : (
+								<>
+									<p>{`${node()?.type.startsWith(`readonly`) ? `Readonly` : `Writable`} ${node()?.kind}`}</p>
+									<p>{`Dependencies: ${node()?.dependencies}${node()?.dependenciesTruncated ? ` (truncated)` : ``}`}</p>
+									<button type="button" data-action="trace">
+										Trace observed roots
+									</button>
+									<button type="button" data-action="live">
+										Open live editor (may read/evaluate)
+									</button>
+								</>
+							)}
+							<p>{state().traceStatus}</p>
+							<p>{`Observed snapshot ${state().capturedAt}. Retained edges can be stale or partial; other dependencies may be unknown.`}</p>
+						</>
+					) : (
+						<p>
+							{props.context.selected
+								? `Selection outside this captured snapshot`
+								: `Select a node to inspect metadata without reading its value.`}
+						</p>
+					)}
+				</aside>
+			</ecology-body>
+			<EcologyGuide marker={marker} notice={state().notice} />
 			<ecology-live-panel
 				hidden={!state().liveKey}
 				data-draft-pinned={String(state().draftPinned)}

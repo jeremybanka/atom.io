@@ -66,7 +66,7 @@ function setup() {
 	}
 	const search = async (value: string) => {
 		const input = host.querySelector<HTMLInputElement>(
-			`[aria-label="Search ecology"]`,
+			`input[aria-label="Search ecology"]`,
 		)!
 		input.value = value
 		input.dispatchEvent(new Event(`input`, { bubbles: true }))
@@ -123,7 +123,7 @@ it(`opens/searches/selects/traces/expands passively and evaluates only the expli
 	await f.select(`family:items`)
 	await f.click(`Expand family`)
 	expect(
-		f.host.querySelector(`ecology-view [data-counts]`)!.textContent,
+		f.host.querySelector<HTMLElement>(`ecology-view`)!.dataset[`counts`],
 	).toContain(`3 families / 1 members`)
 	await f.click(`Collapse family`)
 	await f.select(`family:zero`, ` `)
@@ -157,13 +157,13 @@ it(`retains selection/pan/expansion across snapshots and navigation; geometry-on
 	f.mount()
 	await settle()
 	await f.select(`state:count`)
-	await f.click(`Pan right`)
-	await f.click(`Pan down`)
-	await f.click(`Zoom in`)
-	await f.click(`Zoom out`)
-	await f.click(`Pan left`)
-	await f.click(`Pan up`)
-	await f.click(`Pan right`)
+	const scene = f.host.querySelector(`ecology-scene`)!
+	for (const key of [`+`, `-`, `+`]) {
+		scene.dispatchEvent(
+			new KeyboardEvent(`keydown`, { key, bubbles: true, cancelable: true }),
+		)
+		await settle()
+	}
 	const transform = f.host
 		.querySelector(`ecology-scene`)!
 		.getAttribute(`data-camera`)
@@ -263,7 +263,7 @@ it(`automatically emphasizes selection paths, dims unrelated cards, and clears s
 	expect(card(`side`).dataset[`dimmed`]).toBe(`true`)
 	await f.search(`s`)
 	const input = f.host.querySelector<HTMLInputElement>(
-		`[aria-label="Search ecology"]`,
+		`input[aria-label="Search ecology"]`,
 	)!
 	input.dispatchEvent(
 		new KeyboardEvent(`keydown`, {
@@ -337,7 +337,7 @@ it(`cleans up hidden, minimized, superseded and disposed jobs and keeps empty fl
 	const f = setup()
 	f.mount()
 	const input = f.host.querySelector<HTMLInputElement>(
-		`[aria-label="Search ecology"]`,
+		`input[aria-label="Search ecology"]`,
 	)!
 	for (const value of [`stale`, `new`, ``]) {
 		input.value = value
@@ -354,7 +354,7 @@ it(`cleans up hidden, minimized, superseded and disposed jobs and keeps empty fl
 		form.dispatchEvent(new Event(`submit`, { bubbles: true, cancelable: true })),
 	).toBe(false)
 	f.host
-		.querySelector(`ecology-view [data-counts]`)!
+		.querySelector(`ecology-view`)!
 		.dispatchEvent(new MouseEvent(`click`, { bubbles: true }))
 	input.dispatchEvent(new KeyboardEvent(`keydown`, { key: `x`, bubbles: true }))
 	await f.click(`Minimize debugger`)
@@ -531,7 +531,7 @@ it(`clears family selection safely and ignores result navigation while matching`
 		`Select a node`,
 	)
 	const input = f.host.querySelector<HTMLInputElement>(
-		`[aria-label="Search ecology"]`,
+		`input[aria-label="Search ecology"]`,
 	)!
 	input.value = `family`
 	input.dispatchEvent(new Event(`input`, { bubbles: true }))

@@ -97,6 +97,30 @@ try {
 		await page.locator(`ecology-view nav[data-workspace]`).isVisible(),
 		false,
 	)
+	assert.equal(
+		await page
+			.locator(
+				`ecology-map > nav, ecology-view p[data-counts], ecology-scene > p`,
+			)
+			.count(),
+		0,
+	)
+	const guideButton = page.getByRole(`button`, {
+		name: `Ecology guide`,
+		exact: true,
+	})
+	const guideDialog = page.locator(`[data-guide-modal]`)
+	await guideButton.click()
+	assert.equal(
+		await guideDialog.evaluate((node) => node.matches(`:modal`)),
+		true,
+	)
+	assert.match(await guideDialog.innerText(), /Capture details & legend/)
+	await page.keyboard.press(`Escape`)
+	assert.equal(
+		await guideButton.evaluate((node) => node === document.activeElement),
+		true,
+	)
 	const scene = page.locator(`ecology-scene`)
 	const cylinderFits = async () => {
 		await page.waitForFunction(() => {
@@ -153,6 +177,11 @@ try {
 	const before = await page.evaluate(() => window.ecologyFixture.evidence())
 	await page.getByRole(`searchbox`, { name: `Search ecology` }).fill(`dormant`)
 	await ready()
+	assert.equal(
+		(await scene.boundingBox())!.height,
+		bounds.height,
+		`Desktop results must not resize the graph`,
+	)
 	await page.getByText(`Accessible node list`, { exact: true }).click()
 	await page.locator(`ecology-map ul button`).first().focus()
 	await page.keyboard.press(`Enter`)
@@ -176,7 +205,8 @@ try {
 	const captured = await page
 		.locator(`ecology-view`)
 		.getAttribute(`data-snapshot-ms`)
-	await page.getByRole(`button`, { name: `Pan right`, exact: true }).click()
+	await scene.focus()
+	await page.keyboard.press(`ArrowRight`)
 	const pan = await page.locator(`ecology-scene`).getAttribute(`data-camera`)
 	await rankedInput.fill(`ｄｏｒｍａｎｔ`)
 	await ready()
@@ -434,6 +464,77 @@ try {
 		true,
 	)
 	await page.screenshot({ path: resolvePath(artifacts, `narrow.png`) })
+	const searchTrigger = page.locator(`ecology-toolbar [data-action="search"]`)
+	const searchModal = page.locator(`[data-search-modal]`)
+	assert.equal(await rankedInput.isVisible(), false)
+	// Modal layout and focus must be ready synchronously, before SPA publishes
+	// aria-expanded: Storybook's keyboard interactions can begin in this turn.
+	assert.equal(
+		await page.evaluate(() => {
+			const trigger = document.querySelector<HTMLButtonElement>(
+				`ecology-toolbar [data-action="search"]`,
+			)!
+			trigger.focus()
+			trigger.click()
+			const searchInput =
+				document.querySelector<HTMLInputElement>(`ecology-search input`)!
+			return (
+				document.activeElement === searchInput && searchInput.checkVisibility()
+			)
+		}),
+		true,
+	)
+	assert.equal(
+		await searchModal.evaluate((node) => node.matches(`:modal`)),
+		true,
+	)
+	await rankedInput.fill(`price`)
+	await ready()
+	for (let tab = 0; tab < 8; tab++) {
+		await page.keyboard.press(`Tab`)
+		assert.equal(
+			await searchModal.evaluate(
+				(node) =>
+					// Native modal Tab navigation may visit browser chrome, leaving body active.
+					document.activeElement === document.body ||
+					node.contains(document.activeElement),
+			),
+			true,
+		)
+	}
+	await scene.focus()
+	assert.equal(
+		await scene.evaluate((node) => node === document.activeElement),
+		false,
+		`The modal makes background controls inert`,
+	)
+	await rankedInput.focus()
+	await page.screenshot({ path: resolvePath(artifacts, `narrow-search.png`) })
+	await page.keyboard.press(`Escape`)
+	assert.equal(await searchTrigger.getAttribute(`data-filtered`), `true`)
+	assert.equal(
+		await searchTrigger.evaluate((node) => node === document.activeElement),
+		true,
+	)
+	await searchTrigger.click()
+	await page.getByRole(`button`, { name: `Clear search`, exact: true }).click()
+	await ready()
+	await page.getByRole(`button`, { name: `Close search`, exact: true }).click()
+	assert.equal(await searchTrigger.getAttribute(`data-filtered`), `false`)
+	await guideButton.click()
+	const guideArticle = guideDialog.getByRole(`article`, {
+		name: `Ecology user guide`,
+	})
+	assert.equal(
+		await guideArticle.evaluate((node) => node.scrollHeight > node.clientHeight),
+		true,
+	)
+	await guideArticle.evaluate((node) => {
+		node.scrollTop = node.scrollHeight
+	})
+	await page.screenshot({ path: resolvePath(artifacts, `narrow-guide.png`) })
+	await page.getByRole(`button`, { name: `Close guide`, exact: true }).click()
+
 	await page.getByRole(`button`, { name: `Graph`, exact: true }).click()
 	const touch = await context.newCDPSession(page)
 	// Start gestures on actual background, since cards move with layout and camera changes.
@@ -443,11 +544,27 @@ try {
 				points: { x: number; y: number }[] = []
 			for (let y = hitBounds.y + 24; y < hitBounds.bottom - 60; y += 24)
 				for (let x = hitBounds.x + 24; x < hitBounds.right - 60; x += 24)
-					if (document.elementFromPoint(x, y) === node) points.push({ x, y })
+					// Chromium adjusts touches near interactive cards to their buttons.
+					// Choose clear background with room for the touch contact area.
+					if (
+						[-24, 0, 24].every((dx) =>
+							[-24, 0, 24].every(
+								(dy) => document.elementFromPoint(x + dx, y + dy) === node,
+							),
+						)
+					)
+						points.push({ x, y })
 			return points
 		})
 	await cylinderFits()
-	await page.evaluate(() => new Promise(requestAnimationFrame))
+	// ResizeObserver publishes canvas size before the next CSS2D render. Wait for
+	// that render before choosing a background point for a real touch gesture.
+	await page.evaluate(
+		() =>
+			new Promise((resolve) =>
+				requestAnimationFrame(() => requestAnimationFrame(resolve)),
+			),
+	)
 	const [orbitStart] = await background()
 	assert.ok(orbitStart, `Graph must expose background for orbit controls`)
 	const touchPose = await camera()
@@ -498,7 +615,7 @@ try {
 	await ready()
 	await page.screenshot({ path: resolvePath(artifacts, `empty.png`) })
 	assert.match(
-		await page.locator(`ecology-view [data-counts]`).innerText(),
+		(await page.locator(`ecology-view`).getAttribute(`data-counts`))!,
 		/0 atoms · 0 selectors/,
 	)
 	// Preserve DOM snapshots for the functional flows without walking the large
@@ -543,8 +660,8 @@ try {
 			document.querySelector<HTMLElement>(`ecology-view`)!.dataset[
 				`maxMatchChunkMs`
 			],
-		counts: document.querySelector<HTMLElement>(`ecology-view [data-counts]`)!
-			.textContent,
+		counts:
+			document.querySelector<HTMLElement>(`ecology-view`)!.dataset[`counts`],
 		notice: document.querySelector<HTMLElement>(`ecology-view [data-notice]`)!
 			.textContent,
 	}))
@@ -576,7 +693,7 @@ try {
 		const sample = await page.evaluate(
 			async (key) => {
 				const input = document.querySelector<HTMLInputElement>(
-					`[aria-label="Search ecology"]`,
+					`input[aria-label="Search ecology"]`,
 				)!
 				const start = performance.now()
 				input.value = key

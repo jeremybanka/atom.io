@@ -113,6 +113,11 @@ try {
 		const assetFailures: { url: string; status: number }[] = []
 		activePage = page
 		page.on(`pageerror`, (error) => errors.push(error.message))
+		// Storybook reports play failures through console errors even when its render
+		// lifecycle reaches "finished". Do not silently accept those transitions.
+		page.on(`console`, (message) => {
+			if (message.type() === `error`) errors.push(message.text())
+		})
 		page.on(`response`, (response) => {
 			if (
 				response.status() >= 400 &&
@@ -238,6 +243,11 @@ try {
 		await ecology.getByRole(`button`, { name: `Node list`, exact: true }).click()
 		assert.equal(await ecology.locator(`ecology-scene`).isVisible(), false)
 		const input = ecology.getByRole(`searchbox`, { name: `Search ecology` })
+		const openSearch = async () => {
+			if (!(await input.isVisible()))
+				await ecology.locator(`[data-action="search"]`).click()
+		}
+		await openSearch()
 		await input.fill(`cartQuantityBySku("tea-green")`)
 		await ready()
 		await ecology
@@ -260,14 +270,20 @@ try {
 			await ecology.getByRole(`button`, { name, exact: true }).click()
 			assert.equal(await editor.inputValue(), `2e`)
 		}
+		await openSearch()
 		await input.fill(`availability`)
 		await ready()
 		assert.equal(await page.getByTestId(`order-summary`).textContent(), summary)
+		const modalSearch = await input.evaluate((node) =>
+			node.closest(`dialog`)!.matches(`:modal`),
+		)
 		await input.press(`Escape`)
-		await ready()
-		await input.press(`Escape`)
-		await ready()
-		await input.press(`Escape`)
+		if (!modalSearch) {
+			await ready()
+			await input.press(`Escape`)
+			await ready()
+			await input.press(`Escape`)
+		}
 		assert.equal(
 			await editor.evaluate((node) => node === document.activeElement),
 			true,
@@ -278,10 +294,14 @@ try {
 		await ecology
 			.getByRole(`button`, { name: `Back to passive inspector`, exact: true })
 			.click()
+		const returnTarget = modalSearch
+			? ecology.getByRole(`button`, {
+					name: `Open live editor (may read/evaluate)`,
+					exact: true,
+				})
+			: ecology.locator(`ecology-body > aside`)
 		assert.equal(
-			await ecology
-				.locator(`ecology-body > aside`)
-				.evaluate((node) => node === document.activeElement),
+			await returnTarget.evaluate((node) => node === document.activeElement),
 			true,
 		)
 		for (const colorScheme of [`light`, `dark`] as const) {
@@ -371,9 +391,10 @@ try {
 		assert.ok(preview)
 		const frame = await preview.contentFrame()
 		assert.ok(frame)
+		await preview.focus()
 		await finished(frame, `atomiodevtools--primary`)
 		assert.match(
-			await frame.locator(`ecology-view [data-counts]`).innerText(),
+			(await frame.locator(`ecology-view`).getAttribute(`data-counts`))!,
 			/^11 atoms · 2 selectors/,
 		)
 		await frame.evaluate(() => {
@@ -383,15 +404,21 @@ try {
 			name: `Open navigation menu`,
 			exact: true,
 		})
-		if (await navigation.isVisible()) await navigation.click()
+		const mobileNavigation = await navigation.isVisible()
+		if (mobileNavigation) await navigation.click()
 		await page.locator(`a[href*="/story/${orderId}"]`).first().click()
+		if (mobileNavigation)
+			await page.getByRole(`button`, { name: /navigation menu/ }).press(`Escape`)
+		// Native iframe focus is distinct from the play function's simulated input.
+		// The mobile navigation menu returns focus to the manager when it closes.
+		await preview.focus()
 		await finished(frame, orderId)
 		assert.equal(await frame.evaluate(() => window.__orderStoryDocument), true)
 		const transitionCounts = await frame
-			.locator(`ecology-view [data-counts]`)
-			.innerText()
-		assert.match(transitionCounts, /^95 atoms · 18 selectors/)
-		assert.match(transitionCounts, /51 captured edges/)
+			.locator(`ecology-view`)
+			.getAttribute(`data-counts`)
+		assert.match(transitionCounts!, /^95 atoms · 18 selectors/)
+		assert.match(transitionCounts!, /51 captured edges/)
 		// One reset is enough here to establish rebinding in the built manager.
 		// Repeated reset behavior and root assertions belong to the play tests.
 		for (const dismiss of await page
@@ -422,7 +449,7 @@ try {
 		)
 		assert.equal(await frame.getByTestId(`atom-io-devtools`).count(), 1)
 		assert.match(
-			await frame.locator(`ecology-view [data-counts]`).innerText(),
+			(await frame.locator(`ecology-view`).getAttribute(`data-counts`))!,
 			/^95 atoms · 18 selectors/,
 		)
 		await page.screenshot({

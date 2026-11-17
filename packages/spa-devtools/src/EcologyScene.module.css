@@ -25,20 +25,14 @@ ecology-scene.class {
 	> p {
 		position: absolute;
 		z-index: 1001;
-		bottom: 0;
+		top: 0;
 		left: 0;
 		right: 0;
-		padding: 4px 6px;
+		padding: 12px;
 		background: var(--surface-content);
 		color: var(--ink-muted);
-		font-size: 10px;
-		line-height: 14px;
-		pointer-events: none;
-	}
-	&[data-unavailable="true"] > p {
-		top: 0;
-		bottom: auto;
 		font-size: 12px;
-		padding: 12px;
+		line-height: 1.6;
+		pointer-events: none;
 	}
 }

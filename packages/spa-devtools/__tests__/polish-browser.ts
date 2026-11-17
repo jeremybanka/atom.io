@@ -686,23 +686,47 @@ try {
 						`ready`
 					] === `true`,
 			)
-			const capture = page.locator(`ecology-view details[data-capture]`)
-			const disclosure = capture.locator(`summary`)
-			await disclosure.focus()
-			await disclosure.press(`Enter`)
-			assert.equal(
-				await capture.evaluate((node: HTMLDetailsElement) => node.open),
-				true,
-			)
-			assert.equal(
-				await page.locator(`ecology-view [data-legend]`).isVisible(),
-				true,
-			)
-			await disclosure.press(`Enter`)
-			assert.equal(
-				await capture.evaluate((node: HTMLDetailsElement) => node.open),
-				false,
-			)
+			if (baseline) {
+				const capture = page.locator(`ecology-view details[data-capture]`)
+				const disclosure = capture.locator(`summary`)
+				await disclosure.focus()
+				await disclosure.press(`Enter`)
+				assert.equal(
+					await capture.evaluate((node: HTMLDetailsElement) => node.open),
+					true,
+				)
+				assert.equal(
+					await page.locator(`ecology-view [data-legend]`).isVisible(),
+					true,
+				)
+				await disclosure.press(`Enter`)
+				assert.equal(
+					await capture.evaluate((node: HTMLDetailsElement) => node.open),
+					false,
+				)
+			} else {
+				const guideTrigger = page.getByRole(`button`, {
+					name: `Ecology guide`,
+					exact: true,
+				})
+				await guideTrigger.focus()
+				await guideTrigger.press(`Enter`)
+				const guide = page.locator(`[data-guide-modal]`)
+				assert.equal(
+					await guide.evaluate((node) => node.matches(`:modal`)),
+					true,
+				)
+				assert.match(await guide.innerText(), /Capture details & legend/)
+				await page.screenshot({
+					path: resolve(artifacts, `${theme}-${name}-guide.png`),
+				})
+				await page.keyboard.press(`Escape`)
+				assert.equal(await guide.isVisible(), false)
+				assert.equal(
+					await guideTrigger.evaluate((node) => node === document.activeElement),
+					true,
+				)
+			}
 			if (!baseline) {
 				await page.waitForFunction(
 					() =>
@@ -952,13 +976,24 @@ try {
 					] === `true`,
 			)
 			const before = await page.evaluate(() => window.polish.evidence())
-			await page.getByRole(`searchbox`, { name: `Search ecology` }).fill(`left`)
+			const ecologySearch = page.getByRole(`searchbox`, {
+				name: `Search ecology`,
+			})
+			if (!(await ecologySearch.isVisible()))
+				await page.locator(`ecology-toolbar [data-action="search"]`).click()
+			await ecologySearch.fill(`left`)
 			await page.waitForFunction(
 				() =>
 					document.querySelector<HTMLElement>(`ecology-view`)?.dataset[
 						`ready`
 					] === `true`,
 			)
+			if (
+				await ecologySearch.evaluate((node) =>
+					node.closest(`dialog`)!.matches(`:modal`),
+				)
+			)
+				await ecologySearch.press(`Escape`)
 			const listView = page.getByRole(`button`, {
 				name: `Node list`,
 				exact: true,

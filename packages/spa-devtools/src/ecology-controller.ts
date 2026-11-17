@@ -9,7 +9,7 @@ import { matchStateSearch, type SearchIndex } from "./search.ts"
 import { isSearchShortcut, moveSearchFocus } from "./search-keys.ts"
 import { createSearchSession, editorIsCurrent } from "./search-session.ts"
 
-/** Own one graph view. No application subscriptions, state getters or geometry observers. */
+/** Own passive graph work, responsive search and native modal/focus lifecycles. */
 export function createEcologyController(
 	host: HTMLElement,
 	store: RootStore,
@@ -20,7 +20,13 @@ export function createEcologyController(
 	const document = host.ownerDocument
 	const input = host.querySelector(`input`)!
 	const panel = host.closest<HTMLElement>(`debugger-panel, main`)!
-	const searchScope = host.querySelector<HTMLElement>(`ecology-search`)!
+	const searchDialog =
+		host.querySelector<HTMLDialogElement>(`[data-search-modal]`)!
+	const guideDialog =
+		host.querySelector<HTMLDialogElement>(`[data-guide-modal]`)!
+	const searchButton = host.querySelector<HTMLButtonElement>(
+		`[data-action="search"]`,
+	)!
 	const results = host.querySelector<HTMLOListElement>(
 		`ecology-view [data-results]`,
 	)!
@@ -80,12 +86,66 @@ export function createEcologyController(
 	}
 	const session = createSearchSession(
 		panel,
-		searchScope,
+		(target) => host.contains(target) && !livePanel.contains(target),
 		() => {
 			update({ draftPinned: Boolean(session.pinned()) })
 		},
 		(editor) => editorIsCurrent(store, editor),
 	)
+	let modal: HTMLDialogElement | undefined,
+		dialogOrigin: HTMLElement | null = null
+	const closeDialog = (restore = true) => {
+		if (!modal) return
+		const closed = modal,
+			target = dialogOrigin
+		modal = undefined
+		dialogOrigin = null
+		closed.close()
+		if (!disposed) update({ dialog: null })
+		if (closed === searchDialog && !compact()) searchDialog.open = true
+		if (restore) {
+			if (closed === searchDialog && session.pinned()) session.returnFocus()
+			else if (target?.isConnected) target.focus()
+		}
+	}
+	const openDialog = (dialog: HTMLDialogElement) => {
+		if (modal === dialog) return
+		closeDialog(false)
+		const active = document.activeElement as HTMLElement
+		dialogOrigin = searchDialog.contains(active)
+			? compact()
+				? searchButton
+				: input
+			: active
+		if (dialog.open) dialog.close()
+		modal = dialog
+		update({ dialog: dialog === searchDialog ? `search` : `guide` })
+		dialog.showModal()
+		if (dialog === searchDialog) input.focus()
+	}
+	const focusSearch = () => {
+		if (compact()) openDialog(searchDialog)
+		else searchDialog.open = true
+		input.focus()
+	}
+	const returnToSearch = () => {
+		;(compact() ? searchButton : input).focus()
+	}
+	const syncSearchMode = () => {
+		if (!compact()) {
+			const wasModal = modal === searchDialog
+			if (wasModal) closeDialog(false)
+			searchDialog.open = true
+			if (wasModal) input.focus()
+		} else if (modal !== searchDialog) {
+			const focused = searchDialog.contains(document.activeElement)
+			searchDialog.close()
+			if (focused && visible()) searchButton.focus()
+		}
+	}
+	const resize = new document.defaultView!.ResizeObserver(syncSearchMode)
+	resize.observe(panel)
+	syncSearchMode()
 	const closeLive = () => {
 		session.finish(null)
 
@@ -106,6 +166,7 @@ export function createEcologyController(
 		})
 	}
 	const select = (id: string, navigate = false) => {
+		if (modal === searchDialog) closeDialog(false)
 		if (context.selected !== id) {
 			context.trace = new Set()
 			context.traceStatus = `Not traced`
@@ -142,11 +203,12 @@ export function createEcologyController(
 		host.dataset[`maxChunkMs`] = String(Math.max(...chunks))
 		const snapshot = context.snapshot!
 		const countsText = `${value.atoms} atoms · ${value.selectors} selectors · ${snapshot.families.length} families / ${value.members} members · showing ${value.items.length} of ${value.matching}${approximationLimited ? `+` : ``} matching groups/instances · ${value.edges.length} of ${snapshot.edges.length} captured edges`
+		host.dataset[`counts`] = countsText
 		const noticeText =
 			snapshot.truncated.nodes ||
 			snapshot.truncated.families ||
 			snapshot.truncated.relations
-				? `Capture truncated: full store totals unknown. Search covers captured metadata only. Captured counts above are exact.`
+				? `Capture truncated: full store totals unknown. Search covers captured metadata only. Captured metadata is a bounded prefix.`
 				: `Observed snapshot ${context.capturedAt}. Paint cap: 500 nodes / 1,000 edges. Search to narrow; expand families for members.`
 		// Retain bounded slots within this capture; SPA owns their nodes and hidden state.
 		cards = value.items.concat(cards.slice(value.items.length))
@@ -165,12 +227,8 @@ export function createEcologyController(
 			cards,
 			edges,
 			generation,
-			counts: countsText,
+			filtered: matchedIds !== undefined,
 			notice: noticeText,
-			truncated:
-				snapshot.truncated.nodes ||
-				snapshot.truncated.families ||
-				snapshot.truncated.relations,
 			empty: !value.items.length,
 			emptyText: context.query.trim()
 				? `No nodes match this search. Clear search to see the captured graph, or Refresh to recapture.`
@@ -210,10 +268,11 @@ export function createEcologyController(
 							? candidate.dataset[`graphId`] === focusId
 							: candidate.dataset[`action`] === focusAction),
 				)
-				;(target ?? input).focus()
+				if (target) target.focus()
+				else returnToSearch()
 			}
 			if (hadFocus && !focused.isConnected && !focusId && !focusAction)
-				input.focus()
+				returnToSearch()
 			host.dataset[`commitMs`] = String(performance.now() - start)
 			busy = false
 			update({ busy: false })
@@ -242,7 +301,7 @@ export function createEcologyController(
 		if (preparing || !searchIndex || !visible()) return
 		busy = true
 		host.dataset[`ready`] = `false`
-		update({ busy: true })
+		update({ busy: true, query: context.query })
 		const ids = new Set<string>(),
 			started = performance.now()
 		cancelMatch = scheduleGraph(
@@ -320,6 +379,18 @@ export function createEcologyController(
 		const selected = context.selected
 			? model?.all.get(context.selected)
 			: undefined
+		if (name === `search`) {
+			focusSearch()
+			return
+		}
+		if (name === `guide`) {
+			openDialog(guideDialog)
+			return
+		}
+		if (name === `close-dialog`) {
+			closeDialog()
+			return
+		}
 		if (name === `refresh`) {
 			refresh()
 			return
@@ -380,6 +451,18 @@ export function createEcologyController(
 		camera(name)
 	}
 	const click = (event: Event) => {
+		if (modal && event.target === modal) {
+			const pointer = event as MouseEvent,
+				bounds = modal.getBoundingClientRect()
+			if (
+				pointer.clientX < bounds.left ||
+				pointer.clientX > bounds.right ||
+				pointer.clientY < bounds.top ||
+				pointer.clientY > bounds.bottom
+			)
+				closeDialog()
+			return
+		}
 		const target = (event.target as Element).closest<HTMLElement>(
 			`[data-graph-id], [data-action]`,
 		)
@@ -392,31 +475,37 @@ export function createEcologyController(
 	const key = (event: KeyboardEvent) => {
 		if (!visible() || event.defaultPrevented || event.isComposing) return
 		const target = event.target as HTMLElement
-		if (isSearchShortcut(event)) {
-			event.preventDefault()
-			origin = target
-			input.focus()
-			input.select()
-			return
-		}
-		if (target.closest(`ecology-live`)) return
-		if (
+		const escape =
 			event.key === `Escape` &&
 			!event.ctrlKey &&
 			!event.metaKey &&
 			!event.altKey &&
 			!event.shiftKey
-		) {
-			if (document.querySelector(`[data-window-interaction="true"]`)) {
-				event.preventDefault()
-				return
-			}
+		if (escape && document.querySelector(`[data-window-interaction="true"]`)) {
+			event.preventDefault()
+			return
+		}
+		if (modal && escape) {
+			event.preventDefault()
+			closeDialog()
+			return
+		}
+		if (modal === guideDialog) return
+		if (isSearchShortcut(event)) {
+			event.preventDefault()
+			origin = target
+			focusSearch()
+			input.select()
+			return
+		}
+		if (target.closest(`ecology-live`)) return
+		if (escape) {
 			event.preventDefault()
 			const heading = target === inspector.querySelector(`h2`)
 			if (context.selected) {
 				action(`clear`)
 				if (results.contains(target) || list.contains(target) || heading)
-					input.focus()
+					returnToSearch()
 			} else if (target === input) {
 				if (input.value) {
 					input.value = ``
@@ -426,11 +515,22 @@ export function createEcologyController(
 					if (document.activeElement === input) origin?.focus()
 				}
 			} else if (results.contains(target) || list.contains(target) || heading)
-				input.focus()
+				returnToSearch()
 			return
 		}
 		if (target === input || results.contains(target)) {
 			if (!busy) moveSearchFocus(event, results)
+			return
+		}
+		if (
+			target.matches(`ecology-scene`) &&
+			!event.ctrlKey &&
+			!event.metaKey &&
+			!event.altKey &&
+			(event.key === `+` || event.key === `-`)
+		) {
+			event.preventDefault()
+			camera(event.key === `+` ? `in` : `out`)
 			return
 		}
 		const id = target.closest<HTMLElement>(`[data-graph-id]`)?.dataset[`graphId`]
@@ -464,8 +564,14 @@ export function createEcologyController(
 	const submit = (event: Event) => {
 		event.preventDefault()
 	}
+	const cancelDialog = (event: Event) => {
+		event.preventDefault()
+		if (event.currentTarget === modal) closeDialog()
+	}
 	host.addEventListener(`click`, click)
 	panel.addEventListener(`keydown`, key)
+	searchDialog.addEventListener(`cancel`, cancelDialog)
+	guideDialog.addEventListener(`cancel`, cancelDialog)
 	input.addEventListener(`input`, inputChange)
 	input.addEventListener(`compositionend`, search)
 	host.querySelector(`form`)!.addEventListener(`submit`, submit)
@@ -476,9 +582,10 @@ export function createEcologyController(
 		wait()
 		wait = () => {}
 		if (visible()) {
+			syncSearchMode()
 			if (preparing || !searchIndex) refresh()
 			else search()
-		}
+		} else closeDialog(false)
 	})
 	visibility.observe(panel, {
 		attributes: true,
@@ -517,9 +624,13 @@ export function createEcologyController(
 			cards = []
 			visibility.disconnect()
 			session.dispose()
+			resize.disconnect()
+			closeDialog(false)
 			cancel()
 			host.removeEventListener(`click`, click)
 			panel.removeEventListener(`keydown`, key)
+			searchDialog.removeEventListener(`cancel`, cancelDialog)
+			guideDialog.removeEventListener(`cancel`, cancelDialog)
 			input.removeEventListener(`input`, inputChange)
 			input.removeEventListener(`compositionend`, search)
 			host.querySelector(`form`)!.removeEventListener(`submit`, submit)

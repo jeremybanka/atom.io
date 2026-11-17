@@ -3,7 +3,7 @@ import type { RootStore } from "atom.io/internal"
 /** Defer the existing editor blur only while focus visits this panel's passive search UI. */
 export function createSearchSession(
 	panel: HTMLElement,
-	search: HTMLElement,
+	search: HTMLElement | ((target: Element) => boolean),
 	changed: () => void,
 	current: (input: HTMLInputElement) => () => boolean,
 ): {
@@ -24,7 +24,8 @@ export function createSearchSession(
 	}
 	let selection: [number | null, number | null] = [null, null]
 	const passive = (target: EventTarget | null): boolean =>
-		target instanceof doc.defaultView!.Element && search.contains(target)
+		target instanceof doc.defaultView!.Element &&
+		(typeof search === `function` ? search(target) : search.contains(target))
 	const finish = (target: EventTarget | null) => {
 		fresh()
 		const input = origin

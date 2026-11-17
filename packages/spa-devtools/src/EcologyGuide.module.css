@@ -1,0 +1,70 @@
+ecology-guide.class {
+	& {
+		display: contents;
+	}
+	> dialog {
+		position: fixed;
+		inset: 0;
+		width: min(600px, calc(100vw - 24px));
+		max-height: calc(85dvh - 24px);
+		margin: auto;
+		padding: 0;
+		border: 1px solid var(--ink-muted);
+		background: var(--surface-content);
+		color: var(--ink);
+		box-shadow: 0 8px 36px #0006;
+	}
+	> dialog:not([open]) {
+		display: none;
+	}
+	> dialog[open] {
+		display: flex;
+		flex-direction: column;
+	}
+	> dialog::backdrop {
+		background: #0008;
+	}
+	> dialog > guide-heading {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+		padding: 8px 12px;
+		border-bottom: 1px solid var(--line);
+	}
+	> dialog > guide-heading > h2 {
+		font-size: 14px;
+		font-weight: 500;
+	}
+	> dialog > guide-heading > button {
+		flex: 0 0 auto;
+		width: 36px;
+		height: 36px;
+		padding: 0;
+		font-size: 20px;
+		border: 1px solid var(--line);
+	}
+	> dialog > article {
+		min-height: 0;
+		overflow: auto;
+		overscroll-behavior: contain;
+		padding: 12px;
+		font-size: 12px;
+		line-height: 1.6;
+	}
+	> dialog > article > h3 {
+		margin: 16px 0 6px;
+		font-size: 13px;
+		font-weight: 500;
+	}
+	> dialog > article > h3:first-child {
+		margin-top: 0;
+	}
+	> dialog > article > p {
+		margin-bottom: 10px;
+		overflow-wrap: anywhere;
+	}
+	> dialog > article > p[data-notice] {
+		color: var(--ink-muted);
+	}
+}

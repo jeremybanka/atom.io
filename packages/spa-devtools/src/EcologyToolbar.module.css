@@ -1,0 +1,48 @@
+ecology-toolbar.class {
+	& {
+		display: flex;
+		align-items: flex-start;
+		gap: 4px;
+		padding: 4px;
+		background: var(--surface-search);
+		border-bottom: 1px solid var(--line);
+	}
+	> ecology-actions {
+		display: flex;
+		gap: 3px;
+		margin-left: auto;
+	}
+	> button, > ecology-actions > button {
+		display: grid;
+		place-items: center;
+		flex: 0 0 auto;
+		width: 32px;
+		height: 32px;
+		padding: 0;
+		border: 1px solid var(--line);
+	}
+	> button[data-action="search"] {
+		display: none;
+		position: relative;
+	}
+	> button[data-filtered="true"]::after {
+		content: "";
+		position: absolute;
+		top: 3px;
+		right: 3px;
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: var(--accent);
+		box-shadow: 0 0 0 1px var(--surface-search);
+	}
+	@container atom-io-devtools (max-width: 650px) {
+		> button[data-action="search"] {
+			display: grid;
+		}
+		> button, > ecology-actions > button {
+			width: 36px;
+			height: 36px;
+		}
+	}
+}

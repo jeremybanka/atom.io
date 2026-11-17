@@ -251,3 +251,47 @@ export const playOrderEditingAndReset: Play = async (context) => {
 		},
 	)
 }
+
+export const playOrderHistorySearch: Play = async (context) => {
+	const { canvas, canvasElement, userEvent, step } = context
+	const tools = orderTools(context)
+	await step(
+		`Record a real cart transaction and navigate its captured update`,
+		async () => {
+			await tools.controls(false)
+			await userEvent.click(canvas.getByRole(`tab`, { name: `transactions` }))
+			await tools.action(`Two green teas`)
+			await tools.controls(false)
+			await userEvent.click(canvas.getByRole(`button`, { name: `Refresh` }))
+		},
+	)
+	for (const view of [`transactions`, `timelines`]) {
+		await step(
+			`Search ${view} without changing the cart or undo/redo cursor`,
+			async () => {
+				if (view === `timelines`)
+					await userEvent.click(canvas.getByRole(`tab`, { name: view }))
+				const input = canvas.getByRole(`searchbox`, { name: `Search ${view}` })
+				await userEvent.type(input, `cartQuantityBySku`)
+				await waitFor(() =>
+					expect(
+						canvasElement.querySelectorAll(`.search-results button`).length,
+					).toBeGreaterThan(0),
+				)
+				const before = tools.summary().textContent
+				await userEvent.keyboard(`{ArrowDown}{Enter}`)
+				await waitFor(() =>
+					expect(
+						canvasElement.querySelector(`[data-search-selected="true"]`),
+					).not.toBeNull(),
+				)
+				await expect(tools.summary().textContent).toBe(before)
+				await expect(
+					canvasElement.querySelector(`.search-details`),
+				).toHaveTextContent(`no history cursor changed`)
+				await userEvent.keyboard(`{Escape}`)
+				await expect(input).toHaveFocus()
+			},
+		)
+	}
+}

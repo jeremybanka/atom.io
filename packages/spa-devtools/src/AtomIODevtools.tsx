@@ -80,6 +80,8 @@ function Panel(props: { store: RootStore; hideByDefault: boolean }): SpaElement 
 	const searchContexts = {
 		atoms: createSearchContext(),
 		selectors: createSearchContext(),
+		transactions: createSearchContext(),
+		timelines: createSearchContext(),
 	}
 	const [getHidden, setHidden] = useSaved(
 		props.store,
@@ -213,9 +215,12 @@ function Panel(props: { store: RootStore; hideByDefault: boolean }): SpaElement 
 							type={view() as `atoms` | `selectors`}
 						/>
 					) : view() === `transactions` ? (
-						<TransactionIndex tools={tools} />
+						<TransactionIndex
+							tools={tools}
+							context={searchContexts.transactions}
+						/>
 					) : (
-						<TimelineIndex tools={tools} />
+						<TimelineIndex tools={tools} context={searchContexts.timelines} />
 					)}
 				</section>
 			) : null}

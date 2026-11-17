@@ -777,3 +777,8 @@ main[data-css="spa-devtools"] {
 		background: var(--fg-max);
 	}
 }
+
+main[data-css="spa-devtools"] [data-search-selected="true"] > header {
+	outline: 2px solid var(--fg-max);
+	outline-offset: -2px;
+}

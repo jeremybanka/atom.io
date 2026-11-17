@@ -1,6 +1,7 @@
 import type { RootStore } from "atom.io/internal"
 
 import { scheduleGraph } from "./ecology-graph.ts"
+import { captureHistorySearch, historyTargetExists } from "./history-search.ts"
 import type {
 	SearchHit,
 	SearchIndex,
@@ -26,8 +27,10 @@ export function createStateSearch(
 	store: RootStore,
 	view: SearchView,
 	context: SearchContext,
-	openEditor: (key: string, host: HTMLElement) => () => void,
+	openEditor?: (key: string, host: HTMLElement) => () => void,
 ): () => void {
+	const history =
+		view === `transactions` || view === `timelines` ? view : undefined
 	const doc = host.ownerDocument,
 		win = doc.defaultView!
 	const panel = host.closest<HTMLElement>(`main`)!
@@ -40,7 +43,9 @@ export function createStateSearch(
 	input.type = `search`
 	input.value = context.query
 	input.setAttribute(`aria-label`, `Search ${view}`)
-	input.placeholder = `Search ${view} and cached values`
+	input.placeholder = history
+		? `Search recorded ${view}`
+		: `Search ${view} and cached values`
 	const button = (text: string, action: () => void): HTMLButtonElement => {
 		const element = doc.createElement(`button`)
 		element.type = `button`
@@ -72,6 +77,8 @@ export function createStateSearch(
 	const live = doc.createElement(`section`)
 	live.className = `search-live`
 	host.insertBefore(live, index)
+	let pendingHistory: SearchHit | undefined
+	let selectedHistory: HTMLElement | undefined
 	let disposeLive: (() => void) | undefined
 	let liveKey: string | undefined
 	let result: SearchResults | undefined
@@ -98,7 +105,47 @@ export function createStateSearch(
 			store.valueMap.has(key) === cached &&
 			Object.is(store.valueMap.get(key), value)
 	})
+	function revealHistory() {
+		if (!pendingHistory || !history || !visible()) return
+		const target = pendingHistory.document.target!
+		if (!historyTargetExists(store, history, target)) {
+			details.textContent = `Recorded event is no longer at its captured location. Refresh to update the snapshot.`
+			pendingHistory = undefined
+			return
+		}
+		const owner = index.querySelector<HTMLElement>(
+			`[data-history-owner="${target.owner}"]`,
+		)
+		if (!owner) return
+		let destination = owner
+		for (const id of target.chain) {
+			const next = destination.querySelector<HTMLElement>(
+				`[data-history-event="${id}"]`,
+			)
+			if (!next) {
+				destination
+					.querySelector<HTMLButtonElement>(
+						`:scope > header button[aria-expanded="false"]`,
+					)
+					?.click()
+				return
+			}
+			destination = next
+		}
+		selectedHistory?.removeAttribute(`data-search-selected`)
+		selectedHistory = destination
+		destination.dataset[`searchSelected`] = `true`
+		destination.tabIndex = -1
+		destination.focus()
+		destination.scrollIntoView?.({ block: `nearest` })
+		pendingHistory = undefined
+	}
 	function mask() {
+		if (history) {
+			revealHistory()
+			return
+		}
+
 		const active = Boolean(context.query.trim())
 		const keys = new Set(result?.hits.map((hit) => hit.document.key))
 		const families = new Set(result?.hits.map((hit) => hit.document.family))
@@ -133,6 +180,12 @@ export function createStateSearch(
 	}
 	function select(hit: SearchHit) {
 		if (busy) return
+		if (history) {
+			details.textContent = `${hit.document.detail}. Recorded preview only; no history cursor changed.`
+			pendingHistory = hit
+			revealHistory()
+			return
+		}
 		details.replaceChildren()
 		const heading = doc.createElement(`h2`)
 		heading.textContent = hit.document.key
@@ -160,7 +213,7 @@ export function createStateSearch(
 					disposeLive?.()
 					live.replaceChildren()
 					liveKey = hit.document.key
-					disposeLive = openEditor(liveKey, live)
+					disposeLive = openEditor!(liveKey, live)
 				}),
 			)
 		}
@@ -172,6 +225,7 @@ export function createStateSearch(
 			return
 		}
 		result = next
+		pendingHistory = undefined
 		results.replaceChildren()
 		details.replaceChildren()
 		for (const hit of next.hits) {
@@ -181,24 +235,26 @@ export function createStateSearch(
 			})
 			target.dataset[`searchId`] = hit.document.id
 			target.title = hit.document.key
-			target.setAttribute(`aria-label`, hit.document.key)
+			target.setAttribute(
+				`aria-label`,
+				history
+					? `${hit.document.key} — ${hit.document.detail}`
+					: hit.document.key,
+			)
 			mark(target, hit.document.label, hit.ranges)
 			item.append(target)
 			const extra = doc.createElement(`small`)
+			if (history) extra.append(`${hit.document.detail} · `)
 			if (hit.valueMatch) {
-				extra.append(`cached value: `)
-				mark(
-					extra,
-					hit.document.fields.find((field) => field.kind === `value`)!.text,
-					hit.valueRanges,
-				)
+				extra.append(history ? `recorded value: ` : `cached value: `)
+				mark(extra, hit.valueField!.text, hit.valueRanges)
 			}
 			if (hit.approximate) extra.append(` · approximate match`)
 			item.append(extra)
 			results.append(item)
 		}
 		const snapshot = context.index!
-		status.textContent = `${context.query.trim() ? `${next.matching} matches in captured metadata/cached values; showing ${next.hits.length}. ` : ``}${snapshot.documents.length} captured records · Captured at ${`${new Date(snapshot.capturedAt).toISOString().slice(11, 19)} UTC`} · ${snapshot.uncachedValues} not cached · ${snapshot.skippedValues} complex values skipped.${snapshot.partial ? ` Partial capture; more records unsearched.` : ``}${snapshot.truncatedText ? ` ${snapshot.truncatedText} text prefixes truncated.` : ``}${next.approximateLimited ? ` Approximate search limited; refine the query.` : ``}${context.query.trim() && !next.matching ? ` No matches in captured metadata.` : ``}`
+		status.textContent = `${context.query.trim() ? `${next.matching} matches in captured ${history ? `history/primitive previews` : `metadata/cached values`}; showing ${next.hits.length}. ` : ``}${snapshot.documents.length} captured records · Captured at ${`${new Date(snapshot.capturedAt).toISOString().slice(11, 19)} UTC`} · ${snapshot.uncachedValues} not cached · ${snapshot.skippedValues} complex values skipped.${snapshot.notice ? ` ${snapshot.notice}` : ``}${snapshot.partial ? ` Partial capture; more records unsearched.` : ``}${snapshot.truncatedText ? ` ${snapshot.truncatedText} text prefixes truncated.` : ``}${next.approximateLimited ? ` Approximate search limited; refine the query.` : ``}${context.query.trim() && !next.matching ? ` No matches in captured ${history ? `history` : `metadata`}.` : ``}`
 		mask()
 		host.dataset[`commitMs`] = String(performance.now() - started)
 		host.dataset[`ready`] = `true`
@@ -244,7 +300,10 @@ export function createStateSearch(
 		host.dataset[`ready`] = `false`
 		results.setAttribute(`aria-busy`, `true`)
 		const started = performance.now()
-		const copy = captureStateSearch(store, view)
+		const copy =
+			view === `atoms` || view === `selectors`
+				? captureStateSearch(store, view)
+				: captureHistorySearch(store, view)
 		host.dataset[`captureMs`] = String(performance.now() - started)
 		if (!copy) {
 			status.textContent = `Waiting for the current transaction to commit.`
@@ -327,6 +386,11 @@ export function createStateSearch(
 			origin = target
 			input.focus()
 			input.select()
+			return
+		}
+		if (history && selectedHistory?.contains(target) && event.key === `Escape`) {
+			event.preventDefault()
+			input.focus()
 			return
 		}
 		if (!ui.contains(target)) return

@@ -77,6 +77,7 @@ interface SearchReport {
 	machine: { platform: string; arch: string; cpu: string | undefined }
 	stage: string
 	profiles: unknown[]
+	history?: unknown[]
 	scale: Partial<SearchScale>
 	browser?: string
 	zoom?: {
@@ -154,6 +155,7 @@ try {
 			page.setDefaultTimeout(5_000)
 
 			const errors: string[] = []
+			let timing: { p95Ms: number; maxSliceMs: number } | undefined
 			page.on(`pageerror`, (error) => errors.push(error.message))
 			await page.goto(
 				`http://127.0.0.1:${(server.address() as AddressInfo).port}`,
@@ -274,6 +276,14 @@ try {
 				),
 				true,
 			)
+			report.history.push({
+				width,
+				views: [`transactions`, `timelines`],
+				timing,
+				evidence: await historyPage.evaluate(() =>
+					window.searchFixture.historyEvidence(),
+				),
+			})
 			assert.deepEqual(errors, [])
 			report.profiles.push({
 				width,
@@ -286,6 +296,113 @@ try {
 			})
 			await page.close()
 		}
+	report.stage = `recorded transaction and timeline search`
+	report.history = []
+	for (const width of [1440, 390, 320, 768]) {
+		const historyPage = await browser.newPage({
+			viewport: { width, height: 900 },
+		})
+		const errors: string[] = []
+		historyPage.on(`pageerror`, (error) => {
+			errors.push(error.message)
+			process.stderr.write(`${error.stack}\n`)
+		})
+		await historyPage.goto(
+			`http://127.0.0.1:${(server.address() as AddressInfo).port}`,
+		)
+		await historyPage.evaluate(() => {
+			window.searchFixture.mountHistory()
+		})
+		await historyPage
+			.getByRole(`tab`, { name: `transactions`, exact: true })
+			.click()
+		await historyPage.evaluate(() => {
+			window.searchFixture.historyAction(7)
+		})
+		const ready = () =>
+			historyPage.waitForFunction(
+				() =>
+					document.querySelector<HTMLElement>(`.state-search`)?.dataset[
+						`ready`
+					] === `true`,
+			)
+		await historyPage
+			.getByRole(`button`, { name: `Refresh`, exact: true })
+			.click()
+		await ready()
+		for (const view of [`transactions`, `timelines`]) {
+			if (view === `timelines`) {
+				await historyPage.getByRole(`tab`, { name: view, exact: true }).click()
+				await ready()
+			}
+			const input = historyPage.getByRole(`searchbox`, {
+				name: `Search ${view}`,
+			})
+			await input.fill(`count`)
+			await ready()
+			const before = await historyPage.evaluate(() =>
+				window.searchFixture.historyEvidence(),
+			)
+			await input.press(`ArrowDown`)
+			await historyPage.locator(`.search-results button`).first().press(`Enter`)
+			await historyPage.waitForSelector(`[data-search-selected="true"]`)
+			assert.deepEqual(
+				await historyPage.evaluate(() => window.searchFixture.historyEvidence()),
+				before,
+			)
+			await historyPage.locator(`[data-search-selected="true"]`).press(`Escape`)
+			assert.equal(
+				await input.evaluate((node) => node === document.activeElement),
+				true,
+			)
+			const box = await input.boundingBox()
+			assert.ok(box && box.x >= 0 && box.x + box.width <= width)
+			await historyPage.screenshot({
+				path: `${artifacts}/history-${view}-${width}.png`,
+			})
+		}
+		// Thousands of recorded events use the same uncached/cancellable scheduler and unchanged limits.
+		if (width === 1440) {
+			await historyPage.evaluate(() => {
+				window.searchFixture.historyAction(1000, 1500)
+			})
+			await historyPage
+				.getByRole(`button`, { name: `Refresh`, exact: true })
+				.click()
+			await ready()
+			const samples: number[] = [],
+				queryChunks: number[] = []
+			for (let i = 0; i < 30; i++) {
+				const started = performance.now()
+				await historyPage
+					.getByRole(`searchbox`, { name: `Search timelines` })
+					.fill(i % 2 ? `changeCart` : `count`)
+				await ready()
+				samples.push(performance.now() - started)
+				queryChunks.push(
+					await historyPage
+						.locator(`.state-search`)
+						.evaluate((node) =>
+							Math.max(
+								Number((node as HTMLElement).dataset[`maxIndexChunkMs`]),
+								Number((node as HTMLElement).dataset[`maxMatchChunkMs`]),
+							),
+						),
+				)
+			}
+			const chunks = Math.max(...queryChunks)
+			const p95 = samples.sort((a, b) => a - b)[28]
+			assert.ok(p95 <= 100, `history query p95 ${p95}ms`)
+			assert.ok(chunks <= 8, `history scheduled slice ${chunks}ms`)
+			assert.equal(
+				(await historyPage.locator(`.search-results button`).count()) <= 100,
+				true,
+			)
+			timing = { p95Ms: p95, maxSliceMs: chunks }
+		}
+		assert.deepEqual(errors, [])
+		await historyPage.close()
+	}
 	const zoom = await browser.newPage({ viewport: { width: 195, height: 450 } })
 	await zoom.goto(`http://127.0.0.1:${(server.address() as AddressInfo).port}`)
 	await zoom.waitForFunction(

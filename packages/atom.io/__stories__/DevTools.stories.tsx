@@ -5,6 +5,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite"
 import {
 	playOrderActions,
 	playOrderEditingAndReset,
+	playOrderHistorySearch,
 	playOrderRoots,
 	playPrimary,
 } from "./devtools-story-interactions.ts"
@@ -33,4 +34,9 @@ export const OrderActions: Story = {
 export const OrderEditingAndReset: Story = {
 	render: () => <OrderFulfillment />,
 	play: playOrderEditingAndReset,
+}
+
+export const OrderHistorySearch: Story = {
+	render: () => <OrderFulfillment />,
+	play: playOrderHistorySearch,
 }

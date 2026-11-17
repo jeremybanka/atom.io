@@ -439,25 +439,25 @@ try {
 	// Start gestures on actual background, since cards move with layout and camera changes.
 	const background = () =>
 		scene.evaluate((node) => {
-			const bounds = node.getBoundingClientRect(),
+			const hitBounds = node.getBoundingClientRect(),
 				points: { x: number; y: number }[] = []
-			for (let y = bounds.y + 24; y < bounds.bottom - 60; y += 24)
-				for (let x = bounds.x + 24; x < bounds.right - 60; x += 24)
+			for (let y = hitBounds.y + 24; y < hitBounds.bottom - 60; y += 24)
+				for (let x = hitBounds.x + 24; x < hitBounds.right - 60; x += 24)
 					if (document.elementFromPoint(x, y) === node) points.push({ x, y })
 			return points
 		})
 	await cylinderFits()
 	await page.evaluate(() => new Promise(requestAnimationFrame))
-	const [start] = await background()
-	assert.ok(start, `Graph must expose background for orbit controls`)
+	const [orbitStart] = await background()
+	assert.ok(orbitStart, `Graph must expose background for orbit controls`)
 	const touchPose = await camera()
 	await touch.send(`Input.dispatchTouchEvent`, {
 		type: `touchStart`,
-		touchPoints: [start],
+		touchPoints: [orbitStart],
 	})
 	await touch.send(`Input.dispatchTouchEvent`, {
 		type: `touchMove`,
-		touchPoints: [{ x: start.x + 40, y: start.y + 30 }],
+		touchPoints: [{ x: orbitStart.x + 40, y: orbitStart.y + 30 }],
 	})
 	await touch.send(`Input.dispatchTouchEvent`, {
 		type: `touchEnd`,

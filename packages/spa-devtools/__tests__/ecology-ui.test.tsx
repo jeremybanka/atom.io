@@ -96,11 +96,19 @@ it(`opens/searches/selects/traces/expands passively and evaluates only the expli
 		{ source },
 	)
 	f.silo.atomFamily<number, string>({ key: `zero`, default: 0 })
+	f.silo.selectorFamily<number, string>({ key: `derived`, get: () => getter })
 	const before = [...f.silo.store.valueMap],
 		graph = f.silo.store.selectorGraph.toJSON()
 	f.mount()
 	await settle()
 	expect(f.host.querySelector(`[data-testid="ecology-view"]`)).not.toBeNull()
+	const labels = [...f.host.querySelectorAll(`ecology-node-card small`)].map(
+		(node) => node.textContent,
+	)
+	for (const category of [`Atom`, `Atom Family`, `Selector`, `Selector Family`])
+		expect(labels.some((label) => label?.startsWith(`${category} · `))).toBe(
+			true,
+		)
 	await f.search(`dormant`)
 	await f.select(`state:dormant`, `Enter`)
 	expect(f.host.querySelector(`ecology-body > aside`)!.textContent).toContain(
@@ -116,7 +124,7 @@ it(`opens/searches/selects/traces/expands passively and evaluates only the expli
 	await f.click(`Expand family`)
 	expect(
 		f.host.querySelector(`ecology-view [data-counts]`)!.textContent,
-	).toContain(`2 families / 1 members`)
+	).toContain(`3 families / 1 members`)
 	await f.click(`Collapse family`)
 	await f.select(`family:zero`, ` `)
 	expect(f.host.textContent).toContain(`0 instantiated members`)

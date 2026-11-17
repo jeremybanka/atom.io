@@ -17,6 +17,12 @@ export function EcologyNodeCard(props: {
 	scene: Scene
 	invalidate(): void
 }): SpaElement {
+	const detail = () => {
+		const source = props.item.source
+		return `memberKeys` in source
+			? `${source.type.includes(`selector`) ? `Selector Family` : `Atom Family`} · ${source.memberCount}${source.countComplete ? `` : `+`} members`
+			: `${source.kind === `atom` ? `Atom` : `Selector`} · ${source.value.status === `cached` ? `cached ${source.value.type}` : `not cached / unknown`}`
+	}
 	let element: HTMLElement | null = null
 	onMount(() => {
 		const label = new CSS2DObject(element!)
@@ -55,7 +61,7 @@ export function EcologyNodeCard(props: {
 				type="button"
 				data-node
 				data-graph-id={props.visible ? props.item.id : undefined}
-				aria-label={`${props.item.label} · ${props.item.detail}`}
+				aria-label={`${props.item.label} · ${detail()}`}
 				aria-pressed={props.selected}
 				onPointerDown={(event) => {
 					event.stopPropagation()
@@ -63,7 +69,7 @@ export function EcologyNodeCard(props: {
 				title={`${props.item.label}\n${props.item.source.type}\n${props.item.detail}`}
 			>
 				<strong>{props.item.label}</strong>
-				<small>{props.item.detail}</small>
+				<small>{detail()}</small>
 			</button>
 		</ecology-node-card>
 	)

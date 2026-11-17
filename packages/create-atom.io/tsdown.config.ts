@@ -2,10 +2,7 @@ import type { InlineConfig, UserConfig } from "tsdown"
 import { defineConfig } from "tsdown"
 
 const config: UserConfig = defineConfig({
-	entry: {
-		"create-atom.x": `src/create-atom.x.ts`,
-		"create-atom.bin": `bin/create-atom.bin.ts`,
-	},
+	entry: [`src/create-atom.x.ts`],
 
 	clean: true,
 	dts: false,

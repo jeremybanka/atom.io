@@ -97,7 +97,6 @@ export default {
 		},
 		"packages/create-atom.io": {
 			entry: [
-				"bin/create-atom.bin.ts!",
 				"src/create-atom.x.ts!",
 				"tsdown.config.ts",
 				"__tests__/fixtures/**/*.{ts,tsx,js,mjs,cjs}",

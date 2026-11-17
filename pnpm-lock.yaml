@@ -192,6 +192,9 @@ importers:
       '@atom.io/solid':
         specifier: workspace:*
         version: link:packages/solid
+      '@atom.io/spa-devtools':
+        specifier: workspace:*
+        version: link:packages/spa-devtools
       '@changesets/cli':
         specifier: 3.0.3
         version: 3.0.3

@@ -5,10 +5,11 @@ import { cpus, platform, arch } from "node:os"
 import { resolve } from "node:path"
 
 import { build } from "esbuild"
-import { chromium } from "playwright"
+import { browserArtifacts, cpuRate, launchBrowser } from "./browser-runtime.mjs"
 
-const artifacts =
-	process.env.SPA_DEVTOOLS_BROWSER_ARTIFACTS ?? `/tmp/spa-devtools-window`
+const artifacts = browserArtifacts(
+	process.env.SPA_DEVTOOLS_BROWSER_ARTIFACTS ?? `/tmp/spa-devtools-window`,
+)
 await mkdir(artifacts, { recursive: true })
 const bundle = await build({
 	entryPoints: [resolve(import.meta.dirname, `fixtures/window-browser/main.ts`)],
@@ -37,10 +38,7 @@ const server = createServer((req, res) => {
 await new Promise((ready) => server.listen(0, `127.0.0.1`, ready))
 let browser
 try {
-	browser = await chromium.launch({
-		chromiumSandbox: true,
-		executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
-	})
+	browser = await launchBrowser()
 	const context = await browser.newContext({
 		viewport: { width: 1440, height: 900 },
 	})
@@ -317,6 +315,7 @@ try {
 	const baselineSummary = summarize(metrics.baseline),
 		controllerSummary = summarize(metrics.controller)
 	const report = {
+		cpuRate,
 		candidate: process.env.SPA_DEVTOOLS_CANDIDATE_SHA ?? `working-tree`,
 		browser: browser.version(),
 		machine: `${platform()}/${arch()} ${cpus()[0]?.model}`,

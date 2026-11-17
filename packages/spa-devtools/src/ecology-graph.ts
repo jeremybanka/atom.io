@@ -1,4 +1,5 @@
 import type { EcologyFamily, EcologyNode, EcologySnapshot } from "./ecology.ts"
+import { scheduleTask } from "./task.ts"
 
 interface GraphItem {
 	id: string
@@ -72,7 +73,12 @@ export function* projectEcology(
 	const add = (item: Omit<GraphItem, `x` | `y`>, matches: boolean): void => {
 		const previous = context.positions.get(item.id)
 		const positioned: GraphItem = {
-			...item,
+			id: item.id,
+			key: item.key,
+			kind: item.kind,
+			label: item.label,
+			detail: item.detail,
+			source: item.source,
 			x: previous?.x ?? 0,
 			y: previous?.y ?? 0,
 		}
@@ -185,30 +191,31 @@ export function* projectEcology(
 export function scheduleGraph<T>(
 	iterator: Generator<void, T>,
 	done: (value: T, chunks: number[]) => void,
-	schedule: (run: () => void) => () => void = (run) => {
-		const timer = setTimeout(run, 0)
-		return () => {
-			clearTimeout(timer)
-		}
-	},
+	schedule: (run: () => void) => () => void = scheduleTask,
 	now: () => number = () => performance.now(),
+	budgetMs = 4,
 ): () => void {
 	let active = true
 	let cancel: () => void
 	const chunks: number[] = []
+	let stepCost = 0
 	const run = () => {
 		if (!active) return
 		const start = now()
 		let step: IteratorResult<void, T>
+		let observed = start
 		do {
+			const before = observed
 			step = iterator.next()
+			observed = now()
+			stepCost = Math.max(stepCost * 0.8, observed - before)
 			if (step.done) {
 				chunks.push(now() - start)
 				active = false
 				done(step.value, chunks)
 				return
 			}
-		} while (now() - start < 4)
+		} while (observed - start + stepCost < budgetMs)
 		chunks.push(now() - start)
 		cancel = schedule(run)
 	}

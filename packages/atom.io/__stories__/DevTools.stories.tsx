@@ -1,6 +1,6 @@
-import "@atom.io/react-devtools/css"
+import "@atom.io/spa-devtools/css"
 
-import { AtomIODevtools } from "@atom.io/react-devtools"
+import { AtomIODevtools } from "@atom.io/spa-devtools/react"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 import type { Loadable } from "atom.io"
 import {
@@ -13,9 +13,12 @@ import {
 } from "atom.io"
 import { IMPLICIT } from "atom.io/internal"
 
+import { OrderFulfillment, OrderSummary } from "./OrderFulfillment.tsx"
+
 // More on how to set up stories at: https://storybook.js.org/docs/writing-stories#default-export
 const meta: Meta<typeof AtomIODevtools> = {
 	title: "AtomIODevtools",
+	subcomponents: { OrderSummary },
 	component: () => (
 		<>
 			<button
@@ -146,4 +149,9 @@ const myTransaction = transaction<(param: object) => object>({
 // More on writing stories with args: https://storybook.js.org/docs/writing-stories/args
 export const Primary: Story = {
 	args: {},
+}
+
+export const EcologyOrderFulfillment: Story = {
+	render: () => <OrderFulfillment />,
+	parameters: { layout: "fullscreen" },
 }

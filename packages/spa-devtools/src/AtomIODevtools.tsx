@@ -1,3 +1,4 @@
+/** @jsxImportSource @atom.io/spa */
 import type { SpaElement, SpaRoot } from "@atom.io/spa"
 import { onCleanup, onCommit, onMount, render, useGetter } from "@atom.io/spa"
 import type { RootStore } from "atom.io/internal"
@@ -6,6 +7,7 @@ import { IMPLICIT } from "atom.io/internal"
 import { createGraphContext } from "./ecology-graph.ts"
 import { EcologyView } from "./EcologyView.tsx"
 import { StateIndex, TimelineIndex, TransactionIndex } from "./Indexes.tsx"
+import { createSearchContext } from "./search-controller.ts"
 import { useSaved, useTools } from "./store.ts"
 import { createWindowController } from "./window-controller.ts"
 
@@ -75,6 +77,10 @@ function Panel(props: { store: RootStore; hideByDefault: boolean }): SpaElement 
 	const tools = useTools(props.store)
 	const panelId = `spa-devtools-${nextPanelId++}`
 	const graphContext = createGraphContext()
+	const searchContexts = {
+		atoms: createSearchContext(),
+		selectors: createSearchContext(),
+	}
 	const [getHidden, setHidden] = useSaved(
 		props.store,
 		`🔍 Devtools Are Hidden`,
@@ -202,6 +208,7 @@ function Panel(props: { store: RootStore; hideByDefault: boolean }): SpaElement 
 					) : view() === `atoms` || view() === `selectors` ? (
 						<StateIndex
 							key={view()}
+							context={searchContexts[view() as `atoms` | `selectors`]}
 							tools={tools}
 							type={view() as `atoms` | `selectors`}
 						/>

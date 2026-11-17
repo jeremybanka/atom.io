@@ -47,7 +47,7 @@ function createHotRuntime() {
 				proxy: null! as Component,
 			}
 			created.proxy = Object.assign(
-				(props: Record<string, any>) => {
+				(...args: Parameters<Component>) => {
 					if (owner) {
 						const root = owner._root
 						const view = roots.get(root) ?? mounting
@@ -57,7 +57,8 @@ function createHotRuntime() {
 							view.modules.add(id)
 						}
 					}
-					return created.current(props)
+					// Compiled JSX mount helpers can take options after their first argument.
+					return created.current(...args)
 				},
 				{ spa: true },
 			)

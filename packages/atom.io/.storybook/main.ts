@@ -2,7 +2,10 @@ import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
 import type { StorybookConfig } from "@storybook/react-vite"
+import type { Plugin } from "vite"
 import { mergeConfig } from "vite"
+
+import spa from "../../spa/src/vite.ts"
 
 const STORYBOOK_ROOT = dirname(fileURLToPath(import.meta.url))
 
@@ -23,10 +26,43 @@ const config: StorybookConfig = {
 		name: getAbsolutePath(`@storybook/react-vite`),
 		options: {},
 	},
-	viteFinal: (cfg) =>
-		mergeConfig(cfg, {
+	viteFinal: async (cfg) => {
+		// B-028: react-docgen overflows on the overloaded React binding hooks.
+		// Keep documentation extraction for story components, excluding only that package.
+		const plugins = await Promise.all(cfg.plugins ?? [])
+		for (const plugin of plugins) {
+			if (
+				!plugin ||
+				Array.isArray(plugin) ||
+				plugin.name !== `storybook:react-docgen-plugin`
+			)
+				continue
+			const docgen = plugin as Plugin
+			if (typeof docgen.transform !== `function`)
+				throw new Error(`Unexpected react-docgen transform shape`)
+			docgen.transform = {
+				filter: { id: { exclude: [/\/packages\/react\/(src|dist)\//] } },
+				handler: docgen.transform,
+			}
+		}
+		return mergeConfig(cfg, {
+			plugins: [spa({ include: /\/spa-devtools\/.*\.tsx$/ })],
 			resolve: {
 				alias: [
+					{
+						find: /^@atom\.io\/spa-devtools\/react$/,
+						replacement: resolve(
+							STORYBOOK_ROOT,
+							`../../spa-devtools/src/react.ts`,
+						),
+					},
+					{
+						find: /^@atom\.io\/spa-devtools\/css(?=\?|$)/,
+						replacement: resolve(
+							STORYBOOK_ROOT,
+							`../../spa-devtools/src/devtools.css`,
+						),
+					},
 					{
 						find: /^@atom\.io\/react-devtools\/css$/,
 						replacement: resolve(
@@ -44,6 +80,7 @@ const config: StorybookConfig = {
 					},
 				],
 			},
-		}),
+		})
+	},
 }
 export default config

@@ -150,6 +150,7 @@ jobs:
         env:
           PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: /opt/google/chrome/chrome
           SPA_DEVTOOLS_CANDIDATE_SHA: ${{ github.sha }}
+          SPA_DEVTOOLS_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       - name: Upload devtools window capture
         if: always() && matrix.suite == 'devtools'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -159,6 +160,8 @@ jobs:
             /tmp/spa-devtools-window
             /tmp/spa-devtools-ecology
             /tmp/spa-devtools-polish
+            /tmp/spa-devtools-search
+            /tmp/spa-devtools-search-cpu6
           retention-days: 7
       - run: pnpm --filter @atom.io/spa test:browser:motion
         if: matrix.suite == 'spa'

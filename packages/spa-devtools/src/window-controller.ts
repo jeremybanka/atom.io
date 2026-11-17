@@ -142,6 +142,7 @@ export function createWindowController(
 				? rect
 				: clampRect({ ...rect, width: 33, height: 28 }, viewport(), 1, 1),
 		)
+		panel.dataset[`windowInteraction`] = String(menuOpen || Boolean(gesture))
 		palette.hidden =
 			hidden || !open || !(menuOpen || (gesture?.active && !gesture.edge))
 		layout.setAttribute(`aria-expanded`, String(menuOpen))
@@ -398,6 +399,7 @@ export function createWindowController(
 			panel.removeEventListener(`keydown`, nudge)
 			doc.removeEventListener(`keydown`, keyboard)
 			win.removeEventListener(`resize`, resize)
+			delete panel.dataset[`windowInteraction`]
 			overlay.remove()
 			layout.remove()
 			for (const handle of handles) handle.remove()

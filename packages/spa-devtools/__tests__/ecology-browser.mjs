@@ -5,10 +5,11 @@ import { arch, cpus, platform } from "node:os"
 import { resolve as resolvePath } from "node:path"
 
 import { build } from "esbuild"
-import { chromium } from "playwright"
+import { browserArtifacts, cpuRate, launchBrowser } from "./browser-runtime.mjs"
 
-const artifacts =
-	process.env.SPA_DEVTOOLS_ECOLOGY_ARTIFACTS ?? `/tmp/spa-devtools-ecology`
+const artifacts = browserArtifacts(
+	process.env.SPA_DEVTOOLS_ECOLOGY_ARTIFACTS ?? `/tmp/spa-devtools-ecology`,
+)
 await mkdir(artifacts, { recursive: true })
 const bundle = await build({
 	entryPoints: [
@@ -39,10 +40,7 @@ const server = createServer((request, response) => {
 await new Promise((ready) => server.listen(0, `127.0.0.1`, ready))
 let browser
 try {
-	browser = await chromium.launch({
-		chromiumSandbox: true,
-		executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
-	})
+	browser = await launchBrowser()
 	const context = await browser.newContext({
 		viewport: { width: 1440, height: 900 },
 		colorScheme: `dark`,
@@ -294,6 +292,7 @@ try {
 	const p95 = (values) =>
 		[...values].sort((a, b) => a - b)[Math.ceil(values.length * 0.95) - 1]
 	const report = {
+		cpuRate,
 		candidate: process.env.SPA_DEVTOOLS_CANDIDATE_SHA ?? `working-tree`,
 		browser: browser.version(),
 		machine: `${platform()}/${arch()} ${cpus()[0]?.model}`,

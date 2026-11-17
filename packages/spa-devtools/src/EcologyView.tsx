@@ -1,3 +1,4 @@
+/** @jsxImportSource @atom.io/spa */
 import type { SpaElement } from "@atom.io/spa"
 import { onCleanup, onMount, render } from "@atom.io/spa"
 import { deposit } from "atom.io/internal"

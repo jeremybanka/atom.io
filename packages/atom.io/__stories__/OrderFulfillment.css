@@ -1,0 +1,41 @@
+.order-fulfillment-story {
+	box-sizing: border-box;
+	width: 100%;
+	min-height: 100dvh;
+}
+
+/* A disclosure floats over the shared canvas without constraining the debugger. */
+.order-fulfillment-controls {
+	position: fixed;
+	z-index: 11000;
+	left: 8px;
+	bottom: 8px;
+	width: min(700px, calc(100% - 16px));
+	box-sizing: border-box;
+	border: 1px solid GrayText;
+	border-radius: 6px;
+	color: CanvasText;
+	background: Canvas;
+	box-shadow: 0 2px 12px #0003;
+}
+
+.order-fulfillment-controls > summary {
+	padding: 10px 16px;
+	cursor: pointer;
+	font-weight: 600;
+}
+
+.order-fulfillment-controls-body {
+	max-height: min(640px, calc(75dvh - 56px));
+	overflow: auto;
+	overscroll-behavior: contain;
+}
+
+.order-fulfillment-controls-body > button {
+	margin: 0 16px 16px;
+}
+
+.order-fulfillment-controls:not([open]) {
+	width: max-content;
+	max-width: calc(100% - 16px);
+}

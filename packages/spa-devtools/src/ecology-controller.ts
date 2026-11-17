@@ -346,6 +346,9 @@ export function createEcologyController(
 		cancel = scheduleGraph(
 			projectEcology(context.snapshot, context, matchedIds, model),
 			paint,
+			undefined,
+			undefined,
+			2,
 		)
 	}
 	const search = () => {

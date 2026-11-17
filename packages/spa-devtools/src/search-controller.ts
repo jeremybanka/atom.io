@@ -338,7 +338,7 @@ export function createStateSearch(
 			},
 			undefined,
 			undefined,
-			2,
+			0.5,
 		)
 	}
 	const inputChange = (event: Event) => {

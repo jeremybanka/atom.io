@@ -137,6 +137,7 @@ it(`reuses immutable graph metadata only within the same capture and keeps cance
 		context = createGraphContext()
 	const first = drain(projectEcology(snapshot, context))
 	const second = drain(projectEcology(snapshot, context, undefined, first))
+	expect(second.all).toBe(first.all)
 	expect(second.all.get(`state:node0`)).toBe(first.all.get(`state:node0`))
 	context.selected = `state:node500`
 	const canceled = projectEcology(snapshot, context, undefined, second)
@@ -145,6 +146,7 @@ it(`reuses immutable graph metadata only within the same capture and keeps cance
 	expect(context.positions.has(`state:node500`)).toBe(false)
 	expect(second.all.get(`state:node500`)!.x).toBe(0)
 	const next = drain(projectEcology(snapshot, context, undefined, second))
+	expect(next.all).not.toBe(second.all)
 	expect(next.all.get(`state:node500`)!.x).not.toBe(0)
 	expect(second.all.get(`state:node500`)!.x).toBe(0)
 	const refreshed = drain(

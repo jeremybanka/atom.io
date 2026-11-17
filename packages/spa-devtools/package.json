@@ -51,7 +51,7 @@
 		"readme:check": "galley check README.mdx",
 		"tonnage": "pnpm readme:write",
 		"tonnage:check": "pnpm readme:check",
-		"test:browser": "node __tests__/window-browser.mjs"
+		"test:browser": "node __tests__/window-browser.mjs && node __tests__/ecology-browser.mjs"
 	},
 	"devDependencies": {
 		"@atom.io/react": "workspace:*",

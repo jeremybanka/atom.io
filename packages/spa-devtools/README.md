@@ -67,6 +67,14 @@ Ctrl+Shift+A shows or hides the debugger. Drag the header to move the window, or
 
 For a shared debugger UI, React applications can migrate their AtomIODevtools and stylesheet imports to this package's React and CSS entries. The existing @atom.io/react-devtools package remains available, including its JSON editor, elastic input, error boundary and customization contracts; those contracts are not exposed by the shared debugger.
 
+## Ecology explorer
+
+The ecology tab captures an observed snapshot on entry and Refresh. Rectangles identify atoms, hexagons identify selectors, and dashed groups identify families, including empty definitions. Families start collapsed; select a family to expand its instantiated members. Search matches keys, family keys, token types and cached kinds. The graph paints at most 500 nodes and 1,000 directed arrows; counters distinguish the captured snapshot, matching groups/instances and painted output. Search narrows the captured snapshot. A capture truncated by the snapshot API explicitly reports that full store totals are unknown.
+
+Selection opens a passive metadata inspector. Trace observed roots highlights retained upstream paths and reports unknown, missing, cyclic or truncated evidence. Cached kinds are shallow; asynchronous wrappers can appear as object and their completion status is unknown. Selection, searching, tracing and expansion never read application state. Only the explicit Open live editor action mounts the existing editor and may read or evaluate that state; readonly selectors stay readonly. Back returns to passive inspection.
+
+The accessible node list and graph nodes support keyboard selection. Escape clears tracing, Clear selection clears selection, and Fit, Reset view, pan and zoom controls position the graph. Selection, family expansion and pan/zoom survive navigation and valid topology changes; value-only refresh preserves positions. Ordinary application reads can change observed dependencies without a notification: Refresh is explicit, with capture time shown. There is no polling or automatic graph subscription. Hidden, minimized and unmounted views cancel pending work. Window geometry changes do not request capture or graph layout.
+
 ## Ecology snapshots
 
 captureEcologySnapshot provides a data-only foundation for an ecology explorer; it adds no graphical view. It inspects the supplied root store's committed maps without following an active transaction child. Capture never calls state getters, initializes defaults or family members, attaches introspection subscriptions, or awaits promises. It returns detached metadata with store-local keys, token kinds, family keys and serialized subkeys, cached runtime types, and retained directed dependency edges. Values and live tokens are omitted.
@@ -120,7 +128,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                        | Entry                         | Minified JS |  Gzip JS |
 | ----------------------------- | ----------------------------- | ----------: | -------: |
-| Interactive app with debugger | `tonnage-recipes/debugger.ts` |    99,935 B | 29,938 B |
+| Interactive app with debugger | `tonnage-recipes/debugger.ts` |   113,545 B | 34,883 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

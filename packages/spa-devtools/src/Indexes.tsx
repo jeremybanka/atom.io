@@ -71,7 +71,7 @@ function StateNode(props: {
 		</section>
 	)
 }
-function StateLeaf(props: { tools: Tools; token: Token }): SpaElement {
+export function StateLeaf(props: { tools: Tools; token: Token }): SpaElement {
 	const getValue = useGetter(props.token)
 	const writable = !props.token.type.startsWith(`readonly`)
 	const setValue = writable

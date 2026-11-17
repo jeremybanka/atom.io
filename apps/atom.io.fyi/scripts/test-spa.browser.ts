@@ -1,15 +1,23 @@
+declare global {
+	interface Window {
+		testNavigation: HTMLElement
+		testLogo: HTMLElement
+	}
+}
 import assert from "node:assert/strict"
 import { mkdtemp, readFile, rm } from "node:fs/promises"
-import { tmpdir } from "node:os"
 import { createServer } from "node:http"
+import type { AddressInfo } from "node:net"
+import { tmpdir } from "node:os"
 import { extname, join, resolve } from "node:path"
+
 import { dev } from "astro"
-import { chromium } from "playwright"
+import { type Browser, chromium } from "playwright"
 
 const directory = resolve(import.meta.dirname, `../dist/client`)
 const server = createServer(async (request, response) => {
 	const pathname = decodeURIComponent(
-		new URL(request.url, `http://localhost`).pathname,
+		new URL(request.url ?? `/`, `http://localhost`).pathname,
 	)
 	const file = resolve(
 		directory,
@@ -34,7 +42,9 @@ const server = createServer(async (request, response) => {
 		response.writeHead(404).end()
 	}
 })
-let browser, devServer, cacheDir
+let browser: Browser | undefined
+let devServer: Awaited<ReturnType<typeof dev>> | undefined
+let cacheDir: string | undefined
 try {
 	if (process.argv.includes(`--dev`)) {
 		cacheDir = await mkdtemp(join(tmpdir(), `spa-site-dev-`))
@@ -45,12 +55,12 @@ try {
 			logLevel: `error`,
 		})
 	} else {
-		await new Promise((ready) => server.listen(0, `127.0.0.1`, ready))
+		await new Promise<void>((ready) => server.listen(0, `127.0.0.1`, ready))
 	}
 	browser = await chromium.launch({ args: [`--enable-unsafe-swiftshader`] })
 	const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
-	const errors = []
-	const iframeRequests = []
+	const errors: string[] = []
+	const iframeRequests: string[] = []
 	page.on(`request`, (request) => {
 		if (request.isNavigationRequest() && request.frame().parentFrame()) {
 			iframeRequests.push(request.url())
@@ -66,14 +76,16 @@ try {
 			console.error(message.text())
 		}
 	})
-	const base = `http://127.0.0.1:${devServer?.address.port ?? server.address().port}`
+	const base = `http://127.0.0.1:${devServer?.address.port ?? (server.address() as AddressInfo).port}`
 	await page.context().grantPermissions([`clipboard-read`, `clipboard-write`])
 	await page.goto(`${base}/docs/getting-started`)
 	await page.waitForFunction(
-		() => document.querySelectorAll(`astro-island:not([ssr])`).length === 3,
+		() =>
+			document.querySelectorAll<HTMLElement>(`astro-island:not([ssr])`)
+				.length === 3,
 	)
 	await page.waitForFunction(
-		() => document.querySelectorAll(`on-this-page a`).length > 0,
+		() => document.querySelectorAll<HTMLElement>(`on-this-page a`).length > 0,
 	)
 	assert.equal(
 		await page.locator(`docs-navigation`).getAttribute(`data-pathname`),
@@ -84,7 +96,7 @@ try {
 			.locator(`code-block pre code`)
 			.first()
 			.textContent()
-			.then((value) => value.length > 0),
+			.then((value) => Boolean(value?.length)),
 		true,
 	)
 	const copiedCode = await page
@@ -97,8 +109,9 @@ try {
 		copiedCode,
 	)
 	await page.evaluate(() => {
-		window.testNavigation = document.querySelector(`docs-navigation`)
-		window.testLogo = document.querySelector(`dz2-orbital canvas`)
+		window.testNavigation =
+			document.querySelector<HTMLElement>(`docs-navigation`)!
+		window.testLogo = document.querySelector<HTMLElement>(`dz2-orbital canvas`)!
 	})
 	await page.keyboard.press(`Control+Shift+A`)
 	await page
@@ -109,7 +122,7 @@ try {
 	await page.waitForFunction(
 		() =>
 			document
-				.querySelector(`site-directory`)
+				.querySelector<HTMLElement>(`site-directory`)
 				?.getAttribute(`data-user-has-toggled`) === `true`,
 	)
 	const panel = page.locator(`[data-testid="atom-io-devtools"]`)
@@ -134,23 +147,43 @@ try {
 	assert.equal(
 		await panel
 			.locator(`.toolbar`)
-			.evaluate((element) => element.getBoundingClientRect().height),
-		28,
+			.evaluate(
+				(element: HTMLElement) => element.getBoundingClientRect().height,
+			),
+		60,
+		`The title row and physical tab row occupy 60px together`,
 	)
 	await page.emulateMedia({ colorScheme: `dark` })
 	assert.equal(
-		await panel.evaluate((element) => getComputedStyle(element).backgroundColor),
+		await panel.evaluate(
+			(element: HTMLElement) => getComputedStyle(element).backgroundColor,
+		),
 		`rgb(17, 17, 17)`,
 	)
 	await panel.screenshot({ path: `/tmp/spa-devtools-dense-dark.png` })
 	await page.emulateMedia({ colorScheme: `light` })
 	assert.equal(
-		await panel.evaluate((element) => getComputedStyle(element).backgroundColor),
-		`rgb(221, 221, 221)`,
+		await panel.evaluate(
+			(element: HTMLElement) => getComputedStyle(element).backgroundColor,
+		),
+		`rgb(249, 249, 249)`,
 	)
 	await panel.screenshot({ path: `/tmp/spa-devtools-dense-light.png` })
+	const initialPanel = await panel.boundingBox()
+	assert.ok(initialPanel)
+	const waitForOffset = (dx: number, dy: number) =>
+		page.waitForFunction(
+			([x, y]) => {
+				const rect = document
+					.querySelector<HTMLElement>(`[data-testid="atom-io-devtools"]`)!
+					.getBoundingClientRect()
+				return Math.abs(rect.x - x) < 1 && Math.abs(rect.y - y) < 1
+			},
+			[initialPanel.x + dx, initialPanel.y + dy],
+		)
 	const handle = page.locator(`button[aria-label="Move debugger"]`)
 	const bounds = await handle.boundingBox()
+	if (!bounds) throw new Error(`Missing bounds`)
 	await page.mouse.move(
 		bounds.x + bounds.width / 2,
 		bounds.y + bounds.height / 2,
@@ -162,18 +195,10 @@ try {
 		{ steps: 4 },
 	)
 	await page.mouse.up()
-	await page.waitForFunction(
-		() =>
-			document.querySelector(`[data-testid="atom-io-devtools"]`).style
-				.transform === `translate(-40px, -30px)`,
-	)
+	await waitForOffset(-40, -30)
 	await handle.focus()
 	await page.keyboard.press(`ArrowLeft`)
-	await page.waitForFunction(
-		() =>
-			document.querySelector(`[data-testid="atom-io-devtools"]`).style
-				.transform === `translate(-50px, -30px)`,
-	)
+	await waitForOffset(-50, -30)
 
 	await page.screenshot({
 		path: `/tmp/spa-site-desktop.png`,
@@ -185,23 +210,28 @@ try {
 	await page.waitForFunction(
 		() =>
 			document
-				.querySelector(`docs-navigation`)
+				.querySelector<HTMLElement>(`docs-navigation`)
 				?.getAttribute(`data-pathname`) === `/docs/concepts`,
 	)
 	assert.equal(
 		await page.evaluate(
-			() => window.testNavigation === document.querySelector(`docs-navigation`),
+			() =>
+				window.testNavigation ===
+				document.querySelector<HTMLElement>(`docs-navigation`)!,
 		),
 		true,
 	)
 	assert.equal(
 		await page.evaluate(
-			() => window.testLogo === document.querySelector(`dz2-orbital canvas`),
+			() =>
+				window.testLogo ===
+				document.querySelector<HTMLElement>(`dz2-orbital canvas`)!,
 		),
 		true,
 	)
 	await page.waitForFunction(
-		() => document.querySelector(`on-this-page a`)?.textContent !== ``,
+		() =>
+			document.querySelector<HTMLElement>(`on-this-page a`)?.textContent !== ``,
 	)
 	await page.keyboard.press(`Control+Shift+A`)
 	await toggle.uncheck()
@@ -211,7 +241,7 @@ try {
 	await page.waitForFunction(
 		() =>
 			document
-				.querySelector(`site-directory`)
+				.querySelector<HTMLElement>(`site-directory`)
 				?.getAttribute(`data-user-has-toggled`) === `true`,
 	)
 	await page.screenshot({
@@ -221,31 +251,38 @@ try {
 	await page.locator(`app-shell > header a[href="/"]`).click()
 	await page.waitForURL(`${base}/`)
 	await page.waitForFunction(
-		() => document.querySelectorAll(`dz2-orbital canvas`).length === 2,
+		() =>
+			document.querySelectorAll<HTMLElement>(`dz2-orbital canvas`).length === 2,
 	)
 	await page.locator(`app-shell > header a[href="/docs"]`).click()
 	await page.waitForURL(`${base}/docs`)
 	await page.waitForFunction(
 		() =>
 			document
-				.querySelector(`docs-navigation`)
+				.querySelector<HTMLElement>(`docs-navigation`)
 				?.getAttribute(`data-pathname`) === `/docs`,
 	)
 	assert.equal(
 		await page.evaluate(
-			() => window.testNavigation === document.querySelector(`docs-navigation`),
+			() =>
+				window.testNavigation ===
+				document.querySelector<HTMLElement>(`docs-navigation`)!,
 		),
 		false,
 	)
 	assert.equal(
 		await page.evaluate(
-			() => window.testLogo === document.querySelector(`dz2-orbital canvas`),
+			() =>
+				window.testLogo ===
+				document.querySelector<HTMLElement>(`dz2-orbital canvas`)!,
 		),
 		true,
 	)
 	await page.reload()
 	await page.waitForFunction(
-		() => document.querySelectorAll(`astro-island:not([ssr])`).length === 3,
+		() =>
+			document.querySelectorAll<HTMLElement>(`astro-island:not([ssr])`)
+				.length === 3,
 	)
 	assert.deepEqual(errors, [])
 	assert.deepEqual(
@@ -259,6 +296,11 @@ try {
 } finally {
 	await browser?.close()
 	if (devServer) await devServer.stop()
-	if (server.listening) await new Promise((done) => server.close(done))
+	if (server.listening)
+		await new Promise<void>((done) =>
+			server.close(() => {
+				done()
+			}),
+		)
 	if (cacheDir) await rm(cacheDir, { recursive: true, force: true })
 }

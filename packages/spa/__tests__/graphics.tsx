@@ -98,7 +98,7 @@ function App() {
 const root = render(() => <App />, document.body, {
 	capabilities: [motionCapability({ reducedMotion: `never` })],
 })
-Object.assign(window, {
+const browserFixture0 = {
 	graphics: {
 		point() {
 			const point = mesh.getWorldPosition(mesh.position.clone()).project(camera)
@@ -131,7 +131,13 @@ Object.assign(window, {
 			root.dispose()
 		},
 	},
-})
+}
+Object.assign(window, browserFixture0)
+declare global {
+	interface Window {
+		graphics: typeof browserFixture0.graphics
+	}
+}
 
 const presentAtom = atom<boolean>({ key: `present`, default: true })
 let presenceRoot: ReturnType<typeof render>
@@ -215,7 +221,7 @@ function PresenceApp() {
 		</>
 	)
 }
-Object.assign(window, {
+const browserFixture1 = {
 	presence: {
 		start() {
 			presenceRoot = render(() => <PresenceApp />, document.body, {
@@ -246,10 +252,16 @@ Object.assign(window, {
 			presenceRoot.dispose()
 		},
 	},
-})
+}
+Object.assign(window, browserFixture1)
+declare global {
+	interface Window {
+		presence: typeof browserFixture1.presence
+	}
+}
 
 // Real native drags must end on logical removal, before retained nodes detach.
-Object.assign(window, {
+const browserFixture2 = {
 	konvaDrag(mode: `rect` | `group` | `stage`, initiallyDraggable = true) {
 		const shownAtom = atom<boolean>({ key: `shown`, default: true })
 		let stage: any, dragRect: any
@@ -341,4 +353,10 @@ Object.assign(window, {
 			},
 		}
 	},
-})
+}
+Object.assign(window, browserFixture2)
+declare global {
+	interface Window {
+		konvaDrag: typeof browserFixture2.konvaDrag
+	}
+}

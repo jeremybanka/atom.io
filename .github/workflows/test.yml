@@ -57,98 +57,33 @@ jobs:
         include:
           - suite: editor
             name: Editor
-            build_filters: --filter=@atom.io/realtime...
-            directory: templates/react-realtime-text-editor
-            playwright_module: "@playwright/test"
+            filters: --filter=@atom.io/template-react-realtime-text-editor
           - suite: spa
             name: SPA
-            build_filters: --filter=@atom.io/spa... --filter=resumability...
-            directory: packages/spa
-            playwright_module: playwright
+            filters: --filter=@atom.io/spa --filter=resumability
           - suite: devtools
             name: SPA Devtools
-            build_filters: --filter=@atom.io/spa-devtools...
-            directory: packages/spa-devtools
-            playwright_module: playwright
+            filters: --filter=@atom.io/spa-devtools
           - suite: astro
             name: Astro Starter
-            build_filters: --filter=@atom.io/template-spa-astro-ssr^...
-            directory: templates/spa-astro-ssr
-            playwright_module: playwright
+            filters: --filter=@atom.io/template-spa-astro-ssr
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
         with:
           packages: bun node pnpm
-      - run: pnpm exec turbo run build ${{ matrix.build_filters }}
-      - name: Resolve Playwright version
-        id: playwright
-        working-directory: ${{ matrix.directory }}
-        run: node -p '"version=" + require("${{ matrix.playwright_module }}/package.json").version' >> "$GITHUB_OUTPUT"
       - name: Restore Playwright browsers
+        if: matrix.suite != 'devtools'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ runner.arch }}-ubuntu-26.04-headless-${{ steps.playwright.outputs.version }}
-      # Keep the install on cache hits to verify the required browser and FFmpeg
-      # are present. Headless tests do not need the full Chromium download.
-      - name: Install Chromium headless shell
+          key: playwright-${{ runner.os }}-${{ runner.arch }}-ubuntu-26.04-headless-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm test:browser:install ${{ matrix.filters }}
         if: matrix.suite != 'devtools'
-        working-directory: ${{ matrix.directory }}
-        run: pnpm exec playwright install --only-shell chromium
-      - name: Verify Chromium system dependencies
-        if: matrix.suite != 'devtools'
-        working-directory: ${{ matrix.directory }}
-        run: |
-          check_browser() {
-            node --input-type=module -e '
-              import { chromium } from "${{ matrix.playwright_module }}"
-              const browser = await chromium.launch()
-              await browser.close()
-            '
-          }
-          # Hosted runners already provide Chromium libraries. Probe every run:
-          # restoring browser files does not restore system packages.
-          if ! check_browser; then
-            pnpm exec playwright install-deps chromium
-            check_browser
-          fi
-      - run: pnpm --filter @atom.io/template-react-realtime-text-editor test:browser
-        if: matrix.suite == 'editor'
-      - run: pnpm --filter @atom.io/spa test:browser
-        if: matrix.suite == 'spa'
-      # Ubuntu restricts user namespaces for downloaded Chromium. The runner
-      # already supplies stable Chrome at an AppArmor-approved path. Keep the
-      # browser sandbox enabled rather than changing host policy. Local tests
-      # still use pinned Playwright Chromium; CI records the installed version.
-      - name: Verify sandboxed runner Chrome
-        if: matrix.suite == 'devtools'
-        working-directory: packages/spa-devtools
-        run: |
-          test -x /opt/google/chrome/chrome
-          node --input-type=module -e '
-            import { chromium } from "playwright"
-            const browser = await chromium.launch({
-              chromiumSandbox: true,
-              executablePath: "/opt/google/chrome/chrome",
-            })
-            try {
-              console.log("Sandbox-enabled runner Chrome:", browser.version())
-              const page = await browser.newPage()
-              await page.setContent("<p>Browser sandbox startup check</p>")
-            } finally {
-              await browser.close()
-            }
-          '
-      - name: Install locked React browser representatives
-        if: matrix.suite == 'devtools'
-        run: |
-          pnpm --dir packages/spa-devtools/peer-environments/coordinated-react18 install --frozen-lockfile --ignore-scripts
-          pnpm --dir packages/spa-devtools/peer-environments/coordinated-react19 install --frozen-lockfile --ignore-scripts
-      - run: pnpm --filter @atom.io/spa-devtools test:browser
-        if: matrix.suite == 'devtools'
+      # Runner Chrome has an AppArmor-approved path for sandboxed devtools tests.
+      - run: pnpm test:browser ${{ matrix.filters }}
         env:
-          PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: /opt/google/chrome/chrome
+          PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: ${{ matrix.suite == 'devtools' && '/opt/google/chrome/chrome' || '' }}
           SPA_DEVTOOLS_CANDIDATE_SHA: ${{ github.sha }}
           SPA_DEVTOOLS_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       - name: Upload devtools window capture
@@ -163,10 +98,6 @@ jobs:
             /tmp/spa-devtools-search
             /tmp/spa-devtools-search-cpu6
           retention-days: 7
-      - run: pnpm --filter @atom.io/spa test:browser:motion
-        if: matrix.suite == 'spa'
-      - run: pnpm --filter @atom.io/spa test:browser:floating
-        if: matrix.suite == 'spa'
       - name: Upload motion capture
         if: always() && matrix.suite == 'spa'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -176,14 +107,36 @@ jobs:
             /tmp/spa-motion-*.png
             /tmp/spa-motion-*.json
           retention-days: 7
-      - run: pnpm --filter resumability test:browser
-        if: matrix.suite == 'spa'
-      - run: pnpm --filter @atom.io/template-spa-astro-ssr test:browser
-        if: matrix.suite == 'astro'
+
+  Storybook:
+    name: Storybook Tests
+    runs-on: ubuntu-26.04
+    timeout-minutes: 9
+    env:
+      PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH: /opt/google/chrome/chrome
+      SPA_DEVTOOLS_CANDIDATE_SHA: ${{ github.sha }}
+      SPA_DEVTOOLS_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+        with:
+          packages: bun node pnpm
+      - run: pnpm test:storybook
+      - name: Upload Storybook evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: storybook-tests
+          include-hidden-files: true
+          path: |
+            .scratch/storybook-tests
+            packages/atom.io/.vitest/attachments
+            packages/atom.io/.turbo/turbo-storybook*.log
+          retention-days: 7
 
   BrowserTests:
     name: Browser Tests
-    needs: BrowserSuites
+    needs: [BrowserSuites, Storybook]
     if: always()
     runs-on: ubuntu-26.04
     timeout-minutes: 1
@@ -191,7 +144,8 @@ jobs:
       - name: Require all browser suites to pass
         env:
           RESULT: ${{ needs.BrowserSuites.result }}
-        run: test "$RESULT" = success
+          STORYBOOK_RESULT: ${{ needs.Storybook.result }}
+        run: test "$RESULT" = success && test "$STORYBOOK_RESULT" = success
 
   Manifest:
     runs-on: ubuntu-26.04

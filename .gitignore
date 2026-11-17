@@ -7,6 +7,8 @@
 .turbo
 .worktrees/
 .cache
+.scratch/
+.vitest/
 .correctly-cache
 coverage
 coverage-public

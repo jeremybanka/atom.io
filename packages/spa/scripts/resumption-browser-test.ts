@@ -1,10 +1,19 @@
+declare global {
+	interface Window {
+		__originalOutput: HTMLElement
+		__ordinaryOutput: HTMLElement
+		__keptInput: HTMLInputElement
+		__healthyButton: HTMLElement
+	}
+}
 import assert from "node:assert/strict"
 import { readFile } from "node:fs/promises"
 import { createServer } from "node:http"
+import type { AddressInfo } from "node:net"
 import { extname, resolve } from "node:path"
 
 import { dev } from "astro"
-import { chromium } from "playwright"
+import { type Browser, chromium } from "playwright"
 
 const fixture = resolve(import.meta.dirname, `../__tests__/resumption`)
 const directory = resolve(fixture, `dist`)
@@ -22,7 +31,7 @@ if (development) {
 } else {
 	const server = createServer(async (request, response) => {
 		const pathname = decodeURIComponent(
-			new URL(request.url, `http://localhost`).pathname,
+			new URL(request.url ?? `/`, `http://localhost`).pathname,
 		)
 		const file = resolve(
 			directory,
@@ -42,11 +51,16 @@ if (development) {
 			response.writeHead(404).end()
 		}
 	})
-	await new Promise((ready) => server.listen(0, `127.0.0.1`, ready))
-	port = server.address().port
-	stop = () => new Promise((done) => server.close(done))
+	await new Promise<void>((ready) => server.listen(0, `127.0.0.1`, ready))
+	port = (server.address() as AddressInfo).port
+	stop = () =>
+		new Promise<void>((done) =>
+			server.close(() => {
+				done()
+			}),
+		)
 }
-let browser
+let browser: Browser | undefined
 try {
 	const origin = `http://127.0.0.1:${port}`
 	const response = await fetch(origin)
@@ -55,8 +69,8 @@ try {
 	assert.ok(html.includes(`data-resumability-page`))
 	browser = await chromium.launch()
 	const page = await browser.newPage()
-	const errors = []
-	const warnings = []
+	const errors: string[] = []
+	const warnings: string[] = []
 	page.on(`pageerror`, (error) => errors.push(error.message))
 	page.on(`console`, (message) => {
 		if (
@@ -65,7 +79,7 @@ try {
 		)
 			warnings.push(message.text())
 	})
-	let gate = Promise.withResolvers()
+	let gate = Promise.withResolvers<void>()
 	await page.route(`**/*`, async (route) => {
 		if (route.request().resourceType() === `script`) await gate.promise
 		await route.continue()
@@ -73,7 +87,7 @@ try {
 	await page.goto(origin, { waitUntil: `commit` })
 	await page.waitForSelector(`output`)
 	await page.evaluate(() => {
-		window.__originalOutput = document.querySelector(`output`)
+		window.__originalOutput = document.querySelector<HTMLElement>(`output`)!
 	})
 	gate.resolve()
 	await page.waitForSelector(`astro-island:not([ssr])`)
@@ -85,18 +99,22 @@ try {
 	)
 	assert.equal(
 		await page.evaluate(
-			() => document.querySelector(`output`) === window.__originalOutput,
+			() =>
+				document.querySelector<HTMLElement>(`output`) ===
+				window.__originalOutput,
 		),
 		true,
 	)
-	gate = Promise.withResolvers()
+	gate = Promise.withResolvers<void>()
 	const asyncResponse = await page.goto(`${origin}/async/`, {
 		waitUntil: `commit`,
 	})
+	if (!asyncResponse) throw new Error(`Missing asyncResponse`)
 	assert.equal(asyncResponse.status(), 200)
 	await page.waitForSelector(`[data-ordinary]`)
 	await page.evaluate(() => {
-		window.__ordinaryOutput = document.querySelector(`[data-ordinary]`)
+		window.__ordinaryOutput =
+			document.querySelector<HTMLElement>(`[data-ordinary]`)!
 	})
 	const asyncHtml = await asyncResponse.text()
 	assert.equal((asyncHtml.match(/Async value/g) ?? []).length, 2)
@@ -104,9 +122,11 @@ try {
 	gate.resolve()
 	await page.waitForFunction(
 		() =>
-			!document.querySelector(`astro-island[ssr]`) &&
-			document.querySelector(`[data-ordinary]`)?.textContent === `Async value` &&
-			document.querySelector(`[data-mixed]`)?.textContent === `Async value`,
+			!document.querySelector<HTMLElement>(`astro-island[ssr]`)! &&
+			document.querySelector<HTMLElement>(`[data-ordinary]`)?.textContent ===
+				`Async value` &&
+			document.querySelector<HTMLElement>(`[data-mixed]`)?.textContent ===
+				`Async value`,
 	)
 	assert.equal(
 		await page.locator(`[data-seeded]`).textContent(),
@@ -115,28 +135,33 @@ try {
 	assert.equal(
 		await page.evaluate(
 			() =>
-				document.querySelector(`[data-ordinary]`) === window.__ordinaryOutput,
+				document.querySelector<HTMLElement>(`[data-ordinary]`) ===
+				window.__ordinaryOutput,
 		),
 		false,
 	)
 	assert.deepEqual(warnings, [])
-	gate = Promise.withResolvers()
+	gate = Promise.withResolvers<void>()
 	await page.goto(`${origin}/recovery/`, { waitUntil: `commit` })
 	await page.waitForSelector(`[data-recovery="healthy"] button`)
 	await page.evaluate(() => {
-		const broken = document.querySelector(`[data-recovery="broken"]`)
-		window.__keptInput = broken.querySelector(`input`)
+		const broken = document.querySelector<HTMLElement>(
+			`[data-recovery="broken"]`,
+		)!
+		window.__keptInput = broken.querySelector<HTMLInputElement>(`input`)!
 		window.__keptInput.value = `unsaved`
 		window.__keptInput.focus()
-		broken.querySelector(`button`).replaceWith(document.createElement(`span`))
-		window.__healthyButton = document.querySelector(
+		broken
+			.querySelector<HTMLElement>(`button`)!
+			.replaceWith(document.createElement(`span`))
+		window.__healthyButton = document.querySelector<HTMLElement>(
 			`[data-recovery="healthy"] button`,
-		)
+		)!
 	})
 	gate.resolve()
 	await page.waitForFunction(
 		() =>
-			!document.querySelector(`astro-island[ssr]`) &&
+			!document.querySelector<HTMLElement>(`astro-island[ssr]`)! &&
 			document.documentElement.getAttribute(`data-broken-mounts`) === `1` &&
 			document.documentElement.getAttribute(`data-healthy-mounts`) === `1`,
 	)
@@ -151,7 +176,7 @@ try {
 	assert.equal(
 		await page.evaluate(
 			() =>
-				document.querySelector(`[data-recovery="broken"] input`) ===
+				document.querySelector<HTMLElement>(`[data-recovery="broken"] input`) ===
 					window.__keptInput &&
 				document.activeElement === window.__keptInput &&
 				window.__keptInput.value === `unsaved`,
@@ -161,8 +186,9 @@ try {
 	assert.equal(
 		await page.evaluate(
 			() =>
-				document.querySelector(`[data-recovery="healthy"] button`) ===
-				window.__healthyButton,
+				document.querySelector<HTMLElement>(
+					`[data-recovery="healthy"] button`,
+				) === window.__healthyButton,
 		),
 		true,
 	)
@@ -184,8 +210,8 @@ try {
 	)
 	await page.evaluate(() =>
 		document
-			.querySelector(`[data-recovery="broken"]`)
-			.closest(`astro-island`)
+			.querySelector<HTMLElement>(`[data-recovery="broken"]`)!
+			.closest(`astro-island`)!
 			.dispatchEvent(new Event(`astro:unmount`)),
 	)
 	assert.equal(

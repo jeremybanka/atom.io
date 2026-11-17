@@ -175,6 +175,27 @@
 				"$TURBO_ROOT$/templates/spa-astro-ssr/src/**",
 				"$TURBO_ROOT$/templates/spa-astro-ssr/exhibits/**"
 			]
+		},
+		"test:browser": {
+			"dependsOn": [
+				"build"
+			],
+			"cache": false,
+			"passThroughEnv": [
+				"PLAYWRIGHT_*",
+				"MOSAIC_PLAYWRIGHT_EXECUTABLE_PATH",
+				"LD_LIBRARY_PATH",
+				"FONTCONFIG_FILE",
+				"TMPDIR",
+				"SPA_DEVTOOLS_*",
+				"TEMPLATE_SCREENSHOT",
+				"GITHUB_SHA"
+			]
+		},
+		"test:browser:install": {
+			"passThroughEnv": ["PLAYWRIGHT_*"],
+			"cache": false,
+			"outputs": []
 		}
 	}
 }

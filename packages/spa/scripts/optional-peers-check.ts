@@ -4,6 +4,7 @@ import { cp, mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises"
 import { createRequire } from "node:module"
 import { tmpdir } from "node:os"
 import { dirname, join, resolve } from "node:path"
+
 import { build } from "esbuild"
 
 const root = resolve(import.meta.dirname, `..`)
@@ -43,7 +44,7 @@ try {
 			files: [`app.tsx`],
 		}),
 	)
-	const run = (args) => {
+	const run = (args: string[]) => {
 		const result = spawnSync(process.execPath, args, {
 			cwd: fixture,
 			stdio: `inherit`,

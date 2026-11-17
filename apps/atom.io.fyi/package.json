@@ -8,7 +8,7 @@
 		"dev": "./scripts/rm-dev-lock.node.ts && astro dev",
 		"build": "bun run build:docs && bun run build:astro",
 		"build:icons": "./scripts/render-dz2-icons.ts",
-		"build:icons:spa": "node scripts/render-spa-icons.mjs",
+		"build:icons:spa": "node scripts/render-spa-icons.ts",
 		"build:docs": "node ../../packages/atom.io/__scripts__/agent-docs.node.ts --site",
 		"build:astro": "astro build",
 		"preview": "wrangler dev",
@@ -19,8 +19,9 @@
 		"lint:oxlint": "oxlint",
 		"lint:types": "tsc",
 		"test:once": "node --test src/components/*.test.ts",
-		"test:browser": "node scripts/test-spa.browser.mjs",
-		"test:browser:dev": "node scripts/test-spa.browser.mjs --dev"
+		"test:browser": "node scripts/test-spa.browser.ts",
+		"test:browser:dev": "node scripts/test-spa.browser.ts --dev",
+		"test:browser:install": "playwright install --only-shell chromium"
 	},
 	"dependencies": {
 		"@astrojs/cloudflare": "14.4.8",

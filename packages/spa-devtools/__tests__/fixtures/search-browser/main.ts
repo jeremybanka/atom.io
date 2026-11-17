@@ -96,17 +96,8 @@ function mount(large = false) {
 	mountStarted = performance.now()
 	dispose = mountAtomIODevtools(host, { store: app.store }).dispose
 }
-declare global {
-	interface Window {
-		searchFixture: { mount: typeof mount; update(): void; evidence(): object }
-	}
-}
-window.searchFixture = {
-	mount,
-	update: () => {
-		update()
-	},
-	evidence: () => ({
+function evidence() {
+	return {
 		reads,
 		setupMs,
 		mountStarted,
@@ -120,6 +111,22 @@ window.searchFixture = {
 		),
 		atoms: [...app.store.atoms.keys()].filter((key) => !key.startsWith(`🔍 `)),
 		graph: app.store.selectorGraph.toJSON(),
-	}),
+	}
+}
+declare global {
+	interface Window {
+		searchFixture: {
+			mount: typeof mount
+			update(): void
+			evidence: typeof evidence
+		}
+	}
+}
+window.searchFixture = {
+	mount,
+	update: () => {
+		update()
+	},
+	evidence,
 }
 mount()

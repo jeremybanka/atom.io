@@ -1,10 +1,11 @@
 import assert from "node:assert/strict"
 import { readFile } from "node:fs/promises"
 import { createServer } from "node:http"
+import type { AddressInfo } from "node:net"
 import { extname, resolve } from "node:path"
 
 import { dev } from "astro"
-import { chromium } from "playwright"
+import { type Browser, chromium } from "playwright"
 
 const fixture = resolve(import.meta.dirname, `../__tests__/astro`)
 const directory = resolve(fixture, `dist`)
@@ -22,7 +23,7 @@ if (development) {
 } else {
 	const server = createServer(async (request, response) => {
 		const pathname = decodeURIComponent(
-			new URL(request.url, `http://localhost`).pathname,
+			new URL(request.url ?? `/`, `http://localhost`).pathname,
 		)
 		const file = resolve(
 			directory,
@@ -42,11 +43,16 @@ if (development) {
 			response.writeHead(404).end()
 		}
 	})
-	await new Promise((ready) => server.listen(0, `127.0.0.1`, ready))
-	port = server.address().port
-	stop = () => new Promise((done) => server.close(done))
+	await new Promise<void>((ready) => server.listen(0, `127.0.0.1`, ready))
+	port = (server.address() as AddressInfo).port
+	stop = () =>
+		new Promise<void>((done) =>
+			server.close(() => {
+				done()
+			}),
+		)
 }
-let browser
+let browser: Browser | undefined
 try {
 	const origin = `http://127.0.0.1:${port}`
 	const initial = await fetch(origin)
@@ -60,8 +66,8 @@ try {
 	)
 	browser = await chromium.launch()
 	const page = await browser.newPage()
-	const errors = []
-	const scripts = []
+	const errors: string[] = []
+	const scripts: Promise<{ code: string; url: string }>[] = []
 	page.on(`pageerror`, (error) => errors.push(error.message))
 	page.on(`response`, (response) => {
 		if (!response.ok()) return
@@ -103,11 +109,15 @@ try {
 	)
 	await page.locator(`button`).click()
 	await page.waitForFunction(
-		() => document.querySelector(`[data-product]`).textContent === `browser:1`,
+		() =>
+			document.querySelector<HTMLElement>(`[data-product]`)!.textContent ===
+			`browser:1`,
 	)
 	await page.locator(`button`).click()
 	await page.waitForFunction(
-		() => document.querySelector(`[data-product]`).textContent === `browser:2`,
+		() =>
+			document.querySelector<HTMLElement>(`[data-product]`)!.textContent ===
+			`browser:2`,
 	)
 	assert.equal(
 		await page.locator(`[data-constant]`).textContent(),
@@ -127,7 +137,9 @@ try {
 	])
 	await page.locator(`button`).click()
 	await page.waitForFunction(
-		() => document.querySelector(`output`).textContent === `client:1:1`,
+		() =>
+			document.querySelector<HTMLElement>(`output`)!.textContent ===
+			`client:1:1`,
 	)
 	assert.deepEqual(await page.locator(`output`).allTextContents(), [
 		`client:1:1`,
@@ -135,7 +147,9 @@ try {
 	])
 	await page.locator(`button`).click()
 	await page.waitForFunction(
-		() => document.querySelector(`output`).textContent === `client:1:2`,
+		() =>
+			document.querySelector<HTMLElement>(`output`)!.textContent ===
+			`client:1:2`,
 	)
 	assert.equal(
 		await page.locator(`html`).getAttribute(`data-defaults-unchanged`),

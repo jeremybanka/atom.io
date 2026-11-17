@@ -1,0 +1,35 @@
+{
+	"extends": [
+		"//"
+	],
+	"tasks": {
+		"test:story:integration": {
+			"dependsOn": [
+				"atom.io#storybook:build",
+				"atom.io#test:story"
+			],
+			"cache": false,
+			"passThroughEnv": [
+				"PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH",
+				"PLAYWRIGHT_BROWSERS_PATH",
+				"LD_LIBRARY_PATH",
+				"FONTCONFIG_FILE",
+				"SPA_DEVTOOLS_CANDIDATE_SHA",
+				"SPA_DEVTOOLS_PR_HEAD_SHA",
+				"SPA_DEVTOOLS_STORYBOOK_DIR",
+				"SPA_DEVTOOLS_STORY_ARTIFACTS",
+				"GITHUB_SHA"
+			]
+		},
+		"test:browser:peers": {
+			"cache": false,
+			"outputs": []
+		},
+		"test:browser": {
+			"dependsOn": [
+				"$TURBO_EXTENDS$",
+				"test:browser:peers"
+			]
+		}
+	}
+}

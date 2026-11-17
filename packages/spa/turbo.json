@@ -1,0 +1,42 @@
+{
+	"extends": [
+		"//"
+	],
+	"tasks": {
+		"build:browser": {
+			"dependsOn": [
+				"build"
+			],
+			"outputs": [
+				"__tests__/astro/dist/**"
+			]
+		},
+		"build:browser:resumption": {
+			"dependsOn": [
+				"build"
+			],
+			"outputs": [
+				"__tests__/resumption/dist/**"
+			]
+		},
+		"test:browser": {
+			"dependsOn": [
+				"$TURBO_EXTENDS$",
+				"build:browser",
+				"build:browser:resumption"
+			]
+		},
+		"test:browser:resumption": {
+			"dependsOn": [
+				"build:browser:resumption"
+			],
+			"cache": false,
+			"passThroughEnv": [
+				"PLAYWRIGHT_*",
+				"LD_LIBRARY_PATH",
+				"FONTCONFIG_FILE",
+				"TMPDIR"
+			]
+		}
+	}
+}

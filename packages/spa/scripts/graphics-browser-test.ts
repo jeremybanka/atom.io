@@ -1,9 +1,17 @@
+declare global {
+	interface Window {
+		drag: ReturnType<Window[`konvaDrag`]>
+	}
+}
 import assert from "node:assert/strict"
 import { readFile } from "node:fs/promises"
 import { createServer } from "node:http"
+import type { AddressInfo } from "node:net"
 import { resolve } from "node:path"
+
 import { build } from "esbuild"
-import { chromium } from "playwright"
+import { type Browser, chromium } from "playwright"
+
 import { compile } from "../src/compiler.ts"
 
 const bundle = await build({
@@ -35,33 +43,37 @@ const server = createServer((req, res) => {
 		res.end(`<script type="module" src="/app.js"></script>`)
 	}
 })
-await new Promise((ready) => server.listen(0, `127.0.0.1`, ready))
-let browser
+await new Promise<void>((ready) => server.listen(0, `127.0.0.1`, ready))
+let browser: Browser | undefined
 try {
 	browser = await chromium.launch({
 		headless: true,
-		executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
+		...(process.env[`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`]
+			? { executablePath: process.env[`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`] }
+			: {}),
 		args: [`--use-angle=swiftshader`, `--enable-unsafe-swiftshader`],
 	})
 	const page = await browser.newPage({ deviceScaleFactor: 2 })
-	const errors = []
+	const errors: string[] = []
 	page.on(`pageerror`, (error) => {
 		errors.push(error.message)
 		console.error(error.stack)
 	})
-	await page.goto(`http://127.0.0.1:${server.address().port}`)
+	await page.goto(`http://127.0.0.1:${(server.address() as AddressInfo).port}`)
 	await page.waitForFunction(() => window.graphics?.inspect().frames > 1)
 	assert.equal(
 		await page.evaluate(() => window.graphics.inspect().rectWidth),
 		50,
 	)
 	await page.waitForFunction(() => {
-		const panel = document.querySelector(`#motion-panel`)
+		const panel = document.querySelector<HTMLElement>(`#motion-panel`)!
 		const x = new DOMMatrix(getComputedStyle(panel).transform).m41
 		return x > 0 && x < 100 && getComputedStyle(panel).width === `100px`
 	})
 	await page.screenshot({ path: `/tmp/spa-keyframe-banner.png` })
-	await page.evaluate(() => window.graphics.update())
+	await page.evaluate(() => {
+		window.graphics.update()
+	})
 	const state = await page.evaluate(() => window.graphics.inspect())
 	await page.waitForFunction(
 		() =>
@@ -73,7 +85,8 @@ try {
 		() =>
 			Math.abs(
 				new DOMMatrix(
-					getComputedStyle(document.querySelector(`#motion-panel`)).transform,
+					getComputedStyle(document.querySelector<HTMLElement>(`#motion-panel`)!)
+						.transform,
 				).m41 - 200,
 			) < 0.1,
 	)
@@ -81,21 +94,24 @@ try {
 	await page.waitForFunction(
 		() =>
 			new DOMMatrix(
-				getComputedStyle(document.querySelector(`#motion-panel`)).transform,
+				getComputedStyle(document.querySelector<HTMLElement>(`#motion-panel`)!)
+					.transform,
 			).m11 > 1.09,
 	)
 	await page.mouse.down()
 	await page.waitForFunction(
 		() =>
 			new DOMMatrix(
-				getComputedStyle(document.querySelector(`#motion-panel`)).transform,
+				getComputedStyle(document.querySelector<HTMLElement>(`#motion-panel`)!)
+					.transform,
 			).m11 < 0.91,
 	)
 	await page.mouse.up()
 	await page.waitForFunction(
 		() =>
 			new DOMMatrix(
-				getComputedStyle(document.querySelector(`#motion-panel`)).transform,
+				getComputedStyle(document.querySelector<HTMLElement>(`#motion-panel`)!)
+					.transform,
 			).m11 > 1.09,
 	)
 	await page.mouse.move(0, 0)
@@ -103,7 +119,8 @@ try {
 		() =>
 			Math.abs(
 				new DOMMatrix(
-					getComputedStyle(document.querySelector(`#motion-panel`)).transform,
+					getComputedStyle(document.querySelector<HTMLElement>(`#motion-panel`)!)
+						.transform,
 				).m11 - 1,
 			) < 0.001,
 	)
@@ -116,6 +133,7 @@ try {
 	assert.ok(state.canvases.every((width) => width === 400))
 	const canvas = page.locator(`canvas`).last()
 	const bounds = await canvas.boundingBox()
+	if (!bounds) throw new Error(`Missing bounds`)
 	const point = await page.evaluate(() => window.graphics.point())
 	await page.mouse.move(
 		bounds.x + bounds.width * point.x,
@@ -140,7 +158,9 @@ try {
 	assert.equal(input.downs, 1)
 	assert.equal(input.ups, 1)
 	assert.ok(input.moves >= 1)
-	await page.evaluate(() => window.graphics.dispose())
+	await page.evaluate(() => {
+		window.graphics.dispose()
+	})
 	assert.equal(await page.locator(`canvas`).count(), 0)
 	const frames = await page.evaluate(() => window.graphics.inspect().frames)
 	await page.waitForTimeout(100)
@@ -148,26 +168,34 @@ try {
 		await page.evaluate(() => window.graphics.inspect().frames),
 		frames,
 	)
-	await page.evaluate(() => window.presence.start())
+	await page.evaluate(() => {
+		window.presence.start()
+	})
 	await page.waitForFunction(() => window.presence.inspect().draws > 2)
 	const button = page.locator(`#presence-button`)
 	await button.focus()
 	await button.click()
 	assert.equal(await page.evaluate(() => window.presence.inspect().clicks), 1)
-	await page.evaluate(() => window.presence.show(false))
+	await page.evaluate(() => {
+		window.presence.show(false)
+	})
 	assert.equal(
 		await page.locator(`#presence-panel[inert][aria-hidden=true]`).count(),
 		1,
 	)
 	assert.equal(
-		await button.evaluate((node) => document.activeElement === node),
+		await button.evaluate(
+			(node: HTMLElement) => document.activeElement === node,
+		),
 		false,
 	)
 	const exiting = await page.evaluate(() => window.presence.inspect())
 	assert.equal(exiting.stageListening, false)
 	assert.equal(exiting.rectListening, false)
 	assert.equal(exiting.disposed, 0)
-	await button.evaluate((node) => node.click())
+	await button.evaluate((node: HTMLElement) => {
+		node.click()
+	})
 	await page.waitForFunction(
 		(before) => window.presence.inspect().draws > before + 2,
 		exiting.draws,
@@ -177,7 +205,9 @@ try {
 		exiting.userFrames,
 	)
 	assert.equal(await page.evaluate(() => window.presence.inspect().clicks), 1)
-	await page.evaluate(() => window.presence.show(true))
+	await page.evaluate(() => {
+		window.presence.show(true)
+	})
 	const revived = await page.evaluate(() => window.presence.inspect())
 	assert.ok(revived.samePanel && revived.sameMesh && revived.sameRect)
 	assert.equal(revived.stageListening, true)
@@ -185,19 +215,26 @@ try {
 	assert.equal(await page.locator(`#presence-panel[inert]`).count(), 0)
 	await button.click()
 	assert.equal(await page.evaluate(() => window.presence.inspect().clicks), 2)
-	await page.evaluate(() => window.presence.show(false))
-	await page.waitForFunction(() => !document.querySelector(`#presence-panel`))
+	await page.evaluate(() => {
+		window.presence.show(false)
+	})
+	await page.waitForFunction(
+		() => !document.querySelector<HTMLElement>(`#presence-panel`)!,
+	)
 	assert.equal(await page.evaluate(() => window.presence.inspect().disposed), 1)
-	await page.evaluate(() => window.presence.dispose())
+	await page.evaluate(() => {
+		window.presence.dispose()
+	})
 	assert.equal(await page.locator(`canvas`).count(), 0)
 
-	for (const mode of [`rect`, `group`, `stage`]) {
+	for (const mode of [`rect`, `group`, `stage`] as const) {
 		for (const active of [false, true]) {
 			await page.evaluate((kind) => {
 				window.drag = window.konvaDrag(kind)
 			}, mode)
 			const surface = page.locator(`.konvajs-content`)
 			const box = await surface.boundingBox()
+			if (!box) throw new Error(`Missing box`)
 			const startX = mode === `stage` ? 100 : 10
 			await page.mouse.move(box.x + startX, box.y + 10)
 			await page.mouse.down()
@@ -207,7 +244,9 @@ try {
 				mode === `stage` ? before.stageDragging : before.dragging,
 				active,
 			)
-			await page.evaluate(() => window.drag.show(false))
+			await page.evaluate(() => {
+				window.drag.show(false)
+			})
 			const exitingDrag = await page.evaluate(() => window.drag.inspect())
 			assert.equal(exitingDrag.dragging, false)
 			assert.equal(exitingDrag.draggable, false)
@@ -220,7 +259,9 @@ try {
 				(await page.evaluate(() => window.drag.inspect())).x,
 				exitingDrag.x,
 			)
-			await page.evaluate(() => window.drag.show(true))
+			await page.evaluate(() => {
+				window.drag.show(true)
+			})
 			const returned = await page.evaluate(() => window.drag.inspect())
 			assert.ok(returned.sameRect)
 			assert.equal(returned.draggable, true)
@@ -247,7 +288,9 @@ try {
 				true,
 			)
 			await page.mouse.up()
-			await page.evaluate(() => window.drag.dispose())
+			await page.evaluate(() => {
+				window.drag.dispose()
+			})
 		}
 	}
 	// Programmatic drags can exist even with draggable=false.
@@ -267,7 +310,9 @@ try {
 		(await page.evaluate(() => window.drag.inspect())).draggable,
 		false,
 	)
-	await page.evaluate(() => window.drag.dispose())
+	await page.evaluate(() => {
+		window.drag.dispose()
+	})
 
 	assert.deepEqual(errors, [])
 	console.log(

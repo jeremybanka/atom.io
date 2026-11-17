@@ -1,13 +1,15 @@
 import assert from "node:assert/strict"
 import { mkdtemp, rm } from "node:fs/promises"
+import type { AddressInfo } from "node:net"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 
-import { chromium } from "playwright"
+import { type Browser, chromium, type Page } from "playwright"
 import { createServer } from "vite"
 
 const cacheDir = await mkdtemp(join(tmpdir(), `spa-floating-`))
-let server, browser
+let server: Awaited<ReturnType<typeof createServer>> | undefined
+let browser: Browser | undefined
 try {
 	server = await createServer({
 		configFile: resolve(
@@ -20,34 +22,38 @@ try {
 	})
 	await server.listen()
 	browser = await chromium.launch({
-		executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
+		...(process.env[`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`]
+			? { executablePath: process.env[`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`] }
+			: {}),
 	})
 	for (const query of [``, `?motion-first`]) {
-		const page = await browser.newPage({
+		const page: Page = await browser.newPage({
 			viewport: { width: 1000, height: 800 },
 		})
-		const errors = []
+		const errors: string[] = []
 		page.on(`pageerror`, (error) => errors.push(error.message))
 		await page.goto(
-			`http://127.0.0.1:${server.httpServer.address().port}/${query}`,
+			`http://127.0.0.1:${(server.httpServer!.address() as AddressInfo).port}/${query}`,
 		)
 		await page.waitForFunction(() => {
-			const panel = document.querySelector(`#overlay`)
+			const panel = document.querySelector<HTMLElement>(`#overlay`)!
 			return panel?.style.translate && Number(panel.style.opacity) === 1
 		})
 		const original = await page.locator(`#overlay`).elementHandle()
 		const measure = () =>
 			page.evaluate(() => {
-				const node = document.querySelector(`#overlay`)
+				const node = document.querySelector<HTMLElement>(`#overlay`)!
 				const style = getComputedStyle(node)
 				const [x, y] = style.translate.split(` `).map(parseFloat)
 				const matrix = new DOMMatrixReadOnly(style.transform)
 				const rect = node.getBoundingClientRect()
 				const origin =
 					style.position === `absolute`
-						? node.offsetParent.getBoundingClientRect()
+						? node.offsetParent!.getBoundingClientRect()
 						: { left: 0, top: 0 }
-				const anchor = document.querySelector(`#anchor`).getBoundingClientRect()
+				const anchor = document
+					.querySelector<HTMLElement>(`#anchor`)!
+					.getBoundingClientRect()
 				const points = [
 					[0, 0],
 					[node.offsetWidth, 0],
@@ -72,19 +78,21 @@ try {
 					position: style.position,
 				}
 			})
-		const assertComposed = (sample) => {
+		const assertComposed = (sample: Awaited<ReturnType<typeof measure>>) => {
 			assert.ok(Math.abs(sample.xError) < 0.1, JSON.stringify(sample))
 			assert.ok(Math.abs(sample.yError) < 0.1, JSON.stringify(sample))
 		}
 		const waitAnchored = async () => {
 			await page.waitForFunction(() => {
-				const node = document.querySelector(`#overlay`)
+				const node = document.querySelector<HTMLElement>(`#overlay`)!
 				const style = getComputedStyle(node)
 				const [x, y] = style.translate.split(` `).map(parseFloat)
-				const anchor = document.querySelector(`#anchor`).getBoundingClientRect()
+				const anchor = document
+					.querySelector<HTMLElement>(`#anchor`)!
+					.getBoundingClientRect()
 				const origin =
 					style.position === `absolute`
-						? node.offsetParent.getBoundingClientRect()
+						? node.offsetParent!.getBoundingClientRect()
 						: { left: 0, top: 0 }
 				return (
 					Math.abs(x + origin.left - anchor.left) < 0.5 &&
@@ -98,23 +106,29 @@ try {
 		assert.ok(Math.abs(initial.scale - 0.8) < 0.001)
 		assert.ok(Math.abs(initial.rotation + 8) < 0.001)
 		// Native inline-style replacement must retain settled Motion values and anchoring.
-		const originalColor = await original.evaluate((node) => node.style.color)
+		const originalColor = await original.evaluate(
+			(node: HTMLElement) => node.style.color,
+		)
 		const beforePaint = await page.locator(`#color`).evaluate(
-			(button) =>
-				new Promise((finish) => {
-					requestAnimationFrame(() => {
-						button.click()
-						queueMicrotask(() => {
-							const style = getComputedStyle(document.querySelector(`#overlay`))
-							const matrix = new DOMMatrixReadOnly(style.transform)
-							finish({
-								position: style.position,
-								scale: Math.hypot(matrix.a, matrix.b),
-								rotation: (Math.atan2(matrix.b, matrix.a) * 180) / Math.PI,
+			(button: HTMLElement) =>
+				new Promise<{ position: string; scale: number; rotation: number }>(
+					(finish) => {
+						requestAnimationFrame(() => {
+							button.click()
+							queueMicrotask(() => {
+								const style = getComputedStyle(
+									document.querySelector<HTMLElement>(`#overlay`)!,
+								)
+								const matrix = new DOMMatrixReadOnly(style.transform)
+								finish({
+									position: style.position,
+									scale: Math.hypot(matrix.a, matrix.b),
+									rotation: (Math.atan2(matrix.b, matrix.a) * 180) / Math.PI,
+								})
 							})
 						})
-					})
-				}),
+					},
+				),
 		)
 		assert.equal(beforePaint.position, `absolute`)
 		assert.ok(Math.abs(beforePaint.scale - initial.scale) < 0.001)
@@ -132,7 +146,7 @@ try {
 			JSON.stringify({ initial, recolored }),
 		)
 		assert.notEqual(
-			await original.evaluate((node) => node.style.color),
+			await original.evaluate((node: HTMLElement) => node.style.color),
 			originalColor,
 		)
 		await page.locator(`#color`).click()
@@ -144,7 +158,7 @@ try {
 		assert.ok(Math.abs(withoutInlineStyle.scale - initial.scale) < 0.001)
 		assert.ok(Math.abs(withoutInlineStyle.rotation - initial.rotation) < 0.001)
 		assert.equal(
-			await original.evaluate((node) => node.style.color),
+			await original.evaluate((node: HTMLElement) => node.style.color),
 			originalColor,
 		)
 		if (!query) {
@@ -158,10 +172,8 @@ try {
 					node.style.cssText = `width: 100px; height: 30px; visibility: visible !important`
 					document.head.append(sheet)
 					document.body.append(node)
-					let release
-					const pending = new Promise((finish) => {
-						release = finish
-					})
+					const { promise: pending, resolve: release } =
+						Promise.withResolvers<void>()
 					const binding = floatingCapability().attach({ kind: `dom`, node })
 					const read = () => ({
 						visibility: getComputedStyle(node).visibility,
@@ -169,7 +181,7 @@ try {
 					})
 					try {
 						binding.update({
-							reference: document.querySelector(`#anchor`),
+							reference: document.querySelector<HTMLElement>(`#anchor`)!,
 							autoUpdate: false,
 							middleware: [
 								{
@@ -204,10 +216,10 @@ try {
 		}
 		// Floating's measurement must use the layout size, even while Motion scales it.
 		await page.locator(`#transform`).click()
-		const samples = []
+		const samples: Awaited<ReturnType<typeof measure>>[] = []
 		for (let frame = 0; frame < 10; ++frame) {
 			if (frame === 3)
-				await page.locator(`#color`).evaluate((button) => {
+				await page.locator(`#color`).evaluate((button: HTMLElement) => {
 					button.click()
 				})
 			await page.evaluate(() => new Promise(requestAnimationFrame))
@@ -215,18 +227,21 @@ try {
 			assertComposed(sample)
 			assert.ok(Math.abs(sample.y - initial.y) < 0.5)
 			assert.ok(sample.scale >= initial.scale - 0.001 && sample.scale <= 1.001)
-			if (samples.length) assert.ok(sample.scale >= samples.at(-1).scale - 0.001)
+			if (samples.length)
+				assert.ok(sample.scale >= samples.at(-1)!.scale - 0.001)
 			samples.push(sample)
 		}
 		assert.ok(new Set(samples.map((sample) => sample.scale.toFixed(3))).size > 2)
 		// The reference also moves with Motion; animationFrame updates follow its transform.
 		await page.locator(`#move`).click()
 		await page.waitForFunction(() =>
-			document.querySelector(`#anchor`).style.transform.includes(`120px`),
+			document
+				.querySelector<HTMLElement>(`#anchor`)!
+				.style.transform.includes(`120px`),
 		)
 		await waitAnchored()
 		assertComposed(await measure())
-		await page.locator(`.scroller`).evaluate((node) => {
+		await page.locator(`.scroller`).evaluate((node: HTMLElement) => {
 			node.scrollTop = 40
 			node.scrollLeft = 50
 		})
@@ -249,9 +264,11 @@ try {
 		// Flip and shift use the unscaled dimensions at a viewport edge.
 		await page.locator(`#alternate`).click()
 		await page.waitForFunction(() => {
-			const node = document.querySelector(`#overlay`)
+			const node = document.querySelector<HTMLElement>(`#overlay`)!
 			const [x, y] = node.style.translate.split(` `).map(parseFloat)
-			const anchor = document.querySelector(`#corner`).getBoundingClientRect()
+			const anchor = document
+				.querySelector<HTMLElement>(`#corner`)!
+				.getBoundingClientRect()
 			return (
 				Math.abs(y - (anchor.top - 12 - node.offsetHeight)) < 0.5 &&
 				x + node.offsetWidth <= innerWidth - 11
@@ -259,9 +276,11 @@ try {
 		})
 		await page.setViewportSize({ width: 720, height: 740 })
 		await page.waitForFunction(() => {
-			const node = document.querySelector(`#overlay`)
+			const node = document.querySelector<HTMLElement>(`#overlay`)!
 			const [x, y] = node.style.translate.split(` `).map(parseFloat)
-			const anchor = document.querySelector(`#corner`).getBoundingClientRect()
+			const anchor = document
+				.querySelector<HTMLElement>(`#corner`)!
+				.getBoundingClientRect()
 			return (
 				Math.abs(y - (anchor.top - 12 - node.offsetHeight)) < 0.5 &&
 				Math.abs(x + node.offsetWidth - (innerWidth - 12)) < 0.5
@@ -273,9 +292,9 @@ try {
 		await waitAnchored()
 		await page.locator(`#toggle`).click()
 		await page.waitForFunction(() =>
-			document.querySelector(`#overlay`)?.hasAttribute(`inert`),
+			document.querySelector<HTMLElement>(`#overlay`)?.hasAttribute(`inert`),
 		)
-		await page.locator(`.scroller`).evaluate((node) => {
+		await page.locator(`.scroller`).evaluate((node: HTMLElement) => {
 			node.scrollTop = 60
 		})
 		await waitAnchored()
@@ -283,17 +302,22 @@ try {
 		await page.locator(`#toggle`).click()
 		assert.equal(
 			await page.evaluate(
-				(node) => node === document.querySelector(`#overlay`),
+				(node) => node === document.querySelector<HTMLElement>(`#overlay`)!,
 				original,
 			),
 			true,
 		)
 		await page.waitForFunction(
-			() => Number(document.querySelector(`#overlay`).style.opacity) === 1,
+			() =>
+				Number(
+					document.querySelector<HTMLElement>(`#overlay`)!.style.opacity,
+				) === 1,
 		)
 		await page.locator(`#enabled`).click()
 		assert.equal(
-			await page.locator(`#overlay`).evaluate((node) => node.style.translate),
+			await page
+				.locator(`#overlay`)
+				.evaluate((node: HTMLElement) => node.style.translate),
 			``,
 		)
 		await page.locator(`#enabled`).click()
@@ -302,13 +326,18 @@ try {
 			path: `/tmp/spa-floating-motion${query ? `-motion-first` : ``}.png`,
 		})
 		await page.locator(`#toggle`).click()
-		await page.waitForFunction(() => !document.querySelector(`#overlay`))
-		assert.equal(await original.evaluate((node) => node.style.translate), ``)
+		await page.waitForFunction(
+			() => !document.querySelector<HTMLElement>(`#overlay`)!,
+		)
+		assert.equal(
+			await original.evaluate((node: HTMLElement) => node.style.translate),
+			``,
+		)
 		await page.locator(`#toggle`).click()
 		await waitAnchored()
 		assert.equal(
 			await page.evaluate(
-				(node) => node === document.querySelector(`#overlay`),
+				(node) => node === document.querySelector<HTMLElement>(`#overlay`)!,
 				original,
 			),
 			false,
@@ -316,7 +345,10 @@ try {
 		const replacement = await page.locator(`#overlay`).elementHandle()
 		await page.locator(`#dispose`).click()
 		assert.equal(await page.locator(`#overlay`).count(), 0)
-		assert.equal(await replacement.evaluate((node) => node.style.translate), ``)
+		assert.equal(
+			await replacement.evaluate((node: HTMLElement) => node.style.translate),
+			``,
+		)
 		assert.deepEqual(errors, [])
 		await page.close()
 	}

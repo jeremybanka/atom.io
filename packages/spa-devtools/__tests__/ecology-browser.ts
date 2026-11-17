@@ -1,14 +1,17 @@
 import assert from "node:assert/strict"
 import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { createServer } from "node:http"
+import type { AddressInfo } from "node:net"
 import { arch, cpus, platform } from "node:os"
 import { resolve as resolvePath } from "node:path"
 
 import { build } from "esbuild"
-import { browserArtifacts, cpuRate, launchBrowser } from "./browser-runtime.mjs"
+import type { Browser } from "playwright"
+
+import { browserArtifacts, cpuRate, launchBrowser } from "./browser-runtime.ts"
 
 const artifacts = browserArtifacts(
-	process.env.SPA_DEVTOOLS_ECOLOGY_ARTIFACTS ?? `/tmp/spa-devtools-ecology`,
+	process.env[`SPA_DEVTOOLS_ECOLOGY_ARTIFACTS`] ?? `/tmp/spa-devtools-ecology`,
 )
 await mkdir(artifacts, { recursive: true })
 const bundle = await build({
@@ -37,8 +40,8 @@ const server = createServer((request, response) => {
 			: `<style>${css}</style><script type="module" src="/app.js"></script>`,
 	)
 })
-await new Promise((ready) => server.listen(0, `127.0.0.1`, ready))
-let browser
+await new Promise<void>((ready) => server.listen(0, `127.0.0.1`, ready))
+let browser: Browser | undefined
 try {
 	browser = await launchBrowser()
 	const context = await browser.newContext({
@@ -47,20 +50,23 @@ try {
 	})
 	await context.tracing.start({ screenshots: true, snapshots: true })
 	const page = await context.newPage(),
-		errors = []
+		errors: string[] = []
 	page.on(`pageerror`, (error) => errors.push(error.message))
-	await page.goto(`http://127.0.0.1:${server.address().port}`)
+	await page.goto(`http://127.0.0.1:${(server.address() as AddressInfo).port}`)
 	const ready = async () => {
 		await page.waitForFunction(
-			() => document.querySelector(`.ecology`)?.dataset.ready === `true`,
+			() =>
+				document.querySelector<HTMLElement>(`.ecology`)?.dataset[`ready`] ===
+				`true`,
 		)
 	}
-	const choose = async (id) => {
+	const choose = async (id: string) => {
 		await page.locator(`g[data-graph-id]`).evaluateAll((nodes, target) => {
-			const node = nodes.find((item) => item.dataset.graphId === target)
+			const node = nodes.find((item) => item.dataset[`graphId`] === target)
+			if (!node) throw new Error(`Missing node`)
 			assertPresent(node)
 			node.dispatchEvent(new MouseEvent(`click`, { bubbles: true }))
-			function assertPresent(value) {
+			function assertPresent(value: unknown): asserts value {
 				if (!value) throw new Error(`Missing graph node ${target}`)
 			}
 		}, id)
@@ -79,7 +85,7 @@ try {
 	await page.keyboard.press(`Enter`)
 	await ready()
 	assert.equal(
-		await page.evaluate(() => document.activeElement.textContent),
+		await page.evaluate(() => document.activeElement!.textContent),
 		`Trace observed roots`,
 	)
 	await page.getByText(`Accessible node list`, { exact: true }).click()
@@ -123,7 +129,7 @@ try {
 		.locator(`g[data-graph-id]`)
 		.evaluateAll((nodes) =>
 			nodes.map((node) => [
-				node.dataset.graphId,
+				node.dataset[`graphId`],
 				node.getAttribute(`transform`),
 			]),
 		)
@@ -137,7 +143,7 @@ try {
 			.locator(`g[data-graph-id]`)
 			.evaluateAll((nodes) =>
 				nodes.map((node) => [
-					node.dataset.graphId,
+					node.dataset[`graphId`],
 					node.getAttribute(`transform`),
 				]),
 			),
@@ -157,10 +163,11 @@ try {
 	const beforeGeometry = await page
 		.locator(`main[data-css="spa-devtools"]`)
 		.boundingBox()
+	if (!beforeGeometry) throw new Error(`Missing beforeGeometry`)
 	await page.getByRole(`button`, { name: `Move debugger`, exact: true }).focus()
 	await page.keyboard.press(`ArrowLeft`)
 	assert.equal(
-		(await page.locator(`main[data-css="spa-devtools"]`).boundingBox()).x,
+		(await page.locator(`main[data-css="spa-devtools"]`).boundingBox())!.x,
 		beforeGeometry.x - 10,
 	)
 	assert.equal(await page.locator(`.ecology`).getAttribute(`data-jobs`), jobs)
@@ -208,7 +215,7 @@ try {
 	await ready()
 	await page.evaluate(
 		() =>
-			new Promise((resolve) =>
+			new Promise<void>((resolve) =>
 				requestAnimationFrame(() => {
 					performance.mark(`s4-overview-observed`)
 					resolve()
@@ -218,9 +225,11 @@ try {
 	const overview = await page.evaluate(() => ({
 		overviewMs: performance.now() - window.ecologyFixture.timings().mountStarted,
 		setupMs: window.ecologyFixture.timings().setupMs,
-		...document.querySelector(`.ecology`).dataset,
-		counts: document.querySelector(`.ecology-counts`).textContent,
-		notice: document.querySelector(`.ecology-notice`).textContent,
+		...document.querySelector<HTMLElement>(`.ecology`)!.dataset,
+		maxChunkMs:
+			document.querySelector<HTMLElement>(`.ecology`)!.dataset[`maxChunkMs`],
+		counts: document.querySelector<HTMLElement>(`.ecology-counts`)!.textContent,
+		notice: document.querySelector<HTMLElement>(`.ecology-notice`)!.textContent,
 	}))
 	assert.equal(await page.locator(`g[data-graph-id]`).count(), 500)
 	assert.equal(await page.locator(`.ecology-edge`).count(), 1_000)
@@ -231,13 +240,19 @@ try {
 	for (let index = 0; index < 20; index++) {
 		const sample = await page.evaluate(
 			async (key) => {
-				const input = document.querySelector(`[aria-label="Search ecology"]`)
+				const input = document.querySelector<HTMLInputElement>(
+					`[aria-label="Search ecology"]`,
+				)!
 				const start = performance.now()
 				input.value = key
 				input.dispatchEvent(new Event(`input`, { bubbles: true }))
-				await new Promise((resolve) => {
+				await new Promise<void>((resolve) => {
 					const check = () => {
-						if (document.querySelector(`.ecology`).dataset.ready === `true`)
+						if (
+							document.querySelector<HTMLElement>(`.ecology`)!.dataset[
+								`ready`
+							] === `true`
+						)
 							resolve()
 						else setTimeout(check, 0)
 					}
@@ -246,7 +261,7 @@ try {
 				await new Promise(requestAnimationFrame)
 				const searched = performance.now()
 				document
-					.querySelector(`g[data-graph-id]`)
+					.querySelector<SVGGElement>(`g[data-graph-id]`)!
 					.dispatchEvent(new MouseEvent(`click`, { bubbles: true }))
 				await new Promise(requestAnimationFrame)
 				return {
@@ -267,11 +282,12 @@ try {
 		await page.evaluate(() => window.ecologyFixture.timings().reads),
 		0,
 	)
-	const stopped = new Promise((resolve) =>
+	const stopped = new Promise<{ stream?: string }>((resolve) =>
 		cdp.once(`Tracing.tracingComplete`, resolve),
 	)
 	await cdp.send(`Tracing.end`)
 	const { stream } = await stopped
+	assert.ok(stream)
 	let trace = ``
 	for (;;) {
 		const chunk = await cdp.send(`IO.read`, { handle: stream })
@@ -280,20 +296,25 @@ try {
 	}
 	await cdp.send(`IO.close`, { handle: stream })
 	await writeFile(resolvePath(artifacts, `renderer-trace.json`), trace)
-	const events = JSON.parse(trace).traceEvents
+	const events = (
+		JSON.parse(trace) as {
+			traceEvents: { name: string; ts: number; dur?: number }[]
+		}
+	).traceEvents
 	const startMark = events.find((event) => event.name === `s4-overview-start`),
 		endMark = events.find((event) => event.name === `s4-overview-end`)
+	assert.ok(startMark && endMark)
 	const paints = events.filter(
 		(event) =>
 			event.name === `Paint` &&
 			event.ts >= startMark.ts &&
 			event.ts <= endMark.ts,
 	)
-	const p95 = (values) =>
+	const p95 = (values: number[]) =>
 		[...values].sort((a, b) => a - b)[Math.ceil(values.length * 0.95) - 1]
 	const report = {
 		cpuRate,
-		candidate: process.env.SPA_DEVTOOLS_CANDIDATE_SHA ?? `working-tree`,
+		candidate: process.env[`SPA_DEVTOOLS_CANDIDATE_SHA`] ?? `working-tree`,
 		browser: browser.version(),
 		machine: `${platform()}/${arch()} ${cpus()[0]?.model}`,
 		viewport: { width: 1440, height: 900 },
@@ -317,7 +338,7 @@ try {
 		resolvePath(artifacts, `metrics.json`),
 		JSON.stringify(report, null, 2),
 	)
-	console.log(JSON.stringify(report, null, 2))
+	process.stdout.write(JSON.stringify(report, null, 2) + `\n`)
 	assert.deepEqual(errors, [])
 	assert.ok(
 		Number(overview.maxChunkMs) <= 8,
@@ -335,5 +356,9 @@ try {
 	await context.close()
 } finally {
 	await browser?.close()
-	await new Promise((done) => server.close(done))
+	await new Promise<void>((done) =>
+		server.close(() => {
+			done()
+		}),
+	)
 }

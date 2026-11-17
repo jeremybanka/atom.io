@@ -368,3 +368,65 @@ it(`reports incomplete snapshots, truncated prefixes and bounded approximate mat
 	)
 	expect(host.querySelectorAll(`.ecology-results button`)).toHaveLength(100)
 })
+
+it(`reuses captured cards and list rows across queries, restores their focus and invalidates them on Refresh`, async () => {
+	const f = await setup()
+	const original = f.host.querySelector<SVGElement>(
+		`g[data-graph-id="state:count"]`,
+	)!
+	const row = [
+		...f.host.querySelectorAll<HTMLButtonElement>(`.ecology-list button`),
+	].find((button) => button.dataset[`graphId`] === `state:count`)!
+	await f.query(`green tea`)
+	await f.query(`count`)
+	expect(f.host.querySelector(`g[data-graph-id="state:count"]`)).toBe(original)
+	expect(
+		[...f.host.querySelectorAll(`.ecology-list button`)].find(
+			(button) => (button as HTMLElement).dataset[`graphId`] === `state:count`,
+		),
+	).toBe(row)
+	original.focus()
+	f.input().value = ``
+	f.input().dispatchEvent(new Event(`input`, { bubbles: true }))
+	await settle()
+	expect(document.activeElement).toBe(original)
+	f.button(`Refresh`).click()
+	await settle()
+	expect(f.host.querySelector(`g[data-graph-id="state:count"]`)).not.toBe(
+		original,
+	)
+})
+
+it(`bounds retained cards when successive filters visit disjoint parts of a large snapshot`, async () => {
+	const f = await setup()
+	for (const group of [`alpha`, `beta`, `gamma`])
+		for (let i = 0; i < 500; i++) {
+			const options = { key: `${group}${i}`, default: 0 }
+			f.app.atom<number>(options)
+		}
+	f.button(`Refresh`).click()
+	await settle()
+	for (const group of [`alpha`, `beta`]) {
+		await f.query(group)
+		expect(f.host.querySelectorAll(`g[data-graph-id]`)).toHaveLength(500)
+		expect(
+			Number(
+				f.host.querySelector<HTMLElement>(`.ecology`)!.dataset[`retainedCards`],
+			),
+		).toBeLessThanOrEqual(1000)
+	}
+	await f.query(`gamma499`)
+	f.host.querySelector<HTMLButtonElement>(`.ecology-results button`)!.click()
+	await settle()
+	await f.query(`a`)
+	expect(
+		Number(
+			f.host.querySelector<HTMLElement>(`.ecology`)!.dataset[`retainedCards`],
+		),
+	).toBeLessThanOrEqual(1000)
+	expect(
+		f.host
+			.querySelector(`g[data-graph-id="state:gamma499"]`)!
+			.getAttribute(`aria-pressed`),
+	).toBe(`true`)
+})

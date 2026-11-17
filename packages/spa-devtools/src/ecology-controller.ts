@@ -54,6 +54,14 @@ export function createEcologyController(
 	const svg = host.querySelector<SVGSVGElement>(`svg`)!
 	const list = host.querySelector<HTMLElement>(`.ecology-list`)!
 	const marker = `ecology-arrow-${nextMarker++}`
+	// Keep a bounded set of detached cards for repeated filters of one immutable capture.
+	const cards = new Map<
+		string,
+		{
+			group: SVGElement
+			row: HTMLLIElement
+		}
+	>()
 	let model: GraphModel | undefined,
 		cancel = () => {},
 		editorDispose = () => {},
@@ -225,43 +233,63 @@ export function createEcologyController(
 							(key) => context.trace.has(key),
 						)
 					: context.trace.has(item.key)
-			const group = shape(`g`, {
-				transform: `translate(${item.x} ${item.y})`,
-				class: `ecology-node ${item.kind}${traced ? ` traced` : ``}`,
-				role: `button`,
-				tabindex: `0`,
-				"aria-label": `${item.label} · ${item.detail}`,
-				"aria-pressed": String(item.id === context.selected),
-				"data-graph-id": item.id,
-			})
-			group.append(
-				item.kind === `selector`
-					? shape(`path`, { d: `M12 0 L164 0 L176 26 L164 52 L12 52 L0 26 Z` })
-					: shape(`rect`, {
-							width: `176`,
-							height: `52`,
-							rx: item.kind === `family` ? `8` : `3`,
-						}),
-			)
-			for (const [label, y] of [
-				[item.label, 20],
-				[item.detail, 39],
-			] as const) {
-				const text = shape(`text`, { x: `10`, y: String(y) })
-				text.textContent = label.length > 23 ? `${label.slice(0, 22)}…` : label
-				group.append(text)
-			}
-			world.append(group)
-			const row = element(`li`, ``),
-				choose = button(
-					`${item.kind === `selector` ? `◇` : item.kind === `family` ? `▸` : `□`} ${item.label} · ${item.detail}`,
-					`select`,
+			let card = cards.get(item.id)
+			if (!card) {
+				const group = shape(`g`, {
+					role: `button`,
+					tabindex: `0`,
+					"aria-label": `${item.label} · ${item.detail}`,
+					"data-graph-id": item.id,
+				})
+
+				group.append(
+					item.kind === `selector`
+						? shape(`path`, { d: `M12 0 L164 0 L176 26 L164 52 L12 52 L0 26 Z` })
+						: shape(`rect`, {
+								width: `176`,
+								height: `52`,
+								rx: item.kind === `family` ? `8` : `3`,
+							}),
 				)
-			choose.dataset[`graphId`] = item.id
-			choose.setAttribute(`aria-pressed`, String(item.id === context.selected))
-			row.append(choose)
-			fragment.append(row)
+				for (const [label, y] of [
+					[item.label, 20],
+					[item.detail, 39],
+				] as const) {
+					const text = shape(`text`, { x: `10`, y: String(y) })
+					text.textContent = label.length > 23 ? `${label.slice(0, 22)}…` : label
+					group.append(text)
+				}
+				const row = element(`li`, ``),
+					choose = button(
+						`${item.kind === `selector` ? `◇` : item.kind === `family` ? `▸` : `□`} ${item.label} · ${item.detail}`,
+						`select`,
+					)
+				choose.dataset[`graphId`] = item.id
+				row.append(choose)
+				card = { group, row }
+				cards.set(item.id, card)
+			}
+			card.group.setAttribute(`transform`, `translate(${item.x} ${item.y})`)
+			card.group.setAttribute(
+				`class`,
+				`ecology-node ${item.kind}${traced ? ` traced` : ``}`,
+			)
+			card.group.setAttribute(
+				`aria-pressed`,
+				String(item.id === context.selected),
+			)
+			card.row
+				.querySelector(`button`)!
+				.setAttribute(`aria-pressed`, String(item.id === context.selected))
+			world.append(card.group)
+			fragment.append(card.row)
 		}
+		const painted = new Set(value.items.map((item) => item.id))
+		for (const [id] of cards) {
+			if (cards.size <= 1000) break
+			if (!painted.has(id)) cards.delete(id)
+		}
+		host.dataset[`retainedCards`] = String(cards.size)
 		svg.replaceChildren(defs, world)
 		list.replaceChildren(fragment)
 		transform()
@@ -275,7 +303,10 @@ export function createEcologyController(
 			target.focus()
 			target.scrollIntoView?.({ block: `nearest` })
 			reveal = undefined
-		} else if ((focusId || focusAction) && !focused.isConnected) {
+		} else if (
+			(focusId || focusAction) &&
+			(!focused.isConnected || document.activeElement !== focused)
+		) {
 			const target = [
 				...host.querySelectorAll<HTMLElement>(`[data-graph-id], [data-action]`),
 			].find(
@@ -380,6 +411,7 @@ export function createEcologyController(
 			return
 		}
 		const start = performance.now()
+		cards.clear()
 		context.snapshot = captureEcologySnapshot(store, {
 			maxNodes: 10_000,
 			maxFamilies: 10_000,
@@ -573,6 +605,7 @@ export function createEcologyController(
 		cancelIndex()
 		cancelMatch()
 		wait()
+		cards.clear()
 		visibility.disconnect()
 		session.dispose()
 		cancel()

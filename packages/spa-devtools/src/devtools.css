@@ -832,3 +832,8 @@ main[data-css="spa-devtools"] {
 		display: none;
 	}
 }
+
+main[data-css="spa-devtools"] .ecology-live-panel > header > span {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}

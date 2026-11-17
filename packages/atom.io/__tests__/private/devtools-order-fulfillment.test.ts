@@ -7,6 +7,31 @@ import {
 import { createOrderFulfillmentScenario } from "../../__stories__/devtools-order-fulfillment.ts"
 
 describe(`order fulfillment application`, () => {
+	test(`every catalog SKU uses the same cart transactions, disposal and timeline`, () => {
+		const model = createOrderFulfillmentScenario()
+		const { app, actions, state, families } = model
+		actions.add(`not-in-catalog`)
+		actions.add(`tea-green`)
+		expect(app.getState(state.cart)).toHaveLength(6)
+		actions.add(`pantry-2`)
+		expect(app.getState(model.derived.total)).toBe(4725)
+		actions.quantity(`pantry-2`, 2)
+		expect(app.getState(families.lineTotals, `pantry-2`)).toBe(1400)
+		actions.remove(`pantry-2`)
+		expect(app.getState(state.cart)).not.toContain(`pantry-2`)
+		expect(app.store.atoms.has(`cartQuantityBySku("pantry-2")`)).toBe(false)
+		actions.undo()
+		expect(app.getState(families.quantities, `pantry-2`)).toBe(2)
+		expect(app.getState(model.derived.total)).toBe(5425)
+		actions.redo()
+		expect(app.getState(model.derived.total)).toBe(4025)
+		for (const sku of [...app.getState(state.cart)]) actions.remove(sku)
+		expect(app.getState(model.derived.subtotal)).toBe(0)
+		expect(app.getState(model.derived.available)).toBe(0)
+		expect(model.dormantReads()).toBe(0)
+		model.dispose()
+	})
+
 	test(`real app reads establish conditional roots and exact instantiated families`, () => {
 		const model = createOrderFulfillmentScenario()
 		const { app, derived, actions, families } = model
@@ -55,16 +80,16 @@ describe(`order fulfillment application`, () => {
 			expect(availability).not.toContain(
 				`stockByWarehouseSku(["north","tea-green"])`,
 			)
-			actions.addTea()
+			actions.add(`tea-oolong`)
 			app.getState(derived.total)
 			app.getState(derived.available)
 			expect(
 				snapshot().families.find((f) => f.key === families.quantities.key)
 					?.memberCount,
 			).toBe(7)
-			actions.addTea()
+			actions.add(`tea-oolong`)
 			expect(app.getState(model.state.cart)).toHaveLength(7)
-			actions.removeTea()
+			actions.remove(`tea-oolong`)
 			app.getState(derived.total)
 			app.getState(derived.available)
 			expect(
@@ -80,7 +105,7 @@ describe(`order fulfillment application`, () => {
 			actions.redo()
 			expect(app.getState(model.state.cart)).not.toContain(`tea-oolong`)
 			app.getState(derived.total)
-			actions.removeTea()
+			actions.remove(`tea-oolong`)
 			expect(model.dormantReads()).toBe(0)
 		} finally {
 			stopTotal()

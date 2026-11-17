@@ -901,7 +901,12 @@ try {
 					document.querySelector<HTMLElement>(`.ecology`)?.dataset[`ready`] ===
 					`true`,
 			)
-			await page.getByText(`Accessible node list`, { exact: true }).click()
+			const listView = page.getByRole(`button`, {
+				name: `Node list`,
+				exact: true,
+			})
+			if (await listView.isVisible()) await listView.click()
+			else await page.getByText(`Accessible node list`, { exact: true }).click()
 			await page.locator(`.ecology-list button`).first().focus()
 			await page.keyboard.press(`Enter`)
 			await page

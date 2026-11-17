@@ -116,7 +116,7 @@ try {
 		page.on(`response`, (response) => {
 			if (
 				response.status() >= 400 &&
-				/\.(?:js|css|woff2?|png|svg)(?:\?|$)/.test(response.url())
+				/\.(?:js|css|woff2?|otf|png|svg)(?:\?|$)/.test(response.url())
 			)
 				assetFailures.push({ url: response.url(), status: response.status() })
 		})
@@ -134,15 +134,27 @@ try {
 		assert.equal(layout.overflow, false)
 		const drawer = page.locator(`order-fulfillment > details`)
 		const controls = async (open: boolean) => {
-			if (
-				(await drawer.evaluate(
-					(element: HTMLDetailsElement) => element.open,
-				)) !== open
+			const shown = await drawer.evaluate(
+				(element: HTMLDetailsElement) => element.open,
 			)
-				await drawer.locator(`summary`).click()
+			if (shown !== open) {
+				if (open && (await page.getByTestId(`atom-io-devtools`).isVisible()))
+					await page
+						.getByRole(`button`, {
+							name: `Hide debugger (Ctrl+Shift+A)`,
+							exact: true,
+						})
+						.click()
+				await drawer.locator(`:scope > summary`).click()
+				if (!open && !(await page.getByTestId(`atom-io-devtools`).isVisible()))
+					await page.keyboard.press(`Control+Shift+A`)
+			}
 		}
 		const checkControls = async () => {
 			await controls(true)
+			const secondary = drawer.locator(`order-summary > details`)
+			if (!(await secondary.evaluate((node: HTMLDetailsElement) => node.open)))
+				await secondary.locator(`:scope > summary`).click()
 			for (const button of await drawer.locator(`button`).all()) {
 				await button.scrollIntoViewIfNeeded()
 				assert.equal(
@@ -164,6 +176,123 @@ try {
 			await controls(false)
 		}
 		await checkControls()
+		for (const colorScheme of [`light`, `dark`] as const) {
+			await page.emulateMedia({ colorScheme })
+			await controls(true)
+			await page.evaluate(async () => {
+				await document.fonts.ready
+			})
+			await drawer
+				.locator(`order-summary > store-intro`)
+				.scrollIntoViewIfNeeded()
+			await page.screenshot({
+				path: resolve(activeProfile, `${colorScheme}-storefront.png`),
+			})
+			await drawer
+				.getByRole(`heading`, { name: /^Your cart/ })
+				.evaluate((node) => {
+					node.scrollIntoView({ block: `start` })
+				})
+			await page.screenshot({
+				path: resolve(activeProfile, `${colorScheme}-cart.png`),
+			})
+			await drawer
+				.getByLabel(`Order total`, { exact: true })
+				.evaluate((node) => {
+					node.scrollIntoView({ block: `center` })
+				})
+			await page.screenshot({
+				path: resolve(activeProfile, `${colorScheme}-cart-total.png`),
+			})
+			await drawer
+				.getByRole(`heading`, { name: /^On the shelves/ })
+				.evaluate((node) => {
+					node.scrollIntoView({ block: `start` })
+				})
+			await page.screenshot({
+				path: resolve(activeProfile, `${colorScheme}-catalog.png`),
+			})
+			assert.equal(
+				await drawer.evaluate((node) => node.scrollWidth > node.clientWidth),
+				false,
+			)
+			await controls(false)
+		}
+		const ecology = page.getByTestId(`ecology-view`)
+		const ready = () =>
+			page.waitForFunction(
+				() =>
+					document.querySelector<HTMLElement>(`.ecology`)?.dataset[`ready`] ===
+					`true`,
+			)
+		const snapshot = await ecology.getAttribute(`data-snapshot-ms`)
+		await ecology.getByRole(`button`, { name: `Graph`, exact: true }).click()
+		assert.equal(await ecology.locator(`svg`).isVisible(), true)
+		await ecology.getByRole(`button`, { name: `Node list`, exact: true }).click()
+		assert.equal(await ecology.locator(`svg`).isVisible(), false)
+		const input = ecology.getByRole(`searchbox`, { name: `Search ecology` })
+		await input.fill(`cartQuantityBySku("tea-green")`)
+		await ready()
+		await ecology
+			.locator(`.ecology-results button`)
+			.filter({ hasText: `cartQuantityBySku("tea-green")` })
+			.first()
+			.click()
+		await ready()
+		assert.equal(await ecology.getAttribute(`data-workspace`), `selection`)
+		await ecology
+			.getByRole(`button`, {
+				name: `Open live editor (may read/evaluate)`,
+				exact: true,
+			})
+			.click()
+		const editor = ecology.locator(`.ecology-live input[inputmode="decimal"]`)
+		await editor.fill(`2e`)
+		const summary = await page.getByTestId(`order-summary`).textContent()
+		for (const name of [`Graph`, `Node list`, `Selection`]) {
+			await ecology.getByRole(`button`, { name, exact: true }).click()
+			assert.equal(await editor.inputValue(), `2e`)
+		}
+		await input.fill(`availability`)
+		await ready()
+		assert.equal(await page.getByTestId(`order-summary`).textContent(), summary)
+		await input.press(`Escape`)
+		await ready()
+		await input.press(`Escape`)
+		assert.equal(
+			await editor.evaluate((node) => node === document.activeElement),
+			true,
+		)
+		assert.equal(await editor.inputValue(), `2e`)
+		assert.equal(await ecology.getAttribute(`data-snapshot-ms`), snapshot)
+		await ecology.getByRole(`button`, { name: `Graph`, exact: true }).click()
+		await ecology
+			.getByRole(`button`, { name: `Back to passive inspector`, exact: true })
+			.click()
+		assert.equal(
+			await ecology
+				.getByRole(`button`, {
+					name: `Open live editor (may read/evaluate)`,
+					exact: true,
+				})
+				.evaluate((node) => node === document.activeElement),
+			true,
+		)
+		for (const colorScheme of [`light`, `dark`] as const) {
+			await page.emulateMedia({ colorScheme })
+			await page.screenshot({
+				path: resolve(activeProfile, `${colorScheme}-selection.png`),
+			})
+			await ecology
+				.getByRole(`button`, { name: `Node list`, exact: true })
+				.click()
+			await page.screenshot({
+				path: resolve(activeProfile, `${colorScheme}-node-list.png`),
+			})
+			await ecology
+				.getByRole(`button`, { name: `Selection`, exact: true })
+				.click()
+		}
 		await page.screenshot({ path: resolve(activeProfile, `story-layout.png`) })
 		// Real pointer capture and viewport geometry are built-output integration checks.
 		const panel = page.getByTestId(`atom-io-devtools`)
@@ -262,13 +391,21 @@ try {
 			.getByRole(`button`, { name: `Dismiss notification`, exact: true })
 			.all())
 			if (await dismiss.isVisible()) await dismiss.click()
+		await frame
+			.getByRole(`button`, { name: `Hide debugger (Ctrl+Shift+A)`, exact: true })
+			.click()
 		const managerDrawer = frame.locator(`order-fulfillment > details`)
 		if (
 			!(await managerDrawer.evaluate(
 				(element: HTMLDetailsElement) => element.open,
 			))
 		)
-			await managerDrawer.locator(`summary`).click()
+			await managerDrawer.locator(`:scope > summary`).click()
+		const managerSecondary = managerDrawer.locator(`order-summary > details`)
+		if (
+			!(await managerSecondary.evaluate((node: HTMLDetailsElement) => node.open))
+		)
+			await managerSecondary.locator(`:scope > summary`).click()
 		const previousPanel = await frame
 			.getByTestId(`atom-io-devtools`)
 			.elementHandle()
@@ -277,6 +414,8 @@ try {
 			.getByRole(`button`, { name: `Reset order scenario`, exact: true })
 			.click()
 		await frame.waitForFunction((element) => !element.isConnected, previousPanel)
+		await frame.locator(`order-fulfillment > details > summary`).click()
+		await frame.locator(`body`).press(`Control+Shift+A`)
 		await frame.waitForFunction(
 			() =>
 				document.querySelector<HTMLElement>(`[data-testid="ecology-view"]`)

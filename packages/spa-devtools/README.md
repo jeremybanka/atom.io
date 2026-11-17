@@ -135,6 +135,10 @@ The ecology tab captures an observed snapshot on entry and Refresh. Rectangles i
 
 Selection opens a passive metadata inspector. Trace observed roots highlights retained upstream paths and reports unknown, missing, cyclic or truncated evidence. Cached kinds are shallow; asynchronous wrappers can appear as object and their completion status is unknown. Selection, searching, tracing and expansion never read application state. Only the explicit Open live editor action mounts the existing editor and may read or evaluate that state; readonly selectors stay readonly. Back returns to passive inspection.
 
+At debugger widths of 650 px or less, Graph, Node list and Selection buttons give each workspace the full available width. This follows the debugger window's width, including a narrow free window on a wide desktop. Selecting a node or ranked result opens Selection and focuses its heading; Escape from that heading returns to search. Wider windows show the graph/list beside the inspector. Switching workspaces keeps search, pan/zoom, the captured snapshot and any explicit live editor mounted. Passive navigation preserves unfinished editor text; Back to passive inspector closes that editor and returns focus to its opening control.
+
+The Storybook Storefront story presents the order-fulfillment model as a small pantry: catalog stock, cart quantities and line totals, fulfillment fees, a coupon, and undo/redo all use the same isolated store as the debugger. Stock follows the selected warehouse; changing delivery to pickup changes the fee's observed roots. Unavailable cart lines remain visible so another warehouse can be tried. Scenario controls contain the local carrier-quote outcomes and reset. Close Pantry storefront to inspect the app; hide the debugger with its close button or Ctrl+Shift+A to browse again. The story starts with six cart lines, and Reset creates a fresh store. There are no checkout services or network calls, and passive graph/search navigation leaves the deliberately dormant promotion, lazy audit and empty wishlist untouched.
+
 The accessible node list and graph nodes support keyboard selection. Escape clears tracing, Clear selection clears selection, and Fit, Reset view, pan and zoom controls position the graph. Selection, family expansion and pan/zoom survive navigation and valid topology changes; value-only refresh preserves positions. Ordinary application reads can change observed dependencies without a notification: Refresh is explicit, with capture time shown. There is no polling or automatic graph subscription. Hidden, minimized and unmounted views cancel pending work. Window geometry changes do not request capture or graph layout.
 
 ## Ecology snapshots
@@ -190,7 +194,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                        | Entry                         | Minified JS |  Gzip JS |
 | ----------------------------- | ----------------------------- | ----------: | -------: |
-| Interactive app with debugger | `tonnage-recipes/debugger.ts` |   141,600 B | 44,068 B |
+| Interactive app with debugger | `tonnage-recipes/debugger.ts` |   142,689 B | 44,392 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

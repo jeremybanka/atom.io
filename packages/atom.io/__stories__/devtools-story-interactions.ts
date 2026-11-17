@@ -11,6 +11,13 @@ function orderTools({ canvas, canvasElement, userEvent }: Context) {
 	const controls = async (open: boolean) => {
 		if (drawer.open !== open)
 			await userEvent.click(drawer.querySelector(`summary`)!)
+		if (open) {
+			const scenario = canvasElement.querySelector<HTMLDetailsElement>(
+				`order-summary > details`,
+			)!
+			if (!scenario.open)
+				await userEvent.click(scenario.querySelector(`summary`)!)
+		}
 	}
 	const action = async (name: string) => {
 		await controls(true)
@@ -51,6 +58,8 @@ function orderTools({ canvas, canvasElement, userEvent }: Context) {
 			await userEvent.type(input, key)
 		})
 		const graph = canvas.getByTestId(`ecology-view`)
+		const switcher = within(graph).getByRole(`button`, { name: `Node list` })
+		if (switcher.checkVisibility()) await userEvent.click(switcher)
 		const details = graph.querySelector(`details`)!
 		if (!details.open) await userEvent.click(details.querySelector(`summary`)!)
 		const id = `${family ? `family` : `state`}:${key}`
@@ -168,18 +177,19 @@ export const playOrderActions: Play = async (context) => {
 	})
 	await step(`Cart membership appears in the real family`, async () => {
 		await tools.ecology()
-		await tools.action(`Add oolong tea`)
+		await tools.action(`Use south warehouse`)
+		await tools.action(`Add tea oolong`)
 		await tools.refresh()
 		await tools.choose(`cartQuantityBySku`, true)
 		await expect(tools.inspector()).toHaveTextContent(`7 instantiated members`)
-		await tools.action(`Remove oolong tea`)
+		await tools.action(`Remove tea oolong`)
 		await tools.refresh()
 		await expect(tools.inspector()).toHaveTextContent(`6 instantiated members`)
 	})
 	await step(
 		`Quantity, undo, redo and coupon actions update the application`,
 		async () => {
-			await tools.action(`Two green teas`)
+			await tools.action(`Increase tea green`)
 			await waitFor(() => expect(tools.summary()).toHaveTextContent(`$45.25`))
 			await tools.action(`Undo cart`)
 			await waitFor(() => expect(tools.summary()).toHaveTextContent(`$40.25`))
@@ -260,7 +270,7 @@ export const playOrderHistorySearch: Play = async (context) => {
 		async () => {
 			await tools.controls(false)
 			await userEvent.click(canvas.getByRole(`tab`, { name: `transactions` }))
-			await tools.action(`Two green teas`)
+			await tools.action(`Increase tea green`)
 			await tools.controls(false)
 			await userEvent.click(canvas.getByRole(`button`, { name: `Refresh` }))
 		},
@@ -326,7 +336,8 @@ export const playEcologySearch: Play = async (context) => {
 			await expect(
 				canvasElement
 					.querySelector(`.ecology-list`)!
-					.contains(document.activeElement),
+					.contains(document.activeElement) ||
+					tools.inspector().contains(document.activeElement),
 			).toBe(true)
 		},
 	)
@@ -416,6 +427,66 @@ export const playSurfaceStates: Play = async (context) => {
 			await userEvent.keyboard(`{Escape}{Escape}`)
 			await expect(price).toHaveFocus()
 			await expect(price).toHaveValue(`500.`)
+		},
+	)
+}
+
+export const playStorefront: Play = async (context) => {
+	const { canvas, canvasElement, userEvent, step } = context
+	const tools = orderTools(context)
+	await step(
+		`Browse real stock, add any catalog item and change its quantity`,
+		async () => {
+			await tools.controls(true)
+			await expect(canvasElement.querySelectorAll(`catalog-item`)).toHaveLength(
+				24,
+			)
+			await expect(
+				canvas.getByRole(`button`, { name: `Add tea oolong` }),
+			).toBeDisabled()
+			await tools.action(`Add pantry 2`)
+			await expect(tools.summary()).toHaveTextContent(`7 cart lines`)
+			await expect(
+				canvas.getByLabelText(`pantry 2 line total`),
+			).toHaveTextContent(`$7.00`)
+			await tools.action(`Increase pantry 2`)
+			await expect(canvas.getByLabelText(`pantry 2 quantity`)).toHaveTextContent(
+				`2`,
+			)
+			await expect(
+				canvas.getByLabelText(`pantry 2 line total`),
+			).toHaveTextContent(`$14.00`)
+			await tools.action(`Decrease pantry 2`)
+			await tools.action(`Remove pantry 2`)
+			await tools.action(`Undo cart`)
+			await expect(canvas.getByLabelText(`pantry 2 quantity`)).toHaveTextContent(
+				`1`,
+			)
+			await tools.action(`Redo cart`)
+			await expect(tools.summary()).toHaveTextContent(`6 cart lines`)
+		},
+	)
+	await step(
+		`An empty cart stays usable and reset restores the isolated order`,
+		async () => {
+			for (const row of canvasElement.querySelectorAll(`cart-line`))
+				await userEvent.click(
+					within(row as HTMLElement).getByRole(`button`, { name: /^Remove / }),
+				)
+			await expect(tools.summary()).toHaveTextContent(`0 cart lines`)
+			await expect(
+				canvas.getByText(
+					`Your cart is empty. Find something in the catalog below.`,
+				),
+			).toBeVisible()
+			await tools.action(`Use pickup`)
+			await expect(canvas.getByLabelText(`Order total`)).toHaveTextContent(
+				`$2.00`,
+			)
+			await tools.action(`Reset order scenario`)
+			await expect(tools.summary()).toHaveTextContent(
+				`$40.25 total · delivery · north warehouse`,
+			)
 		},
 	)
 }

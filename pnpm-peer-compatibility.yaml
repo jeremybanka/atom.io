@@ -1,0 +1,6 @@
+# Renovate cannot parse pnpm dependency-type selectors yet.
+# Keep these peer removals separate so it can scan the root workspace normally.
+# This file owns all overrides; use root catalogs for future versioned targets.
+overrides:
+  "typescript-eslint@8>typescript:peer": "-"
+  "@typescript-eslint/*@8>typescript:peer": "-"

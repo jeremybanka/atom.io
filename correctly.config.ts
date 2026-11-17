@@ -93,7 +93,7 @@ export default defineConfig({
 		},
 		{
 			name: `pnpm workspace`,
-			files: [`pnpm-workspace.yaml`],
+			files: [`pnpm-workspace.yaml`, `pnpm-peer-compatibility.yaml`],
 			parse: yaml(),
 			validate: ajv({
 				schema: `https://www.schemastore.org/pnpm-workspace.json`,

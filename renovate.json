@@ -1,19 +1,5 @@
 {
 	"extends": ["config:recommended"],
-	"npm": {
-		"description": "Skip only the root workspace's peer-removal overrides until Renovate supports pnpm :peer selectors; preserve the recommended ignored directories and nested workspaces.",
-		"ignorePaths": [
-			"**/node_modules/**",
-			"**/bower_components/**",
-			"**/vendor/**",
-			"**/examples/**",
-			"**/__tests__/**",
-			"**/test/**",
-			"**/tests/**",
-			"**/__fixtures__/**",
-			"[p]npm-workspace.yaml"
-		]
-	},
 	"automerge": true,
 	"branchConcurrentLimit": 9,
 	"ignoreScripts": true,

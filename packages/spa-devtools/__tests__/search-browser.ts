@@ -155,7 +155,6 @@ try {
 			page.setDefaultTimeout(5_000)
 
 			const errors: string[] = []
-			let timing: { p95Ms: number; maxSliceMs: number } | undefined
 			page.on(`pageerror`, (error) => errors.push(error.message))
 			await page.goto(
 				`http://127.0.0.1:${(server.address() as AddressInfo).port}`,
@@ -276,14 +275,7 @@ try {
 				),
 				true,
 			)
-			report.history.push({
-				width,
-				views: [`transactions`, `timelines`],
-				timing,
-				evidence: await historyPage.evaluate(() =>
-					window.searchFixture.historyEvidence(),
-				),
-			})
+
 			assert.deepEqual(errors, [])
 			report.profiles.push({
 				width,
@@ -303,6 +295,7 @@ try {
 			viewport: { width, height: 900 },
 		})
 		const errors: string[] = []
+		let timing: { p95Ms: number; maxSliceMs: number } | undefined
 		historyPage.on(`pageerror`, (error) => {
 			errors.push(error.message)
 			process.stderr.write(`${error.stack}\n`)
@@ -400,6 +393,14 @@ try {
 			)
 			timing = { p95Ms: p95, maxSliceMs: chunks }
 		}
+		report.history.push({
+			width,
+			views: [`transactions`, `timelines`],
+			timing,
+			evidence: await historyPage.evaluate(() =>
+				window.searchFixture.historyEvidence(),
+			),
+		})
 		assert.deepEqual(errors, [])
 		await historyPage.close()
 	}

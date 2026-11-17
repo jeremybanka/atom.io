@@ -60,12 +60,16 @@ try {
 	const context = await browser.newContext({
 		viewport: { width: 1440, height: 900 },
 		colorScheme: `dark`,
+		hasTouch: true,
 	})
 	if (!strictPerformance)
 		await context.tracing.start({ screenshots: true, snapshots: true })
 	const page = await context.newPage(),
 		errors: string[] = []
-	page.on(`pageerror`, (error) => errors.push(error.message))
+	page.on(`pageerror`, (error) => {
+		errors.push(error.message)
+		process.stderr.write(`${error.stack}\n`)
+	})
 	await page.goto(`http://127.0.0.1:${(server.address() as AddressInfo).port}`)
 	const ready = async () => {
 		await page.waitForFunction(
@@ -75,21 +79,67 @@ try {
 		)
 	}
 	const choose = async (id: string) => {
-		await page.locator(`g[data-graph-id]`).evaluateAll((nodes, target) => {
-			const node = nodes.find((item) => item.dataset[`graphId`] === target)
-			if (!node) throw new Error(`Missing node`)
-			assertPresent(node)
-			node.dispatchEvent(new MouseEvent(`click`, { bubbles: true }))
-			function assertPresent(value: unknown): asserts value {
-				if (!value) throw new Error(`Missing graph node ${target}`)
-			}
-		}, id)
+		await page
+			.locator(`ecology-node-card > button[data-graph-id]`)
+			.evaluateAll((nodes, target) => {
+				const node = nodes.find((item) => item.dataset[`graphId`] === target)
+				if (!node) throw new Error(`Missing node`)
+				assertPresent(node)
+				node.dispatchEvent(new MouseEvent(`click`, { bubbles: true }))
+				function assertPresent(value: unknown): asserts value {
+					if (!value) throw new Error(`Missing graph node ${target}`)
+				}
+			}, id)
 	}
 	await ready()
 	assert.equal(
 		await page.locator(`ecology-view nav[data-workspace]`).isVisible(),
 		false,
 	)
+	const scene = page.locator(`ecology-scene`)
+	await page.waitForFunction(() =>
+		Boolean(
+			document.querySelector<HTMLElement>(`ecology-scene`)!.dataset[`camera`],
+		),
+	)
+	assert.equal(await scene.getAttribute(`data-unavailable`), `false`)
+	const camera = () => scene.getAttribute(`data-camera`)
+	const pose = await camera(),
+		bounds = (await scene.boundingBox())!
+	await page.mouse.move(bounds.x + 15, bounds.y + 15)
+	await page.mouse.down()
+	await page.mouse.move(bounds.x + 65, bounds.y + 40, { steps: 5 })
+	await page.mouse.up()
+	assert.notEqual(await camera(), pose, `Mouse drag must orbit`)
+	const orbited = await camera()
+	await page.mouse.down({ button: `right` })
+	await page.mouse.move(bounds.x + 110, bounds.y + 70, { steps: 5 })
+	await page.mouse.up({ button: `right` })
+	assert.notEqual(await camera(), orbited, `Right drag must pan`)
+	const panned = await camera()
+	await page.mouse.wheel(0, -160)
+	await page.waitForFunction(
+		(previous) =>
+			document.querySelector<HTMLElement>(`ecology-scene`)!.dataset[`camera`] !==
+			previous,
+		panned,
+	)
+	const transforms = await page
+		.locator(`ecology-node-card`)
+		.evaluateAll((cards) =>
+			cards
+				.filter((card) => (card as HTMLElement).style.display !== `none`)
+				.map((card) => (card as HTMLElement).style.transform),
+		)
+	assert.ok(
+		transforms.every(
+			(transform) =>
+				transform.includes(`translate`) &&
+				!/rotate\((?!0rad)|matrix3d/.test(transform),
+		),
+		`DOM cards must face the viewer`,
+	)
+	await page.getByRole(`button`, { name: `Reset view`, exact: true }).click()
 	const before = await page.evaluate(() => window.ecologyFixture.evidence())
 	await page.getByRole(`searchbox`, { name: `Search ecology` }).fill(`dormant`)
 	await ready()
@@ -116,7 +166,7 @@ try {
 		.locator(`ecology-view`)
 		.getAttribute(`data-snapshot-ms`)
 	await page.getByRole(`button`, { name: `Pan right`, exact: true }).click()
-	const pan = await page.locator(`[data-world]`).getAttribute(`transform`)
+	const pan = await page.locator(`ecology-scene`).getAttribute(`data-camera`)
 	await rankedInput.fill(`ｄｏｒｍａｎｔ`)
 	await ready()
 	assert.equal(
@@ -144,7 +194,10 @@ try {
 		await rankedInput.evaluate((node) => node === document.activeElement),
 		true,
 	)
-	assert.equal(await page.locator(`[data-world]`).getAttribute(`transform`), pan)
+	assert.notEqual(
+		await page.locator(`ecology-scene`).getAttribute(`data-camera`),
+		pan,
+	)
 	assert.equal(
 		await page.locator(`ecology-view`).getAttribute(`data-snapshot-ms`),
 		captured,
@@ -153,6 +206,10 @@ try {
 	await page.getByRole(`searchbox`, { name: `Search ecology` }).fill(``)
 	await ready()
 	await choose(`family:items`)
+	await page
+		.getByRole(`button`, { name: `Collapse family`, exact: true })
+		.click()
+	await ready()
 	await page.getByRole(`button`, { name: `Expand family`, exact: true }).click()
 	await ready()
 	await page
@@ -183,11 +240,11 @@ try {
 	assert.match(await page.locator(`ecology-body > aside`).innerText(), /price/)
 	await page.screenshot({ path: resolvePath(artifacts, `small-traced.png`) })
 	const positions = await page
-		.locator(`g[data-graph-id]`)
+		.locator(`ecology-node-card > button[data-graph-id]`)
 		.evaluateAll((nodes) =>
 			nodes.map((node) => [
 				node.dataset[`graphId`],
-				node.getAttribute(`transform`),
+				node.closest(`ecology-node-card`)!.getAttribute(`data-position`),
 			]),
 		)
 	await page.evaluate(() => {
@@ -197,11 +254,11 @@ try {
 	await ready()
 	assert.deepEqual(
 		await page
-			.locator(`g[data-graph-id]`)
+			.locator(`ecology-node-card > button[data-graph-id]`)
 			.evaluateAll((nodes) =>
 				nodes.map((node) => [
 					node.dataset[`graphId`],
-					node.getAttribute(`transform`),
+					node.closest(`ecology-node-card`)!.getAttribute(`data-position`),
 				]),
 			),
 		positions,
@@ -285,11 +342,54 @@ try {
 	await page.getByRole(`button`, { name: `Open debugger`, exact: true }).click()
 	await ready()
 	await page.setViewportSize({ width: 390, height: 844 })
+	await page.waitForFunction(
+		() =>
+			getComputedStyle(
+				document.querySelector(`ecology-view nav[data-workspace]`)!,
+			).display !== `none`,
+	)
 	assert.equal(
 		await page.locator(`ecology-view nav[data-workspace]`).isVisible(),
 		true,
 	)
 	await page.screenshot({ path: resolvePath(artifacts, `narrow.png`) })
+	await page.getByRole(`button`, { name: `Graph`, exact: true }).click()
+	const touch = await context.newCDPSession(page),
+		box = (await scene.boundingBox())!
+	const touchPose = await camera()
+	await touch.send(`Input.dispatchTouchEvent`, {
+		type: `touchStart`,
+		touchPoints: [{ x: box.x + 20, y: box.y + 30 }],
+	})
+	await touch.send(`Input.dispatchTouchEvent`, {
+		type: `touchMove`,
+		touchPoints: [{ x: box.x + 75, y: box.y + 60 }],
+	})
+	await touch.send(`Input.dispatchTouchEvent`, {
+		type: `touchEnd`,
+		touchPoints: [],
+	})
+	assert.notEqual(await camera(), touchPose, `One finger must orbit`)
+	const pinchPose = await camera()
+	await touch.send(`Input.dispatchTouchEvent`, {
+		type: `touchStart`,
+		touchPoints: [
+			{ x: box.x + 70, y: box.y + 100, id: 1 },
+			{ x: box.x + 200, y: box.y + 100, id: 2 },
+		],
+	})
+	await touch.send(`Input.dispatchTouchEvent`, {
+		type: `touchMove`,
+		touchPoints: [
+			{ x: box.x + 40, y: box.y + 130, id: 1 },
+			{ x: box.x + 250, y: box.y + 130, id: 2 },
+		],
+	})
+	await touch.send(`Input.dispatchTouchEvent`, {
+		type: `touchEnd`,
+		touchPoints: [],
+	})
+	assert.notEqual(await camera(), pinchPose, `Two fingers must dolly and pan`)
 	await page.setViewportSize({ width: 1440, height: 900 })
 	await page.evaluate(() => {
 		window.ecologyFixture.mount(`empty`)
@@ -347,8 +447,15 @@ try {
 		notice: document.querySelector<HTMLElement>(`ecology-view [data-notice]`)!
 			.textContent,
 	}))
-	assert.equal(await page.locator(`g[data-graph-id]`).count(), 500)
-	assert.equal(await page.locator(`[data-edge]`).count(), 1_000)
+	assert.equal(
+		await page.locator(`ecology-node-card > button[data-graph-id]`).count(),
+		500,
+	)
+	await page.waitForFunction(
+		() =>
+			document.querySelector<HTMLElement>(`ecology-scene`)!.dataset[`edges`] ===
+			`1000`,
+	)
 	await page.screenshot({ path: resolvePath(artifacts, `large.png`) })
 	await page.evaluate(() => performance.mark(`s4-overview-end`))
 	const search = [],
@@ -388,7 +495,9 @@ try {
 				await new Promise(requestAnimationFrame)
 				const searched = performance.now()
 				document
-					.querySelector<SVGGElement>(`g[data-graph-id]`)!
+					.querySelector<HTMLElement>(
+						`ecology-node-card > button[data-graph-id]`,
+					)!
 					.dispatchEvent(new MouseEvent(`click`, { bubbles: true }))
 				await new Promise(requestAnimationFrame)
 				return {
@@ -517,6 +626,43 @@ try {
 	reportPerformanceTarget(`ecology overview`, overview.overviewMs, 500)
 	reportPerformanceTarget(`ecology search p95`, report.searchP95Ms, 100)
 	reportPerformanceTarget(`ecology selection p95`, report.selectionP95Ms, 100)
+	const fallback = await context.newPage(),
+		fallbackErrors: string[] = []
+	fallback.on(`pageerror`, (error) => fallbackErrors.push(error.message))
+	await fallback.addInitScript(() => {
+		Object.defineProperty(HTMLCanvasElement.prototype, `getContext`, {
+			value: () => null,
+		})
+	})
+	await fallback.goto(
+		`http://127.0.0.1:${(server.address() as AddressInfo).port}`,
+	)
+	await fallback.waitForSelector(
+		`ecology-view[data-ready="true"] ecology-scene[data-unavailable="true"]`,
+	)
+	assert.match(
+		await fallback.locator(`ecology-scene`).innerText(),
+		/accessible node list/,
+	)
+	await fallback.screenshot({
+		path: resolvePath(artifacts, `webgl-unavailable.png`),
+	})
+	await fallback.setViewportSize({ width: 390, height: 844 })
+	await fallback.getByRole(`button`, { name: `Node list`, exact: true }).click()
+	await fallback.locator(`ecology-map ul button`).first().click()
+	assert.match(
+		await fallback.locator(`ecology-body > aside`).innerText(),
+		/cached|unknown/,
+	)
+	assert.equal(
+		await fallback.evaluate(() => window.ecologyFixture.timings().reads),
+		0,
+	)
+	assert.deepEqual(fallbackErrors, [])
+	await fallback.screenshot({
+		path: resolvePath(artifacts, `webgl-unavailable-narrow.png`),
+	})
+	await fallback.close()
 	if (!strictPerformance)
 		await context.tracing.stop({ path: resolvePath(artifacts, `trace.zip`) })
 	await context.close()

@@ -5,6 +5,8 @@ import { deposit } from "atom.io/internal"
 
 import { createEcologyController } from "./ecology-controller.ts"
 import type { GraphContext, GraphModel } from "./ecology-graph.ts"
+import type { EcologyLine } from "./ecology-lines.ts"
+import { type CameraCommand, EcologyScene } from "./EcologyScene.tsx"
 import css from "./EcologyView.module.css"
 import { HighlightedText } from "./HighlightedText.tsx"
 import type { SearchHit } from "./search.ts"
@@ -13,11 +15,9 @@ import { type Tools, usePresentation, useSlotPages } from "./store.ts"
 
 export interface EcologyPresentation {
 	cardSlots: number
-	edgeSlots: number
 	visibleCards: number
-	visibleEdges: number
 	cards: GraphModel[`items`]
-	edges: { path: string; traced: boolean }[]
+	edges: EcologyLine[]
 	selected?: GraphModel[`items`][number] | undefined
 	selectionOutside: boolean
 	counts: string
@@ -27,7 +27,7 @@ export interface EcologyPresentation {
 	hits: SearchHit[]
 	busy: boolean
 	workspace: string
-	pan: GraphContext[`pan`]
+	cameraCommand: CameraCommand
 	traced: Set<string>
 	expanded: Set<string>
 	traceStatus: string
@@ -46,9 +46,7 @@ export function EcologyView(props: {
 	const presentation = usePresentation<EcologyPresentation>(props.tools.store, {
 		selectionOutside: false,
 		cardSlots: 0,
-		edgeSlots: 0,
 		visibleCards: 0,
-		visibleEdges: 0,
 		cards: [],
 		edges: [],
 		selected: undefined,
@@ -60,7 +58,7 @@ export function EcologyView(props: {
 		hits: [],
 		busy: false,
 		workspace: `graph`,
-		pan: props.context.pan,
+		cameraCommand: { sequence: 0, action: `fit` },
 		traced: new Set(),
 		expanded: new Set(),
 		traceStatus: `Not traced`,
@@ -77,13 +75,8 @@ export function EcologyView(props: {
 		props.tools.store,
 		500,
 	)
-	const edges = useSlotPages<EcologyPresentation[`edges`][number]>(
-		props.tools.store,
-		1000,
-	)
 	const publish = (patch: Partial<EcologyPresentation>) => {
 		if (patch.cards) cards.update(patch.cards, patch.visibleCards!)
-		if (patch.edges) edges.update(patch.edges, patch.visibleEdges!)
 		presentation.update(patch)
 	}
 	onMount(() => {
@@ -118,12 +111,6 @@ export function EcologyView(props: {
 			: undefined
 		return value ? deposit(value) : undefined
 	}
-	const traced = (item: GraphModel[`items`][number]) =>
-		`memberKeys` in item.source
-			? item.source.memberKeys.some((key) => state().traced.has(key))
-			: state().traced.has(item.key)
-	const caption = (text: string) =>
-		text.length > 23 ? `${text.slice(0, 22)}…` : text
 	return (
 		<ecology-view
 			class={css.class}
@@ -166,7 +153,7 @@ export function EcologyView(props: {
 					</summary>
 					<p data-notice>{state().notice}</p>
 					<p data-legend>
-						□ atom · ⬡ selector · dashed group: family · arrows: dependency →
+						Atom / selector cards · dashed group: family · arrows: dependency →
 						dependent · blue: traced path
 					</p>
 				</details>
@@ -239,83 +226,20 @@ export function EcologyView(props: {
 						<p data-empty role="status" hidden={!state().empty}>
 							{state().emptyText}
 						</p>
-						<svg role="group" aria-label="Observed dependency graph">
-							<defs>
-								<marker
-									id={marker}
-									markerWidth="8"
-									markerHeight="8"
-									refX="9"
-									refY="4"
-									markerUnits="userSpaceOnUse"
-									orient="auto"
-								>
-									<path d="M0 0 L8 4 L0 8 Z" fill="currentColor" />
-								</marker>
-							</defs>
-							<g
-								data-world
-								transform={`translate(${state().pan.x} ${state().pan.y}) scale(${state().pan.zoom})`}
-							>
-								<g data-edges>
-									{Array.from({ length: state().edgeSlots }, (_, index) => {
-										const edge = () => edges.value(index)
-										return (
-											<path
-												key={`${state().generation}:${index}`}
-												data-edge={edges.visible(index) ? true : undefined}
-												display={!edges.visible(index) ? `none` : undefined}
-												data-traced={
-													edges.visible(index) &&
-													state().traced.size > 0 &&
-													edge().traced
-												}
-												marker-end={`url(#${marker})`}
-												d={edge().path}
-											/>
-										)
-									})}
-								</g>
-								<g data-cards>
-									{Array.from({ length: state().cardSlots }, (_, index) => {
-										const item = () => cards.value(index)
-										return (
-											<g
-												key={`${state().generation}:${index}`}
-												data-node
-												display={!cards.visible(index) ? `none` : undefined}
-												data-kind={item().kind}
-												data-traced={cards.visible(index) && traced(item())}
-												data-graph-id={
-													cards.visible(index) ? item().id : undefined
-												}
-												role="button"
-												tabIndex={0}
-												aria-label={`${item().label} · ${item().detail}`}
-												aria-pressed={selected()?.id === item().id}
-												transform={`translate(${item().x} ${item().y})`}
-											>
-												<path
-													d={
-														item().kind === `selector`
-															? `M12 0 L164 0 L176 26 L164 52 L12 52 L0 26 Z`
-															: item().kind === `family`
-																? `M8 0 H168 Q176 0 176 8 V44 Q176 52 168 52 H8 Q0 52 0 44 V8 Q0 0 8 0 Z`
-																: `M0 0 H176 V52 H0 Z`
-													}
-												/>
-												<text x="10" y="20">
-													{caption(item().label)}
-												</text>
-												<text x="10" y="39">
-													{caption(item().detail)}
-												</text>
-											</g>
-										)
-									})}
-								</g>
-							</g>
-						</svg>
+						<EcologyScene
+							tools={props.tools}
+							context={props.context}
+							slots={state().cardSlots}
+							generation={state().generation}
+							card={cards.value}
+							visible={cards.visible}
+							items={state().cards.slice(0, state().visibleCards)}
+							edges={state().edges}
+							selected={selected()?.id}
+							traced={state().traced}
+							workspace={state().workspace}
+							command={state().cameraCommand}
+						/>
 						<details>
 							<summary>Accessible node list</summary>
 							<ul>

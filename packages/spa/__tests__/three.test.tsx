@@ -421,3 +421,93 @@ it(`borrows custom Mesh constructor resources and restores them after owned JSX 
 	geometry.dispose()
 	material.dispose()
 })
+
+it(`mounts batched lines, updates resources and disposes only owned geometry and materials`, async () => {
+	const { LineSegments, BufferGeometry, LineBasicMaterial } = await import(
+		`../src/three.ts`
+	)
+	const scene = new THREE.Scene(),
+		geometry = new THREE.BufferGeometry(),
+		material = new THREE.LineBasicMaterial()
+	let line!: THREE.LineSegments,
+		owned!: THREE.BufferGeometry,
+		ink!: THREE.LineBasicMaterial
+	const disposeBorrowed = vi.spyOn(geometry, `dispose`),
+		disposeBorrowedMaterial = vi.spyOn(material, `dispose`)
+	const root = threeRenderer.render(
+		() => (
+			<LineSegments
+				args={[geometry, material]}
+				frustumCulled={false}
+				ref={(value) => {
+					if (value) line = value
+				}}
+			>
+				<BufferGeometry
+					ref={(value) => {
+						if (value) owned = value
+					}}
+				/>
+				<LineBasicMaterial
+					color="#8298b0"
+					opacity={0.14}
+					transparent
+					ref={(value) => {
+						if (value) ink = value
+					}}
+				/>
+			</LineSegments>
+		),
+		scene,
+	)
+	expect(line.geometry).toBe(owned)
+	expect(line.material).toBe(ink)
+	expect(line.frustumCulled).toBe(false)
+	const dispose = vi.spyOn(owned, `dispose`),
+		disposeInk = vi.spyOn(ink, `dispose`)
+	root.dispose()
+	expect(dispose).toHaveBeenCalledOnce()
+	expect(disposeInk).toHaveBeenCalledOnce()
+	expect(disposeBorrowed).not.toHaveBeenCalled()
+	expect(disposeBorrowedMaterial).not.toHaveBeenCalled()
+	expect(scene.children).toHaveLength(0)
+	const parent = new THREE.LineSegments(geometry, material)
+	const attachment = threeRenderer.render(() => <BufferGeometry />, parent)
+	expect(parent.geometry).not.toBe(geometry)
+	attachment.dispose()
+	expect(parent.geometry).toBe(geometry)
+	expect(parent.material).toBe(material)
+	expect(disposeBorrowed).not.toHaveBeenCalled()
+	geometry.dispose()
+	material.dispose()
+	const implicit = threeRenderer.render(
+		() => (
+			<LineSegments
+				ref={(value) => {
+					if (value) line = value
+				}}
+			/>
+		),
+		scene,
+	)
+	const implicitGeometry = vi.spyOn(line.geometry, `dispose`),
+		implicitMaterial = vi.spyOn(line.material as THREE.Material, `dispose`)
+	implicit.dispose()
+	expect(implicitGeometry).toHaveBeenCalledOnce()
+	expect(implicitMaterial).toHaveBeenCalledOnce()
+})
+
+it(`rejects ambiguous line geometry attachments`, async () => {
+	const { LineSegments, BufferGeometry } = await import(`../src/three.ts`)
+	expect(() =>
+		threeRenderer.render(
+			() => (
+				<LineSegments>
+					<BufferGeometry />
+					<BufferGeometry />
+				</LineSegments>
+			),
+			new THREE.Scene(),
+		),
+	).toThrow(`each LineSegments accepts one geometry and one material`)
+})

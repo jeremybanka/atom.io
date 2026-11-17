@@ -1,14 +1,17 @@
 import type { EcologyFamily, EcologyNode, EcologySnapshot } from "./ecology.ts"
 import { scheduleTask } from "./task.ts"
 
-interface GraphItem {
+export interface GraphPosition {
+	x: number
+	y: number
+	z: number
+}
+export interface GraphItem extends GraphPosition {
 	id: string
 	key: string
 	kind: `atom` | `selector` | `family`
 	label: string
 	detail: string
-	x: number
-	y: number
 	source: EcologyNode | EcologyFamily
 }
 interface GraphEdge {
@@ -24,13 +27,16 @@ export interface GraphContext {
 	selected: string | null
 	trace: Set<string>
 	traceStatus: string
-	positions: Map<string, { x: number; y: number }>
-	nextSlot: number
-	pan: { x: number; y: number; zoom: number }
+	positions: Map<string, GraphPosition>
+	camera?: {
+		position: [number, number, number]
+		target: [number, number, number]
+	}
 }
 export interface GraphModel {
 	snapshot: EcologySnapshot
-	dependencyKeys: Set<string>
+	height: number
+	edgeIndex: Map<string, number[]>
 	items: GraphItem[]
 	edges: GraphEdge[]
 	all: Map<string, GraphItem>
@@ -49,81 +55,113 @@ export function createGraphContext(): GraphContext {
 		trace: new Set(),
 		traceStatus: `Not traced`,
 		positions: new Map(),
-		nextSlot: 0,
-		pan: { x: 0, y: 0, zoom: 1 },
 	}
 }
-const graphNodeId = (key: string): string => `state:${key}`
-const graphFamilyId = (key: string): string => `family:${key}`
 
-/** Every visited record yields, allowing the owner to budget/cancel projection as well as positioning. */
+/** Equal arc-length steps on two opposed helices. The cylinder and paths are mathematical only. */
+export function helixPosition(
+	slot: number,
+	selector: boolean,
+	height: number,
+): GraphPosition {
+	const angle = (slot * Math.PI) / 4 + (selector ? Math.PI : 0)
+	return {
+		x: 8 * Math.cos(angle),
+		y: selector ? -height / 2 + slot * 2 : height / 2 - slot * 2,
+		z: 8 * Math.sin(angle),
+	}
+}
+/** Fan out on the horizontal tangent, leaving the family card at its anchor. */
+export function familyPosition(
+	anchor: GraphPosition,
+	member: number,
+): GraphPosition {
+	const offset = (Math.floor(member / 2) + 1) * (member % 2 ? -1 : 1) * 12
+	return {
+		x: anchor.x - (anchor.z / 8) * offset,
+		y: anchor.y,
+		z: anchor.z + (anchor.x / 8) * offset,
+	}
+}
+
+/** Every visited record yields; cancellation never publishes partial positions. */
 export function* projectEcology(
 	snapshot: EcologySnapshot,
 	context: GraphContext,
 	matchedIds?: ReadonlySet<string>,
 	previous?: GraphModel,
 ): Generator<void, GraphModel> {
-	// Reuse detached metadata only within one capture; pending coordinates remain private until completion.
 	if (previous?.snapshot !== snapshot) previous = undefined
+	const familyIds = new Set<string>(),
+		totals = { atom: 0, selector: 0 }
+	for (const family of snapshot.families) {
+		familyIds.add(family.key)
+		totals[family.type.includes(`selector`) ? `selector` : `atom`]++
+		yield
+	}
+	if (!previous)
+		for (const node of snapshot.nodes) {
+			if (!node.family || !familyIds.has(node.family.key)) totals[node.kind]++
+			yield
+		}
+	const height =
+		previous?.height ??
+		Math.max(8, (Math.max(totals.atom, totals.selector) - 1) * 2)
+	const edgeIndex = previous?.edgeIndex ?? new Map<string, number[]>()
+	if (!previous)
+		for (let index = 0; index < snapshot.edges.length; index++) {
+			const key = snapshot.edges[index].selector
+			let indices = edgeIndex.get(key)
+			if (!indices) edgeIndex.set(key, (indices = []))
+			indices.push(index)
+			yield
+		}
 	let all = previous?.all ?? new Map<string, GraphItem>()
-	const painted = new Set<string>(),
-		mapped = new Map<string, string>(),
-		selectorIds = new Set<string>()
-	const filtered = Boolean(context.query.trim())
 	const items: GraphItem[] = [],
-		edges: GraphEdge[] = []
-	const pendingPositions = new Map<string, { x: number; y: number }>()
+		edges: GraphEdge[] = [],
+		painted = new Set<string>(),
+		mapped = new Map<string, string>()
+	const pendingPositions = new Map<string, GraphPosition>(),
+		slots = { atom: 0, selector: 0 }
 	let atoms = 0,
 		selectors = 0,
 		members = 0,
 		matching = 0,
 		newPositions = 0
-	const add = (
-		item: Omit<GraphItem, `x` | `y`> | GraphItem,
-		matches: boolean,
-	): void => {
-		const previousPosition = context.positions.get(item.id)
-		let positioned: GraphItem =
-			`x` in item
-				? item
-				: {
-						id: item.id,
-						key: item.key,
-						kind: item.kind,
-						label: item.label,
-						detail: item.detail,
-						source: item.source,
-						x: previousPosition?.x ?? 0,
-						y: previousPosition?.y ?? 0,
-					}
-		if (!previous) all.set(item.id, positioned)
+	const add = (item: GraphItem, matches: boolean) => {
+		if (all.get(item.id) !== item) {
+			if (all === previous?.all) all = new Map(all)
+			all.set(item.id, item)
+		}
 		if (!matches) return
 		matching++
 		if (items.length >= 500) {
 			if (item.id !== context.selected) return
 			const removed = items.pop()!
 			painted.delete(removed.id)
-			if (pendingPositions.delete(removed.id)) newPositions--
+			pendingPositions.delete(removed.id)
+			if (!context.positions.has(removed.id)) newPositions--
 		}
-		if (!previousPosition) {
-			// Position identity survives filtering and value-only refresh. No force simulation or recursive graph walk.
-			const slot = context.nextSlot + pendingPositions.size
-			positioned = {
-				...positioned,
-				x: 24 + (slot % 4) * 210,
-				y: 24 + Math.floor(slot / 4) * 82,
-			}
-			// Copy only when assigning a position, so cancellation never mutates the prior model.
-			if (all === previous?.all) all = new Map(all)
-			all.set(item.id, positioned)
-			pendingPositions.set(item.id, { x: positioned.x, y: positioned.y })
-			newPositions++
-		}
-		items.push(positioned)
+		if (!context.positions.has(item.id)) newPositions++
+		pendingPositions.set(
+			item.id,
+			context.positions.get(item.id) ?? { x: item.x, y: item.y, z: item.z },
+		)
+		items.push(item)
 		painted.add(item.id)
 	}
+	// A matching member retains its collapsed family. Search never silently changes expansion.
+	const matchingFamilies = new Set<string>()
+	if (matchedIds)
+		for (const node of snapshot.nodes) {
+			if (node.family && matchedIds.has(`state:${node.key}`))
+				matchingFamilies.add(node.family.key)
+			yield
+		}
 	for (const family of snapshot.families) {
-		const id = graphFamilyId(family.key)
+		const id = `family:${family.key}`,
+			lane = family.type.includes(`selector`) ? `selector` : `atom`
+		const position = helixPosition(slots[lane]++, lane === `selector`, height)
 		add(
 			previous?.all.get(id) ?? {
 				id,
@@ -132,72 +170,81 @@ export function* projectEcology(
 				label: family.key,
 				detail: `${family.type} · ${family.memberCount}${family.countComplete ? `` : `+`} members`,
 				source: family,
+				...position,
 			},
-			!matchedIds || matchedIds.has(id),
+			!matchedIds ||
+				matchedIds.has(id) ||
+				(!context.expanded.has(family.key) && matchingFamilies.has(family.key)),
 		)
 		yield
 	}
+	const memberSlots = new Map<string, number>(),
+		visibleSelectors: string[] = []
 	for (const node of snapshot.nodes) {
 		if (node.kind === `atom`) atoms++
 		else selectors++
 		if (node.family) members++
-		const id = graphNodeId(node.key)
-		const group = node.family ? graphFamilyId(node.family.key) : null
-		const visible =
-			!group ||
-			context.expanded.has(node.family!.key) ||
-			filtered ||
-			id === context.selected ||
-			!all.has(group)
-		add(
-			previous?.all.get(id) ?? {
-				id,
-				key: node.key,
-				kind: node.kind,
-				label: node.key,
-				detail: `${node.kind} · ${node.value.status === `cached` ? `cached ${node.value.type}` : `not cached / unknown`}`,
-				source: node,
-			},
-			visible && (!matchedIds || matchedIds.has(id)),
-		)
-		const target = visible ? id : group
+		const id = `state:${node.key}`,
+			group = node.family ? all.get(`family:${node.family.key}`) : undefined
+		const member = group ? (memberSlots.get(group.id) ?? 0) : 0
+		if (group) memberSlots.set(group.id, member + 1)
+		const expanded = !group || context.expanded.has(group.key)
+		const prior = previous?.all.get(id)
+		const position = group
+			? expanded
+				? familyPosition(group, member)
+				: group
+			: (prior ??
+				helixPosition(slots[node.kind]++, node.kind === `selector`, height))
+		const item =
+			prior &&
+			prior.x === position.x &&
+			prior.y === position.y &&
+			prior.z === position.z
+				? prior
+				: {
+						id,
+						key: node.key,
+						kind: node.kind,
+						label: node.key,
+						detail: `${node.kind} · ${node.value.status === `cached` ? `cached ${node.value.type}` : `not cached / unknown`}`,
+						source: node,
+						x: position.x,
+						y: position.y,
+						z: position.z,
+					}
+		add(item, expanded && (!matchedIds || matchedIds.has(id)))
+		const target = expanded ? id : group.id
 		if (painted.has(target)) {
 			mapped.set(node.key, target)
-			if (node.kind === `selector`) selectorIds.add(target)
+			if (node.kind === `selector`) visibleSelectors.push(node.key)
 		}
 		yield
 	}
-	const dependencyKeys = previous?.dependencyKeys ?? new Set<string>()
-	if (!previous)
-		for (const edge of snapshot.edges) {
-			dependencyKeys.add(edge.dependency)
+	// Query only captured adjacency for admitted selector endpoints; preserve capture order and parallel edges.
+	const candidates: number[] = []
+	for (const key of visibleSelectors) {
+		for (const index of edgeIndex.get(key) ?? []) {
+			candidates.push(index)
 			yield
 		}
-	const seen = new Map<string, GraphEdge>()
-	// Atom-only projections have no edge destinations. Once an untraced paint cap is full, later edges cannot affect it.
-	if (
-		items.length > 1 &&
-		items.some((item) => selectorIds.has(item.id)) &&
-		[...mapped.keys()].some((key) => dependencyKeys.has(key))
-	)
-		for (const edge of snapshot.edges) {
-			const from = mapped.get(edge.dependency),
-				to = mapped.get(edge.selector)
-			if (from && to && from !== to && painted.has(from) && painted.has(to)) {
-				const id = JSON.stringify([from, to])
-				const traced =
-					context.trace.has(edge.dependency) && context.trace.has(edge.selector)
-				const prior = seen.get(id)
-				if (prior) prior.traced ||= traced
-				else if (edges.length < 1_000) {
-					const link = { from, to, traced }
-					seen.set(id, link)
-					edges.push(link)
-				}
-			}
-			if (edges.length === 1_000 && context.trace.size === 0) break
-			yield
-		}
+		yield
+	}
+	candidates.sort((a, b) => a - b)
+	for (const index of candidates) {
+		const edge = snapshot.edges[index],
+			from = mapped.get(edge.dependency),
+			to = mapped.get(edge.selector)
+		if (from && to && painted.has(from) && painted.has(to))
+			edges.push({
+				from,
+				to,
+				traced:
+					context.trace.has(edge.dependency) && context.trace.has(edge.selector),
+			})
+		if (edges.length === 1_000) break
+		yield
+	}
 	const removed: string[] = []
 	for (const id of context.positions.keys()) {
 		if (!all.has(id)) removed.push(id)
@@ -206,8 +253,6 @@ export function* projectEcology(
 	for (const id of removed) context.positions.delete(id)
 	for (const [id, position] of pendingPositions)
 		context.positions.set(id, position)
-	context.nextSlot += pendingPositions.size
-	// Missing entries in a truncated capture are unknown, not evidence of disposal.
 	if (
 		context.selected &&
 		!all.has(context.selected) &&
@@ -220,7 +265,8 @@ export function* projectEcology(
 	}
 	return {
 		snapshot,
-		dependencyKeys,
+		height,
+		edgeIndex,
 		items,
 		edges,
 		all,
@@ -270,25 +316,4 @@ export function scheduleGraph<T>(
 		cancel()
 		iterator.return(undefined as T)
 	}
-}
-
-/** Route between outward-facing card ports so arrowheads never terminate underneath a card. */
-export function graphEdgePath(
-	from: { x: number; y: number },
-	to: { x: number; y: number },
-): string {
-	const dx = to.x - from.x,
-		dy = to.y - from.y
-	if (Math.abs(dx) >= Math.abs(dy)) {
-		const direction = dx >= 0 ? 1 : -1
-		const startX = from.x + (direction > 0 ? 176 : 0),
-			endX = to.x + (direction > 0 ? 0 : 176)
-		const bend = Math.max(24, Math.abs(endX - startX) / 2)
-		return `M${startX} ${from.y + 26} C${startX + direction * bend} ${from.y + 26} ${endX - direction * bend} ${to.y + 26} ${endX} ${to.y + 26}`
-	}
-	const direction = dy > 0 ? 1 : -1
-	const startY = from.y + (direction > 0 ? 52 : 0),
-		endY = to.y + (direction > 0 ? 0 : 52)
-	const bend = Math.max(24, Math.abs(endY - startY) / 2)
-	return `M${from.x + 88} ${startY} C${from.x + 88} ${startY + direction * bend} ${to.x + 88} ${endY - direction * bend} ${to.x + 88} ${endY}`
 }

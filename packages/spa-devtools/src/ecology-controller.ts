@@ -2,7 +2,7 @@ import type { RootStore } from "atom.io/internal"
 
 import { captureEcologySnapshot, traceEcologyRoots } from "./ecology.ts"
 import type { GraphContext, GraphModel } from "./ecology-graph.ts"
-import { graphEdgePath, projectEcology, scheduleGraph } from "./ecology-graph.ts"
+import { projectEcology, scheduleGraph } from "./ecology-graph.ts"
 import { indexEcologySearch } from "./ecology-search.ts"
 import type { EcologyPresentation } from "./EcologyView.tsx"
 import { matchStateSearch, type SearchIndex } from "./search.ts"
@@ -48,7 +48,6 @@ export function createEcologyController(
 		store.writableSelectors.get(key)
 	input.value = context.query
 	const inspector = host.querySelector<HTMLElement>(`ecology-body > aside`)!
-	const svg = host.querySelector<SVGSVGElement>(`svg`)!
 	const list = host.querySelector<HTMLElement>(`ecology-map ul`)!
 	const map = host.querySelector<HTMLElement>(`ecology-map`)!
 	const compact = () => panel.clientWidth > 0 && panel.clientWidth <= 650
@@ -65,13 +64,19 @@ export function createEcologyController(
 		workspaceView(`selection`)
 	}
 	let cards: EcologyPresentation[`cards`] = [],
-		edges: EcologyPresentation[`edges`] = [],
 		generation = 0
 	let model: GraphModel | undefined,
 		cancel = () => {},
 		jobs = 0
-	const transform = () => {
-		update({ pan: { ...context.pan } })
+	let cameraSequence = 0
+	const camera = (action: string, target?: string) => {
+		update({
+			cameraCommand: {
+				sequence: ++cameraSequence,
+				action,
+				...(target ? { target } : {}),
+			},
+		})
 	}
 	const session = createSearchSession(
 		panel,
@@ -109,6 +114,9 @@ export function createEcologyController(
 		passive()
 		if (!navigate && compact()) focusSelection()
 		if (navigate) {
+			const item = model?.all.get(id)
+			if (item && `family` in item.source && item.source.family)
+				context.expanded.add(item.source.family.key)
 			reveal = id
 			project()
 		}
@@ -142,18 +150,17 @@ export function createEcologyController(
 				: `Observed snapshot ${context.capturedAt}. Paint cap: 500 nodes / 1,000 edges. Search to narrow; expand families for members.`
 		// Retain bounded slots within this capture; SPA owns their nodes and hidden state.
 		cards = value.items.concat(cards.slice(value.items.length))
-		edges = value.edges
-			.map((edge) => ({
-				path: graphEdgePath(value.all.get(edge.from)!, value.all.get(edge.to)!),
+		const edges = value.edges.map<EcologyPresentation[`edges`][number]>(
+			(edge) => ({
+				from: value.all.get(edge.from)!,
+				to: value.all.get(edge.to)!,
 				traced: edge.traced,
-			}))
-			.concat(edges.slice(value.edges.length))
+			}),
+		)
 		host.dataset[`retainedCards`] = String(cards.length)
 		update({
 			cardSlots: cards.length,
-			edgeSlots: edges.length,
 			visibleCards: value.items.length,
-			visibleEdges: value.edges.length,
 			cards,
 			edges,
 			generation,
@@ -168,11 +175,11 @@ export function createEcologyController(
 				? `No nodes match this search. Clear search to see the captured graph, or Refresh to recapture.`
 				: `No nodes in this capture. Refresh after your application creates state.`,
 		})
-		transform()
 		if (liveKey && definition(liveKey) !== liveDefinition) closeLive()
 		passive()
 		commitPaint = () => {
 			if (reveal) {
+				camera(`focus`, reveal)
 				const target = [
 					...list.querySelectorAll<HTMLButtonElement>(`button`),
 				].find((item) => item.dataset[`graphId`] === reveal)!
@@ -286,7 +293,6 @@ export function createEcologyController(
 		}
 		const start = performance.now()
 		cards = []
-		edges = []
 		generation++
 		context.snapshot = captureEcologySnapshot(store, {
 			maxNodes: 10_000,
@@ -368,31 +374,7 @@ export function createEcologyController(
 			return
 		}
 
-		if (name === `reset`) context.pan = { x: 0, y: 0, zoom: 1 }
-		if (name === `fit` && model?.items.length) {
-			const width = Math.max(...model.items.map((item) => item.x + 200)),
-				height = Math.max(...model.items.map((item) => item.y + 76))
-			context.pan = {
-				x: 0,
-				y: 0,
-				zoom: Math.max(
-					0.02,
-					Math.min(
-						(svg.clientWidth || 300) / width,
-						(svg.clientHeight || 300) / height,
-						1,
-					),
-				),
-			}
-		}
-		if (name === `left`) context.pan.x -= 80
-		if (name === `right`) context.pan.x += 80
-		if (name === `up`) context.pan.y -= 80
-		if (name === `down`) context.pan.y += 80
-		if (name === `in`) context.pan.zoom = Math.min(3, context.pan.zoom * 1.25)
-		if (name === `out`)
-			context.pan.zoom = Math.max(0.02, context.pan.zoom / 1.25)
-		transform()
+		camera(name)
 	}
 	const click = (event: Event) => {
 		const target = (event.target as Element).closest<HTMLElement>(
@@ -452,8 +434,7 @@ export function createEcologyController(
 			if (!busy) moveSearchFocus(event, results)
 			return
 		}
-		const id =
-			target.closest<HTMLElement>(`g[data-graph-id]`)?.dataset[`graphId`]
+		const id = target.closest<HTMLElement>(`[data-graph-id]`)?.dataset[`graphId`]
 		if (id && (event.key === `Enter` || event.key === ` `)) {
 			event.preventDefault()
 			select(id)
@@ -514,7 +495,6 @@ export function createEcologyController(
 			cancelMatch()
 			wait()
 			cards = []
-			edges = []
 			visibility.disconnect()
 			session.dispose()
 			cancel()

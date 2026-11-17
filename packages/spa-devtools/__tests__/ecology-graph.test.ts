@@ -3,7 +3,8 @@ import { afterEach, expect, it, vi } from "vitest"
 import type { EcologyNode, EcologySnapshot } from "../src/ecology.ts"
 import {
 	createGraphContext,
-	graphEdgePath,
+	familyPosition,
+	helixPosition,
 	projectEcology,
 	scheduleGraph,
 } from "../src/ecology-graph.ts"
@@ -81,14 +82,27 @@ it(`groups families, keeps zero definitions and namespaces group/member identiti
 	])
 	expect(model.edges).toEqual([
 		{ from: `family:items`, to: `state:sum`, traced: false },
+		{ from: `family:items`, to: `state:sum`, traced: false },
 	])
 	expect(model).toMatchObject({ atoms: 2, selectors: 1, members: 2 })
+	const point = (id: string) => {
+		const { x, y, z } = model.all.get(id)!
+		return [x, y, z]
+	}
+	expect(point(`state:a`)).toEqual(point(`family:items`))
+	expect(point(`state:b`)).toEqual(point(`family:items`))
 	context.trace = new Set([`b`, `sum`])
 	model = drain(projectEcology(withFamilies, context))
-	expect(model.edges[0].traced).toBe(true)
+	expect(model.edges[1].traced).toBe(true)
 	context.expanded.add(`items`)
 	model = drain(projectEcology(withFamilies, context))
 	expect(model.items).toHaveLength(5)
+	expect(point(`state:a`)).not.toEqual(point(`state:b`))
+	const anchor = model.all.get(`family:items`)!,
+		member = model.all.get(`state:a`)!
+	expect(
+		(member.x - anchor.x) * anchor.x + (member.z - anchor.z) * anchor.z,
+	).toBeCloseTo(0)
 	expect(model.edges).toEqual([
 		{ from: `state:a`, to: `state:sum`, traced: false },
 		{ from: `state:b`, to: `state:sum`, traced: true },
@@ -115,7 +129,7 @@ it(`preserves geometry and context on value-only refresh and safely handles disp
 		first = snapshot([node(`a`), node(`s`, `selector`)])
 	context.selected = `state:s`
 	context.trace.add(`a`)
-	context.pan = { x: 80, y: 10, zoom: 2 }
+	context.camera = { position: [0, 0, 20], target: [0, 0, 0] }
 	const model = drain(projectEcology(first, context))
 	const positions = model.items.map(({ x, y }) => ({ x, y }))
 	const changed = {
@@ -129,7 +143,7 @@ it(`preserves geometry and context on value-only refresh and safely handles disp
 	expect(refreshed.newPositions).toBe(0)
 	expect(refreshed.items.map(({ x, y }) => ({ x, y }))).toEqual(positions)
 	expect(refreshed.items[0].detail).toContain(`cached string`)
-	expect(context.pan).toEqual({ x: 80, y: 10, zoom: 2 })
+	expect(context.camera).toEqual({ position: [0, 0, 20], target: [0, 0, 0] })
 	const partial = {
 		...snapshot(),
 		truncated: { nodes: true, families: true, relations: true },
@@ -253,8 +267,8 @@ it(`starts a new job without an explicit cancel callback and never overlaps posi
 	const later = drain(
 		projectEcology(snapshot([node(`b`), node(`c`), node(`d`)]), context),
 	)
-	expect(later.items[1].x).toBe(survivor.x)
-	expect(later.items[2].x).not.toBe(survivor.x)
+	expect(later.items[1].x).not.toBe(survivor.x)
+	expect(later.items[2].x).not.toBe(later.items[1].x)
 	// A scheduler may deliver synchronously; cancellation before it returns remains safe.
 	scheduleGraph(
 		projectEcology(snapshot(), createGraphContext()),
@@ -268,7 +282,16 @@ it(`starts a new job without an explicit cancel callback and never overlaps posi
 })
 
 it(`uses the browser timer scheduler and cancels it on disposal`, async () => {
-	vi.useFakeTimers()
+	vi.useFakeTimers({
+		toFake: [
+			`setTimeout`,
+			`clearTimeout`,
+			`setInterval`,
+			`clearInterval`,
+			`Date`,
+			`performance`,
+		],
+	})
 	const done = vi.fn()
 	scheduleGraph(projectEcology(snapshot(), createGraphContext()), done)
 	await vi.runAllTimersAsync()
@@ -282,30 +305,26 @@ it(`uses the browser timer scheduler and cancels it on disposal`, async () => {
 	expect(done).toHaveBeenCalledOnce()
 })
 
-it(`routes arrowheads onto facing card boundaries in every direction, including left and below destinations`, () => {
-	const origin = { x: 300, y: 300 }
-	for (const [to, start, end] of [
-		[{ x: 600, y: 300 }, [476, 326], [600, 326]],
-		[{ x: 0, y: 300 }, [300, 326], [176, 326]],
-		[{ x: 300, y: 600 }, [388, 352], [388, 600]],
-		[{ x: 300, y: 0 }, [388, 300], [388, 52]],
-		[{ x: 100, y: 400 }, [300, 326], [276, 426]],
-		[{ x: 300, y: 360 }, [388, 352], [388, 360]],
-		[{ x: 300, y: 240 }, [388, 300], [388, 292]],
-	] as const) {
-		const numbers = graphEdgePath(origin, to)
-			.match(/-?\d+(?:\.\d+)?/g)!
-			.map(Number)
-		expect(numbers.slice(0, 2)).toEqual(start)
-		expect(numbers.slice(-2)).toEqual(end)
-		// The final tangent approaches from outside the destination, never through its interior.
-		const [cx, cy, ex, ey] = numbers.slice(-4)
-		expect(cx <= to.x || cx >= to.x + 176 || cy <= to.y || cy >= to.y + 52).toBe(
-			true,
-		)
-		expect(
-			ex === to.x || ex === to.x + 176 || ey === to.y || ey === to.y + 52,
-		).toBe(true)
+it(`uses equal helical steps with opposite starts and vertical directions, and expands on the tangent`, () => {
+	const atom = helixPosition(0, false, 20),
+		selector = helixPosition(0, true, 20)
+	expect(atom).toEqual({ x: 8, y: 10, z: 0 })
+	expect(selector.x).toBeCloseTo(-8)
+	expect(selector.y).toBe(-10)
+	for (const lane of [false, true]) {
+		let distance = 0
+		for (let slot = 0; slot < 30; slot++) {
+			const a = helixPosition(slot, lane, 60),
+				b = helixPosition(slot + 1, lane, 60)
+			expect(Math.hypot(a.x, a.z)).toBeCloseTo(8)
+			expect(b.y - a.y).toBe(lane ? 2 : -2)
+			const next = Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z)
+			if (slot) expect(next).toBeCloseTo(distance)
+			distance = next
+			const member = familyPosition(a, slot)
+			expect((member.x - a.x) * a.x + (member.z - a.z) * a.z).toBeCloseTo(0)
+			expect(member.y).toBe(a.y)
+		}
 	}
 })
 

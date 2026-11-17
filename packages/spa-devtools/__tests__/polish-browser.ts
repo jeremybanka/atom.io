@@ -703,51 +703,27 @@ try {
 				await capture.evaluate((node: HTMLDetailsElement) => node.open),
 				false,
 			)
-			const arrows = await page
-				.locator(`path[data-edge]`)
-				.evaluateAll((paths: SVGPathElement[]) =>
-					paths.map((path) => {
-						const length = path.getTotalLength(),
-							end = path.getPointAtLength(length),
-							near = path.getPointAtLength(length - 3)
-						const cards = [
-							...document.querySelectorAll<SVGGElement>(`g[data-graph-id]`),
-						].map((card) => {
-							const t = card.transform.baseVal[0].matrix
-							return { x: t.e, y: t.f }
-						})
-						const target = cards.find(
-							(c) =>
-								((Math.abs(end.x - c.x) < 0.1 ||
-									Math.abs(end.x - c.x - 176) < 0.1) &&
-									end.y >= c.y &&
-									end.y <= c.y + 52) ||
-								((Math.abs(end.y - c.y) < 0.1 ||
-									Math.abs(end.y - c.y - 52) < 0.1) &&
-									end.x >= c.x &&
-									end.x <= c.x + 176),
-						)
-						return {
-							endpointAtCardBoundary: !!target,
-							approachOutsideCard:
-								!!target &&
-								!(
-									near.x > target.x &&
-									near.x < target.x + 176 &&
-									near.y > target.y &&
-									near.y < target.y + 52
-								),
-						}
-					}),
+			if (!baseline) {
+				await page.waitForFunction(
+					() =>
+						Number(
+							document.querySelector<HTMLElement>(`ecology-scene`)?.dataset[
+								`edges`
+							],
+						) >= 3,
 				)
-			if (!baseline)
-				assert.ok(
-					arrows.length >= 3 &&
-						arrows.every(
-							(a) => a.endpointAtCardBoundary && a.approachOutsideCard,
-						),
-					`Arrowhead must approach from outside its destination: ${JSON.stringify(arrows)}`,
+				assert.equal(
+					await page.locator(`ecology-scene canvas`).isVisible(),
+					true,
 				)
+				assert.equal(
+					await page.locator(`ecology-scene`).getAttribute(`data-unavailable`),
+					`false`,
+				)
+			}
+			const edgeCount = baseline
+				? null
+				: await page.locator(`ecology-scene`).getAttribute(`data-edges`)
 			await page.screenshot({
 				path: resolve(artifacts, `${theme}-${name}-arrows.png`),
 			})
@@ -780,7 +756,7 @@ try {
 				shortWidth: short,
 				longWidth: long,
 				...measurement,
-				arrows,
+				edges: edgeCount,
 				longFields,
 				visual,
 			})

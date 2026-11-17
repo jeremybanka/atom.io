@@ -1,0 +1,49 @@
+ecology-scene.class {
+	& {
+		display: block;
+		position: relative;
+		flex: 1;
+		min-height: 180px;
+		overflow: hidden;
+		isolation: isolate;
+		touch-action: none;
+	}
+	> canvas, > ecology-labels {
+		position: absolute;
+		inset: 0;
+	}
+	> canvas {
+		display: block;
+		pointer-events: none;
+	}
+	> ecology-labels {
+		pointer-events: none;
+	}
+	> ecology-labels[hidden] {
+		display: none;
+	}
+	> p {
+		position: absolute;
+		z-index: 1001;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		padding: 4px 6px;
+		background: var(--surface-content);
+		color: var(--ink-muted);
+		font-size: 10px;
+		line-height: 14px;
+		pointer-events: none;
+	}
+	&[data-unavailable="true"] > p {
+		top: 0;
+		bottom: auto;
+		font-size: 12px;
+		padding: 12px;
+	}
+	@container atom-io-devtools (max-width: 650px) {
+		&[data-workspace="list"] {
+			display: none;
+		}
+	}
+}

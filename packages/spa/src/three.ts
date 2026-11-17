@@ -42,6 +42,9 @@ export interface ObjectProps<N extends THREE.Object3D = THREE.Object3D>
 const constructors = {
 	Group: THREE.Group,
 	Mesh: THREE.Mesh,
+	LineSegments: THREE.LineSegments,
+	BufferGeometry: THREE.BufferGeometry,
+	LineBasicMaterial: THREE.LineBasicMaterial,
 	PerspectiveCamera: THREE.PerspectiveCamera,
 	AmbientLight: THREE.AmbientLight,
 	DirectionalLight: THREE.DirectionalLight,
@@ -52,8 +55,8 @@ const constructors = {
 	MeshBasicMaterial: THREE.MeshBasicMaterial,
 	MeshNormalMaterial: THREE.MeshNormalMaterial,
 }
-const meshDefaults = new WeakMap<
-	THREE.Mesh,
+const drawableDefaults = new WeakMap<
+	THREE.Mesh | THREE.LineSegments,
 	{
 		geometry: THREE.BufferGeometry
 		material: THREE.Material | THREE.Material[]
@@ -61,8 +64,8 @@ const meshDefaults = new WeakMap<
 		ownsMaterial: boolean
 	}
 >()
-const borrowedMeshDefaults = new WeakMap<
-	THREE.Mesh,
+const borrowedDrawableDefaults = new WeakMap<
+	THREE.Mesh | THREE.LineSegments,
 	{
 		geometry: THREE.BufferGeometry
 		material: THREE.Material | THREE.Material[]
@@ -113,9 +116,9 @@ const renderer = createSceneRenderer<Resource>({
 		const Constructor = constructors[type as keyof typeof constructors]
 		if (!Constructor) throw new Error(`spa/three: unknown node ${type}`)
 		const node = new (Constructor as any)(...(props[`args`] ?? [])) as Resource
-		// Mesh's implicit resources are replaced by owned JSX resources below.
-		if (node instanceof THREE.Mesh)
-			meshDefaults.set(node, {
+		// Drawables' implicit resources are replaced by owned JSX resources below.
+		if (node instanceof THREE.Mesh || node instanceof THREE.LineSegments)
+			drawableDefaults.set(node, {
 				geometry: node.geometry,
 				material: node.material,
 				ownsGeometry: props[`args`]?.[0] === undefined,
@@ -198,9 +201,14 @@ const renderer = createSceneRenderer<Resource>({
 		const resources = children.filter(
 			(child) => !(child instanceof THREE.Object3D),
 		)
-		if (resources.length && !(parent instanceof THREE.Mesh))
-			throw new Error(`spa/three: geometry and material require a Mesh parent`)
-		if (parent instanceof THREE.Mesh) {
+		if (
+			resources.length &&
+			!(parent instanceof THREE.Mesh || parent instanceof THREE.LineSegments)
+		)
+			throw new Error(
+				`spa/three: geometry and material require a Mesh or LineSegments parent`,
+			)
+		if (parent instanceof THREE.Mesh || parent instanceof THREE.LineSegments) {
 			const geometries = resources.filter(
 				(child) => child instanceof THREE.BufferGeometry,
 			)
@@ -215,13 +223,13 @@ const renderer = createSceneRenderer<Resource>({
 			)
 			if (activeGeometries.length > 1 || activeMaterials.length > 1)
 				throw new Error(
-					`spa/three: each Mesh accepts one geometry and one material`,
+					`spa/three: each ${parent instanceof THREE.Mesh ? `Mesh` : `LineSegments`} accepts one geometry and one material`,
 				)
-			const owned = meshDefaults.get(parent)
-			let baseline = owned ?? borrowedMeshDefaults.get(parent)
+			const owned = drawableDefaults.get(parent)
+			let baseline = owned ?? borrowedDrawableDefaults.get(parent)
 			if (!baseline) {
 				baseline = { geometry: parent.geometry, material: parent.material }
-				borrowedMeshDefaults.set(parent, baseline)
+				borrowedDrawableDefaults.set(parent, baseline)
 			}
 			// Retention owns outgoing resources without occupying incoming attachment slots.
 			parent.geometry =
@@ -234,7 +242,8 @@ const renderer = createSceneRenderer<Resource>({
 				materials.find((material) => material === parent.material) ??
 				materials.at(-1) ??
 				baseline.material
-			if (!owned && children.length === 0) borrowedMeshDefaults.delete(parent)
+			if (!owned && children.length === 0)
+				borrowedDrawableDefaults.delete(parent)
 		}
 	},
 	destroy(node) {
@@ -244,8 +253,8 @@ const renderer = createSceneRenderer<Resource>({
 				forgetThree(node)
 			} finally {
 				node.removeFromParent()
-				if (node instanceof THREE.Mesh) {
-					const owned = meshDefaults.get(node)!
+				if (node instanceof THREE.Mesh || node instanceof THREE.LineSegments) {
+					const owned = drawableDefaults.get(node)!
 					if (owned.ownsGeometry) owned.geometry.dispose()
 					if (owned.ownsMaterial) (owned.material as THREE.Material).dispose()
 				}
@@ -287,12 +296,16 @@ export interface CanvasProps {
 	createRenderer?: (
 		options: THREE.WebGLRendererParameters,
 	) => THREE.WebGLRenderer
+	/** Handle renderer creation failure locally, for example by offering an accessible fallback. */
+	onError?: (error: unknown) => void
 	/** A fixed ratio, or a device-pixel-ratio clamp. Defaults to 1. */
 	dpr?: number | readonly [min: number, max: number]
 	/** Runs after sizing and scene mounting, before the first draw. May return cleanup. */
 	onCreated?: (state: CanvasState) => void | (() => void)
 	/** Supplied cameras keep their projection; update it explicitly here if desired. */
 	onResize?: (state: CanvasResizeState) => void
+	/** Skip an idle GPU draw. Frame callbacks and pointer updates still run. */
+	renderWhen?: () => boolean
 	onFrame?: (state: CanvasState & { delta: number; time: number }) => void
 }
 /** Browser-only scene boundary. The camera prop is borrowed and never disposed. */
@@ -304,9 +317,16 @@ export function Canvas(props: CanvasProps): SpaElement {
 			...props.rendererOptions,
 			canvas: canvas!,
 		}
-		const webgl = props.createRenderer
-			? props.createRenderer(parameters)
-			: new THREE.WebGLRenderer(parameters)
+		let webgl: THREE.WebGLRenderer
+		try {
+			webgl = props.createRenderer
+				? props.createRenderer(parameters)
+				: new THREE.WebGLRenderer(parameters)
+		} catch (error) {
+			if (!props.onError) throw error
+			props.onError(error)
+			return
+		}
 		onCleanup(() => {
 			webgl.dispose()
 		})
@@ -388,7 +408,9 @@ export function Canvas(props: CanvasProps): SpaElement {
 				const active = props.camera ?? camera
 				const delta = last === undefined ? 0 : (time - last) / 1000
 				last = time
-				if (isPresent(scope))
+				const present = isPresent(scope)
+				const draw = !present || (props.renderWhen?.() ?? true)
+				if (present)
 					props.onFrame?.({
 						scene,
 						camera: active,
@@ -397,7 +419,7 @@ export function Canvas(props: CanvasProps): SpaElement {
 						time: time / 1000,
 					})
 				events.update()
-				webgl.render(scene, active)
+				if (draw) webgl.render(scene, active)
 			}, true)
 		})
 	})
@@ -465,3 +487,19 @@ export const MeshNormalMaterial = sceneComponent<
 		}
 >(`MeshNormalMaterial`)
 export { renderer as threeRenderer }
+
+/** Batched line geometry, with the same attachment and ownership rules as Mesh. */
+export const LineSegments = sceneComponent<
+	ObjectProps<THREE.LineSegments> & {
+		args?: ConstructorParameters<typeof THREE.LineSegments>
+		frustumCulled?: boolean
+	}
+>(`LineSegments`)
+export const BufferGeometry = sceneComponent<{
+	ref?: (node: THREE.BufferGeometry | null) => void
+}>(`BufferGeometry`)
+export const LineBasicMaterial = sceneComponent<
+	THREE.LineBasicMaterialParameters & {
+		ref?: (node: THREE.LineBasicMaterial | null) => void
+	}
+>(`LineBasicMaterial`)

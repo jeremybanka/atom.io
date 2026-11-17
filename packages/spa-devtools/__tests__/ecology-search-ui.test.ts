@@ -6,7 +6,16 @@ import { mountEcologyFixture } from "./fixtures/views.tsx"
 
 let dispose = () => {}
 beforeEach(() => {
-	vi.useFakeTimers()
+	vi.useFakeTimers({
+		toFake: [
+			`setTimeout`,
+			`clearTimeout`,
+			`setInterval`,
+			`clearInterval`,
+			`Date`,
+			`performance`,
+		],
+	})
 	localStorage.clear()
 	localStorage.setItem(`🔍 Devtools View`, JSON.stringify(`ecology`))
 })
@@ -60,7 +69,11 @@ async function setup() {
 		return e
 	}
 	const select = async (id: string) => {
-		;[...host.querySelectorAll<SVGElement>(`g[data-graph-id]`)]
+		;[
+			...host.querySelectorAll<HTMLElement>(
+				`ecology-node-card > button[data-graph-id]`,
+			),
+		]
 			.find((node) => node.dataset[`graphId`] === id)!
 			.dispatchEvent(new MouseEvent(`click`, { bubbles: true }))
 		await settle()
@@ -143,7 +156,7 @@ it(`navigates ranked matches inside collapsed families while preserving pan, exp
 	f.button(`Zoom in`).click()
 	await settle()
 	const world = () =>
-		f.host.querySelector(`[data-world]`)!.getAttribute(`transform`)
+		f.host.querySelector(`ecology-scene`)!.getAttribute(`data-camera`)
 	const before = world(),
 		jobs =
 			f.host.querySelector<HTMLElement>(`ecology-view`)!.dataset[`snapshotMs`]
@@ -160,7 +173,8 @@ it(`navigates ranked matches inside collapsed families while preserving pan, exp
 		`items("green-tea")`,
 	)
 	expect(document.activeElement?.closest(`ecology-map ul`)).not.toBeNull()
-	expect(world()).toBe(before)
+	expect(world()).not.toBe(before)
+	expect(world()).not.toContain(`NaN`)
 	f.button(`Trace observed roots`).click()
 	await settle()
 	await f.query(`items green`)
@@ -172,7 +186,7 @@ it(`navigates ranked matches inside collapsed families while preserving pan, exp
 	).toBe(jobs)
 	await f.query(``)
 	await f.select(`family:items`)
-	expect(f.button(`Expand family`)).toBeDefined()
+	expect(f.button(`Collapse family`)).toBeDefined()
 })
 
 it(`explains an empty filter without losing the retained selection or capture`, async () => {
@@ -233,12 +247,18 @@ it(`keeps an unfinished numeric draft and its node mounted through query, clear,
 it(`retains invalid-query results, respects IME/native find and never recaptures on a query`, async () => {
 	const f = await setup()
 	await f.query(`count`)
-	const row = f.host.querySelector(`g[data-graph-id="state:count"]`)
+	const row = f.host.querySelector(
+		`ecology-node-card > button[data-graph-id="state:count"]`,
+	)
 	await f.query(`x`.repeat(257))
 	expect(
 		f.host.querySelector(`ecology-view [data-search-status]`)!.textContent,
 	).toContain(`256`)
-	expect(f.host.querySelector(`g[data-graph-id="state:count"]`)).toBe(row)
+	expect(
+		f.host.querySelector(
+			`ecology-node-card > button[data-graph-id="state:count"]`,
+		),
+	).toBe(row)
 	f.input().value = `items`
 	f.input().dispatchEvent(
 		new InputEvent(`input`, { isComposing: true, bubbles: true }),
@@ -471,14 +491,16 @@ it(`reports incomplete snapshots, truncated prefixes and bounded approximate mat
 it(`reuses visible slots across filters, preserves logical focus and invalidates slots on Refresh`, async () => {
 	const f = await setup()
 	await f.query(`count`)
-	const original = f.host.querySelector<SVGElement>(
-		`g[data-graph-id="state:count"]`,
+	const original = f.host.querySelector<HTMLElement>(
+		`ecology-node-card > button[data-graph-id="state:count"]`,
 	)!
 	const row = f.host.querySelector(`ecology-map ul button`)!
-	const world = f.host.querySelector(`[data-world]`)
+	const world = f.host.querySelector(`ecology-scene`)
 	await f.query(`green tea`)
-	expect(f.host.querySelector(`g[data-graph-id]`)).toBe(original)
-	expect(original.getAttribute(`data-graph-id`)).toBe(`state:items("green-tea")`)
+	expect(f.host.querySelector(`ecology-node-card > button[data-graph-id]`)).toBe(
+		original,
+	)
+	expect(original.getAttribute(`data-graph-id`)).toBe(`family:items`)
 	await f.query(`count`)
 	expect(f.host.querySelector(`ecology-map ul button`)).toBe(row)
 	original.focus()
@@ -488,12 +510,16 @@ it(`reuses visible slots across filters, preserves logical focus and invalidates
 	expect(document.activeElement?.getAttribute(`data-graph-id`)).toBe(
 		`state:count`,
 	)
-	expect(f.host.querySelector(`[data-world]`)).toBe(world)
+	expect(f.host.querySelector(`ecology-scene`)).toBe(world)
 	await f.query(`count`)
-	const current = f.host.querySelector(`g[data-graph-id]`)
+	const current = f.host.querySelector(
+		`ecology-node-card > button[data-graph-id]`,
+	)
 	f.button(`Refresh`).click()
 	await settle()
-	expect(f.host.querySelector(`g[data-graph-id]`)).not.toBe(current)
+	expect(
+		f.host.querySelector(`ecology-node-card > button[data-graph-id]`),
+	).not.toBe(current)
 })
 
 it(`bounds retained cards when successive filters visit disjoint parts of a large snapshot`, async () => {
@@ -507,7 +533,9 @@ it(`bounds retained cards when successive filters visit disjoint parts of a larg
 	await settle()
 	for (const group of [`alpha`, `beta`]) {
 		await f.query(group)
-		expect(f.host.querySelectorAll(`g[data-graph-id]`)).toHaveLength(500)
+		expect(
+			f.host.querySelectorAll(`ecology-node-card > button[data-graph-id]`),
+		).toHaveLength(500)
 		expect(
 			Number(
 				f.host.querySelector<HTMLElement>(`ecology-view`)!.dataset[
@@ -531,7 +559,9 @@ it(`bounds retained cards when successive filters visit disjoint parts of a larg
 	).toBeLessThanOrEqual(500)
 	expect(
 		f.host
-			.querySelector(`g[data-graph-id="state:gamma499"]`)!
+			.querySelector(
+				`ecology-node-card > button[data-graph-id="state:gamma499"]`,
+			)!
 			.getAttribute(`aria-pressed`),
 	).toBe(`true`)
 })

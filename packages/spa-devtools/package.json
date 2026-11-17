@@ -58,6 +58,9 @@
 		"test:browser:throttled": "node __tests__/window-browser.ts --cpu-throttle=6 && node __tests__/ecology-browser.ts --cpu-throttle=6 && node __tests__/polish-browser.ts --cpu-throttle=6 && node __tests__/search-browser.ts --cpu-throttle=6",
 		"test:browser:peers": "pnpm --dir peer-environments/coordinated-react18 install --frozen-lockfile --ignore-scripts && pnpm --dir peer-environments/coordinated-react19 install --frozen-lockfile --ignore-scripts"
 	},
+	"dependencies": {
+		"three": "0.187.0"
+	},
 	"devDependencies": {
 		"@atom.io/react": "workspace:*",
 		"@atom.io/spa": "workspace:*",
@@ -66,6 +69,7 @@
 		"@types/node": "26.6.6",
 		"@types/react": "19.3.0",
 		"@types/react-dom": "19.3.0",
+		"@types/three": "0.187.0",
 		"@vitest/coverage-v8": "5.1.0",
 		"atom.io": "workspace:*",
 		"breakage": "0.10.2",
@@ -81,7 +85,7 @@
 	},
 	"peerDependencies": {
 		"@atom.io/react": "^0.2.1",
-		"@atom.io/spa": ">=0.0.5 <0.1.0",
+		"@atom.io/spa": ">=0.0.10 <0.1.0",
 		"@types/react": "^18.0.0 || ^19.0.0",
 		"atom.io": "^0.54.1",
 		"react": "^18.0.0 || ^19.0.0"

@@ -779,7 +779,7 @@ Konva owns hit testing, dragging, and draw batching. Write drag results back int
 
 ### Three.js
 
-Import Canvas, Group, Mesh, PerspectiveCamera, AmbientLight, DirectionalLight, BoxGeometry, SphereGeometry, PlaneGeometry, MeshStandardMaterial, MeshBasicMaterial, and MeshNormalMaterial from @atom.io/spa/three. Canvas creates a WebGL renderer after browser mounting. Geometry and material children attach to their Mesh, with one of each supported. Position and rotation accept three-number tuples; scale also accepts a scalar.
+Import Canvas, Group, Mesh, PerspectiveCamera, AmbientLight, DirectionalLight, BoxGeometry, SphereGeometry, PlaneGeometry, MeshStandardMaterial, MeshBasicMaterial, MeshNormalMaterial, LineSegments, BufferGeometry, and LineBasicMaterial from @atom.io/spa/three. Canvas creates a WebGL renderer after browser mounting. Geometry and material children attach to their Mesh or LineSegments, with one of each supported. Position and rotation accept three-number tuples; scale also accepts a scalar.
 
 ```tsx
 import type { SpaElement } from "@atom.io/spa"
@@ -811,11 +811,11 @@ export function Scene(): SpaElement {
 
 ```
 
-Mesh accepts optional constructor args typed from Three.js, including custom BufferGeometry and a Material or material array. Resources supplied in args are borrowed: their application owner disposes them after all consumers finish. JSX geometry/material children and implicit Mesh defaults remain renderer-owned. Constructor args are fixed for the mounted instance; use a new reconciliation key to replace them.
+Mesh and LineSegments accept optional constructor args typed from Three.js, including custom BufferGeometry and a Material or material array. Resources supplied in args are borrowed: their application owner disposes them after all consumers finish. JSX geometry/material children and implicit drawable defaults remain renderer-owned. Constructor args are fixed for the mounted instance; use a new reconciliation key to replace them.
 
 Constructor args are fixed for an instance. Change the resource's key to replace it with new constructor args. Refs expose native objects. Owned geometries and materials are disposed on removal; textures passed through material properties remain borrowed. Canvas stops drawing and disposes its renderer on removal. The exported threeRenderer renders into a borrowed parent dedicated to its children without creating a WebGL renderer.
 
-Canvas accepts rendererOptions for constructor-time settings such as alpha and powerPreference, or createRenderer to construct the renderer with the supplied canvas. Both paths are exclusively owned by Canvas: it disposes the renderer on removal or setup failure, and the factory must return a renderer using that canvas. Shared/borrowed renderers are not supported by this boundary; use threeRenderer for a separately owned renderer. Options and the factory are captured at mount; replace the keyed Canvas to reconstruct its context.
+Canvas accepts rendererOptions for constructor-time settings such as alpha and powerPreference, or createRenderer to construct the renderer with the supplied canvas. Both paths are exclusively owned by Canvas: it disposes the renderer on removal or setup failure, and the factory must return a renderer using that canvas. Shared/borrowed renderers are not supported by this boundary; use threeRenderer for a separately owned renderer. An optional onError callback handles renderer creation failures locally so an application can offer a fallback; later setup or frame errors still reach the owning error boundary. Options and the factory are captured at mount; replace the keyed Canvas to reconstruct its context.
 
 Use onCreated to configure tone mapping, output color space, scene background, or controls after the scene mounts and sizes, before the first draw. Return a cleanup callback for controls or other acquired resources. Numeric dpr selects a fixed positive ratio; a min/max tuple clamps devicePixelRatio and follows window resize events. The default remains 1. Width and height remain reactive positive CSS-pixel dimensions. Canvas updates its default perspective camera projection; supplied cameras are borrowed and retain their own projection. Use onResize to update an external perspective/orthographic camera explicitly. onFrame and pointer routing always use the current camera prop, with one frame loop using the installed Motion clock or requestAnimationFrame.
 
@@ -847,7 +847,7 @@ export function BoardCanvas(): SpaElement {
 
 ```
 
-Canvas defaults to a perspective camera at z = 5. Its optional camera prop borrows an external camera; a PerspectiveCamera child does not automatically become active. Width and height update the renderer and default camera. Canvas renders continuously and accepts an onFrame callback with scene, camera, renderer, delta seconds, and timestamp seconds. Controls, asset loading, and drawing on demand are outside this initial API.
+Canvas defaults to a perspective camera at z = 5. Its optional camera prop borrows an external camera; a PerspectiveCamera child does not automatically become active. Width and height update the renderer and default camera. Canvas renders continuously by default. A renderWhen predicate can skip idle GPU draws while frame callbacks and pointer updates continue; the caller makes it true when drawing is needed, and Canvas checks it before onFrame. Canvas accepts an onFrame callback with scene, camera, renderer, delta seconds, and timestamp seconds. Controls and asset loading remain application-owned.
 
 ### Three.js pointer events
 

@@ -34,6 +34,7 @@ export function reportPerformanceTarget(
 export async function launchBrowser(): Promise<Browser> {
 	const browser = await chromium.launch({
 		chromiumSandbox: true,
+		args: [`--use-angle=swiftshader`, `--enable-unsafe-swiftshader`],
 		...(process.env[`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`]
 			? { executablePath: process.env[`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`] }
 			: {}),

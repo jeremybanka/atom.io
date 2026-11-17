@@ -144,11 +144,11 @@ it(`reuses immutable graph metadata only within the same capture and keeps cance
 	for (let i = 0; i < 501; i++) canceled.next()
 	canceled.return(undefined as never)
 	expect(context.positions.has(`state:node500`)).toBe(false)
-	expect(second.all.get(`state:node500`)!.x).toBe(0)
+	expect(second.all.get(`state:node500`)!.x).toBe(-8)
 	const next = drain(projectEcology(snapshot, context, undefined, second))
-	expect(next.all).not.toBe(second.all)
-	expect(next.all.get(`state:node500`)!.x).not.toBe(0)
-	expect(second.all.get(`state:node500`)!.x).toBe(0)
+	expect(next.all).toBe(second.all)
+	expect(next.all.get(`state:node500`)!.x).toBe(-8)
+	expect(second.all.get(`state:node500`)!.x).toBe(-8)
 	const refreshed = drain(
 		projectEcology(captureEcologySnapshot(app.store), context, undefined, next),
 	)

@@ -8,6 +8,7 @@ const config = defineOurVitestConfig({
 	target: `src`,
 	test: {
 		include: [`__tests__/**/*.test.{ts,tsx}`],
+		setupFiles: [`__tests__/setup.ts`],
 		coverage: {
 			thresholds: { 100: true },
 			reporter: [`text`, `lcov`, `html`, `json`, `json-summary`],
@@ -17,6 +18,10 @@ const config = defineOurVitestConfig({
 config.root = import.meta.dirname
 config.plugins = [spa({ include: /\/spa-devtools\/.*\.tsx$/ })]
 config.resolve!.alias = [
+	{
+		find: /^@atom\.io\/spa\/(three|renderer)$/,
+		replacement: resolve(import.meta.dirname, `../spa/src/$1.ts`),
+	},
 	{
 		find: /^@atom\.io\/spa\/jsx(?:-dev)?-runtime$/,
 		replacement: resolve(import.meta.dirname, `../spa/src/jsx-runtime.ts`),

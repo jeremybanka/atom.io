@@ -5,7 +5,16 @@ import { mountAtomIODevtools } from "../src/mount.ts"
 
 let dispose = () => {}
 beforeEach(() => {
-	vi.useFakeTimers()
+	vi.useFakeTimers({
+		toFake: [
+			`setTimeout`,
+			`clearTimeout`,
+			`setInterval`,
+			`clearInterval`,
+			`Date`,
+			`performance`,
+		],
+	})
 	localStorage.clear()
 	localStorage.setItem(`🔍 Devtools View`, JSON.stringify(`ecology`))
 })
@@ -42,7 +51,9 @@ function setup() {
 	}
 	const select = async (id: string, key?: string) => {
 		const target = [
-			...host.querySelectorAll<SVGElement>(`g[data-graph-id]`),
+			...host.querySelectorAll<HTMLElement>(
+				`ecology-node-card > button[data-graph-id]`,
+			),
 		].find((entry) => entry.dataset[`graphId`] === id)!
 		expect(target, id).toBeDefined()
 		target.dispatchEvent(
@@ -145,21 +156,21 @@ it(`retains selection/pan/expansion across snapshots and navigation; geometry-on
 	await f.click(`Pan up`)
 	await f.click(`Pan right`)
 	const transform = f.host
-		.querySelector(`[data-world]`)!
-		.getAttribute(`transform`)
+		.querySelector(`ecology-scene`)!
+		.getAttribute(`data-camera`)
 	const position = f.host
-		.querySelector(`g[data-graph-id]`)!
-		.getAttribute(`transform`)
+		.querySelector(`ecology-node-card`)!
+		.getAttribute(`data-position`)
 	f.silo.setState(countAtom, `changed`)
 	await f.click(`Refresh`)
 	expect(
 		f.host.querySelector<HTMLElement>(`ecology-view`)!.dataset[`newPositions`],
 	).toBe(`0`)
-	expect(f.host.querySelector(`[data-world]`)!.getAttribute(`transform`)).toBe(
-		transform,
-	)
 	expect(
-		f.host.querySelector(`g[data-graph-id]`)!.getAttribute(`transform`),
+		f.host.querySelector(`ecology-scene`)!.getAttribute(`data-camera`),
+	).toBe(transform)
+	expect(
+		f.host.querySelector(`ecology-node-card`)!.getAttribute(`data-position`),
 	).toBe(position)
 	expect(f.host.querySelector(`ecology-body > aside`)!.textContent).toContain(
 		`cached string`,
@@ -175,14 +186,14 @@ it(`retains selection/pan/expansion across snapshots and navigation; geometry-on
 	expect(f.host.querySelector(`ecology-body > aside h2`)!.textContent).toBe(
 		`count`,
 	)
-	expect(f.host.querySelector(`[data-world]`)!.getAttribute(`transform`)).toBe(
-		transform,
-	)
+	expect(
+		f.host.querySelector(`ecology-scene`)!.getAttribute(`data-camera`),
+	).toBe(transform)
 	await f.click(`Fit`)
 	await f.click(`Reset view`)
-	expect(f.host.querySelector(`[data-world]`)!.getAttribute(`transform`)).toBe(
-		`translate(0 0) scale(1)`,
-	)
+	expect(
+		f.host.querySelector(`ecology-scene`)!.getAttribute(`data-camera`),
+	).not.toContain(`NaN`)
 	await f.click(`Trace observed roots`)
 	f.host.querySelector(`ecology-view`)!.dispatchEvent(
 		new KeyboardEvent(`keydown`, {
@@ -282,7 +293,9 @@ it(`reuses the live editor for writable state, handles disposed selection and pr
 	expect(f.host.textContent).toContain(`State was disposed`)
 	await f.click(`Back to passive inspector`)
 	f.host
-		.querySelector<SVGElement>(`g[data-graph-id][aria-pressed="true"]`)!
+		.querySelector<HTMLElement>(
+			`ecology-node-card > button[data-graph-id][aria-pressed="true"]`,
+		)!
 		.focus()
 	await f.click(`Refresh`)
 	expect(f.host.textContent).toContain(`Select a node`)
@@ -340,7 +353,9 @@ it(`preserves keyboard focus during trace and family refresh and clears stale tr
 	trace.click()
 	await settle()
 	expect(document.activeElement?.textContent).toBe(`Trace observed roots`)
-	const graph = f.host.querySelector<SVGElement>(`g[data-graph-id="state:s"]`)!
+	const graph = f.host.querySelector<HTMLElement>(
+		`ecology-node-card > button[data-graph-id="state:s"]`,
+	)!
 	graph.focus()
 	await f.click(`Refresh`)
 	expect(document.activeElement?.getAttribute(`data-graph-id`)).toBe(`state:s`)

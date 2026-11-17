@@ -194,35 +194,36 @@ export function useSlotPages<T>(
 	update(values: T[], visible: number): void
 } {
 	const pageSize = 50
-	const pages = Array.from({ length: Math.ceil(capacity / pageSize) }, () =>
-		useLocal<{ values: T[]; visible: number }>(store, {
-			values: [],
-			visible: 0,
-		}),
-	)
+	const pages = Array.from({ length: Math.ceil(capacity / pageSize) }, () => ({
+		payload: useLocal<T[]>(store, []),
+		shown: useLocal(store, 0),
+	}))
 	return {
 		value(index) {
-			return pages[Math.floor(index / pageSize)][0]().values[index % pageSize]
+			return pages[Math.floor(index / pageSize)].payload[0]()[index % pageSize]
 		},
 		visible(index) {
-			return index % pageSize < pages[Math.floor(index / pageSize)][0]().visible
+			return index % pageSize < pages[Math.floor(index / pageSize)].shown[0]()
 		},
 		update(values, visible) {
 			for (let page = 0; page < pages.length; page++) {
-				const [read, write] = pages[page]
+				const {
+					payload: [read, write],
+					shown: [readShown, writeShown],
+				} = pages[page]
 				const previous = read()
 				const start = page * pageSize
 				const admitted = values.slice(start, start + pageSize)
 				// Old slot bindings can run before a refreshed list removes them.
-				const next = admitted.concat(previous.values.slice(admitted.length))
+				const next = admitted.concat(previous.slice(admitted.length))
 				const shown = Math.min(pageSize, Math.max(0, visible - start))
+				// Hiding labels does not invalidate their unchanged text and metadata.
 				if (
-					previous.visible !== shown ||
-					previous.values.length !== next.length ||
-					next.some((value, index) => value !== previous.values[index])
-				) {
-					write({ values: next, visible: shown })
-				}
+					previous.length !== next.length ||
+					next.some((value, index) => value !== previous[index])
+				)
+					write(next)
+				if (readShown() !== shown) writeShown(shown)
 			}
 		},
 	}

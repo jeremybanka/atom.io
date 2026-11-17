@@ -47,20 +47,14 @@ ecology-view.class {
 		flex-shrink: 0;
 		background: var(--surface-inactive);
 	}
-	> ecology-search > ecology-body > ecology-map > svg {
-		width: 100%;
-		flex: 1;
-		min-height: 150px;
-		overflow: hidden;
-	}
-	> ecology-search > ecology-body > ecology-map details {
+	> ecology-search > ecology-body > ecology-map > details {
 		max-height: 35%;
 		flex-shrink: 0;
 		overflow: auto;
 		border-top: 1px solid var(--line);
 		background: var(--surface-content);
 	}
-	> ecology-search > ecology-body > ecology-map summary {
+	> ecology-search > ecology-body > ecology-map > details > summary {
 		padding: 5px;
 		cursor: pointer;
 	}
@@ -77,70 +71,6 @@ ecology-view.class {
 	> ecology-search > ecology-body > ecology-map > details > ul button[aria-pressed="true"] {
 		background: var(--ink);
 		color: var(--bg-color);
-	}
-	> ecology-search > ecology-body > ecology-map > svg > g[data-world]
-		> g[data-edges]
-		> path[data-edge] {
-		fill: none;
-		stroke: var(--ink-muted);
-		stroke-width: 1.5px;
-	}
-	> ecology-search > ecology-body > ecology-map > svg > g[data-world]
-		> g[data-edges]
-		> path[data-edge][data-traced="true"] {
-		stroke: var(--accent);
-		stroke-width: 3px;
-	}
-	> ecology-search > ecology-body > ecology-map > svg > g[data-world]
-		> g[data-cards]
-		> g[data-node] {
-		cursor: pointer;
-		outline: none;
-	}
-	> ecology-search > ecology-body > ecology-map > svg > g[data-world]
-		> g[data-cards]
-		> g[data-node]
-		> path {
-		fill: var(--surface-inactive);
-		stroke: var(--ink-muted);
-		stroke-width: 1.5px;
-	}
-	> ecology-search > ecology-body > ecology-map > svg > g[data-world]
-		> g[data-cards]
-		> g[data-node][data-kind="family"]
-		> path {
-		stroke: var(--graph-family);
-		stroke-dasharray: 5 3;
-	}
-	> ecology-search > ecology-body > ecology-map > svg > g[data-world]
-		> g[data-cards]
-		> g[data-node][data-traced="true"]
-		> path {
-		stroke: var(--accent);
-		stroke-width: 3px;
-	}
-	> ecology-search > ecology-body > ecology-map > svg > g[data-world]
-		> g[data-cards]
-		> g[data-node][aria-pressed="true"]
-		> path,
-	[data-node]:focus-visible > path {
-		stroke: var(--ink-strong);
-		stroke-width: 3px;
-	}
-	> ecology-search > ecology-body > ecology-map > svg > g[data-world]
-		> g[data-cards]
-		> g[data-node]
-		> text {
-		fill: var(--ink);
-		font-size: 11px;
-		pointer-events: none;
-	}
-	> ecology-search > ecology-body > ecology-map > svg > g[data-world]
-		> g[data-cards]
-		> g[data-node]
-		> text:last-child {
-		fill: var(--ink-muted);
-		font-size: 10px;
 	}
 	> ecology-search > ecology-body > aside {
 		min-width: 0;
@@ -291,7 +221,6 @@ ecology-view.class {
 		&:not([data-workspace="selection"]) > ecology-search > ecology-body > aside,
 		&[data-workspace="graph"]
 			> ecology-search > ecology-body > ecology-map > details,
-		&[data-workspace="list"] > ecology-search > ecology-body > ecology-map > svg,
 		&[data-workspace="list"] > ecology-search > ecology-body > ecology-map > nav,
 		&[data-workspace="list"]
 			> ecology-search > ecology-body > ecology-map > details > summary {

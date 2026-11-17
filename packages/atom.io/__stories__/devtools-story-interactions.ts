@@ -58,12 +58,18 @@ function orderTools({ canvas, canvasElement, userEvent }: Context) {
 			await userEvent.type(input, key)
 		})
 		const graph = canvas.getByTestId(`ecology-view`)
+		const id = `${family ? `family` : `state`}:${key}`
+		// Ranked navigation explicitly reveals a member of a collapsed family.
+		const result = graph.querySelector<HTMLElement>(
+			`[data-results] button[data-result-id=${JSON.stringify(id)}]`,
+		)
+		await expect(result).not.toBeNull()
+		await project(() => userEvent.click(result!))
 		const switcher = within(graph).getByRole(`button`, { name: `Node list` })
 		if (switcher.checkVisibility()) await userEvent.click(switcher)
 		const details =
 			graph.querySelector<HTMLDetailsElement>(`ecology-map details`)!
 		if (!details.open) await userEvent.click(details.querySelector(`summary`)!)
-		const id = `${family ? `family` : `state`}:${key}`
 		const button = graph.querySelector<HTMLElement>(
 			`ecology-map ul button[data-graph-id=${JSON.stringify(id)}]`,
 		)

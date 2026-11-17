@@ -85,6 +85,20 @@ try {
 		)
 	}
 	browser = await chromium.launch()
+	if (development) {
+		// Let Vite discover dependencies for both activation paths before retaining SSR DOM.
+		// A cold optimizer reload creates a new document and invalidates those references.
+		const warmup = await browser.newPage()
+		await warmup.goto(origin)
+		await warmup.waitForSelector(`astro-island[client="load"]:not([ssr])`)
+		await warmup
+			.locator(`astro-island[client="visible"] .product`)
+			.first()
+			.scrollIntoViewIfNeeded()
+		await warmup.waitForSelector(`astro-island[client="visible"]:not([ssr])`)
+		await warmup.waitForLoadState(`networkidle`)
+		await warmup.close()
+	}
 	const page = await browser.newPage()
 	const errors: string[] = []
 	const scripts: Promise<{ code: string; url: string }>[] = []

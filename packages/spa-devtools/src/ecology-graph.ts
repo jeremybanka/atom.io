@@ -30,6 +30,7 @@ export interface GraphContext {
 }
 export interface GraphModel {
 	snapshot: EcologySnapshot
+	dependencyKeys: Set<string>
 	items: GraphItem[]
 	edges: GraphEdge[]
 	all: Map<string, GraphItem>
@@ -166,9 +167,19 @@ export function* projectEcology(
 		}
 		yield
 	}
+	const dependencyKeys = previous?.dependencyKeys ?? new Set<string>()
+	if (!previous)
+		for (const edge of snapshot.edges) {
+			dependencyKeys.add(edge.dependency)
+			yield
+		}
 	const seen = new Map<string, GraphEdge>()
 	// Atom-only projections have no edge destinations. Once an untraced paint cap is full, later edges cannot affect it.
-	if (items.length > 1 && items.some((item) => selectorIds.has(item.id)))
+	if (
+		items.length > 1 &&
+		items.some((item) => selectorIds.has(item.id)) &&
+		[...mapped.keys()].some((key) => dependencyKeys.has(key))
+	)
 		for (const edge of snapshot.edges) {
 			const from = mapped.get(edge.dependency),
 				to = mapped.get(edge.selector)
@@ -209,6 +220,7 @@ export function* projectEcology(
 	}
 	return {
 		snapshot,
+		dependencyKeys,
 		items,
 		edges,
 		all,

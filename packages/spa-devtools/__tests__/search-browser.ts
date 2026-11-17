@@ -733,7 +733,9 @@ try {
 					.querySelector<HTMLElement>(`search-view [data-search-status]`)!
 					.textContent.startsWith(`Preparing`),
 				ready: host.dataset[`ready`],
-				busy: host.querySelector<HTMLElement>(`ol`)!.getAttribute(`aria-busy`),
+				busy: host
+					.querySelector<HTMLElement>(`search-results`)!
+					.getAttribute(`aria-busy`),
 				text,
 			})
 			input.value = text
@@ -774,7 +776,9 @@ try {
 					.querySelector<HTMLElement>(`search-view [data-search-status]`)!
 					.textContent.startsWith(`Preparing`),
 				ready: host.dataset[`ready`],
-				busy: host.querySelector<HTMLElement>(`ol`)!.getAttribute(`aria-busy`),
+				busy: host
+					.querySelector<HTMLElement>(`search-results`)!
+					.getAttribute(`aria-busy`),
 				text,
 			})
 			input.value = text

@@ -9,7 +9,7 @@ import css from "./EcologyView.module.css"
 import { HighlightedText } from "./HighlightedText.tsx"
 import type { SearchHit } from "./search.ts"
 import { StateLeaf } from "./StateLeaf.tsx"
-import { type Tools, usePresentation } from "./store.ts"
+import { type Tools, usePresentation, useSlotPages } from "./store.ts"
 
 export interface EcologyPresentation {
 	cardSlots: number
@@ -73,7 +73,19 @@ export function EcologyView(props: {
 	let host: HTMLElement | null = null
 	let controller: ReturnType<typeof createEcologyController> | undefined
 	const state = presentation.read
-	const publish = presentation.update
+	const cards = useSlotPages<EcologyPresentation[`cards`][number]>(
+		props.tools.store,
+		500,
+	)
+	const edges = useSlotPages<EcologyPresentation[`edges`][number]>(
+		props.tools.store,
+		1000,
+	)
+	const publish = (patch: Partial<EcologyPresentation>) => {
+		if (patch.cards) cards.update(patch.cards, patch.visibleCards!)
+		if (patch.edges) edges.update(patch.edges, patch.visibleEdges!)
+		presentation.update(patch)
+	}
 	onMount(() => {
 		controller = createEcologyController(
 			host!,
@@ -247,18 +259,14 @@ export function EcologyView(props: {
 							>
 								<g data-edges>
 									{Array.from({ length: state().edgeSlots }, (_, index) => {
-										const edge = () => state().edges[index]
+										const edge = () => edges.value(index)
 										return (
 											<path
 												key={`${state().generation}:${index}`}
-												data-edge={
-													index < state().visibleEdges ? true : undefined
-												}
-												display={
-													index >= state().visibleEdges ? `none` : undefined
-												}
+												data-edge={edges.visible(index) ? true : undefined}
+												display={!edges.visible(index) ? `none` : undefined}
 												data-traced={
-													index < state().visibleEdges &&
+													edges.visible(index) &&
 													state().traced.size > 0 &&
 													edge().traced
 												}
@@ -270,20 +278,16 @@ export function EcologyView(props: {
 								</g>
 								<g data-cards>
 									{Array.from({ length: state().cardSlots }, (_, index) => {
-										const item = () => state().cards[index]
+										const item = () => cards.value(index)
 										return (
 											<g
 												key={`${state().generation}:${index}`}
 												data-node
-												display={
-													index >= state().visibleCards ? `none` : undefined
-												}
+												display={!cards.visible(index) ? `none` : undefined}
 												data-kind={item().kind}
-												data-traced={
-													index < state().visibleCards && traced(item())
-												}
+												data-traced={cards.visible(index) && traced(item())}
 												data-graph-id={
-													index < state().visibleCards ? item().id : undefined
+													cards.visible(index) ? item().id : undefined
 												}
 												role="button"
 												tabIndex={0}
@@ -316,17 +320,17 @@ export function EcologyView(props: {
 							<summary>Accessible node list</summary>
 							<ul>
 								{Array.from({ length: state().cardSlots }, (_, index) => {
-									const item = () => state().cards[index]
+									const item = () => cards.value(index)
 									return (
 										<li
 											key={`${state().generation}:${index}`}
-											hidden={index >= state().visibleCards}
+											hidden={!cards.visible(index)}
 										>
 											<button
 												type="button"
 												data-action="select"
 												data-graph-id={
-													index < state().visibleCards ? item().id : undefined
+													cards.visible(index) ? item().id : undefined
 												}
 												aria-pressed={selected()?.id === item().id}
 											>{`${item().kind === `selector` ? `◇` : item().kind === `family` ? `▸` : `□`} ${item().label} · ${item().detail}`}</button>

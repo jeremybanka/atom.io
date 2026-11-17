@@ -13,7 +13,12 @@ const config: UserConfig = defineConfig({
 	format: `esm`,
 	platform: `neutral`,
 	target: `es2022`,
-	css: { fileName: `devtools.css`, splitting: false, inject: false },
+	css: {
+		fileName: `devtools.css`,
+		splitting: false,
+		inject: false,
+		modules: { generateScopedName: `atom-io-[name]-[local]` },
+	},
 	sourcemap: true,
 	plugins: [
 		{

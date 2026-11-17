@@ -183,3 +183,47 @@ export function usePresentation<T extends object>(
 		},
 	}
 }
+
+/** Update bounded slot payloads in small pages without invalidating every retained node. */
+export function useSlotPages<T>(
+	store: RootStore,
+	capacity: number,
+): {
+	value(index: number): T
+	visible(index: number): boolean
+	update(values: T[], visible: number): void
+} {
+	const pageSize = 50
+	const pages = Array.from({ length: Math.ceil(capacity / pageSize) }, () =>
+		useLocal<{ values: T[]; visible: number }>(store, {
+			values: [],
+			visible: 0,
+		}),
+	)
+	return {
+		value(index) {
+			return pages[Math.floor(index / pageSize)][0]().values[index % pageSize]
+		},
+		visible(index) {
+			return index % pageSize < pages[Math.floor(index / pageSize)][0]().visible
+		},
+		update(values, visible) {
+			for (let page = 0; page < pages.length; page++) {
+				const [read, write] = pages[page]
+				const previous = read()
+				const start = page * pageSize
+				const admitted = values.slice(start, start + pageSize)
+				// Old slot bindings can run before a refreshed list removes them.
+				const next = admitted.concat(previous.values.slice(admitted.length))
+				const shown = Math.min(pageSize, Math.max(0, visible - start))
+				if (
+					previous.visible !== shown ||
+					previous.values.length !== next.length ||
+					next.some((value, index) => value !== previous.values[index])
+				) {
+					write({ values: next, visible: shown })
+				}
+			}
+		},
+	}
+}

@@ -355,9 +355,7 @@ async function checkLayering(page: Page, theme: `light` | `dark`) {
 		.locator(`json-editor`)
 		.evaluateAll((editors) =>
 			editors.map((editor) => {
-				const row = editor.querySelector<HTMLElement>(
-					`:scope > :is(node-heading,event-heading)`,
-				)!
+				const row = editor.querySelector<HTMLElement>(`:scope > editor-row`)!
 				return {
 					depth: Number(editor.getAttribute(`data-depth`)),
 					fill: getComputedStyle(row).backgroundColor,

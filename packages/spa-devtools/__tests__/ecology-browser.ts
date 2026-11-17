@@ -292,6 +292,14 @@ try {
 		await page.locator(`ecology-view [data-counts]`).innerText(),
 		/0 atoms · 0 selectors/,
 	)
+	// Preserve DOM snapshots for the functional flows without walking the large
+	// graph during timing. Renderer tracing below still records layout and paint.
+	if (!strictPerformance) {
+		await context.tracing.stop({
+			path: resolvePath(artifacts, `functional-trace.zip`),
+		})
+		await context.tracing.start({ screenshots: false, snapshots: false })
+	}
 	const cdp = await context.newCDPSession(page)
 	if (!strictPerformance)
 		await cdp.send(`Tracing.start`, {
@@ -483,7 +491,7 @@ try {
 			layoutChunkMs: 8,
 		},
 		performancePolicy,
-		method: `Fresh-task DOM search/selection with first-frame observations, not hardware/compositor input latency. Snapshot, metadata indexing, matching and scheduled projection/layout slices, DOM commit and renderer Paint records reported separately. Large fixture construction excluded from overview and reported as setupMs. S3 capture limits may truncate observations; notice/counts retained.`,
+		method: `Fresh-task DOM search/selection with first-frame observations, not hardware/compositor input latency. Snapshot, metadata indexing, matching and scheduled projection/layout slices, DOM commit and renderer Paint records reported separately. Large fixture construction excluded from overview and reported as setupMs. Full Playwright DOM snapshots cover functional flows; timed large-fixture work retains renderer tracing without DOM snapshot collection. S3 capture limits may truncate observations; notice/counts retained.`,
 	}
 	await writeFile(
 		resolvePath(artifacts, `metrics.json`),

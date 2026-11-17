@@ -140,6 +140,11 @@ jobs:
               await browser.close()
             }
           '
+      - name: Install locked React browser representatives
+        if: matrix.suite == 'devtools'
+        run: |
+          pnpm --dir packages/spa-devtools/peer-environments/coordinated-react18 install --frozen-lockfile --ignore-scripts
+          pnpm --dir packages/spa-devtools/peer-environments/coordinated-react19 install --frozen-lockfile --ignore-scripts
       - run: pnpm --filter @atom.io/spa-devtools test:browser
         if: matrix.suite == 'devtools'
         env:
@@ -153,6 +158,7 @@ jobs:
           path: |
             /tmp/spa-devtools-window
             /tmp/spa-devtools-ecology
+            /tmp/spa-devtools-polish
           retention-days: 7
       - run: pnpm --filter @atom.io/spa test:browser:motion
         if: matrix.suite == 'spa'

@@ -413,3 +413,55 @@ it(`displays thrown reads and collapsible transaction events while filtering int
 	await click(`[data-testid="view-timelines"]`)
 	expect(host.querySelector(`[data-testid="timeline-👁‍🗨 internal"]`)).toBeNull()
 })
+it(`provides roving view tabs with wrapped arrows and Home/End navigation`, async () => {
+	const { host, mount } = fixture()
+	mount()
+	const tabs = [...host.querySelectorAll<HTMLButtonElement>(`[role="tab"]`)]
+	const key = async (value: string) => {
+		;(document.activeElement as HTMLElement).dispatchEvent(
+			new KeyboardEvent(`keydown`, {
+				key: value,
+				bubbles: true,
+				cancelable: true,
+			}),
+		)
+		await tick()
+	}
+	tabs[0].focus()
+	await key(`ArrowRight`)
+	expect(document.activeElement).toBe(tabs[1])
+	expect(tabs[1].getAttribute(`aria-selected`)).toBe(`true`)
+	await key(`ArrowLeft`)
+	expect(document.activeElement).toBe(tabs[0])
+	await key(`ArrowLeft`)
+	expect(document.activeElement).toBe(tabs[4])
+	await key(`ArrowRight`)
+	expect(document.activeElement).toBe(tabs[0])
+	await key(`End`)
+	expect(document.activeElement).toBe(tabs[4])
+	await key(`Home`)
+	expect(document.activeElement).toBe(tabs[0])
+	await key(`Escape`)
+	expect(document.activeElement).toBe(tabs[0])
+	expect(tabs.filter((tab) => tab.tabIndex === 0)).toEqual([tabs[0]])
+	expect(
+		host.querySelector(`[role="tabpanel"]`)!.getAttribute(`aria-labelledby`),
+	).toBe(tabs[0].id)
+})
+it(`resizes elastic rename drafts without committing or replacing the field`, async () => {
+	const { silo, host, mount, click, input } = fixture()
+	const renameAtom = silo.atom<{ a: number }>({
+		key: `rename`,
+		default: { a: 1 },
+	})
+	mount()
+	await click(`[aria-label="Expand rename"]`)
+	const field = host.querySelector<HTMLInputElement>(`[aria-label="Rename a"]`)!
+	await input(`[aria-label="Rename a"]`, `a much longer name`)
+	expect(field.size).toBe(18)
+	expect(silo.getState(renameAtom)).toEqual({ a: 1 })
+	await input(`[aria-label="Rename a"]`, ``)
+	expect(field.size).toBe(1)
+	await input(`[aria-label="Rename a"]`, `renamed`, `focusout`)
+	expect(silo.getState(renameAtom)).toEqual({ renamed: 1 })
+})

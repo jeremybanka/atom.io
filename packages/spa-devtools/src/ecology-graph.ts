@@ -219,3 +219,24 @@ export function scheduleGraph<T>(
 		iterator.return(undefined as T)
 	}
 }
+
+/** Route between outward-facing card ports so arrowheads never terminate underneath a card. */
+export function graphEdgePath(
+	from: { x: number; y: number },
+	to: { x: number; y: number },
+): string {
+	const dx = to.x - from.x,
+		dy = to.y - from.y
+	if (Math.abs(dx) >= Math.abs(dy)) {
+		const direction = dx >= 0 ? 1 : -1
+		const startX = from.x + (direction > 0 ? 176 : 0),
+			endX = to.x + (direction > 0 ? 0 : 176)
+		const bend = Math.max(24, Math.abs(endX - startX) / 2)
+		return `M${startX} ${from.y + 26} C${startX + direction * bend} ${from.y + 26} ${endX - direction * bend} ${to.y + 26} ${endX} ${to.y + 26}`
+	}
+	const direction = dy > 0 ? 1 : -1
+	const startY = from.y + (direction > 0 ? 52 : 0),
+		endY = to.y + (direction > 0 ? 0 : 52)
+	const bend = Math.max(24, Math.abs(endY - startY) / 2)
+	return `M${from.x + 88} ${startY} C${from.x + 88} ${startY + direction * bend} ${to.x + 88} ${endY - direction * bend} ${to.x + 88} ${endY}`
+}

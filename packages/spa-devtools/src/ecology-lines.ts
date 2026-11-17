@@ -30,7 +30,7 @@ export function writeEdgeBuffer(
 	camera: THREE.PerspectiveCamera,
 	width: number,
 	height: number,
-	worldScale = new THREE.Vector3(1, 1, 1),
+	worldScale: THREE.Vector3 = new THREE.Vector3(1, 1, 1),
 ): void {
 	const attribute = geometry.getAttribute(`position`) as THREE.BufferAttribute
 	let cursor = 0

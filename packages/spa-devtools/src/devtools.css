@@ -782,3 +782,53 @@ main[data-css="spa-devtools"] [data-search-selected="true"] > header {
 	outline: 2px solid var(--fg-max);
 	outline-offset: -2px;
 }
+
+main[data-css="spa-devtools"] {
+	.ecology-search {
+		display: flex;
+		flex: 1;
+		min-height: 0;
+		flex-direction: column;
+	}
+	.ecology-search-status {
+		padding: 3px 6px;
+		font-size: 11px;
+		line-height: 15px;
+	}
+	.ecology-results {
+		flex-shrink: 0;
+		max-height: 120px;
+		overflow: auto;
+		list-style: none;
+	}
+	.ecology-results li {
+		border-top: 1px solid var(--fg-hint);
+	}
+	.ecology-results button {
+		width: 100%;
+		height: auto;
+		min-height: 21px;
+		text-align: left;
+		overflow-wrap: anywhere;
+	}
+	.ecology-results small {
+		display: block;
+		padding: 1px 5px;
+		color: var(--fg-light);
+		overflow-wrap: anywhere;
+	}
+	.ecology-live-panel {
+		flex-shrink: 0;
+		max-height: 40%;
+		overflow: auto;
+		border-top: 1px solid var(--fg-hint);
+	}
+	.ecology-live-panel > header {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+	}
+	.ecology-live-panel[hidden] {
+		display: none;
+	}
+}

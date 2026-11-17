@@ -45,7 +45,7 @@ function orderTools({ canvas, canvasElement, userEvent }: Context) {
 		)
 	const choose = async (key: string, family = false) => {
 		await controls(false)
-		const input = canvas.getByRole(`textbox`, { name: `Search ecology` })
+		const input = canvas.getByRole(`searchbox`, { name: `Search ecology` })
 		await project(async () => {
 			await userEvent.clear(input)
 			await userEvent.type(input, key)
@@ -294,4 +294,74 @@ export const playOrderHistorySearch: Play = async (context) => {
 			},
 		)
 	}
+}
+
+export const playEcologySearch: Play = async (context) => {
+	const { canvas, canvasElement, userEvent, step } = context
+	const tools = orderTools(context)
+	await tools.ecology()
+	await tools.choose(`checkoutTotalCents`)
+	await tools.trace()
+	const input = canvas.getByRole(`searchbox`, { name: `Search ecology` })
+	const ready = () =>
+		waitFor(() =>
+			expect(canvas.getByTestId(`ecology-view`)).toHaveAttribute(
+				`data-ready`,
+				`true`,
+			),
+		)
+	await step(
+		`Rank normalized captured metadata and preserve the same node's trace`,
+		async () => {
+			await userEvent.clear(input)
+			await userEvent.type(input, `CHECKOUT total`)
+			await ready()
+			const result = canvasElement.querySelector<HTMLElement>(
+				`.ecology-results button[data-result-id="state:checkoutTotalCents"]`,
+			)!
+			await expect(result).not.toBeNull()
+			await userEvent.click(result)
+			await ready()
+			await expect(tools.inspector()).toHaveTextContent(`Retained trace`)
+			await expect(
+				canvasElement
+					.querySelector(`.ecology-list`)!
+					.contains(document.activeElement),
+			).toBe(true)
+		},
+	)
+	await step(
+		`Search and select metadata while retaining an unfinished live edit`,
+		async () => {
+			await tools.choose(`cartQuantityBySku("tea-green")`)
+			await userEvent.click(
+				within(tools.inspector()).getByRole(`button`, {
+					name: `Open live editor (may read/evaluate)`,
+				}),
+			)
+			const editor = canvasElement.querySelector<HTMLInputElement>(
+				`.ecology-live input[inputmode="decimal"]`,
+			)!
+			await userEvent.clear(editor)
+			await userEvent.type(editor, `2e`)
+			const summary = tools.summary().textContent
+			await userEvent.click(input)
+			await userEvent.clear(input)
+			await userEvent.type(input, `availability`)
+			await ready()
+			await expect(editor).toHaveValue(`2e`)
+			await expect(
+				canvasElement.querySelector(`.ecology-live input[inputmode="decimal"]`),
+			).toBe(editor)
+			await expect(tools.summary().textContent).toBe(summary)
+			await userEvent.keyboard(`{ArrowDown}{Enter}`)
+			await ready()
+			await expect(editor).toHaveValue(`2e`)
+			await userEvent.click(input)
+			await userEvent.keyboard(`{Escape}`)
+			await ready()
+			await userEvent.keyboard(`{Escape}`)
+			await expect(editor).toHaveFocus()
+		},
+	)
 }

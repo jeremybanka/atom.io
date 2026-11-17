@@ -58,10 +58,11 @@ const graphFamilyId = (key: string): string => `family:${key}`
 export function* projectEcology(
 	snapshot: EcologySnapshot,
 	context: GraphContext,
+	matchedIds?: ReadonlySet<string>,
 ): Generator<void, GraphModel> {
 	const all = new Map<string, GraphItem>(),
 		mapped = new Map<string, string>()
-	const query = context.query.toLocaleLowerCase()
+	const filtered = Boolean(context.query.trim())
 	const items: GraphItem[] = [],
 		edges: GraphEdge[] = []
 	const pendingPositions = new Map<string, { x: number; y: number }>()
@@ -85,7 +86,11 @@ export function* projectEcology(
 		all.set(item.id, positioned)
 		if (!matches) return
 		matching++
-		if (items.length >= 500) return
+		if (items.length >= 500) {
+			if (item.id !== context.selected) return
+			const removed = items.pop()!
+			if (pendingPositions.delete(removed.id)) newPositions--
+		}
 		if (!previous) {
 			// Position identity survives filtering and value-only refresh. No force simulation or recursive graph walk.
 			const slot = context.nextSlot + pendingPositions.size
@@ -107,8 +112,7 @@ export function* projectEcology(
 				detail: `${family.type} · ${family.memberCount}${family.countComplete ? `` : `+`} members`,
 				source: family,
 			},
-			!query ||
-				`${family.key} ${family.type}`.toLocaleLowerCase().includes(query),
+			!matchedIds || matchedIds.has(id),
 		)
 		yield
 	}
@@ -121,7 +125,8 @@ export function* projectEcology(
 		const visible =
 			!group ||
 			context.expanded.has(node.family!.key) ||
-			!!query ||
+			filtered ||
+			id === context.selected ||
 			!all.has(group)
 		mapped.set(node.key, visible ? id : group)
 		const detail =
@@ -137,11 +142,7 @@ export function* projectEcology(
 				detail: `${node.kind} · ${detail}`,
 				source: node,
 			},
-			visible &&
-				(!query ||
-					`${node.key} ${node.family?.key ?? ``} ${node.type} ${detail}`
-						.toLocaleLowerCase()
-						.includes(query)),
+			visible && (!matchedIds || matchedIds.has(id)),
 		)
 		yield
 	}

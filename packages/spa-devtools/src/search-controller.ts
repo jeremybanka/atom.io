@@ -13,7 +13,8 @@ import {
 	indexStateSearch,
 	matchStateSearch,
 } from "./search.ts"
-import { createSearchSession } from "./search-session.ts"
+import { isSearchShortcut, moveSearchFocus } from "./search-keys.ts"
+import { createSearchSession, editorIsCurrent } from "./search-session.ts"
 
 export interface SearchContext {
 	query: string
@@ -91,20 +92,10 @@ export function createStateSearch(
 	let origin: HTMLElement | null = null
 	const visible = () =>
 		!disposed && !panel.hidden && panel.dataset[`open`] !== `false`
-	const session = createSearchSession(panel, ui, mask, (editor) => {
-		const key = editor.closest<HTMLElement>(`.state-leaf`)!.dataset[`stateKey`]!
-		const definition = () =>
-			store.atoms.get(key) ??
-			store.readonlySelectors.get(key) ??
-			store.writableSelectors.get(key)
-		const state = definition(),
-			value = store.valueMap.get(key),
-			cached = store.valueMap.has(key)
-		return () =>
-			definition() === state &&
-			store.valueMap.has(key) === cached &&
-			Object.is(store.valueMap.get(key), value)
-	})
+	const session = createSearchSession(panel, ui, mask, (editor) =>
+		editorIsCurrent(store, editor),
+	)
+
 	function revealHistory() {
 		if (!pendingHistory || !history || !visible()) return
 		const target = pendingHistory.document.target!
@@ -366,22 +357,7 @@ export function createStateSearch(
 			return
 		}
 		const target = event.target as HTMLElement
-		const editable =
-			target.matches(
-				`input, textarea, select, [contenteditable]:not([contenteditable="false"])`,
-			) || target.isContentEditable
-		if (
-			((event.ctrlKey || event.metaKey) &&
-				event.shiftKey &&
-				!event.altKey &&
-				event.key.toLowerCase() === `f`) ||
-			(!editable &&
-				!event.ctrlKey &&
-				!event.metaKey &&
-				!event.altKey &&
-				!event.shiftKey &&
-				event.key === `/`)
-		) {
+		if (isSearchShortcut(event)) {
 			event.preventDefault()
 			origin = target
 			input.focus()
@@ -409,20 +385,7 @@ export function createStateSearch(
 			}
 			return
 		}
-		if (busy || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey)
-			return
-		const buttons = [...results.querySelectorAll<HTMLButtonElement>(`button`)]
-		const at = buttons.indexOf(target as HTMLButtonElement)
-		let next: number
-		if (event.key === `ArrowDown`) next = (at + 1) % buttons.length
-		else if (event.key === `ArrowUp`) next = (at < 1 ? buttons.length : at) - 1
-		else if (at !== -1 && event.key === `Home`) next = 0
-		else if (at !== -1 && event.key === `End`) next = buttons.length - 1
-		else return
-		if (buttons[next]) {
-			event.preventDefault()
-			buttons[next].focus()
-		}
+		if (!busy) moveSearchFocus(event, results)
 	}
 	panel.addEventListener(`keydown`, keydown)
 	const mutation = new win.MutationObserver(mask)

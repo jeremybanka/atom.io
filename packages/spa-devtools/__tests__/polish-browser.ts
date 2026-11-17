@@ -687,7 +687,7 @@ try {
 					`true`,
 			)
 			const before = await page.evaluate(() => window.polish.evidence())
-			await page.getByRole(`textbox`, { name: `Search ecology` }).fill(`left`)
+			await page.getByRole(`searchbox`, { name: `Search ecology` }).fill(`left`)
 			await page.waitForFunction(
 				() =>
 					document.querySelector<HTMLElement>(`.ecology`)?.dataset[`ready`] ===
@@ -716,7 +716,7 @@ try {
 				})
 				.click()
 			assert.equal(
-				await page.locator(`.ecology-inspector input`).getAttribute(`readonly`),
+				await page.locator(`.ecology-live input`).getAttribute(`readonly`),
 				``,
 			)
 			await page

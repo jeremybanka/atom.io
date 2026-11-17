@@ -356,6 +356,7 @@ export function* matchStateSearch(
 	index: SearchIndex,
 	input: string,
 	maxComparisons = 2_000_000,
+	matchedIds?: Set<string>,
 ): Generator<void, SearchResults> {
 	const bounded = prefix(input, 256)
 	const query = fold(bounded.text.trim())
@@ -431,6 +432,7 @@ export function* matchStateSearch(
 			edits += Number(best === 4)
 		}
 		if (matches) {
+			matchedIds?.add(document.id)
 			if (document.fields[0].fold === query) tier = 0
 			// Retain only the best 100 in stable order. A full-result sort cannot be interrupted.
 			score[0] = named ? 0 : valueMatch ? 2 : 1

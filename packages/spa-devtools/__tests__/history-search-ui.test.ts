@@ -229,3 +229,14 @@ it(`waits for the owning row to mount before revealing a still-valid result`, as
 	await settle()
 	expect(f.host.querySelector(`[data-search-selected]`)).not.toBeNull()
 })
+
+it(`ignores navigation into stale result rows while the next query is preparing`, async () => {
+	const f = await setup()
+	await f.query(`cartQuantity`)
+	const input = f.input()
+	input.focus()
+	input.value = `changeCart`
+	input.dispatchEvent(new Event(`input`, { bubbles: true }))
+	await f.key(input, `ArrowDown`)
+	expect(document.activeElement).toBe(input)
+})

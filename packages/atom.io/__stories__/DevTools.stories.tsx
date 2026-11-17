@@ -3,6 +3,7 @@ import "@atom.io/spa-devtools/css"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 
 import {
+	playEcologySearch,
 	playOrderActions,
 	playOrderEditingAndReset,
 	playOrderHistorySearch,
@@ -39,4 +40,9 @@ export const OrderEditingAndReset: Story = {
 export const OrderHistorySearch: Story = {
 	render: () => <OrderFulfillment />,
 	play: playOrderHistorySearch,
+}
+
+export const EcologySearch: Story = {
+	render: () => <OrderFulfillment />,
+	play: playEcologySearch,
 }

@@ -369,32 +369,32 @@ it(`reports incomplete snapshots, truncated prefixes and bounded approximate mat
 	expect(host.querySelectorAll(`.ecology-results button`)).toHaveLength(100)
 })
 
-it(`reuses captured cards and list rows across queries, restores their focus and invalidates them on Refresh`, async () => {
+it(`reuses visible slots across filters, preserves logical focus and invalidates slots on Refresh`, async () => {
 	const f = await setup()
+	await f.query(`count`)
 	const original = f.host.querySelector<SVGElement>(
 		`g[data-graph-id="state:count"]`,
 	)!
-	const row = [
-		...f.host.querySelectorAll<HTMLButtonElement>(`.ecology-list button`),
-	].find((button) => button.dataset[`graphId`] === `state:count`)!
+	const row = f.host.querySelector(`.ecology-list button`)!
+	const world = f.host.querySelector(`.ecology-world`)
 	await f.query(`green tea`)
+	expect(f.host.querySelector(`g[data-graph-id]`)).toBe(original)
+	expect(original.getAttribute(`data-graph-id`)).toBe(`state:items("green-tea")`)
 	await f.query(`count`)
-	expect(f.host.querySelector(`g[data-graph-id="state:count"]`)).toBe(original)
-	expect(
-		[...f.host.querySelectorAll(`.ecology-list button`)].find(
-			(button) => (button as HTMLElement).dataset[`graphId`] === `state:count`,
-		),
-	).toBe(row)
+	expect(f.host.querySelector(`.ecology-list button`)).toBe(row)
 	original.focus()
 	f.input().value = ``
 	f.input().dispatchEvent(new Event(`input`, { bubbles: true }))
 	await settle()
-	expect(document.activeElement).toBe(original)
+	expect(document.activeElement?.getAttribute(`data-graph-id`)).toBe(
+		`state:count`,
+	)
+	expect(f.host.querySelector(`.ecology-world`)).toBe(world)
+	await f.query(`count`)
+	const current = f.host.querySelector(`g[data-graph-id]`)
 	f.button(`Refresh`).click()
 	await settle()
-	expect(f.host.querySelector(`g[data-graph-id="state:count"]`)).not.toBe(
-		original,
-	)
+	expect(f.host.querySelector(`g[data-graph-id]`)).not.toBe(current)
 })
 
 it(`bounds retained cards when successive filters visit disjoint parts of a large snapshot`, async () => {
@@ -413,7 +413,7 @@ it(`bounds retained cards when successive filters visit disjoint parts of a larg
 			Number(
 				f.host.querySelector<HTMLElement>(`.ecology`)!.dataset[`retainedCards`],
 			),
-		).toBeLessThanOrEqual(1000)
+		).toBeLessThanOrEqual(500)
 	}
 	await f.query(`gamma499`)
 	f.host.querySelector<HTMLButtonElement>(`.ecology-results button`)!.click()
@@ -423,7 +423,7 @@ it(`bounds retained cards when successive filters visit disjoint parts of a larg
 		Number(
 			f.host.querySelector<HTMLElement>(`.ecology`)!.dataset[`retainedCards`],
 		),
-	).toBeLessThanOrEqual(1000)
+	).toBeLessThanOrEqual(500)
 	expect(
 		f.host
 			.querySelector(`g[data-graph-id="state:gamma499"]`)!

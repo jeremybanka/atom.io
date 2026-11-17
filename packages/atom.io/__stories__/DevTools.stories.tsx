@@ -3,6 +3,7 @@ import "@atom.io/spa-devtools/css"
 import type { Meta, StoryObj } from "@storybook/react-vite"
 
 import {
+	playEcologySandbox,
 	playEcologySearch,
 	playOrderActions,
 	playOrderEditingAndReset,
@@ -27,6 +28,10 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 export const Primary: Story = { play: playPrimary }
+export const EcologySandbox: Story = {
+	render: () => <OrderFulfillment />,
+	play: playEcologySandbox,
+}
 export const EcologyOrderFulfillment: Story = {
 	render: () => <OrderFulfillment />,
 	play: playOrderRoots,

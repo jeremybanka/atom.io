@@ -34,6 +34,10 @@ function orderTools({ canvas, canvasElement, userEvent }: Context) {
 	}
 	const ecology = async () => {
 		await debuggerVisible(true)
+		const open = canvas.queryByRole(`button`, {
+			name: `Open debugger`,
+		})
+		if (open) await userEvent.click(open)
 		const tab = await canvas.findByRole(`tab`, { name: `ecology` })
 		if (tab.getAttribute(`aria-selected`) !== `true`) await userEvent.click(tab)
 		await ready()
@@ -126,6 +130,11 @@ function orderTools({ canvas, canvasElement, userEvent }: Context) {
 		inspector,
 		trace,
 	}
+}
+
+/** Open the unmodified storefront model for manual ecology development. */
+export const playEcologySandbox: Play = async (context) => {
+	await orderTools(context).ecology()
 }
 
 export const playPrimary: Play = async ({ canvas, userEvent, step }) => {

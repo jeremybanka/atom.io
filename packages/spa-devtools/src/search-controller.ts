@@ -217,7 +217,7 @@ export function createStateSearch(
 		}
 		result = next
 		pendingHistory = undefined
-		results.replaceChildren()
+		const fragment = doc.createDocumentFragment()
 		details.replaceChildren()
 		for (const hit of next.hits) {
 			const item = doc.createElement(`li`)
@@ -242,8 +242,9 @@ export function createStateSearch(
 			}
 			if (hit.approximate) extra.append(` · approximate match`)
 			item.append(extra)
-			results.append(item)
+			fragment.append(item)
 		}
+		results.replaceChildren(fragment)
 		const snapshot = context.index!
 		status.textContent = `${context.query.trim() ? `${next.matching} matches in captured ${history ? `history/primitive previews` : `metadata/cached values`}; showing ${next.hits.length}. ` : ``}${snapshot.documents.length} captured records · Captured at ${`${new Date(snapshot.capturedAt).toISOString().slice(11, 19)} UTC`} · ${snapshot.uncachedValues} not cached · ${snapshot.skippedValues} complex values skipped.${snapshot.notice ? ` ${snapshot.notice}` : ``}${snapshot.partial ? ` Partial capture; more records unsearched.` : ``}${snapshot.truncatedText ? ` ${snapshot.truncatedText} text prefixes truncated.` : ``}${next.approximateLimited ? ` Approximate search limited; refine the query.` : ``}${context.query.trim() && !next.matching ? ` No matches in captured ${history ? `history` : `metadata`}.` : ``}`
 		mask()

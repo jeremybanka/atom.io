@@ -162,6 +162,10 @@ it(`caps paint at500 nodes/1000 edges while reporting exact captured totals and 
 	expect(model.edges).toHaveLength(1_000)
 	expect(model.matching).toBe(700)
 	expect(model).toMatchObject({ atoms: 250, selectors: 450, members: 0 })
+	context.trace = new Set([`n0`, `n250`])
+	const traced = drain(projectEcology(snapshot(nodes, edges), context))
+	expect(traced.edges).toHaveLength(1000)
+	expect(traced.edges[0].traced).toBe(true)
 	context.query = `n699`
 	expect(
 		drain(
@@ -303,4 +307,25 @@ it(`routes arrowheads onto facing card boundaries in every direction, including 
 			ex === to.x || ex === to.x + 176 || ey === to.y || ey === to.y + 52,
 		).toBe(true)
 	}
+})
+
+it(`retains incoming arrows when a selector family is collapsed`, () => {
+	const data: EcologySnapshot = {
+		...snapshot(
+			[node(`a`), node(`sum`, `selector`, `derived`)],
+			[{ dependency: `a`, selector: `sum` }],
+		),
+		families: [
+			{
+				key: `derived`,
+				type: `readonly_selector_family`,
+				memberKeys: [`sum`],
+				memberCount: 1,
+				countComplete: true,
+			},
+		],
+	}
+	expect(drain(projectEcology(data, createGraphContext())).edges).toEqual([
+		{ from: `state:a`, to: `family:derived`, traced: false },
+	])
 })

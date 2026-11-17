@@ -126,3 +126,29 @@ it(`pins selected matches beyond the paint cap without moving positions already 
 	expect(next.items[499].id).toBe(`state:row500`)
 	expect(context.positions.get(`state:row0`)).toBe(first)
 })
+
+it(`reuses immutable graph metadata only within the same capture and keeps canceled positioning private`, () => {
+	const app = fixture()
+	for (let i = 0; i < 501; i++) {
+		const options = { key: `node${i}`, default: 0 }
+		app.atom<number>(options)
+	}
+	const snapshot = captureEcologySnapshot(app.store),
+		context = createGraphContext()
+	const first = drain(projectEcology(snapshot, context))
+	const second = drain(projectEcology(snapshot, context, undefined, first))
+	expect(second.all.get(`state:node0`)).toBe(first.all.get(`state:node0`))
+	context.selected = `state:node500`
+	const canceled = projectEcology(snapshot, context, undefined, second)
+	for (let i = 0; i < 501; i++) canceled.next()
+	canceled.return(undefined as never)
+	expect(context.positions.has(`state:node500`)).toBe(false)
+	expect(second.all.get(`state:node500`)!.x).toBe(0)
+	const next = drain(projectEcology(snapshot, context, undefined, second))
+	expect(next.all.get(`state:node500`)!.x).not.toBe(0)
+	expect(second.all.get(`state:node500`)!.x).toBe(0)
+	const refreshed = drain(
+		projectEcology(captureEcologySnapshot(app.store), context, undefined, next),
+	)
+	expect(refreshed.all.get(`state:node0`)).not.toBe(next.all.get(`state:node0`))
+})

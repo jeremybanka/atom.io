@@ -220,6 +220,10 @@ export function createEcologyController(
 			)
 			defs.append(arrow)
 			world = shape(`g`, { class: `ecology-world` })
+			world.append(
+				shape(`g`, { class: `ecology-edges` }),
+				shape(`g`, { class: `ecology-cards` }),
+			)
 			svg.append(defs, world)
 		}
 		const paths: Element[] = []
@@ -236,7 +240,8 @@ export function createEcologyController(
 			)
 			paths.push(path)
 		}
-		const rows: Element[] = []
+		const nodes: Element[] = [],
+			rows: Element[] = []
 		for (const [index, item] of value.items.entries()) {
 			const traced =
 				item.kind === `family`
@@ -293,11 +298,12 @@ export function createEcologyController(
 			card.row
 				.querySelector(`button`)!
 				.setAttribute(`aria-pressed`, String(item.id === context.selected))
-			paths.push(card.group)
+			nodes.push(card.group)
 			rows.push(card.row)
 		}
 		host.dataset[`retainedCards`] = String(cards.length)
-		syncChildren(world, paths)
+		syncChildren(world.children[0], paths)
+		syncChildren(world.children[1], nodes)
 		syncChildren(list, rows)
 		transform()
 		if (liveKey && definition(liveKey) !== liveDefinition) closeLive()
@@ -338,7 +344,7 @@ export function createEcologyController(
 		if (!visible() || !context.snapshot) return
 		host.dataset[`ready`] = `false`
 		cancel = scheduleGraph(
-			projectEcology(context.snapshot, context, matchedIds),
+			projectEcology(context.snapshot, context, matchedIds, model),
 			paint,
 		)
 	}

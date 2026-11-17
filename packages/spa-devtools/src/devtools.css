@@ -364,7 +364,7 @@ main[data-css="spa-devtools"] {
 		cursor: pointer;
 		outline: none;
 	}
-	.ecology-node > rect, .ecology-node > path {
+	.ecology-node > path {
 		fill: var(--bg-tint2);
 		stroke: var(--fg-light);
 		stroke-width: 1.5px;
@@ -373,13 +373,11 @@ main[data-css="spa-devtools"] {
 		stroke: #9d7bd1;
 		stroke-dasharray: 5 3;
 	}
-	.ecology-node.traced > rect, .ecology-node.traced > path {
+	.ecology-node.traced > path {
 		stroke: #4296dd;
 		stroke-width: 3px;
 	}
-	.ecology-node[aria-pressed="true"] > rect,
 	.ecology-node[aria-pressed="true"] > path,
-	.ecology-node:focus-visible > rect,
 	.ecology-node:focus-visible > path {
 		stroke: var(--fg-max);
 		stroke-width: 3px;

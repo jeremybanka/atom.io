@@ -29,6 +29,7 @@ export interface GraphContext {
 	pan: { x: number; y: number; zoom: number }
 }
 export interface GraphModel {
+	snapshot: EcologySnapshot
 	items: GraphItem[]
 	edges: GraphEdge[]
 	all: Map<string, GraphItem>
@@ -59,9 +60,13 @@ export function* projectEcology(
 	snapshot: EcologySnapshot,
 	context: GraphContext,
 	matchedIds?: ReadonlySet<string>,
+	previous?: GraphModel,
 ): Generator<void, GraphModel> {
+	// Reuse detached metadata only within one capture; pending coordinates remain private until completion.
+	if (previous?.snapshot !== snapshot) previous = undefined
 	const all = new Map<string, GraphItem>(),
-		mapped = new Map<string, string>()
+		mapped = new Map<string, string>(),
+		selectorIds = new Set<string>()
 	const filtered = Boolean(context.query.trim())
 	const items: GraphItem[] = [],
 		edges: GraphEdge[] = []
@@ -71,18 +76,24 @@ export function* projectEcology(
 		members = 0,
 		matching = 0,
 		newPositions = 0
-	const add = (item: Omit<GraphItem, `x` | `y`>, matches: boolean): void => {
-		const previous = context.positions.get(item.id)
-		const positioned: GraphItem = {
-			id: item.id,
-			key: item.key,
-			kind: item.kind,
-			label: item.label,
-			detail: item.detail,
-			source: item.source,
-			x: previous?.x ?? 0,
-			y: previous?.y ?? 0,
-		}
+	const add = (
+		item: Omit<GraphItem, `x` | `y`> | GraphItem,
+		matches: boolean,
+	): void => {
+		const previousPosition = context.positions.get(item.id)
+		let positioned: GraphItem =
+			`x` in item
+				? item
+				: {
+						id: item.id,
+						key: item.key,
+						kind: item.kind,
+						label: item.label,
+						detail: item.detail,
+						source: item.source,
+						x: previousPosition?.x ?? 0,
+						y: previousPosition?.y ?? 0,
+					}
 		all.set(item.id, positioned)
 		if (!matches) return
 		matching++
@@ -91,11 +102,15 @@ export function* projectEcology(
 			const removed = items.pop()!
 			if (pendingPositions.delete(removed.id)) newPositions--
 		}
-		if (!previous) {
+		if (!previousPosition) {
 			// Position identity survives filtering and value-only refresh. No force simulation or recursive graph walk.
 			const slot = context.nextSlot + pendingPositions.size
-			positioned.x = 24 + (slot % 4) * 210
-			positioned.y = 24 + Math.floor(slot / 4) * 82
+			positioned = {
+				...positioned,
+				x: 24 + (slot % 4) * 210,
+				y: 24 + Math.floor(slot / 4) * 82,
+			}
+			all.set(item.id, positioned)
 			pendingPositions.set(item.id, { x: positioned.x, y: positioned.y })
 			newPositions++
 		}
@@ -104,7 +119,7 @@ export function* projectEcology(
 	for (const family of snapshot.families) {
 		const id = graphFamilyId(family.key)
 		add(
-			{
+			previous?.all.get(id) ?? {
 				id,
 				key: family.key,
 				kind: `family`,
@@ -129,17 +144,14 @@ export function* projectEcology(
 			id === context.selected ||
 			!all.has(group)
 		mapped.set(node.key, visible ? id : group)
-		const detail =
-			node.value.status === `cached`
-				? `cached ${node.value.type}`
-				: `not cached / unknown`
+		if (node.kind === `selector`) selectorIds.add(visible ? id : group)
 		add(
-			{
+			previous?.all.get(id) ?? {
 				id,
 				key: node.key,
 				kind: node.kind,
 				label: node.key,
-				detail: `${node.kind} · ${detail}`,
+				detail: `${node.kind} · ${node.value.status === `cached` ? `cached ${node.value.type}` : `not cached / unknown`}`,
 				source: node,
 			},
 			visible && (!matchedIds || matchedIds.has(id)),
@@ -148,23 +160,26 @@ export function* projectEcology(
 	}
 	const painted = new Set(items.map((item) => item.id))
 	const seen = new Map<string, GraphEdge>()
-	for (const edge of snapshot.edges) {
-		const from = mapped.get(edge.dependency),
-			to = mapped.get(edge.selector)
-		if (from && to && from !== to && painted.has(from) && painted.has(to)) {
-			const id = JSON.stringify([from, to])
-			const traced =
-				context.trace.has(edge.dependency) && context.trace.has(edge.selector)
-			const prior = seen.get(id)
-			if (prior) prior.traced ||= traced
-			else if (edges.length < 1_000) {
-				const link = { from, to, traced }
-				seen.set(id, link)
-				edges.push(link)
+	// Atom-only projections have no edge destinations. Once an untraced paint cap is full, later edges cannot affect it.
+	if (items.some((item) => selectorIds.has(item.id)))
+		for (const edge of snapshot.edges) {
+			const from = mapped.get(edge.dependency),
+				to = mapped.get(edge.selector)
+			if (from && to && from !== to && painted.has(from) && painted.has(to)) {
+				const id = JSON.stringify([from, to])
+				const traced =
+					context.trace.has(edge.dependency) && context.trace.has(edge.selector)
+				const prior = seen.get(id)
+				if (prior) prior.traced ||= traced
+				else if (edges.length < 1_000) {
+					const link = { from, to, traced }
+					seen.set(id, link)
+					edges.push(link)
+				}
 			}
+			if (edges.length === 1_000 && context.trace.size === 0) break
+			yield
 		}
-		yield
-	}
 	const removed: string[] = []
 	for (const id of context.positions.keys()) {
 		if (!all.has(id)) removed.push(id)
@@ -185,7 +200,17 @@ export function* projectEcology(
 		context.trace.clear()
 		context.traceStatus = `Selection disposed`
 	}
-	return { items, edges, all, matching, atoms, selectors, members, newPositions }
+	return {
+		snapshot,
+		items,
+		edges,
+		all,
+		matching,
+		atoms,
+		selectors,
+		members,
+		newPositions,
+	}
 }
 
 /** Layout/projection work is scheduled in 4ms slices, leaving margin below the 8ms target. */

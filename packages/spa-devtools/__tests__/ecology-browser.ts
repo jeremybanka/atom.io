@@ -328,7 +328,8 @@ try {
 	const search = [],
 		selection = [],
 		slices: number[] = [],
-		stageSamples: Record<string, number>[] = []
+		stageSamples: Record<string, number>[] = [],
+		timingSamples: Record<string, number>[] = []
 	const warmupIterations = 5,
 		sampleIterations = 20
 	for (
@@ -367,6 +368,14 @@ try {
 				return {
 					search: searched - start,
 					selection: performance.now() - searched,
+					timings: Object.fromEntries(
+						[`matchMs`, `layoutMs`, `commitMs`].map((metric) => [
+							metric,
+							Number(
+								document.querySelector<HTMLElement>(`.ecology`)!.dataset[metric],
+							),
+						]),
+					),
 					stages: Object.fromEntries(
 						[`maxIndexChunkMs`, `maxMatchChunkMs`, `maxChunkMs`].map(
 							(metric) => [
@@ -391,6 +400,7 @@ try {
 			search.push(sample.search)
 			selection.push(sample.selection)
 			stageSamples.push(sample.stages)
+			timingSamples.push(sample.timings)
 			slices.push(Math.max(...Object.values(sample.stages)))
 		}
 	}
@@ -450,6 +460,7 @@ try {
 		sampleIterations,
 		maxScheduledSliceMs: Math.max(...slices),
 		stageSamples,
+		timingSamples,
 		searchMs: search,
 		selectionMs: selection,
 		searchP95Ms: p95(search),

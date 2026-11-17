@@ -67,7 +67,7 @@ Ctrl+Shift+A shows or hides the debugger. Drag the header to move the window, or
 
 For a shared debugger UI, React applications can migrate their AtomIODevtools and stylesheet imports to this package's React and CSS entries. The existing @atom.io/react-devtools package remains available, including its JSON editor, elastic input, error boundary and customization contracts; those contracts are not exposed by the shared debugger.
 
-The shared panel uses a static atom.io.fyi mark and a subtle noise texture, embedded in its stylesheet without animation or network requests. The view tabs have a separate row so window controls remain reachable; use Left/Right arrows or Home/End while a tab is focused, or scroll the tab strip in constrained windows. Editors retain 21–22 px rows. Text, numeric and property-name inputs grow with their contents; numeric values align right, and unfinished decimal text remains editable until blur. Transaction outcomes are indented beneath their labeled transaction, with changes nested one level further.
+The shared panel uses a static atom.io.fyi mark and a subtle noise texture, embedded in its stylesheet without animation or network requests. The view tabs have a separate row so window controls remain reachable; use Left/Right arrows or Home/End while a tab is focused, or scroll the tab strip in constrained windows. Editors retain 21–22 px rows. Keys, smaller type labels and values use consistent columns; long keys retain their full title. Text, numeric and property-name inputs grow with their contents. Numeric values align right within a nearby value column, borrowing key space for longer numbers; unfinished decimal text remains editable until blur. Opaque read-only values, including errors, can be focused and scrolled horizontally by keyboard or touch to read the full text. Transaction outcomes are indented beneath their labeled transaction, with changes nested one level further.
 
 ## Surfaces and typography
 
@@ -103,6 +103,8 @@ Each view has its own local search and query text. Opening a view or pressing Re
 | Ecology      | Captured keys, family keys/subkeys, token types and cached runtime kinds, including already instantiated members of collapsed families | Selects metadata and focuses its graph/list entry, preserving pan/zoom and family expansion |
 
 The atoms/selectors views also contain ordinary live rows. Those rows can read state when the view or an editor mounts; that existing behavior is distinct from passive search. Transactions begin ordinary outcome recording when their logs are opened, so earlier outcomes are not recoverable through search. Timeline history is retained application history, not a complete audit log. Ecology never searches cached scalar contents: a cached object is searchable by its kind, without inspecting its properties or inferring a promise's completion state. Only its explicit Open live editor action may read or evaluate application state.
+
+Search summaries keep match counts, capture time, nonzero uncached/skipped-value counts and truncation warnings visible. Capture details retains skipped-value counts and the full recording qualifications in a keyboard-accessible disclosure. Ecology groups its capture explanation and shape legend in the same way, while marking truncated captures in the disclosure label. Empty graph searches explain how to restore the capture, and selections outside the current view are labeled as retained. A history search with no matches keeps the recorded tree visible and labels it as unchanged by search.
 
 ### Matching and keyboard navigation
 
@@ -194,7 +196,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                        | Entry                         | Minified JS |  Gzip JS |
 | ----------------------------- | ----------------------------- | ----------: | -------: |
-| Interactive app with debugger | `tonnage-recipes/debugger.ts` |   142,689 B | 44,392 B |
+| Interactive app with debugger | `tonnage-recipes/debugger.ts` |   144,168 B | 44,838 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

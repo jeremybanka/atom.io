@@ -66,6 +66,12 @@ export function createStateSearch(
 	const status = doc.createElement(`p`)
 	status.className = `search-status`
 	status.setAttribute(`role`, `status`)
+	const captureDetails = doc.createElement(`details`)
+	captureDetails.className = `search-capture`
+	const captureSummary = doc.createElement(`summary`)
+	captureSummary.textContent = `Capture details`
+	const captureNotes = doc.createElement(`p`)
+	captureDetails.append(captureSummary, captureNotes)
 	const pin = doc.createElement(`p`)
 	pin.className = `search-pin`
 	const results = doc.createElement(`ol`)
@@ -73,8 +79,13 @@ export function createStateSearch(
 	results.setAttribute(`aria-label`, `${view} search results`)
 	const details = doc.createElement(`section`)
 	details.className = `search-details`
-	ui.append(row, status, pin, results, details)
+	ui.append(row, status, captureDetails, pin, results, details)
 	host.prepend(ui)
+	const retained = doc.createElement(`p`)
+	retained.className = `search-context`
+	retained.textContent = `Recorded history below is unchanged by search; any selection is retained.`
+	retained.hidden = true
+	host.insertBefore(retained, index)
 	const live = doc.createElement(`section`)
 	live.className = `search-live`
 	host.insertBefore(live, index)
@@ -133,6 +144,7 @@ export function createStateSearch(
 	}
 	function mask() {
 		if (history) {
+			retained.hidden = !context.query.trim() || result?.matching !== 0
 			revealHistory()
 			return
 		}
@@ -172,7 +184,7 @@ export function createStateSearch(
 	function select(hit: SearchHit) {
 		if (busy) return
 		if (history) {
-			details.textContent = `${hit.document.detail}. Recorded preview only; no history cursor changed.`
+			details.textContent = `Recorded preview only; no history cursor changed.`
 			pendingHistory = hit
 			revealHistory()
 			return
@@ -235,8 +247,9 @@ export function createStateSearch(
 			mark(target, hit.document.label, hit.ranges)
 			item.append(target)
 			const extra = doc.createElement(`small`)
-			if (history) extra.append(`${hit.document.detail} · `)
+			if (history) extra.append(hit.document.detail)
 			if (hit.valueMatch) {
+				if (history) extra.append(` · `)
 				extra.append(history ? `recorded value: ` : `cached value: `)
 				mark(extra, hit.valueField!.text, hit.valueRanges)
 			}
@@ -246,7 +259,14 @@ export function createStateSearch(
 		}
 		results.replaceChildren(fragment)
 		const snapshot = context.index!
-		status.textContent = `${context.query.trim() ? `${next.matching} matches in captured ${history ? `history/primitive previews` : `metadata/cached values`}; showing ${next.hits.length}. ` : ``}${snapshot.documents.length} captured records · Captured at ${`${new Date(snapshot.capturedAt).toISOString().slice(11, 19)} UTC`} · ${snapshot.uncachedValues} not cached · ${snapshot.skippedValues} complex values skipped.${snapshot.notice ? ` ${snapshot.notice}` : ``}${snapshot.partial ? ` Partial capture; more records unsearched.` : ``}${snapshot.truncatedText ? ` ${snapshot.truncatedText} text prefixes truncated.` : ``}${next.approximateLimited ? ` Approximate search limited; refine the query.` : ``}${context.query.trim() && !next.matching ? ` No matches in captured ${history ? `history` : `metadata`}.` : ``}`
+		const summary = doc.createElement(`strong`)
+		summary.textContent = context.query.trim()
+			? `${next.matching} ${next.matching === 1 ? `match` : `matches`} · ${next.hits.length} shown`
+			: `${snapshot.documents.length} captured records`
+		const metadata = doc.createElement(`span`)
+		metadata.textContent = ` · ${context.query.trim() ? `${snapshot.documents.length} captured records · ` : ``}${`${new Date(snapshot.capturedAt).toISOString().slice(11, 19)} UTC`}.${snapshot.uncachedValues ? ` ${snapshot.uncachedValues} not cached.` : ``}${snapshot.skippedValues ? ` ${snapshot.skippedValues} complex values skipped.` : ``}${snapshot.partial ? ` Partial capture; more records unsearched.` : ``}${snapshot.truncatedText ? ` ${snapshot.truncatedText} text prefixes truncated.` : ``}${next.approximateLimited ? ` Approximate search limited; refine the query.` : ``}${context.query.trim() && !next.matching ? ` No matches in captured ${history ? `history` : `metadata`}.` : ``}`
+		status.replaceChildren(summary, metadata)
+		captureNotes.textContent = `${snapshot.uncachedValues} not cached · ${snapshot.skippedValues} complex values skipped.${snapshot.notice ? ` ${snapshot.notice}` : ``}`
 		mask()
 		host.dataset[`commitMs`] = String(performance.now() - started)
 		host.dataset[`ready`] = `true`
@@ -418,6 +438,7 @@ export function createStateSearch(
 		visibility.disconnect()
 		panel.removeEventListener(`keydown`, keydown)
 		ui.remove()
+		retained.remove()
 		live.remove()
 	}
 }

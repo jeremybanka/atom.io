@@ -60,7 +60,7 @@ function orderTools({ canvas, canvasElement, userEvent }: Context) {
 		const graph = canvas.getByTestId(`ecology-view`)
 		const switcher = within(graph).getByRole(`button`, { name: `Node list` })
 		if (switcher.checkVisibility()) await userEvent.click(switcher)
-		const details = graph.querySelector(`details`)!
+		const details = graph.querySelector(`.ecology-map details`)!
 		if (!details.open) await userEvent.click(details.querySelector(`summary`)!)
 		const id = `${family ? `family` : `state`}:${key}`
 		const button = graph.querySelector<HTMLElement>(
@@ -304,6 +304,18 @@ export const playOrderHistorySearch: Play = async (context) => {
 				).toHaveTextContent(`no history cursor changed`)
 				await userEvent.keyboard(`{Escape}`)
 				await expect(input).toHaveFocus()
+				const capture =
+					canvasElement.querySelector<HTMLDetailsElement>(`.search-capture`)!
+				const disclosure = capture.querySelector(`summary`)!
+				await userEvent.click(disclosure)
+				await expect(capture).toHaveAttribute(`open`)
+				await expect(capture).toHaveTextContent(
+					`Opaque payloads are skipped; no actions replayed`,
+				)
+				await userEvent.click(disclosure)
+				await expect(capture).not.toHaveAttribute(`open`)
+				await expect(disclosure).toHaveFocus()
+				await expect(tools.summary().textContent).toBe(before)
 			},
 		)
 	}

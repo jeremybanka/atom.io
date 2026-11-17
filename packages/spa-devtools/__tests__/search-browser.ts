@@ -173,6 +173,24 @@ try {
 						] === `true`,
 				)
 			await ready()
+			const capture = page.locator(`.search-capture`)
+			const disclosure = capture.locator(`summary`)
+			await disclosure.focus()
+			await disclosure.press(`Enter`)
+			assert.equal(
+				await capture.evaluate((node: HTMLDetailsElement) => node.open),
+				true,
+			)
+			assert.equal(await capture.locator(`p`).isVisible(), true)
+			await disclosure.press(`Enter`)
+			assert.equal(
+				await capture.evaluate((node: HTMLDetailsElement) => node.open),
+				false,
+			)
+			assert.equal(
+				await disclosure.evaluate((node) => node === document.activeElement),
+				true,
+			)
 			const search = page.getByRole(`searchbox`, { name: `Search atoms` })
 			const editor = page.locator(`[data-testid="state-value-count"] input`)
 			await editor.fill(`1e`)

@@ -65,6 +65,26 @@ function setup() {
 	return { silo, countAtom, recordAtom, host, input, button, mount, search, key }
 }
 
+it(`keeps capture notes available and their disclosure open across filtering and refresh`, async () => {
+	const f = setup()
+	await f.mount()
+	const disclosure = f.host.querySelector<HTMLDetailsElement>(`.search-capture`)!
+	expect(disclosure.textContent).toContain(`complex values skipped`)
+	expect(disclosure.open).toBe(false)
+	disclosure.open = true
+	const capture = f.host.querySelector(`.search-status`)!.textContent
+	await f.search(`count`)
+	f.button(`Refresh`).click()
+	await settle()
+	expect(f.host.querySelector(`.search-capture`)).toBe(disclosure)
+	expect(disclosure.open).toBe(true)
+	expect(capture).toContain(`captured records`)
+	expect(f.host.querySelector(`.search-status`)!.textContent).toContain(
+		`1 match`,
+	)
+	expect(f.silo.getState(f.countAtom)).toBe(2)
+})
+
 it(`keeps numeric draft, selection and node identity through filtering, clear and Refresh, then uses normal blur on deliberate exit`, async () => {
 	const f = setup()
 	await f.mount()

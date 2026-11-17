@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { mkdir, readFile, writeFile } from "node:fs/promises"
+import { mkdir, writeFile } from "node:fs/promises"
 import { createServer } from "node:http"
 import type { AddressInfo } from "node:net"
 import { arch, cpus, platform } from "node:os"
@@ -8,7 +8,12 @@ import { resolve } from "node:path"
 import { build } from "esbuild"
 import type { Browser } from "playwright"
 
-import { browserArtifacts, cpuRate, launchBrowser } from "./browser-runtime.ts"
+import {
+	browserArtifacts,
+	cpuRate,
+	launchBrowser,
+	loadDevtoolsAssets,
+} from "./browser-runtime.ts"
 import type { FrameSample } from "./fixtures/window-browser/timing.ts"
 
 const artifacts = browserArtifacts(
@@ -24,11 +29,16 @@ const bundle = await build({
 	platform: `browser`,
 	define: { "import.meta.env.DEV": `false` },
 })
-const css = await readFile(
-	resolve(import.meta.dirname, `../dist/devtools.css`),
-	`utf8`,
-)
+const assets = await loadDevtoolsAssets()
 const server = createServer((req, res) => {
+	const pathname = new URL(req.url ?? `/`, `http://localhost`).pathname
+	const asset = assets.get(pathname)
+	if (asset) {
+		res.setHeader(`content-type`, asset.type)
+		res.end(asset.body)
+		return
+	}
+
 	res.setHeader(
 		`content-type`,
 		req.url === `/app.js` ? `application/javascript` : `text/html`,
@@ -36,7 +46,7 @@ const server = createServer((req, res) => {
 	res.end(
 		req.url === `/app.js`
 			? bundle.outputFiles[0].text
-			: `<style>${css}</style><script type="module" src="/app.js"></script>`,
+			: `<link rel="stylesheet" href="/devtools.css"><script type="module" src="/app.js"></script>`,
 	)
 })
 await new Promise<void>((ready) => server.listen(0, `127.0.0.1`, ready))

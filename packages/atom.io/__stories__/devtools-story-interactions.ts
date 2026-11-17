@@ -6,7 +6,7 @@ type Context = Parameters<Play>[0]
 
 function orderTools({ canvas, canvasElement, userEvent }: Context) {
 	const drawer = canvasElement.querySelector<HTMLDetailsElement>(
-		`.order-fulfillment-controls`,
+		`order-fulfillment > details`,
 	)!
 	const controls = async (open: boolean) => {
 		if (drawer.open !== open)
@@ -362,6 +362,60 @@ export const playEcologySearch: Play = async (context) => {
 			await ready()
 			await userEvent.keyboard(`{Escape}`)
 			await expect(editor).toHaveFocus()
+		},
+	)
+}
+
+export const playSurfaceStates: Play = async (context) => {
+	const { canvas, userEvent, step } = context
+	const tools = orderTools(context)
+	await step(
+		`Quote controls communicate disabled, pending and error outcomes`,
+		async () => {
+			await tools.controls(true)
+			await expect(
+				canvas.getByRole(`button`, { name: `Resolve quote` }),
+			).toBeDisabled()
+			await tools.action(`Request quote`)
+			await expect(
+				canvas.getByRole(`button`, { name: `Reject quote` }),
+			).toBeEnabled()
+			await tools.action(`Reject quote`)
+			await expect(
+				canvas.getByLabelText(`Carrier quote status`),
+			).toHaveTextContent(`error`)
+			await expect(
+				canvas.getByRole(`button`, { name: `Reject quote` }),
+			).toBeDisabled()
+		},
+	)
+	await step(
+		`Nested editors and passive search retain a focused unfinished price`,
+		async () => {
+			await tools.controls(false)
+			await userEvent.click(canvas.getByRole(`tab`, { name: `atoms` }))
+			const family = canvas.getByTestId(`open-close-state-family-productBySku`)
+			if (family.getAttribute(`aria-expanded`) !== `true`)
+				await userEvent.click(family)
+			const member = canvas.getByTestId(`state-value-productBySku("tea-green")`)
+			await userEvent.click(
+				within(member).getByRole(`button`, { name: /^Expand/ }),
+			)
+			await userEvent.click(
+				within(member).getByRole(`button`, { name: `Expand tags` }),
+			)
+			const price = within(member).getByRole(`textbox`, {
+				name: `priceCents`,
+			})
+			await userEvent.clear(price)
+			await userEvent.type(price, `500.`)
+			await userEvent.keyboard(`{Control>}{Shift>}f{/Shift}{/Control}`)
+			const search = canvas.getByRole(`searchbox`, { name: `Search atoms` })
+			await userEvent.type(search, `product tea`)
+			await waitFor(() => expect(price).toHaveValue(`500.`))
+			await userEvent.keyboard(`{Escape}{Escape}`)
+			await expect(price).toHaveFocus()
+			await expect(price).toHaveValue(`500.`)
 		},
 	)
 }

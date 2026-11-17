@@ -152,7 +152,11 @@ const LASERTAG_ASTRO: Linter.Config = {
 }
 
 const LASERTAG_TSX: Linter.Config = {
-	files: [`apps/atom.io.fyi/src/**/*.tsx`],
+	files: [
+		`apps/atom.io.fyi/src/**/*.tsx`,
+		`packages/atom.io/__stories__/OrderFulfillment.tsx`,
+		`packages/atom.io/__stories__/OrderSummary.tsx`,
+	],
 	ignores: [],
 	plugins: { lasertag: LasertagPlugin },
 	rules: LASERTAG_RULES,

@@ -38,6 +38,7 @@ const types: Record<string, string> = {
 	".json": `application/json`,
 	".svg": `image/svg+xml`,
 	".png": `image/png`,
+	".otf": `font/otf`,
 }
 const server = createServer(async (req, res) => {
 	const pathname = new URL(req.url ?? `/`, `http://localhost`).pathname
@@ -131,7 +132,7 @@ try {
 		}))
 		assert.equal(layout.debuggerDocument, true)
 		assert.equal(layout.overflow, false)
-		const drawer = page.locator(`.order-fulfillment-controls`)
+		const drawer = page.locator(`order-fulfillment > details`)
 		const controls = async (open: boolean) => {
 			if (
 				(await drawer.evaluate(
@@ -261,7 +262,7 @@ try {
 			.getByRole(`button`, { name: `Dismiss notification`, exact: true })
 			.all())
 			if (await dismiss.isVisible()) await dismiss.click()
-		const managerDrawer = frame.locator(`.order-fulfillment-controls`)
+		const managerDrawer = frame.locator(`order-fulfillment > details`)
 		if (
 			!(await managerDrawer.evaluate(
 				(element: HTMLDetailsElement) => element.open,

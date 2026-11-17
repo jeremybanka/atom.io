@@ -60,7 +60,8 @@ function orderTools({ canvas, canvasElement, userEvent }: Context) {
 		const graph = canvas.getByTestId(`ecology-view`)
 		const switcher = within(graph).getByRole(`button`, { name: `Node list` })
 		if (switcher.checkVisibility()) await userEvent.click(switcher)
-		const details = graph.querySelector(`.ecology-map details`)!
+		const details =
+			graph.querySelector<HTMLDetailsElement>(`.ecology-map details`)!
 		if (!details.open) await userEvent.click(details.querySelector(`summary`)!)
 		const id = `${family ? `family` : `state`}:${key}`
 		const button = graph.querySelector<HTMLElement>(

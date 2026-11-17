@@ -6,8 +6,9 @@ import { deposit } from "atom.io/internal"
 import { createEcologyController } from "./ecology-controller.ts"
 import type { GraphContext, GraphModel } from "./ecology-graph.ts"
 import type { EcologyLine } from "./ecology-lines.ts"
-import { type CameraCommand, EcologyScene } from "./EcologyScene.tsx"
+import type { CameraCommand } from "./EcologyScene.tsx"
 import css from "./EcologyView.module.css"
+import { EcologyViewport } from "./EcologyViewport.tsx"
 import { HighlightedText } from "./HighlightedText.tsx"
 import type { SearchHit } from "./search.ts"
 import { StateLeaf } from "./StateLeaf.tsx"
@@ -226,7 +227,7 @@ export function EcologyView(props: {
 						<p data-empty role="status" hidden={!state().empty}>
 							{state().emptyText}
 						</p>
-						<EcologyScene
+						<EcologyViewport
 							tools={props.tools}
 							context={props.context}
 							slots={state().cardSlots}

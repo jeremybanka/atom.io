@@ -25,6 +25,7 @@ afterEach(() => {
 	localStorage.clear()
 })
 async function settle(): Promise<void> {
+	await vi.dynamicImportSettled()
 	for (let index = 0; index < 5; index++) await Promise.resolve()
 	await vi.runAllTimersAsync()
 	for (let index = 0; index < 5; index++) await Promise.resolve()

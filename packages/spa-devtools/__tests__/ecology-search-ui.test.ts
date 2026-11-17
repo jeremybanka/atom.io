@@ -26,6 +26,7 @@ afterEach(() => {
 	vi.restoreAllMocks()
 })
 async function settle() {
+	await vi.dynamicImportSettled()
 	for (let i = 0; i < 5; i++) await Promise.resolve()
 	await vi.runAllTimersAsync()
 	for (let i = 0; i < 5; i++) await Promise.resolve()

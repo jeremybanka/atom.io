@@ -40,7 +40,6 @@ interface SceneState {
 	items: GraphItem[]
 	edges: EcologyLine[]
 	command: { sequence: number; action: string; target: string }
-	workspace: string
 }
 function fixture(restored = false, empty = false) {
 	const silo = new Silo({
@@ -58,7 +57,6 @@ function fixture(restored = false, empty = false) {
 			items: empty ? [] : [a, b],
 			edges: [{ from: a, to: b, traced: false }],
 			command: { sequence: 0, action: `fit`, target: `` },
-			workspace: `graph`,
 		},
 	})
 	let tick: (time: number) => void = () => {},
@@ -93,7 +91,6 @@ function fixture(restored = false, empty = false) {
 					edges={get().edges}
 					traced={new Set()}
 					command={get().command}
-					workspace={get().workspace}
 				/>
 			)
 		},
@@ -200,7 +197,6 @@ it(`restores a borrowed camera and frames the first nonempty capture at a usable
 	restored.tick()
 	const empty = fixture(false, true)
 	empty.tick()
-	empty.command(`fit`)
 	empty.patch({
 		items: [item(`top`, 8, 10_000, 0), item(`bottom`, -8, -10_000, 0)],
 	})
@@ -214,6 +210,13 @@ it(`restores a borrowed camera and frames the first nonempty capture at a usable
 	expect(distance(empty.context.camera!)).toBeGreaterThan(10_000)
 	empty.command(`focus`, `state:top`)
 	expect(distance(empty.context.camera!)).toBeLessThanOrEqual(45.00001)
+})
+it(`applies a queued focus when the first populated capture starts the camera`, () => {
+	const f = fixture(false, true)
+	f.command(`focus`, `state:b`)
+	f.patch({ items: [f.a, f.b] })
+	f.tick()
+	expect(f.context.camera!.target).toEqual([-8, -4, 0])
 })
 it(`keeps the list fallback local when WebGL creation fails`, () => {
 	vi.mocked(THREE.WebGLRenderer).mockImplementationOnce(function () {

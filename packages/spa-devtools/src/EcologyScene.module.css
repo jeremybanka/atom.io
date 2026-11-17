@@ -41,9 +41,4 @@ ecology-scene.class {
 		font-size: 12px;
 		padding: 12px;
 	}
-	@container atom-io-devtools (max-width: 650px) {
-		&[data-workspace="list"] {
-			display: none;
-		}
-	}
 }

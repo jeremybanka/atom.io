@@ -37,7 +37,6 @@ export function EcologyScene(props: {
 	edges: EcologyLine[]
 	selected?: string | undefined
 	traced: Set<string>
-	workspace: string
 	command: CameraCommand
 }): SpaElement {
 	const id = `ecology-controls-${useId()}`
@@ -232,7 +231,6 @@ export function EcologyScene(props: {
 			aria-label="Observed dependency graph"
 			aria-describedby={id}
 			data-unavailable={failed()}
-			data-workspace={props.workspace}
 		>
 			{/* Start with the first populated capture; retain the renderer across subsequent empty filters and captures. */}
 			{(props.slots > 0 || controls !== undefined) && !failed() && (
@@ -264,6 +262,7 @@ export function EcologyScene(props: {
 							controls.target.fromArray(props.context.camera.target)
 							controls.update()
 						} else fit(false)
+						if (props.command.sequence > 0) command(props.command)
 						invalidate()
 						return () => {
 							controls!.dispose()

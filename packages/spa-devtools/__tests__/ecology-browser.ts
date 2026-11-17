@@ -56,7 +56,7 @@ const server = createServer((request, response) => {
 await new Promise<void>((ready) => server.listen(0, `127.0.0.1`, ready))
 let browser: Browser | undefined
 try {
-	browser = await launchBrowser()
+	browser = await launchBrowser({ softwareWebGL: true })
 	const context = await browser.newContext({
 		viewport: { width: 1440, height: 900 },
 		colorScheme: `dark`,

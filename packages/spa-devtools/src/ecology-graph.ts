@@ -59,7 +59,7 @@ export function createGraphContext(): GraphContext {
 }
 
 /** Equal arc-length steps on two opposed helices. The cylinder and paths are mathematical only. */
-export function helixPosition(
+function helixPosition(
 	slot: number,
 	selector: boolean,
 	height: number,
@@ -72,10 +72,7 @@ export function helixPosition(
 	}
 }
 /** Fan out on the horizontal tangent, leaving the family card at its anchor. */
-export function familyPosition(
-	anchor: GraphPosition,
-	member: number,
-): GraphPosition {
+function familyPosition(anchor: GraphPosition, member: number): GraphPosition {
 	const offset = (Math.floor(member / 2) + 1) * (member % 2 ? -1 : 1) * 12
 	return {
 		x: anchor.x - (anchor.z / 8) * offset,

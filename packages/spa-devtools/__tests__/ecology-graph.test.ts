@@ -3,8 +3,6 @@ import { afterEach, expect, it, vi } from "vitest"
 import type { EcologyNode, EcologySnapshot } from "../src/ecology.ts"
 import {
 	createGraphContext,
-	familyPosition,
-	helixPosition,
 	projectEcology,
 	scheduleGraph,
 } from "../src/ecology-graph.ts"
@@ -306,24 +304,47 @@ it(`uses the browser timer scheduler and cancels it on disposal`, async () => {
 })
 
 it(`uses equal helical steps with opposite starts and vertical directions, and expands on the tangent`, () => {
-	const atom = helixPosition(0, false, 20),
-		selector = helixPosition(0, true, 20)
-	expect(atom).toEqual({ x: 8, y: 10, z: 0 })
+	const families = Array.from({ length: 31 }, (_, i) => ({
+		key: `group${i}`,
+		type: `atom_family`,
+		memberCount: 1,
+		countComplete: true,
+		memberKeys: [`member${i}`],
+	}))
+	const data: EcologySnapshot = {
+		...snapshot([
+			...families.map((family, i) => node(`member${i}`, `atom`, family.key)),
+			...Array.from({ length: 31 }, (_, i) => node(`s${i}`, `selector`)),
+		]),
+		families,
+	}
+	const context = createGraphContext()
+	for (const family of families) context.expanded.add(family.key)
+	const model = drain(projectEcology(data, context))
+	const position = (slot: number, selector: boolean) =>
+		model.all.get(selector ? `state:s${slot}` : `family:group${slot}`)!
+	const atom = position(0, false),
+		selector = position(0, true)
+	expect([atom.x, atom.y, atom.z]).toEqual([8, 30, 0])
 	expect(selector.x).toBeCloseTo(-8)
-	expect(selector.y).toBe(-10)
+	expect(selector.y).toBe(-30)
 	for (const lane of [false, true]) {
 		let distance = 0
 		for (let slot = 0; slot < 30; slot++) {
-			const a = helixPosition(slot, lane, 60),
-				b = helixPosition(slot + 1, lane, 60)
+			const a = position(slot, lane),
+				b = position(slot + 1, lane)
 			expect(Math.hypot(a.x, a.z)).toBeCloseTo(8)
 			expect(b.y - a.y).toBe(lane ? 2 : -2)
+			expect(a.x * b.z - a.z * b.x).toBeGreaterThan(0)
 			const next = Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z)
 			if (slot) expect(next).toBeCloseTo(distance)
 			distance = next
-			const member = familyPosition(a, slot)
-			expect((member.x - a.x) * a.x + (member.z - a.z) * a.z).toBeCloseTo(0)
-			expect(member.y).toBe(a.y)
+			const anchor = position(slot, false),
+				member = model.all.get(`state:member${slot}`)!
+			expect(
+				(member.x - anchor.x) * anchor.x + (member.z - anchor.z) * anchor.z,
+			).toBeCloseTo(0)
+			expect(member.y).toBe(anchor.y)
 		}
 	}
 })

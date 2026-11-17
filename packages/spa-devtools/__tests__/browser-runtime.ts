@@ -31,10 +31,15 @@ export function reportPerformanceTarget(
 	process.stderr.write(`Advisory: ${message}\n`)
 }
 /** Keep the browser sandbox enabled in both ordinary and CPU-throttled regressions. */
-export async function launchBrowser(): Promise<Browser> {
+export async function launchBrowser({
+	softwareWebGL = false,
+}: { softwareWebGL?: boolean } = {}): Promise<Browser> {
 	const browser = await chromium.launch({
 		chromiumSandbox: true,
-		args: [`--use-angle=swiftshader`, `--enable-unsafe-swiftshader`],
+		// Keep the ordinary compositor for DOM timing; opt into software WebGL only in graphics fixtures.
+		...(softwareWebGL
+			? { args: [`--use-angle=swiftshader`, `--enable-unsafe-swiftshader`] }
+			: {}),
 		...(process.env[`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`]
 			? { executablePath: process.env[`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`] }
 			: {}),

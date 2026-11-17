@@ -585,7 +585,7 @@ async function checkLongField(
 await new Promise<void>((ready) => server.listen(0, `127.0.0.1`, ready))
 let browser: Browser | undefined
 try {
-	browser = await launchBrowser()
+	browser = await launchBrowser({ softwareWebGL: true })
 	const report = {
 		cpuRate,
 		candidate: process.env[`SPA_DEVTOOLS_CANDIDATE_SHA`] ?? `working-tree`,

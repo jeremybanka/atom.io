@@ -93,7 +93,7 @@ const finished = async (frame: Frame | Page, id: string) => {
 	assert.equal(await frame.getByTestId(`atom-io-devtools`).count(), 1)
 }
 try {
-	browser = await launchBrowser()
+	browser = await launchBrowser({ softwareWebGL: true })
 	const address = server.address()
 	assert.ok(address && typeof address !== `string`)
 	const url = `http://127.0.0.1:${address.port}`

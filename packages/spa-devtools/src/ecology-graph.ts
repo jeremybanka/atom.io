@@ -31,6 +31,7 @@ export interface GraphContext {
 	camera?: {
 		position: [number, number, number]
 		target: [number, number, number]
+		aspect?: number
 	}
 }
 interface GraphRecord {
@@ -72,6 +73,7 @@ export interface GraphModel {
 	members: number
 	newPositions: number
 	selection: GraphSelection | undefined
+	cylinderHeight: number
 }
 interface GraphSelection {
 	id: string
@@ -426,6 +428,7 @@ export function* projectEcology(
 		members: layout.members,
 		newPositions,
 		selection,
+		cylinderHeight: layout.height,
 	}
 }
 

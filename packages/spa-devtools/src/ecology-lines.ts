@@ -30,6 +30,7 @@ export function writeEdgeBuffer(
 	camera: THREE.PerspectiveCamera,
 	width: number,
 	height: number,
+	worldScale = new THREE.Vector3(1, 1, 1),
 ): void {
 	const attribute = geometry.getAttribute(`position`) as THREE.BufferAttribute
 	let cursor = 0
@@ -53,10 +54,12 @@ export function writeEdgeBuffer(
 	const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1)
 	for (const edge of edges) {
 		if (edge.traced !== traced) continue
-		const a = new THREE.Vector3(edge.from.x, edge.from.y, edge.from.z).project(
-			camera,
-		)
-		const b = new THREE.Vector3(edge.to.x, edge.to.y, edge.to.z).project(camera)
+		const a = new THREE.Vector3(edge.from.x, edge.from.y, edge.from.z)
+			.multiply(worldScale)
+			.project(camera)
+		const b = new THREE.Vector3(edge.to.x, edge.to.y, edge.to.z)
+			.multiply(worldScale)
+			.project(camera)
 		let dx = ((b.x - a.x) * width) / 2,
 			dy = ((b.y - a.y) * height) / 2
 		const loop = Math.hypot(dx, dy) < 1

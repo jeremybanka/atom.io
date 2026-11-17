@@ -160,6 +160,7 @@ export function createEcologyController(
 		host.dataset[`retainedCards`] = String(cards.length)
 		update({
 			cardSlots: cards.length,
+			cylinderHeight: value.cylinderHeight,
 			visibleCards: value.items.length,
 			cards,
 			edges,

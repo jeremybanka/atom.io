@@ -48,6 +48,7 @@ function fixture() {
 			return jsx(EcologyViewport, {
 				tools: useTools(silo.store),
 				context: createGraphContext(),
+				cylinderHeight: 8,
 				slots: 0,
 				generation: 0,
 				card: () => {

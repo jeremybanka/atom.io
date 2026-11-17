@@ -98,6 +98,15 @@ try {
 		false,
 	)
 	const scene = page.locator(`ecology-scene`)
+	const cylinderFits = async () => {
+		await page.waitForFunction(() => {
+			const node = document.querySelector<HTMLElement>(`ecology-scene`)!
+			const [diameter, height] = node.dataset[`cylinder`]!.split(`,`).map(Number)
+			const box = node.getBoundingClientRect()
+			return Math.abs(diameter / height - box.width / box.height) < 0.00001
+		})
+	}
+	await cylinderFits()
 	await page.waitForFunction(() =>
 		Boolean(
 			document.querySelector<HTMLElement>(`ecology-scene`)!.dataset[`camera`],
@@ -255,6 +264,24 @@ try {
 	)
 	assert.equal(after.reads, 0)
 	await choose(`state:total`)
+	await page.waitForFunction(() => {
+		const cards = [
+			...document.querySelectorAll<HTMLElement>(
+				`ecology-node-card:not([hidden])`,
+			),
+		]
+		const active = cards.filter((node) => node.dataset[`traced`] === `true`)
+		const inactive = cards.filter((node) => node.dataset[`traced`] !== `true`)
+		const selected = cards.find((node) =>
+			node.querySelector(`[aria-pressed="true"]`),
+		)!
+		return (
+			Math.min(...active.map((node) => Number(node.style.zIndex))) >
+				Math.max(...inactive.map((node) => Number(node.style.zIndex))) &&
+			Number(selected.style.zIndex) ===
+				Math.max(...cards.map((node) => Number(node.style.zIndex)))
+		)
+	})
 	assert.deepEqual(
 		await page
 			.locator(`ecology-node-card[data-traced="true"] > button`)
@@ -411,6 +438,7 @@ try {
 	const touch = await context.newCDPSession(page),
 		box = (await scene.boundingBox())!
 	const touchPose = await camera()
+	await cylinderFits()
 	await touch.send(`Input.dispatchTouchEvent`, {
 		type: `touchStart`,
 		touchPoints: [{ x: box.x + 20, y: box.y + 30 }],

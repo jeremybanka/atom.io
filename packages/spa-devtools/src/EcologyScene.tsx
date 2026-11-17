@@ -29,6 +29,7 @@ export interface CameraCommand {
 export function EcologyScene(props: {
 	tools: Tools
 	context: GraphContext
+	cylinderHeight: number
 	slots: number
 	generation: number
 	card(index: number): GraphItem
@@ -47,6 +48,13 @@ export function EcologyScene(props: {
 	})
 	const [failed, setFailed] = useLocal(props.tools.store, false)
 	const labels = new THREE.Scene()
+	const scale = labels.scale
+	const cylinder = () => {
+		const ratio = Math.sqrt(size().width / size().height)
+		return { diameter: 16 * ratio, height: 16 / ratio }
+	}
+	const point = (item: GraphItem) =>
+		new THREE.Vector3(item.x, item.y, item.z).multiply(scale)
 	const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100_000)
 	const normal = createEdgeBuffer(),
 		traced = createEdgeBuffer()
@@ -61,6 +69,7 @@ export function EcologyScene(props: {
 		transparent: true,
 		opacity: 0.9,
 		depthWrite: false,
+		depthTest: false,
 	})
 	camera.position.set(23, 7, 28)
 	let viewport: HTMLElement | null = null,
@@ -77,16 +86,14 @@ export function EcologyScene(props: {
 			props.context.camera = {
 				position: camera.position.toArray(),
 				target: controls.target.toArray(),
+				aspect: camera.aspect,
 			}
 		}
 	}
 	const fit = (overview = true) => {
 		if (!props.items.length) return
-		const box = new THREE.Box3().setFromPoints(
-			props.items.map((item) => new THREE.Vector3(item.x, item.y, item.z)),
-		)
-		const center = box.getCenter(new THREE.Vector3()),
-			extent = box.getSize(new THREE.Vector3())
+		const box = new THREE.Box3().setFromPoints(props.items.map(point))
+		const center = box.getCenter(new THREE.Vector3())
 		const direction = camera.position.clone().sub(controls!.target).normalize()
 		const right = new THREE.Vector3()
 			.crossVectors(camera.up, direction)
@@ -97,23 +104,16 @@ export function EcologyScene(props: {
 			tangent * camera.aspect * Math.max(0.2, 1 - 192 / size().width)
 		const vertical = tangent * Math.max(0.2, 1 - 100 / size().height)
 		let distance = 18
-		// Include perspective depth and fixed-size DOM card margins in every view orientation.
-		for (const x of [-1, 1])
-			for (const y of [-1, 1])
-				for (const z of [-1, 1]) {
-					const corner = new THREE.Vector3(
-						(x * extent.x) / 2,
-						(y * extent.y) / 2,
-						(z * extent.z) / 2,
-					)
-					distance = Math.max(
-						distance,
-						corner.dot(direction) + Math.abs(corner.dot(right)) / horizontal,
-						corner.dot(direction) + Math.abs(corner.dot(up)) / vertical,
-					)
-				}
-		if (!overview && distance > 90)
-			center.set(props.items[0].x, props.items[0].y, props.items[0].z)
+		// Fit the actual projected cylinder points, including perspective depth and DOM card margins.
+		for (const item of props.items) {
+			const offset = point(item).sub(center)
+			distance = Math.max(
+				distance,
+				offset.dot(direction) + Math.abs(offset.dot(right)) / horizontal,
+				offset.dot(direction) + Math.abs(offset.dot(up)) / vertical,
+			)
+		}
+		if (!overview && distance > 90) center.copy(point(props.items[0]))
 		controls!.target.copy(center)
 		camera.position
 			.copy(center)
@@ -154,21 +154,43 @@ export function EcologyScene(props: {
 		if (action === `focus`) {
 			const item = props.items.find((candidate) => candidate.id === target)
 			if (item) {
-				const point = new THREE.Vector3(item.x, item.y, item.z)
+				const targetPoint = point(item)
 				const direction = camera.position
 					.clone()
 					.sub(controls.target)
 					.normalize()
 				camera.position
-					.copy(point)
+					.copy(targetPoint)
 					.addScaledVector(
 						direction,
 						Math.min(45, camera.position.distanceTo(controls.target)),
 					)
-				controls.target.copy(point)
+				controls.target.copy(targetPoint)
 			}
 		}
 		controls.update()
+		invalidate()
+	}
+	const retarget = (previousAspect: number, aspect: number) => {
+		if (previousAspect === aspect) return
+		const ratio = Math.sqrt(aspect / previousAspect)
+		const offset = camera.position.clone().sub(controls!.target)
+		controls!.target.multiply(new THREE.Vector3(ratio, 1 / ratio, ratio))
+		camera.position.copy(controls!.target).addScaledVector(offset, 1 / ratio)
+	}
+	const reshape = (width: number, height: number) => {
+		const aspect = width / height
+		if (controls) retarget(camera.aspect, aspect)
+		const dimensions = cylinder()
+		scale.set(
+			dimensions.diameter / 16,
+			dimensions.height / props.cylinderHeight,
+			dimensions.diameter / 16,
+		)
+		camera.aspect = aspect
+		camera.updateProjectionMatrix()
+		renderer?.setSize(width, height)
+		controls?.update()
 		invalidate()
 	}
 	onMount(() => {
@@ -182,6 +204,12 @@ export function EcologyScene(props: {
 		bindScene(() => props.command, command)
 		bindScene(() => props.edges, invalidate)
 		bindScene(() => props.items, invalidate)
+		bindScene(
+			() => props.cylinderHeight,
+			() => {
+				reshape(size().width, size().height)
+			},
+		)
 		onCleanup(() => {
 			observer.disconnect()
 			normal.dispose()
@@ -202,6 +230,7 @@ export function EcologyScene(props: {
 			camera,
 			size().width,
 			size().height,
+			scale,
 		)
 		writeEdgeBuffer(
 			traced,
@@ -210,6 +239,7 @@ export function EcologyScene(props: {
 			camera,
 			size().width,
 			size().height,
+			scale,
 		)
 		viewport!.dataset[`camera`] = [
 			...camera.position.toArray(),
@@ -219,6 +249,7 @@ export function EcologyScene(props: {
 		props.context.camera = {
 			position: camera.position.toArray(),
 			target: controls!.target.toArray(),
+			aspect: camera.aspect,
 		}
 	}
 	return (
@@ -232,6 +263,7 @@ export function EcologyScene(props: {
 			aria-label="Observed dependency graph"
 			aria-describedby={id}
 			data-unavailable={failed()}
+			data-cylinder={`${cylinder().diameter},${cylinder().height}`}
 		>
 			{/* Start with the first populated capture; retain the renderer across subsequent empty filters and captures. */}
 			{(props.slots > 0 || controls !== undefined) && !failed() && (
@@ -245,10 +277,7 @@ export function EcologyScene(props: {
 						setFailed(true)
 					}}
 					onResize={({ width, height }) => {
-						camera.aspect = width / height
-						camera.updateProjectionMatrix()
-						renderer?.setSize(width, height)
-						invalidate()
+						reshape(width, height)
 					}}
 					onCreated={() => {
 						renderer = new CSS2DRenderer({ element: layer! })
@@ -259,8 +288,10 @@ export function EcologyScene(props: {
 						controls.listenToKeyEvents(viewport!)
 						controls.addEventListener(`change`, invalidate)
 						if (props.context.camera) {
-							camera.position.fromArray(props.context.camera.position)
-							controls.target.fromArray(props.context.camera.target)
+							const saved = props.context.camera
+							camera.position.fromArray(saved.position)
+							controls.target.fromArray(saved.target)
+							retarget(saved.aspect ?? camera.aspect, camera.aspect)
 							controls.update()
 						} else fit(false)
 						if (props.command.sequence > 0) command(props.command)
@@ -275,7 +306,13 @@ export function EcologyScene(props: {
 					onFrame={draw}
 				>
 					<LineSegments args={[normal, normalMaterial]} frustumCulled={false} />
-					<LineSegments args={[traced, traceMaterial]} frustumCulled={false} />
+					<LineSegments
+						args={[traced, traceMaterial]}
+						frustumCulled={false}
+						ref={(line) => {
+							if (line) line.renderOrder = 1
+						}}
+					/>
 				</canvas.Canvas>
 			)}
 			<ecology-labels

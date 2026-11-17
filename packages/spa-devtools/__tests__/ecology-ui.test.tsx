@@ -168,8 +168,14 @@ it(`retains selection/pan/expansion across snapshots and navigation; geometry-on
 		f.host.querySelector<HTMLElement>(`ecology-view`)!.dataset[`newPositions`],
 	).toBe(`0`)
 	expect(
-		f.host.querySelector(`ecology-scene`)!.getAttribute(`data-camera`),
-	).toBe(transform)
+		f.host
+			.querySelector(`ecology-scene`)!
+			.getAttribute(`data-camera`)!
+			.split(`,`)
+			.map(Number),
+	).toEqual(
+		transform!.split(`,`).map((value) => expect.closeTo(Number(value), 10)),
+	)
 	expect(
 		f.host.querySelector(`ecology-node-card`)!.getAttribute(`data-position`),
 	).toBe(position)
@@ -188,8 +194,14 @@ it(`retains selection/pan/expansion across snapshots and navigation; geometry-on
 		`count`,
 	)
 	expect(
-		f.host.querySelector(`ecology-scene`)!.getAttribute(`data-camera`),
-	).toBe(transform)
+		f.host
+			.querySelector(`ecology-scene`)!
+			.getAttribute(`data-camera`)!
+			.split(`,`)
+			.map(Number),
+	).toEqual(
+		transform!.split(`,`).map((value) => expect.closeTo(Number(value), 10)),
+	)
 	await f.click(`Fit`)
 	await f.click(`Reset view`)
 	expect(

@@ -37,6 +37,9 @@ const item = (id: string, x: number, y: number, z: number): GraphItem => ({
 	},
 })
 interface SceneState {
+	cylinderHeight: number
+	selected?: string | undefined
+	traced: Set<string>
 	items: GraphItem[]
 	edges: EcologyLine[]
 	command: { sequence: number; action: string; target: string }
@@ -54,6 +57,8 @@ function fixture(restored = false, empty = false) {
 	const sceneStateAtom = silo.atom<SceneState>({
 		key: `sceneState`,
 		default: {
+			cylinderHeight: 8,
+			traced: new Set(),
 			items: empty ? [] : [a, b],
 			edges: [{ from: a, to: b, traced: false }],
 			command: { sequence: 0, action: `fit`, target: `` },
@@ -83,13 +88,15 @@ function fixture(restored = false, empty = false) {
 				<EcologyScene
 					tools={tools}
 					context={context}
+					cylinderHeight={get().cylinderHeight}
 					slots={get().items.length}
 					generation={0}
 					card={(index) => get().items[index] ?? (index === 0 ? a : b)}
 					visible={() => true}
 					items={get().items}
 					edges={get().edges}
-					traced={new Set()}
+					traced={get().traced}
+					selected={get().selected}
 					command={get().command}
 				/>
 			)
@@ -113,9 +120,9 @@ function fixture(restored = false, empty = false) {
 	)
 	cleanups.push(root.dispose)
 	const viewport = host.querySelector<HTMLElement>(`ecology-scene`)!
-	vi.spyOn(viewport, `getBoundingClientRect`).mockReturnValue(
-		new DOMRect(0, 0, 800, 500),
-	)
+	const bounds = vi
+		.spyOn(viewport, `getBoundingClientRect`)
+		.mockReturnValue(new DOMRect(0, 0, 800, 500))
 	const patch = (value: Partial<SceneState>) => {
 		silo.setState(sceneStateAtom, (previous) => ({ ...previous, ...value }))
 		root.flush()
@@ -132,11 +139,21 @@ function fixture(restored = false, empty = false) {
 		tick: () => {
 			tick(16)
 		},
-		resize: () => {
+		resize: (width = 800, height = 500) => {
+			bounds.mockReturnValue(new DOMRect(0, 0, width, height))
 			resize([], {} as ResizeObserver)
 			root.flush()
 		},
 		patch,
+		point: (value: GraphItem) => {
+			const [diameter, height] =
+				viewport.dataset[`cylinder`]!.split(`,`).map(Number)
+			return [
+				(value.x * diameter) / 16,
+				(value.y * height) / silo.getState(sceneStateAtom).cylinderHeight,
+				(value.z * diameter) / 16,
+			]
+		},
 		command: (action: string, target = ``) => {
 			patch({ command: { sequence: ++sequence, action, target } })
 		},
@@ -167,7 +184,9 @@ it(`projects viewer-facing DOM cards and batched edges, keeps a camera through r
 	])
 		f.command(action)
 	f.command(`focus`, `state:b`)
-	expect(f.context.camera!.target).toEqual([-8, -4, 0])
+	expect(f.context.camera!.target).toEqual(
+		f.point(f.b).map((value) => expect.closeTo(value, 10)),
+	)
 	expect(f.context.camera!.position.every(Number.isFinite)).toBe(true)
 	f.patch({ edges: [{ from: f.a, to: f.b, traced: true }] })
 	f.tick()
@@ -191,23 +210,23 @@ it(`projects viewer-facing DOM cards and batched edges, keeps a camera through r
 	expect(f.disconnect).toHaveBeenCalledOnce()
 	expect(f.stop).toHaveBeenCalledOnce()
 })
-it(`restores a borrowed camera and frames the first nonempty capture at a usable distance`, () => {
+it(`restores a borrowed camera and fits a large capture into viewport-shaped cylinder dimensions`, () => {
 	const restored = fixture(true)
 	expect(restored.context.camera!.target).toEqual([1, 2, 3])
 	restored.tick()
 	const empty = fixture(false, true)
 	empty.tick()
 	empty.patch({
+		cylinderHeight: 20_000,
 		items: [item(`top`, 8, 10_000, 0), item(`bottom`, -8, -10_000, 0)],
 	})
 	empty.tick()
-	expect(empty.context.camera!.target[0]).toBeCloseTo(8)
-	expect(empty.context.camera!.target[1]).toBeCloseTo(10_000)
+	expect(empty.context.camera!.target).toEqual([0, 0, 0])
 	const distance = (camera: NonNullable<typeof empty.context.camera>) =>
 		Math.hypot(...camera.position.map((n, i) => n - camera.target[i]))
 	expect(distance(empty.context.camera!)).toBeLessThanOrEqual(90.00001)
 	empty.command(`fit`)
-	expect(distance(empty.context.camera!)).toBeGreaterThan(10_000)
+	expect(distance(empty.context.camera!)).toBeLessThan(90)
 	empty.command(`focus`, `state:top`)
 	expect(distance(empty.context.camera!)).toBeLessThanOrEqual(45.00001)
 })
@@ -216,7 +235,83 @@ it(`applies a queued focus when the first populated capture starts the camera`, 
 	f.command(`focus`, `state:b`)
 	f.patch({ items: [f.a, f.b] })
 	f.tick()
-	expect(f.context.camera!.target).toEqual([-8, -4, 0])
+	expect(f.context.camera!.target).toEqual(
+		f.point(f.b).map((value) => expect.closeTo(value, 10)),
+	)
+})
+it(`keeps a readable initial view for a very long family tangent and fits the full expansion on request`, () => {
+	const f = fixture(false, true),
+		a = item(`far`, 10_000, 0, 8),
+		b = item(`other`, -10_000, 0, 8)
+	f.patch({ items: [a, b] })
+	f.tick()
+	expect(f.context.camera!.target).toEqual(
+		f.point(a).map((value) => expect.closeTo(value, 10)),
+	)
+	const distance = () =>
+		new THREE.Vector3(...f.context.camera!.position).distanceTo(
+			new THREE.Vector3(...f.context.camera!.target),
+		)
+	expect(distance()).toBeCloseTo(90)
+	f.command(`fit`)
+	expect(distance()).toBeGreaterThan(10_000)
+})
+it(`reshapes on canvas resize while preserving orbit direction and relative zoom`, () => {
+	const f = fixture()
+	f.resize(1200, 400)
+	f.command(`focus`, `state:b`)
+	f.command(`in`)
+	const before = f.context.camera!,
+		point = f.point(f.b)
+	expect(before.target).toEqual(point.map((value) => expect.closeTo(value, 10)))
+	const offset = new THREE.Vector3(...before.position).sub(
+		new THREE.Vector3(...before.target),
+	)
+	f.resize(300, 900)
+	f.tick()
+	const [diameter, height] =
+		f.viewport.dataset[`cylinder`]!.split(`,`).map(Number)
+	expect(diameter / height).toBeCloseTo(300 / 900)
+	expect(f.context.camera!.target).toEqual(
+		f.point(f.b).map((value) => expect.closeTo(value, 10)),
+	)
+	const after = new THREE.Vector3(...f.context.camera!.position).sub(
+		new THREE.Vector3(...f.context.camera!.target),
+	)
+	expect(
+		after.clone().normalize().distanceTo(offset.clone().normalize()),
+	).toBeCloseTo(0)
+	expect(after.length() / offset.length()).toBeCloseTo(3)
+})
+it(`stacks selected and connected cards above nearer unrelated cards and restores distance ordering when cleared`, () => {
+	const f = fixture()
+	f.tick()
+	const gl = vi.mocked(THREE.WebGLRenderer).mock.results.at(-1)!
+		.value as THREE.WebGLRenderer
+	const scene = vi.mocked(gl.render).mock.lastCall![0]
+	const lines = scene.children as THREE.LineSegments<
+		THREE.BufferGeometry,
+		THREE.LineBasicMaterial
+	>[]
+	expect(lines[1].renderOrder).toBeGreaterThan(lines[0].renderOrder)
+	expect(lines[1].material.depthTest).toBe(false)
+	const cards = [
+		...f.viewport.querySelectorAll<HTMLElement>(`ecology-node-card`),
+	]
+	const before = cards.map((card) => card.style.zIndex)
+	f.patch({ selected: `state:b`, traced: new Set([`b`]) })
+	f.tick()
+	expect(Number(cards[1].style.zIndex)).toBeGreaterThan(
+		Number(cards[0].style.zIndex),
+	)
+	f.patch({ selected: `state:a`, traced: new Set([`a`, `b`]) })
+	f.tick()
+	expect(Number(cards[0].style.zIndex)).toBeGreaterThan(
+		Number(cards[1].style.zIndex),
+	)
+	f.patch({ selected: undefined, traced: new Set() })
+	f.tick()
+	expect(cards.map((card) => card.style.zIndex)).toEqual(before)
 })
 it(`keeps the list fallback local when WebGL creation fails`, () => {
 	vi.mocked(THREE.WebGLRenderer).mockImplementationOnce(function () {
@@ -271,5 +366,22 @@ it(`places arrowheads outside billboard bounds in 3D, retaining parallel edges a
 	expect(geometry.drawRange.count).toBe(0)
 	writeEdgeBuffer(geometry, [{ from, to, traced: true }], true, camera, 800, 500)
 	expect(geometry.drawRange.count).toBe(36)
+	const scale = new THREE.Vector3(2, 0.5, 2)
+	writeEdgeBuffer(
+		geometry,
+		[{ from, to, traced: true }],
+		true,
+		camera,
+		800,
+		500,
+		scale,
+	)
+	const scaledEnd = new THREE.Vector3()
+		.fromBufferAttribute(attribute, 31)
+		.project(camera)
+	const scaledTarget = new THREE.Vector3(to.x, to.y, to.z)
+		.multiply(scale)
+		.project(camera)
+	expect((scaledTarget.x - scaledEnd.x) * 400).toBeCloseTo(91, 3)
 	geometry.dispose()
 })

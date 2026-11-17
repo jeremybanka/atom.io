@@ -22,10 +22,15 @@ export function EcologyNodeCard(props: {
 		const label = new CSS2DObject(element!)
 		props.scene.add(label)
 		bindScene(
-			() => ({ item: props.item, visible: props.visible }),
-			({ item, visible }) => {
+			() => ({
+				item: props.item,
+				visible: props.visible,
+				order: props.selected ? 2 : props.traced ? 1 : 0,
+			}),
+			({ item, visible, order }) => {
 				label.position.set(item.x, item.y, item.z)
 				label.visible = visible
+				label.renderOrder = order
 				props.invalidate()
 			},
 		)

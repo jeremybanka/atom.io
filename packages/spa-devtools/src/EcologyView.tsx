@@ -15,6 +15,7 @@ import { StateLeaf } from "./StateLeaf.tsx"
 import { type Tools, usePresentation, useSlotPages } from "./store.ts"
 
 export interface EcologyPresentation {
+	cylinderHeight: number
 	cardSlots: number
 	visibleCards: number
 	cards: GraphModel[`items`]
@@ -46,6 +47,7 @@ export function EcologyView(props: {
 }): SpaElement {
 	const marker = `ecology-${useId()}`
 	const presentation = usePresentation<EcologyPresentation>(props.tools.store, {
+		cylinderHeight: 8,
 		selectionOutside: false,
 		cardSlots: 0,
 		visibleCards: 0,
@@ -233,6 +235,7 @@ export function EcologyView(props: {
 						<EcologyViewport
 							tools={props.tools}
 							context={props.context}
+							cylinderHeight={state().cylinderHeight}
 							slots={state().cardSlots}
 							generation={state().generation}
 							card={cards.value}

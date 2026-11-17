@@ -138,14 +138,28 @@ try {
 				(element: HTMLDetailsElement) => element.open,
 			)
 			if (shown !== open) {
-				if (open && (await page.getByTestId(`atom-io-devtools`).isVisible()))
+				const summary = drawer.locator(`:scope > summary`)
+				const reachable = await summary.evaluate((node) => {
+					const rect = node.getBoundingClientRect()
+					return node.contains(
+						document.elementFromPoint(
+							rect.x + rect.width / 2,
+							rect.y + rect.height / 2,
+						),
+					)
+				})
+				if (
+					open &&
+					!reachable &&
+					(await page.getByTestId(`atom-io-devtools`).isVisible())
+				)
 					await page
 						.getByRole(`button`, {
 							name: `Hide debugger (Ctrl+Shift+A)`,
 							exact: true,
 						})
 						.click()
-				await drawer.locator(`:scope > summary`).click()
+				await summary.click()
 				if (!open && !(await page.getByTestId(`atom-io-devtools`).isVisible()))
 					await page.keyboard.press(`Control+Shift+A`)
 			}

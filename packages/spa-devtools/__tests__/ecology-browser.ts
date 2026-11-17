@@ -86,6 +86,10 @@ try {
 		}, id)
 	}
 	await ready()
+	assert.equal(
+		await page.locator(`ecology-view nav[data-workspace]`).isVisible(),
+		false,
+	)
 	const before = await page.evaluate(() => window.ecologyFixture.evidence())
 	await page.getByRole(`searchbox`, { name: `Search ecology` }).fill(`dormant`)
 	await ready()
@@ -281,6 +285,10 @@ try {
 	await page.getByRole(`button`, { name: `Open debugger`, exact: true }).click()
 	await ready()
 	await page.setViewportSize({ width: 390, height: 844 })
+	assert.equal(
+		await page.locator(`ecology-view nav[data-workspace]`).isVisible(),
+		true,
+	)
 	await page.screenshot({ path: resolvePath(artifacts, `narrow.png`) })
 	await page.setViewportSize({ width: 1440, height: 900 })
 	await page.evaluate(() => {

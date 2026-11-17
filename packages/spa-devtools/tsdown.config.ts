@@ -18,6 +18,8 @@ const config: UserConfig = defineConfig({
 		splitting: false,
 		inject: false,
 		modules: { generateScopedName: `atom-io-[name]-[local]` },
+		// The panel's container is shared by its separately owned child styles.
+		lightningcss: { cssModules: { container: false } },
 	},
 	sourcemap: true,
 	plugins: [

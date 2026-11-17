@@ -253,6 +253,9 @@ ecology-view.class {
 	> ecology-live-panel[hidden] {
 		display: none;
 	}
+	> ecology-search > nav[data-workspace] {
+		display: none;
+	}
 	@container atom-io-devtools (max-width: 650px) {
 		> ecology-search > nav[data-workspace] {
 			display: flex;

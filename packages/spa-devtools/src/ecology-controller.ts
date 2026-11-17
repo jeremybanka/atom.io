@@ -33,6 +33,7 @@ export function createEcologyController(
 	let disposed = false,
 		preparing = false,
 		busy = false
+	let pendingSearch: Pick<EcologyPresentation, `hits` | `status`> | undefined
 	let searchIndex: SearchIndex | undefined
 	let matchedIds: ReadonlySet<string> | undefined
 	let approximationLimited = false
@@ -114,6 +115,11 @@ export function createEcologyController(
 	}
 	const paint = (value: GraphModel, chunks: number[]) => {
 		const start = performance.now()
+		// Commit ranked results with their graph rather than rendering an intermediate view.
+		if (pendingSearch) {
+			update(pendingSearch)
+			pendingSearch = undefined
+		}
 		const focused = document.activeElement as HTMLElement
 		const hadFocus = host.contains(focused)
 		const focusId = focused.getAttribute(`data-graph-id`),
@@ -217,10 +223,11 @@ export function createEcologyController(
 			paint,
 			undefined,
 			undefined,
-			4,
+			2,
 		)
 	}
 	const search = () => {
+		pendingSearch = undefined
 		context.query = input.value
 		cancelMatch()
 		cancel()
@@ -244,18 +251,19 @@ export function createEcologyController(
 				}
 				matchedIds = context.query.trim() ? ids : undefined
 				approximationLimited = next.approximateLimited
-				update({ hits: next.hits })
-				update({
+				pendingSearch = {
+					hits: next.hits,
 					status: `${context.query.trim() ? `${next.matching}${next.approximateLimited ? `+` : ``} matching captured records; ${next.hits.length} ranked results. ` : ``}Metadata only.${searchIndex!.truncatedText ? ` ${searchIndex!.truncatedText} text prefixes truncated.` : ``}${next.approximateLimited ? ` Approximate search limited; refine the query.` : ``}`,
-				})
+				}
 				project()
 			},
 			undefined,
 			undefined,
-			4,
+			2,
 		)
 	}
 	const refresh = () => {
+		pendingSearch = undefined
 		cancelIndex()
 		cancelMatch()
 		cancel()

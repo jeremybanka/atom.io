@@ -20,6 +20,16 @@
 				"SPA_DEVTOOLS_STORY_ARTIFACTS",
 				"GITHUB_SHA"
 			]
+		},
+		"test:browser:peers": {
+			"cache": false,
+			"outputs": []
+		},
+		"test:browser": {
+			"dependsOn": [
+				"$TURBO_EXTENDS$",
+				"test:browser:peers"
+			]
 		}
 	}
 }

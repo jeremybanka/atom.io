@@ -22,7 +22,8 @@
 		"preview": "concurrently \"vite preview\" \"node node/server.ts\"",
 		"test": "vitest run",
 		"test:browser": "playwright test",
-		"test:once": "vitest run"
+		"test:once": "vitest run",
+		"test:browser:install": "playwright install --only-shell chromium"
 	},
 	"dependencies": {
 		"@atom.io/react": "workspace:*",

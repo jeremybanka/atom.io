@@ -63,11 +63,13 @@
 		"test": "vitest",
 		"test:once": "vitest run && pnpm test:consumer",
 		"test:consumer": "node __tests__/fixtures/consumer/check.ts",
-		"test:browser": "astro build --root __tests__/astro && node scripts/browser-test.ts && node scripts/browser-test.ts --dev",
+		"test:browser": "node scripts/browser-test.ts && node scripts/browser-test.ts --dev",
 		"test:browser:dev": "node scripts/browser-test.ts --dev",
 		"cov": "vitest run --coverage",
 		"readme:write": "galley write README.mdx",
-		"readme:check": "galley check README.mdx"
+		"readme:check": "galley check README.mdx",
+		"test:browser:install": "playwright install --only-shell chromium",
+		"build:browser": "astro build --root __tests__/astro"
 	},
 	"dependencies": {
 		"@babel/core": "8.1.2",

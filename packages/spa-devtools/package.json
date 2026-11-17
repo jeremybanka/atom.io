@@ -51,11 +51,11 @@
 		"readme:check": "galley check README.mdx",
 		"tonnage": "pnpm readme:write",
 		"tonnage:check": "pnpm readme:check",
-		"test:story": "pnpm test:story:integration",
 		"test:story:integration": "node __tests__/order-story-browser.ts",
 		"test:browser": "node __tests__/window-browser.ts && node __tests__/ecology-browser.ts && node __tests__/polish-browser.ts && node __tests__/search-browser.ts",
 		"test:browser:stress": "node __tests__/search-browser.ts --cpu-throttle=6",
-		"test:browser:throttled": "node __tests__/window-browser.ts --cpu-throttle=6 && node __tests__/ecology-browser.ts --cpu-throttle=6 && node __tests__/polish-browser.ts --cpu-throttle=6 && node __tests__/search-browser.ts --cpu-throttle=6"
+		"test:browser:throttled": "node __tests__/window-browser.ts --cpu-throttle=6 && node __tests__/ecology-browser.ts --cpu-throttle=6 && node __tests__/polish-browser.ts --cpu-throttle=6 && node __tests__/search-browser.ts --cpu-throttle=6",
+		"test:browser:peers": "pnpm --dir peer-environments/coordinated-react18 install --frozen-lockfile --ignore-scripts && pnpm --dir peer-environments/coordinated-react19 install --frozen-lockfile --ignore-scripts"
 	},
 	"devDependencies": {
 		"@atom.io/react": "workspace:*",

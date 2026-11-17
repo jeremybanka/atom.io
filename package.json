@@ -51,7 +51,9 @@
 		"readme:check": "dotenvx run -- turbo run readme:check --filter=./packages/*",
 		"readme:types": "tsc -p scripts/readme/tsconfig.json",
 		"lint:unused": "knip",
-		"lint:unused:production": "knip --production"
+		"lint:unused:production": "knip --production",
+		"test:browser": "turbo run test:browser",
+		"test:browser:install": "turbo run test:browser:install"
 	},
 	"devDependencies": {
 		"@atom.io/eslint-plugin": "workspace:*",

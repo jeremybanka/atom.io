@@ -20,6 +20,7 @@ declare global {
 }
 const root = resolve(import.meta.dirname, `..`)
 process.chdir(root)
+await import(`../scripts/seed.ts`)
 const development = process.argv.includes(`--dev`)
 const server = await (development ? dev : preview)({
 	root,

@@ -27,11 +27,12 @@
 		"preview": "astro preview",
 		"lint:types": "npm run db:seed && tsc --noEmit --runExternalCode",
 		"lint:oxlint": "oxlint src tests astro.config.ts",
-		"test": "npm run test:browser",
-		"test:browser": "npm run build && node tests/browser.ts && node tests/browser.ts --dev",
+		"test": "npm run build && npm run test:browser",
+		"test:browser": "node tests/browser.ts && node tests/browser.ts --dev",
 		"readme:write": "galley write README.mdx",
 		"readme:check": "galley check README.mdx",
-		"db:seed": "node scripts/seed.ts"
+		"db:seed": "node scripts/seed.ts",
+		"test:browser:install": "playwright install --only-shell chromium"
 	},
 	"dependencies": {
 		"@astrojs/node": "11.1.13",

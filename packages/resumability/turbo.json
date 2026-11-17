@@ -1,0 +1,21 @@
+{
+	"extends": [
+		"//"
+	],
+	"tasks": {
+		"build:browser": {
+			"dependsOn": [
+				"build"
+			],
+			"outputs": [
+				"__tests__/astro/dist/**"
+			]
+		},
+		"test:browser": {
+			"dependsOn": [
+				"$TURBO_EXTENDS$",
+				"build:browser"
+			]
+		}
+	}
+}

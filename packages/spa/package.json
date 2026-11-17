@@ -123,7 +123,7 @@
 		"test:once": "vitest run --config vitest.config.ts && pnpm test:consumer && pnpm test:optional-peers",
 		"test:consumer": "node __tests__/fixtures/consumer/check.ts",
 		"test:production": "node scripts/production-test.ts",
-		"test:browser": "astro build --root __tests__/astro && node scripts/browser-test.ts && node scripts/dev-browser-test.ts && node scripts/graphics-browser-test.ts && node scripts/layout-browser-test.ts && pnpm test:browser:hmr && pnpm test:browser:resumption",
+		"test:browser": "node scripts/browser-test.ts && node scripts/dev-browser-test.ts && node scripts/graphics-browser-test.ts && node scripts/layout-browser-test.ts && pnpm test:browser:hmr && pnpm test:browser:resumption && pnpm test:browser:motion && pnpm test:browser:floating",
 		"test:browser:dev": "node scripts/dev-browser-test.ts",
 		"cov": "vitest run --config vitest.config.ts --coverage",
 		"readme:write": "galley write README.mdx",
@@ -137,9 +137,12 @@
 		"test:browser:motion": "node scripts/motion-browser-test.ts",
 		"example:floating": "vite --config examples/floating/vite.config.ts",
 		"test:browser:floating": "node scripts/floating-browser-test.ts",
-		"test:browser:resumption": "astro build --root __tests__/resumption && node scripts/resumption-browser-test.ts && node scripts/resumption-browser-test.ts --dev",
+		"test:browser:resumption": "node scripts/resumption-browser-test.ts && node scripts/resumption-browser-test.ts --dev",
 		"test:browser:layout": "node scripts/layout-browser-test.ts",
-		"test:browser:hmr": "node scripts/hmr-browser-test.ts && node scripts/hmr-astro-browser-test.ts"
+		"test:browser:hmr": "node scripts/hmr-browser-test.ts && node scripts/hmr-astro-browser-test.ts",
+		"test:browser:install": "playwright install --only-shell chromium",
+		"build:browser": "astro build --root __tests__/astro",
+		"build:browser:resumption": "astro build --root __tests__/resumption"
 	},
 	"dependencies": {
 		"@jridgewell/remapping": "2.3.5",

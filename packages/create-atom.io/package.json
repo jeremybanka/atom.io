@@ -23,7 +23,7 @@
 		"lint:eslint": "eslint",
 		"lint:oxlint": "oxlint",
 		"lint:types": "tsc",
-		"test:once": "pnpm run build && vitest run",
+		"test:once": "vitest run",
 		"readme:write": "galley write README.mdx",
 		"readme:check": "galley check README.mdx"
 	},

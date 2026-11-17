@@ -13,8 +13,6 @@ export default {
 				"scripts/readme/*.{ts,tsx}",
 			],
 			project: ["*.{ts,tsx,js,cjs,mjs}", "scripts/**/*.{ts,tsx,js,cjs,mjs}"],
-			// The browser matrix runs this binary in matrix.directory, outside the root workspace.
-			ignoreBinaries: ["playwright"],
 			ignoreDependencies: [
 				"@dprint/json",
 				"@dprint/markdown",

@@ -20,7 +20,8 @@
 		"lint:types": "tsc",
 		"test:once": "node --test src/components/*.test.ts",
 		"test:browser": "node scripts/test-spa.browser.ts",
-		"test:browser:dev": "node scripts/test-spa.browser.ts --dev"
+		"test:browser:dev": "node scripts/test-spa.browser.ts --dev",
+		"test:browser:install": "playwright install --only-shell chromium"
 	},
 	"dependencies": {
 		"@astrojs/cloudflare": "14.4.8",

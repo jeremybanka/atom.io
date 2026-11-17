@@ -399,6 +399,8 @@ export const playEcologySearch: Play = async (context) => {
 			await userEvent.keyboard(`{Escape}`)
 			await ready()
 			await userEvent.keyboard(`{Escape}`)
+			await ready()
+			await userEvent.keyboard(`{Escape}`)
 			await expect(editor).toHaveFocus()
 		},
 	)

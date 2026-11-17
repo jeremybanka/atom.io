@@ -37,6 +37,7 @@ export function EcologyScene(props: {
 	edges: EcologyLine[]
 	selected?: string | undefined
 	traced: Set<string>
+	focused?: ReadonlySet<string> | undefined
 	command: CameraCommand
 }): SpaElement {
 	const id = `ecology-controls-${useId()}`
@@ -58,7 +59,7 @@ export function EcologyScene(props: {
 	const traceMaterial = new THREE.LineBasicMaterial({
 		color: 0x4c9cdb,
 		transparent: true,
-		opacity: 0.65,
+		opacity: 0.9,
 		depthWrite: false,
 	})
 	camera.position.set(23, 7, 28)
@@ -289,6 +290,10 @@ export function EcologyScene(props: {
 						item={props.card(index)}
 						visible={props.visible(index)}
 						selected={props.selected === props.card(index).id}
+						dimmed={
+							props.focused !== undefined &&
+							!props.focused.has(props.card(index).id)
+						}
 						traced={
 							props.card(index).kind === `family`
 								? `memberKeys` in props.card(index).source &&

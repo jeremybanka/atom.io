@@ -266,6 +266,8 @@ try {
 		await input.press(`Escape`)
 		await ready()
 		await input.press(`Escape`)
+		await ready()
+		await input.press(`Escape`)
 		assert.equal(
 			await editor.evaluate((node) => node === document.activeElement),
 			true,
@@ -278,10 +280,7 @@ try {
 			.click()
 		assert.equal(
 			await ecology
-				.getByRole(`button`, {
-					name: `Open live editor (may read/evaluate)`,
-					exact: true,
-				})
+				.locator(`ecology-body > aside`)
 				.evaluate((node) => node === document.activeElement),
 			true,
 		)

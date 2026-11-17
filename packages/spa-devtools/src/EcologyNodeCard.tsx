@@ -12,6 +12,7 @@ export function EcologyNodeCard(props: {
 	item: GraphItem
 	visible: boolean
 	selected: boolean
+	dimmed: boolean
 	traced: boolean
 	scene: Scene
 	invalidate(): void
@@ -42,6 +43,7 @@ export function EcologyNodeCard(props: {
 			hidden={!props.visible}
 			data-kind={props.item.kind}
 			data-traced={props.traced}
+			data-dimmed={props.dimmed}
 			data-position={`${props.item.x},${props.item.y},${props.item.z}`}
 		>
 			<button

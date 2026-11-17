@@ -90,6 +90,7 @@ try {
 					if (!value) throw new Error(`Missing graph node ${target}`)
 				}
 			}, id)
+		await ready()
 	}
 	await ready()
 	assert.equal(
@@ -146,6 +147,7 @@ try {
 	await page.getByText(`Accessible node list`, { exact: true }).click()
 	await page.locator(`ecology-map ul button`).first().focus()
 	await page.keyboard.press(`Enter`)
+	await ready()
 	assert.match(await page.locator(`ecology-body > aside`).innerText(), /dormant/)
 	await page
 		.getByRole(`button`, { name: `Trace observed roots`, exact: true })
@@ -210,6 +212,26 @@ try {
 		.getByRole(`button`, { name: `Collapse family`, exact: true })
 		.click()
 	await ready()
+	await scene.focus()
+	await page.keyboard.press(`Enter`)
+	await ready()
+	assert.equal(
+		await page
+			.getByRole(`button`, { name: `Collapse family`, exact: true })
+			.count(),
+		1,
+	)
+	await page.keyboard.press(`Enter`)
+	assert.equal(
+		await page
+			.getByRole(`button`, { name: `Collapse family`, exact: true })
+			.count(),
+		1,
+	)
+	await page
+		.getByRole(`button`, { name: `Collapse family`, exact: true })
+		.click()
+	await ready()
 	await page.getByRole(`button`, { name: `Expand family`, exact: true }).click()
 	await ready()
 	await page
@@ -232,6 +254,36 @@ try {
 		},
 	)
 	assert.equal(after.reads, 0)
+	await choose(`state:total`)
+	assert.deepEqual(
+		await page
+			.locator(`ecology-node-card[data-traced="true"] > button`)
+			.evaluateAll((nodes) =>
+				nodes.map((node) => (node as HTMLElement).dataset[`graphId`]).sort(),
+			),
+		[`state:price`, `state:total`],
+	)
+	assert.equal(
+		await page
+			.locator(`ecology-node-card:has([data-graph-id="state:lazy"])`)
+			.evaluate((node) => getComputedStyle(node).opacity),
+		`0.5`,
+	)
+	await scene.focus()
+	await page.keyboard.press(`Escape`)
+	await ready()
+	assert.equal(await page.locator(`ecology-body > aside h2`).count(), 0)
+	assert.equal(
+		await page.locator(`ecology-node-card[data-dimmed="true"]`).count(),
+		0,
+	)
+	await choose(`state:price`)
+	assert.equal(
+		await page
+			.locator(`ecology-node-card:has([data-graph-id="state:total"])`)
+			.getAttribute(`data-traced`),
+		`true`,
+	)
 	await choose(`state:total`)
 	await page
 		.getByRole(`button`, { name: `Trace observed roots`, exact: true })
@@ -311,6 +363,8 @@ try {
 		true,
 	)
 	await rankedInput.focus()
+	await rankedInput.press(`Escape`)
+	await ready()
 	await rankedInput.press(`Escape`)
 	await ready()
 	await rankedInput.press(`Escape`)
@@ -650,6 +704,11 @@ try {
 	await fallback.setViewportSize({ width: 390, height: 844 })
 	await fallback.getByRole(`button`, { name: `Node list`, exact: true }).click()
 	await fallback.locator(`ecology-map ul button`).first().click()
+	await fallback.waitForFunction(
+		() =>
+			document.querySelector<HTMLElement>(`ecology-view`)?.dataset[`ready`] ===
+			`true`,
+	)
 	assert.match(
 		await fallback.locator(`ecology-body > aside`).innerText(),
 		/cached|unknown/,

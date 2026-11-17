@@ -205,10 +205,112 @@ it(`retains selection/pan/expansion across snapshots and navigation; geometry-on
 	)
 	await settle()
 	expect(f.host.querySelector(`ecology-body > aside`)!.textContent).toContain(
-		`Not traced`,
+		`Select a node`,
 	)
 	await f.click(`Clear selection`)
 	expect(f.host.textContent).toContain(`Select a node`)
+})
+
+it(`automatically emphasizes selection paths, dims unrelated cards, and clears selection before the search on Escape`, async () => {
+	const f = setup(),
+		read = vi.fn(() => 1)
+	f.silo.atom<number>({ key: `a`, default: read })
+	f.silo.atom<number>({ key: `b`, default: read })
+	for (const key of [`s`, `t`, `side`])
+		f.silo.selector<number>({ key, get: read })
+	for (const [dependency, selector] of [
+		[`a`, `s`],
+		[`b`, `s`],
+		[`s`, `t`],
+		[`a`, `side`],
+	]) {
+		f.silo.store.selectorGraph.set(
+			{ upstreamSelectorKey: dependency, downstreamSelectorKey: selector },
+			{ source: dependency },
+		)
+	}
+	f.mount()
+	await settle()
+	await f.select(`state:s`)
+	const card = (key: string) =>
+		f.host.querySelector<HTMLElement>(
+			`ecology-node-card:has([data-graph-id="state:${key}"])`,
+		)!
+	for (const key of [`a`, `b`, `s`, `t`]) {
+		expect(card(key).dataset[`traced`]).toBe(`true`)
+		expect(card(key).dataset[`dimmed`]).toBe(`false`)
+	}
+	expect(card(`side`).dataset[`dimmed`]).toBe(`true`)
+	await f.search(`s`)
+	const input = f.host.querySelector<HTMLInputElement>(
+		`[aria-label="Search ecology"]`,
+	)!
+	input.dispatchEvent(
+		new KeyboardEvent(`keydown`, {
+			key: `Escape`,
+			bubbles: true,
+			cancelable: true,
+		}),
+	)
+	await settle()
+	expect(input.value).toBe(`s`)
+	expect(f.host.querySelector(`ecology-body > aside h2`)).toBeNull()
+	await f.search(``)
+	expect(
+		[...f.host.querySelectorAll<HTMLElement>(`ecology-node-card`)].every(
+			(node) => node.dataset[`dimmed`] === `false`,
+		),
+	).toBe(true)
+	expect(read).not.toHaveBeenCalled()
+	const scene = f.host.querySelector(`ecology-scene`)!
+	scene.dispatchEvent(
+		new KeyboardEvent(`keydown`, {
+			key: `Escape`,
+			bubbles: true,
+			cancelable: true,
+		}),
+	)
+	await settle()
+	expect(f.host.querySelector(`ecology-body > aside h2`)).toBeNull()
+	f.host.querySelector(`ecology-map ul button`)!.dispatchEvent(
+		new KeyboardEvent(`keydown`, {
+			key: `Escape`,
+			bubbles: true,
+			cancelable: true,
+		}),
+	)
+	await settle()
+	expect(document.activeElement).toBe(input)
+})
+
+it(`expands a selected family with Enter from its card, heading and graph without toggling it closed`, async () => {
+	const f = setup()
+	const familyAtoms = f.silo.atomFamily<number, string>({
+		key: `family`,
+		default: 0,
+	})
+	f.silo.store.families.get(familyAtoms.key)!.create(`one`)
+	f.mount()
+	await settle()
+	await f.select(`family:family`)
+	await f.select(`family:family`, `ArrowDown`)
+	expect(f.host.textContent).toContain(`Expand family`)
+	await f.select(`family:family`, `Enter`)
+	expect(f.host.textContent).toContain(`Collapse family`)
+	await f.select(`family:family`, `Enter`)
+	expect(f.host.textContent).toContain(`Collapse family`)
+	for (const selector of [`ecology-body > aside h2`, `ecology-scene`]) {
+		await f.click(`Collapse family`)
+		f.host.querySelector(selector)!.dispatchEvent(
+			new KeyboardEvent(`keydown`, {
+				key: `Enter`,
+				bubbles: true,
+				cancelable: true,
+			}),
+		)
+		await settle()
+		expect(f.host.textContent).toContain(`Collapse family`)
+	}
 })
 
 it(`cleans up hidden, minimized, superseded and disposed jobs and keeps empty flows accessible`, async () => {
@@ -364,7 +466,7 @@ it(`preserves keyboard focus during trace and family refresh and clears stale tr
 	expect(f.host.querySelector(`ecology-body > aside`)!.textContent).toContain(
 		`Not traced`,
 	)
-	expect(f.host.querySelectorAll(`[data-traced="true"]`)).toHaveLength(0)
+	expect(f.host.querySelectorAll(`[data-traced="true"]`)).toHaveLength(2)
 })
 
 it(`returns focus to search when refreshed selection controls or headings disappear`, async () => {

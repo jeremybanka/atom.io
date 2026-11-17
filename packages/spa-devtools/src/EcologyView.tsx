@@ -30,6 +30,7 @@ export interface EcologyPresentation {
 	workspace: string
 	cameraCommand: CameraCommand
 	traced: Set<string>
+	focused: ReadonlySet<string> | undefined
 	expanded: Set<string>
 	traceStatus: string
 	capturedAt: string
@@ -61,6 +62,7 @@ export function EcologyView(props: {
 		workspace: `graph`,
 		cameraCommand: { sequence: 0, action: `fit` },
 		traced: new Set(),
+		focused: undefined,
 		expanded: new Set(),
 		traceStatus: `Not traced`,
 		capturedAt: ``,
@@ -155,7 +157,8 @@ export function EcologyView(props: {
 					<p data-notice>{state().notice}</p>
 					<p data-legend>
 						Atom / selector cards · dashed group: family · arrows: dependency →
-						dependent · blue: traced path
+						dependent · blue: selected upstream/downstream paths · faded:
+						unrelated
 					</p>
 				</details>
 				<p data-search-status role="status">
@@ -238,6 +241,7 @@ export function EcologyView(props: {
 							edges={state().edges}
 							selected={selected()?.id}
 							traced={state().traced}
+							focused={state().focused}
 							workspace={state().workspace}
 							command={state().cameraCommand}
 						/>

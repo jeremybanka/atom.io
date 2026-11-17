@@ -130,7 +130,7 @@ it(`switches compact graph, list and selection without replacing the live draft 
 	await settle()
 	expect(graph.dataset[`workspace`]).toBe(`selection`)
 	expect(document.activeElement).toBe(
-		f.button(`Open live editor (may read/evaluate)`),
+		f.host.querySelector(`ecology-body > aside`),
 	)
 	width.mockReturnValue(900)
 	await f.query(`count`)
@@ -235,6 +235,7 @@ it(`keeps an unfinished numeric draft and its node mounted through query, clear,
 	expect(f.host.querySelector(`ecology-live input`)).toBe(editor)
 	expect(editor.value).toBe(`1e`)
 	expect(f.app.getState(f.countAtom)).toBe(2)
+	await f.key(f.input(), `Escape`)
 	await f.key(f.input(), `Escape`)
 	await f.key(f.input(), `Escape`)
 	expect(document.activeElement).toBe(editor)

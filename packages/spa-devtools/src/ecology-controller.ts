@@ -100,7 +100,8 @@ export function createEcologyController(
 				!model?.items.some((item) => item.id === context.selected),
 			traceStatus: context.traceStatus,
 			expanded: new Set(context.expanded),
-			traced: context.trace,
+			traced: model?.selection?.nodes ?? context.trace,
+			focused: model?.selection?.items,
 			capturedAt: context.capturedAt,
 		})
 	}
@@ -111,15 +112,14 @@ export function createEcologyController(
 		}
 		context.selected = id
 
-		passive()
 		if (!navigate && compact()) focusSelection()
 		if (navigate) {
 			const item = model?.all.get(id)
 			if (item && `family` in item.source && item.source.family)
 				context.expanded.add(item.source.family.key)
 			reveal = id
-			project()
 		}
+		project()
 	}
 	const paint = (value: GraphModel, chunks: number[]) => {
 		const start = performance.now()
@@ -334,9 +334,11 @@ export function createEcologyController(
 			return
 		}
 		if (name === `clear`) {
+			focusHeading = false
 			context.selected = null
 			context.trace = new Set()
 			context.traceStatus = `Not traced`
+			if (compact()) workspaceView(`graph`)
 			project()
 			return
 		}
@@ -409,7 +411,12 @@ export function createEcologyController(
 				return
 			}
 			event.preventDefault()
-			if (target === input) {
+			const heading = target === inspector.querySelector(`h2`)
+			if (context.selected) {
+				action(`clear`)
+				if (results.contains(target) || list.contains(target) || heading)
+					input.focus()
+			} else if (target === input) {
 				if (input.value) {
 					input.value = ``
 					search()
@@ -417,17 +424,8 @@ export function createEcologyController(
 					session.returnFocus()
 					if (document.activeElement === input) origin?.focus()
 				}
-			} else if (
-				results.contains(target) ||
-				list.contains(target) ||
-				target === inspector.querySelector(`h2`)
-			)
+			} else if (results.contains(target) || list.contains(target) || heading)
 				input.focus()
-			else {
-				context.trace = new Set()
-				context.traceStatus = `Not traced`
-				project()
-			}
 			return
 		}
 		if (target === input || results.contains(target)) {
@@ -435,6 +433,24 @@ export function createEcologyController(
 			return
 		}
 		const id = target.closest<HTMLElement>(`[data-graph-id]`)?.dataset[`graphId`]
+		const selected = context.selected
+			? model?.all.get(context.selected)
+			: undefined
+		if (
+			event.key === `Enter` &&
+			!event.ctrlKey &&
+			!event.metaKey &&
+			!event.altKey &&
+			!event.shiftKey &&
+			selected?.kind === `family` &&
+			(id === context.selected ||
+				target === inspector.querySelector(`h2`) ||
+				target.matches(`ecology-scene`))
+		) {
+			event.preventDefault()
+			if (!context.expanded.has(selected.key)) action(`expand`)
+			return
+		}
 		if (id && (event.key === `Enter` || event.key === ` `)) {
 			event.preventDefault()
 			select(id)
@@ -485,8 +501,11 @@ export function createEcologyController(
 				target.focus()
 			}
 			if (focusHeading) {
-				focusHeading = false
-				inspector.querySelector<HTMLElement>(`h2`)?.focus()
+				const heading = inspector.querySelector<HTMLElement>(`h2`)
+				if (heading) {
+					focusHeading = false
+					heading.focus()
+				}
 			}
 		},
 		dispose() {

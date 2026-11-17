@@ -40,6 +40,101 @@ function drain<T>(iterator: Generator<void, T>): T {
 	return step.value
 }
 
+it(`emphasizes ancestors and descendants independently, excluding side branches and bypass edges`, () => {
+	const data = snapshot(
+		[`a`, `b`, `s`, `t`, `u`, `other`, `side`, `isolated`].map((key) =>
+			node(key, key < `c` ? `atom` : `selector`),
+		),
+		[
+			{ dependency: `a`, selector: `s` },
+			{ dependency: `b`, selector: `s` },
+			{ dependency: `s`, selector: `t` },
+			{ dependency: `t`, selector: `u` },
+			{ dependency: `other`, selector: `t` },
+			{ dependency: `a`, selector: `side` },
+			{ dependency: `a`, selector: `t` },
+			{ dependency: `missing`, selector: `s` },
+			{ dependency: `s`, selector: `t` },
+		],
+	)
+	const context = createGraphContext()
+	context.selected = `state:s`
+	const model = drain(projectEcology(data, context))
+	expect(model.selection!.nodes).toEqual(
+		new Set([`s`, `a`, `b`, `missing`, `t`, `u`]),
+	)
+	expect(model.selection!.items).toEqual(
+		new Set([`state:s`, `state:a`, `state:b`, `state:t`, `state:u`]),
+	)
+	expect(model.selection!.edges).toEqual(new Set([0, 1, 7, 2, 8, 3]))
+	expect(model.edges.map((edge) => edge.traced)).toEqual([
+		true,
+		true,
+		true,
+		true,
+		false,
+		false,
+		false,
+		true,
+	])
+	const filtered = drain(
+		projectEcology(data, context, new Set([`state:s`]), model),
+	)
+	expect(filtered.selection).toBe(model.selection)
+	context.selected = `state:a`
+	const atom = drain(projectEcology(data, context, undefined, filtered))
+	expect(atom.selection!.nodes).toEqual(new Set([`a`, `s`, `t`, `side`, `u`]))
+	expect(atom.selection!.nodes.has(`b`)).toBe(false)
+	expect(atom.selection!.nodes.has(`other`)).toBe(false)
+	context.selected = null
+	const cleared = drain(projectEcology(data, context, undefined, atom))
+	expect(cleared.selection).toBeUndefined()
+	expect(cleared.edges.every((edge) => !edge.traced)).toBe(true)
+})
+
+it(`traces family members through cycles, retains parallel edges and recomputes on refresh`, () => {
+	const data: EcologySnapshot = {
+		...snapshot(
+			[
+				node(`a`, `atom`, `inputs`),
+				node(`s`, `selector`),
+				node(`t`, `selector`),
+			],
+			[
+				{ dependency: `a`, selector: `s` },
+				{ dependency: `s`, selector: `t` },
+				{ dependency: `t`, selector: `s` },
+				{ dependency: `a`, selector: `s` },
+			],
+		),
+		families: [
+			{
+				key: `inputs`,
+				type: `atom_family`,
+				memberKeys: [`a`],
+				memberCount: 1,
+				countComplete: true,
+			},
+		],
+	}
+	const context = createGraphContext()
+	context.selected = `family:inputs`
+	const collapsed = drain(projectEcology(data, context))
+	expect(collapsed.selection!.items).toEqual(
+		new Set([`family:inputs`, `state:a`, `state:s`, `state:t`]),
+	)
+	expect(collapsed.edges.every((edge) => edge.traced)).toBe(true)
+	context.expanded.add(`inputs`)
+	const expanded = drain(projectEcology(data, context, undefined, collapsed))
+	expect(expanded.selection).toBe(collapsed.selection)
+	expect(expanded.edges[0].from).toBe(`state:a`)
+	const changed = drain(
+		projectEcology({ ...data, edges: [] }, context, undefined, expanded),
+	)
+	expect(changed.selection!.nodes).toEqual(new Set([`a`]))
+	expect(changed.selection).not.toBe(expanded.selection)
+})
+
 it(`groups families, keeps zero definitions and namespaces group/member identities with directed observed arrows`, () => {
 	const state = snapshot(
 		[

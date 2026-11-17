@@ -46,6 +46,7 @@ interface GraphLayout {
 	ordered: GraphRecord[]
 	groupSelectors: Map<GraphRecord, string[]>
 	edgeIndex: Map<string, number[]>
+	dependents: Map<string, number[]>
 	collapsed: Map<GraphRecord, GraphItem>
 	expanded: Map<GraphRecord, GraphItem>
 	height: number
@@ -70,6 +71,13 @@ export interface GraphModel {
 	selectors: number
 	members: number
 	newPositions: number
+	selection: GraphSelection | undefined
+}
+interface GraphSelection {
+	id: string
+	nodes: Set<string>
+	items: Set<string>
+	edges: Set<number>
 }
 export function createGraphContext(): GraphContext {
 	return {
@@ -114,6 +122,7 @@ function* indexGraph(snapshot: EcologySnapshot): Generator<void, GraphLayout> {
 		ordered: [],
 		groupSelectors: new Map(),
 		edgeIndex: new Map(),
+		dependents: new Map(),
 		collapsed: new Map(),
 		expanded: new Map(),
 		height: 8,
@@ -167,6 +176,10 @@ function* indexGraph(snapshot: EcologySnapshot): Generator<void, GraphLayout> {
 		let indices = layout.edgeIndex.get(key)
 		if (!indices) layout.edgeIndex.set(key, (indices = []))
 		indices.push(index)
+		const dependency = snapshot.edges[index].dependency
+		let consumers = layout.dependents.get(dependency)
+		if (!consumers) layout.dependents.set(dependency, (consumers = []))
+		consumers.push(index)
 		yield
 	}
 	return layout
@@ -178,6 +191,51 @@ function resolveRecord(
 	if (id.startsWith(`family:`)) return layout.families.get(id.slice(7))
 	if (id.startsWith(`state:`)) return layout.nodes.get(id.slice(6))
 	return undefined
+}
+
+/** Walk each direction independently: never turn onto an ancestor's offshoot or a consumer's other roots. */
+function* traceSelection(
+	snapshot: EcologySnapshot,
+	layout: GraphLayout,
+	selected: GraphRecord,
+): Generator<void, GraphSelection> {
+	const source = selected.source
+	const seeds = `memberKeys` in source ? source.memberKeys : [source.key]
+	const selection: GraphSelection = {
+		id: selected.id,
+		nodes: new Set(seeds),
+		items: new Set([selected.id]),
+		edges: new Set(),
+	}
+	for (const upstream of [true, false]) {
+		const visited = new Set(seeds),
+			queue = [...seeds]
+		for (const key of queue) {
+			for (const index of (upstream ? layout.edgeIndex : layout.dependents).get(
+				key,
+			) ?? []) {
+				const edge = snapshot.edges[index]
+				const next = upstream ? edge.dependency : edge.selector
+				selection.edges.add(index)
+				selection.nodes.add(next)
+				if (!visited.has(next)) {
+					visited.add(next)
+					queue.push(next)
+				}
+				yield
+			}
+			yield
+		}
+	}
+	for (const key of selection.nodes) {
+		const record = layout.nodes.get(key)
+		if (record) {
+			selection.items.add(record.id)
+			if (record.group) selection.items.add(record.group.id)
+		}
+		yield
+	}
+	return selection
 }
 /** Memoize immutable cards only as the UI admits or inspects them. Expansion gets its own cached coordinates. */
 function createRegistry(
@@ -269,6 +327,11 @@ export function* projectEcology(
 	const selected = context.selected
 		? resolveRecord(layout, context.selected)
 		: undefined
+	const selection = selected
+		? previous?.selection?.id === selected.id
+			? previous.selection
+			: yield* traceSelection(snapshot, layout, selected)
+		: undefined
 	if (
 		selected &&
 		(matchedIds
@@ -327,7 +390,9 @@ export function* projectEcology(
 				from,
 				to,
 				traced:
-					context.trace.has(edge.dependency) && context.trace.has(edge.selector),
+					selection?.edges.has(index) ??
+					(context.trace.has(edge.dependency) &&
+						context.trace.has(edge.selector)),
 			})
 		if (edges.length === 1_000) break
 		yield
@@ -360,6 +425,7 @@ export function* projectEcology(
 		selectors: layout.selectors,
 		members: layout.members,
 		newPositions,
+		selection,
 	}
 }
 

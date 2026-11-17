@@ -5,22 +5,22 @@ type Play = NonNullable<StoryObj[`play`]>
 type Context = Parameters<Play>[0]
 
 function orderTools({ canvas, canvasElement, userEvent }: Context) {
-	const drawer = canvasElement.querySelector<HTMLDetailsElement>(
-		`order-fulfillment > details`,
-	)!
-	const controls = async (open: boolean) => {
-		if (drawer.open !== open)
-			await userEvent.click(drawer.querySelector(`summary`)!)
-		if (open) {
-			const scenario = canvasElement.querySelector<HTMLDetailsElement>(
-				`order-summary > details`,
-			)!
-			if (!scenario.open)
-				await userEvent.click(scenario.querySelector(`summary`)!)
-		}
+	const debuggerVisible = async (visible: boolean) => {
+		const panel = await waitFor(() => canvas.getByTestId(`atom-io-devtools`))
+		if (panel.hidden === visible)
+			await userEvent.keyboard(`{Control>}{Shift>}a{/Shift}{/Control}`)
+		await waitFor(() => expect(panel.hidden).toBe(!visible))
+	}
+	const scenarioControls = async () => {
+		const details = canvasElement.querySelector<HTMLDetailsElement>(
+			`order-summary > details`,
+		)!
+		if (!details.open) await userEvent.click(details.querySelector(`summary`)!)
 	}
 	const action = async (name: string) => {
-		await controls(true)
+		await debuggerVisible(false)
+		if (name.endsWith(`quote`) || name === `Reset order scenario`)
+			await scenarioControls()
 		await userEvent.click(canvas.getByRole(`button`, { name }))
 	}
 	const summary = () => canvas.getByTestId(`order-summary`)
@@ -33,13 +33,13 @@ function orderTools({ canvas, canvasElement, userEvent }: Context) {
 		)
 	}
 	const ecology = async () => {
-		await controls(false)
+		await debuggerVisible(true)
 		const tab = canvas.getByRole(`tab`, { name: `ecology` })
 		if (tab.getAttribute(`aria-selected`) !== `true`) await userEvent.click(tab)
 		await ready()
 	}
 	const project = async (run: () => Promise<void>) => {
-		await controls(false)
+		await debuggerVisible(true)
 		const graph = canvas.getByTestId(`ecology-view`)
 		const previous = graph.dataset[`jobs`]
 		await run()
@@ -51,7 +51,7 @@ function orderTools({ canvas, canvasElement, userEvent }: Context) {
 			userEvent.click(canvas.getByRole(`button`, { name: `Refresh` })),
 		)
 	const choose = async (key: string, family = false) => {
-		await controls(false)
+		await debuggerVisible(true)
 		const input = canvas.getByRole(`searchbox`, { name: `Search ecology` })
 		await project(async () => {
 			await userEvent.clear(input)
@@ -72,16 +72,19 @@ function orderTools({ canvas, canvasElement, userEvent }: Context) {
 	}
 	const inspector = () => canvas.getByLabelText(`Passive ecology inspector`)
 	const trace = () =>
-		project(() =>
-			userEvent.click(
+		project(async () => {
+			const selection = canvas.getByRole(`button`, { name: `Selection` })
+			if (selection.checkVisibility()) await userEvent.click(selection)
+			await userEvent.click(
 				within(inspector()).getByRole(`button`, {
 					name: `Trace observed roots`,
 				}),
-			),
-		)
+			)
+		})
 	return {
 		action,
-		controls,
+		debuggerVisible,
+		scenarioControls,
 		summary,
 		ecology,
 		ready,
@@ -245,7 +248,7 @@ export const playOrderEditingAndReset: Play = async (context) => {
 				const previousPanel = canvas.getByTestId(`atom-io-devtools`)
 				await tools.action(`Reset order scenario`)
 				await waitFor(() => expect(previousPanel).not.toBeInTheDocument())
-				await tools.controls(false)
+				await tools.debuggerVisible(true)
 				await waitFor(() =>
 					expect(tools.summary()).toHaveTextContent(
 						`$40.25 total · delivery · north warehouse`,
@@ -268,10 +271,10 @@ export const playOrderHistorySearch: Play = async (context) => {
 	await step(
 		`Record a real cart transaction and navigate its captured update`,
 		async () => {
-			await tools.controls(false)
+			await tools.debuggerVisible(true)
 			await userEvent.click(canvas.getByRole(`tab`, { name: `transactions` }))
 			await tools.action(`Increase tea green`)
-			await tools.controls(false)
+			await tools.debuggerVisible(true)
 			await userEvent.click(canvas.getByRole(`button`, { name: `Refresh` }))
 		},
 	)
@@ -383,7 +386,8 @@ export const playSurfaceStates: Play = async (context) => {
 	await step(
 		`Quote controls communicate disabled, pending and error outcomes`,
 		async () => {
-			await tools.controls(true)
+			await tools.debuggerVisible(false)
+			await tools.scenarioControls()
 			await expect(
 				canvas.getByRole(`button`, { name: `Resolve quote` }),
 			).toBeDisabled()
@@ -403,7 +407,7 @@ export const playSurfaceStates: Play = async (context) => {
 	await step(
 		`Nested editors and passive search retain a focused unfinished price`,
 		async () => {
-			await tools.controls(false)
+			await tools.debuggerVisible(true)
 			await userEvent.click(canvas.getByRole(`tab`, { name: `atoms` }))
 			const family = canvas.getByTestId(`open-close-state-family-productBySku`)
 			if (family.getAttribute(`aria-expanded`) !== `true`)
@@ -437,7 +441,7 @@ export const playStorefront: Play = async (context) => {
 	await step(
 		`Browse real stock, add any catalog item and change its quantity`,
 		async () => {
-			await tools.controls(true)
+			await tools.debuggerVisible(false)
 			await expect(canvasElement.querySelectorAll(`catalog-item`)).toHaveLength(
 				24,
 			)

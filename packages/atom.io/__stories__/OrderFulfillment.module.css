@@ -6,40 +6,4 @@ order-fulfillment.class {
 	font-synthesis: none;
 	color: var(--ink);
 	background: var(--surface-content);
-	/* @lasertag-expect-error: StoreProvider supplies context; the storefront disclosure is authored here. */
-	> details {
-		position: relative;
-		z-index: 11000;
-		width: 100%;
-		box-sizing: border-box;
-		background: var(--surface-content);
-		> summary {
-			padding: 10px 16px;
-			cursor: pointer;
-			font-weight: 500;
-			background: var(--surface-shell);
-			border-bottom: 1px solid var(--line);
-			&:focus-visible {
-				outline: 2px solid var(--accent);
-				outline-offset: -3px;
-			}
-		}
-		> section {
-			max-height: calc(100dvh - 44px);
-			overflow: auto;
-			overscroll-behavior: contain;
-		}
-		&:not([open]) {
-			position: relative;
-			z-index: auto;
-			width: max-content;
-			max-width: calc(100% - 16px);
-			border: 1px solid var(--line-strong);
-			border-radius: 4px;
-			box-shadow: 0 2px 12px #0003;
-		}
-		@media (min-width: 1100px) {
-			width: calc(100% - 520px);
-		}
-	}
 }

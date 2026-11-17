@@ -28,7 +28,7 @@ export function OrderSummary({
 	return (
 		<order-summary
 			className={css.class}
-			role="region"
+			role="main"
 			aria-label="Order fulfillment application"
 		>
 			<store-intro>
@@ -186,12 +186,12 @@ export function OrderSummary({
 					</button>
 				</action-row>
 				<p>
-					Close Pantry storefront to inspect the same application. Hide the
-					debugger with its × button or Ctrl+Shift+A to browse again. In ecology,
-					select checkoutTotalCents and trace its observed roots. After changing
-					fulfillment or warehouse, Refresh and trace again. The storefront
-					establishes dependencies through real reads; passive inspection leaves
-					seasonalPromotion, lazyAuditDefault and the empty wishlist untouched.
+					Show or hide the debugger with Ctrl+Shift+A. Its × button hides it so
+					you can browse the page. In ecology, select checkoutTotalCents and
+					trace its observed roots. After changing fulfillment or warehouse,
+					Refresh and trace again. The storefront establishes dependencies
+					through real reads; passive inspection leaves seasonalPromotion,
+					lazyAuditDefault and the empty wishlist untouched.
 				</p>
 				<p>
 					Open Transactions before running actions to record outcomes. Quote

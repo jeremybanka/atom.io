@@ -132,44 +132,38 @@ try {
 		}))
 		assert.equal(layout.debuggerDocument, true)
 		assert.equal(layout.overflow, false)
-		const drawer = page.locator(`order-fulfillment > details`)
-		const controls = async (open: boolean) => {
-			const shown = await drawer.evaluate(
-				(element: HTMLDetailsElement) => element.open,
-			)
-			if (shown !== open) {
-				const summary = drawer.locator(`:scope > summary`)
-				const reachable = await summary.evaluate((node) => {
-					const rect = node.getBoundingClientRect()
-					return node.contains(
-						document.elementFromPoint(
-							rect.x + rect.width / 2,
-							rect.y + rect.height / 2,
-						),
-					)
-				})
-				if (
-					open &&
-					!reachable &&
-					(await page.getByTestId(`atom-io-devtools`).isVisible())
-				)
+		assert.equal(
+			await page
+				.getByRole(`main`, { name: `Order fulfillment application` })
+				.count(),
+			1,
+		)
+		assert.equal(await page.locator(`order-fulfillment > details`).count(), 0)
+		assert.equal(
+			await page
+				.locator(`order-fulfillment`)
+				.evaluate((node) => getComputedStyle(node).zIndex),
+			`auto`,
+		)
+		const storefront = page.locator(`order-summary`)
+		const debuggerVisible = async (visible: boolean) => {
+			if ((await page.getByTestId(`atom-io-devtools`).isVisible()) !== visible) {
+				if (visible) await page.keyboard.press(`Control+Shift+A`)
+				else
 					await page
 						.getByRole(`button`, {
 							name: `Hide debugger (Ctrl+Shift+A)`,
 							exact: true,
 						})
 						.click()
-				await summary.click()
-				if (!open && !(await page.getByTestId(`atom-io-devtools`).isVisible()))
-					await page.keyboard.press(`Control+Shift+A`)
 			}
 		}
 		const checkControls = async () => {
-			await controls(true)
-			const secondary = drawer.locator(`order-summary > details`)
+			await debuggerVisible(false)
+			const secondary = storefront.locator(`:scope > details`)
 			if (!(await secondary.evaluate((node: HTMLDetailsElement) => node.open)))
 				await secondary.locator(`:scope > summary`).click()
-			for (const button of await drawer.locator(`button`).all()) {
+			for (const button of await storefront.locator(`button`).all()) {
 				await button.scrollIntoViewIfNeeded()
 				assert.equal(
 					await button.evaluate((element) => {
@@ -187,22 +181,20 @@ try {
 					true,
 				)
 			}
-			await controls(false)
+			await debuggerVisible(true)
 		}
 		await checkControls()
 		for (const colorScheme of [`light`, `dark`] as const) {
 			await page.emulateMedia({ colorScheme })
-			await controls(true)
+			await debuggerVisible(false)
 			await page.evaluate(async () => {
 				await document.fonts.ready
 			})
-			await drawer
-				.locator(`order-summary > store-intro`)
-				.scrollIntoViewIfNeeded()
+			await storefront.locator(`:scope > store-intro`).scrollIntoViewIfNeeded()
 			await page.screenshot({
 				path: resolve(activeProfile, `${colorScheme}-storefront.png`),
 			})
-			await drawer
+			await storefront
 				.getByRole(`heading`, { name: /^Your cart/ })
 				.evaluate((node) => {
 					node.scrollIntoView({ block: `start` })
@@ -210,7 +202,7 @@ try {
 			await page.screenshot({
 				path: resolve(activeProfile, `${colorScheme}-cart.png`),
 			})
-			await drawer
+			await storefront
 				.getByLabel(`Order total`, { exact: true })
 				.evaluate((node) => {
 					node.scrollIntoView({ block: `center` })
@@ -218,7 +210,7 @@ try {
 			await page.screenshot({
 				path: resolve(activeProfile, `${colorScheme}-cart-total.png`),
 			})
-			await drawer
+			await storefront
 				.getByRole(`heading`, { name: /^On the shelves/ })
 				.evaluate((node) => {
 					node.scrollIntoView({ block: `start` })
@@ -227,10 +219,10 @@ try {
 				path: resolve(activeProfile, `${colorScheme}-catalog.png`),
 			})
 			assert.equal(
-				await drawer.evaluate((node) => node.scrollWidth > node.clientWidth),
+				await storefront.evaluate((node) => node.scrollWidth > node.clientWidth),
 				false,
 			)
-			await controls(false)
+			await debuggerVisible(true)
 		}
 		const ecology = page.getByTestId(`ecology-view`)
 		const ready = () =>
@@ -354,7 +346,6 @@ try {
 		await checkControls()
 		await page.screenshot({
 			path: resolve(activeProfile, `full-snap-controls.png`),
-			fullPage: true,
 		})
 
 		// Static MDX/docgen is outside the Vitest addon's story transformation.
@@ -408,14 +399,7 @@ try {
 		await frame
 			.getByRole(`button`, { name: `Hide debugger (Ctrl+Shift+A)`, exact: true })
 			.click()
-		const managerDrawer = frame.locator(`order-fulfillment > details`)
-		if (
-			!(await managerDrawer.evaluate(
-				(element: HTMLDetailsElement) => element.open,
-			))
-		)
-			await managerDrawer.locator(`:scope > summary`).click()
-		const managerSecondary = managerDrawer.locator(`order-summary > details`)
+		const managerSecondary = frame.locator(`order-summary > details`)
 		if (
 			!(await managerSecondary.evaluate((node: HTMLDetailsElement) => node.open))
 		)
@@ -428,7 +412,6 @@ try {
 			.getByRole(`button`, { name: `Reset order scenario`, exact: true })
 			.click()
 		await frame.waitForFunction((element) => !element.isConnected, previousPanel)
-		await frame.locator(`order-fulfillment > details > summary`).click()
 		await frame.locator(`body`).press(`Control+Shift+A`)
 		await frame.waitForFunction(
 			() =>

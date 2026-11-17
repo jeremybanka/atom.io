@@ -20,17 +20,12 @@ export function OrderFulfillment(): React.JSX.Element {
 	return (
 		<order-fulfillment className={css.class} data-atom-io-theme="auto">
 			<StoreProvider store={scenario.app.store}>
-				<details open>
-					<summary>Pantry storefront</summary>
-					<section>
-						<OrderSummary
-							scenario={scenario}
-							reset={() => {
-								setScenario(createOrderFulfillmentScenario())
-							}}
-						/>
-					</section>
-				</details>
+				<OrderSummary
+					scenario={scenario}
+					reset={() => {
+						setScenario(createOrderFulfillmentScenario())
+					}}
+				/>
 				<AtomIODevtools />
 			</StoreProvider>
 		</order-fulfillment>

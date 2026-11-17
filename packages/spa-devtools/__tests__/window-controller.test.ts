@@ -1,7 +1,8 @@
+import { Silo } from "atom.io"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 
-import { createWindowController } from "../src/window-controller.ts"
 import { RESIZE_EDGES, SNAP_TARGETS } from "../src/window-geometry.ts"
+import { mountWindowFixture } from "./fixtures/views.tsx"
 
 const cleanups: (() => void)[] = []
 let frames: Map<number, FrameRequestCallback>,
@@ -28,13 +29,18 @@ afterEach(() => {
 function fixture(saved: unknown = { free, snap: null }) {
 	localStorage.setItem(`🔍 Devtools Window`, JSON.stringify(saved))
 	const host = document.createElement(`div`)
-	host.innerHTML = `<main><header class="toolbar"><button class="drag-handle">Move</button><nav><button>Atoms</button></nav><button data-testid="open-close-devtools">Minimize</button></header><input value="2."></main>`
 	document.body.append(host)
-	const panel = host.querySelector<HTMLElement>(`main`)!
-	const toolbar = panel.querySelector<HTMLElement>(`header`)!
 	const toggle = vi.fn()
-	const controller = createWindowController(panel, toggle)
-	cleanups.push(controller.dispose)
+	const app = new Silo({
+		name: `window-fixture`,
+		lifespan: `ephemeral`,
+		isProduction: true,
+	})
+	const mounted = mountWindowFixture(host, app.store, toggle)
+	const panel = mounted.panel
+	const toolbar = panel.querySelector<HTMLElement>(`debugger-toolbar`)!
+	const controller = mounted.controller
+	cleanups.push(mounted.dispose)
 	for (const node of [
 		toolbar,
 		...panel.querySelectorAll<HTMLElement>(`[data-resize]`),
@@ -78,15 +84,20 @@ function fixture(saved: unknown = { free, snap: null }) {
 	const flush = () => {
 		for (const [id, callback] of [...frames]) {
 			frames.delete(id)
+			mounted.flush()
 			callback(0)
+			mounted.flush()
 		}
 	}
-	const rect = () => ({
-		x: Number.parseFloat(panel.style.left),
-		y: Number.parseFloat(panel.style.top),
-		width: Number.parseFloat(panel.style.width),
-		height: Number.parseFloat(panel.style.height),
-	})
+	const rect = () => (
+		mounted.flush(),
+		{
+			x: Number.parseFloat(panel.style.left),
+			y: Number.parseFloat(panel.style.top),
+			width: Number.parseFloat(panel.style.width),
+			height: Number.parseFloat(panel.style.height),
+		}
+	)
 	return {
 		host,
 		panel,
@@ -98,8 +109,14 @@ function fixture(saved: unknown = { free, snap: null }) {
 		flush,
 		rect,
 		targets,
-		preview: host.querySelector<HTMLElement>(`.snap-preview`)!,
-		palette: host.querySelector<HTMLElement>(`.snap-palette`)!,
+		get preview() {
+			mounted.flush()
+			return host.querySelector<HTMLElement>(`snap-preview`)!
+		},
+		get palette() {
+			mounted.flush()
+			return host.querySelector<HTMLElement>(`snap-palette`)!
+		},
 	}
 }
 it(`coalesces movement, preserves focused input nodes and persists only committed geometry`, () => {
@@ -137,7 +154,7 @@ it(`preserves snap, free rectangle and persisted bytes on a click or sub-thresho
 	]
 	for (const { saved, x, y } of cases) {
 		for (const selector of [
-			`.drag-handle`,
+			`[data-drag-handle]`,
 			...RESIZE_EDGES.map((edge) => `[data-resize="${edge}"]`),
 		]) {
 			for (const [dx, dy] of [
@@ -300,11 +317,14 @@ it(`previews every palette target, commits exact zones and restores the last fre
 		expect(f.preview.hidden).toBe(false)
 		const preview = f.preview.style.cssText
 		f.pointer(`pointerup`, 120 + index * 60, 20)
+		f.rect()
 		expect(f.panel.style.cssText).toBe(preview)
 		expect(JSON.parse(localStorage.getItem(`🔍 Devtools Window`)!).snap).toBe(
 			target,
 		)
-		f.host.querySelector<HTMLButtonElement>(`.layout-button`)!.click()
+		f.host
+			.querySelector<HTMLButtonElement>(`[aria-label="Debugger layout"]`)!
+			.click()
 		f.palette.querySelector<HTMLButtonElement>(`button:last-child`)!.click()
 	})
 	expect(f.rect()).toEqual(free)
@@ -317,15 +337,20 @@ it(`unsnaps on header drag and restores the prior snap when cancelled`, () => {
 	expect(f.rect().width).toBe(500)
 	f.pointer(`pointercancel`)
 	expect(f.rect()).toEqual({ x: 600, y: 0, width: 600, height: 900 })
-	const layout = f.panel.querySelector<HTMLButtonElement>(`.layout-button`)!
+	const layout = f.panel.querySelector<HTMLButtonElement>(
+		`[aria-label="Debugger layout"]`,
+	)!
 	layout.click()
 	f.key(`Escape`)
 	expect(document.activeElement).toBe(layout)
 })
 it(`snaps and restores through keyboard-accessible buttons, moves/resizes with arrows and clamps on viewport changes`, () => {
 	const f = fixture()
-	const layout = f.panel.querySelector<HTMLButtonElement>(`.layout-button`)!
+	const layout = f.panel.querySelector<HTMLButtonElement>(
+		`[aria-label="Debugger layout"]`,
+	)!
 	layout.click()
+	expect(f.palette.hidden).toBe(false)
 	expect(document.activeElement).toBe(f.targets[0])
 	layout.click()
 	expect(f.palette.hidden).toBe(true)
@@ -337,7 +362,7 @@ it(`snaps and restores through keyboard-accessible buttons, moves/resizes with a
 	expect(f.rect()).toEqual({ x: 300, y: 0, width: 300, height: 300 })
 	f.palette.querySelector<HTMLButtonElement>(`button:last-child`)!.click()
 	expect(f.rect()).toEqual({ x: 100, y: 0, width: 500, height: 300 })
-	const handle = f.panel.querySelector<HTMLElement>(`.drag-handle`)!
+	const handle = f.panel.querySelector<HTMLElement>(`[data-drag-handle]`)!
 	for (const key of [`ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `Enter`])
 		f.key(key, handle)
 	expect(f.rect().y).toBe(0)
@@ -350,7 +375,11 @@ it(`snaps and restores through keyboard-accessible buttons, moves/resizes with a
 })
 it(`nudges and resizes snapped windows from their visible bounds`, () => {
 	for (const [selector, key, expected] of [
-		[`.drag-handle`, `ArrowLeft`, { x: 590, y: 0, width: 600, height: 900 }],
+		[
+			`[data-drag-handle]`,
+			`ArrowLeft`,
+			{ x: 590, y: 0, width: 600, height: 900 },
+		],
 		[
 			`[data-resize="e"]`,
 			`ArrowLeft`,
@@ -377,7 +406,10 @@ it(`nudges and resizes snapped windows from their visible bounds`, () => {
 		})
 	}
 	const top = fixture({ free, snap: `top-half` })
-	top.key(`ArrowDown`, top.panel.querySelector<HTMLElement>(`.drag-handle`)!)
+	top.key(
+		`ArrowDown`,
+		top.panel.querySelector<HTMLElement>(`[data-drag-handle]`)!,
+	)
 	expect(top.rect()).toEqual({ x: 0, y: 10, width: 1200, height: 450 })
 })
 it(`keeps snapped geometry and storage for unrelated resize arrows and clamped keyboard actions`, () => {
@@ -390,8 +422,8 @@ it(`keeps snapped geometry and storage for unrelated resize arrows and clamped k
 		[`[data-resize="n"]`, `ArrowRight`],
 		[`[data-resize="s"]`, `ArrowLeft`],
 		[`[data-resize="s"]`, `ArrowRight`],
-		[`.drag-handle`, `ArrowRight`],
-		[`.drag-handle`, `ArrowUp`],
+		[`[data-drag-handle]`, `ArrowRight`],
+		[`[data-drag-handle]`, `ArrowUp`],
 		[`[data-resize="e"]`, `ArrowRight`],
 	] as const) {
 		const f = fixture({ free, snap: `right-half` })
@@ -432,7 +464,7 @@ it(`resizes corners, cancels scheduled work and preserves free geometry across h
 	f.pointer(`pointermove`, 250, 250)
 	f.controller.dispose()
 	expect(frames.size).toBe(0)
-	expect(f.host.querySelector(`.snap-palette`)).toBeNull()
+	expect(f.host.querySelector(`snap-palette`)).toBeNull()
 })
 it(`handles unavailable storage, failed capture and already-lost capture without leaking DOM`, () => {
 	const get = vi.spyOn(window.localStorage, `getItem`).mockImplementation(() => {
@@ -440,7 +472,7 @@ it(`handles unavailable storage, failed capture and already-lost capture without
 	})
 	const f = fixture()
 	get.mockRestore()
-	vi.spyOn(window.localStorage, `setItem`).mockImplementation(() => {
+	const set = vi.spyOn(window.localStorage, `setItem`).mockImplementation(() => {
 		throw new Error(`storage`)
 	})
 	f.toolbar.setPointerCapture = () => {
@@ -457,4 +489,14 @@ it(`handles unavailable storage, failed capture and already-lost capture without
 	f.pointer(`pointerup`, 0, 200)
 	expect(f.rect().x).toBe(0)
 	f.key(`Escape`)
+	set.mockRestore()
+})
+
+it(`ignores clicks in the layout palette outside a snap action`, () => {
+	const f = fixture()
+	f.controller.toggleMenu()
+	f.palette.click()
+	expect(document.activeElement).toBe(f.targets[0])
+	expect(f.rect()).toEqual(free)
+	expect(f.palette.hidden).toBe(false)
 })

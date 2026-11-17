@@ -1,0 +1,117 @@
+search-controls.class {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 4px 8px;
+	align-items: start;
+	background: var(--surface-search);
+	flex: 0 1 auto;
+	max-height: 60%;
+	overflow: auto;
+	padding: 6px;
+	border-bottom: 1px solid var(--line);
+
+	& > search-row,
+	& > p[data-pinned],
+	& > search-results,
+	& > search-details {
+		grid-column: 1 / -1;
+	}
+	& > search-row {
+		background: var(--surface-search);
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+	}
+	& > search-row > input {
+		flex: 1 1 180px;
+		height: 24px;
+	}
+	& > search-row > button {
+		height: 24px;
+	}
+	& > p[data-search-status], & > p[data-pinned] {
+		font-size: 11px;
+		line-height: 1.4;
+		margin-top: 0;
+	}
+	& > p[data-search-status] {
+		color: var(--ink-muted);
+	}
+	& > p[data-search-status] > strong {
+		display: inline;
+		color: var(--ink-strong);
+		font-size: 12px;
+	}
+	& > details[data-capture] {
+		margin-top: 0;
+		font-size: 11px;
+		line-height: 1.4;
+		color: var(--ink-muted);
+	}
+	& > details[data-capture] > summary {
+		cursor: pointer;
+		width: fit-content;
+		padding: 0;
+	}
+	& > details[data-capture][open] {
+		grid-column: 1 / -1;
+	}
+	& > details[data-capture] > p {
+		padding: 4px 0;
+	}
+	& > p[data-pinned] {
+		/* Keep controls still when a pinned edit ends between pointer down and click. */
+		min-height: 16px;
+	}
+	& > search-results {
+		background: var(--surface-search);
+		list-style: none;
+		max-height: 180px;
+		overflow: auto;
+	}
+	& > search-results > li {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		align-items: center;
+		gap: 4px;
+		border-bottom: 1px solid var(--line);
+	}
+	& > search-results > li > button {
+		height: auto;
+		min-height: 24px;
+		overflow-wrap: anywhere;
+		text-align: left;
+	}
+	& > search-results > li > small {
+		font-size: 11px;
+		line-height: 1.4;
+		overflow-wrap: anywhere;
+	}
+	& > search-results[aria-busy="true"] {
+		opacity: 0.6;
+		pointer-events: none;
+	}
+	& > search-details {
+		padding: 5px 3px 0;
+		border-top: 1px solid var(--line);
+		overflow-wrap: anywhere;
+		font-size: 12px;
+		line-height: 1.4;
+	}
+	& > search-details > button {
+		height: auto;
+		min-height: 24px;
+	}
+	@container atom-io-devtools (max-width: 650px) {
+		& > search-results > li {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 0;
+		}
+		& > search-results > li > small:not(:empty) {
+			padding: 0 3px 4px;
+		}
+	}
+	& > search-results:empty, & > search-details:empty {
+		display: none;
+	}
+}

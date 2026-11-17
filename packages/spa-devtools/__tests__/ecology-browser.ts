@@ -70,7 +70,7 @@ try {
 	const ready = async () => {
 		await page.waitForFunction(
 			() =>
-				document.querySelector<HTMLElement>(`.ecology`)?.dataset[`ready`] ===
+				document.querySelector<HTMLElement>(`ecology-view`)?.dataset[`ready`] ===
 				`true`,
 		)
 	}
@@ -90,9 +90,9 @@ try {
 	await page.getByRole(`searchbox`, { name: `Search ecology` }).fill(`dormant`)
 	await ready()
 	await page.getByText(`Accessible node list`, { exact: true }).click()
-	await page.locator(`.ecology-list button`).first().focus()
+	await page.locator(`ecology-map ul button`).first().focus()
 	await page.keyboard.press(`Enter`)
-	assert.match(await page.locator(`.ecology-inspector`).innerText(), /dormant/)
+	assert.match(await page.locator(`ecology-body > aside`).innerText(), /dormant/)
 	await page
 		.getByRole(`button`, { name: `Trace observed roots`, exact: true })
 		.focus()
@@ -104,20 +104,20 @@ try {
 	)
 	await page.getByText(`Accessible node list`, { exact: true }).click()
 	assert.match(
-		await page.locator(`.ecology-inspector`).innerText(),
+		await page.locator(`ecology-body > aside`).innerText(),
 		/incomplete/,
 	)
 	const rankedInput = page.getByRole(`searchbox`, { name: `Search ecology` })
 	const captured = await page
-		.locator(`.ecology`)
+		.locator(`ecology-view`)
 		.getAttribute(`data-snapshot-ms`)
 	await page.getByRole(`button`, { name: `Pan right`, exact: true }).click()
-	const pan = await page.locator(`.ecology-world`).getAttribute(`transform`)
+	const pan = await page.locator(`[data-world]`).getAttribute(`transform`)
 	await rankedInput.fill(`ｄｏｒｍａｎｔ`)
 	await ready()
 	assert.equal(
 		await page
-			.locator(`.ecology-results button`)
+			.locator(`ecology-view [data-results] button`)
 			.first()
 			.getAttribute(`aria-label`),
 		`dormant`,
@@ -125,7 +125,7 @@ try {
 	await rankedInput.fill(`items a`)
 	await ready()
 	await page
-		.locator(`.ecology-results`)
+		.locator(`ecology-view [data-results]`)
 		.getByRole(`button`, { name: `items("a")`, exact: true })
 		.click()
 	await ready()
@@ -140,12 +140,9 @@ try {
 		await rankedInput.evaluate((node) => node === document.activeElement),
 		true,
 	)
+	assert.equal(await page.locator(`[data-world]`).getAttribute(`transform`), pan)
 	assert.equal(
-		await page.locator(`.ecology-world`).getAttribute(`transform`),
-		pan,
-	)
-	assert.equal(
-		await page.locator(`.ecology`).getAttribute(`data-snapshot-ms`),
+		await page.locator(`ecology-view`).getAttribute(`data-snapshot-ms`),
 		captured,
 	)
 	await page.getByRole(`button`, { name: `Reset view`, exact: true }).click()
@@ -179,7 +176,7 @@ try {
 		.getByRole(`button`, { name: `Trace observed roots`, exact: true })
 		.click()
 	await ready()
-	assert.match(await page.locator(`.ecology-inspector`).innerText(), /price/)
+	assert.match(await page.locator(`ecology-body > aside`).innerText(), /price/)
 	await page.screenshot({ path: resolvePath(artifacts, `small-traced.png`) })
 	const positions = await page
 		.locator(`g[data-graph-id]`)
@@ -206,10 +203,10 @@ try {
 		positions,
 	)
 	assert.equal(
-		await page.locator(`.ecology`).getAttribute(`data-new-positions`),
+		await page.locator(`ecology-view`).getAttribute(`data-new-positions`),
 		`0`,
 	)
-	const jobs = await page.locator(`.ecology`).getAttribute(`data-jobs`)
+	const jobs = await page.locator(`ecology-view`).getAttribute(`data-jobs`)
 	await page
 		.getByRole(`button`, { name: `Debugger layout`, exact: true })
 		.click()
@@ -217,16 +214,21 @@ try {
 		.getByRole(`button`, { name: `Restore free position`, exact: true })
 		.click()
 	const beforeGeometry = await page
-		.locator(`main[data-css="spa-devtools"]`)
+		.locator(`debugger-panel[data-css="spa-devtools"]`)
 		.boundingBox()
 	if (!beforeGeometry) throw new Error(`Missing beforeGeometry`)
 	await page.getByRole(`button`, { name: `Move debugger`, exact: true }).focus()
 	await page.keyboard.press(`ArrowLeft`)
 	assert.equal(
-		(await page.locator(`main[data-css="spa-devtools"]`).boundingBox())!.x,
+		(await page
+			.locator(`debugger-panel[data-css="spa-devtools"]`)
+			.boundingBox())!.x,
 		beforeGeometry.x - 10,
 	)
-	assert.equal(await page.locator(`.ecology`).getAttribute(`data-jobs`), jobs)
+	assert.equal(
+		await page.locator(`ecology-view`).getAttribute(`data-jobs`),
+		jobs,
+	)
 	await choose(`state:price`)
 	await page
 		.getByRole(`button`, {
@@ -234,13 +236,13 @@ try {
 			exact: true,
 		})
 		.click()
-	const editor = page.locator(`.ecology-live input`).first()
+	const editor = page.locator(`ecology-live input`).first()
 	await editor.focus()
 	await editor.fill(`1e`)
 	const draftNode = await editor.elementHandle()
 	await rankedInput.fill(`dormant`)
 	await ready()
-	await page.locator(`.ecology-results button`).first().click()
+	await page.locator(`ecology-view [data-results] button`).first().click()
 	await ready()
 	assert.equal(await editor.inputValue(), `1e`)
 	assert.equal(
@@ -275,7 +277,7 @@ try {
 	await page
 		.getByRole(`button`, { name: `Minimize debugger`, exact: true })
 		.click()
-	assert.equal(await page.locator(`.ecology`).count(), 0)
+	assert.equal(await page.locator(`ecology-view`).count(), 0)
 	await page.getByRole(`button`, { name: `Open debugger`, exact: true }).click()
 	await ready()
 	await page.setViewportSize({ width: 390, height: 844 })
@@ -287,7 +289,7 @@ try {
 	await ready()
 	await page.screenshot({ path: resolvePath(artifacts, `empty.png`) })
 	assert.match(
-		await page.locator(`.ecology-counts`).innerText(),
+		await page.locator(`ecology-view [data-counts]`).innerText(),
 		/0 atoms · 0 selectors/,
 	)
 	const cdp = await context.newCDPSession(page)
@@ -313,22 +315,24 @@ try {
 	const overview = await page.evaluate(() => ({
 		overviewMs: performance.now() - window.ecologyFixture.timings().mountStarted,
 		setupMs: window.ecologyFixture.timings().setupMs,
-		...document.querySelector<HTMLElement>(`.ecology`)!.dataset,
+		...document.querySelector<HTMLElement>(`ecology-view`)!.dataset,
 		maxChunkMs:
-			document.querySelector<HTMLElement>(`.ecology`)!.dataset[`maxChunkMs`],
+			document.querySelector<HTMLElement>(`ecology-view`)!.dataset[`maxChunkMs`],
 		maxIndexChunkMs:
-			document.querySelector<HTMLElement>(`.ecology`)!.dataset[
+			document.querySelector<HTMLElement>(`ecology-view`)!.dataset[
 				`maxIndexChunkMs`
 			],
 		maxMatchChunkMs:
-			document.querySelector<HTMLElement>(`.ecology`)!.dataset[
+			document.querySelector<HTMLElement>(`ecology-view`)!.dataset[
 				`maxMatchChunkMs`
 			],
-		counts: document.querySelector<HTMLElement>(`.ecology-counts`)!.textContent,
-		notice: document.querySelector<HTMLElement>(`.ecology-notice`)!.textContent,
+		counts: document.querySelector<HTMLElement>(`ecology-view [data-counts]`)!
+			.textContent,
+		notice: document.querySelector<HTMLElement>(`ecology-view [data-notice]`)!
+			.textContent,
 	}))
 	assert.equal(await page.locator(`g[data-graph-id]`).count(), 500)
-	assert.equal(await page.locator(`.ecology-edge`).count(), 1_000)
+	assert.equal(await page.locator(`[data-edge]`).count(), 1_000)
 	await page.screenshot({ path: resolvePath(artifacts, `large.png`) })
 	await page.evaluate(() => performance.mark(`s4-overview-end`))
 	const search = [],
@@ -356,7 +360,7 @@ try {
 				await new Promise<void>((resolve) => {
 					const check = () => {
 						if (
-							document.querySelector<HTMLElement>(`.ecology`)!.dataset[
+							document.querySelector<HTMLElement>(`ecology-view`)!.dataset[
 								`ready`
 							] === `true`
 						)
@@ -378,7 +382,9 @@ try {
 						[`matchMs`, `layoutMs`, `commitMs`].map((metric) => [
 							metric,
 							Number(
-								document.querySelector<HTMLElement>(`.ecology`)!.dataset[metric],
+								document.querySelector<HTMLElement>(`ecology-view`)!.dataset[
+									metric
+								],
 							),
 						]),
 					),
@@ -387,7 +393,7 @@ try {
 							(metric) => [
 								metric,
 								Number(
-									document.querySelector<HTMLElement>(`.ecology`)!.dataset[
+									document.querySelector<HTMLElement>(`ecology-view`)!.dataset[
 										metric
 									],
 								),

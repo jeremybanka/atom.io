@@ -88,7 +88,7 @@ it(`replays StrictMode, follows provider changes and gives explicit stores prece
 	await show(second, { store: override.store })
 	expect(owned(override)).toEqual(keys)
 	await show(second, { store: override.store, hideByDefault: true })
-	expect(host.querySelector<HTMLElement>(`main`)!.hidden).toBe(true)
+	expect(host.querySelector<HTMLElement>(`debugger-panel`)!.hidden).toBe(true)
 	expect(owned(override).some((key) => keys.includes(key))).toBe(false)
 	await show(first)
 	expect(owned(override)).toEqual([])

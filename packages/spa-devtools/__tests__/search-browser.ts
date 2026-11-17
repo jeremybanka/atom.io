@@ -168,12 +168,12 @@ try {
 			const ready = () =>
 				page.waitForFunction(
 					() =>
-						document.querySelector<HTMLElement>(`.state-search`)?.dataset[
+						document.querySelector<HTMLElement>(`search-view`)?.dataset[
 							`ready`
 						] === `true`,
 				)
 			await ready()
-			const capture = page.locator(`.search-capture`)
+			const capture = page.locator(`search-controls details[data-capture]`)
 			const disclosure = capture.locator(`summary`)
 			await disclosure.focus()
 			await disclosure.press(`Enter`)
@@ -265,10 +265,10 @@ try {
 			await search.fill(`fulfilled`)
 			await ready()
 			assert.match(
-				await page.locator(`.search-results`).innerText(),
+				await page.locator(`search-results`).innerText(),
 				/cached value/,
 			)
-			const panelRect = await page.locator(`main`).boundingBox()
+			const panelRect = await page.locator(`debugger-panel`).boundingBox()
 			const handle = await page
 				.getByRole(`button`, { name: `Move debugger`, exact: true })
 				.boundingBox()
@@ -283,9 +283,14 @@ try {
 			await search.press(`Escape`)
 			await page.mouse.up()
 			assert.equal(await search.inputValue(), `fulfilled`)
-			assert.deepEqual(await page.locator(`main`).boundingBox(), panelRect)
+			assert.deepEqual(
+				await page.locator(`debugger-panel`).boundingBox(),
+				panelRect,
+			)
 			assert.equal(
-				await page.locator(`main`).getAttribute(`data-window-interaction`),
+				await page
+					.locator(`debugger-panel`)
+					.getAttribute(`data-window-interaction`),
 				`false`,
 			)
 
@@ -339,7 +344,7 @@ try {
 		const ready = () =>
 			historyPage.waitForFunction(
 				() =>
-					document.querySelector<HTMLElement>(`.state-search`)?.dataset[
+					document.querySelector<HTMLElement>(`search-view`)?.dataset[
 						`ready`
 					] === `true`,
 			)
@@ -361,7 +366,7 @@ try {
 				window.searchFixture.historyEvidence(),
 			)
 			await input.press(`ArrowDown`)
-			await historyPage.locator(`.search-results button`).first().press(`Enter`)
+			await historyPage.locator(`search-results button`).first().press(`Enter`)
 			await historyPage.waitForSelector(`[data-search-selected="true"]`)
 			assert.deepEqual(
 				await historyPage.evaluate(() => window.searchFixture.historyEvidence()),
@@ -398,7 +403,7 @@ try {
 				samples.push(performance.now() - started)
 				queryChunks.push(
 					await historyPage
-						.locator(`.state-search`)
+						.locator(`search-view`)
 						.evaluate((node) =>
 							Math.max(
 								Number((node as HTMLElement).dataset[`maxIndexChunkMs`]),
@@ -412,7 +417,7 @@ try {
 			reportPerformanceTarget(`history query p95`, p95, 100)
 			reportPerformanceTarget(`history scheduled slice`, chunks, 8)
 			assert.equal(
-				(await historyPage.locator(`.search-results button`).count()) <= 100,
+				(await historyPage.locator(`search-results button`).count()) <= 100,
 				true,
 			)
 			timing = { p95Ms: p95, maxSliceMs: chunks }
@@ -432,13 +437,13 @@ try {
 	await zoom.goto(`http://127.0.0.1:${(server.address() as AddressInfo).port}`)
 	await zoom.waitForFunction(
 		() =>
-			document.querySelector<HTMLElement>(`.state-search`)?.dataset[`ready`] ===
+			document.querySelector<HTMLElement>(`search-view`)?.dataset[`ready`] ===
 			`true`,
 	)
 	await zoom.getByRole(`searchbox`, { name: `Search atoms` }).fill(`count`)
 	await zoom.waitForFunction(
 		() =>
-			document.querySelector<HTMLElement>(`.state-search`)?.dataset[`ready`] ===
+			document.querySelector<HTMLElement>(`search-view`)?.dataset[`ready`] ===
 			`true`,
 	)
 	for (const target of [
@@ -474,12 +479,12 @@ try {
 	})
 	await page.waitForFunction(
 		() =>
-			document.querySelector<HTMLElement>(`.state-search`)?.dataset[`ready`] ===
+			document.querySelector<HTMLElement>(`search-view`)?.dataset[`ready`] ===
 			`true`,
 	)
 	report.scale.overview = await page.evaluate(() => ({
 		elapsedMs: performance.now() - window.searchFixture.evidence().mountStarted,
-		...document.querySelector<HTMLElement>(`.state-search`)!.dataset,
+		...document.querySelector<HTMLElement>(`search-view`)!.dataset,
 	}))
 	report.scale.evidence = await page.evaluate(() => {
 		const e = window.searchFixture.evidence()
@@ -494,7 +499,7 @@ try {
 	})
 	const sample = async (query: string) =>
 		page.evaluate(async (text) => {
-			const host = document.querySelector<HTMLElement>(`.state-search`)!,
+			const host = document.querySelector<HTMLElement>(`search-view`)!,
 				input = host.querySelector<HTMLInputElement>(`input`)!,
 				start = performance.now()
 			input.value = text
@@ -543,9 +548,7 @@ try {
 		Number(report.scale.overview.maxIndexChunkMs),
 	)
 	report.scale.selection = await page.evaluate(async () => {
-		const button = document.querySelector<HTMLElement>(
-				`.search-results button`,
-			)!,
+		const button = document.querySelector<HTMLElement>(`search-results button`)!,
 			samples = []
 		for (let i = 0; i < 33; i++) {
 			const start = performance.now()
@@ -589,7 +592,7 @@ try {
 	)
 
 	await page.evaluate(() => {
-		const input = document.querySelector<HTMLInputElement>(`.search-row input`)!
+		const input = document.querySelector<HTMLInputElement>(`search-row input`)!
 		for (const text of [`old`, `discarded`, `cartQuantity0`]) {
 			input.value = text
 			input.dispatchEvent(new Event(`input`, { bubbles: true }))
@@ -597,13 +600,10 @@ try {
 	})
 	await page.waitForFunction(
 		() =>
-			document.querySelector<HTMLElement>(`.state-search`)?.dataset[`ready`] ===
+			document.querySelector<HTMLElement>(`search-view`)?.dataset[`ready`] ===
 			`true`,
 	)
-	assert.match(
-		await page.locator(`.search-results`).innerText(),
-		/cartQuantity0/,
-	)
+	assert.match(await page.locator(`search-results`).innerText(), /cartQuantity0/)
 	assert.equal(
 		await page.evaluate(() => window.searchFixture.evidence().reads),
 		0,
@@ -613,14 +613,14 @@ try {
 	await page.getByRole(`tab`, { name: `selectors`, exact: true }).click()
 	await page.waitForFunction(
 		() =>
-			document.querySelector<HTMLElement>(`.state-search`)?.dataset[`ready`] ===
+			document.querySelector<HTMLElement>(`search-view`)?.dataset[`ready`] ===
 			`true`,
 	)
 	report.scale.selectors = {
 		overview: await page.evaluate(
 			(started) => ({
 				elapsedMs: performance.now() - started,
-				...document.querySelector<HTMLElement>(`.state-search`)!.dataset,
+				...document.querySelector<HTMLElement>(`search-view`)!.dataset,
 			}),
 			selectorStarted,
 		),
@@ -723,14 +723,14 @@ try {
 	}
 	report.races.initial = await race.evaluate(async () => {
 		window.searchFixture.mount(true)
-		const host = document.querySelector<HTMLElement>(`.state-search`)!,
+		const host = document.querySelector<HTMLElement>(`search-view`)!,
 			input = host.querySelector<HTMLInputElement>(`input`)!,
 			observations = []
 		for (const text of [`cart`, `discarded`, `cartQuantity0`]) {
 			await new Promise((resolve) => setTimeout(resolve, 0))
 			observations.push({
 				preparing: host
-					.querySelector<HTMLElement>(`.search-status`)!
+					.querySelector<HTMLElement>(`search-view [data-search-status]`)!
 					.textContent.startsWith(`Preparing`),
 				ready: host.dataset[`ready`],
 				busy: host.querySelector<HTMLElement>(`ol`)!.getAttribute(`aria-busy`),
@@ -755,16 +755,13 @@ try {
 	)
 	await race.waitForFunction(
 		() =>
-			document.querySelector<HTMLElement>(`.state-search`)?.dataset[`ready`] ===
+			document.querySelector<HTMLElement>(`search-view`)?.dataset[`ready`] ===
 			`true`,
 	)
-	assert.match(
-		await race.locator(`.search-results`).innerText(),
-		/cartQuantity0/,
-	)
+	assert.match(await race.locator(`search-results`).innerText(), /cartQuantity0/)
 	report.races.refresh = await race.evaluate(async () => {
 		window.searchFixture.update()
-		const host = document.querySelector<HTMLElement>(`.state-search`)!,
+		const host = document.querySelector<HTMLElement>(`search-view`)!,
 			input = host.querySelector<HTMLInputElement>(`input`)!,
 			observations = []
 		;[...host.querySelectorAll<HTMLElement>(`button`)]
@@ -774,7 +771,7 @@ try {
 			await new Promise((resolve) => setTimeout(resolve, 0))
 			observations.push({
 				preparing: host
-					.querySelector<HTMLElement>(`.search-status`)!
+					.querySelector<HTMLElement>(`search-view [data-search-status]`)!
 					.textContent.startsWith(`Preparing`),
 				ready: host.dataset[`ready`],
 				busy: host.querySelector<HTMLElement>(`ol`)!.getAttribute(`aria-busy`),
@@ -799,14 +796,14 @@ try {
 	)
 	await race.waitForFunction(
 		() =>
-			document.querySelector<HTMLElement>(`.state-search`)?.dataset[`ready`] ===
+			document.querySelector<HTMLElement>(`search-view`)?.dataset[`ready`] ===
 			`true`,
 	)
 	assert.match(
-		await race.locator(`.search-results`).innerText(),
+		await race.locator(`search-results`).innerText(),
 		/cached value: refreshed/,
 	)
-	assert.equal(await race.locator(`.search-results li`).count(), 1)
+	assert.equal(await race.locator(`search-results li`).count(), 1)
 	assert.equal(
 		await race.evaluate(() => window.searchFixture.evidence().reads),
 		0,

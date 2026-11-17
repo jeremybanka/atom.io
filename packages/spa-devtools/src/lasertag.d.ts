@@ -1,0 +1,1 @@
+import "lasertag/css-modules"

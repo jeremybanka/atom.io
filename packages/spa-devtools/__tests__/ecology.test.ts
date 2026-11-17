@@ -2,9 +2,9 @@ import { Silo } from "atom.io"
 import { attachIntrospectionStates } from "atom.io/introspection"
 import { expect, it, vi } from "vitest"
 
-import { mountAtomIODevtools } from "../src/AtomIODevtools.tsx"
 import type { EcologySnapshot } from "../src/ecology.ts"
 import { captureEcologySnapshot, traceEcologyRoots } from "../src/ecology.ts"
+import { mountAtomIODevtools } from "../src/mount.ts"
 
 const fixture = () =>
 	new Silo({ name: `ecology`, lifespan: `ephemeral`, isProduction: true })

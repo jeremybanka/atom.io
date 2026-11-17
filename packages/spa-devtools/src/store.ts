@@ -37,7 +37,7 @@ function ownedAtom<T>(store: RootStore, initial: T): RegularAtomToken<T> {
 	})
 	return token
 }
-function useLocal<T>(
+export function useLocal<T>(
 	store: RootStore,
 	initial: T,
 ): [Accessor<T>, (next: T | Setter<T>) => void] {
@@ -145,4 +145,41 @@ export function useExpanded(
 			})
 		},
 	]
+}
+
+/** Give presentation fields independent dependencies, so status updates do not redraw a graph. */
+export function usePresentation<T extends object>(
+	store: RootStore,
+	initial: T,
+): {
+	read(): T
+	version(): number
+	update(patch: Partial<T>): void
+} {
+	const fields = new Map<
+		keyof T,
+		[Accessor<unknown>, (value: unknown) => void]
+	>()
+	const state = {} as T
+	for (const key of Object.keys(initial) as (keyof T)[]) {
+		const [read, write] = useLocal<unknown>(store, initial[key])
+		fields.set(key, [read, write])
+		Object.defineProperty(state, key, { enumerable: true, get: read })
+	}
+	const [version, setVersion] = useLocal(store, 0)
+	return {
+		read: () => state,
+		version,
+		update(patch) {
+			let changed = false
+			for (const key of Object.keys(patch) as (keyof T)[]) {
+				const [read, write] = fields.get(key)!
+				if (read() !== patch[key]) {
+					write(patch[key])
+					changed = true
+				}
+			}
+			if (changed) setVersion((value) => value + 1)
+		},
+	}
 }

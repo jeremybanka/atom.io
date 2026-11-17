@@ -1,0 +1,50 @@
+window-overlay.class {
+	position: fixed;
+	inset: 0;
+	z-index: 10001;
+	pointer-events: none;
+	font: 400 12px/1.2 "Atom IO Theia", monospace;
+	snap-preview {
+		position: absolute;
+		box-sizing: border-box;
+		background: color-mix(in srgb, var(--accent) 20%, transparent);
+		border: 2px solid var(--accent);
+	}
+	snap-palette {
+		position: absolute;
+		top: 12px;
+		left: 50%;
+		transform: translateX(-50%);
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 3px;
+		padding: 6px;
+		width: max-content;
+		max-width: calc(100vw - 16px);
+		background: var(--surface-content);
+		border: 1px solid var(--ink-muted);
+		box-shadow: 0 4px 18px #0006;
+	}
+	[hidden] {
+		display: none;
+	}
+	button {
+		pointer-events: auto;
+		font: inherit;
+		padding: 6px;
+		color: var(--ink);
+		background: var(--surface-inactive);
+		border: 1px solid var(--line);
+		cursor: pointer;
+	}
+	button[aria-pressed="true"], button:hover {
+		background: var(--ink);
+		color: var(--bg-color);
+		border-color: var(--brand-color);
+	}
+	button:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 1px;
+	}
+}

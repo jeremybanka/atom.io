@@ -1,7 +1,7 @@
 import { Silo } from "atom.io"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 
-import { mountAtomIODevtools } from "../src/AtomIODevtools.tsx"
+import { mountAtomIODevtools } from "../src/mount.ts"
 
 let dispose = () => {}
 beforeEach(() => {
@@ -91,7 +91,7 @@ it(`opens/searches/selects/traces/expands passively and evaluates only the expli
 	expect(f.host.querySelector(`[data-testid="ecology-view"]`)).not.toBeNull()
 	await f.search(`dormant`)
 	await f.select(`state:dormant`, `Enter`)
-	expect(f.host.querySelector(`.ecology-inspector`)!.textContent).toContain(
+	expect(f.host.querySelector(`ecology-body > aside`)!.textContent).toContain(
 		`Readonly selector`,
 	)
 	await f.click(`Trace observed roots`)
@@ -102,9 +102,9 @@ it(`opens/searches/selects/traces/expands passively and evaluates only the expli
 	await f.click(`Trace observed roots`)
 	await f.select(`family:items`)
 	await f.click(`Expand family`)
-	expect(f.host.querySelector(`.ecology-counts`)!.textContent).toContain(
-		`2 families / 1 members`,
-	)
+	expect(
+		f.host.querySelector(`ecology-view [data-counts]`)!.textContent,
+	).toContain(`2 families / 1 members`)
 	await f.click(`Collapse family`)
 	await f.select(`family:zero`, ` `)
 	expect(f.host.textContent).toContain(`0 instantiated members`)
@@ -118,10 +118,10 @@ it(`opens/searches/selects/traces/expands passively and evaluates only the expli
 	await f.click(`Open live editor (may read/evaluate)`)
 	expect(getter).toHaveBeenCalledTimes(1)
 	expect(
-		f.host.querySelector(`.ecology-live input`)?.hasAttribute(`readonly`),
+		f.host.querySelector(`ecology-live input`)?.hasAttribute(`readonly`),
 	).toBe(true)
 	f.host
-		.querySelector(`.ecology-live input`)!
+		.querySelector(`ecology-live input`)!
 		.dispatchEvent(
 			new KeyboardEvent(`keydown`, { key: `Escape`, bubbles: true }),
 		)
@@ -145,7 +145,7 @@ it(`retains selection/pan/expansion across snapshots and navigation; geometry-on
 	await f.click(`Pan up`)
 	await f.click(`Pan right`)
 	const transform = f.host
-		.querySelector(`.ecology-world`)!
+		.querySelector(`[data-world]`)!
 		.getAttribute(`transform`)
 	const position = f.host
 		.querySelector(`g[data-graph-id]`)!
@@ -153,38 +153,38 @@ it(`retains selection/pan/expansion across snapshots and navigation; geometry-on
 	f.silo.setState(countAtom, `changed`)
 	await f.click(`Refresh`)
 	expect(
-		f.host.querySelector<HTMLElement>(`.ecology`)!.dataset[`newPositions`],
+		f.host.querySelector<HTMLElement>(`ecology-view`)!.dataset[`newPositions`],
 	).toBe(`0`)
-	expect(f.host.querySelector(`.ecology-world`)!.getAttribute(`transform`)).toBe(
+	expect(f.host.querySelector(`[data-world]`)!.getAttribute(`transform`)).toBe(
 		transform,
 	)
 	expect(
 		f.host.querySelector(`g[data-graph-id]`)!.getAttribute(`transform`),
 	).toBe(position)
-	expect(f.host.querySelector(`.ecology-inspector`)!.textContent).toContain(
+	expect(f.host.querySelector(`ecology-body > aside`)!.textContent).toContain(
 		`cached string`,
 	)
-	const jobs = f.host.querySelector<HTMLElement>(`.ecology`)!.dataset[`jobs`]
+	const jobs = f.host.querySelector<HTMLElement>(`ecology-view`)!.dataset[`jobs`]
 	window.dispatchEvent(new Event(`resize`))
 	await settle()
-	expect(f.host.querySelector<HTMLElement>(`.ecology`)!.dataset[`jobs`]).toBe(
-		jobs,
-	)
+	expect(
+		f.host.querySelector<HTMLElement>(`ecology-view`)!.dataset[`jobs`],
+	).toBe(jobs)
 	await f.click(`selectors`)
 	await f.click(`ecology`)
-	expect(f.host.querySelector(`.ecology-inspector h2`)!.textContent).toBe(
+	expect(f.host.querySelector(`ecology-body > aside h2`)!.textContent).toBe(
 		`count`,
 	)
-	expect(f.host.querySelector(`.ecology-world`)!.getAttribute(`transform`)).toBe(
+	expect(f.host.querySelector(`[data-world]`)!.getAttribute(`transform`)).toBe(
 		transform,
 	)
 	await f.click(`Fit`)
 	await f.click(`Reset view`)
-	expect(f.host.querySelector(`.ecology-world`)!.getAttribute(`transform`)).toBe(
+	expect(f.host.querySelector(`[data-world]`)!.getAttribute(`transform`)).toBe(
 		`translate(0 0) scale(1)`,
 	)
 	await f.click(`Trace observed roots`)
-	f.host.querySelector(`.ecology`)!.dispatchEvent(
+	f.host.querySelector(`ecology-view`)!.dispatchEvent(
 		new KeyboardEvent(`keydown`, {
 			key: `Escape`,
 			bubbles: true,
@@ -192,7 +192,7 @@ it(`retains selection/pan/expansion across snapshots and navigation; geometry-on
 		}),
 	)
 	await settle()
-	expect(f.host.querySelector(`.ecology-inspector`)!.textContent).toContain(
+	expect(f.host.querySelector(`ecology-body > aside`)!.textContent).toContain(
 		`Not traced`,
 	)
 	await f.click(`Clear selection`)
@@ -210,9 +210,9 @@ it(`cleans up hidden, minimized, superseded and disposed jobs and keeps empty fl
 		input.dispatchEvent(new Event(`input`, { bubbles: true }))
 	}
 	await settle()
-	expect(f.host.querySelector<HTMLElement>(`.ecology`)!.dataset[`jobs`]).toBe(
-		`1`,
-	)
+	expect(
+		f.host.querySelector<HTMLElement>(`ecology-view`)!.dataset[`jobs`],
+	).toBe(`1`)
 	await f.click(`Fit`)
 	await f.click(`Clear selection`)
 	const form = f.host.querySelector(`form`)!
@@ -220,17 +220,17 @@ it(`cleans up hidden, minimized, superseded and disposed jobs and keeps empty fl
 		form.dispatchEvent(new Event(`submit`, { bubbles: true, cancelable: true })),
 	).toBe(false)
 	f.host
-		.querySelector(`.ecology-counts`)!
+		.querySelector(`ecology-view [data-counts]`)!
 		.dispatchEvent(new MouseEvent(`click`, { bubbles: true }))
 	input.dispatchEvent(new KeyboardEvent(`keydown`, { key: `x`, bubbles: true }))
 	await f.click(`Minimize debugger`)
-	expect(f.host.querySelector(`.ecology`)).toBeNull()
+	expect(f.host.querySelector(`ecology-view`)).toBeNull()
 	await f.click(`Open debugger`)
 	f.host
 		.querySelector<HTMLElement>(`[aria-label="Hide debugger (Ctrl+Shift+A)"]`)!
 		.click()
 	await settle()
-	expect(f.host.querySelector(`.ecology`)).toBeNull()
+	expect(f.host.querySelector(`ecology-view`)).toBeNull()
 	document.dispatchEvent(
 		new KeyboardEvent(`keydown`, {
 			key: `A`,
@@ -240,7 +240,7 @@ it(`cleans up hidden, minimized, superseded and disposed jobs and keeps empty fl
 		}),
 	)
 	await settle()
-	expect(f.host.querySelector(`.ecology`)).not.toBeNull()
+	expect(f.host.querySelector(`ecology-view`)).not.toBeNull()
 	input.dispatchEvent(new Event(`input`, { bubbles: true })) // Detached view listener has been removed.
 	dispose()
 	await settle()
@@ -261,7 +261,7 @@ it(`reuses the live editor for writable state, handles disposed selection and pr
 	await f.select(`state:count`)
 	await f.click(`Open live editor (may read/evaluate)`)
 	const input = f.host.querySelector<HTMLInputElement>(
-		`.ecology-live input[aria-label="count"]`,
+		`ecology-live input[aria-label="count"]`,
 	)!
 	input.value = `2.`
 	input.dispatchEvent(new Event(`input`, { bubbles: true }))
@@ -270,7 +270,7 @@ it(`reuses the live editor for writable state, handles disposed selection and pr
 	expect(f.silo.getState(countAtom)).toBe(2)
 	await f.click(`Back to passive inspector`)
 	await f.search(`absent`)
-	expect(f.host.querySelector(`.ecology-inspector h2`)!.textContent).toBe(
+	expect(f.host.querySelector(`ecology-body > aside h2`)!.textContent).toBe(
 		`count`,
 	)
 	await f.search(``)
@@ -304,20 +304,20 @@ it(`shows capture/adjacency uncertainty and keeps an uncaptured valid selection 
 	)
 	f.silo.store.selectorGraph.relations.set(`wide`, related)
 	await f.click(`Refresh`)
-	expect(f.host.querySelector(`.ecology-inspector`)!.textContent).toContain(
+	expect(f.host.querySelector(`ecology-body > aside`)!.textContent).toContain(
 		`(truncated)`,
 	)
-	expect(f.host.querySelector(`.ecology-notice`)!.textContent).toContain(
-		`full store totals unknown`,
-	)
+	expect(
+		f.host.querySelector(`ecology-view [data-notice]`)!.textContent,
+	).toContain(`full store totals unknown`)
 	for (let index = 0; index < 10_001; index++)
 		f.silo.store.families.get(manyAtoms.key)!.create(index)
 	await f.click(`Refresh`)
-	expect(f.host.querySelector(`.ecology-inspector`)!.textContent).toContain(
+	expect(f.host.querySelector(`ecology-body > aside`)!.textContent).toContain(
 		`Selection outside this captured snapshot`,
 	)
 	await f.select(`family:many`)
-	expect(f.host.querySelector(`.ecology-inspector`)!.textContent).toContain(
+	expect(f.host.querySelector(`ecology-body > aside`)!.textContent).toContain(
 		`+ instantiated members`,
 	)
 })
@@ -345,8 +345,61 @@ it(`preserves keyboard focus during trace and family refresh and clears stale tr
 	await f.click(`Refresh`)
 	expect(document.activeElement?.getAttribute(`data-graph-id`)).toBe(`state:s`)
 	await f.select(`state:a`)
-	expect(f.host.querySelector(`.ecology-inspector`)!.textContent).toContain(
+	expect(f.host.querySelector(`ecology-body > aside`)!.textContent).toContain(
 		`Not traced`,
 	)
-	expect(f.host.querySelectorAll(`.traced`)).toHaveLength(0)
+	expect(f.host.querySelectorAll(`[data-traced="true"]`)).toHaveLength(0)
+})
+
+it(`returns focus to search when refreshed selection controls or headings disappear`, async () => {
+	const f = setup()
+	const membersAtoms = f.silo.atomFamily<number, string>({
+		key: `members`,
+		default: 0,
+	})
+	f.silo.store.families.get(membersAtoms.key)!.create(`a`)
+	f.mount()
+	await settle()
+	await f.select(`family:members`)
+	const expand = [...f.host.querySelectorAll<HTMLButtonElement>(`button`)].find(
+		(button) => button.textContent === `Expand family`,
+	)!
+	expand.focus()
+	const definition = f.silo.store.families.get(membersAtoms.key)!
+	f.silo.store.families.delete(membersAtoms.key)
+	await f.click(`Refresh`)
+	expect(document.activeElement?.getAttribute(`aria-label`)).toBe(
+		`Search ecology`,
+	)
+	await f.select(`state:members("a")`)
+	f.host.querySelector<HTMLElement>(`ecology-body > aside h2`)!.focus()
+	f.silo.store.families.set(membersAtoms.key, definition)
+	f.silo.disposeState(membersAtoms, `a`)
+	await f.click(`Refresh`)
+	expect(document.activeElement?.getAttribute(`aria-label`)).toBe(
+		`Search ecology`,
+	)
+	expect(f.host.textContent).toContain(`Select a node`)
+})
+
+it(`clears family selection safely and ignores result navigation while matching`, async () => {
+	const f = setup()
+	f.silo.atomFamily<number, string>({ key: `family`, default: 0 })
+	f.mount()
+	await settle()
+	await f.select(`family:family`)
+	await f.click(`Clear selection`)
+	expect(f.host.querySelector(`ecology-body > aside`)!.textContent).toContain(
+		`Select a node`,
+	)
+	const input = f.host.querySelector<HTMLInputElement>(
+		`[aria-label="Search ecology"]`,
+	)!
+	input.value = `family`
+	input.dispatchEvent(new Event(`input`, { bubbles: true }))
+	input.dispatchEvent(
+		new KeyboardEvent(`keydown`, { key: `ArrowDown`, bubbles: true }),
+	)
+	await settle()
+	expect(document.activeElement?.getAttribute(`aria-label`)).not.toBe(`family`)
 })

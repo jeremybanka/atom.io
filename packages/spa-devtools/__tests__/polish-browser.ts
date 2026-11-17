@@ -85,7 +85,7 @@ async function checkTypography(page: Page, prefix: string) {
 		)
 		await document.fonts.ready
 		const panel = document.querySelector<HTMLElement>(
-				`main[data-css="spa-devtools"]`,
+				`debugger-panel[data-css="spa-devtools"]`,
 			)!,
 			title = panel.querySelector(`h1`)!
 		return {
@@ -132,57 +132,61 @@ async function checkVisualTreatment(
 ) {
 	const typography = await checkTypography(page, ``)
 	const icon = await page
-		.locator(`.brand-mark`)
+		.locator(`brand-mark`)
 		.evaluate((el: HTMLElement) => getComputedStyle(el).backgroundImage)
 	const embedded = icon.match(/data:image\/png;base64,([^"')]+)/)
 	assert.ok(embedded, `Use the linked PNG favicon, not another mark`)
 	assert.deepEqual(Buffer.from(embedded[1], `base64`), favicon)
-	const appearance = await page.locator(`main`).evaluate((el: HTMLElement) => {
-		const noise = getComputedStyle(el, `::before`),
-			active = el.querySelector<HTMLElement>(
-				`[role="tab"][aria-selected="true"]`,
-			)!,
-			inactive = el.querySelector<HTMLElement>(
-				`[role="tab"][aria-selected="false"]`,
-			)!,
-			a = active.getBoundingClientRect(),
-			b = inactive.getBoundingClientRect(),
-			selected = getComputedStyle(active),
-			rest = getComputedStyle(inactive)
-		return {
-			noise: {
-				opacity: noise.opacity,
-				blend: noise.mixBlendMode,
-				size: noise.backgroundSize,
-				repeat: noise.backgroundRepeat,
-				position: noise.backgroundPosition,
-				pointerEvents: noise.pointerEvents,
-			},
-			tabs: {
-				activeTop: a.top,
-				inactiveTop: b.top,
-				activeBottom: a.bottom,
-				inactiveBottom: b.bottom,
-				radius: selected.borderTopLeftRadius,
-				activeFill: selected.backgroundColor,
-				activeBottomEdge: selected.borderBottomColor,
-				panelFill: getComputedStyle(el.querySelector<HTMLElement>(`.index`)!)
-					.backgroundColor,
-				inactiveShadow: rest.boxShadow,
-			},
-			textColor: getComputedStyle(el).color,
-			surfaces: {
-				shell: getComputedStyle(el).backgroundColor,
-				content: getComputedStyle(el.querySelector(`.index`)!).backgroundColor,
-				search: getComputedStyle(el.querySelector(`.search-row`)!)
-					.backgroundColor,
-				inactive: rest.backgroundColor,
-				hard: getComputedStyle(el).getPropertyValue(`--bg-hard-1`).trim(),
-				shade: getComputedStyle(el).getPropertyValue(`--bg-shade-1`).trim(),
-				tint: getComputedStyle(el).getPropertyValue(`--bg-tint-1`).trim(),
-			},
-		}
-	})
+	const appearance = await page
+		.locator(`debugger-panel`)
+		.evaluate((el: HTMLElement) => {
+			const noise = getComputedStyle(el, `::before`),
+				active = el.querySelector<HTMLElement>(
+					`[role="tab"][aria-selected="true"]`,
+				)!,
+				inactive = el.querySelector<HTMLElement>(
+					`[role="tab"][aria-selected="false"]`,
+				)!,
+				a = active.getBoundingClientRect(),
+				b = inactive.getBoundingClientRect(),
+				selected = getComputedStyle(active),
+				rest = getComputedStyle(inactive)
+			return {
+				noise: {
+					opacity: noise.opacity,
+					blend: noise.mixBlendMode,
+					size: noise.backgroundSize,
+					repeat: noise.backgroundRepeat,
+					position: noise.backgroundPosition,
+					pointerEvents: noise.pointerEvents,
+				},
+				tabs: {
+					activeTop: a.top,
+					inactiveTop: b.top,
+					activeBottom: a.bottom,
+					inactiveBottom: b.bottom,
+					radius: selected.borderTopLeftRadius,
+					activeFill: selected.backgroundColor,
+					activeBottomEdge: selected.borderBottomColor,
+					panelFill: getComputedStyle(
+						el.querySelector<HTMLElement>(`[data-index]`)!,
+					).backgroundColor,
+					inactiveShadow: rest.boxShadow,
+				},
+				textColor: getComputedStyle(el).color,
+				surfaces: {
+					shell: getComputedStyle(el).backgroundColor,
+					content: getComputedStyle(el.querySelector(`[data-index]`)!)
+						.backgroundColor,
+					search: getComputedStyle(el.querySelector(`search-row`)!)
+						.backgroundColor,
+					inactive: rest.backgroundColor,
+					hard: getComputedStyle(el).getPropertyValue(`--bg-hard-1`).trim(),
+					shade: getComputedStyle(el).getPropertyValue(`--bg-shade-1`).trim(),
+					tint: getComputedStyle(el).getPropertyValue(`--bg-tint-1`).trim(),
+				},
+			}
+		})
 	assert.notEqual(appearance.surfaces.shell, appearance.surfaces.content)
 	assert.notEqual(appearance.surfaces.search, appearance.surfaces.content)
 	assert.equal(appearance.surfaces.search, appearance.surfaces.inactive)
@@ -207,7 +211,7 @@ async function checkVisualTreatment(
 	assert.equal(appearance.tabs.activeFill, appearance.tabs.panelFill)
 	assert.ok(parseFloat(appearance.tabs.radius) >= 7)
 	assert.match(appearance.tabs.inactiveShadow, /inset/)
-	const clip = await page.locator(`.index`).evaluate((el: HTMLElement) => {
+	const clip = await page.locator(`[data-index]`).evaluate((el: HTMLElement) => {
 		const r = el.getBoundingClientRect()
 		return { x: r.left + 16, y: r.bottom - 96, width: 80, height: 80 }
 	})
@@ -216,7 +220,7 @@ async function checkVisualTreatment(
 		path: resolve(artifacts, `${theme}-${name}-noise.png`),
 	})
 	const off = await page.addStyleTag({
-		content: `main[data-css="spa-devtools"]::before {display:none !important}`,
+		content: `debugger-panel[data-css="spa-devtools"]::before {display:none !important}`,
 	})
 	const flat = await page.screenshot({ clip })
 	await off.evaluate((el: HTMLElement) => {
@@ -224,7 +228,7 @@ async function checkVisualTreatment(
 	})
 	// Compare the same noise coordinates on the actual background and solid text-color ink.
 	const probe = await page
-		.locator(`main`)
+		.locator(`debugger-panel`)
 		.evaluateHandle((panel, sampleRect) => {
 			const node = document.createElement(`div`),
 				r = panel.getBoundingClientRect()
@@ -348,10 +352,12 @@ async function checkLayering(page: Page, theme: `light` | `dark`) {
 			.click()
 	const rows = await page
 		.getByTestId(`state-value-nested`)
-		.locator(`.json-editor`)
+		.locator(`json-editor`)
 		.evaluateAll((editors) =>
 			editors.map((editor) => {
-				const row = editor.querySelector<HTMLElement>(`:scope > header`)!
+				const row = editor.querySelector<HTMLElement>(
+					`:scope > :is(node-heading,event-heading)`,
+				)!
 				return {
 					depth: Number(editor.getAttribute(`data-depth`)),
 					fill: getComputedStyle(row).backgroundColor,
@@ -391,7 +397,7 @@ async function checkLayering(page: Page, theme: `light` | `dark`) {
 	await query.fill(`nested`)
 	await page.waitForFunction(
 		() =>
-			document.querySelector<HTMLElement>(`.state-search`)?.dataset[`ready`] ===
+			document.querySelector<HTMLElement>(`search-view`)?.dataset[`ready`] ===
 			`true`,
 	)
 	assert.equal(
@@ -424,7 +430,7 @@ async function checkLayering(page: Page, theme: `light` | `dark`) {
 	await query.fill(`nested`)
 	await page.waitForFunction(
 		() =>
-			document.querySelector<HTMLElement>(`.state-search`)?.dataset[`ready`] ===
+			document.querySelector<HTMLElement>(`search-view`)?.dataset[`ready`] ===
 			`true`,
 	)
 	await page.screenshot({
@@ -443,7 +449,7 @@ async function checkLongField(
 	const forced =
 		sizing === `fallback`
 			? await page.addStyleTag({
-					content: `main .elastic-input {field-sizing:fixed !important}`,
+					content: `debugger-panel [data-elastic-input] {field-sizing:fixed !important}`,
 				})
 			: null
 	const samples: unknown[] = []
@@ -461,9 +467,9 @@ async function checkLongField(
 				}
 			}
 			const wrapper = el.parentElement!,
-				row = el.closest(`header`)!,
-				panel = el.closest(`main`)!,
-				label = row.querySelector<HTMLElement>(`.field-name h3`)!,
+				row = el.closest(`editor-row`)!,
+				panel = el.closest(`debugger-panel`)!,
+				label = row.querySelector<HTMLElement>(`field-name h3`)!,
 				rect = el.getBoundingClientRect()
 			return {
 				value: el.value,
@@ -633,7 +639,7 @@ try {
 					longFields.push(await checkLongField(page, theme, name, sizing))
 			if (!baseline) {
 				const labels = await page
-					.locator(`.toolbar > button`)
+					.locator(`debugger-toolbar > button`)
 					.evaluateAll((buttons) =>
 						buttons.map((button) => button.getAttribute(`aria-label`)),
 					)
@@ -644,7 +650,7 @@ try {
 				])
 				assert.equal(
 					await page
-						.locator(`.brand-mark`)
+						.locator(`brand-mark`)
 						.evaluate((el: HTMLElement) => el.getAnimations().length),
 					0,
 				)
@@ -661,10 +667,12 @@ try {
 				const hierarchy = await page
 					.getByTestId(`transaction-my`)
 					.evaluate((el: HTMLElement) => ({
-						label: el.querySelector<HTMLElement>(`:scope > header`)!.textContent,
+						label: el.querySelector<HTMLElement>(
+							`:scope > :is(node-heading,event-heading)`,
+						)!.textContent,
 						parent: el.getBoundingClientRect().x,
 						child: el
-							.querySelector<HTMLElement>(`.event`)!
+							.querySelector<HTMLElement>(`event-view`)!
 							.getBoundingClientRect().x,
 					}))
 				assert.match(hierarchy.label, /transaction/)
@@ -676,10 +684,11 @@ try {
 			await page.getByTestId(`view-ecology`).click()
 			await page.waitForFunction(
 				() =>
-					document.querySelector<HTMLElement>(`.ecology`)?.dataset[`ready`] ===
-					`true`,
+					document.querySelector<HTMLElement>(`ecology-view`)?.dataset[
+						`ready`
+					] === `true`,
 			)
-			const capture = page.locator(`.ecology-capture`)
+			const capture = page.locator(`ecology-view details[data-capture]`)
 			const disclosure = capture.locator(`summary`)
 			await disclosure.focus()
 			await disclosure.press(`Enter`)
@@ -687,14 +696,17 @@ try {
 				await capture.evaluate((node: HTMLDetailsElement) => node.open),
 				true,
 			)
-			assert.equal(await page.locator(`.ecology-legend`).isVisible(), true)
+			assert.equal(
+				await page.locator(`ecology-view [data-legend]`).isVisible(),
+				true,
+			)
 			await disclosure.press(`Enter`)
 			assert.equal(
 				await capture.evaluate((node: HTMLDetailsElement) => node.open),
 				false,
 			)
 			const arrows = await page
-				.locator(`path.ecology-edge`)
+				.locator(`path[data-edge]`)
 				.evaluateAll((paths: SVGPathElement[]) =>
 					paths.map((path) => {
 						const length = path.getTotalLength(),
@@ -748,7 +760,7 @@ try {
 				path: resolve(artifacts, `${theme}-${name}-layout.png`),
 			})
 			if (!baseline)
-				for (const button of await page.locator(`.snap-palette button`).all()) {
+				for (const button of await page.locator(`snap-palette button`).all()) {
 					const box = await button.boundingBox()
 					if (!box) throw new Error(`Missing box`)
 					assert.ok(
@@ -779,7 +791,7 @@ try {
 				await page.getByTestId(`view-selectors`).click()
 				const error = page
 					.getByTestId(`state-value-failed`)
-					.locator(`.primitive code`)
+					.locator(`json-primitive code`)
 				assert.match(await error.innerText(), /Error: Example failure/)
 				await error.focus()
 				await error.press(`ArrowRight`)
@@ -864,7 +876,9 @@ try {
 				`right`,
 			)
 			const rows = await page
-				.locator(`.state-leaf > .json-editor > header`)
+				.locator(
+					`state-leaf > json-editor > :is(editor-row,node-heading,event-heading)`,
+				)
 				.evaluateAll((nodes) =>
 					nodes.map((n) => n.getBoundingClientRect().height),
 				)
@@ -875,7 +889,7 @@ try {
 				exact: true,
 			})
 			await page.addStyleTag({
-				content: `main .elastic-input {field-sizing:fixed !important}`,
+				content: `debugger-panel [data-elastic-input] {field-sizing:fixed !important}`,
 			})
 			await message.fill(`x`)
 			const smallFallback = (await message.boundingBox())!.width
@@ -918,12 +932,12 @@ try {
 			assert.match(await page.getByTestId(`state-map`).innerText(), /Map/)
 			await page.getByTestId(`open-close-state-family-items`).click()
 			assert.equal(
-				await page.locator(`[data-testid="state-items"] .state-leaf`).count(),
+				await page.locator(`[data-testid="state-items"] state-leaf`).count(),
 				1,
 			)
 			await page.getByRole(`button`, { name: /^Dispose items/ }).click()
 			assert.equal(
-				await page.locator(`[data-testid="state-items"] .state-leaf`).count(),
+				await page.locator(`[data-testid="state-items"] state-leaf`).count(),
 				0,
 			)
 			await page.getByTestId(`view-selectors`).click()
@@ -959,15 +973,17 @@ try {
 			await page.keyboard.press(`End`)
 			await page.waitForFunction(
 				() =>
-					document.querySelector<HTMLElement>(`.ecology`)?.dataset[`ready`] ===
-					`true`,
+					document.querySelector<HTMLElement>(`ecology-view`)?.dataset[
+						`ready`
+					] === `true`,
 			)
 			const before = await page.evaluate(() => window.polish.evidence())
 			await page.getByRole(`searchbox`, { name: `Search ecology` }).fill(`left`)
 			await page.waitForFunction(
 				() =>
-					document.querySelector<HTMLElement>(`.ecology`)?.dataset[`ready`] ===
-					`true`,
+					document.querySelector<HTMLElement>(`ecology-view`)?.dataset[
+						`ready`
+					] === `true`,
 			)
 			const listView = page.getByRole(`button`, {
 				name: `Node list`,
@@ -975,7 +991,7 @@ try {
 			})
 			if (await listView.isVisible()) await listView.click()
 			else await page.getByText(`Accessible node list`, { exact: true }).click()
-			await page.locator(`.ecology-list button`).first().focus()
+			await page.locator(`ecology-map ul button`).first().focus()
 			await page.keyboard.press(`Enter`)
 			await page
 				.getByRole(`button`, { name: `Trace observed roots`, exact: true })
@@ -983,8 +999,9 @@ try {
 			await page.keyboard.press(`Enter`)
 			await page.waitForFunction(
 				() =>
-					document.querySelector<HTMLElement>(`.ecology`)?.dataset[`ready`] ===
-					`true`,
+					document.querySelector<HTMLElement>(`ecology-view`)?.dataset[
+						`ready`
+					] === `true`,
 			)
 			assert.deepEqual(
 				await page.evaluate(() => window.polish.evidence()),
@@ -997,7 +1014,7 @@ try {
 				})
 				.click()
 			assert.equal(
-				await page.locator(`.ecology-live input`).getAttribute(`readonly`),
+				await page.locator(`ecology-live input`).getAttribute(`readonly`),
 				``,
 			)
 			await page
@@ -1006,7 +1023,10 @@ try {
 			await page.keyboard.press(`Enter`)
 			await page.getByRole(`button`, { name: `Left half`, exact: true }).focus()
 			await page.keyboard.press(`Enter`)
-			assert.equal((await page.locator(`main`).boundingBox())!.width, 512)
+			assert.equal(
+				(await page.locator(`debugger-panel`).boundingBox())!.width,
+				512,
+			)
 			await page.getByRole(`tab`).first().focus()
 			await page.keyboard.press(`Home`)
 			await page.getByRole(`textbox`, { name: `count`, exact: true }).waitFor()
@@ -1016,7 +1036,7 @@ try {
 					window.polish.show()
 				})
 				await input.waitFor()
-				assert.equal(await page.locator(`main`).count(), 1)
+				assert.equal(await page.locator(`debugger-panel`).count(), 1)
 			}
 			await page.evaluate(() => {
 				window.polish.swap()

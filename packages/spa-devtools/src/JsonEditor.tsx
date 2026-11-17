@@ -1,6 +1,7 @@
 /** @jsxImportSource @atom.io/spa */
 import type { Children, SpaElement } from "@atom.io/spa"
 
+import css from "./JsonEditor.module.css"
 import type { Path, Tools } from "./store.ts"
 import { useExpanded } from "./store.ts"
 import type { Change, JsonKind } from "./value.ts"
@@ -32,12 +33,14 @@ export function JsonEditor(props: EditorProps): SpaElement {
 		(kind(props.value) === `object` || kind(props.value) === `array`)
 	const entries = () => Object.entries(props.value as Record<string, unknown>)
 	return (
-		<section
-			class="json-editor"
+		<json-editor
+			class={css.class}
+
+			data-root={props.ancestors === undefined}
 			data-depth={Math.min(3, props.ancestors?.length ?? 0)}
 			data-testid={`${props.path.join(`.`)}-state-editor`}
 		>
-			<header>
+			<editor-row>
 				{container() ? (
 					<button
 						type="button"
@@ -48,9 +51,9 @@ export function JsonEditor(props: EditorProps): SpaElement {
 						{getExpanded() ? `▾` : `▸`}
 					</button>
 				) : (
-					<span class="carat-spacer" />
+					<carat-spacer />
 				)}
-				<span class="field-name">{props.label}</span>
+				<field-name>{props.label}</field-name>
 				{props.change ? (
 					<select
 						aria-label={`Type of ${props.path.at(-1)}`}
@@ -85,14 +88,14 @@ export function JsonEditor(props: EditorProps): SpaElement {
 					/>
 				)}
 				{props.actions}
-			</header>
+			</editor-row>
 			{container() && getExpanded() ? (
-				<section class="properties">
+				<json-properties>
 					{entries().map(([key]) => (
 						<Property key={key} name={key} editor={props} />
 					))}
 					{props.change ? (
-						<footer>
+						<editor-actions>
 							<button
 								type="button"
 								onClick={() => {
@@ -127,11 +130,11 @@ export function JsonEditor(props: EditorProps): SpaElement {
 									sort
 								</button>
 							) : null}
-						</footer>
+						</editor-actions>
 					) : null}
-				</section>
+				</json-properties>
 			) : null}
-		</section>
+		</json-editor>
 	)
 }
 function Primitive(props: {
@@ -153,7 +156,7 @@ function Primitive(props: {
 		})
 	}
 	return (
-		<span class="primitive" data-kind={kind(props.value)}>
+		<json-primitive data-kind={kind(props.value)}>
 			{kind(props.value) === `boolean` ? (
 				<input
 					aria-label={props.label}
@@ -168,7 +171,7 @@ function Primitive(props: {
 				<input
 					aria-label={props.label}
 					type="text"
-					class="elastic-input"
+					data-elastic-input
 					size={Math.max(1, displayValue().length)}
 					inputmode={kind(props.value) === `number` ? `decimal` : `text`}
 					value={displayValue()}
@@ -198,7 +201,7 @@ function Primitive(props: {
 					{describe(props.value)}
 				</code>
 			)}
-		</span>
+		</json-primitive>
 	)
 }
 function Property(props: { name: string; editor: EditorProps }): SpaElement {
@@ -215,13 +218,13 @@ function Property(props: { name: string; editor: EditorProps }): SpaElement {
 		})
 	}
 	return (
-		<section class="property">
+		<json-property>
 			<JsonEditor
 				label={
 					parent.change && !Array.isArray(parent.value) ? (
 						<input
 							aria-label={`Rename ${props.name}`}
-							class="elastic-input"
+							data-elastic-input
 							size={Math.max(1, props.name.length)}
 							onInput={(event) => {
 								event.currentTarget.size = Math.max(
@@ -288,6 +291,6 @@ function Property(props: { name: string; editor: EditorProps }): SpaElement {
 				change={parent.change ? change : undefined}
 				ancestors={[...(parent.ancestors ?? []), parent.value]}
 			/>
-		</section>
+		</json-property>
 	)
 }

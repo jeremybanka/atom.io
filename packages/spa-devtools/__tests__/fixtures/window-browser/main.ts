@@ -32,8 +32,8 @@ window.devtoolsWindowTest = {
 	value: () => app.getState(countAtom),
 	resizeRevision: () => resizeRevision,
 	sample(reference, x, y) {
-		const element = host.querySelector<HTMLElement>(`main`)!
-		const toolbar = element.querySelector<HTMLElement>(`.toolbar`)!
+		const element = host.querySelector<HTMLElement>(`debugger-panel`)!
+		const toolbar = element.querySelector<HTMLElement>(`debugger-toolbar`)!
 		return measureFrameSample({
 			task(callback) {
 				setTimeout(callback, 0)

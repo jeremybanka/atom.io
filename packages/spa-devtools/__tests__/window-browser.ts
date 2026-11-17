@@ -61,7 +61,7 @@ try {
 	const errors: string[] = []
 	page.on(`pageerror`, (error) => errors.push(error.message))
 	await page.goto(`http://127.0.0.1:${(server.address() as AddressInfo).port}`)
-	const panel = page.locator(`main[data-css="spa-devtools"]`)
+	const panel = page.locator(`debugger-panel[data-css="spa-devtools"]`)
 	const move = page.getByRole(`button`, { name: `Move debugger`, exact: true })
 	const input = page.getByRole(`textbox`, { name: `count`, exact: true })
 	await input.fill(`2.`)
@@ -116,6 +116,12 @@ try {
 		await page
 			.getByRole(`button`, { name: `Debugger layout`, exact: true })
 			.click()
+		assert.equal(
+			await page
+				.getByRole(`button`, { name: `Left half`, exact: true })
+				.evaluate((node) => node === document.activeElement),
+			true,
+		)
 		await page.getByRole(`button`, { name: label, exact: true }).click()
 		assert.deepEqual(await panel.boundingBox(), { x, y, width, height })
 		const stored = await page.evaluate(() =>
@@ -139,7 +145,7 @@ try {
 	await page.mouse.move(handle.x + 7, handle.y + 10)
 	await page.mouse.down()
 	await page.mouse.move(handle.x - 10, handle.y + 10)
-	await page.locator(`.snap-palette`).waitFor({ state: `visible` })
+	await page.locator(`snap-palette`).waitFor({ state: `visible` })
 	const target = await page
 		.getByRole(`button`, { name: `Right third`, exact: true })
 		.boundingBox()
@@ -149,8 +155,8 @@ try {
 		target.y + target.height / 2,
 		{ steps: 12 },
 	)
-	await page.locator(`.snap-preview:not([hidden])`).waitFor()
-	const preview = await page.locator(`.snap-preview`).boundingBox()
+	await page.locator(`snap-preview:not([hidden])`).waitFor()
+	const preview = await page.locator(`snap-preview`).boundingBox()
 	await page.screenshot({ path: resolve(artifacts, `snap-preview.png`) })
 	await page.mouse.up()
 	assert.deepEqual(await panel.boundingBox(), preview)
@@ -171,7 +177,7 @@ try {
 	await page.setViewportSize({ width: 200, height: 100 })
 	await page.waitForFunction((revision) => {
 		const box = document
-			.querySelector<HTMLElement>(`main[data-css="spa-devtools"]`)!
+			.querySelector<HTMLElement>(`debugger-panel[data-css="spa-devtools"]`)!
 			.getBoundingClientRect()
 		if (!box) throw new Error(`Missing box`)
 		return (
@@ -210,7 +216,7 @@ try {
 		await page.mouse.down()
 		await page.mouse.move(handle.x - 50, handle.y + 40)
 		await page.evaluate(() => {
-			const toolbar = document.querySelector<HTMLElement>(`.toolbar`)!
+			const toolbar = document.querySelector<HTMLElement>(`debugger-toolbar`)!
 			toolbar.dispatchEvent(
 				new PointerEvent(`pointercancel`, { pointerId: 1, bubbles: true }),
 			)
@@ -220,7 +226,7 @@ try {
 			window.devtoolsWindowTest.remount()
 		})
 		assert.equal(await panel.count(), 1)
-		assert.equal(await page.locator(`.snap-palette:visible`).count(), 0)
+		assert.equal(await page.locator(`snap-palette:visible`).count(), 0)
 	}
 	// Each sample dispatches from a fresh task and observes geometry in the first frame after the handler.
 	// A later frame is recorded separately as a clock proxy, never asserted as painted-input latency.

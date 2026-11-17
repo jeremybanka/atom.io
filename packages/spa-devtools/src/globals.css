@@ -1,0 +1,153 @@
+@font-face {
+	font-family: "Atom IO Theia";
+	font-style: normal;
+	font-weight: 200;
+	font-display: swap;
+	src: url("./fonts/Theia0.3-200.otf") format("opentype");
+}
+@font-face {
+	font-family: "Atom IO Theia";
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url("./fonts/Theia0.3-400.otf") format("opentype");
+}
+@font-face {
+	font-family: "Atom IO Theia";
+	font-style: normal;
+	font-weight: 500;
+	font-display: swap;
+	src: url("./fonts/Theia0.3-500.otf") format("opentype");
+}
+:where(debugger-panel, window-overlay, [data-atom-io-theme]) {
+	--bg-color: #111;
+	--bg-tint-1: #171717;
+	--bg-tint-2: #1c1c1c;
+	--bg-tint-3: #222;
+	--bg-shade-1: #0a0a0a;
+	--bg-shade-2: #070707;
+	--bg-shade-3: #000;
+	--ink: #fff;
+	--ink-muted: #aaa;
+	--ink-disabled: #888;
+	--ink-strong: #fff;
+	--line: #444;
+	--line-strong: #888;
+	--accent: #83c6ff;
+	--error-ink: #ff9ab1;
+	--error-surface: #2c1219;
+	--graph-family: #bc9cea;
+	--change-added: #143520;
+	--change-removed: #381722;
+	--surface-shell: var(--bg-shade-2);
+	--surface-inactive: var(--bg-shade-1);
+	--surface-content: var(--bg-color);
+	--surface-search: var(--bg-shade-1);
+	--surface-hover: var(--bg-tint-3);
+	--surface-focus: var(--bg-color);
+	--drawer-surface: var(--bg-shade-1);
+	--bg-hard-1: var(--bg-shade-1);
+	--bg-hard-2: var(--bg-shade-2);
+	--bg-soft-1: var(--bg-tint-1);
+	--bg-soft-2: var(--bg-tint-2);
+	--brand-color: #c03;
+	color-scheme: dark;
+	@media (prefers-color-scheme: light) {
+		--bg-color: #f9f9f9;
+		--bg-tint-1: #fdfdfd;
+		--bg-tint-2: #fff;
+		--bg-tint-3: #fff;
+		--bg-shade-1: #f6f6f6;
+		--bg-shade-2: #f0f0f0;
+		--bg-shade-3: #e8e8e8;
+		--ink: #333;
+		--ink-muted: #666;
+		--ink-disabled: #777;
+		--ink-strong: #222;
+		--line: #ccc;
+		--line-strong: #888;
+		--accent: #0059b3;
+		--error-ink: #9a0026;
+		--error-surface: #ffe8ee;
+		--graph-family: #725399;
+		--change-added: #e5f5e9;
+		--change-removed: #ffe8ee;
+		--bg-hard-1: var(--bg-tint-1);
+		--bg-hard-2: var(--bg-tint-2);
+		--bg-soft-1: var(--bg-shade-1);
+		--bg-soft-2: var(--bg-shade-2);
+		color-scheme: light;
+	}
+}
+
+/* Scoped native control and typography resets shared by all debugger components. */
+:where(debugger-panel) {
+	&, * {
+		box-sizing: border-box;
+	}
+	* {
+		color: inherit;
+		font: inherit;
+		margin: 0;
+		padding: 0;
+	}
+	strong {
+		font-weight: 500;
+	}
+	button, input, select {
+		border-radius: 0;
+		background: none;
+		min-width: 0;
+	}
+	button {
+		height: 21px;
+		min-width: 21px;
+		border: 0;
+		padding: 0 3px;
+		cursor: pointer;
+	}
+	:is(button, input, select, summary):focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: -2px;
+		background: var(--surface-focus);
+		color: var(--ink-strong);
+	}
+	button:hover {
+		background: var(--surface-hover);
+	}
+	button:disabled {
+		cursor: default;
+		color: var(--ink-disabled);
+	}
+	input {
+		height: 18px;
+		padding: 0 2px;
+		border: 1px solid var(--line);
+	}
+	input[readonly] {
+		border-color: transparent;
+	}
+	input::selection {
+		background: var(--accent);
+		color: var(--surface-content);
+	}
+	input[type="checkbox"] {
+		width: 13px;
+		height: 13px;
+		margin: 0 3px;
+	}
+	select {
+		height: 20px;
+		border: 0;
+		color: var(--ink-muted);
+		flex: 0 0 auto;
+		max-width: 76px;
+	}
+
+	small {
+		color: var(--ink-muted);
+	}
+	[hidden] {
+		display: none !important;
+	}
+}

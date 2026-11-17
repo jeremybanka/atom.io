@@ -141,7 +141,7 @@ it(`reuses immutable graph metadata only within the same capture and keeps cance
 	expect(second.all.get(`state:node0`)).toBe(first.all.get(`state:node0`))
 	context.selected = `state:node500`
 	const canceled = projectEcology(snapshot, context, undefined, second)
-	for (let i = 0; i < 501; i++) canceled.next()
+	expect(canceled.next().done).toBe(false)
 	canceled.return(undefined as never)
 	expect(context.positions.has(`state:node500`)).toBe(false)
 	expect(second.all.get(`state:node500`)!.x).toBe(-8)

@@ -369,3 +369,65 @@ it(`retains incoming arrows when a selector family is collapsed`, () => {
 		{ from: `state:a`, to: `family:derived`, traced: false },
 	])
 })
+
+it(`keeps lazy metadata immutable across equal-sized expansion changes and ignores stale matching IDs`, () => {
+	const data: EcologySnapshot = {
+		...snapshot(
+			[
+				node(`a`, `atom`, `inputs`),
+				node(`s1`, `selector`, `derived`),
+				node(`s2`, `selector`, `derived`),
+			],
+			[
+				{ dependency: `a`, selector: `s1` },
+				{ dependency: `a`, selector: `s2` },
+				{ dependency: `s1`, selector: `s2` },
+			],
+		),
+		families: [
+			{
+				key: `inputs`,
+				type: `atom_family`,
+				memberKeys: [`a`],
+				memberCount: 1,
+				countComplete: true,
+			},
+			{
+				key: `derived`,
+				type: `readonly_selector_family`,
+				memberKeys: [`s1`, `s2`],
+				memberCount: 2,
+				countComplete: true,
+			},
+		],
+	}
+	const context = createGraphContext()
+	context.expanded.add(`derived`)
+	const first = drain(projectEcology(data, context)),
+		member = first.all.get(`state:s1`)!
+	const before = [member.x, member.y, member.z]
+	context.expanded = new Set([`inputs`])
+	const next = drain(projectEcology(data, context, undefined, first))
+	expect(next.all).not.toBe(first.all)
+	expect(first.all.expanded.has(`derived`)).toBe(true)
+	expect([member.x, member.y, member.z]).toEqual(before)
+	const collapsed = next.all.get(`state:s1`)!,
+		group = next.all.get(`family:derived`)!
+	expect([collapsed.x, collapsed.y, collapsed.z]).toEqual([
+		group.x,
+		group.y,
+		group.z,
+	])
+	expect(next.all.get(`invalid`)).toBeUndefined()
+	expect(next.all.has(`invalid`)).toBe(false)
+	const stale = drain(
+		projectEcology(
+			data,
+			context,
+			new Set([`invalid`, `state:disposed`, `family:disposed`]),
+			next,
+		),
+	)
+	expect(stale.items).toEqual([])
+	expect(stale.matching).toBe(0)
+})

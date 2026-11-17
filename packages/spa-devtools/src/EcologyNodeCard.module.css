@@ -38,7 +38,11 @@ ecology-node-card.class {
 			line-height: 16px;
 			color: var(--ink-muted);
 		}
-		&[aria-pressed="true"], &:focus-visible {
+		&:focus-visible {
+			outline: 1px dashed var(--ink-muted);
+			outline-offset: 3px;
+		}
+		&[aria-pressed="true"] {
 			outline: 2px solid var(--ink-strong);
 			outline-offset: 1px;
 		}

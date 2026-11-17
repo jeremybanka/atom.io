@@ -21,6 +21,18 @@ export function* indexEcologySearch(
 		characters: 0,
 		snapshotWork: snapshot.work,
 	}
+	const documents: SearchIndex[`documents`] = []
+	let truncatedText = 0
+	// Release copied raw fields as each batch is normalized instead of retaining two complete indexes.
+	function* flush(): Generator<void> {
+		const indexed = yield* indexStateSearch(capture)
+		truncatedText += indexed.truncatedText
+		for (const document of indexed.documents) {
+			documents.push(document)
+			yield
+		}
+		capture.documents = []
+	}
 	for (const family of snapshot.families) {
 		addSearchDocument(
 			capture,
@@ -37,6 +49,7 @@ export function* indexEcologySearch(
 				{ kind: `metadata`, text: family.type },
 			],
 		)
+		if (capture.documents.length === 64) yield* flush()
 		yield
 	}
 	for (const node of snapshot.nodes) {
@@ -60,7 +73,9 @@ export function* indexEcologySearch(
 			},
 			fields,
 		)
+		if (capture.documents.length === 64) yield* flush()
 		yield
 	}
-	return yield* indexStateSearch(capture)
+	yield* flush()
+	return { ...capture, documents, truncatedText }
 }

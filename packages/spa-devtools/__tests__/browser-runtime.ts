@@ -38,7 +38,13 @@ export async function launchBrowser({
 		chromiumSandbox: true,
 		// Keep the ordinary compositor for DOM timing; opt into software WebGL only in graphics fixtures.
 		...(softwareWebGL
-			? { args: [`--use-angle=swiftshader`, `--enable-unsafe-swiftshader`] }
+			? {
+					args: [
+						`--use-gl=angle`,
+						`--use-angle=swiftshader-webgl`,
+						`--enable-unsafe-swiftshader`,
+					],
+				}
 			: {}),
 		...(process.env[`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`]
 			? { executablePath: process.env[`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`] }

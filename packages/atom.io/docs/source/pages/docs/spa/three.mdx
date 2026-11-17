@@ -41,7 +41,7 @@ Changing colorAtom updates the existing material. Position and rotation accept t
 
 Canvas uses a perspective camera at z = 5 by default. Its camera prop can borrow an external camera; a PerspectiveCamera child does not automatically become the active camera. Width and height update the renderer and default camera.
 
-Canvas draws continuously by default. Its onFrame callback receives scene, camera, renderer, delta in seconds, and timestamp in seconds. A renderWhen predicate can skip idle GPU draws while frame callbacks and pointer updates continue. Make it true when the camera, scene or size needs a redraw; the predicate runs before onFrame. Retained exit animations continue drawing. Controls and asset loading remain application-owned.
+Canvas draws continuously by default. Its onFrame callback receives scene, camera, renderer, delta in seconds, and timestamp in seconds. A renderWhen predicate can skip idle GPU draws while frame callbacks and pointer updates continue. Make it true when the camera, scene or size needs a redraw; the predicate runs before onFrame. Controls and asset loading remain application-owned.
 
 ## pointer events
 

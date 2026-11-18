@@ -7,6 +7,7 @@ import { resolve as resolvePath } from "node:path"
 
 import { build } from "esbuild"
 import type { Browser } from "playwright"
+import { Color } from "three"
 
 import {
 	browserArtifacts,
@@ -93,6 +94,31 @@ try {
 		await ready()
 	}
 	await ready()
+	const palette = async () => {
+		const cards = await page
+			.locator(`ecology-node-card:not([hidden])`)
+			.evaluateAll((nodes) =>
+				nodes.map((node) => ({
+					id: node.querySelector<HTMLElement>(`button`)!.dataset[`graphId`],
+					color: getComputedStyle(node)
+						.getPropertyValue(`--ecology-color`)
+						.trim(),
+					border: getComputedStyle(node.querySelector(`button`)!).borderTopColor,
+				})),
+			)
+		for (const card of cards)
+			assert.equal(
+				card.border.replaceAll(` `, ``),
+				new Color(card.color).getStyle(),
+				`Border must retain its key color: ${card.id}`,
+			)
+		return cards
+	}
+	for (const colorScheme of [`light`, `dark`] as const) {
+		await page.emulateMedia({ colorScheme })
+		const cards = await palette()
+		assert.equal(new Set(cards.map((card) => card.color)).size, cards.length)
+	}
 	assert.equal(
 		await page.locator(`ecology-view nav[data-workspace]`).isVisible(),
 		false,
@@ -343,6 +369,7 @@ try {
 			),
 		[`state:price`, `state:total`],
 	)
+	await palette()
 	assert.equal(
 		await page
 			.locator(`ecology-node-card:has([data-graph-id="state:lazy"])`)

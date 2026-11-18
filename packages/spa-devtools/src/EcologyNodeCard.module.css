@@ -19,7 +19,7 @@ ecology-node-card.class {
 		text-align: left;
 		background: var(--surface-inactive);
 		color: var(--ink);
-		border: 1px solid var(--ink-muted);
+		border: 1px solid var(--ecology-color);
 		box-shadow: 0 2px 6px #0002;
 		cursor: pointer;
 		> strong, > small {
@@ -51,11 +51,10 @@ ecology-node-card.class {
 		border-radius: 12px 2px;
 	}
 	&[data-kind="family"] > button {
-		border: 1px dashed var(--graph-family);
+		border: 1px dashed var(--ecology-color);
 		border-radius: 5px;
 	}
 	&[data-traced="true"] > button {
-		border-color: var(--accent);
-		box-shadow: inset 3px 0 var(--accent);
+		box-shadow: inset 3px 0 var(--ecology-color);
 	}
 }

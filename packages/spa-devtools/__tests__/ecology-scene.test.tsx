@@ -4,6 +4,7 @@ import { Silo } from "atom.io"
 import * as THREE from "three"
 import { afterEach, expect, it, vi } from "vitest"
 
+import { ecologyColor } from "../src/ecology-color.ts"
 import { createGraphContext, type GraphItem } from "../src/ecology-graph.ts"
 import type { EcologyLine } from "../src/ecology-lines.ts"
 import { createEdgeBuffer, writeEdgeBuffer } from "../src/ecology-lines.ts"
@@ -17,16 +18,8 @@ afterEach(() => {
 	vi.restoreAllMocks()
 	vi.unstubAllGlobals()
 })
-const item = (id: string, x: number, y: number, z: number): GraphItem => ({
-	id: `state:${id}`,
-	key: id,
-	label: id,
-	kind: `atom`,
-	detail: `atom · cached number`,
-	x,
-	y,
-	z,
-	source: {
+const item = (id: string, x: number, y: number, z: number): GraphItem => {
+	const source: GraphItem[`source`] = {
 		key: id,
 		kind: `atom`,
 		type: `atom`,
@@ -34,8 +27,20 @@ const item = (id: string, x: number, y: number, z: number): GraphItem => ({
 		value: { status: `cached`, type: `number` },
 		dependencies: `not-applicable`,
 		dependenciesTruncated: false,
-	},
-})
+	}
+	return {
+		id: `state:${id}`,
+		key: id,
+		label: id,
+		kind: `atom`,
+		detail: `atom · cached number`,
+		color: ecologyColor(source),
+		x,
+		y,
+		z,
+		source,
+	}
+}
 interface SceneState {
 	cylinderHeight: number
 	selected?: string | undefined
@@ -60,7 +65,7 @@ function fixture(restored = false, empty = false) {
 			cylinderHeight: 8,
 			traced: new Set(),
 			items: empty ? [] : [a, b],
-			edges: [{ from: a, to: b, traced: false }],
+			edges: [{ from: a, to: b, color: a.color, traced: false }],
 			command: { sequence: 0, action: `fit`, target: `` },
 		},
 	})
@@ -165,6 +170,7 @@ it(`projects viewer-facing DOM cards and batched edges, keeps a camera through r
 	f.resize()
 	f.tick()
 	const card = f.viewport.querySelector<HTMLElement>(`ecology-node-card`)!
+	expect(card.style.getPropertyValue(`--ecology-color`)).toBe(f.a.color)
 	expect(card.style.transform).toContain(`translate`)
 	expect(card.style.transform).not.toMatch(/rotate\((?!0rad)|matrix3d/)
 	expect(f.viewport.dataset[`edges`]).toBe(`1`)
@@ -188,7 +194,7 @@ it(`projects viewer-facing DOM cards and batched edges, keeps a camera through r
 		f.point(f.b).map((value) => expect.closeTo(value, 10)),
 	)
 	expect(f.context.camera!.position.every(Number.isFinite)).toBe(true)
-	f.patch({ edges: [{ from: f.a, to: f.b, traced: true }] })
+	f.patch({ edges: [{ from: f.a, to: f.b, color: f.a.color, traced: true }] })
 	f.tick()
 	f.tick()
 	f.resize()
@@ -209,6 +215,42 @@ it(`projects viewer-facing DOM cards and batched edges, keeps a camera through r
 	f.root.dispose()
 	expect(f.disconnect).toHaveBeenCalledOnce()
 	expect(f.stop).toHaveBeenCalledOnce()
+})
+
+it(`retains source colors on every curve and arrowhead in both line batches and updates reused card slots`, () => {
+	const f = fixture()
+	f.resize()
+	f.tick()
+	const card = f.viewport.querySelector<HTMLElement>(`ecology-node-card`)!
+	f.patch({ items: [f.b, f.a] })
+	expect(f.viewport.querySelector(`ecology-node-card`)).toBe(card)
+	expect(card.style.getPropertyValue(`--ecology-color`)).toBe(f.b.color)
+	const geometry = createEdgeBuffer()
+	const colors = geometry.getAttribute(`color`)
+	const camera = new THREE.PerspectiveCamera(45, 800 / 500, 0.1, 1000)
+	camera.position.set(0, 0, 40)
+	camera.updateMatrixWorld()
+	const edges = [
+		{ from: f.a, to: f.b, color: f.a.color, traced: false },
+		{ from: f.b, to: f.a, color: f.b.color, traced: false },
+		{ from: f.a, to: f.b, color: f.a.color, traced: true },
+	]
+	for (const traced of [false, true]) {
+		writeEdgeBuffer(geometry, edges, traced, camera, 800, 500)
+		expect(geometry.getAttribute(`color`)).toBe(colors)
+		const painted = edges.filter((edge) => edge.traced === traced)
+		expect(geometry.drawRange.count).toBe(painted.length * 36)
+		for (const [index, edge] of painted.entries()) {
+			const expected = new THREE.Color(edge.color)
+			for (let vertex = 0; vertex < 36; vertex++) {
+				const offset = index * 36 + vertex
+				expect(colors.getX(offset)).toBeCloseTo(expected.r, 6)
+				expect(colors.getY(offset)).toBeCloseTo(expected.g, 6)
+				expect(colors.getZ(offset)).toBeCloseTo(expected.b, 6)
+			}
+		}
+	}
+	geometry.dispose()
 })
 it(`restores a borrowed camera and fits a large capture into viewport-shaped cylinder dimensions`, () => {
 	const restored = fixture(true)
@@ -332,13 +374,14 @@ it(`places arrowheads outside billboard bounds in 3D, retaining parallel edges a
 	camera.updateMatrixWorld()
 	const from = { x: -8, y: 0, z: 0 },
 		to = { x: 8, y: 0, z: 0 }
+	const color = `hsl(30, 75%, 40%)`
 	writeEdgeBuffer(
 		geometry,
 		[
-			{ from, to, traced: false },
-			{ from, to, traced: false },
-			{ from, to: from, traced: false },
-			{ from, to, traced: true },
+			{ from, to, color, traced: false },
+			{ from, to, color, traced: false },
+			{ from, to: from, color, traced: false },
+			{ from, to, color, traced: true },
 		],
 		false,
 		camera,
@@ -355,7 +398,7 @@ it(`places arrowheads outside billboard bounds in 3D, retaining parallel edges a
 	expect((target.x - end.x) * 400).toBeCloseTo(91, 3)
 	writeEdgeBuffer(
 		geometry,
-		[{ from, to: { x: 5, y: 16, z: 3 }, traced: false }],
+		[{ from, to: { x: 5, y: 16, z: 3 }, color, traced: false }],
 		false,
 		camera,
 		800,
@@ -364,12 +407,19 @@ it(`places arrowheads outside billboard bounds in 3D, retaining parallel edges a
 	expect(Array.from(attribute.array).every(Number.isFinite)).toBe(true)
 	writeEdgeBuffer(geometry, [], false, camera, 800, 500)
 	expect(geometry.drawRange.count).toBe(0)
-	writeEdgeBuffer(geometry, [{ from, to, traced: true }], true, camera, 800, 500)
+	writeEdgeBuffer(
+		geometry,
+		[{ from, to, color, traced: true }],
+		true,
+		camera,
+		800,
+		500,
+	)
 	expect(geometry.drawRange.count).toBe(36)
 	const scale = new THREE.Vector3(2, 0.5, 2)
 	writeEdgeBuffer(
 		geometry,
-		[{ from, to, traced: true }],
+		[{ from, to, color, traced: true }],
 		true,
 		camera,
 		800,
@@ -403,6 +453,7 @@ it(`fans clustered edges across the visible card ports and retains intra-cluster
 		to: { x: 8, y: (7.5 - index) * 0.02, z: 0 },
 		fromCard,
 		toCard,
+		color: `hsl(30, 75%, 40%)`,
 		traced: false,
 	}))
 	writeEdgeBuffer(geometry, edges, false, camera, 800, 500)
@@ -435,6 +486,7 @@ it(`fans clustered edges across the visible card ports and retains intra-cluster
 				to: { x: -8, y: -0.2, z: 0 },
 				fromCard,
 				toCard: fromCard,
+				color: `hsl(30, 75%, 40%)`,
 				traced: false,
 			},
 		],

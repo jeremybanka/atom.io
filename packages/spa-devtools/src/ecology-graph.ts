@@ -1,4 +1,5 @@
 import type { EcologyFamily, EcologyNode, EcologySnapshot } from "./ecology.ts"
+import { ecologyColor } from "./ecology-color.ts"
 import { scheduleTask } from "./task.ts"
 
 export interface GraphPosition {
@@ -12,6 +13,7 @@ export interface GraphItem extends GraphPosition {
 	kind: `atom` | `selector` | `family`
 	label: string
 	detail: string
+	color: string
 	source: EcologyNode | EcologyFamily
 }
 interface GraphEdge {
@@ -283,6 +285,7 @@ function createRegistry(
 			key: source.key,
 			kind,
 			label: source.key,
+			color: ecologyColor(source),
 			detail:
 				`memberKeys` in source
 					? `${source.type} · ${source.memberCount}${source.countComplete ? `` : `+`} members`

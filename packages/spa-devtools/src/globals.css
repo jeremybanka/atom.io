@@ -36,7 +36,6 @@
 	--accent: #83c6ff;
 	--error-ink: #ff9ab1;
 	--error-surface: #2c1219;
-	--graph-family: #bc9cea;
 	--change-added: #143520;
 	--change-removed: #381722;
 	--surface-shell: var(--bg-shade-2);
@@ -69,7 +68,6 @@
 		--accent: #0059b3;
 		--error-ink: #9a0026;
 		--error-surface: #ffe8ee;
-		--graph-family: #725399;
 		--change-added: #e5f5e9;
 		--change-removed: #ffe8ee;
 		--bg-hard-1: var(--bg-tint-1);

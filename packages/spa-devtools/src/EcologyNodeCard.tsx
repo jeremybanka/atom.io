@@ -48,6 +48,7 @@ export function EcologyNodeCard(props: {
 	return (
 		<ecology-node-card
 			class={css.class}
+			style={`--ecology-color: ${props.item.color}`}
 			ref={(node) => {
 				element = node
 			}}

@@ -37,7 +37,7 @@ export function EcologyGuide(props: {
 					<h3>Selection and families</h3>
 					<p>
 						Select a card or use the node list to inspect its captured metadata.
-						Blue edges and cards show its upstream and downstream paths.
+						Stronger edges and cards show its upstream and downstream paths.
 						Unrelated cards fade, and the selected card stays in front. Escape
 						clears selection. Enter on a selected family or family member toggles
 						clustering and expansion along the cylinder tangent.
@@ -56,10 +56,13 @@ export function EcologyGuide(props: {
 					<p>
 						Atom and Selector cards represent captured state. Dashed cards group
 						families, including empty definitions. Arrows point from a dependency
-						to its consumer. Clustered members sit slightly around their family
-						center, keeping separate edges that overlap into a band with a darker
-						core and softer fringe. The parallel springs stay opposite at equal
-						height; their viewer-facing cards can still overlap in projection.
+						to its consumer. Each key gives its card border and outgoing arrows a
+						stable color: warm hues for atoms, cool hues for selectors. Members
+						share their family's color. Clustered members sit slightly around
+						their family center, keeping separate edges that overlap into a band
+						with a darker core and softer fringe. The parallel springs stay
+						opposite at equal height; their viewer-facing cards can still overlap
+						in projection.
 					</p>
 					<p>
 						Capture happens on entry and Refresh. Searching, selecting, tracing

@@ -5,6 +5,7 @@ import type { GraphPosition } from "./ecology-graph.ts"
 export interface EcologyLine {
 	from: GraphPosition
 	to: GraphPosition
+	color: string
 	fromCard?: GraphPosition | undefined
 	toCard?: GraphPosition | undefined
 	traced: boolean
@@ -15,6 +16,13 @@ export function createEdgeBuffer(): THREE.BufferGeometry {
 	const geometry = new THREE.BufferGeometry()
 	geometry.setAttribute(
 		`position`,
+		new THREE.BufferAttribute(
+			new Float32Array(1_000 * verticesPerEdge * 3),
+			3,
+		).setUsage(THREE.DynamicDrawUsage),
+	)
+	geometry.setAttribute(
+		`color`,
 		new THREE.BufferAttribute(
 			new Float32Array(1_000 * verticesPerEdge * 3),
 			3,
@@ -35,8 +43,11 @@ export function writeEdgeBuffer(
 	worldScale: THREE.Vector3 = new THREE.Vector3(1, 1, 1),
 ): void {
 	const attribute = geometry.getAttribute(`position`) as THREE.BufferAttribute
+	const colors = geometry.getAttribute(`color`) as THREE.BufferAttribute
+	const color = new THREE.Color()
 	let cursor = 0
 	const put = (point: THREE.Vector3) => {
+		colors.setXYZ(cursor, color.r, color.g, color.b)
 		attribute.setXYZ(cursor++, point.x, point.y, point.z)
 	}
 	const port = (
@@ -66,6 +77,8 @@ export function writeEdgeBuffer(
 	const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1)
 	for (const edge of edges) {
 		if (edge.traced !== traced) continue
+		// The same source color is exposed as --ecology-color on the SPA card.
+		color.setStyle(edge.color)
 		const a = project(edge.from),
 			b = project(edge.to)
 		const fromCard = edge.fromCard ? project(edge.fromCard) : a
@@ -119,4 +132,7 @@ export function writeEdgeBuffer(
 	attribute.clearUpdateRanges()
 	if (cursor) attribute.addUpdateRange(0, cursor * 3)
 	attribute.needsUpdate = true
+	colors.clearUpdateRanges()
+	if (cursor) colors.addUpdateRange(0, cursor * 3)
+	colors.needsUpdate = true
 }

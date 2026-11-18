@@ -238,6 +238,7 @@ export function createEcologyController(
 				return {
 					from,
 					to,
+					color: from.color,
 					fromCard: fromCard !== from.id ? value.all.get(fromCard) : undefined,
 					toCard: toCard !== to.id ? value.all.get(toCard) : undefined,
 					traced: edge.traced,

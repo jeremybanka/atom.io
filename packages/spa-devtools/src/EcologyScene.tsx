@@ -58,13 +58,13 @@ export function EcologyScene(props: {
 	const normal = createEdgeBuffer(),
 		traced = createEdgeBuffer()
 	const normalMaterial = new THREE.LineBasicMaterial({
-		color: 0x8298b0,
+		vertexColors: true,
 		transparent: true,
 		opacity: 0.14,
 		depthWrite: false,
 	})
 	const traceMaterial = new THREE.LineBasicMaterial({
-		color: 0x4c9cdb,
+		vertexColors: true,
 		transparent: true,
 		opacity: 0.9,
 		depthWrite: false,

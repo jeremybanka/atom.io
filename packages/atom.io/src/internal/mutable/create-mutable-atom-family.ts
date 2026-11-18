@@ -15,6 +15,7 @@ import { createWritablePureSelectorFamily } from "../families/index.ts"
 import { newest } from "../lineage.ts"
 import { createMutableAtom } from "../mutable/index.ts"
 import type { MutableAtomFamily } from "../state-types.ts"
+import { recordStoreChange } from "../store-observation.ts"
 import type { RootStore } from "../transaction/index.ts"
 import { FamilyTracker } from "./tracker-family.ts"
 import type { AsJSON, Transceiver } from "./transceiver.ts"
@@ -72,6 +73,7 @@ export function createMutableAtomFamily<
 	}
 
 	store.families.set(options.key, atomFamily)
+	recordStoreChange(store, `families`, options.key)
 
 	createWritablePureSelectorFamily<AsJSON<T>, K, never>(
 		store,

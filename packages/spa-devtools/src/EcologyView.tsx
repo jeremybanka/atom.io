@@ -14,6 +14,11 @@ import { EcologyViewport } from "./EcologyViewport.tsx"
 import type { SearchHit } from "./search.ts"
 import { type Tools, useLocal, usePresentation } from "./store.ts"
 
+export interface EcologyActivity {
+	revision: number
+	at: number
+}
+
 export interface EcologyPresentation {
 	cylinderHeight: number
 	cards: GraphModel[`items`]
@@ -43,6 +48,7 @@ export interface EcologyPresentation {
 	empty: boolean
 	emptyText: string
 	generation: number
+	activity: ReadonlyMap<string, EcologyActivity>
 	pinnedKey: string | undefined
 }
 export function EcologyView(props: {
@@ -80,6 +86,7 @@ export function EcologyView(props: {
 		emptyText: ``,
 		pinnedKey: undefined,
 		generation: 0,
+		activity: new Map(),
 	})
 	const [hovered, setHovered] = useLocal<string | undefined>(
 		props.tools.store,
@@ -134,6 +141,7 @@ export function EcologyView(props: {
 						cylinderHeight={state().cylinderHeight}
 						generation={state().generation}
 						items={state().cards}
+						activity={state().activity}
 						edges={state().edges}
 						familyConnections={state().familyConnections}
 						selected={state().selectedCard}

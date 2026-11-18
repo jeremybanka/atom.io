@@ -3,8 +3,10 @@ import type { ReadableToken } from "atom.io"
 export * from "./attach-introspection-states.ts"
 export * from "./auditor.ts"
 export * from "./differ.ts"
+export * from "./peek-state.ts"
 export * from "./refinery.ts"
 export * from "./sprawl.ts"
+export { observeStore, type StoreChanges } from "atom.io/internal"
 
 export type FamilyNode<Token extends ReadableToken<unknown, any, any>> = {
 	key: string

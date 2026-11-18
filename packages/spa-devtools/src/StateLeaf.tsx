@@ -1,17 +1,13 @@
 /** @jsxImportSource @atom.io/spa */
 import type { Children, SpaElement } from "@atom.io/spa"
-import { onCleanup, onMount, useGetter, useId, useSetter } from "@atom.io/spa"
-import { bindScene } from "@atom.io/spa/renderer"
+import { useGetter, useSetter } from "@atom.io/spa"
 import type { ReadableToken, WritableToken } from "atom.io"
-import {
-	disposeFromStore,
-	getFromStore,
-	subscribeToStateSubject,
-} from "atom.io/internal"
+import { disposeFromStore, getFromStore } from "atom.io/internal"
+import { peekState } from "atom.io/introspection"
 
 import { JsonEditor } from "./JsonEditor.tsx"
 import css from "./StateLeaf.module.css"
-import { type Tools, useLocal } from "./store.ts"
+import type { Tools } from "./store.ts"
 
 type Token = ReadableToken<unknown, any, any>
 export function StateLeaf(props: {
@@ -22,6 +18,7 @@ export function StateLeaf(props: {
 	retained?: boolean
 	cachedOnly?: boolean
 	capture?: unknown
+	revision?: number | undefined
 	label?: Children
 	onGenerate?(): void
 }): SpaElement {
@@ -33,33 +30,11 @@ export function StateLeaf(props: {
 	const captured = definition()
 	const getValue = useGetter(token)
 	const cache = props.cachedOnly
-		? (() => {
-				const read = () => {
-					void props.capture
-					return {
-						present: props.tools.store.valueMap.has(token.key),
-						value: props.tools.store.valueMap.get(token.key) as unknown,
-					}
-				}
-				// Uncached rows have no live controls until Generate/Refresh; avoid a local atom per dormant state.
-				if (!read().present) return read
-				const [get, set] = useLocal(props.tools.store, read())
-				const id = useId()
-				onMount(() => {
-					onCleanup(
-						subscribeToStateSubject(captured!, `ecology-editor-${id}`, () => {
-							set(read())
-						}),
-					)
-					bindScene(
-						() => props.capture,
-						() => {
-							set(read())
-						},
-					)
-				})
-				return get
-			})()
+		? () => {
+				void props.capture
+				void props.revision
+				return peekState(props.tools.store, token.key)
+			}
 		: undefined
 	const writable = !token.type.startsWith(`readonly`)
 	const setValue = writable
@@ -134,7 +109,7 @@ export function StateLeaf(props: {
 									// Validate edits before opening an atom.io write operation.
 									const next = update(
 										cache
-											? props.tools.store.valueMap.get(token.key)
+											? peekState(props.tools.store, token.key).value
 											: getValue(),
 									)
 									setValue(() => next)

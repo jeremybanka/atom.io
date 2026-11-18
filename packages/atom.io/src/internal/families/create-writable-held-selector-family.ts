@@ -13,6 +13,7 @@ import { newest } from "../lineage.ts"
 import { createWritableHeldSelector } from "../selector/index.ts"
 import type { WritableHeldSelectorFamily } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
+import { recordStoreChange } from "../store-observation.ts"
 import type { RootStore } from "../transaction/index.ts"
 
 export function createWritableHeldSelectorFamily<
@@ -68,5 +69,6 @@ export function createWritableHeldSelectorFamily<
 	}
 
 	store.families.set(familyKey, selectorFamily)
+	recordStoreChange(store, `families`, familyKey)
 	return familyToken
 }

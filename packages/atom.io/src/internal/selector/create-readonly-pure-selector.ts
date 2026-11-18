@@ -10,7 +10,9 @@ import { Subject } from "atom.io/foundations/subject"
 import { newest } from "../lineage.ts"
 import type { ReadonlyPureSelector } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
+import { recordStoreChange } from "../store-observation.ts"
 import type { RootStore } from "../transaction/index.ts"
+import { clearSelectorDependencies } from "./clear-selector-dependencies.ts"
 import { registerSelector } from "./register-selector.ts"
 
 export function createReadonlyPureSelector<T, K extends Canonical, E>(
@@ -34,15 +36,7 @@ export function createReadonlyPureSelector<T, K extends Canonical, E>(
 
 	const getFrom = () => {
 		const innerTarget = newest(store)
-		const upstreamStates = innerTarget.selectorGraph.getRelationEntries({
-			downstreamSelectorKey: key,
-		})
-		for (const [downstreamSelectorKey, { source }] of upstreamStates) {
-			if (source !== key) {
-				innerTarget.selectorGraph.delete(downstreamSelectorKey, key)
-			}
-		}
-		innerTarget.selectorAtoms.delete(key)
+		clearSelectorDependencies(innerTarget, key)
 		const value = options.get({ get, find, json, relations })
 		store.logger.info(`✨`, type, key, `=`, value)
 		covered.clear()
@@ -59,6 +53,7 @@ export function createReadonlyPureSelector<T, K extends Canonical, E>(
 	if (family) readonlySelector.family = family
 
 	target.readonlySelectors.set(key, readonlySelector)
+	recordStoreChange(target, `states`, key)
 
 	const token: ReadonlyPureSelectorToken<T> = { key, type }
 	if (family) token.family = family

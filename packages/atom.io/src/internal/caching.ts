@@ -9,12 +9,26 @@ import {
 } from "./set-state/evict-downstream.ts"
 import type { PureSelector, ReadableState } from "./state-types.ts"
 import type { Store } from "./store/index.ts"
+import { recordStoreChange } from "./store-observation.ts"
 import { isChildStore } from "./transaction/index.ts"
 import {
 	deferTransactionFutureRecomputation,
 	notifyStateUpdate,
 	retainTransactionPreviousValue,
 } from "./transaction/transaction-notification-batch.ts"
+
+export function setCachedValue(
+	target: Store,
+	key: string,
+	value: unknown,
+): void {
+	target.valueMap.set(key, value)
+	recordStoreChange(target, `values`, key)
+}
+
+export function deleteCachedValue(target: Store, key: string): void {
+	if (target.valueMap.delete(key)) recordStoreChange(target, `values`, key)
+}
 
 export function writeToCache<T, E>(
 	target: Store,
@@ -39,12 +53,12 @@ export function writeToCache<T, E>(
 			future.use(value)
 			return future
 		}
-		target.valueMap.set(key, value)
+		setCachedValue(target, key, value)
 		return value
 	}
 	if (value instanceof Promise) {
 		const future = new Future<T>(value)
-		target.valueMap.set(key, future)
+		setCachedValue(target, key, future)
 		future
 			.then(function handleResolvedFuture(resolved) {
 				const current = target.valueMap.get(key)
@@ -75,7 +89,15 @@ export function writeToCache<T, E>(
 		return future
 	}
 	target.logger.info(`📝`, state.type, state.key, `writing to cache`, value)
-	target.valueMap.set(key, value)
+	if (
+		!Object.is(currentValue, value) ||
+		!target.valueMap.has(key) ||
+		type === `mutable_atom` ||
+		type === `readonly_held_selector` ||
+		type === `writable_held_selector`
+	)
+		setCachedValue(target, key, value)
+	else target.valueMap.set(key, value)
 	return value
 }
 
@@ -143,6 +165,6 @@ export function evictCachedValue(target: Store, key: string): void {
 		target.operation.prev.set(key, currentValue)
 	}
 	retainTransactionPreviousValue(target, key, currentValue)
-	target.valueMap.delete(key)
+	deleteCachedValue(target, key)
 	target.logger.info(`🗑`, `state`, key, `evicted`)
 }

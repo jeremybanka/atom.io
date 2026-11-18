@@ -11,6 +11,7 @@ import { createStandaloneSelector } from "../selector/index.ts"
 import { resetInStore, setIntoStore } from "../set-state/index.ts"
 import type { MutableAtom } from "../state-types.ts"
 import { deposit, type Store } from "../store/index.ts"
+import { recordStoreChange } from "../store-observation.ts"
 import { subscribeToState } from "../subscribe/index.ts"
 import type { RootStore } from "../transaction/index.ts"
 import { Tracker } from "./tracker.ts"
@@ -57,6 +58,7 @@ export function createMutableAtom<T extends Transceiver<any, any, any>>(
 		newAtom.family = family
 	}
 	target.atoms.set(newAtom.key, newAtom)
+	recordStoreChange(target, `states`, newAtom.key)
 	const token = deposit(newAtom)
 
 	new Tracker(token, store)

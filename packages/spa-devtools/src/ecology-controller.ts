@@ -1,6 +1,12 @@
 import type { RootStore } from "atom.io/internal"
+import { observeStore } from "atom.io/introspection"
 
-import { captureEcologySnapshot, traceEcologyRoots } from "./ecology.ts"
+import {
+	captureEcologySnapshot,
+	type EcologyNode,
+	ecologyValue,
+	traceEcologyRoots,
+} from "./ecology.ts"
 import type { GraphContext, GraphItem, GraphModel } from "./ecology-graph.ts"
 import { projectEcology, scheduleGraph } from "./ecology-graph.ts"
 import { indexEcologySearch } from "./ecology-search.ts"
@@ -8,6 +14,7 @@ import type { EcologyPresentation } from "./EcologyView.tsx"
 import { matchStateSearch, type SearchIndex } from "./search.ts"
 import { isSearchShortcut, moveSearchFocus } from "./search-keys.ts"
 import { createSearchSession, editorIsCurrent } from "./search-session.ts"
+import { scheduleTask } from "./task.ts"
 
 /** Own passive graph work, responsive search and native modal/focus lifecycles. */
 export function createEcologyController(
@@ -52,6 +59,12 @@ export function createEcologyController(
 	let model: GraphModel | undefined,
 		cancel = () => {},
 		jobs = 0
+	let capturedNodes = new Map<string, EcologyNode>()
+	let needsCapture = false
+	let activityRevision = 0
+	const changedCards = new Set<string>()
+	let cancelLive: (() => void) | undefined
+	let stopObserving: (() => void) | undefined
 	let cameraSequence = 0
 	const camera = (action: string, target?: string) => {
 		update({
@@ -334,9 +347,14 @@ export function createEcologyController(
 				host.dataset[`maxMatchChunkMs`] = String(Math.max(...chunks))
 				if (next.validation) {
 					update({ status: next.validation })
+					if (model?.snapshot !== context.snapshot) {
+						project()
+						return
+					}
 					busy = false
 					update({ busy: false })
 					host.dataset[`ready`] = `true`
+					scheduleLive()
 					return
 				}
 				matchedIds = context.query.trim() ? ids : undefined
@@ -376,12 +394,16 @@ export function createEcologyController(
 			return
 		}
 		const start = performance.now()
+		needsCapture = false
 		generation++
 		context.snapshot = captureEcologySnapshot(store, {
 			maxNodes: 10_000,
 			maxFamilies: 10_000,
 			maxRelations: 50_000,
 		})
+		capturedNodes = new Map(
+			context.snapshot.nodes.map((node) => [node.key, node]),
+		)
 		context.capturedAt = new Date().toLocaleTimeString()
 		host.dataset[`snapshotMs`] = String(performance.now() - start)
 		cancelIndex = scheduleGraph(
@@ -396,6 +418,77 @@ export function createEcologyController(
 			undefined,
 			0.5,
 		)
+	}
+	const scheduleLive = () => {
+		if (
+			cancelLive ||
+			!visible() ||
+			(!changedCards.size && (!needsCapture || busy))
+		)
+			return
+		cancelLive = scheduleTask(() => {
+			cancelLive = undefined
+			if (!visible()) return
+			if (changedCards.size) {
+				const activity = { revision: ++activityRevision, at: performance.now() }
+				update({
+					activity: new Map([...changedCards].map((id) => [id, activity])),
+				})
+				changedCards.clear()
+			}
+			if (needsCapture && !busy) refresh()
+		})
+	}
+	const startObserving = () => {
+		stopObserving ??= observeStore(store, (changes) => {
+			if (!visible()) return
+			const focusedLeaf =
+				document.activeElement?.closest<HTMLElement>(`state-leaf`)
+			const focusedKey = focusedLeaf?.dataset[`stateKey`]
+			const markState = (key: string, previous?: EcologyNode) => {
+				const definition =
+					store.atoms.get(key) ??
+					store.readonlySelectors.get(key) ??
+					store.writableSelectors.get(key)
+				if (definition) changedCards.add(`state:${key}`)
+				else if (focusedLeaf && key === focusedKey && host.contains(focusedLeaf))
+					returnToSearch()
+				const family = (definition ?? previous)?.family?.key
+				if (family) changedCards.add(`family:${family}`)
+			}
+			for (const key of changes.values) {
+				const previous = capturedNodes.get(key)
+				if (!previous && !changes.states.has(key)) continue
+				markState(key, previous)
+				if (!previous) continue
+				const before = previous.value
+				const after = ecologyValue(store, key)
+				if (
+					before.status !== after.status ||
+					(before.status === `cached` &&
+						after.status === `cached` &&
+						before.type !== after.type)
+				)
+					needsCapture = true
+			}
+			for (const key of changes.dependencies) {
+				const previous = capturedNodes.get(key)
+				if (!previous) continue
+				markState(key, previous)
+				needsCapture = true
+			}
+			for (const key of changes.states) markState(key, capturedNodes.get(key))
+			for (const key of changes.families) changedCards.add(`family:${key}`)
+			needsCapture ||= changes.states.size > 0 || changes.families.size > 0
+			scheduleLive()
+		})
+	}
+	const stopLive = () => {
+		stopObserving?.()
+		stopObserving = undefined
+		cancelLive?.()
+		cancelLive = undefined
+		changedCards.clear()
 	}
 
 	const action = (name: string, targetFamily?: string) => {
@@ -584,21 +677,28 @@ export function createEcologyController(
 		wait = () => {}
 		if (visible()) {
 			syncSearchMode()
-			if (preparing || !searchIndex) refresh()
-			else search()
-		} else closeDialog(false)
+			startObserving()
+			refresh()
+		} else {
+			stopLive()
+			closeDialog(false)
+		}
 	})
 	visibility.observe(panel, {
 		attributes: true,
 		attributeFilter: [`hidden`, `data-open`],
 	})
-	refresh()
+	if (visible()) {
+		startObserving()
+		refresh()
+	}
 	return {
 		refresh,
 		committed() {
 			const commit = commitPaint
 			commitPaint = undefined
 			commit?.()
+			if (commit) scheduleLive()
 			if (generatedKey && commit) {
 				const leaf = [...list.querySelectorAll<HTMLElement>(`state-leaf`)].find(
 					(node) => node.dataset[`stateKey`] === generatedKey,
@@ -616,6 +716,7 @@ export function createEcologyController(
 		},
 		dispose() {
 			disposed = true
+			stopLive()
 			cancelIndex()
 			cancelMatch()
 			wait()

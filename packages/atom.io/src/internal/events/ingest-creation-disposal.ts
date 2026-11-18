@@ -7,6 +7,7 @@ import type {
 } from "atom.io"
 import { parseJson, stringifyJson } from "atom.io/foundations/json"
 
+import { setCachedValue } from "../caching.ts"
 import { disposeFromStore } from "../families/index.ts"
 import { ensureState } from "../get-state/ensure-state.ts"
 import { getFromStore } from "../get-state/index.ts"
@@ -98,7 +99,7 @@ export function ingestMoleculeDisposalEvent(
 					if (family) {
 						getFromStore(store, family, event.key)
 						const memberKey = `${familyKey}(${stringifyJson(event.key)})`
-						store.valueMap.set(memberKey, value)
+						setCachedValue(store, memberKey, value)
 					}
 				}
 			}

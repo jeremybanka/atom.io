@@ -221,7 +221,7 @@ it(`keeps an unfinished numeric draft and its node mounted through query, clear,
 	expect(f.host.querySelector(`ecology-editor input`)).toBe(editor)
 })
 
-it(`retains invalid-query results, respects IME/native find and never recaptures on a query`, async () => {
+it(`retains invalid-query results, respects IME/native find and searches new state automatically`, async () => {
 	const f = await setup()
 	await f.query(`count`)
 	const row = f.host.querySelector(
@@ -254,11 +254,6 @@ it(`retains invalid-query results, respects IME/native find and never recaptures
 	)
 	f.app.atom<number>({ key: `later`, default: 0 })
 	await f.query(`later`)
-	expect(
-		f.host.querySelectorAll(`ecology-view [data-results] button`),
-	).toHaveLength(0)
-	f.button(`Refresh`).click()
-	await settle()
 	expect(
 		f.host.querySelectorAll(`ecology-view [data-results] button`),
 	).toHaveLength(1)
@@ -741,7 +736,7 @@ it(`returns from compact search to the same unfinished editor and caret`, async 
 	expect(f.app.getState(f.countAtom)).toBe(2)
 })
 
-it(`returns focus to search when Refresh removes a focused editor row`, async () => {
+it(`returns focus to search when disposal removes a focused editor row`, async () => {
 	const f = await setup()
 	await f.query(`green tea`)
 	f.host.querySelector<HTMLButtonElement>(`[data-results] button`)!.click()
@@ -751,7 +746,6 @@ it(`returns focus to search when Refresh removes a focused editor row`, async ()
 	const input = f.host.querySelector<HTMLInputElement>(`ecology-editor input`)!
 	input.focus()
 	f.app.disposeState(f.itemsAtoms, `green-tea`)
-	f.button(`Refresh`).click()
 	await settle()
 	expect(input.isConnected).toBe(false)
 	expect(document.activeElement).toBe(f.input())

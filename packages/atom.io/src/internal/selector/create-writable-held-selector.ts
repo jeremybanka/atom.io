@@ -9,7 +9,9 @@ import { writeToCache } from "../caching.ts"
 import { newest } from "../lineage.ts"
 import type { WritableHeldSelector } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
+import { recordStoreChange } from "../store-observation.ts"
 import type { RootStore } from "../transaction/index.ts"
+import { clearSelectorDependencies } from "./clear-selector-dependencies.ts"
 import { registerSelector } from "./register-selector.ts"
 
 export function createWritableHeldSelector<T extends object>(
@@ -29,15 +31,7 @@ export function createWritableHeldSelector<T extends object>(
 	const getterToolkit = { find, get, json, relations }
 
 	const getFrom = (innerTarget: Store): T => {
-		const upstreamStates = innerTarget.selectorGraph.getRelationEntries({
-			downstreamSelectorKey: key,
-		})
-		for (const [downstreamSelectorKey, { source }] of upstreamStates) {
-			if (source !== key) {
-				innerTarget.selectorGraph.delete(downstreamSelectorKey, key)
-			}
-		}
-		innerTarget.selectorAtoms.delete(key)
+		clearSelectorDependencies(innerTarget, key)
 		options.get(getterToolkit, constant)
 		writeToCache(innerTarget, mySelector, constant)
 		store.logger.info(`✨`, type, key, `=`, constant)
@@ -60,6 +54,7 @@ export function createWritableHeldSelector<T extends object>(
 	if (family) mySelector.family = family
 
 	target.writableSelectors.set(key, mySelector)
+	recordStoreChange(target, `states`, key)
 
 	const token: WritableHeldSelectorToken<T> = { key, type }
 	if (family) token.family = family

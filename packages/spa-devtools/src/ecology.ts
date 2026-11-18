@@ -1,6 +1,7 @@
 import type { ReadableToken } from "atom.io"
 import type { RootStore } from "atom.io/internal"
 import { isReservedIntrospectionKey } from "atom.io/internal"
+import { peekState } from "atom.io/introspection"
 
 import { preview } from "./value.ts"
 
@@ -96,6 +97,20 @@ function valueType(value: unknown): EcologyValueType {
 	}
 }
 
+export function ecologyValue(
+	store: RootStore,
+	key: string,
+): EcologyNode[`value`] {
+	const cached = peekState(store, key)
+	return cached.present
+		? {
+				status: `cached`,
+				type: valueType(cached.value),
+				preview: preview(cached.value),
+			}
+		: { status: `unknown` }
+}
+
 /** Capture the supplied root's committed view without reading state, evaluating defaults, or following transaction children. */
 export function captureEcologySnapshot(
 	store: RootStore,
@@ -127,7 +142,7 @@ export function captureEcologySnapshot(
 				state.type === `atom` || state.type === `mutable_atom`
 					? `atom`
 					: `selector`
-			const cached = store.valueMap.has(state.key)
+			const value = ecologyValue(store, state.key)
 			nodes.push({
 				key: state.key,
 				kind,
@@ -135,15 +150,13 @@ export function captureEcologySnapshot(
 				family: state.family
 					? { key: state.family.key, subKey: state.family.subKey }
 					: null,
-				value: cached
-					? {
-							status: `cached`,
-							type: valueType(store.valueMap.get(state.key)),
-							preview: preview(store.valueMap.get(state.key)),
-						}
-					: { status: `unknown` },
+				value,
 				dependencies:
-					kind === `atom` ? `not-applicable` : cached ? `observed` : `unknown`,
+					kind === `atom`
+						? `not-applicable`
+						: value.status === `cached`
+							? `observed`
+							: `unknown`,
 				dependenciesTruncated: false,
 			})
 			if (state.family) {

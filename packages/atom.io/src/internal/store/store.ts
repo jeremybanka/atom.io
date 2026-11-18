@@ -30,6 +30,7 @@ import type {
 	RegularAtomFamily,
 	WritableSelector,
 } from "../state-types.ts"
+import type { StoreObservation } from "../store-observation.ts"
 import type { Timeline, TimelineFamily } from "../timeline/index.ts"
 import type {
 	ChildStore,
@@ -51,6 +52,8 @@ export type StoreConfig = {
 export class Store implements Lineage {
 	public parent: ChildStore | RootStore | null = null
 	public child: ChildStore | null = null
+	/** Installed only while this root store has passive observers. */
+	declare public observation?: StoreObservation
 
 	/** Run a default in its store's synchronous initialization scope.
 	 * Transaction stores delegate to their parent; independent stores start unscoped.

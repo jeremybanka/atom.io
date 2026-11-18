@@ -9,7 +9,9 @@ import { writeToCache } from "../caching.ts"
 import { newest } from "../lineage.ts"
 import type { ReadonlyHeldSelector } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
+import { recordStoreChange } from "../store-observation.ts"
 import type { RootStore } from "../transaction/index.ts"
+import { clearSelectorDependencies } from "./clear-selector-dependencies.ts"
 import { registerSelector } from "./register-selector.ts"
 
 export function createReadonlyHeldSelector<T extends object>(
@@ -32,15 +34,7 @@ export function createReadonlyHeldSelector<T extends object>(
 	)
 
 	const getFrom = (innerTarget: Store) => {
-		const upstreamStates = innerTarget.selectorGraph.getRelationEntries({
-			downstreamSelectorKey: key,
-		})
-		for (const [downstreamSelectorKey, { source }] of upstreamStates) {
-			if (source !== key) {
-				innerTarget.selectorGraph.delete(downstreamSelectorKey, key)
-			}
-		}
-		innerTarget.selectorAtoms.delete(key)
+		clearSelectorDependencies(innerTarget, key)
 		options.get({ get, find, json, relations }, constant)
 		writeToCache(innerTarget, readonlySelector, constant)
 		store.logger.info(`✨`, type, key, `=`, constant)
@@ -58,6 +52,7 @@ export function createReadonlyHeldSelector<T extends object>(
 	if (family) readonlySelector.family = family
 
 	target.readonlySelectors.set(key, readonlySelector)
+	recordStoreChange(target, `states`, key)
 	const token: ReadonlyHeldSelectorToken<T> = { key, type }
 	if (family) token.family = family
 

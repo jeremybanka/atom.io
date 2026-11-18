@@ -22,6 +22,7 @@ import { newest } from "../lineage.ts"
 import { getJsonTokenFromStore } from "../mutable/index.ts"
 import { createReadonlyPureSelector } from "../selector/index.ts"
 import type { ReadonlyPureSelectorFamily } from "../state-types.ts"
+import { recordStoreChange } from "../store-observation.ts"
 import type { RootStore } from "../transaction/index.ts"
 import { findInStore } from "./find-in-store.ts"
 
@@ -93,5 +94,6 @@ export function createReadonlyPureSelectorFamily<T, K extends Canonical, E>(
 	}
 
 	store.families.set(familyKey, readonlySelectorFamily)
+	recordStoreChange(store, `families`, familyKey)
 	return familyToken
 }

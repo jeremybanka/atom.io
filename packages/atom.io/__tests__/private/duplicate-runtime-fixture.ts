@@ -2,12 +2,14 @@ import assert from "node:assert/strict"
 
 import type * as Core from "atom.io"
 import type * as Internal from "atom.io/internal"
+import type * as Introspection from "atom.io/introspection"
 
 import { withRuntimeCopies } from "../../../../scripts/runtime-copies.ts"
 
 type FixtureModules = {
 	main: typeof Core
 	internal: typeof Internal
+	introspection: typeof Introspection
 }
 await withRuntimeCopies<FixtureModules>(
 	new URL(`../../`, import.meta.url),
@@ -23,6 +25,7 @@ await withRuntimeCopies<FixtureModules>(
 		)
 		const internalA = await load(`a`, `internal`)
 		const internalB = await load(`b`, `internal`)
+		const introspectionA = await load(`a`, `introspection`)
 		assert.equal(
 			globalThis.ATOM_IO_IMPLICIT_STORE,
 			undefined,
@@ -56,6 +59,13 @@ await withRuntimeCopies<FixtureModules>(
 		const stop = coreB.subscribe(selectedSelector, ({ newValue }) => {
 			values.push(newValue)
 		})
+		const observed = new Set<string>()
+		const stopObserving = introspectionA.observeStore(
+			existingStore,
+			(changes) => {
+				for (const key of changes.values) observed.add(key)
+			},
+		)
 		const switchTransaction = coreB.transaction<() => void>({
 			key: `switch`,
 			do: ({ set }) => {
@@ -66,6 +76,10 @@ await withRuntimeCopies<FixtureModules>(
 		coreB.setState(secondCountAtom, 11)
 		coreA.setState(firstCountAtom, 2)
 		assert.deepEqual(values, [10, 11])
+		await Promise.resolve()
+		assert.equal(observed.has(secondCountAtom.key), true)
+		assert.equal(observed.has(firstCountAtom.key), true)
+		stopObserving()
 		stop()
 	},
 )

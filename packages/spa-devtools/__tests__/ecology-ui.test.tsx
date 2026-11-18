@@ -150,6 +150,86 @@ it(`opens/searches/selects/traces/expands passively and evaluates only with Gene
 	expect(f.silo.getState(dormantSelector)).toBe(2)
 })
 
+it(`updates and flashes cards from the root cache without evaluating dormant state`, async () => {
+	const f = setup()
+	const countAtom = f.silo.atom<number>({ key: `count`, default: () => 2 })
+	const doubleSelector = f.silo.selector<number>({
+		key: `double`,
+		get: ({ get }) => get(countAtom) * 2,
+	})
+	const sleeping = vi.fn(() => 0)
+	f.silo.selector<number>({ key: `sleeping`, get: sleeping })
+	let resolve!: (value: number) => void
+	const request = new Promise<number>((done) => {
+		resolve = done
+	})
+	const quoteSelector = f.silo.selector<Promise<number>>({
+		key: `quote`,
+		get: () => request,
+	})
+	f.mount()
+	await settle()
+	const card = (key: string) =>
+		f.host.querySelector<HTMLButtonElement>(
+			`ecology-node-card button[data-graph-id="state:${key}"]`,
+		)!
+	const editor = (key: string) =>
+		f.host.querySelector<HTMLInputElement>(
+			`ecology-editor [data-testid="state-value-${key}"] input`,
+		)
+	expect(card(`double`).textContent).toContain(`–`)
+	expect(editor(`double`)).toBeNull()
+	expect(
+		f.silo.store.readonlySelectors.get(`double`)!.subject.subscribers.size,
+	).toBe(0)
+	f.silo.getState(doubleSelector)
+	const pendingQuote = f.silo.getState(quoteSelector)
+	await settle()
+	expect(card(`count`).textContent).toContain(`Atom · 2`)
+	expect(card(`double`).textContent).toContain(`Selector · 4`)
+	expect(editor(`double`)?.value).toBe(`4`)
+	expect(
+		f.host.querySelector<HTMLElement>(`ecology-view`)!.dataset[`counts`],
+	).toContain(`1 of 1 captured edges`)
+	resolve(17)
+	await pendingQuote
+	await settle()
+	expect(card(`quote`).textContent).toContain(`Selector · 17`)
+	expect(editor(`quote`)?.value).toBe(`17`)
+
+	const media = window.matchMedia(`(prefers-reduced-motion: reduce)`)
+	Object.defineProperty(media, `matches`, { value: false, configurable: true })
+	vi.mocked(window.matchMedia).mockReturnValue(media)
+	// Mount a new scene with motion enabled, then observe its retained button.
+	await f.click(`atoms`)
+	await f.click(`ecology`)
+	const atomCard = card(`count`)
+	const animate = vi.fn(() => ({ cancel: vi.fn() }))
+	Object.defineProperty(atomCard, `animate`, { value: animate })
+	const graph = f.host.querySelector<HTMLElement>(`ecology-view`)!
+	const jobs = graph.dataset[`jobs`]
+	f.silo.setState(countAtom, 3)
+	f.silo.getState(doubleSelector)
+	await settle()
+	expect(card(`count`)).toBe(atomCard)
+	expect(atomCard.textContent).toContain(`Atom · 3`)
+	expect(card(`double`).textContent).toContain(`Selector · 6`)
+	expect(editor(`count`)?.value).toBe(`3`)
+	expect(editor(`double`)?.value).toBe(`6`)
+	expect(graph.dataset[`jobs`]).toBe(jobs)
+	expect(animate).toHaveBeenCalledTimes(1)
+	Object.defineProperty(media, `matches`, { value: true })
+	f.silo.setState(countAtom, 4)
+	await settle()
+	expect(animate).toHaveBeenCalledTimes(1)
+	expect(card(`double`).textContent).toContain(`–`)
+	expect(editor(`double`)).toBeNull()
+	expect(sleeping).not.toHaveBeenCalled()
+	expect(
+		f.silo.store.readonlySelectors.get(`double`)!.subject.subscribers.size,
+	).toBe(0)
+})
+
 it(`links whole-row and card hover without evaluating state, rebuilding the graph, changing selection or sticking on touch`, async () => {
 	const f = setup(),
 		lazy = vi.fn(() => 1)
@@ -608,18 +688,17 @@ it(`reuses the live editor for writable state, handles disposed selection and pr
 	await f.select(`family:items`)
 	await f.click(`Expand family`)
 	await f.select(`state:${member.key}`)
-	f.silo.disposeState(itemsAtoms, `a`)
-	await f.click(`Generate ${member.key}`)
-	expect(f.host.textContent).toContain(`State was disposed`)
-	await f.click(`Clear selection`)
-	await f.select(`state:${member.key}`)
 	f.host
 		.querySelector<HTMLElement>(
-			`ecology-node-card > button[data-graph-id][aria-pressed="true"]`,
+			`ecology-node-card > button[aria-pressed="true"]`,
 		)!
 		.focus()
-	await f.click(`Refresh`)
-	expect(f.host.textContent).toContain(`Nodes`)
+	f.silo.disposeState(itemsAtoms, `a`)
+	await settle()
+	expect(
+		f.host.querySelector(`[data-graph-id='state:${member.key}']`),
+	).toBeNull()
+	expect(f.host.textContent).toContain(`0 members`)
 	expect(document.activeElement?.getAttribute(`aria-label`)).toBe(
 		`Search ecology`,
 	)
@@ -1032,7 +1111,9 @@ it(`focuses generated controls even when the new value leaves the filter, and re
 	)
 	await f.click(`Expand ephemeral`)
 	await f.click(`Generate ephemeral("one")`)
-	expect(f.host.textContent).toContain(`State was disposed`)
+	expect(
+		f.host.querySelector(`[data-graph-id='state:ephemeral("one")']`),
+	).toBeNull()
 	expect(document.activeElement?.getAttribute(`aria-label`)).toBe(
 		`Search ecology`,
 	)

@@ -724,11 +724,11 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                           | Entry                             | Minified JS |  Gzip JS |
 | -------------------------------- | --------------------------------- | ----------: | -------: |
-| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    68,896 B | 20,908 B |
-| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    47,332 B | 15,151 B |
-| Interactive client app           | `tonnage-recipes/client-app.ts`   |    47,004 B | 15,001 B |
-| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    47,005 B | 14,999 B |
-| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    53,544 B | 17,059 B |
+| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    70,185 B | 21,366 B |
+| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    48,212 B | 15,459 B |
+| Interactive client app           | `tonnage-recipes/client-app.ts`   |    47,884 B | 15,296 B |
+| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    47,885 B | 15,296 B |
+| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    54,852 B | 17,477 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

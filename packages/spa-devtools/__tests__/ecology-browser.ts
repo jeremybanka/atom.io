@@ -714,8 +714,25 @@ try {
 	await page.evaluate(() => {
 		window.ecologyFixture.change()
 	})
-	await page.getByRole(`button`, { name: `Refresh`, exact: true }).click()
-	await ready()
+	await page.waitForFunction(() => {
+		const price = document.querySelector(
+			`ecology-node-card button[data-graph-id="state:price"]`,
+		)
+		const total = document.querySelector(
+			`ecology-node-card button[data-graph-id="state:total"]`,
+		)
+		return (
+			price?.textContent?.includes(`Atom · 6`) &&
+			total?.textContent?.includes(`Selector · 12`) &&
+			price
+				.getAnimations()
+				.some(
+					({ effect }) =>
+						effect instanceof KeyframeEffect &&
+						effect.getKeyframes().some((frame) => `backgroundColor` in frame),
+				)
+		)
+	})
 	assert.deepEqual(
 		await page
 			.locator(`ecology-node-card:not([inert]) > button[data-graph-id]`)

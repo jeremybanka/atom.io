@@ -12,7 +12,7 @@
 
 Install this package as a development dependency alongside ESLint 9 or 10, `@typescript-eslint/parser` 8, and a supported TypeScript compiler (4.8.4 through 6.0.x).
 
-The TypeScript peer describes the compiler API used by ESLint. You can build with TypeScript 7 alongside it: the starter templates alias TypeScript 7 as `@typescript/native` for `tsc` and `@typescript/typescript6` as `typescript` for ESLint's compiler API and the separate `tsc6` command.
+The TypeScript peer describes the compiler API used by ESLint. You can build with TypeScript 7 alongside it: the starter templates alias TypeScript 7 as `typescript-compiler` for `tsc` and `@typescript/typescript6` as `typescript` for ESLint's compiler API and the separate `tsc6` command. The neutral build-compiler alias avoids supplying typescript-eslint’s optional native-parser API peer, whose supported versions differ from the standalone compiler.
 
 The `exact-catch-types` rule requires a TypeScript parser configured with type information. Configure the parser in your ESLint configuration.
 
@@ -25,7 +25,7 @@ See the [installation guide, configuration exhibit, and rule documentation](http
 ```sh
 pnpm add -D @atom.io/eslint-plugin eslint typescript-eslint \
   typescript@npm:@typescript/typescript6@6.0.2 \
-  @typescript/native@npm:typescript@7.0.2
+  typescript-compiler@npm:typescript@7.0.2
 
 ```
 

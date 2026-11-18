@@ -190,7 +190,7 @@ async function checkVisualTreatment(
 		appearance.surfaces.hard,
 		theme === `dark` ? appearance.surfaces.shade : appearance.surfaces.tint,
 	)
-	assert.equal(appearance.noise.opacity, theme === `dark` ? `1` : `0.5`)
+	assert.equal(appearance.noise.opacity, theme === `dark` ? `0.35` : `0.12`)
 	assert.equal(
 		appearance.noise.blend,
 		theme === `dark` ? `soft-light` : `multiply`,
@@ -679,6 +679,20 @@ try {
 					document.querySelector<HTMLElement>(`.ecology`)?.dataset[`ready`] ===
 					`true`,
 			)
+			const capture = page.locator(`.ecology-capture`)
+			const disclosure = capture.locator(`summary`)
+			await disclosure.focus()
+			await disclosure.press(`Enter`)
+			assert.equal(
+				await capture.evaluate((node: HTMLDetailsElement) => node.open),
+				true,
+			)
+			assert.equal(await page.locator(`.ecology-legend`).isVisible(), true)
+			await disclosure.press(`Enter`)
+			assert.equal(
+				await capture.evaluate((node: HTMLDetailsElement) => node.open),
+				false,
+			)
 			const arrows = await page
 				.locator(`path.ecology-edge`)
 				.evaluateAll((paths: SVGPathElement[]) =>
@@ -760,6 +774,60 @@ try {
 				longFields,
 				visual,
 			})
+			if (!baseline && width === 390) {
+				await page.keyboard.press(`Escape`)
+				await page.getByTestId(`view-selectors`).click()
+				const error = page
+					.getByTestId(`state-value-failed`)
+					.locator(`.primitive code`)
+				assert.match(await error.innerText(), /Error: Example failure/)
+				await error.focus()
+				await error.press(`ArrowRight`)
+				await page.waitForFunction(
+					() =>
+						document.querySelector<HTMLElement>(
+							`[data-testid="state-value-failed"] code`,
+						)!.scrollLeft > 0,
+				)
+				assert.equal(
+					await error.evaluate((node) => getComputedStyle(node).outlineWidth),
+					`2px`,
+				)
+				await error.evaluate((node) => {
+					node.scrollLeft = 0
+				})
+				const session = await context.newCDPSession(page)
+				await session.send(`Emulation.setTouchEmulationEnabled`, {
+					enabled: true,
+				})
+				const rect = (await error.boundingBox())!
+				const touch = (x: number) => [{ x, y: rect.y + rect.height / 2 }]
+				await session.send(`Input.dispatchTouchEvent`, {
+					type: `touchStart`,
+					touchPoints: touch(rect.x + rect.width - 4),
+				})
+				for (let step = 1; step <= 5; step++)
+					await session.send(`Input.dispatchTouchEvent`, {
+						type: `touchMove`,
+						touchPoints: touch(
+							rect.x + rect.width - 4 - ((rect.width - 8) * step) / 5,
+						),
+					})
+				await session.send(`Input.dispatchTouchEvent`, {
+					type: `touchEnd`,
+					touchPoints: [],
+				})
+				await page.waitForFunction(
+					() =>
+						document.querySelector<HTMLElement>(
+							`[data-testid="state-value-failed"] code`,
+						)!.scrollLeft > 0,
+				)
+				await page.screenshot({
+					path: resolve(artifacts, `${theme}-narrow-readable-error.png`),
+				})
+				await session.detach()
+			}
 			await context.close()
 		}
 	if (!baseline)

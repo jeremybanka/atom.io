@@ -157,6 +157,29 @@ it(`navigates ranked matches inside collapsed families while preserving pan, exp
 	expect(f.button(`Expand family`)).toBeDefined()
 })
 
+it(`explains an empty filter without losing the retained selection or capture`, async () => {
+	const f = await setup()
+	await f.select(`state:count`)
+	const graph = f.host.querySelector<HTMLElement>(`.ecology`)!
+	const snapshot = graph.dataset[`snapshotMs`]
+	await f.query(`nothing-in-this-capture`)
+	const empty = f.host.querySelector<HTMLElement>(`.ecology-empty`)!
+	expect(empty.hidden).toBe(false)
+	expect(empty.textContent).toContain(`No nodes match this search`)
+	expect(
+		f.host.querySelector(`.ecology-selection-context`)!.textContent,
+	).toContain(`Retained selection`)
+	expect(f.host.querySelector(`.ecology-inspector h2`)!.textContent).toBe(
+		`count`,
+	)
+	f.button(`Clear search`).click()
+	await settle()
+	expect(empty.hidden).toBe(true)
+	expect(f.host.querySelector(`.ecology-selection-context`)).toBeNull()
+	expect(graph.dataset[`snapshotMs`]).toBe(snapshot)
+	expect(f.app.getState(f.countAtom)).toBe(2)
+})
+
 it(`keeps an unfinished numeric draft and its node mounted through query, clear, selection and Refresh`, async () => {
 	const f = await setup()
 	await f.select(`state:count`)

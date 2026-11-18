@@ -19,7 +19,7 @@ export function createEcologyController(
 ): () => void {
 	const document = host.ownerDocument
 	host.className = `ecology`
-	host.innerHTML = `<section class="ecology-search"><form class="ecology-tools"><input type="search" aria-label="Search ecology" placeholder="Search keys, families, types"><button type="button" data-action="clear-query">Clear search</button><button type="button" data-action="refresh">Refresh</button><button type="button" data-action="clear">Clear selection</button><button type="button" data-action="fit">Fit</button><button type="button" data-action="reset">Reset view</button></form><p class="ecology-counts" role="status"></p><p class="ecology-notice"></p><p class="ecology-legend">□ atom · ⬡ selector · dashed group: family · arrows: dependency → dependent · blue: traced path</p><p class="ecology-search-status" role="status"></p><ol class="ecology-results" aria-label="ecology search results"></ol><nav class="ecology-workspace" aria-label="Ecology workspace"><button type="button" data-action="view-graph" aria-pressed="true">Graph</button><button type="button" data-action="view-list" aria-pressed="false">Node list</button><button type="button" data-action="view-selection" aria-pressed="false">Selection</button></nav><section class="ecology-body"><section class="ecology-map"><nav aria-label="Graph navigation"><button type="button" data-action="left" aria-label="Pan left">←</button><button type="button" data-action="right" aria-label="Pan right">→</button><button type="button" data-action="up" aria-label="Pan up">↑</button><button type="button" data-action="down" aria-label="Pan down">↓</button><button type="button" data-action="in" aria-label="Zoom in">+</button><button type="button" data-action="out" aria-label="Zoom out">−</button></nav><svg role="group" aria-label="Observed dependency graph"></svg><details><summary>Accessible node list</summary><ul class="ecology-list"></ul></details></section><aside class="ecology-inspector" aria-label="Passive ecology inspector"></aside></section></section><section class="ecology-live-panel" hidden><header><span></span><button type="button" data-action="back">Back to passive inspector</button></header><section class="ecology-live"></section></section>`
+	host.innerHTML = `<section class="ecology-search"><form class="ecology-tools"><input type="search" aria-label="Search ecology" placeholder="Search keys, families, types"><button type="button" data-action="clear-query">Clear search</button><button type="button" data-action="refresh">Refresh</button><button type="button" data-action="clear">Clear selection</button><button type="button" data-action="fit">Fit</button><button type="button" data-action="reset">Reset view</button></form><p class="ecology-counts" role="status"></p><details class="ecology-capture"><summary>Capture details &amp; legend</summary><p class="ecology-notice"></p><p class="ecology-legend">□ atom · ⬡ selector · dashed group: family · arrows: dependency → dependent · blue: traced path</p></details><p class="ecology-search-status" role="status"></p><ol class="ecology-results" aria-label="ecology search results"></ol><nav class="ecology-workspace" aria-label="Ecology workspace"><button type="button" data-action="view-graph" aria-pressed="true">Graph</button><button type="button" data-action="view-list" aria-pressed="false">Node list</button><button type="button" data-action="view-selection" aria-pressed="false">Selection</button></nav><section class="ecology-body"><section class="ecology-map"><nav aria-label="Graph navigation"><button type="button" data-action="left" aria-label="Pan left">←</button><button type="button" data-action="right" aria-label="Pan right">→</button><button type="button" data-action="up" aria-label="Pan up">↑</button><button type="button" data-action="down" aria-label="Pan down">↓</button><button type="button" data-action="in" aria-label="Zoom in">+</button><button type="button" data-action="out" aria-label="Zoom out">−</button></nav><p class="ecology-empty" role="status" hidden></p><svg role="group" aria-label="Observed dependency graph"></svg><details><summary>Accessible node list</summary><ul class="ecology-list"></ul></details></section><aside class="ecology-inspector" aria-label="Passive ecology inspector"></aside></section></section><section class="ecology-live-panel" hidden><header><span></span><button type="button" data-action="back">Back to passive inspector</button></header><section class="ecology-live"></section></section>`
 	const input = host.querySelector(`input`)!
 	const panel = host.closest<HTMLElement>(`main`)!
 	const searchScope = host.querySelector<HTMLElement>(`.ecology-search`)!
@@ -170,6 +170,14 @@ export function createEcologyController(
 		const heading = element(`h2`, selected.key)
 		heading.tabIndex = -1
 		inspector.append(heading, element(`p`, selected.detail))
+		if (!model!.items.some((item) => item.id === selected.id)) {
+			const retained = element(
+				`p`,
+				`Retained selection · outside the current view.`,
+			)
+			retained.className = `ecology-selection-context`
+			inspector.append(retained)
+		}
 		const source = selected.source
 		if (`memberKeys` in source) {
 			inspector.append(
@@ -242,6 +250,12 @@ export function createEcologyController(
 			snapshot.truncated.relations
 				? `Capture truncated: full store totals unknown. Search covers captured metadata only. Captured counts above are exact.`
 				: `Observed snapshot ${context.capturedAt}. Paint cap: 500 nodes / 1,000 edges. Search to narrow; expand families for members.`
+		host.querySelector(`.ecology-capture summary`)!.textContent =
+			snapshot.truncated.nodes ||
+			snapshot.truncated.families ||
+			snapshot.truncated.relations
+				? `Capture details & legend · truncated capture`
+				: `Capture details & legend`
 		let world = svg.querySelector(`.ecology-world`)
 		if (!world) {
 			const defs = shape(`defs`, {}),
@@ -342,6 +356,11 @@ export function createEcologyController(
 			nodes.push(card.group)
 			rows.push(card.row)
 		}
+		const empty = host.querySelector<HTMLElement>(`.ecology-empty`)!
+		empty.hidden = value.items.length > 0
+		empty.textContent = context.query.trim()
+			? `No nodes match this search. Clear search to see the captured graph, or Refresh to recapture.`
+			: `No nodes in this capture. Refresh after your application creates state.`
 		host.dataset[`retainedCards`] = String(cards.length)
 		syncChildren(world.children[0], paths)
 		syncChildren(world.children[1], nodes)

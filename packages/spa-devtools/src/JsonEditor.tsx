@@ -194,7 +194,9 @@ function Primitive(props: {
 					}}
 				/>
 			) : (
-				<code>{describe(props.value)}</code>
+				<code tabIndex={0} title="Scroll horizontally to read the full value">
+					{describe(props.value)}
+				</code>
 			)}
 		</span>
 	)

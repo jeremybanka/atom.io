@@ -141,7 +141,11 @@ main[data-css="spa-devtools"] {
 		cursor: default;
 		color: var(--ink-disabled);
 	}
-	button:focus-visible, input:focus-visible, select:focus-visible {
+	button:focus-visible,
+	input:focus-visible,
+	select:focus-visible,
+	summary:focus-visible,
+	.primitive code:focus-visible {
 		outline: 2px solid var(--accent);
 		outline-offset: -2px;
 		background: var(--surface-focus);
@@ -475,6 +479,19 @@ main[data-css="spa-devtools"] {
 		line-height: 17px;
 		overflow-wrap: anywhere;
 	}
+	.ecology-inspector > .ecology-selection-context, .ecology-empty {
+		color: var(--ink-muted);
+		font-size: 12px;
+		line-height: 1.5;
+	}
+	.ecology-empty {
+		padding: 12px;
+		background: var(--surface-content);
+		border-bottom: 1px solid var(--line);
+	}
+	.ecology-empty[hidden] {
+		display: none;
+	}
 	.ecology-inspector > button {
 		height: auto;
 		min-height: 23px;
@@ -504,12 +521,13 @@ main[data-css="spa-devtools"] {
 		overflow: hidden;
 	}
 	.node > header h2 {
-		font-weight: 200;
-		padding: 0 3px;
+		font-weight: 500;
+		padding: 0 6px 0 3px;
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
 	.node > header small {
+		font-size: 11px;
 		margin-right: auto;
 	}
 	small {
@@ -532,6 +550,9 @@ main[data-css="spa-devtools"] {
 		}
 	}
 	.json-editor > header {
+		display: grid;
+		grid-template-columns:
+			21px minmax(0, min(42%, 32ch)) 8ch minmax(0, 1fr) 21px;
 		background: var(--drawer-surface);
 		height: 21px;
 		min-width: 0;
@@ -570,6 +591,10 @@ main[data-css="spa-devtools"] {
 		color: var(--ink-muted);
 		padding: 0 3px;
 	}
+	.json-editor > header > select, .json-editor > header > small {
+		font-size: 11px;
+		color: var(--ink-muted);
+	}
 	.primitive {
 		flex: 1;
 		min-width: 0;
@@ -582,12 +607,25 @@ main[data-css="spa-devtools"] {
 		max-width: 100%;
 		min-width: calc(1ch + 6px);
 	}
+	.json-editor > header:has(> .primitive[data-kind="number"]) {
+		/* Long numeric drafts can borrow key space while short values keep the column. */
+		display: flex;
+		padding-right: 21px;
+		> .field-name {
+			flex: 0 1 min(42%, 32ch);
+		}
+		> select, > small {
+			flex: 0 0 67px;
+		}
+		> button:last-child {
+			margin-left: auto;
+			margin-right: -21px;
+		}
+	}
 	.primitive[data-kind="number"] {
-		/* Shrink the key before the value; exceptionally long numbers still fit the row. */
 		flex: 0 0 auto;
-		min-width: min(6ch, 50%);
+		min-width: min(10ch, 50%);
 		max-width: 50%;
-		margin-left: auto;
 		text-align: right;
 		font-variant-numeric: tabular-nums;
 	}
@@ -621,6 +659,9 @@ main[data-css="spa-devtools"] {
 	}
 
 	.primitive code {
+		display: block;
+		overflow-x: auto;
+		scrollbar-width: none;
 		white-space: nowrap;
 	}
 	.properties, .impact {
@@ -646,9 +687,13 @@ main[data-css="spa-devtools"] {
 		border-top: 1px solid var(--line);
 	}
 	.event > header strong {
-		padding-right: 5px;
+		min-width: 0;
+		padding-right: 6px;
 		overflow: hidden;
 		text-overflow: ellipsis;
+	}
+	.event > header small {
+		font-size: 11px;
 	}
 	.event p, .event > code {
 		display: block;
@@ -740,13 +785,13 @@ main[data-css="spa-devtools"] {
 		inset: 0;
 		pointer-events: none;
 		z-index: 10;
-		opacity: 1;
+		opacity: 0.35;
 		mix-blend-mode: soft-light;
 		background-repeat: repeat;
 		background-size: 1024px;
 		background-position: center;
 		@media (prefers-color-scheme: light) {
-			opacity: 0.5;
+			opacity: 0.12;
 			mix-blend-mode: multiply;
 		}
 		background-image: url("data:image/svg+xml,%3Csvg%20viewBox%3D%270%200%202048%202048%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%20%0A%20%20%20%20%20%20%3Cfilter%20id%3D%27noiseFilter%27%3E%0A%20%20%20%20%20%20%20%20%3CfeTurbulence%20%0A%20%20%20%20%20%20%20%20%20%20type%3D%27fractalNoise%27%20%0A%20%20%20%20%20%20%20%20%20%20baseFrequency%3D%270.65%27%20%0A%20%20%20%20%20%20%20%20%20%20numOctaves%3D%273%27%20%0A%20%20%20%20%20%20%20%20%20%20stitchTiles%3D%27stitch%27%2F%3E%0A%20%20%20%20%20%20%3C%2Ffilter%3E%0A%20%20%20%20%20%20%0A%20%20%20%20%20%20%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23noiseFilter%29%27%2F%3E%0A%20%20%20%20%3C%2Fsvg%3E");
@@ -762,12 +807,19 @@ main[data-css="spa-devtools"] {
 		flex-direction: column;
 	}
 	.state-search-ui {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		gap: 4px 8px;
+		align-items: start;
 		background: var(--surface-search);
 		flex: 0 1 auto;
 		max-height: 60%;
 		overflow: auto;
 		padding: 6px;
 		border-bottom: 1px solid var(--line);
+	}
+	.search-row, .search-pin, .search-results, .search-details {
+		grid-column: 1 / -1;
 	}
 	.search-row {
 		background: var(--surface-search);
@@ -785,9 +837,35 @@ main[data-css="spa-devtools"] {
 	.search-status, .search-pin {
 		font-size: 11px;
 		line-height: 1.4;
-		margin-top: 4px;
+		margin-top: 0;
+	}
+	.search-status {
+		color: var(--ink-muted);
+	}
+	.search-status > strong {
+		display: inline;
+		color: var(--ink-strong);
+		font-size: 12px;
+	}
+	.search-capture {
+		margin-top: 0;
+		font-size: 11px;
+		line-height: 1.4;
+		color: var(--ink-muted);
+	}
+	.search-capture > summary {
+		cursor: pointer;
+		width: fit-content;
+		padding: 0;
+	}
+	.search-capture[open] {
+		grid-column: 1 / -1;
+	}
+	.search-capture > p {
+		padding: 4px 0;
 	}
 	.search-pin {
+		/* Keep controls still when a pinned edit ends between pointer down and click. */
 		min-height: 16px;
 	}
 	.search-results {
@@ -797,8 +875,9 @@ main[data-css="spa-devtools"] {
 		overflow: auto;
 	}
 	.search-results > li {
-		display: flex;
-		flex-wrap: wrap;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		align-items: center;
 		gap: 4px;
 		border-bottom: 1px solid var(--line);
 	}
@@ -810,6 +889,7 @@ main[data-css="spa-devtools"] {
 	}
 	.search-results small {
 		font-size: 11px;
+		line-height: 1.4;
 		overflow-wrap: anywhere;
 	}
 	.search-results[aria-busy="true"] {
@@ -817,6 +897,8 @@ main[data-css="spa-devtools"] {
 		pointer-events: none;
 	}
 	.search-details {
+		padding: 5px 3px 0;
+		border-top: 1px solid var(--line);
 		overflow-wrap: anywhere;
 		font-size: 12px;
 		line-height: 1.4;
@@ -824,6 +906,13 @@ main[data-css="spa-devtools"] {
 	.search-details button {
 		height: auto;
 		min-height: 24px;
+	}
+	.search-context {
+		padding: 5px 6px;
+		font-size: 11px;
+		line-height: 1.4;
+		color: var(--ink-muted);
+		border-bottom: 1px solid var(--line);
 	}
 	.search-live {
 		flex: 0 0 auto;
@@ -854,6 +943,21 @@ main[data-css="spa-devtools"] {
 		flex: 1;
 		min-height: 0;
 		flex-direction: column;
+	}
+	.ecology-capture {
+		flex-shrink: 0;
+		background: var(--surface-search);
+		border-bottom: 1px solid var(--line);
+		font-size: 11px;
+		line-height: 1.4;
+		color: var(--ink-muted);
+	}
+	.ecology-capture > summary {
+		padding: 4px 6px;
+		cursor: pointer;
+	}
+	.ecology-counts {
+		font-weight: 500;
 	}
 	.ecology-search-status {
 		background: var(--surface-search);
@@ -910,6 +1014,13 @@ main[data-css="spa-devtools"] .ecology-workspace {
 }
 @container atom-io-devtools (max-width: 650px) {
 	main[data-css="spa-devtools"] {
+		.search-results > li {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 0;
+		}
+		.search-results small:not(:empty) {
+			padding: 0 3px 4px;
+		}
 		.ecology-workspace {
 			display: flex;
 			flex-shrink: 0;

@@ -93,7 +93,10 @@ try {
 			require.resolve(`@atom.io/spa-devtools/css`),
 			`utf8`,
 		)
-		assert.match(css, /spa-devtools/)
+		assert.match(css, /debugger-panel\.[\w-]+/)
+		assert.match(css, /container: atom-io-devtools \/ inline-size/)
+		assert.match(css, /@container atom-io-devtools/)
+		assert.doesNotMatch(css, /@container atom-io-\w+-module-atom-io-devtools/)
 		const cssPath = require.resolve(`@atom.io/spa-devtools/css`)
 		const provenance = JSON.parse(
 			await readFile(

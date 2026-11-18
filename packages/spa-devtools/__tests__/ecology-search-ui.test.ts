@@ -1,7 +1,8 @@
 import { Silo } from "atom.io"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 
-import { mountAtomIODevtools } from "../src/AtomIODevtools.tsx"
+import { mountAtomIODevtools } from "../src/mount.ts"
+import { mountEcologyFixture } from "./fixtures/views.tsx"
 
 let dispose = () => {}
 beforeEach(() => {
@@ -69,36 +70,40 @@ async function setup() {
 
 it(`switches compact graph, list and selection without replacing the live draft or capture`, async () => {
 	const f = await setup()
-	const panel = f.host.querySelector<HTMLElement>(`main`)!
+	const panel = f.host.querySelector<HTMLElement>(`debugger-panel`)!
 	const width = vi.spyOn(panel, `clientWidth`, `get`).mockReturnValue(500)
-	const graph = f.host.querySelector<HTMLElement>(`.ecology`)!
+	const graph = f.host.querySelector<HTMLElement>(`ecology-view`)!
 	const captured = graph.dataset[`snapshotMs`]
 	await f.select(`state:count`)
 	expect(graph.dataset[`workspace`]).toBe(`selection`)
 	expect(document.activeElement).toBe(
-		f.host.querySelector(`.ecology-inspector h2`),
+		f.host.querySelector(`ecology-body > aside h2`),
 	)
 	f.button(`Open live editor (may read/evaluate)`).click()
-	const editor = f.host.querySelector<HTMLInputElement>(`.ecology-live input`)!
+	await settle()
+	const editor = f.host.querySelector<HTMLInputElement>(`ecology-live input`)!
 	editor.focus()
 	editor.value = `2e`
 	editor.dispatchEvent(new Event(`input`, { bubbles: true }))
 	for (const view of [`Node list`, `Graph`, `Selection`]) {
 		f.button(view).focus()
 		f.button(view).click()
+		await settle()
 		expect(f.button(view).getAttribute(`aria-pressed`)).toBe(`true`)
-		expect(f.host.querySelector(`.ecology-live input`)).toBe(editor)
+		expect(f.host.querySelector(`ecology-live input`)).toBe(editor)
 		expect(editor.value).toBe(`2e`)
 	}
 	expect(
-		f.host.querySelector<HTMLDetailsElement>(`.ecology-map details`)!.open,
+		f.host.querySelector<HTMLDetailsElement>(`ecology-map details`)!.open,
 	).toBe(true)
 	await f.query(`green tea`)
-	f.host.querySelector<HTMLButtonElement>(`.ecology-results button`)!.click()
+	f.host
+		.querySelector<HTMLButtonElement>(`ecology-view [data-results] button`)!
+		.click()
 	await settle()
 	expect(graph.dataset[`workspace`]).toBe(`selection`)
 	expect(document.activeElement).toBe(
-		f.host.querySelector(`.ecology-inspector h2`),
+		f.host.querySelector(`ecology-body > aside h2`),
 	)
 	expect(editor.value).toBe(`2e`)
 	await f.key(document.activeElement!, `Escape`)
@@ -106,51 +111,64 @@ it(`switches compact graph, list and selection without replacing the live draft 
 	expect(f.app.getState(f.countAtom)).toBe(2)
 	expect(graph.dataset[`snapshotMs`]).toBe(captured)
 	f.button(`Graph`).click()
+	await settle()
 	f.button(`Back to passive inspector`).click()
+	await settle()
 	expect(graph.dataset[`workspace`]).toBe(`selection`)
 	expect(document.activeElement).toBe(
 		f.button(`Open live editor (may read/evaluate)`),
 	)
 	width.mockReturnValue(900)
 	await f.query(`count`)
-	f.host.querySelector<HTMLButtonElement>(`.ecology-results button`)!.click()
+	f.host
+		.querySelector<HTMLButtonElement>(`ecology-view [data-results] button`)!
+		.click()
 	await settle()
-	expect(document.activeElement?.closest(`.ecology-list`)).not.toBeNull()
+	expect(document.activeElement?.closest(`ecology-map ul`)).not.toBeNull()
 	f.button(`Open live editor (may read/evaluate)`).click()
+	await settle()
 	f.button(`Clear selection`).click()
 	await settle()
 	f.button(`Back to passive inspector`).click()
-	expect(document.activeElement).toBe(f.host.querySelector(`.ecology-inspector`))
+	await settle()
+	expect(document.activeElement).toBe(
+		f.host.querySelector(`ecology-body > aside`),
+	)
 })
 
 it(`navigates ranked matches inside collapsed families while preserving pan, expansion and same-node tracing`, async () => {
 	const f = await setup()
 	f.button(`Pan right`).click()
+	await settle()
 	f.button(`Zoom in`).click()
+	await settle()
 	const world = () =>
-		f.host.querySelector(`.ecology-world`)!.getAttribute(`transform`)
+		f.host.querySelector(`[data-world]`)!.getAttribute(`transform`)
 	const before = world(),
-		jobs = f.host.querySelector<HTMLElement>(`.ecology`)!.dataset[`snapshotMs`]
+		jobs =
+			f.host.querySelector<HTMLElement>(`ecology-view`)!.dataset[`snapshotMs`]
 	await f.query(`GREEN tea`)
-	const hit = f.host.querySelector<HTMLButtonElement>(`.ecology-results button`)!
+	const hit = f.host.querySelector<HTMLButtonElement>(
+		`ecology-view [data-results] button`,
+	)!
 	expect(hit).not.toBeNull()
 	await f.key(f.input(), `ArrowDown`)
 	expect(document.activeElement).toBe(hit)
 	hit.click()
 	await settle()
-	expect(f.host.querySelector(`.ecology-inspector h2`)!.textContent).toBe(
+	expect(f.host.querySelector(`ecology-body > aside h2`)!.textContent).toBe(
 		`items("green-tea")`,
 	)
-	expect(document.activeElement?.closest(`.ecology-list`)).not.toBeNull()
+	expect(document.activeElement?.closest(`ecology-map ul`)).not.toBeNull()
 	expect(world()).toBe(before)
 	f.button(`Trace observed roots`).click()
 	await settle()
 	await f.query(`items green`)
-	expect(f.host.querySelector(`.ecology-inspector`)!.textContent).toContain(
+	expect(f.host.querySelector(`ecology-body > aside`)!.textContent).toContain(
 		`Retained trace`,
 	)
 	expect(
-		f.host.querySelector<HTMLElement>(`.ecology`)!.dataset[`snapshotMs`],
+		f.host.querySelector<HTMLElement>(`ecology-view`)!.dataset[`snapshotMs`],
 	).toBe(jobs)
 	await f.query(``)
 	await f.select(`family:items`)
@@ -160,22 +178,22 @@ it(`navigates ranked matches inside collapsed families while preserving pan, exp
 it(`explains an empty filter without losing the retained selection or capture`, async () => {
 	const f = await setup()
 	await f.select(`state:count`)
-	const graph = f.host.querySelector<HTMLElement>(`.ecology`)!
+	const graph = f.host.querySelector<HTMLElement>(`ecology-view`)!
 	const snapshot = graph.dataset[`snapshotMs`]
 	await f.query(`nothing-in-this-capture`)
-	const empty = f.host.querySelector<HTMLElement>(`.ecology-empty`)!
+	const empty = f.host.querySelector<HTMLElement>(`[data-empty]`)!
 	expect(empty.hidden).toBe(false)
 	expect(empty.textContent).toContain(`No nodes match this search`)
 	expect(
-		f.host.querySelector(`.ecology-selection-context`)!.textContent,
+		f.host.querySelector(`[data-selection-context]`)!.textContent,
 	).toContain(`Retained selection`)
-	expect(f.host.querySelector(`.ecology-inspector h2`)!.textContent).toBe(
+	expect(f.host.querySelector(`ecology-body > aside h2`)!.textContent).toBe(
 		`count`,
 	)
 	f.button(`Clear search`).click()
 	await settle()
 	expect(empty.hidden).toBe(true)
-	expect(f.host.querySelector(`.ecology-selection-context`)).toBeNull()
+	expect(f.host.querySelector(`[data-selection-context]`)).toBeNull()
 	expect(graph.dataset[`snapshotMs`]).toBe(snapshot)
 	expect(f.app.getState(f.countAtom)).toBe(2)
 })
@@ -187,17 +205,19 @@ it(`keeps an unfinished numeric draft and its node mounted through query, clear,
 	await settle()
 	f.button(`Open live editor (may read/evaluate)`).click()
 	await settle()
-	const editor = f.host.querySelector<HTMLInputElement>(`.ecology-live input`)!
+	const editor = f.host.querySelector<HTMLInputElement>(`ecology-live input`)!
 	editor.focus()
 	editor.value = `1e`
 	editor.dispatchEvent(new Event(`input`, { bubbles: true }))
 	editor.setSelectionRange(1, 2)
 	await f.query(`green tea`)
-	f.host.querySelector<HTMLButtonElement>(`.ecology-results button`)!.click()
+	f.host
+		.querySelector<HTMLButtonElement>(`ecology-view [data-results] button`)!
+		.click()
 	await settle()
 	f.button(`Refresh`).click()
 	await settle()
-	expect(f.host.querySelector(`.ecology-live input`)).toBe(editor)
+	expect(f.host.querySelector(`ecology-live input`)).toBe(editor)
 	expect(editor.value).toBe(`1e`)
 	expect(f.app.getState(f.countAtom)).toBe(2)
 	await f.key(f.input(), `Escape`)
@@ -207,7 +227,7 @@ it(`keeps an unfinished numeric draft and its node mounted through query, clear,
 	f.button(`Back to passive inspector`).focus()
 	f.button(`Back to passive inspector`).click()
 	await settle()
-	expect(f.host.querySelector(`.ecology-live input`)).toBeNull()
+	expect(f.host.querySelector(`ecology-live input`)).toBeNull()
 })
 
 it(`retains invalid-query results, respects IME/native find and never recaptures on a query`, async () => {
@@ -215,32 +235,36 @@ it(`retains invalid-query results, respects IME/native find and never recaptures
 	await f.query(`count`)
 	const row = f.host.querySelector(`g[data-graph-id="state:count"]`)
 	await f.query(`x`.repeat(257))
-	expect(f.host.querySelector(`.ecology-search-status`)!.textContent).toContain(
-		`256`,
-	)
+	expect(
+		f.host.querySelector(`ecology-view [data-search-status]`)!.textContent,
+	).toContain(`256`)
 	expect(f.host.querySelector(`g[data-graph-id="state:count"]`)).toBe(row)
 	f.input().value = `items`
 	f.input().dispatchEvent(
 		new InputEvent(`input`, { isComposing: true, bubbles: true }),
 	)
 	await settle()
-	expect(f.host.querySelector(`.ecology-search-status`)!.textContent).toContain(
-		`256`,
-	)
+	expect(
+		f.host.querySelector(`ecology-view [data-search-status]`)!.textContent,
+	).toContain(`256`)
 	f.input().dispatchEvent(new Event(`compositionend`, { bubbles: true }))
 	await settle()
 	expect(
-		f.host.querySelectorAll(`.ecology-results button`).length,
+		f.host.querySelectorAll(`ecology-view [data-results] button`).length,
 	).toBeGreaterThan(0)
 	expect((await f.key(f.input(), `f`, { ctrlKey: true })).defaultPrevented).toBe(
 		false,
 	)
 	f.app.atom<number>({ key: `later`, default: 0 })
 	await f.query(`later`)
-	expect(f.host.querySelectorAll(`.ecology-results button`)).toHaveLength(0)
+	expect(
+		f.host.querySelectorAll(`ecology-view [data-results] button`),
+	).toHaveLength(0)
 	f.button(`Refresh`).click()
 	await settle()
-	expect(f.host.querySelectorAll(`.ecology-results button`)).toHaveLength(1)
+	expect(
+		f.host.querySelectorAll(`ecology-view [data-results] button`),
+	).toHaveLength(1)
 	f.button(`Clear search`).click()
 	await settle()
 	expect(f.input().value).toBe(``)
@@ -257,7 +281,9 @@ it(`shares shortcuts with other views, preserves native modifiers and cancels wi
 	await f.key(move, `f`, { ctrlKey: true, shiftKey: true })
 	expect(document.activeElement).toBe(f.input())
 	await f.query(`items`)
-	const hit = f.host.querySelector<HTMLButtonElement>(`.ecology-results button`)!
+	const hit = f.host.querySelector<HTMLButtonElement>(
+		`ecology-view [data-results] button`,
+	)!
 	hit.focus()
 	await f.key(hit, `Escape`)
 	expect(document.activeElement).toBe(f.input())
@@ -283,7 +309,7 @@ it(`shares shortcuts with other views, preserves native modifiers and cancels wi
 	input.dispatchEvent(prevented)
 	await settle()
 	const result = f.host.querySelector<HTMLButtonElement>(
-		`.ecology-results button`,
+		`ecology-view [data-results] button`,
 	)!
 	result.focus()
 	result.click()
@@ -293,9 +319,6 @@ it(`shares shortcuts with other views, preserves native modifiers and cancels wi
 })
 
 it(`uses latest input while metadata indexing is in flight and cancels hidden/disposed work`, async () => {
-	const { createEcologyController } = await import(
-		`../src/ecology-controller.ts`
-	)
 	const { createGraphContext } = await import(`../src/ecology-graph.ts`)
 	const app = new Silo({
 		name: `ecology-lifecycle`,
@@ -306,18 +329,16 @@ it(`uses latest input while metadata indexing is in flight and cancels hidden/di
 		const options = { key: `record${i}`, default: 0 }
 		app.atom<number>(options)
 	}
-	const panel = document.createElement(`main`),
-		host = document.createElement(`article`)
-	panel.append(host)
+	const panel = document.createElement(`main`)
+	let host!: HTMLElement
 	document.body.append(panel)
 	let clock = 0
 	vi.spyOn(performance, `now`).mockImplementation(() => ++clock)
-	dispose = createEcologyController(
-		host,
+	;({ dispose, host } = mountEcologyFixture(
+		panel,
 		app.store,
 		createGraphContext(),
-		() => () => {},
-	)
+	))
 	const input = host.querySelector(`input`)!
 	input.value = `record79`
 	input.dispatchEvent(new Event(`input`, { bubbles: true }))
@@ -327,23 +348,27 @@ it(`uses latest input while metadata indexing is in flight and cancels hidden/di
 	expect(host.dataset[`jobs`]).toBeUndefined()
 	panel.hidden = false
 	await settle()
-	expect(host.querySelector(`.ecology-results button`)!.textContent).toBe(
-		`record79`,
-	)
+	expect(
+		host.querySelector(`ecology-view [data-results] button`)!.textContent,
+	).toBe(`record79`)
 	const jobs = host.dataset[`jobs`]
 	panel.dataset[`open`] = `false`
 	await settle()
 	input.value = `record1`
 	input.dispatchEvent(new Event(`input`, { bubbles: true }))
 	host.querySelector<HTMLButtonElement>(`[data-action="refresh"]`)!.click()
+	await settle()
 	expect(host.dataset[`jobs`]).toBe(jobs)
 	panel.dataset[`open`] = `true`
 	await settle()
 	expect(host.dataset[`jobs`]).not.toBe(jobs)
 	input.value = `record2`
 	input.dispatchEvent(new Event(`input`, { bubbles: true }))
-	const old = host.querySelector<HTMLButtonElement>(`.ecology-results button`)!
+	const old = host.querySelector<HTMLButtonElement>(
+		`ecology-view [data-results] button`,
+	)!
 	old.click()
+	await settle()
 	input.dispatchEvent(
 		new KeyboardEvent(`keydown`, { key: `ArrowDown`, bubbles: true }),
 	)
@@ -353,9 +378,6 @@ it(`uses latest input while metadata indexing is in flight and cancels hidden/di
 })
 
 it(`waits for a committed root and can clear selection before the first admitted capture`, async () => {
-	const { createEcologyController } = await import(
-		`../src/ecology-controller.ts`
-	)
 	const { createGraphContext } = await import(`../src/ecology-graph.ts`)
 	const app = new Silo({
 		name: `ecology-transaction`,
@@ -366,20 +388,18 @@ it(`waits for a committed root and can clear selection before the first admitted
 		key: `capture`,
 		do: () => {},
 	})
-	const panel = document.createElement(`main`),
-		host = document.createElement(`article`)
-	panel.append(host)
+	const panel = document.createElement(`main`)
+	let host!: HTMLElement
 	document.body.append(panel)
 	const stop = app.store.on.transactionApplying.subscribe(
 		`mount-search`,
 		(applying) => {
 			if (applying !== null) {
-				dispose = createEcologyController(
-					host,
+				;({ dispose, host } = mountEcologyFixture(
+					panel,
 					app.store,
 					createGraphContext(),
-					() => () => {},
-				)
+				))
 				host.querySelector<HTMLButtonElement>(`[data-action="clear"]`)!.click()
 				expect(host.textContent).toContain(`Waiting for the current transaction`)
 			}
@@ -394,11 +414,13 @@ it(`waits for a committed root and can clear selection before the first admitted
 it(`closes a disposed live member on Refresh without applying the unfinished draft`, async () => {
 	const f = await setup()
 	await f.query(`green tea`)
-	f.host.querySelector<HTMLButtonElement>(`.ecology-results button`)!.click()
+	f.host
+		.querySelector<HTMLButtonElement>(`ecology-view [data-results] button`)!
+		.click()
 	await settle()
 	f.button(`Open live editor (may read/evaluate)`).click()
 	await settle()
-	const editor = f.host.querySelector<HTMLInputElement>(`.ecology-live input`)!
+	const editor = f.host.querySelector<HTMLInputElement>(`ecology-live input`)!
 	editor.focus()
 	editor.value = `1e`
 	editor.dispatchEvent(new Event(`input`, { bubbles: true }))
@@ -407,15 +429,12 @@ it(`closes a disposed live member on Refresh without applying the unfinished dra
 	f.button(`Refresh`).click()
 	await settle()
 	expect(editor.isConnected).toBe(false)
-	expect(f.host.querySelector<HTMLElement>(`.ecology-live-panel`)!.hidden).toBe(
+	expect(f.host.querySelector<HTMLElement>(`ecology-live-panel`)!.hidden).toBe(
 		true,
 	)
 })
 
 it(`reports incomplete snapshots, truncated prefixes and bounded approximate matching in the search status`, async () => {
-	const { createEcologyController } = await import(
-		`../src/ecology-controller.ts`
-	)
 	const { createGraphContext } = await import(`../src/ecology-graph.ts`)
 	const app = new Silo({
 		name: `ecology-limits-ui`,
@@ -428,24 +447,25 @@ it(`reports incomplete snapshots, truncated prefixes and bounded approximate mat
 		const optionsForMember = { key: `${`a`.repeat(61)}b-${i}`, default: 0 }
 		app.atom<number>(optionsForMember)
 	}
-	const panel = document.createElement(`main`),
-		host = document.createElement(`article`)
-	panel.append(host)
+	const panel = document.createElement(`main`)
+	let host!: HTMLElement
 	document.body.append(panel)
 	const context = createGraphContext()
 	context.query = `${`a`.repeat(61)}c `.repeat(4).trim()
-	dispose = createEcologyController(host, app.store, context, () => () => {})
+	;({ dispose, host } = mountEcologyFixture(panel, app.store, context))
 	await settle()
-	expect(host.querySelector(`.ecology-notice`)!.textContent).toContain(
-		`full store totals unknown`,
-	)
-	expect(host.querySelector(`.ecology-search-status`)!.textContent).toContain(
-		`text prefixes truncated`,
-	)
-	expect(host.querySelector(`.ecology-search-status`)!.textContent).toContain(
-		`Approximate search limited`,
-	)
-	expect(host.querySelectorAll(`.ecology-results button`)).toHaveLength(100)
+	expect(
+		host.querySelector(`ecology-view [data-notice]`)!.textContent,
+	).toContain(`full store totals unknown`)
+	expect(
+		host.querySelector(`ecology-view [data-search-status]`)!.textContent,
+	).toContain(`text prefixes truncated`)
+	expect(
+		host.querySelector(`ecology-view [data-search-status]`)!.textContent,
+	).toContain(`Approximate search limited`)
+	expect(
+		host.querySelectorAll(`ecology-view [data-results] button`),
+	).toHaveLength(100)
 })
 
 it(`reuses visible slots across filters, preserves logical focus and invalidates slots on Refresh`, async () => {
@@ -454,13 +474,13 @@ it(`reuses visible slots across filters, preserves logical focus and invalidates
 	const original = f.host.querySelector<SVGElement>(
 		`g[data-graph-id="state:count"]`,
 	)!
-	const row = f.host.querySelector(`.ecology-list button`)!
-	const world = f.host.querySelector(`.ecology-world`)
+	const row = f.host.querySelector(`ecology-map ul button`)!
+	const world = f.host.querySelector(`[data-world]`)
 	await f.query(`green tea`)
 	expect(f.host.querySelector(`g[data-graph-id]`)).toBe(original)
 	expect(original.getAttribute(`data-graph-id`)).toBe(`state:items("green-tea")`)
 	await f.query(`count`)
-	expect(f.host.querySelector(`.ecology-list button`)).toBe(row)
+	expect(f.host.querySelector(`ecology-map ul button`)).toBe(row)
 	original.focus()
 	f.input().value = ``
 	f.input().dispatchEvent(new Event(`input`, { bubbles: true }))
@@ -468,7 +488,7 @@ it(`reuses visible slots across filters, preserves logical focus and invalidates
 	expect(document.activeElement?.getAttribute(`data-graph-id`)).toBe(
 		`state:count`,
 	)
-	expect(f.host.querySelector(`.ecology-world`)).toBe(world)
+	expect(f.host.querySelector(`[data-world]`)).toBe(world)
 	await f.query(`count`)
 	const current = f.host.querySelector(`g[data-graph-id]`)
 	f.button(`Refresh`).click()
@@ -490,17 +510,23 @@ it(`bounds retained cards when successive filters visit disjoint parts of a larg
 		expect(f.host.querySelectorAll(`g[data-graph-id]`)).toHaveLength(500)
 		expect(
 			Number(
-				f.host.querySelector<HTMLElement>(`.ecology`)!.dataset[`retainedCards`],
+				f.host.querySelector<HTMLElement>(`ecology-view`)!.dataset[
+					`retainedCards`
+				],
 			),
 		).toBeLessThanOrEqual(500)
 	}
 	await f.query(`gamma499`)
-	f.host.querySelector<HTMLButtonElement>(`.ecology-results button`)!.click()
+	f.host
+		.querySelector<HTMLButtonElement>(`ecology-view [data-results] button`)!
+		.click()
 	await settle()
 	await f.query(`a`)
 	expect(
 		Number(
-			f.host.querySelector<HTMLElement>(`.ecology`)!.dataset[`retainedCards`],
+			f.host.querySelector<HTMLElement>(`ecology-view`)!.dataset[
+				`retainedCards`
+			],
 		),
 	).toBeLessThanOrEqual(500)
 	expect(

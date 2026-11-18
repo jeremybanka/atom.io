@@ -1,0 +1,7 @@
+highlighted-text.class {
+	display: contents;
+	> mark {
+		color: var(--surface-focus);
+		background: var(--ink-strong);
+	}
+}

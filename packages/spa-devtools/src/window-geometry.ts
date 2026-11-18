@@ -139,3 +139,9 @@ export function readGeometry(
 			: null,
 	}
 }
+
+export function rectStyle(rect?: Rect): string {
+	return rect
+		? `left:${rect.x}px;top:${rect.y}px;width:${rect.width}px;height:${rect.height}px`
+		: ``
+}

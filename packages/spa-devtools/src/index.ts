@@ -1,8 +1,4 @@
-export type {
-	AtomIODevtoolsHandle,
-	AtomIODevtoolsProps,
-} from "./AtomIODevtools.tsx"
-export { AtomIODevtools, mountAtomIODevtools } from "./AtomIODevtools.tsx"
+export { AtomIODevtools } from "./AtomIODevtools.tsx"
 export type {
 	EcologyFamily,
 	EcologyLimits,
@@ -12,3 +8,5 @@ export type {
 	EcologyValueType,
 } from "./ecology.ts"
 export { captureEcologySnapshot, traceEcologyRoots } from "./ecology.ts"
+export type { AtomIODevtoolsHandle, AtomIODevtoolsProps } from "./mount.ts"
+export { mountAtomIODevtools } from "./mount.ts"

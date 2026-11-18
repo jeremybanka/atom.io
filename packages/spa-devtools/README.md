@@ -88,7 +88,7 @@ Drawer headers use the first, second and third shade as actual JSON nesting incr
 
 The bundled Theia weights are 200 for lightweight headings, 400 for body/control text and 500 for emphasis. The private font-family name Atom IO Theia avoids accidentally resolving an ambient site installation. Font synthesis is disabled. The original files were authored by Jeremy Banka and are distributed under MPL-2.0; their source paths, hashes and preserved copyright notices are recorded in the packaged fonts/PROVENANCE.json and fonts/LICENSE beside the stylesheet. Font URLs are relative to the emitted CSS, so root and subpath hosting work without requests to atom.io.fyi. Serve the emitted fonts directory with the stylesheet; no system font or root-level site assets are required.
 
-The existing demonstration uses component-owned Lasertag CSS Modules with one class export and named roots. Its opted-in data-atom-io-theme surface inherits the same published tokens. The debugger's imperative graph/editor DOM keeps its scoped stylesheet; the emitted CSS needs no Lasertag runtime, CSS Modules loader or site build configuration. The later storefront can reuse these tokens without introducing another palette.
+The debugger and storefront use component-owned Lasertag CSS Modules with one class export and named roots. SPA components render the complete debugger, including search results, the ecology graph and inspector, and the window layout palette. Controllers schedule capture and matching, handle gestures and restore focus after SPA commits. Global CSS contains the shared theme tokens, fonts and scoped resets. The emitted stylesheet needs no Lasertag runtime, CSS Modules loader or site build configuration.
 
 ## Search across debugger views
 
@@ -182,7 +182,7 @@ traceEcologyRoots follows the captured edges iteratively, deduplicates shared ro
 
 ## Package checks
 
-Tsdown builds the package JavaScript and declarations. SPA's compiler transforms the debugger JSX before bundling, preserving reactive bindings. The build copies the stylesheet, its declaration and the three licensed font assets alongside the JavaScript; SPA and atom.io stay external peers.
+Tsdown builds the package JavaScript and declarations. SPA's compiler transforms the debugger JSX before bundling, preserving reactive bindings. The build bundles the component styles into the existing CSS entry and copies its declaration and the three licensed font assets alongside the JavaScript; SPA and atom.io stay external peers.
 
 Breakage exercises the packed package in isolated, locked peer environments, including the coordinated atom.io workspace candidate. Until the first published release, Breakage reports a first-release baseline; these checks establish compatibility with the declared peers rather than a previous spa release. Coverage gates require 100% of statements, branches, functions, and lines across the package source.
 
@@ -196,7 +196,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                        | Entry                         | Minified JS |  Gzip JS |
 | ----------------------------- | ----------------------------- | ----------: | -------: |
-| Interactive app with debugger | `tonnage-recipes/debugger.ts` |   144,168 B | 44,838 B |
+| Interactive app with debugger | `tonnage-recipes/debugger.ts` |   148,602 B | 45,770 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

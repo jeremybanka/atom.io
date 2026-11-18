@@ -61,11 +61,11 @@ function orderTools({ canvas, canvasElement, userEvent }: Context) {
 		const switcher = within(graph).getByRole(`button`, { name: `Node list` })
 		if (switcher.checkVisibility()) await userEvent.click(switcher)
 		const details =
-			graph.querySelector<HTMLDetailsElement>(`.ecology-map details`)!
+			graph.querySelector<HTMLDetailsElement>(`ecology-map details`)!
 		if (!details.open) await userEvent.click(details.querySelector(`summary`)!)
 		const id = `${family ? `family` : `state`}:${key}`
 		const button = graph.querySelector<HTMLElement>(
-			`.ecology-list button[data-graph-id=${JSON.stringify(id)}]`,
+			`ecology-map ul button[data-graph-id=${JSON.stringify(id)}]`,
 		)
 		await expect(button).not.toBeNull()
 		await userEvent.click(button!)
@@ -107,10 +107,14 @@ export const playPrimary: Play = async ({ canvas, userEvent, step }) => {
 			),
 		)
 		await expect(
-			canvas.getByTestId(`ecology-view`).querySelector(`.ecology-counts`),
+			canvas
+				.getByTestId(`ecology-view`)
+				.querySelector(`ecology-view [data-counts]`),
 		).toHaveTextContent(/^11 atoms · 2 selectors/)
 		await expect(
-			canvas.getByTestId(`ecology-view`).querySelector(`.ecology-counts`),
+			canvas
+				.getByTestId(`ecology-view`)
+				.querySelector(`ecology-view [data-counts]`),
 		).toHaveTextContent(`0 captured edges`)
 		await userEvent.click(canvas.getByRole(`button`, { name: `run` }))
 		await expect(canvas.getAllByTestId(`atom-io-devtools`)).toHaveLength(1)
@@ -234,7 +238,7 @@ export const playOrderEditingAndReset: Play = async (context) => {
 				}),
 			)
 			const editor = canvasElement.querySelector<HTMLInputElement>(
-				`.ecology-live input[inputmode="decimal"]`,
+				`ecology-live input[inputmode="decimal"]`,
 			)!
 			await userEvent.clear(editor)
 			await userEvent.type(editor, `2.`)
@@ -289,7 +293,7 @@ export const playOrderHistorySearch: Play = async (context) => {
 				await userEvent.type(input, `cartQuantityBySku`)
 				await waitFor(() =>
 					expect(
-						canvasElement.querySelectorAll(`.search-results button`).length,
+						canvasElement.querySelectorAll(`search-results button`).length,
 					).toBeGreaterThan(0),
 				)
 				const before = tools.summary().textContent
@@ -301,12 +305,13 @@ export const playOrderHistorySearch: Play = async (context) => {
 				)
 				await expect(tools.summary().textContent).toBe(before)
 				await expect(
-					canvasElement.querySelector(`.search-details`),
+					canvasElement.querySelector(`search-details`),
 				).toHaveTextContent(`no history cursor changed`)
 				await userEvent.keyboard(`{Escape}`)
 				await expect(input).toHaveFocus()
-				const capture =
-					canvasElement.querySelector<HTMLDetailsElement>(`.search-capture`)!
+				const capture = canvasElement.querySelector<HTMLDetailsElement>(
+					`search-controls details[data-capture]`,
+				)!
 				const disclosure = capture.querySelector(`summary`)!
 				await userEvent.click(disclosure)
 				await expect(capture).toHaveAttribute(`open`)
@@ -343,7 +348,7 @@ export const playEcologySearch: Play = async (context) => {
 			await userEvent.type(input, `CHECKOUT total`)
 			await ready()
 			const result = canvasElement.querySelector<HTMLElement>(
-				`.ecology-results button[data-result-id="state:checkoutTotalCents"]`,
+				`ecology-view [data-results] button[data-result-id="state:checkoutTotalCents"]`,
 			)!
 			await expect(result).not.toBeNull()
 			await userEvent.click(result)
@@ -351,7 +356,7 @@ export const playEcologySearch: Play = async (context) => {
 			await expect(tools.inspector()).toHaveTextContent(`Retained trace`)
 			await expect(
 				canvasElement
-					.querySelector(`.ecology-list`)!
+					.querySelector(`ecology-map ul`)!
 					.contains(document.activeElement) ||
 					tools.inspector().contains(document.activeElement),
 			).toBe(true)
@@ -367,7 +372,7 @@ export const playEcologySearch: Play = async (context) => {
 				}),
 			)
 			const editor = canvasElement.querySelector<HTMLInputElement>(
-				`.ecology-live input[inputmode="decimal"]`,
+				`ecology-live input[inputmode="decimal"]`,
 			)!
 			await userEvent.clear(editor)
 			await userEvent.type(editor, `2e`)
@@ -378,7 +383,7 @@ export const playEcologySearch: Play = async (context) => {
 			await ready()
 			await expect(editor).toHaveValue(`2e`)
 			await expect(
-				canvasElement.querySelector(`.ecology-live input[inputmode="decimal"]`),
+				canvasElement.querySelector(`ecology-live input[inputmode="decimal"]`),
 			).toBe(editor)
 			await expect(tools.summary().textContent).toBe(summary)
 			await userEvent.keyboard(`{ArrowDown}{Enter}`)

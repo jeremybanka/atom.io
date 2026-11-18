@@ -15,6 +15,7 @@ import {
 } from "./search.ts"
 import { isSearchShortcut, moveSearchFocus } from "./search-keys.ts"
 import { createSearchSession, editorIsCurrent } from "./search-session.ts"
+import type { SearchPresentation } from "./SearchView.tsx"
 
 export interface SearchContext {
 	query: string
@@ -22,76 +23,35 @@ export interface SearchContext {
 }
 export const createSearchContext = (): SearchContext => ({ query: `` })
 
-/** Owns only copied search data and passive DOM. The ordinary index and explicit live host stay mounted. */
+/** Scheduling, focus and live-row navigation for the SPA-owned search surface. */
 export function createStateSearch(
 	host: HTMLElement,
 	store: RootStore,
 	view: SearchView,
 	context: SearchContext,
-	openEditor?: (key: string, host: HTMLElement) => () => void,
-): () => void {
+	update: (patch: Partial<SearchPresentation>) => void,
+): { dispose(): void; committed(): void } {
 	const history =
 		view === `transactions` || view === `timelines` ? view : undefined
 	const doc = host.ownerDocument,
 		win = doc.defaultView!
-	const panel = host.closest<HTMLElement>(`main`)!
-	const index = host.querySelector<HTMLElement>(`.index`)!
-	const ui = doc.createElement(`section`)
-	ui.className = `state-search-ui`
-	const row = doc.createElement(`div`)
-	row.className = `search-row`
-	const input = doc.createElement(`input`)
-	input.type = `search`
-	input.value = context.query
-	input.setAttribute(`aria-label`, `Search ${view}`)
-	input.placeholder = history
-		? `Search recorded ${view}`
-		: `Search ${view} and cached values`
-	const button = (text: string, action: () => void): HTMLButtonElement => {
-		const element = doc.createElement(`button`)
-		element.type = `button`
-		element.textContent = text
-		element.onclick = action
-		return element
-	}
-	const clear = button(`Clear`, () => {
+	const panel = host.closest<HTMLElement>(`debugger-panel, main`)!
+	const index = host.querySelector<HTMLElement>(`[data-index]`)!
+	const ui = host.querySelector<HTMLElement>(`search-controls`)!
+	const input = ui.querySelector(`input`)!
+	const results = ui.querySelector<HTMLOListElement>(`search-results`)!
+	const live = host.querySelector<HTMLElement>(`search-live-editor`)!
+	const clear = () => {
 		input.value = ``
 		query()
 		input.focus()
-	})
-	const refresh = button(`Refresh`, () => {
-		capture()
-	})
-	row.append(input, clear, refresh)
-	const status = doc.createElement(`p`)
-	status.className = `search-status`
-	status.setAttribute(`role`, `status`)
-	const captureDetails = doc.createElement(`details`)
-	captureDetails.className = `search-capture`
-	const captureSummary = doc.createElement(`summary`)
-	captureSummary.textContent = `Capture details`
-	const captureNotes = doc.createElement(`p`)
-	captureDetails.append(captureSummary, captureNotes)
-	const pin = doc.createElement(`p`)
-	pin.className = `search-pin`
-	const results = doc.createElement(`ol`)
-	results.className = `search-results`
-	results.setAttribute(`aria-label`, `${view} search results`)
-	const details = doc.createElement(`section`)
-	details.className = `search-details`
-	ui.append(row, status, captureDetails, pin, results, details)
-	host.prepend(ui)
-	const retained = doc.createElement(`p`)
-	retained.className = `search-context`
-	retained.textContent = `Recorded history below is unchanged by search; any selection is retained.`
-	retained.hidden = true
-	host.insertBefore(retained, index)
-	const live = doc.createElement(`section`)
-	live.className = `search-live`
-	host.insertBefore(live, index)
+	}
+	ui.querySelector<HTMLButtonElement>(`[data-action="clear"]`)!.onclick = clear
+	ui.querySelector<HTMLButtonElement>(`[data-action="refresh"]`)!.onclick =
+		capture
+	input.value = context.query
 	let pendingHistory: SearchHit | undefined
 	let selectedHistory: HTMLElement | undefined
-	let disposeLive: (() => void) | undefined
 	let liveKey: string | undefined
 	let result: SearchResults | undefined
 	let cancelIndex = () => {}
@@ -111,7 +71,9 @@ export function createStateSearch(
 		if (!pendingHistory || !history || !visible()) return
 		const target = pendingHistory.document.target!
 		if (!historyTargetExists(store, history, target)) {
-			details.textContent = `Recorded event is no longer at its captured location. Refresh to update the snapshot.`
+			update({
+				detail: `Recorded event is no longer at its captured location. Refresh to update the snapshot.`,
+			})
 			pendingHistory = undefined
 			return
 		}
@@ -127,7 +89,7 @@ export function createStateSearch(
 			if (!next) {
 				destination
 					.querySelector<HTMLButtonElement>(
-						`:scope > header button[aria-expanded="false"]`,
+						`:scope > :is(node-heading,event-heading) button[aria-expanded="false"]`,
 					)
 					?.click()
 				return
@@ -144,7 +106,9 @@ export function createStateSearch(
 	}
 	function mask() {
 		if (history) {
-			retained.hidden = !context.query.trim() || result?.matching !== 0
+			update({
+				retained: Boolean(context.query.trim()) && result?.matching === 0,
+			})
 			revealHistory()
 			return
 		}
@@ -153,129 +117,103 @@ export function createStateSearch(
 		const keys = new Set(result?.hits.map((hit) => hit.document.key))
 		const families = new Set(result?.hits.map((hit) => hit.document.family))
 		const pinned = session.pinned()
-		pin.textContent = pinned ? `Editing — kept visible` : ``
-		for (const node of index.querySelectorAll<HTMLElement>(`.node`)) {
+		update({ pinned: Boolean(pinned) })
+		for (const node of index.querySelectorAll<HTMLElement>(
+			`:is(state-node,transaction-log,timeline-log)`,
+		)) {
 			node.hidden =
 				active &&
 				!keys.has(node.dataset[`stateKey`]!) &&
 				!families.has(node.dataset[`stateKey`]!) &&
 				!node.contains(pinned)
 		}
-		for (const leaf of index.querySelectorAll<HTMLElement>(`.state-leaf`)) {
+		for (const leaf of index.querySelectorAll<HTMLElement>(`state-leaf`)) {
 			leaf.hidden =
 				active && !keys.has(leaf.dataset[`stateKey`]!) && leaf !== pinned
 		}
 	}
-	function mark(
-		target: HTMLElement,
-		text: string,
-		ranges: readonly [number, number][],
-	) {
-		let from = 0
-		for (const [start, end] of ranges) {
-			target.append(doc.createTextNode(text.slice(from, start)))
-			const span = doc.createElement(`mark`)
-			span.textContent = text.slice(start, end)
-			target.append(span)
-			from = end
-		}
-		target.append(doc.createTextNode(text.slice(from)))
-	}
 	function select(hit: SearchHit) {
 		if (busy) return
 		if (history) {
-			details.textContent = `Recorded preview only; no history cursor changed.`
+			update({ detail: `Recorded preview only; no history cursor changed.` })
 			pendingHistory = hit
 			revealHistory()
 			return
 		}
-		details.replaceChildren()
-		const heading = doc.createElement(`h2`)
-		heading.textContent = hit.document.key
-		const description = doc.createElement(`p`)
-		description.textContent = `${hit.document.detail} · ${hit.document.value === `copied` ? `Cached simple value copied` : hit.document.value === `skipped` ? `Complex value skipped` : hit.document.value === `family` ? `Registered family; no member created` : `Value not cached; no value searched`}`
-		details.append(heading, description)
-		if (hit.document.kind === `family`) return
-		const existing = [...host.querySelectorAll<HTMLElement>(`.state-leaf`)].find(
+		const existing = [...host.querySelectorAll<HTMLElement>(`state-leaf`)].find(
+			(leaf) => leaf.dataset[`stateKey`] === hit.document.key,
+		)
+		update({ selected: hit, existing: Boolean(existing), detail: `` })
+	}
+	const openLive = (event: Event) => {
+		const action = (event.target as Element).closest<HTMLElement>(
+			`[data-action]`,
+		)?.dataset[`action`]
+		if (action !== `open-live`) return
+		const selected = results.querySelector<HTMLElement>(`[data-active-result]`)
+		const hit = result?.hits.find(
+			(item) => item.document.id === selected?.dataset[`searchId`],
+		)
+		if (!hit) return
+		const existing = [...host.querySelectorAll<HTMLElement>(`state-leaf`)].find(
 			(leaf) => leaf.dataset[`stateKey`] === hit.document.key,
 		)
 		if (existing) {
-			details.append(
-				button(`Return to live editor`, () => {
-					existing.hidden = false
-					existing.closest<HTMLElement>(`.node`)?.removeAttribute(`hidden`)
-					const target = existing.querySelector<HTMLElement>(`input, button`)
-					target?.focus()
-				}),
-			)
+			existing.hidden = false
+			existing
+				.closest<HTMLElement>(`:is(state-node,transaction-log,timeline-log)`)
+				?.removeAttribute(`hidden`)
+			existing.querySelector<HTMLElement>(`input, button`)?.focus()
 		} else {
-			details.append(
-				button(`Open live editor (may read/evaluate)`, () => {
-					session.finish(null)
-					if (liveKey === hit.document.key) return
-					disposeLive?.()
-					live.replaceChildren()
-					liveKey = hit.document.key
-					disposeLive = openEditor!(liveKey, live)
-				}),
-			)
+			session.finish(null)
+			if (liveKey !== hit.document.key) {
+				liveKey = hit.document.key
+				update({ liveKey })
+			}
 		}
 	}
+	const selectResult = (event: Event) => {
+		const target = (event.target as Element).closest<HTMLElement>(
+			`[data-search-id]`,
+		)
+		const hit = result?.hits.find(
+			(item) => item.document.id === target?.dataset[`searchId`],
+		)
+		if (hit) select(hit)
+	}
+	ui.addEventListener(`click`, openLive)
+	results.addEventListener(`click`, selectResult)
+	let commitPaint: (() => void) | undefined
 	function paint(next: SearchResults) {
 		const started = performance.now()
 		if (next.validation) {
-			status.textContent = next.validation
+			update({ message: next.validation })
 			return
 		}
 		result = next
 		pendingHistory = undefined
-		const fragment = doc.createDocumentFragment()
-		details.replaceChildren()
-		for (const hit of next.hits) {
-			const item = doc.createElement(`li`)
-			const target = button(``, () => {
-				select(hit)
-			})
-			target.dataset[`searchId`] = hit.document.id
-			target.title = hit.document.key
-			target.setAttribute(
-				`aria-label`,
-				history
-					? `${hit.document.key} — ${hit.document.detail}`
-					: hit.document.key,
-			)
-			mark(target, hit.document.label, hit.ranges)
-			item.append(target)
-			const extra = doc.createElement(`small`)
-			if (history) extra.append(hit.document.detail)
-			if (hit.valueMatch) {
-				if (history) extra.append(` · `)
-				extra.append(history ? `recorded value: ` : `cached value: `)
-				mark(extra, hit.valueField!.text, hit.valueRanges)
-			}
-			if (hit.approximate) extra.append(` · approximate match`)
-			item.append(extra)
-			fragment.append(item)
-		}
-		results.replaceChildren(fragment)
+		update({ hits: next.hits, selected: undefined, detail: ``, message: `` })
 		const snapshot = context.index!
-		const summary = doc.createElement(`strong`)
-		summary.textContent = context.query.trim()
+		const summary = context.query.trim()
 			? `${next.matching} ${next.matching === 1 ? `match` : `matches`} · ${next.hits.length} shown`
 			: `${snapshot.documents.length} captured records`
-		const metadata = doc.createElement(`span`)
-		metadata.textContent = ` · ${context.query.trim() ? `${snapshot.documents.length} captured records · ` : ``}${`${new Date(snapshot.capturedAt).toISOString().slice(11, 19)} UTC`}.${snapshot.uncachedValues ? ` ${snapshot.uncachedValues} not cached.` : ``}${snapshot.skippedValues ? ` ${snapshot.skippedValues} complex values skipped.` : ``}${snapshot.partial ? ` Partial capture; more records unsearched.` : ``}${snapshot.truncatedText ? ` ${snapshot.truncatedText} text prefixes truncated.` : ``}${next.approximateLimited ? ` Approximate search limited; refine the query.` : ``}${context.query.trim() && !next.matching ? ` No matches in captured ${history ? `history` : `metadata`}.` : ``}`
-		status.replaceChildren(summary, metadata)
-		captureNotes.textContent = `${snapshot.uncachedValues} not cached · ${snapshot.skippedValues} complex values skipped.${snapshot.notice ? ` ${snapshot.notice}` : ``}`
+		const metadata = ` · ${context.query.trim() ? `${snapshot.documents.length} captured records · ` : ``}${`${new Date(snapshot.capturedAt).toISOString().slice(11, 19)} UTC`}.${snapshot.uncachedValues ? ` ${snapshot.uncachedValues} not cached.` : ``}${snapshot.skippedValues ? ` ${snapshot.skippedValues} complex values skipped.` : ``}${snapshot.partial ? ` Partial capture; more records unsearched.` : ``}${snapshot.truncatedText ? ` ${snapshot.truncatedText} text prefixes truncated.` : ``}${next.approximateLimited ? ` Approximate search limited; refine the query.` : ``}${context.query.trim() && !next.matching ? ` No matches in captured ${history ? `history` : `metadata`}.` : ``}`
+		update({
+			summary,
+			metadata,
+			notes: `${snapshot.uncachedValues} not cached · ${snapshot.skippedValues} complex values skipped.${snapshot.notice ? ` ${snapshot.notice}` : ``}`,
+		})
 		mask()
-		host.dataset[`commitMs`] = String(performance.now() - started)
-		host.dataset[`ready`] = `true`
+		commitPaint = () => {
+			host.dataset[`commitMs`] = String(performance.now() - started)
+			host.dataset[`ready`] = `true`
+		}
 	}
 	function matching() {
 		cancelMatch()
 		if (preparing || !context.index || !visible()) return
 		busy = true
-		results.setAttribute(`aria-busy`, `true`)
+		update({ busy: true })
 		host.dataset[`ready`] = `false`
 		const started = performance.now()
 		cancelMatch = scheduleGraph(
@@ -288,7 +226,7 @@ export function createStateSearch(
 				host.dataset[`maxMatchChunkMs`] = String(Math.max(...chunks))
 				host.dataset[`matchChunks`] = JSON.stringify(chunks)
 				busy = false
-				results.removeAttribute(`aria-busy`)
+				update({ busy: false })
 				paint(next)
 			},
 			undefined,
@@ -310,7 +248,7 @@ export function createStateSearch(
 		preparing = true
 		busy = true
 		host.dataset[`ready`] = `false`
-		results.setAttribute(`aria-busy`, `true`)
+		update({ busy: true })
 		const started = performance.now()
 		const copy =
 			view === `atoms` || view === `selectors`
@@ -318,7 +256,7 @@ export function createStateSearch(
 				: captureHistorySearch(store, view)
 		host.dataset[`captureMs`] = String(performance.now() - started)
 		if (!copy) {
-			status.textContent = `Waiting for the current transaction to commit.`
+			update({ message: `Waiting for the current transaction to commit.` })
 			wait = store.on.transactionApplying.subscribe(
 				`search-${view}-${crypto.randomUUID()}`,
 				(applying) => {
@@ -329,7 +267,7 @@ export function createStateSearch(
 		}
 		host.dataset[`captureWork`] = JSON.stringify(copy.snapshotWork)
 		host.dataset[`documentCount`] = String(copy.documents.length)
-		status.textContent = `Preparing copied metadata and cached values…`
+		update({ message: `Preparing copied metadata and cached values…` })
 		host.dataset[`ready`] = `false`
 		cancelIndex = scheduleGraph(
 			indexStateSearch(copy),
@@ -350,10 +288,8 @@ export function createStateSearch(
 					!store.readonlySelectors.has(liveKey) &&
 					!store.writableSelectors.has(liveKey)
 				) {
-					disposeLive?.()
-					disposeLive = undefined
 					liveKey = undefined
-					live.replaceChildren()
+					update({ liveKey: undefined })
 				}
 				matching()
 			},
@@ -427,18 +363,25 @@ export function createStateSearch(
 	})
 	if (context.index) matching()
 	else capture()
-	return () => {
-		disposed = true
-		cancelIndex()
-		cancelMatch()
-		wait()
-		session.dispose()
-		disposeLive?.()
-		mutation.disconnect()
-		visibility.disconnect()
-		panel.removeEventListener(`keydown`, keydown)
-		ui.remove()
-		retained.remove()
-		live.remove()
+	return {
+		committed() {
+			const commit = commitPaint
+			commitPaint = undefined
+			commit?.()
+			revealHistory()
+		},
+		dispose() {
+			disposed = true
+			delete context.index
+			cancelIndex()
+			cancelMatch()
+			wait()
+			session.dispose()
+			mutation.disconnect()
+			visibility.disconnect()
+			panel.removeEventListener(`keydown`, keydown)
+			ui.removeEventListener(`click`, openLive)
+			results.removeEventListener(`click`, selectResult)
+		},
 	}
 }

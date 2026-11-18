@@ -80,6 +80,6 @@ await test(`packed debugger edits its inspected store and cleans up owned state`
 			new URL(import.meta.resolve(`@atom.io/spa-devtools/css`)),
 			`utf8`,
 		),
-		/spa-devtools/,
+		/debugger-panel\.[\w-]+/,
 	)
 })

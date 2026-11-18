@@ -13,6 +13,14 @@ const config: UserConfig = defineConfig({
 	format: `esm`,
 	platform: `neutral`,
 	target: `es2022`,
+	css: {
+		fileName: `devtools.css`,
+		splitting: false,
+		inject: false,
+		modules: { generateScopedName: `atom-io-[name]-[local]` },
+		// The panel's container is shared by its separately owned child styles.
+		lightningcss: { cssModules: { container: false } },
+	},
 	sourcemap: true,
 	plugins: [
 		{
@@ -25,10 +33,6 @@ const config: UserConfig = defineConfig({
 			},
 		},
 	],
-	copy: [
-		`src/devtools.css`,
-		`src/css.d.ts`,
-		{ from: `src/fonts/*`, to: `dist/fonts` },
-	],
+	copy: [`src/css.d.ts`, { from: `src/fonts/*`, to: `dist/fonts` }],
 })
 export default config

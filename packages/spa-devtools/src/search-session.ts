@@ -42,7 +42,7 @@ export function createSearchSession(
 		const input = event.target
 		if (
 			!(input instanceof doc.defaultView!.HTMLInputElement) ||
-			!input.closest(`.state-leaf`)
+			!input.closest(`state-leaf`)
 		)
 			return
 		if (!passive(event.relatedTarget)) {
@@ -74,7 +74,7 @@ export function createSearchSession(
 		pinned: () => {
 			fresh()
 			return origin?.isConnected
-				? origin.closest<HTMLElement>(`.state-leaf`)
+				? origin.closest<HTMLElement>(`state-leaf`)
 				: null
 		},
 		returnFocus() {
@@ -96,7 +96,7 @@ export function editorIsCurrent(
 	store: RootStore,
 	input: HTMLInputElement,
 ): () => boolean {
-	const key = input.closest<HTMLElement>(`.state-leaf`)!.dataset[`stateKey`]!
+	const key = input.closest<HTMLElement>(`state-leaf`)!.dataset[`stateKey`]!
 	const definition = () =>
 		store.atoms.get(key) ??
 		store.readonlySelectors.get(key) ??

@@ -13,9 +13,10 @@ import {
 	SNAP_TARGETS,
 	snapRect,
 } from "./window-geometry.ts"
+import type { WindowPresentation } from "./WindowOverlay.tsx"
 
 const STORAGE_KEY = `🔍 Devtools Window`
-const EDGE_LABELS: Record<ResizeEdge, string> = {
+export const EDGE_LABELS: Record<ResizeEdge, string> = {
 	n: `top edge`,
 	s: `bottom edge`,
 	e: `right edge`,
@@ -25,7 +26,7 @@ const EDGE_LABELS: Record<ResizeEdge, string> = {
 	se: `bottom right corner`,
 	sw: `bottom left corner`,
 }
-const LABELS: Record<SnapTarget, string> = {
+export const LABELS: Record<SnapTarget, string> = {
 	"left-half": `Left half`,
 	"right-half": `Right half`,
 	"left-third": `Left third`,
@@ -35,19 +36,18 @@ const LABELS: Record<SnapTarget, string> = {
 	"bottom-half": `Bottom half`,
 	full: `Full viewport`,
 }
-const styleRect = (element: HTMLElement, rect: Rect) => {
-	Object.assign(element.style, {
-		left: `${rect.x}px`,
-		top: `${rect.y}px`,
-		width: `${rect.width}px`,
-		height: `${rect.height}px`,
-	})
-}
-/** Owns geometry and gesture DOM only; never recreates editor nodes or writes application state. */
+/** Owns geometry and gestures for the SPA window; never writes application state. */
 export function createWindowController(
 	panel: HTMLElement,
 	toggleHidden: () => void,
-): { visibility(hidden: boolean, open: boolean): void; dispose(): void } {
+	publish: (patch: Partial<WindowPresentation>) => void,
+): {
+	visibility(hidden: boolean, open: boolean): void
+	toggleMenu(): void
+	choose(target: SnapTarget | null): void
+	committed(): void
+	dispose(): void
+} {
 	const doc = panel.ownerDocument,
 		win = doc.defaultView!
 	const viewport = () => ({
@@ -64,6 +64,7 @@ export function createWindowController(
 	let hidden = false,
 		open = true,
 		menuOpen = false,
+		focusPalette = false,
 		frame = 0
 	let gesture:
 		| {
@@ -83,74 +84,25 @@ export function createWindowController(
 		| undefined
 	const current = () =>
 		geometry.snap ? snapRect(geometry.snap, viewport()) : geometry.free
-	const overlay = doc.createElement(`div`)
-	overlay.dataset[`css`] = `spa-devtools-window`
-	const preview = doc.createElement(`div`)
-	preview.className = `snap-preview`
-	preview.setAttribute(`aria-hidden`, `true`)
-	preview.hidden = true
-	const palette = doc.createElement(`div`)
-	palette.className = `snap-palette`
-	palette.setAttribute(`role`, `group`)
-	palette.setAttribute(`aria-label`, `Debugger layout`)
-	const layout = doc.createElement(`button`)
-	layout.type = `button`
-	layout.className = `layout-button`
-	layout.textContent = `□`
-	layout.title = `Debugger layout: halves, thirds, full viewport or restore`
-	layout.setAttribute(`aria-label`, `Debugger layout`)
-	const toolbar = panel.querySelector<HTMLElement>(`.toolbar`)!
-	toolbar.insertBefore(
-		layout,
-		toolbar.querySelector(`[aria-label="Hide debugger (Ctrl+Shift+A)"]`),
-	)
-	const targets = SNAP_TARGETS.map((target) => {
-		const button = doc.createElement(`button`)
-		button.type = `button`
-		button.textContent = LABELS[target]
-		button.dataset[`snap`] = target
-		button.addEventListener(`click`, () => {
-			choose(target)
-		})
-		palette.append(button)
-		return button
-	})
-	const restore = doc.createElement(`button`)
-	restore.type = `button`
-	restore.textContent = `Restore free position`
-	restore.addEventListener(`click`, () => {
-		choose(null)
-	})
-	palette.append(restore)
-	overlay.append(preview, palette)
-	panel.parentElement!.append(overlay)
-	const handles = RESIZE_EDGES.map((edge) => {
-		const handle = doc.createElement(`button`)
-		handle.type = `button`
-		handle.className = `resize-handle`
-		handle.dataset[`resize`] = edge
-		handle.setAttribute(`aria-label`, `Resize debugger ${EDGE_LABELS[edge]}`)
-		handle.title = `Resize ${EDGE_LABELS[edge]}; use arrow keys`
-		panel.append(handle)
-		return handle
-	})
-	function paint() {
+	const overlay = panel.querySelector<HTMLElement>(`window-overlay`)!
+	const layout = panel.querySelector<HTMLButtonElement>(
+		`[aria-label="Debugger layout"]`,
+	)!
+	const toolbar = panel.querySelector<HTMLElement>(`debugger-toolbar`)!
+	const targets = [...overlay.querySelectorAll<HTMLButtonElement>(`[data-snap]`)]
+	const paint = () => {
+		if (!menuOpen) focusPalette = false
 		const rect = current()
-		styleRect(
-			panel,
-			open
+		publish({
+			rect: open
 				? rect
 				: clampRect({ ...rect, width: 33, height: 28 }, viewport(), 1, 1),
-		)
-		panel.dataset[`windowInteraction`] = String(menuOpen || Boolean(gesture))
-		palette.hidden =
-			hidden || !open || !(menuOpen || (gesture?.active && !gesture.edge))
-		layout.setAttribute(`aria-expanded`, String(menuOpen))
-		for (const button of targets)
-			button.setAttribute(
-				`aria-pressed`,
-				String(button.dataset[`snap`] === (gesture?.target ?? geometry.snap)),
-			)
+			interaction: menuOpen || Boolean(gesture),
+			paletteHidden:
+				hidden || !open || !(menuOpen || (gesture?.active && !gesture.edge)),
+			menuOpen,
+			selected: gesture?.target ?? geometry.snap,
+		})
 	}
 	function persist() {
 		try {
@@ -170,7 +122,15 @@ export function createWindowController(
 	function update() {
 		frame = 0
 		if (!gesture?.active) return
-		const { base, edge, x, y, startX, startY, zones } = gesture
+		const { base, edge, x, y, startX, startY } = gesture
+		const zones = gesture.zones.length
+			? gesture.zones
+			: gesture.edge
+				? []
+				: (gesture.zones = targets.map((button, index) => ({
+						target: SNAP_TARGETS[index],
+						rect: button.getBoundingClientRect(),
+					})))
 		geometry = {
 			free: edge
 				? resizeRect(base, edge, x - startX, y - startY, viewport())
@@ -189,8 +149,9 @@ export function createWindowController(
 						y >= rect.top &&
 						y <= rect.bottom,
 				)?.target ?? edgeTarget(x, y, viewport()))
-		preview.hidden = !gesture.target
-		if (gesture.target) styleRect(preview, snapRect(gesture.target, viewport()))
+		publish({
+			preview: gesture.target ? snapRect(gesture.target, viewport()) : undefined,
+		})
 		paint()
 	}
 	function finish(cancel: boolean) {
@@ -207,7 +168,7 @@ export function createWindowController(
 					snap: ending.target,
 				}
 			: ending.before
-		preview.hidden = true
+		publish({ preview: undefined })
 		try {
 			ending.capture.releasePointerCapture(ending.id)
 		} catch {
@@ -229,9 +190,9 @@ export function createWindowController(
 		const handle = element.closest<HTMLElement>(`[data-resize]`)
 		if (
 			!handle &&
-			(!element.closest(`.toolbar`) ||
+			(!element.closest(`debugger-toolbar`) ||
 				(element.closest(`button, input, select, nav`) &&
-					!element.closest(`.drag-handle`)))
+					!element.closest(`[data-drag-handle]`)))
 		)
 			return
 		const capture = handle ?? toolbar
@@ -287,12 +248,6 @@ export function createWindowController(
 		if (!press.active && Math.hypot(dx, dy) >= 4) {
 			press.active = true
 			paint()
-			press.zones = press.edge
-				? []
-				: targets.map((button, index) => ({
-						target: SNAP_TARGETS[index],
-						rect: button.getBoundingClientRect(),
-					}))
 		}
 	}
 	const move = (event: PointerEvent) => {
@@ -323,7 +278,7 @@ export function createWindowController(
 	}
 	const nudge = (event: KeyboardEvent) => {
 		const element = event.target as HTMLElement
-		if (!element.matches(`.drag-handle, [data-resize]`)) return
+		if (!element.matches(`[data-drag-handle], [data-resize]`)) return
 		const step = {
 			ArrowLeft: [-10, 0],
 			ArrowRight: [10, 0],
@@ -363,12 +318,24 @@ export function createWindowController(
 		geometry = { ...geometry, free: clampRect(geometry.free, viewport()) }
 		paint()
 	}
-	const toggleMenu = () => {
+	function toggleMenu() {
 		finish(true)
 		menuOpen = !menuOpen
+		focusPalette = menuOpen
 		paint()
-		if (menuOpen) targets[0].focus()
 	}
+	const click = (event: Event) => {
+		const target = (event.target as Element).closest<HTMLElement>(
+			`[data-snap], [data-restore]`,
+		)
+		if (target)
+			choose(
+				target.hasAttribute(`data-restore`)
+					? null
+					: (target.dataset[`snap`] as SnapTarget),
+			)
+	}
+	overlay.addEventListener(`click`, click)
 	layout.addEventListener(`click`, toggleMenu)
 	panel.addEventListener(`pointerdown`, down)
 	panel.addEventListener(`pointermove`, move)
@@ -380,6 +347,14 @@ export function createWindowController(
 	win.addEventListener(`resize`, resize)
 	paint()
 	return {
+		toggleMenu,
+		choose,
+		committed() {
+			if (focusPalette) {
+				focusPalette = false
+				targets[0].focus()
+			}
+		},
 		visibility(nextHidden: boolean, nextOpen: boolean): void {
 			if (nextHidden || !nextOpen) {
 				finish(true)
@@ -399,10 +374,8 @@ export function createWindowController(
 			panel.removeEventListener(`keydown`, nudge)
 			doc.removeEventListener(`keydown`, keyboard)
 			win.removeEventListener(`resize`, resize)
-			delete panel.dataset[`windowInteraction`]
-			overlay.remove()
-			layout.remove()
-			for (const handle of handles) handle.remove()
+			layout.removeEventListener(`click`, toggleMenu)
+			overlay.removeEventListener(`click`, click)
 		},
 	}
 }

@@ -1,0 +1,64 @@
+event-view.class {
+	display: block;
+	event-heading {
+		display: flex;
+		align-items: center;
+	}
+	event-impact {
+		display: block;
+	}
+
+	& > event-heading {
+		height: 22px;
+		background: var(--surface-inactive);
+		white-space: nowrap;
+		overflow: hidden;
+	}
+	[data-kind="number"] {
+		display: inline-block;
+		min-width: 3ch;
+		text-align: right;
+		font-variant-numeric: tabular-nums;
+	}
+	event-impact {
+		margin-left: 9px;
+		border-left: 1px solid var(--ink-muted);
+	}
+	& {
+		border-top: 1px solid var(--line);
+	}
+	& > event-heading strong {
+		min-width: 0;
+		padding-right: 6px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	& > event-heading small {
+		font-size: 11px;
+	}
+	& > p, & > code {
+		display: block;
+		padding: 3px 6px;
+		line-height: 18px;
+		overflow-wrap: anywhere;
+	}
+	ins {
+		color: var(--ink);
+		text-decoration: none;
+		background: var(--change-added);
+	}
+	del {
+		color: var(--ink-muted);
+		background: var(--change-removed);
+	}
+	[data-cursor] {
+		background: var(--ink);
+		color: var(--bg-color);
+		text-align: center;
+		line-height: 21px;
+	}
+	&[data-search-selected="true"] > event-heading {
+		outline: 2px solid var(--accent);
+		outline-offset: -2px;
+	}
+}

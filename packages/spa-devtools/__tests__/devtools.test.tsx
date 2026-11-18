@@ -175,16 +175,16 @@ describe(`spa debugger`, () => {
 		silo.getState(first)
 		mount()
 		await click(`[data-testid="open-close-state-family-item"]`)
-		expect(host.querySelectorAll(`.state-leaf input`).length).toBe(1)
+		expect(host.querySelectorAll(`state-leaf input`).length).toBe(1)
 		silo.getState(silo.findState(itemAtoms, `second`))
 		await tick()
-		expect(host.querySelectorAll(`.state-leaf input`).length).toBe(2)
+		expect(host.querySelectorAll(`state-leaf input`).length).toBe(2)
 		const dispose = [...host.querySelectorAll(`button`)].find(
 			(button) => button.getAttribute(`aria-label`) === `Dispose ${first.key}`,
 		)!
 		dispose.click()
 		await tick()
-		expect(host.querySelectorAll(`.state-leaf input`).length).toBe(1)
+		expect(host.querySelectorAll(`state-leaf input`).length).toBe(1)
 	})
 	it(`shows transaction outcomes and controls timeline undo and redo`, async () => {
 		const { silo, host, mount, click } = fixture()
@@ -248,7 +248,7 @@ describe(`spa debugger`, () => {
 	it(`persists visibility and minimization, removes the keyboard listener on unmount`, async () => {
 		const { host, mount, click } = fixture()
 		const root = mount(true)
-		const panel = host.querySelector<HTMLElement>(`main`)!
+		const panel = host.querySelector<HTMLElement>(`debugger-panel`)!
 		expect(panel.hidden).toBe(true)
 		document.dispatchEvent(
 			new KeyboardEvent(`keydown`, {
@@ -260,11 +260,11 @@ describe(`spa debugger`, () => {
 		await tick()
 		expect(panel.hidden).toBe(false)
 		await click(`[data-testid="open-close-devtools"]`)
-		expect(host.querySelector(`.index`)).toBeNull()
+		expect(host.querySelector(`[data-index]`)).toBeNull()
 		root.dispose()
 		mount(true)
-		expect(host.querySelector<HTMLElement>(`main`)!.hidden).toBe(false)
-		expect(host.querySelector(`.index`)).toBeNull()
+		expect(host.querySelector<HTMLElement>(`debugger-panel`)!.hidden).toBe(false)
+		expect(host.querySelector(`[data-index]`)).toBeNull()
 		document.dispatchEvent(
 			new KeyboardEvent(`keydown`, {
 				ctrlKey: true,
@@ -273,7 +273,7 @@ describe(`spa debugger`, () => {
 			}),
 		)
 		await tick()
-		expect(host.querySelector<HTMLElement>(`main`)!.hidden).toBe(true)
+		expect(host.querySelector<HTMLElement>(`debugger-panel`)!.hidden).toBe(true)
 	})
 	it(`safely displays cyclic values and expands siblings with shift-click`, async () => {
 		const { silo, host, mount, click } = fixture()
@@ -298,7 +298,7 @@ it(`keeps the default window clamped on viewport resize and supports hiding`, as
 	const { host, mount, click } = fixture()
 	localStorage.setItem(`🔍 Devtools View`, `"invalid"`)
 	const root = mount()
-	const panel = host.querySelector<HTMLElement>(`main`)!
+	const panel = host.querySelector<HTMLElement>(`debugger-panel`)!
 	const before = panel.style.cssText
 	window.dispatchEvent(new Event(`resize`))
 	await tick()
@@ -310,7 +310,7 @@ it(`keeps the default window clamped on viewport resize and supports hiding`, as
 it(`renders without explicit options and handles empty indexes`, async () => {
 	const host = document.createElement(`div`)
 	roots.push(render(() => <AtomIODevtools />, host))
-	expect(host.querySelector(`main`)).not.toBeNull()
+	expect(host.querySelector(`debugger-panel`)).not.toBeNull()
 	const fixtureValue = fixture()
 	fixtureValue.mount()
 	await fixtureValue.click(`[data-testid="view-transactions"]`)
@@ -408,7 +408,7 @@ it(`displays thrown reads and collapsible transaction events while filtering int
 	silo.runTransaction(changeTransaction)()
 	await tick()
 	await click(`[data-testid="open-close-transaction-change"]`)
-	await click(`.event button`)
+	await click(`event-view button`)
 	expect(host.textContent).not.toContain(`params:`)
 	await click(`[data-testid="view-timelines"]`)
 	expect(host.querySelector(`[data-testid="timeline-👁‍🗨 internal"]`)).toBeNull()

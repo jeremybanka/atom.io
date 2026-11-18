@@ -2,8 +2,8 @@ import { render } from "@atom.io/spa"
 import { Silo } from "atom.io"
 import { expect, it } from "vitest"
 
+import { EventView } from "../src/EventView.tsx"
 import type { RecordedEvent } from "../src/history-search.ts"
-import { EventView } from "../src/Indexes.tsx"
 import { useTools } from "../src/store.ts"
 
 it(`renders derivedSelector children, opaque updates and bounded recursive outcomes without payload serialization`, () => {

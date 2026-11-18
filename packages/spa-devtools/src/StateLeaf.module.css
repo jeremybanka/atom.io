@@ -1,0 +1,10 @@
+state-leaf.class {
+	display: block;
+	&[data-grouped="true"] {
+		margin-left: 9px;
+		border-left: 1px solid var(--ink-muted);
+	}
+	&[data-separated="true"] {
+		border-top: 1px solid var(--line);
+	}
+}

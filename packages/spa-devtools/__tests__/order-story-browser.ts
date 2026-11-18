@@ -228,8 +228,9 @@ try {
 		const ready = () =>
 			page.waitForFunction(
 				() =>
-					document.querySelector<HTMLElement>(`.ecology`)?.dataset[`ready`] ===
-					`true`,
+					document.querySelector<HTMLElement>(`ecology-view`)?.dataset[
+						`ready`
+					] === `true`,
 			)
 		const snapshot = await ecology.getAttribute(`data-snapshot-ms`)
 		await ecology.getByRole(`button`, { name: `Graph`, exact: true }).click()
@@ -240,7 +241,7 @@ try {
 		await input.fill(`cartQuantityBySku("tea-green")`)
 		await ready()
 		await ecology
-			.locator(`.ecology-results button`)
+			.locator(`[data-results] button`)
 			.filter({ hasText: `cartQuantityBySku("tea-green")` })
 			.first()
 			.click()
@@ -252,7 +253,7 @@ try {
 				exact: true,
 			})
 			.click()
-		const editor = ecology.locator(`.ecology-live input[inputmode="decimal"]`)
+		const editor = ecology.locator(`ecology-live input[inputmode="decimal"]`)
 		await editor.fill(`2e`)
 		const summary = await page.getByTestId(`order-summary`).textContent()
 		for (const name of [`Graph`, `Node list`, `Selection`]) {
@@ -373,7 +374,7 @@ try {
 		assert.ok(frame)
 		await finished(frame, `atomiodevtools--primary`)
 		assert.match(
-			await frame.locator(`.ecology-counts`).innerText(),
+			await frame.locator(`ecology-view [data-counts]`).innerText(),
 			/^11 atoms · 2 selectors/,
 		)
 		await frame.evaluate(() => {
@@ -387,7 +388,9 @@ try {
 		await page.locator(`a[href*="/story/${orderId}"]`).first().click()
 		await finished(frame, orderId)
 		assert.equal(await frame.evaluate(() => window.__orderStoryDocument), true)
-		const transitionCounts = await frame.locator(`.ecology-counts`).innerText()
+		const transitionCounts = await frame
+			.locator(`ecology-view [data-counts]`)
+			.innerText()
 		assert.match(transitionCounts, /^95 atoms · 18 selectors/)
 		assert.match(transitionCounts, /51 captured edges/)
 		// One reset is enough here to establish rebinding in the built manager.
@@ -420,7 +423,7 @@ try {
 		)
 		assert.equal(await frame.getByTestId(`atom-io-devtools`).count(), 1)
 		assert.match(
-			await frame.locator(`.ecology-counts`).innerText(),
+			await frame.locator(`ecology-view [data-counts]`).innerText(),
 			/^95 atoms · 18 selectors/,
 		)
 		await page.screenshot({

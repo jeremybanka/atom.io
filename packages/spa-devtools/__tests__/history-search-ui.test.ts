@@ -1,8 +1,8 @@
 import { Silo } from "atom.io"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 
-import { mountAtomIODevtools } from "../src/AtomIODevtools.tsx"
 import { historyIdentity } from "../src/history-search.ts"
+import { mountAtomIODevtools } from "../src/mount.ts"
 
 let dispose = () => {}
 beforeEach(() => {
@@ -100,7 +100,7 @@ it(`reveals nested recorded events, preserves chronology/cursor and uses keyboar
 	const f = await setup()
 	await f.query(`cartQuantity`)
 	const hits = [
-		...f.host.querySelectorAll<HTMLButtonElement>(`.search-results button`),
+		...f.host.querySelectorAll<HTMLButtonElement>(`search-results button`),
 	]
 	expect(hits.length).toBeGreaterThan(0)
 	await f.key(f.input(), `ArrowDown`)
@@ -122,13 +122,13 @@ it(`reveals nested recorded events, preserves chronology/cursor and uses keyboar
 	const cursor = f.app.store.timelines.get(f.cartHistoryTimeline.key)!.at
 	await f.query(`7`)
 	const timelineHits = [
-		...f.host.querySelectorAll<HTMLButtonElement>(`.search-results button`),
+		...f.host.querySelectorAll<HTMLButtonElement>(`search-results button`),
 	]
 	expect(timelineHits.length).toBeGreaterThan(0)
 	timelineHits[0].click()
 	await settle()
 	expect(f.host.querySelector(`[data-search-selected="true"]`)).not.toBeNull()
-	expect(f.host.querySelector(`.search-results`)!.textContent).toContain(
+	expect(f.host.querySelector(`search-results`)!.textContent).toContain(
 		`recorded value: 7`,
 	)
 	expect(f.app.store.timelines.get(f.cartHistoryTimeline.key)!.at).toBe(cursor)
@@ -141,18 +141,18 @@ it(`reports stale results rather than selecting another event after culling or d
 	const f = await setup()
 	await f.tab(`timelines`)
 	await f.query(`cartQuantity`)
-	const hit = f.host.querySelector<HTMLButtonElement>(`.search-results button`)!
+	const hit = f.host.querySelector<HTMLButtonElement>(`search-results button`)!
 	f.app.store.timelines.get(f.cartHistoryTimeline.key)!.history = []
 	hit.click()
 	await settle()
 	expect(f.host.textContent).toContain(`no longer at its captured location`)
 	expect(f.host.querySelector(`[data-search-selected]`)).toBeNull()
 	await f.refresh()
-	expect(f.host.querySelectorAll(`.search-results button`)).toHaveLength(0)
+	expect(f.host.querySelectorAll(`search-results button`)).toHaveLength(0)
 	await f.query(`cartHistory`)
 	f.app.disposeTimeline(f.cartHistoryTimeline)
 	await settle()
-	f.host.querySelector<HTMLButtonElement>(`.search-results button`)!.click()
+	f.host.querySelector<HTMLButtonElement>(`search-results button`)!.click()
 	await settle()
 	expect(f.host.textContent).toContain(`no longer at its captured location`)
 })
@@ -161,22 +161,22 @@ it(`retains the admitted snapshot across new outcomes, refreshes explicitly and 
 	const f = await setup()
 	const log = f.host.querySelector(`[data-testid="transaction-changeCart"]`)!
 	await f.query(`88`)
-	expect(f.host.querySelectorAll(`.search-results button`)).toHaveLength(0)
+	expect(f.host.querySelectorAll(`search-results button`)).toHaveLength(0)
 	f.app.runTransaction(f.changeCartTransaction)(88)
 	await settle()
-	expect(f.host.querySelectorAll(`.search-results button`)).toHaveLength(0)
+	expect(f.host.querySelectorAll(`search-results button`)).toHaveLength(0)
 	await f.refresh()
 	expect(
-		f.host.querySelectorAll(`.search-results button`).length,
+		f.host.querySelectorAll(`search-results button`).length,
 	).toBeGreaterThan(0)
 	expect(f.host.querySelector(`[data-testid="transaction-changeCart"]`)).toBe(
 		log,
 	)
 	await f.query(`changeCart`)
-	f.host.querySelector<HTMLButtonElement>(`.search-results button`)!.click()
+	f.host.querySelector<HTMLButtonElement>(`search-results button`)!.click()
 	await settle()
 	expect(f.host.querySelector(`[data-search-selected]`)).toBe(log)
-	const panel = f.host.querySelector(`main`)!
+	const panel = f.host.querySelector<HTMLElement>(`debugger-panel`)!
 	panel.hidden = true
 	await settle()
 	await f.query(`innerChange`)
@@ -204,7 +204,7 @@ it(`selects and expands hostile recorded payloads without invoking application h
 	await f.refresh()
 	await f.query(`changeCart`)
 	const hits = [
-		...f.host.querySelectorAll<HTMLButtonElement>(`.search-results button`),
+		...f.host.querySelectorAll<HTMLButtonElement>(`search-results button`),
 	]
 	for (const hit of hits) {
 		hit.click()
@@ -222,7 +222,7 @@ it(`waits for the owning row to mount before revealing a still-valid result`, as
 	)!
 	const parent = owner.parentElement!
 	owner.remove()
-	f.host.querySelector<HTMLButtonElement>(`.search-results button`)!.click()
+	f.host.querySelector<HTMLButtonElement>(`search-results button`)!.click()
 	await settle()
 	expect(f.host.querySelector(`[data-search-selected]`)).toBeNull()
 	parent.append(owner)

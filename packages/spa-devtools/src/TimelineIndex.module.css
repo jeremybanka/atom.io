@@ -1,0 +1,53 @@
+timeline-index.class {
+	display: flex;
+	flex: 1;
+	min-height: 0;
+	flex-direction: column;
+	> article[data-index] {
+		flex: 1;
+		min-height: 0;
+		overflow: auto;
+		background: var(--surface-content);
+		padding-bottom: 24px;
+	}
+	> article[data-index] > p {
+		padding: 5px;
+		font-style: italic;
+		color: var(--ink-muted);
+	}
+	> article[data-index] > section > timeline-log {
+		display: block;
+	}
+	> article[data-index] > section > timeline-log > node-heading {
+		display: flex;
+		align-items: center;
+	}
+	> article[data-index] > section > timeline-log {
+		border-bottom: 1px solid var(--ink-muted);
+	}
+	> article[data-index] > section > timeline-log > node-heading {
+		height: 22px;
+		background: var(--surface-inactive);
+		white-space: nowrap;
+		overflow: hidden;
+	}
+	> article[data-index] > section > timeline-log > node-heading > h2 {
+		font-weight: 500;
+		padding: 0 6px 0 3px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	> article[data-index] > section > timeline-log > node-heading > small {
+		font-size: 11px;
+		margin-right: auto;
+	}
+	> article[data-index] > section > timeline-log > node-heading > [data-count] {
+		margin-left: auto;
+		margin-right: 6px;
+		font-variant-numeric: tabular-nums;
+	}
+	[data-search-selected="true"] > node-heading {
+		outline: 2px solid var(--accent);
+		outline-offset: -2px;
+	}
+}

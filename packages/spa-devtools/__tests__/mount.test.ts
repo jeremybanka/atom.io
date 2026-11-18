@@ -102,7 +102,7 @@ it(`isolates edits between stores and captures options at mount`, async () => {
 	const inputs = host.querySelectorAll<HTMLInputElement>(
 		`input[aria-label="count"]`,
 	)
-	expect(host.querySelector<HTMLElement>(`main`)!.hidden).toBe(true)
+	expect(host.querySelector<HTMLElement>(`debugger-panel`)!.hidden).toBe(true)
 	inputs[0].value = `7`
 	inputs[0].dispatchEvent(new Event(`input`, { bubbles: true }))
 	await tick()

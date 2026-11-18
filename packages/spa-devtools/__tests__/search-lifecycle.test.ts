@@ -1,10 +1,9 @@
 import { Silo } from "atom.io"
+import { isReservedIntrospectionKey } from "atom.io/internal"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 
-import {
-	createSearchContext,
-	createStateSearch,
-} from "../src/search-controller.ts"
+import { createSearchContext } from "../src/search-controller.ts"
+import { mountSearchFixture } from "./fixtures/views.tsx"
 
 let dispose = () => {}
 beforeEach(() => {
@@ -30,15 +29,12 @@ function fixture() {
 		silo.atom<string>({ key, default: `` })
 		silo.store.valueMap.set(key, `before`)
 	}
-	const panel = document.createElement(`main`),
-		host = document.createElement(`section`),
-		index = document.createElement(`article`)
-	index.className = `index`
-	host.append(index)
-	panel.append(host)
+	const panel = document.createElement(`main`)
 	document.body.append(panel)
 	const context = createSearchContext()
-	dispose = createStateSearch(host, silo.store, `atoms`, context, () => () => {})
+	const mounted = mountSearchFixture(panel, silo.store, context)
+	const host = mounted.host
+	dispose = mounted.dispose
 	const input = host.querySelector(`input`)!
 	const query = (text: string) => {
 		input.value = text
@@ -65,7 +61,9 @@ it(`initial-index: typing while preparation is in flight settles with current-qu
 	await vi.runAllTimersAsync()
 	expect(f.host.dataset[`ready`]).toBe(`true`)
 	expect(f.host.querySelector(`[data-search-id="state:record0"]`)).not.toBeNull()
-	expect(f.host.querySelector(`ol`)!.getAttribute(`aria-busy`)).toBeNull()
+	expect(
+		f.host.querySelector(`search-results`)!.getAttribute(`aria-busy`),
+	).toBeNull()
 })
 
 it(`refresh-index: typing during Refresh preserves the refreshed cached values`, async () => {
@@ -90,7 +88,9 @@ it(`rapid input across several initial index chunks matches only the latest quer
 		f.query(query)
 	}
 	await vi.runAllTimersAsync()
-	expect(read).not.toHaveBeenCalled()
+	expect(
+		read.mock.calls.filter(([key]) => !isReservedIntrospectionKey(key)),
+	).toEqual([])
 	expect(f.context.query).toBe(`record98`)
 	expect(
 		[...f.host.querySelectorAll<HTMLElement>(`[data-search-id]`)].map(
@@ -115,8 +115,10 @@ it(`Refresh during typing supersedes both unfinished matching and older preparat
 	await vi.advanceTimersToNextTimerAsync()
 	f.query(`first-refresh`)
 	stale.click()
-	expect(f.host.querySelector(`.search-details`)!.textContent).toBe(``)
-	expect(f.host.querySelector(`ol`)!.getAttribute(`aria-busy`)).toBe(`true`)
+	expect(f.host.querySelector(`search-details`)!.textContent).toBe(``)
+	expect(f.host.querySelector(`search-results`)!.getAttribute(`aria-busy`)).toBe(
+		`true`,
+	)
 	f.silo.store.valueMap.set(`record0`, `latest-refresh`)
 	f.refresh()
 	const read = vi.spyOn(f.silo.store.valueMap, `get`)
@@ -125,11 +127,15 @@ it(`Refresh during typing supersedes both unfinished matching and older preparat
 		f.query(query)
 	}
 	await vi.runAllTimersAsync()
-	expect(read).not.toHaveBeenCalled()
+	expect(
+		read.mock.calls.filter(([key]) => !isReservedIntrospectionKey(key)),
+	).toEqual([])
 	expect(f.value()).toBe(`latest-refresh`)
 	expect(f.host.querySelectorAll(`[data-search-id]`)).toHaveLength(1)
 	expect(f.host.querySelector(`[data-search-id="state:record0"]`)).not.toBeNull()
-	expect(f.host.querySelector(`ol`)!.getAttribute(`aria-busy`)).toBeNull()
+	expect(
+		f.host.querySelector(`search-results`)!.getAttribute(`aria-busy`),
+	).toBeNull()
 })
 
 it(`Clear and composition-end during preparation preserve the copied index and latest input`, async () => {
@@ -165,7 +171,9 @@ it.each([`hidden`, `data-open`] as const)(
 		const read = vi.spyOn(f.silo.store.valueMap, `get`)
 		f.query(`visible-value`)
 		await vi.runAllTimersAsync()
-		expect(read).not.toHaveBeenCalled()
+		expect(
+			read.mock.calls.filter(([key]) => !isReservedIntrospectionKey(key)),
+		).toEqual([])
 		f.silo.store.valueMap.set(`record0`, `visible-value`)
 		if (attribute === `hidden`) f.panel.hidden = false
 		else f.panel.dataset[`open`] = `true`
@@ -183,16 +191,16 @@ it(`disposal cancels unfinished index and match generations with no late publica
 	await vi.advanceTimersToNextTimerAsync()
 	f.query(`record0`)
 	dispose()
-	expect(f.host.querySelector(`.search-context`)).toBeNull()
+	expect(f.host.querySelector(`search-context-notice`)).toBeNull()
 	await vi.runAllTimersAsync()
 	expect(f.context.index).toBeUndefined()
-	expect(f.host.querySelector(`.state-search-ui`)).toBeNull()
+	expect(f.host.querySelector(`search-controls`)).toBeNull()
 	const g = fixture()
 	await vi.runAllTimersAsync()
 	g.query(`record0`)
 	await vi.advanceTimersToNextTimerAsync()
 	dispose()
-	expect(g.host.querySelector(`.search-context`)).toBeNull()
+	expect(g.host.querySelector(`search-context-notice`)).toBeNull()
 	await vi.runAllTimersAsync()
-	expect(g.host.querySelector(`.state-search-ui`)).toBeNull()
+	expect(g.host.querySelector(`search-controls`)).toBeNull()
 })

@@ -2,10 +2,10 @@ import { StoreContext } from "@atom.io/react"
 import type { ReactElement } from "react"
 import { createElement, useContext, useEffect, useRef } from "react"
 
-import type { AtomIODevtoolsProps } from "./AtomIODevtools.tsx"
-import { mountAtomIODevtools } from "./AtomIODevtools.tsx"
+import type { AtomIODevtoolsProps } from "./mount.ts"
+import { mountAtomIODevtools } from "./mount.ts"
 
-export type { AtomIODevtoolsProps } from "./AtomIODevtools.tsx"
+export type { AtomIODevtoolsProps } from "./mount.ts"
 
 /** The shared SPA debugger, following the React store provider unless overridden. */
 export function AtomIODevtools({

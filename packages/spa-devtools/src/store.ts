@@ -37,7 +37,7 @@ function ownedAtom<T>(store: RootStore, initial: T): RegularAtomToken<T> {
 	})
 	return token
 }
-function useLocal<T>(
+export function useLocal<T>(
 	store: RootStore,
 	initial: T,
 ): [Accessor<T>, (next: T | Setter<T>) => void] {
@@ -145,4 +145,85 @@ export function useExpanded(
 			})
 		},
 	]
+}
+
+/** Give presentation fields independent dependencies, so status updates do not redraw a graph. */
+export function usePresentation<T extends object>(
+	store: RootStore,
+	initial: T,
+): {
+	read(): T
+	version(): number
+	update(patch: Partial<T>): void
+} {
+	const fields = new Map<
+		keyof T,
+		[Accessor<unknown>, (value: unknown) => void]
+	>()
+	const state = {} as T
+	for (const key of Object.keys(initial) as (keyof T)[]) {
+		const [read, write] = useLocal<unknown>(store, initial[key])
+		fields.set(key, [read, write])
+		Object.defineProperty(state, key, { enumerable: true, get: read })
+	}
+	const [version, setVersion] = useLocal(store, 0)
+	return {
+		read: () => state,
+		version,
+		update(patch) {
+			let changed = false
+			for (const key of Object.keys(patch) as (keyof T)[]) {
+				const [read, write] = fields.get(key)!
+				if (read() !== patch[key]) {
+					write(patch[key])
+					changed = true
+				}
+			}
+			if (changed) setVersion((value) => value + 1)
+		},
+	}
+}
+
+/** Update bounded slot payloads in small pages without invalidating every retained node. */
+export function useSlotPages<T>(
+	store: RootStore,
+	capacity: number,
+): {
+	value(index: number): T
+	visible(index: number): boolean
+	update(values: T[], visible: number): void
+} {
+	const pageSize = 50
+	const pages = Array.from({ length: Math.ceil(capacity / pageSize) }, () =>
+		useLocal<{ values: T[]; visible: number }>(store, {
+			values: [],
+			visible: 0,
+		}),
+	)
+	return {
+		value(index) {
+			return pages[Math.floor(index / pageSize)][0]().values[index % pageSize]
+		},
+		visible(index) {
+			return index % pageSize < pages[Math.floor(index / pageSize)][0]().visible
+		},
+		update(values, visible) {
+			for (let page = 0; page < pages.length; page++) {
+				const [read, write] = pages[page]
+				const previous = read()
+				const start = page * pageSize
+				const admitted = values.slice(start, start + pageSize)
+				// Old slot bindings can run before a refreshed list removes them.
+				const next = admitted.concat(previous.values.slice(admitted.length))
+				const shown = Math.min(pageSize, Math.max(0, visible - start))
+				if (
+					previous.visible !== shown ||
+					previous.values.length !== next.length ||
+					next.some((value, index) => value !== previous.values[index])
+				) {
+					write({ values: next, visible: shown })
+				}
+			}
+		},
+	}
 }

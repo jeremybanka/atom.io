@@ -1,10 +1,11 @@
 import { Silo } from "atom.io"
+import { isReservedIntrospectionKey } from "atom.io/internal"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 
-import { mountAtomIODevtools } from "../src/AtomIODevtools.tsx"
+import { mountAtomIODevtools } from "../src/mount.ts"
 import { captureStateSearch, indexStateSearch } from "../src/search.ts"
-import { createStateSearch } from "../src/search-controller.ts"
 import { createSearchSession } from "../src/search-session.ts"
+import { mountSearchFixture } from "./fixtures/views.tsx"
 
 let dispose = () => {}
 beforeEach(() => {
@@ -24,7 +25,7 @@ async function settle() {
 }
 function setup() {
 	const silo = new Silo({
-		name: `search-ui`,
+		name: `search-controls`,
 		lifespan: `ephemeral`,
 		isProduction: true,
 	})
@@ -68,20 +69,26 @@ function setup() {
 it(`keeps capture notes available and their disclosure open across filtering and refresh`, async () => {
 	const f = setup()
 	await f.mount()
-	const disclosure = f.host.querySelector<HTMLDetailsElement>(`.search-capture`)!
+	const disclosure = f.host.querySelector<HTMLDetailsElement>(
+		`search-controls details[data-capture]`,
+	)!
 	expect(disclosure.textContent).toContain(`complex values skipped`)
 	expect(disclosure.open).toBe(false)
 	disclosure.open = true
-	const capture = f.host.querySelector(`.search-status`)!.textContent
+	const capture = f.host.querySelector(
+		`search-view [data-search-status]`,
+	)!.textContent
 	await f.search(`count`)
 	f.button(`Refresh`).click()
 	await settle()
-	expect(f.host.querySelector(`.search-capture`)).toBe(disclosure)
+	expect(f.host.querySelector(`search-controls details[data-capture]`)).toBe(
+		disclosure,
+	)
 	expect(disclosure.open).toBe(true)
 	expect(capture).toContain(`captured records`)
-	expect(f.host.querySelector(`.search-status`)!.textContent).toContain(
-		`1 match`,
-	)
+	expect(
+		f.host.querySelector(`search-view [data-search-status]`)!.textContent,
+	).toContain(`1 match`)
 	expect(f.silo.getState(f.countAtom)).toBe(2)
 })
 
@@ -99,7 +106,7 @@ it(`keeps numeric draft, selection and node identity through filtering, clear an
 	expect(editor.value).toBe(`1e`)
 	expect(f.silo.getState(f.countAtom)).toBe(2)
 	expect(f.host.textContent).toContain(`Editing — kept visible`)
-	expect(editor.closest<HTMLElement>(`.state-leaf`)!.hidden).toBe(false)
+	expect(editor.closest<HTMLElement>(`state-leaf`)!.hidden).toBe(false)
 	f.button(`Refresh`).click()
 	await settle()
 	expect(editor.value).toBe(`1e`)
@@ -184,7 +191,8 @@ it(`uses panel-local shortcuts, passive keyboard results and two-stage Escape; p
 	f.key(hit, `End`)
 	f.key(hit, `ArrowUp`)
 	hit.click()
-	expect(f.host.querySelector(`.search-details`)!.textContent).toContain(
+	await settle()
+	expect(f.host.querySelector(`search-details`)!.textContent).toContain(
 		`Return to live editor`,
 	)
 	f.key(hit, `Escape`)
@@ -196,7 +204,7 @@ it(`uses panel-local shortcuts, passive keyboard results and two-stage Escape; p
 	f.key(move, `/`)
 	expect(document.activeElement).toBe(f.input())
 	await f.search(`count`)
-	const panel = f.host.querySelector<HTMLElement>(`main`)!
+	const panel = f.host.querySelector<HTMLElement>(`debugger-panel`)!
 	panel.dataset[`windowInteraction`] = `true`
 	expect(f.key(f.input(), `Escape`).defaultPrevented).toBe(true)
 	expect(f.input().value).toBe(`count`)
@@ -213,19 +221,21 @@ it(`uses copied values until Refresh, retains last valid results on validation, 
 	f.silo.setState(f.countAtom, 17)
 	await settle()
 	await f.search(`17`)
-	expect(f.host.querySelectorAll(`.search-results li`)).toHaveLength(0)
+	expect(f.host.querySelectorAll(`search-results li`)).toHaveLength(0)
 	f.button(`Refresh`).click()
 	await settle()
 	expect(f.host.querySelector(`[data-search-id="state:count"]`)).not.toBeNull()
 	await f.search(`x`.repeat(257))
 	expect(f.host.querySelector(`[data-search-id="state:count"]`)).not.toBeNull()
-	expect(f.host.querySelector(`.search-status`)!.textContent).toContain(`256`)
+	expect(
+		f.host.querySelector(`search-view [data-search-status]`)!.textContent,
+	).toContain(`256`)
 	f.input().value = `old`
 	f.input().dispatchEvent(new Event(`input`))
 	f.input().value = `count`
 	f.input().dispatchEvent(new Event(`input`))
 	await settle()
-	expect(f.host.querySelectorAll(`.search-results li`)).toHaveLength(1)
+	expect(f.host.querySelectorAll(`search-results li`)).toHaveLength(1)
 	f.button(`Minimize debugger`).click()
 	await settle()
 	f.button(`Open debugger`).click()
@@ -241,9 +251,9 @@ it(`uses copied values until Refresh, retains last valid results on validation, 
 	dispose = mountAtomIODevtools(f.host, { store: replacement.store }).dispose
 	await settle()
 	expect(f.input().value).toBe(``)
-	expect(f.host.querySelector(`.search-status`)!.textContent).toContain(
-		`0 captured records`,
-	)
+	expect(
+		f.host.querySelector(`search-view [data-search-status]`)!.textContent,
+	).toContain(`0 captured records`)
 })
 
 it(`does not expand or evaluate a dormant family member during matching or passive selection; explicit open may evaluate`, async () => {
@@ -256,7 +266,9 @@ it(`does not expand or evaluate a dormant family member during matching or passi
 	const member = f.silo.store.families.get(itemsAtoms.key)!.create(`a`)
 	await f.mount()
 	await f.search(`items`)
-	const before = [...f.silo.store.valueMap],
+	const before = [...f.silo.store.valueMap].filter(
+			([key]) => !isReservedIntrospectionKey(key),
+		),
 		graph = f.silo.store.selectorGraph.toJSON()
 	const hit = f.host.querySelector<HTMLButtonElement>(
 		`[data-search-id='state:${member.key}']`,
@@ -264,14 +276,18 @@ it(`does not expand or evaluate a dormant family member during matching or passi
 	hit.click()
 	await settle()
 	expect(defaults).not.toHaveBeenCalled()
-	expect([...f.silo.store.valueMap]).toEqual(before)
+	expect(
+		[...f.silo.store.valueMap].filter(
+			([key]) => !isReservedIntrospectionKey(key),
+		),
+	).toEqual(before)
 	expect(f.silo.store.selectorGraph.toJSON()).toEqual(graph)
 	f.button(`Open live editor (may read/evaluate)`).click()
 	await settle()
 	expect(defaults).toHaveBeenCalledTimes(1)
-	expect(f.host.querySelector(`.search-live input`)).not.toBeNull()
+	expect(f.host.querySelector(`search-live-editor input`)).not.toBeNull()
 	await f.search(`count`)
-	expect(f.host.querySelector(`.search-live input`)).not.toBeNull()
+	expect(f.host.querySelector(`search-live-editor input`)).not.toBeNull()
 })
 
 it(`releases stale deferred rename on external replacement without applying it to new state`, async () => {
@@ -318,7 +334,7 @@ it(`searches selectors with independent context and returns to the same mounted 
 		.querySelector<HTMLButtonElement>(`[data-search-id="family:members"]`)!
 		.click()
 	await settle()
-	expect(f.host.querySelector(`.search-details`)!.textContent).toContain(
+	expect(f.host.querySelector(`search-details`)!.textContent).toContain(
 		`Registered family`,
 	)
 	expect(getter).not.toHaveBeenCalled()
@@ -328,7 +344,9 @@ it(`searches selectors with independent context and returns to the same mounted 
 	f.host
 		.querySelector<HTMLButtonElement>(`[data-search-id="state:count"]`)!
 		.click()
+	await settle()
 	f.button(`Return to live editor`).click()
+	await settle()
 	expect(document.activeElement).toBe(
 		f.host.querySelector(`[data-testid="state-value-count"] input`),
 	)
@@ -342,21 +360,23 @@ it(`defers Refresh during commit and suspends queries and jobs while hidden, inc
 	>
 	f.silo.store.on.transactionApplying.next(transaction)
 	f.button(`Refresh`).click()
-	expect(f.host.querySelector(`.search-status`)!.textContent).toContain(
-		`Waiting`,
-	)
+	await settle()
+	expect(
+		f.host.querySelector(`search-view [data-search-status]`)!.textContent,
+	).toContain(`Waiting`)
 	f.input().value = `count`
 	f.input().dispatchEvent(new Event(`input`))
 	f.silo.store.on.transactionApplying.next(transaction)
 	f.silo.store.on.transactionApplying.next(null)
 	await settle()
 	expect(f.host.querySelector(`[data-search-id="state:count"]`)).not.toBeNull()
-	const panel = f.host.querySelector<HTMLElement>(`main`)!
+	const panel = f.host.querySelector<HTMLElement>(`debugger-panel`)!
 	panel.hidden = true
 	await settle()
 	f.input().dispatchEvent(new InputEvent(`input`, { isComposing: true }))
 	f.input().dispatchEvent(new Event(`compositionend`))
 	f.button(`Refresh`).click()
+	await settle()
 	expect(f.key(f.input(), `/`).defaultPrevented).toBe(false)
 	panel.hidden = false
 	await settle()
@@ -365,7 +385,8 @@ it(`defers Refresh during commit and suspends queries and jobs while hidden, inc
 	f.host
 		.querySelector<HTMLButtonElement>(`[data-search-id="state:count"]`)!
 		.click()
-	expect(f.host.querySelector(`.search-details`)!.textContent).toBe(``)
+	await settle()
+	expect(f.host.querySelector(`search-details`)!.textContent).toBe(``)
 	await settle()
 	for (const extra of [
 		{ ctrlKey: true },
@@ -406,15 +427,19 @@ it(`opens and retains selected family editors across queries/Refresh, replaces d
 	await choose(`a`)
 	const open = f.button(`Open live editor (may read/evaluate)`)
 	open.click()
+	await settle()
 	open.click()
 	await settle()
-	const input = f.host.querySelector<HTMLInputElement>(`.search-live input`)!
+	const input = f.host.querySelector<HTMLInputElement>(
+		`search-live-editor input`,
+	)!
 	input.focus()
 	input.value = `1e`
 	input.dispatchEvent(new Event(`input`))
 	await f.search(`items`)
 	await choose(`a`)
 	f.button(`Return to live editor`).click()
+	await settle()
 	expect(document.activeElement).toBe(input)
 	expect(input.value).toBe(`1e`)
 	await f.search(`items`)
@@ -424,18 +449,22 @@ it(`opens and retains selected family editors across queries/Refresh, replaces d
 	expect(input.isConnected).toBe(false)
 	f.button(`Refresh`).click()
 	await settle()
-	expect(f.host.querySelector(`.search-live input`)).not.toBeNull()
+	expect(f.host.querySelector(`search-live-editor input`)).not.toBeNull()
 	f.silo.disposeState(itemsAtoms, `b`)
 	await settle()
 	f.button(`Refresh`).click()
 	await settle()
-	expect(f.host.querySelector(`.search-live input`)).toBeNull()
+	expect(f.host.querySelector(`search-live-editor input`)).toBeNull()
 	await choose(`c`)
 	f.silo.disposeState(itemsAtoms, `c`)
 	await settle()
 	f.button(`Open live editor (may read/evaluate)`).click()
 	await settle()
-	expect(f.host.querySelector(`.search-live`)!.textContent).toContain(`disposed`)
+	f.button(`Open live editor (may read/evaluate)`).click()
+	await settle()
+	expect(f.host.querySelector(`search-live-editor`)!.textContent).toContain(
+		`disposed`,
+	)
 })
 
 it(`selects complex cached value and typo metadata without evaluating object contents`, async () => {
@@ -445,11 +474,12 @@ it(`selects complex cached value and typo metadata without evaluating object con
 	f.host
 		.querySelector<HTMLButtonElement>(`[data-search-id="state:record"]`)!
 		.click()
-	expect(f.host.querySelector(`.search-details`)!.textContent).toContain(
+	await settle()
+	expect(f.host.querySelector(`search-details`)!.textContent).toContain(
 		`Complex value skipped`,
 	)
 	await f.search(`recod`)
-	expect(f.host.querySelector(`.search-results`)!.textContent).toContain(
+	expect(f.host.querySelector(`search-results`)!.textContent).toContain(
 		`approximate match`,
 	)
 })
@@ -474,25 +504,22 @@ it(`reports partial/truncated capture and approximation cutoff honestly rather t
 		query: `${`a`.repeat(61)}c `.repeat(4).trim(),
 		index: step.value,
 	}
-	const panel = document.createElement(`main`),
-		host = document.createElement(`section`),
-		index = document.createElement(`article`)
-	index.className = `index`
-	host.append(index)
-	panel.append(host)
+	const panel = document.createElement(`debugger-panel`)
 	document.body.append(panel)
-	dispose = createStateSearch(host, silo.store, `atoms`, context, () => () => {})
+	const mounted = mountSearchFixture(panel, silo.store, context)
+	const host = mounted.host
+	dispose = mounted.dispose
 	await settle()
-	expect(host.querySelector(`.search-status`)!.textContent).toContain(
-		`Partial capture`,
-	)
-	expect(host.querySelector(`.search-status`)!.textContent).toContain(
-		`text prefixes truncated`,
-	)
-	expect(host.querySelector(`.search-status`)!.textContent).toContain(
-		`Approximate search limited`,
-	)
-	expect(host.querySelectorAll(`.search-results li`)).toHaveLength(100)
+	expect(
+		host.querySelector(`search-view [data-search-status]`)!.textContent,
+	).toContain(`Partial capture`)
+	expect(
+		host.querySelector(`search-view [data-search-status]`)!.textContent,
+	).toContain(`text prefixes truncated`)
+	expect(
+		host.querySelector(`search-view [data-search-status]`)!.textContent,
+	).toContain(`Approximate search limited`)
+	expect(host.querySelectorAll(`search-results li`)).toHaveLength(100)
 })
 
 it(`defers initial capture of a hidden panel until visible, with shortcuts inert and no late callbacks after disposal`, async () => {
@@ -506,19 +533,19 @@ it(`defers initial capture of a hidden panel until visible, with shortcuts inert
 	f.button(`Refresh`).click()
 	await settle()
 	expect(
-		f.host.querySelector(`.search-results`)!.getAttribute(`aria-busy`),
+		f.host.querySelector(`search-results`)!.getAttribute(`aria-busy`),
 	).toBeNull()
-	const panel = f.host.querySelector<HTMLElement>(`main`)!
+	const panel = f.host.querySelector<HTMLElement>(`debugger-panel`)!
 	panel.hidden = false
 	await settle()
-	expect(f.host.querySelector(`.search-status`)!.textContent).toContain(
-		`captured records`,
-	)
+	expect(
+		f.host.querySelector(`search-view [data-search-status]`)!.textContent,
+	).toContain(`captured records`)
 	input.value = `count`
 	input.dispatchEvent(new Event(`input`))
 	dispose()
 	await settle()
-	expect(f.host.querySelector(`.state-search-ui`)).toBeNull()
+	expect(f.host.querySelector(`search-controls`)).toBeNull()
 })
 
 it(`opens readonly and writable selector members explicitly, retains live selection, and never creates a disposed target`, async () => {
@@ -551,9 +578,12 @@ it(`opens readonly and writable selector members explicitly, retains live select
 				`[data-search-id='state:${family}("a")']`,
 			)!
 			.click()
+		await settle()
 		f.button(`Open live editor (may read/evaluate)`).click()
 		await settle()
-		const editor = f.host.querySelector<HTMLInputElement>(`.search-live input`)!
+		const editor = f.host.querySelector<HTMLInputElement>(
+			`search-live-editor input`,
+		)!
 		editor.focus()
 		input.focus()
 		await settle()
@@ -564,18 +594,19 @@ it(`opens readonly and writable selector members explicitly, retains live select
 				`[data-search-id='state:${family}("a")']`,
 			)!
 			.click()
+		await settle()
 		f.button(`Return to live editor`).click()
+		await settle()
 		expect(document.activeElement).toBe(editor)
 	}
 })
 
 it(`focus session handles explicit editor exit, checkbox return, stale unlabelled inputs and disconnected targets without writes`, () => {
-	const panel = document.createElement(`main`),
+	const panel = document.createElement(`debugger-panel`),
 		search = document.createElement(`section`),
 		field = document.createElement(`input`),
-		leaf = document.createElement(`section`),
+		leaf = document.createElement(`state-leaf`),
 		editor = document.createElement(`input`)
-	leaf.className = `state-leaf`
 	leaf.append(editor)
 	search.append(field)
 	panel.append(search, leaf)
@@ -650,7 +681,7 @@ it(`takes a new committed-root copy on each ordinary view entry without persisti
 	const f = setup()
 	await f.mount()
 	await f.search(`17`)
-	expect(f.host.querySelectorAll(`.search-results li`)).toHaveLength(0)
+	expect(f.host.querySelectorAll(`search-results li`)).toHaveLength(0)
 	f.host
 		.querySelector<HTMLButtonElement>(`[data-testid="view-selectors"]`)!
 		.click()
@@ -661,4 +692,23 @@ it(`takes a new committed-root copy on each ordinary view entry without persisti
 	await settle()
 	expect(f.input().value).toBe(`17`)
 	expect(f.host.querySelector(`[data-search-id="state:count"]`)).not.toBeNull()
+})
+
+it(`ignores result gutters and a live action superseded by a new search`, async () => {
+	const f = setup()
+	await f.mount()
+	await f.search(`count`)
+	f.host.querySelector<HTMLElement>(`search-results li`)!.click()
+	await settle()
+	expect(f.host.querySelector(`search-details h2`)).toBeNull()
+	f.host.querySelector<HTMLButtonElement>(`search-results button`)!.click()
+	await settle()
+	const open = f.button(`Return to live editor`)
+	f.input().value = `absent`
+	f.input().dispatchEvent(new Event(`input`, { bubbles: true }))
+	vi.runAllTimers()
+	open.click()
+	await settle()
+	expect(f.host.querySelector(`search-live-editor input`)).toBeNull()
+	expect(f.host.querySelector(`search-details h2`)).toBeNull()
 })

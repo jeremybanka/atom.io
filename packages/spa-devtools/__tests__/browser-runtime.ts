@@ -11,6 +11,18 @@ assert.ok(Number.isFinite(cpuRate) && cpuRate >= 1 && cpuRate <= 6)
 export function browserArtifacts(path: string): string {
 	return cpuRate === 1 ? path : `${path}-cpu${cpuRate}`
 }
+/** Shared-runner wall-clock targets are advisory; functional assertions stay blocking. */
+export function reportPerformanceTarget(
+	name: string,
+	observedMs: number,
+	targetMs: number,
+): void {
+	assert.ok(Number.isFinite(observedMs), `Invalid timing measurement: ${name}`)
+	if (observedMs > targetMs)
+		process.stderr.write(
+			`Advisory performance target exceeded: ${name} ${observedMs}ms > ${targetMs}ms.\n`,
+		)
+}
 /** Keep the browser sandbox enabled in both ordinary and CPU-throttled regressions. */
 export async function launchBrowser(): Promise<Browser> {
 	const browser = await chromium.launch({

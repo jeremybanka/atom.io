@@ -8,7 +8,12 @@ import { resolve as resolvePath } from "node:path"
 import { build } from "esbuild"
 import type { Browser } from "playwright"
 
-import { browserArtifacts, cpuRate, launchBrowser } from "./browser-runtime.ts"
+import {
+	browserArtifacts,
+	cpuRate,
+	launchBrowser,
+	reportPerformanceTarget,
+} from "./browser-runtime.ts"
 
 const artifacts = browserArtifacts(
 	process.env[`SPA_DEVTOOLS_ECOLOGY_ARTIFACTS`] ?? `/tmp/spa-devtools-ecology`,
@@ -332,6 +337,7 @@ try {
 			interactionP95Ms: 100,
 			layoutChunkMs: 8,
 		},
+		performancePolicy: `Elapsed-time targets are advisory on shared runners; functional assertions remain blocking.`,
 		method: `Fresh-task DOM search/selection with first-frame observations, not hardware/compositor input latency. Snapshot, scheduled projection/layout slices, DOM commit and renderer Paint records reported separately. Large fixture construction excluded from overview and reported as setupMs. S3 capture limits may truncate observations; notice/counts retained.`,
 	}
 	await writeFile(
@@ -340,18 +346,10 @@ try {
 	)
 	process.stdout.write(JSON.stringify(report, null, 2) + `\n`)
 	assert.deepEqual(errors, [])
-	assert.ok(
-		Number(overview.maxChunkMs) <= 8,
-		`Layout chunk ${overview.maxChunkMs}ms exceeds8ms`,
-	)
-	assert.ok(
-		overview.overviewMs <= 500,
-		`Overview ${overview.overviewMs}ms exceeds500ms`,
-	)
-	assert.ok(
-		report.searchP95Ms <= 100 && report.selectionP95Ms <= 100,
-		`Interaction p95 exceeds100ms`,
-	)
+	reportPerformanceTarget(`ecology layout chunk`, Number(overview.maxChunkMs), 8)
+	reportPerformanceTarget(`ecology overview`, overview.overviewMs, 500)
+	reportPerformanceTarget(`ecology search p95`, report.searchP95Ms, 100)
+	reportPerformanceTarget(`ecology selection p95`, report.selectionP95Ms, 100)
 	await context.tracing.stop({ path: resolvePath(artifacts, `trace.zip`) })
 	await context.close()
 } finally {

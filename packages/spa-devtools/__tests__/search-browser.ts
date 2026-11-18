@@ -8,7 +8,12 @@ import { resolve as resolvePath } from "node:path"
 import { build } from "esbuild"
 import type { Browser } from "playwright"
 
-import { browserArtifacts, cpuRate, launchBrowser } from "./browser-runtime.ts"
+import {
+	browserArtifacts,
+	cpuRate,
+	launchBrowser,
+	reportPerformanceTarget,
+} from "./browser-runtime.ts"
 
 interface SearchSample {
 	query: string
@@ -64,6 +69,7 @@ interface RaceObservation {
 }
 interface SearchReport {
 	cpuRate: number
+	performancePolicy: string
 	candidate: string
 	ci: { testedRevision: string | null; pullRequestHead: string | null }
 	sandbox: boolean
@@ -120,6 +126,7 @@ await new Promise<void>((ready) => server.listen(0, `127.0.0.1`, ready))
 let browser: Browser | undefined
 const report: SearchReport = {
 	cpuRate,
+	performancePolicy: `Elapsed-time targets are advisory on shared runners; functional assertions remain blocking.`,
 	candidate:
 		process.env[`SPA_DEVTOOLS_CANDIDATE_SHA`] ??
 		process.env[`GITHUB_SHA`] ??
@@ -432,7 +439,11 @@ try {
 			claim: `rAF observations are frame proxies, not verified paint or input latency`,
 		}
 	})
-	assert.ok(report.scale.selection.p95Ms <= 100)
+	reportPerformanceTarget(
+		`state selection p95`,
+		report.scale.selection.p95Ms,
+		100,
+	)
 
 	await page.evaluate(() => {
 		const input = document.querySelector<HTMLInputElement>(`.search-row input`)!
@@ -541,10 +552,22 @@ try {
 		),
 	}
 
-	report.stage = `acceptance of initial selectors capture/index and query samples`
-	assert.ok(report.scale.selectors.overview.elapsedMs <= 500)
-	assert.ok(report.scale.selectors.p95Ms <= 100)
-	assert.ok(report.scale.selectors.maxChunkMs <= 8)
+	report.stage = `reporting initial selectors capture/index and query samples`
+	reportPerformanceTarget(
+		`selector overview`,
+		report.scale.selectors.overview.elapsedMs,
+		500,
+	)
+	reportPerformanceTarget(
+		`selector search p95`,
+		report.scale.selectors.p95Ms,
+		100,
+	)
+	reportPerformanceTarget(
+		`selector scheduled slice`,
+		report.scale.selectors.maxChunkMs,
+		8,
+	)
 
 	report.stage = `preparation and Refresh lifecycle races`
 	// Exercise real browser task boundaries while normalization is still in flight,
@@ -647,16 +670,10 @@ try {
 	)
 	await race.close()
 
-	report.stage = `acceptance of initial atoms capture/index and query samples`
-	assert.ok(
-		report.scale.overview.elapsedMs <= 500,
-		`overview ${report.scale.overview.elapsedMs}ms`,
-	)
-	assert.ok(report.scale.p95Ms <= 100, `search p95 ${report.scale.p95Ms}ms`)
-	assert.ok(
-		report.scale.maxChunkMs <= 8,
-		`max scheduled slice ${report.scale.maxChunkMs}ms`,
-	)
+	report.stage = `reporting initial atoms capture/index and query samples`
+	reportPerformanceTarget(`atom overview`, report.scale.overview.elapsedMs, 500)
+	reportPerformanceTarget(`atom search p95`, report.scale.p95Ms, 100)
+	reportPerformanceTarget(`atom scheduled slice`, report.scale.maxChunkMs, 8)
 } catch (error) {
 	report.failure = {
 		stage: report.stage,

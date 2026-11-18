@@ -8,20 +8,25 @@ export const cpuRate = Number(
 		1,
 )
 assert.ok(Number.isFinite(cpuRate) && cpuRate >= 1 && cpuRate <= 6)
+export const strictPerformance = process.argv.includes(`--strict-performance`)
+export const performancePolicy = strictPerformance
+	? `Elapsed-time targets are enforced by explicit strict performance mode.`
+	: `Elapsed-time targets are advisory on shared runners; functional assertions remain blocking.`
 export function browserArtifacts(path: string): string {
-	return cpuRate === 1 ? path : `${path}-cpu${cpuRate}`
+	const base = strictPerformance ? `${path}-strict` : path
+	return cpuRate === 1 ? base : `${base}-cpu${cpuRate}`
 }
-/** Shared-runner wall-clock targets are advisory; functional assertions stay blocking. */
+/** Enforce timing targets only when explicitly requested, independently of CI. */
 export function reportPerformanceTarget(
 	name: string,
 	observedMs: number,
 	targetMs: number,
 ): void {
 	assert.ok(Number.isFinite(observedMs), `Invalid timing measurement: ${name}`)
-	if (observedMs > targetMs)
-		process.stderr.write(
-			`Advisory performance target exceeded: ${name} ${observedMs}ms > ${targetMs}ms.\n`,
-		)
+	if (observedMs <= targetMs) return
+	const message = `Performance target exceeded: ${name} ${observedMs}ms > ${targetMs}ms.`
+	if (strictPerformance) assert.fail(message)
+	process.stderr.write(`Advisory: ${message}\n`)
 }
 /** Keep the browser sandbox enabled in both ordinary and CPU-throttled regressions. */
 export async function launchBrowser(): Promise<Browser> {

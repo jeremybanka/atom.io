@@ -12,6 +12,7 @@ import {
 	browserArtifacts,
 	cpuRate,
 	launchBrowser,
+	performancePolicy,
 	reportPerformanceTarget,
 } from "./browser-runtime.ts"
 
@@ -126,7 +127,7 @@ await new Promise<void>((ready) => server.listen(0, `127.0.0.1`, ready))
 let browser: Browser | undefined
 const report: SearchReport = {
 	cpuRate,
-	performancePolicy: `Elapsed-time targets are advisory on shared runners; functional assertions remain blocking.`,
+	performancePolicy,
 	candidate:
 		process.env[`SPA_DEVTOOLS_CANDIDATE_SHA`] ??
 		process.env[`GITHUB_SHA`] ??

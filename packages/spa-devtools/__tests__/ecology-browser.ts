@@ -96,6 +96,74 @@ try {
 	}
 	await ready()
 
+	// Verify browser paint ordering at an actual curve/card intersection. Temporarily
+	// enable stroke hit testing and place an unrelated card under that point.
+	for (const selected of [`price`, `lazy`]) {
+		await choose(`state:${selected}`)
+		await page.waitForSelector(`ecology-node-card > svg > path`)
+		const ordering = await page.evaluate(() => {
+			const scene = document.querySelector(`ecology-scene`)!,
+				bounds = scene.getBoundingClientRect()
+			const card = (key: string) =>
+				scene.querySelector<HTMLElement>(
+					`ecology-node-card:has(> button[data-graph-id="state:${key}"])`,
+				)!
+			const source = card(`price`),
+				other = card(`lazy`),
+				path = source.querySelector<SVGPathElement>(`path`)!
+			const length = path.getTotalLength(),
+				matrix = path.getScreenCTM()!
+			let point = new DOMPoint()
+			for (let step = 2; step < 19; step++) {
+				const candidate = path
+					.getPointAtLength((length * step) / 20)
+					.matrixTransform(matrix)
+				if (
+					candidate.x > bounds.left + 100 &&
+					candidate.x < bounds.right - 100 &&
+					candidate.y > bounds.top + 40 &&
+					candidate.y < bounds.bottom - 40
+				) {
+					point = candidate
+					break
+				}
+			}
+			if (!point.x) throw new Error(`No visible curve point`)
+			const transform = other.style.transform,
+				style = path.style.cssText
+			other.style.transform = `translate(${point.x - bounds.left - 88}px,${point.y - bounds.top - 26}px)`
+			path.style.pointerEvents = `stroke`
+			path.style.strokeWidth = `8px`
+			const top = document
+				.elementFromPoint(point.x, point.y)!
+				.closest(`ecology-node-card`)!
+			const result = {
+				front: top.querySelector<HTMLElement>(`button`)!.dataset[`graphId`],
+				sourceZ: Number(source.style.zIndex),
+				otherZ: Number(other.style.zIndex),
+				interactive: getComputedStyle(source.querySelector(`svg`)!)
+					.pointerEvents,
+			}
+			other.style.transform = transform
+			path.style.cssText = style
+			return result
+		})
+		assert.equal(
+			ordering.front,
+			`state:${selected}`,
+			`Arrows must share their source's stacking layer`,
+		)
+		assert.equal(ordering.sourceZ > ordering.otherZ, selected === `price`)
+		assert.equal(
+			ordering.interactive,
+			`none`,
+			`Arrows must not intercept camera or card input`,
+		)
+	}
+	await page.locator(`ecology-scene`).focus()
+	await page.keyboard.press(`Escape`)
+	await ready()
+
 	const showDetails = async () => {
 		const details = page.locator(
 			`ecology-editor-row[data-section="selected"] [data-node-details]`,
@@ -170,6 +238,8 @@ try {
 	)
 	assert.equal(await scene.getAttribute(`data-unavailable`), `false`)
 	const camera = () => scene.getAttribute(`data-camera`)
+	const arrow = scene.locator(`svg > path`).first()
+	const arrowBefore = await arrow.getAttribute(`d`)
 	const pose = await camera(),
 		bounds = (await scene.boundingBox())!
 	await page.mouse.move(bounds.x + 15, bounds.y + 15)
@@ -177,6 +247,12 @@ try {
 	await page.mouse.move(bounds.x + 65, bounds.y + 40, { steps: 5 })
 	await page.mouse.up()
 	assert.notEqual(await camera(), pose, `Mouse drag must orbit`)
+	await page.waitForFunction(
+		(previous) =>
+			document.querySelector(`ecology-scene svg > path`)!.getAttribute(`d`) !==
+			previous,
+		arrowBefore,
+	)
 	const orbited = await camera()
 	await page.mouse.down({ button: `right` })
 	await page.mouse.move(bounds.x + 110, bounds.y + 70, { steps: 5 })
@@ -409,7 +485,9 @@ try {
 	assert.equal(
 		await page
 			.locator(`ecology-node-card:has([data-graph-id="state:lazy"])`)
-			.evaluate((node) => getComputedStyle(node).opacity),
+			.evaluate(
+				(node) => getComputedStyle(node.querySelector(`button`)!).opacity,
+			),
 		`0.5`,
 	)
 	await scene.focus()
@@ -893,6 +971,38 @@ try {
 		await page.evaluate(() => window.ecologyFixture.timings().reads),
 		0,
 	)
+	// Keep the added orbit workload separate from the existing search/selection measurements.
+	await page.getByRole(`searchbox`, { name: `Search ecology` }).fill(``)
+	await ready()
+	await scene.focus()
+	await page.keyboard.press(`Escape`)
+	await ready()
+	await page.getByRole(`button`, { name: `Reset view`, exact: true }).click()
+	await page.waitForFunction(
+		() =>
+			document.querySelector(`ecology-scene`)!.getAttribute(`data-edges`) ===
+			`1000`,
+	)
+	const orbitBounds = (await scene.boundingBox())!
+	await page.mouse.move(orbitBounds.x + 15, orbitBounds.y + 15)
+	await page.mouse.down()
+	const [orbitIntervals] = await Promise.all([
+		page.evaluate(async () => {
+			const intervals: number[] = []
+			let previous = performance.now()
+			for (let frame = 0; frame < 30; frame++) {
+				await new Promise(requestAnimationFrame)
+				const now = performance.now()
+				intervals.push(now - previous)
+				previous = now
+			}
+			return intervals
+		}),
+		page.mouse.move(orbitBounds.x + 100, orbitBounds.y + 50, { steps: 30 }),
+	])
+	await page.mouse.up()
+	await page.getByRole(`button`, { name: `Reset view`, exact: true }).click()
+	await page.evaluate(() => new Promise(requestAnimationFrame))
 	let rendererPaintMs: number | null = null,
 		paintRecords: number | null = null
 	if (!strictPerformance) {
@@ -946,6 +1056,12 @@ try {
 		maxScheduledSliceMs: Math.max(...slices),
 		stageSamples,
 		timingSamples,
+		orbit: {
+			frames: orbitIntervals.length,
+			p95FrameIntervalMs: p95(orbitIntervals),
+			intervals: orbitIntervals,
+			method: `Animation frame intervals during a real mouse orbit at the 500-card / 1,000-arrow paint cap using software WebGL.`,
+		},
 		searchMs: search,
 		selectionMs: selection,
 		searchP95Ms: p95(search),

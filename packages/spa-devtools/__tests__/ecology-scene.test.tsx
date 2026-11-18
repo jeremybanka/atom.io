@@ -12,14 +12,14 @@ import {
 } from "../src/ecology-graph.ts"
 import type { EcologyLine } from "../src/ecology-lines.ts"
 import {
-	createEdgeBuffer,
+	createEdgeProjector,
 	createFamilyBuffer,
-	writeEdgeBuffer,
 	writeFamilyBuffer,
 } from "../src/ecology-lines.ts"
 import { EcologyScene } from "../src/EcologyScene.tsx"
 import { useTools } from "../src/store.ts"
 
+const projectEdges = createEdgeProjector()
 const cleanups: (() => void)[] = []
 afterEach(() => {
 	for (const cleanup of cleanups.splice(0)) cleanup()
@@ -76,7 +76,7 @@ function fixture(restored = false, empty = false) {
 			cylinderHeight: 8,
 			traced: new Set(),
 			items: empty ? [] : [a, b],
-			edges: [{ from: a, to: b, color: a.color, traced: false }],
+			edges: [{ source: a.id, from: a, to: b, color: a.color, traced: false }],
 			command: { sequence: 0, action: `fit`, target: `` },
 		},
 	})
@@ -156,6 +156,7 @@ function fixture(restored = false, empty = false) {
 		b,
 		tick: () => {
 			tick(16)
+			root.flush()
 		},
 		resize: (width = 800, height = 500) => {
 			bounds.mockReturnValue(new DOMRect(0, 0, width, height))
@@ -178,7 +179,7 @@ function fixture(restored = false, empty = false) {
 	}
 }
 
-it(`projects viewer-facing DOM cards and batched edges, keeps a camera through resize and releases scene work`, () => {
+it(`projects viewer-facing DOM cards and source-stacked edges, keeps a camera through resize and releases scene work`, () => {
 	const f = fixture()
 	f.resize()
 	f.tick()
@@ -226,7 +227,11 @@ it(`projects viewer-facing DOM cards and batched edges, keeps a camera through r
 		f.point(f.b).map((value) => expect.closeTo(value, 10)),
 	)
 	expect(f.context.camera!.position.every(Number.isFinite)).toBe(true)
-	f.patch({ edges: [{ from: f.a, to: f.b, color: f.a.color, traced: true }] })
+	f.patch({
+		edges: [
+			{ source: f.a.id, from: f.a, to: f.b, color: f.a.color, traced: true },
+		],
+	})
 	f.tick()
 	f.tick()
 	f.resize()
@@ -288,40 +293,59 @@ it(`writes arrowless family spines with shared colors, world scaling and reusabl
 	geometry.dispose()
 })
 
-it(`retains source colors on every curve and arrowhead in both line batches and updates reused card slots`, () => {
+it(`keeps outgoing paths inside their source card layer, with inherited colors, separate parallel strokes and reused card slots`, () => {
 	const f = fixture()
 	f.resize()
 	f.tick()
-	const card = f.viewport.querySelector<HTMLElement>(`ecology-node-card`)!
-	f.patch({ items: [f.b, f.a] })
-	expect(f.viewport.querySelector(`ecology-node-card`)).toBe(card)
-	expect(card.style.getPropertyValue(`--ecology-color`)).toBe(f.b.color)
-	const geometry = createEdgeBuffer()
-	const colors = geometry.getAttribute(`color`)
-	const camera = new THREE.PerspectiveCamera(45, 800 / 500, 0.1, 1000)
-	camera.position.set(0, 0, 40)
-	camera.updateMatrixWorld()
-	const edges = [
-		{ from: f.a, to: f.b, color: f.a.color, traced: false },
-		{ from: f.b, to: f.a, color: f.b.color, traced: false },
-		{ from: f.a, to: f.b, color: f.a.color, traced: true },
+	const cards = [
+		...f.viewport.querySelectorAll<HTMLElement>(`ecology-node-card`),
 	]
-	for (const traced of [false, true]) {
-		writeEdgeBuffer(geometry, edges, traced, camera, 800, 500)
-		expect(geometry.getAttribute(`color`)).toBe(colors)
-		const painted = edges.filter((edge) => edge.traced === traced)
-		expect(geometry.drawRange.count).toBe(painted.length * 36)
-		for (const [index, edge] of painted.entries()) {
-			const expected = new THREE.Color(edge.color)
-			for (let vertex = 0; vertex < 36; vertex++) {
-				const offset = index * 36 + vertex
-				expect(colors.getX(offset)).toBeCloseTo(expected.r, 6)
-				expect(colors.getY(offset)).toBeCloseTo(expected.g, 6)
-				expect(colors.getZ(offset)).toBeCloseTo(expected.b, 6)
-			}
-		}
-	}
-	geometry.dispose()
+	const path = cards[0].querySelector(`path`)!
+	expect(path.namespaceURI).toBe(`http://www.w3.org/2000/svg`)
+	expect(path.getAttribute(`d`)).toMatch(/^M/)
+	expect(cards[1].querySelector(`path`)).toBeNull()
+	expect(cards[0].querySelector(`svg`)!.getAttribute(`stroke`)).toBe(
+		`var(--ecology-color)`,
+	)
+	expect(cards[0].querySelector(`svg`)!.getAttribute(`aria-hidden`)).toBe(`true`)
+	f.command(`unknown`)
+	f.tick()
+	const geometry = path.getAttribute(`d`)
+	const writes = vi.spyOn(path, `setAttribute`)
+	f.patch({
+		edges: [
+			{ source: f.a.id, from: f.a, to: f.b, color: f.a.color, traced: true },
+		],
+	})
+	f.tick()
+	expect(path.getAttribute(`d`)).toBe(geometry)
+	expect(path.getAttribute(`data-traced`)).toBe(`true`)
+	expect(writes).not.toHaveBeenCalledWith(`d`, geometry)
+	f.patch({
+		edges: [
+			{ source: f.a.id, from: f.a, to: f.b, color: f.a.color, traced: false },
+			{ source: f.a.id, from: f.a, to: f.b, color: f.a.color, traced: true },
+			{ source: f.b.id, from: f.b, to: f.a, color: f.b.color, traced: false },
+		],
+	})
+	f.tick()
+	expect(cards[0].querySelectorAll(`path`)).toHaveLength(2)
+	expect(cards[0].querySelectorAll(`path[data-traced="true"]`)).toHaveLength(1)
+	expect(cards[1].querySelectorAll(`path`)).toHaveLength(1)
+	const before = path.getAttribute(`d`)
+	f.command(`right`)
+	f.tick()
+	expect(cards[0].querySelector(`path`)).toBe(path)
+	expect(path.getAttribute(`d`)).not.toBe(before)
+	f.patch({ items: [f.b, f.a] })
+	f.tick()
+	expect(f.viewport.querySelector(`ecology-node-card`)).toBe(cards[0])
+	expect(cards[0].style.getPropertyValue(`--ecology-color`)).toBe(f.b.color)
+	expect(cards[0].querySelectorAll(`path`)).toHaveLength(1)
+	expect(cards[1].querySelectorAll(`path`)).toHaveLength(2)
+	f.patch({ edges: [] })
+	f.tick()
+	expect(f.viewport.querySelector(`path`)).toBeNull()
 })
 it(`restores a borrowed camera and fits a large capture into viewport-shaped cylinder dimensions`, () => {
 	const restored = fixture(true)
@@ -396,18 +420,9 @@ it(`reshapes on canvas resize while preserving orbit direction and relative zoom
 	).toBeCloseTo(0)
 	expect(after.length() / offset.length()).toBeCloseTo(3)
 })
-it(`stacks selected and connected cards above nearer unrelated cards and restores distance ordering when cleared`, () => {
+it(`stacks selected and connected cards with their outgoing paths above nearer unrelated cards and restores distance ordering when cleared`, () => {
 	const f = fixture()
 	f.tick()
-	const gl = vi.mocked(THREE.WebGLRenderer).mock.results.at(-1)!
-		.value as THREE.WebGLRenderer
-	const scene = vi.mocked(gl.render).mock.lastCall![0]
-	const lines = scene.children as THREE.LineSegments<
-		THREE.BufferGeometry,
-		THREE.LineBasicMaterial
-	>[]
-	expect(lines[1].renderOrder).toBeGreaterThan(lines[0].renderOrder)
-	expect(lines[1].material.depthTest).toBe(false)
 	const cards = [
 		...f.viewport.querySelectorAll<HTMLElement>(`ecology-node-card`),
 	]
@@ -444,86 +459,77 @@ it(`keeps the list fallback local when WebGL creation fails`, () => {
 	expect(f.viewport.textContent).toContain(`ecology editor`)
 	expect(f.viewport.querySelector(`canvas`)).toBeNull()
 })
-it(`places arrowheads outside billboard bounds in 3D, retaining parallel edges and loops without reallocating buffers`, () => {
-	const geometry = createEdgeBuffer(),
-		attribute = geometry.getAttribute(`position`)
+const pathPoints = (d: string) =>
+	d
+		.slice(1)
+		.split(/[ML]/)
+		.map((xy) => xy.split(`,`).map(Number))
+function projectionCamera() {
 	const camera = new THREE.PerspectiveCamera(45, 800 / 500, 0.1, 1000)
 	camera.position.set(0, 0, 40)
-	camera.lookAt(0, 0, 0)
 	camera.updateMatrixWorld()
-	const from = { x: -8, y: 0, z: 0 },
+	return camera
+}
+it(`projects 3D curves and arrowheads into source-local SVG coordinates, preserving loops, parallel edges and scaling`, () => {
+	const camera = projectionCamera(),
+		from = { x: -8, y: 0, z: 0 },
 		to = { x: 8, y: 0, z: 0 }
-	const color = `hsl(30, 75%, 40%)`
-	writeEdgeBuffer(
-		geometry,
-		[
-			{ from, to, color, traced: false },
-			{ from, to, color, traced: false },
-			{ from, to: from, color, traced: false },
-			{ from, to, color, traced: true },
-		],
-		false,
+	const edge: EcologyLine = {
+		source: `a`,
+		from,
+		to,
+		color: `red`,
+		traced: false,
+	}
+	const paths = projectEdges(
+		[edge, edge, { ...edge, to: from, traced: true }],
 		camera,
 		800,
 		500,
+	).get(`a`)!
+	expect(paths).toHaveLength(3)
+	expect(paths[0]).toEqual(paths[1])
+	expect(paths[2].traced).toBe(true)
+	const points = pathPoints(paths[0].d)
+	expect(points).toHaveLength(20)
+	expect(points[0]).toEqual([91, 0])
+	const target = new THREE.Vector3(8, 0, 0).project(camera),
+		origin = new THREE.Vector3(-8, 0, 0).project(camera)
+	expect(points[16][0]).toBeCloseTo((target.x - origin.x) * 400 - 91, 2)
+	expect(points[18]).toEqual(points[16])
+	expect(Math.max(...pathPoints(paths[2].d).map(([, y]) => -y))).toBeGreaterThan(
+		29,
 	)
-	expect(geometry.getAttribute(`position`)).toBe(attribute)
-	expect(geometry.drawRange.count).toBe(108)
-	expect(Array.from(attribute.array).every(Number.isFinite)).toBe(true)
-	const end = new THREE.Vector3()
-		.fromBufferAttribute(attribute, 31)
-		.project(camera)
-	const target = new THREE.Vector3(to.x, to.y, to.z).project(camera)
-	expect((target.x - end.x) * 400).toBeCloseTo(91, 3)
-	writeEdgeBuffer(
-		geometry,
-		[{ from, to: { x: 5, y: 16, z: 3 }, color, traced: false }],
-		false,
-		camera,
-		800,
-		500,
-	)
-	expect(Array.from(attribute.array).every(Number.isFinite)).toBe(true)
-	writeEdgeBuffer(geometry, [], false, camera, 800, 500)
-	expect(geometry.drawRange.count).toBe(0)
-	writeEdgeBuffer(
-		geometry,
-		[{ from, to, color, traced: true }],
-		true,
-		camera,
-		800,
-		500,
-	)
-	expect(geometry.drawRange.count).toBe(36)
+	expect(
+		paths
+			.flatMap((p) => pathPoints(p.d))
+			.flat()
+			.every(Number.isFinite),
+	).toBe(true)
+	expect(projectEdges([], camera, 800, 500).size).toBe(0)
 	const scale = new THREE.Vector3(2, 0.5, 2)
-	writeEdgeBuffer(
-		geometry,
-		[{ from, to, color, traced: true }],
-		true,
-		camera,
-		800,
-		500,
-		scale,
+	const scaled = pathPoints(
+		projectEdges([edge], camera, 800, 500, scale).get(`a`)![0].d,
 	)
-	const scaledEnd = new THREE.Vector3()
-		.fromBufferAttribute(attribute, 31)
-		.project(camera)
-	const scaledTarget = new THREE.Vector3(to.x, to.y, to.z)
-		.multiply(scale)
-		.project(camera)
-	expect((scaledTarget.x - scaledEnd.x) * 400).toBeCloseTo(91, 3)
-	geometry.dispose()
+	expect(scaled[0]).toEqual([91, 0])
+	expect(scaled[16][0]).toBeCloseTo((target.x - origin.x) * 800 - 91, 2)
+	const vertical = pathPoints(
+		projectEdges(
+			[{ ...edge, to: { x: -8, y: 16, z: 3 } }],
+			camera,
+			800,
+			500,
+		).get(`a`)![0].d,
+	)
+	expect(vertical[0][0]).toBeCloseTo(0)
+	expect(vertical[0][1]).toBe(-29)
 })
-
-it(`fans clustered edges across the visible card ports and retains intra-cluster loops`, () => {
-	const geometry = createEdgeBuffer()
-	const camera = new THREE.PerspectiveCamera(45, 800 / 500, 0.1, 1000)
-	camera.position.set(0, 0, 40)
-	camera.lookAt(0, 0, 0)
-	camera.updateMatrixWorld()
-	const fromCard = { x: -8, y: 0, z: 0 },
+it(`fans clustered arrows across family ports and groups them under the visible source family`, () => {
+	const camera = projectionCamera(),
+		fromCard = { x: -8, y: 0, z: 0 },
 		toCard = { x: 8, y: 0, z: 0 }
 	const edges: EcologyLine[] = Array.from({ length: 16 }, (_, index) => ({
+		source: `family:items`,
 		from: {
 			x: -8 + (index % 3) * 0.1,
 			y: (index - 7.5) * 0.025,
@@ -532,96 +538,151 @@ it(`fans clustered edges across the visible card ports and retains intra-cluster
 		to: { x: 8, y: (7.5 - index) * 0.02, z: 0 },
 		fromCard,
 		toCard,
-		color: `hsl(30, 75%, 40%)`,
+		color: `red`,
 		traced: false,
 	}))
-	writeEdgeBuffer(geometry, edges, false, camera, 800, 500)
-	const attribute = geometry.getAttribute(`position`)
-	const startYs = new Set<string>(),
-		endYs = new Set<string>()
-	for (let edge = 0; edge < edges.length; edge++) {
-		const start = new THREE.Vector3()
-			.fromBufferAttribute(attribute, edge * 36)
-			.project(camera)
-		const end = new THREE.Vector3()
-			.fromBufferAttribute(attribute, edge * 36 + 31)
-			.project(camera)
-		const a = new THREE.Vector3(fromCard.x, 0, 0).project(camera)
-		const b = new THREE.Vector3(toCard.x, 0, 0).project(camera)
-		expect((start.x - a.x) * 400).toBeCloseTo(91, 3)
-		expect((b.x - end.x) * 400).toBeCloseTo(91, 3)
-		expect(Math.abs(start.y * 250)).toBeLessThanOrEqual(23)
-		expect(Math.abs(end.y * 250)).toBeLessThanOrEqual(23)
-		startYs.add(start.y.toFixed(5))
-		endYs.add(end.y.toFixed(5))
-	}
-	expect(startYs.size).toBe(16)
-	expect(endYs.size).toBe(16)
-	writeEdgeBuffer(
-		geometry,
+	const paths = projectEdges(edges, camera, 800, 500).get(`family:items`)!
+	const points = paths.map((path) => pathPoints(path.d))
+	expect(points.every((path) => Math.abs(path[0][0] - 91) < 0.01)).toBe(true)
+	expect(new Set(points.map((path) => path[0][1])).size).toBe(16)
+	expect(new Set(points.map((path) => path[16][1])).size).toBe(16)
+	expect(
+		points.every(
+			(path) => Math.abs(path[0][1]) <= 23 && Math.abs(path[16][1]) <= 23,
+		),
+	).toBe(true)
+	const loop = projectEdges(
 		[
 			{
+				...edges[0],
 				from: { x: -8, y: 0.2, z: 0 },
 				to: { x: -8, y: -0.2, z: 0 },
-				fromCard,
 				toCard: fromCard,
-				color: `hsl(30, 75%, 40%)`,
-				traced: false,
 			},
 		],
-		false,
 		camera,
 		800,
 		500,
+	).get(`family:items`)![0]
+	expect(pathPoints(loop.d).some(([, y]) => -y > 29)).toBe(true)
+})
+it(`clips filtered arrows to compact card ports`, () => {
+	const edge: EcologyLine = {
+		source: `a`,
+		from: { x: -8, y: 0, z: 0 },
+		to: { x: 8, y: 0, z: 0 },
+		color: `red`,
+		traced: false,
+		fromCollapsed: true,
+		toCollapsed: true,
+	}
+	const points = pathPoints(
+		projectEdges([edge], projectionCamera(), 800, 500).get(`a`)![0].d,
 	)
-	expect(geometry.drawRange.count).toBe(36)
-	expect(
-		Array.from(
-			{ length: 36 },
-			(_, index) =>
-				new THREE.Vector3().fromBufferAttribute(attribute, index).project(camera)
-					.y * 250,
-		).some((y) => y > 29),
-	).toBe(true)
-	geometry.dispose()
+	expect(points[0]).toEqual([43, 0])
+	const full = pathPoints(
+		projectEdges(
+			[{ ...edge, fromCollapsed: false, toCollapsed: false }],
+			projectionCamera(),
+			800,
+			500,
+		).get(`a`)![0].d,
+	)
+	expect(points[16][0] - full[16][0]).toBeCloseTo(48)
 })
 
-it(`clips filtered connections to their compact card bounds`, () => {
-	const geometry = createEdgeBuffer(),
-		camera = new THREE.PerspectiveCamera(45, 800 / 500, 0.1, 1000)
-	camera.position.set(0, 0, 40)
-	camera.updateMatrixWorld()
+it(`clips curves at camera depth planes and omits hidden or degenerate source layers`, () => {
+	const camera = projectionCamera(),
+		source = `a`,
+		color = `red`,
+		traced = false
+	const from = { x: -8, y: 0, z: 0 }
+	const edge = { source, color, traced, from, to: { x: 8, y: 0, z: 60 } }
+	const paths = projectEdges([edge], camera, 800, 500).get(source)!
+	expect(paths).toHaveLength(1)
+	expect(pathPoints(paths[0].d).flat().every(Number.isFinite)).toBe(true)
+	expect(
+		projectEdges([{ ...edge, from: { x: 0, y: 0, z: 60 } }], camera, 800, 500)
+			.size,
+	).toBe(0)
+	expect(
+		projectEdges([{ ...edge, to: { x: 0, y: 0, z: 40 } }], camera, 800, 500)
+			.size,
+	).toBe(0)
+	expect(
+		projectEdges([{ ...edge, from: { x: 0, y: 0, z: -2000 } }], camera, 800, 500)
+			.size,
+	).toBe(0)
+	// Clustered member endpoints can lie beyond the depth planes while their family card remains visible.
+	expect(
+		projectEdges(
+			[{ ...edge, from: { x: 1, y: 1, z: 60 }, fromCard: from }],
+			camera,
+			800,
+			500,
+		).size,
+	).toBe(0)
+	expect(
+		projectEdges(
+			[
+				{
+					...edge,
+					from: { x: 1, y: 1, z: 60 },
+					to: { x: 8, y: 2, z: 60 },
+					fromCard: from,
+				},
+			],
+			camera,
+			800,
+			500,
+		).size,
+	).toBe(0)
+})
+
+it(`reuses projected paths through tracing changes, invalidates camera/port changes and forgets removed edges`, () => {
+	const camera = projectionCamera(),
+		project = createEdgeProjector()
 	const from = { x: -8, y: 0, z: 0 },
 		to = { x: 8, y: 0, z: 0 }
-	writeEdgeBuffer(
-		geometry,
-		[
-			{
-				from,
-				to,
-				color: `red`,
-				traced: false,
-				fromCollapsed: true,
-				toCollapsed: true,
-			},
-		],
-		false,
+	const edge: EcologyLine = {
+		source: `a`,
+		from,
+		to,
+		color: `red`,
+		traced: false,
+	}
+	const first = project([edge], camera, 800, 500).get(`a`)![0]
+	expect(project([edge], camera, 800, 500).get(`a`)![0]).toBe(first)
+	const traced = project([{ ...edge, traced: true }], camera, 800, 500).get(
+		`a`,
+	)![0]
+	expect(traced.d).toBe(first.d)
+	expect(traced.traced).toBe(true)
+	const full = project([edge], camera, 800, 500).get(`a`)![0]
+	project(
+		[{ ...edge, fromCollapsed: true, toCollapsed: true }],
 		camera,
 		800,
 		500,
 	)
-	const attribute = geometry.getAttribute(`position`)
-	const start = new THREE.Vector3()
-		.fromBufferAttribute(attribute, 0)
-		.project(camera)
-	const end = new THREE.Vector3()
-		.fromBufferAttribute(attribute, 31)
-		.project(camera)
-	expect(
-		(start.x - new THREE.Vector3(-8, 0, 0).project(camera).x) * 400,
-	).toBeCloseTo(43, 3)
-	expect(
-		(new THREE.Vector3(8, 0, 0).project(camera).x - end.x) * 400,
-	).toBeCloseTo(43, 3)
-	geometry.dispose()
+	expect(project([edge], camera, 800, 500).get(`a`)![0]).toBe(full)
+	const loop = { ...edge, to: from }
+	const ordered = project([edge, loop], camera, 800, 500).get(`a`)!
+	expect(project([loop, edge], camera, 800, 500).get(`a`)).toEqual(ordered)
+	for (const changed of [
+		{ ...edge, fromCollapsed: true },
+		{ ...edge, toCollapsed: true },
+		{ ...edge, fromCard: { x: -7, y: 0, z: 0 } },
+		{ ...edge, toCard: { x: 7, y: 0, z: 0 } },
+	]) {
+		project([edge], camera, 800, 500)
+		expect(project([changed], camera, 800, 500).get(`a`)![0].d).not.toBe(first.d)
+	}
+	project([edge], camera, 800, 500)
+	camera.position.z = 50
+	camera.updateMatrixWorld()
+	expect(project([edge], camera, 800, 500).get(`a`)![0].d).not.toBe(first.d)
+	const moved = project([edge], camera, 800, 500).get(`a`)![0]
+	project([], camera, 800, 500)
+	expect(project([edge], camera, 800, 500).get(`a`)![0]).not.toBe(moved)
 })

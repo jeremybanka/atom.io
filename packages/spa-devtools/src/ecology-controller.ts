@@ -218,6 +218,7 @@ export function createEcologyController(
 				const fromCard = visibleId(from.id)!,
 					toCard = visibleId(to.id)!
 				return {
+					source: fromCard,
 					from,
 					to,
 					color: from.color,

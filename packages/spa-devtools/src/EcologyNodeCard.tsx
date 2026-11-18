@@ -1,14 +1,19 @@
 /** @jsxImportSource @atom.io/spa */
-import { onCleanup, onMount, type SpaElement } from "@atom.io/spa"
+import { onCleanup, onMount, type SpaElement, useStore } from "@atom.io/spa"
 import { bindScene } from "@atom.io/spa/renderer"
 import type { Scene } from "three"
 // eslint-disable-next-line import/extensions -- Three addon exports require the .js suffix.
 import { CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js"
 
 import type { GraphItem } from "./ecology-graph.ts"
+import type { ProjectedEdge } from "./ecology-lines.ts"
 import css from "./EcologyNodeCard.module.css"
+import { useLocal } from "./store.ts"
 
 export function EcologyNodeCard(props: {
+	registerEdges(
+		paint: (paths: ReadonlyMap<string, readonly ProjectedEdge[]>) => void,
+	): () => void
 	item: GraphItem
 	visible: boolean
 	selected: boolean
@@ -39,10 +44,41 @@ export function EcologyNodeCard(props: {
 		const source = props.item.source
 		return `value` in source && source.value.status === `unknown`
 	}
+	const empty: readonly ProjectedEdge[] = []
+	const [pathCount, setPathCount] = useLocal(useStore(), 0)
+	const paths = new Map<number, SVGPathElement>()
+	const paintPath = (
+		node: SVGPathElement,
+		path: ProjectedEdge,
+		previous?: ProjectedEdge,
+	) => {
+		if (path.d !== previous?.d) node.setAttribute(`d`, path.d)
+		if (path.traced !== previous?.traced)
+			node.setAttribute(`data-traced`, String(path.traced))
+	}
+	let outgoing = empty,
+		id = ``
 	let element: HTMLElement | null = null
 	onMount(() => {
 		const label = new CSS2DObject(element!)
 		props.scene.add(label)
+		onCleanup(
+			props.registerEdges((layers) => {
+				const next = layers.get(id) ?? empty
+				if (
+					next.length !== outgoing.length ||
+					next.some((path, index) => path !== outgoing[index])
+				) {
+					const resized = next.length !== outgoing.length
+					for (let index = 0; index < next.length; index++) {
+						const node = paths.get(index)
+						if (node) paintPath(node, next[index], outgoing[index])
+					}
+					outgoing = next
+					if (resized) setPathCount(next.length)
+				}
+			}),
+		)
 		bindScene(
 			() => ({
 				item: props.item,
@@ -50,6 +86,7 @@ export function EcologyNodeCard(props: {
 				order: props.selected ? 2 : props.traced ? 1 : 0,
 			}),
 			({ item, visible, order }) => {
+				id = item.id
 				label.position.set(item.x, item.y, item.z)
 				label.visible = visible
 				label.renderOrder = order
@@ -77,6 +114,28 @@ export function EcologyNodeCard(props: {
 			data-collapsed={props.collapsed}
 			data-position={position()}
 		>
+			{pathCount() > 0 && (
+				<svg
+					width="1"
+					height="1"
+					aria-hidden="true"
+					focusable="false"
+					fill="none"
+					stroke="var(--ecology-color)"
+				>
+					{/* SPA owns the paths; the camera pass paints geometry into these retained slots. */}
+					{Array.from({ length: pathCount() }, (_, index) => (
+						<path
+							ref={(node) => {
+								if (node) {
+									paths.set(index, node)
+									paintPath(node, outgoing[index])
+								} else paths.delete(index)
+							}}
+						/>
+					))}
+				</svg>
+			)}
 			<button
 				type="button"
 				data-node

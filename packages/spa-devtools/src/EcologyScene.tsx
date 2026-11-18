@@ -14,10 +14,10 @@ import type {
 	GraphItem,
 } from "./ecology-graph.ts"
 import {
-	createEdgeBuffer,
+	createEdgeProjector,
 	createFamilyBuffer,
 	type EcologyLine,
-	writeEdgeBuffer,
+	type ProjectedEdge,
 	writeFamilyBuffer,
 } from "./ecology-lines.ts"
 import { EcologyNodeCard } from "./EcologyNodeCard.tsx"
@@ -80,27 +80,16 @@ export function EcologyScene(props: {
 		return matches !== undefined && !matches.has(item.id)
 	}
 	const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100_000)
-	const normal = createEdgeBuffer(),
-		traced = createEdgeBuffer(),
-		families = createFamilyBuffer()
+	const edgeLayers = new Set<
+		(paths: ReadonlyMap<string, readonly ProjectedEdge[]>) => void
+	>()
+	const projectEdges = createEdgeProjector()
+	const families = createFamilyBuffer()
 	const familyMaterial = new THREE.LineBasicMaterial({
 		vertexColors: true,
 		transparent: true,
 		opacity: 0.12,
 		depthWrite: false,
-	})
-	const normalMaterial = new THREE.LineBasicMaterial({
-		vertexColors: true,
-		transparent: true,
-		opacity: 0.14,
-		depthWrite: false,
-	})
-	const traceMaterial = new THREE.LineBasicMaterial({
-		vertexColors: true,
-		transparent: true,
-		opacity: 0.9,
-		depthWrite: false,
-		depthTest: false,
 	})
 	camera.position.set(23, 7, 28)
 	let viewport: HTMLElement | null = null,
@@ -245,11 +234,7 @@ export function EcologyScene(props: {
 		)
 		onCleanup(() => {
 			observer.disconnect()
-			normal.dispose()
-			traced.dispose()
 			families.dispose()
-			normalMaterial.dispose()
-			traceMaterial.dispose()
 			familyMaterial.dispose()
 		})
 	})
@@ -258,24 +243,14 @@ export function EcologyScene(props: {
 		dirty = false
 		camera.updateMatrixWorld()
 		renderer!.render(labels, camera)
-		writeEdgeBuffer(
-			normal,
+		const paths = projectEdges(
 			props.edges,
-			false,
 			camera,
 			size().width,
 			size().height,
 			scale,
 		)
-		writeEdgeBuffer(
-			traced,
-			props.edges,
-			true,
-			camera,
-			size().width,
-			size().height,
-			scale,
-		)
+		for (const paint of edgeLayers) paint(paths)
 		writeFamilyBuffer(families, props.familyConnections ?? [], scale)
 		viewport!.dataset[`camera`] = [
 			...camera.position.toArray(),
@@ -341,14 +316,6 @@ export function EcologyScene(props: {
 					renderWhen={() => dirty}
 					onFrame={draw}
 				>
-					<LineSegments args={[normal, normalMaterial]} frustumCulled={false} />
-					<LineSegments
-						args={[traced, traceMaterial]}
-						frustumCulled={false}
-						ref={(line) => {
-							if (line) line.renderOrder = 1
-						}}
-					/>
 					<LineSegments
 						name="family-connections"
 						args={[families, familyMaterial]}
@@ -369,6 +336,10 @@ export function EcologyScene(props: {
 					<EcologyNodeCard
 						key={`${props.generation}:${index}`}
 						item={props.card(index)}
+						registerEdges={(paint) => {
+							edgeLayers.add(paint)
+							return () => edgeLayers.delete(paint)
+						}}
 						visible={props.visible(index)}
 						collapsed={collapsed(props.card(index))}
 						selected={selected(props.card(index))}

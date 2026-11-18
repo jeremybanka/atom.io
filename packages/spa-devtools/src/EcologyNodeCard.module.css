@@ -9,14 +9,14 @@ ecology-node-card.class {
 	&[hidden] {
 		display: none;
 	}
-	&[data-dimmed="true"] {
+	&[data-dimmed="true"] > button {
 		opacity: 0.5;
 	}
 	&[data-collapsed="true"] {
 		width: 80px;
 		height: 24px;
-		opacity: 0.25;
 		> button {
+			opacity: 0.25;
 			padding: 2px 5px;
 			> strong {
 				font-size: 9px;
@@ -27,7 +27,22 @@ ecology-node-card.class {
 			}
 		}
 	}
+	> svg {
+		position: absolute;
+		left: 50%;
+		top: 50%;
+		overflow: visible;
+		pointer-events: none;
+		stroke-width: 1px;
+		> path {
+			stroke-opacity: 0.14;
+			&[data-traced="true"] {
+				stroke-opacity: 0.9;
+			}
+		}
+	}
 	> button {
+		position: relative;
 		width: 100%;
 		height: 100%;
 		padding: 7px 9px;

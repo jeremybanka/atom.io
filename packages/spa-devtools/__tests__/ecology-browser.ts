@@ -285,6 +285,56 @@ try {
 		`Editor rows must project between sections`,
 	)
 	assert.deepEqual(rowMotion.attributes, [])
+	// Window movement must not become a spring animation on every editor row.
+	await page
+		.getByRole(`button`, { name: `Debugger layout`, exact: true })
+		.click()
+	await page.getByRole(`button`, { name: `Restore free position` }).click()
+	await page.waitForTimeout(700)
+	const move = page.getByRole(`button`, { name: `Move debugger`, exact: true })
+	const handle = (await move.boundingBox())!
+	await page.mouse.move(handle.x + 18, handle.y + 16)
+	await page.mouse.down()
+	const tracking = page.locator(`ecology-editor`).evaluate(async (editor) => {
+		const panel = editor.closest(`debugger-panel`)!
+		const rows = [
+			...editor.querySelectorAll(`ecology-editor-row:not([hidden]), h3`),
+		]
+		const local = () => {
+			const parent = panel.getBoundingClientRect()
+			return rows.map((node) => {
+				const rect = node.getBoundingClientRect()
+				return { x: rect.x - parent.x, y: rect.y - parent.y }
+			})
+		}
+		const baseline = local(),
+			positions = new Set<number>()
+		let deviation = 0
+		for (let index = 0; index < 60; index++) {
+			await new Promise(requestAnimationFrame)
+			positions.add(panel.getBoundingClientRect().x)
+			for (const [offset, point] of local().entries())
+				deviation = Math.max(
+					deviation,
+					Math.hypot(point.x - baseline[offset].x, point.y - baseline[offset].y),
+				)
+		}
+		return { deviation, positions: positions.size }
+	})
+	await page.mouse.move(handle.x + 198, handle.y + 106, { steps: 25 })
+	await page.keyboard.press(`Escape`)
+	await page.mouse.up()
+	const tracked = await tracking
+	assert.ok(tracked.positions > 5, `Observe multiple real window positions`)
+	assert.ok(tracked.deviation < 1, `Editor rows must move with the window`)
+	assert.equal(
+		await row.evaluate((node, original) => node === original, originalRow),
+		true,
+	)
+	await page
+		.getByRole(`button`, { name: `Debugger layout`, exact: true })
+		.click()
+	await page.getByRole(`button`, { name: `Full viewport`, exact: true }).click()
 	await page.locator(`ecology-scene`).focus()
 	await page.keyboard.press(`Escape`)
 	await ready()

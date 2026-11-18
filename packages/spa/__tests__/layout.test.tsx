@@ -187,6 +187,7 @@ it(`coordinates measurement around native writes, restores author styles, and re
 		"motion:layoutId": `marker`,
 		"motion:layoutGroup": `ready`,
 		"motion:layoutScroll": true,
+		"motion:layoutRoot": true,
 		style: `width:20px;height:10px`,
 	})
 	expect(probe.events[0]).toEqual([`before`, `10px`])
@@ -194,6 +195,7 @@ it(`coordinates measurement around native writes, restores author styles, and re
 	expect(probe.nodes.at(-1).node.options).toMatchObject({
 		animationType: `position`,
 		layoutScroll: true,
+		layoutRoot: true,
 	})
 	expect(current.visual.scheduleRender).toHaveBeenCalled()
 	f.bindings[0].exit?.({})

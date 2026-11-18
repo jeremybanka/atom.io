@@ -88,6 +88,7 @@ export function DebuggerPanel(props: {
 	)
 	return (
 		<debugger-panel
+			motion:layoutRoot
 			class={css.class}
 			role="main"
 			ref={attach}

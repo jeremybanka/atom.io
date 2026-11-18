@@ -14,6 +14,7 @@ interface Props {
 	id?: string | number
 	group?: string | number
 	scroll?: boolean
+	root?: boolean
 	transition?: MotionLayoutTransition
 }
 interface LayoutController {
@@ -103,6 +104,7 @@ export function createLayoutController(
 		}
 		entry.node!.setOptions({
 			layoutScroll: entry.props.scroll ?? false,
+			layoutRoot: entry.props.root ?? false,
 			animationType:
 				typeof entry.props.animate === `string` ? entry.props.animate : `both`,
 			animate: entry.props.animate !== false && !reduced(),

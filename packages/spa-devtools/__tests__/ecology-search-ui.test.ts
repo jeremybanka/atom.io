@@ -559,7 +559,7 @@ it(`bounds retained cards when successive filters visit disjoint parts of a larg
 })
 
 it(`shares one search surface across panel sizes, retains applied filters and dismisses modals without changing selection`, async () => {
-	const observers = new Map<Element, ResizeObserverCallback>()
+	const observers = new Map<Element, Set<ResizeObserverCallback>>()
 	const disconnected = vi.fn()
 	vi.spyOn(window, `ResizeObserver`).mockImplementation(
 		class {
@@ -568,7 +568,10 @@ it(`shares one search surface across panel sizes, retains applied filters and di
 				this.callback = callback
 			}
 			public observe(target: Element) {
-				observers.set(target, this.callback)
+				const callbacks =
+					observers.get(target) ?? new Set<ResizeObserverCallback>()
+				callbacks.add(this.callback)
+				observers.set(target, callbacks)
 			}
 			public unobserve() {}
 			public disconnect = disconnected
@@ -578,7 +581,8 @@ it(`shares one search surface across panel sizes, retains applied filters and di
 	const panel = f.host.querySelector<HTMLElement>(`debugger-panel`)!
 	const width = vi.spyOn(panel, `clientWidth`, `get`).mockReturnValue(900)
 	const resized = () => {
-		observers.get(panel)!([], {} as ResizeObserver)
+		for (const callback of observers.get(panel)!)
+			callback([], {} as ResizeObserver)
 	}
 	const search = f.host.querySelector<HTMLDialogElement>(`[data-search-modal]`)!
 	const guide = f.host.querySelector<HTMLDialogElement>(`[data-guide-modal]`)!

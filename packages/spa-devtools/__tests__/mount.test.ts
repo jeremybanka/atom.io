@@ -31,6 +31,9 @@ it(`preserves caller DOM and releases owned state and global listeners across 50
 	const sibling = document.createElement(`button`)
 	host.append(sibling)
 	document.body.append(host)
+	// Motion lazily creates document-wide projection/media listeners on first use.
+	// Warm those shared resources before measuring per-panel ownership.
+	mountAtomIODevtools(host, { store }).dispose()
 	const documentAdd = vi.spyOn(document, `addEventListener`)
 	const documentRemove = vi.spyOn(document, `removeEventListener`)
 	const windowAdd = vi.spyOn(window, `addEventListener`)
@@ -52,8 +55,8 @@ it(`preserves caller DOM and releases owned state and global listeners across 50
 	expect(addedKeys).toHaveLength(50)
 	expect(removedKeys).toEqual(addedKeys)
 	const addedResize = windowAdd.mock.calls.filter(([type]) => type === `resize`)
-	// Each mount owns the panel resize listener and the shared brand listener.
-	expect(addedResize).toHaveLength(100)
+	// Panel geometry, branding and layout's reduced-motion subscription each own one.
+	expect(addedResize).toHaveLength(150)
 	expect(windowRemove.mock.calls.filter(([type]) => type === `resize`)).toEqual(
 		addedResize,
 	)

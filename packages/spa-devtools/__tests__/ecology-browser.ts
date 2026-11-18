@@ -81,7 +81,7 @@ try {
 	}
 	await ready()
 	const before = await page.evaluate(() => window.ecologyFixture.evidence())
-	await page.getByRole(`textbox`, { name: `Search ecology` }).fill(`dormant`)
+	await page.getByRole(`searchbox`, { name: `Search ecology` }).fill(`dormant`)
 	await ready()
 	await page.getByText(`Accessible node list`, { exact: true }).click()
 	await page.locator(`.ecology-list button`).first().focus()
@@ -101,7 +101,49 @@ try {
 		await page.locator(`.ecology-inspector`).innerText(),
 		/incomplete/,
 	)
-	await page.getByRole(`textbox`, { name: `Search ecology` }).fill(``)
+	const rankedInput = page.getByRole(`searchbox`, { name: `Search ecology` })
+	const captured = await page
+		.locator(`.ecology`)
+		.getAttribute(`data-snapshot-ms`)
+	await page.getByRole(`button`, { name: `Pan right`, exact: true }).click()
+	const pan = await page.locator(`.ecology-world`).getAttribute(`transform`)
+	await rankedInput.fill(`ｄｏｒｍａｎｔ`)
+	await ready()
+	assert.equal(
+		await page
+			.locator(`.ecology-results button`)
+			.first()
+			.getAttribute(`aria-label`),
+		`dormant`,
+	)
+	await rankedInput.fill(`items a`)
+	await ready()
+	await page
+		.locator(`.ecology-results`)
+		.getByRole(`button`, { name: `items("a")`, exact: true })
+		.click()
+	await ready()
+	assert.equal(
+		await page.evaluate(
+			() => (document.activeElement as HTMLElement).dataset[`graphId`],
+		),
+		`state:items("a")`,
+	)
+	await page.keyboard.press(`Escape`)
+	assert.equal(
+		await rankedInput.evaluate((node) => node === document.activeElement),
+		true,
+	)
+	assert.equal(
+		await page.locator(`.ecology-world`).getAttribute(`transform`),
+		pan,
+	)
+	assert.equal(
+		await page.locator(`.ecology`).getAttribute(`data-snapshot-ms`),
+		captured,
+	)
+	await page.getByRole(`button`, { name: `Reset view`, exact: true }).click()
+	await page.getByRole(`searchbox`, { name: `Search ecology` }).fill(``)
 	await ready()
 	await choose(`family:items`)
 	await page.getByRole(`button`, { name: `Expand family`, exact: true }).click()
@@ -179,6 +221,37 @@ try {
 		beforeGeometry.x - 10,
 	)
 	assert.equal(await page.locator(`.ecology`).getAttribute(`data-jobs`), jobs)
+	await choose(`state:price`)
+	await page
+		.getByRole(`button`, {
+			name: `Open live editor (may read/evaluate)`,
+			exact: true,
+		})
+		.click()
+	const editor = page.locator(`.ecology-live input`).first()
+	await editor.focus()
+	await editor.fill(`1e`)
+	const draftNode = await editor.elementHandle()
+	await rankedInput.fill(`dormant`)
+	await ready()
+	await page.locator(`.ecology-results button`).first().click()
+	await ready()
+	assert.equal(await editor.inputValue(), `1e`)
+	assert.equal(
+		await editor.evaluate((node, original) => node === original, draftNode),
+		true,
+	)
+	await rankedInput.focus()
+	await rankedInput.press(`Escape`)
+	await ready()
+	await rankedInput.press(`Escape`)
+	assert.equal(
+		await editor.evaluate((node) => node === document.activeElement),
+		true,
+	)
+	await page
+		.getByRole(`button`, { name: `Back to passive inspector`, exact: true })
+		.click()
 	await choose(`state:dormant`)
 	await page
 		.getByRole(`button`, {
@@ -237,6 +310,14 @@ try {
 		...document.querySelector<HTMLElement>(`.ecology`)!.dataset,
 		maxChunkMs:
 			document.querySelector<HTMLElement>(`.ecology`)!.dataset[`maxChunkMs`],
+		maxIndexChunkMs:
+			document.querySelector<HTMLElement>(`.ecology`)!.dataset[
+				`maxIndexChunkMs`
+			],
+		maxMatchChunkMs:
+			document.querySelector<HTMLElement>(`.ecology`)!.dataset[
+				`maxMatchChunkMs`
+			],
 		counts: document.querySelector<HTMLElement>(`.ecology-counts`)!.textContent,
 		notice: document.querySelector<HTMLElement>(`.ecology-notice`)!.textContent,
 	}))
@@ -245,7 +326,10 @@ try {
 	await page.screenshot({ path: resolvePath(artifacts, `large.png`) })
 	await page.evaluate(() => performance.mark(`s4-overview-end`))
 	const search = [],
-		selection = []
+		selection = [],
+		slices: number[] = [],
+		stageSamples: Record<string, number>[] = [],
+		timingSamples: Record<string, number>[] = []
 	const warmupIterations = 5,
 		sampleIterations = 20
 	for (
@@ -284,6 +368,26 @@ try {
 				return {
 					search: searched - start,
 					selection: performance.now() - searched,
+					timings: Object.fromEntries(
+						[`matchMs`, `layoutMs`, `commitMs`].map((metric) => [
+							metric,
+							Number(
+								document.querySelector<HTMLElement>(`.ecology`)!.dataset[metric],
+							),
+						]),
+					),
+					stages: Object.fromEntries(
+						[`maxIndexChunkMs`, `maxMatchChunkMs`, `maxChunkMs`].map(
+							(metric) => [
+								metric,
+								Number(
+									document.querySelector<HTMLElement>(`.ecology`)!.dataset[
+										metric
+									],
+								),
+							],
+						),
+					),
 				}
 			},
 			index % 5 === 0
@@ -295,6 +399,9 @@ try {
 		if (iteration >= warmupIterations) {
 			search.push(sample.search)
 			selection.push(sample.selection)
+			stageSamples.push(sample.stages)
+			timingSamples.push(sample.timings)
+			slices.push(Math.max(...Object.values(sample.stages)))
 		}
 	}
 	assert.equal(
@@ -351,6 +458,9 @@ try {
 		paintRecords,
 		warmupIterations,
 		sampleIterations,
+		maxScheduledSliceMs: Math.max(...slices),
+		stageSamples,
+		timingSamples,
 		searchMs: search,
 		selectionMs: selection,
 		searchP95Ms: p95(search),
@@ -361,7 +471,7 @@ try {
 			layoutChunkMs: 8,
 		},
 		performancePolicy,
-		method: `Fresh-task DOM search/selection with first-frame observations, not hardware/compositor input latency. Snapshot, scheduled projection/layout slices, DOM commit and renderer Paint records reported separately. Large fixture construction excluded from overview and reported as setupMs. S3 capture limits may truncate observations; notice/counts retained.`,
+		method: `Fresh-task DOM search/selection with first-frame observations, not hardware/compositor input latency. Snapshot, metadata indexing, matching and scheduled projection/layout slices, DOM commit and renderer Paint records reported separately. Large fixture construction excluded from overview and reported as setupMs. S3 capture limits may truncate observations; notice/counts retained.`,
 	}
 	await writeFile(
 		resolvePath(artifacts, `metrics.json`),
@@ -369,7 +479,13 @@ try {
 	)
 	process.stdout.write(JSON.stringify(report, null, 2) + `\n`)
 	assert.deepEqual(errors, [])
-	reportPerformanceTarget(`ecology layout chunk`, Number(overview.maxChunkMs), 8)
+	const maximumSlice = Math.max(
+		Number(overview.maxChunkMs),
+		Number(overview.maxIndexChunkMs),
+		Number(overview.maxMatchChunkMs),
+		report.maxScheduledSliceMs,
+	)
+	reportPerformanceTarget(`ecology layout chunk`, maximumSlice, 8)
 	reportPerformanceTarget(`ecology overview`, overview.overviewMs, 500)
 	reportPerformanceTarget(`ecology search p95`, report.searchP95Ms, 100)
 	reportPerformanceTarget(`ecology selection p95`, report.selectionP95Ms, 100)

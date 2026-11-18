@@ -364,22 +364,20 @@ main[data-css="spa-devtools"] {
 		cursor: pointer;
 		outline: none;
 	}
-	.ecology-node > rect, .ecology-node > path {
+	.ecology-node > path {
 		fill: var(--bg-tint2);
 		stroke: var(--fg-light);
 		stroke-width: 1.5px;
 	}
-	.ecology-node.family > rect {
+	.ecology-node.family > path {
 		stroke: #9d7bd1;
 		stroke-dasharray: 5 3;
 	}
-	.ecology-node.traced > rect, .ecology-node.traced > path {
+	.ecology-node.traced > path {
 		stroke: #4296dd;
 		stroke-width: 3px;
 	}
-	.ecology-node[aria-pressed="true"] > rect,
 	.ecology-node[aria-pressed="true"] > path,
-	.ecology-node:focus-visible > rect,
 	.ecology-node:focus-visible > path {
 		stroke: var(--fg-max);
 		stroke-width: 3px;
@@ -781,4 +779,59 @@ main[data-css="spa-devtools"] {
 main[data-css="spa-devtools"] [data-search-selected="true"] > header {
 	outline: 2px solid var(--fg-max);
 	outline-offset: -2px;
+}
+
+main[data-css="spa-devtools"] {
+	.ecology-search {
+		display: flex;
+		flex: 1;
+		min-height: 0;
+		flex-direction: column;
+	}
+	.ecology-search-status {
+		padding: 3px 6px;
+		font-size: 11px;
+		line-height: 15px;
+	}
+	.ecology-results {
+		flex-shrink: 0;
+		max-height: 120px;
+		overflow: auto;
+		list-style: none;
+	}
+	.ecology-results li {
+		border-top: 1px solid var(--fg-hint);
+	}
+	.ecology-results button {
+		width: 100%;
+		height: auto;
+		min-height: 21px;
+		text-align: left;
+		overflow-wrap: anywhere;
+	}
+	.ecology-results small {
+		display: block;
+		padding: 1px 5px;
+		color: var(--fg-light);
+		overflow-wrap: anywhere;
+	}
+	.ecology-live-panel {
+		flex-shrink: 0;
+		max-height: 40%;
+		overflow: auto;
+		border-top: 1px solid var(--fg-hint);
+	}
+	.ecology-live-panel > header {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+	}
+	.ecology-live-panel[hidden] {
+		display: none;
+	}
+}
+
+main[data-css="spa-devtools"] .ecology-live-panel > header > span {
+	min-width: 0;
+	overflow-wrap: anywhere;
 }

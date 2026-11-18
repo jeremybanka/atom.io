@@ -1,3 +1,5 @@
+import type { RootStore } from "atom.io/internal"
+
 /** Defer the existing editor blur only while focus visits this panel's passive search UI. */
 export function createSearchSession(
 	panel: HTMLElement,
@@ -87,4 +89,23 @@ export function createSearchSession(
 			origin = null
 		},
 	}
+}
+
+/** Snapshot the live editor's backing definition/cache without reading application state. */
+export function editorIsCurrent(
+	store: RootStore,
+	input: HTMLInputElement,
+): () => boolean {
+	const key = input.closest<HTMLElement>(`.state-leaf`)!.dataset[`stateKey`]!
+	const definition = () =>
+		store.atoms.get(key) ??
+		store.readonlySelectors.get(key) ??
+		store.writableSelectors.get(key)
+	const state = definition(),
+		value = store.valueMap.get(key),
+		cached = store.valueMap.has(key)
+	return () =>
+		definition() === state &&
+		store.valueMap.has(key) === cached &&
+		Object.is(store.valueMap.get(key), value)
 }

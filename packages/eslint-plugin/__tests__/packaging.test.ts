@@ -20,7 +20,7 @@ const fixtures = join(import.meta.dirname, `fixtures`)
 let consumerRoot = ``
 
 function pnpm(cwd: string, ...args: string[]): void {
-	execFileSync(`pnpm`, [`--reporter=silent`, ...args], {
+	execFileSync(`pnpm`, [`--reporter=append-only`, ...args], {
 		cwd,
 		stdio: `inherit`,
 		timeout: 180_000,
@@ -62,7 +62,7 @@ it.each([
 					eslint,
 					...(compiler === `7`
 						? {
-								"@typescript/native": `npm:typescript@7.0.2`,
+								"typescript-compiler": `npm:typescript@7.0.2`,
 								typescript: `npm:@typescript/typescript6@6.0.2`,
 							}
 						: { typescript: `6.0.3` }),
@@ -79,6 +79,10 @@ it.each([
 		const pluginRequire = createRequire(manifestPath)
 		// The build compiler can be native while ESLint keeps the TypeScript 6 API.
 		assert.match(require(`typescript`).version, /^6\./)
+		const parserRequire = createRequire(
+			require.resolve(`@typescript-eslint/parser`),
+		)
+		assert.match(parserRequire(`typescript`).version, /^6\./)
 		const compilerVersion = execFileSync(`pnpm`, [`exec`, `tsc`, `--version`], {
 			cwd: appRoot,
 			encoding: `utf8`,

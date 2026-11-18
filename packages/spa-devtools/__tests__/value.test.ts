@@ -56,3 +56,31 @@ it(`converts all JSON kinds with predictable empty and invalid values`, () => {
 	] as const)
 		expect(convert(value, type)).toEqual(expected)
 })
+
+it(`bounds primitive previews and keeps opaque cache values free of property access`, async () => {
+	const { preview, shallowKind } = await import(`../src/value.ts`)
+	const trap = () => {
+		throw new Error(`No inspection`)
+	}
+	const proxy = new Proxy({}, { get: trap, getPrototypeOf: trap, ownKeys: trap })
+	const revoked = Proxy.revocable({}, {})
+	revoked.revoke()
+	for (const [value, text, type] of [
+		[undefined, `undefined`, `other`],
+		[null, `null`, `null`],
+		[true, `true`, `boolean`],
+		[2, `2`, `number`],
+		[2n, `2n`, `other`],
+		[`hi`, `"hi"`, `string`],
+		[Symbol(`s`), `Symbol(s)`, `other`],
+		[() => 0, `ƒ`, `other`],
+		[[], `[…]`, `array`],
+		[proxy, `{…}`, `object`],
+		[revoked.proxy, `<?>`, `other`],
+	] as const) {
+		expect(preview(value)).toBe(text)
+		expect(shallowKind(value)).toBe(type)
+	}
+	expect(preview(`x`.repeat(1000))).toHaveLength(60)
+	expect(preview(`x`.repeat(1000)).endsWith(`…`)).toBe(true)
+})

@@ -6,6 +6,44 @@ export type JsonKind =
 	| `null`
 	| `array`
 	| `object`
+
+/** A bounded cache preview: never enumerate objects, invoke getters/toJSON, or coerce objects. */
+export function preview(value: unknown): string {
+	if (value === null) return `null`
+	if (typeof value === `object`) {
+		try {
+			return Array.isArray(value) ? `[…]` : `{…}`
+		} catch {
+			return `<?>`
+		}
+	}
+	if (typeof value === `function`) return `ƒ`
+	let text: string
+	if (typeof value === `string`) text = JSON.stringify(value.slice(0, 60))
+	else if (typeof value === `bigint`) text = `${value}n`
+	else if (typeof value === `symbol`) text = String(value)
+	else if (typeof value === `number`) text = String(value)
+	else if (typeof value === `boolean`) return value ? `true` : `false`
+	else return `undefined`
+	return text.length > 60 ? `${text.slice(0, 59)}…` : text
+}
+
+/** Coarse cached shapes need no prototype inspection; opening children is an explicit action. */
+export function shallowKind(value: unknown): JsonKind | `other` {
+	if (value === null) return `null`
+	if (typeof value === `object`) {
+		try {
+			return Array.isArray(value) ? `array` : `object`
+		} catch {
+			return `other`
+		}
+	}
+	return typeof value === `string` ||
+		typeof value === `number` ||
+		typeof value === `boolean`
+		? (typeof value as JsonKind)
+		: `other`
+}
 export function kind(value: unknown): JsonKind | `other` {
 	if (value === null) return `null`
 	if (Array.isArray(value)) return `array`

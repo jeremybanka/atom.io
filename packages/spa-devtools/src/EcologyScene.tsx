@@ -8,7 +8,6 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js"
 // eslint-disable-next-line import/extensions -- Three addon exports require the .js suffix.
 import { CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js"
 
-import type { EcologyFamily } from "./ecology.ts"
 import type { GraphContext, GraphItem } from "./ecology-graph.ts"
 import {
 	createEdgeBuffer,
@@ -39,6 +38,7 @@ export function EcologyScene(props: {
 	selected?: string | undefined
 	traced: Set<string>
 	focused?: ReadonlySet<string> | undefined
+	matches?: ReadonlySet<string> | undefined
 	command: CameraCommand
 }): SpaElement {
 	const [size, setSize] = useLocal(props.tools.store, {
@@ -54,6 +54,21 @@ export function EcologyScene(props: {
 	}
 	const point = (item: GraphItem) =>
 		new THREE.Vector3(item.x, item.y, item.z).multiply(scale)
+	const highlighted = (item: GraphItem) => {
+		const keys = props.traced,
+			source = item.source
+		return `memberKeys` in source
+			? source.memberKeys.some((key) => keys.has(key))
+			: keys.has(item.key)
+	}
+	const dimmed = (item: GraphItem) => {
+		const focused = props.focused
+		return focused !== undefined && !focused.has(item.id)
+	}
+	const collapsed = (item: GraphItem) => {
+		const matches = props.matches
+		return matches !== undefined && !matches.has(item.id)
+	}
 	const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100_000)
 	const normal = createEdgeBuffer(),
 		traced = createEdgeBuffer()
@@ -203,6 +218,7 @@ export function EcologyScene(props: {
 		bindScene(() => props.command, command)
 		bindScene(() => props.edges, invalidate)
 		bindScene(() => props.items, invalidate)
+		bindScene(() => props.matches, invalidate)
 		bindScene(
 			() => props.cylinderHeight,
 			() => {
@@ -324,19 +340,10 @@ export function EcologyScene(props: {
 						key={`${props.generation}:${index}`}
 						item={props.card(index)}
 						visible={props.visible(index)}
+						collapsed={collapsed(props.card(index))}
 						selected={props.selected === props.card(index).id}
-						dimmed={
-							props.focused !== undefined &&
-							!props.focused.has(props.card(index).id)
-						}
-						traced={
-							props.card(index).kind === `family`
-								? `memberKeys` in props.card(index).source &&
-									(props.card(index).source as EcologyFamily).memberKeys.some(
-										(key) => props.traced.has(key),
-									)
-								: props.traced.has(props.card(index).key)
-						}
+						dimmed={dimmed(props.card(index))}
+						traced={highlighted(props.card(index))}
 						scene={labels}
 						invalidate={invalidate}
 					/>
@@ -344,8 +351,8 @@ export function EcologyScene(props: {
 			</ecology-labels>
 			{failed() && (
 				<p role="status">
-					3D view unavailable. Use the accessible node list below to inspect and
-					search captured state.
+					3D view unavailable. Use the ecology editor to inspect and search
+					captured state.
 				</p>
 			)}
 		</ecology-scene>

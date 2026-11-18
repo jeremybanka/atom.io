@@ -32,11 +32,11 @@ function fixture() {
 		lifespan: `ephemeral`,
 		isProduction: true,
 	})
-	const workspaceAtom = silo.atom<string>({ key: `workspace`, default: `graph` })
+	const selectedAtom = silo.atom<string>({ key: `selected`, default: `graph` })
 	const scene = vi.fn((props: Props) =>
 		jsx(`ecology-scene`, {
-			get "data-workspace"() {
-				return props.workspace
+			get "data-selected"() {
+				return props.selected
 			},
 		}),
 	)
@@ -44,7 +44,7 @@ function fixture() {
 	document.body.append(host)
 	const root = render(
 		() => {
-			const getWorkspace = useGetter(workspaceAtom)
+			const getSelected = useGetter(selectedAtom)
 			return jsx(EcologyViewport, {
 				tools: useTools(silo.store),
 				context: createGraphContext(),
@@ -59,8 +59,8 @@ function fixture() {
 				edges: [],
 				traced: new Set<string>(),
 				command: { sequence: 0, action: `fit` },
-				get workspace() {
-					return getWorkspace()
+				get selected() {
+					return getSelected()
 				},
 			})
 		},
@@ -88,8 +88,8 @@ function fixture() {
 			await vi.dynamicImportSettled()
 			root.flush()
 		},
-		workspace: (value: string) => {
-			silo.setState(workspaceAtom, value)
+		selected: (value: string) => {
+			silo.setState(selectedAtom, value)
 			root.flush()
 		},
 	}
@@ -102,11 +102,11 @@ it(`loads graphics on mount and forwards reactive props without remounting the s
 	await f.load()
 	expect(f.host.querySelector(`[aria-busy]`)).toBeNull()
 	expect(
-		f.host.querySelector(`ecology-scene`)?.getAttribute(`data-workspace`),
+		f.host.querySelector(`ecology-scene`)?.getAttribute(`data-selected`),
 	).toBe(`graph`)
-	f.workspace(`list`)
+	f.selected(`list`)
 	expect(
-		f.host.querySelector(`ecology-scene`)?.getAttribute(`data-workspace`),
+		f.host.querySelector(`ecology-scene`)?.getAttribute(`data-selected`),
 	).toBe(`list`)
 	expect(f.scene).toHaveBeenCalledOnce()
 })
@@ -114,7 +114,7 @@ it(`keeps module load failures local to the graph`, async () => {
 	const f = fixture()
 	await f.fail()
 	expect(f.host.textContent).toContain(
-		`3D view unavailable. Use the accessible node list below.`,
+		`3D view unavailable. Use the ecology editor below.`,
 	)
 	expect(f.host.querySelector(`[aria-busy]`)).toBeNull()
 	expect(f.scene).not.toHaveBeenCalled()

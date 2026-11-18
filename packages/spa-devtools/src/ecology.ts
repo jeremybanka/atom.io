@@ -2,6 +2,8 @@ import type { ReadableToken } from "atom.io"
 import type { RootStore } from "atom.io/internal"
 import { isReservedIntrospectionKey } from "atom.io/internal"
 
+import { preview } from "./value.ts"
+
 export type EcologyValueType =
 	| `undefined`
 	| `boolean`
@@ -22,7 +24,11 @@ export interface EcologyNode {
 	readonly family: { readonly key: string; readonly subKey: string } | null
 	readonly value:
 		| { readonly status: `unknown` }
-		| { readonly status: `cached`; readonly type: EcologyValueType }
+		| {
+				readonly status: `cached`
+				readonly type: EcologyValueType
+				readonly preview?: string
+		  }
 	/** Retained observations, not static dependencies or a guarantee of a successful evaluation. */
 	readonly dependencies: `not-applicable` | `unknown` | `observed`
 	readonly dependenciesTruncated: boolean
@@ -130,7 +136,11 @@ export function captureEcologySnapshot(
 					? { key: state.family.key, subKey: state.family.subKey }
 					: null,
 				value: cached
-					? { status: `cached`, type: valueType(store.valueMap.get(state.key)) }
+					? {
+							status: `cached`,
+							type: valueType(store.valueMap.get(state.key)),
+							preview: preview(store.valueMap.get(state.key)),
+						}
 					: { status: `unknown` },
 				dependencies:
 					kind === `atom` ? `not-applicable` : cached ? `observed` : `unknown`,

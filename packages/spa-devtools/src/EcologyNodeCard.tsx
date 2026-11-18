@@ -13,6 +13,7 @@ export function EcologyNodeCard(props: {
 	visible: boolean
 	selected: boolean
 	dimmed: boolean
+	collapsed?: boolean
 	traced: boolean
 	scene: Scene
 	invalidate(): void
@@ -21,7 +22,7 @@ export function EcologyNodeCard(props: {
 		const source = props.item.source
 		return `memberKeys` in source
 			? `${source.type.includes(`selector`) ? `Selector Family` : `Atom Family`} · ${source.memberCount}${source.countComplete ? `` : `+`} members`
-			: `${source.kind === `atom` ? `Atom` : `Selector`} · ${source.value.status === `cached` ? `cached ${source.value.type}` : `not cached / unknown`}`
+			: `${source.kind === `atom` ? `Atom` : `Selector`} · ${source.value.status === `cached` ? (source.value.preview ?? `…`) : `–`}`
 	}
 	let element: HTMLElement | null = null
 	onMount(() => {
@@ -56,6 +57,7 @@ export function EcologyNodeCard(props: {
 			data-kind={props.item.kind}
 			data-traced={props.traced}
 			data-dimmed={props.dimmed}
+			data-collapsed={props.collapsed}
 			data-position={`${props.item.x},${props.item.y},${props.item.z}`}
 		>
 			<button
@@ -70,7 +72,14 @@ export function EcologyNodeCard(props: {
 				title={`${props.item.label}\n${props.item.source.type}\n${props.item.detail}`}
 			>
 				<strong>{props.item.label}</strong>
-				<small>{detail()}</small>
+				<small
+					data-uncached={
+						`value` in props.item.source &&
+						props.item.source.value.status === `unknown`
+					}
+				>
+					{detail()}
+				</small>
 			</button>
 		</ecology-node-card>
 	)

@@ -5,7 +5,7 @@ import css from "./JsonEditor.module.css"
 import type { Path, Tools } from "./store.ts"
 import { useExpanded } from "./store.ts"
 import type { Change, JsonKind } from "./value.ts"
-import { convert, describe, kind } from "./value.ts"
+import { convert, describe, kind, preview, shallowKind } from "./value.ts"
 
 interface EditorProps {
 	tools: Tools
@@ -15,6 +15,7 @@ interface EditorProps {
 	ancestors?: readonly unknown[]
 	label?: Children
 	actions?: Children
+	shallow?: boolean | undefined
 }
 const TYPES: JsonKind[] = [
 	`string`,
@@ -26,11 +27,14 @@ const TYPES: JsonKind[] = [
 ]
 export function JsonEditor(props: EditorProps): SpaElement {
 	const [getExpanded, toggle] = useExpanded(props.tools, props.path)
+	const valueKind = () =>
+		props.shallow ? shallowKind(props.value) : kind(props.value)
+	const summary = () =>
+		props.shallow ? preview(props.value) : describe(props.value)
 	const circular = () =>
 		(props.ancestors?.includes(props.value) ?? false) || props.path.length > 50
 	const container = () =>
-		!circular() &&
-		(kind(props.value) === `object` || kind(props.value) === `array`)
+		!circular() && (valueKind() === `object` || valueKind() === `array`)
 	const entries = () => Object.entries(props.value as Record<string, unknown>)
 	return (
 		<json-editor
@@ -57,7 +61,7 @@ export function JsonEditor(props: EditorProps): SpaElement {
 				{props.change ? (
 					<select
 						aria-label={`Type of ${props.path.at(-1)}`}
-						value={kind(props.value)}
+						value={valueKind()}
 						onChange={(event) => {
 							const type = event.currentTarget.value as JsonKind
 							props.tools.attempt(() => {
@@ -73,12 +77,14 @@ export function JsonEditor(props: EditorProps): SpaElement {
 						))}
 					</select>
 				) : (
-					<small>{kind(props.value)}</small>
+					<small>{valueKind()}</small>
 				)}
 				{container() ? (
-					<code title={describe(props.value)}>{describe(props.value)}</code>
+					<code title={summary()}>{summary()}</code>
 				) : circular() ? (
 					<code>[Circular]</code>
+				) : props.shallow && valueKind() === `other` ? (
+					<code>{summary()}</code>
 				) : (
 					<Primitive
 						value={props.value}

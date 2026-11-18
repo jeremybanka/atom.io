@@ -16,7 +16,7 @@ export function createEcologyController(
 	context: GraphContext,
 	update: (patch: Partial<EcologyPresentation>) => void,
 	marker: string,
-): { dispose(): void; committed(): void } {
+): { dispose(): void; committed(): void; refresh(generatedKey?: string): void } {
 	const document = host.ownerDocument
 	const input = host.querySelector(`input`)!
 	const panel = host.closest<HTMLElement>(`debugger-panel, main`)!
@@ -30,12 +30,9 @@ export function createEcologyController(
 	const results = host.querySelector<HTMLOListElement>(
 		`ecology-view [data-results]`,
 	)!
-	const livePanel = host.querySelector<HTMLElement>(`ecology-live-panel`)!
-	const live = livePanel.querySelector<HTMLElement>(`ecology-live`)!
-	let liveKey: string | undefined
-	let liveDefinition: unknown
 	let origin: HTMLElement | null = null
 	let reveal: string | undefined
+	let generatedKey: string | undefined
 	let disposed = false,
 		preparing = false,
 		busy = false
@@ -48,27 +45,9 @@ export function createEcologyController(
 		wait = () => {}
 	const visible = () =>
 		!disposed && !panel.hidden && panel.dataset[`open`] !== `false`
-	const definition = (key: string) =>
-		store.atoms.get(key) ??
-		store.readonlySelectors.get(key) ??
-		store.writableSelectors.get(key)
 	input.value = context.query
-	const inspector = host.querySelector<HTMLElement>(`ecology-body > aside`)!
-	const list = host.querySelector<HTMLElement>(`ecology-map ul`)!
-	const map = host.querySelector<HTMLElement>(`ecology-map`)!
+	const list = host.querySelector<HTMLElement>(`ecology-editor`)!
 	const compact = () => panel.clientWidth > 0 && panel.clientWidth <= 650
-	const workspaceView = (view: string) => {
-		update({ workspace: view })
-		if (view === `list`) map.querySelector(`details`)!.open = true
-	}
-	workspaceView(`graph`)
-	let focusHeading = false,
-		focusLive = false,
-		focusBack = false
-	const focusSelection = () => {
-		focusHeading = true
-		workspaceView(`selection`)
-	}
 	let cards: EcologyPresentation[`cards`] = [],
 		generation = 0
 	let model: GraphModel | undefined,
@@ -86,9 +65,11 @@ export function createEcologyController(
 	}
 	const session = createSearchSession(
 		panel,
-		(target) => host.contains(target) && !livePanel.contains(target),
+		(target) =>
+			host.contains(target) &&
+			(!target.closest(`state-leaf`) || target.matches(`[data-graph-id]`)),
 		() => {
-			update({ draftPinned: Boolean(session.pinned()) })
+			update({ pinnedKey: session.pinned()?.dataset[`stateKey`] })
 		},
 		(editor) => editorIsCurrent(store, editor),
 	)
@@ -146,12 +127,6 @@ export function createEcologyController(
 	const resize = new document.defaultView!.ResizeObserver(syncSearchMode)
 	resize.observe(panel)
 	syncSearchMode()
-	const closeLive = () => {
-		session.finish(null)
-
-		liveKey = undefined
-		update({ liveKey: undefined })
-	}
 	const familyKey = (item: GraphItem | undefined): string | undefined => {
 		const key =
 			item?.kind === `family`
@@ -173,7 +148,7 @@ export function createEcologyController(
 			selectedCard,
 			selectionOutside:
 				Boolean(context.selected) &&
-				!model?.items.some((item) => item.id === selectedCard),
+				!model?.rows.some((item) => item.id === context.selected),
 			traceStatus: context.traceStatus,
 			expanded: new Set(context.expanded),
 			traced: model?.selection?.nodes ?? context.trace,
@@ -189,7 +164,6 @@ export function createEcologyController(
 		}
 		context.selected = id
 
-		if (!navigate && compact()) focusSelection()
 		if (navigate) {
 			const item = model?.all.get(id)
 			if (item && `family` in item.source && item.source.family)
@@ -219,7 +193,7 @@ export function createEcologyController(
 		)
 		host.dataset[`maxChunkMs`] = String(Math.max(...chunks))
 		const snapshot = context.snapshot!
-		const countsText = `${value.atoms} atoms · ${value.selectors} selectors · ${snapshot.families.length} families / ${value.members} members · showing ${value.items.length} of ${value.matching}${approximationLimited ? `+` : ``} matching groups/instances · ${value.edges.length} of ${snapshot.edges.length} captured edges`
+		const countsText = `${value.atoms} atoms · ${value.selectors} selectors · ${snapshot.families.length} families / ${value.members} members · showing ${value.items.length} of ${value.all.visible.length} groups/instances · ${value.matching}${approximationLimited ? `+` : ``} matching groups/instances · ${value.rows.length} of ${value.rowCount} editor rows · ${value.edges.length} of ${snapshot.edges.length} captured edges`
 		host.dataset[`counts`] = countsText
 		const noticeText =
 			snapshot.truncated.nodes ||
@@ -229,6 +203,13 @@ export function createEcologyController(
 				: `Observed snapshot ${context.capturedAt}. Paint cap: 500 nodes / 1,000 edges. Search to narrow; expand families for members.`
 		// Retain bounded slots within this capture; SPA owns their nodes and hidden state.
 		cards = value.items.concat(cards.slice(value.items.length))
+		const rowIds = new Set(value.rows.map((item) => item.id))
+		const pinnedKey = session.pinned()?.dataset[`stateKey`] ?? generatedKey
+		const nextRows = [...value.rows]
+		const pinned = pinnedKey ? value.all.get(`state:${pinnedKey}`) : undefined
+		if (pinned && !rowIds.has(pinned.id)) {
+			nextRows.push(pinned)
+		}
 		const edges = value.edges.map<EcologyPresentation[`edges`][number]>(
 			(edge) => {
 				const from = value.all.get(edge.from)!,
@@ -239,6 +220,9 @@ export function createEcologyController(
 					from,
 					to,
 					color: from.color,
+					fromCollapsed:
+						value.matches !== undefined && !value.matches.has(fromCard),
+					toCollapsed: value.matches !== undefined && !value.matches.has(toCard),
 					fromCard: fromCard !== from.id ? value.all.get(fromCard) : undefined,
 					toCard: toCard !== to.id ? value.all.get(toCard) : undefined,
 					traced: edge.traced,
@@ -251,39 +235,38 @@ export function createEcologyController(
 			cylinderHeight: value.cylinderHeight,
 			visibleCards: value.items.length,
 			cards,
+			rows: nextRows,
+			rowCount: value.rowCount,
+			rowIds,
+			matches: value.matches,
+			pinnedKey,
 			edges,
 			generation,
 			filtered: matchedIds !== undefined,
 			notice: noticeText,
-			empty: !value.items.length,
+			empty: !value.rows.length,
 			emptyText: context.query.trim()
 				? `No nodes match this search. Clear search to see the captured graph, or Refresh to recapture.`
 				: `No nodes in this capture. Refresh after your application creates state.`,
 		})
-		if (liveKey && definition(liveKey) !== liveDefinition) closeLive()
 		passive()
 		commitPaint = () => {
 			const selectedFamily = familyKey(
 				context.selected ? value.all.get(context.selected) : undefined,
 			)
-			const logicalFocusId =
-				focusId === context.selected ||
-				(selectedFamily && focusId === `family:${selectedFamily}`)
+			const logicalFocusId = focusInList
+				? focusId
+				: focusId === context.selected ||
+					  (selectedFamily && focusId === `family:${selectedFamily}`)
 					? visibleId(context.selected)
 					: visibleId(focusId)
 			if (reveal) {
 				camera(`focus`, reveal)
 				const target = [
-					...list.querySelectorAll<HTMLButtonElement>(`button`),
-				].find((item) => item.dataset[`graphId`] === reveal)!
-				list.closest(`details`)!.open = true
-				if (compact()) {
-					workspaceView(`selection`)
-					focusHeading = true
-				} else {
-					target.focus()
-					target.scrollIntoView?.({ block: `nearest` })
-				}
+					...list.querySelectorAll<HTMLButtonElement>(`button[data-graph-id]`),
+				].find((item) => item.dataset[`graphId`] === reveal)
+				target?.focus()
+				target?.scrollIntoView?.({ block: `nearest` })
 				reveal = undefined
 			} else if (
 				(focusId || focusAction) &&
@@ -306,7 +289,13 @@ export function createEcologyController(
 				if (target) target.focus()
 				else returnToSearch()
 			}
-			if (hadFocus && !focused.isConnected && !focusId && !focusAction)
+			if (
+				hadFocus &&
+				!focused.isConnected &&
+				!focusId &&
+				!focusAction &&
+				!generatedKey
+			)
 				returnToSearch()
 			host.dataset[`commitMs`] = String(performance.now() - start)
 			busy = false
@@ -325,7 +314,7 @@ export function createEcologyController(
 			paint,
 			undefined,
 			undefined,
-			2,
+			4,
 		)
 	}
 	const search = () => {
@@ -361,10 +350,11 @@ export function createEcologyController(
 			},
 			undefined,
 			undefined,
-			2,
+			4,
 		)
 	}
-	const refresh = () => {
+	const refresh = (generated?: string) => {
+		if (generated) generatedKey = generated
 		pendingSearch = undefined
 		cancelIndex()
 		cancelMatch()
@@ -410,7 +400,7 @@ export function createEcologyController(
 		)
 	}
 
-	const action = (name: string) => {
+	const action = (name: string, targetFamily?: string) => {
 		const selected = context.selected
 			? model?.all.get(context.selected)
 			: undefined
@@ -430,8 +420,9 @@ export function createEcologyController(
 			refresh()
 			return
 		}
-		if (name.startsWith(`view-`)) {
-			workspaceView(name.slice(5))
+		if (name === `more-rows`) {
+			context.rowLimit = Math.min(500, (context.rowLimit ?? 50) + 50)
+			project()
 			return
 		}
 		if (name === `clear-query`) {
@@ -441,15 +432,13 @@ export function createEcologyController(
 			return
 		}
 		if (name === `clear`) {
-			focusHeading = false
 			context.selected = null
 			context.trace = new Set()
 			context.traceStatus = `Not traced`
-			if (compact()) workspaceView(`graph`)
 			project()
 			return
 		}
-		const family = familyKey(selected)
+		const family = targetFamily ?? familyKey(selected)
 		if (name === `expand` && family) {
 			if (context.expanded.has(family)) context.expanded.delete(family)
 			else context.expanded.add(family)
@@ -463,26 +452,6 @@ export function createEcologyController(
 			project()
 			return
 		}
-		if (name === `live` && selected && selected.kind !== `family`) {
-			if (liveKey !== selected.key) {
-				closeLive()
-				liveKey = selected.key
-				liveDefinition = definition(liveKey)
-				update({ liveKey })
-			}
-			const target = live.querySelector<HTMLElement>(`input, button`)
-			focusLive = !target
-			target?.focus()
-			return
-		}
-		if (name === `back`) {
-			closeLive()
-			passive()
-			workspaceView(`selection`)
-			focusBack = true
-			return
-		}
-
 		camera(name)
 	}
 	const click = (event: Event) => {
@@ -505,7 +474,7 @@ export function createEcologyController(
 		if (target.dataset[`resultId`]) {
 			if (!busy) select(target.dataset[`resultId`], true)
 		} else if (target.dataset[`graphId`]) select(target.dataset[`graphId`])
-		else action(target.dataset[`action`]!)
+		else action(target.dataset[`action`]!, target.dataset[`familyKey`])
 	}
 	const key = (event: KeyboardEvent) => {
 		if (!visible() || event.defaultPrevented || event.isComposing) return
@@ -533,14 +502,13 @@ export function createEcologyController(
 			input.select()
 			return
 		}
-		if (target.closest(`ecology-live`)) return
+		if (target.closest(`state-leaf`) && !target.matches(`[data-graph-id]`))
+			return
 		if (escape) {
 			event.preventDefault()
-			const heading = target === inspector.querySelector(`h2`)
 			if (context.selected) {
 				action(`clear`)
-				if (results.contains(target) || list.contains(target) || heading)
-					returnToSearch()
+				if (results.contains(target) || list.contains(target)) returnToSearch()
 			} else if (target === input) {
 				if (input.value) {
 					input.value = ``
@@ -549,7 +517,7 @@ export function createEcologyController(
 					session.returnFocus()
 					if (document.activeElement === input) origin?.focus()
 				}
-			} else if (results.contains(target) || list.contains(target) || heading)
+			} else if (results.contains(target) || list.contains(target))
 				returnToSearch()
 			return
 		}
@@ -581,7 +549,6 @@ export function createEcologyController(
 			familyKey(selected) &&
 			(id === context.selected ||
 				id === visibleId(context.selected) ||
-				target === inspector.querySelector(`h2`) ||
 				target.matches(`ecology-scene`))
 		) {
 			event.preventDefault()
@@ -629,27 +596,24 @@ export function createEcologyController(
 	})
 	refresh()
 	return {
+		refresh,
 		committed() {
 			const commit = commitPaint
 			commitPaint = undefined
 			commit?.()
-			if (focusLive) {
-				focusLive = false
-				live.querySelector<HTMLElement>(`input, button`)?.focus()
-			}
-			if (focusBack) {
-				focusBack = false
+			if (generatedKey && commit) {
+				const leaf = [...list.querySelectorAll<HTMLElement>(`state-leaf`)].find(
+					(node) => node.dataset[`stateKey`] === generatedKey,
+				)
 				const target =
-					inspector.querySelector<HTMLElement>(`[data-action="live"]`) ??
-					inspector
-				target.focus()
-			}
-			if (focusHeading) {
-				const heading = inspector.querySelector<HTMLElement>(`h2`)
-				if (heading) {
-					focusHeading = false
-					heading.focus()
-				}
+					leaf?.querySelector<HTMLElement>(
+						`json-primitive input, editor-row > button[aria-expanded]`,
+					) ??
+					leaf?.querySelector<HTMLElement>(`select`) ??
+					leaf?.querySelector<HTMLElement>(`[data-graph-id]`)
+				generatedKey = undefined
+				if (target) target.focus()
+				else returnToSearch()
 			}
 		},
 		dispose() {

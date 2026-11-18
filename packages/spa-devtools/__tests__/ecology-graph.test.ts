@@ -208,12 +208,12 @@ it(`groups families, keeps zero definitions and namespaces group/member identiti
 				context,
 				new Set([`state:a`, `state:b`, `state:sum`]),
 			),
-		).items.map((item) => item.key),
-	).toEqual([`a`, `b`, `sum`])
+		).rows.map((item) => item.key),
+	).toEqual([`items`, `a`, `b`, `sum`])
 	context.query = `zero`
 	expect(
 		drain(projectEcology(withFamilies, context, new Set([`family:zero`])))
-			.items[0].detail,
+			.rows[0].detail,
 	).toContain(`0 members`)
 })
 
@@ -277,11 +277,11 @@ it(`caps paint at500 nodes/1000 edges while reporting exact captured totals and 
 	expect(
 		drain(
 			projectEcology(snapshot(nodes, edges), context, new Set([`state:n699`])),
-		).items.map((item) => item.key),
+		).rows.map((item) => item.key),
 	).toEqual([`n699`])
 	context.query = `does not exist`
 	expect(
-		drain(projectEcology(snapshot(nodes, edges), context, new Set())).items,
+		drain(projectEcology(snapshot(nodes, edges), context, new Set())).rows,
 	).toEqual([])
 })
 
@@ -569,7 +569,8 @@ it(`keeps lazy metadata immutable across equal-sized expansion changes and ignor
 			next,
 		),
 	)
-	expect(stale.items).toEqual([])
+	expect(stale.rows).toEqual([])
+	expect(stale.items.length).toBeGreaterThan(0)
 	expect(stale.matching).toBe(0)
 })
 

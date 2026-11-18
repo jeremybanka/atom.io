@@ -362,7 +362,7 @@ it(`keeps the list fallback local when WebGL creation fails`, () => {
 	const f = fixture()
 	f.root.flush()
 	expect(f.viewport.dataset[`unavailable`]).toBe(`true`)
-	expect(f.viewport.textContent).toContain(`accessible node list`)
+	expect(f.viewport.textContent).toContain(`ecology editor`)
 	expect(f.viewport.querySelector(`canvas`)).toBeNull()
 })
 it(`places arrowheads outside billboard bounds in 3D, retaining parallel edges and loops without reallocating buffers`, () => {
@@ -504,5 +504,45 @@ it(`fans clustered edges across the visible card ports and retains intra-cluster
 					.y * 250,
 		).some((y) => y > 29),
 	).toBe(true)
+	geometry.dispose()
+})
+
+it(`clips filtered connections to their compact card bounds`, () => {
+	const geometry = createEdgeBuffer(),
+		camera = new THREE.PerspectiveCamera(45, 800 / 500, 0.1, 1000)
+	camera.position.set(0, 0, 40)
+	camera.updateMatrixWorld()
+	const from = { x: -8, y: 0, z: 0 },
+		to = { x: 8, y: 0, z: 0 }
+	writeEdgeBuffer(
+		geometry,
+		[
+			{
+				from,
+				to,
+				color: `red`,
+				traced: false,
+				fromCollapsed: true,
+				toCollapsed: true,
+			},
+		],
+		false,
+		camera,
+		800,
+		500,
+	)
+	const attribute = geometry.getAttribute(`position`)
+	const start = new THREE.Vector3()
+		.fromBufferAttribute(attribute, 0)
+		.project(camera)
+	const end = new THREE.Vector3()
+		.fromBufferAttribute(attribute, 31)
+		.project(camera)
+	expect(
+		(start.x - new THREE.Vector3(-8, 0, 0).project(camera).x) * 400,
+	).toBeCloseTo(43, 3)
+	expect(
+		(new THREE.Vector3(8, 0, 0).project(camera).x - end.x) * 400,
+	).toBeCloseTo(43, 3)
 	geometry.dispose()
 })

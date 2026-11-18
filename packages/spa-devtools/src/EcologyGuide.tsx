@@ -36,11 +36,19 @@ export function EcologyGuide(props: {
 					</p>
 					<h3>Selection and families</h3>
 					<p>
-						Select a card or use the node list to inspect its captured metadata.
-						Stronger edges and cards show its upstream and downstream paths.
-						Unrelated cards fade, and the selected card stays in front. Escape
-						clears selection. Enter on a selected family or family member toggles
+						Select a card or an editor row to follow its captured graph. Stronger
+						edges and cards show its upstream and downstream paths. Unrelated
+						cards fade, and the selected card stays in front. Escape clears
+						selection. Enter on a selected family or family member toggles
 						clustering and expansion along the cylinder tangent.
+					</p>
+					<p>
+						The ecology editor stays beside the graph on wide screens and below
+						it on narrow screens. Selected, related and other nodes have separate
+						sections. Cached values have nested editors; Generate explicitly
+						reads a missing value and can evaluate a default or selector. Node
+						details retain dependency information and root tracing. Show more
+						nodes admits additional rows.
 					</p>
 					<h3>Search and filter</h3>
 					<p>
@@ -48,8 +56,10 @@ export function EcologyGuide(props: {
 						Ctrl/Cmd+Shift+F, or / outside an editor, to focus search. Arrow keys
 						visit ranked matches; Enter selects one. On narrow views, the search
 						button opens a modal and its colored dot means a filter is active.
-						Closing the modal keeps the filter. Clear search restores the
-						captured graph.
+						Closing the modal keeps the filter. Search filters editor rows while
+						other cards stay compact and faded on the canvas. Clear search
+						restores full cards. Unfinished edits stay mounted, with an
+						outside-filter marker when needed.
 					</p>
 					<h3>Capture details &amp; legend</h3>
 					<p data-notice>{props.notice}</p>
@@ -66,11 +76,13 @@ export function EcologyGuide(props: {
 					</p>
 					<p>
 						Capture happens on entry and Refresh. Searching, selecting, tracing
-						and expanding never evaluate application state. Observed dependencies
-						can be stale, incomplete or truncated. Search covers only captured
-						metadata; full store totals are unknown after a truncated capture.
-						Only Open live editor may read or evaluate a state. Unfinished editor
-						drafts stay mounted during passive navigation.
+						and expanding families never evaluate application state. Primitive
+						card previews come from the cache; opaque values use shallow markers.
+						Observed dependencies can be stale, incomplete or truncated. Search
+						covers only captured metadata; full store totals are unknown after a
+						truncated capture. Generate reads or evaluates a state. Expanding
+						object properties and changing editor values are explicit
+						interactions.
 					</p>
 				</article>
 			</dialog>

@@ -1,5 +1,17 @@
 state-leaf.class {
 	display: block;
+	> node-heading {
+		display: flex;
+		align-items: center;
+		min-height: 26px;
+		gap: 6px;
+		padding: 0 4px;
+		background: var(--drawer-surface);
+	}
+	> node-heading > span {
+		color: var(--ink-muted);
+		margin-left: auto;
+	}
 	&[data-grouped="true"] {
 		margin-left: 9px;
 		border-left: 1px solid var(--ink-muted);

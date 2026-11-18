@@ -12,9 +12,4 @@ ecology-viewport.class {
 		font-size: 12px;
 		line-height: 1.5;
 	}
-	@container atom-io-devtools (max-width: 650px) {
-		&[data-workspace="list"] {
-			display: none;
-		}
-	}
 }

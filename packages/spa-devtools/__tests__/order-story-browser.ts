@@ -237,11 +237,13 @@ try {
 						`ready`
 					] === `true`,
 			)
+		await ready()
+		await ecology.locator(`ecology-scene`).waitFor({ state: `visible` })
 		const snapshot = await ecology.getAttribute(`data-snapshot-ms`)
-		await ecology.getByRole(`button`, { name: `Graph`, exact: true }).click()
+
 		assert.equal(await ecology.locator(`ecology-scene`).isVisible(), true)
-		await ecology.getByRole(`button`, { name: `Node list`, exact: true }).click()
-		assert.equal(await ecology.locator(`ecology-scene`).isVisible(), false)
+
+		assert.equal(await ecology.locator(`ecology-editor`).isVisible(), true)
 		const input = ecology.getByRole(`searchbox`, { name: `Search ecology` })
 		const openSearch = async () => {
 			if (!(await input.isVisible()))
@@ -256,20 +258,12 @@ try {
 			.first()
 			.click()
 		await ready()
-		assert.equal(await ecology.getAttribute(`data-workspace`), `selection`)
-		await ecology
-			.getByRole(`button`, {
-				name: `Open live editor (may read/evaluate)`,
-				exact: true,
-			})
-			.click()
-		const editor = ecology.locator(`ecology-live input[inputmode="decimal"]`)
+		assert.equal(await ecology.locator(`ecology-scene`).isVisible(), true)
+		const editor = ecology.locator(
+			`state-leaf[data-state-key='cartQuantityBySku("tea-green")'] input[inputmode="decimal"]`,
+		)
 		await editor.fill(`2e`)
 		const summary = await page.getByTestId(`order-summary`).textContent()
-		for (const name of [`Graph`, `Node list`, `Selection`]) {
-			await ecology.getByRole(`button`, { name, exact: true }).click()
-			assert.equal(await editor.inputValue(), `2e`)
-		}
 		await openSearch()
 		await input.fill(`availability`)
 		await ready()
@@ -290,34 +284,15 @@ try {
 		)
 		assert.equal(await editor.inputValue(), `2e`)
 		assert.equal(await ecology.getAttribute(`data-snapshot-ms`), snapshot)
-		await ecology.getByRole(`button`, { name: `Graph`, exact: true }).click()
-		await ecology
-			.getByRole(`button`, { name: `Back to passive inspector`, exact: true })
-			.click()
-		const returnTarget = modalSearch
-			? ecology.getByRole(`button`, {
-					name: `Open live editor (may read/evaluate)`,
-					exact: true,
-				})
-			: ecology.locator(`ecology-body > aside`)
-		assert.equal(
-			await returnTarget.evaluate((node) => node === document.activeElement),
-			true,
-		)
+
 		for (const colorScheme of [`light`, `dark`] as const) {
 			await page.emulateMedia({ colorScheme })
 			await page.screenshot({
 				path: resolve(activeProfile, `${colorScheme}-selection.png`),
 			})
-			await ecology
-				.getByRole(`button`, { name: `Node list`, exact: true })
-				.click()
 			await page.screenshot({
 				path: resolve(activeProfile, `${colorScheme}-node-list.png`),
 			})
-			await ecology
-				.getByRole(`button`, { name: `Selection`, exact: true })
-				.click()
 		}
 		await page.screenshot({ path: resolve(activeProfile, `story-layout.png`) })
 		// Real pointer capture and viewport geometry are built-output integration checks.

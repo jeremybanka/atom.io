@@ -21,9 +21,12 @@ ecology-search.class {
 		color: var(--ink);
 		overflow: visible;
 	}
-	> dialog:not(:modal):has(> p:not([hidden])) {
+	> dialog:not(:modal):focus-within:has(> p:not([hidden])) {
 		outline: 1px solid var(--line);
 		box-shadow: 0 2px 4px #0003;
+	}
+	> dialog:not(:modal):not(:focus-within) > :is(p, ol) {
+		display: none;
 	}
 	> dialog:not([open]) {
 		display: none;

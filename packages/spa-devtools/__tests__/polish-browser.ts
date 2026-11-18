@@ -994,14 +994,17 @@ try {
 				)
 			)
 				await ecologySearch.press(`Escape`)
-			const listView = page.getByRole(`button`, {
-				name: `Node list`,
-				exact: true,
-			})
-			if (await listView.isVisible()) await listView.click()
-			else await page.getByText(`Accessible node list`, { exact: true }).click()
-			await page.locator(`ecology-map ul button`).first().focus()
+			await page
+				.locator(`ecology-editor-row:not([hidden]) button[data-graph-id]`)
+				.first()
+				.focus()
+			assert.equal(
+				await page.locator(`ecology-view [data-results]`).isVisible(),
+				false,
+				`Search results close when focus moves into the editor`,
+			)
 			await page.keyboard.press(`Enter`)
+			await page.locator(`[data-node-details] > summary`).click()
 			await page
 				.getByRole(`button`, { name: `Trace observed roots`, exact: true })
 				.focus()
@@ -1016,14 +1019,10 @@ try {
 				await page.evaluate(() => window.polish.evidence()),
 				before,
 			)
-			await page
-				.getByRole(`button`, {
-					name: `Open live editor (may read/evaluate)`,
-					exact: true,
-				})
-				.click()
 			assert.equal(
-				await page.locator(`ecology-live input`).getAttribute(`readonly`),
+				await page
+					.locator(`ecology-editor input[aria-label="left"]`)
+					.getAttribute(`readonly`),
 				``,
 			)
 			await page

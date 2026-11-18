@@ -8,9 +8,7 @@ import { useLocal } from "./store.ts"
 
 type SceneProps = Parameters<typeof EcologyScene>[0]
 /** Keep the graphics engine out of other debugger views and data-only imports. */
-export function EcologyViewport(
-	props: SceneProps & { workspace: string },
-): SpaElement {
+export function EcologyViewport(props: SceneProps): SpaElement {
 	const [scene, setScene] = useLocal<typeof EcologyScene | undefined>(
 		props.tools.store,
 		undefined,
@@ -32,7 +30,6 @@ export function EcologyViewport(
 	return (
 		<ecology-viewport
 			class={css.class}
-			data-workspace={props.workspace}
 			data-loading={!scene()}
 			aria-busy={!scene() && !failed() ? `true` : undefined}
 		>
@@ -41,7 +38,7 @@ export function EcologyViewport(
 			) : (
 				<p role="status">
 					{failed()
-						? `3D view unavailable. Use the accessible node list below.`
+						? `3D view unavailable. Use the ecology editor below.`
 						: `Loading graph…`}
 				</p>
 			)}

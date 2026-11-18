@@ -9,6 +9,8 @@ export interface EcologyLine {
 	fromCard?: GraphPosition | undefined
 	toCard?: GraphPosition | undefined
 	traced: boolean
+	fromCollapsed?: boolean
+	toCollapsed?: boolean
 }
 const segments = 16
 const verticesPerEdge = segments * 2 + 4
@@ -55,14 +57,26 @@ export function writeEdgeBuffer(
 		center: THREE.Vector3,
 		dx: number,
 		dy: number,
+		collapsed = false,
 	) => {
-		const scale = 1 / Math.max(Math.abs(dx) / 91, Math.abs(dy) / 29)
+		const halfWidth = collapsed ? 43 : 91,
+			halfHeight = collapsed ? 15 : 29
+		const scale =
+			1 / Math.max(Math.abs(dx) / halfWidth, Math.abs(dy) / halfHeight)
 		const x = dx
 			? dx * scale
-			: THREE.MathUtils.clamp(((point.x - center.x) * width) / 2, -85, 85)
+			: THREE.MathUtils.clamp(
+					((point.x - center.x) * width) / 2,
+					6 - halfWidth,
+					halfWidth - 6,
+				)
 		const y = dy
 			? dy * scale
-			: THREE.MathUtils.clamp(((point.y - center.y) * height) / 2, -23, 23)
+			: THREE.MathUtils.clamp(
+					((point.y - center.y) * height) / 2,
+					6 - halfHeight,
+					halfHeight - 6,
+				)
 		return new THREE.Vector3(
 			center.x + (x * 2) / width,
 			center.y + (y * 2) / height,
@@ -93,8 +107,8 @@ export function writeEdgeBuffer(
 		const horizontal = Math.abs(dx) >= Math.abs(dy)
 		if (horizontal) dy = 0
 		else dx = 0
-		const start = port(a, fromCard, dx, dy),
-			end = port(b, toCard, -dx, -dy)
+		const start = port(a, fromCard, dx, dy, edge.fromCollapsed),
+			end = port(b, toCard, -dx, -dy, edge.toCollapsed)
 		const direction = right
 			.clone()
 			.multiplyScalar(dx)

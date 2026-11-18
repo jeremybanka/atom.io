@@ -7,14 +7,12 @@ ecology-view.class {
 		flex-direction: column;
 		border-top: 1px solid var(--ink-muted);
 	}
-	> nav[data-workspace] {
-		display: none;
-	}
 	> ecology-body {
 		display: grid;
 		flex: 1;
 		min-height: 0;
-		grid-template-columns: minmax(0, 1fr) 220px;
+		grid-template-columns: minmax(0, 1fr) minmax(300px, 38%);
+		overflow: hidden;
 	}
 	> ecology-body > ecology-map {
 		display: flex;
@@ -24,133 +22,14 @@ ecology-view.class {
 		background: radial-gradient(var(--line) 1px, transparent 1px) 0 0 / 16px
 			16px;
 	}
-	> ecology-body > ecology-map > details {
-		max-height: 35%;
-		flex-shrink: 0;
-		overflow: auto;
-		border-top: 1px solid var(--line);
-		background: var(--surface-content);
-	}
-	> ecology-body > ecology-map > details > summary {
-		padding: 5px;
-		cursor: pointer;
-	}
-	> ecology-body > ecology-map > details > ul {
-		list-style: none;
-	}
-	> ecology-body > ecology-map > details > ul button {
-		width: 100%;
-		text-align: left;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-	> ecology-body > ecology-map > details > ul button[aria-pressed="true"] {
-		background: var(--ink);
-		color: var(--bg-color);
-	}
-	> ecology-body > aside {
-		min-width: 0;
-		padding: 8px;
-		border-left: 1px solid var(--line);
-		background: var(--surface-content);
-		overflow: auto;
-	}
-	> ecology-body > aside h2 {
-		margin-bottom: 6px;
-		overflow-wrap: anywhere;
-		font-weight: 500;
-	}
-	> ecology-body > aside > p {
-		padding: 5px 0;
-		font-size: 12px;
-		line-height: 17px;
-		overflow-wrap: anywhere;
-	}
-	> ecology-body > aside > [data-selection-context],
-	> ecology-body > ecology-map > p[data-empty] {
-		color: var(--ink-muted);
-		font-size: 12px;
-		line-height: 1.5;
-	}
-	> ecology-body > ecology-map > p[data-empty] {
-		padding: 12px;
-		background: var(--surface-content);
-		border-bottom: 1px solid var(--line);
-	}
-	> ecology-body > ecology-map > p[data-empty][hidden] {
-		display: none;
-	}
-	> ecology-body > aside > button {
-		height: auto;
-		min-height: 23px;
-		margin-bottom: 3px;
-		padding: 4px;
-		border: 1px solid var(--line);
-		text-align: left;
-	}
-	> ecology-live-panel {
-		flex-shrink: 0;
-		max-height: 40%;
-		overflow: auto;
-		border-top: 1px solid var(--line);
-	}
-	> ecology-live-panel > live-heading {
-		display: flex;
-		flex-wrap: wrap;
-		justify-content: space-between;
-	}
-	> ecology-live-panel[hidden] {
-		display: none;
-	}
 	@container atom-io-devtools (max-width: 650px) {
-		> nav[data-workspace] {
-			display: flex;
-			flex-shrink: 0;
-			gap: 4px;
-			padding: 4px;
-			background: var(--surface-shell);
-			border-bottom: 1px solid var(--line);
-		}
-		> nav[data-workspace] > button {
-			flex: 1;
-			min-height: 32px;
-		}
-		> nav[data-workspace] > button[aria-pressed="true"] {
-			background: var(--surface-content);
-			box-shadow: inset 0 -2px var(--accent);
-			font-weight: 500;
-		}
 		> ecology-body {
 			display: flex;
-			overflow: auto;
-			min-height: 160px;
+			flex-direction: column;
 		}
 		> ecology-body > ecology-map {
 			flex: 1;
-			min-height: 160px;
-		}
-		> ecology-body > aside {
-			flex: 1;
-			border-left: 0;
-		}
-		&[data-workspace="selection"] > ecology-body > ecology-map,
-		&:not([data-workspace="selection"]) > ecology-body > aside,
-		&[data-workspace="graph"] > ecology-body > ecology-map > details,
-		&[data-workspace="list"] > ecology-body > ecology-map > details > summary {
-			display: none;
-		}
-		&[data-workspace="list"] > ecology-body > ecology-map > details {
-			max-height: none;
-			flex: 1;
-		}
-		> ecology-body > ecology-map > details > ul button {
-			min-height: 32px;
-			white-space: normal;
-			overflow-wrap: anywhere;
-		}
-		> ecology-body > aside > button {
-			min-height: 32px;
+			min-height: 120px;
 		}
 	}
 }

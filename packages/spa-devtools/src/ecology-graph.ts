@@ -22,6 +22,7 @@ interface GraphEdge {
 	traced: boolean
 }
 export interface GraphContext {
+	rowLimit?: number
 	snapshot?: EcologySnapshot
 	capturedAt: string
 	query: string
@@ -67,6 +68,9 @@ interface GraphRegistry {
 export interface GraphModel {
 	snapshot: EcologySnapshot
 	items: GraphItem[]
+	rows: GraphItem[]
+	rowCount: number
+	matches: ReadonlySet<string> | undefined
 	edges: GraphEdge[]
 	all: GraphRegistry
 	matching: number
@@ -345,6 +349,15 @@ export function* projectEcology(
 		? [...matchingRecords].sort((a, b) => a.order - b.order)
 		: all.visible
 	const admitted = ordered.slice(0, 500)
+	const admittedSet = new Set(admitted)
+	for (const record of all.visible) {
+		if (admitted.length === 500) break
+		if (!admittedSet.has(record)) {
+			admitted.push(record)
+			admittedSet.add(record)
+		}
+		yield
+	}
 	const selected = context.selected
 		? resolveRecord(layout, context.selected)
 		: undefined
@@ -353,15 +366,46 @@ export function* projectEcology(
 			? previous.selection
 			: yield* traceSelection(snapshot, layout, selected)
 		: undefined
-	if (
-		selected &&
-		(matchedIds
-			? matchingRecords.has(selected)
-			: !selected.group || all.expanded.has(selected.group.source.key)) &&
-		!admitted.includes(selected)
-	) {
+	const selectedCard =
+		selected?.group && !all.expanded.has(selected.group.source.key)
+			? selected.group
+			: selected
+	if (selectedCard && !admitted.includes(selectedCard)) {
 		admitted.pop()
-		admitted.push(selected)
+		admitted.push(selectedCard)
+	}
+	// Matching records get admission priority, while retained cards keep their DOM slots.
+	admitted.sort((a, b) => a.order - b.order)
+	const rowRecords = new Set<GraphRecord>()
+	if (matchedIds) {
+		for (const id of matchedIds) {
+			const record = resolveRecord(layout, id)
+			if (record) {
+				rowRecords.add(record)
+				if (record.group) rowRecords.add(record.group)
+			}
+			yield
+		}
+	} else
+		for (const record of all.visible) {
+			rowRecords.add(record)
+			yield
+		}
+	if (selected && (!matchedIds || matchedIds.has(selected.id)))
+		rowRecords.add(selected)
+	const priority = (record: GraphRecord) =>
+		record === selected ? 0 : selection?.items.has(record.id) ? 1 : 2
+	const rowOrder = [...rowRecords].sort((a, b) => {
+		return (
+			priority(a) - priority(b) ||
+			(a.group?.order ?? a.order) - (b.group?.order ?? b.order) ||
+			a.order - b.order
+		)
+	})
+	const rows: GraphItem[] = []
+	for (const record of rowOrder.slice(0, context.rowLimit ?? 50)) {
+		rows.push(all.get(record.id)!)
+		yield
 	}
 	const items: GraphItem[] = [],
 		edges: GraphEdge[] = [],
@@ -439,6 +483,11 @@ export function* projectEcology(
 	return {
 		snapshot,
 		items,
+		rows,
+		rowCount: rowOrder.length,
+		matches: matchedIds
+			? new Set([...matchingRecords].map((record) => record.id))
+			: undefined,
 		edges,
 		all,
 		matching: ordered.length,

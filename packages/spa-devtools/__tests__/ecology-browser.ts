@@ -86,6 +86,7 @@ try {
 				const node = nodes.find((item) => item.dataset[`graphId`] === target)
 				if (!node) throw new Error(`Missing node`)
 				assertPresent(node)
+				;(node as HTMLButtonElement).focus({ preventScroll: true })
 				node.dispatchEvent(new MouseEvent(`click`, { bubbles: true }))
 				function assertPresent(value: unknown): asserts value {
 					if (!value) throw new Error(`Missing graph node ${target}`)
@@ -94,6 +95,14 @@ try {
 		await ready()
 	}
 	await ready()
+
+	const showDetails = async () => {
+		const details = page.locator(
+			`ecology-editor-row[data-section="selected"] [data-node-details]`,
+		)
+		if (!(await details.evaluate((node: HTMLDetailsElement) => node.open)))
+			await details.locator(`summary`).click()
+	}
 	const palette = async () => {
 		const cards = await page
 			.locator(`ecology-node-card:not([hidden])`)
@@ -119,10 +128,7 @@ try {
 		const cards = await palette()
 		assert.equal(new Set(cards.map((card) => card.color)).size, cards.length)
 	}
-	assert.equal(
-		await page.locator(`ecology-view nav[data-workspace]`).isVisible(),
-		false,
-	)
+	assert.equal(await page.locator(`ecology-view nav[data-workspace]`).count(), 0)
 	assert.equal(
 		await page
 			.locator(
@@ -208,11 +214,15 @@ try {
 		bounds.height,
 		`Desktop results must not resize the graph`,
 	)
-	await page.getByText(`Accessible node list`, { exact: true }).click()
-	await page.locator(`ecology-map ul button`).first().focus()
+
+	await page
+		.locator(`ecology-editor-row:not([hidden]) button[data-graph-id]`)
+		.first()
+		.focus()
 	await page.keyboard.press(`Enter`)
 	await ready()
-	assert.match(await page.locator(`ecology-body > aside`).innerText(), /dormant/)
+	assert.match(await page.locator(`ecology-editor`).innerText(), /dormant/)
+	await showDetails()
 	await page
 		.getByRole(`button`, { name: `Trace observed roots`, exact: true })
 		.focus()
@@ -222,11 +232,8 @@ try {
 		await page.evaluate(() => document.activeElement!.textContent),
 		`Trace observed roots`,
 	)
-	await page.getByText(`Accessible node list`, { exact: true }).click()
-	assert.match(
-		await page.locator(`ecology-body > aside`).innerText(),
-		/incomplete/,
-	)
+
+	assert.match(await page.locator(`ecology-editor`).innerText(), /incomplete/)
 	const rankedInput = page.getByRole(`searchbox`, { name: `Search ecology` })
 	const captured = await page
 		.locator(`ecology-view`)
@@ -263,10 +270,14 @@ try {
 			await page.evaluate(
 				() => (document.activeElement as HTMLElement).dataset[`graphId`],
 			),
-			expected,
+			`state:items("a")`,
 		)
 		assert.equal(
-			await page.locator(`ecology-body > aside h2`).innerText(),
+			await page
+				.locator(
+					`ecology-editor-row[data-section="selected"] button[data-graph-id]`,
+				)
+				.innerText(),
 			`items("a")`,
 		)
 		assert.equal(
@@ -293,6 +304,7 @@ try {
 	await page.getByRole(`searchbox`, { name: `Search ecology` }).fill(``)
 	await ready()
 	await choose(`family:items`)
+	await showDetails()
 	await page
 		.getByRole(`button`, { name: `Collapse family`, exact: true })
 		.click()
@@ -379,7 +391,14 @@ try {
 	await scene.focus()
 	await page.keyboard.press(`Escape`)
 	await ready()
-	assert.equal(await page.locator(`ecology-body > aside h2`).count(), 0)
+	assert.equal(
+		await page
+			.locator(
+				`ecology-editor-row[data-section="selected"] button[data-graph-id]`,
+			)
+			.count(),
+		0,
+	)
 	assert.equal(
 		await page.locator(`ecology-node-card[data-dimmed="true"]`).count(),
 		0,
@@ -392,11 +411,12 @@ try {
 		`true`,
 	)
 	await choose(`state:total`)
+	await showDetails()
 	await page
 		.getByRole(`button`, { name: `Trace observed roots`, exact: true })
 		.click()
 	await ready()
-	assert.match(await page.locator(`ecology-body > aside`).innerText(), /price/)
+	assert.match(await page.locator(`ecology-editor`).innerText(), /price/)
 	await page.screenshot({ path: resolvePath(artifacts, `small-traced.png`) })
 	const positions = await page
 		.locator(`ecology-node-card > button[data-graph-id]`)
@@ -450,13 +470,7 @@ try {
 		jobs,
 	)
 	await choose(`state:price`)
-	await page
-		.getByRole(`button`, {
-			name: `Open live editor (may read/evaluate)`,
-			exact: true,
-		})
-		.click()
-	const editor = page.locator(`ecology-live input`).first()
+	const editor = page.locator(`ecology-editor input`).first()
 	await editor.focus()
 	await editor.fill(`1e`)
 	const draftNode = await editor.elementHandle()
@@ -479,13 +493,10 @@ try {
 		await editor.evaluate((node) => node === document.activeElement),
 		true,
 	)
-	await page
-		.getByRole(`button`, { name: `Back to passive inspector`, exact: true })
-		.click()
 	await choose(`state:dormant`)
 	await page
 		.getByRole(`button`, {
-			name: `Open live editor (may read/evaluate)`,
+			name: `Generate dormant`,
 			exact: true,
 		})
 		.click()
@@ -494,24 +505,71 @@ try {
 		1,
 	)
 	await page
-		.getByRole(`button`, { name: `Back to passive inspector`, exact: true })
-		.click()
-	await page
 		.getByRole(`button`, { name: `Minimize debugger`, exact: true })
 		.click()
 	assert.equal(await page.locator(`ecology-view`).count(), 0)
 	await page.getByRole(`button`, { name: `Open debugger`, exact: true }).click()
 	await ready()
 	await page.setViewportSize({ width: 390, height: 844 })
-	await page.waitForFunction(
-		() =>
-			getComputedStyle(
-				document.querySelector(`ecology-view nav[data-workspace]`)!,
-			).display !== `none`,
+
+	await page.waitForFunction(() => {
+		const editorElement = document.querySelector(`ecology-editor`)!,
+			body = document.querySelector(`ecology-body`)!,
+			sceneElement = document.querySelector(`ecology-scene`)!
+		const box = editorElement.getBoundingClientRect(),
+			parent = body.getBoundingClientRect()
+		return (
+			box.height <= parent.height * 0.4 + 1 &&
+			sceneElement.getBoundingClientRect().bottom <= box.top + 1
+		)
+	})
+	assert.equal(await scene.isVisible(), true)
+	assert.equal(await page.locator(`ecology-editor`).isVisible(), true)
+	await page.getByRole(`button`, { name: `Reset view`, exact: true }).click()
+	await page.evaluate(() => new Promise(requestAnimationFrame))
+	const tapTarget = await scene.evaluate((node) => {
+		const sceneBounds = node.getBoundingClientRect()
+		for (const button of node.querySelectorAll<HTMLButtonElement>(
+			`ecology-node-card:not([hidden]) > button[data-graph-id]`,
+		)) {
+			const rect = button.getBoundingClientRect(),
+				x = rect.x + rect.width / 2,
+				y = rect.y + rect.height / 2
+			if (
+				x > sceneBounds.left &&
+				x < sceneBounds.right &&
+				y > sceneBounds.top &&
+				y < sceneBounds.bottom &&
+				document.elementFromPoint(x, y)?.closest(`button`) === button
+			)
+				return { x, y, id: button.dataset[`graphId`] }
+		}
+		return null
+	})
+	assert.ok(tapTarget, `A visible card must be reachable by touch`)
+	const readsBeforeTap = await page.evaluate(
+		() => window.ecologyFixture.timings().reads,
+	)
+	await page.touchscreen.tap(tapTarget.x, tapTarget.y)
+	await ready()
+	assert.equal(await scene.isVisible(), true)
+	assert.equal(
+		await page
+			.locator(
+				`ecology-editor-row[data-section="selected"] button[data-graph-id]`,
+			)
+			.getAttribute(`data-graph-id`),
+		tapTarget.id,
 	)
 	assert.equal(
-		await page.locator(`ecology-view nav[data-workspace]`).isVisible(),
+		await page.evaluate(
+			() => document.activeElement!.closest(`ecology-editor`) === null,
+		),
 		true,
+	)
+	assert.equal(
+		await page.evaluate(() => window.ecologyFixture.timings().reads),
+		readsBeforeTap,
 	)
 	await page.screenshot({ path: resolvePath(artifacts, `narrow.png`) })
 	const searchTrigger = page.locator(`ecology-toolbar [data-action="search"]`)
@@ -584,8 +642,6 @@ try {
 	})
 	await page.screenshot({ path: resolvePath(artifacts, `narrow-guide.png`) })
 	await page.getByRole(`button`, { name: `Close guide`, exact: true }).click()
-
-	await page.getByRole(`button`, { name: `Graph`, exact: true }).click()
 	const touch = await context.newCDPSession(page)
 	// Start gestures on actual background, since cards move with layout and camera changes.
 	const background = () =>
@@ -764,7 +820,7 @@ try {
 				const searched = performance.now()
 				document
 					.querySelector<HTMLElement>(
-						`ecology-node-card > button[data-graph-id]`,
+						`ecology-node-card:not([data-collapsed="true"]) > button[data-graph-id]`,
 					)!
 					.dispatchEvent(new MouseEvent(`click`, { bubbles: true }))
 				await new Promise(requestAnimationFrame)
@@ -910,22 +966,32 @@ try {
 	)
 	assert.match(
 		await fallback.locator(`ecology-scene`).innerText(),
-		/accessible node list/,
+		/ecology editor/,
 	)
 	await fallback.screenshot({
 		path: resolvePath(artifacts, `webgl-unavailable.png`),
 	})
 	await fallback.setViewportSize({ width: 390, height: 844 })
-	await fallback.getByRole(`button`, { name: `Node list`, exact: true }).click()
-	await fallback.locator(`ecology-map ul button`).first().click()
+	await fallback
+		.locator(`ecology-editor-row:not([hidden]) button[data-graph-id]`)
+		.first()
+		.click()
 	await fallback.waitForFunction(
 		() =>
 			document.querySelector<HTMLElement>(`ecology-view`)?.dataset[`ready`] ===
 			`true`,
 	)
-	assert.match(
-		await fallback.locator(`ecology-body > aside`).innerText(),
-		/cached|unknown/,
+	assert.equal(
+		await fallback
+			.getByRole(`button`, { name: `Generate dormant`, exact: true })
+			.isVisible(),
+		true,
+	)
+	assert.equal(
+		await fallback
+			.locator(`ecology-editor input[aria-label="price"]`)
+			.isVisible(),
+		true,
 	)
 	assert.equal(
 		await fallback.evaluate(() => window.ecologyFixture.timings().reads),

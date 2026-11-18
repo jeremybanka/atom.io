@@ -12,7 +12,7 @@ import { EcologyToolbar } from "./EcologyToolbar.tsx"
 import css from "./EcologyView.module.css"
 import { EcologyViewport } from "./EcologyViewport.tsx"
 import type { SearchHit } from "./search.ts"
-import { type Tools, usePresentation } from "./store.ts"
+import { type Tools, useLocal, usePresentation } from "./store.ts"
 
 export interface EcologyPresentation {
 	cylinderHeight: number
@@ -81,9 +81,24 @@ export function EcologyView(props: {
 		pinnedKey: undefined,
 		generation: 0,
 	})
+	const [hovered, setHovered] = useLocal<string | undefined>(
+		props.tools.store,
+		undefined,
+	)
 	let host: HTMLElement | null = null
 	let controller: ReturnType<typeof createEcologyController> | undefined
 	const state = presentation.read
+	const hover = (event: PointerEvent) => {
+		const target =
+			event.type === `pointerout` ? event.relatedTarget : event.target
+		const item =
+			event.pointerType !== `touch` &&
+			target instanceof Element &&
+			host!.contains(target)
+				? target.closest<HTMLElement>(`[data-graph-id], ecology-editor-row`)
+				: undefined
+		setHovered(item?.dataset[`graphId`] ?? item?.dataset[`rowId`])
+	}
 	onMount(() => {
 		controller = createEcologyController(
 			host!,
@@ -104,6 +119,11 @@ export function EcologyView(props: {
 				host = element
 			}}
 			data-testid="ecology-view"
+			onPointerOver={hover}
+			onPointerOut={hover}
+			onPointerCancel={() => {
+				setHovered(undefined)
+			}}
 		>
 			<EcologyToolbar marker={marker} state={state()} />
 			<ecology-body>
@@ -122,11 +142,13 @@ export function EcologyView(props: {
 						focused={state().focused}
 						matches={state().matches}
 						command={state().cameraCommand}
+						hovered={hovered()}
 					/>
 				</ecology-map>
 				<EcologyEditor
 					tools={props.tools}
 					state={state()}
+					hovered={hovered()}
 					onGenerate={(key) => {
 						controller?.refresh(key)
 					}}

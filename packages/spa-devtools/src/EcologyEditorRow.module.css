@@ -16,6 +16,11 @@ ecology-editor-row.class {
 	&[data-grouped="true"] {
 		margin-left: 9px;
 	}
+	&[data-hovered="true"] {
+		--surface-inactive: var(--surface-hover);
+		--drawer-surface: var(--surface-hover);
+		background: var(--surface-hover);
+	}
 	> node-heading {
 		display: flex;
 		align-items: center;

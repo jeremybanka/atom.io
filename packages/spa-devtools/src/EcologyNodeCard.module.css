@@ -77,6 +77,10 @@ ecology-node-card.class {
 	&[data-type*="selector"] > button {
 		border-radius: 12px 2px;
 	}
+	&[data-hovered="true"] > button {
+		background: var(--surface-hover);
+		opacity: 1;
+	}
 	> button > small[data-family] {
 		color: var(--ecology-color);
 		font-size: 9px;

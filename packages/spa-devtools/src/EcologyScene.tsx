@@ -47,6 +47,7 @@ export function EcologyScene(props: {
 	focused?: ReadonlySet<string> | undefined
 	matches?: ReadonlySet<string> | undefined
 	command: CameraCommand
+	hovered?: string | undefined
 }): SpaElement {
 	const [size, setSize] = useLocal(props.tools.store, {
 		width: 640,
@@ -302,6 +303,7 @@ export function EcologyScene(props: {
 						return () => edgeLayers.delete(paint)
 					}}
 					selected={selected(item)}
+					hovered={props.hovered === item.id}
 					dimmed={dimmed(item)}
 					collapsed={collapsed(item)}
 					traced={highlighted(item)}

@@ -20,6 +20,7 @@ export function EcologyNodeCard(props: {
 	): () => void
 	item: GraphItem
 	selected: boolean
+	hovered: boolean
 	dimmed: boolean
 	collapsed?: boolean
 	traced: boolean
@@ -93,7 +94,7 @@ export function EcologyNodeCard(props: {
 		bindScene(
 			() => ({
 				item: props.item,
-				order: props.selected ? 2 : props.traced ? 1 : 0,
+				order: props.hovered ? 3 : props.selected ? 2 : props.traced ? 1 : 0,
 			}),
 			({ item, order }) => {
 				id = item.id
@@ -134,6 +135,7 @@ export function EcologyNodeCard(props: {
 			data-traced={props.traced}
 			data-dimmed={props.dimmed}
 			data-collapsed={props.collapsed}
+			data-hovered={props.hovered}
 			data-position={position()}
 		>
 			{pathCount() > 0 && (

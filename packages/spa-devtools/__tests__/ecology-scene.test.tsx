@@ -59,6 +59,7 @@ const item = (id: string, x: number, y: number, z: number): GraphItem => {
 }
 interface SceneState {
 	cylinderHeight: number
+	hovered?: string | undefined
 	selected?: string | undefined
 	selectedIds?: ReadonlySet<string> | undefined
 	traced: Set<string>
@@ -119,6 +120,7 @@ function fixture(restored = false, empty = false) {
 					traced={get().traced}
 					selected={get().selected}
 					selectedIds={get().selectedIds}
+					hovered={get().hovered}
 					command={get().command}
 				/>
 			)
@@ -274,6 +276,28 @@ it(`projects viewer-facing DOM cards and source-stacked edges, keeps a camera th
 	expect(disposeMaterial).toHaveBeenCalledOnce()
 	expect(disposeGroundGeometry).toHaveBeenCalledOnce()
 	expect(disposeGroundMaterial).toHaveBeenCalledOnce()
+})
+
+it(`raises a hovered card above the selected graph and restores its layer without changing selection`, () => {
+	const f = fixture()
+	f.patch({ selected: f.a.id, traced: new Set([f.a.key]) })
+	f.tick()
+	const a = f.viewport.querySelector(
+			`button[data-graph-id="state:a"]`,
+		)!.parentElement!,
+		b = f.viewport.querySelector(
+			`button[data-graph-id="state:b"]`,
+		)!.parentElement!
+	expect(Number(a.style.zIndex)).toBeGreaterThan(Number(b.style.zIndex))
+	f.patch({ hovered: f.b.id })
+	f.tick()
+	expect(Number(b.style.zIndex)).toBeGreaterThan(Number(a.style.zIndex))
+	expect(b.dataset[`hovered`]).toBe(`true`)
+	expect(a.querySelector(`button`)!.getAttribute(`aria-pressed`)).toBe(`true`)
+	f.patch({ hovered: undefined })
+	f.tick()
+	expect(Number(a.style.zIndex)).toBeGreaterThan(Number(b.style.zIndex))
+	expect(b.dataset[`hovered`]).toBe(`false`)
 })
 
 it(`projects animated member cards, arrows and family spines from the same world positions`, () => {

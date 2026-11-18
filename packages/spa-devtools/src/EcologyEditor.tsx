@@ -19,6 +19,7 @@ type Entry =
 export function EcologyEditor(props: {
 	tools: Tools
 	state: EcologyPresentation
+	hovered?: string | undefined
 	onGenerate(key: string): void
 }): SpaElement {
 	const layoutGroup = `ecology-editor-${useId()}`
@@ -41,6 +42,7 @@ export function EcologyEditor(props: {
 				release={release}
 				item={entry.item}
 				section={entry.section}
+				hovered={props.hovered === entry.item.id}
 				hidden={
 					!props.state.rowIds.has(entry.item.id) &&
 					props.state.pinnedKey !== entry.item.key

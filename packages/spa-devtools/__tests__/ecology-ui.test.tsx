@@ -150,6 +150,104 @@ it(`opens/searches/selects/traces/expands passively and evaluates only with Gene
 	expect(f.silo.getState(dormantSelector)).toBe(2)
 })
 
+it(`links whole-row and card hover without evaluating state, rebuilding the graph, changing selection or sticking on touch`, async () => {
+	const f = setup(),
+		lazy = vi.fn(() => 1)
+	const countAtom = f.silo.atom<number>({ key: `count`, default: 2 })
+	f.silo.getState(countAtom)
+	f.silo.atom<number>({ key: `other`, default: lazy })
+	const itemsAtoms = f.silo.atomFamily<number, string>({
+		key: `items`,
+		default: lazy,
+	})
+	f.silo.store.families.get(itemsAtoms.key)!.create(`a`)
+	const before = [...f.silo.store.valueMap]
+	f.mount()
+	await settle()
+	await f.select(`state:other`)
+	const pair = (id: string) => ({
+		row: [...f.host.querySelectorAll<HTMLElement>(`ecology-editor-row`)].find(
+			(node) => node.dataset[`rowId`] === id,
+		)!,
+		card: [...f.host.querySelectorAll<HTMLElement>(`ecology-node-card`)].find(
+			(node) =>
+				node.querySelector<HTMLElement>(`button`)!.dataset[`graphId`] === id,
+		)!,
+	})
+	const pointer = async (
+		target: Element,
+		type: string,
+		relatedTarget: EventTarget | null = null,
+		pointerType = `mouse`,
+	) => {
+		target.dispatchEvent(
+			new PointerEvent(type, { bubbles: true, relatedTarget, pointerType }),
+		)
+		await settle()
+	}
+	const active = (id?: string) => {
+		const nodes = [...f.host.querySelectorAll(`[data-hovered="true"]`)]
+		expect(nodes).toEqual(
+			id ? expect.arrayContaining(Object.values(pair(id))) : [],
+		)
+		expect(nodes).toHaveLength(id ? 2 : 0)
+	}
+	const cached = pair(`state:count`),
+		input = cached.row.querySelector(`input`)!,
+		name = cached.row.querySelector(`[data-graph-id]`)!,
+		button = cached.card.querySelector(`button`)!
+	const jobs = f.host.querySelector<HTMLElement>(`ecology-view`)!.dataset[`jobs`]
+	await pointer(input, `pointerover`)
+	active(`state:count`)
+	await pointer(input, `pointerout`, name)
+	await pointer(name, `pointerover`, input)
+	active(`state:count`)
+	await pointer(name, `pointerout`, button)
+	await pointer(button, `pointerover`, name)
+	active(`state:count`)
+	expect(cached.row.querySelector(`input`)).toBe(input)
+	expect(
+		f.host.querySelector<HTMLElement>(`ecology-view`)!.dataset[`jobs`],
+	).toBe(jobs)
+	expect(
+		pair(`state:other`)
+			.card.querySelector(`button`)!
+			.getAttribute(`aria-pressed`),
+	).toBe(`true`)
+	await pointer(
+		pair(`state:other`).row.querySelector(
+			`button[aria-label="Generate other"]`,
+		)!,
+		`pointerover`,
+	)
+	active(`state:other`)
+	const outside = document.createElement(`button`)
+	outside.dataset[`graphId`] = `state:count`
+	document.body.append(outside)
+	await pointer(pair(`state:other`).row, `pointerout`, outside)
+	active()
+	await pointer(f.host.querySelector(`ecology-scene`)!, `pointerover`)
+	active()
+	await pointer(pair(`family:items`).row.querySelector(`button`)!, `pointerover`)
+	active(`family:items`)
+	await f.click(`Expand items`)
+	const member = pair(`state:items("a")`)
+	await pointer(member.card.querySelector(`button`)!, `pointerover`)
+	active(`state:items("a")`)
+	await pointer(member.card, `pointercancel`)
+	active()
+	await pointer(button, `pointerover`)
+	await pointer(member.row, `pointerover`, null, `touch`)
+	active()
+	await pointer(button, `pointerover`)
+	await pointer(button, `pointerout`)
+	active()
+	expect(lazy).not.toHaveBeenCalled()
+	expect(
+		[...f.silo.store.valueMap].filter(([key]) => !key.startsWith(`🔍 `)),
+	).toEqual(before)
+})
+
 it(`retains selection/pan/expansion across snapshots and navigation; geometry-only events do not relayout`, async () => {
 	const f = setup()
 	const countAtom = f.silo.atom<unknown>({ key: `count`, default: 1 })

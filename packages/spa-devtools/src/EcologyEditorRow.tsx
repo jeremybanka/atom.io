@@ -18,6 +18,7 @@ export function EcologyEditorRow(props: {
 	tools: Tools
 	item: GraphItem
 	section: EcologyEditorSection
+	hovered: boolean
 	hidden: boolean
 	pinned: boolean
 	state: EcologyPresentation
@@ -59,6 +60,7 @@ export function EcologyEditorRow(props: {
 			data-section={props.section}
 			data-selection-anchor={props.state.selected?.id === props.item.id}
 			data-row-id={props.item.id}
+			data-hovered={props.hovered}
 			data-grouped={
 				`family` in props.item.source && Boolean(props.item.source.family)
 			}

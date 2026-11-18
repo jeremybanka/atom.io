@@ -48,6 +48,12 @@ function mount(mode: `small` | `empty` | `large`): void {
 			},
 		})
 		app.store.families.get(itemsAtoms.key)!.create(`a`)
+		const itemAtom = app.findState(itemsAtoms, `a`)
+		app.selector<number>({ key: `itemTotal`, get: ({ get }) => get(itemAtom) })
+		app.store.selectorGraph.set(
+			{ upstreamSelectorKey: itemAtom.key, downstreamSelectorKey: `itemTotal` },
+			{ source: itemAtom.key },
+		)
 		app.atomFamily<number, string>({ key: `zero`, default: 0 })
 		change = () => {
 			app.setState(priceAtom, 6)

@@ -113,6 +113,8 @@ export interface MotionAttributes<Kind extends string = `dom`> {
 	[`motion:layoutId`]?: Kind extends `dom` ? string | number : never
 	[`motion:layoutGroup`]?: Kind extends `dom` ? string | number : never
 	[`motion:layoutScroll`]?: Kind extends `dom` ? boolean : never
+	/** Measure descendants relative to this instantly positioned layout ancestor. */
+	[`motion:layoutRoot`]?: Kind extends `dom` ? boolean : never
 	[`motion:layoutTransition`]?: Kind extends `dom`
 		? MotionLayoutTransition
 		: never
@@ -166,6 +168,7 @@ const layoutKeys = {
 	layoutId: `id`,
 	layoutGroup: `group`,
 	layoutScroll: `scroll`,
+	layoutRoot: `root`,
 	layoutTransition: `transition`,
 } as const
 function equal(a: unknown, b: unknown): boolean {

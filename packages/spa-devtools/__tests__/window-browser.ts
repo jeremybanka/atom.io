@@ -56,7 +56,7 @@ try {
 	const context = await browser.newContext({
 		viewport: { width: 1440, height: 900 },
 	})
-	await context.tracing.start({ screenshots: true, snapshots: true })
+	await context.tracing.start({ screenshots: false, snapshots: true })
 	const page = await context.newPage()
 	const errors: string[] = []
 	page.on(`pageerror`, (error) => errors.push(error.message))
@@ -164,7 +164,78 @@ try {
 		.getByRole(`button`, { name: `Debugger layout`, exact: true })
 		.click()
 	await page.getByRole(`button`, { name: `Restore free position` }).click()
-	// Keyboard controls and viewport contraction never strand the window.
+	// The collapsed logo moves independently and a drag never activates Open.
+	await page
+		.getByRole(`button`, { name: `Minimize debugger`, exact: true })
+		.click()
+	const launcher = page.getByRole(`button`, {
+		name: `Open debugger`,
+		exact: true,
+	})
+	await launcher.hover()
+	const launcherAppearance = await launcher.evaluate((button) => {
+		const root = button.closest(`debugger-panel`)!
+		return {
+			backgrounds: [root, button.parentElement!, button].map(
+				(node) => getComputedStyle(node).backgroundColor,
+			),
+			border: getComputedStyle(root).borderTopWidth,
+			noise: getComputedStyle(root, `::before`).display,
+			resizeHandles: [...root.querySelectorAll(`[data-resize]`)].some(
+				(node) => getComputedStyle(node).display !== `none`,
+			),
+		}
+	})
+	assert.deepEqual(
+		launcherAppearance.backgrounds,
+		Array(3).fill(`rgba(0, 0, 0, 0)`),
+	)
+	assert.equal(launcherAppearance.border, `0px`)
+	assert.equal(launcherAppearance.noise, `none`)
+	assert.equal(launcherAppearance.resizeHandles, false)
+	const mini = await panel.boundingBox()
+	assert.ok(mini)
+	assert.equal(mini.width, 32)
+	assert.equal(mini.height, 32)
+	await page.mouse.move(mini.x + 16, mini.y + 16)
+	await page.mouse.down()
+	await page.mouse.move(1436, 896, { steps: 12 })
+	await page.mouse.up()
+	assert.equal(
+		await panel.getAttribute(`data-open`),
+		`false`,
+		`Drag must not activate Open`,
+	)
+	const movedLauncher = { x: 1408, y: 868, width: 32, height: 32 }
+	assert.deepEqual(await panel.boundingBox(), movedLauncher)
+	assert.equal(await page.locator(`snap-palette:visible`).count(), 0)
+	await page.evaluate(() => {
+		window.devtoolsWindowTest.remount()
+	})
+	assert.deepEqual(await panel.boundingBox(), movedLauncher)
+	await page.mouse.move(1424, 884)
+	await page.mouse.down()
+	await page.mouse.move(1300, 760, { steps: 4 })
+	await page.keyboard.press(`Escape`)
+	await page.mouse.up()
+	assert.deepEqual(await panel.boundingBox(), movedLauncher)
+	assert.equal(await panel.getAttribute(`data-open`), `false`)
+	await launcher.focus()
+	await page.keyboard.press(`ArrowLeft`)
+	assert.deepEqual(await panel.boundingBox(), { ...movedLauncher, x: 1398 })
+	await page.keyboard.press(`Enter`)
+	assert.deepEqual(
+		await panel.boundingBox(),
+		free,
+		`Opening restores the expanded window`,
+	)
+	await page
+		.getByRole(`button`, { name: `Minimize debugger`, exact: true })
+		.click()
+	assert.deepEqual(await panel.boundingBox(), { ...movedLauncher, x: 1398 })
+	await launcher.click()
+	assert.deepEqual(await panel.boundingBox(), free)
+	// Keyboard controls and viewport contraction never strand the expanded window.
 	await move.focus()
 	await page.keyboard.press(`ArrowLeft`)
 	assert.equal((await panel.boundingBox())!.x, free.x - 10)

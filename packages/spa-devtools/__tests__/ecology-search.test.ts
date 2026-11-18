@@ -110,6 +110,33 @@ it(`bounds copied text/normalization and reports snapshot and text omissions`, (
 	).toBe(true)
 })
 
+it(`preserves capture order, matching and truncation totals while normalizing batches across families and nodes`, () => {
+	const app = fixture()
+	for (let i = 0; i < 65; i++) {
+		const options = { key: `group${i}`, default: 0 }
+		app.atomFamily<number, string>(options)
+	}
+	for (let i = 0; i < 70; i++) {
+		const options = {
+			key: i === 63 ? `record63_${`long`.repeat(1000)}` : `record${i}`,
+			default: 0,
+		}
+		app.atom<number>(options)
+	}
+	const snapshot = captureEcologySnapshot(app.store),
+		index = drain(indexEcologySearch(snapshot))
+	expect(index.documents).toHaveLength(135)
+	expect(index.documents[64].key).toBe(`group64`)
+	expect(index.documents[65].key).toBe(`record0`)
+	expect(index.documents.at(-1)!.key).toBe(`record69`)
+	expect(index.truncatedText).toBe(1)
+	expect(index.snapshotWork).toEqual(snapshot.work)
+	expect(index.partial).toBe(false)
+	expect(drain(matchStateSearch(index, `record64`)).hits[0].document.key).toBe(
+		`record64`,
+	)
+})
+
 it(`pins selected matches beyond the paint cap without moving positions already assigned to other records`, () => {
 	const app = fixture()
 	for (let i = 0; i < 501; i++) {
@@ -141,14 +168,14 @@ it(`reuses immutable graph metadata only within the same capture and keeps cance
 	expect(second.all.get(`state:node0`)).toBe(first.all.get(`state:node0`))
 	context.selected = `state:node500`
 	const canceled = projectEcology(snapshot, context, undefined, second)
-	for (let i = 0; i < 501; i++) canceled.next()
+	expect(canceled.next().done).toBe(false)
 	canceled.return(undefined as never)
 	expect(context.positions.has(`state:node500`)).toBe(false)
-	expect(second.all.get(`state:node500`)!.x).toBe(0)
+	expect(second.all.get(`state:node500`)!.x).toBe(-8)
 	const next = drain(projectEcology(snapshot, context, undefined, second))
-	expect(next.all).not.toBe(second.all)
-	expect(next.all.get(`state:node500`)!.x).not.toBe(0)
-	expect(second.all.get(`state:node500`)!.x).toBe(0)
+	expect(next.all).toBe(second.all)
+	expect(next.all.get(`state:node500`)!.x).toBe(-8)
+	expect(second.all.get(`state:node500`)!.x).toBe(-8)
 	const refreshed = drain(
 		projectEcology(captureEcologySnapshot(app.store), context, undefined, next),
 	)

@@ -227,6 +227,7 @@ const projected = (
 		motion:layoutId="player"
 		motion:layoutGroup="match"
 		motion:layoutScroll
+		motion:layoutRoot
 		motion:layoutTransition={{ type: `spring`, stiffness: 180, damping: 22 }}
 	/>
 )

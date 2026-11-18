@@ -286,3 +286,35 @@ it(`reports native resize failures and releases all work, with a safe device rat
 	window.dispatchEvent(new Event(`resize`))
 	expect(f.onError).toHaveBeenCalledOnce()
 })
+
+it(`lets a view recover from unavailable WebGL without starting a frame loop`, () => {
+	const f = fixture(),
+		error = new Error(`WebGL unavailable`),
+		handled = vi.fn()
+	const createRenderer = () => {
+		throw error
+	}
+	f.mount(() => <Canvas createRenderer={createRenderer} onError={handled} />)
+	expect(handled).toHaveBeenCalledExactlyOnceWith(error)
+	expect(f.clock.scheduleFrame).not.toHaveBeenCalled()
+	expect(() =>
+		f.mount(() => <Canvas createRenderer={createRenderer} />),
+	).toThrow(error)
+})
+
+it(`skips idle GPU draws while continuing frame callbacks and resumes when invalidated`, () => {
+	const f = fixture(),
+		frame = vi.fn()
+	let dirty = false
+	f.mount(() => <Canvas renderWhen={() => dirty} onFrame={frame} />)
+	f.tick()
+	expect(frame).toHaveBeenCalledOnce()
+	expect(renderers[0].render).not.toHaveBeenCalled()
+	dirty = true
+	f.tick()
+	expect(renderers[0].render).toHaveBeenCalledOnce()
+	dirty = false
+	f.tick()
+	expect(frame).toHaveBeenCalledTimes(3)
+	expect(renderers[0].render).toHaveBeenCalledOnce()
+})

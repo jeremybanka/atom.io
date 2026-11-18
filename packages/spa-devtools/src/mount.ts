@@ -1,5 +1,6 @@
 import { render, type SpaRoot } from "@atom.io/spa"
 import { jsx } from "@atom.io/spa/jsx-runtime"
+import { motionCapability } from "@atom.io/spa/motion"
 import type { RootStore } from "atom.io/internal"
 import { IMPLICIT } from "atom.io/internal"
 
@@ -28,7 +29,7 @@ export function mountAtomIODevtools(
 		root = render(
 			() => jsx(DebuggerPanel, { store, hideByDefault }),
 			container,
-			{ store },
+			{ store, capabilities: [motionCapability()] },
 		)
 	} catch (error) {
 		container.remove()

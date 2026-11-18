@@ -259,9 +259,16 @@ function mount(
 						)
 						record._end = comment(`]`, parent, at, childOwner, initial)
 					} else {
+						// Frozen descriptors opt into reuse; mutable props and accessors must refresh.
+						const reusable =
+							record._value === child &&
+							typeof child === `object` &&
+							child !== null &&
+							Object.isFrozen(child) &&
+							Object.isFrozen((child as SpaElement).props)
 						record._value = child
 						owner._root._presence?.resume(record._scope)
-						invalidate(record._scope)
+						if (!reusable) invalidate(record._scope)
 					}
 					record._index = index
 					previous = record

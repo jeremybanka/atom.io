@@ -131,11 +131,14 @@ async function checkVisualTreatment(
 	name: string,
 ) {
 	const typography = await checkTypography(page, ``)
+	await page.waitForSelector(`brand-mark[data-live="true"] canvas`)
 	const icon = await page
 		.locator(`brand-mark`)
-		.evaluate((el: HTMLElement) => getComputedStyle(el).backgroundImage)
+		.evaluate((el: HTMLElement) =>
+			getComputedStyle(el).getPropertyValue(`--brand-mark`),
+		)
 	const embedded = icon.match(/data:image\/png;base64,([^"')]+)/)
-	assert.ok(embedded, `Use the linked PNG favicon, not another mark`)
+	assert.ok(embedded, `Retain the linked PNG favicon as the static fallback`)
 	assert.deepEqual(Buffer.from(embedded[1], `base64`), favicon)
 	const appearance = await page
 		.locator(`debugger-panel`)
@@ -164,6 +167,9 @@ async function checkVisualTreatment(
 					activeTop: a.top,
 					inactiveTop: b.top,
 					activeBottom: a.bottom,
+					contentTop: el
+						.querySelector(`debugger-content`)!
+						.getBoundingClientRect().top,
 					inactiveBottom: b.bottom,
 					radius: selected.borderTopLeftRadius,
 					activeFill: selected.backgroundColor,
@@ -188,8 +194,8 @@ async function checkVisualTreatment(
 			}
 		})
 	assert.notEqual(appearance.surfaces.shell, appearance.surfaces.content)
-	assert.notEqual(appearance.surfaces.search, appearance.surfaces.content)
-	assert.equal(appearance.surfaces.search, appearance.surfaces.inactive)
+	assert.equal(appearance.surfaces.search, appearance.surfaces.content)
+	assert.notEqual(appearance.surfaces.search, appearance.surfaces.inactive)
 	assert.equal(
 		appearance.surfaces.hard,
 		theme === `dark` ? appearance.surfaces.shade : appearance.surfaces.tint,
@@ -209,8 +215,11 @@ async function checkVisualTreatment(
 	)
 	assert.equal(appearance.tabs.activeBottomEdge, appearance.tabs.activeFill)
 	assert.equal(appearance.tabs.activeFill, appearance.tabs.panelFill)
+	assert.ok(
+		Math.abs(appearance.tabs.activeBottom - appearance.tabs.contentTop) < 1,
+	)
 	assert.ok(parseFloat(appearance.tabs.radius) >= 7)
-	assert.match(appearance.tabs.inactiveShadow, /inset/)
+	assert.equal(appearance.tabs.inactiveShadow, `none`)
 	const clip = await page.locator(`[data-index]`).evaluate((el: HTMLElement) => {
 		const r = el.getBoundingClientRect()
 		return { x: r.left + 16, y: r.bottom - 96, width: 80, height: 80 }
@@ -585,7 +594,7 @@ async function checkLongField(
 await new Promise<void>((ready) => server.listen(0, `127.0.0.1`, ready))
 let browser: Browser | undefined
 try {
-	browser = await launchBrowser()
+	browser = await launchBrowser({ softwareWebGL: true })
 	const report = {
 		cpuRate,
 		candidate: process.env[`SPA_DEVTOOLS_CANDIDATE_SHA`] ?? `working-tree`,
@@ -686,68 +695,68 @@ try {
 						`ready`
 					] === `true`,
 			)
-			const capture = page.locator(`ecology-view details[data-capture]`)
-			const disclosure = capture.locator(`summary`)
-			await disclosure.focus()
-			await disclosure.press(`Enter`)
-			assert.equal(
-				await capture.evaluate((node: HTMLDetailsElement) => node.open),
-				true,
-			)
-			assert.equal(
-				await page.locator(`ecology-view [data-legend]`).isVisible(),
-				true,
-			)
-			await disclosure.press(`Enter`)
-			assert.equal(
-				await capture.evaluate((node: HTMLDetailsElement) => node.open),
-				false,
-			)
-			const arrows = await page
-				.locator(`path[data-edge]`)
-				.evaluateAll((paths: SVGPathElement[]) =>
-					paths.map((path) => {
-						const length = path.getTotalLength(),
-							end = path.getPointAtLength(length),
-							near = path.getPointAtLength(length - 3)
-						const cards = [
-							...document.querySelectorAll<SVGGElement>(`g[data-graph-id]`),
-						].map((card) => {
-							const t = card.transform.baseVal[0].matrix
-							return { x: t.e, y: t.f }
-						})
-						const target = cards.find(
-							(c) =>
-								((Math.abs(end.x - c.x) < 0.1 ||
-									Math.abs(end.x - c.x - 176) < 0.1) &&
-									end.y >= c.y &&
-									end.y <= c.y + 52) ||
-								((Math.abs(end.y - c.y) < 0.1 ||
-									Math.abs(end.y - c.y - 52) < 0.1) &&
-									end.x >= c.x &&
-									end.x <= c.x + 176),
-						)
-						return {
-							endpointAtCardBoundary: !!target,
-							approachOutsideCard:
-								!!target &&
-								!(
-									near.x > target.x &&
-									near.x < target.x + 176 &&
-									near.y > target.y &&
-									near.y < target.y + 52
-								),
-						}
-					}),
+			if (baseline) {
+				const capture = page.locator(`ecology-view details[data-capture]`)
+				const disclosure = capture.locator(`summary`)
+				await disclosure.focus()
+				await disclosure.press(`Enter`)
+				assert.equal(
+					await capture.evaluate((node: HTMLDetailsElement) => node.open),
+					true,
 				)
-			if (!baseline)
-				assert.ok(
-					arrows.length >= 3 &&
-						arrows.every(
-							(a) => a.endpointAtCardBoundary && a.approachOutsideCard,
-						),
-					`Arrowhead must approach from outside its destination: ${JSON.stringify(arrows)}`,
+				assert.equal(
+					await page.locator(`ecology-view [data-legend]`).isVisible(),
+					true,
 				)
+				await disclosure.press(`Enter`)
+				assert.equal(
+					await capture.evaluate((node: HTMLDetailsElement) => node.open),
+					false,
+				)
+			} else {
+				const guideTrigger = page.getByRole(`button`, {
+					name: `Ecology guide`,
+					exact: true,
+				})
+				await guideTrigger.focus()
+				await guideTrigger.press(`Enter`)
+				const guide = page.locator(`[data-guide-modal]`)
+				assert.equal(
+					await guide.evaluate((node) => node.matches(`:modal`)),
+					true,
+				)
+				assert.match(await guide.innerText(), /Capture details & legend/)
+				await page.screenshot({
+					path: resolve(artifacts, `${theme}-${name}-guide.png`),
+				})
+				await page.keyboard.press(`Escape`)
+				assert.equal(await guide.isVisible(), false)
+				assert.equal(
+					await guideTrigger.evaluate((node) => node === document.activeElement),
+					true,
+				)
+			}
+			if (!baseline) {
+				await page.waitForFunction(
+					() =>
+						Number(
+							document.querySelector<HTMLElement>(`ecology-scene`)?.dataset[
+								`edges`
+							],
+						) >= 3,
+				)
+				assert.equal(
+					await page.locator(`ecology-scene canvas`).isVisible(),
+					true,
+				)
+				assert.equal(
+					await page.locator(`ecology-scene`).getAttribute(`data-unavailable`),
+					`false`,
+				)
+			}
+			const edgeCount = baseline
+				? null
+				: await page.locator(`ecology-scene`).getAttribute(`data-edges`)
 			await page.screenshot({
 				path: resolve(artifacts, `${theme}-${name}-arrows.png`),
 			})
@@ -780,7 +789,7 @@ try {
 				shortWidth: short,
 				longWidth: long,
 				...measurement,
-				arrows,
+				edges: edgeCount,
 				longFields,
 				visual,
 			})
@@ -976,21 +985,35 @@ try {
 					] === `true`,
 			)
 			const before = await page.evaluate(() => window.polish.evidence())
-			await page.getByRole(`searchbox`, { name: `Search ecology` }).fill(`left`)
+			const ecologySearch = page.getByRole(`searchbox`, {
+				name: `Search ecology`,
+			})
+			if (!(await ecologySearch.isVisible()))
+				await page.locator(`ecology-toolbar [data-action="search"]`).click()
+			await ecologySearch.fill(`left`)
 			await page.waitForFunction(
 				() =>
 					document.querySelector<HTMLElement>(`ecology-view`)?.dataset[
 						`ready`
 					] === `true`,
 			)
-			const listView = page.getByRole(`button`, {
-				name: `Node list`,
-				exact: true,
-			})
-			if (await listView.isVisible()) await listView.click()
-			else await page.getByText(`Accessible node list`, { exact: true }).click()
-			await page.locator(`ecology-map ul button`).first().focus()
+			if (
+				await ecologySearch.evaluate((node) =>
+					node.closest(`dialog`)!.matches(`:modal`),
+				)
+			)
+				await ecologySearch.press(`Escape`)
+			await page
+				.locator(`ecology-editor-row:not([hidden]) button[data-graph-id]`)
+				.first()
+				.focus()
+			assert.equal(
+				await page.locator(`ecology-view [data-results]`).isVisible(),
+				false,
+				`Search results close when focus moves into the editor`,
+			)
 			await page.keyboard.press(`Enter`)
+			await page.locator(`[data-node-details] > summary`).click()
 			await page
 				.getByRole(`button`, { name: `Trace observed roots`, exact: true })
 				.focus()
@@ -1005,14 +1028,10 @@ try {
 				await page.evaluate(() => window.polish.evidence()),
 				before,
 			)
-			await page
-				.getByRole(`button`, {
-					name: `Open live editor (may read/evaluate)`,
-					exact: true,
-				})
-				.click()
 			assert.equal(
-				await page.locator(`ecology-live input`).getAttribute(`readonly`),
+				await page
+					.locator(`ecology-editor input[aria-label="left"]`)
+					.getAttribute(`readonly`),
 				``,
 			)
 			await page

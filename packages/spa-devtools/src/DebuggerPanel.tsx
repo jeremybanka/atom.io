@@ -3,6 +3,7 @@ import "./globals.css"
 
 import type { SpaElement } from "@atom.io/spa"
 import { onCleanup, onCommit, onMount, useGetter } from "@atom.io/spa"
+import { BrandMark } from "@atom.io/spa/brand"
 import type { RootStore } from "atom.io/internal"
 
 import css from "./DebuggerPanel.module.css"
@@ -15,7 +16,7 @@ import { useLocal, useSaved, useTools } from "./store.ts"
 import { TimelineIndex } from "./TimelineIndex.tsx"
 import { TransactionIndex } from "./TransactionIndex.tsx"
 import { createWindowController, EDGE_LABELS } from "./window-controller.ts"
-import { rectStyle, RESIZE_EDGES } from "./window-geometry.ts"
+import { LAUNCHER_SIZE, rectStyle, RESIZE_EDGES } from "./window-geometry.ts"
 import { WindowOverlay, type WindowPresentation } from "./WindowOverlay.tsx"
 
 const VIEWS = [
@@ -87,6 +88,7 @@ export function DebuggerPanel(props: {
 	)
 	return (
 		<debugger-panel
+			motion:layoutRoot
 			class={css.class}
 			role="main"
 			ref={attach}
@@ -104,12 +106,9 @@ export function DebuggerPanel(props: {
 					aria-label="Move debugger"
 					title="Drag to move; arrow keys to nudge"
 				>
-					⠿
+					{getOpen() && !getHidden() && <BrandMark size={32} />}
 				</button>
-				<h1>
-					<brand-mark aria-hidden="true" />
-					atom.io
-				</h1>
+				<h1>atom.io</h1>
 				{getOpen() ? (
 					<nav role="tablist" aria-label="Debugger views">
 						{VIEWS.map((name) => (
@@ -152,11 +151,17 @@ export function DebuggerPanel(props: {
 					type="button"
 					aria-label={getOpen() ? `Minimize debugger` : `Open debugger`}
 					data-testid="open-close-devtools"
+					data-drag-handle={getOpen() ? undefined : true}
+					title={
+						getOpen()
+							? undefined
+							: `Drag to move; click to open; arrow keys to nudge`
+					}
 					onClick={() => {
 						setOpen((value) => !value)
 					}}
 				>
-					{getOpen() ? `−` : `🔍`}
+					{getOpen() ? `−` : !getHidden() && <BrandMark size={LAUNCHER_SIZE} />}
 				</button>
 				<button
 					type="button"

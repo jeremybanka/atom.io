@@ -261,6 +261,10 @@ describe(`spa debugger`, () => {
 		expect(panel.hidden).toBe(false)
 		await click(`[data-testid="open-close-devtools"]`)
 		expect(host.querySelector(`[data-index]`)).toBeNull()
+		expect(host.querySelectorAll(`brand-mark`)).toHaveLength(1)
+		expect(
+			host.querySelector(`[aria-label="Open debugger"] brand-mark`),
+		).not.toBeNull()
 		root.dispose()
 		mount(true)
 		expect(host.querySelector<HTMLElement>(`debugger-panel`)!.hidden).toBe(false)

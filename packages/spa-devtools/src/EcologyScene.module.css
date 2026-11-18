@@ -1,0 +1,38 @@
+ecology-scene.class {
+	& {
+		display: block;
+		position: relative;
+		flex: 1;
+		min-height: 180px;
+		overflow: hidden;
+		isolation: isolate;
+		touch-action: none;
+	}
+	> canvas, > ecology-labels {
+		position: absolute;
+		inset: 0;
+	}
+	> canvas {
+		display: block;
+		pointer-events: none;
+	}
+	> ecology-labels {
+		pointer-events: none;
+	}
+	> ecology-labels[hidden] {
+		display: none;
+	}
+	> p {
+		position: absolute;
+		z-index: 1001;
+		top: 0;
+		left: 0;
+		right: 0;
+		padding: 12px;
+		background: var(--surface-content);
+		color: var(--ink-muted);
+		font-size: 12px;
+		line-height: 1.6;
+		pointer-events: none;
+	}
+}

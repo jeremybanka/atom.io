@@ -1,0 +1,21 @@
+ecology-node-name.class {
+	& {
+		display: block;
+		min-width: 0;
+		max-width: 100%;
+	}
+	> button {
+		width: 100%;
+		min-width: 0;
+		max-width: 100%;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		text-align: left;
+		font-weight: 500;
+	}
+	> button:focus-visible {
+		outline: 1px dashed var(--ink-muted);
+		outline-offset: -1px;
+	}
+}

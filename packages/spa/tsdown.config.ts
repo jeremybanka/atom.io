@@ -1,6 +1,8 @@
 import type { UserConfig } from "tsdown"
 import { defineConfig } from "tsdown"
 
+import { compile } from "./src/compiler.ts"
+
 const config: UserConfig[] = defineConfig(
 	[false, true].map((development): UserConfig => ({
 		entry: [
@@ -8,6 +10,8 @@ const config: UserConfig[] = defineConfig(
 			`src/renderer.ts`,
 			`src/konva.ts`,
 			`src/three.ts`,
+			`src/brand.ts`,
+			`src/brand-model.ts`,
 			`src/motion.ts`,
 			`src/floating.ts`,
 			`src/jsx-runtime.ts`,
@@ -29,6 +33,7 @@ const config: UserConfig[] = defineConfig(
 		deps: {
 			neverBundle: [
 				/^node:/,
+				/^@atom\.io\/spa\/jsx-runtime$/,
 				/^atom\.io(?:\/|$)/,
 				/^oxc-parser$/,
 				/^astro(?:\/|$)/,
@@ -46,6 +51,24 @@ const config: UserConfig[] = defineConfig(
 		target: `es2022`,
 		sourcemap: true,
 		define: { "import.meta.env.DEV": String(development) },
+		css: {
+			fileName: `brand.css`,
+			splitting: false,
+			inject: false,
+			modules: { generateScopedName: `atom-io-spa-[name]-[local]` },
+		},
+		plugins: [
+			{
+				name: `spa-components`,
+				transform: {
+					filter: { id: /\.tsx$/ },
+					handler(code, id) {
+						return compile(code, id)
+					},
+				},
+			},
+		],
+		copy: development ? [] : [`src/brand-css.d.ts`],
 	})),
 )
 export default config

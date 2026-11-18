@@ -187,6 +187,7 @@ it(`coordinates measurement around native writes, restores author styles, and re
 		"motion:layoutId": `marker`,
 		"motion:layoutGroup": `ready`,
 		"motion:layoutScroll": true,
+		"motion:layoutRoot": true,
 		style: `width:20px;height:10px`,
 	})
 	expect(probe.events[0]).toEqual([`before`, `10px`])
@@ -194,6 +195,7 @@ it(`coordinates measurement around native writes, restores author styles, and re
 	expect(probe.nodes.at(-1).node.options).toMatchObject({
 		animationType: `position`,
 		layoutScroll: true,
+		layoutRoot: true,
 	})
 	expect(current.visual.scheduleRender).toHaveBeenCalled()
 	f.bindings[0].exit?.({})
@@ -205,6 +207,80 @@ it(`coordinates measurement around native writes, restores author styles, and re
 	f.bindings[0].dispose()
 	expect(watched[0].native.unobserve).toHaveBeenCalled()
 })
+it.each([false, true])(
+	`batches authored style reads across projected siblings and restores them on failure (%s)`,
+	(failRead) => {
+		const silo = new Silo({
+			name: `layout-batch`,
+			lifespan: `ephemeral`,
+			isProduction: true,
+		})
+		const widthAtom = silo.atom<number>({ key: `width`, default: 10 })
+		const host = document.createElement(`main`)
+		document.body.append(host)
+		const onError = vi.fn()
+		const root = render(
+			() => {
+				const get = useGetter(widthAtom)
+				return (
+					<>
+						{[0, 1].map((index) => (
+							<span
+								key={index}
+								motion:layoutId={index}
+								style={`width:${get()}px;transform:rotate(${index + 3}deg)`}
+							/>
+						))}
+					</>
+				)
+			},
+			host,
+			{
+				store: silo.store,
+				capabilities: [motionCapability({ reducedMotion: `never` })],
+				onError,
+			},
+		)
+		cleanups.push(root.dispose)
+		const elements = [...host.querySelectorAll(`span`)]
+		for (const [index, element] of elements.entries())
+			element.style.transform = `translateX(${index + 20}px)`
+		for (const { node } of probe.nodes)
+			node.willUpdate.mockImplementation(() => {
+				expect(elements.map((element) => element.style.transform)).toEqual([
+					`translateX(20px)`,
+					`translateX(21px)`,
+				])
+			})
+		const nativeStyle = getComputedStyle,
+			readings: string[][] = []
+		vi.stubGlobal(`getComputedStyle`, (element: Element) => {
+			readings.push(elements.map((node) => node.style.transform))
+			if (failRead && element === elements[1])
+				throw new Error(`style read failed`)
+			return nativeStyle(element)
+		})
+		silo.setState(widthAtom, 20)
+		if (failRead)
+			expect(() => {
+				root.flush()
+			}).toThrow(`style read failed`)
+		else root.flush()
+		expect(readings).toHaveLength(2)
+		expect(
+			readings.every(
+				(values) => values[0] === `rotate(3deg)` && values[1] === `rotate(4deg)`,
+			),
+		).toBe(true)
+		if (failRead) {
+			root.dispose()
+			expect(elements.map((element) => element.style.transform)).toEqual([
+				`rotate(3deg)`,
+				`rotate(4deg)`,
+			])
+		} else expect(onError).not.toHaveBeenCalled()
+	},
+)
 it(`initializes nodes in document order, isolates groups and roots, and supports scroll-only and disabled targets`, () => {
 	probe.values = { x: 2 }
 	probe.ownRoot = true

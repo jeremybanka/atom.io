@@ -103,7 +103,26 @@ it(`infers only coarse cached runtime types, including undefined, without traver
 	}
 	const snapshot = captureEcologySnapshot(silo.store)
 	expect(snapshot.nodes.map((node) => node.value)).toEqual(
-		types.map((type) => ({ status: `cached`, type })),
+		types.map((type, index) => ({
+			status: `cached`,
+			type,
+			preview: [
+				`undefined`,
+				`true`,
+				`1`,
+				`2n`,
+				`"hi"`,
+				`Symbol(s)`,
+				`ƒ`,
+				`{…}`,
+				`null`,
+				`[…]`,
+				`{…}`,
+				`{…}`,
+				`<?>`,
+				`{…}`,
+			][index],
+		})),
 	)
 	expect(getter).not.toHaveBeenCalled()
 })
@@ -280,7 +299,7 @@ it(`captures partial async and failed evaluations without awaiting or retrying t
 	const pending = silo.getState(asyncSelector)
 	expect(() => silo.getState(failedSelector)).toThrow(`failed`)
 	const snapshot = captureEcologySnapshot(silo.store)
-	expect(byKey(snapshot, `async`).value).toEqual({
+	expect(byKey(snapshot, `async`).value).toMatchObject({
 		status: `cached`,
 		type: `object`,
 	})
@@ -298,7 +317,7 @@ it(`captures partial async and failed evaluations without awaiting or retrying t
 	await pending
 	for (let tick = 0; tick < 5; tick++) await Promise.resolve()
 	const resolved = captureEcologySnapshot(silo.store)
-	expect(byKey(resolved, `async`).value).toEqual({
+	expect(byKey(resolved, `async`).value).toMatchObject({
 		status: `cached`,
 		type: `number`,
 	})
@@ -331,7 +350,9 @@ it(`does not mutate transactions, editable state, logging or subscriptions and k
 		do: ({ get, set }) => {
 			set(countAtom, get(countAtom) + 1)
 			const rootValue = silo.store.valueMap.get(`count`)
-			expect(byKey(captureEcologySnapshot(silo.store), `count`).value).toEqual({
+			expect(
+				byKey(captureEcologySnapshot(silo.store), `count`).value,
+			).toMatchObject({
 				status: `cached`,
 				type: `number`,
 			})

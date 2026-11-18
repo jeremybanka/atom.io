@@ -1,3 +1,5 @@
+@import "@atom.io/spa/brand/css";
+
 @font-face {
 	font-family: "Atom IO Theia";
 	font-style: normal;
@@ -36,12 +38,12 @@
 	--accent: #83c6ff;
 	--error-ink: #ff9ab1;
 	--error-surface: #2c1219;
-	--graph-family: #bc9cea;
 	--change-added: #143520;
 	--change-removed: #381722;
 	--surface-shell: var(--bg-shade-2);
 	--surface-inactive: var(--bg-shade-1);
 	--surface-content: var(--bg-color);
+	--surface-graph: #050505;
 	--surface-search: var(--bg-shade-1);
 	--surface-hover: var(--bg-tint-3);
 	--surface-focus: var(--bg-color);
@@ -54,6 +56,7 @@
 	color-scheme: dark;
 	@media (prefers-color-scheme: light) {
 		--bg-color: #f9f9f9;
+		--surface-graph: #f7f7f5;
 		--bg-tint-1: #fdfdfd;
 		--bg-tint-2: #fff;
 		--bg-tint-3: #fff;
@@ -69,7 +72,6 @@
 		--accent: #0059b3;
 		--error-ink: #9a0026;
 		--error-surface: #ffe8ee;
-		--graph-family: #725399;
 		--change-added: #e5f5e9;
 		--change-removed: #ffe8ee;
 		--bg-hard-1: var(--bg-tint-1);

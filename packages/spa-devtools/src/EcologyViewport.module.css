@@ -1,0 +1,15 @@
+ecology-viewport.class {
+	& {
+		display: flex;
+		flex: 1;
+		min-height: 180px;
+		min-width: 0;
+		overflow: hidden;
+	}
+	&[data-loading="true"] {
+		padding: 12px;
+		color: var(--ink-muted);
+		font-size: 12px;
+		line-height: 1.5;
+	}
+}

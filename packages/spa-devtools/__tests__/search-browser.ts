@@ -716,7 +716,9 @@ try {
 	// Exercise real browser task boundaries while normalization is still in flight,
 	// rather than waiting for readiness before every input as the steady-state timings do.
 	const race = await browser.newPage({ viewport: { width: 1440, height: 900 } })
-	race.setDefaultTimeout(5_000)
+	// Cold preparation of 10,000 states is a lifecycle check, not a latency gate.
+	// Keep its watchdog separate from the advisory/strict timing targets above.
+	race.setDefaultTimeout(30_000)
 	await race.goto(`http://127.0.0.1:${(server.address() as AddressInfo).port}`)
 	report.races = {
 		method: `Ordinary DOM InputEvents across real scheduled task boundaries during preparation; no synthetic clock or scheduler replacement.`,

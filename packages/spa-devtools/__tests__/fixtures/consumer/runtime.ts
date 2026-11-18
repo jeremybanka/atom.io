@@ -43,6 +43,7 @@ await test(`packed debugger edits its inspected store and cleans up owned state`
 		window,
 		document: window.document,
 		localStorage: window.localStorage,
+		getComputedStyle: window.getComputedStyle.bind(window),
 	})
 	const silo = new Silo({
 		name: `consumer`,

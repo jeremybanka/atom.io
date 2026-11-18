@@ -44,6 +44,8 @@ const config: ViteUserConfig = defineConfig({
 			screenshotFailures: true,
 			trace: {
 				mode: `retain-on-failure`,
+				// Animated branding repaints continuously; DOM traces and failure PNGs suffice.
+				screenshots: false,
 				tracesDir: resolve(
 					import.meta.dirname,
 					`../../.scratch/storybook-tests/traces`,

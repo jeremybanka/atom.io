@@ -1,12 +1,12 @@
 ---
 import Layout from "../layouts/Layout.astro"
-import { Dz2Orbital } from "../components/Dz2Orbital"
+import { BrandMark } from "@atom.io/spa/brand"
 import packageJson from "atom.io/package.json"
 import css from "./index.module.css"
 ---
 
 <Layout>
-	<Dz2Orbital data-variant="splash" client:load />
+	<BrandMark variant="splash" client:load />
 	<home-splash class={css.class}>
 		<title-lockup>
 			<h1>

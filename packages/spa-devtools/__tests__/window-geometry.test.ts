@@ -12,6 +12,31 @@ import {
 
 const viewport = { width: 1200, height: 900 }
 const free = { x: 100, y: 100, width: 500, height: 400 }
+it(`validates and clamps a saved launcher independently of the expanded window`, () => {
+	const saved = { free, snap: `full` }
+	for (const launcher of [
+		undefined,
+		null,
+		4,
+		{},
+		{ x: 1 },
+		{ x: `1`, y: 2 },
+		{ x: 1, y: Infinity },
+	])
+		expect(readGeometry({ ...saved, launcher }, viewport)).toEqual(saved)
+	expect(
+		readGeometry({ ...saved, launcher: { x: 9999, y: -20 } }, viewport),
+	).toEqual({
+		...saved,
+		launcher: { x: 1168, y: 0 },
+	})
+	expect(
+		readGeometry({ ...saved, launcher: { x: 800, y: 600 } }, viewport),
+	).toEqual({
+		...saved,
+		launcher: { x: 800, y: 600 },
+	})
+})
 it(`clamps free rectangles and minimum dimensions even on tiny viewports`, () => {
 	expect(readGeometry(null, viewport).free).toEqual({
 		x: 700,

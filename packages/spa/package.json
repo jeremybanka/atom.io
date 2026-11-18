@@ -10,7 +10,9 @@
 	},
 	"license": "MPL-2.0",
 	"author": "Jeremy Banka",
-	"sideEffects": false,
+	"sideEffects": [
+		"**/*.css"
+	],
 	"type": "module",
 	"exports": {
 		".": {
@@ -103,6 +105,20 @@
 			"types": "./dist/astro-resumability-server.d.ts",
 			"development": "./dist/development/astro-resumability-server.js",
 			"import": "./dist/astro-resumability-server.js"
+		},
+		"./brand": {
+			"types": "./dist/brand.d.ts",
+			"development": "./dist/development/brand.js",
+			"import": "./dist/brand.js"
+		},
+		"./brand/model": {
+			"types": "./dist/brand-model.d.ts",
+			"development": "./dist/development/brand-model.js",
+			"import": "./dist/brand-model.js"
+		},
+		"./brand/css": {
+			"types": "./dist/brand-css.d.ts",
+			"default": "./dist/brand.css"
 		}
 	},
 	"main": "./dist/index.js",
@@ -154,6 +170,7 @@
 		"@breakage/changesets": "0.1.0",
 		"@floating-ui/dom": "1.8.0",
 		"@jridgewell/trace-mapping": "0.3.31",
+		"@tsdown/css": "0.23.7",
 		"@types/node": "26.6.6",
 		"@types/three": "0.187.0",
 		"@vitest/coverage-v8": "5.1.0",

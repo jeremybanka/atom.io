@@ -241,7 +241,7 @@ it(`validates scene structure and native properties while restoring removed prop
 			() => jsx(`Group`, { children: jsx(BoxGeometry, {}) }),
 			parent,
 		),
-	).toThrow(`require a Mesh parent`)
+	).toThrow(`require a Mesh or LineSegments parent`)
 	for (const children of [
 		[jsx(BoxGeometry, {}), jsx(BoxGeometry, {})],
 		[jsx(MeshNormalMaterial, {}), jsx(MeshNormalMaterial, {})],

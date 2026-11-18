@@ -155,7 +155,7 @@ export default defineConfig({
 		resolve: { dedupe: [`atom.io`, `@atom.io/spa`] },
 		plugins: [exhibitTextPlugin()],
 		build: {
-			// Dz2Orbital's isolated Three.js entry is ~512 KiB minified.
+			// BrandMark's optional Three.js entry is ~512 KiB minified.
 			chunkSizeWarningLimit: 550,
 		},
 	},

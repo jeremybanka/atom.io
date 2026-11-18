@@ -77,9 +77,6 @@ function makeLobeGeometry(direction: 1 | -1): THREE.LatheGeometry {
 
 	const lastPoint = points[points.length - 1]
 	const nextToLastPoint = points[points.length - 2]
-	if (!lastPoint || !nextToLastPoint || !points[1]) {
-		throw new Error(`Lobe geometry needs at least three profile points.`)
-	}
 	lastPoint.setY(nextToLastPoint.y)
 	points[0].setY(points[1].y)
 	return new THREE.LatheGeometry(points, 96)

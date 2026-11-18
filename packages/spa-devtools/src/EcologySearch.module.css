@@ -1,0 +1,137 @@
+ecology-search.class {
+	& {
+		display: block;
+		flex: 1;
+		min-width: 0;
+		height: 32px;
+		position: relative;
+		z-index: 2;
+	}
+	> dialog {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		max-width: none;
+		max-height: none;
+		margin: 0;
+		padding: 0;
+		border: 0;
+		background: var(--surface-content);
+		color: var(--ink);
+		overflow: visible;
+	}
+	> dialog:not(:modal):focus-within:has(> p:not([hidden])) {
+		outline: 1px solid var(--line);
+		box-shadow: 0 2px 4px #0003;
+	}
+	> dialog:not(:modal):not(:focus-within) > :is(p, ol) {
+		display: none;
+	}
+	> dialog:not([open]) {
+		display: none;
+	}
+	> dialog > search-heading {
+		display: none;
+	}
+	> dialog > form {
+		display: flex;
+		gap: 3px;
+	}
+	> dialog > form > input {
+		flex: 1;
+		min-width: 0;
+		height: 32px;
+		padding: 4px 6px;
+	}
+	> dialog > form > input::-webkit-search-cancel-button {
+		display: none;
+	}
+	> dialog > form > button, > dialog > search-heading > button {
+		flex: 0 0 auto;
+		width: 32px;
+		height: 32px;
+		padding: 0;
+		font-size: 20px;
+		border: 1px solid var(--line);
+	}
+	> dialog > p {
+		padding: 4px 0;
+		font-size: 11px;
+		line-height: 16px;
+		overflow-wrap: anywhere;
+	}
+	> dialog > p[hidden] {
+		display: none;
+	}
+	> dialog > ol {
+		list-style: none;
+		max-height: 120px;
+		overflow: auto;
+	}
+	> dialog > ol > li {
+		border-top: 1px solid var(--line);
+	}
+	> dialog > ol > li > button {
+		width: 100%;
+		min-height: 24px;
+		height: auto;
+		text-align: left;
+		overflow-wrap: anywhere;
+	}
+	> dialog > ol > li > small {
+		display: block;
+		padding: 1px 3px;
+		font-size: 11px;
+		overflow-wrap: anywhere;
+	}
+	> dialog:modal {
+		position: fixed;
+		inset: 0;
+		width: min(560px, calc(100vw - 24px));
+		max-height: calc(85dvh - 24px);
+		margin: auto;
+		padding: 12px;
+		border: 1px solid var(--ink-muted);
+		background: var(--surface-content);
+		box-shadow: 0 8px 36px #0006;
+		overflow: auto;
+		overscroll-behavior: contain;
+	}
+	> dialog::backdrop {
+		background: #0008;
+	}
+	> dialog:modal > search-heading {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 8px;
+		margin-bottom: 12px;
+	}
+	> dialog > search-heading > h2 {
+		font-size: 14px;
+		font-weight: 500;
+	}
+	> dialog:modal > ol {
+		max-height: none;
+	}
+	@container atom-io-devtools (max-width: 650px) {
+		& {
+			display: contents;
+		}
+		> dialog:not(:modal) {
+			display: none;
+		}
+		> dialog > form > input {
+			height: 36px;
+			font-size: 16px;
+		}
+		> dialog > form > button, > dialog > search-heading > button {
+			width: 36px;
+			height: 36px;
+		}
+		> dialog > ol > li > button {
+			min-height: 36px;
+		}
+	}
+}

@@ -8,7 +8,14 @@ const config: UserConfig = defineConfig({
 	clean: true,
 	tsconfig: `tsconfig.build.json`,
 	dts: { sourcemap: true },
-	deps: { neverBundle: [/^atom\.io(?:\/|$)/, /^@atom\.io\//, /^react(?:\/|$)/] },
+	deps: {
+		neverBundle: [
+			/^atom\.io(?:\/|$)/,
+			/^@atom\.io\//,
+			/^react(?:\/|$)/,
+			/^three(?:\/|$)/,
+		],
+	},
 	fixedExtension: false,
 	format: `esm`,
 	platform: `neutral`,

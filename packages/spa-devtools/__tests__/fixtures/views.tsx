@@ -1,5 +1,6 @@
 /** @jsxImportSource @atom.io/spa */
 import { onCleanup, onCommit, onMount, render } from "@atom.io/spa"
+import { motionCapability } from "@atom.io/spa/motion"
 import type { RootStore } from "atom.io/internal"
 
 import type { GraphContext } from "../../src/ecology-graph.ts"
@@ -25,7 +26,7 @@ export function mountEcologyFixture(
 	const root = render(
 		() => <EcologyView tools={useTools(store)} context={context} />,
 		target,
-		{ store },
+		{ store, capabilities: [motionCapability({ reducedMotion: `always` })] },
 	)
 	return {
 		dispose: root.dispose,

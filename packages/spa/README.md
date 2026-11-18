@@ -318,6 +318,8 @@ Non-null value and checked props control form state: rejected edits are restored
 
 Keys accept the same Canonical values as atom.io families, including nested tuples, booleans, and null. Sibling keys must be unique by canonical serialization. A fresh tuple with the same contents preserves the instance, and a number and its string representation identify separate instances. Only undefined uses positional identity. Reordering preserves keyed instances and nodes. Changing a key replaces the instance in both DOM and scene trees, including when the element stands alone.
 
+Freezing both a JSX element object and its props opts into reuse in DOM collections without refreshing unchanged descendant props. Its tracked getters remain reactive. Create a new JSX element object when replacing frozen props; the key still preserves the mounted instance. Mutable descriptors continue to refresh when their collection updates.
+
 A component can declare a required, narrowed key in its props. The instance receives the original key by reference and can read props.key during setup, rendering, mount, and cleanup. Spreading the props forwards the key to an inner component or element. A spread follows normal JSX precedence, so forwarding the same key to multiple siblings reports a duplicate key.
 
 Direct DOM component and root output opt into key tracking when they first mount. Include the key property initially when a direct spread needs later identity changes. An explicit key attribute or a spread containing key with an initial undefined value enables that tracking. Keyless spreads keep their data props live as the instance updates.
@@ -722,11 +724,11 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                           | Entry                             | Minified JS |  Gzip JS |
 | -------------------------------- | --------------------------------- | ----------: | -------: |
-| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    68,795 B | 20,876 B |
-| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    47,231 B | 15,111 B |
-| Interactive client app           | `tonnage-recipes/client-app.ts`   |    46,904 B | 14,961 B |
-| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    46,905 B | 14,959 B |
-| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    53,443 B | 17,026 B |
+| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    68,896 B | 20,908 B |
+| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    47,332 B | 15,151 B |
+| Interactive client app           | `tonnage-recipes/client-app.ts`   |    47,004 B | 15,001 B |
+| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    47,005 B | 14,999 B |
+| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    53,544 B | 17,059 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 
@@ -779,7 +781,7 @@ Konva owns hit testing, dragging, and draw batching. Write drag results back int
 
 ### Three.js
 
-Import Canvas, Group, Mesh, PerspectiveCamera, AmbientLight, DirectionalLight, BoxGeometry, SphereGeometry, PlaneGeometry, MeshStandardMaterial, MeshBasicMaterial, and MeshNormalMaterial from @atom.io/spa/three. Canvas creates a WebGL renderer after browser mounting. Geometry and material children attach to their Mesh, with one of each supported. Position and rotation accept three-number tuples; scale also accepts a scalar.
+Import Canvas, Group, Mesh, PerspectiveCamera, AmbientLight, DirectionalLight, PointLight, BoxGeometry, SphereGeometry, PlaneGeometry, MeshStandardMaterial, MeshBasicMaterial, MeshNormalMaterial, LineSegments, BufferGeometry, and LineBasicMaterial from @atom.io/spa/three. Canvas creates a WebGL renderer after browser mounting. Geometry and material children attach to their Mesh or LineSegments, with one of each supported. Position and rotation accept three-number tuples; scale also accepts a scalar. Point lights expose color, intensity, distance and decay.
 
 ```tsx
 import type { SpaElement } from "@atom.io/spa"
@@ -811,11 +813,11 @@ export function Scene(): SpaElement {
 
 ```
 
-Mesh accepts optional constructor args typed from Three.js, including custom BufferGeometry and a Material or material array. Resources supplied in args are borrowed: their application owner disposes them after all consumers finish. JSX geometry/material children and implicit Mesh defaults remain renderer-owned. Constructor args are fixed for the mounted instance; use a new reconciliation key to replace them.
+Mesh and LineSegments accept optional constructor args typed from Three.js, including custom BufferGeometry and a Material or material array. Resources supplied in args are borrowed: their application owner disposes them after all consumers finish. JSX geometry/material children and implicit drawable defaults remain renderer-owned. Constructor args are fixed for the mounted instance; use a new reconciliation key to replace them.
 
 Constructor args are fixed for an instance. Change the resource's key to replace it with new constructor args. Refs expose native objects. Owned geometries and materials are disposed on removal; textures passed through material properties remain borrowed. Canvas stops drawing and disposes its renderer on removal. The exported threeRenderer renders into a borrowed parent dedicated to its children without creating a WebGL renderer.
 
-Canvas accepts rendererOptions for constructor-time settings such as alpha and powerPreference, or createRenderer to construct the renderer with the supplied canvas. Both paths are exclusively owned by Canvas: it disposes the renderer on removal or setup failure, and the factory must return a renderer using that canvas. Shared/borrowed renderers are not supported by this boundary; use threeRenderer for a separately owned renderer. Options and the factory are captured at mount; replace the keyed Canvas to reconstruct its context.
+Canvas accepts rendererOptions for constructor-time settings such as alpha and powerPreference, or createRenderer to construct the renderer with the supplied canvas. Both paths are exclusively owned by Canvas: it disposes the renderer on removal or setup failure, and the factory must return a renderer using that canvas. Shared/borrowed renderers are not supported by this boundary; use threeRenderer for a separately owned renderer. An optional onError callback handles renderer creation failures locally so an application can offer a fallback; later setup or frame errors still reach the owning error boundary. Options and the factory are captured at mount; replace the keyed Canvas to reconstruct its context.
 
 Use onCreated to configure tone mapping, output color space, scene background, or controls after the scene mounts and sizes, before the first draw. Return a cleanup callback for controls or other acquired resources. Numeric dpr selects a fixed positive ratio; a min/max tuple clamps devicePixelRatio and follows window resize events. The default remains 1. Width and height remain reactive positive CSS-pixel dimensions. Canvas updates its default perspective camera projection; supplied cameras are borrowed and retain their own projection. Use onResize to update an external perspective/orthographic camera explicitly. onFrame and pointer routing always use the current camera prop, with one frame loop using the installed Motion clock or requestAnimationFrame.
 
@@ -847,7 +849,25 @@ export function BoardCanvas(): SpaElement {
 
 ```
 
-Canvas defaults to a perspective camera at z = 5. Its optional camera prop borrows an external camera; a PerspectiveCamera child does not automatically become active. Width and height update the renderer and default camera. Canvas renders continuously and accepts an onFrame callback with scene, camera, renderer, delta seconds, and timestamp seconds. Controls, asset loading, and drawing on demand are outside this initial API.
+Canvas defaults to a perspective camera at z = 5. Its optional camera prop borrows an external camera; a PerspectiveCamera child does not automatically become active. Width and height update the renderer and default camera. Canvas renders continuously by default. A renderWhen predicate can skip idle GPU draws while frame callbacks and pointer updates continue; the caller makes it true when drawing is needed, and Canvas checks it before onFrame. Canvas accepts an onFrame callback with scene, camera, renderer, delta seconds, and timestamp seconds. Controls and asset loading remain application-owned.
+
+### Shared brand mark
+
+Import BrandMark from @atom.io/spa/brand and its stylesheet from @atom.io/spa/brand/css. The compact mark defaults to 22 CSS pixels; size sets its width and height. Use variant="splash" for the viewport backdrop used on atom.io.fyi. Both variants share the same orbital model and honor reduced motion. Three.js loads after browser mounting; server rendering, unavailable WebGL and failed graphics imports retain the static mark. Install the optional three peer to animate it. The base SPA entrypoint does not include branding or its stylesheet.
+
+```tsx
+import "@atom.io/spa/brand/css"
+
+import type { SpaElement } from "@atom.io/spa"
+import { BrandMark } from "@atom.io/spa/brand"
+
+export function AppBrand(): SpaElement {
+	return <BrandMark size={32} />
+}
+
+```
+
+Contributor tools can import the canonical geometry, camera and lighting helpers from @atom.io/spa/brand/model without importing the component or CSS.
 
 ### Three.js pointer events
 
@@ -1088,7 +1108,7 @@ export function ReadinessBoard(): SpaElement {
 
 motion:layout enables position and size projection; position or size restricts the animated dimensions. motion:layoutId enables layout animation implicitly and carries a visual identity between outgoing/incoming nodes, while reconciliation keys continue to own component instances. Shared identities are isolated by root and by an explicit motion:layoutGroup on each shared node; group is not inherited. Use distinct group values for separate boards in one root. Reusing an ID within a group coordinates a shared transition, with the latest mounted member leading.
 
-SPA snapshots registered targets before each synchronous update batch and projects after the DOM commits. Per-target ResizeObserver subscriptions also handle external size changes; no document-wide mutation observer or consumer measurement loop is needed. Mark scrolling layout ancestors with motion:layoutScroll. Nested projections preserve authored transforms and transform origins; Floating UI retains its independent translate positioning. Avoid multiple layout/projection owners or direct writes to a projected element's transform while the capability is active.
+SPA snapshots registered targets before each synchronous update batch and projects after the DOM commits. Per-target ResizeObserver subscriptions also handle external size changes; no document-wide mutation observer or consumer measurement loop is needed. Mark scrolling layout ancestors with motion:layoutScroll. Mark a movable window or fixed layout ancestor with motion:layoutRoot so it moves immediately while its descendants animate relative to it. Nested projections preserve authored transforms and transform origins; Floating UI retains its independent translate positioning. Avoid multiple layout/projection owners or direct writes to a projected element's transform while the capability is active.
 
 The default transition is a 0.3-second tween; the capability option layoutTransition sets defaults and motion:layoutTransition replaces them for a target. Use finite duration/delay values or settling spring parameters. Retargeting uses the current projection. Outgoing nodes remain available for shared handoff until replacements mount in the same batch. With Motion exits, layout follows the retained node's lifetime; keyed re-entry resumes the existing instance. Shared identity transfers appearance, not component state or DOM ownership, and nodes are not automatically reparented.
 

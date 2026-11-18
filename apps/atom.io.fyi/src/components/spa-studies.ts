@@ -1,11 +1,11 @@
-import * as THREE from "three"
-
 import {
 	addDz2OrbitalLights,
 	createDz2OrbitalCamera,
 	createDz2OrbitalModel,
 	disposeDz2OrbitalModel,
-} from "./dz2-orbital-three.ts"
+} from "@atom.io/spa/brand/model"
+import * as THREE from "three"
+
 import { createSpaCloud } from "./spa-orbital-three.ts"
 
 export function mountSpaStudies(): () => void {

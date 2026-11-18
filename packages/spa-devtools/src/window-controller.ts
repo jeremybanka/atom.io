@@ -7,6 +7,7 @@ import type {
 import {
 	clampRect,
 	edgeTarget,
+	LAUNCHER_SIZE,
 	readGeometry,
 	RESIZE_EDGES,
 	resizeRect,
@@ -66,6 +67,7 @@ export function createWindowController(
 		menuOpen = false,
 		focusPalette = false,
 		frame = 0
+	let suppressLauncherClick = false
 	let gesture:
 		| {
 				id: number
@@ -80,23 +82,39 @@ export function createWindowController(
 				active: boolean
 				target: SnapTarget | null
 				zones: { target: SnapTarget; rect: DOMRect }[]
+				launcher: boolean
 		  }
 		| undefined
-	const current = () =>
+	const expanded = () =>
 		geometry.snap ? snapRect(geometry.snap, viewport()) : geometry.free
+	const current = () =>
+		open
+			? expanded()
+			: clampRect(
+					{
+						...expanded(),
+						...geometry.launcher,
+						width: LAUNCHER_SIZE,
+						height: LAUNCHER_SIZE,
+					},
+					viewport(),
+					1,
+					1,
+				)
 	const overlay = panel.querySelector<HTMLElement>(`window-overlay`)!
 	const layout = panel.querySelector<HTMLButtonElement>(
 		`[aria-label="Debugger layout"]`,
 	)!
 	const toolbar = panel.querySelector<HTMLElement>(`debugger-toolbar`)!
+	const launcher = panel.querySelector<HTMLElement>(
+		`[data-testid="open-close-devtools"]`,
+	)!
 	const targets = [...overlay.querySelectorAll<HTMLButtonElement>(`[data-snap]`)]
 	const paint = () => {
 		if (!menuOpen) focusPalette = false
 		const rect = current()
 		publish({
-			rect: open
-				? rect
-				: clampRect({ ...rect, width: 33, height: 28 }, viewport(), 1, 1),
+			rect,
 			interaction: menuOpen || Boolean(gesture),
 			paletteHidden:
 				hidden || !open || !(menuOpen || (gesture?.active && !gesture.edge)),
@@ -113,7 +131,11 @@ export function createWindowController(
 	}
 	function choose(target: SnapTarget | null) {
 		finish(true)
-		geometry = { free: clampRect(geometry.free, viewport()), snap: target }
+		geometry = {
+			...geometry,
+			free: clampRect(geometry.free, viewport()),
+			snap: target,
+		}
 		menuOpen = false
 		paint()
 		persist()
@@ -123,6 +145,17 @@ export function createWindowController(
 		frame = 0
 		if (!gesture?.active) return
 		const { base, edge, x, y, startX, startY } = gesture
+		if (gesture.launcher) {
+			const next = clampRect(
+				{ ...base, x: base.x + x - startX, y: base.y + y - startY },
+				viewport(),
+				1,
+				1,
+			)
+			geometry = { ...geometry, launcher: { x: next.x, y: next.y } }
+			paint()
+			return
+		}
 		const zones = gesture.zones.length
 			? gesture.zones
 			: gesture.edge
@@ -132,6 +165,7 @@ export function createWindowController(
 						rect: button.getBoundingClientRect(),
 					})))
 		geometry = {
+			...geometry,
 			free: edge
 				? resizeRect(base, edge, x - startX, y - startY, viewport())
 				: clampRect(
@@ -162,12 +196,14 @@ export function createWindowController(
 		const committed = !cancel && ending.active
 		gesture = undefined
 		frame = 0
-		geometry = committed
-			? {
-					free: ending.target ? ending.before.free : geometry.free,
-					snap: ending.target,
-				}
-			: ending.before
+		if (!committed) geometry = ending.before
+		else if (!ending.launcher)
+			geometry = {
+				...geometry,
+				free: ending.target ? ending.before.free : geometry.free,
+				snap: ending.target,
+			}
+		suppressLauncherClick = ending.launcher && (ending.active || cancel)
 		publish({ preview: undefined })
 		try {
 			ending.capture.releasePointerCapture(ending.id)
@@ -178,15 +214,11 @@ export function createWindowController(
 		if (committed) persist()
 	}
 	const down = (event: PointerEvent) => {
-		if (
-			hidden ||
-			!open ||
-			gesture ||
-			event.button !== 0 ||
-			event.isPrimary === false
-		)
+		if (hidden || gesture || event.button !== 0 || event.isPrimary === false)
 			return
+		suppressLauncherClick = false
 		const element = event.target as HTMLElement
+		if (!open && !launcher.contains(element)) return
 		const handle = element.closest<HTMLElement>(`[data-resize]`)
 		if (
 			!handle &&
@@ -195,10 +227,10 @@ export function createWindowController(
 					!element.closest(`[data-drag-handle]`)))
 		)
 			return
-		const capture = handle ?? toolbar
+		const capture = !open ? launcher : (handle ?? toolbar)
 		const before = geometry
 		let base = current()
-		if (!handle && geometry.snap)
+		if (open && !handle && geometry.snap)
 			base = clampRect(
 				{
 					...geometry.free,
@@ -214,7 +246,7 @@ export function createWindowController(
 		} catch {
 			return
 		}
-		event.preventDefault()
+		if (open) event.preventDefault()
 		menuOpen = false
 		gesture = {
 			id: event.pointerId,
@@ -229,6 +261,7 @@ export function createWindowController(
 			active: false,
 			target: null,
 			zones: [],
+			launcher: !open,
 		}
 		paint()
 	}
@@ -259,7 +292,14 @@ export function createWindowController(
 	const up = (event: PointerEvent) => {
 		if (!gesture || event.pointerId !== gesture.id) return
 		recordPoint(event)
+		const tap =
+			gesture.launcher && !gesture.active && event.pointerType === `touch`
 		finish(false)
+		if (tap) {
+			// Moving touch targets do not always receive a compatibility click.
+			launcher.click()
+			suppressLauncherClick = true
+		}
 	}
 	const cancel = (event: PointerEvent) => {
 		if (gesture?.id === event.pointerId) finish(true)
@@ -278,7 +318,12 @@ export function createWindowController(
 	}
 	const nudge = (event: KeyboardEvent) => {
 		const element = event.target as HTMLElement
-		if (!element.matches(`[data-drag-handle], [data-resize]`)) return
+		if (
+			hidden ||
+			!element.matches(`[data-drag-handle], [data-resize]`) ||
+			(!open && element !== launcher)
+		)
+			return
 		const step = {
 			ArrowLeft: [-10, 0],
 			ArrowRight: [10, 0],
@@ -301,6 +346,8 @@ export function createWindowController(
 			: clampRect(
 					{ ...base, x: base.x + step[0], y: base.y + step[1] },
 					viewport(),
+					open ? 320 : 1,
+					open ? 160 : 1,
 				)
 		if (
 			next.x === base.x &&
@@ -309,7 +356,9 @@ export function createWindowController(
 			next.height === base.height
 		)
 			return
-		geometry = { free: next, snap: null }
+		geometry = open
+			? { ...geometry, free: next, snap: null }
+			: { ...geometry, launcher: { x: next.x, y: next.y } }
 		paint()
 		persist()
 	}
@@ -335,6 +384,15 @@ export function createWindowController(
 					: (target.dataset[`snap`] as SnapTarget),
 			)
 	}
+	const launcherClick = (event: MouseEvent) => {
+		if (!suppressLauncherClick || !launcher.contains(event.target as Node))
+			return
+		suppressLauncherClick = false
+		if (event.detail > 0) {
+			event.preventDefault()
+			event.stopImmediatePropagation()
+		}
+	}
 	overlay.addEventListener(`click`, click)
 	layout.addEventListener(`click`, toggleMenu)
 	panel.addEventListener(`pointerdown`, down)
@@ -343,6 +401,7 @@ export function createWindowController(
 	panel.addEventListener(`pointercancel`, cancel)
 	panel.addEventListener(`lostpointercapture`, cancel)
 	panel.addEventListener(`keydown`, nudge)
+	panel.addEventListener(`click`, launcherClick, true)
 	doc.addEventListener(`keydown`, keyboard)
 	win.addEventListener(`resize`, resize)
 	paint()
@@ -356,7 +415,7 @@ export function createWindowController(
 			}
 		},
 		visibility(nextHidden: boolean, nextOpen: boolean): void {
-			if (nextHidden || !nextOpen) {
+			if (nextHidden || nextOpen !== open) {
 				finish(true)
 				menuOpen = false
 			}
@@ -372,6 +431,7 @@ export function createWindowController(
 			panel.removeEventListener(`pointercancel`, cancel)
 			panel.removeEventListener(`lostpointercapture`, cancel)
 			panel.removeEventListener(`keydown`, nudge)
+			panel.removeEventListener(`click`, launcherClick, true)
 			doc.removeEventListener(`keydown`, keyboard)
 			win.removeEventListener(`resize`, resize)
 			layout.removeEventListener(`click`, toggleMenu)

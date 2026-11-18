@@ -42,6 +42,11 @@ const types: Record<string, string> = {
 }
 const server = createServer(async (req, res) => {
 	const pathname = new URL(req.url ?? `/`, `http://localhost`).pathname
+	// Chrome requests the conventional favicon before Storybook's manager mounts.
+	if (pathname === `/favicon.ico`) {
+		res.writeHead(302, { Location: `/favicon.svg` }).end()
+		return
+	}
 	const path = resolve(
 		storybook,
 		`.${decodeURIComponent(pathname === `/` ? `/index.html` : pathname)}`,
@@ -93,7 +98,7 @@ const finished = async (frame: Frame | Page, id: string) => {
 	assert.equal(await frame.getByTestId(`atom-io-devtools`).count(), 1)
 }
 try {
-	browser = await launchBrowser()
+	browser = await launchBrowser({ softwareWebGL: true })
 	const address = server.address()
 	assert.ok(address && typeof address !== `string`)
 	const url = `http://127.0.0.1:${address.port}`
@@ -107,12 +112,18 @@ try {
 		await mkdir(activeProfile, { recursive: true })
 		const context = await browser.newContext({ viewport })
 		activeContext = context
-		await context.tracing.start({ screenshots: true, snapshots: true })
+		// Explicit PNGs cover paint states without recording every animated logo frame.
+		await context.tracing.start({ screenshots: false, snapshots: true })
 		const page = await context.newPage()
 		const errors: string[] = []
 		const assetFailures: { url: string; status: number }[] = []
 		activePage = page
 		page.on(`pageerror`, (error) => errors.push(error.message))
+		// Storybook reports play failures through console errors even when its render
+		// lifecycle reaches "finished". Do not silently accept those transitions.
+		page.on(`console`, (message) => {
+			if (message.type() === `error`) errors.push(message.text())
+		})
 		page.on(`response`, (response) => {
 			if (
 				response.status() >= 400 &&
@@ -232,12 +243,19 @@ try {
 						`ready`
 					] === `true`,
 			)
+		await ready()
+		await ecology.locator(`ecology-scene`).waitFor({ state: `visible` })
 		const snapshot = await ecology.getAttribute(`data-snapshot-ms`)
-		await ecology.getByRole(`button`, { name: `Graph`, exact: true }).click()
-		assert.equal(await ecology.locator(`svg`).isVisible(), true)
-		await ecology.getByRole(`button`, { name: `Node list`, exact: true }).click()
-		assert.equal(await ecology.locator(`svg`).isVisible(), false)
+
+		assert.equal(await ecology.locator(`ecology-scene`).isVisible(), true)
+
+		assert.equal(await ecology.locator(`ecology-editor`).isVisible(), true)
 		const input = ecology.getByRole(`searchbox`, { name: `Search ecology` })
+		const openSearch = async () => {
+			if (!(await input.isVisible()))
+				await ecology.locator(`[data-action="search"]`).click()
+		}
+		await openSearch()
 		await input.fill(`cartQuantityBySku("tea-green")`)
 		await ready()
 		await ecology
@@ -246,59 +264,41 @@ try {
 			.first()
 			.click()
 		await ready()
-		assert.equal(await ecology.getAttribute(`data-workspace`), `selection`)
-		await ecology
-			.getByRole(`button`, {
-				name: `Open live editor (may read/evaluate)`,
-				exact: true,
-			})
-			.click()
-		const editor = ecology.locator(`ecology-live input[inputmode="decimal"]`)
+		assert.equal(await ecology.locator(`ecology-scene`).isVisible(), true)
+		const editor = ecology.locator(
+			`state-leaf[data-state-key='cartQuantityBySku("tea-green")'] input[inputmode="decimal"]`,
+		)
 		await editor.fill(`2e`)
 		const summary = await page.getByTestId(`order-summary`).textContent()
-		for (const name of [`Graph`, `Node list`, `Selection`]) {
-			await ecology.getByRole(`button`, { name, exact: true }).click()
-			assert.equal(await editor.inputValue(), `2e`)
-		}
+		await openSearch()
 		await input.fill(`availability`)
 		await ready()
 		assert.equal(await page.getByTestId(`order-summary`).textContent(), summary)
+		const modalSearch = await input.evaluate((node) =>
+			node.closest(`dialog`)!.matches(`:modal`),
+		)
 		await input.press(`Escape`)
-		await ready()
-		await input.press(`Escape`)
+		if (!modalSearch) {
+			await ready()
+			await input.press(`Escape`)
+			await ready()
+			await input.press(`Escape`)
+		}
 		assert.equal(
 			await editor.evaluate((node) => node === document.activeElement),
 			true,
 		)
 		assert.equal(await editor.inputValue(), `2e`)
 		assert.equal(await ecology.getAttribute(`data-snapshot-ms`), snapshot)
-		await ecology.getByRole(`button`, { name: `Graph`, exact: true }).click()
-		await ecology
-			.getByRole(`button`, { name: `Back to passive inspector`, exact: true })
-			.click()
-		assert.equal(
-			await ecology
-				.getByRole(`button`, {
-					name: `Open live editor (may read/evaluate)`,
-					exact: true,
-				})
-				.evaluate((node) => node === document.activeElement),
-			true,
-		)
+
 		for (const colorScheme of [`light`, `dark`] as const) {
 			await page.emulateMedia({ colorScheme })
 			await page.screenshot({
 				path: resolve(activeProfile, `${colorScheme}-selection.png`),
 			})
-			await ecology
-				.getByRole(`button`, { name: `Node list`, exact: true })
-				.click()
 			await page.screenshot({
 				path: resolve(activeProfile, `${colorScheme}-node-list.png`),
 			})
-			await ecology
-				.getByRole(`button`, { name: `Selection`, exact: true })
-				.click()
 		}
 		await page.screenshot({ path: resolve(activeProfile, `story-layout.png`) })
 		// Real pointer capture and viewport geometry are built-output integration checks.
@@ -372,9 +372,10 @@ try {
 		assert.ok(preview)
 		const frame = await preview.contentFrame()
 		assert.ok(frame)
+		await preview.focus()
 		await finished(frame, `atomiodevtools--primary`)
 		assert.match(
-			await frame.locator(`ecology-view [data-counts]`).innerText(),
+			(await frame.locator(`ecology-view`).getAttribute(`data-counts`))!,
 			/^11 atoms · 2 selectors/,
 		)
 		await frame.evaluate(() => {
@@ -384,15 +385,21 @@ try {
 			name: `Open navigation menu`,
 			exact: true,
 		})
-		if (await navigation.isVisible()) await navigation.click()
+		const mobileNavigation = await navigation.isVisible()
+		if (mobileNavigation) await navigation.click()
 		await page.locator(`a[href*="/story/${orderId}"]`).first().click()
+		if (mobileNavigation)
+			await page.getByRole(`button`, { name: /navigation menu/ }).press(`Escape`)
+		// Native iframe focus is distinct from the play function's simulated input.
+		// The mobile navigation menu returns focus to the manager when it closes.
+		await preview.focus()
 		await finished(frame, orderId)
 		assert.equal(await frame.evaluate(() => window.__orderStoryDocument), true)
 		const transitionCounts = await frame
-			.locator(`ecology-view [data-counts]`)
-			.innerText()
-		assert.match(transitionCounts, /^95 atoms · 18 selectors/)
-		assert.match(transitionCounts, /51 captured edges/)
+			.locator(`ecology-view`)
+			.getAttribute(`data-counts`)
+		assert.match(transitionCounts!, /^95 atoms · 18 selectors/)
+		assert.match(transitionCounts!, /51 captured edges/)
 		// One reset is enough here to establish rebinding in the built manager.
 		// Repeated reset behavior and root assertions belong to the play tests.
 		for (const dismiss of await page
@@ -423,9 +430,24 @@ try {
 		)
 		assert.equal(await frame.getByTestId(`atom-io-devtools`).count(), 1)
 		assert.match(
-			await frame.locator(`ecology-view [data-counts]`).innerText(),
+			(await frame.locator(`ecology-view`).getAttribute(`data-counts`))!,
 			/^95 atoms · 18 selectors/,
 		)
+		const uncachedRow = frame
+			.getByRole(`button`, {
+				name: /^Generate descriptiveOrderFulfillmentNote/,
+			})
+			.locator(`..`)
+		const overflow = await uncachedRow.evaluate((row) => {
+			const generate = row.querySelector<HTMLButtonElement>(
+				`button[aria-label^="Generate "]`,
+			)!
+			return {
+				row: row.scrollWidth > row.clientWidth,
+				generate: generate.scrollWidth > generate.clientWidth,
+			}
+		})
+		assert.deepEqual(overflow, { row: false, generate: false })
 		await page.screenshot({
 			path: resolve(activeProfile, `primary-to-order.png`),
 		})

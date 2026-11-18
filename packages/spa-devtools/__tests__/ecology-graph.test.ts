@@ -174,16 +174,16 @@ it(`groups families, keeps zero definitions and namespaces group/member identiti
 		`state:sum`,
 	])
 	expect(model.edges).toEqual([
-		{ from: `family:items`, to: `state:sum`, traced: false },
-		{ from: `family:items`, to: `state:sum`, traced: false },
+		{ from: `state:a`, to: `state:sum`, traced: false },
+		{ from: `state:b`, to: `state:sum`, traced: false },
 	])
 	expect(model).toMatchObject({ atoms: 2, selectors: 1, members: 2 })
 	const point = (id: string) => {
 		const { x, y, z } = model.all.get(id)!
 		return [x, y, z]
 	}
-	expect(point(`state:a`)).toEqual(point(`family:items`))
-	expect(point(`state:b`)).toEqual(point(`family:items`))
+	expect(point(`state:a`)).not.toEqual(point(`family:items`))
+	expect(point(`state:b`)).not.toEqual(point(`state:a`))
 	context.trace = new Set([`b`, `sum`])
 	model = drain(projectEcology(withFamilies, context))
 	expect(model.edges[1].traced).toBe(true)
@@ -500,7 +500,7 @@ it(`retains incoming arrows when a selector family is collapsed`, () => {
 		],
 	}
 	expect(drain(projectEcology(data, createGraphContext())).edges).toEqual([
-		{ from: `state:a`, to: `family:derived`, traced: false },
+		{ from: `state:a`, to: `state:sum`, traced: false },
 	])
 })
 
@@ -547,7 +547,14 @@ it(`keeps lazy metadata immutable across equal-sized expansion changes and ignor
 	expect([member.x, member.y, member.z]).toEqual(before)
 	const collapsed = next.all.get(`state:s1`)!,
 		group = next.all.get(`family:derived`)!
-	expect([collapsed.x, collapsed.y, collapsed.z]).toEqual([
+	expect(
+		Math.hypot(
+			collapsed.x - group.x,
+			collapsed.y - group.y,
+			collapsed.z - group.z,
+		),
+	).toBeLessThan(0.45)
+	expect([collapsed.x, collapsed.y, collapsed.z]).not.toEqual([
 		group.x,
 		group.y,
 		group.z,
@@ -564,4 +571,94 @@ it(`keeps lazy metadata immutable across equal-sized expansion changes and ignor
 	)
 	expect(stale.items).toEqual([])
 	expect(stale.matching).toBe(0)
+})
+
+it(`keeps clustered member endpoints distinct, bounded and stable without admitting their cards`, () => {
+	const members = Array.from({ length: 100 }, (_, index) =>
+		node(`input${index}`, `atom`, `inputs`),
+	)
+	const data: EcologySnapshot = {
+		...snapshot(
+			[...members, node(`sum`, `selector`)],
+			members.map((member) => ({ dependency: member.key, selector: `sum` })),
+		),
+		families: [
+			{
+				key: `inputs`,
+				type: `atom_family`,
+				memberKeys: members.map((member) => member.key),
+				memberCount: members.length,
+				countComplete: true,
+			},
+		],
+	}
+	const context = createGraphContext()
+	const first = drain(projectEcology(data, context))
+	expect(first.items.map((item) => item.id)).toEqual([
+		`family:inputs`,
+		`state:sum`,
+	])
+	expect(first.edges).toHaveLength(100)
+	const anchor = first.all.get(`family:inputs`)!
+	const points = members.map((member) => first.all.get(`state:${member.key}`)!)
+	const positions = points.map(({ x, y, z }) => [x, y, z])
+	expect(new Set(positions.map((point) => point.join(`,`))).size).toBe(100)
+	for (const point of points) {
+		const distance = Math.hypot(
+			point.x - anchor.x,
+			point.y - anchor.y,
+			point.z - anchor.z,
+		)
+		expect(distance).toBeGreaterThan(0)
+		expect(distance).toBeLessThan(0.45)
+	}
+	expect(
+		points.filter(
+			(point) =>
+				Math.hypot(point.x - anchor.x, point.y - anchor.y, point.z - anchor.z) <
+				0.225,
+		).length,
+	).toBeGreaterThan(40)
+	const filtered = drain(
+		projectEcology(
+			data,
+			context,
+			new Set([`state:input10`, `state:sum`]),
+			first,
+		),
+	)
+	expect(
+		members.map((member) => filtered.all.get(`state:${member.key}`)),
+	).toEqual(points)
+	context.expanded.add(`inputs`)
+	const expanded = drain(projectEcology(data, context, undefined, filtered))
+	expect(expanded.items).toHaveLength(102)
+	expect(expanded.all.get(`state:input0`)!.x).not.toBe(points[0].x)
+	context.expanded.clear()
+	const clustered = drain(projectEcology(data, context, undefined, expanded))
+	expect(
+		members.map((member) => clustered.all.get(`state:${member.key}`)),
+	).toEqual(points)
+	const refreshed = drain(
+		projectEcology(
+			{
+				...data,
+				nodes: [...data.nodes, node(`later`, `atom`, `inputs`)],
+				families: [
+					{
+						...data.families[0],
+						memberKeys: [...data.families[0].memberKeys, `later`],
+						memberCount: 101,
+					},
+				],
+			},
+			context,
+		),
+	)
+	expect(
+		members.map((member) => {
+			const { x, y, z } = refreshed.all.get(`state:${member.key}`)!
+			return [x, y, z]
+		}),
+	).toEqual(positions)
 })

@@ -230,6 +230,26 @@ try {
 		),
 		`state:items("a")`,
 	)
+	for (const expected of [`family:items`, `state:items("a")`]) {
+		await page.keyboard.press(`Enter`)
+		await ready()
+		assert.equal(
+			await page.evaluate(
+				() => (document.activeElement as HTMLElement).dataset[`graphId`],
+			),
+			expected,
+		)
+		assert.equal(
+			await page.locator(`ecology-body > aside h2`).innerText(),
+			`items("a")`,
+		)
+		assert.equal(
+			await page
+				.locator(`ecology-node-card > button[aria-pressed="true"]`)
+				.getAttribute(`data-graph-id`),
+			expected,
+		)
+	}
 	await page.keyboard.press(`Escape`)
 	assert.equal(
 		await rankedInput.evaluate((node) => node === document.activeElement),
@@ -261,12 +281,15 @@ try {
 		1,
 	)
 	await page.keyboard.press(`Enter`)
+	await ready()
 	assert.equal(
 		await page
-			.getByRole(`button`, { name: `Collapse family`, exact: true })
+			.getByRole(`button`, { name: `Expand family`, exact: true })
 			.count(),
 		1,
 	)
+	await page.keyboard.press(`Enter`)
+	await ready()
 	await page
 		.getByRole(`button`, { name: `Collapse family`, exact: true })
 		.click()

@@ -385,3 +385,72 @@ it(`places arrowheads outside billboard bounds in 3D, retaining parallel edges a
 	expect((scaledTarget.x - scaledEnd.x) * 400).toBeCloseTo(91, 3)
 	geometry.dispose()
 })
+
+it(`fans clustered edges across the visible card ports and retains intra-cluster loops`, () => {
+	const geometry = createEdgeBuffer()
+	const camera = new THREE.PerspectiveCamera(45, 800 / 500, 0.1, 1000)
+	camera.position.set(0, 0, 40)
+	camera.lookAt(0, 0, 0)
+	camera.updateMatrixWorld()
+	const fromCard = { x: -8, y: 0, z: 0 },
+		toCard = { x: 8, y: 0, z: 0 }
+	const edges: EcologyLine[] = Array.from({ length: 16 }, (_, index) => ({
+		from: {
+			x: -8 + (index % 3) * 0.1,
+			y: (index - 7.5) * 0.025,
+			z: index * 0.01,
+		},
+		to: { x: 8, y: (7.5 - index) * 0.02, z: 0 },
+		fromCard,
+		toCard,
+		traced: false,
+	}))
+	writeEdgeBuffer(geometry, edges, false, camera, 800, 500)
+	const attribute = geometry.getAttribute(`position`)
+	const startYs = new Set<string>(),
+		endYs = new Set<string>()
+	for (let edge = 0; edge < edges.length; edge++) {
+		const start = new THREE.Vector3()
+			.fromBufferAttribute(attribute, edge * 36)
+			.project(camera)
+		const end = new THREE.Vector3()
+			.fromBufferAttribute(attribute, edge * 36 + 31)
+			.project(camera)
+		const a = new THREE.Vector3(fromCard.x, 0, 0).project(camera)
+		const b = new THREE.Vector3(toCard.x, 0, 0).project(camera)
+		expect((start.x - a.x) * 400).toBeCloseTo(91, 3)
+		expect((b.x - end.x) * 400).toBeCloseTo(91, 3)
+		expect(Math.abs(start.y * 250)).toBeLessThanOrEqual(23)
+		expect(Math.abs(end.y * 250)).toBeLessThanOrEqual(23)
+		startYs.add(start.y.toFixed(5))
+		endYs.add(end.y.toFixed(5))
+	}
+	expect(startYs.size).toBe(16)
+	expect(endYs.size).toBe(16)
+	writeEdgeBuffer(
+		geometry,
+		[
+			{
+				from: { x: -8, y: 0.2, z: 0 },
+				to: { x: -8, y: -0.2, z: 0 },
+				fromCard,
+				toCard: fromCard,
+				traced: false,
+			},
+		],
+		false,
+		camera,
+		800,
+		500,
+	)
+	expect(geometry.drawRange.count).toBe(36)
+	expect(
+		Array.from(
+			{ length: 36 },
+			(_, index) =>
+				new THREE.Vector3().fromBufferAttribute(attribute, index).project(camera)
+					.y * 250,
+		).some((y) => y > 29),
+	).toBe(true)
+	geometry.dispose()
+})

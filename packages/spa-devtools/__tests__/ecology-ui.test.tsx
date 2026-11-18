@@ -303,7 +303,7 @@ it(`automatically emphasizes selection paths, dims unrelated cards, and clears s
 	expect(document.activeElement).toBe(input)
 })
 
-it(`expands a selected family with Enter from its card, heading and graph without toggling it closed`, async () => {
+it(`toggles a selected family with Enter from its card, heading, list and graph`, async () => {
 	const f = setup()
 	const familyAtoms = f.silo.atomFamily<number, string>({
 		key: `family`,
@@ -318,9 +318,13 @@ it(`expands a selected family with Enter from its card, heading and graph withou
 	await f.select(`family:family`, `Enter`)
 	expect(f.host.textContent).toContain(`Collapse family`)
 	await f.select(`family:family`, `Enter`)
-	expect(f.host.textContent).toContain(`Collapse family`)
-	for (const selector of [`ecology-body > aside h2`, `ecology-scene`]) {
-		await f.click(`Collapse family`)
+	expect(f.host.textContent).toContain(`Expand family`)
+	f.host.querySelector<HTMLDetailsElement>(`ecology-map details`)!.open = true
+	for (const selector of [
+		`ecology-body > aside h2`,
+		`ecology-map ul button`,
+		`ecology-scene`,
+	]) {
 		f.host.querySelector(selector)!.dispatchEvent(
 			new KeyboardEvent(`keydown`, {
 				key: `Enter`,
@@ -330,7 +334,88 @@ it(`expands a selected family with Enter from its card, heading and graph withou
 		)
 		await settle()
 		expect(f.host.textContent).toContain(`Collapse family`)
+		await f.click(`Collapse family`)
 	}
+})
+
+it(`keeps a selected member and its logical focus through repeated family toggles`, async () => {
+	const f = setup()
+	const getter = vi.fn(() => 1)
+	const inputsAtoms = f.silo.atomFamily<number, string>({
+		key: `inputs`,
+		default: getter,
+	})
+	const derivedSelectors = f.silo.selectorFamily<number, string>({
+		key: `derived`,
+		get: () => getter,
+	})
+	for (const family of [inputsAtoms, derivedSelectors])
+		f.silo.store.families.get(family.key)!.create(`one`)
+	f.silo.store.selectorGraph.set(
+		{
+			upstreamSelectorKey: `inputs("one")`,
+			downstreamSelectorKey: `derived("one")`,
+		},
+		{ source: `inputs("one")` },
+	)
+	f.mount()
+	await settle()
+	for (const family of [inputsAtoms, derivedSelectors]) {
+		for (const scope of [
+			`ecology-node-card > button`,
+			`ecology-map ul button`,
+			`ecology-body > aside h2`,
+			`ecology-scene`,
+		]) {
+			await f.select(`family:${family.key}`)
+			await f.click(`Expand family`)
+			const id = `state:${family.key}("one")`
+			await f.select(id)
+			f.host.querySelector<HTMLDetailsElement>(`ecology-map details`)!.open =
+				true
+			const target = scope.includes(`button`)
+				? [...f.host.querySelectorAll<HTMLElement>(scope)].find(
+						(button) => button.dataset[`graphId`] === id,
+					)!
+				: f.host.querySelector<HTMLElement>(scope)!
+			target.focus()
+			for (let cycle = 0; cycle < 4; cycle++) {
+				document.activeElement!.dispatchEvent(
+					new KeyboardEvent(`keydown`, {
+						key: `Enter`,
+						bubbles: true,
+						cancelable: true,
+					}),
+				)
+				await settle()
+				const visibleId = cycle % 2 ? id : `family:${family.key}`
+				expect(
+					f.host.querySelector(`ecology-body > aside h2`)!.textContent,
+				).toBe(`${family.key}("one")`)
+				expect(
+					f.host
+						.querySelector(`ecology-node-card > button[aria-pressed="true"]`)!
+						.getAttribute(`data-graph-id`),
+				).toBe(visibleId)
+				expect(f.host.querySelector(`[data-selection-context]`)).toBeNull()
+				if (scope.includes(`button`)) {
+					expect(document.activeElement!.getAttribute(`data-graph-id`)).toBe(
+						visibleId,
+					)
+					expect(
+						document.activeElement!.closest(
+							scope.startsWith(`ecology-map`)
+								? `ecology-map ul`
+								: `ecology-node-card`,
+						),
+					).not.toBeNull()
+				} else expect(document.activeElement).toBe(target)
+			}
+			await f.select(`family:${family.key}`)
+			await f.click(`Collapse family`)
+		}
+	}
+	expect(getter).not.toHaveBeenCalled()
 })
 
 it(`cleans up hidden, minimized, superseded and disposed jobs and keeps empty flows accessible`, async () => {

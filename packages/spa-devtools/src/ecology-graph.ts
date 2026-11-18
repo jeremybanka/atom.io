@@ -118,6 +118,20 @@ function familyPosition(anchor: GraphPosition, member: number): GraphPosition {
 	}
 }
 
+/** A bounded, deterministic cloud with more members near the center than the fringe. */
+function clusterPosition(anchor: GraphPosition, member: number): GraphPosition {
+	const step = member + 1
+	const angle = step * Math.PI * (3 - Math.sqrt(5))
+	const vertical = ((step * Math.SQRT2) % 1) * 2 - 1
+	const radius = ((step * Math.sqrt(3)) % 1) * 0.45
+	const horizontal = Math.sqrt(1 - vertical * vertical) * radius
+	return {
+		x: anchor.x + Math.cos(angle) * horizontal,
+		y: anchor.y + vertical * radius,
+		z: anchor.z + Math.sin(angle) * horizontal,
+	}
+}
+
 /** Build capture-local ordering and adjacency once, without preparing offscreen cards or geometry. */
 function* indexGraph(snapshot: EcologySnapshot): Generator<void, GraphLayout> {
 	const layout: GraphLayout = {
@@ -257,7 +271,7 @@ function createRegistry(
 		const position = record.group
 			? fan
 				? familyPosition(read(record.group), record.slot)
-				: read(record.group)
+				: clusterPosition(read(record.group), record.slot)
 			: helixPosition(
 					record.slot,
 					kind === `selector` ||
@@ -391,8 +405,8 @@ export function* projectEcology(
 			to = endpoint(edge.selector)
 		if (from && to && painted.has(from) && painted.has(to))
 			edges.push({
-				from,
-				to,
+				from: `state:${edge.dependency}`,
+				to: `state:${edge.selector}`,
 				traced:
 					selection?.edges.has(index) ??
 					(context.trace.has(edge.dependency) &&

@@ -5,6 +5,8 @@ import type { GraphPosition } from "./ecology-graph.ts"
 export interface EcologyLine {
 	from: GraphPosition
 	to: GraphPosition
+	fromCard?: GraphPosition | undefined
+	toCard?: GraphPosition | undefined
 	traced: boolean
 }
 const segments = 16
@@ -37,31 +39,39 @@ export function writeEdgeBuffer(
 	const put = (point: THREE.Vector3) => {
 		attribute.setXYZ(cursor++, point.x, point.y, point.z)
 	}
-	const port = (point: THREE.Vector3, dx: number, dy: number) => {
+	const port = (
+		point: THREE.Vector3,
+		center: THREE.Vector3,
+		dx: number,
+		dy: number,
+	) => {
 		const scale = 1 / Math.max(Math.abs(dx) / 91, Math.abs(dy) / 29)
-		return point
-			.clone()
-			.add(
-				new THREE.Vector3(
-					(dx * scale * 2) / width,
-					(dy * scale * 2) / height,
-					0,
-				),
-			)
-			.unproject(camera)
+		const x = dx
+			? dx * scale
+			: THREE.MathUtils.clamp(((point.x - center.x) * width) / 2, -85, 85)
+		const y = dy
+			? dy * scale
+			: THREE.MathUtils.clamp(((point.y - center.y) * height) / 2, -23, 23)
+		return new THREE.Vector3(
+			center.x + (x * 2) / width,
+			center.y + (y * 2) / height,
+			point.z,
+		).unproject(camera)
 	}
+	const project = (point: GraphPosition) =>
+		new THREE.Vector3(point.x, point.y, point.z)
+			.multiply(worldScale)
+			.project(camera)
 	const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0)
 	const up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1)
 	for (const edge of edges) {
 		if (edge.traced !== traced) continue
-		const a = new THREE.Vector3(edge.from.x, edge.from.y, edge.from.z)
-			.multiply(worldScale)
-			.project(camera)
-		const b = new THREE.Vector3(edge.to.x, edge.to.y, edge.to.z)
-			.multiply(worldScale)
-			.project(camera)
-		let dx = ((b.x - a.x) * width) / 2,
-			dy = ((b.y - a.y) * height) / 2
+		const a = project(edge.from),
+			b = project(edge.to)
+		const fromCard = edge.fromCard ? project(edge.fromCard) : a
+		const toCard = edge.toCard ? project(edge.toCard) : b
+		let dx = ((toCard.x - fromCard.x) * width) / 2,
+			dy = ((toCard.y - fromCard.y) * height) / 2
 		const loop = Math.hypot(dx, dy) < 1
 		if (loop) {
 			dx = 150
@@ -70,8 +80,8 @@ export function writeEdgeBuffer(
 		const horizontal = Math.abs(dx) >= Math.abs(dy)
 		if (horizontal) dy = 0
 		else dx = 0
-		const start = port(a, dx, dy),
-			end = port(b, -dx, -dy)
+		const start = port(a, fromCard, dx, dy),
+			end = port(b, toCard, -dx, -dy)
 		const direction = right
 			.clone()
 			.multiplyScalar(dx)

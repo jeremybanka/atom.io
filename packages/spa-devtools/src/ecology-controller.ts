@@ -1,7 +1,7 @@
 import type { RootStore } from "atom.io/internal"
 
 import { captureEcologySnapshot, traceEcologyRoots } from "./ecology.ts"
-import type { GraphContext, GraphModel } from "./ecology-graph.ts"
+import type { GraphContext, GraphItem, GraphModel } from "./ecology-graph.ts"
 import { projectEcology, scheduleGraph } from "./ecology-graph.ts"
 import { indexEcologySearch } from "./ecology-search.ts"
 import type { EcologyPresentation } from "./EcologyView.tsx"
@@ -152,12 +152,28 @@ export function createEcologyController(
 		liveKey = undefined
 		update({ liveKey: undefined })
 	}
+	const familyKey = (item: GraphItem | undefined): string | undefined => {
+		const key =
+			item?.kind === `family`
+				? item.key
+				: item && `family` in item.source
+					? item.source.family?.key
+					: undefined
+		return key && model?.all.has(`family:${key}`) ? key : undefined
+	}
+	const visibleId = (id: string | null | undefined): string | undefined => {
+		if (!id) return undefined
+		const family = familyKey(model?.all.get(id))
+		return family && !context.expanded.has(family) ? `family:${family}` : id
+	}
 	const passive = () => {
+		const selectedCard = visibleId(context.selected)
 		update({
 			selected: context.selected ? model?.all.get(context.selected) : undefined,
+			selectedCard,
 			selectionOutside:
 				Boolean(context.selected) &&
-				!model?.items.some((item) => item.id === context.selected),
+				!model?.items.some((item) => item.id === selectedCard),
 			traceStatus: context.traceStatus,
 			expanded: new Set(context.expanded),
 			traced: model?.selection?.nodes ?? context.trace,
@@ -193,6 +209,7 @@ export function createEcologyController(
 		const hadFocus = host.contains(focused)
 		const focusId = focused.getAttribute(`data-graph-id`),
 			focusAction = focused.getAttribute(`data-action`)
+		const focusInList = list.contains(focused)
 		model = value
 		jobs++
 		host.dataset[`jobs`] = String(jobs)
@@ -213,11 +230,19 @@ export function createEcologyController(
 		// Retain bounded slots within this capture; SPA owns their nodes and hidden state.
 		cards = value.items.concat(cards.slice(value.items.length))
 		const edges = value.edges.map<EcologyPresentation[`edges`][number]>(
-			(edge) => ({
-				from: value.all.get(edge.from)!,
-				to: value.all.get(edge.to)!,
-				traced: edge.traced,
-			}),
+			(edge) => {
+				const from = value.all.get(edge.from)!,
+					to = value.all.get(edge.to)!
+				const fromCard = visibleId(from.id)!,
+					toCard = visibleId(to.id)!
+				return {
+					from,
+					to,
+					fromCard: fromCard !== from.id ? value.all.get(fromCard) : undefined,
+					toCard: toCard !== to.id ? value.all.get(toCard) : undefined,
+					traced: edge.traced,
+				}
+			},
 		)
 		host.dataset[`retainedCards`] = String(cards.length)
 		update({
@@ -237,6 +262,14 @@ export function createEcologyController(
 		if (liveKey && definition(liveKey) !== liveDefinition) closeLive()
 		passive()
 		commitPaint = () => {
+			const selectedFamily = familyKey(
+				context.selected ? value.all.get(context.selected) : undefined,
+			)
+			const logicalFocusId =
+				focusId === context.selected ||
+				(selectedFamily && focusId === `family:${selectedFamily}`)
+					? visibleId(context.selected)
+					: visibleId(focusId)
 			if (reveal) {
 				camera(`focus`, reveal)
 				const target = [
@@ -255,17 +288,18 @@ export function createEcologyController(
 				(focusId || focusAction) &&
 				(!focused.isConnected ||
 					document.activeElement !== focused ||
-					focused.getAttribute(`data-graph-id`) !== focusId)
+					focused.getAttribute(`data-graph-id`) !== focusId ||
+					(focusId && logicalFocusId !== focusId))
 			) {
 				const target = [
-					...host.querySelectorAll<HTMLElement>(
+					...(focusInList ? list : host).querySelectorAll<HTMLElement>(
 						`[data-graph-id], [data-action]`,
 					),
 				].find(
 					(candidate) =>
 						candidate.tagName === focused.tagName &&
 						(focusId
-							? candidate.dataset[`graphId`] === focusId
+							? candidate.dataset[`graphId`] === logicalFocusId
 							: candidate.dataset[`action`] === focusAction),
 				)
 				if (target) target.focus()
@@ -414,10 +448,10 @@ export function createEcologyController(
 			project()
 			return
 		}
-		if (name === `expand` && selected?.kind === `family`) {
-			if (context.expanded.has(selected.key))
-				context.expanded.delete(selected.key)
-			else context.expanded.add(selected.key)
+		const family = familyKey(selected)
+		if (name === `expand` && family) {
+			if (context.expanded.has(family)) context.expanded.delete(family)
+			else context.expanded.add(family)
 			project()
 			return
 		}
@@ -543,13 +577,14 @@ export function createEcologyController(
 			!event.metaKey &&
 			!event.altKey &&
 			!event.shiftKey &&
-			selected?.kind === `family` &&
+			familyKey(selected) &&
 			(id === context.selected ||
+				id === visibleId(context.selected) ||
 				target === inspector.querySelector(`h2`) ||
 				target.matches(`ecology-scene`))
 		) {
 			event.preventDefault()
-			if (!context.expanded.has(selected.key)) action(`expand`)
+			action(`expand`)
 			return
 		}
 		if (id && (event.key === `Enter` || event.key === ` `)) {

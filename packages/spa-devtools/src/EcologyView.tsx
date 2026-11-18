@@ -22,6 +22,7 @@ export interface EcologyPresentation {
 	cards: GraphModel[`items`]
 	edges: EcologyLine[]
 	selected?: GraphModel[`items`][number] | undefined
+	selectedCard?: string | undefined
 	selectionOutside: boolean
 	query: string
 	filtered: boolean
@@ -56,6 +57,7 @@ export function EcologyView(props: {
 		cards: [],
 		edges: [],
 		selected: undefined,
+		selectedCard: undefined,
 		liveKey: undefined,
 		query: props.context.query,
 		filtered: false,
@@ -159,7 +161,7 @@ export function EcologyView(props: {
 						visible={cards.visible}
 						items={state().cards.slice(0, state().visibleCards)}
 						edges={state().edges}
-						selected={selected()?.id}
+						selected={state().selectedCard}
 						traced={state().traced}
 						focused={state().focused}
 						workspace={state().workspace}
@@ -181,7 +183,7 @@ export function EcologyView(props: {
 											data-graph-id={
 												cards.visible(index) ? item().id : undefined
 											}
-											aria-pressed={selected()?.id === item().id}
+											aria-pressed={state().selectedCard === item().id}
 										>{`${item().kind === `selector` ? `◇` : item().kind === `family` ? `▸` : `□`} ${item().label} · ${item().detail}`}</button>
 									</li>
 								)

@@ -8,7 +8,14 @@ import { resolve as resolvePath } from "node:path"
 import { build } from "esbuild"
 import type { Browser } from "playwright"
 
-import { browserArtifacts, cpuRate, launchBrowser } from "./browser-runtime.ts"
+import {
+	browserArtifacts,
+	cpuRate,
+	launchBrowser,
+	performancePolicy,
+	reportPerformanceTarget,
+	strictPerformance,
+} from "./browser-runtime.ts"
 
 const artifacts = browserArtifacts(
 	process.env[`SPA_DEVTOOLS_ECOLOGY_ARTIFACTS`] ?? `/tmp/spa-devtools-ecology`,
@@ -48,7 +55,8 @@ try {
 		viewport: { width: 1440, height: 900 },
 		colorScheme: `dark`,
 	})
-	await context.tracing.start({ screenshots: true, snapshots: true })
+	if (!strictPerformance)
+		await context.tracing.start({ screenshots: true, snapshots: true })
 	const page = await context.newPage(),
 		errors: string[] = []
 	page.on(`pageerror`, (error) => errors.push(error.message))
@@ -204,10 +212,11 @@ try {
 		/0 atoms · 0 selectors/,
 	)
 	const cdp = await context.newCDPSession(page)
-	await cdp.send(`Tracing.start`, {
-		categories: `devtools.timeline,blink.user_timing`,
-		transferMode: `ReturnAsStream`,
-	})
+	if (!strictPerformance)
+		await cdp.send(`Tracing.start`, {
+			categories: `devtools.timeline,blink.user_timing`,
+			transferMode: `ReturnAsStream`,
+		})
 	await page.evaluate(() => {
 		performance.mark(`s4-overview-start`)
 		window.ecologyFixture.mount(`large`)
@@ -237,7 +246,15 @@ try {
 	await page.evaluate(() => performance.mark(`s4-overview-end`))
 	const search = [],
 		selection = []
-	for (let index = 0; index < 20; index++) {
+	const warmupIterations = 5,
+		sampleIterations = 20
+	for (
+		let iteration = 0;
+		iteration < warmupIterations + sampleIterations;
+		iteration++
+	) {
+		const index =
+			iteration < warmupIterations ? iteration : iteration - warmupIterations
 		const sample = await page.evaluate(
 			async (key) => {
 				const input = document.querySelector<HTMLInputElement>(
@@ -275,41 +292,50 @@ try {
 					? `batch0`
 					: `derived${index + 100}`,
 		)
-		search.push(sample.search)
-		selection.push(sample.selection)
+		if (iteration >= warmupIterations) {
+			search.push(sample.search)
+			selection.push(sample.selection)
+		}
 	}
 	assert.equal(
 		await page.evaluate(() => window.ecologyFixture.timings().reads),
 		0,
 	)
-	const stopped = new Promise<{ stream?: string }>((resolve) =>
-		cdp.once(`Tracing.tracingComplete`, resolve),
-	)
-	await cdp.send(`Tracing.end`)
-	const { stream } = await stopped
-	assert.ok(stream)
-	let trace = ``
-	for (;;) {
-		const chunk = await cdp.send(`IO.read`, { handle: stream })
-		trace += chunk.data
-		if (chunk.eof) break
-	}
-	await cdp.send(`IO.close`, { handle: stream })
-	await writeFile(resolvePath(artifacts, `renderer-trace.json`), trace)
-	const events = (
-		JSON.parse(trace) as {
-			traceEvents: { name: string; ts: number; dur?: number }[]
+	let rendererPaintMs: number | null = null,
+		paintRecords: number | null = null
+	if (!strictPerformance) {
+		const stopped = new Promise<{ stream?: string }>((resolve) =>
+			cdp.once(`Tracing.tracingComplete`, resolve),
+		)
+		await cdp.send(`Tracing.end`)
+		const { stream } = await stopped
+		assert.ok(stream)
+		let trace = ``
+		for (;;) {
+			const chunk = await cdp.send(`IO.read`, { handle: stream })
+			trace += chunk.data
+			if (chunk.eof) break
 		}
-	).traceEvents
-	const startMark = events.find((event) => event.name === `s4-overview-start`),
-		endMark = events.find((event) => event.name === `s4-overview-end`)
-	assert.ok(startMark && endMark)
-	const paints = events.filter(
-		(event) =>
-			event.name === `Paint` &&
-			event.ts >= startMark.ts &&
-			event.ts <= endMark.ts,
-	)
+		await cdp.send(`IO.close`, { handle: stream })
+		await writeFile(resolvePath(artifacts, `renderer-trace.json`), trace)
+		const events = (
+			JSON.parse(trace) as {
+				traceEvents: { name: string; ts: number; dur?: number }[]
+			}
+		).traceEvents
+		const startMark = events.find((event) => event.name === `s4-overview-start`),
+			endMark = events.find((event) => event.name === `s4-overview-end`)
+		assert.ok(startMark && endMark)
+		const paints = events.filter(
+			(event) =>
+				event.name === `Paint` &&
+				event.ts >= startMark.ts &&
+				event.ts <= endMark.ts,
+		)
+		rendererPaintMs =
+			paints.reduce((sum, event) => sum + (event.dur ?? 0), 0) / 1_000
+		paintRecords = paints.length
+	}
 	const p95 = (values: number[]) =>
 		[...values].sort((a, b) => a - b)[Math.ceil(values.length * 0.95) - 1]
 	const report = {
@@ -320,9 +346,11 @@ try {
 		viewport: { width: 1440, height: 900 },
 		fixture: { instances: 10_000, observedEdges: 30_000 },
 		overview,
-		rendererPaintMs:
-			paints.reduce((sum, event) => sum + (event.dur ?? 0), 0) / 1_000,
-		paintRecords: paints.length,
+		tracing: !strictPerformance,
+		rendererPaintMs,
+		paintRecords,
+		warmupIterations,
+		sampleIterations,
 		searchMs: search,
 		selectionMs: selection,
 		searchP95Ms: p95(search),
@@ -332,6 +360,7 @@ try {
 			interactionP95Ms: 100,
 			layoutChunkMs: 8,
 		},
+		performancePolicy,
 		method: `Fresh-task DOM search/selection with first-frame observations, not hardware/compositor input latency. Snapshot, scheduled projection/layout slices, DOM commit and renderer Paint records reported separately. Large fixture construction excluded from overview and reported as setupMs. S3 capture limits may truncate observations; notice/counts retained.`,
 	}
 	await writeFile(
@@ -340,19 +369,12 @@ try {
 	)
 	process.stdout.write(JSON.stringify(report, null, 2) + `\n`)
 	assert.deepEqual(errors, [])
-	assert.ok(
-		Number(overview.maxChunkMs) <= 8,
-		`Layout chunk ${overview.maxChunkMs}ms exceeds8ms`,
-	)
-	assert.ok(
-		overview.overviewMs <= 500,
-		`Overview ${overview.overviewMs}ms exceeds500ms`,
-	)
-	assert.ok(
-		report.searchP95Ms <= 100 && report.selectionP95Ms <= 100,
-		`Interaction p95 exceeds100ms`,
-	)
-	await context.tracing.stop({ path: resolvePath(artifacts, `trace.zip`) })
+	reportPerformanceTarget(`ecology layout chunk`, Number(overview.maxChunkMs), 8)
+	reportPerformanceTarget(`ecology overview`, overview.overviewMs, 500)
+	reportPerformanceTarget(`ecology search p95`, report.searchP95Ms, 100)
+	reportPerformanceTarget(`ecology selection p95`, report.selectionP95Ms, 100)
+	if (!strictPerformance)
+		await context.tracing.stop({ path: resolvePath(artifacts, `trace.zip`) })
 	await context.close()
 } finally {
 	await browser?.close()

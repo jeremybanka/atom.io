@@ -53,6 +53,7 @@
 		"lint:unused": "knip",
 		"lint:unused:production": "knip --production",
 		"test:browser": "turbo run test:browser",
+		"test:browser:performance": "turbo run test:browser:performance --filter=@atom.io/spa-devtools",
 		"test:browser:install": "turbo run test:browser:install"
 	},
 	"devDependencies": {

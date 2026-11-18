@@ -1,5 +1,16 @@
 import type * as THREE from "three"
-import { vi } from "vitest"
+import { beforeEach, vi } from "vitest"
+
+// DOM unit suites inspect settled state; real motion and interruption run in browsers.
+const match = window.matchMedia.bind(window)
+beforeEach(() => {
+	vi.spyOn(window, `matchMedia`).mockImplementation((query) => {
+		const media = match(query)
+		if (query === `(prefers-reduced-motion: reduce)`)
+			Object.defineProperty(media, `matches`, { value: true })
+		return media
+	})
+})
 
 // Exercise real cameras, scene resources, labels and controls without requiring a GPU in DOM tests.
 vi.mock(`three`, async (actual) => ({

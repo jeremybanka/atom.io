@@ -118,7 +118,7 @@ app-shell.class {
 						color: var(--brand-color);
 					}
 
-					/* @lasertag-expect-error: this is the dz2 orbital's island wrapper */
+					/* @lasertag-expect-error: this is the brand mark's island wrapper */
 					> astro-island {
 						display: inline-flex;
 						width: 45px;

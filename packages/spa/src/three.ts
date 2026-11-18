@@ -47,6 +47,7 @@ const constructors = {
 	LineBasicMaterial: THREE.LineBasicMaterial,
 	PerspectiveCamera: THREE.PerspectiveCamera,
 	AmbientLight: THREE.AmbientLight,
+	PointLight: THREE.PointLight,
 	DirectionalLight: THREE.DirectionalLight,
 	BoxGeometry: THREE.BoxGeometry,
 	SphereGeometry: THREE.SphereGeometry,
@@ -456,6 +457,14 @@ export const DirectionalLight = sceneComponent<
 		intensity?: number
 	}
 >(`DirectionalLight`)
+export const PointLight = sceneComponent<
+	ObjectProps<THREE.PointLight> & {
+		color?: THREE.ColorRepresentation
+		intensity?: number
+		distance?: number
+		decay?: number
+	}
+>(`PointLight`)
 export const BoxGeometry = sceneComponent<{
 	args?: ConstructorParameters<typeof THREE.BoxGeometry>
 	ref?: (node: THREE.BoxGeometry | null) => void

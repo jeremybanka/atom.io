@@ -56,7 +56,7 @@ try {
 	const context = await browser.newContext({
 		viewport: { width: 1440, height: 900 },
 	})
-	await context.tracing.start({ screenshots: true, snapshots: true })
+	await context.tracing.start({ screenshots: false, snapshots: true })
 	const page = await context.newPage()
 	const errors: string[] = []
 	page.on(`pageerror`, (error) => errors.push(error.message))

@@ -3,6 +3,7 @@ import "./globals.css"
 
 import type { SpaElement } from "@atom.io/spa"
 import { onCleanup, onCommit, onMount, useGetter } from "@atom.io/spa"
+import { BrandMark } from "@atom.io/spa/brand"
 import type { RootStore } from "atom.io/internal"
 
 import css from "./DebuggerPanel.module.css"
@@ -107,7 +108,7 @@ export function DebuggerPanel(props: {
 					⠿
 				</button>
 				<h1>
-					<brand-mark aria-hidden="true" />
+					{getOpen() && !getHidden() && <BrandMark />}
 					atom.io
 				</h1>
 				{getOpen() ? (
@@ -156,7 +157,7 @@ export function DebuggerPanel(props: {
 						setOpen((value) => !value)
 					}}
 				>
-					{getOpen() ? `−` : `🔍`}
+					{getOpen() ? `−` : !getHidden() && <BrandMark />}
 				</button>
 				<button
 					type="button"

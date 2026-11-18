@@ -48,8 +48,7 @@ export function createEcologyController(
 	input.value = context.query
 	const list = host.querySelector<HTMLElement>(`ecology-editor`)!
 	const compact = () => panel.clientWidth > 0 && panel.clientWidth <= 650
-	let cards: EcologyPresentation[`cards`] = [],
-		generation = 0
+	let generation = 0
 	let model: GraphModel | undefined,
 		cancel = () => {},
 		jobs = 0
@@ -202,8 +201,6 @@ export function createEcologyController(
 			snapshot.truncated.relations
 				? `Capture truncated: full store totals unknown. Search covers captured metadata only. Captured metadata is a bounded prefix.`
 				: `Observed snapshot ${context.capturedAt}. Paint cap: 500 nodes / 1,000 edges. Search to narrow; expand families for members.`
-		// Retain bounded slots within this capture; SPA owns their nodes and hidden state.
-		cards = value.items.concat(cards.slice(value.items.length))
 		const rowIds = new Set(value.rows.map((item) => item.id))
 		const pinnedKey = session.pinned()?.dataset[`stateKey`] ?? generatedKey
 		const nextRows = [...value.rows]
@@ -231,12 +228,12 @@ export function createEcologyController(
 				}
 			},
 		)
-		host.dataset[`retainedCards`] = String(cards.length)
+		host.dataset[`retainedCards`] = String(value.items.length)
+		// Settle the toolbar in the graph commit instead of scheduling another layout pass.
 		update({
-			cardSlots: cards.length,
+			busy: false,
 			cylinderHeight: value.cylinderHeight,
-			visibleCards: value.items.length,
-			cards,
+			cards: value.items,
 			rows: nextRows,
 			rowCount: value.rowCount,
 			rowIds,
@@ -302,7 +299,6 @@ export function createEcologyController(
 				returnToSearch()
 			host.dataset[`commitMs`] = String(performance.now() - start)
 			busy = false
-			update({ busy: false })
 			host.dataset[`ready`] = `true`
 		}
 	}
@@ -380,7 +376,6 @@ export function createEcologyController(
 			return
 		}
 		const start = performance.now()
-		cards = []
 		generation++
 		context.snapshot = captureEcologySnapshot(store, {
 			maxNodes: 10_000,
@@ -624,7 +619,6 @@ export function createEcologyController(
 			cancelIndex()
 			cancelMatch()
 			wait()
-			cards = []
 			visibility.disconnect()
 			session.dispose()
 			resize.disconnect()

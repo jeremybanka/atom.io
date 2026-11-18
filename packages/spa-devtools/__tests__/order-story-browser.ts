@@ -107,7 +107,8 @@ try {
 		await mkdir(activeProfile, { recursive: true })
 		const context = await browser.newContext({ viewport })
 		activeContext = context
-		await context.tracing.start({ screenshots: true, snapshots: true })
+		// Explicit PNGs cover paint states without recording every animated logo frame.
+		await context.tracing.start({ screenshots: false, snapshots: true })
 		const page = await context.newPage()
 		const errors: string[] = []
 		const assetFailures: { url: string; status: number }[] = []

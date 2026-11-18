@@ -24,7 +24,7 @@ try {
 	)
 	await writeFile(
 		join(fixture, `app.tsx`),
-		`import { render } from '@atom.io/spa'; const app = <custom-panel/>; void render; void app;`,
+		`import { render } from '@atom.io/spa'; import { BrandMark } from '@atom.io/spa/brand'; const app = <BrandMark size={32}/>; void render; void app;`,
 	)
 	await writeFile(
 		join(fixture, `tsconfig.json`),
@@ -63,10 +63,17 @@ try {
 			...conditions,
 			`--input-type=module`,
 			`-e`,
-			`await import('@atom.io/spa'); await import('@atom.io/spa/jsx-runtime'); await import('@atom.io/spa/server');`,
+			`await import('@atom.io/spa'); const {jsx}=await import('@atom.io/spa/jsx-runtime'); const {renderToString}=await import('@atom.io/spa/server'); const {BrandMark}=await import('@atom.io/spa/brand'); if(!renderToString(()=>jsx(BrandMark,{})).includes('brand-mark')) throw new Error('Missing static brand');`,
 		])
 
-	for (const entry of [`index`, `konva`, `three`, `motion`, `floating`]) {
+	for (const entry of [
+		`index`,
+		`konva`,
+		`three`,
+		`motion`,
+		`floating`,
+		`brand`,
+	]) {
 		const output = await build({
 			stdin: {
 				contents: `export * from './dist/${entry}.js'`,
@@ -86,7 +93,9 @@ try {
 					? [`@floating-ui/dom`, `@floating-ui/core`, `@floating-ui/utils`]
 					: entry === `index`
 						? []
-						: [entry]
+						: entry === `brand`
+							? [`three`]
+							: [entry]
 		const forbidden = [
 			`motion`,
 			`framer-motion`,

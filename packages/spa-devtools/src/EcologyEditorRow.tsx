@@ -1,9 +1,10 @@
 /** @jsxImportSource @atom.io/spa */
-import type { SpaElement } from "@atom.io/spa"
+import { onCleanup, type SpaElement } from "@atom.io/spa"
 import { deposit } from "atom.io/internal"
 
 import type { EcologyNode } from "./ecology.ts"
 import type { GraphItem } from "./ecology-graph.ts"
+import { EDITOR_SPRING } from "./ecology-motion.ts"
 import css from "./EcologyEditorRow.module.css"
 import { EcologyNodeName } from "./EcologyNodeName.tsx"
 import type { EcologyPresentation } from "./EcologyView.tsx"
@@ -12,6 +13,8 @@ import type { Tools } from "./store.ts"
 
 export type EcologyEditorSection = `selected` | `related` | `rest`
 export function EcologyEditorRow(props: {
+	layoutGroup: string
+	release(id: string): void
 	tools: Tools
 	item: GraphItem
 	section: EcologyEditorSection
@@ -20,6 +23,10 @@ export function EcologyEditorRow(props: {
 	state: EcologyPresentation
 	onGenerate(key: string): void
 }): SpaElement {
+	const rowId = props.item.id
+	onCleanup(() => {
+		props.release(rowId)
+	})
 	const definitions = new WeakMap<object, number>()
 	let serial = 0
 	let generated = 0
@@ -45,6 +52,10 @@ export function EcologyEditorRow(props: {
 		<ecology-editor-row
 			class={css.class}
 			hidden={props.hidden}
+			motion:layout="position"
+			motion:layoutId={props.item.id}
+			motion:layoutGroup={props.layoutGroup}
+			motion:layoutTransition={EDITOR_SPRING}
 			data-section={props.section}
 			data-selection-anchor={props.state.selected?.id === props.item.id}
 			data-row-id={props.item.id}

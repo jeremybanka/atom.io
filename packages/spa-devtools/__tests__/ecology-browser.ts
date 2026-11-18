@@ -64,7 +64,7 @@ try {
 		hasTouch: true,
 	})
 	if (!strictPerformance)
-		await context.tracing.start({ screenshots: true, snapshots: true })
+		await context.tracing.start({ screenshots: false, snapshots: true })
 	const page = await context.newPage(),
 		errors: string[] = []
 	page.on(`pageerror`, (error) => {
@@ -81,7 +81,7 @@ try {
 	}
 	const choose = async (id: string) => {
 		await page
-			.locator(`ecology-node-card > button[data-graph-id]`)
+			.locator(`ecology-node-card:not([inert]) > button[data-graph-id]`)
 			.evaluateAll((nodes, target) => {
 				const node = nodes.find((item) => item.dataset[`graphId`] === target)
 				if (!node) throw new Error(`Missing node`)
@@ -100,13 +100,13 @@ try {
 	// enable stroke hit testing and place an unrelated card under that point.
 	for (const selected of [`price`, `lazy`]) {
 		await choose(`state:${selected}`)
-		await page.waitForSelector(`ecology-node-card > svg > path`)
+		await page.waitForSelector(`ecology-node-card:not([inert]) > svg > path`)
 		const ordering = await page.evaluate(() => {
 			const scene = document.querySelector(`ecology-scene`)!,
 				bounds = scene.getBoundingClientRect()
 			const card = (key: string) =>
 				scene.querySelector<HTMLElement>(
-					`ecology-node-card:has(> button[data-graph-id="state:${key}"])`,
+					`ecology-node-card:not([inert]):has(> button[data-graph-id="state:${key}"])`,
 				)!
 			const source = card(`price`),
 				other = card(`lazy`),
@@ -136,7 +136,7 @@ try {
 			path.style.strokeWidth = `8px`
 			const top = document
 				.elementFromPoint(point.x, point.y)!
-				.closest(`ecology-node-card`)!
+				.closest(`ecology-node-card:not([inert])`)!
 			const result = {
 				front: top.querySelector<HTMLElement>(`button`)!.dataset[`graphId`],
 				sourceZ: Number(source.style.zIndex),
@@ -163,6 +163,131 @@ try {
 	await page.locator(`ecology-scene`).focus()
 	await page.keyboard.press(`Escape`)
 	await ready()
+	await choose(`family:items`)
+	const movement = await page.evaluate(async () => {
+		const scene = document.querySelector<HTMLElement>(`ecology-scene`)!
+		const member = () =>
+			scene.querySelector<HTMLElement>(
+				`ecology-node-card:not([inert]):has(> button[data-graph-id='state:items("a")'])`,
+			)!
+		const frame = () => new Promise(requestAnimationFrame)
+		const settled = async () => {
+			while (
+				document.querySelector<HTMLElement>(`ecology-view`)!.dataset[`ready`] !==
+				`true`
+			)
+				await new Promise((resolve) => setTimeout(resolve, 0))
+		}
+		const toggle = async () => {
+			scene.dispatchEvent(
+				new KeyboardEvent(`keydown`, {
+					key: `Enter`,
+					bubbles: true,
+					cancelable: true,
+				}),
+			)
+			await settled()
+		}
+		await toggle()
+		await frame()
+		const node = member(),
+			entrance = Number(getComputedStyle(node).opacity)
+		const start = node.style.transform
+		const arrow = node.querySelector<SVGPathElement>(`path`)!
+		const initialPath = arrow.getAttribute(`d`)
+		for (let index = 0; index < 4; index++) await frame()
+		const moving =
+			node.style.transform !== start && arrow.getAttribute(`d`) !== initialPath
+		await toggle()
+		const retained = node.isConnected && node.inert
+		for (let index = 0; index < 2; index++) await frame()
+		const fading = Number(getComputedStyle(node).opacity) < 1
+		await toggle()
+		const revived = member() === node && !node.inert
+		for (let index = 0; index < 45; index++) await frame()
+		return {
+			entrance,
+			moving,
+			retained,
+			fading,
+			revived,
+			opacity: Number(getComputedStyle(node).opacity),
+			target: node.style.transform,
+		}
+	})
+	assert.ok(
+		movement.entrance >= 0 && movement.entrance < 1,
+		`Members must fade in`,
+	)
+	assert.equal(
+		movement.moving,
+		true,
+		`World positions and outgoing arrows must move together`,
+	)
+	assert.equal(
+		movement.retained,
+		true,
+		`Collapsing members must remain inert while exiting`,
+	)
+	assert.equal(movement.fading, true)
+	assert.equal(
+		movement.revived,
+		true,
+		`Rapid reversal must revive the same member card`,
+	)
+	assert.equal(movement.opacity, 1)
+	await page.emulateMedia({ reducedMotion: `reduce` })
+	await sceneToggle()
+	await sceneToggle()
+	await page.evaluate(() => new Promise(requestAnimationFrame))
+	const reduced = await page
+		.locator(
+			`ecology-node-card:not([inert]):has(> button[data-graph-id='state:items("a")'])`,
+		)
+		.evaluate((node) => ({
+			opacity: Number(getComputedStyle(node).opacity),
+			position: (node as HTMLElement).style.transform,
+		}))
+	assert.equal(reduced.opacity, 1)
+	assert.equal(reduced.position, movement.target)
+	await sceneToggle()
+	await page.locator(`ecology-scene`).focus()
+	await page.keyboard.press(`Escape`)
+	await ready()
+	await page.emulateMedia({ reducedMotion: `no-preference` })
+	async function sceneToggle() {
+		await page.locator(`ecology-scene`).focus()
+		await page.keyboard.press(`Enter`)
+		await ready()
+	}
+	const row = page.locator(`ecology-editor-row[data-row-id="state:price"]`),
+		originalRow = await row.elementHandle()
+	await choose(`state:price`)
+	const rowMotion = await row.evaluate(async (node) => {
+		const samples: string[] = []
+		for (let index = 0; index < 40; index++) {
+			samples.push((node as HTMLElement).style.transform)
+			await new Promise(requestAnimationFrame)
+		}
+		return {
+			samples,
+			attributes: node
+				.getAttributeNames()
+				.filter((name) => name.startsWith(`motion:`)),
+		}
+	})
+	assert.equal(
+		await row.evaluate((node, original) => node === original, originalRow),
+		true,
+	)
+	assert.ok(
+		new Set(rowMotion.samples).size > 1,
+		`Editor rows must project between sections`,
+	)
+	assert.deepEqual(rowMotion.attributes, [])
+	await page.locator(`ecology-scene`).focus()
+	await page.keyboard.press(`Escape`)
+	await ready()
 
 	const showDetails = async () => {
 		const details = page.locator(
@@ -173,7 +298,7 @@ try {
 	}
 	const palette = async () => {
 		const cards = await page
-			.locator(`ecology-node-card:not([hidden])`)
+			.locator(`ecology-node-card:not([inert]):not([hidden])`)
 			.evaluateAll((nodes) =>
 				nodes.map((node) => ({
 					id: node.querySelector<HTMLElement>(`button`)!.dataset[`graphId`],
@@ -267,7 +392,7 @@ try {
 		panned,
 	)
 	const transforms = await page
-		.locator(`ecology-node-card`)
+		.locator(`ecology-node-card:not([inert])`)
 		.evaluateAll((cards) =>
 			cards
 				.filter((card) => (card as HTMLElement).style.display !== `none`)
@@ -358,7 +483,7 @@ try {
 		)
 		assert.equal(
 			await page
-				.locator(`ecology-node-card > button[aria-pressed="true"]`)
+				.locator(`ecology-node-card:not([inert]) > button[aria-pressed="true"]`)
 				.getAttribute(`data-graph-id`),
 			expected,
 		)
@@ -391,7 +516,7 @@ try {
 	await ready()
 	assert.equal(await scene.getAttribute(`data-family-connections`), `1`)
 	const familyMember = page.locator(
-		`ecology-node-card > button[data-graph-id='state:items("a")']`,
+		`ecology-node-card:not([inert]) > button[data-graph-id='state:items("a")']`,
 	)
 	assert.equal(await familyMember.locator(`strong`).innerText(), `"a"`)
 	assert.equal(
@@ -458,7 +583,7 @@ try {
 	await page.waitForFunction(() => {
 		const cards = [
 			...document.querySelectorAll<HTMLElement>(
-				`ecology-node-card:not([hidden])`,
+				`ecology-node-card:not([inert]):not([hidden])`,
 			),
 		]
 		const active = cards.filter((node) => node.dataset[`traced`] === `true`)
@@ -475,7 +600,7 @@ try {
 	})
 	assert.deepEqual(
 		await page
-			.locator(`ecology-node-card[data-traced="true"] > button`)
+			.locator(`ecology-node-card:not([inert])[data-traced="true"] > button`)
 			.evaluateAll((nodes) =>
 				nodes.map((node) => (node as HTMLElement).dataset[`graphId`]).sort(),
 			),
@@ -484,7 +609,9 @@ try {
 	await palette()
 	assert.equal(
 		await page
-			.locator(`ecology-node-card:has([data-graph-id="state:lazy"])`)
+			.locator(
+				`ecology-node-card:not([inert]):has([data-graph-id="state:lazy"])`,
+			)
 			.evaluate(
 				(node) => getComputedStyle(node.querySelector(`button`)!).opacity,
 			),
@@ -502,13 +629,17 @@ try {
 		0,
 	)
 	assert.equal(
-		await page.locator(`ecology-node-card[data-dimmed="true"]`).count(),
+		await page
+			.locator(`ecology-node-card:not([inert])[data-dimmed="true"]`)
+			.count(),
 		0,
 	)
 	await choose(`state:price`)
 	assert.equal(
 		await page
-			.locator(`ecology-node-card:has([data-graph-id="state:total"])`)
+			.locator(
+				`ecology-node-card:not([inert]):has([data-graph-id="state:total"])`,
+			)
 			.getAttribute(`data-traced`),
 		`true`,
 	)
@@ -521,11 +652,13 @@ try {
 	assert.match(await page.locator(`ecology-editor`).innerText(), /price/)
 	await page.screenshot({ path: resolvePath(artifacts, `small-traced.png`) })
 	const positions = await page
-		.locator(`ecology-node-card > button[data-graph-id]`)
+		.locator(`ecology-node-card:not([inert]) > button[data-graph-id]`)
 		.evaluateAll((nodes) =>
 			nodes.map((node) => [
 				node.dataset[`graphId`],
-				node.closest(`ecology-node-card`)!.getAttribute(`data-position`),
+				node
+					.closest(`ecology-node-card:not([inert])`)!
+					.getAttribute(`data-position`),
 			]),
 		)
 	await page.evaluate(() => {
@@ -535,11 +668,13 @@ try {
 	await ready()
 	assert.deepEqual(
 		await page
-			.locator(`ecology-node-card > button[data-graph-id]`)
+			.locator(`ecology-node-card:not([inert]) > button[data-graph-id]`)
 			.evaluateAll((nodes) =>
 				nodes.map((node) => [
 					node.dataset[`graphId`],
-					node.closest(`ecology-node-card`)!.getAttribute(`data-position`),
+					node
+						.closest(`ecology-node-card:not([inert])`)!
+						.getAttribute(`data-position`),
 				]),
 			),
 		positions,
@@ -632,7 +767,7 @@ try {
 	const tapTarget = await scene.evaluate((node) => {
 		const sceneBounds = node.getBoundingClientRect()
 		for (const button of node.querySelectorAll<HTMLButtonElement>(
-			`ecology-node-card:not([hidden]) > button[data-graph-id]`,
+			`ecology-node-card:not([inert]):not([hidden]) > button[data-graph-id]`,
 		)) {
 			const rect = button.getBoundingClientRect(),
 				x = rect.x + rect.width / 2,
@@ -874,7 +1009,9 @@ try {
 			.textContent,
 	}))
 	assert.equal(
-		await page.locator(`ecology-node-card > button[data-graph-id]`).count(),
+		await page
+			.locator(`ecology-node-card:not([inert]) > button[data-graph-id]`)
+			.count(),
 		500,
 	)
 	await page.waitForFunction(
@@ -922,7 +1059,7 @@ try {
 				const searched = performance.now()
 				document
 					.querySelector<HTMLElement>(
-						`ecology-node-card:not([data-collapsed="true"]) > button[data-graph-id]`,
+						`ecology-node-card:not([inert]):not([data-collapsed="true"]) > button[data-graph-id]`,
 					)!
 					.dispatchEvent(new MouseEvent(`click`, { bubbles: true }))
 				await new Promise(requestAnimationFrame)

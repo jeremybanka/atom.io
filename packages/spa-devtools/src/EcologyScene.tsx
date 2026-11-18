@@ -20,6 +20,7 @@ import {
 	type ProjectedEdge,
 	writeFamilyBuffer,
 } from "./ecology-lines.ts"
+import { createEcologyMotion } from "./ecology-motion.ts"
 import { EcologyNodeCard } from "./EcologyNodeCard.tsx"
 import css from "./EcologyScene.module.css"
 import { type Tools, useLocal } from "./store.ts"
@@ -35,10 +36,7 @@ export function EcologyScene(props: {
 	tools: Tools
 	context: GraphContext
 	cylinderHeight: number
-	slots: number
 	generation: number
-	card(index: number): GraphItem
-	visible(index: number): boolean
 	items: GraphItem[]
 	edges: EcologyLine[]
 	familyConnections?: readonly FamilyConnection[] | undefined
@@ -110,6 +108,8 @@ export function EcologyScene(props: {
 			}
 		}
 	}
+	const motion = createEcologyMotion(invalidate, window)
+	onCleanup(motion.dispose)
 	const fit = (overview = true) => {
 		if (!props.items.length) return
 		const box = new THREE.Box3().setFromPoints(props.items.map(point))
@@ -242,16 +242,32 @@ export function EcologyScene(props: {
 		if (!dirty) return
 		dirty = false
 		camera.updateMatrixWorld()
+		for (const label of labels.children) {
+			const position = motion.position(label.name)
+			if (position) label.position.set(position.x, position.y, position.z)
+		}
 		renderer!.render(labels, camera)
+		const moving = motion.active
 		const paths = projectEdges(
-			props.edges,
+			moving ? props.edges.map(motion.edge) : props.edges,
 			camera,
 			size().width,
 			size().height,
 			scale,
 		)
 		for (const paint of edgeLayers) paint(paths)
-		writeFamilyBuffer(families, props.familyConnections ?? [], scale)
+		const connections = props.familyConnections ?? []
+		writeFamilyBuffer(
+			families,
+			moving
+				? connections.map((connection) => ({
+						...connection,
+						from: { ...connection.from, ...motion.point(connection.from) },
+						to: { ...connection.to, ...motion.point(connection.to) },
+					}))
+				: connections,
+			scale,
+		)
 		viewport!.dataset[`camera`] = [
 			...camera.position.toArray(),
 			...controls!.target.toArray(),
@@ -263,6 +279,42 @@ export function EcologyScene(props: {
 			aspect: camera.aspect,
 		}
 	}
+	const cards = new Map<string, { item: GraphItem; node: SpaElement }>()
+	const release = (id: string) => {
+		motion.release(id)
+		cards.delete(id)
+	}
+	const renderCards = () => {
+		const items = props.items
+		motion.sync(items, props.context.expanded, props.generation)
+		return items.map((item) => {
+			const previous = cards.get(item.id)
+			if (previous?.item === item) return previous.node
+			const node = (
+				<EcologyNodeCard
+					key={item.id}
+					item={item}
+					motion={motion}
+					release={release}
+					registerEdges={(paint) => {
+						edgeLayers.add(paint)
+						return () => edgeLayers.delete(paint)
+					}}
+					selected={selected(item)}
+					dimmed={dimmed(item)}
+					collapsed={collapsed(item)}
+					traced={highlighted(item)}
+					scene={labels}
+					invalidate={invalidate}
+				/>
+			)
+			Object.freeze(node.props)
+			Object.freeze(node)
+			cards.set(item.id, { item, node })
+			return node
+		})
+	}
+
 	return (
 		<ecology-scene
 			class={css.class}
@@ -277,7 +329,7 @@ export function EcologyScene(props: {
 			data-family-connections={props.familyConnections?.length ?? 0}
 		>
 			{/* Start with the first populated capture; retain the renderer across subsequent empty filters and captures. */}
-			{(props.slots > 0 || controls !== undefined) && !failed() && (
+			{(props.items.length > 0 || controls !== undefined) && !failed() && (
 				<canvas.Canvas
 					camera={camera}
 					width={size().width}
@@ -332,23 +384,7 @@ export function EcologyScene(props: {
 				}}
 				hidden={failed()}
 			>
-				{Array.from({ length: props.slots }, (_, index) => (
-					<EcologyNodeCard
-						key={`${props.generation}:${index}`}
-						item={props.card(index)}
-						registerEdges={(paint) => {
-							edgeLayers.add(paint)
-							return () => edgeLayers.delete(paint)
-						}}
-						visible={props.visible(index)}
-						collapsed={collapsed(props.card(index))}
-						selected={selected(props.card(index))}
-						dimmed={dimmed(props.card(index))}
-						traced={highlighted(props.card(index))}
-						scene={labels}
-						invalidate={invalidate}
-					/>
-				))}
+				{renderCards}
 			</ecology-labels>
 			{failed() && (
 				<p role="status">

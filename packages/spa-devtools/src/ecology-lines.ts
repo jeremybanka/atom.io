@@ -9,6 +9,7 @@ export interface EcologyLine {
 	color: string
 	fromCard?: GraphPosition | undefined
 	toCard?: GraphPosition | undefined
+	origin?: GraphPosition | undefined
 	traced: boolean
 	fromCollapsed?: boolean | undefined
 	toCollapsed?: boolean | undefined
@@ -72,7 +73,7 @@ export function writeFamilyBuffer(
 
 interface CachedEdge extends Pick<
 	EcologyLine,
-	`fromCard` | `toCard` | `fromCollapsed` | `toCollapsed`
+	`fromCard` | `toCard` | `origin` | `fromCollapsed` | `toCollapsed`
 > {
 	path: ProjectedEdge
 }
@@ -122,7 +123,8 @@ export function createEdgeProjector() {
 			if (
 				variants.length &&
 				(variants[0].fromCard !== edge.fromCard ||
-					variants[0].toCard !== edge.toCard)
+					variants[0].toCard !== edge.toCard ||
+					variants[0].origin !== edge.origin)
 			)
 				variants.length = 0
 			const variant = variants.findIndex(
@@ -134,6 +136,7 @@ export function createEdgeProjector() {
 				variants.push({
 					fromCard: edge.fromCard,
 					toCard: edge.toCard,
+					origin: edge.origin,
 					fromCollapsed: edge.fromCollapsed,
 					toCollapsed: edge.toCollapsed,
 					path,
@@ -192,6 +195,7 @@ export function createEdgeProjector() {
 					(candidate) =>
 						candidate.fromCard === edge.fromCard &&
 						candidate.toCard === edge.toCard &&
+						candidate.origin === edge.origin &&
 						candidate.fromCollapsed === edge.fromCollapsed &&
 						candidate.toCollapsed === edge.toCollapsed,
 				)
@@ -208,16 +212,17 @@ export function createEdgeProjector() {
 				b = project(edge.to)
 			const fromCard = edge.fromCard ? project(edge.fromCard) : a
 			const toCard = edge.toCard ? project(edge.toCard) : b
+			const origin = edge.origin ? project(edge.origin) : fromCard
 			// CSS2D hides this source layer outside the camera depth range.
 			if (
-				fromCard.z < -1 ||
-				fromCard.z > 1 ||
+				origin.z < -1 ||
+				origin.z > 1 ||
 				![a.x, a.y, b.x, b.y].every(Number.isFinite)
 			)
 				continue
 			const xy = (point: THREE.Vector3) => {
 				projected.copy(point).applyMatrix4(camera.projectionMatrix)
-				return `${(((projected.x - fromCard.x) * width) / 2).toFixed(2)},${((-(projected.y - fromCard.y) * height) / 2).toFixed(2)}`
+				return `${(((projected.x - origin.x) * width) / 2).toFixed(2)},${((-(projected.y - origin.y) * height) / 2).toFixed(2)}`
 			}
 			let dx = ((toCard.x - fromCard.x) * width) / 2,
 				dy = ((toCard.y - fromCard.y) * height) / 2

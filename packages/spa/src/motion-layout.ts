@@ -29,7 +29,9 @@ interface Entry {
 	dead: boolean
 	node?: IProjectionNode | undefined
 	release?: Cleanup | undefined
-	refreshStyles?: Cleanup | undefined
+	beginStyles?: Cleanup | undefined
+	measureStyles?: Cleanup | undefined
+	endStyles?: Cleanup | undefined
 	captureStyles?: Cleanup | undefined
 	identity?: string
 	size?: string
@@ -73,7 +75,11 @@ export function createLayoutController(
 		const detach = entry.release
 		entry.release = undefined
 		entry.node = undefined
-		entry.refreshStyles = entry.captureStyles = undefined
+		entry.beginStyles =
+			entry.measureStyles =
+			entry.endStyles =
+			entry.captureStyles =
+				undefined
 		detach?.()
 	}
 	const configure = (entry: Entry) => {
@@ -154,34 +160,36 @@ export function createLayoutController(
 			let visibility = ``
 			let pointerEvents = ``
 			let transform = ``
+			let rendered = ``
 			const transformTemplate = (_: unknown, projected: string) =>
 				`${projected === `none` ? `` : projected} ${transform}`.trim()
 			entry.captureStyles = () => {
 				style.cssText = element.style.cssText
 			}
-			entry.refreshStyles = () => {
+			entry.beginStyles = () => {
 				// Resolve authored CSS against today's dimensions, without reading back
 				// the opacity and percentage origins written by projection itself.
-				const rendered = element.style.cssText
+				rendered = element.style.cssText
 				for (const name of styleNames) restore(name)
-				try {
-					const authored = getComputedStyle(element)
-					opacity = authored.opacity || `1`
-					visibility = authored.visibility
-					pointerEvents = authored.pointerEvents
-					transform = authored.transform
-					if (!visual.values.has(`opacity`))
-						node.latestValues[`opacity`] = Number(opacity)
-					const origin = authored.transformOrigin.split(` `)
-					for (const [key, value] of [
-						[`originX`, parseFloat(origin[0]) / (element.offsetWidth || 1)],
-						[`originY`, parseFloat(origin[1]) / (element.offsetHeight || 1)],
-					] as const)
-						if (!visual.values.has(key) && Number.isFinite(value))
-							node.latestValues[key] = value
-				} finally {
-					element.style.cssText = rendered
-				}
+			}
+			entry.measureStyles = () => {
+				const authored = getComputedStyle(element)
+				opacity = authored.opacity || `1`
+				visibility = authored.visibility
+				pointerEvents = authored.pointerEvents
+				transform = authored.transform
+				if (!visual.values.has(`opacity`))
+					node.latestValues[`opacity`] = Number(opacity)
+				const origin = authored.transformOrigin.split(` `)
+				const width = element.offsetWidth,
+					height = element.offsetHeight
+				entry.size = `${width}:${height}`
+				for (const [key, value] of [
+					[`originX`, parseFloat(origin[0]) / (width || 1)],
+					[`originY`, parseFloat(origin[1]) / (height || 1)],
+				] as const)
+					if (!visual.values.has(key) && Number.isFinite(value))
+						node.latestValues[key] = value
 				// Motion-owned transforms compose in projection; return to authored
 				// transforms if that Motion binding is subsequently removed.
 				const template =
@@ -198,6 +206,9 @@ export function createLayoutController(
 					else delete next.transformTemplate
 					visual.update(next, null)
 				}
+			}
+			entry.endStyles = () => {
+				element.style.cssText = rendered
 			}
 			const applyProjectionStyles = node.applyProjectionStyles
 			node.applyProjectionStyles = (targetStyle, styleProp) => {
@@ -238,14 +249,29 @@ export function createLayoutController(
 			}
 			observer?.observe(element)
 		}
-		entry.refreshStyles!()
-		configure(entry)
-		entry.size = `${element.offsetWidth}:${element.offsetHeight}`
+	}
+	const prepareAll = () => {
+		const active = ordered()
+		for (const entry of active) prepare(entry)
+		const begun: Entry[] = []
+		try {
+			// Strip every projection before reading any authored style or dimension.
+			// Interleaving these phases forces a layout for each registered element.
+			for (const entry of active) {
+				begun.push(entry)
+				entry.beginStyles!()
+			}
+			for (const entry of active) entry.measureStyles!()
+		} finally {
+			for (const entry of begun) entry.endStyles!()
+		}
+		for (const entry of active) configure(entry)
+		return active
 	}
 	const commit = () => {
 		try {
 			if (dead) return
-			for (const entry of ordered()) prepare(entry)
+			prepareAll()
 			const roots = new Set(
 				[...entries].flatMap((entry) =>
 					entry.node ? [entry.node.root ?? entry.node] : [],
@@ -314,6 +340,7 @@ export function createLayoutController(
 		commit,
 		beforeUpdate(): Cleanup {
 			updating = true
+			// Snapshot the rendered projection; resolve authored styles once after the DOM changes.
 			for (const entry of ordered()) {
 				prepare(entry)
 				entry.node!.willUpdate()

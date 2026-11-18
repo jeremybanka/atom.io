@@ -1,5 +1,6 @@
 /** @jsxImportSource @atom.io/spa */
 import { onCleanup, onMount, type SpaElement, useStore } from "@atom.io/spa"
+import type { MotionAttributes } from "@atom.io/spa/motion"
 import { bindScene } from "@atom.io/spa/renderer"
 import type { Scene } from "three"
 // eslint-disable-next-line import/extensions -- Three addon exports require the .js suffix.
@@ -7,15 +8,17 @@ import { CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js"
 
 import type { GraphItem } from "./ecology-graph.ts"
 import type { ProjectedEdge } from "./ecology-lines.ts"
+import { type createEcologyMotion, FAMILY_SPRING } from "./ecology-motion.ts"
 import css from "./EcologyNodeCard.module.css"
 import { useLocal } from "./store.ts"
 
 export function EcologyNodeCard(props: {
+	motion: ReturnType<typeof createEcologyMotion>
+	release(id: string): void
 	registerEdges(
 		paint: (paths: ReadonlyMap<string, readonly ProjectedEdge[]>) => void,
 	): () => void
 	item: GraphItem
-	visible: boolean
 	selected: boolean
 	dimmed: boolean
 	collapsed?: boolean
@@ -58,9 +61,14 @@ export function EcologyNodeCard(props: {
 	}
 	let outgoing = empty,
 		id = ``
+	const identity = props.item.id
+	onCleanup(() => {
+		props.release(identity)
+	})
 	let element: HTMLElement | null = null
 	onMount(() => {
 		const label = new CSS2DObject(element!)
+		label.name = props.item.id
 		props.scene.add(label)
 		onCleanup(
 			props.registerEdges((layers) => {
@@ -70,6 +78,9 @@ export function EcologyNodeCard(props: {
 					next.some((path, index) => path !== outgoing[index])
 				) {
 					const resized = next.length !== outgoing.length
+					// Exiting SPA subtrees freeze reconciliation; clear retired geometry now.
+					for (const [index, node] of paths)
+						if (index >= next.length) node.setAttribute(`d`, ``)
 					for (let index = 0; index < next.length; index++) {
 						const node = paths.get(index)
 						if (node) paintPath(node, next[index], outgoing[index])
@@ -82,13 +93,11 @@ export function EcologyNodeCard(props: {
 		bindScene(
 			() => ({
 				item: props.item,
-				visible: props.visible,
 				order: props.selected ? 2 : props.traced ? 1 : 0,
 			}),
-			({ item, visible, order }) => {
+			({ item, order }) => {
 				id = item.id
 				label.position.set(item.x, item.y, item.z)
-				label.visible = visible
 				label.renderOrder = order
 				props.invalidate()
 			},
@@ -98,14 +107,27 @@ export function EcologyNodeCard(props: {
 			props.invalidate()
 		})
 	})
+	const animation = (): MotionAttributes =>
+		props.item.cluster
+			? {
+					"motion:initial": props.motion.entering(props.item.id)
+						? { opacity: 0 }
+						: false,
+					"motion:animate": { opacity: 1 },
+					"motion:exit": props.motion.exiting(props.item.id)
+						? { opacity: 0 }
+						: {},
+					"motion:transition": FAMILY_SPRING,
+				}
+			: {}
 	return (
 		<ecology-node-card
+			{...animation()}
 			class={css.class}
 			style={`--ecology-color: ${props.item.color}`}
 			ref={(node) => {
 				element = node
 			}}
-			hidden={!props.visible}
 			data-kind={props.item.kind}
 			data-type={props.item.source.type}
 			data-family={props.item.familyLabel}
@@ -139,7 +161,7 @@ export function EcologyNodeCard(props: {
 			<button
 				type="button"
 				data-node
-				data-graph-id={props.visible ? props.item.id : undefined}
+				data-graph-id={props.item.id}
 				aria-label={description()}
 				aria-pressed={props.selected}
 				onPointerDown={(event) => {

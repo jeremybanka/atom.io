@@ -915,6 +915,9 @@ importers:
       '@jridgewell/trace-mapping':
         specifier: 0.3.31
         version: 0.3.31
+      '@tsdown/css':
+        specifier: 0.23.7
+        version: 0.23.7(jiti@2.7.0)(postcss@8.5.32)(tsdown@0.23.7)(tsx@4.23.13)(typescript@7.0.2)(yaml@2.9.1)
       '@types/node':
         specifier: 26.6.6
         version: 26.6.6
@@ -978,6 +981,9 @@ importers:
 
   packages/spa-devtools:
     dependencies:
+      motion:
+        specifier: 14.14.0
+        version: 14.14.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       three:
         specifier: 0.187.0
         version: 0.187.0

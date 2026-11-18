@@ -33,6 +33,7 @@ import CreateAstroTemplate from "./exhibits/create-astro-template.sh" with {
 };
 import Verify from "./exhibits/verify.sh" with { type: "code" };
 import KonvaExample from "./exhibits/konva.tsx" with { type: "code" };
+import BrandExample from "./exhibits/brand.tsx" with { type: "code" };
 import ThreeExample from "./exhibits/three.tsx" with { type: "code" };
 import MotionPanel from "./exhibits/motion.tsx" with { type: "code" };
 import MotionMain from "./exhibits/motion-main.tsx" with { type: "code" };
@@ -156,6 +157,8 @@ Non-null value and checked props control form state: rejected edits are restored
 ## Component identity
 
 Keys accept the same Canonical values as atom.io families, including nested tuples, booleans, and null. Sibling keys must be unique by canonical serialization. A fresh tuple with the same contents preserves the instance, and a number and its string representation identify separate instances. Only undefined uses positional identity. Reordering preserves keyed instances and nodes. Changing a key replaces the instance in both DOM and scene trees, including when the element stands alone.
+
+Freezing both a JSX element object and its props opts into reuse in DOM collections without refreshing unchanged descendant props. Its tracked getters remain reactive. Create a new JSX element object when replacing frozen props; the key still preserves the mounted instance. Mutable descriptors continue to refresh when their collection updates.
 
 A component can declare a required, narrowed key in its props. The instance receives the original key by reference and can read props.key during setup, rendering, mount, and cleanup. Spreading the props forwards the key to an inner component or element. A spread follows normal JSX precedence, so forwarding the same key to multiple siblings reports a duplicate key.
 
@@ -287,7 +290,7 @@ Konva owns hit testing, dragging, and draw batching. Write drag results back int
 
 ### Three.js
 
-Import Canvas, Group, Mesh, PerspectiveCamera, AmbientLight, DirectionalLight, BoxGeometry, SphereGeometry, PlaneGeometry, MeshStandardMaterial, MeshBasicMaterial, MeshNormalMaterial, LineSegments, BufferGeometry, and LineBasicMaterial from @atom.io/spa/three. Canvas creates a WebGL renderer after browser mounting. Geometry and material children attach to their Mesh or LineSegments, with one of each supported. Position and rotation accept three-number tuples; scale also accepts a scalar.
+Import Canvas, Group, Mesh, PerspectiveCamera, AmbientLight, DirectionalLight, PointLight, BoxGeometry, SphereGeometry, PlaneGeometry, MeshStandardMaterial, MeshBasicMaterial, MeshNormalMaterial, LineSegments, BufferGeometry, and LineBasicMaterial from @atom.io/spa/three. Canvas creates a WebGL renderer after browser mounting. Geometry and material children attach to their Mesh or LineSegments, with one of each supported. Position and rotation accept three-number tuples; scale also accepts a scalar. Point lights expose color, intensity, distance and decay.
 
 <ThreeExample />
 
@@ -302,6 +305,14 @@ Use onCreated to configure tone mapping, output color space, scene background, o
 <ConfigurableCanvas />
 
 Canvas defaults to a perspective camera at z = 5. Its optional camera prop borrows an external camera; a PerspectiveCamera child does not automatically become active. Width and height update the renderer and default camera. Canvas renders continuously by default. A renderWhen predicate can skip idle GPU draws while frame callbacks and pointer updates continue; the caller makes it true when drawing is needed, and Canvas checks it before onFrame. Canvas accepts an onFrame callback with scene, camera, renderer, delta seconds, and timestamp seconds. Controls and asset loading remain application-owned.
+
+### Shared brand mark
+
+Import BrandMark from @atom.io/spa/brand and its stylesheet from @atom.io/spa/brand/css. The compact mark defaults to 22 CSS pixels; size sets its width and height. Use variant="splash" for the viewport backdrop used on atom.io.fyi. Both variants share the same orbital model and honor reduced motion. Three.js loads after browser mounting; server rendering, unavailable WebGL and failed graphics imports retain the static mark. Install the optional three peer to animate it. The base SPA entrypoint does not include branding or its stylesheet.
+
+<BrandExample />
+
+Contributor tools can import the canonical geometry, camera and lighting helpers from @atom.io/spa/brand/model without importing the component or CSS.
 
 ### Three.js pointer events
 

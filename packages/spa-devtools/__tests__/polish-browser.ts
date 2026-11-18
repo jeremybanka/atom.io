@@ -131,11 +131,14 @@ async function checkVisualTreatment(
 	name: string,
 ) {
 	const typography = await checkTypography(page, ``)
+	await page.waitForSelector(`brand-mark[data-live="true"] canvas`)
 	const icon = await page
 		.locator(`brand-mark`)
-		.evaluate((el: HTMLElement) => getComputedStyle(el).backgroundImage)
+		.evaluate((el: HTMLElement) =>
+			getComputedStyle(el).getPropertyValue(`--brand-mark`),
+		)
 	const embedded = icon.match(/data:image\/png;base64,([^"')]+)/)
-	assert.ok(embedded, `Use the linked PNG favicon, not another mark`)
+	assert.ok(embedded, `Retain the linked PNG favicon as the static fallback`)
 	assert.deepEqual(Buffer.from(embedded[1], `base64`), favicon)
 	const appearance = await page
 		.locator(`debugger-panel`)

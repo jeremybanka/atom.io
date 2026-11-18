@@ -469,7 +469,7 @@ it(`reports incomplete snapshots, truncated prefixes and bounded approximate mat
 	).toHaveLength(100)
 })
 
-it(`reuses visible slots across filters, preserves logical focus and invalidates slots on Refresh`, async () => {
+it(`keeps keyed cards across filters and Refresh while preserving logical focus`, async () => {
 	const f = await setup()
 	await f.query(`count`)
 	const original = f.host.querySelector<HTMLElement>(
@@ -509,9 +509,9 @@ it(`reuses visible slots across filters, preserves logical focus and invalidates
 	)
 	f.button(`Refresh`).click()
 	await settle()
-	expect(
-		f.host.querySelector(`ecology-node-card > button[data-graph-id]`),
-	).not.toBe(current)
+	expect(f.host.querySelector(`ecology-node-card > button[data-graph-id]`)).toBe(
+		current,
+	)
 })
 
 it(`bounds retained cards when successive filters visit disjoint parts of a large snapshot`, async () => {

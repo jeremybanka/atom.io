@@ -16,10 +16,14 @@ const config = defineOurVitestConfig({
 	},
 })
 config.root = import.meta.dirname
-config.plugins = [spa({ include: /\/spa-devtools\/.*\.tsx$/ })]
+config.plugins = [spa({ include: /\/(?:spa-devtools|spa)\/.*\.tsx$/ })]
 config.resolve!.alias = [
 	{
-		find: /^@atom\.io\/spa\/(three|renderer)$/,
+		find: /^@atom\.io\/spa\/brand$/,
+		replacement: resolve(import.meta.dirname, `../spa/src/brand.ts`),
+	},
+	{
+		find: /^@atom\.io\/spa\/(three|renderer|motion)$/,
 		replacement: resolve(import.meta.dirname, `../spa/src/$1.ts`),
 	},
 	{

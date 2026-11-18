@@ -1,7 +1,8 @@
 /** @jsxImportSource @atom.io/spa */
-import type { SpaElement } from "@atom.io/spa"
+import { type SpaElement, useId } from "@atom.io/spa"
 
 import type { GraphItem } from "./ecology-graph.ts"
+import { EDITOR_SPRING } from "./ecology-motion.ts"
 import css from "./EcologyEditor.module.css"
 import {
 	EcologyEditorRow,
@@ -20,6 +21,43 @@ export function EcologyEditor(props: {
 	state: EcologyPresentation
 	onGenerate(key: string): void
 }): SpaElement {
+	const layoutGroup = `ecology-editor-${useId()}`
+	const cachedRows = new Map<
+		string,
+		{ item: GraphItem; section: Section; node: SpaElement }
+	>()
+	const release = (id: string) => {
+		cachedRows.delete(id)
+	}
+	const row = (entry: Extract<Entry, { item: GraphItem }>) => {
+		const previous = cachedRows.get(entry.id)
+		if (previous?.item === entry.item && previous.section === entry.section)
+			return previous.node
+		const node = (
+			<EcologyEditorRow
+				key={entry.id}
+				tools={props.tools}
+				layoutGroup={layoutGroup}
+				release={release}
+				item={entry.item}
+				section={entry.section}
+				hidden={
+					!props.state.rowIds.has(entry.item.id) &&
+					props.state.pinnedKey !== entry.item.key
+				}
+				pinned={
+					!props.state.rowIds.has(entry.item.id) &&
+					props.state.pinnedKey === entry.item.key
+				}
+				state={props.state}
+				onGenerate={props.onGenerate}
+			/>
+		)
+		Object.freeze(node.props)
+		Object.freeze(node)
+		cachedRows.set(entry.id, { item: entry.item, section: entry.section, node })
+		return node
+	}
 	const entries = (): Entry[] => {
 		const selected = props.state.selected?.id,
 			selectedIds = props.state.selectedIds,
@@ -59,31 +97,23 @@ export function EcologyEditor(props: {
 			class={css.class}
 			role="region"
 			aria-label="Ecology editor"
+			motion:layout={false}
+			motion:layoutScroll
 			tabIndex={-1}
 		>
 			<editor-rows>
 				{entries().map((entry) =>
 					`heading` in entry ? (
-						<h3 key={entry.id} data-section-heading={entry.section}>
+						<h3
+							key={entry.id}
+							data-section-heading={entry.section}
+							motion:layout="position"
+							motion:layoutTransition={EDITOR_SPRING}
+						>
 							{entry.heading}
 						</h3>
 					) : (
-						<EcologyEditorRow
-							key={entry.id}
-							tools={props.tools}
-							item={entry.item}
-							section={entry.section}
-							hidden={
-								!props.state.rowIds.has(entry.item.id) &&
-								props.state.pinnedKey !== entry.item.key
-							}
-							pinned={
-								!props.state.rowIds.has(entry.item.id) &&
-								props.state.pinnedKey === entry.item.key
-							}
-							state={props.state}
-							onGenerate={props.onGenerate}
-						/>
+						row(entry)
 					),
 				)}
 			</editor-rows>

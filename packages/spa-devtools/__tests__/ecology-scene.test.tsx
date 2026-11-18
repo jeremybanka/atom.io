@@ -1,6 +1,9 @@
 /** @jsxImportSource @atom.io/spa */
 import { render, useGetter } from "@atom.io/spa"
+import { motionCapability } from "@atom.io/spa/motion"
 import { Silo } from "atom.io"
+import type * as Motion from "motion"
+import { animate, type MotionValue } from "motion"
 import * as THREE from "three"
 import { afterEach, expect, it, vi } from "vitest"
 
@@ -20,6 +23,10 @@ import { EcologyScene } from "../src/EcologyScene.tsx"
 import { useTools } from "../src/store.ts"
 
 const projectEdges = createEdgeProjector()
+vi.mock(`motion`, async (actual) => ({
+	...(await actual<typeof Motion>()),
+	animate: vi.fn(),
+}))
 const cleanups: (() => void)[] = []
 afterEach(() => {
 	for (const cleanup of cleanups.splice(0)) cleanup()
@@ -105,10 +112,7 @@ function fixture(restored = false, empty = false) {
 					tools={tools}
 					context={context}
 					cylinderHeight={get().cylinderHeight}
-					slots={get().items.length}
 					generation={0}
-					card={(index) => get().items[index] ?? (index === 0 ? a : b)}
-					visible={() => true}
 					items={get().items}
 					edges={get().edges}
 					familyConnections={get().familyConnections}
@@ -124,13 +128,10 @@ function fixture(restored = false, empty = false) {
 			store: silo.store,
 			capabilities: [
 				{
-					namespace: `clock`,
+					...motionCapability({ reducedMotion: `always` }),
 					scheduleFrame(run) {
 						tick = run
 						return stop
-					},
-					attach() {
-						return { update() {}, dispose() {} }
 					},
 				},
 			],
@@ -257,6 +258,56 @@ it(`projects viewer-facing DOM cards and source-stacked edges, keeps a camera th
 	expect(disposeMaterial).toHaveBeenCalledOnce()
 })
 
+it(`projects animated member cards, arrows and family spines from the same world positions`, () => {
+	const media = new EventTarget() as MediaQueryList
+	Object.defineProperty(media, `matches`, { value: false })
+	vi.spyOn(window, `matchMedia`).mockReturnValue(media)
+	const f = fixture(false, true)
+	const family = { ...item(`items`, 8, 4, 0), id: `family:items` }
+	const member = {
+		...item(`items("a")`, 16, 4, -8),
+		familyLabel: `items`,
+		cluster: { x: 8.1, y: 4, z: 0 },
+	}
+	f.context.expanded.add(`items`)
+	f.patch({
+		items: [family, member, f.b],
+		edges: [
+			{
+				source: member.id,
+				from: member,
+				to: f.b,
+				color: member.color,
+				traced: false,
+			},
+		],
+		familyConnections: [
+			{ family: `items`, from: family, to: member, color: family.color },
+		],
+	})
+	f.tick()
+	const card = f.viewport.querySelector<HTMLElement>(
+		`ecology-node-card:has(>button[data-graph-id='${member.id}'])`,
+	)!
+	const start = card.style.transform,
+		path = card.querySelector(`path`)!,
+		curve = path.getAttribute(`d`)
+	const value = vi.mocked(animate).mock.calls.at(-1)![0] as MotionValue<number>
+	const destroy = vi.spyOn(value, `destroy`)
+	value.set(0.5)
+	f.tick()
+	expect(card.style.transform).not.toBe(start)
+	expect(path.getAttribute(`d`)).not.toBe(curve)
+	value.set(1)
+	f.tick()
+	expect(card.style.transform).toContain(`translate`)
+	f.context.expanded.clear()
+	f.patch({ items: [family, f.b] })
+	f.tick()
+	f.root.dispose()
+	expect(destroy).toHaveBeenCalledOnce()
+})
+
 it(`writes arrowless family spines with shared colors, world scaling and reusable bounded buffers`, () => {
 	const geometry = createFamilyBuffer(),
 		positions = geometry.getAttribute(`position`) as THREE.BufferAttribute,
@@ -293,7 +344,7 @@ it(`writes arrowless family spines with shared colors, world scaling and reusabl
 	geometry.dispose()
 })
 
-it(`keeps outgoing paths inside their source card layer, with inherited colors, separate parallel strokes and reused card slots`, () => {
+it(`keeps outgoing paths inside their source layer, with inherited colors, separate strokes and stable card identities`, () => {
 	const f = fixture()
 	f.resize()
 	f.tick()
@@ -339,10 +390,10 @@ it(`keeps outgoing paths inside their source card layer, with inherited colors, 
 	expect(path.getAttribute(`d`)).not.toBe(before)
 	f.patch({ items: [f.b, f.a] })
 	f.tick()
-	expect(f.viewport.querySelector(`ecology-node-card`)).toBe(cards[0])
-	expect(cards[0].style.getPropertyValue(`--ecology-color`)).toBe(f.b.color)
-	expect(cards[0].querySelectorAll(`path`)).toHaveLength(1)
-	expect(cards[1].querySelectorAll(`path`)).toHaveLength(2)
+	expect(f.viewport.querySelector(`ecology-node-card`)).toBe(cards[1])
+	expect(cards[0].style.getPropertyValue(`--ecology-color`)).toBe(f.a.color)
+	expect(cards[0].querySelectorAll(`path`)).toHaveLength(2)
+	expect(cards[1].querySelectorAll(`path`)).toHaveLength(1)
 	f.patch({ edges: [] })
 	f.tick()
 	expect(f.viewport.querySelector(`path`)).toBeNull()
@@ -674,6 +725,7 @@ it(`reuses projected paths through tracing changes, invalidates camera/port chan
 		{ ...edge, toCollapsed: true },
 		{ ...edge, fromCard: { x: -7, y: 0, z: 0 } },
 		{ ...edge, toCard: { x: 7, y: 0, z: 0 } },
+		{ ...edge, origin: { x: 0, y: 0, z: 0 } },
 	]) {
 		project([edge], camera, 800, 500)
 		expect(project([changed], camera, 800, 500).get(`a`)![0].d).not.toBe(first.d)

@@ -2,8 +2,9 @@
 import { ClientRouter } from "astro:transitions"
 import { SiteDevtools } from "../components/SiteDevtools.tsx"
 import "@atom.io/spa-devtools/css"
+import "@atom.io/spa/brand/css"
 import packageJson from "atom.io/package.json"
-import { Dz2Orbital } from "../components/Dz2Orbital"
+import { BrandMark } from "@atom.io/spa/brand"
 import GlobalEffects from "../components/GlobalEffects.astro"
 import "../globals.css"
 import css from "./Layout.module.css"
@@ -35,8 +36,9 @@ import css from "./Layout.module.css"
 				<nav>
 					<left-side>
 						<a href="/">
-							<Dz2Orbital
+							<BrandMark
 								variant="mark"
+								size={45}
 								client:load
 								transition:persist="orbital-mark"
 							/>

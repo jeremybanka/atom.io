@@ -52,7 +52,8 @@ it(`preserves caller DOM and releases owned state and global listeners across 50
 	expect(addedKeys).toHaveLength(50)
 	expect(removedKeys).toEqual(addedKeys)
 	const addedResize = windowAdd.mock.calls.filter(([type]) => type === `resize`)
-	expect(addedResize).toHaveLength(50)
+	// Each mount owns the panel resize listener and the shared brand listener.
+	expect(addedResize).toHaveLength(100)
 	expect(windowRemove.mock.calls.filter(([type]) => type === `resize`)).toEqual(
 		addedResize,
 	)

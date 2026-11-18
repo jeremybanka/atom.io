@@ -6,9 +6,6 @@ ecology-node-card.class {
 		height: 52px;
 		pointer-events: auto;
 	}
-	&[hidden] {
-		display: none;
-	}
 	&[data-dimmed="true"] > button {
 		opacity: 0.5;
 	}

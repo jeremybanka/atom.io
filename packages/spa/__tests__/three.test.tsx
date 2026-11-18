@@ -7,8 +7,48 @@ import {
 	BoxGeometry,
 	Mesh,
 	MeshStandardMaterial,
+	PointLight,
 	threeRenderer,
 } from "../src/three.ts"
+
+it(`updates a point light's color, position and attenuation and detaches it on disposal`, () => {
+	const silo = new Silo({
+		name: `point-light`,
+		lifespan: `ephemeral`,
+		isProduction: true,
+	})
+	const powerAtom = silo.atom<number>({ key: `power`, default: 28 })
+	const scene = new THREE.Scene()
+	let light!: THREE.PointLight
+	function App() {
+		const power = useGetter(powerAtom)
+		return (
+			<PointLight
+				color={power() === 28 ? `white` : `red`}
+				intensity={power()}
+				distance={9}
+				decay={2}
+				position={[1.8, 1.7, 3.5]}
+				ref={(node) => {
+					if (node) light = node
+				}}
+			/>
+		)
+	}
+	const root = threeRenderer.render(() => <App />, scene, { store: silo.store })
+	try {
+		expect(scene.children).toEqual([light])
+		expect(light.position.toArray()).toEqual([1.8, 1.7, 3.5])
+		expect([light.intensity, light.distance, light.decay]).toEqual([28, 9, 2])
+		silo.setState(powerAtom, 14)
+		root.flush()
+		expect(light.intensity).toBe(14)
+		expect(light.color.getHexString()).toBe(`ff0000`)
+	} finally {
+		root.dispose()
+	}
+	expect(scene.children).toHaveLength(0)
+})
 
 it(`updates transforms and colors, attaches resources, and disposes owned resources`, () => {
 	const silo = new Silo({

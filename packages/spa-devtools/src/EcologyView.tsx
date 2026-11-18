@@ -12,12 +12,10 @@ import { EcologyToolbar } from "./EcologyToolbar.tsx"
 import css from "./EcologyView.module.css"
 import { EcologyViewport } from "./EcologyViewport.tsx"
 import type { SearchHit } from "./search.ts"
-import { type Tools, usePresentation, useSlotPages } from "./store.ts"
+import { type Tools, usePresentation } from "./store.ts"
 
 export interface EcologyPresentation {
 	cylinderHeight: number
-	cardSlots: number
-	visibleCards: number
 	cards: GraphModel[`items`]
 	rows: GraphModel[`rows`]
 	rowCount: number
@@ -55,8 +53,6 @@ export function EcologyView(props: {
 	const presentation = usePresentation<EcologyPresentation>(props.tools.store, {
 		cylinderHeight: 8,
 		selectionOutside: false,
-		cardSlots: 0,
-		visibleCards: 0,
 		cards: [],
 		rows: [],
 		rowCount: 0,
@@ -88,20 +84,12 @@ export function EcologyView(props: {
 	let host: HTMLElement | null = null
 	let controller: ReturnType<typeof createEcologyController> | undefined
 	const state = presentation.read
-	const cards = useSlotPages<EcologyPresentation[`cards`][number]>(
-		props.tools.store,
-		500,
-	)
-	const publish = (patch: Partial<EcologyPresentation>) => {
-		if (patch.cards) cards.update(patch.cards, patch.visibleCards!)
-		presentation.update(patch)
-	}
 	onMount(() => {
 		controller = createEcologyController(
 			host!,
 			props.tools.store,
 			props.context,
-			publish,
+			presentation.update,
 			marker,
 		)
 		onCleanup(controller.dispose)
@@ -124,11 +112,8 @@ export function EcologyView(props: {
 						tools={props.tools}
 						context={props.context}
 						cylinderHeight={state().cylinderHeight}
-						slots={state().cardSlots}
 						generation={state().generation}
-						card={cards.value}
-						visible={cards.visible}
-						items={state().cards.slice(0, state().visibleCards)}
+						items={state().cards}
 						edges={state().edges}
 						familyConnections={state().familyConnections}
 						selected={state().selectedCard}

@@ -13,6 +13,7 @@ export interface GraphItem extends GraphPosition {
 	kind: `atom` | `selector` | `family`
 	label: string
 	familyLabel?: string | undefined
+	cluster?: GraphPosition | undefined
 	detail: string
 	color: string
 	source: EcologyNode | EcologyFamily
@@ -289,10 +290,13 @@ function createRegistry(
 		const source = record.source
 		const member = `family` in source ? source.family : undefined
 		const kind = `kind` in source ? source.kind : `family`
+		const cluster = record.group
+			? clusterPosition(read(record.group), record.slot)
+			: undefined
 		const position = record.group
 			? fan
 				? familyPosition(read(record.group), record.slot)
-				: clusterPosition(read(record.group), record.slot)
+				: cluster!
 			: helixPosition(
 					record.slot,
 					kind === `selector` ||
@@ -305,6 +309,7 @@ function createRegistry(
 			kind,
 			label: member?.subKey ?? source.key,
 			familyLabel: member?.key,
+			cluster,
 			color: ecologyColor(source),
 			detail:
 				`memberKeys` in source

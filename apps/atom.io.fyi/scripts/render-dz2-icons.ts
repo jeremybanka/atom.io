@@ -4,15 +4,14 @@ import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { deflateSync } from "node:zlib"
 
-import * as THREE from "three"
-
 import {
 	createDz2OrbitalCamera,
 	createDz2OrbitalModel,
 	disposeDz2OrbitalModel,
 	DZ2_ORBITAL_LIGHTS,
 	setDz2OrbitalRotation,
-} from "../src/components/dz2-orbital-three.ts"
+} from "@atom.io/spa/brand/model"
+import * as THREE from "three"
 
 const IMAGE_SIZE = 512
 const SUPERSAMPLE = 3

@@ -75,12 +75,21 @@ try {
 				sdk,
 			)
 		}
+		const spaRequire = createRequire(
+			require.resolve(`@atom.io/spa/package.json`),
+		)
+		const devtoolsRequire = createRequire(
+			require.resolve(`@atom.io/spa-devtools/package.json`),
+		)
+		assert.equal(
+			await realpath(spaRequire.resolve(`motion/package.json`)),
+			await realpath(devtoolsRequire.resolve(`motion/package.json`)),
+		)
 		// These are negative probes of the isolated consumer, not imports used by this test.
 		// Keep names as data so dependency analysis does not infer a dependency on them.
 		const absentSpecifiers = version
-			? [`motion`]
+			? []
 			: [
-					`motion`,
 					`react/package.json`,
 					`react-dom/package.json`,
 					`@atom.io/react/package.json`,

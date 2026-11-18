@@ -318,6 +318,8 @@ Non-null value and checked props control form state: rejected edits are restored
 
 Keys accept the same Canonical values as atom.io families, including nested tuples, booleans, and null. Sibling keys must be unique by canonical serialization. A fresh tuple with the same contents preserves the instance, and a number and its string representation identify separate instances. Only undefined uses positional identity. Reordering preserves keyed instances and nodes. Changing a key replaces the instance in both DOM and scene trees, including when the element stands alone.
 
+Freezing both a JSX element object and its props opts into reuse in DOM collections without refreshing unchanged descendant props. Its tracked getters remain reactive. Create a new JSX element object when replacing frozen props; the key still preserves the mounted instance. Mutable descriptors continue to refresh when their collection updates.
+
 A component can declare a required, narrowed key in its props. The instance receives the original key by reference and can read props.key during setup, rendering, mount, and cleanup. Spreading the props forwards the key to an inner component or element. A spread follows normal JSX precedence, so forwarding the same key to multiple siblings reports a duplicate key.
 
 Direct DOM component and root output opt into key tracking when they first mount. Include the key property initially when a direct spread needs later identity changes. An explicit key attribute or a spread containing key with an initial undefined value enables that tracking. Keyless spreads keep their data props live as the instance updates.
@@ -722,11 +724,11 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                           | Entry                             | Minified JS |  Gzip JS |
 | -------------------------------- | --------------------------------- | ----------: | -------: |
-| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    68,795 B | 20,876 B |
-| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    47,231 B | 15,111 B |
-| Interactive client app           | `tonnage-recipes/client-app.ts`   |    46,904 B | 14,961 B |
-| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    46,905 B | 14,959 B |
-| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    53,443 B | 17,026 B |
+| Family app with refs and history | `tonnage-recipes/family-app.ts`   |    68,896 B | 20,908 B |
+| Async interactive client app     | `tonnage-recipes/async-app.ts`    |    47,332 B | 15,151 B |
+| Interactive client app           | `tonnage-recipes/client-app.ts`   |    47,004 B | 15,001 B |
+| Hydrated interactive app         | `tonnage-recipes/hydrated-app.ts` |    47,005 B | 14,999 B |
+| Interactive Astro island         | `tonnage-recipes/astro-island.ts` |    53,544 B | 17,059 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 
@@ -779,7 +781,7 @@ Konva owns hit testing, dragging, and draw batching. Write drag results back int
 
 ### Three.js
 
-Import Canvas, Group, Mesh, PerspectiveCamera, AmbientLight, DirectionalLight, BoxGeometry, SphereGeometry, PlaneGeometry, MeshStandardMaterial, MeshBasicMaterial, MeshNormalMaterial, LineSegments, BufferGeometry, and LineBasicMaterial from @atom.io/spa/three. Canvas creates a WebGL renderer after browser mounting. Geometry and material children attach to their Mesh or LineSegments, with one of each supported. Position and rotation accept three-number tuples; scale also accepts a scalar.
+Import Canvas, Group, Mesh, PerspectiveCamera, AmbientLight, DirectionalLight, PointLight, BoxGeometry, SphereGeometry, PlaneGeometry, MeshStandardMaterial, MeshBasicMaterial, MeshNormalMaterial, LineSegments, BufferGeometry, and LineBasicMaterial from @atom.io/spa/three. Canvas creates a WebGL renderer after browser mounting. Geometry and material children attach to their Mesh or LineSegments, with one of each supported. Position and rotation accept three-number tuples; scale also accepts a scalar. Point lights expose color, intensity, distance and decay.
 
 ```tsx
 import type { SpaElement } from "@atom.io/spa"
@@ -848,6 +850,24 @@ export function BoardCanvas(): SpaElement {
 ```
 
 Canvas defaults to a perspective camera at z = 5. Its optional camera prop borrows an external camera; a PerspectiveCamera child does not automatically become active. Width and height update the renderer and default camera. Canvas renders continuously by default. A renderWhen predicate can skip idle GPU draws while frame callbacks and pointer updates continue; the caller makes it true when drawing is needed, and Canvas checks it before onFrame. Canvas accepts an onFrame callback with scene, camera, renderer, delta seconds, and timestamp seconds. Controls and asset loading remain application-owned.
+
+### Shared brand mark
+
+Import BrandMark from @atom.io/spa/brand and its stylesheet from @atom.io/spa/brand/css. The compact mark defaults to 22 CSS pixels; size sets its width and height. Use variant="splash" for the viewport backdrop used on atom.io.fyi. Both variants share the same orbital model and honor reduced motion. Three.js loads after browser mounting; server rendering, unavailable WebGL and failed graphics imports retain the static mark. Install the optional three peer to animate it. The base SPA entrypoint does not include branding or its stylesheet.
+
+```tsx
+import "@atom.io/spa/brand/css"
+
+import type { SpaElement } from "@atom.io/spa"
+import { BrandMark } from "@atom.io/spa/brand"
+
+export function AppBrand(): SpaElement {
+	return <BrandMark size={32} />
+}
+
+```
+
+Contributor tools can import the canonical geometry, camera and lighting helpers from @atom.io/spa/brand/model without importing the component or CSS.
 
 ### Three.js pointer events
 

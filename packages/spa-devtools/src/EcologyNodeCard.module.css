@@ -62,12 +62,11 @@ ecology-node-card.class {
 			outline-offset: 1px;
 		}
 	}
-	&[data-kind="selector"] > button {
+	&[data-type*="selector"] > button {
 		border-radius: 12px 2px;
 	}
 	&[data-kind="family"] > button {
 		border: 1px dashed var(--ecology-color);
-		border-radius: 5px;
 	}
 	&[data-traced="true"] > button {
 		box-shadow: inset 3px 0 var(--ecology-color);

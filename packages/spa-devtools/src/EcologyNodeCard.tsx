@@ -55,6 +55,7 @@ export function EcologyNodeCard(props: {
 			}}
 			hidden={!props.visible}
 			data-kind={props.item.kind}
+			data-type={props.item.source.type}
 			data-traced={props.traced}
 			data-dimmed={props.dimmed}
 			data-collapsed={props.collapsed}

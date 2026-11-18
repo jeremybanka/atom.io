@@ -21,6 +21,7 @@ import {
 	writeFamilyBuffer,
 } from "./ecology-lines.ts"
 import { createEcologyMotion } from "./ecology-motion.ts"
+import { EcologyGround } from "./EcologyGround.tsx"
 import { EcologyNodeCard } from "./EcologyNodeCard.tsx"
 import css from "./EcologyScene.module.css"
 import { type Tools, useLocal } from "./store.ts"
@@ -368,6 +369,7 @@ export function EcologyScene(props: {
 					renderWhen={() => dirty}
 					onFrame={draw}
 				>
+					<EcologyGround height={cylinder().height} />
 					<LineSegments
 						name="family-connections"
 						args={[families, familyMaterial]}

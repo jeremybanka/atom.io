@@ -197,6 +197,17 @@ it(`projects viewer-facing DOM cards and source-stacked edges, keeps a camera th
 	f.tick()
 	const gl = vi.mocked(THREE.WebGLRenderer).mock.results.at(-1)!
 		.value as THREE.WebGLRenderer
+	const ground = vi
+		.mocked(gl.render)
+		.mock.lastCall![0].getObjectByName(`ecology-ground`) as THREE.Mesh<
+		THREE.PlaneGeometry,
+		THREE.ShaderMaterial
+	>
+	expect(ground.position.y).toBeLessThan(-f.point(f.a)[1])
+	expect(ground.material.transparent).toBe(true)
+	expect(ground.material.depthWrite).toBe(false)
+	const disposeGroundGeometry = vi.spyOn(ground.geometry, `dispose`),
+		disposeGroundMaterial = vi.spyOn(ground.material, `dispose`)
 	const spine = vi
 		.mocked(gl.render)
 		.mock.lastCall![0].getObjectByName(
@@ -205,6 +216,11 @@ it(`projects viewer-facing DOM cards and source-stacked edges, keeps a camera th
 	expect(spine.geometry.drawRange.count).toBe(2)
 	expect(spine.material.opacity).toBeLessThan(0.14)
 	expect(spine.renderOrder).toBeLessThan(0)
+	expect(ground.renderOrder).toBeLessThan(spine.renderOrder)
+	const groundHeight = ground.position.y
+	f.resize(400, 800)
+	f.tick()
+	expect(ground.position.y).toBeLessThan(groundHeight)
 	expect(f.viewport.dataset[`familyConnections`]).toBe(`1`)
 	const disposeGeometry = vi.spyOn(spine.geometry, `dispose`),
 		disposeMaterial = vi.spyOn(spine.material, `dispose`)
@@ -256,6 +272,8 @@ it(`projects viewer-facing DOM cards and source-stacked edges, keeps a camera th
 	expect(f.stop).toHaveBeenCalledOnce()
 	expect(disposeGeometry).toHaveBeenCalledOnce()
 	expect(disposeMaterial).toHaveBeenCalledOnce()
+	expect(disposeGroundGeometry).toHaveBeenCalledOnce()
+	expect(disposeGroundMaterial).toHaveBeenCalledOnce()
 })
 
 it(`projects animated member cards, arrows and family spines from the same world positions`, () => {

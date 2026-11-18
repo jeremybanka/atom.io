@@ -14,7 +14,7 @@ it(`renders a root primitive with a default accessible label and tokenless molec
 	})
 	const host = document.createElement(`div`)
 	const event = {
-		type: `molecule_creation`,
+		type: `molecule_creation` as const,
 		key: `item`,
 		provenance: `list`,
 		timestamp: 1,

@@ -3,25 +3,27 @@ import type { RootStore } from "atom.io/internal"
 import type { EcologyLimits, EcologySnapshot } from "./ecology.ts"
 import { captureEcologySnapshot } from "./ecology.ts"
 
-export type SearchView = `atoms` | `selectors`
+export type SearchView = `atoms` | `selectors` | `transactions` | `timelines`
 type FieldKind = `key` | `family` | `metadata` | `value`
-interface RawField {
+export interface RawField {
 	kind: FieldKind
 	text: string
 }
-interface SearchDocument {
+export interface SearchDocument {
 	id: string
 	key: string
 	family: string | null
-	kind: `atom` | `selector` | `family`
+	kind: `atom` | `selector` | `family` | `transaction` | `timeline` | `event`
 	label: string
 	detail: string
 	value: `uncached` | `skipped` | `copied` | `family`
 	truncated: boolean
 	fields: RawField[]
+	target?: { owner: string; path: number[]; chain: string[] }
 }
 export interface SearchCapture {
 	documents: SearchDocument[]
+	notice?: string
 	capturedAt: number
 	partial: boolean
 	truncatedText: number
@@ -43,6 +45,7 @@ export interface SearchIndex extends Omit<SearchCapture, `documents`> {
 export interface SearchHit {
 	document: IndexedDocument
 	valueMatch: boolean
+	valueField: IndexedField | undefined
 	approximate: boolean
 	ranges: readonly [number, number][]
 	valueRanges: readonly [number, number][]
@@ -84,10 +87,33 @@ function prefix(
 	return { text: chars.join(``), omitted, work, length: chars.length }
 }
 
+export function addSearchDocument(
+	result: SearchCapture,
+	document: Omit<SearchDocument, `fields` | `label` | `truncated`>,
+	fields: RawField[],
+): void {
+	let remaining = DOCUMENT_LIMIT,
+		truncated = false
+	const copied = fields.map((field) => {
+		const bounded = prefix(field.text, Math.min(FIELD_LIMIT, remaining))
+		remaining -= bounded.length
+		result.characters += bounded.work
+		truncated ||= bounded.omitted
+		return { kind: field.kind, text: bounded.text }
+	})
+	result.truncatedText += Number(truncated)
+	result.documents.push({
+		...document,
+		fields: copied,
+		label: copied[0].text,
+		truncated,
+	})
+}
+
 /** Atomic committed-root copy. Query work never reads this store again. */
 export function captureStateSearch(
 	store: RootStore,
-	view: SearchView,
+	view: `atoms` | `selectors`,
 	limits: EcologyLimits = {},
 ): SearchCapture | null {
 	if (store.on.transactionApplying.state !== null) return null
@@ -108,25 +134,10 @@ export function captureStateSearch(
 		snapshotWork: snapshot.work,
 	}
 	const add = (
-		document: Omit<SearchDocument, `fields` | `label` | `truncated`>,
+		document: Parameters<typeof addSearchDocument>[1],
 		fields: RawField[],
 	) => {
-		let remaining = DOCUMENT_LIMIT,
-			truncated = false
-		const copied = fields.map((field) => {
-			const bounded = prefix(field.text, Math.min(FIELD_LIMIT, remaining))
-			remaining -= bounded.length
-			result.characters += bounded.work
-			truncated ||= bounded.omitted
-			return { kind: field.kind, text: bounded.text }
-		})
-		result.truncatedText += Number(truncated)
-		result.documents.push({
-			...document,
-			fields: copied,
-			label: copied[0].text,
-			truncated,
-		})
+		addSearchDocument(result, document, fields)
 	}
 	for (const family of snapshot.families) {
 		if ((view === `selectors`) !== family.type.includes(`selector`)) continue
@@ -382,6 +393,7 @@ export function* matchStateSearch(
 			valueMatch = false,
 			named = false,
 			matches = true
+		let valueField: IndexedField | undefined
 		for (const token of tokens) {
 			let best = 9,
 				fieldPriority = 9
@@ -412,6 +424,7 @@ export function* matchStateSearch(
 			}
 			const field = document.fields[fieldPriority]
 			valueMatch ||= field.kind === `value`
+			if (field.kind === `value`) valueField ??= field
 			named ||= field.kind === `key` || field.kind === `family`
 			tier = Math.max(tier, best)
 			priority += fieldPriority
@@ -436,6 +449,7 @@ export function* matchStateSearch(
 				hits.splice(low, 0, {
 					document,
 					valueMatch,
+					valueField,
 					approximate: edits > 0,
 					ranges: [],
 					valueRanges: [],
@@ -458,13 +472,8 @@ export function* matchStateSearch(
 			mask,
 			getSegmenter,
 		)
-		if (hit.valueMatch)
-			hit.valueRanges = yield* ranges(
-				hit.document.fields.find((field) => field.kind === `value`)!,
-				tokens,
-				mask,
-				getSegmenter,
-			)
+		if (hit.valueField)
+			hit.valueRanges = yield* ranges(hit.valueField, tokens, mask, getSegmenter)
 		yield
 	}
 	return {

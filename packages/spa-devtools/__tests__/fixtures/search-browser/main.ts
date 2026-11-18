@@ -1,5 +1,6 @@
 import { mountAtomIODevtools } from "@atom.io/spa-devtools"
 import { Silo } from "atom.io"
+import { deposit } from "atom.io/internal"
 
 const host = document.createElement(`div`)
 document.body.append(host)
@@ -9,7 +10,7 @@ let app: Silo,
 	setupMs = 0,
 	mountStarted = 0
 let update = () => {}
-function mount(large = false) {
+function mount(large = false, withHistory = false) {
 	dispose()
 	host.replaceChildren()
 	localStorage.clear()
@@ -93,9 +94,41 @@ function mount(large = false) {
 			snap: `full`,
 		}),
 	)
+	if (withHistory) {
+		const count = deposit(app.store.atoms.get(`count`)!)
+		const cartHistoryTimeline = app.timeline({
+			key: `cartHistory`,
+			scope: [count],
+		})
+		const changeCartTransaction = app.transaction<(amount: number) => number>({
+			key: `changeCart`,
+			do: ({ set }, amount) => {
+				set(count, amount)
+				return amount
+			},
+		})
+		historyAction = (value, repeat = 1) => {
+			for (let i = 0; i < repeat; i++)
+				app.runTransaction(changeCartTransaction)(value + i)
+		}
+		historyEvidence = () => {
+			const history = app.store.timelines.get(cartHistoryTimeline.key)!
+			return {
+				cursor: history.at,
+				length: history.history.length,
+				value: Number(app.getState(count)),
+			}
+		}
+	}
 	mountStarted = performance.now()
 	dispose = mountAtomIODevtools(host, { store: app.store }).dispose
 }
+let historyAction = (_value: number, _repeat = 1) => {}
+let historyEvidence = () => ({ cursor: 0, length: 0, value: 0 })
+function mountHistory() {
+	mount(false, true)
+}
+
 function evidence() {
 	return {
 		reads,
@@ -117,6 +150,9 @@ declare global {
 	interface Window {
 		searchFixture: {
 			mount: typeof mount
+			mountHistory: typeof mountHistory
+			historyAction: typeof historyAction
+			historyEvidence: typeof historyEvidence
 			update(): void
 			evidence: typeof evidence
 		}
@@ -124,6 +160,11 @@ declare global {
 }
 window.searchFixture = {
 	mount,
+	mountHistory,
+	historyAction: (value, repeat) => {
+		historyAction(value, repeat)
+	},
+	historyEvidence: () => historyEvidence(),
 	update: () => {
 		update()
 	},

@@ -22,12 +22,18 @@ import {
 } from "atom.io/internal"
 import type { FamilyNode } from "atom.io/introspection"
 
+import {
+	historyEventPreview,
+	historyIdentity,
+	historyParams,
+	historyValue,
+	type RecordedEvent,
+} from "./history-search.ts"
 import { JsonEditor } from "./JsonEditor.tsx"
 import type { SearchContext } from "./search-controller.ts"
 import { createStateSearch } from "./search-controller.ts"
 import type { Tools } from "./store.ts"
 import { useExpanded } from "./store.ts"
-import { describe } from "./value.ts"
 
 type Token = ReadableToken<unknown, any, any>
 export function StateIndex(props: {
@@ -183,22 +189,41 @@ export function StateLeaf(props: { tools: Tools; token: Token }): SpaElement {
 		</section>
 	)
 }
-export function TransactionIndex(props: { tools: Tools }): SpaElement {
+function useHistorySearch(
+	type: `transactions` | `timelines`,
+	props: { tools: Tools; context: SearchContext },
+) {
+	let host: HTMLElement | null = null
+	onMount(() => {
+		delete props.context.index
+		onCleanup(createStateSearch(host!, props.tools.store, type, props.context))
+	})
+	return (element: HTMLElement) => {
+		host = element
+	}
+}
+export function TransactionIndex(props: {
+	tools: Tools
+	context: SearchContext
+}): SpaElement {
+	const attach = useHistorySearch(`transactions`, props)
 	const getTransactionIndex = useGetter(props.tools.transactionIndex)
 	const visible = () =>
 		getTransactionIndex().filter(
 			(token) => !isReservedIntrospectionKey(token.key),
 		)
 	return (
-		<article class="index" data-testid="transaction-index">
-			{visible().length === 0 ? (
-				<p>(no transactions)</p>
-			) : (
-				visible().map((token) => (
-					<TransactionLog key={token.key} tools={props.tools} token={token} />
-				))
-			)}
-		</article>
+		<section class="state-search" ref={attach}>
+			<article class="index" data-testid="transaction-index">
+				{visible().length === 0 ? (
+					<p>(no transactions)</p>
+				) : (
+					visible().map((token) => (
+						<TransactionLog key={token.key} tools={props.tools} token={token} />
+					))
+				)}
+			</article>
+		</section>
 	)
 }
 function TransactionLog(props: {
@@ -214,7 +239,13 @@ function TransactionLog(props: {
 	)
 	const [getOpen, toggle] = useExpanded(props.tools, [props.token.key])
 	return (
-		<section class="node" data-testid={`transaction-${props.token.key}`}>
+		<section
+			class="node"
+			data-history-owner={historyIdentity(
+				props.tools.store.transactions.get(props.token.key)!,
+			)}
+			data-testid={`transaction-${props.token.key}`}
+		>
 			<header>
 				<button
 					type="button"
@@ -232,7 +263,7 @@ function TransactionLog(props: {
 				<section class="transaction-outcomes">
 					{getTransactionLog().map((event, index) => (
 						<EventView
-							key={index}
+							key={historyIdentity(event)}
 							tools={props.tools}
 							event={event}
 							index={index}
@@ -243,68 +274,82 @@ function TransactionLog(props: {
 		</section>
 	)
 }
-// Events are recursive discriminated records, including user-defined transaction outputs.
-/** @internal Used by contributor tools or implementation tests. */
+/** @internal Recorded event previews never traverse application-owned payloads. */
 export function EventView(props: {
 	tools: Tools
-	event: any
+	event: RecordedEvent
 	index: number
+	depth?: number
 }): SpaElement {
+	const event = props.event
+	const token = `token` in event ? event.token : undefined
+	const depth = props.depth ?? 0
+	const descendants = `subEvents` in event ? event.subEvents : []
 	const [getOpen, toggle] = useExpanded(
 		props.tools,
-		[`event`, props.event.token?.key ?? ``, String(props.index)],
+		[`event`, historyIdentity(event)],
 		true,
 	)
+	const nested = () =>
+		depth < 31
+			? descendants.map((child, index) => (
+					<EventView
+						key={historyIdentity(child)}
+						tools={props.tools}
+						event={child}
+						index={index}
+						depth={depth + 1}
+					/>
+				))
+			: `Nested events omitted`
 	return (
 		<section
 			class="event"
-			data-testid={`${props.event.type === `transaction_outcome` ? `transaction` : `timeline`}-update-${props.event.token?.key}-${props.index}`}
+			data-history-event={historyIdentity(event)}
+			data-testid={`${event.type === `transaction_outcome` ? `transaction` : `timeline`}-update-${token?.key}-${props.index}`}
 		>
 			<header>
 				<button type="button" aria-expanded={getOpen()} onClick={toggle}>
 					{getOpen() ? `▾` : `▸`}
 				</button>
-				<strong>{props.event.token?.key}</strong>
-				<small>{props.event.type}</small>
+				<strong>{token?.key}</strong>
+				<small>{event.type}</small>
 			</header>
 			{getOpen() ? (
-				props.event.type === `transaction_outcome` ? (
+				event.type === `transaction_outcome` ? (
 					<>
 						<p>
-							params: <code>{describe(props.event.params)}</code>
+							params: <code>{historyParams(event.params)}</code>
 						</p>
 						<p>
-							output: <code>{describe(props.event.output)}</code>
+							output: <code>{historyValue(event.output) ?? `[opaque]`}</code>
 						</p>
-						<section class="impact">
-							{props.event.subEvents.map((event: any, index: number) => (
-								<EventView
-									key={index}
-									tools={props.tools}
-									event={event}
-									index={index}
-								/>
-							))}
-						</section>
+						<section class="impact">{nested()}</section>
 					</>
-				) : props.event.update ? (
+				) : `update` in event ? (
 					<p>
-						<del data-kind={typeof props.event.update.oldValue}>
-							{describe(props.event.update.oldValue)}
+						<del data-kind={typeof event.update.oldValue}>
+							{historyValue(event.update.oldValue) ?? `[opaque]`}
 						</del>
 						{` `}→{` `}
-						<ins data-kind={typeof props.event.update.newValue}>
-							{describe(props.event.update.newValue)}
+						<ins data-kind={typeof event.update.newValue}>
+							{historyValue(event.update.newValue) ?? `[opaque]`}
 						</ins>
 					</p>
+				) : descendants.length ? (
+					<section class="impact">{nested()}</section>
 				) : (
-					<code>{describe(props.event)}</code>
+					<code>{historyEventPreview(event)}</code>
 				)
 			) : null}
 		</section>
 	)
 }
-export function TimelineIndex(props: { tools: Tools }): SpaElement {
+export function TimelineIndex(props: {
+	tools: Tools
+	context: SearchContext
+}): SpaElement {
+	const attach = useHistorySearch(`timelines`, props)
 	const getTimelineIndex = useGetter(props.tools.timelineIndex)
 	const groups = () => {
 		const result = new Map<string, TimelineToken<any>[]>()
@@ -319,23 +364,25 @@ export function TimelineIndex(props: { tools: Tools }): SpaElement {
 		return [...result]
 	}
 	return (
-		<article class="index" data-testid="timeline-index">
-			{groups().length === 0 ? (
-				<p>(no timelines)</p>
-			) : (
-				groups().map(([family, members]) => (
-					<section
-						key={family}
-						data-testid={family ? `timeline-family-${family}` : undefined}
-					>
-						{family ? <h2>{family}</h2> : null}
-						{members.map((token) => (
-							<TimelineLog key={token.key} tools={props.tools} token={token} />
-						))}
-					</section>
-				))
-			)}
-		</article>
+		<section class="state-search" ref={attach}>
+			<article class="index" data-testid="timeline-index">
+				{groups().length === 0 ? (
+					<p>(no timelines)</p>
+				) : (
+					groups().map(([family, members]) => (
+						<section
+							key={family}
+							data-testid={family ? `timeline-family-${family}` : undefined}
+						>
+							{family ? <h2>{family}</h2> : null}
+							{members.map((token) => (
+								<TimelineLog key={token.key} tools={props.tools} token={token} />
+							))}
+						</section>
+					))
+				)}
+			</article>
+		</section>
 	)
 }
 function TimelineLog(props: {
@@ -352,7 +399,13 @@ function TimelineLog(props: {
 	)
 	const [getOpen, toggle] = useExpanded(props.tools, [props.token.key])
 	return (
-		<section class="node" data-testid={`timeline-${props.token.key}`}>
+		<section
+			class="node"
+			data-history-owner={historyIdentity(
+				props.tools.store.timelines.get(props.token.key)!,
+			)}
+			data-testid={`timeline-${props.token.key}`}
+		>
 			<header>
 				<button
 					type="button"
@@ -392,7 +445,12 @@ function TimelineLog(props: {
 							{index === getTimeline().at ? (
 								<p class="you-are-here">you are here</p>
 							) : null}
-							<EventView tools={props.tools} event={event} index={index} />
+							<EventView
+								key={historyIdentity(event)}
+								tools={props.tools}
+								event={event}
+								index={index}
+							/>
 						</section>
 					))}
 					{getTimeline().at === getTimeline().history.length ? (

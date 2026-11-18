@@ -1,4 +1,5 @@
 import { useI, useO } from "@atom.io/solid"
+import type { JSX } from "@solidjs/web"
 import type { AtomToken } from "atom.io"
 import {
 	atom,
@@ -14,7 +15,6 @@ import {
 } from "atom.io"
 import { OList } from "atom.io/transceivers/o-list"
 import { Rational } from "rationality"
-import type { JSX } from "solid-js"
 import { For, Show } from "solid-js"
 
 import css from "./App.tsx.module.css"

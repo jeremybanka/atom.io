@@ -20,7 +20,10 @@ export function StoreProvider(
 ): ReturnType<FlowComponent> {
 	// Solid 2 contexts are themselves provider components.
 	const provide: FlowComponent<{ value: RootStore }> =
-		typeof StoreContext === `function` ? StoreContext : StoreContext.Provider
+		typeof StoreContext === `function`
+			? StoreContext
+			: (StoreContext as { Provider: FlowComponent<{ value: RootStore }> })
+					.Provider
 	return provide({
 		value: props.store ?? IMPLICIT.STORE,
 		get children() {

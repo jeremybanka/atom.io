@@ -10,22 +10,24 @@
 
 <h3 align="center"><a href="https://atom.io.fyi/docs/solid">📖 Read the docs at atom.io.fyi</a></h3>
 
-Install this package alongside `atom.io` and `solid-js` 1.9 or 2.0.0-rc.21. Replace imports from `atom.io/solid` with `@atom.io/solid`; the exports and behavior are unchanged.
+Install this package alongside `atom.io` and `solid-js` 1.9 or 2.x. Replace imports from `atom.io/solid` with `@atom.io/solid`; the exports and behavior are unchanged.
 
 ## Install
 
 ```sh
-pnpm add atom.io @atom.io/solid solid-js
+pnpm add atom.io @atom.io/solid solid-js @solidjs/web
 
 ```
 
 ## Usage
 
+The example uses Solid 2 with `@solidjs/web` and `@solidjs/vite-plugin`. Solid 1 applications keep their existing renderer and compiler.
+
 ```tsx
-/** @jsxImportSource solid-js */
+/** @jsxImportSource @solidjs/web */
 import { useO } from "@atom.io/solid"
+import type { JSX } from "@solidjs/web"
 import { atom, setState } from "atom.io"
-import type { JSX } from "solid-js"
 
 const countAtom = atom<number>({ key: `count`, default: 0 })
 

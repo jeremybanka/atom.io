@@ -1,4 +1,4 @@
-// Solid 2 contracts, typechecked and run only against the RC peer environments.
+// Solid 2 contracts, typechecked and run only against the Solid 2 peer environments.
 import assert from "node:assert/strict"
 import { test } from "node:test"
 

@@ -1,6 +1,8 @@
 blockExoticSubdeps: true
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
+  # Approved for the stable Solid 2 migration. Keep this exception version-specific.
+  - "@solidjs/vite-plugin@3.0.0"
   # Consumed jeremybanka packages are exempt at every version.
   # Keep aligned with the npm rule in renovate.json.
   - "@breakage/changesets"

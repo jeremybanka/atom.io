@@ -127,6 +127,7 @@
 		"@breakage/changesets": "0.1.0",
 		"@orpc/client": "1.16.2",
 		"@orpc/server": "1.16.2",
+		"@solidjs/web": "2.0.0",
 		"@storybook/addon-docs": "10.6.7",
 		"@storybook/addon-onboarding": "10.6.7",
 		"@storybook/addon-vitest": "10.6.7",

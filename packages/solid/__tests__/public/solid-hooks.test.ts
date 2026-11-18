@@ -20,8 +20,9 @@ import {
 import type { Fn } from "atom.io/internal"
 import { clearStore, IMPLICIT } from "atom.io/internal"
 import { UList } from "atom.io/transceivers/u-list"
+import type * as Solid1 from "solid-js-1"
 
-vi.mock(`solid-js`, async () => import(`solid-js/dist/solid.js`))
+vi.mock(`solid-js`, async () => import(`solid-js-1/dist/solid.js`))
 
 const flush = async (): Promise<void> => {
 	await Promise.resolve()
@@ -83,7 +84,7 @@ const createButton = (
 }
 
 const loadSolidIntegration = async () => {
-	const Solid = await import(`solid-js`)
+	const Solid = (await import(`solid-js`)) as unknown as typeof Solid1
 	const AS = await import(`@atom.io/solid`)
 	return { AS, Solid }
 }

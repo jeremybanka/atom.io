@@ -32,19 +32,19 @@
 		"lint:types": "tsc && tsc -p __tests__/tsconfig.json",
 		"pack:breakage": "pnpm --reporter=silent pack --out .breakage/package.tgz",
 		"test:breakage:peers": "breakage npm check",
-		"test": "pnpm test:prepare:solid2 && vitest",
-		"test:once": "pnpm test:prepare:solid2 && vitest run --config vitest.dist.config.ts && pnpm test:consumer",
-		"test:once:public": "pnpm test:prepare:solid2 && vitest run --config vitest.public.config.ts",
+		"test": "vitest",
+		"test:once": "vitest run --config vitest.dist.config.ts && pnpm test:consumer",
+		"test:once:public": "vitest run --config vitest.public.config.ts",
 		"test:consumer": "node __tests__/fixtures/consumer/check.ts",
-		"cov": "pnpm test:prepare:solid2 && vitest run --config vitest.total-coverage.config.ts --coverage",
-		"cov:public": "pnpm test:prepare:solid2 && vitest run --config vitest.public-coverage.config.ts --coverage",
+		"cov": "vitest run --config vitest.total-coverage.config.ts --coverage",
+		"cov:public": "vitest run --config vitest.public-coverage.config.ts --coverage",
 		"cov:recoverage": "recoverage",
 		"readme:write": "galley write README.mdx",
-		"readme:check": "galley check README.mdx",
-		"test:prepare:solid2": "pnpm --dir peer-environments/coordinated-solid2 install --frozen-lockfile --ignore-scripts"
+		"readme:check": "galley check README.mdx"
 	},
 	"devDependencies": {
 		"@breakage/changesets": "0.1.0",
+		"@solidjs/signals": "2.0.0",
 		"@types/node": "26.6.6",
 		"@vitest/coverage-v8": "5.1.0",
 		"atom.io": "workspace:*",
@@ -53,13 +53,14 @@
 		"happy-dom": "21.0.4",
 		"recoverage": "0.1.20",
 		"solid-js": "2.0.0",
+		"solid-js-1": "npm:solid-js@1.9.19",
 		"tsdown": "0.23.7",
 		"typescript": "7.0.2",
 		"vitest": "5.1.0"
 	},
 	"peerDependencies": {
 		"atom.io": "^0.53.3 || ^0.54.0",
-		"solid-js": "^1.9.0 || 2.0.0-rc.21"
+		"solid-js": "^1.9.0 || ^2.0.0"
 	},
 	"publishConfig": {
 		"access": "public"

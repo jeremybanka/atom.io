@@ -10,8 +10,8 @@
 		"allowImportingTsExtensions": true,
 		"exactOptionalPropertyTypes": true,
 		"jsx": "preserve",
-		"jsxImportSource": "solid-js",
-		"types": ["vite/client", "lasertag/solid-jsx"]
+		"jsxImportSource": "@solidjs/web",
+		"types": ["vite/client"]
 	},
 	"include": ["src", "vite.config.ts"]
 }

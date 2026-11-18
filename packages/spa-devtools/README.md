@@ -63,26 +63,26 @@ The first four views inspect atoms, selectors, transactions, and timelines. Stat
 
 Transaction logs show parameters, output, and nested events. Timeline views group families, show event history and the current position, and provide store-scoped undo and redo. Logs use atom.io's introspection states: transaction recording starts when its log is first inspected, and introspection definitions live with the store.
 
-Ctrl+Shift+A shows or hides the debugger. Drag the header to move the window, or drag any edge or corner to resize it. During a drag, hover a layout target to preview its exact viewport bounds before releasing: left/right halves, left/center/right thirds, top/bottom halves, or full viewport. The window-size button (□), between minimize and close, offers the same targets by keyboard, plus Restore free position. Focus the move handle or a resize handle and use arrow keys for 10-pixel adjustments. Snapped windows start those adjustments from their visible bounds; arrows unrelated to a resize edge or blocked by the viewport leave the snap unchanged. Escape, pointer cancellation, or capture loss restores the pre-gesture geometry; hiding, minimizing, unmounting, or replacing the store cancels active work. The last free position and snap choice persist in localStorage when available, and geometry clamps to the current viewport, including narrow screens. Geometry updates leave focused editor inputs and incomplete numeric text intact. Visibility, minimization, selected view, and expanded editors persist in localStorage when available. Shift-click an expansion button to expand or collapse siblings. UI-owned state uses disposable atom family members; unmounting releases those members, DOM subscriptions, and keyboard/resize listeners.
+Ctrl+Shift+A shows or hides the debugger. Drag the header to move the window, or drag any edge or corner to resize it. During a drag, hover a layout target to preview its exact viewport bounds before releasing: left/right halves, left/center/right thirds, top/bottom halves, or full viewport. The window-size button (□), between minimize and close, offers the same targets by keyboard, plus Restore free position. Focus the logo’s move control or a resize handle and use arrow keys for 10-pixel adjustments. Snapped windows start those adjustments from their visible bounds; arrows unrelated to a resize edge or blocked by the viewport leave the snap unchanged. Escape, pointer cancellation, or capture loss restores the pre-gesture geometry; hiding, minimizing, unmounting, or replacing the store cancels active work. The last free position and snap choice persist in localStorage when available, and geometry clamps to the current viewport, including narrow screens. Geometry updates leave focused editor inputs and incomplete numeric text intact. Visibility, minimization, selected view, and expanded editors persist in localStorage when available. Shift-click an expansion button to expand or collapse siblings. UI-owned state uses disposable atom family members; unmounting releases those members, DOM subscriptions, and keyboard/resize listeners.
 
 For a shared debugger UI, React applications can migrate their AtomIODevtools and stylesheet imports to this package's React and CSS entries. The existing @atom.io/react-devtools package remains available, including its JSON editor, elastic input, error boundary and customization contracts; those contracts are not exposed by the shared debugger.
 
-The shared panel uses a static atom.io.fyi mark and a subtle noise texture, embedded in its stylesheet without animation or network requests. The view tabs have a separate row so window controls remain reachable; use Left/Right arrows or Home/End while a tab is focused, or scroll the tab strip in constrained windows. Editors retain 21–22 px rows. Keys, smaller type labels and values use consistent columns; long keys retain their full title. Text, numeric and property-name inputs grow with their contents. Numeric values align right within a nearby value column, borrowing key space for longer numbers; unfinished decimal text remains editable until blur. Opaque read-only values, including errors, can be focused and scrolled horizontally by keyboard or touch to read the full text. Transaction outcomes are indented beneath their labeled transaction, with changes nested one level further.
+The panel’s subtle noise texture is embedded in its stylesheet. The view tabs have a separate row so window controls remain reachable; use Left/Right arrows or Home/End while a tab is focused, or scroll the tab strip in constrained windows. Editors retain 21–22 px rows. Keys, smaller type labels and values use consistent columns; long keys retain their full title. Text, numeric and property-name inputs grow with their contents. Numeric values align right within a nearby value column, borrowing key space for longer numbers; unfinished decimal text remains editable until blur. Opaque read-only values, including errors, can be focused and scrolled horizontally by keyboard or touch to read the full text. Transaction outcomes are indented beneath their labeled transaction, with changes nested one level further.
 
 ## Surfaces and typography
 
-The stylesheet includes its own light/dark palette and Theia 0.3 fonts. It follows prefers-color-scheme. The shell and inactive tabs use explicit shades, active tabs and content use the normal surface, and search uses the first shade. Tint always means lighter and shade always means darker in both themes. The site's hard/soft aliases reverse with the theme; they are compatibility aliases, not drawer-depth numbers.
+The stylesheet includes its own light/dark palette and Theia 0.3 fonts. It follows prefers-color-scheme. The larger header logo replaces the separate grip while retaining pointer dragging and keyboard movement. The wordmark uses the site’s brand color. The shell and inactive tabs use explicit shades; active tabs flow into the content and search toolbars on the same normal surface, with no intervening border or shadow. Inactive tabs have a flat finish. State/history search results use the first shade. Tint always means lighter and shade always means darker in both themes. The site's hard/soft aliases reverse with the theme; they are compatibility aliases, not drawer-depth numbers.
 
-| Role                         | Token or rule                                                |
-| ---------------------------- | ------------------------------------------------------------ |
-| Shell and toolbar            | --surface-shell, mapped to --bg-shade-2                      |
-| Inactive tabs                | --surface-inactive, mapped to --bg-shade-1                   |
-| Active content               | --surface-content, mapped to --bg-color                      |
-| Search                       | --surface-search, mapped to --bg-shade-1                     |
-| Text and subdued text        | --ink and --ink-muted                                        |
-| Keyboard focus and selection | --accent, with contrasting selection ink                     |
-| Errors                       | --error-ink on --error-surface                               |
-| Disabled controls            | --ink-disabled, without reducing the whole control's opacity |
+| Role                                     | Token or rule                                                |
+| ---------------------------------------- | ------------------------------------------------------------ |
+| Shell and title bar                      | --surface-shell, mapped to --bg-shade-2                      |
+| Inactive tabs                            | --surface-inactive, mapped to --bg-shade-1                   |
+| Active tabs, content and search toolbars | --surface-content, mapped to --bg-color                      |
+| State/history search results             | --surface-search, mapped to --bg-shade-1                     |
+| Text and subdued text                    | --ink and --ink-muted                                        |
+| Keyboard focus and selection             | --accent, with contrasting selection ink                     |
+| Errors                                   | --error-ink on --error-surface                               |
+| Disabled controls                        | --ink-disabled, without reducing the whole control's opacity |
 
 Drawer headers use the first, second and third shade as actual JSON nesting increases. At the third shade, deeper drawers keep that tone and use indentation/borders to communicate further nesting. This bounded three-tone policy keeps deep structures readable in both themes. Root editor rows remain 22 px and nested rows 21 px. Window gestures, numeric drafts and elastic input sizing retain their existing behavior.
 
@@ -200,7 +200,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                        | Entry                         | Minified JS |   Gzip JS |
 | ----------------------------- | ----------------------------- | ----------: | --------: |
-| Interactive app with debugger | `tonnage-recipes/debugger.ts` |   919,584 B | 260,174 B |
+| Interactive app with debugger | `tonnage-recipes/debugger.ts` |   919,583 B | 260,172 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

@@ -4,7 +4,7 @@ ecology-toolbar.class {
 		align-items: flex-start;
 		gap: 4px;
 		padding: 4px;
-		background: var(--surface-search);
+		background: var(--surface-content);
 		border-bottom: 1px solid var(--line);
 	}
 	> ecology-actions {
@@ -34,7 +34,7 @@ ecology-toolbar.class {
 		height: 6px;
 		border-radius: 50%;
 		background: var(--accent);
-		box-shadow: 0 0 0 1px var(--surface-search);
+		box-shadow: 0 0 0 1px var(--surface-content);
 	}
 	@container atom-io-devtools (max-width: 650px) {
 		> button[data-action="search"] {

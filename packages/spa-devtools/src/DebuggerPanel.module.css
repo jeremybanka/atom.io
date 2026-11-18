@@ -42,7 +42,7 @@ debugger-panel.class {
 	}
 	> debugger-toolbar {
 		display: grid;
-		grid-template-columns: 18px minmax(0, 1fr) repeat(3, 24px);
+		grid-template-columns: 36px minmax(0, 1fr) repeat(3, 24px);
 		flex: 0 0 auto;
 		min-width: 0;
 		align-items: center;
@@ -52,16 +52,15 @@ debugger-panel.class {
 	> debugger-toolbar > h1 {
 		display: flex;
 		align-items: center;
-		gap: 5px;
 		font-size: 18px;
-		line-height: 26px;
+		line-height: 32px;
 		font-weight: 200;
+		color: var(--brand-color);
 		white-space: nowrap;
 		overflow: hidden;
 	}
 	> debugger-toolbar > button {
-		align-self: start;
-		margin-top: 2px;
+		align-self: center;
 	}
 	> debugger-toolbar > nav {
 		grid-column: 1 / -1;
@@ -71,11 +70,13 @@ debugger-panel.class {
 		align-items: flex-end;
 		min-width: 0;
 		overflow-x: auto;
-		scrollbar-width: thin;
+		scrollbar-width: none;
 		gap: 3px;
 		padding: 4px 4px 0;
-		background: var(--surface-shell);
-		box-shadow: inset 0 -1px 0 var(--ink-muted);
+		background:
+			linear-gradient(var(--ink-muted), var(--ink-muted)) bottom / 100% 1px
+			no-repeat,
+			var(--surface-shell);
 	}
 	> debugger-toolbar > nav > button {
 		position: relative;
@@ -89,7 +90,6 @@ debugger-panel.class {
 		border-radius: 8px 8px 0 0;
 		background: var(--surface-inactive);
 		color: var(--ink-muted);
-		box-shadow: inset 0 2px 3px #0003;
 	}
 	> debugger-toolbar > nav > button[aria-selected="true"] {
 		z-index: 1;
@@ -99,7 +99,6 @@ debugger-panel.class {
 		background: var(--surface-content);
 		border-color: var(--ink-muted);
 		border-bottom-color: var(--surface-content);
-		box-shadow: inset 0 1px 0 var(--line), 0 -2px 3px #0002;
 		font-weight: 500;
 	}
 	> debugger-content {
@@ -115,10 +114,13 @@ debugger-panel.class {
 		outline-offset: -2px;
 	}
 	> debugger-toolbar > [data-drag-handle] {
+		display: grid;
+		place-items: center;
+		width: 36px;
+		height: 32px;
+		padding: 0;
 		touch-action: none;
 		cursor: move;
-		min-width: 16px;
-		color: var(--ink-muted);
 	}
 	> [data-resize] {
 		position: absolute;

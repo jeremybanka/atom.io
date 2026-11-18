@@ -105,12 +105,9 @@ export function DebuggerPanel(props: {
 					aria-label="Move debugger"
 					title="Drag to move; arrow keys to nudge"
 				>
-					⠿
+					{getOpen() && !getHidden() && <BrandMark size={32} />}
 				</button>
-				<h1>
-					{getOpen() && !getHidden() && <BrandMark />}
-					atom.io
-				</h1>
+				<h1>atom.io</h1>
 				{getOpen() ? (
 					<nav role="tablist" aria-label="Debugger views">
 						{VIEWS.map((name) => (

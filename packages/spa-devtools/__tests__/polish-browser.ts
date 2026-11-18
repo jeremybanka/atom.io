@@ -167,6 +167,9 @@ async function checkVisualTreatment(
 					activeTop: a.top,
 					inactiveTop: b.top,
 					activeBottom: a.bottom,
+					contentTop: el
+						.querySelector(`debugger-content`)!
+						.getBoundingClientRect().top,
 					inactiveBottom: b.bottom,
 					radius: selected.borderTopLeftRadius,
 					activeFill: selected.backgroundColor,
@@ -191,8 +194,8 @@ async function checkVisualTreatment(
 			}
 		})
 	assert.notEqual(appearance.surfaces.shell, appearance.surfaces.content)
-	assert.notEqual(appearance.surfaces.search, appearance.surfaces.content)
-	assert.equal(appearance.surfaces.search, appearance.surfaces.inactive)
+	assert.equal(appearance.surfaces.search, appearance.surfaces.content)
+	assert.notEqual(appearance.surfaces.search, appearance.surfaces.inactive)
 	assert.equal(
 		appearance.surfaces.hard,
 		theme === `dark` ? appearance.surfaces.shade : appearance.surfaces.tint,
@@ -212,8 +215,11 @@ async function checkVisualTreatment(
 	)
 	assert.equal(appearance.tabs.activeBottomEdge, appearance.tabs.activeFill)
 	assert.equal(appearance.tabs.activeFill, appearance.tabs.panelFill)
+	assert.ok(
+		Math.abs(appearance.tabs.activeBottom - appearance.tabs.contentTop) < 1,
+	)
 	assert.ok(parseFloat(appearance.tabs.radius) >= 7)
-	assert.match(appearance.tabs.inactiveShadow, /inset/)
+	assert.equal(appearance.tabs.inactiveShadow, `none`)
 	const clip = await page.locator(`[data-index]`).evaluate((el: HTMLElement) => {
 		const r = el.getBoundingClientRect()
 		return { x: r.left + 16, y: r.bottom - 96, width: 80, height: 80 }

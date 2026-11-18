@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.0.60
+
+### Patch Changes
+
+- 0e5eb6a: Upgrade the lossless-numbers starter from Solid 1.9 to stable Solid 2, using @solidjs/web and @solidjs/vite-plugin. Use a neutral TypeScript 7 compiler alias so the starter installs with strict ESLint peer checks.
+- Updated dependencies [0e5eb6a]
+- Updated dependencies [c0579c1]
+  - atom.io@0.54.10
+  - @atom.io/solid@0.1.6
+
 ## 0.0.59
 
 ### Patch Changes

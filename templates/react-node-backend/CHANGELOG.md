@@ -1,5 +1,14 @@
 # @atom.io/template-react-node-backend
 
+## 0.0.108
+
+### Patch Changes
+
+- 6e2c5a2: Use typescript-compiler for TypeScript 7 builds in generated projects, avoiding typescript-eslint’s incompatible optional native-parser peer while retaining TypeScript 6 for linting.
+- Updated dependencies [0e5eb6a]
+  - atom.io@0.54.10
+  - @atom.io/react@0.2.1
+
 ## 0.0.107
 
 ### Patch Changes

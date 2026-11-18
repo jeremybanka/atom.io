@@ -1,5 +1,11 @@
 # atom.io
 
+## 0.54.10
+
+### Patch Changes
+
+- 0e5eb6a: Document Three.js line components, conditional Canvas rendering and renderer-creation error handling. Update Solid examples for the stable Solid 2 renderer and correct TypeScript 7 installation guidance for ESLint.
+
 ## 0.54.9
 
 ### Patch Changes

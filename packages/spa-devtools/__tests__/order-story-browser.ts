@@ -427,6 +427,21 @@ try {
 			(await frame.locator(`ecology-view`).getAttribute(`data-counts`))!,
 			/^95 atoms · 18 selectors/,
 		)
+		const uncachedRow = frame
+			.getByRole(`button`, {
+				name: /^Generate descriptiveOrderFulfillmentNote/,
+			})
+			.locator(`..`)
+		const overflow = await uncachedRow.evaluate((row) => {
+			const generate = row.querySelector<HTMLButtonElement>(
+				`button[aria-label^="Generate "]`,
+			)!
+			return {
+				row: row.scrollWidth > row.clientWidth,
+				generate: generate.scrollWidth > generate.clientWidth,
+			}
+		})
+		assert.deepEqual(overflow, { row: false, generate: false })
 		await page.screenshot({
 			path: resolve(activeProfile, `primary-to-order.png`),
 		})

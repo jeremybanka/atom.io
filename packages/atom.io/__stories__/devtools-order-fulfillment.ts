@@ -144,8 +144,9 @@ export function createOrderFulfillmentScenario(): OrderFulfillmentScenario {
 		default: { name: `Alex`, preferences: { receipt: `email` } },
 	})
 	app.atom<boolean>({ key: `giftWrap`, default: false })
+	// Keep a valid singleton key long enough to expose clipped editor actions.
 	app.atom<string>({
-		key: `A descriptive order note that stays discoverable in a narrow debugger`,
+		key: `descriptiveOrderFulfillmentNoteThatStaysDiscoverableInANarrowDebugger`,
 		default: `Leave at reception`,
 	})
 	const lazyAuditDefaultAtoms = app.atomFamily<number, string>({

@@ -1,7 +1,8 @@
 state-leaf.class {
 	display: block;
 	> node-heading {
-		display: flex;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto auto;
 		align-items: center;
 		min-height: 26px;
 		gap: 6px;
@@ -10,7 +11,6 @@ state-leaf.class {
 	}
 	> node-heading > span {
 		color: var(--ink-muted);
-		margin-left: auto;
 	}
 	&[data-grouped="true"] {
 		margin-left: 9px;

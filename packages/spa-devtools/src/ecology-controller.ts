@@ -19,7 +19,7 @@ export function createEcologyController(
 ): () => void {
 	const document = host.ownerDocument
 	host.className = `ecology`
-	host.innerHTML = `<section class="ecology-search"><form class="ecology-tools"><input type="search" aria-label="Search ecology" placeholder="Search keys, families, types"><button type="button" data-action="clear-query">Clear search</button><button type="button" data-action="refresh">Refresh</button><button type="button" data-action="clear">Clear selection</button><button type="button" data-action="fit">Fit</button><button type="button" data-action="reset">Reset view</button></form><p class="ecology-counts" role="status"></p><p class="ecology-notice"></p><p class="ecology-legend">□ atom · ⬡ selector · dashed group: family · arrows: dependency → dependent · blue: traced path</p><p class="ecology-search-status" role="status"></p><ol class="ecology-results" aria-label="ecology search results"></ol><section class="ecology-body"><section class="ecology-map"><nav aria-label="Graph navigation"><button type="button" data-action="left" aria-label="Pan left">←</button><button type="button" data-action="right" aria-label="Pan right">→</button><button type="button" data-action="up" aria-label="Pan up">↑</button><button type="button" data-action="down" aria-label="Pan down">↓</button><button type="button" data-action="in" aria-label="Zoom in">+</button><button type="button" data-action="out" aria-label="Zoom out">−</button></nav><svg role="group" aria-label="Observed dependency graph"></svg><details><summary>Accessible node list</summary><ul class="ecology-list"></ul></details></section><aside class="ecology-inspector" aria-label="Passive ecology inspector"></aside></section></section><section class="ecology-live-panel" hidden><header><span></span><button type="button" data-action="back">Back to passive inspector</button></header><section class="ecology-live"></section></section>`
+	host.innerHTML = `<section class="ecology-search"><form class="ecology-tools"><input type="search" aria-label="Search ecology" placeholder="Search keys, families, types"><button type="button" data-action="clear-query">Clear search</button><button type="button" data-action="refresh">Refresh</button><button type="button" data-action="clear">Clear selection</button><button type="button" data-action="fit">Fit</button><button type="button" data-action="reset">Reset view</button></form><p class="ecology-counts" role="status"></p><p class="ecology-notice"></p><p class="ecology-legend">□ atom · ⬡ selector · dashed group: family · arrows: dependency → dependent · blue: traced path</p><p class="ecology-search-status" role="status"></p><ol class="ecology-results" aria-label="ecology search results"></ol><nav class="ecology-workspace" aria-label="Ecology workspace"><button type="button" data-action="view-graph" aria-pressed="true">Graph</button><button type="button" data-action="view-list" aria-pressed="false">Node list</button><button type="button" data-action="view-selection" aria-pressed="false">Selection</button></nav><section class="ecology-body"><section class="ecology-map"><nav aria-label="Graph navigation"><button type="button" data-action="left" aria-label="Pan left">←</button><button type="button" data-action="right" aria-label="Pan right">→</button><button type="button" data-action="up" aria-label="Pan up">↑</button><button type="button" data-action="down" aria-label="Pan down">↓</button><button type="button" data-action="in" aria-label="Zoom in">+</button><button type="button" data-action="out" aria-label="Zoom out">−</button></nav><svg role="group" aria-label="Observed dependency graph"></svg><details><summary>Accessible node list</summary><ul class="ecology-list"></ul></details></section><aside class="ecology-inspector" aria-label="Passive ecology inspector"></aside></section></section><section class="ecology-live-panel" hidden><header><span></span><button type="button" data-action="back">Back to passive inspector</button></header><section class="ecology-live"></section></section>`
 	const input = host.querySelector(`input`)!
 	const panel = host.closest<HTMLElement>(`main`)!
 	const searchScope = host.querySelector<HTMLElement>(`.ecology-search`)!
@@ -51,9 +51,34 @@ export function createEcologyController(
 	const counts = host.querySelector<HTMLElement>(`.ecology-counts`)!
 	const notice = host.querySelector<HTMLElement>(`.ecology-notice`)!
 	const inspector = host.querySelector<HTMLElement>(`.ecology-inspector`)!
+	inspector.tabIndex = -1
 	const svg = host.querySelector<SVGSVGElement>(`svg`)!
 	const list = host.querySelector<HTMLElement>(`.ecology-list`)!
 	const marker = `ecology-arrow-${nextMarker++}`
+	const workspace = host.querySelector<HTMLElement>(`.ecology-workspace`)!
+	const map = host.querySelector<HTMLElement>(`.ecology-map`)!
+	map.id = `${marker}-map`
+	inspector.id = `${marker}-selection`
+	const compact = () => panel.clientWidth > 0 && panel.clientWidth <= 650
+	const workspaceView = (view: string) => {
+		host.dataset[`workspace`] = view
+		for (const control of workspace.querySelectorAll(`button`))
+			control.setAttribute(
+				`aria-pressed`,
+				String(control.dataset[`action`] === `view-${view}`),
+			)
+		if (view === `list`) map.querySelector(`details`)!.open = true
+	}
+	for (const control of workspace.querySelectorAll(`button`))
+		control.setAttribute(
+			`aria-controls`,
+			control.dataset[`action`] === `view-selection` ? inspector.id : map.id,
+		)
+	workspaceView(`graph`)
+	const focusSelection = () => {
+		workspaceView(`selection`)
+		inspector.querySelector<HTMLElement>(`h2`)!.focus()
+	}
 	// Reuse at most 500 visible card slots across filters of one immutable capture.
 	const cards: {
 		group: SVGElement
@@ -142,7 +167,9 @@ export function createEcologyController(
 			)
 			return
 		}
-		inspector.append(element(`h2`, selected.key), element(`p`, selected.detail))
+		const heading = element(`h2`, selected.key)
+		heading.tabIndex = -1
+		inspector.append(heading, element(`p`, selected.detail))
 		const source = selected.source
 		if (`memberKeys` in source) {
 			inspector.append(
@@ -188,6 +215,7 @@ export function createEcologyController(
 		for (const node of host.querySelectorAll<HTMLElement>(`[data-graph-id]`))
 			node.setAttribute(`aria-pressed`, String(node.dataset[`graphId`] === id))
 		passive()
+		if (!navigate && compact()) focusSelection()
 		if (navigate) {
 			reveal = id
 			project()
@@ -326,8 +354,11 @@ export function createEcologyController(
 				...list.querySelectorAll<HTMLButtonElement>(`button`),
 			].find((item) => item.dataset[`graphId`] === reveal)!
 			list.closest(`details`)!.open = true
-			target.focus()
-			target.scrollIntoView?.({ block: `nearest` })
+			if (compact()) focusSelection()
+			else {
+				target.focus()
+				target.scrollIntoView?.({ block: `nearest` })
+			}
 			reveal = undefined
 		} else if (
 			(focusId || focusAction) &&
@@ -474,6 +505,10 @@ export function createEcologyController(
 			refresh()
 			return
 		}
+		if (name.startsWith(`view-`)) {
+			workspaceView(name.slice(5))
+			return
+		}
 		if (name === `clear-query`) {
 			input.value = ``
 			search()
@@ -516,6 +551,10 @@ export function createEcologyController(
 		if (name === `back`) {
 			closeLive()
 			passive()
+			workspaceView(`selection`)
+			const target =
+				inspector.querySelector<HTMLElement>(`[data-action="live"]`) ?? inspector
+			target.focus()
 			return
 		}
 
@@ -586,7 +625,12 @@ export function createEcologyController(
 					session.returnFocus()
 					if (document.activeElement === input) origin?.focus()
 				}
-			} else if (results.contains(target) || list.contains(target)) input.focus()
+			} else if (
+				results.contains(target) ||
+				list.contains(target) ||
+				target === inspector.querySelector(`h2`)
+			)
+				input.focus()
 			else {
 				context.trace.clear()
 				context.traceStatus = `Not traced`

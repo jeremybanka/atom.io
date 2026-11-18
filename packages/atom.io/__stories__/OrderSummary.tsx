@@ -1,128 +1,204 @@
 import { useLoadable, useO } from "@atom.io/react"
 
+import { CartLine } from "./CartLine.tsx"
+import { CatalogItem } from "./CatalogItem.tsx"
 import type { OrderFulfillmentScenario } from "./devtools-order-fulfillment.ts"
 import css from "./OrderSummary.module.css"
 
-/** The application summary consumes ordinary state; the debugger never primes these reads. */
+/** Ordinary application reads establish the dependencies that the debugger observes. */
 export function OrderSummary({
 	scenario,
+	reset,
 }: {
 	scenario: OrderFulfillmentScenario
+	reset(): void
 }): React.JSX.Element {
-	const { state, derived, families, actions } = scenario
-	const mode = useO(state.mode)
-	const warehouse = useO(state.warehouse)
-	const cart = useO(state.cart)
-	const region = useO(state.region)
-	const total = useO(derived.total)
-	const available = useO(derived.available)
-	const quoteStatus = useO(state.quoteStatus)
+	const { state, derived, actions, families } = scenario
+	const mode = useO(state.mode),
+		warehouse = useO(state.warehouse)
+	const cart = useO(state.cart),
+		region = useO(state.region)
+	const total = useO(derived.total),
+		subtotal = useO(derived.subtotal)
+	const fee = useO(derived.fee),
+		available = useO(derived.available)
+	const coupon = useO(state.coupon),
+		quoteStatus = useO(state.quoteStatus)
 	const quote = useLoadable(families.quotes, region, 0)
 	return (
 		<order-summary
 			className={css.class}
-			role="region"
+			role="main"
 			aria-label="Order fulfillment application"
 		>
-			<h2>Order fulfillment</h2>
-			<p data-testid="order-summary">
-				{cart.length} cart lines · {available} available · $
-				{(total / 100).toFixed(2)} total · {mode} · {warehouse} warehouse
-			</p>
-			<action-row>
+			<store-intro>
+				<p>THE CORNER PANTRY</p>
+				<h1>A little everyday good.</h1>
+				<p>Tea, coffee and things worth keeping. Pack a cart from the pantry.</p>
+			</store-intro>
+			<section aria-label="Fulfillment options">
+				<h2>Make it yours</h2>
+				<fieldset>
+					<legend>Fulfillment</legend>
+					<button
+						type="button"
+						aria-pressed={mode === `delivery`}
+						onClick={() => {
+							actions.fulfillment(`delivery`)
+						}}
+					>
+						Use delivery
+					</button>
+					<button
+						type="button"
+						aria-pressed={mode === `pickup`}
+						onClick={() => {
+							actions.fulfillment(`pickup`)
+						}}
+					>
+						Use pickup
+					</button>
+				</fieldset>
+				<p>
+					{mode === `delivery`
+						? `Delivery to ${region} · $${(fee / 100).toFixed(2)} fee`
+						: `Pickup at north store · $${(fee / 100).toFixed(2)} fee`}
+				</p>
+				<fieldset>
+					<legend>Stock warehouse</legend>
+					{[`north`, `south`].map((name) => (
+						<button
+							key={name}
+							type="button"
+							aria-pressed={warehouse === name}
+							onClick={() => {
+								actions.warehouse(name)
+							}}
+						>
+							Use {name} warehouse
+						</button>
+					))}
+				</fieldset>
+				<p>
+					Availability uses {warehouse} stock and the quantity in your cart.
+					Unavailable lines stay in the cart so you can try another warehouse.
+				</p>
+			</section>
+			<section aria-label="Your cart">
+				<h2>
+					Your cart <span>{cart.length} lines</span>
+				</h2>
+				<ul>
+					{cart.map((sku) => (
+						<CartLine key={sku} scenario={scenario} sku={sku} />
+					))}
+				</ul>
+				{cart.length === 0 && (
+					<p>Your cart is empty. Find something in the catalog below.</p>
+				)}
+				<dl>
+					<dt>Subtotal</dt>
+					<dd>${(subtotal / 100).toFixed(2)}</dd>
+					<dt>{mode === `delivery` ? `Delivery` : `Pickup`}</dt>
+					<dd>${(fee / 100).toFixed(2)}</dd>
+					<dt>Discount {coupon === `PANTRY10` ? `· PANTRY10` : ``}</dt>
+					<dd>−${((subtotal + fee - total) / 100).toFixed(2)}</dd>
+					<dt>Total</dt>
+					<dd aria-label="Order total">${(total / 100).toFixed(2)}</dd>
+				</dl>
 				<button
 					type="button"
 					onClick={() => {
-						actions.fulfillment(mode === `delivery` ? `pickup` : `delivery`)
+						actions.coupon(coupon === `PANTRY10` ? null : `PANTRY10`)
 					}}
 				>
-					Use {mode === `delivery` ? `pickup` : `delivery`}
+					{coupon === `PANTRY10` ? `Remove PANTRY10` : `Apply PANTRY10`}
 				</button>
-				<button
-					type="button"
-					onClick={() => {
-						actions.warehouse(warehouse === `north` ? `south` : `north`)
-					}}
-				>
-					Use {warehouse === `north` ? `south` : `north`} warehouse
-				</button>
-				<button type="button" onClick={actions.addTea}>
-					Add oolong tea
-				</button>
-				<button type="button" onClick={actions.removeTea}>
-					Remove oolong tea
-				</button>
-				<button
-					type="button"
-					onClick={() => {
-						actions.quantity(`tea-green`, 2)
-					}}
-				>
-					Two green teas
-				</button>
-				<button
-					type="button"
-					onClick={() => {
-						actions.coupon(`PANTRY10`)
-					}}
-				>
-					Apply PANTRY10
-				</button>
-				<button type="button" onClick={actions.undo}>
-					Undo cart
-				</button>
-				<button type="button" onClick={actions.redo}>
-					Redo cart
-				</button>
-			</action-row>
-			<p>
-				Carrier quote:{` `}
-				<output aria-label="Carrier quote status" data-status={quoteStatus}>
-					{quoteStatus}
-				</output>
-				{` `}
-				{quote.error
-					? `Carrier quote unavailable`
-					: quote.loading
-						? `waiting for carrier`
-						: typeof quote.value === `number`
-							? `$${(quote.value / 100).toFixed(2)}`
-							: `Carrier quote unavailable`}
-			</p>
-			<action-row>
-				<button type="button" onClick={actions.requestQuote}>
-					Request quote
-				</button>
-				<button
-					type="button"
-					disabled={quoteStatus !== `pending`}
-					onClick={actions.resolveQuote}
-				>
-					Resolve quote
-				</button>
-				<button
-					type="button"
-					disabled={quoteStatus !== `pending`}
-					onClick={actions.rejectQuote}
-				>
-					Reject quote
-				</button>
-			</action-row>
-			<p>
-				Open ecology, select checkoutTotalCents and trace its observed roots.
-				After switching fulfillment or warehouse, use Refresh and trace again.
-				The app summary establishes the real dependencies.
-			</p>
-			<p>
-				Quotes have application-owned pending/error states. Passive ecology
-				reports cached types or unknown, not inferred promise outcomes. Open
-				Transactions before running actions to begin recording outcomes.
-			</p>
-			<p>
-				Catalog: {scenario.skus.length} products, two warehouses, six initial
-				cart lines. The seasonal promotion and lazy audit remain unconsumed; the
-				wishlist family starts empty.
-			</p>
+				<action-row>
+					<button type="button" onClick={actions.undo}>
+						Undo cart
+					</button>
+					<button type="button" onClick={actions.redo}>
+						Redo cart
+					</button>
+				</action-row>
+				<p role="status" data-testid="order-summary">
+					{cart.length} cart lines · {available} available · $
+					{(total / 100).toFixed(2)} total · {mode} · {warehouse} warehouse
+				</p>
+			</section>
+			<section aria-label="Pantry catalog">
+				<h2>
+					On the shelves <span>{scenario.skus.length} products</span>
+				</h2>
+				<ul>
+					{scenario.skus.map((sku) => (
+						<CatalogItem
+							key={sku}
+							scenario={scenario}
+							sku={sku}
+							inCart={cart.includes(sku)}
+							warehouse={warehouse}
+						/>
+					))}
+				</ul>
+			</section>
+			<details>
+				<summary>Scenario controls</summary>
+				<p>
+					Try a carrier response. Quotes are separate from the fulfillment fee
+					above; no order is placed.
+				</p>
+				<p>
+					Carrier quote:{` `}
+					<output aria-label="Carrier quote status" data-status={quoteStatus}>
+						{quoteStatus}
+					</output>
+					{` · `}
+					{quote.error
+						? `Carrier quote unavailable`
+						: quote.loading
+							? `waiting for carrier`
+							: typeof quote.value === `number`
+								? `$${(quote.value / 100).toFixed(2)}`
+								: `Carrier quote unavailable`}
+				</p>
+				<action-row>
+					<button type="button" onClick={actions.requestQuote}>
+						Request quote
+					</button>
+					<button
+						type="button"
+						disabled={quoteStatus !== `pending`}
+						onClick={actions.resolveQuote}
+					>
+						Resolve quote
+					</button>
+					<button
+						type="button"
+						disabled={quoteStatus !== `pending`}
+						onClick={actions.rejectQuote}
+					>
+						Reject quote
+					</button>
+					<button type="button" onClick={reset}>
+						Reset order scenario
+					</button>
+				</action-row>
+				<p>
+					Show or hide the debugger with Ctrl+Shift+A. Its × button hides it so
+					you can browse the page. In ecology, select checkoutTotalCents and
+					trace its observed roots. After changing fulfillment or warehouse,
+					Refresh and trace again. The storefront establishes dependencies
+					through real reads; passive inspection leaves seasonalPromotion,
+					lazyAuditDefault and the empty wishlist untouched.
+				</p>
+				<p>
+					Open Transactions before running actions to record outcomes. Quote
+					pending/error states belong to the app; ecology reports cached types or
+					unknown.
+				</p>
+			</details>
 		</order-summary>
 	)
 }

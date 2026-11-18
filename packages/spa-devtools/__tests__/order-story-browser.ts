@@ -116,7 +116,7 @@ try {
 		page.on(`response`, (response) => {
 			if (
 				response.status() >= 400 &&
-				/\.(?:js|css|woff2?|png|svg)(?:\?|$)/.test(response.url())
+				/\.(?:js|css|woff2?|otf|png|svg)(?:\?|$)/.test(response.url())
 			)
 				assetFailures.push({ url: response.url(), status: response.status() })
 		})
@@ -132,18 +132,38 @@ try {
 		}))
 		assert.equal(layout.debuggerDocument, true)
 		assert.equal(layout.overflow, false)
-		const drawer = page.locator(`order-fulfillment > details`)
-		const controls = async (open: boolean) => {
-			if (
-				(await drawer.evaluate(
-					(element: HTMLDetailsElement) => element.open,
-				)) !== open
-			)
-				await drawer.locator(`summary`).click()
+		assert.equal(
+			await page
+				.getByRole(`main`, { name: `Order fulfillment application` })
+				.count(),
+			1,
+		)
+		assert.equal(await page.locator(`order-fulfillment > details`).count(), 0)
+		assert.equal(
+			await page
+				.locator(`order-fulfillment`)
+				.evaluate((node) => getComputedStyle(node).zIndex),
+			`auto`,
+		)
+		const storefront = page.locator(`order-summary`)
+		const debuggerVisible = async (visible: boolean) => {
+			if ((await page.getByTestId(`atom-io-devtools`).isVisible()) !== visible) {
+				if (visible) await page.keyboard.press(`Control+Shift+A`)
+				else
+					await page
+						.getByRole(`button`, {
+							name: `Hide debugger (Ctrl+Shift+A)`,
+							exact: true,
+						})
+						.click()
+			}
 		}
 		const checkControls = async () => {
-			await controls(true)
-			for (const button of await drawer.locator(`button`).all()) {
+			await debuggerVisible(false)
+			const secondary = storefront.locator(`:scope > details`)
+			if (!(await secondary.evaluate((node: HTMLDetailsElement) => node.open)))
+				await secondary.locator(`:scope > summary`).click()
+			for (const button of await storefront.locator(`button`).all()) {
 				await button.scrollIntoViewIfNeeded()
 				assert.equal(
 					await button.evaluate((element) => {
@@ -161,9 +181,124 @@ try {
 					true,
 				)
 			}
-			await controls(false)
+			await debuggerVisible(true)
 		}
 		await checkControls()
+		for (const colorScheme of [`light`, `dark`] as const) {
+			await page.emulateMedia({ colorScheme })
+			await debuggerVisible(false)
+			await page.evaluate(async () => {
+				await document.fonts.ready
+			})
+			await storefront.locator(`:scope > store-intro`).scrollIntoViewIfNeeded()
+			await page.screenshot({
+				path: resolve(activeProfile, `${colorScheme}-storefront.png`),
+			})
+			await storefront
+				.getByRole(`heading`, { name: /^Your cart/ })
+				.evaluate((node) => {
+					node.scrollIntoView({ block: `start` })
+				})
+			await page.screenshot({
+				path: resolve(activeProfile, `${colorScheme}-cart.png`),
+			})
+			await storefront
+				.getByLabel(`Order total`, { exact: true })
+				.evaluate((node) => {
+					node.scrollIntoView({ block: `center` })
+				})
+			await page.screenshot({
+				path: resolve(activeProfile, `${colorScheme}-cart-total.png`),
+			})
+			await storefront
+				.getByRole(`heading`, { name: /^On the shelves/ })
+				.evaluate((node) => {
+					node.scrollIntoView({ block: `start` })
+				})
+			await page.screenshot({
+				path: resolve(activeProfile, `${colorScheme}-catalog.png`),
+			})
+			assert.equal(
+				await storefront.evaluate((node) => node.scrollWidth > node.clientWidth),
+				false,
+			)
+			await debuggerVisible(true)
+		}
+		const ecology = page.getByTestId(`ecology-view`)
+		const ready = () =>
+			page.waitForFunction(
+				() =>
+					document.querySelector<HTMLElement>(`.ecology`)?.dataset[`ready`] ===
+					`true`,
+			)
+		const snapshot = await ecology.getAttribute(`data-snapshot-ms`)
+		await ecology.getByRole(`button`, { name: `Graph`, exact: true }).click()
+		assert.equal(await ecology.locator(`svg`).isVisible(), true)
+		await ecology.getByRole(`button`, { name: `Node list`, exact: true }).click()
+		assert.equal(await ecology.locator(`svg`).isVisible(), false)
+		const input = ecology.getByRole(`searchbox`, { name: `Search ecology` })
+		await input.fill(`cartQuantityBySku("tea-green")`)
+		await ready()
+		await ecology
+			.locator(`.ecology-results button`)
+			.filter({ hasText: `cartQuantityBySku("tea-green")` })
+			.first()
+			.click()
+		await ready()
+		assert.equal(await ecology.getAttribute(`data-workspace`), `selection`)
+		await ecology
+			.getByRole(`button`, {
+				name: `Open live editor (may read/evaluate)`,
+				exact: true,
+			})
+			.click()
+		const editor = ecology.locator(`.ecology-live input[inputmode="decimal"]`)
+		await editor.fill(`2e`)
+		const summary = await page.getByTestId(`order-summary`).textContent()
+		for (const name of [`Graph`, `Node list`, `Selection`]) {
+			await ecology.getByRole(`button`, { name, exact: true }).click()
+			assert.equal(await editor.inputValue(), `2e`)
+		}
+		await input.fill(`availability`)
+		await ready()
+		assert.equal(await page.getByTestId(`order-summary`).textContent(), summary)
+		await input.press(`Escape`)
+		await ready()
+		await input.press(`Escape`)
+		assert.equal(
+			await editor.evaluate((node) => node === document.activeElement),
+			true,
+		)
+		assert.equal(await editor.inputValue(), `2e`)
+		assert.equal(await ecology.getAttribute(`data-snapshot-ms`), snapshot)
+		await ecology.getByRole(`button`, { name: `Graph`, exact: true }).click()
+		await ecology
+			.getByRole(`button`, { name: `Back to passive inspector`, exact: true })
+			.click()
+		assert.equal(
+			await ecology
+				.getByRole(`button`, {
+					name: `Open live editor (may read/evaluate)`,
+					exact: true,
+				})
+				.evaluate((node) => node === document.activeElement),
+			true,
+		)
+		for (const colorScheme of [`light`, `dark`] as const) {
+			await page.emulateMedia({ colorScheme })
+			await page.screenshot({
+				path: resolve(activeProfile, `${colorScheme}-selection.png`),
+			})
+			await ecology
+				.getByRole(`button`, { name: `Node list`, exact: true })
+				.click()
+			await page.screenshot({
+				path: resolve(activeProfile, `${colorScheme}-node-list.png`),
+			})
+			await ecology
+				.getByRole(`button`, { name: `Selection`, exact: true })
+				.click()
+		}
 		await page.screenshot({ path: resolve(activeProfile, `story-layout.png`) })
 		// Real pointer capture and viewport geometry are built-output integration checks.
 		const panel = page.getByTestId(`atom-io-devtools`)
@@ -211,7 +346,6 @@ try {
 		await checkControls()
 		await page.screenshot({
 			path: resolve(activeProfile, `full-snap-controls.png`),
-			fullPage: true,
 		})
 
 		// Static MDX/docgen is outside the Vitest addon's story transformation.
@@ -262,13 +396,14 @@ try {
 			.getByRole(`button`, { name: `Dismiss notification`, exact: true })
 			.all())
 			if (await dismiss.isVisible()) await dismiss.click()
-		const managerDrawer = frame.locator(`order-fulfillment > details`)
+		await frame
+			.getByRole(`button`, { name: `Hide debugger (Ctrl+Shift+A)`, exact: true })
+			.click()
+		const managerSecondary = frame.locator(`order-summary > details`)
 		if (
-			!(await managerDrawer.evaluate(
-				(element: HTMLDetailsElement) => element.open,
-			))
+			!(await managerSecondary.evaluate((node: HTMLDetailsElement) => node.open))
 		)
-			await managerDrawer.locator(`summary`).click()
+			await managerSecondary.locator(`:scope > summary`).click()
 		const previousPanel = await frame
 			.getByTestId(`atom-io-devtools`)
 			.elementHandle()
@@ -277,6 +412,7 @@ try {
 			.getByRole(`button`, { name: `Reset order scenario`, exact: true })
 			.click()
 		await frame.waitForFunction((element) => !element.isConnected, previousPanel)
+		await frame.locator(`body`).press(`Control+Shift+A`)
 		await frame.waitForFunction(
 			() =>
 				document.querySelector<HTMLElement>(`[data-testid="ecology-view"]`)

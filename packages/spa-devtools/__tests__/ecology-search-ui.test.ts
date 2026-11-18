@@ -67,6 +67,62 @@ async function setup() {
 	return { app, countAtom, itemsAtoms, host, input, button, query, key, select }
 }
 
+it(`switches compact graph, list and selection without replacing the live draft or capture`, async () => {
+	const f = await setup()
+	const panel = f.host.querySelector<HTMLElement>(`main`)!
+	const width = vi.spyOn(panel, `clientWidth`, `get`).mockReturnValue(500)
+	const graph = f.host.querySelector<HTMLElement>(`.ecology`)!
+	const captured = graph.dataset[`snapshotMs`]
+	await f.select(`state:count`)
+	expect(graph.dataset[`workspace`]).toBe(`selection`)
+	expect(document.activeElement).toBe(
+		f.host.querySelector(`.ecology-inspector h2`),
+	)
+	f.button(`Open live editor (may read/evaluate)`).click()
+	const editor = f.host.querySelector<HTMLInputElement>(`.ecology-live input`)!
+	editor.focus()
+	editor.value = `2e`
+	editor.dispatchEvent(new Event(`input`, { bubbles: true }))
+	for (const view of [`Node list`, `Graph`, `Selection`]) {
+		f.button(view).focus()
+		f.button(view).click()
+		expect(f.button(view).getAttribute(`aria-pressed`)).toBe(`true`)
+		expect(f.host.querySelector(`.ecology-live input`)).toBe(editor)
+		expect(editor.value).toBe(`2e`)
+	}
+	expect(
+		f.host.querySelector<HTMLDetailsElement>(`.ecology-map details`)!.open,
+	).toBe(true)
+	await f.query(`green tea`)
+	f.host.querySelector<HTMLButtonElement>(`.ecology-results button`)!.click()
+	await settle()
+	expect(graph.dataset[`workspace`]).toBe(`selection`)
+	expect(document.activeElement).toBe(
+		f.host.querySelector(`.ecology-inspector h2`),
+	)
+	expect(editor.value).toBe(`2e`)
+	await f.key(document.activeElement!, `Escape`)
+	expect(document.activeElement).toBe(f.input())
+	expect(f.app.getState(f.countAtom)).toBe(2)
+	expect(graph.dataset[`snapshotMs`]).toBe(captured)
+	f.button(`Graph`).click()
+	f.button(`Back to passive inspector`).click()
+	expect(graph.dataset[`workspace`]).toBe(`selection`)
+	expect(document.activeElement).toBe(
+		f.button(`Open live editor (may read/evaluate)`),
+	)
+	width.mockReturnValue(900)
+	await f.query(`count`)
+	f.host.querySelector<HTMLButtonElement>(`.ecology-results button`)!.click()
+	await settle()
+	expect(document.activeElement?.closest(`.ecology-list`)).not.toBeNull()
+	f.button(`Open live editor (may read/evaluate)`).click()
+	f.button(`Clear selection`).click()
+	await settle()
+	f.button(`Back to passive inspector`).click()
+	expect(document.activeElement).toBe(f.host.querySelector(`.ecology-inspector`))
+})
+
 it(`navigates ranked matches inside collapsed families while preserving pan, expansion and same-node tracing`, async () => {
 	const f = await setup()
 	f.button(`Pan right`).click()

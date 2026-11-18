@@ -156,6 +156,8 @@ const LASERTAG_TSX: Linter.Config = {
 		`apps/atom.io.fyi/src/**/*.tsx`,
 		`packages/atom.io/__stories__/OrderFulfillment.tsx`,
 		`packages/atom.io/__stories__/OrderSummary.tsx`,
+		`packages/atom.io/__stories__/CatalogItem.tsx`,
+		`packages/atom.io/__stories__/CartLine.tsx`,
 	],
 	ignores: [],
 	plugins: { lasertag: LasertagPlugin },

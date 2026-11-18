@@ -82,6 +82,7 @@
 	}
 }
 main[data-css="spa-devtools"] {
+	container: atom-io-devtools / inline-size;
 	position: fixed;
 	z-index: 10000;
 	left: max(0px, calc(100vw - 500px));
@@ -486,18 +487,6 @@ main[data-css="spa-devtools"] {
 		.toolbar nav button {
 			font-size: 12px;
 			padding: 0 4px;
-		}
-		.ecology-body {
-			grid-template-columns: minmax(0, 1fr);
-			overflow: auto;
-		}
-		.ecology-map {
-			min-height: 220px;
-		}
-		.ecology-inspector {
-			border-left: 0;
-			border-top: 1px solid var(--line);
-			max-height: 220px;
 		}
 	}
 	.index > p {
@@ -914,4 +903,76 @@ main[data-css="spa-devtools"] {
 main[data-css="spa-devtools"] .ecology-live-panel > header > span {
 	min-width: 0;
 	overflow-wrap: anywhere;
+}
+
+main[data-css="spa-devtools"] .ecology-workspace {
+	display: none;
+}
+@container atom-io-devtools (max-width: 650px) {
+	main[data-css="spa-devtools"] {
+		.ecology-workspace {
+			display: flex;
+			flex-shrink: 0;
+			gap: 4px;
+			padding: 5px;
+			background: var(--surface-shell);
+			border-bottom: 1px solid var(--line);
+			> button {
+				flex: 1;
+				min-height: 30px;
+			}
+			> button[aria-pressed="true"] {
+				background: var(--surface-content);
+				box-shadow: inset 0 -2px var(--accent);
+				font-weight: 500;
+			}
+		}
+		.ecology-body {
+			display: flex;
+			overflow: auto;
+			min-height: 160px;
+		}
+		.ecology-map {
+			flex: 1;
+			min-height: 160px;
+		}
+		.ecology-inspector {
+			flex: 1;
+			border-left: 0;
+		}
+		.ecology[data-workspace="selection"] .ecology-map,
+		.ecology:not([data-workspace="selection"]) .ecology-inspector,
+		.ecology[data-workspace="graph"] .ecology-map > details,
+		.ecology[data-workspace="list"] .ecology-map > svg,
+		.ecology[data-workspace="list"] .ecology-map > nav,
+		.ecology[data-workspace="list"] .ecology-map > details > summary {
+			display: none;
+		}
+		.ecology[data-workspace="list"] .ecology-map > details {
+			max-height: none;
+			flex: 1;
+		}
+		.ecology-list button {
+			min-height: 32px;
+			white-space: normal;
+			overflow-wrap: anywhere;
+		}
+		.ecology-inspector > button {
+			min-height: 32px;
+		}
+		.ecology-counts, .ecology-notice, .ecology-legend, .ecology-search-status {
+			font-size: 10px;
+			line-height: 13px;
+			padding: 3px 5px;
+		}
+		.ecology-tools button {
+			min-height: 28px;
+		}
+		.ecology-search {
+			overflow: auto;
+		}
+		.ecology-results {
+			max-height: 80px;
+		}
+	}
 }

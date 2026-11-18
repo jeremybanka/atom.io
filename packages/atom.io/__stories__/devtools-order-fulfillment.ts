@@ -7,6 +7,7 @@ import type {
 	TimelineToken,
 } from "atom.io"
 import { Silo } from "atom.io"
+import { seekInStore } from "atom.io/internal"
 
 export interface CatalogProduct {
 	title: string
@@ -49,8 +50,8 @@ export interface OrderFulfillmentScenario {
 		warehouse(name: string): void
 		quantity(sku: string, amount: number): void
 		coupon(code: string | null): void
-		addTea(): void
-		removeTea(): void
+		add(sku: string): void
+		remove(sku: string): void
 		requestQuote(): void
 		resolveQuote(): void
 		rejectQuote(): void
@@ -270,24 +271,23 @@ export function createOrderFulfillmentScenario(): OrderFulfillmentScenario {
 			set(couponAtom, code)
 		},
 	})
-	const tea = `tea-oolong`
-	const addCartLineTransaction = app.transaction<() => void>({
+	const addCartLineTransaction = app.transaction<(sku: string) => void>({
 		key: `addCartLine`,
-		do: ({ get, set }) => {
-			if (get(cartSkuListAtom).includes(tea)) return
-			set(cartQuantityBySkuAtoms, tea, 1)
-			set(cartSkuListAtom, [...get(cartSkuListAtom), tea])
+		do: ({ get, set }, sku) => {
+			if (!skus.includes(sku) || get(cartSkuListAtom).includes(sku)) return
+			set(cartQuantityBySkuAtoms, sku, 1)
+			set(cartSkuListAtom, [...get(cartSkuListAtom), sku])
 		},
 	})
-	const removeCartLineTransaction = app.transaction<() => void>({
+	const removeCartLineTransaction = app.transaction<(sku: string) => void>({
 		key: `removeCartLine`,
-		do: ({ get, set, dispose }) => {
-			if (!get(cartSkuListAtom).includes(tea)) return
+		do: ({ get, set, dispose }, sku) => {
+			if (!get(cartSkuListAtom).includes(sku)) return
 			set(
 				cartSkuListAtom,
-				get(cartSkuListAtom).filter((sku) => sku !== tea),
+				get(cartSkuListAtom).filter((key) => key !== sku),
 			)
-			dispose(cartQuantityBySkuAtoms, tea)
+			dispose(cartQuantityBySkuAtoms, sku)
 		},
 	})
 	const cartHistoryTimeline = app.timeline({
@@ -342,15 +342,21 @@ export function createOrderFulfillmentScenario(): OrderFulfillmentScenario {
 			coupon: (code) => {
 				app.runTransaction(applyCouponTransaction)(code)
 			},
-			addTea: () => {
-				app.runTransaction(addCartLineTransaction)()
+			add: (sku) => {
+				app.runTransaction(addCartLineTransaction)(sku)
 			},
-			removeTea: () => {
-				const existed = app.getState(cartSkuListAtom).includes(tea)
-				app.runTransaction(removeCartLineTransaction)()
+			remove: (sku) => {
+				const existed = app.getState(cartSkuListAtom).includes(sku)
+				app.runTransaction(removeCartLineTransaction)(sku)
 				if (existed) {
-					app.disposeState(lineTotalBySkuSelectors, tea)
-					app.disposeState(availabilityBySkuSelectors, tea)
+					const line = seekInStore(app.store, lineTotalBySkuSelectors, sku)
+					const availability = seekInStore(
+						app.store,
+						availabilityBySkuSelectors,
+						sku,
+					)
+					if (line) app.disposeState(line)
+					if (availability) app.disposeState(availability)
 				}
 			},
 			requestQuote: () => {

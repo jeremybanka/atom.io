@@ -1,47 +1,149 @@
 order-summary.class {
-	display: block;
-	padding: 16px;
-	max-width: 700px;
+	display: grid;
+	gap: 24px;
+	padding: clamp(16px, 3vw, 36px);
 	color: var(--ink);
 	background: var(--surface-content);
-	> h2 {
-		margin: 0 0 8px;
-		font-size: 22px;
-		font-weight: 200;
-	}
-	> p {
-		margin: 8px 0;
-		> output {
-			font-weight: 500;
+	> store-intro {
+		padding: 24px 0;
+		border-bottom: 1px solid var(--line);
+		> h1 {
+			margin: 8px 0;
+			font-size: clamp(28px, 4vw, 48px);
+			line-height: 1.1;
+			font-weight: 200;
 		}
-		> output[data-status="error"] {
-			color: var(--error-ink);
-			background: var(--error-surface);
-		}
-		> output[data-status="pending"] {
-			color: var(--accent);
+		> p {
+			margin: 8px 0;
+			color: var(--ink-muted);
 		}
 	}
-	> action-row {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 8px;
-		> button {
+	> section {
+		min-width: 0;
+		> h2 {
+			margin: 0 0 12px;
+			font-size: 24px;
+			font-weight: 200;
+			> span {
+				font-size: 12px;
+				font-weight: 400;
+				color: var(--ink-muted);
+			}
+		}
+		> p {
+			margin: 8px 0;
+		}
+		> fieldset {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 8px;
+			border: 0;
+			padding: 0;
+			> legend {
+				padding: 0;
+				margin-bottom: 6px;
+				font-weight: 500;
+			}
+		}
+		> ul {
+			display: grid;
+			gap: 10px;
+			padding: 0;
+			list-style: none;
+		}
+		&[aria-label="Pantry catalog"] > ul {
+			grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+		}
+		> dl {
+			display: grid;
+			grid-template-columns: minmax(0, 1fr) auto;
+			column-gap: 16px;
+			margin: 16px 0;
+			> dt, > dd {
+				padding: 4px 0;
+				margin: 0;
+			}
+			> dd {
+				text-align: right;
+			}
+			> dt:last-of-type, > dd:last-of-type {
+				margin-top: 6px;
+				border-top: 1px solid var(--line-strong);
+				font-weight: 500;
+				font-size: 20px;
+			}
+		}
+		> action-row {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 8px;
+			margin-top: 8px;
+		}
+		> button, > fieldset > button, > action-row > button {
 			font: inherit;
+			padding: 8px 12px;
+			min-height: 40px;
+			border: 1px solid var(--line);
 			color: var(--ink);
 			background: var(--surface-inactive);
-			border: 1px solid var(--line);
-			padding: 2px 6px;
 			&:hover {
 				background: var(--surface-hover);
+			}
+			&[aria-pressed="true"] {
+				border-color: var(--accent);
+				box-shadow: inset 0 -2px var(--accent);
+				font-weight: 500;
 			}
 			&:focus-visible {
 				outline: 2px solid var(--accent);
 				outline-offset: 2px;
 			}
-			&:disabled {
-				color: var(--ink-disabled);
-				cursor: default;
+		}
+		> p[data-testid="order-summary"] {
+			font-size: 12px;
+			color: var(--ink-muted);
+		}
+	}
+	> details {
+		padding: 16px;
+		background: var(--surface-shell);
+		border: 1px solid var(--line);
+		> summary {
+			cursor: pointer;
+			font-weight: 500;
+		}
+		> p {
+			margin: 12px 0;
+			overflow-wrap: anywhere;
+			> output {
+				font-weight: 500;
+			}
+			> output[data-status="error"] {
+				color: var(--error-ink);
+				background: var(--error-surface);
+			}
+			> output[data-status="pending"] {
+				color: var(--accent);
+			}
+		}
+		> action-row {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 8px;
+			> button {
+				font: inherit;
+				padding: 8px;
+				min-height: 40px;
+				border: 1px solid var(--line);
+				color: var(--ink);
+				background: var(--surface-inactive);
+				&:focus-visible {
+					outline: 2px solid var(--accent);
+					outline-offset: 2px;
+				}
+				&:disabled {
+					color: var(--ink-disabled);
+				}
 			}
 		}
 	}

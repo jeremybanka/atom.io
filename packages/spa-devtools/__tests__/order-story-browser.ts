@@ -42,6 +42,11 @@ const types: Record<string, string> = {
 }
 const server = createServer(async (req, res) => {
 	const pathname = new URL(req.url ?? `/`, `http://localhost`).pathname
+	// Chrome requests the conventional favicon before Storybook's manager mounts.
+	if (pathname === `/favicon.ico`) {
+		res.writeHead(302, { Location: `/favicon.svg` }).end()
+		return
+	}
 	const path = resolve(
 		storybook,
 		`.${decodeURIComponent(pathname === `/` ? `/index.html` : pathname)}`,

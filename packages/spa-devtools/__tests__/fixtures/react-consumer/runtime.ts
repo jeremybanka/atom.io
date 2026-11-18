@@ -43,6 +43,7 @@ await test(`packed React debugger survives StrictMode and switches provider and 
 		window,
 		document: window.document,
 		localStorage: window.localStorage,
+		getComputedStyle: window.getComputedStyle.bind(window),
 		IS_REACT_ACT_ENVIRONMENT: true,
 	})
 	const first = silo()

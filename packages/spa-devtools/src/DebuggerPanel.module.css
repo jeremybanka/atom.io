@@ -41,8 +41,6 @@ debugger-panel.class {
 			margin: 0;
 			display: grid;
 			place-items: center;
-			appearance: none;
-			background: transparent;
 			touch-action: none;
 			cursor: grab;
 			&:active {
@@ -124,6 +122,8 @@ debugger-panel.class {
 		outline-offset: -2px;
 	}
 	> debugger-toolbar > [data-drag-handle] {
+		appearance: none;
+		background: transparent;
 		display: grid;
 		place-items: center;
 		width: 36px;

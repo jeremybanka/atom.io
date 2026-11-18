@@ -19,10 +19,13 @@ debugger-panel.class {
 		display: none;
 	}
 	&[data-open="false"] {
-		width: 33px;
-		height: 28px;
-		border-color: transparent;
+		width: 32px;
+		height: 32px;
+		border: 0;
 		background: transparent;
+		&::before, > [data-resize] {
+			display: none;
+		}
 		> debugger-toolbar > :not([data-testid="open-close-devtools"]) {
 			display: none;
 		}
@@ -33,11 +36,18 @@ debugger-panel.class {
 		}
 		> debugger-toolbar > [data-testid="open-close-devtools"] {
 			padding: 0;
-			width: 25px;
-			height: 24px;
+			width: 32px;
+			height: 32px;
 			margin: 0;
 			display: grid;
 			place-items: center;
+			appearance: none;
+			background: transparent;
+			touch-action: none;
+			cursor: grab;
+			&:active {
+				cursor: grabbing;
+			}
 		}
 	}
 	> debugger-toolbar {

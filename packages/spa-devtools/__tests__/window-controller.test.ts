@@ -43,6 +43,7 @@ function fixture(saved: unknown = { free, snap: null }) {
 	cleanups.push(mounted.dispose)
 	for (const node of [
 		toolbar,
+		panel.querySelector<HTMLElement>(`[data-testid="open-close-devtools"]`)!,
 		...panel.querySelectorAll<HTMLElement>(`[data-resize]`),
 	]) {
 		node.setPointerCapture = vi.fn()
@@ -119,6 +120,115 @@ function fixture(saved: unknown = { free, snap: null }) {
 		},
 	}
 }
+it(`moves the collapsed launcher across the viewport, preserves expanded geometry and suppresses only the drag click`, () => {
+	const f = fixture({ free, snap: `right-half` })
+	const launcher = f.panel.querySelector<HTMLElement>(
+		`[data-testid="open-close-devtools"]`,
+	)!
+	launcher.setAttribute(`data-drag-handle`, `true`)
+	f.controller.visibility(false, false)
+	expect(f.rect()).toEqual({ x: 600, y: 0, width: 32, height: 32 })
+	const activate = vi.fn()
+	launcher.addEventListener(`click`, activate)
+	f.pointer(`pointerdown`, 610, 10, launcher)
+	f.pointer(`pointermove`, 1400, 1100, launcher)
+	f.flush()
+	expect(f.rect()).toEqual({ x: 1168, y: 868, width: 32, height: 32 })
+	expect(f.palette.hidden).toBe(true)
+	expect(f.preview.hidden).toBe(true)
+	f.pointer(`pointerup`, 1400, 1100, launcher)
+	expect(JSON.parse(localStorage.getItem(`🔍 Devtools Window`)!)).toEqual({
+		free,
+		snap: `right-half`,
+		launcher: { x: 1168, y: 868 },
+	})
+	const dragClick = new MouseEvent(`click`, {
+		bubbles: true,
+		cancelable: true,
+		detail: 1,
+	})
+	launcher.dispatchEvent(dragClick)
+	expect(dragClick.defaultPrevented).toBe(true)
+	expect(activate).not.toHaveBeenCalled()
+	f.pointer(`pointerdown`, 1178, 878, launcher)
+	f.pointer(`pointerup`, 1179, 879, launcher)
+	launcher.dispatchEvent(new MouseEvent(`click`, { bubbles: true, detail: 1 }))
+	expect(activate).toHaveBeenCalledOnce()
+	f.controller.visibility(false, true)
+	expect(f.rect()).toEqual({ x: 600, y: 0, width: 600, height: 900 })
+	f.controller.choose(`full`)
+	f.controller.visibility(false, false)
+	expect(f.rect()).toEqual({ x: 1168, y: 868, width: 32, height: 32 })
+})
+
+it(`cancels launcher drags, allows keyboard activation and nudges only the visible launcher without losing its bounds`, () => {
+	const f = fixture()
+	const launcher = f.panel.querySelector<HTMLElement>(
+		`[data-testid="open-close-devtools"]`,
+	)!
+	launcher.setAttribute(`data-drag-handle`, `true`)
+	f.controller.visibility(false, false)
+	const before = f.rect(),
+		saved = localStorage.getItem(`🔍 Devtools Window`)
+	f.pointer(`pointerdown`, 110, 130, launcher)
+	f.pointer(`pointermove`, 350, 360, launcher)
+	f.flush()
+	f.key(`Escape`, launcher)
+	f.pointer(`pointerup`, 350, 360, launcher)
+	expect(f.rect()).toEqual(before)
+	expect(localStorage.getItem(`🔍 Devtools Window`)).toBe(saved)
+	const activate = vi.fn()
+	launcher.addEventListener(`click`, activate)
+	launcher.click()
+	expect(activate).toHaveBeenCalledOnce()
+	f.pointer(`pointerdown`, 110, 130, launcher)
+	f.key(`Escape`, launcher)
+	launcher.dispatchEvent(new MouseEvent(`click`, { bubbles: true, detail: 1 }))
+	expect(activate).toHaveBeenCalledOnce()
+	f.key(`ArrowRight`, f.panel.querySelector<HTMLElement>(`[data-drag-handle]`)!)
+	f.key(`ArrowRight`, f.panel.querySelector<HTMLElement>(`[data-resize]`)!)
+	expect(f.rect()).toEqual(before)
+	f.key(`ArrowRight`, launcher)
+	expect(f.rect()).toEqual({ ...before, x: before.x + 10 })
+	f.controller.visibility(true, false)
+	f.key(`ArrowRight`, launcher)
+	expect(f.rect()).toEqual({ ...before, x: before.x + 10 })
+	f.controller.visibility(false, false)
+	f.pointer(`pointerdown`, 120, 130, launcher)
+	f.pointer(`pointermove`, 900, 700, launcher)
+	f.flush()
+	f.pointer(`pointercancel`, 900, 700, launcher)
+	expect(f.rect()).toEqual({ ...before, x: before.x + 10 })
+	Object.assign(window, { innerWidth: 100, innerHeight: 80 })
+	window.dispatchEvent(new Event(`resize`))
+	expect(f.rect()).toEqual({ x: 68, y: 48, width: 32, height: 32 })
+	const storage = vi.spyOn(window.localStorage, `setItem`)
+	f.key(`ArrowRight`, launcher)
+	expect(storage).not.toHaveBeenCalled()
+	f.controller.visibility(false, true)
+	expect(f.rect()).toEqual({ x: 0, y: 0, width: 100, height: 80 })
+})
+
+it(`activates a launcher touch tap exactly once even if the browser also emits a compatibility click`, () => {
+	const f = fixture()
+	const launcher = f.panel.querySelector<HTMLElement>(
+		`[data-testid="open-close-devtools"]`,
+	)!
+	launcher.setAttribute(`data-drag-handle`, `true`)
+	f.controller.visibility(false, false)
+	const activate = vi.fn()
+	launcher.addEventListener(`click`, activate)
+	f.pointer(`pointerdown`, 110, 130, launcher, { pointerType: `touch` })
+	f.pointer(`pointerup`, 110, 130, launcher, { pointerType: `touch` })
+	expect(activate).toHaveBeenCalledOnce()
+	launcher.dispatchEvent(new MouseEvent(`click`, { bubbles: true, detail: 1 }))
+	expect(activate).toHaveBeenCalledOnce()
+	f.pointer(`pointerdown`, 110, 130, launcher, { pointerType: `touch` })
+	f.pointer(`pointermove`, 300, 300, launcher, { pointerType: `touch` })
+	f.pointer(`pointerup`, 300, 300, launcher, { pointerType: `touch` })
+	expect(activate).toHaveBeenCalledOnce()
+})
+
 it(`coalesces movement, preserves focused input nodes and persists only committed geometry`, () => {
 	const f = fixture()
 	const input = f.panel.querySelector(`input`)!

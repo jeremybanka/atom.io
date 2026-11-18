@@ -16,7 +16,7 @@ import { useLocal, useSaved, useTools } from "./store.ts"
 import { TimelineIndex } from "./TimelineIndex.tsx"
 import { TransactionIndex } from "./TransactionIndex.tsx"
 import { createWindowController, EDGE_LABELS } from "./window-controller.ts"
-import { rectStyle, RESIZE_EDGES } from "./window-geometry.ts"
+import { LAUNCHER_SIZE, rectStyle, RESIZE_EDGES } from "./window-geometry.ts"
 import { WindowOverlay, type WindowPresentation } from "./WindowOverlay.tsx"
 
 const VIEWS = [
@@ -150,11 +150,17 @@ export function DebuggerPanel(props: {
 					type="button"
 					aria-label={getOpen() ? `Minimize debugger` : `Open debugger`}
 					data-testid="open-close-devtools"
+					data-drag-handle={getOpen() ? undefined : true}
+					title={
+						getOpen()
+							? undefined
+							: `Drag to move; click to open; arrow keys to nudge`
+					}
 					onClick={() => {
 						setOpen((value) => !value)
 					}}
 				>
-					{getOpen() ? `−` : !getHidden() && <BrandMark />}
+					{getOpen() ? `−` : !getHidden() && <BrandMark size={LAUNCHER_SIZE} />}
 				</button>
 				<button
 					type="button"

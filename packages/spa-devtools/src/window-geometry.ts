@@ -24,7 +24,9 @@ export type ResizeEdge = (typeof RESIZE_EDGES)[number]
 export interface WindowGeometry {
 	free: Rect
 	snap: SnapTarget | null
+	launcher?: { x: number; y: number }
 }
+export const LAUNCHER_SIZE = 32
 const bound = (value: number, min: number, max: number) =>
 	Math.max(min, Math.min(value, max))
 export function clampRect(
@@ -122,7 +124,7 @@ export function readGeometry(
 ): WindowGeometry {
 	const fallback: WindowGeometry = { free: defaultRect(viewport), snap: null }
 	if (!value || typeof value !== `object`) return fallback
-	const { free, snap } = value as Partial<WindowGeometry>
+	const { free, snap, launcher } = value as Partial<WindowGeometry>
 	if (!free || typeof free !== `object`) return fallback
 	if (
 		![free.x, free.y, free.width, free.height].every(
@@ -132,12 +134,28 @@ export function readGeometry(
 		free.height <= 0
 	)
 		return fallback
-	return {
+	const geometry: WindowGeometry = {
 		free: clampRect(free, viewport),
 		snap: SNAP_TARGETS.includes(snap as SnapTarget)
 			? (snap as SnapTarget)
 			: null,
 	}
+	if (
+		launcher &&
+		typeof launcher === `object` &&
+		[launcher.x, launcher.y].every(
+			(part) => typeof part === `number` && Number.isFinite(part),
+		)
+	) {
+		const { x, y } = clampRect(
+			{ ...launcher, width: LAUNCHER_SIZE, height: LAUNCHER_SIZE },
+			viewport,
+			1,
+			1,
+		)
+		geometry.launcher = { x, y }
+	}
+	return geometry
 }
 
 export function rectStyle(rect?: Rect): string {

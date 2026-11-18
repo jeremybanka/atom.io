@@ -10,7 +10,7 @@ ecology-editor-row.class {
 	}
 	&[data-selection-anchor="true"] {
 		outline: 2px solid var(--ink-strong);
-		outline-offset: -2px;
+		outline-offset: 1px;
 		margin: 2px 0 5px;
 	}
 	&[data-grouped="true"] {

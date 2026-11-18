@@ -34,7 +34,8 @@ export function useSyncExternalStore<Snapshot>(
 		// compute phase, it permits subscription setup and signal writes.
 		onSettled(setup)
 	} else {
-		createEffect(() => {
+		const effect = createEffect as unknown as (setup: () => void) => void
+		effect(() => {
 			onCleanup(setup())
 		})
 	}

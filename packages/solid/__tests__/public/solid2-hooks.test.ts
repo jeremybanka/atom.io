@@ -1,14 +1,11 @@
 import { Silo } from "atom.io"
 
-// Reuse the pinned peer environment instead of changing the workspace's Solid.
+// Resolve the browser build through the package location; Solid 2 does not
+// export the old solid-js/dist/* subpaths.
 vi.mock(`solid-js`, async () => {
-	const { resolve } = await import(`node:path`)
-	const { pathToFileURL } = await import(`node:url`)
-	const client = pathToFileURL(
-		resolve(
-			import.meta.dirname,
-			`../../peer-environments/coordinated-solid2/node_modules/solid-js/dist/solid.js`,
-		),
+	const client = new URL(
+		`./dist/solid.js`,
+		import.meta.resolve(`solid-js/package.json`),
 	).href
 	return import(/* @vite-ignore */ client)
 })

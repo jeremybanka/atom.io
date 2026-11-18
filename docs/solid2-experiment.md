@@ -1,8 +1,8 @@
-# Solid 2 release candidate experiment
+# Solid 2 compatibility and experiments
 
-Initially tested with `solid-js@2.0.0-rc.17` on October 23, 2026. Current compatibility targets exactly `solid-js@2.0.0-rc.21`, alongside Solid 1.9. The rc.21 upgrade drops rc.20 support and ships as a patch because these are prerelease peers. Both supported Solid versions are tested with released `atom.io@0.53.3` and the coordinated SDK candidate. All RC environments enforce a 1,440-minute minimum release age with strict rejection and no age exceptions.
+The standalone `@atom.io/solid` adapter supports stable `solid-js@^2.0.0` alongside Solid 1.9. The stable release replaces the previously supported `2.0.0-rc.21` peer; prerelease support can be dropped in a patch release. Both supported Solid majors are tested with released `atom.io@0.53.3` and the coordinated SDK candidate. All peer environments enforce a 1,440-minute minimum release age with strict rejection and no age exceptions.
 
-The `*-solid2` environments test rc.21 and remain the rolling candidates for Renovate proposals after the normal one-day delay. Those proposals do not automatically rewrite the adapter's peer declaration or automerge. Supporting another RC requires updating the exact version in the peer declaration, testing both SDK environments, and including a changeset; superseded RCs do not need retained compatibility environments. Breakage checks the declared support against the published baseline and requires representative coverage before the upgrade can pass. Breakage permits prerelease peer support to be dropped without a breaking release, so the rc.20 removal uses the normal patch changeset and needs no release-policy exception.
+The `*-solid2` environments now test stable 2.0.0. Renovate keeps each major's representatives within its supported stable range. Expanding the adapter's supported majors requires an explicit peer declaration, tested peer environments, and a changeset. Breakage checks declared support against the published baseline and requires representative coverage before an upgrade can pass.
 
 ## What breaks without changes
 
@@ -13,13 +13,13 @@ The original packed adapter fails at runtime and in consumer declaration checkin
 - Solid 2 no longer exports `JSX` from `solid-js`. The provider now describes its return type through the common `FlowComponent` type, without requiring a DOM renderer dependency.
 - Solid 2 interprets function initializers as derived signals. The bridge now stores only an invalidation signal, with equality disabled, instead of putting arbitrary atom snapshots into a Solid signal. Its narrowly scoped `ownedWrite` option permits external notifications originating in owned scopes. Snapshot hydration remains untracked and immediate.
 
-The expanded [consumer contracts](../packages/solid/__tests__/fixtures/consumer/runtime.ts) cover store isolation, writes before subscriptions settle, subsequent reactive notifications, actual unsubscribe, mutable and function snapshots, JSON, timelines, and loadable promises. Both production and development browser conditions run in the peer matrix, followed by server reads and declaration checking with library checking enabled. The ordinary Solid test and coverage commands prepare and reuse the same isolated RC environment, so the compatibility branches are covered without replacing the workspace Solid 1 dependency. Provider children are consumed by a render effect: merely reading a lazy Solid 2 provider outside an observer does not activate its descendant effects.
+The expanded [consumer contracts](../packages/solid/__tests__/fixtures/consumer/runtime.ts) cover store isolation, writes before subscriptions settle, subsequent reactive notifications, actual unsubscribe, mutable and function snapshots, JSON, timelines, and loadable promises. Both production and development browser conditions run in the peer matrix, followed by server reads and declaration checking with library checking enabled. The ordinary Solid test and coverage commands use Solid 2 in the workspace, with a pinned Solid 1 test dependency covering the legacy lifecycle branch. Provider children are consumed by a render effect: merely reading a lazy Solid 2 provider outside an observer does not activate its descendant effects.
 
-The released SDK's optional Solid peer still describes its former bundled Solid 1 adapter. The released-SDK experiment contains a package-scoped pnpm allowance for exactly Solid 2 rc.21 on `atom.io@0.53.3>solid-js`; it tests the new standalone adapter against the old SDK core. This does **not** establish that the old SDK's bundled `atom.io/solid` entry supports Solid 2. The coordinated SDK environment needs no such allowance.
+The released SDK's optional Solid peer still describes its former bundled Solid 1 adapter. The released-SDK environment contains a package-scoped pnpm allowance for stable Solid 2 on `atom.io@0.53.3>solid-js`; it tests the new standalone adapter against the old SDK core. This does **not** establish that the old SDK's bundled `atom.io/solid` entry supports Solid 2. The coordinated SDK environment needs no such allowance.
 
 ## External state opportunities
 
-The executable [Solid 2 experiments](../packages/solid/__tests__/fixtures/consumer/solid2.ts) are consumer fixtures, not new public APIs. The peer suite typechecks these fixtures against Solid 2 in both RC environments before running them in browser production and development modes. Solid 1 environments typecheck and run the shared contracts separately.
+The executable [Solid 2 experiments](../packages/solid/__tests__/fixtures/consumer/solid2.ts) are consumer fixtures, not new public APIs. The peer suite typechecks these fixtures against Solid 2 in both Solid 2 environments before running them in browser production and development modes. Solid 1 environments typecheck and run the shared contracts separately.
 
 **Native async computation.** The async experiment passes the accessor returned by `useO` into a memo. The dependent effect waits on the atom.io promise and then receives its resolved value. This could support a separate accessor that participates in Solid's `Loading`, `Errored`, and pending UI, while preserving the existing `useLoadable` contract for explicit loading/error values. Boundary rendering, retries, caught atom.io errors, superseded promises, streaming hydration, and optimistic transactions still require their own tests before such an API is published.
 
@@ -35,9 +35,13 @@ The compatibility adapter intentionally preserves immediate atom.io reads: its a
 
 Keep the compatibility path small and preserve `useO` / `useLoadable` behavior. Explore a separate Solid-native async accessor built on a memo, with deliberate snapshot and error semantics. Consider global external read tracking only if removing per-atom accessors justifies a new core tracking facility. No global bridge is installed by importing `@atom.io/solid`.
 
+## Solid 2 applications
+
+Solid 2 applications use `@solidjs/web` for DOM rendering, JSX types, and `jsxImportSource`, plus `@solidjs/vite-plugin` for Vite compilation. The lossless numbers template and the published Solid examples use these packages. Solid 1 applications keep their existing renderer and compiler.
+
 ## Upstream references
 
 - [Solid 2 migration guide](https://github.com/solidjs/solid/blob/solid-js%402.0.0-rc.17/documentation/solid-2.0/MIGRATION.md): context, effect, JSX, batching, and async changes.
-- [Published Solid RC package metadata](https://www.npmjs.com/package/solid-js/v/2.0.0-rc.21): exact tested version.
+- [Published Solid 2 package metadata](https://www.npmjs.com/package/solid-js/v/2.0.0): stable runtime version.
 - [Solid 2 subscription conversion](https://github.com/solidjs/solid/blob/solid-js%402.0.0-rc.18/packages/solid/src/from.ts): rc.18 live-source branding and hydration intent; absent in rc.17.
 - [Solid signals external bridge](https://github.com/solidjs/solid/blob/solid-js%402.0.0-rc.17/packages/signals/src/core/external.ts): computation wrapping and registration.

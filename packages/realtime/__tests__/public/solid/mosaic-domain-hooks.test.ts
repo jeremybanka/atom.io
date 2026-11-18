@@ -5,7 +5,13 @@ import { z } from "zod"
 const makeSilo = (name: string) =>
 	new Silo({ isProduction: false, lifespan: `ephemeral`, name })
 
-vi.mock(`solid-js`, async () => import(`solid-js/dist/solid.js`))
+vi.mock(`solid-js`, async () => {
+	const client = new URL(
+		`./dist/solid.js`,
+		import.meta.resolve(`solid-js/package.json`),
+	).href
+	return import(/* @vite-ignore */ client)
+})
 
 test(`domain members remain ordinary Solid provider state`, async () => {
 	const Solid = await import(`solid-js`)
@@ -30,19 +36,34 @@ test(`domain members remain ordinary Solid provider state`, async () => {
 
 	Solid.createRoot((disposeRoot) => {
 		dispose = disposeRoot
-		AtomIOSolid.StoreProvider({
-			children: (() => {
-				const body = AtomIOSolid.useO(bodyAtom)
-				Solid.createEffect(() => observed.push(body()))
-			}) as unknown as never,
+		const provider = AtomIOSolid.StoreProvider({
+			get children() {
+				Solid.untrack(() => {
+					const body = AtomIOSolid.useO(bodyAtom)
+					Solid.createEffect(body, (value) => {
+						observed.push(value)
+					})
+				})
+				return undefined
+			},
 			store: silo.store,
 		})
+		Solid.createRenderEffect(
+			() => {
+				let child: unknown = provider
+				while (typeof child === `function`) child = child()
+			},
+			() => {},
+		)
 	})
-	await Promise.resolve()
+	await new Promise<void>((resolve) => setImmediate(resolve))
+	expect(observed.length).toBeGreaterThan(0)
+	expect(new Set(observed)).toEqual(new Set([`hello`]))
+	const settled = observed.length
 	silo.setState(bodyAtom, `edited`)
-	await Promise.resolve()
+	await new Promise<void>((resolve) => setImmediate(resolve))
 
-	expect(observed).toEqual([`hello`, `edited`])
+	expect(observed.slice(settled)).toEqual([`edited`])
 	dispose()
 	instance[Symbol.dispose]()
 })

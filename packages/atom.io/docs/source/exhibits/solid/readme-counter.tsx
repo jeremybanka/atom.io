@@ -1,7 +1,7 @@
-/** @jsxImportSource solid-js */
+/** @jsxImportSource @solidjs/web */
 import { useO } from "@atom.io/solid"
+import type { JSX } from "@solidjs/web"
 import { atom, setState } from "atom.io"
-import type { JSX } from "solid-js"
 
 const countAtom = atom<number>({ key: `count`, default: 0 })
 

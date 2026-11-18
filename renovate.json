@@ -126,7 +126,13 @@
 			"allowedVersions": "^1.9.0"
 		},
 		{
-			"description": "New Solid RC support needs an explicit peer declaration, tested peer environments, and a changeset.",
+			"description": "Keep the Solid 1 lifecycle test runtime within its supported major.",
+			"matchFileNames": ["packages/solid/package.json"],
+			"matchDepNames": ["solid-js-1"],
+			"allowedVersions": "^1.9.0"
+		},
+		{
+			"description": "Expanding Solid peer support requires an explicit peer declaration, tested peer environments, and a changeset.",
 			"matchManagers": [
 				"npm"
 			],
@@ -140,14 +146,12 @@
 			"enabled": false
 		},
 		{
-			"description": "Propose the next Solid RC after the one-day delay; replacing earlier RC support requires an explicit peer declaration and a changeset.",
+			"description": "Keep Solid 2 peer environments current within the supported stable major.",
 			"matchFileNames": [
 				"packages/solid/peer-environments/*-solid2/package.json"
 			],
 			"matchPackageNames": ["solid-js"],
-			"allowedVersions": "/^2\\.0\\.0-rc\\.\\d+$/",
-			"ignoreUnstable": false,
-			"respectLatest": false,
+			"allowedVersions": "^2.0.0",
 			"groupName": "Solid 2 peer environments",
 			"matchDepTypes": [
 				"dependencies"

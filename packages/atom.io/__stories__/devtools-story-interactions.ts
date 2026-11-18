@@ -248,9 +248,11 @@ export const playOrderActions: Play = async (context) => {
 					canvas.getByLabelText(`Carrier quote status`),
 				).toHaveTextContent(`pending`)
 				await tools.action(outcome)
-				await expect(
-					canvas.getByLabelText(`Carrier quote status`),
-				).toHaveTextContent(outcome === `Resolve quote` ? `ready` : `error`)
+				await waitFor(() =>
+					expect(
+						canvas.getByLabelText(`Carrier quote status`),
+					).toHaveTextContent(outcome === `Resolve quote` ? `ready` : `error`),
+				)
 			}
 		},
 	)
@@ -441,6 +443,10 @@ export const playSurfaceStates: Play = async (context) => {
 			await tools.debuggerVisible(false)
 			await tools.scenarioControls()
 			await expect(
+				canvas.getByLabelText(`Carrier quote status`),
+			).toHaveTextContent(`idle`)
+			await expect(canvas.getByText(/no quote requested/)).toBeVisible()
+			await expect(
 				canvas.getByRole(`button`, { name: `Resolve quote` }),
 			).toBeDisabled()
 			await tools.action(`Request quote`)
@@ -448,12 +454,25 @@ export const playSurfaceStates: Play = async (context) => {
 				canvas.getByRole(`button`, { name: `Reject quote` }),
 			).toBeEnabled()
 			await tools.action(`Reject quote`)
-			await expect(
-				canvas.getByLabelText(`Carrier quote status`),
-			).toHaveTextContent(`error`)
+			await waitFor(() =>
+				expect(canvas.getByLabelText(`Carrier quote status`)).toHaveTextContent(
+					`error`,
+				),
+			)
 			await expect(
 				canvas.getByRole(`button`, { name: `Reject quote` }),
 			).toBeDisabled()
+			await tools.action(`Request quote`)
+			await expect(canvas.getByText(/waiting for carrier/)).toBeVisible()
+			await tools.action(`Resolve quote`)
+			await waitFor(() =>
+				expect(canvas.getByLabelText(`Carrier quote status`)).toHaveTextContent(
+					`ready`,
+				),
+			)
+			await expect(
+				canvas.getByLabelText(`Carrier quote status`).parentElement,
+			).toHaveTextContent(`$6.50`)
 		},
 	)
 	await step(

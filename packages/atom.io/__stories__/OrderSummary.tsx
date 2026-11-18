@@ -22,9 +22,15 @@ export function OrderSummary({
 		subtotal = useO(derived.subtotal)
 	const fee = useO(derived.fee),
 		available = useO(derived.available)
-	const coupon = useO(state.coupon),
-		quoteStatus = useO(state.quoteStatus)
-	const quote = useLoadable(families.quotes, region, 0)
+	const coupon = useO(state.coupon)
+	const quote = useLoadable(families.quotes, region, null)
+	const [quotePhase, quoteMessage] = quote.loading
+		? [`pending`, `waiting for carrier`]
+		: quote.error
+			? [`error`, quote.error.message]
+			: typeof quote.value === `number`
+				? [`ready`, `$${(quote.value / 100).toFixed(2)}`]
+				: [`idle`, `no quote requested`]
 	return (
 		<order-summary
 			className={css.class}
@@ -151,17 +157,11 @@ export function OrderSummary({
 				</p>
 				<p>
 					Carrier quote:{` `}
-					<output aria-label="Carrier quote status" data-status={quoteStatus}>
-						{quoteStatus}
+					<output aria-label="Carrier quote status" data-status={quotePhase}>
+						{quotePhase}
 					</output>
 					{` · `}
-					{quote.error
-						? `Carrier quote unavailable`
-						: quote.loading
-							? `waiting for carrier`
-							: typeof quote.value === `number`
-								? `$${(quote.value / 100).toFixed(2)}`
-								: `Carrier quote unavailable`}
+					{quoteMessage}
 				</p>
 				<action-row>
 					<button type="button" onClick={actions.requestQuote}>
@@ -169,14 +169,14 @@ export function OrderSummary({
 					</button>
 					<button
 						type="button"
-						disabled={quoteStatus !== `pending`}
+						disabled={!quote.loading}
 						onClick={actions.resolveQuote}
 					>
 						Resolve quote
 					</button>
 					<button
 						type="button"
-						disabled={quoteStatus !== `pending`}
+						disabled={!quote.loading}
 						onClick={actions.rejectQuote}
 					>
 						Reject quote
@@ -189,9 +189,9 @@ export function OrderSummary({
 					Show or hide the debugger with Ctrl+Shift+A. Its × button hides it so
 					you can browse the page. In ecology, select checkoutTotalCents and
 					trace its observed roots. After changing fulfillment or warehouse,
-					Refresh and trace again. The storefront establishes dependencies
-					through real reads; passive inspection leaves seasonalPromotion,
-					lazyAuditDefault and the empty wishlist untouched.
+					trace again to see the updated dependencies. The storefront establishes
+					dependencies through real reads; passive inspection leaves
+					seasonalPromotion, lazyAuditDefault and the empty wishlist untouched.
 				</p>
 				<p>
 					Open Transactions before running actions to record outcomes. Quote

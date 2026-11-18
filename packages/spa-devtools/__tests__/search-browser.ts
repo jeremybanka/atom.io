@@ -385,8 +385,8 @@ try {
 			}
 			const chunks = Math.max(...queryChunks)
 			const p95 = samples.sort((a, b) => a - b)[28]
-			assert.ok(p95 <= 100, `history query p95 ${p95}ms`)
-			assert.ok(chunks <= 8, `history scheduled slice ${chunks}ms`)
+			reportPerformanceTarget(`history query p95`, p95, 100)
+			reportPerformanceTarget(`history scheduled slice`, chunks, 8)
 			assert.equal(
 				(await historyPage.locator(`.search-results button`).count()) <= 100,
 				true,

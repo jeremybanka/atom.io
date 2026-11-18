@@ -83,6 +83,7 @@ export interface GraphModel {
 }
 interface GraphSelection {
 	id: string
+	selectedIds: Set<string>
 	nodes: Set<string>
 	items: Set<string>
 	edges: Set<number>
@@ -227,6 +228,7 @@ function* traceSelection(
 	const seeds = `memberKeys` in source ? source.memberKeys : [source.key]
 	const selection: GraphSelection = {
 		id: selected.id,
+		selectedIds: new Set([selected.id]),
 		nodes: new Set(seeds),
 		items: new Set([selected.id]),
 		edges: new Set(),
@@ -255,6 +257,7 @@ function* traceSelection(
 		const record = layout.nodes.get(key)
 		if (record) {
 			selection.items.add(record.id)
+			if (record.group === selected) selection.selectedIds.add(record.id)
 			if (record.group) selection.items.add(record.group.id)
 		}
 		yield
@@ -394,7 +397,11 @@ export function* projectEcology(
 	if (selected && (!matchedIds || matchedIds.has(selected.id)))
 		rowRecords.add(selected)
 	const priority = (record: GraphRecord) =>
-		record === selected ? 0 : selection?.items.has(record.id) ? 1 : 2
+		selection?.selectedIds.has(record.id)
+			? 0
+			: selection?.items.has(record.id)
+				? 1
+				: 2
 	const rowOrder = [...rowRecords].sort((a, b) => {
 		return (
 			priority(a) - priority(b) ||

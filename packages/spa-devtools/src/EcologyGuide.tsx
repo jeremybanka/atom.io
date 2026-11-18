@@ -40,7 +40,9 @@ export function EcologyGuide(props: {
 						edges and cards show its upstream and downstream paths. Unrelated
 						cards fade, and the selected card stays in front. Escape clears
 						selection. Enter on a selected family or family member toggles
-						clustering and expansion along the cylinder tangent.
+						clustering and expansion along the cylinder tangent. Selecting a
+						family selects all of its captured members, which stay together in
+						the selected editor section when expanded.
 					</p>
 					<p>
 						The ecology editor stays beside the graph on wide screens and below

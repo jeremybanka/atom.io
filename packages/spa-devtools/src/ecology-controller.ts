@@ -146,6 +146,7 @@ export function createEcologyController(
 		update({
 			selected: context.selected ? model?.all.get(context.selected) : undefined,
 			selectedCard,
+			selectedIds: model?.selection?.selectedIds ?? new Set(),
 			selectionOutside:
 				Boolean(context.selected) &&
 				!model?.rows.some((item) => item.id === context.selected),

@@ -123,6 +123,9 @@ it(`traces family members through cycles, retains parallel edges and recomputes 
 	expect(collapsed.selection!.items).toEqual(
 		new Set([`family:inputs`, `state:a`, `state:s`, `state:t`]),
 	)
+	expect(collapsed.selection!.selectedIds).toEqual(
+		new Set([`family:inputs`, `state:a`]),
+	)
 	expect(collapsed.edges.every((edge) => edge.traced)).toBe(true)
 	context.expanded.add(`inputs`)
 	const expanded = drain(projectEcology(data, context, undefined, collapsed))
@@ -133,6 +136,49 @@ it(`traces family members through cycles, retains parallel edges and recomputes 
 	)
 	expect(changed.selection!.nodes).toEqual(new Set([`a`]))
 	expect(changed.selection).not.toBe(expanded.selection)
+})
+
+it(`admits all selected family members before related families within the editor row limit`, () => {
+	const data: EcologySnapshot = {
+		...snapshot(
+			[
+				node(`a`, `atom`, `inputs`),
+				node(`b`, `atom`, `inputs`),
+				node(`s`, `selector`, `outputs`),
+			],
+			[{ dependency: `a`, selector: `s` }],
+		),
+		families: [
+			{
+				key: `outputs`,
+				type: `readonly_pure_selector_family`,
+				memberKeys: [`s`],
+				memberCount: 1,
+				countComplete: true,
+			},
+			{
+				key: `inputs`,
+				type: `atom_family`,
+				memberKeys: [`a`, `b`],
+				memberCount: 2,
+				countComplete: true,
+			},
+		],
+	}
+	const context = createGraphContext()
+	context.selected = `family:inputs`
+	context.expanded.add(`inputs`)
+	context.rowLimit = 3
+	const model = drain(projectEcology(data, context))
+	expect(model.rows.map((row) => row.id)).toEqual([
+		`family:inputs`,
+		`state:a`,
+		`state:b`,
+	])
+	expect(model.selection!.selectedIds).toEqual(
+		new Set([`family:inputs`, `state:a`, `state:b`]),
+	)
+	expect(model.selection!.items.has(`family:outputs`)).toBe(true)
 })
 
 it(`groups families, keeps zero definitions and namespaces group/member identities with directed observed arrows`, () => {

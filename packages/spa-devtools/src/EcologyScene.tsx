@@ -36,6 +36,7 @@ export function EcologyScene(props: {
 	items: GraphItem[]
 	edges: EcologyLine[]
 	selected?: string | undefined
+	selectedIds?: ReadonlySet<string> | undefined
 	traced: Set<string>
 	focused?: ReadonlySet<string> | undefined
 	matches?: ReadonlySet<string> | undefined
@@ -65,6 +66,8 @@ export function EcologyScene(props: {
 		const focused = props.focused
 		return focused !== undefined && !focused.has(item.id)
 	}
+	const selected = (item: GraphItem) =>
+		props.selected === item.id || (props.selectedIds?.has(item.id) ?? false)
 	const collapsed = (item: GraphItem) => {
 		const matches = props.matches
 		return matches !== undefined && !matches.has(item.id)
@@ -341,7 +344,7 @@ export function EcologyScene(props: {
 						item={props.card(index)}
 						visible={props.visible(index)}
 						collapsed={collapsed(props.card(index))}
-						selected={props.selected === props.card(index).id}
+						selected={selected(props.card(index))}
 						dimmed={dimmed(props.card(index))}
 						traced={highlighted(props.card(index))}
 						scene={labels}

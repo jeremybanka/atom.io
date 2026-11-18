@@ -644,6 +644,78 @@ it(`clears family selection safely and ignores result navigation while matching`
 	expect(document.activeElement?.getAttribute(`aria-label`)).not.toBe(`family`)
 })
 
+it(`selects every member of a family across expansion without losing member drafts or selecting other families`, async () => {
+	const f = setup(),
+		read = vi.fn(() => 1)
+	const inputsAtoms = f.silo.atomFamily<number, string>({
+		key: `inputs`,
+		default: read,
+	})
+	const derivedSelectors = f.silo.selectorFamily<number, string>({
+		key: `derived`,
+		get: () => read,
+	})
+	for (const family of [inputsAtoms, derivedSelectors])
+		for (const key of [`one`, `two`])
+			f.silo.store.families.get(family.key)!.create(key)
+	f.silo.store.valueMap.set(`inputs("one")`, 1)
+	f.mount()
+	await settle()
+	const selectedRows = () =>
+		[
+			...f.host.querySelectorAll<HTMLElement>(
+				`ecology-editor-row[data-section="selected"]`,
+			),
+		].map((row) => row.dataset[`rowId`])
+	for (const key of [`inputs`, `derived`]) {
+		await f.select(`family:${key}`)
+		expect(selectedRows()).toEqual([`family:${key}`])
+		await f.select(`family:${key}`, `Enter`)
+		expect(selectedRows()).toEqual([
+			`family:${key}`,
+			`state:${key}("one")`,
+			`state:${key}("two")`,
+		])
+		expect(
+			f.host.querySelector(`[data-section-heading="selected"]`)!.textContent,
+		).toBe(`Selected nodes`)
+		expect(f.host.querySelectorAll(`[data-node-details]`)).toHaveLength(1)
+		expect(
+			[
+				...f.host.querySelectorAll<HTMLElement>(
+					`ecology-node-card > button[aria-pressed="true"]`,
+				),
+			]
+				.map((button) => button.dataset[`graphId`])
+				.sort(),
+		).toEqual(selectedRows().sort())
+	}
+	const input = f.host.querySelector<HTMLInputElement>(
+		`state-leaf[data-state-key='inputs("one")'] input`,
+	)!
+	input.focus()
+	input.value = `2e`
+	input.dispatchEvent(new Event(`input`, { bubbles: true }))
+	await f.select(`family:inputs`)
+	expect(selectedRows()).toEqual([
+		`family:inputs`,
+		`state:inputs("one")`,
+		`state:inputs("two")`,
+	])
+	expect(
+		f.host.querySelector(`state-leaf[data-state-key='inputs("one")'] input`),
+	).toBe(input)
+	expect(input.value).toBe(`2e`)
+	await f.select(`state:inputs("one")`)
+	expect(selectedRows()).toEqual([`state:inputs("one")`])
+	await f.click(`Clear selection`)
+	expect(selectedRows()).toEqual([])
+	expect(
+		f.host.querySelectorAll(`ecology-editor [aria-pressed="true"]`),
+	).toHaveLength(0)
+	expect(read).not.toHaveBeenCalled()
+})
+
 it(`previews cached primitives and opaque object shapes without evaluating or traversing values`, async () => {
 	const f = setup(),
 		read = vi.fn(() => {

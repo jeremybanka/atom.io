@@ -26,6 +26,7 @@ export interface EcologyPresentation {
 	edges: EcologyLine[]
 	selected?: GraphModel[`items`][number] | undefined
 	selectedCard?: string | undefined
+	selectedIds: ReadonlySet<string>
 	selectionOutside: boolean
 	query: string
 	filtered: boolean
@@ -63,6 +64,7 @@ export function EcologyView(props: {
 		edges: [],
 		selected: undefined,
 		selectedCard: undefined,
+		selectedIds: new Set(),
 		query: props.context.query,
 		filtered: false,
 		dialog: null,
@@ -127,6 +129,7 @@ export function EcologyView(props: {
 						items={state().cards.slice(0, state().visibleCards)}
 						edges={state().edges}
 						selected={state().selectedCard}
+						selectedIds={state().selectedIds}
 						traced={state().traced}
 						focused={state().focused}
 						matches={state().matches}

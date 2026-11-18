@@ -46,6 +46,7 @@ export function EcologyEditorRow(props: {
 			class={css.class}
 			hidden={props.hidden}
 			data-section={props.section}
+			data-selection-anchor={props.state.selected?.id === props.item.id}
 			data-row-id={props.item.id}
 			data-grouped={
 				`family` in props.item.source && Boolean(props.item.source.family)
@@ -86,7 +87,7 @@ export function EcologyEditorRow(props: {
 			{props.pinned && (
 				<small data-pinned>Unfinished edit · outside filter</small>
 			)}
-			{props.section === `selected` && (
+			{props.state.selected?.id === props.item.id && (
 				<details data-node-details>
 					<summary>Node details</summary>
 					<p>{props.item.detail}</p>

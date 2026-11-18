@@ -44,6 +44,7 @@ const item = (id: string, x: number, y: number, z: number): GraphItem => {
 interface SceneState {
 	cylinderHeight: number
 	selected?: string | undefined
+	selectedIds?: ReadonlySet<string> | undefined
 	traced: Set<string>
 	items: GraphItem[]
 	edges: EcologyLine[]
@@ -102,6 +103,7 @@ function fixture(restored = false, empty = false) {
 					edges={get().edges}
 					traced={get().traced}
 					selected={get().selected}
+					selectedIds={get().selectedIds}
 					command={get().command}
 				/>
 			)
@@ -351,7 +353,15 @@ it(`stacks selected and connected cards above nearer unrelated cards and restore
 	expect(Number(cards[0].style.zIndex)).toBeGreaterThan(
 		Number(cards[1].style.zIndex),
 	)
-	f.patch({ selected: undefined, traced: new Set() })
+	f.patch({ selectedIds: new Set([`state:a`, `state:b`]) })
+	f.tick()
+	expect(
+		cards.every(
+			(card) =>
+				card.querySelector(`button`)!.getAttribute(`aria-pressed`) === `true`,
+		),
+	).toBe(true)
+	f.patch({ selected: undefined, selectedIds: new Set(), traced: new Set() })
 	f.tick()
 	expect(cards.map((card) => card.style.zIndex)).toEqual(before)
 })

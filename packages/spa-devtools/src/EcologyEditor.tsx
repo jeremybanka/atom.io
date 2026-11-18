@@ -22,10 +22,11 @@ export function EcologyEditor(props: {
 }): SpaElement {
 	const entries = (): Entry[] => {
 		const selected = props.state.selected?.id,
+			selectedIds = props.state.selectedIds,
 			focused = props.state.focused,
 			rows = props.state.rows
 		const section = (item: GraphItem): Section =>
-			item.id === selected
+			selectedIds.has(item.id)
 				? `selected`
 				: focused?.has(item.id)
 					? `related`
@@ -38,7 +39,9 @@ export function EcologyEditor(props: {
 				id: `heading:${group}`,
 				heading:
 					group === `selected`
-						? `Selected node`
+						? selectedIds.size > 1
+							? `Selected nodes`
+							: `Selected node`
 						: group === `related`
 							? `Related nodes`
 							: selected

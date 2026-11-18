@@ -2,4 +2,4 @@
 "@atom.io/template-spa-astro-ssr": patch
 ---
 
-Warm the development server’s island dependencies before retaining SSR nodes in browser checks, so cold dependency-optimizer reloads cannot invalidate the identity assertions.
+Ship native TypeScript browser checks that seed their database fixture and warm development dependencies before testing hydration.

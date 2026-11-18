@@ -30,6 +30,7 @@ export interface GraphContext {
 }
 export interface GraphModel {
 	snapshot: EcologySnapshot
+	dependencyKeys: Set<string>
 	items: GraphItem[]
 	edges: GraphEdge[]
 	all: Map<string, GraphItem>
@@ -64,7 +65,8 @@ export function* projectEcology(
 ): Generator<void, GraphModel> {
 	// Reuse detached metadata only within one capture; pending coordinates remain private until completion.
 	if (previous?.snapshot !== snapshot) previous = undefined
-	const all = new Map<string, GraphItem>(),
+	let all = previous?.all ?? new Map<string, GraphItem>()
+	const painted = new Set<string>(),
 		mapped = new Map<string, string>(),
 		selectorIds = new Set<string>()
 	const filtered = Boolean(context.query.trim())
@@ -94,12 +96,13 @@ export function* projectEcology(
 						x: previousPosition?.x ?? 0,
 						y: previousPosition?.y ?? 0,
 					}
-		all.set(item.id, positioned)
+		if (!previous) all.set(item.id, positioned)
 		if (!matches) return
 		matching++
 		if (items.length >= 500) {
 			if (item.id !== context.selected) return
 			const removed = items.pop()!
+			painted.delete(removed.id)
 			if (pendingPositions.delete(removed.id)) newPositions--
 		}
 		if (!previousPosition) {
@@ -110,11 +113,14 @@ export function* projectEcology(
 				x: 24 + (slot % 4) * 210,
 				y: 24 + Math.floor(slot / 4) * 82,
 			}
+			// Copy only when assigning a position, so cancellation never mutates the prior model.
+			if (all === previous?.all) all = new Map(all)
 			all.set(item.id, positioned)
 			pendingPositions.set(item.id, { x: positioned.x, y: positioned.y })
 			newPositions++
 		}
 		items.push(positioned)
+		painted.add(item.id)
 	}
 	for (const family of snapshot.families) {
 		const id = graphFamilyId(family.key)
@@ -143,8 +149,6 @@ export function* projectEcology(
 			filtered ||
 			id === context.selected ||
 			!all.has(group)
-		mapped.set(node.key, visible ? id : group)
-		if (node.kind === `selector`) selectorIds.add(visible ? id : group)
 		add(
 			previous?.all.get(id) ?? {
 				id,
@@ -156,12 +160,26 @@ export function* projectEcology(
 			},
 			visible && (!matchedIds || matchedIds.has(id)),
 		)
+		const target = visible ? id : group
+		if (painted.has(target)) {
+			mapped.set(node.key, target)
+			if (node.kind === `selector`) selectorIds.add(target)
+		}
 		yield
 	}
-	const painted = new Set(items.map((item) => item.id))
+	const dependencyKeys = previous?.dependencyKeys ?? new Set<string>()
+	if (!previous)
+		for (const edge of snapshot.edges) {
+			dependencyKeys.add(edge.dependency)
+			yield
+		}
 	const seen = new Map<string, GraphEdge>()
 	// Atom-only projections have no edge destinations. Once an untraced paint cap is full, later edges cannot affect it.
-	if (items.some((item) => selectorIds.has(item.id)))
+	if (
+		items.length > 1 &&
+		items.some((item) => selectorIds.has(item.id)) &&
+		[...mapped.keys()].some((key) => dependencyKeys.has(key))
+	)
 		for (const edge of snapshot.edges) {
 			const from = mapped.get(edge.dependency),
 				to = mapped.get(edge.selector)
@@ -202,6 +220,7 @@ export function* projectEcology(
 	}
 	return {
 		snapshot,
+		dependencyKeys,
 		items,
 		edges,
 		all,

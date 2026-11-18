@@ -24,6 +24,12 @@ function fixture() {
 		key: `record`,
 		default: { a: 1, b: 2, list: [3, 1], flag: false },
 	})
+	app.atom<unknown>({
+		key: `nested`,
+		default: {
+			level1: { level2: { level3: { level4: { level5: { amount: 7 } } } } },
+		},
+	})
 	const cycle: Record<string, unknown> = {}
 	cycle[`self`] = cycle
 	app.atom<Record<string, unknown>>({ key: `circular`, default: cycle })

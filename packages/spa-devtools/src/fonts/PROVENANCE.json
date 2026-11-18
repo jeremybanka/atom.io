@@ -1,0 +1,27 @@
+{
+	"family": "Theia 0.3",
+	"author": "Jeremy Banka",
+	"copyright": "Copyright Jeremy Banka. Original embedded notices retained.",
+	"license": "MPL-2.0",
+	"sourceCommit": "5677d223496c250bb668538c2d355362e044506d",
+	"files": [
+		{
+			"name": "Theia0.3-200.otf",
+			"weight": 200,
+			"source": "apps/atom.io.fyi/public/Theia0.3-200.otf",
+			"sha256": "d6c7a964d4a6cf068c942d2a844ef76beb912b7916406a93e3aa158364d7883f"
+		},
+		{
+			"name": "Theia0.3-400.otf",
+			"weight": 400,
+			"source": "apps/atom.io.fyi/public/Theia0.3-400.otf",
+			"sha256": "703c2d9e35fc1e3bcea25d523111110eb5a306d5d3d0a1f348541e08a23fd762"
+		},
+		{
+			"name": "Theia0.3-500.otf",
+			"weight": 500,
+			"source": "apps/atom.io.fyi/public/Theia0.3-500.otf",
+			"sha256": "dbd6b17bfbb3f8c15d7e2f07b847abb09b64d7aaa9c6c4f00072aaa1d161358a"
+		}
+	]
+}

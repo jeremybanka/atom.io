@@ -34,6 +34,7 @@ export function JsonEditor(props: EditorProps): SpaElement {
 	return (
 		<section
 			class="json-editor"
+			data-depth={Math.min(3, props.ancestors?.length ?? 0)}
 			data-testid={`${props.path.join(`.`)}-state-editor`}
 		>
 			<header>

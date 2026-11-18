@@ -69,6 +69,27 @@ For a shared debugger UI, React applications can migrate their AtomIODevtools an
 
 The shared panel uses a static atom.io.fyi mark and a subtle noise texture, embedded in its stylesheet without animation or network requests. The view tabs have a separate row so window controls remain reachable; use Left/Right arrows or Home/End while a tab is focused, or scroll the tab strip in constrained windows. Editors retain 21–22 px rows. Text, numeric and property-name inputs grow with their contents; numeric values align right, and unfinished decimal text remains editable until blur. Transaction outcomes are indented beneath their labeled transaction, with changes nested one level further.
 
+## Surfaces and typography
+
+The stylesheet includes its own light/dark palette and Theia 0.3 fonts. It follows prefers-color-scheme. The shell and inactive tabs use explicit shades, active tabs and content use the normal surface, and search uses the first shade. Tint always means lighter and shade always means darker in both themes. The site's hard/soft aliases reverse with the theme; they are compatibility aliases, not drawer-depth numbers.
+
+| Role                         | Token or rule                                                |
+| ---------------------------- | ------------------------------------------------------------ |
+| Shell and toolbar            | --surface-shell, mapped to --bg-shade-2                      |
+| Inactive tabs                | --surface-inactive, mapped to --bg-shade-1                   |
+| Active content               | --surface-content, mapped to --bg-color                      |
+| Search                       | --surface-search, mapped to --bg-shade-1                     |
+| Text and subdued text        | --ink and --ink-muted                                        |
+| Keyboard focus and selection | --accent, with contrasting selection ink                     |
+| Errors                       | --error-ink on --error-surface                               |
+| Disabled controls            | --ink-disabled, without reducing the whole control's opacity |
+
+Drawer headers use the first, second and third shade as actual JSON nesting increases. At the third shade, deeper drawers keep that tone and use indentation/borders to communicate further nesting. This bounded three-tone policy keeps deep structures readable in both themes. Root editor rows remain 22 px and nested rows 21 px. Window gestures, numeric drafts and elastic input sizing retain their existing behavior.
+
+The bundled Theia weights are 200 for lightweight headings, 400 for body/control text and 500 for emphasis. The private font-family name Atom IO Theia avoids accidentally resolving an ambient site installation. Font synthesis is disabled. The original files were authored by Jeremy Banka and are distributed under MPL-2.0; their source paths, hashes and preserved copyright notices are recorded in the packaged fonts/PROVENANCE.json and fonts/LICENSE beside the stylesheet. Font URLs are relative to the emitted CSS, so root and subpath hosting work without requests to atom.io.fyi. Serve the emitted fonts directory with the stylesheet; no system font or root-level site assets are required.
+
+The existing demonstration uses component-owned Lasertag CSS Modules with one class export and named roots. Its opted-in data-atom-io-theme surface inherits the same published tokens. The debugger's imperative graph/editor DOM keeps its scoped stylesheet; the emitted CSS needs no Lasertag runtime, CSS Modules loader or site build configuration. The later storefront can reuse these tokens without introducing another palette.
+
 ## Search across debugger views
 
 Each view has its own local search and query text. Opening a view or pressing Refresh takes an explicit capture; subsequent queries use that admitted copy. Queries survive navigation within the mounted debugger. Changing a query never refreshes the store, evaluates a dormant selector, initializes a family member, invokes an application callback, replays a transaction or moves an undo/redo cursor. If a transaction is currently applying, capture waits for its commit. Capture time and omission notices describe what was actually searched, rather than promising a current or complete view of the application.
@@ -155,11 +176,11 @@ traceEcologyRoots follows the captured edges iteratively, deduplicates shared ro
 
 ## Package checks
 
-Tsdown builds the package JavaScript and declarations. SPA's compiler transforms the debugger JSX before bundling, preserving reactive bindings. The build copies the stylesheet and its declaration alongside the JavaScript; SPA and atom.io stay external peers.
+Tsdown builds the package JavaScript and declarations. SPA's compiler transforms the debugger JSX before bundling, preserving reactive bindings. The build copies the stylesheet, its declaration and the three licensed font assets alongside the JavaScript; SPA and atom.io stay external peers.
 
 Breakage exercises the packed package in isolated, locked peer environments, including the coordinated atom.io workspace candidate. Until the first published release, Breakage reports a first-release baseline; these checks establish compatibility with the declared peers rather than a previous spa release. Coverage gates require 100% of statements, branches, functions, and lines across the package source.
 
-The serving recipe measures an interactive SPA app with the debugger: atom creation, render, useGetter, useSetter, JSX, and AtomIODevtools. The combined browser bundle includes atom.io, SPA, and the debugger, with shared modules counted once and unused exports removed. SPA and atom.io remain peer dependencies of the debugger package; these consumer-app measurements include both. The required debugger stylesheet is imported but its bytes are excluded from the JavaScript total, as are application components, declarations, and source maps.
+The serving recipe measures an interactive SPA app with the debugger: atom creation, render, useGetter, useSetter, JSX, and AtomIODevtools. The combined browser bundle includes atom.io, SPA, and the debugger, with shared modules counted once and unused exports removed. SPA and atom.io remain peer dependencies of the debugger package; these consumer-app measurements include both. The required debugger stylesheet is imported but its bytes and the bundled fonts are excluded from the JavaScript total, as are application components, declarations, and source maps.
 
 ## Browser serving size including SPA and atom.io
 
@@ -169,7 +190,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                        | Entry                         | Minified JS |  Gzip JS |
 | ----------------------------- | ----------------------------- | ----------: | -------: |
-| Interactive app with debugger | `tonnage-recipes/debugger.ts` |   141,245 B | 43,904 B |
+| Interactive app with debugger | `tonnage-recipes/debugger.ts` |   141,600 B | 44,068 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

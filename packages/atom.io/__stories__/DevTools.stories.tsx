@@ -9,8 +9,10 @@ import {
 	playOrderHistorySearch,
 	playOrderRoots,
 	playPrimary,
+	playSurfaceStates,
 } from "./devtools-story-interactions.ts"
-import { OrderFulfillment, OrderSummary } from "./OrderFulfillment.tsx"
+import { OrderFulfillment } from "./OrderFulfillment.tsx"
+import { OrderSummary } from "./OrderSummary.tsx"
 import { PrimaryDevtools } from "./PrimaryDevtools.tsx"
 
 const meta: Meta<typeof PrimaryDevtools> = {
@@ -45,4 +47,9 @@ export const OrderHistorySearch: Story = {
 export const EcologySearch: Story = {
 	render: () => <OrderFulfillment />,
 	play: playEcologySearch,
+}
+
+export const SurfaceStates: Story = {
+	render: () => <OrderFulfillment />,
+	play: playSurfaceStates,
 }

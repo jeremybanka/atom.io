@@ -9,7 +9,12 @@ import { dirname, resolve } from "node:path"
 import { build } from "esbuild"
 import type { Browser, BrowserContext, Page } from "playwright"
 
-import { browserArtifacts, cpuRate, launchBrowser } from "./browser-runtime.ts"
+import {
+	browserArtifacts,
+	cpuRate,
+	launchBrowser,
+	loadDevtoolsAssets,
+} from "./browser-runtime.ts"
 
 const favicon = await readFile(
 	resolve(import.meta.dirname, `../../../apps/atom.io.fyi/public/favicon.png`),
@@ -48,27 +53,84 @@ for (const version of [`18`, `19`]) {
 	bundles[`/react${version}.js`] = result.outputFiles[0].text
 }
 bundles[`/spa.js`] = bundles[`/react19.js`]
-const css = await readFile(
-	resolve(import.meta.dirname, `../dist/devtools.css`),
-	`utf8`,
-)
+const assets = await loadDevtoolsAssets()
 const server = createServer((req, res) => {
 	const url = new URL(req.url ?? `/`, `http://localhost`),
+		prefix = url.pathname.startsWith(`/nested/consumer/`)
+			? `/nested/consumer`
+			: ``,
+		pathname = url.pathname.slice(prefix.length),
 		mode = url.searchParams.get(`mode`) ?? `spa`
+	const asset = assets.get(pathname)
+	if (asset) {
+		res.setHeader(`content-type`, asset.type)
+		res.end(asset.body)
+		return
+	}
 	res.setHeader(
 		`content-type`,
-		bundles[url.pathname] ? `application/javascript` : `text/html`,
+		bundles[pathname] ? `application/javascript` : `text/html`,
 	)
 	res.end(
-		bundles[url.pathname] ??
-			`<style>${css}</style><script type="module" src="/${mode}.js"></script>`,
+		bundles[pathname] ??
+			`<link rel="stylesheet" href="${prefix}/devtools.css"><script type="module" src="${prefix}/${mode}.js"></script>`,
 	)
 })
+async function checkTypography(page: Page, prefix: string) {
+	const typography = await page.evaluate(async () => {
+		const loaded = await Promise.all(
+			[200, 400, 500].map((weight) =>
+				document.fonts.load(`${weight} 14px "Atom IO Theia"`),
+			),
+		)
+		await document.fonts.ready
+		const panel = document.querySelector<HTMLElement>(
+				`main[data-css="spa-devtools"]`,
+			)!,
+			title = panel.querySelector(`h1`)!
+		return {
+			loaded: loaded.map((faces) =>
+				faces.map((face) => ({
+					family: face.family,
+					weight: face.weight,
+					status: face.status,
+				})),
+			),
+			family: getComputedStyle(panel).fontFamily,
+			body: getComputedStyle(panel).fontWeight,
+			header: getComputedStyle(title).fontWeight,
+			requests: performance
+				.getEntriesByType(`resource`)
+				.map((resource) => resource.name)
+				.filter((name) => name.includes(`Theia0.3`)),
+		}
+	})
+	assert.match(typography.family, /Atom IO Theia/)
+	assert.equal(typography.body, `400`)
+	assert.equal(typography.header, `200`)
+	for (const [index, weight] of [200, 400, 500].entries()) {
+		assert.deepEqual(
+			typography.loaded[index].map((face) => ({
+				weight: face.weight,
+				status: face.status,
+			})),
+			[{ weight: String(weight), status: `loaded` }],
+		)
+		assert.ok(
+			typography.requests.some(
+				(url) =>
+					new URL(url).pathname === `${prefix}/fonts/Theia0.3-${weight}.otf`,
+			),
+		)
+	}
+	return typography
+}
 async function checkVisualTreatment(
 	page: Page,
 	theme: `light` | `dark`,
 	name: string,
 ) {
+	const typography = await checkTypography(page, ``)
 	const icon = await page
 		.locator(`.brand-mark`)
 		.evaluate((el: HTMLElement) => getComputedStyle(el).backgroundImage)
@@ -109,8 +171,25 @@ async function checkVisualTreatment(
 				inactiveShadow: rest.boxShadow,
 			},
 			textColor: getComputedStyle(el).color,
+			surfaces: {
+				shell: getComputedStyle(el).backgroundColor,
+				content: getComputedStyle(el.querySelector(`.index`)!).backgroundColor,
+				search: getComputedStyle(el.querySelector(`.search-row`)!)
+					.backgroundColor,
+				inactive: rest.backgroundColor,
+				hard: getComputedStyle(el).getPropertyValue(`--bg-hard-1`).trim(),
+				shade: getComputedStyle(el).getPropertyValue(`--bg-shade-1`).trim(),
+				tint: getComputedStyle(el).getPropertyValue(`--bg-tint-1`).trim(),
+			},
 		}
 	})
+	assert.notEqual(appearance.surfaces.shell, appearance.surfaces.content)
+	assert.notEqual(appearance.surfaces.search, appearance.surfaces.content)
+	assert.equal(appearance.surfaces.search, appearance.surfaces.inactive)
+	assert.equal(
+		appearance.surfaces.hard,
+		theme === `dark` ? appearance.surfaces.shade : appearance.surfaces.tint,
+	)
 	assert.equal(appearance.noise.opacity, theme === `dark` ? `1` : `0.5`)
 	assert.equal(
 		appearance.noise.blend,
@@ -239,7 +318,119 @@ async function checkVisualTreatment(
 		pixels.minimumInkContrast >= 4.5,
 		`Noise must retain text/background contrast in the sampled patch: ${JSON.stringify(pixels)}`,
 	)
-	return { faviconSha256, ...appearance, pixels }
+	return { faviconSha256, typography, ...appearance, pixels }
+}
+function contrastRatio(ink: string, fill: string): number {
+	const luminance = (color: string) =>
+		color
+			.match(/\d+/g)!
+			.slice(0, 3)
+			.map(Number)
+			.map((channel) => {
+				const v = channel / 255
+				return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+			})
+			.reduce(
+				(sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index],
+				0,
+			)
+	const a = luminance(ink),
+		b = luminance(fill)
+	return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+}
+async function checkLayering(page: Page, theme: `light` | `dark`) {
+	await page.getByTestId(`view-atoms`).click()
+	// Close any layout menu left by the viewport checks before exercising search Escape.
+	await page.keyboard.press(`Escape`)
+	for (const key of [`nested`, `level1`, `level2`, `level3`, `level4`, `level5`])
+		await page
+			.getByRole(`button`, { name: `Expand ${key}`, exact: true })
+			.click()
+	const rows = await page
+		.getByTestId(`state-value-nested`)
+		.locator(`.json-editor`)
+		.evaluateAll((editors) =>
+			editors.map((editor) => {
+				const row = editor.querySelector<HTMLElement>(`:scope > header`)!
+				return {
+					depth: Number(editor.getAttribute(`data-depth`)),
+					fill: getComputedStyle(row).backgroundColor,
+					height: row.getBoundingClientRect().height,
+				}
+			}),
+		)
+	assert.deepEqual(
+		rows.map((row) => row.depth),
+		[0, 1, 2, 3, 3, 3, 3],
+	)
+	assert.equal(rows[0].height, 22)
+	assert.ok(rows.slice(1).every((row) => row.height === 21))
+	assert.notEqual(rows[0].fill, rows[1].fill)
+	assert.notEqual(rows[1].fill, rows[2].fill)
+	assert.ok(rows.slice(2).every((row) => row.fill === rows[2].fill))
+	await page.getByRole(`button`, { name: `Expand record`, exact: true }).click()
+	const rename = page.getByRole(`textbox`, { name: `Rename a`, exact: true })
+	await rename.fill(`b`)
+	await rename.press(`Enter`)
+	await page.getByRole(`alert`).waitFor()
+	const error = await page.getByRole(`alert`).evaluate((node) => ({
+		ink: getComputedStyle(node).color,
+		fill: getComputedStyle(node).backgroundColor,
+	}))
+	const errorContrast = contrastRatio(error.ink, error.fill)
+	assert.ok(errorContrast >= 4.5)
+	await page.screenshot({ path: resolve(artifacts, `${theme}-error-state.png`) })
+	const amount = page.getByRole(`textbox`, { name: `amount`, exact: true })
+	await amount.fill(`7.`)
+	assert.equal(
+		await amount.inputValue(),
+		`7.`,
+		`Draft must survive the nested edit itself`,
+	)
+	const query = page.getByRole(`searchbox`, { name: `Search atoms` })
+	await query.fill(`nested`)
+	await page.waitForFunction(
+		() =>
+			document.querySelector<HTMLElement>(`.state-search`)?.dataset[`ready`] ===
+			`true`,
+	)
+	assert.equal(
+		await amount.inputValue(),
+		`7.`,
+		`Draft must survive search focus`,
+	)
+	await query.press(`Escape`)
+	assert.equal(
+		await amount.inputValue(),
+		`7.`,
+		`Draft must survive clearing search`,
+	)
+	await query.press(`Escape`)
+	assert.equal(
+		await amount.inputValue(),
+		`7.`,
+		`Draft must survive returning focus`,
+	)
+	const focus = await amount.evaluate((node) => ({
+		focused: document.activeElement === node,
+		outline: getComputedStyle(node).outlineWidth,
+		ink: getComputedStyle(node).outlineColor,
+		fill: getComputedStyle(node).backgroundColor,
+	}))
+	assert.equal(focus.focused, true)
+	assert.equal(focus.outline, `2px`)
+	const focusContrast = contrastRatio(focus.ink, focus.fill)
+	assert.ok(focusContrast >= 3)
+	await query.fill(`nested`)
+	await page.waitForFunction(
+		() =>
+			document.querySelector<HTMLElement>(`.state-search`)?.dataset[`ready`] ===
+			`true`,
+	)
+	await page.screenshot({
+		path: resolve(artifacts, `${theme}-surfaces-nested-search.png`),
+	})
+	return { rows, error, errorContrast, focus, focusContrast }
 }
 async function checkLongField(
 	page: Page,
@@ -422,6 +613,7 @@ try {
 				`http://127.0.0.1:${(server.address() as AddressInfo).port}`,
 			)
 			await page.getByRole(`textbox`, { name: `count`, exact: true }).waitFor()
+			await checkTypography(page, ``)
 			const input = page.getByRole(`textbox`, { name: `message`, exact: true })
 			const short = (await input.boundingBox())!.width
 			await input.fill(`a longer elastic string`)
@@ -552,8 +744,11 @@ try {
 							box.y + box.height <= height + 1,
 					)
 				}
+			const layering =
+				name === `desktop` ? await checkLayering(page, theme) : null
 			assert.deepEqual(errors, [])
 			report.matrix.push({
+				layering,
 				theme,
 				name,
 				viewport: { width, height },
@@ -568,7 +763,12 @@ try {
 			await context.close()
 		}
 	if (!baseline)
-		for (const mode of [`spa`, `react18`, `react19`]) {
+		for (const { prefix, mode } of [``, `/nested/consumer`].flatMap((base) =>
+			[`spa`, `react18`, `react19`].map((consumer) => ({
+				prefix: base,
+				mode: consumer,
+			})),
+		)) {
 			const context: BrowserContext = await browser.newContext({
 				viewport: { width: 1024, height: 768 },
 			})
@@ -576,9 +776,11 @@ try {
 			const errors: string[] = []
 			page.on(`pageerror`, (e) => errors.push(e.message))
 			await page.goto(
-				`http://127.0.0.1:${(server.address() as AddressInfo).port}/?mode=${mode}`,
+				`http://127.0.0.1:${(server.address() as AddressInfo).port}${prefix}/?mode=${mode}`,
 			)
 			const input = page.getByRole(`textbox`, { name: `count`, exact: true })
+			await input.waitFor()
+			const typography = await checkTypography(page, prefix)
 			await input.fill(`2.`)
 			await input.evaluate((el: HTMLElement) => {
 				window.retainedInput = el
@@ -600,7 +802,10 @@ try {
 				)
 			assert.ok(rows.every((h) => h === 22))
 			// Native content sizing and character-count fallback both retain the live field.
-			const message = page.getByRole(`textbox`, { name: `message`, exact: true })
+			const message = page.getByRole(`textbox`, {
+				name: `message`,
+				exact: true,
+			})
 			await page.addStyleTag({
 				content: `main .elastic-input {field-sizing:fixed !important}`,
 			})
@@ -611,7 +816,10 @@ try {
 			await page
 				.getByRole(`button`, { name: `Expand record`, exact: true })
 				.click()
-			const rename = page.getByRole(`textbox`, { name: `Rename a`, exact: true })
+			const rename = page.getByRole(`textbox`, {
+				name: `Rename a`,
+				exact: true,
+			})
 			await rename.fill(`b`)
 			await rename.press(`Enter`)
 			assert.match(await page.getByRole(`alert`).innerText(), /already exists/)
@@ -757,7 +965,13 @@ try {
 				)
 			}
 			assert.deepEqual(errors, [])
-			report.flows.push({ mode, passed: true, repeatedMounts: 10 })
+			report.flows.push({
+				mode,
+				prefix,
+				typography,
+				passed: true,
+				repeatedMounts: 10,
+			})
 			await context.close()
 		}
 	await writeFile(

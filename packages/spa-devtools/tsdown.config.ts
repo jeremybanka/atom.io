@@ -25,6 +25,10 @@ const config: UserConfig = defineConfig({
 			},
 		},
 	],
-	copy: [`src/devtools.css`, `src/css.d.ts`],
+	copy: [
+		`src/devtools.css`,
+		`src/css.d.ts`,
+		{ from: `src/fonts/*`, to: `dist/fonts` },
+	],
 })
 export default config

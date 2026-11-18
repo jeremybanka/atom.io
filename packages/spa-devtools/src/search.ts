@@ -398,12 +398,14 @@ export function* matchStateSearch(
 		for (const token of tokens) {
 			let best = 9,
 				fieldPriority = 9
+			// Fields are ordered by priority; later literals cannot replace the first match.
 			for (let position = 0; position < document.fields.length; position++) {
 				const field = document.fields[position]
 				const literal = literalTier(field, token)
-				if (literal < 9 && best === 9) {
+				if (literal < 9) {
 					best = literal
 					fieldPriority = position
+					break
 				}
 			}
 			if (best === 9 && token.length >= 4 && token.length <= 64) {

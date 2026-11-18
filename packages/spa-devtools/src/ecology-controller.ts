@@ -55,14 +55,25 @@ export function createEcologyController(
 	const list = host.querySelector<HTMLElement>(`.ecology-list`)!
 	const marker = `ecology-arrow-${nextMarker++}`
 	// Reuse at most 500 visible card slots across filters of one immutable capture.
-	const cards: { group: SVGElement; row: HTMLLIElement }[] = []
+	const cards: {
+		group: SVGElement
+		outline: SVGElement
+		labels: SVGElement[]
+		row: HTMLLIElement
+		choose: HTMLButtonElement
+	}[] = []
 	const edgePaths: SVGElement[] = []
 	const syncChildren = (parent: Element, children: Element[]) => {
-		for (const [index, child] of children.entries())
-			if (parent.children[index] !== child)
-				parent.insertBefore(child, parent.children[index] ?? null)
-		while (parent.children.length > children.length)
-			parent.lastElementChild!.remove()
+		let next = parent.firstElementChild
+		for (const child of children) {
+			if (child === next) next = child.nextElementSibling
+			else parent.insertBefore(child, next)
+		}
+		while (next) {
+			const after = next.nextElementSibling
+			next.remove()
+			next = after
+		}
 	}
 	let model: GraphModel | undefined,
 		cancel = () => {},
@@ -256,20 +267,21 @@ export function createEcologyController(
 					tabindex: `0`,
 				})
 
-				group.append(
-					shape(`path`, {}),
-					shape(`text`, { x: `10`, y: `20` }),
-					shape(`text`, { x: `10`, y: `39` }),
-				)
+				const outline = shape(`path`, {}),
+					labels = [
+						shape(`text`, { x: `10`, y: `20` }),
+						shape(`text`, { x: `10`, y: `39` }),
+					]
+				group.append(outline, ...labels)
 				const row = element(`li`, ``),
 					choose = button(``, `select`)
 				row.append(choose)
-				card = { group, row }
+				card = { group, outline, labels, row, choose }
 				cards[index] = card
 			}
 			card.group.setAttribute(`data-graph-id`, item.id)
 			card.group.setAttribute(`aria-label`, `${item.label} · ${item.detail}`)
-			card.group.children[0].setAttribute(
+			card.outline.setAttribute(
 				`d`,
 				item.kind === `selector`
 					? `M12 0 L164 0 L176 26 L164 52 L12 52 L0 26 Z`
@@ -278,11 +290,11 @@ export function createEcologyController(
 						: `M0 0 H176 V52 H0 Z`,
 			)
 			for (const [offset, label] of [item.label, item.detail].entries()) {
-				const text = card.group.children[offset + 1],
+				const text = card.labels[offset],
 					caption = label.length > 23 ? `${label.slice(0, 22)}…` : label
 				if (text.textContent !== caption) text.textContent = caption
 			}
-			const choose = card.row.querySelector(`button`)!
+			const choose = card.choose
 			choose.dataset[`graphId`] = item.id
 			const caption = `${item.kind === `selector` ? `◇` : item.kind === `family` ? `▸` : `□`} ${item.label} · ${item.detail}`
 			if (choose.textContent !== caption) choose.textContent = caption
@@ -295,9 +307,10 @@ export function createEcologyController(
 				`aria-pressed`,
 				String(item.id === context.selected),
 			)
-			card.row
-				.querySelector(`button`)!
-				.setAttribute(`aria-pressed`, String(item.id === context.selected))
+			card.choose.setAttribute(
+				`aria-pressed`,
+				String(item.id === context.selected),
+			)
 			nodes.push(card.group)
 			rows.push(card.row)
 		}
@@ -346,6 +359,9 @@ export function createEcologyController(
 		cancel = scheduleGraph(
 			projectEcology(context.snapshot, context, matchedIds, model),
 			paint,
+			undefined,
+			undefined,
+			2,
 		)
 	}
 	const search = () => {
@@ -372,7 +388,7 @@ export function createEcologyController(
 				}
 				matchedIds = context.query.trim() ? ids : undefined
 				approximationLimited = next.approximateLimited
-				results.replaceChildren()
+				const fragment = document.createDocumentFragment()
 				for (const hit of next.hits) {
 					const row = element(`li`, ``),
 						target = button(``, `result`)
@@ -394,8 +410,9 @@ export function createEcologyController(
 							`${hit.document.detail}${hit.approximate ? ` · approximate match` : ``}`,
 						),
 					)
-					results.append(row)
+					fragment.append(row)
 				}
+				results.replaceChildren(fragment)
 				searchStatus.textContent = `${context.query.trim() ? `${next.matching}${next.approximateLimited ? `+` : ``} matching captured records; ${next.hits.length} ranked results. ` : ``}Metadata only.${searchIndex!.truncatedText ? ` ${searchIndex!.truncatedText} text prefixes truncated.` : ``}${next.approximateLimited ? ` Approximate search limited; refine the query.` : ``}`
 				project()
 			},
@@ -445,7 +462,7 @@ export function createEcologyController(
 			},
 			undefined,
 			undefined,
-			2,
+			0.5,
 		)
 	}
 

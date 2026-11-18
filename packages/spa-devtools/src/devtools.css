@@ -1,29 +1,85 @@
-main[data-css="spa-devtools"], div[data-css="spa-devtools-window"] {
-	--fg-color: #ddd;
-	--fg-light: #aaa;
-	--fg-soft: #aaa;
-	--fg-hint: #4a4a4a;
-	--fg-max: #fff;
+@font-face {
+	font-family: "Atom IO Theia";
+	font-style: normal;
+	font-weight: 200;
+	font-display: swap;
+	src: url("./fonts/Theia0.3-200.otf") format("opentype");
+}
+@font-face {
+	font-family: "Atom IO Theia";
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url("./fonts/Theia0.3-400.otf") format("opentype");
+}
+@font-face {
+	font-family: "Atom IO Theia";
+	font-style: normal;
+	font-weight: 500;
+	font-display: swap;
+	src: url("./fonts/Theia0.3-500.otf") format("opentype");
+}
+
+/* Explicit tint/shade scales stay directional in both themes. Semantic aliases describe use. */
+:where(main[data-css="spa-devtools"], div[data-css="spa-devtools-window"], [data-atom-io-theme]) {
 	--bg-color: #111;
-	--bg-accent: #00f;
-	--bg-max: #000;
-	--bg-tint1: #171717;
-	--bg-tint2: #222;
+	--bg-tint-1: #171717;
+	--bg-tint-2: #1c1c1c;
+	--bg-tint-3: #222;
+	--bg-shade-1: #0a0a0a;
+	--bg-shade-2: #070707;
+	--bg-shade-3: #000;
+	--ink: #fff;
+	--ink-muted: #aaa;
+	--ink-disabled: #888;
+	--ink-strong: #fff;
+	--line: #444;
+	--line-strong: #888;
+	--accent: #83c6ff;
+	--error-ink: #ff9ab1;
+	--error-surface: #2c1219;
+	--graph-family: #bc9cea;
+	--change-added: #143520;
+	--change-removed: #381722;
+	--surface-shell: var(--bg-shade-2);
+	--surface-inactive: var(--bg-shade-1);
+	--surface-content: var(--bg-color);
+	--surface-search: var(--bg-shade-1);
+	--surface-hover: var(--bg-tint-3);
+	--surface-focus: var(--bg-color);
+	--drawer-surface: var(--bg-shade-1);
+	--bg-hard-1: var(--bg-shade-1);
+	--bg-hard-2: var(--bg-shade-2);
+	--bg-soft-1: var(--bg-tint-1);
+	--bg-soft-2: var(--bg-tint-2);
+	--brand-color: #c03;
 	color-scheme: dark;
 	@media (prefers-color-scheme: light) {
-		--fg-color: #444;
-		--fg-light: #666;
-		--fg-soft: #666;
-		--fg-hint: #ccc;
-		--fg-max: #000;
 		--bg-color: #f9f9f9;
-		--bg-accent: #0ff;
-		--bg-max: #fff;
-		--bg-tint1: #f6f6f6;
-		--bg-tint2: #eee;
+		--bg-tint-1: #fdfdfd;
+		--bg-tint-2: #fff;
+		--bg-tint-3: #fff;
+		--bg-shade-1: #f6f6f6;
+		--bg-shade-2: #f0f0f0;
+		--bg-shade-3: #e8e8e8;
+		--ink: #333;
+		--ink-muted: #666;
+		--ink-disabled: #777;
+		--ink-strong: #222;
+		--line: #ccc;
+		--line-strong: #888;
+		--accent: #0059b3;
+		--error-ink: #9a0026;
+		--error-surface: #ffe8ee;
+		--graph-family: #725399;
+		--change-added: #e5f5e9;
+		--change-removed: #ffe8ee;
+		--bg-hard-1: var(--bg-tint-1);
+		--bg-hard-2: var(--bg-tint-2);
+		--bg-soft-1: var(--bg-shade-1);
+		--bg-soft-2: var(--bg-shade-2);
 		color-scheme: light;
 	}
-	--brand-color: #c03;
 }
 main[data-css="spa-devtools"] {
 	position: fixed;
@@ -35,10 +91,11 @@ main[data-css="spa-devtools"] {
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
-	border: 2px solid var(--fg-color);
-	background: var(--bg-color);
-	color: var(--fg-color);
-	font: 14px/1 Theia, monospace;
+	border: 2px solid var(--ink);
+	background: var(--surface-shell);
+	color: var(--ink);
+	font: 400 14px/1 "Atom IO Theia", monospace;
+	font-synthesis: none;
 	text-align: left;
 	&, * {
 		box-sizing: border-box;
@@ -61,6 +118,9 @@ main[data-css="spa-devtools"] {
 			display: none;
 		}
 	}
+	strong {
+		font-weight: 500;
+	}
 	button, input, select {
 		border-radius: 0;
 		background: none;
@@ -74,28 +134,29 @@ main[data-css="spa-devtools"] {
 		cursor: pointer;
 	}
 	button:hover {
-		background: var(--fg-hint);
+		background: var(--surface-hover);
 	}
 	button:disabled {
 		cursor: default;
-		color: var(--fg-soft);
+		color: var(--ink-disabled);
 	}
 	button:focus-visible, input:focus-visible, select:focus-visible {
-		outline: 2px solid var(--fg-max);
+		outline: 2px solid var(--accent);
 		outline-offset: -2px;
-		background: var(--bg-max);
-		color: var(--fg-max);
+		background: var(--surface-focus);
+		color: var(--ink-strong);
 	}
 	input {
 		height: 18px;
 		padding: 0 2px;
-		border: 1px solid var(--fg-hint);
+		border: 1px solid var(--line);
 	}
 	input[readonly] {
 		border-color: transparent;
 	}
 	input::selection {
-		background: var(--bg-accent);
+		background: var(--accent);
+		color: var(--surface-content);
 	}
 	input[type="checkbox"] {
 		width: 13px;
@@ -105,7 +166,7 @@ main[data-css="spa-devtools"] {
 	select {
 		height: 20px;
 		border: 0;
-		color: var(--fg-soft);
+		color: var(--ink-muted);
 		flex: 0 0 auto;
 		max-width: 76px;
 	}
@@ -121,13 +182,15 @@ main[data-css="spa-devtools"] {
 		min-width: 0;
 		align-items: center;
 		padding: 2px 3px 0;
-		background: var(--bg-tint1);
+		background: var(--surface-shell);
 	}
 	.toolbar h1 {
 		display: flex;
 		align-items: center;
 		gap: 5px;
-		font: 18px/26px Charter, serif;
+		font-size: 18px;
+		line-height: 26px;
+		font-weight: 200;
 		white-space: nowrap;
 		overflow: hidden;
 	}
@@ -153,8 +216,8 @@ main[data-css="spa-devtools"] {
 		scrollbar-width: thin;
 		gap: 3px;
 		padding: 4px 4px 0;
-		background: var(--bg-color);
-		box-shadow: inset 0 -1px 0 var(--fg-soft);
+		background: var(--surface-shell);
+		box-shadow: inset 0 -1px 0 var(--ink-muted);
 	}
 	.toolbar nav button {
 		position: relative;
@@ -163,23 +226,23 @@ main[data-css="spa-devtools"] {
 		height: 24px;
 		margin-top: 4px;
 		padding: 0 7px;
-		border: 1px solid var(--fg-hint);
-		border-bottom-color: var(--fg-soft);
+		border: 1px solid var(--line);
+		border-bottom-color: var(--ink-muted);
 		border-radius: 8px 8px 0 0;
-		background: var(--bg-tint2);
-		color: var(--fg-light);
+		background: var(--surface-inactive);
+		color: var(--ink-muted);
 		box-shadow: inset 0 2px 3px #0003;
 	}
 	.toolbar nav button[aria-selected="true"] {
 		z-index: 1;
 		height: 28px;
 		margin-top: 0;
-		color: var(--fg-max);
-		background: var(--bg-tint1);
-		border-color: var(--fg-soft);
-		border-bottom-color: var(--bg-tint1);
-		box-shadow: inset 0 1px 0 var(--fg-hint), 0 -2px 3px #0002;
-		font-weight: bold;
+		color: var(--ink-strong);
+		background: var(--surface-content);
+		border-color: var(--ink-muted);
+		border-bottom-color: var(--surface-content);
+		box-shadow: inset 0 1px 0 var(--line), 0 -2px 3px #0002;
+		font-weight: 500;
 	}
 	.devtools-content > .index,
 	.devtools-content > .ecology,
@@ -187,6 +250,7 @@ main[data-css="spa-devtools"] {
 		border-top: 0;
 	}
 	.devtools-content {
+		background: var(--surface-content);
 		display: flex;
 		flex: 1;
 		min-height: 0;
@@ -194,14 +258,14 @@ main[data-css="spa-devtools"] {
 		overflow: hidden;
 	}
 	.devtools-content:focus-visible {
-		outline: 2px solid var(--fg-light);
+		outline: 2px solid var(--ink-muted);
 		outline-offset: -2px;
 	}
 	.drag-handle {
 		touch-action: none;
 		cursor: move;
 		min-width: 16px;
-		color: var(--fg-soft);
+		color: var(--ink-muted);
 	}
 	.resize-handle {
 		position: absolute;
@@ -270,23 +334,24 @@ main[data-css="spa-devtools"] {
 		flex: 1;
 		min-height: 0;
 		overflow: auto;
-		border-top: 1px solid var(--fg-color);
-		background: var(--bg-tint1);
+		border-top: 1px solid var(--ink);
+		background: var(--surface-content);
 		padding-bottom: 24px;
 	}
 	.ecology {
+		background: var(--surface-content);
 		display: flex;
 		flex: 1;
 		min-height: 0;
 		flex-direction: column;
-		border-top: 1px solid var(--fg-soft);
+		border-top: 1px solid var(--ink-muted);
 	}
 	.ecology-tools {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 3px;
 		padding: 5px;
-		background: var(--bg-tint2);
+		background: var(--surface-search);
 	}
 	.ecology-tools input {
 		flex: 1;
@@ -300,7 +365,7 @@ main[data-css="spa-devtools"] {
 		overflow-wrap: anywhere;
 	}
 	.ecology-notice {
-		color: var(--fg-light);
+		color: var(--ink-muted);
 	}
 	.ecology-body {
 		display: grid;
@@ -313,12 +378,12 @@ main[data-css="spa-devtools"] {
 		min-width: 0;
 		min-height: 0;
 		flex-direction: column;
-		background: radial-gradient(var(--fg-hint) 1px, transparent 1px) 0 0 / 16px
+		background: radial-gradient(var(--line) 1px, transparent 1px) 0 0 / 16px
 			16px;
 	}
 	.ecology-map > nav {
 		flex-shrink: 0;
-		background: var(--bg-tint2);
+		background: var(--surface-inactive);
 	}
 	.ecology-map > svg {
 		width: 100%;
@@ -330,8 +395,8 @@ main[data-css="spa-devtools"] {
 		max-height: 35%;
 		flex-shrink: 0;
 		overflow: auto;
-		border-top: 1px solid var(--fg-hint);
-		background: var(--bg-tint1);
+		border-top: 1px solid var(--line);
+		background: var(--surface-content);
 	}
 	.ecology-map summary {
 		padding: 5px;
@@ -348,16 +413,16 @@ main[data-css="spa-devtools"] {
 		text-overflow: ellipsis;
 	}
 	.ecology-list button[aria-pressed="true"] {
-		background: var(--fg-color);
+		background: var(--ink);
 		color: var(--bg-color);
 	}
 	.ecology-edge {
 		fill: none;
-		stroke: var(--fg-soft);
+		stroke: var(--ink-muted);
 		stroke-width: 1.5px;
 	}
 	.ecology-edge.traced {
-		stroke: #4296dd;
+		stroke: var(--accent);
 		stroke-width: 3px;
 	}
 	.ecology-node {
@@ -365,43 +430,43 @@ main[data-css="spa-devtools"] {
 		outline: none;
 	}
 	.ecology-node > path {
-		fill: var(--bg-tint2);
-		stroke: var(--fg-light);
+		fill: var(--surface-inactive);
+		stroke: var(--ink-muted);
 		stroke-width: 1.5px;
 	}
 	.ecology-node.family > path {
-		stroke: #9d7bd1;
+		stroke: var(--graph-family);
 		stroke-dasharray: 5 3;
 	}
 	.ecology-node.traced > path {
-		stroke: #4296dd;
+		stroke: var(--accent);
 		stroke-width: 3px;
 	}
 	.ecology-node[aria-pressed="true"] > path,
 	.ecology-node:focus-visible > path {
-		stroke: var(--fg-max);
+		stroke: var(--ink-strong);
 		stroke-width: 3px;
 	}
 	.ecology-node > text {
-		fill: var(--fg-color);
+		fill: var(--ink);
 		font-size: 11px;
 		pointer-events: none;
 	}
 	.ecology-node > text:last-child {
-		fill: var(--fg-light);
+		fill: var(--ink-muted);
 		font-size: 10px;
 	}
 	.ecology-inspector {
 		min-width: 0;
 		padding: 8px;
-		border-left: 1px solid var(--fg-hint);
-		background: var(--bg-tint1);
+		border-left: 1px solid var(--line);
+		background: var(--surface-content);
 		overflow: auto;
 	}
 	.ecology-inspector h2 {
 		margin-bottom: 6px;
 		overflow-wrap: anywhere;
-		font-weight: bold;
+		font-weight: 500;
 	}
 	.ecology-inspector > p {
 		padding: 5px 0;
@@ -414,7 +479,7 @@ main[data-css="spa-devtools"] {
 		min-height: 23px;
 		margin-bottom: 3px;
 		padding: 4px;
-		border: 1px solid var(--fg-hint);
+		border: 1px solid var(--line);
 		text-align: left;
 	}
 	@media (max-width: 650px) {
@@ -431,25 +496,26 @@ main[data-css="spa-devtools"] {
 		}
 		.ecology-inspector {
 			border-left: 0;
-			border-top: 1px solid var(--fg-hint);
+			border-top: 1px solid var(--line);
 			max-height: 220px;
 		}
 	}
 	.index > p {
 		padding: 5px;
 		font-style: italic;
-		color: var(--fg-soft);
+		color: var(--ink-muted);
 	}
 	.node {
-		border-bottom: 1px solid var(--fg-soft);
+		border-bottom: 1px solid var(--ink-muted);
 	}
 	.node > header, .event > header {
 		height: 22px;
-		background: var(--bg-tint2);
+		background: var(--surface-inactive);
 		white-space: nowrap;
 		overflow: hidden;
 	}
 	.node > header h2 {
+		font-weight: 200;
 		padding: 0 3px;
 		overflow: hidden;
 		text-overflow: ellipsis;
@@ -458,22 +524,28 @@ main[data-css="spa-devtools"] {
 		margin-right: auto;
 	}
 	small {
-		color: var(--fg-soft);
+		color: var(--ink-muted);
 	}
 	.node > .state-leaf ~ .state-leaf {
-		border-top: 1px solid var(--fg-hint);
+		border-top: 1px solid var(--line);
 	}
 	.node:has(> header) > .state-leaf {
 		margin-left: 9px;
-		border-left: 1px solid var(--fg-soft);
+		border-left: 1px solid var(--ink-muted);
 	}
 	.json-editor {
 		min-width: 0;
+		&[data-depth="1"] {
+			--drawer-surface: var(--bg-shade-2);
+		}
+		&[data-depth="2"], &[data-depth="3"] {
+			--drawer-surface: var(--bg-shade-3);
+		}
 	}
 	.json-editor > header {
+		background: var(--drawer-surface);
 		height: 21px;
 		min-width: 0;
-		background: var(--bg-tint2);
 		white-space: nowrap;
 	}
 	.state-leaf > .json-editor > header {
@@ -506,7 +578,7 @@ main[data-css="spa-devtools"] {
 		min-width: 0;
 		overflow: hidden;
 		text-overflow: ellipsis;
-		color: var(--fg-light);
+		color: var(--ink-muted);
 		padding: 0 3px;
 	}
 	.primitive {
@@ -538,7 +610,7 @@ main[data-css="spa-devtools"] {
 	}
 	.transaction-outcomes {
 		margin-left: 12px;
-		border-left: 1px solid var(--fg-soft);
+		border-left: 1px solid var(--ink-muted);
 	}
 	.node > header .count {
 		margin-left: auto;
@@ -555,7 +627,7 @@ main[data-css="spa-devtools"] {
 		font-size: 11px;
 		line-height: 16px;
 		padding: 3px 6px;
-		color: var(--fg-light);
+		color: var(--ink-muted);
 		overflow-wrap: anywhere;
 	}
 
@@ -564,25 +636,25 @@ main[data-css="spa-devtools"] {
 	}
 	.properties, .impact {
 		margin-left: 9px;
-		border-left: 1px solid var(--fg-soft);
+		border-left: 1px solid var(--ink-muted);
 	}
 	.properties > .property {
-		border-top: 1px solid var(--fg-hint);
+		border-top: 1px solid var(--line);
 	}
 	.property .field-name::after {
 		content: ":";
-		color: var(--fg-soft);
+		color: var(--ink-muted);
 		padding-right: 3px;
 	}
 	.properties > footer {
 		height: 21px;
-		border-top: 1px solid var(--fg-hint);
+		border-top: 1px solid var(--line);
 	}
 	.properties > footer button {
-		color: var(--fg-soft);
+		color: var(--ink-muted);
 	}
 	.event {
-		border-top: 1px solid var(--fg-hint);
+		border-top: 1px solid var(--line);
 	}
 	.event > header strong {
 		padding-right: 5px;
@@ -596,24 +668,26 @@ main[data-css="spa-devtools"] {
 		overflow-wrap: anywhere;
 	}
 	ins {
-		color: var(--fg-color);
+		color: var(--ink);
 		text-decoration: none;
-		background: #0a02;
+		background: var(--change-added);
 	}
 	del {
-		color: var(--fg-soft);
-		background: #a002;
+		color: var(--ink-muted);
+		background: var(--change-removed);
 	}
 	.you-are-here {
-		background: var(--fg-color);
+		background: var(--ink);
 		color: var(--bg-color);
 		text-align: center;
 		line-height: 21px;
 	}
 	[role="alert"] {
+		color: var(--error-ink);
+		background: var(--error-surface);
 		padding: 5px;
 		line-height: 18px;
-		border-top: 1px solid var(--fg-soft);
+		border-top: 1px solid var(--ink-muted);
 	}
 }
 div[data-css="spa-devtools-window"] {
@@ -621,12 +695,12 @@ div[data-css="spa-devtools-window"] {
 	inset: 0;
 	z-index: 10001;
 	pointer-events: none;
-	font: 12px/1.2 monospace;
+	font: 400 12px/1.2 "Atom IO Theia", monospace;
 	.snap-preview {
 		position: absolute;
 		box-sizing: border-box;
-		background: #70baff30;
-		border: 2px solid #83c6ff;
+		background: color-mix(in srgb, var(--accent) 20%, transparent);
+		border: 2px solid var(--accent);
 	}
 	.snap-palette {
 		position: absolute;
@@ -640,8 +714,8 @@ div[data-css="spa-devtools-window"] {
 		padding: 6px;
 		width: max-content;
 		max-width: calc(100vw - 16px);
-		background: var(--bg-tint1);
-		border: 1px solid var(--fg-soft);
+		background: var(--surface-content);
+		border: 1px solid var(--ink-muted);
 		box-shadow: 0 4px 18px #0006;
 	}
 	[hidden] {
@@ -651,18 +725,18 @@ div[data-css="spa-devtools-window"] {
 		pointer-events: auto;
 		font: inherit;
 		padding: 6px;
-		color: var(--fg-color);
-		background: var(--bg-tint2);
-		border: 1px solid var(--fg-hint);
+		color: var(--ink);
+		background: var(--surface-inactive);
+		border: 1px solid var(--line);
 		cursor: pointer;
 	}
 	button[aria-pressed="true"], button:hover {
-		background: var(--fg-color);
+		background: var(--ink);
 		color: var(--bg-color);
 		border-color: var(--brand-color);
 	}
 	button:focus-visible {
-		outline: 2px solid var(--fg-max);
+		outline: 2px solid var(--accent);
 		outline-offset: 1px;
 	}
 }
@@ -692,19 +766,22 @@ main[data-css="spa-devtools"] {
 
 main[data-css="spa-devtools"] {
 	.state-search {
+		background: var(--surface-content);
 		display: flex;
 		flex: 1;
 		min-height: 0;
 		flex-direction: column;
 	}
 	.state-search-ui {
+		background: var(--surface-search);
 		flex: 0 1 auto;
 		max-height: 60%;
 		overflow: auto;
 		padding: 6px;
-		border-bottom: 1px solid var(--fg-hint);
+		border-bottom: 1px solid var(--line);
 	}
 	.search-row {
+		background: var(--surface-search);
 		display: flex;
 		flex-wrap: wrap;
 		gap: 4px;
@@ -725,6 +802,7 @@ main[data-css="spa-devtools"] {
 		min-height: 16px;
 	}
 	.search-results {
+		background: var(--surface-search);
 		list-style: none;
 		max-height: 180px;
 		overflow: auto;
@@ -733,7 +811,7 @@ main[data-css="spa-devtools"] {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 4px;
-		border-bottom: 1px solid var(--fg-hint);
+		border-bottom: 1px solid var(--line);
 	}
 	.search-results button {
 		height: auto;
@@ -762,7 +840,7 @@ main[data-css="spa-devtools"] {
 		flex: 0 0 auto;
 		max-height: 40%;
 		overflow: auto;
-		border-bottom: 1px solid var(--fg-hint);
+		border-bottom: 1px solid var(--line);
 	}
 	.search-live:empty, .search-details:empty, .search-results:empty {
 		display: none;
@@ -771,13 +849,13 @@ main[data-css="spa-devtools"] {
 		display: none !important;
 	}
 	mark {
-		color: var(--bg-max);
-		background: var(--fg-max);
+		color: var(--surface-focus);
+		background: var(--ink-strong);
 	}
 }
 
 main[data-css="spa-devtools"] [data-search-selected="true"] > header {
-	outline: 2px solid var(--fg-max);
+	outline: 2px solid var(--accent);
 	outline-offset: -2px;
 }
 
@@ -789,18 +867,20 @@ main[data-css="spa-devtools"] {
 		flex-direction: column;
 	}
 	.ecology-search-status {
+		background: var(--surface-search);
 		padding: 3px 6px;
 		font-size: 11px;
 		line-height: 15px;
 	}
 	.ecology-results {
+		background: var(--surface-search);
 		flex-shrink: 0;
 		max-height: 120px;
 		overflow: auto;
 		list-style: none;
 	}
 	.ecology-results li {
-		border-top: 1px solid var(--fg-hint);
+		border-top: 1px solid var(--line);
 	}
 	.ecology-results button {
 		width: 100%;
@@ -812,14 +892,14 @@ main[data-css="spa-devtools"] {
 	.ecology-results small {
 		display: block;
 		padding: 1px 5px;
-		color: var(--fg-light);
+		color: var(--ink-muted);
 		overflow-wrap: anywhere;
 	}
 	.ecology-live-panel {
 		flex-shrink: 0;
 		max-height: 40%;
 		overflow: auto;
-		border-top: 1px solid var(--fg-hint);
+		border-top: 1px solid var(--line);
 	}
 	.ecology-live-panel > header {
 		display: flex;

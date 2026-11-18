@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { mkdir, readFile, writeFile } from "node:fs/promises"
+import { mkdir, writeFile } from "node:fs/promises"
 import { createServer } from "node:http"
 import type { AddressInfo } from "node:net"
 import { arch, cpus, platform } from "node:os"
@@ -12,6 +12,7 @@ import {
 	browserArtifacts,
 	cpuRate,
 	launchBrowser,
+	loadDevtoolsAssets,
 	performancePolicy,
 	reportPerformanceTarget,
 	strictPerformance,
@@ -32,11 +33,16 @@ const bundle = await build({
 	platform: `browser`,
 	define: { "import.meta.env.DEV": `false` },
 })
-const css = await readFile(
-	resolvePath(import.meta.dirname, `../dist/devtools.css`),
-	`utf8`,
-)
+const assets = await loadDevtoolsAssets()
 const server = createServer((request, response) => {
+	const pathname = new URL(request.url ?? `/`, `http://localhost`).pathname
+	const asset = assets.get(pathname)
+	if (asset) {
+		response.setHeader(`content-type`, asset.type)
+		response.end(asset.body)
+		return
+	}
+
 	response.setHeader(
 		`content-type`,
 		request.url === `/app.js` ? `application/javascript` : `text/html`,
@@ -44,7 +50,7 @@ const server = createServer((request, response) => {
 	response.end(
 		request.url === `/app.js`
 			? bundle.outputFiles[0].text
-			: `<style>${css}</style><script type="module" src="/app.js"></script>`,
+			: `<link rel="stylesheet" href="/devtools.css"><script type="module" src="/app.js"></script>`,
 	)
 })
 await new Promise<void>((ready) => server.listen(0, `127.0.0.1`, ready))

@@ -1,9 +1,11 @@
 import assert from "node:assert/strict"
 import { execFileSync } from "node:child_process"
+import { createHash } from "node:crypto"
 import { cp, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises"
 import { createRequire } from "node:module"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
+import { pathToFileURL } from "node:url"
 
 const packageRoot = resolve(import.meta.dirname, `..`)
 const fixtureRoot = await mkdtemp(join(tmpdir(), `spa-devtools-packaging-`))
@@ -92,6 +94,34 @@ try {
 			`utf8`,
 		)
 		assert.match(css, /spa-devtools/)
+		const cssPath = require.resolve(`@atom.io/spa-devtools/css`)
+		const provenance = JSON.parse(
+			await readFile(
+				new URL(`./fonts/PROVENANCE.json`, pathToFileURL(cssPath)),
+				`utf8`,
+			),
+		) as {
+			license: string
+			files: { name: string; weight: number; sha256: string }[]
+		}
+		assert.equal(provenance.license, `MPL-2.0`)
+		assert.deepEqual(
+			provenance.files.map((file) => file.weight),
+			[200, 400, 500],
+		)
+		assert.match(
+			await readFile(new URL(`./fonts/LICENSE`, pathToFileURL(cssPath)), `utf8`),
+			/Mozilla Public License/,
+		)
+		for (const font of provenance.files) {
+			const bytes = await readFile(
+				new URL(`./fonts/${font.name}`, pathToFileURL(cssPath)),
+			)
+			assert.equal(createHash(`sha256`).update(bytes).digest(`hex`), font.sha256)
+			assert.ok(css.includes(`./fonts/${font.name}`))
+		}
+		assert.doesNotMatch(css, /url\(["']?\/(?!\/)/)
+
 		execFileSync(process.execPath, [join(appRoot, `check.ts`)], {
 			cwd: appRoot,
 			stdio: `inherit`,

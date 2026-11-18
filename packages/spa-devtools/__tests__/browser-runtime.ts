@@ -1,4 +1,6 @@
 import assert from "node:assert/strict"
+import { readFile } from "node:fs/promises"
+import { resolve } from "node:path"
 
 import { type Browser, chromium, type Page } from "playwright"
 
@@ -56,4 +58,20 @@ export async function launchBrowser(): Promise<Browser> {
 	const newPage = browser.newPage.bind(browser)
 	browser.newPage = async (...args) => throttle(await newPage(...args))
 	return browser
+}
+
+/** Serve the emitted stylesheet and its relative fonts in built-consumer fixtures. */
+export async function loadDevtoolsAssets(): Promise<
+	Map<string, { type: string; body: Buffer }>
+> {
+	const assets = new Map<string, { type: string; body: Buffer }>()
+	for (const name of [
+		`devtools.css`,
+		...[200, 400, 500].map((weight) => `fonts/Theia0.3-${weight}.otf`),
+	])
+		assets.set(`/${name}`, {
+			type: name.endsWith(`.css`) ? `text/css` : `font/otf`,
+			body: await readFile(resolve(import.meta.dirname, `../dist`, name)),
+		})
+	return assets
 }

@@ -400,7 +400,7 @@ it(`keeps a selected member and its logical focus through repeated family toggle
 					f.host.querySelector(
 						`ecology-editor-row[data-section="selected"] button[data-graph-id]`,
 					)!.textContent,
-				).toBe(`${family.key}("one")`)
+				).toBe(`"one"`)
 				expect(
 					f.host
 						.querySelector(`ecology-node-card > button[aria-pressed="true"]`)!

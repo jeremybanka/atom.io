@@ -278,7 +278,7 @@ try {
 					`ecology-editor-row[data-section="selected"] button[data-graph-id]`,
 				)
 				.innerText(),
-			`items("a")`,
+			`"a"`,
 		)
 		assert.equal(
 			await page

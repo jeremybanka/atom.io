@@ -16,9 +16,12 @@ export function EcologyNodeName(props: {
 				data-action="select"
 				data-graph-id={props.item.id}
 				aria-pressed={props.selected}
+				aria-label={props.item.key}
 				title={`${props.item.key}\n${props.item.source.type}`}
 			>
-				{props.item.label}
+				{`family` in props.item.source
+					? (props.item.source.family?.subKey ?? props.item.label)
+					: props.item.label}
 			</button>
 		</ecology-node-name>
 	)

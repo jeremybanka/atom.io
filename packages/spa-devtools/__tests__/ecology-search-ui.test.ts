@@ -143,7 +143,7 @@ it(`navigates ranked matches inside collapsed families while preserving pan, exp
 		f.host.querySelector(
 			`ecology-editor-row[data-section="selected"] button[data-graph-id]`,
 		)!.textContent,
-	).toBe(`items("green-tea")`)
+	).toBe(`"green-tea"`)
 	expect(document.activeElement?.closest(`ecology-editor`)).not.toBeNull()
 	expect(world()).not.toBe(before)
 	expect(world()).not.toContain(`NaN`)

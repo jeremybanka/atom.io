@@ -95,7 +95,7 @@ function orderTools({ canvas, canvasElement, userEvent }: Context) {
 		)
 		await expect(button).not.toBeNull()
 		await userEvent.click(button!)
-		await expect(inspector()).toHaveTextContent(key)
+		await expect(button).toHaveAccessibleName(key)
 	}
 	const inspector = () =>
 		canvasElement.querySelector<HTMLElement>(

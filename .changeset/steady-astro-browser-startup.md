@@ -2,4 +2,4 @@
 "@atom.io/template-spa-astro-ssr": patch
 ---
 
-Make the Astro starter’s browser checks reliable after cached builds and cold development starts.
+Ship native TypeScript browser checks that seed their database fixture and warm development dependencies before testing hydration.

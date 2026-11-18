@@ -2,4 +2,4 @@
 "atom.io.fyi": patch
 ---
 
-Use SPA’s shared animated BrandMark in the site header and splash, including reduced-motion and static rendering fallbacks.
+Respect reduced-motion preferences and show a static logo before hydration or when WebGL is unavailable in the site header and splash.

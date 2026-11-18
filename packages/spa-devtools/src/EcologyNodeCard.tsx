@@ -18,11 +18,26 @@ export function EcologyNodeCard(props: {
 	scene: Scene
 	invalidate(): void
 }): SpaElement {
-	const detail = () => {
-		const source = props.item.source
+	const detail = (source: GraphItem[`source`]) => {
 		return `memberKeys` in source
 			? `${source.type.includes(`selector`) ? `Selector Family` : `Atom Family`} · ${source.memberCount}${source.countComplete ? `` : `+`} members`
 			: `${source.kind === `atom` ? `Atom` : `Selector`} · ${source.value.status === `cached` ? (source.value.preview ?? `…`) : `–`}`
+	}
+	const description = () => {
+		const item = props.item
+		return `${item.key} · ${detail(item.source)}`
+	}
+	const title = () => {
+		const item = props.item
+		return `${item.key}\n${item.source.type}\n${item.detail}`
+	}
+	const position = () => {
+		const { x, y, z } = props.item
+		return `${x},${y},${z}`
+	}
+	const uncached = () => {
+		const source = props.item.source
+		return `value` in source && source.value.status === `unknown`
 	}
 	let element: HTMLElement | null = null
 	onMount(() => {
@@ -56,31 +71,28 @@ export function EcologyNodeCard(props: {
 			hidden={!props.visible}
 			data-kind={props.item.kind}
 			data-type={props.item.source.type}
+			data-family={props.item.familyLabel}
 			data-traced={props.traced}
 			data-dimmed={props.dimmed}
 			data-collapsed={props.collapsed}
-			data-position={`${props.item.x},${props.item.y},${props.item.z}`}
+			data-position={position()}
 		>
 			<button
 				type="button"
 				data-node
 				data-graph-id={props.visible ? props.item.id : undefined}
-				aria-label={`${props.item.label} · ${detail()}`}
+				aria-label={description()}
 				aria-pressed={props.selected}
 				onPointerDown={(event) => {
 					event.stopPropagation()
 				}}
-				title={`${props.item.label}\n${props.item.source.type}\n${props.item.detail}`}
+				title={title()}
 			>
+				{props.item.familyLabel !== undefined && (
+					<small data-family>{props.item.familyLabel}</small>
+				)}
 				<strong>{props.item.label}</strong>
-				<small
-					data-uncached={
-						`value` in props.item.source &&
-						props.item.source.value.status === `unknown`
-					}
-				>
-					{detail()}
-				</small>
+				<small data-uncached={uncached()}>{detail(props.item.source)}</small>
 			</button>
 		</ecology-node-card>
 	)

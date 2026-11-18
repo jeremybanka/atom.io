@@ -65,6 +65,20 @@ ecology-node-card.class {
 	&[data-type*="selector"] > button {
 		border-radius: 12px 2px;
 	}
+	> button > small[data-family] {
+		color: var(--ecology-color);
+		font-size: 9px;
+		line-height: 10px;
+	}
+	&[data-family]:not([data-collapsed="true"]) > button {
+		padding: 5px 9px;
+		> strong {
+			line-height: 16px;
+		}
+		> small:not([data-family]) {
+			line-height: 12px;
+		}
+	}
 	&[data-kind="family"] > button {
 		border: 1px dashed var(--ecology-color);
 	}

@@ -1,6 +1,6 @@
 import * as THREE from "three"
 
-import type { GraphPosition } from "./ecology-graph.ts"
+import type { FamilyConnection, GraphPosition } from "./ecology-graph.ts"
 
 export interface EcologyLine {
 	from: GraphPosition
@@ -14,24 +14,58 @@ export interface EcologyLine {
 }
 const segments = 16
 const verticesPerEdge = segments * 2 + 4
-export function createEdgeBuffer(): THREE.BufferGeometry {
+function createLineBuffer(vertices: number): THREE.BufferGeometry {
 	const geometry = new THREE.BufferGeometry()
 	geometry.setAttribute(
 		`position`,
-		new THREE.BufferAttribute(
-			new Float32Array(1_000 * verticesPerEdge * 3),
-			3,
-		).setUsage(THREE.DynamicDrawUsage),
+		new THREE.BufferAttribute(new Float32Array(vertices * 3), 3).setUsage(
+			THREE.DynamicDrawUsage,
+		),
 	)
 	geometry.setAttribute(
 		`color`,
-		new THREE.BufferAttribute(
-			new Float32Array(1_000 * verticesPerEdge * 3),
-			3,
-		).setUsage(THREE.DynamicDrawUsage),
+		new THREE.BufferAttribute(new Float32Array(vertices * 3), 3).setUsage(
+			THREE.DynamicDrawUsage,
+		),
 	)
 	geometry.setDrawRange(0, 0)
 	return geometry
+}
+export function createEdgeBuffer(): THREE.BufferGeometry {
+	return createLineBuffer(1_000 * verticesPerEdge)
+}
+export function createFamilyBuffer(): THREE.BufferGeometry {
+	return createLineBuffer(500 * 2)
+}
+
+/** A straight, arrowless spine joins only the painted nodes of an expanded family. */
+export function writeFamilyBuffer(
+	geometry: THREE.BufferGeometry,
+	connections: readonly FamilyConnection[],
+	worldScale: THREE.Vector3,
+): void {
+	const positions = geometry.getAttribute(`position`) as THREE.BufferAttribute
+	const colors = geometry.getAttribute(`color`) as THREE.BufferAttribute
+	const color = new THREE.Color()
+	let cursor = 0
+	for (const connection of connections) {
+		color.setStyle(connection.color)
+		for (const point of [connection.from, connection.to]) {
+			positions.setXYZ(
+				cursor,
+				point.x * worldScale.x,
+				point.y * worldScale.y,
+				point.z * worldScale.z,
+			)
+			colors.setXYZ(cursor++, color.r, color.g, color.b)
+		}
+	}
+	geometry.setDrawRange(0, cursor)
+	for (const attribute of [positions, colors]) {
+		attribute.clearUpdateRanges()
+		if (cursor) attribute.addUpdateRange(0, cursor * 3)
+		attribute.needsUpdate = true
+	}
 }
 
 /** Clip each endpoint to its billboard's screen-space port, then curve through world space. */

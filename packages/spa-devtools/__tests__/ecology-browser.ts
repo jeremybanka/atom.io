@@ -310,8 +310,32 @@ try {
 		.click()
 	await ready()
 	await scene.focus()
+	assert.equal(await scene.getAttribute(`data-family-connections`), `0`)
 	await page.keyboard.press(`Enter`)
 	await ready()
+	assert.equal(await scene.getAttribute(`data-family-connections`), `1`)
+	const familyMember = page.locator(
+		`ecology-node-card > button[data-graph-id='state:items("a")']`,
+	)
+	assert.equal(await familyMember.locator(`strong`).innerText(), `"a"`)
+	assert.equal(
+		await familyMember.locator(`small[data-family]`).innerText(),
+		`items`,
+	)
+	assert.equal(
+		await familyMember.evaluate((button) => {
+			const family = button.querySelector(`small[data-family]`)!,
+				name = button.querySelector(`strong`)!
+			return (
+				getComputedStyle(family).color ===
+					getComputedStyle(button).borderTopColor &&
+				parseFloat(getComputedStyle(family).fontSize) <
+					parseFloat(getComputedStyle(name).fontSize) &&
+				family.getBoundingClientRect().top < name.getBoundingClientRect().top
+			)
+		}),
+		true,
+	)
 	assert.equal(
 		await page
 			.getByRole(`button`, { name: `Collapse family`, exact: true })

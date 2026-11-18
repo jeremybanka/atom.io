@@ -5,9 +5,18 @@ import * as THREE from "three"
 import { afterEach, expect, it, vi } from "vitest"
 
 import { ecologyColor } from "../src/ecology-color.ts"
-import { createGraphContext, type GraphItem } from "../src/ecology-graph.ts"
+import {
+	createGraphContext,
+	type FamilyConnection,
+	type GraphItem,
+} from "../src/ecology-graph.ts"
 import type { EcologyLine } from "../src/ecology-lines.ts"
-import { createEdgeBuffer, writeEdgeBuffer } from "../src/ecology-lines.ts"
+import {
+	createEdgeBuffer,
+	createFamilyBuffer,
+	writeEdgeBuffer,
+	writeFamilyBuffer,
+} from "../src/ecology-lines.ts"
 import { EcologyScene } from "../src/EcologyScene.tsx"
 import { useTools } from "../src/store.ts"
 
@@ -48,6 +57,7 @@ interface SceneState {
 	traced: Set<string>
 	items: GraphItem[]
 	edges: EcologyLine[]
+	familyConnections?: FamilyConnection[]
 	command: { sequence: number; action: string; target: string }
 }
 function fixture(restored = false, empty = false) {
@@ -101,6 +111,7 @@ function fixture(restored = false, empty = false) {
 					visible={() => true}
 					items={get().items}
 					edges={get().edges}
+					familyConnections={get().familyConnections}
 					traced={get().traced}
 					selected={get().selected}
 					selectedIds={get().selectedIds}
@@ -176,6 +187,25 @@ it(`projects viewer-facing DOM cards and batched edges, keeps a camera through r
 	expect(card.style.transform).toContain(`translate`)
 	expect(card.style.transform).not.toMatch(/rotate\((?!0rad)|matrix3d/)
 	expect(f.viewport.dataset[`edges`]).toBe(`1`)
+	f.patch({
+		familyConnections: [
+			{ family: `items`, from: f.a, to: f.b, color: f.a.color },
+		],
+	})
+	f.tick()
+	const gl = vi.mocked(THREE.WebGLRenderer).mock.results.at(-1)!
+		.value as THREE.WebGLRenderer
+	const spine = vi
+		.mocked(gl.render)
+		.mock.lastCall![0].getObjectByName(
+			`family-connections`,
+		) as THREE.LineSegments<THREE.BufferGeometry, THREE.LineBasicMaterial>
+	expect(spine.geometry.drawRange.count).toBe(2)
+	expect(spine.material.opacity).toBeLessThan(0.14)
+	expect(spine.renderOrder).toBeLessThan(0)
+	expect(f.viewport.dataset[`familyConnections`]).toBe(`1`)
+	const disposeGeometry = vi.spyOn(spine.geometry, `dispose`),
+		disposeMaterial = vi.spyOn(spine.material, `dispose`)
 	const first = f.context.camera!
 	f.command(`right`)
 	expect(f.context.camera).not.toEqual(first)
@@ -207,9 +237,10 @@ it(`projects viewer-facing DOM cards and batched edges, keeps a camera through r
 	card.querySelector(`button`)!.dispatchEvent(pointer)
 	expect(event).not.toHaveBeenCalled()
 	const starts = vi.mocked(THREE.WebGLRenderer).mock.calls.length
-	f.patch({ items: [], edges: [] })
+	f.patch({ items: [], edges: [], familyConnections: [] })
 	f.command(`fit`)
 	f.tick()
+	expect(spine.geometry.drawRange.count).toBe(0)
 	expect(f.viewport.querySelector(`canvas`)).not.toBeNull()
 	expect(vi.mocked(THREE.WebGLRenderer).mock.calls).toHaveLength(starts)
 	f.patch({ items: [f.a, f.b] })
@@ -217,6 +248,44 @@ it(`projects viewer-facing DOM cards and batched edges, keeps a camera through r
 	f.root.dispose()
 	expect(f.disconnect).toHaveBeenCalledOnce()
 	expect(f.stop).toHaveBeenCalledOnce()
+	expect(disposeGeometry).toHaveBeenCalledOnce()
+	expect(disposeMaterial).toHaveBeenCalledOnce()
+})
+
+it(`writes arrowless family spines with shared colors, world scaling and reusable bounded buffers`, () => {
+	const geometry = createFamilyBuffer(),
+		positions = geometry.getAttribute(`position`) as THREE.BufferAttribute,
+		colors = geometry.getAttribute(`color`),
+		from = item(`from`, -8, 2, 4),
+		to = item(`to`, 8, 2, -4),
+		scale = new THREE.Vector3(2, 3, 4)
+	expect(positions.count).toBe(1_000)
+	const connections = [{ family: `items`, from, to, color: from.color }]
+	writeFamilyBuffer(geometry, connections, scale)
+	expect(geometry.drawRange.count).toBe(2)
+	const color = new THREE.Color(from.color)
+	for (const [index, point] of [from, to].entries()) {
+		expect([
+			positions.getX(index),
+			positions.getY(index),
+			positions.getZ(index),
+		]).toEqual([point.x * 2, point.y * 3, point.z * 4])
+		expect([colors.getX(index), colors.getY(index), colors.getZ(index)]).toEqual(
+			[
+				expect.closeTo(color.r, 6),
+				expect.closeTo(color.g, 6),
+				expect.closeTo(color.b, 6),
+			],
+		)
+	}
+	writeFamilyBuffer(geometry, [], scale)
+	expect(geometry.drawRange.count).toBe(0)
+	expect(positions.updateRanges).toEqual([])
+	writeFamilyBuffer(geometry, connections, scale)
+	expect(geometry.getAttribute(`position`)).toBe(positions)
+	expect(geometry.getAttribute(`color`)).toBe(colors)
+	expect(positions.updateRanges).toEqual([{ start: 0, count: 6 }])
+	geometry.dispose()
 })
 
 it(`retains source colors on every curve and arrowhead in both line batches and updates reused card slots`, () => {

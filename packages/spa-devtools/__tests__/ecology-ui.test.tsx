@@ -680,6 +680,13 @@ it(`selects every member of a family across expansion without losing member draf
 			f.host.querySelector(`[data-section-heading="selected"]`)!.textContent,
 		).toBe(`Selected nodes`)
 		expect(f.host.querySelectorAll(`[data-node-details]`)).toHaveLength(1)
+		const card = f.host.querySelector(
+			`ecology-node-card > button[data-graph-id='state:${key}("one")']`,
+		)!
+		expect(card.querySelector(`strong`)!.textContent).toBe(`"one"`)
+		expect(card.querySelector(`small[data-family]`)!.textContent).toBe(key)
+		expect(card.getAttribute(`aria-label`)).toContain(`${key}("one")`)
+		expect(card.getAttribute(`title`)).toContain(`${key}("one")`)
 		expect(
 			[
 				...f.host.querySelectorAll<HTMLElement>(

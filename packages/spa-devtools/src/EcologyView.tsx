@@ -24,6 +24,7 @@ export interface EcologyPresentation {
 	rowIds: ReadonlySet<string>
 	matches: ReadonlySet<string> | undefined
 	edges: EcologyLine[]
+	familyConnections: GraphModel[`familyConnections`]
 	selected?: GraphModel[`items`][number] | undefined
 	selectedCard?: string | undefined
 	selectedIds: ReadonlySet<string>
@@ -62,6 +63,7 @@ export function EcologyView(props: {
 		rowIds: new Set(),
 		matches: undefined,
 		edges: [],
+		familyConnections: [],
 		selected: undefined,
 		selectedCard: undefined,
 		selectedIds: new Set(),
@@ -128,6 +130,7 @@ export function EcologyView(props: {
 						visible={cards.visible}
 						items={state().cards.slice(0, state().visibleCards)}
 						edges={state().edges}
+						familyConnections={state().familyConnections}
 						selected={state().selectedCard}
 						selectedIds={state().selectedIds}
 						traced={state().traced}

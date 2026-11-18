@@ -12,9 +12,16 @@ export interface GraphItem extends GraphPosition {
 	key: string
 	kind: `atom` | `selector` | `family`
 	label: string
+	familyLabel?: string | undefined
 	detail: string
 	color: string
 	source: EcologyNode | EcologyFamily
+}
+export interface FamilyConnection {
+	family: string
+	from: GraphItem
+	to: GraphItem
+	color: string
 }
 interface GraphEdge {
 	from: string
@@ -72,6 +79,7 @@ export interface GraphModel {
 	rowCount: number
 	matches: ReadonlySet<string> | undefined
 	edges: GraphEdge[]
+	familyConnections: FamilyConnection[]
 	all: GraphRegistry
 	matching: number
 	atoms: number
@@ -116,8 +124,11 @@ function helixPosition(
 	}
 }
 /** Fan out on the horizontal tangent, leaving the family card at its anchor. */
+function familyOffset(member: number): number {
+	return (Math.floor(member / 2) + 1) * (member % 2 ? -1 : 1) * 12
+}
 function familyPosition(anchor: GraphPosition, member: number): GraphPosition {
-	const offset = (Math.floor(member / 2) + 1) * (member % 2 ? -1 : 1) * 12
+	const offset = familyOffset(member)
 	return {
 		x: anchor.x - (anchor.z / 8) * offset,
 		y: anchor.y,
@@ -276,6 +287,7 @@ function createRegistry(
 		const prior = cache.get(record)
 		if (prior) return prior
 		const source = record.source
+		const member = `family` in source ? source.family : undefined
 		const kind = `kind` in source ? source.kind : `family`
 		const position = record.group
 			? fan
@@ -291,7 +303,8 @@ function createRegistry(
 			id: record.id,
 			key: source.key,
 			kind,
-			label: source.key,
+			label: member?.subKey ?? source.key,
+			familyLabel: member?.key,
 			color: ecologyColor(source),
 			detail:
 				`memberKeys` in source
@@ -419,11 +432,46 @@ export function* projectEcology(
 		painted = new Set<string>(),
 		selectorKeys: string[] = []
 	const pending = new Map<string, GraphPosition>()
+	const familySpans = new Map<
+		GraphRecord,
+		{
+			from: GraphItem
+			to: GraphItem
+			low: number
+			high: number
+		}
+	>()
 	let newPositions = 0
 	for (const record of admitted) {
 		const item = all.get(record.id)!
 		items.push(item)
 		painted.add(item.id)
+		const family =
+			record.group ??
+			(`memberKeys` in record.source && all.expanded.has(record.source.key)
+				? record
+				: undefined)
+		if (family) {
+			const offset = record.group ? familyOffset(record.slot) : 0
+			const span = familySpans.get(family)
+			if (!span)
+				familySpans.set(family, {
+					from: item,
+					to: item,
+					low: offset,
+					high: offset,
+				})
+			else {
+				if (offset < span.low) {
+					span.low = offset
+					span.from = item
+				}
+				if (offset > span.high) {
+					span.high = offset
+					span.to = item
+				}
+			}
+		}
 		const prior = context.positions.get(item.id)
 		if (!prior) newPositions++
 		pending.set(
@@ -436,6 +484,17 @@ export function* projectEcology(
 			if (record.source.kind === `selector`) selectorKeys.push(record.source.key)
 		} else if (!all.expanded.has(record.source.key))
 			selectorKeys.push(...(layout.groupSelectors.get(record) ?? []))
+		yield
+	}
+	const familyConnections: FamilyConnection[] = []
+	for (const [family, span] of familySpans) {
+		if (span.from !== span.to)
+			familyConnections.push({
+				family: family.source.key,
+				from: span.from,
+				to: span.to,
+				color: all.get(family.id)!.color,
+			})
 		yield
 	}
 	const candidates: number[] = []
@@ -496,6 +555,7 @@ export function* projectEcology(
 			? new Set([...matchingRecords].map((record) => record.id))
 			: undefined,
 		edges,
+		familyConnections,
 		all,
 		matching: ordered.length,
 		atoms: layout.atoms,

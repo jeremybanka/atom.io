@@ -242,6 +242,7 @@ export function createEcologyController(
 			matches: value.matches,
 			pinnedKey,
 			edges,
+			familyConnections: value.familyConnections,
 			generation,
 			filtered: matchedIds !== undefined,
 			notice: noticeText,

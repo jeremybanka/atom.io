@@ -8,11 +8,17 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js"
 // eslint-disable-next-line import/extensions -- Three addon exports require the .js suffix.
 import { CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js"
 
-import type { GraphContext, GraphItem } from "./ecology-graph.ts"
+import type {
+	FamilyConnection,
+	GraphContext,
+	GraphItem,
+} from "./ecology-graph.ts"
 import {
 	createEdgeBuffer,
+	createFamilyBuffer,
 	type EcologyLine,
 	writeEdgeBuffer,
+	writeFamilyBuffer,
 } from "./ecology-lines.ts"
 import { EcologyNodeCard } from "./EcologyNodeCard.tsx"
 import css from "./EcologyScene.module.css"
@@ -35,6 +41,7 @@ export function EcologyScene(props: {
 	visible(index: number): boolean
 	items: GraphItem[]
 	edges: EcologyLine[]
+	familyConnections?: readonly FamilyConnection[] | undefined
 	selected?: string | undefined
 	selectedIds?: ReadonlySet<string> | undefined
 	traced: Set<string>
@@ -74,7 +81,14 @@ export function EcologyScene(props: {
 	}
 	const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100_000)
 	const normal = createEdgeBuffer(),
-		traced = createEdgeBuffer()
+		traced = createEdgeBuffer(),
+		families = createFamilyBuffer()
+	const familyMaterial = new THREE.LineBasicMaterial({
+		vertexColors: true,
+		transparent: true,
+		opacity: 0.12,
+		depthWrite: false,
+	})
 	const normalMaterial = new THREE.LineBasicMaterial({
 		vertexColors: true,
 		transparent: true,
@@ -220,6 +234,7 @@ export function EcologyScene(props: {
 		resize()
 		bindScene(() => props.command, command)
 		bindScene(() => props.edges, invalidate)
+		bindScene(() => props.familyConnections, invalidate)
 		bindScene(() => props.items, invalidate)
 		bindScene(() => props.matches, invalidate)
 		bindScene(
@@ -232,8 +247,10 @@ export function EcologyScene(props: {
 			observer.disconnect()
 			normal.dispose()
 			traced.dispose()
+			families.dispose()
 			normalMaterial.dispose()
 			traceMaterial.dispose()
+			familyMaterial.dispose()
 		})
 	})
 	const draw = () => {
@@ -259,6 +276,7 @@ export function EcologyScene(props: {
 			size().height,
 			scale,
 		)
+		writeFamilyBuffer(families, props.familyConnections ?? [], scale)
 		viewport!.dataset[`camera`] = [
 			...camera.position.toArray(),
 			...controls!.target.toArray(),
@@ -281,6 +299,7 @@ export function EcologyScene(props: {
 			aria-label="Observed dependency graph"
 			data-unavailable={failed()}
 			data-cylinder={`${cylinder().diameter},${cylinder().height}`}
+			data-family-connections={props.familyConnections?.length ?? 0}
 		>
 			{/* Start with the first populated capture; retain the renderer across subsequent empty filters and captures. */}
 			{(props.slots > 0 || controls !== undefined) && !failed() && (
@@ -328,6 +347,14 @@ export function EcologyScene(props: {
 						frustumCulled={false}
 						ref={(line) => {
 							if (line) line.renderOrder = 1
+						}}
+					/>
+					<LineSegments
+						name="family-connections"
+						args={[families, familyMaterial]}
+						frustumCulled={false}
+						ref={(line) => {
+							if (line) line.renderOrder = -1
 						}}
 					/>
 				</canvas.Canvas>

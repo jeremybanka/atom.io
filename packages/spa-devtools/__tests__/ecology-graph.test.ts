@@ -127,10 +127,19 @@ it(`traces family members through cycles, retains parallel edges and recomputes 
 		new Set([`family:inputs`, `state:a`]),
 	)
 	expect(collapsed.edges.every((edge) => edge.traced)).toBe(true)
+	expect(collapsed.familyConnections).toEqual([])
 	context.expanded.add(`inputs`)
 	const expanded = drain(projectEcology(data, context, undefined, collapsed))
 	expect(expanded.selection).toBe(collapsed.selection)
 	expect(expanded.edges[0].from).toBe(`state:a`)
+	expect(expanded.familyConnections).toEqual([
+		{
+			family: `inputs`,
+			from: expanded.all.get(`family:inputs`),
+			to: expanded.all.get(`state:a`),
+			color: expanded.all.get(`family:inputs`)!.color,
+		},
+	])
 	const changed = drain(
 		projectEcology({ ...data, edges: [] }, context, undefined, expanded),
 	)
@@ -234,6 +243,7 @@ it(`groups families, keeps zero definitions and namespaces group/member identiti
 	model = drain(projectEcology(withFamilies, context))
 	expect(model.edges[1].traced).toBe(true)
 	context.expanded.add(`items`)
+	context.expanded.add(`zero`)
 	model = drain(projectEcology(withFamilies, context))
 	expect(model.items).toHaveLength(5)
 	expect(point(`state:a`)).not.toEqual(point(`state:b`))
@@ -242,6 +252,14 @@ it(`groups families, keeps zero definitions and namespaces group/member identiti
 	expect(
 		(member.x - anchor.x) * anchor.x + (member.z - anchor.z) * anchor.z,
 	).toBeCloseTo(0)
+	expect(model.familyConnections).toEqual([
+		{
+			family: `items`,
+			from: model.all.get(`state:b`),
+			to: member,
+			color: anchor.color,
+		},
+	])
 	expect(model.edges).toEqual([
 		{ from: `state:a`, to: `state:sum`, traced: false },
 		{ from: `state:b`, to: `state:sum`, traced: true },
@@ -261,6 +279,57 @@ it(`groups families, keeps zero definitions and namespaces group/member identiti
 		drain(projectEcology(withFamilies, context, new Set([`family:zero`])))
 			.rows[0].detail,
 	).toContain(`0 members`)
+})
+
+it(`bounds family connections to painted members, including when the family card is outside the cap`, () => {
+	const members = Array.from({ length: 500 }, (_, index) =>
+		node(`member${index}`, `atom`, `members`),
+	)
+	const others = Array.from({ length: 499 }, (_, index) => node(`other${index}`))
+	const data: EcologySnapshot = {
+		...snapshot([...members, ...others]),
+		families: [
+			{
+				key: `members`,
+				type: `atom_family`,
+				memberKeys: members.map((member) => member.key),
+				memberCount: 500,
+				countComplete: true,
+			},
+		],
+	}
+	const context = createGraphContext()
+	context.expanded.add(`members`)
+	const model = drain(
+		projectEcology(
+			data,
+			context,
+			new Set(members.map((member) => `state:${member.key}`)),
+		),
+	)
+	expect(model.items).toHaveLength(500)
+	expect(model.items.some((item) => item.id === `family:members`)).toBe(false)
+	expect(model.familyConnections).toEqual([
+		{
+			family: `members`,
+			from: model.all.get(`state:member499`),
+			to: model.all.get(`state:member498`),
+			color: model.all.get(`family:members`)!.color,
+		},
+	])
+	const isolated = drain(
+		projectEcology(
+			data,
+			context,
+			new Set([`state:member0`, ...others.map((other) => `state:${other.key}`)]),
+			model,
+		),
+	)
+	expect(isolated.familyConnections).toEqual([])
+	context.expanded.clear()
+	expect(
+		drain(projectEcology(data, context, undefined, model)).familyConnections,
+	).toEqual([])
 })
 
 it(`preserves geometry and context on value-only refresh and safely handles disposal and truncated evidence`, () => {

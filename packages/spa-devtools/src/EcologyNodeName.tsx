@@ -19,9 +19,7 @@ export function EcologyNodeName(props: {
 				aria-label={props.item.key}
 				title={`${props.item.key}\n${props.item.source.type}`}
 			>
-				{`family` in props.item.source
-					? (props.item.source.family?.subKey ?? props.item.label)
-					: props.item.label}
+				{props.item.label}
 			</button>
 		</ecology-node-name>
 	)

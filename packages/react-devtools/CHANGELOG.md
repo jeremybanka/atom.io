@@ -1,5 +1,11 @@
 # @atom.io/react-devtools
 
+## 0.1.2
+
+### Patch Changes
+
+- 0e5eb6a: Document the shared SPA debugger’s React adapter and migration path while retaining this package’s existing debugger and customization exports.
+
 ## 0.1.1
 
 ### Patch Changes

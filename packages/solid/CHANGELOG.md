@@ -1,5 +1,11 @@
 # @atom.io/solid
 
+## 0.1.6
+
+### Patch Changes
+
+- c0579c1: Support stable Solid 2 alongside Solid 1.9, replacing the experimental 2.0.0-rc.21 peer requirement.
+
 ## 0.1.5
 
 ### Patch Changes

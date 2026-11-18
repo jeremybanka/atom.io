@@ -1,5 +1,17 @@
 # @atom.io/template-preact-realtime-vector-editor
 
+## 0.1.10
+
+### Patch Changes
+
+- 6e2c5a2: Use typescript-compiler for TypeScript 7 builds in generated projects, avoiding typescript-eslint’s incompatible optional native-parser peer while retaining TypeScript 6 for linting.
+- Updated dependencies [0e5eb6a]
+- Updated dependencies [6e2c5a2]
+  - atom.io@0.54.10
+  - @atom.io/template-preact-svg-editor@0.1.11
+  - @atom.io/react@0.2.1
+  - @atom.io/realtime@0.1.2
+
 ## 0.1.9
 
 ### Patch Changes

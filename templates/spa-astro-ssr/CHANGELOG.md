@@ -1,5 +1,16 @@
 # @atom.io/template-spa-astro-ssr
 
+## 0.0.11
+
+### Patch Changes
+
+- 1a470cb: Ship native TypeScript browser checks that seed their database fixture and warm development dependencies before testing hydration.
+- Updated dependencies [0e5eb6a]
+- Updated dependencies [0e5eb6a]
+  - atom.io@0.54.10
+  - @atom.io/spa@0.0.10
+  - resumability@0.0.2
+
 ## 0.0.10
 
 ### Patch Changes

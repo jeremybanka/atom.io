@@ -1,5 +1,11 @@
 # @atom.io/eslint-plugin
 
+## 0.1.3
+
+### Patch Changes
+
+- 0e5eb6a: Correct the documented TypeScript 7 installation to use the neutral typescript-compiler alias alongside ESLint’s TypeScript 6 API, avoiding strict peer-resolution failures.
+
 ## 0.1.2
 
 ### Patch Changes

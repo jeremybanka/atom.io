@@ -1,5 +1,19 @@
 # atom.io.fyi
 
+## 0.2.109
+
+### Patch Changes
+
+- 0e5eb6a: Respect reduced-motion preferences and show a static logo before hydration or when WebGL is unavailable in the site header and splash.
+- Updated dependencies [0e5eb6a]
+- Updated dependencies [0e5eb6a]
+- Updated dependencies [43279be]
+- Updated dependencies [42ec161]
+- Updated dependencies [0e5eb6a]
+  - atom.io@0.54.10
+  - @atom.io/spa-devtools@0.1.0
+  - @atom.io/spa@0.0.10
+
 ## 0.2.108
 
 ### Patch Changes

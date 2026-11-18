@@ -1,5 +1,16 @@
 # @atom.io/spa-devtools
 
+## 0.1.0
+
+### Minor Changes
+
+- 42ec161: Require @atom.io/spa >=0.0.10 <0.1.0. Add mountAtomIODevtools and the optional @atom.io/spa-devtools/react adapter, following the inspected application store with idempotent cleanup. Extend window controls with resizing, snap layouts, saved positions and a draggable minimized logo. Refine compact light/dark editors and bundle Theia fonts.
+
+### Patch Changes
+
+- 0e5eb6a: Add ranked search across atoms, selectors, transactions, timelines and ecology using captured metadata, cached primitive values and existing history without evaluating dormant state or moving undo/redo. Expose bounded ecology snapshots and observed-root tracing, and preserve live editor drafts while searching and navigating.
+- 43279be: Add an Ecology tab with an orbitable Three.js dependency graph, including expandable families, stable node colors and upstream/downstream selection highlighting. Pair cached-value cards with a responsive inline editor, linked hover states and transitions that respect reduced motion. Generate uncached values explicitly, retain compact graph context while filtering, and provide search and help dialogs.
+
 ## 0.0.8
 
 ### Patch Changes

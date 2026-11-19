@@ -228,19 +228,19 @@ ecology-node-card.class {
 }
 
 @keyframes ecology-explosion {
-	from {
+	0% {
 		transform: translateX(0);
 	}
-	to {
+	100% {
 		transform: translateX(-100%);
 	}
 }
 
 @keyframes ecology-reveal-band {
-	from {
+	0% {
 		clip-path: var(--ecology-band-start);
 	}
-	to {
+	100% {
 		clip-path: inset(0);
 	}
 }

@@ -1,6 +1,9 @@
 import { Silo } from "atom.io"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 
+import { createCardFeedback } from "../src/ecology-card-feedback.ts"
+import { createEcologyController } from "../src/ecology-controller.ts"
+import { createGraphContext } from "../src/ecology-graph.ts"
 import { mountAtomIODevtools } from "../src/mount.ts"
 
 let dispose = () => {}
@@ -656,6 +659,68 @@ it(`cleans up hidden, minimized, superseded and disposed jobs and keeps empty fl
 	expect(vi.getTimerCount()).toBe(0)
 })
 
+it(`defers a hidden controller and suspends live updates before the visibility observer runs`, async () => {
+	const f = setup()
+	const countAtom = f.silo.atom<number>({ key: `count`, default: 0 })
+	f.silo.getState(countAtom)
+	f.mount()
+	await settle()
+	const panel = document.createElement(`main`)
+	const view = f.host
+		.querySelector(`ecology-view`)!
+		.cloneNode(true) as HTMLElement
+	panel.hidden = true
+	panel.append(view)
+	const update = vi.fn()
+	const controller = createEcologyController(
+		view,
+		f.silo.store,
+		createGraphContext(),
+		update,
+		`hidden-controller`,
+	)
+	try {
+		await settle()
+		expect(update).not.toHaveBeenCalled()
+		panel.hidden = false
+		await settle()
+		expect(update).toHaveBeenCalledWith({ busy: true })
+		update.mockClear()
+
+		f.silo.setState(countAtom, 1)
+		panel.hidden = true
+		await settle()
+		expect(update).not.toHaveBeenCalled()
+
+		panel.hidden = false
+		await settle()
+		update.mockClear()
+		f.silo.setState(countAtom, 2)
+		await Promise.resolve()
+		panel.hidden = true
+		vi.advanceTimersByTime(1)
+		await settle()
+		expect(update).not.toHaveBeenCalled()
+	} finally {
+		controller.dispose()
+	}
+})
+
+it(`paints the initial snapshot when the search is invalid and picks up newly registered families`, async () => {
+	const f = setup()
+	f.silo.atom<number>({ key: `first`, default: 1 })
+	f.mount()
+	await f.search(`x`.repeat(257))
+	expect(f.host.textContent).toContain(`Use at most 256 characters`)
+	expect(f.host.querySelector(`[data-graph-id="state:first"]`)).not.toBeNull()
+	await f.search(``)
+	f.silo.atomFamily<number, string>({ key: `newFamily`, default: 0 })
+	await settle()
+	expect(
+		f.host.querySelector(`[data-graph-id="family:newFamily"]`),
+	).not.toBeNull()
+})
+
 it(`reuses the live editor for writable state, handles disposed selection and preserves passive metadata after filtering`, async () => {
 	const f = setup()
 	const countAtom = f.silo.atom<number>({ key: `count`, default: 1 })
@@ -704,11 +769,15 @@ it(`reuses the live editor for writable state, handles disposed selection and pr
 	)
 })
 
-it(`shows capture/adjacency uncertainty and keeps an uncaptured valid selection instead of calling it disposed`, async () => {
+it(`reports capture limits and ignores activity outside the retained graph`, async () => {
 	const f = setup()
 	const family = { key: `many`, default: 0 }
 	const manyAtoms = f.silo.atomFamily<number, number>(family)
 	f.silo.selector<number>({ key: `wide`, get: () => 0 })
+	const outsideSelector = f.silo.selector<number>({
+		key: `outside`,
+		get: ({ get, find }) => get(find(manyAtoms, 10_000)),
+	})
 	f.mount()
 	await settle()
 	await f.select(`state:wide`)
@@ -729,6 +798,11 @@ it(`shows capture/adjacency uncertainty and keeps an uncaptured valid selection 
 	expect(f.host.querySelector(`ecology-editor`)!.textContent).toContain(
 		`Selection outside this captured snapshot`,
 	)
+	const view = f.host.querySelector<HTMLElement>(`ecology-view`)!
+	const jobs = view.dataset[`jobs`]
+	expect(f.silo.getState(outsideSelector)).toBe(0)
+	await settle()
+	expect(view.dataset[`jobs`]).toBe(jobs)
 	await f.select(`family:many`)
 	expect(f.host.querySelector(`ecology-editor`)!.textContent).toContain(
 		`+ instantiated members`,
@@ -1059,6 +1133,49 @@ it(`reveals the caught-error bands over one explosion cycle`, async () => {
 	expect(card.querySelector(`img`)).toBeNull()
 })
 
+it(`ignores obsolete explosion events and cleans up without a CSS animation`, async () => {
+	const button = document.createElement(`button`)
+	const media = window.matchMedia(`(prefers-reduced-motion: reduce)`)
+	Object.defineProperty(media, `matches`, { value: false, writable: true })
+	const feedback = createCardFeedback(button, media)
+	feedback.error(true, true)
+	const obsolete = button.querySelector(`img`)!
+	feedback.error(true, true)
+	const active = button.querySelector(`img`)!
+	obsolete.dispatchEvent(new Event(`load`))
+	obsolete.dispatchEvent(new Event(`animationcancel`))
+	expect(button.dataset[`caught`]).toBe(`burst`)
+	expect(button.querySelector(`img`)).toBe(active)
+	active.dispatchEvent(new Event(`load`))
+	expect(button.dataset[`caught`]).toBe(`revealing`)
+	await vi.advanceTimersByTimeAsync(1_800)
+	expect(button.querySelector(`img`)).toBeNull()
+	expect(button.dataset[`caught`]).toBe(`true`)
+
+	feedback.error(true, true)
+	Object.defineProperty(media, `matches`, { value: true })
+	button.querySelector(`img`)!.dispatchEvent(new Event(`load`))
+	expect(button.querySelector(`img`)).toBeNull()
+	expect(button.dataset[`caught`]).toBe(`true`)
+	feedback.dispose()
+})
+
+it(`shows a second windback if the Future is replaced during windback`, async () => {
+	const button = document.createElement(`button`)
+	const feedback = createCardFeedback(button, window.matchMedia(`all`))
+	feedback.future(true, false)
+	await vi.advanceTimersByTimeAsync(1_000)
+	feedback.future(true, false, new Set([`replaced`]))
+	expect(button.dataset[`future`]).toBe(`windback`)
+	await vi.advanceTimersByTimeAsync(250)
+	feedback.future(true, false, new Set([`replaced`]))
+	await vi.advanceTimersByTimeAsync(250)
+	expect(button.dataset[`future`]).toBe(`windback`)
+	await vi.advanceTimersByTimeAsync(500)
+	expect(button.dataset[`future`]).toBe(`loading`)
+	feedback.dispose()
+})
+
 it(`partitions colored editor rows by selection and graph paths, and keeps filtered canvas context`, async () => {
 	const f = setup()
 	for (const key of [`a`, `b`, `side`]) f.silo.atom<number>({ key, default: 1 })
@@ -1169,6 +1286,31 @@ it(`generates missing state explicitly and reuses nested, writable and readonly 
 	await f.click(`Generate failed`)
 	expect(failed).toHaveBeenCalledTimes(1)
 	expect(f.host.textContent).toContain(`generation failed`)
+})
+
+it(`refuses to generate a replacement atom from a stale row`, async () => {
+	const f = setup()
+	const read = vi.fn(() => 1)
+	const itemsAtoms = f.silo.atomFamily<number, string>({
+		key: `items`,
+		default: read,
+	})
+	const family = f.silo.store.families.get(itemsAtoms.key)!
+	family.create(`one`)
+	f.mount()
+	await settle()
+	await f.click(`Expand items`)
+	const generate = f.host.querySelector<HTMLButtonElement>(
+		`button[aria-label='Generate items("one")']`,
+	)!
+	f.silo.disposeState(itemsAtoms, `one`)
+	family.create(`one`)
+	generate.click()
+	await settle()
+	expect(f.host.textContent).toContain(
+		`State was disposed. Refresh to update the snapshot.`,
+	)
+	expect(read).not.toHaveBeenCalled()
 })
 
 it(`progressively admits editor rows without changing the bounded canvas`, async () => {

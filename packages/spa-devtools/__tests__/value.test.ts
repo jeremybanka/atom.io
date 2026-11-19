@@ -1,6 +1,6 @@
-import { expect, it } from "vitest"
+import { expect, it, vi } from "vitest"
 
-import { convert, describe, kind } from "../src/value.ts"
+import { cardValuePreview, convert, describe, kind } from "../src/value.ts"
 
 it(`classifies JSON and non-JSON values without traversing prototypes`, () => {
 	for (const [value, expected] of [
@@ -83,4 +83,24 @@ it(`bounds primitive previews and keeps opaque cache values free of property acc
 	}
 	expect(preview(`x`.repeat(1000))).toHaveLength(60)
 	expect(preview(`x`.repeat(1000)).endsWith(`…`)).toBe(true)
+})
+
+it(`bounds custom card previews and falls back when a formatter or class name is unusable`, () => {
+	class BrokenFormatter {
+		public toString(): never {
+			throw new Error(`Cannot format`)
+		}
+	}
+	expect(cardValuePreview(new BrokenFormatter())).toBe(`BrokenFormatter`)
+	expect(cardValuePreview({ toString: () => 1 })).toBe(`{…}`)
+	expect(cardValuePreview({ toString: () => `x`.repeat(100) })).toBe(
+		`${`x`.repeat(59)}…`,
+	)
+	const read = vi.fn(() => {
+		throw new Error(`Formatter getter was invoked`)
+	})
+	const accessor: object = Object.create({})
+	Object.defineProperty(accessor, `toString`, { get: read })
+	expect(cardValuePreview(accessor)).toBe(`{…}`)
+	expect(read).not.toHaveBeenCalled()
 })

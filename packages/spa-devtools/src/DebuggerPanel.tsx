@@ -15,6 +15,7 @@ import { createSearchContext } from "./search-controller.ts"
 import { SearchView } from "./SearchView.tsx"
 import { StateIndex } from "./StateIndex.tsx"
 import { useLocal, useSaved, useTools } from "./store.ts"
+import { StorePickerControl } from "./StorePickerControl.tsx"
 import { TimelineIndex } from "./TimelineIndex.tsx"
 import { TransactionIndex } from "./TransactionIndex.tsx"
 import { createWindowController, EDGE_LABELS } from "./window-controller.ts"
@@ -89,7 +90,7 @@ export function DebuggerPanel(props: {
 						setOpen(true)
 						queueMicrotask(() => {
 							panel
-								?.querySelector<HTMLSelectElement>(`select[data-store-picker]`)
+								?.querySelector<HTMLButtonElement>(`[data-store-trigger]`)
 								?.focus()
 						})
 					}
@@ -139,46 +140,7 @@ export function DebuggerPanel(props: {
 				>
 					{getOpen() && !hidden() && <BrandMark size={32} />}
 				</button>
-				<h1>
-					{picker ? (
-						<select
-							data-store-picker
-							aria-label="Inspected store"
-							value={picker.id}
-							onChange={(event) => {
-								const id = event.currentTarget.value
-								event.currentTarget.value = picker.id
-								picker.select(id)
-							}}
-						>
-							{([`local`, `remote`] as const).map((kind) => {
-								const targets = picker.targets.filter(
-									(target) => target.kind === kind,
-								)
-								return targets.length ? (
-									<optgroup
-										key={kind}
-										label={kind === `local` ? `Local` : `Remote`}
-									>
-										{targets.map((target) => (
-											<option
-												key={target.id}
-												value={target.id}
-												selected={target.id === picker.id}
-											>
-												{target.label}
-											</option>
-										))}
-									</optgroup>
-								) : null
-							})}
-						</select>
-					) : props.worker ? (
-						`atom.io · Worker`
-					) : (
-						`atom.io`
-					)}
-				</h1>
+				<h1>atom.io</h1>
 				{getOpen() ? (
 					<nav role="tablist" aria-label="Debugger views">
 						{views.map((name) => (
@@ -217,6 +179,13 @@ export function DebuggerPanel(props: {
 							</span>
 						))}
 					</nav>
+				) : null}
+				{picker && getOpen() && !hidden() ? (
+					<StorePickerControl
+						picker={picker}
+						store={props.store}
+						menuId={panelId + `-stores`}
+					/>
 				) : null}
 				<button
 					type="button"

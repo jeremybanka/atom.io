@@ -224,7 +224,7 @@ export function createWindowController(
 		if (
 			!handle &&
 			(!element.closest(`debugger-toolbar`) ||
-				(element.closest(`button, input, select, nav`) &&
+				(element.closest(`button, input, select, nav, [data-store-menu]`) &&
 					!element.closest(`[data-drag-handle]`)))
 		)
 			return

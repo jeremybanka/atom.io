@@ -37,7 +37,7 @@ export function attachDebugger(host: HTMLElement): () => void {
 
 ## Local and remote stores
 
-Supply stores to the SPA or React component or to mountAtomIODevtools. Each target has a unique ID and a label. Local targets take a RootStore. Remote targets take a function that opens a fresh MessagePort. The panel mounts every supplied target, initially shows the first, and groups them under Local and Remote in the store picker. Switching preserves each target's selected view and keeps its connection live. Disposing the panel closes its remote connections. When stores is omitted, the existing single-store setup applies.
+Supply stores to the SPA or React component or to mountAtomIODevtools. Each target has a unique ID and a label. Local targets take a RootStore. Remote targets take a function that opens a fresh MessagePort. The panel mounts every supplied target and initially shows the first. The store picker beside the window controls groups targets under Local and Remote. Its button shows the current store and a caret, collapsing to just the caret when the window is narrow. Switching preserves each target's selected view and keeps its connection live. Disposing the panel closes its remote connections. When stores is omitted, the existing single-store setup applies.
 
 ```ts
 import { mountAtomIODevtools } from "@atom.io/spa-devtools"
@@ -315,7 +315,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                        | Entry                         | Minified JS |   Gzip JS |
 | ----------------------------- | ----------------------------- | ----------: | --------: |
-| Interactive app with debugger | `tonnage-recipes/debugger.ts` |   981,887 B | 293,021 B |
+| Interactive app with debugger | `tonnage-recipes/debugger.ts` |   983,072 B | 293,427 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

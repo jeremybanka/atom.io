@@ -91,23 +91,51 @@ it(`keeps each target mounted and isolates panel commands and keyboard shortcuts
 	})
 	const active = () =>
 		host.querySelector<HTMLElement>(`debugger-panel:not([hidden])`)
+	const trigger = () =>
+		active()!.querySelector<HTMLButtonElement>(`[data-store-trigger]`)!
 	const switchTo = async (id: string) => {
-		const select = active()!.querySelector<HTMLSelectElement>(
-			`select[data-store-picker]`,
-		)!
-		select.value = id
-		select.dispatchEvent(new Event(`change`, { bubbles: true }))
+		trigger().click()
+		await flush()
+		active()!
+			.querySelector<HTMLButtonElement>(`[data-store-option="` + id + `"]`)!
+			.click()
 		await flush()
 	}
 	try {
 		await flush()
 		expect(host.querySelectorAll(`debugger-panel`)).toHaveLength(3)
+		expect(active()?.querySelector(`h1`)?.textContent).toBe(`atom.io`)
+		trigger().click()
+		await flush()
+		const current = active()?.querySelector(
+			`[data-store-option][aria-current="true"]`,
+		)
+		expect(document.activeElement).toBe(current)
+		current!.dispatchEvent(
+			new KeyboardEvent(`keydown`, { key: `ArrowDown`, bubbles: true }),
+		)
+		expect(trigger().getAttribute(`aria-expanded`)).toBe(`true`)
+		current!.dispatchEvent(
+			new KeyboardEvent(`keydown`, { key: `Escape`, bubbles: true }),
+		)
+		await flush()
+		expect(trigger().getAttribute(`aria-expanded`)).toBe(`false`)
+		expect(document.activeElement).toBe(trigger())
+		trigger().dispatchEvent(
+			new KeyboardEvent(`keydown`, { key: `Escape`, bubbles: true }),
+		)
+		trigger().click()
+		await flush()
+		document.body.dispatchEvent(new Event(`pointerdown`, { bubbles: true }))
+		await flush()
+		expect(trigger().getAttribute(`aria-expanded`)).toBe(`false`)
 		expect(
 			active()?.querySelector<HTMLInputElement>(`[aria-label="local"]`)?.value,
 		).toBe(`page`)
 		firstStore.setState(firstAtom, 10)
 		secondStore.setState(secondAtom, 20)
 		await switchTo(`second`)
+		expect(document.activeElement).toBe(trigger())
 		expect(
 			active()?.querySelector<HTMLInputElement>(`[aria-label="second"]`)?.value,
 		).toBe(`20`)
@@ -560,7 +588,7 @@ it(`observes the worker, edits primitives, and handles shutdown using the shared
 	try {
 		await flush()
 		page.receive(null)
-		expect(host.querySelector(`h1`)?.textContent).toBe(`atom.io · Worker`)
+		expect(host.querySelector(`h1`)?.textContent).toBe(`atom.io`)
 		const field = (key: string) =>
 			host.querySelector<HTMLInputElement>(`input[aria-label="` + key + `"]`)!
 		const type = (input: HTMLInputElement, value: string) => {

@@ -73,7 +73,13 @@ if (process.argv.includes(`--serve`)) {
 		page.on(`pageerror`, (error) => errors.push(error.message))
 		await page.goto(url)
 		const panel = page.locator(`debugger-panel:not([hidden])`)
-		const picker = panel.getByRole(`combobox`, { name: `Inspected store` })
+		const picker = panel.getByRole(`button`, { name: /^Inspected store:/ })
+		const storeName = picker.locator(`[data-store-name]`)
+		const stores = panel.getByRole(`group`, { name: `Stores`, exact: true })
+		const switchStore = async (name: string) => {
+			await picker.click()
+			await stores.getByRole(`button`, { name, exact: true }).click()
+		}
 		const count = panel.getByRole(`textbox`, { name: `count`, exact: true })
 		const doubled = panel.getByRole(`textbox`, { name: `doubled`, exact: true })
 		const atoms = panel.getByRole(`tab`, { name: `atoms` })
@@ -101,20 +107,35 @@ if (process.argv.includes(`--serve`)) {
 		await selectors.click()
 		await expectValue(`doubled`, `6`)
 		assert.equal(await doubled.getAttribute(`readonly`), ``)
-		assert.ok((await picker.boundingBox())!.width > 76)
+		assert.equal(
+			await panel.getByRole(`heading`, { name: `atom.io`, exact: true }).count(),
+			1,
+		)
+		assert.equal(await storeName.textContent(), `Counter worker`)
+		assert.ok(await storeName.isVisible())
+		await picker.press(`Enter`)
 		assert.deepEqual(
-			await picker
-				.locator(`optgroup`)
-				.evaluateAll((groups) =>
-					groups.map((group) => group.getAttribute(`label`)),
-				),
+			await stores.locator(`[data-store-group] > p`).allTextContents(),
 			[`Local`, `Remote`],
 		)
-		await picker.selectOption(`page`)
+		const current = stores.getByRole(`button`, {
+			name: `Counter worker`,
+			exact: true,
+		})
+		assert.equal(await current.getAttribute(`aria-current`), `true`)
+		assert.ok(
+			await current.evaluate((element) => element === document.activeElement),
+		)
+		await current.press(`Escape`)
+		await stores.waitFor({ state: `hidden` })
+		assert.ok(
+			await picker.evaluate((element) => element === document.activeElement),
+		)
+		await switchStore(`Page store`)
 		await expectValue(`location`, `Main thread`)
 		await increment.click()
 		await expectWorker(4, 8)
-		await picker.selectOption(`worker`)
+		await switchStore(`Counter worker`)
 		await expectValue(`doubled`, `8`)
 
 		await atoms.click()
@@ -165,7 +186,33 @@ if (process.argv.includes(`--serve`)) {
 		await panel.getByTestId(`ecology-view`).locator(`[data-edges="1"]`).waitFor()
 		assert.deepEqual(errors, [])
 		const screenshot = process.env[`SPA_DEVTOOLS_WORKER_SCREENSHOT`]
+		await picker.click()
+		await stores.waitFor()
+		assert.ok(
+			await stores.evaluate((menu) => {
+				const bounds = menu.getBoundingClientRect()
+				return menu.contains(
+					document.elementFromPoint(bounds.right - 4, bounds.top + 13),
+				)
+			}),
+		)
 		if (screenshot) await page.screenshot({ path: screenshot })
+		await picker.click()
+
+		await page.setViewportSize({ width: 1080, height: 850 })
+		await panel
+			.getByRole(`button`, { name: `Debugger layout`, exact: true })
+			.click()
+		await panel.getByRole(`button`, { name: `Left third`, exact: true }).click()
+		await storeName.waitFor({ state: `hidden` })
+		assert.ok(await picker.locator(`[data-store-caret]`).isVisible())
+		assert.ok((await picker.boundingBox())!.width <= 28)
+		assert.equal(
+			await panel.getByRole(`heading`, { name: `atom.io`, exact: true }).count(),
+			1,
+		)
+		await switchStore(`Page store`)
+		await expectValue(`location`, `Main thread`)
 		process.stdout.write(`Worker devtools round trip passed\n`)
 	} finally {
 		await browser?.close()

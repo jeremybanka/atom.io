@@ -141,8 +141,10 @@ it(`keeps supplied targets mounted when the React provider changes`, async () =>
 	}
 	await render(first)
 	const panel = host.querySelector(`debugger-panel`)
-	expect(panel?.querySelector(`optgroup`)?.getAttribute(`label`)).toBe(`Local`)
-	expect(panel?.querySelectorAll(`optgroup`)).toHaveLength(1)
+	expect(panel?.querySelector(`[data-store-group] > p`)?.textContent).toBe(
+		`Local`,
+	)
+	expect(panel?.querySelectorAll(`[data-store-group]`)).toHaveLength(1)
 	await render(second)
 	expect(host.querySelector(`debugger-panel`)).toBe(panel)
 })

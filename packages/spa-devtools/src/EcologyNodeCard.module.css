@@ -39,12 +39,18 @@ ecology-node-card.class {
 		}
 	}
 	> button {
+		--ecology-card-surface: var(--surface-inactive);
+		--ecology-card-fill-opacity: 88%;
 		position: relative;
 		width: 100%;
 		height: 100%;
 		padding: 7px 9px;
 		text-align: left;
-		background: var(--surface-inactive);
+		background: color-mix(
+			in srgb,
+			var(--ecology-card-surface) var(--ecology-card-fill-opacity),
+			transparent
+		);
 		color: var(--ink);
 		border: 1px solid var(--ecology-color);
 		box-shadow: 0 2px 6px #0002;
@@ -202,7 +208,7 @@ ecology-node-card.class {
 		border-radius: 12px 2px;
 	}
 	&[data-hovered="true"] > button {
-		background: var(--surface-hover);
+		--ecology-card-surface: var(--surface-hover);
 		opacity: 1;
 	}
 	> button > small[data-family] {

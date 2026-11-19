@@ -144,7 +144,7 @@ export function EcologyNodeCard(props: {
 				flash = button?.animate?.(
 					[
 						{
-							backgroundColor: `color-mix(in srgb, var(--ecology-color) 24%, var(--surface-inactive))`,
+							backgroundColor: `color-mix(in srgb, color-mix(in srgb, var(--ecology-color) 24%, var(--ecology-card-surface)) var(--ecology-card-fill-opacity), transparent)`,
 						},
 						{},
 					],

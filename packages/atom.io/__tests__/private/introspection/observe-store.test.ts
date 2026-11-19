@@ -177,3 +177,78 @@ it(`reports a cached Future's replacement without changing its identity`, async 
 	await expect(pending).resolves.toBe(2)
 	stop()
 })
+
+it(`reports the removed selector's incoming and outgoing dependencies on disposal`, async () => {
+	const { silo, store } = setup()
+	const countAtom = silo.atom<number>({ key: `count`, default: 3 })
+	const doubleSelectors = silo.selectorFamily<number, string>({
+		key: `double`,
+		get:
+			() =>
+			({ get }) =>
+				get(countAtom) * 2,
+	})
+	const doubleSelector = silo.findState(doubleSelectors, `a`)
+	const totalSelector = silo.selector<number>({
+		key: `total`,
+		get: ({ get }) => get(doubleSelector) + 1,
+	})
+	expect(silo.getState(totalSelector)).toBe(7)
+	const observe = vi.fn<(changes: StoreChanges) => void>()
+	const stop = observeStore(store, observe)
+	silo.disposeState(doubleSelectors, `a`)
+	await Promise.resolve()
+	expect(observe.mock.lastCall?.[0]).toMatchObject({
+		states: new Set([doubleSelector.key]),
+		dependencies: new Set([doubleSelector.key, totalSelector.key]),
+	})
+	stop()
+})
+
+it(`skips a listener removed by an earlier listener in the same batch`, async () => {
+	const { silo, store } = setup()
+	const countAtom = silo.atom<number>({ key: `count`, default: 0 })
+	const stop = observeStore(store, () => stopLater())
+	const later = vi.fn()
+	const stopLater = observeStore(store, later)
+	silo.setState(countAtom, 1)
+	await Promise.resolve()
+	expect(later).not.toHaveBeenCalled()
+	stop()
+})
+
+it(`reports rejection of the current Future and ignores changes to a displaced Future`, async () => {
+	const { silo, store } = setup()
+	const replyAtom = silo.atom<number | Promise<number>>({
+		key: `reply`,
+		default: 0,
+	})
+	const observe = vi.fn<(changes: StoreChanges) => void>()
+	const stop = observeStore(store, observe)
+	const request = Promise.withResolvers<number>()
+	silo.setState(replyAtom, request.promise)
+	const displaced = silo.getState(replyAtom) as Future<number>
+	silo.setState(replyAtom, 42)
+	await Promise.resolve()
+	observe.mockClear()
+	const replacement = Promise.withResolvers<number>()
+	displaced.use(replacement.promise)
+	replacement.reject(new Error(`displaced request`))
+	await expect(displaced).rejects.toThrow(`displaced request`)
+	await Promise.resolve()
+	expect(observe).not.toHaveBeenCalled()
+	expect(peekState(store, replyAtom.key)).toEqual({ present: true, value: 42 })
+	request.resolve(1)
+
+	const active = Promise.withResolvers<number>()
+	silo.setState(replyAtom, active.promise)
+	const pending = silo.getState(replyAtom)
+	await Promise.resolve()
+	active.reject(new Error(`current request`))
+	await expect(pending).rejects.toThrow(`current request`)
+	await Promise.resolve()
+	expect(observe.mock.lastCall?.[0].futures.get(replyAtom.key)).toEqual(
+		new Set([`rejected`]),
+	)
+	stop()
+})

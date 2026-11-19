@@ -1,11 +1,13 @@
 import type { AtomDisposalEvent, AtomLifecycleEvent, AtomToken } from "atom.io"
 import type { Subject } from "atom.io/foundations/subject"
 
+import { deleteCachedValue } from "../caching.ts"
 import { getFamilyOfToken } from "../families/get-family-of-token.ts"
 import { newest } from "../lineage.ts"
 import { getUpdateToken } from "../mutable/index.ts"
 import type { Store } from "../store/index.ts"
 import { withdraw } from "../store/index.ts"
+import { recordStoreChange } from "../store-observation.ts"
 import { isChildStore } from "../transaction/index.ts"
 import { hasRole } from "./has-role.ts"
 
@@ -42,7 +44,8 @@ export function disposeAtom(
 		const isChild = isChildStore(target)
 
 		target.atoms.delete(key)
-		target.valueMap.delete(key)
+		recordStoreChange(target, `states`, key)
+		deleteCachedValue(target, key)
 		target.selectorAtoms.delete(key)
 		target.atomsThatAreDefault.delete(key)
 		target.moleculeData.delete(family.key, family.subKey)

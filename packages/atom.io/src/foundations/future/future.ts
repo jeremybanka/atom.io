@@ -9,6 +9,7 @@ export class Future<T> extends Promise<T> {
 	private fate: Promise<T> | undefined
 	private resolve: (value: T) => void
 	private reject: (reason?: any) => void
+	private readonly onFateReplaced: (() => void) | undefined
 
 	public done = false
 
@@ -16,6 +17,7 @@ export class Future<T> extends Promise<T> {
 		executor:
 			| Promise<T>
 			| ((resolve: (value: T) => void, reject: (reason?: any) => void) => void),
+		onFateReplaced?: () => void,
 	) {
 		let superResolve: ((value: T) => void) | undefined
 		let superReject: ((reason?: any) => void) | undefined
@@ -25,6 +27,7 @@ export class Future<T> extends Promise<T> {
 		})
 		this.resolve = superResolve as (value: T) => void
 		this.reject = superReject as (reason?: any) => void
+		this.onFateReplaced = onFateReplaced
 		this.use(executor instanceof Promise ? executor : new Promise(executor))
 	}
 
@@ -47,6 +50,8 @@ export class Future<T> extends Promise<T> {
 		}
 		if (value instanceof Promise) {
 			const promise = value
+			const replaced =
+				this.fate !== undefined && this.fate !== promise && !this.done
 			this.fate = promise
 			promise.then(
 				(resolved) => {
@@ -56,6 +61,7 @@ export class Future<T> extends Promise<T> {
 					this.fail(promise, reason)
 				},
 			)
+			if (replaced) this.onFateReplaced?.()
 		} else {
 			this.resolve(value)
 			this.fate = undefined

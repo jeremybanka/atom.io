@@ -11,6 +11,7 @@ import { stringifyJson } from "atom.io/foundations/json"
 import { newest } from "../lineage.ts"
 import { createReadonlyHeldSelector } from "../selector/index.ts"
 import type { ReadonlyHeldSelectorFamily } from "../state-types.ts"
+import { recordStoreChange } from "../store-observation.ts"
 import type { RootStore } from "../transaction/index.ts"
 
 export function createReadonlyHeldSelectorFamily<
@@ -65,5 +66,6 @@ export function createReadonlyHeldSelectorFamily<
 	}
 
 	store.families.set(familyKey, readonlySelectorFamily)
+	recordStoreChange(store, `families`, familyKey)
 	return familyToken
 }

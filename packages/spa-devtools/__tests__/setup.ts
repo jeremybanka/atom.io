@@ -7,7 +7,10 @@ beforeEach(() => {
 	vi.spyOn(window, `matchMedia`).mockImplementation((query) => {
 		const media = match(query)
 		if (query === `(prefers-reduced-motion: reduce)`)
-			Object.defineProperty(media, `matches`, { value: true })
+			Object.defineProperty(media, `matches`, {
+				value: true,
+				configurable: true,
+			})
 		return media
 	})
 })

@@ -1,6 +1,7 @@
 /** @jsxImportSource @atom.io/spa */
 import type { SpaElement } from "@atom.io/spa"
 import { onCleanup, onCommit, onMount, useId } from "@atom.io/spa"
+import type { FutureActivity } from "atom.io/introspection"
 
 import { createEcologyController } from "./ecology-controller.ts"
 import type { GraphContext, GraphModel } from "./ecology-graph.ts"
@@ -13,6 +14,12 @@ import css from "./EcologyView.module.css"
 import { EcologyViewport } from "./EcologyViewport.tsx"
 import type { SearchHit } from "./search.ts"
 import { type Tools, useLocal, usePresentation } from "./store.ts"
+
+export interface EcologyActivity {
+	revision: number
+	at: number
+	future?: ReadonlySet<FutureActivity>
+}
 
 export interface EcologyPresentation {
 	cylinderHeight: number
@@ -43,6 +50,7 @@ export interface EcologyPresentation {
 	empty: boolean
 	emptyText: string
 	generation: number
+	activity: ReadonlyMap<string, EcologyActivity>
 	pinnedKey: string | undefined
 }
 export function EcologyView(props: {
@@ -80,6 +88,7 @@ export function EcologyView(props: {
 		emptyText: ``,
 		pinnedKey: undefined,
 		generation: 0,
+		activity: new Map(),
 	})
 	const [hovered, setHovered] = useLocal<string | undefined>(
 		props.tools.store,
@@ -134,6 +143,7 @@ export function EcologyView(props: {
 						cylinderHeight={state().cylinderHeight}
 						generation={state().generation}
 						items={state().cards}
+						activity={state().activity}
 						edges={state().edges}
 						familyConnections={state().familyConnections}
 						selected={state().selectedCard}

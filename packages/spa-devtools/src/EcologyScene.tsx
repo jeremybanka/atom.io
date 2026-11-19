@@ -24,6 +24,7 @@ import { createEcologyMotion } from "./ecology-motion.ts"
 import { EcologyGround } from "./EcologyGround.tsx"
 import { EcologyNodeCard } from "./EcologyNodeCard.tsx"
 import css from "./EcologyScene.module.css"
+import type { EcologyActivity } from "./EcologyView.tsx"
 import { type Tools, useLocal } from "./store.ts"
 
 const canvas = { Canvas }
@@ -39,6 +40,7 @@ export function EcologyScene(props: {
 	cylinderHeight: number
 	generation: number
 	items: GraphItem[]
+	activity?: ReadonlyMap<string, EcologyActivity>
 	edges: EcologyLine[]
 	familyConnections?: readonly FamilyConnection[] | undefined
 	selected?: string | undefined
@@ -111,6 +113,7 @@ export function EcologyScene(props: {
 		}
 	}
 	const motion = createEcologyMotion(invalidate, window)
+	const reducedMotion = window.matchMedia(`(prefers-reduced-motion: reduce)`)
 	onCleanup(motion.dispose)
 	const fit = (overview = true) => {
 		if (!props.items.length) return
@@ -296,6 +299,9 @@ export function EcologyScene(props: {
 				<EcologyNodeCard
 					key={item.id}
 					item={item}
+					store={props.tools.store}
+					activity={props.activity?.get(item.id)}
+					reducedMotion={reducedMotion}
 					motion={motion}
 					release={release}
 					registerEdges={(paint) => {

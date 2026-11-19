@@ -20,6 +20,7 @@ const config: UserConfig = defineConfig({
 	format: `esm`,
 	platform: `neutral`,
 	target: `es2022`,
+	loader: { ".png": `dataurl` },
 	css: {
 		fileName: `devtools.css`,
 		splitting: false,

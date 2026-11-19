@@ -20,6 +20,11 @@ export * from "./selector/index.ts"
 export * from "./set-state/index.ts"
 export type * from "./state-types.ts"
 export * from "./store/index.ts"
+export {
+	type FutureActivity,
+	observeStore,
+	type StoreChanges,
+} from "./store-observation.ts"
 export * from "./subscribe/index.ts"
 export * from "./timeline/index.ts"
 export * from "./transaction/index.ts"

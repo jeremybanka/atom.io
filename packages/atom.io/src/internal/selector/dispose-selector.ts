@@ -1,7 +1,12 @@
 import type { SelectorFamilyToken, SelectorToken } from "atom.io"
 
+import { deleteCachedValue } from "../caching.ts"
 import { newest } from "../lineage.ts"
 import { type Store, withdraw } from "../store/index.ts"
+import {
+	recordSelectorRemoval,
+	recordStoreChange,
+} from "../store-observation.ts"
 import { isChildStore } from "../transaction/index.ts"
 
 export function disposeSelector(
@@ -62,9 +67,11 @@ export function disposeSelector(
 				break
 		}
 
-		target.valueMap.delete(key)
+		deleteCachedValue(target, key)
 		target.selectorAtoms.delete(key)
+		recordSelectorRemoval(target, key)
 		target.selectorGraph.delete(key)
+		recordStoreChange(target, `states`, key)
 		target.moleculeData.delete(familyMeta.key, familyMeta.subKey)
 		store.logger.info(`🔥`, selectorToken.type, key, `deleted`)
 		if (isChildStore(target) && target.transactionMeta.phase === `building`) {

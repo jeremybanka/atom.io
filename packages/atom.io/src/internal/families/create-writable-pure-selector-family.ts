@@ -23,6 +23,7 @@ import { getJsonTokenFromStore } from "../mutable/index.ts"
 import { createWritablePureSelector } from "../selector/index.ts"
 import type { WritablePureSelectorFamily } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
+import { recordStoreChange } from "../store-observation.ts"
 import type { RootStore } from "../transaction/index.ts"
 import { findInStore } from "./find-in-store.ts"
 
@@ -99,5 +100,6 @@ export function createWritablePureSelectorFamily<T, K extends Canonical, E>(
 	}
 
 	store.families.set(familyKey, selectorFamily)
+	recordStoreChange(store, `families`, familyKey)
 	return familyToken
 }

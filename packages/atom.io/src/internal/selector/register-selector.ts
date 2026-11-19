@@ -26,6 +26,7 @@ import { getJsonTokenFromStore } from "../mutable/index.ts"
 import { JOIN_OP, operateOnStore } from "../set-state/operate-on-store.ts"
 import type { Store } from "../store/index.ts"
 import { withdraw } from "../store/index.ts"
+import { recordDependencyChange } from "../store-observation.ts"
 import { updateSelectorAtoms } from "./update-selector-atoms.ts"
 
 export function registerSelector(
@@ -63,6 +64,7 @@ export function registerSelector(
 				`)`,
 			)
 
+			recordDependencyChange(target, token.key, selectorKey)
 			target.selectorGraph.set(
 				{
 					upstreamSelectorKey: token.key,

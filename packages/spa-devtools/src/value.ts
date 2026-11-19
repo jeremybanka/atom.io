@@ -28,6 +28,62 @@ export function preview(value: unknown): string {
 	return text.length > 60 ? `${text.slice(0, 59)}…` : text
 }
 
+const mapSize = Object.getOwnPropertyDescriptor(Map.prototype, `size`)!.get!
+const setSize = Object.getOwnPropertyDescriptor(Set.prototype, `size`)!.get!
+
+/** Rich previews belong to painted cards. Snapshot capture uses the shallow preview above. */
+export function cardValuePreview(value: unknown): string {
+	if (
+		value === null ||
+		(typeof value !== `object` && typeof value !== `function`)
+	)
+		return preview(value)
+	try {
+		const prototype: unknown = Object.getPrototypeOf(value)
+		let current: unknown = value
+		for (let depth = 0; current !== null && depth < 16; depth++) {
+			const method = Object.getOwnPropertyDescriptor(current, `toString`)
+			if (method) {
+				if (
+					current !== Object.prototype &&
+					current !== Array.prototype &&
+					current !== Function.prototype &&
+					current !== Error.prototype &&
+					typeof method.value === `function`
+				) {
+					try {
+						const text: unknown = Reflect.apply(method.value, value, [])
+						if (typeof text === `string`)
+							return text.length > 60 ? `${text.slice(0, 59)}…` : text
+					} catch {
+						// Keep the structural preview if the formatter fails.
+					}
+				}
+				break
+			}
+			current = current === value ? prototype : Object.getPrototypeOf(current)
+		}
+		if (Array.isArray(value))
+			return `[…${Object.getOwnPropertyDescriptor(value, `length`)!.value}]`
+		if (value instanceof Map) return `Map(${Reflect.apply(mapSize, value, [])})`
+		if (value instanceof Set) return `Set(${Reflect.apply(setSize, value, [])})`
+		if (prototype !== Object.prototype && prototype !== null) {
+			const constructor: unknown = Object.getOwnPropertyDescriptor(
+				prototype,
+				`constructor`,
+			)?.value
+			const name: unknown =
+				typeof constructor === `function`
+					? Object.getOwnPropertyDescriptor(constructor, `name`)?.value
+					: undefined
+			if (typeof name === `string` && name) return name.slice(0, 60)
+		}
+	} catch {
+		// Proxies and unfamiliar native wrappers can reject reflective inspection.
+	}
+	return preview(value)
+}
+
 /** Coarse cached shapes need no prototype inspection; opening children is an explicit action. */
 export function shallowKind(value: unknown): JsonKind | `other` {
 	if (value === null) return `null`

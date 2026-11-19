@@ -13,6 +13,7 @@ import { resetInStore, setIntoStore } from "../set-state/index.ts"
 import type { RegularAtom } from "../state-types.ts"
 import type { Store } from "../store/index.ts"
 import { deposit } from "../store/index.ts"
+import { recordStoreChange } from "../store-observation.ts"
 import { subscribeToState } from "../subscribe/index.ts"
 import type { RootStore } from "../transaction/index.ts"
 import type { InternalRole } from "./has-role.ts"
@@ -55,6 +56,7 @@ export function createRegularAtom<T, K extends Canonical, E>(
 		newAtom.internalRoles = internalRoles
 	}
 	target.atoms.set(key, newAtom)
+	recordStoreChange(target, `states`, key)
 	const token = deposit(newAtom) as RegularAtomToken<T, K, E>
 	if (options.effects) {
 		let effectIndex = 0

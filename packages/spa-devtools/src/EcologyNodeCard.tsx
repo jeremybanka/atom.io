@@ -2,15 +2,21 @@
 import { onCleanup, onMount, type SpaElement, useStore } from "@atom.io/spa"
 import type { MotionAttributes } from "@atom.io/spa/motion"
 import { bindScene } from "@atom.io/spa/renderer"
+import { Future } from "atom.io/foundations/future"
+import type { RootStore } from "atom.io/internal"
+import { peekState } from "atom.io/introspection"
 import type { Scene } from "three"
 // eslint-disable-next-line import/extensions -- Three addon exports require the .js suffix.
 import { CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js"
 
+import { createCardFeedback } from "./ecology-card-feedback.ts"
 import type { GraphItem } from "./ecology-graph.ts"
 import type { ProjectedEdge } from "./ecology-lines.ts"
 import { type createEcologyMotion, FAMILY_SPRING } from "./ecology-motion.ts"
 import css from "./EcologyNodeCard.module.css"
+import type { EcologyActivity } from "./EcologyView.tsx"
 import { useLocal } from "./store.ts"
+import { cardValuePreview } from "./value.ts"
 
 export function EcologyNodeCard(props: {
 	motion: ReturnType<typeof createEcologyMotion>
@@ -19,6 +25,9 @@ export function EcologyNodeCard(props: {
 		paint: (paths: ReadonlyMap<string, readonly ProjectedEdge[]>) => void,
 	): () => void
 	item: GraphItem
+	store: RootStore
+	activity?: EcologyActivity | undefined
+	reducedMotion: MediaQueryList
 	selected: boolean
 	hovered: boolean
 	dimmed: boolean
@@ -27,10 +36,27 @@ export function EcologyNodeCard(props: {
 	scene: Scene
 	invalidate(): void
 }): SpaElement {
+	let previewed:
+		| { value: unknown; revision: number | undefined; text: string }
+		| undefined
+	const detailValue = () => {
+		const revision = props.activity?.revision
+		const cache = peekState(props.store, props.item.key)
+		if (!cache.present) return `–`
+		if (
+			previewed &&
+			Object.is(previewed.value, cache.value) &&
+			(revision === undefined || revision === previewed.revision)
+		)
+			return previewed.text
+		const text = cardValuePreview(cache.value)
+		previewed = { value: cache.value, revision, text }
+		return text
+	}
 	const detail = (source: GraphItem[`source`]) => {
-		return `memberKeys` in source
-			? `${source.type.includes(`selector`) ? `Selector Family` : `Atom Family`} · ${source.memberCount}${source.countComplete ? `` : `+`} members`
-			: `${source.kind === `atom` ? `Atom` : `Selector`} · ${source.value.status === `cached` ? (source.value.preview ?? `…`) : `–`}`
+		if (`memberKeys` in source)
+			return `${source.type.includes(`selector`) ? `Selector Family` : `Atom Family`} · ${source.memberCount}${source.countComplete ? `` : `+`} members`
+		return `${source.kind === `atom` ? `Atom` : `Selector`} · ${detailValue()}`
 	}
 	const description = () => {
 		const item = props.item
@@ -46,7 +72,8 @@ export function EcologyNodeCard(props: {
 	}
 	const uncached = () => {
 		const source = props.item.source
-		return `value` in source && source.value.status === `unknown`
+		void props.activity
+		return `value` in source && !peekState(props.store, source.key).present
 	}
 	const empty: readonly ProjectedEdge[] = []
 	const [pathCount, setPathCount] = useLocal(useStore(), 0)
@@ -67,6 +94,7 @@ export function EcologyNodeCard(props: {
 		props.release(identity)
 	})
 	let element: HTMLElement | null = null
+	let button: HTMLButtonElement | null = null
 	onMount(() => {
 		const label = new CSS2DObject(element!)
 		label.name = props.item.id
@@ -103,7 +131,73 @@ export function EcologyNodeCard(props: {
 				props.invalidate()
 			},
 		)
+		let flash: Animation | undefined
+		let lastRevision = 0
+		bindScene(
+			() => props.activity,
+			(activity) => {
+				if (!activity || activity.revision <= lastRevision) return
+				lastRevision = activity.revision
+				if (props.reducedMotion.matches || performance.now() - activity.at > 500)
+					return
+				flash?.cancel()
+				flash = button?.animate?.(
+					[
+						{
+							backgroundColor: `color-mix(in srgb, var(--ecology-color) 24%, var(--surface-inactive))`,
+						},
+						{},
+					],
+					{ duration: 480, easing: `ease-out` },
+				)
+			},
+		)
+		if (props.item.kind !== `family`) {
+			const feedback = createCardFeedback(button!, props.reducedMotion)
+			let lastCaught: unknown
+			let feedbackRevision = 0
+			let feedbackItem: GraphItem | undefined
+			bindScene(
+				() => ({ item: props.item, activity: props.activity }),
+				({ item, activity }) => {
+					const newRevision =
+						activity !== undefined && activity.revision > feedbackRevision
+					if (!newRevision && item === feedbackItem) return
+					const fresh = newRevision && performance.now() - activity.at < 500
+					const events =
+						newRevision && (feedbackItem || fresh) ? activity.future : undefined
+					if (newRevision) feedbackRevision = activity.revision
+					feedbackItem = item
+					const raw = peekState(props.store, item.key).value
+					const state =
+						props.store.atoms.get(item.key) ??
+						props.store.readonlySelectors.get(item.key) ??
+						props.store.writableSelectors.get(item.key)
+					let pending = false
+					let caught = false
+					if (typeof raw === `object` && raw !== null) {
+						try {
+							pending = raw instanceof Future && !raw.done
+							caught =
+								!!state &&
+								`catch` in state &&
+								state.catch.some((ErrorType) => raw instanceof ErrorType)
+						} catch {
+							// Proxies can reject prototype inspection.
+						}
+					}
+					feedback.future(pending, caught, events)
+					const nextCaught = caught ? raw : undefined
+					if (!Object.is(nextCaught, lastCaught)) {
+						feedback.error(caught, fresh)
+						lastCaught = nextCaught
+					}
+				},
+			)
+			onCleanup(feedback.dispose)
+		}
 		onCleanup(() => {
+			flash?.cancel()
 			label.removeFromParent()
 			props.invalidate()
 		})
@@ -161,6 +255,9 @@ export function EcologyNodeCard(props: {
 				</svg>
 			)}
 			<button
+				ref={(node) => {
+					button = node
+				}}
 				type="button"
 				data-node
 				data-graph-id={props.item.id}

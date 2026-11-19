@@ -15,6 +15,7 @@ import { createRegularAtom } from "../atom/index.ts"
 import { isFn } from "../is-fn.ts"
 import { newest } from "../lineage.ts"
 import type { RegularAtomFamily } from "../state-types.ts"
+import { recordStoreChange } from "../store-observation.ts"
 import type { RootStore } from "../transaction/index.ts"
 
 export function createRegularAtomFamily<T, K extends Canonical, E>(
@@ -70,6 +71,7 @@ export function createRegularAtomFamily<T, K extends Canonical, E>(
 	}
 
 	store.families.set(options.key, atomFamily)
+	recordStoreChange(store, `families`, options.key)
 	if (isFn(options.default) === false) {
 		store.defaults.set(options.key, options.default)
 	}

@@ -169,29 +169,39 @@ describe(`order fulfillment application`, () => {
 	test(`controlled async quote settles, fails and cancels without an external service`, async () => {
 		const model = createOrderFulfillmentScenario()
 		const { app, families, actions, state } = model
+		expect(app.getState(families.quotes, `local`)).toBeNull()
 		actions.resolveQuote()
 		actions.rejectQuote()
 		actions.requestQuote()
-		expect(app.getState(state.quoteStatus)).toBe(`pending`)
 		const pending = app.getState(families.quotes, `local`)
 		expect(pending).toBeInstanceOf(Promise)
 		actions.resolveQuote()
 		await expect(pending).resolves.toBe(650)
-		expect(app.getState(state.quoteStatus)).toBe(`ready`)
+		expect(app.getState(families.quotes, `local`)).toBe(650)
 		actions.requestQuote()
 		const rejected = app.getState(families.quotes, `local`)
 		actions.rejectQuote()
 		await expect(rejected).resolves.toEqual(
 			new Error(`Carrier quote unavailable`),
 		)
-		expect(app.getState(state.quoteStatus)).toBe(`error`)
+		expect(app.getState(families.quotes, `local`)).toEqual(
+			new Error(`Carrier quote unavailable`),
+		)
 		actions.requestQuote()
 		const superseded = app.getState(families.quotes, `local`)
 		actions.requestQuote()
 		expect(app.getState(families.quotes, `local`)).toBe(superseded)
-		const canceled = app.getState(families.quotes, `local`)
+
+		app.setState(state.region, `distant`)
+		expect(app.getState(families.quotes, `distant`)).toBeNull()
+		actions.requestQuote()
+		const distant = app.getState(families.quotes, `distant`)
+		actions.resolveQuote()
+		await expect(distant).resolves.toBe(650)
+		expect(app.getState(families.quotes, `local`)).toBe(superseded)
+
 		model.dispose()
 		model.dispose()
-		await expect(canceled).resolves.toBe(0)
+		await expect(superseded).resolves.toBeNull()
 	})
 })

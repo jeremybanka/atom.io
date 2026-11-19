@@ -30,7 +30,6 @@ export function EcologyEditorRow(props: {
 	})
 	const definitions = new WeakMap<object, number>()
 	let serial = 0
-	let generated = 0
 	const definition = () =>
 		props.tools.store.atoms.get(props.item.key) ??
 		props.tools.store.readonlySelectors.get(props.item.key) ??
@@ -42,7 +41,7 @@ export function EcologyEditorRow(props: {
 			id = serial++
 			definitions.set(value, id)
 		}
-		return `${id}:${generated}`
+		return id
 	}
 	const family = () =>
 		`memberKeys` in props.item.source ? props.item.source : undefined
@@ -88,9 +87,9 @@ export function EcologyEditorRow(props: {
 					retained
 					cachedOnly
 					capture={props.item.source}
+					revision={props.state.activity.get(props.item.id)?.revision}
 					label={label()}
 					onGenerate={() => {
-						generated++
 						props.onGenerate(props.item.key)
 					}}
 				/>

@@ -15,7 +15,6 @@ export interface CatalogProduct {
 	tags: string[]
 }
 export type FulfillmentMode = `delivery` | `pickup`
-export type QuoteStatus = `idle` | `pending` | `ready` | `error`
 export interface OrderFulfillmentScenario {
 	app: Silo
 	skus: readonly string[]
@@ -27,7 +26,11 @@ export interface OrderFulfillmentScenario {
 		availability: ReadonlyPureSelectorFamilyToken<boolean, string>
 		deliveryFees: RegularAtomFamilyToken<number, string>
 		pickupFees: RegularAtomFamilyToken<number, string>
-		quotes: RegularAtomFamilyToken<Loadable<number | Error>, string, Error>
+		quotes: RegularAtomFamilyToken<
+			Loadable<number | Error | null>,
+			string,
+			Error
+		>
 	}
 	state: {
 		mode: RegularAtomToken<FulfillmentMode>
@@ -36,7 +39,6 @@ export interface OrderFulfillmentScenario {
 		pickup: RegularAtomToken<string>
 		cart: RegularAtomToken<string[]>
 		coupon: RegularAtomToken<string | null>
-		quoteStatus: RegularAtomToken<QuoteStatus>
 	}
 	derived: {
 		subtotal: ReadonlyPureSelectorToken<number>
@@ -70,10 +72,7 @@ export function createOrderFulfillmentScenario(): OrderFulfillmentScenario {
 		isProduction: true,
 	})
 	let dormantReads = 0
-	let pending: {
-		resolve(value: number): void
-		reject(error: Error): void
-	} | null = null
+	const pendingQuotes = new Map<string, PromiseWithResolvers<number | null>>()
 	const skus = [
 		`tea-green`,
 		`coffee-decaf`,
@@ -105,12 +104,12 @@ export function createOrderFulfillmentScenario(): OrderFulfillmentScenario {
 		default: 0,
 	})
 	const shippingQuoteByRegionAtoms = app.atomFamily<
-		Loadable<number | Error>,
+		Loadable<number | Error | null>,
 		string,
 		Error
 	>({
 		key: `shippingQuoteByRegion`,
-		default: 0,
+		default: null,
 		catch: [Error],
 	})
 	app.atomFamily<string, string>({ key: `wishlistNotesBySku`, default: `` })
@@ -135,10 +134,6 @@ export function createOrderFulfillmentScenario(): OrderFulfillmentScenario {
 		default: skus.slice(0, 6),
 	})
 	const couponAtom = app.atom<string | null>({ key: `coupon`, default: null })
-	const quoteStatusAtom = app.atom<QuoteStatus>({
-		key: `quoteStatus`,
-		default: `idle`,
-	})
 	app.atom<{ name: string; preferences: { receipt: string } }>({
 		key: `customer`,
 		default: { name: `Alex`, preferences: { receipt: `email` } },
@@ -184,7 +179,7 @@ export function createOrderFulfillmentScenario(): OrderFulfillmentScenario {
 	}
 	for (const key of [`local`, `distant`]) {
 		app.setState(deliveryFeeByRegionAtoms, key, key === `local` ? 650 : 1250)
-		app.setState(shippingQuoteByRegionAtoms, key, 0)
+		app.setState(shippingQuoteByRegionAtoms, key, null)
 	}
 	for (const key of [`north`, `south`])
 		app.setState(pickupFeeByStoreAtoms, key, key === `north` ? 200 : 300)
@@ -301,6 +296,12 @@ export function createOrderFulfillmentScenario(): OrderFulfillmentScenario {
 			couponAtom,
 		],
 	})
+	const takePendingQuote = () => {
+		const region = app.getState(deliveryRegionAtom)
+		const request = pendingQuotes.get(region)
+		pendingQuotes.delete(region)
+		return request
+	}
 	return {
 		app,
 		skus,
@@ -321,7 +322,6 @@ export function createOrderFulfillmentScenario(): OrderFulfillmentScenario {
 			pickup: pickupStoreAtom,
 			cart: cartSkuListAtom,
 			coupon: couponAtom,
-			quoteStatus: quoteStatusAtom,
 		},
 		derived: {
 			subtotal: subtotalCentsSelector,
@@ -361,32 +361,19 @@ export function createOrderFulfillmentScenario(): OrderFulfillmentScenario {
 				}
 			},
 			requestQuote: () => {
-				pending?.resolve(0)
-				const promise = new Promise<number>((resolve, reject) => {
-					pending = { resolve, reject }
-				})
+				const region = app.getState(deliveryRegionAtom)
+				pendingQuotes.get(region)?.resolve(null)
+				const request = Promise.withResolvers<number | null>()
+				pendingQuotes.set(region, request)
 				// Application-owned rejection handler; no unhandled rejection when the story resets.
-				const response = promise.catch((error: Error) => error)
-				app.setState(
-					shippingQuoteByRegionAtoms,
-					app.getState(deliveryRegionAtom),
-					response,
-				)
-				app.setState(quoteStatusAtom, `pending`)
+				const response = request.promise.catch((error: Error) => error)
+				app.setState(shippingQuoteByRegionAtoms, region, response)
 			},
 			resolveQuote: () => {
-				if (pending) {
-					pending.resolve(650)
-					pending = null
-					app.setState(quoteStatusAtom, `ready`)
-				}
+				takePendingQuote()?.resolve(650)
 			},
 			rejectQuote: () => {
-				if (pending) {
-					pending.reject(new Error(`Carrier quote unavailable`))
-					pending = null
-					app.setState(quoteStatusAtom, `error`)
-				}
+				takePendingQuote()?.reject(new Error(`Carrier quote unavailable`))
 			},
 			undo: () => {
 				app.undo(cartHistoryTimeline)
@@ -397,8 +384,8 @@ export function createOrderFulfillmentScenario(): OrderFulfillmentScenario {
 		},
 		dormantReads: () => dormantReads,
 		dispose: () => {
-			pending?.resolve(0)
-			pending = null
+			for (const request of pendingQuotes.values()) request.resolve(null)
+			pendingQuotes.clear()
 		},
 	}
 }

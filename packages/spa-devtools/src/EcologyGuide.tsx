@@ -79,11 +79,13 @@ export function EcologyGuide(props: {
 						cards can still overlap in projection.
 					</p>
 					<p>
-						Capture happens on entry and Refresh. Searching, selecting, tracing
-						and expanding families never evaluate application state. Primitive
-						card previews come from the cache; opaque values use shallow markers.
-						Observed dependencies can be stale, incomplete or truncated. Search
-						covers only captured metadata; full store totals are unknown after a
+						Ecology updates as the application changes the store. Changed cards
+						briefly flash when reduced motion is off. Searching, selecting,
+						tracing and expanding families never evaluate application state. Card
+						previews come from the cache. A loader marks pending values, a check
+						marks completion, and striped edges mark caught errors. Observed
+						dependencies can be stale, incomplete or truncated. Search covers
+						only captured metadata; full store totals are unknown after a
 						truncated capture. Generate reads or evaluates a state. Expanding
 						object properties and changing editor values are explicit
 						interactions.

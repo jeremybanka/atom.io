@@ -1,6 +1,9 @@
 import { Silo } from "atom.io"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 
+import { createCardFeedback } from "../src/ecology-card-feedback.ts"
+import { createEcologyController } from "../src/ecology-controller.ts"
+import { createGraphContext } from "../src/ecology-graph.ts"
 import { mountAtomIODevtools } from "../src/mount.ts"
 
 let dispose = () => {}
@@ -148,6 +151,86 @@ it(`opens/searches/selects/traces/expands passively and evaluates only with Gene
 	await f.click(`Clear selection`)
 	expect(getter).toHaveBeenCalledTimes(1)
 	expect(f.silo.getState(dormantSelector)).toBe(2)
+})
+
+it(`updates and flashes cards from the root cache without evaluating dormant state`, async () => {
+	const f = setup()
+	const countAtom = f.silo.atom<number>({ key: `count`, default: () => 2 })
+	const doubleSelector = f.silo.selector<number>({
+		key: `double`,
+		get: ({ get }) => get(countAtom) * 2,
+	})
+	const sleeping = vi.fn(() => 0)
+	f.silo.selector<number>({ key: `sleeping`, get: sleeping })
+	let resolve!: (value: number) => void
+	const request = new Promise<number>((done) => {
+		resolve = done
+	})
+	const quoteSelector = f.silo.selector<Promise<number>>({
+		key: `quote`,
+		get: () => request,
+	})
+	f.mount()
+	await settle()
+	const card = (key: string) =>
+		f.host.querySelector<HTMLButtonElement>(
+			`ecology-node-card button[data-graph-id="state:${key}"]`,
+		)!
+	const editor = (key: string) =>
+		f.host.querySelector<HTMLInputElement>(
+			`ecology-editor [data-testid="state-value-${key}"] input`,
+		)
+	expect(card(`double`).textContent).toContain(`–`)
+	expect(editor(`double`)).toBeNull()
+	expect(
+		f.silo.store.readonlySelectors.get(`double`)!.subject.subscribers.size,
+	).toBe(0)
+	f.silo.getState(doubleSelector)
+	const pendingQuote = f.silo.getState(quoteSelector)
+	await settle()
+	expect(card(`count`).textContent).toContain(`Atom · 2`)
+	expect(card(`double`).textContent).toContain(`Selector · 4`)
+	expect(editor(`double`)?.value).toBe(`4`)
+	expect(
+		f.host.querySelector<HTMLElement>(`ecology-view`)!.dataset[`counts`],
+	).toContain(`1 of 1 captured edges`)
+	resolve(17)
+	await pendingQuote
+	await settle()
+	expect(card(`quote`).textContent).toContain(`Selector · 17`)
+	expect(editor(`quote`)?.value).toBe(`17`)
+
+	const media = window.matchMedia(`(prefers-reduced-motion: reduce)`)
+	Object.defineProperty(media, `matches`, { value: false, configurable: true })
+	vi.mocked(window.matchMedia).mockReturnValue(media)
+	// Mount a new scene with motion enabled, then observe its retained button.
+	await f.click(`atoms`)
+	await f.click(`ecology`)
+	const atomCard = card(`count`)
+	const animate = vi.fn(() => ({ cancel: vi.fn() }))
+	Object.defineProperty(atomCard, `animate`, { value: animate })
+	const graph = f.host.querySelector<HTMLElement>(`ecology-view`)!
+	const jobs = graph.dataset[`jobs`]
+	f.silo.setState(countAtom, 3)
+	f.silo.getState(doubleSelector)
+	await settle()
+	expect(card(`count`)).toBe(atomCard)
+	expect(atomCard.textContent).toContain(`Atom · 3`)
+	expect(card(`double`).textContent).toContain(`Selector · 6`)
+	expect(editor(`count`)?.value).toBe(`3`)
+	expect(editor(`double`)?.value).toBe(`6`)
+	expect(graph.dataset[`jobs`]).toBe(jobs)
+	expect(animate).toHaveBeenCalledTimes(1)
+	Object.defineProperty(media, `matches`, { value: true })
+	f.silo.setState(countAtom, 4)
+	await settle()
+	expect(animate).toHaveBeenCalledTimes(1)
+	expect(card(`double`).textContent).toContain(`–`)
+	expect(editor(`double`)).toBeNull()
+	expect(sleeping).not.toHaveBeenCalled()
+	expect(
+		f.silo.store.readonlySelectors.get(`double`)!.subject.subscribers.size,
+	).toBe(0)
 })
 
 it(`links whole-row and card hover without evaluating state, rebuilding the graph, changing selection or sticking on touch`, async () => {
@@ -576,6 +659,68 @@ it(`cleans up hidden, minimized, superseded and disposed jobs and keeps empty fl
 	expect(vi.getTimerCount()).toBe(0)
 })
 
+it(`defers a hidden controller and suspends live updates before the visibility observer runs`, async () => {
+	const f = setup()
+	const countAtom = f.silo.atom<number>({ key: `count`, default: 0 })
+	f.silo.getState(countAtom)
+	f.mount()
+	await settle()
+	const panel = document.createElement(`main`)
+	const view = f.host
+		.querySelector(`ecology-view`)!
+		.cloneNode(true) as HTMLElement
+	panel.hidden = true
+	panel.append(view)
+	const update = vi.fn()
+	const controller = createEcologyController(
+		view,
+		f.silo.store,
+		createGraphContext(),
+		update,
+		`hidden-controller`,
+	)
+	try {
+		await settle()
+		expect(update).not.toHaveBeenCalled()
+		panel.hidden = false
+		await settle()
+		expect(update).toHaveBeenCalledWith({ busy: true })
+		update.mockClear()
+
+		f.silo.setState(countAtom, 1)
+		panel.hidden = true
+		await settle()
+		expect(update).not.toHaveBeenCalled()
+
+		panel.hidden = false
+		await settle()
+		update.mockClear()
+		f.silo.setState(countAtom, 2)
+		await Promise.resolve()
+		panel.hidden = true
+		vi.advanceTimersByTime(1)
+		await settle()
+		expect(update).not.toHaveBeenCalled()
+	} finally {
+		controller.dispose()
+	}
+})
+
+it(`paints the initial snapshot when the search is invalid and picks up newly registered families`, async () => {
+	const f = setup()
+	f.silo.atom<number>({ key: `first`, default: 1 })
+	f.mount()
+	await f.search(`x`.repeat(257))
+	expect(f.host.textContent).toContain(`Use at most 256 characters`)
+	expect(f.host.querySelector(`[data-graph-id="state:first"]`)).not.toBeNull()
+	await f.search(``)
+	f.silo.atomFamily<number, string>({ key: `newFamily`, default: 0 })
+	await settle()
+	expect(
+		f.host.querySelector(`[data-graph-id="family:newFamily"]`),
+	).not.toBeNull()
+})
+
 it(`reuses the live editor for writable state, handles disposed selection and preserves passive metadata after filtering`, async () => {
 	const f = setup()
 	const countAtom = f.silo.atom<number>({ key: `count`, default: 1 })
@@ -608,28 +753,31 @@ it(`reuses the live editor for writable state, handles disposed selection and pr
 	await f.select(`family:items`)
 	await f.click(`Expand family`)
 	await f.select(`state:${member.key}`)
-	f.silo.disposeState(itemsAtoms, `a`)
-	await f.click(`Generate ${member.key}`)
-	expect(f.host.textContent).toContain(`State was disposed`)
-	await f.click(`Clear selection`)
-	await f.select(`state:${member.key}`)
 	f.host
 		.querySelector<HTMLElement>(
-			`ecology-node-card > button[data-graph-id][aria-pressed="true"]`,
+			`ecology-node-card > button[aria-pressed="true"]`,
 		)!
 		.focus()
-	await f.click(`Refresh`)
-	expect(f.host.textContent).toContain(`Nodes`)
+	f.silo.disposeState(itemsAtoms, `a`)
+	await settle()
+	expect(
+		f.host.querySelector(`[data-graph-id='state:${member.key}']`),
+	).toBeNull()
+	expect(f.host.textContent).toContain(`0 members`)
 	expect(document.activeElement?.getAttribute(`aria-label`)).toBe(
 		`Search ecology`,
 	)
 })
 
-it(`shows capture/adjacency uncertainty and keeps an uncaptured valid selection instead of calling it disposed`, async () => {
+it(`reports capture limits and ignores activity outside the retained graph`, async () => {
 	const f = setup()
 	const family = { key: `many`, default: 0 }
 	const manyAtoms = f.silo.atomFamily<number, number>(family)
 	f.silo.selector<number>({ key: `wide`, get: () => 0 })
+	const outsideSelector = f.silo.selector<number>({
+		key: `outside`,
+		get: ({ get, find }) => get(find(manyAtoms, 10_000)),
+	})
 	f.mount()
 	await settle()
 	await f.select(`state:wide`)
@@ -650,6 +798,11 @@ it(`shows capture/adjacency uncertainty and keeps an uncaptured valid selection 
 	expect(f.host.querySelector(`ecology-editor`)!.textContent).toContain(
 		`Selection outside this captured snapshot`,
 	)
+	const view = f.host.querySelector<HTMLElement>(`ecology-view`)!
+	const jobs = view.dataset[`jobs`]
+	expect(f.silo.getState(outsideSelector)).toBe(0)
+	await settle()
+	expect(view.dataset[`jobs`]).toBe(jobs)
 	await f.select(`family:many`)
 	expect(f.host.querySelector(`ecology-editor`)!.textContent).toContain(
 		`+ instantiated members`,
@@ -821,7 +974,7 @@ it(`selects every member of a family across expansion without losing member draf
 	expect(read).not.toHaveBeenCalled()
 })
 
-it(`previews cached primitives and opaque object shapes without evaluating or traversing values`, async () => {
+it(`previews visible cached values without evaluating state or invoking property getters`, async () => {
 	const f = setup(),
 		read = vi.fn(() => {
 			throw new Error(`must not inspect`)
@@ -830,13 +983,30 @@ it(`previews cached primitives and opaque object shapes without evaluating or tr
 		enumerable: true,
 		get: read,
 	})
-	const proxy = new Proxy({}, { get: read, getPrototypeOf: read, ownKeys: read })
+	const rejectPrototype = vi.fn(() => {
+		throw new Error(`prototype unavailable`)
+	})
+	const proxy = new Proxy(
+		{},
+		{ get: read, getPrototypeOf: rejectPrototype, ownKeys: read },
+	)
+	class TransportError extends Error {}
+	class Custom {
+		public toString() {
+			return `custom display`
+		}
+	}
 	for (const [key, value] of [
 		[`number`, 42],
 		[`text`, `pantry`],
 		[`object`, object],
 		[`proxy`, proxy],
 		[`undefined`, undefined],
+		[`array`, [1, 2, 3]],
+		[`map`, new Map([[1, 2]])],
+		[`set`, new Set([1, 2])],
+		[`error`, new TransportError()],
+		[`custom`, new Custom()],
 	] as const) {
 		f.silo.atom<unknown>({ key, default: null })
 		f.silo.store.valueMap.set(key, value)
@@ -852,6 +1022,12 @@ it(`previews cached primitives and opaque object shapes without evaluating or tr
 	expect(detail(`text`)).toBe(`Atom · "pantry"`)
 	expect(detail(`undefined`)).toBe(`Atom · undefined`)
 	expect(detail(`object`)).toBe(`Atom · {…}`)
+	expect(detail(`proxy`)).toBe(`Atom · {…}`)
+	expect(detail(`array`)).toBe(`Atom · […3]`)
+	expect(detail(`map`)).toBe(`Atom · Map(1)`)
+	expect(detail(`set`)).toBe(`Atom · Set(2)`)
+	expect(detail(`error`)).toBe(`Atom · TransportError`)
+	expect(detail(`custom`)).toBe(`Atom · custom display`)
 	expect(detail(`missing`)).toBe(`Atom · –`)
 	expect(
 		f.host.querySelector(`ecology-editor input[aria-label="number"]`),
@@ -860,6 +1036,144 @@ it(`previews cached primitives and opaque object shapes without evaluating or tr
 		f.host.querySelector(`button[aria-label="Generate missing"]`),
 	).not.toBeNull()
 	expect(read).not.toHaveBeenCalled()
+})
+
+it(`holds the Future cycle and completion badge even for an immediate resolution`, async () => {
+	const f = setup()
+	const workAtom = f.silo.atom<number | Promise<number>>({
+		key: `work`,
+		default: 0,
+	})
+	f.mount()
+	await settle()
+	const card = f.host.querySelector<HTMLButtonElement>(
+		`ecology-node-card button[data-graph-id="state:work"]`,
+	)!
+	f.silo.setState(workAtom, Promise.resolve(42))
+	await vi.advanceTimersByTimeAsync(80)
+	expect(card.textContent).toContain(`Atom · 42`)
+	expect(card.dataset[`future`]).toBe(`loading`)
+	await vi.advanceTimersByTimeAsync(950)
+	expect(card.dataset[`future`]).toBe(`done`)
+	await vi.advanceTimersByTimeAsync(950)
+	expect(card.dataset[`future`]).toBe(`done`)
+	await vi.advanceTimersByTimeAsync(100)
+	expect(card.dataset[`future`]).toBeUndefined()
+})
+
+it(`winds back once when a pending Future gets a new fate and uses stripes for its caught error`, async () => {
+	const f = setup()
+	const workAtom = f.silo.atom<number | Error | Promise<number | Error>, Error>({
+		key: `work`,
+		default: 0,
+		catch: [Error],
+	})
+	f.mount()
+	await settle()
+	const card = f.host.querySelector<HTMLButtonElement>(
+		`ecology-node-card button[data-graph-id="state:work"]`,
+	)!
+	f.silo.setState(workAtom, new Promise<number>(() => {}))
+	await vi.advanceTimersByTimeAsync(1_100)
+	expect(card.dataset[`future`]).toBe(`loading`)
+	const request = Promise.withResolvers<number | Error>()
+	f.silo.setState(workAtom, request.promise)
+	await vi.advanceTimersByTimeAsync(20)
+	expect(card.dataset[`future`]).toBe(`windback`)
+	request.resolve(new Error(`failed`))
+	await vi.advanceTimersByTimeAsync(20)
+	expect(card.dataset[`caught`]).toBe(`true`) // This fixture prefers reduced motion.
+	expect(card.querySelector(`img`)).toBeNull()
+	await vi.advanceTimersByTimeAsync(500)
+	expect(card.dataset[`future`]).toBeUndefined()
+	f.silo.setState(workAtom, 7)
+	await vi.advanceTimersByTimeAsync(20)
+	expect(card.dataset[`caught`]).toBeUndefined()
+})
+
+it(`reveals the caught-error bands over one explosion cycle`, async () => {
+	const f = setup()
+	const media = window.matchMedia(`(prefers-reduced-motion: reduce)`)
+	Object.defineProperty(media, `matches`, { value: false })
+	vi.mocked(window.matchMedia).mockReturnValue(media)
+	class TransportError extends Error {}
+	const transportAtom = f.silo.atom<number, TransportError>({
+		key: `transport`,
+		default: () => {
+			throw new TransportError(`carrier unavailable`)
+		},
+		catch: [TransportError],
+	})
+	f.mount()
+	await settle()
+	const card = f.host.querySelector<HTMLButtonElement>(
+		`ecology-node-card button[data-graph-id="state:transport"]`,
+	)!
+	f.silo.getState(transportAtom)
+	await vi.advanceTimersByTimeAsync(30)
+	expect(card.textContent).toContain(`TransportError`)
+	expect(card.dataset[`caught`]).toBe(`burst`)
+	const image = card.querySelector(`img`)!
+	expect(image.src).toContain(`kablooey.png`)
+	image.dispatchEvent(new Event(`load`))
+	expect(card.dataset[`caught`]).toBe(`revealing`)
+	expect(
+		image
+			.closest<HTMLElement>(`[data-error-reveal]`)!
+			.style.getPropertyValue(`--ecology-explosion-duration`),
+	).toBe(`1700ms`)
+	await vi.advanceTimersByTimeAsync(1_699)
+	expect(card.querySelector(`img`)).toBe(image)
+	expect(card.dataset[`caught`]).toBe(`revealing`)
+	await vi.advanceTimersByTimeAsync(1)
+	image.dispatchEvent(new Event(`animationend`))
+	expect(card.querySelector(`img`)).toBeNull()
+	expect(card.dataset[`caught`]).toBe(`true`)
+	await f.click(`Refresh`)
+	expect(card.querySelector(`img`)).toBeNull()
+})
+
+it(`ignores obsolete explosion events and cleans up without a CSS animation`, async () => {
+	const button = document.createElement(`button`)
+	const media = window.matchMedia(`(prefers-reduced-motion: reduce)`)
+	Object.defineProperty(media, `matches`, { value: false, writable: true })
+	const feedback = createCardFeedback(button, media)
+	feedback.error(true, true)
+	const obsolete = button.querySelector(`img`)!
+	feedback.error(true, true)
+	const active = button.querySelector(`img`)!
+	obsolete.dispatchEvent(new Event(`load`))
+	obsolete.dispatchEvent(new Event(`animationcancel`))
+	expect(button.dataset[`caught`]).toBe(`burst`)
+	expect(button.querySelector(`img`)).toBe(active)
+	active.dispatchEvent(new Event(`load`))
+	expect(button.dataset[`caught`]).toBe(`revealing`)
+	await vi.advanceTimersByTimeAsync(1_800)
+	expect(button.querySelector(`img`)).toBeNull()
+	expect(button.dataset[`caught`]).toBe(`true`)
+
+	feedback.error(true, true)
+	Object.defineProperty(media, `matches`, { value: true })
+	button.querySelector(`img`)!.dispatchEvent(new Event(`load`))
+	expect(button.querySelector(`img`)).toBeNull()
+	expect(button.dataset[`caught`]).toBe(`true`)
+	feedback.dispose()
+})
+
+it(`shows a second windback if the Future is replaced during windback`, async () => {
+	const button = document.createElement(`button`)
+	const feedback = createCardFeedback(button, window.matchMedia(`all`))
+	feedback.future(true, false)
+	await vi.advanceTimersByTimeAsync(1_000)
+	feedback.future(true, false, new Set([`replaced`]))
+	expect(button.dataset[`future`]).toBe(`windback`)
+	await vi.advanceTimersByTimeAsync(250)
+	feedback.future(true, false, new Set([`replaced`]))
+	await vi.advanceTimersByTimeAsync(250)
+	expect(button.dataset[`future`]).toBe(`windback`)
+	await vi.advanceTimersByTimeAsync(500)
+	expect(button.dataset[`future`]).toBe(`loading`)
+	feedback.dispose()
 })
 
 it(`partitions colored editor rows by selection and graph paths, and keeps filtered canvas context`, async () => {
@@ -974,6 +1288,31 @@ it(`generates missing state explicitly and reuses nested, writable and readonly 
 	expect(f.host.textContent).toContain(`generation failed`)
 })
 
+it(`refuses to generate a replacement atom from a stale row`, async () => {
+	const f = setup()
+	const read = vi.fn(() => 1)
+	const itemsAtoms = f.silo.atomFamily<number, string>({
+		key: `items`,
+		default: read,
+	})
+	const family = f.silo.store.families.get(itemsAtoms.key)!
+	family.create(`one`)
+	f.mount()
+	await settle()
+	await f.click(`Expand items`)
+	const generate = f.host.querySelector<HTMLButtonElement>(
+		`button[aria-label='Generate items("one")']`,
+	)!
+	f.silo.disposeState(itemsAtoms, `one`)
+	family.create(`one`)
+	generate.click()
+	await settle()
+	expect(f.host.textContent).toContain(
+		`State was disposed. Refresh to update the snapshot.`,
+	)
+	expect(read).not.toHaveBeenCalled()
+})
+
 it(`progressively admits editor rows without changing the bounded canvas`, async () => {
 	const f = setup()
 	for (let index = 0; index < 220; index++)
@@ -1032,7 +1371,9 @@ it(`focuses generated controls even when the new value leaves the filter, and re
 	)
 	await f.click(`Expand ephemeral`)
 	await f.click(`Generate ephemeral("one")`)
-	expect(f.host.textContent).toContain(`State was disposed`)
+	expect(
+		f.host.querySelector(`[data-graph-id='state:ephemeral("one")']`),
+	).toBeNull()
 	expect(document.activeElement?.getAttribute(`aria-label`)).toBe(
 		`Search ecology`,
 	)

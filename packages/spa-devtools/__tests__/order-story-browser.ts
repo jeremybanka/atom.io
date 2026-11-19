@@ -398,7 +398,7 @@ try {
 		const transitionCounts = await frame
 			.locator(`ecology-view`)
 			.getAttribute(`data-counts`)
-		assert.match(transitionCounts!, /^95 atoms · 18 selectors/)
+		assert.match(transitionCounts!, /^94 atoms · 18 selectors/)
 		assert.match(transitionCounts!, /51 captured edges/)
 		// One reset is enough here to establish rebinding in the built manager.
 		// Repeated reset behavior and root assertions belong to the play tests.
@@ -431,7 +431,7 @@ try {
 		assert.equal(await frame.getByTestId(`atom-io-devtools`).count(), 1)
 		assert.match(
 			(await frame.locator(`ecology-view`).getAttribute(`data-counts`))!,
-			/^95 atoms · 18 selectors/,
+			/^94 atoms · 18 selectors/,
 		)
 		const uncachedRow = frame
 			.getByRole(`button`, {

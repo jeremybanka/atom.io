@@ -80,6 +80,15 @@ if (process.argv.includes(`--serve`)) {
 			await picker.click()
 			await stores.getByRole(`button`, { name, exact: true }).click()
 		}
+		const assertPickerFits = async () => {
+			const window = (await panel.boundingBox())!
+			const trigger = (await picker.boundingBox())!
+			const menu = (await stores.boundingBox())!
+			assert.ok(menu.x >= window.x + 8)
+			assert.ok(menu.x + menu.width <= window.x + window.width - 8)
+			assert.ok(menu.y >= trigger.y + trigger.height + 6)
+			assert.ok(menu.y + menu.height <= window.y + window.height)
+		}
 		const count = panel.getByRole(`textbox`, { name: `count`, exact: true })
 		const doubled = panel.getByRole(`textbox`, { name: `doubled`, exact: true })
 		const atoms = panel.getByRole(`tab`, { name: `atoms` })
@@ -188,6 +197,7 @@ if (process.argv.includes(`--serve`)) {
 		const screenshot = process.env[`SPA_DEVTOOLS_WORKER_SCREENSHOT`]
 		await picker.click()
 		await stores.waitFor()
+		await assertPickerFits()
 		assert.ok(
 			await stores.evaluate((menu) => {
 				const bounds = menu.getBoundingClientRect()
@@ -211,7 +221,10 @@ if (process.argv.includes(`--serve`)) {
 			await panel.getByRole(`heading`, { name: `atom.io`, exact: true }).count(),
 			1,
 		)
-		await switchStore(`Page store`)
+		await picker.click()
+		await stores.waitFor()
+		await assertPickerFits()
+		await stores.getByRole(`button`, { name: `Page store`, exact: true }).click()
 		await expectValue(`location`, `Main thread`)
 		process.stdout.write(`Worker devtools round trip passed\n`)
 	} finally {

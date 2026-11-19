@@ -1,6 +1,11 @@
 debugger-panel.class {
 	/* The toolbar and content paint separately so their fills never compound. */
 	--window-fill-opacity: 92%;
+	--window-shell-fill: color-mix(
+		in srgb,
+		var(--surface-shell) var(--window-fill-opacity),
+		transparent
+	);
 	--window-content-fill: color-mix(
 		in srgb,
 		var(--surface-content) var(--window-fill-opacity),
@@ -39,7 +44,9 @@ debugger-panel.class {
 		> debugger-toolbar {
 			display: flex;
 			padding: 0;
-			background: transparent;
+			&::before {
+				display: none;
+			}
 		}
 		> debugger-toolbar > [data-testid="open-close-devtools"] {
 			padding: 0;
@@ -56,20 +63,23 @@ debugger-panel.class {
 		}
 	}
 	> debugger-toolbar {
+		position: relative;
 		display: grid;
 		grid-template-columns: 36px minmax(0, 1fr) repeat(3, 24px);
 		flex: 0 0 auto;
 		min-width: 0;
 		align-items: center;
 		padding: 2px 3px 0;
-		background:
-			linear-gradient(var(--ink-muted), var(--ink-muted)) bottom / 100% 1px
-			no-repeat,
-			color-mix(
-			in srgb,
-			var(--surface-shell) var(--window-fill-opacity),
-			transparent
-		);
+		isolation: isolate;
+		&::before {
+			content: "";
+			position: absolute;
+			grid-area: 1 / 1 / 2 / -1;
+			inset: -2px -3px 0;
+			background: var(--window-shell-fill);
+			z-index: -1;
+			pointer-events: none;
+		}
 	}
 	> debugger-toolbar > h1 {
 		display: flex;
@@ -89,14 +99,38 @@ debugger-panel.class {
 		grid-row: 2;
 		display: flex;
 		align-self: stretch;
-		align-items: flex-end;
 		min-width: 0;
 		overflow-x: auto;
 		scrollbar-width: none;
-		gap: 3px;
-		padding: 4px 4px 0;
+		margin-inline: -3px;
 	}
-	> debugger-toolbar > nav > button {
+	> debugger-toolbar > nav > span {
+		--tab-gutter-start: 1.5px;
+		--tab-gutter-end: 1.5px;
+		position: relative;
+		display: flex;
+		flex: 1 0 auto;
+		align-items: flex-end;
+		padding-block-start: 4px;
+		padding-inline: var(--tab-gutter-start) var(--tab-gutter-end);
+		overflow: clip;
+		&:first-child {
+			--tab-gutter-start: 7px;
+		}
+		&:last-child {
+			--tab-gutter-end: 7px;
+		}
+		&::after {
+			content: "";
+			position: absolute;
+			inset: auto 0 0;
+			height: 1px;
+			border-inline: var(--tab-gutter-start) solid var(--ink-muted);
+			border-inline-end-width: var(--tab-gutter-end);
+			pointer-events: none;
+		}
+	}
+	> debugger-toolbar > nav > span > button {
 		position: relative;
 		flex: 1 0 auto;
 		white-space: nowrap;
@@ -106,17 +140,30 @@ debugger-panel.class {
 		border: 1px solid var(--line);
 		border-bottom-color: var(--ink-muted);
 		border-radius: 8px 8px 0 0;
-		background: var(--surface-inactive);
+		background: color-mix(
+			in srgb,
+			var(--surface-inactive) var(--window-fill-opacity),
+			transparent
+		);
 		color: var(--ink-muted);
+		&::before {
+			content: "";
+			position: absolute;
+			inset: -1px;
+			border-radius: inherit;
+			/* The slot clips this fill to the area surrounding the tab. */
+			box-shadow: 0 0 0 16px var(--window-shell-fill);
+			pointer-events: none;
+		}
 	}
-	> debugger-toolbar > nav > button[aria-selected="true"] {
+	> debugger-toolbar > nav > span > button[aria-selected="true"] {
 		z-index: 1;
 		height: 28px;
 		margin-top: 0;
 		color: var(--ink-strong);
-		background: var(--surface-content);
+		background: var(--window-content-fill);
 		border-color: var(--ink-muted);
-		border-bottom-color: var(--surface-content);
+		border-bottom-color: transparent;
 		font-weight: 500;
 	}
 	> debugger-content {
@@ -205,7 +252,7 @@ debugger-panel.class {
 		display: none;
 	}
 	@media (max-width: 650px) {
-		> debugger-toolbar > nav > button {
+		> debugger-toolbar > nav > span > button {
 			font-size: 12px;
 			padding: 0 4px;
 		}

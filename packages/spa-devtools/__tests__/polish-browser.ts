@@ -178,8 +178,10 @@ async function checkVisualTreatment(
 				},
 				textColor: getComputedStyle(el).color,
 				surfaces: {
-					shell: getComputedStyle(el.querySelector(`debugger-toolbar`)!)
-						.backgroundColor,
+					shell: getComputedStyle(
+						el.querySelector(`debugger-toolbar`)!,
+						`::before`,
+					).backgroundColor,
 					content: getComputedStyle(el.querySelector(`search-view`)!)
 						.backgroundColor,
 					search: getComputedStyle(el.querySelector(`search-row`)!)
@@ -194,6 +196,7 @@ async function checkVisualTreatment(
 	assert.notEqual(appearance.surfaces.shell, appearance.surfaces.content)
 	assert.match(appearance.surfaces.shell, / \/ 0\.92\)$/)
 	assert.match(appearance.surfaces.content, / \/ 0\.92\)$/)
+	assert.match(appearance.surfaces.inactive, / \/ 0\.92\)$/)
 	assert.equal(appearance.surfaces.search, `rgba(0, 0, 0, 0)`)
 	assert.notEqual(appearance.surfaces.content, appearance.surfaces.inactive)
 	assert.equal(
@@ -213,7 +216,8 @@ async function checkVisualTreatment(
 	assert.ok(
 		Math.abs(appearance.tabs.activeBottom - appearance.tabs.inactiveBottom) < 1,
 	)
-	assert.equal(appearance.tabs.activeBottomEdge, appearance.tabs.activeFill)
+	assert.equal(appearance.tabs.activeFill, appearance.surfaces.content)
+	assert.equal(appearance.tabs.activeBottomEdge, `rgba(0, 0, 0, 0)`)
 	assert.ok(
 		Math.abs(appearance.tabs.activeBottom - appearance.tabs.contentTop) < 1,
 	)
@@ -231,14 +235,28 @@ async function checkVisualTreatment(
 		content: `debugger-panel[data-css="spa-devtools"]::before {display:none !important}`,
 	})
 	const flat = await page.screenshot({ clip })
+	const seamClip = await page
+		.getByRole(`tab`, { selected: true })
+		.evaluate((tab) => {
+			const bounds = tab.getBoundingClientRect()
+			return {
+				x: Math.ceil(bounds.left + 8),
+				y: Math.floor(bounds.bottom) - 3,
+				width: 4,
+				height: 7,
+			}
+		})
 	const backing = await page.addStyleTag({
 		content: `html, body { background: black }`,
 	})
 	const darkBacking = await page.screenshot({ clip })
+	const lightThemeSeam =
+		theme === `light` ? await page.screenshot({ clip: seamClip }) : undefined
 	await backing.evaluate((style) => {
 		style.textContent = `html, body { background: white }`
 	})
 	const lightBacking = await page.screenshot({ clip })
+	const seam = lightThemeSeam ?? (await page.screenshot({ clip: seamClip }))
 	await backing.evaluate((style: HTMLStyleElement) => {
 		style.remove()
 	})
@@ -276,6 +294,7 @@ async function checkVisualTreatment(
 			ink: inkPng,
 			darkBackingPng,
 			lightBackingPng,
+			seamPng,
 		}) => {
 			const read = async (data: string) => {
 				const image = new Image()
@@ -329,9 +348,18 @@ async function checkVisualTreatment(
 					3
 			}
 			const n = a.length / 4
+			const seamPixels = await read(seamPng)
+			let seamDelta = 0
+			for (let i = 0; i < seamPixels.length; i += 4)
+				for (let channel = 0; channel < 3; channel++)
+					seamDelta = Math.max(
+						seamDelta,
+						Math.abs(seamPixels[i + channel] - seamPixels.at(-4 + channel)!),
+					)
 			return {
 				averageChannelDelta: delta / n,
 				backingDelta: backingDelta / n,
+				seamDelta,
 				lumaStdDev: Math.sqrt(Math.max(0, squares / n - (sum / n) ** 2)),
 				minLuma: min,
 				maxLuma: max,
@@ -344,11 +372,16 @@ async function checkVisualTreatment(
 			ink: ink.toString(`base64`),
 			darkBackingPng: darkBacking.toString(`base64`),
 			lightBackingPng: lightBacking.toString(`base64`),
+			seamPng: seam.toString(`base64`),
 		},
 	)
 	assert.ok(
 		pixels.backingDelta >= 18 && pixels.backingDelta <= 22,
 		`The page should contribute about 8% of the visible window fill: ${pixels.backingDelta}`,
+	)
+	assert.ok(
+		pixels.seamDelta <= 2,
+		`The selected tab should blend into the content: ${pixels.seamDelta}`,
 	)
 	assert.ok(
 		pixels.averageChannelDelta > 1 && pixels.lumaStdDev > 0.5,

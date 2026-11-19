@@ -9,6 +9,7 @@ import type { RootStore } from "atom.io/internal"
 import css from "./DebuggerPanel.module.css"
 import { createGraphContext } from "./ecology-graph.ts"
 import { EcologyView } from "./EcologyView.tsx"
+import type { WorkerPanelConnection } from "./mount-worker.ts"
 import { createSearchContext } from "./search-controller.ts"
 import { SearchView } from "./SearchView.tsx"
 import { StateIndex } from "./StateIndex.tsx"
@@ -27,12 +28,15 @@ const VIEWS = [
 	`ecology`,
 ] as const
 type View = (typeof VIEWS)[number]
+const WORKER_VIEWS: readonly View[] = [`atoms`, `selectors`]
 let nextPanelId = 0
 export function DebuggerPanel(props: {
 	store: RootStore
 	hideByDefault: boolean
+	worker?: WorkerPanelConnection | undefined
 }): SpaElement {
-	const tools = useTools(props.store)
+	const tools = useTools(props.store, props.worker)
+	const views = props.worker ? WORKER_VIEWS : VIEWS
 	const panelId = `spa-devtools-${nextPanelId++}`
 	const [windowState, setWindowState] = useLocal<WindowPresentation>(
 		props.store,
@@ -53,11 +57,11 @@ export function DebuggerPanel(props: {
 	const [getOpen, setOpen] = useSaved(props.store, `🔍 Devtools Are Open`, true)
 	const [getSelection, setSelection] = useSaved<string>(
 		props.store,
-		`🔍 Devtools View`,
+		props.worker ? `🔍 Worker Devtools View` : `🔍 Devtools View`,
 		`atoms`,
 	)
 	const view = () =>
-		VIEWS.includes(getSelection() as View) ? (getSelection() as View) : `atoms`
+		views.includes(getSelection() as View) ? (getSelection() as View) : `atoms`
 	const getError = useGetter(tools.error)
 	let panel: HTMLElement | null = null
 	const attach = (element: HTMLElement | null) => {
@@ -108,10 +112,10 @@ export function DebuggerPanel(props: {
 				>
 					{getOpen() && !getHidden() && <BrandMark size={32} />}
 				</button>
-				<h1>atom.io</h1>
+				<h1>{props.worker ? `atom.io · Worker` : `atom.io`}</h1>
 				{getOpen() ? (
 					<nav role="tablist" aria-label="Debugger views">
-						{VIEWS.map((name) => (
+						{views.map((name) => (
 							<span key={name} role="presentation">
 								<button
 									type="button"
@@ -121,17 +125,17 @@ export function DebuggerPanel(props: {
 									id={`${panelId}-${name}`}
 									tabIndex={view() === name ? 0 : -1}
 									onKeyDown={(event) => {
-										const index = VIEWS.indexOf(name)
+										const index = views.indexOf(name)
 										let next: number
 										if (event.key === `ArrowRight`)
-											next = (index + 1) % VIEWS.length
+											next = (index + 1) % views.length
 										else if (event.key === `ArrowLeft`)
-											next = (index + VIEWS.length - 1) % VIEWS.length
+											next = (index + views.length - 1) % views.length
 										else if (event.key === `Home`) next = 0
-										else if (event.key === `End`) next = VIEWS.length - 1
+										else if (event.key === `End`) next = views.length - 1
 										else return
 										event.preventDefault()
-										setSelection(VIEWS[next])
+										setSelection(views[next])
 										event.currentTarget
 											.closest(`nav`)!
 											.querySelectorAll<HTMLButtonElement>(`[role="tab"]`)

@@ -40,6 +40,7 @@ export function StateLeaf(props: {
 	const setValue = writable
 		? useSetter(token as WritableToken<unknown, any, any>)
 		: undefined
+	const worker = props.tools.worker
 	const value = () => {
 		try {
 			if (props.retained && definition() !== captured)
@@ -48,6 +49,16 @@ export function StateLeaf(props: {
 		} catch (error) {
 			return error
 		}
+	}
+	const canEdit = () => {
+		if (!setValue) return false
+		if (!worker) return true
+		const current = value()
+		return (
+			current !== null &&
+			!(current instanceof Error) &&
+			worker.revision(token.key) !== undefined
+		)
 	}
 	return (
 		<state-leaf
@@ -104,15 +115,16 @@ export function StateLeaf(props: {
 					tools={props.tools}
 					value={value()}
 					change={
-						setValue
-							? (update) => {
+						canEdit()
+							? (update, revision) => {
 									// Validate edits before opening an atom.io write operation.
 									const next = update(
 										cache
 											? peekState(props.tools.store, token.key).value
 											: getValue(),
 									)
-									setValue(() => next)
+									if (worker) worker.edit(token.key, next, revision)
+									else setValue!(() => next)
 								}
 							: undefined
 					}

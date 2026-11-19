@@ -4,6 +4,9 @@ import Setup from "./exhibits/setup.tsx" with { type: "code" };
 import Mount from "./exhibits/mount.ts" with { type: "code" };
 import ReactSetup from "./exhibits/react.ts" with { type: "code" };
 import Ecology from "./exhibits/ecology.ts" with { type: "code" };
+import WorkerMain from "./exhibits/worker/main.ts" with { type: "code" };
+import WorkerStore from "./exhibits/worker/worker.ts" with { type: "code" };
+import WorkerDemo from "./exhibits/worker/demo.sh" with { type: "code" };
 
 # SPA devtools
 
@@ -20,6 +23,20 @@ The optional store prop selects the inspected store; it defaults to atom.io's im
 Use mountAtomIODevtools with a host element and optional store and hideByDefault options. The options are captured at mount; dispose and mount again to change them. Each call owns a child of the host and preserves its existing children. Call the returned dispose method when removing the debugger; repeated disposal is safe.
 
 <Mount />
+
+## Web Worker prototype
+
+The same debugger panel can inspect a Web Worker over a dedicated MessagePort. In the worker, exposeDevtoolsStore from @atom.io/spa-devtools/worker subscribes to the listed standalone atoms and readonly selectors in a Silo. The prototype supports synchronous JSON primitives. An atom is editable when the worker supplies a validator and its value is a number, string, or boolean.
+
+<WorkerStore />
+
+On the page, import the shared stylesheet and use mountWorkerAtomIODevtools with the other end of the channel. The panel shows the Atoms and Selectors views. Press Enter or leave a text field to commit an edit. The worker validates the edit and publishes the authoritative values. If the atom changes after you start typing, the panel reports the conflict. Each endpoint owns its supplied port and returns cleanup for the connection.
+
+<WorkerMain />
+
+From the repository root, start the demo and open the printed URL. The Increment in worker button changes the atom inside the worker. The Selectors tab shows the derived value, and the readout above the panel confirms edits received by the worker.
+
+<WorkerDemo />
 
 ## React
 

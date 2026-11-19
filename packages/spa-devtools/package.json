@@ -27,6 +27,10 @@
 			"types": "./dist/react.d.ts",
 			"import": "./dist/react.js"
 		},
+		"./worker": {
+			"types": "./dist/worker.d.ts",
+			"import": "./dist/worker.js"
+		},
 		"./package.json": "./package.json"
 	},
 	"main": "./dist/index.js",
@@ -52,7 +56,9 @@
 		"tonnage": "pnpm readme:write",
 		"tonnage:check": "pnpm readme:check",
 		"test:story:integration": "node __tests__/order-story-browser.ts",
-		"test:browser": "node __tests__/window-browser.ts && node __tests__/ecology-browser.ts && node __tests__/polish-browser.ts && node __tests__/search-browser.ts",
+		"demo:worker": "node __tests__/worker-browser.ts --serve",
+		"test:browser:worker": "node __tests__/worker-browser.ts",
+		"test:browser": "node __tests__/window-browser.ts && node __tests__/ecology-browser.ts && node __tests__/polish-browser.ts && node __tests__/search-browser.ts && pnpm test:browser:worker",
 		"test:browser:performance": "node __tests__/ecology-browser.ts --strict-performance && node __tests__/search-browser.ts --strict-performance",
 		"test:browser:stress": "node __tests__/search-browser.ts --cpu-throttle=6",
 		"test:browser:throttled": "node __tests__/window-browser.ts --cpu-throttle=6 && node __tests__/ecology-browser.ts --cpu-throttle=6 && node __tests__/polish-browser.ts --cpu-throttle=6 && node __tests__/search-browser.ts --cpu-throttle=6",

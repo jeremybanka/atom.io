@@ -4,7 +4,7 @@ import { defineConfig } from "tsdown"
 import { compile } from "../spa/src/compiler.ts"
 
 const config: UserConfig = defineConfig({
-	entry: [`src/index.ts`, `src/react.ts`],
+	entry: [`src/index.ts`, `src/react.ts`, `src/worker.ts`],
 	clean: true,
 	tsconfig: `tsconfig.build.json`,
 	dts: { sourcemap: true },

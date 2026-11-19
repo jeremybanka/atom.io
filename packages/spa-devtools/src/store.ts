@@ -11,6 +11,8 @@ import {
 import type { IntrospectionStates } from "atom.io/introspection"
 import { attachIntrospectionStates } from "atom.io/introspection"
 
+import type { WorkerPanelConnection } from "./mount-worker.ts"
+
 const locals = new WeakMap<RootStore, RegularAtomFamilyToken<unknown, string>>()
 const introspection = new WeakMap<RootStore, IntrospectionStates>()
 export type Path = readonly string[]
@@ -18,6 +20,7 @@ export interface Tools extends IntrospectionStates {
 	store: RootStore
 	expanded: RegularAtomToken<Record<string, boolean>>
 	error: RegularAtomToken<string>
+	worker?: WorkerPanelConnection | undefined
 	attempt(run: () => void): void
 }
 
@@ -69,7 +72,10 @@ export function useSaved<T>(
 		},
 	]
 }
-export function useTools(store: RootStore): Tools {
+export function useTools(
+	store: RootStore,
+	worker?: WorkerPanelConnection,
+): Tools {
 	let states = introspection.get(store)
 	if (!states) {
 		states = attachIntrospectionStates(store)
@@ -90,12 +96,13 @@ export function useTools(store: RootStore): Tools {
 	} catch {
 		/* Ignore corrupt or unavailable storage. */
 	}
-	const error = ownedAtom(store, ``)
+	const error = worker?.error ?? ownedAtom(store, ``)
 	const setError = useSetter(error)
 	return {
 		...states,
 		store,
 		error,
+		worker,
 		expanded: ownedAtom(store, expanded),
 		attempt(run) {
 			try {

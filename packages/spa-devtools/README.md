@@ -35,6 +35,101 @@ export function attachDebugger(host: HTMLElement): () => void {
 
 ```
 
+## Web Worker prototype
+
+The same debugger panel can inspect a Web Worker over a dedicated MessagePort. In the worker, exposeDevtoolsStore from @atom.io/spa-devtools/worker subscribes to the listed standalone atoms and readonly selectors in a Silo. The prototype supports synchronous JSON primitives. An atom is editable when the worker supplies a validator and its value is a number, string, or boolean.
+
+```ts
+import { exposeDevtoolsStore } from "@atom.io/spa-devtools/worker"
+import { Silo } from "atom.io"
+
+const silo = new Silo({
+	name: `Counter worker`,
+	lifespan: `ephemeral`,
+	isProduction: true,
+})
+const countAtom = silo.atom<number>({ key: `count`, default: 2 })
+const doubledSelector = silo.selector<number>({
+	key: `doubled`,
+	get: ({ get }) => 2 * get(countAtom),
+})
+
+type AppMessage = { type: `connect`; port: MessagePort } | { type: `increment` }
+const worker = globalThis as unknown as Pick<
+	Worker,
+	`addEventListener` | `postMessage`
+>
+const report = () => {
+	worker.postMessage({
+		count: silo.getState(countAtom),
+		doubled: silo.getState(doubledSelector),
+	})
+}
+silo.subscribe(countAtom, () => {
+	queueMicrotask(report)
+})
+
+worker.addEventListener(`message`, ({ data }: MessageEvent<AppMessage>) => {
+	if (data.type === `connect`) {
+		exposeDevtoolsStore(data.port, silo, [
+			{
+				token: countAtom,
+				validateEdit: (value) =>
+					typeof value === `number` && Number.isSafeInteger(value),
+			},
+			{ token: doubledSelector },
+		])
+		report()
+	} else {
+		silo.setState(countAtom, (value) => value + 1)
+	}
+})
+
+```
+
+On the page, import the shared stylesheet and use mountWorkerAtomIODevtools with the other end of the channel. The panel shows the Atoms and Selectors views. Press Enter or leave a text field to commit an edit. The worker validates the edit and publishes the authoritative values. If the atom changes after you start typing, the panel reports the conflict. Each endpoint owns its supplied port and returns cleanup for the connection.
+
+```ts
+import { mountWorkerAtomIODevtools } from "@atom.io/spa-devtools"
+
+const worker = new Worker(new URL(`./worker.js`, import.meta.url), {
+	type: `module`,
+})
+const { port1, port2 } = new MessageChannel()
+const panel = mountWorkerAtomIODevtools(
+	document.querySelector(`#devtools`)!,
+	port1,
+)
+worker.postMessage({ type: `connect`, port: port2 }, [port2])
+
+const output = document.querySelector<HTMLOutputElement>(`#worker-values`)!
+worker.addEventListener(
+	`message`,
+	({ data }: MessageEvent<{ count: number; doubled: number }>) => {
+		output.value = `Count: ` + data.count + ` · Doubled: ` + data.doubled
+	},
+)
+document.querySelector(`#increment`)!.addEventListener(`click`, () => {
+	worker.postMessage({ type: `increment` })
+})
+window.addEventListener(
+	`pagehide`,
+	() => {
+		panel.dispose()
+		worker.terminate()
+	},
+	{ once: true },
+)
+
+```
+
+From the repository root, start the demo and open the printed URL. The Increment in worker button changes the atom inside the worker. The Selectors tab shows the derived value, and the readout above the panel confirms edits received by the worker.
+
+```sh
+pnpm exec turbo run demo:worker --filter=@atom.io/spa-devtools
+
+```
+
 ## React
 
 Install the optional @atom.io/react and React 18 or 19 peers, and import AtomIODevtools from @atom.io/spa-devtools/react. It renders the same SPA debugger inside a React-owned host; application JSX needs no SPA compiler. Import @atom.io/spa-devtools/css once.
@@ -202,7 +297,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                        | Entry                         | Minified JS |   Gzip JS |
 | ----------------------------- | ----------------------------- | ----------: | --------: |
-| Interactive app with debugger | `tonnage-recipes/debugger.ts` |   955,591 B | 284,603 B |
+| Interactive app with debugger | `tonnage-recipes/debugger.ts` |   956,316 B | 284,881 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

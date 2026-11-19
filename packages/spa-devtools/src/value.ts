@@ -1,4 +1,7 @@
-export type Change = (update: (previous: unknown) => unknown) => void
+export type Change = (
+	update: (previous: unknown) => unknown,
+	revision?: number,
+) => void
 export type JsonKind =
 	| `string`
 	| `number`

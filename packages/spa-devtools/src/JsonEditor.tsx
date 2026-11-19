@@ -58,7 +58,7 @@ export function JsonEditor(props: EditorProps): SpaElement {
 					<carat-spacer />
 				)}
 				<field-name>{props.label}</field-name>
-				{props.change ? (
+				{props.change && !props.tools.worker ? (
 					<select
 						aria-label={`Type of ${props.path.at(-1)}`}
 						value={valueKind()}
@@ -150,15 +150,18 @@ function Primitive(props: {
 	label: string
 }): SpaElement {
 	let draft: { text: string; value: number } | undefined
+	const worker = props.tools.worker
+	let workerDraft: { text: string; revision: number | undefined } | undefined
 	const displayValue = () => {
 		const value = props.value
+		if (workerDraft) return workerDraft.text
 		if (draft && Object.is(draft.value, value)) return draft.text
 		draft = undefined
 		return String(value)
 	}
-	const set = (value: unknown) => {
+	const set = (value: unknown, revision?: number) => {
 		props.tools.attempt(() => {
-			props.change?.(() => value)
+			props.change?.(() => value, revision)
 		})
 	}
 	return (
@@ -170,7 +173,9 @@ function Primitive(props: {
 					checked={Boolean(props.value)}
 					disabled={!props.change}
 					onChange={(event) => {
-						set(event.currentTarget.checked)
+						const checked = event.currentTarget.checked
+						if (worker) event.currentTarget.checked = Boolean(props.value)
+						set(checked)
 					}}
 				/>
 			) : kind(props.value) === `string` || kind(props.value) === `number` ? (
@@ -185,6 +190,11 @@ function Primitive(props: {
 					onInput={(event) => {
 						const text = event.currentTarget.value
 						event.currentTarget.size = Math.max(1, text.length)
+						if (worker) {
+							workerDraft ??= { text, revision: worker.revision(props.label) }
+							workerDraft.text = text
+							return
+						}
 						const value = props.value
 						if (typeof value === `number`) {
 							const number = Number(text)
@@ -193,13 +203,30 @@ function Primitive(props: {
 							if (valid) set(number)
 						} else set(text)
 					}}
+					onKeyDown={
+						worker && props.change
+							? (event) => {
+									if (event.key === `Escape`) workerDraft = undefined
+									if (event.key === `Enter` || event.key === `Escape`)
+										event.currentTarget.blur()
+								}
+							: undefined
+					}
 					onBlur={(event) => {
+						const submitted = workerDraft
+						workerDraft = undefined
 						draft = undefined
 						event.currentTarget.value = String(props.value)
 						event.currentTarget.size = Math.max(
 							1,
 							event.currentTarget.value.length,
 						)
+						if (!submitted) return
+						if (typeof props.value === `number`) {
+							const number = Number(submitted.text)
+							if (submitted.text.trim() !== `` && Number.isFinite(number))
+								set(number, submitted.revision)
+						} else set(submitted.text, submitted.revision)
 					}}
 				/>
 			) : (

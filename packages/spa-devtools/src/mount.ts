@@ -5,6 +5,7 @@ import type { RootStore } from "atom.io/internal"
 import { IMPLICIT } from "atom.io/internal"
 
 import { DebuggerPanel } from "./DebuggerPanel.tsx"
+import type { WorkerPanelConnection } from "./mount-worker.ts"
 
 export interface AtomIODevtoolsProps {
 	/** Inspected store. Fixed for this component instance; change its key to replace it. */
@@ -20,14 +21,24 @@ export function mountAtomIODevtools(
 	host: Element,
 	options: AtomIODevtoolsProps = {},
 ): AtomIODevtoolsHandle {
-	const store = options.store ?? IMPLICIT.STORE
-	const hideByDefault = options.hideByDefault ?? false
+	return mountPanel(
+		host,
+		options.store ?? IMPLICIT.STORE,
+		options.hideByDefault ?? false,
+	)
+}
+export function mountPanel(
+	host: Element,
+	store: RootStore,
+	hideByDefault: boolean,
+	worker?: WorkerPanelConnection,
+): AtomIODevtoolsHandle {
 	const container = host.ownerDocument.createElement(`spa-devtools`)
 	host.append(container)
 	let root: SpaRoot
 	try {
 		root = render(
-			() => jsx(DebuggerPanel, { store, hideByDefault }),
+			() => jsx(DebuggerPanel, { store, hideByDefault, worker }),
 			container,
 			{ store, capabilities: [motionCapability()] },
 		)

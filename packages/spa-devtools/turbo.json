@@ -3,6 +3,22 @@
 		"//"
 	],
 	"tasks": {
+		"demo:worker": {
+			"dependsOn": ["build"],
+			"cache": false,
+			"persistent": true
+		},
+		"test:browser:worker": {
+			"dependsOn": ["build"],
+			"cache": false,
+			"passThroughEnv": [
+				"PLAYWRIGHT_*",
+				"LD_LIBRARY_PATH",
+				"FONTCONFIG_FILE",
+				"TMPDIR",
+				"SPA_DEVTOOLS_*"
+			]
+		},
 		"test:browser:performance": {
 			"dependsOn": ["build"],
 			"cache": false,

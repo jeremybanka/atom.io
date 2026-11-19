@@ -51,8 +51,8 @@ const config: StorybookConfig = {
 			resolve: {
 				alias: [
 					{
-						find: /^@atom\.io\/devtools\/react$/,
-						replacement: resolve(STORYBOOK_ROOT, `../../devtools/src/react.ts`),
+						find: /^@atom\.io\/devtools\/(react|worker)$/,
+						replacement: resolve(STORYBOOK_ROOT, `../../devtools/src/$1.ts`),
 					},
 					{
 						find: /^@atom\.io\/devtools\/css(?=\?|$)/,

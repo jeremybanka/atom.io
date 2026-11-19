@@ -9,10 +9,36 @@ import {
 	traceEcologyRoots,
 } from "@atom.io/devtools"
 import { Ecology, mountEcology } from "@atom.io/devtools/ecology"
+import { exposeDevtoolsStore } from "@atom.io/devtools/remote"
 import { render } from "@atom.io/spa"
 import { jsx } from "@atom.io/spa/jsx-runtime"
 import { Silo } from "atom.io"
 import { Window } from "happy-dom"
+
+await test(`packed remote owner entry is available without a browser`, () => {
+	const silo = new Silo({
+		name: `remote-consumer`,
+		lifespan: `ephemeral`,
+		isProduction: true,
+	})
+	let closed = false
+	const dispose = exposeDevtoolsStore(
+		{
+			send() {
+				assert.fail(`A disabled exposure must not send`)
+			},
+			listen() {
+				assert.fail(`A disabled exposure must not listen`)
+			},
+			close() {
+				closed = true
+			},
+		},
+		silo,
+	)
+	assert.equal(closed, true)
+	dispose()
+})
 
 await test(`packed ecology exports remain passive and trace observed selector roots`, () => {
 	const silo = new Silo({

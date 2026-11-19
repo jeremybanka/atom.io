@@ -8,6 +8,8 @@ const config: UserConfig = defineConfig({
 		index: `src/index.ts`,
 		ecology: `src/ecology-entry.ts`,
 		react: `src/react.ts`,
+		remote: `src/remote.ts`,
+		worker: `src/worker.ts`,
 	},
 	clean: true,
 	tsconfig: `tsconfig.build.json`,

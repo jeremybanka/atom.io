@@ -112,3 +112,40 @@ it(`server rendering creates no panel or UI family members`, () => {
 	expect(html).toBe(`<div></div>`)
 	expect(owned(app)).toEqual([])
 })
+
+it(`keeps supplied targets mounted when the React provider changes`, async () => {
+	const first = silo()
+	const second = silo()
+	const selected = silo()
+	counter(selected, 5)
+	const host = document.createElement(`div`)
+	document.body.append(host)
+	const root = createRoot(host)
+	roots.push(root)
+	const stores = [
+		{
+			id: `selected`,
+			label: `Selected store`,
+			kind: `local`,
+			store: selected.store,
+		},
+	] as const
+	const render = async (provider: Silo) => {
+		await actAsync(() => {
+			root.render(
+				createElement(StoreProvider, {
+					store: provider.store,
+					children: createElement(AtomIODevtools, { stores }),
+				}),
+			)
+		})
+	}
+	await render(first)
+	const panel = host.querySelector(`debugger-panel`)
+	expect(panel?.querySelector(`[data-store-group] > p`)?.textContent).toBe(
+		`Local`,
+	)
+	expect(panel?.querySelectorAll(`[data-store-group]`)).toHaveLength(1)
+	await render(second)
+	expect(host.querySelector(`debugger-panel`)).toBe(panel)
+})

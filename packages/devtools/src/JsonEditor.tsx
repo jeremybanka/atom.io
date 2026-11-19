@@ -11,6 +11,7 @@ import { convert, describe, kind, preview, shallowKind } from "./value.ts"
 
 interface EditorProps {
 	tools: EditorTools
+	stateKey?: string | undefined
 	value: unknown
 	change?: Change | undefined
 	path: Path
@@ -22,7 +23,12 @@ interface EditorProps {
 interface ArrayReorder {
 	start(event: DragEvent, index: number): void
 	finish(): void
-	move(from: number, to: number, items: readonly unknown[]): void
+	move(
+		from: number,
+		to: number,
+		items: readonly unknown[],
+		revision?: number,
+	): void
 }
 const TYPES: JsonKind[] = [
 	`string`,
@@ -50,7 +56,9 @@ export function JsonEditor(props: EditorProps): SpaElement {
 			props.change?.((previous) => convert(previous, type))
 		})
 	}
-	let drag: { index: number; items: readonly unknown[] } | undefined
+	let drag:
+		| { index: number; items: readonly unknown[]; revision: number | undefined }
+		| undefined
 	let destination: HTMLElement | undefined
 	const clearDestination = () => {
 		destination?.removeAttribute(`data-array-drop`)
@@ -70,13 +78,17 @@ export function JsonEditor(props: EditorProps): SpaElement {
 				Math.round(event.clientX - left),
 				Math.round(event.clientY - top),
 			)
-			drag = { index, items }
+			drag = {
+				index,
+				items,
+				revision: props.tools.worker?.revision(props.stateKey!),
+			}
 		},
 		finish() {
 			drag = undefined
 			clearDestination()
 		},
-		move(from, to, items) {
+		move(from, to, items, revision) {
 			if (from === to) return
 			props.tools.attempt(() => {
 				props.change?.((previous) => {
@@ -87,7 +99,7 @@ export function JsonEditor(props: EditorProps): SpaElement {
 					else next.copyWithin(to + 1, to, from)
 					next[to] = items[from]
 					return next
-				})
+				}, revision)
 			})
 		},
 	}
@@ -121,7 +133,8 @@ export function JsonEditor(props: EditorProps): SpaElement {
 					<carat-spacer />
 				)}
 				<field-name>{props.label}</field-name>
-				{props.change ? (
+				{props.change &&
+				(!props.tools.worker || props.stateKey !== undefined) ? (
 					<select
 						aria-label={`Type of ${props.path.at(-1)}`}
 						value={valueKind()}
@@ -150,6 +163,7 @@ export function JsonEditor(props: EditorProps): SpaElement {
 						change={props.change}
 						tools={props.tools}
 						label={props.path.at(-1) ?? `value`}
+						stateKey={props.stateKey}
 					/>
 				)}
 				<row-actions>{props.actions}</row-actions>
@@ -176,9 +190,14 @@ export function JsonEditor(props: EditorProps): SpaElement {
 						const row = dropRow(event)
 						if (!drag || !row) return
 						event.preventDefault()
-						const { index, items } = drag
+						const { index, items, revision } = drag
 						reorder.finish()
-						reorder.move(index, Number(row.dataset[`arrayIndex`]), items)
+						reorder.move(
+							index,
+							Number(row.dataset[`arrayIndex`]),
+							items,
+							revision,
+						)
 					}}
 				>
 					{entries().map(([key]) => (
@@ -242,17 +261,21 @@ function Primitive(props: {
 	change?: Change | undefined
 	tools: EditorTools
 	label: string
+	stateKey?: string | undefined
 }): SpaElement {
 	let draft: { text: string; value: number } | undefined
+	const worker = props.tools.worker
+	let workerDraft: { text: string; revision: number | undefined } | undefined
 	const displayValue = () => {
 		const value = props.value
+		if (workerDraft) return workerDraft.text
 		if (draft && Object.is(draft.value, value)) return draft.text
 		draft = undefined
 		return String(value)
 	}
-	const set = (value: unknown) => {
+	const set = (value: unknown, revision?: number) => {
 		props.tools.attempt(() => {
-			props.change?.(() => value)
+			props.change?.(() => value, revision)
 		})
 	}
 	return (
@@ -264,7 +287,9 @@ function Primitive(props: {
 					checked={Boolean(props.value)}
 					disabled={!props.change}
 					onChange={(event) => {
-						set(event.currentTarget.checked)
+						const checked = event.currentTarget.checked
+						if (worker) event.currentTarget.checked = Boolean(props.value)
+						set(checked)
 					}}
 				/>
 			) : kind(props.value) === `string` || kind(props.value) === `number` ? (
@@ -279,6 +304,14 @@ function Primitive(props: {
 					onInput={(event) => {
 						const text = event.currentTarget.value
 						event.currentTarget.size = Math.max(1, text.length)
+						if (worker) {
+							workerDraft ??= {
+								text,
+								revision: worker.revision(props.stateKey ?? props.label),
+							}
+							workerDraft.text = text
+							return
+						}
 						const value = props.value
 						if (typeof value === `number`) {
 							const number = Number(text)
@@ -287,13 +320,30 @@ function Primitive(props: {
 							if (valid) set(number)
 						} else set(text)
 					}}
+					onKeyDown={
+						worker && props.change
+							? (event) => {
+									if (event.key === `Escape`) workerDraft = undefined
+									if (event.key === `Enter` || event.key === `Escape`)
+										event.currentTarget.blur()
+								}
+							: undefined
+					}
 					onBlur={(event) => {
+						const submitted = workerDraft
+						workerDraft = undefined
 						draft = undefined
 						event.currentTarget.value = String(props.value)
 						event.currentTarget.size = Math.max(
 							1,
 							event.currentTarget.value.length,
 						)
+						if (!submitted) return
+						if (typeof props.value === `number`) {
+							const number = Number(submitted.text)
+							if (submitted.text.trim() !== `` && Number.isFinite(number))
+								set(number, submitted.revision)
+						} else set(submitted.text, submitted.revision)
 					}}
 				/>
 			) : (
@@ -310,8 +360,9 @@ function Property(props: {
 	reorder?: ArrayReorder | undefined
 }): SpaElement {
 	const parent = props.editor
+	let renameDraft: { revision: number | undefined } | undefined
 	const read = () => (parent.value as Record<string, unknown>)[props.name]
-	const change: Change = (update) => {
+	const change: Change = (update, revision) => {
 		parent.change?.((previous) => {
 			if (Array.isArray(previous))
 				return previous.map((value, index) =>
@@ -319,7 +370,7 @@ function Property(props: {
 				)
 			const object = previous as Record<string, unknown>
 			return { ...object, [props.name]: update(object[props.name]) }
-		})
+		}, revision)
 	}
 	return (
 		<json-property data-array-index={props.reorder ? props.name : undefined}>
@@ -372,6 +423,9 @@ function Property(props: {
 							data-elastic-input
 							size={Math.max(1, props.name.length)}
 							onInput={(event) => {
+								renameDraft ??= {
+									revision: parent.tools.worker?.revision(parent.stateKey!),
+								}
 								event.currentTarget.size = Math.max(
 									1,
 									event.currentTarget.value.length,
@@ -384,10 +438,13 @@ function Property(props: {
 							onBlur={(event) => {
 								const input = event.currentTarget
 								const name = input.value
+								const revision = renameDraft?.revision
+								renameDraft = undefined
 								parent.tools.attempt(() => {
+									if (name === props.name) return
 									parent.change?.((previous) => {
 										const object = previous as Record<string, unknown>
-										if (name !== props.name && Object.hasOwn(object, name))
+										if (Object.hasOwn(object, name))
 											throw new Error(`Property "${name}" already exists`)
 										return Object.fromEntries(
 											Object.entries(object).map(([key, value]) => [
@@ -395,7 +452,7 @@ function Property(props: {
 												value,
 											]),
 										)
-									})
+									}, revision)
 								})
 								input.value = props.name
 								input.size = Math.max(1, props.name.length)
@@ -429,6 +486,7 @@ function Property(props: {
 					) : null
 				}
 				tools={parent.tools}
+				stateKey={parent.stateKey}
 				path={[...parent.path, props.name]}
 				value={read()}
 				change={parent.change ? change : undefined}

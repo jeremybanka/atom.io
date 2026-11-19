@@ -11,6 +11,7 @@ import type { GraphContext, GraphItem, GraphModel } from "./ecology-graph.ts"
 import { projectEcology, scheduleGraph } from "./ecology-graph.ts"
 import { indexEcologySearch } from "./ecology-search.ts"
 import type { EcologyPresentation } from "./EcologyView.tsx"
+import type { WorkerPanelConnection } from "./mount-worker.ts"
 import { matchStateSearch, type SearchIndex } from "./search.ts"
 import { isSearchShortcut, moveSearchFocus } from "./search-keys.ts"
 import { createSearchSession, editorIsCurrent } from "./search-session.ts"
@@ -24,6 +25,7 @@ export function createEcologyController(
 	context: GraphContext,
 	update: (patch: Partial<EcologyPresentation>) => void,
 	marker: string,
+	worker?: WorkerPanelConnection,
 ): { dispose(): void; committed(): void; refresh(generatedKey?: string): void } {
 	const document = host.ownerDocument
 	const input = host.querySelector(`input`)!
@@ -406,11 +408,13 @@ export function createEcologyController(
 		const start = performance.now()
 		needsCapture = false
 		generation++
-		context.snapshot = captureEcologySnapshot(store, {
-			maxNodes: 10_000,
-			maxFamilies: 10_000,
-			maxRelations: 50_000,
-		})
+		context.snapshot =
+			worker?.ecology() ??
+			captureEcologySnapshot(store, {
+				maxNodes: 10_000,
+				maxFamilies: 10_000,
+				maxRelations: 50_000,
+			})
 		capturedNodes = new Map(
 			context.snapshot.nodes.map((node) => [node.key, node]),
 		)
@@ -716,6 +720,10 @@ export function createEcologyController(
 		startObserving()
 		refresh()
 	}
+	const stopWorker = worker?.subscribeEcology(() => {
+		needsCapture = true
+		scheduleLive()
+	})
 	return {
 		refresh,
 		committed() {
@@ -740,6 +748,7 @@ export function createEcologyController(
 		},
 		dispose() {
 			disposed = true
+			stopWorker?.()
 			stopLive()
 			cancelIndex()
 			cancelMatch()

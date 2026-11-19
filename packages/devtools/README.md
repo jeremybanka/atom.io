@@ -35,6 +35,188 @@ export function attachDebugger(host: HTMLElement): () => void {
 
 ```
 
+## Exclude devtools from production browser builds
+
+In Vite and Astro, put dynamic imports for both the devtools code and stylesheet behind import.meta.env.DEV. Call the helper from your browser entry with a stable host element and dispose the returned handle when removing the panel. Standard production builds replace the development flag with false and can drop both imports and their assets. [Vite build-time flags](https://vite.dev/guide/env-and-mode.html#built-in-constants) · [Astro environment variables](https://docs.astro.build/en/guides/environment-variables/#vites-built-in-support)
+
+```ts
+import type {
+	AtomIODevtoolsHandle,
+	AtomIODevtoolsProps,
+} from "@atom.io/devtools"
+
+export async function mountDevelopmentDevtools(
+	host: Element,
+	options?: AtomIODevtoolsProps,
+): Promise<AtomIODevtoolsHandle | undefined> {
+	if (import.meta.env.DEV) {
+		const [{ mountAtomIODevtools }] = await Promise.all([
+			import(`@atom.io/devtools`),
+			import(`@atom.io/devtools/css`),
+		])
+		return mountAtomIODevtools(host, options)
+	}
+}
+
+```
+
+Keep all devtools-only imports in that branch or in a module dynamically imported from it. That includes the React adapter, dedicated debugging workers, and any styles or assets they use. Type-only imports are erased. A runtime visibility setting leaves the code available in the shipped bundle, and an unconditional dynamic import still emits a separate chunk. With another bundler, use its equivalent compile-time development flag and check the production output for devtools chunks, styles, and assets.
+
+For React, see [Development-only React mounting](#development-only-react-mounting).
+
+For remote stores, gate the owner separately. Excluding the browser UI and its connection code leaves server-side exposure policy in the store owner's hands.
+
+## Local and remote stores
+
+Supply stores to the SPA or React component or to mountAtomIODevtools. Each target has a unique ID and a label. Local targets take a RootStore in the current process. Remote targets take a function that opens a fresh MessagePort or DevtoolsPanelTransport. The panel mounts every supplied target and initially shows the first. The store picker beside the window controls groups targets under Local and Remote. Its button shows the current store and a caret, collapsing to just the caret when the window is narrow. Switching preserves each target's selected view and keeps its connection live. Disposing the panel closes its remote connections. When stores is omitted, the existing single-store setup applies.
+
+A local target stays in-process. Gate the panel mount with your app's development setting if you want the local debugger available only during development.
+
+```ts
+import { mountAtomIODevtools } from "@atom.io/devtools"
+import { Silo } from "atom.io"
+
+const worker = new Worker(new URL(`./worker.js`, import.meta.url), {
+	type: `module`,
+})
+const local = new Silo({
+	name: `Page`,
+	lifespan: `ephemeral`,
+	isProduction: true,
+})
+local.atom<string>({ key: `location`, default: `Main thread` })
+const panel = mountAtomIODevtools(document.querySelector(`#devtools`)!, {
+	stores: [
+		{
+			id: `worker`,
+			label: `Counter worker`,
+			kind: `remote`,
+			connect() {
+				const { port1, port2 } = new MessageChannel()
+				worker.postMessage({ type: `connect`, port: port2 }, [port2])
+				return port1
+			},
+		},
+		{ id: `page`, label: `Page store`, kind: `local`, store: local.store },
+	],
+})
+
+const output = document.querySelector<HTMLOutputElement>(`#worker-values`)!
+worker.addEventListener(
+	`message`,
+	({ data }: MessageEvent<{ count: number; doubled: number }>) => {
+		output.value = `Count: ` + data.count + ` · Doubled: ` + data.doubled
+	},
+)
+document.querySelector(`#increment`)!.addEventListener(`click`, () => {
+	worker.postMessage({ type: `increment` })
+})
+window.addEventListener(
+	`pagehide`,
+	() => {
+		panel.dispose()
+		worker.terminate()
+	},
+	{ once: true },
+)
+
+```
+
+## Web Worker stores
+
+The worker entry adapts a dedicated MessagePort. The example enables control explicitly for an isolated demo Silo containing sample data. The worker executes edits, selector generation, family member disposal, and timeline undo and redo. Transactions retain up to 200 outcomes per transaction recorded since the connection opened. State values are transferred when structured-cloneable, and editable values must be JSON data.
+
+```ts
+import { exposeDevtoolsStore } from "@atom.io/devtools/worker"
+import { Silo } from "atom.io"
+
+const silo = new Silo({
+	name: `Counter worker`,
+	lifespan: `ephemeral`,
+	isProduction: false,
+})
+const countAtom = silo.atom<number>({ key: `count`, default: 2 })
+const doubledSelector = silo.selector<number>({
+	key: `doubled`,
+	get: ({ get }) => 2 * get(countAtom),
+})
+silo.timeline({ key: `count`, scope: [countAtom] })
+const incrementTransaction = silo.transaction<() => void>({
+	key: `increment`,
+	do: ({ set }) => {
+		set(countAtom, (value) => value + 1)
+	},
+})
+
+type AppMessage = { type: `connect`; port: MessagePort } | { type: `increment` }
+const worker = globalThis as unknown as Pick<
+	Worker,
+	`addEventListener` | `postMessage`
+>
+const report = () => {
+	worker.postMessage({
+		count: silo.getState(countAtom),
+		doubled: silo.getState(doubledSelector),
+	})
+}
+silo.subscribe(countAtom, () => {
+	queueMicrotask(report)
+})
+
+worker.addEventListener(`message`, ({ data }: MessageEvent<AppMessage>) => {
+	if (data.type === `connect`) {
+		exposeDevtoolsStore(data.port, silo, { access: `control` })
+		report()
+	} else {
+		silo.runTransaction(incrementTransaction)()
+	}
+})
+
+```
+
+From the repository root, start the demo and open the printed URL. The store picker switches between the page and worker. Increment in worker runs a worker transaction, and the Selectors tab shows the derived value. Edit count in the Atoms tab and press Enter to send it back. The Timelines tab can undo that edit, and Ecology shows the observed edge from count to doubled.
+
+```sh
+pnpm exec turbo run demo:worker --filter=@atom.io/devtools
+
+```
+
+## Custom transports and hosted stores
+
+Import the owner-side exposeDevtoolsStore from @atom.io/devtools/remote in Node, a Cloudflare Worker, or another store host. This entry has no browser UI dependency. Pass a DevtoolsStoreTransport on the owner and return a DevtoolsPanelTransport from the matching panel target's connect function. The transports send typed frames, install a listener, report disconnects, and close the connection with its listeners. Network adapters should validate frame shapes and cap their sizes before delivery. Deliver decoded frames in order in later tasks, after pending microtasks. Use the same protocol version on both ends. A transport that uses JSON needs a codec for any snapshot values it intends to preserve beyond JSON, such as errors, dates, maps, and undefined. MessagePort uses structured clone directly.
+
+The store owner chooses the access policy for each connection.
+
+| Access           | Store owner behavior                                                                                                                                                                    |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Off, the default | Closes the supplied connection without reading or publishing the store.                                                                                                                 |
+| Inspect          | Publishes cached values and retained history. Rejects commands that write state, evaluate selectors, dispose of family members, or move a timeline. The panel displays Inspection only. |
+| Control          | Grants inspection and the supported debugger operations. State edits and time travel are checked against the owner's revisions.                                                         |
+
+Either enabled mode also requires productionAccess set to that exact mode when the Silo is configured as production or Node reports a production environment. Pairing a request for control with a production inspection grant closes the connection. A development-only Node host can skip creating the transport entirely outside development.
+
+```ts
+import {
+	type DevtoolsStoreTransport,
+	exposeDevtoolsStore,
+} from "@atom.io/devtools/remote"
+import type { Silo } from "atom.io"
+
+/** Called with a transport factory for an already authorized development session. */
+export function attachDevelopmentDevtools(
+	silo: Silo,
+	connect: () => DevtoolsStoreTransport,
+): (() => void) | undefined {
+	if (process.env[`NODE_ENV`] !== `development`) return
+	return exposeDevtoolsStore(connect(), silo, { access: `control` })
+}
+
+```
+
+On Cloudflare Workers, use a deployment binding to classify the Silo as production and decide whether to create debug connections. Wrangler can substitute NODE\_ENV at build time, so use a runtime binding for an environment-specific access decision. [Cloudflare Workers environment documentation](https://developers.cloudflare.com/workers/runtime-apis/nodejs/process/#processenv)
+
+Keep the debug route and panel connection out of production by default. For intentionally hosted access, authenticate the operator and authorize that operator for the specific Silo before attaching the transport. Resolve the Silo and access settings on the owner from trusted session and deployment data. Use a private diagnostic or per-tenant Silo and prefer inspection with a states allowlist of standalone primitive atoms and selectors. The allowlist omits other state, history, and the dependency graph. Editable allowlisted atoms in control mode also require a validator. Whole-store inspection can reveal sensitive data in cached values, transaction parameters and results, and history. The host owns authentication, authorization, encryption, and session expiry. Call the returned disposer when the operator loses access or the session expires.
+
 ## React
 
 Install the optional @atom.io/react and React 18 or 19 peers, and import AtomIODevtools from @atom.io/devtools/react. It renders the same SPA debugger inside a React-owned host; application JSX needs no SPA compiler. Import @atom.io/devtools/css once.
@@ -70,6 +252,38 @@ Collapsed devtools show only the transparent 32px orbital logo, without panel ch
 The @atom.io/spa-devtools and @atom.io/react-devtools packages are deprecated. Migrate by installing @atom.io/devtools and updating your imports as shown above. The old React package’s standalone JSON editor, elastic input, error boundary, and customization exports have no equivalents in the shared package.
 
 The panel’s subtle noise texture is embedded in its stylesheet. The view tabs have a separate row so window controls remain reachable; use Left/Right arrows or Home/End while a tab is focused, or scroll the tab strip in constrained windows. Editors retain 21–22 px rows. Keys, smaller type labels and values use consistent columns; long keys retain their full title. Text, numeric and property-name inputs grow with their contents. Numeric values align right within a nearby value column, borrowing key space for longer numbers; unfinished decimal text remains editable until blur. Opaque read-only values, including errors, can be focused and scrolled horizontally by keyboard or touch to read the full text. Transaction outcomes are indented beneath their labeled transaction, with changes nested one level further.
+
+### Development-only React mounting
+
+For Vite or Astro, save the adapter and its stylesheet together in development-react-panel.ts.
+
+```ts
+import "@atom.io/devtools/css"
+
+export { AtomIODevtools as default } from "@atom.io/devtools/react"
+
+```
+
+In a neighboring development-react.tsx file, guard the lazy import with import.meta.env.DEV. Render DevelopmentDevtools inside your app's StoreProvider. The production build can remove the lazy import along with the adapter and stylesheet. [React lazy loading](https://react.dev/reference/react/lazy)
+
+```tsx
+/** @jsxImportSource react */
+import { lazy, type ReactElement, Suspense } from "react"
+
+const DevtoolsPanel = import.meta.env.DEV
+	? lazy(() => import(`./development-react-panel.ts`))
+	: null
+
+export function DevelopmentDevtools(): ReactElement | null {
+	if (!DevtoolsPanel) return null
+	return (
+		<Suspense fallback={null}>
+			<DevtoolsPanel />
+		</Suspense>
+	)
+}
+
+```
 
 ## Surfaces and typography
 
@@ -175,7 +389,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                        | Entry                         | Minified JS |   Gzip JS |
 | ----------------------------- | ----------------------------- | ----------: | --------: |
-| Interactive app with debugger | `tonnage-recipes/debugger.ts` |   972,873 B | 289,608 B |
+| Interactive app with debugger | `tonnage-recipes/debugger.ts` | 1,001,424 B | 297,436 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

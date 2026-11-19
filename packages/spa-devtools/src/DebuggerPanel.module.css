@@ -95,8 +95,9 @@ debugger-panel.class {
 		align-self: center;
 	}
 	[data-store-picker] {
-		width: 100%;
+		width: auto;
 		min-width: 0;
+		max-width: 100%;
 		color: var(--brand-color);
 		background: var(--surface-shell);
 		font: inherit;

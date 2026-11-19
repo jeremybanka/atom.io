@@ -44,6 +44,7 @@ const server = createServer((req, res) => {
 	body { margin: 2rem; }
 	button { font: inherit; }
 	output { display: block; margin: 1rem 0; font-variant-numeric: tabular-nums; }
+	p { max-width: 34rem; }
 </style>
 <h1>Worker store</h1>
 <button id="increment">Increment in worker</button>
@@ -100,6 +101,7 @@ if (process.argv.includes(`--serve`)) {
 		await selectors.click()
 		await expectValue(`doubled`, `6`)
 		assert.equal(await doubled.getAttribute(`readonly`), ``)
+		assert.ok((await picker.boundingBox())!.width > 76)
 		assert.deepEqual(
 			await picker
 				.locator(`optgroup`)

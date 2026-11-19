@@ -1,6 +1,7 @@
 /** @jsxImportSource @atom.io/spa */
 import type { SpaElement } from "@atom.io/spa"
 import { onCleanup, onCommit, onMount, useId } from "@atom.io/spa"
+import type { FutureActivity } from "atom.io/introspection"
 
 import { createEcologyController } from "./ecology-controller.ts"
 import type { GraphContext, GraphModel } from "./ecology-graph.ts"
@@ -17,6 +18,7 @@ import { type Tools, useLocal, usePresentation } from "./store.ts"
 export interface EcologyActivity {
 	revision: number
 	at: number
+	future?: ReadonlySet<FutureActivity>
 }
 
 export interface EcologyPresentation {

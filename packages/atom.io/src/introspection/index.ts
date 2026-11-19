@@ -6,7 +6,11 @@ export * from "./differ.ts"
 export * from "./peek-state.ts"
 export * from "./refinery.ts"
 export * from "./sprawl.ts"
-export { observeStore, type StoreChanges } from "atom.io/internal"
+export {
+	type FutureActivity,
+	observeStore,
+	type StoreChanges,
+} from "atom.io/internal"
 
 export type FamilyNode<Token extends ReadableToken<unknown, any, any>> = {
 	key: string

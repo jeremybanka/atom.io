@@ -1294,6 +1294,33 @@ try {
 	reportPerformanceTarget(`ecology overview`, overview.overviewMs, 500)
 	reportPerformanceTarget(`ecology search p95`, report.searchP95Ms, 100)
 	reportPerformanceTarget(`ecology selection p95`, report.selectionP95Ms, 100)
+	await page.emulateMedia({ reducedMotion: `no-preference` })
+	await page.evaluate(() => {
+		window.ecologyFixture.mount(`small`)
+	})
+	await ready()
+	await page.evaluate(() => {
+		window.ecologyFixture.showCaughtError()
+	})
+	const broken = page.locator(
+		`ecology-node-card button[data-graph-id="state:broken"]`,
+	)
+	const explosion = broken.locator(`img[data-explosion]`)
+	await explosion.waitFor({ state: `visible` })
+	assert.equal(
+		await explosion.evaluate((image: HTMLImageElement) =>
+			image.decode().then(() => image.naturalWidth),
+		),
+		142,
+	)
+	await explosion.waitFor({ state: `detached` })
+	assert.equal(await broken.getAttribute(`data-caught`), `true`)
+	assert.match(
+		await broken.evaluate(
+			(button) => getComputedStyle(button, `::before`).backgroundImage,
+		),
+		/repeating-linear-gradient/,
+	)
 	const fallback = await context.newPage(),
 		fallbackErrors: string[] = []
 	fallback.on(`pageerror`, (error) => fallbackErrors.push(error.message))

@@ -1,4 +1,5 @@
 import { Silo } from "atom.io"
+import { Future } from "atom.io/foundations/future"
 import { createRegularAtom } from "atom.io/internal"
 import {
 	observeStore,
@@ -50,6 +51,7 @@ it(`reports cache and retained dependency changes without evaluating or subscrib
 		states: new Set(),
 		families: new Set(),
 		dependencies: new Set([`choose`]),
+		futures: new Map(),
 	})
 	expect(defaultValue).toHaveBeenCalledTimes(1)
 
@@ -132,6 +134,9 @@ it(`observes root transaction results and async completion without exposing draf
 	const pending = silo.getState(quoteSelector)
 	await Promise.resolve()
 	expect(peekState(store, quoteSelector.key).value).toBe(pending)
+	expect(observe.mock.lastCall?.[0].futures.get(quoteSelector.key)).toEqual(
+		new Set([`started`]),
+	)
 	resolve()
 	await pending
 	await Promise.resolve()
@@ -141,6 +146,34 @@ it(`observes root transaction results and async completion without exposing draf
 		),
 	).toBe(true)
 	expect(seen.at(-1)).toEqual([`quote`, 20])
+	expect(observe.mock.lastCall?.[0].futures.get(quoteSelector.key)).toEqual(
+		new Set([`resolved`]),
+	)
 	stopQuote()
+	stop()
+})
+
+it(`reports a cached Future's replacement without changing its identity`, async () => {
+	const { silo, store } = setup()
+	const request = Promise.withResolvers<number>()
+	const replyAtom = silo.atom<Promise<number>>({
+		key: `reply`,
+		default: () => request.promise,
+	})
+	const observe = vi.fn<(changes: StoreChanges) => void>()
+	const stop = observeStore(store, observe)
+	const pending = silo.getState(replyAtom) as Future<number>
+	await Promise.resolve()
+	expect(pending).toBeInstanceOf(Future)
+	const replacement = Promise.withResolvers<number>()
+	pending.use(replacement.promise)
+	await Promise.resolve()
+	expect(observe.mock.lastCall?.[0].futures.get(replyAtom.key)).toEqual(
+		new Set([`replaced`]),
+	)
+	expect(peekState(store, replyAtom.key).value).toBe(pending)
+	request.resolve(1)
+	replacement.resolve(2)
+	await expect(pending).resolves.toBe(2)
 	stop()
 })

@@ -115,6 +115,7 @@ declare global {
 			mount: typeof mount
 			change(): void
 			remove(): void
+			showCaughtError(): void
 			timings(): { reads: number; mountStarted: number; setupMs: number }
 			evidence(): {
 				reads: number
@@ -135,6 +136,16 @@ window.ecologyFixture = {
 	},
 	remove: () => {
 		remove()
+	},
+	showCaughtError: () => {
+		const brokenAtom = app.atom<number, Error>({
+			key: `broken`,
+			default: () => {
+				throw new Error(`fixture error`)
+			},
+			catch: [Error],
+		})
+		app.getState(brokenAtom)
 	},
 	evidence: () => ({
 		reads,

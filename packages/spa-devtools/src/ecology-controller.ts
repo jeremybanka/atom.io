@@ -1,5 +1,5 @@
 import type { RootStore } from "atom.io/internal"
-import { observeStore } from "atom.io/introspection"
+import { type FutureActivity, observeStore } from "atom.io/introspection"
 
 import {
 	captureEcologySnapshot,
@@ -63,6 +63,7 @@ export function createEcologyController(
 	let needsCapture = false
 	let activityRevision = 0
 	const changedCards = new Set<string>()
+	const futureChanges = new Map<string, Set<FutureActivity>>()
 	let cancelLive: (() => void) | undefined
 	let stopObserving: (() => void) | undefined
 	let cameraSequence = 0
@@ -432,9 +433,15 @@ export function createEcologyController(
 			if (changedCards.size) {
 				const activity = { revision: ++activityRevision, at: performance.now() }
 				update({
-					activity: new Map([...changedCards].map((id) => [id, activity])),
+					activity: new Map(
+						[...changedCards].map((id) => {
+							const future = futureChanges.get(id)
+							return [id, future ? { ...activity, future } : activity]
+						}),
+					),
 				})
 				changedCards.clear()
+				futureChanges.clear()
 			}
 			if (needsCapture && !busy) refresh()
 		})
@@ -460,6 +467,14 @@ export function createEcologyController(
 				const previous = capturedNodes.get(key)
 				if (!previous && !changes.states.has(key)) continue
 				markState(key, previous)
+				const events = changes.futures.get(key)
+				if (events) {
+					const id = `state:${key}`
+					let pending = futureChanges.get(id)
+					if (!pending || events.has(`started`))
+						futureChanges.set(id, (pending = new Set()))
+					for (const event of events) pending.add(event)
+				}
 				if (!previous) continue
 				const before = previous.value
 				const after = ecologyValue(store, key)
@@ -489,6 +504,7 @@ export function createEcologyController(
 		cancelLive?.()
 		cancelLive = undefined
 		changedCards.clear()
+		futureChanges.clear()
 	}
 
 	const action = (name: string, targetFamily?: string) => {

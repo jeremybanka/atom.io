@@ -9,7 +9,7 @@ import {
 } from "./set-state/evict-downstream.ts"
 import type { PureSelector, ReadableState } from "./state-types.ts"
 import type { Store } from "./store/index.ts"
-import { recordStoreChange } from "./store-observation.ts"
+import { recordFutureActivity, recordStoreChange } from "./store-observation.ts"
 import { isChildStore } from "./transaction/index.ts"
 import {
 	deferTransactionFutureRecomputation,
@@ -57,12 +57,17 @@ export function writeToCache<T, E>(
 		return value
 	}
 	if (value instanceof Promise) {
-		const future = new Future<T>(value)
+		const future = new Future<T>(value, () => {
+			if (target.valueMap.get(key) === future)
+				recordFutureActivity(target, key, `replaced`)
+		})
 		setCachedValue(target, key, future)
+		recordFutureActivity(target, key, `started`)
 		future
 			.then(function handleResolvedFuture(resolved) {
 				const current = target.valueMap.get(key)
 				if (current === future) {
+					recordFutureActivity(target, key, `resolved`)
 					openOperation(target, state)
 					writeToCache(target, state, resolved)
 					// oxlint-disable-next-line typescript/switch-exhaustiveness-check
@@ -84,6 +89,8 @@ export function writeToCache<T, E>(
 				}
 			})
 			.catch((thrown) => {
+				if (target.valueMap.get(key) === future)
+					recordFutureActivity(target, key, `rejected`)
 				target.logger.error(`💥`, state.type, key, `rejected:`, thrown)
 			})
 		return future

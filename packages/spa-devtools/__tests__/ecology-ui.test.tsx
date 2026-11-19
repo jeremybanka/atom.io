@@ -900,7 +900,7 @@ it(`selects every member of a family across expansion without losing member draf
 	expect(read).not.toHaveBeenCalled()
 })
 
-it(`previews cached primitives and opaque object shapes without evaluating or traversing values`, async () => {
+it(`previews visible cached values without evaluating state or invoking property getters`, async () => {
 	const f = setup(),
 		read = vi.fn(() => {
 			throw new Error(`must not inspect`)
@@ -909,13 +909,30 @@ it(`previews cached primitives and opaque object shapes without evaluating or tr
 		enumerable: true,
 		get: read,
 	})
-	const proxy = new Proxy({}, { get: read, getPrototypeOf: read, ownKeys: read })
+	const rejectPrototype = vi.fn(() => {
+		throw new Error(`prototype unavailable`)
+	})
+	const proxy = new Proxy(
+		{},
+		{ get: read, getPrototypeOf: rejectPrototype, ownKeys: read },
+	)
+	class TransportError extends Error {}
+	class Custom {
+		public toString() {
+			return `custom display`
+		}
+	}
 	for (const [key, value] of [
 		[`number`, 42],
 		[`text`, `pantry`],
 		[`object`, object],
 		[`proxy`, proxy],
 		[`undefined`, undefined],
+		[`array`, [1, 2, 3]],
+		[`map`, new Map([[1, 2]])],
+		[`set`, new Set([1, 2])],
+		[`error`, new TransportError()],
+		[`custom`, new Custom()],
 	] as const) {
 		f.silo.atom<unknown>({ key, default: null })
 		f.silo.store.valueMap.set(key, value)
@@ -931,6 +948,12 @@ it(`previews cached primitives and opaque object shapes without evaluating or tr
 	expect(detail(`text`)).toBe(`Atom · "pantry"`)
 	expect(detail(`undefined`)).toBe(`Atom · undefined`)
 	expect(detail(`object`)).toBe(`Atom · {…}`)
+	expect(detail(`proxy`)).toBe(`Atom · {…}`)
+	expect(detail(`array`)).toBe(`Atom · […3]`)
+	expect(detail(`map`)).toBe(`Atom · Map(1)`)
+	expect(detail(`set`)).toBe(`Atom · Set(2)`)
+	expect(detail(`error`)).toBe(`Atom · TransportError`)
+	expect(detail(`custom`)).toBe(`Atom · custom display`)
 	expect(detail(`missing`)).toBe(`Atom · –`)
 	expect(
 		f.host.querySelector(`ecology-editor input[aria-label="number"]`),
@@ -939,6 +962,91 @@ it(`previews cached primitives and opaque object shapes without evaluating or tr
 		f.host.querySelector(`button[aria-label="Generate missing"]`),
 	).not.toBeNull()
 	expect(read).not.toHaveBeenCalled()
+})
+
+it(`holds the Future cycle and completion badge even for an immediate resolution`, async () => {
+	const f = setup()
+	const workAtom = f.silo.atom<number | Promise<number>>({
+		key: `work`,
+		default: 0,
+	})
+	f.mount()
+	await settle()
+	const card = f.host.querySelector<HTMLButtonElement>(
+		`ecology-node-card button[data-graph-id="state:work"]`,
+	)!
+	f.silo.setState(workAtom, Promise.resolve(42))
+	await vi.advanceTimersByTimeAsync(80)
+	expect(card.textContent).toContain(`Atom · 42`)
+	expect(card.dataset[`future`]).toBe(`loading`)
+	await vi.advanceTimersByTimeAsync(950)
+	expect(card.dataset[`future`]).toBe(`done`)
+	await vi.advanceTimersByTimeAsync(950)
+	expect(card.dataset[`future`]).toBe(`done`)
+	await vi.advanceTimersByTimeAsync(100)
+	expect(card.dataset[`future`]).toBeUndefined()
+})
+
+it(`winds back once when a pending Future gets a new fate and uses stripes for its caught error`, async () => {
+	const f = setup()
+	const workAtom = f.silo.atom<number | Error | Promise<number | Error>, Error>({
+		key: `work`,
+		default: 0,
+		catch: [Error],
+	})
+	f.mount()
+	await settle()
+	const card = f.host.querySelector<HTMLButtonElement>(
+		`ecology-node-card button[data-graph-id="state:work"]`,
+	)!
+	f.silo.setState(workAtom, new Promise<number>(() => {}))
+	await vi.advanceTimersByTimeAsync(1_100)
+	expect(card.dataset[`future`]).toBe(`loading`)
+	const request = Promise.withResolvers<number | Error>()
+	f.silo.setState(workAtom, request.promise)
+	await vi.advanceTimersByTimeAsync(20)
+	expect(card.dataset[`future`]).toBe(`windback`)
+	request.resolve(new Error(`failed`))
+	await vi.advanceTimersByTimeAsync(20)
+	expect(card.dataset[`caught`]).toBe(`true`) // This fixture prefers reduced motion.
+	expect(card.querySelector(`img`)).toBeNull()
+	await vi.advanceTimersByTimeAsync(500)
+	expect(card.dataset[`future`]).toBeUndefined()
+	f.silo.setState(workAtom, 7)
+	await vi.advanceTimersByTimeAsync(20)
+	expect(card.dataset[`caught`]).toBeUndefined()
+})
+
+it(`plays the supplied explosion once before applying bands to a caught error`, async () => {
+	const f = setup()
+	const media = window.matchMedia(`(prefers-reduced-motion: reduce)`)
+	Object.defineProperty(media, `matches`, { value: false })
+	vi.mocked(window.matchMedia).mockReturnValue(media)
+	class TransportError extends Error {}
+	const transportAtom = f.silo.atom<number, TransportError>({
+		key: `transport`,
+		default: () => {
+			throw new TransportError(`carrier unavailable`)
+		},
+		catch: [TransportError],
+	})
+	f.mount()
+	await settle()
+	const card = f.host.querySelector<HTMLButtonElement>(
+		`ecology-node-card button[data-graph-id="state:transport"]`,
+	)!
+	f.silo.getState(transportAtom)
+	await vi.advanceTimersByTimeAsync(30)
+	expect(card.textContent).toContain(`TransportError`)
+	expect(card.dataset[`caught`]).toBe(`burst`)
+	const image = card.querySelector(`img`)!
+	expect(image.src).toContain(`kablooey.gif`)
+	image.dispatchEvent(new Event(`load`))
+	await vi.advanceTimersByTimeAsync(1_700)
+	expect(card.querySelector(`img`)).toBeNull()
+	expect(card.dataset[`caught`]).toBe(`true`)
+	await f.click(`Refresh`)
+	expect(card.querySelector(`img`)).toBeNull()
 })
 
 it(`partitions colored editor rows by selection and graph paths, and keeps filtered canvas context`, async () => {

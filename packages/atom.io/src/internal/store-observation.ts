@@ -2,6 +2,8 @@ import { isReservedIntrospectionKey } from "./reserved-keys.ts"
 import type { Store } from "./store/index.ts"
 import type { RootStore } from "./transaction/is-root-store.ts"
 
+export type FutureActivity = `started` | `replaced` | `resolved` | `rejected`
+
 export interface StoreChanges {
 	/** State keys whose cached value was written or removed. */
 	readonly values: ReadonlySet<string>
@@ -11,6 +13,8 @@ export interface StoreChanges {
 	readonly families: ReadonlySet<string>
 	/** Selector keys whose observed incoming edges changed. */
 	readonly dependencies: ReadonlySet<string>
+	/** Cache transitions, including Futures that settle within a single batch. */
+	readonly futures: ReadonlyMap<string, ReadonlySet<FutureActivity>>
 }
 
 type Listener = (changes: StoreChanges) => void
@@ -20,6 +24,7 @@ type Batch = {
 	states: Set<string>
 	families: Set<string>
 	edges: Map<string, Edge>
+	futures: Map<string, Set<FutureActivity>>
 }
 export type StoreObservation = { listeners: Set<Listener>; batch?: Batch }
 
@@ -50,6 +55,7 @@ function getBatch(store: Store, observation: StoreObservation): Batch {
 		states: new Set<string>(),
 		families: new Set<string>(),
 		edges: new Map<string, Edge>(),
+		futures: new Map<string, Set<FutureActivity>>(),
 	}
 	observation.batch = batch
 	queueMicrotask(() => {
@@ -66,13 +72,27 @@ function getBatch(store: Store, observation: StoreObservation): Batch {
 		}
 		for (const key of dependencies)
 			if (isReservedIntrospectionKey(key)) dependencies.delete(key)
-		const { values, states, families } = batch
+		const { values, states, families, futures } = batch
 		if (values.size || states.size || families.size || dependencies.size)
 			for (const listener of [...observation.listeners])
 				if (observation.listeners.has(listener))
-					listener({ values, states, families, dependencies })
+					listener({ values, states, families, dependencies, futures })
 	})
 	return batch
+}
+
+export function recordFutureActivity(
+	store: Store,
+	key: string,
+	activity: FutureActivity,
+): void {
+	const observation = store.observation
+	if (!observation || isReservedIntrospectionKey(key)) return
+	const { values, futures } = getBatch(store, observation)
+	values.add(key)
+	let events = futures.get(key)
+	if (!events || activity === `started`) futures.set(key, (events = new Set()))
+	events.add(activity)
 }
 
 export function recordStoreChange(

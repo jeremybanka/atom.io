@@ -35,11 +35,11 @@
 		"test:browser:install": "playwright install --only-shell chromium"
 	},
 	"dependencies": {
-		"@astrojs/node": "11.1.13",
+		"@astrojs/node": "11.1.14",
 		"@atom.io/spa": "workspace:*",
 		"@trpc/client": "11.29.4",
 		"@trpc/server": "11.29.4",
-		"astro": "7.4.12",
+		"astro": "7.4.13",
 		"atom.io": "workspace:*",
 		"resumability": "workspace:*",
 		"reylo": "0.7.0",

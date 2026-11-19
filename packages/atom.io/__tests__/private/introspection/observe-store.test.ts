@@ -208,7 +208,9 @@ it(`reports the removed selector's incoming and outgoing dependencies on disposa
 it(`skips a listener removed by an earlier listener in the same batch`, async () => {
 	const { silo, store } = setup()
 	const countAtom = silo.atom<number>({ key: `count`, default: 0 })
-	const stop = observeStore(store, () => stopLater())
+	const stop = observeStore(store, () => {
+		stopLater()
+	})
 	const later = vi.fn()
 	const stopLater = observeStore(store, later)
 	silo.setState(countAtom, 1)

@@ -1,5 +1,5 @@
 import { mountAtomIODevtools } from "@atom.io/spa-devtools"
-import { Silo } from "atom.io"
+import { type Loadable, type RegularAtomToken, Silo } from "atom.io"
 
 const host = document.createElement(`section`)
 document.body.append(host)
@@ -10,8 +10,12 @@ let panel = { dispose() {} },
 	setupMs = 0
 let change = () => {},
 	remove = () => {}
+let brokenAtom:
+	| RegularAtomToken<Loadable<number | Error>, any, Error>
+	| undefined
 function mount(mode: `small` | `empty` | `large`): void {
 	panel.dispose()
+	brokenAtom = undefined
 	const start = performance.now()
 	app = new Silo({
 		name: `ecology-browser`,
@@ -138,14 +142,17 @@ window.ecologyFixture = {
 		remove()
 	},
 	showCaughtError: () => {
-		const brokenAtom = app.atom<number, Error>({
+		brokenAtom ??= app.atom<Loadable<number | Error>, Error>({
 			key: `broken`,
-			default: () => {
-				throw new Error(`fixture error`)
-			},
+			default: 0,
 			catch: [Error],
 		})
-		app.getState(brokenAtom)
+		const request = Promise.withResolvers<number>()
+		app.setState(
+			brokenAtom,
+			request.promise.catch((error: Error) => error),
+		)
+		request.reject(new Error(`fixture error`))
 	},
 	evidence: () => ({
 		reads,

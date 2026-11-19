@@ -1372,6 +1372,46 @@ try {
 		).length,
 		1,
 	)
+	for (let attempt = 0; attempt < 3; attempt++) {
+		const restarted = await broken.evaluate((button) => {
+			const bandAnimations = () =>
+				button
+					.getAnimations({ subtree: true })
+					.filter(({ effect }) => effect?.getTiming().duration === 1700)
+			const previous = bandAnimations()
+			const previousImage = button.querySelector(`img[data-explosion]`)
+			return new Promise<boolean>((resolve) => {
+				const timeout = setTimeout(() => {
+					observer.disconnect()
+					resolve(false)
+				}, 1500)
+				const observer = new MutationObserver(() => {
+					const image = button.querySelector(`img[data-explosion]`)
+					if (
+						!image ||
+						image === previousImage ||
+						button.dataset[`caught`] !== `revealing`
+					)
+						return
+					const current = bandAnimations()
+					clearTimeout(timeout)
+					observer.disconnect()
+					resolve(
+						previous.length === 2 &&
+							current.length === 2 &&
+							current.every((animation) => !previous.includes(animation)),
+					)
+				})
+				observer.observe(button, { attributes: true, childList: true })
+				window.ecologyFixture.showCaughtError()
+			})
+		})
+		assert.equal(
+			restarted,
+			true,
+			`Rejection ${attempt + 2} should start both bands again`,
+		)
+	}
 	await explosion.waitFor({ state: `detached` })
 	assert.equal(await broken.getAttribute(`data-caught`), `true`)
 	assert.equal(

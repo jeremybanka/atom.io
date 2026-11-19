@@ -126,6 +126,8 @@ export function createCardFeedback(
 			image.alt = ``
 			image.dataset[`explosion`] = ``
 			button.dataset[`caught`] = `burst`
+			// A cached GIF can load before the next paint. Reset both band animations now.
+			void view.getComputedStyle(button, `::before`).animationName
 			const finish = () => {
 				if (explosion !== image) return
 				clearExplosion()

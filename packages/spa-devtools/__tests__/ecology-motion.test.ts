@@ -3,7 +3,10 @@ import { animate, type MotionValue } from "motion"
 import { afterEach, expect, it, vi } from "vitest"
 
 import type { GraphItem } from "../src/ecology-graph.ts"
-import { createEcologyMotion } from "../src/ecology-motion.ts"
+import {
+	createEcologyMotion,
+	createEdgeRoutingMotion,
+} from "../src/ecology-motion.ts"
 
 vi.mock(`motion`, async (actual) => ({
 	...(await actual<typeof Motion>()),
@@ -77,6 +80,7 @@ it(`keeps arrows on moving member ports while using the collapsed family's SVG o
 	value.set(0.5)
 	f.motion.sync([family], new Set(), 1)
 	const edge = {
+		id: `items-a:total`,
 		source: family.id,
 		from: member,
 		to: other,
@@ -147,4 +151,49 @@ it(`respects reduced motion initially and finishes in-flight springs when the pr
 	expect(f.motion.active).toBe(false)
 	f.motion.release(`unknown`)
 	f.motion.dispose()
+})
+
+it(`retargets an edge along the shortest turn and settles or releases its spring`, () => {
+	const media = new EventTarget() as MediaQueryList
+	Object.defineProperty(media, `matches`, { value: false, writable: true })
+	const invalidate = vi.fn()
+	const routes = createEdgeRoutingMotion(invalidate, media)
+	const edge = {
+		id: `a:b`,
+		source: family.id,
+		from: family,
+		to: other,
+		color: `red`,
+		traced: false,
+	}
+	expect(routes.steer(edge.id, 3)).toBe(3)
+	expect(animate).not.toHaveBeenCalled()
+	expect(routes.steer(edge.id, 0)).toBe(3)
+	const angle = progress()
+	expect(vi.mocked(animate).mock.lastCall?.[1]).toBe(4)
+	angle.set(3.4)
+	expect(invalidate).toHaveBeenCalledOnce()
+	media.dispatchEvent(new Event(`change`))
+	expect(routes.angle(edge.id)).toBe(3.4)
+	expect(routes.steer(edge.id, 0)).toBe(3.4)
+	expect(animate).toHaveBeenCalledOnce()
+	expect(routes.steer(edge.id, 3)).toBe(3.4)
+	expect(vi.mocked(animate).mock.lastCall?.slice(0, 2)).toEqual([angle, 3])
+
+	Object.defineProperty(media, `matches`, { value: true })
+	media.dispatchEvent(new Event(`change`))
+	expect(routes.angle(edge.id)).toBe(3)
+	expect(routes.steer(edge.id, 1)).toBe(1)
+	expect(routes.angle(edge.id)).toBe(1)
+	const dropped = { ...edge, id: `new` }
+	routes.steer(dropped.id, 2)
+	routes.sync([edge])
+	expect(routes.angle(dropped.id)).toBeUndefined()
+	expect(routes.angle(edge.id)).toBe(1)
+	const destroy = vi.spyOn(angle, `destroy`)
+	routes.sync([])
+	expect(destroy).toHaveBeenCalledOnce()
+	expect(routes.steer(edge.id, 0)).toBe(0)
+	routes.dispose()
+	expect(routes.angle(edge.id)).toBeUndefined()
 })

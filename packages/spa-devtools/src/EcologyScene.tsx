@@ -20,7 +20,10 @@ import {
 	type ProjectedEdge,
 	writeFamilyBuffer,
 } from "./ecology-lines.ts"
-import { createEcologyMotion } from "./ecology-motion.ts"
+import {
+	createEcologyMotion,
+	createEdgeRoutingMotion,
+} from "./ecology-motion.ts"
 import { EcologyGround } from "./EcologyGround.tsx"
 import { EcologyNodeCard } from "./EcologyNodeCard.tsx"
 import css from "./EcologyScene.module.css"
@@ -85,7 +88,6 @@ export function EcologyScene(props: {
 	const edgeLayers = new Set<
 		(paths: ReadonlyMap<string, readonly ProjectedEdge[]>) => void
 	>()
-	const projectEdges = createEdgeProjector()
 	const families = createFamilyBuffer()
 	const familyMaterial = new THREE.LineBasicMaterial({
 		vertexColors: true,
@@ -97,7 +99,8 @@ export function EcologyScene(props: {
 	let viewport: HTMLElement | null = null,
 		layer: HTMLElement | null = null
 	let controls: OrbitControls | undefined, renderer: CSS2DRenderer | undefined
-	let dirty = true
+	let dirty = true,
+		edgesDirty = false
 	const invalidate = () => {
 		dirty = true
 		if (controls && viewport) {
@@ -114,7 +117,12 @@ export function EcologyScene(props: {
 	}
 	const motion = createEcologyMotion(invalidate, window)
 	const reducedMotion = window.matchMedia(`(prefers-reduced-motion: reduce)`)
+	const routes = createEdgeRoutingMotion(() => {
+		edgesDirty = true
+	}, reducedMotion)
+	const projectEdges = createEdgeProjector(routes)
 	onCleanup(motion.dispose)
+	onCleanup(routes.dispose)
 	const fit = (overview = true) => {
 		if (!props.items.length) return
 		const box = new THREE.Box3().setFromPoints(props.items.map(point))
@@ -227,7 +235,13 @@ export function EcologyScene(props: {
 		observer.observe(viewport!)
 		resize()
 		bindScene(() => props.command, command)
-		bindScene(() => props.edges, invalidate)
+		bindScene(
+			() => props.edges,
+			(edges) => {
+				routes.sync(edges)
+				edgesDirty = true
+			},
+		)
 		bindScene(() => props.familyConnections, invalidate)
 		bindScene(() => props.items, invalidate)
 		bindScene(() => props.matches, invalidate)
@@ -244,14 +258,17 @@ export function EcologyScene(props: {
 		})
 	})
 	const draw = () => {
-		if (!dirty) return
-		dirty = false
-		camera.updateMatrixWorld()
-		for (const label of labels.children) {
-			const position = motion.position(label.name)
-			if (position) label.position.set(position.x, position.y, position.z)
+		const sceneChanged = dirty
+		if (!sceneChanged && !edgesDirty) return
+		dirty = edgesDirty = false
+		if (sceneChanged) {
+			camera.updateMatrixWorld()
+			for (const label of labels.children) {
+				const position = motion.position(label.name)
+				if (position) label.position.set(position.x, position.y, position.z)
+			}
+			renderer!.render(labels, camera)
 		}
-		renderer!.render(labels, camera)
 		const moving = motion.active
 		const paths = projectEdges(
 			moving ? props.edges.map(motion.edge) : props.edges,
@@ -261,6 +278,8 @@ export function EcologyScene(props: {
 			scale,
 		)
 		for (const paint of edgeLayers) paint(paths)
+		viewport!.dataset[`edges`] = String(props.edges.length)
+		if (!sceneChanged) return
 		const connections = props.familyConnections ?? []
 		writeFamilyBuffer(
 			families,
@@ -277,7 +296,6 @@ export function EcologyScene(props: {
 			...camera.position.toArray(),
 			...controls!.target.toArray(),
 		].join(`,`)
-		viewport!.dataset[`edges`] = String(props.edges.length)
 		props.context.camera = {
 			position: camera.position.toArray(),
 			target: controls!.target.toArray(),

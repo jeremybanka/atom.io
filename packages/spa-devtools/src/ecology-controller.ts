@@ -229,6 +229,7 @@ export function createEcologyController(
 				const fromCard = visibleId(from.id)!,
 					toCard = visibleId(to.id)!
 				return {
+					id: JSON.stringify([edge.from, edge.to]),
 					source: fromCard,
 					from,
 					to,

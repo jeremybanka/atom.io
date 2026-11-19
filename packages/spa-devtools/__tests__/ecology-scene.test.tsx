@@ -11,6 +11,7 @@ import { ecologyColor } from "../src/ecology-color.ts"
 import {
 	createGraphContext,
 	type FamilyConnection,
+	type GraphContext,
 	type GraphItem,
 } from "../src/ecology-graph.ts"
 import type { EcologyLine } from "../src/ecology-lines.ts"
@@ -19,6 +20,7 @@ import {
 	createFamilyBuffer,
 	writeFamilyBuffer,
 } from "../src/ecology-lines.ts"
+import { createEdgeRoutingMotion } from "../src/ecology-motion.ts"
 import { EcologyScene } from "../src/EcologyScene.tsx"
 import { useTools } from "../src/store.ts"
 
@@ -68,14 +70,21 @@ interface SceneState {
 	familyConnections?: FamilyConnection[]
 	command: { sequence: number; action: string; target: string }
 }
-function fixture(restored = false, empty = false) {
+function fixture(
+	restored: boolean | GraphContext[`camera`] = false,
+	empty = false,
+) {
 	const silo = new Silo({
 		name: `scene-test`,
 		lifespan: `ephemeral`,
 		isProduction: true,
 	})
 	const context = createGraphContext()
-	if (restored) context.camera = { position: [20, 10, 30], target: [1, 2, 3] }
+	if (restored)
+		context.camera =
+			restored === true
+				? { position: [20, 10, 30], target: [1, 2, 3] }
+				: restored
 	const a = item(`a`, 8, 4, 0),
 		b = item(`b`, -8, -4, 0)
 	const sceneStateAtom = silo.atom<SceneState>({
@@ -84,7 +93,16 @@ function fixture(restored = false, empty = false) {
 			cylinderHeight: 8,
 			traced: new Set(),
 			items: empty ? [] : [a, b],
-			edges: [{ source: a.id, from: a, to: b, color: a.color, traced: false }],
+			edges: [
+				{
+					id: `a:b`,
+					source: a.id,
+					from: a,
+					to: b,
+					color: a.color,
+					traced: false,
+				},
+			],
 			command: { sequence: 0, action: `fit`, target: `` },
 		},
 	})
@@ -248,7 +266,14 @@ it(`projects viewer-facing DOM cards and source-stacked edges, keeps a camera th
 	expect(f.context.camera!.position.every(Number.isFinite)).toBe(true)
 	f.patch({
 		edges: [
-			{ source: f.a.id, from: f.a, to: f.b, color: f.a.color, traced: true },
+			{
+				id: `a:b`,
+				source: f.a.id,
+				from: f.a,
+				to: f.b,
+				color: f.a.color,
+				traced: true,
+			},
 		],
 	})
 	f.tick()
@@ -316,6 +341,7 @@ it(`projects animated member cards, arrows and family spines from the same world
 		items: [family, member, f.b],
 		edges: [
 			{
+				id: `member:b`,
 				source: member.id,
 				from: member,
 				to: f.b,
@@ -407,7 +433,14 @@ it(`keeps outgoing paths inside their source layer, with inherited colors, separ
 	const writes = vi.spyOn(path, `setAttribute`)
 	f.patch({
 		edges: [
-			{ source: f.a.id, from: f.a, to: f.b, color: f.a.color, traced: true },
+			{
+				id: `a:b`,
+				source: f.a.id,
+				from: f.a,
+				to: f.b,
+				color: f.a.color,
+				traced: true,
+			},
 		],
 	})
 	f.tick()
@@ -416,9 +449,30 @@ it(`keeps outgoing paths inside their source layer, with inherited colors, separ
 	expect(writes).not.toHaveBeenCalledWith(`d`, geometry)
 	f.patch({
 		edges: [
-			{ source: f.a.id, from: f.a, to: f.b, color: f.a.color, traced: false },
-			{ source: f.a.id, from: f.a, to: f.b, color: f.a.color, traced: true },
-			{ source: f.b.id, from: f.b, to: f.a, color: f.b.color, traced: false },
+			{
+				id: `a:b`,
+				source: f.a.id,
+				from: f.a,
+				to: f.b,
+				color: f.a.color,
+				traced: false,
+			},
+			{
+				id: `a:b-2`,
+				source: f.a.id,
+				from: f.a,
+				to: f.b,
+				color: f.a.color,
+				traced: true,
+			},
+			{
+				id: `b:a`,
+				source: f.b.id,
+				from: f.b,
+				to: f.a,
+				color: f.b.color,
+				traced: false,
+			},
 		],
 	})
 	f.tick()
@@ -568,6 +622,7 @@ it(`projects 3D curves and arrowheads into source-local SVG coordinates, preserv
 		from = { x: -8, y: 0, z: 0 },
 		to = { x: 8, y: 0, z: 0 }
 	const edge: EcologyLine = {
+		id: `a:b`,
 		source: `a`,
 		from,
 		to,
@@ -622,6 +677,7 @@ it(`fans clustered arrows across family ports and groups them under the visible 
 		fromCard = { x: -8, y: 0, z: 0 },
 		toCard = { x: 8, y: 0, z: 0 }
 	const edges: EcologyLine[] = Array.from({ length: 16 }, (_, index) => ({
+		id: String(index),
 		source: `family:items`,
 		from: {
 			x: -8 + (index % 3) * 0.1,
@@ -661,6 +717,7 @@ it(`fans clustered arrows across family ports and groups them under the visible 
 })
 it(`clips filtered arrows to compact card ports`, () => {
 	const edge: EcologyLine = {
+		id: `a:b`,
 		source: `a`,
 		from: { x: -8, y: 0, z: 0 },
 		to: { x: 8, y: 0, z: 0 },
@@ -690,7 +747,14 @@ it(`clips curves at camera depth planes and omits hidden or degenerate source la
 		color = `red`,
 		traced = false
 	const from = { x: -8, y: 0, z: 0 }
-	const edge = { source, color, traced, from, to: { x: 8, y: 0, z: 60 } }
+	const edge = {
+		id: `a:b`,
+		source,
+		color,
+		traced,
+		from,
+		to: { x: 8, y: 0, z: 60 },
+	}
 	const paths = projectEdges([edge], camera, 800, 500).get(source)!
 	expect(paths).toHaveLength(1)
 	expect(pathPoints(paths[0].d).flat().every(Number.isFinite)).toBe(true)
@@ -738,6 +802,7 @@ it(`reuses projected paths through tracing changes, invalidates camera/port chan
 	const from = { x: -8, y: 0, z: 0 },
 		to = { x: 8, y: 0, z: 0 }
 	const edge: EcologyLine = {
+		id: `a:b`,
 		source: `a`,
 		from,
 		to,
@@ -779,4 +844,87 @@ it(`reuses projected paths through tracing changes, invalidates camera/port chan
 	const moved = project([edge], camera, 800, 500).get(`a`)![0]
 	project([], camera, 800, 500)
 	expect(project([edge], camera, 800, 500).get(`a`)![0]).not.toBe(moved)
+})
+
+it(`slides both ports and the arrow tip along their cards using the current camera`, () => {
+	const media = window.matchMedia(`(prefers-reduced-motion: reduce)`)
+	Object.defineProperty(media, `matches`, { value: false })
+	const routes = createEdgeRoutingMotion(vi.fn(), media)
+	cleanups.push(routes.dispose)
+	const project = createEdgeProjector(routes)
+	const camera = projectionCamera()
+	const from = { x: -8, y: 0, z: 0 },
+		to = { x: 8, y: 0, z: 0 }
+	const edge: EcologyLine = {
+		id: `a:b`,
+		source: `a`,
+		from,
+		to,
+		color: `red`,
+		traced: false,
+		toCollapsed: true,
+	}
+	const loop = { ...edge, id: `a:a`, to: from }
+	const read = () => project([edge, loop], camera, 800, 500).get(`a`)!
+	expect(pathPoints(read()[0].d)[0]).toEqual([91, 0])
+	camera.rotateZ(-Math.PI / 2)
+	camera.updateMatrixWorld()
+	const [start, unchanged] = read()
+	expect(pathPoints(start.d)[0]).toEqual([91, 0])
+	const [heading, goal] = vi.mocked(animate).mock.lastCall!
+	const angle = heading as MotionValue<number>
+	expect(goal).toBe(1)
+	angle.set(0.5)
+	const [middle, stillUnchanged] = read()
+	expect(stillUnchanged).toBe(unchanged)
+	const coordinates = pathPoints(middle.d)
+	expect(coordinates[0]).toEqual([29, -29])
+	const center = new THREE.Vector3(to.x - from.x, 0, 0).project(camera).y * -250
+	expect(coordinates[16][0]).toBe(-15)
+	expect(coordinates[16][1]).toBeCloseTo(center + 15, 2)
+	expect(coordinates[18]).toEqual(coordinates[16])
+	angle.set(1)
+	const [settled] = read()
+	const [x, y] = pathPoints(settled.d)[0]
+	expect(x).toBeCloseTo(0)
+	expect(y).toBe(-29)
+	expect(read()[0]).toBe(settled)
+})
+
+it(`repaints the SVG during a port spring without redrawing the 3D scene`, () => {
+	const media = window.matchMedia(`(prefers-reduced-motion: reduce)`)
+	Object.defineProperty(media, `matches`, { value: false })
+	vi.mocked(window.matchMedia).mockReturnValue(media)
+	const f = fixture({ position: [0, 0, 40], target: [0, 0, 0] })
+	f.resize()
+	f.tick()
+	const path = f.viewport.querySelector<SVGPathElement>(`svg path`)!
+	const start = () => pathPoints(path.getAttribute(`d`) ?? ``)[0]
+	expect(start()).toEqual([-91, 0])
+	const to = item(`b`, f.a.x, f.a.y + 12, f.a.z)
+	f.patch({
+		items: [f.a, to],
+		edges: [
+			{
+				id: `a:b`,
+				source: f.a.id,
+				from: f.a,
+				to,
+				color: f.a.color,
+				traced: false,
+			},
+		],
+	})
+	f.tick()
+	const [heading, goal] = vi.mocked(animate).mock.lastCall!
+	expect(goal).toBe(1)
+	expect(start()).toEqual([-91, 0])
+	const gl = vi.mocked(THREE.WebGLRenderer).mock.results.at(-1)!
+		.value as THREE.WebGLRenderer
+	vi.mocked(gl.render).mockClear()
+	const angle = heading as MotionValue<number>
+	angle.set(1.5)
+	f.tick()
+	expect(start()).toEqual([-29, -29])
+	expect(gl.render).not.toHaveBeenCalled()
 })

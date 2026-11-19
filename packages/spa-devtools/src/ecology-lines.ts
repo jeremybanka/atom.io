@@ -1,8 +1,10 @@
 import * as THREE from "three"
 
 import type { FamilyConnection, GraphPosition } from "./ecology-graph.ts"
+import type { EdgeRoutingMotion } from "./ecology-motion.ts"
 
 export interface EcologyLine {
+	id: string
 	source: string
 	from: GraphPosition
 	to: GraphPosition
@@ -20,6 +22,12 @@ export interface ProjectedEdge {
 	order: number
 }
 const segments = 16
+const cardinals = [
+	[1, 0],
+	[0, 1],
+	[-1, 0],
+	[0, -1],
+] as const
 function createLineBuffer(vertices: number): THREE.BufferGeometry {
 	const geometry = new THREE.BufferGeometry()
 	geometry.setAttribute(
@@ -76,13 +84,14 @@ interface CachedEdge extends Pick<
 	`fromCard` | `toCard` | `origin` | `fromCollapsed` | `toCollapsed`
 > {
 	path: ProjectedEdge
+	angle: number | undefined
 }
 interface CachedPair {
 	frame: number
 	variants: CachedEdge[]
 }
-/** Reuse projected geometry while the camera and immutable captured endpoints stay unchanged. */
-export function createEdgeProjector() {
+/** Reuse projected geometry while camera, endpoints, and routing stay unchanged. */
+export function createEdgeProjector(routing?: EdgeRoutingMotion) {
 	let transform = ``
 	let sequence = 0
 	const order = new WeakMap<GraphPosition, WeakMap<GraphPosition, number>>()
@@ -113,7 +122,11 @@ export function createEdgeProjector() {
 		transform = nextTransform
 		frame++
 		const paths = new Map<string, ProjectedEdge[]>()
-		const retain = (edge: EcologyLine, path: ProjectedEdge) => {
+		const retain = (
+			edge: EcologyLine,
+			path: ProjectedEdge,
+			angle: number | undefined,
+		) => {
 			let targets = previousPaths.get(edge.from)
 			if (!targets) previousPaths.set(edge.from, (targets = new Map()))
 			let pair = targets.get(edge.to)
@@ -140,8 +153,12 @@ export function createEdgeProjector() {
 					fromCollapsed: edge.fromCollapsed,
 					toCollapsed: edge.toCollapsed,
 					path,
+					angle,
 				})
-			else variants[variant].path = path
+			else {
+				variants[variant].path = path
+				variants[variant].angle = angle
+			}
 			let outgoing = paths.get(edge.source)
 			if (!outgoing) paths.set(edge.source, (outgoing = []))
 			outgoing.push(path)
@@ -155,25 +172,25 @@ export function createEdgeProjector() {
 		) => {
 			const halfWidth = collapsed ? 43 : 91,
 				halfHeight = collapsed ? 15 : 29
-			const scale =
-				1 / Math.max(Math.abs(dx) / halfWidth, Math.abs(dy) / halfHeight)
-			const x = dx
-				? dx * scale
-				: THREE.MathUtils.clamp(
-						((point.x - center.x) * width) / 2,
-						6 - halfWidth,
-						halfWidth - 6,
-					)
-			const y = dy
-				? dy * scale
-				: THREE.MathUtils.clamp(
-						((point.y - center.y) * height) / 2,
-						6 - halfHeight,
-						halfHeight - 6,
-					)
+			const x = THREE.MathUtils.clamp(
+				((point.x - center.x) * width) / 2,
+				6 - halfWidth,
+				halfWidth - 6,
+			)
+			const y = THREE.MathUtils.clamp(
+				((point.y - center.y) * height) / 2,
+				6 - halfHeight,
+				halfHeight - 6,
+			)
+			// Intersect the card rim so moving ports keep their family lane offsets
+			// and never detach or cut across the face of the card.
+			const distance = Math.min(
+				(halfWidth - x * Math.sign(dx)) / Math.abs(dx),
+				(halfHeight - y * Math.sign(dy)) / Math.abs(dy),
+			)
 			return new THREE.Vector3(
-				center.x + (x * 2) / width,
-				center.y + (y * 2) / height,
+				center.x + ((x + dx * distance) * 2) / width,
+				center.y + ((y + dy * distance) * 2) / height,
 				point.z,
 			).unproject(camera)
 		}
@@ -188,11 +205,13 @@ export function createEdgeProjector() {
 		const projected = new THREE.Vector3(),
 			clipped = new THREE.Vector3()
 		for (const edge of edges) {
+			const previousAngle = routing?.angle(edge.id)
 			const cached = previousPaths
 				.get(edge.from)
 				?.get(edge.to)
 				?.variants.find(
 					(candidate) =>
+						candidate.angle === previousAngle &&
 						candidate.fromCard === edge.fromCard &&
 						candidate.toCard === edge.toCard &&
 						candidate.origin === edge.origin &&
@@ -205,6 +224,7 @@ export function createEdgeProjector() {
 					cached.path.traced === edge.traced
 						? cached.path
 						: { ...cached.path, traced: edge.traced },
+					previousAngle,
 				)
 				continue
 			}
@@ -224,16 +244,24 @@ export function createEdgeProjector() {
 				projected.copy(point).applyMatrix4(camera.projectionMatrix)
 				return `${(((projected.x - origin.x) * width) / 2).toFixed(2)},${((-(projected.y - origin.y) * height) / 2).toFixed(2)}`
 			}
-			let dx = ((toCard.x - fromCard.x) * width) / 2,
-				dy = ((toCard.y - fromCard.y) * height) / 2
-			const loop = Math.hypot(dx, dy) < 1
-			if (loop) {
-				dx = 150
-				dy = 0
-			}
-			const horizontal = Math.abs(dx) >= Math.abs(dy)
-			if (horizontal) dy = 0
-			else dx = 0
+			const horizontal = ((toCard.x - fromCard.x) * width) / 2,
+				vertical = ((toCard.y - fromCard.y) * height) / 2
+			const separation = Math.hypot(horizontal, vertical)
+			const heading =
+				separation < 1
+					? 0
+					: Math.abs(horizontal) >= Math.abs(vertical)
+						? horizontal >= 0
+							? 0
+							: 2
+						: vertical >= 0
+							? 1
+							: 3
+			const angle = routing?.steer(edge.id, heading)
+			const turn = angle ?? heading
+			const [dx, dy] = Number.isInteger(turn)
+				? cardinals[((turn % 4) + 4) % 4]
+				: [Math.cos((turn * Math.PI) / 2), Math.sin((turn * Math.PI) / 2)]
 			const start = port(a, fromCard, dx, dy, edge.fromCollapsed),
 				end = port(b, toCard, -dx, -dy, edge.toCollapsed)
 			const direction = right
@@ -244,10 +272,9 @@ export function createEdgeProjector() {
 			const bend = Math.max(2, start.distanceTo(end) * 0.35)
 			const controlA = start.clone().addScaledVector(direction, bend)
 			const controlB = end.clone().addScaledVector(direction, -bend)
-			if (loop) {
-				controlA.addScaledVector(up, 6)
-				controlB.addScaledVector(up, 6)
-			}
+			const loopLift = 6 * Math.max(0, 1 - separation / 4)
+			controlA.addScaledVector(up, loopLift)
+			controlB.addScaledVector(up, loopLift)
 			// Camera transforms are affine: transform four control points once,
 			// rather than transforming every sampled segment during an orbit.
 			const curve = new THREE.CubicBezierCurve3(
@@ -308,7 +335,7 @@ export function createEdgeProjector() {
 			segment(view(back.clone().addScaledVector(side, 3 * pixel)), tip)
 			segment(tip, view(back.addScaledVector(side, -3 * pixel)))
 			if (!d) continue
-			retain(edge, { d, traced: edge.traced, order: edgeOrder(edge) })
+			retain(edge, { d, traced: edge.traced, order: edgeOrder(edge) }, angle)
 		}
 		// Tracing prioritizes admission, but must not shuffle unchanged SVG path slots.
 		for (const outgoing of paths.values())

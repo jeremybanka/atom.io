@@ -14,6 +14,75 @@ export const EDITOR_SPRING = {
 	damping: 38,
 } as const
 
+interface EdgeHeading {
+	goal: number
+	value?: MotionValue<number>
+}
+export interface EdgeRoutingMotion {
+	angle(id: string): number | undefined
+	steer(id: string, direction: number): number
+	sync(edges: readonly EcologyLine[]): void
+	dispose(): void
+}
+
+/** Spring only the solver's choice of port, in quarter turns around the card. */
+export function createEdgeRoutingMotion(
+	invalidate: () => void,
+	preference: MediaQueryList,
+): EdgeRoutingMotion {
+	const headings = new Map<string, EdgeHeading>()
+	const reduce = () => {
+		if (preference.matches)
+			for (const heading of headings.values()) heading.value?.jump(heading.goal)
+	}
+	preference.addEventListener(`change`, reduce)
+	return {
+		angle(id: string): number | undefined {
+			const heading = headings.get(id)
+			return heading?.value?.get() ?? heading?.goal
+		},
+		steer(id: string, direction: number): number {
+			const heading = headings.get(id)
+			if (!heading) {
+				headings.set(id, { goal: direction })
+				return direction
+			}
+			const current = heading.value?.get() ?? heading.goal
+			if ((heading.goal - direction) % 4 === 0) return current
+			if (preference.matches) {
+				heading.goal = direction
+				heading.value?.jump(direction)
+				return direction
+			}
+			// Choose the nearest equivalent heading, preserving progress on reversal.
+			heading.goal = direction + 4 * Math.round((current - direction) / 4)
+			if (!heading.value) {
+				heading.value = motionValue(current)
+				heading.value.on(`change`, invalidate)
+			}
+			animate(heading.value, heading.goal, {
+				type: `spring`,
+				stiffness: 430,
+				damping: 42,
+			})
+			return current
+		},
+		sync(edges: readonly EcologyLine[]): void {
+			const retained = new Set(edges.map((edge) => edge.id))
+			for (const [id, heading] of headings) {
+				if (retained.has(id)) continue
+				heading.value?.destroy()
+				headings.delete(id)
+			}
+		},
+		dispose(): void {
+			preference.removeEventListener(`change`, reduce)
+			for (const heading of headings.values()) heading.value?.destroy()
+			headings.clear()
+		},
+	}
+}
+
 interface MemberMotion {
 	item: GraphItem
 	value: MotionValue<number>

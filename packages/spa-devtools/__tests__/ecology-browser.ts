@@ -1307,11 +1307,57 @@ try {
 	)
 	const explosion = broken.locator(`img[data-explosion]`)
 	await explosion.waitFor({ state: `visible` })
+	const explosionSource = (await explosion.getAttribute(`src`))!
 	assert.equal(
 		await explosion.evaluate((image: HTMLImageElement) =>
 			image.decode().then(() => image.naturalWidth),
 		),
 		142,
+	)
+	const { repetitions, coverage } = await page.evaluate(async (source) => {
+		const response = await fetch(source)
+		const decoder = new ImageDecoder({
+			type: `image/gif`,
+			data: await response.arrayBuffer(),
+		})
+		try {
+			await decoder.tracks.ready
+			const track = decoder.tracks.selectedTrack!
+			const canvas = document.createElement(`canvas`)
+			const drawing = canvas.getContext(`2d`, { willReadFrequently: true })!
+			const visibleByFrame: number[] = []
+			for (let frameIndex = 0; frameIndex < track.frameCount; frameIndex++) {
+				const { image } = await decoder.decode({ frameIndex })
+				canvas.width = image.displayWidth
+				canvas.height = image.displayHeight
+				drawing.drawImage(image, 0, 0)
+				image.close()
+				const pixels = drawing.getImageData(
+					0,
+					0,
+					canvas.width,
+					canvas.height,
+				).data
+				let visible = 0
+				for (let alpha = 3; alpha < pixels.length; alpha += 4)
+					if (pixels[alpha]) visible++
+				visibleByFrame.push(visible)
+			}
+			return { repetitions: track.repetitionCount, coverage: visibleByFrame }
+		} finally {
+			decoder.close()
+		}
+	}, explosionSource)
+	assert.equal(repetitions, 0)
+	const peak = Math.max(...coverage)
+	assert.ok(coverage[0] < peak * 0.03 && coverage.at(-1)! < peak * 0.03)
+	const threshold = peak * 0.35
+	assert.equal(
+		coverage.filter(
+			(visible, index) =>
+				visible >= threshold && (coverage[index - 1] ?? 0) < threshold,
+		).length,
+		1,
 	)
 	await explosion.waitFor({ state: `detached` })
 	assert.equal(await broken.getAttribute(`data-caught`), `true`)

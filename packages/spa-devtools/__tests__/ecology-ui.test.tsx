@@ -1017,7 +1017,7 @@ it(`winds back once when a pending Future gets a new fate and uses stripes for i
 	expect(card.dataset[`caught`]).toBeUndefined()
 })
 
-it(`plays the supplied explosion once before applying bands to a caught error`, async () => {
+it(`reveals the caught-error bands over one explosion cycle`, async () => {
 	const f = setup()
 	const media = window.matchMedia(`(prefers-reduced-motion: reduce)`)
 	Object.defineProperty(media, `matches`, { value: false })
@@ -1042,7 +1042,14 @@ it(`plays the supplied explosion once before applying bands to a caught error`, 
 	const image = card.querySelector(`img`)!
 	expect(image.src).toContain(`kablooey.gif`)
 	image.dispatchEvent(new Event(`load`))
-	await vi.advanceTimersByTimeAsync(1_700)
+	expect(card.dataset[`caught`]).toBe(`revealing`)
+	expect(card.style.getPropertyValue(`--ecology-explosion-duration`)).toBe(
+		`1700ms`,
+	)
+	await vi.advanceTimersByTimeAsync(1_699)
+	expect(card.querySelector(`img`)).toBe(image)
+	expect(card.dataset[`caught`]).toBe(`revealing`)
+	await vi.advanceTimersByTimeAsync(1)
 	expect(card.querySelector(`img`)).toBeNull()
 	expect(card.dataset[`caught`]).toBe(`true`)
 	await f.click(`Refresh`)

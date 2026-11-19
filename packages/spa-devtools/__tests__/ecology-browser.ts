@@ -1308,6 +1308,19 @@ try {
 	const explosion = broken.locator(`img[data-explosion]`)
 	await explosion.waitFor({ state: `visible` })
 	const explosionSource = (await explosion.getAttribute(`src`))!
+	await broken.and(page.locator(`[data-caught="revealing"]`)).waitFor()
+	const bands = await broken.evaluate((button) =>
+		[`::before`, `::after`].map((side) => {
+			const style = getComputedStyle(button, side)
+			return { duration: style.animationDuration, clip: style.clipPath }
+		}),
+	)
+	assert.deepEqual(
+		bands.map(({ duration }) => duration),
+		[`1.7s`, `1.7s`],
+	)
+	assert.ok(bands.every(({ clip }) => clip.startsWith(`inset(`)))
+	assert.notEqual(bands[0].clip, bands[1].clip)
 	assert.equal(
 		await explosion.evaluate((image: HTMLImageElement) =>
 			image.decode().then(() => image.naturalWidth),
@@ -1361,6 +1374,12 @@ try {
 	)
 	await explosion.waitFor({ state: `detached` })
 	assert.equal(await broken.getAttribute(`data-caught`), `true`)
+	assert.equal(
+		await broken.evaluate(
+			(button) => getComputedStyle(button, `::before`).clipPath,
+		),
+		`none`,
+	)
 	assert.match(
 		await broken.evaluate(
 			(button) => getComputedStyle(button, `::before`).backgroundImage,

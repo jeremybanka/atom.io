@@ -85,6 +85,7 @@ export function createCardFeedback(
 		view.clearTimeout(explosionTimer)
 		explosion?.remove()
 		explosion = undefined
+		button.style.removeProperty(`--ecology-explosion-duration`)
 	}
 	return {
 		future(
@@ -133,8 +134,13 @@ export function createCardFeedback(
 			image.addEventListener(
 				`load`,
 				() => {
-					if (explosion === image)
-						explosionTimer = view.setTimeout(finish, EXPLOSION_MS)
+					if (explosion !== image) return
+					button.style.setProperty(
+						`--ecology-explosion-duration`,
+						`${EXPLOSION_MS}ms`,
+					)
+					button.dataset[`caught`] = `revealing`
+					explosionTimer = view.setTimeout(finish, EXPLOSION_MS)
 				},
 				{ once: true },
 			)

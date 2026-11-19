@@ -49,8 +49,8 @@ ecology-node-card.class {
 		border: 1px solid var(--ecology-color);
 		box-shadow: 0 2px 6px #0002;
 		cursor: pointer;
-		&[data-caught="true"]::before,
-		&[data-caught="true"]::after {
+		&:is([data-caught="revealing"], [data-caught="true"])::before,
+		&:is([data-caught="revealing"], [data-caught="true"])::after {
 			content: "";
 			position: absolute;
 			inset-inline: 1px;
@@ -62,12 +62,25 @@ ecology-node-card.class {
 			);
 			pointer-events: none;
 		}
-		&[data-caught="true"]::before {
+		&:is([data-caught="revealing"], [data-caught="true"])::before {
 			top: 0;
 			border-radius: inherit;
 		}
-		&[data-caught="true"]::after {
+		&:is([data-caught="revealing"], [data-caught="true"])::after {
 			bottom: 0;
+		}
+		@media (prefers-reduced-motion: no-preference) {
+			&[data-caught="revealing"]::before,
+			&[data-caught="revealing"]::after {
+				animation: ecology-reveal-band var(--ecology-explosion-duration) linear
+					both;
+			}
+			&[data-caught="revealing"]::before {
+				--ecology-band-start: inset(0 100% 0 0);
+			}
+			&[data-caught="revealing"]::after {
+				--ecology-band-start: inset(0 0 0 100%);
+			}
 		}
 		> [data-explosion] {
 			position: absolute;
@@ -189,6 +202,15 @@ ecology-node-card.class {
 	}
 	&[data-traced="true"] > button {
 		box-shadow: inset 3px 0 var(--ecology-color);
+	}
+}
+
+@keyframes ecology-reveal-band {
+	from {
+		clip-path: var(--ecology-band-start);
+	}
+	to {
+		clip-path: inset(0);
 	}
 }
 

@@ -1,5 +1,11 @@
 # @atom.io/spa
 
+## 0.0.11
+
+### Patch Changes
+
+- e16db40: Accept resumability 0.0.3 alongside 0.0.2 as an optional peer dependency.
+
 ## 0.0.10
 
 ### Patch Changes

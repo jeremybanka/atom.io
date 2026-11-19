@@ -1,18 +1,21 @@
 import type { PluginObject } from "@babel/core"
 import { transformSync, types as t } from "@babel/core"
 
-/** Remove server closures before Vite discovers their dynamic imports. */
+/** Remove server closures before the bundler discovers their dynamic imports. */
 export function compile(
 	code: string,
 	filename: string,
-	settings: { clientModule?: string } = {},
+	settings: { clientModule?: string; jsx?: boolean } = {},
 ): { code: string; map: unknown } {
 	const result = transformSync(code, {
 		filename,
 		configFile: false,
 		babelrc: false,
 		sourceMaps: true,
-		parserOpts: { sourceType: `module`, plugins: [`typescript`, `jsx`] },
+		parserOpts: {
+			sourceType: `module`,
+			plugins: settings.jsx === false ? [`typescript`] : [`typescript`, `jsx`],
+		},
 		plugins: [
 			(): PluginObject => ({
 				visitor: {

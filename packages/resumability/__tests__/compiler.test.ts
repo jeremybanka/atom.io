@@ -23,6 +23,15 @@ describe(`server closure boundary`, () => {
 		])
 			expect(compile(source, `fixture.tsx`).code).not.toContain(`SECRET`)
 	})
+	it(`preserves angle-bracket type assertions in non-JSX modules`, () => {
+		const { code } = compile(
+			`${prelude} export const read = () => <string>resumable({key:'x', server:()=> 'SECRET'});`,
+			`value.ts`,
+			{ jsx: false },
+		)
+		expect(code).toMatch(/<string>\s*resumable/)
+		expect(code).not.toContain(`SECRET`)
+	})
 	it(`does not rewrite unrelated or shadowed functions`, () => {
 		for (const source of [
 			`const resumable = (o) => o; resumable({server:()=> 'KEEP'})`,

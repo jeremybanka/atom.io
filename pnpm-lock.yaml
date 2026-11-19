@@ -809,6 +809,9 @@ importers:
       '@types/babel__core':
         specifier: 7.20.5
         version: 7.20.5
+      '@types/bun':
+        specifier: npm:bun-types@1.4.4
+        version: bun-types@1.4.4
       '@types/node':
         specifier: 26.6.6
         version: 26.6.6

@@ -9,6 +9,7 @@ import { convert, describe, kind, preview, shallowKind } from "./value.ts"
 
 interface EditorProps {
 	tools: Tools
+	stateKey?: string | undefined
 	value: unknown
 	change?: Change | undefined
 	path: Path
@@ -58,7 +59,8 @@ export function JsonEditor(props: EditorProps): SpaElement {
 					<carat-spacer />
 				)}
 				<field-name>{props.label}</field-name>
-				{props.change && !props.tools.worker ? (
+				{props.change &&
+				(!props.tools.worker || props.stateKey !== undefined) ? (
 					<select
 						aria-label={`Type of ${props.path.at(-1)}`}
 						value={valueKind()}
@@ -91,6 +93,7 @@ export function JsonEditor(props: EditorProps): SpaElement {
 						change={props.change}
 						tools={props.tools}
 						label={props.path.at(-1) ?? `value`}
+						stateKey={props.stateKey}
 					/>
 				)}
 				{props.actions}
@@ -148,6 +151,7 @@ function Primitive(props: {
 	change?: Change | undefined
 	tools: Tools
 	label: string
+	stateKey?: string | undefined
 }): SpaElement {
 	let draft: { text: string; value: number } | undefined
 	const worker = props.tools.worker
@@ -191,7 +195,10 @@ function Primitive(props: {
 						const text = event.currentTarget.value
 						event.currentTarget.size = Math.max(1, text.length)
 						if (worker) {
-							workerDraft ??= { text, revision: worker.revision(props.label) }
+							workerDraft ??= {
+								text,
+								revision: worker.revision(props.stateKey ?? props.label),
+							}
 							workerDraft.text = text
 							return
 						}
@@ -240,7 +247,7 @@ function Primitive(props: {
 function Property(props: { name: string; editor: EditorProps }): SpaElement {
 	const parent = props.editor
 	const read = () => (parent.value as Record<string, unknown>)[props.name]
-	const change: Change = (update) => {
+	const change: Change = (update, revision) => {
 		parent.change?.((previous) => {
 			if (Array.isArray(previous))
 				return previous.map((value, index) =>
@@ -248,7 +255,7 @@ function Property(props: { name: string; editor: EditorProps }): SpaElement {
 				)
 			const object = previous as Record<string, unknown>
 			return { ...object, [props.name]: update(object[props.name]) }
-		})
+		}, revision)
 	}
 	return (
 		<json-property>
@@ -319,6 +326,7 @@ function Property(props: { name: string; editor: EditorProps }): SpaElement {
 					) : null
 				}
 				tools={parent.tools}
+				stateKey={parent.stateKey}
 				path={[...parent.path, props.name]}
 				value={read()}
 				change={parent.change ? change : undefined}

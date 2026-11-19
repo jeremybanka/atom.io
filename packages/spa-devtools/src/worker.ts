@@ -7,6 +7,7 @@ import type {
 	WorkerMessage,
 } from "./worker-protocol.ts"
 import { isWorkerDevtoolsValue } from "./worker-protocol.ts"
+import { exposeWholeStore } from "./worker-store.ts"
 
 export type { WorkerDevtoolsValue } from "./worker-protocol.ts"
 
@@ -18,12 +19,13 @@ export type WorkerDevtoolsState =
 			validateEdit?: never
 	  }
 
-/** Expose explicitly selected, standalone state from a worker Silo. Owns the supplied port. */
+/** Expose a worker Silo, optionally limited to a list of standalone primitives. Owns the supplied port. */
 export function exposeDevtoolsStore(
 	port: MessagePort,
 	silo: Silo,
-	states: readonly WorkerDevtoolsState[],
+	states?: readonly WorkerDevtoolsState[],
 ): () => void {
+	if (!states) return exposeWholeStore(port, silo)
 	const entries = new Map(
 		states.map(({ token, validateEdit }) => {
 			const definitions =

@@ -72,15 +72,19 @@ export function useSaved<T>(
 		},
 	]
 }
-export function useTools(
-	store: RootStore,
-	worker?: WorkerPanelConnection,
-): Tools {
+export function getIntrospectionStates(store: RootStore): IntrospectionStates {
 	let states = introspection.get(store)
 	if (!states) {
 		states = attachIntrospectionStates(store)
 		introspection.set(store, states)
 	}
+	return states
+}
+export function useTools(
+	store: RootStore,
+	worker?: WorkerPanelConnection,
+): Tools {
+	const states = getIntrospectionStates(store)
 	let expanded: Record<string, boolean> = {}
 	try {
 		const saved: unknown = JSON.parse(

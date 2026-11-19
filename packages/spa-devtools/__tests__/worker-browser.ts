@@ -48,7 +48,7 @@ const server = createServer((req, res) => {
 <h1>Worker store</h1>
 <button id="increment">Increment in worker</button>
 <output id="worker-values">Waiting for the worker…</output>
-<p>Edit <strong>count</strong> in the Atoms tab and press Enter to send it back to the worker.</p>
+<p>Use the store picker to switch between the page and worker. In the worker’s Atoms tab, edit <strong>count</strong> and press Enter.</p>
 <div id="devtools"></div>
 <script type="module" src="/main.js"></script>
 </html>`)
@@ -63,7 +63,7 @@ if (process.argv.includes(`--serve`)) {
 } else {
 	let browser: Browser | undefined
 	try {
-		browser = await launchBrowser()
+		browser = await launchBrowser({ softwareWebGL: true })
 		const page = await browser.newPage({
 			viewport: { width: 1200, height: 850 },
 			reducedMotion: `reduce`,
@@ -71,7 +71,8 @@ if (process.argv.includes(`--serve`)) {
 		const errors: string[] = []
 		page.on(`pageerror`, (error) => errors.push(error.message))
 		await page.goto(url)
-		const panel = page.getByTestId(`atom-io-devtools`)
+		const panel = page.locator(`debugger-panel:not([hidden])`)
+		const picker = panel.getByRole(`combobox`, { name: `Inspected store` })
 		const count = panel.getByRole(`textbox`, { name: `count`, exact: true })
 		const doubled = panel.getByRole(`textbox`, { name: `doubled`, exact: true })
 		const atoms = panel.getByRole(`tab`, { name: `atoms` })
@@ -82,7 +83,7 @@ if (process.argv.includes(`--serve`)) {
 			await page.waitForFunction(
 				({ key, value }) =>
 					document.querySelector<HTMLInputElement>(
-						`debugger-panel input[aria-label="` + key + `"]`,
+						`debugger-panel:not([hidden]) input[aria-label="` + key + `"]`,
 					)?.value === value,
 				{ key: label, value: expected },
 			)
@@ -99,7 +100,19 @@ if (process.argv.includes(`--serve`)) {
 		await selectors.click()
 		await expectValue(`doubled`, `6`)
 		assert.equal(await doubled.getAttribute(`readonly`), ``)
+		assert.deepEqual(
+			await picker
+				.locator(`optgroup`)
+				.evaluateAll((groups) =>
+					groups.map((group) => group.getAttribute(`label`)),
+				),
+			[`Local`, `Remote`],
+		)
+		await picker.selectOption(`page`)
+		await expectValue(`location`, `Main thread`)
 		await increment.click()
+		await expectWorker(4, 8)
+		await picker.selectOption(`worker`)
 		await expectValue(`doubled`, `8`)
 
 		await atoms.click()
@@ -112,11 +125,6 @@ if (process.argv.includes(`--serve`)) {
 		await expectValue(`doubled`, `34`)
 
 		await atoms.click()
-		await count.fill(`1.5`)
-		await count.press(`Enter`)
-		await alert.filter({ hasText: `Worker rejected this value` }).waitFor()
-		await expectValue(`count`, `17`)
-
 		await count.fill(`20`)
 		// Send a worker update while the input still holds an unsubmitted draft.
 		await increment.evaluate((button: HTMLButtonElement) => {
@@ -135,6 +143,24 @@ if (process.argv.includes(`--serve`)) {
 		await selectors.click()
 		await expectValue(`doubled`, `50`)
 		await alert.waitFor({ state: `hidden` })
+
+		await panel.getByRole(`tab`, { name: `transactions` }).click()
+		assert.deepEqual(errors, [])
+		await panel.getByTestId(`open-close-transaction-increment`).click()
+		await panel
+			.getByTestId(`transaction-increment`)
+			.getByText(`transaction_outcome`)
+			.first()
+			.waitFor()
+		await panel.getByRole(`tab`, { name: `timelines` }).click()
+		const timeline = panel.getByTestId(`timeline-count`)
+		await timeline.getByRole(`button`, { name: `undo` }).click()
+		await expectWorker(18, 36)
+		await timeline.getByRole(`button`, { name: `redo` }).click()
+		await expectWorker(25, 50)
+
+		await panel.getByRole(`tab`, { name: `ecology` }).click()
+		await panel.getByTestId(`ecology-view`).locator(`[data-edges="1"]`).waitFor()
 		assert.deepEqual(errors, [])
 		const screenshot = process.env[`SPA_DEVTOOLS_WORKER_SCREENSHOT`]
 		if (screenshot) await page.screenshot({ path: screenshot })

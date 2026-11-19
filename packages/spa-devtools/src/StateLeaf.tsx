@@ -1,6 +1,6 @@
 /** @jsxImportSource @atom.io/spa */
 import type { Children, SpaElement } from "@atom.io/spa"
-import { useGetter, useSetter } from "@atom.io/spa"
+import { onMount, useGetter, useSetter } from "@atom.io/spa"
 import type { ReadableToken, WritableToken } from "atom.io"
 import { disposeFromStore, getFromStore } from "atom.io/internal"
 import { peekState } from "atom.io/introspection"
@@ -8,6 +8,7 @@ import { peekState } from "atom.io/introspection"
 import { JsonEditor } from "./JsonEditor.tsx"
 import css from "./StateLeaf.module.css"
 import type { Tools } from "./store.ts"
+import type { WorkerCachedValue } from "./worker-protocol.ts"
 
 type Token = ReadableToken<unknown, any, any>
 export function StateLeaf(props: {
@@ -28,19 +29,33 @@ export function StateLeaf(props: {
 		props.tools.store.readonlySelectors.get(token.key) ??
 		props.tools.store.writableSelectors.get(token.key)
 	const captured = definition()
-	const getValue = useGetter(token)
-	const cache = props.cachedOnly
+	const worker = props.tools.worker
+	const projection = worker?.cache(token.key)
+	const getValue = useGetter(projection ?? token)
+	const cache = projection
 		? () => {
-				void props.capture
-				void props.revision
-				return peekState(props.tools.store, token.key)
+				const remote = getValue() as WorkerCachedValue
+				return remote.status === `value`
+					? { present: true, value: remote.value }
+					: { present: false, value: undefined }
 			}
-		: undefined
+		: props.cachedOnly
+			? () => {
+					void props.capture
+					void props.revision
+					return peekState(props.tools.store, token.key)
+				}
+			: undefined
 	const writable = !token.type.startsWith(`readonly`)
 	const setValue = writable
 		? useSetter(token as WritableToken<unknown, any, any>)
 		: undefined
-	const worker = props.tools.worker
+	onMount(() => {
+		if (projection && !props.cachedOnly)
+			props.tools.attempt(() => {
+				worker!.generate(token.key)
+			})
+	})
 	const value = () => {
 		try {
 			if (props.retained && definition() !== captured)
@@ -55,7 +70,7 @@ export function StateLeaf(props: {
 		if (!worker) return true
 		const current = value()
 		return (
-			current !== null &&
+			(projection !== undefined || current !== null) &&
 			!(current instanceof Error) &&
 			worker.revision(token.key) !== undefined
 		)
@@ -70,7 +85,7 @@ export function StateLeaf(props: {
 		>
 			{cache && !cache().present ? (
 				<node-heading>
-					{props.label}
+					{props.label ?? <h3>{token.family?.subKey ?? token.key}</h3>}
 					<span>–</span>
 					<button
 						type="button"
@@ -81,8 +96,11 @@ export function StateLeaf(props: {
 									throw new Error(
 										`State was disposed. Refresh to update the snapshot.`,
 									)
-								getFromStore(props.tools.store, token)
-								props.onGenerate?.()
+								if (projection) worker!.generate(token.key)
+								else {
+									getFromStore(props.tools.store, token)
+									props.onGenerate?.()
+								}
 							})
 						}}
 					>
@@ -104,7 +122,8 @@ export function StateLeaf(props: {
 								aria-label={`Dispose ${token.key}`}
 								onClick={() => {
 									props.tools.attempt(() => {
-										disposeFromStore(props.tools.store, token)
+										if (projection) worker!.disposeState(token.key)
+										else disposeFromStore(props.tools.store, token)
 									})
 								}}
 							>
@@ -113,16 +132,13 @@ export function StateLeaf(props: {
 						) : null
 					}
 					tools={props.tools}
+					stateKey={projection ? token.key : undefined}
 					value={value()}
 					change={
 						canEdit()
 							? (update, revision) => {
 									// Validate edits before opening an atom.io write operation.
-									const next = update(
-										cache
-											? peekState(props.tools.store, token.key).value
-											: getValue(),
-									)
+									const next = update(cache ? cache().value : getValue())
 									if (worker) worker.edit(token.key, next, revision)
 									else setValue!(() => next)
 								}

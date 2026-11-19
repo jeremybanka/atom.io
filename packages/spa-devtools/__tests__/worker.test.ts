@@ -2,8 +2,10 @@ import type { RegularAtomToken } from "atom.io"
 import { Silo } from "atom.io"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 
-import { mountWorkerAtomIODevtools } from "../src/index.ts"
+import { mountAtomIODevtools, mountWorkerAtomIODevtools } from "../src/index.ts"
 import { exposeDevtoolsStore, type WorkerDevtoolsValue } from "../src/worker.ts"
+import { createWorkerProjection } from "../src/worker-projection.ts"
+import type { WorkerMessage } from "../src/worker-protocol.ts"
 
 class TestPort extends EventTarget {
 	public peer?: TestPort
@@ -41,9 +43,488 @@ function fixture() {
 	return { silo, host, ...channel() }
 }
 
+it(`keeps each target mounted and isolates panel commands and keyboard shortcuts`, async () => {
+	const { host, silo, page, worker } = fixture()
+	const remote = channel()
+	const localAtom = silo.atom<string>({ key: `local`, default: `page` })
+	const firstStore = new Silo({
+		name: `first`,
+		lifespan: `ephemeral`,
+		isProduction: true,
+	})
+	const secondStore = new Silo({
+		name: `second`,
+		lifespan: `ephemeral`,
+		isProduction: true,
+	})
+	const firstAtom = firstStore.atom<number>({ key: `first`, default: 1 })
+	const secondAtom = secondStore.atom<number>({ key: `second`, default: 2 })
+	const stopFirst = exposeDevtoolsStore(worker.port, firstStore)
+	const stopSecond = exposeDevtoolsStore(remote.worker.port, secondStore)
+	const connectFirst = vi.fn(() => page.port)
+	const connectSecond = vi.fn(() => remote.page.port)
+	const local = {
+		id: `page`,
+		label: `Page`,
+		kind: `local`,
+		store: silo.store,
+	} as const
+	expect(() => mountAtomIODevtools(host, { stores: [local, local] })).toThrow(
+		/unique/,
+	)
+	const panel = mountAtomIODevtools(host, {
+		stores: [
+			local,
+			{
+				id: `first`,
+				label: `First worker`,
+				kind: `remote`,
+				connect: connectFirst,
+			},
+			{
+				id: `second`,
+				label: `Second worker`,
+				kind: `remote`,
+				connect: connectSecond,
+			},
+		],
+	})
+	const active = () =>
+		host.querySelector<HTMLElement>(`debugger-panel:not([hidden])`)
+	const switchTo = async (id: string) => {
+		const select = active()!.querySelector<HTMLSelectElement>(
+			`select[data-store-picker]`,
+		)!
+		select.value = id
+		select.dispatchEvent(new Event(`change`, { bubbles: true }))
+		await flush()
+	}
+	try {
+		await flush()
+		expect(host.querySelectorAll(`debugger-panel`)).toHaveLength(3)
+		expect(
+			active()?.querySelector<HTMLInputElement>(`[aria-label="local"]`)?.value,
+		).toBe(`page`)
+		firstStore.setState(firstAtom, 10)
+		secondStore.setState(secondAtom, 20)
+		await switchTo(`second`)
+		expect(
+			active()?.querySelector<HTMLInputElement>(`[aria-label="second"]`)?.value,
+		).toBe(`20`)
+		await switchTo(`first`)
+		expect(
+			active()?.querySelector<HTMLInputElement>(`[aria-label="first"]`)?.value,
+		).toBe(`10`)
+		await switchTo(`first`)
+		document.dispatchEvent(
+			new KeyboardEvent(`keydown`, {
+				ctrlKey: true,
+				shiftKey: true,
+				code: `KeyA`,
+			}),
+		)
+		await flush()
+		expect(active()).toBeNull()
+		document.dispatchEvent(
+			new KeyboardEvent(`keydown`, {
+				ctrlKey: true,
+				shiftKey: true,
+				code: `KeyA`,
+			}),
+		)
+		await flush()
+		expect(
+			active()?.querySelector<HTMLInputElement>(`[aria-label="first"]`)?.value,
+		).toBe(`10`)
+		expect(connectFirst).toHaveBeenCalledOnce()
+		expect(connectSecond).toHaveBeenCalledOnce()
+		expect(silo.getState(localAtom)).toBe(`page`)
+	} finally {
+		panel.dispose()
+		panel.dispose()
+		stopFirst()
+		stopSecond()
+	}
+	expect(host.children).toHaveLength(0)
+	expect(() =>
+		mountAtomIODevtools(host, {
+			stores: [
+				local,
+				{
+					id: `failure`,
+					label: `Failure`,
+					kind: `remote`,
+					connect() {
+						throw new Error(`no port`)
+					},
+				},
+			],
+		}),
+	).toThrow(`no port`)
+	expect(host.children).toHaveLength(0)
+})
+
+it(`projects family values and sends nested JSON edits and disposal to the worker`, async () => {
+	const { silo, host, page, worker } = fixture()
+	const cartAtoms = silo.atomFamily<{ quantity: number }, string>({
+		key: `cart`,
+		default: { quantity: 2 },
+	})
+	const item = silo.findState(cartAtoms, `sku`)
+	silo.getState(item)
+	const stop = exposeDevtoolsStore(worker.port, silo)
+	const panel = mountWorkerAtomIODevtools(host, page.port)
+	try {
+		await flush()
+		host
+			.querySelector<HTMLElement>(
+				`[data-testid="open-close-state-family-cart"]`,
+			)!
+			.click()
+		await flush()
+		const row = host.querySelector<HTMLElement>(`state-leaf[data-state-key]`)!
+		row.querySelector<HTMLElement>(`button[aria-expanded]`)!.click()
+		await flush()
+		const field = row.querySelector<HTMLInputElement>(
+			`input[aria-label="quantity"]`,
+		)!
+		field.focus()
+		field.value = `8`
+		field.dispatchEvent(new Event(`input`, { bubbles: true }))
+		field.blur()
+		await flush()
+		expect(silo.getState(item)).toEqual({ quantity: 8 })
+		row
+			.querySelector<HTMLButtonElement>(`button[aria-label^="Dispose"]`)!
+			.click()
+		await flush()
+		expect(silo.store.atoms.get(item.key)).toBeUndefined()
+		expect(host.contains(row)).toBe(false)
+	} finally {
+		panel.dispose()
+		stop()
+	}
+})
+
+it(`projects retained history and the observed graph and time travels in the worker`, async () => {
+	const { silo, host, page, worker } = fixture()
+	const countAtom = silo.atom<number>({ key: `count`, default: 0 })
+	const doubleSelector = silo.selector<number>({
+		key: `double`,
+		get: ({ get }) => 2 * get(countAtom),
+	})
+	const finishTransaction = silo.transaction<(input: number) => number>({
+		key: `finish`,
+		do: ({ set }, input) => {
+			set(countAtom, input)
+			return input + 1
+		},
+	})
+	const panel = mountWorkerAtomIODevtools(host, page.port)
+	const stop = exposeDevtoolsStore(worker.port, silo)
+	const tab = async (view: string) => {
+		host
+			.querySelector<HTMLButtonElement>(`[data-testid="view-` + view + `"]`)!
+			.click()
+		await flush()
+	}
+	try {
+		await flush()
+		const countTimeline = silo.timeline({ key: `count`, scope: [countAtom] })
+		silo.runTransaction(finishTransaction)(4)
+		await flush()
+		await tab(`transactions`)
+		host
+			.querySelector<HTMLButtonElement>(
+				`[data-testid="open-close-transaction-finish"]`,
+			)!
+			.click()
+		await flush()
+		expect(
+			host.querySelector(`[data-testid="transaction-finish"]`)?.textContent,
+		).toContain(`output: 5`)
+		await tab(`timelines`)
+		const timeline = host.querySelector<HTMLElement>(
+			`[data-testid="timeline-count"]`,
+		)!
+		const undo = [...timeline.querySelectorAll(`button`)].find(
+			(button) => button.textContent === `undo`,
+		)!
+		const redo = [...timeline.querySelectorAll(`button`)].find(
+			(button) => button.textContent === `redo`,
+		)!
+		undo.click()
+		await flush()
+		expect(silo.getState(countAtom)).toBe(0)
+		redo.click()
+		await flush()
+		expect(silo.getState(countAtom)).toBe(4)
+		worker.receive({
+			type: `timeline`,
+			key: `count`,
+			action: `undo`,
+			at: -1,
+			length: -1,
+		})
+		await flush()
+		expect(host.querySelector(`[role="alert"]`)?.textContent).toContain(
+			`timeline changed`,
+		)
+
+		await tab(`ecology`)
+		expect(silo.store.valueMap.has(doubleSelector.key)).toBe(false)
+		const generate = await vi.waitFor(() => {
+			const button = host.querySelector<HTMLButtonElement>(
+				`button[aria-label="Generate double"]`,
+			)
+			expect(button).not.toBeNull()
+			return button!
+		})
+		generate.click()
+		await flush()
+		expect(worker.postMessage).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				type: `store`,
+				snapshot: expect.objectContaining({
+					ecology: expect.objectContaining({
+						edges: [{ dependency: `count`, selector: `double` }],
+					}),
+				}),
+			}),
+		)
+		await tab(`selectors`)
+		expect(
+			host.querySelector<HTMLInputElement>(`[aria-label="double"]`)?.value,
+		).toBe(`8`)
+		silo.disposeTimeline(countTimeline)
+		await flush()
+		await tab(`timelines`)
+		expect(host.querySelector(`[data-testid="timeline-count"]`)).toBeNull()
+	} finally {
+		panel.dispose()
+		stop()
+	}
+})
+
+it(`keeps worker revisions and rejects invalid state and history commands`, async () => {
+	const { silo, page, worker } = fixture()
+	const dataAtom = silo.atom<unknown>({
+		key: `data`,
+		default: [true, null, `value`],
+	})
+	const writableSelector = silo.selector<unknown>({
+		key: `writable`,
+		get: ({ get }) => get(dataAtom),
+		set: ({ set }, value) => {
+			set(dataAtom, value)
+		},
+	})
+	const readonlySelector = silo.selector<unknown>({
+		key: `readonly`,
+		get: () => 7,
+	})
+	const opaqueAtom = silo.atom<unknown>({
+		key: `opaque`,
+		default: () => () => 0,
+	})
+	const pendingAtom = silo.atom<Promise<number>>({
+		key: `pending`,
+		default: () => new Promise(() => {}),
+	})
+	const logTransaction = silo.transaction<() => void>({
+		key: `log`,
+		do: () => {},
+	})
+	silo.timeline({ key: `data`, scope: [dataAtom] })
+	for (const token of [
+		dataAtom,
+		writableSelector,
+		readonlySelector,
+		opaqueAtom,
+		pendingAtom,
+	])
+		silo.getState(token)
+	const stop = exposeDevtoolsStore(worker.port, silo)
+	const last = () => worker.postMessage.mock.calls.at(-1)?.[0] as WorkerMessage
+	const edit = (key: string, value: unknown, revision = 0) => {
+		worker.receive({ type: `edit`, key, revision, value })
+	}
+	try {
+		const initial = last()
+		expect(initial.type).toBe(`store`)
+		if (initial.type !== `store`) throw new Error(`missing snapshot`)
+		expect(
+			initial.snapshot.states.find(({ token }) => token.key === `opaque`)
+				?.editable,
+		).toBe(false)
+		expect(
+			initial.snapshot.states.find(({ token }) => token.key === `pending`)
+				?.editable,
+		).toBe(false)
+		worker.receive(null)
+		worker.receive({ type: `generate`, key: `🔍 private` })
+		expect(last()).toMatchObject({
+			type: `edit-error`,
+			message: `Worker state is unavailable`,
+		})
+		worker.receive({ type: `dispose`, key: `missing` })
+		expect(last()).toMatchObject({
+			type: `edit-error`,
+			message: `Worker state is unavailable`,
+		})
+		worker.receive({ type: `dispose`, key: dataAtom.key })
+		expect(last()).toMatchObject({
+			type: `edit-error`,
+			message: `Only family members can be disposed`,
+		})
+		for (const key of [readonlySelector.key, opaqueAtom.key]) {
+			edit(key, 5)
+			expect(last()).toMatchObject({
+				type: `edit-error`,
+				message: `Worker rejected this value`,
+			})
+		}
+		const cyclic: unknown[] = []
+		cyclic.push(cyclic)
+		edit(dataAtom.key, cyclic)
+		expect(last()).toMatchObject({
+			type: `edit-error`,
+			message: `Worker rejected this value`,
+		})
+		edit(writableSelector.key, 4)
+		expect(silo.getState(dataAtom)).toBe(4)
+		await flush()
+		edit(dataAtom.key, 5)
+		expect(last()).toMatchObject({
+			type: `edit-error`,
+			message: expect.stringContaining(`state changed`),
+		})
+
+		silo.transaction<() => void>({ key: `🔍 private`, do: () => {} })
+		silo.timeline({ key: `🔍 private`, scope: [] })
+		silo.atom<number>({ key: `🔍 private`, default: 0 })
+		for (let i = 0; i < 201; i++) silo.runTransaction(logTransaction)()
+		await flush()
+		expect(last()).toMatchObject({
+			type: `store`,
+			snapshot: { transactions: [{ history: expect.any(Array) }] },
+		})
+		const snapshot = last()
+		if (snapshot.type !== `store`) throw new Error(`missing snapshot`)
+		expect(snapshot.snapshot.transactions[0].history).toHaveLength(200)
+		const subject = silo.store.transactions.get(logTransaction.key)!.subject
+		subject.next({
+			type: `transaction_outcome`,
+			token: { key: `unrelated`, type: `transaction` },
+			id: `unrelated`,
+			params: [],
+			output: undefined,
+			subEvents: [],
+			timestamp: 0,
+		})
+		subject.next({
+			type: `transaction_outcome`,
+			token: logTransaction,
+			id: `lifecycle`,
+			params: [],
+			output: undefined,
+			timestamp: 0,
+			subEvents: [
+				{
+					type: `atom_creation`,
+					token: dataAtom,
+					timestamp: 0,
+					value: () => {},
+				},
+				{
+					type: `molecule_disposal`,
+					key: `molecule`,
+					timestamp: 0,
+					provenance: [],
+					values: [[`data`, 4]],
+				},
+			],
+		})
+		await flush()
+		const lifecycle = last()
+		if (lifecycle.type !== `store`) throw new Error(`missing snapshot`)
+		expect(
+			lifecycle.snapshot.transactions[0].history.at(-1)?.event,
+		).toMatchObject({
+			id: `lifecycle`,
+			subEvents: [{ value: expect.any(Error) }, { values: [[`data`, 4]] }],
+		})
+		vi.spyOn(silo, `getState`).mockImplementationOnce(() => {
+			// oxlint-disable-next-line typescript/only-throw-error -- application getters may throw any value
+			throw `Application could not generate state`
+		})
+		worker.receive({ type: `generate`, key: dataAtom.key })
+		expect(last()).toMatchObject({
+			type: `edit-error`,
+			message: `Application could not generate state`,
+		})
+		page.postMessage({ type: `close` })
+		await flush()
+		expect(worker.close).toHaveBeenCalledOnce()
+	} finally {
+		stop()
+	}
+})
+
 async function flush() {
 	for (let i = 0; i < 8; i++) await Promise.resolve()
 }
+
+it(`removes departed states from the projection and never invokes a worker getter locally`, () => {
+	const { silo, worker } = fixture()
+	const setupAtom = silo.atom<number>({ key: `setup`, default: 0 })
+	silo.selector<number>({
+		key: `computed`,
+		get: ({ get }) => get(setupAtom),
+		set: ({ set }, next) => {
+			set(setupAtom, next)
+		},
+	})
+	const stop = exposeDevtoolsStore(worker.port, silo)
+	try {
+		const message = worker.postMessage.mock.calls[0][0] as WorkerMessage
+		if (message.type !== `store`) throw new Error(`missing snapshot`)
+		const mirror = new Silo({
+			name: `mirror`,
+			lifespan: `ephemeral`,
+			isProduction: true,
+		})
+		const projection = createWorkerProjection(mirror)
+		projection.apply(message.snapshot)
+		expect(
+			mirror.getState({ type: `writable_pure_selector`, key: `computed` }),
+		).toBeUndefined()
+		projection.apply({ ...message.snapshot, states: [] })
+		expect(mirror.store.atoms.has(`setup`)).toBe(false)
+		expect(mirror.store.writableSelectors.has(`computed`)).toBe(false)
+	} finally {
+		stop()
+	}
+})
+
+it(`cleans up a whole-store connection when an endpoint fails to mount`, () => {
+	const { silo, host, worker } = fixture()
+	worker.start.mockImplementationOnce(() => {
+		throw new Error(`worker port`)
+	})
+	expect(() => exposeDevtoolsStore(worker.port, silo)).toThrow(`worker port`)
+	const next = channel()
+	const stop = exposeDevtoolsStore(next.worker.port, silo)
+	vi.spyOn(host, `append`).mockImplementationOnce(() => {
+		throw new Error(`panel host`)
+	})
+	expect(() => mountWorkerAtomIODevtools(host, next.page.port)).toThrow(
+		`panel host`,
+	)
+	expect(next.page.close).toHaveBeenCalledOnce()
+	next.worker.receive({ type: `generate`, key: `unavailable` })
+	stop()
+})
 
 beforeEach(() => {
 	localStorage.clear()
@@ -66,7 +547,7 @@ it(`observes the worker, edits primitives, and handles shutdown using the shared
 		key: `doubled`,
 		get: ({ get }) => 2 * get(countAtom),
 	})
-	localStorage.setItem(`🔍 Worker Devtools View`, JSON.stringify(`ecology`))
+	localStorage.setItem(`🔍 Worker Devtools View`, JSON.stringify(`unknown`))
 	const panel = mountWorkerAtomIODevtools(host, page.port)
 	const stop = exposeDevtoolsStore(worker.port, silo, [
 		{ token: countAtom, validateEdit: () => true },

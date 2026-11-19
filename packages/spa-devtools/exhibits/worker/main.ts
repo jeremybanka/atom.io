@@ -1,14 +1,30 @@
-import { mountWorkerAtomIODevtools } from "@atom.io/spa-devtools"
+import { mountAtomIODevtools } from "@atom.io/spa-devtools"
+import { Silo } from "atom.io"
 
 const worker = new Worker(new URL(`./worker.js`, import.meta.url), {
 	type: `module`,
 })
-const { port1, port2 } = new MessageChannel()
-const panel = mountWorkerAtomIODevtools(
-	document.querySelector(`#devtools`)!,
-	port1,
-)
-worker.postMessage({ type: `connect`, port: port2 }, [port2])
+const local = new Silo({
+	name: `Page`,
+	lifespan: `ephemeral`,
+	isProduction: true,
+})
+local.atom<string>({ key: `location`, default: `Main thread` })
+const panel = mountAtomIODevtools(document.querySelector(`#devtools`)!, {
+	stores: [
+		{
+			id: `worker`,
+			label: `Counter worker`,
+			kind: `remote`,
+			connect() {
+				const { port1, port2 } = new MessageChannel()
+				worker.postMessage({ type: `connect`, port: port2 }, [port2])
+				return port1
+			},
+		},
+		{ id: `page`, label: `Page store`, kind: `local`, store: local.store },
+	],
+})
 
 const output = document.querySelector<HTMLOutputElement>(`#worker-values`)!
 worker.addEventListener(

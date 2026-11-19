@@ -94,6 +94,17 @@ debugger-panel.class {
 	> debugger-toolbar > button {
 		align-self: center;
 	}
+	[data-store-picker] {
+		width: 100%;
+		min-width: 0;
+		color: var(--brand-color);
+		background: var(--surface-shell);
+		font: inherit;
+	}
+	[data-store-picker] option, [data-store-picker] optgroup {
+		color: var(--ink);
+		background: var(--surface-content);
+	}
 	> debugger-toolbar > nav {
 		grid-column: 1 / -1;
 		grid-row: 2;

@@ -35,72 +35,38 @@ export function attachDebugger(host: HTMLElement): () => void {
 
 ```
 
-## Web Worker prototype
+## Local and remote stores
 
-The same debugger panel can inspect a Web Worker over a dedicated MessagePort. In the worker, exposeDevtoolsStore from @atom.io/spa-devtools/worker subscribes to the listed standalone atoms and readonly selectors in a Silo. The prototype supports synchronous JSON primitives. An atom is editable when the worker supplies a validator and its value is a number, string, or boolean.
+Supply stores to the SPA or React component or to mountAtomIODevtools. Each target has a unique ID and a label. Local targets take a RootStore. Remote targets take a function that opens a fresh MessagePort. The panel mounts every supplied target, initially shows the first, and groups them under Local and Remote in the store picker. Switching preserves each target's selected view and keeps its connection live. Disposing the panel closes its remote connections. When stores is omitted, the existing single-store setup applies.
 
 ```ts
-import { exposeDevtoolsStore } from "@atom.io/spa-devtools/worker"
+import { mountAtomIODevtools } from "@atom.io/spa-devtools"
 import { Silo } from "atom.io"
-
-const silo = new Silo({
-	name: `Counter worker`,
-	lifespan: `ephemeral`,
-	isProduction: true,
-})
-const countAtom = silo.atom<number>({ key: `count`, default: 2 })
-const doubledSelector = silo.selector<number>({
-	key: `doubled`,
-	get: ({ get }) => 2 * get(countAtom),
-})
-
-type AppMessage = { type: `connect`; port: MessagePort } | { type: `increment` }
-const worker = globalThis as unknown as Pick<
-	Worker,
-	`addEventListener` | `postMessage`
->
-const report = () => {
-	worker.postMessage({
-		count: silo.getState(countAtom),
-		doubled: silo.getState(doubledSelector),
-	})
-}
-silo.subscribe(countAtom, () => {
-	queueMicrotask(report)
-})
-
-worker.addEventListener(`message`, ({ data }: MessageEvent<AppMessage>) => {
-	if (data.type === `connect`) {
-		exposeDevtoolsStore(data.port, silo, [
-			{
-				token: countAtom,
-				validateEdit: (value) =>
-					typeof value === `number` && Number.isSafeInteger(value),
-			},
-			{ token: doubledSelector },
-		])
-		report()
-	} else {
-		silo.setState(countAtom, (value) => value + 1)
-	}
-})
-
-```
-
-On the page, import the shared stylesheet and use mountWorkerAtomIODevtools with the other end of the channel. The panel shows the Atoms and Selectors views. Press Enter or leave a text field to commit an edit. The worker validates the edit and publishes the authoritative values. If the atom changes after you start typing, the panel reports the conflict. Each endpoint owns its supplied port and returns cleanup for the connection.
-
-```ts
-import { mountWorkerAtomIODevtools } from "@atom.io/spa-devtools"
 
 const worker = new Worker(new URL(`./worker.js`, import.meta.url), {
 	type: `module`,
 })
-const { port1, port2 } = new MessageChannel()
-const panel = mountWorkerAtomIODevtools(
-	document.querySelector(`#devtools`)!,
-	port1,
-)
-worker.postMessage({ type: `connect`, port: port2 }, [port2])
+const local = new Silo({
+	name: `Page`,
+	lifespan: `ephemeral`,
+	isProduction: true,
+})
+local.atom<string>({ key: `location`, default: `Main thread` })
+const panel = mountAtomIODevtools(document.querySelector(`#devtools`)!, {
+	stores: [
+		{
+			id: `worker`,
+			label: `Counter worker`,
+			kind: `remote`,
+			connect() {
+				const { port1, port2 } = new MessageChannel()
+				worker.postMessage({ type: `connect`, port: port2 }, [port2])
+				return port1
+			},
+		},
+		{ id: `page`, label: `Page store`, kind: `local`, store: local.store },
+	],
+})
 
 const output = document.querySelector<HTMLOutputElement>(`#worker-values`)!
 worker.addEventListener(
@@ -123,7 +89,59 @@ window.addEventListener(
 
 ```
 
-From the repository root, start the demo and open the printed URL. The Increment in worker button changes the atom inside the worker. The Selectors tab shows the derived value, and the readout above the panel confirms edits received by the worker.
+## Web Worker stores
+
+In the worker, calling exposeDevtoolsStore with a Silo grants the dedicated port access to its state, including writable JSON state, family members, transaction outcomes, timeline history, and observed selector dependencies. Use a trusted port. The worker executes edits, family member disposal, and timeline undo and redo. Transactions retain up to 200 outcomes per transaction recorded since the connection opened. State values are transferred when structured-cloneable, and editable values must be JSON data. For a narrower connection, pass the optional list of standalone atoms and selectors and supply validators for editable primitive atoms.
+
+```ts
+import { exposeDevtoolsStore } from "@atom.io/spa-devtools/worker"
+import { Silo } from "atom.io"
+
+const silo = new Silo({
+	name: `Counter worker`,
+	lifespan: `ephemeral`,
+	isProduction: true,
+})
+const countAtom = silo.atom<number>({ key: `count`, default: 2 })
+const doubledSelector = silo.selector<number>({
+	key: `doubled`,
+	get: ({ get }) => 2 * get(countAtom),
+})
+silo.timeline({ key: `count`, scope: [countAtom] })
+const incrementTransaction = silo.transaction<() => void>({
+	key: `increment`,
+	do: ({ set }) => {
+		set(countAtom, (value) => value + 1)
+	},
+})
+
+type AppMessage = { type: `connect`; port: MessagePort } | { type: `increment` }
+const worker = globalThis as unknown as Pick<
+	Worker,
+	`addEventListener` | `postMessage`
+>
+const report = () => {
+	worker.postMessage({
+		count: silo.getState(countAtom),
+		doubled: silo.getState(doubledSelector),
+	})
+}
+silo.subscribe(countAtom, () => {
+	queueMicrotask(report)
+})
+
+worker.addEventListener(`message`, ({ data }: MessageEvent<AppMessage>) => {
+	if (data.type === `connect`) {
+		exposeDevtoolsStore(data.port, silo)
+		report()
+	} else {
+		silo.runTransaction(incrementTransaction)()
+	}
+})
+
+```
+
+From the repository root, start the demo and open the printed URL. The store picker switches between the page and worker. Increment in worker runs a worker transaction, and the Selectors tab shows the derived value. Edit count in the Atoms tab and press Enter to send it back. The Timelines tab can undo that edit, and Ecology shows the observed edge from count to doubled.
 
 ```sh
 pnpm exec turbo run demo:worker --filter=@atom.io/spa-devtools
@@ -297,7 +315,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                        | Entry                         | Minified JS |   Gzip JS |
 | ----------------------------- | ----------------------------- | ----------: | --------: |
-| Interactive app with debugger | `tonnage-recipes/debugger.ts` |   956,316 B | 284,881 B |
+| Interactive app with debugger | `tonnage-recipes/debugger.ts` |   981,887 B | 293,021 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

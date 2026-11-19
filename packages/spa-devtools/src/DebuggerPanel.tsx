@@ -9,6 +9,7 @@ import type { RootStore } from "atom.io/internal"
 import css from "./DebuggerPanel.module.css"
 import { createGraphContext } from "./ecology-graph.ts"
 import { EcologyView } from "./EcologyView.tsx"
+import type { StorePicker } from "./mount.ts"
 import type { WorkerPanelConnection } from "./mount-worker.ts"
 import { createSearchContext } from "./search-controller.ts"
 import { SearchView } from "./SearchView.tsx"
@@ -28,15 +29,20 @@ const VIEWS = [
 	`ecology`,
 ] as const
 type View = (typeof VIEWS)[number]
-const WORKER_VIEWS: readonly View[] = [`atoms`, `selectors`]
 let nextPanelId = 0
 export function DebuggerPanel(props: {
 	store: RootStore
 	hideByDefault: boolean
 	worker?: WorkerPanelConnection | undefined
+	picker?: StorePicker | undefined
 }): SpaElement {
 	const tools = useTools(props.store, props.worker)
-	const views = props.worker ? WORKER_VIEWS : VIEWS
+	const views = VIEWS
+	const picker = props.picker
+	const [active, setActive] = useLocal(
+		props.store,
+		!picker || picker.selected() === picker.id,
+	)
 	const panelId = `spa-devtools-${nextPanelId++}`
 	const [windowState, setWindowState] = useLocal<WindowPresentation>(
 		props.store,
@@ -57,7 +63,11 @@ export function DebuggerPanel(props: {
 	const [getOpen, setOpen] = useSaved(props.store, `🔍 Devtools Are Open`, true)
 	const [getSelection, setSelection] = useSaved<string>(
 		props.store,
-		props.worker ? `🔍 Worker Devtools View` : `🔍 Devtools View`,
+		picker
+			? `🔍 Devtools View ` + picker.id
+			: props.worker
+				? `🔍 Worker Devtools View`
+				: `🔍 Devtools View`,
 		`atoms`,
 	)
 	const view = () =>
@@ -68,7 +78,23 @@ export function DebuggerPanel(props: {
 		panel = element
 	}
 	let controller: ReturnType<typeof createWindowController> | undefined
+	const hidden = () => !active() || getHidden()
 	onMount(() => {
+		if (picker)
+			onCleanup(
+				picker.subscribe((id) => {
+					setActive(id === picker.id)
+					if (id === picker.id) {
+						setHidden(false)
+						setOpen(true)
+						queueMicrotask(() => {
+							panel
+								?.querySelector<HTMLSelectElement>(`select[data-store-picker]`)
+								?.focus()
+						})
+					}
+				}),
+			)
 		controller = createWindowController(
 			panel!,
 			() => {
@@ -77,17 +103,18 @@ export function DebuggerPanel(props: {
 			(patch) => {
 				setWindowState((previous) => ({ ...previous, ...patch }))
 			},
+			active,
 		)
-		controller.visibility(getHidden(), getOpen())
+		controller.visibility(hidden(), getOpen())
 		onCleanup(controller.dispose)
 	})
 	onCommit(windowState, () => {
 		controller?.committed()
 	})
 	onCommit(
-		() => `${getHidden()}:${getOpen()}`,
+		() => `${hidden()}:${getOpen()}`,
 		() => {
-			controller?.visibility(getHidden(), getOpen())
+			controller?.visibility(hidden(), getOpen())
 		},
 	)
 	return (
@@ -98,7 +125,7 @@ export function DebuggerPanel(props: {
 			ref={attach}
 			data-css="spa-devtools"
 			data-testid="atom-io-devtools"
-			hidden={getHidden()}
+			hidden={hidden()}
 			data-open={getOpen()}
 			data-window-interaction={String(windowState().interaction)}
 			style={rectStyle(windowState().rect)}
@@ -110,9 +137,48 @@ export function DebuggerPanel(props: {
 					aria-label="Move debugger"
 					title="Drag to move; arrow keys to nudge"
 				>
-					{getOpen() && !getHidden() && <BrandMark size={32} />}
+					{getOpen() && !hidden() && <BrandMark size={32} />}
 				</button>
-				<h1>{props.worker ? `atom.io · Worker` : `atom.io`}</h1>
+				<h1>
+					{picker ? (
+						<select
+							data-store-picker
+							aria-label="Inspected store"
+							value={picker.id}
+							onChange={(event) => {
+								const id = event.currentTarget.value
+								event.currentTarget.value = picker.id
+								picker.select(id)
+							}}
+						>
+							{([`local`, `remote`] as const).map((kind) => {
+								const targets = picker.targets.filter(
+									(target) => target.kind === kind,
+								)
+								return targets.length ? (
+									<optgroup
+										key={kind}
+										label={kind === `local` ? `Local` : `Remote`}
+									>
+										{targets.map((target) => (
+											<option
+												key={target.id}
+												value={target.id}
+												selected={target.id === picker.id}
+											>
+												{target.label}
+											</option>
+										))}
+									</optgroup>
+								) : null
+							})}
+						</select>
+					) : props.worker ? (
+						`atom.io · Worker`
+					) : (
+						`atom.io`
+					)}
+				</h1>
 				{getOpen() ? (
 					<nav role="tablist" aria-label="Debugger views">
 						{views.map((name) => (
@@ -166,7 +232,7 @@ export function DebuggerPanel(props: {
 						setOpen((value) => !value)
 					}}
 				>
-					{getOpen() ? `−` : !getHidden() && <BrandMark size={LAUNCHER_SIZE} />}
+					{getOpen() ? `−` : !hidden() && <BrandMark size={LAUNCHER_SIZE} />}
 				</button>
 				<button
 					type="button"
@@ -195,7 +261,7 @@ export function DebuggerPanel(props: {
 				>
 					{getError() ? <p role="alert">{getError()}</p> : null}
 					{view() === `ecology` ? (
-						getHidden() ? null : (
+						hidden() ? null : (
 							<EcologyView tools={tools} context={graphContext} />
 						)
 					) : (

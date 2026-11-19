@@ -1,20 +1,36 @@
 import { type RegularAtomToken, Silo } from "atom.io"
+import type { RootStore } from "atom.io/internal"
 
-import { type AtomIODevtoolsHandle, mountPanel } from "./mount.ts"
-import type { PanelMessage, WorkerMessage } from "./worker-protocol.ts"
+import type { EcologySnapshot } from "./ecology.ts"
+import { createWorkerProjection } from "./worker-projection.ts"
+import type {
+	PanelMessage,
+	WorkerCachedValue,
+	WorkerMessage,
+} from "./worker-protocol.ts"
 
 export interface WorkerPanelConnection {
 	error: RegularAtomToken<string>
 	revision(key: string): number | undefined
 	edit(key: string, value: unknown, revision?: number): void
+	cache(key: string): RegularAtomToken<WorkerCachedValue> | undefined
+	generate(key: string): void
+	disposeState(key: string): void
+	timeline(
+		key: string,
+		action: `undo` | `redo`,
+		at: number,
+		length: number,
+	): void
+	ecology(): EcologySnapshot | undefined
+	subscribeEcology(listener: () => void): () => void
 }
 
-/** Mount the shared panel for a port connected to exposeDevtoolsStore. Owns the supplied port. */
-export function mountWorkerAtomIODevtools(
-	host: Element,
-	port: MessagePort,
-	options: { hideByDefault?: boolean } = {},
-): AtomIODevtoolsHandle {
+export function connectWorker(port: MessagePort): {
+	store: RootStore
+	worker: WorkerPanelConnection
+	close(): void
+} {
 	const silo = new Silo({
 		name: `Worker devtools`,
 		lifespan: `ephemeral`,
@@ -29,9 +45,14 @@ export function mountWorkerAtomIODevtools(
 		string,
 		{ value: RegularAtomToken<unknown>; revision: number | undefined }
 	>()
+	const projection = createWorkerProjection(silo)
 	let closed = false
 	const send = (message: PanelMessage) => {
 		port.postMessage(message)
+	}
+	const command = (message: PanelMessage) => {
+		if (closed) throw new Error(`Worker devtools disconnected`)
+		send(message)
 	}
 	function close(): void {
 		if (closed) return
@@ -50,6 +71,8 @@ export function mountWorkerAtomIODevtools(
 			connectionLost()
 		} else if (data?.type === `edit-error`) {
 			silo.setState(errorAtom, data.message)
+		} else if (data?.type === `store`) {
+			projection.apply(data.snapshot)
 		} else if (data?.type === `snapshot`) {
 			for (const state of data.states) {
 				const value = `value` in state ? state.value : new Error(state.error)
@@ -78,29 +101,30 @@ export function mountWorkerAtomIODevtools(
 	}
 	const worker: WorkerPanelConnection = {
 		error: errorAtom,
-		revision: (key) => states.get(key)?.revision,
+		revision: (key) => projection.revision(key) ?? states.get(key)?.revision,
 		edit(key, value, revision = worker.revision(key)) {
-			if (closed) throw new Error(`Worker devtools disconnected`)
-			send({ type: `edit`, key, value, revision })
+			command({ type: `edit`, key, value, revision })
 		},
+		cache: projection.cache,
+		generate(key) {
+			command({ type: `generate`, key })
+		},
+		disposeState(key) {
+			command({ type: `dispose`, key })
+		},
+		timeline(key, action, at, length) {
+			command({ type: `timeline`, key, action, at, length })
+		},
+		ecology: projection.ecology,
+		subscribeEcology: projection.subscribeEcology,
 	}
-	let panel: AtomIODevtoolsHandle
 	try {
 		port.addEventListener(`message`, receive)
 		port.addEventListener(`messageerror`, connectionLost)
 		port.start()
-		panel = mountPanel(host, silo.store, options.hideByDefault ?? false, worker)
 	} catch (error) {
 		close()
 		throw error
 	}
-	return {
-		dispose() {
-			try {
-				panel.dispose()
-			} finally {
-				close()
-			}
-		},
-	}
+	return { store: silo.store, worker, close }
 }

@@ -2,4 +2,4 @@
 "@atom.io/spa-devtools": patch
 ---
 
-Add experimental Web Worker inspection over MessagePort. Watch explicitly exposed atoms and readonly selectors in the SPA debugger and send validated atom edits back to the worker.
+Inspect multiple local and Web Worker stores in the SPA debugger with a grouped store picker. Worker targets support live state editing, family inspection, transactions, timeline undo and redo, and the observed dependency graph over MessagePort.

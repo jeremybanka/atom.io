@@ -11,6 +11,13 @@ const doubledSelector = silo.selector<number>({
 	key: `doubled`,
 	get: ({ get }) => 2 * get(countAtom),
 })
+silo.timeline({ key: `count`, scope: [countAtom] })
+const incrementTransaction = silo.transaction<() => void>({
+	key: `increment`,
+	do: ({ set }) => {
+		set(countAtom, (value) => value + 1)
+	},
+})
 
 type AppMessage = { type: `connect`; port: MessagePort } | { type: `increment` }
 const worker = globalThis as unknown as Pick<
@@ -29,16 +36,9 @@ silo.subscribe(countAtom, () => {
 
 worker.addEventListener(`message`, ({ data }: MessageEvent<AppMessage>) => {
 	if (data.type === `connect`) {
-		exposeDevtoolsStore(data.port, silo, [
-			{
-				token: countAtom,
-				validateEdit: (value) =>
-					typeof value === `number` && Number.isSafeInteger(value),
-			},
-			{ token: doubledSelector },
-		])
+		exposeDevtoolsStore(data.port, silo)
 		report()
 	} else {
-		silo.setState(countAtom, (value) => value + 1)
+		silo.runTransaction(incrementTransaction)()
 	}
 })

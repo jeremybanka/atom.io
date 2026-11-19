@@ -1,6 +1,5 @@
 ecology-view.class {
 	& {
-		background: var(--surface-content);
 		display: flex;
 		flex: 1;
 		min-height: 0;
@@ -18,7 +17,11 @@ ecology-view.class {
 		min-width: 0;
 		min-height: 0;
 		flex-direction: column;
-		background: var(--surface-graph);
+		background: color-mix(
+			in srgb,
+			var(--surface-graph) var(--window-fill-opacity),
+			transparent
+		);
 	}
 	@container atom-io-devtools (max-width: 650px) {
 		> ecology-body {

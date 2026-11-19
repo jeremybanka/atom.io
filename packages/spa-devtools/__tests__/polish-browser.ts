@@ -174,15 +174,13 @@ async function checkVisualTreatment(
 					radius: selected.borderTopLeftRadius,
 					activeFill: selected.backgroundColor,
 					activeBottomEdge: selected.borderBottomColor,
-					panelFill: getComputedStyle(
-						el.querySelector<HTMLElement>(`[data-index]`)!,
-					).backgroundColor,
 					inactiveShadow: rest.boxShadow,
 				},
 				textColor: getComputedStyle(el).color,
 				surfaces: {
-					shell: getComputedStyle(el).backgroundColor,
-					content: getComputedStyle(el.querySelector(`[data-index]`)!)
+					shell: getComputedStyle(el.querySelector(`debugger-toolbar`)!)
+						.backgroundColor,
+					content: getComputedStyle(el.querySelector(`search-view`)!)
 						.backgroundColor,
 					search: getComputedStyle(el.querySelector(`search-row`)!)
 						.backgroundColor,
@@ -194,8 +192,10 @@ async function checkVisualTreatment(
 			}
 		})
 	assert.notEqual(appearance.surfaces.shell, appearance.surfaces.content)
-	assert.equal(appearance.surfaces.search, appearance.surfaces.content)
-	assert.notEqual(appearance.surfaces.search, appearance.surfaces.inactive)
+	assert.match(appearance.surfaces.shell, / \/ 0\.92\)$/)
+	assert.match(appearance.surfaces.content, / \/ 0\.92\)$/)
+	assert.equal(appearance.surfaces.search, `rgba(0, 0, 0, 0)`)
+	assert.notEqual(appearance.surfaces.content, appearance.surfaces.inactive)
 	assert.equal(
 		appearance.surfaces.hard,
 		theme === `dark` ? appearance.surfaces.shade : appearance.surfaces.tint,
@@ -214,7 +214,6 @@ async function checkVisualTreatment(
 		Math.abs(appearance.tabs.activeBottom - appearance.tabs.inactiveBottom) < 1,
 	)
 	assert.equal(appearance.tabs.activeBottomEdge, appearance.tabs.activeFill)
-	assert.equal(appearance.tabs.activeFill, appearance.tabs.panelFill)
 	assert.ok(
 		Math.abs(appearance.tabs.activeBottom - appearance.tabs.contentTop) < 1,
 	)
@@ -232,6 +231,17 @@ async function checkVisualTreatment(
 		content: `debugger-panel[data-css="spa-devtools"]::before {display:none !important}`,
 	})
 	const flat = await page.screenshot({ clip })
+	const backing = await page.addStyleTag({
+		content: `html, body { background: black }`,
+	})
+	const darkBacking = await page.screenshot({ clip })
+	await backing.evaluate((style) => {
+		style.textContent = `html, body { background: white }`
+	})
+	const lightBacking = await page.screenshot({ clip })
+	await backing.evaluate((style: HTMLStyleElement) => {
+		style.remove()
+	})
 	await off.evaluate((el: HTMLElement) => {
 		el.remove()
 	})
@@ -260,7 +270,13 @@ async function checkVisualTreatment(
 	})
 	await probe.dispose()
 	const pixels = await page.evaluate(
-		async ({ on: noisePng, flat: flatPng, ink: inkPng }) => {
+		async ({
+			on: noisePng,
+			flat: flatPng,
+			ink: inkPng,
+			darkBackingPng,
+			lightBackingPng,
+		}) => {
 			const read = async (data: string) => {
 				const image = new Image()
 				image.src = `data:image/png;base64,${data}`
@@ -275,7 +291,9 @@ async function checkVisualTreatment(
 			}
 			const a = await read(noisePng),
 				b = await read(flatPng),
-				foreground = await read(inkPng)
+				foreground = await read(inkPng),
+				dark = await read(darkBackingPng),
+				light = await read(lightBackingPng)
 			const linear = (v: number) => {
 				const x = v / 255
 				return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4
@@ -286,6 +304,7 @@ async function checkVisualTreatment(
 				0.0722 * linear(data[i + 2])
 			let minimumInkContrast = Infinity
 			let delta = 0,
+				backingDelta = 0,
 				sum = 0,
 				squares = 0,
 				min = 255,
@@ -302,6 +321,7 @@ async function checkVisualTreatment(
 				squares += luma * luma
 				min = Math.min(min, luma)
 				max = Math.max(max, luma)
+				backingDelta += light[i] - dark[i]
 				delta +=
 					(Math.abs(a[i] - b[i]) +
 						Math.abs(a[i + 1] - b[i + 1]) +
@@ -311,6 +331,7 @@ async function checkVisualTreatment(
 			const n = a.length / 4
 			return {
 				averageChannelDelta: delta / n,
+				backingDelta: backingDelta / n,
 				lumaStdDev: Math.sqrt(Math.max(0, squares / n - (sum / n) ** 2)),
 				minLuma: min,
 				maxLuma: max,
@@ -321,7 +342,13 @@ async function checkVisualTreatment(
 			on: on.toString(`base64`),
 			flat: flat.toString(`base64`),
 			ink: ink.toString(`base64`),
+			darkBackingPng: darkBacking.toString(`base64`),
+			lightBackingPng: lightBacking.toString(`base64`),
 		},
+	)
+	assert.ok(
+		pixels.backingDelta >= 18 && pixels.backingDelta <= 22,
+		`The page should contribute about 8% of the visible window fill: ${pixels.backingDelta}`,
 	)
 	assert.ok(
 		pixels.averageChannelDelta > 1 && pixels.lumaStdDev > 0.5,

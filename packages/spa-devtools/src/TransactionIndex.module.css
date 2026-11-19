@@ -7,7 +7,6 @@ transaction-index.class {
 		flex: 1;
 		min-height: 0;
 		overflow: auto;
-		background: var(--surface-content);
 		padding-bottom: 24px;
 	}
 	> article[data-index] > p {

@@ -1040,16 +1040,19 @@ it(`reveals the caught-error bands over one explosion cycle`, async () => {
 	expect(card.textContent).toContain(`TransportError`)
 	expect(card.dataset[`caught`]).toBe(`burst`)
 	const image = card.querySelector(`img`)!
-	expect(image.src).toContain(`kablooey.gif`)
+	expect(image.src).toContain(`kablooey.png`)
 	image.dispatchEvent(new Event(`load`))
 	expect(card.dataset[`caught`]).toBe(`revealing`)
-	expect(card.style.getPropertyValue(`--ecology-explosion-duration`)).toBe(
-		`1700ms`,
-	)
+	expect(
+		image
+			.closest<HTMLElement>(`[data-error-reveal]`)!
+			.style.getPropertyValue(`--ecology-explosion-duration`),
+	).toBe(`1700ms`)
 	await vi.advanceTimersByTimeAsync(1_699)
 	expect(card.querySelector(`img`)).toBe(image)
 	expect(card.dataset[`caught`]).toBe(`revealing`)
 	await vi.advanceTimersByTimeAsync(1)
+	image.dispatchEvent(new Event(`animationend`))
 	expect(card.querySelector(`img`)).toBeNull()
 	expect(card.dataset[`caught`]).toBe(`true`)
 	await f.click(`Refresh`)

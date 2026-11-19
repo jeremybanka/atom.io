@@ -1,11 +1,12 @@
 import type { FutureActivity } from "atom.io/introspection"
 
-import kablooey from "./assets/kablooey.gif"
+import kablooey from "./assets/kablooey.png"
 
 const CYCLE_MS = 1_000
 const WINDBACK_MS = 500
-const EXPLOSION_MS = 1_700
-let explosionSerial = 0
+// The strip preserves the supplied GIF's composited frames and timing.
+const EXPLOSION_FRAMES = 17
+const EXPLOSION_MS = EXPLOSION_FRAMES * 100
 
 interface CardFeedback {
 	future(
@@ -79,13 +80,12 @@ export function createCardFeedback(
 			})
 		} else show(undefined)
 	}
-	let explosion: HTMLImageElement | undefined
+	let explosion: HTMLSpanElement | undefined
 	let explosionTimer: number | undefined
 	const clearExplosion = () => {
 		view.clearTimeout(explosionTimer)
 		explosion?.remove()
 		explosion = undefined
-		button.style.removeProperty(`--ecology-explosion-duration`)
 	}
 	return {
 		future(
@@ -121,34 +121,50 @@ export function createCardFeedback(
 			}
 			button.dataset[`caught`] = `true`
 			if (!animate || reducedMotion.matches) return
-			const image = button.ownerDocument.createElement(`img`)
-			explosion = image
+			const document = button.ownerDocument
+			const reveal = document.createElement(`span`)
+			reveal.dataset[`errorReveal`] = ``
+			reveal.setAttribute(`aria-hidden`, `true`)
+			reveal.style.setProperty(
+				`--ecology-explosion-duration`,
+				`${EXPLOSION_MS}ms`,
+			)
+			reveal.style.setProperty(
+				`--ecology-explosion-frames`,
+				String(EXPLOSION_FRAMES),
+			)
+			const viewport = document.createElement(`span`)
+			viewport.dataset[`explosion`] = ``
+			const image = document.createElement(`img`)
 			image.alt = ``
-			image.dataset[`explosion`] = ``
+			viewport.append(image)
+			reveal.append(viewport)
+			explosion = reveal
 			button.dataset[`caught`] = `burst`
-			// A cached GIF can load before the next paint. Reset both band animations now.
-			void view.getComputedStyle(button, `::before`).animationName
 			const finish = () => {
-				if (explosion !== image) return
+				if (explosion !== reveal) return
 				clearExplosion()
 				button.dataset[`caught`] = `true`
 			}
 			image.addEventListener(
 				`load`,
 				() => {
-					if (explosion !== image) return
-					button.style.setProperty(
-						`--ecology-explosion-duration`,
-						`${EXPLOSION_MS}ms`,
-					)
+					if (explosion !== reveal) return
+					if (reducedMotion.matches) {
+						finish()
+						return
+					}
 					button.dataset[`caught`] = `revealing`
-					explosionTimer = view.setTimeout(finish, EXPLOSION_MS)
+					// The sprite normally finishes on animationend. Clean up if CSS never animates it.
+					explosionTimer = view.setTimeout(finish, EXPLOSION_MS + 100)
 				},
 				{ once: true },
 			)
 			image.addEventListener(`error`, finish, { once: true })
-			image.src = `${kablooey}#${++explosionSerial}`
-			button.append(image)
+			image.addEventListener(`animationend`, finish, { once: true })
+			image.addEventListener(`animationcancel`, finish, { once: true })
+			image.src = kablooey
+			button.append(reveal)
 		},
 		dispose(): void {
 			view.clearTimeout(phaseTimer)

@@ -49,8 +49,19 @@ ecology-node-card.class {
 		border: 1px solid var(--ecology-color);
 		box-shadow: 0 2px 6px #0002;
 		cursor: pointer;
-		&:is([data-caught="revealing"], [data-caught="true"])::before,
-		&:is([data-caught="revealing"], [data-caught="true"])::after {
+		> [data-error-reveal] {
+			position: absolute;
+			inset: 0;
+			border-radius: inherit;
+			pointer-events: none;
+		}
+		&[data-caught="burst"] > [data-error-reveal] {
+			visibility: hidden;
+		}
+		&[data-caught="true"]::before,
+		&[data-caught="true"]::after,
+		> [data-error-reveal]::before,
+		> [data-error-reveal]::after {
 			content: "";
 			position: absolute;
 			inset-inline: 1px;
@@ -62,34 +73,45 @@ ecology-node-card.class {
 			);
 			pointer-events: none;
 		}
-		&:is([data-caught="revealing"], [data-caught="true"])::before {
+		&[data-caught="true"]::before,
+		> [data-error-reveal]::before {
 			top: 0;
 			border-radius: inherit;
 		}
-		&:is([data-caught="revealing"], [data-caught="true"])::after {
+		&[data-caught="true"]::after,
+		> [data-error-reveal]::after {
 			bottom: 0;
 		}
 		@media (prefers-reduced-motion: no-preference) {
-			&[data-caught="revealing"]::before,
-			&[data-caught="revealing"]::after {
-				animation: ecology-reveal-band var(--ecology-explosion-duration) linear
-					both;
+			&[data-caught="revealing"] > [data-error-reveal]::before,
+			&[data-caught="revealing"] > [data-error-reveal]::after {
+				animation: ecology-reveal-band 320ms ease-out both;
 			}
-			&[data-caught="revealing"]::before {
-				--ecology-band-start: inset(0 100% 0 0);
+			> [data-error-reveal]::before {
+				--ecology-band-start: inset(0 0 100% 0);
 			}
-			&[data-caught="revealing"]::after {
-				--ecology-band-start: inset(0 0 0 100%);
+			> [data-error-reveal]::after {
+				--ecology-band-start: inset(100% 0 0 0);
+			}
+			&[data-caught="revealing"] [data-explosion] > img {
+				animation: ecology-explosion var(--ecology-explosion-duration)
+					steps(var(--ecology-explosion-frames), end) both;
 			}
 		}
-		> [data-explosion] {
+		> [data-error-reveal] > [data-explosion] {
 			position: absolute;
 			top: -12px;
 			right: -7px;
 			width: 34px;
-			height: auto;
-			pointer-events: none;
+			aspect-ratio: 142 / 200;
+			overflow: hidden;
 			image-rendering: pixelated;
+			> img {
+				display: block;
+				width: calc(var(--ecology-explosion-frames) * 100%);
+				max-width: none;
+				height: 100%;
+			}
 			@media (prefers-reduced-motion: reduce) {
 				display: none;
 			}
@@ -202,6 +224,15 @@ ecology-node-card.class {
 	}
 	&[data-traced="true"] > button {
 		box-shadow: inset 3px 0 var(--ecology-color);
+	}
+}
+
+@keyframes ecology-explosion {
+	from {
+		transform: translateX(0);
+	}
+	to {
+		transform: translateX(-100%);
 	}
 }
 

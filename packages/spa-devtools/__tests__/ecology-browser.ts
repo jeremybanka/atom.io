@@ -1305,63 +1305,58 @@ try {
 	const broken = page.locator(
 		`ecology-node-card button[data-graph-id="state:broken"]`,
 	)
-	const explosion = broken.locator(`img[data-explosion]`)
-	await explosion.waitFor({ state: `visible` })
-	const explosionSource = (await explosion.getAttribute(`src`))!
+	const reveal = broken.locator(`[data-error-reveal]`)
+	const explosion = reveal.locator(`[data-explosion] > img`)
 	await broken.and(page.locator(`[data-caught="revealing"]`)).waitFor()
-	const bands = await broken.evaluate((button) =>
+	const bands = await reveal.evaluate((layer) =>
 		[`::before`, `::after`].map((side) => {
-			const style = getComputedStyle(button, side)
-			return { duration: style.animationDuration, clip: style.clipPath }
+			const style = getComputedStyle(layer, side)
+			return {
+				duration: style.animationDuration,
+				start: style.getPropertyValue(`--ecology-band-start`),
+			}
 		}),
 	)
 	assert.deepEqual(
 		bands.map(({ duration }) => duration),
-		[`1.7s`, `1.7s`],
+		[`0.32s`, `0.32s`],
 	)
-	assert.ok(bands.every(({ clip }) => clip.startsWith(`inset(`)))
-	assert.notEqual(bands[0].clip, bands[1].clip)
-	assert.equal(
-		await explosion.evaluate((image: HTMLImageElement) =>
-			image.decode().then(() => image.naturalWidth),
-		),
-		142,
-	)
-	const { repetitions, coverage } = await page.evaluate(async (source) => {
-		const response = await fetch(source)
-		const decoder = new ImageDecoder({
-			type: `image/gif`,
-			data: await response.arrayBuffer(),
-		})
-		try {
-			await decoder.tracks.ready
-			const track = decoder.tracks.selectedTrack!
+	assert.match(bands[0].start, /inset\(0 0 100%/)
+	assert.match(bands[1].start, /inset\(100%/)
+	const { coverage, size } = await explosion.evaluate(
+		async (image: HTMLImageElement) => {
+			await image.decode()
+			const frameCount = 17
+			const width = image.naturalWidth / frameCount
+			const height = image.naturalHeight
 			const canvas = document.createElement(`canvas`)
+			canvas.width = width
+			canvas.height = height
 			const drawing = canvas.getContext(`2d`, { willReadFrequently: true })!
 			const visibleByFrame: number[] = []
-			for (let frameIndex = 0; frameIndex < track.frameCount; frameIndex++) {
-				const { image } = await decoder.decode({ frameIndex })
-				canvas.width = image.displayWidth
-				canvas.height = image.displayHeight
-				drawing.drawImage(image, 0, 0)
-				image.close()
-				const pixels = drawing.getImageData(
+			for (let frameIndex = 0; frameIndex < frameCount; frameIndex++) {
+				drawing.clearRect(0, 0, width, height)
+				drawing.drawImage(
+					image,
+					frameIndex * width,
+					0,
+					width,
+					height,
 					0,
 					0,
-					canvas.width,
-					canvas.height,
-				).data
+					width,
+					height,
+				)
+				const pixels = drawing.getImageData(0, 0, width, height).data
 				let visible = 0
 				for (let alpha = 3; alpha < pixels.length; alpha += 4)
 					if (pixels[alpha]) visible++
 				visibleByFrame.push(visible)
 			}
-			return { repetitions: track.repetitionCount, coverage: visibleByFrame }
-		} finally {
-			decoder.close()
-		}
-	}, explosionSource)
-	assert.equal(repetitions, 0)
+			return { coverage: visibleByFrame, size: [width, height] }
+		},
+	)
+	assert.deepEqual(size, [142, 200])
 	const peak = Math.max(...coverage)
 	assert.ok(coverage[0] < peak * 0.03 && coverage.at(-1)! < peak * 0.03)
 	const threshold = peak * 0.35
@@ -1373,33 +1368,48 @@ try {
 		1,
 	)
 	for (let attempt = 0; attempt < 3; attempt++) {
+		await page.waitForFunction(() =>
+			document
+				.querySelector(`[data-graph-id="state:broken"] [data-explosion] > img`)
+				?.getAnimations()
+				.some((animation) => Number(animation.currentTime) >= 350),
+		)
 		const restarted = await broken.evaluate((button) => {
-			const bandAnimations = () =>
+			const revealAnimations = () =>
 				button
-					.getAnimations({ subtree: true })
-					.filter(({ effect }) => effect?.getTiming().duration === 1700)
-			const previous = bandAnimations()
-			const previousImage = button.querySelector(`img[data-explosion]`)
+					.querySelector(`[data-error-reveal]`)
+					?.getAnimations({ subtree: true }) ?? []
+			const previous = revealAnimations()
+			const previousImage = button.querySelector(`[data-explosion] > img`)
+			const frameOffset = (image: Element) =>
+				new DOMMatrixReadOnly(getComputedStyle(image).transform).m41
+			const previousOffset = previousImage ? frameOffset(previousImage) : 0
 			return new Promise<boolean>((resolve) => {
 				const timeout = setTimeout(() => {
 					observer.disconnect()
 					resolve(false)
 				}, 1500)
 				const observer = new MutationObserver(() => {
-					const image = button.querySelector(`img[data-explosion]`)
+					const image = button.querySelector(`[data-explosion] > img`)
 					if (
 						!image ||
 						image === previousImage ||
 						button.dataset[`caught`] !== `revealing`
 					)
 						return
-					const current = bandAnimations()
+					const current = revealAnimations()
 					clearTimeout(timeout)
 					observer.disconnect()
 					resolve(
-						previous.length === 2 &&
-							current.length === 2 &&
-							current.every((animation) => !previous.includes(animation)),
+						previousOffset < 0 &&
+							frameOffset(image) === 0 &&
+							previous.length === 3 &&
+							current.length === 3 &&
+							current.every(
+								(animation) =>
+									!previous.includes(animation) &&
+									Number(animation.currentTime) < 100,
+							),
 					)
 				})
 				observer.observe(button, { attributes: true, childList: true })
@@ -1409,7 +1419,7 @@ try {
 		assert.equal(
 			restarted,
 			true,
-			`Rejection ${attempt + 2} should start both bands again`,
+			`Rejection ${attempt + 2} should restart the blast and both bands`,
 		)
 	}
 	await explosion.waitFor({ state: `detached` })

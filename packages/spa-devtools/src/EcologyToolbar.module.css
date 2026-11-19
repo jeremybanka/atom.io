@@ -4,7 +4,7 @@ ecology-toolbar.class {
 		align-items: flex-start;
 		gap: 4px;
 		padding: 4px;
-		background: var(--surface-content);
+		background: var(--window-content-fill);
 		border-bottom: 1px solid var(--line);
 	}
 	> ecology-actions {

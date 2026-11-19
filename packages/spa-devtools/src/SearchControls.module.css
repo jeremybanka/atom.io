@@ -3,7 +3,6 @@ search-controls.class {
 	grid-template-columns: minmax(0, 1fr) auto;
 	gap: 4px 8px;
 	align-items: start;
-	background: var(--surface-content);
 	flex: 0 1 auto;
 	max-height: 60%;
 	overflow: auto;
@@ -17,7 +16,6 @@ search-controls.class {
 		grid-column: 1 / -1;
 	}
 	& > search-row {
-		background: var(--surface-content);
 		display: flex;
 		flex-wrap: wrap;
 		gap: 4px;

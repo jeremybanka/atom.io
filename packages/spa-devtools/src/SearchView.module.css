@@ -3,5 +3,5 @@ search-view.class {
 	flex: 1;
 	min-height: 0;
 	flex-direction: column;
-	background: var(--surface-content);
+	background: var(--window-content-fill);
 }

@@ -112,38 +112,39 @@ export function DebuggerPanel(props: {
 				{getOpen() ? (
 					<nav role="tablist" aria-label="Debugger views">
 						{VIEWS.map((name) => (
-							<button
-								type="button"
-								role="tab"
-								aria-selected={view() === name}
-								aria-controls={`${panelId}-content`}
-								id={`${panelId}-${name}`}
-								tabIndex={view() === name ? 0 : -1}
-								onKeyDown={(event) => {
-									const index = VIEWS.indexOf(name)
-									let next: number
-									if (event.key === `ArrowRight`)
-										next = (index + 1) % VIEWS.length
-									else if (event.key === `ArrowLeft`)
-										next = (index + VIEWS.length - 1) % VIEWS.length
-									else if (event.key === `Home`) next = 0
-									else if (event.key === `End`) next = VIEWS.length - 1
-									else return
-									event.preventDefault()
-									setSelection(VIEWS[next])
-									event.currentTarget
-										.parentElement!.querySelectorAll<HTMLButtonElement>(
-											`[role="tab"]`,
-										)
-										[next].focus()
-								}}
-								data-testid={`view-${name}`}
-								onClick={() => {
-									setSelection(name)
-								}}
-							>
-								{name}
-							</button>
+							<span key={name} role="presentation">
+								<button
+									type="button"
+									role="tab"
+									aria-selected={view() === name}
+									aria-controls={`${panelId}-content`}
+									id={`${panelId}-${name}`}
+									tabIndex={view() === name ? 0 : -1}
+									onKeyDown={(event) => {
+										const index = VIEWS.indexOf(name)
+										let next: number
+										if (event.key === `ArrowRight`)
+											next = (index + 1) % VIEWS.length
+										else if (event.key === `ArrowLeft`)
+											next = (index + VIEWS.length - 1) % VIEWS.length
+										else if (event.key === `Home`) next = 0
+										else if (event.key === `End`) next = VIEWS.length - 1
+										else return
+										event.preventDefault()
+										setSelection(VIEWS[next])
+										event.currentTarget
+											.closest(`nav`)!
+											.querySelectorAll<HTMLButtonElement>(`[role="tab"]`)
+											[next].focus()
+									}}
+									data-testid={`view-${name}`}
+									onClick={() => {
+										setSelection(name)
+									}}
+								>
+									{name}
+								</button>
+							</span>
 						))}
 					</nav>
 				) : null}

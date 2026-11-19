@@ -441,14 +441,14 @@ importers:
         specifier: 5.1.0
         version: 5.1.0(vitest@5.1.0)
       arktype:
-        specifier: 2.2.9
-        version: 2.2.9
+        specifier: 2.2.10
+        version: 2.2.10
       breakage:
         specifier: 0.10.2
         version: 0.10.2(supports-color@10.2.2)(zod@4.6.7)
       drizzle-orm:
         specifier: 1.0.0-rc.5
-        version: 1.0.0-rc.5(arktype@2.2.9)(bun-types@1.4.4)(postgres@4.1.1)(zod@4.6.7)
+        version: 1.0.0-rc.5(arktype@2.2.10)(bun-types@1.4.4)(postgres@4.1.1)(zod@4.6.7)
       eslint:
         specifier: 10.15.0
         version: 10.15.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -531,11 +531,11 @@ importers:
         specifier: 1.9.0
         version: 1.9.0
       arktype:
-        specifier: 2.2.9
-        version: 2.2.9
+        specifier: 2.2.10
+        version: 2.2.10
       comline:
         specifier: 0.9.3
-        version: 0.9.3(arktype@2.2.9)(zod@4.6.7)
+        version: 0.9.3(arktype@2.2.10)(zod@4.6.7)
       local-pkg:
         specifier: 2.0.0
         version: 2.0.0
@@ -749,8 +749,8 @@ importers:
         specifier: 5.1.0
         version: 5.1.0(@vitest/browser@5.1.0)(vitest@5.1.0)
       arktype:
-        specifier: 2.2.9
-        version: 2.2.9
+        specifier: 2.2.10
+        version: 2.2.10
       atom.io:
         specifier: workspace:*
         version: link:../atom.io
@@ -1541,11 +1541,17 @@ packages:
   '@ark/schema@0.56.8':
     resolution: {integrity: sha512-R05TOe85oQBGFFw2zKMuZpqkXibLKuC/aJt6VwFn5Cjc4x3NkWfhvGRpRDycNkj3ddcHnOPtIsmjVowJO9Yxdw==}
 
+  '@ark/schema@0.56.9':
+    resolution: {integrity: sha512-3kFUweE9PagqzEC9FEOirBRrVxBj0D6o8UiZDDrCyrcaBepRFHjUezf6MuTk8mKfJ4NKzSsaUCOVK+jzcm+dPw==}
+
   '@ark/util@0.56.7':
     resolution: {integrity: sha512-z8pVnrPk/x9GC18yOp5wCe8rR2+Z6us4CTSg7dvxdsDLuA2xXYq+QETD1fO6f3fMuXe+PCjpvtCnhTW9RHLgEw==}
 
   '@ark/util@0.56.8':
     resolution: {integrity: sha512-XLiQyGfpJcws1zCtp2Cva8s1oheCdFn1Rt6JSyC4NnkDrpwCJnlaiawuuOc1Z97vMH+jEzW5vyyf0xOju5wUQA==}
+
+  '@ark/util@0.56.9':
+    resolution: {integrity: sha512-/yA1me+AMmI75VaQ5owz1A1owopAJ0ZZFXy9SI1Q69kErJfxuglQBYjGeOTFyygJjZ9Rf4UjCtD5XTuEiNiGHw==}
 
   '@astrojs/cloudflare@14.4.8':
     resolution: {integrity: sha512-ousQRkwqvJnWnKO6hc5kt61xhDGbQMduwNCo3Vm5J6ec5kBq1P4QGc23uITFsUG+kdzoB0P+uMLiCVsdmUZWqA==}
@@ -5700,6 +5706,12 @@ packages:
   arkregex@0.0.14:
     resolution: {integrity: sha512-G3I/uCtWE0IKQiPh0qqmmAFDdtjZKZQ5mNPR6gJBeAMZ7VqYCpoaDeXnLju2Zo6ywExtmxZJELeVFb0MPDjPyA==}
 
+  arkregex@0.0.15:
+    resolution: {integrity: sha512-mu9vS4b8kTipqr2AfVIL1NYhGH47CZgPdYFzB762lu4/dsxm7hmNsN3ayDahcM9OhepOpTQc+W744yh4KE+mAw==}
+
+  arktype@2.2.10:
+    resolution: {integrity: sha512-xfum3++1RGjULFBeeXph3XrejEhAfswZlpH/V5m324j8aZ/53tHUd8OPCXE1v5iU/2UEkn/ZDFUT0Exkjv96xA==}
+
   arktype@2.2.8:
     resolution: {integrity: sha512-tZyLza7kO2vN8BXBKcj4t43IVMe8/ZyqlITH0chZv7FfEw+edLovpY922tqcK4mCjTpf4oNo2xV6np7tquP1ww==}
 
@@ -8952,9 +8964,15 @@ snapshots:
     dependencies:
       '@ark/util': 0.56.8
 
+  '@ark/schema@0.56.9':
+    dependencies:
+      '@ark/util': 0.56.9
+
   '@ark/util@0.56.7': {}
 
   '@ark/util@0.56.8': {}
+
+  '@ark/util@0.56.9': {}
 
   '@astrojs/cloudflare@14.4.8(@types/node@26.6.6)(astro@7.4.12(@astrojs/markdown-remark@7.3.9(supports-color@10.2.2))(@azure/identity@4.13.2(supports-color@10.2.2))(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(workerd@1.20261117.1)(wrangler@4.164.0(@types/node@26.6.6))(yaml@2.9.1)':
     dependencies:
@@ -12739,6 +12757,16 @@ snapshots:
     dependencies:
       '@ark/util': 0.56.8
 
+  arkregex@0.0.15:
+    dependencies:
+      '@ark/util': 0.56.9
+
+  arktype@2.2.10:
+    dependencies:
+      '@ark/schema': 0.56.9
+      '@ark/util': 0.56.9
+      arkregex: 0.0.15
+
   arktype@2.2.8:
     dependencies:
       '@ark/schema': 0.56.7
@@ -13025,6 +13053,14 @@ snapshots:
       arktype: 2.2.8
       zod: 4.6.7
 
+  comline@0.9.3(arktype@2.2.10)(zod@4.6.7):
+    dependencies:
+      '@standard-schema/spec': 1.1.0
+      treetrunks: 0.1.13
+    optionalDependencies:
+      arktype: 2.2.10
+      zod: 4.6.7
+
   comline@0.9.3(arktype@2.2.8)(zod@4.6.7):
     dependencies:
       '@standard-schema/spec': 1.1.0
@@ -13250,9 +13286,9 @@ snapshots:
       '@dprint/win32-arm64': 0.65.0
       '@dprint/win32-x64': 0.65.0
 
-  drizzle-orm@1.0.0-rc.5(arktype@2.2.9)(bun-types@1.4.4)(postgres@4.1.1)(zod@4.6.7):
+  drizzle-orm@1.0.0-rc.5(arktype@2.2.10)(bun-types@1.4.4)(postgres@4.1.1)(zod@4.6.7):
     optionalDependencies:
-      arktype: 2.2.9
+      arktype: 2.2.10
       bun-types: 1.4.4
       postgres: 4.1.1
       zod: 4.6.7

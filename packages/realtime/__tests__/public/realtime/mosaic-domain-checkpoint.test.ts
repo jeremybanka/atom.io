@@ -2122,6 +2122,7 @@ describe(`Mosaic Domain incremental checkpoint graph`, () => {
 		}
 	})
 
+	// Coverage runs have spent over 40 seconds staging this fixture on CI.
 	test(`a tiny staged delta can retain an authenticated graph over 50 MiB`, async () => {
 		const storage = new InMemoryMosaicDomainCheckpointStorage({ now: () => 100 })
 		const mebibyte = 1024 * 1024
@@ -2171,7 +2172,7 @@ describe(`Mosaic Domain incremental checkpoint graph`, () => {
 		})
 		expect(local.bytes).toBeGreaterThan(50 * mebibyte)
 		expect(local.persistedBytes).toBeLessThan(512 * 1024)
-	}, 30_000)
+	}, 90_000)
 
 	test(`external graph builders reject malformed bounds and proposal transitions`, async () => {
 		expect(

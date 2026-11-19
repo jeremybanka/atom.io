@@ -235,28 +235,38 @@ async function checkVisualTreatment(
 		content: `debugger-panel[data-css="spa-devtools"]::before {display:none !important}`,
 	})
 	const flat = await page.screenshot({ clip })
-	const seamClip = await page
+	const tabJoin = await page
 		.getByRole(`tab`, { selected: true })
 		.evaluate((tab) => {
 			const bounds = tab.getBoundingClientRect()
+			const strip = tab.closest(`nav`)!.getBoundingClientRect()
+			const x = Math.ceil(strip.left) + 1
+			const dividerRow = 2
 			return {
-				x: Math.ceil(bounds.left + 8),
-				y: Math.floor(bounds.bottom) - 3,
-				width: 4,
-				height: 7,
+				clip: {
+					x,
+					y: Math.floor(bounds.bottom - 0.5) - dividerRow,
+					width: Math.floor(strip.right) - x - 1,
+					height: 7,
+				},
+				dividerRow,
+				openStart: Math.round(bounds.left) - x + 1,
+				openEnd: Math.round(bounds.right) - x - 1,
+				stroke: getComputedStyle(tab).borderTopColor.match(/\d+/g)!.map(Number),
 			}
 		})
+	const seamCapture = { clip: tabJoin.clip, scale: `css` } as const
 	const backing = await page.addStyleTag({
 		content: `html, body { background: black }`,
 	})
 	const darkBacking = await page.screenshot({ clip })
 	const lightThemeSeam =
-		theme === `light` ? await page.screenshot({ clip: seamClip }) : undefined
+		theme === `light` ? await page.screenshot(seamCapture) : undefined
 	await backing.evaluate((style) => {
 		style.textContent = `html, body { background: white }`
 	})
 	const lightBacking = await page.screenshot({ clip })
-	const seam = lightThemeSeam ?? (await page.screenshot({ clip: seamClip }))
+	const seam = lightThemeSeam ?? (await page.screenshot(seamCapture))
 	await backing.evaluate((style: HTMLStyleElement) => {
 		style.remove()
 	})
@@ -295,6 +305,7 @@ async function checkVisualTreatment(
 			darkBackingPng,
 			lightBackingPng,
 			seamPng,
+			join,
 		}) => {
 			const read = async (data: string) => {
 				const image = new Image()
@@ -349,17 +360,31 @@ async function checkVisualTreatment(
 			}
 			const n = a.length / 4
 			const seamPixels = await read(seamPng)
-			let seamDelta = 0
-			for (let i = 0; i < seamPixels.length; i += 4)
+			const { width, height } = join.clip
+			const sample = (x: number, y: number, channel: number) =>
+				seamPixels[(y * width + x) * 4 + channel]
+			let dividerDelta = 0
+			for (let x = 0; x < width; x++) {
+				if (x >= join.openStart && x < join.openEnd) continue
 				for (let channel = 0; channel < 3; channel++)
-					seamDelta = Math.max(
-						seamDelta,
-						Math.abs(seamPixels[i + channel] - seamPixels.at(-4 + channel)!),
+					dividerDelta = Math.max(
+						dividerDelta,
+						Math.abs(sample(x, join.dividerRow, channel) - join.stroke[channel]),
 					)
+			}
+			let seamDelta = 0
+			for (let x = join.openStart + 7; x < join.openStart + 11; x++)
+				for (let y = 0; y < height - 1; y++)
+					for (let channel = 0; channel < 3; channel++)
+						seamDelta = Math.max(
+							seamDelta,
+							Math.abs(sample(x, y, channel) - sample(x, height - 1, channel)),
+						)
 			return {
 				averageChannelDelta: delta / n,
 				backingDelta: backingDelta / n,
 				seamDelta,
+				dividerDelta,
 				lumaStdDev: Math.sqrt(Math.max(0, squares / n - (sum / n) ** 2)),
 				minLuma: min,
 				maxLuma: max,
@@ -373,6 +398,7 @@ async function checkVisualTreatment(
 			darkBackingPng: darkBacking.toString(`base64`),
 			lightBackingPng: lightBacking.toString(`base64`),
 			seamPng: seam.toString(`base64`),
+			join: tabJoin,
 		},
 	)
 	assert.ok(
@@ -382,6 +408,10 @@ async function checkVisualTreatment(
 	assert.ok(
 		pixels.seamDelta <= 2,
 		`The selected tab should blend into the content: ${pixels.seamDelta}`,
+	)
+	assert.ok(
+		pixels.dividerDelta <= 2,
+		`The content edge should meet both active corners and cover the inactive corners: ${pixels.dividerDelta}`,
 	)
 	assert.ok(
 		pixels.averageChannelDelta > 1 && pixels.lumaStdDev > 0.5,

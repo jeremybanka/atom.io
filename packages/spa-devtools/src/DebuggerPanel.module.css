@@ -120,14 +120,29 @@ debugger-panel.class {
 		&:last-child {
 			--tab-gutter-end: 7px;
 		}
+		&::before, &::after {
+			position: absolute;
+			inset-block-end: 0;
+			height: 1px;
+			background: var(--ink-muted);
+			z-index: 2;
+			pointer-events: none;
+		}
 		&::after {
 			content: "";
-			position: absolute;
-			inset: auto 0 0;
-			height: 1px;
-			border-inline: var(--tab-gutter-start) solid var(--ink-muted);
-			border-inline-end-width: var(--tab-gutter-end);
-			pointer-events: none;
+			inset-inline: 0;
+		}
+		/* The content edge covers inactive tabs and joins the active tab's side borders. */
+		&:has(> button[aria-selected="true"]) {
+			&::before {
+				content: "";
+				inset-inline-start: 0;
+				width: calc(var(--tab-gutter-start) + 1px);
+			}
+			&::after {
+				inset-inline-start: auto;
+				width: calc(var(--tab-gutter-end) + 1px);
+			}
 		}
 	}
 	> debugger-toolbar > nav > span > button {
@@ -138,7 +153,7 @@ debugger-panel.class {
 		margin-top: 4px;
 		padding: 0 7px;
 		border: 1px solid var(--line);
-		border-bottom-color: var(--ink-muted);
+		border-bottom-color: transparent;
 		border-radius: 8px 8px 0 0;
 		background: color-mix(
 			in srgb,

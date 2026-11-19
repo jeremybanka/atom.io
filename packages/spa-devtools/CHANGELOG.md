@@ -1,5 +1,16 @@
 # @atom.io/spa-devtools
 
+## 0.2.0
+
+### Minor Changes
+
+- a6e49ba: Add passive cache inspection and batched store observation to atom.io/introspection. Ecology now updates its graph and editor as the application evaluates, writes or resolves state. Changed cards flash briefly and respect reduced motion. This release of spa-devtools requires atom.io 0.54.11 or newer within the 0.54 series. Ecology cards show richer cached-value previews, caught-error indicators, and timed feedback for Futures that resolve or change fate.
+
+### Patch Changes
+
+- ca14db4: Animate Ecology’s dependency arrows when the camera-facing routing solver changes ports, keeping arrowheads attached to their cards and respecting reduced motion.
+- 3b699b6: Make the Devtools window backgrounds slightly translucent so the page behind the debugger shows through.
+
 ## 0.1.0
 
 ### Minor Changes

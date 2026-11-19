@@ -1,7 +1,7 @@
 {
 	"name": "resumability",
 	"version": "0.0.2",
-	"description": "Server-produced values with one-time browser resumption for Astro.",
+	"description": "Server-produced values with one-time browser resumption for Astro and Bun.",
 	"homepage": "https://github.com/jeremybanka/atom.io/tree/main/packages/resumability#readme",
 	"repository": {
 		"type": "git",
@@ -25,6 +25,10 @@
 		"./server": {
 			"types": "./dist/server.d.ts",
 			"default": "./dist/server.js"
+		},
+		"./bun": {
+			"types": "./dist/bun.d.ts",
+			"default": "./dist/bun.js"
 		},
 		"./astro": {
 			"types": "./dist/astro.d.ts",
@@ -78,6 +82,7 @@
 	"devDependencies": {
 		"@breakage/changesets": "0.1.0",
 		"@types/babel__core": "7.20.5",
+		"@types/bun": "npm:bun-types@1.4.4",
 		"@types/node": "26.6.6",
 		"@vitest/coverage-v8": "5.1.1",
 		"astro": "7.4.12",
@@ -93,6 +98,11 @@
 	},
 	"peerDependencies": {
 		"astro": "^7.4.2"
+	},
+	"peerDependenciesMeta": {
+		"astro": {
+			"optional": true
+		}
 	},
 	"publishConfig": {
 		"access": "public"

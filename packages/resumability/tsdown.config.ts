@@ -6,6 +6,7 @@ const config: UserConfig = defineConfig({
 		`src/index.ts`,
 		`src/client.ts`,
 		`src/server.ts`,
+		`src/bun.ts`,
 		`src/astro.ts`,
 		`src/astro-client.ts`,
 		`src/astro-server.ts`,
@@ -17,6 +18,7 @@ const config: UserConfig = defineConfig({
 	deps: {
 		neverBundle: [
 			/^node:/,
+			/^bun$/,
 			/^@babel\//,
 			/^astro(?:\/|$)/,
 			/^parse5-sax-parser$/,

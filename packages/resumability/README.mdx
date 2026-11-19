@@ -5,10 +5,13 @@ import Page from "./exhibits/index.astro" with { type: "code" };
 import Constant from "./exhibits/constant.ts" with { type: "code" };
 import ConstantPage from "./exhibits/constant-page.astro" with { type: "code" };
 import Atoms from "./exhibits/atoms.ts" with { type: "code" };
+import BunCount from "./exhibits/bun-ssr/count.ts" with { type: "code" };
+import BunServer from "./exhibits/bun-ssr/server.ts" with { type: "code" };
+import BunClient from "./exhibits/bun-ssr/client.ts" with { type: "code" };
 
 # resumability
 
-Server-produced values that become browser defaults. A small Astro utility with no atom.io or SPA runtime or peer dependency. This resumes data; it does not serialize closures, replace hydration, or provide a server RPC endpoint.
+Carry server-produced values into the browser with the Astro integration or the Bun build plugin. The same runtime works with any renderer.
 
 ## Astro setup
 
@@ -73,6 +76,22 @@ An atom can use the same reader as its default. Keep the definition at module sc
 Ordinary browser reads and resets resolve through Astro's host without changing atom.io's default evaluator. During SSR, use a request-local store and await the values used in markup. Resumability has no atom.io or SPA runtime or peer dependency.
 
 With @atom.io/spa/astro installed, SPA awaits async state used by JSX and uses resumability's renderer adapter to attach seeds to each island. Private stores additionally bind their own resumption scope during default evaluation, so lazy reads and pending work end with that island. This ownership binding belongs to SPA; the resumption host knows nothing about stores. See the [SPA resumability guide](https://atom.io.fyi/docs/spa/astro#resumability) and spa-astro-ssr template.
+
+## Bun SSR example
+
+Install resumability and save these three files in the same directory. Run server.ts with Bun and open the URL it prints.
+
+**count.ts** defines a reader shared by the server and browser. The server reads 42 from SQLite. The client producer returns 7.
+
+<BunCount />
+
+**server.ts** builds the browser script with the plugin, which strips the inline server producer and its SQLite import. For each page request, collect runs the reader on the server. The response uses the value in the HTML and embeds the serialized payload in an inert script directly inside the app wrapper.
+
+<BunServer />
+
+**client.ts** reads that script with createResumption and calls the same reader inside the scope. The first browser read shows the server's 42. Click **Read again** to run the client producer and see 7.
+
+<BunClient />
 
 ## API and transport
 

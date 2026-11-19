@@ -1,6 +1,6 @@
 # resumability
 
-Server-produced values that become browser defaults. A small Astro utility with no atom.io or SPA runtime or peer dependency. This resumes data; it does not serialize closures, replace hydration, or provide a server RPC endpoint.
+Carry server-produced values into the browser with the Astro integration or the Bun build plugin. The same runtime works with any renderer.
 
 ## Astro setup
 
@@ -170,6 +170,104 @@ export const warehouseNameAtom = atom<Loadable<string>>({
 Ordinary browser reads and resets resolve through Astro's host without changing atom.io's default evaluator. During SSR, use a request-local store and await the values used in markup. Resumability has no atom.io or SPA runtime or peer dependency.
 
 With @atom.io/spa/astro installed, SPA awaits async state used by JSX and uses resumability's renderer adapter to attach seeds to each island. Private stores additionally bind their own resumption scope during default evaluation, so lazy reads and pending work end with that island. This ownership binding belongs to SPA; the resumption host knows nothing about stores. See the [SPA resumability guide](https://atom.io.fyi/docs/spa/astro#resumability) and spa-astro-ssr template.
+
+## Bun SSR example
+
+Install resumability and save these three files in the same directory. Run server.ts with Bun and open the URL it prints.
+
+**count.ts** defines a reader shared by the server and browser. The server reads 42 from SQLite. The client producer returns 7.
+
+```ts
+import { resumable } from "resumability"
+
+export function readCount(): number | Promise<number> {
+	return resumable({
+		key: `count`,
+		server: async () => {
+			const { Database } = await import(`bun:sqlite`)
+			using database = new Database(`:memory:`)
+			return database.query<{ count: number }, []>(`SELECT 42 AS count`).get()!
+				.count
+		},
+		client: () => 7,
+	})
+}
+
+```
+
+**server.ts** builds the browser script with the plugin, which strips the inline server producer and its SQLite import. For each page request, collect runs the reader on the server. The response uses the value in the HTML and embeds the serialized payload in an inert script directly inside the app wrapper.
+
+```ts
+import resumability from "resumability/bun"
+import { collect, serialize } from "resumability/server"
+
+import { readCount } from "./count.ts"
+
+const {
+	outputs: [client],
+} = await Bun.build({
+	entrypoints: [`${import.meta.dir}/client.ts`],
+	target: `browser`,
+	plugins: [resumability],
+})
+
+const server = Bun.serve({
+	hostname: `127.0.0.1`,
+	port: 0,
+	routes: {
+		"/client.js": new Response(client, {
+			headers: { "content-type": `text/javascript` },
+		}),
+		async "/"(request) {
+			const { value, payload } = await collect(readCount, {
+				signal: request.signal,
+			})
+			return new Response(
+				`<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>Bun SSR resumption</title>
+	</head>
+	<body>
+		<main id="app">
+			<p>Server rendered: <output id="server-count">${value}</output></p>
+			<p>Browser read: <output id="browser-count"></output></p>
+			<button type="button">Read again</button>
+			<script type="application/json" data-resumable>${serialize(payload)}</script>
+		</main>
+		<script type="module" src="/client.js"></script>
+	</body>
+</html>`,
+				{ headers: { "content-type": `text/html; charset=utf-8` } },
+			)
+		},
+	},
+})
+
+console.log(server.url.href)
+
+```
+
+**client.ts** reads that script with createResumption and calls the same reader inside the scope. The first browser read shows the server's 42. Click **Read again** to run the client producer and see 7.
+
+```ts
+import { createResumption } from "resumability/client"
+
+import { readCount } from "./count.ts"
+
+const app = document.getElementById(`app`)!
+const scope = createResumption(app)
+const output = app.querySelector<HTMLOutputElement>(`#browser-count`)!
+
+async function showCount() {
+	output.value = String(await scope.run(readCount))
+}
+
+await showCount()
+app.querySelector(`button`)!.addEventListener(`click`, () => void showCount())
+
+```
 
 ## API and transport
 

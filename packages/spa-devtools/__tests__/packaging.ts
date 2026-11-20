@@ -103,7 +103,7 @@ try {
 			`utf8`,
 		)
 		assert.match(css, /debugger-panel\.[\w-]+/)
-		assert.match(css, /container: atom-io-devtools \/ inline-size/)
+		assert.match(css, /container:\s*atom-io-devtools\s*\/\s*size\b/)
 		assert.match(css, /@container atom-io-devtools/)
 		assert.doesNotMatch(css, /@container atom-io-\w+-module-atom-io-devtools/)
 		const cssPath = require.resolve(`@atom.io/spa-devtools/css`)

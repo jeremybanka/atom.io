@@ -24,7 +24,7 @@ import type {
 	WorkerStoreSnapshot,
 } from "./worker-protocol.ts"
 
-export function isEditableValue(value: unknown): boolean {
+function isEditableValue(value: unknown): boolean {
 	const pending = [value]
 	const seen = new Set<object>()
 	while (pending.length) {

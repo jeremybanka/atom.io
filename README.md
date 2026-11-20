@@ -57,7 +57,7 @@ commands use pnpm's workspace filters to focus on one project.
 | [packages/atom.io](./packages/atom.io)                                 | Core SDK, testing utilities, and documentation source.      |
 | [packages/realtime](./packages/realtime)                               | Realtime collaboration, adapters, tests, and documentation. |
 | [packages/react](./packages/react), [packages/solid](./packages/solid) | Framework bindings.                                         |
-| [packages/react-devtools](./packages/react-devtools)                   | React devtools and their styles.                            |
+| [packages/devtools](./packages/devtools)                               | Store inspector for SPA, React, and browser hosts.          |
 | [packages/eslint-plugin](./packages/eslint-plugin)                     | ESLint plugin.                                              |
 | [packages/create-atom.io](./packages/create-atom.io)                   | Project scaffolder.                                         |
 | [packages/exhibits](./packages/exhibits)                               | Shared documentation exhibit utilities.                     |

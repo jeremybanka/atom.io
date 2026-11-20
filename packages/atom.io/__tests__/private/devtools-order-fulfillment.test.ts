@@ -3,7 +3,7 @@ import { deposit } from "atom.io/internal"
 import {
 	captureEcologySnapshot,
 	traceEcologyRoots,
-} from "../../../spa-devtools/src/ecology.ts"
+} from "../../../devtools/src/ecology.ts"
 import { createOrderFulfillmentScenario } from "../../__stories__/devtools-order-fulfillment.ts"
 
 describe(`order fulfillment application`, () => {

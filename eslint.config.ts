@@ -154,7 +154,7 @@ const LASERTAG_ASTRO: Linter.Config = {
 const LASERTAG_TSX: Linter.Config = {
 	files: [
 		`apps/atom.io.fyi/src/**/*.tsx`,
-		`packages/spa-devtools/src/**/*.tsx`,
+		`packages/devtools/src/**/*.tsx`,
 		`packages/atom.io/__stories__/OrderFulfillment.tsx`,
 		`packages/atom.io/__stories__/OrderSummary.tsx`,
 		`packages/atom.io/__stories__/CatalogItem.tsx`,

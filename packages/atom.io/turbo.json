@@ -39,7 +39,7 @@
 			"dependsOn": [
 				"@atom.io/realtime#build",
 				"@atom.io/react#build",
-				"@atom.io/spa-devtools#build"
+				"@atom.io/devtools#build"
 			]
 		},
 		"build": {
@@ -54,8 +54,7 @@
 		},
 		"storybook:build": {
 			"dependsOn": [
-				"@atom.io/spa-devtools#build",
-				"@atom.io/react-devtools#build"
+				"@atom.io/devtools#build"
 			],
 			"outputs": [
 				"storybook-static/**"
@@ -63,8 +62,7 @@
 		},
 		"test:story": {
 			"dependsOn": [
-				"@atom.io/spa-devtools#build",
-				"@atom.io/react-devtools#build"
+				"@atom.io/devtools#build"
 			],
 			"cache": false,
 			"passThroughEnv": [

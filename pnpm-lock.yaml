@@ -187,18 +187,15 @@ importers:
       '@atom.io/react':
         specifier: workspace:*
         version: link:packages/react
-      '@atom.io/react-devtools':
-        specifier: workspace:*
-        version: link:packages/react-devtools
       '@atom.io/realtime':
         specifier: workspace:*
         version: link:packages/realtime
       '@atom.io/solid':
         specifier: workspace:*
         version: link:packages/solid
-      '@atom.io/spa-devtools':
+      '@atom.io/devtools':
         specifier: workspace:*
-        version: link:packages/spa-devtools
+        version: link:packages/devtools
       '@changesets/cli':
         specifier: 3.0.3
         version: 3.0.3
@@ -328,9 +325,9 @@ importers:
       '@atom.io/spa':
         specifier: workspace:*
         version: link:../../packages/spa
-      '@atom.io/spa-devtools':
+      '@atom.io/devtools':
         specifier: workspace:*
-        version: link:../../packages/spa-devtools
+        version: link:../../packages/devtools
       '@babel/parser':
         specifier: 8.1.2
         version: 8.1.2
@@ -655,67 +652,6 @@ importers:
         specifier: 5.1.1
         version: 5.1.1(@types/node@26.6.6)(@vitest/browser-playwright@5.1.1)(@vitest/coverage-v8@5.1.1)(@vitest/ui@5.1.1)(happy-dom@21.0.4)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
 
-  packages/react-devtools:
-    dependencies:
-      motion:
-        specifier: 14.14.0
-        version: 14.14.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-    devDependencies:
-      '@atom.io/react':
-        specifier: workspace:*
-        version: link:../react
-      '@breakage/changesets':
-        specifier: 0.1.0
-        version: 0.1.0(breakage@0.10.2(supports-color@10.2.2)(zod@4.6.7))
-      '@testing-library/react':
-        specifier: 16.3.3
-        version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      '@tsdown/css':
-        specifier: 0.23.7
-        version: 0.23.7(jiti@2.7.0)(postcss@8.5.32)(tsdown@0.23.7)(tsx@4.23.13)(typescript@7.0.2)(yaml@2.9.1)
-      '@types/node':
-        specifier: 26.6.6
-        version: 26.6.6
-      '@types/react':
-        specifier: 19.3.0
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: 19.3.0
-        version: 19.3.0(@types/react@19.3.0)
-      '@vitest/coverage-v8':
-        specifier: 5.1.1
-        version: 5.1.1(@vitest/browser@5.1.1)(vitest@5.1.1)
-      atom.io:
-        specifier: workspace:*
-        version: link:../atom.io
-      breakage:
-        specifier: 0.10.2
-        version: 0.10.2(supports-color@10.2.2)(zod@4.6.7)
-      eslint:
-        specifier: 10.15.0
-        version: 10.15.0(jiti@2.7.0)(supports-color@10.2.2)
-      happy-dom:
-        specifier: 21.0.4
-        version: 21.0.4
-      react:
-        specifier: 19.3.1
-        version: 19.3.1
-      react-dom:
-        specifier: 19.3.1
-        version: 19.3.1(react@19.3.1)
-      recoverage:
-        specifier: 0.1.20
-        version: 0.1.20(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7)
-      tsdown:
-        specifier: 0.23.7
-        version: 0.23.7(@tsdown/css@0.23.7)(oxc-resolver@11.21.2)(tsx@4.23.13)(typescript@7.0.2)
-      typescript:
-        specifier: 7.0.2
-        version: 7.0.2
-      vitest:
-        specifier: 5.1.1
-        version: 5.1.1(@types/node@26.6.6)(@vitest/browser-playwright@5.1.1)(@vitest/coverage-v8@5.1.1)(@vitest/ui@5.1.1)(happy-dom@21.0.4)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
-
   packages/realtime:
     devDependencies:
       '@atom.io/react':
@@ -982,7 +918,7 @@ importers:
         specifier: 5.1.1
         version: 5.1.1(@types/node@26.6.6)(@vitest/browser-playwright@5.1.1)(@vitest/coverage-v8@5.1.1)(@vitest/ui@5.1.1)(happy-dom@21.0.4)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
 
-  packages/spa-devtools:
+  packages/devtools:
     dependencies:
       motion:
         specifier: 14.14.0

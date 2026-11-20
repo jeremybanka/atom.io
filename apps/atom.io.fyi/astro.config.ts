@@ -29,8 +29,8 @@ const EXHIBIT_ROOTS = [
 		prefix: `spa/exhibits/`,
 	},
 	{
-		root: path.resolve(CONFIG_ROOT, `../../packages/spa-devtools/exhibits`),
-		prefix: `spa-devtools/exhibits/`,
+		root: path.resolve(CONFIG_ROOT, `../../packages/devtools/exhibits`),
+		prefix: `devtools/exhibits/`,
 	},
 	{
 		root: path.resolve(CONFIG_ROOT, `../../templates/spa-astro-ssr/src`),
@@ -133,6 +133,8 @@ function exhibitTextPlugin() {
 // https://astro.build/config
 export default defineConfig({
 	redirects: {
+		"/docs/react-devtools": `/docs/devtools`,
+		"/docs/spa-devtools": `/docs/devtools`,
 		"/docs/hydrogen": `/docs/spa`,
 		"/hydrogen-lab": `/spa-lab`,
 	},

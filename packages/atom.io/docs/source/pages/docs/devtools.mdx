@@ -1,0 +1,43 @@
+import Exhibit from "c/Exhibit.astro";
+
+# <low-emphasis>@atom.io</low-emphasis>/devtools
+
+Inspect an atom.io store in a floating debugger. Ecology opens first and shows how atoms, selectors, and families connect. The other tabs show live atoms and selectors, recorded transactions, and undo/redo timelines.
+
+## Install
+
+Add the debugger and its SPA peer to an existing atom.io app.
+
+<Exhibit src="devtools/exhibits/install.sh" />
+
+### SPA
+
+Use the SPA compiler to render AtomIODevtools and import the stylesheet once.
+
+<Exhibit src="devtools/exhibits/setup.tsx" />
+
+### React
+
+With React 18 or 19 and the atom.io React bindings, use the React entry. The debugger follows the nearest store provider. Pass an explicit store to override it.
+
+<Exhibit src="devtools/exhibits/react.ts" />
+
+### Browser hosts
+
+Mount into a DOM element and call the returned cleanup function when removing it.
+
+<Exhibit src="devtools/exhibits/mount.ts" />
+
+## Edit state
+
+Expand a JSON value to edit its children. Change a writable row’s type from its dropdown. Drag an array item’s handle to move it, or focus the handle and use Alt+Up or Alt+Down.
+
+Ecology shows cached values and offers Generate for state that hasn’t been read. Use its search to filter the graph and editor by key, family, or runtime type.
+
+## Try it here
+
+Press Ctrl+Shift+A to show the debugger on atom.io.fyi. Click the orbital logo if the panel is minimized. The debugger remembers its visibility, window layout, and last selected tab.
+
+## Migrate from older devtools
+
+The SPA devtools and React devtools packages are deprecated. Install the shared debugger above and update your component and stylesheet imports to match your framework’s example. The old React package’s standalone JSON editor, elastic input, error boundary, and customization exports have no equivalents in the shared package.

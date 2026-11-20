@@ -17,9 +17,9 @@
 		"allowJs": false,
 		"isolatedDeclarations": true,
 		"paths": {
-			"@atom.io/spa-devtools/css": ["../spa-devtools/src/css.d.ts"],
-			"@atom.io/spa-devtools/react": [
-				"../spa-devtools/src/react.ts"
+			"@atom.io/devtools/css": ["../devtools/src/css.d.ts"],
+			"@atom.io/devtools/react": [
+				"../devtools/src/react.ts"
 			],
 			"atom.io": [
 				"./src/main"
@@ -32,9 +32,6 @@
 			],
 			"@atom.io/solid": [
 				"../solid/src"
-			],
-			"@atom.io/react-devtools": [
-				"../react-devtools/src"
 			],
 			"@atom.io/realtime": [
 				"../realtime/src/core"

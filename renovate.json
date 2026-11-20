@@ -94,7 +94,7 @@
 		{
 			"description": "Keep React 18 runtimes and types current within their supported major.",
 			"matchFileNames": [
-				"packages/{react,react-devtools}/peer-environments/*-react18/package.json"
+				"packages/{react,devtools}/peer-environments/*-react18/package.json"
 			],
 			"matchPackageNames": [
 				"react",
@@ -107,7 +107,7 @@
 		{
 			"description": "Keep React 19 runtimes and types current within their supported major.",
 			"matchFileNames": [
-				"packages/{react,react-devtools}/peer-environments/*-react19/package.json"
+				"packages/{react,devtools}/peer-environments/*-react19/package.json"
 			],
 			"matchPackageNames": [
 				"react",
@@ -164,14 +164,6 @@
 				"dependencies"
 			],
 			"automerge": false
-		},
-		{
-			"description": "Keep released React bindings representatives on the 0.1 compatibility era.",
-			"matchFileNames": [
-				"packages/react-devtools/peer-environments/released-bindings-react{18,19}/package.json"
-			],
-			"matchPackageNames": ["@atom.io/react"],
-			"allowedVersions": "^0.1"
 		},
 		{
 			"description": "Keep released SDK representatives on the 0.53 compatibility era.",

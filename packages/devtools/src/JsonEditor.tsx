@@ -159,11 +159,7 @@ export function JsonEditor(props: EditorProps): SpaElement {
 						destination = row
 					}}
 					onDragLeave={(event) => {
-						if (
-							!(event.currentTarget as HTMLElement).contains(
-								event.relatedTarget as Node | null,
-							)
-						)
+						if (!event.currentTarget.contains(event.relatedTarget))
 							clearDestination()
 					}}
 					onDrop={(event) => {

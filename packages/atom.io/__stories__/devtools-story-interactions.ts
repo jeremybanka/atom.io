@@ -171,8 +171,7 @@ export const playOrderRoots: Play = async (context) => {
 			await tools.project(() =>
 				context.userEvent.click(
 					canvas.getByRole(`button`, {
-						name: `Expand stockByWarehouseSku`,
-						exact: true,
+						name: /^Expand stockByWarehouseSku$/,
 					}),
 				),
 			)

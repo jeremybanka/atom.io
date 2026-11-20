@@ -7,8 +7,8 @@ Use spa's Vite or Astro integration to compile application JSX. Import the style
 ```tsx
 import "@atom.io/devtools/css"
 
-import type { SpaElement } from "@atom.io/spa"
 import { AtomIODevtools } from "@atom.io/devtools"
+import type { SpaElement } from "@atom.io/spa"
 import type { RootStore } from "atom.io/internal"
 
 export function Debugger(props: { store: RootStore }): SpaElement {
@@ -42,8 +42,8 @@ Install the optional @atom.io/react and React 18 or 19 peers, and import AtomIOD
 ```ts
 import "@atom.io/devtools/css"
 
-import { StoreProvider } from "@atom.io/react"
 import { AtomIODevtools } from "@atom.io/devtools/react"
+import { StoreProvider } from "@atom.io/react"
 import type { RootStore } from "atom.io/internal"
 import type { ReactElement } from "react"
 import { createElement } from "react"
@@ -161,7 +161,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                        | Entry                         | Minified JS |   Gzip JS |
 | ----------------------------- | ----------------------------- | ----------: | --------: |
-| Interactive app with debugger | `tonnage-recipes/debugger.ts` |   939,763 B | 279,873 B |
+| Interactive app with debugger | `tonnage-recipes/debugger.ts` |   939,763 B | 279,891 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

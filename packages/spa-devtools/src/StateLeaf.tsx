@@ -30,6 +30,7 @@ export function StateLeaf(props: {
 		props.tools.store.writableSelectors.get(token.key)
 	const captured = definition()
 	const worker = props.tools.worker
+	const canOperate = worker?.canControl() !== false
 	const projection = worker?.cache(token.key)
 	const getValue = useGetter(projection ?? token)
 	const cache = projection
@@ -51,7 +52,7 @@ export function StateLeaf(props: {
 		? useSetter(token as WritableToken<unknown, any, any>)
 		: undefined
 	onMount(() => {
-		if (projection && !props.cachedOnly)
+		if (projection && canOperate && !props.cachedOnly)
 			props.tools.attempt(() => {
 				worker!.generate(token.key)
 			})
@@ -87,25 +88,27 @@ export function StateLeaf(props: {
 				<node-heading>
 					{props.label ?? <h3>{token.family?.subKey ?? token.key}</h3>}
 					<span>–</span>
-					<button
-						type="button"
-						aria-label={`Generate ${token.key}`}
-						onClick={() => {
-							props.tools.attempt(() => {
-								if (definition() !== captured)
-									throw new Error(
-										`State was disposed. Refresh to update the snapshot.`,
-									)
-								if (projection) worker!.generate(token.key)
-								else {
-									getFromStore(props.tools.store, token)
-									props.onGenerate?.()
-								}
-							})
-						}}
-					>
-						Generate
-					</button>
+					{canOperate ? (
+						<button
+							type="button"
+							aria-label={`Generate ${token.key}`}
+							onClick={() => {
+								props.tools.attempt(() => {
+									if (definition() !== captured)
+										throw new Error(
+											`State was disposed. Refresh to update the snapshot.`,
+										)
+									if (projection) worker!.generate(token.key)
+									else {
+										getFromStore(props.tools.store, token)
+										props.onGenerate?.()
+									}
+								})
+							}}
+						>
+							Generate
+						</button>
+					) : null}
 				</node-heading>
 			) : (
 				<JsonEditor
@@ -116,7 +119,7 @@ export function StateLeaf(props: {
 						)
 					}
 					actions={
-						token.family ? (
+						token.family && canOperate ? (
 							<button
 								type="button"
 								aria-label={`Dispose ${token.key}`}

@@ -50,6 +50,7 @@ function TimelineLog(props: {
 	token: TimelineToken<any>
 }): SpaElement {
 	const controls = useTimeline(props.token)
+	const canOperate = props.tools.worker?.canControl() !== false
 	const travel = (action: `undo` | `redo`) => {
 		props.tools.attempt(() => {
 			if (props.tools.worker)
@@ -87,7 +88,7 @@ function TimelineLog(props: {
 				</small>
 				<button
 					type="button"
-					disabled={controls.getCursor() === 0}
+					disabled={!canOperate || controls.getCursor() === 0}
 					onClick={() => {
 						travel(`undo`)
 					}}
@@ -96,7 +97,7 @@ function TimelineLog(props: {
 				</button>
 				<button
 					type="button"
-					disabled={controls.getCursor() === controls.getLength()}
+					disabled={!canOperate || controls.getCursor() === controls.getLength()}
 					onClick={() => {
 						travel(`redo`)
 					}}

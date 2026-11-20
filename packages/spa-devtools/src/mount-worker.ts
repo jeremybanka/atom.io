@@ -2,6 +2,10 @@ import { type RegularAtomToken, Silo } from "atom.io"
 import type { RootStore } from "atom.io/internal"
 
 import type { EcologySnapshot } from "./ecology.ts"
+import {
+	closeDevtoolsTransport,
+	type DevtoolsPanelTransport,
+} from "./transport.ts"
 import { createWorkerProjection } from "./worker-projection.ts"
 import type {
 	PanelMessage,
@@ -12,6 +16,7 @@ import type {
 export interface WorkerPanelConnection {
 	error: RegularAtomToken<string>
 	ready: RegularAtomToken<boolean>
+	canControl(): boolean
 	revision(key: string): number | undefined
 	edit(key: string, value: unknown, revision?: number): void
 	cache(key: string): RegularAtomToken<WorkerCachedValue> | undefined
@@ -22,7 +27,7 @@ export interface WorkerPanelConnection {
 	subscribeEcology(listener: () => void): () => void
 }
 
-export function connectWorker(port: MessagePort): {
+export function connectRemoteStore(transport: DevtoolsPanelTransport): {
 	store: RootStore
 	worker: WorkerPanelConnection
 	close(): void
@@ -48,34 +53,32 @@ export function connectWorker(port: MessagePort): {
 	>()
 	const projection = createWorkerProjection(silo)
 	let closed = false
-	const send = (message: PanelMessage) => {
-		port.postMessage(message)
-	}
+	let control = false
 	const command = (message: PanelMessage) => {
-		if (closed) throw new Error(`Worker devtools disconnected`)
-		send(message)
+		if (closed) throw new Error(`Remote devtools disconnected`)
+		transport.send(message)
 	}
-	function close(): void {
+	function close(notify = true): void {
 		if (closed) return
 		closed = true
-		port.removeEventListener(`message`, receive)
-		port.removeEventListener(`messageerror`, connectionLost)
-		send({ type: `close` })
-		port.close()
+		closeDevtoolsTransport(transport, notify)
 	}
-	function connectionLost(): void {
-		close()
-		silo.setState(errorAtom, `Worker devtools disconnected`)
+	function connectionLost(notify = true): void {
+		close(notify)
+		silo.setState(errorAtom, `Remote devtools disconnected`)
 	}
-	function receive({ data }: MessageEvent<WorkerMessage>): void {
+	function receive(data: WorkerMessage): void {
+		if (closed) return
 		if (data?.type === `close`) {
-			connectionLost()
+			connectionLost(false)
 		} else if (data?.type === `edit-error`) {
 			silo.setState(errorAtom, data.message)
 		} else if (data?.type === `store`) {
+			control = data.snapshot.control
 			projection.apply(data.snapshot)
 			silo.setState(readyAtom, true)
 		} else if (data?.type === `snapshot`) {
+			control = data.control
 			for (const state of data.states) {
 				const value = `value` in state ? state.value : new Error(state.error)
 				let entry = states.get(state.key)
@@ -105,6 +108,7 @@ export function connectWorker(port: MessagePort): {
 	const worker: WorkerPanelConnection = {
 		error: errorAtom,
 		ready: readyAtom,
+		canControl: () => control,
 		revision: (key) => projection.revision(key) ?? states.get(key)?.revision,
 		edit(key, value, revision = worker.revision(key)) {
 			command({ type: `edit`, key, value, revision })
@@ -128,11 +132,9 @@ export function connectWorker(port: MessagePort): {
 		subscribeEcology: projection.subscribeEcology,
 	}
 	try {
-		port.addEventListener(`message`, receive)
-		port.addEventListener(`messageerror`, connectionLost)
-		port.start()
+		transport.listen(receive, connectionLost)
 	} catch (error) {
-		close()
+		close(false)
 		throw error
 	}
 	return { store: silo.store, worker, close }

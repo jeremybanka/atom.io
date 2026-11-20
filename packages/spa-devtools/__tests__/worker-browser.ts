@@ -184,7 +184,7 @@ if (process.argv.includes(`--serve`)) {
 		assert.equal(await count.inputValue(), `20`)
 		await count.press(`Enter`)
 		await alert
-			.filter({ hasText: `Worker state changed while you were editing` })
+			.filter({ hasText: `Remote state changed while you were editing` })
 			.waitFor()
 		await expectValue(`count`, `18`)
 		await count.fill(`25`)

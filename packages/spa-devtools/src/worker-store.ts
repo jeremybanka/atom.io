@@ -16,10 +16,15 @@ import { observeStore, peekState } from "atom.io/introspection"
 
 import { captureEcologySnapshot } from "./ecology.ts"
 import type { RecordedEvent } from "./history-search.ts"
+import {
+	batchDevtoolsSnapshots,
+	closeDevtoolsTransport,
+	type DevtoolsStoreTransport,
+	reportDevtoolsError,
+} from "./transport.ts"
 import type {
 	PanelMessage,
 	WorkerHistory,
-	WorkerMessage,
 	WorkerStateToken,
 	WorkerStoreSnapshot,
 } from "./worker-protocol.ts"
@@ -60,7 +65,7 @@ function copyValue(value: unknown): unknown {
 	try {
 		return structuredClone(value)
 	} catch {
-		return new Error(`Value could not be transferred from the worker`)
+		return new Error(`Value could not be transferred from the remote store`)
 	}
 }
 
@@ -86,7 +91,11 @@ function visible(key: string): boolean {
 }
 
 /** Owns subscriptions and state operations for a fully exposed worker Silo. */
-export function exposeWholeStore(port: MessagePort, silo: Silo): () => void {
+export function exposeWholeStore(
+	transport: DevtoolsStoreTransport,
+	silo: Silo,
+	control: boolean,
+): () => void {
 	const { store } = silo
 	const watch = new Map<string, () => void>()
 	const revisions = new Map<string, number>()
@@ -104,15 +113,11 @@ export function exposeWholeStore(port: MessagePort, silo: Silo): () => void {
 	let eventId = 0
 	let timelineRevision = 0
 	let closed = false
-	let scheduled = false
 	const subscriber = arbitrary()
 	const state = (key: string) =>
 		store.atoms.get(key) ??
 		store.readonlySelectors.get(key) ??
 		store.writableSelectors.get(key)
-	const send = (message: WorkerMessage) => {
-		port.postMessage(message)
-	}
 	function eventRecord<T extends RecordedEvent>(event: T): WorkerHistory<T> {
 		let record = eventCopies.get(event)
 		if (!record) {
@@ -141,6 +146,7 @@ export function exposeWholeStore(port: MessagePort, silo: Silo): () => void {
 	function publish() {
 		if (closed) return
 		const snapshot: WorkerStoreSnapshot = {
+			control,
 			states: [],
 			timelines: [],
 			transactions: [],
@@ -162,7 +168,7 @@ export function exposeWholeStore(port: MessagePort, silo: Silo): () => void {
 				const cached = peekState(store, key)
 				const value =
 					cached.value instanceof Future
-						? new Error(`Worker value is pending`)
+						? new Error(`Remote value is pending`)
 						: copyValue(cached.value)
 				snapshot.states.push({
 					token,
@@ -171,6 +177,7 @@ export function exposeWholeStore(port: MessagePort, silo: Silo): () => void {
 						: { status: `uncached` },
 					revision: revisions.get(key) ?? 0,
 					editable:
+						control &&
 						cached.present &&
 						(type === `atom` || type.startsWith(`writable`)) &&
 						isEditableValue(value) &&
@@ -194,16 +201,9 @@ export function exposeWholeStore(port: MessagePort, silo: Silo): () => void {
 					history: entry.history.map(eventRecord),
 				})
 		}
-		send({ type: `store`, snapshot })
+		transport.send({ type: `store`, snapshot })
 	}
-	function schedule() {
-		if (closed || scheduled) return
-		scheduled = true
-		queueMicrotask(() => {
-			scheduled = false
-			publish()
-		})
-	}
+	const schedule = batchDevtoolsSnapshots(publish, dispose)
 	const addTimeline = (key: string) => {
 		const timeline = store.timelines.get(key)
 		if (!timeline || !visible(key)) return
@@ -217,37 +217,35 @@ export function exposeWholeStore(port: MessagePort, silo: Silo): () => void {
 		}
 		timelines.set(key, entry)
 	}
-	function dispose() {
+	function dispose(notify = true) {
 		if (closed) return
 		closed = true
-		port.removeEventListener(`message`, receive)
-		port.removeEventListener(`messageerror`, dispose)
 		for (const stop of cleanup) stop()
 		for (const { stop } of timelines.values()) stop()
 		for (const { stop } of transactions.values()) stop()
 		for (const stop of watch.values()) stop()
-		send({ type: `close` })
-		port.close()
+		closeDevtoolsTransport(transport, notify)
 	}
-	function receive({ data }: MessageEvent<PanelMessage>) {
-		if (!data) return
+	function receive(data: PanelMessage) {
+		if (closed || !data) return
 		if (data.type === `close`) {
-			dispose()
+			dispose(false)
 			return
 		}
 		try {
-			if (!visible(data.key)) throw new Error(`Worker state is unavailable`)
+			if (!control) throw new Error(`Remote devtools is inspection only`)
+			if (!visible(data.key)) throw new Error(`Remote state is unavailable`)
 			if (data.type === `timeline`) {
 				const timeline = store.timelines.get(data.key)
 				if (!timeline || timelines.get(data.key)?.revision !== data.revision)
 					throw new Error(
-						`Worker timeline changed. Try again with the current history.`,
+						`Remote timeline changed. Try again with the current history.`,
 					)
 				if (data.action === `undo`) silo.undo(deposit(timeline))
 				if (data.action === `redo`) silo.redo(deposit(timeline))
 			} else {
 				const definition = state(data.key)
-				if (!definition) throw new Error(`Worker state is unavailable`)
+				if (!definition) throw new Error(`Remote state is unavailable`)
 				const token: WorkerStateToken = deposit(definition)
 				switch (data.type) {
 					case `generate`:
@@ -267,7 +265,7 @@ export function exposeWholeStore(port: MessagePort, silo: Silo): () => void {
 					case `edit`: {
 						if (data.revision !== (revisions.get(token.key) ?? 0))
 							throw new Error(
-								`Worker state changed while you were editing. Try again with the current value.`,
+								`Remote state changed while you were editing. Try again with the current value.`,
 							)
 						const current = peekState(store, token.key)
 						if (
@@ -276,7 +274,7 @@ export function exposeWholeStore(port: MessagePort, silo: Silo): () => void {
 							!isEditableValue(current.value) ||
 							!isEditableValue(data.value)
 						)
-							throw new Error(`Worker rejected this value`)
+							throw new Error(`Remote store rejected this value`)
 						silo.setState(
 							token as WritableToken<unknown, any, any>,
 							() => data.value,
@@ -286,10 +284,7 @@ export function exposeWholeStore(port: MessagePort, silo: Silo): () => void {
 				}
 			}
 		} catch (error) {
-			send({
-				type: `edit-error`,
-				message: error instanceof Error ? error.message : String(error),
-			})
+			reportDevtoolsError(transport, error, dispose)
 		}
 		schedule()
 	}
@@ -323,12 +318,10 @@ export function exposeWholeStore(port: MessagePort, silo: Silo): () => void {
 				if (progress) addTransaction(progress.update.token.key)
 			}),
 		)
-		port.addEventListener(`message`, receive)
-		port.addEventListener(`messageerror`, dispose)
-		port.start()
+		transport.listen(receive, dispose)
 		publish()
 	} catch (error) {
-		dispose()
+		dispose(false)
 		throw error
 	}
 	return dispose

@@ -4,7 +4,7 @@ import { Silo } from "atom.io"
 const silo = new Silo({
 	name: `Counter worker`,
 	lifespan: `ephemeral`,
-	isProduction: true,
+	isProduction: false,
 })
 const countAtom = silo.atom<number>({ key: `count`, default: 2 })
 const doubledSelector = silo.selector<number>({
@@ -36,7 +36,7 @@ silo.subscribe(countAtom, () => {
 
 worker.addEventListener(`message`, ({ data }: MessageEvent<AppMessage>) => {
 	if (data.type === `connect`) {
-		exposeDevtoolsStore(data.port, silo)
+		exposeDevtoolsStore(data.port, silo, { access: `control` })
 		report()
 	} else {
 		silo.runTransaction(incrementTransaction)()

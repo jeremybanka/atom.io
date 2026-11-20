@@ -427,6 +427,12 @@ debugger-panel.class {
 		line-height: 18px;
 		border-top: 1px solid var(--ink-muted);
 	}
+	[data-remote-access="inspect"] {
+		background: var(--window-content-fill);
+		color: var(--ink-muted);
+		padding: 5px 8px;
+		line-height: 18px;
+	}
 
 	&::before, [data-store-menu]::before {
 		content: "";

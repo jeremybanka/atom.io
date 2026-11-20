@@ -19,7 +19,7 @@ type WorkerState = {
 } & ({ value: WorkerDevtoolsValue } | { error: string })
 
 export type WorkerMessage =
-	| { type: `snapshot`; states: WorkerState[] }
+	| { type: `snapshot`; control: boolean; states: WorkerState[] }
 	| { type: `store`; snapshot: WorkerStoreSnapshot }
 	| { type: `edit-error`; message: string }
 	| { type: `close` }
@@ -41,6 +41,7 @@ export type WorkerCachedValue =
 export type WorkerStateToken = ReadableToken<unknown, any, any>
 export type WorkerHistory<Event = RecordedEvent> = { id: string; event: Event }
 export interface WorkerStoreSnapshot {
+	control: boolean
 	states: {
 		token: WorkerStateToken
 		cache: WorkerCachedValue

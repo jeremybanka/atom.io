@@ -3,7 +3,23 @@ import { Silo } from "atom.io"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 
 import { mountAtomIODevtools, mountWorkerAtomIODevtools } from "../src/index.ts"
-import { exposeDevtoolsStore, type WorkerDevtoolsValue } from "../src/worker.ts"
+import {
+	exposeDevtoolsStore as exposeWorkerStore,
+	type WorkerDevtoolsState,
+	type WorkerDevtoolsValue,
+} from "../src/worker.ts"
+
+function exposeDevtoolsStore(
+	port: MessagePort,
+	silo: Silo,
+	states?: readonly WorkerDevtoolsState[],
+): () => void {
+	return exposeWorkerStore(port, silo, {
+		access: `control`,
+		productionAccess: `control`,
+		...(states && { states }),
+	})
+}
 import { createWorkerProjection } from "../src/worker-projection.ts"
 import type { WorkerMessage } from "../src/worker-protocol.ts"
 
@@ -458,12 +474,12 @@ it(`keeps worker revisions and rejects invalid state and history commands`, asyn
 		worker.receive({ type: `generate`, key: `🔍 private` })
 		expect(last()).toMatchObject({
 			type: `edit-error`,
-			message: `Worker state is unavailable`,
+			message: `Remote state is unavailable`,
 		})
 		worker.receive({ type: `dispose`, key: `missing` })
 		expect(last()).toMatchObject({
 			type: `edit-error`,
-			message: `Worker state is unavailable`,
+			message: `Remote state is unavailable`,
 		})
 		worker.receive({ type: `dispose`, key: dataAtom.key })
 		expect(last()).toMatchObject({
@@ -478,7 +494,7 @@ it(`keeps worker revisions and rejects invalid state and history commands`, asyn
 			edit(key, 5)
 			expect(last()).toMatchObject({
 				type: `edit-error`,
-				message: `Worker rejected this value`,
+				message: `Remote store rejected this value`,
 			})
 		}
 		class Quantities extends Array<number> {}
@@ -508,7 +524,7 @@ it(`keeps worker revisions and rejects invalid state and history commands`, asyn
 		edit(dataAtom.key, cyclic)
 		expect(last()).toMatchObject({
 			type: `edit-error`,
-			message: `Worker rejected this value`,
+			message: `Remote store rejected this value`,
 		})
 		edit(writableSelector.key, 4)
 		expect(silo.getState(dataAtom)).toBe(4)
@@ -742,7 +758,7 @@ it(`observes the worker, edits primitives, and handles shutdown using the shared
 		worker.dispatchEvent(new Event(`messageerror`))
 		await flush()
 		expect(host.querySelector(`[role="alert"]`)?.textContent).toBe(
-			`Worker devtools disconnected`,
+			`Remote devtools disconnected`,
 		)
 		expect(worker.close).toHaveBeenCalledOnce()
 		type(field(`count`), `7`)
@@ -779,12 +795,12 @@ it(`checks exposure and edit permissions in the store owner`, async () => {
 		member,
 		reservedAtom,
 	]) {
-		expect(() => exposeDevtoolsStore(worker.port, silo, [{ token }])).toThrow(
-			/standalone/,
-		)
+		expect(() =>
+			exposeDevtoolsStore(channel().worker.port, silo, [{ token }]),
+		).toThrow(/standalone/)
 	}
 	expect(() =>
-		exposeDevtoolsStore(worker.port, silo, [
+		exposeDevtoolsStore(channel().worker.port, silo, [
 			{ token: valueAtom },
 			{ token: valueAtom },
 		]),
@@ -801,7 +817,7 @@ it(`checks exposure and edit permissions in the store owner`, async () => {
 	expect(worker.postMessage).toHaveBeenLastCalledWith(
 		expect.objectContaining({
 			states: expect.arrayContaining([
-				expect.objectContaining({ error: `Could not read worker state` }),
+				expect.objectContaining({ error: `Could not read remote state` }),
 			]),
 		}),
 	)
@@ -818,19 +834,19 @@ it(`checks exposure and edit permissions in the store owner`, async () => {
 		worker.receive(null)
 		worker.receive({ type: `unrelated` })
 		sendEdit(`missing`, 6)
-		expectError(`Worker state is readonly or unavailable`)
+		expectError(`Remote state is readonly or unavailable`)
 		sendEdit(`readonly`, 6)
-		expectError(`Worker state is readonly or unavailable`)
+		expectError(`Remote state is readonly or unavailable`)
 		sendEdit(`value`, 6)
-		expectError(`Worker rejected this value`)
+		expectError(`Remote store rejected this value`)
 		silo.setState(valueAtom, 4)
 		for (const value of [null, NaN, {}, `4`]) {
 			sendEdit(`value`, value, 1)
-			expectError(`Worker rejected this value`)
+			expectError(`Remote store rejected this value`)
 		}
 		validateEdit.mockReturnValueOnce(false)
 		sendEdit(`value`, 8, 1)
-		expectError(`Worker rejected this value`)
+		expectError(`Remote store rejected this value`)
 		validateEdit.mockImplementationOnce(() => {
 			// oxlint-disable-next-line typescript/only-throw-error -- an application validator may throw any value
 			throw `Application declined the edit`
@@ -839,7 +855,7 @@ it(`checks exposure and edit permissions in the store owner`, async () => {
 		expectError(`Application declined the edit`)
 		silo.setState(valueAtom, Infinity)
 		sendEdit(`value`, 6, 2)
-		expectError(`Worker rejected this value`)
+		expectError(`Remote store rejected this value`)
 		await flush()
 		expect(worker.postMessage).toHaveBeenLastCalledWith(
 			expect.objectContaining({
@@ -852,7 +868,7 @@ it(`checks exposure and edit permissions in the store owner`, async () => {
 		)
 		silo.store.atoms.delete(valueAtom.key)
 		sendEdit(`value`, 8, 2)
-		expectError(`Worker state is readonly or unavailable`)
+		expectError(`Remote state is readonly or unavailable`)
 		await flush()
 		expect(worker.postMessage).toHaveBeenLastCalledWith(
 			expect.objectContaining({
@@ -890,13 +906,13 @@ it(`releases either endpoint if startup fails or the panel is removed`, async ()
 	const waitingPanel = mountWorkerAtomIODevtools(host, waiting.page.port)
 	await flush()
 	expect(host.querySelector(`[role="status"]`)?.textContent).toContain(
-		`Waiting for the worker store`,
+		`Waiting for the remote store`,
 	)
 	waiting.page.dispatchEvent(new Event(`messageerror`))
 	await flush()
 	expect(host.querySelector(`[role="status"]`)).toBeNull()
 	expect(host.querySelector(`[role="alert"]`)?.textContent).toBe(
-		`Worker devtools disconnected`,
+		`Remote devtools disconnected`,
 	)
 	waitingPanel.dispose()
 

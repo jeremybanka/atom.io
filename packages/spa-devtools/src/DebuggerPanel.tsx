@@ -230,9 +230,12 @@ export function DebuggerPanel(props: {
 					tabIndex={0}
 				>
 					{getError() ? <p role="alert">{getError()}</p> : null}
+					{getReady() && props.worker?.canControl() === false ? (
+						<p data-remote-access="inspect">Inspection only</p>
+					) : null}
 					{!getReady() ? (
 						getError() ? null : (
-							<p role="status">Waiting for the worker store…</p>
+							<p role="status">Waiting for the remote store…</p>
 						)
 					) : view() === `ecology` ? (
 						hidden() ? null : (

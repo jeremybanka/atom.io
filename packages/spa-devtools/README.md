@@ -37,7 +37,9 @@ export function attachDebugger(host: HTMLElement): () => void {
 
 ## Local and remote stores
 
-Supply stores to the SPA or React component or to mountAtomIODevtools. Each target has a unique ID and a label. Local targets take a RootStore. Remote targets take a function that opens a fresh MessagePort. The panel mounts every supplied target and initially shows the first. The store picker beside the window controls groups targets under Local and Remote. Its button shows the current store and a caret, collapsing to just the caret when the window is narrow. Switching preserves each target's selected view and keeps its connection live. Disposing the panel closes its remote connections. When stores is omitted, the existing single-store setup applies.
+Supply stores to the SPA or React component or to mountAtomIODevtools. Each target has a unique ID and a label. Local targets take a RootStore in the current process. Remote targets take a function that opens a fresh MessagePort or DevtoolsPanelTransport. The panel mounts every supplied target and initially shows the first. The store picker beside the window controls groups targets under Local and Remote. Its button shows the current store and a caret, collapsing to just the caret when the window is narrow. Switching preserves each target's selected view and keeps its connection live. Disposing the panel closes its remote connections. When stores is omitted, the existing single-store setup applies.
+
+A local target stays in-process. Gate the panel mount with your app's development setting if you want the local debugger available only during development.
 
 ```ts
 import { mountAtomIODevtools } from "@atom.io/spa-devtools"
@@ -91,7 +93,7 @@ window.addEventListener(
 
 ## Web Worker stores
 
-In the worker, calling exposeDevtoolsStore with a Silo grants the dedicated port access to its state, including writable JSON state, family members, transaction outcomes, timeline history, and observed selector dependencies. Use a trusted port. The worker executes edits, family member disposal, and timeline undo and redo. Transactions retain up to 200 outcomes per transaction recorded since the connection opened. State values are transferred when structured-cloneable, and editable values must be JSON data. For a narrower connection, pass the optional list of standalone atoms and selectors and supply validators for editable primitive atoms.
+The worker entry adapts a dedicated MessagePort. The example enables control explicitly for an isolated demo Silo containing sample data. The worker executes edits, selector generation, family member disposal, and timeline undo and redo. Transactions retain up to 200 outcomes per transaction recorded since the connection opened. State values are transferred when structured-cloneable, and editable values must be JSON data.
 
 ```ts
 import { exposeDevtoolsStore } from "@atom.io/spa-devtools/worker"
@@ -100,7 +102,7 @@ import { Silo } from "atom.io"
 const silo = new Silo({
 	name: `Counter worker`,
 	lifespan: `ephemeral`,
-	isProduction: true,
+	isProduction: false,
 })
 const countAtom = silo.atom<number>({ key: `count`, default: 2 })
 const doubledSelector = silo.selector<number>({
@@ -132,7 +134,7 @@ silo.subscribe(countAtom, () => {
 
 worker.addEventListener(`message`, ({ data }: MessageEvent<AppMessage>) => {
 	if (data.type === `connect`) {
-		exposeDevtoolsStore(data.port, silo)
+		exposeDevtoolsStore(data.port, silo, { access: `control` })
 		report()
 	} else {
 		silo.runTransaction(incrementTransaction)()
@@ -147,6 +149,42 @@ From the repository root, start the demo and open the printed URL. The store pic
 pnpm exec turbo run demo:worker --filter=@atom.io/spa-devtools
 
 ```
+
+## Custom transports and hosted stores
+
+Import the owner-side exposeDevtoolsStore from @atom.io/spa-devtools/remote in Node, a Cloudflare Worker, or another store host. This entry has no browser UI dependency. Pass a DevtoolsStoreTransport on the owner and return a DevtoolsPanelTransport from the matching panel target's connect function. The transports send typed frames, install a listener, report disconnects, and close the connection with its listeners. Network adapters should validate frame shapes and cap their sizes before delivery. Deliver decoded frames in order in later tasks, after pending microtasks. Use the same protocol version on both ends. A transport that uses JSON needs a codec for any snapshot values it intends to preserve beyond JSON, such as errors, dates, maps, and undefined. MessagePort uses structured clone directly.
+
+The store owner chooses the access policy for each connection.
+
+| Access           | Store owner behavior                                                                                                                                                                    |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Off, the default | Closes the supplied connection without reading or publishing the store.                                                                                                                 |
+| Inspect          | Publishes cached values and retained history. Rejects commands that write state, evaluate selectors, dispose of family members, or move a timeline. The panel displays Inspection only. |
+| Control          | Grants inspection and the supported debugger operations. State edits and time travel are checked against the owner's revisions.                                                         |
+
+Either enabled mode also requires productionAccess set to that exact mode when the Silo is configured as production or Node reports a production environment. Pairing a request for control with a production inspection grant closes the connection. A development-only Node host can skip creating the transport entirely outside development.
+
+```ts
+import {
+	type DevtoolsStoreTransport,
+	exposeDevtoolsStore,
+} from "@atom.io/spa-devtools/remote"
+import type { Silo } from "atom.io"
+
+/** Called with a transport factory for an already authorized development session. */
+export function attachDevelopmentDevtools(
+	silo: Silo,
+	connect: () => DevtoolsStoreTransport,
+): (() => void) | undefined {
+	if (process.env[`NODE_ENV`] !== `development`) return
+	return exposeDevtoolsStore(connect(), silo, { access: `control` })
+}
+
+```
+
+On Cloudflare Workers, use a deployment binding to classify the Silo as production and decide whether to create debug connections. Wrangler can substitute NODE\_ENV at build time, so use a runtime binding for an environment-specific access decision. [Cloudflare Workers environment documentation](https://developers.cloudflare.com/workers/runtime-apis/nodejs/process/#processenv)
+
+Keep the debug route and panel connection out of production by default. For intentionally hosted access, authenticate the operator and authorize that operator for the specific Silo before attaching the transport. Resolve the Silo and access settings on the owner from trusted session and deployment data. Use a private diagnostic or per-tenant Silo and prefer inspection with a states allowlist of standalone primitive atoms and selectors. The allowlist omits other state, history, and the dependency graph. Editable allowlisted atoms in control mode also require a validator. Whole-store inspection can reveal sensitive data in cached values, transaction parameters and results, and history. The host owns authentication, authorization, encryption, and session expiry. Call the returned disposer when the operator loses access or the session expires.
 
 ## React
 
@@ -315,7 +353,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                        | Entry                         | Minified JS |   Gzip JS |
 | ----------------------------- | ----------------------------- | ----------: | --------: |
-| Interactive app with debugger | `tonnage-recipes/debugger.ts` |   983,541 B | 293,545 B |
+| Interactive app with debugger | `tonnage-recipes/debugger.ts` |   984,084 B | 293,732 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

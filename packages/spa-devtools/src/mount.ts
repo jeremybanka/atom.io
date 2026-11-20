@@ -5,14 +5,22 @@ import type { RootStore } from "atom.io/internal"
 import { IMPLICIT } from "atom.io/internal"
 
 import { DebuggerPanel } from "./DebuggerPanel.tsx"
-import { connectWorker, type WorkerPanelConnection } from "./mount-worker.ts"
+import { messagePortTransport } from "./message-port.ts"
+import {
+	connectRemoteStore,
+	type WorkerPanelConnection,
+} from "./mount-worker.ts"
+import type { DevtoolsPanelTransport } from "./transport.ts"
 
 export type AtomIODevtoolsTarget = {
 	readonly id: string
 	readonly label: string
 } & (
 	| { readonly kind: `local`; readonly store: RootStore }
-	| { readonly kind: `remote`; readonly connect: () => MessagePort }
+	| {
+			readonly kind: `remote`
+			readonly connect: () => DevtoolsPanelTransport | MessagePort
+	  }
 )
 
 export interface StorePicker {
@@ -94,11 +102,13 @@ export function mountWorkerAtomIODevtools(
 
 function mountRemotePanel(
 	host: Element,
-	port: MessagePort,
+	channel: DevtoolsPanelTransport | MessagePort,
 	hide: boolean,
 	picker?: StorePicker,
 ): AtomIODevtoolsHandle {
-	const connection = connectWorker(port)
+	const transport: DevtoolsPanelTransport =
+		`listen` in channel ? channel : messagePortTransport(channel)
+	const connection = connectRemoteStore(transport)
 	try {
 		const panel = mountPanel(
 			host,

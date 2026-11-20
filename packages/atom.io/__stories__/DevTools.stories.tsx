@@ -12,10 +12,12 @@ import {
 	playPrimary,
 	playStorefront,
 	playSurfaceStates,
+	playWorkerStores,
 } from "./devtools-story-interactions.ts"
 import { OrderFulfillment } from "./OrderFulfillment.tsx"
 import { OrderSummary } from "./OrderSummary.tsx"
 import { PrimaryDevtools } from "./PrimaryDevtools.tsx"
+import { WorkerStoresDevtools } from "./WorkerStoresDevtools.tsx"
 
 const meta: Meta<typeof PrimaryDevtools> = {
 	title: "AtomIODevtools",
@@ -28,6 +30,10 @@ export default meta
 
 type Story = StoryObj<typeof meta>
 export const Primary: Story = { play: playPrimary }
+export const WorkerStores: Story = {
+	render: () => <WorkerStoresDevtools />,
+	play: playWorkerStores,
+}
 export const EcologySandbox: Story = {
 	render: () => <OrderFulfillment />,
 	play: playEcologySandbox,

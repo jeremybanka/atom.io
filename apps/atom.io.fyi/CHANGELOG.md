@@ -1,5 +1,11 @@
 # atom.io.fyi
 
+## 0.2.113
+
+### Patch Changes
+
+- 046d759: Scope the site’s CSS reset to the page shell so it no longer overrides the embedded devtools’ typography and text colors.
+
 ## 0.2.112
 
 ### Patch Changes

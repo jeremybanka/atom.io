@@ -41,6 +41,11 @@ const config: UserConfig = defineConfig({
 			},
 		},
 	],
-	copy: [`src/css.d.ts`, { from: `src/fonts/*`, to: `dist/fonts` }],
+	copy: [
+		`src/css.d.ts`,
+		{ from: `src/fonts/*`, to: `dist/fonts` },
+		// globals.css bundles SPA's brand stylesheet with its relative URLs.
+		`node_modules/@atom.io/spa/dist/brand-fallback`,
+	],
 })
 export default config

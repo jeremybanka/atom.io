@@ -67,6 +67,7 @@ export function BrandMark(props: BrandMarkProps): SpaElement {
 			class={`${css[`class`]} ${props.class ?? ``}`}
 			aria-hidden="true"
 			data-variant={props.variant ?? `mark`}
+			data-size={props.variant === `splash` ? undefined : (props.size ?? 22)}
 			data-live={ready && !failed}
 			style={
 				props.variant === `splash`

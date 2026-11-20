@@ -107,6 +107,12 @@ try {
 		assert.match(css, /@container atom-io-devtools/)
 		assert.doesNotMatch(css, /@container atom-io-\w+-module-atom-io-devtools/)
 		const cssPath = require.resolve(`@atom.io/spa-devtools/css`)
+		const brandAssets = [...css.matchAll(/\.\/brand-fallback\/[\w@-]+\.webp/g)]
+		assert.ok(brandAssets.length > 0)
+		for (const [asset] of brandAssets) {
+			const bytes = await readFile(new URL(asset, pathToFileURL(cssPath)))
+			assert.equal(bytes.toString(`ascii`, 8, 12), `WEBP`)
+		}
 		const provenance = JSON.parse(
 			await readFile(
 				new URL(`./fonts/PROVENANCE.json`, pathToFileURL(cssPath)),

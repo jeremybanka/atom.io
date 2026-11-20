@@ -274,6 +274,8 @@ export default {
 			],
 		},
 		"packages/spa": {
+			// The contributor-only BrandMark capture command uses the system WebP encoder.
+			ignoreBinaries: ["cwebp"],
 			ignoreDependencies: [
 				// scripts/size.ts bundles an inline Preact comparison string.
 				"preact",

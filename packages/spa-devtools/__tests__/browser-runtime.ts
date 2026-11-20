@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { readFile } from "node:fs/promises"
+import { readdir, readFile } from "node:fs/promises"
 import { resolve } from "node:path"
 
 import { type Browser, chromium, type Page } from "playwright"
@@ -72,18 +72,28 @@ export async function launchBrowser({
 	return browser
 }
 
-/** Serve the emitted stylesheet and its relative fonts in built-consumer fixtures. */
+/** Serve the emitted stylesheet and its relative assets in built-consumer fixtures. */
 export async function loadDevtoolsAssets(): Promise<
 	Map<string, { type: string; body: Buffer }>
 > {
 	const assets = new Map<string, { type: string; body: Buffer }>()
-	for (const name of [
-		`devtools.css`,
-		...[200, 400, 500].map((weight) => `fonts/Theia0.3-${weight}.otf`),
-	])
+	const dist = resolve(import.meta.dirname, `../dist`)
+	const images = await readdir(resolve(dist, `brand-fallback`))
+	const files = [
+		{ name: `devtools.css`, type: `text/css` },
+		...[200, 400, 500].map((weight) => ({
+			name: `fonts/Theia0.3-${weight}.otf`,
+			type: `font/otf`,
+		})),
+		...images.map((name) => ({
+			name: `brand-fallback/${name}`,
+			type: `image/webp`,
+		})),
+	]
+	for (const { name, type } of files)
 		assets.set(`/${name}`, {
-			type: name.endsWith(`.css`) ? `text/css` : `font/otf`,
-			body: await readFile(resolve(import.meta.dirname, `../dist`, name)),
+			type,
+			body: await readFile(resolve(dist, name)),
 		})
 	return assets
 }

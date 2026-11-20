@@ -4,8 +4,8 @@ const config: TonnageConfig = defineConfig({
 	heading: `Browser serving size including SPA and atom.io`,
 	platform: `browser`,
 	includePeers: true,
-	// Font files are emitted static assets; this table measures JavaScript only.
-	external: [`*.otf`],
+	// Fonts and brand images are emitted static assets.
+	external: [`*.otf`, `*.webp`],
 	exports: false,
 	recipes: [
 		{

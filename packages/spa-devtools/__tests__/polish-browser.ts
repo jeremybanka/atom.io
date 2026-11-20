@@ -1,5 +1,4 @@
 import assert from "node:assert/strict"
-import { createHash } from "node:crypto"
 import { mkdir, readFile, writeFile } from "node:fs/promises"
 import { createServer } from "node:http"
 import { createRequire } from "node:module"
@@ -16,10 +15,6 @@ import {
 	loadDevtoolsAssets,
 } from "./browser-runtime.ts"
 
-const favicon = await readFile(
-	resolve(import.meta.dirname, `../../../apps/atom.io.fyi/public/favicon.png`),
-)
-const faviconSha256 = createHash(`sha256`).update(favicon).digest(`hex`)
 const baseline = process.argv.includes(`--baseline`)
 const artifacts = browserArtifacts(
 	process.env[`SPA_DEVTOOLS_POLISH_ARTIFACTS`] ?? `/tmp/spa-devtools-polish`,
@@ -134,12 +129,28 @@ async function checkVisualTreatment(
 	await page.waitForSelector(`brand-mark[data-live="true"] canvas`)
 	const icon = await page
 		.locator(`brand-mark`)
-		.evaluate((el: HTMLElement) =>
-			getComputedStyle(el).getPropertyValue(`--brand-mark`),
-		)
-	const embedded = icon.match(/data:image\/png;base64,([^"')]+)/)
-	assert.ok(embedded, `Retain the linked PNG favicon as the static fallback`)
-	assert.deepEqual(Buffer.from(embedded[1], `base64`), favicon)
+		.evaluate(async (el: HTMLElement) => {
+			el.setAttribute(`data-live`, `false`)
+			const background = getComputedStyle(el).backgroundImage
+			el.setAttribute(`data-live`, `true`)
+			const urls = [...background.matchAll(/url\("([^"]+)"\)/g)]
+			return Promise.all(
+				urls.map(async ([, url]) => {
+					const image = new Image()
+					image.src = url
+					await image.decode()
+					return {
+						file: new URL(url).pathname.split(`/`).at(-1),
+						width: image.naturalWidth,
+						height: image.naturalHeight,
+					}
+				}),
+			)
+		})
+	assert.deepEqual(icon, [
+		{ file: `mark-32.webp`, width: 32, height: 32 },
+		{ file: `mark-32@2x.webp`, width: 64, height: 64 },
+	])
 	const appearance = await page
 		.locator(`debugger-panel`)
 		.evaluate((el: HTMLElement) => {
@@ -208,7 +219,7 @@ async function checkVisualTreatment(
 		appearance.noise.blend,
 		theme === `dark` ? `soft-light` : `multiply`,
 	)
-	assert.equal(appearance.noise.size, `1024px auto`)
+	assert.match(appearance.noise.size, /^1024px(?: auto)?$/)
 	assert.equal(appearance.noise.repeat, `repeat`)
 	assert.equal(appearance.noise.position, `50% 50%`)
 	assert.equal(appearance.noise.pointerEvents, `none`)
@@ -421,7 +432,7 @@ async function checkVisualTreatment(
 		pixels.minimumInkContrast >= 4.5,
 		`Noise must retain text/background contrast in the sampled patch: ${JSON.stringify(pixels)}`,
 	)
-	return { faviconSha256, typography, ...appearance, pixels }
+	return { icon, typography, ...appearance, pixels }
 }
 function contrastRatio(ink: string, fill: string): number {
 	const luminance = (color: string) =>

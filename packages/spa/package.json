@@ -129,6 +129,7 @@
 	],
 	"scripts": {
 		"build": "tsdown && node scripts/size.ts",
+		"brand:capture": "node scripts/capture-brand-fallbacks.ts",
 		"lint:eslint": "eslint",
 		"lint:oxlint": "oxlint",
 		"lint:types": "tsc -p tsconfig.json && tsc -p __tests__/fixtures/consumer/tsconfig.json",

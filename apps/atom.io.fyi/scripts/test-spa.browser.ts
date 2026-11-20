@@ -135,6 +135,7 @@ try {
 		await panel.evaluate(readTypography),
 		`Debugger content must inherit the panel's font and color`,
 	)
+	await panel.getByRole(`tab`, { name: `atoms`, exact: true }).click()
 	await page.locator(`button[aria-label="Expand headings"]`).click()
 	await page.locator(`button[aria-label="Expand 0"]`).click()
 	const rowHeights = await panel
@@ -169,7 +170,7 @@ try {
 		),
 		`rgb(17, 17, 17)`,
 	)
-	await panel.screenshot({ path: `/tmp/spa-devtools-dense-dark.png` })
+	await panel.screenshot({ path: `/tmp/devtools-dense-dark.png` })
 	await page.emulateMedia({ colorScheme: `light` })
 	assert.equal(
 		await panel.evaluate(
@@ -177,7 +178,7 @@ try {
 		),
 		`rgb(249, 249, 249)`,
 	)
-	await panel.screenshot({ path: `/tmp/spa-devtools-dense-light.png` })
+	await panel.screenshot({ path: `/tmp/devtools-dense-light.png` })
 	const initialPanel = await panel.boundingBox()
 	assert.ok(initialPanel)
 	const waitForOffset = (dx: number, dy: number) =>

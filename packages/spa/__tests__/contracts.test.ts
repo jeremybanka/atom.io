@@ -64,7 +64,7 @@ it(`filters Vite inputs, resets global regexes, and reloads matching documents`,
 					`@atom.io/spa`,
 					`atom.io/internal`,
 					`other-package`,
-					`@atom.io/spa-devtools`,
+					`@atom.io/devtools`,
 				],
 			},
 		}
@@ -72,7 +72,7 @@ it(`filters Vite inputs, resets global regexes, and reloads matching documents`,
 		hook.handler(`client`, environment)
 		expect(environment.optimizeDeps.include).toEqual([
 			`other-package`,
-			`@atom.io/spa-devtools`,
+			`@atom.io/devtools`,
 		])
 		hook.handler(`ssr`, {})
 		hook.handler(`ssr`, { optimizeDeps: {} })

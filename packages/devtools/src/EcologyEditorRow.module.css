@@ -1,0 +1,46 @@
+ecology-editor-row.class {
+	& {
+		display: block;
+		border-left: 3px solid var(--ecology-color);
+		border-bottom: 1px solid var(--line);
+		min-width: 0;
+	}
+	&[hidden] {
+		display: none;
+	}
+	&[data-selection-anchor="true"] {
+		outline: 2px solid var(--ink-strong);
+		outline-offset: 1px;
+		margin: 2px 0 5px;
+	}
+	&[data-grouped="true"] {
+		margin-left: 9px;
+	}
+	&[data-hovered="true"] {
+		--surface-inactive: var(--surface-hover);
+		--drawer-surface: var(--surface-hover);
+		background: var(--surface-hover);
+	}
+	> node-heading {
+		display: flex;
+		align-items: center;
+		min-height: 26px;
+		background: var(--surface-inactive);
+	}
+	> node-heading > small {
+		margin-left: auto;
+		flex-shrink: 0;
+		padding: 0 4px;
+		font-size: 10px;
+		color: var(--ink-muted);
+	}
+	> node-heading > ecology-node-name {
+		flex: 1;
+	}
+	> small[data-pinned] {
+		display: block;
+		padding: 3px;
+		color: var(--ink-muted);
+		font-size: 10px;
+	}
+}

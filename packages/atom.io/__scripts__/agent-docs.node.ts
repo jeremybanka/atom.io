@@ -55,7 +55,7 @@ function exhibitRoot(source: string): string {
 	}
 	if (
 		source.startsWith(`spa/exhibits/`) ||
-		source.startsWith(`spa-devtools/exhibits/`)
+		source.startsWith(`devtools/exhibits/`)
 	) {
 		return path.join(WORKSPACE_ROOT, `packages`)
 	}
@@ -307,10 +307,10 @@ const DOC_PAGES: DocPage[] = [
 		url: `/docs/eslint-plugin`,
 	},
 	{
-		output: `atom.io-react-devtools.md`,
-		source: `docs/source/pages/docs/react-devtools.mdx`,
-		title: `@atom.io/react-devtools`,
-		url: `/docs/react-devtools`,
+		output: `atom.io-devtools.md`,
+		source: `docs/source/pages/docs/devtools.mdx`,
+		title: `@atom.io/devtools`,
+		url: `/docs/devtools`,
 	},
 	{
 		output: `atom.io-testing.md`,

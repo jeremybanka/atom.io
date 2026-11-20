@@ -1,7 +1,7 @@
 import "@atom.io/devtools/css"
 
-import { StoreProvider } from "@atom.io/react"
 import { AtomIODevtools } from "@atom.io/devtools/react"
+import { StoreProvider } from "@atom.io/react"
 import type { RootStore } from "atom.io/internal"
 import type { ReactElement } from "react"
 import { createElement } from "react"

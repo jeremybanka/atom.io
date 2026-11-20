@@ -291,7 +291,7 @@ importers:
         version: 6.46.1
       lasertag:
         specifier: 0.9.1
-        version: 0.9.1(@solidjs/web@2.0.1(solid-js@2.0.1))(@types/react@19.3.0)(arktype@2.2.8)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.1)(supports-color@10.2.2)
+        version: 0.9.1(@solidjs/web@2.0.3(solid-js@2.0.3))(@types/react@19.3.0)(arktype@2.2.8)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.3)(supports-color@10.2.2)
       oxlint:
         specifier: 1.94.0
         version: 1.94.0(oxlint-tsgolint@7.0.2007)
@@ -367,7 +367,7 @@ importers:
         version: 10.15.0(jiti@2.7.0)(supports-color@10.2.2)
       lasertag:
         specifier: 0.9.1
-        version: 0.9.1(@solidjs/web@2.0.1(solid-js@2.0.1))(@types/react@19.3.0)(arktype@2.2.10)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.1)(supports-color@10.2.2)
+        version: 0.9.1(@solidjs/web@2.0.3(solid-js@2.0.3))(@types/react@19.3.0)(arktype@2.2.10)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.3)(supports-color@10.2.2)
       playwright:
         specifier: 1.65.1
         version: 1.65.1
@@ -399,8 +399,8 @@ importers:
         specifier: 1.16.4
         version: 1.16.4(crossws@0.3.5)(ws@8.23.0)
       '@solidjs/web':
-        specifier: 2.0.1
-        version: 2.0.1(solid-js@2.0.1)
+        specifier: 2.0.3
+        version: 2.0.3(solid-js@2.0.3)
       '@storybook/addon-docs':
         specifier: 10.6.7
         version: 10.6.7(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(storybook@10.6.7(@types/react@19.3.0)(react@19.3.1))
@@ -474,8 +474,8 @@ importers:
         specifier: 0.1.20
         version: 0.1.20(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7)
       solid-js:
-        specifier: 2.0.1
-        version: 2.0.1
+        specifier: 2.0.3
+        version: 2.0.3
       storybook:
         specifier: 10.6.7
         version: 10.6.7(@types/react@19.3.0)(react@19.3.1)
@@ -779,8 +779,8 @@ importers:
         specifier: 4.8.4
         version: 4.8.4(supports-color@10.2.2)
       solid-js:
-        specifier: 2.0.1
-        version: 2.0.1
+        specifier: 2.0.3
+        version: 2.0.3
       tsdown:
         specifier: 0.23.7
         version: 0.23.7(@tsdown/css@0.23.7)(oxc-resolver@11.21.2)(tsx@4.23.13)(typescript@7.0.2)
@@ -855,8 +855,8 @@ importers:
         specifier: 0.1.0
         version: 0.1.0(breakage@0.10.2(supports-color@10.2.2)(zod@4.6.7))
       '@solidjs/signals':
-        specifier: 2.0.1
-        version: 2.0.1
+        specifier: 2.0.3
+        version: 2.0.3
       '@types/node':
         specifier: 26.6.6
         version: 26.6.6
@@ -879,8 +879,8 @@ importers:
         specifier: 0.1.20
         version: 0.1.20(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7)
       solid-js:
-        specifier: 2.0.1
-        version: 2.0.1
+        specifier: 2.0.3
+        version: 2.0.3
       solid-js-1:
         specifier: npm:solid-js@1.9.19
         version: solid-js@1.9.19
@@ -1126,7 +1126,7 @@ importers:
         version: 21.0.4
       lasertag:
         specifier: 0.9.1
-        version: 0.9.1(@solidjs/web@2.0.1(solid-js@2.0.1))(@types/react@19.3.0)(arktype@2.2.10)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.1)(supports-color@10.2.2)
+        version: 0.9.1(@solidjs/web@2.0.3(solid-js@2.0.3))(@types/react@19.3.0)(arktype@2.2.10)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.3)(supports-color@10.2.2)
       oxlint:
         specifier: 1.94.0
         version: 1.94.0(oxlint-tsgolint@7.0.2007)
@@ -1396,7 +1396,7 @@ importers:
         version: 21.0.4
       lasertag:
         specifier: 0.9.1
-        version: 0.9.1(@solidjs/web@2.0.1(solid-js@2.0.1))(@types/react@19.3.0)(arktype@2.2.10)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.1)(supports-color@10.2.2)
+        version: 0.9.1(@solidjs/web@2.0.3(solid-js@2.0.3))(@types/react@19.3.0)(arktype@2.2.10)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.3)(supports-color@10.2.2)
       oxlint:
         specifier: 1.94.0
         version: 1.94.0(oxlint-tsgolint@7.0.2007)
@@ -1422,8 +1422,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/solid
       '@solidjs/web':
-        specifier: 2.0.1
-        version: 2.0.1(solid-js@2.0.1)
+        specifier: 2.0.3
+        version: 2.0.3(solid-js@2.0.3)
       atom.io:
         specifier: workspace:*
         version: link:../../packages/atom.io
@@ -1431,8 +1431,8 @@ importers:
         specifier: 0.1.1
         version: 0.1.1
       solid-js:
-        specifier: 2.0.1
-        version: 2.0.1
+        specifier: 2.0.3
+        version: 2.0.3
     devDependencies:
       '@atom.io/eslint-plugin':
         specifier: workspace:*
@@ -1448,7 +1448,7 @@ importers:
         version: 0.51.0
       '@solidjs/vite-plugin':
         specifier: 3.0.1
-        version: 3.0.1(@babel/core@8.1.2)(@solidjs/web@2.0.1(solid-js@2.0.1))(@testing-library/jest-dom@6.9.1)(solid-js@2.0.1)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+        version: 3.0.1(@babel/core@8.1.2)(@solidjs/web@2.0.3(solid-js@2.0.3))(@testing-library/jest-dom@6.9.1)(solid-js@2.0.3)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
       '@types/node':
         specifier: 26.6.6
         version: 26.6.6
@@ -4767,8 +4767,8 @@ packages:
   '@solidjs/compiler@2.0.0':
     resolution: {integrity: sha512-Spgqz1+eojQ2pDl4yajnajIjX/kSusjTK/6mC6Fm7sAZ3YBI0yP4/epRR1hV08TU3YAH4xLBmZ6wjb1zC134Sw==}
 
-  '@solidjs/signals@2.0.1':
-    resolution: {integrity: sha512-nTdIk7UgGLwATg0wCT/wH/G62aWYjGol2AnqdrN4qVyV7snYTnYoesgJ/G7xRkO34mAr3tayt0cu1+k/dt0lmA==}
+  '@solidjs/signals@2.0.3':
+    resolution: {integrity: sha512-M6+kiJflqSvJRHRcmdsdIXpPLPkQrY817zWKKfxZ3z3ZRE5eEtddtWPrDXY4IM1Wz3zAqG+3Fx/HQIkAtpRwnA==}
     engines: {node: '>=22.12.0'}
 
   '@solidjs/vite-plugin@3.0.1':
@@ -4792,11 +4792,11 @@ packages:
       '@testing-library/jest-dom':
         optional: true
 
-  '@solidjs/web@2.0.1':
-    resolution: {integrity: sha512-o7spK20IEMk0bA+lVeULfTQPD9Oyb/VLS9gv5BNQdHIxFWBRFNlHf1ofF0z9b2uA3pLlRtYh+5/USk3fSTdsjQ==}
+  '@solidjs/web@2.0.3':
+    resolution: {integrity: sha512-XYl9JGOtQ8yJSZRnd6uC+5gYXsYvnIRNxhn89m+F1v6D4d4ZFdTJY2Lq/8XJ3YcjckkCrK/mNfd3kIiqqgnG7w==}
     engines: {node: '>=22.12.0'}
     peerDependencies:
-      solid-js: ^2.0.1
+      solid-js: ^2.0.3
 
   '@speed-highlight/core@1.2.24':
     resolution: {integrity: sha512-qeW2e1l78afw8VhRPfPQ1Gjj+KU5XFQ/OFV5ti6eTa9bruO7mJyZtA4vw0ofqmA3tKCkROE9xLk3VZoeRc98nw==}
@@ -8338,8 +8338,8 @@ packages:
   solid-js@1.9.19:
     resolution: {integrity: sha512-NIrV/6o1FtmrA9iuAAYvnQJZaHrGcaH3LKSVj4kCiZfwqjCtJNDgIgR9XcqYl6KR/Lb3oRx1HrlyswPWR8SRvw==}
 
-  solid-js@2.0.1:
-    resolution: {integrity: sha512-5bBwRCblIZ672y2H2aB5KIOfeP/N+acx1YoCjNCWYFc4ZI/Y7y7n/6N1kei8AgWmcJJQ1m5SV90rs3V8CPAnYQ==}
+  solid-js@2.0.3:
+    resolution: {integrity: sha512-XOHstv+GAJjfcSGZU9xfX5q6Mbqmv72IcdWh2JuMx3KvBbfpQPdy/Yl00A1ouk7A0etjqhNe799CPdr6i7koWg==}
     engines: {node: '>=22.12.0'}
 
   source-map-js@1.2.2:
@@ -12084,28 +12084,28 @@ snapshots:
       '@solidjs/compiler-wasm32-wasi': 2.0.0
       '@solidjs/compiler-win32-x64-msvc': 2.0.0
 
-  '@solidjs/signals@2.0.1': {}
+  '@solidjs/signals@2.0.3': {}
 
-  '@solidjs/vite-plugin@3.0.1(@babel/core@8.1.2)(@solidjs/web@2.0.1(solid-js@2.0.1))(@testing-library/jest-dom@6.9.1)(solid-js@2.0.1)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))':
+  '@solidjs/vite-plugin@3.0.1(@babel/core@8.1.2)(@solidjs/web@2.0.3(solid-js@2.0.3))(@testing-library/jest-dom@6.9.1)(solid-js@2.0.3)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))':
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@solidjs/compiler': 2.0.0
-      '@solidjs/web': 2.0.1(solid-js@2.0.1)
+      '@solidjs/web': 2.0.3(solid-js@2.0.3)
       magic-string: 0.30.21
       merge-anything: 5.1.7
-      solid-js: 2.0.1
+      solid-js: 2.0.3
       vite: 8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
       vitefu: 1.1.3(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
     optionalDependencies:
       '@babel/core': 8.1.2
       '@testing-library/jest-dom': 6.9.1
 
-  '@solidjs/web@2.0.1(solid-js@2.0.1)':
+  '@solidjs/web@2.0.3(solid-js@2.0.3)':
     dependencies:
       csstype: 3.2.3
       seroval: 1.8.1
       seroval-plugins: 1.8.0(seroval@1.8.1)
-      solid-js: 2.0.1
+      solid-js: 2.0.3
 
   '@speed-highlight/core@1.2.24': {}
 
@@ -14584,7 +14584,7 @@ snapshots:
 
   konva@10.9.1: {}
 
-  lasertag@0.9.1(@solidjs/web@2.0.1(solid-js@2.0.1))(@types/react@19.3.0)(arktype@2.2.10)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.1)(supports-color@10.2.2):
+  lasertag@0.9.1(@solidjs/web@2.0.3(solid-js@2.0.3))(@types/react@19.3.0)(arktype@2.2.10)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.3)(supports-color@10.2.2):
     dependencies:
       '@astrojs/compiler': 4.0.0
       '@vscode/vsce': 4.1.1(supports-color@10.2.2)
@@ -14599,17 +14599,17 @@ snapshots:
       vscode-languageserver-textdocument: 1.0.16
       zod: 4.6.7
     optionalDependencies:
-      '@solidjs/web': 2.0.1(solid-js@2.0.1)
+      '@solidjs/web': 2.0.3(solid-js@2.0.3)
       '@types/react': 19.3.0
       eslint: 10.15.0(jiti@2.7.0)(supports-color@10.2.2)
       preact: 11.2.0(preact-render-to-string@6.8.2)
-      solid-js: 2.0.1
+      solid-js: 2.0.3
     transitivePeerDependencies:
       - arktype
       - happy-dom
       - supports-color
 
-  lasertag@0.9.1(@solidjs/web@2.0.1(solid-js@2.0.1))(@types/react@19.3.0)(arktype@2.2.8)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.1)(supports-color@10.2.2):
+  lasertag@0.9.1(@solidjs/web@2.0.3(solid-js@2.0.3))(@types/react@19.3.0)(arktype@2.2.8)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.3)(supports-color@10.2.2):
     dependencies:
       '@astrojs/compiler': 4.0.0
       '@vscode/vsce': 4.1.1(supports-color@10.2.2)
@@ -14624,11 +14624,11 @@ snapshots:
       vscode-languageserver-textdocument: 1.0.16
       zod: 4.6.7
     optionalDependencies:
-      '@solidjs/web': 2.0.1(solid-js@2.0.1)
+      '@solidjs/web': 2.0.3(solid-js@2.0.3)
       '@types/react': 19.3.0
       eslint: 10.15.0(jiti@2.7.0)(supports-color@10.2.2)
       preact: 11.2.0(preact-render-to-string@6.8.2)
-      solid-js: 2.0.1
+      solid-js: 2.0.3
     transitivePeerDependencies:
       - arktype
       - happy-dom
@@ -16363,9 +16363,9 @@ snapshots:
       seroval: 1.6.12
       seroval-plugins: 1.6.8(seroval@1.6.12)
 
-  solid-js@2.0.1:
+  solid-js@2.0.3:
     dependencies:
-      '@solidjs/signals': 2.0.1
+      '@solidjs/signals': 2.0.3
       seroval: 1.8.1
       seroval-plugins: 1.8.0(seroval@1.8.1)
 

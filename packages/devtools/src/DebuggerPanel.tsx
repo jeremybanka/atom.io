@@ -177,6 +177,7 @@ export function DebuggerPanel(props: {
 			{getOpen() ? (
 				<debugger-content
 					role="tabpanel"
+					data-view={view()}
 					id={`${panelId}-content`}
 					aria-labelledby={`${panelId}-${view()}`}
 					tabIndex={0}

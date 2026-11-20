@@ -193,7 +193,7 @@ debugger-panel.class {
 		outline: 2px solid var(--ink-muted);
 		outline-offset: -2px;
 	}
-	> debugger-content > :is(state-index, transaction-index, timeline-index) {
+	> debugger-content:not([data-view="ecology"]) {
 		padding-top: 4px;
 	}
 	> debugger-toolbar > [data-drag-handle] {

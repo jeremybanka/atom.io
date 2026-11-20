@@ -53,12 +53,7 @@ function TimelineLog(props: {
 	const travel = (action: `undo` | `redo`) => {
 		props.tools.attempt(() => {
 			if (props.tools.worker)
-				props.tools.worker.timeline(
-					props.token.key,
-					action,
-					controls.getCursor(),
-					controls.getLength(),
-				)
+				props.tools.worker.timeline(props.token.key, action)
 			else controls[action]()
 		})
 	}

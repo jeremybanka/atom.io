@@ -11,17 +11,13 @@ import type {
 
 export interface WorkerPanelConnection {
 	error: RegularAtomToken<string>
+	ready: RegularAtomToken<boolean>
 	revision(key: string): number | undefined
 	edit(key: string, value: unknown, revision?: number): void
 	cache(key: string): RegularAtomToken<WorkerCachedValue> | undefined
 	generate(key: string): void
 	disposeState(key: string): void
-	timeline(
-		key: string,
-		action: `undo` | `redo`,
-		at: number,
-		length: number,
-	): void
+	timeline(key: string, action: `undo` | `redo`): void
 	ecology(): EcologySnapshot | undefined
 	subscribeEcology(listener: () => void): () => void
 }
@@ -40,6 +36,11 @@ export function connectWorker(port: MessagePort): {
 		// eslint-disable-next-line atom.io/naming-convention -- keep the panel's status out of the atom index
 		key: `🔍 Worker devtools error`,
 		default: ``,
+	})
+	const readyAtom = silo.atom<boolean>({
+		// eslint-disable-next-line atom.io/naming-convention -- keep the panel's status out of the atom index
+		key: `🔍 Worker devtools ready`,
+		default: false,
 	})
 	const states = new Map<
 		string,
@@ -73,6 +74,7 @@ export function connectWorker(port: MessagePort): {
 			silo.setState(errorAtom, data.message)
 		} else if (data?.type === `store`) {
 			projection.apply(data.snapshot)
+			silo.setState(readyAtom, true)
 		} else if (data?.type === `snapshot`) {
 			for (const state of data.states) {
 				const value = `value` in state ? state.value : new Error(state.error)
@@ -97,10 +99,12 @@ export function connectWorker(port: MessagePort): {
 				entry.revision = state.editable ? state.revision : undefined
 				silo.setState(entry.value, () => value)
 			}
+			silo.setState(readyAtom, true)
 		}
 	}
 	const worker: WorkerPanelConnection = {
 		error: errorAtom,
+		ready: readyAtom,
 		revision: (key) => projection.revision(key) ?? states.get(key)?.revision,
 		edit(key, value, revision = worker.revision(key)) {
 			command({ type: `edit`, key, value, revision })
@@ -112,8 +116,13 @@ export function connectWorker(port: MessagePort): {
 		disposeState(key) {
 			command({ type: `dispose`, key })
 		},
-		timeline(key, action, at, length) {
-			command({ type: `timeline`, key, action, at, length })
+		timeline(key, action) {
+			command({
+				type: `timeline`,
+				key,
+				action,
+				revision: projection.timelineRevision(key),
+			})
 		},
 		ecology: projection.ecology,
 		subscribeEcology: projection.subscribeEcology,

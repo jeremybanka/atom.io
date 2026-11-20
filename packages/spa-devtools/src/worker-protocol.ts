@@ -31,8 +31,7 @@ export type PanelMessage =
 			type: `timeline`
 			key: string
 			action: `undo` | `redo`
-			at: number
-			length: number
+			revision: number | undefined
 	  }
 	| { type: `close` }
 
@@ -55,6 +54,7 @@ export interface WorkerStoreSnapshot {
 	timelines: {
 		token: TimelineToken<any>
 		at: number
+		revision: number
 		history: WorkerHistory<TimelineEvent<any>>[]
 	}[]
 	ecology: EcologySnapshot

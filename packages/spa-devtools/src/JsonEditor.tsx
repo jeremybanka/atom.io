@@ -246,6 +246,7 @@ function Primitive(props: {
 }
 function Property(props: { name: string; editor: EditorProps }): SpaElement {
 	const parent = props.editor
+	let renameDraft: { revision: number | undefined } | undefined
 	const read = () => (parent.value as Record<string, unknown>)[props.name]
 	const change: Change = (update, revision) => {
 		parent.change?.((previous) => {
@@ -267,6 +268,9 @@ function Property(props: { name: string; editor: EditorProps }): SpaElement {
 							data-elastic-input
 							size={Math.max(1, props.name.length)}
 							onInput={(event) => {
+								renameDraft ??= {
+									revision: parent.tools.worker?.revision(parent.stateKey!),
+								}
 								event.currentTarget.size = Math.max(
 									1,
 									event.currentTarget.value.length,
@@ -279,10 +283,13 @@ function Property(props: { name: string; editor: EditorProps }): SpaElement {
 							onBlur={(event) => {
 								const input = event.currentTarget
 								const name = input.value
+								const revision = renameDraft?.revision
+								renameDraft = undefined
 								parent.tools.attempt(() => {
+									if (name === props.name) return
 									parent.change?.((previous) => {
 										const object = previous as Record<string, unknown>
-										if (name !== props.name && Object.hasOwn(object, name))
+										if (Object.hasOwn(object, name))
 											throw new Error(`Property "${name}" already exists`)
 										return Object.fromEntries(
 											Object.entries(object).map(([key, value]) => [
@@ -290,7 +297,7 @@ function Property(props: { name: string; editor: EditorProps }): SpaElement {
 												value,
 											]),
 										)
-									})
+									}, revision)
 								})
 								input.value = props.name
 								input.size = Math.max(1, props.name.length)

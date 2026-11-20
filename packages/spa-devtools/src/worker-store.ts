@@ -39,13 +39,19 @@ function isEditableValue(value: unknown): boolean {
 		if (typeof next !== `object` || seen.has(next)) return false
 		const prototype: object | null = Object.getPrototypeOf(next)
 		if (
-			!Array.isArray(next) &&
-			prototype !== null &&
-			Object.getPrototypeOf(prototype) !== null
+			Array.isArray(next)
+				? !Array.isArray(prototype)
+				: prototype !== null && Object.getPrototypeOf(prototype) !== null
 		)
 			return false
 		seen.add(next)
-		for (const member of Object.values(next)) pending.push(member)
+		for (const descriptor of Object.values(
+			Object.getOwnPropertyDescriptors(next),
+		)) {
+			if (!descriptor.enumerable) continue
+			if (!(`value` in descriptor)) return false
+			pending.push(descriptor.value)
+		}
 	}
 	return true
 }
@@ -85,7 +91,7 @@ export function exposeWholeStore(port: MessagePort, silo: Silo): () => void {
 	const watch = new Map<string, () => void>()
 	const revisions = new Map<string, number>()
 	const cleanup: (() => void)[] = []
-	const timelines = new Map<string, () => void>()
+	const timelines = new Map<string, { revision: number; stop(): void }>()
 	const transactions = new Map<
 		string,
 		{
@@ -96,6 +102,7 @@ export function exposeWholeStore(port: MessagePort, silo: Silo): () => void {
 	>()
 	const eventCopies = new WeakMap<RecordedEvent, WorkerHistory>()
 	let eventId = 0
+	let timelineRevision = 0
 	let closed = false
 	let scheduled = false
 	const subscriber = arbitrary()
@@ -166,7 +173,8 @@ export function exposeWholeStore(port: MessagePort, silo: Silo): () => void {
 					editable:
 						cached.present &&
 						(type === `atom` || type.startsWith(`writable`)) &&
-						isEditableValue(value),
+						isEditableValue(value) &&
+						isEditableValue(cached.value),
 				})
 			}
 		}
@@ -175,6 +183,7 @@ export function exposeWholeStore(port: MessagePort, silo: Silo): () => void {
 				snapshot.timelines.push({
 					token: deposit(timeline),
 					at: timeline.at,
+					revision: timelines.get(key)!.revision,
 					history: timeline.history.map(eventRecord),
 				})
 		for (const [key, transaction] of store.transactions) {
@@ -198,8 +207,15 @@ export function exposeWholeStore(port: MessagePort, silo: Silo): () => void {
 	const addTimeline = (key: string) => {
 		const timeline = store.timelines.get(key)
 		if (!timeline || !visible(key)) return
-		timelines.get(key)?.()
-		timelines.set(key, timeline.subject.subscribe(subscriber, schedule))
+		timelines.get(key)?.stop()
+		const entry = {
+			revision: ++timelineRevision,
+			stop: timeline.subject.subscribe(subscriber, () => {
+				entry.revision = ++timelineRevision
+				schedule()
+			}),
+		}
+		timelines.set(key, entry)
 	}
 	function dispose() {
 		if (closed) return
@@ -207,7 +223,7 @@ export function exposeWholeStore(port: MessagePort, silo: Silo): () => void {
 		port.removeEventListener(`message`, receive)
 		port.removeEventListener(`messageerror`, dispose)
 		for (const stop of cleanup) stop()
-		for (const stop of timelines.values()) stop()
+		for (const { stop } of timelines.values()) stop()
 		for (const { stop } of transactions.values()) stop()
 		for (const stop of watch.values()) stop()
 		send({ type: `close` })
@@ -223,11 +239,7 @@ export function exposeWholeStore(port: MessagePort, silo: Silo): () => void {
 			if (!visible(data.key)) throw new Error(`Worker state is unavailable`)
 			if (data.type === `timeline`) {
 				const timeline = store.timelines.get(data.key)
-				if (
-					!timeline ||
-					timeline.at !== data.at ||
-					timeline.history.length !== data.length
-				)
+				if (!timeline || timelines.get(data.key)?.revision !== data.revision)
 					throw new Error(
 						`Worker timeline changed. Try again with the current history.`,
 					)
@@ -298,13 +310,17 @@ export function exposeWholeStore(port: MessagePort, silo: Silo): () => void {
 				schedule()
 			}),
 			store.on.timelineDisposal.subscribe(subscriber, ({ key }) => {
-				timelines.get(key)?.()
+				timelines.get(key)?.stop()
 				timelines.delete(key)
 				schedule()
 			}),
 			store.on.transactionCreation.subscribe(subscriber, ({ key }) => {
 				addTransaction(key)
 				schedule()
+			}),
+			store.on.transactionApplying.subscribe(subscriber, (progress) => {
+				// Same-key replacement skips creation. Subscribe before the outcome is emitted.
+				if (progress) addTransaction(progress.update.token.key)
 			}),
 		)
 		port.addEventListener(`message`, receive)

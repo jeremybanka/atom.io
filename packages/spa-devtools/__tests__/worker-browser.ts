@@ -116,6 +116,12 @@ if (process.argv.includes(`--serve`)) {
 		}
 
 		await expectValue(`count`, `2`)
+		await panel.getByRole(`searchbox`, { name: `Search atoms` }).fill(`count`)
+		await panel
+			.getByRole(`list`, { name: `atoms search results` })
+			.getByRole(`button`, { name: `count`, exact: true })
+			.waitFor()
+		await panel.getByRole(`button`, { name: `Clear`, exact: true }).click()
 		await increment.click()
 		await expectValue(`count`, `3`)
 		await selectors.click()

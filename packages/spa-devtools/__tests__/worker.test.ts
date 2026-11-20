@@ -222,6 +222,28 @@ it(`projects family values and sends nested JSON edits and disposal to the worke
 		field.blur()
 		await flush()
 		expect(silo.getState(item)).toEqual({ quantity: 8 })
+		const rename = (name: string) => {
+			const input = row.querySelector<HTMLInputElement>(
+				`input[aria-label="Rename quantity"]`,
+			)!
+			input.focus()
+			input.value = name
+			input.dispatchEvent(new Event(`input`, { bubbles: true }))
+			return input
+		}
+		const stale = rename(`stale`)
+		silo.setState(item, { quantity: 9 })
+		await flush()
+		expect(stale.value).toBe(`stale`)
+		stale.blur()
+		await flush()
+		expect(silo.getState(item)).toEqual({ quantity: 9 })
+		expect(host.querySelector(`[role="alert"]`)?.textContent).toContain(
+			`state changed`,
+		)
+		rename(`amount`).blur()
+		await flush()
+		expect(silo.getState(item)).toEqual({ amount: 9 })
 		row
 			.querySelector<HTMLButtonElement>(`button[aria-label^="Dispose"]`)!
 			.click()
@@ -271,6 +293,16 @@ it(`projects retained history and the observed graph and time travels in the wor
 		expect(
 			host.querySelector(`[data-testid="transaction-finish"]`)?.textContent,
 		).toContain(`output: 5`)
+		const replacementTransaction = silo.transaction<() => string>({
+			// eslint-disable-next-line atom.io/naming-convention -- replace the existing transaction by key
+			key: finishTransaction.key,
+			do: () => `replacement without writes`,
+		})
+		silo.runTransaction(replacementTransaction)()
+		await flush()
+		expect(
+			host.querySelector(`[data-testid="transaction-finish"]`)?.textContent,
+		).toContain(`output: "replacement without writes"`)
 		await tab(`timelines`)
 		const timeline = host.querySelector<HTMLElement>(
 			`[data-testid="timeline-count"]`,
@@ -287,12 +319,29 @@ it(`projects retained history and the observed graph and time travels in the wor
 		redo.click()
 		await flush()
 		expect(silo.getState(countAtom)).toBe(4)
+		silo.undo(countTimeline)
+		silo.setState(countAtom, 7)
+		// The worker replaced the branch at the same cursor and length before publishing.
+		expect(silo.store.timelines.get(countTimeline.key)).toMatchObject({
+			at: 1,
+			history: [expect.anything()],
+		})
+		undo.click()
+		await flush()
+		expect(silo.getState(countAtom)).toBe(7)
+		expect(host.querySelector(`[role="alert"]`)?.textContent).toContain(
+			`timeline changed`,
+		)
+		undo.click()
+		await flush()
+		expect(silo.getState(countAtom)).toBe(0)
+		redo.click()
+		await flush()
+		expect(silo.getState(countAtom)).toBe(7)
 		worker.receive({
 			type: `timeline`,
-			key: `count`,
+			key: `missing`,
 			action: `undo`,
-			at: -1,
-			length: -1,
 		})
 		await flush()
 		expect(host.querySelector(`[role="alert"]`)?.textContent).toContain(
@@ -323,7 +372,7 @@ it(`projects retained history and the observed graph and time travels in the wor
 		await tab(`selectors`)
 		expect(
 			host.querySelector<HTMLInputElement>(`[aria-label="double"]`)?.value,
-		).toBe(`8`)
+		).toBe(`14`)
 		silo.disposeTimeline(countTimeline)
 		await flush()
 		await tab(`timelines`)
@@ -355,6 +404,13 @@ it(`keeps worker revisions and rejects invalid state and history commands`, asyn
 		key: `opaque`,
 		default: () => () => 0,
 	})
+	class Quantity {
+		public amount = 3
+	}
+	const instancesAtom = silo.atom<unknown>({
+		key: `instances`,
+		default: { quantity: new Quantity() },
+	})
 	const pendingAtom = silo.atom<Promise<number>>({
 		key: `pending`,
 		default: () => new Promise(() => {}),
@@ -369,6 +425,7 @@ it(`keeps worker revisions and rejects invalid state and history commands`, asyn
 		writableSelector,
 		readonlySelector,
 		opaqueAtom,
+		instancesAtom,
 		pendingAtom,
 	])
 		silo.getState(token)
@@ -385,6 +442,14 @@ it(`keeps worker revisions and rejects invalid state and history commands`, asyn
 			initial.snapshot.states.find(({ token }) => token.key === `opaque`)
 				?.editable,
 		).toBe(false)
+		expect(
+			initial.snapshot.states.find(
+				({ token }) => token.key === instancesAtom.key,
+			),
+		).toMatchObject({
+			cache: { status: `value`, value: { quantity: { amount: 3 } } },
+			editable: false,
+		})
 		expect(
 			initial.snapshot.states.find(({ token }) => token.key === `pending`)
 				?.editable,
@@ -405,11 +470,37 @@ it(`keeps worker revisions and rejects invalid state and history commands`, asyn
 			type: `edit-error`,
 			message: `Only family members can be disposed`,
 		})
-		for (const key of [readonlySelector.key, opaqueAtom.key]) {
+		for (const key of [
+			readonlySelector.key,
+			opaqueAtom.key,
+			instancesAtom.key,
+		]) {
 			edit(key, 5)
 			expect(last()).toMatchObject({
 				type: `edit-error`,
 				message: `Worker rejected this value`,
+			})
+		}
+		class Quantities extends Array<number> {}
+		for (const value of [
+			new Quantities(3, 4),
+			{
+				get amount() {
+					return 3
+				},
+			},
+		]) {
+			silo.setState(instancesAtom, () => value)
+			await flush()
+			const snapshot = last()
+			if (snapshot.type !== `store`) throw new Error(`missing snapshot`)
+			expect(
+				snapshot.snapshot.states.find(
+					({ token }) => token.key === instancesAtom.key,
+				),
+			).toMatchObject({
+				cache: { status: `value`, value: structuredClone(value) },
+				editable: false,
 			})
 		}
 		const cyclic: unknown[] = []
@@ -794,6 +885,20 @@ it(`releases either endpoint if startup fails or the panel is removed`, async ()
 	expect(() => mountWorkerAtomIODevtools(host, page.port)).toThrow(`panel port`)
 	expect(page.close).toHaveBeenCalledOnce()
 	await flush()
+
+	const waiting = channel()
+	const waitingPanel = mountWorkerAtomIODevtools(host, waiting.page.port)
+	await flush()
+	expect(host.querySelector(`[role="status"]`)?.textContent).toContain(
+		`Waiting for the worker store`,
+	)
+	waiting.page.dispatchEvent(new Event(`messageerror`))
+	await flush()
+	expect(host.querySelector(`[role="status"]`)).toBeNull()
+	expect(host.querySelector(`[role="alert"]`)?.textContent).toBe(
+		`Worker devtools disconnected`,
+	)
+	waitingPanel.dispose()
 
 	const next = channel()
 	const panel = mountWorkerAtomIODevtools(host, next.page.port, {

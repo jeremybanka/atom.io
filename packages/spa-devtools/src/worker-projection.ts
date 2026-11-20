@@ -29,6 +29,7 @@ interface WorkerProjection {
 	apply(snapshot: WorkerStoreSnapshot): void
 	cache(key: string): RegularAtomToken<WorkerCachedValue> | undefined
 	revision(key: string): number | undefined
+	timelineRevision(key: string): number | undefined
 	ecology(): EcologySnapshot | undefined
 	subscribeEcology(listener: () => void): () => void
 }
@@ -38,6 +39,7 @@ const emptyProjectionValue = (): undefined => undefined
 export function createWorkerProjection(silo: Silo): WorkerProjection {
 	const { store } = silo
 	const states = new Map<string, StateEntry>()
+	const timelineRevisions = new Map<string, number>()
 	let history = new Map<string, RecordedEvent>()
 	let ecology: EcologySnapshot | undefined
 	let topology: string | undefined
@@ -133,9 +135,12 @@ export function createWorkerProjection(silo: Silo): WorkerProjection {
 			snapshot.timelines.map(({ token }) => token.key),
 		)
 		for (const token of store.timelines.values()) {
-			if (!currentTimelines.has(token.key)) silo.disposeTimeline(token)
+			if (currentTimelines.has(token.key)) continue
+			timelineRevisions.delete(token.key)
+			silo.disposeTimeline(token)
 		}
-		for (const { token, at, history: records } of snapshot.timelines) {
+		for (const { token, at, revision, history: records } of snapshot.timelines) {
+			timelineRevisions.set(token.key, revision)
 			if (!store.timelines.has(token.key))
 				createTimeline(
 					store,
@@ -204,6 +209,9 @@ export function createWorkerProjection(silo: Silo): WorkerProjection {
 		},
 		revision(key: string) {
 			return states.get(key)?.revision
+		},
+		timelineRevision(key: string) {
+			return timelineRevisions.get(key)
 		},
 		ecology: () => ecology,
 		subscribeEcology(listener: () => void) {

@@ -74,6 +74,7 @@ export function DebuggerPanel(props: {
 	const view = () =>
 		views.includes(getSelection() as View) ? (getSelection() as View) : `atoms`
 	const getError = useGetter(tools.error)
+	const getReady = props.worker ? useGetter(props.worker.ready) : () => true
 	let panel: HTMLElement | null = null
 	const attach = (element: HTMLElement | null) => {
 		panel = element
@@ -229,7 +230,11 @@ export function DebuggerPanel(props: {
 					tabIndex={0}
 				>
 					{getError() ? <p role="alert">{getError()}</p> : null}
-					{view() === `ecology` ? (
+					{!getReady() ? (
+						getError() ? null : (
+							<p role="status">Waiting for the worker store…</p>
+						)
+					) : view() === `ecology` ? (
 						hidden() ? null : (
 							<EcologyView tools={tools} context={graphContext} />
 						)

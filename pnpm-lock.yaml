@@ -1486,11 +1486,11 @@ importers:
         specifier: workspace:*
         version: link:../../packages/spa
       '@trpc/client':
-        specifier: 11.29.4
-        version: 11.29.4(@trpc/server@11.29.4(@types/ws@8.18.1)(typescript@7.1.0-dev.20261118.1))(typescript@7.1.0-dev.20261118.1)
+        specifier: 11.29.5
+        version: 11.29.5(@trpc/server@11.29.5(@types/ws@8.18.1)(typescript@7.1.0-dev.20261118.1))(typescript@7.1.0-dev.20261118.1)
       '@trpc/server':
-        specifier: 11.29.4
-        version: 11.29.4(@types/ws@8.18.1)(typescript@7.1.0-dev.20261118.1)
+        specifier: 11.29.5
+        version: 11.29.5(@types/ws@8.18.1)(typescript@7.1.0-dev.20261118.1)
       astro:
         specifier: 7.4.13
         version: 7.4.13(@astrojs/markdown-remark@7.3.10(supports-color@10.2.2))(@azure/identity@4.13.2(supports-color@10.2.2))(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
@@ -4940,14 +4940,14 @@ packages:
     peerDependencies:
       '@testing-library/dom': '>=7.21.4'
 
-  '@trpc/client@11.29.4':
-    resolution: {integrity: sha512-YPUlKF1SWBsIbafntzv4X92BW53iVw04OQ88RvWhYw0m6QJPk7wwdihY3Yfxj/eHaG5royrj+iz4CiX5kH8xmw==}
+  '@trpc/client@11.29.5':
+    resolution: {integrity: sha512-EGebaRjt/rDHt7gJ6nv262nLRPalzwSyI/dEMYtA+PBEy/HxhoVUW3bQqyE34cozJNj2HAgB+TqXVe76pWGk+Q==}
     peerDependencies:
-      '@trpc/server': 11.29.4
+      '@trpc/server': 11.29.5
       typescript: '>=5.7.2'
 
-  '@trpc/server@11.29.4':
-    resolution: {integrity: sha512-UPBsGC3kBAT9jrTHG0ozvxxwDAm7fcixEPhJf4unxnZ86JwZ/8RjaYwICizvFrgrA2ajr5gSxFaHtTA1ICtTfg==}
+  '@trpc/server@11.29.5':
+    resolution: {integrity: sha512-8ET3fqBo4byVkjLNU047NFwmT3JQIjZCVpdJwanb6Tpv7b5P3M9pjN7JofqGyDQZaDR5XLkWX2hWrsIpjtt5wA==}
     peerDependencies:
       '@types/aws-lambda': '*'
       '@types/express': '*'
@@ -12142,12 +12142,12 @@ snapshots:
     dependencies:
       '@testing-library/dom': 10.4.2
 
-  '@trpc/client@11.29.4(@trpc/server@11.29.4(@types/ws@8.18.1)(typescript@7.1.0-dev.20261118.1))(typescript@7.1.0-dev.20261118.1)':
+  '@trpc/client@11.29.5(@trpc/server@11.29.5(@types/ws@8.18.1)(typescript@7.1.0-dev.20261118.1))(typescript@7.1.0-dev.20261118.1)':
     dependencies:
-      '@trpc/server': 11.29.4(@types/ws@8.18.1)(typescript@7.1.0-dev.20261118.1)
+      '@trpc/server': 11.29.5(@types/ws@8.18.1)(typescript@7.1.0-dev.20261118.1)
       typescript: 7.1.0-dev.20261118.1
 
-  '@trpc/server@11.29.4(@types/ws@8.18.1)(typescript@7.1.0-dev.20261118.1)':
+  '@trpc/server@11.29.5(@types/ws@8.18.1)(typescript@7.1.0-dev.20261118.1)':
     dependencies:
       typescript: 7.1.0-dev.20261118.1
     optionalDependencies:

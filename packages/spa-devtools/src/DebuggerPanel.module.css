@@ -209,7 +209,8 @@ debugger-panel.class {
 		width: 100%;
 		height: auto;
 		min-height: 32px;
-		padding-block: 7px;
+		/* Center Theia's glyphs against the marker. */
+		padding-block: 9px 5px;
 		padding-inline: 24px 8px;
 		text-align: start;
 		overflow-wrap: anywhere;

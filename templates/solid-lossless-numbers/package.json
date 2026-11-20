@@ -21,10 +21,10 @@
 	},
 	"dependencies": {
 		"@atom.io/solid": "workspace:*",
-		"@solidjs/web": "2.0.1",
+		"@solidjs/web": "2.0.3",
 		"atom.io": "workspace:*",
 		"rationality": "0.1.1",
-		"solid-js": "2.0.1"
+		"solid-js": "2.0.3"
 	},
 	"devDependencies": {
 		"@atom.io/eslint-plugin": "workspace:*",

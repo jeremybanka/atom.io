@@ -291,7 +291,7 @@ importers:
         version: 6.46.1
       lasertag:
         specifier: 0.9.1
-        version: 0.9.1(@solidjs/web@2.0.1(solid-js@2.0.1))(@types/react@19.3.0)(arktype@2.2.8)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.1)(supports-color@10.2.2)
+        version: 0.9.1(@solidjs/web@2.0.3(solid-js@2.0.3))(@types/react@19.3.0)(arktype@2.2.8)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.3)(supports-color@10.2.2)
       oxlint:
         specifier: 1.94.0
         version: 1.94.0(oxlint-tsgolint@7.0.2007)
@@ -357,8 +357,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/exhibits
       '@types/bun':
-        specifier: npm:bun-types@1.4.4
-        version: bun-types@1.4.4
+        specifier: npm:bun-types@1.4.5
+        version: bun-types@1.4.5
       '@types/three':
         specifier: 0.187.0
         version: 0.187.0
@@ -367,7 +367,7 @@ importers:
         version: 10.15.0(jiti@2.7.0)(supports-color@10.2.2)
       lasertag:
         specifier: 0.9.1
-        version: 0.9.1(@solidjs/web@2.0.1(solid-js@2.0.1))(@types/react@19.3.0)(arktype@2.2.10)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.1)(supports-color@10.2.2)
+        version: 0.9.1(@solidjs/web@2.0.3(solid-js@2.0.3))(@types/react@19.3.0)(arktype@2.2.10)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.3)(supports-color@10.2.2)
       playwright:
         specifier: 1.65.1
         version: 1.65.1
@@ -393,14 +393,14 @@ importers:
         specifier: 0.1.0
         version: 0.1.0(breakage@0.10.2(supports-color@10.2.2)(zod@4.6.7))
       '@orpc/client':
-        specifier: 1.16.3
-        version: 1.16.3
+        specifier: 1.16.4
+        version: 1.16.4
       '@orpc/server':
-        specifier: 1.16.3
-        version: 1.16.3(crossws@0.3.5)(ws@8.22.0)
+        specifier: 1.16.4
+        version: 1.16.4(crossws@0.3.5)(ws@8.23.0)
       '@solidjs/web':
-        specifier: 2.0.1
-        version: 2.0.1(solid-js@2.0.1)
+        specifier: 2.0.3
+        version: 2.0.3(solid-js@2.0.3)
       '@storybook/addon-docs':
         specifier: 10.6.7
         version: 10.6.7(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(storybook@10.6.7(@types/react@19.3.0)(react@19.3.1))
@@ -414,8 +414,8 @@ importers:
         specifier: 10.6.7
         version: 10.6.7(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(storybook@10.6.7(@types/react@19.3.0)(react@19.3.1))(supports-color@10.2.2)(typescript@7.0.2)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
       '@tanstack/react-query':
-        specifier: 5.108.0
-        version: 5.108.0(@types/react@19.3.0)(react@19.3.1)
+        specifier: 5.108.1
+        version: 5.108.1(@types/react@19.3.0)(react@19.3.1)
       '@testing-library/dom':
         specifier: 10.4.2
         version: 10.4.2
@@ -448,7 +448,7 @@ importers:
         version: 0.10.2(supports-color@10.2.2)(zod@4.6.7)
       drizzle-orm:
         specifier: 1.0.0-rc.5
-        version: 1.0.0-rc.5(arktype@2.2.10)(bun-types@1.4.4)(postgres@4.1.1)(zod@4.6.7)
+        version: 1.0.0-rc.5(arktype@2.2.10)(bun-types@1.4.5)(postgres@4.1.1)(zod@4.6.7)
       eslint:
         specifier: 10.15.0
         version: 10.15.0(jiti@2.7.0)(supports-color@10.2.2)
@@ -474,8 +474,8 @@ importers:
         specifier: 0.1.20
         version: 0.1.20(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7)
       solid-js:
-        specifier: 2.0.1
-        version: 2.0.1
+        specifier: 2.0.3
+        version: 2.0.3
       storybook:
         specifier: 10.6.7
         version: 10.6.7(@types/react@19.3.0)(react@19.3.1)
@@ -544,8 +544,8 @@ importers:
         version: 1.3.1
     devDependencies:
       '@types/bun':
-        specifier: npm:bun-types@1.4.4
-        version: bun-types@1.4.4
+        specifier: npm:bun-types@1.4.5
+        version: bun-types@1.4.5
       '@types/node':
         specifier: 26.6.6
         version: 26.6.6
@@ -779,8 +779,8 @@ importers:
         specifier: 4.8.4
         version: 4.8.4(supports-color@10.2.2)
       solid-js:
-        specifier: 2.0.1
-        version: 2.0.1
+        specifier: 2.0.3
+        version: 2.0.3
       tsdown:
         specifier: 0.23.7
         version: 0.23.7(@tsdown/css@0.23.7)(oxc-resolver@11.21.2)(tsx@4.23.13)(typescript@7.0.2)
@@ -810,8 +810,8 @@ importers:
         specifier: 7.20.5
         version: 7.20.5
       '@types/bun':
-        specifier: npm:bun-types@1.4.4
-        version: bun-types@1.4.4
+        specifier: npm:bun-types@1.4.5
+        version: bun-types@1.4.5
       '@types/node':
         specifier: 26.6.6
         version: 26.6.6
@@ -855,8 +855,8 @@ importers:
         specifier: 0.1.0
         version: 0.1.0(breakage@0.10.2(supports-color@10.2.2)(zod@4.6.7))
       '@solidjs/signals':
-        specifier: 2.0.1
-        version: 2.0.1
+        specifier: 2.0.3
+        version: 2.0.3
       '@types/node':
         specifier: 26.6.6
         version: 26.6.6
@@ -879,8 +879,8 @@ importers:
         specifier: 0.1.20
         version: 0.1.20(supports-color@10.2.2)(typescript@7.0.2)(zod@4.6.7)
       solid-js:
-        specifier: 2.0.1
-        version: 2.0.1
+        specifier: 2.0.3
+        version: 2.0.3
       solid-js-1:
         specifier: npm:solid-js@1.9.19
         version: solid-js@1.9.19
@@ -1126,7 +1126,7 @@ importers:
         version: 21.0.4
       lasertag:
         specifier: 0.9.1
-        version: 0.9.1(@solidjs/web@2.0.1(solid-js@2.0.1))(@types/react@19.3.0)(arktype@2.2.10)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.1)(supports-color@10.2.2)
+        version: 0.9.1(@solidjs/web@2.0.3(solid-js@2.0.3))(@types/react@19.3.0)(arktype@2.2.10)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.3)(supports-color@10.2.2)
       oxlint:
         specifier: 1.94.0
         version: 1.94.0(oxlint-tsgolint@7.0.2007)
@@ -1396,7 +1396,7 @@ importers:
         version: 21.0.4
       lasertag:
         specifier: 0.9.1
-        version: 0.9.1(@solidjs/web@2.0.1(solid-js@2.0.1))(@types/react@19.3.0)(arktype@2.2.10)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.1)(supports-color@10.2.2)
+        version: 0.9.1(@solidjs/web@2.0.3(solid-js@2.0.3))(@types/react@19.3.0)(arktype@2.2.10)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.3)(supports-color@10.2.2)
       oxlint:
         specifier: 1.94.0
         version: 1.94.0(oxlint-tsgolint@7.0.2007)
@@ -1422,8 +1422,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/solid
       '@solidjs/web':
-        specifier: 2.0.1
-        version: 2.0.1(solid-js@2.0.1)
+        specifier: 2.0.3
+        version: 2.0.3(solid-js@2.0.3)
       atom.io:
         specifier: workspace:*
         version: link:../../packages/atom.io
@@ -1431,8 +1431,8 @@ importers:
         specifier: 0.1.1
         version: 0.1.1
       solid-js:
-        specifier: 2.0.1
-        version: 2.0.1
+        specifier: 2.0.3
+        version: 2.0.3
     devDependencies:
       '@atom.io/eslint-plugin':
         specifier: workspace:*
@@ -1448,7 +1448,7 @@ importers:
         version: 0.51.0
       '@solidjs/vite-plugin':
         specifier: 3.0.1
-        version: 3.0.1(@babel/core@8.1.2)(@solidjs/web@2.0.1(solid-js@2.0.1))(@testing-library/jest-dom@6.9.1)(solid-js@2.0.1)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
+        version: 3.0.1(@babel/core@8.1.2)(@solidjs/web@2.0.3(solid-js@2.0.3))(@testing-library/jest-dom@6.9.1)(solid-js@2.0.3)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
       '@types/node':
         specifier: 26.6.6
         version: 26.6.6
@@ -1487,10 +1487,10 @@ importers:
         version: link:../../packages/spa
       '@trpc/client':
         specifier: 11.29.5
-        version: 11.29.5(@trpc/server@11.29.5(@types/ws@8.18.1)(typescript@7.1.0-dev.20261118.1))(typescript@7.1.0-dev.20261118.1)
+        version: 11.29.5(@trpc/server@11.29.5(@types/ws@8.18.1)(typescript@7.1.0-dev.20261119.1))(typescript@7.1.0-dev.20261119.1)
       '@trpc/server':
         specifier: 11.29.5
-        version: 11.29.5(@types/ws@8.18.1)(typescript@7.1.0-dev.20261118.1)
+        version: 11.29.5(@types/ws@8.18.1)(typescript@7.1.0-dev.20261119.1)
       astro:
         specifier: 7.4.13
         version: 7.4.13(@astrojs/markdown-remark@7.3.10(supports-color@10.2.2))(@azure/identity@4.13.2(supports-color@10.2.2))(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
@@ -1523,8 +1523,8 @@ importers:
         specifier: 1.65.1
         version: 1.65.1
       typescript:
-        specifier: 7.1.0-dev.20261118.1
-        version: 7.1.0-dev.20261118.1
+        specifier: 7.1.0-dev.20261119.1
+        version: 7.1.0-dev.20261119.1
       vite:
         specifier: 8.3.8
         version: 8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
@@ -3105,17 +3105,17 @@ packages:
     resolution: {integrity: sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg==}
     engines: {node: '>= 8'}
 
-  '@orpc/client@1.16.3':
-    resolution: {integrity: sha512-FZnMOOJBEgpszDt3DT+N38Xay4KlcV7tbQPZTBiC7g0olhV031L7mkHxFP2PFvBRwF9ZJgW/22pLueDUg3/9Cg==}
+  '@orpc/client@1.16.4':
+    resolution: {integrity: sha512-8XM4hXjehkVW8GIXuFbZ1OIquoFv7T989apkltjfKrwlCf3lKCgCLS3CtGH2IgbQY2LPKxWCpMgYGgeuvT/50Q==}
 
-  '@orpc/contract@1.16.3':
-    resolution: {integrity: sha512-60Oq8cNBarSw/GUZfryLLxVo57gAsO9qsZuip40bFPEH/wTN5tsGvqjNvVz7jfWx9Du3xIHgZ1rZgk+sY1oxrw==}
+  '@orpc/contract@1.16.4':
+    resolution: {integrity: sha512-MCqn7YsFG/yKqS1OlESbC/ZmgXkYoh8zQayYonenjrCBGnLuhHwkr6ccvg1I0JN9fh1kW/tC/tTS3T2KvCayLg==}
 
-  '@orpc/interop@1.16.3':
-    resolution: {integrity: sha512-d7nm3T1JitRutCfBuUev0eWdGZfZDJggjDTHTFLvw7YAVmPJBTpeNNFS3zE4cZPRnRqq2W4bEES7MvE6Jde9hw==}
+  '@orpc/interop@1.16.4':
+    resolution: {integrity: sha512-gh2htkUpnGkstnAX1qiseml6MiMMRaev6AkVsgLXYNqovJ4+N3EwJqn6NZrwTGCh+fP5qVuGSJt74pjdkSoGoA==}
 
-  '@orpc/server@1.16.3':
-    resolution: {integrity: sha512-0LywjH9qqNnZ0gA1gS3axq2dl4/XpMU//cBWNp8W9ZeWtLuYB7lb+jnCorK8D+x14w3fsla0mbKRvvnnUbtyPA==}
+  '@orpc/server@1.16.4':
+    resolution: {integrity: sha512-bh2adhQ/ACbotSbd+YEk1xNPTRMHAD5Koqu8iF4LdUi+GiXPlruPOtalDamkON1eLm6fKXe5PyfnBHmOl1uy7Q==}
     peerDependencies:
       crossws: '>=0.3.4'
       ws: '>=8.18.1'
@@ -3125,36 +3125,36 @@ packages:
       ws:
         optional: true
 
-  '@orpc/shared@1.16.3':
-    resolution: {integrity: sha512-VaJXxxHyfcDlN1aXGjO1U0r18Klc1SElIdoMNk2B6HOm23m/+S+RrlaJMcAZJ1TNW+dJQm26xwh1WpnfZNIKng==}
+  '@orpc/shared@1.16.4':
+    resolution: {integrity: sha512-On1hbDxVrx7qchQIT0G/I2hyJt+QDdJOB6osHKOsR5/p+nuQJa/qBlL814RP6fSLzoyyhi16odOrYz+iTNWsKg==}
     peerDependencies:
       '@opentelemetry/api': '>=1.9.0'
     peerDependenciesMeta:
       '@opentelemetry/api':
         optional: true
 
-  '@orpc/standard-server-aws-lambda@1.16.3':
-    resolution: {integrity: sha512-TYGGPZ/Q9Np/Xw+udExi088YSBK4uylFNLEOFJcnHAyWVh4Yd2vw9AdIHMVa98FzDWGb6xm1G09dbO9wsFh/gg==}
+  '@orpc/standard-server-aws-lambda@1.16.4':
+    resolution: {integrity: sha512-1WXw3rACXGAmYv+1DmSiQel96FC6XpwuIMzs1d+205fuQC65PjiH+aT5r+ubKR+q1LiYaMVAMnSdwZsd16zttg==}
 
-  '@orpc/standard-server-fastify@1.16.3':
-    resolution: {integrity: sha512-yI6GH+W/Q0kUn1IfDxzRN9UNA7akZcTJXDeHjcMoWtJOhyg+0wVueTCJetfSXiGr+NMDfw2JRwIJ8GWFF7MOag==}
+  '@orpc/standard-server-fastify@1.16.4':
+    resolution: {integrity: sha512-41kYRhOmibvUF0a7OQo4kZC40ejsRZFNULU8CUImVoHQ1MuQAv5csQ4Ylk77SQ+DdvsxjjjfAScXO+zWQe2wNQ==}
     peerDependencies:
       fastify: '>=5.6.1'
     peerDependenciesMeta:
       fastify:
         optional: true
 
-  '@orpc/standard-server-fetch@1.16.3':
-    resolution: {integrity: sha512-R2GFQAubMYql9LaAzim8O4ZRR36GrvEEntl0t9LZJhhguCp8ilOyck/lz+9re5i/Rhkpfm/5eA1qr6yphVOnyQ==}
+  '@orpc/standard-server-fetch@1.16.4':
+    resolution: {integrity: sha512-uI186mdK7SLKWqCsOpiI+5ZWhAz+A1sgVx84Xd85HD51OKngeZSZycmL0HkIsDq8kF6uBTw/v3EseB5RDPB23A==}
 
-  '@orpc/standard-server-node@1.16.3':
-    resolution: {integrity: sha512-qwUC7PHr7LfH+rrGN6DRSE/nnfHMKSpETL6zHdAjD1/uyOm/C4FvwMxsq4xlEcRC1NhRD0PSvZioMsVBjuDYgg==}
+  '@orpc/standard-server-node@1.16.4':
+    resolution: {integrity: sha512-eHPbYmFQAvCiu9a7kxqcfOWpE28Ig3wfqErGeuE6FEV5kBDi/S4KI8UatPlCW+IGZek4huPZWASHWDtJw3bkEA==}
 
-  '@orpc/standard-server-peer@1.16.3':
-    resolution: {integrity: sha512-vkl01RvuJ1k30WyPkH/oGTEB8Shi+fZDb/cp/O8NS3UQtaaMaktz1V9CUeE25WDzrQRMmvRFef1CT38oOGF19A==}
+  '@orpc/standard-server-peer@1.16.4':
+    resolution: {integrity: sha512-gqRIqop1/Lin/eVY1tPrPFexmZKiAGfYvYOVrdw4yJ20xsxa6Fu0rJdzycSK4qmnUOs0BsM2nRFYtR38IFhC7w==}
 
-  '@orpc/standard-server@1.16.3':
-    resolution: {integrity: sha512-fgEJKwXu8o2ULCJr3kTuQMvxi+0kaFmm4yj/5jcukCM0le0GqX+5PrWZRcdjLEd9Ltfe1XlFW2GO4AnYt7DIWA==}
+  '@orpc/standard-server@1.16.4':
+    resolution: {integrity: sha512-ttTnV1/U9AimABnSB0fgqdlrSvdOMKPPC1YT1voGH1L4USl74uql9a4HVBU91O7YGGVhAHUhqecw1YqNlWTsUQ==}
 
   '@oslojs/encoding@1.1.0':
     resolution: {integrity: sha512-70wQhgYmndg4GCPxPPxPGevRKqTIJ2Nh4OkiMWmDAVYsTQ+Ta7Sq+rPevXyXGdzr30/qZBnyOalCszoMxlyldQ==}
@@ -4767,8 +4767,8 @@ packages:
   '@solidjs/compiler@2.0.0':
     resolution: {integrity: sha512-Spgqz1+eojQ2pDl4yajnajIjX/kSusjTK/6mC6Fm7sAZ3YBI0yP4/epRR1hV08TU3YAH4xLBmZ6wjb1zC134Sw==}
 
-  '@solidjs/signals@2.0.1':
-    resolution: {integrity: sha512-nTdIk7UgGLwATg0wCT/wH/G62aWYjGol2AnqdrN4qVyV7snYTnYoesgJ/G7xRkO34mAr3tayt0cu1+k/dt0lmA==}
+  '@solidjs/signals@2.0.3':
+    resolution: {integrity: sha512-M6+kiJflqSvJRHRcmdsdIXpPLPkQrY817zWKKfxZ3z3ZRE5eEtddtWPrDXY4IM1Wz3zAqG+3Fx/HQIkAtpRwnA==}
     engines: {node: '>=22.12.0'}
 
   '@solidjs/vite-plugin@3.0.1':
@@ -4792,11 +4792,11 @@ packages:
       '@testing-library/jest-dom':
         optional: true
 
-  '@solidjs/web@2.0.1':
-    resolution: {integrity: sha512-o7spK20IEMk0bA+lVeULfTQPD9Oyb/VLS9gv5BNQdHIxFWBRFNlHf1ofF0z9b2uA3pLlRtYh+5/USk3fSTdsjQ==}
+  '@solidjs/web@2.0.3':
+    resolution: {integrity: sha512-XYl9JGOtQ8yJSZRnd6uC+5gYXsYvnIRNxhn89m+F1v6D4d4ZFdTJY2Lq/8XJ3YcjckkCrK/mNfd3kIiqqgnG7w==}
     engines: {node: '>=22.12.0'}
     peerDependencies:
-      solid-js: ^2.0.1
+      solid-js: ^2.0.3
 
   '@speed-highlight/core@1.2.24':
     resolution: {integrity: sha512-qeW2e1l78afw8VhRPfPQ1Gjj+KU5XFQ/OFV5ti6eTa9bruO7mJyZtA4vw0ofqmA3tKCkROE9xLk3VZoeRc98nw==}
@@ -4907,11 +4907,11 @@ packages:
       zod:
         optional: true
 
-  '@tanstack/query-core@5.108.0':
-    resolution: {integrity: sha512-X9zJUtEV/0D2q9pmGS/Bza8S4bNovSBhZOtdhtu0fzsHwizC6C+Eh/q5CX3MQBchsRMrirWVQmv7Fp4OStzV9g==}
+  '@tanstack/query-core@5.108.1':
+    resolution: {integrity: sha512-GBX6Xsc9E+9eVLLxuM7orQNbssQjpruOCbocBYwT78MjxOWT5I+CWdvEo0N+UM6+oCZEKxuSud1oFLvE3OEmIg==}
 
-  '@tanstack/react-query@5.108.0':
-    resolution: {integrity: sha512-DpMbB8pVorEZcsHRa0Z13KQGfmndqvJbuLy9h+xfP8XpuEZBOxzq+QfXGonQ0fAgRSWhc+QsfoRETSTWxAEAVw==}
+  '@tanstack/react-query@5.108.1':
+    resolution: {integrity: sha512-8/p7fpIdmUiKIukQ5ddAMUUSKC7Z8CcgUOBR2r3WqRvMg9Lzc4CXeoFchjfATKvqi23SyYFvesDdOULrvyunNg==}
     peerDependencies:
       '@types/react': ^18 || ^19
       react: ^18 || ^19
@@ -5230,8 +5230,8 @@ packages:
     cpu: [arm64]
     os: [darwin]
 
-  '@typescript/typescript-darwin-arm64@7.1.0-dev.20261118.1':
-    resolution: {integrity: sha512-GT/uRQbZN8R7WB8rzQbycV0ICyD1v5C+Mvr83MDJX9KJBDeLFXr/pc4UdgwuH6frGokY/sUrAOtkt5rkMSBkmA==}
+  '@typescript/typescript-darwin-arm64@7.1.0-dev.20261119.1':
+    resolution: {integrity: sha512-VfAW3NZj9hGA3uiwUyrsPS9aVEZ/RDAqWucs1JdpuXP7LQKHp7zhmmAxmWZQwY+7EOD2p9pxpLkOR93mZrSd4w==}
     engines: {node: '>=16.20.0'}
     cpu: [arm64]
     os: [darwin]
@@ -5254,8 +5254,8 @@ packages:
     cpu: [x64]
     os: [darwin]
 
-  '@typescript/typescript-darwin-x64@7.1.0-dev.20261118.1':
-    resolution: {integrity: sha512-TCZYlBFE5f7MsUyS3aNg8zw/vTmzQT7ucKb1V1gHZEbzo3Lym0Vmf6pfRAkSgB4rUKbywMm3UjKeTlVZa6imEA==}
+  '@typescript/typescript-darwin-x64@7.1.0-dev.20261119.1':
+    resolution: {integrity: sha512-tg720+Cs4tt4gZPPhWIKJGOw28gS0iKABDYFCj/O2LIAg8PD+7v+p8AGrY5UExABsW9oWcOh0QihoOxfoy9A/A==}
     engines: {node: '>=16.20.0'}
     cpu: [x64]
     os: [darwin]
@@ -5290,8 +5290,8 @@ packages:
     cpu: [arm64]
     os: [linux]
 
-  '@typescript/typescript-linux-arm64@7.1.0-dev.20261118.1':
-    resolution: {integrity: sha512-jtdnBJ3sf/2IJNVV2EVVmXuKrg5tzs6VfAFnN2qwlQzHil/ozMOa8DVM4mvxMWskAEu0r5ygrV4tSyqgtytLYg==}
+  '@typescript/typescript-linux-arm64@7.1.0-dev.20261119.1':
+    resolution: {integrity: sha512-5eB1EMvL9OAtdHbYq27xAEfWWJYDbVrBT3soiESQ/kJsXsr3sy4Dt6T4KPKw+eIuhohzzG6milSrDMz9454K/A==}
     engines: {node: '>=16.20.0'}
     cpu: [arm64]
     os: [linux]
@@ -5314,8 +5314,8 @@ packages:
     cpu: [arm]
     os: [linux]
 
-  '@typescript/typescript-linux-arm@7.1.0-dev.20261118.1':
-    resolution: {integrity: sha512-4dx91JOAhgQuMbkLFsCcdnzXkwwkAbmyIx9RcLWEwrfn+ahjAHwRq5JJnAoaq58UhSrz2VEU0/yMv28uBjBOjQ==}
+  '@typescript/typescript-linux-arm@7.1.0-dev.20261119.1':
+    resolution: {integrity: sha512-I//QGQojyWAK8bVJN/c3Aw+BOujSx8rfLfBL2A03KcdB3HqYsYYo0SOPJ+USQ1n8Cam4WsW4DzGYOQ/BpW+2vg==}
     engines: {node: '>=16.20.0'}
     cpu: [arm]
     os: [linux]
@@ -5368,8 +5368,8 @@ packages:
     cpu: [x64]
     os: [linux]
 
-  '@typescript/typescript-linux-x64@7.1.0-dev.20261118.1':
-    resolution: {integrity: sha512-wEAtWdtiUzWdOQV9GSzST/jJ0fj1998WbkT/E7g8fw5A5OA7EtNeiqMqaqAAN2j5hU1eIPqXpd/qMRgQYQIjpQ==}
+  '@typescript/typescript-linux-x64@7.1.0-dev.20261119.1':
+    resolution: {integrity: sha512-nGjZo7RMoFB8vr4eAk5akISOPvvOCvS5WXSlTa/a2aDiSazA2H8Hu8Fpw5mK3109DOCcxKliO0TZizj38ql8DQ==}
     engines: {node: '>=16.20.0'}
     cpu: [x64]
     os: [linux]
@@ -5422,8 +5422,8 @@ packages:
     cpu: [arm64]
     os: [win32]
 
-  '@typescript/typescript-win32-arm64@7.1.0-dev.20261118.1':
-    resolution: {integrity: sha512-VuwLdB2MB0coqKt864nREhdw6upob65HW610qLBsyxe9VgREAztf3H3BjMx+hbLLxxVpghFJqwV4w7BF7DOCHw==}
+  '@typescript/typescript-win32-arm64@7.1.0-dev.20261119.1':
+    resolution: {integrity: sha512-lNwY0/K8NQ8/aUqVkW7GvjXwRr7aVqGdQ9qRvBEZ3q4LcTVLci1gEHm4m68uhxYj1+gg59stco7fd9Lp4glIqA==}
     engines: {node: '>=16.20.0'}
     cpu: [arm64]
     os: [win32]
@@ -5446,8 +5446,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@typescript/typescript-win32-x64@7.1.0-dev.20261118.1':
-    resolution: {integrity: sha512-qyaOg4QUyJnI0NMVp/8F95Nl/C3seKncZGUhuKC8k6TEC0oOf7R/UuE7vYHb1xzRxvJycRnthOjD1gwEjVYkuQ==}
+  '@typescript/typescript-win32-x64@7.1.0-dev.20261119.1':
+    resolution: {integrity: sha512-XoqFWv7TfOOI7MQebplz/sp0VztyVCBsyZlksaTnNKsOqoeR8lcsaW+Vh1g5ixzqJV/ySnilbZ/3elwWEmKODA==}
     engines: {node: '>=16.20.0'}
     cpu: [x64]
     os: [win32]
@@ -5957,8 +5957,8 @@ packages:
     resolution: {integrity: sha512-nEh+kZOPY1w+gcCMobZ6ETUp9WfibndnosbpwB1iJk/8Gt5ZF2bhS6+B6bPYz424KtwsR6Rflc3tCz1/ghX2dQ==}
     engines: {node: '>=4.0'}
 
-  bun-types@1.4.4:
-    resolution: {integrity: sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ==}
+  bun-types@1.4.5:
+    resolution: {integrity: sha512-ECHn+9dhL3wv0G6u0+7dQvrnaimXiRDxxerYBmhTaLyJEEuvTPWk2Fye3XIf5Y++JIIiHKfQw4Z7V5D8KuiXbg==}
 
   bundle-name@4.1.0:
     resolution: {integrity: sha512-tjwM5exMg6BGRI+kNmTntNsvdZS1X8BFYS6tnJ2hdH0kVxM6/eVZ2xy+FqStSWvYmtfFMDLIxurorHwDKfDz5Q==}
@@ -8338,8 +8338,8 @@ packages:
   solid-js@1.9.19:
     resolution: {integrity: sha512-NIrV/6o1FtmrA9iuAAYvnQJZaHrGcaH3LKSVj4kCiZfwqjCtJNDgIgR9XcqYl6KR/Lb3oRx1HrlyswPWR8SRvw==}
 
-  solid-js@2.0.1:
-    resolution: {integrity: sha512-5bBwRCblIZ672y2H2aB5KIOfeP/N+acx1YoCjNCWYFc4ZI/Y7y7n/6N1kei8AgWmcJJQ1m5SV90rs3V8CPAnYQ==}
+  solid-js@2.0.3:
+    resolution: {integrity: sha512-XOHstv+GAJjfcSGZU9xfX5q6Mbqmv72IcdWh2JuMx3KvBbfpQPdy/Yl00A1ouk7A0etjqhNe799CPdr6i7koWg==}
     engines: {node: '>=22.12.0'}
 
   source-map-js@1.2.2:
@@ -8649,8 +8649,8 @@ packages:
     engines: {node: '>=16.20.0'}
     hasBin: true
 
-  typescript@7.1.0-dev.20261118.1:
-    resolution: {integrity: sha512-CScH6sHkFtlTfF1qsjiBrFbCO5n1rHwCD/GII4Id1o04IB4xBbH4vFwvC2s2SIGkKrVZmAZqcPLOUJgVWT99tw==}
+  typescript@7.1.0-dev.20261119.1:
+    resolution: {integrity: sha512-iw3tH6lz4k89Fr80avtrgaT2jF+SKmKam459dsqNCwSyPdHiBrKj8j58Pv84FQu6GABeaY/oSyRivYovERj7zA==}
     engines: {node: '>=16.20.0'}
     hasBin: true
 
@@ -11082,93 +11082,93 @@ snapshots:
       '@nodelib/fs.scandir': 2.1.5
       fastq: 1.20.3
 
-  '@orpc/client@1.16.3':
+  '@orpc/client@1.16.4':
     dependencies:
-      '@orpc/shared': 1.16.3
-      '@orpc/standard-server': 1.16.3
-      '@orpc/standard-server-fetch': 1.16.3
-      '@orpc/standard-server-peer': 1.16.3
+      '@orpc/shared': 1.16.4
+      '@orpc/standard-server': 1.16.4
+      '@orpc/standard-server-fetch': 1.16.4
+      '@orpc/standard-server-peer': 1.16.4
     transitivePeerDependencies:
       - '@opentelemetry/api'
 
-  '@orpc/contract@1.16.3':
+  '@orpc/contract@1.16.4':
     dependencies:
-      '@orpc/client': 1.16.3
-      '@orpc/shared': 1.16.3
+      '@orpc/client': 1.16.4
+      '@orpc/shared': 1.16.4
       '@standard-schema/spec': 1.1.0
       openapi-types: 12.1.3
     transitivePeerDependencies:
       - '@opentelemetry/api'
 
-  '@orpc/interop@1.16.3': {}
+  '@orpc/interop@1.16.4': {}
 
-  '@orpc/server@1.16.3(crossws@0.3.5)(ws@8.22.0)':
+  '@orpc/server@1.16.4(crossws@0.3.5)(ws@8.23.0)':
     dependencies:
-      '@orpc/client': 1.16.3
-      '@orpc/contract': 1.16.3
-      '@orpc/interop': 1.16.3
-      '@orpc/shared': 1.16.3
-      '@orpc/standard-server': 1.16.3
-      '@orpc/standard-server-aws-lambda': 1.16.3
-      '@orpc/standard-server-fastify': 1.16.3
-      '@orpc/standard-server-fetch': 1.16.3
-      '@orpc/standard-server-node': 1.16.3
-      '@orpc/standard-server-peer': 1.16.3
+      '@orpc/client': 1.16.4
+      '@orpc/contract': 1.16.4
+      '@orpc/interop': 1.16.4
+      '@orpc/shared': 1.16.4
+      '@orpc/standard-server': 1.16.4
+      '@orpc/standard-server-aws-lambda': 1.16.4
+      '@orpc/standard-server-fastify': 1.16.4
+      '@orpc/standard-server-fetch': 1.16.4
+      '@orpc/standard-server-node': 1.16.4
+      '@orpc/standard-server-peer': 1.16.4
       cookie: 1.1.1
     optionalDependencies:
       crossws: 0.3.5
-      ws: 8.22.0
+      ws: 8.23.0
     transitivePeerDependencies:
       - '@opentelemetry/api'
       - fastify
 
-  '@orpc/shared@1.16.3':
+  '@orpc/shared@1.16.4':
     dependencies:
       radash: 12.1.1
       type-fest: 5.9.0
 
-  '@orpc/standard-server-aws-lambda@1.16.3':
+  '@orpc/standard-server-aws-lambda@1.16.4':
     dependencies:
-      '@orpc/shared': 1.16.3
-      '@orpc/standard-server': 1.16.3
-      '@orpc/standard-server-fetch': 1.16.3
-      '@orpc/standard-server-node': 1.16.3
+      '@orpc/shared': 1.16.4
+      '@orpc/standard-server': 1.16.4
+      '@orpc/standard-server-fetch': 1.16.4
+      '@orpc/standard-server-node': 1.16.4
     transitivePeerDependencies:
       - '@opentelemetry/api'
 
-  '@orpc/standard-server-fastify@1.16.3':
+  '@orpc/standard-server-fastify@1.16.4':
     dependencies:
-      '@orpc/shared': 1.16.3
-      '@orpc/standard-server': 1.16.3
-      '@orpc/standard-server-node': 1.16.3
+      '@orpc/shared': 1.16.4
+      '@orpc/standard-server': 1.16.4
+      '@orpc/standard-server-node': 1.16.4
     transitivePeerDependencies:
       - '@opentelemetry/api'
 
-  '@orpc/standard-server-fetch@1.16.3':
+  '@orpc/standard-server-fetch@1.16.4':
     dependencies:
-      '@orpc/shared': 1.16.3
-      '@orpc/standard-server': 1.16.3
+      '@orpc/shared': 1.16.4
+      '@orpc/standard-server': 1.16.4
     transitivePeerDependencies:
       - '@opentelemetry/api'
 
-  '@orpc/standard-server-node@1.16.3':
+  '@orpc/standard-server-node@1.16.4':
     dependencies:
-      '@orpc/shared': 1.16.3
-      '@orpc/standard-server': 1.16.3
-      '@orpc/standard-server-fetch': 1.16.3
+      '@orpc/shared': 1.16.4
+      '@orpc/standard-server': 1.16.4
+      '@orpc/standard-server-fetch': 1.16.4
     transitivePeerDependencies:
       - '@opentelemetry/api'
 
-  '@orpc/standard-server-peer@1.16.3':
+  '@orpc/standard-server-peer@1.16.4':
     dependencies:
-      '@orpc/shared': 1.16.3
-      '@orpc/standard-server': 1.16.3
+      '@orpc/shared': 1.16.4
+      '@orpc/standard-server': 1.16.4
     transitivePeerDependencies:
       - '@opentelemetry/api'
 
-  '@orpc/standard-server@1.16.3':
+  '@orpc/standard-server@1.16.4':
     dependencies:
-      '@orpc/shared': 1.16.3
+      '@orpc/shared': 1.16.4
     transitivePeerDependencies:
       - '@opentelemetry/api'
 
@@ -12084,28 +12084,28 @@ snapshots:
       '@solidjs/compiler-wasm32-wasi': 2.0.0
       '@solidjs/compiler-win32-x64-msvc': 2.0.0
 
-  '@solidjs/signals@2.0.1': {}
+  '@solidjs/signals@2.0.3': {}
 
-  '@solidjs/vite-plugin@3.0.1(@babel/core@8.1.2)(@solidjs/web@2.0.1(solid-js@2.0.1))(@testing-library/jest-dom@6.9.1)(solid-js@2.0.1)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))':
+  '@solidjs/vite-plugin@3.0.1(@babel/core@8.1.2)(@solidjs/web@2.0.3(solid-js@2.0.3))(@testing-library/jest-dom@6.9.1)(solid-js@2.0.3)(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))':
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@solidjs/compiler': 2.0.0
-      '@solidjs/web': 2.0.1(solid-js@2.0.1)
+      '@solidjs/web': 2.0.3(solid-js@2.0.3)
       magic-string: 0.30.21
       merge-anything: 5.1.7
-      solid-js: 2.0.1
+      solid-js: 2.0.3
       vite: 8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
       vitefu: 1.1.3(vite@8.3.8(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1))
     optionalDependencies:
       '@babel/core': 8.1.2
       '@testing-library/jest-dom': 6.9.1
 
-  '@solidjs/web@2.0.1(solid-js@2.0.1)':
+  '@solidjs/web@2.0.3(solid-js@2.0.3)':
     dependencies:
       csstype: 3.2.3
       seroval: 1.8.1
       seroval-plugins: 1.8.0(seroval@1.8.1)
-      solid-js: 2.0.1
+      solid-js: 2.0.3
 
   '@speed-highlight/core@1.2.24': {}
 
@@ -12214,11 +12214,11 @@ snapshots:
       typescript: 7.0.2
       zod: 4.6.7
 
-  '@tanstack/query-core@5.108.0': {}
+  '@tanstack/query-core@5.108.1': {}
 
-  '@tanstack/react-query@5.108.0(@types/react@19.3.0)(react@19.3.1)':
+  '@tanstack/react-query@5.108.1(@types/react@19.3.0)(react@19.3.1)':
     dependencies:
-      '@tanstack/query-core': 5.108.0
+      '@tanstack/query-core': 5.108.1
       react: 19.3.1
     optionalDependencies:
       '@types/react': 19.3.0
@@ -12257,14 +12257,14 @@ snapshots:
     dependencies:
       '@testing-library/dom': 10.4.2
 
-  '@trpc/client@11.29.5(@trpc/server@11.29.5(@types/ws@8.18.1)(typescript@7.1.0-dev.20261118.1))(typescript@7.1.0-dev.20261118.1)':
+  '@trpc/client@11.29.5(@trpc/server@11.29.5(@types/ws@8.18.1)(typescript@7.1.0-dev.20261119.1))(typescript@7.1.0-dev.20261119.1)':
     dependencies:
-      '@trpc/server': 11.29.5(@types/ws@8.18.1)(typescript@7.1.0-dev.20261118.1)
-      typescript: 7.1.0-dev.20261118.1
+      '@trpc/server': 11.29.5(@types/ws@8.18.1)(typescript@7.1.0-dev.20261119.1)
+      typescript: 7.1.0-dev.20261119.1
 
-  '@trpc/server@11.29.5(@types/ws@8.18.1)(typescript@7.1.0-dev.20261118.1)':
+  '@trpc/server@11.29.5(@types/ws@8.18.1)(typescript@7.1.0-dev.20261119.1)':
     dependencies:
-      typescript: 7.1.0-dev.20261118.1
+      typescript: 7.1.0-dev.20261119.1
     optionalDependencies:
       '@types/ws': 8.18.1
 
@@ -12568,7 +12568,7 @@ snapshots:
   '@typescript/typescript-darwin-arm64@7.1.0-dev.20261117.1':
     optional: true
 
-  '@typescript/typescript-darwin-arm64@7.1.0-dev.20261118.1':
+  '@typescript/typescript-darwin-arm64@7.1.0-dev.20261119.1':
     optional: true
 
   '@typescript/typescript-darwin-x64@7.0.2':
@@ -12580,7 +12580,7 @@ snapshots:
   '@typescript/typescript-darwin-x64@7.1.0-dev.20261117.1':
     optional: true
 
-  '@typescript/typescript-darwin-x64@7.1.0-dev.20261118.1':
+  '@typescript/typescript-darwin-x64@7.1.0-dev.20261119.1':
     optional: true
 
   '@typescript/typescript-freebsd-arm64@7.0.2':
@@ -12598,7 +12598,7 @@ snapshots:
   '@typescript/typescript-linux-arm64@7.1.0-dev.20261117.1':
     optional: true
 
-  '@typescript/typescript-linux-arm64@7.1.0-dev.20261118.1':
+  '@typescript/typescript-linux-arm64@7.1.0-dev.20261119.1':
     optional: true
 
   '@typescript/typescript-linux-arm@7.0.2':
@@ -12610,7 +12610,7 @@ snapshots:
   '@typescript/typescript-linux-arm@7.1.0-dev.20261117.1':
     optional: true
 
-  '@typescript/typescript-linux-arm@7.1.0-dev.20261118.1':
+  '@typescript/typescript-linux-arm@7.1.0-dev.20261119.1':
     optional: true
 
   '@typescript/typescript-linux-loong64@7.0.2':
@@ -12637,7 +12637,7 @@ snapshots:
   '@typescript/typescript-linux-x64@7.1.0-dev.20261117.1':
     optional: true
 
-  '@typescript/typescript-linux-x64@7.1.0-dev.20261118.1':
+  '@typescript/typescript-linux-x64@7.1.0-dev.20261119.1':
     optional: true
 
   '@typescript/typescript-netbsd-arm64@7.0.2':
@@ -12664,7 +12664,7 @@ snapshots:
   '@typescript/typescript-win32-arm64@7.1.0-dev.20261117.1':
     optional: true
 
-  '@typescript/typescript-win32-arm64@7.1.0-dev.20261118.1':
+  '@typescript/typescript-win32-arm64@7.1.0-dev.20261119.1':
     optional: true
 
   '@typescript/typescript-win32-x64@7.0.2':
@@ -12676,7 +12676,7 @@ snapshots:
   '@typescript/typescript-win32-x64@7.1.0-dev.20261117.1':
     optional: true
 
-  '@typescript/typescript-win32-x64@7.1.0-dev.20261118.1':
+  '@typescript/typescript-win32-x64@7.1.0-dev.20261119.1':
     optional: true
 
   '@typescript/typescript6@6.0.2':
@@ -13291,7 +13291,7 @@ snapshots:
     dependencies:
       '@types/node': 26.6.6
 
-  bun-types@1.4.4:
+  bun-types@1.4.5:
     dependencies:
       '@types/node': 26.6.6
       undici-types: 8.9.0
@@ -13631,10 +13631,10 @@ snapshots:
       '@dprint/win32-arm64': 0.65.0
       '@dprint/win32-x64': 0.65.0
 
-  drizzle-orm@1.0.0-rc.5(arktype@2.2.10)(bun-types@1.4.4)(postgres@4.1.1)(zod@4.6.7):
+  drizzle-orm@1.0.0-rc.5(arktype@2.2.10)(bun-types@1.4.5)(postgres@4.1.1)(zod@4.6.7):
     optionalDependencies:
       arktype: 2.2.10
-      bun-types: 1.4.4
+      bun-types: 1.4.5
       postgres: 4.1.1
       zod: 4.6.7
 
@@ -14584,7 +14584,7 @@ snapshots:
 
   konva@10.9.1: {}
 
-  lasertag@0.9.1(@solidjs/web@2.0.1(solid-js@2.0.1))(@types/react@19.3.0)(arktype@2.2.10)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.1)(supports-color@10.2.2):
+  lasertag@0.9.1(@solidjs/web@2.0.3(solid-js@2.0.3))(@types/react@19.3.0)(arktype@2.2.10)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.3)(supports-color@10.2.2):
     dependencies:
       '@astrojs/compiler': 4.0.0
       '@vscode/vsce': 4.1.1(supports-color@10.2.2)
@@ -14599,17 +14599,17 @@ snapshots:
       vscode-languageserver-textdocument: 1.0.16
       zod: 4.6.7
     optionalDependencies:
-      '@solidjs/web': 2.0.1(solid-js@2.0.1)
+      '@solidjs/web': 2.0.3(solid-js@2.0.3)
       '@types/react': 19.3.0
       eslint: 10.15.0(jiti@2.7.0)(supports-color@10.2.2)
       preact: 11.2.0(preact-render-to-string@6.8.2)
-      solid-js: 2.0.1
+      solid-js: 2.0.3
     transitivePeerDependencies:
       - arktype
       - happy-dom
       - supports-color
 
-  lasertag@0.9.1(@solidjs/web@2.0.1(solid-js@2.0.1))(@types/react@19.3.0)(arktype@2.2.8)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.1)(supports-color@10.2.2):
+  lasertag@0.9.1(@solidjs/web@2.0.3(solid-js@2.0.3))(@types/react@19.3.0)(arktype@2.2.8)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.3)(supports-color@10.2.2):
     dependencies:
       '@astrojs/compiler': 4.0.0
       '@vscode/vsce': 4.1.1(supports-color@10.2.2)
@@ -14624,11 +14624,11 @@ snapshots:
       vscode-languageserver-textdocument: 1.0.16
       zod: 4.6.7
     optionalDependencies:
-      '@solidjs/web': 2.0.1(solid-js@2.0.1)
+      '@solidjs/web': 2.0.3(solid-js@2.0.3)
       '@types/react': 19.3.0
       eslint: 10.15.0(jiti@2.7.0)(supports-color@10.2.2)
       preact: 11.2.0(preact-render-to-string@6.8.2)
-      solid-js: 2.0.1
+      solid-js: 2.0.3
     transitivePeerDependencies:
       - arktype
       - happy-dom
@@ -16363,9 +16363,9 @@ snapshots:
       seroval: 1.6.12
       seroval-plugins: 1.6.8(seroval@1.6.12)
 
-  solid-js@2.0.1:
+  solid-js@2.0.3:
     dependencies:
-      '@solidjs/signals': 2.0.1
+      '@solidjs/signals': 2.0.3
       seroval: 1.8.1
       seroval-plugins: 1.8.0(seroval@1.8.1)
 
@@ -16700,15 +16700,15 @@ snapshots:
       '@typescript/typescript-win32-arm64': 7.1.0-dev.20261117.1
       '@typescript/typescript-win32-x64': 7.1.0-dev.20261117.1
 
-  typescript@7.1.0-dev.20261118.1:
+  typescript@7.1.0-dev.20261119.1:
     optionalDependencies:
-      '@typescript/typescript-darwin-arm64': 7.1.0-dev.20261118.1
-      '@typescript/typescript-darwin-x64': 7.1.0-dev.20261118.1
-      '@typescript/typescript-linux-arm': 7.1.0-dev.20261118.1
-      '@typescript/typescript-linux-arm64': 7.1.0-dev.20261118.1
-      '@typescript/typescript-linux-x64': 7.1.0-dev.20261118.1
-      '@typescript/typescript-win32-arm64': 7.1.0-dev.20261118.1
-      '@typescript/typescript-win32-x64': 7.1.0-dev.20261118.1
+      '@typescript/typescript-darwin-arm64': 7.1.0-dev.20261119.1
+      '@typescript/typescript-darwin-x64': 7.1.0-dev.20261119.1
+      '@typescript/typescript-linux-arm': 7.1.0-dev.20261119.1
+      '@typescript/typescript-linux-arm64': 7.1.0-dev.20261119.1
+      '@typescript/typescript-linux-x64': 7.1.0-dev.20261119.1
+      '@typescript/typescript-win32-arm64': 7.1.0-dev.20261119.1
+      '@typescript/typescript-win32-x64': 7.1.0-dev.20261119.1
 
   ufo@1.6.4: {}
 

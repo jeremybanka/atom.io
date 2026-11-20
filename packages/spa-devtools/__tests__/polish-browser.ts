@@ -219,7 +219,7 @@ async function checkVisualTreatment(
 		appearance.noise.blend,
 		theme === `dark` ? `soft-light` : `multiply`,
 	)
-	assert.equal(appearance.noise.size, `1024px auto`)
+	assert.match(appearance.noise.size, /^1024px(?: auto)?$/)
 	assert.equal(appearance.noise.repeat, `repeat`)
 	assert.equal(appearance.noise.position, `50% 50%`)
 	assert.equal(appearance.noise.pointerEvents, `none`)

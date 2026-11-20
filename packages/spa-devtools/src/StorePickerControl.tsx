@@ -76,34 +76,38 @@ export function StorePickerControl(props: {
 				role="group"
 				aria-label="Stores"
 			>
-				{([`local`, `remote`] as const).map((kind) => {
-					const targets = picker.targets.filter((target) => target.kind === kind)
-					const headingId = menuId + `-` + kind
-					return targets.length ? (
-						<section
-							key={kind}
-							data-store-group
-							role="group"
-							aria-labelledby={headingId}
-						>
-							<p id={headingId}>{kind === `local` ? `Local` : `Remote`}</p>
-							{targets.map((target) => (
-								<button
-									key={target.id}
-									type="button"
-									data-store-option={target.id}
-									aria-current={target.id === picker.id ? `true` : undefined}
-									onClick={() => {
-										close()
-										picker.select(target.id)
-									}}
-								>
-									{target.label}
-								</button>
-							))}
-						</section>
-					) : null
-				})}
+				<div>
+					{([`local`, `remote`] as const).map((kind) => {
+						const targets = picker.targets.filter(
+							(target) => target.kind === kind,
+						)
+						const headingId = menuId + `-` + kind
+						return targets.length ? (
+							<section
+								key={kind}
+								data-store-group
+								role="group"
+								aria-labelledby={headingId}
+							>
+								<p id={headingId}>{kind === `local` ? `Local` : `Remote`}</p>
+								{targets.map((target) => (
+									<button
+										key={target.id}
+										type="button"
+										data-store-option={target.id}
+										aria-current={target.id === picker.id ? `true` : undefined}
+										onClick={() => {
+											close()
+											picker.select(target.id)
+										}}
+									>
+										{target.label}
+									</button>
+								))}
+							</section>
+						) : null
+					})}
+				</div>
 			</section>
 		</store-picker-control>
 	)

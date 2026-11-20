@@ -6,13 +6,16 @@ import type {
 } from "atom.io"
 import { PRETTY_ENTITY_NAMES } from "atom.io"
 import type { Canonical } from "atom.io/foundations/canonical"
-import { stringifyJson } from "atom.io/foundations/json"
 
 import { newest } from "../lineage.ts"
 import { createReadonlyHeldSelector } from "../selector/index.ts"
 import type { ReadonlyHeldSelectorFamily } from "../state-types.ts"
 import { recordStoreChange } from "../store-observation.ts"
 import type { RootStore } from "../transaction/index.ts"
+import {
+	type PreparedFamilyKey,
+	prepareFamilyKey,
+} from "./prepare-family-key.ts"
 
 export function createReadonlyHeldSelectorFamily<
 	T extends object,
@@ -40,10 +43,12 @@ export function createReadonlyHeldSelectorFamily<
 		)
 	}
 
-	const create = (key: K): ReadonlyHeldSelectorToken<T> => {
-		const subKey = stringifyJson(key)
+	const create = (
+		key: K,
+		prepared?: PreparedFamilyKey<K>,
+	): ReadonlyHeldSelectorToken<T> => {
+		const { subKey, fullKey } = prepared ?? prepareFamilyKey(familyKey, key)
 		const family: FamilyMetadata = { key: familyKey, subKey }
-		const fullKey = `${familyKey}(${subKey})`
 		const target = newest(store)
 
 		return createReadonlyHeldSelector(

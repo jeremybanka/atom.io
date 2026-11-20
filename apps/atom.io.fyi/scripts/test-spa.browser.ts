@@ -126,6 +126,15 @@ try {
 				?.getAttribute(`data-user-has-toggled`) === `true`,
 	)
 	const panel = page.locator(`[data-testid="atom-io-devtools"]`)
+	const readTypography = (element: Element) => {
+		const { font, color } = getComputedStyle(element)
+		return { font, color }
+	}
+	assert.deepEqual(
+		await panel.locator(`debugger-content`).evaluate(readTypography),
+		await panel.evaluate(readTypography),
+		`Debugger content must inherit the panel's font and color`,
+	)
 	await page.locator(`button[aria-label="Expand headings"]`).click()
 	await page.locator(`button[aria-label="Expand 0"]`).click()
 	const rowHeights = await panel

@@ -68,7 +68,7 @@ const config: UserConfig[] = defineConfig(
 				},
 			},
 		],
-		copy: development ? [] : [`src/brand-css.d.ts`],
+		copy: [`src/brand-fallback`, ...(development ? [] : [`src/brand-css.d.ts`])],
 	})),
 )
 export default config

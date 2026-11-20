@@ -226,6 +226,7 @@ it(`supports standalone sizing, class forwarding and a static server render`, as
 	})
 	const mark = f.host.querySelector<HTMLElement>(`brand-mark`)!
 	expect(mark.style.width).toBe(`45px`)
+	expect(mark.getAttribute(`data-size`)).toBe(`45`)
 	expect(mark.classList.contains(`example`)).toBe(true)
 	const renderer = vi.mocked(THREE.WebGLRenderer).mock.results.at(-1)!
 		.value as THREE.WebGLRenderer
@@ -237,6 +238,7 @@ it(`supports standalone sizing, class forwarding and a static server render`, as
 	expect(renderer.setSize).toHaveBeenLastCalledWith(32, 32)
 	const html = renderToString(() => <BrandMark size={32} />)
 	expect(html).toContain(`brand-mark`)
+	expect(html).toContain(`data-size="32"`)
 	expect(html).toContain(`32px`)
 	expect(html).not.toContain(`canvas`)
 })

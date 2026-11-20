@@ -187,7 +187,7 @@ debugger-panel.class {
 		backdrop-filter: blur(4px);
 		box-shadow: var(--window-shadow);
 	}
-	[data-store-menu] > div {
+	[data-store-menu] > store-menu-options {
 		min-height: 0;
 		overscroll-behavior: contain;
 		overflow: auto;

@@ -76,7 +76,7 @@ export function StorePickerControl(props: {
 				role="group"
 				aria-label="Stores"
 			>
-				<div>
+				<store-menu-options>
 					{([`local`, `remote`] as const).map((kind) => {
 						const targets = picker.targets.filter(
 							(target) => target.kind === kind,
@@ -107,7 +107,7 @@ export function StorePickerControl(props: {
 							</section>
 						) : null
 					})}
-				</div>
+				</store-menu-options>
 			</section>
 		</store-picker-control>
 	)

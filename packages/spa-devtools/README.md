@@ -35,6 +35,35 @@ export function attachDebugger(host: HTMLElement): () => void {
 
 ```
 
+## Exclude devtools from production browser builds
+
+In Vite and Astro, put dynamic imports for both the devtools code and stylesheet behind import.meta.env.DEV. Call the helper from your browser entry with a stable host element and dispose the returned handle when removing the panel. Standard production builds replace the development flag with false and can drop both imports and their assets. [Vite build-time flags](https://vite.dev/guide/env-and-mode.html#built-in-constants) · [Astro environment variables](https://docs.astro.build/en/guides/environment-variables/#vites-built-in-support)
+
+```ts
+import type {
+	AtomIODevtoolsHandle,
+	AtomIODevtoolsProps,
+} from "@atom.io/spa-devtools"
+
+export async function mountDevelopmentDevtools(
+	host: Element,
+	options?: AtomIODevtoolsProps,
+): Promise<AtomIODevtoolsHandle | undefined> {
+	if (import.meta.env.DEV) {
+		const [{ mountAtomIODevtools }] = await Promise.all([
+			import(`@atom.io/spa-devtools`),
+			import(`@atom.io/spa-devtools/css`),
+		])
+		return mountAtomIODevtools(host, options)
+	}
+}
+
+```
+
+Keep all devtools-only imports in that branch or in a module dynamically imported from it. That includes the React adapter, dedicated debugging workers, and any styles or assets they use. Type-only imports are erased. A runtime visibility setting leaves the code available in the shipped bundle, and an unconditional dynamic import still emits a separate chunk. With another bundler, use its equivalent compile-time development flag and check the production output for devtools chunks, styles, and assets.
+
+For remote stores, gate the owner separately. Excluding the browser UI and its connection code leaves server-side exposure policy in the store owner's hands.
+
 ## Local and remote stores
 
 Supply stores to the SPA or React component or to mountAtomIODevtools. Each target has a unique ID and a label. Local targets take a RootStore in the current process. Remote targets take a function that opens a fresh MessagePort or DevtoolsPanelTransport. The panel mounts every supplied target and initially shows the first. The store picker beside the window controls groups targets under Local and Remote. Its button shows the current store and a caret, collapsing to just the caret when the window is narrow. Switching preserves each target's selected view and keeps its connection live. Disposing the panel closes its remote connections. When stores is omitted, the existing single-store setup applies.

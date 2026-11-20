@@ -2,6 +2,9 @@ import { Tonnage } from "tonnage";
 import config from "./tonnage.config.ts";
 import Setup from "./exhibits/setup.tsx" with { type: "code" };
 import Mount from "./exhibits/mount.ts" with { type: "code" };
+import DevelopmentMount from "./exhibits/development-mount.ts" with {
+  type: "code",
+};
 import ReactSetup from "./exhibits/react.ts" with { type: "code" };
 import Ecology from "./exhibits/ecology.ts" with { type: "code" };
 import RemoteDevelopment from "./exhibits/remote-development.ts" with {
@@ -26,6 +29,16 @@ The optional store prop selects the inspected store; it defaults to atom.io's im
 Use mountAtomIODevtools with a host element and optional store and hideByDefault options. The options are captured at mount; dispose and mount again to change them. Each call owns a child of the host and preserves its existing children. Call the returned dispose method when removing the debugger; repeated disposal is safe.
 
 <Mount />
+
+## Exclude devtools from production browser builds
+
+In Vite and Astro, put dynamic imports for both the devtools code and stylesheet behind import.meta.env.DEV. Call the helper from your browser entry with a stable host element and dispose the returned handle when removing the panel. Standard production builds replace the development flag with false and can drop both imports and their assets. [Vite build-time flags](https://vite.dev/guide/env-and-mode.html#built-in-constants) · [Astro environment variables](https://docs.astro.build/en/guides/environment-variables/#vites-built-in-support)
+
+<DevelopmentMount />
+
+Keep all devtools-only imports in that branch or in a module dynamically imported from it. That includes the React adapter, dedicated debugging workers, and any styles or assets they use. Type-only imports are erased. A runtime visibility setting leaves the code available in the shipped bundle, and an unconditional dynamic import still emits a separate chunk. With another bundler, use its equivalent compile-time development flag and check the production output for devtools chunks, styles, and assets.
+
+For remote stores, gate the owner separately. Excluding the browser UI and its connection code leaves server-side exposure policy in the store owner's hands.
 
 ## Local and remote stores
 

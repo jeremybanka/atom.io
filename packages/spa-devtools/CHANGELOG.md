@@ -1,5 +1,11 @@
 # @atom.io/spa-devtools
 
+## 0.2.1
+
+### Patch Changes
+
+- 12791c0: Match the static BrandMark to the initial Three.js frame so the compact mark and splash keep their framing and shading when the animation loads.
+
 ## 0.2.0
 
 ### Minor Changes

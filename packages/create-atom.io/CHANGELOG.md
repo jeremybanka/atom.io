@@ -1,5 +1,11 @@
 # create-atom.io
 
+## 0.1.76
+
+### Patch Changes
+
+- @atom.io/template-spa-astro-ssr@0.0.14
+
 ## 0.1.75
 
 ### Patch Changes

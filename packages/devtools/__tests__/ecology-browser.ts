@@ -262,7 +262,7 @@ try {
 	}
 	const row = page.locator(`ecology-editor-row[data-row-id="state:price"]`),
 		originalRow = await row.elementHandle()
-	const transforms = await row.evaluateHandle((node: HTMLElement) => {
+	const rowTransforms = await row.evaluateHandle((node: HTMLElement) => {
 		const samples = [node.style.transform]
 		const observer = new MutationObserver(() =>
 			samples.push(node.style.transform),
@@ -281,8 +281,8 @@ try {
 			await new Promise(requestAnimationFrame)
 		return node.getAttributeNames().filter((name) => name.startsWith(`motion:`))
 	})
-	const samples = await transforms.evaluate((capture) => capture.stop())
-	await transforms.dispose()
+	const samples = await rowTransforms.evaluate((capture) => capture.stop())
+	await rowTransforms.dispose()
 	assert.equal(
 		await row.evaluate((node, original) => node === original, originalRow),
 		true,

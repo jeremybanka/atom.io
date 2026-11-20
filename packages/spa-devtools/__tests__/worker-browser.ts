@@ -76,6 +76,11 @@ if (process.argv.includes(`--serve`)) {
 		const picker = panel.getByRole(`button`, { name: /^Inspected store:/ })
 		const storeName = picker.locator(`[data-store-name]`)
 		const stores = panel.getByRole(`group`, { name: `Stores`, exact: true })
+		const pickerSurface = () =>
+			picker.evaluate((element) => {
+				const { backgroundColor, borderTopColor } = getComputedStyle(element)
+				return [backgroundColor, borderTopColor]
+			})
 		const switchStore = async (name: string) => {
 			await picker.click()
 			await stores.getByRole(`button`, { name, exact: true }).click()
@@ -122,7 +127,14 @@ if (process.argv.includes(`--serve`)) {
 		)
 		assert.equal(await storeName.textContent(), `Counter worker`)
 		assert.ok(await storeName.isVisible())
+		await picker.hover()
+		const transparent = `rgba(0, 0, 0, 0)`
+		assert.deepEqual(await pickerSurface(), [transparent, transparent])
+		const restingBounds = await picker.boundingBox()
 		await picker.press(`Enter`)
+		for (const color of await pickerSurface())
+			assert.notEqual(color, transparent)
+		assert.deepEqual(await picker.boundingBox(), restingBounds)
 		assert.deepEqual(
 			await stores.locator(`[data-store-group] > p`).allTextContents(),
 			[`Local`, `Remote`],

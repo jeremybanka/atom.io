@@ -125,16 +125,21 @@ debugger-panel.class {
 		min-width: var(--window-control-size);
 		max-width: 100%;
 		padding-inline: 9px;
-		border: 1px solid var(--line);
+		border: 1px solid transparent;
 		border-radius: 5px;
-		background: var(--surface-inactive);
+		background: transparent;
 		color: var(--ink-muted);
 		&:hover, &[aria-expanded="true"] {
-			background: var(--surface-hover);
 			color: var(--ink-strong);
+		}
+		&[aria-expanded="true"] {
+			background: var(--bg-hard-1);
+			border-color: color-mix(in srgb, var(--line) 70%, transparent);
 		}
 	}
 	[data-store-name] {
+		line-height: 1.3;
+		translate: 0 2px;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;

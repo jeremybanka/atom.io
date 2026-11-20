@@ -1,4 +1,4 @@
-* {
+:where(html, body, app-shell, app-shell *) {
 	/* RESET */
 	font-family: Uruz, system-ui, sans-serif;
 	font-weight: 500;

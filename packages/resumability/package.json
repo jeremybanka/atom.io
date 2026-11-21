@@ -76,7 +76,7 @@
 		"build:browser": "astro build --root __tests__/astro"
 	},
 	"dependencies": {
-		"@babel/core": "8.1.2",
+		"@babel/core": "8.1.3",
 		"parse5-sax-parser": "8.0.1"
 	},
 	"devDependencies": {

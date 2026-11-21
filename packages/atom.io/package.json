@@ -143,7 +143,7 @@
 		"@vitest/ui": "5.1.1",
 		"arktype": "2.2.10",
 		"breakage": "0.10.2",
-		"drizzle-orm": "1.0.0-rc.5",
+		"drizzle-orm": "1.0.0-rc.6",
 		"eslint": "10.15.0",
 		"happy-dom": "21.0.4",
 		"playwright": "1.65.1",

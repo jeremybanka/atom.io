@@ -949,8 +949,8 @@ importers:
         specifier: 21.0.4
         version: 21.0.4
       konva:
-        specifier: 10.9.1
-        version: 10.9.1
+        specifier: 10.10.0
+        version: 10.10.0
       motion:
         specifier: 14.14.0
         version: 14.14.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -7185,12 +7185,15 @@ packages:
   kolorist@1.8.0:
     resolution: {integrity: sha512-Y+60/zizpJ3HRH8DCss+q95yr6145JXZo46OTpFvDZWLfRCE4qChOyk1b26nMaNpfHHgxagk9dXT5OP0Tfe+dQ==}
 
-  konva@10.9.1:
-    resolution: {integrity: sha512-m49x+GatSxEUSvqahYhxpTjgKbtrLtw4P4o4B4iux953ZFpceaK52Ea+CFsAsd7W4I0Y5u6mMoRUsY/eltNZmw==}
+  konva@10.10.0:
+    resolution: {integrity: sha512-hPU7xXWxhOqLScPo1gNCtY/PJAH2aXS//Wile6lfWmoO14vkZQbeS2HK5aV6FJ5Q2OzxgdGVSiMhyLspSk4fRw==}
     peerDependencies:
+      '@napi-rs/canvas': ^1.1.0
       canvas: ^3.0.0
-      skia-canvas: ^3.0.0
+      skia-canvas: ^3.0.0 || ^4.0.0
     peerDependenciesMeta:
+      '@napi-rs/canvas':
+        optional: true
       canvas:
         optional: true
       skia-canvas:
@@ -14582,7 +14585,7 @@ snapshots:
 
   kolorist@1.8.0: {}
 
-  konva@10.9.1: {}
+  konva@10.10.0: {}
 
   lasertag@0.9.1(@solidjs/web@2.0.3(solid-js@2.0.3))(@types/react@19.3.0)(arktype@2.2.10)(eslint@10.15.0(jiti@2.7.0)(supports-color@10.2.2))(happy-dom@21.0.4)(preact@11.2.0)(solid-js@2.0.3)(supports-color@10.2.2):
     dependencies:

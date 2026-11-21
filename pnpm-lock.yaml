@@ -338,8 +338,8 @@ importers:
         specifier: 8.1.2
         version: 8.1.2
       '@pierre/highlights':
-        specifier: 0.5.1
-        version: 0.5.1
+        specifier: 0.5.2
+        version: 0.5.2
       astro:
         specifier: 7.4.13
         version: 7.4.13(@astrojs/markdown-remark@7.3.10(supports-color@10.2.2))(@azure/identity@4.13.2(supports-color@10.2.2))(@types/node@26.6.6)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.1)
@@ -4147,8 +4147,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@pierre/highlights@0.5.1':
-    resolution: {integrity: sha512-c2WF6sgwgKdxXU6FpWDLWUYHRca/cJy+3QJkWAqYqEAFxqlPf8eSH0ehHcFFjKBmT+9KBl9H7q6z7HMRU7+m6g==}
+  '@pierre/highlights@0.5.2':
+    resolution: {integrity: sha512-CV+yFa8dodaU3w7U42FR+AfoavrsfcH0/n3rckDu1A/UXan1Dzo6OdM/MPOAAsGM/EbKhDxD6k+qMcNUtnLfsg==}
 
   '@pkgr/core@0.3.6':
     resolution: {integrity: sha512-SEeaJLb3qBNF/OaXnaR1NmmBbFYk1zC0ZH/52fATcRPLFg/p791YrcyFFy44Bo9sLaGuSuLp5Q6axbb/O+v/RA==}
@@ -11673,7 +11673,7 @@ snapshots:
   '@oxlint/binding-win32-x64-msvc@1.94.0':
     optional: true
 
-  '@pierre/highlights@0.5.1': {}
+  '@pierre/highlights@0.5.2': {}
 
   '@pkgr/core@0.3.6': {}
 

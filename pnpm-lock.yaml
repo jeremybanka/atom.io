@@ -882,8 +882,8 @@ importers:
         specifier: 2.0.3
         version: 2.0.3
       solid-js-1:
-        specifier: npm:solid-js@1.9.19
-        version: solid-js@1.9.19
+        specifier: npm:solid-js@1.9.20
+        version: solid-js@1.9.20
       tsdown:
         specifier: 0.23.7
         version: 0.23.7(@tsdown/css@0.23.7)(oxc-resolver@11.21.2)(tsx@4.23.13)(typescript@7.0.2)
@@ -8335,8 +8335,8 @@ packages:
     resolution: {integrity: sha512-9ZV9zg8vN8hO3Y25DhR7nUkJ1VDnBhq5O/JrXhFT9s6+F0gqytSASTHVfCFc2mJXaTfARroErplXlzFWwETZqQ==}
     engines: {node: '>=10.2.0'}
 
-  solid-js@1.9.19:
-    resolution: {integrity: sha512-NIrV/6o1FtmrA9iuAAYvnQJZaHrGcaH3LKSVj4kCiZfwqjCtJNDgIgR9XcqYl6KR/Lb3oRx1HrlyswPWR8SRvw==}
+  solid-js@1.9.20:
+    resolution: {integrity: sha512-7zEbPxRU5/hHX8O/rYtQ34p/wq44w09gv0u4+myOW5Ode8unKhoG5FbcGlqRXKqqDuDW9yOJ1OXoHgUUl/1f3Q==}
 
   solid-js@2.0.3:
     resolution: {integrity: sha512-XOHstv+GAJjfcSGZU9xfX5q6Mbqmv72IcdWh2JuMx3KvBbfpQPdy/Yl00A1ouk7A0etjqhNe799CPdr6i7koWg==}
@@ -16357,7 +16357,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  solid-js@1.9.19:
+  solid-js@1.9.20:
     dependencies:
       csstype: 3.2.3
       seroval: 1.6.12

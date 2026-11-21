@@ -101,29 +101,23 @@ function orderTools({ canvas, canvasElement, userEvent }: Context) {
 		canvasElement.querySelector<HTMLElement>(
 			`ecology-editor-row[data-section="selected"]`,
 		)!
-	const trace = () =>
-		project(async () => {
-			const details =
-				inspector().querySelector<HTMLDetailsElement>(`[data-node-details]`)!
-			if (!details.open) await userEvent.click(details.querySelector(`summary`)!)
-			await userEvent.click(
-				within(inspector()).getByRole(`button`, {
-					name: `Trace observed roots`,
-				}),
-			)
-		})
+	const related = (key: string) =>
+		canvasElement.querySelector(
+			`ecology-node-card[data-traced="true"]:not([inert]) > button[data-graph-id="state:${CSS.escape(key)}"]`,
+		)
 	return {
 		action,
+		related,
 		debuggerVisible,
 		scenarioControls,
 		summary,
 		ecology,
 		ready,
+		project,
 		refresh,
 		choose,
 		search,
 		inspector,
-		trace,
 	}
 }
 
@@ -161,34 +155,38 @@ export const playOrderRoots: Play = async (context) => {
 		`Delivery and pickup retain the roots observed by the application`,
 		async () => {
 			await tools.choose(`fulfillmentFeeCents`)
-			await tools.trace()
-			await expect(tools.inspector()).toHaveTextContent(`deliveryRegion`)
-			await expect(tools.inspector()).not.toHaveTextContent(`pickupStore`)
+			await expect(tools.related(`deliveryRegion`)).not.toBeNull()
+			await expect(tools.related(`pickupStore`)).toBeNull()
 			await tools.action(`Use pickup`)
 			await waitFor(() => expect(tools.summary()).toHaveTextContent(`pickup`))
 			await tools.refresh()
-			await tools.trace()
-			await expect(tools.inspector()).toHaveTextContent(`pickupStore`)
-			await expect(tools.inspector()).not.toHaveTextContent(`deliveryRegion`)
+			await expect(tools.related(`pickupStore`)).not.toBeNull()
+			await expect(tools.related(`deliveryRegion`)).toBeNull()
 		},
 	)
 	await step(
 		`Warehouse selection changes the observed stock roots`,
 		async () => {
-			await tools.choose(`availableLineCount`)
-			await tools.trace()
-			await expect(tools.inspector()).toHaveTextContent(
-				`stockByWarehouseSku(["north","tea-green"])`,
+			await tools.choose(`stockByWarehouseSku`, true)
+			await tools.project(() =>
+				context.userEvent.click(
+					canvas.getByRole(`button`, {
+						name: /^Expand stockByWarehouseSku$/,
+					}),
+				),
 			)
+			await tools.choose(`availableLineCount`)
+			await expect(
+				tools.related(`stockByWarehouseSku(["north","tea-green"])`),
+			).not.toBeNull()
 			await tools.action(`Use south warehouse`)
 			await tools.refresh()
-			await tools.trace()
-			await expect(tools.inspector()).toHaveTextContent(
-				`stockByWarehouseSku(["south","tea-green"])`,
-			)
-			await expect(tools.inspector()).not.toHaveTextContent(
-				`stockByWarehouseSku(["north","tea-green"])`,
-			)
+			await expect(
+				tools.related(`stockByWarehouseSku(["south","tea-green"])`),
+			).not.toBeNull()
+			await expect(
+				tools.related(`stockByWarehouseSku(["north","tea-green"])`),
+			).toBeNull()
 		},
 	)
 	await step(
@@ -196,11 +194,10 @@ export const playOrderRoots: Play = async (context) => {
 		async () => {
 			for (const key of [`seasonalPromotion`, `lazyAuditDefault("unused")`]) {
 				await tools.choose(key)
-				await tools.trace()
-				await expect(tools.inspector()).toHaveTextContent(`not cached / unknown`)
+				await expect(tools.inspector()).toHaveTextContent(`Generate`)
 			}
 			await tools.choose(`wishlistNotesBySku`, true)
-			await expect(tools.inspector()).toHaveTextContent(`0 instantiated members`)
+			await expect(tools.inspector()).toHaveTextContent(`0 members`)
 			await expect(canvas.getAllByTestId(`atom-io-devtools`)).toHaveLength(1)
 		},
 	)
@@ -221,10 +218,10 @@ export const playOrderActions: Play = async (context) => {
 		await tools.action(`Add tea oolong`)
 		await tools.refresh()
 		await tools.choose(`cartQuantityBySku`, true)
-		await expect(tools.inspector()).toHaveTextContent(`7 instantiated members`)
+		await expect(tools.inspector()).toHaveTextContent(`7 members`)
 		await tools.action(`Remove tea oolong`)
 		await tools.refresh()
-		await expect(tools.inspector()).toHaveTextContent(`6 instantiated members`)
+		await expect(tools.inspector()).toHaveTextContent(`6 members`)
 	})
 	await step(
 		`Quantity, undo, redo and coupon actions update the application`,
@@ -291,69 +288,11 @@ export const playOrderEditingAndReset: Play = async (context) => {
 				await tools.ready()
 				await expect(canvas.getAllByTestId(`atom-io-devtools`)).toHaveLength(1)
 				await tools.choose(`fulfillmentFeeCents`)
-				await tools.trace()
-				await expect(tools.inspector()).toHaveTextContent(`deliveryRegion`)
-				await expect(tools.inspector()).not.toHaveTextContent(`pickupStore`)
+				await expect(tools.related(`deliveryRegion`)).not.toBeNull()
+				await expect(tools.related(`pickupStore`)).toBeNull()
 			}
 		},
 	)
-}
-
-export const playOrderHistorySearch: Play = async (context) => {
-	const { canvas, canvasElement, userEvent, step } = context
-	const tools = orderTools(context)
-	await step(
-		`Record a real cart transaction and navigate its captured update`,
-		async () => {
-			await tools.debuggerVisible(true)
-			await userEvent.click(canvas.getByRole(`tab`, { name: `transactions` }))
-			await tools.action(`Increase tea green`)
-			await tools.debuggerVisible(true)
-			await userEvent.click(canvas.getByRole(`button`, { name: `Refresh` }))
-		},
-	)
-	for (const view of [`transactions`, `timelines`]) {
-		await step(
-			`Search ${view} without changing the cart or undo/redo cursor`,
-			async () => {
-				if (view === `timelines`)
-					await userEvent.click(canvas.getByRole(`tab`, { name: view }))
-				const input = canvas.getByRole(`searchbox`, { name: `Search ${view}` })
-				await userEvent.type(input, `cartQuantityBySku`)
-				await waitFor(() =>
-					expect(
-						canvasElement.querySelectorAll(`search-results button`).length,
-					).toBeGreaterThan(0),
-				)
-				const before = tools.summary().textContent
-				await userEvent.keyboard(`{ArrowDown}{Enter}`)
-				await waitFor(() =>
-					expect(
-						canvasElement.querySelector(`[data-search-selected="true"]`),
-					).not.toBeNull(),
-				)
-				await expect(tools.summary().textContent).toBe(before)
-				await expect(
-					canvasElement.querySelector(`search-details`),
-				).toHaveTextContent(`no history cursor changed`)
-				await userEvent.keyboard(`{Escape}`)
-				await expect(input).toHaveFocus()
-				const capture = canvasElement.querySelector<HTMLDetailsElement>(
-					`search-controls details[data-capture]`,
-				)!
-				const disclosure = capture.querySelector(`summary`)!
-				await userEvent.click(disclosure)
-				await expect(capture).toHaveAttribute(`open`)
-				await expect(capture).toHaveTextContent(
-					`Opaque payloads are skipped; no actions replayed`,
-				)
-				await userEvent.click(disclosure)
-				await expect(capture).not.toHaveAttribute(`open`)
-				await expect(disclosure).toHaveFocus()
-				await expect(tools.summary().textContent).toBe(before)
-			},
-		)
-	}
 }
 
 export const playEcologySearch: Play = async (context) => {
@@ -361,7 +300,6 @@ export const playEcologySearch: Play = async (context) => {
 	const tools = orderTools(context)
 	await tools.ecology()
 	await tools.choose(`checkoutTotalCents`)
-	await tools.trace()
 	const input = canvasElement.querySelector<HTMLInputElement>(
 		`ecology-view input[type="search"]`,
 	)!
@@ -373,7 +311,7 @@ export const playEcologySearch: Play = async (context) => {
 			),
 		)
 	await step(
-		`Rank normalized captured metadata and preserve the same node's trace`,
+		`Rank normalized captured metadata and preserve the selected node`,
 		async () => {
 			await tools.search()
 			await userEvent.clear(input)
@@ -385,7 +323,10 @@ export const playEcologySearch: Play = async (context) => {
 			await expect(result).not.toBeNull()
 			await userEvent.click(result)
 			await ready()
-			await expect(tools.inspector()).toHaveTextContent(`Retained trace`)
+			await expect(tools.inspector()).toHaveAttribute(
+				`data-row-id`,
+				`state:checkoutTotalCents`,
+			)
 			await expect(
 				canvasElement
 					.querySelector(`ecology-editor`)!
@@ -476,7 +417,7 @@ export const playSurfaceStates: Play = async (context) => {
 		},
 	)
 	await step(
-		`Nested editors and passive search retain a focused unfinished price`,
+		`A nested numeric editor keeps a focused unfinished price`,
 		async () => {
 			await tools.debuggerVisible(true)
 			await userEvent.click(canvas.getByRole(`tab`, { name: `atoms` }))
@@ -495,11 +436,6 @@ export const playSurfaceStates: Play = async (context) => {
 			})
 			await userEvent.clear(price)
 			await userEvent.type(price, `500.`)
-			await userEvent.keyboard(`{Control>}{Shift>}f{/Shift}{/Control}`)
-			const search = canvas.getByRole(`searchbox`, { name: `Search atoms` })
-			await userEvent.type(search, `product tea`)
-			await waitFor(() => expect(price).toHaveValue(`500.`))
-			await userEvent.keyboard(`{Escape}{Escape}`)
 			await expect(price).toHaveFocus()
 			await expect(price).toHaveValue(`500.`)
 		},

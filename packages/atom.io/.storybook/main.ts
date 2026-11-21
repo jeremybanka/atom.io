@@ -47,28 +47,18 @@ const config: StorybookConfig = {
 			}
 		}
 		return mergeConfig(cfg, {
-			plugins: [spa({ include: /\/spa-devtools\/.*\.tsx$/ })],
+			plugins: [spa({ include: /\/devtools\/.*\.tsx$/ })],
 			resolve: {
 				alias: [
 					{
-						find: /^@atom\.io\/spa-devtools\/react$/,
-						replacement: resolve(
-							STORYBOOK_ROOT,
-							`../../spa-devtools/src/react.ts`,
-						),
+						find: /^@atom\.io\/devtools\/react$/,
+						replacement: resolve(STORYBOOK_ROOT, `../../devtools/src/react.ts`),
 					},
 					{
-						find: /^@atom\.io\/spa-devtools\/css(?=\?|$)/,
+						find: /^@atom\.io\/devtools\/css(?=\?|$)/,
 						replacement: resolve(
 							STORYBOOK_ROOT,
-							`../../spa-devtools/src/globals.css`,
-						),
-					},
-					{
-						find: /^@atom\.io\/react-devtools\/css$/,
-						replacement: resolve(
-							STORYBOOK_ROOT,
-							`../../react-devtools/src/devtools.css`,
+							`../../devtools/src/globals.css`,
 						),
 					},
 					{

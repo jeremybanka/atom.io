@@ -62,8 +62,8 @@ jobs:
             name: SPA
             filters: --filter=@atom.io/spa --filter=resumability
           - suite: devtools
-            name: SPA Devtools
-            filters: --filter=@atom.io/spa-devtools
+            name: Devtools
+            filters: --filter=@atom.io/devtools
           - suite: astro
             name: Astro Starter
             filters: --filter=@atom.io/template-spa-astro-ssr
@@ -90,13 +90,11 @@ jobs:
         if: always() && matrix.suite == 'devtools'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: spa-devtools-window
+          name: devtools-window
           path: |
-            /tmp/spa-devtools-window
-            /tmp/spa-devtools-ecology
-            /tmp/spa-devtools-polish
-            /tmp/spa-devtools-search
-            /tmp/spa-devtools-search-cpu6
+            /tmp/devtools-window
+            /tmp/devtools-ecology
+            /tmp/devtools-polish
           retention-days: 7
       - name: Upload motion capture
         if: always() && matrix.suite == 'spa'

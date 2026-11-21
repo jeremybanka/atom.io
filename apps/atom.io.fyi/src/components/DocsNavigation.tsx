@@ -416,8 +416,8 @@ function SiteDirectory(): SpaElement {
 							</a>
 						</section>
 						<section>
-							<a id="-docs-react-devtools-link" href={`/docs/react-devtools`}>
-								<low-emphasis>@atom.io</low-emphasis>/react-devtools
+							<a id="-docs-devtools-link" href={`/docs/devtools`}>
+								<low-emphasis>@atom.io</low-emphasis>/devtools
 							</a>
 						</section>
 					</main>

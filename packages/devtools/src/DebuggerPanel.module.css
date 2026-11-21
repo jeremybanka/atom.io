@@ -1,0 +1,305 @@
+debugger-panel.class {
+	/* The toolbar and content paint separately so their fills never compound. */
+	--window-fill-opacity: 92%;
+	--window-shell-fill: color-mix(
+		in srgb,
+		var(--surface-shell) var(--window-fill-opacity),
+		transparent
+	);
+	--window-content-fill: color-mix(
+		in srgb,
+		var(--surface-content) var(--window-fill-opacity),
+		transparent
+	);
+	container: atom-io-devtools / inline-size;
+	position: fixed;
+	z-index: 10000;
+	left: max(0px, calc(100vw - 500px));
+	top: max(0px, calc(100dvh - 800px));
+	width: min(500px, 100vw);
+	height: min(800px, 100dvh);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	border: 2px solid var(--ink);
+	box-shadow: 0 4px 16px rgb(0 0 0 / 20%);
+	color: var(--ink);
+	font: 400 14px/1 "Atom IO Theia", monospace;
+	font-synthesis: none;
+	text-align: left;
+	&[hidden] {
+		display: none;
+	}
+	&[data-open="false"] {
+		width: 32px;
+		height: 32px;
+		border: 0;
+		box-shadow: none;
+		&::before, > [data-resize] {
+			display: none;
+		}
+		> debugger-toolbar > :not([data-testid="open-close-devtools"]) {
+			display: none;
+		}
+		> debugger-toolbar {
+			display: flex;
+			padding: 0;
+			&::before {
+				display: none;
+			}
+		}
+		> debugger-toolbar > [data-testid="open-close-devtools"] {
+			padding: 0;
+			width: 32px;
+			height: 32px;
+			margin: 0;
+			display: grid;
+			place-items: center;
+			touch-action: none;
+			cursor: grab;
+			&:active {
+				cursor: grabbing;
+			}
+		}
+	}
+	> debugger-toolbar {
+		position: relative;
+		display: grid;
+		grid-template-columns: 36px minmax(0, 1fr) repeat(3, 24px);
+		flex: 0 0 auto;
+		min-width: 0;
+		align-items: center;
+		padding: 2px 3px 0;
+		isolation: isolate;
+		&::before {
+			content: "";
+			position: absolute;
+			grid-area: 1 / 1 / 2 / -1;
+			inset: -2px -3px 0;
+			background: var(--window-shell-fill);
+			z-index: -1;
+			pointer-events: none;
+		}
+	}
+	> debugger-toolbar > h1 {
+		display: flex;
+		align-items: center;
+		font-size: 18px;
+		line-height: 32px;
+		font-weight: 200;
+		color: var(--brand-color);
+		white-space: nowrap;
+		overflow: hidden;
+	}
+	> debugger-toolbar > button {
+		align-self: center;
+	}
+	> debugger-toolbar > nav {
+		grid-column: 1 / -1;
+		grid-row: 2;
+		display: flex;
+		align-self: stretch;
+		min-width: 0;
+		overflow-x: auto;
+		scrollbar-width: none;
+		margin-inline: -3px;
+	}
+	> debugger-toolbar > nav > span {
+		--tab-gutter-start: 1.5px;
+		--tab-gutter-end: 1.5px;
+		position: relative;
+		display: flex;
+		flex: 1 0 auto;
+		align-items: flex-end;
+		padding-block-start: 4px;
+		padding-inline: var(--tab-gutter-start) var(--tab-gutter-end);
+		overflow: clip;
+		&:first-child {
+			--tab-gutter-start: 7px;
+		}
+		&:last-child {
+			--tab-gutter-end: 7px;
+		}
+		&::before, &::after {
+			position: absolute;
+			inset-block-end: 0;
+			height: 1px;
+			background: var(--ink-muted);
+			z-index: 2;
+			pointer-events: none;
+		}
+		&::after {
+			content: "";
+			inset-inline: 0;
+		}
+		/* The content edge covers inactive tabs and joins the active tab's side borders. */
+		&:has(> button[aria-selected="true"]) {
+			&::before {
+				content: "";
+				inset-inline-start: 0;
+				width: calc(var(--tab-gutter-start) + 1px);
+			}
+			&::after {
+				inset-inline-start: auto;
+				width: calc(var(--tab-gutter-end) + 1px);
+			}
+		}
+	}
+	> debugger-toolbar > nav > span > button {
+		position: relative;
+		flex: 1 0 auto;
+		white-space: nowrap;
+		height: 24px;
+		margin-top: 4px;
+		padding: 0 7px;
+		border: 1px solid var(--line);
+		border-bottom-color: transparent;
+		border-radius: 8px 8px 0 0;
+		background: color-mix(
+			in srgb,
+			var(--surface-inactive) var(--window-fill-opacity),
+			transparent
+		);
+		color: var(--ink-muted);
+		&::before {
+			content: "";
+			position: absolute;
+			inset: -1px;
+			border-radius: inherit;
+			/* The slot clips this fill to the area surrounding the tab. */
+			box-shadow: 0 0 0 16px var(--window-shell-fill);
+			pointer-events: none;
+		}
+	}
+	> debugger-toolbar > nav > span > button[aria-selected="true"] {
+		z-index: 1;
+		height: 28px;
+		margin-top: 0;
+		color: var(--ink-strong);
+		background: var(--window-content-fill);
+		border-color: var(--ink-muted);
+		border-bottom-color: transparent;
+		font-weight: 500;
+	}
+	> debugger-content {
+		background: var(--window-content-fill);
+		display: flex;
+		flex: 1;
+		min-height: 0;
+		flex-direction: column;
+		overflow: hidden;
+	}
+	> debugger-content:focus-visible {
+		outline: 2px solid var(--ink-muted);
+		outline-offset: -2px;
+	}
+	> debugger-content:not([data-view="ecology"]) {
+		padding-top: 4px;
+	}
+	> debugger-toolbar > [data-drag-handle] {
+		appearance: none;
+		background: transparent;
+		display: grid;
+		place-items: center;
+		width: 36px;
+		height: 32px;
+		padding: 0;
+		touch-action: none;
+		cursor: move;
+	}
+	> [data-resize] {
+		position: absolute;
+		padding: 0;
+		min-width: 0;
+		background: transparent;
+		touch-action: none;
+		z-index: 2;
+	}
+	> [data-resize][data-resize="n"], > [data-resize][data-resize="s"] {
+		left: 8px;
+		right: 8px;
+		height: 6px;
+		cursor: ns-resize;
+	}
+	> [data-resize][data-resize="e"], > [data-resize][data-resize="w"] {
+		top: 8px;
+		bottom: 8px;
+		width: 6px;
+		height: auto;
+		cursor: ew-resize;
+	}
+	> [data-resize][data-resize="n"] {
+		top: 0;
+	}
+	> [data-resize][data-resize="s"] {
+		bottom: 0;
+	}
+	> [data-resize][data-resize="e"] {
+		right: 0;
+	}
+	> [data-resize][data-resize="w"] {
+		left: 0;
+	}
+	> [data-resize][data-resize="ne"],
+	[data-resize][data-resize="nw"],
+	[data-resize][data-resize="se"],
+	[data-resize][data-resize="sw"] {
+		width: 9px;
+		height: 9px;
+	}
+	> [data-resize][data-resize="ne"] {
+		top: 0;
+		right: 0;
+		cursor: nesw-resize;
+	}
+	> [data-resize][data-resize="nw"] {
+		top: 0;
+		left: 0;
+		cursor: nwse-resize;
+	}
+	> [data-resize][data-resize="se"] {
+		bottom: 0;
+		right: 0;
+		cursor: nwse-resize;
+	}
+	> [data-resize][data-resize="sw"] {
+		bottom: 0;
+		left: 0;
+		cursor: nesw-resize;
+	}
+	&[data-open="false"] [data-resize] {
+		display: none;
+	}
+	@media (max-width: 650px) {
+		> debugger-toolbar > nav > span > button {
+			font-size: 12px;
+			padding: 0 4px;
+		}
+	}
+	> debugger-content > p[role="alert"] {
+		color: var(--error-ink);
+		background: var(--error-surface);
+		padding: 5px;
+		line-height: 18px;
+		border-top: 1px solid var(--ink-muted);
+	}
+
+	&::before {
+		content: "";
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
+		z-index: 10;
+		opacity: 0.35;
+		mix-blend-mode: soft-light;
+		background-repeat: repeat;
+		background-size: 1024px;
+		background-position: center;
+		@media (prefers-color-scheme: light) {
+			opacity: 0.12;
+			mix-blend-mode: multiply;
+		}
+
+		background-image: url("data:image/svg+xml,%3Csvg%20viewBox%3D%270%200%202048%202048%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%20%0A%20%20%20%20%20%20%3Cfilter%20id%3D%27noiseFilter%27%3E%0A%20%20%20%20%20%20%20%20%3CfeTurbulence%20%0A%20%20%20%20%20%20%20%20%20%20type%3D%27fractalNoise%27%20%0A%20%20%20%20%20%20%20%20%20%20baseFrequency%3D%270.65%27%20%0A%20%20%20%20%20%20%20%20%20%20numOctaves%3D%273%27%20%0A%20%20%20%20%20%20%20%20%20%20stitchTiles%3D%27stitch%27%2F%3E%0A%20%20%20%20%20%20%3C%2Ffilter%3E%0A%20%20%20%20%20%20%0A%20%20%20%20%20%20%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23noiseFilter%29%27%2F%3E%0A%20%20%20%20%3C%2Fsvg%3E");
+	}
+}

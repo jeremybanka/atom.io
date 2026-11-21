@@ -62,6 +62,8 @@ export async function mountDevelopmentDevtools(
 
 Keep all devtools-only imports in that branch or in a module dynamically imported from it. That includes the React adapter, dedicated debugging workers, and any styles or assets they use. Type-only imports are erased. A runtime visibility setting leaves the code available in the shipped bundle, and an unconditional dynamic import still emits a separate chunk. With another bundler, use its equivalent compile-time development flag and check the production output for devtools chunks, styles, and assets.
 
+For React, see [Development-only React mounting](#development-only-react-mounting).
+
 For remote stores, gate the owner separately. Excluding the browser UI and its connection code leaves server-side exposure policy in the store owner's hands.
 
 ## Local and remote stores
@@ -250,6 +252,38 @@ Collapsed devtools show only the transparent 32px orbital logo, without panel ch
 For a shared debugger UI, React applications can migrate their AtomIODevtools and stylesheet imports to this package's React and CSS entries. The existing @atom.io/react-devtools package remains available, including its JSON editor, elastic input, error boundary and customization contracts; those contracts are not exposed by the shared debugger.
 
 The panel’s subtle noise texture is embedded in its stylesheet. The view tabs have a separate row so window controls remain reachable; use Left/Right arrows or Home/End while a tab is focused, or scroll the tab strip in constrained windows. Editors retain 21–22 px rows. Keys, smaller type labels and values use consistent columns; long keys retain their full title. Text, numeric and property-name inputs grow with their contents. Numeric values align right within a nearby value column, borrowing key space for longer numbers; unfinished decimal text remains editable until blur. Opaque read-only values, including errors, can be focused and scrolled horizontally by keyboard or touch to read the full text. Transaction outcomes are indented beneath their labeled transaction, with changes nested one level further.
+
+### Development-only React mounting
+
+For Vite or Astro, save the adapter and its stylesheet together in development-react-panel.ts.
+
+```ts
+import "@atom.io/spa-devtools/css"
+
+export { AtomIODevtools as default } from "@atom.io/spa-devtools/react"
+
+```
+
+In a neighboring development-react.tsx file, guard the lazy import with import.meta.env.DEV. Render DevelopmentDevtools inside your app's StoreProvider. The production build can remove the lazy import along with the adapter and stylesheet. [React lazy loading](https://react.dev/reference/react/lazy)
+
+```tsx
+/** @jsxImportSource react */
+import { lazy, type ReactElement, Suspense } from "react"
+
+const DevtoolsPanel = import.meta.env.DEV
+	? lazy(() => import(`./development-react-panel.ts`))
+	: null
+
+export function DevelopmentDevtools(): ReactElement | null {
+	if (!DevtoolsPanel) return null
+	return (
+		<Suspense fallback={null}>
+			<DevtoolsPanel />
+		</Suspense>
+	)
+}
+
+```
 
 ## Surfaces and typography
 

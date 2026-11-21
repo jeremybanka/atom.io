@@ -236,8 +236,18 @@ async function checkVisualTreatment(
 	assert.equal(appearance.tabs.inactiveShadow, `none`)
 	const clip = await page.locator(`[data-index]`).evaluate((el: HTMLElement) => {
 		const r = el.getBoundingClientRect()
-		return { x: r.left + 16, y: r.bottom - 96, width: 80, height: 80 }
+		// Sample the painted surface below the rows, even when the toolbar takes more space.
+		const rowsBottom = Math.ceil(
+			el.lastElementChild!.getBoundingClientRect().bottom,
+		)
+		const bottom = Math.floor(r.bottom) - 8
+		const height = Math.min(80, bottom - rowsBottom - 8)
+		return { x: Math.ceil(r.left) + 16, y: bottom - height, width: 80, height }
 	})
+	assert.ok(
+		clip.height >= 32,
+		`The contrast sample needs a clear patch below the editor rows`,
+	)
 	const on = await page.screenshot({
 		clip,
 		path: resolve(artifacts, `${theme}-${name}-noise.png`),

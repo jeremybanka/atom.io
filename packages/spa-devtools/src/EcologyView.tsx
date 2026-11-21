@@ -115,6 +115,7 @@ export function EcologyView(props: {
 			props.context,
 			presentation.update,
 			marker,
+			props.tools.worker,
 		)
 		onCleanup(controller.dispose)
 	})

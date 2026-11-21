@@ -9,10 +9,13 @@ import type { RootStore } from "atom.io/internal"
 import css from "./DebuggerPanel.module.css"
 import { createGraphContext } from "./ecology-graph.ts"
 import { EcologyView } from "./EcologyView.tsx"
+import type { StorePicker } from "./mount.ts"
+import type { WorkerPanelConnection } from "./mount-worker.ts"
 import { createSearchContext } from "./search-controller.ts"
 import { SearchView } from "./SearchView.tsx"
 import { StateIndex } from "./StateIndex.tsx"
 import { useLocal, useSaved, useTools } from "./store.ts"
+import { StorePickerControl } from "./StorePickerControl.tsx"
 import { TimelineIndex } from "./TimelineIndex.tsx"
 import { TransactionIndex } from "./TransactionIndex.tsx"
 import { createWindowController, EDGE_LABELS } from "./window-controller.ts"
@@ -31,8 +34,16 @@ let nextPanelId = 0
 export function DebuggerPanel(props: {
 	store: RootStore
 	hideByDefault: boolean
+	worker?: WorkerPanelConnection | undefined
+	picker?: StorePicker | undefined
 }): SpaElement {
-	const tools = useTools(props.store)
+	const tools = useTools(props.store, props.worker)
+	const views = VIEWS
+	const picker = props.picker
+	const [active, setActive] = useLocal(
+		props.store,
+		!picker || picker.selected() === picker.id,
+	)
 	const panelId = `spa-devtools-${nextPanelId++}`
 	const [windowState, setWindowState] = useLocal<WindowPresentation>(
 		props.store,
@@ -53,18 +64,39 @@ export function DebuggerPanel(props: {
 	const [getOpen, setOpen] = useSaved(props.store, `🔍 Devtools Are Open`, true)
 	const [getSelection, setSelection] = useSaved<string>(
 		props.store,
-		`🔍 Devtools View`,
+		picker
+			? `🔍 Devtools View ` + picker.id
+			: props.worker
+				? `🔍 Worker Devtools View`
+				: `🔍 Devtools View`,
 		`atoms`,
 	)
 	const view = () =>
-		VIEWS.includes(getSelection() as View) ? (getSelection() as View) : `atoms`
+		views.includes(getSelection() as View) ? (getSelection() as View) : `atoms`
 	const getError = useGetter(tools.error)
+	const getReady = props.worker ? useGetter(props.worker.ready) : () => true
 	let panel: HTMLElement | null = null
 	const attach = (element: HTMLElement | null) => {
 		panel = element
 	}
 	let controller: ReturnType<typeof createWindowController> | undefined
+	const hidden = () => !active() || getHidden()
 	onMount(() => {
+		if (picker)
+			onCleanup(
+				picker.subscribe((id) => {
+					setActive(id === picker.id)
+					if (id === picker.id) {
+						setHidden(false)
+						setOpen(true)
+						queueMicrotask(() => {
+							panel
+								?.querySelector<HTMLButtonElement>(`[data-store-trigger]`)
+								?.focus()
+						})
+					}
+				}),
+			)
 		controller = createWindowController(
 			panel!,
 			() => {
@@ -73,17 +105,18 @@ export function DebuggerPanel(props: {
 			(patch) => {
 				setWindowState((previous) => ({ ...previous, ...patch }))
 			},
+			active,
 		)
-		controller.visibility(getHidden(), getOpen())
+		controller.visibility(hidden(), getOpen())
 		onCleanup(controller.dispose)
 	})
 	onCommit(windowState, () => {
 		controller?.committed()
 	})
 	onCommit(
-		() => `${getHidden()}:${getOpen()}`,
+		() => `${hidden()}:${getOpen()}`,
 		() => {
-			controller?.visibility(getHidden(), getOpen())
+			controller?.visibility(hidden(), getOpen())
 		},
 	)
 	return (
@@ -94,7 +127,7 @@ export function DebuggerPanel(props: {
 			ref={attach}
 			data-css="spa-devtools"
 			data-testid="atom-io-devtools"
-			hidden={getHidden()}
+			hidden={hidden()}
 			data-open={getOpen()}
 			data-window-interaction={String(windowState().interaction)}
 			style={rectStyle(windowState().rect)}
@@ -106,12 +139,12 @@ export function DebuggerPanel(props: {
 					aria-label="Move debugger"
 					title="Drag to move; arrow keys to nudge"
 				>
-					{getOpen() && !getHidden() && <BrandMark size={32} />}
+					{getOpen() && !hidden() && <BrandMark size={32} />}
 				</button>
 				<h1>atom.io</h1>
 				{getOpen() ? (
 					<nav role="tablist" aria-label="Debugger views">
-						{VIEWS.map((name) => (
+						{views.map((name) => (
 							<span key={name} role="presentation">
 								<button
 									type="button"
@@ -121,17 +154,17 @@ export function DebuggerPanel(props: {
 									id={`${panelId}-${name}`}
 									tabIndex={view() === name ? 0 : -1}
 									onKeyDown={(event) => {
-										const index = VIEWS.indexOf(name)
+										const index = views.indexOf(name)
 										let next: number
 										if (event.key === `ArrowRight`)
-											next = (index + 1) % VIEWS.length
+											next = (index + 1) % views.length
 										else if (event.key === `ArrowLeft`)
-											next = (index + VIEWS.length - 1) % VIEWS.length
+											next = (index + views.length - 1) % views.length
 										else if (event.key === `Home`) next = 0
-										else if (event.key === `End`) next = VIEWS.length - 1
+										else if (event.key === `End`) next = views.length - 1
 										else return
 										event.preventDefault()
-										setSelection(VIEWS[next])
+										setSelection(views[next])
 										event.currentTarget
 											.closest(`nav`)!
 											.querySelectorAll<HTMLButtonElement>(`[role="tab"]`)
@@ -148,6 +181,13 @@ export function DebuggerPanel(props: {
 						))}
 					</nav>
 				) : null}
+				{picker && getOpen() && !hidden() ? (
+					<StorePickerControl
+						picker={picker}
+						store={props.store}
+						menuId={panelId + `-stores`}
+					/>
+				) : null}
 				<button
 					type="button"
 					aria-label={getOpen() ? `Minimize debugger` : `Open debugger`}
@@ -162,7 +202,7 @@ export function DebuggerPanel(props: {
 						setOpen((value) => !value)
 					}}
 				>
-					{getOpen() ? `−` : !getHidden() && <BrandMark size={LAUNCHER_SIZE} />}
+					{getOpen() ? `−` : !hidden() && <BrandMark size={LAUNCHER_SIZE} />}
 				</button>
 				<button
 					type="button"
@@ -190,8 +230,15 @@ export function DebuggerPanel(props: {
 					tabIndex={0}
 				>
 					{getError() ? <p role="alert">{getError()}</p> : null}
-					{view() === `ecology` ? (
-						getHidden() ? null : (
+					{getReady() && props.worker?.canControl() === false ? (
+						<p data-remote-access="inspect">Inspection only</p>
+					) : null}
+					{!getReady() ? (
+						getError() ? null : (
+							<p role="status">Waiting for the remote store…</p>
+						)
+					) : view() === `ecology` ? (
+						hidden() ? null : (
 							<EcologyView tools={tools} context={graphContext} />
 						)
 					) : (

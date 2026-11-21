@@ -42,6 +42,7 @@ export function createWindowController(
 	panel: HTMLElement,
 	toggleHidden: () => void,
 	publish: (patch: Partial<WindowPresentation>) => void,
+	isActive?: () => boolean,
 ): {
 	visibility(hidden: boolean, open: boolean): void
 	toggleMenu(): void
@@ -223,7 +224,7 @@ export function createWindowController(
 		if (
 			!handle &&
 			(!element.closest(`debugger-toolbar`) ||
-				(element.closest(`button, input, select, nav`) &&
+				(element.closest(`button, input, select, nav, [data-store-menu]`) &&
 					!element.closest(`[data-drag-handle]`)))
 		)
 			return
@@ -305,6 +306,7 @@ export function createWindowController(
 		if (gesture?.id === event.pointerId) finish(true)
 	}
 	const keyboard = (event: KeyboardEvent) => {
+		if (isActive?.() === false) return
 		if (event.key === `Escape`) {
 			finish(true)
 			if (menuOpen) layout.focus()

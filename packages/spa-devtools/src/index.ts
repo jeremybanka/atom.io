@@ -8,5 +8,9 @@ export type {
 	EcologyValueType,
 } from "./ecology.ts"
 export { captureEcologySnapshot, traceEcologyRoots } from "./ecology.ts"
-export type { AtomIODevtoolsHandle, AtomIODevtoolsProps } from "./mount.ts"
-export { mountAtomIODevtools } from "./mount.ts"
+export type {
+	AtomIODevtoolsHandle,
+	AtomIODevtoolsProps,
+	AtomIODevtoolsTarget,
+} from "./mount.ts"
+export { mountAtomIODevtools, mountWorkerAtomIODevtools } from "./mount.ts"

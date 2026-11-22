@@ -100,10 +100,14 @@ code-block.class {
 	}
 
 	&[data-exhibit-source] {
+		--code-tab-fill: var(--bg-hard-1);
 		isolation: isolate;
 		background-color: var(--bg-color);
+		&:has(> back-fill:global(.soft)) {
+			--code-tab-fill: var(--bg-soft-1);
+		}
 		> file-name {
-			border-bottom: 1px solid var(--fg-faint);
+			border-bottom: 1px solid var(--fg-soft-3);
 		}
 		/* One layer keeps the grain aligned across the tabs and both panels. */
 		&::after {
@@ -158,9 +162,13 @@ code-block.class {
 				color: var(--fg-color);
 			}
 			&[aria-selected="true"] {
-				background: var(--bg-color);
+				--active-tab-fill: var(--bg-color);
+				&[data-code-tab] {
+					--active-tab-fill: var(--code-tab-fill);
+				}
+				background: var(--active-tab-fill);
 				border-color: var(--fg-soft-3);
-				border-bottom-color: var(--bg-color);
+				border-bottom-color: var(--active-tab-fill);
 				color: var(--fg-color);
 			}
 			&:focus-visible {

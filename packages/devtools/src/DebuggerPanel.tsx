@@ -185,7 +185,11 @@ export function DebuggerPanel(props: {
 					{getError() ? <p role="alert">{getError()}</p> : null}
 					{view() === `ecology` ? (
 						getHidden() ? null : (
-							<EcologyView tools={tools} context={graphContext} />
+							<EcologyView
+								tools={tools}
+								context={graphContext}
+								scope={() => panel!}
+							/>
 						)
 					) : view() === `atoms` || view() === `selectors` ? (
 						<StateIndex

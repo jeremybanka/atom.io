@@ -1,4 +1,6 @@
 <script>
+import { handleExhibitTabKey, selectExhibitTab } from "./exhibit-tabs.ts"
+
 const globalEffectsKey = `__atomIoGlobalEffectsInstalled`
 const globalWithEffects = globalThis as typeof globalThis &
 	Record<string, boolean | undefined>
@@ -83,12 +85,20 @@ if (!globalWithEffects[globalEffectsKey]) {
 		if (!(event.target instanceof Element)) {
 			return
 		}
+		const tab = event.target.closest(
+			`code-block[data-exhibit-source] [role="tab"]`,
+		)
+		if (tab instanceof HTMLButtonElement) {
+			selectExhibitTab(tab)
+			return
+		}
 		const button = event.target.closest(`code-block > file-name > button`)
 		if (!(button instanceof HTMLButtonElement)) {
 			return
 		}
 		void copyCodeBlock(button)
 	})
+	document.addEventListener(`keydown`, handleExhibitTabKey)
 	document.addEventListener(`astro:page-load`, applyPageEffects)
 }
 

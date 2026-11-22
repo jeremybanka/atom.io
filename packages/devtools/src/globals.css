@@ -21,7 +21,7 @@
 	font-display: swap;
 	src: url("./fonts/Theia0.3-500.otf") format("opentype");
 }
-:where(debugger-panel, window-overlay, [data-atom-io-theme]) {
+:where(debugger-panel, ecology-panel, window-overlay, [data-atom-io-theme]) {
 	--bg-color: #111;
 	--bg-tint-1: #171717;
 	--bg-tint-2: #1c1c1c;
@@ -83,7 +83,7 @@
 }
 
 /* Scoped native control and typography resets shared by all debugger components. */
-:where(debugger-panel) {
+:where(debugger-panel, ecology-panel) {
 	&, * {
 		box-sizing: border-box;
 	}
@@ -152,4 +152,35 @@
 	[hidden] {
 		display: none !important;
 	}
+}
+
+:where(ecology-explorer, atom-io-ecology) {
+	display: block;
+	height: 100%;
+}
+
+:where(ecology-panel) {
+	--window-fill-opacity: 100%;
+	--window-content-fill: var(--surface-content);
+	container: atom-io-devtools / inline-size;
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-height: 360px;
+	background: var(--surface-content);
+	color: var(--ink);
+	font: 400 14px/1 "Atom IO Theia", monospace;
+	font-synthesis: none;
+	text-align: left;
+	&[hidden] {
+		display: none;
+	}
+}
+
+:where(debugger-panel > debugger-content, ecology-panel) > p[role="alert"] {
+	color: var(--error-ink);
+	background: var(--error-surface);
+	padding: 5px;
+	line-height: 18px;
+	border-top: 1px solid var(--ink-muted);
 }

@@ -1,7 +1,13 @@
 import { mountAtomIODevtools } from "@atom.io/devtools"
+import { mountEcology } from "@atom.io/devtools/ecology"
 import { type Loadable, type RegularAtomToken, Silo } from "atom.io"
 
 const host = document.createElement(`section`)
+const inline = new URLSearchParams(location.search).has(`inline`)
+if (inline) {
+	host.style.width = `900px`
+	host.style.height = `500px`
+}
 document.body.append(host)
 let panel = { dispose() {} },
 	app: Silo,
@@ -111,7 +117,8 @@ function mount(mode: `small` | `empty` | `large`): void {
 		}),
 	)
 	mountStarted = performance.now()
-	panel = mountAtomIODevtools(host, { store: app.store })
+	const mountView = inline ? mountEcology : mountAtomIODevtools
+	panel = mountView(host, { store: app.store })
 }
 declare global {
 	interface Window {

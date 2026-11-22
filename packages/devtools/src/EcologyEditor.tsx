@@ -9,7 +9,7 @@ import {
 	type EcologyEditorSection as Section,
 } from "./EcologyEditorRow.tsx"
 import type { EcologyPresentation } from "./EcologyView.tsx"
-import type { Tools } from "./store.ts"
+import type { EditorTools } from "./store.ts"
 
 type Entry =
 	| { id: string; heading: string; section: Section }
@@ -17,7 +17,7 @@ type Entry =
 
 /** A single keyed row collection keeps drafts mounted when selection moves them between sections. */
 export function EcologyEditor(props: {
-	tools: Tools
+	tools: EditorTools
 	state: EcologyPresentation
 	hovered?: string | undefined
 	onGenerate(key: string): void

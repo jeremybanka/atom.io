@@ -18,6 +18,7 @@ import { scheduleTask } from "./task.ts"
 /** Own passive graph work, responsive search and native modal/focus lifecycles. */
 export function createEcologyController(
 	host: HTMLElement,
+	panel: HTMLElement,
 	store: RootStore,
 	context: GraphContext,
 	update: (patch: Partial<EcologyPresentation>) => void,
@@ -25,7 +26,6 @@ export function createEcologyController(
 ): { dispose(): void; committed(): void; refresh(generatedKey?: string): void } {
 	const document = host.ownerDocument
 	const input = host.querySelector(`input`)!
-	const panel = host.closest<HTMLElement>(`debugger-panel, main`)!
 	const searchDialog =
 		host.querySelector<HTMLDialogElement>(`[data-search-modal]`)!
 	const guideDialog =
@@ -575,7 +575,7 @@ export function createEcologyController(
 			!event.metaKey &&
 			!event.altKey &&
 			!event.shiftKey
-		if (escape && document.querySelector(`[data-window-interaction="true"]`)) {
+		if (escape && panel.dataset[`windowInteraction`] === `true`) {
 			event.preventDefault()
 			return
 		}

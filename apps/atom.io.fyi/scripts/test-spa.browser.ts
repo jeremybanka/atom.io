@@ -29,6 +29,9 @@ const server = createServer(async (request, response) => {
 	}
 	try {
 		const data = await readFile(file)
+		if (pathname.startsWith(`/_astro/`)) {
+			response.setHeader(`access-control-allow-origin`, `*`)
+		}
 		response.setHeader(
 			`content-type`,
 			{
@@ -57,7 +60,10 @@ try {
 	} else {
 		await new Promise<void>((ready) => server.listen(0, `127.0.0.1`, ready))
 	}
-	browser = await chromium.launch({ args: [`--enable-unsafe-swiftshader`] })
+	browser = await chromium.launch({
+		args: [`--enable-unsafe-swiftshader`],
+		executablePath: process.env[`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`],
+	})
 	const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
 	const errors: string[] = []
 	const iframeRequests: string[] = []
@@ -78,7 +84,53 @@ try {
 	})
 	const base = `http://127.0.0.1:${devServer?.address.port ?? (server.address() as AddressInfo).port}`
 	await page.context().grantPermissions([`clipboard-read`, `clipboard-write`])
+	await page.goto(`${base}/docs/atom-io`)
+	const exhibit = page.locator(`#use-a-selector-ts`)
+	const code = exhibit.getByRole(`tab`, { name: `Code` })
+	const ecology = exhibit.getByRole(`tab`, { name: `Ecology` })
+	const frame = exhibit.frameLocator(`iframe`)
+	assert.equal(await exhibit.locator(`iframe`).count(), 0)
+	assert.equal(await code.getAttribute(`aria-selected`), `true`)
+	await code.focus()
+	await code.press(`ArrowRight`)
+	assert.equal(await ecology.getAttribute(`aria-selected`), `true`)
+	const quotient = frame.locator(`ecology-editor input[aria-label="quotient"]`)
+	await quotient.waitFor()
+	assert.equal(await quotient.inputValue(), `2`)
+	assert.equal(
+		await frame.locator(`html`).evaluate(() => window.origin),
+		devServer ? base : `null`,
+	)
+	await exhibit.getByRole(`button`, { name: `Copy code` }).click()
+	await page.waitForFunction(
+		async (expected) => (await navigator.clipboard.readText()) === expected,
+		await exhibit.locator(`pre code`).textContent(),
+	)
+
+	const declaration = page.locator(`#declare-a-selector-ts`)
+	await declaration.getByRole(`tab`, { name: `Ecology` }).click()
+	await declaration
+		.frameLocator(`iframe`)
+		.getByRole(`button`, { name: `Generate quotient`, exact: true })
+		.waitFor()
+	const namedSilo = page.locator(`#use-a-timeline-family-in-a-silo-ts`)
+	await namedSilo.getByRole(`tab`, { name: `Ecology` }).click()
+	await namedSilo
+		.frameLocator(`iframe`)
+		.locator(`ecology-editor button[data-graph-id="family:glyphName"]`)
+		.waitFor()
+	await ecology.focus()
+	await ecology.press(`Home`)
+	assert.equal(await exhibit.locator(`iframe`).count(), 0)
+	assert.equal(await code.getAttribute(`aria-selected`), `true`)
+	await page.setViewportSize({ width: 390, height: 844 })
+	assert.equal(await ecology.locator(`span`).isVisible(), false)
+	assert.deepEqual(errors, [])
+	console.log(`Exhibit ecology browser checks passed.`)
+	await page.setViewportSize({ width: 1440, height: 1000 })
+	iframeRequests.length = 0
 	await page.goto(`${base}/docs/getting-started`)
+	assert.equal(await page.locator(`#install-sh [role="tab"]`).count(), 0)
 	await page.waitForFunction(
 		() =>
 			document.querySelectorAll<HTMLElement>(`astro-island:not([ssr])`)

@@ -28,7 +28,7 @@ import { EcologyGround } from "./EcologyGround.tsx"
 import { EcologyNodeCard } from "./EcologyNodeCard.tsx"
 import css from "./EcologyScene.module.css"
 import type { EcologyActivity } from "./EcologyView.tsx"
-import { type Tools, useLocal } from "./store.ts"
+import { type EditorTools, useLocal } from "./store.ts"
 
 const canvas = { Canvas }
 
@@ -38,7 +38,7 @@ export interface CameraCommand {
 	target?: string
 }
 export function EcologyScene(props: {
-	tools: Tools
+	tools: EditorTools
 	context: GraphContext
 	cylinderHeight: number
 	generation: number

@@ -22,7 +22,13 @@ export function mountEcologyFixture(
 	context: GraphContext,
 ): { dispose(): void; host: HTMLElement } {
 	const root = render(
-		() => <EcologyView tools={useTools(store)} context={context} />,
+		() => (
+			<EcologyView
+				tools={useTools(store)}
+				context={context}
+				scope={() => target}
+			/>
+		),
 		target,
 		{ store, capabilities: [motionCapability({ reducedMotion: `always` })] },
 	)

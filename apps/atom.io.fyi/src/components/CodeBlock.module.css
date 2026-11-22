@@ -9,6 +9,7 @@ code-block.class {
 	border-radius: 4px;
 	width: 100%;
 	overflow-x: scroll;
+	container-type: inline-size;
 
 	> back-fill {
 		position: absolute;
@@ -33,7 +34,6 @@ code-block.class {
 		z-index: 0;
 		display: flex;
 		flex-flow: row;
-		justify-content: space-between;
 		align-items: center;
 		/* background-color: var(--bg-soft-glass-1); */
 		border-radius: 3px 3px 0px 0px;
@@ -44,6 +44,11 @@ code-block.class {
 			font-weight: 500;
 			color: var(--fg-soft-1);
 			padding: 0 8px;
+			margin-inline-end: auto;
+			min-width: 0;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
 		}
 		> button {
 			display: flex;
@@ -54,6 +59,7 @@ code-block.class {
 			border-radius: 3px;
 			height: 25px;
 			width: 25px;
+			flex: 0 0 25px;
 			--icon-color: var(--fg-color);
 			position: relative;
 			cursor: pointer;
@@ -90,6 +96,92 @@ code-block.class {
 					content: "copied!";
 				}
 			}
+		}
+	}
+
+	&[data-exhibit-source] {
+		isolation: isolate;
+		background-color: var(--bg-color);
+		> file-name {
+			border-bottom: 1px solid var(--fg-faint);
+		}
+		/* One layer keeps the grain aligned across the tabs and both panels. */
+		&::after {
+			content: "";
+			position: absolute;
+			inset: 0;
+			z-index: 1;
+			pointer-events: none;
+			background: url(/noise.svg) center / 1024px repeat;
+			mix-blend-mode: soft-light;
+			@media (prefers-color-scheme: light) {
+				mix-blend-mode: multiply;
+				opacity: 0.5;
+			}
+		}
+	}
+
+	> file-name > nav {
+		display: flex;
+		flex: 0 0 auto;
+		align-self: flex-end;
+		gap: 2px;
+		margin-inline-end: 5px;
+		margin-block-end: -1px;
+		> button {
+			display: flex;
+			align-items: center;
+			gap: 5px;
+			height: 24px;
+			padding: 0 7px;
+			border: 1px solid var(--fg-faint);
+			border-radius: 8px 8px 0 0;
+			background: var(--bg-shade-1);
+			color: var(--fg-soft-2);
+			cursor: pointer;
+			> span {
+				color: inherit;
+				font: 500 12px/1 Theia, monospace;
+			}
+			> svg {
+				width: 14px;
+				height: 14px;
+				color: inherit;
+				fill: none;
+				stroke: currentColor;
+				stroke-width: 1.2;
+				stroke-linecap: round;
+				stroke-linejoin: round;
+			}
+			&:hover {
+				background: var(--bg-tint-2);
+				color: var(--fg-color);
+			}
+			&[aria-selected="true"] {
+				background: var(--bg-color);
+				border-color: var(--fg-soft-3);
+				border-bottom-color: var(--bg-color);
+				color: var(--fg-color);
+			}
+			&:focus-visible {
+				outline: 2px solid var(--hyperlink-color);
+				outline-offset: -2px;
+			}
+		}
+	}
+	@container (max-width: 420px) {
+		> file-name > nav > button > span {
+			display: none;
+		}
+	}
+
+	> [data-ecology-panel] {
+		position: relative;
+		> iframe {
+			display: block;
+			width: 100%;
+			height: clamp(420px, 65vh, 540px);
+			border: 0;
 		}
 	}
 

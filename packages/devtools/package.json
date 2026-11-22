@@ -23,6 +23,10 @@
 			"types": "./dist/css.d.ts",
 			"default": "./dist/devtools.css"
 		},
+		"./ecology": {
+			"types": "./dist/ecology.d.ts",
+			"import": "./dist/ecology.js"
+		},
 		"./react": {
 			"types": "./dist/react.d.ts",
 			"import": "./dist/react.js"

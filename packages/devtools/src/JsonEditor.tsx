@@ -2,13 +2,13 @@
 import type { Children, SpaElement } from "@atom.io/spa"
 
 import css from "./JsonEditor.module.css"
-import type { Path, Tools } from "./store.ts"
+import type { EditorTools, Path } from "./store.ts"
 import { useExpanded } from "./store.ts"
 import type { Change, JsonKind } from "./value.ts"
 import { convert, describe, kind, preview, shallowKind } from "./value.ts"
 
 interface EditorProps {
-	tools: Tools
+	tools: EditorTools
 	value: unknown
 	change?: Change | undefined
 	path: Path
@@ -232,7 +232,7 @@ export function JsonEditor(props: EditorProps): SpaElement {
 function Primitive(props: {
 	value: unknown
 	change?: Change | undefined
-	tools: Tools
+	tools: EditorTools
 	label: string
 }): SpaElement {
 	let draft: { text: string; value: number } | undefined

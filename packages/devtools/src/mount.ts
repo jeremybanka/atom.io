@@ -1,10 +1,9 @@
-import { render, type SpaRoot } from "@atom.io/spa"
 import { jsx } from "@atom.io/spa/jsx-runtime"
-import { motionCapability } from "@atom.io/spa/motion"
 import type { RootStore } from "atom.io/internal"
 import { IMPLICIT } from "atom.io/internal"
 
 import { DebuggerPanel } from "./DebuggerPanel.tsx"
+import { mountView } from "./mount-view.ts"
 
 export interface AtomIODevtoolsProps {
 	/** Inspected store. Fixed for this component instance; change its key to replace it. */
@@ -22,29 +21,7 @@ export function mountAtomIODevtools(
 ): AtomIODevtoolsHandle {
 	const store = options.store ?? IMPLICIT.STORE
 	const hideByDefault = options.hideByDefault ?? false
-	const container = host.ownerDocument.createElement(`devtools`)
-	host.append(container)
-	let root: SpaRoot
-	try {
-		root = render(
-			() => jsx(DebuggerPanel, { store, hideByDefault }),
-			container,
-			{ store, capabilities: [motionCapability()] },
-		)
-	} catch (error) {
-		container.remove()
-		throw error
-	}
-	let disposed = false
-	return {
-		dispose() {
-			if (disposed) return
-			disposed = true
-			try {
-				root.dispose()
-			} finally {
-				container.remove()
-			}
-		},
-	}
+	return mountView(host, `devtools`, store, () =>
+		jsx(DebuggerPanel, { store, hideByDefault }),
+	)
 }

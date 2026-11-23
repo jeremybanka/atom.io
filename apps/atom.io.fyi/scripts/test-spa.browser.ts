@@ -207,9 +207,13 @@ try {
 					right: bounds.right - button.right,
 				}
 			}
-			const before = position()
+			const initialPosition = position()
 			pre.scrollLeft = pre.scrollWidth
-			return { before, after: position(), scrollOffset: pre.scrollLeft }
+			return {
+				before: initialPosition,
+				after: position(),
+				scrollOffset: pre.scrollLeft,
+			}
 		})
 	assert.ok(before.top > 0 && before.top < 10)
 	assert.ok(before.right > 0 && before.right < 10)

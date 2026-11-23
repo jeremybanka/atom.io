@@ -14,10 +14,20 @@ export default function Counter(): JSX.Element {
 			<legend>Counter</legend>
 			<output>Count: {count()}</output>
 			<div role="group" aria-label="Counter controls">
-				<button type="button" onClick={() => setCount((value) => value + 1)}>
+				<button
+					type="button"
+					onClick={() => {
+						setCount((value) => value + 1)
+					}}
+				>
 					Add
 				</button>
-				<button type="button" onClick={() => setCount(0)}>
+				<button
+					type="button"
+					onClick={() => {
+						setCount(0)
+					}}
+				>
 					Reset
 				</button>
 			</div>

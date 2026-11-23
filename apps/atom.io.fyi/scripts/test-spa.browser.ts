@@ -108,10 +108,13 @@ try {
 		async (expected) => (await navigator.clipboard.readText()) === expected,
 		copiedCode,
 	)
+	await page.locator(`brand-mark[data-variant="mark"] canvas`).waitFor()
 	await page.evaluate(() => {
 		window.testNavigation =
 			document.querySelector<HTMLElement>(`docs-navigation`)!
-		window.testLogo = document.querySelector<HTMLElement>(`dz2-orbital canvas`)!
+		window.testLogo = document.querySelector<HTMLElement>(
+			`brand-mark[data-variant="mark"] canvas`,
+		)!
 	})
 	await page.keyboard.press(`Control+Shift+A`)
 	await page
@@ -236,7 +239,9 @@ try {
 		await page.evaluate(
 			() =>
 				window.testLogo ===
-				document.querySelector<HTMLElement>(`dz2-orbital canvas`)!,
+				document.querySelector<HTMLElement>(
+					`brand-mark[data-variant="mark"] canvas`,
+				)!,
 		),
 		true,
 	)
@@ -262,8 +267,7 @@ try {
 	await page.locator(`app-shell > header a[href="/"]`).click()
 	await page.waitForURL(`${base}/`)
 	await page.waitForFunction(
-		() =>
-			document.querySelectorAll<HTMLElement>(`dz2-orbital canvas`).length === 2,
+		() => document.querySelectorAll(`brand-mark canvas`).length === 2,
 	)
 	await page.locator(`app-shell > header a[href="/docs"]`).click()
 	await page.waitForURL(`${base}/docs`)
@@ -285,7 +289,9 @@ try {
 		await page.evaluate(
 			() =>
 				window.testLogo ===
-				document.querySelector<HTMLElement>(`dz2-orbital canvas`)!,
+				document.querySelector<HTMLElement>(
+					`brand-mark[data-variant="mark"] canvas`,
+				)!,
 		),
 		true,
 	)

@@ -1,5 +1,15 @@
 # @atom.io/devtools
 
+## 0.1.0
+
+### Minor Changes
+
+- 3fa983c: Rename @atom.io/spa-devtools to @atom.io/devtools and retire @atom.io/react-devtools. React apps can migrate to the shared debugger’s React adapter. Ecology is the first and default tab and provides the debugger’s search. Remove the Ecology row details disclosure, fix JSON value recasting, and drag array items into order or move them with Alt+Up and Alt+Down.
+
+### Patch Changes
+
+- 17c5e05: Embed the live 3D Ecology explorer through @atom.io/devtools/ecology. The Ecology component and mountEcology render the graph, search, and state editor inline against an explicit store.
+
 ## 0.0.0
 
 - Initial publish under the new package name.

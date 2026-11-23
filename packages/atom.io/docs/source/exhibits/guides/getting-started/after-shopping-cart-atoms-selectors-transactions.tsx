@@ -131,7 +131,9 @@ function CartItems(): JSX.Element {
 		<ul>
 			{items.map((item) => (
 				<li key={item.id}>
-					{item.name} x{item.quantity}
+					<span>
+						{item.name} × {item.quantity}
+					</span>
 					<button
 						type="button"
 						onClick={() => {

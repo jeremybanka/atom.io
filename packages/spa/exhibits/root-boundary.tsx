@@ -18,13 +18,15 @@ function Editor(props: { label: string }) {
 	const getText = useGetter(textAtom)
 	const setText = useSetter(textAtom)
 	return (
-		<textarea
-			aria-label={props.label}
-			value={getText()}
-			onInput={(event) => {
-				setText(event.currentTarget.value)
-			}}
-		/>
+		<label>
+			{props.label}
+			<textarea
+				value={getText()}
+				onInput={(event) => {
+					setText(event.currentTarget.value)
+				}}
+			/>
+		</label>
 	)
 }
 

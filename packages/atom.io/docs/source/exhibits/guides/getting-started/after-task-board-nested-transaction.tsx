@@ -65,7 +65,7 @@ export default function TaskBoard(): JSX.Element {
 			<ul>
 				{todoIds.map((taskId) => (
 					<li key={taskId}>
-						{taskId}
+						<span>{taskId}</span>
 						<button
 							type="button"
 							onClick={() => {

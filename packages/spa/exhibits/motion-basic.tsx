@@ -12,12 +12,14 @@ export default function MotionPanel(): SpaElement {
 		<section>
 			<button
 				onClick={() => {
-					setTargetX((x) => (x === 0 ? 200 : 0))
+					setTargetX((x) => (x === 0 ? 56 : 0))
 				}}
 			>
 				Move
 			</button>
-			<p motion:animate={{ x: getTargetX() }}>An animated paragraph.</p>
+			<p style="margin-inline-end:56px" motion:animate={{ x: getTargetX() }}>
+				An animated paragraph.
+			</p>
 		</section>
 	)
 }

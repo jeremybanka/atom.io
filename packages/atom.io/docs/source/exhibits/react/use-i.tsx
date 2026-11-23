@@ -10,13 +10,15 @@ export default function ToggleInput(): React.JSX.Element {
 	const setToggle = useI(toggleAtom)
 	const toggle = useO(toggleAtom)
 	return (
-		<input
-			aria-label="Toggle setting"
-			type="checkbox"
-			checked={toggle}
-			onChange={() => {
-				setToggle((t) => !t)
-			}}
-		/>
+		<label>
+			<input
+				type="checkbox"
+				checked={toggle}
+				onChange={() => {
+					setToggle((t) => !t)
+				}}
+			/>
+			Toggle setting
+		</label>
 	)
 }

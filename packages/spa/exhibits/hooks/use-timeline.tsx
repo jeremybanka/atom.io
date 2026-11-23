@@ -11,13 +11,15 @@ export default function UndoNote(): SpaElement {
 	const history = useTimeline(noteHistoryTimeline)
 	return (
 		<>
-			<input
-				aria-label="Note"
-				value={getNote()}
-				onInput={(event) => {
-					setNote(event.currentTarget.value)
-				}}
-			/>
+			<label>
+				Note
+				<input
+					value={getNote()}
+					onInput={(event) => {
+						setNote(event.currentTarget.value)
+					}}
+				/>
+			</label>
 			<button disabled={history.getCursor() === 0} onClick={history.undo}>
 				Undo typing
 			</button>

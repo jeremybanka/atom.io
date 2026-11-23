@@ -12,20 +12,22 @@ export default function CoordinateHistory(): React.JSX.Element {
 			<output>
 				x: {point.x}, history: {at} / {length}
 			</output>
-			<button
-				type="button"
-				onClick={() => {
-					setPoint(({ x, y }) => ({ x: x + 1, y }))
-				}}
-			>
-				Move right
-			</button>
-			<button type="button" disabled={at === 0} onClick={undo}>
-				undo
-			</button>
-			<button type="button" disabled={at === length} onClick={redo}>
-				redo
-			</button>
+			<div role="group" aria-label="History controls">
+				<button
+					type="button"
+					onClick={() => {
+						setPoint(({ x, y }) => ({ x: x + 1, y }))
+					}}
+				>
+					Move right
+				</button>
+				<button type="button" disabled={at === 0} onClick={undo}>
+					undo
+				</button>
+				<button type="button" disabled={at === length} onClick={redo}>
+					redo
+				</button>
+			</div>
 		</>
 	)
 }

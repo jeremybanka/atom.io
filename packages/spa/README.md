@@ -36,19 +36,28 @@ export default function PointEditor(): SpaElement {
 	return (
 		<section>
 			<h2>Point</h2>
-			<svg viewBox="0 0 100 100">
+			<svg
+				viewBox="0 0 100 100"
+				width="120"
+				height="120"
+				role="img"
+				aria-label="Point position"
+			>
+				<rect width="100" height="100" fill="white" stroke="gray" />
 				<circle cx={getPoint().x} cy={getPoint().y} r="3" />
 			</svg>
-			<output>
-				{getPoint().x}, {getPoint().y}
-			</output>
-			<button
-				onClick={() => {
-					setPoint(({ x, y }) => ({ x: x + 1, y }))
-				}}
-			>
-				Move right
-			</button>
+			<footer>
+				<output>
+					{getPoint().x}, {getPoint().y}
+				</output>
+				<button
+					onClick={() => {
+						setPoint(({ x, y }) => ({ x: x + 1, y }))
+					}}
+				>
+					Move right
+				</button>
+			</footer>
 		</section>
 	)
 }
@@ -378,13 +387,15 @@ function Editor(props: { label: string }) {
 	const getText = useGetter(textAtom)
 	const setText = useSetter(textAtom)
 	return (
-		<textarea
-			aria-label={props.label}
-			value={getText()}
-			onInput={(event) => {
-				setText(event.currentTarget.value)
-			}}
-		/>
+		<label>
+			{props.label}
+			<textarea
+				value={getText()}
+				onInput={(event) => {
+					setText(event.currentTarget.value)
+				}}
+			/>
+		</label>
 	)
 }
 
@@ -435,19 +446,22 @@ function FamilyCounter(props: { key: string }): SpaElement {
 	const ref = useRef(buttonAtoms, props.key)
 	const history = useTimeline(historyTimelines, props.key)
 	return (
-		<section>
-			<button
-				ref={ref}
-				onClick={() => {
-					setCount((value) => value + 1)
-				}}
-			>
-				{getCount()}
-			</button>
-			<button disabled={history.getCursor() === 0} onClick={history.undo}>
-				Undo
-			</button>
-		</section>
+		<fieldset>
+			<legend>{props.key}</legend>
+			<footer>
+				<button
+					ref={ref}
+					onClick={() => {
+						setCount((value) => value + 1)
+					}}
+				>
+					{getCount()}
+				</button>
+				<button disabled={history.getCursor() === 0} onClick={history.undo}>
+					Undo
+				</button>
+			</footer>
+		</fieldset>
 	)
 }
 
@@ -1014,7 +1028,7 @@ export default function DismissiblePanel(): SpaElement {
 				Toggle panel
 			</button>
 			{getVisible() && (
-				<sliding-panel
+				<aside
 					key="panel"
 					motion:initial={{ opacity: 0, y: 12 }}
 					motion:animate={{ opacity: 1, y: 0 }}
@@ -1022,7 +1036,7 @@ export default function DismissiblePanel(): SpaElement {
 					motion:transition={{ type: `spring`, stiffness: 180, damping: 22 }}
 				>
 					The same instance returns if toggled before its exit completes.
-				</sliding-panel>
+				</aside>
 			)}
 		</section>
 	)
@@ -1080,33 +1094,35 @@ function ReadinessGroup(props: { ready: boolean; match: string }): SpaElement {
 	const getReadyPlayers = useGetter(readyPlayersAtom)
 	const setReadyPlayers = useSetter(readyPlayersAtom)
 	return (
-		<section
+		<fieldset
 			motion:layout
-			style={`width:${getReadyPlayers().length ? 260 : 180}px;min-height:80px`}
+			style={`width:${getReadyPlayers().length ? 260 : 180}px;max-width:100%;min-height:66px`}
 		>
-			<h2>{props.ready ? `Ready` : `Waiting`}</h2>
-			{players
-				.filter((player) => getReadyPlayers().includes(player) === props.ready)
-				.map((player) => (
-					<button
-						key={player}
-						motion:layout="position"
-						motion:layoutId={player}
-						motion:layoutGroup={props.match}
-						motion:exit={{ opacity: 0 }}
-						motion:transition={{ duration: 0.2 }}
-						onClick={() => {
-							setReadyPlayers((ready) =>
-								ready.includes(player)
-									? ready.filter((name) => name !== player)
-									: [...ready, player],
-							)
-						}}
-					>
-						{player}
-					</button>
-				))}
-		</section>
+			<legend>{props.ready ? `Ready` : `Waiting`}</legend>
+			<footer>
+				{players
+					.filter((player) => getReadyPlayers().includes(player) === props.ready)
+					.map((player) => (
+						<button
+							key={player}
+							motion:layout="position"
+							motion:layoutId={player}
+							motion:layoutGroup={props.match}
+							motion:exit={{ opacity: 0 }}
+							motion:transition={{ duration: 0.2 }}
+							onClick={() => {
+								setReadyPlayers((ready) =>
+									ready.includes(player)
+										? ready.filter((name) => name !== player)
+										: [...ready, player],
+								)
+							}}
+						>
+							{player}
+						</button>
+					))}
+			</footer>
+		</fieldset>
 	)
 }
 
@@ -1242,26 +1258,39 @@ Transition times are normalized, ordered values from 0 to 1 and must match the k
 
 ```tsx
 import type { SpaElement } from "@atom.io/spa"
+import { useGetter, useSetter } from "@atom.io/spa"
 import { motionCapability } from "@atom.io/spa/motion"
+import { atom } from "atom.io"
+
+const replayAtom = atom<number>({ key: `replay`, default: 0 })
 
 export default function TurnBanner(): SpaElement {
+	const getReplay = useGetter(replayAtom)
+	const setReplay = useSetter(replayAtom)
 	return (
-		<aside
-			motion:animate={{
-				x: [`-1500%`, `2%`, `4%`, `1500%`],
-				skewX: [`-50deg`, `-5deg`, `-5deg`, `-50deg`],
-				width: [`20vw`, `90vw`, `90vw`, `10vw`],
-				opacity: [0, 1, 1, 0],
-			}}
-			motion:transition={{
-				duration: 3,
-				times: [0, 0.1, 0.77, 1],
-				ease: [`circOut`, `linear`, `easeIn`],
-				properties: { opacity: { times: [0, 0.2, 0.8, 1], ease: `linear` } },
-			}}
-		>
-			Next turn
-		</aside>
+		<section>
+			<button onClick={() => setReplay((run) => run + 1)}>Replay banner</button>
+			<div style="overflow:clip; min-height:36px">
+				<aside
+					key={getReplay()}
+					style="box-sizing:border-box; white-space:nowrap"
+					motion:animate={{
+						x: [`-1500%`, `2%`, `4%`, `0%`],
+						skewX: [`-50deg`, `-5deg`, `-5deg`, `0deg`],
+						width: [`20%`, `88%`, `88%`, `100%`],
+						opacity: [0, 1, 1, 1],
+					}}
+					motion:transition={{
+						duration: 3,
+						times: [0, 0.1, 0.77, 1],
+						ease: [`circOut`, `linear`, `easeIn`],
+						properties: { opacity: { times: [0, 0.2, 0.8, 1], ease: `linear` } },
+					}}
+				>
+					Next turn
+				</aside>
+			</div>
+		</section>
 	)
 }
 

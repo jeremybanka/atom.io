@@ -12,3 +12,5 @@ Share one live store between an exhibit's Preview and Ecology, preserve it when 
 Make more self-contained React exhibits previewable, including a document editor that demonstrates how each draft keeps its own state.
 
 Identify the renderer in each exhibit preview with a subdued monochrome React, Solid, or `@atom.io/spa` watermark.
+
+Give previews consistent retro form controls, field labels, and action spacing. Keep canvas and animation examples usable in narrow panes.

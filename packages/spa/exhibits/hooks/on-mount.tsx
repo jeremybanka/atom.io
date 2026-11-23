@@ -7,6 +7,7 @@ export default function SearchDialog(): SpaElement {
 	return (
 		<input
 			aria-label="Search products"
+			placeholder="Search products"
 			ref={(element) => {
 				input = element
 			}}

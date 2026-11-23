@@ -10,6 +10,7 @@ export default function SearchBox(): SpaElement {
 		<input
 			type="search"
 			aria-label="Search products"
+			placeholder="Search products"
 			onInput={(event) => {
 				setSearchQuery(event.currentTarget.value)
 			}}

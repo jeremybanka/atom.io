@@ -15,30 +15,34 @@ export default function GlyphHistory(props: { glyphId?: string }): JSX.Element {
 
 	return (
 		<>
-			<input
-				aria-label="Glyph name"
-				value={name()}
-				onInput={(event) => {
-					setName(event.currentTarget.value)
-				}}
-			/>
+			<label>
+				Glyph name
+				<input
+					value={name()}
+					onInput={(event) => {
+						setName(event.currentTarget.value)
+					}}
+				/>
+			</label>
 			<output>
-				{history().at} / {history().length}
+				History: {history().at} / {history().length}
 			</output>
-			<button
-				type="button"
-				disabled={history().at === 0}
-				onClick={history().undo}
-			>
-				undo
-			</button>
-			<button
-				type="button"
-				disabled={history().at === history().length}
-				onClick={history().redo}
-			>
-				redo
-			</button>
+			<div role="group" aria-label="History controls">
+				<button
+					type="button"
+					disabled={history().at === 0}
+					onClick={history().undo}
+				>
+					undo
+				</button>
+				<button
+					type="button"
+					disabled={history().at === history().length}
+					onClick={history().redo}
+				>
+					redo
+				</button>
+			</div>
 		</>
 	)
 }

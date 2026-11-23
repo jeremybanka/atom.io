@@ -16,25 +16,29 @@ export default function GlyphHistory({
 
 	return (
 		<>
-			<input
-				aria-label="Glyph name"
-				value={name}
-				onChange={(event) => {
-					setName(event.currentTarget.value)
-				}}
-			/>
+			<label>
+				Glyph name
+				<input
+					value={name}
+					onChange={(event) => {
+						setName(event.currentTarget.value)
+					}}
+				/>
+			</label>
 			<output>
-				{at} / {length}
+				History: {at} / {length}
 			</output>
-			<button type="button" disabled={at === 0} onClick={undo}>
-				undo
-			</button>
-			<button type="button" disabled={at === length} onClick={redo}>
-				redo
-			</button>
-			<button type="button" onClick={clear}>
-				clear history
-			</button>
+			<div role="group" aria-label="History controls">
+				<button type="button" disabled={at === 0} onClick={undo}>
+					undo
+				</button>
+				<button type="button" disabled={at === length} onClick={redo}>
+					redo
+				</button>
+				<button type="button" onClick={clear}>
+					clear history
+				</button>
+			</div>
 		</>
 	)
 }

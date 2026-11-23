@@ -11,16 +11,18 @@ export function DocumentPicker({
 	onChange: (documentId: string) => void
 }): ReactNode {
 	return (
-		<select
-			aria-label="Document"
-			value={documentId}
-			onChange={(event) => {
-				onChange(event.currentTarget.value)
-			}}
-		>
-			<option>Document A</option>
-			<option>Document B</option>
-		</select>
+		<label>
+			Document
+			<select
+				value={documentId}
+				onChange={(event) => {
+					onChange(event.currentTarget.value)
+				}}
+			>
+				<option>Document A</option>
+				<option>Document B</option>
+			</select>
+		</label>
 	)
 }
 
@@ -28,7 +30,7 @@ export function DraftForm({
 	text,
 	onChange,
 	status,
-	label,
+	label = `Draft`,
 }: {
 	text: string
 	onChange: (text: string) => void
@@ -37,13 +39,15 @@ export function DraftForm({
 }): ReactNode {
 	return (
 		<>
-			<textarea
-				aria-label={label}
-				value={text}
-				onChange={(event) => {
-					onChange(event.currentTarget.value)
-				}}
-			/>
+			<label>
+				{label}
+				<textarea
+					value={text}
+					onChange={(event) => {
+						onChange(event.currentTarget.value)
+					}}
+				/>
+			</label>
 			{status && <output>{status}</output>}
 		</>
 	)
@@ -62,14 +66,21 @@ export function SearchForm({
 }): ReactNode {
 	return (
 		<>
-			<input
-				value={query}
-				onChange={(event) => {
-					onChange(event.currentTarget.value)
-				}}
-			/>
+			<label>
+				Search products
+				<input
+					value={query}
+					onChange={(event) => {
+						onChange(event.currentTarget.value)
+					}}
+				/>
+			</label>
 			<output>
-				{failed ? `Failed` : results.map((product) => product.name).join(`, `)}
+				{failed
+					? `Search failed.`
+					: results.length
+						? results.map((product) => product.name).join(`, `)
+						: `No products found.`}
 			</output>
 		</>
 	)
@@ -83,13 +94,16 @@ export function PreferenceToggle({
 	onChange: (checked: boolean) => void
 }): ReactNode {
 	return (
-		<input
-			type="checkbox"
-			checked={checked}
-			onChange={(event) => {
-				onChange(event.currentTarget.checked)
-			}}
-		/>
+		<label>
+			<input
+				type="checkbox"
+				checked={checked}
+				onChange={(event) => {
+					onChange(event.currentTarget.checked)
+				}}
+			/>
+			Collapse sidebar
+		</label>
 	)
 }
 

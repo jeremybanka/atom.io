@@ -37,45 +37,135 @@ exhibit-preview {
 	--bevel: var(--highlight) var(--shade) var(--shade) var(--highlight);
 	--inset-bevel: var(--shade) var(--highlight) var(--highlight) var(--shade);
 	box-sizing: border-box;
-	max-inline-size: min(100%, 36rem);
-	min-inline-size: min(100%, 16rem);
+	inline-size: min(100%, 22rem);
 	margin: auto;
-	padding: clamp(12px, 3vw, 24px);
+	padding: clamp(12px, 4vw, 20px);
 	background: var(--pane);
 	border: 2px solid;
 	border-color: var(--bevel);
 	box-shadow: 1px 1px #242729, 8px 8px #003f3f52;
+	overflow-wrap: anywhere;
+}
+
+#preview-status {
+	margin: 0;
 }
 
 preview-content {
-	display: block;
+	--space: 8px;
+	--space-small: 4px;
+	--control: 30px;
 }
 
-exhibit-preview {
-	:where(fieldset) {
-		min-inline-size: 0;
+preview-content,
+preview-content :where(form, fieldset, nav, section):not([hidden]) {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space);
+	min-inline-size: 0;
+}
+
+preview-content {
+	:where(p, h1, h2, h3) {
 		margin: 0;
-		padding: 10px;
+	}
+
+	:where(h1, h2, h3, legend) {
+		font-weight: 700;
+	}
+
+	:where(h1) {
+		font-size: 18px;
+	}
+
+	:where(h2, h3) {
+		font-size: 14px;
+	}
+
+	:where(fieldset) {
+		box-sizing: border-box;
+		margin: 0;
+		padding: var(--space);
 		border: 2px groove var(--highlight);
 	}
 
 	:where(legend) {
-		padding: 0 5px;
+		padding-inline: var(--space-small);
 	}
 
-	:where(label + input, output + button, button + button) {
-		margin-inline-start: 4px;
+	:where(footer, [role="group"]) {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-small) var(--space);
+	}
+
+	:where(button, select) {
+		align-self: flex-start;
+	}
+
+	:where(label:has(> input, > select, > textarea)) {
+		display: grid;
+		gap: var(--space-small);
+		justify-items: start;
+	}
+
+	:where(label:has(> input:is([type="checkbox"], [type="radio"]))) {
+		display: flex;
+		align-items: center;
+		gap: var(--space);
+	}
+
+	:where(ul, ol, aside, [role="alert"], [role="dialog"]) {
+		margin: 0;
+		padding: var(--space-small) var(--space);
+		background: #eee;
+		border: 2px solid;
+		border-color: var(--inset-bevel);
+	}
+
+	:where(ul) {
+		list-style-type: "";
+	}
+
+	:where(ol) {
+		padding-inline-start: 2em;
+	}
+
+	:where(li + li) {
+		margin-block-start: var(--space-small);
+	}
+
+	:where(li:has(> button)) {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+		align-items: center;
+		gap: var(--space-small) var(--space);
+	}
+
+	:where(canvas, svg) {
+		display: block;
+		max-inline-size: 100%;
+		align-self: center;
+	}
+
+	& > :where(canvas, div:has(canvas)) {
+		align-self: center;
+		background: #eee;
+		box-shadow: -1px -1px var(--shade), 1px 1px var(--highlight);
 	}
 
 	:where(button, input, select, textarea) {
 		box-sizing: border-box;
 		max-inline-size: 100%;
+		min-inline-size: 0;
 		color: inherit;
 		font: inherit;
 	}
 
 	:where(button, input[type="button"], input[type="reset"], input[type="submit"]) {
-		min-block-size: 30px;
+		min-block-size: var(--control);
 		min-inline-size: 34px;
 		padding: 2px 8px;
 		background: var(--pane);
@@ -83,18 +173,59 @@ exhibit-preview {
 		border-color: var(--bevel);
 		box-shadow: 1px 1px #242729;
 		cursor: pointer;
-		&:active {
+		&:active:not(:disabled) {
 			border-color: var(--inset-bevel);
 			box-shadow: none;
 		}
 	}
 
 	:where(input:not([type="button"], [type="reset"], [type="submit"], [type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="image"], [type="color"]), select, textarea) {
-		min-block-size: 30px;
+		inline-size: 100%;
+		min-block-size: var(--control);
 		padding: 2px 6px;
 		background: #fff;
 		border: 2px solid;
 		border-color: var(--inset-bevel);
+	}
+
+	:where(select) {
+		inline-size: auto;
+	}
+
+	:where(input[type="number"]) {
+		inline-size: 7em;
+	}
+
+	:where(textarea) {
+		resize: vertical;
+	}
+
+	:where(input[type="checkbox"], input[type="radio"]) {
+		flex: none;
+		inline-size: 14px;
+		block-size: 14px;
+		margin: 0;
+		accent-color: var(--shade);
+	}
+
+	@media (forced-colors: none) {
+		:where(input[type="checkbox"]) {
+			appearance: none;
+			display: inline-grid;
+			place-items: center;
+			background: #fff;
+			border: 2px solid;
+			border-color: var(--inset-bevel);
+
+			&:checked::before {
+				content: "";
+				inline-size: 4px;
+				block-size: 7px;
+				border: solid currentColor;
+				border-width: 0 2px 2px 0;
+				transform: translateY(-1px) rotate(45deg);
+			}
+		}
 	}
 
 	:where(:focus-visible) {
@@ -105,5 +236,6 @@ exhibit-preview {
 	:where(:disabled) {
 		color: #555;
 		cursor: default;
+		box-shadow: none;
 	}
 }

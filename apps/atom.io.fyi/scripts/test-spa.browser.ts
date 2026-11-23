@@ -397,10 +397,10 @@ try {
 	await workspace.getByRole(`tab`, { name: `Preview` }).click()
 	const documentPreview = workspace.frameLocator(`iframe`)
 	const leftTitle = documentPreview.getByRole(`textbox`, {
-		name: `left-document title`,
+		name: `Left document title`,
 	})
 	const rightTitle = documentPreview.getByRole(`textbox`, {
-		name: `right-document title`,
+		name: `Right document title`,
 	})
 	await leftTitle.fill(`Edited title`)
 	assert.equal(await leftTitle.inputValue(), `Edited title`)

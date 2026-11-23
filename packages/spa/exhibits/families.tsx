@@ -18,19 +18,22 @@ function FamilyCounter(props: { key: string }): SpaElement {
 	const ref = useRef(buttonAtoms, props.key)
 	const history = useTimeline(historyTimelines, props.key)
 	return (
-		<section>
-			<button
-				ref={ref}
-				onClick={() => {
-					setCount((value) => value + 1)
-				}}
-			>
-				{getCount()}
-			</button>
-			<button disabled={history.getCursor() === 0} onClick={history.undo}>
-				Undo
-			</button>
-		</section>
+		<fieldset>
+			<legend>{props.key}</legend>
+			<footer>
+				<button
+					ref={ref}
+					onClick={() => {
+						setCount((value) => value + 1)
+					}}
+				>
+					{getCount()}
+				</button>
+				<button disabled={history.getCursor() === 0} onClick={history.undo}>
+					Undo
+				</button>
+			</footer>
+		</fieldset>
 	)
 }
 

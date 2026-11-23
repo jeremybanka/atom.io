@@ -6,24 +6,36 @@ import {
 
 type Tab = Exclude<ExhibitView, `both`>
 
+function isLiveTab(value: unknown): value is Exclude<Tab, `code`> {
+	return value === `ecology` || value === `preview`
+}
+
 function showView(frame: HTMLIFrameElement, view: ExhibitView): void {
 	// Production frames have an opaque origin. Only the view name crosses frames.
 	frame.contentWindow?.postMessage({ type: EXHIBIT_VIEW_MESSAGE, view }, `*`)
 }
 
-function syncExhibit(exhibit: HTMLElement, selected: Tab): void {
+function syncExhibit(exhibit: HTMLElement, activate = false): void {
+	const selection = exhibit.dataset[`exhibitView`]
+	const selected = isLiveTab(selection) ? selection : `code`
 	const tabs = [
 		...exhibit.querySelectorAll<HTMLButtonElement>(`[data-exhibit-tab]`),
 	]
 	const code = exhibit.querySelector<HTMLPreElement>(`pre`)!
 	const live = exhibit.querySelector<HTMLElement>(`[data-exhibit-panel]`)!
 	const width = exhibit.getBoundingClientRect().width
-	const split = selected !== `code` && width >= 1000
+	const split = width >= 1000
 	const showBoth = split && width >= 1500 && tabs.length === 3
-	const view = showBoth ? `both` : selected
+	const preferredLiveTab =
+		exhibit.dataset[`exhibitLiveView`] ?? tabs[1]?.dataset[`exhibitTab`]
+	const view = showBoth
+		? `both`
+		: split && selected === `code` && isLiveTab(preferredLiveTab)
+			? preferredLiveTab
+			: selected
 	exhibit.dataset[`exhibitLayout`] = showBoth ? `three` : split ? `two` : `one`
 	code.hidden = selected !== `code` && !split
-	live.hidden = selected === `code`
+	live.hidden = view === `code`
 
 	const liveLabels: string[] = []
 	for (const tab of tabs) {
@@ -39,12 +51,14 @@ function syncExhibit(exhibit: HTMLElement, selected: Tab): void {
 	live.setAttribute(`aria-labelledby`, liveLabels.join(` `))
 
 	const frame = live.querySelector(`iframe`)
+	if (view === `code`) visibleExhibits.unobserve(exhibit)
 	if (frame) {
 		if (frame.dataset[`exhibitView`] !== view) {
 			frame.dataset[`exhibitView`] = view
 			showView(frame, view)
 		}
-	} else if (view !== `code`) {
+	} else if (view !== `code` && activate) {
+		visibleExhibits.unobserve(exhibit)
 		const source = exhibit.dataset[`exhibitSource`]!
 		const sandbox = document.createElement(`iframe`)
 		sandbox.title = `Live exhibit for ${source.split(`/`).at(-1)}`
@@ -58,36 +72,43 @@ function syncExhibit(exhibit: HTMLElement, selected: Tab): void {
 		})
 		sandbox.src = `/exhibit-sandbox?view=${view}#${encodeURIComponent(source)}`
 		live.append(sandbox)
+	} else if (view !== `code`) {
+		visibleExhibits.observe(exhibit)
 	}
 }
 
-let layouts: ResizeObserver | undefined
+const visibleExhibits = new IntersectionObserver(
+	(entries) => {
+		for (const { target, isIntersecting } of entries) {
+			if (isIntersecting) syncExhibit(target as HTMLElement, true)
+		}
+	},
+	{ rootMargin: `120px 0px` },
+)
+
+const layouts = new ResizeObserver((entries) => {
+	for (const { target } of entries) syncExhibit(target as HTMLElement)
+})
+
+export function initializeExhibitLayouts(): void {
+	for (const exhibit of document.querySelectorAll(
+		`code-block[data-exhibit-source]`,
+	))
+		layouts.observe(exhibit)
+}
 
 export function resetExhibitLayouts(): void {
-	layouts?.disconnect()
+	layouts.disconnect()
+	visibleExhibits.disconnect()
 }
 
 export function selectExhibitTab(tab: HTMLButtonElement): void {
 	const exhibit = tab.closest<HTMLElement>(`code-block[data-exhibit-source]`)!
 	const selected = tab.dataset[`exhibitTab`]
-	if (
-		!isExhibitView(selected) ||
-		selected === `both` ||
-		exhibit.dataset[`exhibitView`] === selected
-	)
-		return
+	if (selected !== `code` && !isLiveTab(selected)) return
+	if (isLiveTab(selected)) exhibit.dataset[`exhibitLiveView`] = selected
 	exhibit.dataset[`exhibitView`] = selected
-	syncExhibit(exhibit, selected)
-	layouts ??= new ResizeObserver((entries) => {
-		for (const { target } of entries) {
-			const block = target as HTMLElement
-			const view = block.dataset[`exhibitView`]
-			if (isExhibitView(view) && view !== `both` && view !== `code`)
-				syncExhibit(block, view)
-		}
-	})
-	if (selected === `code`) layouts.unobserve(exhibit)
-	else layouts.observe(exhibit)
+	syncExhibit(exhibit, true)
 }
 
 export function handleExhibitTabKey(event: KeyboardEvent): void {

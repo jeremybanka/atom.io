@@ -7,4 +7,4 @@ Add interactive Preview tabs for eligible React, SPA, and Solid exhibits that de
 
 Give Ecology sandboxes a mount target and isolated storage so browser setup exhibits can initialize their graphs.
 
-Share one live store between an exhibit's Preview and Ecology, preserve it when switching views, and show the panes side by side when there is room.
+Share one live store between an exhibit's Preview and Ecology, preserve it when switching views, and open wide exhibits with side-by-side panes and their own aligned tabs.

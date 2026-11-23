@@ -130,9 +130,39 @@ code-block.class {
 		}
 		&[data-exhibit-layout="two"],
 		&[data-exhibit-layout="three"] {
-			grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+			--exhibit-columns: minmax(0, 1fr) minmax(0, 1fr);
+			grid-template-columns: var(--exhibit-columns);
 			> file-name {
 				grid-column: 1 / -1;
+				display: grid;
+				grid-template-columns: var(--exhibit-columns);
+				> span {
+					grid-area: 1 / 1;
+					margin-inline-end: 80px;
+				}
+				> nav {
+					grid-area: 1 / 1 / 2 / -1;
+					display: grid;
+					grid-template-columns: var(--exhibit-columns);
+					gap: 0;
+					margin-inline-end: 0;
+					pointer-events: none;
+					> exhibit-code-tabs {
+						justify-content: flex-end;
+						padding-inline-end: 5px;
+					}
+					> exhibit-live-tabs {
+						justify-content: flex-end;
+						padding-inline-end: 30px;
+					}
+					button {
+						pointer-events: auto;
+					}
+				}
+				> button {
+					grid-area: 1 / 2;
+					justify-self: end;
+				}
 			}
 			> [data-exhibit-panel] {
 				grid-column: 2;
@@ -140,7 +170,20 @@ code-block.class {
 			}
 		}
 		&[data-exhibit-layout="three"] {
-			grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+			--exhibit-columns: minmax(0, 1fr) minmax(0, 2fr);
+			> file-name > nav > exhibit-live-tabs {
+				display: grid;
+				grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+				gap: 0;
+				padding-inline-end: 0;
+				> button {
+					justify-self: end;
+					margin-inline-end: 5px;
+					&:last-child {
+						margin-inline-end: 30px;
+					}
+				}
+			}
 		}
 		> pre {
 			/* Highlighted rows use a taller line box than the pre's line-height. */
@@ -174,7 +217,12 @@ code-block.class {
 		gap: 2px;
 		margin-inline-end: 5px;
 		margin-block-end: -1px;
-		> button {
+		> exhibit-code-tabs,
+		> exhibit-live-tabs {
+			display: flex;
+			gap: 2px;
+		}
+		button {
 			display: flex;
 			align-items: center;
 			gap: 5px;
@@ -226,7 +274,7 @@ code-block.class {
 		}
 	}
 	@container (max-width: 420px) {
-		> file-name > nav > button > span {
+		> file-name > nav button > span {
 			display: none;
 		}
 	}

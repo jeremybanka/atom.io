@@ -12,7 +12,16 @@ import { tmpdir } from "node:os"
 import { extname, join, resolve } from "node:path"
 
 import { dev } from "astro"
-import { type Browser, chromium } from "playwright"
+import { type Browser, chromium, type Locator } from "playwright"
+
+async function assertTabAbovePane(tab: Locator, pane: Locator): Promise<void> {
+	const tabBox = await tab.boundingBox()
+	const paneBox = await pane.boundingBox()
+	assert.ok(tabBox && paneBox)
+	assert.ok(tabBox.y < paneBox.y)
+	assert.ok(tabBox.x >= paneBox.x)
+	assert.ok(tabBox.x + tabBox.width <= paneBox.x + paneBox.width)
+}
 
 const directory = resolve(import.meta.dirname, `../dist/client`)
 const server = createServer(async (request, response) => {
@@ -205,15 +214,29 @@ try {
 	assert.deepEqual(errors, [])
 	console.log(`Exhibit ecology browser checks passed.`)
 
-	await page.setViewportSize({ width: 2200, height: 1100 })
+	await page.setViewportSize({ width: 1700, height: 1100 })
 	await page.goto(`${base}/docs/atom-io`)
 	const division = page.locator(`#edit-a-selector-tsx`)
 	const divisionCode = division.getByRole(`tab`, { name: `Code` })
 	const divisionEcology = division.getByRole(`tab`, { name: `Ecology` })
 	const divisionPreview = division.getByRole(`tab`, { name: `Preview` })
-	assert.equal(await division.locator(`iframe`).count(), 0)
-	await divisionPreview.click()
+	const divisionSource = division.locator(`pre`)
 	const divisionFrame = division.frameLocator(`iframe`)
+	const ecologyPane = divisionFrame.locator(`#ecology`)
+	const previewPane = divisionFrame.locator(`#preview`)
+	await page.locator(`#edit-a-selector-tsx[data-exhibit-layout="two"]`).waitFor()
+	assert.equal(await division.locator(`iframe`).count(), 0)
+	await division.scrollIntoViewIfNeeded()
+	await ecologyPane.waitFor()
+	assert.equal(await division.getAttribute(`data-exhibit-layout`), `two`)
+	assert.equal(await previewPane.isVisible(), false)
+	await assertTabAbovePane(divisionCode, divisionSource)
+	await assertTabAbovePane(divisionEcology, ecologyPane)
+	await assertTabAbovePane(divisionPreview, ecologyPane)
+
+	await page.setViewportSize({ width: 2200, height: 1100 })
+	await page.goto(`${base}/docs/atom-io`)
+	await division.scrollIntoViewIfNeeded()
 	const divisor = divisionFrame.locator(
 		`ecology-editor input[aria-label="divisor"]`,
 	)
@@ -221,19 +244,17 @@ try {
 	const increaseDivisor = divisionFrame.getByRole(`button`, {
 		name: `Increase divisor`,
 	})
+	await divisor.waitFor()
+	await increaseDivisor.waitFor()
 	assert.equal(await division.getAttribute(`data-exhibit-layout`), `three`)
-	assert.ok(await division.locator(`pre`).isVisible())
-	assert.equal(await divisor.inputValue(), `2`)
-	const divisionCodeBox = await division.locator(`pre`).boundingBox()
-	const graphBox = await divisionFrame.locator(`#ecology`).boundingBox()
-	const previewBox = await divisionFrame.locator(`#preview`).boundingBox()
-	assert.ok(
-		divisionCodeBox &&
-			graphBox &&
-			previewBox &&
-			divisionCodeBox.x < graphBox.x &&
-			graphBox.x < previewBox.x,
+	assert.equal(
+		await page.locator(`#use-a-selector-ts`).getAttribute(`data-exhibit-layout`),
+		`two`,
 	)
+	assert.equal(await divisor.inputValue(), `2`)
+	await assertTabAbovePane(divisionCode, divisionSource)
+	await assertTabAbovePane(divisionEcology, ecologyPane)
+	await assertTabAbovePane(divisionPreview, previewPane)
 	const sandbox = await division.locator(`iframe`).elementHandle()
 	const liveDocument = (await sandbox.contentFrame())!
 	await increaseDivisor.click()
@@ -248,6 +269,11 @@ try {
 		await divisionFrame.getByText(`Quotient: 4`, { exact: true }).isVisible(),
 		true,
 	)
+	await divisionPreview.click()
+	await divisionCode.click()
+	assert.equal(await division.getAttribute(`data-exhibit-layout`), `three`)
+	assert.ok(await previewPane.isVisible())
+	assert.ok(await ecologyPane.isVisible())
 
 	await page.setViewportSize({ width: 1700, height: 1000 })
 	await divisionFrame.locator(`#ecology`).waitFor({ state: `hidden` })
@@ -256,10 +282,14 @@ try {
 	await divisionEcology.click()
 	await divisor.waitFor()
 	assert.equal(await divisor.inputValue(), `3`)
-	assert.equal(await divisionFrame.locator(`#preview`).isVisible(), false)
+	assert.equal(await previewPane.isVisible(), false)
+	await divisionCode.click()
+	assert.equal(await division.getAttribute(`data-exhibit-layout`), `two`)
+	assert.equal(await divisor.inputValue(), `3`)
+	await divisionEcology.click()
 
 	await page.setViewportSize({ width: 1440, height: 1000 })
-	await division.locator(`pre`).waitFor({ state: `hidden` })
+	await divisionSource.waitFor({ state: `hidden` })
 	assert.equal(await division.getAttribute(`data-exhibit-layout`), `one`)
 	await divisionCode.click()
 	assert.equal(await division.locator(`iframe`).isVisible(), false)

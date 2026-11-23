@@ -78,6 +78,25 @@ export function CodeBlock({
 			),
 		},
 	].filter((tab) => tab.enabled)
+	const renderTab = ({ view, label: tabLabel, icon }: (typeof tabs)[number]) => (
+		<button
+			key={view}
+			type="button"
+			role="tab"
+			id={`${id}-${view}-tab`}
+			aria-controls={`${id}-${view === `code` ? `code` : `live`}`}
+			aria-label={tabLabel}
+			aria-selected={view === `code` ? `true` : `false`}
+			data-exhibit-tab={view}
+			data-exhibit-visible={view === `code` ? `` : undefined}
+			tabIndex={view === `code` ? 0 : -1}
+		>
+			<svg viewBox="0 0 16 16" aria-hidden="true">
+				{icon}
+			</svg>
+			<span>{tabLabel}</span>
+		</button>
+	)
 
 	return (
 		<code-block
@@ -91,25 +110,12 @@ export function CodeBlock({
 				<span>{displayLabel}</span>
 				{exhibit && (
 					<nav role="tablist" aria-label="Exhibit views">
-						{tabs.map(({ view, label: tabLabel, icon }) => (
-							<button
-								key={view}
-								type="button"
-								role="tab"
-								id={`${id}-${view}-tab`}
-								aria-controls={`${id}-${view === `code` ? `code` : `live`}`}
-								aria-label={tabLabel}
-								aria-selected={view === `code` ? `true` : `false`}
-								data-exhibit-tab={view}
-								data-exhibit-visible={view === `code` ? `` : undefined}
-								tabIndex={view === `code` ? 0 : -1}
-							>
-								<svg viewBox="0 0 16 16" aria-hidden="true">
-									{icon}
-								</svg>
-								<span>{tabLabel}</span>
-							</button>
-						))}
+						<exhibit-code-tabs role="presentation">
+							{renderTab(tabs[0])}
+						</exhibit-code-tabs>
+						<exhibit-live-tabs role="presentation">
+							{tabs.slice(1).map(renderTab)}
+						</exhibit-live-tabs>
 					</nav>
 				)}
 				<button type="button" aria-label="Copy code">

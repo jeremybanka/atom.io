@@ -1,6 +1,7 @@
 <script>
 import {
 	handleExhibitTabKey,
+	initializeExhibitLayouts,
 	resetExhibitLayouts,
 	selectExhibitTab,
 } from "./exhibit-tabs.ts"
@@ -79,6 +80,7 @@ async function copyCodeBlock(button: HTMLButtonElement): Promise<void> {
 function applyPageEffects(): void {
 	updateThemeColor()
 	linkCodeBlockImports()
+	initializeExhibitLayouts()
 }
 
 if (!globalWithEffects[globalEffectsKey]) {

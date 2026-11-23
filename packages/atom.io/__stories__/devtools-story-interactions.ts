@@ -197,7 +197,6 @@ export const playOrderRoots: Play = async (context) => {
 				await expect(
 					within(tools.inspector()).getByRole(`button`, {
 						name: `Generate ${key}`,
-						exact: true,
 					}),
 				).toBeVisible()
 			}

@@ -21,8 +21,8 @@ function syncExhibit(exhibit: HTMLElement, activate = false): void {
 	const tabs = [
 		...exhibit.querySelectorAll<HTMLButtonElement>(`[data-exhibit-tab]`),
 	]
-	const code = exhibit.querySelector<HTMLElement>(`code-pane`)!
-	const live = exhibit.querySelector<HTMLElement>(`[data-exhibit-panel]`)!
+	const code = exhibit.querySelector<HTMLElement>(`exhibit-source-pane`)!
+	const live = exhibit.querySelector<HTMLElement>(`exhibit-live-pane`)!
 	const width = exhibit.getBoundingClientRect().width
 	const split = width >= 1000
 	const showBoth = split && width >= 1500 && tabs.length === 3
@@ -92,7 +92,7 @@ const layouts = new ResizeObserver((entries) => {
 
 export function initializeExhibitLayouts(): void {
 	for (const exhibit of document.querySelectorAll(
-		`code-block[data-exhibit-source]`,
+		`exhibit-frame[data-exhibit-source]`,
 	))
 		layouts.observe(exhibit)
 }
@@ -103,7 +103,7 @@ export function resetExhibitLayouts(): void {
 }
 
 export function selectExhibitTab(tab: HTMLButtonElement): void {
-	const exhibit = tab.closest<HTMLElement>(`code-block[data-exhibit-source]`)!
+	const exhibit = tab.closest<HTMLElement>(`exhibit-frame[data-exhibit-source]`)!
 	const selected = tab.dataset[`exhibitTab`]
 	if (selected !== `code` && !isLiveTab(selected)) return
 	if (isLiveTab(selected)) exhibit.dataset[`exhibitLiveView`] = selected
@@ -114,7 +114,9 @@ export function selectExhibitTab(tab: HTMLButtonElement): void {
 export function handleExhibitTabKey(event: KeyboardEvent): void {
 	const target = event.target
 	if (!(target instanceof HTMLButtonElement)) return
-	const tabs = target.closest(`code-block[data-exhibit-source] [role="tablist"]`)
+	const tabs = target.closest(
+		`exhibit-frame[data-exhibit-source] [role="tablist"]`,
+	)
 	if (!tabs) return
 	const buttons = [...tabs.querySelectorAll<HTMLButtonElement>(`[role="tab"]`)]
 	const index = buttons.indexOf(target)

@@ -75,16 +75,16 @@ docs-layout.class {
 				color: var(--fg-soft-3);
 			}
 		}
-		code-block,
+		exhibit-frame,
 		table-wrapper {
 			width: min(702px, calc(100svw - 18px));
 		}
 		@media screen and (min-width: 1560px) {
-			> code-block[data-exhibit-source],
-			> effect-cluster:has(> code-block[data-exhibit-source]) {
+			> exhibit-frame[data-exhibit-source],
+			> effect-cluster:has(> exhibit-frame[data-exhibit-source]) {
 				width: min(1680px, calc(100svw - 560px));
 			}
-			> effect-cluster > code-block[data-exhibit-source] {
+			> effect-cluster > exhibit-frame[data-exhibit-source] {
 				width: 100%;
 			}
 		}

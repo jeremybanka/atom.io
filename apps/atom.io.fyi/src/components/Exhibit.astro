@@ -6,7 +6,7 @@ import {
 	normalizeExhibitSource,
 	parseExhibitReference,
 } from "@atom.io/exhibits"
-import { CodeBlock } from "./CodeBlock"
+import { ExhibitFrame } from "./ExhibitFrame"
 
 type Props = {
 	ecology?: boolean
@@ -39,7 +39,7 @@ const exhibit = views && {
 }
 ---
 
-<CodeBlock
+<ExhibitFrame
 	code={code}
 	filepath={filepath}
 	label={label}

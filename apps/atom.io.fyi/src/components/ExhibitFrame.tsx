@@ -1,10 +1,10 @@
 import type { Children, SpaElement } from "@atom.io/spa"
 import { useId } from "@atom.io/spa"
 
-import css from "./CodeBlock.module.css"
+import css from "./ExhibitFrame.module.css"
 import { highlightCode } from "./highlight-code.ts"
 
-type CodeBlockProps = {
+type ExhibitFrameProps = {
 	filepath?: string
 	label?: string
 	code?: string
@@ -13,7 +13,7 @@ type CodeBlockProps = {
 	exhibit?: { source: string; ecology: boolean; preview: boolean }
 }
 
-function getCodeBlockId(labelOrHref: string): string {
+function getExhibitId(labelOrHref: string): string {
 	const label =
 		labelOrHref
 			.replace(/^["']|["']$/g, ``)
@@ -34,14 +34,14 @@ function flattenChildrenToString(children: Children): string {
 		: ``
 }
 
-export function CodeBlock({
+export function ExhibitFrame({
 	filepath,
 	label,
 	code: codeProp,
 	soft = false,
 	children,
 	exhibit,
-}: CodeBlockProps): SpaElement {
+}: ExhibitFrameProps): SpaElement {
 	const displayLabel = label ?? filepath ?? `code`
 	const code = codeProp ?? flattenChildrenToString(children)
 	const { tokens } = highlightCode(code, filepath)
@@ -99,14 +99,14 @@ export function CodeBlock({
 	)
 
 	return (
-		<code-block
-			id={getCodeBlockId(displayLabel)}
+		<exhibit-frame
+			id={getExhibitId(displayLabel)}
 			class={css.class}
 			data-exhibit-source={exhibit?.source}
 			data-exhibit-view={exhibit ? `code` : undefined}
 		>
-			<back-fill class={soft ? `soft` : `hard`} />
-			<file-name>
+			<exhibit-backdrop class={soft ? `soft` : `hard`} />
+			<exhibit-header>
 				<span>{displayLabel}</span>
 				{exhibit && (
 					<nav role="tablist" aria-label="Exhibit views">
@@ -116,8 +116,8 @@ export function CodeBlock({
 						</exhibit-live-tabs>
 					</nav>
 				)}
-			</file-name>
-			<code-pane
+			</exhibit-header>
+			<exhibit-source-pane
 				id={exhibit ? `${id}-code` : undefined}
 				role={exhibit ? `tabpanel` : undefined}
 				aria-labelledby={exhibit ? `${id}-code-tab` : undefined}
@@ -150,10 +150,8 @@ export function CodeBlock({
 						/>
 					</svg>
 				</button>
-			</code-pane>
-			{exhibit && (
-				<section id={`${id}-live`} role="tabpanel" data-exhibit-panel hidden />
-			)}
-		</code-block>
+			</exhibit-source-pane>
+			{exhibit && <exhibit-live-pane id={`${id}-live`} role="tabpanel" hidden />}
+		</exhibit-frame>
 	)
 }

@@ -1,0 +1,7 @@
+:root {
+	--exhibit-border-color: #5555;
+	--exhibit-preview-background: oklch(25% 0.038 195);
+	@media (prefers-color-scheme: light) {
+		--exhibit-preview-background: oklch(95% 0.038 195);
+	}
+}

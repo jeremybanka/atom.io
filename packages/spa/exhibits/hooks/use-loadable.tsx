@@ -4,15 +4,14 @@ import { atom, type Loadable } from "atom.io"
 
 const accountNameAtom = atom<Loadable<string>, Error>({
 	key: `accountName`,
-	default: async () => {
-		const response = await fetch(`/api/account/name`)
-		if (!response.ok) throw new Error(`Could not load your account`)
-		return response.text()
-	},
+	default: () =>
+		new Promise<string>((resolve) => {
+			setTimeout(() => resolve(`Ada Lovelace`), 750)
+		}),
 	catch: [Error],
 })
 
-export function AccountName(): SpaElement {
+export default function AccountName(): SpaElement {
 	const accountName = useLoadable(accountNameAtom, `Loading your account…`)
 	return (
 		<p aria-busy={accountName().loading}>

@@ -20,7 +20,7 @@ function updateThemeColor(): void {
 	}
 }
 
-function getCodeBlockId(labelOrHref: string): string {
+function getExhibitId(labelOrHref: string): string {
 	const label =
 		labelOrHref
 			.replace(/^["'`]|["'`]$/g, ``)
@@ -32,14 +32,14 @@ function getCodeBlockId(labelOrHref: string): string {
 		.replace(/^-+|-+$/g, ``)
 }
 
-function getLinkedCodeBlockId(labelOrHref: string): string {
+function getLinkedExhibitId(labelOrHref: string): string {
 	const cleaned = labelOrHref.replace(/^["'`]|["'`]$/g, ``)
-	const directId = getCodeBlockId(cleaned)
+	const directId = getExhibitId(cleaned)
 	if (document.getElementById(directId) !== null) {
 		return directId
 	}
 	for (const extension of [`.ts`, `.tsx`, `.js`, `.jsx`, `.sh`, `.conf`]) {
-		const id = getCodeBlockId(`${cleaned}${extension}`)
+		const id = getExhibitId(`${cleaned}${extension}`)
 		if (document.getElementById(id) !== null) {
 			return id
 		}
@@ -47,9 +47,9 @@ function getLinkedCodeBlockId(labelOrHref: string): string {
 	return directId
 }
 
-function linkCodeBlockImports(): void {
+function linkExhibitImports(): void {
 	for (const element of document.querySelectorAll(
-		`code-block [data-code-string]`,
+		`exhibit-frame [data-code-string]`,
 	)) {
 		if (!(element instanceof HTMLElement)) {
 			continue
@@ -62,15 +62,15 @@ function linkCodeBlockImports(): void {
 			continue
 		}
 		const anchor = document.createElement(`a`)
-		anchor.href = `#${getLinkedCodeBlockId(text)}`
+		anchor.href = `#${getLinkedExhibitId(text)}`
 		anchor.textContent = text
 		element.replaceChildren(anchor)
 	}
 }
 
-async function copyCodeBlock(button: HTMLButtonElement): Promise<void> {
+async function copyExhibitSource(button: HTMLButtonElement): Promise<void> {
 	const code = button
-		.closest(`code-pane`)
+		.closest(`exhibit-source-pane`)
 		?.querySelector(`pre code`)?.textContent
 	if (code === undefined) {
 		return
@@ -80,7 +80,7 @@ async function copyCodeBlock(button: HTMLButtonElement): Promise<void> {
 
 function applyPageEffects(): void {
 	updateThemeColor()
-	linkCodeBlockImports()
+	linkExhibitImports()
 	initializeExhibitLayouts()
 }
 
@@ -93,7 +93,7 @@ if (!globalWithEffects[globalEffectsKey]) {
 			return
 		}
 		const tab = event.target.closest(
-			`code-block[data-exhibit-source] [role="tab"]`,
+			`exhibit-frame[data-exhibit-source] [role="tab"]`,
 		)
 		if (tab instanceof HTMLButtonElement) {
 			selectExhibitTab(tab)
@@ -103,7 +103,7 @@ if (!globalWithEffects[globalEffectsKey]) {
 		if (!(button instanceof HTMLButtonElement)) {
 			return
 		}
-		void copyCodeBlock(button)
+		void copyExhibitSource(button)
 	})
 	document.addEventListener(`keydown`, handleExhibitTabKey)
 	document.addEventListener(`astro:before-swap`, resetExhibitLayouts)

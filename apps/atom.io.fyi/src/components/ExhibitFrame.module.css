@@ -1,17 +1,17 @@
-@import "./exhibit-preview-colors.css";
+@import "./exhibit-colors.css";
 
-code-block.class {
+exhibit-frame.class {
 	margin-top: 1.5em;
 	box-sizing: border-box;
 	position: relative;
 	display: flex;
 	flex-flow: column;
-	border: 1px solid #5555;
+	border: 1px solid var(--exhibit-border-color);
 	border-radius: 4px;
 	width: 100%;
 	container-type: inline-size;
 
-	> back-fill {
+	> exhibit-backdrop {
 		position: absolute;
 		top: 0;
 		bottom: 0;
@@ -30,7 +30,7 @@ code-block.class {
 		}
 	}
 
-	> file-name {
+	> exhibit-header {
 		z-index: 0;
 		display: flex;
 		flex-flow: row;
@@ -53,7 +53,7 @@ code-block.class {
 		}
 	}
 
-	> code-pane {
+	> exhibit-source-pane {
 		position: relative;
 		display: block;
 		min-inline-size: 0;
@@ -117,12 +117,13 @@ code-block.class {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr);
 		grid-template-rows: auto auto;
+		overflow: clip;
 		isolation: isolate;
 		background-color: var(--bg-color);
-		&:has(> back-fill:global(.soft)) {
+		&:has(> exhibit-backdrop:global(.soft)) {
 			--code-tab-fill: var(--bg-soft-1);
 		}
-		> file-name {
+		> exhibit-header {
 			position: relative;
 			padding-block-end: 1px;
 			&::after {
@@ -136,13 +137,13 @@ code-block.class {
 				background: var(--fg-soft-3);
 			}
 		}
-		> code-pane, > [data-exhibit-panel] {
+		> exhibit-source-pane, > exhibit-live-pane {
 			grid-area: 2 / 1;
 		}
 		&[data-exhibit-layout="two"],
 		&[data-exhibit-layout="three"] {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
-			> file-name {
+			> exhibit-header {
 				grid-column: 1 / -1;
 				display: grid;
 				grid-template-columns: subgrid;
@@ -165,14 +166,14 @@ code-block.class {
 					}
 				}
 			}
-			> [data-exhibit-panel] {
+			> exhibit-live-pane {
 				grid-column: 2 / -1;
-				border-inline-start: 1px solid var(--fg-faint);
+				border-inline-start: 1px solid var(--exhibit-border-color);
 			}
 		}
 		&[data-exhibit-layout="three"] {
 			grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 0.85fr);
-			> file-name > nav > exhibit-live-tabs {
+			> exhibit-header > nav > exhibit-live-tabs {
 				grid-column: 2 / -1;
 				display: grid;
 				grid-template-columns: subgrid;
@@ -184,7 +185,7 @@ code-block.class {
 				}
 			}
 		}
-		> code-pane {
+		> exhibit-source-pane {
 			&[hidden] {
 				/* Keep the code pane's height while a live pane is visible. */
 				display: block;
@@ -211,7 +212,7 @@ code-block.class {
 		}
 	}
 
-	> file-name > nav {
+	> exhibit-header > nav {
 		display: flex;
 		flex: 0 0 auto;
 		align-self: flex-end;
@@ -246,6 +247,9 @@ code-block.class {
 				stroke-width: 1.2;
 				stroke-linecap: round;
 				stroke-linejoin: round;
+				> * {
+					color: inherit;
+				}
 			}
 			&:hover {
 				background: var(--bg-tint-2);
@@ -264,7 +268,6 @@ code-block.class {
 				color: var(--fg-color);
 				&[data-exhibit-tab="preview"] {
 					--active-tab-fill: var(--exhibit-preview-background);
-					color: #fff;
 				}
 			}
 			&:focus-visible {
@@ -274,12 +277,12 @@ code-block.class {
 		}
 	}
 	@container (max-width: 420px) {
-		> file-name > nav button > span {
+		> exhibit-header > nav button > span {
 			display: none;
 		}
 	}
 
-	> [data-exhibit-panel] {
+	> exhibit-live-pane {
 		position: relative;
 		> iframe {
 			position: absolute;
@@ -291,7 +294,7 @@ code-block.class {
 		}
 	}
 
-	> code-pane > pre {
+	> exhibit-source-pane > pre {
 		mix-blend-mode: var(--fill-soft-blend-mode);
 		z-index: 0;
 		border-radius: 0px 0px 3px 3px;
@@ -322,7 +325,7 @@ code-block.class {
 
 	color: var(--code-color) !important;
 
-	> code-pane > pre > code span {
+	> exhibit-source-pane > pre > code span {
 		text-shadow: 0px 1px 2px var(--bg-hard-2);
 	}
 }

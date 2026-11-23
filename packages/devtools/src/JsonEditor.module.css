@@ -25,11 +25,17 @@ json-editor.class {
 	& > editor-row {
 		display: grid;
 		grid-template-columns:
-			21px minmax(0, min(42%, 32ch)) 8ch minmax(0, 1fr) 21px;
+			21px minmax(0, min(42%, 32ch)) 8ch minmax(0, 1fr) max-content;
 		background: var(--drawer-surface);
 		height: 21px;
 		min-width: 0;
 		white-space: nowrap;
+	}
+	row-actions {
+		display: flex;
+		flex: 0 0 auto;
+		min-width: 21px;
+		margin-left: auto;
 	}
 	&[data-root="true"] > editor-row {
 		height: 22px;
@@ -83,16 +89,11 @@ json-editor.class {
 	& > editor-row:has(> json-primitive[data-kind="number"]) {
 		/* Long numeric drafts can borrow key space while short values keep the column. */
 		display: flex;
-		padding-right: 21px;
 		> field-name {
 			flex: 0 1 min(42%, 32ch);
 		}
 		> select, > small {
 			flex: 0 0 67px;
-		}
-		> button:last-child {
-			margin-left: auto;
-			margin-right: -21px;
 		}
 	}
 	json-primitive[data-kind="number"] {

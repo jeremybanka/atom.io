@@ -1,6 +1,7 @@
 /** @jsxImportSource @atom.io/spa */
 import type { Children, SpaElement } from "@atom.io/spa"
 
+import { EditorButton } from "./EditorButton.tsx"
 import css from "./JsonEditor.module.css"
 import type { EditorTools, Path } from "./store.ts"
 import { useExpanded } from "./store.ts"
@@ -142,7 +143,7 @@ export function JsonEditor(props: EditorProps): SpaElement {
 						label={props.path.at(-1) ?? `value`}
 					/>
 				)}
-				{props.actions}
+				<row-actions>{props.actions}</row-actions>
 			</editor-row>
 			{container() && getExpanded() ? (
 				<json-properties
@@ -188,8 +189,9 @@ export function JsonEditor(props: EditorProps): SpaElement {
 					))}
 					{props.change ? (
 						<editor-actions>
-							<button
-								type="button"
+							<EditorButton
+								icon="add"
+								label={Array.isArray(props.value) ? `Add item` : `Add property`}
 								onClick={() => {
 									props.tools.attempt(() => {
 										props.change?.((previous) => {
@@ -201,12 +203,11 @@ export function JsonEditor(props: EditorProps): SpaElement {
 										})
 									})
 								}}
-							>
-								add {Array.isArray(props.value) ? `item` : `property`}
-							</button>
+							/>
 							{Array.isArray(props.value) ? (
-								<button
-									type="button"
+								<EditorButton
+									icon="sort"
+									label="Sort"
 									onClick={() => {
 										props.tools.attempt(() => {
 											props.change?.((previous) =>
@@ -218,9 +219,7 @@ export function JsonEditor(props: EditorProps): SpaElement {
 											)
 										})
 									}}
-								>
-									sort
-								</button>
+								/>
 							) : null}
 						</editor-actions>
 					) : null}
@@ -399,9 +398,9 @@ function Property(props: {
 				}
 				actions={
 					parent.change ? (
-						<button
-							type="button"
-							aria-label={`Delete ${props.name}`}
+						<EditorButton
+							icon="remove"
+							label={`Delete ${props.name}`}
 							onClick={() => {
 								parent.tools.attempt(() => {
 									parent.change?.((previous) =>
@@ -417,9 +416,7 @@ function Property(props: {
 									)
 								})
 							}}
-						>
-							×
-						</button>
+						/>
 					) : null
 				}
 				tools={parent.tools}

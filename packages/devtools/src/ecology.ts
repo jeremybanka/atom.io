@@ -1,5 +1,6 @@
 import type { ReadableToken } from "atom.io"
-import type { RootStore } from "atom.io/internal"
+import { Future } from "atom.io/foundations/future"
+import type { ReadableState, RootStore } from "atom.io/internal"
 import { isReservedIntrospectionKey } from "atom.io/internal"
 import { peekState } from "atom.io/introspection"
 
@@ -109,6 +110,38 @@ export function ecologyValue(
 				preview: preview(cached.value),
 			}
 		: { status: `unknown` }
+}
+
+type EcologyLoadStatus = `pending` | `settled` | `caught` | undefined
+
+export function ecologyLoadState(
+	store: RootStore,
+	key: string,
+): {
+	definition: ReadableState<any, any> | undefined
+	raw: unknown
+	status: EcologyLoadStatus
+} {
+	const definition =
+		store.atoms.get(key) ??
+		store.readonlySelectors.get(key) ??
+		store.writableSelectors.get(key)
+	const raw = peekState(store, key).value
+	let status: EcologyLoadStatus
+	if (typeof raw === `object` && raw !== null) {
+		try {
+			if (raw instanceof Future) status = raw.done ? `settled` : `pending`
+			else if (
+				definition &&
+				`catch` in definition &&
+				definition.catch.some((ErrorType) => raw instanceof ErrorType)
+			)
+				status = `caught`
+		} catch {
+			// Proxies can reject prototype inspection.
+		}
+	}
+	return { definition, raw, status }
 }
 
 /** Capture the supplied root's committed view without reading state, evaluating defaults, or following transaction children. */

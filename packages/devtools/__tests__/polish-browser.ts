@@ -987,8 +987,8 @@ try {
 			await page
 				.getByRole(`button`, { name: `Expand list`, exact: true })
 				.click()
-			await page.getByRole(`button`, { name: `sort`, exact: true }).click()
-			await page.getByRole(`button`, { name: `add item`, exact: true }).click()
+			await page.getByRole(`button`, { name: `Sort`, exact: true }).click()
+			await page.getByRole(`button`, { name: `Add item`, exact: true }).click()
 			await page.getByRole(`button`, { name: `Delete 2`, exact: true }).click()
 			await page
 				.getByRole(`combobox`, { name: `Type of alpha`, exact: true })
@@ -1002,7 +1002,7 @@ try {
 			)
 			await handle(1).press(`Alt+ArrowUp`)
 			await page
-				.getByRole(`button`, { name: `add property`, exact: true })
+				.getByRole(`button`, { name: `Add property`, exact: true })
 				.click()
 			await page.getByRole(`button`, { name: `Delete new`, exact: true }).click()
 			assert.deepEqual(await page.evaluate(() => window.polish.record()), {

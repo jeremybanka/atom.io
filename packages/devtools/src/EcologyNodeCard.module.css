@@ -156,16 +156,22 @@ ecology-node-card.class {
 				animation: ecology-windback 500ms ease-out both;
 			}
 		}
-		&[data-future="done"] > [data-future-indicator] {
-			background: #176345;
-			color: #fff;
-			animation: ecology-complete 1s both;
+		&:is([data-future="done"], [data-future="complete"])
+			> [data-future-indicator] {
 			> [data-loading-glyph] {
 				display: none;
 			}
 			> [data-done-glyph] {
 				display: block;
 			}
+		}
+		&[data-future="done"] > [data-future-indicator] {
+			background: #176345;
+			color: #fff;
+			animation: ecology-complete 1s both;
+		}
+		&[data-future="complete"] > [data-future-indicator] {
+			color: var(--ink-muted);
 		}
 		@media (prefers-reduced-motion: reduce) {
 			&[data-future="done"] > [data-future-indicator],
@@ -287,10 +293,10 @@ ecology-node-card.class {
 	}
 	30%, 82% {
 		transform: scale(1);
-		opacity: 1;
 	}
 	100% {
-		transform: scale(0.85);
-		opacity: 0;
+		transform: scale(1);
+		background: var(--surface-inactive);
+		color: var(--ink-muted);
 	}
 }

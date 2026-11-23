@@ -319,6 +319,7 @@ export function EcologyScene(props: {
 					item={item}
 					store={props.tools.store}
 					activity={props.activity?.get(item.id)}
+					completedLoads={props.context.completedLoads}
 					reducedMotion={reducedMotion}
 					motion={motion}
 					release={release}

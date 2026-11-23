@@ -11,7 +11,7 @@ const EXPLOSION_MS = EXPLOSION_FRAMES * 100
 interface CardFeedback {
 	future(
 		pending: boolean,
-		caught: boolean,
+		completed: boolean,
 		events?: ReadonlySet<FutureActivity>,
 	): void
 	error(caught: boolean, animate: boolean): void
@@ -23,12 +23,12 @@ export function createCardFeedback(
 	reducedMotion: MediaQueryList,
 ): CardFeedback {
 	const view = button.ownerDocument.defaultView!
-	let phase: `loading` | `windback` | `done` | undefined
+	let phase: `loading` | `windback` | `done` | `complete` | undefined
 	let phaseTimer: number | undefined
 	let indicator: HTMLSpanElement | undefined
 	let pending = false
 	let windback = false
-	let successful = false
+	let completed = false
 	const show = (next: typeof phase) => {
 		phase = next
 		if (next) {
@@ -48,7 +48,7 @@ export function createCardFeedback(
 			button.dataset[`future`] = next
 			button.setAttribute(
 				`aria-description`,
-				next === `done`
+				next === `done` || next === `complete`
 					? `Load complete`
 					: next === `windback`
 						? `Load restarted`
@@ -73,10 +73,10 @@ export function createCardFeedback(
 			show(`windback`)
 			hold(WINDBACK_MS, advance)
 		} else if (pending) show(`loading`)
-		else if (successful) {
+		else if (completed) {
 			show(`done`)
 			hold(CYCLE_MS, () => {
-				show(undefined)
+				show(`complete`)
 			})
 		} else show(undefined)
 	}
@@ -90,18 +90,16 @@ export function createCardFeedback(
 	return {
 		future(
 			nextPending: boolean,
-			caught: boolean,
+			nextCompleted: boolean,
 			events?: ReadonlySet<FutureActivity>,
 		): void {
 			const started =
 				events?.has(`started`) === true || (nextPending && !pending)
-			const resolved = events?.has(`resolved`) === true
-			const settled = resolved || (pending && !nextPending)
 			pending = nextPending
+			completed = nextCompleted
 			if (started) {
 				view.clearTimeout(phaseTimer)
 				windback = false
-				successful = false
 				show(`loading`)
 				hold(CYCLE_MS, advance)
 			}
@@ -110,8 +108,15 @@ export function createCardFeedback(
 				(phase === `loading` || phase === `windback`)
 			)
 				windback = true
-			if (settled) successful = resolved && !caught && !events?.has(`rejected`)
 			if (phaseTimer === undefined && phase === `loading`) advance()
+			else if (!phase && completed) {
+				if (events?.has(`resolved`)) advance()
+				else show(`complete`)
+			} else if (!completed && (phase === `done` || phase === `complete`)) {
+				view.clearTimeout(phaseTimer)
+				phaseTimer = undefined
+				show(undefined)
+			}
 		},
 		error(caught: boolean, animate: boolean): void {
 			clearExplosion()

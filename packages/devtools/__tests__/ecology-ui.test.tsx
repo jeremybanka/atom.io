@@ -1073,11 +1073,12 @@ it(`previews visible cached values without evaluating state or invoking property
 	expect(read).not.toHaveBeenCalled()
 })
 
-it(`holds the Future cycle and completion badge even for an immediate resolution`, async () => {
+it(`keeps a muted Future check until another load or an error`, async () => {
 	const f = setup()
-	const workAtom = f.silo.atom<number | Promise<number>>({
+	const workAtom = f.silo.atom<number | Error | Promise<number>, Error>({
 		key: `work`,
 		default: 0,
+		catch: [Error],
 	})
 	f.mount()
 	await settle()
@@ -1093,7 +1094,52 @@ it(`holds the Future cycle and completion badge even for an immediate resolution
 	await vi.advanceTimersByTimeAsync(950)
 	expect(card.dataset[`future`]).toBe(`done`)
 	await vi.advanceTimersByTimeAsync(100)
+	expect(card.dataset[`future`]).toBe(`complete`)
+	expect(card.getAttribute(`aria-description`)).toBe(`Load complete`)
+	expect(card.querySelector(`[data-done-glyph]`)?.textContent).toBe(`✓`)
+	f.silo.setState(workAtom, 7)
+	await vi.advanceTimersByTimeAsync(2_000)
+	expect(card.dataset[`future`]).toBe(`complete`)
+
+	const next = Promise.withResolvers<number>()
+	f.silo.setState(workAtom, next.promise)
+	await vi.advanceTimersByTimeAsync(80)
+	expect(card.dataset[`future`]).toBe(`loading`)
+	next.resolve(5)
+	await vi.advanceTimersByTimeAsync(2_000)
+	expect(card.dataset[`future`]).toBe(`complete`)
+
+	f.silo.setState(workAtom, new Error(`failed`))
+	await vi.advanceTimersByTimeAsync(80)
 	expect(card.dataset[`future`]).toBeUndefined()
+	expect(card.dataset[`caught`]).toBe(`true`)
+	f.silo.setState(workAtom, 0)
+	await vi.advanceTimersByTimeAsync(80)
+	expect(card.dataset[`future`]).toBeUndefined()
+})
+
+it(`remembers load completion when a family member returns to the graph`, async () => {
+	const f = setup()
+	const workAtoms = f.silo.atomFamily<number | Promise<number>, string>({
+		key: `work`,
+		default: 0,
+	})
+	const workAtom = f.silo.findState(workAtoms, `one`)
+	expect(f.silo.getState(workAtom)).toBe(0)
+	f.mount()
+	await settle()
+	f.silo.setState(workAtom, Promise.resolve(42))
+	await settle()
+	await f.click(`Expand work`)
+	const card = () =>
+		f.host.querySelector<HTMLButtonElement>(
+			`ecology-node-card button[data-graph-id='state:${workAtom.key}']`,
+		)
+	expect(card()?.dataset[`future`]).toBe(`complete`)
+	await f.click(`Collapse work`)
+	expect(card()).toBeNull()
+	await f.click(`Expand work`)
+	expect(card()?.dataset[`future`]).toBe(`complete`)
 })
 
 it(`winds back once when a pending Future gets a new fate and uses stripes for its caught error`, async () => {
@@ -1285,12 +1331,16 @@ it(`generates missing state explicitly and reuses nested, writable and readonly 
 			throw new Error(`generation failed`)
 		})
 	const objectAtom = f.silo.atom<unknown>({ key: `object`, default: get })
+	const uncachedAtom = f.silo.atom<number>({ key: `uncached`, default: () => 1 })
 	f.silo.selector<number>({ key: `readonly`, get: () => 3 })
 	f.silo.selector<number>({ key: `failed`, get: failed })
 	f.mount()
 	await settle()
 	await f.select(`state:object`)
 	expect(get).not.toHaveBeenCalled()
+	expect(
+		f.host.querySelector(`button[aria-label="Generate object"] svg`),
+	).not.toBeNull()
 	await f.click(`Generate object`)
 	expect(get).toHaveBeenCalledTimes(1)
 	expect(document.activeElement?.getAttribute(`aria-label`)).toBe(
@@ -1305,10 +1355,21 @@ it(`generates missing state explicitly and reuses nested, writable and readonly 
 	input.dispatchEvent(new Event(`input`, { bubbles: true }))
 	await settle()
 	expect(f.silo.getState(objectAtom)).toMatchObject({ quantity: 4 })
+	await f.click(`Add property`)
+	expect(f.silo.getState(objectAtom)).toHaveProperty(`new`, null)
 	await f.click(`Expand nested`)
 	expect(
 		f.host.querySelector(`ecology-editor input[aria-label="enabled"]`),
 	).not.toBeNull()
+	await f.click(`Reset object`)
+	expect(get).toHaveBeenCalledTimes(2)
+	expect(f.silo.getState(objectAtom)).toEqual({
+		quantity: 2,
+		nested: { enabled: true },
+	})
+	await f.click(`Reset uncached`)
+	expect(f.silo.store.valueMap.get(uncachedAtom.key)).toBe(1)
+	expect(document.activeElement?.getAttribute(`aria-label`)).toBe(`uncached`)
 	await f.select(`state:readonly`)
 	await f.click(`Generate readonly`)
 	expect(document.activeElement?.getAttribute(`aria-label`)).toBe(`readonly`)
@@ -1317,6 +1378,7 @@ it(`generates missing state explicitly and reuses nested, writable and readonly 
 			.querySelector(`ecology-editor input[aria-label="readonly"]`)!
 			.hasAttribute(`readonly`),
 	).toBe(true)
+	expect(f.host.querySelector(`button[aria-label="Reset readonly"]`)).toBeNull()
 	await f.select(`state:failed`)
 	await f.click(`Generate failed`)
 	expect(failed).toHaveBeenCalledTimes(1)

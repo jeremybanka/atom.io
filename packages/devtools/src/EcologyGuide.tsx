@@ -48,9 +48,10 @@ export function EcologyGuide(props: {
 						The ecology editor stays beside the graph on wide screens and below
 						it on narrow screens. Selected, related and other nodes have separate
 						sections. Cached values have nested editors; Generate explicitly
-						reads a missing value and can evaluate a default or selector. Node
-						details retain dependency information and root tracing. Show more
-						nodes admits additional rows.
+						reads a missing value and can evaluate a default or selector. Reset
+						restores writable state to its defaults. Node details retain
+						dependency information and root tracing. Show more nodes admits
+						additional rows.
 					</p>
 					<h3>Search and filter</h3>
 					<p>
@@ -83,9 +84,10 @@ export function EcologyGuide(props: {
 						briefly flash when reduced motion is off. Searching, selecting,
 						tracing and expanding families never evaluate application state. Card
 						previews come from the cache. A loader marks pending values, a check
-						marks completion, and striped edges mark caught errors. Observed
-						dependencies can be stale, incomplete or truncated. Search covers
-						only captured metadata; full store totals are unknown after a
+						marks completion, and striped edges mark caught errors. The check
+						stays visible in a muted color until another load or an error.
+						Observed dependencies can be stale, incomplete or truncated. Search
+						covers only captured metadata; full store totals are unknown after a
 						truncated capture. Generate reads or evaluates a state. Expanding
 						object properties and changing editor values are explicit
 						interactions.

@@ -88,7 +88,7 @@ export function EcologyEditorRow(props: {
 					capture={props.item.source}
 					revision={props.state.activity.get(props.item.id)?.revision}
 					label={label()}
-					onGenerate={() => {
+					onInitialize={() => {
 						props.onGenerate(props.item.key)
 					}}
 				/>

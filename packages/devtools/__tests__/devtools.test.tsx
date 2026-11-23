@@ -146,11 +146,7 @@ describe(`spa debugger`, () => {
 		await input(`input[aria-label="label"]`, `after`)
 		expect(silo.getState(recordAtom)).toEqual({ label: `after`, items: [3, 1] })
 		await click(`button[aria-label="Expand items"]`)
-		const sort = [...host.querySelectorAll(`button`)].find(
-			(button) => button.textContent === `sort`,
-		)!
-		sort.click()
-		await tick()
+		await click(`button[aria-label="Sort"]`)
 		expect(silo.getState(recordAtom)[`items`]).toEqual([1, 3])
 		await click(`button[aria-label="Delete 0"]`)
 		expect(silo.getState(recordAtom)[`items`]).toEqual([3])
@@ -159,11 +155,7 @@ describe(`spa debugger`, () => {
 		await input(`select[aria-label="Type of label"]`, `number`)
 		await input(`select[aria-label="Type of label"]`, `number`, `change`)
 		expect(silo.getState(recordAtom)).toEqual({ label: 0, items: [3] })
-		const add = [...host.querySelectorAll(`button`)].find(
-			(button) => button.textContent === `add property`,
-		)!
-		add.click()
-		await tick()
+		await click(`button[aria-label="Add property"]`)
 		expect(silo.getState(recordAtom)).toEqual({
 			label: 0,
 			items: [3],
@@ -451,22 +443,16 @@ it(`rejects rename collisions, edits booleans and array members, and restores in
 	flag.dispatchEvent(new Event(`change`))
 	await tick()
 	expect(silo.getState(recordAtom).flag).toBe(true)
-	const textButton = async (text: string) => {
-		;[...host.querySelectorAll(`button`)]
-			.find((button) => button.textContent === text)!
-			.click()
-		await tick()
-	}
-	await textButton(`add property`)
+	await click(`button[aria-label="Add property"]`)
 	expect(silo.getState(recordAtom).new_).toBe(null)
 	await click(`[aria-label="Delete new_"]`)
 	expect(silo.getState(recordAtom)).not.toHaveProperty(`new_`)
 	await click(`[aria-label="Expand list"]`)
 	await input(`[aria-label="0"]`, `b`)
 	expect(silo.getState(recordAtom).list).toEqual([`b`, `a`, 3])
-	await textButton(`sort`)
+	await click(`button[aria-label="Sort"]`)
 	expect(silo.getState(recordAtom).list).toEqual([`a`, `b`, 3])
-	await textButton(`add item`)
+	await click(`button[aria-label="Add item"]`)
 	expect(silo.getState(recordAtom).list).toEqual([`a`, `b`, 3, null])
 })
 it(`expands readonly containers and circular children without exposing editing controls`, async () => {

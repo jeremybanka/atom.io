@@ -26,6 +26,15 @@ import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useSetter } from "@atom.io/spa"
 import { atom } from "atom.io"
 
+const bounds = { x: 120, y: 90 }
+const axes = [`x`, `y`] as const
+const directions = [
+	{ label: `Move up`, glyph: `↑`, axis: `y`, step: -1 },
+	{ label: `Move left`, glyph: `←`, axis: `x`, step: -1 },
+	{ label: `Move down`, glyph: `↓`, axis: `y`, step: 1 },
+	{ label: `Move right`, glyph: `→`, axis: `x`, step: 1 },
+] as const
+
 const pointAtom = atom<{ x: number; y: number }>({
 	key: `point`,
 	default: { x: 20, y: 20 },
@@ -33,30 +42,56 @@ const pointAtom = atom<{ x: number; y: number }>({
 export default function PointEditor(): SpaElement {
 	const getPoint = useGetter(pointAtom)
 	const setPoint = useSetter(pointAtom)
+	function setCoordinate(axis: (typeof axes)[number], value: number): void {
+		setPoint((point) => ({
+			...point,
+			[axis]: Math.max(0, Math.min(bounds[axis], value)),
+		}))
+	}
 	return (
 		<section>
-			<h2>Point</h2>
 			<svg
-				viewBox="0 0 100 100"
-				width="120"
-				height="120"
+				class="drawing-surface"
+				viewBox={`0 0 ${bounds.x} ${bounds.y}`}
+				width="240"
+				height="180"
 				role="img"
 				aria-label="Point position"
 			>
-				<rect width="100" height="100" fill="white" stroke="gray" />
-				<circle cx={getPoint().x} cy={getPoint().y} r="3" />
+				<circle cx={getPoint().x} cy={getPoint().y} r="2" fill="currentColor" />
 			</svg>
-			<footer>
-				<output>
-					{getPoint().x}, {getPoint().y}
-				</output>
-				<button
-					onClick={() => {
-						setPoint(({ x, y }) => ({ x: x + 1, y }))
-					}}
-				>
-					Move right
-				</button>
+			<footer class="point-controls">
+				<div role="group" aria-label="Coordinates">
+					{axes.map((axis) => (
+						<label key={axis}>
+							{axis.toUpperCase()}
+							<input
+								type="number"
+								min={0}
+								max={bounds[axis]}
+								value={getPoint()[axis]}
+								onChange={(event) => {
+									const input = event.currentTarget
+									const value = input.valueAsNumber
+									if (Number.isFinite(value)) setCoordinate(axis, value)
+									input.value = String(getPoint()[axis])
+								}}
+							/>
+						</label>
+					))}
+				</div>
+				<div class="direction-pad" role="group" aria-label="Move point">
+					{directions.map(({ label, glyph, axis, step }) => (
+						<button
+							key={label}
+							type="button"
+							aria-label={label}
+							onClick={() => setCoordinate(axis, getPoint()[axis] + step)}
+						>
+							{glyph}
+						</button>
+					))}
+				</div>
 			</footer>
 		</section>
 	)
@@ -826,7 +861,7 @@ const colorAtom = atom<string>({ key: `color`, default: `coral` })
 export default function Scene(): SpaElement {
 	const getColor = useGetter(colorAtom)
 	return (
-		<Canvas width={240} height={180}>
+		<Canvas width={240} height={180} rendererOptions={{ alpha: true }}>
 			<AmbientLight intensity={0.5} />
 			<DirectionalLight position={[3, 3, 3]} />
 			<Mesh rotation={[0.3, 0.5, 0]}>
@@ -1027,17 +1062,19 @@ export default function DismissiblePanel(): SpaElement {
 			>
 				Toggle panel
 			</button>
-			{getVisible() && (
-				<aside
-					key="panel"
-					motion:initial={{ opacity: 0, y: 12 }}
-					motion:animate={{ opacity: 1, y: 0 }}
-					motion:exit={{ opacity: 0, y: -12 }}
-					motion:transition={{ type: `spring`, stiffness: 180, damping: 22 }}
-				>
-					The same instance returns if toggled before its exit completes.
-				</aside>
-			)}
+			<div style="min-block-size:4lh; overflow:clip">
+				{getVisible() && (
+					<aside
+						key="panel"
+						motion:initial={{ opacity: 0, y: 12 }}
+						motion:animate={{ opacity: 1, y: 0 }}
+						motion:exit={{ opacity: 0, y: -12 }}
+						motion:transition={{ type: `spring`, stiffness: 180, damping: 22 }}
+					>
+						The same instance returns if toggled before its exit completes.
+					</aside>
+				)}
+			</div>
 		</section>
 	)
 }
@@ -1094,33 +1131,32 @@ function ReadinessGroup(props: { ready: boolean; match: string }): SpaElement {
 	const getReadyPlayers = useGetter(readyPlayersAtom)
 	const setReadyPlayers = useSetter(readyPlayersAtom)
 	return (
-		<fieldset
-			motion:layout
-			style={`width:${getReadyPlayers().length ? 260 : 180}px;max-width:100%;min-height:66px`}
-		>
+		<fieldset style="max-inline-size:260px">
 			<legend>{props.ready ? `Ready` : `Waiting`}</legend>
-			<footer>
-				{players
-					.filter((player) => getReadyPlayers().includes(player) === props.ready)
-					.map((player) => (
-						<button
-							key={player}
-							motion:layout="position"
-							motion:layoutId={player}
-							motion:layoutGroup={props.match}
-							motion:exit={{ opacity: 0 }}
-							motion:transition={{ duration: 0.2 }}
-							onClick={() => {
-								setReadyPlayers((ready) =>
-									ready.includes(player)
-										? ready.filter((name) => name !== player)
-										: [...ready, player],
-								)
-							}}
-						>
-							{player}
-						</button>
-					))}
+			<footer style="display:grid; grid-template-columns:repeat(2,minmax(0,5em)); place-items:center start; min-block-size:2lh">
+				{players.map(
+					(player, index) =>
+						getReadyPlayers().includes(player) === props.ready && (
+							<button
+								key={player}
+								style={`grid-area:1 / ${index + 1}`}
+								motion:layout="position"
+								motion:layoutId={player}
+								motion:layoutGroup={props.match}
+								motion:exit={{ opacity: 0 }}
+								motion:transition={{ duration: 0.2 }}
+								onClick={() => {
+									setReadyPlayers((ready) =>
+										ready.includes(player)
+											? ready.filter((name) => name !== player)
+											: [...ready, player],
+									)
+								}}
+							>
+								{player}
+							</button>
+						),
+				)}
 			</footer>
 		</fieldset>
 	)

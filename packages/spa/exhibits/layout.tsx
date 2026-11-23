@@ -10,33 +10,32 @@ function ReadinessGroup(props: { ready: boolean; match: string }): SpaElement {
 	const getReadyPlayers = useGetter(readyPlayersAtom)
 	const setReadyPlayers = useSetter(readyPlayersAtom)
 	return (
-		<fieldset
-			motion:layout
-			style={`width:${getReadyPlayers().length ? 260 : 180}px;max-width:100%;min-height:66px`}
-		>
+		<fieldset style="max-inline-size:260px">
 			<legend>{props.ready ? `Ready` : `Waiting`}</legend>
-			<footer>
-				{players
-					.filter((player) => getReadyPlayers().includes(player) === props.ready)
-					.map((player) => (
-						<button
-							key={player}
-							motion:layout="position"
-							motion:layoutId={player}
-							motion:layoutGroup={props.match}
-							motion:exit={{ opacity: 0 }}
-							motion:transition={{ duration: 0.2 }}
-							onClick={() => {
-								setReadyPlayers((ready) =>
-									ready.includes(player)
-										? ready.filter((name) => name !== player)
-										: [...ready, player],
-								)
-							}}
-						>
-							{player}
-						</button>
-					))}
+			<footer style="display:grid; grid-template-columns:repeat(2,minmax(0,5em)); place-items:center start; min-block-size:2lh">
+				{players.map(
+					(player, index) =>
+						getReadyPlayers().includes(player) === props.ready && (
+							<button
+								key={player}
+								style={`grid-area:1 / ${index + 1}`}
+								motion:layout="position"
+								motion:layoutId={player}
+								motion:layoutGroup={props.match}
+								motion:exit={{ opacity: 0 }}
+								motion:transition={{ duration: 0.2 }}
+								onClick={() => {
+									setReadyPlayers((ready) =>
+										ready.includes(player)
+											? ready.filter((name) => name !== player)
+											: [...ready, player],
+									)
+								}}
+							>
+								{player}
+							</button>
+						),
+				)}
 			</footer>
 		</fieldset>
 	)

@@ -209,6 +209,27 @@ try {
 	)
 	assert.equal(await motionFrame.locator(`#app`).isVisible(), false)
 
+	const sharedIdentity = page.locator(`#layout-tsx`)
+	await sharedIdentity.getByRole(`tab`, { name: `Preview` }).click()
+	const readiness = sharedIdentity.frameLocator(`iframe`)
+	const waiting = readiness.getByRole(`group`, { name: `Waiting`, exact: true })
+	const ready = readiness.getByRole(`group`, { name: `Ready`, exact: true })
+	await waiting.waitFor()
+	const groupSizes = () =>
+		readiness
+			.locator(`preview-content fieldset`)
+			.evaluateAll((groups: HTMLFieldSetElement[]) =>
+				groups.map((group) => [group.offsetWidth, group.offsetHeight]),
+			)
+	const initialSizes = await groupSizes()
+	await waiting.getByRole(`button`, { name: `Ada`, exact: true }).click()
+	await ready.getByRole(`button`, { name: `Ada`, exact: true }).waitFor()
+	assert.deepEqual(await groupSizes(), initialSizes)
+	await ready.getByRole(`button`, { name: `Ada`, exact: true }).click()
+	await waiting.getByRole(`button`, { name: `Ada`, exact: true }).waitFor()
+	assert.deepEqual(await groupSizes(), initialSizes)
+	console.log(`Shared identity preview group sizes stayed fixed.`)
+
 	await page.goto(`${base}/docs/web`)
 	const storage = page.locator(`#sync-with-local-storage-ts`)
 	const storageEcology = storage.getByRole(`tab`, { name: `Ecology` })

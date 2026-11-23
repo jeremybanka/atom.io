@@ -16,17 +16,19 @@ export default function DismissiblePanel(): SpaElement {
 			>
 				Toggle panel
 			</button>
-			{getVisible() && (
-				<aside
-					key="panel"
-					motion:initial={{ opacity: 0, y: 12 }}
-					motion:animate={{ opacity: 1, y: 0 }}
-					motion:exit={{ opacity: 0, y: -12 }}
-					motion:transition={{ type: `spring`, stiffness: 180, damping: 22 }}
-				>
-					The same instance returns if toggled before its exit completes.
-				</aside>
-			)}
+			<div style="min-block-size:4lh; overflow:clip">
+				{getVisible() && (
+					<aside
+						key="panel"
+						motion:initial={{ opacity: 0, y: 12 }}
+						motion:animate={{ opacity: 1, y: 0 }}
+						motion:exit={{ opacity: 0, y: -12 }}
+						motion:transition={{ type: `spring`, stiffness: 180, damping: 22 }}
+					>
+						The same instance returns if toggled before its exit completes.
+					</aside>
+				)}
+			</div>
 		</section>
 	)
 }

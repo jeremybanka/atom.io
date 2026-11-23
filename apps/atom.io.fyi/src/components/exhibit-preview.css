@@ -150,10 +150,22 @@ preview-content {
 		align-self: center;
 	}
 
+	:where(svg.drawing-surface),
 	& > :where(canvas, div:has(canvas)) {
 		align-self: center;
-		background: #eee;
-		box-shadow: -1px -1px var(--shade), 1px 1px var(--highlight);
+		max-inline-size: 100%;
+		box-shadow: -2px -2px var(--shade), 2px 2px var(--highlight);
+		color-scheme: light dark;
+		color: light-dark(#000, #fff);
+		background: light-dark(#fff, #000);
+	}
+
+	& > :where(div:has(canvas)) {
+		overflow: auto;
+	}
+
+	:where(svg.drawing-surface) {
+		block-size: auto;
 	}
 
 	:where(button, input, select, textarea) {
@@ -194,6 +206,35 @@ preview-content {
 
 	:where(input[type="number"]) {
 		inline-size: 7em;
+	}
+
+	:where(.point-controls) {
+		align-self: center;
+		inline-size: min(100%, 240px);
+		justify-content: space-between;
+
+		:where(input[type="number"]) {
+			inline-size: 4.25em;
+		}
+	}
+
+	:where(.direction-pad) {
+		display: grid;
+		grid-template-columns: repeat(3, 28px);
+		gap: var(--space-small);
+
+		:where(button) {
+			min-inline-size: 0;
+			min-block-size: 26px;
+			padding: 0;
+			font-size: 16px;
+			line-height: 1;
+			grid-row: 2;
+		}
+
+		:where(button:first-child) {
+			grid-area: 1 / 2;
+		}
 	}
 
 	:where(textarea) {

@@ -1477,8 +1477,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/resumability
       reylo:
-        specifier: 0.8.1
-        version: 0.8.1
+        specifier: 0.8.2
+        version: 0.8.2
       zod:
         specifier: 4.6.7
         version: 4.6.7
@@ -4187,47 +4187,47 @@ packages:
   '@quansync/fs@1.0.0':
     resolution: {integrity: sha512-4TJ3DFtlf1L5LDMaM6CanJ/0lckGNtJcMjQ1NAV6zDmA0tEHKZtxNKin8EgPaVX1YzljbxckyT2tJrpQKAtngQ==}
 
-  '@reylosql/engine-darwin-arm64@0.8.1':
-    resolution: {integrity: sha512-gbN0cj3K3RXLxnCwFolesnfllAwZ7Z6fKqWKrz12GBteTN2Md16vhOB+DonviKDBIye4W1E9gbGsfGAmm6g+NA==}
+  '@reylosql/engine-darwin-arm64@0.8.2':
+    resolution: {integrity: sha512-Ft2LwS57EbkA0VNicMXm3hVLPlWyOvb/Kp/++eSbsRLgmOlAzEYHI9vqoXqoEkKxE4+0sVDl/F2ND+8ifnCpjg==}
     cpu: [arm64]
     os: [darwin]
 
-  '@reylosql/engine-darwin-x64@0.8.1':
-    resolution: {integrity: sha512-ipTClrcuVrrYlZR38s0Wl4k70Af6AJBawGIclqi3FT8OW2qrUFxU47AM29QzPtPgZTG0PGtegcmmaXCfyxbwiA==}
+  '@reylosql/engine-darwin-x64@0.8.2':
+    resolution: {integrity: sha512-k/evf0Dohaz2wR00l5Ft144xuUaw3olPi1J4w1qxYc/h7Tdhz7Pm8/4voPcA4FZuGs1KH6U6j0Ahoj6xHIqnTA==}
     cpu: [x64]
     os: [darwin]
 
-  '@reylosql/engine-linux-arm64-musl@0.8.1':
-    resolution: {integrity: sha512-lQ93O5SOeQgVCSJAyn1ylbjw6NBJ8wwYd9cAVWAh0Uo7WZMw0MosDY6RlEq6qU+O8mr/76kAe5IgBDUYD3/umw==}
+  '@reylosql/engine-linux-arm64-musl@0.8.2':
+    resolution: {integrity: sha512-CJjVshWXOG5ylYYzIJUxSPhQDRW642GrDYamm/tuc5PTn+9iDB1U1xXJ/Mgd0hOQ3LKm5pASEti5D3udAMbJmg==}
     cpu: [arm64]
     os: [linux]
     libc: [musl]
 
-  '@reylosql/engine-linux-arm64@0.8.1':
-    resolution: {integrity: sha512-AT5bw6O8md+G45RpIuC99Z0EBUB93eW29Cf5ocsJwY00++lzwbpYYKkckuoklDJYYn45/bn4H6rsWgR8Mff2aQ==}
+  '@reylosql/engine-linux-arm64@0.8.2':
+    resolution: {integrity: sha512-e1NGUm3aLIXDAVBfki7qf+MHADz3tnFrWSNtOz8+pTqsrunYDlsxT1q61e4A3mwlquC97hQ0ViT0HpoZkUqJ5g==}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  '@reylosql/engine-linux-x64-musl@0.8.1':
-    resolution: {integrity: sha512-b2qLYwlsHZD3UffIqFsaimu81Ze7at1Oz76gStiRlF9nPw5MPSxKezumtI0rfZ5H5/ZA4pFrxyytruffROeCNQ==}
+  '@reylosql/engine-linux-x64-musl@0.8.2':
+    resolution: {integrity: sha512-ausAWK9rRrDvqh/LrDGbCPFvNUaxOR96n42x9DgvXZ4Y/nubyBKcpm7GbeCH0FOH7JF6jkOvItjEaPbiiotukQ==}
     cpu: [x64]
     os: [linux]
     libc: [musl]
 
-  '@reylosql/engine-linux-x64@0.8.1':
-    resolution: {integrity: sha512-5volJS1PryNqXshaL9sopmMZVruhXls5zXjWrEiIkWCaOqTiXS3p3xOnluSaIyZcxlU6CSdGdggXwnqsxWTnCQ==}
+  '@reylosql/engine-linux-x64@0.8.2':
+    resolution: {integrity: sha512-rLgsB7YIRf517A2pG2OQ79iGEaRf+UzOIQHrnG+EbMj1P/Vwfh5d3DtX0zQ9cCc6K3mF32qO/wT1wIqeDOxfxg==}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@reylosql/engine-win32-arm64@0.8.1':
-    resolution: {integrity: sha512-JIX9KdEAP9z+piH37fL3BJGBGdpst5OJB3a74y30F0hbx1I8RpXbKtUrg2NpyGpbkNr4DcQvupOMdr52aG+3fg==}
+  '@reylosql/engine-win32-arm64@0.8.2':
+    resolution: {integrity: sha512-zV1LkUXNxAHC0HnZyQKNEB5uteYDxe/cKYKghgZeJK3mCy/VTBbfkHmL6KDNFVBisxVd4jC6EVPIBYdyFZKc5w==}
     cpu: [arm64]
     os: [win32]
 
-  '@reylosql/engine-win32-x64@0.8.1':
-    resolution: {integrity: sha512-mlar23v8a1aWOK2Y8COH31BSTmdfzpM6jkHk81m0BbFPmfrirWciiTKlpLtOLWdiUdiIeTat3gfJKpXKli6yTw==}
+  '@reylosql/engine-win32-x64@0.8.2':
+    resolution: {integrity: sha512-2GGd6uVxjSM+4py9UTtzxgu95LsefViITnArbjH8aiVIXn7/HFnOSuIcKj17NXZVHQ27Cg4ax/5B5LS/8FIDzQ==}
     cpu: [x64]
     os: [win32]
 
@@ -8117,8 +8117,8 @@ packages:
     resolution: {integrity: sha512-g6QUff04oZpHs0eG5p83rFLhHeV00ug/Yf9nZM6fLeUrPguBTkTQOdpAWWspMh55TZfVQDPaN3NQJfbVRAxdIw==}
     engines: {iojs: '>=1.0.0', node: '>=0.10.0'}
 
-  reylo@0.8.1:
-    resolution: {integrity: sha512-+Ar1xIXG7+l+TS+Whandbt5UHv8HiJjB0KWE1gzqF7V6A41WrXk4vyxU53ptUomL+0KeNapHfvj1kpgehLa6bg==}
+  reylo@0.8.2:
+    resolution: {integrity: sha512-kiMThk/tjx30Z7lV7m5h9S9YGh+JY5RFxsKn6fpBDXQxSJ8eAT1uBx+GmbGUFoiNrOLpupK7U23yxv+wxnvibw==}
     engines: {node: '>=24'}
     hasBin: true
     peerDependencies:
@@ -11730,28 +11730,28 @@ snapshots:
     dependencies:
       quansync: 1.0.0
 
-  '@reylosql/engine-darwin-arm64@0.8.1':
+  '@reylosql/engine-darwin-arm64@0.8.2':
     optional: true
 
-  '@reylosql/engine-darwin-x64@0.8.1':
+  '@reylosql/engine-darwin-x64@0.8.2':
     optional: true
 
-  '@reylosql/engine-linux-arm64-musl@0.8.1':
+  '@reylosql/engine-linux-arm64-musl@0.8.2':
     optional: true
 
-  '@reylosql/engine-linux-arm64@0.8.1':
+  '@reylosql/engine-linux-arm64@0.8.2':
     optional: true
 
-  '@reylosql/engine-linux-x64-musl@0.8.1':
+  '@reylosql/engine-linux-x64-musl@0.8.2':
     optional: true
 
-  '@reylosql/engine-linux-x64@0.8.1':
+  '@reylosql/engine-linux-x64@0.8.2':
     optional: true
 
-  '@reylosql/engine-win32-arm64@0.8.1':
+  '@reylosql/engine-win32-arm64@0.8.2':
     optional: true
 
-  '@reylosql/engine-win32-x64@0.8.1':
+  '@reylosql/engine-win32-x64@0.8.2':
     optional: true
 
   '@rolldown/binding-android-arm-eabi@1.2.15':
@@ -15999,16 +15999,16 @@ snapshots:
 
   reusify@1.1.0: {}
 
-  reylo@0.8.1:
+  reylo@0.8.2:
     optionalDependencies:
-      '@reylosql/engine-darwin-arm64': 0.8.1
-      '@reylosql/engine-darwin-x64': 0.8.1
-      '@reylosql/engine-linux-arm64': 0.8.1
-      '@reylosql/engine-linux-arm64-musl': 0.8.1
-      '@reylosql/engine-linux-x64': 0.8.1
-      '@reylosql/engine-linux-x64-musl': 0.8.1
-      '@reylosql/engine-win32-arm64': 0.8.1
-      '@reylosql/engine-win32-x64': 0.8.1
+      '@reylosql/engine-darwin-arm64': 0.8.2
+      '@reylosql/engine-darwin-x64': 0.8.2
+      '@reylosql/engine-linux-arm64': 0.8.2
+      '@reylosql/engine-linux-arm64-musl': 0.8.2
+      '@reylosql/engine-linux-x64': 0.8.2
+      '@reylosql/engine-linux-x64-musl': 0.8.2
+      '@reylosql/engine-win32-arm64': 0.8.2
+      '@reylosql/engine-win32-x64': 0.8.2
 
   rolldown-plugin-dts@0.30.0(oxc-resolver@11.21.2)(rolldown@1.3.3)(typescript@6.0.3):
     dependencies:

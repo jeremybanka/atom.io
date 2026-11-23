@@ -17,7 +17,7 @@ export function Toggle(): ReactNode {
 		</button>
 	)
 }
-export function Parent(): ReactNode {
+export default function Parent(): ReactNode {
 	const enabled = useO(enabledAtom)
 	return (
 		<section>

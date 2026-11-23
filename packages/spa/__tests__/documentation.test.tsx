@@ -2,27 +2,25 @@ import { getState, setState, Silo } from "atom.io"
 import { takeSnapshot } from "atom.io/testing"
 import { afterEach, expect, it, vi } from "vitest"
 
-import { AccountSettings } from "../exhibits/hooks/on-cleanup.tsx"
-import { SearchDialog } from "../exhibits/hooks/on-mount.tsx"
-import { menuOpenAtoms, MenuToggle } from "../exhibits/hooks/use-disposal.tsx"
-import { CartCount, cartCountAtom } from "../exhibits/hooks/use-getter.tsx"
+import AccountSettings from "../exhibits/hooks/on-cleanup.tsx"
+import SearchDialog from "../exhibits/hooks/on-mount.tsx"
+import MenuToggle, { menuOpenAtoms } from "../exhibits/hooks/use-disposal.tsx"
+import CartCount, { cartCountAtom } from "../exhibits/hooks/use-getter.tsx"
 import { AccountName } from "../exhibits/hooks/use-loadable.tsx"
-import { SearchField, searchFieldAtom } from "../exhibits/hooks/use-ref.tsx"
-import { SearchBox, searchQueryAtom } from "../exhibits/hooks/use-setter.tsx"
+import SearchField, { searchFieldAtom } from "../exhibits/hooks/use-ref.tsx"
+import SearchBox, { searchQueryAtom } from "../exhibits/hooks/use-setter.tsx"
 import { CopyDraft, draftTextAtom } from "../exhibits/hooks/use-store.tsx"
-import { noteAtom, UndoNote } from "../exhibits/hooks/use-timeline.tsx"
-import {
-	AddToCart,
+import UndoNote, { noteAtom } from "../exhibits/hooks/use-timeline.tsx"
+import AddToCart, {
 	cartItemsAtom,
 	cartOpenAtom,
 } from "../exhibits/hooks/use-transaction.tsx"
-import { ContactFields } from "../exhibits/rendering/fragment.tsx"
+import ContactFields from "../exhibits/rendering/fragment.tsx"
 import { hydrateEmailField } from "../exhibits/rendering/hydrate.tsx"
 import { mountCounter } from "../exhibits/rendering/render.tsx"
 import { renderEmailField } from "../exhibits/rendering/render-to-string.tsx"
-import {
+import HelpToolbar, {
 	formattingHelpVisibleAtoms,
-	HelpToolbar,
 	popoverOpenAtoms,
 } from "../exhibits/state-lifetimes.tsx"
 import type { Children, RootOptions, SpaRoot } from "../src/index.ts"

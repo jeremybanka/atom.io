@@ -3,7 +3,7 @@ import { useGetter, useSetter } from "@atom.io/spa"
 
 import { editCountAtom } from "./hmr-state.ts"
 
-export function HotCounter(): SpaElement {
+export default function HotCounter(): SpaElement {
 	const getEditCount = useGetter(editCountAtom)
 	const setEditCount = useSetter(editCountAtom)
 	return (

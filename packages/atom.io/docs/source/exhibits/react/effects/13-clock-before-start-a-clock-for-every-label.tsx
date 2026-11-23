@@ -3,7 +3,13 @@ import { useEffect, useState } from "react"
 
 import { every } from "./every.ts"
 
-export function SavedLabel({ savedAt }: { savedAt: number }): ReactNode {
+const exampleSavedAt = Date.now()
+
+export default function SavedLabel({
+	savedAt = exampleSavedAt,
+}: {
+	savedAt?: number
+}): ReactNode {
 	const [now, setNow] = useState(Date.now)
 	useEffect(
 		() =>

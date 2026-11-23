@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react"
 
 import { createMap } from "./services.ts"
 
-export function MapView(): ReactNode {
+export default function MapView(): ReactNode {
 	const node = useRef<HTMLDivElement>(null)
 	const map = useRef<ReturnType<typeof createMap> | null>(null)
 	const [zoom, setZoom] = useState(1)

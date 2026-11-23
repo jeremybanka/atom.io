@@ -194,6 +194,19 @@ try {
 	assert.equal(await counter.locator(`iframe`).count(), 0)
 	await counter.getByRole(`tab`, { name: `Preview` }).click()
 	assert.equal(await count.inputValue(), `0`)
+
+	const workspace = page.locator(`#silo-store-providers-tsx`)
+	await workspace.getByRole(`tab`, { name: `Preview` }).click()
+	const documentPreview = workspace.frameLocator(`iframe`)
+	const leftTitle = documentPreview.getByRole(`textbox`, {
+		name: `left-document title`,
+	})
+	const rightTitle = documentPreview.getByRole(`textbox`, {
+		name: `right-document title`,
+	})
+	await leftTitle.fill(`Edited title`)
+	assert.equal(await leftTitle.inputValue(), `Edited title`)
+	assert.equal(await rightTitle.inputValue(), `Untitled`)
 	assert.deepEqual(errors, [])
 	console.log(`Exhibit React preview browser checks passed.`)
 

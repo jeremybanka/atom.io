@@ -1,7 +1,7 @@
 import type { SpaElement } from "@atom.io/spa"
 import { useId } from "@atom.io/spa"
 
-export function EmailField(): SpaElement {
+export default function EmailField(): SpaElement {
 	const id = useId()
 	return (
 		<>

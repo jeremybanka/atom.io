@@ -1,10 +1,11 @@
 import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useSetter } from "@atom.io/spa"
+import { motionCapability } from "@atom.io/spa/motion"
 import { atom } from "atom.io"
 
 const targetXAtom = atom<number>({ key: `targetX`, default: 0 })
 
-export function MotionPanel(): SpaElement {
+export default function MotionPanel(): SpaElement {
 	const getTargetX = useGetter(targetXAtom)
 	const setTargetX = useSetter(targetXAtom)
 	return (
@@ -20,3 +21,5 @@ export function MotionPanel(): SpaElement {
 		</section>
 	)
 }
+
+MotionPanel.capabilities = [motionCapability()]

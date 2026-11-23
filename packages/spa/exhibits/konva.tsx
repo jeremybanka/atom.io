@@ -7,11 +7,11 @@ const pointAtom = atom<{ x: number; y: number }>({
 	key: `point`,
 	default: { x: 100, y: 100 },
 })
-export function Editor(): SpaElement {
+export default function Editor(): SpaElement {
 	const getPoint = useGetter(pointAtom)
 	const setPoint = useSetter(pointAtom)
 	return (
-		<Stage width={800} height={600}>
+		<Stage width={240} height={180}>
 			<Layer>
 				<Circle
 					x={getPoint().x}

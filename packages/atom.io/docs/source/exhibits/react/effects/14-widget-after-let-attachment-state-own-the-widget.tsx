@@ -33,7 +33,11 @@ const mapNodeAtoms = atomFamily<HTMLDivElement | null, string>({
 		},
 	],
 })
-export function MapView({ viewId }: { viewId: string }): ReactNode {
+export default function MapView({
+	viewId = `example-map`,
+}: {
+	viewId?: string
+}): ReactNode {
 	const node = useAtomicRef(mapNodeAtoms, viewId, useRef)
 	const setZoom = useI(zoomAtoms, viewId)
 	return (

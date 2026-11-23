@@ -1,9 +1,10 @@
 import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useSetter } from "@atom.io/spa"
+import { motionCapability } from "@atom.io/spa/motion"
 import { atom } from "atom.io"
 
 const visibleAtom = atom<boolean>({ key: `visible`, default: true })
-export function DismissiblePanel(): SpaElement {
+export default function DismissiblePanel(): SpaElement {
 	const getVisible = useGetter(visibleAtom)
 	const setVisible = useSetter(visibleAtom)
 	return (
@@ -29,3 +30,5 @@ export function DismissiblePanel(): SpaElement {
 		</section>
 	)
 }
+
+DismissiblePanel.capabilities = [motionCapability()]

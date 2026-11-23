@@ -21,7 +21,13 @@ const ageSelectors = selectorFamily<number, number>({
 		({ get }) =>
 			Math.floor((get(clockAtom) - savedAt) / 1000),
 })
-export function SavedLabel({ savedAt }: { savedAt: number }): ReactNode {
+const exampleSavedAt = Date.now()
+
+export default function SavedLabel({
+	savedAt = exampleSavedAt,
+}: {
+	savedAt?: number
+}): ReactNode {
 	const seconds = useO(ageSelectors, savedAt)
 	return <output>Saved {seconds} seconds ago</output>
 }

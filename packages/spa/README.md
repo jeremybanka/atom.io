@@ -30,7 +30,7 @@ const pointAtom = atom<{ x: number; y: number }>({
 	key: `point`,
 	default: { x: 20, y: 20 },
 })
-export function PointEditor(): SpaElement {
+export default function PointEditor(): SpaElement {
 	const getPoint = useGetter(pointAtom)
 	const setPoint = useSetter(pointAtom)
 	return (
@@ -183,7 +183,7 @@ import { useGetter, useSetter } from "@atom.io/spa"
 
 import { editCountAtom } from "./hmr-state.ts"
 
-export function HotCounter(): SpaElement {
+export default function HotCounter(): SpaElement {
 	const getEditCount = useGetter(editCountAtom)
 	const setEditCount = useSetter(editCountAtom)
 	return (
@@ -233,7 +233,7 @@ export const captionHeightAtom = atom<number>({
 	default: 0,
 })
 
-export function Caption(): SpaElement {
+export default function Caption(): SpaElement {
 	const getCaption = useGetter(captionAtom)
 	const setCaptionHeight = useSetter(captionHeightAtom)
 	let caption: HTMLParagraphElement | null = null
@@ -360,16 +360,26 @@ Render a Root boundary around each editor to give it a separate store with the d
 ```tsx
 import type { SpaElement } from "@atom.io/spa"
 import { Root, useGetter, useSetter } from "@atom.io/spa"
-import { atom } from "atom.io"
+import { atom, Silo } from "atom.io"
 import type { RootStore } from "atom.io/internal"
 
 export const textAtom = atom<string>({ key: `text`, default: `` })
 
-function Editor() {
+function createDocumentStore(name: string): RootStore {
+	const silo = new Silo({ name, lifespan: `ephemeral`, isProduction: false })
+	silo.install([textAtom])
+	return silo.store
+}
+
+const leftStore = createDocumentStore(`left-document`)
+const rightStore = createDocumentStore(`right-document`)
+
+function Editor(props: { label: string }) {
 	const getText = useGetter(textAtom)
 	const setText = useSetter(textAtom)
 	return (
 		<textarea
+			aria-label={props.label}
 			value={getText()}
 			onInput={(event) => {
 				setText(event.currentTarget.value)
@@ -378,17 +388,17 @@ function Editor() {
 	)
 }
 
-export function Documents(props: {
-	left: RootStore
-	right: RootStore
+export default function Documents(props: {
+	left?: RootStore
+	right?: RootStore
 }): SpaElement {
 	return (
 		<>
-			<Root store={props.left}>
-				<Editor />
+			<Root store={props.left ?? leftStore}>
+				<Editor label="Left document" />
 			</Root>
-			<Root store={props.right}>
-				<Editor />
+			<Root store={props.right ?? rightStore}>
+				<Editor label="Right document" />
 			</Root>
 		</>
 	)
@@ -441,10 +451,12 @@ function FamilyCounter(props: { key: string }): SpaElement {
 	)
 }
 
-export function Counters(props: { ids: readonly string[] }): SpaElement {
+export default function Counters(props: {
+	ids?: readonly string[]
+}): SpaElement {
 	return (
 		<section>
-			{props.ids.map((id) => (
+			{(props.ids ?? [`left`, `right`]).map((id) => (
 				<FamilyCounter key={id} />
 			))}
 		</section>
@@ -539,8 +551,8 @@ function HelpPopover(props: { identity: PopoverIdentity }): SpaElement {
 	)
 }
 
-export function HelpToolbar(props: { id: string }): SpaElement {
-	const toolbar = props.id
+export default function HelpToolbar(props: { id?: string }): SpaElement {
+	const toolbar = props.id ?? `editor`
 	const getFormattingHelpVisible = useGetter(formattingHelpVisibleAtoms, toolbar)
 	const setFormattingHelpVisible = useSetter(formattingHelpVisibleAtoms, toolbar)
 	const dispose = useDisposal()
@@ -754,11 +766,11 @@ const pointAtom = atom<{ x: number; y: number }>({
 	key: `point`,
 	default: { x: 100, y: 100 },
 })
-export function Editor(): SpaElement {
+export default function Editor(): SpaElement {
 	const getPoint = useGetter(pointAtom)
 	const setPoint = useSetter(pointAtom)
 	return (
-		<Stage width={800} height={600}>
+		<Stage width={240} height={180}>
 			<Layer>
 				<Circle
 					x={getPoint().x}
@@ -797,10 +809,10 @@ import {
 import { atom } from "atom.io"
 
 const colorAtom = atom<string>({ key: `color`, default: `coral` })
-export function Scene(): SpaElement {
+export default function Scene(): SpaElement {
 	const getColor = useGetter(colorAtom)
 	return (
-		<Canvas width={800} height={600}>
+		<Canvas width={240} height={180}>
 			<AmbientLight intensity={0.5} />
 			<DirectionalLight position={[3, 3, 3]} />
 			<Mesh rotation={[0.3, 0.5, 0]}>
@@ -826,11 +838,11 @@ import type { SpaElement } from "@atom.io/spa"
 import { BoxGeometry, Canvas, Mesh, MeshBasicMaterial } from "@atom.io/spa/three"
 import { ACESFilmicToneMapping, SRGBColorSpace } from "three"
 
-export function BoardCanvas(): SpaElement {
+export default function BoardCanvas(): SpaElement {
 	return (
 		<Canvas
-			width={800}
-			height={600}
+			width={240}
+			height={180}
 			dpr={[1, 2]}
 			rendererOptions={{ alpha: true, powerPreference: `high-performance` }}
 			onCreated={({ renderer, scene }) => {
@@ -985,10 +997,11 @@ Declare motion:exit on an element, custom tag, Konva node, or Three.js scene nod
 ```tsx
 import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useSetter } from "@atom.io/spa"
+import { motionCapability } from "@atom.io/spa/motion"
 import { atom } from "atom.io"
 
 const visibleAtom = atom<boolean>({ key: `visible`, default: true })
-export function DismissiblePanel(): SpaElement {
+export default function DismissiblePanel(): SpaElement {
 	const getVisible = useGetter(visibleAtom)
 	const setVisible = useSetter(visibleAtom)
 	return (
@@ -1015,6 +1028,8 @@ export function DismissiblePanel(): SpaElement {
 	)
 }
 
+DismissiblePanel.capabilities = [motionCapability()]
+
 ```
 
 In the repository, the runnable source lives in [examples/motion](https://github.com/jeremybanka/atom.io/tree/main/packages/spa/examples/motion), including its standalone Vite entrypoint and visual recorder. Run the package’s example:motion script to start it locally.
@@ -1039,7 +1054,7 @@ Register motionCapability from @atom.io/spa/motion once to enable animated prope
 import { render } from "@atom.io/spa"
 import { motionCapability } from "@atom.io/spa/motion"
 
-import { ReadinessBoard } from "./layout.tsx"
+import ReadinessBoard from "./layout.tsx"
 
 const host = document.querySelector(`#app`)!
 const root = render(() => <ReadinessBoard />, host, {
@@ -1055,7 +1070,7 @@ export const disposeBoard = root.dispose
 ```tsx
 import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useSetter } from "@atom.io/spa"
-import type {} from "@atom.io/spa/motion"
+import { motionCapability } from "@atom.io/spa/motion"
 import { atom } from "atom.io"
 
 const players = [`Ada`, `Grace`] as const
@@ -1095,7 +1110,7 @@ function ReadinessGroup(props: { ready: boolean; match: string }): SpaElement {
 	)
 }
 
-export function ReadinessBoard(): SpaElement {
+export default function ReadinessBoard(): SpaElement {
 	return (
 		<>
 			<ReadinessGroup ready={false} match="match-1" />
@@ -1103,6 +1118,10 @@ export function ReadinessBoard(): SpaElement {
 		</>
 	)
 }
+
+ReadinessBoard.capabilities = [
+	motionCapability({ layoutTransition: { duration: 0.3, ease: `easeInOut` } }),
+]
 
 ```
 
@@ -1223,9 +1242,9 @@ Transition times are normalized, ordered values from 0 to 1 and must match the k
 
 ```tsx
 import type { SpaElement } from "@atom.io/spa"
-import type {} from "@atom.io/spa/motion"
+import { motionCapability } from "@atom.io/spa/motion"
 
-export function TurnBanner(): SpaElement {
+export default function TurnBanner(): SpaElement {
 	return (
 		<aside
 			motion:animate={{
@@ -1245,5 +1264,7 @@ export function TurnBanner(): SpaElement {
 		</aside>
 	)
 }
+
+TurnBanner.capabilities = [motionCapability()]
 
 ```

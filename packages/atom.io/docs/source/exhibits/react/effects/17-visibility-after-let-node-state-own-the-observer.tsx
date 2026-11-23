@@ -28,7 +28,11 @@ const cardNodeAtoms = atomFamily<HTMLDivElement | null, string>({
 		},
 	],
 })
-export function Card({ cardId }: { cardId: string }): ReactNode {
+export default function Card({
+	cardId = `example-card`,
+}: {
+	cardId?: string
+}): ReactNode {
 	const node = useAtomicRef(cardNodeAtoms, cardId, useRef)
 	const visible = useO(visibleAtoms, cardId)
 	return <div ref={node}>{visible ? `In view` : `Outside viewport`}</div>

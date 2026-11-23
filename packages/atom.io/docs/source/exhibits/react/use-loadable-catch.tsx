@@ -20,7 +20,7 @@ const accountAtom = atom<Loadable<{ name: string }>, RequestError>({
 	catch: [RequestError],
 })
 
-export function AccountCard(): React.JSX.Element {
+export default function AccountCard(): React.JSX.Element {
 	const account = useLoadable(accountAtom, { name: `Guest` })
 	return (
 		<div>

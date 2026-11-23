@@ -4,7 +4,7 @@ import { atom } from "atom.io"
 
 export const searchQueryAtom = atom<string>({ key: `searchQuery`, default: `` })
 
-export function SearchBox(): SpaElement {
+export default function SearchBox(): SpaElement {
 	const setSearchQuery = useSetter(searchQueryAtom)
 	return (
 		<input

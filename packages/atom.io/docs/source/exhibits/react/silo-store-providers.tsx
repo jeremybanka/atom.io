@@ -33,7 +33,7 @@ function TitleEditor(props: { document: typeof leftDocument }) {
 	)
 }
 
-export function DocumentWorkspace(): JSX.Element {
+export default function DocumentWorkspace(): JSX.Element {
 	return (
 		<>
 			<StoreProvider store={leftDocument.silo.store}>

@@ -1,15 +1,31 @@
-import { useTL } from "@atom.io/react"
+import { useI, useO, useTL } from "@atom.io/react"
 
-import { glyphTimelines } from "../core/timeline/create-a-timeline-family.ts"
+import {
+	glyphNameAtoms,
+	glyphTimelines,
+} from "../core/timeline/create-a-timeline-family.ts"
 
-export function GlyphHistory(props: { glyphId: string }): React.JSX.Element {
-	const { at, length, undo, redo, clear } = useTL(glyphTimelines, props.glyphId)
+export default function GlyphHistory({
+	glyphId = `example`,
+}: {
+	glyphId?: string
+}): React.JSX.Element {
+	const name = useO(glyphNameAtoms, glyphId)
+	const setName = useI(glyphNameAtoms, glyphId)
+	const { at, length, undo, redo, clear } = useTL(glyphTimelines, glyphId)
 
 	return (
 		<>
-			<span>
+			<input
+				aria-label="Glyph name"
+				value={name}
+				onChange={(event) => {
+					setName(event.currentTarget.value)
+				}}
+			/>
+			<output>
 				{at} / {length}
-			</span>
+			</output>
 			<button type="button" disabled={at === 0} onClick={undo}>
 				undo
 			</button>

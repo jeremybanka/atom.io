@@ -1,6 +1,6 @@
 import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useSetter } from "@atom.io/spa"
-import type {} from "@atom.io/spa/motion"
+import { motionCapability } from "@atom.io/spa/motion"
 import { atom } from "atom.io"
 
 const players = [`Ada`, `Grace`] as const
@@ -40,7 +40,7 @@ function ReadinessGroup(props: { ready: boolean; match: string }): SpaElement {
 	)
 }
 
-export function ReadinessBoard(): SpaElement {
+export default function ReadinessBoard(): SpaElement {
 	return (
 		<>
 			<ReadinessGroup ready={false} match="match-1" />
@@ -48,3 +48,7 @@ export function ReadinessBoard(): SpaElement {
 		</>
 	)
 }
+
+ReadinessBoard.capabilities = [
+	motionCapability({ layoutTransition: { duration: 0.3, ease: `easeInOut` } }),
+]

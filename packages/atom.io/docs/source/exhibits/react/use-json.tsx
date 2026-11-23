@@ -7,7 +7,7 @@ const selectedTagKeysAtom = mutableAtom<UList<string>>({
 	class: UList,
 })
 
-function SelectedTags() {
+export default function SelectedTags(): React.JSX.Element {
 	const selectedTagKeys = useJSON(selectedTagKeysAtom)
 	const setSelectedTagKeys = useI(selectedTagKeysAtom)
 

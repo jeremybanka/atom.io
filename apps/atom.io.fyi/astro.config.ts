@@ -217,7 +217,11 @@ export default defineConfig({
 		"/docs/hydrogen": `/docs/spa`,
 		"/hydrogen-lab": `/spa-lab`,
 	},
-	integrations: [spa(), mdx()],
+	integrations: [
+		// React exhibits can resolve the workspace bindings from source.
+		spa({ include: /^(?!.*\/packages\/react\/src\/).*\.[jt]sx$/ }),
+		mdx(),
+	],
 	markdown: {
 		processor: unified({ remarkPlugins: [preserveCodeBlockCodeProps] }),
 	},

@@ -6,7 +6,7 @@ const pointAtom = atom<{ x: number; y: number }>({
 	key: `point`,
 	default: { x: 20, y: 20 },
 })
-export function PointEditor(): SpaElement {
+export default function PointEditor(): SpaElement {
 	const getPoint = useGetter(pointAtom)
 	const setPoint = useSetter(pointAtom)
 	return (

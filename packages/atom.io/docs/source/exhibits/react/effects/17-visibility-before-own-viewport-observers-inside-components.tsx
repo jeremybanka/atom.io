@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react"
 
 import { observeVisibility } from "./helpers.ts"
 
-export function Card(): ReactNode {
+export default function Card(): ReactNode {
 	const node = useRef<HTMLDivElement>(null)
 	const [visible, setVisible] = useState(false)
 	useEffect(() => observeVisibility(node.current, setVisible), [])

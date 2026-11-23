@@ -34,10 +34,12 @@ function FamilyCounter(props: { key: string }): SpaElement {
 	)
 }
 
-export function Counters(props: { ids: readonly string[] }): SpaElement {
+export default function Counters(props: {
+	ids?: readonly string[]
+}): SpaElement {
 	return (
 		<section>
-			{props.ids.map((id) => (
+			{(props.ids ?? [`left`, `right`]).map((id) => (
 				<FamilyCounter key={id} />
 			))}
 		</section>

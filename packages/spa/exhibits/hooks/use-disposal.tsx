@@ -7,8 +7,8 @@ export const menuOpenAtoms = atomFamily<boolean, string>({
 	default: false,
 })
 
-export function MenuToggle(props: { id: string }): SpaElement {
-	const id = props.id
+export default function MenuToggle(props: { id?: string }): SpaElement {
+	const id = props.id ?? `navigation`
 	const getMenuOpen = useGetter(menuOpenAtoms, id)
 	const setMenuOpen = useSetter(menuOpenAtoms, id)
 	const dispose = useDisposal()

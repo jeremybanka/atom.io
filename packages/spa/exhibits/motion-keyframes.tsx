@@ -1,7 +1,7 @@
 import type { SpaElement } from "@atom.io/spa"
-import type {} from "@atom.io/spa/motion"
+import { motionCapability } from "@atom.io/spa/motion"
 
-export function TurnBanner(): SpaElement {
+export default function TurnBanner(): SpaElement {
 	return (
 		<aside
 			motion:animate={{
@@ -21,3 +21,5 @@ export function TurnBanner(): SpaElement {
 		</aside>
 	)
 }
+
+TurnBanner.capabilities = [motionCapability()]

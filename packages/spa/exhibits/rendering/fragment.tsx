@@ -1,6 +1,6 @@
 import type { SpaElement } from "@atom.io/spa"
 
-export function ContactFields(): SpaElement {
+export default function ContactFields(): SpaElement {
 	return (
 		<>
 			<label>

@@ -123,7 +123,7 @@ function parseExhibit({ file, code }: ExhibitFile) {
 }
 
 const runtimePackages =
-	/^(?:atom\.io(?:\/(?:foundations|transceivers)\/[^/]+|\/(?:web|internal|introspection|testing))?|@atom\.io\/(?:spa|react|solid)(?:\/[\w-]+)?|react(?:\/jsx(?:-dev)?-runtime)?|react-dom(?:\/client)?|solid-js|@solidjs\/web(?:\/jsx(?:-dev)?-runtime)?)$/
+	/^(?:atom\.io(?:\/(?:foundations|transceivers)\/[^/]+|\/(?:web|internal|introspection|testing))?|@atom\.io\/(?:spa|react|solid)(?:\/[\w-]+)?|react(?:\/jsx(?:-dev)?-runtime)?|react-dom(?:\/client)?|solid-js|@solidjs\/web(?:\/jsx(?:-dev)?-runtime)?|three)$/
 
 export interface ExhibitSandbox extends ExhibitFile {
 	ecology: boolean

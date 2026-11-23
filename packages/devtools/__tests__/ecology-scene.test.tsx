@@ -442,6 +442,7 @@ it(`writes arrowless family spines with shared colors, world scaling and reusabl
 	writeFamilySpine(spine, connections, scale)
 	expect(geometry.instanceCount).toBe(1)
 	expect(spine.visible).toBe(true)
+	expect(new THREE.Raycaster().intersectObject(spine)).toEqual([])
 	const color = new THREE.Color(from.color)
 	for (const [point, coords, tint] of [
 		[from, positions, colors],

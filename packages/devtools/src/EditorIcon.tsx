@@ -16,20 +16,21 @@ export type EditorIconName = keyof typeof paths
 
 export function EditorIcon(props: { name: EditorIconName }): SpaElement {
 	return (
-		// eslint-disable-next-line lasertag/render-tag-with-own-name -- The SVG is the icon.
-		<svg
-			data-editor-icon={props.name}
-			viewBox="0 0 16 16"
-			width="14"
-			height="14"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="1.5"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			aria-hidden="true"
-		>
-			<path d={paths[props.name]} />
-		</svg>
+		<editor-icon>
+			<svg
+				data-editor-icon={props.name}
+				viewBox="0 0 16 16"
+				width="14"
+				height="14"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="1.5"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				aria-hidden="true"
+			>
+				<path d={paths[props.name]} />
+			</svg>
+		</editor-icon>
 	)
 }

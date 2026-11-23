@@ -1116,6 +1116,17 @@ it(`keeps a muted Future check until another load or an error`, async () => {
 	f.silo.setState(workAtom, 0)
 	await vi.advanceTimersByTimeAsync(80)
 	expect(card.dataset[`future`]).toBeUndefined()
+
+	f.silo.setState(workAtom, Promise.resolve(42))
+	await vi.advanceTimersByTimeAsync(2_100)
+	expect(card.dataset[`future`]).toBe(`complete`)
+	const superseded = Promise.withResolvers<number>()
+	f.silo.setState(workAtom, superseded.promise)
+	f.silo.setState(workAtom, 9)
+	superseded.resolve(10)
+	await vi.advanceTimersByTimeAsync(2_100)
+	expect(card.dataset[`future`]).toBeUndefined()
+	expect(card.textContent).toContain(`Atom · 9`)
 })
 
 it(`remembers load completion when a family member returns to the graph`, async () => {
@@ -1238,6 +1249,16 @@ it(`ignores obsolete explosion events and cleans up without a CSS animation`, as
 	button.querySelector(`img`)!.dispatchEvent(new Event(`load`))
 	expect(button.querySelector(`img`)).toBeNull()
 	expect(button.dataset[`caught`]).toBe(`true`)
+	feedback.dispose()
+})
+
+it(`animates completion when a Future resolves before the card observes it loading`, async () => {
+	const button = document.createElement(`button`)
+	const feedback = createCardFeedback(button, window.matchMedia(`all`))
+	feedback.future(false, true, new Set([`resolved`]))
+	expect(button.dataset[`future`]).toBe(`done`)
+	await vi.advanceTimersByTimeAsync(1_000)
+	expect(button.dataset[`future`]).toBe(`complete`)
 	feedback.dispose()
 })
 

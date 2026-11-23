@@ -63,15 +63,13 @@ export function JsonEditor(props: EditorProps): SpaElement {
 			if (!transfer) return
 			transfer.effectAllowed = `move`
 			transfer.setData(`text/plain`, String(index))
-			const row = (event.currentTarget as HTMLElement).closest(`editor-row`)
-			if (row) {
-				const { left, top } = row.getBoundingClientRect()
-				transfer.setDragImage(
-					row,
-					Math.round(event.clientX - left),
-					Math.round(event.clientY - top),
-				)
-			}
+			const row = (event.currentTarget as HTMLElement).closest(`editor-row`)!
+			const { left, top } = row.getBoundingClientRect()
+			transfer.setDragImage(
+				row,
+				Math.round(event.clientX - left),
+				Math.round(event.clientY - top),
+			)
 			drag = { index, items }
 		},
 		finish() {

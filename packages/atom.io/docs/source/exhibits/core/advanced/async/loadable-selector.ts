@@ -1,34 +1,21 @@
 import type { Loadable } from "atom.io"
 import { atom, selector } from "atom.io"
 
-function discoverCoinId() {
-	const urlParams = new URLSearchParams(window.location.search)
-	return urlParams.get(`coinId`) ?? `bitcoin`
-}
-export const coinIdAtom = atom<string>({
-	key: `coinId`,
-	default: discoverCoinId,
-	effects: [
-		({ setSelf }) => {
-			const syncFromBrowser = () => {
-				setSelf(discoverCoinId())
-			}
-			window.addEventListener(`popstate`, syncFromBrowser)
-			return () => {
-				window.removeEventListener(`popstate`, syncFromBrowser)
-			}
-		},
-	],
+export const trailIdAtom = atom<string>({
+	key: `trailId`,
+	default: `lake-loop`,
 })
 
-export const coinPriceSelector = selector<Loadable<number>>({
-	key: `coinPrice`,
+export const trailDistanceKmSelector = selector<Loadable<number>, Error>({
+	key: `trailDistanceKm`,
+	catch: [Error],
 	get: async ({ get }) => {
-		const coinId = get(coinIdAtom)
+		const trailId = get(trailIdAtom)
 		const response = await fetch(
-			`https://api.coingecko.com/api/v3/coins/${coinId}`,
+			`/exhibit-data/trails/${encodeURIComponent(trailId)}.json`,
 		)
-		const json = await response.json()
-		return json.market_data.current_price.usd
+		if (!response.ok) throw new Error(`Could not load trail "${trailId}"`)
+		const trail: { distanceKm: number } = await response.json()
+		return trail.distanceKm
 	},
 })

@@ -79,7 +79,10 @@ const server = createServer(async (request, response) => {
 	}
 	try {
 		const data = await readFile(file)
-		if (pathname.startsWith(`/_astro/`)) {
+		if (
+			pathname.startsWith(`/_astro/`) ||
+			pathname.startsWith(`/exhibit-data/trails/`)
+		) {
 			response.setHeader(`access-control-allow-origin`, `*`)
 		}
 		response.setHeader(
@@ -87,6 +90,7 @@ const server = createServer(async (request, response) => {
 			{
 				".html": `text/html`,
 				".js": `application/javascript`,
+				".json": `application/json`,
 				".css": `text/css`,
 				".svg": `image/svg+xml`,
 			}[extname(file)] ?? `application/octet-stream`,
@@ -109,6 +113,10 @@ try {
 			logLevel: `error`,
 		})
 	} else {
+		assert.match(
+			await readFile(join(directory, `_headers`), `utf8`),
+			/^\/exhibit-data\/trails\/\*\n\s+Access-Control-Allow-Origin: \*$/m,
+		)
 		await new Promise<void>((ready) => server.listen(0, `127.0.0.1`, ready))
 	}
 	browser = await chromium.launch({
@@ -181,6 +189,48 @@ try {
 		await frame.locator(`html`).evaluate(() => window.origin),
 		devServer ? base : `null`,
 	)
+	const trail = page.locator(`#loadable-selector-ts`)
+	await trail.getByRole(`tab`, { name: `Ecology` }).click()
+	const trailFrame = trail.frameLocator(`iframe`)
+	const generateDistance = trailFrame.getByRole(`button`, {
+		name: `Generate trailDistanceKm`,
+		exact: true,
+	})
+	await generateDistance.waitFor()
+	if (!devServer) {
+		const policy = `meta[http-equiv="Content-Security-Policy"]`
+		assert.equal(
+			await trailFrame.locator(policy).getAttribute(`content`),
+			`connect-src ${base}/exhibit-data/trails/`,
+		)
+		assert.equal(
+			await frame.locator(policy).getAttribute(`content`),
+			`connect-src 'none'`,
+		)
+	}
+	const trailDocument = (await (
+		await trail.locator(`iframe`).elementHandle()
+	).contentFrame())!
+	const generateTrail = async (id: string, distance: string) => {
+		const [response] = await Promise.all([
+			page.waitForResponse(`${base}/exhibit-data/trails/${id}.json`),
+			generateDistance.click(),
+		])
+		assert.ok(response.ok())
+		await trailDocument.waitForFunction(
+			(expected) =>
+				document.querySelector<HTMLInputElement>(
+					`ecology-editor input[aria-label="trailDistanceKm"]`,
+				)?.value === expected,
+			distance,
+		)
+	}
+	await generateTrail(`lake-loop`, `4.2`)
+	await trailFrame
+		.getByRole(`textbox`, { name: `trailId`, exact: true })
+		.fill(`ridge-trail`)
+	await generateTrail(`ridge-trail`, `7.8`)
+	console.log(`Loadable selector fetched both trail records.`)
 	const declaration = page.locator(`#declare-a-selector-ts`)
 	const declarationHeight = (await declaration.locator(`pre`).boundingBox())!
 		.height

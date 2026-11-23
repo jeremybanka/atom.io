@@ -1,5 +1,5 @@
-import { StoreProvider } from "@atom.io/react"
 import { AtomIODevtools } from "@atom.io/devtools/react"
+import { StoreProvider } from "@atom.io/react"
 import type { Loadable } from "atom.io"
 import { Silo } from "atom.io"
 import { useState } from "react"

@@ -1,5 +1,11 @@
 # @atom.io/devtools
 
+## 0.0.0
+
+- Initial publish under the new package name.
+
+The history below was published as `@atom.io/spa-devtools`.
+
 ## 0.2.1
 
 ### Patch Changes

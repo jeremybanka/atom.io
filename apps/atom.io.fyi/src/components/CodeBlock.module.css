@@ -101,13 +101,39 @@ code-block.class {
 
 	&[data-exhibit-source] {
 		--code-tab-fill: var(--bg-hard-1);
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		grid-template-rows: auto auto;
 		isolation: isolate;
 		background-color: var(--bg-color);
 		&:has(> back-fill:global(.soft)) {
 			--code-tab-fill: var(--bg-soft-1);
 		}
 		> file-name {
-			border-bottom: 1px solid var(--fg-soft-3);
+			position: relative;
+			padding-block-end: 1px;
+			&::after {
+				content: "";
+				position: absolute;
+				inset-inline: 0;
+				inset-block-end: 0;
+				height: 1px;
+				z-index: 1;
+				pointer-events: none;
+				background: var(--fg-soft-3);
+			}
+		}
+		> pre, > [data-ecology-panel] {
+			grid-area: 2 / 1;
+		}
+		> pre {
+			/* Highlighted rows use a taller line box than the pre's line-height. */
+			min-block-size: calc(18 * 19px + 1.5em);
+			&[hidden] {
+				/* Keep the code's layout height while Ecology is visible. */
+				display: block;
+				visibility: hidden;
+			}
 		}
 		/* One layer keeps the grain aligned across the tabs and both panels. */
 		&::after {
@@ -163,6 +189,8 @@ code-block.class {
 			}
 			&[aria-selected="true"] {
 				--active-tab-fill: var(--bg-color);
+				position: relative;
+				z-index: 2;
 				&[data-code-tab] {
 					--active-tab-fill: var(--code-tab-fill);
 				}
@@ -186,9 +214,11 @@ code-block.class {
 	> [data-ecology-panel] {
 		position: relative;
 		> iframe {
+			position: absolute;
+			inset: 0;
 			display: block;
 			width: 100%;
-			height: clamp(420px, 65vh, 540px);
+			height: 100%;
 			border: 0;
 		}
 	}

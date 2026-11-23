@@ -89,14 +89,36 @@ try {
 	const code = exhibit.getByRole(`tab`, { name: `Code` })
 	const ecology = exhibit.getByRole(`tab`, { name: `Ecology` })
 	const frame = exhibit.frameLocator(`iframe`)
+	const codePane = exhibit.locator(`pre`)
+	const codeHeight = await codePane.evaluate((node) => {
+		const style = getComputedStyle(node)
+		const height = node.getBoundingClientRect().height
+		const minimum =
+			18 * 19 + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)
+		return { height, minimum }
+	})
+	assert.ok(codeHeight.height >= codeHeight.minimum)
 	assert.equal(await exhibit.locator(`iframe`).count(), 0)
 	assert.equal(await code.getAttribute(`aria-selected`), `true`)
 	await code.focus()
 	await code.press(`ArrowRight`)
 	assert.equal(await ecology.getAttribute(`aria-selected`), `true`)
+	assert.equal(await codePane.isVisible(), false)
+	assert.equal(
+		(await exhibit.locator(`iframe`).boundingBox())?.height,
+		codeHeight.height,
+	)
 	const quotient = frame.locator(`ecology-editor input[aria-label="quotient"]`)
 	await quotient.waitFor()
 	assert.equal(await quotient.inputValue(), `2`)
+	assert.equal(
+		await frame
+			.locator(`ecology-panel`)
+			.evaluate(
+				(panel) => panel.getBoundingClientRect().height <= window.innerHeight,
+			),
+		true,
+	)
 	assert.equal(
 		await frame.locator(`html`).evaluate(() => window.origin),
 		devServer ? base : `null`,
@@ -108,7 +130,14 @@ try {
 	)
 
 	const declaration = page.locator(`#declare-a-selector-ts`)
+	const declarationHeight = (await declaration.locator(`pre`).boundingBox())!
+		.height
+	assert.ok(declarationHeight > codeHeight.height)
 	await declaration.getByRole(`tab`, { name: `Ecology` }).click()
+	assert.equal(
+		(await declaration.locator(`iframe`).boundingBox())?.height,
+		declarationHeight,
+	)
 	await declaration
 		.frameLocator(`iframe`)
 		.getByRole(`button`, { name: `Generate quotient`, exact: true })
@@ -123,6 +152,7 @@ try {
 	await ecology.press(`Home`)
 	assert.equal(await exhibit.locator(`iframe`).count(), 0)
 	assert.equal(await code.getAttribute(`aria-selected`), `true`)
+	assert.equal((await codePane.boundingBox())?.height, codeHeight.height)
 	await page.setViewportSize({ width: 390, height: 844 })
 	assert.equal(await ecology.locator(`span`).isVisible(), false)
 	assert.deepEqual(errors, [])

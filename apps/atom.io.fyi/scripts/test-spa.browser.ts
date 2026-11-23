@@ -49,7 +49,7 @@ async function assertFrameworkLockup(
 		Math.abs(desktop.y + desktop.height - markBox.y - markBox.height - 12) < 2,
 	)
 	if (asset === `react` || asset === `solid`) {
-		for (const [colorScheme, blendMode, filter] of [
+		for (const [colorScheme, blendMode, expectedFilter] of [
 			[`light`, `multiply`, `none`],
 			[`dark`, `screen`, `none`],
 		] as const) {
@@ -58,7 +58,7 @@ async function assertFrameworkLockup(
 				const { mixBlendMode, filter } = getComputedStyle(node)
 				return [mixBlendMode, filter]
 			})
-			assert.deepEqual(styles, [blendMode, filter])
+			assert.deepEqual(styles, [blendMode, expectedFilter])
 		}
 		await mark.page().emulateMedia({ colorScheme: null })
 	}
@@ -353,13 +353,13 @@ try {
 	await assertTabAbovePane(divisionPreview, previewPane)
 	const sandbox = await division.locator(`iframe`).elementHandle()
 	assert.ok(
-		await sandbox.evaluate((frame) => {
-			const { right, bottom } = frame
+		await sandbox.evaluate((iframe) => {
+			const { right, bottom } = iframe
 				.closest(`exhibit-frame`)!
 				.getBoundingClientRect()
 			return (
-				document.elementFromPoint(right - 8, bottom - 8) === frame &&
-				document.elementFromPoint(right - 1.25, bottom - 1.25) !== frame
+				document.elementFromPoint(right - 8, bottom - 8) === iframe &&
+				document.elementFromPoint(right - 1.25, bottom - 1.25) !== iframe
 			)
 		}),
 		`The exhibit frame must clip the iframe at its rounded corner`,

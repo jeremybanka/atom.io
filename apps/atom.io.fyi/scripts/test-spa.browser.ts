@@ -194,7 +194,7 @@ try {
 	assert.equal((await codePane.boundingBox())?.height, codeHeight.height)
 	await page.setViewportSize({ width: 390, height: 844 })
 	assert.equal(await ecology.locator(`span`).isVisible(), false)
-	const { before, after, scrollOffset } = await page
+	const { before, after, scrollOffset, codeWidth, paneWidth } = await page
 		.locator(`#edit-a-selector-tsx code-pane`)
 		.evaluate((pane) => {
 			const pre = pane.querySelector(`pre`)!
@@ -213,8 +213,15 @@ try {
 				before: initialPosition,
 				after: position(),
 				scrollOffset: pre.scrollLeft,
+				codeWidth: pre.getBoundingClientRect().width,
+				paneWidth: pane.getBoundingClientRect().width,
 			}
 		})
+	assert.equal(
+		codeWidth,
+		paneWidth,
+		`The copy button must float over full-width code`,
+	)
 	assert.ok(before.top > 0 && before.top < 10)
 	assert.ok(before.right > 0 && before.right < 10)
 	assert.ok(scrollOffset > 0)

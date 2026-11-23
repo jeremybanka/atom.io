@@ -3,7 +3,7 @@ import type { JSX } from "react/jsx-runtime"
 
 const BLOCKED_TASK_IDS = new Set([`billing`])
 
-export function TaskBoard(): JSX.Element {
+export default function TaskBoard(): JSX.Element {
 	const [todoIds, setTodoIds] = React.useState([`billing`, `docs`])
 	const [doneIds, setDoneIds] = React.useState([`setup`])
 	const [error, setError] = React.useState<string | null>(null)

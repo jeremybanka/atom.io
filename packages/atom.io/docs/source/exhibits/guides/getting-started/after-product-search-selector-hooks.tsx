@@ -16,7 +16,7 @@ const productSearchLabelSelector = selector<string>({
 	},
 })
 
-export function ProductSearch(): JSX.Element {
+export default function ProductSearch(): JSX.Element {
 	const query = useO(productSearchQueryAtom)
 	const setQuery = useI(productSearchQueryAtom)
 	const searchLabel = useO(productSearchLabelSelector)

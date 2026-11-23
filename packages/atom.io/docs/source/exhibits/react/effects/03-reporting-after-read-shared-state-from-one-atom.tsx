@@ -3,7 +3,7 @@ import { atom } from "atom.io"
 import type { ReactNode } from "react"
 
 const enabledAtom = atom<boolean>({ key: `enabled`, default: false })
-export function Toggle(): ReactNode {
+function Toggle(): ReactNode {
 	const enabled = useO(enabledAtom)
 	const setEnabled = useI(enabledAtom)
 	return (

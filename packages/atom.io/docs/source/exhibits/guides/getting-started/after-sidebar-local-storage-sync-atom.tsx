@@ -11,7 +11,7 @@ const sidebarCollapsedAtom = atom<boolean>({
 	effects: [storageSync(localStorage, JSON, SIDEBAR_STORAGE_KEY)],
 })
 
-export function SidebarLocalStoragePreference(): JSX.Element {
+export default function SidebarLocalStoragePreference(): JSX.Element {
 	const collapsed = useO(sidebarCollapsedAtom)
 	const setCollapsed = useI(sidebarCollapsedAtom)
 

@@ -35,7 +35,7 @@ function TicketQueueHeading(): JSX.Element {
 	return <h2>{status === `open` ? `Open tickets` : `Closed tickets`}</h2>
 }
 
-export function TicketQueue(): JSX.Element {
+export default function TicketQueue(): JSX.Element {
 	return (
 		<>
 			<TicketStatusSelect />

@@ -169,7 +169,7 @@ function CartSummary(): JSX.Element {
 	return <p>Total: ${total.toFixed(2)}</p>
 }
 
-export function ShoppingCart(): JSX.Element {
+export default function ShoppingCart(): JSX.Element {
 	return (
 		<section>
 			<AddToCartButton />

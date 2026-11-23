@@ -299,6 +299,28 @@ try {
 	assert.equal(await sandbox.evaluate((node) => node.isConnected), true)
 	console.log(`Shared exhibit store and responsive layout checks passed.`)
 
+	await page.goto(`${base}/docs/against-use-effect`)
+	const draftExamples = [
+		[`02-identity-before-reset-identity-after-rendering-tsx`, ``],
+		[`02-identity-after-give-each-document-its-own-state-tsx`, `First draft`],
+	] as const
+	for (const [id, restoredDraft] of draftExamples) {
+		const editor = page.locator(`code-block[id="${id}"]`)
+		await editor.getByRole(`tab`, { name: `Preview` }).click()
+		const draftFrame = editor.frameLocator(`iframe`)
+		const picker = draftFrame.getByRole(`combobox`, { name: `Document` })
+		const firstDraft = draftFrame.getByRole(`textbox`, { name: `Document A` })
+		const secondDraft = draftFrame.getByRole(`textbox`, { name: `Document B` })
+		await firstDraft.fill(`First draft`)
+		await picker.selectOption(`Document B`)
+		assert.equal(await secondDraft.inputValue(), ``)
+		await secondDraft.fill(`Second draft`)
+		await picker.selectOption(`Document A`)
+		assert.equal(await firstDraft.inputValue(), restoredDraft)
+	}
+	assert.deepEqual(errors, [])
+	console.log(`Document identity preview checks passed.`)
+
 	await page.goto(`${base}/docs/react`)
 	const counter = page.locator(`#counter-preview-tsx`)
 	assert.deepEqual(

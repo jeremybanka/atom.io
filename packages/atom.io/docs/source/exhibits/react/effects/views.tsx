@@ -3,6 +3,27 @@ import type { ReactNode, RefObject } from "react"
 
 import type { Product } from "./services.ts"
 
+export function DocumentPicker({
+	documentId,
+	onChange,
+}: {
+	documentId: string
+	onChange: (documentId: string) => void
+}): ReactNode {
+	return (
+		<select
+			aria-label="Document"
+			value={documentId}
+			onChange={(event) => {
+				onChange(event.currentTarget.value)
+			}}
+		>
+			<option>Document A</option>
+			<option>Document B</option>
+		</select>
+	)
+}
+
 export function DraftForm({
 	text,
 	onChange,

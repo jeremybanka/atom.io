@@ -29,7 +29,7 @@ const lastSavedLabelSelector = selector<string>({
 	},
 })
 
-export function LastSavedIndicator(): JSX.Element {
+export default function LastSavedIndicator(): JSX.Element {
 	const label = useO(lastSavedLabelSelector)
 
 	return <output>{label}</output>

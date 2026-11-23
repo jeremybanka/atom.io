@@ -20,7 +20,7 @@ const collapsedAtom = atom<boolean>({
 		),
 	],
 })
-export function SidebarPreference(): ReactNode {
+export default function SidebarPreference(): ReactNode {
 	const collapsed = useO(collapsedAtom)
 	const setCollapsed = useI(collapsedAtom)
 	return <PreferenceToggle checked={collapsed} onChange={setCollapsed} />

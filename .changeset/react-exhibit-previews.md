@@ -16,3 +16,5 @@ Identify the renderer in each exhibit preview with a subdued monochrome React, S
 Give previews consistent retro form controls, field labels, and action spacing. Keep canvas and animation examples usable in narrow panes.
 
 Keep preview panels stable during Motion transitions and give drawing surfaces inset frames that follow the system light or dark preference. Move the point with a four-way arrow pad.
+
+Pin the copy button to the upper-right corner of the code pane, separate from the exhibit tabs and the scrolling code.

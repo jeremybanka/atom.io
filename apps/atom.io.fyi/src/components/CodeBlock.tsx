@@ -110,17 +110,36 @@ export function CodeBlock({
 				<span>{displayLabel}</span>
 				{exhibit && (
 					<nav role="tablist" aria-label="Exhibit views">
-						<exhibit-code-tabs role="presentation">
-							{renderTab(tabs[0])}
-						</exhibit-code-tabs>
+						{renderTab(tabs[0])}
 						<exhibit-live-tabs role="presentation">
 							{tabs.slice(1).map(renderTab)}
 						</exhibit-live-tabs>
 					</nav>
 				)}
-				<button type="button" aria-label="Copy code">
-					<svg viewBox="0 0 16 16">
-						<title>copy</title>
+			</file-name>
+			<code-pane
+				id={exhibit ? `${id}-code` : undefined}
+				role={exhibit ? `tabpanel` : undefined}
+				aria-labelledby={exhibit ? `${id}-code-tab` : undefined}
+			>
+				<pre tabIndex={exhibit ? 0 : undefined}>
+					<code>
+						{tokens.map((line, lineIndex) => [
+							lineIndex > 0 ? `\n` : ``,
+							line.map((token) => (
+								<span
+									key={token.offset}
+									style={`color:${token.color}`}
+									data-code-string={token.type === 2 ? `` : undefined}
+								>
+									{token.content}
+								</span>
+							)),
+						])}
+					</code>
+				</pre>
+				<button type="button" aria-label="Copy code" data-copy-code>
+					<svg viewBox="0 0 16 16" aria-hidden="true">
 						<path
 							d="M15,5v10H5V5h10M16,4H4v12h12V4h0Z"
 							fill="var(--icon-color)"
@@ -131,28 +150,7 @@ export function CodeBlock({
 						/>
 					</svg>
 				</button>
-			</file-name>
-			<pre
-				id={exhibit ? `${id}-code` : undefined}
-				role={exhibit ? `tabpanel` : undefined}
-				aria-labelledby={exhibit ? `${id}-code-tab` : undefined}
-				tabIndex={exhibit ? 0 : undefined}
-			>
-				<code>
-					{tokens.map((line, lineIndex) => [
-						lineIndex > 0 ? `\n` : ``,
-						line.map((token) => (
-							<span
-								key={token.offset}
-								style={`color:${token.color}`}
-								data-code-string={token.type === 2 ? `` : undefined}
-							>
-								{token.content}
-							</span>
-						)),
-					])}
-				</code>
-			</pre>
+			</code-pane>
 			{exhibit && (
 				<section id={`${id}-live`} role="tabpanel" data-exhibit-panel hidden />
 			)}

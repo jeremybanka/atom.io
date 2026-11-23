@@ -21,7 +21,7 @@ function syncExhibit(exhibit: HTMLElement, activate = false): void {
 	const tabs = [
 		...exhibit.querySelectorAll<HTMLButtonElement>(`[data-exhibit-tab]`),
 	]
-	const code = exhibit.querySelector<HTMLPreElement>(`pre`)!
+	const code = exhibit.querySelector<HTMLElement>(`code-pane`)!
 	const live = exhibit.querySelector<HTMLElement>(`[data-exhibit-panel]`)!
 	const width = exhibit.getBoundingClientRect().width
 	const split = width >= 1000

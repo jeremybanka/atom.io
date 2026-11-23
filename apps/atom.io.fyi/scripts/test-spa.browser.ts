@@ -127,6 +127,7 @@ try {
 	const ecology = exhibit.getByRole(`tab`, { name: `Ecology` })
 	const frame = exhibit.frameLocator(`iframe`)
 	const codePane = exhibit.locator(`pre`)
+	const copy = exhibit.getByRole(`button`, { name: `Copy code` })
 	const codeHeight = await codePane.evaluate((node) => {
 		const style = getComputedStyle(node)
 		const height = node.getBoundingClientRect().height
@@ -137,10 +138,16 @@ try {
 	assert.ok(codeHeight.height >= codeHeight.minimum)
 	assert.equal(await exhibit.locator(`iframe`).count(), 0)
 	assert.equal(await code.getAttribute(`aria-selected`), `true`)
+	await copy.click()
+	await page.waitForFunction(
+		async (expected) => (await navigator.clipboard.readText()) === expected,
+		await codePane.locator(`code`).textContent(),
+	)
 	await code.focus()
 	await code.press(`ArrowRight`)
 	assert.equal(await ecology.getAttribute(`aria-selected`), `true`)
 	assert.equal(await codePane.isVisible(), false)
+	assert.equal(await copy.isVisible(), false)
 	assert.equal(
 		(await exhibit.locator(`iframe`).boundingBox())?.height,
 		codeHeight.height,
@@ -160,12 +167,6 @@ try {
 		await frame.locator(`html`).evaluate(() => window.origin),
 		devServer ? base : `null`,
 	)
-	await exhibit.getByRole(`button`, { name: `Copy code` }).click()
-	await page.waitForFunction(
-		async (expected) => (await navigator.clipboard.readText()) === expected,
-		await exhibit.locator(`pre code`).textContent(),
-	)
-
 	const declaration = page.locator(`#declare-a-selector-ts`)
 	const declarationHeight = (await declaration.locator(`pre`).boundingBox())!
 		.height
@@ -193,6 +194,27 @@ try {
 	assert.equal((await codePane.boundingBox())?.height, codeHeight.height)
 	await page.setViewportSize({ width: 390, height: 844 })
 	assert.equal(await ecology.locator(`span`).isVisible(), false)
+	const { before, after, scrollOffset } = await page
+		.locator(`#edit-a-selector-tsx code-pane`)
+		.evaluate((pane) => {
+			const pre = pane.querySelector(`pre`)!
+			const copyButton = pane.querySelector(`[data-copy-code]`)!
+			const position = () => {
+				const button = copyButton.getBoundingClientRect()
+				const bounds = pane.getBoundingClientRect()
+				return {
+					top: button.top - bounds.top,
+					right: bounds.right - button.right,
+				}
+			}
+			const before = position()
+			pre.scrollLeft = pre.scrollWidth
+			return { before, after: position(), scrollOffset: pre.scrollLeft }
+		})
+	assert.ok(before.top > 0 && before.top < 10)
+	assert.ok(before.right > 0 && before.right < 10)
+	assert.ok(scrollOffset > 0)
+	assert.deepEqual(after, before)
 	await page.setViewportSize({ width: 1440, height: 1000 })
 
 	await page.goto(`${base}/docs/spa/motion`)
@@ -269,7 +291,7 @@ try {
 	const divisionCode = division.getByRole(`tab`, { name: `Code` })
 	const divisionEcology = division.getByRole(`tab`, { name: `Ecology` })
 	const divisionPreview = division.getByRole(`tab`, { name: `Preview` })
-	const divisionSource = division.locator(`pre`)
+	const divisionSource = division.locator(`code-pane`)
 	const divisionFrame = division.frameLocator(`iframe`)
 	const ecologyPane = divisionFrame.locator(`#ecology`)
 	const previewPane = divisionFrame.locator(`#preview`)
@@ -486,7 +508,7 @@ try {
 		.locator(`code-block pre code`)
 		.first()
 		.textContent()
-	await page.locator(`code-block > file-name > button`).first().click()
+	await page.getByRole(`button`, { name: `Copy code` }).first().click()
 	await page.waitForFunction(
 		async (expected) => (await navigator.clipboard.readText()) === expected,
 		copiedCode,

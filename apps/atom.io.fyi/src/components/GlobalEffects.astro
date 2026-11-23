@@ -69,8 +69,9 @@ function linkCodeBlockImports(): void {
 }
 
 async function copyCodeBlock(button: HTMLButtonElement): Promise<void> {
-	const codeBlock = button.closest(`code-block`)
-	const code = codeBlock?.querySelector(`pre code`)?.textContent
+	const code = button
+		.closest(`code-pane`)
+		?.querySelector(`pre code`)?.textContent
 	if (code === undefined) {
 		return
 	}
@@ -98,7 +99,7 @@ if (!globalWithEffects[globalEffectsKey]) {
 			selectExhibitTab(tab)
 			return
 		}
-		const button = event.target.closest(`code-block > file-name > button`)
+		const button = event.target.closest(`[data-copy-code]`)
 		if (!(button instanceof HTMLButtonElement)) {
 			return
 		}

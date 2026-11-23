@@ -208,18 +208,9 @@ preview-content {
 		inline-size: 7em;
 	}
 
-	:where(.point-controls) {
-		align-self: center;
-		inline-size: min(100%, 240px);
-		justify-content: space-between;
-
-		:where(input[type="number"]) {
-			inline-size: 4.25em;
-		}
-	}
-
 	:where(.direction-pad) {
 		display: grid;
+		align-self: center;
 		grid-template-columns: repeat(3, 28px);
 		gap: var(--space-small);
 

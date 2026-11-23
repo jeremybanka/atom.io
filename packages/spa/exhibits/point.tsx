@@ -2,8 +2,8 @@ import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useSetter } from "@atom.io/spa"
 import { atom } from "atom.io"
 
+type Point = { x: number; y: number }
 const bounds = { x: 120, y: 90 }
-const axes = [`x`, `y`] as const
 const directions = [
 	{ label: `Move up`, glyph: `↑`, axis: `y`, step: -1 },
 	{ label: `Move left`, glyph: `←`, axis: `x`, step: -1 },
@@ -11,17 +11,14 @@ const directions = [
 	{ label: `Move right`, glyph: `→`, axis: `x`, step: 1 },
 ] as const
 
-const pointAtom = atom<{ x: number; y: number }>({
-	key: `point`,
-	default: { x: 20, y: 20 },
-})
+const pointAtom = atom<Point>({ key: `point`, default: { x: 20, y: 20 } })
 export default function PointEditor(): SpaElement {
 	const getPoint = useGetter(pointAtom)
 	const setPoint = useSetter(pointAtom)
-	function setCoordinate(axis: (typeof axes)[number], value: number): void {
+	function move(axis: keyof Point, step: number): void {
 		setPoint((point) => ({
 			...point,
-			[axis]: Math.max(0, Math.min(bounds[axis], value)),
+			[axis]: Math.max(0, Math.min(bounds[axis], point[axis] + step)),
 		}))
 	}
 	return (
@@ -36,38 +33,17 @@ export default function PointEditor(): SpaElement {
 			>
 				<circle cx={getPoint().x} cy={getPoint().y} r="2" fill="currentColor" />
 			</svg>
-			<footer class="point-controls">
-				<div role="group" aria-label="Coordinates">
-					{axes.map((axis) => (
-						<label key={axis}>
-							{axis.toUpperCase()}
-							<input
-								type="number"
-								min={0}
-								max={bounds[axis]}
-								value={getPoint()[axis]}
-								onChange={(event) => {
-									const input = event.currentTarget
-									const value = input.valueAsNumber
-									if (Number.isFinite(value)) setCoordinate(axis, value)
-									input.value = String(getPoint()[axis])
-								}}
-							/>
-						</label>
-					))}
-				</div>
-				<div class="direction-pad" role="group" aria-label="Move point">
-					{directions.map(({ label, glyph, axis, step }) => (
-						<button
-							key={label}
-							type="button"
-							aria-label={label}
-							onClick={() => setCoordinate(axis, getPoint()[axis] + step)}
-						>
-							{glyph}
-						</button>
-					))}
-				</div>
+			<footer class="direction-pad" role="group" aria-label="Move point">
+				{directions.map(({ label, glyph, axis, step }) => (
+					<button
+						key={label}
+						type="button"
+						aria-label={label}
+						onClick={() => move(axis, step)}
+					>
+						{glyph}
+					</button>
+				))}
 			</footer>
 		</section>
 	)

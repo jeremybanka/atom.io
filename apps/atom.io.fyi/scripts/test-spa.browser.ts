@@ -173,6 +173,16 @@ try {
 	const preview = counter.frameLocator(`iframe`)
 	const count = preview.getByRole(`spinbutton`, { name: `Count` })
 	assert.equal(await count.inputValue(), `0`)
+	const desktopColor = await preview
+		.locator(`html`)
+		.evaluate((node) => getComputedStyle(node).backgroundColor)
+	const tabColors = await counter
+		.getByRole(`tab`, { name: `Preview` })
+		.evaluate((tab) => {
+			const { backgroundColor, borderBottomColor } = getComputedStyle(tab)
+			return [backgroundColor, borderBottomColor]
+		})
+	assert.deepEqual(tabColors, [desktopColor, desktopColor])
 	await preview.getByRole(`button`, { name: `Add`, exact: true }).click()
 	assert.equal(await count.inputValue(), `1`)
 	assert.equal(

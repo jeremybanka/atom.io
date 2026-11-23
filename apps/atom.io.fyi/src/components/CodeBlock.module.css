@@ -1,3 +1,5 @@
+@import "./exhibit-preview-colors.css";
+
 code-block.class {
 	margin-top: 1.5em;
 	box-sizing: border-box;
@@ -191,13 +193,17 @@ code-block.class {
 				--active-tab-fill: var(--bg-color);
 				position: relative;
 				z-index: 2;
-				&[data-code-tab] {
+				&[data-exhibit-tab="code"] {
 					--active-tab-fill: var(--code-tab-fill);
 				}
 				background: var(--active-tab-fill);
 				border-color: var(--fg-soft-3);
 				border-bottom-color: var(--active-tab-fill);
 				color: var(--fg-color);
+				&[data-exhibit-tab="preview"] {
+					--active-tab-fill: var(--exhibit-preview-background);
+					color: #fff;
+				}
 			}
 			&:focus-visible {
 				outline: 2px solid var(--hyperlink-color);

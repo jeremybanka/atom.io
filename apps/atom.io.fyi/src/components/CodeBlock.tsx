@@ -99,7 +99,7 @@ export function CodeBlock({
 								aria-controls={`${id}-${view}`}
 								aria-label={tabLabel}
 								aria-selected={view === `code` ? `true` : `false`}
-								data-code-tab={view === `code` ? true : undefined}
+								data-exhibit-tab={view}
 								tabIndex={view === `code` ? 0 : -1}
 							>
 								<svg viewBox="0 0 16 16" aria-hidden="true">

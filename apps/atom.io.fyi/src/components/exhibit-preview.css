@@ -49,17 +49,28 @@ preview-window {
 	--pane: #c6c8cb;
 	--highlight: #fff;
 	--shade: #53575b;
+	--bevel-width: 2px;
 	--bevel: var(--highlight) var(--shade) var(--shade) var(--highlight);
 	--inset-bevel: var(--shade) var(--highlight) var(--highlight) var(--shade);
 	box-sizing: border-box;
+	position: relative;
 	inline-size: min(100%, 22rem);
 	margin: auto;
 	padding: clamp(12px, 4vw, 20px);
 	background: var(--pane);
-	border: 2px solid;
+	border: var(--bevel-width) solid;
 	border-color: var(--bevel);
-	box-shadow: 1px 1px #242729, 8px 8px #0005;
+	box-shadow: 1px 1px #242729;
 	overflow-wrap: anywhere;
+}
+
+preview-window::before {
+	content: "";
+	position: absolute;
+	inset: calc(-1 * var(--bevel-width));
+	box-shadow: 5px 5px rgb(0 0 0 / 10%);
+	mix-blend-mode: multiply;
+	pointer-events: none;
 }
 
 #preview-status {

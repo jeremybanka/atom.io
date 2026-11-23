@@ -30,8 +30,8 @@ await test(`Astro's renderer preserves spa component HTML for hydration`, async 
 await test(`Astro's renderer preserves static code exhibits`, async () => {
 	assert.equal(
 		await markup(() =>
-			jsx(`code-block`, { children: jsx(`pre`, { children: `example` }) }),
+			jsx(`exhibit-frame`, { children: jsx(`pre`, { children: `example` }) }),
 		),
-		`<code-block><pre>example</pre></code-block>`,
+		`<exhibit-frame><pre>example</pre></exhibit-frame>`,
 	)
 })

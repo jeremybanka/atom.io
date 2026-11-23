@@ -147,13 +147,13 @@ The writer stays stable for the mounted instance and accepts either a replacemen
 
 ### useLoadable
 
-Read asynchronous state with a loading flag and an initial fallback:
+Read asynchronous state with a loading flag and an initial fallback. This example simulates loading an account name with a short delay:
 
 <Exhibit src="spa/exhibits/hooks/use-loadable.tsx" />
 
 Call the returned accessor inside JSX. It retains the last observed value during refreshes; errors declared by the token appear in error when a fallback is supplied. See [async state](#async-state) for the result shapes and family behavior.
 
-In Astro, mount this browser-fetching component as a client-only island. For data fetched during server rendering, use [resumability](/docs/spa/astro#resumability).
+In Astro, use a client-only island for a component that fetches data in the browser. For data fetched during server rendering, use [resumability](/docs/spa/astro#resumability).
 
 ### useTimeline
 

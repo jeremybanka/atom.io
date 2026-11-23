@@ -51,7 +51,7 @@ async function loadWorld(sandbox: Sandbox) {
 const ecology = document.querySelector<HTMLElement>(`#ecology`)!
 const ecologyStatus = ecology.querySelector(`p`)!
 const preview = document.querySelector<HTMLElement>(`#preview`)!
-const previewHost = document.querySelector<HTMLElement>(`#preview-content`)!
+const previewHost = document.querySelector<HTMLElement>(`#preview-mount`)!
 const previewStatus = document.querySelector<HTMLElement>(`#preview-status`)!
 const previewFramework =
 	document.querySelector<HTMLImageElement>(`#preview-framework`)!
@@ -105,6 +105,7 @@ function startSandbox(sandbox: Sandbox): void {
 			if (closed || !sandbox.preview) return
 			previewFramework.src = `/exhibit-frameworks/${sandbox.preview}.svg`
 			previewFramework.alt = frameworkNames[sandbox.preview]
+			previewFramework.dataset[`framework`] = sandbox.preview
 			previewFramework.hidden = false
 			previewStatus.hidden = true
 			const dispose = await mountExhibitPreview(

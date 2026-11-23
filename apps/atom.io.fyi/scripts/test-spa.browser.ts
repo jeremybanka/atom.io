@@ -48,6 +48,20 @@ async function assertFrameworkLockup(
 	assert.ok(
 		Math.abs(desktop.y + desktop.height - markBox.y - markBox.height - 12) < 2,
 	)
+	if (asset === `react` || asset === `solid`) {
+		for (const [colorScheme, blendMode, expectedFilter] of [
+			[`light`, `multiply`, `none`],
+			[`dark`, `screen`, `none`],
+		] as const) {
+			await mark.page().emulateMedia({ colorScheme })
+			const styles = await mark.evaluate((node) => {
+				const { mixBlendMode, filter } = getComputedStyle(node)
+				return [mixBlendMode, filter]
+			})
+			assert.deepEqual(styles, [blendMode, expectedFilter])
+		}
+		await mark.page().emulateMedia({ colorScheme: null })
+	}
 }
 
 const directory = resolve(import.meta.dirname, `../dist/client`)
@@ -195,7 +209,7 @@ try {
 	await page.setViewportSize({ width: 390, height: 844 })
 	assert.equal(await ecology.locator(`span`).isVisible(), false)
 	const { before, after, scrollOffset, codeWidth, paneWidth } = await page
-		.locator(`#edit-a-selector-tsx code-pane`)
+		.locator(`#edit-a-selector-tsx exhibit-source-pane`)
 		.evaluate((pane) => {
 			const pre = pane.querySelector(`pre`)!
 			const copyButton = pane.querySelector(`[data-copy-code]`)!
@@ -250,7 +264,7 @@ try {
 	await waiting.waitFor()
 	const groupSizes = () =>
 		readiness
-			.locator(`preview-content fieldset`)
+			.locator(`preview-mount fieldset`)
 			.evaluateAll((groups: HTMLFieldSetElement[]) =>
 				groups.map((group) => [group.offsetWidth, group.offsetHeight]),
 			)
@@ -302,7 +316,7 @@ try {
 	const divisionCode = division.getByRole(`tab`, { name: `Code` })
 	const divisionEcology = division.getByRole(`tab`, { name: `Ecology` })
 	const divisionPreview = division.getByRole(`tab`, { name: `Preview` })
-	const divisionSource = division.locator(`code-pane`)
+	const divisionSource = division.locator(`exhibit-source-pane`)
 	const divisionFrame = division.frameLocator(`iframe`)
 	const ecologyPane = divisionFrame.locator(`#ecology`)
 	const previewPane = divisionFrame.locator(`#preview`)
@@ -338,6 +352,18 @@ try {
 	await assertTabAbovePane(divisionEcology, ecologyPane)
 	await assertTabAbovePane(divisionPreview, previewPane)
 	const sandbox = await division.locator(`iframe`).elementHandle()
+	assert.ok(
+		await sandbox.evaluate((iframe) => {
+			const { right, bottom } = iframe
+				.closest(`exhibit-frame`)!
+				.getBoundingClientRect()
+			return (
+				document.elementFromPoint(right - 8, bottom - 8) === iframe &&
+				document.elementFromPoint(right - 1.25, bottom - 1.25) !== iframe
+			)
+		}),
+		`The exhibit frame must clip the iframe at its rounded corner`,
+	)
 	const liveDocument = (await sandbox.contentFrame())!
 	await increaseDivisor.click()
 	await previewDivisor.waitFor()
@@ -352,6 +378,44 @@ try {
 		true,
 	)
 	await divisionPreview.click()
+	const previewBackgrounds = new Set<string>()
+	for (const colorScheme of [`light`, `dark`] as const) {
+		await page.emulateMedia({ colorScheme })
+		const border = await division.evaluate(
+			(node) => getComputedStyle(node).borderInlineStart,
+		)
+		assert.equal(border, `1px solid rgba(85, 85, 85, 0.333)`)
+		for (const pane of [division.locator(`exhibit-live-pane`), previewPane]) {
+			assert.equal(
+				await pane.evaluate((node) => getComputedStyle(node).borderInlineStart),
+				border,
+			)
+		}
+		const label = await divisionPreview
+			.locator(`span`)
+			.evaluate((node) => getComputedStyle(node).color)
+		assert.equal(
+			label,
+			await divisionCode.evaluate((node) => getComputedStyle(node).color),
+		)
+		const strokes = await divisionPreview
+			.locator(`svg > *`)
+			.evaluateAll((shapes) =>
+				shapes.map((node) => getComputedStyle(node).stroke),
+			)
+		assert.deepEqual(strokes, [label, label])
+		const desktopColor = await previewPane.evaluate(
+			(node) => getComputedStyle(node).backgroundColor,
+		)
+		const tabColors = await divisionPreview.evaluate((tab) => {
+			const { backgroundColor, borderBottomColor } = getComputedStyle(tab)
+			return [backgroundColor, borderBottomColor]
+		})
+		assert.deepEqual(tabColors, [desktopColor, desktopColor])
+		previewBackgrounds.add(desktopColor)
+	}
+	assert.equal(previewBackgrounds.size, 2)
+	await page.emulateMedia({ colorScheme: null })
 	await divisionCode.click()
 	assert.equal(await division.getAttribute(`data-exhibit-layout`), `three`)
 	assert.ok(await previewPane.isVisible())
@@ -387,7 +451,7 @@ try {
 		[`02-identity-after-give-each-document-its-own-state-tsx`, `First draft`],
 	] as const
 	for (const [id, restoredDraft] of draftExamples) {
-		const editor = page.locator(`code-block[id="${id}"]`)
+		const editor = page.locator(`exhibit-frame[id="${id}"]`)
 		await editor.getByRole(`tab`, { name: `Preview` }).click()
 		const draftFrame = editor.frameLocator(`iframe`)
 		const picker = draftFrame.getByRole(`combobox`, { name: `Document` })
@@ -418,16 +482,6 @@ try {
 	await assertFrameworkLockup(preview, `React`)
 	const count = preview.getByRole(`spinbutton`, { name: `Count` })
 	assert.equal(await count.inputValue(), `0`)
-	const desktopColor = await preview
-		.locator(`#preview`)
-		.evaluate((node) => getComputedStyle(node).backgroundColor)
-	const tabColors = await counter
-		.getByRole(`tab`, { name: `Preview` })
-		.evaluate((tab) => {
-			const { backgroundColor, borderBottomColor } = getComputedStyle(tab)
-			return [backgroundColor, borderBottomColor]
-		})
-	assert.deepEqual(tabColors, [desktopColor, desktopColor])
 	await preview.getByRole(`button`, { name: `Add`, exact: true }).click()
 	assert.equal(await count.inputValue(), `1`)
 	assert.equal(
@@ -467,6 +521,26 @@ try {
 	assert.equal(await graphTitle.inputValue(), `Edited title`)
 	assert.deepEqual(errors, [])
 	console.log(`Exhibit React preview browser checks passed.`)
+
+	await page.goto(`${base}/docs/spa/`)
+	const loadable = page.locator(`#use-loadable-tsx`)
+	const loadableFrame = loadable.frameLocator(`iframe`)
+	const accountNamePreview = loadableFrame.getByRole(`region`, {
+		name: `Component preview`,
+	})
+	await loadable.getByRole(`tab`, { name: `Preview` }).click()
+	await accountNamePreview.getByText(`Loading your account…`).waitFor()
+	await accountNamePreview.getByText(`Ada Lovelace`, { exact: true }).waitFor()
+
+	await page.reload()
+	await loadable.getByRole(`tab`, { name: `Ecology` }).click()
+	await loadableFrame
+		.getByRole(`button`, { name: `Generate accountName` })
+		.click()
+	const accountName = loadableFrame.getByRole(`textbox`, { name: `accountName` })
+	await accountName.waitFor()
+	assert.equal(await accountName.inputValue(), `Ada Lovelace`)
+	assert.deepEqual(errors, [])
 
 	await page.goto(`${base}/docs/spa/vite`)
 	const spaCounter = page.locator(`#counter-tsx`)
@@ -509,14 +583,14 @@ try {
 	)
 	assert.equal(
 		await page
-			.locator(`code-block pre code`)
+			.locator(`exhibit-frame pre code`)
 			.first()
 			.textContent()
 			.then((value) => Boolean(value?.length)),
 		true,
 	)
 	const copiedCode = await page
-		.locator(`code-block pre code`)
+		.locator(`exhibit-frame pre code`)
 		.first()
 		.textContent()
 	await page.getByRole(`button`, { name: `Copy code` }).first().click()

@@ -15,24 +15,24 @@ import "../components/exhibit-preview.css"
 		<title>Live exhibit</title>
 	</head>
 	<body>
-		<sandbox-app id="app" inert></sandbox-app>
+		<exhibit-app-mount id="app" inert></exhibit-app-mount>
 		<section id="ecology" aria-label="State ecology" hidden>
 			<p role="status">Loading exhibit ecology…</p>
 		</section>
-		<exhibit-desktop
+		<preview-desktop
 			id="preview"
 			role="region"
 			aria-label="Component preview"
 			hidden
 		>
-			<preview-workspace>
-				<exhibit-preview>
+			<preview-viewport>
+				<preview-window>
 					<p id="preview-status" role="status">Loading preview…</p>
-					<preview-content id="preview-content"></preview-content>
-				</exhibit-preview>
-			</preview-workspace>
+					<preview-mount id="preview-mount"></preview-mount>
+				</preview-window>
+			</preview-viewport>
 			<img id="preview-framework" alt="" hidden />
-		</exhibit-desktop>
+		</preview-desktop>
 	</body>
 </html>
 
@@ -50,7 +50,7 @@ body {
 body[data-exhibit-view="both"] {
 	grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
 	> #preview {
-		border-inline-start: 1px solid light-dark(#aaa, #555);
+		border-inline-start: 1px solid var(--exhibit-border-color);
 	}
 }
 #app {

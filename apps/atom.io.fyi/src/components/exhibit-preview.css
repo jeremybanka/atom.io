@@ -1,20 +1,21 @@
-@import "./exhibit-preview-colors.css";
+@import "./exhibit-colors.css";
 
-exhibit-desktop {
+preview-desktop {
 	box-sizing: border-box;
 	display: grid;
 	grid-template-rows: minmax(0, 1fr) auto;
 	min-inline-size: 0;
 	color-scheme: light;
+	isolation: isolate;
 	background: var(--exhibit-preview-background);
 	color: #181b1e;
 	font: 400 14px/1.45 Tahoma, "Segoe UI", system-ui, sans-serif;
 }
-exhibit-desktop[hidden] {
+preview-desktop[hidden] {
 	display: none;
 }
 
-preview-workspace {
+preview-viewport {
 	display: flex;
 	min-inline-size: 0;
 	overflow: auto;
@@ -26,11 +27,25 @@ preview-workspace {
 	block-size: 20px;
 	inline-size: auto;
 	margin: 0 12px 12px;
-	filter: brightness(0) invert(1);
 	opacity: 0.62;
+	&[data-framework="spa"] {
+		filter: brightness(0);
+		@media (prefers-color-scheme: dark) {
+			filter: brightness(0) invert(1);
+		}
+	}
+	&:is([data-framework="react"], [data-framework="solid"]) {
+		color-scheme: light dark;
+		mix-blend-mode: multiply;
+		opacity: 0.76;
+		@media (prefers-color-scheme: dark) {
+			mix-blend-mode: screen;
+			opacity: 0.48;
+		}
+	}
 }
 
-exhibit-preview {
+preview-window {
 	--pane: #c6c8cb;
 	--highlight: #fff;
 	--shade: #53575b;
@@ -43,7 +58,7 @@ exhibit-preview {
 	background: var(--pane);
 	border: 2px solid;
 	border-color: var(--bevel);
-	box-shadow: 1px 1px #242729, 8px 8px #003f3f52;
+	box-shadow: 1px 1px #242729, 8px 8px #0005;
 	overflow-wrap: anywhere;
 }
 
@@ -51,21 +66,21 @@ exhibit-preview {
 	margin: 0;
 }
 
-preview-content {
+preview-mount {
 	--space: 8px;
 	--space-small: 4px;
 	--control: 30px;
 }
 
-preview-content,
-preview-content :where(form, fieldset, nav, section):not([hidden]) {
+preview-mount,
+preview-mount :where(form, fieldset, nav, section):not([hidden]) {
 	display: flex;
 	flex-direction: column;
 	gap: var(--space);
 	min-inline-size: 0;
 }
 
-preview-content {
+preview-mount {
 	:where(p, h1, h2, h3) {
 		margin: 0;
 	}

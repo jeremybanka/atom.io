@@ -138,25 +138,6 @@ export default {
 				"{tests,__tests__,__scripts__,examples,docs,__exhibits__}/**/*.{ts,tsx,js,cjs,mjs,mdx}",
 			],
 		},
-		"packages/react-devtools": {
-			entry: [
-				"src/index.ts!",
-				"css.d.ts!",
-				"tsdown.config.ts",
-				"tonnage.config.ts",
-				"breakage.config.ts",
-				"vitest.public.config.ts",
-				"vitest.total-coverage.config.ts",
-				"vitest.dist.config.ts",
-				"vitest.config.ts",
-				"__tests__/fixtures/**/*.{ts,tsx,js,mjs,cjs}",
-			],
-			project: [
-				"*.{ts,tsx,js,cjs,mjs}",
-				"{src,bin}/**/*.{ts,tsx,js,cjs,mjs,astro}!",
-				"{tests,__tests__,__scripts__,examples,docs,__exhibits__}/**/*.{ts,tsx,js,cjs,mjs,mdx}",
-			],
-		},
 		"packages/react": {
 			entry: [
 				"src/index.ts!",
@@ -255,7 +236,7 @@ export default {
 				"{tests,__tests__,__scripts__,examples,docs,__exhibits__}/**/*.{ts,tsx,js,cjs,mjs,mdx}",
 			],
 		},
-		"packages/spa-devtools": {
+		"packages/devtools": {
 			entry: [
 				"src/index.ts!",
 				"src/css.d.ts!",

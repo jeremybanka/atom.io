@@ -108,10 +108,13 @@ try {
 		async (expected) => (await navigator.clipboard.readText()) === expected,
 		copiedCode,
 	)
+	await page.locator(`brand-mark[data-variant="mark"] canvas`).waitFor()
 	await page.evaluate(() => {
 		window.testNavigation =
 			document.querySelector<HTMLElement>(`docs-navigation`)!
-		window.testLogo = document.querySelector<HTMLElement>(`dz2-orbital canvas`)!
+		window.testLogo = document.querySelector<HTMLElement>(
+			`brand-mark[data-variant="mark"] canvas`,
+		)!
 	})
 	await page.keyboard.press(`Control+Shift+A`)
 	await page
@@ -126,19 +129,21 @@ try {
 				?.getAttribute(`data-user-has-toggled`) === `true`,
 	)
 	const panel = page.locator(`[data-testid="atom-io-devtools"]`)
+	const debuggerContent = panel.locator(`debugger-content`)
 	const readTypography = (element: Element) => {
 		const { font, color } = getComputedStyle(element)
 		return { font, color }
 	}
 	assert.deepEqual(
-		await panel.locator(`debugger-content`).evaluate(readTypography),
+		await debuggerContent.evaluate(readTypography),
 		await panel.evaluate(readTypography),
 		`Debugger content must inherit the panel's font and color`,
 	)
+	await panel.getByRole(`tab`, { name: `atoms`, exact: true }).click()
 	await page.locator(`button[aria-label="Expand headings"]`).click()
 	await page.locator(`button[aria-label="Expand 0"]`).click()
 	const rowHeights = await panel
-		.locator(`.state-leaf > .json-editor > header`)
+		.locator(`state-leaf > json-editor > editor-row`)
 		.evaluateAll((rows) => rows.map((row) => row.getBoundingClientRect().height))
 	assert.ok(rowHeights.length >= 4)
 	assert.ok(
@@ -146,7 +151,7 @@ try {
 		`State rows must retain the original 22px density: ${rowHeights.join(`, `)}`,
 	)
 	const nestedHeights = await panel
-		.locator(`.property > .json-editor > header`)
+		.locator(`json-property > json-editor > editor-row`)
 		.evaluateAll((rows) => rows.map((row) => row.getBoundingClientRect().height))
 	assert.ok(nestedHeights.length > 20)
 	assert.ok(
@@ -155,29 +160,29 @@ try {
 	)
 	assert.equal(
 		await panel
-			.locator(`.toolbar`)
+			.locator(`debugger-toolbar`)
 			.evaluate(
 				(element: HTMLElement) => element.getBoundingClientRect().height,
 			),
-		60,
-		`The title row and physical tab row occupy 60px together`,
+		66,
+		`The title and tab rows occupy 66px including toolbar padding`,
 	)
 	await page.emulateMedia({ colorScheme: `dark` })
 	assert.equal(
-		await panel.evaluate(
+		await debuggerContent.evaluate(
 			(element: HTMLElement) => getComputedStyle(element).backgroundColor,
 		),
-		`rgb(17, 17, 17)`,
+		`color(srgb 0.0666667 0.0666667 0.0666667 / 0.92)`,
 	)
-	await panel.screenshot({ path: `/tmp/spa-devtools-dense-dark.png` })
+	await panel.screenshot({ path: `/tmp/devtools-dense-dark.png` })
 	await page.emulateMedia({ colorScheme: `light` })
 	assert.equal(
-		await panel.evaluate(
+		await debuggerContent.evaluate(
 			(element: HTMLElement) => getComputedStyle(element).backgroundColor,
 		),
-		`rgb(249, 249, 249)`,
+		`color(srgb 0.976471 0.976471 0.976471 / 0.92)`,
 	)
-	await panel.screenshot({ path: `/tmp/spa-devtools-dense-light.png` })
+	await panel.screenshot({ path: `/tmp/devtools-dense-light.png` })
 	const initialPanel = await panel.boundingBox()
 	assert.ok(initialPanel)
 	const waitForOffset = (dx: number, dy: number) =>
@@ -234,7 +239,9 @@ try {
 		await page.evaluate(
 			() =>
 				window.testLogo ===
-				document.querySelector<HTMLElement>(`dz2-orbital canvas`)!,
+				document.querySelector<HTMLElement>(
+					`brand-mark[data-variant="mark"] canvas`,
+				)!,
 		),
 		true,
 	)
@@ -260,8 +267,7 @@ try {
 	await page.locator(`app-shell > header a[href="/"]`).click()
 	await page.waitForURL(`${base}/`)
 	await page.waitForFunction(
-		() =>
-			document.querySelectorAll<HTMLElement>(`dz2-orbital canvas`).length === 2,
+		() => document.querySelectorAll(`brand-mark canvas`).length === 2,
 	)
 	await page.locator(`app-shell > header a[href="/docs"]`).click()
 	await page.waitForURL(`${base}/docs`)
@@ -283,7 +289,9 @@ try {
 		await page.evaluate(
 			() =>
 				window.testLogo ===
-				document.querySelector<HTMLElement>(`dz2-orbital canvas`)!,
+				document.querySelector<HTMLElement>(
+					`brand-mark[data-variant="mark"] canvas`,
+				)!,
 		),
 		true,
 	)

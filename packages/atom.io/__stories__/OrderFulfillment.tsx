@@ -1,7 +1,7 @@
-import "@atom.io/spa-devtools/css"
+import "@atom.io/devtools/css"
 
+import { AtomIODevtools } from "@atom.io/devtools/react"
 import { StoreProvider } from "@atom.io/react"
-import { AtomIODevtools } from "@atom.io/spa-devtools/react"
 import { useEffect, useState } from "react"
 
 import { createOrderFulfillmentScenario } from "./devtools-order-fulfillment.ts"

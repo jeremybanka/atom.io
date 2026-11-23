@@ -123,7 +123,7 @@ code-block.class {
 				background: var(--fg-soft-3);
 			}
 		}
-		> pre, > [data-ecology-panel] {
+		> pre, > [data-exhibit-panel] {
 			grid-area: 2 / 1;
 		}
 		> pre {
@@ -211,7 +211,7 @@ code-block.class {
 		}
 	}
 
-	> [data-ecology-panel] {
+	> [data-exhibit-panel] {
 		position: relative;
 		> iframe {
 			position: absolute;

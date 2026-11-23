@@ -1,5 +1,5 @@
 ---
-import { exhibits, sandboxSources } from "virtual:atom-io-exhibits"
+import { exhibits, sandboxViews } from "virtual:atom-io-exhibits"
 
 import {
 	extractExhibitCode,
@@ -30,6 +30,7 @@ if (sourceCode === undefined) {
 
 const code = extractExhibitCode(sourceCode, reference)
 const filepath = getDisplayFilename(normalizedSource)
+const views = sandboxViews[normalizedSource]
 ---
 
 <CodeBlock
@@ -37,5 +38,5 @@ const filepath = getDisplayFilename(normalizedSource)
 	filepath={filepath}
 	label={label}
 	soft={soft}
-	exhibitSource={sandboxSources.has(normalizedSource) ? normalizedSource : undefined}
+	exhibit={views ? { source: normalizedSource, ...views } : undefined}
 />

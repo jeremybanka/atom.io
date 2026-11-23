@@ -1,0 +1,88 @@
+:root {
+	color-scheme: light;
+	background: #008080;
+	color: #181b1e;
+	font: 400 14px/1.45 Tahoma, "Segoe UI", system-ui, sans-serif;
+}
+
+body {
+	box-sizing: border-box;
+	display: flex;
+	min-height: 100dvh;
+	margin: 0;
+	padding: clamp(12px, 4vw, 32px);
+}
+
+exhibit-preview {
+	--pane: #c6c8cb;
+	--highlight: #fff;
+	--shade: #53575b;
+	--bevel: var(--highlight) var(--shade) var(--shade) var(--highlight);
+	--inset-bevel: var(--shade) var(--highlight) var(--highlight) var(--shade);
+	box-sizing: border-box;
+	max-inline-size: min(100%, 36rem);
+	min-inline-size: min(100%, 16rem);
+	margin: auto;
+	padding: clamp(12px, 3vw, 24px);
+	background: var(--pane);
+	border: 2px solid;
+	border-color: var(--bevel);
+	box-shadow: 1px 1px #242729, 8px 8px #003f3f52;
+}
+
+preview-content {
+	display: block;
+}
+
+exhibit-preview {
+	:where(fieldset) {
+		min-inline-size: 0;
+		margin: 0;
+		padding: 10px;
+		border: 2px groove var(--highlight);
+	}
+
+	:where(legend) {
+		padding: 0 5px;
+	}
+
+	:where(button, input, select, textarea) {
+		box-sizing: border-box;
+		max-inline-size: 100%;
+		color: inherit;
+		font: inherit;
+	}
+
+	:where(button, input[type="button"], input[type="reset"], input[type="submit"]) {
+		min-block-size: 30px;
+		min-inline-size: 34px;
+		padding: 2px 8px;
+		background: var(--pane);
+		border: 2px solid;
+		border-color: var(--bevel);
+		box-shadow: 1px 1px #242729;
+		cursor: pointer;
+		&:active {
+			border-color: var(--inset-bevel);
+			box-shadow: none;
+		}
+	}
+
+	:where(input:not([type="button"], [type="reset"], [type="submit"], [type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="image"], [type="color"]), select, textarea) {
+		min-block-size: 30px;
+		padding: 2px 6px;
+		background: #fff;
+		border: 2px solid;
+		border-color: var(--inset-bevel);
+	}
+
+	:where(:focus-visible) {
+		outline: 2px dotted currentColor;
+		outline-offset: 2px;
+	}
+
+	:where(:disabled) {
+		color: #555;
+		cursor: default;
+	}
+}

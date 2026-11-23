@@ -12,14 +12,16 @@ export function selectExhibitTab(tab: HTMLButtonElement): void {
 			sibling.getAttribute(`aria-controls`)!,
 		)!
 		panel.hidden = !selected
-		if (panel.hasAttribute(`data-ecology-panel`)) {
+		const view = panel.dataset[`exhibitPanel`]
+		if (view) {
 			if (selected) {
 				const frame = document.createElement(`iframe`)
-				frame.title = `State ecology of ${source.split(`/`).at(-1)}`
+				const title = view === `ecology` ? `State ecology` : `Component preview`
+				frame.title = `${title} of ${source.split(`/`).at(-1)}`
 				frame.sandbox.add(`allow-scripts`)
 				// Vite serves unbundled modules from the development origin.
 				if (import.meta.env.DEV) frame.sandbox.add(`allow-same-origin`)
-				frame.src = `/exhibit-ecology#${encodeURIComponent(source)}`
+				frame.src = `/exhibit-${view}#${encodeURIComponent(source)}`
 				panel.append(frame)
 			} else {
 				panel.replaceChildren()

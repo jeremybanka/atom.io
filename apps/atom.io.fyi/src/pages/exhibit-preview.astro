@@ -1,0 +1,58 @@
+---
+import "../components/exhibit-preview.css"
+---
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="robots" content="noindex" />
+		{import.meta.env.PROD && (
+			<meta http-equiv="Content-Security-Policy" content="connect-src 'none'" />
+		)}
+		<title>Component preview</title>
+	</head>
+	<body>
+		<exhibit-preview role="main" aria-label="Component preview">
+			<p id="preview-status" role="status">Loading preview…</p>
+			<preview-content id="preview-content" />
+		</exhibit-preview>
+	</body>
+</html>
+
+<script>
+import { createElement, type FunctionComponent } from "react"
+import { createRoot } from "react-dom/client"
+import { sandboxes } from "virtual:atom-io-exhibit-previews"
+
+const status = document.querySelector<HTMLElement>(`#preview-status`)!
+const showError = (error: unknown) => {
+	status.hidden = false
+	status.textContent = `This component could not run in the preview. ${error instanceof Error ? error.message : String(error)}`
+}
+try {
+	const source = decodeURIComponent(location.hash.slice(1))
+	const embedded = window.parent !== window
+	const load =
+		embedded && (import.meta.env.DEV || window.origin === `null`)
+			? sandboxes.get(source)
+			: undefined
+	if (load) {
+		const { default: component } = await load()
+		if (typeof component !== `function`)
+			throw new TypeError(
+				`The default export must be a React function component.`,
+			)
+		const host = document.querySelector<HTMLElement>(`#preview-content`)!
+		const root = createRoot(host, { onUncaughtError: showError })
+		status.hidden = true
+		root.render(createElement(component as FunctionComponent))
+		window.addEventListener(`pagehide`, (event) => {
+			if (!event.persisted) root.unmount()
+		})
+	} else status.textContent = `No component exhibit was selected.`
+} catch (error) {
+	showError(error)
+}
+</script>

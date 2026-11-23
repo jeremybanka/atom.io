@@ -158,6 +158,35 @@ try {
 	assert.deepEqual(errors, [])
 	console.log(`Exhibit ecology browser checks passed.`)
 	await page.setViewportSize({ width: 1440, height: 1000 })
+
+	await page.goto(`${base}/docs/react`)
+	const counter = page.locator(`#counter-preview-tsx`)
+	assert.deepEqual(
+		await counter
+			.getByRole(`tab`)
+			.evaluateAll((tabs) => tabs.map((tab) => tab.getAttribute(`aria-label`))),
+		[`Code`, `Ecology`, `Preview`],
+	)
+	assert.equal(await counter.locator(`iframe`).count(), 0)
+	const counterHeight = (await counter.boundingBox())!.height
+	await counter.getByRole(`tab`, { name: `Code` }).press(`End`)
+	const preview = counter.frameLocator(`iframe`)
+	const count = preview.getByRole(`spinbutton`, { name: `Count` })
+	assert.equal(await count.inputValue(), `0`)
+	await preview.getByRole(`button`, { name: `Add`, exact: true }).click()
+	assert.equal(await count.inputValue(), `1`)
+	assert.equal(
+		await count.evaluate((input) => getComputedStyle(input).backgroundColor),
+		`rgb(255, 255, 255)`,
+	)
+	assert.equal((await counter.boundingBox())?.height, counterHeight)
+	await counter.getByRole(`tab`, { name: `Code` }).click()
+	assert.equal(await counter.locator(`iframe`).count(), 0)
+	await counter.getByRole(`tab`, { name: `Preview` }).click()
+	assert.equal(await count.inputValue(), `0`)
+	assert.deepEqual(errors, [])
+	console.log(`Exhibit React preview browser checks passed.`)
+
 	iframeRequests.length = 0
 	await page.goto(`${base}/docs/getting-started`)
 	assert.equal(await page.locator(`#install-sh [role="tab"]`).count(), 0)

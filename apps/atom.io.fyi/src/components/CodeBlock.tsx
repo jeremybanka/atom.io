@@ -10,7 +10,7 @@ type CodeBlockProps = {
 	code?: string
 	soft?: boolean
 	children?: Children
-	exhibitSource?: string
+	exhibit?: { source: string; ecology: boolean; preview: boolean }
 }
 
 function getCodeBlockId(labelOrHref: string): string {
@@ -40,56 +40,74 @@ export function CodeBlock({
 	code: codeProp,
 	soft = false,
 	children,
-	exhibitSource,
+	exhibit,
 }: CodeBlockProps): SpaElement {
 	const displayLabel = label ?? filepath ?? `code`
 	const code = codeProp ?? flattenChildrenToString(children)
 	const { tokens } = highlightCode(code, filepath)
 	const id = `exhibit-${useId()}`
+	const tabs = [
+		{
+			view: `code`,
+			label: `Code`,
+			enabled: true,
+			icon: <path d="m5 4-4 4 4 4m6-8 4 4-4 4m-2-9L7 13" />,
+		},
+		{
+			view: `ecology`,
+			label: `Ecology`,
+			enabled: exhibit?.ecology,
+			icon: (
+				<>
+					<path d="M7 5 4 10m5-5 3 5M5 12h6" />
+					<circle cx="8" cy="3.5" r="2" />
+					<circle cx="3" cy="12" r="2" />
+					<circle cx="13" cy="12" r="2" />
+				</>
+			),
+		},
+		{
+			view: `preview`,
+			label: `Preview`,
+			enabled: exhibit?.preview,
+			icon: (
+				<>
+					<rect x="1.5" y="2.5" width="13" height="11" rx="1" />
+					<path d="M2 5.5h12m-8 2 4 2-4 2z" />
+				</>
+			),
+		},
+	].filter((tab) => tab.enabled)
 
 	return (
 		<code-block
 			id={getCodeBlockId(displayLabel)}
 			class={css.class}
-			data-exhibit-source={exhibitSource}
+			data-exhibit-source={exhibit?.source}
 		>
 			<back-fill class={soft ? `soft` : `hard`} />
 			<file-name>
 				<span>{displayLabel}</span>
-				{exhibitSource && (
+				{exhibit && (
 					<nav role="tablist" aria-label="Exhibit views">
-						<button
-							type="button"
-							role="tab"
-							id={`${id}-code-tab`}
-							aria-controls={`${id}-code`}
-							aria-label="Code"
-							aria-selected="true"
-							data-code-tab
-							tabIndex={0}
-						>
-							<svg viewBox="0 0 16 16" aria-hidden="true">
-								<path d="m5 4-4 4 4 4m6-8 4 4-4 4m-2-9L7 13" />
-							</svg>
-							<span>Code</span>
-						</button>
-						<button
-							type="button"
-							role="tab"
-							id={`${id}-ecology-tab`}
-							aria-controls={`${id}-ecology`}
-							aria-label="Ecology"
-							aria-selected="false"
-							tabIndex={-1}
-						>
-							<svg viewBox="0 0 16 16" aria-hidden="true">
-								<path d="M7 5 4 10m5-5 3 5M5 12h6" />
-								<circle cx="8" cy="3.5" r="2" />
-								<circle cx="3" cy="12" r="2" />
-								<circle cx="13" cy="12" r="2" />
-							</svg>
-							<span>Ecology</span>
-						</button>
+						{tabs.map(({ view, label: tabLabel, icon }) => (
+							<button
+								key={view}
+								type="button"
+								role="tab"
+								id={`${id}-${view}-tab`}
+								aria-controls={`${id}-${view}`}
+								aria-label={tabLabel}
+								aria-selected={view === `code` ? `true` : `false`}
+								data-code-tab={view === `code` ? true : undefined}
+								tabIndex={view === `code` ? 0 : -1}
+							>
+								<svg viewBox="0 0 16 16" aria-hidden="true">
+									{icon}
+								</svg>
+								<span>{tabLabel}</span>
+							</button>
+						))}
 					</nav>
 				)}
 				<button type="button" aria-label="Copy code">
@@ -107,10 +125,10 @@ export function CodeBlock({
 				</button>
 			</file-name>
 			<pre
-				id={exhibitSource ? `${id}-code` : undefined}
-				role={exhibitSource ? `tabpanel` : undefined}
-				aria-labelledby={exhibitSource ? `${id}-code-tab` : undefined}
-				tabIndex={exhibitSource ? 0 : undefined}
+				id={exhibit ? `${id}-code` : undefined}
+				role={exhibit ? `tabpanel` : undefined}
+				aria-labelledby={exhibit ? `${id}-code-tab` : undefined}
+				tabIndex={exhibit ? 0 : undefined}
 			>
 				<code>
 					{tokens.map((line, lineIndex) => [
@@ -127,15 +145,16 @@ export function CodeBlock({
 					])}
 				</code>
 			</pre>
-			{exhibitSource && (
+			{tabs.slice(1).map(({ view }) => (
 				<section
-					id={`${id}-ecology`}
+					key={view}
+					id={`${id}-${view}`}
 					role="tabpanel"
-					aria-labelledby={`${id}-ecology-tab`}
-					data-ecology-panel
+					aria-labelledby={`${id}-${view}-tab`}
+					data-exhibit-panel={view}
 					hidden
 				/>
-			)}
+			))}
 		</code-block>
 	)
 }

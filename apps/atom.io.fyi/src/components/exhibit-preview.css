@@ -1,18 +1,18 @@
 @import "./exhibit-preview-colors.css";
 
-:root {
+exhibit-desktop {
+	box-sizing: border-box;
+	display: flex;
+	min-inline-size: 0;
+	overflow: auto;
+	padding: clamp(12px, 4vw, 32px);
 	color-scheme: light;
 	background: var(--exhibit-preview-background);
 	color: #181b1e;
 	font: 400 14px/1.45 Tahoma, "Segoe UI", system-ui, sans-serif;
 }
-
-body {
-	box-sizing: border-box;
-	display: flex;
-	min-height: 100dvh;
-	margin: 0;
-	padding: clamp(12px, 4vw, 32px);
+exhibit-desktop[hidden] {
+	display: none;
 }
 
 exhibit-preview {

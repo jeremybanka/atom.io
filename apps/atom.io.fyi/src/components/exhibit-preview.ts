@@ -1,4 +1,5 @@
 import type { Component as SpaComponent, RootOptions } from "@atom.io/spa"
+import type { RootStore } from "atom.io/internal"
 import type { FunctionComponent } from "react"
 import type { Component as SolidComponent } from "solid-js"
 
@@ -8,6 +9,7 @@ export async function mountExhibitPreview(
 	framework: ExhibitFramework,
 	component: unknown,
 	host: HTMLElement,
+	store: RootStore,
 	onError: (error: unknown) => void,
 ): Promise<() => void> {
 	if (typeof component !== `function`)
@@ -20,27 +22,44 @@ export async function mountExhibitPreview(
 		])
 		const preview = component as SpaComponent & Pick<RootOptions, `capabilities`>
 		return render(() => jsx(preview, {}), host, {
+			store,
 			capabilities: preview.capabilities ?? [],
 			onError,
 		}).dispose
 	}
 
 	if (framework === `solid`) {
-		const { render, createComponent } = await import(`@solidjs/web`)
+		const [{ render, createComponent }, { StoreProvider }] = await Promise.all([
+			import(`@solidjs/web`),
+			import(`@atom.io/solid`),
+		])
 		return render(
-			() => createComponent(component as SolidComponent, {}),
+			() =>
+				createComponent(StoreProvider, {
+					store,
+					get children() {
+						return createComponent(component as SolidComponent, {})
+					},
+				}),
 			host,
 			undefined,
 			{ onError },
 		)
 	}
 
-	const [{ createElement }, { createRoot }] = await Promise.all([
-		import(`react`),
-		import(`react-dom/client`),
-	])
+	const [{ createElement }, { createRoot }, { StoreProvider }] =
+		await Promise.all([
+			import(`react`),
+			import(`react-dom/client`),
+			import(`@atom.io/react`),
+		])
 	const root = createRoot(host, { onUncaughtError: onError })
-	root.render(createElement(component as FunctionComponent))
+	root.render(
+		createElement(StoreProvider, {
+			store,
+			children: createElement(component as FunctionComponent),
+		}),
+	)
 	return () => {
 		root.unmount()
 	}

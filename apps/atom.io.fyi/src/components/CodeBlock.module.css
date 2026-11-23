@@ -128,16 +128,30 @@ code-block.class {
 		> pre, > [data-exhibit-panel] {
 			grid-area: 2 / 1;
 		}
+		&[data-exhibit-layout="two"],
+		&[data-exhibit-layout="three"] {
+			grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+			> file-name {
+				grid-column: 1 / -1;
+			}
+			> [data-exhibit-panel] {
+				grid-column: 2;
+				border-inline-start: 1px solid var(--fg-faint);
+			}
+		}
+		&[data-exhibit-layout="three"] {
+			grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+		}
 		> pre {
 			/* Highlighted rows use a taller line box than the pre's line-height. */
 			min-block-size: calc(18 * 19px + 1.5em);
 			&[hidden] {
-				/* Keep the code's layout height while Ecology is visible. */
+				/* Keep the code's layout height while a live pane is visible. */
 				display: block;
 				visibility: hidden;
 			}
 		}
-		/* One layer keeps the grain aligned across the tabs and both panels. */
+		/* One layer keeps the grain aligned across the tabs and panels. */
 		&::after {
 			content: "";
 			position: absolute;
@@ -189,7 +203,7 @@ code-block.class {
 				background: var(--bg-tint-2);
 				color: var(--fg-color);
 			}
-			&[aria-selected="true"] {
+			&[data-exhibit-visible] {
 				--active-tab-fill: var(--bg-color);
 				position: relative;
 				z-index: 2;

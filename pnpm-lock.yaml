@@ -328,6 +328,12 @@ importers:
       '@atom.io/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
+      '@atom.io/react':
+        specifier: workspace:*
+        version: link:../../packages/react
+      '@atom.io/solid':
+        specifier: workspace:*
+        version: link:../../packages/solid
       '@babel/parser':
         specifier: 8.1.3
         version: 8.1.3

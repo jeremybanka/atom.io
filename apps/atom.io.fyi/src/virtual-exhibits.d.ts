@@ -7,21 +7,13 @@ declare module "virtual:atom-io-exhibits" {
 }
 
 // eslint-disable-next-line quotes
-declare module "virtual:atom-io-exhibit-previews" {
+declare module "virtual:atom-io-exhibit-sandboxes" {
 	export const sandboxes: ReadonlyMap<
 		string,
 		{
 			// oxlint-disable-next-line typescript/consistent-type-imports -- Keep this virtual module declaration ambient.
-			framework: import("../scripts/exhibit-sandboxes.ts").ExhibitFramework // eslint-disable-line quotes
-			load(): Promise<{ default: unknown }>
+			preview: import("../scripts/exhibit-sandboxes.ts").ExhibitFramework | null // eslint-disable-line quotes
+			load(): Promise<Record<string, unknown>>
 		}
-	>
-}
-
-// eslint-disable-next-line quotes
-declare module "virtual:atom-io-exhibit-sandboxes" {
-	export const sandboxes: ReadonlyMap<
-		string,
-		() => Promise<Record<string, unknown>>
 	>
 }

@@ -46,11 +46,9 @@ const EXHIBIT_ROOTS = [
 ]
 const VIRTUAL_EXHIBITS_MODULE_ID = `virtual:atom-io-exhibits`
 const VIRTUAL_SANDBOXES_MODULE_ID = `virtual:atom-io-exhibit-sandboxes`
-const VIRTUAL_PREVIEWS_MODULE_ID = `virtual:atom-io-exhibit-previews`
 const virtualExhibitModules = [
 	VIRTUAL_EXHIBITS_MODULE_ID,
 	VIRTUAL_SANDBOXES_MODULE_ID,
-	VIRTUAL_PREVIEWS_MODULE_ID,
 ]
 
 type ViteDevServer = {
@@ -139,19 +137,12 @@ function exhibitsPlugin() {
 		async load(id: string) {
 			if (!virtualExhibitModules.some((module) => id === `\0${module}`)) return
 			const { files, sandboxes } = await readIndex()
-			if (id !== `\0${VIRTUAL_EXHIBITS_MODULE_ID}`) {
-				const view =
-					id === `\0${VIRTUAL_PREVIEWS_MODULE_ID}` ? `preview` : `ecology`
-				const imports = sandboxes
-					.filter((sandbox) => sandbox[view])
-					.map(({ source, file, preview }) => {
-						const load = `() => import(${JSON.stringify(toPosixPath(file))})`
-						const entry =
-							view === `preview`
-								? `{ framework: ${JSON.stringify(preview)}, load: ${load} }`
-								: load
-						return `[${JSON.stringify(source)}, ${entry}]`
-					})
+			if (id === `\0${VIRTUAL_SANDBOXES_MODULE_ID}`) {
+				const imports = sandboxes.map(({ source, file, preview }) => {
+					const load = `() => import(${JSON.stringify(toPosixPath(file))})`
+					const entry = `{ preview: ${JSON.stringify(preview)}, load: ${load} }`
+					return `[${JSON.stringify(source)}, ${entry}]`
+				})
 				return `export const sandboxes = new Map([${imports.join(`,\n`)}]);`
 			}
 			const exhibits = Object.fromEntries(

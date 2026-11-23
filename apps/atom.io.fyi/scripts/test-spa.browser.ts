@@ -150,7 +150,8 @@ try {
 		.waitFor()
 	await ecology.focus()
 	await ecology.press(`Home`)
-	assert.equal(await exhibit.locator(`iframe`).count(), 0)
+	assert.equal(await exhibit.locator(`iframe`).count(), 1)
+	assert.equal(await exhibit.locator(`iframe`).isVisible(), false)
 	assert.equal(await code.getAttribute(`aria-selected`), `true`)
 	assert.equal((await codePane.boundingBox())?.height, codeHeight.height)
 	await page.setViewportSize({ width: 390, height: 844 })
@@ -198,11 +199,75 @@ try {
 		await storageFrame
 			.locator(`html`)
 			.evaluate(() => localStorage.getItem(`exhibit-test`)),
-		null,
+		`local`,
 	)
 
 	assert.deepEqual(errors, [])
 	console.log(`Exhibit ecology browser checks passed.`)
+
+	await page.setViewportSize({ width: 2200, height: 1100 })
+	await page.goto(`${base}/docs/atom-io`)
+	const division = page.locator(`#edit-a-selector-tsx`)
+	const divisionCode = division.getByRole(`tab`, { name: `Code` })
+	const divisionEcology = division.getByRole(`tab`, { name: `Ecology` })
+	const divisionPreview = division.getByRole(`tab`, { name: `Preview` })
+	assert.equal(await division.locator(`iframe`).count(), 0)
+	await divisionPreview.click()
+	const divisionFrame = division.frameLocator(`iframe`)
+	const divisor = divisionFrame.locator(
+		`ecology-editor input[aria-label="divisor"]`,
+	)
+	const previewDivisor = divisionFrame.getByText(`Divisor: 3`, { exact: true })
+	const increaseDivisor = divisionFrame.getByRole(`button`, {
+		name: `Increase divisor`,
+	})
+	assert.equal(await division.getAttribute(`data-exhibit-layout`), `three`)
+	assert.ok(await division.locator(`pre`).isVisible())
+	assert.equal(await divisor.inputValue(), `2`)
+	const divisionCodeBox = await division.locator(`pre`).boundingBox()
+	const graphBox = await divisionFrame.locator(`#ecology`).boundingBox()
+	const previewBox = await divisionFrame.locator(`#preview`).boundingBox()
+	assert.ok(
+		divisionCodeBox &&
+			graphBox &&
+			previewBox &&
+			divisionCodeBox.x < graphBox.x &&
+			graphBox.x < previewBox.x,
+	)
+	const sandbox = await division.locator(`iframe`).elementHandle()
+	const liveDocument = (await sandbox.contentFrame())!
+	await increaseDivisor.click()
+	await previewDivisor.waitFor()
+	await liveDocument.waitForFunction(
+		() =>
+			document.querySelector<HTMLInputElement>(
+				`ecology-editor input[aria-label="divisor"]`,
+			)?.value === `3`,
+	)
+	assert.equal(
+		await divisionFrame.getByText(`Quotient: 4`, { exact: true }).isVisible(),
+		true,
+	)
+
+	await page.setViewportSize({ width: 1700, height: 1000 })
+	await divisionFrame.locator(`#ecology`).waitFor({ state: `hidden` })
+	assert.equal(await division.getAttribute(`data-exhibit-layout`), `two`)
+	assert.ok(await division.locator(`pre`).isVisible())
+	await divisionEcology.click()
+	await divisor.waitFor()
+	assert.equal(await divisor.inputValue(), `3`)
+	assert.equal(await divisionFrame.locator(`#preview`).isVisible(), false)
+
+	await page.setViewportSize({ width: 1440, height: 1000 })
+	await division.locator(`pre`).waitFor({ state: `hidden` })
+	assert.equal(await division.getAttribute(`data-exhibit-layout`), `one`)
+	await divisionCode.click()
+	assert.equal(await division.locator(`iframe`).isVisible(), false)
+	await divisionPreview.click()
+	await previewDivisor.waitFor()
+	assert.equal(await division.locator(`iframe`).count(), 1)
+	assert.equal(await sandbox.evaluate((node) => node.isConnected), true)
+	console.log(`Shared exhibit store and responsive layout checks passed.`)
 
 	await page.goto(`${base}/docs/react`)
 	const counter = page.locator(`#counter-preview-tsx`)
@@ -219,7 +284,7 @@ try {
 	const count = preview.getByRole(`spinbutton`, { name: `Count` })
 	assert.equal(await count.inputValue(), `0`)
 	const desktopColor = await preview
-		.locator(`html`)
+		.locator(`#preview`)
 		.evaluate((node) => getComputedStyle(node).backgroundColor)
 	const tabColors = await counter
 		.getByRole(`tab`, { name: `Preview` })
@@ -236,9 +301,10 @@ try {
 	)
 	assert.equal((await counter.boundingBox())?.height, counterHeight)
 	await counter.getByRole(`tab`, { name: `Code` }).click()
-	assert.equal(await counter.locator(`iframe`).count(), 0)
+	assert.equal(await counter.locator(`iframe`).count(), 1)
+	assert.equal(await counter.locator(`iframe`).isVisible(), false)
 	await counter.getByRole(`tab`, { name: `Preview` }).click()
-	assert.equal(await count.inputValue(), `0`)
+	assert.equal(await count.inputValue(), `1`)
 
 	const workspace = page.locator(`#silo-store-providers-tsx`)
 	await workspace.getByRole(`tab`, { name: `Ecology` }).click()
@@ -258,6 +324,12 @@ try {
 	await leftTitle.fill(`Edited title`)
 	assert.equal(await leftTitle.inputValue(), `Edited title`)
 	assert.equal(await rightTitle.inputValue(), `Untitled`)
+	await workspace.getByRole(`tab`, { name: `Ecology` }).click()
+	const graphTitle = documentPreview.locator(
+		`ecology-editor input[aria-label="title"]`,
+	)
+	await graphTitle.waitFor()
+	assert.equal(await graphTitle.inputValue(), `Edited title`)
 	assert.deepEqual(errors, [])
 	console.log(`Exhibit React preview browser checks passed.`)
 
@@ -268,7 +340,8 @@ try {
 	await spaPreview.getByRole(`button`, { name: `Count: 0` }).click()
 	await spaPreview.getByRole(`button`, { name: `Count: 1` }).waitFor()
 	await spaCounter.getByRole(`tab`, { name: `Code` }).click()
-	assert.equal(await spaCounter.locator(`iframe`).count(), 0)
+	assert.equal(await spaCounter.locator(`iframe`).count(), 1)
+	assert.equal(await spaCounter.locator(`iframe`).isVisible(), false)
 
 	await page.goto(`${base}/docs/solid`)
 	const solidCounter = page.locator(`#counter-preview-tsx`)

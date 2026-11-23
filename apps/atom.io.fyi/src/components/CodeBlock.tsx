@@ -84,6 +84,7 @@ export function CodeBlock({
 			id={getCodeBlockId(displayLabel)}
 			class={css.class}
 			data-exhibit-source={exhibit?.source}
+			data-exhibit-view={exhibit ? `code` : undefined}
 		>
 			<back-fill class={soft ? `soft` : `hard`} />
 			<file-name>
@@ -96,10 +97,11 @@ export function CodeBlock({
 								type="button"
 								role="tab"
 								id={`${id}-${view}-tab`}
-								aria-controls={`${id}-${view}`}
+								aria-controls={`${id}-${view === `code` ? `code` : `live`}`}
 								aria-label={tabLabel}
 								aria-selected={view === `code` ? `true` : `false`}
 								data-exhibit-tab={view}
+								data-exhibit-visible={view === `code` ? `` : undefined}
 								tabIndex={view === `code` ? 0 : -1}
 							>
 								<svg viewBox="0 0 16 16" aria-hidden="true">
@@ -145,16 +147,9 @@ export function CodeBlock({
 					])}
 				</code>
 			</pre>
-			{tabs.slice(1).map(({ view }) => (
-				<section
-					key={view}
-					id={`${id}-${view}`}
-					role="tabpanel"
-					aria-labelledby={`${id}-${view}-tab`}
-					data-exhibit-panel={view}
-					hidden
-				/>
-			))}
+			{exhibit && (
+				<section id={`${id}-live`} role="tabpanel" data-exhibit-panel hidden />
+			)}
 		</code-block>
 	)
 }

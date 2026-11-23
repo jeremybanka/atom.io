@@ -1,5 +1,9 @@
 <script>
-import { handleExhibitTabKey, selectExhibitTab } from "./exhibit-tabs.ts"
+import {
+	handleExhibitTabKey,
+	resetExhibitLayouts,
+	selectExhibitTab,
+} from "./exhibit-tabs.ts"
 
 const globalEffectsKey = `__atomIoGlobalEffectsInstalled`
 const globalWithEffects = globalThis as typeof globalThis &
@@ -99,6 +103,7 @@ if (!globalWithEffects[globalEffectsKey]) {
 		void copyCodeBlock(button)
 	})
 	document.addEventListener(`keydown`, handleExhibitTabKey)
+	document.addEventListener(`astro:before-swap`, resetExhibitLayouts)
 	document.addEventListener(`astro:page-load`, applyPageEffects)
 }
 

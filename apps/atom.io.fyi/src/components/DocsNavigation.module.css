@@ -101,6 +101,10 @@ docs-navigation.class {
 			left: calc(50vw + 400px);
 			z-index: 10;
 		}
+		@media screen and (min-width: 1560px) {
+			right: 1em;
+			left: auto;
+		}
 
 		@media screen and (max-width: 1280px) {
 			&[data-user-has-toggled="false"] {

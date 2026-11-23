@@ -17,8 +17,8 @@ import {
 import type { EcologyLine } from "../src/ecology-lines.ts"
 import {
 	createEdgeProjector,
-	createFamilyBuffer,
-	writeFamilyBuffer,
+	createFamilySpine,
+	writeFamilySpine,
 } from "../src/ecology-lines.ts"
 import { createEdgeRoutingMotion } from "../src/ecology-motion.ts"
 import { EcologyScene } from "../src/EcologyScene.tsx"
@@ -63,7 +63,9 @@ interface SceneState {
 	cylinderHeight: number
 	hovered?: string | undefined
 	selected?: string | undefined
+	selectedFamily?: string | undefined
 	selectedIds?: ReadonlySet<string> | undefined
+	focused?: ReadonlySet<string> | undefined
 	traced: Set<string>
 	items: GraphItem[]
 	edges: EcologyLine[]
@@ -137,7 +139,9 @@ function fixture(
 					familyConnections={get().familyConnections}
 					traced={get().traced}
 					selected={get().selected}
+					selectedFamily={get().selectedFamily}
 					selectedIds={get().selectedIds}
+					focused={get().focused}
 					hovered={get().hovered}
 					command={get().command}
 				/>
@@ -228,22 +232,51 @@ it(`projects viewer-facing DOM cards and source-stacked edges, keeps a camera th
 	expect(ground.material.depthWrite).toBe(false)
 	const disposeGroundGeometry = vi.spyOn(ground.geometry, `dispose`),
 		disposeGroundMaterial = vi.spyOn(ground.material, `dispose`)
-	const spine = vi
-		.mocked(gl.render)
-		.mock.lastCall![0].getObjectByName(
-			`family-connections`,
-		) as THREE.LineSegments<THREE.BufferGeometry, THREE.LineBasicMaterial>
-	expect(spine.geometry.drawRange.count).toBe(2)
-	expect(spine.material.opacity).toBeLessThan(0.14)
+	const scene = vi.mocked(gl.render).mock.lastCall![0]
+	const spine = scene.getObjectByName(`family-connections`) as ReturnType<
+		typeof createFamilySpine
+	>
+	const selectedSpine = scene.getObjectByName(
+		`selected-family-connections`,
+	) as ReturnType<typeof createFamilySpine>
+	expect(spine.geometry.instanceCount).toBe(1)
+	expect(spine.material.linewidth).toBeGreaterThan(1)
+	expect(selectedSpine.geometry.instanceCount).toBe(0)
+	expect(selectedSpine.material.linewidth).toBeGreaterThan(
+		spine.material.linewidth,
+	)
+	expect(selectedSpine.material.opacity).toBeGreaterThan(spine.material.opacity)
 	expect(spine.renderOrder).toBeLessThan(0)
 	expect(ground.renderOrder).toBeLessThan(spine.renderOrder)
+	const member = { ...f.a, familyLabel: `items` },
+		sibling = { ...f.b, familyLabel: `items` }
+	f.patch({
+		items: [member, sibling],
+		selected: member.id,
+		selectedFamily: member.familyLabel,
+		focused: new Set([member.id]),
+	})
+	f.tick()
+	expect(spine.geometry.instanceCount).toBe(0)
+	expect(selectedSpine.geometry.instanceCount).toBe(1)
+	expect(
+		f.viewport
+			.querySelector(`ecology-node-card:has([data-graph-id="${sibling.id}"])`)
+			?.getAttribute(`data-dimmed`),
+	).toBe(`false`)
+	f.patch({ selected: undefined, selectedFamily: undefined, focused: undefined })
+	f.tick()
+	expect(spine.geometry.instanceCount).toBe(1)
+	expect(selectedSpine.geometry.instanceCount).toBe(0)
 	const groundHeight = ground.position.y
 	f.resize(400, 800)
 	f.tick()
 	expect(ground.position.y).toBeLessThan(groundHeight)
 	expect(f.viewport.dataset[`familyConnections`]).toBe(`1`)
 	const disposeGeometry = vi.spyOn(spine.geometry, `dispose`),
-		disposeMaterial = vi.spyOn(spine.material, `dispose`)
+		disposeMaterial = vi.spyOn(spine.material, `dispose`),
+		disposeSelectedGeometry = vi.spyOn(selectedSpine.geometry, `dispose`),
+		disposeSelectedMaterial = vi.spyOn(selectedSpine.material, `dispose`)
 	const first = f.context.camera!
 	f.command(`right`)
 	expect(f.context.camera).not.toEqual(first)
@@ -289,7 +322,7 @@ it(`projects viewer-facing DOM cards and source-stacked edges, keeps a camera th
 	f.patch({ items: [], edges: [], familyConnections: [] })
 	f.command(`fit`)
 	f.tick()
-	expect(spine.geometry.drawRange.count).toBe(0)
+	expect(spine.geometry.instanceCount).toBe(0)
 	expect(f.viewport.querySelector(`canvas`)).not.toBeNull()
 	expect(vi.mocked(THREE.WebGLRenderer).mock.calls).toHaveLength(starts)
 	f.patch({ items: [f.a, f.b] })
@@ -299,6 +332,8 @@ it(`projects viewer-facing DOM cards and source-stacked edges, keeps a camera th
 	expect(f.stop).toHaveBeenCalledOnce()
 	expect(disposeGeometry).toHaveBeenCalledOnce()
 	expect(disposeMaterial).toHaveBeenCalledOnce()
+	expect(disposeSelectedGeometry).toHaveBeenCalledOnce()
+	expect(disposeSelectedMaterial).toHaveBeenCalledOnce()
 	expect(disposeGroundGeometry).toHaveBeenCalledOnce()
 	expect(disposeGroundMaterial).toHaveBeenCalledOnce()
 })
@@ -360,15 +395,30 @@ it(`projects animated member cards, arrows and family spines from the same world
 	const start = card.style.transform,
 		path = card.querySelector(`path`)!,
 		curve = path.getAttribute(`d`)
+	const gl = vi.mocked(THREE.WebGLRenderer).mock.results.at(-1)!
+		.value as THREE.WebGLRenderer
+	const spine = vi
+		.mocked(gl.render)
+		.mock.lastCall![0].getObjectByName(`family-connections`) as ReturnType<
+		typeof createFamilySpine
+	>
+	const end = spine.geometry.getAttribute(
+		`instanceEnd`,
+	) as THREE.InterleavedBufferAttribute
+	const startX = end.getX(0)
 	const value = vi.mocked(animate).mock.calls.at(-1)![0] as MotionValue<number>
 	const destroy = vi.spyOn(value, `destroy`)
 	value.set(0.5)
 	f.tick()
 	expect(card.style.transform).not.toBe(start)
 	expect(path.getAttribute(`d`)).not.toBe(curve)
+	expect(end.getX(0)).not.toBe(startX)
 	value.set(1)
 	f.tick()
 	expect(card.style.transform).toContain(`translate`)
+	expect([end.getX(0), end.getY(0), end.getZ(0)]).toEqual(
+		f.point(member).map((coordinate) => expect.closeTo(coordinate, 4)),
+	)
 	f.context.expanded.clear()
 	f.patch({ items: [family, f.b] })
 	f.tick()
@@ -377,39 +427,48 @@ it(`projects animated member cards, arrows and family spines from the same world
 })
 
 it(`writes arrowless family spines with shared colors, world scaling and reusable bounded buffers`, () => {
-	const geometry = createFamilyBuffer(),
-		positions = geometry.getAttribute(`position`) as THREE.BufferAttribute,
-		colors = geometry.getAttribute(`color`),
-		from = item(`from`, -8, 2, 4),
+	const spine = createFamilySpine(3, 0.55)
+	const { geometry } = spine
+	const attribute = (name: string) =>
+		geometry.getAttribute(name) as THREE.InterleavedBufferAttribute
+	const positions = attribute(`instanceStart`),
+		colors = attribute(`instanceColorStart`)
+	const from = item(`from`, -8, 2, 4),
 		to = item(`to`, 8, 2, -4),
 		scale = new THREE.Vector3(2, 3, 4)
-	expect(positions.count).toBe(1_000)
+	expect(positions.count).toBe(500)
+	expect(geometry.instanceCount).toBe(0)
 	const connections = [{ family: `items`, from, to, color: from.color }]
-	writeFamilyBuffer(geometry, connections, scale)
-	expect(geometry.drawRange.count).toBe(2)
+	writeFamilySpine(spine, connections, scale)
+	expect(geometry.instanceCount).toBe(1)
+	expect(spine.visible).toBe(true)
+	expect(new THREE.Raycaster().intersectObject(spine)).toEqual([])
 	const color = new THREE.Color(from.color)
-	for (const [index, point] of [from, to].entries()) {
-		expect([
-			positions.getX(index),
-			positions.getY(index),
-			positions.getZ(index),
-		]).toEqual([point.x * 2, point.y * 3, point.z * 4])
-		expect([colors.getX(index), colors.getY(index), colors.getZ(index)]).toEqual(
-			[
-				expect.closeTo(color.r, 6),
-				expect.closeTo(color.g, 6),
-				expect.closeTo(color.b, 6),
-			],
-		)
+	for (const [point, coords, tint] of [
+		[from, positions, colors],
+		[to, attribute(`instanceEnd`), attribute(`instanceColorEnd`)],
+	] as const) {
+		expect([coords.getX(0), coords.getY(0), coords.getZ(0)]).toEqual([
+			point.x * 2,
+			point.y * 3,
+			point.z * 4,
+		])
+		expect([tint.getX(0), tint.getY(0), tint.getZ(0)]).toEqual([
+			expect.closeTo(color.r, 6),
+			expect.closeTo(color.g, 6),
+			expect.closeTo(color.b, 6),
+		])
 	}
-	writeFamilyBuffer(geometry, [], scale)
-	expect(geometry.drawRange.count).toBe(0)
-	expect(positions.updateRanges).toEqual([])
-	writeFamilyBuffer(geometry, connections, scale)
-	expect(geometry.getAttribute(`position`)).toBe(positions)
-	expect(geometry.getAttribute(`color`)).toBe(colors)
-	expect(positions.updateRanges).toEqual([{ start: 0, count: 6 }])
+	writeFamilySpine(spine, [], scale)
+	expect(geometry.instanceCount).toBe(0)
+	expect(spine.visible).toBe(false)
+	expect(positions.data.updateRanges).toEqual([])
+	writeFamilySpine(spine, connections, scale)
+	expect(attribute(`instanceStart`)).toBe(positions)
+	expect(attribute(`instanceColorStart`)).toBe(colors)
+	expect(positions.data.updateRanges).toEqual([{ start: 0, count: 6 }])
 	geometry.dispose()
+	spine.material.dispose()
 })
 
 it(`keeps outgoing paths inside their source layer, with inherited colors, separate strokes and stable card identities`, () => {

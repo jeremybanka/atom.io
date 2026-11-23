@@ -94,6 +94,10 @@ export function EcologyView(props: {
 	let host: HTMLElement | null = null
 	let controller: ReturnType<typeof createEcologyController> | undefined
 	const state = presentation.read
+	const selectedFamily = () => {
+		const selected = state().selected
+		return selected?.kind === `family` ? selected.key : selected?.familyLabel
+	}
 	const hover = (event: PointerEvent) => {
 		const target =
 			event.type === `pointerout` ? event.relatedTarget : event.target
@@ -145,6 +149,7 @@ export function EcologyView(props: {
 						edges={state().edges}
 						familyConnections={state().familyConnections}
 						selected={state().selectedCard}
+						selectedFamily={selectedFamily()}
 						selectedIds={state().selectedIds}
 						traced={state().traced}
 						focused={state().focused}

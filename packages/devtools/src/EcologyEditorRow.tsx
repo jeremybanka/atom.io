@@ -7,6 +7,7 @@ import { EDITOR_SPRING } from "./ecology-motion.ts"
 import css from "./EcologyEditorRow.module.css"
 import { EcologyNodeName } from "./EcologyNodeName.tsx"
 import type { EcologyPresentation } from "./EcologyView.tsx"
+import { EditorIcon } from "./EditorIcon.tsx"
 import { StateLeaf } from "./StateLeaf.tsx"
 import type { EditorTools } from "./store.ts"
 
@@ -73,7 +74,11 @@ export function EcologyEditorRow(props: {
 						aria-label={`${props.state.expanded.has(props.item.key) ? `Collapse` : `Expand`} ${props.item.key}`}
 						aria-expanded={props.state.expanded.has(props.item.key)}
 					>
-						{props.state.expanded.has(props.item.key) ? `▾` : `▸`}
+						<EditorIcon
+							name={
+								props.state.expanded.has(props.item.key) ? `collapse` : `expand`
+							}
+						/>
 					</button>
 					{label()}
 					<small>{`${family()!.memberCount}${family()!.countComplete ? `` : `+`} members`}</small>
@@ -88,7 +93,7 @@ export function EcologyEditorRow(props: {
 					capture={props.item.source}
 					revision={props.state.activity.get(props.item.id)?.revision}
 					label={label()}
-					onGenerate={() => {
+					onInitialize={() => {
 						props.onGenerate(props.item.key)
 					}}
 				/>

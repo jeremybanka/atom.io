@@ -28,6 +28,16 @@ async function assertTabAbovePane(tab: Locator, pane: Locator): Promise<void> {
 	assert.ok(tabBox.x + tabBox.width <= paneBox.x + paneBox.width)
 }
 
+async function finishExhibitEntrance(exhibit: Locator): Promise<void> {
+	await exhibit
+		.locator(`iframe[data-exhibit-loaded]`)
+		.evaluate(async (frame) => {
+			await Promise.all(
+				frame.getAnimations().map((animation) => animation.finished),
+			)
+		})
+}
+
 async function assertFrameworkLockup(
 	preview: FrameLocator,
 	name: string,
@@ -79,7 +89,10 @@ const server = createServer(async (request, response) => {
 	}
 	try {
 		const data = await readFile(file)
-		if (pathname.startsWith(`/_astro/`)) {
+		if (
+			pathname.startsWith(`/_astro/`) ||
+			pathname.startsWith(`/exhibit-data/trails/`)
+		) {
 			response.setHeader(`access-control-allow-origin`, `*`)
 		}
 		response.setHeader(
@@ -87,6 +100,7 @@ const server = createServer(async (request, response) => {
 			{
 				".html": `text/html`,
 				".js": `application/javascript`,
+				".json": `application/json`,
 				".css": `text/css`,
 				".svg": `image/svg+xml`,
 			}[extname(file)] ?? `application/octet-stream`,
@@ -109,6 +123,10 @@ try {
 			logLevel: `error`,
 		})
 	} else {
+		assert.match(
+			await readFile(join(directory, `_headers`), `utf8`),
+			/^\/exhibit-data\/trails\/\*\n\s+Access-Control-Allow-Origin: \*$/m,
+		)
 		await new Promise<void>((ready) => server.listen(0, `127.0.0.1`, ready))
 	}
 	browser = await chromium.launch({
@@ -142,6 +160,8 @@ try {
 	const frame = exhibit.frameLocator(`iframe`)
 	const codePane = exhibit.locator(`pre`)
 	const copy = exhibit.getByRole(`button`, { name: `Copy code` })
+	assert.equal((await codePane.boundingBox())?.width, 580)
+	assert.ok((await exhibit.boundingBox())!.width > 580)
 	const codeHeight = await codePane.evaluate((node) => {
 		const style = getComputedStyle(node)
 		const height = node.getBoundingClientRect().height
@@ -181,6 +201,48 @@ try {
 		await frame.locator(`html`).evaluate(() => window.origin),
 		devServer ? base : `null`,
 	)
+	const trail = page.locator(`#loadable-selector-ts`)
+	await trail.getByRole(`tab`, { name: `Ecology` }).click()
+	const trailFrame = trail.frameLocator(`iframe`)
+	const generateDistance = trailFrame.getByRole(`button`, {
+		name: `Generate trailDistanceKm`,
+		exact: true,
+	})
+	await generateDistance.waitFor()
+	if (!devServer) {
+		const policy = `meta[http-equiv="Content-Security-Policy"]`
+		assert.equal(
+			await trailFrame.locator(policy).getAttribute(`content`),
+			`connect-src ${base}/exhibit-data/trails/`,
+		)
+		assert.equal(
+			await frame.locator(policy).getAttribute(`content`),
+			`connect-src 'none'`,
+		)
+	}
+	const trailDocument = (await (
+		await trail.locator(`iframe`).elementHandle()
+	).contentFrame())!
+	const generateTrail = async (id: string, distance: string) => {
+		const [response] = await Promise.all([
+			page.waitForResponse(`${base}/exhibit-data/trails/${id}.json`),
+			generateDistance.click(),
+		])
+		assert.ok(response.ok())
+		await trailDocument.waitForFunction(
+			(expected) =>
+				document.querySelector<HTMLInputElement>(
+					`ecology-editor input[aria-label="trailDistanceKm"]`,
+				)?.value === expected,
+			distance,
+		)
+	}
+	await generateTrail(`lake-loop`, `4.2`)
+	await trailFrame
+		.getByRole(`textbox`, { name: `trailId`, exact: true })
+		.fill(`ridge-trail`)
+	await generateTrail(`ridge-trail`, `7.8`)
+	console.log(`Loadable selector fetched both trail records.`)
 	const declaration = page.locator(`#declare-a-selector-ts`)
 	const declarationHeight = (await declaration.locator(`pre`).boundingBox())!
 		.height
@@ -236,6 +298,7 @@ try {
 		paneWidth,
 		`The copy button must float over full-width code`,
 	)
+	assert.ok(codeWidth < 580)
 	assert.ok(before.top > 0 && before.top < 10)
 	assert.ok(before.right > 0 && before.right < 10)
 	assert.ok(scrollOffset > 0)
@@ -347,6 +410,12 @@ try {
 		await page.locator(`#use-a-selector-ts`).getAttribute(`data-exhibit-layout`),
 		`two`,
 	)
+	const cappedCode = (await codePane.boundingBox())!
+	const adjacentPane = (await exhibit
+		.locator(`exhibit-live-pane`)
+		.boundingBox())!
+	assert.equal(cappedCode.width, 580)
+	assert.equal(cappedCode.x + cappedCode.width, adjacentPane.x)
 	assert.equal(await divisor.inputValue(), `2`)
 	await assertTabAbovePane(divisionCode, divisionSource)
 	await assertTabAbovePane(divisionEcology, ecologyPane)
@@ -522,7 +591,90 @@ try {
 	assert.deepEqual(errors, [])
 	console.log(`Exhibit React preview browser checks passed.`)
 
+	await page.addInitScript(() => {
+		const animate = Element.prototype.animate
+		Element.prototype.animate = function (this: Element, keyframes, options) {
+			const animation = animate.call(this, keyframes, options)
+			if (this instanceof HTMLIFrameElement) {
+				const effect = animation.effect as KeyframeEffect
+				this.setAttribute(
+					`data-test-entrance`,
+					JSON.stringify({
+						duration: effect.getTiming().duration,
+						opacity: effect
+							.getKeyframes()
+							.map((keyframe) => Number(keyframe[`opacity`])),
+					}),
+				)
+			}
+			return animation
+		}
+	})
 	await page.goto(`${base}/docs/spa/`)
+	const onMount = page.locator(`#on-mount-tsx`)
+	const mountTab = onMount.getByRole(`tab`, { name: `Preview` })
+	const mountFrame = onMount.locator(`iframe`)
+	const continuePreview = Promise.withResolvers<void>()
+	await page.emulateMedia({ reducedMotion: `no-preference` })
+	await page.route(
+		(url) =>
+			url.pathname === `/exhibit-sandbox` &&
+			url.searchParams.get(`view`) === `preview`,
+		async (route) => {
+			await continuePreview.promise
+			await route.continue()
+		},
+		{ times: 1 },
+	)
+	const loadingColors = new Set<string>()
+	try {
+		await mountTab.click()
+		for (const colorScheme of [`light`, `dark`] as const) {
+			await page.emulateMedia({ colorScheme })
+			const background = await onMount
+				.locator(`exhibit-live-pane`)
+				.evaluate((pane) => getComputedStyle(pane).backgroundColor)
+			assert.equal(
+				background,
+				await mountTab.evaluate((tab) => getComputedStyle(tab).backgroundColor),
+			)
+			loadingColors.add(background)
+		}
+		assert.equal(loadingColors.size, 2)
+		assert.equal(
+			await mountFrame.evaluate((iframe) => getComputedStyle(iframe).opacity),
+			`0`,
+		)
+	} finally {
+		continuePreview.resolve()
+		await page.emulateMedia({ colorScheme: null })
+	}
+	await finishExhibitEntrance(onMount)
+	assert.equal(
+		await mountFrame.getAttribute(`data-test-entrance`),
+		`{"duration":250,"opacity":[0,1]}`,
+	)
+	const searchExample = onMount
+		.frameLocator(`iframe`)
+		.getByRole(`textbox`, { name: `Search products` })
+	assert.match(
+		await searchExample.evaluate((input) => getComputedStyle(input).fontFamily),
+		/^Verdana\b/,
+	)
+	assert.match(
+		await onMount
+			.locator(`pre code span`)
+			.first()
+			.evaluate((token) => getComputedStyle(token).fontFamily),
+		/^Theia\b/,
+	)
+	await onMount.getByRole(`tab`, { name: `Code` }).click()
+	await mountTab.click()
+	assert.equal(
+		await mountFrame.evaluate((iframe) => iframe.getAnimations().length),
+		0,
+	)
+
 	const loadable = page.locator(`#use-loadable-tsx`)
 	const loadableFrame = loadable.frameLocator(`iframe`)
 	const accountNamePreview = loadableFrame.getByRole(`region`, {
@@ -542,10 +694,17 @@ try {
 	assert.equal(await accountName.inputValue(), `Ada Lovelace`)
 	assert.deepEqual(errors, [])
 
+	await page.emulateMedia({ reducedMotion: `reduce` })
 	await page.goto(`${base}/docs/spa/vite`)
 	const spaCounter = page.locator(`#counter-tsx`)
 	await spaCounter.getByRole(`tab`, { name: `Preview` }).click()
 	const spaPreview = spaCounter.frameLocator(`iframe`)
+	await spaCounter.locator(`iframe[data-exhibit-loaded]`).waitFor()
+	assert.equal(
+		await spaCounter.locator(`iframe`).getAttribute(`data-test-entrance`),
+		null,
+	)
+	await page.emulateMedia({ reducedMotion: null })
 	await assertFrameworkLockup(spaPreview, `@atom.io/spa`, `spa`)
 	await spaPreview.getByRole(`button`, { name: `Count: 0` }).click()
 	await spaPreview.getByRole(`button`, { name: `Count: 1` }).waitFor()

@@ -2,13 +2,13 @@
 import { onCleanup, onMount, type SpaElement, useStore } from "@atom.io/spa"
 import type { MotionAttributes } from "@atom.io/spa/motion"
 import { bindScene } from "@atom.io/spa/renderer"
-import { Future } from "atom.io/foundations/future"
 import type { RootStore } from "atom.io/internal"
 import { peekState } from "atom.io/introspection"
 import type { Scene } from "three"
 // eslint-disable-next-line import/extensions -- Three addon exports require the .js suffix.
 import { CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js"
 
+import { ecologyLoadState } from "./ecology.ts"
 import { createCardFeedback } from "./ecology-card-feedback.ts"
 import type { GraphItem } from "./ecology-graph.ts"
 import type { ProjectedEdge } from "./ecology-lines.ts"
@@ -27,6 +27,7 @@ export function EcologyNodeCard(props: {
 	item: GraphItem
 	store: RootStore
 	activity?: EcologyActivity | undefined
+	completedLoads: WeakSet<object>
 	reducedMotion: MediaQueryList
 	selected: boolean
 	hovered: boolean
@@ -168,25 +169,17 @@ export function EcologyNodeCard(props: {
 						newRevision && (feedbackItem || fresh) ? activity.future : undefined
 					if (newRevision) feedbackRevision = activity.revision
 					feedbackItem = item
-					const raw = peekState(props.store, item.key).value
-					const state =
-						props.store.atoms.get(item.key) ??
-						props.store.readonlySelectors.get(item.key) ??
-						props.store.writableSelectors.get(item.key)
-					let pending = false
-					let caught = false
-					if (typeof raw === `object` && raw !== null) {
-						try {
-							pending = raw instanceof Future && !raw.done
-							caught =
-								!!state &&
-								`catch` in state &&
-								state.catch.some((ErrorType) => raw instanceof ErrorType)
-						} catch {
-							// Proxies can reject prototype inspection.
-						}
-					}
-					feedback.future(pending, caught, events)
+					const { definition, raw, status } = ecologyLoadState(
+						props.store,
+						item.key,
+					)
+					if (definition && status) props.completedLoads.delete(definition)
+					feedback.future(
+						status === `pending`,
+						definition !== undefined && props.completedLoads.has(definition),
+						events,
+					)
+					const caught = status === `caught`
 					const nextCaught = caught ? raw : undefined
 					if (!Object.is(nextCaught, lastCaught)) {
 						feedback.error(caught, fresh)

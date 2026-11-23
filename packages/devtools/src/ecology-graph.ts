@@ -37,6 +37,7 @@ export interface GraphContext {
 	expanded: Set<string>
 	selected: string | null
 	positions: Map<string, GraphPosition>
+	completedLoads: WeakSet<object>
 	camera?: {
 		position: [number, number, number]
 		target: [number, number, number]
@@ -102,6 +103,7 @@ export function createGraphContext(): GraphContext {
 		expanded: new Set(),
 		selected: null,
 		positions: new Map(),
+		completedLoads: new WeakSet(),
 	}
 }
 

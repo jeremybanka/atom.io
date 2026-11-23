@@ -12,9 +12,6 @@ state-leaf.class {
 		color: var(--ink-muted);
 		margin-left: auto;
 	}
-	> node-heading > button {
-		flex-shrink: 0;
-	}
 	&[data-grouped="true"] {
 		margin-left: 9px;
 		border-left: 1px solid var(--ink-muted);

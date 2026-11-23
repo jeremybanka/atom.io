@@ -160,6 +160,17 @@ function startSandbox(sandbox: Sandbox): void {
 
 try {
 	const source = decodeURIComponent(location.hash.slice(1))
+	if (import.meta.env.PROD) {
+		const policy = document.createElement(`meta`)
+		policy.httpEquiv = `Content-Security-Policy`
+		// The frame has an opaque origin. Derive the asset origin from its URL.
+		const allowed =
+			source === `core/advanced/async/loadable-selector.ts`
+				? `${location.origin}/exhibit-data/trails/`
+				: `'none'`
+		policy.content = `connect-src ${allowed}`
+		document.head.append(policy)
+	}
 	const embedded = window.parent !== window
 	const sandbox =
 		embedded && (import.meta.env.DEV || window.origin === `null`)

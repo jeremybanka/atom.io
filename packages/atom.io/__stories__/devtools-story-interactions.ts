@@ -194,7 +194,11 @@ export const playOrderRoots: Play = async (context) => {
 		async () => {
 			for (const key of [`seasonalPromotion`, `lazyAuditDefault("unused")`]) {
 				await tools.choose(key)
-				await expect(tools.inspector()).toHaveTextContent(`Generate`)
+				await expect(
+					within(tools.inspector()).getByRole(`button`, {
+						name: `Generate ${key}`,
+					}),
+				).toBeVisible()
 			}
 			await tools.choose(`wishlistNotesBySku`, true)
 			await expect(tools.inspector()).toHaveTextContent(`0 members`)

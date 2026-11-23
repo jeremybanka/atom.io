@@ -1,4 +1,10 @@
 import * as THREE from "three"
+// eslint-disable-next-line import/extensions -- Three addon exports require the .js suffix.
+import { LineMaterial } from "three/addons/lines/LineMaterial.js"
+// eslint-disable-next-line import/extensions -- Three addon exports require the .js suffix.
+import { LineSegments2 } from "three/addons/lines/LineSegments2.js"
+// eslint-disable-next-line import/extensions -- Three addon exports require the .js suffix.
+import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js"
 
 import type { FamilyConnection, GraphPosition } from "./ecology-graph.ts"
 import type { EdgeRoutingMotion } from "./ecology-motion.ts"
@@ -28,54 +34,76 @@ const cardinals = [
 	[-1, 0],
 	[0, -1],
 ] as const
-function createLineBuffer(vertices: number): THREE.BufferGeometry {
-	const geometry = new THREE.BufferGeometry()
-	geometry.setAttribute(
-		`position`,
-		new THREE.BufferAttribute(new Float32Array(vertices * 3), 3).setUsage(
-			THREE.DynamicDrawUsage,
-		),
-	)
-	geometry.setAttribute(
-		`color`,
-		new THREE.BufferAttribute(new Float32Array(vertices * 3), 3).setUsage(
-			THREE.DynamicDrawUsage,
-		),
-	)
-	geometry.setDrawRange(0, 0)
-	return geometry
-}
-export function createFamilyBuffer(): THREE.BufferGeometry {
-	return createLineBuffer(500 * 2)
+export function createFamilySpine(
+	width: number,
+	opacity: number,
+): LineSegments2 {
+	const geometry = new LineSegmentsGeometry()
+	geometry.setPositions(new Float32Array(500 * 6))
+	geometry.setColors(new Float32Array(500 * 6))
+	for (const name of [`instanceStart`, `instanceColorStart`]) {
+		const { data } = geometry.getAttribute(
+			name,
+		) as THREE.InterleavedBufferAttribute
+		data.setUsage(THREE.DynamicDrawUsage)
+	}
+	geometry.instanceCount = 0
+	const material = new LineMaterial({
+		linewidth: width,
+		vertexColors: true,
+		transparent: true,
+		opacity,
+		depthWrite: false,
+		alphaToCoverage: true,
+	})
+	const spine = new LineSegments2(geometry, material)
+	spine.frustumCulled = false
+	spine.visible = false
+	// Membership is decorative. Only the cards participate in pointer interactions.
+	spine.raycast = () => {}
+	return spine
 }
 
 /** A straight, arrowless spine joins only the painted nodes of an expanded family. */
-export function writeFamilyBuffer(
-	geometry: THREE.BufferGeometry,
+export function writeFamilySpine(
+	spine: LineSegments2,
 	connections: readonly FamilyConnection[],
 	worldScale: THREE.Vector3,
 ): void {
-	const positions = geometry.getAttribute(`position`) as THREE.BufferAttribute
-	const colors = geometry.getAttribute(`color`) as THREE.BufferAttribute
+	const { geometry } = spine
+	const attribute = (name: string) =>
+		geometry.getAttribute(name) as THREE.InterleavedBufferAttribute
+	const start = attribute(`instanceStart`)
+	const end = attribute(`instanceEnd`)
+	const startColor = attribute(`instanceColorStart`)
+	const endColor = attribute(`instanceColorEnd`)
 	const color = new THREE.Color()
-	let cursor = 0
-	for (const connection of connections) {
-		color.setStyle(connection.color)
-		for (const point of [connection.from, connection.to]) {
-			positions.setXYZ(
-				cursor,
-				point.x * worldScale.x,
-				point.y * worldScale.y,
-				point.z * worldScale.z,
-			)
-			colors.setXYZ(cursor++, color.r, color.g, color.b)
-		}
+	for (let index = 0; index < connections.length; index++) {
+		const { from, to, color: hue } = connections[index]
+		color.setStyle(hue)
+		start.setXYZ(
+			index,
+			from.x * worldScale.x,
+			from.y * worldScale.y,
+			from.z * worldScale.z,
+		)
+		end.setXYZ(
+			index,
+			to.x * worldScale.x,
+			to.y * worldScale.y,
+			to.z * worldScale.z,
+		)
+		startColor.setXYZ(index, color.r, color.g, color.b)
+		endColor.setXYZ(index, color.r, color.g, color.b)
 	}
-	geometry.setDrawRange(0, cursor)
-	for (const attribute of [positions, colors]) {
-		attribute.clearUpdateRanges()
-		if (cursor) attribute.addUpdateRange(0, cursor * 3)
-		attribute.needsUpdate = true
+	geometry.instanceCount = connections.length
+	spine.visible = connections.length > 0
+	for (const { data } of [start, startColor]) {
+		data.clearUpdateRanges()
+		if (connections.length) {
+			data.addUpdateRange(0, connections.length * 6)
+			data.needsUpdate = true
+		}
 	}
 }
 

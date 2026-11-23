@@ -3,6 +3,7 @@ import { type FutureActivity, observeStore } from "atom.io/introspection"
 
 import {
 	captureEcologySnapshot,
+	ecologyLoadState,
 	type EcologyNode,
 	ecologyValue,
 } from "./ecology.ts"
@@ -456,12 +457,22 @@ export function createEcologyController(
 					returnToSearch()
 				const family = (definition ?? previous)?.family?.key
 				if (family) changedCards.add(`family:${family}`)
+				return definition
 			}
 			for (const key of changes.values) {
 				const previous = capturedNodes.get(key)
 				if (!previous && !changes.states.has(key)) continue
-				markState(key, previous)
+				const definition = markState(key, previous)
 				const events = changes.futures.get(key)
+				if (definition && (events || context.completedLoads.has(definition))) {
+					const { status } = ecologyLoadState(store, key)
+					if (status || events?.has(`rejected`))
+						context.completedLoads.delete(definition)
+					else if (events?.has(`resolved`))
+						context.completedLoads.add(definition)
+					else if (events?.has(`started`))
+						context.completedLoads.delete(definition)
+				}
 				if (events) {
 					const id = `state:${key}`
 					let pending = futureChanges.get(id)

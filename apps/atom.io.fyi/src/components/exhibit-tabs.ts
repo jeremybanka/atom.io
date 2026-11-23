@@ -36,6 +36,7 @@ function syncExhibit(exhibit: HTMLElement, activate = false): void {
 	exhibit.dataset[`exhibitLayout`] = showBoth ? `three` : split ? `two` : `one`
 	code.hidden = selected !== `code` && !split
 	live.hidden = view === `code`
+	live.dataset[`exhibitView`] = view
 
 	const liveLabels: string[] = []
 	for (const tab of tabs) {
@@ -67,6 +68,15 @@ function syncExhibit(exhibit: HTMLElement, activate = false): void {
 		if (import.meta.env.DEV) sandbox.sandbox.add(`allow-same-origin`)
 		sandbox.dataset[`exhibitView`] = view
 		sandbox.addEventListener(`load`, () => {
+			if (!sandbox.hasAttribute(`data-exhibit-loaded`)) {
+				sandbox.setAttribute(`data-exhibit-loaded`, ``)
+				sandbox.style.opacity = `1`
+				if (!live.hidden && !reducedMotion.matches)
+					sandbox.animate([{ opacity: 0 }, { opacity: 1 }], {
+						duration: 250,
+						easing: `ease-out`,
+					})
+			}
 			const current = sandbox.dataset[`exhibitView`]
 			if (isExhibitView(current)) showView(sandbox, current)
 		})
@@ -77,6 +87,7 @@ function syncExhibit(exhibit: HTMLElement, activate = false): void {
 	}
 }
 
+const reducedMotion = window.matchMedia(`(prefers-reduced-motion: reduce)`)
 const visibleExhibits = new IntersectionObserver(
 	(entries) => {
 		for (const { target, isIntersecting } of entries) {

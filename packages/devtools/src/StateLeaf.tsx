@@ -2,9 +2,10 @@
 import type { Children, SpaElement } from "@atom.io/spa"
 import { useGetter, useSetter } from "@atom.io/spa"
 import type { ReadableToken, WritableToken } from "atom.io"
-import { disposeFromStore, getFromStore } from "atom.io/internal"
+import { disposeFromStore, getFromStore, resetInStore } from "atom.io/internal"
 import { peekState } from "atom.io/introspection"
 
+import { EditorButton } from "./EditorButton.tsx"
 import { JsonEditor } from "./JsonEditor.tsx"
 import css from "./StateLeaf.module.css"
 import type { EditorTools } from "./store.ts"
@@ -20,7 +21,7 @@ export function StateLeaf(props: {
 	capture?: unknown
 	revision?: number | undefined
 	label?: Children
-	onGenerate?(): void
+	onInitialize?(): void
 }): SpaElement {
 	const token = props.token
 	const definition = () =>
@@ -36,10 +37,29 @@ export function StateLeaf(props: {
 				return peekState(props.tools.store, token.key)
 			}
 		: undefined
-	const writable = !token.type.startsWith(`readonly`)
-	const setValue = writable
-		? useSetter(token as WritableToken<unknown, any, any>)
-		: undefined
+	const writableToken = token.type.startsWith(`readonly`)
+		? undefined
+		: (token as WritableToken<unknown, any, any>)
+	const setValue = writableToken ? useSetter(writableToken) : undefined
+	const requireCurrent = () => {
+		if (definition() !== captured)
+			throw new Error(`State was disposed. Refresh to update the snapshot.`)
+	}
+	const resetButton = () =>
+		writableToken && (
+			<EditorButton
+				icon="reset"
+				label={`Reset ${token.key}`}
+				onClick={() => {
+					props.tools.attempt(() => {
+						requireCurrent()
+						const uncached = cache && !cache().present
+						resetInStore(props.tools.store, writableToken)
+						if (uncached) props.onInitialize?.()
+					})
+				}}
+			/>
+		)
 	const value = () => {
 		try {
 			if (props.retained && definition() !== captured)
@@ -61,22 +81,18 @@ export function StateLeaf(props: {
 				<node-heading>
 					{props.label}
 					<span>–</span>
-					<button
-						type="button"
-						aria-label={`Generate ${token.key}`}
+					<EditorButton
+						icon="generate"
+						label={`Generate ${token.key}`}
 						onClick={() => {
 							props.tools.attempt(() => {
-								if (definition() !== captured)
-									throw new Error(
-										`State was disposed. Refresh to update the snapshot.`,
-									)
+								requireCurrent()
 								getFromStore(props.tools.store, token)
-								props.onGenerate?.()
+								props.onInitialize?.()
 							})
 						}}
-					>
-						Generate
-					</button>
+					/>
+					{resetButton()}
 				</node-heading>
 			) : (
 				<JsonEditor
@@ -87,19 +103,20 @@ export function StateLeaf(props: {
 						)
 					}
 					actions={
-						token.family ? (
-							<button
-								type="button"
-								aria-label={`Dispose ${token.key}`}
-								onClick={() => {
-									props.tools.attempt(() => {
-										disposeFromStore(props.tools.store, token)
-									})
-								}}
-							>
-								×
-							</button>
-						) : null
+						<>
+							{resetButton()}
+							{token.family && (
+								<EditorButton
+									icon="remove"
+									label={`Dispose ${token.key}`}
+									onClick={() => {
+										props.tools.attempt(() => {
+											disposeFromStore(props.tools.store, token)
+										})
+									}}
+								/>
+							)}
+						</>
 					}
 					tools={props.tools}
 					value={value()}

@@ -1,2 +1,5 @@
 /_astro/*
   Access-Control-Allow-Origin: *
+
+/exhibit-data/trails/*
+  Access-Control-Allow-Origin: *

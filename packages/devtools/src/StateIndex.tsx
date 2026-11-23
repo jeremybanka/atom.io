@@ -4,6 +4,7 @@ import { useGetter } from "@atom.io/spa"
 import type { ReadableToken } from "atom.io"
 import type { FamilyNode } from "atom.io/introspection"
 
+import { EditorIcon } from "./EditorIcon.tsx"
 import css from "./StateIndex.module.css"
 import { StateLeaf } from "./StateLeaf.tsx"
 import { type Tools, useExpanded } from "./store.ts"
@@ -46,11 +47,12 @@ function StateNode(props: {
 					<node-heading>
 						<button
 							type="button"
+							aria-label={`${getOpen() ? `Collapse` : `Expand`} ${props.node.key}`}
 							aria-expanded={getOpen()}
 							data-testid={`open-close-state-family-${props.node.key}`}
 							onClick={toggle}
 						>
-							{getOpen() ? `▾` : `▸`}
+							<EditorIcon name={getOpen() ? `collapse` : `expand`} />
 						</button>
 						<h2 title={props.node.key}>{props.node.key}</h2>
 						<small>family</small>

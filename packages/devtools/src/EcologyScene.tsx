@@ -1,7 +1,7 @@
 /** @jsxImportSource @atom.io/spa */
 import { onCleanup, onMount, type SpaElement } from "@atom.io/spa"
 import { bindScene } from "@atom.io/spa/renderer"
-import { Canvas, LineSegments } from "@atom.io/spa/three"
+import { Canvas } from "@atom.io/spa/three"
 import * as THREE from "three"
 // eslint-disable-next-line import/extensions -- Three addon exports require the .js suffix.
 import { OrbitControls } from "three/addons/controls/OrbitControls.js"
@@ -15,10 +15,10 @@ import type {
 } from "./ecology-graph.ts"
 import {
 	createEdgeProjector,
-	createFamilyBuffer,
+	createFamilySpine,
 	type EcologyLine,
 	type ProjectedEdge,
-	writeFamilyBuffer,
+	writeFamilySpine,
 } from "./ecology-lines.ts"
 import {
 	createEcologyMotion,
@@ -31,6 +31,7 @@ import type { EcologyActivity } from "./EcologyView.tsx"
 import { type EditorTools, useLocal } from "./store.ts"
 
 const canvas = { Canvas }
+const FAMILY_SPINE_OPACITY = 0.55
 
 export interface CameraCommand {
 	sequence: number
@@ -47,6 +48,7 @@ export function EcologyScene(props: {
 	edges: EcologyLine[]
 	familyConnections?: readonly FamilyConnection[] | undefined
 	selected?: string | undefined
+	selectedFamily?: string | undefined
 	selectedIds?: ReadonlySet<string> | undefined
 	traced: Set<string>
 	focused?: ReadonlySet<string> | undefined
@@ -76,7 +78,12 @@ export function EcologyScene(props: {
 	}
 	const dimmed = (item: GraphItem) => {
 		const focused = props.focused
-		return focused !== undefined && !focused.has(item.id)
+		const family = props.selectedFamily
+		return (
+			focused !== undefined &&
+			!focused.has(item.id) &&
+			(family === undefined || item.familyLabel !== family)
+		)
 	}
 	const selected = (item: GraphItem) =>
 		props.selected === item.id || (props.selectedIds?.has(item.id) ?? false)
@@ -88,13 +95,11 @@ export function EcologyScene(props: {
 	const edgeLayers = new Set<
 		(paths: ReadonlyMap<string, readonly ProjectedEdge[]>) => void
 	>()
-	const families = createFamilyBuffer()
-	const familyMaterial = new THREE.LineBasicMaterial({
-		vertexColors: true,
-		transparent: true,
-		opacity: 0.12,
-		depthWrite: false,
-	})
+	const familySpine = createFamilySpine(3, FAMILY_SPINE_OPACITY)
+	familySpine.name = `family-connections`
+	familySpine.renderOrder = -1
+	const selectedSpine = createFamilySpine(5, 0.9)
+	selectedSpine.name = `selected-family-connections`
 	camera.position.set(23, 7, 28)
 	let viewport: HTMLElement | null = null,
 		layer: HTMLElement | null = null
@@ -245,6 +250,7 @@ export function EcologyScene(props: {
 		bindScene(() => props.familyConnections, invalidate)
 		bindScene(() => props.items, invalidate)
 		bindScene(() => props.matches, invalidate)
+		bindScene(() => [props.selected, props.selectedFamily], invalidate)
 		bindScene(
 			() => props.cylinderHeight,
 			() => {
@@ -253,10 +259,38 @@ export function EcologyScene(props: {
 		)
 		onCleanup(() => {
 			observer.disconnect()
-			families.dispose()
-			familyMaterial.dispose()
+			for (const spine of [familySpine, selectedSpine]) {
+				spine.geometry.dispose()
+				spine.material.dispose()
+			}
 		})
 	})
+	const drawFamilySpines = (moving: boolean) => {
+		const family = props.selectedFamily
+		const connections = props.familyConnections ?? []
+		const positioned = moving
+			? connections.map((connection) => ({
+					...connection,
+					from: { ...connection.from, ...motion.point(connection.from) },
+					to: { ...connection.to, ...motion.point(connection.to) },
+				}))
+			: connections
+		familySpine.material.opacity = props.selected ? 0.28 : FAMILY_SPINE_OPACITY
+		writeFamilySpine(
+			familySpine,
+			family === undefined
+				? positioned
+				: positioned.filter((link) => link.family !== family),
+			scale,
+		)
+		writeFamilySpine(
+			selectedSpine,
+			family === undefined
+				? []
+				: positioned.filter((link) => link.family === family),
+			scale,
+		)
+	}
 	const draw = () => {
 		const sceneChanged = dirty
 		if (!sceneChanged && !edgesDirty) return
@@ -280,18 +314,7 @@ export function EcologyScene(props: {
 		for (const paint of edgeLayers) paint(paths)
 		viewport!.dataset[`edges`] = String(props.edges.length)
 		if (!sceneChanged) return
-		const connections = props.familyConnections ?? []
-		writeFamilyBuffer(
-			families,
-			moving
-				? connections.map((connection) => ({
-						...connection,
-						from: { ...connection.from, ...motion.point(connection.from) },
-						to: { ...connection.to, ...motion.point(connection.to) },
-					}))
-				: connections,
-			scale,
-		)
+		drawFamilySpines(moving)
 		viewport!.dataset[`camera`] = [
 			...camera.position.toArray(),
 			...controls!.target.toArray(),
@@ -319,6 +342,7 @@ export function EcologyScene(props: {
 					item={item}
 					store={props.tools.store}
 					activity={props.activity?.get(item.id)}
+					completedLoads={props.context.completedLoads}
 					reducedMotion={reducedMotion}
 					motion={motion}
 					release={release}
@@ -369,7 +393,8 @@ export function EcologyScene(props: {
 					onResize={({ width, height }) => {
 						reshape(width, height)
 					}}
-					onCreated={() => {
+					onCreated={({ scene }) => {
+						scene.add(familySpine, selectedSpine)
 						renderer = new CSS2DRenderer({ element: layer! })
 						renderer.setSize(size().width, size().height)
 						controls = new OrbitControls(camera, viewport)
@@ -387,6 +412,7 @@ export function EcologyScene(props: {
 						if (props.command.sequence > 0) command(props.command)
 						invalidate()
 						return () => {
+							scene.remove(familySpine, selectedSpine)
 							controls!.dispose()
 							renderer = undefined
 							controls = undefined
@@ -396,14 +422,6 @@ export function EcologyScene(props: {
 					onFrame={draw}
 				>
 					<EcologyGround height={cylinder().height} />
-					<LineSegments
-						name="family-connections"
-						args={[families, familyMaterial]}
-						frustumCulled={false}
-						ref={(line) => {
-							if (line) line.renderOrder = -1
-						}}
-					/>
 				</canvas.Canvas>
 			)}
 			<ecology-labels

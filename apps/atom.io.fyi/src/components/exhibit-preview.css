@@ -9,7 +9,7 @@ preview-desktop {
 	isolation: isolate;
 	background: var(--exhibit-preview-background);
 	color: #181b1e;
-	font: 400 14px/1.45 Tahoma, "Segoe UI", system-ui, sans-serif;
+	font: 400 14px/1.45 Verdana, sans-serif;
 }
 preview-desktop[hidden] {
 	display: none;
@@ -67,6 +67,10 @@ preview-window {
 }
 
 preview-mount {
+	:where(code, kbd, pre, samp) {
+		font-family: inherit;
+	}
+
 	--space: 8px;
 	--space-small: 4px;
 	--control: 30px;

@@ -9,6 +9,7 @@ import {
 import { CodeBlock } from "./CodeBlock"
 
 type Props = {
+	ecology?: boolean
 	label?: string
 	soft?: boolean
 	src: string
@@ -19,7 +20,7 @@ function getDisplayFilename(src: string): string {
 	return filename.endsWith(`.txt`) ? filename.slice(0, -`.txt`.length) : filename
 }
 
-const { label, soft = false, src } = Astro.props
+const { ecology = true, label, soft = false, src } = Astro.props
 const reference = parseExhibitReference(src)
 const normalizedSource = normalizeExhibitSource(reference.source)
 const sourceCode = exhibits[normalizedSource]
@@ -31,6 +32,11 @@ if (sourceCode === undefined) {
 const code = extractExhibitCode(sourceCode, reference)
 const filepath = getDisplayFilename(normalizedSource)
 const views = sandboxViews[normalizedSource]
+const exhibit = views && {
+	...views,
+	ecology: ecology && views.ecology,
+	source: normalizedSource,
+}
 ---
 
 <CodeBlock
@@ -38,5 +44,5 @@ const views = sandboxViews[normalizedSource]
 	filepath={filepath}
 	label={label}
 	soft={soft}
-	exhibit={views ? { source: normalizedSource, ...views } : undefined}
+	exhibit={exhibit?.ecology || exhibit?.preview ? exhibit : undefined}
 />

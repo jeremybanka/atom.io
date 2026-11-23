@@ -17,6 +17,7 @@ function createDocumentState(name: string) {
 
 const leftDocument = createDocumentState(`left-document`)
 const rightDocument = createDocumentState(`right-document`)
+export const leftDocumentSilo = leftDocument.silo
 
 function TitleEditor(props: { document: typeof leftDocument }) {
 	const title = useO(props.document.titleAtom)

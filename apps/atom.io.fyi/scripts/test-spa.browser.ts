@@ -155,9 +155,54 @@ try {
 	assert.equal((await codePane.boundingBox())?.height, codeHeight.height)
 	await page.setViewportSize({ width: 390, height: 844 })
 	assert.equal(await ecology.locator(`span`).isVisible(), false)
+	await page.setViewportSize({ width: 1440, height: 1000 })
+
+	await page.goto(`${base}/docs/spa/motion`)
+	const motionSetup = page.locator(`#motion-basic-main-tsx`)
+	await motionSetup.getByRole(`tab`, { name: `Ecology` }).click()
+	const motionFrame = motionSetup.frameLocator(`iframe`)
+	await motionFrame
+		.locator(`ecology-editor`)
+		.getByRole(`button`, { name: `targetX`, exact: true })
+		.waitFor()
+	assert.equal(
+		await motionFrame.locator(`#app p`).textContent(),
+		`An animated paragraph.`,
+	)
+	assert.equal(await motionFrame.locator(`#app`).isVisible(), false)
+
+	await page.goto(`${base}/docs/web`)
+	const storage = page.locator(`#sync-with-local-storage-ts`)
+	const storageEcology = storage.getByRole(`tab`, { name: `Ecology` })
+	await storageEcology.click()
+	const storageFrame = storage.frameLocator(`iframe`)
+	const sidebar = storageFrame
+		.locator(`ecology-editor`)
+		.getByRole(`button`, { name: `sidebarOpen`, exact: true })
+	await sidebar.waitFor()
+	assert.equal(
+		await storageFrame.locator(`html`).evaluate(() => {
+			localStorage.setItem(`exhibit-test`, `local`)
+			return sessionStorage.getItem(`exhibit-test`)
+		}),
+		null,
+	)
+	assert.equal(
+		await page.evaluate(() => localStorage.getItem(`exhibit-test`)),
+		null,
+	)
+	await storage.getByRole(`tab`, { name: `Code` }).click()
+	await storageEcology.click()
+	await sidebar.waitFor()
+	assert.equal(
+		await storageFrame
+			.locator(`html`)
+			.evaluate(() => localStorage.getItem(`exhibit-test`)),
+		null,
+	)
+
 	assert.deepEqual(errors, [])
 	console.log(`Exhibit ecology browser checks passed.`)
-	await page.setViewportSize({ width: 1440, height: 1000 })
 
 	await page.goto(`${base}/docs/react`)
 	const counter = page.locator(`#counter-preview-tsx`)
@@ -196,6 +241,12 @@ try {
 	assert.equal(await count.inputValue(), `0`)
 
 	const workspace = page.locator(`#silo-store-providers-tsx`)
+	await workspace.getByRole(`tab`, { name: `Ecology` }).click()
+	await workspace
+		.frameLocator(`iframe`)
+		.locator(`ecology-editor`)
+		.getByRole(`button`, { name: `title`, exact: true })
+		.waitFor()
 	await workspace.getByRole(`tab`, { name: `Preview` }).click()
 	const documentPreview = workspace.frameLocator(`iframe`)
 	const leftTitle = documentPreview.getByRole(`textbox`, {

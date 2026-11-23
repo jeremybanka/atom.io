@@ -288,6 +288,16 @@ exhibit-frame.class {
 
 	> exhibit-live-pane {
 		position: relative;
+		&[data-exhibit-view="preview"] {
+			background: var(--exhibit-preview-background);
+		}
+		&[data-exhibit-view="both"] {
+			background: linear-gradient(
+				to right,
+				var(--bg-color) var(--exhibit-ecology-width),
+				var(--exhibit-preview-background) var(--exhibit-ecology-width)
+			);
+		}
 		/* @lasertag-expect-error: exhibit-tabs.ts inserts the iframe when a live pane opens */
 		> iframe {
 			position: absolute;
@@ -296,6 +306,7 @@ exhibit-frame.class {
 			width: 100%;
 			height: 100%;
 			border: 0;
+			opacity: 0;
 		}
 	}
 

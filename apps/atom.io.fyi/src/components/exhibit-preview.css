@@ -48,6 +48,10 @@ exhibit-preview {
 		padding: 0 5px;
 	}
 
+	:where(label + input, output + button, button + button) {
+		margin-inline-start: 4px;
+	}
+
 	:where(button, input, select, textarea) {
 		box-sizing: border-box;
 		max-inline-size: 100%;

@@ -13,11 +13,9 @@ export default function Counter(): JSX.Element {
 		<fieldset>
 			<legend>Counter</legend>
 			<output>Count: {count()}</output>
-			{` `}
 			<button type="button" onClick={() => setCount((value) => value + 1)}>
 				Add
 			</button>
-			{` `}
 			<button type="button" onClick={() => setCount(0)}>
 				Reset
 			</button>

@@ -11,7 +11,7 @@ export default function Counter(): JSX.Element {
 	return (
 		<fieldset>
 			<legend>Counter</legend>
-			<label htmlFor="count">Count </label>
+			<label htmlFor="count">Count</label>
 			<input
 				id="count"
 				type="number"
@@ -22,11 +22,9 @@ export default function Counter(): JSX.Element {
 				<button type="button" onClick={() => setCount((value) => value - 1)}>
 					Subtract
 				</button>
-				{` `}
 				<button type="button" onClick={() => setCount((value) => value + 1)}>
 					Add
 				</button>
-				{` `}
 				<button type="button" onClick={() => setCount(0)}>
 					Reset
 				</button>

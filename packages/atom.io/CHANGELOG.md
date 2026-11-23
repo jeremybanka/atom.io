@@ -1,5 +1,12 @@
 # atom.io
 
+## 0.54.13
+
+### Patch Changes
+
+- b907c4f: Add a live preview to the SPA useLoadable exhibit and use a simulated asynchronous account lookup so Ecology’s Generate action works inside the exhibit sandbox.
+- 0e097d2: Replace the Loadable selector exhibit’s external price lookup with real requests for static trail data hosted by the docs site. Allow the exhibit’s sandbox to fetch that data.
+
 ## 0.54.12
 
 ### Patch Changes

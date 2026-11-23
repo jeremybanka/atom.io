@@ -1,6 +1,6 @@
 {
 	"name": "@atom.io/devtools",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Atom.io's debugger, rendered with spa.",
 	"homepage": "https://atom.io.fyi/docs/devtools",
 	"repository": {

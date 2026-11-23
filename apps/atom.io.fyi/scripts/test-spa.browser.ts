@@ -31,12 +31,13 @@ async function assertTabAbovePane(tab: Locator, pane: Locator): Promise<void> {
 async function assertFrameworkLockup(
 	preview: FrameLocator,
 	name: string,
+	asset = name.toLowerCase(),
 ): Promise<void> {
 	const mark = preview.getByRole(`img`, { name, exact: true })
 	await mark.evaluate((node) => (node as HTMLImageElement).decode())
 	assert.equal(
 		await mark.getAttribute(`src`),
-		`/exhibit-frameworks/${name.toLowerCase()}.svg`,
+		`/exhibit-frameworks/${asset}.svg`,
 	)
 	const markBox = await mark.boundingBox()
 	const desktop = await preview.locator(`#preview`).boundingBox()
@@ -417,7 +418,7 @@ try {
 	const spaCounter = page.locator(`#counter-tsx`)
 	await spaCounter.getByRole(`tab`, { name: `Preview` }).click()
 	const spaPreview = spaCounter.frameLocator(`iframe`)
-	await assertFrameworkLockup(spaPreview, `SPA`)
+	await assertFrameworkLockup(spaPreview, `atom.io SPA`, `spa`)
 	await spaPreview.getByRole(`button`, { name: `Count: 0` }).click()
 	await spaPreview.getByRole(`button`, { name: `Count: 1` }).waitFor()
 	await spaCounter.getByRole(`tab`, { name: `Code` }).click()

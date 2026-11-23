@@ -26,9 +26,8 @@ preview-workspace {
 	block-size: 20px;
 	inline-size: auto;
 	margin: 0 12px 12px;
-	padding: 5px 8px;
-	border-radius: 4px;
-	background: rgb(0 0 0 / 0.34);
+	filter: brightness(0) invert(1);
+	opacity: 0.86;
 }
 
 exhibit-preview {

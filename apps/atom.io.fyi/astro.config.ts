@@ -6,6 +6,7 @@ import cloudflare from "@astrojs/cloudflare"
 import { unified } from "@astrojs/markdown-remark"
 import mdx from "@astrojs/mdx"
 import spa from "@atom.io/spa/astro"
+import { transformAsync as transformSolid } from "@solidjs/compiler"
 import { defineConfig, sessionDrivers } from "astro/config"
 import { transform } from "esbuild"
 
@@ -143,10 +144,14 @@ function exhibitsPlugin() {
 					id === `\0${VIRTUAL_PREVIEWS_MODULE_ID}` ? `preview` : `ecology`
 				const imports = sandboxes
 					.filter((sandbox) => sandbox[view])
-					.map(
-						({ source, file }) =>
-							`[${JSON.stringify(source)}, () => import(${JSON.stringify(toPosixPath(file))})]`,
-					)
+					.map(({ source, file, preview }) => {
+						const load = `() => import(${JSON.stringify(toPosixPath(file))})`
+						const entry =
+							view === `preview`
+								? `{ framework: ${JSON.stringify(preview)}, load: ${load} }`
+								: load
+						return `[${JSON.stringify(source)}, ${entry}]`
+					})
 				return `export const sandboxes = new Map([${imports.join(`,\n`)}]);`
 			}
 			const exhibits = Object.fromEntries(
@@ -157,30 +162,40 @@ function exhibitsPlugin() {
 					Object.fromEntries(
 						sandboxes.map(({ source, ecology, preview }) => [
 							source,
-							{ ecology, preview },
+							{ ecology, preview: preview !== null },
 						]),
 					),
 				)};`
 		},
 		transform: {
-			// Compile React JSX before the site's SPA JSX transform sees it.
+			// Lower other frameworks' JSX before the site's SPA compiler sees it.
 			order: `pre` as const,
 			async handler(code: string, id: string) {
 				if (!/\.tsx?$/.test(id) || !isExhibitFile(id)) return
 				// The enclosing packages mark their modules side-effect free. The
 				// exhibit's top-level reads and writes are the point of this import.
-				const { reactFiles } = await readIndex()
-				const result =
-					id.endsWith(`.tsx`) && reactFiles.has(id)
-						? await transform(code, {
-								loader: `tsx`,
-								jsx: `automatic`,
-								jsxImportSource: `react`,
-								sourcefile: id,
-								sourcemap: true,
-							})
-						: { code }
-				return { ...result, moduleSideEffects: `no-treeshake` as const }
+				const { jsxFrameworks } = await readIndex()
+				const moduleSideEffects = `no-treeshake` as const
+				const framework = jsxFrameworks.get(id)
+				if (framework === `react`) {
+					const result = await transform(code, {
+						loader: `tsx`,
+						jsx: `automatic`,
+						jsxImportSource: `react`,
+						sourcefile: id,
+						sourcemap: true,
+					})
+					return { ...result, moduleSideEffects }
+				}
+				if (framework === `solid`) {
+					const result = await transformSolid(code, {
+						filename: id,
+						generate: `dom`,
+						sourceMap: true,
+					})
+					return { code: result.code, map: result.map, moduleSideEffects }
+				}
+				return { code, moduleSideEffects }
 			},
 		},
 		configureServer(server: ViteDevServer) {
@@ -218,7 +233,18 @@ export default defineConfig({
 		allowedHosts: [`eris.local`, `atom-io`],
 	},
 	vite: {
-		resolve: { dedupe: [`atom.io`, `@atom.io/spa`, `react`, `react-dom`] },
+		resolve: {
+			dedupe: [
+				`atom.io`,
+				`@atom.io/spa`,
+				`react`,
+				`react-dom`,
+				`solid-js`,
+				`@solidjs/web`,
+			],
+		},
+		// The first Solid exhibit must not trigger a dependency reload that closes its tab.
+		optimizeDeps: { include: [`@solidjs/web`, `solid-js`] },
 		plugins: [exhibitsPlugin()],
 		build: {
 			// BrandMark's optional Three.js entry is ~512 KiB minified.

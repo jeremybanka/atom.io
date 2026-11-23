@@ -9,6 +9,15 @@ export interface ExhibitFile {
 	code: string
 }
 
+export type ExhibitFramework = `react` | `spa` | `solid`
+
+function frameworkFromImport(source: string): ExhibitFramework | undefined {
+	if (/^(?:react(?:-dom)?|@atom\.io\/react)(?:\/|$)/.test(source)) return `react`
+	if (/^@atom\.io\/spa(?:\/|$)/.test(source)) return `spa`
+	if (/^(?:solid-js|@solidjs\/web|@atom\.io\/solid)(?:\/|$)/.test(source))
+		return `solid`
+}
+
 function isFunction(node: t.Node | null | undefined): boolean {
 	return (
 		t.isFunctionDeclaration(node) ||
@@ -65,8 +74,15 @@ function parseExhibit({ file, code }: ExhibitFile) {
 		throw error
 	}
 	const imports = new Set<string>()
+	const frameworks = new Set<ExhibitFramework>()
+	let hasJsx = false
 	let unresolved = false
 	t.traverseFast(ast, (node) => {
+		if (t.isJSXElement(node) || t.isJSXFragment(node)) hasJsx = true
+		if (t.isImportDeclaration(node)) {
+			const framework = frameworkFromImport(node.source.value)
+			if (framework) frameworks.add(framework)
+		}
 		if (t.isImportDeclaration(node) && node.importKind !== `type`) {
 			if (
 				node.specifiers.length === 0 ||
@@ -87,45 +103,54 @@ function parseExhibit({ file, code }: ExhibitFile) {
 			else unresolved = true
 		}
 	})
-	const hasOtherJsxRuntime = ast.comments?.some((comment) => {
+	let unsupportedJsx = false
+	for (const comment of ast.comments ?? []) {
 		const source = /@jsxImportSource\s+(\S+)/.exec(comment.value)?.[1]
-		return source !== undefined && source !== `react`
-	})
+		if (source === undefined) continue
+		const framework = frameworkFromImport(source)
+		if (framework) frameworks.add(framework)
+		else unsupportedJsx = true
+	}
 	return unresolved
 		? null
 		: {
 				imports,
+				frameworks,
+				hasJsx,
 				defaultFunction: hasDefaultFunction(ast.program.body),
-				reactCompatible: !hasOtherJsxRuntime,
+				unsupportedJsx,
 			}
 }
 
 const runtimePackages =
-	/^(?:atom\.io(?:\/(?:foundations|transceivers)\/[^/]+|\/(?:web|internal|introspection|testing))?|@atom\.io\/(?:spa|react)(?:\/[\w-]+)?|react(?:\/jsx(?:-dev)?-runtime)?|react-dom(?:\/client)?)$/
+	/^(?:atom\.io(?:\/(?:foundations|transceivers)\/[^/]+|\/(?:web|internal|introspection|testing))?|@atom\.io\/(?:spa|react|solid)(?:\/[\w-]+)?|react(?:\/jsx(?:-dev)?-runtime)?|react-dom(?:\/client)?|solid-js|@solidjs\/web(?:\/jsx(?:-dev)?-runtime)?)$/
 
 export interface ExhibitSandbox extends ExhibitFile {
 	ecology: boolean
-	preview: boolean
+	preview: ExhibitFramework | null
 }
 
 /** Include modules whose entire runtime import graph can run in the browser. */
 export function findExhibitSandboxes(exhibits: readonly ExhibitFile[]): {
 	sandboxes: ExhibitSandbox[]
-	reactFiles: ReadonlySet<string>
+	jsxFrameworks: ReadonlyMap<string, ExhibitFramework | null>
 } {
 	const importsByFile = new Map(
 		exhibits.map((exhibit) => [exhibit.file, parseExhibit(exhibit)]),
 	)
-	const reactFiles = new Set<string>()
-	const sandboxes = exhibits.flatMap((exhibit) => {
+	const candidates = exhibits.flatMap((exhibit) => {
 		const pending = [exhibit.file]
 		const visited = new Set(pending)
+		const jsxFiles: string[] = []
+		const frameworks = new Set<ExhibitFramework>()
 		let ecology = false
-		let preview = importsByFile.get(exhibit.file)?.defaultFunction === true
+		let supportsJsx = true
 		for (const file of pending) {
 			const parsed = importsByFile.get(file)
 			if (!parsed) return []
-			preview &&= parsed.reactCompatible
+			supportsJsx &&= !parsed.unsupportedJsx
+			if (parsed.hasJsx) jsxFiles.push(file)
+			for (const framework of parsed.frameworks) frameworks.add(framework)
 			for (const source of parsed.imports) {
 				if (source.startsWith(`.`)) {
 					const base = path.resolve(path.dirname(file), source)
@@ -139,13 +164,58 @@ export function findExhibitSandboxes(exhibits: readonly ExhibitFile[]): {
 					}
 				} else {
 					if (!runtimePackages.test(source)) return []
-					ecology ||= source === `atom.io` || source === `@atom.io/react`
-					preview &&= !/^@atom\.io\/spa(?:\/|$)/.test(source)
+					ecology ||=
+						source === `atom.io` ||
+						source === `@atom.io/react` ||
+						source === `@atom.io/solid`
+					const framework = frameworkFromImport(source)
+					if (framework) frameworks.add(framework)
 				}
 			}
 		}
-		if (preview) for (const file of visited) reactFiles.add(file)
-		return ecology || preview ? [{ ...exhibit, ecology, preview }] : []
+		const framework =
+			supportsJsx && frameworks.size <= 1
+				? frameworks.values().next().value
+				: null
+		const preview = importsByFile.get(exhibit.file)?.defaultFunction
+			? framework
+			: null
+		return ecology || preview !== null
+			? [{ ...exhibit, ecology, preview, jsxFiles }]
+			: []
 	})
-	return { sandboxes, reactFiles }
+	const jsxFrameworks = new Map<string, ExhibitFramework | null>()
+	function assignJsx(framework: ExhibitFramework, jsxFiles: readonly string[]) {
+		for (const file of jsxFiles) {
+			const previous = jsxFrameworks.get(file)
+			jsxFrameworks.set(
+				file,
+				previous === undefined || previous === framework ? framework : null,
+			)
+		}
+	}
+	for (const { preview, jsxFiles } of candidates) {
+		if (preview) assignJsx(preview, jsxFiles)
+	}
+	// Untagged examples inherit a renderer from an exhibit that uses their JSX.
+	const resolved = candidates.map(({ preview, ...exhibit }) => {
+		if (preview !== undefined) return { ...exhibit, preview }
+		const inherited = new Set(
+			exhibit.jsxFiles
+				.map((file) => jsxFrameworks.get(file))
+				.filter((framework) => framework !== undefined),
+		)
+		const [framework = `react`] = inherited
+		return { ...exhibit, preview: inherited.size <= 1 ? framework : null }
+	})
+	for (const { preview, jsxFiles } of resolved) {
+		if (preview) assignJsx(preview, jsxFiles)
+	}
+	const sandboxes = resolved.flatMap(({ jsxFiles, ...exhibit }) => {
+		const preview = jsxFiles.some((file) => jsxFrameworks.get(file) === null)
+			? null
+			: exhibit.preview
+		return exhibit.ecology || preview ? [{ ...exhibit, preview }] : []
+	})
+	return { sandboxes, jsxFrameworks }
 }

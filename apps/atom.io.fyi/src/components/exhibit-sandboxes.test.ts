@@ -24,19 +24,23 @@ await test(`discovers browser exhibits through their runtime imports`, () => {
 	assert.deepEqual(
 		sandboxes.map(({ source, ecology, preview }) => [source, ecology, preview]),
 		[
-			[`atom.ts`, true, false],
-			[`read.ts`, true, false],
+			[`atom.ts`, true, null],
+			[`read.ts`, true, null],
 		],
 	)
 })
 
-await test(`offers Preview for default React functions and compiles their JSX dependencies`, () => {
+await test(`selects a renderer for each default function and its JSX dependencies`, () => {
 	const examples = {
 		"plain.tsx": `export default function Greeting() { return <p>Hello</p> }`,
 		"counter.tsx": `import { useO } from '@atom.io/react'; import { Count } from './count.tsx'; const Counter = () => <Count />; export { Counter as default };`,
 		"count.tsx": `import { atom } from 'atom.io'; const count = atom({ key: 'count', default: 0 }); export const Count = () => <span>{count.key}</span>;`,
-		"spa.tsx": `import { useGetter } from '@atom.io/spa'; import { atom } from 'atom.io'; export default function Component() { return <p /> }`,
+		"spa-label.tsx": `export default () => <span>Label</span>;`,
+		"spa.tsx": `import { useGetter } from '@atom.io/spa'; import { atom } from 'atom.io'; import Label from './spa-label.tsx'; export default function Component() { return <Label /> }`,
 		"solid.tsx": `/** @jsxImportSource @solidjs/web */ export default () => <p />;`,
+		"solid-binding.tsx": `import { useO } from '@atom.io/solid'; export default () => <p />;`,
+		"preact.tsx": `/** @jsxImportSource preact */ import { atom } from 'atom.io'; export default () => <p />;`,
+		"mixed.tsx": `import 'react'; import 'solid-js'; export default () => <p />;`,
 		"object.ts": `export default { name: 'settings' };`,
 		"server.tsx": `import 'node:http'; export default () => <p />;`,
 	}
@@ -45,18 +49,30 @@ await test(`offers Preview for default React functions and compiles their JSX de
 		code,
 		file: resolve(source),
 	}))
-	const { sandboxes, reactFiles } = findExhibitSandboxes(files)
+	const { sandboxes, jsxFrameworks } = findExhibitSandboxes(files)
 	assert.deepEqual(
 		sandboxes.map(({ source, ecology, preview }) => [source, ecology, preview]),
 		[
-			[`plain.tsx`, false, true],
-			[`counter.tsx`, true, true],
-			[`count.tsx`, true, false],
-			[`spa.tsx`, true, false],
+			[`plain.tsx`, false, `react`],
+			[`counter.tsx`, true, `react`],
+			[`count.tsx`, true, null],
+			[`spa-label.tsx`, false, `spa`],
+			[`spa.tsx`, true, `spa`],
+			[`solid.tsx`, false, `solid`],
+			[`solid-binding.tsx`, true, `solid`],
+			[`preact.tsx`, true, null],
 		],
 	)
 	assert.deepEqual(
-		[...reactFiles],
-		[resolve(`plain.tsx`), resolve(`counter.tsx`), resolve(`count.tsx`)],
+		[...jsxFrameworks],
+		[
+			[resolve(`counter.tsx`), `react`],
+			[resolve(`count.tsx`), `react`],
+			[resolve(`spa.tsx`), `spa`],
+			[resolve(`spa-label.tsx`), `spa`],
+			[resolve(`solid.tsx`), `solid`],
+			[resolve(`solid-binding.tsx`), `solid`],
+			[resolve(`plain.tsx`), `react`],
+		],
 	)
 })

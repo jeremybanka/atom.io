@@ -10,7 +10,11 @@ declare module "virtual:atom-io-exhibits" {
 declare module "virtual:atom-io-exhibit-previews" {
 	export const sandboxes: ReadonlyMap<
 		string,
-		() => Promise<{ default: unknown }>
+		{
+			// oxlint-disable-next-line typescript/consistent-type-imports -- Keep this virtual module declaration ambient.
+			framework: import("../scripts/exhibit-sandboxes.ts").ExhibitFramework // eslint-disable-line quotes
+			load(): Promise<{ default: unknown }>
+		}
 	>
 }
 

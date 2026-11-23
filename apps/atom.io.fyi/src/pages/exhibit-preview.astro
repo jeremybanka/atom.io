@@ -22,9 +22,9 @@ import "../components/exhibit-preview.css"
 </html>
 
 <script>
-import { createElement, type FunctionComponent } from "react"
-import { createRoot } from "react-dom/client"
 import { sandboxes } from "virtual:atom-io-exhibit-previews"
+
+import { mountExhibitPreview } from "../components/exhibit-preview.ts"
 
 const status = document.querySelector<HTMLElement>(`#preview-status`)!
 const showError = (error: unknown) => {
@@ -34,22 +34,22 @@ const showError = (error: unknown) => {
 try {
 	const source = decodeURIComponent(location.hash.slice(1))
 	const embedded = window.parent !== window
-	const load =
+	const preview =
 		embedded && (import.meta.env.DEV || window.origin === `null`)
 			? sandboxes.get(source)
 			: undefined
-	if (load) {
-		const { default: component } = await load()
-		if (typeof component !== `function`)
-			throw new TypeError(
-				`The default export must be a React function component.`,
-			)
+	if (preview) {
+		const { default: component } = await preview.load()
 		const host = document.querySelector<HTMLElement>(`#preview-content`)!
-		const root = createRoot(host, { onUncaughtError: showError })
 		status.hidden = true
-		root.render(createElement(component as FunctionComponent))
+		const dispose = await mountExhibitPreview(
+			preview.framework,
+			component,
+			host,
+			showError,
+		)
 		window.addEventListener(`pagehide`, (event) => {
-			if (!event.persisted) root.unmount()
+			if (!event.persisted) dispose()
 		})
 	} else status.textContent = `No component exhibit was selected.`
 } catch (error) {

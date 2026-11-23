@@ -3,4 +3,4 @@
 "atom.io.fyi": patch
 ---
 
-Add interactive Preview tabs for eligible exhibits that default-export a React function component, with a sandbox stylesheet and a live counter example in the React docs.
+Add interactive Preview tabs for eligible React, SPA, and Solid exhibits that default-export a function component, with a shared sandbox stylesheet and live counter examples.

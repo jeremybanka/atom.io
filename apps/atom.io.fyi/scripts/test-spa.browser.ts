@@ -197,6 +197,27 @@ try {
 	assert.deepEqual(errors, [])
 	console.log(`Exhibit React preview browser checks passed.`)
 
+	await page.goto(`${base}/docs/spa/vite`)
+	const spaCounter = page.locator(`#counter-tsx`)
+	await spaCounter.getByRole(`tab`, { name: `Preview` }).click()
+	const spaPreview = spaCounter.frameLocator(`iframe`)
+	await spaPreview.getByRole(`button`, { name: `Count: 0` }).click()
+	await spaPreview.getByRole(`button`, { name: `Count: 1` }).waitFor()
+	await spaCounter.getByRole(`tab`, { name: `Code` }).click()
+	assert.equal(await spaCounter.locator(`iframe`).count(), 0)
+
+	await page.goto(`${base}/docs/solid`)
+	const solidCounter = page.locator(`#counter-preview-tsx`)
+	await solidCounter.getByRole(`tab`, { name: `Preview` }).click()
+	const solidPreview = solidCounter.frameLocator(`iframe`)
+	await solidPreview.getByText(`Count: 0`, { exact: true }).waitFor()
+	await solidPreview.getByRole(`button`, { name: `Add` }).click()
+	await solidPreview.getByText(`Count: 1`, { exact: true }).waitFor()
+	await solidPreview.getByRole(`button`, { name: `Reset` }).click()
+	await solidPreview.getByText(`Count: 0`, { exact: true }).waitFor()
+	assert.deepEqual(errors, [])
+	console.log(`Exhibit SPA and Solid preview browser checks passed.`)
+
 	iframeRequests.length = 0
 	await page.goto(`${base}/docs/getting-started`)
 	assert.equal(await page.locator(`#install-sh [role="tab"]`).count(), 0)

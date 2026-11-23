@@ -10,7 +10,13 @@ export default function TurnBanner(): SpaElement {
 	const setReplay = useSetter(replayAtom)
 	return (
 		<section>
-			<button onClick={() => setReplay((run) => run + 1)}>Replay banner</button>
+			<button
+				onClick={() => {
+					setReplay((run) => run + 1)
+				}}
+			>
+				Replay banner
+			</button>
 			<div style="overflow:clip; min-height:36px">
 				<aside
 					key={getReplay()}

@@ -15,12 +15,6 @@ const pointAtom = atom<Point>({ key: `point`, default: { x: 20, y: 20 } })
 export default function PointEditor(): SpaElement {
 	const getPoint = useGetter(pointAtom)
 	const setPoint = useSetter(pointAtom)
-	function move(axis: keyof Point, step: number): void {
-		setPoint((point) => ({
-			...point,
-			[axis]: Math.max(0, Math.min(bounds[axis], point[axis] + step)),
-		}))
-	}
 	return (
 		<section>
 			<svg
@@ -39,7 +33,12 @@ export default function PointEditor(): SpaElement {
 						key={label}
 						type="button"
 						aria-label={label}
-						onClick={() => move(axis, step)}
+						onClick={() => {
+							setPoint((point) => ({
+								...point,
+								[axis]: Math.max(0, Math.min(bounds[axis], point[axis] + step)),
+							}))
+						}}
 					>
 						{glyph}
 					</button>

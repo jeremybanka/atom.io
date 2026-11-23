@@ -13,13 +13,13 @@ import { DraftEditor as ComponentDraftEditor } from "../../../atom.io/docs/sourc
 import { AccountName } from "../../../atom.io/docs/source/exhibits/react/effects/07-fetch-after-load-each-account-by-its-key.tsx"
 import { JobProgress } from "../../../atom.io/docs/source/exhibits/react/effects/09-polling-after-give-each-job-an-explicit-polling-owner.tsx"
 import { ChatRoom } from "../../../atom.io/docs/source/exhibits/react/effects/12-connection-after-let-connection-state-own-the-socket.tsx"
-import { MapView } from "../../../atom.io/docs/source/exhibits/react/effects/14-widget-after-let-attachment-state-own-the-widget.tsx"
+import MapView from "../../../atom.io/docs/source/exhibits/react/effects/14-widget-after-let-attachment-state-own-the-widget.tsx"
 import {
 	Conversation,
 	messageAtoms,
 } from "../../../atom.io/docs/source/exhibits/react/effects/16-scroll-after-scroll-after-commit-with-uselayouteffect.tsx"
-import { Card } from "../../../atom.io/docs/source/exhibits/react/effects/17-visibility-after-let-node-state-own-the-observer.tsx"
-import { Greeting } from "../../../atom.io/docs/source/exhibits/react/effects/19-hydration-after-match-hydration-through-server-and-client-snapshots.tsx"
+import Card from "../../../atom.io/docs/source/exhibits/react/effects/17-visibility-after-let-node-state-own-the-observer.tsx"
+import Greeting from "../../../atom.io/docs/source/exhibits/react/effects/19-hydration-after-match-hydration-through-server-and-client-snapshots.tsx"
 import * as services from "../../../atom.io/docs/source/exhibits/react/effects/services.ts"
 
 vi.mock(`../../../atom.io/docs/source/exhibits/react/effects/services.ts`, {

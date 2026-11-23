@@ -53,6 +53,12 @@ const ecologyStatus = ecology.querySelector(`p`)!
 const preview = document.querySelector<HTMLElement>(`#preview`)!
 const previewHost = document.querySelector<HTMLElement>(`#preview-content`)!
 const previewStatus = document.querySelector<HTMLElement>(`#preview-status`)!
+const previewFramework =
+	document.querySelector<HTMLImageElement>(`#preview-framework`)!
+// React and Solid lockups come from the projects' published brand assets.
+// https://github.com/reactjs/react.dev/tree/main/public/images/brand
+// https://www.solidjs.com/media/
+const frameworkNames = { react: `React`, solid: `Solid`, spa: `SPA` }
 
 function report(status: HTMLElement, message: string, error: unknown): void {
 	status.hidden = false
@@ -97,6 +103,9 @@ function startSandbox(sandbox: Sandbox): void {
 		try {
 			const { component, store } = await getWorld()
 			if (closed || !sandbox.preview) return
+			previewFramework.src = `/exhibit-frameworks/${sandbox.preview}.svg`
+			previewFramework.alt = frameworkNames[sandbox.preview]
+			previewFramework.hidden = false
 			previewStatus.hidden = true
 			const dispose = await mountExhibitPreview(
 				sandbox.preview,

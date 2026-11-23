@@ -25,10 +25,13 @@ import "../components/exhibit-preview.css"
 			aria-label="Component preview"
 			hidden
 		>
-			<exhibit-preview>
-				<p id="preview-status" role="status">Loading preview…</p>
-				<preview-content id="preview-content"></preview-content>
-			</exhibit-preview>
+			<preview-workspace>
+				<exhibit-preview>
+					<p id="preview-status" role="status">Loading preview…</p>
+					<preview-content id="preview-content"></preview-content>
+				</exhibit-preview>
+			</preview-workspace>
+			<img id="preview-framework" alt="" hidden />
 		</exhibit-desktop>
 	</body>
 </html>

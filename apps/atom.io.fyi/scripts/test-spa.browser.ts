@@ -12,7 +12,12 @@ import { tmpdir } from "node:os"
 import { extname, join, resolve } from "node:path"
 
 import { dev } from "astro"
-import { type Browser, chromium, type Locator } from "playwright"
+import {
+	type Browser,
+	chromium,
+	type FrameLocator,
+	type Locator,
+} from "playwright"
 
 async function assertTabAbovePane(tab: Locator, pane: Locator): Promise<void> {
 	const tabBox = await tab.boundingBox()
@@ -21,6 +26,27 @@ async function assertTabAbovePane(tab: Locator, pane: Locator): Promise<void> {
 	assert.ok(tabBox.y < paneBox.y)
 	assert.ok(tabBox.x >= paneBox.x)
 	assert.ok(tabBox.x + tabBox.width <= paneBox.x + paneBox.width)
+}
+
+async function assertFrameworkLockup(
+	preview: FrameLocator,
+	name: string,
+): Promise<void> {
+	const mark = preview.getByRole(`img`, { name, exact: true })
+	await mark.evaluate((node) => (node as HTMLImageElement).decode())
+	assert.equal(
+		await mark.getAttribute(`src`),
+		`/exhibit-frameworks/${name.toLowerCase()}.svg`,
+	)
+	const markBox = await mark.boundingBox()
+	const desktop = await preview.locator(`#preview`).boundingBox()
+	assert.ok(markBox && desktop)
+	assert.ok(
+		Math.abs(desktop.x + desktop.width - markBox.x - markBox.width - 12) < 2,
+	)
+	assert.ok(
+		Math.abs(desktop.y + desktop.height - markBox.y - markBox.height - 12) < 2,
+	)
 }
 
 const directory = resolve(import.meta.dirname, `../dist/client`)
@@ -47,6 +73,7 @@ const server = createServer(async (request, response) => {
 				".html": `text/html`,
 				".js": `application/javascript`,
 				".css": `text/css`,
+				".svg": `image/svg+xml`,
 			}[extname(file)] ?? `application/octet-stream`,
 		)
 		response.end(data)
@@ -333,6 +360,7 @@ try {
 	const counterHeight = (await counter.boundingBox())!.height
 	await counter.getByRole(`tab`, { name: `Code` }).press(`End`)
 	const preview = counter.frameLocator(`iframe`)
+	await assertFrameworkLockup(preview, `React`)
 	const count = preview.getByRole(`spinbutton`, { name: `Count` })
 	assert.equal(await count.inputValue(), `0`)
 	const desktopColor = await preview
@@ -389,6 +417,7 @@ try {
 	const spaCounter = page.locator(`#counter-tsx`)
 	await spaCounter.getByRole(`tab`, { name: `Preview` }).click()
 	const spaPreview = spaCounter.frameLocator(`iframe`)
+	await assertFrameworkLockup(spaPreview, `SPA`)
 	await spaPreview.getByRole(`button`, { name: `Count: 0` }).click()
 	await spaPreview.getByRole(`button`, { name: `Count: 1` }).waitFor()
 	await spaCounter.getByRole(`tab`, { name: `Code` }).click()
@@ -399,6 +428,7 @@ try {
 	const solidCounter = page.locator(`#counter-preview-tsx`)
 	await solidCounter.getByRole(`tab`, { name: `Preview` }).click()
 	const solidPreview = solidCounter.frameLocator(`iframe`)
+	await assertFrameworkLockup(solidPreview, `Solid`)
 	await solidPreview.getByText(`Count: 0`, { exact: true }).waitFor()
 	await solidPreview.getByRole(`button`, { name: `Add` }).click()
 	await solidPreview.getByText(`Count: 1`, { exact: true }).waitFor()

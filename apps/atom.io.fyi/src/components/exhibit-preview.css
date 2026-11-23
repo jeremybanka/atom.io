@@ -2,10 +2,9 @@
 
 exhibit-desktop {
 	box-sizing: border-box;
-	display: flex;
+	display: grid;
+	grid-template-rows: minmax(0, 1fr) auto;
 	min-inline-size: 0;
-	overflow: auto;
-	padding: clamp(12px, 4vw, 32px);
 	color-scheme: light;
 	background: var(--exhibit-preview-background);
 	color: #181b1e;
@@ -13,6 +12,23 @@ exhibit-desktop {
 }
 exhibit-desktop[hidden] {
 	display: none;
+}
+
+preview-workspace {
+	display: flex;
+	min-inline-size: 0;
+	overflow: auto;
+	padding: clamp(12px, 4vw, 32px);
+}
+
+#preview-framework {
+	justify-self: end;
+	block-size: 20px;
+	inline-size: auto;
+	margin: 0 12px 12px;
+	padding: 5px 8px;
+	border-radius: 4px;
+	background: rgb(0 0 0 / 0.34);
 }
 
 exhibit-preview {

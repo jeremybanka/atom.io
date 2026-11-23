@@ -4,7 +4,7 @@ import { atom } from "atom.io"
 
 export const cartCountAtom = atom<number>({ key: `cartCount`, default: 0 })
 
-export function CartCount(): SpaElement {
+export default function CartCount(): SpaElement {
 	const getCartCount = useGetter(cartCountAtom)
 	return <output aria-label="Items in cart">{getCartCount()}</output>
 }

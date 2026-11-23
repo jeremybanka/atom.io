@@ -276,14 +276,6 @@ debugger-panel.class {
 			padding: 0 4px;
 		}
 	}
-	> debugger-content > p[role="alert"] {
-		color: var(--error-ink);
-		background: var(--error-surface);
-		padding: 5px;
-		line-height: 18px;
-		border-top: 1px solid var(--ink-muted);
-	}
-
 	&::before {
 		content: "";
 		position: absolute;

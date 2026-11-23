@@ -3,7 +3,7 @@ import type { JSX } from "react/jsx-runtime"
 
 const LAST_SAVED_AT = Date.now() - 12_000
 
-export function LastSavedIndicator(): JSX.Element {
+export default function LastSavedIndicator(): JSX.Element {
 	const [now, setNow] = React.useState(Date.now())
 	const seconds = Math.floor((now - LAST_SAVED_AT) / 1000)
 	const label = seconds <= 0 ? `Saved just now` : `Saved ${seconds}s ago`

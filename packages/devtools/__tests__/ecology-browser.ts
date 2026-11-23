@@ -96,6 +96,32 @@ try {
 	}
 	await ready()
 
+	const embedded = await context.newPage()
+	await embedded.goto(
+		`http://127.0.0.1:${(server.address() as AddressInfo).port}/?inline`,
+	)
+	await embedded.waitForSelector(`atom-io-ecology ecology-scene canvas`)
+	const explorer = embedded.locator(`ecology-panel`)
+	assert.equal(await embedded.locator(`debugger-panel`).count(), 0)
+	assert.equal((await explorer.boundingBox())?.height, 500)
+	assert.equal(
+		await explorer
+			.locator(`ecology-body`)
+			.evaluate((body) => getComputedStyle(body).display),
+		`grid`,
+	)
+	await embedded.locator(`section`).evaluate((host) => {
+		host.style.width = `480px`
+	})
+	await embedded.waitForFunction(
+		() =>
+			getComputedStyle(document.querySelector(`ecology-body`)!).display ===
+			`flex`,
+	)
+	await explorer.locator(`[data-action="search"]`).click()
+	assert.equal(await explorer.locator(`dialog:modal`).count(), 1)
+	await embedded.close()
+
 	// Verify browser paint ordering at an actual curve/card intersection. Temporarily
 	// enable stroke hit testing and place an unrelated card under that point.
 	for (const selected of [`price`, `lazy`]) {

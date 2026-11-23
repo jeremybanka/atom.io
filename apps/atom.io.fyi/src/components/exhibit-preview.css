@@ -1,0 +1,273 @@
+@import "./exhibit-preview-colors.css";
+
+exhibit-desktop {
+	box-sizing: border-box;
+	display: grid;
+	grid-template-rows: minmax(0, 1fr) auto;
+	min-inline-size: 0;
+	color-scheme: light;
+	background: var(--exhibit-preview-background);
+	color: #181b1e;
+	font: 400 14px/1.45 Tahoma, "Segoe UI", system-ui, sans-serif;
+}
+exhibit-desktop[hidden] {
+	display: none;
+}
+
+preview-workspace {
+	display: flex;
+	min-inline-size: 0;
+	overflow: auto;
+	padding: clamp(12px, 4vw, 32px);
+}
+
+#preview-framework {
+	justify-self: end;
+	block-size: 20px;
+	inline-size: auto;
+	margin: 0 12px 12px;
+	filter: brightness(0) invert(1);
+	opacity: 0.62;
+}
+
+exhibit-preview {
+	--pane: #c6c8cb;
+	--highlight: #fff;
+	--shade: #53575b;
+	--bevel: var(--highlight) var(--shade) var(--shade) var(--highlight);
+	--inset-bevel: var(--shade) var(--highlight) var(--highlight) var(--shade);
+	box-sizing: border-box;
+	inline-size: min(100%, 22rem);
+	margin: auto;
+	padding: clamp(12px, 4vw, 20px);
+	background: var(--pane);
+	border: 2px solid;
+	border-color: var(--bevel);
+	box-shadow: 1px 1px #242729, 8px 8px #003f3f52;
+	overflow-wrap: anywhere;
+}
+
+#preview-status {
+	margin: 0;
+}
+
+preview-content {
+	--space: 8px;
+	--space-small: 4px;
+	--control: 30px;
+}
+
+preview-content,
+preview-content :where(form, fieldset, nav, section):not([hidden]) {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space);
+	min-inline-size: 0;
+}
+
+preview-content {
+	:where(p, h1, h2, h3) {
+		margin: 0;
+	}
+
+	:where(h1, h2, h3, legend) {
+		font-weight: 700;
+	}
+
+	:where(h1) {
+		font-size: 18px;
+	}
+
+	:where(h2, h3) {
+		font-size: 14px;
+	}
+
+	:where(fieldset) {
+		box-sizing: border-box;
+		margin: 0;
+		padding: var(--space);
+		border: 2px groove var(--highlight);
+	}
+
+	:where(legend) {
+		padding-inline: var(--space-small);
+	}
+
+	:where(footer, [role="group"]) {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--space-small) var(--space);
+	}
+
+	:where(button, select) {
+		align-self: flex-start;
+	}
+
+	:where(label:has(> input, > select, > textarea)) {
+		display: grid;
+		gap: var(--space-small);
+		justify-items: start;
+	}
+
+	:where(label:has(> input:is([type="checkbox"], [type="radio"]))) {
+		display: flex;
+		align-items: center;
+		gap: var(--space);
+	}
+
+	:where(ul, ol, aside, [role="alert"], [role="dialog"]) {
+		margin: 0;
+		padding: var(--space-small) var(--space);
+		background: #eee;
+		border: 2px solid;
+		border-color: var(--inset-bevel);
+	}
+
+	:where(ul) {
+		list-style-type: "";
+	}
+
+	:where(ol) {
+		padding-inline-start: 2em;
+	}
+
+	:where(li + li) {
+		margin-block-start: var(--space-small);
+	}
+
+	:where(li:has(> button)) {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+		align-items: center;
+		gap: var(--space-small) var(--space);
+	}
+
+	:where(canvas, svg) {
+		display: block;
+		max-inline-size: 100%;
+		align-self: center;
+	}
+
+	:where(svg.drawing-surface),
+	& > :where(canvas, div:has(canvas)) {
+		align-self: center;
+		max-inline-size: 100%;
+		box-shadow: -2px -2px var(--shade), 2px 2px var(--highlight);
+		color-scheme: light dark;
+		color: light-dark(#000, #fff);
+		background: light-dark(#fff, #000);
+	}
+
+	& > :where(div:has(canvas)) {
+		overflow: auto;
+	}
+
+	:where(svg.drawing-surface) {
+		block-size: auto;
+	}
+
+	:where(button, input, select, textarea) {
+		box-sizing: border-box;
+		max-inline-size: 100%;
+		min-inline-size: 0;
+		color: inherit;
+		font: inherit;
+	}
+
+	:where(button, input[type="button"], input[type="reset"], input[type="submit"]) {
+		min-block-size: var(--control);
+		min-inline-size: 34px;
+		padding: 2px 8px;
+		background: var(--pane);
+		border: 2px solid;
+		border-color: var(--bevel);
+		box-shadow: 1px 1px #242729;
+		cursor: pointer;
+		&:active:not(:disabled) {
+			border-color: var(--inset-bevel);
+			box-shadow: none;
+		}
+	}
+
+	:where(input:not([type="button"], [type="reset"], [type="submit"], [type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="image"], [type="color"]), select, textarea) {
+		inline-size: 100%;
+		min-block-size: var(--control);
+		padding: 2px 6px;
+		background: #fff;
+		border: 2px solid;
+		border-color: var(--inset-bevel);
+	}
+
+	:where(select) {
+		inline-size: auto;
+	}
+
+	:where(input[type="number"]) {
+		inline-size: 7em;
+	}
+
+	:where(.direction-pad) {
+		display: grid;
+		align-self: center;
+		grid-template-columns: repeat(3, 28px);
+		gap: var(--space-small);
+
+		:where(button) {
+			min-inline-size: 0;
+			min-block-size: 26px;
+			padding: 0;
+			font-size: 16px;
+			line-height: 1;
+			grid-row: 2;
+		}
+
+		:where(button:first-child) {
+			grid-area: 1 / 2;
+		}
+	}
+
+	:where(textarea) {
+		resize: vertical;
+	}
+
+	:where(input[type="checkbox"], input[type="radio"]) {
+		flex: none;
+		inline-size: 14px;
+		block-size: 14px;
+		margin: 0;
+		accent-color: var(--shade);
+	}
+
+	@media (forced-colors: none) {
+		:where(input[type="checkbox"]) {
+			appearance: none;
+			display: inline-grid;
+			place-items: center;
+			background: #fff;
+			border: 2px solid;
+			border-color: var(--inset-bevel);
+
+			&:checked::before {
+				content: "";
+				inline-size: 4px;
+				block-size: 7px;
+				border: solid currentColor;
+				border-width: 0 2px 2px 0;
+				transform: translateY(-1px) rotate(45deg);
+			}
+		}
+	}
+
+	:where(:focus-visible) {
+		outline: 2px dotted currentColor;
+		outline-offset: 2px;
+	}
+
+	:where(:disabled) {
+		color: #555;
+		cursor: default;
+		box-shadow: none;
+	}
+}

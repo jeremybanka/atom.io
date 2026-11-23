@@ -8,6 +8,7 @@ import {
 	mountAtomIODevtools,
 	traceEcologyRoots,
 } from "@atom.io/devtools"
+import { Ecology, mountEcology } from "@atom.io/devtools/ecology"
 import { render } from "@atom.io/spa"
 import { jsx } from "@atom.io/spa/jsx-runtime"
 import { Silo } from "atom.io"
@@ -77,6 +78,15 @@ await test(`packed debugger edits its inspected store and cleans up owned state`
 		),
 		false,
 	)
+	const explorer = mountEcology(host, { store: silo.store })
+	assert.ok(host.querySelector(`atom-io-ecology ecology-view`))
+	assert.equal(host.querySelector(`debugger-panel`), null)
+	explorer.dispose()
+	explorer.dispose()
+	const explorerRoot = render(() => jsx(Ecology, { store: silo.store }), host)
+	assert.ok(host.querySelector(`ecology-explorer ecology-view`))
+	explorerRoot.dispose()
+	assert.deepEqual([...host.childNodes], [sibling])
 	assert.match(
 		readFileSync(new URL(import.meta.resolve(`@atom.io/devtools/css`)), `utf8`),
 		/debugger-panel\.[\w-]+/,

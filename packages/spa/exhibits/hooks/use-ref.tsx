@@ -7,9 +7,14 @@ export const searchFieldAtom = atom<HTMLInputElement | null>({
 	default: null,
 })
 
-export function SearchField(): SpaElement {
+export default function SearchField(): SpaElement {
 	const attachSearchField = useRef(searchFieldAtom)
 	return (
-		<input ref={attachSearchField} type="search" aria-label="Search products" />
+		<input
+			ref={attachSearchField}
+			type="search"
+			aria-label="Search products"
+			placeholder="Search products"
+		/>
 	)
 }

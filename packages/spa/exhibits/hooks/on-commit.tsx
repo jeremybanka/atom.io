@@ -8,7 +8,7 @@ export const captionHeightAtom = atom<number>({
 	default: 0,
 })
 
-export function Caption(): SpaElement {
+export default function Caption(): SpaElement {
 	const getCaption = useGetter(captionAtom)
 	const setCaptionHeight = useSetter(captionHeightAtom)
 	let caption: HTMLParagraphElement | null = null

@@ -291,12 +291,11 @@ it(`navigates ranked results and lets a window gesture handle Escape first`, asy
 	expect(document.activeElement).toBe(hit)
 	await f.key(hit, `Escape`)
 	expect(document.activeElement).toBe(f.input())
-	const overlay = document.createElement(`div`)
-	overlay.dataset[`windowInteraction`] = `true`
-	document.body.append(overlay)
+	const panel = f.host.querySelector(`debugger-panel`)!
+	panel.setAttribute(`data-window-interaction`, `true`)
 	await f.key(f.input(), `Escape`)
 	expect(f.input().value).toBe(`items`)
-	overlay.remove()
+	panel.setAttribute(`data-window-interaction`, `false`)
 	await f.key(f.input(), `Escape`)
 	expect((await f.key(f.input(), `ArrowDown`)).defaultPrevented).toBe(false)
 	await f.query(`conut`)

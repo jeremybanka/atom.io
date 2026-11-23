@@ -75,8 +75,8 @@ function HelpPopover(props: { identity: PopoverIdentity }): SpaElement {
 	)
 }
 
-export function HelpToolbar(props: { id: string }): SpaElement {
-	const toolbar = props.id
+export default function HelpToolbar(props: { id?: string }): SpaElement {
+	const toolbar = props.id ?? `editor`
 	const getFormattingHelpVisible = useGetter(formattingHelpVisibleAtoms, toolbar)
 	const setFormattingHelpVisible = useSetter(formattingHelpVisibleAtoms, toolbar)
 	const dispose = useDisposal()

@@ -1,0 +1,73 @@
+---
+import "@atom.io/devtools/css"
+import "../components/exhibit-preview.css"
+---
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		{import.meta.env.PROD && (
+			<meta http-equiv="Content-Security-Policy" content="connect-src 'none'" />
+		)}
+		<title>Live exhibit</title>
+	</head>
+	<body>
+		<sandbox-app id="app" inert></sandbox-app>
+		<section id="ecology" aria-label="State ecology" hidden>
+			<p role="status">Loading exhibit ecology…</p>
+		</section>
+		<exhibit-desktop
+			id="preview"
+			role="region"
+			aria-label="Component preview"
+			hidden
+		>
+			<preview-workspace>
+				<exhibit-preview>
+					<p id="preview-status" role="status">Loading preview…</p>
+					<preview-content id="preview-content"></preview-content>
+				</exhibit-preview>
+			</preview-workspace>
+			<img id="preview-framework" alt="" hidden />
+		</exhibit-desktop>
+	</body>
+</html>
+
+<style>
+:global(html), body {
+	block-size: 100%;
+	margin: 0;
+	color-scheme: light dark;
+}
+body {
+	display: grid;
+	grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+	overflow: hidden;
+}
+body[data-exhibit-view="both"] {
+	grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+	> #preview {
+		border-inline-start: 1px solid light-dark(#aaa, #555);
+	}
+}
+#app {
+	position: fixed;
+	inset: 0;
+	visibility: hidden;
+}
+#ecology {
+	min-inline-size: 0;
+	> p {
+		margin: 0;
+		padding: 12px;
+		font: 14px/1.5 system-ui, sans-serif;
+	}
+}
+</style>
+
+<script>
+import "../components/exhibit-sandbox.ts"
+</script>

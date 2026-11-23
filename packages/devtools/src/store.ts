@@ -14,12 +14,13 @@ import { attachIntrospectionStates } from "atom.io/introspection"
 const locals = new WeakMap<RootStore, RegularAtomFamilyToken<unknown, string>>()
 const introspection = new WeakMap<RootStore, IntrospectionStates>()
 export type Path = readonly string[]
-export interface Tools extends IntrospectionStates {
+export interface EditorTools {
 	store: RootStore
 	expanded: RegularAtomToken<Record<string, boolean>>
 	error: RegularAtomToken<string>
 	attempt(run: () => void): void
 }
+export type Tools = EditorTools & IntrospectionStates
 
 function ownedAtom<T>(store: RootStore, initial: T): RegularAtomToken<T> {
 	let family = locals.get(store)
@@ -75,6 +76,9 @@ export function useTools(store: RootStore): Tools {
 		states = attachIntrospectionStates(store)
 		introspection.set(store, states)
 	}
+	return { ...states, ...useEditorTools(store) }
+}
+export function useEditorTools(store: RootStore): EditorTools {
 	let expanded: Record<string, boolean> = {}
 	try {
 		const saved: unknown = JSON.parse(
@@ -93,7 +97,6 @@ export function useTools(store: RootStore): Tools {
 	const error = ownedAtom(store, ``)
 	const setError = useSetter(error)
 	return {
-		...states,
 		store,
 		error,
 		expanded: ownedAtom(store, expanded),
@@ -108,7 +111,7 @@ export function useTools(store: RootStore): Tools {
 	}
 }
 export function useExpanded(
-	tools: Tools,
+	tools: EditorTools,
 	path: Path,
 	initial = false,
 ): [Accessor<boolean>, (event: MouseEvent) => void] {

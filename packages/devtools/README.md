@@ -94,6 +94,20 @@ The debugger and storefront use component-owned Lasertag CSS Modules with one cl
 
 ## Ecology explorer
 
+Import Ecology or mountEcology from @atom.io/devtools/ecology to embed the live graph, search, and editor inline in an application. Both take an explicit store and own a SPA rendering root in that store. Load @atom.io/devtools/css once. The explorer fills the host's height when specified and has a 360-pixel minimum height. Its search layout responds to the host's width. The SPA component captures the store on mount. Change its key to select a different store, or dispose and remount when using the DOM API.
+
+```ts
+import "@atom.io/devtools/css"
+
+import { mountEcology } from "@atom.io/devtools/ecology"
+import type { RootStore } from "atom.io/internal"
+
+export function attachEcology(host: HTMLElement, store: RootStore): () => void {
+	return mountEcology(host, { store }).dispose
+}
+
+```
+
 The ecology tab captures the store on entry and updates as state and observed dependencies change. Affected cards briefly flash, including family cards for changes to their members. Reduced-motion preferences skip the flash. SPA’s Three.js Canvas places atoms and atom families on a descending helix around an invisible cylinder, with selectors ascending on a parallel helix 180° opposite at equal height. Cylinder proportions follow the canvas aspect ratio; resizing preserves orbit direction and relative zoom without recapturing application state. A subtle ground grid follows the camera perspective and fades into the distance below the nodes, against a near-black or off-white backdrop with the shared noise texture. Viewer-facing DOM cards show names, Atom/Selector categories and a short cached-value preview, or a grey en dash when uncached. Family cards show member counts. Painted cards show bounded custom toString output, array lengths, Map and Set sizes, and class names. Plain objects keep their shallow marker. Graph captures use shallow previews. Pending Futures show a springy loader with a one-second minimum cycle, a brief windback when their fate changes, and a one-second completion badge. Caught errors play an explosion as striped bands close in from the top and bottom of the card. The bands settle quickly and stay visible after the animation. Reduced-motion preferences keep the indicators still.
 
 A digest of each family or singleton key supplies its border and outgoing arrows with a stable color, exposed through the card’s --ecology-color CSS variable and inherited by its SVG arrows. Members inherit their family’s color. Atom hues use the warm half of the spectrum (270° through red to 90°); selector hues use the cool half (90° through blue to 270°). Saturation is 75%, with lightness balanced for both themes. Dashed cards identify families, including empty definitions. Clustered members have small, stable offsets around their family’s center, with individual cards hidden. Separate curved arrows form connection bands with a darker core and lighter fringe. Expansion spreads members along the cylinder’s tangent, joined by a faint, arrowless line in the family’s color. Member cards show their subkey under a smaller colored family key, while retaining cached previews and full keys in accessible names and tooltips. Expanding and collapsing a family springs its member cards between their cluster and tangent positions while fading them in or out; arrows follow the moving endpoints. Reversing a transition keeps the same cards and spring progress. Exiting cards are inert. Reduced-motion preferences skip the movement and fading.
@@ -161,7 +175,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                        | Entry                         | Minified JS |   Gzip JS |
 | ----------------------------- | ----------------------------- | ----------: | --------: |
-| Interactive app with debugger | `tonnage-recipes/debugger.ts` |   939,763 B | 279,891 B |
+| Interactive app with debugger | `tonnage-recipes/debugger.ts` |   939,801 B | 279,955 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

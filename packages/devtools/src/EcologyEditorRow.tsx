@@ -8,13 +8,13 @@ import css from "./EcologyEditorRow.module.css"
 import { EcologyNodeName } from "./EcologyNodeName.tsx"
 import type { EcologyPresentation } from "./EcologyView.tsx"
 import { StateLeaf } from "./StateLeaf.tsx"
-import type { Tools } from "./store.ts"
+import type { EditorTools } from "./store.ts"
 
 export type EcologyEditorSection = `selected` | `related` | `rest`
 export function EcologyEditorRow(props: {
 	layoutGroup: string
 	release(id: string): void
-	tools: Tools
+	tools: EditorTools
 	item: GraphItem
 	section: EcologyEditorSection
 	hovered: boolean

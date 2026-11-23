@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 import { useEffect, useState } from "react"
 
-export function Toggle({
+function Toggle({
 	onChange,
 }: {
 	onChange: (enabled: boolean) => void
@@ -19,5 +19,15 @@ export function Toggle({
 		>
 			{String(enabled)}
 		</button>
+	)
+}
+
+export default function Parent(): ReactNode {
+	const [enabled, setEnabled] = useState(false)
+	return (
+		<section>
+			<Toggle onChange={setEnabled} />
+			<output>Feature {enabled ? `on` : `off`}</output>
+		</section>
 	)
 }

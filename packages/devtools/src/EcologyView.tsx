@@ -13,7 +13,7 @@ import { EcologyToolbar } from "./EcologyToolbar.tsx"
 import css from "./EcologyView.module.css"
 import { EcologyViewport } from "./EcologyViewport.tsx"
 import type { SearchHit } from "./search.ts"
-import { type Tools, useLocal, usePresentation } from "./store.ts"
+import { type EditorTools, useLocal, usePresentation } from "./store.ts"
 
 export interface EcologyActivity {
 	revision: number
@@ -52,8 +52,9 @@ export interface EcologyPresentation {
 	pinnedKey: string | undefined
 }
 export function EcologyView(props: {
-	tools: Tools
+	tools: EditorTools
 	context: GraphContext
+	scope(): HTMLElement
 }): SpaElement {
 	const marker = `ecology-${useId()}`
 	const presentation = usePresentation<EcologyPresentation>(props.tools.store, {
@@ -107,6 +108,7 @@ export function EcologyView(props: {
 	onMount(() => {
 		controller = createEcologyController(
 			host!,
+			props.scope(),
 			props.tools.store,
 			props.context,
 			presentation.update,

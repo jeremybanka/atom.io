@@ -7,11 +7,11 @@ import { peekState } from "atom.io/introspection"
 
 import { JsonEditor } from "./JsonEditor.tsx"
 import css from "./StateLeaf.module.css"
-import type { Tools } from "./store.ts"
+import type { EditorTools } from "./store.ts"
 
 type Token = ReadableToken<unknown, any, any>
 export function StateLeaf(props: {
-	tools: Tools
+	tools: EditorTools
 	token: Token
 	grouped?: boolean
 	separated?: boolean

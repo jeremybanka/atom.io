@@ -1,10 +1,14 @@
 import type { ReactNode } from "react"
 import { useEffect, useState } from "react"
 
-import type { Product } from "./services.ts"
+import { type Product, sampleProducts } from "./services.ts"
 import { SearchForm } from "./views.tsx"
 
-export function ProductSearch({ products }: { products: Product[] }): ReactNode {
+export default function ProductSearch({
+	products = sampleProducts,
+}: {
+	products?: Product[]
+}): ReactNode {
 	const [query, setQuery] = useState(``)
 	const [matches, setMatches] = useState<Product[]>([])
 	useEffect(() => {

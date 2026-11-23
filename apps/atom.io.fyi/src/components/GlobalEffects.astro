@@ -1,4 +1,11 @@
 <script>
+import {
+	handleExhibitTabKey,
+	initializeExhibitLayouts,
+	resetExhibitLayouts,
+	selectExhibitTab,
+} from "./exhibit-tabs.ts"
+
 const globalEffectsKey = `__atomIoGlobalEffectsInstalled`
 const globalWithEffects = globalThis as typeof globalThis &
 	Record<string, boolean | undefined>
@@ -62,8 +69,9 @@ function linkCodeBlockImports(): void {
 }
 
 async function copyCodeBlock(button: HTMLButtonElement): Promise<void> {
-	const codeBlock = button.closest(`code-block`)
-	const code = codeBlock?.querySelector(`pre code`)?.textContent
+	const code = button
+		.closest(`code-pane`)
+		?.querySelector(`pre code`)?.textContent
 	if (code === undefined) {
 		return
 	}
@@ -73,6 +81,7 @@ async function copyCodeBlock(button: HTMLButtonElement): Promise<void> {
 function applyPageEffects(): void {
 	updateThemeColor()
 	linkCodeBlockImports()
+	initializeExhibitLayouts()
 }
 
 if (!globalWithEffects[globalEffectsKey]) {
@@ -83,12 +92,21 @@ if (!globalWithEffects[globalEffectsKey]) {
 		if (!(event.target instanceof Element)) {
 			return
 		}
-		const button = event.target.closest(`code-block > file-name > button`)
+		const tab = event.target.closest(
+			`code-block[data-exhibit-source] [role="tab"]`,
+		)
+		if (tab instanceof HTMLButtonElement) {
+			selectExhibitTab(tab)
+			return
+		}
+		const button = event.target.closest(`[data-copy-code]`)
 		if (!(button instanceof HTMLButtonElement)) {
 			return
 		}
 		void copyCodeBlock(button)
 	})
+	document.addEventListener(`keydown`, handleExhibitTabKey)
+	document.addEventListener(`astro:before-swap`, resetExhibitLayouts)
 	document.addEventListener(`astro:page-load`, applyPageEffects)
 }
 

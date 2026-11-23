@@ -3,6 +3,12 @@ export type Product = { id: string; name: string }
 export type Account = { name: string }
 export type Job = { complete: boolean; progress: number }
 
+export const sampleProducts: Product[] = [
+	{ id: `1`, name: `Coffee` },
+	{ id: `2`, name: `Tea` },
+	{ id: `3`, name: `Cocoa` },
+]
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
 	const response = await fetch(path, options)
 	if (!response.ok) throw new Error(`Request failed: ${response.status}`)

@@ -17,30 +17,33 @@ function createDocumentState(name: string) {
 
 const leftDocument = createDocumentState(`left-document`)
 const rightDocument = createDocumentState(`right-document`)
+export const leftDocumentSilo = leftDocument.silo
 
-function TitleEditor(props: { document: typeof leftDocument }) {
+function TitleEditor(props: { document: typeof leftDocument; label: string }) {
 	const title = useO(props.document.titleAtom)
 	const setTitle = useI(props.document.titleAtom)
 
 	return (
-		<input
-			aria-label={`${props.document.silo.store.config.name} title`}
-			value={title}
-			onChange={(event) => {
-				setTitle(event.currentTarget.value)
-			}}
-		/>
+		<label>
+			{props.label}
+			<input
+				value={title}
+				onChange={(event) => {
+					setTitle(event.currentTarget.value)
+				}}
+			/>
+		</label>
 	)
 }
 
-export function DocumentWorkspace(): JSX.Element {
+export default function DocumentWorkspace(): JSX.Element {
 	return (
 		<>
 			<StoreProvider store={leftDocument.silo.store}>
-				<TitleEditor document={leftDocument} />
+				<TitleEditor document={leftDocument} label="Left document title" />
 			</StoreProvider>
 			<StoreProvider store={rightDocument.silo.store}>
-				<TitleEditor document={rightDocument} />
+				<TitleEditor document={rightDocument} label="Right document title" />
 			</StoreProvider>
 		</>
 	)

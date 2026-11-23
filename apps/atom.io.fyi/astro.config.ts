@@ -6,8 +6,11 @@ import cloudflare from "@astrojs/cloudflare"
 import { unified } from "@astrojs/markdown-remark"
 import mdx from "@astrojs/mdx"
 import spa from "@atom.io/spa/astro"
+import { transformAsync as transformSolid } from "@solidjs/compiler"
 import { defineConfig, sessionDrivers } from "astro/config"
+import { transform } from "esbuild"
 
+import { findExhibitSandboxes } from "./scripts/exhibit-sandboxes.ts"
 import { preserveCodeBlockCodeProps } from "./scripts/remark-codeblock-code-props.ts"
 
 const CONFIG_ROOT = path.dirname(fileURLToPath(import.meta.url))
@@ -42,15 +45,19 @@ const EXHIBIT_ROOTS = [
 	},
 ]
 const VIRTUAL_EXHIBITS_MODULE_ID = `virtual:atom-io-exhibits`
-const RESOLVED_VIRTUAL_EXHIBITS_MODULE_ID = `\0${VIRTUAL_EXHIBITS_MODULE_ID}`
+const VIRTUAL_SANDBOXES_MODULE_ID = `virtual:atom-io-exhibit-sandboxes`
+const virtualExhibitModules = [
+	VIRTUAL_EXHIBITS_MODULE_ID,
+	VIRTUAL_SANDBOXES_MODULE_ID,
+]
 
 type ViteDevServer = {
 	moduleGraph: {
-		getModuleById(id: string): unknown
-		invalidateModule(module: unknown): void
+		invalidateAll(): void
 	}
 	watcher: {
 		add(file: string): void
+		on(event: `add` | `unlink`, callback: (file: string) => void): void
 	}
 	ws: {
 		send(message: { type: `full-reload` }): void
@@ -80,53 +87,116 @@ function toPosixPath(filePath: string): string {
 	return filePath.split(path.sep).join(`/`)
 }
 
-function exhibitTextPlugin() {
+function isExhibitFile(file: string): boolean {
+	return EXHIBIT_ROOTS.some(({ root }) => {
+		const relative = path.relative(root, file)
+		return (
+			relative !== `..` &&
+			!relative.startsWith(`..${path.sep}`) &&
+			!path.isAbsolute(relative)
+		)
+	})
+}
+
+function exhibitsPlugin() {
+	async function loadExhibits() {
+		const files = (
+			await Promise.all(
+				EXHIBIT_ROOTS.map(async ({ root, prefix }) =>
+					(await listFiles(root)).map((file) => ({ root, prefix, file })),
+				),
+			)
+		).flat()
+		return Promise.all(
+			files.map(async ({ root, prefix, file }) => ({
+				file,
+				source: prefix + toPosixPath(path.relative(root, file)),
+				code: await fs.readFile(file, `utf8`),
+			})),
+		)
+	}
+	const indexExhibits = async () => {
+		const files = await loadExhibits()
+		return { files, ...findExhibitSandboxes(files) }
+	}
+	let index: ReturnType<typeof indexExhibits> | undefined
+	const readIndex = () => (index ??= indexExhibits())
+	function invalidate({ file, server }: HmrContext) {
+		if (!isExhibitFile(file)) return
+		index = undefined
+		// Eligibility can change the JSX transform for an unchanged dependency.
+		server.moduleGraph.invalidateAll()
+		server.ws.send({ type: `full-reload` })
+		return []
+	}
 	return {
-		name: `atom-io-exhibit-text`,
+		name: `atom-io-exhibits`,
 		resolveId(id: string) {
-			if (id === VIRTUAL_EXHIBITS_MODULE_ID) {
-				return RESOLVED_VIRTUAL_EXHIBITS_MODULE_ID
-			}
+			if (virtualExhibitModules.includes(id)) return `\0${id}`
 		},
 		async load(id: string) {
-			if (id !== RESOLVED_VIRTUAL_EXHIBITS_MODULE_ID) {
-				return
+			if (!virtualExhibitModules.some((module) => id === `\0${module}`)) return
+			const { files, sandboxes } = await readIndex()
+			if (id === `\0${VIRTUAL_SANDBOXES_MODULE_ID}`) {
+				const imports = sandboxes.map(({ source, file, preview }) => {
+					const load = `() => import(${JSON.stringify(toPosixPath(file))})`
+					const entry = `{ preview: ${JSON.stringify(preview)}, load: ${load} }`
+					return `[${JSON.stringify(source)}, ${entry}]`
+				})
+				return `export const sandboxes = new Map([${imports.join(`,\n`)}]);`
 			}
-			const files = (
-				await Promise.all(
-					EXHIBIT_ROOTS.map(async ({ root, prefix }) =>
-						(await listFiles(root)).map((file) => ({ root, prefix, file })),
+			const exhibits = Object.fromEntries(
+				files.map(({ source, code }) => [source, code]),
+			)
+			return `export const exhibits = ${JSON.stringify(exhibits)};
+				export const sandboxViews = ${JSON.stringify(
+					Object.fromEntries(
+						sandboxes.map(({ source, ecology, preview }) => [
+							source,
+							{ ecology, preview: preview !== null },
+						]),
 					),
-				)
-			).flat()
-			const exhibits: Record<string, string> = {}
-			for (const { root, prefix, file } of files) {
-				const key = prefix + toPosixPath(path.relative(root, file))
-				exhibits[key] = await fs.readFile(file, `utf8`)
-			}
-			return `export const exhibits = ${JSON.stringify(exhibits)};`
+				)};`
+		},
+		transform: {
+			// Lower other frameworks' JSX before the site's SPA compiler sees it.
+			order: `pre` as const,
+			async handler(code: string, id: string) {
+				if (!/\.tsx?$/.test(id) || !isExhibitFile(id)) return
+				// The enclosing packages mark their modules side-effect free. The
+				// exhibit's top-level reads and writes are the point of this import.
+				const { jsxFrameworks } = await readIndex()
+				const moduleSideEffects = `no-treeshake` as const
+				const framework = jsxFrameworks.get(id)
+				if (framework === `react`) {
+					const result = await transform(code, {
+						loader: `tsx`,
+						jsx: `automatic`,
+						jsxImportSource: `react`,
+						sourcefile: id,
+						sourcemap: true,
+					})
+					return { ...result, moduleSideEffects }
+				}
+				if (framework === `solid`) {
+					const result = await transformSolid(code, {
+						filename: id,
+						generate: `dom`,
+						sourceMap: true,
+					})
+					return { code: result.code, map: result.map, moduleSideEffects }
+				}
+				return { code, moduleSideEffects }
+			},
 		},
 		configureServer(server: ViteDevServer) {
 			for (const { root } of EXHIBIT_ROOTS) server.watcher.add(root)
-		},
-		handleHotUpdate(context: HmrContext) {
-			if (
-				!EXHIBIT_ROOTS.some(({ root }) => {
-					const relative = path.relative(root, context.file)
-					return !relative.startsWith(`..`) && !path.isAbsolute(relative)
+			for (const event of [`add`, `unlink`] as const)
+				server.watcher.on(event, (file) => {
+					invalidate({ file, server })
 				})
-			) {
-				return
-			}
-			const exhibitModule = context.server.moduleGraph.getModuleById(
-				RESOLVED_VIRTUAL_EXHIBITS_MODULE_ID,
-			)
-			if (exhibitModule) {
-				context.server.moduleGraph.invalidateModule(exhibitModule)
-			}
-			context.server.ws.send({ type: `full-reload` })
-			return []
 		},
+		handleHotUpdate: invalidate,
 	}
 }
 
@@ -138,7 +208,11 @@ export default defineConfig({
 		"/docs/hydrogen": `/docs/spa`,
 		"/hydrogen-lab": `/spa-lab`,
 	},
-	integrations: [spa(), mdx()],
+	integrations: [
+		// React exhibits can resolve the workspace bindings from source.
+		spa({ include: /^(?!.*\/packages\/react\/src\/).*\.[jt]sx$/ }),
+		mdx(),
+	],
 	markdown: {
 		processor: unified({ remarkPlugins: [preserveCodeBlockCodeProps] }),
 	},
@@ -154,8 +228,19 @@ export default defineConfig({
 		allowedHosts: [`eris.local`, `atom-io`],
 	},
 	vite: {
-		resolve: { dedupe: [`atom.io`, `@atom.io/spa`] },
-		plugins: [exhibitTextPlugin()],
+		resolve: {
+			dedupe: [
+				`atom.io`,
+				`@atom.io/spa`,
+				`react`,
+				`react-dom`,
+				`solid-js`,
+				`@solidjs/web`,
+			],
+		},
+		// The first Solid exhibit must not trigger a dependency reload that closes its tab.
+		optimizeDeps: { include: [`@solidjs/web`, `solid-js`] },
+		plugins: [exhibitsPlugin()],
 		build: {
 			// BrandMark's optional Three.js entry is ~512 KiB minified.
 			chunkSizeWarningLimit: 550,

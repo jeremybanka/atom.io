@@ -1,19 +1,22 @@
 import { useI, useO } from "@atom.io/react"
-import { atomFamily, disposeState } from "atom.io"
+import { atomFamily } from "atom.io"
 import type { ReactNode } from "react"
+import { useState } from "react"
 
-import { DraftForm } from "./views.tsx"
+import { DocumentPicker, DraftForm } from "./views.tsx"
 
 const draftAtoms = atomFamily<string, string>({
 	key: `draft`,
 	default: ``,
 })
-export function Editor({ documentId }: { documentId: string }): ReactNode {
+export default function Editor(): ReactNode {
+	const [documentId, setDocumentId] = useState(`Document A`)
 	const draft = useO(draftAtoms, documentId)
 	const setDraft = useI(draftAtoms, documentId)
-	return <DraftForm text={draft} onChange={setDraft} label={documentId} />
-}
-// The document controller calls this when closing a document discards its draft.
-export function closeDocument(documentId: string): void {
-	disposeState(draftAtoms, documentId)
+	return (
+		<>
+			<DocumentPicker documentId={documentId} onChange={setDocumentId} />
+			<DraftForm text={draft} onChange={setDraft} label={documentId} />
+		</>
+	)
 }

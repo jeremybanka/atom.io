@@ -79,6 +79,15 @@ docs-layout.class {
 		table-wrapper {
 			width: min(702px, calc(100svw - 18px));
 		}
+		@media screen and (min-width: 1560px) {
+			> code-block[data-exhibit-source],
+			> effect-cluster:has(> code-block[data-exhibit-source]) {
+				width: min(1680px, calc(100svw - 560px));
+			}
+			> effect-cluster > code-block[data-exhibit-source] {
+				width: 100%;
+			}
+		}
 		p,
 		li,
 		table-wrapper > table {

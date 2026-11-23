@@ -26,29 +26,48 @@ import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useSetter } from "@atom.io/spa"
 import { atom } from "atom.io"
 
-const pointAtom = atom<{ x: number; y: number }>({
-	key: `point`,
-	default: { x: 20, y: 20 },
-})
-export function PointEditor(): SpaElement {
+type Point = { x: number; y: number }
+const bounds = { x: 120, y: 90 }
+const directions = [
+	{ label: `Move up`, glyph: `↑`, axis: `y`, step: -1 },
+	{ label: `Move left`, glyph: `←`, axis: `x`, step: -1 },
+	{ label: `Move down`, glyph: `↓`, axis: `y`, step: 1 },
+	{ label: `Move right`, glyph: `→`, axis: `x`, step: 1 },
+] as const
+
+const pointAtom = atom<Point>({ key: `point`, default: { x: 20, y: 20 } })
+export default function PointEditor(): SpaElement {
 	const getPoint = useGetter(pointAtom)
 	const setPoint = useSetter(pointAtom)
 	return (
 		<section>
-			<h2>Point</h2>
-			<svg viewBox="0 0 100 100">
-				<circle cx={getPoint().x} cy={getPoint().y} r="3" />
-			</svg>
-			<output>
-				{getPoint().x}, {getPoint().y}
-			</output>
-			<button
-				onClick={() => {
-					setPoint(({ x, y }) => ({ x: x + 1, y }))
-				}}
+			<svg
+				class="drawing-surface"
+				viewBox={`0 0 ${bounds.x} ${bounds.y}`}
+				width="240"
+				height="180"
+				role="img"
+				aria-label="Point position"
 			>
-				Move right
-			</button>
+				<circle cx={getPoint().x} cy={getPoint().y} r="2" fill="currentColor" />
+			</svg>
+			<footer class="direction-pad" role="group" aria-label="Move point">
+				{directions.map(({ label, glyph, axis, step }) => (
+					<button
+						key={label}
+						type="button"
+						aria-label={label}
+						onClick={() => {
+							setPoint((point) => ({
+								...point,
+								[axis]: Math.max(0, Math.min(bounds[axis], point[axis] + step)),
+							}))
+						}}
+					>
+						{glyph}
+					</button>
+				))}
+			</footer>
 		</section>
 	)
 }
@@ -183,7 +202,7 @@ import { useGetter, useSetter } from "@atom.io/spa"
 
 import { editCountAtom } from "./hmr-state.ts"
 
-export function HotCounter(): SpaElement {
+export default function HotCounter(): SpaElement {
 	const getEditCount = useGetter(editCountAtom)
 	const setEditCount = useSetter(editCountAtom)
 	return (
@@ -233,7 +252,7 @@ export const captionHeightAtom = atom<number>({
 	default: 0,
 })
 
-export function Caption(): SpaElement {
+export default function Caption(): SpaElement {
 	const getCaption = useGetter(captionAtom)
 	const setCaptionHeight = useSetter(captionHeightAtom)
 	let caption: HTMLParagraphElement | null = null
@@ -360,35 +379,47 @@ Render a Root boundary around each editor to give it a separate store with the d
 ```tsx
 import type { SpaElement } from "@atom.io/spa"
 import { Root, useGetter, useSetter } from "@atom.io/spa"
-import { atom } from "atom.io"
+import { atom, Silo } from "atom.io"
 import type { RootStore } from "atom.io/internal"
 
 export const textAtom = atom<string>({ key: `text`, default: `` })
 
-function Editor() {
+function createDocumentStore(name: string): RootStore {
+	const silo = new Silo({ name, lifespan: `ephemeral`, isProduction: false })
+	silo.install([textAtom])
+	return silo.store
+}
+
+const leftStore = createDocumentStore(`left-document`)
+const rightStore = createDocumentStore(`right-document`)
+
+function Editor(props: { label: string }) {
 	const getText = useGetter(textAtom)
 	const setText = useSetter(textAtom)
 	return (
-		<textarea
-			value={getText()}
-			onInput={(event) => {
-				setText(event.currentTarget.value)
-			}}
-		/>
+		<label>
+			{props.label}
+			<textarea
+				value={getText()}
+				onInput={(event) => {
+					setText(event.currentTarget.value)
+				}}
+			/>
+		</label>
 	)
 }
 
-export function Documents(props: {
-	left: RootStore
-	right: RootStore
+export default function Documents(props: {
+	left?: RootStore
+	right?: RootStore
 }): SpaElement {
 	return (
 		<>
-			<Root store={props.left}>
-				<Editor />
+			<Root store={props.left ?? leftStore}>
+				<Editor label="Left document" />
 			</Root>
-			<Root store={props.right}>
-				<Editor />
+			<Root store={props.right ?? rightStore}>
+				<Editor label="Right document" />
 			</Root>
 		</>
 	)
@@ -425,26 +456,31 @@ function FamilyCounter(props: { key: string }): SpaElement {
 	const ref = useRef(buttonAtoms, props.key)
 	const history = useTimeline(historyTimelines, props.key)
 	return (
-		<section>
-			<button
-				ref={ref}
-				onClick={() => {
-					setCount((value) => value + 1)
-				}}
-			>
-				{getCount()}
-			</button>
-			<button disabled={history.getCursor() === 0} onClick={history.undo}>
-				Undo
-			</button>
-		</section>
+		<fieldset>
+			<legend>{props.key}</legend>
+			<footer>
+				<button
+					ref={ref}
+					onClick={() => {
+						setCount((value) => value + 1)
+					}}
+				>
+					{getCount()}
+				</button>
+				<button disabled={history.getCursor() === 0} onClick={history.undo}>
+					Undo
+				</button>
+			</footer>
+		</fieldset>
 	)
 }
 
-export function Counters(props: { ids: readonly string[] }): SpaElement {
+export default function Counters(props: {
+	ids?: readonly string[]
+}): SpaElement {
 	return (
 		<section>
-			{props.ids.map((id) => (
+			{(props.ids ?? [`left`, `right`]).map((id) => (
 				<FamilyCounter key={id} />
 			))}
 		</section>
@@ -539,8 +575,8 @@ function HelpPopover(props: { identity: PopoverIdentity }): SpaElement {
 	)
 }
 
-export function HelpToolbar(props: { id: string }): SpaElement {
-	const toolbar = props.id
+export default function HelpToolbar(props: { id?: string }): SpaElement {
+	const toolbar = props.id ?? `editor`
 	const getFormattingHelpVisible = useGetter(formattingHelpVisibleAtoms, toolbar)
 	const setFormattingHelpVisible = useSetter(formattingHelpVisibleAtoms, toolbar)
 	const dispose = useDisposal()
@@ -754,11 +790,11 @@ const pointAtom = atom<{ x: number; y: number }>({
 	key: `point`,
 	default: { x: 100, y: 100 },
 })
-export function Editor(): SpaElement {
+export default function Editor(): SpaElement {
 	const getPoint = useGetter(pointAtom)
 	const setPoint = useSetter(pointAtom)
 	return (
-		<Stage width={800} height={600}>
+		<Stage width={240} height={180}>
 			<Layer>
 				<Circle
 					x={getPoint().x}
@@ -797,10 +833,10 @@ import {
 import { atom } from "atom.io"
 
 const colorAtom = atom<string>({ key: `color`, default: `coral` })
-export function Scene(): SpaElement {
+export default function Scene(): SpaElement {
 	const getColor = useGetter(colorAtom)
 	return (
-		<Canvas width={800} height={600}>
+		<Canvas width={240} height={180} rendererOptions={{ alpha: true }}>
 			<AmbientLight intensity={0.5} />
 			<DirectionalLight position={[3, 3, 3]} />
 			<Mesh rotation={[0.3, 0.5, 0]}>
@@ -826,11 +862,11 @@ import type { SpaElement } from "@atom.io/spa"
 import { BoxGeometry, Canvas, Mesh, MeshBasicMaterial } from "@atom.io/spa/three"
 import { ACESFilmicToneMapping, SRGBColorSpace } from "three"
 
-export function BoardCanvas(): SpaElement {
+export default function BoardCanvas(): SpaElement {
 	return (
 		<Canvas
-			width={800}
-			height={600}
+			width={240}
+			height={180}
 			dpr={[1, 2]}
 			rendererOptions={{ alpha: true, powerPreference: `high-performance` }}
 			onCreated={({ renderer, scene }) => {
@@ -985,10 +1021,11 @@ Declare motion:exit on an element, custom tag, Konva node, or Three.js scene nod
 ```tsx
 import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useSetter } from "@atom.io/spa"
+import { motionCapability } from "@atom.io/spa/motion"
 import { atom } from "atom.io"
 
 const visibleAtom = atom<boolean>({ key: `visible`, default: true })
-export function DismissiblePanel(): SpaElement {
+export default function DismissiblePanel(): SpaElement {
 	const getVisible = useGetter(visibleAtom)
 	const setVisible = useSetter(visibleAtom)
 	return (
@@ -1000,20 +1037,24 @@ export function DismissiblePanel(): SpaElement {
 			>
 				Toggle panel
 			</button>
-			{getVisible() && (
-				<sliding-panel
-					key="panel"
-					motion:initial={{ opacity: 0, y: 12 }}
-					motion:animate={{ opacity: 1, y: 0 }}
-					motion:exit={{ opacity: 0, y: -12 }}
-					motion:transition={{ type: `spring`, stiffness: 180, damping: 22 }}
-				>
-					The same instance returns if toggled before its exit completes.
-				</sliding-panel>
-			)}
+			<div style="min-block-size:4lh; overflow:clip">
+				{getVisible() && (
+					<aside
+						key="panel"
+						motion:initial={{ opacity: 0, y: 12 }}
+						motion:animate={{ opacity: 1, y: 0 }}
+						motion:exit={{ opacity: 0, y: -12 }}
+						motion:transition={{ type: `spring`, stiffness: 180, damping: 22 }}
+					>
+						The same instance returns if toggled before its exit completes.
+					</aside>
+				)}
+			</div>
 		</section>
 	)
 }
+
+DismissiblePanel.capabilities = [motionCapability()]
 
 ```
 
@@ -1039,7 +1080,7 @@ Register motionCapability from @atom.io/spa/motion once to enable animated prope
 import { render } from "@atom.io/spa"
 import { motionCapability } from "@atom.io/spa/motion"
 
-import { ReadinessBoard } from "./layout.tsx"
+import ReadinessBoard from "./layout.tsx"
 
 const host = document.querySelector(`#app`)!
 const root = render(() => <ReadinessBoard />, host, {
@@ -1055,7 +1096,7 @@ export const disposeBoard = root.dispose
 ```tsx
 import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useSetter } from "@atom.io/spa"
-import type {} from "@atom.io/spa/motion"
+import { motionCapability } from "@atom.io/spa/motion"
 import { atom } from "atom.io"
 
 const players = [`Ada`, `Grace`] as const
@@ -1065,37 +1106,38 @@ function ReadinessGroup(props: { ready: boolean; match: string }): SpaElement {
 	const getReadyPlayers = useGetter(readyPlayersAtom)
 	const setReadyPlayers = useSetter(readyPlayersAtom)
 	return (
-		<section
-			motion:layout
-			style={`width:${getReadyPlayers().length ? 260 : 180}px;min-height:80px`}
-		>
-			<h2>{props.ready ? `Ready` : `Waiting`}</h2>
-			{players
-				.filter((player) => getReadyPlayers().includes(player) === props.ready)
-				.map((player) => (
-					<button
-						key={player}
-						motion:layout="position"
-						motion:layoutId={player}
-						motion:layoutGroup={props.match}
-						motion:exit={{ opacity: 0 }}
-						motion:transition={{ duration: 0.2 }}
-						onClick={() => {
-							setReadyPlayers((ready) =>
-								ready.includes(player)
-									? ready.filter((name) => name !== player)
-									: [...ready, player],
-							)
-						}}
-					>
-						{player}
-					</button>
-				))}
-		</section>
+		<fieldset style="max-inline-size:260px">
+			<legend>{props.ready ? `Ready` : `Waiting`}</legend>
+			<footer style="display:grid; grid-template-columns:repeat(2,minmax(0,5em)); place-items:center start; min-block-size:2lh">
+				{players.map(
+					(player, index) =>
+						getReadyPlayers().includes(player) === props.ready && (
+							<button
+								key={player}
+								style={`grid-area:1 / ${index + 1}`}
+								motion:layout="position"
+								motion:layoutId={player}
+								motion:layoutGroup={props.match}
+								motion:exit={{ opacity: 0 }}
+								motion:transition={{ duration: 0.2 }}
+								onClick={() => {
+									setReadyPlayers((ready) =>
+										ready.includes(player)
+											? ready.filter((name) => name !== player)
+											: [...ready, player],
+									)
+								}}
+							>
+								{player}
+							</button>
+						),
+				)}
+			</footer>
+		</fieldset>
 	)
 }
 
-export function ReadinessBoard(): SpaElement {
+export default function ReadinessBoard(): SpaElement {
 	return (
 		<>
 			<ReadinessGroup ready={false} match="match-1" />
@@ -1103,6 +1145,10 @@ export function ReadinessBoard(): SpaElement {
 		</>
 	)
 }
+
+ReadinessBoard.capabilities = [
+	motionCapability({ layoutTransition: { duration: 0.3, ease: `easeInOut` } }),
+]
 
 ```
 
@@ -1223,27 +1269,48 @@ Transition times are normalized, ordered values from 0 to 1 and must match the k
 
 ```tsx
 import type { SpaElement } from "@atom.io/spa"
-import type {} from "@atom.io/spa/motion"
+import { useGetter, useSetter } from "@atom.io/spa"
+import { motionCapability } from "@atom.io/spa/motion"
+import { atom } from "atom.io"
 
-export function TurnBanner(): SpaElement {
+const replayAtom = atom<number>({ key: `replay`, default: 0 })
+
+export default function TurnBanner(): SpaElement {
+	const getReplay = useGetter(replayAtom)
+	const setReplay = useSetter(replayAtom)
 	return (
-		<aside
-			motion:animate={{
-				x: [`-1500%`, `2%`, `4%`, `1500%`],
-				skewX: [`-50deg`, `-5deg`, `-5deg`, `-50deg`],
-				width: [`20vw`, `90vw`, `90vw`, `10vw`],
-				opacity: [0, 1, 1, 0],
-			}}
-			motion:transition={{
-				duration: 3,
-				times: [0, 0.1, 0.77, 1],
-				ease: [`circOut`, `linear`, `easeIn`],
-				properties: { opacity: { times: [0, 0.2, 0.8, 1], ease: `linear` } },
-			}}
-		>
-			Next turn
-		</aside>
+		<section>
+			<button
+				onClick={() => {
+					setReplay((run) => run + 1)
+				}}
+			>
+				Replay banner
+			</button>
+			<div style="overflow:clip; min-height:36px">
+				<aside
+					key={getReplay()}
+					style="box-sizing:border-box; white-space:nowrap"
+					motion:animate={{
+						x: [`-1500%`, `2%`, `4%`, `0%`],
+						skewX: [`-50deg`, `-5deg`, `-5deg`, `0deg`],
+						width: [`20%`, `88%`, `88%`, `100%`],
+						opacity: [0, 1, 1, 1],
+					}}
+					motion:transition={{
+						duration: 3,
+						times: [0, 0.1, 0.77, 1],
+						ease: [`circOut`, `linear`, `easeIn`],
+						properties: { opacity: { times: [0, 0.2, 0.8, 1], ease: `linear` } },
+					}}
+				>
+					Next turn
+				</aside>
+			</div>
+		</section>
 	)
 }
+
+TurnBanner.capabilities = [motionCapability()]
 
 ```

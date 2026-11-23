@@ -37,7 +37,7 @@ const markDoneTransaction = transaction<(taskId: string) => void>({
 
 const markDone = runTransaction(markDoneTransaction)
 
-export function TaskBoard(): JSX.Element {
+export default function TaskBoard(): JSX.Element {
 	const todoIds = useO(todoIdsAtom)
 	const doneIds = useO(doneIdsAtom)
 	const error = useO(taskBoardErrorAtom)
@@ -51,7 +51,7 @@ export function TaskBoard(): JSX.Element {
 			<ul>
 				{todoIds.map((taskId) => (
 					<li key={taskId}>
-						{taskId}
+						<span>{taskId}</span>
 						<button
 							type="button"
 							onClick={() => {

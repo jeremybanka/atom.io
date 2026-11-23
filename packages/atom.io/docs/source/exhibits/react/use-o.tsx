@@ -20,7 +20,7 @@ const urlAtom = atom<string>({
 	],
 })
 
-function UrlDisplay() {
+export default function UrlDisplay(): React.JSX.Element {
 	const url = useO(urlAtom)
 	return <div>{url}</div>
 }

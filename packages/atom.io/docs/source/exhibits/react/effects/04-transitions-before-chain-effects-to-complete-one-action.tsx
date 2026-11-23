@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 import { useEffect, useState } from "react"
 
-export function Game(): ReactNode {
+export default function Game(): ReactNode {
 	const [score, setScore] = useState(0)
 	const [round, setRound] = useState(1)
 	const [finished, setFinished] = useState(false)

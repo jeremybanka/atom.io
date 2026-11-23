@@ -10,6 +10,12 @@ import {
 	mountAtomIODevtools,
 	traceEcologyRoots,
 } from "@atom.io/devtools"
+import {
+	Ecology,
+	type EcologyHandle,
+	type EcologyProps,
+	mountEcology,
+} from "@atom.io/devtools/ecology"
 import type { Component } from "@atom.io/spa"
 import type { Silo } from "atom.io"
 
@@ -19,6 +25,11 @@ export const mount: (
 	host: Element,
 	options?: AtomIODevtoolsProps,
 ) => AtomIODevtoolsHandle = mountAtomIODevtools
+export const ecologyComponent: Component<EcologyProps> = Ecology
+export const mountExplorer: (
+	host: Element,
+	options: EcologyProps,
+) => EcologyHandle = mountEcology
 
 export function ecology(
 	store: Silo[`store`],

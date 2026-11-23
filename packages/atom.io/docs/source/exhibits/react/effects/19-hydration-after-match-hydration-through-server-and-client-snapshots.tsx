@@ -17,7 +17,7 @@ function ClientGreeting() {
 	const name = useO(displayNameAtom)
 	return <output>Welcome, {name}</output>
 }
-export function Greeting(): ReactNode {
+export default function Greeting(): ReactNode {
 	const hydrated = useSyncExternalStore(
 		subscribe,
 		clientSnapshot,

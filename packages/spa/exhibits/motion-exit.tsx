@@ -1,9 +1,10 @@
 import type { SpaElement } from "@atom.io/spa"
 import { useGetter, useSetter } from "@atom.io/spa"
+import { motionCapability } from "@atom.io/spa/motion"
 import { atom } from "atom.io"
 
 const visibleAtom = atom<boolean>({ key: `visible`, default: true })
-export function DismissiblePanel(): SpaElement {
+export default function DismissiblePanel(): SpaElement {
 	const getVisible = useGetter(visibleAtom)
 	const setVisible = useSetter(visibleAtom)
 	return (
@@ -15,17 +16,21 @@ export function DismissiblePanel(): SpaElement {
 			>
 				Toggle panel
 			</button>
-			{getVisible() && (
-				<sliding-panel
-					key="panel"
-					motion:initial={{ opacity: 0, y: 12 }}
-					motion:animate={{ opacity: 1, y: 0 }}
-					motion:exit={{ opacity: 0, y: -12 }}
-					motion:transition={{ type: `spring`, stiffness: 180, damping: 22 }}
-				>
-					The same instance returns if toggled before its exit completes.
-				</sliding-panel>
-			)}
+			<div style="min-block-size:4lh; overflow:clip">
+				{getVisible() && (
+					<aside
+						key="panel"
+						motion:initial={{ opacity: 0, y: 12 }}
+						motion:animate={{ opacity: 1, y: 0 }}
+						motion:exit={{ opacity: 0, y: -12 }}
+						motion:transition={{ type: `spring`, stiffness: 180, damping: 22 }}
+					>
+						The same instance returns if toggled before its exit completes.
+					</aside>
+				)}
+			</div>
 		</section>
 	)
 }
+
+DismissiblePanel.capabilities = [motionCapability()]

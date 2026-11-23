@@ -6,16 +6,19 @@ const toggleAtom = atom<boolean>({
 	default: false,
 })
 
-function ToggleInput() {
+export default function ToggleInput(): React.JSX.Element {
 	const setToggle = useI(toggleAtom)
 	const toggle = useO(toggleAtom)
 	return (
-		<input
-			type="checkbox"
-			checked={toggle}
-			onChange={() => {
-				setToggle((t) => !t)
-			}}
-		/>
+		<label>
+			<input
+				type="checkbox"
+				checked={toggle}
+				onChange={() => {
+					setToggle((t) => !t)
+				}}
+			/>
+			Toggle setting
+		</label>
 	)
 }

@@ -7,7 +7,7 @@ const productSearchQueryAtom = atom<string>({
 	default: ``,
 })
 
-export function ProductSearch(): JSX.Element {
+export default function ProductSearch(): JSX.Element {
 	const query = useO(productSearchQueryAtom)
 	const setQuery = useI(productSearchQueryAtom)
 	const normalizedQuery = query.trim().toLowerCase()

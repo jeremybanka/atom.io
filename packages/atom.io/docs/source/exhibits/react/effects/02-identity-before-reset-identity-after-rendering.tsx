@@ -1,12 +1,18 @@
 import type { ReactNode } from "react"
 import { useEffect, useState } from "react"
 
-import { DraftForm } from "./views.tsx"
+import { DocumentPicker, DraftForm } from "./views.tsx"
 
-export function Editor({ documentId }: { documentId: string }): ReactNode {
+export default function Editor(): ReactNode {
+	const [documentId, setDocumentId] = useState(`Document A`)
 	const [draft, setDraft] = useState(``)
 	useEffect(() => {
 		setDraft(``)
 	}, [documentId])
-	return <DraftForm text={draft} onChange={setDraft} label={documentId} />
+	return (
+		<>
+			<DocumentPicker documentId={documentId} onChange={setDocumentId} />
+			<DraftForm text={draft} onChange={setDraft} label={documentId} />
+		</>
+	)
 }

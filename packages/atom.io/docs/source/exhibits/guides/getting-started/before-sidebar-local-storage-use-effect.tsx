@@ -3,7 +3,7 @@ import type { JSX } from "react/jsx-runtime"
 
 const SIDEBAR_STORAGE_KEY = `sidebarCollapsed`
 
-export function SidebarLocalStoragePreference(): JSX.Element {
+export default function SidebarLocalStoragePreference(): JSX.Element {
 	const [collapsed, setCollapsed] = React.useState(
 		() => localStorage.getItem(SIDEBAR_STORAGE_KEY) === `true`,
 	)

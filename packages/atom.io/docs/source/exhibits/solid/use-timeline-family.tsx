@@ -1,23 +1,48 @@
 /** @jsxImportSource @solidjs/web */
-import { useTL } from "@atom.io/solid"
+import { useI, useO, useTL } from "@atom.io/solid"
 import type { JSX } from "@solidjs/web"
 
-import { glyphTimelines } from "../core/timeline/create-a-timeline-family.ts"
+import {
+	glyphNameAtoms,
+	glyphTimelines,
+} from "../core/timeline/create-a-timeline-family.ts"
 
-export function GlyphHistory(props: { glyphId: string }): JSX.Element {
-	const history = useTL(glyphTimelines, props.glyphId)
+export default function GlyphHistory(props: { glyphId?: string }): JSX.Element {
+	const glyphId = props.glyphId ?? `example`
+	const name = useO(glyphNameAtoms, glyphId)
+	const setName = useI(glyphNameAtoms, glyphId)
+	const history = useTL(glyphTimelines, glyphId)
 
 	return (
 		<>
-			<span>
-				{history().at} / {history().length}
-			</span>
-			<button type="button" onClick={history().undo}>
-				undo
-			</button>
-			<button type="button" onClick={history().redo}>
-				redo
-			</button>
+			<label>
+				Glyph name
+				<input
+					value={name()}
+					onInput={(event) => {
+						setName(event.currentTarget.value)
+					}}
+				/>
+			</label>
+			<output>
+				History: {history().at} / {history().length}
+			</output>
+			<div role="group" aria-label="History controls">
+				<button
+					type="button"
+					disabled={history().at === 0}
+					onClick={history().undo}
+				>
+					undo
+				</button>
+				<button
+					type="button"
+					disabled={history().at === history().length}
+					onClick={history().redo}
+				>
+					redo
+				</button>
+			</div>
 		</>
 	)
 }

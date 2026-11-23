@@ -239,6 +239,7 @@ export default {
 		"packages/devtools": {
 			entry: [
 				"src/index.ts!",
+				"src/ecology-entry.ts!",
 				"src/css.d.ts!",
 				"tsdown.config.ts",
 				"tonnage.config.ts",

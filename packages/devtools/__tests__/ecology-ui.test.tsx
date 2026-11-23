@@ -1,8 +1,11 @@
+import { render } from "@atom.io/spa"
+import { jsx } from "@atom.io/spa/jsx-runtime"
 import { Silo } from "atom.io"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 
 import { createCardFeedback } from "../src/ecology-card-feedback.ts"
 import { createEcologyController } from "../src/ecology-controller.ts"
+import { Ecology, mountEcology } from "../src/ecology-entry.ts"
 import { createGraphContext } from "../src/ecology-graph.ts"
 import { mountAtomIODevtools } from "../src/mount.ts"
 
@@ -77,6 +80,58 @@ function setup() {
 	}
 	return { silo, host, mount, click, select, search }
 }
+
+it(`mounts Ecology in a plain host and reports errors within that explorer`, async () => {
+	const f = setup()
+	const sibling = document.createElement(`button`)
+	f.host.append(sibling)
+	const failing = vi.fn(() => {
+		throw new Error(`generation failed`)
+	})
+	f.silo.selector<number>({ key: `failing`, get: failing })
+	dispose = mountEcology(f.host, { store: f.silo.store }).dispose
+	await settle()
+	expect(f.host.querySelector(`ecology-scene canvas`)).not.toBeNull()
+	expect(f.host.querySelector(`debugger-panel`)).toBeNull()
+	expect(failing).not.toHaveBeenCalled()
+	await f.click(`Generate failing`)
+	expect(failing).toHaveBeenCalledTimes(1)
+	expect(f.host.querySelector(`[role="alert"]`)?.textContent).toBe(
+		`generation failed`,
+	)
+	dispose()
+	dispose()
+	expect([...f.host.children]).toEqual([sibling])
+	expect(vi.getTimerCount()).toBe(0)
+})
+
+it(`uses the supplied store from a SPA root that uses a different store`, async () => {
+	const f = setup()
+	const parent = new Silo({
+		name: `ecology-parent`,
+		lifespan: `ephemeral`,
+		isProduction: true,
+	})
+	parent.atom<number>({ key: `parent-only`, default: 0 })
+	const countAtom = f.silo.atom<number>({ key: `count`, default: 1 })
+	f.silo.getState(countAtom)
+	const root = render(() => jsx(Ecology, { store: f.silo.store }), f.host, {
+		store: parent.store,
+	})
+	dispose = root.dispose
+	await settle()
+	expect(f.host.querySelector(`[data-graph-id="state:parent-only"]`)).toBeNull()
+	const input = f.host.querySelector<HTMLInputElement>(
+		`ecology-editor input[aria-label="count"]`,
+	)!
+	input.value = `4`
+	input.dispatchEvent(new Event(`input`, { bubbles: true }))
+	await settle()
+	expect(f.silo.getState(countAtom)).toBe(4)
+	dispose()
+	expect(f.host.childNodes).toHaveLength(0)
+	expect([...f.silo.store.atoms.keys()]).toEqual([`count`])
+})
 
 it(`opens/searches/selects/traces/expands passively and evaluates only with Generate`, async () => {
 	const f = setup(),
@@ -666,6 +721,7 @@ it(`defers a hidden controller and suspends live updates before the visibility o
 	const update = vi.fn()
 	const controller = createEcologyController(
 		view,
+		panel,
 		f.silo.store,
 		createGraphContext(),
 		update,

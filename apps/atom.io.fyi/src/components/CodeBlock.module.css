@@ -1,14 +1,15 @@
+@import "./exhibit-preview-colors.css";
+
 code-block.class {
 	margin-top: 1.5em;
 	box-sizing: border-box;
-	overflow: visible;
 	position: relative;
 	display: flex;
 	flex-flow: column;
 	border: 1px solid #5555;
 	border-radius: 4px;
 	width: 100%;
-	overflow-x: scroll;
+	container-type: inline-size;
 
 	> back-fill {
 		position: absolute;
@@ -33,8 +34,8 @@ code-block.class {
 		z-index: 0;
 		display: flex;
 		flex-flow: row;
-		justify-content: space-between;
 		align-items: center;
+		min-block-size: 25px;
 		/* background-color: var(--bg-soft-glass-1); */
 		border-radius: 3px 3px 0px 0px;
 		> span {
@@ -44,18 +45,30 @@ code-block.class {
 			font-weight: 500;
 			color: var(--fg-soft-1);
 			padding: 0 8px;
+			margin-inline-end: auto;
+			min-width: 0;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
 		}
+	}
+
+	> code-pane {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
 		> button {
+			position: relative;
 			display: flex;
 			align-items: center;
 			justify-content: center;
+			align-self: start;
 			background: transparent;
 			border: 1px solid transparent;
 			border-radius: 3px;
 			height: 25px;
 			width: 25px;
+			margin: 5px;
 			--icon-color: var(--fg-color);
-			position: relative;
 			cursor: pointer;
 			> svg {
 				width: 16px;
@@ -68,8 +81,8 @@ code-block.class {
 				&::before {
 					content: "copy";
 					position: absolute;
-					top: -30px;
-					right: 0;
+					inset-block-start: 0;
+					inset-inline-end: calc(100% + 3px);
 					border-radius: 3px;
 					background-color: var(--icon-color);
 					padding: 0px 3px 2px;
@@ -90,10 +103,193 @@ code-block.class {
 					content: "copied!";
 				}
 			}
+			&:focus-visible {
+				outline: 2px solid var(--hyperlink-color);
+				outline-offset: -2px;
+			}
 		}
 	}
 
-	> pre {
+	&[data-exhibit-source] {
+		--code-tab-fill: var(--bg-hard-1);
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		grid-template-rows: auto auto;
+		isolation: isolate;
+		background-color: var(--bg-color);
+		&:has(> back-fill:global(.soft)) {
+			--code-tab-fill: var(--bg-soft-1);
+		}
+		> file-name {
+			position: relative;
+			padding-block-end: 1px;
+			&::after {
+				content: "";
+				position: absolute;
+				inset-inline: 0;
+				inset-block-end: 0;
+				height: 1px;
+				z-index: 1;
+				pointer-events: none;
+				background: var(--fg-soft-3);
+			}
+		}
+		> code-pane, > [data-exhibit-panel] {
+			grid-area: 2 / 1;
+		}
+		&[data-exhibit-layout="two"],
+		&[data-exhibit-layout="three"] {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			> file-name {
+				grid-column: 1 / -1;
+				display: grid;
+				grid-template-columns: subgrid;
+				> span {
+					grid-area: 1 / 1;
+					margin-inline-end: 80px;
+				}
+				> nav {
+					grid-area: 1 / 1 / 2 / -1;
+					display: grid;
+					grid-template-columns: subgrid;
+					margin-inline-end: 0;
+					pointer-events: none;
+					> button, > exhibit-live-tabs {
+						justify-self: end;
+						margin-inline-end: 5px;
+					}
+					button {
+						pointer-events: auto;
+					}
+				}
+			}
+			> [data-exhibit-panel] {
+				grid-column: 2 / -1;
+				border-inline-start: 1px solid var(--fg-faint);
+			}
+		}
+		&[data-exhibit-layout="three"] {
+			grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 0.85fr);
+			> file-name > nav > exhibit-live-tabs {
+				grid-column: 2 / -1;
+				display: grid;
+				grid-template-columns: subgrid;
+				justify-self: stretch;
+				margin-inline-end: 0;
+				> button {
+					justify-self: end;
+					margin-inline-end: 5px;
+				}
+			}
+		}
+		> code-pane {
+			&[hidden] {
+				/* Keep the code pane's height while a live pane is visible. */
+				display: grid;
+				visibility: hidden;
+			}
+			> pre {
+				/* Highlighted rows use a taller line box than the pre's line-height. */
+				min-block-size: calc(18 * 19px + 1.5em);
+			}
+		}
+		/* One layer keeps the grain aligned across the tabs and panels. */
+		&::after {
+			content: "";
+			position: absolute;
+			inset: 0;
+			z-index: 1;
+			pointer-events: none;
+			background: url(/noise.svg) center / 1024px repeat;
+			mix-blend-mode: soft-light;
+			@media (prefers-color-scheme: light) {
+				mix-blend-mode: multiply;
+				opacity: 0.5;
+			}
+		}
+	}
+
+	> file-name > nav {
+		display: flex;
+		flex: 0 0 auto;
+		align-self: flex-end;
+		gap: 2px;
+		margin-inline-end: 5px;
+		margin-block-end: -1px;
+		> exhibit-live-tabs {
+			display: flex;
+			gap: 2px;
+		}
+		button {
+			display: flex;
+			align-items: center;
+			gap: 5px;
+			height: 24px;
+			padding: 0 7px;
+			border: 1px solid var(--fg-faint);
+			border-radius: 8px 8px 0 0;
+			background: var(--bg-shade-1);
+			color: var(--fg-soft-2);
+			cursor: pointer;
+			> span {
+				color: inherit;
+				font: 500 12px/1 Theia, monospace;
+			}
+			> svg {
+				width: 14px;
+				height: 14px;
+				color: inherit;
+				fill: none;
+				stroke: currentColor;
+				stroke-width: 1.2;
+				stroke-linecap: round;
+				stroke-linejoin: round;
+			}
+			&:hover {
+				background: var(--bg-tint-2);
+				color: var(--fg-color);
+			}
+			&[data-exhibit-visible] {
+				--active-tab-fill: var(--bg-color);
+				position: relative;
+				z-index: 2;
+				&[data-exhibit-tab="code"] {
+					--active-tab-fill: var(--code-tab-fill);
+				}
+				background: var(--active-tab-fill);
+				border-color: var(--fg-soft-3);
+				border-bottom-color: var(--active-tab-fill);
+				color: var(--fg-color);
+				&[data-exhibit-tab="preview"] {
+					--active-tab-fill: var(--exhibit-preview-background);
+					color: #fff;
+				}
+			}
+			&:focus-visible {
+				outline: 2px solid var(--hyperlink-color);
+				outline-offset: -2px;
+			}
+		}
+	}
+	@container (max-width: 420px) {
+		> file-name > nav button > span {
+			display: none;
+		}
+	}
+
+	> [data-exhibit-panel] {
+		position: relative;
+		> iframe {
+			position: absolute;
+			inset: 0;
+			display: block;
+			width: 100%;
+			height: 100%;
+			border: 0;
+		}
+	}
+
+	> code-pane > pre {
 		mix-blend-mode: var(--fill-soft-blend-mode);
 		z-index: 0;
 		border-radius: 0px 0px 3px 3px;
@@ -124,7 +320,7 @@ code-block.class {
 
 	color: var(--code-color) !important;
 
-	> pre > code span {
+	> code-pane > pre > code span {
 		text-shadow: 0px 1px 2px var(--bg-hard-2);
 	}
 }

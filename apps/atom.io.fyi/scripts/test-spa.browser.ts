@@ -150,6 +150,8 @@ try {
 	const frame = exhibit.frameLocator(`iframe`)
 	const codePane = exhibit.locator(`pre`)
 	const copy = exhibit.getByRole(`button`, { name: `Copy code` })
+	assert.equal((await codePane.boundingBox())?.width, 580)
+	assert.ok((await exhibit.boundingBox())!.width > 580)
 	const codeHeight = await codePane.evaluate((node) => {
 		const style = getComputedStyle(node)
 		const height = node.getBoundingClientRect().height
@@ -286,6 +288,7 @@ try {
 		paneWidth,
 		`The copy button must float over full-width code`,
 	)
+	assert.ok(codeWidth < 580)
 	assert.ok(before.top > 0 && before.top < 10)
 	assert.ok(before.right > 0 && before.right < 10)
 	assert.ok(scrollOffset > 0)
@@ -397,6 +400,12 @@ try {
 		await page.locator(`#use-a-selector-ts`).getAttribute(`data-exhibit-layout`),
 		`two`,
 	)
+	const cappedCode = (await codePane.boundingBox())!
+	const adjacentPane = (await exhibit
+		.locator(`exhibit-live-pane`)
+		.boundingBox())!
+	assert.equal(cappedCode.width, 580)
+	assert.equal(cappedCode.x + cappedCode.width, adjacentPane.x)
 	assert.equal(await divisor.inputValue(), `2`)
 	await assertTabAbovePane(divisionCode, divisionSource)
 	await assertTabAbovePane(divisionEcology, ecologyPane)

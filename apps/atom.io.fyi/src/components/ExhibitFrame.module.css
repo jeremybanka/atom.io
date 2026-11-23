@@ -1,6 +1,7 @@
 @import "./exhibit-colors.css";
 
 exhibit-frame.class {
+	--code-max-width: 580px;
 	margin-top: 1.5em;
 	box-sizing: border-box;
 	position: relative;
@@ -57,6 +58,7 @@ exhibit-frame.class {
 		position: relative;
 		display: block;
 		min-inline-size: 0;
+		max-inline-size: var(--code-max-width);
 		> button {
 			position: absolute;
 			inset-block-start: 5px;
@@ -142,7 +144,7 @@ exhibit-frame.class {
 		}
 		&[data-exhibit-layout="two"],
 		&[data-exhibit-layout="three"] {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
+			grid-template-columns: min(50%, var(--code-max-width)) minmax(0, 1fr);
 			> exhibit-header {
 				grid-column: 1 / -1;
 				display: grid;
@@ -172,7 +174,9 @@ exhibit-frame.class {
 			}
 		}
 		&[data-exhibit-layout="three"] {
-			grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 0.85fr);
+			grid-template-columns:
+				min(calc(100% / 3), var(--code-max-width))
+				minmax(0, 1.15fr) minmax(0, 0.85fr);
 			> exhibit-header > nav > exhibit-live-tabs {
 				grid-column: 2 / -1;
 				display: grid;

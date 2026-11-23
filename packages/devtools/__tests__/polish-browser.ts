@@ -6,7 +6,7 @@ import type { AddressInfo } from "node:net"
 import { dirname, resolve } from "node:path"
 
 import { build } from "esbuild"
-import type { Browser, BrowserContext, Page } from "playwright"
+import type { Browser, BrowserContext, Locator, Page } from "playwright"
 
 import {
 	browserArtifacts,
@@ -119,6 +119,39 @@ async function checkTypography(page: Page, prefix: string) {
 		)
 	}
 	return typography
+}
+async function checkEditorIconAlignment(root: Locator, expected: string[]) {
+	const icons = await root
+		.locator(`svg[data-editor-icon]:visible`)
+		.evaluateAll((elements: SVGSVGElement[]) =>
+			elements.map((icon) => {
+				const row = icon.closest(`editor-row, editor-actions, node-heading`)!
+				const button = icon.closest(`button`)!
+				const center = (element: Element) => {
+					const { top, height } = element.getBoundingClientRect()
+					return top + height / 2
+				}
+				const path = icon.querySelector(`path`)!
+				const box = path.getBBox()
+				const ink = new DOMPoint(8, box.y + box.height / 2).matrixTransform(
+					path.getScreenCTM()!,
+				).y
+				return {
+					name: icon.dataset[`editorIcon`],
+					buttonOffset: center(button) - center(row),
+					inkOffset: ink - center(row),
+				}
+			}),
+		)
+	for (const name of expected)
+		assert.ok(
+			icons.some((icon) => icon.name === name),
+			`Missing ${name} icon`,
+		)
+	for (const icon of icons) {
+		assert.ok(Math.abs(icon.buttonOffset) < 0.25, JSON.stringify(icon))
+		assert.ok(Math.abs(icon.inkOffset) < 0.25, JSON.stringify(icon))
+	}
 }
 async function checkVisualTreatment(
 	page: Page,
@@ -782,6 +815,11 @@ try {
 					false,
 				)
 			} else {
+				await checkEditorIconAlignment(page.locator(`ecology-editor`), [
+					`expand`,
+					`generate`,
+					`reset`,
+				])
 				const guideTrigger = page.getByRole(`button`, {
 					name: `Ecology guide`,
 					exact: true,
@@ -987,6 +1025,14 @@ try {
 			await page
 				.getByRole(`button`, { name: `Expand list`, exact: true })
 				.click()
+			await checkEditorIconAlignment(page.locator(`state-index`), [
+				`add`,
+				`collapse`,
+				`remove`,
+				`reorder`,
+				`reset`,
+				`sort`,
+			])
 			await page.getByRole(`button`, { name: `Sort`, exact: true }).click()
 			await page.getByRole(`button`, { name: `Add item`, exact: true }).click()
 			await page.getByRole(`button`, { name: `Delete 2`, exact: true }).click()

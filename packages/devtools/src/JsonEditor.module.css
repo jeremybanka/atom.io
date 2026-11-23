@@ -1,10 +1,7 @@
 json-editor.class {
 	display: block;
-	json-properties, json-property, json-primitive, editor-actions {
+	json-properties, json-property, json-primitive {
 		display: block;
-	}
-	editor-row, editor-actions {
-		align-items: center;
 	}
 
 	json-primitive code:focus-visible {
@@ -24,6 +21,7 @@ json-editor.class {
 	}
 	& > editor-row {
 		display: grid;
+		align-items: center;
 		grid-template-columns:
 			21px minmax(0, min(42%, 32ch)) 8ch minmax(0, 1fr) max-content;
 		background: var(--drawer-surface);
@@ -109,6 +107,10 @@ json-editor.class {
 	field-name:has(input) {
 		flex-shrink: 1;
 	}
+	field-name:has(> button[data-array-handle]) {
+		display: flex;
+		align-items: center;
+	}
 	json-primitive code {
 		display: block;
 		overflow-x: auto;
@@ -130,6 +132,7 @@ json-editor.class {
 	}
 	button[data-array-handle] {
 		width: 18px;
+		flex-shrink: 0;
 		cursor: grab;
 		color: var(--ink-muted);
 	}
@@ -139,8 +142,10 @@ json-editor.class {
 		padding-right: 3px;
 	}
 	json-properties > editor-actions {
+		display: flex;
+		align-items: center;
 		height: 21px;
-		border-top: 1px solid var(--line);
+		box-shadow: inset 0 1px var(--line);
 	}
 	json-properties > editor-actions button {
 		color: var(--ink-muted);

@@ -2,6 +2,7 @@
 import type { Children, SpaElement } from "@atom.io/spa"
 
 import { EditorButton } from "./EditorButton.tsx"
+import { EditorIcon } from "./EditorIcon.tsx"
 import css from "./JsonEditor.module.css"
 import type { EditorTools, Path } from "./store.ts"
 import { useExpanded } from "./store.ts"
@@ -116,7 +117,7 @@ export function JsonEditor(props: EditorProps): SpaElement {
 						aria-expanded={getExpanded()}
 						onClick={toggle}
 					>
-						{getExpanded() ? `▾` : `▸`}
+						<EditorIcon name={getExpanded() ? `collapse` : `expand`} />
 					</button>
 				) : (
 					<carat-spacer />
@@ -363,7 +364,7 @@ function Property(props: {
 										?.focus()
 								}}
 							>
-								⠿
+								<EditorIcon name="reorder" />
 							</button>
 							<strong>{props.name}</strong>
 						</>

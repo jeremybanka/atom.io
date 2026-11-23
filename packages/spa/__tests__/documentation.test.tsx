@@ -6,7 +6,7 @@ import AccountSettings from "../exhibits/hooks/on-cleanup.tsx"
 import SearchDialog from "../exhibits/hooks/on-mount.tsx"
 import MenuToggle, { menuOpenAtoms } from "../exhibits/hooks/use-disposal.tsx"
 import CartCount, { cartCountAtom } from "../exhibits/hooks/use-getter.tsx"
-import { AccountName } from "../exhibits/hooks/use-loadable.tsx"
+import AccountName from "../exhibits/hooks/use-loadable.tsx"
 import SearchField, { searchFieldAtom } from "../exhibits/hooks/use-ref.tsx"
 import SearchBox, { searchQueryAtom } from "../exhibits/hooks/use-setter.tsx"
 import { CopyDraft, draftTextAtom } from "../exhibits/hooks/use-store.tsx"
@@ -113,30 +113,34 @@ it(`the getter and setter exhibits observe and publish application state`, () =>
 	expect(getState(searchQueryAtom)).toBe(`coffee`)
 })
 
-it(`the loadable exhibit starts with a fallback and displays the fetched name`, async () => {
-	const response = Promise.withResolvers<Response>()
-	const fetchName = vi.fn(() => response.promise)
-	vi.stubGlobal(`fetch`, fetchName)
-	const { host, root } = mount(() => <AccountName />)
-	expect(host.textContent).toBe(`Loading your account…`)
-	expect(host.querySelector(`p`)!.getAttribute(`aria-busy`)).toBe(`true`)
-	response.resolve(new Response(`Ada`))
-	await settled(root, () => {
-		expect(host.textContent).toBe(`Ada`)
+it(`the loadable exhibit starts with a fallback and displays the sample name`, async () => {
+	vi.useFakeTimers()
+	try {
+		const { host, root } = mount(() => <AccountName />)
+		expect(host.textContent).toBe(`Loading your account…`)
+		expect(host.querySelector(`p`)!.getAttribute(`aria-busy`)).toBe(`true`)
+		await vi.runAllTimersAsync()
+		root.flush()
+		expect(host.textContent).toBe(`Ada Lovelace`)
 		expect(host.querySelector(`p`)!.getAttribute(`aria-busy`)).toBe(`false`)
-	})
-	expect(fetchName).toHaveBeenCalledExactlyOnceWith(`/api/account/name`)
+	} finally {
+		vi.useRealTimers()
+	}
 })
 
-it(`the loadable exhibit displays a handled HTTP error`, async () => {
-	vi.stubGlobal(
-		`fetch`,
-		vi.fn(() => Promise.resolve(new Response(``, { status: 503 }))),
-	)
-	const { host, root } = mount(() => <AccountName />)
-	await settled(root, () => {
-		expect(host.textContent).toBe(`Could not load your account`)
+it(`the loadable exhibit displays a handled error`, async () => {
+	const timer = vi.spyOn(globalThis, `setTimeout`).mockImplementationOnce(() => {
+		throw new Error(`Could not load your account`)
 	})
+	try {
+		const { host, root } = mount(() => <AccountName />)
+		await settled(root, () => {
+			expect(host.textContent).toBe(`Could not load your account`)
+			expect(host.querySelector(`p`)!.getAttribute(`aria-busy`)).toBe(`false`)
+		})
+	} finally {
+		timer.mockRestore()
+	}
 })
 
 it(`the timeline exhibit enables Undo after an edit and restores the note`, () => {

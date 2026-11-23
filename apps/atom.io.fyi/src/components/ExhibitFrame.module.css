@@ -284,6 +284,7 @@ exhibit-frame.class {
 
 	> exhibit-live-pane {
 		position: relative;
+		/* @lasertag-expect-error: exhibit-tabs.ts inserts the iframe when a live pane opens */
 		> iframe {
 			position: absolute;
 			inset: 0;

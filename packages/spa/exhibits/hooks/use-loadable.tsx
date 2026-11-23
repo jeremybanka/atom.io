@@ -6,7 +6,9 @@ const accountNameAtom = atom<Loadable<string>, Error>({
 	key: `accountName`,
 	default: () =>
 		new Promise<string>((resolve) => {
-			setTimeout(() => resolve(`Ada Lovelace`), 750)
+			setTimeout(() => {
+				resolve(`Ada Lovelace`)
+			}, 750)
 		}),
 	catch: [Error],
 })

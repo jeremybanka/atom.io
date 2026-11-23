@@ -58,7 +58,7 @@ const previewFramework =
 // React and Solid lockups come from the projects' published brand assets.
 // https://github.com/reactjs/react.dev/tree/main/public/images/brand
 // https://www.solidjs.com/media/
-const frameworkNames = { react: `React`, solid: `Solid`, spa: `atom.io SPA` }
+const frameworkNames = { react: `React`, solid: `Solid`, spa: `@atom.io/spa` }
 
 function report(status: HTMLElement, message: string, error: unknown): void {
 	status.hidden = false

@@ -418,7 +418,7 @@ try {
 	const spaCounter = page.locator(`#counter-tsx`)
 	await spaCounter.getByRole(`tab`, { name: `Preview` }).click()
 	const spaPreview = spaCounter.frameLocator(`iframe`)
-	await assertFrameworkLockup(spaPreview, `atom.io SPA`, `spa`)
+	await assertFrameworkLockup(spaPreview, `@atom.io/spa`, `spa`)
 	await spaPreview.getByRole(`button`, { name: `Count: 0` }).click()
 	await spaPreview.getByRole(`button`, { name: `Count: 1` }).waitFor()
 	await spaCounter.getByRole(`tab`, { name: `Code` }).click()

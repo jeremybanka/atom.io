@@ -1,5 +1,11 @@
 # atom.io.fyi
 
+## 0.2.115
+
+### Patch Changes
+
+- ba410b5: Float the copy button over the code pane's upper-right corner so code can use the full pane width.
+
 ## 0.2.114
 
 ### Patch Changes

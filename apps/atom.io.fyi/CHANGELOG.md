@@ -1,5 +1,27 @@
 # atom.io.fyi
 
+## 0.2.116
+
+### Patch Changes
+
+- 0e097d2: Cap exhibit code blocks at 580 pixels and let the live pane fill the remaining width in split layouts.
+- b907c4f: Clip live exhibit panes to the rounded exhibit frame in every layout.
+- 0e097d2: Match the loading pane to the preview’s turquoise background, fade in the live exhibit frame when it loads, and use Verdana inside rendered previews.
+- b907c4f: Add a live preview to the SPA useLoadable exhibit and use a simulated asynchronous account lookup so Ecology’s Generate action works inside the exhibit sandbox.
+- b907c4f: Match the exhibit dividers to the frame border and give Preview a turquoise background tuned to each theme, with the same text and icon colors as the other tabs.
+
+  Blend the React and Solid logos into the preview desktop while keeping their brand colors visible.
+- b3390f5: Soften the drop shadow under the preview window.
+- 0e097d2: Replace the Loadable selector exhibit’s external price lookup with real requests for static trail data hosted by the docs site. Allow the exhibit’s sandbox to fetch that data.
+- Updated dependencies [0e097d2]
+- Updated dependencies [b907c4f]
+- Updated dependencies [0e097d2]
+  - @atom.io/devtools@0.1.1
+  - atom.io@0.54.13
+  - @atom.io/react@0.2.1
+  - @atom.io/solid@0.1.6
+  - @atom.io/spa@0.0.12
+
 ## 0.2.115
 
 ### Patch Changes

@@ -1,7 +1,7 @@
 import type { SpaRoot } from "@atom.io/spa"
 import { render } from "@atom.io/spa"
 import { scopeFamily, Silo } from "atom.io"
-import { afterEach, beforeEach, describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { AtomIODevtools } from "../src/index.ts"
 
@@ -185,6 +185,11 @@ describe(`spa debugger`, () => {
 		const handle = (index: number) =>
 			row(index).querySelector(`button[data-array-handle]`)!
 		const transfer = new DataTransfer()
+		const preview = vi.spyOn(transfer, `setDragImage`).mockReturnValue(undefined)
+		const editorRow = row(0).querySelector(`editor-row`)!
+		vi.spyOn(editorRow, `getBoundingClientRect`).mockReturnValue(
+			new DOMRect(100, 80, 500, 21),
+		)
 		const drag = (
 			node: Element,
 			type: string,
@@ -195,14 +200,18 @@ describe(`spa debugger`, () => {
 			Object.defineProperties(event, {
 				dataTransfer: { value: dataTransfer },
 				relatedTarget: { value: relatedTarget },
+				clientX: { value: 130 },
+				clientY: { value: 92 },
 			})
 			node.dispatchEvent(event)
 			return event
 		}
 		drag(handle(0), `dragstart`, null)
+		expect(preview).not.toHaveBeenCalled()
 		expect(drag(row(2), `dragover`).defaultPrevented).toBe(false)
 		expect(drag(row(2), `drop`).defaultPrevented).toBe(false)
 		drag(handle(0), `dragstart`)
+		expect(preview).toHaveBeenCalledExactlyOnceWith(editorRow, 30, 12)
 		const alternate = host.querySelector(
 			`[data-testid="other-state-editor"] [data-array-handle]`,
 		)!

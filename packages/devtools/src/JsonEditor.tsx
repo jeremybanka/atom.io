@@ -58,9 +58,19 @@ export function JsonEditor(props: EditorProps): SpaElement {
 	const reorder: ArrayReorder = {
 		start(event, index) {
 			const items = props.value as unknown[]
-			if (!event.dataTransfer) return
-			event.dataTransfer.effectAllowed = `move`
-			event.dataTransfer.setData(`text/plain`, String(index))
+			const transfer = event.dataTransfer
+			if (!transfer) return
+			transfer.effectAllowed = `move`
+			transfer.setData(`text/plain`, String(index))
+			const row = (event.currentTarget as HTMLElement).closest(`editor-row`)
+			if (row) {
+				const { left, top } = row.getBoundingClientRect()
+				transfer.setDragImage(
+					row,
+					Math.round(event.clientX - left),
+					Math.round(event.clientY - top),
+				)
+			}
 			drag = { index, items }
 		},
 		finish() {

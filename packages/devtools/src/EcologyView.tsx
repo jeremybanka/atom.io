@@ -257,7 +257,7 @@ export function EcologyView(props: {
 							label={
 								state().familyExpanded ? `Collapse family` : `Expand family`
 							}
-							icon={state().familyExpanded ? `collapse` : `expand`}
+							icon={state().familyExpanded ? `collapseFamily` : `expandFamily`}
 							expanded={state().familyExpanded}
 						/>
 						<ViewportAction

@@ -10,6 +10,8 @@ const paths = {
 	clearSelection: `M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4M6 6l4 4m0-4-4 4`,
 	expand: `m6 4 4 4-4 4`,
 	collapse: `m4 6 4 4 4-4`,
+	expandFamily: `M6 8H2m3-3-3 3 3 3M10 8h4m-3-3 3 3-3 3`,
+	collapseFamily: `M2 8h4.5m-3-3 3 3-3 3M14 8H9.5m3-3-3 3 3 3`,
 	reorder: `M5.5 4h1m3 0h1M5.5 8h1m3 0h1M5.5 12h1m3 0h1`,
 }
 

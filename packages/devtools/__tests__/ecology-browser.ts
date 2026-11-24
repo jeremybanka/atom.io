@@ -283,14 +283,14 @@ try {
 	assert.equal(await collapseFamily.getAttribute(`aria-expanded`), `true`)
 	assert.equal(
 		await collapseFamily.locator(`svg`).getAttribute(`data-editor-icon`),
-		`collapse`,
+		`collapseFamily`,
 	)
 	await collapseFamily.press(`Space`)
 	await ready()
 	assert.equal(await expandFamily.getAttribute(`aria-expanded`), `false`)
 	assert.equal(
 		await expandFamily.locator(`svg`).getAttribute(`data-editor-icon`),
-		`expand`,
+		`expandFamily`,
 	)
 	assert.deepEqual(
 		await mapActions.evaluate((actions) => {

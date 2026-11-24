@@ -30,7 +30,7 @@ window-overlay.class {
 		display: none;
 	}
 	> snap-palette > button {
-		--snap-context-stroke: var(--ink);
+		--snap-context-stroke: color-mix(in srgb, var(--ink) 16%, var(--bg-color));
 		box-sizing: border-box;
 		display: grid;
 		place-items: center;
@@ -40,7 +40,7 @@ window-overlay.class {
 		padding: 0;
 		color: var(--bg-hard-1);
 		background: var(--ink-muted);
-		border: 1px solid color-mix(in srgb, var(--ink) 16%, var(--bg-color));
+		border: 1px solid var(--ink);
 		cursor: pointer;
 	}
 	> snap-palette > button[aria-pressed="true"] {

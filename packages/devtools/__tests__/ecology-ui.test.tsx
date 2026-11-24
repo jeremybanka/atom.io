@@ -585,11 +585,22 @@ it(`stages viewport actions together, cancels stale exits, and restores focus af
 			const [expand, clear] = view.querySelectorAll<HTMLButtonElement>(
 				`ecology-map-actions > button`,
 			)
+			const actionAnimation = (button: HTMLButtonElement) =>
+				animation.mock.calls.findLast(([target]) => target === button)!
 			await f.select(`family:items`)
 			expect(animations.map(({ button }) => button)).toEqual([expand, clear])
-			expect(
-				animation.mock.calls.filter(([target]) => target === clear).at(-1)?.[2],
-			).toMatchObject({ delay: 0.02 })
+			expect(actionAnimation(clear)[1]).toEqual({
+				z: [-52, 0],
+				rotateX: [16, 0],
+				rotateY: [58, 0],
+				opacity: [0, 1],
+			})
+			expect(actionAnimation(clear)[2]).toMatchObject({
+				delay: 0.02,
+				type: `tween`,
+				ease: [0.1, 0.9, 0.2, 1],
+			})
+			expect(actionAnimation(expand)[2]).toMatchObject({ delay: 0 })
 			expand.focus()
 			await f.click(`Expand family`)
 			expect(document.activeElement).toBe(expand)
@@ -597,12 +608,31 @@ it(`stages viewport actions together, cancels stale exits, and restores focus af
 			clear.focus()
 			await f.click(`Clear selection`)
 			expect(document.activeElement).toBe(scene)
+			expect(actionAnimation(clear)[1]).toEqual({
+				z: 70,
+				rotateX: -18,
+				rotateY: -52,
+				opacity: 0,
+			})
+			expect(actionAnimation(clear)[2]).toMatchObject({
+				delay: 0.02,
+				type: `tween`,
+				ease: [0.7, 0, 1, 0.5],
+			})
 			const [expandExit, clearExit] = animations.slice(-2)
 			expandExit.finish()
 			await settle()
 			expect(expand.hidden).toBe(true)
 			expect(clear.hidden).toBe(false)
+			view.querySelector<HTMLElement>(`ecology-body`)!.style.display = `flex`
 			await f.select(`family:items`)
+			expect(actionAnimation(expand)[1]).toEqual({
+				z: [-52, 0],
+				rotateX: [62, 0],
+				rotateY: [12, 0],
+				opacity: [0, 1],
+			})
+			expect(actionAnimation(clear)[2]).toMatchObject({ delay: 0.02 })
 			expect(clearExit.stop).toHaveBeenCalledOnce()
 			clearExit.finish()
 			await settle()
@@ -611,6 +641,12 @@ it(`stages viewport actions together, cancels stale exits, and restores focus af
 			const clearEntrance = animations.at(-1)!
 			await f.select(`state:count`)
 			expect(clearEntrance.stop).not.toHaveBeenCalled()
+			expect(actionAnimation(expand)[1]).toEqual({
+				z: 70,
+				rotateX: -52,
+				rotateY: -10,
+				opacity: 0,
+			})
 			const query = view.querySelector.bind(view)
 			using sceneLookup = vi
 				.spyOn(view, `querySelector`)

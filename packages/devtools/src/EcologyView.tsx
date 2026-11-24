@@ -90,26 +90,25 @@ function ViewportAction(props: {
 				return
 			}
 			node.hidden = false
-			const tilt = available ? 0 : -18
-			const rotation = available ? 0 : -52
-			const depth = available ? 0 : 70
-			const opacity = Number(available)
+			const body = node.closest(`ecology-body`)!
+			const narrow =
+				node.ownerDocument.defaultView!.getComputedStyle(body).display === `flex`
+			// In the stacked layout, pitch opens the turnstile from the map's bottom edge.
+			const turn = (from: number, to: number) =>
+				entering ? [from, 0] : available ? 0 : to
 			const animation = animate(
 				node,
 				{
-					z: entering ? [-52, depth] : depth,
-					rotateX: entering ? [16, tilt] : tilt,
-					rotateY: entering ? [58, rotation] : rotation,
-					opacity: entering ? [0, opacity] : opacity,
+					z: turn(-52, 70),
+					rotateX: turn(narrow ? 62 : 16, narrow ? -52 : -18),
+					rotateY: turn(narrow ? 12 : 58, narrow ? -10 : -52),
+					opacity: entering ? [0, 1] : Number(available),
 				},
 				{
 					delay: preceding === wasPreceding ? 0 : 0.02,
-					default: { type: `spring`, stiffness: 650, damping: 36 },
-					opacity: {
-						type: `tween`,
-						duration: 0.2,
-						ease: available ? `easeOut` : `easeIn`,
-					},
+					type: `tween`,
+					duration: 0.24,
+					ease: available ? [0.1, 0.9, 0.2, 1] : [0.7, 0, 1, 0.5],
 				},
 			)
 			let active = true

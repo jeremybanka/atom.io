@@ -144,6 +144,7 @@ try {
 		await embedded.evaluate(async () => {
 			await document.fonts.ready
 		})
+		await embedded.waitForSelector(`ecology-scene canvas`)
 		await embedded.emulateMedia({ reducedMotion: `no-preference` })
 		await embedded.evaluate(
 			() =>
@@ -159,9 +160,14 @@ try {
 	for (const pane of [`ecology-map`, `ecology-editor`]) {
 		if (pane === `ecology-editor`) await embedded.reload()
 		await prepareCompactSelection()
-		const sizes = await embedded.evaluate(async (source) => {
+		const { sizes, gridFrames } = await embedded.evaluate(async (source) => {
 			const map = document.querySelector(`ecology-map`)!
 			const editor = document.querySelector<HTMLElement>(`ecology-editor`)!
+			const canvas = map.querySelector(`canvas`)!
+			const sample = document.createElement(`canvas`)
+			sample.width = sample.height = 64
+			const pixels = sample.getContext(`2d`, { willReadFrequently: true })!
+			const paintedFrames: boolean[] = []
 			const read = () => [
 				map.getBoundingClientRect().height,
 				editor.getBoundingClientRect().height,
@@ -178,7 +184,16 @@ try {
 					frames.push(read())
 					resolve()
 				}
-				const observer = new MutationObserver(() => {
+				const observer = new MutationObserver((records) => {
+					if (records.some(({ target }) => target === canvas)) {
+						pixels.clearRect(0, 0, 64, 64)
+						pixels.drawImage(canvas, 0, 0, 64, 64)
+						paintedFrames.push(
+							pixels
+								.getImageData(0, 0, 64, 64)
+								.data.some((value, index) => index % 4 === 3 && value > 0),
+						)
+					}
 					const running = Boolean(
 						editor.style.getPropertyValue(`--ecology-editor-height`),
 					)
@@ -187,11 +202,12 @@ try {
 					if (animated && !running) finish()
 				})
 				observer.observe(editor, { attributeFilter: [`style`] })
+				observer.observe(canvas, { attributeFilter: [`width`, `height`] })
 				const timeout = setTimeout(finish, 2000)
 				button.focus({ preventScroll: true })
 				button.click()
 			})
-			return frames
+			return { sizes: frames, gridFrames: paintedFrames }
 		}, pane)
 		const [startMap, startEditor] = sizes[0]
 		const [endMap, endEditor] = sizes.at(-1)!
@@ -211,6 +227,10 @@ try {
 					Math.abs(mapHeight + editorHeight - startMap - startEditor) < 1,
 			),
 			`Both panes share the same vertical space`,
+		)
+		assert.ok(
+			gridFrames.length > 0 && gridFrames.every(Boolean),
+			`${pane} selection keeps the floor grid visible on canvas resize (${JSON.stringify(gridFrames)})`,
 		)
 	}
 	await embedded.close()

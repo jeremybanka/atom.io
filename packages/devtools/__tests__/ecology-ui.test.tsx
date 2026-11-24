@@ -976,7 +976,7 @@ it(`reports capture limits and ignores activity outside the retained graph`, asy
 	)
 })
 
-it(`preserves keyboard focus during refresh and keeps related paths highlighted when selection changes`, async () => {
+it(`preserves keyboard focus during refresh and highlights related cards when selection changes`, async () => {
 	const f = setup()
 	f.silo.atom<number>({ key: `a`, default: 0 })
 	f.silo.selector<number>({ key: `s`, get: () => 0 })
@@ -994,7 +994,12 @@ it(`preserves keyboard focus during refresh and keeps related paths highlighted 
 	await f.click(`Refresh`)
 	expect(document.activeElement?.getAttribute(`data-graph-id`)).toBe(`state:s`)
 	await f.select(`state:a`)
-	expect(f.host.querySelectorAll(`[data-traced="true"]`)).toHaveLength(2)
+	const tracedCards = f.host.querySelectorAll<HTMLElement>(
+		`ecology-node-card[data-traced="true"] > button`,
+	)
+	expect([...tracedCards].map((card) => card.dataset[`graphId`]).sort()).toEqual(
+		[`state:a`, `state:s`],
+	)
 })
 
 it(`returns focus to search when refreshed selection controls or headings disappear`, async () => {

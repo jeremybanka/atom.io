@@ -111,6 +111,8 @@ try {
 		`grid`,
 	)
 	const prepareCompactSelection = async () => {
+		// Establish the filtered baseline without an earlier pane animation in flight.
+		await embedded.emulateMedia({ reducedMotion: `reduce` })
 		await embedded.locator(`section`).evaluate((host) => {
 			host.style.width = `480px`
 		})
@@ -128,18 +130,31 @@ try {
 		await explorer
 			.getByRole(`button`, { name: `Close search`, exact: true })
 			.click()
-		await embedded.waitForFunction(async () => {
-			// ResizeObserver runs after the animation frame callbacks.
-			await new Promise<void>((resolve) => {
-				setTimeout(resolve, 0)
-			})
+		await embedded.waitForFunction(() => {
 			const view = document.querySelector<HTMLElement>(`ecology-view`)!
 			const editor = view.querySelector<HTMLElement>(`ecology-editor`)!
+			const rows = editor.querySelectorAll(`ecology-editor-row:not([hidden])`)
 			return (
 				view.dataset[`ready`] === `true` &&
+				rows.length === 1 &&
+				rows[0].getAttribute(`data-row-id`) === `state:price` &&
 				!editor.style.getPropertyValue(`--ecology-editor-height`)
 			)
 		})
+		await embedded.evaluate(async () => {
+			await document.fonts.ready
+		})
+		await embedded.emulateMedia({ reducedMotion: `no-preference` })
+		await embedded.evaluate(
+			() =>
+				new Promise<void>((resolve) => {
+					requestAnimationFrame(() => {
+						requestAnimationFrame(() => {
+							resolve()
+						})
+					})
+				}),
+		)
 	}
 	for (const pane of [`ecology-map`, `ecology-editor`]) {
 		if (pane === `ecology-editor`) await embedded.reload()

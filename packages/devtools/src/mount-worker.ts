@@ -10,7 +10,10 @@ import { createWorkerProjection } from "./worker-projection.ts"
 import type {
 	PanelMessage,
 	WorkerCachedValue,
+	WorkerGenerate,
 	WorkerMessage,
+	WorkerRelease,
+	WorkerState,
 } from "./worker-protocol.ts"
 
 export interface WorkerPanelConnection {
@@ -20,8 +23,11 @@ export interface WorkerPanelConnection {
 	revision(key: string): number | undefined
 	edit(key: string, value: unknown, revision?: number): void
 	cache(key: string): RegularAtomToken<WorkerCachedValue> | undefined
-	generate(key: string): void
-	watchSelector(key: string): { generate(): void; dispose(): void }
+	generate(key: string, batch?: boolean): void
+	watchSelector(key: string): {
+		generate(batch?: boolean): void
+		dispose(): void
+	}
 	disposeState(key: string): void
 	timeline(key: string, action: `undo` | `redo`): void
 	ecology(): EcologySnapshot | undefined
@@ -55,10 +61,38 @@ export function connectRemoteStore(transport: DevtoolsPanelTransport): {
 	const projection = createWorkerProjection(silo)
 	let closed = false
 	let control = false
+	let ready = false
 	let nextWatch = 0
+	let stateRequestScheduled = false
+	const generations = new Set<WorkerGenerate>()
+	const releases: WorkerRelease[] = []
 	const command = (message: PanelMessage) => {
 		if (closed) throw new Error(`Remote devtools disconnected`)
 		transport.send(message)
+	}
+	function scheduleStateRequests(): void {
+		if (stateRequestScheduled) return
+		stateRequestScheduled = true
+		queueMicrotask(() => {
+			stateRequestScheduled = false
+			const generate = [...generations]
+			generations.clear()
+			const release = releases.splice(0)
+			if (closed || (generate.length === 0 && release.length === 0)) return
+			try {
+				command({ type: `state-requests`, generate, release })
+			} catch {
+				connectionLost()
+			}
+		})
+	}
+	function requestGeneration(request: WorkerGenerate, batch = false): void {
+		if (!batch) {
+			command({ ...request, type: `generate` })
+			return
+		}
+		generations.add(request)
+		scheduleStateRequests()
 	}
 	function close(notify = true): void {
 		if (closed) return
@@ -69,6 +103,31 @@ export function connectRemoteStore(transport: DevtoolsPanelTransport): {
 		close(notify)
 		silo.setState(errorAtom, `Remote devtools disconnected`)
 	}
+	function applyStates(updated: WorkerState[]): void {
+		for (const state of updated) {
+			const value = `value` in state ? state.value : new Error(state.error)
+			let entry = states.get(state.key)
+			if (!entry) {
+				const backingAtom = silo.atom<unknown>({
+					key:
+						// eslint-disable-next-line atom.io/naming-convention -- preserve remote keys and hide selector backing atoms
+						state.kind === `atom`
+							? state.key
+							: `🔍 Worker selector: ` + state.key,
+					default: () => value,
+				})
+				entry = { value: backingAtom, revision: undefined }
+				states.set(state.key, entry)
+				if (state.kind === `selector`)
+					silo.selector<unknown>({
+						key: state.key,
+						get: ({ get }) => get(backingAtom),
+					})
+			}
+			entry.revision = state.editable ? state.revision : undefined
+			silo.setState(entry.value, () => value)
+		}
+	}
 	function receive(data: WorkerMessage): void {
 		if (closed) return
 		if (data?.type === `close`) {
@@ -78,34 +137,16 @@ export function connectRemoteStore(transport: DevtoolsPanelTransport): {
 		} else if (data?.type === `store`) {
 			control = data.snapshot.control
 			projection.apply(data.snapshot)
+			ready = true
 			silo.setState(readyAtom, true)
 		} else if (data?.type === `snapshot`) {
 			control = data.control
-			for (const state of data.states) {
-				const value = `value` in state ? state.value : new Error(state.error)
-				let entry = states.get(state.key)
-				if (!entry) {
-					const backingAtom = silo.atom<unknown>({
-						key:
-							// eslint-disable-next-line atom.io/naming-convention -- preserve remote keys and hide selector backing atoms
-							state.kind === `atom`
-								? state.key
-								: `🔍 Worker selector: ` + state.key,
-						default: () => value,
-					})
-					entry = { value: backingAtom, revision: undefined }
-					states.set(state.key, entry)
-					if (state.kind === `selector`)
-						silo.selector<unknown>({
-							key: state.key,
-							get: ({ get }) => get(backingAtom),
-						})
-				}
-				entry.revision = state.editable ? state.revision : undefined
-				silo.setState(entry.value, () => value)
-			}
+			applyStates(data.states)
+			ready = true
 			silo.setState(readyAtom, true)
-		}
+		} else if (ready && data?.type === `store-update`)
+			projection.update(data.update)
+		else if (ready && data?.type === `snapshot-update`) applyStates(data.states)
 	}
 	const worker: WorkerPanelConnection = {
 		error: errorAtom,
@@ -116,25 +157,25 @@ export function connectRemoteStore(transport: DevtoolsPanelTransport): {
 			command({ type: `edit`, key, value, revision })
 		},
 		cache: projection.cache,
-		generate(key) {
-			command({ type: `generate`, key })
+		generate(key, batch) {
+			requestGeneration({ key }, batch)
 		},
 		watchSelector(key) {
 			const watch = nextWatch++
+			const request = { key, watch }
 			let started = false
 			return {
-				generate() {
-					command({ type: `generate`, key, watch })
+				generate(batch) {
+					if (!batch) generations.delete(request)
+					requestGeneration(request, batch)
 					started = true
 				},
 				dispose() {
 					if (closed || !started) return
 					started = false
-					try {
-						command({ type: `release`, key, watch })
-					} catch {
-						connectionLost()
-					}
+					if (generations.delete(request)) return
+					releases.push(request)
+					scheduleStateRequests()
 				},
 			}
 		},

@@ -1,5 +1,6 @@
 import type {
 	Silo,
+	TimelineEvent,
 	TransactionOutcomeEvent,
 	TransactionToken,
 	WritableToken,
@@ -14,19 +15,20 @@ import {
 } from "atom.io/internal"
 import { observeStore, peekState } from "atom.io/introspection"
 
-import { captureEcologySnapshot } from "./ecology.ts"
 import type { RecordedEvent } from "./history-event.ts"
 import {
-	batchDevtoolsSnapshots,
+	batchDevtoolsUpdates,
 	closeDevtoolsTransport,
 	type DevtoolsStoreTransport,
 	reportDevtoolsError,
 } from "./transport.ts"
+import { trackWorkerEcology } from "./worker-ecology.ts"
 import type {
 	PanelMessage,
-	WorkerHistory,
+	WorkerHistoryUpdate,
 	WorkerStateToken,
 	WorkerStoreSnapshot,
+	WorkerStoreUpdate,
 } from "./worker-protocol.ts"
 
 function isEditableValue(value: unknown): boolean {
@@ -99,6 +101,17 @@ export function exposeWholeStore(
 	const { store } = silo
 	const watches = new Map<string, { ids: Set<number>; stop(): void }>()
 	const revisions = new Map<string, number>()
+	const changedStates = new Set<string>()
+	const changedTimelines = new Set<string>()
+	const changedTransactions = new Set<string>()
+	const sentStates = new Set<string>()
+	const sentTimelines = new Map<string, readonly TimelineEvent<any>[]>()
+	const sentTransactions = new Map<
+		string,
+		readonly TransactionOutcomeEvent<TransactionToken<any>>[]
+	>()
+	const ecology = trackWorkerEcology(store)
+	let topologyChanged = false
 	const cleanup: (() => void)[] = []
 	const timelines = new Map<string, { revision: number; stop(): void }>()
 	const transactions = new Map<
@@ -109,8 +122,6 @@ export function exposeWholeStore(
 			history: TransactionOutcomeEvent<TransactionToken<any>>[]
 		}
 	>()
-	const eventCopies = new WeakMap<RecordedEvent, WorkerHistory>()
-	let eventId = 0
 	let timelineRevision = 0
 	let closed = false
 	const subscriber = arbitrary()
@@ -118,14 +129,6 @@ export function exposeWholeStore(
 		store.atoms.get(key) ??
 		store.readonlySelectors.get(key) ??
 		store.writableSelectors.get(key)
-	function eventRecord<T extends RecordedEvent>(event: T): WorkerHistory<T> {
-		let record = eventCopies.get(event)
-		if (!record) {
-			record = { id: String(eventId++), event: copyEvent(event) }
-			eventCopies.set(event, record)
-		}
-		return record as WorkerHistory<T>
-	}
 	function addTransaction(key: string) {
 		const transaction = store.transactions.get(key)
 		if (!transaction || !visible(key)) return
@@ -137,73 +140,140 @@ export function exposeWholeStore(
 			if (event.token.key !== key) return
 			if (history.length === 200) history.shift()
 			history.push(event)
+			changedTransactions.add(key)
 			schedule()
 		})
 		const entry = { owner: transaction, stop, history }
 		transactions.set(key, entry)
 		return entry
 	}
-	function publish() {
-		if (closed) return
+	function readState(
+		definition: NonNullable<ReturnType<typeof state>>,
+	): WorkerStoreSnapshot[`states`][number] {
+		const { key, type } = definition
+		const token: WorkerStateToken = deposit(definition)
+		const cached = peekState(store, key)
+		const value =
+			cached.value instanceof Future
+				? new Error(`Remote value is pending`)
+				: copyValue(cached.value)
+		sentStates.add(key)
+		return {
+			token,
+			cache: cached.present
+				? { status: `value`, value }
+				: { status: `uncached` },
+			revision: revisions.get(key) ?? 0,
+			editable:
+				control &&
+				cached.present &&
+				(type === `atom` || type.startsWith(`writable`)) &&
+				isEditableValue(value) &&
+				isEditableValue(cached.value),
+		}
+	}
+	function historyUpdate<T extends RecordedEvent>(
+		previous: readonly T[],
+		next: readonly T[],
+	): WorkerHistoryUpdate<T> {
+		const start = Math.max(0, previous.indexOf(next[0]))
+		let length = 0
+		while (length < next.length && previous[start + length] === next[length])
+			length++
+		return { start, length, append: next.slice(length).map(copyEvent) }
+	}
+	function publishSnapshot() {
+		const stateMaps = [
+			store.atoms,
+			store.readonlySelectors,
+			store.writableSelectors,
+		]
 		const snapshot: WorkerStoreSnapshot = {
 			control,
 			states: [],
 			timelines: [],
 			transactions: [],
-			ecology: captureEcologySnapshot(store, {
-				maxNodes: 10_000,
-				maxFamilies: 10_000,
-				maxRelations: 50_000,
-			}),
+			ecology: ecology.initial,
 		}
-		for (const states of [
-			store.atoms,
-			store.readonlySelectors,
-			store.writableSelectors,
-		]) {
-			for (const definition of states.values()) {
-				const { key, type } = definition
-				if (!visible(key)) continue
-				const token: WorkerStateToken = deposit(definition)
-				const cached = peekState(store, key)
-				const value =
-					cached.value instanceof Future
-						? new Error(`Remote value is pending`)
-						: copyValue(cached.value)
-				snapshot.states.push({
-					token,
-					cache: cached.present
-						? { status: `value`, value }
-						: { status: `uncached` },
-					revision: revisions.get(key) ?? 0,
-					editable:
-						control &&
-						cached.present &&
-						(type === `atom` || type.startsWith(`writable`)) &&
-						isEditableValue(value) &&
-						isEditableValue(cached.value),
-				})
-			}
+		for (const states of stateMaps)
+			for (const definition of states.values())
+				if (visible(definition.key)) snapshot.states.push(readState(definition))
+		for (const [key, entry] of timelines) {
+			const timeline = store.timelines.get(key)!
+			sentTimelines.set(key, timeline.history.slice())
+			snapshot.timelines.push({
+				token: deposit(timeline),
+				at: timeline.at,
+				revision: entry.revision,
+				history: timeline.history.map(copyEvent),
+			})
 		}
-		for (const [key, timeline] of store.timelines)
-			if (visible(key))
-				snapshot.timelines.push({
-					token: deposit(timeline),
-					at: timeline.at,
-					revision: timelines.get(key)!.revision,
-					history: timeline.history.map(eventRecord),
-				})
 		for (const [key, transaction] of store.transactions) {
 			const entry = addTransaction(key)
-			if (entry)
-				snapshot.transactions.push({
-					token: deposit(transaction),
-					history: entry.history.map(eventRecord),
-				})
+			if (!entry) continue
+			sentTransactions.set(key, entry.history.slice())
+			snapshot.transactions.push({
+				token: deposit(transaction),
+				history: entry.history.map(copyEvent),
+			})
 		}
 		transport.send({ type: `store`, snapshot })
 	}
-	const schedule = batchDevtoolsSnapshots(publish, dispose)
+	function publishUpdate() {
+		if (closed) return
+		const update: WorkerStoreUpdate = {
+			states: [],
+			removedStates: [],
+			timelines: [],
+			removedTimelines: [],
+			transactions: [],
+		}
+		for (const key of changedStates) {
+			if (!visible(key)) continue
+			const definition = state(key)
+			if (definition) update.states.push(readState(definition))
+			else if (sentStates.delete(key)) update.removedStates.push(key)
+		}
+		const graph = ecology.update(changedStates, topologyChanged)
+		if (graph) update.ecology = graph
+		changedStates.clear()
+		topologyChanged = false
+		for (const key of changedTimelines) {
+			const entry = timelines.get(key)
+			if (!entry) {
+				if (sentTimelines.delete(key)) update.removedTimelines.push(key)
+				continue
+			}
+			const timeline = store.timelines.get(key)!
+			update.timelines.push({
+				token: deposit(timeline),
+				at: timeline.at,
+				revision: entry.revision,
+				history: historyUpdate(sentTimelines.get(key) ?? [], timeline.history),
+			})
+			sentTimelines.set(key, timeline.history.slice())
+		}
+		changedTimelines.clear()
+		for (const key of changedTransactions) {
+			const entry = transactions.get(key)!
+			update.transactions.push({
+				token: deposit(store.transactions.get(key)!),
+				history: historyUpdate(sentTransactions.get(key) ?? [], entry.history),
+			})
+			sentTransactions.set(key, entry.history.slice())
+		}
+		changedTransactions.clear()
+		if (
+			update.states.length ||
+			update.removedStates.length ||
+			update.timelines.length ||
+			update.removedTimelines.length ||
+			update.transactions.length ||
+			update.ecology
+		)
+			transport.send({ type: `store-update`, update })
+	}
+	const schedule = batchDevtoolsUpdates(publishUpdate, dispose)
 	const addTimeline = (key: string) => {
 		const timeline = store.timelines.get(key)
 		if (!timeline || !visible(key)) return
@@ -212,6 +282,7 @@ export function exposeWholeStore(
 			revision: ++timelineRevision,
 			stop: timeline.subject.subscribe(subscriber, () => {
 				entry.revision = ++timelineRevision
+				changedTimelines.add(key)
 				schedule()
 			}),
 		}
@@ -230,6 +301,13 @@ export function exposeWholeStore(
 		if (closed || !data) return
 		if (data.type === `close`) {
 			dispose(false)
+			return
+		}
+		if (data.type === `state-requests`) {
+			for (const request of data.generate)
+				receive({ ...request, type: `generate` })
+			for (const request of data.release)
+				receive({ ...request, type: `release` })
 			return
 		}
 		try {
@@ -267,7 +345,8 @@ export function exposeWholeStore(
 							else
 								watches.set(token.key, {
 									ids: new Set([data.watch]),
-									stop: subscribeToState(store, token, subscriber, schedule),
+									// Keep the selector live while the store observer publishes cache writes.
+									stop: subscribeToState(store, token, subscriber, () => {}),
 								})
 						}
 						break
@@ -300,40 +379,55 @@ export function exposeWholeStore(
 		} catch (error) {
 			reportDevtoolsError(transport, error, dispose)
 		}
-		schedule()
 	}
 	try {
 		for (const key of store.timelines.keys()) addTimeline(key)
 		cleanup.push(
-			observeStore(store, ({ states, values }) => {
-				for (const key of new Set([...states, ...values]))
+			observeStore(store, ({ states, values, families, dependencies }) => {
+				for (const key of new Set([...states, ...values])) {
 					revisions.set(key, (revisions.get(key) ?? 0) + 1)
+					changedStates.add(key)
+				}
 				for (const key of states) {
 					watches.get(key)?.stop()
 					watches.delete(key)
 				}
+				topologyChanged ||=
+					states.size > 0 || families.size > 0 || dependencies.size > 0
 				schedule()
 			}),
 			store.on.timelineCreation.subscribe(subscriber, ({ key }) => {
 				addTimeline(key)
+				changedTimelines.add(key)
 				schedule()
 			}),
 			store.on.timelineDisposal.subscribe(subscriber, ({ key }) => {
 				timelines.get(key)?.stop()
 				timelines.delete(key)
+				changedTimelines.add(key)
 				schedule()
 			}),
 			store.on.transactionCreation.subscribe(subscriber, ({ key }) => {
-				addTransaction(key)
-				schedule()
+				if (addTransaction(key)) {
+					changedTransactions.add(key)
+					schedule()
+				}
 			}),
 			store.on.transactionApplying.subscribe(subscriber, (progress) => {
 				// Same-key replacement skips creation. Subscribe before the outcome is emitted.
-				if (progress) addTransaction(progress.update.token.key)
+				if (progress) {
+					const key = progress.update.token.key
+					const previous = transactions.get(key)
+					const entry = addTransaction(key)
+					if (entry && entry !== previous) {
+						changedTransactions.add(key)
+						schedule()
+					}
+				}
 			}),
 		)
 		transport.listen(receive, dispose)
-		publish()
+		publishSnapshot()
 	} catch (error) {
 		dispose(false)
 		throw error

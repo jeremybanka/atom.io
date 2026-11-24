@@ -226,12 +226,12 @@ it(`controls a development store over a custom transport without Node globals`, 
 			expect(field.value).toBe(`19`)
 		})
 		const frame = store.transport.send.mock.calls.at(-1)?.[0]
-		if (frame?.type !== `store`) throw new Error(`Missing updated snapshot`)
+		if (frame?.type !== `store-update`) throw new Error(`Missing update`)
 		stop()
 		store.transport.listen.mock.calls[0][0]({
 			type: `edit`,
 			key: countAtom.key,
-			revision: frame.snapshot.states[0].revision,
+			revision: frame.update.states[0].revision,
 			value: 99,
 		})
 		expect(silo.getState(countAtom)).toBe(19)
@@ -247,11 +247,13 @@ it(`controls a development store over a custom transport without Node globals`, 
 it(`publishes only cached allowlisted values in inspection mode`, async () => {
 	const { silo, panel, store } = fixture()
 	const unrelatedAtom = silo.atom<number>({ key: `unrelated`, default: 3 })
+	const unchangedAtom = silo.atom<number>({ key: `unchanged`, default: 9 })
+	silo.getState(unchangedAtom)
 	const read = vi.fn(() => 5)
 	const targetSelector = silo.selector<number>({ key: `target`, get: read })
 	const stop = exposeDevtoolsStore(store.transport, silo, {
 		access: `inspect`,
-		states: [{ token: targetSelector }],
+		states: [{ token: targetSelector }, { token: unchangedAtom }],
 	})
 	try {
 		expect(read).not.toHaveBeenCalled()
@@ -264,6 +266,7 @@ it(`publishes only cached allowlisted values in inspection mode`, async () => {
 						key: targetSelector.key,
 						error: `Value is not cached`,
 					}),
+					expect.objectContaining({ key: unchangedAtom.key, value: 9 }),
 				],
 			}),
 		)
@@ -275,7 +278,7 @@ it(`publishes only cached allowlisted values in inspection mode`, async () => {
 		await vi.waitFor(() => {
 			expect(store.transport.send).toHaveBeenLastCalledWith(
 				expect.objectContaining({
-					type: `snapshot`,
+					type: `snapshot-update`,
 					states: [
 						expect.objectContaining({
 							key: targetSelector.key,

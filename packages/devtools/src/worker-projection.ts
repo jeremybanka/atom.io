@@ -12,21 +12,24 @@ import {
 import type { EcologySnapshot } from "./ecology.ts"
 import type { RecordedEvent } from "./history-event.ts"
 import { getIntrospectionStates } from "./store.ts"
+import { projectWorkerEcology } from "./worker-ecology.ts"
 import type {
 	WorkerCachedValue,
-	WorkerHistory,
+	WorkerHistoryUpdate,
 	WorkerStateToken,
 	WorkerStoreSnapshot,
+	WorkerStoreUpdate,
 } from "./worker-protocol.ts"
 
 type StateEntry = {
 	token: WorkerStateToken
+	source: WorkerStateToken
 	cache: RegularAtomToken<WorkerCachedValue>
 	revision: number | undefined
-	observed: number | undefined
 }
 interface WorkerProjection {
 	apply(snapshot: WorkerStoreSnapshot): void
+	update(update: WorkerStoreUpdate): void
 	cache(key: string): RegularAtomToken<WorkerCachedValue> | undefined
 	revision(key: string): number | undefined
 	timelineRevision(key: string): number | undefined
@@ -40,9 +43,7 @@ export function createWorkerProjection(silo: Silo): WorkerProjection {
 	const { store } = silo
 	const states = new Map<string, StateEntry>()
 	const timelineRevisions = new Map<string, number>()
-	let history = new Map<string, RecordedEvent>()
-	let ecology: EcologySnapshot | undefined
-	let topology: string | undefined
+	let ecology: ReturnType<typeof projectWorkerEcology> | undefined
 	const listeners = new Set<() => void>()
 
 	function removeState({ token, cache }: StateEntry) {
@@ -93,53 +94,74 @@ export function createWorkerProjection(silo: Silo): WorkerProjection {
 			},
 			undefined,
 		)
-		return { token, cache, revision: undefined, observed: undefined }
+		return {
+			token,
+			source: remote,
+			cache,
+			revision: undefined,
+		}
 	}
 
 	function apply(snapshot: WorkerStoreSnapshot) {
-		const { transactionIndex, transactionLogSelectors, timelineIndex } =
-			getIntrospectionStates(store)
+		const { transactionIndex, timelineIndex } = getIntrospectionStates(store)
 		// Initialize before publishing creation events. The default scans all registered owners.
 		silo.getState(transactionIndex)
 		silo.getState(timelineIndex)
-		const current = new Set(snapshot.states.map(({ token }) => token.key))
-		for (const [key, entry] of states) {
-			if (current.has(key)) continue
+		ecology = projectWorkerEcology(snapshot.ecology)
+		update({
+			states: snapshot.states,
+			removedStates: [],
+			timelines: snapshot.timelines.map((timeline) => ({
+				...timeline,
+				history: { start: 0, length: 0, append: timeline.history },
+			})),
+			removedTimelines: [],
+			transactions: snapshot.transactions.map((transaction) => ({
+				...transaction,
+				history: { start: 0, length: 0, append: transaction.history },
+			})),
+		})
+	}
+
+	function readHistory<T extends RecordedEvent>(
+		previous: readonly T[],
+		{ start, length, append }: WorkerHistoryUpdate<T>,
+	): T[] {
+		return previous.slice(start, start + length).concat(append)
+	}
+
+	function update(change: WorkerStoreUpdate) {
+		for (const key of change.removedStates) {
+			const entry = states.get(key)!
 			removeState(entry)
 			states.delete(key)
 		}
-		for (const { token, cache, revision, editable } of snapshot.states) {
+		for (const { token, cache, revision, editable } of change.states) {
 			let entry = states.get(token.key)
+			if (
+				entry &&
+				(entry.source.type !== token.type ||
+					entry.source.family?.key !== token.family?.key ||
+					entry.source.family?.subKey !== token.family?.subKey)
+			) {
+				removeState(entry)
+				entry = undefined
+			}
 			if (!entry) {
 				entry = addState(token)
 				states.set(token.key, entry)
 			}
-			if (entry.observed === revision) continue
-			entry.observed = revision
 			entry.revision = editable ? revision : undefined
 			if (cache.status === `value`) setCachedValue(store, token.key, cache.value)
 			else deleteCachedValue(store, token.key)
 			silo.setState(entry.cache, () => cache)
 		}
 
-		const nextHistory = new Map<string, RecordedEvent>()
-		const readHistory = <T extends RecordedEvent>(
-			records: WorkerHistory<T>[],
-		): T[] =>
-			records.map(({ id, event }) => {
-				const stable = (history.get(id) as T | undefined) ?? event
-				nextHistory.set(id, stable)
-				return stable
-			})
-		const currentTimelines = new Set(
-			snapshot.timelines.map(({ token }) => token.key),
-		)
-		for (const token of store.timelines.values()) {
-			if (currentTimelines.has(token.key)) continue
-			timelineRevisions.delete(token.key)
-			silo.disposeTimeline(token)
+		for (const key of change.removedTimelines) {
+			timelineRevisions.delete(key)
+			silo.disposeTimeline(store.timelines.get(key)!)
 		}
-		for (const { token, at, revision, history: records } of snapshot.timelines) {
+		for (const { token, at, revision, history } of change.timelines) {
 			timelineRevisions.set(token.key, revision)
 			if (!store.timelines.has(token.key))
 				createTimeline(
@@ -149,32 +171,25 @@ export function createWorkerProjection(silo: Silo): WorkerProjection {
 					token.family,
 				)
 			const timeline = store.timelines.get(token.key)!
-			const events = readHistory(records)
-			if (
-				at === timeline.at &&
-				events.length === timeline.history.length &&
-				events.every((event, index) => event === timeline.history[index])
-			)
-				continue
+			const historyChanged =
+				timeline.history.length !== history.length || history.append.length > 0
+			if (at === timeline.at && !historyChanged) continue
+			if (historyChanged)
+				timeline.history = readHistory(timeline.history, history)
 			timeline.at = at
-			timeline.history = events
 			timeline.subject.next({
 				type: `timeline_update`,
 				event: `clear`,
 				at,
-				length: events.length,
+				length: timeline.history.length,
 			})
 		}
-		for (const { token, history: records } of snapshot.transactions) {
+		for (const { token, history } of change.transactions) {
+			const { transactionLogSelectors } = getIntrospectionStates(store)
 			if (!store.transactions.has(token.key))
 				createTransaction(store, { key: token.key, do: emptyProjectionValue })
-			const events = readHistory(records)
 			const log = silo.getState(transactionLogSelectors, token.key)
-			if (
-				events.length === log.length &&
-				events.every((event, index) => event === log[index])
-			)
-				continue
+			if (log.length === history.length && history.append.length === 0) continue
 			const backing: RegularAtomToken<typeof log> = {
 				type: `atom`,
 				key:
@@ -182,28 +197,15 @@ export function createWorkerProjection(silo: Silo): WorkerProjection {
 					JSON.stringify(token.key) +
 					`)`,
 			}
-			silo.setState(backing, () => events)
+			silo.setState(backing, () => readHistory(log, history))
 		}
-		history = nextHistory
-
-		ecology = snapshot.ecology
-		const nextTopology = JSON.stringify([
-			ecology.edges,
-			ecology.families,
-			ecology.nodes.map(({ key, dependencies, dependenciesTruncated }) => [
-				key,
-				dependencies,
-				dependenciesTruncated,
-			]),
-		])
-		if (topology !== nextTopology) {
-			topology = nextTopology
+		if (change.ecology && ecology!.update(change.ecology))
 			for (const listener of listeners) listener()
-		}
 	}
 
 	return {
 		apply,
+		update,
 		cache(key: string) {
 			return states.get(key)?.cache
 		},
@@ -213,7 +215,7 @@ export function createWorkerProjection(silo: Silo): WorkerProjection {
 		timelineRevision(key: string) {
 			return timelineRevisions.get(key)
 		},
-		ecology: () => ecology,
+		ecology: () => ecology?.read(),
 		subscribeEcology(listener: () => void) {
 			listeners.add(listener)
 			return () => {

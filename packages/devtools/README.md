@@ -127,6 +127,8 @@ window.addEventListener(
 
 The worker entry adapts a dedicated MessagePort. The example enables control explicitly for an isolated demo Silo containing sample data. The worker executes edits, selector generation, family member disposal, and timeline undo and redo. Transactions retain up to 200 outcomes per transaction recorded since the connection opened. State values are transferred when structured-cloneable, and editable values must be JSON data.
 
+Each connection starts with a full snapshot of the exposed store. Later messages carry changed state entries, history updates, and changed Ecology records. Opening a state tab batches the visible rows' generation and watch requests.
+
 ```ts
 import { exposeDevtoolsStore } from "@atom.io/devtools/worker"
 import { Silo } from "atom.io"
@@ -186,7 +188,7 @@ pnpm exec turbo run demo:worker --filter=@atom.io/devtools
 
 ## Custom transports and hosted stores
 
-Import the owner-side exposeDevtoolsStore from @atom.io/devtools/remote in Node, a Cloudflare Worker, or another store host. This entry has no browser UI dependency. Pass a DevtoolsStoreTransport on the owner and return a DevtoolsPanelTransport from the matching panel target's connect function. The transports send typed frames, install a listener, report disconnects, and close the connection with its listeners. Network adapters should validate frame shapes and cap their sizes before delivery. Deliver decoded frames in order in later tasks, after pending microtasks. Use the same protocol version on both ends. A transport that uses JSON needs a codec for any snapshot values it intends to preserve beyond JSON, such as errors, dates, maps, and undefined. MessagePort uses structured clone directly.
+Import the owner-side exposeDevtoolsStore from @atom.io/devtools/remote in Node, a Cloudflare Worker, or another store host. This entry has no browser UI dependency. Pass a DevtoolsStoreTransport on the owner and return a DevtoolsPanelTransport from the matching panel target's connect function. The transports send typed frames, install a listener, report disconnects, and close the connection with its listeners. Network adapters should validate frame shapes and cap their sizes before delivery. Deliver decoded frames reliably and in order in later tasks, after pending microtasks. A new connection receives its own initial snapshot. Use the same protocol version on both ends. A transport that uses JSON needs a codec for any snapshot values it intends to preserve beyond JSON, such as errors, dates, maps, and undefined. MessagePort uses structured clone directly.
 
 The store owner chooses the access policy for each connection.
 
@@ -392,7 +394,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                        | Entry                         | Minified JS |   Gzip JS |
 | ----------------------------- | ----------------------------- | ----------: | --------: |
-| Interactive app with debugger | `tonnage-recipes/debugger.ts` | 1,001,802 B | 297,588 B |
+| Interactive app with debugger | `tonnage-recipes/debugger.ts` | 1,003,303 B | 298,111 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

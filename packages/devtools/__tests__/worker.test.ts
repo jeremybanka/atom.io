@@ -1,13 +1,24 @@
 import type { RegularAtomToken } from "atom.io"
 import { Silo } from "atom.io"
+import { deleteCachedValue } from "atom.io/internal"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 
-import { mountAtomIODevtools, mountWorkerAtomIODevtools } from "../src/index.ts"
+import {
+	mountAtomIODevtools,
+	mountWorkerAtomIODevtools,
+	traceEcologyRoots,
+} from "../src/index.ts"
+import { messagePortTransport } from "../src/message-port.ts"
+import { connectRemoteStore } from "../src/mount-worker.ts"
 import {
 	exposeDevtoolsStore as exposeWorkerStore,
 	type WorkerDevtoolsState,
 	type WorkerDevtoolsValue,
 } from "../src/worker.ts"
+import {
+	projectWorkerEcology,
+	trackWorkerEcology,
+} from "../src/worker-ecology.ts"
 
 function exposeDevtoolsStore(
 	port: MessagePort,
@@ -437,10 +448,13 @@ it(`projects retained history and the observed graph and time travels in the wor
 		await flush()
 		expect(worker.postMessage).toHaveBeenLastCalledWith(
 			expect.objectContaining({
-				type: `store`,
-				snapshot: expect.objectContaining({
+				type: `store-update`,
+				update: expect.objectContaining({
 					ecology: expect.objectContaining({
-						edges: [{ dependency: `count`, selector: `double` }],
+						edges: {
+							upsert: [{ dependency: `count`, selector: `double` }],
+							remove: [],
+						},
 					}),
 				}),
 			}),
@@ -453,6 +467,137 @@ it(`projects retained history and the observed graph and time travels in the wor
 		await flush()
 		await tab(`timelines`)
 		expect(host.querySelector(`[data-testid="timeline-count"]`)).toBeNull()
+	} finally {
+		panel.dispose()
+		stop()
+	}
+})
+
+it(`batches tab generation and only sends changed state and graph records`, async () => {
+	const { silo, host, page, worker } = fixture()
+	const cachedAtom = silo.atom<number>({ key: `cached`, default: 2 })
+	const useLeftAtom = silo.atom<boolean>({ key: `useLeft`, default: true })
+	const leftAtom = silo.atom<number>({ key: `left`, default: 3 })
+	const rightAtom = silo.atom<number>({ key: `right`, default: 5 })
+	const atoms = Array.from({ length: 32 }, (_, i) =>
+		silo.atom<number>({ key: `atom-${i}`, default: i }),
+	)
+	const selectors = Array.from({ length: 24 }, (_, i) =>
+		silo.selector<number>({
+			key: `selector-${i}`,
+			get: ({ get }) => get(get(useLeftAtom) ? leftAtom : rightAtom) + i,
+		}),
+	)
+	for (const atom of [cachedAtom, leftAtom, rightAtom]) silo.getState(atom)
+	silo.getState(useLeftAtom)
+	const panel = mountWorkerAtomIODevtools(host, page.port)
+	const stop = exposeDevtoolsStore(worker.port, silo)
+	const tab = async (view: string) => {
+		host
+			.querySelector<HTMLButtonElement>(`[data-testid="view-${view}"]`)!
+			.click()
+		await flush()
+	}
+	const update = () => {
+		const frame = worker.postMessage.mock.calls.at(-1)?.[0] as WorkerMessage
+		if (frame.type !== `store-update`) throw new Error(`Missing update`)
+		return frame.update
+	}
+	try {
+		await flush()
+		expect(page.postMessage.mock.calls).toEqual([
+			[
+				{
+					type: `state-requests`,
+					generate: atoms.map(({ key }) => ({ key })),
+					release: [],
+				},
+			],
+		])
+		expect(worker.postMessage).toHaveBeenCalledTimes(2)
+		const first = worker.postMessage.mock.calls[0][0] as WorkerMessage
+		if (first.type !== `store`) throw new Error(`Missing initial snapshot`)
+		const graph = projectWorkerEcology(first.snapshot.ecology)
+		graph.update(update().ecology!)
+		expect(update().states.map(({ token }) => token.key)).toEqual(
+			atoms.map(({ key }) => key),
+		)
+		page.postMessage.mockClear()
+		worker.postMessage.mockClear()
+
+		await tab(`selectors`)
+		expect(page.postMessage).toHaveBeenCalledOnce()
+		expect(page.postMessage).toHaveBeenCalledWith({
+			type: `state-requests`,
+			generate: selectors.map(({ key }, watch) => ({ key, watch })),
+			release: [],
+		})
+		expect(worker.postMessage).toHaveBeenCalledOnce()
+		const initialized = update().ecology!
+		expect(initialized.edges?.upsert).toHaveLength(selectors.length * 2)
+		graph.update(initialized)
+		expect(traceEcologyRoots(graph.read(), selectors[0].key).rootKeys).toEqual(
+			expect.arrayContaining([leftAtom.key, useLeftAtom.key]),
+		)
+		expect(
+			host.querySelector<HTMLInputElement>(`input[aria-label="selector-0"]`)
+				?.value,
+		).toBe(`3`)
+
+		worker.postMessage.mockClear()
+		silo.setState(cachedAtom, 7)
+		silo.setState(cachedAtom, 8)
+		await flush()
+		expect(worker.postMessage).toHaveBeenCalledOnce()
+		expect(update()).toMatchObject({
+			states: [{ token: cachedAtom, cache: { status: `value`, value: 8 } }],
+			timelines: [],
+			transactions: [],
+			ecology: { nodes: { upsert: [{ key: cachedAtom.key }], remove: [] } },
+		})
+		expect(update().ecology?.edges).toBeUndefined()
+		expect(update().ecology?.families).toBeUndefined()
+
+		worker.postMessage.mockClear()
+		silo.setState(useLeftAtom, false)
+		await flush()
+		expect(worker.postMessage).toHaveBeenCalledOnce()
+		const changed = update().ecology!
+		expect(changed.edges).toEqual({
+			upsert: selectors.map(({ key }) => ({
+				dependency: rightAtom.key,
+				selector: key,
+			})),
+			remove: selectors.map(({ key }) => JSON.stringify([leftAtom.key, key])),
+		})
+		graph.update(changed)
+		expect(
+			new Set(traceEcologyRoots(graph.read(), selectors[0].key).rootKeys),
+		).toEqual(new Set([rightAtom.key, useLeftAtom.key]))
+		expect(
+			host.querySelector<HTMLInputElement>(`input[aria-label="selector-0"]`)
+				?.value,
+		).toBe(`5`)
+
+		page.postMessage.mockClear()
+		worker.postMessage.mockClear()
+		await tab(`atoms`)
+		expect(page.postMessage).toHaveBeenCalledOnce()
+		expect(page.postMessage).toHaveBeenCalledWith({
+			type: `state-requests`,
+			generate: [],
+			release: expect.arrayContaining(
+				selectors.map(({ key }, watch) => ({ key, watch })),
+			),
+		})
+		expect(worker.postMessage).not.toHaveBeenCalled()
+		expect(
+			host.querySelector<HTMLInputElement>(`input[aria-label="cached"]`)?.value,
+		).toBe(`8`)
+		page.postMessage.mockClear()
+		await tab(`selectors`)
+		expect(page.postMessage).toHaveBeenCalledOnce()
+		expect(worker.postMessage).not.toHaveBeenCalled()
 	} finally {
 		panel.dispose()
 		stop()
@@ -537,6 +682,125 @@ it(`watches remote selectors only while their rows are displayed`, async () => {
 		expect(triple.subscribers.size).toBe(0)
 	} finally {
 		panel.dispose()
+		stop()
+	}
+})
+
+it(`discards a queued watch when its row unmounts before sending`, async () => {
+	const { page } = channel()
+	const connection = connectRemoteStore(messagePortTransport(page.port))
+	const watch = connection.worker.watchSelector(`selector`)
+	try {
+		watch.dispose()
+		watch.generate(true)
+		watch.dispose()
+		await flush()
+		expect(page.postMessage).not.toHaveBeenCalled()
+		watch.generate(true)
+		connection.close()
+		await flush()
+		expect(page.postMessage.mock.calls).toEqual([[{ type: `close` }]])
+	} finally {
+		connection.close()
+	}
+})
+
+it(`keeps Ecology metadata and uncached selectors aligned with the captured graph`, () => {
+	const { silo } = fixture()
+	const constantSelector = silo.selector<number>({
+		key: `constant`,
+		get: () => 5,
+	})
+	silo.getState(constantSelector)
+	const track = trackWorkerEcology(silo.store)
+	const projected = projectWorkerEcology(track.initial)
+	expect(track.update(new Set([`missing`]), false)).toBeUndefined()
+	expect(track.update(new Set(), true)).toBeUndefined()
+
+	deleteCachedValue(silo.store, constantSelector.key)
+	const invalidated = track.update(new Set([constantSelector.key]), false)!
+	expect(projected.update(invalidated)).toBe(true)
+	expect(projected.read().nodes).toMatchObject([
+		{
+			key: constantSelector.key,
+			value: { status: `unknown` },
+			dependencies: `unknown`,
+		},
+	])
+
+	const itemsAtoms = silo.atomFamily<number, string>({
+		key: `items`,
+		default: 3,
+	})
+	const family = track.update(new Set(), true)!
+	expect(family.nodes.upsert).toEqual([])
+	expect(family.families?.upsert).toMatchObject([
+		{ key: itemsAtoms.key, memberCount: 0 },
+	])
+	expect(projected.update(family)).toBe(true)
+
+	const { work, truncated } = projected.read()
+	silo.atom<number>({ key: `🔍 reserved`, default: 0 })
+	const metadata = track.update(new Set(), true)!
+	expect(metadata).toEqual({
+		nodes: { upsert: [], remove: [] },
+		metadata: { truncated, work: { ...work, nodes: work.nodes + 1 } },
+	})
+	projected.update(metadata)
+	expect(projected.read().work.nodes).toBe(work.nodes + 1)
+})
+
+it(`projects initial timeline entries, history clear, and newly registered histories`, async () => {
+	const { silo, page, worker } = fixture()
+	const countAtom = silo.atom<number>({ key: `count`, default: 2 })
+	// eslint-disable-next-line atom.io/naming-convention -- this key is deliberately excluded by the full store protocol
+	const privateAtom = silo.atom<number>({ key: `👁‍🗨 private`, default: 0 })
+	silo.setState(privateAtom, 1)
+	silo.transaction<() => number>({ key: `🔍 ignored`, do: () => 1 })
+	const countTimeline = silo.timeline({ key: `count`, scope: [countAtom] })
+	silo.setState(countAtom, 3)
+	const connection = connectRemoteStore(messagePortTransport(page.port))
+	const stop = exposeDevtoolsStore(worker.port, silo)
+	try {
+		await flush()
+		expect(connection.store.timelines.get(countTimeline.key)).toMatchObject({
+			at: 1,
+			history: [expect.anything()],
+		})
+		expect(connection.store.atoms.has(privateAtom.key)).toBe(false)
+
+		const totalTransaction = silo.transaction<() => number>({
+			key: `total`,
+			do: () => 3,
+		})
+		silo.timeline({ key: `empty`, scope: [] })
+		silo.clearTimeline(countTimeline)
+		silo.setState(privateAtom, 2)
+		await flush()
+		expect(connection.store.timelines.get(countTimeline.key)).toMatchObject({
+			at: 0,
+			history: [],
+		})
+		expect(connection.store.timelines.has(`empty`)).toBe(true)
+		expect(connection.store.transactions.has(totalTransaction.key)).toBe(true)
+
+		const itemsAtoms = silo.atomFamily<number, string>({
+			key: `items`,
+			default: 4,
+		})
+		await flush()
+		worker.postMessage.mockClear()
+		silo.getState(silo.findState(itemsAtoms, `temporary`))
+		silo.disposeState(itemsAtoms, `temporary`)
+		await flush()
+		expect(worker.postMessage).not.toHaveBeenCalled()
+
+		silo.runTransaction(totalTransaction)()
+		stop()
+		await flush()
+		expect(worker.postMessage.mock.calls).toEqual([[{ type: `close` }]])
+	} finally {
+		connection.close()
 		stop()
 	}
 })
@@ -650,12 +914,10 @@ it(`keeps worker revisions and rejects invalid state and history commands`, asyn
 		]) {
 			silo.setState(instancesAtom, () => value)
 			await flush()
-			const snapshot = last()
-			if (snapshot.type !== `store`) throw new Error(`missing snapshot`)
+			const frame = last()
+			if (frame.type !== `store-update`) throw new Error(`missing update`)
 			expect(
-				snapshot.snapshot.states.find(
-					({ token }) => token.key === instancesAtom.key,
-				),
+				frame.update.states.find(({ token }) => token.key === instancesAtom.key),
 			).toMatchObject({
 				cache: { status: `value`, value: structuredClone(value) },
 				editable: false,
@@ -683,12 +945,16 @@ it(`keeps worker revisions and rejects invalid state and history commands`, asyn
 		for (let i = 0; i < 201; i++) silo.runTransaction(logTransaction)()
 		await flush()
 		expect(last()).toMatchObject({
-			type: `store`,
-			snapshot: { transactions: [{ history: expect.any(Array) }] },
+			type: `store-update`,
+			update: {
+				transactions: [
+					{ history: { start: 0, length: 0, append: expect.any(Array) } },
+				],
+			},
 		})
-		const snapshot = last()
-		if (snapshot.type !== `store`) throw new Error(`missing snapshot`)
-		expect(snapshot.snapshot.transactions[0].history).toHaveLength(200)
+		const frame = last()
+		if (frame.type !== `store-update`) throw new Error(`missing update`)
+		expect(frame.update.transactions[0].history.append).toHaveLength(200)
 		const subject = silo.store.transactions.get(logTransaction.key)!.subject
 		subject.next({
 			type: `transaction_outcome`,
@@ -724,10 +990,11 @@ it(`keeps worker revisions and rejects invalid state and history commands`, asyn
 		})
 		await flush()
 		const lifecycle = last()
-		if (lifecycle.type !== `store`) throw new Error(`missing snapshot`)
-		expect(
-			lifecycle.snapshot.transactions[0].history.at(-1)?.event,
-		).toMatchObject({
+		if (lifecycle.type !== `store-update`) throw new Error(`missing update`)
+		const retained = lifecycle.update.transactions[0].history
+		expect(retained).toMatchObject({ start: 1, length: 199 })
+		expect(retained.append).toHaveLength(1)
+		expect(retained.append[0]).toMatchObject({
 			id: `lifecycle`,
 			subEvents: [{ value: expect.any(Error) }, { values: [[`data`, 4]] }],
 		})
@@ -776,8 +1043,22 @@ it(`removes departed states from the projection and never invokes a worker gette
 		expect(
 			mirror.getState({ type: `writable_pure_selector`, key: `computed` }),
 		).toBeUndefined()
-		projection.apply({ ...message.snapshot, states: [] })
+		projection.update({
+			states: [
+				{
+					token: { key: setupAtom.key, type: `readonly_pure_selector` },
+					cache: { status: `uncached` },
+					revision: 1,
+					editable: false,
+				},
+			],
+			removedStates: [`computed`],
+			timelines: [],
+			removedTimelines: [],
+			transactions: [],
+		})
 		expect(mirror.store.atoms.has(`setup`)).toBe(false)
+		expect(mirror.store.readonlySelectors.has(`setup`)).toBe(true)
 		expect(mirror.store.writableSelectors.has(`computed`)).toBe(false)
 	} finally {
 		stop()

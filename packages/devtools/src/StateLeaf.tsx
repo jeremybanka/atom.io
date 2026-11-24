@@ -38,9 +38,9 @@ export function StateLeaf(props: {
 			? worker!.watchSelector(token.key)
 			: undefined
 	if (watch) onCleanup(watch.dispose)
-	const generate = () => {
-		if (watch) watch.generate()
-		else worker!.generate(token.key)
+	const generate = (batch = false) => {
+		if (watch) watch.generate(batch)
+		else worker!.generate(token.key, batch)
 	}
 	const getValue = useGetter(projection ?? token)
 	const cache = projection
@@ -82,8 +82,15 @@ export function StateLeaf(props: {
 			/>
 		)
 	onMount(() => {
-		if (projection && canOperate && !props.cachedOnly)
-			props.tools.attempt(generate)
+		if (
+			projection &&
+			canOperate &&
+			!props.cachedOnly &&
+			(watch || !cache!().present)
+		)
+			props.tools.attempt(() => {
+				generate(true)
+			})
 	})
 	const value = () => {
 		try {

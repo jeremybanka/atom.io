@@ -1,6 +1,6 @@
 import type { PanelMessage, WorkerMessage } from "./worker-protocol.ts"
 
-/** One ordered connection. Deliver decoded frames in later tasks, after pending microtasks. */
+/** One reliable and ordered connection. Deliver frames in later tasks, after pending microtasks. */
 export interface DevtoolsTransport<Incoming, Outgoing> {
 	send(message: Outgoing): void
 	/** Report connection loss even when the peer cannot send a protocol close frame. */
@@ -31,7 +31,7 @@ export function closeDevtoolsTransport(
 	}
 }
 
-export function batchDevtoolsSnapshots(
+export function batchDevtoolsUpdates(
 	publish: () => void,
 	disconnect: () => void,
 ): () => void {

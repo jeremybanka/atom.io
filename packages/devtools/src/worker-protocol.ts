@@ -6,12 +6,11 @@ import type {
 	TransactionToken,
 } from "atom.io"
 
-import type { EcologySnapshot } from "./ecology.ts"
-import type { RecordedEvent } from "./history-event.ts"
+import type { EcologyFamily, EcologyNode, EcologySnapshot } from "./ecology.ts"
 
 export type WorkerDevtoolsValue = boolean | number | string | null
 
-type WorkerState = {
+export type WorkerState = {
 	key: string
 	kind: `atom` | `selector`
 	editable: boolean
@@ -20,14 +19,21 @@ type WorkerState = {
 
 export type WorkerMessage =
 	| { type: `snapshot`; control: boolean; states: WorkerState[] }
+	| { type: `snapshot-update`; states: WorkerState[] }
 	| { type: `store`; snapshot: WorkerStoreSnapshot }
+	| { type: `store-update`; update: WorkerStoreUpdate }
 	| { type: `edit-error`; message: string }
 	| { type: `close` }
 
 export type PanelMessage =
 	| { type: `edit`; key: string; revision: number | undefined; value: unknown }
-	| { type: `generate`; key: string; watch?: number }
-	| { type: `release`; key: string; watch: number }
+	| ({ type: `generate` } & WorkerGenerate)
+	| ({ type: `release` } & WorkerRelease)
+	| {
+			type: `state-requests`
+			generate: WorkerGenerate[]
+			release: WorkerRelease[]
+	  }
 	| { type: `dispose`; key: string }
 	| {
 			type: `timeline`
@@ -37,30 +43,60 @@ export type PanelMessage =
 	  }
 	| { type: `close` }
 
+export type WorkerGenerate = { key: string; watch?: number }
+export type WorkerRelease = { key: string; watch: number }
 export type WorkerCachedValue =
 	| { status: `uncached` }
 	| { status: `value`; value: unknown }
 export type WorkerStateToken = ReadableToken<unknown, any, any>
-export type WorkerHistory<Event = RecordedEvent> = { id: string; event: Event }
+type TransactionHistory = TransactionOutcomeEvent<TransactionToken<any>>
+type TimelineHistory = TimelineEvent<any>
+type StoreState = {
+	token: WorkerStateToken
+	cache: WorkerCachedValue
+	revision: number
+	editable: boolean
+}
+type StoreTransaction<History> = {
+	token: TransactionToken<any>
+	history: History
+}
+type StoreTimeline<History> = {
+	token: TimelineToken<any>
+	at: number
+	revision: number
+	history: History
+}
 export interface WorkerStoreSnapshot {
 	control: boolean
-	states: {
-		token: WorkerStateToken
-		cache: WorkerCachedValue
-		revision: number
-		editable: boolean
-	}[]
-	transactions: {
-		token: TransactionToken<any>
-		history: WorkerHistory<TransactionOutcomeEvent<TransactionToken<any>>>[]
-	}[]
-	timelines: {
-		token: TimelineToken<any>
-		at: number
-		revision: number
-		history: WorkerHistory<TimelineEvent<any>>[]
-	}[]
+	states: StoreState[]
+	transactions: StoreTransaction<TransactionHistory[]>[]
+	timelines: StoreTimeline<TimelineHistory[]>[]
 	ecology: EcologySnapshot
+}
+
+/** Retain a slice of the previous history and append newly arrived records. */
+export type WorkerHistoryUpdate<Event> = {
+	start: number
+	length: number
+	append: Event[]
+}
+export type WorkerEcologyEdge = EcologySnapshot[`edges`][number]
+export type WorkerEcologyMetadata = Pick<EcologySnapshot, `truncated` | `work`>
+export type WorkerRecordsUpdate<Record> = { upsert: Record[]; remove: string[] }
+export type WorkerEcologyUpdate = {
+	nodes: WorkerRecordsUpdate<EcologyNode>
+	edges?: WorkerRecordsUpdate<WorkerEcologyEdge>
+	families?: WorkerRecordsUpdate<EcologyFamily>
+	metadata?: WorkerEcologyMetadata
+}
+export interface WorkerStoreUpdate {
+	states: StoreState[]
+	removedStates: string[]
+	transactions: StoreTransaction<WorkerHistoryUpdate<TransactionHistory>>[]
+	timelines: StoreTimeline<WorkerHistoryUpdate<TimelineHistory>>[]
+	removedTimelines: string[]
+	ecology?: WorkerEcologyUpdate
 }
 
 export function isWorkerDevtoolsValue(

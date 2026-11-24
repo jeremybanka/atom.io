@@ -3,12 +3,16 @@ import { isReservedIntrospectionKey } from "atom.io/internal"
 import { observeStore, peekState } from "atom.io/introspection"
 
 import {
-	batchDevtoolsSnapshots,
+	batchDevtoolsUpdates,
 	closeDevtoolsTransport,
 	type DevtoolsStoreTransport,
 	reportDevtoolsError,
 } from "./transport.ts"
-import type { PanelMessage, WorkerDevtoolsValue } from "./worker-protocol.ts"
+import type {
+	PanelMessage,
+	WorkerDevtoolsValue,
+	WorkerState,
+} from "./worker-protocol.ts"
 import { isWorkerDevtoolsValue } from "./worker-protocol.ts"
 import { exposeWholeStore } from "./worker-store.ts"
 
@@ -86,45 +90,44 @@ export function exposeDevtoolsStore(
 	}
 
 	const subscriptions: (() => void)[] = []
+	const changed = new Set<string>()
 	let closed = false
-	const publish = () => {
-		if (closed) return
-		transport.send({
-			type: `snapshot`,
-			control,
-			states: Array.from(
-				entries.values(),
-				({ token, validateEdit, revision, isPresent }) => {
-					const kind = token.type === `atom` ? `atom` : `selector`
-					const base = {
-						key: token.key,
-						revision,
-						kind,
-						editable: false,
-					} as const
-					if (!isPresent())
-						return { ...base, error: `State is no longer available` }
-					try {
-						const cached = control
-							? { present: true, value: silo.getState(token) }
-							: peekState(silo.store, token.key)
-						if (!cached.present) return { ...base, error: `Value is not cached` }
-						const { value } = cached
-						if (isWorkerDevtoolsValue(value))
-							return {
-								...base,
-								value,
-								editable: control && Boolean(validateEdit) && value !== null,
-							}
-						return { ...base, error: `Expected a synchronous JSON primitive` }
-					} catch {
-						return { ...base, error: `Could not read remote state` }
-					}
-				},
-			),
-		})
+	function readState({
+		token,
+		validateEdit,
+		revision,
+		isPresent,
+	}: NonNullable<ReturnType<typeof entries.get>>): WorkerState {
+		const kind = token.type === `atom` ? `atom` : `selector`
+		const base = { key: token.key, revision, kind, editable: false } as const
+		if (!isPresent()) return { ...base, error: `State is no longer available` }
+		try {
+			const cached = control
+				? { present: true, value: silo.getState(token) }
+				: peekState(silo.store, token.key)
+			if (!cached.present) return { ...base, error: `Value is not cached` }
+			const { value } = cached
+			if (isWorkerDevtoolsValue(value))
+				return {
+					...base,
+					value,
+					editable: control && Boolean(validateEdit) && value !== null,
+				}
+			return { ...base, error: `Expected a synchronous JSON primitive` }
+		} catch {
+			return { ...base, error: `Could not read remote state` }
+		}
 	}
-	const scheduleSnapshot = batchDevtoolsSnapshots(publish, dispose)
+	const scheduleUpdate = batchDevtoolsUpdates(() => {
+		if (closed) return
+		const states = Array.from(changed, (key) => readState(entries.get(key)!))
+		changed.clear()
+		transport.send({ type: `snapshot-update`, states })
+	}, dispose)
+	const scheduleState = (key: string) => {
+		changed.add(key)
+		scheduleUpdate()
+	}
 	function dispose(notify = true) {
 		if (closed) return
 		closed = true
@@ -141,6 +144,7 @@ export function exposeDevtoolsStore(
 		const entry = entries.get(data.key)
 		try {
 			if (!control) throw new Error(`Remote devtools is inspection only`)
+			if (entry && !entry.isPresent()) scheduleState(data.key)
 			if (
 				entry?.token.type !== `atom` ||
 				!entry.validateEdit ||
@@ -164,7 +168,6 @@ export function exposeDevtoolsStore(
 		} catch (error) {
 			reportDevtoolsError(transport, error, dispose)
 		}
-		scheduleSnapshot()
 	}
 	try {
 		if (control) {
@@ -172,24 +175,24 @@ export function exposeDevtoolsStore(
 				subscriptions.push(
 					silo.subscribe(entry.token, () => {
 						entry.revision++
-						scheduleSnapshot()
+						scheduleState(entry.token.key)
 					}),
 				)
 			}
-		} else {
-			subscriptions.push(
-				observeStore(silo.store, ({ states, values }) => {
-					for (const key of entries.keys()) {
-						if (states.has(key) || values.has(key)) {
-							scheduleSnapshot()
-							break
-						}
-					}
-				}),
-			)
 		}
+		subscriptions.push(
+			observeStore(silo.store, ({ states, values }) => {
+				for (const key of new Set(control ? states : [...states, ...values])) {
+					if (entries.has(key)) scheduleState(key)
+				}
+			}),
+		)
 		transport.listen(receive, dispose)
-		publish()
+		transport.send({
+			type: `snapshot`,
+			control,
+			states: Array.from(entries.values(), readState),
+		})
 	} catch (error) {
 		dispose(false)
 		throw error

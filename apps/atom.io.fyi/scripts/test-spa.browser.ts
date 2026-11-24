@@ -153,6 +153,23 @@ try {
 	})
 	const base = `http://127.0.0.1:${devServer?.address.port ?? (server.address() as AddressInfo).port}`
 	await page.context().grantPermissions([`clipboard-read`, `clipboard-write`])
+	await page.goto(`${base}/docs/typesafe-router`)
+	const nginx = page.locator(`#nginx-static-hosting-conf`)
+	const nginxCopy = nginx
+		.locator(`exhibit-header`)
+		.getByRole(`button`, { name: `Copy code` })
+	const nginxWidths = await nginx.evaluate((node) => [
+		node.clientWidth,
+		node.querySelector(`exhibit-source-pane pre`)!.clientWidth,
+	])
+	assert.ok(nginxWidths[0] > 580)
+	assert.equal(nginxWidths[1], nginxWidths[0])
+	await nginxCopy.click()
+	await page.waitForFunction(
+		async (expected) => (await navigator.clipboard.readText()) === expected,
+		await nginx.locator(`pre code`).textContent(),
+	)
+
 	await page.goto(`${base}/docs/atom-io`)
 	const exhibit = page.locator(`#use-a-selector-ts`)
 	const code = exhibit.getByRole(`tab`, { name: `Code` })
@@ -160,8 +177,13 @@ try {
 	const frame = exhibit.frameLocator(`iframe`)
 	const codePane = exhibit.locator(`pre`)
 	const copy = exhibit.getByRole(`button`, { name: `Copy code` })
-	assert.equal((await codePane.boundingBox())?.width, 580)
-	assert.ok((await exhibit.boundingBox())!.width > 580)
+	const codeWidth = (await codePane.boundingBox())!.width
+	assert.ok(codeWidth > 580)
+	assert.equal(codeWidth, await exhibit.evaluate((node) => node.clientWidth))
+	assert.equal(
+		await exhibit.locator(`exhibit-header > [data-copy-code]`).count(),
+		1,
+	)
 	const codeHeight = await codePane.evaluate((node) => {
 		const style = getComputedStyle(node)
 		const height = node.getBoundingClientRect().height
@@ -270,14 +292,15 @@ try {
 	assert.equal((await codePane.boundingBox())?.height, codeHeight.height)
 	await page.setViewportSize({ width: 390, height: 844 })
 	assert.equal(await ecology.locator(`span`).isVisible(), false)
-	const { before, after, scrollOffset, codeWidth, paneWidth } = await page
-		.locator(`#edit-a-selector-tsx exhibit-source-pane`)
-		.evaluate((pane) => {
-			const pre = pane.querySelector(`pre`)!
-			const copyButton = pane.querySelector(`[data-copy-code]`)!
+	const mobileCode = await page
+		.locator(`#edit-a-selector-tsx`)
+		.evaluate((node) => {
+			const pre = node.querySelector(`exhibit-source-pane pre`)!
+			const header = node.querySelector(`exhibit-header`)!
+			const copyButton = header.querySelector(`[data-copy-code]`)!
 			const position = () => {
 				const button = copyButton.getBoundingClientRect()
-				const bounds = pane.getBoundingClientRect()
+				const bounds = header.getBoundingClientRect()
 				return {
 					top: button.top - bounds.top,
 					right: bounds.right - button.right,
@@ -289,20 +312,15 @@ try {
 				before: initialPosition,
 				after: position(),
 				scrollOffset: pre.scrollLeft,
-				codeWidth: pre.getBoundingClientRect().width,
-				paneWidth: pane.getBoundingClientRect().width,
+				codeWidth: pre.clientWidth,
+				frameWidth: node.clientWidth,
 			}
 		})
-	assert.equal(
-		codeWidth,
-		paneWidth,
-		`The copy button must float over full-width code`,
-	)
-	assert.ok(codeWidth < 580)
-	assert.ok(before.top > 0 && before.top < 10)
-	assert.ok(before.right > 0 && before.right < 10)
-	assert.ok(scrollOffset > 0)
-	assert.deepEqual(after, before)
+	assert.equal(mobileCode.codeWidth, mobileCode.frameWidth)
+	assert.ok(mobileCode.before.top >= 0 && mobileCode.before.top < 5)
+	assert.ok(mobileCode.before.right > 0 && mobileCode.before.right < 10)
+	assert.ok(mobileCode.scrollOffset > 0)
+	assert.deepEqual(mobileCode.after, mobileCode.before)
 	await page.setViewportSize({ width: 1440, height: 1000 })
 
 	await page.goto(`${base}/docs/spa/motion`)
@@ -392,6 +410,19 @@ try {
 	await assertTabAbovePane(divisionCode, divisionSource)
 	await assertTabAbovePane(divisionEcology, ecologyPane)
 	await assertTabAbovePane(divisionPreview, ecologyPane)
+	const divisionCopy = division.getByRole(`button`, { name: `Copy code` })
+	const splitCopy = (await divisionCopy.boundingBox())!
+	const splitSource = (await divisionSource.boundingBox())!
+	assert.equal(splitCopy.y - splitSource.y, 5)
+	assert.equal(
+		splitSource.x + splitSource.width - splitCopy.x - splitCopy.width,
+		5,
+	)
+	await divisionCopy.click()
+	await page.waitForFunction(
+		async (expected) => (await navigator.clipboard.readText()) === expected,
+		await divisionSource.locator(`pre code`).textContent(),
+	)
 
 	await page.setViewportSize({ width: 2200, height: 1100 })
 	await page.goto(`${base}/docs/atom-io`)

@@ -116,6 +116,18 @@ export function ExhibitFrame({
 						</exhibit-live-tabs>
 					</nav>
 				)}
+				<button type="button" aria-label="Copy code" data-copy-code>
+					<svg viewBox="0 0 16 16" aria-hidden="true">
+						<path
+							d="M15,5v10H5V5h10M16,4H4v12h12V4h0Z"
+							fill="var(--icon-color)"
+						/>
+						<polygon
+							points="3 11 1 11 1 1 11 1 11 3 12 3 12 0 0 0 0 12 3 12 3 11"
+							fill="var(--icon-color)"
+						/>
+					</svg>
+				</button>
 			</exhibit-header>
 			<exhibit-source-pane
 				id={exhibit ? `${id}-code` : undefined}
@@ -138,18 +150,6 @@ export function ExhibitFrame({
 						])}
 					</code>
 				</pre>
-				<button type="button" aria-label="Copy code" data-copy-code>
-					<svg viewBox="0 0 16 16" aria-hidden="true">
-						<path
-							d="M15,5v10H5V5h10M16,4H4v12h12V4h0Z"
-							fill="var(--icon-color)"
-						/>
-						<polygon
-							points="3 11 1 11 1 1 11 1 11 3 12 3 12 0 0 0 0 12 3 12 3 11"
-							fill="var(--icon-color)"
-						/>
-					</svg>
-				</button>
 			</exhibit-source-pane>
 			{exhibit && <exhibit-live-pane id={`${id}-live`} role="tabpanel" hidden />}
 		</exhibit-frame>

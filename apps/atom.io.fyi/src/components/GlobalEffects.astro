@@ -70,8 +70,8 @@ function linkExhibitImports(): void {
 
 async function copyExhibitSource(button: HTMLButtonElement): Promise<void> {
 	const code = button
-		.closest(`exhibit-source-pane`)
-		?.querySelector(`pre code`)?.textContent
+		.closest(`exhibit-frame`)
+		?.querySelector(`exhibit-source-pane pre code`)?.textContent
 	if (code === undefined) {
 		return
 	}

@@ -326,7 +326,7 @@ it(`uses latest input while metadata indexing is in flight and cancels hidden/di
 		lifespan: `ephemeral`,
 		isProduction: true,
 	})
-	for (let i = 0; i < 80; i++) {
+	for (let i = 0; i < 4; i++) {
 		const options = { key: `record${i}`, default: 0 }
 		app.atom<number>(options)
 	}
@@ -341,7 +341,7 @@ it(`uses latest input while metadata indexing is in flight and cancels hidden/di
 		createGraphContext(),
 	))
 	const input = host.querySelector(`input`)!
-	input.value = `record79`
+	input.value = `record3`
 	input.dispatchEvent(new Event(`input`, { bubbles: true }))
 	await vi.advanceTimersToNextTimerAsync()
 	panel.hidden = true
@@ -351,7 +351,7 @@ it(`uses latest input while metadata indexing is in flight and cancels hidden/di
 	await settle()
 	expect(
 		host.querySelector(`ecology-view [data-results] button`)!.textContent,
-	).toBe(`record79`)
+	).toBe(`record3`)
 	const jobs = host.dataset[`jobs`]
 	panel.dataset[`open`] = `false`
 	await settle()

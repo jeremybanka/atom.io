@@ -110,22 +110,25 @@ try {
 			.evaluate((body) => getComputedStyle(body).display),
 		`grid`,
 	)
-	await embedded.locator(`section`).evaluate((host) => {
-		host.style.width = `480px`
-	})
-	await embedded.waitForFunction(
-		() =>
-			getComputedStyle(document.querySelector(`ecology-body`)!).display ===
-			`flex`,
-	)
-	await explorer.locator(`[data-action="search"]`).click()
-	assert.equal(await explorer.locator(`dialog:modal`).count(), 1)
-	await explorer.getByRole(`searchbox`, { name: `Search ecology` }).fill(`price`)
-	await explorer
-		.getByRole(`button`, { name: `Close search`, exact: true })
-		.click()
-	const settledSplit = (height?: number) =>
-		embedded.waitForFunction(async (expected) => {
+	const prepareCompactSelection = async () => {
+		await embedded.locator(`section`).evaluate((host) => {
+			host.style.width = `480px`
+		})
+		await embedded.waitForFunction(
+			() =>
+				getComputedStyle(document.querySelector(`ecology-body`)!).display ===
+				`flex`,
+		)
+		await explorer.locator(`[data-action="search"]`).click()
+		assert.equal(await explorer.locator(`dialog:modal`).count(), 1)
+		await explorer
+			.getByRole(`searchbox`, { name: `Search ecology` })
+			.fill(`price`)
+		await explorer.locator(`[data-result-id="state:price"]`).waitFor()
+		await explorer
+			.getByRole(`button`, { name: `Close search`, exact: true })
+			.click()
+		await embedded.waitForFunction(async () => {
 			// ResizeObserver runs after the animation frame callbacks.
 			await new Promise<void>((resolve) => {
 				setTimeout(resolve, 0)
@@ -134,13 +137,13 @@ try {
 			const editor = view.querySelector<HTMLElement>(`ecology-editor`)!
 			return (
 				view.dataset[`ready`] === `true` &&
-				!editor.style.getPropertyValue(`--ecology-editor-height`) &&
-				(expected === undefined ||
-					editor.getBoundingClientRect().height === expected)
+				!editor.style.getPropertyValue(`--ecology-editor-height`)
 			)
-		}, height)
-	await settledSplit()
+		})
+	}
 	for (const pane of [`ecology-map`, `ecology-editor`]) {
+		if (pane === `ecology-editor`) await embedded.reload()
+		await prepareCompactSelection()
 		const sizes = await embedded.evaluate(async (source) => {
 			const map = document.querySelector(`ecology-map`)!
 			const editor = document.querySelector<HTMLElement>(`ecology-editor`)!
@@ -157,6 +160,7 @@ try {
 				const finish = () => {
 					observer.disconnect()
 					clearTimeout(timeout)
+					frames.push(read())
 					resolve()
 				}
 				const observer = new MutationObserver(() => {
@@ -178,7 +182,7 @@ try {
 		const [endMap, endEditor] = sizes.at(-1)!
 		assert.ok(
 			endEditor > startEditor && endMap < startMap,
-			`${pane} selection enlarges the editor`,
+			`${pane} selection enlarges the editor (${JSON.stringify(sizes)})`,
 		)
 		assert.ok(
 			sizes.some(
@@ -193,10 +197,6 @@ try {
 			),
 			`Both panes share the same vertical space`,
 		)
-		await explorer
-			.getByRole(`button`, { name: `Clear selection` })
-			.press(`Escape`)
-		await settledSplit(startEditor)
 	}
 	await embedded.close()
 

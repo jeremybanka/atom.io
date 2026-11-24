@@ -32,8 +32,7 @@ function SnapIcon(props: { target?: SnapTarget }): SpaElement {
 				width="26"
 				height="18"
 				rx="2"
-				stroke="currentColor"
-				opacity="0.65"
+				stroke="var(--snap-border)"
 			/>
 			{tile ? (
 				<rect

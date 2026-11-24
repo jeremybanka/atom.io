@@ -102,6 +102,9 @@ export function exposeWholeStore(
 	const watches = new Map<string, { ids: Set<number>; stop(): void }>()
 	const revisions = new Map<string, number>()
 	const changedStates = new Set<string>()
+	const changedDefinitions = new Set<string>()
+	const changedFamilies = new Set<string>()
+	const changedDependencies = new Set<string>()
 	const changedTimelines = new Set<string>()
 	const changedTransactions = new Set<string>()
 	const sentStates = new Set<string>()
@@ -111,7 +114,6 @@ export function exposeWholeStore(
 		readonly TransactionOutcomeEvent<TransactionToken<any>>[]
 	>()
 	const ecology = trackWorkerEcology(store)
-	let topologyChanged = false
 	const cleanup: (() => void)[] = []
 	const timelines = new Map<string, { revision: number; stop(): void }>()
 	const transactions = new Map<
@@ -124,6 +126,7 @@ export function exposeWholeStore(
 	>()
 	let timelineRevision = 0
 	let closed = false
+	let sequence = 0
 	const subscriber = arbitrary()
 	const state = (key: string) =>
 		store.atoms.get(key) ??
@@ -234,10 +237,17 @@ export function exposeWholeStore(
 			if (definition) update.states.push(readState(definition))
 			else if (sentStates.delete(key)) update.removedStates.push(key)
 		}
-		const graph = ecology.update(changedStates, topologyChanged)
+		const graph = ecology.update({
+			values: changedStates,
+			states: changedDefinitions,
+			families: changedFamilies,
+			dependencies: changedDependencies,
+		})
 		if (graph) update.ecology = graph
 		changedStates.clear()
-		topologyChanged = false
+		changedDefinitions.clear()
+		changedFamilies.clear()
+		changedDependencies.clear()
 		for (const key of changedTimelines) {
 			const entry = timelines.get(key)
 			if (!entry) {
@@ -271,7 +281,7 @@ export function exposeWholeStore(
 			update.transactions.length ||
 			update.ecology
 		)
-			transport.send({ type: `store-update`, update })
+			transport.send({ type: `store-update`, sequence: ++sequence, update })
 	}
 	const schedule = batchDevtoolsUpdates(publishUpdate, dispose)
 	const addTimeline = (key: string) => {
@@ -389,11 +399,12 @@ export function exposeWholeStore(
 					changedStates.add(key)
 				}
 				for (const key of states) {
+					changedDefinitions.add(key)
 					watches.get(key)?.stop()
 					watches.delete(key)
 				}
-				topologyChanged ||=
-					states.size > 0 || families.size > 0 || dependencies.size > 0
+				for (const key of families) changedFamilies.add(key)
+				for (const key of dependencies) changedDependencies.add(key)
 				schedule()
 			}),
 			store.on.timelineCreation.subscribe(subscriber, ({ key }) => {

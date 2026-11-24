@@ -127,7 +127,7 @@ window.addEventListener(
 
 The worker entry adapts a dedicated MessagePort. The example enables control explicitly for an isolated demo Silo containing sample data. The worker executes edits, selector generation, family member disposal, and timeline undo and redo. Transactions retain up to 200 outcomes per transaction recorded since the connection opened. State values are transferred when structured-cloneable, and editable values must be JSON data.
 
-Each connection starts with a full snapshot of the exposed store. Later messages carry changed state entries, history updates, and changed Ecology records. Opening a state tab batches the visible rows' generation and watch requests.
+Each connection starts with a full snapshot of the exposed store. Later messages carry changed state entries, history updates, and changed Ecology records. Ecology updates inspect the affected state, family, and dependency records. When the graph reaches its capture limits, the debugger uses a bounded recapture to establish which records are in view. Opening a state tab batches the visible rows' generation and watch requests.
 
 ```ts
 import { exposeDevtoolsStore } from "@atom.io/devtools/worker"
@@ -188,7 +188,7 @@ pnpm exec turbo run demo:worker --filter=@atom.io/devtools
 
 ## Custom transports and hosted stores
 
-Import the owner-side exposeDevtoolsStore from @atom.io/devtools/remote in Node, a Cloudflare Worker, or another store host. This entry has no browser UI dependency. Pass a DevtoolsStoreTransport on the owner and return a DevtoolsPanelTransport from the matching panel target's connect function. The transports send typed frames, install a listener, report disconnects, and close the connection with its listeners. Network adapters should validate frame shapes and cap their sizes before delivery. Deliver decoded frames reliably and in order in later tasks, after pending microtasks. A new connection receives its own initial snapshot. Use the same protocol version on both ends. A transport that uses JSON needs a codec for any snapshot values it intends to preserve beyond JSON, such as errors, dates, maps, and undefined. MessagePort uses structured clone directly.
+Import the owner-side exposeDevtoolsStore from @atom.io/devtools/remote in Node, a Cloudflare Worker, or another store host. This entry has no browser UI dependency. Pass a DevtoolsStoreTransport on the owner and return a DevtoolsPanelTransport from the matching panel target's connect function. The transports send typed frames, install a listener, report disconnects, and close the connection with its listeners. Network adapters should validate frame shapes and cap their sizes before delivery. Deliver decoded frames reliably and in order in later tasks, after pending microtasks. Updates are numbered starting at one. The panel closes the connection if it detects a gap or receives an update before the initial snapshot. A new connection receives its own initial snapshot. Use the same protocol version on both ends. A transport that uses JSON needs a codec for any snapshot values it intends to preserve beyond JSON, such as errors, dates, maps, and undefined. MessagePort uses structured clone directly.
 
 The store owner chooses the access policy for each connection.
 
@@ -244,7 +244,7 @@ export function Debugger({ store }: { store: RootStore }): ReactElement {
 
 ```
 
-The adapter reads StoreContext from @atom.io/react. An explicit store prop takes precedence over its provider; without either it uses the implicit store. Changing the inspected store, the configured targets, or hideByDefault disposes and remounts the panel. Recreating an equivalent stores array preserves the mounted panel and its selection. Keep each remote target's connect function stable across renders and have it open a fresh connection when called. Persisted visibility takes precedence over hideByDefault. Effect cleanup supports StrictMode replay. Server import and render create no panel; mounting happens in a client effect.
+The adapter reads StoreContext from @atom.io/react. An explicit store prop takes precedence over its provider. Without either it uses the implicit store. Changing the inspected store, the configured targets, or hideByDefault disposes and remounts the panel. Recreating an equivalent stores array preserves the mounted panel and its selection, including when a remote target supplies an inline connect function. The adapter compares remote targets by ID and label. Change the target ID when switching to a different endpoint, and open a fresh connection whenever connect is called. Persisted visibility takes precedence over hideByDefault. Effect cleanup supports StrictMode replay. The panel mounts in a client effect after server rendering.
 
 Ecology is the first and default view. The other tabs inspect atoms, selectors, transactions, and timelines. State families group their members and offer member disposal. JSON editors support primitive edits, object property renaming, adding and removing entries, array sorting, and conversion between JSON types. Drag an array item by its handle or focus the handle and use Alt+Up or Alt+Down. Readonly selectors remain readonly. Circular and non-JSON values receive safe textual representations. Failed edits appear in the panel.
 
@@ -394,7 +394,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                        | Entry                         | Minified JS |   Gzip JS |
 | ----------------------------- | ----------------------------- | ----------: | --------: |
-| Interactive app with debugger | `tonnage-recipes/debugger.ts` | 1,003,303 B | 298,111 B |
+| Interactive app with debugger | `tonnage-recipes/debugger.ts` | 1,003,880 B | 298,366 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

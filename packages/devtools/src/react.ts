@@ -25,7 +25,7 @@ function sameTargets(
 			if (target.id !== other.id || target.label !== other.label) return false
 			return target.kind === `local`
 				? other.kind === `local` && target.store === other.store
-				: other.kind === `remote` && target.connect === other.connect
+				: other.kind === `remote`
 		}),
 	)
 }

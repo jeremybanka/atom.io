@@ -112,6 +112,54 @@ export function ecologyValue(
 		: { status: `unknown` }
 }
 
+export function describeEcologyNode(
+	store: RootStore,
+	state: ReadableState<any, any>,
+): EcologyNode {
+	const kind =
+		state.type === `atom` || state.type === `mutable_atom` ? `atom` : `selector`
+	const value = ecologyValue(store, state.key)
+	return {
+		key: state.key,
+		kind,
+		type: state.type,
+		family: state.family
+			? { key: state.family.key, subKey: state.family.subKey }
+			: null,
+		value,
+		dependencies:
+			kind === `atom`
+				? `not-applicable`
+				: value.status === `cached`
+					? `observed`
+					: `unknown`,
+		dependenciesTruncated: false,
+	}
+}
+
+export function scanEcologyRelations(
+	store: RootStore,
+	selector: string,
+	budget: number,
+	edges: EcologySnapshot[`edges`][number][],
+): { inspected: number; incomplete: boolean } {
+	const related = store.selectorGraph.getRelatedKeys(selector)
+	const neighbors = related?.values()
+	let inspected = 0
+	while (neighbors && inspected < budget) {
+		const entry = neighbors.next()
+		if (entry.done) break
+		const dependency = entry.value
+		inspected++
+		if (
+			store.selectorGraph.getContent(dependency, selector)?.source === dependency
+		)
+			// Retain missing endpoints so the trace can report unresolved dependencies.
+			edges.push({ dependency, selector })
+	}
+	return { inspected, incomplete: inspected < (related?.size ?? 0) }
+}
+
 type EcologyLoadStatus = `pending` | `settled` | `caught` | undefined
 
 export function ecologyLoadState(
@@ -171,27 +219,7 @@ export function captureEcologySnapshot(
 				omittedNode = true
 				break
 			}
-			const kind =
-				state.type === `atom` || state.type === `mutable_atom`
-					? `atom`
-					: `selector`
-			const value = ecologyValue(store, state.key)
-			nodes.push({
-				key: state.key,
-				kind,
-				type: state.type,
-				family: state.family
-					? { key: state.family.key, subKey: state.family.subKey }
-					: null,
-				value,
-				dependencies:
-					kind === `atom`
-						? `not-applicable`
-						: value.status === `cached`
-							? `observed`
-							: `unknown`,
-				dependenciesTruncated: false,
-			})
+			nodes.push(describeEcologyNode(store, state))
 			if (state.family) {
 				let keys = members.get(state.family.key)
 				if (!keys) members.set(state.family.key, (keys = []))
@@ -209,31 +237,19 @@ export function captureEcologySnapshot(
 	for (let index = 0; index < nodes.length; index++) {
 		const node = nodes[index]
 		if (node.kind === `atom`) continue
-		const related = store.selectorGraph.getRelatedKeys(node.key)
-		if (!related) continue
-		const neighbors = related.values()
-		let inspected = 0,
-			observed = node.dependencies === `observed`
-		while (work.relations < maxRelations) {
-			const entry = neighbors.next()
-			if (entry.done) break
-			work.relations++
-			inspected++
-			const dependency = entry.value
-			if (
-				store.selectorGraph.getContent(dependency, node.key)?.source ===
-				dependency
-			) {
-				// Keep unknown/missing/reserved endpoints: dropping them would fabricate a complete trace.
-				edges.push({ dependency, selector: node.key })
-				observed = true
-			}
-		}
-		const incomplete = inspected < related.size
+		const previous = edges.length
+		const { inspected, incomplete } = scanEcologyRelations(
+			store,
+			node.key,
+			maxRelations - work.relations,
+			edges,
+		)
+		work.relations += inspected
+		if (inspected === 0 && !incomplete) continue
 		truncated.relations ||= incomplete
 		nodes[index] = {
 			...node,
-			dependencies: observed ? `observed` : `unknown`,
+			dependencies: edges.length > previous ? `observed` : node.dependencies,
 			dependenciesTruncated: incomplete,
 		}
 	}

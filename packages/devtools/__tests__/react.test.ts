@@ -140,7 +140,15 @@ it(`keeps equivalent inline targets mounted and preserves the selected store`, a
 	} as const
 	const render = async (
 		provider: Silo,
-		stores: AtomIODevtoolsProps[`stores`] = [{ ...local }, { ...remote }],
+		stores: AtomIODevtoolsProps[`stores`] = [
+			{ ...local },
+			{
+				...remote,
+				connect() {
+					return connect()
+				},
+			},
+		],
 	) => {
 		await actAsync(() => {
 			root.render(
@@ -171,13 +179,21 @@ it(`keeps equivalent inline targets mounted and preserves the selected store`, a
 	expect(close).not.toHaveBeenCalled()
 
 	await render(second, [local, { ...remote, connect: reconnect }])
+	expect(active()).toBe(panel)
+	expect(reconnect).not.toHaveBeenCalled()
+	expect(close).not.toHaveBeenCalled()
+
+	await render(second, [
+		local,
+		{ ...remote, id: `replacement`, connect: reconnect },
+	])
 	expect(active()).not.toBe(panel)
 	expect(reconnect).toHaveBeenCalledOnce()
 	expect(close).toHaveBeenCalledOnce()
 
 	await render(second, [
 		local,
-		{ ...remote, connect: reconnect, label: `Renamed` },
+		{ ...remote, id: `replacement`, connect: reconnect, label: `Renamed` },
 	])
 	expect(reconnect).toHaveBeenCalledTimes(2)
 })

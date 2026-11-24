@@ -19,9 +19,9 @@ export type WorkerState = {
 
 export type WorkerMessage =
 	| { type: `snapshot`; control: boolean; states: WorkerState[] }
-	| { type: `snapshot-update`; states: WorkerState[] }
+	| { type: `snapshot-update`; sequence: number; states: WorkerState[] }
 	| { type: `store`; snapshot: WorkerStoreSnapshot }
-	| { type: `store-update`; update: WorkerStoreUpdate }
+	| { type: `store-update`; sequence: number; update: WorkerStoreUpdate }
 	| { type: `edit-error`; message: string }
 	| { type: `close` }
 

@@ -92,6 +92,7 @@ export function exposeDevtoolsStore(
 	const subscriptions: (() => void)[] = []
 	const changed = new Set<string>()
 	let closed = false
+	let sequence = 0
 	function readState({
 		token,
 		validateEdit,
@@ -122,7 +123,7 @@ export function exposeDevtoolsStore(
 		if (closed) return
 		const states = Array.from(changed, (key) => readState(entries.get(key)!))
 		changed.clear()
-		transport.send({ type: `snapshot-update`, states })
+		transport.send({ type: `snapshot-update`, sequence: ++sequence, states })
 	}, dispose)
 	const scheduleState = (key: string) => {
 		changed.add(key)

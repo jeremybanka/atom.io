@@ -114,6 +114,77 @@ it(`requires a separate production opt-in for either enabled mode`, () => {
 	}
 })
 
+it.each([false, true])(
+	`disconnects after a missing incremental frame (allowlist=%s)`,
+	async (allowlist) => {
+		const { silo, host, panel, store, mount } = fixture()
+		const countAtom = silo.atom<number>({ key: `count`, default: 1 })
+		silo.getState(countAtom)
+		const mounted = mount()
+		const stop = exposeDevtoolsStore(store.transport, silo, {
+			access: `control`,
+			...(allowlist && { states: [{ token: countAtom }] }),
+		})
+		try {
+			await vi.waitFor(() => {
+				expect(
+					host.querySelector<HTMLInputElement>(`[aria-label="count"]`)?.value,
+				).toBe(`1`)
+			})
+			store.transport.send.mockImplementationOnce(() => {})
+			silo.setState(countAtom, 2)
+			await vi.waitFor(() => {
+				expect(store.transport.send).toHaveBeenLastCalledWith(
+					expect.objectContaining({ sequence: 1 }),
+				)
+			})
+			silo.setState(countAtom, 3)
+			await vi.waitFor(() => {
+				expect(host.querySelector(`[role="alert"]`)?.textContent).toContain(
+					`out of sync`,
+				)
+				expect(store.transport.close).toHaveBeenCalledOnce()
+			})
+			expect(store.transport.send).toHaveBeenLastCalledWith(
+				expect.objectContaining({ sequence: 2 }),
+			)
+			expect(host.querySelector(`[aria-label="count"]`)).toBeNull()
+			expect(panel.transport.send).toHaveBeenLastCalledWith({ type: `close` })
+		} finally {
+			mounted.dispose()
+			stop()
+		}
+	},
+)
+
+it.each([false, true])(
+	`rejects frames that cannot continue the initial snapshot (initialized=%s)`,
+	async (initialized) => {
+		const { host, panel, mount } = fixture()
+		const mounted = mount()
+		try {
+			if (initialized) {
+				const snapshot = {
+					type: `snapshot`,
+					control: false,
+					states: [],
+				} as const
+				panel.deliver({ ...snapshot, states: [] })
+				panel.deliver({ ...snapshot, states: [] })
+			} else {
+				panel.deliver({ type: `snapshot-update`, sequence: 1, states: [] })
+			}
+			await vi.waitFor(() => {
+				expect(host.querySelector(`[role="alert"]`)?.textContent).toContain(
+					`out of sync`,
+				)
+			})
+		} finally {
+			mounted.dispose()
+		}
+	},
+)
+
 it(`mirrors a store over a custom transport and enforces inspection mode at the owner`, async () => {
 	const { silo, host, panel, store, mount } = fixture(true)
 	const countAtom = silo.atom<number>({ key: `count`, default: 1 })

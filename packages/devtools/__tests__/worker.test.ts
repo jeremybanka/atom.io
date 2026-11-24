@@ -4,6 +4,7 @@ import { deleteCachedValue } from "atom.io/internal"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 
 import {
+	captureEcologySnapshot,
 	mountAtomIODevtools,
 	mountWorkerAtomIODevtools,
 	traceEcologyRoots,
@@ -714,11 +715,15 @@ it(`keeps Ecology metadata and uncached selectors aligned with the captured grap
 	silo.getState(constantSelector)
 	const track = trackWorkerEcology(silo.store)
 	const projected = projectWorkerEcology(track.initial)
-	expect(track.update(new Set([`missing`]), false)).toBeUndefined()
-	expect(track.update(new Set(), true)).toBeUndefined()
+	expect(track.update(ecologyChanges({ values: [`missing`] }))).toBeUndefined()
+	expect(
+		track.update(ecologyChanges({ states: [constantSelector.key] })),
+	).toBeUndefined()
 
 	deleteCachedValue(silo.store, constantSelector.key)
-	const invalidated = track.update(new Set([constantSelector.key]), false)!
+	const invalidated = track.update(
+		ecologyChanges({ values: [constantSelector.key] }),
+	)!
 	expect(projected.update(invalidated)).toBe(true)
 	expect(projected.read().nodes).toMatchObject([
 		{
@@ -732,7 +737,7 @@ it(`keeps Ecology metadata and uncached selectors aligned with the captured grap
 		key: `items`,
 		default: 3,
 	})
-	const family = track.update(new Set(), true)!
+	const family = track.update(ecologyChanges({ families: [itemsAtoms.key] }))!
 	expect(family.nodes.upsert).toEqual([])
 	expect(family.families?.upsert).toMatchObject([
 		{ key: itemsAtoms.key, memberCount: 0 },
@@ -741,7 +746,7 @@ it(`keeps Ecology metadata and uncached selectors aligned with the captured grap
 
 	const { work, truncated } = projected.read()
 	silo.atom<number>({ key: `🔍 reserved`, default: 0 })
-	const metadata = track.update(new Set(), true)!
+	const metadata = track.update(ecologyChanges({ states: [`🔍 reserved`] }))!
 	expect(metadata).toEqual({
 		nodes: { upsert: [], remove: [] },
 		metadata: { truncated, work: { ...work, nodes: work.nodes + 1 } },
@@ -749,6 +754,182 @@ it(`keeps Ecology metadata and uncached selectors aligned with the captured grap
 	projected.update(metadata)
 	expect(projected.read().work.nodes).toBe(work.nodes + 1)
 })
+
+function ecologyChanges({
+	values = [],
+	states = [],
+	families = [],
+	dependencies = [],
+}: Partial<
+	Record<`values` | `states` | `families` | `dependencies`, string[]>
+> = {}) {
+	return {
+		values: new Set(values),
+		states: new Set(states),
+		families: new Set(families),
+		dependencies: new Set(dependencies),
+	}
+}
+
+it(`updates affected Ecology members and adjacency without revisiting unrelated selectors`, () => {
+	const { silo } = fixture()
+	const chooseAtom = silo.atom<boolean>({ key: `choose`, default: false })
+	const baseAtom = silo.atom<number>({ key: `base`, default: 2 })
+	const leftSelector = silo.selector<number>({
+		key: `left`,
+		get: ({ get }) => get(baseAtom),
+	})
+	const rightSelector = silo.selector<number>({
+		key: `right`,
+		get: ({ get }) => get(baseAtom) * 2,
+	})
+	const outerSelector = silo.selector<number>({
+		key: `outer`,
+		get: ({ get }) => get(get(chooseAtom) ? leftSelector : rightSelector),
+	})
+	const unrelatedSelector = silo.selector<number>({
+		key: `unrelated`,
+		get: ({ get }) => get(baseAtom),
+	})
+	silo.getState(leftSelector)
+	silo.getState(outerSelector)
+	silo.getState(unrelatedSelector)
+	const itemsAtoms = silo.atomFamily<number, string>({
+		key: `items`,
+		default: 9,
+	})
+	const otherAtoms = silo.atomFamily<number, string>({
+		key: `other`,
+		default: 4,
+	})
+	const existing = silo.findState(itemsAtoms, `two`)
+	silo.getState(existing)
+	const track = trackWorkerEcology(silo.store)
+	const projection = projectWorkerEcology(track.initial)
+	const related = vi.spyOn(silo.store.selectorGraph, `getRelatedKeys`)
+	const freshlyCaptured = () =>
+		projectWorkerEcology(captureEcologySnapshot(silo.store)).read()
+	try {
+		const member = silo.findState(itemsAtoms, `one`)
+		silo.getState(member)
+		related.mockClear()
+		const added = track.update(ecologyChanges({ states: [member.key] }))!
+		expect(related).not.toHaveBeenCalled()
+		expect(added.nodes.upsert.map(({ key }) => key)).toEqual([member.key])
+		expect(added.families?.upsert[0].memberKeys).toEqual([
+			existing.key,
+			member.key,
+		])
+		projection.update(added)
+		expect(projection.read()).toEqual(freshlyCaptured())
+		const firstMember = silo.findState(otherAtoms, `first`)
+		silo.getState(firstMember)
+		projection.update(
+			track.update(ecologyChanges({ states: [firstMember.key] }))!,
+		)
+		expect(projection.read()).toEqual(freshlyCaptured())
+
+		silo.setState(chooseAtom, true)
+		silo.getState(outerSelector)
+		related.mockClear()
+		const rewired = track.update(
+			ecologyChanges({
+				values: [chooseAtom.key, outerSelector.key],
+				dependencies: [outerSelector.key],
+			}),
+		)!
+		expect(related).not.toHaveBeenCalledWith(unrelatedSelector.key)
+		expect(rewired.edges).toEqual({
+			upsert: [{ dependency: leftSelector.key, selector: outerSelector.key }],
+			remove: [JSON.stringify([rightSelector.key, outerSelector.key])],
+		})
+		projection.update(rewired)
+		expect(projection.read()).toEqual(freshlyCaptured())
+
+		silo.disposeState(itemsAtoms, `one`)
+		related.mockClear()
+		const removed = track.update(ecologyChanges({ states: [member.key] }))!
+		expect(related).not.toHaveBeenCalled()
+		expect(removed.nodes.remove).toEqual([member.key])
+		expect(removed.families?.upsert[0].memberKeys).toEqual([existing.key])
+		projection.update(removed)
+		expect(projection.read()).toEqual(freshlyCaptured())
+		expect(
+			track.update(ecologyChanges({ families: [itemsAtoms.key] })),
+		).toBeUndefined()
+		silo.store.families.delete(itemsAtoms.key)
+		const familyRemoval = ecologyChanges({ families: [itemsAtoms.key] })
+		projection.update(track.update(familyRemoval)!)
+		expect(projection.read()).toEqual(freshlyCaptured())
+		expect(track.update(familyRemoval)).toBeUndefined()
+	} finally {
+		related.mockRestore()
+	}
+})
+
+it(`recaptures the bounded prefix when Ecology crosses and drops below its node limit`, () => {
+	const { silo } = fixture()
+	const itemsAtoms = silo.atomFamily<number, string>({
+		key: `items`,
+		default: 5,
+	})
+	const first = silo.findState(itemsAtoms, `first`)
+	silo.getState(first)
+	silo.selector<number>({ key: `constant`, get: () => 3 })
+	const limits = { maxNodes: 2, maxFamilies: 2, maxRelations: 5 }
+	const track = trackWorkerEcology(silo.store, limits)
+	const projection = projectWorkerEcology(track.initial)
+	const second = silo.findState(itemsAtoms, `second`)
+	silo.getState(second)
+	projection.update(track.update(ecologyChanges({ states: [second.key] }))!)
+	expect(projection.read().truncated.nodes).toBe(true)
+	expect(track.update(ecologyChanges({ states: [second.key] }))).toBeUndefined()
+	expect(projection.read()).toEqual(
+		projectWorkerEcology(captureEcologySnapshot(silo.store, limits)).read(),
+	)
+
+	silo.disposeState(itemsAtoms, `first`)
+	projection.update(track.update(ecologyChanges({ states: [first.key] }))!)
+	expect(projection.read().truncated.nodes).toBe(false)
+	expect(projection.read()).toEqual(
+		projectWorkerEcology(captureEcologySnapshot(silo.store, limits)).read(),
+	)
+})
+
+it.each([1, 2])(
+	`keeps the bounded Ecology graph when a selector gains %s edges`,
+	(fanout) => {
+		const { silo } = fixture()
+		const baseAtom = silo.atom<number>({ key: `base`, default: 5 })
+		const otherAtom = silo.atom<number>({ key: `other`, default: 5 })
+		const firstSelector = silo.selector<number>({
+			key: `first`,
+			get: ({ get }) => get(baseAtom),
+		})
+		const secondSelector = silo.selector<number>({
+			key: `second`,
+			get: ({ get }) => get(baseAtom) + (fanout === 2 ? get(otherAtom) : 0),
+		})
+		silo.getState(firstSelector)
+		const limits = { maxNodes: 10, maxFamilies: 5, maxRelations: 1 }
+		const track = trackWorkerEcology(silo.store, limits)
+		const projection = projectWorkerEcology(track.initial)
+		expect(projection.read().truncated.relations).toBe(false)
+		silo.getState(secondSelector)
+		projection.update(
+			track.update(
+				ecologyChanges({
+					values: [secondSelector.key, otherAtom.key],
+					dependencies: [secondSelector.key],
+				}),
+			)!,
+		)
+		expect(projection.read().truncated.relations).toBe(true)
+		expect(projection.read()).toEqual(
+			projectWorkerEcology(captureEcologySnapshot(silo.store, limits)).read(),
+		)
+	},
+)
 
 it(`projects initial timeline entries, history clear, and newly registered histories`, async () => {
 	const { silo, page, worker } = fixture()

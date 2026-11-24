@@ -61,7 +61,8 @@ export function connectRemoteStore(transport: DevtoolsPanelTransport): {
 	const projection = createWorkerProjection(silo)
 	let closed = false
 	let control = false
-	let ready = false
+	let mode: `store` | `snapshot` | undefined
+	let nextSequence = 1
 	let nextWatch = 0
 	let stateRequestScheduled = false
 	const generations = new Set<WorkerGenerate>()
@@ -103,6 +104,15 @@ export function connectRemoteStore(transport: DevtoolsPanelTransport): {
 		close(notify)
 		silo.setState(errorAtom, `Remote devtools disconnected`)
 	}
+	function desynced(): void {
+		close()
+		control = false
+		silo.setState(
+			errorAtom,
+			`Remote devtools is out of sync. Reconnect to reload the store.`,
+		)
+		silo.setState(readyAtom, false)
+	}
 	function applyStates(updated: WorkerState[]): void {
 		for (const state of updated) {
 			const value = `value` in state ? state.value : new Error(state.error)
@@ -134,19 +144,32 @@ export function connectRemoteStore(transport: DevtoolsPanelTransport): {
 			connectionLost(false)
 		} else if (data?.type === `edit-error`) {
 			silo.setState(errorAtom, data.message)
-		} else if (data?.type === `store`) {
-			control = data.snapshot.control
-			projection.apply(data.snapshot)
-			ready = true
+		} else if (data?.type === `store` || data?.type === `snapshot`) {
+			if (mode) {
+				desynced()
+				return
+			}
+			mode = data.type
+			if (data.type === `store`) {
+				control = data.snapshot.control
+				projection.apply(data.snapshot)
+			} else {
+				control = data.control
+				applyStates(data.states)
+			}
 			silo.setState(readyAtom, true)
-		} else if (data?.type === `snapshot`) {
-			control = data.control
-			applyStates(data.states)
-			ready = true
-			silo.setState(readyAtom, true)
-		} else if (ready && data?.type === `store-update`)
-			projection.update(data.update)
-		else if (ready && data?.type === `snapshot-update`) applyStates(data.states)
+		} else if (
+			data?.type === `store-update` ||
+			data?.type === `snapshot-update`
+		) {
+			if (data.type !== `${mode}-update` || data.sequence !== nextSequence) {
+				desynced()
+				return
+			}
+			nextSequence++
+			if (data.type === `store-update`) projection.update(data.update)
+			else applyStates(data.states)
+		}
 	}
 	const worker: WorkerPanelConnection = {
 		error: errorAtom,

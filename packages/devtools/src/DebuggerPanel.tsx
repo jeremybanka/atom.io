@@ -159,7 +159,7 @@ export function DebuggerPanel(props: {
 				<button
 					type="button"
 					aria-label="Debugger layout"
-					title="Debugger layout: halves, thirds, full viewport or restore"
+					title="Debugger layout: halves, thirds, two-thirds, full viewport or restore"
 					aria-expanded={windowState().menuOpen}
 				>
 					□

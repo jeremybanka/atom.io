@@ -8,12 +8,17 @@ export interface Viewport {
 	width: number
 	height: number
 }
+const THIRD_TARGETS = [
+	`left-third`,
+	`left-two-thirds`,
+	`center-third`,
+	`right-two-thirds`,
+	`right-third`,
+] as const
 export const SNAP_TARGETS = [
 	`left-half`,
 	`right-half`,
-	`left-third`,
-	`center-third`,
-	`right-third`,
+	...THIRD_TARGETS,
 	`top-half`,
 	`bottom-half`,
 	`full`,
@@ -71,8 +76,12 @@ export function snapRect(target: SnapTarget, viewport: Viewport): Rect {
 			return { x: width / 2, y: 0, width: width / 2, height }
 		case `left-third`:
 			return { x: 0, y: 0, width: width / 3, height }
+		case `left-two-thirds`:
+			return { x: 0, y: 0, width: (width * 2) / 3, height }
 		case `center-third`:
 			return { x: width / 3, y: 0, width: width / 3, height }
+		case `right-two-thirds`:
+			return { x: width / 3, y: 0, width: (width * 2) / 3, height }
 		case `right-third`:
 			return { x: (width * 2) / 3, y: 0, width: width / 3, height }
 		case `top-half`:
@@ -115,7 +124,8 @@ export function edgeTarget(
 	if (y <= 8) return `full`
 	if (x <= 8) return `left-half`
 	if (x >= viewport.width - 8) return `right-half`
-	if (y >= viewport.height - 8) return `bottom-half`
+	if (y >= viewport.height - 8)
+		return THIRD_TARGETS[Math.floor((x * THIRD_TARGETS.length) / viewport.width)]
 	return null
 }
 export function readGeometry(

@@ -15,14 +15,21 @@ const THIRD_TARGETS = [
 	`right-two-thirds`,
 	`right-third`,
 ] as const
-export const SNAP_TARGETS = [
+export const SNAP_TARGETS: readonly [
+	`left-half`,
+	`right-half`,
+	...typeof THIRD_TARGETS,
+	`top-half`,
+	`bottom-half`,
+	`full`,
+] = [
 	`left-half`,
 	`right-half`,
 	...THIRD_TARGETS,
 	`top-half`,
 	`bottom-half`,
 	`full`,
-] as const
+]
 export type SnapTarget = (typeof SNAP_TARGETS)[number]
 export const RESIZE_EDGES = [`n`, `s`, `e`, `w`, `ne`, `nw`, `se`, `sw`] as const
 export type ResizeEdge = (typeof RESIZE_EDGES)[number]

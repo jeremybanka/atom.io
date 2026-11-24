@@ -26,30 +26,31 @@ function SnapIcon(props: { target?: SnapTarget }): SpaElement {
 			aria-hidden="true"
 			focusable="false"
 		>
-			<rect
-				x="1"
-				y="1"
-				width="26"
-				height="18"
-				rx="2"
-				stroke="var(--snap-context-stroke)"
-			/>
 			{tile ? (
-				<rect
-					x={tile.x + 2}
-					y={tile.y + 2}
-					width={tile.width}
-					height={tile.height}
-					rx="1"
-					fill="currentColor"
-				/>
+				<>
+					<rect
+						x="1"
+						y="1"
+						width="26"
+						height="18"
+						rx="2"
+						stroke="var(--snap-context-stroke)"
+					/>
+					<rect
+						x={tile.x + 2}
+						y={tile.y + 2}
+						width={tile.width}
+						height={tile.height}
+						rx="1"
+						fill="currentColor"
+					/>
+				</>
 			) : (
 				<path
-					d="M9 10V5h5M9 5l5 5m2-2h6v7H11v-3"
+					d="M9 5l10 10M19 5L9 15"
 					stroke="currentColor"
 					stroke-width="1.25"
 					stroke-linecap="round"
-					stroke-linejoin="round"
 				/>
 			)}
 		</svg>

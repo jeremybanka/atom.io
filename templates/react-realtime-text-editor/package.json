@@ -42,7 +42,7 @@
 		"@atom.io/eslint-plugin": "workspace:*",
 		"@dprint/json": "0.26.0",
 		"@dprint/markdown": "0.29.0",
-		"@dprint/oxc": "0.51.0",
+		"@dprint/oxc": "0.52.0",
 		"@playwright/test": "1.65.1",
 		"@testing-library/dom": "10.4.2",
 		"@testing-library/react": "16.3.3",

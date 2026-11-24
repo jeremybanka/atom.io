@@ -1,5 +1,4 @@
 import type { RootStore } from "atom.io/internal"
-
 import { peekState, peekStateDefinition } from "atom.io/introspection"
 /** Defer the existing editor blur only while focus visits this panel's passive search UI. */
 export function createSearchSession(

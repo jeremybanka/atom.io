@@ -20,14 +20,7 @@ import {
 } from "atom.io/introspection"
 
 import type { RecordedEvent } from "./history-event.ts"
-import {
-	batchDevtoolsUpdates,
-	closeDevtoolsTransport,
-	type DevtoolsStoreTransport,
-	reportDevtoolsError,
-} from "./transport.ts"
 import { trackRemoteEcology } from "./remote-ecology.ts"
-import { REMOTE_PROTOCOL_VERSION } from "./remote-protocol.ts"
 import type {
 	PanelMessage,
 	RemoteHistoryUpdate,
@@ -35,6 +28,13 @@ import type {
 	RemoteStoreSnapshot,
 	RemoteStoreUpdate,
 } from "./remote-protocol.ts"
+import { REMOTE_PROTOCOL_VERSION } from "./remote-protocol.ts"
+import {
+	batchDevtoolsUpdates,
+	closeDevtoolsTransport,
+	type DevtoolsStoreTransport,
+	reportDevtoolsError,
+} from "./transport.ts"
 
 function isEditableValue(value: unknown): boolean {
 	const pending = [value]

@@ -2,12 +2,6 @@ import type { ReadonlyPureSelectorToken, RegularAtomToken, Silo } from "atom.io"
 import { isReservedIntrospectionKey } from "atom.io/internal"
 import { observeStore, peekState } from "atom.io/introspection"
 
-import {
-	batchDevtoolsUpdates,
-	closeDevtoolsTransport,
-	type DevtoolsStoreTransport,
-	reportDevtoolsError,
-} from "./transport.ts"
 import type {
 	PanelMessage,
 	RemotePrimitive,
@@ -15,17 +9,23 @@ import type {
 } from "./remote-protocol.ts"
 import { isRemotePrimitive, REMOTE_PROTOCOL_VERSION } from "./remote-protocol.ts"
 import { exposeWholeStore } from "./remote-store.ts"
-
-export type {
-	DevtoolsPanelTransport,
-	DevtoolsStoreTransport,
-	DevtoolsTransport,
+import {
+	batchDevtoolsUpdates,
+	closeDevtoolsTransport,
+	type DevtoolsStoreTransport,
+	reportDevtoolsError,
 } from "./transport.ts"
+
 export type {
 	PanelMessage as DevtoolsPanelMessage,
 	RemotePrimitive as DevtoolsPrimitive,
 	RemoteMessage as DevtoolsStoreMessage,
 } from "./remote-protocol.ts"
+export type {
+	DevtoolsPanelTransport,
+	DevtoolsStoreTransport,
+	DevtoolsTransport,
+} from "./transport.ts"
 
 type ValidateEdit = (value: RemotePrimitive) => boolean
 export type DevtoolsState =

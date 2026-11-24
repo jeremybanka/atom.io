@@ -13,14 +13,14 @@ import {
 import { messagePortTransport } from "../src/message-port.ts"
 import { connectRemoteStore } from "../src/remote-connection.ts"
 import {
+	projectRemoteEcology,
+	trackRemoteEcology,
+} from "../src/remote-ecology.ts"
+import {
 	exposeDevtoolsStore as exposeWorkerStore,
 	type WorkerDevtoolsState,
 	type WorkerDevtoolsValue,
 } from "../src/worker.ts"
-import {
-	projectRemoteEcology,
-	trackRemoteEcology,
-} from "../src/remote-ecology.ts"
 
 function exposeDevtoolsStore(
 	port: MessagePort,
@@ -1069,8 +1069,8 @@ it(`projects initial timeline entries, history clear, and newly registered histo
 		silo.getState(two)
 		await flush()
 		worker.postMessage.mockClear()
-		const transient = silo.timeline({ key: `transient`, scope: [] })
-		silo.disposeTimeline(transient)
+		const transientTimeline = silo.timeline({ key: `transient`, scope: [] })
+		silo.disposeTimeline(transientTimeline)
 		silo.getState(silo.findState(itemsAtoms, `temporary`))
 		silo.disposeState(itemsAtoms, `temporary`)
 		await flush()

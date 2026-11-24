@@ -2,10 +2,6 @@ import { type RegularAtomToken, Silo } from "atom.io"
 import type { RootStore } from "atom.io/internal"
 
 import type { EcologySnapshot } from "./ecology.ts"
-import {
-	closeDevtoolsTransport,
-	type DevtoolsPanelTransport,
-} from "./transport.ts"
 import { createRemoteProjection } from "./remote-projection.ts"
 import type {
 	PanelMessage,
@@ -15,9 +11,12 @@ import type {
 	RemoteRelease,
 	RemoteState,
 } from "./remote-protocol.ts"
-
 import { REMOTE_PROTOCOL_VERSION } from "./remote-protocol.ts"
 import type { StoreViews } from "./store.ts"
+import {
+	closeDevtoolsTransport,
+	type DevtoolsPanelTransport,
+} from "./transport.ts"
 
 export interface RemotePanelConnection {
 	views: StoreViews

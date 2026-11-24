@@ -396,7 +396,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                        | Entry                         | Minified JS |   Gzip JS |
 | ----------------------------- | ----------------------------- | ----------: | --------: |
-| Interactive app with debugger | `tonnage-recipes/debugger.ts` | 1,004,260 B | 298,507 B |
+| Interactive app with debugger | `tonnage-recipes/debugger.ts` | 1,004,260 B | 298,510 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

@@ -1,7 +1,7 @@
 /** @jsxImportSource @atom.io/spa */
 import { onCleanup, type SpaElement } from "@atom.io/spa"
-import { peekStateDefinition } from "atom.io/introspection"
 import { deposit } from "atom.io/internal"
+import { peekStateDefinition } from "atom.io/introspection"
 
 import type { GraphItem } from "./ecology-graph.ts"
 import { EDITOR_SPRING } from "./ecology-motion.ts"

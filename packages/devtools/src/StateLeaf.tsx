@@ -7,9 +7,9 @@ import { peekState, peekStateDefinition } from "atom.io/introspection"
 
 import { EditorButton } from "./EditorButton.tsx"
 import { JsonEditor } from "./JsonEditor.tsx"
+import type { RemoteCachedValue } from "./remote-protocol.ts"
 import css from "./StateLeaf.module.css"
 import type { EditorTools } from "./store.ts"
-import type { RemoteCachedValue } from "./remote-protocol.ts"
 
 type Token = ReadableToken<unknown, any, any>
 export function StateLeaf(props: {

@@ -4,7 +4,7 @@ import { act, createElement, StrictMode } from "react"
 import type { Root } from "react-dom/client"
 import { createRoot } from "react-dom/client"
 import { renderToString } from "react-dom/server"
-import { afterEach, beforeEach, expect, it } from "vitest"
+import { afterEach, beforeEach, expect, it, vi } from "vitest"
 
 import type { AtomIODevtoolsProps } from "../src/react.ts"
 import { AtomIODevtools } from "../src/react.ts"
@@ -113,7 +113,7 @@ it(`server rendering creates no panel or UI family members`, () => {
 	expect(owned(app)).toEqual([])
 })
 
-it(`keeps supplied targets mounted when the React provider changes`, async () => {
+it(`keeps equivalent inline targets mounted and preserves the selected store`, async () => {
 	const first = silo()
 	const second = silo()
 	const selected = silo()
@@ -122,15 +122,26 @@ it(`keeps supplied targets mounted when the React provider changes`, async () =>
 	document.body.append(host)
 	const root = createRoot(host)
 	roots.push(root)
-	const stores = [
-		{
-			id: `selected`,
-			label: `Selected store`,
-			kind: `local`,
-			store: selected.store,
-		},
-	] as const
-	const render = async (provider: Silo) => {
+	const close = vi.fn()
+	const newTransport = () => ({ send: vi.fn(), listen: vi.fn(), close })
+	const connect = vi.fn(newTransport)
+	const reconnect = vi.fn(newTransport)
+	const local = {
+		id: `selected`,
+		label: `Selected store`,
+		kind: `local`,
+		store: selected.store,
+	} as const
+	const remote = {
+		id: `remote`,
+		label: `Remote`,
+		kind: `remote`,
+		connect,
+	} as const
+	const render = async (
+		provider: Silo,
+		stores: AtomIODevtoolsProps[`stores`] = [{ ...local }, { ...remote }],
+	) => {
 		await actAsync(() => {
 			root.render(
 				createElement(StoreProvider, {
@@ -141,11 +152,32 @@ it(`keeps supplied targets mounted when the React provider changes`, async () =>
 		})
 	}
 	await render(first)
-	const panel = host.querySelector(`debugger-panel`)
-	expect(panel?.querySelector(`[data-store-group] > p`)?.textContent).toBe(
-		`Local`,
+	const active = () => host.querySelector(`debugger-panel:not([hidden])`)
+	const click = async (selector: string) => {
+		await actAsync(async () => {
+			active()!.querySelector<HTMLButtonElement>(selector)!.click()
+			for (let i = 0; i < 8; i++) await Promise.resolve()
+		})
+	}
+	await click(`[data-store-trigger]`)
+	await click(`[data-store-option="remote"]`)
+	const panel = active()
+	expect(panel?.querySelector(`[data-store-trigger]`)?.textContent).toContain(
+		`Remote`,
 	)
-	expect(panel?.querySelectorAll(`[data-store-group]`)).toHaveLength(1)
 	await render(second)
-	expect(host.querySelector(`debugger-panel`)).toBe(panel)
+	expect(active()).toBe(panel)
+	expect(connect).toHaveBeenCalledOnce()
+	expect(close).not.toHaveBeenCalled()
+
+	await render(second, [local, { ...remote, connect: reconnect }])
+	expect(active()).not.toBe(panel)
+	expect(reconnect).toHaveBeenCalledOnce()
+	expect(close).toHaveBeenCalledOnce()
+
+	await render(second, [
+		local,
+		{ ...remote, connect: reconnect, label: `Renamed` },
+	])
+	expect(reconnect).toHaveBeenCalledTimes(2)
 })

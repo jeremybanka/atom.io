@@ -111,6 +111,7 @@ worker.addEventListener(
 document.querySelector(`#increment`)!.addEventListener(`click`, () => {
 	worker.postMessage({ type: `increment` })
 })
+worker.addEventListener(`error`, panel.dispose, { once: true })
 window.addEventListener(
 	`pagehide`,
 	() => {
@@ -174,6 +175,8 @@ worker.addEventListener(`message`, ({ data }: MessageEvent<AppMessage>) => {
 
 ```
 
+Dispose the panel before terminating a worker you own, and dispose it on a worker error. Some browsers do not dispatch a MessagePort close event when the worker exits abruptly. Disposing the panel closes its connection and releases its local listeners.
+
 From the repository root, start the demo and open the printed URL. The store picker switches between the page and worker. Increment in worker runs a worker transaction, and the Selectors tab shows the derived value. Edit count in the Atoms tab and press Enter to send it back. The Timelines tab can undo that edit, and Ecology shows the observed edge from count to doubled.
 
 ```sh
@@ -189,7 +192,7 @@ The store owner chooses the access policy for each connection.
 
 | Access           | Store owner behavior                                                                                                                                                                    |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Off, the default | Closes the supplied connection without reading or publishing the store.                                                                                                                 |
+| Off, the default | Sends a close frame and closes the connection without reading or publishing the store.                                                                                                  |
 | Inspect          | Publishes cached values and retained history. Rejects commands that write state, evaluate selectors, dispose of family members, or move a timeline. The panel displays Inspection only. |
 | Control          | Grants inspection and the supported debugger operations. State edits and time travel are checked against the owner's revisions.                                                         |
 
@@ -239,7 +242,7 @@ export function Debugger({ store }: { store: RootStore }): ReactElement {
 
 ```
 
-The adapter reads StoreContext from @atom.io/react. An explicit store prop takes precedence over its provider; without either it uses the implicit store. Changing the selected store or hideByDefault disposes and remounts the panel. Persisted visibility takes precedence over hideByDefault. Effect cleanup supports StrictMode replay. Server import and render create no panel; mounting happens in a client effect.
+The adapter reads StoreContext from @atom.io/react. An explicit store prop takes precedence over its provider; without either it uses the implicit store. Changing the inspected store, the configured targets, or hideByDefault disposes and remounts the panel. Recreating an equivalent stores array preserves the mounted panel and its selection. Keep each remote target's connect function stable across renders and have it open a fresh connection when called. Persisted visibility takes precedence over hideByDefault. Effect cleanup supports StrictMode replay. Server import and render create no panel; mounting happens in a client effect.
 
 Ecology is the first and default view. The other tabs inspect atoms, selectors, transactions, and timelines. State families group their members and offer member disposal. JSON editors support primitive edits, object property renaming, adding and removing entries, array sorting, and conversion between JSON types. Drag an array item by its handle or focus the handle and use Alt+Up or Alt+Down. Readonly selectors remain readonly. Circular and non-JSON values receive safe textual representations. Failed edits appear in the panel.
 
@@ -389,7 +392,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                        | Entry                         | Minified JS |   Gzip JS |
 | ----------------------------- | ----------------------------- | ----------: | --------: |
-| Interactive app with debugger | `tonnage-recipes/debugger.ts` | 1,001,424 B | 297,436 B |
+| Interactive app with debugger | `tonnage-recipes/debugger.ts` | 1,001,802 B | 297,588 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

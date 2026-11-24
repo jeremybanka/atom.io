@@ -152,14 +152,30 @@ it(`keeps each target mounted and isolates panel commands and keyboard shortcuts
 		expect(
 			active()?.querySelector<HTMLInputElement>(`[aria-label="local"]`)?.value,
 		).toBe(`page`)
+		const moveLeft = async () => {
+			const element = active()!
+			const left = element.style.left
+			element
+				.querySelector(`[aria-label="Move debugger"]`)!
+				.dispatchEvent(
+					new KeyboardEvent(`keydown`, { key: `ArrowLeft`, bubbles: true }),
+				)
+			await flush()
+			expect(element.style.left).not.toBe(left)
+			return element.style.left
+		}
+		const localLeft = await moveLeft()
 		firstStore.setState(firstAtom, 10)
 		secondStore.setState(secondAtom, 20)
 		await switchTo(`second`)
+		expect(active()?.style.left).toBe(localLeft)
 		expect(document.activeElement).toBe(trigger())
 		expect(
 			active()?.querySelector<HTMLInputElement>(`[aria-label="second"]`)?.value,
 		).toBe(`20`)
+		const remoteLeft = await moveLeft()
 		await switchTo(`first`)
+		expect(active()?.style.left).toBe(remoteLeft)
 		expect(
 			active()?.querySelector<HTMLInputElement>(`[aria-label="first"]`)?.value,
 		).toBe(`10`)
@@ -184,6 +200,8 @@ it(`keeps each target mounted and isolates panel commands and keyboard shortcuts
 		expect(
 			active()?.querySelector<HTMLInputElement>(`[aria-label="first"]`)?.value,
 		).toBe(`10`)
+		await switchTo(`page`)
+		expect(active()?.style.left).toBe(remoteLeft)
 		expect(connectFirst).toHaveBeenCalledOnce()
 		expect(connectSecond).toHaveBeenCalledOnce()
 		expect(silo.getState(localAtom)).toBe(`page`)
@@ -287,6 +305,7 @@ it(`rejects a remote array reorder when the owner changes the array during a dra
 		host.querySelector<HTMLButtonElement>(`[aria-label="Expand list"]`)!.click()
 		await flush()
 		const transfer = new DataTransfer()
+		vi.spyOn(transfer, `setDragImage`).mockReturnValue(undefined)
 		const drag = (selector: string, type: string) => {
 			const event = new DragEvent(type, { bubbles: true, cancelable: true })
 			Object.defineProperty(event, `dataTransfer`, { value: transfer })
@@ -434,6 +453,88 @@ it(`projects retained history and the observed graph and time travels in the wor
 		await flush()
 		await tab(`timelines`)
 		expect(host.querySelector(`[data-testid="timeline-count"]`)).toBeNull()
+	} finally {
+		panel.dispose()
+		stop()
+	}
+})
+
+it(`watches remote selectors only while their rows are displayed`, async () => {
+	const { silo, host, page, worker } = fixture()
+	const countAtom = silo.atom<number>({ key: `count`, default: 2 })
+	const doubledSelector = silo.selector<number>({
+		key: `doubled`,
+		get: ({ get }) => 2 * get(countAtom),
+	})
+	const subject = silo.store.readonlySelectors.get(doubledSelector.key)!.subject
+	const panel = mountWorkerAtomIODevtools(host, page.port)
+	const stop = exposeDevtoolsStore(worker.port, silo)
+	const tab = async (view: string) => {
+		host
+			.querySelector<HTMLButtonElement>(`[data-testid="view-${view}"]`)!
+			.click()
+		await flush()
+	}
+	const generate = (key: string, watch?: number) => {
+		worker.receive({ type: `generate`, key, watch })
+	}
+	const release = (watch: number) => {
+		worker.receive({ type: `release`, key: doubledSelector.key, watch })
+	}
+	const value = () =>
+		host.querySelector<HTMLInputElement>(`[aria-label="doubled"]`)?.value
+	try {
+		generate(doubledSelector.key)
+		generate(countAtom.key, 100)
+		release(100)
+		expect(subject.subscribers.size).toBe(0)
+		await flush()
+		await tab(`selectors`)
+		expect(subject.subscribers.size).toBe(1)
+		silo.setState(countAtom, 3)
+		await flush()
+		expect(value()).toBe(`6`)
+
+		generate(doubledSelector.key, 100)
+		release(101)
+		await tab(`atoms`)
+		expect(subject.subscribers.size).toBe(1)
+		release(100)
+		expect(subject.subscribers.size).toBe(0)
+
+		silo.setState(countAtom, 4)
+		await tab(`selectors`)
+		expect(value()).toBe(`8`)
+		host
+			.querySelector<HTMLButtonElement>(`[aria-label^="Hide debugger"]`)!
+			.click()
+		await flush()
+		expect(subject.subscribers.size).toBe(0)
+
+		const tripleSelector = silo.selector<number>({
+			key: `triple`,
+			get: ({ get }) => 3 * get(countAtom),
+		})
+		const triple = silo.store.readonlySelectors.get(tripleSelector.key)!.subject
+		document.dispatchEvent(
+			new KeyboardEvent(`keydown`, {
+				ctrlKey: true,
+				shiftKey: true,
+				code: `KeyA`,
+			}),
+		)
+		await flush()
+		expect(subject.subscribers.size).toBe(1)
+		expect(triple.subscribers.size).toBe(1)
+		page.postMessage.mockImplementationOnce(() => {
+			throw new Error(`Failed to send release`)
+		})
+		await tab(`atoms`)
+		expect(host.querySelector(`[role="alert"]`)?.textContent).toBe(
+			`Remote devtools disconnected`,
+		)
+		expect(subject.subscribers.size).toBe(0)
+		expect(triple.subscribers.size).toBe(0)
 	} finally {
 		panel.dispose()
 		stop()

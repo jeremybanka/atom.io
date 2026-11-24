@@ -1,6 +1,6 @@
 /** @jsxImportSource @atom.io/spa */
 import type { Children, SpaElement } from "@atom.io/spa"
-import { onMount, useGetter, useSetter } from "@atom.io/spa"
+import { onCleanup, onMount, useGetter, useSetter } from "@atom.io/spa"
 import type { ReadableToken, WritableToken } from "atom.io"
 import { disposeFromStore, getFromStore, resetInStore } from "atom.io/internal"
 import { peekState } from "atom.io/introspection"
@@ -33,6 +33,15 @@ export function StateLeaf(props: {
 	const worker = props.tools.worker
 	const canOperate = worker?.canControl() !== false
 	const projection = worker?.cache(token.key)
+	const watch =
+		projection && canOperate && token.type.includes(`selector`)
+			? worker!.watchSelector(token.key)
+			: undefined
+	if (watch) onCleanup(watch.dispose)
+	const generate = () => {
+		if (watch) watch.generate()
+		else worker!.generate(token.key)
+	}
 	const getValue = useGetter(projection ?? token)
 	const cache = projection
 		? () => {
@@ -74,9 +83,7 @@ export function StateLeaf(props: {
 		)
 	onMount(() => {
 		if (projection && canOperate && !props.cachedOnly)
-			props.tools.attempt(() => {
-				worker!.generate(token.key)
-			})
+			props.tools.attempt(generate)
 	})
 	const value = () => {
 		try {
@@ -116,7 +123,7 @@ export function StateLeaf(props: {
 							onClick={() => {
 								props.tools.attempt(() => {
 									requireCurrent()
-									if (projection) worker!.generate(token.key)
+									if (projection) generate()
 									else {
 										getFromStore(props.tools.store, token)
 										props.onInitialize?.()

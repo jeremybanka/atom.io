@@ -53,7 +53,7 @@ export function exposeDevtoolsStore(
 			globalThis.process?.env?.[`NODE_ENV`] === `production`) &&
 			options.productionAccess !== access)
 	) {
-		transport.close()
+		closeDevtoolsTransport(transport, true)
 		return () => {}
 	}
 	const control = access === `control`

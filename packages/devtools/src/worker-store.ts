@@ -97,7 +97,7 @@ export function exposeWholeStore(
 	control: boolean,
 ): () => void {
 	const { store } = silo
-	const watch = new Map<string, () => void>()
+	const watches = new Map<string, { ids: Set<number>; stop(): void }>()
 	const revisions = new Map<string, number>()
 	const cleanup: (() => void)[] = []
 	const timelines = new Map<string, { revision: number; stop(): void }>()
@@ -223,7 +223,7 @@ export function exposeWholeStore(
 		for (const stop of cleanup) stop()
 		for (const { stop } of timelines.values()) stop()
 		for (const { stop } of transactions.values()) stop()
-		for (const stop of watch.values()) stop()
+		for (const { stop } of watches.values()) stop()
 		closeDevtoolsTransport(transport, notify)
 	}
 	function receive(data: PanelMessage) {
@@ -235,6 +235,14 @@ export function exposeWholeStore(
 		try {
 			if (!control) throw new Error(`Remote devtools is inspection only`)
 			if (!visible(data.key)) throw new Error(`Remote state is unavailable`)
+			if (data.type === `release`) {
+				const watch = watches.get(data.key)
+				if (watch?.ids.delete(data.watch) && watch.ids.size === 0) {
+					watch.stop()
+					watches.delete(data.key)
+				}
+				return
+			}
 			if (data.type === `timeline`) {
 				const timeline = store.timelines.get(data.key)
 				if (!timeline || timelines.get(data.key)?.revision !== data.revision)
@@ -250,11 +258,17 @@ export function exposeWholeStore(
 				switch (data.type) {
 					case `generate`:
 						silo.getState(token)
-						if (definition.type.includes(`selector`) && !watch.has(token.key)) {
-							watch.set(
-								token.key,
-								subscribeToState(store, token, subscriber, schedule),
-							)
+						if (
+							data.watch !== undefined &&
+							definition.type.includes(`selector`)
+						) {
+							const watch = watches.get(token.key)
+							if (watch) watch.ids.add(data.watch)
+							else
+								watches.set(token.key, {
+									ids: new Set([data.watch]),
+									stop: subscribeToState(store, token, subscriber, schedule),
+								})
 						}
 						break
 					case `dispose`:
@@ -295,8 +309,8 @@ export function exposeWholeStore(
 				for (const key of new Set([...states, ...values]))
 					revisions.set(key, (revisions.get(key) ?? 0) + 1)
 				for (const key of states) {
-					watch.get(key)?.()
-					watch.delete(key)
+					watches.get(key)?.stop()
+					watches.delete(key)
 				}
 				schedule()
 			}),

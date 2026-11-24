@@ -22,10 +22,11 @@ await test(`packed remote owner entry is available without a browser`, () => {
 		isProduction: true,
 	})
 	let closed = false
+	const frames: unknown[] = []
 	const dispose = exposeDevtoolsStore(
 		{
-			send() {
-				assert.fail(`A disabled exposure must not send`)
+			send(frame) {
+				frames.push(frame)
 			},
 			listen() {
 				assert.fail(`A disabled exposure must not listen`)
@@ -37,6 +38,7 @@ await test(`packed remote owner entry is available without a browser`, () => {
 		silo,
 	)
 	assert.equal(closed, true)
+	assert.deepEqual(frames, [{ type: `close` }])
 	dispose()
 })
 

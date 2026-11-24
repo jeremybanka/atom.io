@@ -72,18 +72,28 @@ afterEach(() => {
 	localStorage.clear()
 })
 
-it(`closes disabled transports without reading or publishing the store`, () => {
-	const { silo, store } = fixture()
+it(`reports a disabled exposure without reading or publishing the store`, async () => {
+	const { silo, host, store, mount } = fixture()
 	const read = vi.spyOn(silo, `getState`)
-	exposeDevtoolsStore(store.transport, silo)()
-	exposeDevtoolsStore(store.transport, silo, {
-		access: `off`,
-		productionAccess: `control`,
-	})()
-	expect(store.transport.close).toHaveBeenCalledTimes(2)
-	expect(store.transport.listen).not.toHaveBeenCalled()
-	expect(store.transport.send).not.toHaveBeenCalled()
-	expect(read).not.toHaveBeenCalled()
+	const panel = mount()
+	try {
+		expect(host.querySelector(`[role="status"]`)?.textContent).toContain(
+			`Waiting`,
+		)
+		exposeDevtoolsStore(store.transport, silo)()
+		await vi.waitFor(() => {
+			expect(host.querySelector(`[role="alert"]`)?.textContent).toBe(
+				`Remote devtools disconnected`,
+			)
+		})
+		expect(host.querySelector(`[role="status"]`)).toBeNull()
+		expect(store.transport.close).toHaveBeenCalledOnce()
+		expect(store.transport.listen).not.toHaveBeenCalled()
+		expect(store.transport.send.mock.calls).toEqual([[{ type: `close` }]])
+		expect(read).not.toHaveBeenCalled()
+	} finally {
+		panel.dispose()
+	}
 })
 
 it(`requires a separate production opt-in for either enabled mode`, () => {
@@ -100,7 +110,7 @@ it(`requires a separate production opt-in for either enabled mode`, () => {
 	for (const connection of [production.store, store]) {
 		expect(connection.transport.close).toHaveBeenCalledOnce()
 		expect(connection.transport.listen).not.toHaveBeenCalled()
-		expect(connection.transport.send).not.toHaveBeenCalled()
+		expect(connection.transport.send.mock.calls).toEqual([[{ type: `close` }]])
 	}
 })
 

@@ -21,6 +21,7 @@ export interface WorkerPanelConnection {
 	edit(key: string, value: unknown, revision?: number): void
 	cache(key: string): RegularAtomToken<WorkerCachedValue> | undefined
 	generate(key: string): void
+	watchSelector(key: string): { generate(): void; dispose(): void }
 	disposeState(key: string): void
 	timeline(key: string, action: `undo` | `redo`): void
 	ecology(): EcologySnapshot | undefined
@@ -54,6 +55,7 @@ export function connectRemoteStore(transport: DevtoolsPanelTransport): {
 	const projection = createWorkerProjection(silo)
 	let closed = false
 	let control = false
+	let nextWatch = 0
 	const command = (message: PanelMessage) => {
 		if (closed) throw new Error(`Remote devtools disconnected`)
 		transport.send(message)
@@ -116,6 +118,25 @@ export function connectRemoteStore(transport: DevtoolsPanelTransport): {
 		cache: projection.cache,
 		generate(key) {
 			command({ type: `generate`, key })
+		},
+		watchSelector(key) {
+			const watch = nextWatch++
+			let started = false
+			return {
+				generate() {
+					command({ type: `generate`, key, watch })
+					started = true
+				},
+				dispose() {
+					if (closed || !started) return
+					started = false
+					try {
+						command({ type: `release`, key, watch })
+					} catch {
+						connectionLost()
+					}
+				},
+			}
 		},
 		disposeState(key) {
 			command({ type: `dispose`, key })

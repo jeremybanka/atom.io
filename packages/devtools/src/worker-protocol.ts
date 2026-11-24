@@ -26,7 +26,9 @@ export type WorkerMessage =
 
 export type PanelMessage =
 	| { type: `edit`; key: string; revision: number | undefined; value: unknown }
-	| { type: `generate` | `dispose`; key: string }
+	| { type: `generate`; key: string; watch?: number }
+	| { type: `release`; key: string; watch: number }
+	| { type: `dispose`; key: string }
 	| {
 			type: `timeline`
 			key: string

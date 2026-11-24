@@ -36,6 +36,7 @@ worker.addEventListener(
 document.querySelector(`#increment`)!.addEventListener(`click`, () => {
 	worker.postMessage({ type: `increment` })
 })
+worker.addEventListener(`error`, panel.dispose, { once: true })
 window.addEventListener(
 	`pagehide`,
 	() => {

@@ -10,6 +10,7 @@ import {
 	type WorkerPanelConnection,
 } from "./mount-worker.ts"
 import type { DevtoolsPanelTransport } from "./transport.ts"
+import type { SharedWindowGeometry } from "./window-controller.ts"
 
 export type AtomIODevtoolsTarget = {
 	readonly id: string
@@ -25,6 +26,7 @@ export type AtomIODevtoolsTarget = {
 export interface StorePicker {
 	id: string
 	targets: readonly Pick<AtomIODevtoolsTarget, `id` | `label` | `kind`>[]
+	geometry: SharedWindowGeometry
 	selected(): string
 	subscribe(listener: (id: string) => void): () => void
 	select(id: string): void
@@ -54,6 +56,7 @@ export function mountAtomIODevtools(
 	if (ids.size !== targets.length)
 		throw new Error(`Devtools target IDs must be unique`)
 	let selected = targets[0].id
+	const geometry: SharedWindowGeometry = {}
 	const listeners = new Set<(id: string) => void>()
 	const panels: AtomIODevtoolsHandle[] = []
 	const dispose = () => {
@@ -64,6 +67,7 @@ export function mountAtomIODevtools(
 			const picker: StorePicker = {
 				id: target.id,
 				targets,
+				geometry,
 				selected: () => selected,
 				subscribe(listener) {
 					listeners.add(listener)

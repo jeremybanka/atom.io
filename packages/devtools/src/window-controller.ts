@@ -39,12 +39,16 @@ export const LABELS: Record<SnapTarget, string> = {
 	"bottom-half": `Bottom half`,
 	full: `Full viewport`,
 }
+export interface SharedWindowGeometry {
+	current?: WindowGeometry
+}
 /** Owns geometry and gestures for the SPA window; never writes application state. */
 export function createWindowController(
 	panel: HTMLElement,
 	toggleHidden: () => void,
 	publish: (patch: Partial<WindowPresentation>) => void,
 	isActive?: () => boolean,
+	sharedGeometry?: SharedWindowGeometry,
 ): {
 	visibility(hidden: boolean, open: boolean): void
 	toggleMenu(): void
@@ -126,6 +130,7 @@ export function createWindowController(
 		})
 	}
 	function persist() {
+		if (sharedGeometry) sharedGeometry.current = geometry
 		try {
 			win.localStorage.setItem(STORAGE_KEY, JSON.stringify(geometry))
 		} catch {
@@ -423,6 +428,8 @@ export function createWindowController(
 				finish(true)
 				menuOpen = false
 			}
+			if (hidden && !nextHidden && sharedGeometry?.current)
+				geometry = readGeometry(sharedGeometry.current, viewport())
 			hidden = nextHidden
 			open = nextOpen
 			paint()

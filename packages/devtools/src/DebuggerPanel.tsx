@@ -100,6 +100,7 @@ export function DebuggerPanel(props: {
 				setWindowState((previous) => ({ ...previous, ...patch }))
 			},
 			active,
+			picker?.geometry,
 		)
 		controller.visibility(hidden(), getOpen())
 		onCleanup(controller.dispose)
@@ -241,11 +242,13 @@ export function DebuggerPanel(props: {
 							/>
 						)
 					) : view() === `atoms` || view() === `selectors` ? (
-						<StateIndex
-							key={view()}
-							tools={tools}
-							type={view() as `atoms` | `selectors`}
-						/>
+						props.worker && hidden() ? null : (
+							<StateIndex
+								key={view()}
+								tools={tools}
+								type={view() as `atoms` | `selectors`}
+							/>
+						)
 					) : view() === `transactions` ? (
 						<TransactionIndex tools={tools} />
 					) : (

@@ -11,7 +11,6 @@ window-overlay.class {
 		border: 2px solid var(--accent);
 	}
 	> snap-palette {
-		--snap-faint-ink: color-mix(in srgb, var(--ink) 16%, var(--bg-color));
 		position: absolute;
 		top: 12px;
 		left: 50%;
@@ -23,7 +22,7 @@ window-overlay.class {
 		padding: 6px;
 		width: max-content;
 		max-width: calc(100vw - 16px);
-		background: var(--snap-faint-ink);
+		background: var(--ink-muted);
 		border: 1px solid var(--bg-color);
 		box-shadow: 0 4px 18px #0006;
 	}
@@ -40,7 +39,7 @@ window-overlay.class {
 		pointer-events: auto;
 		padding: 0;
 		color: var(--bg-hard-1);
-		background: var(--snap-faint-ink);
+		background: var(--ink-muted);
 		border: 1px solid var(--snap-border);
 		cursor: pointer;
 	}

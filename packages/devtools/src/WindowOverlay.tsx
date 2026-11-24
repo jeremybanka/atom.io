@@ -28,7 +28,14 @@ function SnapIcon(props: { target?: SnapTarget }): SpaElement {
 		>
 			{tile ? (
 				<>
-					<rect x="1" y="1" width="26" height="18" rx="2" stroke="var(--ink)" />
+					<rect
+						x="1"
+						y="1"
+						width="26"
+						height="18"
+						rx="2"
+						stroke="var(--bg-color)"
+					/>
 					<rect
 						x={tile.x + 2}
 						y={tile.y + 2}

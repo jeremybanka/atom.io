@@ -1,5 +1,11 @@
 # atom.io.fyi
 
+## 0.2.117
+
+### Patch Changes
+
+- 4f9d25e: Let code fill the exhibit frame in single-pane layouts and place Copy in the header.
+
 ## 0.2.116
 
 ### Patch Changes

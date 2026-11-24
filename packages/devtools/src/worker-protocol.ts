@@ -82,7 +82,7 @@ export type WorkerHistoryUpdate<Event> = {
 	append: Event[]
 }
 export type WorkerEcologyEdge = EcologySnapshot[`edges`][number]
-export type WorkerEcologyMetadata = Pick<EcologySnapshot, `truncated` | `work`>
+type WorkerEcologyMetadata = Pick<EcologySnapshot, `truncated` | `work`>
 export type WorkerRecordsUpdate<Record> = { upsert: Record[]; remove: string[] }
 export type WorkerEcologyUpdate = {
 	nodes: WorkerRecordsUpdate<EcologyNode>

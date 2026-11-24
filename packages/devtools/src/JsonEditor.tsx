@@ -11,7 +11,7 @@ import { convert, describe, kind, preview, shallowKind } from "./value.ts"
 
 interface EditorProps {
 	tools: EditorTools
-	stateKey?: string | undefined
+	stateKey: string
 	value: unknown
 	change?: Change | undefined
 	path: Path
@@ -81,7 +81,7 @@ export function JsonEditor(props: EditorProps): SpaElement {
 			drag = {
 				index,
 				items,
-				revision: props.tools.worker?.revision(props.stateKey!),
+				revision: props.tools.worker?.revision(props.stateKey),
 			}
 		},
 		finish() {
@@ -261,7 +261,7 @@ function Primitive(props: {
 	change?: Change | undefined
 	tools: EditorTools
 	label: string
-	stateKey?: string | undefined
+	stateKey: string
 }): SpaElement {
 	let draft: { text: string; value: number } | undefined
 	const worker = props.tools.worker
@@ -307,7 +307,7 @@ function Primitive(props: {
 						if (worker) {
 							workerDraft ??= {
 								text,
-								revision: worker.revision(props.stateKey ?? props.label),
+								revision: worker.revision(props.stateKey),
 							}
 							workerDraft.text = text
 							return
@@ -424,7 +424,7 @@ function Property(props: {
 							size={Math.max(1, props.name.length)}
 							onInput={(event) => {
 								renameDraft ??= {
-									revision: parent.tools.worker?.revision(parent.stateKey!),
+									revision: parent.tools.worker?.revision(parent.stateKey),
 								}
 								event.currentTarget.size = Math.max(
 									1,

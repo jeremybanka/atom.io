@@ -4,6 +4,7 @@ export * from "./attach-introspection-states.ts"
 export * from "./auditor.ts"
 export * from "./differ.ts"
 export * from "./peek-state.ts"
+export * from "./peek-topology.ts"
 export * from "./refinery.ts"
 export * from "./sprawl.ts"
 export {

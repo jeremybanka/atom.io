@@ -7,6 +7,7 @@ import { Subject } from "atom.io/foundations/subject"
 
 import { newest } from "../lineage.ts"
 import { deposit } from "../store/index.ts"
+import { recordTransactionRegistration } from "../store-observation.ts"
 import type { Fn } from "../utility-types.ts"
 import { abortTransaction } from "./abort-transaction.ts"
 import { applyTransaction } from "./apply-transaction.ts"
@@ -49,6 +50,7 @@ export function createTransaction<F extends Fn>(
 	}
 	const target = newest(store)
 	target.transactions.set(key, newTransaction)
+	recordTransactionRegistration(target, key)
 	const token = deposit(newTransaction)
 	if (!transactionAlreadyExists) {
 		store.on.transactionCreation.next(token)

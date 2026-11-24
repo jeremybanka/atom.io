@@ -8,6 +8,7 @@ import {
 	ingestTransactionOutcomeEvent,
 } from "../events/index.ts"
 import type { Store } from "../store/index.ts"
+import { recordStoreChange } from "../store-observation.ts"
 
 export function timeTravel(
 	store: Store,
@@ -94,6 +95,7 @@ export function timeTravel(
 		}
 	}
 
+	recordStoreChange(store, `timelines`, token.key)
 	timelineData.subject.next({
 		type: `timeline_update`,
 		event: action,

@@ -166,6 +166,7 @@ it.each([false, true])(
 			if (initialized) {
 				const snapshot = {
 					type: `snapshot`,
+					version: 1,
 					control: false,
 					states: [],
 				} as const
@@ -184,6 +185,30 @@ it.each([false, true])(
 		}
 	},
 )
+
+it(`rejects an incompatible initial protocol version before exposing any values`, async () => {
+	const { host, panel, mount } = fixture()
+	const mounted = mount()
+	try {
+		panel.deliver({
+			type: `snapshot`,
+			version: -1,
+			control: true,
+			states: [
+				{ key: `foreign`, kind: `atom`, value: 3, revision: 1, editable: true },
+			],
+		})
+		await vi.waitFor(() => {
+			expect(host.querySelector(`[role="alert"]`)?.textContent).toContain(
+				`Unsupported remote devtools protocol version`,
+			)
+		})
+		expect(host.querySelector(`[aria-label="foreign"]`)).toBeNull()
+		expect(panel.transport.send).toHaveBeenLastCalledWith({ type: `close` })
+	} finally {
+		mounted.dispose()
+	}
+})
 
 it(`mirrors a store over a custom transport and enforces inspection mode at the owner`, async () => {
 	const { silo, host, panel, store, mount } = fixture(true)

@@ -1,8 +1,8 @@
 /** @jsxImportSource @atom.io/spa */
 import type { SpaElement } from "@atom.io/spa"
-import { useGetter, useTimeline } from "@atom.io/spa"
+import { useGetter } from "@atom.io/spa"
 import type { TimelineToken } from "atom.io"
-import { findInStore, isReservedIntrospectionKey } from "atom.io/internal"
+import { isReservedIntrospectionKey, timeTravel } from "atom.io/internal"
 
 import { EventView } from "./EventView.tsx"
 import { historyIdentity } from "./history-event.ts"
@@ -49,22 +49,15 @@ function TimelineLog(props: {
 	tools: Tools
 	token: TimelineToken<any>
 }): SpaElement {
-	const controls = useTimeline(props.token)
 	const canOperate = props.tools.worker?.canControl() !== false
 	const travel = (action: `undo` | `redo`) => {
 		props.tools.attempt(() => {
 			if (props.tools.worker)
 				props.tools.worker.timeline(props.token.key, action)
-			else controls[action]()
+			else timeTravel(props.tools.store, action, props.token)
 		})
 	}
-	const getTimeline = useGetter(
-		findInStore(
-			props.tools.store,
-			props.tools.timelineSelectors,
-			props.token.key,
-		),
-	)
+	const getTimeline = useGetter(props.tools.timelineLog(props.token.key))
 	const [getOpen, toggle] = useExpanded(props.tools, [props.token.key])
 	return (
 		<timeline-log data-testid={`timeline-${props.token.key}`}>
@@ -79,11 +72,11 @@ function TimelineLog(props: {
 				</button>
 				<h2>{props.token.family?.subKey ?? props.token.key}</h2>
 				<small>
-					({controls.getCursor()}/{controls.getLength()})
+					({getTimeline().at}/{getTimeline().history.length})
 				</small>
 				<button
 					type="button"
-					disabled={!canOperate || controls.getCursor() === 0}
+					disabled={!canOperate || getTimeline().at === 0}
 					onClick={() => {
 						travel(`undo`)
 					}}
@@ -92,7 +85,9 @@ function TimelineLog(props: {
 				</button>
 				<button
 					type="button"
-					disabled={!canOperate || controls.getCursor() === controls.getLength()}
+					disabled={
+						!canOperate || getTimeline().at === getTimeline().history.length
+					}
 					onClick={() => {
 						travel(`redo`)
 					}}

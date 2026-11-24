@@ -3,13 +3,13 @@ import type { Children, SpaElement } from "@atom.io/spa"
 import { onCleanup, onMount, useGetter, useSetter } from "@atom.io/spa"
 import type { ReadableToken, WritableToken } from "atom.io"
 import { disposeFromStore, getFromStore, resetInStore } from "atom.io/internal"
-import { peekState } from "atom.io/introspection"
+import { peekState, peekStateDefinition } from "atom.io/introspection"
 
 import { EditorButton } from "./EditorButton.tsx"
 import { JsonEditor } from "./JsonEditor.tsx"
 import css from "./StateLeaf.module.css"
 import type { EditorTools } from "./store.ts"
-import type { WorkerCachedValue } from "./worker-protocol.ts"
+import type { RemoteCachedValue } from "./remote-protocol.ts"
 
 type Token = ReadableToken<unknown, any, any>
 export function StateLeaf(props: {
@@ -25,16 +25,13 @@ export function StateLeaf(props: {
 	onInitialize?(): void
 }): SpaElement {
 	const token = props.token
-	const definition = () =>
-		props.tools.store.atoms.get(token.key) ??
-		props.tools.store.readonlySelectors.get(token.key) ??
-		props.tools.store.writableSelectors.get(token.key)
+	const definition = () => peekStateDefinition(props.tools.store, token.key)
 	const captured = definition()
 	const worker = props.tools.worker
 	const canOperate = worker?.canControl() !== false
 	const projection = worker?.cache(token.key)
 	const watch =
-		projection && canOperate && token.type.includes(`selector`)
+		projection && worker!.canGenerate() && token.type.includes(`selector`)
 			? worker!.watchSelector(token.key)
 			: undefined
 	if (watch) onCleanup(watch.dispose)
@@ -45,7 +42,7 @@ export function StateLeaf(props: {
 	const getValue = useGetter(projection ?? token)
 	const cache = projection
 		? () => {
-				const remote = getValue() as WorkerCachedValue
+				const remote = getValue() as RemoteCachedValue
 				return remote.status === `value`
 					? { present: true, value: remote.value }
 					: { present: false, value: undefined }
@@ -84,7 +81,7 @@ export function StateLeaf(props: {
 	onMount(() => {
 		if (
 			projection &&
-			canOperate &&
+			worker!.canGenerate() &&
 			!props.cachedOnly &&
 			(watch || !cache!().present)
 		)
@@ -104,11 +101,8 @@ export function StateLeaf(props: {
 	const canEdit = () => {
 		if (!setValue) return false
 		if (!worker) return true
-		const current = value()
 		return (
-			(projection !== undefined || current !== null) &&
-			!(current instanceof Error) &&
-			worker.revision(token.key) !== undefined
+			!(value() instanceof Error) && worker.revision(token.key) !== undefined
 		)
 	}
 	return (
@@ -167,7 +161,7 @@ export function StateLeaf(props: {
 						</>
 					}
 					tools={props.tools}
-					stateKey={projection ? token.key : undefined}
+					stateKey={token.key}
 					value={value()}
 					change={
 						canEdit()

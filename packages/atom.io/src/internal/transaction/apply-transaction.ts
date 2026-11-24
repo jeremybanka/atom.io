@@ -1,6 +1,7 @@
 import { ingestTransactionOutcomeEvent } from "../events/index.ts"
 import { newest } from "../lineage.ts"
 import { withdraw } from "../store/index.ts"
+import { recordTransactionOutcome } from "../store-observation.ts"
 import type { Fn } from "../utility-types.ts"
 import type { ChildStore } from "./is-root-store.ts"
 import { isChildStore, isRootStore } from "./is-root-store.ts"
@@ -59,6 +60,7 @@ export function applyTransaction<F extends Fn>(
 
 		if (rootCommit) {
 			const sequence = markTransactionCommitted(parent)
+			recordTransactionOutcome(parent, child.transactionMeta.update)
 			if (publishesCommit) {
 				const commitEvent = createTransactionCommitEvent(
 					parent,

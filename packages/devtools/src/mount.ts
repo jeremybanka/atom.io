@@ -7,8 +7,8 @@ import { messagePortTransport } from "./message-port.ts"
 import { mountView } from "./mount-view.ts"
 import {
 	connectRemoteStore,
-	type WorkerPanelConnection,
-} from "./mount-worker.ts"
+	type RemotePanelConnection,
+} from "./remote-connection.ts"
 import type { DevtoolsPanelTransport } from "./transport.ts"
 import type { SharedWindowGeometry } from "./window-controller.ts"
 
@@ -139,7 +139,7 @@ function mountPanel(
 	host: Element,
 	store: RootStore,
 	hideByDefault: boolean,
-	worker?: WorkerPanelConnection,
+	worker?: RemotePanelConnection,
 	picker?: StorePicker,
 ): AtomIODevtoolsHandle {
 	return mountView(host, `devtools`, store, () =>

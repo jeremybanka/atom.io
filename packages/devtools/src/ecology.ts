@@ -2,7 +2,11 @@ import type { ReadableToken } from "atom.io"
 import { Future } from "atom.io/foundations/future"
 import type { ReadableState, RootStore } from "atom.io/internal"
 import { isReservedIntrospectionKey } from "atom.io/internal"
-import { peekState } from "atom.io/introspection"
+import {
+	peekDependencies,
+	peekState,
+	peekStateDefinition,
+} from "atom.io/introspection"
 
 import { preview } from "./value.ts"
 
@@ -143,21 +147,13 @@ export function scanEcologyRelations(
 	budget: number,
 	edges: EcologySnapshot[`edges`][number][],
 ): { inspected: number; incomplete: boolean } {
-	const related = store.selectorGraph.getRelatedKeys(selector)
-	const neighbors = related?.values()
-	let inspected = 0
-	while (neighbors && inspected < budget) {
-		const entry = neighbors.next()
-		if (entry.done) break
-		const dependency = entry.value
-		inspected++
-		if (
-			store.selectorGraph.getContent(dependency, selector)?.source === dependency
-		)
-			// Retain missing endpoints so the trace can report unresolved dependencies.
-			edges.push({ dependency, selector })
-	}
-	return { inspected, incomplete: inspected < (related?.size ?? 0) }
+	const { dependencies, inspected, total } = peekDependencies(
+		store,
+		selector,
+		budget,
+	)
+	for (const dependency of dependencies) edges.push({ dependency, selector })
+	return { inspected, incomplete: inspected < total }
 }
 
 type EcologyLoadStatus = `pending` | `settled` | `caught` | undefined
@@ -170,10 +166,7 @@ export function ecologyLoadState(
 	raw: unknown
 	status: EcologyLoadStatus
 } {
-	const definition =
-		store.atoms.get(key) ??
-		store.readonlySelectors.get(key) ??
-		store.writableSelectors.get(key)
+	const definition = peekStateDefinition(store, key)
 	const raw = peekState(store, key).value
 	let status: EcologyLoadStatus
 	if (typeof raw === `object` && raw !== null) {

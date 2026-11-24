@@ -1,17 +1,25 @@
 import type { Accessor } from "@atom.io/spa"
 import { onCleanup, useGetter, useId, useSetter } from "@atom.io/spa"
-import type { RegularAtomFamilyToken, RegularAtomToken, Setter } from "atom.io"
-import type { RootStore } from "atom.io/internal"
+import type {
+	ReadableToken,
+	RegularAtomFamilyToken,
+	RegularAtomToken,
+	Setter,
+	TimelineToken,
+	TransactionOutcomeEvent,
+	TransactionToken,
+} from "atom.io"
+import type { RootStore, Timeline } from "atom.io/internal"
 import {
 	createRegularAtomFamily,
 	disposeFromStore,
 	findInStore,
 	setIntoStore,
 } from "atom.io/internal"
-import type { IntrospectionStates } from "atom.io/introspection"
+import type { FamilyNode, IntrospectionStates } from "atom.io/introspection"
 import { attachIntrospectionStates } from "atom.io/introspection"
 
-import type { WorkerPanelConnection } from "./mount-worker.ts"
+import type { RemotePanelConnection } from "./remote-connection.ts"
 
 const locals = new WeakMap<RootStore, RegularAtomFamilyToken<unknown, string>>()
 const introspection = new WeakMap<RootStore, IntrospectionStates>()
@@ -20,10 +28,23 @@ export interface EditorTools {
 	store: RootStore
 	expanded: RegularAtomToken<Record<string, boolean>>
 	error: RegularAtomToken<string>
-	worker?: WorkerPanelConnection | undefined
+	worker?: RemotePanelConnection | undefined
 	attempt(run: () => void): void
 }
-export type Tools = EditorTools & IntrospectionStates
+type StateToken = ReadableToken<unknown, any, any>
+export type StateTokenIndex = Map<string, StateToken | FamilyNode<StateToken>>
+export type TimelineView = Pick<Timeline<any>, `at` | `history`>
+export interface StoreViews {
+	atomIndex: ReadableToken<StateTokenIndex>
+	selectorIndex: ReadableToken<StateTokenIndex>
+	transactionIndex: ReadableToken<TransactionToken<any>[]>
+	timelineIndex: ReadableToken<TimelineToken<any>[]>
+	transactionLog(
+		key: string,
+	): ReadableToken<readonly TransactionOutcomeEvent<TransactionToken<any>>[]>
+	timelineLog(key: string): ReadableToken<TimelineView>
+}
+export type Tools = EditorTools & StoreViews
 
 function ownedAtom<T>(store: RootStore, initial: T): RegularAtomToken<T> {
 	let family = locals.get(store)
@@ -73,7 +94,7 @@ export function useSaved<T>(
 		},
 	]
 }
-export function getIntrospectionStates(store: RootStore): IntrospectionStates {
+function getIntrospectionStates(store: RootStore): IntrospectionStates {
 	let states = introspection.get(store)
 	if (!states) {
 		states = attachIntrospectionStates(store)
@@ -81,15 +102,27 @@ export function getIntrospectionStates(store: RootStore): IntrospectionStates {
 	}
 	return states
 }
+function localViews(store: RootStore): StoreViews {
+	const states = getIntrospectionStates(store)
+	return {
+		...states,
+		transactionLog: (key) =>
+			findInStore(store, states.transactionLogSelectors, key),
+		timelineLog: (key) => findInStore(store, states.timelineSelectors, key),
+	}
+}
 export function useTools(
 	store: RootStore,
-	worker?: WorkerPanelConnection,
+	worker?: RemotePanelConnection,
 ): Tools {
-	return { ...getIntrospectionStates(store), ...useEditorTools(store, worker) }
+	return {
+		...(worker?.views ?? localViews(store)),
+		...useEditorTools(store, worker),
+	}
 }
 export function useEditorTools(
 	store: RootStore,
-	worker?: WorkerPanelConnection,
+	worker?: RemotePanelConnection,
 ): EditorTools {
 	let expanded: Record<string, boolean> = {}
 	try {

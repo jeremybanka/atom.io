@@ -6,23 +6,28 @@ import {
 	closeDevtoolsTransport,
 	type DevtoolsPanelTransport,
 } from "./transport.ts"
-import { createWorkerProjection } from "./worker-projection.ts"
+import { createRemoteProjection } from "./remote-projection.ts"
 import type {
 	PanelMessage,
-	WorkerCachedValue,
-	WorkerGenerate,
-	WorkerMessage,
-	WorkerRelease,
-	WorkerState,
-} from "./worker-protocol.ts"
+	RemoteCachedValue,
+	RemoteGenerate,
+	RemoteMessage,
+	RemoteRelease,
+	RemoteState,
+} from "./remote-protocol.ts"
 
-export interface WorkerPanelConnection {
+import { REMOTE_PROTOCOL_VERSION } from "./remote-protocol.ts"
+import type { StoreViews } from "./store.ts"
+
+export interface RemotePanelConnection {
+	views: StoreViews
+	canGenerate(): boolean
 	error: RegularAtomToken<string>
 	ready: RegularAtomToken<boolean>
 	canControl(): boolean
 	revision(key: string): number | undefined
 	edit(key: string, value: unknown, revision?: number): void
-	cache(key: string): RegularAtomToken<WorkerCachedValue> | undefined
+	cache(key: string): RegularAtomToken<RemoteCachedValue> | undefined
 	generate(key: string, batch?: boolean): void
 	watchSelector(key: string): {
 		generate(batch?: boolean): void
@@ -36,37 +41,33 @@ export interface WorkerPanelConnection {
 
 export function connectRemoteStore(transport: DevtoolsPanelTransport): {
 	store: RootStore
-	worker: WorkerPanelConnection
+	worker: RemotePanelConnection
 	close(): void
 } {
 	const silo = new Silo({
-		name: `Worker devtools`,
+		name: `Remote devtools`,
 		lifespan: `ephemeral`,
 		isProduction: true,
 	})
 	const errorAtom = silo.atom<string>({
 		// eslint-disable-next-line atom.io/naming-convention -- keep the panel's status out of the atom index
-		key: `🔍 Worker devtools error`,
+		key: `🔍 Remote devtools error`,
 		default: ``,
 	})
 	const readyAtom = silo.atom<boolean>({
 		// eslint-disable-next-line atom.io/naming-convention -- keep the panel's status out of the atom index
-		key: `🔍 Worker devtools ready`,
+		key: `🔍 Remote devtools ready`,
 		default: false,
 	})
-	const states = new Map<
-		string,
-		{ value: RegularAtomToken<unknown>; revision: number | undefined }
-	>()
-	const projection = createWorkerProjection(silo)
+	const projection = createRemoteProjection(silo)
 	let closed = false
 	let control = false
 	let mode: `store` | `snapshot` | undefined
 	let nextSequence = 1
 	let nextWatch = 0
 	let stateRequestScheduled = false
-	const generations = new Set<WorkerGenerate>()
-	const releases: WorkerRelease[] = []
+	const generations = new Set<RemoteGenerate>()
+	const releases: RemoteRelease[] = []
 	const command = (message: PanelMessage) => {
 		if (closed) throw new Error(`Remote devtools disconnected`)
 		transport.send(message)
@@ -87,7 +88,7 @@ export function connectRemoteStore(transport: DevtoolsPanelTransport): {
 			}
 		})
 	}
-	function requestGeneration(request: WorkerGenerate, batch = false): void {
+	function requestGeneration(request: RemoteGenerate, batch = false): void {
 		if (!batch) {
 			command({ ...request, type: `generate` })
 			return
@@ -104,41 +105,32 @@ export function connectRemoteStore(transport: DevtoolsPanelTransport): {
 		close(notify)
 		silo.setState(errorAtom, `Remote devtools disconnected`)
 	}
-	function desynced(): void {
+	function invalidate(message: string): void {
 		close()
 		control = false
-		silo.setState(
-			errorAtom,
-			`Remote devtools is out of sync. Reconnect to reload the store.`,
-		)
+		silo.setState(errorAtom, message)
 		silo.setState(readyAtom, false)
 	}
-	function applyStates(updated: WorkerState[]): void {
-		for (const state of updated) {
-			const value = `value` in state ? state.value : new Error(state.error)
-			let entry = states.get(state.key)
-			if (!entry) {
-				const backingAtom = silo.atom<unknown>({
-					key:
-						// eslint-disable-next-line atom.io/naming-convention -- preserve remote keys and hide selector backing atoms
-						state.kind === `atom`
-							? state.key
-							: `🔍 Worker selector: ` + state.key,
-					default: () => value,
-				})
-				entry = { value: backingAtom, revision: undefined }
-				states.set(state.key, entry)
-				if (state.kind === `selector`)
-					silo.selector<unknown>({
-						key: state.key,
-						get: ({ get }) => get(backingAtom),
-					})
-			}
-			entry.revision = state.editable ? state.revision : undefined
-			silo.setState(entry.value, () => value)
-		}
+	function desynced(): void {
+		invalidate(`Remote devtools is out of sync. Reconnect to reload the store.`)
 	}
-	function receive(data: WorkerMessage): void {
+	function applyStates(updated: RemoteState[]): void {
+		projection.updateStates(
+			updated.map((state) => ({
+				token: {
+					key: state.key,
+					type: state.kind === `atom` ? `atom` : `readonly_pure_selector`,
+				},
+				cache: {
+					status: `value`,
+					value: `value` in state ? state.value : new Error(state.error),
+				},
+				revision: state.revision,
+				editable: state.editable,
+			})),
+		)
+	}
+	function receive(data: RemoteMessage): void {
 		if (closed) return
 		if (data?.type === `close`) {
 			connectionLost(false)
@@ -147,6 +139,12 @@ export function connectRemoteStore(transport: DevtoolsPanelTransport): {
 		} else if (data?.type === `store` || data?.type === `snapshot`) {
 			if (mode) {
 				desynced()
+				return
+			}
+			if (data.version !== REMOTE_PROTOCOL_VERSION) {
+				invalidate(
+					`Unsupported remote devtools protocol version. Update both endpoints to the same version.`,
+				)
 				return
 			}
 			mode = data.type
@@ -171,11 +169,13 @@ export function connectRemoteStore(transport: DevtoolsPanelTransport): {
 			else applyStates(data.states)
 		}
 	}
-	const worker: WorkerPanelConnection = {
+	const worker: RemotePanelConnection = {
+		views: projection.views,
+		canGenerate: () => control && mode === `store`,
 		error: errorAtom,
 		ready: readyAtom,
 		canControl: () => control,
-		revision: (key) => projection.revision(key) ?? states.get(key)?.revision,
+		revision: projection.revision,
 		edit(key, value, revision = worker.revision(key)) {
 			command({ type: `edit`, key, value, revision })
 		},

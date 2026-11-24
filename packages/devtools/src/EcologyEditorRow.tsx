@@ -1,5 +1,6 @@
 /** @jsxImportSource @atom.io/spa */
 import { onCleanup, type SpaElement } from "@atom.io/spa"
+import { peekStateDefinition } from "atom.io/introspection"
 import { deposit } from "atom.io/internal"
 
 import type { GraphItem } from "./ecology-graph.ts"
@@ -30,10 +31,7 @@ export function EcologyEditorRow(props: {
 	})
 	const definitions = new WeakMap<object, number>()
 	let serial = 0
-	const definition = () =>
-		props.tools.store.atoms.get(props.item.key) ??
-		props.tools.store.readonlySelectors.get(props.item.key) ??
-		props.tools.store.writableSelectors.get(props.item.key)
+	const definition = () => peekStateDefinition(props.tools.store, props.item.key)
 	const identity = () => {
 		const value = definition()!
 		let id = definitions.get(value)

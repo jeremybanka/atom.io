@@ -1,4 +1,4 @@
-import type { PanelMessage, WorkerMessage } from "./worker-protocol.ts"
+import type { PanelMessage, RemoteMessage } from "./remote-protocol.ts"
 
 /** One reliable and ordered connection. Deliver frames in later tasks, after pending microtasks. */
 export interface DevtoolsTransport<Incoming, Outgoing> {
@@ -10,12 +10,12 @@ export interface DevtoolsTransport<Incoming, Outgoing> {
 }
 
 export type DevtoolsPanelTransport = DevtoolsTransport<
-	WorkerMessage,
+	RemoteMessage,
 	PanelMessage
 >
 export type DevtoolsStoreTransport = DevtoolsTransport<
 	PanelMessage,
-	WorkerMessage
+	RemoteMessage
 >
 
 export function closeDevtoolsTransport(

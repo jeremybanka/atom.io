@@ -10,7 +10,7 @@ import css from "./DebuggerPanel.module.css"
 import { createGraphContext } from "./ecology-graph.ts"
 import { EcologyView } from "./EcologyView.tsx"
 import type { StorePicker } from "./mount.ts"
-import type { WorkerPanelConnection } from "./mount-worker.ts"
+import type { RemotePanelConnection } from "./remote-connection.ts"
 import { StateIndex } from "./StateIndex.tsx"
 import { useLocal, useSaved, useTools } from "./store.ts"
 import { StorePickerControl } from "./StorePickerControl.tsx"
@@ -32,7 +32,7 @@ let nextPanelId = 0
 export function DebuggerPanel(props: {
 	store: RootStore
 	hideByDefault: boolean
-	worker?: WorkerPanelConnection | undefined
+	worker?: RemotePanelConnection | undefined
 	picker?: StorePicker | undefined
 }): SpaElement {
 	const tools = useTools(props.store, props.worker)

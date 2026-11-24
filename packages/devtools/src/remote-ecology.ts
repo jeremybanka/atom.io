@@ -1,6 +1,10 @@
 import type { RootStore } from "atom.io/internal"
 import { isReservedIntrospectionKey } from "atom.io/internal"
-import type { StoreChanges } from "atom.io/introspection"
+import {
+	peekDependencies,
+	peekStateDefinition,
+	type StoreChanges,
+} from "atom.io/introspection"
 
 import {
 	captureEcologySnapshot,
@@ -13,13 +17,13 @@ import {
 	scanEcologyRelations,
 } from "./ecology.ts"
 import type {
-	WorkerEcologyEdge,
-	WorkerEcologyUpdate,
-	WorkerRecordsUpdate,
-} from "./worker-protocol.ts"
+	RemoteEcologyEdge,
+	RemoteEcologyUpdate,
+	RemoteRecordsUpdate,
+} from "./remote-protocol.ts"
 
 const keyOf = ({ key }: { key: string }) => key
-const edgeKey = ({ dependency, selector }: WorkerEcologyEdge) =>
+const edgeKey = ({ dependency, selector }: RemoteEcologyEdge) =>
 	JSON.stringify([dependency, selector])
 const toMap = <T>(records: readonly T[], key: (record: NoInfer<T>) => string) =>
 	new Map(records.map((record) => [key(record), record]))
@@ -28,7 +32,7 @@ const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b)
 function diff<T>(
 	previous: Map<string, T>,
 	next: Map<string, T>,
-): WorkerRecordsUpdate<T> {
+): RemoteRecordsUpdate<T> {
 	return {
 		upsert: [...next].flatMap(([key, record]) =>
 			same(previous.get(key), record) ? [] : [record],
@@ -37,7 +41,7 @@ function diff<T>(
 	}
 }
 
-function hasChanges<T>(change: WorkerRecordsUpdate<T>): boolean {
+function hasChanges<T>(change: RemoteRecordsUpdate<T>): boolean {
 	return change.upsert.length > 0 || change.remove.length > 0
 }
 
@@ -60,15 +64,15 @@ const remoteLimits = {
 	maxFamilies: 10_000,
 	maxRelations: 50_000,
 }
-const emptyChange = <T>(): WorkerRecordsUpdate<T> => ({ upsert: [], remove: [] })
+const emptyChange = <T>(): RemoteRecordsUpdate<T> => ({ upsert: [], remove: [] })
 const compare = (a: string, b: string) => (a < b ? -1 : Number(a > b))
 
 function updateFrame(
-	nodes: WorkerRecordsUpdate<EcologyNode>,
-	edges: WorkerRecordsUpdate<WorkerEcologyEdge>,
-	families: WorkerRecordsUpdate<EcologyFamily>,
-	metadata: WorkerEcologyUpdate[`metadata`],
-): WorkerEcologyUpdate | undefined {
+	nodes: RemoteRecordsUpdate<EcologyNode>,
+	edges: RemoteRecordsUpdate<RemoteEcologyEdge>,
+	families: RemoteRecordsUpdate<EcologyFamily>,
+	metadata: RemoteEcologyUpdate[`metadata`],
+): RemoteEcologyUpdate | undefined {
 	if (
 		!hasChanges(nodes) &&
 		!hasChanges(edges) &&
@@ -85,23 +89,19 @@ function updateFrame(
 }
 
 /** Track observed changes by key. Recapture when limits can change which records are visible. */
-export function trackWorkerEcology(
+export function trackRemoteEcology(
 	store: RootStore,
 	limits: Required<EcologyLimits> = remoteLimits,
 ): {
 	initial: EcologySnapshot
-	update(changes: EcologyChanges): WorkerEcologyUpdate | undefined
+	update(changes: EcologyChanges): RemoteEcologyUpdate | undefined
 } {
 	const capture = () => captureEcologySnapshot(store, limits)
 	const initial = capture()
-	const neighbors = (key: string) =>
-		store.selectorGraph.getRelatedKeys(key)?.size ?? 0
-	const definition = (key: string) =>
-		store.atoms.get(key) ??
-		store.readonlySelectors.get(key) ??
-		store.writableSelectors.get(key)
+	const neighbors = (key: string) => peekDependencies(store, key, 0).total
+	const definition = (key: string) => peekStateDefinition(store, key)
 	function indexTopology(snapshot: EcologySnapshot) {
-		const incoming = new Map<string, Map<string, WorkerEcologyEdge>>()
+		const incoming = new Map<string, Map<string, RemoteEcologyEdge>>()
 		const members = new Map<string, Set<string>>()
 		const degrees = new Map<string, number>()
 		for (const edge of snapshot.edges) {
@@ -135,7 +135,7 @@ export function trackWorkerEcology(
 
 	function updateValues(
 		keys: ReadonlySet<string>,
-	): WorkerEcologyUpdate | undefined {
+	): RemoteEcologyUpdate | undefined {
 		const nodes = emptyChange<EcologyNode>()
 		for (const key of keys) {
 			const node = graph.nodes.get(key)
@@ -171,11 +171,11 @@ export function trackWorkerEcology(
 			return recapture()
 
 		const nodes = emptyChange<EcologyNode>()
-		const edges = emptyChange<WorkerEcologyEdge>()
+		const edges = emptyChange<RemoteEcologyEdge>()
 		const families = emptyChange<EcologyFamily>()
 		const familyKeys = new Set(changes.families)
 		const topology = new Set([...changes.states, ...changes.dependencies])
-		const incoming = new Map<string, Map<string, WorkerEcologyEdge>>()
+		const incoming = new Map<string, Map<string, RemoteEcologyEdge>>()
 		const relationKeys = new Set(topology)
 		let nodeCount = graph.nodes.size
 		let relationBudget = limits.maxRelations
@@ -186,7 +186,7 @@ export function trackWorkerEcology(
 				state && !isReservedIntrospectionKey(key)
 					? describeEcologyNode(store, state)
 					: undefined
-			const nextEdges: WorkerEcologyEdge[] = []
+			const nextEdges: RemoteEcologyEdge[] = []
 			if (node?.kind === `selector`) {
 				const { inspected, incomplete } = scanEcologyRelations(
 					store,
@@ -313,15 +313,15 @@ export function trackWorkerEcology(
 function apply<T>(
 	records: Map<string, T>,
 	key: (record: T) => string,
-	change: WorkerRecordsUpdate<T>,
+	change: RemoteRecordsUpdate<T>,
 ): void {
 	for (const removed of change.remove) records.delete(removed)
 	for (const record of change.upsert) records.set(key(record), record)
 }
 
-export function projectWorkerEcology(initial: EcologySnapshot): {
+export function projectRemoteEcology(initial: EcologySnapshot): {
 	read(): EcologySnapshot
-	update(change: WorkerEcologyUpdate): boolean
+	update(change: RemoteEcologyUpdate): boolean
 } {
 	const graph = index(initial)
 	let snapshot: EcologySnapshot | undefined
@@ -345,7 +345,7 @@ export function projectWorkerEcology(initial: EcologySnapshot): {
 					})),
 				...graph.metadata,
 			}),
-		update(change: WorkerEcologyUpdate): boolean {
+		update(change: RemoteEcologyUpdate): boolean {
 			const topology =
 				Boolean(change.edges ?? change.families ?? change.metadata) ||
 				change.nodes.remove.length > 0 ||

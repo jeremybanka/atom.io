@@ -1,6 +1,7 @@
 import type { TimelineToken } from "atom.io"
 
 import type { Store } from "../store/index.ts"
+import { recordStoreChange } from "../store-observation.ts"
 
 export function clearTimelineInStore(
 	store: Store,
@@ -24,6 +25,7 @@ export function clearTimelineInStore(
 	timelineData.selectorTime = null
 	timelineData.timeTraveling = null
 	timelineData.transactionKey = null
+	recordStoreChange(store, `timelines`, token.key)
 	timelineData.subject.next({
 		type: `timeline_update`,
 		event: `clear`,

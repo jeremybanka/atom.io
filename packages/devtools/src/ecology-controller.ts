@@ -1,5 +1,9 @@
 import type { RootStore } from "atom.io/internal"
-import { type FutureActivity, observeStore } from "atom.io/introspection"
+import {
+	type FutureActivity,
+	observeStore,
+	peekStateDefinition,
+} from "atom.io/introspection"
 
 import {
 	captureEcologySnapshot,
@@ -11,7 +15,7 @@ import type { GraphContext, GraphItem, GraphModel } from "./ecology-graph.ts"
 import { projectEcology, scheduleGraph } from "./ecology-graph.ts"
 import { indexEcologySearch } from "./ecology-search.ts"
 import type { EcologyPresentation } from "./EcologyView.tsx"
-import type { WorkerPanelConnection } from "./mount-worker.ts"
+import type { RemotePanelConnection } from "./remote-connection.ts"
 import { matchStateSearch, type SearchIndex } from "./search.ts"
 import { isSearchShortcut, moveSearchFocus } from "./search-keys.ts"
 import { createSearchSession, editorIsCurrent } from "./search-session.ts"
@@ -25,7 +29,7 @@ export function createEcologyController(
 	context: GraphContext,
 	update: (patch: Partial<EcologyPresentation>) => void,
 	marker: string,
-	worker?: WorkerPanelConnection,
+	worker?: RemotePanelConnection,
 ): { dispose(): void; committed(): void; refresh(generatedKey?: string): void } {
 	const document = host.ownerDocument
 	const input = host.querySelector(`input`)!
@@ -466,10 +470,7 @@ export function createEcologyController(
 				document.activeElement?.closest<HTMLElement>(`state-leaf`)
 			const focusedKey = focusedLeaf?.dataset[`stateKey`]
 			const markState = (key: string, previous?: EcologyNode) => {
-				const definition =
-					store.atoms.get(key) ??
-					store.readonlySelectors.get(key) ??
-					store.writableSelectors.get(key)
+				const definition = peekStateDefinition(store, key)
 				if (definition) changedCards.add(`state:${key}`)
 				else if (focusedLeaf && key === focusedKey && host.contains(focusedLeaf))
 					returnToSearch()

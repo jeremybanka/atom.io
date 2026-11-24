@@ -10,11 +10,11 @@ import {
 } from "./transport.ts"
 import type {
 	PanelMessage,
-	WorkerDevtoolsValue,
-	WorkerState,
-} from "./worker-protocol.ts"
-import { isWorkerDevtoolsValue } from "./worker-protocol.ts"
-import { exposeWholeStore } from "./worker-store.ts"
+	RemotePrimitive,
+	RemoteState,
+} from "./remote-protocol.ts"
+import { isRemotePrimitive, REMOTE_PROTOCOL_VERSION } from "./remote-protocol.ts"
+import { exposeWholeStore } from "./remote-store.ts"
 
 export type {
 	DevtoolsPanelTransport,
@@ -23,15 +23,15 @@ export type {
 } from "./transport.ts"
 export type {
 	PanelMessage as DevtoolsPanelMessage,
-	WorkerDevtoolsValue as DevtoolsPrimitive,
-	WorkerMessage as DevtoolsStoreMessage,
-} from "./worker-protocol.ts"
+	RemotePrimitive as DevtoolsPrimitive,
+	RemoteMessage as DevtoolsStoreMessage,
+} from "./remote-protocol.ts"
 
-type ValidateEdit = (value: WorkerDevtoolsValue) => boolean
+type ValidateEdit = (value: RemotePrimitive) => boolean
 export type DevtoolsState =
-	| { token: RegularAtomToken<WorkerDevtoolsValue>; validateEdit?: ValidateEdit }
+	| { token: RegularAtomToken<RemotePrimitive>; validateEdit?: ValidateEdit }
 	| {
-			token: ReadonlyPureSelectorToken<WorkerDevtoolsValue>
+			token: ReadonlyPureSelectorToken<RemotePrimitive>
 			validateEdit?: never
 	  }
 
@@ -98,7 +98,7 @@ export function exposeDevtoolsStore(
 		validateEdit,
 		revision,
 		isPresent,
-	}: NonNullable<ReturnType<typeof entries.get>>): WorkerState {
+	}: NonNullable<ReturnType<typeof entries.get>>): RemoteState {
 		const kind = token.type === `atom` ? `atom` : `selector`
 		const base = { key: token.key, revision, kind, editable: false } as const
 		if (!isPresent()) return { ...base, error: `State is no longer available` }
@@ -108,7 +108,7 @@ export function exposeDevtoolsStore(
 				: peekState(silo.store, token.key)
 			if (!cached.present) return { ...base, error: `Value is not cached` }
 			const { value } = cached
-			if (isWorkerDevtoolsValue(value))
+			if (isRemotePrimitive(value))
 				return {
 					...base,
 					value,
@@ -158,9 +158,9 @@ export function exposeDevtoolsStore(
 				)
 			const current = silo.getState(entry.token)
 			if (
-				!isWorkerDevtoolsValue(current) ||
+				!isRemotePrimitive(current) ||
 				current === null ||
-				!isWorkerDevtoolsValue(data.value) ||
+				!isRemotePrimitive(data.value) ||
 				typeof current !== typeof data.value ||
 				!entry.validateEdit(data.value)
 			)
@@ -191,6 +191,7 @@ export function exposeDevtoolsStore(
 		transport.listen(receive, dispose)
 		transport.send({
 			type: `snapshot`,
+			version: REMOTE_PROTOCOL_VERSION,
 			control,
 			states: Array.from(entries.values(), readState),
 		})

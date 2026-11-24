@@ -6,6 +6,7 @@ import {
 	captureEcologySnapshot,
 	describeEcologyNode,
 	type EcologyFamily,
+	type EcologyLimits,
 	type EcologyNode,
 	type EcologySnapshot,
 	ecologyValue,
@@ -86,7 +87,7 @@ function updateFrame(
 /** Track observed changes by key. Recapture when limits can change which records are visible. */
 export function trackWorkerEcology(
 	store: RootStore,
-	limits = remoteLimits,
+	limits: Required<EcologyLimits> = remoteLimits,
 ): {
 	initial: EcologySnapshot
 	update(changes: EcologyChanges): WorkerEcologyUpdate | undefined

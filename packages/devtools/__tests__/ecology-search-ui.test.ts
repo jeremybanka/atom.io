@@ -378,7 +378,7 @@ it(`uses latest input while metadata indexing is in flight and cancels hidden/di
 	expect(vi.getTimerCount()).toBe(0)
 })
 
-it(`waits for a committed root before the first admitted capture`, async () => {
+it(`waits for a committed root and can clear a restored selection before capturing it`, async () => {
 	const { createGraphContext } = await import(`../src/ecology-graph.ts`)
 	const app = new Silo({
 		name: `ecology-transaction`,
@@ -390,21 +390,23 @@ it(`waits for a committed root before the first admitted capture`, async () => {
 		do: () => {},
 	})
 	const panel = document.createElement(`main`)
+	const context = createGraphContext()
+	context.selected = `state:restored`
 	let host!: HTMLElement
 	document.body.append(panel)
 	const stop = app.store.on.transactionApplying.subscribe(
 		`mount-search`,
 		(applying) => {
 			if (applying !== null) {
-				;({ dispose, host } = mountEcologyFixture(
-					panel,
-					app.store,
-					createGraphContext(),
-				))
+				;({ dispose, host } = mountEcologyFixture(panel, app.store, context))
 				expect(
 					host.querySelector(`[data-action="clear"]:not([inert])`),
 				).toBeNull()
 				expect(host.textContent).toContain(`Waiting for the current transaction`)
+				host.dispatchEvent(
+					new KeyboardEvent(`keydown`, { key: `Escape`, bubbles: true }),
+				)
+				expect(context.selected).toBeNull()
 			}
 		},
 	)

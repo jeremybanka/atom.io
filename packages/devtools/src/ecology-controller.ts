@@ -287,10 +287,7 @@ export function createEcologyController(
 				target?.focus()
 				target?.scrollIntoView?.({ block: `nearest` })
 				reveal = undefined
-			} else if (
-				focusInMapActions &&
-				(!focused.isConnected || focused.closest(`[inert]`))
-			) {
+			} else if (focusInMapActions && focused.closest(`[inert]`)) {
 				const scene = host.querySelector<HTMLElement>(`ecology-scene`)
 				if (scene) scene.focus({ preventScroll: true })
 				else returnToSearch()

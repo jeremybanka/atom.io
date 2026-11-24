@@ -4,6 +4,7 @@ import { afterEach, expect, it, vi } from "vitest"
 
 import type { GraphItem } from "../src/ecology-graph.ts"
 import {
+	animateEcologyEditorHeight,
 	createEcologyMotion,
 	createEdgeRoutingMotion,
 } from "../src/ecology-motion.ts"
@@ -44,6 +45,79 @@ function fixture(reduced = false) {
 }
 const progress = () =>
 	vi.mocked(animate).mock.calls.at(-1)![0] as MotionValue<number>
+
+it(`animates the compact editor from its current height and releases the split on completion, resize and reduced motion`, () => {
+	const body = document.createElement(`ecology-body`)
+	const editor = document.createElement(`ecology-editor`)
+	const content = document.createElement(`ecology-editor-content`)
+	body.append(editor)
+	editor.append(content)
+	document.body.append(body)
+	Object.defineProperty(body, `clientHeight`, { value: 400 })
+	body.style.display = `grid`
+	let naturalHeight = 80
+	editor.getBoundingClientRect = () => new DOMRect(0, 0, 400, naturalHeight)
+	let notify!: (node: Element) => void
+	const observer = { observe: vi.fn(), unobserve: vi.fn(), disconnect: vi.fn() }
+	using observe = vi
+		.spyOn(window, `ResizeObserver`)
+		.mockImplementation(function (callback) {
+			notify = (target) => {
+				callback([{ target } as ResizeObserverEntry], observer)
+			}
+			return observer
+		})
+	const media = window.matchMedia(`(prefers-reduced-motion: reduce)`)
+	Object.defineProperty(media, `matches`, { value: false, writable: true })
+	using matchMedia = vi.spyOn(window, `matchMedia`).mockReturnValue(media)
+	const dispose = animateEcologyEditorHeight(editor, content)
+	const pinned = () => editor.style.getPropertyValue(`--ecology-editor-height`)
+	expect(observe).toHaveBeenCalledOnce()
+	expect(matchMedia).toHaveBeenCalledWith(`(prefers-reduced-motion: reduce)`)
+	expect(observer.observe.mock.calls).toEqual([[body], [content]])
+	notify(content)
+	body.style.display = `flex`
+	notify(content)
+	notify(content)
+	expect(animate).not.toHaveBeenCalled()
+
+	naturalHeight = 160
+	notify(content)
+	const height = progress()
+	expect(pinned()).toBe(`80px`)
+	height.set(110)
+	notify(content)
+	expect(pinned()).toBe(`110px`)
+	expect(animate).toHaveBeenCalledOnce()
+	naturalHeight = 65
+	notify(content)
+	expect(vi.mocked(animate).mock.lastCall?.slice(0, 2)).toEqual([height, 65])
+	expect(pinned()).toBe(`110px`)
+	const completion = vi.mocked(animate).mock.lastCall?.[2] as {
+		onComplete(): void
+	}
+	completion.onComplete()
+	expect(pinned()).toBe(``)
+
+	naturalHeight = 140
+	notify(content)
+	expect(pinned()).toBe(`65px`)
+	naturalHeight = 120
+	notify(body)
+	expect(pinned()).toBe(``)
+	naturalHeight = 160
+	notify(content)
+	expect(pinned()).toBe(`120px`)
+	Object.defineProperty(media, `matches`, { value: true })
+	media.dispatchEvent(new Event(`change`))
+	expect(pinned()).toBe(``)
+	naturalHeight = 90
+	notify(content)
+	expect(pinned()).toBe(``)
+	dispose()
+	body.remove()
+	expect(observer.disconnect).toHaveBeenCalledOnce()
+})
 
 it(`flies between clustered and expanded positions, preserving progress on rapid reversal and retaining stable settled endpoints`, () => {
 	const f = fixture(),

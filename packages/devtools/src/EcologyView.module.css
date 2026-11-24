@@ -24,7 +24,7 @@ ecology-view.class {
 			transparent
 		);
 	}
-	& ecology-map-actions {
+	> ecology-body > ecology-map > ecology-map-actions {
 		--action-size: 32px;
 		--action-inset: 2px;
 		--action-gap: 2px;
@@ -39,7 +39,7 @@ ecology-view.class {
 		perspective-origin: left bottom;
 		pointer-events: none;
 	}
-	& ecology-map-actions > button {
+	> ecology-body > ecology-map > ecology-map-actions > button {
 		--action-offset: var(--action-inset);
 		display: grid;
 		place-items: center;
@@ -58,7 +58,8 @@ ecology-view.class {
 			display: none;
 		}
 	}
-	& ecology-map-actions > button:not([hidden]) + button {
+	> ecology-body > ecology-map > ecology-map-actions > button:not([hidden])
+		+ button {
 		--action-offset: calc(
 			var(--action-inset) + var(--action-size) + var(--action-gap)
 		);

@@ -124,15 +124,21 @@ try {
 	await explorer
 		.getByRole(`button`, { name: `Close search`, exact: true })
 		.click()
-	const settledSplit = () =>
-		embedded.waitForFunction(() => {
+	const settledSplit = (height?: number) =>
+		embedded.waitForFunction(async (expected) => {
+			// ResizeObserver runs after the animation frame callbacks.
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0)
+			})
 			const view = document.querySelector<HTMLElement>(`ecology-view`)!
 			const editor = view.querySelector<HTMLElement>(`ecology-editor`)!
 			return (
 				view.dataset[`ready`] === `true` &&
-				!editor.style.getPropertyValue(`--ecology-editor-height`)
+				!editor.style.getPropertyValue(`--ecology-editor-height`) &&
+				(expected === undefined ||
+					editor.getBoundingClientRect().height === expected)
 			)
-		})
+		}, height)
 	await settledSplit()
 	for (const pane of [`ecology-map`, `ecology-editor`]) {
 		const sizes = await embedded.evaluate(async (source) => {
@@ -146,27 +152,25 @@ try {
 			const button = document.querySelector<HTMLButtonElement>(
 				`${source} button[data-graph-id="state:price"]`,
 			)!
-			button.focus({ preventScroll: true })
-			button.click()
-			const start = performance.now()
 			await new Promise<void>((resolve) => {
 				let animated = false
-				const sample = () => {
-					frames.push(read())
+				const finish = () => {
+					observer.disconnect()
+					clearTimeout(timeout)
+					resolve()
+				}
+				const observer = new MutationObserver(() => {
 					const running = Boolean(
 						editor.style.getPropertyValue(`--ecology-editor-height`),
 					)
 					animated ||= running
-					if ((animated && !running) || performance.now() - start > 2000)
-						resolve()
-					else afterPaint()
-				}
-				const afterPaint = () => {
-					requestAnimationFrame(() => {
-						setTimeout(sample, 0)
-					})
-				}
-				afterPaint()
+					if (animated) frames.push(read())
+					if (animated && !running) finish()
+				})
+				observer.observe(editor, { attributeFilter: [`style`] })
+				const timeout = setTimeout(finish, 2000)
+				button.focus({ preventScroll: true })
+				button.click()
 			})
 			return frames
 		}, pane)
@@ -180,7 +184,7 @@ try {
 			sizes.some(
 				([, height]) => height > startEditor + 1 && height < endEditor - 1,
 			),
-			`${pane} selection paints intermediate sizes`,
+			`${pane} selection lays out intermediate sizes (${JSON.stringify(sizes)})`,
 		)
 		assert.ok(
 			sizes.every(
@@ -192,7 +196,7 @@ try {
 		await explorer
 			.getByRole(`button`, { name: `Clear selection` })
 			.press(`Escape`)
-		await settledSplit()
+		await settledSplit(startEditor)
 	}
 	await embedded.close()
 

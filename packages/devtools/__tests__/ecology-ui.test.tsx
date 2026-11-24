@@ -1,6 +1,7 @@
 import { render } from "@atom.io/spa"
 import { jsx } from "@atom.io/spa/jsx-runtime"
 import { Silo } from "atom.io"
+import type * as Motion from "motion"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 
 import { createCardFeedback } from "../src/ecology-card-feedback.ts"
@@ -8,6 +9,11 @@ import { createEcologyController } from "../src/ecology-controller.ts"
 import { Ecology, mountEcology } from "../src/ecology-entry.ts"
 import { createGraphContext } from "../src/ecology-graph.ts"
 import { mountAtomIODevtools } from "../src/mount.ts"
+
+vi.mock(`motion`, async (actual) => {
+	const motion = await actual<typeof Motion>()
+	return { ...motion, animate: vi.fn(motion.animate) }
+})
 
 let dispose = () => {}
 beforeEach(() => {
@@ -538,6 +544,87 @@ it(`automatically emphasizes selection paths, dims unrelated cards, and clears s
 		)
 	await settle()
 	expect(document.activeElement).toBe(input)
+})
+
+it(`stages viewport actions together, cancels stale exits, and restores focus after clearing`, async () => {
+	const f = setup()
+	f.silo.atom<number>({ key: `count`, default: 0 })
+	f.silo.atomFamily<number, string>({ key: `items`, default: 0 })
+	const media = window.matchMedia(`(prefers-reduced-motion: reduce)`)
+	Object.defineProperty(media, `matches`, { value: false })
+	vi.mocked(window.matchMedia).mockReturnValue(media)
+	const motion = await import(`motion`)
+	const animation = vi.mocked(motion.animate)
+	const animate = animation.getMockImplementation()!
+	const animations: {
+		button: HTMLButtonElement
+		stop: ReturnType<typeof vi.fn>
+		finish(): void
+	}[] = []
+	await animation.withImplementation(
+		(...args) => {
+			const button = args[0]
+			if (
+				!(button instanceof HTMLButtonElement) ||
+				!button.closest(`ecology-map-actions`)
+			)
+				return Reflect.apply(animate, undefined, args)
+			const stop = vi.fn()
+			const done = Promise.withResolvers<void>()
+			animations.push({ button, stop, finish: done.resolve })
+			return {
+				stop,
+				then: done.promise.then.bind(done.promise),
+			} as unknown as ReturnType<typeof animate>
+		},
+		async () => {
+			f.mount()
+			await settle()
+			const view = f.host.querySelector(`ecology-view`)!
+			const scene = view.querySelector(`ecology-scene`)
+			const [expand, clear] = view.querySelectorAll<HTMLButtonElement>(
+				`ecology-map-actions > button`,
+			)
+			await f.select(`family:items`)
+			expect(animations.map(({ button }) => button)).toEqual([expand, clear])
+			expect(
+				animation.mock.calls.filter(([target]) => target === clear).at(-1)?.[2],
+			).toMatchObject({ delay: 0.02 })
+			expand.focus()
+			await f.click(`Expand family`)
+			expect(document.activeElement).toBe(expand)
+
+			clear.focus()
+			await f.click(`Clear selection`)
+			expect(document.activeElement).toBe(scene)
+			const [expandExit, clearExit] = animations.slice(-2)
+			expandExit.finish()
+			await settle()
+			expect(expand.hidden).toBe(true)
+			expect(clear.hidden).toBe(false)
+			await f.select(`family:items`)
+			expect(clearExit.stop).toHaveBeenCalledOnce()
+			clearExit.finish()
+			await settle()
+			expect(clear.hidden).toBe(false)
+
+			const clearEntrance = animations.at(-1)!
+			await f.select(`state:count`)
+			expect(clearEntrance.stop).not.toHaveBeenCalled()
+			const query = view.querySelector.bind(view)
+			using sceneLookup = vi
+				.spyOn(view, `querySelector`)
+				.mockImplementation((selector) =>
+					selector === `ecology-scene` ? null : query(selector),
+				)
+			clear.focus()
+			await f.click(`Clear selection`)
+			expect(sceneLookup).toHaveBeenCalledWith(`ecology-scene`)
+			expect(document.activeElement?.getAttribute(`aria-label`)).toBe(
+				`Search ecology`,
+			)
+		},
+	)
 })
 
 it(`toggles a selected family with Enter from its card, heading, list and graph`, async () => {

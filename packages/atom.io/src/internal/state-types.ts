@@ -20,6 +20,7 @@ import type { Subject } from "atom.io/foundations/subject"
 import type { Flat } from "atom.io/foundations/type-utils"
 
 import type { InternalRole } from "./atom/index.ts"
+import type { PreparedFamilyKey } from "./families/prepare-family-key.ts"
 import type { ConstructorOf, Transceiver } from "./mutable/index.ts"
 import type { Store } from "./store/index.ts"
 import type { Timeline, TimelineFamily } from "./timeline/index.ts"
@@ -117,7 +118,10 @@ export type ReadableState<T, E> = Atom<T, E> | Selector<T, E>
 // dprint-ignore
 export type RegularAtomFamily<T, K extends Canonical, E = never> = Flat<
 	RegularAtomFamilyToken<T, K, E> & {
-		create: <Key extends K>(key: Key) => RegularAtomToken<T, Key, E>
+		create: <Key extends K>(
+			key: Key,
+			prepared?: PreparedFamilyKey<Key>,
+		) => RegularAtomToken<T, Key, E>
 		default: T | ((key: K) => T)
 		install: (store: RootStore) => void
 		internalRoles: string[] | undefined
@@ -130,7 +134,10 @@ export type MutableAtomFamily<
 	K extends Canonical,
 > = Flat<
 	MutableAtomFamilyToken<T, K> & {
-		create: <Key extends K>(key: Key) => MutableAtomToken<T, Key>
+		create: <Key extends K>(
+			key: Key,
+			prepared?: PreparedFamilyKey<Key>,
+		) => MutableAtomToken<T, Key>
 		class: ConstructorOf<T>
 		install: (store: RootStore) => void
 		internalRoles: string[] | undefined
@@ -144,7 +151,10 @@ export type AtomFamily<T, K extends Canonical, E> =
 
 export type WritablePureSelectorFamily<T, K extends Canonical, E> = Flat<
 	WritablePureSelectorFamilyToken<T, K, E> & {
-		create: <Key extends K>(key: Key) => WritablePureSelectorToken<T, Key, E>
+		create: <Key extends K>(
+			key: Key,
+			prepared?: PreparedFamilyKey<Key>,
+		) => WritablePureSelectorToken<T, Key, E>
 		default: (key: K) => T
 		install: (store: RootStore) => void
 		internalRoles: string[] | undefined
@@ -153,7 +163,10 @@ export type WritablePureSelectorFamily<T, K extends Canonical, E> = Flat<
 
 export type WritableHeldSelectorFamily<T, K extends Canonical> = Flat<
 	WritableHeldSelectorFamilyToken<T, K> & {
-		create: <Key extends K>(key: Key) => WritableHeldSelectorToken<T, Key>
+		create: <Key extends K>(
+			key: Key,
+			prepared?: PreparedFamilyKey<Key>,
+		) => WritableHeldSelectorToken<T, Key>
 		default: (key: K) => T
 		install: (store: RootStore) => void
 		internalRoles: string[] | undefined
@@ -162,7 +175,10 @@ export type WritableHeldSelectorFamily<T, K extends Canonical> = Flat<
 
 export type ReadonlyPureSelectorFamily<T, K extends Canonical, E> = Flat<
 	ReadonlyPureSelectorFamilyToken<T, K, E> & {
-		create: <Key extends K>(key: Key) => ReadonlyPureSelectorToken<T, Key, E>
+		create: <Key extends K>(
+			key: Key,
+			prepared?: PreparedFamilyKey<Key>,
+		) => ReadonlyPureSelectorToken<T, Key, E>
 		default: (key: K) => T
 		install: (store: RootStore) => void
 		internalRoles: string[] | undefined
@@ -171,7 +187,10 @@ export type ReadonlyPureSelectorFamily<T, K extends Canonical, E> = Flat<
 
 export type ReadonlyHeldSelectorFamily<T, K extends Canonical> = Flat<
 	ReadonlyHeldSelectorFamilyToken<T, K> & {
-		create: <Key extends K>(key: Key) => ReadonlyHeldSelectorToken<T, Key>
+		create: <Key extends K>(
+			key: Key,
+			prepared?: PreparedFamilyKey<Key>,
+		) => ReadonlyHeldSelectorToken<T, Key>
 		default: (key: K) => T
 		install: (store: RootStore) => void
 		internalRoles: string[] | undefined

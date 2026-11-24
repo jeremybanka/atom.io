@@ -7,8 +7,12 @@ import type { Canonical } from "atom.io/foundations/canonical"
 import { parseJson } from "atom.io/foundations/json"
 import type { Subject } from "atom.io/foundations/subject"
 
-import { getFamilyOfToken } from "../families/get-family-of-token.ts"
-import { seekInStore } from "../families/index.ts"
+import {
+	encodeFamilyKey,
+	getFamilyOfToken,
+	prepareFamilyKey,
+	seekEncodedInStore,
+} from "../families/index.ts"
 import { mintInStore, MUST_CREATE } from "../families/mint-in-store.ts"
 import { newest } from "../lineage.ts"
 import type { ReadableFamily } from "../state-types.ts"
@@ -36,9 +40,10 @@ export function ensureState<T, K extends Canonical, E>(
 		if (`family` in token) {
 			const familyToken = getFamilyOfToken(store, token)
 			family = withdraw(store, familyToken) as ReadableFamily<T, K, E>
-			subKey = parseJson(token.family.subKey)
-			existingToken = seekInStore(store, familyToken, subKey)
+			const encoded = encodeFamilyKey<K>(familyToken.key, token.family.subKey)
+			existingToken = seekEncodedInStore(store, familyToken, encoded)
 			if (`counterfeit` in token) {
+				subKey = parseJson(token.family.subKey)
 				return {
 					token,
 					family,
@@ -46,7 +51,11 @@ export function ensureState<T, K extends Canonical, E>(
 				}
 			}
 			if (!existingToken) {
-				brandNewToken = mintInStore(MUST_CREATE, store, familyToken, subKey)
+				subKey = parseJson(token.family.subKey)
+				brandNewToken = mintInStore(MUST_CREATE, store, familyToken, subKey, {
+					...encoded,
+					key: subKey,
+				})
 				token = brandNewToken
 			} else {
 				token = existingToken
@@ -55,9 +64,10 @@ export function ensureState<T, K extends Canonical, E>(
 	} else {
 		family = withdraw(store, params[0])
 		subKey = params[1]
-		existingToken = seekInStore(store, family, subKey)
+		const prepared = prepareFamilyKey(family.key, subKey)
+		existingToken = seekEncodedInStore(store, family, prepared)
 		if (!existingToken) {
-			brandNewToken = mintInStore(MUST_CREATE, store, family, subKey)
+			brandNewToken = mintInStore(MUST_CREATE, store, family, subKey, prepared)
 			token = brandNewToken
 		} else {
 			token = existingToken

@@ -52,17 +52,10 @@ exhibit-frame.class {
 			text-overflow: ellipsis;
 			white-space: nowrap;
 		}
-	}
-
-	> exhibit-source-pane {
-		position: relative;
-		display: block;
-		min-inline-size: 0;
-		max-inline-size: var(--code-max-width);
-		> button {
-			position: absolute;
-			inset-block-start: 5px;
-			inset-inline-end: 5px;
+		> button[data-copy-code] {
+			position: relative;
+			flex: none;
+			margin-inline-end: 5px;
 			z-index: 1;
 			display: flex;
 			align-items: center;
@@ -70,7 +63,7 @@ exhibit-frame.class {
 			background: transparent;
 			border: 1px solid transparent;
 			border-radius: 3px;
-			height: 25px;
+			height: 24px;
 			width: 25px;
 			--icon-color: var(--fg-color);
 			cursor: pointer;
@@ -114,8 +107,15 @@ exhibit-frame.class {
 		}
 	}
 
+	> exhibit-source-pane {
+		position: relative;
+		display: block;
+		min-inline-size: 0;
+	}
+
 	&[data-exhibit-source] {
 		--code-tab-fill: var(--bg-hard-1);
+		--header-divider-width: 1px;
 		display: grid;
 		grid-template-columns: minmax(0, 1fr);
 		grid-template-rows: auto auto;
@@ -127,13 +127,13 @@ exhibit-frame.class {
 		}
 		> exhibit-header {
 			position: relative;
-			padding-block-end: 1px;
+			padding-block-end: var(--header-divider-width);
 			&::after {
 				content: "";
 				position: absolute;
 				inset-inline: 0;
 				inset-block-end: 0;
-				height: 1px;
+				height: var(--header-divider-width);
 				z-index: 1;
 				pointer-events: none;
 				background: var(--fg-soft-3);
@@ -142,6 +142,11 @@ exhibit-frame.class {
 		> exhibit-source-pane, > exhibit-live-pane {
 			grid-area: 2 / 1;
 		}
+		&[data-exhibit-layout="one"]:not([data-exhibit-view="code"]) {
+			> exhibit-header > button[data-copy-code] {
+				display: none;
+			}
+		}
 		&[data-exhibit-layout="two"],
 		&[data-exhibit-layout="three"] {
 			grid-template-columns: min(50%, var(--code-max-width)) minmax(0, 1fr);
@@ -149,6 +154,14 @@ exhibit-frame.class {
 				grid-column: 1 / -1;
 				display: grid;
 				grid-template-columns: subgrid;
+				z-index: 1;
+				> button[data-copy-code] {
+					position: absolute;
+					grid-area: 1 / 1 / 2 / 2;
+					inset-block-start: calc(100% + var(--header-divider-width) + 5px);
+					inset-inline-end: 0;
+					height: 25px;
+				}
 				> span {
 					grid-area: 1 / 1;
 					margin-inline-end: 80px;

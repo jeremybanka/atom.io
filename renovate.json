@@ -186,6 +186,18 @@
 			}
 		},
 		{
+			"matchPackageNames": [
+				"@dprint/oxc",
+				"oxc-parser",
+				"oxc-transform-react",
+				"oxfmt",
+				"oxlint",
+				"oxlint-tsgolint"
+			],
+			"groupName": "oxc",
+			"separateMajorMinor": false
+		},
+		{
 			"matchPackageNames": ["pnpm"],
 			"postUpgradeTasks": {
 				"commands": [

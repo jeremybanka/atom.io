@@ -15,8 +15,8 @@ importers:
         specifier: 0.187.0
         version: 0.187.0
       konva:
-        specifier: 10.10.0
-        version: 10.10.0
+        specifier: 10.11.0
+        version: 10.11.0
       motion:
         specifier: 14.14.0
         version: 14.14.0
@@ -197,8 +197,8 @@ packages:
       remix:
         optional: true
 
-  konva@10.10.0:
-    resolution: {integrity: sha512-hPU7xXWxhOqLScPo1gNCtY/PJAH2aXS//Wile6lfWmoO14vkZQbeS2HK5aV6FJ5Q2OzxgdGVSiMhyLspSk4fRw==}
+  konva@10.11.0:
+    resolution: {integrity: sha512-3Te24Caj6WC0S1YWkhzuU0EnupYm+QTKQ1YDIG396eVUPVVNfhrqmZ+8WHtct8Eb2FKAIqOQSd1Z9bm5s7aMyw==}
     peerDependencies:
       '@napi-rs/canvas': ^1.1.0
       canvas: ^3.0.0
@@ -350,7 +350,7 @@ snapshots:
       motion-utils: 14.7.0
       tslib: 2.9.1
 
-  konva@10.10.0: {}
+  konva@10.11.0: {}
 
   meshoptimizer@1.1.1: {}
 

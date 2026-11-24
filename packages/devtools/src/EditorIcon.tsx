@@ -7,6 +7,7 @@ const paths = {
 	add: `M8 3v10M3 8h10`,
 	sort: `M5 2v12m-3-3 3 3 3-3m1-8h5M9 6h4M9 9h3`,
 	remove: `m4 4 8 8m0-8-8 8`,
+	clearSelection: `M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4M6 6l4 4m0-4-4 4`,
 	expand: `m6 4 4 4-4 4`,
 	collapse: `m4 6 4 4 4-4`,
 	reorder: `M5.5 4h1m3 0h1M5.5 8h1m3 0h1M5.5 12h1m3 0h1`,

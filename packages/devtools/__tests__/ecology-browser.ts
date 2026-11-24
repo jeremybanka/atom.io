@@ -120,7 +120,177 @@ try {
 	)
 	await explorer.locator(`[data-action="search"]`).click()
 	assert.equal(await explorer.locator(`dialog:modal`).count(), 1)
+	await explorer.getByRole(`searchbox`, { name: `Search ecology` }).fill(`price`)
+	await explorer
+		.getByRole(`button`, { name: `Close search`, exact: true })
+		.click()
+	const settledSplit = () =>
+		embedded.waitForFunction(() => {
+			const view = document.querySelector<HTMLElement>(`ecology-view`)!
+			const editor = view.querySelector<HTMLElement>(`ecology-editor`)!
+			return (
+				view.dataset[`ready`] === `true` &&
+				!editor.style.getPropertyValue(`--ecology-editor-height`)
+			)
+		})
+	await settledSplit()
+	for (const pane of [`ecology-map`, `ecology-editor`]) {
+		const sizes = await embedded.evaluate(async (source) => {
+			const map = document.querySelector(`ecology-map`)!
+			const editor = document.querySelector<HTMLElement>(`ecology-editor`)!
+			const read = () => [
+				map.getBoundingClientRect().height,
+				editor.getBoundingClientRect().height,
+			]
+			const frames = [read()]
+			const button = document.querySelector<HTMLButtonElement>(
+				`${source} button[data-graph-id="state:price"]`,
+			)!
+			button.focus({ preventScroll: true })
+			button.click()
+			const start = performance.now()
+			await new Promise<void>((resolve) => {
+				let animated = false
+				const sample = () => {
+					frames.push(read())
+					const running = Boolean(
+						editor.style.getPropertyValue(`--ecology-editor-height`),
+					)
+					animated ||= running
+					if ((animated && !running) || performance.now() - start > 2000)
+						resolve()
+					else afterPaint()
+				}
+				const afterPaint = () => {
+					requestAnimationFrame(() => {
+						setTimeout(sample, 0)
+					})
+				}
+				afterPaint()
+			})
+			return frames
+		}, pane)
+		const [startMap, startEditor] = sizes[0]
+		const [endMap, endEditor] = sizes.at(-1)!
+		assert.ok(
+			endEditor > startEditor && endMap < startMap,
+			`${pane} selection enlarges the editor`,
+		)
+		assert.ok(
+			sizes.some(
+				([, height]) => height > startEditor + 1 && height < endEditor - 1,
+			),
+			`${pane} selection paints intermediate sizes`,
+		)
+		assert.ok(
+			sizes.every(
+				([mapHeight, editorHeight]) =>
+					Math.abs(mapHeight + editorHeight - startMap - startEditor) < 1,
+			),
+			`Both panes share the same vertical space`,
+		)
+		await explorer
+			.getByRole(`button`, { name: `Clear selection` })
+			.press(`Escape`)
+		await settledSplit()
+	}
 	await embedded.close()
+
+	const mapActions = page.locator(`ecology-map-actions`)
+	const clearSelection = mapActions.getByRole(`button`, {
+		name: `Clear selection`,
+	})
+	const expandFamily = mapActions.getByRole(`button`, { name: `Expand family` })
+	const collapseFamily = mapActions.getByRole(`button`, {
+		name: `Collapse family`,
+	})
+	const checkDepth = (sign: -1 | 1) =>
+		page.waitForFunction((direction) => {
+			const button = document.querySelector(
+				`ecology-map-actions [data-action="clear"]`,
+			)
+			if (!button) return false
+			const transform = getComputedStyle(button).transform
+			if (transform === `none`) return false
+			const matrix = new DOMMatrixReadOnly(transform)
+			return (
+				direction * matrix.m43 > 12 &&
+				Math.abs(matrix.m13) > 0.1 &&
+				Math.abs(matrix.m23) > 0.06
+			)
+		}, sign)
+	const checkStagger = (sign: -1 | 1) =>
+		page.waitForFunction((direction) => {
+			const [expand, clear] = document.querySelectorAll<HTMLButtonElement>(
+				`ecology-map-actions > button`,
+			)
+			if (!expand || !clear || expand.hidden || clear.hidden) return false
+			const opacityGap =
+				Number(getComputedStyle(expand).opacity) -
+				Number(getComputedStyle(clear).opacity)
+			return direction * opacityGap > 0.04
+		}, sign)
+	assert.equal(await mapActions.getByRole(`button`).count(), 0)
+	await Promise.all([checkDepth(-1), choose(`state:price`)])
+	assert.equal(await mapActions.getByRole(`button`).count(), 1)
+	await Promise.all([checkDepth(1), clearSelection.click()])
+	await ready()
+	assert.equal(await mapActions.getByRole(`button`).count(), 0)
+	assert.equal(await page.locator(`ecology-scene:focus`).count(), 1)
+	await mapActions.locator(`[data-action="clear"]`).waitFor({ state: `hidden` })
+	await Promise.all([checkStagger(1), choose(`family:items`)])
+	await expandFamily.click()
+	await ready()
+	assert.equal(await collapseFamily.getAttribute(`aria-expanded`), `true`)
+	assert.equal(
+		await collapseFamily.locator(`svg`).getAttribute(`data-editor-icon`),
+		`collapse`,
+	)
+	await collapseFamily.press(`Space`)
+	await ready()
+	assert.equal(await expandFamily.getAttribute(`aria-expanded`), `false`)
+	assert.equal(
+		await expandFamily.locator(`svg`).getAttribute(`data-editor-icon`),
+		`expand`,
+	)
+	assert.deepEqual(
+		await mapActions.evaluate((actions) => {
+			const overlay = actions as HTMLElement
+			const map = overlay.offsetParent as HTMLElement
+			const [expand, clear] = overlay.querySelectorAll(`button`)
+			const hinge = (button: HTMLButtonElement) => {
+				const [x, y] = getComputedStyle(button)
+					.transformOrigin.split(` `)
+					.map(Number.parseFloat)
+				return [button.offsetLeft + x, button.offsetTop + y - map.clientHeight]
+			}
+			return {
+				left: expand.offsetLeft,
+				bottom: map.clientHeight - expand.offsetTop - expand.offsetHeight,
+				gap: clear.offsetLeft - expand.offsetLeft - expand.offsetWidth,
+				sizes: [
+					expand.offsetWidth,
+					expand.offsetHeight,
+					clear.offsetWidth,
+					clear.offsetHeight,
+				],
+				hinges: [hinge(expand), hinge(clear)],
+			}
+		}),
+		{
+			left: 2,
+			bottom: 2,
+			gap: 2,
+			sizes: [32, 32, 32, 32],
+			hinges: [
+				[0, 0],
+				[0, 0],
+			],
+		},
+	)
+	await Promise.all([checkStagger(-1), clearSelection.press(`Escape`)])
+	await ready()
+	assert.equal(await mapActions.getByRole(`button`).count(), 0)
 
 	// Verify browser paint ordering at an actual curve/card intersection. Temporarily
 	// enable stroke hit testing and place an unrelated card under that point.

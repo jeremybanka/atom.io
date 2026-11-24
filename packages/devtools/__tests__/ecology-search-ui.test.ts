@@ -216,10 +216,7 @@ it(`keeps an unfinished numeric draft and its node mounted through query, clear,
 	await f.key(f.input(), `Escape`)
 	expect(document.activeElement).toBe(editor)
 	expect(editor.selectionStart).toBe(1)
-	f.input().focus()
-	f.button(`Clear selection`).click()
-	await settle()
-	expect(f.host.querySelector(`ecology-editor input`)).toBe(editor)
+	expect(f.host.querySelector(`[data-action="clear"]:not([inert])`)).toBeNull()
 })
 
 it(`retains invalid-query results, respects IME/native find and searches new state automatically`, async () => {
@@ -381,7 +378,7 @@ it(`uses latest input while metadata indexing is in flight and cancels hidden/di
 	expect(vi.getTimerCount()).toBe(0)
 })
 
-it(`waits for a committed root and can clear selection before the first admitted capture`, async () => {
+it(`waits for a committed root before the first admitted capture`, async () => {
 	const { createGraphContext } = await import(`../src/ecology-graph.ts`)
 	const app = new Silo({
 		name: `ecology-transaction`,
@@ -404,7 +401,9 @@ it(`waits for a committed root and can clear selection before the first admitted
 					app.store,
 					createGraphContext(),
 				))
-				host.querySelector<HTMLButtonElement>(`[data-action="clear"]`)!.click()
+				expect(
+					host.querySelector(`[data-action="clear"]:not([inert])`),
+				).toBeNull()
 				expect(host.textContent).toContain(`Waiting for the current transaction`)
 			}
 		},

@@ -14,6 +14,70 @@ export const EDITOR_SPRING = {
 	damping: 38,
 } as const
 
+export function animateEcologyEditorHeight(
+	editor: HTMLElement,
+	content: HTMLElement,
+): () => void {
+	const body = editor.parentElement!
+	const window = editor.ownerDocument.defaultView!
+	const preference = window.matchMedia(`(prefers-reduced-motion: reduce)`)
+	const height = motionValue(0)
+	const property = `--ecology-editor-height`
+	const write = (pixels: number) => {
+		editor.style.setProperty(property, `${pixels}px`)
+	}
+	const release = height.on(`change`, write)
+	let target: number | undefined
+	const sync = (animateChange: boolean) => {
+		const pinned = editor.style.getPropertyValue(property)
+		// Measure the natural split with the current flex limits before the next paint.
+		editor.style.removeProperty(property)
+		const previous = target
+		target =
+			body.clientHeight > 0 && window.getComputedStyle(body).display === `flex`
+				? editor.getBoundingClientRect().height
+				: undefined
+		if (
+			!animateChange ||
+			preference.matches ||
+			previous === undefined ||
+			target === undefined
+		) {
+			height.stop()
+			return
+		}
+		if (target === previous) {
+			if (pinned) editor.style.setProperty(property, pinned)
+			return
+		}
+		if (!pinned) height.jump(previous)
+		write(height.get())
+		animate(height, target, {
+			...EDITOR_SPRING,
+			onComplete() {
+				editor.style.removeProperty(property)
+			},
+		})
+	}
+	const reset = () => {
+		sync(false)
+	}
+	const observer = new window.ResizeObserver((entries) => {
+		sync(!entries.some((entry) => entry.target === body))
+	})
+	observer.observe(body)
+	observer.observe(content)
+	preference.addEventListener(`change`, reset)
+	reset()
+	return () => {
+		observer.disconnect()
+		preference.removeEventListener(`change`, reset)
+		release()
+		height.destroy()
+		editor.style.removeProperty(property)
+	}
+}
+
 interface EdgeHeading {
 	goal: number
 	value?: MotionValue<number>

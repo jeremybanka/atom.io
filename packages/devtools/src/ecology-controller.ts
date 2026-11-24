@@ -155,10 +155,19 @@ export function createEcologyController(
 		return family && !context.expanded.has(family) ? `family:${family}` : id
 	}
 	const passive = () => {
+		const selected = context.selected
+			? model?.all.get(context.selected)
+			: undefined
 		const selectedCard = visibleId(context.selected)
+		const family = familyKey(selected)
 		update({
-			selected: context.selected ? model?.all.get(context.selected) : undefined,
+			selected,
 			selectedCard,
+			hasSelectedFamily: family !== undefined,
+			...(family === undefined
+				? {}
+				: { familyExpanded: context.expanded.has(family) }),
+			hasSelection: Boolean(context.selected),
 			selectedIds: model?.selection?.selectedIds ?? new Set(),
 			selectionOutside:
 				Boolean(context.selected) &&
@@ -192,6 +201,7 @@ export function createEcologyController(
 		const focusId = focused.getAttribute(`data-graph-id`),
 			focusAction = focused.getAttribute(`data-action`)
 		const focusInList = list.contains(focused)
+		const focusInMapActions = hadFocus && focused.closest(`ecology-map-actions`)
 		model = value
 		jobs++
 		host.dataset[`jobs`] = String(jobs)
@@ -277,6 +287,13 @@ export function createEcologyController(
 				target?.focus()
 				target?.scrollIntoView?.({ block: `nearest` })
 				reveal = undefined
+			} else if (
+				focusInMapActions &&
+				(!focused.isConnected || focused.closest(`[inert]`))
+			) {
+				const scene = host.querySelector<HTMLElement>(`ecology-scene`)
+				if (scene) scene.focus({ preventScroll: true })
+				else returnToSearch()
 			} else if (
 				(focusId || focusAction) &&
 				(!focused.isConnected ||

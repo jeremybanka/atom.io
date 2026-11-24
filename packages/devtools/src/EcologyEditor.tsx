@@ -1,8 +1,8 @@
 /** @jsxImportSource @atom.io/spa */
-import { type SpaElement, useId } from "@atom.io/spa"
+import { onCleanup, onMount, type SpaElement, useId } from "@atom.io/spa"
 
 import type { GraphItem } from "./ecology-graph.ts"
-import { EDITOR_SPRING } from "./ecology-motion.ts"
+import { animateEcologyEditorHeight, EDITOR_SPRING } from "./ecology-motion.ts"
 import css from "./EcologyEditor.module.css"
 import {
 	EcologyEditorRow,
@@ -23,6 +23,11 @@ export function EcologyEditor(props: {
 	onGenerate(key: string): void
 }): SpaElement {
 	const layoutGroup = `ecology-editor-${useId()}`
+	let editor: HTMLElement | null = null
+	let content: HTMLElement | null = null
+	onMount(() => {
+		onCleanup(animateEcologyEditorHeight(editor!, content!))
+	})
 	const cachedRows = new Map<
 		string,
 		{ item: GraphItem; section: Section; node: SpaElement }
@@ -97,42 +102,51 @@ export function EcologyEditor(props: {
 	return (
 		<ecology-editor
 			class={css.class}
+			ref={(element) => {
+				editor = element
+			}}
 			role="region"
 			aria-label="Ecology editor"
 			motion:layout={false}
 			motion:layoutScroll
 			tabIndex={-1}
 		>
-			<editor-rows>
-				{entries().map((entry) =>
-					`heading` in entry ? (
-						<h3
-							key={entry.id}
-							data-section-heading={entry.section}
-							motion:layout="position"
-							motion:layoutTransition={EDITOR_SPRING}
-						>
-							{entry.heading}
-						</h3>
-					) : (
-						row(entry)
-					),
-				)}
-			</editor-rows>
-			{props.state.rowCount > props.state.rowIds.size &&
-				props.state.rowIds.size < 500 && (
-					<button type="button" data-action="more-rows">
-						Show more nodes
-					</button>
-				)}
-			<p hidden={!props.state.empty} data-empty role="status">
-				{props.state.emptyText}
-			</p>
-			<p hidden={!props.state.selectionOutside} data-selection-context>
-				{props.state.selected
-					? `Selected node is outside the current filter.`
-					: `Selection outside this captured snapshot`}
-			</p>
+			<ecology-editor-content
+				ref={(element) => {
+					content = element
+				}}
+			>
+				<editor-rows>
+					{entries().map((entry) =>
+						`heading` in entry ? (
+							<h3
+								key={entry.id}
+								data-section-heading={entry.section}
+								motion:layout="position"
+								motion:layoutTransition={EDITOR_SPRING}
+							>
+								{entry.heading}
+							</h3>
+						) : (
+							row(entry)
+						),
+					)}
+				</editor-rows>
+				{props.state.rowCount > props.state.rowIds.size &&
+					props.state.rowIds.size < 500 && (
+						<button type="button" data-action="more-rows">
+							Show more nodes
+						</button>
+					)}
+				<p hidden={!props.state.empty} data-empty role="status">
+					{props.state.emptyText}
+				</p>
+				<p hidden={!props.state.selectionOutside} data-selection-context>
+					{props.state.selected
+						? `Selected node is outside the current filter.`
+						: `Selection outside this captured snapshot`}
+				</p>
+			</ecology-editor-content>
 		</ecology-editor>
 	)
 }

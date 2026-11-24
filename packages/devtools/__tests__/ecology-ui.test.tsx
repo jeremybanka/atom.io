@@ -455,8 +455,7 @@ it(`retains selection/pan/expansion across snapshots and navigation; geometry-on
 	)
 	await settle()
 	expect(f.host.querySelector(`ecology-editor`)!.textContent).toContain(`Nodes`)
-	await f.click(`Clear selection`)
-	expect(f.host.textContent).toContain(`Nodes`)
+	expect(f.host.querySelector(`[data-action="clear"]:not([inert])`)).toBeNull()
 })
 
 it(`automatically emphasizes selection paths, dims unrelated cards, and clears selection before the search on Escape`, async () => {
@@ -672,7 +671,7 @@ it(`cleans up hidden, minimized, superseded and disposed jobs and keeps empty fl
 		f.host.querySelector<HTMLElement>(`ecology-view`)!.dataset[`jobs`],
 	).toBe(`1`)
 	await f.click(`Fit`)
-	await f.click(`Clear selection`)
+	expect(f.host.querySelector(`[data-action="clear"]:not([inert])`)).toBeNull()
 	const form = f.host.querySelector(`form`)!
 	expect(
 		form.dispatchEvent(new Event(`submit`, { bubbles: true, cancelable: true })),

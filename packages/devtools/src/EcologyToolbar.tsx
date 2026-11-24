@@ -47,11 +47,6 @@ export function EcologyToolbar(props: {
 			<ecology-actions role="group" aria-label="Ecology actions">
 				{[
 					[`refresh`, `Refresh`, `M13 6A5 5 0 1 0 13 10M13 2v4H9`],
-					[
-						`clear`,
-						`Clear selection`,
-						`M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4M6 6l4 4m0-4-4 4`,
-					],
 					[`fit`, `Fit`, `M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4`],
 					[`reset`, `Reset view`, `m2 7 6-5 6 5M4 6v8h8V6`],
 					[

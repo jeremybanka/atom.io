@@ -30,7 +30,7 @@ window-overlay.class {
 		display: none;
 	}
 	> snap-palette > button {
-		--snap-border: var(--bg-soft-1);
+		--snap-context-stroke: var(--ink);
 		box-sizing: border-box;
 		display: grid;
 		place-items: center;
@@ -40,12 +40,13 @@ window-overlay.class {
 		padding: 0;
 		color: var(--bg-hard-1);
 		background: var(--ink-muted);
-		border: 1px solid var(--snap-border);
+		border: 1px solid color-mix(in srgb, var(--ink) 16%, var(--bg-color));
 		cursor: pointer;
 	}
 	> snap-palette > button[aria-pressed="true"] {
-		--snap-border: var(--bg-hard-1);
+		--snap-context-stroke: var(--bg-hard-1);
 		background: var(--accent);
+		border-color: var(--bg-hard-1);
 	}
 	> snap-palette > button:hover:not(:focus-visible, [aria-pressed="true"]) {
 		outline: 1px solid var(--accent);

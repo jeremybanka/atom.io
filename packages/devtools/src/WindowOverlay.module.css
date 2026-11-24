@@ -18,8 +18,6 @@ window-overlay.class {
 		display: flex;
 		flex-wrap: wrap;
 		justify-content: center;
-		gap: 3px;
-		padding: 6px;
 		width: max-content;
 		max-width: calc(100vw - 16px);
 		background: var(--ink-muted);
@@ -30,7 +28,6 @@ window-overlay.class {
 		display: none;
 	}
 	> snap-palette > button {
-		--snap-context-stroke: color-mix(in srgb, var(--ink) 16%, var(--bg-color));
 		box-sizing: border-box;
 		display: grid;
 		place-items: center;
@@ -40,20 +37,18 @@ window-overlay.class {
 		padding: 0;
 		color: var(--bg-hard-1);
 		background: var(--ink-muted);
-		border: 1px solid var(--ink);
+		border: 0;
 		cursor: pointer;
 	}
 	> snap-palette > button[aria-pressed="true"] {
-		--snap-context-stroke: var(--bg-hard-1);
 		background: var(--accent);
-		border-color: var(--bg-hard-1);
 	}
 	> snap-palette > button:hover:not(:focus-visible, [aria-pressed="true"]) {
 		outline: 1px solid var(--accent);
-		outline-offset: 1px;
+		outline-offset: -1px;
 	}
 	> snap-palette > button:focus-visible {
 		outline: 2px solid var(--accent);
-		outline-offset: 1px;
+		outline-offset: -2px;
 	}
 }

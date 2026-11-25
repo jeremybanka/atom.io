@@ -121,7 +121,10 @@ if (process.argv.includes(`--serve`)) {
 			.click()
 		const search = panel.getByRole(`dialog`, { name: `Search ecology` })
 		await search.getByRole(`searchbox`).fill(`count`)
-		await search.getByRole(`button`, { name: `count`, exact: true }).waitFor()
+		await search.locator(`[data-result-id="state:count"]`).waitFor()
+		await search.locator(`[data-result-id="timeline:count"]`).waitFor()
+		await search.getByRole(`searchbox`).fill(`increment`)
+		await search.locator(`[data-result-id="transaction:increment"]`).waitFor()
 		await search.getByRole(`button`, { name: `Close search` }).click()
 		await atoms.click()
 		await expectValue(`count`, `2`)
@@ -214,7 +217,18 @@ if (process.argv.includes(`--serve`)) {
 		await expectWorker(25, 50)
 
 		await panel.getByRole(`tab`, { name: `ecology` }).click()
-		await panel.getByTestId(`ecology-view`).locator(`[data-edges="1"]`).waitFor()
+		const ecology = panel.getByTestId(`ecology-view`)
+		for (const [id, relation] of [
+			[`state:count`, `:not([data-relation])`],
+			[`transaction:increment`, `[data-relation="transaction"]`],
+			[`timeline:count`, `[data-relation="timeline"]`],
+		]) {
+			await ecology
+				.locator(
+					`ecology-node-card:has(> button[data-graph-id="${id}"]) > svg > path[d]:not([d=""])${relation}`,
+				)
+				.waitFor({ state: `attached` })
+		}
 		assert.deepEqual(errors, [])
 		const screenshot = process.env[`SPA_DEVTOOLS_WORKER_SCREENSHOT`]
 		await picker.click()

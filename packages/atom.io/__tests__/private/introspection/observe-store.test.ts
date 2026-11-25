@@ -1,6 +1,6 @@
 import { Silo } from "atom.io"
 import { Future } from "atom.io/foundations/future"
-import { createRegularAtom } from "atom.io/internal"
+import { createRegularAtom, Tracker } from "atom.io/internal"
 import {
 	observeStore,
 	peekDependencies,
@@ -8,6 +8,7 @@ import {
 	peekStateDefinition,
 	type StoreChanges,
 } from "atom.io/introspection"
+import { UList } from "atom.io/transceivers/u-list"
 import { expect, it, vi } from "vitest"
 
 function setup() {
@@ -169,6 +170,148 @@ it(`batches owner history changes without subscribing to history subjects`, asyn
 		expect(store.timelines.has(countTimeline.key)).toBe(false)
 	} finally {
 		stop()
+	}
+})
+
+it(`reports timeline family registrations independently of timeline members`, async () => {
+	const { silo, store } = setup()
+	const observe = vi.fn<(changes: StoreChanges) => void>()
+	const stop = observeStore(store, observe)
+	const historyTimelines = silo.timelineFamily<string>({
+		key: `history`,
+		scope: [],
+	})
+	silo.timelineFamily<string>({ key: `🔍 private`, scope: [] })
+	await Promise.resolve()
+	expect(observe).toHaveBeenCalledOnce()
+	expect(observe.mock.lastCall?.[0]).toMatchObject({
+		timelineFamilies: new Set([historyTimelines.key]),
+		timelines: new Set(),
+	})
+	stop()
+})
+
+it(`attributes nested writes to committed definitions and maps tracker signals to their atoms`, async () => {
+	const { silo, store } = setup()
+	const itemsAtom = silo.mutableAtom<UList<string>>({
+		key: `items`,
+		class: UList,
+	})
+	const flagAtom = silo.atom<boolean>({ key: `flag`, default: false })
+	const { latestSignalToken } = new Tracker(itemsAtom, store)
+	const privateAtom = createRegularAtom(
+		store,
+		{ key: `🔍 private`, default: 0 },
+		undefined,
+	)
+	const childTransaction = silo.transaction({
+		key: `child`,
+		do: ({ set }) => {
+			set(latestSignalToken, `0\u001F\u0003x`)
+			set(privateAtom, 1)
+		},
+	})
+	const hiddenTransaction = silo.transaction({
+		// eslint-disable-next-line atom.io/naming-convention -- exercise the reserved introspection prefix
+		key: `🔍 hidden`,
+		do: ({ run }) => {
+			run(childTransaction)()
+		},
+	})
+	const parentTransaction = silo.transaction({
+		key: `parent`,
+		do: ({ run }) => {
+			const draftTransaction = silo.transaction({
+				key: `draft`,
+				do: ({ set }) => {
+					set(flagAtom, true)
+				},
+			})
+			run(draftTransaction)()
+			run(hiddenTransaction)()
+		},
+	})
+	const observe = vi.fn<(changes: StoreChanges) => void>()
+	const stop = observeStore(store, observe)
+	silo.runTransaction(parentTransaction)()
+	await Promise.resolve()
+	expect(store.transactions.get(childTransaction.key)?.observedWrites).toEqual({
+		keys: new Set([itemsAtom.key]),
+		truncated: false,
+	})
+	expect(store.transactions.get(parentTransaction.key)?.observedWrites).toEqual({
+		keys: new Set([flagAtom.key, itemsAtom.key]),
+		truncated: false,
+	})
+	expect(
+		store.transactions.get(hiddenTransaction.key)?.observedWrites,
+	).toBeUndefined()
+	expect(store.transactions.has(`draft`)).toBe(false)
+	expect(observe.mock.lastCall?.[0].transactionWrites).toEqual(
+		new Set([parentTransaction.key, childTransaction.key]),
+	)
+	stop()
+})
+
+it(`retains the first thousand distinct write keys and publishes truncation once`, async () => {
+	const { silo, store } = setup()
+	const entriesAtoms = silo.atomFamily<number, number>({
+		key: `entries`,
+		default: 0,
+	})
+	const entries = Array.from({ length: 1_003 }, (_, index) =>
+		silo.findState(entriesAtoms, index),
+	)
+	const saveTransaction = silo.transaction({
+		key: `save`,
+		do: ({ set }, start: number, end: number) => {
+			for (const entry of entries.slice(start, end)) set(entry, 1)
+		},
+	})
+	const observe = vi.fn<(changes: StoreChanges) => void>()
+	const stop = observeStore(store, observe)
+	silo.runTransaction(saveTransaction)(0, 1_000)
+	await Promise.resolve()
+	const writes = store.transactions.get(saveTransaction.key)?.observedWrites
+	expect(writes).toEqual({
+		keys: new Set(entries.slice(0, 1_000).map(({ key }) => key)),
+		truncated: false,
+	})
+	silo.runTransaction(saveTransaction)(1_000, 1_002)
+	await Promise.resolve()
+	expect(writes).toMatchObject({ truncated: true })
+	expect(writes?.keys.size).toBe(1_000)
+	expect(observe.mock.lastCall?.[0].transactionWrites).toEqual(
+		new Set([saveTransaction.key]),
+	)
+	silo.runTransaction(saveTransaction)(1_002, 1_003)
+	await Promise.resolve()
+	expect(observe.mock.lastCall?.[0].transactionWrites).toBeUndefined()
+	stop()
+})
+
+it(`marks all open transaction frames when write inspection hits its event limit`, () => {
+	const { silo, store } = setup()
+	const countAtom = silo.atom<number>({ key: `count`, default: 0 })
+	const repeatTransaction = silo.transaction({
+		key: `repeat`,
+		do: ({ set }) => {
+			for (let count = 1; count <= 10_001; count++) set(countAtom, count)
+		},
+	})
+	const outerTransaction = silo.transaction({
+		key: `outer`,
+		do: ({ run }) => {
+			run(repeatTransaction)()
+		},
+	})
+	silo.runTransaction(outerTransaction)()
+	expect(silo.getState(countAtom)).toBe(10_001)
+	for (const { key } of [repeatTransaction, outerTransaction]) {
+		expect(store.transactions.get(key)?.observedWrites).toEqual({
+			keys: new Set([countAtom.key]),
+			truncated: true,
+		})
 	}
 })
 

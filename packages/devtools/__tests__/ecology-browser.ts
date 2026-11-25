@@ -672,10 +672,17 @@ try {
 			const path = operations.locator(
 				`ecology-node-card:has(> button[data-graph-id="${id}"]) > svg > path[data-relation="${relation}"]`,
 			)
-			assert.equal(
-				await path.evaluate((node) => getComputedStyle(node).strokeDasharray),
-				pattern,
-			)
+			const { dasharray, stroke, border } = await path.evaluate((node) => {
+				const style = getComputedStyle(node)
+				const card = node.closest(`ecology-node-card`)!.querySelector(`button`)!
+				return {
+					dasharray: style.strokeDasharray,
+					stroke: style.stroke,
+					border: getComputedStyle(card).borderTopColor,
+				}
+			})
+			assert.equal(dasharray, pattern)
+			assert.equal(stroke, border)
 		}
 		const selectorArrow = operations.locator(
 			`ecology-node-card:has(> button[data-graph-id="state:price"]) > svg > path`,

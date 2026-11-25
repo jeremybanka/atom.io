@@ -72,15 +72,17 @@ export function EcologyGuide(props: {
 						Dashed cards group families, including empty definitions. Solid
 						arrows point from a dependency to its selector. Dashed lines show
 						atom writes observed in committed transactions. Dotted lines show the
-						atoms and families a timeline tracks. Each key gives its card border
-						and outgoing arrows a stable color: warm hues for atoms, cool hues
-						for selectors. Members share their family's color. Solid lines in the
-						same color connect expanded members and brighten when you select the
-						family or a member. Their cards show subkeys below smaller colored
-						family names. Clustered members sit slightly around their family
-						center, keeping separate edges that overlap into a band with a darker
-						core and softer fringe. The parallel springs stay opposite at equal
-						height; their viewer-facing cards can still overlap in projection.
+						atoms and families a timeline tracks. Atom colors range from warm
+						yellow to red, selectors from cyan through blue to indigo,
+						transactions from turquoise through green to lime, and timelines from
+						magenta to violet. Members share their family's color. Solid lines in
+						the same color connect expanded members and brighten when you select
+						the family or a member. Their cards show subkeys below smaller
+						colored family names. Clustered members sit slightly around their
+						family center, keeping separate edges that overlap into a band with a
+						darker core and softer fringe. The parallel springs stay opposite at
+						equal height; their viewer-facing cards can still overlap in
+						projection.
 					</p>
 					<p>
 						Ecology updates as the application changes the store. Changed cards

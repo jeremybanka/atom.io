@@ -4,6 +4,7 @@ import type { SpaElement } from "@atom.io/spa"
 import { type EcologyOperation, ecologyTimelinePosition } from "./ecology.ts"
 import css from "./EcologyOperationHistory.module.css"
 import { EditorIcon } from "./EditorIcon.tsx"
+import type { EcologyEventInteraction } from "./EventView.tsx"
 import type { EditorTools } from "./store.ts"
 import { TimelineHistory } from "./TimelineHistory.tsx"
 import { TimelineTravel } from "./TimelineTravel.tsx"
@@ -15,6 +16,7 @@ export function EcologyOperationHistory(props: {
 	id: string
 	expanded: boolean
 	label: SpaElement
+	events: EcologyEventInteraction
 }): SpaElement {
 	const { key, type } = props.operation
 	const transactions =
@@ -53,10 +55,18 @@ export function EcologyOperationHistory(props: {
 			</node-heading>
 			{props.expanded &&
 				(transactions ? (
-					<TransactionOutcomes tools={props.tools} history={transactions()} />
+					<TransactionOutcomes
+						tools={props.tools}
+						history={transactions()}
+						ecology={props.events}
+					/>
 				) : (
 					timeline?.() && (
-						<TimelineHistory tools={props.tools} timeline={timeline()!} />
+						<TimelineHistory
+							tools={props.tools}
+							timeline={timeline()!}
+							ecology={props.events}
+						/>
 					)
 				))}
 		</ecology-operation-history>

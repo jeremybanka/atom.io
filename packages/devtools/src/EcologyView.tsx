@@ -41,6 +41,7 @@ export interface EcologyPresentation {
 	historyOwners: GraphModel[`historyOwners`]
 	selected?: GraphModel[`items`][number] | undefined
 	selectedCard?: string | undefined
+	selectedHistory?: string | undefined
 	expansion: { kind: `family` | `history`; expanded: boolean } | undefined
 	hasSelection: boolean
 	selectedIds: ReadonlySet<string>
@@ -191,6 +192,7 @@ export function EcologyView(props: {
 		historyOwners: [],
 		selected: undefined,
 		selectedCard: undefined,
+		selectedHistory: undefined,
 		expansion: undefined,
 		hasSelection: false,
 		selectedIds: new Set(),
@@ -240,9 +242,15 @@ export function EcologyView(props: {
 			event.pointerType !== `touch` &&
 			target instanceof Element &&
 			host!.contains(target)
-				? target.closest<HTMLElement>(`[data-graph-id], ecology-editor-row`)
+				? target.closest<HTMLElement>(
+						`[data-graph-id], [data-history-graph-id], ecology-editor-row`,
+					)
 				: undefined
-		setHovered(item?.dataset[`graphId`] ?? item?.dataset[`rowId`])
+		setHovered(
+			item?.dataset[`graphId`] ??
+				item?.dataset[`historyGraphId`] ??
+				item?.dataset[`rowId`],
+		)
 	}
 	onMount(() => {
 		controller = createEcologyController(
@@ -296,7 +304,12 @@ export function EcologyView(props: {
 						expanded={state().expanded}
 						selected={state().selectedCard}
 						selectedFamily={selectedFamily()}
-						selectedIds={state().selectedIds}
+						selectedIds={
+							state().selectedHistory === state().selectedCard &&
+							state().selectedHistory
+								? undefined
+								: state().selectedIds
+						}
 						traced={state().traced}
 						focused={state().focused}
 						matches={state().matches}

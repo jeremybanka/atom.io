@@ -9,13 +9,34 @@ event-view.class {
 		white-space: nowrap;
 		overflow: hidden;
 	}
-	& > event-heading > button {
+	& > event-heading > button[aria-expanded] {
 		display: grid;
 		place-items: center;
 		width: 22px;
 		height: 22px;
 		padding: 0;
 		flex-shrink: 0;
+	}
+	& > event-heading > button[data-graph-id] {
+		display: flex;
+		align-items: center;
+		flex: 1;
+		min-width: 0;
+		height: 100%;
+		padding: 0 4px 0 0;
+		background: transparent;
+		text-align: left;
+		&:focus-visible {
+			outline-offset: -2px;
+		}
+	}
+	&[data-hovered="true"] {
+		--surface-inactive: var(--surface-hover);
+		background: var(--surface-hover);
+	}
+	&[data-selected="true"] > event-heading {
+		outline: 2px solid var(--ink-strong);
+		outline-offset: -2px;
 	}
 	& > p[data-change] > [data-kind="number"] {
 		display: inline-block;
@@ -28,13 +49,13 @@ event-view.class {
 		margin-left: 9px;
 		border-left: 1px solid var(--ink-muted);
 	}
-	& > event-heading > strong {
+	& > event-heading strong {
 		min-width: 0;
 		padding-right: 6px;
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
-	& > event-heading > small {
+	& > event-heading small {
 		font-size: 11px;
 	}
 	& > p, & > code {

@@ -333,7 +333,7 @@ The ecology tab captures the store on entry and updates as state and observed de
 
 Transactions, timelines, and timeline families appear on a third helix. They have color-matched icons and can be searched by name or primitive type in local and remote Ecology. Timelines show their current cursor and retained step count. Timeline families include empty definitions and expand to show instantiated members.
 
-Expand a transaction or timeline in the Ecology editor to inspect the same outcomes and events shown in the Transactions and Timelines tabs. Transaction history retains up to 200 outcomes per transaction from when the local debugger or standalone explorer mounts, or from when a remote connection opens. Timeline histories show the current cursor and offer undo and redo. Remote inspection mode disables those controls.
+Expand a transaction or timeline in the Ecology editor to inspect the same outcomes and events shown in the Transactions and Timelines tabs. Hover or select an individual entry in the editor or graph to highlight its counterpart. Transaction history retains up to 200 outcomes per transaction from when the local debugger or standalone explorer mounts, or from when a remote connection opens. Timeline histories show the current cursor and offer undo and redo. Remote inspection mode disables those controls.
 
 Dashed lines link individual transaction outcomes to their affected states, including changes from nested transactions. Dotted lines link timelines and timeline families to their registered scopes and link individual timeline events to their affected states. A timeline event that captured a transaction also links to the matching outcome while both are retained. Collapsed history cards keep their routes and cluster around their parent. Solid arrows show selector dependencies. Selecting either end of a dashed or dotted line highlights the relationship and puts the other end in the related nodes section.
 
@@ -406,7 +406,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                        | Entry                         | Minified JS |   Gzip JS |
 | ----------------------------- | ----------------------------- | ----------: | --------: |
-| Interactive app with debugger | `tonnage-recipes/debugger.ts` | 1,027,758 B | 306,747 B |
+| Interactive app with debugger | `tonnage-recipes/debugger.ts` | 1,029,035 B | 307,006 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

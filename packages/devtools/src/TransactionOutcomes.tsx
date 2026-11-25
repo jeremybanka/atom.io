@@ -1,7 +1,7 @@
 /** @jsxImportSource @atom.io/spa */
 import type { SpaElement } from "@atom.io/spa"
 
-import { EventView } from "./EventView.tsx"
+import { type EcologyEventInteraction, EventView } from "./EventView.tsx"
 import { historyIdentity } from "./history-event.ts"
 import type { EditorTools, TransactionHistory } from "./store.ts"
 import css from "./TransactionOutcomes.module.css"
@@ -9,6 +9,7 @@ import css from "./TransactionOutcomes.module.css"
 export function TransactionOutcomes(props: {
 	tools: EditorTools
 	history: TransactionHistory
+	ecology?: EcologyEventInteraction | undefined
 }): SpaElement {
 	return (
 		<transaction-outcomes class={css.class}>
@@ -21,6 +22,7 @@ export function TransactionOutcomes(props: {
 						tools={props.tools}
 						event={event}
 						index={index}
+						ecology={props.ecology}
 					/>
 				))
 			)}

@@ -285,7 +285,7 @@ export function EcologyNodeCard(props: {
 				data-history-owner={props.item.history ? props.item.familyId : undefined}
 				data-history-event={props.item.history?.identity}
 				aria-label={description()}
-				aria-pressed={props.item.history ? undefined : props.selected}
+				aria-pressed={props.selected}
 				aria-expanded={props.expanded}
 				onPointerDown={(event) => {
 					event.stopPropagation()

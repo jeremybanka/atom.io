@@ -36,6 +36,9 @@ export function historyIdentity(record: object): string {
 	if (!id) identities.set(record, (id = `history-${identity++}`))
 	return id
 }
+export function historyGraphId(owner: string, eventId: string): string {
+	return `history:${owner}:${eventId}`
+}
 /** Do not enumerate, coerce or serialize application-owned values, including proxies. */
 export function historyValue(value: unknown): string | undefined {
 	if (typeof value === `string`)

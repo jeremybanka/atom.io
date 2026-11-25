@@ -243,6 +243,32 @@ if (process.argv.includes(`--serve`)) {
 			.first()
 			.waitFor({ state: `attached` })
 		await ecology.locator(`transaction-outcomes event-view`).first().waitFor()
+		const outcomeEntry = ecology.getByRole(`button`, {
+			name: `Select outcome 1`,
+			exact: true,
+		})
+		const outcomeId = (await outcomeEntry.getAttribute(`data-graph-id`))!
+		await outcomeEntry.hover()
+		await scene
+			.locator(
+				`ecology-node-card[data-hovered="true"] > button[data-graph-id="${outcomeId}"]`,
+			)
+			.waitFor()
+		await outcomeEntry.click()
+		await scene
+			.locator(`button[data-graph-id="${outcomeId}"][aria-pressed="true"]`)
+			.waitFor()
+		const outline = (element: Element) => {
+			const { outlineColor, outlineStyle, outlineWidth } =
+				getComputedStyle(element)
+			return [outlineColor, outlineStyle, outlineWidth]
+		}
+		const mapOutline = await operationCard(outcomeId).evaluate(outline)
+		assert.deepEqual(mapOutline.slice(1), [`solid`, `2px`])
+		assert.deepEqual(
+			await outcomeEntry.locator(`..`).evaluate(outline),
+			mapOutline,
+		)
 
 		const timelineCard = operationCard(`timeline:count`)
 		await timelineCard.press(`Enter`)
@@ -261,6 +287,18 @@ if (process.argv.includes(`--serve`)) {
 			.waitFor({ state: `attached` })
 		await ecology
 			.locator(`ecology-scene[data-history-connections="2"]`)
+			.waitFor()
+		const eventCard = scene
+			.locator(
+				`ecology-node-card[data-history="past"] > button[aria-label^="increment · Past"]`,
+			)
+			.first()
+		const eventId = (await eventCard.getAttribute(`data-graph-id`))!
+		await eventCard.press(`Enter`)
+		await ecology
+			.locator(
+				`timeline-history button[data-graph-id="${eventId}"][aria-pressed="true"]`,
+			)
 			.waitFor()
 		const travel = ecology.locator(`node-heading > timeline-travel`)
 		const undo = travel.getByRole(`button`, { name: `undo` })

@@ -5,6 +5,7 @@ import { EditorIcon } from "./EditorIcon.tsx"
 import css from "./EventView.module.css"
 import {
 	historyEventPreview,
+	historyGraphId,
 	historyIdentity,
 	historyParams,
 	historyValue,
@@ -12,21 +13,35 @@ import {
 } from "./history-event.ts"
 import { type EditorTools, useExpanded } from "./store.ts"
 
+export interface EcologyEventInteraction {
+	owner: string
+	hovered: string | undefined
+	selected: string | undefined
+}
+
 export function EventView(props: {
 	tools: EditorTools
 	event: RecordedEvent
 	index: number
 	depth?: number
+	ecology?: EcologyEventInteraction | undefined
 }): SpaElement {
 	const event = props.event
 	const token = `token` in event ? event.token : undefined
 	const depth = props.depth ?? 0
-	const descendants = `subEvents` in event ? event.subEvents : []
-	const [getOpen, toggle] = useExpanded(
-		props.tools,
-		[`event`, historyIdentity(event)],
-		true,
+	const identity = historyIdentity(event)
+	const owner = props.ecology?.owner
+	const graphId = owner ? historyGraphId(owner, identity) : undefined
+	const selected = () =>
+		graphId ? props.ecology!.selected === graphId : undefined
+	const label = () => (
+		<>
+			<strong>{token?.key}</strong>
+			<small>{event.type}</small>
+		</>
 	)
+	const descendants = `subEvents` in event ? event.subEvents : []
+	const [getOpen, toggle] = useExpanded(props.tools, [`event`, identity], true)
 	const nested = () =>
 		depth < 31
 			? descendants.map((child, index) => (
@@ -42,7 +57,10 @@ export function EventView(props: {
 	return (
 		<event-view
 			class={css.class}
-			data-history-event={historyIdentity(event)}
+			data-history-event={identity}
+			data-history-graph-id={graphId}
+			data-hovered={graphId ? props.ecology!.hovered === graphId : undefined}
+			data-selected={selected()}
 			data-testid={`${event.type === `transaction_outcome` ? `transaction` : `timeline`}-update-${token?.key}-${props.index}`}
 		>
 			<event-heading>
@@ -54,8 +72,19 @@ export function EventView(props: {
 				>
 					<EditorIcon name={getOpen() ? `collapse` : `expand`} />
 				</button>
-				<strong>{token?.key}</strong>
-				<small>{event.type}</small>
+				{owner ? (
+					<button
+						type="button"
+						data-graph-id={graphId}
+						data-history-owner={owner}
+						aria-label={`Select ${owner.startsWith(`transaction:`) ? `outcome` : `timeline event`} ${props.index + 1}`}
+						aria-pressed={selected()}
+					>
+						{label()}
+					</button>
+				) : (
+					label()
+				)}
 			</event-heading>
 			{getOpen() ? (
 				event.type === `transaction_outcome` ? (

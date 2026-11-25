@@ -10,6 +10,7 @@ import {
 } from "./ecology.ts"
 import { ecologyColor } from "./ecology-color.ts"
 import {
+	historyGraphId,
 	historyIdentity,
 	historyOutcomeSequence,
 	type RecordedEvent,
@@ -76,6 +77,7 @@ export interface GraphContext {
 	query: string
 	expanded: Set<string>
 	selected: string | null
+	selectedHistory?: string | undefined
 	positions: Map<string, GraphPosition>
 	completedLoads: WeakSet<object>
 	camera?: {
@@ -498,7 +500,7 @@ function* projectHistory(
 			: cluster
 		const item: GraphItem = {
 			...owner,
-			id: `history:${owner.id}:${identity}`,
+			id: historyGraphId(owner.id, identity),
 			familyId: owner.id,
 			familyLabel: undefined,
 			history: { identity, direction, anchor: owner },
@@ -980,7 +982,10 @@ export function* projectEcology(
 		const truncated = stateSelection
 			? snapshot.truncated.nodes || snapshot.truncated.families
 			: snapshot.operations?.truncated
-		if (!truncated) context.selected = null
+		if (!truncated) {
+			context.selected = null
+			context.selectedHistory = undefined
+		}
 	}
 	return {
 		snapshot,

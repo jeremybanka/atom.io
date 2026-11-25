@@ -22,6 +22,7 @@ import {
 } from "./ecology-graph.ts"
 import { indexEcologySearch } from "./ecology-search.ts"
 import type { EcologyPresentation } from "./EcologyView.tsx"
+import { historyGraphId, historyIdentity } from "./history-event.ts"
 import type { RemotePanelConnection } from "./remote-connection.ts"
 import { matchStateSearch, type SearchIndex } from "./search.ts"
 import { isSearchShortcut, moveSearchFocus } from "./search-keys.ts"
@@ -57,7 +58,7 @@ export function createEcologyController(
 	)!
 	let origin: HTMLElement | null = null
 	let reveal: string | undefined
-	let revealHistory: { owner: string; event: string } | undefined
+	let revealHistory: string | undefined
 	let generatedKey: string | undefined
 	let disposed = false,
 		preparing = false,
@@ -177,11 +178,16 @@ export function createEcologyController(
 		const selected = context.selected
 			? model?.all.get(context.selected)
 			: undefined
-		const selectedCard = visibleId(context.selected)
+		const selectedHistory = context.selectedHistory
+		const endpoint = selectedHistory
+			? model?.historyEndpoints.get(selectedHistory)
+			: undefined
+		const selectedCard = endpoint?.card.id ?? visibleId(context.selected)
 		const expansion = expansionTarget(selected)
 		update({
 			selected,
 			selectedCard,
+			selectedHistory,
 			expansion: expansion && {
 				kind: expansion.kind === `family` ? `family` : `history`,
 				expanded: context.expanded.has(expansion.id),
@@ -198,10 +204,15 @@ export function createEcologyController(
 				new Set([...model.selection.items, ...model.historyFocus]),
 		})
 	}
-	const select = (id: string, navigate = false, historyEvent?: string) => {
+	const select = (
+		id: string,
+		navigate = false,
+		history?: { id: string; reveal: boolean },
+	) => {
 		if (modal === searchDialog) closeDialog(false)
 		context.selected = id
-		revealHistory = historyEvent ? { owner: id, event: historyEvent } : undefined
+		context.selectedHistory = history?.id
+		revealHistory = history?.reveal ? history.id : undefined
 
 		if (navigate) {
 			const group = model?.all.get(id)?.familyId
@@ -209,6 +220,12 @@ export function createEcologyController(
 			reveal = id
 		}
 		project()
+	}
+	const selectControl = (target: HTMLElement) => {
+		const id = target.dataset[`graphId`]!
+		const owner = target.dataset[`historyOwner`]
+		if (owner) select(owner, false, { id, reveal: !list.contains(target) })
+		else select(id)
 	}
 	const paint = (value: GraphModel, chunks: number[]) => {
 		const start = performance.now()
@@ -313,7 +330,9 @@ export function createEcologyController(
 				context.selected ? value.all.get(context.selected) : undefined,
 			)
 			const logicalFocusId = focusInList
-				? focusId
+				? focusHistoryOwner && !focused.isConnected
+					? focusHistoryOwner
+					: focusId
 				: focusHistoryOwner && !value.items.some((item) => item.id === focusId)
 					? visibleId(focusHistoryOwner)
 					: focusId === context.selected ||
@@ -321,14 +340,12 @@ export function createEcologyController(
 						? visibleId(context.selected)
 						: visibleId(focusId)
 			if (revealHistory) {
-				const { owner, event } = revealHistory
+				const target = [
+					...list.querySelectorAll<HTMLButtonElement>(
+						`button[data-history-owner]`,
+					),
+				].find((entry) => entry.dataset[`graphId`] === revealHistory)
 				revealHistory = undefined
-				const row = [
-					...list.querySelectorAll<HTMLElement>(`[data-row-id]`),
-				].find((entry) => entry.dataset[`rowId`] === owner)
-				const target = row?.querySelector<HTMLElement>(
-					`[data-history-event="${event}"] > event-heading > button`,
-				)
 				target?.focus()
 				target?.scrollIntoView?.({ block: `nearest` })
 			} else if (reveal) {
@@ -627,6 +644,7 @@ export function createEcologyController(
 		}
 		if (name === `clear`) {
 			context.selected = null
+			context.selectedHistory = undefined
 			project()
 			return
 		}
@@ -662,13 +680,7 @@ export function createEcologyController(
 		if (!target) return
 		if (target.dataset[`resultId`]) {
 			if (!busy) select(target.dataset[`resultId`], true)
-		} else if (target.dataset[`historyOwner`])
-			select(
-				target.dataset[`historyOwner`],
-				false,
-				target.dataset[`historyEvent`],
-			)
-		else if (target.dataset[`graphId`]) select(target.dataset[`graphId`])
+		} else if (target.dataset[`graphId`]) selectControl(target)
 		else action(target.dataset[`action`]!, target.dataset[`familyId`])
 	}
 	const key = (event: KeyboardEvent) => {
@@ -731,7 +743,8 @@ export function createEcologyController(
 			camera(event.key === `+` ? `in` : `out`)
 			return
 		}
-		const id = target.closest<HTMLElement>(`[data-graph-id]`)?.dataset[`graphId`]
+		const control = target.closest<HTMLElement>(`[data-graph-id]`)
+		const id = control?.dataset[`graphId`]
 		const focusedItem = id ? model?.all.get(id) : undefined
 		const selected = context.selected
 			? model?.all.get(context.selected)
@@ -750,7 +763,10 @@ export function createEcologyController(
 		) {
 			event.preventDefault()
 			if (!event.repeat) {
-				if (isHistoryOwner(focusedItem)) context.selected = focusedItem.id
+				if (isHistoryOwner(focusedItem) && context.selected !== focusedItem.id) {
+					context.selected = focusedItem.id
+					context.selectedHistory = undefined
+				}
 				action(
 					`expand`,
 					isHistoryOwner(focusedItem) ? focusedItem.id : undefined,
@@ -760,11 +776,7 @@ export function createEcologyController(
 		}
 		if (id && (event.key === `Enter` || event.key === ` `)) {
 			event.preventDefault()
-			select(
-				target.dataset[`historyOwner`] ?? id,
-				false,
-				target.dataset[`historyEvent`],
-			)
+			selectControl(control)
 		}
 	}
 	const inputChange = (event: Event) => {
@@ -815,8 +827,17 @@ export function createEcologyController(
 	return {
 		refresh,
 		setHistory(id, history) {
+			const selected = context.selectedHistory
+			const removedSelection =
+				history &&
+				selected &&
+				id === context.selected &&
+				!history.events.some(
+					(event) => historyGraphId(id, historyIdentity(event)) === selected,
+				)
+			if (removedSelection) context.selectedHistory = undefined
 			if (history?.events.length) histories.set(id, history)
-			else if (!histories.delete(id)) return
+			else if (!histories.delete(id) && !removedSelection) return
 			needsHistory = true
 			scheduleLive()
 		},

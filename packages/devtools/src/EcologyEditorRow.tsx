@@ -21,7 +21,7 @@ export function EcologyEditorRow(props: {
 	tools: EditorTools
 	item: GraphItem
 	section: EcologyEditorSection
-	hovered: boolean
+	hovered: string | undefined
 	hidden: boolean
 	pinned: boolean
 	state: EcologyPresentation
@@ -50,10 +50,22 @@ export function EcologyEditorRow(props: {
 		return `kind` in source || `memberKeys` in source ? undefined : source
 	}
 	const expanded = () => props.state.expanded.has(props.item.id)
+	const selectedHistory = () =>
+		props.state.selected?.id === rowId ? props.state.selectedHistory : undefined
+	const hasSelectedEvent = () => expanded() && selectedHistory() !== undefined
+	const events = {
+		owner: rowId,
+		get hovered() {
+			return props.hovered
+		},
+		get selected() {
+			return selectedHistory()
+		},
+	}
 	const label = () => (
 		<EcologyNodeName
 			item={props.item}
-			selected={props.section === `selected`}
+			selected={props.section === `selected` && !hasSelectedEvent()}
 			expanded={operation() ? expanded() : undefined}
 		/>
 	)
@@ -66,9 +78,11 @@ export function EcologyEditorRow(props: {
 			motion:layoutGroup={props.layoutGroup}
 			motion:layoutTransition={EDITOR_SPRING}
 			data-section={props.section}
-			data-selection-anchor={props.state.selected?.id === props.item.id}
+			data-selection-anchor={
+				props.state.selected?.id === props.item.id && !hasSelectedEvent()
+			}
 			data-row-id={props.item.id}
-			data-hovered={props.hovered}
+			data-hovered={props.hovered === rowId}
 			data-grouped={
 				`family` in props.item.source && Boolean(props.item.source.family)
 			}
@@ -99,6 +113,7 @@ export function EcologyEditorRow(props: {
 					id={props.item.id}
 					expanded={expanded()}
 					label={label()}
+					events={events}
 				/>
 			) : definition() ? (
 				<StateLeaf

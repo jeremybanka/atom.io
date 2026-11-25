@@ -20,7 +20,7 @@ window-overlay.class {
 		justify-content: center;
 		width: max-content;
 		max-width: calc(100vw - 16px);
-		background: var(--ink-muted);
+		background: var(--ink-strong);
 		border: 1px solid var(--bg-color);
 		box-shadow: 0 4px 18px #0006;
 	}
@@ -36,7 +36,7 @@ window-overlay.class {
 		pointer-events: auto;
 		padding: 0;
 		color: var(--bg-hard-1);
-		background: var(--ink-muted);
+		background: transparent;
 		border: 0;
 		cursor: pointer;
 	}

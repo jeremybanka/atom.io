@@ -79,6 +79,8 @@
 		"test:browser:peers": "pnpm --dir peer-environments/coordinated-react18 install --frozen-lockfile --ignore-scripts && pnpm --dir peer-environments/coordinated-react19 install --frozen-lockfile --ignore-scripts"
 	},
 	"dependencies": {
+		"arktype": "2.2.10",
+		"comline": "0.9.3",
 		"devalue": "6.0.3",
 		"motion": "14.14.0",
 		"three": "0.187.0"

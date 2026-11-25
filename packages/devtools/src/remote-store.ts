@@ -80,22 +80,27 @@ function copyValue(value: unknown): unknown {
 	}
 }
 
-function copyEvent<T extends RecordedEvent>(event: T): T {
+function copyEvent<T extends RecordedEvent>(
+	event: T,
+	transferValue: (value: unknown) => unknown,
+): T {
 	const copy = { ...event }
 	const sequence = historyOutcomeSequence(event)
 	if (sequence !== undefined) copy.timelineOutcomeSequence = sequence
 	if (`subEvents` in copy)
-		copy.subEvents = copy.subEvents.map(copyEvent) as typeof copy.subEvents
+		copy.subEvents = copy.subEvents.map((subEvent) =>
+			copyEvent(subEvent, transferValue),
+		) as typeof copy.subEvents
 	if (`update` in copy)
 		copy.update = {
-			oldValue: copyValue(copy.update.oldValue),
-			newValue: copyValue(copy.update.newValue),
+			oldValue: transferValue(copy.update.oldValue),
+			newValue: transferValue(copy.update.newValue),
 		} as typeof copy.update
-	if (`params` in copy) copy.params = copy.params.map(copyValue)
-	if (`output` in copy) copy.output = copyValue(copy.output)
-	if (`value` in copy) copy.value = copyValue(copy.value)
+	if (`params` in copy) copy.params = copy.params.map(transferValue)
+	if (`output` in copy) copy.output = transferValue(copy.output)
+	if (`value` in copy) copy.value = transferValue(copy.value)
 	if (`values` in copy)
-		copy.values = copyValue(copy.values) as typeof copy.values
+		copy.values = transferValue(copy.values) as typeof copy.values
 	return copy
 }
 
@@ -108,8 +113,14 @@ export function exposeWholeStore(
 	transport: DevtoolsStoreTransport,
 	silo: Silo,
 	control: boolean,
+	prepareValue?: (value: unknown) => unknown,
 ): () => void {
 	const { store } = silo
+	const transferValue = prepareValue
+		? (value: unknown) => prepareValue(copyValue(value))
+		: copyValue
+	const transferEvent = <T extends RecordedEvent>(event: T): T =>
+		copyEvent(event, transferValue)
 	const watches = new Map<string, { ids: Set<number>; stop(): void }>()
 	const revisions = new Map<string, number>()
 	const changedStates = new Set<string>()
@@ -145,7 +156,7 @@ export function exposeWholeStore(
 		const value =
 			cached.value instanceof Future
 				? new Error(`Remote value is pending`)
-				: copyValue(cached.value)
+				: transferValue(cached.value)
 		sentStates.add(key)
 		return {
 			token,
@@ -169,7 +180,7 @@ export function exposeWholeStore(
 		let length = 0
 		while (length < next.length && previous[start + length] === next[length])
 			length++
-		return { start, length, append: next.slice(length).map(copyEvent) }
+		return { start, length, append: next.slice(length).map(transferEvent) }
 	}
 	function publishSnapshot() {
 		const stateMaps = [
@@ -196,7 +207,7 @@ export function exposeWholeStore(
 				token: deposit(timeline),
 				at: timeline.at,
 				revision,
-				history: timeline.history.map(copyEvent),
+				history: timeline.history.map(transferEvent),
 			})
 		}
 		for (const [key, transaction] of store.transactions) {

@@ -1,50 +1,92 @@
 #!/usr/bin/env node
 
+import { writeSync } from "node:fs"
 import { resolve } from "node:path"
 import { pathToFileURL } from "node:url"
-import { parseArgs } from "node:util"
 
-import { Silo } from "atom.io"
+import { type } from "arktype"
+import type { Silo } from "atom.io"
+import {
+	cli,
+	formatWarnings,
+	help,
+	helpOption,
+	optional,
+	options,
+	parseBooleanOption,
+} from "comline"
 
 import { serveDevtoolsStore } from "./standalone.ts"
 
-const usage = [
-	`Usage: atom-io-devtools [--port PORT] [--allow-production] <entry>`,
-	``,
-	`The entry module must default-export an Atom.io Silo. Open the printed URL to inspect it.`,
-	`If omitted, the port is chosen automatically.`,
-].join(`\n`)
+const helpOptions = helpOption(`Show command help.`)
+const parse = cli({
+	cliName: `atom-io-devtools`,
+	cliDescription: `Open the printed URL to inspect an Atom.io Silo.`,
+	routes: optional({ $entry: null }),
+	routeOptions: {
+		"": helpOptions,
+		$entry: options(
+			`Load a module that default-exports an Atom.io Silo.`,
+			type({
+				"help?": `boolean`,
+				"port?": `0 <= number.integer <= 65535`,
+				"allow-production?": `boolean`,
+			}),
+			{
+				help: helpOptions.optionConfigs.help,
+				port: {
+					description: `Loopback port. Use 0 or omit it to pick an available port.`,
+					example: `--port 8123`,
+					required: false,
+					parse: (argument) => (/^\d+$/.test(argument) ? Number(argument) : NaN),
+				},
+				"allow-production": {
+					description: `Permit inspection in production.`,
+					example: `--allow-production`,
+					required: false,
+					parse: parseBooleanOption,
+				},
+			},
+		),
+	},
+})
+
+// The entry and the CLI can resolve separate copies of atom.io.
+function isSilo(value: unknown): value is Silo {
+	const silo = value as Partial<Silo> | null | undefined
+	const store = silo?.store
+	return (
+		typeof silo?.atom === `function` &&
+		typeof silo.getState === `function` &&
+		typeof store?.config?.isProduction === `boolean` &&
+		store.parent === null &&
+		store.atoms instanceof Map &&
+		store.valueMap instanceof Map
+	)
+}
 
 async function main(): Promise<void> {
-	const { values, positionals } = parseArgs({
-		allowPositionals: true,
-		options: {
-			help: { type: `boolean`, short: `h` },
-			port: { type: `string` },
-			"allow-production": { type: `boolean` },
-		},
-	})
-	if (values.help) {
-		process.stdout.write(usage + `\n`)
+	const { inputs, warnings } = parse(process.argv)
+	if (warnings.length) throw new Error(formatWarnings(warnings))
+	if (inputs.opts.help) {
+		process.stdout.write(help(parse.definition) + `\n`)
 		return
 	}
-	const [entry] = positionals
-	if (!entry || positionals.length !== 1) throw new Error(usage)
-	const port = Number(values.port ?? 0)
-	if (
-		(values.port !== undefined && !/^\d+$/.test(values.port)) ||
-		!Number.isInteger(port) ||
-		port > 65535
-	) {
-		throw new Error(`Use a port from 0 to 65535`)
+	if (inputs.case !== `$entry` || !inputs.params.entry) {
+		throw new Error(
+			`Provide an entry module. Run atom-io-devtools --help for usage.`,
+		)
 	}
-	const { default: silo } = await import(pathToFileURL(resolve(entry)).href)
-	if (!(silo instanceof Silo))
+	const { default: silo } = await import(
+		pathToFileURL(resolve(inputs.params.entry)).href
+	)
+	if (!isSilo(silo))
 		throw new Error(`The entry module must default-export an Atom.io Silo`)
 
+	const { port = 0, "allow-production": allowProduction } = inputs.opts
 	const viewer = await serveDevtoolsStore(silo, {
 		port,
-		...(values[`allow-production`] ? { productionAccess: `inspect` } : {}),
+		...(allowProduction ? { productionAccess: `inspect` } : {}),
 	})
 	process.stdout.write(viewer.url.href + `\n`)
 }
@@ -52,8 +94,9 @@ async function main(): Promise<void> {
 try {
 	await main()
 } catch (error) {
-	process.stderr.write(
+	writeSync(
+		process.stderr.fd,
 		(error instanceof Error ? error.message : String(error)) + `\n`,
 	)
-	process.exitCode = 1
+	process.exit(1)
 }

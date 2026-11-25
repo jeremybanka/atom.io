@@ -2,12 +2,24 @@ import { parse, stringify } from "devalue"
 
 import type { DevtoolsStoreMessage } from "./remote.ts"
 
+const reducers = {
+	Error: (value: unknown) =>
+		value instanceof Error && { name: value.name, message: value.message },
+	Blob: (value: unknown) => value instanceof Blob && value.constructor.name,
+}
+
+export function prepareStandaloneValue(value: unknown): unknown {
+	if (value === null || typeof value !== `object`) return value
+	try {
+		stringify(value, reducers)
+		return value
+	} catch {
+		return new Error(`Value could not be displayed in the standalone viewer`)
+	}
+}
+
 export function encodeStandaloneFrame(frame: DevtoolsStoreMessage): string {
-	return stringify(frame, {
-		Error: (value: unknown) =>
-			value instanceof Error && { name: value.name, message: value.message },
-		Blob: (value: unknown) => value instanceof Blob && value.constructor.name,
-	})
+	return stringify(frame, reducers)
 }
 
 export function decodeStandaloneFrame(data: string): DevtoolsStoreMessage {

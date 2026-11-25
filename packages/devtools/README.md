@@ -147,10 +147,15 @@ Run pnpm exec atom-io-devtools ./devtools-entry.ts and open the printed URL. The
 For a Node process that already owns a Silo, call serveDevtoolsStore from @atom.io/devtools/standalone. The viewer opens a separate loopback HTTP server, so a language server can keep using its existing standard streams. Call viewer.close() during shutdown.
 
 ```ts
-import { serveDevtoolsStore } from "@atom.io/devtools/standalone"
+import {
+	serveDevtoolsStore,
+	type StandaloneDevtools,
+} from "@atom.io/devtools/standalone"
 import type { Silo } from "atom.io"
 
-export async function startDevelopmentInspector(silo: Silo) {
+export async function startDevelopmentInspector(
+	silo: Silo,
+): Promise<StandaloneDevtools | undefined> {
 	if (process.env[`NODE_ENV`] !== `development`) return
 
 	const viewer = await serveDevtoolsStore(silo)

@@ -22,7 +22,9 @@ const panel = mountAtomIODevtools(document.body, {
 								disconnected()
 							}
 						}
-						stream.onerror = () => disconnected()
+						stream.onerror = () => {
+							disconnected()
+						}
 					},
 					close() {
 						stream.onmessage = null

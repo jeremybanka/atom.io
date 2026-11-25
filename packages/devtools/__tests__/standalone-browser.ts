@@ -1,8 +1,13 @@
 import assert from "node:assert/strict"
+import { once } from "node:events"
+import { get, type IncomingMessage } from "node:http"
+import { createInterface } from "node:readline"
+import { setTimeout } from "node:timers/promises"
 
 import { serveDevtoolsStore } from "@atom.io/devtools/standalone"
 import { Silo } from "atom.io"
 
+import { decodeStandaloneFrame } from "../src/standalone-wire.ts"
 import { launchBrowser } from "./browser-runtime.ts"
 
 const production = new Silo({
@@ -54,9 +59,81 @@ try {
 				)?.value === `2`,
 			countAtom.key,
 		)
+		await Promise.race([
+			viewer.close(),
+			setTimeout(2_000, undefined, { ref: false }).then(() =>
+				assert.fail(`The viewer did not close with the browser connected`),
+			),
+		])
 	} finally {
 		await browser.close()
 	}
 } finally {
 	await viewer.close()
+}
+
+const largeValue = `x`.repeat(16 * 1024 * 1024)
+const largeAtom = silo.atom<string>({ key: `large`, default: largeValue })
+const opaqueAtom = silo.atom<unknown>({
+	key: `opaque`,
+	default: JSON.parse(`{"nested":{"__proto__":{}}}`),
+})
+silo.getState(largeAtom)
+silo.getState(opaqueAtom)
+const cryptoKey = await crypto.subtle.generateKey(
+	{ name: `HMAC`, hash: `SHA-256` },
+	false,
+	[`sign`],
+)
+const streamViewer = await serveDevtoolsStore(silo)
+try {
+	const request = get(new URL(`events`, streamViewer.url), {
+		signal: AbortSignal.timeout(10_000),
+	})
+	const [response] = (await once(request, `response`)) as [IncomingMessage]
+	assert.equal(response.statusCode, 200)
+	// Publish a live update while the initial snapshot is still buffered.
+	silo.setState(opaqueAtom, cryptoKey)
+	silo.setState(countAtom, 3)
+	const lines = createInterface({ input: response })
+	const frames = lines[Symbol.asyncIterator]()
+	async function readFrame() {
+		const { value } = await frames.next()
+		assert.ok(typeof value === `string`)
+		assert.ok(value.startsWith(`data: `))
+		assert.equal((await frames.next()).value, ``)
+		return decodeStandaloneFrame(value.slice(6))
+	}
+	try {
+		const initial = await readFrame()
+		assert.equal(initial.type, `store`)
+		const large = initial.snapshot.states.find(
+			({ token }) => token.key === largeAtom.key,
+		)?.cache
+		assert.equal(large?.status, `value`)
+		assert.ok(typeof large.value === `string`)
+		assert.equal(large.value.length, largeValue.length)
+		const initialOpaque = initial.snapshot.states.find(
+			({ token }) => token.key === opaqueAtom.key,
+		)?.cache
+		assert.equal(initialOpaque?.status, `value`)
+		assert.ok(initialOpaque.value instanceof Error)
+		assert.match(initialOpaque.value.message, /could not be displayed/)
+
+		const next = await readFrame()
+		assert.equal(next.type, `store-update`)
+		assert.deepEqual(
+			next.update.states.find(({ token }) => token.key === countAtom.key)?.cache,
+			{ status: `value`, value: 3 },
+		)
+		const updatedOpaque = next.update.states.find(
+			({ token }) => token.key === opaqueAtom.key,
+		)?.cache
+		assert.equal(updatedOpaque?.status, `value`)
+		assert.ok(updatedOpaque.value instanceof Error)
+	} finally {
+		lines.close()
+	}
+} finally {
+	await streamViewer.close()
 }

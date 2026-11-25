@@ -1,10 +1,10 @@
 import assert from "node:assert/strict"
-import { execFileSync } from "node:child_process"
+import { execFileSync, spawnSync } from "node:child_process"
 import { createHash } from "node:crypto"
 import { cp, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises"
 import { createRequire } from "node:module"
 import { tmpdir } from "node:os"
-import { join, resolve } from "node:path"
+import { dirname, join, resolve } from "node:path"
 import { pathToFileURL } from "node:url"
 
 const packageRoot = resolve(import.meta.dirname, `..`)
@@ -65,6 +65,42 @@ try {
 		)
 		pnpm(appRoot, `install`, `--ignore-scripts`, `--no-frozen-lockfile`)
 		const require = createRequire(join(appRoot, `package.json`))
+		if (!version) {
+			const help = execFileSync(`pnpm`, [`exec`, `atom-io-devtools`, `--help`], {
+				cwd: appRoot,
+				encoding: `utf8`,
+				timeout: 10_000,
+			})
+			assert.match(help, /atom-io-devtools <entry>/)
+			assert.match(help, /--port/)
+			assert.match(help, /--allow-production/)
+
+			const installed = dirname(
+				require.resolve(`@atom.io/devtools/package.json`),
+			)
+			// The exhibit resolves the workspace SDK, distinct from the packed CLI's peer.
+			const entry = join(packageRoot, `exhibits/standalone-silo.ts`)
+			const startup = spawnSync(
+				process.execPath,
+				[
+					`--import`,
+					`data:text/javascript,setInterval(() => {}, 1000)`,
+					join(installed, `dist/cli.js`),
+					`--port`,
+					`0`,
+					entry,
+				],
+				{
+					cwd: appRoot,
+					encoding: `utf8`,
+					env: { ...process.env, NODE_ENV: `production` },
+					timeout: 10_000,
+				},
+			)
+			assert.ifError(startup.error)
+			assert.equal(startup.status, 1)
+			assert.match(startup.stderr, /requires explicit inspection access/)
+		}
 		const sdk = await realpath(require.resolve(`atom.io/package.json`))
 		for (const name of [`spa`, `devtools`, ...(version ? [`react`] : [])]) {
 			const peerRequire = createRequire(

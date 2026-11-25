@@ -1,13 +1,17 @@
 import { randomBytes } from "node:crypto"
 import { readFile } from "node:fs/promises"
-import { createServer, type ServerResponse } from "node:http"
+import { createServer } from "node:http"
 
 import type { Silo } from "atom.io"
 
-import { exposeDevtoolsStore } from "./remote.ts"
-import { encodeStandaloneFrame } from "./standalone-wire.ts"
+import { exposeWholeStore } from "./remote-store.ts"
+import {
+	encodeStandaloneFrame,
+	prepareStandaloneValue,
+} from "./standalone-wire.ts"
 
 const host = `127.0.0.1`
+const maxPendingUpdateBytes = 8 * 1024 * 1024
 
 const html = [
 	`<!doctype html>`,
@@ -47,19 +51,18 @@ export async function serveDevtoolsStore(
 	silo: Silo,
 	options: StandaloneDevtoolsOptions = {},
 ): Promise<StandaloneDevtools> {
-	if (
-		(silo.store.config.isProduction ||
-			process.env[`NODE_ENV`] === `production`) &&
-		options.productionAccess !== `inspect`
-	) {
+	const canInspect = () =>
+		options.productionAccess === `inspect` ||
+		(!silo.store.config.isProduction && process.env[`NODE_ENV`] !== `production`)
+	if (!canInspect()) {
 		throw new Error(
 			`Standalone devtools requires explicit inspection access in production`,
 		)
 	}
 
 	const prefix = `/` + randomBytes(24).toString(`base64url`) + `/`
-	const streams = new Set<ServerResponse>()
 	let authority: string
+	let boundAuthority: string
 
 	const server = createServer((request, response) => {
 		const path = request.url
@@ -67,7 +70,8 @@ export async function serveDevtoolsStore(
 		response.setHeader(`Referrer-Policy`, `no-referrer`)
 		if (
 			request.method !== `GET` ||
-			request.headers.host !== authority ||
+			(request.headers.host !== authority &&
+				request.headers.host !== boundAuthority) ||
 			!path?.startsWith(prefix)
 		) {
 			response.writeHead(404).end()
@@ -82,19 +86,33 @@ export async function serveDevtoolsStore(
 			return
 		}
 		if (route === `events`) {
+			if (!canInspect()) {
+				response.writeHead(404).end()
+				return
+			}
 			response.writeHead(200, {
 				"Content-Type": `text/event-stream; charset=utf-8`,
 			})
-			streams.add(response)
-			response.once(`close`, () => streams.delete(response))
+			let pendingUpdateBytes = 0
 			try {
-				exposeDevtoolsStore(
+				exposeWholeStore(
 					{
 						send(frame) {
-							if (response.writableLength > 8 * 1024 * 1024) {
+							if (pendingUpdateBytes > maxPendingUpdateBytes) {
+								response.destroy()
 								throw new Error(`Standalone devtools client is too slow`)
 							}
-							response.write(`data: ` + encodeStandaloneFrame(frame) + `\n\n`)
+							const data = `data: ` + encodeStandaloneFrame(frame) + `\n\n`
+							if (frame.type === `store`) {
+								response.write(data)
+								return
+							}
+							// A large initial snapshot can drain while updates queue behind it.
+							const bytes = Buffer.byteLength(data)
+							pendingUpdateBytes += bytes
+							response.write(data, () => {
+								pendingUpdateBytes -= bytes
+							})
 						},
 						listen(_receive, disconnected) {
 							response.once(`close`, disconnected)
@@ -102,12 +120,8 @@ export async function serveDevtoolsStore(
 						close: () => response.end(),
 					},
 					silo,
-					{
-						access: `inspect`,
-						...(options.productionAccess
-							? { productionAccess: options.productionAccess }
-							: {}),
-					},
+					false,
+					prepareStandaloneValue,
 				)
 			} catch {
 				response.destroy()
@@ -126,26 +140,33 @@ export async function serveDevtoolsStore(
 		}
 	})
 
-	await new Promise<void>((ready, reject) => {
+	const url = await new Promise<URL>((ready, reject) => {
 		server.once(`error`, reject)
 		server.listen(options.port ?? 0, host, () => {
 			server.off(`error`, reject)
-			ready()
+			const address = server.address()
+			if (!address || typeof address === `string`) {
+				server.close()
+				reject(new Error(`Devtools listener has no TCP address`))
+				return
+			}
+			boundAuthority = host + `:` + address.port
+			const listeningUrl = new URL(`http://` + boundAuthority + prefix)
+			authority = listeningUrl.host
+			ready(listeningUrl)
 		})
 	})
-	const address = server.address()
-	if (!address || typeof address === `string`)
-		throw new Error(`Devtools listener has no TCP address`)
-	authority = host + `:` + address.port
-	const url = new URL(`http://` + authority + prefix)
 	let closing: Promise<void> | undefined
 
 	return {
 		url,
 		close() {
 			return (closing ??= new Promise<void>((resolve, reject) => {
-				for (const stream of streams) stream.end()
-				server.close((error) => (error ? reject(error) : resolve()))
+				server.close((error) => {
+					if (error) reject(error)
+					else resolve()
+				})
+				server.closeAllConnections()
 			}))
 		},
 	}

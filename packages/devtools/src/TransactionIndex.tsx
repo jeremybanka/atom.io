@@ -2,7 +2,7 @@
 import type { SpaElement } from "@atom.io/spa"
 import { useGetter } from "@atom.io/spa"
 import type { TransactionToken } from "atom.io"
-import { findInStore, isReservedIntrospectionKey } from "atom.io/internal"
+import { isReservedIntrospectionKey } from "atom.io/internal"
 
 import { EventView } from "./EventView.tsx"
 import { historyIdentity } from "./history-event.ts"
@@ -34,11 +34,7 @@ function TransactionLog(props: {
 	token: TransactionToken<any>
 }): SpaElement {
 	const getTransactionLog = useGetter(
-		findInStore(
-			props.tools.store,
-			props.tools.transactionLogSelectors,
-			props.token.key,
-		),
+		props.tools.transactionLog(props.token.key),
 	)
 	const [getOpen, toggle] = useExpanded(props.tools, [props.token.key])
 	return (

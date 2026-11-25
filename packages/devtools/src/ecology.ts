@@ -2,7 +2,11 @@ import type { ReadableToken } from "atom.io"
 import { Future } from "atom.io/foundations/future"
 import type { ReadableState, RootStore } from "atom.io/internal"
 import { isReservedIntrospectionKey } from "atom.io/internal"
-import { peekState } from "atom.io/introspection"
+import {
+	peekDependencies,
+	peekState,
+	peekStateDefinition,
+} from "atom.io/introspection"
 
 import { preview } from "./value.ts"
 
@@ -112,6 +116,46 @@ export function ecologyValue(
 		: { status: `unknown` }
 }
 
+export function describeEcologyNode(
+	store: RootStore,
+	state: ReadableState<any, any>,
+): EcologyNode {
+	const kind =
+		state.type === `atom` || state.type === `mutable_atom` ? `atom` : `selector`
+	const value = ecologyValue(store, state.key)
+	return {
+		key: state.key,
+		kind,
+		type: state.type,
+		family: state.family
+			? { key: state.family.key, subKey: state.family.subKey }
+			: null,
+		value,
+		dependencies:
+			kind === `atom`
+				? `not-applicable`
+				: value.status === `cached`
+					? `observed`
+					: `unknown`,
+		dependenciesTruncated: false,
+	}
+}
+
+export function scanEcologyRelations(
+	store: RootStore,
+	selector: string,
+	budget: number,
+	edges: EcologySnapshot[`edges`][number][],
+): { inspected: number; incomplete: boolean } {
+	const { dependencies, inspected, total } = peekDependencies(
+		store,
+		selector,
+		budget,
+	)
+	for (const dependency of dependencies) edges.push({ dependency, selector })
+	return { inspected, incomplete: inspected < total }
+}
+
 type EcologyLoadStatus = `pending` | `settled` | `caught` | undefined
 
 export function ecologyLoadState(
@@ -122,10 +166,7 @@ export function ecologyLoadState(
 	raw: unknown
 	status: EcologyLoadStatus
 } {
-	const definition =
-		store.atoms.get(key) ??
-		store.readonlySelectors.get(key) ??
-		store.writableSelectors.get(key)
+	const definition = peekStateDefinition(store, key)
 	const raw = peekState(store, key).value
 	let status: EcologyLoadStatus
 	if (typeof raw === `object` && raw !== null) {
@@ -171,27 +212,7 @@ export function captureEcologySnapshot(
 				omittedNode = true
 				break
 			}
-			const kind =
-				state.type === `atom` || state.type === `mutable_atom`
-					? `atom`
-					: `selector`
-			const value = ecologyValue(store, state.key)
-			nodes.push({
-				key: state.key,
-				kind,
-				type: state.type,
-				family: state.family
-					? { key: state.family.key, subKey: state.family.subKey }
-					: null,
-				value,
-				dependencies:
-					kind === `atom`
-						? `not-applicable`
-						: value.status === `cached`
-							? `observed`
-							: `unknown`,
-				dependenciesTruncated: false,
-			})
+			nodes.push(describeEcologyNode(store, state))
 			if (state.family) {
 				let keys = members.get(state.family.key)
 				if (!keys) members.set(state.family.key, (keys = []))
@@ -209,31 +230,19 @@ export function captureEcologySnapshot(
 	for (let index = 0; index < nodes.length; index++) {
 		const node = nodes[index]
 		if (node.kind === `atom`) continue
-		const related = store.selectorGraph.getRelatedKeys(node.key)
-		if (!related) continue
-		const neighbors = related.values()
-		let inspected = 0,
-			observed = node.dependencies === `observed`
-		while (work.relations < maxRelations) {
-			const entry = neighbors.next()
-			if (entry.done) break
-			work.relations++
-			inspected++
-			const dependency = entry.value
-			if (
-				store.selectorGraph.getContent(dependency, node.key)?.source ===
-				dependency
-			) {
-				// Keep unknown/missing/reserved endpoints: dropping them would fabricate a complete trace.
-				edges.push({ dependency, selector: node.key })
-				observed = true
-			}
-		}
-		const incomplete = inspected < related.size
+		const previous = edges.length
+		const { inspected, incomplete } = scanEcologyRelations(
+			store,
+			node.key,
+			maxRelations - work.relations,
+			edges,
+		)
+		work.relations += inspected
+		if (inspected === 0 && !incomplete) continue
 		truncated.relations ||= incomplete
 		nodes[index] = {
 			...node,
-			dependencies: observed ? `observed` : `unknown`,
+			dependencies: edges.length > previous ? `observed` : node.dependencies,
 			dependenciesTruncated: incomplete,
 		}
 	}

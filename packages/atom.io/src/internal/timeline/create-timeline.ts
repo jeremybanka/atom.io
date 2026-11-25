@@ -25,6 +25,7 @@ import { eldest, newest } from "../lineage.ts"
 import { getUpdateToken } from "../mutable/index.ts"
 import type { Atom } from "../state-types.ts"
 import { deposit, type Store, withdraw } from "../store/index.ts"
+import { recordStoreChange } from "../store-observation.ts"
 import type { RootStore } from "../transaction/index.ts"
 import { isChildStore } from "../transaction/index.ts"
 import type { GroupedTimelineTransactionEvent } from "./timeline-transaction-group.ts"
@@ -160,6 +161,7 @@ export function createTimeline<ManagedAtom extends TimelineManageable>(
 	tl.ownedTopicKeys = new Set(store.timelineTopics.getRelatedKeys(tl.key) ?? [])
 
 	store.timelines.set(options.key, tl)
+	recordStoreChange(store, `timelines`, tl.key)
 	const token: TimelineToken<ManagedAtom> = {
 		key: timelineKey,
 		type: `timeline`,
@@ -306,7 +308,7 @@ function subscribeToAtomUpdates(
 						tl.key,
 						`got an atom_update to "${atom.key}"`,
 					)
-					addToHistory(tl, atomUpdate)
+					addToHistory(store, tl, atomUpdate)
 				}
 			}
 		},
@@ -387,7 +389,7 @@ function joinTransaction(
 						),
 					}
 
-					addToHistory(tl, timelineTransactionUpdate)
+					addToHistory(store, tl, timelineTransactionUpdate)
 				}
 			},
 		)
@@ -422,13 +424,13 @@ function buildSelectorUpdate(
 			})
 		}
 
-		addToHistory(tl, latestEvent, false)
+		addToHistory(store, tl, latestEvent, false)
 		tl.selectorTime = currentSelectorTime
 		const unsubscribe = store.on.operationClose.subscribe(
 			`timeline:${tl.key}:selector:${currentSelectorTime}`,
 			() => {
 				unsubscribe()
-				settleHistoryRecord(tl, latestEvent as TimelineEvent<any>)
+				settleHistoryRecord(store, tl, latestEvent as TimelineEvent<any>)
 			},
 		)
 
@@ -544,7 +546,7 @@ export function handleStateLifecycleEvent(
 				currentSelectorTime,
 			)
 		} else {
-			addToHistory(tl, event)
+			addToHistory(store, tl, event)
 		}
 	}
 	switch (event.type) {
@@ -559,6 +561,7 @@ export function handleStateLifecycleEvent(
 }
 
 function addToHistory(
+	store: Store,
 	tl: Timeline<any>,
 	event: TimelineEvent<any>,
 	settle = true,
@@ -570,11 +573,12 @@ function addToHistory(
 	tl.at = tl.history.length
 	tl.pendingRecord = event
 	if (settle) {
-		settleHistoryRecord(tl, event)
+		settleHistoryRecord(store, tl, event)
 	}
 }
 
 function settleHistoryRecord(
+	store: Store,
 	tl: Timeline<any>,
 	event: TimelineEvent<any>,
 ): void {
@@ -596,6 +600,7 @@ function settleHistoryRecord(
 		if (limit !== null) {
 			cullTimelineUndoSteps(tl, limit)
 		}
+		recordStoreChange(store, `timelines`, tl.key)
 		tl.subject.next({
 			type: `timeline_update`,
 			event,
@@ -665,6 +670,7 @@ function installTimelineEffects<ManagedAtom extends TimelineManageable>(
 				}
 				const cullEvent = cullTimelineUndoSteps(tl, limit)
 				if (cullEvent) {
+					recordStoreChange(store, `timelines`, tl.key)
 					tl.subject.next({
 						type: `timeline_update`,
 						event: cullEvent,

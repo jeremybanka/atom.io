@@ -1,5 +1,5 @@
 import type { RootStore } from "atom.io/internal"
-
+import { peekState, peekStateDefinition } from "atom.io/introspection"
 /** Defer the existing editor blur only while focus visits this panel's passive search UI. */
 export function createSearchSession(
 	panel: HTMLElement,
@@ -92,15 +92,15 @@ export function editorIsCurrent(
 	input: HTMLInputElement,
 ): () => boolean {
 	const key = input.closest<HTMLElement>(`state-leaf`)!.dataset[`stateKey`]!
-	const definition = () =>
-		store.atoms.get(key) ??
-		store.readonlySelectors.get(key) ??
-		store.writableSelectors.get(key)
-	const state = definition(),
-		value = store.valueMap.get(key),
-		cached = store.valueMap.has(key)
-	return () =>
-		definition() === state &&
-		store.valueMap.has(key) === cached &&
-		Object.is(store.valueMap.get(key), value)
+	const definition = () => peekStateDefinition(store, key)
+	const state = definition()
+	const cached = peekState(store, key)
+	return () => {
+		const next = peekState(store, key)
+		return (
+			definition() === state &&
+			next.present === cached.present &&
+			Object.is(next.value, cached.value)
+		)
+	}
 }

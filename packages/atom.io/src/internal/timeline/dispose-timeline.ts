@@ -6,6 +6,7 @@ import type {
 import type { Canonical } from "atom.io/foundations/canonical"
 
 import { deposit, type Store } from "../store/index.ts"
+import { recordStoreChange } from "../store-observation.ts"
 import { seekTimelineInStore } from "./create-timeline-family.ts"
 
 export function disposeTimelineInStore<M extends TimelineManageable>(
@@ -65,6 +66,7 @@ export function disposeTimelineInStore<
 	timeline.timeTraveling = null
 	store.timelineTopics.delete(timeline.key)
 	store.timelines.delete(timeline.key)
+	recordStoreChange(store, `timelines`, timeline.key)
 	store.on.timelineDisposal.next(deposited)
 	store.logger.info(`🔥`, `timeline`, timeline.key, `disposed`)
 }

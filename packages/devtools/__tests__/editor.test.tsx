@@ -25,7 +25,7 @@ it(`renders a root primitive with a default accessible label and tokenless molec
 			const tools = useTools(silo.store)
 			return (
 				<>
-					<JsonEditor tools={tools} path={[]} value="root" />
+					<JsonEditor tools={tools} path={[]} stateKey="root" value="root" />
 					<EventView tools={tools} event={event} index={0} />
 				</>
 			)

@@ -1,4 +1,7 @@
-export type Change = (update: (previous: unknown) => unknown) => void
+export type Change = (
+	update: (previous: unknown) => unknown,
+	revision?: number,
+) => void
 export type JsonKind =
 	| `string`
 	| `number`
@@ -103,12 +106,11 @@ export function shallowKind(value: unknown): JsonKind | `other` {
 export function kind(value: unknown): JsonKind | `other` {
 	if (value === null) return `null`
 	if (Array.isArray(value)) return `array`
-	if (
-		typeof value === `object` &&
-		(Object.getPrototypeOf(value) === Object.prototype ||
-			Object.getPrototypeOf(value) === null)
-	)
-		return `object`
+	if (typeof value === `object`) {
+		const prototype: object | null = Object.getPrototypeOf(value)
+		if (prototype === null || Object.getPrototypeOf(prototype) === null)
+			return `object`
+	}
 	if (
 		typeof value === `string` ||
 		typeof value === `number` ||

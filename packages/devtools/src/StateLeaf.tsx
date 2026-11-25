@@ -1,12 +1,13 @@
 /** @jsxImportSource @atom.io/spa */
 import type { Children, SpaElement } from "@atom.io/spa"
-import { useGetter, useSetter } from "@atom.io/spa"
+import { onCleanup, onMount, useGetter, useSetter } from "@atom.io/spa"
 import type { ReadableToken, WritableToken } from "atom.io"
 import { disposeFromStore, getFromStore, resetInStore } from "atom.io/internal"
-import { peekState } from "atom.io/introspection"
+import { peekState, peekStateDefinition } from "atom.io/introspection"
 
 import { EditorButton } from "./EditorButton.tsx"
 import { JsonEditor } from "./JsonEditor.tsx"
+import type { RemoteCachedValue } from "./remote-protocol.ts"
 import css from "./StateLeaf.module.css"
 import type { EditorTools } from "./store.ts"
 
@@ -24,19 +25,35 @@ export function StateLeaf(props: {
 	onInitialize?(): void
 }): SpaElement {
 	const token = props.token
-	const definition = () =>
-		props.tools.store.atoms.get(token.key) ??
-		props.tools.store.readonlySelectors.get(token.key) ??
-		props.tools.store.writableSelectors.get(token.key)
+	const definition = () => peekStateDefinition(props.tools.store, token.key)
 	const captured = definition()
-	const getValue = useGetter(token)
-	const cache = props.cachedOnly
+	const worker = props.tools.worker
+	const canOperate = worker?.canControl() !== false
+	const projection = worker?.cache(token.key)
+	const watch =
+		projection && worker!.canGenerate() && token.type.includes(`selector`)
+			? worker!.watchSelector(token.key)
+			: undefined
+	if (watch) onCleanup(watch.dispose)
+	const generate = (batch = false) => {
+		if (watch) watch.generate(batch)
+		else worker!.generate(token.key, batch)
+	}
+	const getValue = useGetter(projection ?? token)
+	const cache = projection
 		? () => {
-				void props.capture
-				void props.revision
-				return peekState(props.tools.store, token.key)
+				const remote = getValue() as RemoteCachedValue
+				return remote.status === `value`
+					? { present: true, value: remote.value }
+					: { present: false, value: undefined }
 			}
-		: undefined
+		: props.cachedOnly
+			? () => {
+					void props.capture
+					void props.revision
+					return peekState(props.tools.store, token.key)
+				}
+			: undefined
 	const writableToken = token.type.startsWith(`readonly`)
 		? undefined
 		: (token as WritableToken<unknown, any, any>)
@@ -46,6 +63,7 @@ export function StateLeaf(props: {
 			throw new Error(`State was disposed. Refresh to update the snapshot.`)
 	}
 	const resetButton = () =>
+		!worker &&
 		writableToken && (
 			<EditorButton
 				icon="reset"
@@ -60,6 +78,17 @@ export function StateLeaf(props: {
 				}}
 			/>
 		)
+	onMount(() => {
+		if (
+			projection &&
+			worker!.canGenerate() &&
+			!props.cachedOnly &&
+			(watch || !cache!().present)
+		)
+			props.tools.attempt(() => {
+				generate(true)
+			})
+	})
 	const value = () => {
 		try {
 			if (props.retained && definition() !== captured)
@@ -68,6 +97,13 @@ export function StateLeaf(props: {
 		} catch (error) {
 			return error
 		}
+	}
+	const canEdit = () => {
+		if (!setValue) return false
+		if (!worker) return true
+		return (
+			!(value() instanceof Error) && worker.revision(token.key) !== undefined
+		)
 	}
 	return (
 		<state-leaf
@@ -79,19 +115,24 @@ export function StateLeaf(props: {
 		>
 			{cache && !cache().present ? (
 				<node-heading>
-					{props.label}
+					{props.label ?? <h3>{token.family?.subKey ?? token.key}</h3>}
 					<span>–</span>
-					<EditorButton
-						icon="generate"
-						label={`Generate ${token.key}`}
-						onClick={() => {
-							props.tools.attempt(() => {
-								requireCurrent()
-								getFromStore(props.tools.store, token)
-								props.onInitialize?.()
-							})
-						}}
-					/>
+					{canOperate && (
+						<EditorButton
+							icon="generate"
+							label={`Generate ${token.key}`}
+							onClick={() => {
+								props.tools.attempt(() => {
+									requireCurrent()
+									if (projection) generate()
+									else {
+										getFromStore(props.tools.store, token)
+										props.onInitialize?.()
+									}
+								})
+							}}
+						/>
+					)}
 					{resetButton()}
 				</node-heading>
 			) : (
@@ -105,13 +146,14 @@ export function StateLeaf(props: {
 					actions={
 						<>
 							{resetButton()}
-							{token.family && (
+							{token.family && canOperate && (
 								<EditorButton
 									icon="remove"
 									label={`Dispose ${token.key}`}
 									onClick={() => {
 										props.tools.attempt(() => {
-											disposeFromStore(props.tools.store, token)
+											if (projection) worker!.disposeState(token.key)
+											else disposeFromStore(props.tools.store, token)
 										})
 									}}
 								/>
@@ -119,17 +161,15 @@ export function StateLeaf(props: {
 						</>
 					}
 					tools={props.tools}
+					stateKey={token.key}
 					value={value()}
 					change={
-						setValue
-							? (update) => {
+						canEdit()
+							? (update, revision) => {
 									// Validate edits before opening an atom.io write operation.
-									const next = update(
-										cache
-											? peekState(props.tools.store, token.key).value
-											: getValue(),
-									)
-									setValue(() => next)
+									const next = update(cache ? cache().value : getValue())
+									if (worker) worker.edit(token.key, next, revision)
+									else setValue!(() => next)
 								}
 							: undefined
 					}

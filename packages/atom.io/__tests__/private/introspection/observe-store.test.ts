@@ -3,7 +3,9 @@ import { Future } from "atom.io/foundations/future"
 import { createRegularAtom } from "atom.io/internal"
 import {
 	observeStore,
+	peekDependencies,
 	peekState,
+	peekStateDefinition,
 	type StoreChanges,
 } from "atom.io/introspection"
 import { expect, it, vi } from "vitest"
@@ -35,6 +37,10 @@ it(`reports cache and retained dependency changes without evaluating or subscrib
 	const stop = observeStore(store, observe)
 	expect(peekState(store, lazyAtom.key)).toEqual({ present: false })
 	expect(defaultValue).not.toHaveBeenCalled()
+	expect(peekStateDefinition(store, lazyAtom.key)?.type).toBe(`atom`)
+	expect(peekStateDefinition(store, chooseSelector.key)?.type).toBe(
+		`readonly_pure_selector`,
+	)
 	expect(
 		store.readonlySelectors.get(chooseSelector.key)?.subject.subscribers.size,
 	).toBe(0)
@@ -52,8 +58,15 @@ it(`reports cache and retained dependency changes without evaluating or subscrib
 		families: new Set(),
 		dependencies: new Set([`choose`]),
 		futures: new Map(),
+		timelines: new Set(),
+		transactions: new Map(),
 	})
 	expect(defaultValue).toHaveBeenCalledTimes(1)
+	expect(peekDependencies(store, chooseSelector.key, 1)).toMatchObject({
+		dependencies: [`branch`],
+		inspected: 1,
+		total: 2,
+	})
 
 	silo.setState(branchAtom, false)
 	expect(peekState(store, chooseSelector.key)).toEqual({ present: false })
@@ -92,6 +105,71 @@ it(`reports cache and retained dependency changes without evaluating or subscrib
 	stop()
 	await Promise.resolve()
 	expect(observe).not.toHaveBeenCalled()
+})
+
+it(`batches owner history changes without subscribing to history subjects`, async () => {
+	const { silo, store } = setup()
+	const countAtom = silo.atom<number>({ key: `count`, default: 0 })
+	silo.getState(countAtom)
+	const observe = vi.fn<(changes: StoreChanges) => void>()
+	const stop = observeStore(store, observe)
+	try {
+		const countTimeline = silo.timeline({ key: `count`, scope: [countAtom] })
+		const originalTransaction = silo.transaction({
+			key: `original`,
+			do: ({ set }) => {
+				set(countAtom, 1)
+				return 1
+			},
+		})
+		silo.runTransaction(originalTransaction)()
+		const replacementTransaction = silo.transaction({
+			// eslint-disable-next-line atom.io/naming-convention -- replace the registered transaction
+			key: originalTransaction.key,
+			do: () => 2,
+		})
+		silo.runTransaction(replacementTransaction)()
+		await Promise.resolve()
+		expect(observe).toHaveBeenCalledOnce()
+		expect(observe.mock.lastCall?.[0].timelines).toEqual(
+			new Set([countTimeline.key]),
+		)
+		expect(
+			observe.mock.lastCall?.[0].transactions.get(originalTransaction.key),
+		).toMatchObject({
+			registeredAt: 1,
+			outcomes: [{ output: 1 }, { output: 2 }],
+		})
+		expect(
+			store.timelines.get(countTimeline.key)?.subject.subscribers.size,
+		).toBe(0)
+		expect(
+			store.transactions.get(originalTransaction.key)?.subject.subscribers.size,
+		).toBe(0)
+
+		silo.runTransaction(replacementTransaction)()
+		silo.undo(countTimeline)
+		await Promise.resolve()
+		expect(
+			observe.mock.lastCall?.[0].transactions.get(originalTransaction.key),
+		).toMatchObject({
+			registeredAt: undefined,
+			outcomes: [{ output: 2 }],
+		})
+		expect(observe.mock.lastCall?.[0].timelines).toEqual(
+			new Set([countTimeline.key]),
+		)
+		silo.redo(countTimeline)
+		silo.clearTimeline(countTimeline)
+		silo.disposeTimeline(countTimeline)
+		await Promise.resolve()
+		expect(observe.mock.lastCall?.[0].timelines).toEqual(
+			new Set([countTimeline.key]),
+		)
+		expect(store.timelines.has(countTimeline.key)).toBe(false)
+	} finally {
+		stop()
+	}
 })
 
 it(`observes root transaction results and async completion without exposing draft values`, async () => {

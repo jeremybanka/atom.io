@@ -147,6 +147,46 @@ export const playPrimary: Play = async ({ canvas, userEvent, step }) => {
 	})
 }
 
+export const playWorkerStores: Play = async ({ canvas, userEvent, step }) => {
+	const switchTo = async (name: string) => {
+		await userEvent.click(
+			canvas.getByRole(`button`, { name: /^Inspected store:/ }),
+		)
+		await userEvent.click(canvas.getByRole(`button`, { name }))
+	}
+	const showAtoms = async () => {
+		await userEvent.click(await canvas.findByRole(`tab`, { name: `atoms` }))
+	}
+	await step(`Switch between the worker and page stores`, async () => {
+		await waitFor(() =>
+			expect(canvas.getByLabelText(`Worker values`)).toHaveTextContent(
+				`Count: 2 · Doubled: 4`,
+			),
+		)
+		if (canvas.getAllByTestId(`atom-io-devtools`).every((panel) => panel.hidden))
+			await userEvent.keyboard(`{Control>}{Shift>}a{/Shift}{/Control}`)
+		const launcher = canvas.queryByRole(`button`, { name: `Open debugger` })
+		if (launcher) await userEvent.click(launcher)
+		await switchTo(`Page store`)
+		await showAtoms()
+		await expect(canvas.getByRole(`textbox`, { name: `location` })).toHaveValue(
+			`Main thread`,
+		)
+		await switchTo(`Counter worker`)
+		await showAtoms()
+		await waitFor(() =>
+			expect(canvas.getByRole(`textbox`, { name: `count` })).toHaveValue(`2`),
+		)
+	})
+	await step(`Inspect the worker’s derived value`, async () => {
+		await userEvent.click(canvas.getByRole(`tab`, { name: `selectors` }))
+		await waitFor(() =>
+			expect(canvas.getByRole(`textbox`, { name: `doubled` })).toHaveValue(`4`),
+		)
+		await showAtoms()
+	})
+}
+
 export const playOrderRoots: Play = async (context) => {
 	const { step, canvas } = context
 	const tools = orderTools(context)

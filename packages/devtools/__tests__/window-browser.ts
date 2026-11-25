@@ -107,7 +107,9 @@ try {
 		[`Left half`, 0, 0, 720, 900],
 		[`Right half`, 720, 0, 720, 900],
 		[`Left third`, 0, 0, 480, 900],
+		[`Left two-thirds`, 0, 0, 960, 900],
 		[`Center third`, 480, 0, 480, 900],
+		[`Right two-thirds`, 480, 0, 960, 900],
 		[`Right third`, 960, 0, 480, 900],
 		[`Top half`, 0, 0, 1440, 450],
 		[`Bottom half`, 0, 450, 1440, 450],
@@ -123,7 +125,24 @@ try {
 				.evaluate((node) => node === document.activeElement),
 			true,
 		)
-		await page.getByRole(`button`, { name: label, exact: true }).click()
+		const option = page.getByRole(`button`, { name: label, exact: true })
+		assert.equal(await option.textContent(), ``)
+		assert.deepEqual(
+			await option
+				.locator(`svg rect[fill="currentColor"]`)
+				.evaluate((tile) =>
+					[`x`, `y`, `width`, `height`].map((attribute) =>
+						Number(tile.getAttribute(attribute)),
+					),
+				),
+			[
+				2 + (x * 24) / 1440,
+				2 + (y * 16) / 900,
+				(width * 24) / 1440,
+				(height * 16) / 900,
+			],
+		)
+		await option.click()
 		assert.deepEqual(await panel.boundingBox(), { x, y, width, height })
 		const stored = await page.evaluate(() =>
 			localStorage.getItem(`🔍 Devtools Window`),
@@ -165,6 +184,41 @@ try {
 		.getByRole(`button`, { name: `Debugger layout`, exact: true })
 		.click()
 	await page.getByRole(`button`, { name: `Restore free position` }).click()
+	// Slide along the bottom edge into the two-thirds zones, then drop.
+	for (const [pointerX, x] of [
+		[480, 0],
+		[960, 480],
+	]) {
+		handle = await move.boundingBox()
+		assert.ok(handle)
+		await page.mouse.move(handle.x + 7, handle.y + 10)
+		await page.mouse.down()
+		await page.mouse.move(720, 899, { steps: 6 })
+		await page.mouse.move(pointerX, 899, { steps: 6 })
+		await page.waitForFunction((left) => {
+			const rect = document
+				.querySelector(`snap-preview:not([hidden])`)
+				?.getBoundingClientRect()
+			return (
+				rect?.x === left &&
+				rect.y === 0 &&
+				rect.width === 960 &&
+				rect.height === 900
+			)
+		}, x)
+		await page.mouse.up()
+		assert.deepEqual(await panel.boundingBox(), {
+			x,
+			y: 0,
+			width: 960,
+			height: 900,
+		})
+		await page
+			.getByRole(`button`, { name: `Debugger layout`, exact: true })
+			.click()
+		await page.getByRole(`button`, { name: `Restore free position` }).click()
+		assert.deepEqual(await panel.boundingBox(), free)
+	}
 	// The collapsed logo moves independently and a drag never activates Open.
 	await page
 		.getByRole(`button`, { name: `Minimize debugger`, exact: true })

@@ -60,12 +60,14 @@ it(`clamps free rectangles and minimum dimensions even on tiny viewports`, () =>
 		height: 100,
 	})
 })
-it(`provides exact halves, thirds and full viewport without free-window minimums`, () => {
+it(`provides exact halves, thirds, two-thirds and full viewport without free-window minimums`, () => {
 	const expected = [
 		[0, 0, 600, 900],
 		[600, 0, 600, 900],
 		[0, 0, 400, 900],
+		[0, 0, 800, 900],
 		[400, 0, 400, 900],
+		[400, 0, 800, 900],
 		[800, 0, 400, 900],
 		[0, 0, 1200, 450],
 		[0, 450, 1200, 450],
@@ -79,6 +81,12 @@ it(`provides exact halves, thirds and full viewport without free-window minimums
 		x: 60,
 		y: 0,
 		width: 30,
+		height: 50,
+	})
+	expect(snapRect(`right-two-thirds`, { width: 101, height: 50 })).toEqual({
+		x: 101 / 3,
+		y: 0,
+		width: 202 / 3,
 		height: 50,
 	})
 })
@@ -109,7 +117,12 @@ it(`maps edge drag zones and leaves the interior unsnapped`, () => {
 	expect(edgeTarget(100, 0, viewport)).toBe(`full`)
 	expect(edgeTarget(0, 100, viewport)).toBe(`left-half`)
 	expect(edgeTarget(1200, 100, viewport)).toBe(`right-half`)
-	expect(edgeTarget(100, 900, viewport)).toBe(`bottom-half`)
+	expect(edgeTarget(100, 900, viewport)).toBe(`left-third`)
+	expect(edgeTarget(400, 900, viewport)).toBe(`left-two-thirds`)
+	expect(edgeTarget(600, 900, viewport)).toBe(`center-third`)
+	expect(edgeTarget(800, 900, viewport)).toBe(`right-two-thirds`)
+	expect(edgeTarget(1100, 900, viewport)).toBe(`right-third`)
+	expect(edgeTarget(0, 900, viewport)).toBe(`left-half`)
 	expect(edgeTarget(400, 400, viewport)).toBeNull()
 })
 it(`rejects corrupt, non-finite and invalid persisted geometry and clamps stale positions`, () => {
@@ -135,6 +148,8 @@ it(`rejects corrupt, non-finite and invalid persisted geometry and clamps stale 
 		free,
 		snap: `full`,
 	})
+	for (const snap of [`left-two-thirds`, `right-two-thirds`])
+		expect(readGeometry({ free, snap }, viewport)).toEqual({ free, snap })
 	expect(readGeometry({ free, snap: `obsolete` }, viewport)).toEqual({
 		free,
 		snap: null,

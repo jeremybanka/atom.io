@@ -1,6 +1,7 @@
 import { render } from "@atom.io/spa"
 import { jsx } from "@atom.io/spa/jsx-runtime"
 import { Silo } from "atom.io"
+import type * as Motion from "motion"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 
 import { createCardFeedback } from "../src/ecology-card-feedback.ts"
@@ -8,6 +9,11 @@ import { createEcologyController } from "../src/ecology-controller.ts"
 import { Ecology, mountEcology } from "../src/ecology-entry.ts"
 import { createGraphContext } from "../src/ecology-graph.ts"
 import { mountAtomIODevtools } from "../src/mount.ts"
+
+vi.mock(`motion`, async (actual) => {
+	const motion = await actual<typeof Motion>()
+	return { ...motion, animate: vi.fn(motion.animate) }
+})
 
 let dispose = () => {}
 beforeEach(() => {
@@ -455,8 +461,7 @@ it(`retains selection/pan/expansion across snapshots and navigation; geometry-on
 	)
 	await settle()
 	expect(f.host.querySelector(`ecology-editor`)!.textContent).toContain(`Nodes`)
-	await f.click(`Clear selection`)
-	expect(f.host.textContent).toContain(`Nodes`)
+	expect(f.host.querySelector(`[data-action="clear"]:not([inert])`)).toBeNull()
 })
 
 it(`automatically emphasizes selection paths, dims unrelated cards, and clears selection before the search on Escape`, async () => {
@@ -539,6 +544,123 @@ it(`automatically emphasizes selection paths, dims unrelated cards, and clears s
 		)
 	await settle()
 	expect(document.activeElement).toBe(input)
+})
+
+it(`stages viewport actions together, cancels stale exits, and restores focus after clearing`, async () => {
+	const f = setup()
+	f.silo.atom<number>({ key: `count`, default: 0 })
+	f.silo.atomFamily<number, string>({ key: `items`, default: 0 })
+	const media = window.matchMedia(`(prefers-reduced-motion: reduce)`)
+	Object.defineProperty(media, `matches`, { value: false })
+	vi.mocked(window.matchMedia).mockReturnValue(media)
+	const motion = await import(`motion`)
+	const animation = vi.mocked(motion.animate)
+	const animate = animation.getMockImplementation()!
+	const animations: {
+		button: HTMLButtonElement
+		stop: ReturnType<typeof vi.fn>
+		finish(): void
+	}[] = []
+	await animation.withImplementation(
+		(...args) => {
+			const button = args[0]
+			if (
+				!(button instanceof HTMLButtonElement) ||
+				!button.closest(`ecology-map-actions`)
+			)
+				return Reflect.apply(animate, undefined, args)
+			const stop = vi.fn()
+			const done = Promise.withResolvers<void>()
+			animations.push({ button, stop, finish: done.resolve })
+			return {
+				stop,
+				then: done.promise.then.bind(done.promise),
+			} as unknown as ReturnType<typeof animate>
+		},
+		async () => {
+			f.mount()
+			await settle()
+			const view = f.host.querySelector(`ecology-view`)!
+			const scene = view.querySelector(`ecology-scene`)
+			const [expand, clear] = view.querySelectorAll<HTMLButtonElement>(
+				`ecology-map-actions > button`,
+			)
+			const actionAnimation = (button: HTMLButtonElement) =>
+				animation.mock.calls.findLast(([target]) => target === button)!
+			await f.select(`family:items`)
+			expect(animations.map(({ button }) => button)).toEqual([expand, clear])
+			expect(actionAnimation(clear)[1]).toEqual({
+				z: [-52, 0],
+				rotateX: [16, 0],
+				rotateY: [58, 0],
+				opacity: [0, 1],
+			})
+			expect(actionAnimation(clear)[2]).toMatchObject({
+				delay: 0.02,
+				type: `tween`,
+				ease: [0.1, 0.9, 0.2, 1],
+			})
+			expect(actionAnimation(expand)[2]).toMatchObject({ delay: 0 })
+			expand.focus()
+			await f.click(`Expand family`)
+			expect(document.activeElement).toBe(expand)
+
+			clear.focus()
+			await f.click(`Clear selection`)
+			expect(document.activeElement).toBe(scene)
+			expect(actionAnimation(clear)[1]).toEqual({
+				z: 70,
+				rotateX: -18,
+				rotateY: -52,
+				opacity: 0,
+			})
+			expect(actionAnimation(clear)[2]).toMatchObject({
+				delay: 0.02,
+				type: `tween`,
+				ease: [0.7, 0, 1, 0.5],
+			})
+			const [expandExit, clearExit] = animations.slice(-2)
+			expandExit.finish()
+			await settle()
+			expect(expand.hidden).toBe(true)
+			expect(clear.hidden).toBe(false)
+			view.querySelector<HTMLElement>(`ecology-body`)!.style.display = `flex`
+			await f.select(`family:items`)
+			expect(actionAnimation(expand)[1]).toEqual({
+				z: [-52, 0],
+				rotateX: [62, 0],
+				rotateY: [12, 0],
+				opacity: [0, 1],
+			})
+			expect(actionAnimation(clear)[2]).toMatchObject({ delay: 0.02 })
+			expect(clearExit.stop).toHaveBeenCalledOnce()
+			clearExit.finish()
+			await settle()
+			expect(clear.hidden).toBe(false)
+
+			const clearEntrance = animations.at(-1)!
+			await f.select(`state:count`)
+			expect(clearEntrance.stop).not.toHaveBeenCalled()
+			expect(actionAnimation(expand)[1]).toEqual({
+				z: 70,
+				rotateX: -52,
+				rotateY: -10,
+				opacity: 0,
+			})
+			const query = view.querySelector.bind(view)
+			using sceneLookup = vi
+				.spyOn(view, `querySelector`)
+				.mockImplementation((selector) =>
+					selector === `ecology-scene` ? null : query(selector),
+				)
+			clear.focus()
+			await f.click(`Clear selection`)
+			expect(sceneLookup).toHaveBeenCalledWith(`ecology-scene`)
+			expect(document.activeElement?.getAttribute(`aria-label`)).toBe(
+				`Search ecology`,
+			)
+		},
+	)
 })
 
 it(`toggles a selected family with Enter from its card, heading, list and graph`, async () => {
@@ -672,7 +794,7 @@ it(`cleans up hidden, minimized, superseded and disposed jobs and keeps empty fl
 		f.host.querySelector<HTMLElement>(`ecology-view`)!.dataset[`jobs`],
 	).toBe(`1`)
 	await f.click(`Fit`)
-	await f.click(`Clear selection`)
+	expect(f.host.querySelector(`[data-action="clear"]:not([inert])`)).toBeNull()
 	const form = f.host.querySelector(`form`)!
 	expect(
 		form.dispatchEvent(new Event(`submit`, { bubbles: true, cancelable: true })),
@@ -854,7 +976,7 @@ it(`reports capture limits and ignores activity outside the retained graph`, asy
 	)
 })
 
-it(`preserves keyboard focus during refresh and keeps related paths highlighted when selection changes`, async () => {
+it(`preserves keyboard focus during refresh and highlights related cards when selection changes`, async () => {
 	const f = setup()
 	f.silo.atom<number>({ key: `a`, default: 0 })
 	f.silo.selector<number>({ key: `s`, get: () => 0 })
@@ -872,7 +994,12 @@ it(`preserves keyboard focus during refresh and keeps related paths highlighted 
 	await f.click(`Refresh`)
 	expect(document.activeElement?.getAttribute(`data-graph-id`)).toBe(`state:s`)
 	await f.select(`state:a`)
-	expect(f.host.querySelectorAll(`[data-traced="true"]`)).toHaveLength(2)
+	const tracedCards = f.host.querySelectorAll<HTMLElement>(
+		`ecology-node-card[data-traced="true"] > button`,
+	)
+	expect([...tracedCards].map((card) => card.dataset[`graphId`]).sort()).toEqual(
+		[`state:a`, `state:s`],
+	)
 })
 
 it(`returns focus to search when refreshed selection controls or headings disappear`, async () => {

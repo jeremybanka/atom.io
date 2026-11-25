@@ -4,13 +4,13 @@ window-overlay.class {
 	z-index: 10001;
 	pointer-events: none;
 	font: 400 12px/1.2 "Atom IO Theia", monospace;
-	snap-preview {
+	> snap-preview {
 		position: absolute;
 		box-sizing: border-box;
 		background: color-mix(in srgb, var(--accent) 20%, transparent);
 		border: 2px solid var(--accent);
 	}
-	snap-palette {
+	> snap-palette {
 		position: absolute;
 		top: 12px;
 		left: 50%;
@@ -18,33 +18,37 @@ window-overlay.class {
 		display: flex;
 		flex-wrap: wrap;
 		justify-content: center;
-		gap: 3px;
-		padding: 6px;
 		width: max-content;
 		max-width: calc(100vw - 16px);
-		background: var(--surface-content);
-		border: 1px solid var(--ink-muted);
+		background: var(--ink-strong);
+		border: 1px solid var(--bg-color);
 		box-shadow: 0 4px 18px #0006;
 	}
-	[hidden] {
+	> [hidden] {
 		display: none;
 	}
-	button {
+	> snap-palette > button {
+		box-sizing: border-box;
+		display: grid;
+		place-items: center;
+		width: 40px;
+		height: 34px;
 		pointer-events: auto;
-		font: inherit;
-		padding: 6px;
-		color: var(--ink);
-		background: var(--surface-inactive);
-		border: 1px solid var(--line);
+		padding: 0;
+		color: var(--bg-hard-1);
+		background: transparent;
+		border: 0;
 		cursor: pointer;
 	}
-	button[aria-pressed="true"], button:hover {
-		background: var(--ink);
-		color: var(--bg-color);
-		border-color: var(--brand-color);
+	> snap-palette > button[aria-pressed="true"] {
+		background: var(--accent);
 	}
-	button:focus-visible {
+	> snap-palette > button:hover:not(:focus-visible, [aria-pressed="true"]) {
+		outline: 1px solid var(--accent);
+		outline-offset: -1px;
+	}
+	> snap-palette > button:focus-visible {
 		outline: 2px solid var(--accent);
-		outline-offset: 1px;
+		outline-offset: -2px;
 	}
 }

@@ -610,10 +610,20 @@ it(`reshapes on canvas resize while preserving orbit direction and relative zoom
 	const offset = new THREE.Vector3(...before.position).sub(
 		new THREE.Vector3(...before.target),
 	)
+	const gl = vi.mocked(THREE.WebGLRenderer).mock.results.at(-1)!
+		.value as THREE.WebGLRenderer
+	const paint = vi.mocked(gl.render).mockClear()
 	f.resize(300, 900)
-	f.tick()
 	const [diameter, height] =
 		f.viewport.dataset[`cylinder`]!.split(`,`).map(Number)
+	expect(paint).toHaveBeenCalledOnce()
+	expect(vi.mocked(gl.setSize).mock.invocationCallOrder.at(-1)).toBeLessThan(
+		paint.mock.invocationCallOrder[0],
+	)
+	const ground = paint.mock.calls[0][0].getObjectByName(`ecology-ground`)!
+	expect(ground.position.y).toBeCloseTo(-height / 2 - 2)
+	f.tick()
+	expect(paint).toHaveBeenCalledOnce()
 	expect(diameter / height).toBeCloseTo(300 / 900)
 	expect(f.context.camera!.target).toEqual(
 		f.point(f.b).map((value) => expect.closeTo(value, 10)),

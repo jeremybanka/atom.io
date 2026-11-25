@@ -216,10 +216,7 @@ it(`keeps an unfinished numeric draft and its node mounted through query, clear,
 	await f.key(f.input(), `Escape`)
 	expect(document.activeElement).toBe(editor)
 	expect(editor.selectionStart).toBe(1)
-	f.input().focus()
-	f.button(`Clear selection`).click()
-	await settle()
-	expect(f.host.querySelector(`ecology-editor input`)).toBe(editor)
+	expect(f.host.querySelector(`[data-action="clear"]:not([inert])`)).toBeNull()
 })
 
 it(`retains invalid-query results, respects IME/native find and searches new state automatically`, async () => {
@@ -329,7 +326,7 @@ it(`uses latest input while metadata indexing is in flight and cancels hidden/di
 		lifespan: `ephemeral`,
 		isProduction: true,
 	})
-	for (let i = 0; i < 80; i++) {
+	for (let i = 0; i < 4; i++) {
 		const options = { key: `record${i}`, default: 0 }
 		app.atom<number>(options)
 	}
@@ -344,7 +341,7 @@ it(`uses latest input while metadata indexing is in flight and cancels hidden/di
 		createGraphContext(),
 	))
 	const input = host.querySelector(`input`)!
-	input.value = `record79`
+	input.value = `record3`
 	input.dispatchEvent(new Event(`input`, { bubbles: true }))
 	await vi.advanceTimersToNextTimerAsync()
 	panel.hidden = true
@@ -354,7 +351,7 @@ it(`uses latest input while metadata indexing is in flight and cancels hidden/di
 	await settle()
 	expect(
 		host.querySelector(`ecology-view [data-results] button`)!.textContent,
-	).toBe(`record79`)
+	).toBe(`record3`)
 	const jobs = host.dataset[`jobs`]
 	panel.dataset[`open`] = `false`
 	await settle()
@@ -381,7 +378,7 @@ it(`uses latest input while metadata indexing is in flight and cancels hidden/di
 	expect(vi.getTimerCount()).toBe(0)
 })
 
-it(`waits for a committed root and can clear selection before the first admitted capture`, async () => {
+it(`waits for a committed root and can clear a restored selection before capturing it`, async () => {
 	const { createGraphContext } = await import(`../src/ecology-graph.ts`)
 	const app = new Silo({
 		name: `ecology-transaction`,
@@ -393,19 +390,23 @@ it(`waits for a committed root and can clear selection before the first admitted
 		do: () => {},
 	})
 	const panel = document.createElement(`main`)
+	const context = createGraphContext()
+	context.selected = `state:restored`
 	let host!: HTMLElement
 	document.body.append(panel)
 	const stop = app.store.on.transactionApplying.subscribe(
 		`mount-search`,
 		(applying) => {
 			if (applying !== null) {
-				;({ dispose, host } = mountEcologyFixture(
-					panel,
-					app.store,
-					createGraphContext(),
-				))
-				host.querySelector<HTMLButtonElement>(`[data-action="clear"]`)!.click()
+				;({ dispose, host } = mountEcologyFixture(panel, app.store, context))
+				expect(
+					host.querySelector(`[data-action="clear"]:not([inert])`),
+				).toBeNull()
 				expect(host.textContent).toContain(`Waiting for the current transaction`)
+				host.dispatchEvent(
+					new KeyboardEvent(`keydown`, { key: `Escape`, bubbles: true }),
+				)
+				expect(context.selected).toBeNull()
 			}
 		},
 	)

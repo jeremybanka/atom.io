@@ -2,6 +2,7 @@
 import type { SpaElement } from "@atom.io/spa"
 import { onCleanup, onCommit, onMount, useId } from "@atom.io/spa"
 import type { FutureActivity } from "atom.io/introspection"
+import { animate } from "motion"
 
 import { createEcologyController } from "./ecology-controller.ts"
 import type { GraphContext, GraphModel } from "./ecology-graph.ts"
@@ -12,6 +13,7 @@ import type { CameraCommand } from "./EcologyScene.tsx"
 import { EcologyToolbar } from "./EcologyToolbar.tsx"
 import css from "./EcologyView.module.css"
 import { EcologyViewport } from "./EcologyViewport.tsx"
+import { EditorIcon, type EditorIconName } from "./EditorIcon.tsx"
 import type { SearchHit } from "./search.ts"
 import { type EditorTools, useLocal, usePresentation } from "./store.ts"
 
@@ -32,6 +34,9 @@ export interface EcologyPresentation {
 	familyConnections: GraphModel[`familyConnections`]
 	selected?: GraphModel[`items`][number] | undefined
 	selectedCard?: string | undefined
+	familyExpanded: boolean
+	hasSelectedFamily: boolean
+	hasSelection: boolean
 	selectedIds: ReadonlySet<string>
 	selectionOutside: boolean
 	query: string
@@ -51,6 +56,91 @@ export interface EcologyPresentation {
 	activity: ReadonlyMap<string, EcologyActivity>
 	pinnedKey: string | undefined
 }
+
+function ViewportAction(props: {
+	action: `expand` | `clear`
+	available: boolean
+	precedingAvailable?: boolean
+	label: string
+	icon: EditorIconName
+	expanded?: boolean | undefined
+}): SpaElement {
+	let button: HTMLButtonElement | null = null
+	let stop: (() => void) | undefined
+	// Scope the exit to this button so minimizing the debugger can unmount the view immediately.
+	onCleanup(() => {
+		stop?.()
+	})
+	onCommit<readonly [boolean, boolean]>(
+		() => [props.available, props.precedingAvailable ?? false],
+		([available, preceding], [wasAvailable, wasPreceding] = [false, false]) => {
+			if (available === wasAvailable) return
+			stop?.()
+			stop = undefined
+			const node = button!
+			const entering = node.hidden
+			if (
+				node.ownerDocument.defaultView!.matchMedia(
+					`(prefers-reduced-motion: reduce)`,
+				).matches
+			) {
+				node.hidden = !available
+				node.style.removeProperty(`transform`)
+				node.style.removeProperty(`opacity`)
+				return
+			}
+			node.hidden = false
+			const body = node.closest(`ecology-body`)!
+			const narrow =
+				node.ownerDocument.defaultView!.getComputedStyle(body).display === `flex`
+			// In the stacked layout, pitch opens the turnstile from the map's bottom edge.
+			const turn = (from: number, to: number) =>
+				entering ? [from, 0] : available ? 0 : to
+			const animation = animate(
+				node,
+				{
+					z: turn(-52, 70),
+					rotateX: turn(narrow ? 62 : 16, narrow ? -52 : -18),
+					rotateY: turn(narrow ? 12 : 58, narrow ? -10 : -52),
+					opacity: entering ? [0, 1] : Number(available),
+				},
+				{
+					delay: preceding === wasPreceding ? 0 : 0.02,
+					type: `tween`,
+					duration: 0.24,
+					ease: available ? [0.1, 0.9, 0.2, 1] : [0.7, 0, 1, 0.5],
+				},
+			)
+			let active = true
+			if (!available)
+				void animation.then(() => {
+					if (active) node.hidden = true
+				})
+			stop = () => {
+				active = false
+				animation.stop()
+			}
+		},
+	)
+	return (
+		<button
+			ref={(node) => {
+				button = node
+			}}
+			type="button"
+			hidden
+			inert={!props.available}
+			data-action={props.action}
+			aria-hidden={props.available ? undefined : `true`}
+			aria-label={props.label}
+			aria-expanded={props.expanded}
+			title={props.label}
+		>
+			<EditorIcon name={props.icon} />
+		</button>
+	)
+}
+
 export function EcologyView(props: {
 	tools: EditorTools
 	context: GraphContext
@@ -69,6 +159,9 @@ export function EcologyView(props: {
 		familyConnections: [],
 		selected: undefined,
 		selectedCard: undefined,
+		familyExpanded: false,
+		hasSelectedFamily: false,
+		hasSelection: false,
 		selectedIds: new Set(),
 		query: props.context.query,
 		filtered: false,
@@ -157,6 +250,24 @@ export function EcologyView(props: {
 						command={state().cameraCommand}
 						hovered={hovered()}
 					/>
+					<ecology-map-actions>
+						<ViewportAction
+							action="expand"
+							available={state().hasSelectedFamily}
+							label={
+								state().familyExpanded ? `Collapse family` : `Expand family`
+							}
+							icon={state().familyExpanded ? `collapseFamily` : `expandFamily`}
+							expanded={state().familyExpanded}
+						/>
+						<ViewportAction
+							action="clear"
+							available={state().hasSelection}
+							precedingAvailable={state().hasSelectedFamily}
+							label="Clear selection"
+							icon="clearSelection"
+						/>
+					</ecology-map-actions>
 				</ecology-map>
 				<EcologyEditor
 					tools={props.tools}

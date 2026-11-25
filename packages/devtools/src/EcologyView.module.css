@@ -14,6 +14,7 @@ ecology-view.class {
 	}
 	> ecology-body > ecology-map {
 		display: flex;
+		position: relative;
 		min-width: 0;
 		min-height: 0;
 		flex-direction: column;
@@ -21,6 +22,46 @@ ecology-view.class {
 			in srgb,
 			var(--surface-graph) var(--window-fill-opacity),
 			transparent
+		);
+	}
+	> ecology-body > ecology-map > ecology-map-actions {
+		--action-size: 32px;
+		--action-inset: 2px;
+		--action-gap: 2px;
+		display: flex;
+		align-items: flex-end;
+		position: absolute;
+		z-index: 1;
+		inset: 0;
+		padding: var(--action-inset);
+		gap: var(--action-gap);
+		perspective: 260px;
+		perspective-origin: left bottom;
+		pointer-events: none;
+	}
+	> ecology-body > ecology-map > ecology-map-actions > button {
+		--action-offset: var(--action-inset);
+		display: grid;
+		place-items: center;
+		flex: none;
+		width: var(--action-size);
+		height: var(--action-size);
+		padding: 0;
+		border: 1px solid var(--line);
+		transform-origin: calc(-1 * var(--action-offset))
+			calc(100% + var(--action-inset));
+		pointer-events: auto;
+		&:not(:hover, :focus-visible) {
+			background: var(--surface-content);
+		}
+		&[hidden] {
+			display: none;
+		}
+	}
+	> ecology-body > ecology-map > ecology-map-actions > button:not([hidden])
+		+ button {
+		--action-offset: calc(
+			var(--action-inset) + var(--action-size) + var(--action-gap)
 		);
 	}
 	@container atom-io-devtools (max-width: 650px) {

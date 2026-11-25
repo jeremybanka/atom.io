@@ -1,7 +1,7 @@
 /** @jsxImportSource @atom.io/spa */
-import { onCleanup, onMount, type SpaElement } from "@atom.io/spa"
+import { onCleanup, onCommit, onMount, type SpaElement } from "@atom.io/spa"
 import { bindScene } from "@atom.io/spa/renderer"
-import { Canvas } from "@atom.io/spa/three"
+import { Canvas, type CanvasResizeState } from "@atom.io/spa/three"
 import * as THREE from "three"
 // eslint-disable-next-line import/extensions -- Three addon exports require the .js suffix.
 import { OrbitControls } from "three/addons/controls/OrbitControls.js"
@@ -61,6 +61,9 @@ export function EcologyScene(props: {
 		height: 400,
 	})
 	const [failed, setFailed] = useLocal(props.tools.store, false)
+	const [canvasResize, setCanvasResize] = useLocal<
+		CanvasResizeState | undefined
+	>(props.tools.store, undefined)
 	const labels = new THREE.Scene()
 	const scale = labels.scale
 	const cylinder = () => {
@@ -325,6 +328,13 @@ export function EcologyScene(props: {
 			aspect: camera.aspect,
 		}
 	}
+	onCommit(canvasResize, (resized) => {
+		if (!resized) return
+		// Resizing clears the drawing buffer, including when ResizeObserver runs after the frame draw.
+		// Repaint after the ground and labels commit so the browser never presents the cleared buffer.
+		draw()
+		resized.renderer.render(resized.scene, resized.camera)
+	})
 	const cards = new Map<string, { item: GraphItem; node: SpaElement }>()
 	const release = (id: string) => {
 		motion.release(id)
@@ -390,8 +400,9 @@ export function EcologyScene(props: {
 					onError={() => {
 						setFailed(true)
 					}}
-					onResize={({ width, height }) => {
-						reshape(width, height)
+					onResize={(resized) => {
+						reshape(resized.width, resized.height)
+						if (renderer) setCanvasResize(resized)
 					}}
 					onCreated={({ scene }) => {
 						scene.add(familySpine, selectedSpine)

@@ -371,7 +371,9 @@ export function exposeWholeStore(
 					watches.delete(key)
 				}
 				for (const key of families) changedFamilies.add(key)
-				changedOperations ||= Boolean(changes.timelineFamilies?.size)
+				changedOperations ||=
+					(changes.timelineFamilies?.size ?? 0) > 0 ||
+					(changes.transactionWrites?.size ?? 0) > 0
 				for (const key of dependencies) changedDependencies.add(key)
 				for (const key of timelines) {
 					if (!visible(key)) continue

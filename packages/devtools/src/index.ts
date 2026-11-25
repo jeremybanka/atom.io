@@ -5,6 +5,7 @@ export type {
 	EcologyNode,
 	EcologyOperation,
 	EcologyOperations,
+	EcologyOperationTarget,
 	EcologyRootTrace,
 	EcologySnapshot,
 	EcologyValueType,

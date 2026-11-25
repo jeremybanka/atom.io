@@ -315,24 +315,27 @@ export function trackRemoteEcology(
 				changes.states.size || changes.dependencies.size || changes.families.size
 					? updateTopology(changes)
 					: updateValues(changes.values)
-			if (!changes.operations) return state
-			const { records, work, truncated } = captureEcologyOperations(
+			if (!changes.operations && !(store.timelines.size && changes.states.size))
+				return state
+			const { records, ...metadata } = captureEcologyOperations(
 				store,
 				limits.maxOperations,
+				limits.maxRelations,
 			)
 			const next = toMap(records, ecologyOperationId)
 			const operations = diff(operationRecords, next)
 			const changed =
 				hasChanges(operations) ||
-				work !== operationCapture.work ||
-				truncated !== operationCapture.truncated
-			operationCapture = { records, work, truncated }
+				metadata.work !== operationCapture.work ||
+				metadata.truncated !== operationCapture.truncated ||
+				!same(metadata.relations, operationCapture.relations)
+			operationCapture = { records, ...metadata }
 			operationRecords = next
 			if (!changed) return state
 			return {
 				nodes: emptyChange<EcologyNode>(),
 				...state,
-				operations: { ...operations, work, truncated },
+				operations: { ...operations, ...metadata },
 			}
 		},
 	}
@@ -359,6 +362,9 @@ export function projectRemoteEcology(initial: EcologySnapshot): {
 	let operationMetadata = initial.operations && {
 		work: initial.operations.work,
 		truncated: initial.operations.truncated,
+		...(initial.operations.relations && {
+			relations: initial.operations.relations,
+		}),
 	}
 	let snapshot: EcologySnapshot | undefined
 	return {
@@ -412,8 +418,8 @@ export function projectRemoteEcology(initial: EcologySnapshot): {
 			if (change.families) apply(graph.families, keyOf, change.families)
 			if (change.operations) {
 				apply(operations, ecologyOperationId, change.operations)
-				const { work, truncated } = change.operations
-				operationMetadata = { work, truncated }
+				const { work, truncated, relations } = change.operations
+				operationMetadata = { work, truncated, ...(relations && { relations }) }
 			}
 			if (change.metadata) graph.metadata = change.metadata
 			snapshot = undefined

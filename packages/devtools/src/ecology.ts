@@ -1,7 +1,7 @@
 import type { ReadableToken } from "atom.io"
 import { Future } from "atom.io/foundations/future"
 import type { ReadableState, RootStore } from "atom.io/internal"
-import { isReservedIntrospectionKey } from "atom.io/internal"
+import { hasRole, isReservedIntrospectionKey } from "atom.io/internal"
 import {
 	peekDependencies,
 	peekState,
@@ -54,15 +54,21 @@ type EcologyTimeline = {
 	readonly at: number
 	readonly historyLength: number
 }
-export type EcologyOperation =
+export interface EcologyOperationTarget {
+	readonly kind: `state` | `family`
+	readonly key: string
+}
+export type EcologyOperation = (
 	| { readonly type: `transaction`; readonly key: string }
 	| EcologyTimeline
 	| (EcologyFamily & { readonly type: `timeline_family` })
+) & { readonly targets?: readonly EcologyOperationTarget[] }
 
 export interface EcologyOperations {
 	readonly records: readonly EcologyOperation[]
 	readonly truncated: boolean
 	readonly work: number
+	readonly relations?: { readonly work: number; readonly truncated: boolean }
 }
 
 export interface EcologyLimits {
@@ -73,7 +79,7 @@ export interface EcologyLimits {
 	readonly maxNodes?: number
 	/** Counts inspected family records. Default 1,000; ceiling 10,000. */
 	readonly maxFamilies?: number
-	/** Counts inspected neighboring graph relations, including reverse/excluded relations. Default 5,000; ceiling 50,000. */
+	/** Separate inspection budgets for selector and operation relationships. Default 5,000 each; ceiling 50,000 each. */
 	readonly maxRelations?: number
 	/** Counts inspected transaction, timeline, and timeline family records. Default 1,000; ceiling 10,000. */
 	readonly maxOperations?: number
@@ -132,12 +138,32 @@ export function ecologyTimelinePosition(timeline: EcologyTimeline): string {
 export function captureEcologyOperations(
 	store: RootStore,
 	maxOperations?: number,
+	maxRelations?: number,
 ): EcologyOperations {
 	const budget = limit(maxOperations, 1_000, 10_000)
+	const relationBudget = limit(maxRelations, 5_000, 50_000)
+	const relations = { work: 0, truncated: false }
 	const maps = [store.timelineFamilies, store.transactions, store.timelines]
 	const records: EcologyOperation[] = []
-	const families: string[] = []
+	const families: { key: string; targets?: EcologyOperationTarget[] }[] = []
 	const members = new Map<string, string[]>()
+	const captureTargets = (
+		keys: Iterable<string>,
+		kind: (key: string) => EcologyOperationTarget[`kind`] | undefined,
+	): { targets?: EcologyOperationTarget[] } => {
+		const targets: EcologyOperationTarget[] = []
+		for (const key of keys) {
+			if (relations.work === relationBudget) {
+				relations.truncated = true
+				break
+			}
+			relations.work++
+			if (isReservedIntrospectionKey(key)) continue
+			const targetKind = kind(key)
+			if (targetKind) targets.push({ kind: targetKind, key })
+		}
+		return targets.length ? { targets } : {}
+	}
 	let work = 0
 	for (const map of maps) {
 		const entries = map.values()
@@ -147,16 +173,35 @@ export function captureEcologyOperations(
 			work++
 			const { key, type } = entry.value
 			if (isReservedIntrospectionKey(key) || key.startsWith(`👁‍🗨`)) continue
-			if (type === `timeline_family`) families.push(key)
-			else if (type === `transaction`) records.push({ type, key })
-			else {
+			if (type === `timeline_family`) {
+				families.push({
+					key,
+					...captureTargets(entry.value.routes.keys(), () => `family`),
+				})
+			} else if (type === `transaction`) {
+				const writes = entry.value.observedWrites
+				relations.truncated ||= writes?.truncated ?? false
+				records.push({
+					type,
+					key,
+					...captureTargets(writes?.keys ?? [], () => `state`),
+				})
+			} else {
 				const { at, history, family } = entry.value
+				const topics = store.timelineTopics
 				records.push({
 					type,
 					key,
 					family: family ? { key: family.key, subKey: family.subKey } : null,
 					at,
 					historyLength: history.length,
+					...captureTargets(topics.getRelatedKeys(key) ?? [], (target) => {
+						const topicType = topics.getContent(key, target)?.topicType
+						if (topicType === `atom_family`) return `family`
+						if (topicType !== `atom`) return
+						const atom = store.atoms.get(target)
+						if (atom && !hasRole(atom, `tracker:signal`)) return `state`
+					}),
 				})
 				if (family) {
 					let keys = members.get(family.key)
@@ -167,17 +212,23 @@ export function captureEcologyOperations(
 		}
 	}
 	const truncated = work < maps.reduce((sum, map) => sum + map.size, 0)
-	for (const key of families) {
+	for (const family of families) {
+		const { key } = family
 		const memberKeys = members.get(key) ?? []
 		records.push({
 			type: `timeline_family`,
-			key,
+			...family,
 			memberKeys,
 			memberCount: memberKeys.length,
 			countComplete: !truncated,
 		})
 	}
-	return { records, truncated, work }
+	return {
+		records,
+		truncated,
+		work,
+		...((relations.work > 0 || relations.truncated) && { relations }),
+	}
 }
 
 function valueType(value: unknown): EcologyValueType {
@@ -281,7 +332,11 @@ export function captureEcologySnapshot(
 	const maxNodes = limit(options.maxNodes, 1_000, 10_000)
 	const maxFamilies = limit(options.maxFamilies, 1_000, 10_000)
 	const maxRelations = limit(options.maxRelations, 5_000, 50_000)
-	const operations = captureEcologyOperations(store, options.maxOperations)
+	const operations = captureEcologyOperations(
+		store,
+		options.maxOperations,
+		maxRelations,
+	)
 	const maxNodeInspections = maxNodes === 0 ? 0 : maxNodes + 1_000
 	let omittedNode = false
 	const work = { nodes: 0, families: 0, relations: 0 }

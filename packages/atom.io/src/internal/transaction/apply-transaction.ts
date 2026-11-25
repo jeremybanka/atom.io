@@ -5,6 +5,7 @@ import { recordTransactionOutcome } from "../store-observation.ts"
 import type { Fn } from "../utility-types.ts"
 import type { ChildStore } from "./is-root-store.ts"
 import { isChildStore, isRootStore } from "./is-root-store.ts"
+import { recordTransactionWrites } from "./record-transaction-writes.ts"
 import {
 	captureTransactionCommitSnapshots,
 	createTransactionCommitEvent,
@@ -60,6 +61,7 @@ export function applyTransaction<F extends Fn>(
 
 		if (rootCommit) {
 			const sequence = markTransactionCommitted(parent)
+			recordTransactionWrites(parent, child, child.transactionMeta.update)
 			recordTransactionOutcome(parent, child.transactionMeta.update)
 			if (publishesCommit) {
 				const commitEvent = createTransactionCommitEvent(

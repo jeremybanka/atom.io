@@ -17,6 +17,7 @@ import type { RootStore } from "./is-root-store.ts"
 export type Transaction<F extends Fn> = {
 	key: string
 	type: `transaction`
+	observedWrites?: { keys: Set<string>; truncated: boolean }
 	install: (store: RootStore) => void
 	subject: Subject<TransactionOutcomeEvent<TransactionToken<F>>>
 	run: (parameters: Parameters<F>, id?: string) => ReturnType<F>

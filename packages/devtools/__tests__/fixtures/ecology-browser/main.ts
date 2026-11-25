@@ -1,6 +1,6 @@
 import { mountAtomIODevtools } from "@atom.io/devtools"
 import { mountEcology } from "@atom.io/devtools/ecology"
-import { type Loadable, type RegularAtomToken, Silo } from "atom.io"
+import { type Loadable, type RegularAtomToken, scopeFamily, Silo } from "atom.io"
 
 const host = document.createElement(`section`)
 const fixture = new URLSearchParams(location.search)
@@ -67,13 +67,20 @@ function mount(mode: `small` | `empty` | `large`): void {
 		)
 		app.atomFamily<number, string>({ key: `zero`, default: 0 })
 		if (fixture.has(`operations`)) {
-			app.transaction({ key: `save price`, do: () => {} })
+			const markerAtom = app.atom<number>({ key: `marker`, default: 0 })
+			const saveTransaction = app.transaction({
+				key: `save`,
+				do: ({ set }) => {
+					set(markerAtom, 1)
+				},
+			})
+			app.runTransaction(saveTransaction)()
 			app.timeline({ key: `price history`, scope: [priceAtom] })
 			const historiesTimelines = app.timelineFamily<string>({
 				key: `histories`,
-				scope: [],
+				scope: [scopeFamily(itemsAtoms, { timelineKey: (key) => key })],
 			})
-			app.findTimeline(historiesTimelines, `draft`)
+			app.findTimeline(historiesTimelines, `a`)
 		}
 		change = () => {
 			app.setState(priceAtom, 6)

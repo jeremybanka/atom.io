@@ -24,6 +24,8 @@ export interface StoreChanges {
 	readonly dependencies: ReadonlySet<string>
 	/** Timeline keys created, updated, or disposed. */
 	readonly timelines: ReadonlySet<string>
+	/** Transaction keys whose observed atom writes changed in this batch. */
+	readonly transactionWrites?: ReadonlySet<string>
 	/** Transaction registrations and committed outcomes since the previous batch. */
 	readonly transactions: ReadonlyMap<
 		string,
@@ -47,6 +49,7 @@ type Batch = {
 	edges: Map<string, Edge>
 	futures: Map<string, Set<FutureActivity>>
 	timelines: Set<string>
+	transactionWrites: Set<string>
 	transactions: Map<string, TransactionChanges>
 }
 export type StoreObservation = { listeners: Set<Listener>; batch?: Batch }
@@ -81,6 +84,7 @@ function getBatch(store: Store, observation: StoreObservation): Batch {
 		edges: new Map<string, Edge>(),
 		futures: new Map<string, Set<FutureActivity>>(),
 		timelines: new Set<string>(),
+		transactionWrites: new Set<string>(),
 		transactions: new Map<string, TransactionChanges>(),
 	}
 	observation.batch = batch
@@ -105,6 +109,7 @@ function getBatch(store: Store, observation: StoreObservation): Batch {
 			timelineFamilies,
 			futures,
 			timelines,
+			transactionWrites,
 			transactions,
 		} = batch
 		if (
@@ -114,6 +119,7 @@ function getBatch(store: Store, observation: StoreObservation): Batch {
 			timelineFamilies.size ||
 			dependencies.size ||
 			timelines.size ||
+			transactionWrites.size ||
 			transactions.size
 		)
 			for (const listener of [...observation.listeners])
@@ -126,6 +132,7 @@ function getBatch(store: Store, observation: StoreObservation): Batch {
 						dependencies,
 						futures,
 						timelines,
+						...(transactionWrites.size > 0 && { transactionWrites }),
 						transactions,
 					})
 	})
@@ -148,7 +155,13 @@ export function recordFutureActivity(
 
 export function recordStoreChange(
 	store: Store,
-	kind: `values` | `states` | `families` | `timelines` | `timelineFamilies`,
+	kind:
+		| `values`
+		| `states`
+		| `families`
+		| `timelines`
+		| `timelineFamilies`
+		| `transactionWrites`,
 	key: string,
 ): void {
 	const observation = store.observation

@@ -209,13 +209,15 @@ export function createEcologyController(
 		)
 		host.dataset[`maxChunkMs`] = String(Math.max(...chunks))
 		const snapshot = context.snapshot!
-		const countsText = `${value.atoms} atoms · ${value.selectors} selectors · ${snapshot.families.length} families / ${value.members} members · showing ${value.items.length} of ${value.all.visible.length} groups/instances · ${value.matching}${approximationLimited ? `+` : ``} matching groups/instances · ${value.rows.length} of ${value.rowCount} editor rows · ${value.edges.length} of ${snapshot.edges.length} captured edges`
+		const links = value.edges.filter((edge) => edge.relation).length
+		const countsText = `${value.atoms} atoms · ${value.selectors} selectors · ${snapshot.families.length} families / ${value.members} members · showing ${value.items.length} of ${value.all.visible.length} groups/instances · ${value.matching}${approximationLimited ? `+` : ``} matching groups/instances · ${value.rows.length} of ${value.rowCount} editor rows · ${value.edges.length - links} of ${snapshot.edges.length} captured edges${links ? ` · ${links} operation links` : ``}`
 		host.dataset[`counts`] = countsText
 		const noticeText =
 			snapshot.truncated.nodes ||
 			snapshot.truncated.families ||
 			snapshot.truncated.relations ||
-			snapshot.operations?.truncated
+			snapshot.operations?.truncated ||
+			snapshot.operations?.relations?.truncated
 				? `Capture truncated: full store totals unknown. Search covers captured metadata only. Captured metadata is a bounded prefix.`
 				: `Observed snapshot ${context.capturedAt}. Paint cap: 500 nodes / 1,000 edges. Search to narrow; expand families for members.`
 		const rowIds = new Set(value.rows.map((item) => item.id))
@@ -243,6 +245,7 @@ export function createEcologyController(
 					fromCard: fromCard !== from.id ? value.all.get(fromCard) : undefined,
 					toCard: toCard !== to.id ? value.all.get(toCard) : undefined,
 					traced: edge.traced,
+					relation: edge.relation,
 				}
 			},
 		)
@@ -515,7 +518,8 @@ export function createEcologyController(
 			needsCapture ||=
 				changes.states.size > 0 ||
 				changes.families.size > 0 ||
-				Boolean(changes.timelineFamilies?.size) ||
+				(changes.timelineFamilies?.size ?? 0) > 0 ||
+				(changes.transactionWrites?.size ?? 0) > 0 ||
 				changes.timelines.size > 0 ||
 				[...changes.transactions.values()].some(
 					(change) => change.registeredAt !== undefined,

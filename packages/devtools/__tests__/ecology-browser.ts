@@ -631,7 +631,7 @@ try {
 			`http://127.0.0.1:${(server.address() as AddressInfo).port}/?inline&operations`,
 		)
 		for (const [id, kind, detail] of [
-			[`transaction:save price`, `transaction`, `Transaction`],
+			[`transaction:save`, `transaction`, `Transaction`],
 			[`timeline:price history`, `timeline`, `Timeline · 0/0 steps`],
 			[
 				`timeline_family:histories`,
@@ -664,6 +664,28 @@ try {
 				),
 			)
 		}
+		for (const [id, relation, pattern] of [
+			[`transaction:save`, `transaction`, `6px, 4px`],
+			[`timeline:price history`, `timeline`, `0.5px, 4px`],
+			[`timeline_family:histories`, `timeline`, `0.5px, 4px`],
+		]) {
+			const path = operations.locator(
+				`ecology-node-card:has(> button[data-graph-id="${id}"]) > svg > path[data-relation="${relation}"]`,
+			)
+			assert.equal(
+				await path.evaluate((node) => getComputedStyle(node).strokeDasharray),
+				pattern,
+			)
+		}
+		const selectorArrow = operations.locator(
+			`ecology-node-card:has(> button[data-graph-id="state:price"]) > svg > path`,
+		)
+		assert.equal(
+			await selectorArrow.evaluate(
+				(node) => getComputedStyle(node).strokeDasharray,
+			),
+			`none`,
+		)
 	} finally {
 		await operations.close()
 	}

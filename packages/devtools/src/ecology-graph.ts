@@ -16,6 +16,8 @@ export interface GraphPosition {
 }
 export type EcologySource = EcologyNode | EcologyFamily | EcologyOperation
 type GraphLane = `atom` | `selector` | `operation`
+export type OperationRelation = `transaction` | `timeline`
+const edgeLimit = 1_000
 
 export interface GraphItem extends GraphPosition {
 	id: string
@@ -39,6 +41,7 @@ interface GraphEdge {
 	from: string
 	to: string
 	traced: boolean
+	relation?: OperationRelation
 }
 export interface GraphContext {
 	rowLimit?: number
@@ -63,6 +66,11 @@ interface GraphRecord {
 	order: number
 	group: GraphRecord | undefined
 }
+interface OperationLink {
+	from: GraphRecord
+	to: GraphRecord
+	relation: OperationRelation
+}
 interface GraphLayout {
 	records: Map<string, GraphRecord>
 	nodes: Map<string, GraphRecord>
@@ -70,6 +78,8 @@ interface GraphLayout {
 	groupSelectors: Map<GraphRecord, string[]>
 	edgeIndex: Map<string, number[]>
 	dependents: Map<string, number[]>
+	operationLinks: OperationLink[]
+	linksByRecord: Map<GraphRecord, OperationLink[]>
 	collapsed: Map<GraphRecord, GraphItem>
 	expanded: Map<GraphRecord, GraphItem>
 	height: number
@@ -107,6 +117,7 @@ interface GraphSelection {
 	nodes: Set<string>
 	items: Set<string>
 	edges: Set<number>
+	links: Set<OperationLink>
 }
 export function createGraphContext(): GraphContext {
 	return {
@@ -171,6 +182,8 @@ function* indexGraph(snapshot: EcologySnapshot): Generator<void, GraphLayout> {
 		groupSelectors: new Map(),
 		edgeIndex: new Map(),
 		dependents: new Map(),
+		operationLinks: [],
+		linksByRecord: new Map(),
 		collapsed: new Map(),
 		expanded: new Map(),
 		height: 8,
@@ -236,6 +249,25 @@ function* indexGraph(snapshot: EcologySnapshot): Generator<void, GraphLayout> {
 		}
 		yield
 	}
+	for (const source of operations) {
+		const from = layout.records.get(ecologyOperationId(source))!
+		const relation = source.type === `transaction` ? `transaction` : `timeline`
+		for (const target of source.targets ?? []) {
+			const to = resolveRecord(layout, `${target.kind}:${target.key}`)
+			if (to) {
+				const link = { from, to, relation } as const
+				layout.operationLinks.push(link)
+				for (const record of [from, to, from.group, to.group]) {
+					if (!record) continue
+					let links = layout.linksByRecord.get(record)
+					if (!links) layout.linksByRecord.set(record, (links = []))
+					links.push(link)
+				}
+			}
+			yield
+		}
+		yield
+	}
 	layout.height = Math.max(8, (Math.max(...Object.values(slots)) - 1) * 2)
 	for (let index = 0; index < snapshot.edges.length; index++) {
 		const key = snapshot.edges[index].selector
@@ -277,6 +309,12 @@ function* traceSelection(
 		nodes: new Set(seeds),
 		items: new Set([selected.id]),
 		edges: new Set(),
+		links: new Set(layout.linksByRecord.get(selected)),
+	}
+	for (const { from, to } of selection.links) {
+		for (const record of [from, to, from.group, to.group])
+			if (record) selection.items.add(record.id)
+		yield
 	}
 	if (selected.lane === `operation`) {
 		if (`memberKeys` in source) {
@@ -405,31 +443,18 @@ export function* projectEcology(
 		[...context.expanded].every((key) => previous.all.expanded.has(key))
 			? previous.all
 			: createRegistry(layout, context.expanded)
+	const visibleRecord = (record: GraphRecord): GraphRecord =>
+		record.group && !all.expanded.has(record.group.id) ? record.group : record
 	const matchingRecords = new Set<GraphRecord>()
 	if (matchedIds)
 		for (const id of matchedIds) {
 			const record = resolveRecord(layout, id)
-			if (record)
-				matchingRecords.add(
-					record.group && !all.expanded.has(record.group.id)
-						? record.group
-						: record,
-				)
+			if (record) matchingRecords.add(visibleRecord(record))
 			yield
 		}
 	const ordered = matchedIds
 		? [...matchingRecords].sort((a, b) => a.order - b.order)
 		: all.visible
-	const admitted = ordered.slice(0, 500)
-	const admittedSet = new Set(admitted)
-	for (const record of all.visible) {
-		if (admitted.length === 500) break
-		if (!admittedSet.has(record)) {
-			admitted.push(record)
-			admittedSet.add(record)
-		}
-		yield
-	}
 	const selected = context.selected
 		? resolveRecord(layout, context.selected)
 		: undefined
@@ -438,16 +463,25 @@ export function* projectEcology(
 			? previous.selection
 			: yield* traceSelection(snapshot, layout, selected)
 		: undefined
-	const selectedCard =
-		selected?.group && !all.expanded.has(selected.group.id)
-			? selected.group
-			: selected
-	if (selectedCard && !admitted.includes(selectedCard)) {
-		admitted.pop()
-		admitted.push(selectedCard)
+	const admittedSet = new Set<GraphRecord>()
+	function* admit(records: Iterable<GraphRecord>): Generator<void> {
+		for (const record of records) {
+			if (admittedSet.size === 500) break
+			admittedSet.add(visibleRecord(record))
+			yield
+		}
 	}
-	// Matching records get admission priority, while retained cards keep their DOM slots.
-	admitted.sort((a, b) => a.order - b.order)
+	if (selected) admittedSet.add(visibleRecord(selected))
+	if (matchedIds) yield* admit(ordered)
+	if (selection) {
+		for (const { from, to } of selection.links) {
+			if (admittedSet.size === 500) break
+			yield* admit([from, to])
+		}
+	}
+	yield* admit(all.visible)
+	// Priority affects admission while retained cards keep their DOM slots.
+	const admitted = [...admittedSet].sort((a, b) => a.order - b.order)
 	const rowRecords = new Set<GraphRecord>()
 	if (matchedIds) {
 		for (const id of matchedIds) {
@@ -564,11 +598,30 @@ export function* projectEcology(
 	candidates.sort((a, b) => a - b)
 	const endpoint = (key: string) => {
 		const record = layout.nodes.get(key)
-		return record?.group && !all.expanded.has(record.group.id)
-			? record.group.id
-			: record?.id
+		return record && visibleRecord(record).id
 	}
+	const shownLinks = new Set<string>()
+	function* projectLinks(links: Iterable<OperationLink>): Generator<void> {
+		for (const link of links) {
+			if (edges.length === edgeLimit) break
+			const from = visibleRecord(link.from).id
+			const to = visibleRecord(link.to).id
+			const id = JSON.stringify([from, to])
+			if (painted.has(from) && painted.has(to) && !shownLinks.has(id)) {
+				shownLinks.add(id)
+				edges.push({
+					from,
+					to,
+					relation: link.relation,
+					traced: selection?.links.has(link) ?? false,
+				})
+			}
+			yield
+		}
+	}
+	if (selection) yield* projectLinks(selection.links)
 	for (const index of candidates) {
+		if (edges.length === edgeLimit) break
 		const edge = snapshot.edges[index],
 			from = endpoint(edge.dependency),
 			to = endpoint(edge.selector)
@@ -578,9 +631,9 @@ export function* projectEcology(
 				to: `state:${edge.selector}`,
 				traced: selection?.edges.has(index) ?? false,
 			})
-		if (edges.length === 1_000) break
 		yield
 	}
+	yield* projectLinks(layout.operationLinks)
 	const removed: string[] = []
 	if (!previous)
 		for (const id of context.positions.keys()) {

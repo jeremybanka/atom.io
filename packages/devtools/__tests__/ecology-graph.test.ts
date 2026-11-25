@@ -40,6 +40,103 @@ function drain<T>(iterator: Generator<void, T>): T {
 	return step.value
 }
 
+it(`projects operation links through collapsed families and highlights their direct endpoints`, () => {
+	const data: EcologySnapshot = {
+		...snapshot(
+			[node(`entry`, `atom`, `items`), node(`derived`, `selector`)],
+			[{ dependency: `entry`, selector: `derived` }],
+		),
+		families: [
+			{
+				key: `items`,
+				type: `atom_family`,
+				memberKeys: [`entry`],
+				memberCount: 1,
+				countComplete: true,
+			},
+		],
+		operations: {
+			truncated: false,
+			work: 3,
+			records: [
+				{
+					key: `save`,
+					type: `transaction`,
+					targets: [{ key: `entry`, kind: `state` }],
+				},
+				{
+					key: `histories`,
+					type: `timeline_family`,
+					memberKeys: [`history`],
+					memberCount: 1,
+					countComplete: true,
+					targets: [{ key: `items`, kind: `family` }],
+				},
+				{
+					key: `history`,
+					type: `timeline`,
+					family: { key: `histories`, subKey: `"entry"` },
+					at: 0,
+					historyLength: 0,
+					targets: [{ key: `entry`, kind: `state` }],
+				},
+			],
+		},
+	}
+	const context = createGraphContext()
+	const collapsed = drain(projectEcology(data, context))
+	expect(collapsed.edges).toEqual([
+		{ from: `state:entry`, to: `state:derived`, traced: false },
+		{
+			from: `transaction:save`,
+			to: `family:items`,
+			relation: `transaction`,
+			traced: false,
+		},
+		{
+			from: `timeline_family:histories`,
+			to: `family:items`,
+			relation: `timeline`,
+			traced: false,
+		},
+	])
+	context.expanded.add(`family:items`)
+	context.expanded.add(`timeline_family:histories`)
+	context.selected = `timeline:history`
+	const expanded = drain(projectEcology(data, context))
+	expect(expanded.edges[0]).toEqual({
+		from: `timeline:history`,
+		to: `state:entry`,
+		relation: `timeline`,
+		traced: true,
+	})
+	expect(expanded.selection?.items).toEqual(
+		new Set([
+			`timeline:history`,
+			`state:entry`,
+			`timeline_family:histories`,
+			`family:items`,
+		]),
+	)
+	expect(expanded.selection?.edges.size).toBe(0)
+	const crowded = {
+		...data,
+		nodes: [
+			...Array.from({ length: 500 }, (_, index) => node(`other-${index}`)),
+			...data.nodes,
+		],
+	}
+	context.selected = `state:entry`
+	const selected = drain(projectEcology(crowded, context))
+	expect(selected.items).toHaveLength(500)
+	expect(selected.edges).toContainEqual({
+		from: `transaction:save`,
+		to: `state:entry`,
+		relation: `transaction`,
+		traced: true,
+	})
+})
+
 it(`emphasizes ancestors and descendants independently, excluding side branches and bypass edges`, () => {
 	const data = snapshot(
 		[`a`, `b`, `s`, `t`, `u`, `other`, `side`, `isolated`].map((key) =>

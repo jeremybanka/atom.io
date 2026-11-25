@@ -33,6 +33,17 @@ ecology-node-card.class {
 		stroke-width: 1px;
 		> path {
 			stroke-opacity: 0.14;
+			&[data-relation] {
+				stroke-opacity: 0.5;
+				stroke-width: 1.5px;
+			}
+			&[data-relation="transaction"] {
+				stroke-dasharray: 6 4;
+			}
+			&[data-relation="timeline"] {
+				stroke-dasharray: 0.5 4;
+				stroke-linecap: round;
+			}
 			&[data-traced="true"] {
 				stroke-opacity: 0.9;
 			}

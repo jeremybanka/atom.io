@@ -215,7 +215,12 @@ it(`ships initial and incremental Ecology operations over the remote protocol`, 
 	const countAtom = silo.atom<number>({ key: `count`, default: 0 })
 	silo.getState(countAtom)
 	const countTimeline = silo.timeline({ key: `count`, scope: [countAtom] })
-	silo.transaction({ key: `save`, do: () => {} })
+	const saveTransaction = silo.transaction({
+		key: `save`,
+		do: ({ set }) => {
+			set(countAtom, 1)
+		},
+	})
 	const mounted = mount()
 	const stop = exposeDevtoolsStore(store.transport, silo, { access: `inspect` })
 	const card = (id: string) =>
@@ -235,6 +240,7 @@ it(`ships initial and incremental Ecology operations over the remote protocol`, 
 								key: countTimeline.key,
 								at: 0,
 								historyLength: 0,
+								targets: [{ kind: `state`, key: countAtom.key }],
 							},
 						],
 					},
@@ -258,7 +264,7 @@ it(`ships initial and incremental Ecology operations over the remote protocol`, 
 			scope: [],
 		})
 		silo.transaction({ key: `publish`, do: () => {} })
-		silo.setState(countAtom, 1)
+		silo.runTransaction(saveTransaction)()
 		await vi.waitFor(() => {
 			expect(
 				card(`timeline_family:${draftTimelines.key}`)?.textContent,
@@ -293,6 +299,17 @@ it(`ships initial and incremental Ecology operations over the remote protocol`, 
 			message.type === `store-update`
 				? [message.update.ecology?.operations]
 				: [],
+		)
+		expect(updates).toContainEqual(
+			expect.objectContaining({
+				upsert: expect.arrayContaining([
+					{
+						type: `transaction`,
+						key: saveTransaction.key,
+						targets: [{ kind: `state`, key: countAtom.key }],
+					},
+				]),
+			}),
 		)
 		expect(updates).toContainEqual(
 			expect.objectContaining({

@@ -103,6 +103,10 @@ export function EcologyNodeCard(props: {
 		if (path.d !== previous?.d) node.setAttribute(`d`, path.d)
 		if (path.traced !== previous?.traced)
 			node.setAttribute(`data-traced`, String(path.traced))
+		if (path.relation !== previous?.relation) {
+			if (path.relation) node.setAttribute(`data-relation`, path.relation)
+			else node.removeAttribute(`data-relation`)
+		}
 	}
 	let outgoing = empty,
 		id = ``

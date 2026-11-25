@@ -101,7 +101,7 @@ export type RemoteEcologyUpdate = {
 	edges?: RemoteRecordsUpdate<RemoteEcologyEdge>
 	families?: RemoteRecordsUpdate<EcologyFamily>
 	operations?: RemoteRecordsUpdate<EcologyOperation> &
-		Pick<EcologyOperations, `truncated` | `work`>
+		Omit<EcologyOperations, `records`>
 	metadata?: RemoteEcologyMetadata
 }
 export interface RemoteStoreUpdate {

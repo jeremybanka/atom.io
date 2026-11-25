@@ -125,50 +125,6 @@ window.addEventListener(
 
 ## Standalone viewer
 
-In a Node project with @atom.io/devtools installed, save an entry module that default-exports the Silo you want to inspect.
-
-```ts
-import { Silo } from "atom.io"
-
-const silo = new Silo({
-	name: `Example store`,
-	lifespan: `ephemeral`,
-	isProduction: false,
-})
-const counterAtom = silo.atom<number>({ key: `counter`, default: 0 })
-silo.setState(counterAtom, 1)
-
-export default silo
-
-```
-
-Run pnpm exec atom-io-devtools ./devtools-entry.ts and open the printed URL. The viewer binds to 127.0.0.1 and uses an available local port by default. Pass --port to choose a port. Treat the full URL as private because it grants read access to the store.
-
-For a Node process that already owns a Silo, call serveDevtoolsStore from @atom.io/devtools/standalone. The viewer opens a separate loopback HTTP server, so a language server can keep using its existing standard streams. Call viewer.close() during shutdown.
-
-```ts
-import {
-	serveDevtoolsStore,
-	type StandaloneDevtools,
-} from "@atom.io/devtools/standalone"
-import type { Silo } from "atom.io"
-
-export async function startDevelopmentInspector(
-	silo: Silo,
-): Promise<StandaloneDevtools | undefined> {
-	if (process.env[`NODE_ENV`] !== `development`) return
-
-	const viewer = await serveDevtoolsStore(silo)
-	console.error(`Devtools viewer`, viewer.url.href)
-	return viewer
-}
-
-```
-
-The standalone viewer displays cached states, recorded transactions, and the Ecology graph in inspection mode. To deliberately allow inspection of a production Silo, pass productionAccess set to inspect to the Node API or --allow-production to the CLI. Choose a Silo whose values and history are appropriate to inspect locally.
-
-### Control a running Node target
-
 Use attachDevtoolsWebSocket from @atom.io/devtools/standalone to add a control endpoint to the target process's HTTP server and Silo. The endpoint authenticates a shared bearer token and grants control over the Silo. Use a generated secret and resolve it in the target process from its environment or secret store. Pass productionAccess set to control only where you intend to grant production control.
 
 ```ts
@@ -194,7 +150,7 @@ For a local language server, bind its HTTP listener to loopback alongside its LS
 
 Set ATOM\_IO\_DEVTOOLS\_TOKEN in the CLI environment to the same token and pass the target URL as its argument. For example, run pnpm exec atom-io-devtools <http://127.0.0.1:4319> for a local listener or supply the HTTPS origin of a deployed service. The CLI uses /atom-io-devtools when the URL has no path. If you configure a different path on the host, include it in the URL. Use HTTPS or WSS for any target outside loopback.
 
-The CLI verifies the target connection and prints a private loopback URL for the browser. It forwards store updates and commands between the browser and the target over WebSockets. The browser can edit supported state, evaluate selectors, and move timelines under the existing remote control rules.
+The CLI verifies the target connection and prints a private loopback URL for the browser. The local viewer uses an available port by default. Pass --port to choose one. The CLI forwards store updates and commands between the browser and the target over WebSockets. The browser can edit supported state, evaluate selectors, and move timelines under the existing remote control rules.
 
 ## Web Worker stores
 
@@ -479,7 +435,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                        | Entry                         | Minified JS |   Gzip JS |
 | ----------------------------- | ----------------------------- | ----------: | --------: |
-| Interactive app with debugger | `tonnage-recipes/debugger.ts` | 1,052,423 B | 314,967 B |
+| Interactive app with debugger | `tonnage-recipes/debugger.ts` | 1,052,643 B | 315,400 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

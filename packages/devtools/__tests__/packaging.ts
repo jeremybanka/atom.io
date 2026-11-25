@@ -73,33 +73,28 @@ try {
 			})
 			assert.match(help, /atom-io-devtools <target>/)
 			assert.match(help, /--port/)
-			assert.match(help, /--allow-production/)
+			assert.match(help, /ATOM_IO_DEVTOOLS_TOKEN/)
 
 			const installed = dirname(
 				require.resolve(`@atom.io/devtools/package.json`),
 			)
-			// The exhibit resolves the workspace SDK, distinct from the packed CLI's peer.
-			const entry = join(packageRoot, `exhibits/standalone-silo.ts`)
 			const startup = spawnSync(
 				process.execPath,
 				[
 					`--import`,
 					`data:text/javascript,setInterval(() => {}, 1000)`,
 					join(installed, `dist/cli.js`),
-					`--port`,
-					`0`,
-					entry,
+					`./check.ts`,
 				],
 				{
 					cwd: appRoot,
 					encoding: `utf8`,
-					env: { ...process.env, NODE_ENV: `production` },
 					timeout: 10_000,
 				},
 			)
 			assert.ifError(startup.error)
 			assert.equal(startup.status, 1)
-			assert.match(startup.stderr, /requires explicit inspection access/)
+			assert.match(startup.stderr, /Use an HTTP\(S\) or WebSocket URL/)
 		}
 		const sdk = await realpath(require.resolve(`atom.io/package.json`))
 		for (const name of [`spa`, `devtools`, ...(version ? [`react`] : [])]) {

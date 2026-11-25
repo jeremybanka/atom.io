@@ -14,7 +14,6 @@ vi.mock(`@atom.io/devtools`, () => ({
 
 afterEach(() => {
 	vi.unstubAllGlobals()
-	document.body.removeAttribute(`data-atom-io-devtools-socket`)
 })
 
 it(`preserves supported values and replaces unavailable ones in standalone frames`, () => {
@@ -64,72 +63,26 @@ it(`preserves supported values and replaces unavailable ones in standalone frame
 	}
 })
 
-it(`receives standalone events and closes the transport with the page`, async () => {
-	const stream = {
+it(`exchanges frames over the local socket and cleans up when the page closes`, async () => {
+	const socket = {
+		readyState: 0,
 		onmessage: null as ((event: MessageEvent<string>) => void) | null,
 		onerror: null as (() => void) | null,
-		close: vi.fn(),
-	}
-	const openStream = vi.fn(function () {
-		return stream
-	})
-	vi.stubGlobal(`EventSource`, openStream)
-	await import(`../src/standalone-browser.ts`)
-
-	const mount = vi.mocked(mountAtomIODevtools)
-	const target = mount.mock.calls[0][1]?.stores?.[0]
-	if (target?.kind !== `remote`) throw new Error(`Expected a remote target`)
-	const transport = target.connect()
-	if (!(`listen` in transport))
-		throw new Error(`Expected a standalone transport`)
-	expect(openStream).toHaveBeenCalledWith(`./events`)
-	const receive = vi.fn()
-	const disconnected = vi.fn()
-	transport.listen(receive, disconnected)
-	stream.onmessage?.(
-		new MessageEvent(`message`, {
-			data: encodeStandaloneFrame({ type: `close` }),
-		}),
-	)
-	expect(receive).toHaveBeenCalledWith({ type: `close` })
-	stream.onmessage?.(new MessageEvent(`message`, { data: `invalid frame` }))
-	stream.onerror?.()
-	expect(disconnected).toHaveBeenCalledTimes(2)
-	transport.send({ type: `close` })
-	expect(openStream).toHaveBeenCalledOnce()
-	transport.close()
-	expect(stream.onmessage).toBeNull()
-	expect(stream.onerror).toBeNull()
-	expect(stream.close).toHaveBeenCalledOnce()
-
-	const { dispose } = mount.mock.results[0].value
-	window.dispatchEvent(Object.assign(new Event(`pagehide`), { persisted: true }))
-	expect(dispose).not.toHaveBeenCalled()
-	window.dispatchEvent(
-		Object.assign(new Event(`pagehide`), { persisted: false }),
-	)
-	expect(dispose).toHaveBeenCalledOnce()
-})
-
-it(`sends control commands only over the connected local socket`, async () => {
-	const stream = {
-		readyState: 0,
 		onclose: null as (() => void) | null,
 		send: vi.fn(),
 		close: vi.fn(),
 	}
 	const openSocket = Object.assign(
 		vi.fn(function () {
-			return stream
+			return socket
 		}),
 		{ OPEN: 1 },
 	)
 	vi.stubGlobal(`WebSocket`, openSocket)
-	document.body.setAttribute(`data-atom-io-devtools-socket`, ``)
-	vi.resetModules()
 	await import(`../src/standalone-browser.ts`)
 
-	const target = vi.mocked(mountAtomIODevtools).mock.lastCall?.[1]?.stores?.[0]
+	const mount = vi.mocked(mountAtomIODevtools)
+	const target = mount.mock.lastCall?.[1]?.stores?.[0]
 	if (target?.kind !== `remote`) throw new Error(`Expected a remote target`)
 	const transport = target.connect()
 	if (!(`listen` in transport))
@@ -139,16 +92,35 @@ it(`sends control commands only over the connected local socket`, async () => {
 		DEVTOOLS_SOCKET_PROTOCOL,
 	)
 	const disconnected = vi.fn()
-	transport.listen(vi.fn(), disconnected)
+	const receive = vi.fn()
+	transport.listen(receive, disconnected)
 	const frame = { type: `edit`, key: `count`, revision: 0, value: 3 } as const
 	transport.send(frame)
-	expect(stream.send).not.toHaveBeenCalled()
-	stream.readyState = 1
+	expect(socket.send).not.toHaveBeenCalled()
+	socket.readyState = 1
 	transport.send(frame)
-	expect(stream.send).toHaveBeenCalledWith(JSON.stringify(frame))
-	stream.onclose?.()
-	expect(disconnected).toHaveBeenCalledOnce()
+	expect(socket.send).toHaveBeenCalledWith(JSON.stringify(frame))
+	socket.onmessage?.(
+		new MessageEvent(`message`, {
+			data: encodeStandaloneFrame({ type: `close` }),
+		}),
+	)
+	expect(receive).toHaveBeenCalledWith({ type: `close` })
+	socket.onmessage?.(new MessageEvent(`message`, { data: `invalid frame` }))
+	socket.onerror?.()
+	socket.onclose?.()
+	expect(disconnected).toHaveBeenCalledTimes(3)
 	transport.close()
-	expect(stream.onclose).toBeNull()
-	expect(stream.close).toHaveBeenCalledOnce()
+	expect(socket.onmessage).toBeNull()
+	expect(socket.onerror).toBeNull()
+	expect(socket.onclose).toBeNull()
+	expect(socket.close).toHaveBeenCalledOnce()
+
+	const { dispose } = mount.mock.results[0].value
+	window.dispatchEvent(Object.assign(new Event(`pagehide`), { persisted: true }))
+	expect(dispose).not.toHaveBeenCalled()
+	window.dispatchEvent(
+		Object.assign(new Event(`pagehide`), { persisted: false }),
+	)
+	expect(dispose).toHaveBeenCalledOnce()
 })

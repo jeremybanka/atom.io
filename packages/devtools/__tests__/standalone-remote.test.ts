@@ -87,7 +87,7 @@ it(`authenticates the target and relays an edit to its production Silo`, async (
 	const viewer = await serveRemoteViewer(url.href, token, 0)
 	cleanup.push(viewer.close)
 	const page = await fetch(viewer.url)
-	expect(await page.text()).toContain(`data-atom-io-devtools-socket`)
+	expect(await page.text()).toContain(`data-atom-io-devtools-page`)
 	expect((await fetch(new URL(`events`, viewer.url))).status).toBe(404)
 	const relay = new URL(`socket`, viewer.url)
 	const origin = viewer.url.origin
@@ -118,6 +118,7 @@ it(`authenticates the target and relays an edit to its production Silo`, async (
 
 it(`validates remote addresses and requires an explicit production grant`, async () => {
 	for (const [url, secret, diagnostic] of [
+		[`./server.ts`, token, /HTTP\(S\) or WebSocket/],
 		[`ftp://example.test`, token, /HTTP\(S\) or WebSocket/],
 		[`https://operator@example.test`, token, /without credentials/],
 		[`wss://example.test?token=secret`, token, /without credentials/],
@@ -149,6 +150,40 @@ it(`validates remote addresses and requires an explicit production grant`, async
 	expect(() => attachDevtoolsWebSocket(server, dev, { token })).toThrow(
 		/explicit control/,
 	)
+})
+
+it(`keeps relaying updates after a large snapshot with an unsupported value`, async () => {
+	const { url, silo, countAtom } = await target()
+	const large = `x`.repeat(16 * 1024 * 1024)
+	const largeAtom = silo.atom<string>({ key: `large`, default: large })
+	const opaqueAtom = silo.atom<unknown>({
+		key: `opaque`,
+		default: JSON.parse(`{"nested":{"__proto__":{}}}`),
+	})
+	silo.getState(largeAtom)
+	silo.getState(opaqueAtom)
+
+	const viewer = await serveRemoteViewer(url.href, token, 0)
+	cleanup.push(viewer.close)
+	const socket = open(new URL(`socket`, viewer.url), {
+		origin: viewer.url.origin,
+	})
+	const snapshot = await receive(socket)
+	if (snapshot.type !== `store`) throw new Error(`Expected an initial snapshot`)
+	const cached = snapshot.snapshot.states.find(
+		(state) => state.token.key === largeAtom.key,
+	)?.cache
+	if (cached?.status !== `value`)
+		throw new Error(`Expected the large cached value`)
+	expect(cached.value).toHaveLength(large.length)
+	expect(
+		snapshot.snapshot.states.find((state) => state.token.key === opaqueAtom.key)
+			?.cache,
+	).toMatchObject({ status: `value`, value: expect.any(Error) })
+
+	const updated = receive(socket)
+	silo.setState(countAtom, 2)
+	expect(await updated).toMatchObject({ type: `store-update`, sequence: 1 })
 })
 
 it(`keeps upgrades private and rejects invalid command frames`, async () => {

@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto"
 import { readFile } from "node:fs/promises"
-import { createServer, type Server, type ServerResponse } from "node:http"
+import { createServer, type Server } from "node:http"
 
 export interface StandaloneDevtools {
 	/** Local viewer URL. Keep this URL private because it grants access to the store. */
@@ -8,30 +8,21 @@ export interface StandaloneDevtools {
 	close(): Promise<void>
 }
 
-interface ViewerRoutes {
-	events?: (response: ServerResponse) => void
-	socket?: (server: Server, url: URL) => () => void
-}
-
 const host = `127.0.0.1`
 
-function viewerPage(useSocket: boolean): string {
-	return [
-		`<!doctype html>`,
-		`<html lang="en">`,
-		`<meta charset="utf-8">`,
-		`<meta name="viewport" content="width=device-width, initial-scale=1">`,
-		`<meta name="color-scheme" content="light dark">`,
-		`<link rel="icon" href="data:,">`,
-		`<title>Atom.io Devtools</title>`,
-		`<link rel="stylesheet" href="./devtools.css">`,
-		`<script type="module" src="./standalone-browser.js"></script>`,
-		useSocket
-			? `<body data-atom-io-devtools-page data-atom-io-devtools-socket></body>`
-			: `<body data-atom-io-devtools-page></body>`,
-		`</html>`,
-	].join(`\n`)
-}
+const html = [
+	`<!doctype html>`,
+	`<html lang="en">`,
+	`<meta charset="utf-8">`,
+	`<meta name="viewport" content="width=device-width, initial-scale=1">`,
+	`<meta name="color-scheme" content="light dark">`,
+	`<link rel="icon" href="data:,">`,
+	`<title>Atom.io Devtools</title>`,
+	`<link rel="stylesheet" href="./devtools.css">`,
+	`<script type="module" src="./standalone-browser.js"></script>`,
+	`<body data-atom-io-devtools-page></body>`,
+	`</html>`,
+].join(`\n`)
 
 function assetContentType(path: string): string | undefined {
 	if (path === `devtools.css`) return `text/css; charset=utf-8`
@@ -42,11 +33,10 @@ function assetContentType(path: string): string | undefined {
 
 /** Serve the browser assets and a private transport route on IPv4 loopback. */
 export async function serveViewer(
-	port: number | undefined,
-	routes: ViewerRoutes,
+	port: number,
+	bindSocket: (server: Server, url: URL) => () => void,
 ): Promise<StandaloneDevtools> {
 	const prefix = `/` + randomBytes(24).toString(`base64url`) + `/`
-	const html = viewerPage(!!routes.socket)
 	let authority: string
 	let boundAuthority: string
 
@@ -70,10 +60,6 @@ export async function serveViewer(
 				.end(html)
 			return
 		}
-		if (route === `events` && routes.events) {
-			routes.events(response)
-			return
-		}
 		const type = assetContentType(route)
 		if (type) {
 			void readFile(new URL(route, import.meta.url)).then(
@@ -87,7 +73,7 @@ export async function serveViewer(
 
 	const url = await new Promise<URL>((ready, reject) => {
 		server.once(`error`, reject)
-		server.listen(port ?? 0, host, () => {
+		server.listen(port, host, () => {
 			server.off(`error`, reject)
 			const address = server.address()
 			if (!address || typeof address === `string`) {
@@ -101,7 +87,7 @@ export async function serveViewer(
 			ready(listeningUrl)
 		})
 	})
-	const closeSocket = routes.socket?.(server, url)
+	const closeSocket = bindSocket(server, url)
 	let closing: Promise<void> | undefined
 
 	return {
@@ -112,7 +98,7 @@ export async function serveViewer(
 					if (error) reject(error)
 					else resolve()
 				})
-				closeSocket?.()
+				closeSocket()
 				server.closeAllConnections()
 			}))
 		},

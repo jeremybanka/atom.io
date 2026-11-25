@@ -14,11 +14,11 @@ import { DEVTOOLS_SOCKET_PROTOCOL } from "./standalone-wire.ts"
 import { serveViewer, type StandaloneDevtools } from "./viewer-server.ts"
 
 function resolveTarget(address: string): URL {
+	if (!/^(?:https?|wss?):\/\//i.test(address))
+		throw new Error(`Use an HTTP(S) or WebSocket URL for the Devtools target`)
 	const target = new URL(address)
 	if (target.protocol === `https:`) target.protocol = `wss:`
 	if (target.protocol === `http:`) target.protocol = `ws:`
-	if (target.protocol !== `ws:` && target.protocol !== `wss:`)
-		throw new Error(`Use an HTTP(S) or WebSocket URL for the Devtools target`)
 	if (target.username || target.password || target.search || target.hash)
 		throw new Error(
 			`Use a Devtools target URL without credentials, a query, or a fragment`,
@@ -90,17 +90,15 @@ export async function serveRemoteViewer(
 	} finally {
 		probe.terminate()
 	}
-	return serveViewer(port, {
-		socket(server, url) {
-			return bindDevtoolsSockets(
-				server,
-				url.pathname + `socket`,
-				({ headers }) =>
-					headers.host === url.host && headers.origin === url.origin,
-				(browser) => {
-					relay(connect(), browser)
-				},
-			)
-		},
-	})
+	return serveViewer(port, (server, url) =>
+		bindDevtoolsSockets(
+			server,
+			url.pathname + `socket`,
+			({ headers }) =>
+				headers.host === url.host && headers.origin === url.origin,
+			(browser) => {
+				relay(connect(), browser)
+			},
+		),
+	)
 }

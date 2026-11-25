@@ -318,8 +318,15 @@ it(`opens recorded transaction outcomes and timeline controls in the standalone 
 	).toBeNull()
 	await f.select(`transaction:save`, `Enter`)
 	const outcomes = editor.querySelector(`transaction-outcomes`)!
-	expect(outcomes.textContent).toContain(`params: [4]`)
-	expect(outcomes.textContent).toContain(`output: 4`)
+	expect(outcomes.textContent).toBe(`Outcome 11 writeOutcome 21 write`)
+	await f.click(`Expand outcome 2`)
+	const second = outcomes.querySelectorAll(`:scope > event-view`)[1]
+	expect(second.querySelector(`p[data-compact-write]`)?.textContent).toBe(
+		`count24`,
+	)
+	expect(second.querySelector(`p[data-outcome-metadata]`)?.textContent).toBe(
+		`Args[4]Result4`,
+	)
 	const scene = f.host.querySelector(`ecology-scene`)!
 	const axis = (control: Element) =>
 		control
@@ -453,8 +460,9 @@ it(`synchronizes individual history entries between the graph and the editor`, a
 		await settle()
 	}
 	const hovered = () => [...view.querySelectorAll(`[data-hovered="true"]`)]
+	await f.click(`Expand outcome 1`)
 	const jobs = view.dataset[`jobs`]
-	await hover(outcome.querySelector(`event-impact button`)!)
+	await hover(outcome.querySelector(`p[data-compact-write] ins`)!)
 	expect(hovered()).toEqual([pair(outcome).map.parentElement, outcome])
 	expect(view.dataset[`jobs`]).toBe(jobs)
 	await hover(pair(event).map)
@@ -558,9 +566,11 @@ it(`retains outcomes across a debugger remount and a separate Ecology instance`,
 	dispose = mountEcology(f.host, { store: f.silo.store }).dispose
 	await settle()
 	await f.click(`Expand transaction save`)
+	await f.click(`Expand outcome 1`)
+	await f.click(`Expand outcome 2`)
 	const outcomes = f.host.querySelector(`transaction-outcomes`)?.textContent
-	expect(outcomes).toContain(`output: 5`)
-	expect(outcomes).toContain(`output: 6`)
+	expect(outcomes).toContain(`Result5`)
+	expect(outcomes).toContain(`Result6`)
 })
 
 it(`updates and flashes cards from the root cache without evaluating dormant state`, async () => {

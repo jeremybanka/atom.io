@@ -9,8 +9,10 @@ import {
 	historyIdentity,
 	historyParams,
 	historyValue,
+	historyWriteCount,
 	type RecordedEvent,
 } from "./history-event.ts"
+import { OutcomeValue } from "./OutcomeValue.tsx"
 import { type EditorTools, useExpanded } from "./store.ts"
 
 export interface EcologyEventInteraction {
@@ -19,29 +21,46 @@ export interface EcologyEventInteraction {
 	selected: string | undefined
 }
 
+const displayValue = (value: unknown, limit?: number) =>
+	historyValue(value, limit) ?? `[opaque]`
+
 export function EventView(props: {
 	tools: EditorTools
 	event: RecordedEvent
 	index: number
 	depth?: number
 	ecology?: EcologyEventInteraction | undefined
+	compact?: boolean | undefined
 }): SpaElement {
 	const event = props.event
 	const token = `token` in event ? event.token : undefined
 	const depth = props.depth ?? 0
+	const compact = props.compact === true
 	const identity = historyIdentity(event)
 	const owner = props.ecology?.owner
 	const graphId = owner ? historyGraphId(owner, identity) : undefined
+	const outcome = event.type === `transaction_outcome` ? event : undefined
+	const topOutcome = compact && owner !== undefined
+	const name = topOutcome ? `Outcome ${props.index + 1}` : token?.key
+	const writeCount =
+		compact && outcome ? historyWriteCount(outcome.subEvents) : undefined
+	const compactWrite = compact && `update` in event
 	const selected = () =>
 		graphId ? props.ecology!.selected === graphId : undefined
 	const label = () => (
 		<>
-			<strong>{token?.key}</strong>
-			<small>{event.type}</small>
+			<strong>{name}</strong>
+			{!(compact && outcome) && (
+				<small>{compact ? event.type.replaceAll(`_`, ` `) : event.type}</small>
+			)}
 		</>
 	)
 	const descendants = `subEvents` in event ? event.subEvents : []
-	const [getOpen, toggle] = useExpanded(props.tools, [`event`, identity], true)
+	const [getOpen, toggle] = useExpanded(
+		props.tools,
+		[compact ? `ecology-outcome` : `event`, identity],
+		!compact,
+	)
 	const nested = () =>
 		depth < 31
 			? descendants.map((child, index) => (
@@ -51,9 +70,96 @@ export function EventView(props: {
 						event={child}
 						index={index}
 						depth={depth + 1}
+						compact={compact}
 					/>
 				))
 			: `Nested events omitted`
+	const impact = () => (
+		<event-impact
+			data-compact={compact || undefined}
+			data-indented={topOutcome || undefined}
+		>
+			{nested()}
+		</event-impact>
+	)
+	const value = (caption: string, data: unknown) => (
+		<OutcomeValue
+			tools={props.tools}
+			eventId={identity}
+			label={caption}
+			preview={displayValue(data)}
+			full={() => displayValue(data, Infinity)}
+		/>
+	)
+	const change = (update: Extract<RecordedEvent, { update: unknown }>) => (
+		<p data-change data-compact-write={compact || undefined}>
+			{compact && <strong title={update.token.key}>{update.token.key}</strong>}
+			<del data-kind={typeof update.update.oldValue}>
+				{compact
+					? value(`previous value`, update.update.oldValue)
+					: displayValue(update.update.oldValue)}
+			</del>
+			<span role="img" aria-label="changed to">
+				<EditorIcon name="arrow" />
+			</span>
+			<ins data-kind={typeof update.update.newValue}>
+				{compact
+					? value(`new value`, update.update.newValue)
+					: displayValue(update.update.newValue)}
+			</ins>
+		</p>
+	)
+	const hasMetadata =
+		outcome && (outcome.params.length > 0 || outcome.output !== undefined)
+	const compactOutcome = ({ params, output }: NonNullable<typeof outcome>) => (
+		<>
+			{descendants.length > 0 && impact()}
+			{hasMetadata && (
+				<p data-outcome-metadata>
+					{params.length > 0 && (
+						<span>
+							<span>Args</span>
+							<OutcomeValue
+								tools={props.tools}
+								eventId={identity}
+								label="arguments"
+								preview={historyParams(params)}
+								full={() => historyParams(params, true)}
+							/>
+						</span>
+					)}
+					{output !== undefined && (
+						<span>
+							<span>Result</span>
+							{value(`result`, output)}
+						</span>
+					)}
+				</p>
+			)}
+		</>
+	)
+	const details = () => {
+		if (outcome) {
+			if (compact) return compactOutcome(outcome)
+			return (
+				<>
+					<p>
+						params: <code>{historyParams(outcome.params)}</code>
+					</p>
+					<p>
+						output: <code>{displayValue(outcome.output)}</code>
+					</p>
+					{impact()}
+				</>
+			)
+		}
+		if (`update` in event) return change(event)
+		return descendants.length ? (
+			impact()
+		) : (
+			<code>{historyEventPreview(event)}</code>
+		)
+	}
 	return (
 		<event-view
 			class={css.class}
@@ -63,58 +169,44 @@ export function EventView(props: {
 			data-selected={selected()}
 			data-testid={`${event.type === `transaction_outcome` ? `transaction` : `timeline`}-update-${token?.key}-${props.index}`}
 		>
-			<event-heading>
-				<button
-					type="button"
-					aria-label={getOpen() ? `Collapse event` : `Expand event`}
-					aria-expanded={getOpen()}
-					onClick={toggle}
-				>
-					<EditorIcon name={getOpen() ? `collapse` : `expand`} />
-				</button>
-				{owner ? (
-					<button
-						type="button"
-						data-graph-id={graphId}
-						data-history-owner={owner}
-						aria-label={`Select ${owner.startsWith(`transaction:`) ? `outcome` : `timeline event`} ${props.index + 1}`}
-						aria-pressed={selected()}
-					>
-						{label()}
-					</button>
-				) : (
-					label()
-				)}
-			</event-heading>
-			{getOpen() ? (
-				event.type === `transaction_outcome` ? (
-					<>
-						<p>
-							params: <code>{historyParams(event.params)}</code>
-						</p>
-						<p>
-							output: <code>{historyValue(event.output) ?? `[opaque]`}</code>
-						</p>
-						<event-impact>{nested()}</event-impact>
-					</>
-				) : `update` in event ? (
-					<p data-change>
-						<del data-kind={typeof event.update.oldValue}>
-							{historyValue(event.update.oldValue) ?? `[opaque]`}
-						</del>
-						<span role="img" aria-label="changed to">
-							<EditorIcon name="arrow" />
-						</span>
-						<ins data-kind={typeof event.update.newValue}>
-							{historyValue(event.update.newValue) ?? `[opaque]`}
-						</ins>
-					</p>
-				) : descendants.length ? (
-					<event-impact>{nested()}</event-impact>
-				) : (
-					<code>{historyEventPreview(event)}</code>
-				)
-			) : null}
+			{compactWrite ? (
+				change(event)
+			) : (
+				<>
+					<event-heading>
+						<button
+							type="button"
+							aria-label={`${getOpen() ? `Collapse` : `Expand`} ${topOutcome ? `outcome ${props.index + 1}` : `event`}`}
+							aria-expanded={getOpen()}
+							disabled={Boolean(
+								compact && outcome && !hasMetadata && descendants.length === 0,
+							)}
+							onClick={toggle}
+						>
+							<EditorIcon name={getOpen() ? `collapse` : `expand`} />
+						</button>
+						{owner ? (
+							<button
+								type="button"
+								data-graph-id={graphId}
+								data-history-owner={owner}
+								aria-label={`Select ${owner.startsWith(`transaction:`) ? `outcome` : `timeline event`} ${props.index + 1}`}
+								aria-pressed={selected()}
+							>
+								{label()}
+							</button>
+						) : (
+							label()
+						)}
+						{writeCount !== undefined && (
+							<small
+								data-write-count
+							>{`${writeCount} ${writeCount === 1 ? `write` : `writes`}`}</small>
+						)}
+					</event-heading>
+					{getOpen() && details()}
+				</>
+			)}
 		</event-view>
 	)
 }

@@ -1,0 +1,25 @@
+outcome-value.class {
+	display: block;
+	min-width: 0;
+	> button {
+		display: block;
+		width: 100%;
+		min-width: 0;
+		height: auto;
+		padding: 0;
+		line-height: inherit;
+		text-align: inherit;
+		text-decoration: underline dotted;
+	}
+	> code, > button > code {
+		display: block;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+	}
+	> button[aria-expanded="true"] > code {
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
+		text-align: start;
+	}
+}

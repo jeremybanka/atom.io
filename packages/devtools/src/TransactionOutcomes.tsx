@@ -23,6 +23,7 @@ export function TransactionOutcomes(props: {
 						event={event}
 						index={index}
 						ecology={props.ecology}
+						compact={props.ecology !== undefined}
 					/>
 				))
 			)}

@@ -278,9 +278,10 @@ it(`ships initial and incremental Ecology operations over the remote protocol`, 
 			host.querySelector<HTMLButtonElement>(`[aria-label="${label}"]`)!.click()
 		await vi.waitFor(() => {
 			expect(
-				host.querySelector(`ecology-editor transaction-outcomes event-view`)
-					?.textContent,
-			).toContain(`save`)
+				host.querySelector(
+					`ecology-editor transaction-outcomes event-view strong`,
+				)?.textContent,
+			).toBe(`Outcome 1`)
 			expect(
 				host.querySelector(`ecology-editor timeline-history [data-cursor]`)
 					?.textContent,
@@ -288,6 +289,16 @@ it(`ships initial and incremental Ecology operations over the remote protocol`, 
 			expect(
 				host.querySelectorAll(`ecology-editor timeline-travel button:disabled`),
 			).toHaveLength(2)
+		})
+		host
+			.querySelector<HTMLButtonElement>(`[aria-label="Expand outcome 1"]`)!
+			.click()
+		await vi.waitFor(() => {
+			expect(
+				host.querySelector(
+					`ecology-editor transaction-outcomes [data-compact-write]`,
+				)?.textContent,
+			).toBe(`count01`)
 		})
 		const member = silo.findTimeline(draftTimelines, `first`)
 		await vi.waitFor(() => {

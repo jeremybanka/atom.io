@@ -40,10 +40,10 @@ export function historyGraphId(owner: string, eventId: string): string {
 	return `history:${owner}:${eventId}`
 }
 /** Do not enumerate, coerce or serialize application-owned values, including proxies. */
-export function historyValue(value: unknown): string | undefined {
+export function historyValue(value: unknown, limit = 1024): string | undefined {
 	if (typeof value === `string`)
 		return (
-			JSON.stringify(value.slice(0, 1024)) + (value.length > 1024 ? `…` : ``)
+			JSON.stringify(value.slice(0, limit)) + (value.length > limit ? `…` : ``)
 		)
 	if (
 		value === null ||
@@ -54,11 +54,26 @@ export function historyValue(value: unknown): string | undefined {
 		return String(value)
 	return undefined
 }
-export function historyParams(params: readonly unknown[]): string {
-	return `[${params
-		.slice(0, 16)
-		.map((value) => historyValue(value) ?? `[opaque]`)
-		.join(`,`)}${params.length > 16 ? `,…` : ``}]`
+export function historyParams(params: readonly unknown[], full = false): string {
+	const values = full ? params : params.slice(0, 16)
+	return `[${values
+		.map((value) => historyValue(value, full ? Infinity : 1024) ?? `[opaque]`)
+		.join(`,`)}${values.length < params.length ? `,…` : ``}]`
+}
+
+export function historyWriteCount(events: readonly RecordedEvent[]): number {
+	const pending = [...events]
+	const visited = new Set<RecordedEvent>()
+	let count = 0
+	while (pending.length) {
+		const event = pending.pop()!
+		if (`update` in event) count++
+		else if (`subEvents` in event && !visited.has(event)) {
+			visited.add(event)
+			for (const child of event.subEvents) pending.push(child)
+		}
+	}
+	return count
 }
 /** Only core-owned event records are enumerated; application payloads stay opaque. */
 export function historyEventPreview(event: RecordedEvent): string {

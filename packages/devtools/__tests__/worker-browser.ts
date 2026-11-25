@@ -269,6 +269,29 @@ if (process.argv.includes(`--serve`)) {
 			await outcomeEntry.locator(`..`).evaluate(outline),
 			mapOutline,
 		)
+		const outcomeRow = outcomeEntry.locator(`..`).locator(`..`)
+		assert.equal(
+			await outcomeRow.evaluate(
+				(element) => element.getBoundingClientRect().height,
+			),
+			23,
+		)
+		assert.equal(await outcomeRow.locator(`p[data-compact-write]`).count(), 0)
+		await outcomeRow
+			.getByRole(`button`, { name: `Expand outcome 1`, exact: true })
+			.click()
+		const write = outcomeRow.locator(`p[data-compact-write]`).first()
+		assert.equal(await write.locator(`strong`).textContent(), `count`)
+		assert.equal(await write.locator(`[data-editor-icon="arrow"]`).count(), 1)
+		const positions = await write.evaluate((element) =>
+			[...element.children].map(
+				(child) =>
+					child.getBoundingClientRect().top +
+					child.getBoundingClientRect().height / 2,
+			),
+		)
+		assert.ok(Math.max(...positions) - Math.min(...positions) < 1)
+		assert.equal(await outcomeEntry.getAttribute(`aria-pressed`), `true`)
 
 		const timelineCard = operationCard(`timeline:count`)
 		await timelineCard.press(`Enter`)

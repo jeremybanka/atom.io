@@ -303,6 +303,11 @@ it(`opens recorded transaction outcomes and timeline controls in the standalone 
 	})
 	dispose = mountEcology(f.host, { store: f.silo.store }).dispose
 	await settle()
+	await f.click(`Expand transaction save`)
+	expect(f.host.querySelector(`transaction-outcomes`)?.textContent).toBe(
+		`No recorded outcomes`,
+	)
+	await f.click(`Collapse transaction save`)
 	f.silo.runTransaction(saveTransaction)(4)
 	await settle()
 
@@ -315,6 +320,10 @@ it(`opens recorded transaction outcomes and timeline controls in the standalone 
 	expect(outcomes.textContent).toContain(`params: [4]`)
 	expect(outcomes.textContent).toContain(`output: 4`)
 	await f.click(`Expand timeline count`)
+	const disabledRedo = editor.querySelector<HTMLButtonElement>(
+		`timeline-travel button:disabled`,
+	)!
+	expect(disabledRedo.textContent).toBe(`redo`)
 	expect(
 		editor.querySelector(`timeline-history [data-cursor]`)?.textContent,
 	).toBe(`you are here`)

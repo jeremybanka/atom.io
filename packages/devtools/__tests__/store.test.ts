@@ -1,8 +1,10 @@
 import { render } from "@atom.io/spa"
-import { Silo } from "atom.io"
+import { jsx } from "@atom.io/spa/jsx-runtime"
+import { Silo, type TimelineToken } from "atom.io"
 import { afterEach, expect, it, vi } from "vitest"
 
 import { useExpanded, useSaved, useTools } from "../src/store.ts"
+import { TimelineIndex } from "../src/TimelineIndex.tsx"
 
 afterEach(() => {
 	vi.restoreAllMocks()
@@ -10,6 +12,41 @@ afterEach(() => {
 })
 const store = () =>
 	new Silo({ name: `storage`, lifespan: `ephemeral`, isProduction: true }).store
+it(`disables a timeline entry while its history is unavailable`, () => {
+	const silo = new Silo({
+		name: `history`,
+		lifespan: `ephemeral`,
+		isProduction: true,
+	})
+	const indexAtom = silo.atom<TimelineToken<any>[]>({
+		key: `index`,
+		default: [{ key: `removed`, type: `timeline` }],
+	})
+	const attempt = vi.fn()
+	const host = document.createElement(`div`)
+	const root = render(
+		() =>
+			jsx(TimelineIndex, {
+				tools: { ...useTools(silo.store), timelineIndex: indexAtom, attempt },
+			}),
+		host,
+		{ store: silo.store },
+	)
+	try {
+		expect(host.querySelector(`timeline-log small`)?.textContent).toBe(`(0/0)`)
+		const disabled = host.querySelectorAll<HTMLButtonElement>(
+			`timeline-travel button:disabled`,
+		)
+		expect(disabled).toHaveLength(2)
+		const [undo] = disabled
+		// Simulate a stale control firing after its timeline became unavailable.
+		undo.disabled = false
+		undo.click()
+		expect(attempt).not.toHaveBeenCalled()
+	} finally {
+		root.dispose()
+	}
+})
 it(`validates persisted state and survives unavailable storage`, () => {
 	for (const saved of [`broken`, `null`, `1`, `"saved"`]) {
 		localStorage.setItem(`saved`, saved)

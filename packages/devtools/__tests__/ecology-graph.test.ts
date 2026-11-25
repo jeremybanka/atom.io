@@ -62,14 +62,17 @@ it(`projects operation links through collapsed families and highlights their dir
 				{
 					key: `save`,
 					type: `transaction`,
-					targets: [{ key: `entry`, kind: `state` }],
+					targets: [
+						{ key: `entry`, kind: `state` },
+						{ key: `missing`, kind: `state` },
+					],
 				},
 				{
 					key: `histories`,
 					type: `timeline_family`,
-					memberKeys: [`history`],
-					memberCount: 1,
-					countComplete: true,
+					memberKeys: [`history`, `uncaptured`],
+					memberCount: 2,
+					countComplete: false,
 					targets: [{ key: `items`, kind: `family` }],
 				},
 				{
@@ -102,6 +105,10 @@ it(`projects operation links through collapsed families and highlights their dir
 	])
 	context.expanded.add(`family:items`)
 	context.expanded.add(`timeline_family:histories`)
+	context.selected = `timeline_family:histories`
+	expect(drain(projectEcology(data, context)).selection?.selectedIds).toEqual(
+		new Set([`timeline_family:histories`, `timeline:history`]),
+	)
 	context.selected = `timeline:history`
 	const expanded = drain(projectEcology(data, context))
 	expect(expanded.edges[0]).toEqual({
@@ -135,6 +142,30 @@ it(`projects operation links through collapsed families and highlights their dir
 		relation: `transaction`,
 		traced: true,
 	})
+})
+
+it(`keeps operation relationships within the card and edge budgets`, () => {
+	const nodes = Array.from({ length: 501 }, (_, index) => node(`state-${index}`))
+	const targets = nodes.map(({ key }) => ({ kind: `state` as const, key }))
+	const records = Array.from({ length: 3 }, (_, index) => ({
+		key: `save-${index}`,
+		type: `transaction` as const,
+		targets,
+	}))
+	const data: EcologySnapshot = {
+		...snapshot(nodes),
+		operations: { records, truncated: true, work: records.length },
+	}
+	const context = createGraphContext()
+	context.selected = `transaction:uncaptured`
+	const matches = new Set(records.map(({ key }) => `transaction:${key}`))
+	const overview = drain(projectEcology(data, context, matches))
+	expect(context.selected).toBe(`transaction:uncaptured`)
+	expect(overview.edges).toHaveLength(1000)
+	context.selected = `transaction:save-0`
+	const selected = drain(projectEcology(data, context))
+	expect(selected.items).toHaveLength(500)
+	expect(selected.edges.filter((edge) => edge.traced)).toHaveLength(499)
 })
 
 it(`emphasizes ancestors and descendants independently, excluding side branches and bypass edges`, () => {

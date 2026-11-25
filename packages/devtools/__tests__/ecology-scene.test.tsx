@@ -505,6 +505,20 @@ it(`keeps outgoing paths inside their source layer, with inherited colors, separ
 	expect(path.getAttribute(`d`)).toBe(geometry)
 	expect(path.getAttribute(`data-traced`)).toBe(`true`)
 	expect(writes).not.toHaveBeenCalledWith(`d`, geometry)
+	const edge: EcologyLine = {
+		id: `a:b`,
+		source: f.a.id,
+		from: f.a,
+		to: f.b,
+		color: f.a.color,
+		traced: true,
+	}
+	f.patch({ edges: [{ ...edge, relation: `transaction` }] })
+	f.tick()
+	expect(path.getAttribute(`data-relation`)).toBe(`transaction`)
+	f.patch({ edges: [edge] })
+	f.tick()
+	expect(path.hasAttribute(`data-relation`)).toBe(false)
 	f.patch({
 		edges: [
 			{

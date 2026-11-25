@@ -94,6 +94,44 @@ it(`captures commits and timeline scopes without running application code`, () =
 	)
 })
 
+it(`captures timeline scopes without reporting reserved or stale topic keys`, () => {
+	const silo = fixture()
+	const draftsAtoms = silo.atomFamily<number, string>({
+		key: `drafts`,
+		default: 0,
+	})
+	const reviewAtom = silo.atom<number>({ key: `review`, default: 0 })
+	silo.timeline({ key: `outer`, scope: [reviewAtom] })
+	const reviewTimeline = silo.timeline({
+		key: `review`,
+		scope: [draftsAtoms, silo.atom<number>({ key: `🔍 hidden`, default: 0 })],
+	})
+	silo.store.timelineTopics.set(
+		{ timelineKey: reviewTimeline.key, topicKey: `missing` },
+		{ topicType: `atom` },
+	)
+	const routedAtoms = silo.atomFamily<number, string>({
+		key: `routed`,
+		default: 0,
+	})
+	const routedTimelines = silo.timelineFamily<string>({
+		key: `routed`,
+		scope: [scopeFamily(routedAtoms, { timelineKey: (key) => key })],
+	})
+	const a = silo.findTimeline(routedTimelines, `a`)
+	const b = silo.findTimeline(routedTimelines, `b`)
+	const { records } = captureEcologySnapshot(silo.store).operations
+	expect(records.find(({ key }) => key === reviewTimeline.key)?.targets).toEqual(
+		[{ kind: `family`, key: draftsAtoms.key }],
+	)
+	expect(
+		records.find(
+			({ type, key }) =>
+				type === `timeline_family` && key === routedTimelines.key,
+		),
+	).toMatchObject({ memberKeys: [a.key, b.key] })
+})
+
 it(`captures bounded, detached transaction and timeline metadata`, () => {
 	const silo = fixture()
 	const run = vi.fn()

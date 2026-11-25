@@ -2,16 +2,13 @@ ecology-operation-history.class {
 	display: block;
 	min-width: 0;
 	> node-heading {
-		display: flex;
+		display: grid;
+		grid-template-columns: auto minmax(0, 1fr) auto;
 		align-items: center;
 		min-height: 26px;
 		background: var(--surface-inactive);
 	}
-	> node-heading > ecology-node-name {
-		flex: 1;
-	}
 	> node-heading > small {
-		flex-shrink: 0;
 		padding: 0 4px;
 		font-size: 10px;
 		color: var(--ink-muted);

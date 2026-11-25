@@ -997,6 +997,27 @@ it.each([1, 2])(
 	},
 )
 
+it(`reads legacy Ecology captures and resolves a previously absent timeline view`, async () => {
+	const { silo, page, worker } = fixture()
+	const { operations: _operations, ...snapshot } = captureEcologySnapshot(
+		silo.store,
+	)
+	expect(projectRemoteEcology(snapshot).read().operations).toBeUndefined()
+	const connection = connectRemoteStore(messagePortTransport(page.port))
+	const stop = exposeDevtoolsStore(worker.port, silo)
+	try {
+		const key = connection.worker.views.timelineLog(`later`).key
+		expect(connection.store.atoms.has(key)).toBe(false)
+		silo.timeline({ key: `later`, scope: [] })
+		await flush()
+		expect(connection.worker.views.timelineLog(`later`).key).toBe(key)
+		expect(connection.store.atoms.has(key)).toBe(true)
+	} finally {
+		connection.close()
+		stop()
+	}
+})
+
 it(`projects initial timeline entries, history clear, and newly registered histories`, async () => {
 	const { silo, page, worker } = fixture()
 	const countAtom = silo.atom<number>({ key: `count`, default: 2 })

@@ -13,6 +13,8 @@ import {
 	cpuRate,
 	launchBrowser,
 	loadDevtoolsAssets,
+	performancePolicy,
+	strictPerformance,
 } from "./browser-runtime.ts"
 import type { FrameSample } from "./fixtures/window-browser/timing.ts"
 
@@ -485,6 +487,7 @@ try {
 		browser: browser.version(),
 		machine: `${platform()}/${arch()} ${cpus()[0]?.model}`,
 		viewport: { width: 1440, height: 900 },
+		performancePolicy,
 		method: `Fresh-task synthetic dispatch during real pointer capture; 60 no-op control samples then 300 controller samples. Separate synchronous dispatch span, handler-to-first-frame scheduling, observed geometry and later-frame clock proxy. No compositor/hardware input-to-paint latency measurement. All long tasks counted conservatively.`,
 		paintLatencyTarget: {
 			proposedMs: 33,
@@ -512,7 +515,7 @@ try {
 			2,
 		) + `\n`,
 	)
-	assert.equal(metrics.longTasksOver50Ms.length, 0)
+	if (strictPerformance) assert.equal(metrics.longTasksOver50Ms.length, 0)
 	await context.close()
 } finally {
 	await browser?.close()

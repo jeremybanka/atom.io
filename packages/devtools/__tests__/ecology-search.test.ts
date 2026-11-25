@@ -13,6 +13,15 @@ function drain<T>(iterator: Generator<void, T>): T {
 }
 const fixture = () =>
 	new Silo({ name: `ecology-search`, lifespan: `ephemeral`, isProduction: true })
+it(`indexes full operation batches and accepts version 1 captures without operations`, () => {
+	const app = fixture()
+	for (let index = 0; index < 65; index++)
+		app.transaction({ key: `save${index}`, do: () => {} })
+	const snapshot = captureEcologySnapshot(app.store)
+	expect(drain(indexEcologySearch(snapshot)).documents).toHaveLength(65)
+	const { operations: _operations, ...legacy } = snapshot
+	expect(drain(indexEcologySearch(legacy)).documents).toHaveLength(0)
+})
 it(`ranks normalized keys, families, subkeys, token types and cached kinds using only detached metadata`, () => {
 	const app = fixture(),
 		trap = vi.fn(() => {

@@ -43,7 +43,7 @@ interface OperationHistory {
 	useTransaction(key: string): Accessor<TransactionHistory>
 	useTimeline(key: string): Accessor<TimelineView | undefined>
 }
-export interface StoreViews {
+interface StoreViews {
 	atomIndex: ReadableToken<StateTokenIndex>
 	selectorIndex: ReadableToken<StateTokenIndex>
 	transactionIndex: ReadableToken<TransactionToken<any>[]>
@@ -123,7 +123,6 @@ function useLocalOperationHistory(store: RootStore): OperationHistory {
 		onCleanup(
 			observeStore(store, ({ transactions: changes, timelines }) => {
 				for (const [key, { registeredAt, outcomes }] of changes) {
-					if (registeredAt === undefined && !outcomes.length) continue
 					transactions.set(
 						key,
 						appendTransactionHistory(

@@ -142,7 +142,8 @@ function mountPanel(
 	worker?: RemotePanelConnection,
 	picker?: StorePicker,
 ): AtomIODevtoolsHandle {
+	const fullPage = host.hasAttribute(`data-atom-io-devtools-page`)
 	return mountView(host, `devtools`, store, () =>
-		jsx(DebuggerPanel, { store, hideByDefault, worker, picker }),
+		jsx(DebuggerPanel, { store, hideByDefault, worker, picker, fullPage }),
 	)
 }

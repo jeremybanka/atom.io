@@ -125,6 +125,30 @@ it(`defaults to the implicit store`, () => {
 	expect(ownedKeys(IMPLICIT.STORE)).toEqual([])
 })
 
+it(`opens the standalone page without floating window controls or shortcuts`, () => {
+	localStorage.setItem(`🔍 Devtools Are Hidden`, `true`)
+	localStorage.setItem(`🔍 Devtools Are Open`, `false`)
+	const host = document.createElement(`div`)
+	host.setAttribute(`data-atom-io-devtools-page`, ``)
+	document.body.append(host)
+	panels.push(mountAtomIODevtools(host, { store: silo().store }))
+	const panel = host.querySelector<HTMLElement>(`debugger-panel`)!
+	expect(panel.hidden).toBe(false)
+	expect(panel.getAttribute(`data-open`)).toBe(`true`)
+	expect(panel.querySelector(`[role="tablist"]`)).not.toBeNull()
+	expect(
+		panel.querySelector(`debugger-toolbar > button, [data-resize]`),
+	).toBeNull()
+	document.dispatchEvent(
+		new KeyboardEvent(`keydown`, {
+			code: `KeyA`,
+			ctrlKey: true,
+			shiftKey: true,
+		}),
+	)
+	expect(panel.hidden).toBe(false)
+})
+
 it(`removes its container if mounting fails`, () => {
 	const host = document.createElement(`div`)
 	const sibling = document.createTextNode(`owned by caller`)

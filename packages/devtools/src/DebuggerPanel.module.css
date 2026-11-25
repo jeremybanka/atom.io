@@ -355,6 +355,24 @@ debugger-panel.class {
 		touch-action: none;
 		cursor: move;
 	}
+	&[data-full-page] {
+		--window-fill-opacity: 100%;
+		inset: 0;
+		width: auto;
+		height: auto;
+		border: 0;
+		box-shadow: none;
+		> debugger-toolbar {
+			grid-template-columns: 36px minmax(0, 1fr);
+			&:has(> [data-store-picker]) {
+				grid-template-columns: 36px minmax(0, 1fr) auto;
+			}
+		}
+		> debugger-toolbar > [data-page-brand] {
+			display: grid;
+			place-items: center;
+		}
+	}
 	> [data-resize] {
 		position: absolute;
 		padding: 0;

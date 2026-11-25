@@ -42,6 +42,17 @@ try {
 		const page = await browser.newPage()
 		await page.goto(viewer.url.href)
 		const panel = page.locator(`debugger-panel:not([hidden])`)
+		await page.setViewportSize({ width: 900, height: 600 })
+		assert.deepEqual(await panel.boundingBox(), {
+			x: 0,
+			y: 0,
+			width: 900,
+			height: 600,
+		})
+		assert.equal(
+			await panel.locator(`debugger-toolbar > button, [data-resize]`).count(),
+			0,
+		)
 		await panel.getByRole(`tab`, { name: `atoms` }).click()
 		await panel.getByText(`Inspection only`).waitFor()
 		const value = panel.getByRole(`textbox`, {

@@ -32,11 +32,12 @@ let nextPanelId = 0
 export function DebuggerPanel(props: {
 	store: RootStore
 	hideByDefault: boolean
+	fullPage: boolean
 	worker?: RemotePanelConnection | undefined
 	picker?: StorePicker | undefined
 }): SpaElement {
 	const tools = useTools(props.store, props.worker)
-	const picker = props.picker
+	const { picker, fullPage } = props
 	const [active, setActive] = useLocal(
 		props.store,
 		!picker || picker.selected() === picker.id,
@@ -74,7 +75,8 @@ export function DebuggerPanel(props: {
 		panel = element
 	}
 	let controller: ReturnType<typeof createWindowController> | undefined
-	const hidden = () => !active() || getHidden()
+	const hidden = () => !active() || (!fullPage && getHidden())
+	const open = () => fullPage || getOpen()
 	onMount(() => {
 		if (picker)
 			onCleanup(
@@ -91,6 +93,7 @@ export function DebuggerPanel(props: {
 					}
 				}),
 			)
+		if (fullPage) return
 		controller = createWindowController(
 			panel!,
 			() => {
@@ -102,16 +105,16 @@ export function DebuggerPanel(props: {
 			active,
 			picker?.geometry,
 		)
-		controller.visibility(hidden(), getOpen())
+		controller.visibility(hidden(), open())
 		onCleanup(controller.dispose)
 	})
 	onCommit(windowState, () => {
 		controller?.committed()
 	})
 	onCommit(
-		() => `${hidden()}:${getOpen()}`,
+		() => `${hidden()}:${open()}`,
 		() => {
-			controller?.visibility(hidden(), getOpen())
+			controller?.visibility(hidden(), open())
 		},
 	)
 	return (
@@ -123,21 +126,28 @@ export function DebuggerPanel(props: {
 			data-css="devtools"
 			data-testid="atom-io-devtools"
 			hidden={hidden()}
-			data-open={getOpen()}
+			data-open={open()}
+			data-full-page={fullPage || undefined}
 			data-window-interaction={String(windowState().interaction)}
 			style={rectStyle(windowState().rect)}
 		>
 			<debugger-toolbar>
-				<button
-					type="button"
-					data-drag-handle
-					aria-label="Move debugger"
-					title="Drag to move; arrow keys to nudge"
-				>
-					{getOpen() && !hidden() && <BrandMark size={32} />}
-				</button>
+				{fullPage ? (
+					<span data-page-brand>
+						<BrandMark size={32} />
+					</span>
+				) : (
+					<button
+						type="button"
+						data-drag-handle
+						aria-label="Move debugger"
+						title="Drag to move; arrow keys to nudge"
+					>
+						{open() && !hidden() && <BrandMark size={32} />}
+					</button>
+				)}
 				<h1>atom.io</h1>
-				{getOpen() ? (
+				{open() ? (
 					<nav role="tablist" aria-label="Debugger views">
 						{VIEWS.map((name) => (
 							<span key={name} role="presentation">
@@ -176,48 +186,52 @@ export function DebuggerPanel(props: {
 						))}
 					</nav>
 				) : null}
-				{picker && getOpen() && !hidden() ? (
+				{picker && open() && !hidden() ? (
 					<StorePickerControl
 						picker={picker}
 						store={props.store}
 						menuId={panelId + `-stores`}
 					/>
 				) : null}
-				<button
-					type="button"
-					aria-label={getOpen() ? `Minimize debugger` : `Open debugger`}
-					data-testid="open-close-devtools"
-					data-drag-handle={getOpen() ? undefined : true}
-					title={
-						getOpen()
-							? undefined
-							: `Drag to move; click to open; arrow keys to nudge`
-					}
-					onClick={() => {
-						setOpen((value) => !value)
-					}}
-				>
-					{getOpen() ? `−` : !hidden() && <BrandMark size={LAUNCHER_SIZE} />}
-				</button>
-				<button
-					type="button"
-					aria-label="Debugger layout"
-					title="Debugger layout: halves, thirds, two-thirds, full viewport or restore"
-					aria-expanded={windowState().menuOpen}
-				>
-					□
-				</button>
-				<button
-					type="button"
-					aria-label="Hide debugger (Ctrl+Shift+A)"
-					onClick={() => {
-						setHidden(true)
-					}}
-				>
-					×
-				</button>
+				{!fullPage && (
+					<>
+						<button
+							type="button"
+							aria-label={getOpen() ? `Minimize debugger` : `Open debugger`}
+							data-testid="open-close-devtools"
+							data-drag-handle={getOpen() ? undefined : true}
+							title={
+								getOpen()
+									? undefined
+									: `Drag to move; click to open; arrow keys to nudge`
+							}
+							onClick={() => {
+								setOpen((value) => !value)
+							}}
+						>
+							{getOpen() ? `−` : !hidden() && <BrandMark size={LAUNCHER_SIZE} />}
+						</button>
+						<button
+							type="button"
+							aria-label="Debugger layout"
+							title="Debugger layout: halves, thirds, two-thirds, full viewport or restore"
+							aria-expanded={windowState().menuOpen}
+						>
+							□
+						</button>
+						<button
+							type="button"
+							aria-label="Hide debugger (Ctrl+Shift+A)"
+							onClick={() => {
+								setHidden(true)
+							}}
+						>
+							×
+						</button>
+					</>
+				)}
 			</debugger-toolbar>
-			{getOpen() ? (
+			{open() ? (
 				<debugger-content
 					role="tabpanel"
 					data-view={view()}
@@ -256,16 +270,20 @@ export function DebuggerPanel(props: {
 					)}
 				</debugger-content>
 			) : null}
-			<WindowOverlay state={windowState()} />
-			{RESIZE_EDGES.map((edge) => (
-				<button
-					key={edge}
-					type="button"
-					data-resize={edge}
-					aria-label={`Resize debugger ${EDGE_LABELS[edge]}`}
-					title={`Resize ${EDGE_LABELS[edge]}; use arrow keys`}
-				/>
-			))}
+			{!fullPage && (
+				<>
+					<WindowOverlay state={windowState()} />
+					{RESIZE_EDGES.map((edge) => (
+						<button
+							key={edge}
+							type="button"
+							data-resize={edge}
+							aria-label={`Resize debugger ${EDGE_LABELS[edge]}`}
+							title={`Resize ${EDGE_LABELS[edge]}; use arrow keys`}
+						/>
+					))}
+				</>
+			)}
 		</debugger-panel>
 	)
 }

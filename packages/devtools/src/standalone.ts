@@ -23,6 +23,7 @@ const html = [
 	`<title>Atom.io Devtools</title>`,
 	`<link rel="stylesheet" href="./devtools.css">`,
 	`<script type="module" src="./standalone-browser.js"></script>`,
+	`<body data-atom-io-devtools-page></body>`,
 	`</html>`,
 ].join(`\n`)
 

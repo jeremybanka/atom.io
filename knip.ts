@@ -240,6 +240,7 @@ export default {
 			entry: [
 				"src/index.ts!",
 				"src/ecology-entry.ts!",
+				"src/standalone-browser.ts!",
 				"src/css.d.ts!",
 				"tsdown.config.ts",
 				"tonnage.config.ts",

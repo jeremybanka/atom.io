@@ -2,8 +2,9 @@ import type * as THREE from "three"
 import { beforeEach, vi } from "vitest"
 
 // DOM unit suites inspect settled state; real motion and interruption run in browsers.
-const match = window.matchMedia.bind(window)
+const match = globalThis.window?.matchMedia.bind(window)
 beforeEach(() => {
+	if (!match) return
 	vi.spyOn(window, `matchMedia`).mockImplementation((query) => {
 		const media = match(query)
 		if (query === `(prefers-reduced-motion: reduce)`)
@@ -30,5 +31,7 @@ vi.mock(`three`, async (actual) => ({
 }))
 
 // DOM suites advance task timers; GPU frame loops are advanced explicitly in scene tests.
-window.requestAnimationFrame = vi.fn(() => 1)
-window.cancelAnimationFrame = vi.fn()
+if (globalThis.window) {
+	window.requestAnimationFrame = vi.fn(() => 1)
+	window.cancelAnimationFrame = vi.fn()
+}

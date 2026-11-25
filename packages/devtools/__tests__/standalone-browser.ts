@@ -1,11 +1,17 @@
 import assert from "node:assert/strict"
+import { spawn } from "node:child_process"
 import { once } from "node:events"
-import { get, type IncomingMessage } from "node:http"
+import { createServer, get, type IncomingMessage } from "node:http"
 import { createInterface } from "node:readline"
 import { setTimeout } from "node:timers/promises"
+import { fileURLToPath } from "node:url"
 
-import { serveDevtoolsStore } from "@atom.io/devtools/standalone"
+import {
+	attachDevtoolsWebSocket,
+	serveDevtoolsStore,
+} from "@atom.io/devtools/standalone"
 import { Silo } from "atom.io"
+import type { Browser } from "playwright"
 
 import { decodeStandaloneFrame } from "../src/standalone-wire.ts"
 import { launchBrowser } from "./browser-runtime.ts"
@@ -28,6 +34,78 @@ const silo = new Silo({
 const countAtom = silo.atom<number>({ key: `count`, default: 1 })
 assert.equal(silo.getState(countAtom), 1)
 const viewer = await serveDevtoolsStore(silo)
+
+async function verifyRemoteControl(browser: Browser): Promise<void> {
+	const server = createServer()
+	const token = `browser-control-test-token`
+	const detach = attachDevtoolsWebSocket(server, production, {
+		token,
+		productionAccess: `control`,
+	})
+	const counterAtom = production.atom<number>({ key: `counter`, default: 4 })
+	assert.equal(production.getState(counterAtom), 4)
+	server.listen(0, `127.0.0.1`)
+	await once(server, `listening`)
+	try {
+		const address = server.address()
+		assert.ok(address && typeof address !== `string`)
+		const cli = spawn(
+			process.execPath,
+			[
+				fileURLToPath(new URL(`../dist/cli.js`, import.meta.url)),
+				`http://127.0.0.1:` + address.port,
+			],
+			{
+				env: { ...process.env, ATOM_IO_DEVTOOLS_TOKEN: token },
+				stdio: [`ignore`, `pipe`, `inherit`],
+			},
+		)
+		const exited = once(cli, `exit`)
+		const output = createInterface({ input: cli.stdout })
+		try {
+			const { value: url, done } = await output[Symbol.asyncIterator]().next()
+			assert.equal(done, false, `Expected the CLI to print a local viewer URL`)
+			assert.doesNotMatch(url, new RegExp(token))
+			const page = await browser.newPage()
+			await page.goto(url)
+			const count = page.getByRole(`textbox`, {
+				name: counterAtom.key,
+				exact: true,
+			})
+			await count.waitFor()
+			assert.equal(await count.inputValue(), `4`)
+			assert.equal(await count.getAttribute(`readonly`), null)
+			const { promise, resolve } = Promise.withResolvers<void>()
+			const unsubscribe = production.subscribe(counterAtom, () => {
+				resolve()
+			})
+			try {
+				await count.fill(`9`)
+				await count.press(`Enter`)
+				await Promise.race([
+					promise,
+					setTimeout(5_000, undefined, { ref: false }).then(() =>
+						assert.fail(`The browser edit did not reach the target Silo`),
+					),
+				])
+				assert.equal(production.getState(counterAtom), 9)
+			} finally {
+				unsubscribe()
+			}
+		} finally {
+			output.close()
+			cli.kill()
+			await exited
+		}
+	} finally {
+		detach()
+		await new Promise<void>((closed) => {
+			server.close(() => {
+				closed()
+			})
+		})
+	}
+}
 
 try {
 	assert.equal(viewer.url.hostname, `127.0.0.1`)
@@ -76,6 +154,7 @@ try {
 				assert.fail(`The viewer did not close with the browser connected`),
 			),
 		])
+		await verifyRemoteControl(browser)
 	} finally {
 		await browser.close()
 	}

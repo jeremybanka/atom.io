@@ -108,7 +108,7 @@ function visible(key: string): boolean {
 	return !isReservedIntrospectionKey(key) && !key.startsWith(`👁‍🗨`)
 }
 
-/** Owns subscriptions and state operations for a fully exposed worker Silo. */
+/** Owns subscriptions and state operations for a fully exposed Silo. */
 export function exposeWholeStore(
 	transport: DevtoolsStoreTransport,
 	silo: Silo,

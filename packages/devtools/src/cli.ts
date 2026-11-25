@@ -16,17 +16,18 @@ import {
 	parseBooleanOption,
 } from "comline"
 
+import { serveRemoteViewer } from "./remote-viewer.ts"
 import { serveDevtoolsStore } from "./standalone.ts"
 
 const helpOptions = helpOption(`Show command help.`)
 const parse = cli({
 	cliName: `atom-io-devtools`,
 	cliDescription: `Open the printed URL to inspect an Atom.io Silo.`,
-	routes: optional({ $entry: null }),
+	routes: optional({ $target: null }),
 	routeOptions: {
 		"": helpOptions,
-		$entry: options(
-			`Load a module that default-exports an Atom.io Silo.`,
+		$target: options(
+			`Pass a Devtools endpoint URL or a module that default-exports a Silo. Remote URLs use ATOM_IO_DEVTOOLS_TOKEN.`,
 			type({
 				"help?": `boolean`,
 				"port?": `0 <= number.integer <= 65535`,
@@ -41,7 +42,7 @@ const parse = cli({
 					parse: (argument) => (/^\d+$/.test(argument) ? Number(argument) : NaN),
 				},
 				"allow-production": {
-					description: `Permit inspection in production.`,
+					description: `Permit production inspection when loading a local module.`,
 					example: `--allow-production`,
 					required: false,
 					parse: parseBooleanOption,
@@ -72,18 +73,26 @@ async function main(): Promise<void> {
 		process.stdout.write(help(parse.definition) + `\n`)
 		return
 	}
-	if (inputs.case !== `$entry` || !inputs.params.entry) {
+	if (inputs.case !== `$target` || !inputs.params.target) {
 		throw new Error(
-			`Provide an entry module. Run atom-io-devtools --help for usage.`,
+			`Provide a target URL or an entry module. Run atom-io-devtools --help for usage.`,
 		)
 	}
-	const { default: silo } = await import(
-		pathToFileURL(resolve(inputs.params.entry)).href
-	)
+	const { target } = inputs.params
+	const { port = 0, "allow-production": allowProduction } = inputs.opts
+	if (/^(?:https?|wss?):\/\//i.test(target)) {
+		const viewer = await serveRemoteViewer(
+			target,
+			process.env[`ATOM_IO_DEVTOOLS_TOKEN`],
+			port,
+		)
+		process.stdout.write(viewer.url.href + `\n`)
+		return
+	}
+	const { default: silo } = await import(pathToFileURL(resolve(target)).href)
 	if (!isSilo(silo))
 		throw new Error(`The entry module must default-export an Atom.io Silo`)
 
-	const { port = 0, "allow-production": allowProduction } = inputs.opts
 	const viewer = await serveDevtoolsStore(silo, {
 		port,
 		...(allowProduction ? { productionAccess: `inspect` } : {}),

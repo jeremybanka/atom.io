@@ -71,7 +71,7 @@ try {
 				encoding: `utf8`,
 				timeout: 10_000,
 			})
-			assert.match(help, /atom-io-devtools <entry>/)
+			assert.match(help, /atom-io-devtools <target>/)
 			assert.match(help, /--port/)
 			assert.match(help, /--allow-production/)
 

@@ -5,9 +5,11 @@ import { resolve } from "node:path"
 
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 
+import { serveRemoteViewer } from "../src/remote-viewer.ts"
 import { serveDevtoolsStore } from "../src/standalone.ts"
 
 vi.mock(`node:fs`, { spy: true })
+vi.mock(`../src/remote-viewer.ts`, () => ({ serveRemoteViewer: vi.fn() }))
 vi.mock(`../src/standalone.ts`, () => ({ serveDevtoolsStore: vi.fn() }))
 
 const entry = resolve(import.meta.dirname, `../exhibits/standalone-silo.ts`)
@@ -27,12 +29,17 @@ beforeEach(() => {
 			url,
 			close: vi.fn(async () => {}),
 		})
+	vi.mocked(serveRemoteViewer).mockResolvedValue({
+		url,
+		close: vi.fn(async () => {}),
+	})
 })
 
 afterEach(() => {
 	vi.restoreAllMocks()
 	vi.clearAllMocks()
 	vi.unstubAllGlobals()
+	vi.unstubAllEnvs()
 })
 
 function launch(...args: string[]) {
@@ -48,10 +55,22 @@ function launch(...args: string[]) {
 it(`prints generated help without importing a target`, async () => {
 	await launch(`-h`)
 	expect(process.stdout.write).toHaveBeenCalledWith(
-		expect.stringContaining(`atom-io-devtools <entry>`),
+		expect.stringContaining(`atom-io-devtools <target>`),
 	)
 	expect(serveDevtoolsStore).not.toHaveBeenCalled()
 	expect(process.exit).not.toHaveBeenCalled()
+})
+
+it(`uses the remote viewer for endpoint URLs`, async () => {
+	vi.stubEnv(`ATOM_IO_DEVTOOLS_TOKEN`, `test-token`)
+	await launch(`https://example.test`, `--port`, `8123`)
+	expect(serveRemoteViewer).toHaveBeenCalledWith(
+		`https://example.test`,
+		`test-token`,
+		8123,
+	)
+	expect(serveDevtoolsStore).not.toHaveBeenCalled()
+	expect(process.stdout.write).toHaveBeenCalledWith(url.href + `\n`)
 })
 
 it.each([
@@ -75,7 +94,7 @@ it.each([
 )
 
 it.each([
-	[[], /Provide an entry module/],
+	[[], /Provide a target URL or an entry module/],
 	[[entry, `--bogus`], /Unknown option/],
 	[[entry, `--port=654oops`], /port/],
 	[[entry, `--port=65536`], /port/],

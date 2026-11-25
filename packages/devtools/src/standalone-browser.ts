@@ -1,6 +1,9 @@
 import { mountAtomIODevtools } from "@atom.io/devtools"
 
-import { decodeStandaloneFrame } from "./standalone-wire.ts"
+import {
+	decodeStandaloneFrame,
+	DEVTOOLS_SOCKET_PROTOCOL,
+} from "./standalone-wire.ts"
 
 const panel = mountAtomIODevtools(document.body, {
 	stores: [
@@ -9,10 +12,17 @@ const panel = mountAtomIODevtools(document.body, {
 			label: `Remote store`,
 			kind: `remote`,
 			connect() {
-				const stream = new EventSource(`./events`)
+				const socket = document.body.hasAttribute(`data-atom-io-devtools-socket`)
+					? new WebSocket(
+							new URL(`./socket`, document.baseURI),
+							DEVTOOLS_SOCKET_PROTOCOL,
+						)
+					: undefined
+				const stream = socket ?? new EventSource(`./events`)
 				return {
-					send() {
-						// The standalone transport exposes cached data in one direction.
+					send(frame) {
+						if (socket && socket.readyState === WebSocket.OPEN)
+							socket.send(JSON.stringify(frame))
 					},
 					listen(receive, disconnected) {
 						stream.onmessage = ({ data }: MessageEvent<string>) => {
@@ -25,10 +35,15 @@ const panel = mountAtomIODevtools(document.body, {
 						stream.onerror = () => {
 							disconnected()
 						}
+						if (socket)
+							socket.onclose = () => {
+								disconnected()
+							}
 					},
 					close() {
 						stream.onmessage = null
 						stream.onerror = null
+						if (socket) socket.onclose = null
 						stream.close()
 					},
 				}

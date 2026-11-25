@@ -2,6 +2,8 @@ import { parse, stringify } from "devalue"
 
 import type { DevtoolsStoreMessage } from "./remote.ts"
 
+export const DEVTOOLS_SOCKET_PROTOCOL = `atom-io-devtools-v1`
+
 const reducers = {
 	Error: (value: unknown) =>
 		value instanceof Error && { name: value.name, message: value.message },

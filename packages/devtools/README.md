@@ -167,6 +167,35 @@ export async function startDevelopmentInspector(
 
 The standalone viewer displays cached states, recorded transactions, and the Ecology graph in inspection mode. To deliberately allow inspection of a production Silo, pass productionAccess set to inspect to the Node API or --allow-production to the CLI. Choose a Silo whose values and history are appropriate to inspect locally.
 
+### Control a running Node target
+
+Use attachDevtoolsWebSocket from @atom.io/devtools/standalone to add a control endpoint to the target process's HTTP server and Silo. The endpoint authenticates a shared bearer token and grants control over the Silo. Use a generated secret and resolve it in the target process from its environment or secret store. Pass productionAccess set to control only where you intend to grant production control.
+
+```ts
+import type { Server } from "node:http"
+
+import { attachDevtoolsWebSocket } from "@atom.io/devtools/standalone"
+import type { Silo } from "atom.io"
+
+export function enableDevtoolsControl(
+	server: Server,
+	silo: Silo,
+	token: string,
+): () => void {
+	return attachDevtoolsWebSocket(server, silo, {
+		token,
+		productionAccess: `control`,
+	})
+}
+
+```
+
+For a local language server, bind its HTTP listener to loopback alongside its LSP transport. For a deployed app, use the HTTP server behind your HTTPS proxy and enable WebSocket upgrades on the endpoint. Call the returned function to detach the endpoint and disconnect its clients when access ends.
+
+Set ATOM\_IO\_DEVTOOLS\_TOKEN in the CLI environment to the same token and pass the target URL as its argument. For example, run pnpm exec atom-io-devtools <http://127.0.0.1:4319> for a local listener or supply the HTTPS origin of a deployed service. The CLI uses /atom-io-devtools when the URL has no path. If you configure a different path on the host, include it in the URL. Use HTTPS or WSS for any target outside loopback.
+
+The CLI verifies the target connection and prints a private loopback URL for the browser. It forwards store updates and commands between the browser and the target over WebSockets. The browser can edit supported state, evaluate selectors, and move timelines under the existing remote control rules.
+
 ## Web Worker stores
 
 The worker entry adapts a dedicated MessagePort. The example enables control explicitly for an isolated demo Silo containing sample data. The worker executes edits, selector generation, family member disposal, and timeline undo and redo. Transactions retain up to 200 outcomes per transaction recorded since the connection opened. State values are transferred when structured-cloneable, and editable values must be JSON data. Full-store Ecology snapshots and updates include transaction, timeline, and timeline family metadata. The operation records are optional in protocol version 1 so either endpoint can still read frames from older versions.

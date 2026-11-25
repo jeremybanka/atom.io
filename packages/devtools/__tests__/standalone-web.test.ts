@@ -3,6 +3,7 @@ import { afterEach, expect, it, vi } from "vitest"
 
 import {
 	decodeStandaloneFrame,
+	DEVTOOLS_SOCKET_PROTOCOL,
 	encodeStandaloneFrame,
 	prepareStandaloneValue,
 } from "../src/standalone-wire.ts"
@@ -13,6 +14,7 @@ vi.mock(`@atom.io/devtools`, () => ({
 
 afterEach(() => {
 	vi.unstubAllGlobals()
+	document.body.removeAttribute(`data-atom-io-devtools-socket`)
 })
 
 it(`preserves supported values and replaces unavailable ones in standalone frames`, () => {
@@ -107,4 +109,46 @@ it(`receives standalone events and closes the transport with the page`, async ()
 		Object.assign(new Event(`pagehide`), { persisted: false }),
 	)
 	expect(dispose).toHaveBeenCalledOnce()
+})
+
+it(`sends control commands only over the connected local socket`, async () => {
+	const stream = {
+		readyState: 0,
+		onclose: null as (() => void) | null,
+		send: vi.fn(),
+		close: vi.fn(),
+	}
+	const openSocket = Object.assign(
+		vi.fn(function () {
+			return stream
+		}),
+		{ OPEN: 1 },
+	)
+	vi.stubGlobal(`WebSocket`, openSocket)
+	document.body.setAttribute(`data-atom-io-devtools-socket`, ``)
+	vi.resetModules()
+	await import(`../src/standalone-browser.ts`)
+
+	const target = vi.mocked(mountAtomIODevtools).mock.lastCall?.[1]?.stores?.[0]
+	if (target?.kind !== `remote`) throw new Error(`Expected a remote target`)
+	const transport = target.connect()
+	if (!(`listen` in transport))
+		throw new Error(`Expected a standalone transport`)
+	expect(openSocket).toHaveBeenCalledWith(
+		new URL(`./socket`, document.baseURI),
+		DEVTOOLS_SOCKET_PROTOCOL,
+	)
+	const disconnected = vi.fn()
+	transport.listen(vi.fn(), disconnected)
+	const frame = { type: `edit`, key: `count`, revision: 0, value: 3 } as const
+	transport.send(frame)
+	expect(stream.send).not.toHaveBeenCalled()
+	stream.readyState = 1
+	transport.send(frame)
+	expect(stream.send).toHaveBeenCalledWith(JSON.stringify(frame))
+	stream.onclose?.()
+	expect(disconnected).toHaveBeenCalledOnce()
+	transport.close()
+	expect(stream.onclose).toBeNull()
+	expect(stream.close).toHaveBeenCalledOnce()
 })

@@ -7,6 +7,7 @@ import type { GraphItem } from "./ecology-graph.ts"
 import { EDITOR_SPRING } from "./ecology-motion.ts"
 import css from "./EcologyEditorRow.module.css"
 import { EcologyNodeName } from "./EcologyNodeName.tsx"
+import { EcologyPrimitiveIcon } from "./EcologyPrimitiveIcon.tsx"
 import type { EcologyPresentation } from "./EcologyView.tsx"
 import { EditorIcon } from "./EditorIcon.tsx"
 import { StateLeaf } from "./StateLeaf.tsx"
@@ -63,6 +64,7 @@ export function EcologyEditorRow(props: {
 			}
 			style={`--ecology-color: ${props.item.color}`}
 		>
+			<EcologyPrimitiveIcon source={props.item.source} />
 			{family() ? (
 				<node-heading>
 					<button

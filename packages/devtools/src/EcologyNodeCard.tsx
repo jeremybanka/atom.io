@@ -14,6 +14,7 @@ import type { GraphItem } from "./ecology-graph.ts"
 import type { ProjectedEdge } from "./ecology-lines.ts"
 import { type createEcologyMotion, FAMILY_SPRING } from "./ecology-motion.ts"
 import css from "./EcologyNodeCard.module.css"
+import { EcologyPrimitiveIcon } from "./EcologyPrimitiveIcon.tsx"
 import type { EcologyActivity } from "./EcologyView.tsx"
 import { useLocal } from "./store.ts"
 import { cardValuePreview } from "./value.ts"
@@ -265,7 +266,10 @@ export function EcologyNodeCard(props: {
 					<small data-family>{props.item.familyLabel}</small>
 				)}
 				<strong>{props.item.label}</strong>
-				<small data-uncached={uncached()}>{detail(props.item.source)}</small>
+				<small data-uncached={uncached()}>
+					<EcologyPrimitiveIcon source={props.item.source} />
+					{detail(props.item.source)}
+				</small>
 			</button>
 		</ecology-node-card>
 	)

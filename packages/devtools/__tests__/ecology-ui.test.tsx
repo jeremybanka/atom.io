@@ -166,13 +166,27 @@ it(`opens/searches/selects/traces/expands passively and evaluates only with Gene
 	f.mount()
 	await settle()
 	expect(f.host.querySelector(`[data-testid="ecology-view"]`)).not.toBeNull()
-	const labels = [...f.host.querySelectorAll(`ecology-node-card small`)].map(
-		(node) => node.textContent,
-	)
-	for (const category of [`Atom`, `Atom Family`, `Selector`, `Selector Family`])
-		expect(labels.some((label) => label?.startsWith(`${category} · `))).toBe(
-			true,
+	for (const [id, kind, label] of [
+		[`state:lazy`, `atom`, `Atom`],
+		[`state:dormant`, `selector`, `Selector`],
+		[`family:items`, `atom-family`, `Atom Family`],
+		[`family:derived`, `selector-family`, `Selector Family`],
+	]) {
+		const detail = f.host.querySelector(
+			`ecology-node-card > [data-graph-id="${id}"] > small[data-uncached]`,
 		)
+		const row = f.host.querySelector(`ecology-editor-row[data-row-id="${id}"]`)
+		expect(detail?.textContent).toMatch(new RegExp(`^${label} · `))
+		for (const icon of [detail?.firstElementChild, row?.firstElementChild]) {
+			expect(icon?.getAttribute(`data-primitive`)).toBe(kind)
+			const svg = icon?.querySelector(`svg`)
+			expect(svg?.querySelector(`rect`)?.namespaceURI).toBe(
+				`http://www.w3.org/2000/svg`,
+			)
+			expect(svg?.getAttribute(`fill`)).toBe(`var(--ecology-color)`)
+			expect(svg?.getAttribute(`aria-hidden`)).toBe(`true`)
+		}
+	}
 	await f.search(`dormant`)
 	await f.select(`state:dormant`, `Enter`)
 	await f.search(``)

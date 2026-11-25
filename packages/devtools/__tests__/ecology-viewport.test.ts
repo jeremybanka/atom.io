@@ -58,7 +58,6 @@ function fixture() {
 				items: [],
 				edges: [],
 				traced: new Set<string>(),
-				command: { sequence: 0, action: `fit` },
 				get selected() {
 					return getSelected()
 				},

@@ -46,7 +46,7 @@ export interface EcologyPresentation {
 	status: string
 	hits: SearchHit[]
 	busy: boolean
-	cameraCommand: CameraCommand
+	cameraCommand: CameraCommand | undefined
 	traced: Set<string>
 	focused: ReadonlySet<string> | undefined
 	expanded: Set<string>
@@ -170,7 +170,7 @@ export function EcologyView(props: {
 		status: ``,
 		hits: [],
 		busy: false,
-		cameraCommand: { sequence: 0, action: `fit` },
+		cameraCommand: undefined,
 		traced: new Set(),
 		focused: undefined,
 		expanded: new Set(),

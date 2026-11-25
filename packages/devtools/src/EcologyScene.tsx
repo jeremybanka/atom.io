@@ -32,6 +32,7 @@ import { type EditorTools, useLocal } from "./store.ts"
 
 const canvas = { Canvas }
 const FAMILY_SPINE_OPACITY = 0.55
+const START_POSITION = new THREE.Vector3(23, 7, 28)
 
 export interface CameraCommand {
 	sequence: number
@@ -53,7 +54,7 @@ export function EcologyScene(props: {
 	traced: Set<string>
 	focused?: ReadonlySet<string> | undefined
 	matches?: ReadonlySet<string> | undefined
-	command: CameraCommand
+	command?: CameraCommand | undefined
 	hovered?: string | undefined
 }): SpaElement {
 	const [size, setSize] = useLocal(props.tools.store, {
@@ -103,7 +104,7 @@ export function EcologyScene(props: {
 	familySpine.renderOrder = -1
 	const selectedSpine = createFamilySpine(5, 0.9)
 	selectedSpine.name = `selected-family-connections`
-	camera.position.set(23, 7, 28)
+	camera.position.copy(START_POSITION)
 	let viewport: HTMLElement | null = null,
 		layer: HTMLElement | null = null
 	let controls: OrbitControls | undefined, renderer: CSS2DRenderer | undefined
@@ -131,11 +132,13 @@ export function EcologyScene(props: {
 	const projectEdges = createEdgeProjector(routes)
 	onCleanup(motion.dispose)
 	onCleanup(routes.dispose)
-	const fit = (overview = true) => {
+	const resetCamera = (controls: OrbitControls) => {
+		camera.position.copy(START_POSITION)
+		controls.target.set(0, 0, 0)
 		if (!props.items.length) return
 		const box = new THREE.Box3().setFromPoints(props.items.map(point))
 		const center = box.getCenter(new THREE.Vector3())
-		const direction = camera.position.clone().sub(controls!.target).normalize()
+		const direction = START_POSITION.clone().normalize()
 		const right = new THREE.Vector3()
 			.crossVectors(camera.up, direction)
 			.normalize()
@@ -154,12 +157,11 @@ export function EcologyScene(props: {
 				offset.dot(direction) + Math.abs(offset.dot(up)) / vertical,
 			)
 		}
-		if (!overview && distance > 90) center.copy(point(props.items[0]))
-		controls!.target.copy(center)
+		if (distance > 90) center.copy(point(props.items[0]))
+		controls.target.copy(center)
 		camera.position
 			.copy(center)
-			.addScaledVector(direction, overview ? distance : Math.min(distance, 90))
-		controls!.update()
+			.addScaledVector(direction, Math.min(distance, 90))
 	}
 	const pan = (x: number, y: number) => {
 		camera.updateMatrixWorld()
@@ -178,14 +180,10 @@ export function EcologyScene(props: {
 		camera.position.add(offset)
 		controls!.target.add(offset)
 	}
-	const command = ({ action, target }: CameraCommand) => {
-		if (!controls) return
-		if (action === `reset`) {
-			camera.position.set(23, 7, 28)
-			controls.target.set(0, 0, 0)
-			fit(false)
-		}
-		if (action === `fit`) fit()
+	const command = (next: CameraCommand | undefined) => {
+		if (!controls || !next) return
+		const { action, target } = next
+		if (action === `reset`) resetCamera(controls)
 		if (action === `left`) pan(-80, 0)
 		if (action === `right`) pan(80, 0)
 		if (action === `up`) pan(0, -80)
@@ -418,9 +416,9 @@ export function EcologyScene(props: {
 							camera.position.fromArray(saved.position)
 							controls.target.fromArray(saved.target)
 							retarget(saved.aspect ?? camera.aspect, camera.aspect)
-							controls.update()
-						} else fit(false)
-						if (props.command.sequence > 0) command(props.command)
+						} else resetCamera(controls)
+						controls.update()
+						command(props.command)
 						invalidate()
 						return () => {
 							scene.remove(familySpine, selectedSpine)

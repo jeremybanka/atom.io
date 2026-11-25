@@ -619,6 +619,7 @@ try {
 		name: `Ecology guide`,
 		exact: true,
 	})
+	assert.equal(await page.locator(`ecology-actions > button`).count(), 2)
 	const guideDialog = page.locator(`[data-guide-modal]`)
 	await guideButton.click()
 	assert.equal(
@@ -648,6 +649,8 @@ try {
 	)
 	assert.equal(await scene.getAttribute(`data-unavailable`), `false`)
 	const camera = () => scene.getAttribute(`data-camera`)
+	const resetView = page.getByRole(`button`, { name: `Reset view`, exact: true })
+	await resetView.click()
 	const arrow = scene.locator(`svg > path`).first()
 	const arrowBefore = await arrow.getAttribute(`d`)
 	const pose = await camera(),
@@ -691,7 +694,17 @@ try {
 		),
 		`DOM cards must face the viewer`,
 	)
-	await page.getByRole(`button`, { name: `Reset view`, exact: true }).click()
+	await resetView.click()
+	await page.waitForFunction((startingPose) => {
+		const resetPose = document
+			.querySelector(`ecology-scene`)!
+			.getAttribute(`data-camera`)!
+			.split(`,`)
+			.map(Number)
+		return startingPose.every(
+			(value, index) => Math.abs(value - resetPose[index]) < 0.00001,
+		)
+	}, pose!.split(`,`).map(Number))
 	const before = await page.evaluate(() => window.ecologyFixture.evidence())
 	await page.getByRole(`searchbox`, { name: `Search ecology` }).fill(`dormant`)
 	await ready()

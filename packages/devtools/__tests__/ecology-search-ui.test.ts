@@ -189,7 +189,7 @@ it(`explains an empty filter without losing the retained selection or capture`, 
 	expect(f.app.getState(f.countAtom)).toBe(2)
 })
 
-it(`keeps an unfinished numeric draft and its node mounted through query, clear, selection and Refresh`, async () => {
+it(`keeps an unfinished numeric draft mounted through query, selection and live capture`, async () => {
 	const f = await setup()
 	await f.select(`state:count`)
 
@@ -206,7 +206,7 @@ it(`keeps an unfinished numeric draft and its node mounted through query, clear,
 		.querySelector<HTMLButtonElement>(`ecology-view [data-results] button`)!
 		.click()
 	await settle()
-	f.button(`Refresh`).click()
+	f.app.atom<number>({ key: `new`, default: 0 })
 	await settle()
 	expect(f.host.querySelector(`ecology-editor input`)).toBe(editor)
 	expect(editor.value).toBe(`1e`)
@@ -357,7 +357,7 @@ it(`uses latest input while metadata indexing is in flight and cancels hidden/di
 	await settle()
 	input.value = `record1`
 	input.dispatchEvent(new Event(`input`, { bubbles: true }))
-	host.querySelector<HTMLButtonElement>(`[data-action="refresh"]`)!.click()
+	app.atom<number>({ key: `created-while-hidden`, default: 0 })
 	await settle()
 	expect(host.dataset[`jobs`]).toBe(jobs)
 	panel.dataset[`open`] = `true`
@@ -416,7 +416,7 @@ it(`waits for a committed root and can clear a restored selection before capturi
 	expect(host.dataset[`ready`]).toBe(`true`)
 })
 
-it(`closes a disposed live member on Refresh without applying the unfinished draft`, async () => {
+it(`closes a disposed live member without applying the unfinished draft`, async () => {
 	const f = await setup()
 	await f.query(`green tea`)
 	f.host
@@ -433,7 +433,6 @@ it(`closes a disposed live member on Refresh without applying the unfinished dra
 	editor.dispatchEvent(new Event(`input`, { bubbles: true }))
 	await f.query(`items`)
 	f.app.disposeState(f.itemsAtoms, `green-tea`)
-	f.button(`Refresh`).click()
 	await settle()
 	expect(editor.isConnected).toBe(false)
 	expect(
@@ -477,7 +476,7 @@ it(`reports incomplete snapshots, truncated prefixes and bounded approximate mat
 	).toHaveLength(100)
 })
 
-it(`keeps keyed cards across filters and Refresh while preserving logical focus`, async () => {
+it(`keeps keyed cards across filters and live captures while preserving logical focus`, async () => {
 	const f = await setup()
 	await f.query(`count`)
 	const original = f.host.querySelector<HTMLElement>(
@@ -515,7 +514,7 @@ it(`keeps keyed cards across filters and Refresh while preserving logical focus`
 	const current = f.host.querySelector(
 		`ecology-node-card > button[data-graph-id]`,
 	)
-	f.button(`Refresh`).click()
+	f.app.atom<number>({ key: `new`, default: 0 })
 	await settle()
 	expect(f.host.querySelector(`ecology-node-card > button[data-graph-id]`)).toBe(
 		current,
@@ -529,7 +528,6 @@ it(`bounds retained cards when successive filters visit disjoint parts of a larg
 			const options = { key: `${group}${i}`, default: 0 }
 			f.app.atom<number>(options)
 		}
-	f.button(`Refresh`).click()
 	await settle()
 	for (const group of [`alpha`, `beta`]) {
 		await f.query(group)

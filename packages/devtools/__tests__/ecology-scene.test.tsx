@@ -21,7 +21,7 @@ import {
 	writeFamilySpine,
 } from "../src/ecology-lines.ts"
 import { createEdgeRoutingMotion } from "../src/ecology-motion.ts"
-import { EcologyScene } from "../src/EcologyScene.tsx"
+import { type CameraCommand, EcologyScene } from "../src/EcologyScene.tsx"
 import { useTools } from "../src/store.ts"
 
 const projectEdges = createEdgeProjector()
@@ -70,7 +70,7 @@ interface SceneState {
 	items: GraphItem[]
 	edges: EcologyLine[]
 	familyConnections?: FamilyConnection[]
-	command: { sequence: number; action: string; target: string }
+	command?: CameraCommand | undefined
 }
 function fixture(
 	restored: boolean | GraphContext[`camera`] = false,
@@ -105,7 +105,6 @@ function fixture(
 					traced: false,
 				},
 			],
-			command: { sequence: 0, action: `fit`, target: `` },
 		},
 	})
 	let tick: (time: number) => void = () => {},
@@ -287,7 +286,6 @@ it(`projects viewer-facing DOM cards and source-stacked edges, keeps a camera th
 		`in`,
 		`out`,
 		`reset`,
-		`fit`,
 		`unknown`,
 		`focus`,
 	])
@@ -320,7 +318,7 @@ it(`projects viewer-facing DOM cards and source-stacked edges, keeps a camera th
 	expect(event).not.toHaveBeenCalled()
 	const starts = vi.mocked(THREE.WebGLRenderer).mock.calls.length
 	f.patch({ items: [], edges: [], familyConnections: [] })
-	f.command(`fit`)
+	f.command(`reset`)
 	f.tick()
 	expect(spine.geometry.instanceCount).toBe(0)
 	expect(f.viewport.querySelector(`canvas`)).not.toBeNull()
@@ -567,9 +565,12 @@ it(`restores a borrowed camera and fits a large capture into viewport-shaped cyl
 	expect(empty.context.camera!.target).toEqual([0, 0, 0])
 	const distance = (camera: NonNullable<typeof empty.context.camera>) =>
 		Math.hypot(...camera.position.map((n, i) => n - camera.target[i]))
-	expect(distance(empty.context.camera!)).toBeLessThanOrEqual(90.00001)
-	empty.command(`fit`)
-	expect(distance(empty.context.camera!)).toBeLessThan(90)
+	const initial = distance(empty.context.camera!)
+	expect(initial).toBeLessThan(90)
+	empty.command(`in`)
+	expect(distance(empty.context.camera!)).not.toBeCloseTo(initial)
+	empty.command(`reset`)
+	expect(distance(empty.context.camera!)).toBeCloseTo(initial)
 	empty.command(`focus`, `state:top`)
 	expect(distance(empty.context.camera!)).toBeLessThanOrEqual(45.00001)
 })
@@ -582,7 +583,7 @@ it(`applies a queued focus when the first populated capture starts the camera`, 
 		f.point(f.b).map((value) => expect.closeTo(value, 10)),
 	)
 })
-it(`keeps a readable initial view for a very long family tangent and fits the full expansion on request`, () => {
+it(`restores a readable default view for a very long family tangent`, () => {
 	const f = fixture(false, true),
 		a = item(`far`, 10_000, 0, 8),
 		b = item(`other`, -10_000, 0, 8)
@@ -596,8 +597,13 @@ it(`keeps a readable initial view for a very long family tangent and fits the fu
 			new THREE.Vector3(...f.context.camera!.target),
 		)
 	expect(distance()).toBeCloseTo(90)
-	f.command(`fit`)
-	expect(distance()).toBeGreaterThan(10_000)
+	f.command(`focus`, b.id)
+	expect(distance()).toBeCloseTo(45)
+	f.command(`reset`)
+	expect(distance()).toBeCloseTo(90)
+	expect(f.context.camera!.target).toEqual(
+		f.point(a).map((value) => expect.closeTo(value, 10)),
+	)
 })
 it(`reshapes on canvas resize while preserving orbit direction and relative zoom`, () => {
 	const f = fixture()

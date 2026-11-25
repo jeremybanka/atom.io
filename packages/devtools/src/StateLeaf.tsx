@@ -59,8 +59,7 @@ export function StateLeaf(props: {
 		: (token as WritableToken<unknown, any, any>)
 	const setValue = writableToken ? useSetter(writableToken) : undefined
 	const requireCurrent = () => {
-		if (definition() !== captured)
-			throw new Error(`State was disposed. Refresh to update the snapshot.`)
+		if (definition() !== captured) throw new Error(`State was disposed.`)
 	}
 	const resetButton = () =>
 		!worker &&
@@ -92,7 +91,7 @@ export function StateLeaf(props: {
 	const value = () => {
 		try {
 			if (props.retained && definition() !== captured)
-				return new Error(`State was disposed. Refresh to update the snapshot.`)
+				return new Error(`State was disposed.`)
 			return cache ? cache().value : getValue()
 		} catch (error) {
 			return error

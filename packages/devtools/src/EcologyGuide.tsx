@@ -32,7 +32,7 @@ export function EcologyGuide(props: {
 						Drag to orbit, right-drag to pan, and scroll to zoom. On touch
 						screens, use one finger to orbit and two fingers to pan or pinch to
 						zoom. Focus the graph and use arrow keys to pan, or + and − to zoom.
-						Fit shows the painted graph; Reset view restores the starting camera.
+						Reset view restores the default camera framing.
 					</p>
 					<h3>Selection and families</h3>
 					<p>

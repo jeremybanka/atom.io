@@ -23,7 +23,8 @@ export function EcologyOperationHistory(props: {
 		type === `timeline` ? props.tools.history.useTimeline(key) : undefined
 	const summary = () => {
 		const operation = props.operation
-		if (operation.type === `timeline`) return ecologyTimelinePosition(operation)
+		if (operation.type === `timeline`)
+			return ecologyTimelinePosition(operation, timeline?.())
 		const count = transactions!().length
 		return `${count} ${count === 1 ? `outcome` : `outcomes`}`
 	}

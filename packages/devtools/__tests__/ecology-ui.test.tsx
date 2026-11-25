@@ -404,6 +404,51 @@ it(`opens recorded transaction outcomes and timeline controls in the standalone 
 	expect(scene.getAttribute(`data-history-connections`)).toBe(`0`)
 })
 
+it(`updates a timeline cursor without recapturing the graph`, async () => {
+	const f = setup()
+	const countAtom = f.silo.atom<number>({ key: `count`, default: 0 })
+	f.silo.getState(countAtom)
+	f.silo.timeline({ key: `count`, scope: [countAtom] })
+	f.mount()
+	await settle()
+	const view = f.host.querySelector<HTMLElement>(`ecology-view`)!
+	const jobs = view.dataset[`jobs`]
+	const scan = vi.spyOn(f.silo.store.timelines, `values`)
+	f.silo.setState(countAtom, 1)
+	await settle()
+	expect(
+		f.host.querySelector(
+			`ecology-node-card button[data-graph-id="timeline:count"]`,
+		)?.textContent,
+	).toContain(`1/1 steps`)
+	expect(
+		f.host.querySelector(
+			`ecology-editor-row[data-row-id="timeline:count"] node-heading small`,
+		)?.textContent,
+	).toBe(`1/1 steps`)
+	expect(view.dataset[`jobs`]).toBe(jobs)
+	expect(scan).not.toHaveBeenCalled()
+})
+
+it(`retains outcomes across a debugger remount and a separate Ecology instance`, async () => {
+	const f = setup()
+	const saveTransaction = f.silo.transaction({
+		key: `save`,
+		do: (_, value: number) => value,
+	})
+	f.mount()
+	f.silo.runTransaction(saveTransaction)(5)
+	await settle()
+	dispose()
+	f.silo.runTransaction(saveTransaction)(6)
+	dispose = mountEcology(f.host, { store: f.silo.store }).dispose
+	await settle()
+	await f.click(`Expand transaction save`)
+	const outcomes = f.host.querySelector(`transaction-outcomes`)?.textContent
+	expect(outcomes).toContain(`output: 5`)
+	expect(outcomes).toContain(`output: 6`)
+})
+
 it(`updates and flashes cards from the root cache without evaluating dormant state`, async () => {
 	const f = setup()
 	const countAtom = f.silo.atom<number>({ key: `count`, default: () => 2 })

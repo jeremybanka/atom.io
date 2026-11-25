@@ -8,7 +8,8 @@ import { getUpdateToken } from "../mutable/index.ts"
 import type { Store } from "../store/index.ts"
 import { withdraw } from "../store/index.ts"
 import { recordStoreChange } from "../store-observation.ts"
-import { isChildStore } from "../transaction/index.ts"
+import { isChildStore, isRootStore } from "../transaction/index.ts"
+import { forgetAtomWrites } from "../transaction/record-transaction-writes.ts"
 import { hasRole } from "./has-role.ts"
 
 export function disposeAtom(
@@ -44,6 +45,7 @@ export function disposeAtom(
 		const isChild = isChildStore(target)
 
 		target.atoms.delete(key)
+		if (isRootStore(target)) forgetAtomWrites(target, key)
 		recordStoreChange(target, `states`, key)
 		deleteCachedValue(target, key)
 		target.selectorAtoms.delete(key)

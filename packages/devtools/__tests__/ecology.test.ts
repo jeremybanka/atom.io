@@ -1,5 +1,5 @@
 import { scopeFamily, Silo } from "atom.io"
-import { attachIntrospectionStates } from "atom.io/introspection"
+import { attachIntrospectionStates, observeStore } from "atom.io/introspection"
 import { expect, it, vi } from "vitest"
 
 import type { EcologySnapshot } from "../src/ecology.ts"
@@ -41,6 +41,7 @@ it(`captures commits and timeline scopes without running application code`, () =
 		},
 	})
 	const capture = () => captureEcologySnapshot(silo.store).operations.records
+	const stop = observeStore(silo.store, () => {})
 	expect(() => silo.runTransaction(publishTransaction)(true)).toThrow(`aborted`)
 	expect(capture().filter(({ type }) => type === `transaction`)).toEqual([
 		{ type: `transaction`, key: saveTransaction.key },
@@ -92,6 +93,7 @@ it(`captures commits and timeline scopes without running application code`, () =
 			key: saveTransaction.key,
 		},
 	)
+	stop()
 })
 
 it(`captures timeline scopes without reporting reserved or stale topic keys`, () => {

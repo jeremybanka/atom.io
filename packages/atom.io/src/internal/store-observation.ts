@@ -24,6 +24,8 @@ export interface StoreChanges {
 	readonly dependencies: ReadonlySet<string>
 	/** Timeline keys created, updated, or disposed. */
 	readonly timelines: ReadonlySet<string>
+	/** Timeline definitions created or disposed in this batch, when present. */
+	readonly timelineDefinitions?: ReadonlySet<string>
 	/** Transaction keys whose observed atom writes changed in this batch. */
 	readonly transactionWrites?: ReadonlySet<string>
 	/** Transaction registrations and committed outcomes since the previous batch. */
@@ -49,6 +51,7 @@ type Batch = {
 	edges: Map<string, Edge>
 	futures: Map<string, Set<FutureActivity>>
 	timelines: Set<string>
+	timelineDefinitions: Set<string>
 	transactionWrites: Set<string>
 	transactions: Map<string, TransactionChanges>
 }
@@ -84,6 +87,7 @@ function getBatch(store: Store, observation: StoreObservation): Batch {
 		edges: new Map<string, Edge>(),
 		futures: new Map<string, Set<FutureActivity>>(),
 		timelines: new Set<string>(),
+		timelineDefinitions: new Set<string>(),
 		transactionWrites: new Set<string>(),
 		transactions: new Map<string, TransactionChanges>(),
 	}
@@ -109,6 +113,7 @@ function getBatch(store: Store, observation: StoreObservation): Batch {
 			timelineFamilies,
 			futures,
 			timelines,
+			timelineDefinitions,
 			transactionWrites,
 			transactions,
 		} = batch
@@ -132,6 +137,7 @@ function getBatch(store: Store, observation: StoreObservation): Batch {
 						dependencies,
 						futures,
 						timelines,
+						...(timelineDefinitions.size > 0 && { timelineDefinitions }),
 						...(transactionWrites.size > 0 && { transactionWrites }),
 						transactions,
 					})
@@ -160,6 +166,7 @@ export function recordStoreChange(
 		| `states`
 		| `families`
 		| `timelines`
+		| `timelineDefinitions`
 		| `timelineFamilies`
 		| `transactionWrites`,
 	key: string,

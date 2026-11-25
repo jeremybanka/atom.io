@@ -1,6 +1,7 @@
 import { mountAtomIODevtools } from "@atom.io/devtools"
 import { mountEcology } from "@atom.io/devtools/ecology"
 import { type Loadable, type RegularAtomToken, scopeFamily, Silo } from "atom.io"
+import { observeStore } from "atom.io/introspection"
 
 const host = document.createElement(`section`)
 const fixture = new URLSearchParams(location.search)
@@ -74,7 +75,10 @@ function mount(mode: `small` | `empty` | `large`): void {
 					set(markerAtom, 1)
 				},
 			})
+			// Seed observed relations without adding a row to the later panel's history.
+			const stop = observeStore(app.store, () => {})
 			app.runTransaction(saveTransaction)()
+			stop()
 			app.timeline({ key: `price history`, scope: [priceAtom] })
 			const historiesTimelines = app.timelineFamily<string>({
 				key: `histories`,

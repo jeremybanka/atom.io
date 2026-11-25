@@ -135,6 +135,9 @@ it(`batches owner history changes without subscribing to history subjects`, asyn
 		expect(observe.mock.lastCall?.[0].timelines).toEqual(
 			new Set([countTimeline.key]),
 		)
+		expect(observe.mock.lastCall?.[0].timelineDefinitions).toEqual(
+			new Set([countTimeline.key]),
+		)
 		expect(
 			observe.mock.lastCall?.[0].transactions.get(originalTransaction.key),
 		).toMatchObject({
@@ -151,6 +154,7 @@ it(`batches owner history changes without subscribing to history subjects`, asyn
 		silo.runTransaction(replacementTransaction)()
 		silo.undo(countTimeline)
 		await Promise.resolve()
+		expect(observe.mock.lastCall?.[0].timelineDefinitions).toBeUndefined()
 		expect(
 			observe.mock.lastCall?.[0].transactions.get(originalTransaction.key),
 		).toMatchObject({
@@ -262,10 +266,12 @@ it(`retains the first thousand distinct write keys and publishes truncation once
 	const entries = Array.from({ length: 1_003 }, (_, index) =>
 		silo.findState(entriesAtoms, index),
 	)
+	for (const entry of entries) silo.getState(entry)
 	const saveTransaction = silo.transaction({
 		key: `save`,
 		do: ({ set }, start: number, end: number) => {
-			for (const entry of entries.slice(start, end)) set(entry, 1)
+			for (const entry of entries.slice(start, end))
+				set(entry, (value) => value + 1)
 		},
 	})
 	const observe = vi.fn<(changes: StoreChanges) => void>()
@@ -287,6 +293,36 @@ it(`retains the first thousand distinct write keys and publishes truncation once
 	silo.runTransaction(saveTransaction)(1_002, 1_003)
 	await Promise.resolve()
 	expect(observe.mock.lastCall?.[0].transactionWrites).toBeUndefined()
+	silo.disposeState(entriesAtoms, 0)
+	await Promise.resolve()
+	expect(writes?.keys.has(entries[0].key)).toBe(false)
+	expect(writes?.truncated).toBe(false)
+	expect(observe.mock.lastCall?.[0].transactionWrites).toEqual(
+		new Set([saveTransaction.key]),
+	)
+	silo.runTransaction(saveTransaction)(1_002, 1_003)
+	await Promise.resolve()
+	expect(writes?.keys.has(entries[1_002].key)).toBe(true)
+	expect(writes?.keys.size).toBe(1_000)
+	stop()
+})
+
+it(`leaves family-member creation out of observed transaction writes`, () => {
+	const { silo, store } = setup()
+	const itemsAtoms = silo.atomFamily<number, string>({
+		key: `items`,
+		default: 0,
+	})
+	const initializeTransaction = silo.transaction({
+		key: `initialize`,
+		do: ({ get }) => get(itemsAtoms, `member`),
+	})
+	const stop = observeStore(store, () => {})
+	expect(silo.runTransaction(initializeTransaction)()).toBe(0)
+	expect(store.atoms.has(silo.findState(itemsAtoms, `member`).key)).toBe(true)
+	expect(
+		store.transactions.get(initializeTransaction.key)?.observedWrites,
+	).toBeUndefined()
 	stop()
 })
 
@@ -306,6 +342,11 @@ it(`marks all open transaction frames when write inspection hits its event limit
 		},
 	})
 	silo.runTransaction(outerTransaction)()
+	expect(
+		store.transactions.get(outerTransaction.key)?.observedWrites,
+	).toBeUndefined()
+	const stop = observeStore(store, () => {})
+	silo.runTransaction(outerTransaction)()
 	expect(silo.getState(countAtom)).toBe(10_001)
 	for (const { key } of [repeatTransaction, outerTransaction]) {
 		expect(store.transactions.get(key)?.observedWrites).toEqual({
@@ -313,6 +354,7 @@ it(`marks all open transaction frames when write inspection hits its event limit
 			truncated: true,
 		})
 	}
+	stop()
 })
 
 it(`observes root transaction results and async completion without exposing draft values`, async () => {

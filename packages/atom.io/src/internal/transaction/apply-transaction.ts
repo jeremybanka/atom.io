@@ -61,7 +61,7 @@ export function applyTransaction<F extends Fn>(
 
 		if (rootCommit) {
 			const sequence = markTransactionCommitted(parent)
-			recordTransactionWrites(parent, child, child.transactionMeta.update)
+			recordTransactionWrites(parent, child.transactionMeta.update)
 			recordTransactionOutcome(parent, child.transactionMeta.update)
 			if (publishesCommit) {
 				const commitEvent = createTransactionCommitEvent(

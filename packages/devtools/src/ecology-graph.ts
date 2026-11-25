@@ -20,6 +20,8 @@ type GraphLane = `atom` | `selector` | `operation`
 export type OperationRelation = `transaction` | `timeline`
 const edgeLimit = 1_000
 const cardLimit = 500
+const operationAnchorReserve = 25
+const operationEdgeReserve = 100
 
 export interface GraphHistory {
 	events: readonly RecordedEvent[]
@@ -83,6 +85,7 @@ interface GraphLayout {
 	records: Map<string, GraphRecord>
 	nodes: Map<string, GraphRecord>
 	ordered: GraphRecord[]
+	operations: GraphRecord[]
 	groupSelectors: Map<GraphRecord, string[]>
 	edgeIndex: Map<string, number[]>
 	dependents: Map<string, number[]>
@@ -200,6 +203,7 @@ function* indexGraph(snapshot: EcologySnapshot): Generator<void, GraphLayout> {
 		records: new Map(),
 		nodes: new Map(),
 		ordered: [],
+		operations: [],
 		groupSelectors: new Map(),
 		edgeIndex: new Map(),
 		dependents: new Map(),
@@ -233,6 +237,7 @@ function* indexGraph(snapshot: EcologySnapshot): Generator<void, GraphLayout> {
 		if (`kind` in source) layout.nodes.set(source.key, record)
 		else layout.records.set(id, record)
 		layout.ordered.push(record)
+		if (lane === `operation`) layout.operations.push(record)
 	}
 	for (const source of snapshot.families) {
 		const lane = source.type.includes(`selector`) ? `selector` : `atom`
@@ -611,6 +616,20 @@ export function* projectEcology(
 		yield
 	}
 	if (matchedIds && historyOwners.length) yield* admit(ordered)
+	if (!matchedIds && all.visible.length > cardLimit) {
+		const anchors = new Set<GraphRecord>()
+		for (const record of layout.operations) {
+			if (anchors.size === operationAnchorReserve) break
+			anchors.add(visibleRecord(record))
+			yield
+		}
+		yield* admit(anchors)
+		for (const anchor of anchors) {
+			const link = layout.linksByRecord.get(anchor)?.[0]
+			if (link) yield* admit([link.to])
+			yield
+		}
+	}
 	yield* admit(all.visible)
 	// Priority affects admission while retained cards keep their DOM slots.
 	const admitted = [...admittedSet].sort((a, b) => a.order - b.order)
@@ -733,9 +752,12 @@ export function* projectEcology(
 		return record && visibleRecord(record).id
 	}
 	const shownLinks = new Set<string>()
-	function* projectLinks(links: Iterable<OperationLink>): Generator<void> {
+	function* projectLinks(
+		links: Iterable<OperationLink>,
+		limit = edgeLimit,
+	): Generator<void> {
 		for (const link of links) {
-			if (edges.length === edgeLimit) break
+			if (edges.length === limit) break
 			const from = visibleRecord(link.from).id
 			const to = visibleRecord(link.to).id
 			const id = JSON.stringify([from, to])
@@ -752,6 +774,8 @@ export function* projectEcology(
 		}
 	}
 	if (selection) yield* projectLinks(selection.links)
+	if (candidates.length >= edgeLimit && edges.length < operationEdgeReserve)
+		yield* projectLinks(layout.operationLinks, operationEdgeReserve)
 	for (const index of candidates) {
 		if (edges.length === edgeLimit) break
 		const edge = snapshot.edges[index],

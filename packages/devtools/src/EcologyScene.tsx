@@ -355,7 +355,7 @@ export function EcologyScene(props: {
 					expanded={
 						isHistoryOwner(item) ? props.expanded?.has(item.id) : undefined
 					}
-					store={props.tools.store}
+					tools={props.tools}
 					activity={props.activity?.get(item.id)}
 					completedLoads={props.context.completedLoads}
 					reducedMotion={reducedMotion}

@@ -565,7 +565,7 @@ export function createEcologyController(
 				changes.families.size > 0 ||
 				(changes.timelineFamilies?.size ?? 0) > 0 ||
 				(changes.transactionWrites?.size ?? 0) > 0 ||
-				changes.timelines.size > 0 ||
+				(changes.timelineDefinitions?.size ?? 0) > 0 ||
 				[...changes.transactions.values()].some(
 					(change) => change.registeredAt !== undefined,
 				)

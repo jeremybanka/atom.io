@@ -1,5 +1,5 @@
 import type { Accessor } from "@atom.io/spa"
-import { onCleanup, onMount, useGetter, useId, useSetter } from "@atom.io/spa"
+import { onCleanup, useGetter, useId, useSetter } from "@atom.io/spa"
 import type {
 	ReadableToken,
 	RegularAtomFamilyToken,
@@ -24,6 +24,7 @@ import type { RemotePanelConnection } from "./remote-connection.ts"
 
 const locals = new WeakMap<RootStore, RegularAtomFamilyToken<unknown, string>>()
 const introspection = new WeakMap<RootStore, IntrospectionStates>()
+const localHistories = new WeakMap<RootStore[`transactions`], OperationHistory>()
 export type Path = readonly string[]
 export interface EditorTools {
 	store: RootStore
@@ -114,46 +115,74 @@ function getIntrospectionStates(store: RootStore): IntrospectionStates {
 function localViews(store: RootStore): StoreViews {
 	return getIntrospectionStates(store)
 }
-function useLocalOperationHistory(store: RootStore): OperationHistory {
-	const [readRevision, updateRevision] = useLocal(store, 0)
-	const transactions = new Map<string, TransactionHistory>()
-	const timelineViews = new Map<string, TimelineView>()
-	const empty: TransactionHistory = []
-	onMount(() => {
-		onCleanup(
-			observeStore(store, ({ transactions: changes, timelines }) => {
-				for (const [key, { registeredAt, outcomes }] of changes) {
-					transactions.set(
-						key,
-						appendTransactionHistory(
-							transactions.get(key) ?? empty,
-							outcomes,
-							registeredAt,
-						),
-					)
-				}
-				for (const key of timelines) timelineViews.delete(key)
-				if (changes.size || timelines.size)
-					updateRevision((revision) => revision + 1)
-			}),
-		)
+function localOperationHistory(store: RootStore): OperationHistory {
+	const existing = localHistories.get(store.transactions)
+	if (existing) return existing
+	const transactions = createRegularAtomFamily<
+		TransactionHistory,
+		string,
+		never
+	>(store, {
+		key: `🔍 Devtools transaction history`,
+		default: () => [],
 	})
-	return {
-		useTransaction: (key) => () => {
-			readRevision()
-			return transactions.get(key) ?? empty
+	const timelines = createRegularAtomFamily<
+		TimelineView | undefined,
+		string,
+		never
+	>(store, {
+		key: `🔍 Devtools timeline history`,
+		default: () => undefined,
+	})
+	const views = new Map<
+		string,
+		{ token: RegularAtomToken<TimelineView | undefined>; readers: number }
+	>()
+	const readTimeline = (key: string): TimelineView | undefined => {
+		const timeline = store.timelines.get(key)
+		return timeline && { at: timeline.at, history: timeline.history }
+	}
+	// Keep the bounded transaction log for this store when the panel unmounts.
+	const stop = observeStore(
+		store,
+		({ transactions: changes, timelines: changedTimelines }) => {
+			for (const [key, { registeredAt, outcomes }] of changes) {
+				const token = findInStore(store, transactions, key)
+				setIntoStore(store, token, (previous) =>
+					appendTransactionHistory(previous, outcomes, registeredAt),
+				)
+			}
+			for (const key of changedTimelines) {
+				const view = views.get(key)
+				if (view) setIntoStore(store, view.token, () => readTimeline(key))
+			}
 		},
-		useTimeline: (key) => () => {
-			readRevision()
-			const cached = timelineViews.get(key)
-			if (cached) return cached
-			const timeline = store.timelines.get(key)
-			if (!timeline) return
-			const view = { at: timeline.at, history: timeline.history }
-			timelineViews.set(key, view)
-			return view
+	)
+	store.miscResources.set(`🔍 Devtools operation history`, {
+		[Symbol.dispose]: stop,
+	})
+	const history: OperationHistory = {
+		useTransaction: (key) => useGetter(transactions, key),
+		useTimeline(key) {
+			let view = views.get(key)
+			if (!view) {
+				const token = findInStore(store, timelines, key)
+				setIntoStore(store, token, () => readTimeline(key))
+				views.set(key, (view = { token, readers: 0 }))
+			}
+			const { token } = view
+			view.readers++
+			onCleanup(() => {
+				if (--view.readers === 0) {
+					views.delete(key)
+					disposeFromStore(store, token)
+				}
+			})
+			return useGetter(token)
 		},
 	}
+	localHistories.set(store.transactions, history)
+	return history
 }
 function remoteOperationHistory(
 	worker: RemotePanelConnection,
@@ -208,7 +237,7 @@ export function useEditorTools(
 		worker,
 		history: worker
 			? remoteOperationHistory(worker, store)
-			: useLocalOperationHistory(store),
+			: localOperationHistory(store),
 		expanded: ownedAtom(store, expanded),
 		attempt(run) {
 			try {

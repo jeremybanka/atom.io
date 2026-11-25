@@ -630,39 +630,59 @@ try {
 		await operations.goto(
 			`http://127.0.0.1:${(server.address() as AddressInfo).port}/?inline&operations`,
 		)
-		for (const [id, kind, detail] of [
-			[`transaction:save`, `transaction`, `Transaction`],
-			[`timeline:price history`, `timeline`, `Timeline · 0/0 steps`],
-			[
-				`timeline_family:histories`,
-				`timeline-family`,
-				`Timeline Family · 1 members`,
-			],
-		]) {
-			const card = operations.locator(
-				`ecology-node-card > button[data-graph-id="${id}"]`,
-			)
-			assert.equal(await card.locator(`small`).textContent(), detail)
-			assert.equal(
-				await card
-					.locator(`ecology-primitive-icon`)
-					.getAttribute(`data-primitive`),
-				kind,
-			)
-			const editorIcon = operations.locator(
-				`ecology-editor-row[data-row-id="${id}"] > ecology-primitive-icon`,
-			)
-			assert.equal(await editorIcon.getAttribute(`data-primitive`), kind)
-			assert.equal(
-				await card.evaluate(
-					(node) =>
-						getComputedStyle(node.querySelector(`ecology-primitive-icon svg`)!)
-							.fill,
-				),
-				await editorIcon.evaluate(
-					(node) => getComputedStyle(node.parentElement!).borderLeftColor,
-				),
-			)
+		for (const colorScheme of [`light`, `dark`] as const) {
+			await operations.emulateMedia({ colorScheme })
+			for (const [id, kind, detail] of [
+				[`transaction:save`, `transaction`, `Transaction`],
+				[`timeline:price history`, `timeline`, `Timeline · 0/0 steps`],
+				[
+					`timeline_family:histories`,
+					`timeline-family`,
+					`Timeline Family · 1 members`,
+				],
+			]) {
+				const card = operations.locator(
+					`ecology-node-card > button[data-graph-id="${id}"]`,
+				)
+				assert.equal(await card.locator(`small`).textContent(), detail)
+				assert.equal(
+					await card
+						.locator(`ecology-primitive-icon`)
+						.getAttribute(`data-primitive`),
+					kind,
+				)
+				const editorIcon = operations.locator(
+					`ecology-editor-row[data-row-id="${id}"] > ecology-primitive-icon`,
+				)
+				assert.equal(await editorIcon.getAttribute(`data-primitive`), kind)
+				const [cardColors, editorColors] = await Promise.all([
+					card.evaluate((node) => ({
+						fill: getComputedStyle(
+							node.querySelector(`ecology-primitive-icon svg`)!,
+						).fill,
+						border: getComputedStyle(node).borderTopColor,
+					})),
+					editorIcon.evaluate((node) => ({
+						fill: getComputedStyle(node.querySelector(`svg`)!).fill,
+						border: getComputedStyle(node.parentElement!).borderLeftColor,
+					})),
+				])
+				assert.equal(
+					cardColors.fill,
+					cardColors.border,
+					`${id} card in ${colorScheme}`,
+				)
+				assert.equal(
+					editorColors.fill,
+					editorColors.border,
+					`${id} row in ${colorScheme}`,
+				)
+				assert.equal(
+					cardColors.fill,
+					editorColors.fill,
+					`${id} color in ${colorScheme}`,
+				)
+			}
 		}
 		for (const [id, relation, pattern] of [
 			[`transaction:save`, `transaction`, `6px, 4px`],

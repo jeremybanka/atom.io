@@ -5,18 +5,49 @@ import { isReservedIntrospectionKey } from "../reserved-keys.ts"
 import { recordStoreChange } from "../store-observation.ts"
 import type { Fn } from "../utility-types.ts"
 import type { Transaction } from "./create-transaction.ts"
-import type { ChildStore, RootStore } from "./is-root-store.ts"
+import type { RootStore } from "./is-root-store.ts"
 
 type Outcome = TransactionOutcomeEvent<TransactionToken<any>>
 const maxKeys = 1_000
 const maxEvents = 10_000
+const writersByStore = new WeakMap<
+	RootStore[`transactions`],
+	Map<string, Set<string>>
+>()
 
-/** Retain only keys, against the definitions that exist when the root commit succeeds. */
+export function forgetAtomWrites(store: RootStore, key: string): void {
+	const index = writersByStore.get(store.transactions)
+	const writers = index?.get(key)
+	if (!writers) return
+	index!.delete(key)
+	for (const transaction of writers) {
+		const writes = store.transactions.get(transaction)!.observedWrites!
+		writes.keys.delete(key)
+		writes.truncated = false
+		recordStoreChange(store, `transactionWrites`, transaction)
+	}
+}
+
+export function forgetTransactionWrites(store: RootStore, key: string): void {
+	const writes = store.transactions.get(key)?.observedWrites
+	if (!writes) return
+	const index = writersByStore.get(store.transactions)!
+	for (const atom of writes.keys) {
+		const writers = index.get(atom)!
+		writers.delete(key)
+		if (!writers.size) index.delete(atom)
+	}
+}
+
+/** Track committed writes only while the store is being observed. */
 export function recordTransactionWrites(
 	store: RootStore,
-	child: ChildStore,
 	outcome: Outcome,
 ): void {
+	if (!store.observation) return
+	let index = writersByStore.get(store.transactions)
+	if (!index) writersByStore.set(store.transactions, (index = new Map()))
+	const writersByAtom = index
 	const frame = (event: Outcome) => ({
 		transaction: store.transactions.get(event.token.key),
 		events: event.subEvents,
@@ -32,7 +63,12 @@ export function recordTransactionWrites(
 		if (key === undefined || writes.keys.size === maxKeys) {
 			if (writes.truncated) return
 			writes.truncated = true
-		} else writes.keys.add(key)
+		} else {
+			writes.keys.add(key)
+			let writers = writersByAtom.get(key)
+			if (!writers) writersByAtom.set(key, (writers = new Set()))
+			writers.add(transaction.key)
+		}
 		recordStoreChange(store, `transactionWrites`, transaction.key)
 	}
 
@@ -54,11 +90,12 @@ export function recordTransactionWrites(
 			stack.push(frame(event))
 			continue
 		}
-		if (!(`token` in event)) continue
+		if (event.type !== `atom_update` && event.type !== `mutable_atom_snapshot`)
+			continue
 		let key = event.token.key
-		const atom = child.atoms.get(key) ?? store.atoms.get(key)
+		const atom = store.atoms.get(key)
 		if (atom && hasRole(atom, `tracker:signal`)) key = key.slice(1)
-		if (isReservedIntrospectionKey(key)) continue
+		if (isReservedIntrospectionKey(key) || !store.atoms.has(key)) continue
 		for (const { transaction } of stack)
 			if (transaction) record(transaction, key)
 	}

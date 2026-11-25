@@ -29,8 +29,8 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Import                            | Minified JS |  Gzip JS |
 | --------------------------------- | ----------: | -------: |
-| `atom.io`                         |    83,167 B | 22,986 B |
-| `atom.io/experiments/realms`      |    72,810 B | 20,408 B |
+| `atom.io`                         |    83,916 B | 23,187 B |
+| `atom.io/experiments/realms`      |    73,493 B | 20,598 B |
 | `atom.io/foundations/canonical`   |       500 B |    302 B |
 | `atom.io/foundations/entries`     |       243 B |    177 B |
 | `atom.io/foundations/enumeration` |       214 B |    183 B |
@@ -40,8 +40,8 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 | `atom.io/foundations/overlays`    |     3,991 B |  1,033 B |
 | `atom.io/foundations/subject`     |       481 B |    284 B |
 | `atom.io/foundations/type-utils`  |       604 B |    371 B |
-| `atom.io/internal`                |    83,998 B | 23,504 B |
-| `atom.io/introspection`           |    60,932 B | 16,998 B |
+| `atom.io/internal`                |    84,747 B | 23,700 B |
+| `atom.io/introspection`           |    61,249 B | 17,095 B |
 | `atom.io/testing`                 |    17,369 B |  4,972 B |
 | `atom.io/transceivers/o-list`     |     7,225 B |  2,090 B |
 | `atom.io/transceivers/u-list`     |     2,032 B |    868 B |
@@ -51,10 +51,10 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Recipe                     | Entry                                      | Minified JS |  Gzip JS |
 | -------------------------- | ------------------------------------------ | ----------: | -------: |
-| Core (for example, an LSP) | `tonnage-recipes/core.ts`                  |    48,526 B | 13,783 B |
-| React app                  | `tonnage-recipes/react-app.ts`             |    59,551 B | 17,561 B |
-| Realtime React client      | `tonnage-recipes/realtime-react-client.ts` |   107,615 B | 31,934 B |
-| Realtime server            | `tonnage-recipes/realtime-server.ts`       |   107,284 B | 30,633 B |
+| Core (for example, an LSP) | `tonnage-recipes/core.ts`                  |    48,613 B | 13,804 B |
+| React app                  | `tonnage-recipes/react-app.ts`             |    59,638 B | 17,588 B |
+| Realtime React client      | `tonnage-recipes/realtime-react-client.ts` |   107,932 B | 32,038 B |
+| Realtime server            | `tonnage-recipes/realtime-server.ts`       |   108,035 B | 30,823 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

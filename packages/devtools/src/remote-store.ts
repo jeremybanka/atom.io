@@ -220,6 +220,7 @@ export function exposeWholeStore(
 			families: changedFamilies,
 			dependencies: changedDependencies,
 			operations: changedOperations,
+			timelines: changedTimelines,
 		})
 		if (graph) update.ecology = graph
 		changedStates.clear()
@@ -373,13 +374,13 @@ export function exposeWholeStore(
 				for (const key of families) changedFamilies.add(key)
 				changedOperations ||=
 					(changes.timelineFamilies?.size ?? 0) > 0 ||
+					(changes.timelineDefinitions?.size ?? 0) > 0 ||
 					(changes.transactionWrites?.size ?? 0) > 0
 				for (const key of dependencies) changedDependencies.add(key)
 				for (const key of timelines) {
 					if (!visible(key)) continue
 					timelineRevisions.set(key, ++timelineRevision)
 					changedTimelines.add(key)
-					changedOperations = true
 				}
 				for (const [key, { registeredAt, outcomes }] of changes.transactions) {
 					if (!visible(key)) continue

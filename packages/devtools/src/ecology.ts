@@ -131,8 +131,11 @@ export const ecologyOperationLabels = {
 	timeline_family: `Timeline Family`,
 } as const
 
-export function ecologyTimelinePosition(timeline: EcologyTimeline): string {
-	return `${timeline.at}/${timeline.historyLength} steps`
+export function ecologyTimelinePosition(
+	timeline: EcologyTimeline,
+	live?: { at: number; history: readonly unknown[] },
+): string {
+	return `${live?.at ?? timeline.at}/${live?.history.length ?? timeline.historyLength} steps`
 }
 
 export function captureEcologyOperations(

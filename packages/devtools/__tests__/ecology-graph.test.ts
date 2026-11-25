@@ -527,6 +527,42 @@ it(`caps paint at500 nodes/1000 edges while reporting exact captured totals and 
 	).toEqual([])
 })
 
+it(`admits operation anchors and links on a saturated overview`, () => {
+	const records = Array.from({ length: 30 }, (_, index) => ({
+		type: `transaction` as const,
+		key: `save-${index}`,
+		targets: [{ kind: `state` as const, key: `late` }],
+	}))
+	const data: EcologySnapshot = {
+		...snapshot(
+			[
+				node(`first`),
+				node(`selected`, `selector`),
+				...Array.from({ length: 600 }, (_, index) => node(`n${index}`)),
+				node(`late`),
+			],
+			Array.from({ length: 1_100 }, () => ({
+				dependency: `first`,
+				selector: `selected`,
+			})),
+		),
+		operations: { records, work: records.length, truncated: false },
+	}
+	const model = drain(projectEcology(data, createGraphContext()))
+	expect(model.items).toHaveLength(500)
+	expect(model.edges).toHaveLength(1_000)
+	expect(model.items.filter((item) => item.kind === `transaction`)).toHaveLength(
+		25,
+	)
+	expect(model.edges.filter((edge) => edge.relation)).toHaveLength(25)
+	expect(model.edges).toContainEqual({
+		from: `transaction:save-0`,
+		to: `state:late`,
+		relation: `transaction`,
+		traced: false,
+	})
+})
+
 it(`shares the paint cap with live history and keeps both sides of the timeline cursor`, () => {
 	const data: EcologySnapshot = {
 		...snapshot([node(`a`)]),

@@ -2,6 +2,7 @@ import { historyValue } from "./history-event.ts"
 
 const limit = 32
 const accessor = Symbol(`recorded accessor`)
+const empty = Symbol(`array hole`)
 const mapSize = Object.getOwnPropertyDescriptor(Map.prototype, `size`)!.get!
 const setSize = Object.getOwnPropertyDescriptor(Set.prototype, `size`)!.get!
 
@@ -41,7 +42,11 @@ function collection(value: unknown): Collection | undefined {
 			size,
 			keys: indices(0, Math.min(size, limit)),
 			truncated: size > limit,
-			read: (key) => property(value, key as number, false),
+			read: (key) => {
+				const index = key as number
+				if (index < size)
+					return property(value, index, false) ?? { value: empty }
+			},
 		}
 	}
 	const prototype: unknown = Object.getPrototypeOf(value)
@@ -93,6 +98,7 @@ function describe(value: unknown, expanded: boolean): Description {
 	function visit(item: unknown, depth: number): string {
 		if (budget-- <= 0) return omit(`…`)
 		if (item === accessor) return shorten(`[accessor]`)
+		if (item === empty) return `<empty>`
 		if (Object.is(item, -0)) return `-0`
 		if (typeof item === `bigint`) return `${item}n`
 		if (typeof item === `symbol`) return String(item)
@@ -118,12 +124,12 @@ function describe(value: unknown, expanded: boolean): Description {
 			const parts = []
 			for (const key of shape.keys.slice(0, maximum)) {
 				const entry = shape.read(key)
-				if (shape.kind === `Array`)
-					parts.push(entry ? visit(entry.value, depth + 1) : `<empty>`)
-				else if (entry) {
+				if (entry) {
 					const text = visit(entry.value, depth + 1)
 					parts.push(
-						shape.kind === `Set` ? text : `${visit(key, depth + 1)}: ${text}`,
+						shape.kind === `Array` || shape.kind === `Set`
+							? text
+							: `${visit(key, depth + 1)}: ${text}`,
 					)
 				}
 			}
@@ -149,18 +155,29 @@ export function describeOutcomeValue(
 	return describe(value, expanded)
 }
 
-type HistoryEntryChange = {
+type HistorySnapshotEntry = {
 	label: string
 	before?: Slot | undefined
 	after?: Slot | undefined
+	changed: boolean
 }
 
 export type HistoryCollectionChange = {
 	kind: Collection[`kind`]
 	beforeSize: number | undefined
 	afterSize: number | undefined
-	entries: HistoryEntryChange[]
+	beforeEmpty: boolean
+	afterEmpty: boolean
+	entries: HistorySnapshotEntry[]
 	truncated: boolean
+}
+
+function sameValue(before: unknown, after: unknown): boolean {
+	if (Object.is(before, after)) return true
+	if (typeof before !== `object` || typeof after !== `object`) return false
+	const a = describe(before, false),
+		b = describe(after, false)
+	return a.complete && b.complete && a.text === b.text
 }
 
 export function historyCollectionChanges(
@@ -178,19 +195,11 @@ export function historyCollectionChanges(
 			for (const index of indices(low, Math.max(low, Math.min(high, low + 8))))
 				keys.add(index)
 		}
-		const entries: HistoryEntryChange[] = []
+		const entries: HistorySnapshotEntry[] = []
 		for (const key of keys) {
 			const old = before.read(key),
 				current = after.read(key)
 			if (!old && !current) continue
-			if (old && current) {
-				if (Object.is(old.value, current.value)) continue
-				if (typeof old.value === `object` && typeof current.value === `object`) {
-					const a = describe(old.value, false),
-						b = describe(current.value, false)
-					if (a.complete && b.complete && a.text === b.text) continue
-				}
-			}
 			const label =
 				before.kind === `Array`
 					? `[${key as number}]`
@@ -199,12 +208,22 @@ export function historyCollectionChanges(
 						: before.kind === `Map`
 							? describeOutcomeValue(key).text
 							: ``
-			entries.push({ label, before: old, after: current })
+			entries.push({
+				label,
+				before: old,
+				after: current,
+				changed: !old || !current || !sameValue(old.value, current.value),
+			})
 		}
 		return {
 			kind: before.kind,
 			beforeSize: before.size,
 			afterSize: after.size,
+			beforeEmpty:
+				!before.truncated &&
+				entries.every((entry) => entry.before === undefined),
+			afterEmpty:
+				!after.truncated && entries.every((entry) => entry.after === undefined),
 			entries,
 			truncated: before.truncated || after.truncated,
 		}

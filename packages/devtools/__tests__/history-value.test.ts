@@ -10,9 +10,16 @@ it(`reports array lengths and actual indexed changes, including holes and long a
 		kind: `Array`,
 		beforeSize: 0,
 		afterSize: 1,
+		beforeEmpty: true,
+		afterEmpty: false,
 		truncated: false,
 		entries: [
-			{ label: `[0]`, before: undefined, after: { value: `coffee-beans` } },
+			{
+				label: `[0]`,
+				before: undefined,
+				after: { value: `coffee-beans` },
+				changed: true,
+			},
 		],
 	})
 	const sparse: (number | undefined)[] = Array(4)
@@ -21,20 +28,34 @@ it(`reports array lengths and actual indexed changes, including holes and long a
 	const next: (number | undefined)[] = Array(4)
 	next[0] = undefined
 	next[2] = 3
-	expect(historyCollectionChanges(sparse, next)?.entries).toEqual([
-		{ label: `[0]`, before: undefined, after: { value: undefined } },
-		{ label: `[1]`, before: { value: undefined }, after: undefined },
-		{ label: `[2]`, before: { value: 2 }, after: { value: 3 } },
+	expect(
+		historyCollectionChanges(sparse, next)?.entries.map((entry) => [
+			entry.label,
+			describeOutcomeValue(entry.before?.value).text,
+			describeOutcomeValue(entry.after?.value).text,
+			entry.changed,
+		]),
+	).toEqual([
+		[`[0]`, `<empty>`, `undefined`, true],
+		[`[1]`, `undefined`, `<empty>`, true],
+		[`[2]`, `2`, `3`, true],
+		[`[3]`, `<empty>`, `<empty>`, false],
 	])
 	const large = Array.from({ length: 100 }, (_, index) => index)
-	expect(historyCollectionChanges(large, [...large, 100])).toMatchObject({
+	const append = historyCollectionChanges(large, [...large, 100])!
+	expect(append).toMatchObject({
 		beforeSize: 100,
 		afterSize: 101,
 		truncated: true,
-		entries: [{ label: `[100]`, after: { value: 100 } }],
+	})
+	expect(append.entries[0]).toMatchObject({ label: `[0]`, changed: false })
+	expect(append.entries.at(-1)).toMatchObject({
+		label: `[100]`,
+		after: { value: 100 },
+		changed: true,
 	})
 	expect(
-		historyCollectionChanges([...large, 100], large)?.entries[0],
+		historyCollectionChanges([...large, 100], large)?.entries.at(-1),
 	).toMatchObject({
 		label: `[100]`,
 		before: { value: 100 },
@@ -48,9 +69,20 @@ it(`reports changed record properties, map entries and set membership`, () => {
 			{ same: { x: 1 }, changed: 2, added: null },
 		)?.entries,
 	).toEqual([
-		{ label: `changed`, before: { value: 1 }, after: { value: 2 } },
-		{ label: `gone`, before: { value: false }, after: undefined },
-		{ label: `added`, before: undefined, after: { value: null } },
+		{
+			label: `same`,
+			before: { value: { x: 1 } },
+			after: { value: { x: 1 } },
+			changed: false,
+		},
+		{
+			label: `changed`,
+			before: { value: 1 },
+			after: { value: 2 },
+			changed: true,
+		},
+		{ label: `gone`, before: { value: false }, after: undefined, changed: true },
+		{ label: `added`, before: undefined, after: { value: null }, changed: true },
 	])
 	expect(
 		historyCollectionChanges(
@@ -64,21 +96,39 @@ it(`reports changed record properties, map entries and set membership`, () => {
 			]),
 		)?.entries,
 	).toEqual([
-		{ label: `"count"`, before: { value: 1 }, after: { value: 2 } },
-		{ label: `"gone"`, before: { value: 5 }, after: undefined },
-		{ label: `"fresh"`, before: undefined, after: { value: 4 } },
+		{
+			label: `"count"`,
+			before: { value: 1 },
+			after: { value: 2 },
+			changed: true,
+		},
+		{ label: `"gone"`, before: { value: 5 }, after: undefined, changed: true },
+		{ label: `"fresh"`, before: undefined, after: { value: 4 }, changed: true },
 	])
 	expect(
 		historyCollectionChanges(new Set([`old`, `same`]), new Set([`same`, `new`]))
 			?.entries,
 	).toEqual([
-		{ label: ``, before: { value: `old` }, after: undefined },
-		{ label: ``, before: undefined, after: { value: `new` } },
+		{ label: ``, before: { value: `old` }, after: undefined, changed: true },
+		{
+			label: ``,
+			before: { value: `same` },
+			after: { value: `same` },
+			changed: false,
+		},
+		{ label: ``, before: undefined, after: { value: `new` }, changed: true },
 	])
 	const long = new Map(Array.from({ length: 35 }, (_, index) => [index, index]))
-	expect(
-		historyCollectionChanges(long, new Map([...long].reverse())),
-	).toMatchObject({ truncated: true, entries: [] })
+	const reordered = historyCollectionChanges(long, new Map([...long].reverse()))!
+	expect(reordered.truncated).toBe(true)
+	expect(reordered.entries).toHaveLength(35)
+	expect(reordered.entries.some((entry) => entry.changed)).toBe(false)
+	const hidden = Object.defineProperty({}, `internal`, { value: 1 })
+	expect(historyCollectionChanges(hidden, {})).toMatchObject({
+		beforeEmpty: true,
+		afterEmpty: true,
+		entries: [],
+	})
 	expect(historyCollectionChanges({ a: 1 }, [1])).toBeUndefined()
 	expect(historyCollectionChanges(undefined, [1])).toBeUndefined()
 	expect(historyCollectionChanges({ a: 1 }, undefined)).toBeUndefined()

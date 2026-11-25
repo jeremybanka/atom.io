@@ -771,21 +771,39 @@ try {
 			await cartChange.locator(`[data-collection-summary] strong`).textContent(),
 			`cartItems`,
 		)
-		assert.deepEqual(
+		assert.deepEqual(await cartChange.locator(`th small`).allTextContents(), [
+			`length 0`,
+			`length 1`,
+		])
+		assert.equal(
 			await cartChange
-				.locator(`[data-collection-summary] code`)
-				.allTextContents(),
-			[`0`, `1`],
+				.locator(
+					`[data-snapshot-punctuation] [data-snapshot-side="before"] code`,
+				)
+				.first()
+				.textContent(),
+			`[]`,
 		)
 		assert.equal(
-			await cartChange.locator(`[data-entry-change] > code`).textContent(),
-			`[0]`,
+			await cartChange
+				.locator(`[data-snapshot-diff="after"] snapshot-entry`)
+				.textContent(),
+			`[0]"coffee-beans"`,
 		)
 		assert.equal(
-			await cartChange.locator(`[data-entry-change] ins`).textContent(),
-			`"coffee-beans"`,
+			await cartChange.locator(`[data-snapshot-diff="before"]`).count(),
+			0,
 		)
-		assert.equal(await cartChange.locator(`del`).count(), 0)
+		const [beforePosition, afterPosition] = await cartChange
+			.locator(`th`)
+			.evaluateAll((cells) =>
+				cells.map((cell) => ({
+					x: cell.getBoundingClientRect().x,
+					y: cell.getBoundingClientRect().y,
+				})),
+			)
+		assert.equal(beforePosition.y, afterPosition.y)
+		assert.ok(beforePosition.x < afterPosition.x)
 		await operations
 			.getByRole(`button`, { name: `Expand timeline price history` })
 			.click()

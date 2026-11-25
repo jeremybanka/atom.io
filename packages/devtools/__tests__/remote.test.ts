@@ -304,7 +304,7 @@ it(`ships initial and incremental Ecology operations over the remote protocol`, 
 			).toBe(`count01`)
 			expect(
 				host.querySelector(
-					`ecology-editor transaction-outcomes [data-entry-change] ins`,
+					`ecology-editor transaction-outcomes [data-snapshot-diff="after"] outcome-value`,
 				)?.textContent,
 			).toBe(`"coffee-beans"`)
 		})

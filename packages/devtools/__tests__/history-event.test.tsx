@@ -238,7 +238,7 @@ it(`shows compact outcome writes before optional metadata and expands long previ
 	expect(historyWriteCount([cyclic])).toBe(1)
 })
 
-it(`shows small collection diffs inline and discloses larger sampled changes`, async () => {
+it(`aligns collection snapshots with unchanged context and discloses larger samples`, async () => {
 	const app = new Silo({
 		name: `collection-changes`,
 		lifespan: `ephemeral`,
@@ -259,6 +259,8 @@ it(`shows small collection diffs inline and discloses larger sampled changes`, a
 		[`members`, new Set([`one`]), new Set([`two`])],
 		[`large`, [], Array.from({ length: 64 }, (_, index) => index)],
 		[`same`, [1], [1]],
+		[`empty`, [], []],
+		[`late`, [0, 1, 2, 3, 4, 5], [0, 1, 2, 3, 4, 5, 6]],
 		[`raw`, 0, { cart: [`coffee-beans`] }],
 		[`truncated`, 0, [[[]]]],
 	] as const
@@ -304,47 +306,74 @@ it(`shows small collection diffs inline and discloses larger sampled changes`, a
 				`button[aria-label="Expand outcome 1"]`,
 			)!,
 		)
-		const [cart, record, market, members, large, same] = host.querySelectorAll(
-			`outcome-collection-change`,
-		)
+		const [cart, record, market, members, large, same, empty, late] =
+			host.querySelectorAll(`outcome-collection-change`)
 		expect(
 			cart.querySelector(`[data-collection-summary] small`)?.textContent,
-		).toBe(`Arraylength01`)
-		expect(cart.querySelector(`[data-entry-change]`)?.textContent).toBe(
-			`[0]Added"coffee-beans"`,
+		).toBe(`Array`)
+		const headings = (view: Element) =>
+			[...view.querySelectorAll(`th`)].map((cell) => cell.textContent)
+		expect(headings(cart)).toEqual([`Beforelength 0`, `Afterlength 1`])
+		expect(
+			cart.querySelector(
+				`[data-snapshot-punctuation] [data-snapshot-side="before"]`,
+			)?.textContent,
+		).toBe(`[]`)
+		expect(cart.querySelector(`[data-snapshot-diff="after"]`)?.textContent).toBe(
+			`[0]"coffee-beans"`,
 		)
-		expect(cart.querySelector(`del`)).toBeNull()
+		expect(cart.querySelector(`[data-snapshot-diff="before"]`)).toBeNull()
 		expect(
 			record.querySelector(`[data-collection-summary] small`)?.textContent,
 		).toBe(`Object`)
-		expect(record.querySelector(`[data-entry-change] del`)?.textContent).toBe(
-			`true`,
-		)
 		expect(
-			record.querySelector(
-				`p:has(> code[title="changed"]) [data-editor-icon="arrow"]`,
+			record.querySelector(`[data-snapshot-diff="before"] outcome-value`)
+				?.textContent,
+		).toBe(`true`)
+		const changed = record.querySelector(`tr:has(code[title="changed"])`)!
+		expect(
+			[...changed.querySelectorAll(`td[data-snapshot-diff] outcome-value`)].map(
+				(cell) => cell.textContent,
 			),
-		).not.toBeNull()
+		).toEqual([`0`, `1`])
+		expect(headings(market)).toEqual([`Beforesize 1`, `Aftersize 2`])
+		expect(headings(members)).toEqual([`Beforesize 1`, `Aftersize 1`])
+		const shared = market.querySelector(`tr:has(code[title='"same"'])`)!
 		expect(
-			market.querySelector(`[data-collection-summary] small`)?.textContent,
-		).toBe(`Mapsize12`)
-		expect(
-			members.querySelector(`[data-collection-summary] small`)?.textContent,
-		).toBe(`Setsize1`)
-		expect(same.querySelector(`[data-collection-note]`)?.textContent).toBe(
-			`No visible entry changes`,
+			[...shared.querySelectorAll(`outcome-value`)].map(
+				(cell) => cell.textContent,
+			),
+		).toEqual([`1`, `1`])
+		expect(shared.querySelector(`[data-snapshot-diff]`)).toBeNull()
+		expect(same.querySelector(`[data-snapshot-entry]`)?.textContent).toBe(
+			`[0]1[0]1`,
 		)
+		expect(same.querySelector(`[data-snapshot-diff]`)).toBeNull()
+		expect(
+			[...empty.querySelectorAll(`tbody td`)].map((cell) => cell.textContent),
+		).toEqual([`[]`, `[]`])
+		expect(late.querySelector(`[data-snapshot-entry] code`)?.textContent).toBe(
+			`[4]`,
+		)
+		expect(
+			late.querySelector(`[data-snapshot-diff="after"] code`)?.textContent,
+		).toBe(`[6]`)
+		expect(
+			[...late.querySelectorAll(`[data-snapshot-punctuation] code`)].map(
+				(item) => item.textContent,
+			),
+		).toContain(`…`)
 		expect(large.querySelector(`[data-collection-note]`)?.textContent).toContain(
 			`sampled entries`,
 		)
-		expect(large.querySelectorAll(`[data-entry-change]`)).toHaveLength(3)
+		expect(large.querySelectorAll(`[data-snapshot-entry]`)).toHaveLength(3)
 		const disclosure = large.querySelector<HTMLButtonElement>(`:scope > button`)!
-		expect(disclosure.textContent).toBe(`Show 37 more changes`)
+		expect(disclosure.textContent).toBe(`Show 37 more rows`)
 		await click(disclosure)
-		expect(large.querySelectorAll(`[data-entry-change]`)).toHaveLength(40)
-		expect(disclosure.textContent).toBe(`Show fewer changes`)
+		expect(large.querySelectorAll(`[data-snapshot-entry]`)).toHaveLength(40)
+		expect(disclosure.textContent).toBe(`Show fewer rows`)
 		await click(disclosure)
-		expect(large.querySelectorAll(`[data-entry-change]`)).toHaveLength(3)
+		expect(large.querySelectorAll(`[data-snapshot-entry]`)).toHaveLength(3)
 		const raw = host.querySelector<HTMLButtonElement>(
 			`p:has(> strong[title="raw"]) button[aria-label="Show full new value"]`,
 		)!

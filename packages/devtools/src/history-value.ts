@@ -149,7 +149,7 @@ export function describeOutcomeValue(
 	return describe(value, expanded)
 }
 
-export type HistoryEntryChange = {
+type HistoryEntryChange = {
 	label: string
 	before?: Slot | undefined
 	after?: Slot | undefined

@@ -40,15 +40,12 @@ window-overlay.class {
 		border: 0;
 		cursor: pointer;
 	}
-	> snap-palette > button[aria-pressed="true"] {
+	> snap-palette > button:is([aria-pressed="true"], :hover) {
+		--snap-focus-color: var(--bg-color);
 		background: var(--accent);
 	}
-	> snap-palette > button:hover:not(:focus-visible, [aria-pressed="true"]) {
-		outline: 1px solid var(--accent);
-		outline-offset: -1px;
-	}
 	> snap-palette > button:focus-visible {
-		outline: 2px solid var(--accent);
+		outline: 2px solid var(--snap-focus-color, var(--accent));
 		outline-offset: -2px;
 	}
 }

@@ -1,8 +1,23 @@
 import type { AtomToken, TimelineEvent, TransactionSubEvent } from "atom.io"
+import { getTimelineTransactionGroup } from "atom.io/internal"
 
-export type RecordedEvent =
+export type RecordedEvent = (
 	| TransactionSubEvent
 	| TimelineEvent<AtomToken<unknown>>
+) & {
+	/** The same occurrence on the transaction log and on its timeline copies. */
+	timelineOutcomeSequence?: number
+}
+
+export function historyOutcomeSequence(
+	event: RecordedEvent,
+): number | undefined {
+	if (event.type === `transaction_outcome`)
+		return (
+			event.timelineOutcomeSequence ??
+			getTimelineTransactionGroup(event)?.sequence
+		)
+}
 
 export function appendTransactionHistory<Event>(
 	previous: readonly Event[],

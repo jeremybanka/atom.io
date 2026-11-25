@@ -1,6 +1,10 @@
 import { Silo } from "atom.io"
 import { Future } from "atom.io/foundations/future"
-import { createRegularAtom, Tracker } from "atom.io/internal"
+import {
+	createRegularAtom,
+	getTimelineTransactionGroup,
+	Tracker,
+} from "atom.io/internal"
 import {
 	observeStore,
 	peekDependencies,
@@ -192,6 +196,48 @@ it(`reports timeline family registrations independently of timeline members`, as
 		timelineFamilies: new Set([historyTimelines.key]),
 		timelines: new Set(),
 	})
+	stop()
+})
+
+it(`correlates each committed outcome with its timeline copy even when callers reuse an id`, async () => {
+	const { silo, store } = setup()
+	const countAtom = silo.atom<number>({ key: `count`, default: 0 })
+	silo.getState(countAtom)
+	const countTimeline = silo.timeline({ key: `count`, scope: [countAtom] })
+	const saveTransaction = silo.transaction({
+		key: `save`,
+		do: ({ set }, value: number) => {
+			set(countAtom, value)
+		},
+	})
+	const unrelatedTransaction = silo.transaction({
+		key: `unrelated`,
+		do: () => {},
+	})
+	const observe = vi.fn<(changes: StoreChanges) => void>()
+	const stop = observeStore(store, observe)
+	const run = silo.runTransaction(saveTransaction, `shared`)
+	run(1)
+	run(2)
+	silo.runTransaction(unrelatedTransaction)()
+	await Promise.resolve()
+	const changes = observe.mock.lastCall![0].transactions
+	const committed = changes.get(saveTransaction.key)!.outcomes
+	const recorded = store.timelines.get(countTimeline.key)!.history
+	const sequences = committed.map(
+		(event) => getTimelineTransactionGroup(event)?.sequence,
+	)
+	expect(sequences).toEqual([expect.any(Number), expect.any(Number)])
+	expect(sequences[0]).not.toBe(sequences[1])
+	for (const [index, event] of recorded.entries()) {
+		expect(event.type).toBe(`transaction_outcome`)
+		expect(getTimelineTransactionGroup(event)?.sequence).toBe(sequences[index])
+	}
+	expect(
+		getTimelineTransactionGroup(
+			changes.get(unrelatedTransaction.key)!.outcomes[0],
+		),
+	).toBeUndefined()
 	stop()
 })
 

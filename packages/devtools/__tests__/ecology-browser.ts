@@ -684,14 +684,31 @@ try {
 				)
 			}
 		}
+		await operations
+			.getByRole(`button`, { name: `Expand transaction save` })
+			.click()
+		assert.equal(
+			await operations
+				.locator(`ecology-editor transaction-outcomes`)
+				.textContent(),
+			`No recorded outcomes`,
+		)
+		await operations
+			.getByRole(`button`, { name: `Collapse transaction save` })
+			.click()
+		await operations.evaluate(() => {
+			window.ecologyFixture.recordOperation()
+		})
 		for (const [id, relation, pattern] of [
 			[`transaction:save`, `transaction`, `6px, 4px`],
 			[`timeline:price history`, `timeline`, `0.5px, 4px`],
 			[`timeline_family:histories`, `timeline`, `0.5px, 4px`],
 		]) {
-			const path = operations.locator(
-				`ecology-node-card:has(> button[data-graph-id="${id}"]) > svg > path[data-relation="${relation}"]`,
-			)
+			const path = operations
+				.locator(
+					`ecology-node-card:has(> button[data-graph-id="${id}"]) > svg > path[data-relation="${relation}"]`,
+				)
+				.first()
 			const { dasharray, stroke, border } = await path.evaluate((node) => {
 				const style = getComputedStyle(node)
 				const card = node.closest(`ecology-node-card`)!.querySelector(`button`)!
@@ -716,11 +733,18 @@ try {
 		await operations
 			.getByRole(`button`, { name: `Expand transaction save` })
 			.click()
+		await operations
+			.locator(
+				`ecology-node-card[data-history="outcome"] > svg > path[data-relation="transaction"]`,
+			)
+			.waitFor({ state: `attached` })
 		assert.equal(
 			await operations
-				.locator(`ecology-editor transaction-outcomes`)
-				.textContent(),
-			`No recorded outcomes`,
+				.locator(
+					`ecology-node-card:has(> button[data-graph-id="transaction:save"]) > svg > path[data-relation="transaction"][d]:not([d=""])`,
+				)
+				.count(),
+			0,
 		)
 		await operations
 			.getByRole(`button`, { name: `Expand timeline price history` })

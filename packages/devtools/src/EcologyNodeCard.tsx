@@ -127,27 +127,26 @@ export function EcologyNodeCard(props: {
 		const label = new CSS2DObject(element!)
 		label.name = props.item.id
 		props.scene.add(label)
-		if (!props.item.history)
-			onCleanup(
-				props.registerEdges((layers) => {
-					const next = layers.get(id) ?? empty
-					if (
-						next.length !== outgoing.length ||
-						next.some((path, index) => path !== outgoing[index])
-					) {
-						const resized = next.length !== outgoing.length
-						// Exiting SPA subtrees freeze reconciliation; clear retired geometry now.
-						for (const [index, node] of paths)
-							if (index >= next.length) node.setAttribute(`d`, ``)
-						for (let index = 0; index < next.length; index++) {
-							const node = paths.get(index)
-							if (node) paintPath(node, next[index], outgoing[index])
-						}
-						outgoing = next
-						if (resized) setPathCount(next.length)
+		onCleanup(
+			props.registerEdges((layers) => {
+				const next = layers.get(id) ?? empty
+				if (
+					next.length !== outgoing.length ||
+					next.some((path, index) => path !== outgoing[index])
+				) {
+					const resized = next.length !== outgoing.length
+					// Exiting SPA subtrees freeze reconciliation; clear retired geometry now.
+					for (const [index, node] of paths)
+						if (index >= next.length) node.setAttribute(`d`, ``)
+					for (let index = 0; index < next.length; index++) {
+						const node = paths.get(index)
+						if (node) paintPath(node, next[index], outgoing[index])
 					}
-				}),
-			)
+					outgoing = next
+					if (resized) setPathCount(next.length)
+				}
+			}),
+		)
 		bindScene(
 			() => ({
 				item: props.item,

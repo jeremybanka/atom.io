@@ -228,6 +228,7 @@ if (process.argv.includes(`--serve`)) {
 				.locator(
 					`ecology-node-card:has(> button[data-graph-id="${id}"]) > svg > path[d]:not([d=""])${relation}`,
 				)
+				.first()
 				.waitFor({ state: `attached` })
 		}
 		const scene = ecology.locator(`ecology-scene`)
@@ -235,12 +236,29 @@ if (process.argv.includes(`--serve`)) {
 			scene.locator(`button[data-graph-id="${id}"]`)
 		const transactionCard = operationCard(`transaction:increment`)
 		await transactionCard.press(`Enter`)
-		await scene.locator(`[data-history="outcome"]`).first().waitFor()
+		await scene
+			.locator(
+				`[data-history="outcome"] > svg > path[data-relation="transaction"]`,
+			)
+			.first()
+			.waitFor({ state: `attached` })
 		await ecology.locator(`transaction-outcomes event-view`).first().waitFor()
 
 		const timelineCard = operationCard(`timeline:count`)
 		await timelineCard.press(`Enter`)
 		await scene.locator(`[data-history="past"]`).first().waitFor()
+		await scene
+			.locator(
+				`ecology-node-card[data-history="past"]:has(> button[aria-label^="increment · Past"])`,
+			)
+			.first()
+			.locator(`svg > path[data-relation="timeline"][d]:not([d=""])`)
+			.nth(1)
+			.waitFor({ state: `attached` })
+		await timelineCard
+			.locator(`..`)
+			.locator(`svg > path[data-relation="timeline"]`)
+			.waitFor({ state: `attached` })
 		await ecology
 			.locator(`ecology-scene[data-history-connections="2"]`)
 			.waitFor()

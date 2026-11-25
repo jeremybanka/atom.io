@@ -193,7 +193,9 @@ export function createEcologyController(
 				!model?.rows.some((item) => item.id === context.selected),
 			expanded: new Set(context.expanded),
 			traced: model?.selection?.nodes ?? new Set(),
-			focused: model?.selection?.items,
+			focused:
+				model?.selection &&
+				new Set([...model.selection.items, ...model.historyFocus]),
 		})
 	}
 	const select = (id: string, navigate = false, historyEvent?: string) => {
@@ -252,21 +254,31 @@ export function createEcologyController(
 		}
 		const edges = value.edges.map<EcologyPresentation[`edges`][number]>(
 			(edge) => {
-				const from = value.all.get(edge.from)!,
-					to = value.all.get(edge.to)!
-				const fromCard = visibleId(from.id)!,
-					toCard = visibleId(to.id)!
+				const fromHistory = value.historyEndpoints.get(edge.from),
+					toHistory = value.historyEndpoints.get(edge.to)
+				const from = fromHistory?.item ?? value.all.get(edge.from)!,
+					to = toHistory?.item ?? value.all.get(edge.to)!
+				const fromCard =
+						fromHistory?.card ?? value.all.get(visibleId(from.id)!)!,
+					toCard = toHistory?.card ?? value.all.get(visibleId(to.id)!)!
 				return {
 					id: JSON.stringify([edge.from, edge.to]),
-					source: fromCard,
+					source: fromCard.id,
 					from,
 					to,
 					color: from.color,
 					fromCollapsed:
-						value.matches !== undefined && !value.matches.has(fromCard),
-					toCollapsed: value.matches !== undefined && !value.matches.has(toCard),
-					fromCard: fromCard !== from.id ? value.all.get(fromCard) : undefined,
-					toCard: toCard !== to.id ? value.all.get(toCard) : undefined,
+						!fromCard.history &&
+						value.matches !== undefined &&
+						!value.matches.has(fromCard.id),
+					toCollapsed:
+						!toCard.history &&
+						value.matches !== undefined &&
+						!value.matches.has(toCard.id),
+					fromCard: fromCard !== from ? fromCard : undefined,
+					toCard: toCard !== to ? toCard : undefined,
+					fromHistory: Boolean(fromCard.history),
+					toHistory: Boolean(toCard.history),
 					traced: edge.traced,
 					relation: edge.relation,
 				}
@@ -286,6 +298,7 @@ export function createEcologyController(
 			edges,
 			familyConnections: value.familyConnections,
 			historyConnections: value.historyConnections,
+			historyOwners: value.historyOwners,
 			generation,
 			filtered: matchedIds !== undefined,
 			notice: noticeText,
@@ -804,10 +817,8 @@ export function createEcologyController(
 		setHistory(id, history) {
 			if (history?.events.length) histories.set(id, history)
 			else if (!histories.delete(id)) return
-			if (context.expanded.has(id)) {
-				needsHistory = true
-				scheduleLive()
-			}
+			needsHistory = true
+			scheduleLive()
 		},
 		committed() {
 			const commit = commitPaint

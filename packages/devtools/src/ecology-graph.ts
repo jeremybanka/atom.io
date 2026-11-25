@@ -1,3 +1,5 @@
+import { stringifyJson } from "atom.io/foundations/json"
+
 import {
 	type EcologyFamily,
 	type EcologyNode,
@@ -7,7 +9,11 @@ import {
 	ecologyTimelinePosition,
 } from "./ecology.ts"
 import { ecologyColor } from "./ecology-color.ts"
-import { historyIdentity, type RecordedEvent } from "./history-event.ts"
+import {
+	historyIdentity,
+	historyOutcomeSequence,
+	type RecordedEvent,
+} from "./history-event.ts"
 import { scheduleTask } from "./task.ts"
 
 export interface GraphPosition {
@@ -22,6 +28,7 @@ const edgeLimit = 1_000
 const cardLimit = 500
 const operationAnchorReserve = 25
 const operationEdgeReserve = 100
+const historyWorkLimit = 10_000
 
 export interface GraphHistory {
 	events: readonly RecordedEvent[]
@@ -36,7 +43,11 @@ export interface GraphItem extends GraphPosition {
 	familyLabel?: string | undefined
 	familyId?: string | undefined
 	cluster?: GraphPosition | undefined
-	history?: { identity: string; direction: `outcome` | `past` | `future` }
+	history?: {
+		identity: string
+		direction: `outcome` | `past` | `future`
+		anchor: GraphPosition
+	}
 	detail: string
 	color: string
 	source: EcologySource
@@ -52,6 +63,11 @@ interface GraphEdge {
 	to: string
 	traced: boolean
 	relation?: OperationRelation
+}
+interface HistoryEndpoint {
+	item: GraphItem
+	card: GraphItem
+	event: RecordedEvent
 }
 export interface GraphContext {
 	rowLimit?: number
@@ -114,6 +130,9 @@ export interface GraphModel {
 	edges: GraphEdge[]
 	familyConnections: FamilyConnection[]
 	historyConnections: FamilyConnection[]
+	historyOwners: GraphItem[]
+	historyEndpoints: Map<string, HistoryEndpoint>
+	historyFocus: Set<string>
 	all: GraphRegistry
 	matching: number
 	atoms: number
@@ -457,11 +476,12 @@ function createRegistry(
 /** Keep the latest transaction outcomes and timeline events closest to the cursor. */
 function* projectHistory(
 	owner: GraphItem,
+	card: GraphItem,
 	{ events, at }: GraphHistory,
 	height: number,
 	limit: number,
-	items: GraphItem[],
-	connections: FamilyConnection[],
+	endpoints: Map<string, HistoryEndpoint>,
+	flyout?: { items: GraphItem[]; connections: FamilyConnection[] },
 ): Generator<void> {
 	let low = owner,
 		high = owner
@@ -472,14 +492,18 @@ function* projectHistory(
 	) => {
 		const event = events[index]
 		const identity = historyIdentity(event)
+		const cluster = clusterPosition(owner, index)
+		const position = flyout
+			? { x: owner.x, y: owner.y + (offset * height) / 2, z: owner.z }
+			: cluster
 		const item: GraphItem = {
 			...owner,
 			id: `history:${owner.id}:${identity}`,
 			familyId: owner.id,
 			familyLabel: undefined,
-			history: { identity, direction },
-			cluster: owner,
-			y: owner.y + (offset * height) / 2,
+			history: { identity, direction, anchor: owner },
+			cluster,
+			...position,
 			label:
 				direction === `outcome`
 					? `Outcome ${index + 1}`
@@ -491,7 +515,9 @@ function* projectHistory(
 					? `Transaction outcome`
 					: `${direction === `past` ? `Past` : `Future`} · ${event.type.replaceAll(`_`, ` `)}`,
 		}
-		items.push(item)
+		endpoints.set(item.id, { item, card: flyout ? item : card, event })
+		if (!flyout) return
+		flyout.items.push(item)
 		if (item.y < low.y) low = item
 		if (item.y > high.y) high = item
 	}
@@ -519,13 +545,44 @@ function* projectHistory(
 			}
 		}
 	}
-	if (low !== high)
-		connections.push({
+	if (flyout && low !== high)
+		flyout.connections.push({
 			family: owner.id,
 			from: low,
 			to: high,
 			color: owner.color,
 		})
+}
+
+/** Walk only the captured event structure and resolve keys against the active snapshot. */
+function* historyTargets(
+	event: RecordedEvent,
+	layout: GraphLayout,
+): Generator<GraphRecord | undefined> {
+	const stack = [[event].values()]
+	while (stack.length) {
+		const next = stack.at(-1)!.next()
+		if (next.done) {
+			stack.pop()
+			continue
+		}
+		const child = next.value
+		if (`subEvents` in child) stack.push(child.subEvents.values())
+		if (child.type === `transaction_outcome`) yield
+		else if (`token` in child) {
+			const key = child.token.key
+			const mutable = key.startsWith(`*`)
+				? layout.nodes.get(key.slice(1))
+				: undefined
+			yield mutable?.source.type === `mutable_atom`
+				? mutable
+				: layout.nodes.get(key)
+		} else if (child.type === `molecule_disposal`) {
+			const subKey = stringifyJson(child.key)
+			for (const [family] of child.values)
+				yield layout.nodes.get(`${family}(${subKey})`)
+		} else yield
+	}
 }
 
 /** Project admitted records, retaining capture order and raw parallel edges. Nothing publishes before completion. */
@@ -568,6 +625,8 @@ export function* projectEcology(
 	const historyOwners: GraphRecord[] = []
 	const historyItems: GraphItem[] = []
 	const historyConnections: FamilyConnection[] = []
+	const historyEndpoints = new Map<string, HistoryEndpoint>()
+	const historyFocus = new Set<string>()
 	function* admit(records: Iterable<GraphRecord>): Generator<void> {
 		for (const record of records) {
 			if (admittedSet.size + historyItems.length === cardLimit) break
@@ -607,11 +666,12 @@ export function* projectEcology(
 		if (history && room > 0)
 			yield* projectHistory(
 				all.get(owner.id)!,
+				all.get(owner.id)!,
 				history,
 				layout.height,
 				room,
-				historyItems,
-				historyConnections,
+				historyEndpoints,
+				{ items: historyItems, connections: historyConnections },
 			)
 		yield
 	}
@@ -631,43 +691,41 @@ export function* projectEcology(
 		}
 	}
 	yield* admit(all.visible)
-	// Priority affects admission while retained cards keep their DOM slots.
-	const admitted = [...admittedSet].sort((a, b) => a.order - b.order)
-	const rowRecords = new Set<GraphRecord>()
-	if (matchedIds) {
-		for (const id of matchedIds) {
-			const record = resolveRecord(layout, id)
-			if (record) {
-				rowRecords.add(record)
-				if (record.group) rowRecords.add(record.group)
-			}
-			yield
-		}
-	} else
-		for (const record of all.visible) {
-			rowRecords.add(record)
-			yield
-		}
-	if (selected && (!matchedIds || matchedIds.has(selected.id)))
-		rowRecords.add(selected)
-	const priority = (record: GraphRecord) =>
-		selection?.selectedIds.has(record.id)
-			? 0
-			: selection?.items.has(record.id)
-				? 1
-				: 2
-	const rowOrder = [...rowRecords].sort((a, b) => {
-		return (
-			priority(a) - priority(b) ||
-			(a.group?.order ?? a.order) - (b.group?.order ?? b.order) ||
-			a.order - b.order
-		)
-	})
-	const rows: GraphItem[] = []
-	for (const record of rowOrder.slice(0, context.rowLimit ?? 50)) {
-		rows.push(all.get(record.id)!)
+	const watchedOwners = new Set<GraphRecord>()
+	for (const record of admittedSet) {
+		if (record.lane === `operation` && !(`memberKeys` in record.source))
+			watchedOwners.add(record)
 		yield
 	}
+	for (const record of layout.operations) {
+		if (watchedOwners.size === cardLimit) break
+		if (record.group && admittedSet.has(visibleRecord(record)))
+			watchedOwners.add(record)
+		yield
+	}
+	const watchedHistories: GraphItem[] = []
+	for (const record of watchedOwners) {
+		const owner = all.get(record.id)!
+		watchedHistories.push(owner)
+		const history = histories?.get(owner.id)
+		const anchor = visibleRecord(record)
+		if (
+			history &&
+			(anchor !== record || !all.expanded.has(owner.id)) &&
+			historyEndpoints.size < edgeLimit
+		)
+			yield* projectHistory(
+				owner,
+				all.get(anchor.id)!,
+				history,
+				layout.height,
+				edgeLimit - historyEndpoints.size,
+				historyEndpoints,
+			)
+		yield
+	}
+	// Priority affects admission while retained cards keep their DOM slots.
+	const admitted = [...admittedSet].sort((a, b) => a.order - b.order)
 	const items: GraphItem[] = [],
 		edges: GraphEdge[] = [],
 		painted = new Set<string>(),
@@ -752,16 +810,81 @@ export function* projectEcology(
 		return record && visibleRecord(record).id
 	}
 	const shownLinks = new Set<string>()
+	const outcomes = new Map<number, HistoryEndpoint>()
+	for (const entry of historyEndpoints.values()) {
+		if (entry.item.history?.direction === `outcome`) {
+			const sequence = historyOutcomeSequence(entry.event)
+			if (sequence !== undefined) outcomes.set(sequence, entry)
+		}
+		yield
+	}
+	const related = (item: GraphItem) =>
+		(selection?.selectedIds.has(item.id) ?? false) ||
+		(item.familyId !== undefined &&
+			(selection?.selectedIds.has(item.familyId) ?? false))
+	const tracedHistory: GraphEdge[] = []
+	const historyRoutes: GraphEdge[] = []
+	const routeHistory = (
+		from: HistoryEndpoint,
+		to: GraphItem,
+		card: GraphItem,
+	) => {
+		const traced =
+			related(from.item) || related(from.card) || related(to) || related(card)
+		const route: GraphEdge = {
+			from: from.item.id,
+			to: to.id,
+			relation: from.item.kind === `transaction` ? `transaction` : `timeline`,
+			traced,
+		}
+		if (traced) {
+			for (const item of [from.item, from.card, to, card]) {
+				historyFocus.add(item.id)
+				if (item.familyId) historyFocus.add(item.familyId)
+			}
+			tracedHistory.push(route)
+		} else historyRoutes.push(route)
+	}
+	let inspected = 0
+	for (const entry of historyEndpoints.values()) {
+		if (entry.item.kind === `timeline`) {
+			const sequence = historyOutcomeSequence(entry.event)
+			const outcome = sequence === undefined ? undefined : outcomes.get(sequence)
+			if (outcome) routeHistory(entry, outcome.item, outcome.card)
+		}
+		const targets = new Set<GraphRecord>()
+		for (const target of historyTargets(entry.event, layout)) {
+			if (inspected === historyWorkLimit) break
+			inspected++
+			if (target && !targets.has(target)) {
+				targets.add(target)
+				const card = visibleRecord(target)
+				if (painted.has(card.id))
+					routeHistory(entry, all.get(target.id)!, all.get(card.id)!)
+			}
+			yield
+		}
+		yield
+	}
 	function* projectLinks(
 		links: Iterable<OperationLink>,
 		limit = edgeLimit,
 	): Generator<void> {
 		for (const link of links) {
 			if (edges.length === limit) break
-			const from = visibleRecord(link.from).id
-			const to = visibleRecord(link.to).id
+			// Transaction definitions still provide admission hints. Only outcomes draw write routes.
+			if (link.relation === `transaction`) {
+				yield
+				continue
+			}
+			const from = link.from.id
+			const to = link.to.id
 			const id = JSON.stringify([from, to])
-			if (painted.has(from) && painted.has(to) && !shownLinks.has(id)) {
+			if (
+				painted.has(visibleRecord(link.from).id) &&
+				painted.has(visibleRecord(link.to).id) &&
+				!shownLinks.has(id)
+			) {
 				shownLinks.add(id)
 				edges.push({
 					from,
@@ -774,8 +897,19 @@ export function* projectEcology(
 		}
 	}
 	if (selection) yield* projectLinks(selection.links)
-	if (candidates.length >= edgeLimit && edges.length < operationEdgeReserve)
-		yield* projectLinks(layout.operationLinks, operationEdgeReserve)
+	edges.push(...tracedHistory.slice(0, edgeLimit - edges.length))
+	let reservedHistory = 0
+	if (candidates.length >= edgeLimit && edges.length < operationEdgeReserve) {
+		reservedHistory = Math.min(
+			historyRoutes.length,
+			(operationEdgeReserve - edges.length) >> 1,
+		)
+		yield* projectLinks(
+			layout.operationLinks,
+			operationEdgeReserve - reservedHistory,
+		)
+		edges.push(...historyRoutes.slice(0, reservedHistory))
+	}
 	for (const index of candidates) {
 		if (edges.length === edgeLimit) break
 		const edge = snapshot.edges[index],
@@ -790,6 +924,47 @@ export function* projectEcology(
 		yield
 	}
 	yield* projectLinks(layout.operationLinks)
+	edges.push(
+		...historyRoutes.slice(
+			reservedHistory,
+			reservedHistory + edgeLimit - edges.length,
+		),
+	)
+	const rowRecords = new Set<GraphRecord>()
+	if (matchedIds) {
+		for (const id of matchedIds) {
+			const record = resolveRecord(layout, id)
+			if (record) {
+				rowRecords.add(record)
+				if (record.group) rowRecords.add(record.group)
+			}
+			yield
+		}
+	} else
+		for (const record of all.visible) {
+			rowRecords.add(record)
+			yield
+		}
+	if (selected && (!matchedIds || matchedIds.has(selected.id)))
+		rowRecords.add(selected)
+	const priority = (record: GraphRecord) =>
+		selection?.selectedIds.has(record.id)
+			? 0
+			: selection?.items.has(record.id) || historyFocus.has(record.id)
+				? 1
+				: 2
+	const rowOrder = [...rowRecords].sort((a, b) => {
+		return (
+			priority(a) - priority(b) ||
+			(a.group?.order ?? a.order) - (b.group?.order ?? b.order) ||
+			a.order - b.order
+		)
+	})
+	const rows: GraphItem[] = []
+	for (const record of rowOrder.slice(0, context.rowLimit ?? 50)) {
+		rows.push(all.get(record.id)!)
+		yield
+	}
 	const removed: string[] = []
 	if (!previous)
 		for (const id of context.positions.keys()) {
@@ -818,6 +993,9 @@ export function* projectEcology(
 		edges,
 		familyConnections,
 		historyConnections,
+		historyOwners: watchedHistories,
+		historyEndpoints,
+		historyFocus,
 		all,
 		matching: ordered.length,
 		atoms: layout.atoms,

@@ -26,6 +26,8 @@ export interface EcologyLine {
 	relation?: OperationRelation | undefined
 	fromCollapsed?: boolean | undefined
 	toCollapsed?: boolean | undefined
+	fromHistory?: boolean | undefined
+	toHistory?: boolean | undefined
 }
 export interface ProjectedEdge {
 	d: string
@@ -115,7 +117,14 @@ export function writeFamilySpine(
 
 interface CachedEdge extends Pick<
 	EcologyLine,
-	`fromCard` | `toCard` | `origin` | `fromCollapsed` | `toCollapsed` | `relation`
+	| `fromCard`
+	| `toCard`
+	| `origin`
+	| `fromCollapsed`
+	| `toCollapsed`
+	| `fromHistory`
+	| `toHistory`
+	| `relation`
 > {
 	path: ProjectedEdge
 	angle: number | undefined
@@ -178,6 +187,8 @@ export function createEdgeProjector(routing?: EdgeRoutingMotion) {
 				(candidate) =>
 					candidate.fromCollapsed === edge.fromCollapsed &&
 					candidate.toCollapsed === edge.toCollapsed &&
+					candidate.fromHistory === edge.fromHistory &&
+					candidate.toHistory === edge.toHistory &&
 					candidate.relation === edge.relation,
 			)
 			if (variant < 0)
@@ -187,6 +198,8 @@ export function createEdgeProjector(routing?: EdgeRoutingMotion) {
 					origin: edge.origin,
 					fromCollapsed: edge.fromCollapsed,
 					toCollapsed: edge.toCollapsed,
+					fromHistory: edge.fromHistory,
+					toHistory: edge.toHistory,
 					relation: edge.relation,
 					path,
 					angle,
@@ -205,9 +218,10 @@ export function createEdgeProjector(routing?: EdgeRoutingMotion) {
 			dx: number,
 			dy: number,
 			collapsed = false,
+			history = false,
 		) => {
-			const halfWidth = collapsed ? 43 : 91,
-				halfHeight = collapsed ? 15 : 29
+			const halfWidth = collapsed ? 43 : history ? 79 : 91,
+				halfHeight = collapsed ? 15 : history ? 22 : 29
 			const x = THREE.MathUtils.clamp(
 				((point.x - center.x) * width) / 2,
 				6 - halfWidth,
@@ -253,6 +267,8 @@ export function createEdgeProjector(routing?: EdgeRoutingMotion) {
 						candidate.origin === edge.origin &&
 						candidate.fromCollapsed === edge.fromCollapsed &&
 						candidate.toCollapsed === edge.toCollapsed &&
+						candidate.fromHistory === edge.fromHistory &&
+						candidate.toHistory === edge.toHistory &&
 						candidate.relation === edge.relation,
 				)
 			if (cached) {
@@ -299,8 +315,15 @@ export function createEdgeProjector(routing?: EdgeRoutingMotion) {
 			const [dx, dy] = Number.isInteger(turn)
 				? cardinals[((turn % 4) + 4) % 4]
 				: [Math.cos((turn * Math.PI) / 2), Math.sin((turn * Math.PI) / 2)]
-			const start = port(a, fromCard, dx, dy, edge.fromCollapsed),
-				end = port(b, toCard, -dx, -dy, edge.toCollapsed)
+			const start = port(
+					a,
+					fromCard,
+					dx,
+					dy,
+					edge.fromCollapsed,
+					edge.fromHistory,
+				),
+				end = port(b, toCard, -dx, -dy, edge.toCollapsed, edge.toHistory)
 			const direction = right
 				.clone()
 				.multiplyScalar(dx)

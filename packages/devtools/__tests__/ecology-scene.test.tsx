@@ -451,7 +451,7 @@ it(`springs late-arriving history and keeps the rendered line attached while an 
 	const past: GraphItem = {
 		...timeline,
 		id: `history:timeline:count:change`,
-		history: { identity: `change`, direction: `past` },
+		history: { identity: `change`, direction: `past`, anchor: timeline },
 		familyId: timeline.id,
 		cluster: timeline,
 		y: 4,
@@ -493,7 +493,7 @@ it(`springs late-arriving history and keeps the rendered line attached while an 
 	const future: GraphItem = {
 		...past,
 		y: -4,
-		history: { identity: `change`, direction: `future` },
+		history: { identity: `change`, direction: `future`, anchor: timeline },
 	}
 	f.patch({
 		items: [timeline, future],
@@ -527,7 +527,7 @@ it(`follows a moving timeline family member and retracts an event when its drawe
 		...item(`event`, 12, -4, 2),
 		familyId: timeline.id,
 		cluster: timeline,
-		history: { identity: `event`, direction: `future` },
+		history: { identity: `event`, direction: `future`, anchor: timeline },
 	}
 	const expanded = new Set<string>()
 	motion.sync([], expanded, 0)
@@ -540,6 +540,13 @@ it(`follows a moving timeline family member and retracts an event when its drawe
 	const offset = eventSpring as MotionValue<number>
 	offset.set(-4)
 	expect(motion.position(event.id)).toEqual({ x: 8, y: -3, z: 1 })
+	const clustered: GraphItem = {
+		...event,
+		id: `history:clustered`,
+		y: 0.25,
+		cluster: { x: 12, y: 0.25, z: 2 },
+	}
+	expect(motion.point(clustered)).toEqual({ x: 8, y: 1.25, z: 1 })
 	expanded.delete(timeline.id)
 	motion.sync([timeline], expanded, 0)
 	expect(motion.exiting(event.id)).toBe(true)
@@ -557,7 +564,7 @@ it(`follows a moving timeline family member and retracts an event when its drawe
 		...event,
 		id: `history:past`,
 		y: 4,
-		history: { identity: `past`, direction: `past` },
+		history: { identity: `past`, direction: `past`, anchor: timeline },
 	}
 	expanded.add(timeline.id)
 	motion.sync([timeline, event, past], expanded, 0)

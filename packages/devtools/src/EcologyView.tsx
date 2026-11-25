@@ -5,12 +5,11 @@ import type { FutureActivity } from "atom.io/introspection"
 import { animate } from "motion"
 
 import { createEcologyController } from "./ecology-controller.ts"
-import {
-	type GraphContext,
-	type GraphHistory,
-	type GraphItem,
-	type GraphModel,
-	isHistoryOwner,
+import type {
+	GraphContext,
+	GraphHistory,
+	GraphItem,
+	GraphModel,
 } from "./ecology-graph.ts"
 import type { EcologyLine } from "./ecology-lines.ts"
 import { EcologyEditor } from "./EcologyEditor.tsx"
@@ -39,6 +38,7 @@ export interface EcologyPresentation {
 	edges: EcologyLine[]
 	familyConnections: GraphModel[`familyConnections`]
 	historyConnections: GraphModel[`historyConnections`]
+	historyOwners: GraphModel[`historyOwners`]
 	selected?: GraphModel[`items`][number] | undefined
 	selectedCard?: string | undefined
 	expansion: { kind: `family` | `history`; expanded: boolean } | undefined
@@ -188,6 +188,7 @@ export function EcologyView(props: {
 		edges: [],
 		familyConnections: [],
 		historyConnections: [],
+		historyOwners: [],
 		selected: undefined,
 		selectedCard: undefined,
 		expansion: undefined,
@@ -272,19 +273,14 @@ export function EcologyView(props: {
 			}}
 		>
 			<EcologyToolbar marker={marker} state={state()} />
-			{state().expanded.size > 0 &&
-				state()
-					.cards.filter(
-						(item) => isHistoryOwner(item) && state().expanded.has(item.id),
-					)
-					.map((item) => (
-						<ObserveHistory
-							key={item.id}
-							tools={props.tools}
-							item={item}
-							onChange={(id, history) => controller?.setHistory(id, history)}
-						/>
-					))}
+			{state().historyOwners.map((item) => (
+				<ObserveHistory
+					key={item.id}
+					tools={props.tools}
+					item={item}
+					onChange={(id, history) => controller?.setHistory(id, history)}
+				/>
+			))}
 			<ecology-body>
 				<ecology-map>
 					<EcologyViewport

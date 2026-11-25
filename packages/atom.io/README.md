@@ -29,7 +29,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 
 | Import                            | Minified JS |  Gzip JS |
 | --------------------------------- | ----------: | -------: |
-| `atom.io`                         |    83,916 B | 23,187 B |
+| `atom.io`                         |    83,961 B | 23,199 B |
 | `atom.io/experiments/realms`      |    73,493 B | 20,598 B |
 | `atom.io/foundations/canonical`   |       500 B |    302 B |
 | `atom.io/foundations/entries`     |       243 B |    177 B |
@@ -40,7 +40,7 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 | `atom.io/foundations/overlays`    |     3,991 B |  1,033 B |
 | `atom.io/foundations/subject`     |       481 B |    284 B |
 | `atom.io/foundations/type-utils`  |       604 B |    371 B |
-| `atom.io/internal`                |    84,747 B | 23,700 B |
+| `atom.io/internal`                |    84,792 B | 23,712 B |
 | `atom.io/introspection`           |    61,249 B | 17,095 B |
 | `atom.io/testing`                 |    17,369 B |  4,972 B |
 | `atom.io/transceivers/o-list`     |     7,225 B |  2,090 B |
@@ -53,8 +53,8 @@ Sizes are exact minified and level-9 gzip JavaScript byte counts. Declarations, 
 | -------------------------- | ------------------------------------------ | ----------: | -------: |
 | Core (for example, an LSP) | `tonnage-recipes/core.ts`                  |    48,613 B | 13,804 B |
 | React app                  | `tonnage-recipes/react-app.ts`             |    59,638 B | 17,588 B |
-| Realtime React client      | `tonnage-recipes/realtime-react-client.ts` |   107,932 B | 32,038 B |
-| Realtime server            | `tonnage-recipes/realtime-server.ts`       |   108,035 B | 30,823 B |
+| Realtime React client      | `tonnage-recipes/realtime-react-client.ts` |   107,932 B | 32,037 B |
+| Realtime server            | `tonnage-recipes/realtime-server.ts`       |   108,080 B | 30,832 B |
 
 Report maintained with [tonnage](https://github.com/jeremybanka/tonnage).
 

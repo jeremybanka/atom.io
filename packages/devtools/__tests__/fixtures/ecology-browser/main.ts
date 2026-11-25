@@ -1,7 +1,6 @@
 import { mountAtomIODevtools } from "@atom.io/devtools"
 import { mountEcology } from "@atom.io/devtools/ecology"
 import { type Loadable, type RegularAtomToken, scopeFamily, Silo } from "atom.io"
-import { observeStore } from "atom.io/introspection"
 
 const host = document.createElement(`section`)
 const fixture = new URLSearchParams(location.search)
@@ -17,7 +16,8 @@ let panel = { dispose() {} },
 	mountStarted = 0,
 	setupMs = 0
 let change = () => {},
-	remove = () => {}
+	remove = () => {},
+	recordOperation = () => {}
 let brokenAtom:
 	| RegularAtomToken<Loadable<number | Error>, any, Error>
 	| undefined
@@ -75,10 +75,7 @@ function mount(mode: `small` | `empty` | `large`): void {
 					set(markerAtom, 1)
 				},
 			})
-			// Seed observed relations without adding a row to the later panel's history.
-			const stop = observeStore(app.store, () => {})
-			app.runTransaction(saveTransaction)()
-			stop()
+			recordOperation = app.runTransaction(saveTransaction)
 			app.timeline({ key: `price history`, scope: [priceAtom] })
 			const historiesTimelines = app.timelineFamily<string>({
 				key: `histories`,
@@ -147,6 +144,7 @@ declare global {
 			mount: typeof mount
 			change(): void
 			remove(): void
+			recordOperation(): void
 			showCaughtError(): void
 			timings(): { reads: number; mountStarted: number; setupMs: number }
 			evidence(): {
@@ -161,6 +159,9 @@ declare global {
 	}
 }
 window.ecologyFixture = {
+	recordOperation: () => {
+		recordOperation()
+	},
 	timings: () => ({ reads, mountStarted, setupMs }),
 	mount,
 	change: () => {

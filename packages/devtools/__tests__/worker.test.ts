@@ -1092,6 +1092,49 @@ it(`notifies Ecology when a transaction changes targets with unchanged capture c
 	expect(projected.update(update)).toBe(false)
 })
 
+it(`preserves the captured outcome identity in both remote histories`, async () => {
+	const { silo, page, worker } = fixture()
+	const countAtom = silo.atom<number>({ key: `count`, default: 0 })
+	silo.getState(countAtom)
+	const countTimeline = silo.timeline({ key: `count`, scope: [countAtom] })
+	const saveTransaction = silo.transaction({
+		key: `save`,
+		do: ({ set }, value: number) => {
+			set(countAtom, value)
+		},
+	})
+	const connection = connectRemoteStore(messagePortTransport(page.port))
+	const stop = exposeDevtoolsStore(worker.port, silo)
+	try {
+		await flush()
+		const run = silo.runTransaction(saveTransaction, `shared`)
+		run(1)
+		run(2)
+		await flush()
+		const outcomes = connection.store.valueMap.get(
+			connection.worker.views.transactionLog(saveTransaction.key).key,
+		) as { timelineOutcomeSequence?: number }[]
+		const sequences = outcomes.map((event) => event.timelineOutcomeSequence)
+		expect(sequences).toEqual([expect.any(Number), expect.any(Number)])
+		expect(sequences[0]).not.toBe(sequences[1])
+		expect(
+			structuredClone(
+				connection.store.valueMap.get(
+					connection.worker.views.timelineLog(countTimeline.key).key,
+				),
+			),
+		).toMatchObject({
+			at: 2,
+			history: sequences.map((timelineOutcomeSequence) => ({
+				timelineOutcomeSequence,
+			})),
+		})
+	} finally {
+		connection.close()
+		stop()
+	}
+})
+
 it(`projects initial timeline entries, history clear, and newly registered histories`, async () => {
 	const { silo, page, worker } = fixture()
 	const countAtom = silo.atom<number>({ key: `count`, default: 2 })

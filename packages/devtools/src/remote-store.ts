@@ -19,7 +19,11 @@ import {
 	peekStateDefinition,
 } from "atom.io/introspection"
 
-import { appendTransactionHistory, type RecordedEvent } from "./history-event.ts"
+import {
+	appendTransactionHistory,
+	historyOutcomeSequence,
+	type RecordedEvent,
+} from "./history-event.ts"
 import { trackRemoteEcology } from "./remote-ecology.ts"
 import type {
 	PanelMessage,
@@ -78,6 +82,8 @@ function copyValue(value: unknown): unknown {
 
 function copyEvent<T extends RecordedEvent>(event: T): T {
 	const copy = { ...event }
+	const sequence = historyOutcomeSequence(event)
+	if (sequence !== undefined) copy.timelineOutcomeSequence = sequence
 	if (`subEvents` in copy)
 		copy.subEvents = copy.subEvents.map(copyEvent) as typeof copy.subEvents
 	if (`update` in copy)

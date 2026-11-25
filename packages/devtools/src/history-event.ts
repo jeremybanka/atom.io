@@ -54,11 +54,13 @@ export function historyValue(value: unknown, limit = 1024): string | undefined {
 		return String(value)
 	return undefined
 }
-export function historyParams(params: readonly unknown[], full = false): string {
-	const values = full ? params : params.slice(0, 16)
-	return `[${values
-		.map((value) => historyValue(value, full ? Infinity : 1024) ?? `[opaque]`)
-		.join(`,`)}${values.length < params.length ? `,…` : ``}]`
+export function historyParams(
+	params: readonly unknown[],
+	full = false,
+	format: (value: unknown) => string | undefined = historyValue,
+): string {
+	const values = params.slice(0, full ? 64 : 16)
+	return `[${values.map((value) => format(value) ?? `[opaque]`).join(`,`)}${values.length < params.length ? `,…` : ``}]`
 }
 
 export function historyWriteCount(events: readonly RecordedEvent[]): number {

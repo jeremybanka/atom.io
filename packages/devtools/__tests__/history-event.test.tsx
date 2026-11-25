@@ -237,3 +237,126 @@ it(`shows compact outcome writes before optional metadata and expands long previ
 	cyclic.subEvents.push(cyclic, nested)
 	expect(historyWriteCount([cyclic])).toBe(1)
 })
+
+it(`shows small collection diffs inline and discloses larger sampled changes`, async () => {
+	const app = new Silo({
+		name: `collection-changes`,
+		lifespan: `ephemeral`,
+		isProduction: true,
+	})
+	const saveTransaction = app.transaction({ key: `save`, do: () => {} })
+	const updates = [
+		[`cartItems`, [], [`coffee-beans`]],
+		[`record`, { removed: true, changed: 0 }, { added: null, changed: 1 }],
+		[
+			`market`,
+			new Map([[`same`, 1]]),
+			new Map([
+				[`same`, 1],
+				[`fresh`, 2],
+			]),
+		],
+		[`members`, new Set([`one`]), new Set([`two`])],
+		[`large`, [], Array.from({ length: 64 }, (_, index) => index)],
+		[`same`, [1], [1]],
+		[`raw`, 0, { cart: [`coffee-beans`] }],
+		[`truncated`, 0, [[[]]]],
+	] as const
+	const event: RecordedEvent = {
+		type: `transaction_outcome`,
+		token: saveTransaction,
+		id: `save`,
+		timestamp: 1,
+		params: [],
+		output: undefined,
+		subEvents: updates.map(([key, oldValue, newValue]) => ({
+			type: `atom_update`,
+			token: app.atom<unknown>({ key, default: 0 }),
+			timestamp: 1,
+			update: { oldValue, newValue },
+		})),
+	}
+	const host = document.createElement(`div`)
+	const root = render(
+		() => (
+			<EventView
+				tools={useTools(app.store)}
+				event={event}
+				index={0}
+				ecology={{
+					owner: `transaction:save`,
+					hovered: undefined,
+					selected: undefined,
+				}}
+				compact
+			/>
+		),
+		host,
+		{ store: app.store },
+	)
+	try {
+		const click = async (button: HTMLButtonElement) => {
+			button.click()
+			await new Promise<void>((resolve) => setTimeout(resolve, 0))
+		}
+		await click(
+			host.querySelector<HTMLButtonElement>(
+				`button[aria-label="Expand outcome 1"]`,
+			)!,
+		)
+		const [cart, record, market, members, large, same] = host.querySelectorAll(
+			`outcome-collection-change`,
+		)
+		expect(
+			cart.querySelector(`[data-collection-summary] small`)?.textContent,
+		).toBe(`Arraylength01`)
+		expect(cart.querySelector(`[data-entry-change]`)?.textContent).toBe(
+			`[0]Added"coffee-beans"`,
+		)
+		expect(cart.querySelector(`del`)).toBeNull()
+		expect(
+			record.querySelector(`[data-collection-summary] small`)?.textContent,
+		).toBe(`Object`)
+		expect(record.querySelector(`[data-entry-change] del`)?.textContent).toBe(
+			`true`,
+		)
+		expect(
+			record.querySelector(
+				`p:has(> code[title="changed"]) [data-editor-icon="arrow"]`,
+			),
+		).not.toBeNull()
+		expect(
+			market.querySelector(`[data-collection-summary] small`)?.textContent,
+		).toBe(`Mapsize12`)
+		expect(
+			members.querySelector(`[data-collection-summary] small`)?.textContent,
+		).toBe(`Setsize1`)
+		expect(same.querySelector(`[data-collection-note]`)?.textContent).toBe(
+			`No visible entry changes`,
+		)
+		expect(large.querySelector(`[data-collection-note]`)?.textContent).toContain(
+			`sampled entries`,
+		)
+		expect(large.querySelectorAll(`[data-entry-change]`)).toHaveLength(3)
+		const disclosure = large.querySelector<HTMLButtonElement>(`:scope > button`)!
+		expect(disclosure.textContent).toBe(`Show 37 more changes`)
+		await click(disclosure)
+		expect(large.querySelectorAll(`[data-entry-change]`)).toHaveLength(40)
+		expect(disclosure.textContent).toBe(`Show fewer changes`)
+		await click(disclosure)
+		expect(large.querySelectorAll(`[data-entry-change]`)).toHaveLength(3)
+		const raw = host.querySelector<HTMLButtonElement>(
+			`p:has(> strong[title="raw"]) button[aria-label="Show full new value"]`,
+		)!
+		await click(raw)
+		expect(raw.textContent).toBe(`{"cart": ["coffee-beans"]}`)
+		const truncated = host.querySelector<HTMLButtonElement>(
+			`p:has(> strong[title="truncated"]) button[aria-label="Show full new value"]`,
+		)!
+		expect(truncated.textContent).toBe(`[[Array(…)]]`)
+		await click(truncated)
+		expect(truncated.textContent).toBe(`[[[]]]`)
+	} finally {
+		root.dispose()
+	}
+})

@@ -1,0 +1,90 @@
+outcome-collection-change.class {
+	display: block;
+	min-width: 0;
+	> p[data-collection-summary] {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 6px;
+		min-height: 22px;
+		padding: 2px 6px;
+		line-height: 18px;
+		> strong {
+			min-width: 0;
+			overflow: hidden;
+			white-space: nowrap;
+			text-overflow: ellipsis;
+		}
+		> small {
+			display: inline-flex;
+			align-items: center;
+			flex: none;
+			gap: 4px;
+			color: var(--ink-muted);
+		}
+	}
+	> entry-changes {
+		display: block;
+	}
+	> entry-changes[data-expanded="true"] {
+		max-height: 12rem;
+		overflow: auto;
+	}
+	> entry-changes > p[data-entry-change] {
+		display: grid;
+		grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) 14px minmax(0, 2fr);
+		align-items: center;
+		gap: 4px;
+		min-height: 22px;
+		padding: 2px 6px 2px 16px;
+		line-height: 18px;
+		&:has(> small:nth-child(2)) {
+			grid-template-columns: minmax(0, 1fr) auto 0 minmax(0, 3fr);
+		}
+		&:has(> small:last-child) {
+			grid-template-columns: minmax(0, 1fr) minmax(0, 3fr) 0 auto;
+		}
+		> code {
+			overflow: hidden;
+			white-space: nowrap;
+			text-overflow: ellipsis;
+		}
+		> span, > small {
+			color: var(--ink-muted);
+		}
+		> span {
+			display: inline-flex;
+		}
+		> del, > small:nth-child(2) {
+			justify-self: end;
+			text-align: end;
+		}
+		> ins, > small:last-child {
+			justify-self: start;
+		}
+		> del, > ins {
+			min-width: 0;
+			max-width: 100%;
+		}
+		> del {
+			color: var(--ink-muted);
+			background: var(--change-removed);
+		}
+		> ins {
+			color: var(--ink);
+			text-decoration: none;
+			background: var(--change-added);
+		}
+	}
+	> button[aria-expanded] {
+		display: inline-flex;
+		align-items: center;
+		margin-inline-start: 10px;
+		color: var(--ink-muted);
+	}
+	> small[data-collection-note] {
+		display: block;
+		padding: 2px 6px 3px 16px;
+		color: var(--ink-muted);
+	}
+}

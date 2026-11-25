@@ -68,11 +68,12 @@ function mount(mode: `small` | `empty` | `large`): void {
 		)
 		app.atomFamily<number, string>({ key: `zero`, default: 0 })
 		if (fixture.has(`operations`)) {
-			const markerAtom = app.atom<number>({ key: `marker`, default: 0 })
+			const cartItemsAtom = app.atom<string[]>({ key: `cartItems`, default: [] })
+			app.getState(cartItemsAtom)
 			const saveTransaction = app.transaction({
 				key: `save`,
 				do: ({ set }) => {
-					set(markerAtom, 1)
+					set(cartItemsAtom, [`coffee-beans`])
 				},
 			})
 			recordOperation = app.runTransaction(saveTransaction)

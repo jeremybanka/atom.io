@@ -762,6 +762,31 @@ try {
 			0,
 		)
 		await operations
+			.getByRole(`button`, { name: `Expand outcome 1`, exact: true })
+			.click()
+		const cartChange = operations.locator(
+			`transaction-outcomes outcome-collection-change`,
+		)
+		assert.equal(
+			await cartChange.locator(`[data-collection-summary] strong`).textContent(),
+			`cartItems`,
+		)
+		assert.deepEqual(
+			await cartChange
+				.locator(`[data-collection-summary] code`)
+				.allTextContents(),
+			[`0`, `1`],
+		)
+		assert.equal(
+			await cartChange.locator(`[data-entry-change] > code`).textContent(),
+			`[0]`,
+		)
+		assert.equal(
+			await cartChange.locator(`[data-entry-change] ins`).textContent(),
+			`"coffee-beans"`,
+		)
+		assert.equal(await cartChange.locator(`del`).count(), 0)
+		await operations
 			.getByRole(`button`, { name: `Expand timeline price history` })
 			.click()
 		assert.equal(

@@ -213,12 +213,15 @@ it(`rejects an incompatible initial protocol version before exposing any values`
 it(`ships initial and incremental Ecology operations over the remote protocol`, async () => {
 	const { silo, host, store, panel, mount } = fixture()
 	const countAtom = silo.atom<number>({ key: `count`, default: 0 })
+	const cartItemsAtom = silo.atom<string[]>({ key: `cartItems`, default: [] })
 	silo.getState(countAtom)
+	silo.getState(cartItemsAtom)
 	const countTimeline = silo.timeline({ key: `count`, scope: [countAtom] })
 	const saveTransaction = silo.transaction({
 		key: `save`,
 		do: ({ set }) => {
 			set(countAtom, 1)
+			set(cartItemsAtom, [`coffee-beans`])
 		},
 	})
 	const mounted = mount()
@@ -299,6 +302,11 @@ it(`ships initial and incremental Ecology operations over the remote protocol`, 
 					`ecology-editor transaction-outcomes [data-compact-write]`,
 				)?.textContent,
 			).toBe(`count01`)
+			expect(
+				host.querySelector(
+					`ecology-editor transaction-outcomes [data-entry-change] ins`,
+				)?.textContent,
+			).toBe(`"coffee-beans"`)
 		})
 		const member = silo.findTimeline(draftTimelines, `first`)
 		await vi.waitFor(() => {
@@ -342,7 +350,10 @@ it(`ships initial and incremental Ecology operations over the remote protocol`, 
 					{
 						type: `transaction`,
 						key: saveTransaction.key,
-						targets: [{ kind: `state`, key: countAtom.key }],
+						targets: [
+							{ kind: `state`, key: countAtom.key },
+							{ kind: `state`, key: cartItemsAtom.key },
+						],
 					},
 				]),
 			}),

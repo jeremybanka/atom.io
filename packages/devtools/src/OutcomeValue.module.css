@@ -18,6 +18,8 @@ outcome-value.class {
 		text-overflow: ellipsis;
 	}
 	> button[aria-expanded="true"] > code {
+		max-height: 9rem;
+		overflow: auto;
 		white-space: pre-wrap;
 		overflow-wrap: anywhere;
 		text-align: start;

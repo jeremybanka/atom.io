@@ -12,6 +12,11 @@ import {
 	historyWriteCount,
 	type RecordedEvent,
 } from "./history-event.ts"
+import {
+	describeOutcomeValue,
+	historyCollectionChanges,
+} from "./history-value.ts"
+import { OutcomeCollectionChange } from "./OutcomeCollectionChange.tsx"
 import { OutcomeValue } from "./OutcomeValue.tsx"
 import { type EditorTools, useExpanded } from "./store.ts"
 
@@ -87,8 +92,7 @@ export function EventView(props: {
 			tools={props.tools}
 			eventId={identity}
 			label={caption}
-			preview={displayValue(data)}
-			full={() => displayValue(data, Infinity)}
+			value={data}
 		/>
 	)
 	const change = (update: Extract<RecordedEvent, { update: unknown }>) => (
@@ -109,6 +113,11 @@ export function EventView(props: {
 			</ins>
 		</p>
 	)
+	const structured = compactWrite
+		? historyCollectionChanges(event.update.oldValue, event.update.newValue)
+		: undefined
+	const args = (params: readonly unknown[], full = false) =>
+		historyParams(params, full, (data) => describeOutcomeValue(data, full).text)
 	const hasMetadata =
 		outcome && (outcome.params.length > 0 || outcome.output !== undefined)
 	const compactOutcome = ({ params, output }: NonNullable<typeof outcome>) => (
@@ -123,8 +132,8 @@ export function EventView(props: {
 								tools={props.tools}
 								eventId={identity}
 								label="arguments"
-								preview={historyParams(params)}
-								full={() => historyParams(params, true)}
+								preview={args(params)}
+								full={() => args(params, true)}
 							/>
 						</span>
 					)}
@@ -170,7 +179,16 @@ export function EventView(props: {
 			data-testid={`${event.type === `transaction_outcome` ? `transaction` : `timeline`}-update-${token?.key}-${props.index}`}
 		>
 			{compactWrite ? (
-				change(event)
+				structured ? (
+					<OutcomeCollectionChange
+						tools={props.tools}
+						eventId={identity}
+						name={event.token.key}
+						change={structured}
+					/>
+				) : (
+					change(event)
+				)
 			) : (
 				<>
 					<event-heading>

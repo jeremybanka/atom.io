@@ -49,13 +49,15 @@ event-view.class {
 		margin-left: 9px;
 		border-left: 1px solid var(--ink-muted);
 	}
-	& > event-heading strong {
+	& > event-heading > strong,
+	& > event-heading > button[data-graph-id] > strong {
 		min-width: 0;
 		padding-right: 6px;
 		overflow: hidden;
 		text-overflow: ellipsis;
 	}
-	& > event-heading small {
+	& > event-heading > small,
+	& > event-heading > button[data-graph-id] > small {
 		font-size: 11px;
 	}
 	& > p, & > code {
